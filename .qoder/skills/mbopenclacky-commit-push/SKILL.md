@@ -63,12 +63,20 @@ Call pattern:
 
 ```powershell
 $messageFile = Join-Path $env:TEMP "mbopenclacky-commit-message.txt"
-@'
+$msg = @"
 <subject>
 
 - <bullet 1>
 - <bullet 2>
-'@ | Set-Content -Path $messageFile -Encoding UTF8
+"@
+# Write UTF-8 *without* BOM. `Set-Content -Encoding UTF8` in Windows PowerShell
+# 5.x emits a BOM, which would inject a stray U+FEFF in front of the commit
+# subject and show up in `git log` output.
+[IO.File]::WriteAllText(
+    $messageFile,
+    $msg,
+    (New-Object System.Text.UTF8Encoding($false))
+)
 
 .qoder/skills/mbopenclacky-commit-push/scripts/commit_and_push.ps1 `
   -MessageFile $messageFile
@@ -76,6 +84,11 @@ $messageFile = Join-Path $env:TEMP "mbopenclacky-commit-message.txt"
 
 Use `-DryRun` when validating the flow without creating a commit.
 Use `-NoPush` when the user only wants to commit without pushing.
+
+Keep the commit subject and body in plain ASCII when authoring the message
+inline in PowerShell. Non-ASCII characters in a `@"..."@` here-string are
+mangled by the legacy console code page (e.g. CP936 on zh-CN Windows) before
+they reach the file, even when the final write uses UTF-8.
 
 ## Output Checklist
 

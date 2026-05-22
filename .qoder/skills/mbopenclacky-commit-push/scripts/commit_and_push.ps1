@@ -21,10 +21,23 @@ function Invoke-Git {
         [string[]]$Args
     )
 
-    $output = & git @Args 2>&1
+    # Locally relax ErrorActionPreference so git warnings written to stderr
+    # (LF/CRLF notices, http->https redirects, etc.) are not promoted to
+    # terminating NativeCommandError under StrictMode + Stop.
+    $previousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        # Force any ErrorRecord lines from 2>&1 into plain strings so they
+        # cannot bubble up as exceptions later in the pipeline.
+        $output = & git @Args 2>&1 | ForEach-Object { "$_" }
+    }
+    finally {
+        $ErrorActionPreference = $previousEAP
+    }
+
     if ($LASTEXITCODE -ne 0) {
         $rendered = $Args -join " "
-        throw "git $rendered failed.`n$output"
+        throw "git $rendered failed (exit $LASTEXITCODE).`n$($output -join "`n")"
     }
     return $output
 }
