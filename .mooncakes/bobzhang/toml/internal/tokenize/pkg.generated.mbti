@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/toml/internal/tokenize"
+
+import {
+  "bobzhang/lexer",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn default_loc() -> Loc
+
+pub fn tokenize(String) -> Array[Token] raise
+
+// Errors
+
+// Types and methods
+pub(all) struct Loc {
+  start : @lexer.Position
+  end : @lexer.Position
+} derive(Eq, @debug.Debug)
+pub fn Loc::adjacent(Self, Self) -> Bool
+
+pub(all) enum Token {
+  StringToken(String, loc~ : Loc, multiline~ : Bool)
+  IntegerToken(Int64, loc~ : Loc)
+  FloatToken(Double, loc~ : Loc, raw~ : String)
+  BooleanToken(Bool, loc~ : Loc)
+  DateTimeToken(TomlDateTime, loc~ : Loc)
+  LeftBracket(loc~ : Loc)
+  RightBracket(loc~ : Loc)
+  LeftBrace(loc~ : Loc)
+  RightBrace(loc~ : Loc)
+  Equals(loc~ : Loc)
+  Comma(loc~ : Loc)
+  Dot(loc~ : Loc)
+  Identifier(String, loc~ : Loc)
+  Newline(loc~ : Loc)
+  EOF(loc~ : Loc)
+} derive(Eq, @debug.Debug)
+pub fn Token::loc(Self) -> Loc
+
+pub(all) enum TomlDateTime {
+  OffsetDateTime(String)
+  LocalDateTime(String)
+  LocalDate(String)
+  LocalTime(String)
+} derive(Eq, @debug.Debug)
+pub impl Show for TomlDateTime
+
+// Type aliases
+
+// Traits
+

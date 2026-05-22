@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bikallem/compress/zlib"
+
+import {
+  "bikallem/compress/flate",
+}
+
+// Values
+pub fn compress(Bytes, dict? : Bytes, level? : @flate.CompressionLevel) -> Bytes raise ZlibError
+
+pub fn decompress(Bytes, dict? : Bytes) -> Bytes raise ZlibError
+
+// Errors
+pub(all) suberror ZlibError {
+  InvalidHeader(String)
+  ChecksumMismatch(expected~ : UInt, got~ : UInt)
+  NeedDictionary(UInt)
+  DeflateError(String)
+  UnexpectedEOF
+}
+pub impl Show for ZlibError
+
+// Types and methods
+pub(all) enum Decode {
+  Await
+  Data(BytesView)
+  End
+  Error(ZlibError)
+}
+pub impl Show for Decode
+
+type Deflater
+pub fn Deflater::encode(Self, BytesView?) -> Encode
+pub fn Deflater::new(level? : @flate.CompressionLevel, dict? : Bytes) -> Self
+
+pub(all) enum Encode {
+  Ok
+  Data(BytesView)
+  End
+  Error(ZlibError)
+}
+pub impl Show for Encode
+
+type Inflater
+pub fn Inflater::decode(Self) -> Decode
+pub fn Inflater::new(dict? : Bytes) -> Self
+pub fn Inflater::src(Self, BytesView) -> Unit
+
+// Type aliases
+
+// Traits
+

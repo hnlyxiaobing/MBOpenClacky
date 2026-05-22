@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/core"
+
+import(
+  "Frank-III/onebit-tui/ffi"
+)
+
+// Values
+fn blend_colors(Color, Color) -> Color
+
+fn color_to_rgb(Color) -> (Double, Double, Double)
+
+fn color_to_rgba(Color) -> (Double, Double, Double, Double)
+
+fn rgb(Int, Int, Int) -> Color
+
+fn rgba(Int, Int, Int, Double) -> Color
+
+// Errors
+
+// Types and methods
+pub struct App {
+  renderer : @ffi.Renderer
+  mut buffer : @ffi.Buffer
+  mut width : Int
+  mut height : Int
+  mut running : Bool
+}
+fn App::cleanup(Self) -> Unit
+fn App::clear(Self, Double, Double, Double) -> Unit
+fn App::dimensions(Self) -> (Int, Int)
+fn App::draw_rect(Self, Int, Int, Int, Int, Color) -> Unit
+fn App::draw_text(Self, String, Int, Int, Color) -> Unit
+fn App::get_buffer(Self) -> @ffi.Buffer
+fn App::get_renderer(Self) -> @ffi.Renderer
+fn App::init() -> Self?
+fn App::render(Self) -> Unit
+fn App::resize(Self, UInt, UInt) -> Unit
+fn App::run_once(Self, (Self) -> Unit) -> Unit
+
+pub(all) enum Color {
+  Black
+  Red
+  Green
+  Yellow
+  Blue
+  Magenta
+  Cyan
+  White
+  Gray
+  BrightRed
+  BrightGreen
+  BrightYellow
+  BrightBlue
+  BrightMagenta
+  BrightCyan
+  BrightWhite
+  RGB(Double, Double, Double)
+  RGBA(Double, Double, Double, Double)
+}
+
+pub(all) struct Theme {
+  fg : Color
+  bg : Color
+  accent : Color
+}
+fn Theme::dark() -> Self
+fn Theme::light() -> Self
+
+// Type aliases
+
+// Traits
+

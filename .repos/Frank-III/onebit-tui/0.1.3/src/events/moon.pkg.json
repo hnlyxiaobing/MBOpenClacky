@@ -1,0 +1,4 @@
+{
+  "is_main": false,
+  "import": ["Frank-III/onebit-tui/ffi"]
+}

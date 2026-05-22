@@ -1,0 +1,9 @@
+import {
+  "bikallem/compress/flate",
+  "moonbitlang/async/io",
+}
+
+import {
+  "moonbitlang/async" @runtime,
+  "moonbitlang/async/io",
+} for "test"

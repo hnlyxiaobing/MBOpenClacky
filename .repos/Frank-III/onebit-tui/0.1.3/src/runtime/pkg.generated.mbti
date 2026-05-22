@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/runtime"
+
+import(
+  "Frank-III/onebit-tui/core"
+  "Frank-III/onebit-tui/ffi"
+  "Frank-III/onebit-tui/view"
+  "Frank-III/onebit-yoga/yoga"
+)
+
+// Values
+fn clear_all_focus(@view.View) -> Unit
+
+fn collect_focusable_ids(@view.View) -> Array[Int]
+
+fn dispatch_click(@view.View, Int, Int, @yoga.Node) -> Bool
+
+fn dispatch_key_event(@view.View, @ffi.KeyEvent, Int?) -> Bool
+
+fn find_next_focusable(@view.View, Int?, Ref[Bool]) -> Int?
+
+fn find_view_at_position(@view.View, Int, Int, Int, Int, @yoga.Node) -> @view.View?
+
+fn is_none(Int?) -> Bool
+
+fn run_event_loop(@core.App, () -> @view.View, on_global_event? : (@ffi.InputEvent) -> Bool) -> Unit
+
+fn set_view_focused(@view.View, Int?, Bool) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

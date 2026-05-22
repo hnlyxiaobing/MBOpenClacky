@@ -1,0 +1,119 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/view"
+
+import(
+  "Frank-III/onebit-tui/core"
+  "Frank-III/onebit-tui/events"
+  "Frank-III/onebit-tui/ffi"
+  "Frank-III/onebit-yoga/types"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum BorderStyle {
+  None
+  Single
+  Double
+  Rounded
+}
+
+pub(all) enum Direction {
+  Row
+  Column
+}
+
+pub(all) enum Overflow {
+  Visible
+  Hidden
+  Scroll
+}
+
+pub(all) enum Position {
+  Relative
+  Absolute
+}
+
+pub(all) enum Size {
+  Fixed(Double)
+  Percent(Double)
+  Auto
+}
+
+pub(all) enum TitleAlign {
+  Left
+  Center
+  Right
+}
+
+pub struct View {
+  mut width : Size?
+  mut height : Size?
+  mut flex_value : Double?
+  mut layout_direction : Direction?
+  mut spacing : Double?
+  mut padding_value : Double?
+  mut margin_value : Double?
+  mut align_items_value : @types.Align?
+  mut justify_content_value : @types.Justify?
+  mut bg_color : @core.Color?
+  mut fg_color : @core.Color?
+  mut border_style : BorderStyle?
+  mut border_color : @core.Color?
+  mut focused_border_color : @core.Color?
+  mut title_text : String?
+  mut title_align : TitleAlign?
+  position_type : Position?
+  top_offset : Double?
+  left_offset : Double?
+  content : ViewContent
+  children : Array[View]
+  mut key_handler : ((@ffi.KeyEvent) -> Bool)?
+  mut click_handler : ((Int, Int) -> Unit)?
+  mut is_focusable : Bool
+  mut is_focused : Bool
+  mut view_id : Int?
+  mut overflow_y : Overflow?
+}
+fn View::align_items(Self, @types.Align) -> Self
+fn View::background(Self, @core.Color) -> Self
+fn View::border(Self, BorderStyle, color? : @core.Color) -> Self
+fn View::container(Array[&Component]) -> Self
+fn View::container_views(Array[Self]) -> Self
+fn View::direction(Self, Direction) -> Self
+fn View::empty() -> Self
+fn View::flex(Self, Double) -> Self
+fn View::focusable(Self, f? : Bool) -> Self
+fn View::focused_border_color(Self, @core.Color) -> Self
+fn View::foreground(Self, @core.Color) -> Self
+fn View::height(Self, Double) -> Self
+fn View::id(Self, Int) -> Self
+fn View::justify_content(Self, @types.Justify) -> Self
+fn View::margin(Self, Double) -> Self
+fn View::on_click(Self, ((Int, Int) -> Unit)?) -> Self
+fn View::on_key(Self, (@ffi.KeyEvent) -> Bool) -> Self
+fn View::overflow_y(Self, Overflow) -> Self
+fn View::padding(Self, Double) -> Self
+fn View::set_focused(Self, Bool) -> Unit
+fn View::spacing(Self, Double) -> Self
+fn View::text(String, color? : @core.Color) -> Self
+fn View::title(Self, String) -> Self
+fn View::title_align(Self, TitleAlign) -> Self
+fn View::width(Self, Double) -> Self
+
+pub(all) enum ViewContent {
+  Empty
+  Text(String)
+}
+
+// Type aliases
+
+// Traits
+pub(open) trait Component {
+  render(Self) -> View
+  handle_event(Self, @events.Event) -> Bool
+  is_focusable(Self) -> Bool
+}
+

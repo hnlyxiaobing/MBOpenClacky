@@ -1,0 +1,12 @@
+{
+  "warn-list": "-0001-0002-0004-0006-0008-0009-0013-0015-0019-0022",
+  "pre-build": [
+    {
+      "input": ["vendor/opentui/build.zig", "scripts/build_opentui.sh"],
+      "output": ["lib/libopentui.a"],
+      "command": "bash -lc 'if [ -f scripts/build_opentui.sh ]; then bash scripts/build_opentui.sh; elif [ -f src/ffi/scripts/build_opentui.sh ]; then bash src/ffi/scripts/build_opentui.sh; else echo \"[onebit-tui] prebuild script not found, skipping\"; fi'"
+    }
+  ],
+  "native-stub": ["opentui_wrap.c"],
+  "link": false
+}

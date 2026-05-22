@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/toml/internal/qc_model"
+
+import {
+  "bobzhang/toml",
+  "bobzhang/toml/internal/tokenize",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct SimpleDocument {
+  fields : Map[String, SimpleValue]
+} derive(Eq, @debug.Debug)
+pub fn SimpleDocument::contains_array(Self) -> Bool
+pub fn SimpleDocument::contains_complex_key(Self) -> Bool
+pub fn SimpleDocument::contains_datetime(Self) -> Bool
+pub fn SimpleDocument::contains_datetime_array(Self) -> Bool
+pub fn SimpleDocument::contains_fractional_datetime(Self) -> Bool
+pub fn SimpleDocument::contains_negative_exponent_like_key(Self) -> Bool
+pub fn SimpleDocument::contains_string(Self) -> Bool
+pub fn SimpleDocument::contains_table(Self) -> Bool
+pub fn SimpleDocument::from_toml(@toml.TomlValue) -> Self?
+pub fn SimpleDocument::to_toml(Self) -> @toml.TomlValue
+pub impl Show for SimpleDocument
+
+pub(all) enum SimpleValue {
+  SString(String)
+  SInteger(Int64)
+  SBoolean(Bool)
+  SDateTime(@tokenize.TomlDateTime)
+  SDateTimeArray(Array[@tokenize.TomlDateTime])
+  SEmptyArray
+  SStringArray(Array[String])
+  SIntegerArray(Array[Int64])
+  SBooleanArray(Array[Bool])
+  STable(Map[String, SimpleValue])
+} derive(Eq, @debug.Debug)
+pub fn SimpleValue::from_toml(@toml.TomlValue) -> Self?
+pub fn SimpleValue::to_toml(Self) -> @toml.TomlValue
+pub impl Show for SimpleValue
+
+// Type aliases
+
+// Traits
+

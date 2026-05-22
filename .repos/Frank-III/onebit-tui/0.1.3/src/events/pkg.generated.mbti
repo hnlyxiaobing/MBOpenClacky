@@ -1,0 +1,78 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/events"
+
+import(
+  "Frank-III/onebit-tui/ffi"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ClosureHandler {
+  handler : (Event) -> Bool
+}
+fn ClosureHandler::new((Event) -> Bool) -> Self
+impl EventHandler for ClosureHandler
+
+pub(all) enum Event {
+  Key(@ffi.KeyEvent)
+  Mouse(MouseEvent)
+  Focus(Bool)
+}
+
+pub enum KeyCode {
+  KeyEnter
+  KeySpace
+  KeyEscape
+  KeyTab
+  KeyBackspace
+  KeyDelete
+  KeyUp
+  KeyDown
+  KeyLeft
+  KeyRight
+  KeyHome
+  KeyEnd
+  KeyPageUp
+  KeyPageDown
+  KeyChar(Char)
+  KeyF(Int)
+}
+fn KeyCode::from_ffi(@ffi.KeyEvent) -> Self
+
+pub(all) enum MouseAction {
+  Press
+  Release
+  Click
+  DoubleClick
+  Move
+}
+impl Eq for MouseAction
+
+pub(all) enum MouseButton {
+  Left
+  Right
+  Middle
+}
+impl Eq for MouseButton
+
+pub(all) struct MouseEvent {
+  x : Int
+  y : Int
+  button : MouseButton
+  action : MouseAction
+}
+
+pub struct NoopHandler {
+}
+impl EventHandler for NoopHandler
+
+// Type aliases
+
+// Traits
+pub trait EventHandler {
+  handle(Self, Event) -> Bool
+}
+

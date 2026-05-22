@@ -1,0 +1,354 @@
+///|
+/// HTTP status codes as registered with IANA.
+/// See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+pub(all) enum StatusCode {
+  /// RFC 9110, 15.2.1
+  Continue
+  /// RFC 9110, 15.2.2
+  SwitchingProtocols
+  /// RFC 2518, 10.1
+  Processing
+  /// RFC 8297
+  EarlyHints
+  /// RFC 9110, 15.3.1
+  OK
+  /// RFC 9110, 15.3.2
+  Created
+  /// RFC 9110, 15.3.3
+  Accepted
+  /// RFC 9110, 15.3.4
+  NonAuthoritativeInfo
+  /// RFC 9110, 15.3.5
+  NoContent
+  /// RFC 9110, 15.3.6
+  ResetContent
+  /// RFC 9110, 15.3.7
+  PartialContent
+  /// RFC 4918, 11.1
+  MultiStatus
+  /// RFC 5842, 7.1
+  AlreadyReported
+  /// RFC 3229, 10.4.1
+  IMUsed
+  /// RFC 9110, 15.4.1
+  MultipleChoices
+  /// RFC 9110, 15.4.2
+  MovedPermanently
+  /// RFC 9110, 15.4.3
+  Found
+  /// RFC 9110, 15.4.4
+  SeeOther
+  /// RFC 9110, 15.4.5
+  NotModified
+  /// RFC 9110, 15.4.6
+  UseProxy
+  /// RFC 9110, 15.4.8
+  TemporaryRedirect
+  /// RFC 9110, 15.4.9
+  PermanentRedirect
+  /// RFC 9110, 15.5.1
+  BadRequest
+  /// RFC 9110, 15.5.2
+  Unauthorized
+  /// RFC 9110, 15.5.3
+  PaymentRequired
+  /// RFC 9110, 15.5.4
+  Forbidden
+  /// RFC 9110, 15.5.5
+  NotFound
+  /// RFC 9110, 15.5.6
+  MethodNotAllowed
+  /// RFC 9110, 15.5.7
+  NotAcceptable
+  /// RFC 9110, 15.5.8
+  ProxyAuthRequired
+  /// RFC 9110, 15.5.9
+  RequestTimeout
+  /// RFC 9110, 15.5.10
+  Conflict
+  /// RFC 9110, 15.5.11
+  Gone
+  /// RFC 9110, 15.5.12
+  LengthRequired
+  /// RFC 9110, 15.5.13
+  PreconditionFailed
+  /// RFC 9110, 15.5.14
+  RequestEntityTooLarge
+  /// RFC 9110, 15.5.15
+  RequestUriTooLong
+  /// RFC 9110, 15.5.16
+  UnsupportedMediaType
+  /// RFC 9110, 15.5.17
+  RequestedRangeNotSatisfiable
+  /// RFC 9110, 15.5.18
+  ExpectationFailed
+  /// RFC 9110, 15.5.19 (Unused)
+  Teapot
+  /// RFC 9110, 15.5.20
+  MisdirectedRequest
+  /// RFC 9110, 15.5.21
+  UnprocessableEntity
+  /// RFC 4918, 11.3
+  Locked
+  /// RFC 4918, 11.4
+  FailedDependency
+  /// RFC 8470, 5.2.
+  TooEarly
+  /// RFC 9110, 15.5.22
+  UpgradeRequired
+  /// RFC 6585, 3
+  PreconditionRequired
+  /// RFC 6585, 4
+  TooManyRequests
+  /// RFC 6585, 5
+  RequestHeaderFieldsTooLarge
+  /// RFC 7725, 3
+  UnavailableForLegalReasons
+  /// RFC 9110, 15.6.1
+  InternalServerError
+  /// RFC 9110, 15.6.2
+  NotImplemented
+  /// RFC 9110, 15.6.3
+  BadGateway
+  /// RFC 9110, 15.6.4
+  ServiceUnavailable
+  /// RFC 9110, 15.6.5
+  GatewayTimeout
+  /// RFC 9110, 15.6.6
+  HttpVersionNotSupported
+  /// RFC 2295, 8.1
+  VariantAlsoNegotiates
+  /// RFC 4918, 11.5
+  InsufficientStorage
+  /// RFC 5842, 7.2
+  LoopDetected
+  /// RFC 2774, 7
+  NotExtended
+  /// RFC 6585, 6
+  NetworkAuthenticationRequired
+  Custom(Int)
+} derive(Debug, ToJson, Eq)
+
+///|
+pub impl Show for StatusCode with output(self, logger) {
+  match self {
+    Continue => logger.write_string("Continue")
+    SwitchingProtocols => logger.write_string("SwitchingProtocols")
+    Processing => logger.write_string("Processing")
+    EarlyHints => logger.write_string("EarlyHints")
+    OK => logger.write_string("OK")
+    Created => logger.write_string("Created")
+    Accepted => logger.write_string("Accepted")
+    NonAuthoritativeInfo => logger.write_string("NonAuthoritativeInfo")
+    NoContent => logger.write_string("NoContent")
+    ResetContent => logger.write_string("ResetContent")
+    PartialContent => logger.write_string("PartialContent")
+    MultiStatus => logger.write_string("MultiStatus")
+    AlreadyReported => logger.write_string("AlreadyReported")
+    IMUsed => logger.write_string("IMUsed")
+    MultipleChoices => logger.write_string("MultipleChoices")
+    MovedPermanently => logger.write_string("MovedPermanently")
+    Found => logger.write_string("Found")
+    SeeOther => logger.write_string("SeeOther")
+    NotModified => logger.write_string("NotModified")
+    UseProxy => logger.write_string("UseProxy")
+    TemporaryRedirect => logger.write_string("TemporaryRedirect")
+    PermanentRedirect => logger.write_string("PermanentRedirect")
+    BadRequest => logger.write_string("BadRequest")
+    Unauthorized => logger.write_string("Unauthorized")
+    PaymentRequired => logger.write_string("PaymentRequired")
+    Forbidden => logger.write_string("Forbidden")
+    NotFound => logger.write_string("NotFound")
+    MethodNotAllowed => logger.write_string("MethodNotAllowed")
+    NotAcceptable => logger.write_string("NotAcceptable")
+    ProxyAuthRequired => logger.write_string("ProxyAuthRequired")
+    RequestTimeout => logger.write_string("RequestTimeout")
+    Conflict => logger.write_string("Conflict")
+    Gone => logger.write_string("Gone")
+    LengthRequired => logger.write_string("LengthRequired")
+    PreconditionFailed => logger.write_string("PreconditionFailed")
+    RequestEntityTooLarge => logger.write_string("RequestEntityTooLarge")
+    RequestUriTooLong => logger.write_string("RequestUriTooLong")
+    UnsupportedMediaType => logger.write_string("UnsupportedMediaType")
+    RequestedRangeNotSatisfiable =>
+      logger.write_string("RequestedRangeNotSatisfiable")
+    ExpectationFailed => logger.write_string("ExpectationFailed")
+    Teapot => logger.write_string("Teapot")
+    MisdirectedRequest => logger.write_string("MisdirectedRequest")
+    UnprocessableEntity => logger.write_string("UnprocessableEntity")
+    Locked => logger.write_string("Locked")
+    FailedDependency => logger.write_string("FailedDependency")
+    TooEarly => logger.write_string("TooEarly")
+    UpgradeRequired => logger.write_string("UpgradeRequired")
+    PreconditionRequired => logger.write_string("PreconditionRequired")
+    TooManyRequests => logger.write_string("TooManyRequests")
+    RequestHeaderFieldsTooLarge =>
+      logger.write_string("RequestHeaderFieldsTooLarge")
+    UnavailableForLegalReasons =>
+      logger.write_string("UnavailableForLegalReasons")
+    InternalServerError => logger.write_string("InternalServerError")
+    NotImplemented => logger.write_string("NotImplemented")
+    BadGateway => logger.write_string("BadGateway")
+    ServiceUnavailable => logger.write_string("ServiceUnavailable")
+    GatewayTimeout => logger.write_string("GatewayTimeout")
+    HttpVersionNotSupported => logger.write_string("HttpVersionNotSupported")
+    VariantAlsoNegotiates => logger.write_string("VariantAlsoNegotiates")
+    InsufficientStorage => logger.write_string("InsufficientStorage")
+    LoopDetected => logger.write_string("LoopDetected")
+    NotExtended => logger.write_string("NotExtended")
+    NetworkAuthenticationRequired =>
+      logger.write_string("NetworkAuthenticationRequired")
+    Custom(i) => {
+      logger.write_string("Custom(")
+      logger.write_string(i.to_string())
+      logger.write_string(")")
+    }
+  }
+}
+
+///|
+/// Converts an integer HTTP status code to a `StatusCode` enum value.
+pub fn StatusCode::from_int(i : Int) -> StatusCode {
+  match i {
+    100 => Continue
+    101 => SwitchingProtocols
+    102 => Processing
+    103 => EarlyHints
+    200 => OK
+    201 => Created
+    202 => Accepted
+    203 => NonAuthoritativeInfo
+    204 => NoContent
+    205 => ResetContent
+    206 => PartialContent
+    207 => MultiStatus
+    208 => AlreadyReported
+    226 => IMUsed
+    300 => MultipleChoices
+    301 => MovedPermanently
+    302 => Found
+    303 => SeeOther
+    304 => NotModified
+    305 => UseProxy
+    307 => TemporaryRedirect
+    308 => PermanentRedirect
+    400 => BadRequest
+    401 => Unauthorized
+    402 => PaymentRequired
+    403 => Forbidden
+    404 => NotFound
+    405 => MethodNotAllowed
+    406 => NotAcceptable
+    407 => ProxyAuthRequired
+    408 => RequestTimeout
+    409 => Conflict
+    410 => Gone
+    411 => LengthRequired
+    412 => PreconditionFailed
+    413 => RequestEntityTooLarge
+    414 => RequestUriTooLong
+    415 => UnsupportedMediaType
+    416 => RequestedRangeNotSatisfiable
+    417 => ExpectationFailed
+    418 => Teapot
+    421 => MisdirectedRequest
+    422 => UnprocessableEntity
+    423 => Locked
+    424 => FailedDependency
+    425 => TooEarly
+    426 => UpgradeRequired
+    428 => PreconditionRequired
+    429 => TooManyRequests
+    431 => RequestHeaderFieldsTooLarge
+    451 => UnavailableForLegalReasons
+    500 => InternalServerError
+    501 => NotImplemented
+    502 => BadGateway
+    503 => ServiceUnavailable
+    504 => GatewayTimeout
+    505 => HttpVersionNotSupported
+    506 => VariantAlsoNegotiates
+    507 => InsufficientStorage
+    508 => LoopDetected
+    510 => NotExtended
+    511 => NetworkAuthenticationRequired
+    _ => Custom(i)
+  }
+}
+
+///|
+/// Returns the integer value of this HTTP status code.
+pub fn StatusCode::to_int(self : StatusCode) -> Int {
+  match self {
+    Continue => 100
+    SwitchingProtocols => 101
+    Processing => 102
+    EarlyHints => 103
+    OK => 200
+    Created => 201
+    Accepted => 202
+    NonAuthoritativeInfo => 203
+    NoContent => 204
+    ResetContent => 205
+    PartialContent => 206
+    MultiStatus => 207
+    AlreadyReported => 208
+    IMUsed => 226
+    MultipleChoices => 300
+    MovedPermanently => 301
+    Found => 302
+    SeeOther => 303
+    NotModified => 304
+    UseProxy => 305
+    TemporaryRedirect => 307
+    PermanentRedirect => 308
+    BadRequest => 400
+    Unauthorized => 401
+    PaymentRequired => 402
+    Forbidden => 403
+    NotFound => 404
+    MethodNotAllowed => 405
+    NotAcceptable => 406
+    ProxyAuthRequired => 407
+    RequestTimeout => 408
+    Conflict => 409
+    Gone => 410
+    LengthRequired => 411
+    PreconditionFailed => 412
+    RequestEntityTooLarge => 413
+    RequestUriTooLong => 414
+    UnsupportedMediaType => 415
+    RequestedRangeNotSatisfiable => 416
+    ExpectationFailed => 417
+    Teapot => 418
+    MisdirectedRequest => 421
+    UnprocessableEntity => 422
+    Locked => 423
+    FailedDependency => 424
+    TooEarly => 425
+    UpgradeRequired => 426
+    PreconditionRequired => 428
+    TooManyRequests => 429
+    RequestHeaderFieldsTooLarge => 431
+    UnavailableForLegalReasons => 451
+    InternalServerError => 500
+    NotImplemented => 501
+    BadGateway => 502
+    ServiceUnavailable => 503
+    GatewayTimeout => 504
+    HttpVersionNotSupported => 505
+    VariantAlsoNegotiates => 506
+    InsufficientStorage => 507
+    LoopDetected => 508
+    NotExtended => 510
+    NetworkAuthenticationRequired => 511
+    Custom(i) => i
+  }
+}
+
+///|
+test {
+  inspect(StatusCode::OK.to_int(), content="200")
+  inspect(StatusCode::from_int(200), content="OK")
+  inspect(StatusCode::from_int(599), content="Custom(599)")
+}

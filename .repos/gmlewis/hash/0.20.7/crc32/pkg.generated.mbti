@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gmlewis/hash/crc32"
+
+import {
+  "gmlewis/hash",
+  "gmlewis/io",
+}
+
+// Values
+pub fn new() -> Digest
+
+// Errors
+
+// Types and methods
+type Digest
+pub impl @hash.Hash32 for Digest
+
+// Type aliases
+
+// Traits
+

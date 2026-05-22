@@ -1,0 +1,46 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/crescent/uri"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub suberror ParseError {
+  InvalidScheme(StringView)
+  InvalidHeirPart(StringView)
+  InvalidPercentEncoding(StringView)
+  MissingColon
+  MissingScheme
+  InvalidSegment(StringView)
+  InvalidSchemeOrSegment(StringView)
+  Invalid(StringView)
+}
+
+// Types and methods
+pub struct Authority {
+  mut userinfo : StringView?
+  mut host : Host
+  mut port : Int?
+} derive(Eq, @debug.Debug)
+
+pub enum Host {
+  IPv6Address(StringView)
+  RegName(StringView)
+} derive(Eq, @debug.Debug)
+
+pub struct Uri {
+  mut scheme : StringView?
+  mut authority : Authority?
+  path : Array[StringView]
+  mut query : StringView?
+  mut fragment : StringView?
+} derive(Eq, @debug.Debug)
+pub fn Uri::Uri(StringView) -> Self raise ParseError
+
+// Type aliases
+
+// Traits
+

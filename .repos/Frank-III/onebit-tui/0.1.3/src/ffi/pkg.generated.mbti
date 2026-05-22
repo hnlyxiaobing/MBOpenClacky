@@ -1,0 +1,166 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/ffi"
+
+// Values
+fn disable_mouse_tracking() -> Unit
+
+fn enable_mouse_tracking(track_movement? : Bool) -> Unit
+
+fn get_terminal_size() -> (UInt, UInt)
+
+fn install_resize_handler() -> Bool
+
+fn is_input_available() -> Bool
+
+fn poll_input_event() -> InputEvent
+
+fn read_input_event() -> InputEvent
+
+fn read_key_byte() -> Int
+
+fn read_key_event() -> KeyEvent
+
+fn restore_terminal_mode() -> Int
+
+fn set_cursor_color(Double, Double, Double, Double) -> Unit
+
+fn set_cursor_position(Int, Int, visible? : Bool) -> Unit
+
+fn set_cursor_style(String, blinking? : Bool) -> Unit
+
+fn set_terminal_raw_mode() -> Int
+
+fn sleep_ms(Int) -> Unit
+
+fn was_terminal_resized() -> Bool
+
+// Errors
+
+// Types and methods
+pub struct Buffer {
+  ptr : BufferPtr
+  width : UInt
+  height : UInt
+}
+fn Buffer::blit_from(Self, Self, Int, Int, src_x? : UInt, src_y? : UInt, src_w? : UInt, src_h? : UInt) -> Unit
+fn Buffer::clear(Self, Double, Double, Double, Double) -> Unit
+fn Buffer::clear_clips(Self) -> Unit
+fn Buffer::clear_scissors(Self) -> Unit
+fn Buffer::destroy(Self) -> Unit
+fn Buffer::draw_box(Self, Int, Int, UInt, UInt, FixedArray[UInt], UInt, FixedArray[Double], FixedArray[Double], title? : String) -> Unit
+fn Buffer::draw_packed(Self, Bytes, UInt, UInt, UInt, UInt) -> Unit
+fn Buffer::draw_supersampled(Self, UInt, UInt, Bytes, Byte, UInt) -> Unit
+fn Buffer::draw_text(Self, String, UInt, UInt, fg_r? : Double, fg_g? : Double, fg_b? : Double, fg_a? : Double, bg_r? : Double?, bg_g? : Double?, bg_b? : Double?, bg_a? : Double?, bold? : Bool, underline? : Bool) -> Unit
+fn Buffer::fill_rect(Self, UInt, UInt, UInt, UInt, Double, Double, Double, Double) -> Unit
+fn Buffer::new(UInt, UInt, respect_alpha? : Bool) -> Self?
+fn Buffer::new_with_width(UInt, UInt, respect_alpha? : Bool, width_method? : Byte) -> Self?
+fn Buffer::pop_clip(Self) -> Unit
+fn Buffer::pop_scissor(Self) -> Unit
+fn Buffer::push_clip(Self, Int, Int, UInt, UInt) -> Unit
+fn Buffer::push_scissor(Self, Int, Int, Int, Int) -> Unit
+fn Buffer::set_cell_alpha(Self, UInt, UInt, UInt, fg_r? : Double, fg_g? : Double, fg_b? : Double, fg_a? : Double, bg_r? : Double, bg_g? : Double, bg_b? : Double, bg_a? : Double, attributes? : Byte) -> Unit
+
+type BufferPtr
+
+pub(all) enum InputEvent {
+  Key(KeyEvent)
+  KeyMod(KeyEvent, KeyModifiers)
+  MouseMove(Int, Int)
+  MouseDown(Int, Int, MouseButton)
+  MouseUp(Int, Int, MouseButton)
+  MouseDrag(Int, Int, MouseButton)
+  Resize(UInt, UInt)
+  None
+}
+
+pub(all) enum KeyEvent {
+  Char(Int)
+  Escape
+  Enter
+  Backspace
+  Tab
+  ArrowUp
+  ArrowDown
+  ArrowLeft
+  ArrowRight
+  Home
+  End
+  PageUp
+  PageDown
+  Insert
+  Delete
+  F(Int)
+  Unknown
+}
+
+pub(all) struct KeyModifiers {
+  ctrl : Bool
+  alt : Bool
+  shift : Bool
+}
+
+pub(all) enum MouseButton {
+  Left
+  Middle
+  Right
+  ScrollUp
+  ScrollDown
+  None
+}
+
+pub struct Renderer {
+  ptr : RendererPtr
+}
+fn Renderer::add_hit_region(Self, Int, Int, Int, Int, Int) -> Unit
+fn Renderer::check_hit(Self, Int, Int) -> Int
+fn Renderer::clear_terminal(Self) -> Unit
+fn Renderer::cursor(Self, Int, Int, visible? : Bool) -> Unit
+fn Renderer::cursor_color(Self, Double, Double, Double, Double) -> Unit
+fn Renderer::cursor_style(Self, String, blinking? : Bool) -> Unit
+fn Renderer::destroy(Self, use_alternate_screen? : Bool, split_height? : UInt) -> Unit
+fn Renderer::disable_kitty_keyboard(Self) -> Unit
+fn Renderer::disable_mouse(Self) -> Unit
+fn Renderer::enable_debug_overlay(Self, Bool, Byte) -> Unit
+fn Renderer::enable_kitty_keyboard(Self, Byte) -> Unit
+fn Renderer::enable_mouse(Self, enable_movement? : Bool) -> Unit
+fn Renderer::get_current_buffer(Self) -> Buffer
+fn Renderer::get_next_buffer(Self) -> Buffer
+fn Renderer::memory_stats(Self, UInt, UInt, UInt) -> Unit
+fn Renderer::new(UInt, UInt) -> Self?
+fn Renderer::render(Self, force? : Bool) -> Unit
+fn Renderer::render_offset(Self, UInt) -> Unit
+fn Renderer::resize(Self, UInt, UInt) -> Unit
+fn Renderer::set_background_color(Self, Double, Double, Double, Double) -> Unit
+fn Renderer::set_cursor_color_ext(Self, Double, Double, Double, Double) -> Unit
+fn Renderer::set_cursor_position(Self, Int, Int, Bool) -> Unit
+fn Renderer::set_cursor_style_ext(Self, String, Bool) -> Unit
+fn Renderer::set_terminal_title(Self, String) -> Unit
+fn Renderer::set_use_thread(Self, Bool) -> Unit
+fn Renderer::setup_terminal(Self, Bool) -> Unit
+fn Renderer::stats(Self, Double, UInt, Double) -> Unit
+
+type RendererPtr
+
+pub(all) struct TerminalCapabilities {
+  supports_truecolor : Bool
+  supports_unicode : Bool
+  supports_mouse : Bool
+  supports_kitty_keyboard : Bool
+  width : Int
+  height : Int
+}
+
+type TerminalCapabilitiesPtr
+
+pub(all) struct TerminalSession {
+  mut raw_mode : Bool
+  mut mouse_enabled : Bool
+  mut resize_handler : Bool
+}
+fn TerminalSession::cleanup(Self) -> Unit
+fn TerminalSession::new(raw_mode? : Bool, mouse? : Bool, mouse_movement? : Bool, resize_detection? : Bool) -> Self?
+
+// Type aliases
+
+// Traits
+

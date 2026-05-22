@@ -1,0 +1,7 @@
+interface:
+  display_name: "MoonBit Package Search"
+  short_description: "Search and explore MoonBit packages on mooncakes.io"
+  default_prompt: "Use $moonbit-package-search to find MoonBit packages, check availability, get package details, and answer 'does MoonBit have X?' questions."
+
+policy:
+  allow_implicit_invocation: true

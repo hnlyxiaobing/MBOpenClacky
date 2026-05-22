@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/async",
+  "bobzhang/crescent",
+}
+
+options(
+  "is-main": true,
+)

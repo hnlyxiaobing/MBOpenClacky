@@ -1,0 +1,217 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/widget"
+
+import(
+  "Frank-III/onebit-tui/core"
+  "Frank-III/onebit-tui/events"
+  "Frank-III/onebit-tui/view"
+)
+
+// Values
+fn clamp(Int, Int, Int) -> Int
+
+fn column(Array[&@view.Component]) -> @view.View
+
+fn hstack(Array[&@view.Component], spacing? : Double) -> @view.View
+
+fn maximum(Int, Int) -> Int
+
+fn minimum(Int, Int) -> Int
+
+fn row(Array[&@view.Component]) -> @view.View
+
+fn vstack(Array[&@view.Component], spacing? : Double) -> @view.View
+
+// Errors
+
+// Types and methods
+pub struct Box {
+  children : Array[&@view.Component]
+  mut title : String?
+  mut border : @view.BorderStyle
+  mut padding : Double
+  mut background : @core.Color?
+  mut foreground : @core.Color?
+}
+fn Box::background(Self, @core.Color) -> Self
+fn Box::border(Self, @view.BorderStyle) -> Self
+fn Box::foreground(Self, @core.Color) -> Self
+fn Box::new(Array[&@view.Component]) -> Self
+fn Box::padding(Self, Double) -> Self
+fn Box::title(Self, String) -> Self
+impl @view.Component for Box
+
+pub struct Button {
+  label : String
+  action : () -> Unit
+  style : ButtonStyle
+  mut id : Int?
+}
+fn Button::danger(String, () -> Unit) -> Self
+fn Button::new(String, () -> Unit) -> Self
+fn Button::primary(String, () -> Unit) -> Self
+fn Button::secondary(String, () -> Unit) -> Self
+fn Button::with_id(Self, Int) -> Self
+impl @view.Component for Button
+
+pub struct ButtonStyle {
+  background : @core.Color?
+  foreground : @core.Color
+  border : @view.BorderStyle?
+  padding : Double
+}
+fn ButtonStyle::danger() -> Self
+fn ButtonStyle::default() -> Self
+fn ButtonStyle::primary() -> Self
+fn ButtonStyle::secondary() -> Self
+
+pub struct Column {
+  children : Array[&@view.Component]
+  mut spacing : Double
+  mut padding : Double
+}
+fn Column::new(Array[&@view.Component]) -> Self
+fn Column::padding(Self, Double) -> Self
+fn Column::spacing(Self, Double) -> Self
+impl @view.Component for Column
+
+pub struct FocusManager {
+  mut focusable_components : Array[FocusableComponent]
+  mut current_index : Int?
+}
+fn FocusManager::clear(Self) -> Unit
+fn FocusManager::clear_focus(Self) -> Unit
+fn FocusManager::focus_by_id(Self, String) -> Bool
+fn FocusManager::focus_next(Self) -> Bool
+fn FocusManager::focus_previous(Self) -> Bool
+fn FocusManager::get_focused(Self) -> FocusableComponent?
+fn FocusManager::handle_navigation(Self, @events.Event) -> Bool
+fn FocusManager::new() -> Self
+fn FocusManager::register(Self, String, &@view.Component, tab_index? : Int?) -> Unit
+
+pub struct FocusableComponent {
+  id : String
+  component : &@view.Component
+  tab_index : Int?
+}
+
+pub struct InputStyle {
+  border : @view.BorderStyle
+  border_color : @core.Color
+  text_color : @core.Color
+  placeholder_color : @core.Color
+}
+fn InputStyle::default() -> Self
+
+pub struct List[T] {
+  items : Array[T]
+  mut selected_index : Int
+  mut scroll_offset : Int
+  mut visible_items : Int
+  item_renderer : (T, Bool) -> String
+  mut on_select : (T, Int) -> Unit
+  mut style : ListStyle
+}
+fn[T] List::get_selected(Self[T]) -> T?
+fn[T] List::new(Array[T], (T, Bool) -> String) -> Self[T]
+fn[T] List::on_select(Self[T], (T, Int) -> Unit) -> Self[T]
+fn[T] List::select_next(Self[T]) -> Bool
+fn[T] List::select_previous(Self[T]) -> Bool
+fn[T] List::selected(Self[T], Int) -> Self[T]
+fn[T] List::visible_items(Self[T], Int) -> Self[T]
+fn[T] List::with_style(Self[T], ListStyle) -> Self[T]
+impl[T] @view.Component for List[T]
+
+pub struct ListStyle {
+  selected_fg : @core.Color
+  selected_bg : @core.Color?
+  normal_fg : @core.Color
+  border : @view.BorderStyle?
+  max_height : Double?
+}
+fn ListStyle::default() -> Self
+
+pub struct ProgressBar {
+  value : Double
+  mut width : Double
+  mut style : ProgressStyle
+  mut label : String?
+}
+fn ProgressBar::label(Self, String) -> Self
+fn ProgressBar::new(Double) -> Self
+fn ProgressBar::width(Self, Double) -> Self
+fn ProgressBar::with_style(Self, ProgressStyle) -> Self
+impl @view.Component for ProgressBar
+
+pub struct ProgressStyle {
+  filled_char : String
+  empty_char : String
+  filled_color : @core.Color
+  empty_color : @core.Color
+  show_percentage : Bool
+}
+fn ProgressStyle::default() -> Self
+fn ProgressStyle::dots() -> Self
+fn ProgressStyle::simple() -> Self
+
+pub struct Row {
+  children : Array[&@view.Component]
+  mut spacing : Double
+  mut padding : Double
+}
+fn Row::new(Array[&@view.Component]) -> Self
+fn Row::padding(Self, Double) -> Self
+fn Row::spacing(Self, Double) -> Self
+impl @view.Component for Row
+
+pub struct ScrollBox {
+  items : Array[&@view.Component]
+  visible_rows : Int
+  offset : Ref[Int]
+  mut title : String?
+  mut border : @view.BorderStyle
+  mut padding : Double
+}
+fn ScrollBox::border(Self, @view.BorderStyle) -> Self
+fn ScrollBox::new(Array[&@view.Component], visible_rows? : Int, offset? : Ref[Int]) -> Self
+fn ScrollBox::padding(Self, Double) -> Self
+fn ScrollBox::title(Self, String) -> Self
+impl @view.Component for ScrollBox
+
+pub struct Text {
+  content : String
+  style : TextStyle
+}
+fn Text::body(String) -> Self
+fn Text::caption(String) -> Self
+fn Text::color(Self, @core.Color) -> Self
+fn Text::heading(String) -> Self
+fn Text::new(String) -> Self
+impl @view.Component for Text
+
+pub struct TextInput {
+  value : Ref[String]
+  mut placeholder : String
+  mut width : Double
+  style : InputStyle
+  mut id : Int?
+}
+fn TextInput::new(Ref[String]) -> Self
+fn TextInput::placeholder(Self, String) -> Self
+fn TextInput::width(Self, Double) -> Self
+fn TextInput::with_id(Self, Int) -> Self
+impl @view.Component for TextInput
+
+pub struct TextStyle {
+  mut color : @core.Color
+  background : @core.Color?
+}
+fn TextStyle::body() -> Self
+fn TextStyle::caption() -> Self
+fn TextStyle::default() -> Self
+fn TextStyle::heading() -> Self
+
+// Type aliases
+
+// Traits
+
