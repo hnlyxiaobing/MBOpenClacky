@@ -1,17 +1,17 @@
 ///|
 /// Agent configuration, loaded from TOML config file and environment variables.
 pub(all) struct AgentConfig {
-  permission_mode : PermissionMode
-  max_tokens : Int
-  verbose : Bool
-  enable_compression : Bool
-  enable_prompt_caching : Bool
-  models : Array[ModelConfig]
-  current_model_id : String?
-  memory_update_enabled : Bool
-  skill_evolution : Json?
-  max_running_agents : Int
-  max_idle_agents : Int
+  mut permission_mode : PermissionMode
+  mut max_tokens : Int
+  mut verbose : Bool
+  mut enable_compression : Bool
+  mut enable_prompt_caching : Bool
+  mut models : Array[ModelConfig]
+  mut current_model_id : String?
+  mut memory_update_enabled : Bool
+  mut skill_evolution : Json?
+  mut max_running_agents : Int
+  mut max_idle_agents : Int
 } derive(Eq, Debug, ToJson)
 
 ///|

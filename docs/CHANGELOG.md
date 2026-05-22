@@ -25,6 +25,26 @@
 
 ## 变更记录
 
+### 2026-05-23  配置加载与 Provider 预设系统
+
+- `[feat]` 新增 `lib/utils/` 工具包
+  - `env.mbt` — 环境变量类型安全访问（字符串/布尔/整数）
+  - `path.mbt` — 配置目录路径解析（home_dir、config_dir、config_file、sessions_dir、skills_dir）
+  - `utils_wbtest.mbt` — 白盒测试（环境变量读写、路径构建、整数解析）
+- `[feat]` 实现配置加载器 `lib/config/loader.mbt`
+  - TOML 配置文件读写（settings 节 + models 数组）
+  - 环境变量覆盖（`MBOPENCLACKY_API_KEY` / `BASE_URL` / `MODEL` / `VERBOSE`）
+  - 默认配置路径 `~/.mbopenclacky/config.toml`
+- `[feat]` 实现 Provider 预设系统 `lib/config/provider.mbt`
+  - `ApiType` 枚举（OpenAICompletions / AnthropicMessages / Bedrock / OpenAIResponses）
+  - `Providers` 内置预设：OpenClacky、OpenRouter、Anthropic、OpenAI、DeepSeek、Qwen
+  - Lite model 映射与 fallback model 链
+  - 通过 base_url 或 id 自动匹配 Provider
+- `[refactor]` `AgentConfig` 所有字段改为 `mut`，支持运行时修改
+- `[chore]` `lib/config/moon.pkg` 新增依赖：`bobzhang/toml`、`moonbitlang/x/fs`、`moonbitlang/x/path`、`moonbitlang/x/sys`、`lib/utils`
+- `[test]` 新增 `lib/config/config_wbtest.mbt` 白盒测试（29 个用例）
+  - 覆盖：默认值、TOML 解析/序列化/往返、Provider 查询、环境变量叠加、模型选择
+
 ### 2026-05-23  项目初始化与基础框架搭建
 
 - `[feat]` 建立项目目录结构
