@@ -21,7 +21,7 @@ pub(all) struct Message {
   // Core fields (sent to API)
   role : Role
   content : MessageContent
-  tool_calls : Array[ToolCall]?
+  mut tool_calls : Array[ToolCall]?
   tool_call_id : String?
   name : String?
   // Internal fields (stripped before API calls)

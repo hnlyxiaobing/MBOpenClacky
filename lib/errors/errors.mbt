@@ -2,7 +2,7 @@
 
 ///|
 /// Maps to Ruby's AgentInterrupted < Exception, which bypasses rescue StandardError.
-pub suberror AgentInterrupted {
+pub(all) suberror AgentInterrupted {
   AgentInterrupted(String)
 } derive(ToJson, Debug)
 
@@ -10,7 +10,7 @@ pub suberror AgentInterrupted {
 
 ///|
 /// Maps to Ruby's AgentError < StandardError.
-pub suberror AgentError {
+pub(all) suberror AgentError {
   AgentError(String)
 } derive(ToJson, Debug)
 
@@ -18,7 +18,7 @@ pub suberror AgentError {
 
 ///|
 /// Maps to Ruby's BadRequestError < AgentError.
-pub suberror BadRequestError {
+pub(all) suberror BadRequestError {
   BadRequestError(Int, String)
 } derive(ToJson, Debug)
 
@@ -26,7 +26,7 @@ pub suberror BadRequestError {
 
 ///|
 /// Maps to Ruby's ToolCallError < AgentError.
-pub suberror ToolCallError {
+pub(all) suberror ToolCallError {
   ToolCallError(String, String)
 } derive(ToJson, Debug)
 
@@ -34,7 +34,7 @@ pub suberror ToolCallError {
 
 ///|
 /// Maps to Ruby's BrowserNotReachableError < AgentError.
-pub suberror BrowserNotReachableError {
+pub(all) suberror BrowserNotReachableError {
   BrowserNotReachableError(String)
 } derive(ToJson, Debug)
 
@@ -42,7 +42,7 @@ pub suberror BrowserNotReachableError {
 
 ///|
 /// Maps to Ruby's RetryableError < StandardError.
-pub suberror RetryableError {
+pub(all) suberror RetryableError {
   RetryableError(String)
 } derive(ToJson, Debug)
 
@@ -50,7 +50,7 @@ pub suberror RetryableError {
 
 ///|
 /// Maps to Ruby's UpstreamTruncatedError < RetryableError.
-pub suberror UpstreamTruncatedError {
+pub(all) suberror UpstreamTruncatedError {
   UpstreamTruncatedError(String)
 } derive(ToJson, Debug)
 

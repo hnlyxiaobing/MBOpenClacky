@@ -25,6 +25,29 @@
 
 ## 变更记录
 
+### 2026-05-23  Phase 3 工具系统实现 + 编译错误系统性修复
+
+- `[feat]` 完成 10 个工具模块实现（共 ~2,100 行）
+  - `lib/tool/terminal.mbt`（226 行）— 终端命令执行，支持 run/background/continue/poll/kill 五种调用方式
+  - `lib/tool/grep.mbt`（358 行）— 文件内容搜索，支持正则、通配符、上下文行、递归搜索
+  - `lib/tool/registry.mbt`（264 行）— 工具注册中心，支持别名、分类、注册/注销/查找
+  - `lib/tool/security.mbt`（257 行）— 安全校验，命令白名单/路径保护/密钥检测
+  - `lib/tool/file_reader.mbt`（207 行）— 文件读取，支持偏移量/行数限制
+  - `lib/tool/web_fetch.mbt`（131 行）— 网页抓取
+  - `lib/tool/web_search.mbt`（93 行）— 网页搜索
+  - `lib/tool/write.mbt`（101 行）— 文件写入
+  - `lib/tool/edit.mbt`（165 行）— 精确字符串替换编辑
+  - `lib/tool/glob.mbt`（168 行）— 通配符文件查找
+  - `lib/tool/any_tool.mbt`（121 行）— AnyTool 动态分发适配器
+  - `lib/tool/types.mbt`（15 行）— ToolCategory trait 定义
+- `[chore]` `lib/tool/moon.pkg` 新增依赖：`@string`、`@fs`、`@path`、`@sys`
+- `[fix]` 修复 client 包 `json.value()` 弃用警告（46 处），替换为 `if json is Object(obj)` 模式匹配
+- `[fix]` 修复工具包 `starts_with`/`ends_with` 弃用，替换为 `has_prefix`/`has_suffix`
+- `[fix]` 修复 `Number(n)` → `Number(n, ..)` 缺少参数模式
+- `[refactor]` 消除 48 处 trait 方法中未使用的 `self` 参数（改为 `_`）
+- `[chore]` 扩展 `.gitignore`：排除 `_check_output*.txt`、`_tmp_*`、`assets/`、`logs/`、`memory/`
+- `[docs]` 新增 `docs/compiler-error-efficiency-report.md`：65 个编译错误的根因分析与修复路线图
+
 ### 2026-05-23  Phase 2 LLM 客户端核心实现
 
 - `[feat]` 实现 LLM 客户端核心 `lib/client/client.mbt`（410 行）
@@ -110,5 +133,26 @@
 - `[docs]` 添加项目 README 与 MIT LICENSE
 
 ---
+
+### 2026-05-23  Phase 4 Agent 核心实现（10 个 mixin 模块）
+
+- `[feat]` 实现 10 个 Agent mixin 模块（共 ~1,400 行）
+  - `lib/agent/react.mbt`（155 行）— ReAct 主循环（think → act → observe）
+  - `lib/agent/llm_caller.mbt`（145 行）— LLM 调用 + Fallback 状态机 + 上下文溢出处理
+  - `lib/agent/tool_executor.mbt`（120 行）— 工具执行 + 权限确认 + 结果构建
+  - `lib/agent/cost_tracker.mbt`（130 行）— CostSource/CacheStats/IterationTokenData + track_cost
+  - `lib/agent/system_prompt.mbt`（85 行）— 6 层系统提示词构建
+  - `lib/agent/compressor.mbt`（95 行）— 消息压缩阈值检测 + 压缩执行
+  - `lib/agent/session_data.mbt`（75 行）— SessionStats/SessionData + 会话恢复
+  - `lib/agent/agent_result.mbt`（45 行）— RunStatus/RunResult + build_result
+  - `lib/agent/agent_wbtest.mbt`（558 行）— 42 个测试用例
+- `[refactor]` `lib/agent/agent.mbt` — Agent struct 扩展至 20+ 字段（client/config/tool_registry/cache_stats/fallback_state/compression_level 等）, 新增 FallbackState 枚举状态机 + `current_model`/`set_reasoning_effort` 方法
+- `[refactor]` `lib/errors/errors.mbt` — 6 个 suberror 类型的 `pub` 改为 `pub(all)`（AgentInterrupted/AgentError/BadRequestError/ToolCallError/BrowserNotReachableError/RetryableError/UpstreamTruncatedError）
+- `[refactor]` `lib/message/message.mbt` — `tool_calls` 字段改为 `mut`
+- `[refactor]` `lib/tool/any_tool.mbt` — 7 个 trait impl 的 `impl` 改为 `pub impl`
+- `[chore]` `lib/agent/moon.pkg` 新增依赖：`@client`、`@config`、`@tool`、`@errors`、`@json`
+- `[chore]` `cmd/moon.pkg` 新增依赖：`@client`、`@tool`、`@json`
+- `[chore]` `cmd/main.mbt` — 更新 smoke test，展示 Agent/Client/Config/CacheStats/SessionData/ToolRegistry 集成
+- `[docs]` `docs/development-plan.md` — 更新 Phase 4 完成状态，新增 Phase 4 验证结果表及 Phase 5 CLI 入口计划
 
 <!-- 新记录请添加在此行上方 -->

@@ -1,7 +1,10 @@
 import {
+  "moonbitlang/core/json",
   "hnlyxiaobing/MBOpenClacky/lib/message" @message,
   "hnlyxiaobing/MBOpenClacky/lib/config" @config,
   "hnlyxiaobing/MBOpenClacky/lib/agent" @agent,
+  "hnlyxiaobing/MBOpenClacky/lib/client" @client,
+  "hnlyxiaobing/MBOpenClacky/lib/tool" @tool,
 }
 
 options(
