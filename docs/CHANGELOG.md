@@ -26,6 +26,34 @@
 ## 变更记录
 
 
+### 2026-05-23  Phase 8 Web 服务器（crescent 框架）
+
+- `[feat]` 实现基于 `bobzhang/crescent` 的 Web 服务器（`lib/web/`，9 文件，~1,147 行）
+  - `server.mbt`（141 行）— WebServer 状态管理 + `get_or_create_agent` + `start`（路由注册/中间件/启动）
+  - `handlers.mbt`（553 行）— 14 个 HTTP handler 覆盖全部 API 端点
+  - `types.mbt`（257 行）— 15 个 DTO 类型 + `ToJson` 序列化
+  - `sse/sse.mbt`（85 行）— SSE 事件格式化 + HookEvent 捕获 + SSE body 构建
+  - `middleware/auth.mbt`（18 行）— `X-API-Key` 认证中间件
+  - `middleware/logging.mbt`（15 行）— 请求日志中间件（method/path/duration）
+- `[feat]` 实现 20+ REST API 端点
+  - 会话管理：`GET/POST /api/sessions`、`GET/DELETE /api/sessions/:id`、`POST /api/sessions/:id/restore`
+  - 对话：`POST /api/sessions/:id/chat`（阻塞）、`POST /api/sessions/:id/chat/stream`（SSE 流式）
+  - 会话状态：`GET /api/sessions/:id/status`、`POST /api/sessions/:id/cancel`、`GET /api/sessions/:id/cost`、`GET /api/sessions/:id/tools`
+  - 配置：`GET/PUT /api/config`、`GET /api/config/models`、`GET /api/config/permissions`
+  - 统计：`GET /api/stats`、`GET /api/stats/aggregate`
+  - 信息：`GET /api/info`、`GET /health`
+- `[feat]` 实现 WebSocket 端点 `WS /ws/sessions/:id`（`handlers.mbt` 中 `handle_websocket`，68 行）
+  - 双向实时通信：接收 JSON 消息 → Hook 事件捕获 → 事件推送
+  - `Open`/`Message`（Text）/`Close` 事件处理
+- `[feat]` 实现 SSE 流式端点（`POST /api/sessions/:id/chat/stream`）
+  - Hook 事件批量捕获 → SSE 格式化 → `Content-Type: text/event-stream` 响应
+  - 事件类型：`status`/`iteration`/`llm_start`/`llm_end`/`message_added`/`tool_executing`/`tool_executed`/`error`/`done`
+- `[feat]` `cmd/main.mbt` — `server` 子命令实现：加载配置 → 创建 WebServer → 监听端口
+- `[chore]` `cmd/moon.pkg` 新增依赖：`@web`
+- `[chore]` `moon.mod.json` 新增依赖：`bobzhang/crescent: 0.10.0`、`moonbitlang/async`（`http` / `websocket`）
+- `[chore]` `lib/web/moon.pkg` 配置依赖：`crescent`、`crescent/core`、`crescent/cors`、`crescent/websocket`、`async`、`async/http`
+- `[docs]` `docs/development-plan.md` — 更新 Phase 8 完成状态
+
 ### 2026-05-23  Phase 7 TUI 交互界面 + Hook 事件系统
 
 - `[feat]` 实现 Hook 事件系统 `lib/agent/hook.mbt`（77 行）

@@ -2,13 +2,13 @@
 
 ## Context
 
-本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）、**Phase 6（会话持久化）**和 **Phase 7（TUI 界面 + Hook 系统）**，项目完成度约 **60-65%**。下一步重点是 Phase 8（技能系统）。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）、**Phase 6（会话持久化）**、**Phase 7（TUI 界面 + Hook 系统）**和 **Phase 8（Web 服务器）**，项目完成度约 **70-75%**。下一步重点是 Phase 9（技能系统）。
 
 ---
 
 ## 当前状态总结
 
-### 已完成（Phase 0-7）
+### 已完成（Phase 0-8）
 
 | 包 | 文件 | 行数 | 状态 | 说明 |
 |---|---|---|---|---|
@@ -21,28 +21,31 @@
 | `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `hook.mbt`, `agent_wbtest.mbt`, `hook_wbtest.mbt` | **3,689** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + Hook 事件系统 + 97 个测试 |
 | `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
 | `lib/tui` | `tui.mbt`, `state.mbt`, `message_view.mbt`, `input_bar.mbt`, `status_bar.mbt`, `stats_bar.mbt`, `tool_view.mbt`, `tui_wbtest.mbt` | ~667 | **核心完成** | onebit-tui 基础界面：消息历史/输入栏/状态栏/统计栏/工具输出 + Hook 驱动状态同步 + 9 个测试 |
-| `cmd` | `main.mbt` | 392 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理 + TUI 交互模式 |
+| `lib/web` | `handlers.mbt`, `server.mbt`, `types.mbt`, `sse/sse.mbt`, `middleware/auth.mbt`, `middleware/logging.mbt` | ~1,147 | **核心完成** | crescent Web 服务器：20+ REST API + WebSocket + SSE 流式 + 认证/日志/CORS 中间件 |
+| `cmd` | `main.mbt` | 416 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理 + TUI 交互模式 + 服务器启动 |
 
 ### 项目总览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | **63** 个 |
-| 代码总行数 | **~10,565** 行 |
+| `.mbt` 源文件 | **73** 个 |
+| 代码总行数 | **~11,712** 行 |
 | 测试文件 | **7** 个（config + errors + utils + client + agent + hook + tui） |
 | 测试用例 | **184** 个 |
-| 实现包数 | **11** 个（含 cmd + lib hub + tui） |
+| 实现包数 | **13** 个（含 cmd + lib hub + tui + web + web/middleware + web/sse） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
 | 内置工具 | **8** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch） |
 | Agent mixin 功能 | **11** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息/Hook） |
 | CLI 选项 | **10** 个 + **2** 个子命令 |
-| 项目完成度 | **~60-65%** |
+| REST API 端点 | **20+** 个 |
+| 项目完成度 | **~70-75%** |
 
 ### 关键缺失
 
 - **零 HTTP 传输层**：客户端请求/解析逻辑完整，但实际异步 HTTP 发送尚未接入（待 async 依赖版本确定）
-- **6 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、ClackyAI-Sea、MiMo、GLM
+- **5 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、CLackyAI-Sea、MiMo、GLM
 - **TUI 内联渲染**：Phase 7 采用 Hook 驱动状态同步 + 事件循环更新，Agent 运行期间的内联实时屏幕刷新推迟至后续增强
+- **Web 前端**：当前仅提供 REST API 后端，Web 前端 SPA 尚未实现
 
 ---
 
@@ -76,7 +79,7 @@
 | Provider 预设 | 12 个 | 6 个 | **50%** |
 | 工具实现 | 18 个 | 8 个 | **44.4%** |
 | Agent mixin | 15 个 | 11 个 | **73.3%** |
-| REST API 端点 | 68 个 | 0 个 | **0%** |
+| REST API 端点 | 68 个 | 20+ 个 | **~29.4%** |
 
 ---
 
@@ -85,13 +88,10 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成] → Phase 7 (TUI) [已完成]
-                                                                                                                    │
-                                           ┌───────────┬───────────┴───────────────┐
-                                           ↓           ↓                        ↓
-                                     Phase 8(Skill) Phase 9(Server)     Phase 10(Enhanced)
-                                                                                                 ↓
-                                                                                          Phase 11(Integration)
+Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成] → Phase 7 (TUI) [已完成] → Phase 8 (Web Server) [已完成]
+                                    │
+                                    ↓
+                              Phase 9 (Skill) ──→ Phase 10 (Enhanced) ──→ Phase 11 (Integration)
 ```
 
 ### Phase 1 已完成确认
@@ -194,14 +194,14 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | Permission | `tool_executor.mbt` | ✅ 已实现 |
 | ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
 | Hookable | `hook.mbt` + `react.mbt` | ✅ 已实现（Phase 7）|
-| SkillManager | - | ⏳ 延后（Phase 8）|
+| SkillManager | - | ⏳ 延后（Phase 9）|
 | Subagent | - | ⏳ 延后（Phase 10）|
 | Memory | - | ⏳ 延后（Phase 10）|
 | TodoManager | - | ⏳ 延后（Phase 10）|
 
 #### 未完成项（延后）
 
-- **技能管理**：待 Phase 8 技能系统一起实现
+- **技能管理**：待 Phase 9 技能系统一起实现
 - **子 Agent**：待 Phase 10 增强功能实现
 - **Memory/TodoManager**：待 Phase 10 实现
 
@@ -217,9 +217,11 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 |------|------|------|
 | `cmd/main.mbt` | 280 | CLI 入口：clap Parser 定义、子命令分发、Agent 模式核心流程 |
 | | | 参数：--message/-m、--mode（choices 约束）、--model、--agent、--path、--verbose/-v、--version/-V |
-| | | 子命令：billing（stub）、server（stub） |
+| | | 子命令：billing（stub）、server（crescent Web 服务器）|
 | | | 非交互执行：配置加载 → Client 构建 → Agent 创建 → run() → 结果打印 |
 | | | 错误处理：AgentInterrupted/AgentError/RetryableError 分类处理 |
+| | | TUI 交互模式：无 --message 时启动 onebit-tui 界面 |
+| | | 服务器模式：`mbopenclacky server --port` 启动 crescent Web 服务器 |
 
 #### 实现的功能
 
@@ -234,7 +236,7 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | --mode 覆盖 | ✅ 已完成 | PermissionMode::from_string() 解析 |
 | --model 覆盖 | ✅ 已完成 | 遍历 models 数组匹配 |
 | --verbose 控制 | ✅ 已完成 | config.verbose = true |
-| billing/server stub | ✅ 已完成 | 占位消息，后续阶段扩展 |
+| billing/server | ✅ 已完成 | billing 为 stub，server 由 Phase 8 Web 服务器填充 |
 | session --continue | ⏳ Phase 6 | 需要会话持久化 |
 | session --list | ⏳ Phase 6 | 需要会话持久化 |
 | session --attach | ⏳ Phase 6 | 需要会话持久化 |
@@ -340,7 +342,7 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | SessionData | `session_data.mbt` | ✅ 已实现 |
 | Permission | `tool_executor.mbt` | ✅ 已实现 |
 | ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
-| SkillManager | - | ⏳ 延后（Phase 8）|
+| SkillManager | - | ⏳ 延后（Phase 9）|
 | Subagent | - | ⏳ 延后（Phase 10）|
 | Memory | - | ⏳ 延后（Phase 10）|
 | TodoManager | - | ⏳ 延后（Phase 10）|
@@ -351,12 +353,52 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 - **Markdown 渲染**：消息内容当前为纯文本，后续可替换为 Markdown 渲染器
 - **主题支持**：当前仅使用硬编码颜色，后续可添加主题切换
 
-### Phase 8-11（保持原计划结构）
+### Phase 8：Web 服务器（crescent 框架）[已完成]
+
+**复杂度**: XL | **依赖**: Phase 4, Phase 6, Phase 7（已完成）
+
+本阶段实现了基于 `bobzhang/crescent` 0.10.0 的 Web 服务器，提供完整的 REST API、WebSocket 双向通信和 SSE 流式端点。
+
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `lib/web/server.mbt` | 141 | WebServer 状态管理 + `get_or_create_agent` + `start`（路由注册/中间件/启动）|
+| `lib/web/handlers.mbt` | 553 | 14 个 HTTP handler（会话/对话/配置/统计/信息 + WebSocket + SSE）|
+| `lib/web/types.mbt` | 257 | 15 个 DTO 类型 + `ToJson` 序列化 |
+| `lib/web/sse/sse.mbt` | 85 | SSE 事件格式化 + HookEvent 批量捕获 + `build_sse_body` |
+| `lib/web/middleware/auth.mbt` | 18 | `X-API-Key` 认证中间件（401 拒绝）|
+| `lib/web/middleware/logging.mbt` | 15 | 请求日志中间件（method、path、duration）|
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| REST API 端点 | ✅ 已完成 | 20+ 端点覆盖会话/对话/配置/统计/信息 |
+| WebSocket 双向通信 | ✅ 已完成 | `WS /ws/sessions/:id`，Open/Message/Close 事件处理 |
+| SSE 流式响应 | ✅ 已完成 | `POST /api/sessions/:id/chat/stream`，9 种事件类型 |
+| 认证中间件 | ✅ 已完成 | `X-API-Key` 头验证，401 拒绝 |
+| 请求日志中间件 | ✅ 已完成 | method + path + duration 记录 |
+| CORS 支持 | ✅ 已完成 | `bobzhang/crescent/cors` 中间件 |
+| `server` CLI 子命令 | ✅ 已完成 | `mbopenclacky server --port` 启动服务器 |
+| Agent 自动创建 | ✅ 已完成 | `get_or_create_agent` 按需创建 Agent 实例 |
+| 会话持久化集成 | ✅ 已完成 | 对话后自动 `save_session` + `enforce_session_cap` |
+| Hook 事件 → SSE 桥接 | ✅ 已完成 | Hook 事件批量捕获后格式化为 SSE 事件 |
+| Hook 事件 → WS 桥接 | ✅ 已完成 | Hook 事件通过 WebSocket 实时推送 |
+| 健康检查 | ✅ 已完成 | `GET /health` 返回 `{"status":"ok"}` |
+| 运行时配置更新 | ✅ 已完成 | `PUT /api/config` 更新 permission_mode/max_tokens/verbose |
+
+#### 未完成项（延后）
+
+- **Web 前端 SPA**：当前仅提供 REST API 后端，前端界面待后续实现
+- **异步非阻塞 Agent 执行**：当前 Agent 执行为阻塞调用（同步 HTTP handler），后续可改为异步队列
+- **分页支持**：会话列表和历史记录暂无分页，后续可加 `?limit` / `?offset` 参数
+
+### Phase 9-11（保持原计划结构）
 
 | 阶段 | 调整 | 说明 |
 |------|------|------|
-| Phase 8: 技能系统 | 不变 | 基础技能加载 |
-| Phase 9: Web 服务器 | 不变 | ~20 个核心 API（从 68 个裁剪） |
+| Phase 9: 技能系统 | 不变 | 基础技能加载 |
 | Phase 10: 增强功能 | 不变 | TodoManager/Memory/Subagent/Time Machine |
 | Phase 11: 集成测试与优化 | 不变 | E2E 测试 + 性能调优 |
 
@@ -401,6 +443,25 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | 新增测试用例 | 20 个（Hook 11 + TUI 9）|
 | 新增 Agent mixin | 1 个（Hookable）|
 | 新增外部依赖 | 1 个（Frank-III/onebit-tui: 0.1.3）|
+
+### Phase 8 验证结果
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| `moon check` | ✅ 通过 | 0 错误（26 警告，均为 pre-existing）|
+| `moon test --target wasm-gc -p lib/agent` | ✅ 通过 | 86 个测试全部通过，无回归 |
+| `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+#### Phase 8 新增/修改文件统计
+
+| 指标 | 数值 |
+|------|------|
+| 新增文件 | 9 个（6 个 lib/web + server.mbt + sse/sse.mbt + 2 个 middleware）|
+| 新增代码行数 | ~1,147 行 |
+| 新增 REST API 端点 | 20+ 个（会话/对话/配置/统计/信息/健康）|
+| 新增外部依赖 | 2 个（bobzhang/crescent: 0.10.0 + moonbitlang/async）|
+| 新增 WebSocket 端点 | 1 个（/ws/sessions/:id）|
+| 新增 SSE 端点 | 1 个（POST /api/sessions/:id/chat/stream）|
 
 ### Phase 5 验证结果
 
