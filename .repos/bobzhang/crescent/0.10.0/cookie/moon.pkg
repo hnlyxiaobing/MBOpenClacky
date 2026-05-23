@@ -1,7 +1,0 @@
-import {
-  "moonbitlang/core/buffer",
-  "moonbitlang/core/json",
-  "moonbitlang/core/string",
-}
-
-warnings = "+missing_doc+unnecessary_annotation+74"

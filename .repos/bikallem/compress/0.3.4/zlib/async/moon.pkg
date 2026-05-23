@@ -1,5 +1,0 @@
-import {
-  "bikallem/compress/flate",
-  "bikallem/compress/zlib",
-  "moonbitlang/async/io",
-}

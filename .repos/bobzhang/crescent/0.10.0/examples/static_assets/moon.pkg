@@ -1,9 +1,0 @@
-import {
-  "moonbitlang/async",
-  "bobzhang/crescent",
-  "bobzhang/crescent/static_file",
-}
-
-options(
-  "is-main": true,
-)

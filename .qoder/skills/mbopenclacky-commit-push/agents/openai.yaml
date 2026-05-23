@@ -1,4 +1,0 @@
-interface:
-  display_name: "MBOpenClacky Commit Push"
-  short_description: "Commit and push MBOpenClacky changes"
-  default_prompt: "Use $mbopenclacky-commit-push to validate, commit, and push the current MBOpenClacky changes."

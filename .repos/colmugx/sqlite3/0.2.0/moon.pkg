@@ -1,8 +1,0 @@
-import {
-  "moonbitlang/core/encoding/utf8" @utf8,
-  "colmugx/sqlite3/native" @native,
-}
-
-options(
-  backend: [ "native" ],
-)

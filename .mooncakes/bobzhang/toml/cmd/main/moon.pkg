@@ -1,7 +1,0 @@
-import {
-  "bobzhang/toml",
-}
-
-options(
-  "is-main": true,
-)
