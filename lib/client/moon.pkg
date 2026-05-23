@@ -1,4 +1,5 @@
 import {
   "moonbitlang/core/json",
   "hnlyxiaobing/MBOpenClacky/lib/message" @message,
+  "hnlyxiaobing/MBOpenClacky/lib/config" @config,
 }

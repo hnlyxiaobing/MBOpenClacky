@@ -2,13 +2,13 @@
 
 ## Context
 
-在上一轮开发中，Phase 1（配置系统）已基本实现完成。但 `docs/development-plan.md` 中的统计数据仍停留在 Phase 0 完成时的状态（5-8% 完成度、仅 1 个测试文件等）。本文档重新比对 Ruby 源项目 OpenClacky v1.1.6 与 MBOpenClacky 的当前状态，更新所有里程碑数据，并列出下一步行动计划。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）和 Phase 2（LLM 客户端），项目完成度约 **25-28%**。下一步重点是 Phase 3（工具系统）。
 
 ---
 
 ## 当前状态总结（更新后）
 
-### 已完成（Phase 0 骨架 + Phase 1 配置系统）
+### 已完成（Phase 0 骨架 + Phase 1 配置系统 + Phase 2 LLM 客户端）
 
 | 包 | 文件 | 行数 | 状态 | 说明 |
 |---|---|---|---|---|
@@ -16,7 +16,7 @@
 | `lib/message` | `role.mbt`, `content.mbt`, `tool_call.mbt`, `message.mbt` | 287 | 类型定义完成 | Role/ContentBlock/ToolCall/Message + JSON 序列化 |
 | `lib/config` | `agent.mbt`, `model.mbt`, `permission.mbt`, `loader.mbt`, `provider.mbt`, `config_wbtest.mbt` | 1,018 | **行为完整** | TOML 加载/保存 + 6 Provider 预设 + 环境变量覆盖 + 27 个测试 |
 | `lib/utils` | `env.mbt`, `path.mbt`, `utils_wbtest.mbt` | 270 | **行为完整** | 环境变量助手 + 路径发现 + 14 个测试 |
-| `lib/client` | `types.mbt` | 56 | 仅响应类型 | Usage/Latency/LlmResponse struct，无 HTTP 逻辑 |
+| `lib/client` | `types.mbt`, `client.mbt`, `format_openai.mbt`, `format_anthropic.mbt`, `stream.mbt`, `client_wbtest.mbt` | **2,412** | **核心完成** | 客户端核心 + OpenAI/Anthropic 双格式 + SSE 流式 + 38 个测试 |
 | `lib/agent` | `agent.mbt`, `status.mbt` | 88 | 仅数据容器 | Agent struct（12 字段）+ AgentStatus/AgentSource 枚举 |
 | `lib/tool` | `trait.mbt`, `types.mbt` | 112 | 接口定义完成 | Tool trait（8 方法）+ ToolCategory/ToolResult/FunctionDefinition |
 | `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
@@ -26,18 +26,18 @@
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | **22** 个 |
-| 代码总行数 | **2,045** 行 |
-| 测试文件 | **3** 个（config + errors + utils） |
-| 测试用例 | **47** 个 |
+| `.mbt` 源文件 | **26** 个 |
+| 代码总行数 | **4,401** 行 |
+| 测试文件 | **4** 个（config + errors + utils + client） |
+| 测试用例 | **89** 个 |
 | 实现包数 | **10** 个（含 cmd + lib hub） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
-| 项目完成度 | **~12-15%** |
+| 项目完成度 | **~25-28%** |
 
 ### 关键缺失
 
 - **零具体工具实现**：工具 trait 已定义但无一个具体工具
-- **零 LLM 客户端**：无 HTTP 请求逻辑、无 SSE 流式处理
+- **零 HTTP 传输层**：客户端请求/解析逻辑完整，但实际异步 HTTP 发送尚未接入（待 async 依赖版本确定）
 - **零 Agent 循环**：无 ReAct 循环、无 Hook 系统
 - **零 CLI**：无子命令解析、无交互式模式
 - **6 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、ClackyAI-Sea、MiMo、GLM
@@ -51,7 +51,7 @@
 | 功能域 | Ruby 源项目 | MBOpenClacky 现状 | 差距 | 优先级 |
 |--------|-------------|-------------------|------|--------|
 | **配置系统** | YAML 解析 + 12 Provider 预设 + 多模型管理 + Fallback 状态机 | TOML 解析 + 6 Provider 预设 + 环境变量覆盖 | **基础完整，需扩展 Provider** | P0 |
-| **LLM 客户端** | 3 协议（OpenAI/Anthropic/Bedrock）+ SSE 流式 + 重试 + Fallback + Prompt Caching | 仅响应类型定义 | **全部缺失** | P0 |
+| **LLM 客户端** | 3 协议（OpenAI/Anthropic/Bedrock）+ SSE 流式 + 重试 + Fallback + Prompt Caching | OpenAI + Anthropic 双格式 + SSE 流式 + Prompt Caching + 错误处理 | **核心完成，缺 Bedrock/HTTP传输** | P0 |
 | **工具系统** | 18 个内置工具 + ToolRegistry（别名解析）+ Security 安全层 | 仅 Tool trait 定义 | **全部缺失** | P0 |
 | **Agent 核心** | 15 个 mixin（ReAct 循环/LLM 调用/工具执行/成本追踪/Hook/压缩/序列化/技能管理等） | 仅数据容器 struct | **全部缺失** | P0 |
 | **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | smoke test | **全部缺失** | P1 |
@@ -68,9 +68,9 @@
 
 | 指标 | Ruby 源项目 | MBOpenClacky | 完成比例 |
 |------|-------------|-------------|---------|
-| 源文件（非 test） | 156 个 `.rb` | 19 个 `.mbt` | **12.2%** |
-| 测试文件 | 107 个 spec | 3 个 test | **2.8%** |
-| 测试用例 | 1,823 个 | 47 个 | **2.6%** |
+| 源文件（非 test） | 156 个 `.rb` | 22 个 `.mbt` | **14.1%** |
+| 测试文件 | 107 个 spec | 4 个 test | **3.7%** |
+| 测试用例 | 1,823 个 | 89 个 | **4.9%** |
 | Provider 预设 | 12 个 | 6 个 | **50%** |
 | 工具实现 | 18 个 | 0 个 | **0%** |
 | Agent mixin | 15 个 | 0 个 | **0%** |
@@ -83,15 +83,15 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) → Phase 3 (Tools) → Phase 4 (Agent)
-                                                                       │
-                           ┌───────────┬───────────┬──────────┬───────┘
+Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) → Phase 4 (Agent)
+                                                                               │
+                           ┌───────────┬───────────┬──────────┬───────────────┘
                            ↓           ↓           ↓          ↓
                      Phase 5(CLI) Phase 6(Session) Phase 7(TUI) Phase 8(Skill) Phase 9(Server)
-                                                                                 ↓
-                                                                          Phase 10(Enhanced)
-                                                                                 ↓
-                                                                          Phase 11(Integration)
+                                                                                                 ↓
+                                                                                          Phase 10(Enhanced)
+                                                                                                 ↓
+                                                                                          Phase 11(Integration)
 ```
 
 ### Phase 1 已完成确认
@@ -109,68 +109,44 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) → Phase 3 (Tools) → Phase 
 
 **剩余工作**：扩展剩余的 6 个 Provider 预设（可推迟到 Phase 2 或 4 中逐步添加）
 
-### Phase 2：LLM 客户端（下一步开发重点）
+### Phase 2：LLM 客户端 [已完成]
 
 **复杂度**: L | **依赖**: Phase 1（已完成）
 
-本阶段是当前最重要的工作——实现 HTTP 客户端支持 API 通信，后续所有阶段（Agent、CLI、TUI、Server）都依赖此阶段。
+本阶段已实现 LLM 客户端的核心请求/解析逻辑，后续所有阶段（Agent、CLI、TUI、Server）可直接复用。
 
-#### 新增/修改文件
+#### 已交付文件
 
-| 文件 | 操作 | 说明 |
+| 文件 | 行数 | 功能 |
 |------|------|------|
-| `lib/client/client.mbt` | 新增 | 核心客户端：连接工厂 + 发送 + 错误处理 |
-| `lib/client/format_openai.mbt` | 新增 | OpenAI Chat Completions 格式请求/响应构建 |
-| `lib/client/format_anthropic.mbt` | 新增 | Anthropic Messages 格式 + Prompt Caching |
-| `lib/client/stream.mbt` | 新增 | SSE 帧解析 + 流式聚合器 |
-| `lib/client/client_wbtest.mbt` | 新增 | 测试文件 |
-| `lib/client/moon.pkg` | 修改 | 新增依赖 moonbitlang/http |
+| `lib/client/client.mbt` | 410 | 客户端核心：请求构建/响应解析分发、HTTP头/URL构建、Prompt Caching、错误处理 |
+| `lib/client/format_openai.mbt` | 333 | OpenAI Chat Completions 格式：请求/响应/工具结果、vision过滤、reasoning_effort |
+| `lib/client/format_anthropic.mbt` | 480 | Anthropic Messages 格式：系统分离、工具转换、thinking/reasoning、cache_control |
+| `lib/client/stream.mbt` | 559 | SSE帧解析 + OpenAiStreamAggregator + AnthropicStreamAggregator |
+| `lib/client/types.mbt` | 97 | Usage/LlmResponse/Latency + 工厂方法 + 便捷查询 |
+| `lib/client/client_wbtest.mbt` | 533 | 38 个测试用例（全功能覆盖） |
 
-#### 关键实现
+#### 未完成项（延后）
 
-1. **HTTP 连接层**（对标 `client.rb` 623 行）
-   - 基于 `moonbitlang/async` 的 HTTP 客户端
-   - 多协议连接工厂（Header、认证、超时）
-   - `Client::send_messages_with_tools()` — 核心 API 调用方法
-   - 延迟测量（duration_ms、ttft_ms、tps）
+- **异步 HTTP 传输层**：待 moonbitlang/async 依赖版本确定后接入
+- **Bedrock 协议**：AWS Bedrock Converse API 实现复杂度高，推迟到 Phase 4
+- **重试逻辑**：RetryableError 重试器随 HTTP 传输层一起实现
 
-2. **消息格式层**（对标 `message_format/*.rb`）
-   - OpenAI 格式：标准 chat/completions 请求/响应
-   - Anthropic 格式：`/v1/messages` API + 多内容块构建
+### Phase 3：工具系统（下一步开发重点）
 
-3. **SSE 流式处理**（对标 `*_stream_aggregator.rb`）
-   - 通用 SSE 帧解析器（`event:` + `data:` 逐帧提取）
-   - OpenAI / Anthropic 两种流式聚合
+**复杂度**: L | **依赖**: Phase 2（已完成）
 
-4. **错误处理**（对标 `client.rb` 520-598 行）
-   - HTTP 状态码 → `lib/errors` 错误类型映射
-   - 重试逻辑（使用 `RetryableError`）
-
-5. **Bedrock 协议**（延后处理）
-   - AWS Bedrock Converse API 实现复杂度高，可推迟到 Phase 3 或 4
-
-#### 依赖更新
-- `lib/client/moon.pkg` 新增 `moonbitlang/http` 依赖
-- `moon.mod.json` 新增 `moonbitlang/http` 依赖
-
-#### 测试策略
-- Mock HTTP 请求构建和响应解析
-- 每个格式模块：请求构建、正常响应解析、错误响应
-- SSE 帧解析器独立测试
-- 目标：20+ 个测试用例
+本阶段是下一个重点工作——实现 8 个核心工具 + ToolRegistry + Security 安全层。
 
 #### Ruby 参考文件
-- `D:\MoonBit\openclacky\lib\clacky\client.rb`（623 行）
-- `D:\MoonBit\openclacky\lib\clacky\message_format\open_ai.rb`
-- `D:\MoonBit\openclacky\lib\clacky\message_format\anthropic.rb`
-- `D:\MoonBit\openclacky\lib\clacky\openai_stream_aggregator.rb`
-- `D:\MoonBit\openclacky\lib\clacky\anthropic_stream_aggregator.rb`
+- `D:\MoonBit\openclacky\lib\clacky\tools\`（18 个工具文件）
+- `D:\MoonBit\openclacky\lib\clacky\tool_registry.rb`
+- `D:\MoonBit\openclacky\lib\clacky\security.rb`
 
-### Phase 3-11（保持原计划结构，以下为重点调整）
+### Phase 4-11（保持原计划结构）
 
 | 阶段 | 调整 | 说明 |
 |------|------|------|
-| Phase 3: 工具系统 | 不变 | 8 个核心工具 + ToolRegistry + Security |
 | Phase 4: Agent 核心 | 不变 | ReAct 循环 + 15 mixin 的核心子集 |
 | Phase 5: CLI | 不变 | clap 解析 + 子命令 |
 | Phase 6: 会话持久化 | 不变 | JSON 会话存储 + 压缩 |

@@ -54,3 +54,43 @@ pub fn LlmResponse::is_finished(self : LlmResponse) -> Bool {
     _ => false
   }
 }
+
+///|
+/// Create Usage from raw API token counts (OpenAI-style naming).
+pub fn Usage::from_openai(
+  prompt_tokens : Int,
+  completion_tokens : Int,
+  cache_creation? : Int = 0,
+  cache_read? : Int = 0,
+) -> Usage {
+  {
+    input_tokens: prompt_tokens,
+    output_tokens: completion_tokens,
+    cache_creation_input_tokens: cache_creation,
+    cache_read_input_tokens: cache_read,
+  }
+}
+
+///|
+/// Create Usage from raw Anthropic API token counts.
+/// Anthropic reports input_tokens separately from cache tokens,
+/// so we normalize to OpenAI-style: input_tokens = raw_input + cache_read.
+pub fn Usage::from_anthropic(
+  raw_input_tokens : Int,
+  output_tokens : Int,
+  cache_creation? : Int = 0,
+  cache_read? : Int = 0,
+) -> Usage {
+  {
+    input_tokens: raw_input_tokens + cache_read,
+    output_tokens,
+    cache_creation_input_tokens: cache_creation,
+    cache_read_input_tokens: cache_read,
+  }
+}
+
+///|
+/// Create a Latency from timing measurements.
+pub fn Latency::new(duration_ms : Int, ttft_ms? : Int) -> Latency {
+  { duration_ms, ttft_ms }
+}

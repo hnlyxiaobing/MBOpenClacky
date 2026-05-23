@@ -25,6 +25,51 @@
 
 ## 变更记录
 
+### 2026-05-23  Phase 2 LLM 客户端核心实现
+
+- `[feat]` 实现 LLM 客户端核心 `lib/client/client.mbt`（410 行）
+  - Client struct：API 密钥 / base_url / 模型 / API 类型 / Provider ID
+  - 请求构建分发（build_request_body / build_simple_request）
+  - 响应解析分发（parse_response）
+  - 工具结果格式化（format_tool_results）
+  - API 端点 / HTTP 头 / URL 构建（api_path / request_headers / build_url）
+  - Prompt Caching 检测（Claude 3.5+ 模型匹配）
+  - HTTP 错误映射（400-599 状态码 → 可读错误信息）
+  - HTML 响应检测与错误信息提取
+  - 流式选项注入（add_stream_options / add_stream_flag）
+- `[feat]` 实现 OpenAI 消息格式 `lib/client/format_openai.mbt`（333 行）
+  - 请求构建：消息转换、工具定义、vision 过滤、reasoning_effort
+  - 响应解析：choices/message/usage/tool_calls 提取
+  - 工具结果格式化：canonical tool result 消息构建
+  - Prompt Caching：末位工具 cache_control 注入
+- `[feat]` 实现 Anthropic 消息格式 `lib/client/format_anthropic.mbt`（480 行）
+  - 请求构建：系统消息分离、工具格式转换（parameters→input_schema）
+  - 消息转换：tool_use 块、tool_result 块、图片 base64 处理
+  - 响应解析：content blocks / stop_reason 映射 / usage 归一化
+  - reasoning/thinking 支持（adaptive thinking + effort 配置）
+  - Anthropic API 路径检测（/v1/messages vs messages）
+- `[feat]` 实现 SSE 流式处理 `lib/client/stream.mbt`（559 行）
+  - 通用 SSE 帧解析器（event/data 逐帧提取）
+  - StreamCallback trait（流式进度通知接口）
+  - OpenAiStreamAggregator：流式内容/工具调用/usage 聚合
+  - AnthropicStreamAggregator：content_block 流式聚合（text/tool_use/thinking_delta）
+- `[feat]` 扩展 `lib/client/types.mbt`（97 行）
+  - Usage：from_openai / from_anthropic 工厂方法（cache 归一化）
+  - LlmResponse：text_only / has_tool_calls / is_finished 便捷方法
+  - Latency：duration_ms / ttft_ms 延迟度量
+- `[chore]` `lib/client/moon.pkg` 新增依赖：`@config`（lib/config）
+- `[test]` 新增 `lib/client/client_wbtest.mbt` 白盒测试（38 个用例）
+  - SSE 帧解析（7）、OpenAI 请求构建（3）、OpenAI 响应解析（3）
+  - Anthropic 请求构建（3）、Anthropic 响应解析（4）
+  - 工具结果格式化（3）、错误信息提取（4）
+  - Prompt Caching 检测（3）、URL 构建（4）
+  - OpenAI 流式聚合（4）、Anthropic 流式聚合（2）、Usage 工具（2）
+
+### 2026-05-23  清理 .qoder/repowiki 误追踪 + 开发计划文档
+
+- `[chore]` 从 Git 索引移除 `.qoder/repowiki/`（29 个文件），该目录已在 .gitignore 中
+- `[docs]` 新增 `docs/development-plan.md`：更新里程碑统计与 Phase 2 行动计划
+
 ### 2026-05-23  新增 .gitignore，清理 _build/ 构建产物
 
 - `[chore]` 创建 `.gitignore`，排除 `_build/`、`.mooncakes/`、`.repos/`、`.qoder/`、`*.mbti` 等生成文件
