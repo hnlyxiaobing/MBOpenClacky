@@ -36,8 +36,10 @@ pub(all) struct Agent {
   mut fallback_model : String?
   // ── Compression State ──────────────────────────────────────────────
   mut compression_level : Int
-  // ── Test Support ───────────────────────────────────────────────────
-  /// Queue of mock LLM responses for testing. When non-empty,
+  // ── Hook System ─────────────────────────────────────────────────
+  /// Hook manager for lifecycle event observers.
+  hook_manager : HookManager
+  // ── Test Support ─────────────────────────────────────────────────
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
   mock_responses : Array[@client.LlmResponse]
@@ -95,6 +97,8 @@ pub fn Agent::new(
     fallback_model: None,
     // Compression
     compression_level: 0,
+    // Clear any hook callbacks from prior runs
+    hook_manager: HookManager::new(),
     // Test support
     mock_responses: [],
   }

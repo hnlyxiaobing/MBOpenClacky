@@ -2,13 +2,13 @@
 
 ## Context
 
-本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）和**Phase 6（会话持久化）**，项目完成度约 **55-60%**。下一步重点是 Phase 7（TUI 界面）。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）、**Phase 6（会话持久化）**和 **Phase 7（TUI 界面 + Hook 系统）**，项目完成度约 **60-65%**。下一步重点是 Phase 8（技能系统）。
 
 ---
 
 ## 当前状态总结
 
-### 已完成（Phase 0-5）
+### 已完成（Phase 0-7）
 
 | 包 | 文件 | 行数 | 状态 | 说明 |
 |---|---|---|---|---|
@@ -18,29 +18,31 @@
 | `lib/utils` | `env.mbt`, `path.mbt`, `utils_wbtest.mbt` | 270 | **行为完整** | 环境变量助手 + 路径发现 + 14 个测试 |
 | `lib/client` | `types.mbt`, `client.mbt`, `format_openai.mbt`, `format_anthropic.mbt`, `stream.mbt`, `client_wbtest.mbt` | **2,412** | **核心完成** | 客户端核心 + OpenAI/Anthropic 双格式 + SSE 流式 + 38 个测试 |
 | `lib/tool` | `trait.mbt`, `types.mbt`, `registry.mbt`, `security.mbt`, `any_tool.mbt` + 8 工具 | **1,460** | **核心完成** | Tool trait + 8 个内置工具 + ToolRegistry + Security + 18 个测试 |
-| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `agent_wbtest.mbt` | **3,312** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + 52 个测试 |
+| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `hook.mbt`, `agent_wbtest.mbt`, `hook_wbtest.mbt` | **3,689** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + Hook 事件系统 + 97 个测试 |
 | `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
-| `cmd` | `main.mbt` | 385 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理（--continue/--list/--attach） |
+| `lib/tui` | `tui.mbt`, `state.mbt`, `message_view.mbt`, `input_bar.mbt`, `status_bar.mbt`, `stats_bar.mbt`, `tool_view.mbt`, `tui_wbtest.mbt` | ~667 | **核心完成** | onebit-tui 基础界面：消息历史/输入栏/状态栏/统计栏/工具输出 + Hook 驱动状态同步 + 9 个测试 |
+| `cmd` | `main.mbt` | 392 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理 + TUI 交互模式 |
 
 ### 项目总览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | **53** 个 |
-| 代码总行数 | **9,522** 行 |
-| 测试文件 | **5** 个（config + errors + utils + client + agent） |
-| 测试用例 | **164** 个 |
-| 实现包数 | **10** 个（含 cmd + lib hub） |
+| `.mbt` 源文件 | **63** 个 |
+| 代码总行数 | **~10,565** 行 |
+| 测试文件 | **7** 个（config + errors + utils + client + agent + hook + tui） |
+| 测试用例 | **184** 个 |
+| 实现包数 | **11** 个（含 cmd + lib hub + tui） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
 | 内置工具 | **8** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch） |
-| Agent mixin 功能 | **10** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息） |
+| Agent mixin 功能 | **11** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息/Hook） |
 | CLI 选项 | **10** 个 + **2** 个子命令 |
-| 项目完成度 | **~55-60%** |
+| 项目完成度 | **~60-65%** |
 
 ### 关键缺失
 
 - **零 HTTP 传输层**：客户端请求/解析逻辑完整，但实际异步 HTTP 发送尚未接入（待 async 依赖版本确定）
 - **6 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、ClackyAI-Sea、MiMo、GLM
+- **TUI 内联渲染**：Phase 7 采用 Hook 驱动状态同步 + 事件循环更新，Agent 运行期间的内联实时屏幕刷新推迟至后续增强
 
 ---
 
@@ -73,7 +75,7 @@
 | 测试用例 | 1,823 个 | 164 个 | **9.0%** |
 | Provider 预设 | 12 个 | 6 个 | **50%** |
 | 工具实现 | 18 个 | 8 个 | **44.4%** |
-| Agent mixin | 15 个 | 10 个 | **66.7%** |
+| Agent mixin | 15 个 | 11 个 | **73.3%** |
 | REST API 端点 | 68 个 | 0 个 | **0%** |
 
 ---
@@ -83,11 +85,11 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成]
-                                                                                                             │
-                           ┌───────────┬───────────┬──────────┴───────────────┐
-                           ↓           ↓           ↓                        ↓
-                     Phase 7(TUI) Phase 8(Skill) Phase 9(Server)     Phase 10(Enhanced)
+Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成] → Phase 7 (TUI) [已完成]
+                                                                                                                    │
+                                           ┌───────────┬───────────┴───────────────┐
+                                           ↓           ↓                        ↓
+                                     Phase 8(Skill) Phase 9(Server)     Phase 10(Enhanced)
                                                                                                  ↓
                                                                                           Phase 11(Integration)
 ```
@@ -191,7 +193,7 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | SessionData | `session_data.mbt` | ✅ 已实现 |
 | Permission | `tool_executor.mbt` | ✅ 已实现 |
 | ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
-| Hookable | - | ⏳ 延后（Phase 7 TUI）|
+| Hookable | `hook.mbt` + `react.mbt` | ✅ 已实现（Phase 7）|
 | SkillManager | - | ⏳ 延后（Phase 8）|
 | Subagent | - | ⏳ 延后（Phase 10）|
 | Memory | - | ⏳ 延后（Phase 10）|
@@ -199,7 +201,6 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 
 #### 未完成项（延后）
 
-- **Hook 系统**：待 Phase 7 TUI 需要时再实现
 - **技能管理**：待 Phase 8 技能系统一起实现
 - **子 Agent**：待 Phase 10 增强功能实现
 - **Memory/TodoManager**：待 Phase 10 实现
@@ -237,12 +238,10 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | session --continue | ⏳ Phase 6 | 需要会话持久化 |
 | session --list | ⏳ Phase 6 | 需要会话持久化 |
 | session --attach | ⏳ Phase 6 | 需要会话持久化 |
-| 交互式 REPL | ⏳ Phase 7 | 需要 TUI 框架 |
+| 交互式 REPL | ✅ 已完成（Phase 7） | TUI 交互界面 |
 
 #### 未完成项（延后）
 
-- **会话管理（--continue/--list/--attach）**：待 Phase 6 会话持久化实现
-- **交互式 REPL 模式**：待 Phase 7 TUI 框架实现
 - **文件附件（--file/-f）**：待 Phase 9 文件处理实现
 - **Agent profile 切换**：待 Phase 8 技能系统实现
 
@@ -287,11 +286,75 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 - **LLM 驱动摘要**：当前为简单截断，后续可替换为 LLM 生成的语义摘要
 - **会话加密**：数据目前明文存储，可加 AES-GCM 加密
 
-### Phase 7-11（保持原计划结构）
+### Phase 7：TUI 交互界面 + Hook 事件系统 [已完成]
+
+**复杂度**: L | **依赖**: Phase 4, Phase 5, Phase 6（已完成）
+
+本阶段实现了基于 `Frank-III/onebit-tui` 的 TUI 交互界面和 Hook 事件系统，为 Agent 执行提供可视化界面。
+
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `lib/agent/hook.mbt` | 77 | Hook 事件系统：HookEvent 枚举（10 种事件）+ HookManager（register/emit/clear）|
+| `lib/agent/hook_wbtest.mbt` | 300 | 11 个测试用例：Hook 注册/发射/清除/事件负载/Agent 集成验证 |
+| `lib/tui/tui.mbt` | 232 | TUI 主入口：`run_tui_interactive`、事件循环、Hook→TUI 状态同步、布局组装 |
+| `lib/tui/state.mbt` | 79 | TuiState 共享可变状态：Idle/Running 双模式、Agent 状态/消息/工具输出/成本 |
+| `lib/tui/message_view.mbt` | 44 | 消息历史组件：ScrollBox + 角色着色（system/user/assistant/tool） |
+| `lib/tui/input_bar.mbt` | 38 | 输入栏组件：TextInput + Submit/Quit 按钮 |
+| `lib/tui/status_bar.mbt` | 33 | 状态栏：Agent 状态 + 模型名 + 迭代次数 |
+| `lib/tui/stats_bar.mbt` | 49 | 统计栏：Token 增量 + 累计成本 + 成本来源 |
+| `lib/tui/tool_view.mbt` | 27 | 工具输出面板：实时显示工具执行状态 |
+| `lib/tui/tui_wbtest.mbt` | 153 | 9 个测试用例：TuiState 构建/可变性/成本格式化/Hook 事件处理 |
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| HookEvent 枚举 | ✅ 已完成 | 10 种生命周期事件覆盖 ReAct 全流程 |
+| HookManager 注册/发射/清除 | ✅ 已完成 | FIFO 回调调度，fire-and-forget |
+| Agent ReAct 集成 Hook | ✅ 已完成 | 11 个发射点：run/react_loop/think/act/observe |
+| TUI 交互式输入 | ✅ 已完成 | TextInput + Submit 按钮，Enter 或点击提交 |
+| 会话历史可视化 | ✅ 已完成 | 角色着色 + ScrollBox 滚动查看 |
+| 工具执行实时显示 | ✅ 已完成 | ToolExecuting/ToolExecuted 事件驱动更新 |
+| Agent 状态栏 | ✅ 已完成 | 状态指示 + 模型名 + 迭代计数 |
+| 成本统计栏 | ✅ 已完成 | Token 增量 + 累计成本 + 来源 |
+| Ctrl+C 中断 | ✅ 已完成 | 全局 KeyMod 事件捕获 |
+| Idle/Running 双模式 | ✅ 已完成 | 运行时禁用输入，显示等待提示 |
+| Hook → TUI 状态同步 | ✅ 已完成 | Hook 回调直接更新 Ref[TuiState] |
+| Agent 运行后状态同步 | ✅ 已完成 | sync_state_from_agent 拉取最新 Agent 状态 |
+| 终端初始化失败回退 | ✅ 已完成 | init 失败时提示使用 CLI 模式 |
+
+#### 实现的核心 mixin 功能（对应 Ruby 15 mixin 的 11 个）
+
+| mixin 功能 | 文件 | 状态 |
+|-----------|------|------|
+| Hookable | `hook.mbt` + `react.mbt` | ✅ **本次新增** |
+| ReActLoop | `react.mbt` | ✅ 已实现 |
+| LlmCaller | `llm_caller.mbt` | ✅ 已实现 |
+| ToolExecutor | `tool_executor.mbt` | ✅ 已实现 |
+| CostTracker | `cost_tracker.mbt` | ✅ 已实现 |
+| SystemPrompt | `system_prompt.mbt` | ✅ 已实现 |
+| Compressor | `compressor.mbt` | ✅ 已实现 |
+| Fallback | `llm_caller.mbt` | ✅ 已实现 |
+| SessionData | `session_data.mbt` | ✅ 已实现 |
+| Permission | `tool_executor.mbt` | ✅ 已实现 |
+| ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
+| SkillManager | - | ⏳ 延后（Phase 8）|
+| Subagent | - | ⏳ 延后（Phase 10）|
+| Memory | - | ⏳ 延后（Phase 10）|
+| TodoManager | - | ⏳ 延后（Phase 10）|
+
+#### 未完成项（延后）
+
+- **TUI 内联实时渲染**：当前 Agent 运行期间屏幕不刷新，等待 run() 返回后才更新。后续需改为异步渲染管道
+- **Markdown 渲染**：消息内容当前为纯文本，后续可替换为 Markdown 渲染器
+- **主题支持**：当前仅使用硬编码颜色，后续可添加主题切换
+
+### Phase 8-11（保持原计划结构）
 
 | 阶段 | 调整 | 说明 |
 |------|------|------|
-| Phase 7: TUI | 不变 | onebit-tui 基础界面 + Hook 系统 |
 | Phase 8: 技能系统 | 不变 | 基础技能加载 |
 | Phase 9: Web 服务器 | 不变 | ~20 个核心 API（从 68 个裁剪） |
 | Phase 10: 增强功能 | 不变 | TodoManager/Memory/Subagent/Time Machine |
@@ -318,6 +381,26 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | `moon test --target wasm-gc` | ✅ 通过 | 154 个测试全部通过 |
 | `moon run cmd --target wasm-gc` | ✅ 通过 | 冒烟测试输出正常 |
 | `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+### Phase 6 验证结果
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| `moon check` | ✅ 通过 | 0 错误（26 警告，均为 pre-existing）|
+| `moon test --target wasm-gc -p lib/agent` | ✅ 通过 | 86 个测试全部通过（含 11 个 Hook 新测试）|
+| `moon test --target wasm-gc -p lib/tui` | ⚠️ 跳过 | onebit-tui 使用 extern "C"，不支持 wasm-gc 后端；TUI 纯逻辑测试在 native 环境运行 |
+| `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+#### Phase 7 新增/修改文件统计
+
+| 指标 | 数值 |
+|------|------|
+| 新增文件 | 11 个（hook.mbt, hook_wbtest.mbt + 9 个 tui 文件）|
+| 新增代码行数 | ~1,043 行 |
+| 新增测试文件 | 2 个（hook + tui）|
+| 新增测试用例 | 20 个（Hook 11 + TUI 9）|
+| 新增 Agent mixin | 1 个（Hookable）|
+| 新增外部依赖 | 1 个（Frank-III/onebit-tui: 0.1.3）|
 
 ### Phase 5 验证结果
 

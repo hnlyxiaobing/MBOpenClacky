@@ -13,6 +13,15 @@ pub(all) enum RunStatus {
 } derive(Eq, Debug)
 
 ///|
+pub fn RunStatus::to_string_value(self : RunStatus) -> String {
+  match self {
+    Success => "Success"
+    Error => "Error"
+    Interrupted => "Interrupted"
+  }
+}
+
+///|
 /// Result returned after an agent run completes.
 pub(all) struct RunResult {
   status : RunStatus

@@ -224,14 +224,9 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
   let msg_opt = get_named_arg(value, "message")
   match msg_opt {
     Some(msg) => run_non_interactive(agent, msg)
-    None => {
-      if config.verbose {
-        println("MBOpenClacky v\{VERSION}")
-      }
-      println("Interactive mode not available in Phase 5.")
-      println("Use --message / -m to run the agent non-interactively.")
-      println("Use --help to see all available options.")
-    }
+    None =>
+      // Launch TUI in interactive mode
+      @tui.run_tui_interactive(agent)
   }
 }
 

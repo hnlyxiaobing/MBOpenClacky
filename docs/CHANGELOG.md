@@ -26,6 +26,34 @@
 ## 变更记录
 
 
+### 2026-05-23  Phase 7 TUI 交互界面 + Hook 事件系统
+
+- `[feat]` 实现 Hook 事件系统 `lib/agent/hook.mbt`（77 行）
+  - `HookEvent` 枚举：10 种生命周期事件（StatusChanged/BeforeIteration/AfterIteration/BeforeLlmCall/AfterLlmCall/MessageAdded/ToolExecuting/ToolExecuted/ErrorOccurred/RunCompleted）
+  - `HookManager` 结构体：register/emit/clear 方法，FIFO 回调调度
+- `[feat]` Agent 核心集成 Hook 事件（`lib/agent/react.mbt`）
+  - 在 `run()` 中发射 StatusChanged、MessageAdded、ErrorOccurred、RunCompleted 事件
+  - 在 `react_loop()` 中发射 BeforeIteration、AfterIteration 事件
+  - 在 `think()` 中发射 BeforeLlmCall、AfterLlmCall、MessageAdded 事件
+  - 在 `act()` 中发射 ToolExecuting、ToolExecuted 事件
+  - 在 `observe()` 中发射 MessageAdded 事件
+  - 共计 11 个发射点覆盖完整 ReAct 生命周期
+- `[feat]` `lib/agent/agent.mbt` — Agent struct 新增 `hook_manager : HookManager` 字段
+- `[feat]` 实现基于 onebit-tui 的 TUI 界面（`lib/tui/`，10 文件，~667 行）
+  - `tui.mbt`（232 行）— 主入口 `run_tui_interactive`、事件循环、Hook→TUI 状态同步
+  - `state.mbt`（79 行）— `TuiState` 共享状态（Idle/Running 双模式）
+  - `message_view.mbt`（44 行）— 带角色着色与 ScrollBox 的会话历史组件
+  - `input_bar.mbt`（38 行）— TextInput + Submit/Quit 按钮
+  - `status_bar.mbt`（33 行）— Agent 状态 + 模型名 + 迭代次数
+  - `stats_bar.mbt`（49 行）— Token/成本/缓存统计栏
+  - `tool_view.mbt`（27 行）— 工具执行输出面板
+- `[chore]` `cmd/main.mbt` — 无 `--message` 时自动启动 TUI 交互模式，替代 Phase 5 的占位消息
+- `[chore]` `cmd/moon.pkg` 新增依赖：`@tui`
+- `[chore]` `moon.mod.json` 新增依赖：`Frank-III/onebit-tui: 0.1.3`，目标改为 `preferred-target: native`
+- `[test]` `lib/agent/hook_wbtest.mbt` — 新增 11 个测试用例（Hook 注册/发射/清除/事件负载/集成验证）
+- `[test]` `lib/tui/tui_wbtest.mbt` — 新增 9 个测试用例（TuiState 构建/可变性/成本格式化/Hook 事件处理/TuiMode 相等性）
+- `[docs]` `docs/development-plan.md` — 更新 Phase 7 完成状态
+
 ### 2026-05-23  Phase 6 会话持久化（Session 存储与管理）
 
 - `[feat]` 实现会话文件存储 `lib/agent/session_store.mbt`（106 行）

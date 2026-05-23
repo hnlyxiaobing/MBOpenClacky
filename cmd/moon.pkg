@@ -10,6 +10,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client" @client,
   "hnlyxiaobing/MBOpenClacky/lib/errors" @errors,
   "hnlyxiaobing/MBOpenClacky/lib/utils" @utils,
+  "hnlyxiaobing/MBOpenClacky/lib/tui" @tui,
 }
 
 options(

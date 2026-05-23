@@ -29,15 +29,19 @@ priv struct ActionResult {
 /// Raises AgentError on unrecoverable errors.
 pub fn Agent::run(self : Agent, user_input : String) -> RunResult raise {
   // ── 1. Initialize ──────────────────────────────────────────────────
+  let old_status = self.status
   self.status = Running
+  self.hook_manager.emit(StatusChanged(old_status, Running))
   self.error = None
   // Inject system prompt on first run
   if self.history.length() == 0 {
     let system_prompt = self.build_system_prompt()
     self.history.push(@message.Message::system(system_prompt))
+    self.hook_manager.emit(MessageAdded)
   }
   // Add user message
   self.history.push(@message.Message::user(user_input))
+  self.hook_manager.emit(MessageAdded)
   self.total_tasks = self.total_tasks + 1
 
   // ── 2. ReAct Loop ──────────────────────────────────────────────────
@@ -46,12 +50,16 @@ pub fn Agent::run(self : Agent, user_input : String) -> RunResult raise {
       self.status = Error
       let err_msg = "\{err}"
       self.error = Some(err_msg)
+      self.hook_manager.emit(ErrorOccurred(err_msg))
       raise @errors.AgentError(err_msg)
     }
   }
 
   // ── 3. Finalize ────────────────────────────────────────────────────
+  let completed_status = self.status
   self.status = Completed
+  self.hook_manager.emit(StatusChanged(completed_status, Completed))
+  self.hook_manager.emit(RunCompleted(result))
   result
 }
 
@@ -64,6 +72,7 @@ fn Agent::react_loop(self : Agent) -> RunResult raise {
 
   while done is None {
     self.iterations = self.iterations + 1
+    self.hook_manager.emit(BeforeIteration(self.iterations))
 
     // ── THINK ────────────────────────────────────────────────────────
     let response = self.think()
@@ -83,6 +92,7 @@ fn Agent::react_loop(self : Agent) -> RunResult raise {
                   "Response was truncated multiple times. Please break your task into smaller steps.",
                 ),
               )
+              self.hook_manager.emit(MessageAdded)
               done = Some(
                 self.build_result(
                   Error,
@@ -95,6 +105,7 @@ fn Agent::react_loop(self : Agent) -> RunResult raise {
                   "Your previous response was truncated. Please continue from where you left off, or break the task into smaller steps.",
                 ),
               )
+              self.hook_manager.emit(MessageAdded)
             }
           }
           _ => {
@@ -127,9 +138,11 @@ fn Agent::react_loop(self : Agent) -> RunResult raise {
                 done = Some(self.build_result(Success))
               } else if action_result.denied {
                 match action_result.feedback {
-                  Some(fb) if fb.length() > 0 =>
+                  Some(fb) if fb.length() > 0 => {
                     // Inject user feedback and continue
                     self.history.push(@message.Message::user(fb))
+                    self.hook_manager.emit(MessageAdded)
+                  }
                   _ =>
                     // Denied without feedback — stop
                     done = Some(self.build_result(Success))
@@ -139,6 +152,8 @@ fn Agent::react_loop(self : Agent) -> RunResult raise {
           }
         }
     }
+    // Emit AfterIteration at end of each loop body
+    self.hook_manager.emit(AfterIteration(self.iterations))
   }
 
   // Unwrap: loop exits only when done is Some
@@ -164,6 +179,7 @@ fn Agent::think(self : Agent) -> @client.LlmResponse? raise {
   }
 
   // Call the LLM
+  self.hook_manager.emit(BeforeLlmCall)
   let response = self.call_llm()
 
   // Update latency
@@ -180,6 +196,8 @@ fn Agent::think(self : Agent) -> @client.LlmResponse? raise {
   let msg = @message.Message::assistant(content)
   msg.tool_calls = response.tool_calls
   self.history.push(msg)
+  self.hook_manager.emit(MessageAdded)
+  self.hook_manager.emit(AfterLlmCall)
 
   Some(response)
 }
@@ -210,8 +228,12 @@ fn Agent::act(
       results.push(entry)
       denied = true
     } else {
+      // Emit hook before execution
+      let args_json = call.function.arguments
+      self.hook_manager.emit(ToolExecuting(tool_name, args_json))
       // Execute the tool
       let entry = self.execute_single_tool(call)
+      self.hook_manager.emit(ToolExecuted(tool_name, entry))
       results.push(entry)
     }
   }
@@ -238,5 +260,6 @@ fn Agent::observe(
   let formatted = self.client.format_tool_results(response, results_map)
   for msg in formatted {
     self.history.push(msg)
+    self.hook_manager.emit(MessageAdded)
   }
 }
