@@ -2,7 +2,7 @@
 
 ## Context
 
-本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）和 Phase 4（Agent 核心），项目完成度约 **45-50%**。下一步重点是 Phase 5（CLI 入口）。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）和 **Phase 5（CLI 入口）**，项目完成度约 **50-55%**。下一步重点是 Phase 6（会话持久化）。
 
 ---
 
@@ -20,25 +20,26 @@
 | `lib/tool` | `trait.mbt`, `types.mbt`, `registry.mbt`, `security.mbt`, `any_tool.mbt` + 8 工具 | **1,460** | **核心完成** | Tool trait + 8 个内置工具 + ToolRegistry + Security + 18 个测试 |
 | `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `agent_wbtest.mbt` | **2,976** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化 + 42 个测试 |
 | `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
-| `cmd` | `main.mbt` | 65 | 脚手架 smoke test | 构造类型实例并打印，无 CLI 解析 |
+| `cmd` | `main.mbt` | 280 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，7 个选项 + 2 个子命令 |
 
 ### 项目总览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | **47** 个 |
-| 代码总行数 | **8,564** 行 |
+| `.mbt` 源文件 | **48** 个 |
+| 代码总行数 | **8,780** 行 |
 | 测试文件 | **5** 个（config + errors + utils + client + agent） |
 | 测试用例 | **154** 个 |
 | 实现包数 | **10** 个（含 cmd + lib hub） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
 | 内置工具 | **8** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch） |
 | Agent mixin 功能 | **10** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息） |
-| 项目完成度 | **~45-50%** |
+| CLI 选项 | **7** 个 + **2** 个子命令 |
+| 项目完成度 | **~50-55%** |
 
 ### 关键缺失
 
-- **零 CLI**：无子命令解析、无交互式模式
+- **零会话持久化**：SessionData 序列化已完成，但缺少 JSON 文件存储和会话管理
 - **零 HTTP 传输层**：客户端请求/解析逻辑完整，但实际异步 HTTP 发送尚未接入（待 async 依赖版本确定）
 - **6 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、ClackyAI-Sea、MiMo、GLM
 
@@ -54,7 +55,7 @@
 | **LLM 客户端** | 3 协议（OpenAI/Anthropic/Bedrock）+ SSE 流式 + 重试 + Fallback + Prompt Caching | OpenAI + Anthropic 双格式 + SSE 流式 + Prompt Caching + 错误处理 | **核心完成，缺 Bedrock/HTTP传输** | P0 |
 | **工具系统** | 18 个内置工具 + ToolRegistry（别名解析）+ Security 安全层 | 8 个内置工具 + ToolRegistry + Security | **核心完成，缺 10 个工具** | P0 |
 | **Agent 核心** | 15 个 mixin（ReAct 循环/LLM 调用/工具执行/成本追踪/Hook/压缩/序列化/技能管理等） | 10 个 mixin 功能（ReAct/LLM/工具/成本/提示/压缩/Fallback/会话/权限/API消息） | **核心完成，缺 Hook/Skill/Subagent/Memory/Todo** | P0 |
-| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | smoke test | **全部缺失** | P1 |
+| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | clap 框架，7 个选项 + 2 个子命令（billing/server 为 stub）+ Agent 集成 | **核心完成，缺 --continue/--list/--attach/斜杠命令** | P1 |
 | **会话持久化** | JSON 文件存储 + 200 会话上限 + LLM 驱动消息压缩 | SessionData 序列化已实现 | **基础完成，缺持久化存储** | P1 |
 | **TUI 界面** | UI2 引擎 + 10 组件 + 3 主题 + Markdown 渲染 + 进度指示器 | 无 | **全部缺失** | P1 |
 | **技能系统** | 11 内置技能 + SKILL.md 前置解析 + 多位置发现 + 进化 | 仅 Skill struct | **大部分缺失** | P1 |
@@ -83,11 +84,11 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成]
-                                                                                           │
+Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成]
+                                                                                                             │
                            ┌───────────┬───────────┬──────────┬───────────────┘
                            ↓           ↓           ↓          ↓
-                     Phase 5(CLI) Phase 6(Session) Phase 7(TUI) Phase 8(Skill) Phase 9(Server)
+                     Phase 6(Session) Phase 7(TUI) Phase 8(Skill) Phase 9(Server)
                                                                                                  ↓
                                                                                           Phase 10(Enhanced)
                                                                                                  ↓
@@ -206,15 +207,47 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 - **子 Agent**：待 Phase 10 增强功能实现
 - **Memory/TodoManager**：待 Phase 10 实现
 
-### Phase 5：CLI 入口（下一步开发重点）
+### Phase 5：CLI 入口 [已完成]
 
 **复杂度**: M | **依赖**: Phase 4（已完成）
 
-本阶段是下一个重点工作——实现命令行解析和子命令。
+本阶段已实现基于 `TheWaWaR/clap` 的命令行参数解析和 Agent 集成。
 
-#### Ruby 参考文件
-- `D:\MoonBit\openclacky\lib\clacky\cli.rb`
-- `D:\MoonBit\openclacky\bin/clacky`
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `cmd/main.mbt` | 280 | CLI 入口：clap Parser 定义、子命令分发、Agent 模式核心流程 |
+| | | 参数：--message/-m、--mode（choices 约束）、--model、--agent、--path、--verbose/-v、--version/-V |
+| | | 子命令：billing（stub）、server（stub） |
+| | | 非交互执行：配置加载 → Client 构建 → Agent 创建 → run() → 结果打印 |
+| | | 错误处理：AgentInterrupted/AgentError/RetryableError 分类处理 |
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| clap 参数解析 | ✅ 已完成 | Parser + 7 个选项 + 2 个子命令，choices 约束验证 |
+| --help 自动生成 | ✅ 已完成 | clap 内置 gen_help_message |
+| --version 显示 | ✅ 已完成 | 手动处理（clap 暂未内置） |
+| Config 加载 | ✅ 已完成 | AgentConfig::load_default()，apply_env_overlay |
+| Client 构建 | ✅ 已完成 | 从 ModelConfig 映射到 Client::new（anthropic_format → ApiType） |
+| Agent 执行 | ✅ 已完成 | agent.run() 非交互式单次执行 |
+| --mode 覆盖 | ✅ 已完成 | PermissionMode::from_string() 解析 |
+| --model 覆盖 | ✅ 已完成 | 遍历 models 数组匹配 |
+| --verbose 控制 | ✅ 已完成 | config.verbose = true |
+| billing/server stub | ✅ 已完成 | 占位消息，后续阶段扩展 |
+| session --continue | ⏳ Phase 6 | 需要会话持久化 |
+| session --list | ⏳ Phase 6 | 需要会话持久化 |
+| session --attach | ⏳ Phase 6 | 需要会话持久化 |
+| 交互式 REPL | ⏳ Phase 7 | 需要 TUI 框架 |
+
+#### 未完成项（延后）
+
+- **会话管理（--continue/--list/--attach）**：待 Phase 6 会话持久化实现
+- **交互式 REPL 模式**：待 Phase 7 TUI 框架实现
+- **文件附件（--file/-f）**：待 Phase 9 文件处理实现
+- **Agent profile 切换**：待 Phase 8 技能系统实现
 
 ### Phase 6-11（保持原计划结构）
 
@@ -247,4 +280,18 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | `moon build` | ⚠️ 部分通过 | 需使用 `--target wasm-gc`，native 后端因 Windows tcc 缺少 C 标准头而失败（预存在问题） |
 | `moon test --target wasm-gc` | ✅ 通过 | 154 个测试全部通过 |
 | `moon run cmd --target wasm-gc` | ✅ 通过 | 冒烟测试输出正常 |
+| `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+### Phase 5 验证结果
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| `moon check` | ✅ 通过 | 0 错误（21 警告，均为 pre-existing） |
+| `moon build` | ⚠️ 部分通过 | tcc 问题与 Phase 4 相同 |
+| `moon test --target wasm-gc` | ✅ 通过 | 154 个测试全部通过，无回归 |
+| `moon run cmd --target wasm-gc -- --help` | ✅ 通过 | 输出完整帮助信息，显示 7 个选项 + 2 个子命令 |
+| `moon run cmd --target wasm-gc -- --version` | ✅ 通过 | 输出 "MBOpenClacky v0.1.0" |
+| `moon run cmd --target wasm-gc -- --mode invalid` | ✅ 通过 | clap choices 验证报错 |
+| `moon run cmd --target wasm-gc -- billing` | ✅ 通过 | 显示 stub 消息 |
+| `moon run cmd --target wasm-gc -- -v -m "test"` | ✅ 通过 | 无 API Key 时显示友好提示 |
 | `moon fmt` | ✅ 完成 | 代码已格式化 |

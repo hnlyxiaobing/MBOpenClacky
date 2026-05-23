@@ -25,6 +25,43 @@
 
 ## 变更记录
 
+
+### 2026-05-23  Phase 5 CLI 入口实现
+
+- `[feat]` 基于 `TheWaWaR/clap` 实现完整 CLI 入口（`cmd/main.mbt`，~280 行）
+  - 支持顶层参数：`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`
+  - `--mode` 使用 clap `choices` 约束，仅接受 `auto_approve/confirm_safes/confirm_all`
+  - 子命令：`billing`、`server`（Phase 5 中为 stub）
+  - 默认无参数时显示帮助信息
+- `[feat]` 实现非交互式 Agent 运行（`--message`/`-m`）
+  - 加载配置 → 检查 API Key → 构建 Client → 创建 Agent → 执行 run() → 打印结果 → 退出
+  - 支持 `--mode`、`--model`、`--verbose` CLI 覆盖
+  - 错误处理：AgentInterrupted / AgentError / RetryableError 分类处理
+- `[chore]` `cmd/moon.pkg` 新增依赖：`hashset`、`sys`、`@clap`、`@errors`
+- `[chore]` `cmd/moon.pkg` 移除未使用依赖：`message`、`tool`、`utils`
+- `[docs]` `docs/development-plan.md` — 更新 Phase 5 完成状态，标记 CLI 差距已消除
+
+### 2026-05-23  Phase 4 Agent 核心实现（10 个 mixin 模块）
+
+- `[feat]` 实现 10 个 Agent mixin 模块（共 ~1,400 行）
+  - `lib/agent/react.mbt`（155 行）— ReAct 主循环（think → act → observe）
+  - `lib/agent/llm_caller.mbt`（145 行）— LLM 调用 + Fallback 状态机 + 上下文溢出处理
+  - `lib/agent/tool_executor.mbt`（120 行）— 工具执行 + 权限确认 + 结果构建
+  - `lib/agent/cost_tracker.mbt`（130 行）— CostSource/CacheStats/IterationTokenData + track_cost
+  - `lib/agent/system_prompt.mbt`（85 行）— 6 层系统提示词构建
+  - `lib/agent/compressor.mbt`（95 行）— 消息压缩阈值检测 + 压缩执行
+  - `lib/agent/session_data.mbt`（75 行）— SessionStats/SessionData + 会话恢复
+  - `lib/agent/agent_result.mbt`（45 行）— RunStatus/RunResult + build_result
+  - `lib/agent/agent_wbtest.mbt`（558 行）— 42 个测试用例
+- `[refactor]` `lib/agent/agent.mbt` — Agent struct 扩展至 20+ 字段（client/config/tool_registry/cache_stats/fallback_state/compression_level 等）, 新增 FallbackState 枚举状态机 + `current_model`/`set_reasoning_effort` 方法
+- `[refactor]` `lib/errors/errors.mbt` — 6 个 suberror 类型的 `pub` 改为 `pub(all)`（AgentInterrupted/AgentError/BadRequestError/ToolCallError/BrowserNotReachableError/RetryableError/UpstreamTruncatedError）
+- `[refactor]` `lib/message/message.mbt` — `tool_calls` 字段改为 `mut`
+- `[refactor]` `lib/tool/any_tool.mbt` — 7 个 trait impl 的 `impl` 改为 `pub impl`
+- `[chore]` `lib/agent/moon.pkg` 新增依赖：`@client`、`@config`、`@tool`、`@errors`、`@json`
+- `[chore]` `cmd/moon.pkg` 新增依赖：`@client`、`@tool`、`@json`
+- `[chore]` `cmd/main.mbt` — 更新 smoke test，展示 Agent/Client/Config/CacheStats/SessionData/ToolRegistry 集成
+- `[docs]` `docs/development-plan.md` — 更新 Phase 4 完成状态，新增 Phase 4 验证结果表及 Phase 5 CLI 入口计划
+
 ### 2026-05-23  Phase 3 工具系统实现 + 编译错误系统性修复
 
 - `[feat]` 完成 10 个工具模块实现（共 ~2,100 行）
@@ -132,27 +169,3 @@
 - `[chore]` 配置 `moon.mod.json` 及各包 `moon.pkg`
 - `[docs]` 添加项目 README 与 MIT LICENSE
 
----
-
-### 2026-05-23  Phase 4 Agent 核心实现（10 个 mixin 模块）
-
-- `[feat]` 实现 10 个 Agent mixin 模块（共 ~1,400 行）
-  - `lib/agent/react.mbt`（155 行）— ReAct 主循环（think → act → observe）
-  - `lib/agent/llm_caller.mbt`（145 行）— LLM 调用 + Fallback 状态机 + 上下文溢出处理
-  - `lib/agent/tool_executor.mbt`（120 行）— 工具执行 + 权限确认 + 结果构建
-  - `lib/agent/cost_tracker.mbt`（130 行）— CostSource/CacheStats/IterationTokenData + track_cost
-  - `lib/agent/system_prompt.mbt`（85 行）— 6 层系统提示词构建
-  - `lib/agent/compressor.mbt`（95 行）— 消息压缩阈值检测 + 压缩执行
-  - `lib/agent/session_data.mbt`（75 行）— SessionStats/SessionData + 会话恢复
-  - `lib/agent/agent_result.mbt`（45 行）— RunStatus/RunResult + build_result
-  - `lib/agent/agent_wbtest.mbt`（558 行）— 42 个测试用例
-- `[refactor]` `lib/agent/agent.mbt` — Agent struct 扩展至 20+ 字段（client/config/tool_registry/cache_stats/fallback_state/compression_level 等）, 新增 FallbackState 枚举状态机 + `current_model`/`set_reasoning_effort` 方法
-- `[refactor]` `lib/errors/errors.mbt` — 6 个 suberror 类型的 `pub` 改为 `pub(all)`（AgentInterrupted/AgentError/BadRequestError/ToolCallError/BrowserNotReachableError/RetryableError/UpstreamTruncatedError）
-- `[refactor]` `lib/message/message.mbt` — `tool_calls` 字段改为 `mut`
-- `[refactor]` `lib/tool/any_tool.mbt` — 7 个 trait impl 的 `impl` 改为 `pub impl`
-- `[chore]` `lib/agent/moon.pkg` 新增依赖：`@client`、`@config`、`@tool`、`@errors`、`@json`
-- `[chore]` `cmd/moon.pkg` 新增依赖：`@client`、`@tool`、`@json`
-- `[chore]` `cmd/main.mbt` — 更新 smoke test，展示 Agent/Client/Config/CacheStats/SessionData/ToolRegistry 集成
-- `[docs]` `docs/development-plan.md` — 更新 Phase 4 完成状态，新增 Phase 4 验证结果表及 Phase 5 CLI 入口计划
-
-<!-- 新记录请添加在此行上方 -->
