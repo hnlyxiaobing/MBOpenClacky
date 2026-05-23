@@ -25,6 +25,11 @@
 
 ## 变更记录
 
+### 2026-05-23  新增 .gitignore，清理 _build/ 构建产物
+
+- `[chore]` 创建 `.gitignore`，排除 `_build/`、`.mooncakes/`、`.repos/`、`.qoder/`、`*.mbti` 等生成文件
+- `[fix]` 从 Git 索引中移除 `_build/` 目录（580+ 个构建产物文件），本地文件保留
+
 ### 2026-05-23  配置加载与 Provider 预设系统
 
 - `[feat]` 新增 `lib/utils/` 工具包

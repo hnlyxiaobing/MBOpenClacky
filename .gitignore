@@ -1,0 +1,25 @@
+# MoonBit 构建产物
+_build/
+
+# 包缓存
+.mooncakes/
+
+# 源码缓存（mooncakes 下载源）
+.repos/
+
+# Qoder IDE 配置
+.qoder/
+
+# 已生成 IDE 辅助文件
+*.mbti
+*.generated.*
+
+# Windows NUL 设备文件
+nul
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 变更日志记录（项目文档，非代码）
+# docs/development-plan.md

@@ -1,4 +1,0 @@
-import {
-  "moonbitlang/core/json",
-  "hnlyxiaobing/MBOpenClacky/lib/message" @message,
-}
