@@ -6,7 +6,7 @@ pub(all) enum MessageContent {
 } derive(Eq, Debug)
 
 ///|
-impl ToJson for MessageContent with to_json(self) {
+impl ToJson for MessageContent with fn to_json(self) {
   match self {
     Text(s) => s.to_json()
     Blocks(blocks) => blocks.to_json()
@@ -14,7 +14,7 @@ impl ToJson for MessageContent with to_json(self) {
 }
 
 ///|
-impl FromJson for MessageContent with from_json(json, path) {
+impl FromJson for MessageContent with fn from_json(json, path) {
   match json {
     String(s) => MessageContent::Text(s)
     Array(items) => {
@@ -53,7 +53,7 @@ pub(all) struct Message {
 } derive(Eq, Debug)
 
 ///|
-pub impl ToJson for Message with to_json(self) {
+pub impl ToJson for Message with fn to_json(self) {
   let obj : Map[String, Json] = {
     "role": self.role.to_json(),
     "content": self.content.to_json(),
@@ -180,7 +180,7 @@ pub fn Message::to_api_message(self : Message) -> Message {
 }
 
 ///|
-pub impl FromJson for Message with from_json(json, path) {
+pub impl FromJson for Message with fn from_json(json, path) {
   match json {
     Object(map) => {
       let role = match map.get("role") {

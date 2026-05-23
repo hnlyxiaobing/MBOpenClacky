@@ -12,12 +12,12 @@ pub fn Write::new() -> Write {
 }
 
 ///|
-impl Tool for Write with name(_) -> String {
+impl Tool for Write with fn name(_) -> String {
   "write"
 }
 
 ///|
-impl Tool for Write with description(_) -> String {
+impl Tool for Write with fn description(_) -> String {
   "Writes a file to the local filesystem.\n" +
   "- This tool will overwrite the existing file if there is one.\n" +
   "- ALWAYS prefer editing existing files using the Edit tool.\n" +
@@ -26,7 +26,7 @@ impl Tool for Write with description(_) -> String {
 }
 
 ///|
-impl Tool for Write with parameters(_) -> Json {
+impl Tool for Write with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -44,12 +44,12 @@ impl Tool for Write with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for Write with category(_) -> ToolCategory {
+impl Tool for Write with fn category(_) -> ToolCategory {
   FileSystem
 }
 
 ///|
-impl Tool for Write with execute(_, args : Map[String, Json]) -> ToolResult {
+impl Tool for Write with fn execute(_, args : Map[String, Json]) -> ToolResult {
   let path = match args.get("path") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: path")
@@ -83,7 +83,7 @@ impl Tool for Write with execute(_, args : Map[String, Json]) -> ToolResult {
 }
 
 ///|
-impl Tool for Write with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for Write with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("path") {
     Some(String(p)) => "Write(\{get_basename(p)})"
     _ => "Write(?)"
@@ -91,11 +91,11 @@ impl Tool for Write with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for Write with format_result(_, result : ToolResult) -> String {
+impl Tool for Write with fn format_result(_, result : ToolResult) -> String {
   result.content
 }
 
 ///|
-impl Tool for Write with to_function_definition(self) -> FunctionDefinition {
+impl Tool for Write with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }

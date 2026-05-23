@@ -4,26 +4,26 @@
 /// Declared as pub(open) so external packages can implement new tools.
 pub(open) trait Tool {
   ///| Canonical name of the tool (e.g., "file_reader").
-  name(Self) -> String
+  fn name(Self) -> String
 
   ///| Human-readable description of what the tool does.
-  description(Self) -> String
+  fn description(Self) -> String
 
   ///| JSON Schema object describing the tool's parameters.
-  parameters(Self) -> Json
+  fn parameters(Self) -> Json
 
   ///| Category of the tool for grouping and permission control.
-  category(Self) -> ToolCategory
+  fn category(Self) -> ToolCategory
 
   ///| Execute the tool with the given arguments and return a result.
-  execute(Self, Map[String, Json]) -> ToolResult
+  fn execute(Self, Map[String, Json]) -> ToolResult
 
   ///| Format a tool call for display in the UI.
-  format_call(Self, Map[String, Json]) -> String
+  fn format_call(Self, Map[String, Json]) -> String
 
   ///| Format a tool result for display in the UI.
-  format_result(Self, ToolResult) -> String
+  fn format_result(Self, ToolResult) -> String
 
   ///| Convert to OpenAI function definition format for API submission.
-  to_function_definition(Self) -> FunctionDefinition
+  fn to_function_definition(Self) -> FunctionDefinition
 }

@@ -19,12 +19,12 @@ pub fn Terminal::new() -> Terminal {
 }
 
 ///|
-impl Tool for Terminal with name(_) -> String {
+impl Tool for Terminal with fn name(_) -> String {
   "terminal"
 }
 
 ///|
-impl Tool for Terminal with description(_) -> String {
+impl Tool for Terminal with fn description(_) -> String {
   "PROPOSE a command to run on behalf of the user.\n" +
   "If you have this tool, note that you DO have the ability to run commands directly on the USER's system.\n" +
   "In using these tools, adhere to the following guidelines:\n" +
@@ -43,7 +43,7 @@ impl Tool for Terminal with description(_) -> String {
 }
 
 ///|
-impl Tool for Terminal with parameters(_) -> Json {
+impl Tool for Terminal with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -80,12 +80,12 @@ impl Tool for Terminal with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for Terminal with category(_) -> ToolCategory {
+impl Tool for Terminal with fn category(_) -> ToolCategory {
   Execution
 }
 
 ///|
-impl Tool for Terminal with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let session_id = get_int_opt(args, "session_id")
   let kill_flag = get_bool_arg(args, "kill", false)
 
@@ -155,7 +155,7 @@ impl Tool for Terminal with execute(self, args : Map[String, Json]) -> ToolResul
 }
 
 ///|
-impl Tool for Terminal with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for Terminal with fn format_call(_, args : Map[String, Json]) -> String {
   let kill_flag = get_bool_arg(args, "kill", false)
   let session_id = get_int_opt(args, "session_id")
 
@@ -195,7 +195,7 @@ impl Tool for Terminal with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for Terminal with format_result(_, result : ToolResult) -> String {
+impl Tool for Terminal with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     if result.content.find("[Security]") is Some(_) {
       result.content
@@ -208,7 +208,7 @@ impl Tool for Terminal with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for Terminal with to_function_definition(self) -> FunctionDefinition {
+impl Tool for Terminal with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 

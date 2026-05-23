@@ -12,12 +12,12 @@ pub fn Edit::new() -> Edit {
 }
 
 ///|
-impl Tool for Edit with name(self) -> String {
+impl Tool for Edit with fn name(self) -> String {
   "edit"
 }
 
 ///|
-impl Tool for Edit with description(self) -> String {
+impl Tool for Edit with fn description(self) -> String {
   "Performs exact string replacements in files.\n" +
   "- old_str must include all whitespace, indentation, and surrounding code exactly.\n" +
   "- Use replace_all for replacing all occurrences.\n" +
@@ -26,7 +26,7 @@ impl Tool for Edit with description(self) -> String {
 }
 
 ///|
-impl Tool for Edit with parameters(_) -> Json {
+impl Tool for Edit with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -56,12 +56,12 @@ impl Tool for Edit with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for Edit with category(_) -> ToolCategory {
+impl Tool for Edit with fn category(_) -> ToolCategory {
   FileSystem
 }
 
 ///|
-impl Tool for Edit with execute(_, args : Map[String, Json]) -> ToolResult {
+impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
   let path = match args.get("path") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: path")
@@ -127,7 +127,7 @@ impl Tool for Edit with execute(_, args : Map[String, Json]) -> ToolResult {
 }
 
 ///|
-impl Tool for Edit with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for Edit with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("path") {
     Some(String(p)) => "Edit(\{get_basename(p)})"
     _ => "Edit(?)"
@@ -135,12 +135,12 @@ impl Tool for Edit with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for Edit with format_result(_, result : ToolResult) -> String {
+impl Tool for Edit with fn format_result(_, result : ToolResult) -> String {
   result.content
 }
 
 ///|
-impl Tool for Edit with to_function_definition(self) -> FunctionDefinition {
+impl Tool for Edit with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 

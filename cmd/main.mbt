@@ -3,7 +3,7 @@
 const VERSION : String = "0.1.0"
 
 ///|
-fn main {
+async fn main {
   let parser = @clap.Parser::new(
     prog="mbopenclacky",
     description="AI Agent CLI tool rewritten in MoonBit",
@@ -88,7 +88,9 @@ fn main {
         handle_billing()
         return
       } else if sub.name == "server" {
-        handle_server()
+        handle_server() catch {
+          err => println("Server error: \{err}")
+        }
         return
       }
     None => ()
@@ -111,7 +113,7 @@ fn handle_billing() -> Unit {
 }
 
 ///|
-fn handle_server() -> Unit {
+async fn handle_server() -> Unit {
   // Load configuration and start the web server
   let config = @config.AgentConfig::load_default() catch {
     err => {
@@ -136,7 +138,7 @@ fn handle_server() -> Unit {
 
   // Create and start the web server
   let server = @web.WebServer::new(config, api_key)
-  server.start(port=4000)
+  server.start(4000)
   println("Server stopped.")
 }
 

@@ -13,19 +13,19 @@ pub fn FileReader::new() -> FileReader {
 }
 
 ///|
-impl Tool for FileReader with name(_) -> String {
+impl Tool for FileReader with fn name(_) -> String {
   "file_reader"
 }
 
 ///|
-impl Tool for FileReader with description(_) -> String {
+impl Tool for FileReader with fn description(_) -> String {
   "Reads a file from the local filesystem. You can access any file directly by using this tool.\n" +
   "- You can optionally specify an offset and limit for long files.\n" +
   "- FilePath must be an absolute path."
 }
 
 ///|
-impl Tool for FileReader with parameters(_) -> Json {
+impl Tool for FileReader with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -47,12 +47,12 @@ impl Tool for FileReader with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for FileReader with category(_) -> ToolCategory {
+impl Tool for FileReader with fn category(_) -> ToolCategory {
   FileSystem
 }
 
 ///|
-impl Tool for FileReader with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let path = match args.get("path") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: path")
@@ -121,7 +121,7 @@ impl Tool for FileReader with execute(self, args : Map[String, Json]) -> ToolRes
 }
 
 ///|
-impl Tool for FileReader with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for FileReader with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("path") {
     Some(String(p)) => "Read(\{get_basename(p)})"
     _ => "Read(?)"
@@ -129,7 +129,7 @@ impl Tool for FileReader with format_call(_, args : Map[String, Json]) -> String
 }
 
 ///|
-impl Tool for FileReader with format_result(_, result : ToolResult) -> String {
+impl Tool for FileReader with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
@@ -138,7 +138,7 @@ impl Tool for FileReader with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for FileReader with to_function_definition(self) -> FunctionDefinition {
+impl Tool for FileReader with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 

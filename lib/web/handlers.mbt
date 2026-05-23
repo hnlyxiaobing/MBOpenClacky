@@ -14,22 +14,30 @@ fn handle_list_sessions(
   )
 }
 
-///| POST /api/sessions
-fn handle_create_session(server_ref : Ref[WebServer], event : @crescent.Event) -> @core.HttpResponse {
-  let j : Json = event.req.body[Json]() catch {
-    _ => { "name": "Web Session" } : Json
+///|
+/// POST /api/sessions
+fn handle_create_session(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let j : Json = event.req.body() catch {
+    _ => Json::object({ "name": "Web Session".to_json() })
   }
   let name : String = match j {
-    Object(obj) => match obj.get("name") {
-      Some(String(n)) => n
-      _ => "Web Session"
-    }
+    Object(obj) =>
+      match obj.get("name") {
+        Some(String(n)) => n
+        _ => "Web Session"
+      }
     _ => "Web Session"
   }
   let session_id = @agent.generate_session_id()
   let model_config = match server_ref.val.config.current_model() {
     Some(mc) => mc
-    None => raise @crescent.HttpError(@core.InternalServerError, "No model configured")
+    None =>
+      return @core.HttpResponse::internal_server_error().json_value(
+        Json::object({ "error": "No model configured".to_json() }),
+      )
   }
   let api_type = if model_config.anthropic_format {
     @config.AnthropicMessages
@@ -42,12 +50,17 @@ fn handle_create_session(server_ref : Ref[WebServer], event : @crescent.Event) -
     model_config.model,
     api_type,
   )
-  let agent = @agent.Agent::new(session_id, name, ".", client, server_ref.val.config)
+  let agent = @agent.Agent::new(
+    session_id,
+    name,
+    ".",
+    client,
+    server_ref.val.config,
+  )
   server_ref.val.active_agents[session_id] = agent
   let data = agent.to_session_data()
   @core.HttpResponse::created().json_value(data.to_json())
 }
-
 
 ///|
 /// GET /api/sessions/:id
@@ -55,21 +68,40 @@ fn handle_get_session(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
-  match @agent.load_session(id) {
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let session_opt = @agent.load_session(id) catch { _ => None }
+  match session_opt {
     Some(data) => @core.HttpResponse::ok().json_value(data.to_json())
-    None => raise @crescent.HttpError(@core.NotFound, "Session not found")
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
   }
 }
 
-///| DELETE /api/sessions/:id
-fn handle_delete_session(server_ref : Ref[WebServer], event : @crescent.Event) -> @core.HttpResponse {
-  let id = event.require_param("id")
+///|
+/// DELETE /api/sessions/:id
+fn handle_delete_session(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
   @agent.delete_session(id)
-  ignore server_ref.val.active_agents.remove(id)
+  let _ = server_ref.val.active_agents.remove(id)
   @core.HttpResponse::no_content()
 }
-
 
 ///|
 /// POST /api/sessions/:id/restore
@@ -77,18 +109,30 @@ fn handle_restore_session(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
-  match @agent.load_session(id) {
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let session_opt = @agent.load_session(id) catch { _ => None }
+  match session_opt {
     Some(data) => {
       let agent = server_ref.val.get_or_create_agent(id)
       agent.restore_from_session(data)
       @core.HttpResponse::ok().json_value(agent.to_session_data().to_json())
     }
-    None => raise @crescent.HttpError(@core.NotFound, "Session not found")
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
   }
 }
 
 // ── Chat Handlers ───────────────────────────────────────────────
+
+///|
 
 ///|
 /// POST /api/sessions/:id/chat
@@ -96,18 +140,32 @@ fn handle_chat(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
-  let j : Json = event.req.body[Json]() catch {
-    _ => raise @crescent.HttpError(@core.BadRequest, "Invalid JSON body")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
   }
   let message : String = match j {
     Object(obj) =>
       match obj.get("message") {
         Some(String(m)) => m
         _ =>
-          raise @crescent.HttpError(@core.BadRequest, "Missing 'message' field")
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing 'message' field".to_json() }),
+          )
       }
-    _ => raise @crescent.HttpError(@core.BadRequest, "Invalid JSON body")
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
   }
 
   let agent = server_ref.val.get_or_create_agent(id)
@@ -126,10 +184,15 @@ fn handle_chat(
     }
     err => {
       println("[web] unhandled error: \{err}")
-      raise @crescent.HttpError(
-        @core.InternalServerError,
-        "Agent execution failed",
-      )
+      @agent.RunResult::{
+        status: @agent.RunStatus::Error,
+        session_id: id,
+        iterations: agent.iterations,
+        total_cost_usd: agent.total_cost,
+        cost_source: agent.cost_source,
+        cache_stats: agent.cache_stats,
+        error: Some("Internal error"),
+      }
     }
   }
 
@@ -151,23 +214,39 @@ fn handle_chat(
 }
 
 ///|
+
+///|
 /// POST /api/sessions/:id/chat/stream
 fn handle_chat_stream(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
-  let j : Json = event.req.body[Json]() catch {
-    _ => raise @crescent.HttpError(@core.BadRequest, "Invalid JSON body")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
   }
   let message : String = match j {
     Object(obj) =>
       match obj.get("message") {
         Some(String(m)) => m
         _ =>
-          raise @crescent.HttpError(@core.BadRequest, "Missing 'message' field")
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing 'message' field".to_json() }),
+          )
       }
-    _ => raise @crescent.HttpError(@core.BadRequest, "Invalid JSON body")
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
   }
 
   let agent = server_ref.val.get_or_create_agent(id)
@@ -223,12 +302,20 @@ fn handle_chat_stream(
 }
 
 ///|
+
+///|
 /// GET /api/sessions/:id/status
 fn handle_get_status(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
   match server_ref.val.active_agents.get(id) {
     Some(agent) => {
       let response = StatusResponse::{
@@ -239,8 +326,9 @@ fn handle_get_status(
       }
       @core.HttpResponse::ok().json_value(response.to_json())
     }
-    None =>
-      match @agent.load_session(id) {
+    None => {
+      let session_opt = @agent.load_session(id)
+      match session_opt {
         Some(data) => {
           let response = StatusResponse::{
             session_id: id,
@@ -250,10 +338,16 @@ fn handle_get_status(
           }
           @core.HttpResponse::ok().json_value(response.to_json())
         }
-        None => raise @crescent.HttpError(@core.NotFound, "Session not found")
+        None =>
+          @core.HttpResponse::not_found().json_value(
+            Json::object({ "error": "Session not found".to_json() }),
+          )
       }
+    }
   }
 }
+
+///|
 
 ///|
 /// POST /api/sessions/:id/cancel
@@ -261,11 +355,19 @@ fn handle_cancel(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
   server_ref.val.cancelled[id] = true
   let response = CancelResponse::{ cancelled: true }
   @core.HttpResponse::ok().json_value(response.to_json())
 }
+
+///|
 
 ///|
 /// GET /api/sessions/:id/cost
@@ -273,7 +375,13 @@ fn handle_get_cost(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
   match server_ref.val.active_agents.get(id) {
     Some(agent) => {
       let response = CostResponse::{
@@ -287,8 +395,9 @@ fn handle_get_cost(
       }
       @core.HttpResponse::ok().json_value(response.to_json())
     }
-    None =>
-      match @agent.load_session(id) {
+    None => {
+      let session_opt = @agent.load_session(id)
+      match session_opt {
         Some(data) => {
           let response = CostResponse::{
             session_id: id,
@@ -301,10 +410,16 @@ fn handle_get_cost(
           }
           @core.HttpResponse::ok().json_value(response.to_json())
         }
-        None => raise @crescent.HttpError(@core.NotFound, "Session not found")
+        None =>
+          @core.HttpResponse::not_found().json_value(
+            Json::object({ "error": "Session not found".to_json() }),
+          )
       }
+    }
   }
 }
+
+///|
 
 ///|
 /// GET /api/sessions/:id/tools
@@ -312,7 +427,13 @@ fn handle_list_tools(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let id = event.require_param("id")
+  let id = match event.param("id") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
   let agent = server_ref.val.get_or_create_agent(id)
   let tool_names = agent.tool_registry.tool_names()
   let tools : Array[ToolListEntry] = []
@@ -328,11 +449,15 @@ fn handle_list_tools(
 
 // ── Config Handlers ─────────────────────────────────────────────
 
-///| GET /api/config
-fn handle_get_config(server_ref : Ref[WebServer], _event : @crescent.Event) -> @core.HttpResponse {
+///|
+/// GET /api/config
+fn handle_get_config(
+  server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
   let cfg = server_ref.val.config
   let response = ConfigResponse::{
-    permission_mode: PermissionMode_to_string(cfg.permission_mode),
+    permission_mode: permission_mode_str(cfg.permission_mode),
     max_tokens: cfg.max_tokens,
     verbose: cfg.verbose,
     current_model_id: cfg.current_model_id,
@@ -340,14 +465,14 @@ fn handle_get_config(server_ref : Ref[WebServer], _event : @crescent.Event) -> @
   @core.HttpResponse::ok().json_value(response.to_json())
 }
 
-fn PermissionMode_to_string(mode : @config.PermissionMode) -> String {
+///|
+fn permission_mode_str(mode : @config.PermissionMode) -> String {
   match mode {
     @config.AutoApprove => "auto_approve"
     @config.ConfirmSafes => "confirm_safes"
     @config.ConfirmAll => "confirm_all"
   }
 }
-
 
 ///|
 /// PUT /api/config
@@ -356,8 +481,11 @@ fn handle_update_config(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let cfg = server_ref.val.config
-  let j : Json = event.req.body[Json]() catch {
-    _ => raise @crescent.HttpError(@core.BadRequest, "Invalid JSON body")
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
   }
   match j {
     Object(obj) => {
@@ -378,7 +506,7 @@ fn handle_update_config(
         _ => ()
       }
       match obj.get("verbose") {
-        Some(Bool(b)) => cfg.verbose = b
+        Some(True) => cfg.verbose = true
         _ => ()
       }
     }
@@ -403,7 +531,7 @@ fn handle_get_permissions(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let mode_str = PermissionMode_to_string(server_ref.val.config.permission_mode)
+  let mode_str = permission_mode_str(server_ref.val.config.permission_mode)
   let response = PermissionResponse::{
     permission_mode: mode_str,
     safe_tools: ["file_reader", "grep", "glob", "web_search"],
@@ -480,8 +608,13 @@ fn handle_info(
 // ── WebSocket Handler ─────────────────────────────────────────────
 
 ///|
+
+///|
 /// Handle WebSocket events for /ws/sessions/:id
-fn handle_websocket(server_ref : Ref[WebServer], event : @ws.WebSocketEvent) {
+fn handle_websocket(
+  server_ref : Ref[WebServer],
+  event : @ws.WebSocketEvent,
+) -> Unit {
   match event {
     Open(peer) => {
       let session_id = peer.param("session_id")
@@ -544,9 +677,6 @@ fn handle_websocket(server_ref : Ref[WebServer], event : @ws.WebSocketEvent) {
         }
         Binary(_) => ()
       }
-    Close(_peer) =>
-      {
-      // Cleanup handled by crescent
-      }
+    Close(_peer) => ()
   }
 }

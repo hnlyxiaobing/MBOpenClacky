@@ -2,16 +2,25 @@
 
 ///| Creates middleware that checks X-API-Key header.
 
-///| Returns 401 if key is configured but missing/invalid.
+///|
+/// Returns 401 if key is configured but missing/invalid.
 pub fn auth_middleware(api_key : String) -> @crescent.Middleware {
-  @crescent.Middleware(fn(event : @crescent.Event, next : @crescent.MiddlewareNext) noraise -> &core.Responder {
+  let mw : @crescent.Middleware = (event, next) => {
     let req = event.req
     let header_key = req.get_header("X-API-Key")
-    match header_key {
-      Some(k) if k == api_key => next()
-      _ => @core.HttpResponse::unauthorized().json_value(
-        { "error": { "status": 401, "message": "Invalid or missing API key" } } : Json,
+    if header_key == Some(api_key) {
+      next()
+    } else {
+      let msg = "Invalid or missing API key"
+      @core.HttpResponse::unauthorized().json_value(
+        Json::object({
+          "error": Json::object({
+            "status": (401).to_json(),
+            "message": msg.to_json(),
+          }),
+        }),
       )
     }
-  })
+  }
+  mw
 }

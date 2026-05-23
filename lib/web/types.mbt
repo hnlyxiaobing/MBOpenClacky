@@ -135,12 +135,12 @@ pub(all) struct PermissionResponse {
 // ── JSON serialization for response types ────────────────────────
 
 ///|
-impl ToJson for SessionListResponse with to_json(self) {
+pub impl ToJson for SessionListResponse with fn to_json(self) {
   Json::object({ "sessions": self.sessions.to_json() })
 }
 
 ///|
-impl ToJson for ToolListEntry with to_json(self) {
+impl ToJson for ToolListEntry with fn to_json(self) {
   Json::object({
     "name": self.name.to_json(),
     "description": self.description.to_json(),
@@ -148,12 +148,12 @@ impl ToJson for ToolListEntry with to_json(self) {
 }
 
 ///|
-impl ToJson for ToolListResponse with to_json(self) {
+impl ToJson for ToolListResponse with fn to_json(self) {
   Json::object({ "tools": self.tools.to_json() })
 }
 
 ///|
-impl ToJson for ChatResponse with to_json(self) {
+impl ToJson for ChatResponse with fn to_json(self) {
   Json::object({
     "session_id": self.session_id.to_json(),
     "messages": self.messages.to_json(),
@@ -164,7 +164,7 @@ impl ToJson for ChatResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for StatusResponse with to_json(self) {
+impl ToJson for StatusResponse with fn to_json(self) {
   let err = match self.error {
     Some(e) => Some(e.to_json())
     None => None
@@ -178,12 +178,12 @@ impl ToJson for StatusResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for CancelResponse with to_json(self) {
+impl ToJson for CancelResponse with fn to_json(self) {
   Json::object({ "cancelled": self.cancelled.to_json() })
 }
 
 ///|
-impl ToJson for CostResponse with to_json(self) {
+impl ToJson for CostResponse with fn to_json(self) {
   Json::object({
     "session_id": self.session_id.to_json(),
     "total_cost_usd": self.total_cost_usd.to_json(),
@@ -196,7 +196,7 @@ impl ToJson for CostResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for StatsResponse with to_json(self) {
+impl ToJson for StatsResponse with fn to_json(self) {
   Json::object({
     "total_sessions": self.total_sessions.to_json(),
     "total_cost_usd": self.total_cost_usd.to_json(),
@@ -206,7 +206,7 @@ impl ToJson for StatsResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for AggregateStatsResponse with to_json(self) {
+impl ToJson for AggregateStatsResponse with fn to_json(self) {
   Json::object({
     "total_cost_usd": self.total_cost_usd.to_json(),
     "session_count": self.session_count.to_json(),
@@ -215,7 +215,7 @@ impl ToJson for AggregateStatsResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for HealthResponse with to_json(self) {
+impl ToJson for HealthResponse with fn to_json(self) {
   Json::object({
     "status": self.status.to_json(),
     "uptime_seconds": self.uptime_seconds.to_json(),
@@ -223,7 +223,7 @@ impl ToJson for HealthResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for InfoResponse with to_json(self) {
+impl ToJson for InfoResponse with fn to_json(self) {
   Json::object({
     "version": self.version.to_json(),
     "name": self.name.to_json(),
@@ -233,7 +233,7 @@ impl ToJson for InfoResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for ConfigResponse with to_json(self) {
+impl ToJson for ConfigResponse with fn to_json(self) {
   Json::object({
     "permission_mode": self.permission_mode.to_json(),
     "max_tokens": self.max_tokens.to_json(),
@@ -243,12 +243,12 @@ impl ToJson for ConfigResponse with to_json(self) {
 }
 
 ///|
-impl ToJson for ModelListResponse with to_json(self) {
+impl ToJson for ModelListResponse with fn to_json(self) {
   Json::object({ "models": self.models.to_json() })
 }
 
 ///|
-impl ToJson for PermissionResponse with to_json(self) {
+impl ToJson for PermissionResponse with fn to_json(self) {
   Json::object({
     "permission_mode": self.permission_mode.to_json(),
     "safe_tools": self.safe_tools.to_json(),

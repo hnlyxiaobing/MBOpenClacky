@@ -1,17 +1,18 @@
 import {
   "moonbitlang/core/json",
+  "moonbitlang/async",
   "moonbitlang/core/hashset",
-  "moonbitlang/x/sys" @sys,
+  "moonbitlang/x/sys",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "TheWaWaR/clap" @clap,
-  "hnlyxiaobing/MBOpenClacky/lib/config" @config,
-  "hnlyxiaobing/MBOpenClacky/lib/agent" @agent,
-  "hnlyxiaobing/MBOpenClacky/lib/client" @client,
-  "hnlyxiaobing/MBOpenClacky/lib/errors" @errors,
-  "hnlyxiaobing/MBOpenClacky/lib/utils" @utils,
-  "hnlyxiaobing/MBOpenClacky/lib/tui" @tui,
-  "hnlyxiaobing/MBOpenClacky/lib/web" @web,
+  "TheWaWaR/clap",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/errors",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "hnlyxiaobing/MBOpenClacky/lib/tui",
+  "hnlyxiaobing/MBOpenClacky/lib/web",
 }
 
 options(

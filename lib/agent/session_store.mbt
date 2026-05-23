@@ -35,17 +35,19 @@ pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
 }
 
 ///|
+
+///|
 /// Load a session from disk by session ID.
-/// Returns None if the session file does not exist.
-pub fn load_session(session_id : String) -> SessionData? raise {
-  let dir = ensure_sessions_dir()
+/// Returns None if the session file does not exist or if any error occurs.
+pub fn load_session(session_id : String) -> SessionData? {
+  let dir = ensure_sessions_dir() catch { _ => return None }
   let path = session_file_path(dir, session_id)
   if !@fs.path_exists(path) {
     return None
   }
-  let json_str = @fs.read_file_to_string(path)
-  let json = @json.parse(json_str)
-  let parsed : SessionData = @json.from_json(json)
+  let json_str = @fs.read_file_to_string(path) catch { _ => return None }
+  let json = @json.parse(json_str) catch { _ => return None }
+  let parsed : SessionData = @json.from_json(json) catch { _ => return None }
   Some(parsed)
 }
 
@@ -80,7 +82,7 @@ pub fn list_sessions() -> Array[SessionData] {
     }
   }
   // Sort by created_at ascending (oldest first)
-  sessions.sort_by(fn(a, b) {
+  sessions.sort_by((a, b) => {
     if a.created_at < b.created_at {
       -1
     } else if a.created_at > b.created_at {

@@ -17,7 +17,7 @@ pub(all) struct SseFrame {
 /// Callback trait for streaming progress notifications.
 pub(open) trait StreamCallback {
   ///| Called when new token usage information is available.
-  on_chunk(Self, input_tokens : Int, output_tokens : Int) -> Unit
+  fn on_chunk(Self, input_tokens : Int, output_tokens : Int) -> Unit
 }
 
 // ── SSE Frame Parser ────────────────────────────────────────────────────────

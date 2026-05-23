@@ -21,12 +21,12 @@ pub(all) enum ContentBlock {
 } derive(Eq, Debug)
 
 ///|
-impl ToJson for TextBlock with to_json(self) {
+impl ToJson for TextBlock with fn to_json(self) {
   Json::object({ "type": "text".to_json(), "text": self.text.to_json() })
 }
 
 ///|
-impl ToJson for ImageBlock with to_json(self) {
+impl ToJson for ImageBlock with fn to_json(self) {
   Json::object({
     "type": "image_url".to_json(),
     "image_url": Json::object({
@@ -37,7 +37,7 @@ impl ToJson for ImageBlock with to_json(self) {
 }
 
 ///|
-impl ToJson for ContentBlock with to_json(self) {
+impl ToJson for ContentBlock with fn to_json(self) {
   match self {
     Text(tb) => tb.to_json()
     Image(ib) => ib.to_json()
@@ -45,7 +45,7 @@ impl ToJson for ContentBlock with to_json(self) {
 }
 
 ///|
-impl FromJson for TextBlock with from_json(json, path) {
+impl FromJson for TextBlock with fn from_json(json, path) {
   match json {
     Object(map) => {
       let text = match map.get("text") {
@@ -59,7 +59,7 @@ impl FromJson for TextBlock with from_json(json, path) {
 }
 
 ///|
-impl FromJson for ImageBlock with from_json(json, path) {
+impl FromJson for ImageBlock with fn from_json(json, path) {
   match json {
     Object(outer) => {
       let inner = match outer.get("image_url") {
@@ -81,7 +81,7 @@ impl FromJson for ImageBlock with from_json(json, path) {
 }
 
 ///|
-impl FromJson for ContentBlock with from_json(json, path) {
+impl FromJson for ContentBlock with fn from_json(json, path) {
   match json {
     Object(map) =>
       match map.get("type") {

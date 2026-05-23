@@ -1,7 +1,7 @@
 import {
   "moonbitlang/core/json",
-  "moonbitlang/core/string" @string,
-  "moonbitlang/x/fs" @fs,
-  "moonbitlang/x/path" @path,
-  "moonbitlang/x/sys" @sys,
+  "moonbitlang/core/string",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/x/sys",
 }

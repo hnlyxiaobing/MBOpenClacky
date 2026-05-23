@@ -9,7 +9,7 @@
 ///| ToolRegistry.
 
 ///|
-pub impl Tool for AnyTool with name(self) -> String {
+pub impl Tool for AnyTool with fn name(self) -> String {
   match self {
     FileReader(t) => t.name()
     Write(t) => t.name()
@@ -23,7 +23,7 @@ pub impl Tool for AnyTool with name(self) -> String {
 }
 
 ///|
-pub impl Tool for AnyTool with description(self) -> String {
+pub impl Tool for AnyTool with fn description(self) -> String {
   match self {
     FileReader(t) => t.description()
     Write(t) => t.description()
@@ -37,7 +37,7 @@ pub impl Tool for AnyTool with description(self) -> String {
 }
 
 ///|
-pub impl Tool for AnyTool with parameters(self) -> Json {
+pub impl Tool for AnyTool with fn parameters(self) -> Json {
   match self {
     FileReader(t) => t.parameters()
     Write(t) => t.parameters()
@@ -51,7 +51,7 @@ pub impl Tool for AnyTool with parameters(self) -> Json {
 }
 
 ///|
-pub impl Tool for AnyTool with category(self) -> ToolCategory {
+pub impl Tool for AnyTool with fn category(self) -> ToolCategory {
   match self {
     FileReader(t) => t.category()
     Write(t) => t.category()
@@ -65,7 +65,7 @@ pub impl Tool for AnyTool with category(self) -> ToolCategory {
 }
 
 ///|
-pub impl Tool for AnyTool with execute(self, args : Map[String, Json]) -> ToolResult {
+pub impl Tool for AnyTool with fn execute(self, args : Map[String, Json]) -> ToolResult {
   match self {
     FileReader(t) => t.execute(args)
     Write(t) => t.execute(args)
@@ -79,7 +79,7 @@ pub impl Tool for AnyTool with execute(self, args : Map[String, Json]) -> ToolRe
 }
 
 ///|
-pub impl Tool for AnyTool with format_call(self, args : Map[String, Json]) -> String {
+pub impl Tool for AnyTool with fn format_call(self, args : Map[String, Json]) -> String {
   match self {
     FileReader(t) => t.format_call(args)
     Write(t) => t.format_call(args)
@@ -93,7 +93,7 @@ pub impl Tool for AnyTool with format_call(self, args : Map[String, Json]) -> St
 }
 
 ///|
-pub impl Tool for AnyTool with format_result(self, result : ToolResult) -> String {
+pub impl Tool for AnyTool with fn format_result(self, result : ToolResult) -> String {
   match self {
     FileReader(t) => t.format_result(result)
     Write(t) => t.format_result(result)
@@ -107,7 +107,7 @@ pub impl Tool for AnyTool with format_result(self, result : ToolResult) -> Strin
 }
 
 ///|
-pub impl Tool for AnyTool with to_function_definition(self) -> FunctionDefinition {
+pub impl Tool for AnyTool with fn to_function_definition(self) -> FunctionDefinition {
   match self {
     FileReader(t) => t.to_function_definition()
     Write(t) => t.to_function_definition()

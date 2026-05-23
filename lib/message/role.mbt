@@ -35,12 +35,12 @@ pub fn Role::from_string(s : String) -> Role? {
 }
 
 ///|
-impl ToJson for Role with to_json(self) {
+impl ToJson for Role with fn to_json(self) {
   self.to_string_value().to_json()
 }
 
 ///|
-impl FromJson for Role with from_json(json, path) {
+impl FromJson for Role with fn from_json(json, path) {
   match json {
     String(s) =>
       match Role::from_string(s) {

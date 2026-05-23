@@ -14,19 +14,19 @@ pub fn WebSearch::new() -> WebSearch {
 }
 
 ///|
-impl Tool for WebSearch with name(_) -> String {
+impl Tool for WebSearch with fn name(_) -> String {
   "web_search"
 }
 
 ///|
-impl Tool for WebSearch with description(_) -> String {
+impl Tool for WebSearch with fn description(_) -> String {
   "- Allows searching the web and using the results to inform responses\n" +
   "- Provides up-to-date information for current events and recent data\n" +
   "- The search results will include relevant snippets and URLs"
 }
 
 ///|
-impl Tool for WebSearch with parameters(_) -> Json {
+impl Tool for WebSearch with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -44,12 +44,12 @@ impl Tool for WebSearch with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for WebSearch with category(_) -> ToolCategory {
+impl Tool for WebSearch with fn category(_) -> ToolCategory {
   Web
 }
 
 ///|
-impl Tool for WebSearch with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let query = match args.get("query") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: query")
@@ -68,7 +68,7 @@ impl Tool for WebSearch with execute(self, args : Map[String, Json]) -> ToolResu
 }
 
 ///|
-impl Tool for WebSearch with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for WebSearch with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("query") {
     Some(String(q)) => {
       let display = if q.length() > 40 { q[:40].to_string() + "..." } else { q }
@@ -79,7 +79,7 @@ impl Tool for WebSearch with format_call(_, args : Map[String, Json]) -> String 
 }
 
 ///|
-impl Tool for WebSearch with format_result(_, result : ToolResult) -> String {
+impl Tool for WebSearch with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
@@ -88,6 +88,6 @@ impl Tool for WebSearch with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for WebSearch with to_function_definition(self) -> FunctionDefinition {
+impl Tool for WebSearch with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }

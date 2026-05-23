@@ -1,8 +1,8 @@
 import {
   "moonbitlang/core/json",
-  "bobzhang/toml" @toml,
-  "moonbitlang/x/fs" @fs,
-  "moonbitlang/x/path" @path,
-  "moonbitlang/x/sys" @sys,
-  "hnlyxiaobing/MBOpenClacky/lib/utils" @utils,
+  "bobzhang/toml",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/x/sys",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
 }

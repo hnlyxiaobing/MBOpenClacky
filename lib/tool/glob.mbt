@@ -12,12 +12,12 @@ pub fn Glob::new() -> Glob {
 }
 
 ///|
-impl Tool for Glob with name(_) -> String {
+impl Tool for Glob with fn name(_) -> String {
   "glob"
 }
 
 ///|
-impl Tool for Glob with description(_) -> String {
+impl Tool for Glob with fn description(_) -> String {
   "Fast file pattern matching tool.\n" +
   "- Supports glob patterns like \"**/*.js\" or \"src/**/*.ts\"\n" +
   "- Returns matching file paths sorted by modification time\n" +
@@ -25,7 +25,7 @@ impl Tool for Glob with description(_) -> String {
 }
 
 ///|
-impl Tool for Glob with parameters(_) -> Json {
+impl Tool for Glob with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -47,12 +47,12 @@ impl Tool for Glob with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for Glob with category(_) -> ToolCategory {
+impl Tool for Glob with fn category(_) -> ToolCategory {
   FileSystem
 }
 
 ///|
-impl Tool for Glob with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for Glob with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let pattern = match args.get("pattern") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: pattern")
@@ -84,7 +84,7 @@ impl Tool for Glob with execute(self, args : Map[String, Json]) -> ToolResult {
 }
 
 ///|
-impl Tool for Glob with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for Glob with fn format_call(_, args : Map[String, Json]) -> String {
   let pat = match args.get("pattern") {
     Some(String(s)) => s
     _ => "?"
@@ -97,7 +97,7 @@ impl Tool for Glob with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for Glob with format_result(_, result : ToolResult) -> String {
+impl Tool for Glob with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
@@ -106,7 +106,7 @@ impl Tool for Glob with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for Glob with to_function_definition(self) -> FunctionDefinition {
+impl Tool for Glob with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 

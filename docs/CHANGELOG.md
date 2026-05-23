@@ -26,6 +26,20 @@
 ## 变更记录
 
 
+### 2026-05-23  MoonBit v0.9.3 编译器迁移修复
+
+- `[fix]` 修复 10 个文件的 moonc v0.9.3 破坏性变更（216 行新增，125 行删除）
+  - `lib/web/server.mbt` — `self` 显式类型注解（`self : WebServer`）、`fn(params) { }` → `(params) => { }` lambda 语法、`panic()` 不再接受字符串参数
+  - `lib/web/handlers.mbt` — `body[Json]()` → `body()`、`{ ... } : Json` → `Json::object({ ... })`、`raise HttpError` → 返回 `HttpResponse::error()`、`event.require_param` → `event.param` + 错误返回、`Bool(b)` → `True`/`False` 枚举模式、`PermissionMode_to_string` 函数重命名、`{}` 空代码块 → `()`、`ignore expr` → `let _ =`
+  - `lib/web/types.mbt` — `impl ToJson` → `pub impl ToJson`（跨包可见性）
+  - `lib/web/sse/sse.mbt` — `{ ... } : Json` → `Json::object({ ... .to_json() })` 语法迁移
+  - `lib/web/middleware/auth.mbt` + `logging.mbt` — `fn(params) { }` → `(params) => { }` lambda 语法
+  - `lib/agent/session_store.mbt` — `load_session` 改为 noraise（裸 `raise` 无法跨包 `catch`），内部用 `catch` 处理异常
+  - `lib/agent/session_data.mbt` — `impl ToJson` → `pub impl ToJson`
+  - `cmd/main.mbt` — `fn main` → `async fn main`、`handle_server` 改为 `async fn`、`server.start(port=4000)` → `server.start(4000)`（位置参数无标签）、`handle_server() catch` 处理异步错误
+  - `cmd/moon.pkg` — 新增 `"moonbitlang/async"` 导入
+- `[chore]` `moon info` 编译检查通过：0 errors, 154 warnings（均为依赖包过时代码 + 微小 deprecated 警告）
+
 ### 2026-05-23  Phase 8 Web 服务器（crescent 框架）
 
 - `[feat]` 实现基于 `bobzhang/crescent` 的 Web 服务器（`lib/web/`，9 文件，~1,147 行）

@@ -20,12 +20,12 @@ pub fn Grep::new() -> Grep {
 }
 
 ///|
-impl Tool for Grep with name(_) -> String {
+impl Tool for Grep with fn name(_) -> String {
   "grep"
 }
 
 ///|
-impl Tool for Grep with description(_) -> String {
+impl Tool for Grep with fn description(_) -> String {
   "A powerful search tool for searching file contents.\n" +
   "- ALWAYS use Grep for search tasks.\n" +
   "- Filter files with glob parameter.\n" +
@@ -33,7 +33,7 @@ impl Tool for Grep with description(_) -> String {
 }
 
 ///|
-impl Tool for Grep with parameters(_) -> Json {
+impl Tool for Grep with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -71,12 +71,12 @@ impl Tool for Grep with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for Grep with category(_) -> ToolCategory {
+impl Tool for Grep with fn category(_) -> ToolCategory {
   FileSystem
 }
 
 ///|
-impl Tool for Grep with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for Grep with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let pattern = match args.get("pattern") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: pattern")
@@ -120,7 +120,7 @@ impl Tool for Grep with execute(self, args : Map[String, Json]) -> ToolResult {
 }
 
 ///|
-impl Tool for Grep with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for Grep with fn format_call(_, args : Map[String, Json]) -> String {
   let pat = match args.get("pattern") {
     Some(String(s)) => s
     _ => "?"
@@ -133,7 +133,7 @@ impl Tool for Grep with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for Grep with format_result(_, result : ToolResult) -> String {
+impl Tool for Grep with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
@@ -142,7 +142,7 @@ impl Tool for Grep with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for Grep with to_function_definition(self) -> FunctionDefinition {
+impl Tool for Grep with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 

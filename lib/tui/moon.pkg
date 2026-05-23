@@ -1,10 +1,10 @@
 import {
-  "hnlyxiaobing/MBOpenClacky/lib/agent" @agent,
-  "hnlyxiaobing/MBOpenClacky/lib/client" @client,
-  "hnlyxiaobing/MBOpenClacky/lib/config" @config,
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
   "Frank-III/onebit-tui/core" @tui_core,
-  "Frank-III/onebit-tui/widget" @widget,
-  "Frank-III/onebit-tui/view" @view,
-  "Frank-III/onebit-tui/runtime" @runtime,
-  "Frank-III/onebit-tui/ffi" @ffi,
+  "Frank-III/onebit-tui/widget",
+  "Frank-III/onebit-tui/view",
+  "Frank-III/onebit-tui/runtime",
+  "Frank-III/onebit-tui/ffi",
 }

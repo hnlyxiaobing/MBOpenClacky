@@ -26,7 +26,7 @@ pub fn ToolCall::new(
 }
 
 ///|
-impl FromJson for FunctionCall with from_json(json, path) {
+impl FromJson for FunctionCall with fn from_json(json, path) {
   match json {
     Object(map) => {
       let name = match map.get("name") {
@@ -44,7 +44,7 @@ impl FromJson for FunctionCall with from_json(json, path) {
 }
 
 ///|
-impl FromJson for ToolCall with from_json(json, path) {
+impl FromJson for ToolCall with fn from_json(json, path) {
   match json {
     Object(map) => {
       let id = match map.get("id") {

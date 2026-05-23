@@ -100,7 +100,7 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
 }
 
 ///|
-impl ToJson for SessionStats with to_json(self) {
+impl ToJson for SessionStats with fn to_json(self) {
   Json::object({
     "total_iterations": self.total_iterations.to_json(),
     "total_cost_usd": self.total_cost_usd.to_json(),
@@ -114,7 +114,7 @@ impl ToJson for SessionStats with to_json(self) {
 }
 
 ///|
-impl FromJson for SessionStats with from_json(json, path) {
+impl FromJson for SessionStats with fn from_json(json, path) {
   match json {
     Object(map) => {
       let total_iterations = match map.get("total_iterations") {
@@ -171,8 +171,8 @@ impl FromJson for SessionStats with from_json(json, path) {
 }
 
 ///|
-impl ToJson for SessionData with to_json(self) {
-  let msgs_json : Array[Json] = self.messages.map(fn(m) { ToJson::to_json(m) })
+pub impl ToJson for SessionData with fn to_json(self) {
+  let msgs_json : Array[Json] = self.messages.map(m => ToJson::to_json(m))
   Json::object({
     "session_id": self.session_id.to_json(),
     "name": self.name.to_json(),
@@ -187,7 +187,7 @@ impl ToJson for SessionData with to_json(self) {
 }
 
 ///|
-impl FromJson for SessionData with from_json(json, path) {
+impl FromJson for SessionData with fn from_json(json, path) {
   match json {
     Object(map) => {
       let session_id = match map.get("session_id") {

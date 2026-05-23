@@ -217,12 +217,12 @@ pub fn Providers::api_type_for(base_url : String) -> ApiType {
 }
 
 ///|
-impl ToJson for ApiType with to_json(self) {
+impl ToJson for ApiType with fn to_json(self) {
   self.to_string_value().to_json()
 }
 
 ///|
-impl FromJson for ApiType with from_json(json, path) {
+impl FromJson for ApiType with fn from_json(json, path) {
   match json {
     String(s) =>
       match ApiType::from_string(s) {

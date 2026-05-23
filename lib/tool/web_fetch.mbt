@@ -16,12 +16,12 @@ pub fn WebFetch::new() -> WebFetch {
 }
 
 ///|
-impl Tool for WebFetch with name(_) -> String {
+impl Tool for WebFetch with fn name(_) -> String {
   "web_fetch"
 }
 
 ///|
-impl Tool for WebFetch with description(_) -> String {
+impl Tool for WebFetch with fn description(_) -> String {
   "Fetches content from a specified URL and processes it.\n" +
   "- Fetches the URL content, converts HTML to markdown\n" +
   "- Use this tool when you need to retrieve and analyze web content\n" +
@@ -29,7 +29,7 @@ impl Tool for WebFetch with description(_) -> String {
 }
 
 ///|
-impl Tool for WebFetch with parameters(_) -> Json {
+impl Tool for WebFetch with fn parameters(_) -> Json {
   Json::object({
     "type": "object".to_json(),
     "properties": Json::object({
@@ -47,12 +47,12 @@ impl Tool for WebFetch with parameters(_) -> Json {
 }
 
 ///|
-impl Tool for WebFetch with category(_) -> ToolCategory {
+impl Tool for WebFetch with fn category(_) -> ToolCategory {
   Web
 }
 
 ///|
-impl Tool for WebFetch with execute(self, args : Map[String, Json]) -> ToolResult {
+impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let url = match args.get("url") {
     Some(String(s)) => s
     _ => return ToolResult::error("Missing required parameter: url")
@@ -75,7 +75,7 @@ impl Tool for WebFetch with execute(self, args : Map[String, Json]) -> ToolResul
 }
 
 ///|
-impl Tool for WebFetch with format_call(_, args : Map[String, Json]) -> String {
+impl Tool for WebFetch with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("url") {
     Some(String(url)) => {
       let domain = extract_domain(url)
@@ -86,7 +86,7 @@ impl Tool for WebFetch with format_call(_, args : Map[String, Json]) -> String {
 }
 
 ///|
-impl Tool for WebFetch with format_result(_, result : ToolResult) -> String {
+impl Tool for WebFetch with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
@@ -95,7 +95,7 @@ impl Tool for WebFetch with format_result(_, result : ToolResult) -> String {
 }
 
 ///|
-impl Tool for WebFetch with to_function_definition(self) -> FunctionDefinition {
+impl Tool for WebFetch with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 
