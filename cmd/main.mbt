@@ -36,6 +36,12 @@ fn main {
       ),
       "verbose": @clap.Arg::flag(short='v', help="Show detailed output"),
       "version": @clap.Arg::flag(short='V', help="Print version information"),
+      "continue": @clap.Arg::flag(help="Resume the most recent session"),
+      "list": @clap.Arg::flag(help="List all saved sessions"),
+      "attach": @clap.Arg::named(
+        nargs=@clap.Nargs::AtMost(1),
+        help="Attach to a specific session by ID",
+      ),
     },
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
@@ -86,6 +92,12 @@ fn main {
         return
       }
     None => ()
+  }
+
+  // Handle --list: list all saved sessions
+  if value.get_flag("list") == Some(true) {
+    handle_list_sessions()
+    return
   }
 
   // Default: agent mode
@@ -184,13 +196,31 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
     }
   }
 
-  // 9. Create the agent
-  let session_id = "cli-session"
+  // 9. Resolve session ID and optional restore data
+  let (session_id, session_data) = resolve_session(
+    value.get_flag("continue") == Some(true),
+    get_named_arg(value, "attach"),
+  )
+
+  // 10. Create the agent
   let agent = @agent.Agent::new(
     session_id, "CLI Agent", working_dir, client, config,
   )
 
-  // 10. Check if --message was provided (non-interactive mode)
+  // 11. Restore session state if continuing or attaching
+  match session_data {
+    Some(data) => {
+      agent.restore_from_session(data)
+      if config.verbose {
+        println(
+          "Restored session: \{session_id} (\{data.messages.length()} messages)",
+        )
+      }
+    }
+    None => ()
+  }
+
+  // 12. Check if --message was provided (non-interactive mode)
   let msg_opt = get_named_arg(value, "message")
   match msg_opt {
     Some(msg) => run_non_interactive(agent, msg)
@@ -201,6 +231,48 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
       println("Interactive mode not available in Phase 5.")
       println("Use --message / -m to run the agent non-interactively.")
       println("Use --help to see all available options.")
+    }
+  }
+}
+
+///|
+/// Resolve the session ID and optional restore data based on CLI flags.
+///
+/// Returns `(session_id, optional_session_data)`.
+/// - If `continue_flag` is true, loads the most recent session.
+/// - If `attach_id` is Some, loads that specific session.
+/// - Otherwise, generates a new session ID.
+fn resolve_session(
+  continue_flag : Bool,
+  attach_id : String?,
+) -> (String, @agent.SessionData?) {
+  if continue_flag {
+    match @agent.find_most_recent() {
+      Some(data) => {
+        println("Resuming session: \{data.session_id}")
+        (data.session_id, Some(data))
+      }
+      None => {
+        println("No previous sessions found. Starting a new session.")
+        (@agent.generate_session_id(), None)
+      }
+    }
+  } else {
+    match attach_id {
+      Some(id) => {
+        let session_opt = @agent.load_session(id) catch { _ => None }
+        match session_opt {
+          Some(data) => {
+            println("Attached to session: \{id}")
+            (id, Some(data))
+          }
+          None => {
+            println("Session '\{id}' not found. Starting a new session.")
+            (@agent.generate_session_id(), None)
+          }
+        }
+      }
+      None => (@agent.generate_session_id(), None)
     }
   }
 }
@@ -271,6 +343,18 @@ fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
       }
     }
   }
+  // Save session after execution
+  let session_data = agent.to_session_data()
+  @agent.save_session(session_data) catch {
+    err =>
+      if agent.config.verbose {
+        println("Warning: Failed to save session: \{err}")
+      }
+  }
+  // Enforce session cap after save
+  @agent.enforce_session_cap()
+  // Compress old sessions if needed (placeholder)
+  @agent.compress_old_sessions_if_needed(agent.session_id)
   print_run_result(result)
   let exit_code = match result.status {
     @agent.RunStatus::Success => 0
@@ -279,6 +363,21 @@ fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
   }
   @sys.exit(exit_code)
   return
+}
+
+///|
+fn handle_list_sessions() -> Unit {
+  let sessions = @agent.list_sessions()
+  if sessions.is_empty() {
+    println("No sessions found.")
+    return
+  }
+  println("Sessions:")
+  println("ID\tCreated\tMessages\tModel")
+  for session in sessions {
+    println(@agent.format_session_summary(session))
+  }
+  println("\{sessions.length()} session(s) total")
 }
 
 ///|

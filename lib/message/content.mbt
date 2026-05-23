@@ -43,3 +43,56 @@ impl ToJson for ContentBlock with to_json(self) {
     Image(ib) => ib.to_json()
   }
 }
+
+///|
+impl FromJson for TextBlock with from_json(json, path) {
+  match json {
+    Object(map) => {
+      let text = match map.get("text") {
+        Some(String(s)) => s
+        _ => raise JsonDecodeError((path, "TextBlock: missing 'text'"))
+      }
+      { text, }
+    }
+    _ => raise JsonDecodeError((path, "TextBlock: expected object"))
+  }
+}
+
+///|
+impl FromJson for ImageBlock with from_json(json, path) {
+  match json {
+    Object(outer) => {
+      let inner = match outer.get("image_url") {
+        Some(Object(m)) => m
+        _ => outer
+      }
+      let url = match inner.get("url") {
+        Some(String(s)) => s
+        _ => raise JsonDecodeError((path, "ImageBlock: missing 'url'"))
+      }
+      let detail = match inner.get("detail") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+      { url, detail }
+    }
+    _ => raise JsonDecodeError((path, "ImageBlock: expected object"))
+  }
+}
+
+///|
+impl FromJson for ContentBlock with from_json(json, path) {
+  match json {
+    Object(map) =>
+      match map.get("type") {
+        Some(String("text")) =>
+          ContentBlock::Text(TextBlock::from_json(json, path))
+        Some(String("image_url")) =>
+          ContentBlock::Image(ImageBlock::from_json(json, path))
+        Some(String(s)) =>
+          raise JsonDecodeError((path, "ContentBlock: unknown type '\{s}'"))
+        _ => raise JsonDecodeError((path, "ContentBlock: missing 'type' field"))
+      }
+    _ => raise JsonDecodeError((path, "ContentBlock: expected object"))
+  }
+}

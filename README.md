@@ -90,7 +90,21 @@ MBOpenClacky/
 │   ├── main.mbt
 │   └── moon.pkg
 ├── lib/                # 库代码（按领域划分的子包）
-│   ├── agent/          # Agent 核心：会话、状态、对话循环
+│   ├── agent/          # Agent 核心：会话、状态、对话循环、持久化、管理
+│   │   ├── agent.mbt            # Agent struct + Fallback 状态机
+│   │   ├── react.mbt            # ReAct 主循环
+│   │   ├── llm_caller.mbt       # LLM 调用 + API 消息
+│   │   ├── tool_executor.mbt    # 工具执行 + 权限
+│   │   ├── cost_tracker.mbt     # 成本与缓存统计
+│   │   ├── system_prompt.mbt    # 系统提示词构建
+│   │   ├── compressor.mbt       # 消息压缩
+│   │   ├── session_data.mbt     # 会话数据序列化
+│   │   ├── session_store.mbt    # JSON 文件存储 CRUD
+│   │   ├── session_manager.mbt  # 会话生命周期与上限管理
+│   │   ├── time.mbt + time_stub.c  # 跨平台毫秒时间戳
+│   │   ├── status.mbt           # Agent 状态枚举
+│   │   ├── agent_result.mbt     # 运行结果类型
+│   │   └── agent_wbtest.mbt     # 白盒测试（52 个用例）
 │   ├── client/         # LLM API 客户端抽象
 │   ├── config/         # 配置加载（TOML / 环境变量 / 路径）
 │   ├── errors/         # 统一错误类型层次
@@ -148,7 +162,7 @@ moon run cmd
 ./_build/native/release/build/cmd/cmd.exe
 ```
 
-当前 `cmd/main.mbt` 仅做最小化的核心类型自检（构造默认配置、用户消息与 Agent 实例），用以验证脚手架是否搭建完整。完整的 CLI 功能将随后续阶段逐步落地。
+当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）以及完整错误处理。TUI 与交互式模式将随后续阶段逐步落地。
 
 ### 测试
 
@@ -168,11 +182,11 @@ moon test
 | Phase 3 | 工具系统（Tool trait + 内置工具） |
 | Phase 4 | Agent 核心（对话循环、工具调用、成本追踪） |
 | Phase 5 | CLI 界面（基于 clap） |
-| Phase 6 | TUI 界面（基于 onebit-tui） |
-| Phase 7 | Web 服务器（基于 crescent，含 WebSocket / SSE） |
-| Phase 8 | 技能系统 |
-| Phase 9 | 文件 / 文档 / 图像处理 |
-| Phase 10 | 数据持久化（SQLite + 加密） |
+| Phase 6 | 会话持久化（JSON 文件存储 + 管理） |
+| Phase 7 | TUI 界面（基于 onebit-tui） |
+| Phase 8 | Web 服务器（基于 crescent，含 WebSocket / SSE） |
+| Phase 9 | 技能系统 |
+| Phase 10 | 增强功能（子 Agent、Memory、TodoManager） |
 | Phase 11 | 集成测试与性能优化 |
 
 ## 六、致谢

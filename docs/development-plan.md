@@ -2,13 +2,13 @@
 
 ## Context
 
-本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）和 **Phase 5（CLI 入口）**，项目完成度约 **50-55%**。下一步重点是 Phase 6（会话持久化）。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）和**Phase 6（会话持久化）**，项目完成度约 **55-60%**。下一步重点是 Phase 7（TUI 界面）。
 
 ---
 
 ## 当前状态总结
 
-### 已完成（Phase 0-4）
+### 已完成（Phase 0-5）
 
 | 包 | 文件 | 行数 | 状态 | 说明 |
 |---|---|---|---|---|
@@ -18,28 +18,27 @@
 | `lib/utils` | `env.mbt`, `path.mbt`, `utils_wbtest.mbt` | 270 | **行为完整** | 环境变量助手 + 路径发现 + 14 个测试 |
 | `lib/client` | `types.mbt`, `client.mbt`, `format_openai.mbt`, `format_anthropic.mbt`, `stream.mbt`, `client_wbtest.mbt` | **2,412** | **核心完成** | 客户端核心 + OpenAI/Anthropic 双格式 + SSE 流式 + 38 个测试 |
 | `lib/tool` | `trait.mbt`, `types.mbt`, `registry.mbt`, `security.mbt`, `any_tool.mbt` + 8 工具 | **1,460** | **核心完成** | Tool trait + 8 个内置工具 + ToolRegistry + Security + 18 个测试 |
-| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `agent_wbtest.mbt` | **2,976** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化 + 42 个测试 |
+| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `agent_wbtest.mbt` | **3,312** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + 52 个测试 |
 | `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
-| `cmd` | `main.mbt` | 280 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，7 个选项 + 2 个子命令 |
+| `cmd` | `main.mbt` | 385 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理（--continue/--list/--attach） |
 
 ### 项目总览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | **48** 个 |
-| 代码总行数 | **8,780** 行 |
+| `.mbt` 源文件 | **53** 个 |
+| 代码总行数 | **9,522** 行 |
 | 测试文件 | **5** 个（config + errors + utils + client + agent） |
-| 测试用例 | **154** 个 |
+| 测试用例 | **164** 个 |
 | 实现包数 | **10** 个（含 cmd + lib hub） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
 | 内置工具 | **8** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch） |
 | Agent mixin 功能 | **10** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息） |
-| CLI 选项 | **7** 个 + **2** 个子命令 |
-| 项目完成度 | **~50-55%** |
+| CLI 选项 | **10** 个 + **2** 个子命令 |
+| 项目完成度 | **~55-60%** |
 
 ### 关键缺失
 
-- **零会话持久化**：SessionData 序列化已完成，但缺少 JSON 文件存储和会话管理
 - **零 HTTP 传输层**：客户端请求/解析逻辑完整，但实际异步 HTTP 发送尚未接入（待 async 依赖版本确定）
 - **6 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、ClackyAI-Sea、MiMo、GLM
 
@@ -55,8 +54,8 @@
 | **LLM 客户端** | 3 协议（OpenAI/Anthropic/Bedrock）+ SSE 流式 + 重试 + Fallback + Prompt Caching | OpenAI + Anthropic 双格式 + SSE 流式 + Prompt Caching + 错误处理 | **核心完成，缺 Bedrock/HTTP传输** | P0 |
 | **工具系统** | 18 个内置工具 + ToolRegistry（别名解析）+ Security 安全层 | 8 个内置工具 + ToolRegistry + Security | **核心完成，缺 10 个工具** | P0 |
 | **Agent 核心** | 15 个 mixin（ReAct 循环/LLM 调用/工具执行/成本追踪/Hook/压缩/序列化/技能管理等） | 10 个 mixin 功能（ReAct/LLM/工具/成本/提示/压缩/Fallback/会话/权限/API消息） | **核心完成，缺 Hook/Skill/Subagent/Memory/Todo** | P0 |
-| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | clap 框架，7 个选项 + 2 个子命令（billing/server 为 stub）+ Agent 集成 | **核心完成，缺 --continue/--list/--attach/斜杠命令** | P1 |
-| **会话持久化** | JSON 文件存储 + 200 会话上限 + LLM 驱动消息压缩 | SessionData 序列化已实现 | **基础完成，缺持久化存储** | P1 |
+| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | clap 框架，10 个选项 + 2 个子命令（billing/server 为 stub）+ Agent 集成 + 会话管理 | **核心完成，斜杠命令待扩展** | P1 |
+| **会话持久化** | JSON 文件存储 + 200 会话上限 + LLM 驱动消息压缩 | JSON 文件存储 + 200 会话上限 + 截断压缩 + `--continue/--list/--attach` CLI 集成 | **完整实现** | P0 |
 | **TUI 界面** | UI2 引擎 + 10 组件 + 3 主题 + Markdown 渲染 + 进度指示器 | 无 | **全部缺失** | P1 |
 | **技能系统** | 11 内置技能 + SKILL.md 前置解析 + 多位置发现 + 进化 | 仅 Skill struct | **大部分缺失** | P1 |
 | **Web 服务器** | 68 个 REST API + WebSocket + SPA 前端 | 无 | **全部缺失** | P2 |
@@ -71,7 +70,7 @@
 |------|-------------|-------------|---------|
 | 源文件（非 test） | 156 个 `.rb` | 42 个 `.mbt` | **26.9%** |
 | 测试文件 | 107 个 spec | 5 个 test | **4.7%** |
-| 测试用例 | 1,823 个 | 154 个 | **8.5%** |
+| 测试用例 | 1,823 个 | 164 个 | **9.0%** |
 | Provider 预设 | 12 个 | 6 个 | **50%** |
 | 工具实现 | 18 个 | 8 个 | **44.4%** |
 | Agent mixin | 15 个 | 10 个 | **66.7%** |
@@ -84,13 +83,11 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成]
+Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成]
                                                                                                              │
-                           ┌───────────┬───────────┬──────────┬───────────────┘
-                           ↓           ↓           ↓          ↓
-                     Phase 6(Session) Phase 7(TUI) Phase 8(Skill) Phase 9(Server)
-                                                                                                 ↓
-                                                                                          Phase 10(Enhanced)
+                           ┌───────────┬───────────┬──────────┴───────────────┐
+                           ↓           ↓           ↓                        ↓
+                     Phase 7(TUI) Phase 8(Skill) Phase 9(Server)     Phase 10(Enhanced)
                                                                                                  ↓
                                                                                           Phase 11(Integration)
 ```
@@ -249,11 +246,51 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 - **文件附件（--file/-f）**：待 Phase 9 文件处理实现
 - **Agent profile 切换**：待 Phase 8 技能系统实现
 
-### Phase 6-11（保持原计划结构）
+### Phase 6：会话持久化 [已完成]
+
+**复杂度**: M | **依赖**: Phase 4, Phase 5（已完成）
+
+本阶段已实现基于 JSON 文件的会话持久化，包含存储、管理、时间戳 FFI 和 CLI 集成。
+
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `lib/agent/session_store.mbt` | 106 | 会话文件 CRUD：save_session/load_session/delete_session/list_sessions/find_most_recent |
+| `lib/agent/session_manager.mbt` | 119 | 会话生命周期：200 上限强制、消息截断压缩、旧会话批量压缩、格式化摘要 |
+| `lib/agent/time.mbt` + `time_stub.c` | 25 + 30 | 跨平台毫秒时间戳（native FFI + wasm/js stub） |
+| `lib/agent/session_data.mbt` | 161 | SessionStats/SessionData ToJson/FromJson + generate_session_id |
+| `lib/message/content.mbt` | +53 | TextBlock/ImageBlock/ContentBlock FromJson |
+| `lib/message/message.mbt` | +107 | Message FromJson（含所有可选字段） |
+| `lib/message/tool_call.mbt` | +40 | FunctionCall/ToolCall FromJson |
+| `cmd/main.mbt` | +105 | --continue/--list/--attach + resolve_session + handle_list_sessions + 执行后自动保存 |
+| `lib/agent/agent_wbtest.mbt` | +10 tests | Session JSON 序列化往返、会话摘要格式化、ID 生成 |
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| JSON 文件存储 | ✅ 已完成 | save_session/load_session to `~/.mbopenclacky/sessions/` |
+| 200 会话上限 | ✅ 已完成 | enforce_session_cap 自动清理最旧会话 |
+| 消息截断压缩 | ✅ 已完成 | truncate_session 保留最近 20 条 + compressed_summary 标记 |
+| 旧会话批量压缩 | ✅ 已完成 | compress_old_sessions_if_needed（消息数/Token 阈值双触发） |
+| --continue | ✅ 已完成 | CLI 标志，恢复最近一次会话 |
+| --list | ✅ 已完成 | CLI 标志，列出所有会话（格式: ID + created_at + msg_count + model） |
+| --attach <id> | ✅ 已完成 | CLI 选项，附加到指定会话 |
+| 执行后自动保存 | ✅ 已完成 | run_non_interactive 结束时自动保存 + 强制上限 + 压缩 |
+| 跨平台时间戳 | ✅ 已完成 | native FFI（Windows FILETIME / POSIX gettimeofday） |
+| 会话 JSON 往返序列化 | ✅ 已完成 | SessionStats + SessionData + Message + ToolCall + ContentBlock |
+| LLM 驱动摘要生成 | ⏳ 延后 | 当前为简单截断 + 标记，后续可替换为 LLM 摘要 |
+
+#### 未完成项（延后）
+
+- **LLM 驱动摘要**：当前为简单截断，后续可替换为 LLM 生成的语义摘要
+- **会话加密**：数据目前明文存储，可加 AES-GCM 加密
+
+### Phase 7-11（保持原计划结构）
 
 | 阶段 | 调整 | 说明 |
 |------|------|------|
-| Phase 6: 会话持久化 | 不变 | JSON 会话存储 + 压缩（SessionData 序列化已完成） |
 | Phase 7: TUI | 不变 | onebit-tui 基础界面 + Hook 系统 |
 | Phase 8: 技能系统 | 不变 | 基础技能加载 |
 | Phase 9: Web 服务器 | 不变 | ~20 个核心 API（从 68 个裁剪） |

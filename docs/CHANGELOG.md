@@ -26,6 +26,37 @@
 ## 变更记录
 
 
+### 2026-05-23  Phase 6 会话持久化（Session 存储与管理）
+
+- `[feat]` 实现会话文件存储 `lib/agent/session_store.mbt`（106 行）
+  - `save_session` — 将会话数据持久化为 JSON 文件到 `~/.mbopenclacky/sessions/`
+  - `load_session` — 按 session_id 从磁盘加载会话
+  - `delete_session` — 删除指定会话文件
+  - `list_sessions` — 列出所有保存的会话（按 created_at 排序）
+  - `find_most_recent` — 查找最近一次会话
+- `[feat]` 实现会话生命周期管理 `lib/agent/session_manager.mbt`（119 行）
+  - `enforce_session_cap` — 超过 200 会话上限时自动清理最旧会话
+  - `truncate_session` — 消息超限截断，仅保留最近 20 条，标记压缩摘要
+  - `compress_old_sessions_if_needed` — 批量检查旧会话并执行压缩
+  - `format_session_summary` — 格式化会话摘要行用于 `--list` 输出
+- `[feat]` 实现跨平台毫秒级时间戳 `lib/agent/time.mbt`（25 行）+ `time_stub.c`（30 行）
+  - native 后端：通过 FFI 调用系统 API（Windows FILETIME / POSIX gettimeofday）
+  - wasm/js 后端：返回 0 作为桩
+- `[feat]` 实现 SessionData JSON 序列化与反序列化
+  - `lib/agent/session_data.mbt` — `SessionStats` + `SessionData` 的 `ToJson`/`FromJson`
+  - `lib/message/content.mbt` — `TextBlock`/`ImageBlock`/`ContentBlock` 的 `FromJson`
+  - `lib/message/message.mbt` — `Message` 的 `FromJson`（含所有可选字段）
+  - `lib/message/tool_call.mbt` — `FunctionCall`/`ToolCall` 的 `FromJson`
+- `[feat]` CLI 集成会话管理（`cmd/main.mbt`）
+  - 新增 `--continue` 标志：恢复最近一次会话
+  - 新增 `--list` 标志：列出所有保存的会话
+  - 新增 `--attach <id>` 选项：附加到指定会话
+  - `run_non_interactive` 执行后自动保存会话 + 强制执行上限 + 压缩旧会话
+- `[chore]` `lib/agent/moon.pkg` 新增依赖：`@utils`、`@fs`、`@path`、`@sys`，新增 `native-stub: ["time_stub.c"]`
+- `[chore]` `cmd/moon.pkg` 新增依赖：`@fs`、`@path`、`@utils`
+- `[chore]` `lib/agent/agent.mbt` — `Agent::new` 的 `created_at` 改为实时时间戳
+- `[test]` `lib/agent/agent_wbtest.mbt` — 新增 10 个测试用例（Session JSON 序列化往返、会话摘要格式化、ID 生成）
+
 ### 2026-05-23  Phase 5 CLI 入口实现
 
 - `[feat]` 基于 `TheWaWaR/clap` 实现完整 CLI 入口（`cmd/main.mbt`，~280 行）

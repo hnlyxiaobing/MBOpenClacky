@@ -5,4 +5,12 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/config" @config,
   "hnlyxiaobing/MBOpenClacky/lib/tool" @tool,
   "hnlyxiaobing/MBOpenClacky/lib/errors" @errors,
+  "hnlyxiaobing/MBOpenClacky/lib/utils" @utils,
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/x/sys",
 }
+
+options(
+  "native-stub": [ "time_stub.c" ],
+)

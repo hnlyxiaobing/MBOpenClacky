@@ -70,7 +70,7 @@ pub fn Agent::new(
     session_id,
     name,
     working_dir,
-    created_at: "",
+    created_at: current_timestamp_ms(),
     source: Manual,
     // Core dependencies
     client,
