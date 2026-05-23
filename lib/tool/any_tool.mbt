@@ -19,6 +19,9 @@ pub impl Tool for AnyTool with fn name(self) -> String {
     Terminal(t) => t.name()
     WebSearch(t) => t.name()
     WebFetch(t) => t.name()
+    InvokeSkill(t) => t.name()
+    MemoryTool(t) => t.name()
+    TodoTool(t) => t.name()
   }
 }
 
@@ -33,6 +36,9 @@ pub impl Tool for AnyTool with fn description(self) -> String {
     Terminal(t) => t.description()
     WebSearch(t) => t.description()
     WebFetch(t) => t.description()
+    InvokeSkill(t) => t.description()
+    MemoryTool(t) => t.description()
+    TodoTool(t) => t.description()
   }
 }
 
@@ -47,6 +53,9 @@ pub impl Tool for AnyTool with fn parameters(self) -> Json {
     Terminal(t) => t.parameters()
     WebSearch(t) => t.parameters()
     WebFetch(t) => t.parameters()
+    InvokeSkill(t) => t.parameters()
+    MemoryTool(t) => t.parameters()
+    TodoTool(t) => t.parameters()
   }
 }
 
@@ -61,6 +70,9 @@ pub impl Tool for AnyTool with fn category(self) -> ToolCategory {
     Terminal(t) => t.category()
     WebSearch(t) => t.category()
     WebFetch(t) => t.category()
+    InvokeSkill(t) => t.category()
+    MemoryTool(t) => t.category()
+    TodoTool(t) => t.category()
   }
 }
 
@@ -75,6 +87,9 @@ pub impl Tool for AnyTool with fn execute(self, args : Map[String, Json]) -> Too
     Terminal(t) => t.execute(args)
     WebSearch(t) => t.execute(args)
     WebFetch(t) => t.execute(args)
+    InvokeSkill(t) => t.execute(args)
+    MemoryTool(t) => t.execute(args)
+    TodoTool(t) => t.execute(args)
   }
 }
 
@@ -89,6 +104,9 @@ pub impl Tool for AnyTool with fn format_call(self, args : Map[String, Json]) ->
     Terminal(t) => t.format_call(args)
     WebSearch(t) => t.format_call(args)
     WebFetch(t) => t.format_call(args)
+    InvokeSkill(t) => t.format_call(args)
+    MemoryTool(t) => t.format_call(args)
+    TodoTool(t) => t.format_call(args)
   }
 }
 
@@ -103,6 +121,9 @@ pub impl Tool for AnyTool with fn format_result(self, result : ToolResult) -> St
     Terminal(t) => t.format_result(result)
     WebSearch(t) => t.format_result(result)
     WebFetch(t) => t.format_result(result)
+    InvokeSkill(t) => t.format_result(result)
+    MemoryTool(t) => t.format_result(result)
+    TodoTool(t) => t.format_result(result)
   }
 }
 
@@ -117,5 +138,8 @@ pub impl Tool for AnyTool with fn to_function_definition(self) -> FunctionDefini
     Terminal(t) => t.to_function_definition()
     WebSearch(t) => t.to_function_definition()
     WebFetch(t) => t.to_function_definition()
+    InvokeSkill(t) => t.to_function_definition()
+    MemoryTool(t) => t.to_function_definition()
+    TodoTool(t) => t.to_function_definition()
   }
 }

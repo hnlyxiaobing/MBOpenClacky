@@ -673,7 +673,7 @@ test "session_stats_to_json_basic" {
     cache_hit_requests: 1,
   }
   let json = stats.to_json()
-  let json_str = json.to_string()
+  let json_str = json.stringify()
   assert_true(json_str.find("\"total_iterations\"") is Some(_))
   assert_true(json_str.find("\"total_cost_usd\"") is Some(_))
   assert_true(json_str.find("1.25") is Some(_))
@@ -730,7 +730,7 @@ test "session_data_to_json_basic" {
     model_name: None,
   }
   let json = data.to_json()
-  let json_str = json.to_string()
+  let json_str = json.stringify()
   assert_true(json_str.find("\"session_id\"") is Some(_))
   assert_true(json_str.find("s_test123") is Some(_))
   assert_true(json_str.find("\"name\"") is Some(_))

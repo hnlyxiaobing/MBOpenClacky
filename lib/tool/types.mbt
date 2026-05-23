@@ -95,4 +95,7 @@ pub(all) enum AnyTool {
   Terminal(Terminal)
   WebSearch(WebSearch)
   WebFetch(WebFetch)
+  InvokeSkill(InvokeSkill)
+  MemoryTool(MemoryTool)
+  TodoTool(TodoTool)
 } derive(Eq, Debug)

@@ -260,5 +260,8 @@ pub fn make_default_registry() -> ToolRegistry {
   registry.register(AnyTool::Terminal(Terminal::new()))
   registry.register(AnyTool::WebSearch(WebSearch::new()))
   registry.register(AnyTool::WebFetch(WebFetch::new()))
+  registry.register(AnyTool::InvokeSkill(InvokeSkill::{  }))
+  registry.register(AnyTool::MemoryTool(MemoryTool::{  }))
+  registry.register(AnyTool::TodoTool(TodoTool::{  }))
   registry
 }

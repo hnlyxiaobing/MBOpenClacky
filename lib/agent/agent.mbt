@@ -17,6 +17,11 @@ pub(all) struct Agent {
   mut client : @client.Client
   mut config : @config.AgentConfig
   mut tool_registry : @tool.ToolRegistry
+  // ── Skill, Memory & Task System ───────────────────────────────────
+  mut skill_registry : @skill.SkillRegistry
+  mut memory_store : MemoryStore?
+  mut todo_manager : TodoManager
+  mut agent_pool : AgentPool
   // ── Conversation State ─────────────────────────────────────────────
   history : Array[@message.Message]
   mut iterations : Int
@@ -78,6 +83,11 @@ pub fn Agent::new(
     client,
     config,
     tool_registry: @tool.make_default_registry(),
+    // Skill, memory & task system
+    skill_registry: @skill.SkillRegistry::new(),
+    memory_store: None,
+    todo_manager: TodoManager::new(),
+    agent_pool: AgentPool::new(4, 4),
     // Conversation state
     history: [],
     iterations: 0,

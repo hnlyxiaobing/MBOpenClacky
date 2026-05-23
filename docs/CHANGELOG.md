@@ -26,6 +26,64 @@
 ## 变更记录
 
 
+### 2026-05-23  Phase 10 增强功能：Memory / Subagent / TodoManager
+
+- `[feat]` 实现 Agent 记忆系统 `lib/agent/memory.mbt`（202 行）+ `memory_types.mbt`（128 行）
+  - `MemoryStore`：内存条目 CRUD（add/get/update/delete/search/by_category/all）
+  - 5 种 `MemoryCategory`：UserPreference/ProjectInfo/TaskSummary/ExpertKnowledge/LearnedSkill
+  - JSON 序列化/反序列化，支持持久化往返
+  - `summary()` 方法生成可注入系统提示词的人类可读摘要
+- `[feat]` 实现 SubAgent 支持 `lib/agent/subagent.mbt`（96 行）
+  - `SubAgentConfig`：名称/模型/允许工具/系统提示覆盖/最大迭代数
+  - `SubAgentStatus`：Pending/Running/Completed/Failed 生命周期
+  - `SubAgentHandle`：状态转换（mark_running/mark_completed/mark_failed）+ is_done
+- `[feat]` 实现 TodoManager 任务管理器 `lib/agent/todo.mbt`（211 行）+ `todo_types.mbt`（128 行）
+  - `TodoManager`：任务 CRUD + 状态更新 + 依赖阻塞（blocked_by）
+  - `TodoStatus`：Pending/InProgress/Completed/Cancelled/Failed
+  - `list_actionable()` 返回不受阻塞的可执行任务
+  - JSON 序列化/反序列化，`summary()` 方法
+- `[feat]` 实现 AgentPool 子 Agent 池 `lib/agent/agent_pool.mbt`（96 行）
+  - 并发控制：max_running/max_idle，can_spawn 限制
+  - `collect_completed()` 批量清理已完成句柄
+  - `summary()` 池状态概览
+- `[feat]` Agent struct 扩展 4 个新字段（`skill_registry`/`memory_store`/`todo_manager`/`agent_pool`）
+- `[feat]` 系统提示词扩展：Layer 7 Skills → Layer 8 Memory → Layer 9 Tasks 三层上下文注入
+- `[feat]` 实现 3 个 Agent 上下文工具（`lib/tool/`）
+  - `invoke_skill.mbt`（67 行）— 从注册中心按名调用技能
+  - `memory_tool.mbt`（90 行）— 记忆条目增/搜/改/删/列表
+  - `todo_tool.mbt`（91 行）— 任务增/改/列/删/依赖设置
+- `[feat]` `lib/agent/tool_executor.mbt` 新增 Agent 上下文拦截路由：`invoke_skill`/`memory`/`todo_manager` 在泛型工具分发前被截获并委派到 Agent 内状态
+- `[feat]` `lib/tool/any_tool.mbt`/`types.mbt`/`registry.mbt` — AnyTool 枚举 + 默认注册表扩展 3 个 Agent 工具
+- `[refactor]` Agent.try_activate_fallback 加入 skill_registry/agent_pool/memory_store/todo_manager 恢复
+- `[test]` 新增 5 个测试文件（~81 个测试用例）
+  - `memory_wbtest.mbt`（317 行，20 个用例）— MemoryStore CRUD/搜索/分类/JSON 往返
+  - `subagent_wbtest.mbt`（293 行，13 个用例）— SubAgent 生命周期/AgentPool 并发
+  - `todo_wbtest.mbt`（292 行，22 个用例）— TodoManager CRUD/依赖阻塞/状态流转
+  - `skill_wbtest.mbt`（391 行，23 个用例）— Frontmatter 解析/Skill 加载/SkillRegistry
+  - `agent_wbtest.mbt`（+2 个用例）— `to_json` → `stringify()` 迁移
+- `[chore]` `lib/agent/moon.pkg` 新增依赖：`@skill`
+
+### 2026-05-23  Phase 9 技能系统
+
+- `[feat]` 实现技能加载与解析 `lib/skill/loader.mbt`（257 行）
+  - `parse_frontmatter`：YAML 风格 frontmatter 解析（key: value 格式）
+  - `load_skill_from_content`：从 SKILL.md 内容加载 Skill struct（17 字段）
+  - `load_skill_from_json_value`：从 JSON 值加载技能
+  - 字段支持：name/description/allowed_tools/forbidden_tools/fork_agent/model/auto_summarize 等
+- `[feat]` 实现技能注册中心 `lib/skill/registry.mbt`（86 行）
+  - `SkillRegistry`：Map[String, Skill] 存储，register/get/has/remove/all
+  - `list_user_invocable` / `list_by_agent_type` 筛选查询
+- `[feat]` 实现技能发现机制 `lib/skill/discovery.mbt`（69 行）
+  - `default_discovery_paths`：3 个标准技能路径（.qoder/skills, skills, .skills）
+  - `discover_skills`：从文件内容 Map 中自动发现 SKILL.md / skill.json
+- `[feat]` 实现技能执行器 `lib/skill/executor.mbt`（92 行）
+  - `build_skill_context`：生成技能注入系统提示词的上下文字符串
+  - `build_skills_summary`：生成所有可用技能的人类可读摘要
+- `[feat]` Agent 端技能管理 `lib/agent/skill_manager.mbt`（29 行）
+  - `load_skills`：从文件内容注册技能到 Agent 的 SkillRegistry
+  - `get_skill` / `available_skills_summary`：运行时技能查询
+- `[chore]` `lib/skill/skill.mbt` 扩展至 17 个字段（新增 name_zh/description_zh/user_invocable/context/agent_type/argument_hint/hooks/fork_agent/model/forbidden_tools/auto_summarize/source/directory）
+
 ### 2026-05-23  MoonBit v0.9.3 编译器迁移修复
 
 - `[fix]` 修复 10 个文件的 moonc v0.9.3 破坏性变更（216 行新增，125 行删除）

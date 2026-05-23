@@ -72,7 +72,8 @@
 - LLM 客户端：可直接复用社区 `tonyfettes/openai`、`grandEarshot/anthropic-sdk-moonbit` 等 SDK；
 - 配置：`bobzhang/toml`；CLI：`TheWaWaR/clap`；TUI：`Frank-III/onebit-tui`；Web：`bobzhang/crescent`；
 - 数据：`colmugx/sqlite3` + `moonbitlang/x/crypto`；
-- 文件 / 文档：`bobzhang/zipc`、`bikallem/compress`、`ZSeanYves/doc_parser` 等。
+- 文件 / 文档：`bobzhang/zipc`、`bikallem/compress`、`ZSeanYves/doc_parser` 等（待定）
+  目前已集成的 11 个内置工具包含：文件读/写/编辑、内容搜索、通配符查找、终端执行、网页抓取/搜索，以及 3 个 Agent 上下文工具（技能调用/记忆管理/任务管理）。
   这些组件共同构成了 MoonBit 上一套自洽的 Agent 基础设施。
 
 ### 6. 对原项目可改进点的回应
@@ -90,27 +91,39 @@ MBOpenClacky/
 │   ├── main.mbt
 │   └── moon.pkg
 ├── lib/                # 库代码（按领域划分的子包）
-│   ├── agent/          # Agent 核心：会话、状态、对话循环、持久化、管理
-│   │   ├── agent.mbt            # Agent struct + Fallback 状态机
-│   │   ├── react.mbt            # ReAct 主循环
-│   │   ├── llm_caller.mbt       # LLM 调用 + API 消息
-│   │   ├── tool_executor.mbt    # 工具执行 + 权限
-│   │   ├── cost_tracker.mbt     # 成本与缓存统计
-│   │   ├── system_prompt.mbt    # 系统提示词构建
-│   │   ├── compressor.mbt       # 消息压缩
-│   │   ├── session_data.mbt     # 会话数据序列化
-│   │   ├── session_store.mbt    # JSON 文件存储 CRUD
-│   │   ├── session_manager.mbt  # 会话生命周期与上限管理
-│   │   ├── time.mbt + time_stub.c  # 跨平台毫秒时间戳
-│   │   ├── status.mbt           # Agent 状态枚举
-│   │   ├── agent_result.mbt     # 运行结果类型
-│   │   └── agent_wbtest.mbt     # 白盒测试（52 个用例）
+│   ├── agent/          # Agent 核心：会话、状态、对话循环、持久化、管理、Hook、技能、Memory、SubAgent、Todo
+│   │   ├── agent.mbt              # Agent struct + Fallback 状态机（20+ 字段）
+│   │   ├── react.mbt              # ReAct 主循环
+│   │   ├── llm_caller.mbt         # LLM 调用 + API 消息
+│   │   ├── tool_executor.mbt      # 工具执行 + 权限 + Agent 上下文拦截
+│   │   ├── cost_tracker.mbt       # 成本与缓存统计
+│   │   ├── system_prompt.mbt      # 系统提示词构建（9 层）
+│   │   ├── compressor.mbt         # 消息压缩
+│   │   ├── session_data.mbt       # 会话数据序列化
+│   │   ├── session_store.mbt      # JSON 文件存储 CRUD
+│   │   ├── session_manager.mbt    # 会话生命周期与上限管理
+│   │   ├── time.mbt + time_stub.c # 跨平台毫秒时间戳
+│   │   ├── status.mbt             # Agent 状态枚举
+│   │   ├── agent_result.mbt       # 运行结果类型
+│   │   ├── hook.mbt               # Hook 事件系统
+│   │   ├── skill_manager.mbt      # Agent 端技能管理
+│   │   ├── memory.mbt             # MemoryStore 记忆存储
+│   │   ├── memory_types.mbt       # MemoryCategory + MemoryEntry
+│   │   ├── subagent.mbt           # SubAgent 配置/状态/句柄
+│   │   ├── agent_pool.mbt         # SubAgent 并发池
+│   │   ├── todo.mbt               # TodoManager 任务管理器
+│   │   ├── todo_types.mbt         # TodoStatus + TodoItem
+│   │   ├── agent_wbtest.mbt       # 白盒测试（52+ 个用例）
+│   │   ├── hook_wbtest.mbt        # Hook 测试（11 个用例）
+│   │   ├── memory_wbtest.mbt      # Memory 测试（20 个用例）
+│   │   ├── subagent_wbtest.mbt    # SubAgent 测试（13 个用例）
+│   │   └── todo_wbtest.mbt        # Todo 测试（22 个用例）
 │   ├── client/         # LLM API 客户端抽象
 │   ├── config/         # 配置加载（TOML / 环境变量 / 路径）
 │   ├── errors/         # 统一错误类型层次
 │   ├── message/        # Message / Role / ToolCall / ToolResult 等核心类型
-│   ├── skill/          # 技能系统（可扩展能力）
-│   ├── tool/           # 工具系统（文件读写、shell 等）
+│   ├── skill/          # 技能系统（加载/解析/发现/注册/上下文构建）
+│   ├── tool/           # 工具系统（文件读写、shell、Agent 工具等 11 个）
 │   └── moon.pkg
 ├── .repos/             # 上游与参考项目的本地镜像（仅供阅读对照）
 ├── .mooncakes/         # 依赖缓存（由 moon 自动管理）
@@ -162,7 +175,7 @@ moon run cmd
 ./_build/native/release/build/cmd/cmd.exe
 ```
 
-当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）以及完整错误处理。TUI 与交互式模式将随后续阶段逐步落地。
+当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）、TUI 交互界面（onebit-tui）、服务器模式（crescent Web 服务器）、完整错误处理以及技能/记忆/任务系统集成。
 
 ### 测试
 
@@ -185,8 +198,8 @@ moon test
 | Phase 6 | 会话持久化（JSON 文件存储 + 管理） |
 | Phase 7 | TUI 界面（基于 onebit-tui） |
 | Phase 8 | Web 服务器（基于 crescent，含 WebSocket / SSE） |
-| Phase 9 | 技能系统 |
-| Phase 10 | 增强功能（子 Agent、Memory、TodoManager） |
+| Phase 9 | 技能系统（加载/解析/发现/注册/上下文构建） |
+| Phase 10 | 增强功能（Memory / Subagent / TodoManager / AgentPool） |
 | Phase 11 | 集成测试与性能优化 |
 
 ## 六、致谢

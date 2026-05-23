@@ -2,13 +2,13 @@
 
 ## Context
 
-本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）、Phase 1（配置系统）、Phase 2（LLM 客户端）、Phase 3（工具系统）、Phase 4（Agent 核心）、Phase 5（CLI 入口）、**Phase 6（会话持久化）**、**Phase 7（TUI 界面 + Hook 系统）**和 **Phase 8（Web 服务器）**，项目完成度约 **70-75%**。下一步重点是 Phase 9（技能系统）。
+本文档记录 MBOpenClacky 相对 Ruby 源项目 OpenClacky v1.1.6 的迁移进度。当前已完成 Phase 0（骨架）至 Phase 10（增强功能），项目完成度约 **85-90%**。下一步重点是 Phase 11（集成测试与性能优化）。
 
 ---
 
 ## 当前状态总结
 
-### 已完成（Phase 0-8）
+### 已完成（Phase 0-10）
 
 | 包 | 文件 | 行数 | 状态 | 说明 |
 |---|---|---|---|---|
@@ -17,9 +17,9 @@
 | `lib/config` | `agent.mbt`, `model.mbt`, `permission.mbt`, `loader.mbt`, `provider.mbt`, `config_wbtest.mbt` | 1,018 | **行为完整** | TOML 加载/保存 + 6 Provider 预设 + 环境变量覆盖 + 27 个测试 |
 | `lib/utils` | `env.mbt`, `path.mbt`, `utils_wbtest.mbt` | 270 | **行为完整** | 环境变量助手 + 路径发现 + 14 个测试 |
 | `lib/client` | `types.mbt`, `client.mbt`, `format_openai.mbt`, `format_anthropic.mbt`, `stream.mbt`, `client_wbtest.mbt` | **2,412** | **核心完成** | 客户端核心 + OpenAI/Anthropic 双格式 + SSE 流式 + 38 个测试 |
-| `lib/tool` | `trait.mbt`, `types.mbt`, `registry.mbt`, `security.mbt`, `any_tool.mbt` + 8 工具 | **1,460** | **核心完成** | Tool trait + 8 个内置工具 + ToolRegistry + Security + 18 个测试 |
-| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `hook.mbt`, `agent_wbtest.mbt`, `hook_wbtest.mbt` | **3,689** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + Hook 事件系统 + 97 个测试 |
-| `lib/skill` | `skill.mbt` | 47 | 仅元数据 struct | Skill struct（17 字段），无加载/执行逻辑 |
+| `lib/tool` | `trait.mbt`, `types.mbt`, `registry.mbt`, `security.mbt`, `any_tool.mbt` + 11 工具 | **~1,735** | **核心完成** | Tool trait + 11 个内置工具（含 3 Agent 工具）+ ToolRegistry + Security + 18 个测试 |
+| `lib/agent` | `agent.mbt`, `status.mbt`, `cost_tracker.mbt`, `agent_result.mbt`, `system_prompt.mbt`, `compressor.mbt`, `llm_caller.mbt`, `tool_executor.mbt`, `react.mbt`, `session_data.mbt`, `session_store.mbt`, `session_manager.mbt`, `time.mbt`, `hook.mbt`, `skill_manager.mbt`, `memory.mbt`, `memory_types.mbt`, `subagent.mbt`, `todo.mbt`, `todo_types.mbt`, `agent_pool.mbt`, `agent_wbtest.mbt`, `hook_wbtest.mbt`, `memory_wbtest.mbt`, `subagent_wbtest.mbt`, `todo_wbtest.mbt` | **~4,793** | **核心完成** | ReAct 循环 + Fallback 状态机 + 成本追踪 + 压缩 + 会话序列化/持久化/管理 + 时间戳 FFI + Hook 事件系统 + 技能管理 + Memory + SubAgent + TodoManager + AgentPool + 138 个测试 |
+| `lib/skill` | `skill.mbt`, `discovery.mbt`, `loader.mbt`, `registry.mbt`, `executor.mbt`, `skill_wbtest.mbt` | ~904 | **核心完成** | Skill struct（17 字段）+ Frontmatter/JSON 加载 + 发现 + 注册 + 上下文构建 + 23 个测试 |
 | `lib/tui` | `tui.mbt`, `state.mbt`, `message_view.mbt`, `input_bar.mbt`, `status_bar.mbt`, `stats_bar.mbt`, `tool_view.mbt`, `tui_wbtest.mbt` | ~667 | **核心完成** | onebit-tui 基础界面：消息历史/输入栏/状态栏/统计栏/工具输出 + Hook 驱动状态同步 + 9 个测试 |
 | `lib/web` | `handlers.mbt`, `server.mbt`, `types.mbt`, `sse/sse.mbt`, `middleware/auth.mbt`, `middleware/logging.mbt` | ~1,147 | **核心完成** | crescent Web 服务器：20+ REST API + WebSocket + SSE 流式 + 认证/日志/CORS 中间件 |
 | `cmd` | `main.mbt` | 416 | **已完成** | CLI 入口，clap 参数解析，Agent 执行集成，10 个选项 + 2 个子命令 + 会话管理 + TUI 交互模式 + 服务器启动 |
@@ -29,16 +29,16 @@
 | 指标 | 数值 |
 |------|------|
 | `.mbt` 源文件 | **73** 个 |
-| 代码总行数 | **~11,712** 行 |
-| 测试文件 | **7** 个（config + errors + utils + client + agent + hook + tui） |
-| 测试用例 | **184** 个 |
-| 实现包数 | **13** 个（含 cmd + lib hub + tui + web + web/middleware + web/sse） |
+| 代码总行数 | **~11,468** 行 |
+| 测试文件 | **11** 个（config + errors + utils + client + agent + hook + memory + subagent + todo + skill + tui） |
+| 测试用例 | **265** 个 |
+| 实现包数 | **14** 个（含 cmd + lib hub + tui + web + web/middleware + web/sse + skill） |
 | Provider 预设 | **6** 个（OpenClacky/OpenRouter/Anthropic/OpenAI/DeepSeek/Qwen） |
-| 内置工具 | **8** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch） |
-| Agent mixin 功能 | **11** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息/Hook） |
+| 内置工具 | **11** 个（FileReader/Write/Edit/Grep/Glob/Terminal/WebFetch/WebSearch + InvokeSkill + MemoryTool + TodoTool） |
+| Agent mixin 功能 | **15** 个（ReAct/LLM调用/工具执行/成本追踪/系统提示/压缩/Fallback/会话/权限/API消息/Hook/SkillManager/Memory/Subagent/TodoManager） |
 | CLI 选项 | **10** 个 + **2** 个子命令 |
 | REST API 端点 | **20+** 个 |
-| 项目完成度 | **~70-75%** |
+| 项目完成度 | **~85-90%** |
 
 ### 关键缺失
 
@@ -46,6 +46,7 @@
 - **5 个 Provider 未实现**：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、CLackyAI-Sea、MiMo、GLM
 - **TUI 内联渲染**：Phase 7 采用 Hook 驱动状态同步 + 事件循环更新，Agent 运行期间的内联实时屏幕刷新推迟至后续增强
 - **Web 前端**：当前仅提供 REST API 后端，Web 前端 SPA 尚未实现
+- **集成测试**：Phase 11 尚未开始，缺少 E2E 端到端测试
 
 ---
 
@@ -57,13 +58,14 @@
 |--------|-------------|-------------------|------|--------|
 | **配置系统** | YAML 解析 + 12 Provider 预设 + 多模型管理 + Fallback 状态机 | TOML 解析 + 6 Provider 预设 + 环境变量覆盖 | **基础完整，需扩展 Provider** | P0 |
 | **LLM 客户端** | 3 协议（OpenAI/Anthropic/Bedrock）+ SSE 流式 + 重试 + Fallback + Prompt Caching | OpenAI + Anthropic 双格式 + SSE 流式 + Prompt Caching + 错误处理 | **核心完成，缺 Bedrock/HTTP传输** | P0 |
-| **工具系统** | 18 个内置工具 + ToolRegistry（别名解析）+ Security 安全层 | 8 个内置工具 + ToolRegistry + Security | **核心完成，缺 10 个工具** | P0 |
-| **Agent 核心** | 15 个 mixin（ReAct 循环/LLM 调用/工具执行/成本追踪/Hook/压缩/序列化/技能管理等） | 10 个 mixin 功能（ReAct/LLM/工具/成本/提示/压缩/Fallback/会话/权限/API消息） | **核心完成，缺 Hook/Skill/Subagent/Memory/Todo** | P0 |
-| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | clap 框架，10 个选项 + 2 个子命令（billing/server 为 stub）+ Agent 集成 + 会话管理 | **核心完成，斜杠命令待扩展** | P1 |
+| **工具系统** | 18 个内置工具 + ToolRegistry（别名解析）+ Security 安全层 | 11 个内置工具（+3 Agent 工具）+ ToolRegistry + Security | **核心完成，缺 7 个工具** | P0 |
+| **Agent 核心** | 15 个 mixin（ReAct 循环/LLM 调用/工具执行/成本追踪/Hook/压缩/序列化/技能管理等） | 15 个 mixin 功能（覆盖全部 Ruby 15 个 mixin） | **已完成匹配** | P0 |
+| **CLI 入口** | Thor 框架，3 个子命令 + 15+ 选项 + 斜杠命令 | clap 框架，10 个选项 + 2 个子命令（billing/server）+ Agent 集成 + 会话管理 + TUI | **核心完成，斜杠命令待扩展** | P1 |
 | **会话持久化** | JSON 文件存储 + 200 会话上限 + LLM 驱动消息压缩 | JSON 文件存储 + 200 会话上限 + 截断压缩 + `--continue/--list/--attach` CLI 集成 | **完整实现** | P0 |
-| **TUI 界面** | UI2 引擎 + 10 组件 + 3 主题 + Markdown 渲染 + 进度指示器 | 无 | **全部缺失** | P1 |
-| **技能系统** | 11 内置技能 + SKILL.md 前置解析 + 多位置发现 + 进化 | 仅 Skill struct | **大部分缺失** | P1 |
-| **Web 服务器** | 68 个 REST API + WebSocket + SPA 前端 | 无 | **全部缺失** | P2 |
+| **TUI 界面** | UI2 引擎 + 10 组件 + 3 主题 + Markdown 渲染 + 进度指示器 | onebit-tui 基础界面 + 7 组件 + Hook 驱动 | **核心完成，缺 Markdown/主题/内联渲染** | P1 |
+| **技能系统** | 11 内置技能 + SKILL.md 前置解析 + 多位置发现 + 进化 | 技能加载/解析/发现/注册/上下文构建 + Agent 集成 | **完整实现** | P1 |
+| **Web 服务器** | 68 个 REST API + WebSocket + SPA 前端 | 20+ REST API + WebSocket + SSE + 中间件 | **核心完成，缺 API 数量和前端** | P2 |
+| **增强功能** | Memory / Subagent / TodoManager / Time Machine | MemoryStore / SubAgentConfig+Handle / TodoManager+依赖阻塞 / AgentPool | **核心完成，缺 Time Machine** | P1 |
 | **IM 渠道** | 6 个适配器（18 文件）：飞书/企微/微信/Discord/Telegram/钉钉 | 无 | **全部缺失** | P3 |
 | **品牌/许可** | 白标 + AES-256-GCM 加密 + 设备指纹 + 心跳 | 无 | **全部缺失** | P3 |
 | **文档解析** | PDF/DOC/DOCX/PPTX/XLSX 解析器 | 无 | **全部缺失** | P3 |
@@ -73,12 +75,12 @@
 
 | 指标 | Ruby 源项目 | MBOpenClacky | 完成比例 |
 |------|-------------|-------------|---------|
-| 源文件（非 test） | 156 个 `.rb` | 42 个 `.mbt` | **26.9%** |
-| 测试文件 | 107 个 spec | 5 个 test | **4.7%** |
-| 测试用例 | 1,823 个 | 164 个 | **9.0%** |
+| 源文件（非 test） | 156 个 `.rb` | 73 个 `.mbt` | **46.8%** |
+| 测试文件 | 107 个 spec | 11 个 test | **10.3%** |
+| 测试用例 | 1,823 个 | 265 个 | **14.5%** |
 | Provider 预设 | 12 个 | 6 个 | **50%** |
-| 工具实现 | 18 个 | 8 个 | **44.4%** |
-| Agent mixin | 15 个 | 11 个 | **73.3%** |
+| 工具实现 | 18 个 | 11 个 | **61.1%** |
+| Agent mixin | 15 个 | 15 个 | **100%** |
 | REST API 端点 | 68 个 | 20+ 个 | **~29.4%** |
 
 ---
@@ -88,10 +90,13 @@
 ### 依赖拓扑（更新后）
 
 ```
-Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools) [已完成] → Phase 4 (Agent) [已完成] → Phase 5 (CLI) [已完成] → Phase 6 (Session) [已完成] → Phase 7 (TUI) [已完成] → Phase 8 (Web Server) [已完成]
-                                    │
-                                    ↓
-                              Phase 9 (Skill) ──→ Phase 10 (Enhanced) ──→ Phase 11 (Integration)
+Phase 1 (Config) → Phase 2 (Client) → Phase 3 (Tools) → Phase 4 (Agent) → Phase 5 (CLI)
+                                                              ↓
+                                                         Phase 6 (Session) → Phase 7 (TUI) → Phase 8 (Web Server)
+                                                              ↓
+                                                         Phase 9 (Skill) → Phase 10 (Enhanced: Memory/Subagent/Todo)
+                                                              ↓
+                                                         Phase 11 (Integration & Performance)
 ```
 
 ### Phase 1 已完成确认
@@ -194,16 +199,15 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | Permission | `tool_executor.mbt` | ✅ 已实现 |
 | ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
 | Hookable | `hook.mbt` + `react.mbt` | ✅ 已实现（Phase 7）|
-| SkillManager | - | ⏳ 延后（Phase 9）|
-| Subagent | - | ⏳ 延后（Phase 10）|
-| Memory | - | ⏳ 延后（Phase 10）|
-| TodoManager | - | ⏳ 延后（Phase 10）|
+| SkillManager | `skill_manager.mbt` + `lib/skill/` | ✅ 已实现（Phase 9）|
+| Subagent | `subagent.mbt` + `agent_pool.mbt` | ✅ 已实现（Phase 10）|
+| Memory | `memory.mbt` + `memory_types.mbt` | ✅ 已实现（Phase 10）|
+| TodoManager | `todo.mbt` + `todo_types.mbt` | ✅ 已实现（Phase 10）|
 
 #### 未完成项（延后）
 
-- **技能管理**：待 Phase 9 技能系统一起实现
-- **子 Agent**：待 Phase 10 增强功能实现
-- **Memory/TodoManager**：待 Phase 10 实现
+- **Time Machine**：原 Ruby 项目的时间线回溯功能，延后至后续阶段
+- **子 Agent 实际执行循环**：当前仅完成 SubAgent 配置/状态/句柄，实际执行需要异步运行时
 
 ### Phase 5：CLI 入口 [已完成]
 
@@ -342,10 +346,10 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | SessionData | `session_data.mbt` | ✅ 已实现 |
 | Permission | `tool_executor.mbt` | ✅ 已实现 |
 | ApiMessages | `llm_caller.mbt` | ✅ 已实现 |
-| SkillManager | - | ⏳ 延后（Phase 9）|
-| Subagent | - | ⏳ 延后（Phase 10）|
-| Memory | - | ⏳ 延后（Phase 10）|
-| TodoManager | - | ⏳ 延后（Phase 10）|
+| SkillManager | `skill_manager.mbt` + `lib/skill/` | ✅ 已实现（Phase 9）|
+| Subagent | `subagent.mbt` + `agent_pool.mbt` | ✅ 已实现（Phase 10）|
+| Memory | `memory.mbt` + `memory_types.mbt` | ✅ 已实现（Phase 10）|
+| TodoManager | `todo.mbt` + `todo_types.mbt` | ✅ 已实现（Phase 10）|
 
 #### 未完成项（延后）
 
@@ -394,13 +398,99 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 - **异步非阻塞 Agent 执行**：当前 Agent 执行为阻塞调用（同步 HTTP handler），后续可改为异步队列
 - **分页支持**：会话列表和历史记录暂无分页，后续可加 `?limit` / `?offset` 参数
 
-### Phase 9-11（保持原计划结构）
+### Phase 9：技能系统 [已完成]
+
+**复杂度**: L | **依赖**: Phase 4, Phase 6（已完成）
+
+本阶段实现了完整的技能系统，包括 SKILL.md/JSON 加载、Frontmatter 解析、技能发现、注册管理和 Agent 端集成。
+
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `lib/skill/skill.mbt` | 100+ | Skill struct（17 字段）：name/description/allowed_tools/forbidden_tools/fork_agent/model/context 等 |
+| `lib/skill/loader.mbt` | 257 | `parse_frontmatter`（YAML 风格 key: value）+ `load_skill_from_content`（Markdown）+ `load_skill_from_json_value` |
+| `lib/skill/registry.mbt` | 86 | `SkillRegistry`：Map 存储 + register/get/has/remove/all + `list_user_invocable`/`list_by_agent_type` |
+| `lib/skill/discovery.mbt` | 69 | `default_discovery_paths`（3 个标准路径）+ `discover_skills`（从文件 Map 自动发现） |
+| `lib/skill/executor.mbt` | 92 | `build_skill_context`（技能上下文注入）+ `build_skills_summary`（可用技能摘要） |
+| `lib/skill/skill_wbtest.mbt` | 391 | 23 个测试用例（Frontmatter 解析/Skill 加载/SkillRegistry/发现/上下文构建） |
+| `lib/agent/skill_manager.mbt` | 29 | Agent 端：`load_skills`/`get_skill`/`available_skills_summary` |
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Frontmatter 解析 | ✅ 已完成 | YAML 风格 `---` 分隔的 key: value 元数据解析 |
+| SKILL.md 加载 | ✅ 已完成 | Markdown + Frontmatter → Skill struct（17 字段） |
+| skill.json 加载 | ✅ 已完成 | JSON 格式技能加载，支持单对象或数组 |
+| 技能发现 | ✅ 已完成 | 3 个默认路径（.qoder/skills, skills, .skills）自动扫描 |
+| 技能注册中心 | ✅ 已完成 | Map 存储 + 注册/注销/查找/筛选 |
+| Agent 端集成 | ✅ 已完成 | Agent struct 新增 skill_registry + `load_skills`/`get_skill` |
+| 系统提示注入 | ✅ 已完成 | Layer 7 Skills 摘要注入到 build_system_prompt |
+| 技能调用工具 | ✅ 已完成 | `invoke_skill` 工具通过 Agent 上下文拦截执行 |
+| 技能摘要 | ✅ 已完成 | `build_skills_summary` 生成 LLM 可读的技能列表 |
+
+#### 未完成项（延后）
+
+- **技能热加载**：当前技能在 Agent 创建时注册，不支持运行期动态加载
+- **技能进化**：原 Ruby 项目的进化式技能优化暂未实现
+
+### Phase 10：增强功能（Memory / Subagent / TodoManager）[已完成]
+
+**复杂度**: L | **依赖**: Phase 4, Phase 9（已完成）
+
+本阶段实现了 Agent 增强功能：记忆系统、子 Agent 基础设施和任务管理器，使 Agent 具备持久化记忆、并发子任务和结构化任务跟踪能力。
+
+#### 已交付文件
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| `lib/agent/memory.mbt` | 202 | `MemoryStore`：内存条目 CRUD + 关键词搜索 + 分类筛选 + JSON 序列化 + summary |
+| `lib/agent/memory_types.mbt` | 128 | `MemoryCategory`（5 种）+ `MemoryEntry` struct + ToJson/FromJson |
+| `lib/agent/memory_wbtest.mbt` | 317 | 20 个测试用例（CRUD/搜索/分类/JSON 往返/摘要） |
+| `lib/agent/subagent.mbt` | 96 | `SubAgentConfig`/`SubAgentStatus`/`SubAgentHandle` + 状态转换 |
+| `lib/agent/agent_pool.mbt` | 96 | `AgentPool`：max_running 并发控制 + collect_completed + summary |
+| `lib/agent/subagent_wbtest.mbt` | 293 | 13 个测试用例（SubAgent 生命周期/AgentPool 并发） |
+| `lib/agent/todo.mbt` | 211 | `TodoManager`：任务 CRUD + 状态更新 + 依赖阻塞 + list_actionable + JSON 序列化 |
+| `lib/agent/todo_types.mbt` | 128 | `TodoStatus`（5 种）+ `TodoItem` struct + ToJson/FromJson |
+| `lib/agent/todo_wbtest.mbt` | 292 | 22 个测试用例（CRUD/依赖阻塞/状态流转/JSON 往返） |
+| `lib/tool/invoke_skill.mbt` | 67 | InvokeSkill 工具定义（Agent 上下文拦截执行） |
+| `lib/tool/memory_tool.mbt` | 90 | MemoryTool 工具定义：5 种 action（create/search/update/delete/list） |
+| `lib/tool/todo_tool.mbt` | 91 | TodoTool 工具定义：5 种 action（add/update/list/remove/set_deps） |
+
+#### 实现的功能
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| MemoryStore CRUD | ✅ 已完成 | add/get/update/delete/by_category/all |
+| Memory 关键词搜索 | ✅ 已完成 | 大小写不敏感，title/keywords 匹配 + 可选分类过滤 |
+| Memory 5 种分类 | ✅ 已完成 | UserPreference/ProjectInfo/TaskSummary/ExpertKnowledge/LearnedSkill |
+| Memory JSON 持久化 | ✅ 已完成 | to_json/load_from_json 完整往返 |
+| Memory 系统提示注入 | ✅ 已完成 | Layer 8 Memory 注入到 build_system_prompt |
+| SubAgent 配置 | ✅ 已完成 | 名称/模型/允许工具/系统提示覆盖/最大迭代数 |
+| SubAgent 状态机 | ✅ 已完成 | Pending→Running→Completed/Failed + 状态转换方法 |
+| AgentPool 并发控制 | ✅ 已完成 | max_running 限制 + can_spawn + active_count |
+| AgentPool 清理 | ✅ 已完成 | collect_completed 批量回收已完成句柄 |
+| TodoManager CRUD | ✅ 已完成 | add/update_status/get/remove/list_all/list_actionable |
+| 任务依赖阻塞 | ✅ 已完成 | blocked_by + is_blocked + 自动解除（依赖完成时） |
+| Todo JSON 持久化 | ✅ 已完成 | to_json/load_from_json 完整往返 |
+| Todo 系统提示注入 | ✅ 已完成 | Layer 9 Tasks 注入到 build_system_prompt |
+| 3 个 Agent 工具 | ✅ 已完成 | InvokeSkill/MemoryTool/TodoTool 在 AnyTool 中注册 |
+| Agent 上下文拦截路由 | ✅ 已完成 | tool_executor.mbt 中 invoke_skill/memory/todo_manager 前置拦截 |
+
+#### 未完成项（延后）
+
+- **SubAgent 实际执行循环**：当前仅完成配置/状态/句柄层，实际执行依赖异步运行时
+- **Memory 文件持久化**：当前为纯内存存储（JSON 序列化已支持），文件持久化待集成
+- **Time Machine**：原 Ruby 项目的时间线回溯功能暂未实现
+
+### Phase 9-11（更新计划）
 
 | 阶段 | 调整 | 说明 |
 |------|------|------|
-| Phase 9: 技能系统 | 不变 | 基础技能加载 |
-| Phase 10: 增强功能 | 不变 | TodoManager/Memory/Subagent/Time Machine |
-| Phase 11: 集成测试与优化 | 不变 | E2E 测试 + 性能调优 |
+| Phase 9: 技能系统 | ✅ 已完成 | 技能加载/解析/发现/注册/上下文构建 + Agent 集成 |
+| Phase 10: 增强功能 | ✅ 已完成 | Memory/Subagent/TodoManager/AgentPool + 3 Agent 工具 |
+| Phase 11: 集成测试与优化 | 待开始 | E2E 测试 + 性能调优 + 最终交付 |
 
 ---
 
@@ -462,6 +552,46 @@ Phase 1 (Config) [已完成] → Phase 2 (Client) [已完成] → Phase 3 (Tools
 | 新增外部依赖 | 2 个（bobzhang/crescent: 0.10.0 + moonbitlang/async）|
 | 新增 WebSocket 端点 | 1 个（/ws/sessions/:id）|
 | 新增 SSE 端点 | 1 个（POST /api/sessions/:id/chat/stream）|
+
+### Phase 9 验证结果
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| `moon check` | ✅ 通过 | 0 错误，~26 警告（均为 pre-existing）|
+| `moon test --target wasm-gc -p lib/skill` | ✅ 通过 | 全部 skill 测试通过 |
+| `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+#### Phase 9 新增/修改文件统计
+
+| 指标 | 数值 |
+|------|------|
+| 新增源文件 | 6 个（lib/skill/: discovery/executor/loader/registry + skill_manager）|
+| 新增测试文件 | 1 个（skill_wbtest.mbt）|
+| 新增代码行数 | ~904 行（源 ~553 + 测试 ~391）|
+| 新增测试用例 | 23 个（Frontmatter 解析/Skill 加载/SkillRegistry/发现/上下文）|
+| 新增外部依赖 | 0 个（纯标准库实现）|
+| Agent mixin 补齐 | 1 个（SkillManager）|
+
+### Phase 10 验证结果
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| `moon check` | ✅ 通过 | 0 错误，~26 警告（均为 pre-existing）|
+| `moon test --target wasm-gc -p lib/agent` | ✅ 通过 | 全部 agent 测试通过 |
+| `moon fmt` | ✅ 完成 | 代码已格式化 |
+
+#### Phase 10 新增/修改文件统计
+
+| 指标 | 数值 |
+|------|------|
+| 新增源文件 | 12 个（memory/memory_types/subagent/agent_pool/todo/todo_types + 3 工具 + skill_manager）|
+| 新增测试文件 | 3 个（memory_wbtest/subagent_wbtest/todo_wbtest）|
+| 新增加码行数 | ~2,446 行（源 ~1,544 + 测试 ~902）|
+| 新增测试用例 | ~55 个（Memory 20 + SubAgent/AgentPool 13 + Todo 22）|
+| 修改文件 | 9 个（agent/agent_wbtest/moon/pkg/system_prompt/tool_executor/any_tool/types/registry/moon.mod）|
+| 新增外部依赖 | 1 个（lib/skill → agent 内部依赖）|
+| Agent mixin 补齐 | 3 个（Subagent/Memory/TodoManager）→ 共 15 个，100% 匹配 Ruby 源项目 |
+| 内置工具补齐 | +3 个（InvokeSkill/MemoryTool/TodoTool）→ 共 11 个，61.1% 匹配 Ruby 源项目 |
 
 ### Phase 5 验证结果
 

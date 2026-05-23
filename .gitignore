@@ -18,7 +18,7 @@ _build/
 nul
 
 # 检查输出 & 临时修复文件
-_check_output*.txt
+*check_output*.txt
 _tmp_*
 
 # 构建生成产物

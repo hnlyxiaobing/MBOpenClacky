@@ -81,6 +81,29 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
   let model = self.client.model
   sections.write_string(format_prompt_section("Model", "Using model: \{model}"))
 
+  // Layer 7: Available skills summary
+  let skills_summary = self.available_skills_summary()
+  if skills_summary.length() > 0 {
+    sections.write_string(format_prompt_section("Skills", skills_summary))
+  }
+
+  // Layer 8: Memory summary
+  match self.memory_store {
+    Some(store) => {
+      let mem_summary = store.summary()
+      if mem_summary != "No memories stored." {
+        sections.write_string(format_prompt_section("Memory", mem_summary))
+      }
+    }
+    None => ()
+  }
+
+  // Layer 9: Task summary
+  let task_summary = self.todo_manager.summary()
+  if task_summary != "No tasks." {
+    sections.write_string(format_prompt_section("Tasks", task_summary))
+  }
+
   sections.to_string()
 }
 
