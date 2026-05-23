@@ -147,13 +147,13 @@ pub fn OpenAiStreamAggregator::handle(
   let json = @json.parse(data_str) catch { _ => return }
 
   // Process choice delta
-  match json.value("choices") {
+  match (if json is Object(obj) { obj.get("choices") } else { None }) {
     Some(Array(choices)) if choices.length() > 0 => {
       let choice = choices[0]
-      match choice.value("delta") {
+      match (if choice is Object(obj) { obj.get("delta") } else { None }) {
         Some(delta) => {
           // Accumulate content
-          match delta.value("content") {
+          match (if delta is Object(obj) { obj.get("content") } else { None }) {
             Some(String(text)) => {
               self.content_parts.push(text)
               self.content_len = self.content_len + text.length()
@@ -162,7 +162,8 @@ pub fn OpenAiStreamAggregator::handle(
           }
 
           // Accumulate tool calls
-          match delta.value("tool_calls") {
+          match
+            (if delta is Object(obj) { obj.get("tool_calls") } else { None }) {
             Some(Array(tcs)) =>
               for tc in tcs {
                 self.merge_tool_call(tc)
@@ -171,7 +172,12 @@ pub fn OpenAiStreamAggregator::handle(
           }
 
           // Capture finish reason
-          match choice.value("finish_reason") {
+          match
+            (if choice is Object(obj) {
+              obj.get("finish_reason")
+            } else {
+              None
+            }) {
             Some(String(reason)) => self.finish_reason = Some(reason)
             _ => ()
           }
@@ -183,7 +189,7 @@ pub fn OpenAiStreamAggregator::handle(
   }
 
   // Process usage (emitted in final frame with stream_options.include_usage)
-  match json.value("usage") {
+  match (if json is Object(obj) { obj.get("usage") } else { None }) {
     Some(u) => {
       let input_tokens = json_int(u, "prompt_tokens")
       let output_tokens = json_int(u, "completion_tokens")
@@ -256,19 +262,19 @@ fn OpenAiStreamAggregator::merge_tool_call(
   let acc = self.tool_calls[idx]
 
   // Merge id
-  match tc.value("id") {
+  match (if tc is Object(obj) { obj.get("id") } else { None }) {
     Some(String(id)) => if acc.id is None { acc.id = Some(id) }
     _ => ()
   }
 
   // Merge type
-  match tc.value("type") {
+  match (if tc is Object(obj) { obj.get("type") } else { None }) {
     Some(String(t)) => if acc.type_ is None { acc.type_ = Some(t) }
     _ => ()
   }
 
   // Merge function name and arguments
-  match tc.value("function") {
+  match (if tc is Object(obj) { obj.get("function") } else { None }) {
     Some(Object(fn_obj)) => {
       match fn_obj.get("name") {
         Some(String(name)) => if acc.name is None { acc.name = Some(name) }
@@ -340,9 +346,9 @@ pub fn AnthropicStreamAggregator::handle(
 
   match event {
     "message_start" =>
-      match json.value("message") {
+      match (if json is Object(obj) { obj.get("message") } else { None }) {
         Some(msg) =>
-          match msg.value("usage") {
+          match (if msg is Object(obj) { obj.get("usage") } else { None }) {
             Some(u) => {
               self.input_tokens = self.input_tokens +
                 json_int(u, "input_tokens")
@@ -358,15 +364,18 @@ pub fn AnthropicStreamAggregator::handle(
         _ => ()
       }
     "content_block_start" =>
-      match json.value("content_block") {
+      match
+        (if json is Object(obj) { obj.get("content_block") } else { None }) {
         Some(cb) =>
-          match cb.value("type") {
+          match (if cb is Object(obj) { obj.get("type") } else { None }) {
             Some(String("tool_use")) => {
-              let id = match cb.value("id") {
+              let id = match
+                (if cb is Object(obj) { obj.get("id") } else { None }) {
                 Some(String(s)) => Some(s)
                 _ => None
               }
-              let name = match cb.value("name") {
+              let name = match
+                (if cb is Object(obj) { obj.get("name") } else { None }) {
                 Some(String(s)) => Some(s)
                 _ => None
               }
@@ -393,11 +402,12 @@ pub fn AnthropicStreamAggregator::handle(
       let idx = json_int(json, "index")
       if idx < self.blocks.length() {
         let block = self.blocks[idx]
-        match json.value("delta") {
+        match (if json is Object(obj) { obj.get("delta") } else { None }) {
           Some(delta) =>
-            match delta.value("type") {
+            match (if delta is Object(obj) { obj.get("type") } else { None }) {
               Some(String("text_delta")) =>
-                match delta.value("text") {
+                match
+                  (if delta is Object(obj) { obj.get("text") } else { None }) {
                   Some(String(text)) => {
                     let new_block = {
                       kind: block.kind,
@@ -411,7 +421,12 @@ pub fn AnthropicStreamAggregator::handle(
                   _ => ()
                 }
               Some(String("input_json_delta")) =>
-                match delta.value("partial_json") {
+                match
+                  (if delta is Object(obj) {
+                    obj.get("partial_json")
+                  } else {
+                    None
+                  }) {
                   Some(String(partial)) => {
                     let new_block = {
                       kind: ToolUse,
@@ -425,7 +440,12 @@ pub fn AnthropicStreamAggregator::handle(
                   _ => ()
                 }
               Some(String("thinking_delta")) =>
-                match delta.value("thinking") {
+                match
+                  (if delta is Object(obj) {
+                    obj.get("thinking")
+                  } else {
+                    None
+                  }) {
                   Some(String(thinking)) => {
                     let new_block = {
                       kind: block.kind,
@@ -446,15 +466,16 @@ pub fn AnthropicStreamAggregator::handle(
     }
     "content_block_stop" => ()
     "message_delta" => {
-      match json.value("delta") {
+      match (if json is Object(obj) { obj.get("delta") } else { None }) {
         Some(delta) =>
-          match delta.value("stop_reason") {
+          match
+            (if delta is Object(obj) { obj.get("stop_reason") } else { None }) {
             Some(String(reason)) => self.stop_reason = Some(reason)
             _ => ()
           }
         _ => ()
       }
-      match json.value("usage") {
+      match (if json is Object(obj) { obj.get("usage") } else { None }) {
         Some(u) =>
           self.output_tokens = self.output_tokens + json_int(u, "output_tokens")
         _ => ()
@@ -541,7 +562,7 @@ fn json_int(json : Json, key : String) -> Int {
   match json {
     Object(obj) =>
       match obj.get(key) {
-        Some(Number(n)) => n.to_int()
+        Some(Number(n, ..)) => n.to_int()
         _ => 0
       }
     _ => 0

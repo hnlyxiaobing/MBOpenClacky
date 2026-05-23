@@ -218,18 +218,21 @@ fn normalize_content_blocks(
 /// Expects the standard chat/completions response shape:
 /// `{ "choices": [{ "message": {...}, "finish_reason": "..." }], "usage": {...} }`
 pub fn parse_openai_response(data : Json) -> LlmResponse {
-  let choices = match data.value("choices") {
+  let choices = match
+    (if data is Object(obj) { obj.get("choices") } else { None }) {
     Some(Array(arr)) if arr.length() > 0 => arr
     _ => return LlmResponse::text_only("")
   }
   let first_choice = choices[0]
-  let message = match first_choice.value("message") {
+  let message = match
+    (if first_choice is Object(obj) { obj.get("message") } else { None }) {
     Some(m) => m
     _ => return LlmResponse::text_only("")
   }
 
   // Extract content
-  let content : String? = match message.value("content") {
+  let content : String? = match
+    (if message is Object(obj) { obj.get("content") } else { None }) {
     Some(String(s)) => Some(s)
     _ => None
   }
@@ -238,13 +241,15 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
   let tool_calls : Array[@message.ToolCall]? = parse_openai_tool_calls(message)
 
   // Extract finish reason
-  let finish_reason : String? = match first_choice.value("finish_reason") {
+  let finish_reason : String? = match
+    (if first_choice is Object(obj) { obj.get("finish_reason") } else { None }) {
     Some(String(s)) => Some(s)
     _ => None
   }
 
   // Extract usage
-  let usage : Usage? = match data.value("usage") {
+  let usage : Usage? = match
+    (if data is Object(obj) { obj.get("usage") } else { None }) {
     Some(u) => {
       let prompt = json_int(u, "prompt_tokens")
       let completion = json_int(u, "completion_tokens")
@@ -253,7 +258,7 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
 
       // Also check prompt_tokens_details for OpenRouter cache info
       let (final_creation, final_read) = match
-        u.value("prompt_tokens_details") {
+        (if u is Object(obj) { obj.get("prompt_tokens_details") } else { None }) {
         Some(details) => {
           let cached_tokens = json_int(details, "cached_tokens")
           let write_tokens = json_int(details, "cache_write_tokens")
@@ -291,21 +296,24 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
 ///|
 /// Parse tool calls from an OpenAI response message.
 fn parse_openai_tool_calls(message : Json) -> Array[@message.ToolCall]? {
-  match message.value("tool_calls") {
+  match (if message is Object(obj) { obj.get("tool_calls") } else { None }) {
     Some(Array(arr)) if arr.length() > 0 => {
       let calls : Array[@message.ToolCall] = []
       for call in arr {
-        let id = match call.value("id") {
+        let id = match
+          (if call is Object(obj) { obj.get("id") } else { None }) {
           Some(String(s)) => s
           _ => continue
         }
-        match call.value("function") {
+        match (if call is Object(obj) { obj.get("function") } else { None }) {
           Some(func) => {
-            let name = match func.value("name") {
+            let name = match
+              (if func is Object(obj) { obj.get("name") } else { None }) {
               Some(String(s)) => s
               _ => continue
             }
-            let arguments = match func.value("arguments") {
+            let arguments = match
+              (if func is Object(obj) { obj.get("arguments") } else { None }) {
               Some(String(s)) => s
               _ => continue
             }

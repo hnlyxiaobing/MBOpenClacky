@@ -364,7 +364,8 @@ fn to_anthropic_tool(tool : Json) -> Json {
 /// - Usage normalization (Anthropic reports input_tokens separately from cache tokens)
 pub fn parse_anthropic_response(data : Json) -> LlmResponse {
   // Extract content blocks
-  let blocks : Array[Json] = match data.value("content") {
+  let blocks : Array[Json] = match
+    (if data is Object(obj) { obj.get("content") } else { None }) {
     Some(Array(arr)) => arr
     _ => []
   }
@@ -374,23 +375,26 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
   let tool_calls : Array[@message.ToolCall] = []
 
   for block in blocks {
-    match block.value("type") {
+    match (if block is Object(obj) { obj.get("type") } else { None }) {
       Some(String("text")) =>
-        match block.value("text") {
+        match (if block is Object(obj) { obj.get("text") } else { None }) {
           Some(String(text)) => text_parts.push(text)
           _ => ()
         }
       Some(String("tool_use")) => {
-        let id = match block.value("id") {
+        let id = match
+          (if block is Object(obj) { obj.get("id") } else { None }) {
           Some(String(s)) => s
           _ => ""
         }
-        let name = match block.value("name") {
+        let name = match
+          (if block is Object(obj) { obj.get("name") } else { None }) {
           Some(String(s)) => s
           _ => ""
         }
         // Anthropic tool_use "input" is a JSON object; serialize to string
-        let input_str = match block.value("input") {
+        let input_str = match
+          (if block is Object(obj) { obj.get("input") } else { None }) {
           Some(String(s)) => s
           Some(input) => input.stringify()
           _ => "{}"
@@ -414,7 +418,8 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
   }
 
   // Map stop_reason
-  let finish_reason : String? = match data.value("stop_reason") {
+  let finish_reason : String? = match
+    (if data is Object(obj) { obj.get("stop_reason") } else { None }) {
     Some(String("end_turn")) => Some("stop")
     Some(String("tool_use")) => Some("tool_calls")
     Some(String("max_tokens")) => Some("length")
@@ -423,7 +428,8 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
   }
 
   // Extract and normalize usage
-  let usage : Usage? = match data.value("usage") {
+  let usage : Usage? = match
+    (if data is Object(obj) { obj.get("usage") } else { None }) {
     Some(u) => {
       let raw_input = json_int(u, "input_tokens")
       let output = json_int(u, "output_tokens")

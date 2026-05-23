@@ -81,3 +81,18 @@ pub fn FunctionDefinition::new(
 ) -> FunctionDefinition {
   { type_: "function", function: { name, description, parameters } }
 }
+
+///|
+/// Concrete enum wrapping all tool implementations for polymorphic storage.
+/// Each variant holds a specific tool struct. Implement Tool trait for AnyTool
+/// by dispatching to the inner variant.
+pub(all) enum AnyTool {
+  FileReader(FileReader)
+  Write(Write)
+  Edit(Edit)
+  Grep(Grep)
+  Glob(Glob)
+  Terminal(Terminal)
+  WebSearch(WebSearch)
+  WebFetch(WebFetch)
+} derive(Eq, Debug)

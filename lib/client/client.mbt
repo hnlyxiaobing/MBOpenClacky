@@ -231,7 +231,7 @@ pub fn Client::request_headers(self : Client) -> Map[String, String] {
 ///|
 /// Check if a model supports prompt caching.
 /// Currently only Claude models (gen 3.5+) support cache_control.
-pub fn Client::supports_prompt_caching(self : Client, model : String) -> Bool {
+pub fn Client::supports_prompt_caching(_ : Client, model : String) -> Bool {
   let model_lower = model.to_lower()
   // Strip "abs-" prefix used by ClackyAI Bedrock proxy
   let stripped : String = if model_lower.length() > 4 &&
@@ -335,23 +335,23 @@ pub fn extract_error_message(raw_body : String) -> String {
   }
 
   // Try various error message locations
-  match json.value("upstreamMessage") {
+  match (if json is Object(obj) { obj.get("upstreamMessage") } else { None }) {
     Some(String(msg)) if msg.length() > 0 => return msg
     _ => ()
   }
-  match json.value("error") {
+  match (if json is Object(obj) { obj.get("error") } else { None }) {
     Some(error) =>
-      match error.value("message") {
+      match (if error is Object(obj) { obj.get("message") } else { None }) {
         Some(String(msg)) => return msg
         _ => ()
       }
     _ => ()
   }
-  match json.value("error") {
+  match (if json is Object(obj) { obj.get("error") } else { None }) {
     Some(String(msg)) => return msg
     _ => ()
   }
-  match json.value("message") {
+  match (if json is Object(obj) { obj.get("message") } else { None }) {
     Some(String(msg)) => return msg
     _ => ()
   }

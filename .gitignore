@@ -17,6 +17,17 @@ _build/
 # Windows NUL 设备文件
 nul
 
+# 检查输出 & 临时修复文件
+_check_output*.txt
+_tmp_*
+
+# 构建生成产物
+assets/
+logs/
+
+# Evolver 进化状态
+memory/
+
 # 系统文件
 .DS_Store
 Thumbs.db
