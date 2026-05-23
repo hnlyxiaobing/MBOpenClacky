@@ -20,6 +20,3 @@ nul
 # 系统文件
 .DS_Store
 Thumbs.db
-
-# 变更日志记录（项目文档，非代码）
-# docs/development-plan.md
