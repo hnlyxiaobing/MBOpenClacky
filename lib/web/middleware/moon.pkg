@@ -1,0 +1,8 @@
+import {
+  "bobzhang/crescent" @crescent,
+  "bobzhang/crescent/core" @core,
+  "bobzhang/crescent/httputil" @httputil,
+  "moonbitlang/core/json",
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+}

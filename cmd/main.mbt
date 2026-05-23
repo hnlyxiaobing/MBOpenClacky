@@ -112,8 +112,32 @@ fn handle_billing() -> Unit {
 
 ///|
 fn handle_server() -> Unit {
-  println("Web UI server (not yet implemented -- Phase 7)")
-  println("Use --help to see available commands")
+  // Load configuration and start the web server
+  let config = @config.AgentConfig::load_default() catch {
+    err => {
+      println("Error: Failed to load configuration: \{err}")
+      @sys.exit(1)
+      @config.AgentConfig::default()
+    }
+  }
+
+  // Check if at least one API key is configured
+  if !config.has_model_configured() {
+    println("Error: No API key configured.")
+    println("The web server needs at least one LLM model configured.")
+    println("Set the MBOPENCLACKY_API_KEY environment variable")
+    println("Or create a config file at: ~/.mbopenclacky/config.toml")
+    @sys.exit(1)
+    return
+  }
+
+  // Get API key for web auth from env or config
+  let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
+
+  // Create and start the web server
+  let server = @web.WebServer::new(config, api_key)
+  server.start(port=4000)
+  println("Server stopped.")
 }
 
 ///|

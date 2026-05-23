@@ -11,6 +11,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/errors" @errors,
   "hnlyxiaobing/MBOpenClacky/lib/utils" @utils,
   "hnlyxiaobing/MBOpenClacky/lib/tui" @tui,
+  "hnlyxiaobing/MBOpenClacky/lib/web" @web,
 }
 
 options(

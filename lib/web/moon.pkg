@@ -1,0 +1,17 @@
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent" @agent,
+  "hnlyxiaobing/MBOpenClacky/lib/config" @config,
+  "hnlyxiaobing/MBOpenClacky/lib/client" @client,
+  "hnlyxiaobing/MBOpenClacky/lib/message" @message,
+  "hnlyxiaobing/MBOpenClacky/lib/errors" @errors,
+  "hnlyxiaobing/MBOpenClacky/lib/tool" @tool,
+  "hnlyxiaobing/MBOpenClacky/lib/web/sse" @sse,
+  "hnlyxiaobing/MBOpenClacky/lib/web/middleware" @mid,
+  "bobzhang/crescent" @crescent,
+  "bobzhang/crescent/core" @core,
+  "bobzhang/crescent/cors" @cors,
+  "bobzhang/crescent/websocket" @ws,
+  "moonbitlang/core/json",
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+}
