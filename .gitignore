@@ -31,3 +31,8 @@ memory/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+test_output.txt
+
+# AI 工具配置文件
+CLAUDE.md

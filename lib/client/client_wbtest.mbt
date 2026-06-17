@@ -597,3 +597,359 @@ test "usage_from_anthropic" {
   assert_eq(usage.cache_creation_input_tokens, 10)
   assert_eq(usage.cache_read_input_tokens, 20)
 }
+
+// ── Bedrock API Key Detection Tests ──────────────────────────────────────────
+
+///|
+test "is_bedrock_api_key_absk_prefix" {
+  assert_true(is_bedrock_api_key("ABSK1234567890", "some-model"))
+}
+
+///|
+test "is_bedrock_api_key_abs_model_prefix" {
+  assert_true(is_bedrock_api_key("regular-key", "abs-claude-sonnet-4-6"))
+}
+
+///|
+test "is_bedrock_api_key_not_bedrock" {
+  assert_false(is_bedrock_api_key("sk-regular-key", "gpt-4"))
+}
+
+///|
+test "client_is_bedrock_format_by_api_type" {
+  let client = Client::new(
+    "regular-key",
+    "https://api.openclacky.com",
+    "some-model",
+    @config.Bedrock,
+  )
+  assert_true(client.is_bedrock_format())
+}
+
+///|
+test "client_is_bedrock_format_by_api_key" {
+  let client = Client::new(
+    "ABSK1234567890",
+    "https://api.openclacky.com",
+    "some-model",
+    @config.OpenAICompletions,
+  )
+  assert_true(client.is_bedrock_format())
+}
+
+///|
+test "client_is_bedrock_format_by_model_prefix" {
+  let client = Client::new(
+    "regular-key",
+    "https://api.openclacky.com",
+    "abs-claude-sonnet-4-6",
+    @config.OpenAICompletions,
+  )
+  assert_true(client.is_bedrock_format())
+}
+
+///|
+test "client_not_bedrock_format" {
+  let client = Client::new(
+    "sk-regular-key",
+    "https://api.openai.com/v1",
+    "gpt-4",
+    @config.OpenAICompletions,
+  )
+  assert_false(client.is_bedrock_format())
+}
+
+///|
+test "bedrock_converse_path_format" {
+  assert_eq(
+    bedrock_converse_path("abs-claude-sonnet-4-6"),
+    "model/abs-claude-sonnet-4-6/converse",
+  )
+}
+
+// ── Bedrock Request Building Tests ───────────────────────────────────────────
+
+///|
+test "build_bedrock_request_separates_system" {
+  let messages = [
+    @message.Message::system("You are helpful"),
+    @message.Message::user("Hello"),
+  ]
+  let body = build_bedrock_request(
+    messages,
+    "abs-claude-sonnet-4-6",
+    [],
+    1024,
+    false,
+  )
+  let obj = match body {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  // System should be in top-level "system" field as [{text: ...}]
+  match obj.get("system") {
+    Some(Array(arr)) =>
+      match arr[0] {
+        Object(sys_obj) =>
+          match sys_obj.get("text") {
+            Some(String(s)) => assert_eq(s, "You are helpful")
+            _ => abort("expected system text")
+          }
+        _ => abort("expected system object")
+      }
+    _ => abort("expected system array")
+  }
+  // Only user message in messages array
+  match obj.get("messages") {
+    Some(Array(msgs)) => assert_eq(msgs.length(), 1)
+    _ => abort("expected messages array")
+  }
+  // Should have inferenceConfig, not max_tokens
+  match obj.get("inferenceConfig") {
+    Some(Object(ic)) =>
+      match ic.get("maxTokens") {
+        Some(_) => ()
+        _ => abort("expected maxTokens in inferenceConfig")
+      }
+    _ => abort("expected inferenceConfig")
+  }
+}
+
+///|
+test "build_bedrock_request_converts_tools" {
+  let tools : Array[Json] = [
+    Json::object({
+      "type": "function".to_json(),
+      "function": Json::object({
+        "name": "read_file".to_json(),
+        "description": "Read a file".to_json(),
+        "parameters": Json::object({ "type": "object".to_json() }),
+      }),
+    }),
+  ]
+  let body = build_bedrock_request(
+    [@message.Message::user("test")],
+    "abs-claude-sonnet-4-6",
+    tools,
+    1024,
+    false,
+  )
+  let obj = match body {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  match obj.get("toolConfig") {
+    Some(Object(tc)) =>
+      match tc.get("tools") {
+        Some(Array(arr)) => {
+          assert_eq(arr.length(), 1)
+          match arr[0] {
+            Object(tool) =>
+              match tool.get("toolSpec") {
+                Some(Object(spec)) => {
+                  assert_true(spec.get("name") is Some(_))
+                  assert_true(spec.get("inputSchema") is Some(_))
+                }
+                _ => abort("expected toolSpec")
+              }
+            _ => abort("expected tool object")
+          }
+        }
+        _ => abort("expected tools array")
+      }
+    _ => abort("expected toolConfig")
+  }
+}
+
+///|
+test "client_build_request_body_bedrock_dispatch" {
+  let client = Client::new(
+    "ABSK1234567890",
+    "https://api.openclacky.com",
+    "abs-claude-sonnet-4-6",
+    @config.Bedrock,
+  )
+  let request : SendRequest = {
+    messages: [@message.Message::user("Hello")],
+    model: "abs-claude-sonnet-4-6",
+    tools: [],
+    max_tokens: 1024,
+    enable_caching: false,
+    reasoning_effort: None,
+  }
+  let body = client.build_request_body(request)
+  let obj = match body {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  // Bedrock uses inferenceConfig, not max_tokens
+  assert_true(obj.get("inferenceConfig") is Some(_))
+  assert_true(obj.get("max_tokens") is None)
+}
+
+// ── Bedrock Response Parsing Tests ───────────────────────────────────────────
+
+///|
+test "parse_bedrock_response_text" {
+  let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"Hello!\"}]}},\"stopReason\":\"end_turn\",\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}"
+  let json = @json.parse(raw)
+  let resp = parse_bedrock_response(json)
+  assert_eq(resp.content.unwrap(), "Hello!")
+  assert_eq(resp.finish_reason.unwrap(), "stop")
+  assert_true(resp.usage is Some(_))
+  assert_eq(resp.usage.unwrap().input_tokens, 10)
+  assert_eq(resp.usage.unwrap().output_tokens, 5)
+}
+
+///|
+test "parse_bedrock_response_tool_use" {
+  let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"Let me check\"},{\"toolUse\":{\"toolUseId\":\"tu_1\",\"name\":\"shell\",\"input\":{\"cmd\":\"ls\"}}}]}},\"stopReason\":\"tool_use\",\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}"
+  let json = @json.parse(raw)
+  let resp = parse_bedrock_response(json)
+  assert_true(resp.has_tool_calls())
+  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  let calls = resp.tool_calls.unwrap()
+  assert_eq(calls.length(), 1)
+  assert_eq(calls[0].id, "tu_1")
+  assert_eq(calls[0].function.name, "shell")
+  assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
+}
+
+///|
+test "parse_bedrock_response_max_tokens" {
+  let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"partial\"}]}},\"stopReason\":\"max_tokens\",\"usage\":{\"inputTokens\":5,\"outputTokens\":100}}"
+  let json = @json.parse(raw)
+  let resp = parse_bedrock_response(json)
+  assert_eq(resp.finish_reason.unwrap(), "length")
+}
+
+///|
+test "parse_bedrock_response_cache_usage" {
+  let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"cached\"}]}},\"stopReason\":\"end_turn\",\"usage\":{\"inputTokens\":20,\"outputTokens\":50,\"cacheReadInputTokens\":80,\"cacheWriteInputTokens\":10}}"
+  let json = @json.parse(raw)
+  let resp = parse_bedrock_response(json)
+  let usage = resp.usage.unwrap()
+  // Bedrock: prompt_tokens = inputTokens + cacheReadInputTokens = 20 + 80 = 100
+  assert_eq(usage.input_tokens, 100)
+  assert_eq(usage.output_tokens, 50)
+  assert_eq(usage.cache_read_input_tokens, 80)
+  assert_eq(usage.cache_creation_input_tokens, 10)
+}
+
+///|
+test "client_parse_response_bedrock_dispatch" {
+  let client = Client::new(
+    "ABSK1234567890",
+    "https://api.openclacky.com",
+    "abs-claude-sonnet-4-6",
+    @config.Bedrock,
+  )
+  let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"Hi\"}]}},\"stopReason\":\"end_turn\",\"usage\":{\"inputTokens\":5,\"outputTokens\":3}}"
+  let json = @json.parse(raw)
+  let resp = client.parse_response(json)
+  assert_eq(resp.content.unwrap(), "Hi")
+  assert_eq(resp.finish_reason.unwrap(), "stop")
+}
+
+// ── Bedrock Tool Result Formatting Tests ─────────────────────────────────────
+
+///|
+test "format_bedrock_tool_results" {
+  let resp : LlmResponse = {
+    content: None,
+    tool_calls: Some([@message.ToolCall::new("tu_1", "shell", "{}")]),
+    finish_reason: Some("tool_calls"),
+    usage: None,
+    latency: None,
+  }
+  let results : Map[String, String] = { "tu_1": "command output" }
+  let msgs = format_bedrock_tool_results(resp, results)
+  assert_eq(msgs.length(), 1)
+  assert_true(msgs[0].role == @message.Tool)
+  match msgs[0].content {
+    @message.Text(text) => assert_eq(text, "command output")
+    _ => abort("expected text content")
+  }
+}
+
+///|
+test "client_api_path_bedrock" {
+  let client = Client::new(
+    "ABSK1234567890",
+    "https://api.openclacky.com",
+    "abs-claude-sonnet-4-6",
+    @config.Bedrock,
+  )
+  assert_eq(client.api_path(), "model/abs-claude-sonnet-4-6/converse")
+}
+
+// ── Bedrock Stream Aggregator Tests ──────────────────────────────────────────
+
+///|
+test "bedrock_aggregator_text" {
+  let agg = BedrockStreamAggregator::new()
+  agg.handle("messageStart", "{\"role\":\"assistant\"}")
+  agg.handle("contentBlockStart", "{\"contentBlockIndex\":0,\"start\":{}}")
+  agg.handle(
+    "contentBlockDelta", "{\"contentBlockIndex\":0,\"delta\":{\"text\":\"Hello\"}}",
+  )
+  agg.handle(
+    "contentBlockDelta", "{\"contentBlockIndex\":0,\"delta\":{\"text\":\" there\"}}",
+  )
+  agg.handle("contentBlockStop", "{\"contentBlockIndex\":0}")
+  agg.handle("messageStop", "{\"stopReason\":\"end_turn\"}")
+  agg.handle("metadata", "{\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}")
+  let resp = agg.to_response()
+  assert_eq(resp.content.unwrap(), "Hello there")
+  assert_eq(resp.finish_reason.unwrap(), "stop")
+  assert_true(resp.usage is Some(_))
+  assert_eq(resp.usage.unwrap().input_tokens, 10)
+  assert_eq(resp.usage.unwrap().output_tokens, 5)
+}
+
+///|
+test "bedrock_aggregator_tool_use" {
+  let agg = BedrockStreamAggregator::new()
+  agg.handle("messageStart", "{\"role\":\"assistant\"}")
+  agg.handle(
+    "contentBlockStart", "{\"contentBlockIndex\":0,\"start\":{\"toolUse\":{\"toolUseId\":\"tu_1\",\"name\":\"read_file\"}}}",
+  )
+  agg.handle(
+    "contentBlockDelta", "{\"contentBlockIndex\":0,\"delta\":{\"toolUse\":{\"input\":\"{\\\"path\\\":\\\"/\"}}}",
+  )
+  agg.handle(
+    "contentBlockDelta", "{\"contentBlockIndex\":0,\"delta\":{\"toolUse\":{\"input\":\"test.txt\\\"}\"}}}",
+  )
+  agg.handle("contentBlockStop", "{\"contentBlockIndex\":0}")
+  agg.handle("messageStop", "{\"stopReason\":\"tool_use\"}")
+  agg.handle("metadata", "{\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}")
+  let resp = agg.to_response()
+  assert_true(resp.has_tool_calls())
+  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  let calls = resp.tool_calls.unwrap()
+  assert_eq(calls[0].id, "tu_1")
+  assert_eq(calls[0].function.name, "read_file")
+  assert_eq(calls[0].function.arguments, "{\"path\":\"/test.txt\"}")
+}
+
+///|
+test "bedrock_aggregator_cache_usage" {
+  let agg = BedrockStreamAggregator::new()
+  agg.handle("messageStart", "{\"role\":\"assistant\"}")
+  agg.handle("contentBlockStart", "{\"contentBlockIndex\":0,\"start\":{}}")
+  agg.handle(
+    "contentBlockDelta", "{\"contentBlockIndex\":0,\"delta\":{\"text\":\"Hi\"}}",
+  )
+  agg.handle("contentBlockStop", "{\"contentBlockIndex\":0}")
+  agg.handle("messageStop", "{\"stopReason\":\"end_turn\"}")
+  agg.handle(
+    "metadata", "{\"usage\":{\"inputTokens\":20,\"outputTokens\":50,\"cacheReadInputTokens\":80,\"cacheWriteInputTokens\":10}}",
+  )
+  let resp = agg.to_response()
+  let usage = resp.usage.unwrap()
+  // Bedrock: prompt_tokens = inputTokens + cacheReadInputTokens = 20 + 80 = 100
+  assert_eq(usage.input_tokens, 100)
+  assert_eq(usage.output_tokens, 50)
+  assert_eq(usage.cache_read_input_tokens, 80)
+  assert_eq(usage.cache_creation_input_tokens, 10)
+}

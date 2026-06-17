@@ -52,15 +52,16 @@ test "api_type_from_string_invalid" {
 }
 
 ///|
-test "providers_all_has_six_providers" {
+test "providers_all_has_twelve_providers" {
   let all = Providers::all()
-  assert_eq(all.length(), 6)
+  assert_eq(all.length(), 12)
 }
 
 ///|
 test "providers_find_known" {
   let ids = [
-    "openclacky", "openrouter", "anthropic", "openai", "deepseek", "qwen",
+    "openclacky", "openrouter", "deepseekv4", "minimax", "kimi", "kimi-coding", "anthropic",
+    "mimo", "glm", "openai", "deepseek", "qwen",
   ]
   for id in ids {
     let found = Providers::find(id)
@@ -85,6 +86,23 @@ test "providers_resolve_by_base_url" {
   assert_eq(p2.unwrap().id, "openai")
 
   assert_true(Providers::resolve("https://unknown.example.com") is None)
+
+  // New providers
+  let p3 = Providers::resolve("https://api.minimaxi.com/v1")
+  assert_true(p3 is Some(_))
+  assert_eq(p3.unwrap().id, "minimax")
+
+  let p4 = Providers::resolve("https://api.moonshot.cn/v1")
+  assert_true(p4 is Some(_))
+  assert_eq(p4.unwrap().id, "kimi")
+
+  let p5 = Providers::resolve("https://api.kimi.com/coding")
+  assert_true(p5 is Some(_))
+  assert_eq(p5.unwrap().id, "kimi-coding")
+
+  let p6 = Providers::resolve("https://open.bigmodel.cn/api/paas/v4")
+  assert_true(p6 is Some(_))
+  assert_eq(p6.unwrap().id, "glm")
 }
 
 ///|

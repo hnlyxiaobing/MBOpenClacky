@@ -127,6 +127,113 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
         handle_get_aggregate_stats(server_ref, event)
       })
     })
+
+    // MCP
+    api.group("/mcp", (mcp : @crescent.App) => {
+      mcp.get("/servers", event => {
+        handle_mcp_list_servers_bridge(server_ref, event)
+      })
+      mcp.post("/servers", event => {
+        handle_mcp_register_server_bridge(server_ref, event)
+      })
+      mcp.delete("/servers/:id", event => {
+        handle_mcp_remove_server_bridge(server_ref, event)
+      })
+      mcp.get("/tools", event => handle_mcp_list_tools_bridge(server_ref, event))
+      mcp.post("/tools/:name/execute", event => {
+        handle_mcp_execute_tool_bridge(server_ref, event)
+      })
+    })
+
+    // Channels
+    api.group("/channels", (ch : @crescent.App) => {
+      ch.get("", event => handle_channels_list_bridge(server_ref, event))
+      ch.post("", event => handle_channels_create_bridge(server_ref, event))
+      ch.put("/:id", event => handle_channels_update_bridge(server_ref, event))
+      ch.delete("/:id", event => {
+        handle_channels_delete_bridge(server_ref, event)
+      })
+      ch.post("/:id/test", event => {
+        handle_channels_test_bridge(server_ref, event)
+      })
+      ch.get("/:id/status", event => {
+        handle_channels_status_bridge(server_ref, event)
+      })
+    })
+
+    // Schedules
+    api.group("/schedules", (sc : @crescent.App) => {
+      sc.get("", event => handle_schedules_list_bridge(server_ref, event))
+      sc.post("", event => handle_schedules_create_bridge(server_ref, event))
+      sc.put("/:id", event => handle_schedules_update_bridge(server_ref, event))
+      sc.delete("/:id", event => {
+        handle_schedules_delete_bridge(server_ref, event)
+      })
+      sc.post("/:id/trigger", event => {
+        handle_schedules_trigger_bridge(server_ref, event)
+      })
+      sc.get("/:id/history", event => {
+        handle_schedules_history_bridge(server_ref, event)
+      })
+    })
+
+    // Backups
+    api.group("/backups", (bk : @crescent.App) => {
+      bk.get("", event => handle_backups_list_bridge(server_ref, event))
+      bk.post("", event => handle_backups_create_bridge(server_ref, event))
+      bk.post("/:id/restore", event => {
+        handle_backups_restore_bridge(server_ref, event)
+      })
+      bk.delete("/:id", event => handle_backups_delete_bridge(server_ref, event))
+    })
+
+    // Billing
+    api.group("/billing", (bl : @crescent.App) => {
+      bl.get("/status", event => handle_billing_status_bridge(server_ref, event))
+      bl.post("/activate", event => {
+        handle_billing_activate_bridge(server_ref, event)
+      })
+      bl.get("/usage", event => handle_billing_usage_bridge(server_ref, event))
+    })
+
+    // Skills
+    api.group("/skills", (sk : @crescent.App) => {
+      sk.get("", event => handle_skills_list_bridge(server_ref, event))
+      sk.post("", event => handle_skills_create_bridge(server_ref, event))
+      sk.put("/:name", event => handle_skills_update_bridge(server_ref, event))
+      sk.delete("/:name", event => {
+        handle_skills_delete_bridge(server_ref, event)
+      })
+      sk.post("/:name/evolve", event => {
+        handle_skills_evolve_bridge(server_ref, event)
+      })
+      sk.get("/evolution/history", event => {
+        handle_skills_evolution_history_bridge(server_ref, event)
+      })
+    })
+
+    // Browser
+    api.group("/browser", (br : @crescent.App) => {
+      br.get("/status", event => handle_browser_status_bridge(server_ref, event))
+      br.post("/start", event => handle_browser_start_bridge(server_ref, event))
+      br.post("/stop", event => handle_browser_stop_bridge(server_ref, event))
+      br.post("/navigate", event => {
+        handle_browser_navigate_bridge(server_ref, event)
+      })
+      br.get("/screenshot", event => {
+        handle_browser_screenshot_bridge(server_ref, event)
+      })
+    })
+
+    // Trash
+    api.group("/trash", (tr : @crescent.App) => {
+      tr.get("", event => handle_trash_list_bridge(server_ref, event))
+      tr.post("/:id/restore", event => {
+        handle_trash_restore_bridge(server_ref, event)
+      })
+      tr.delete("/:id", event => handle_trash_delete_bridge(server_ref, event))
+      tr.delete("", event => handle_trash_empty_bridge(server_ref, event))
+    })
   })
 
   // ── WebSocket ─────────────────────────────────────────────────

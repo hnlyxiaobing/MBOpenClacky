@@ -73,6 +73,17 @@ pub fn Client::is_anthropic_format(self : Client) -> Bool {
   }
 }
 
+///|
+/// Check if this client should use the Bedrock Converse API.
+/// True if api_type is Bedrock, or if the API key/model match Bedrock patterns
+/// (ABSK key prefix or abs- model prefix used by ClackyAI proxy).
+pub fn Client::is_bedrock_format(self : Client) -> Bool {
+  match self.api_type {
+    @config.Bedrock => true
+    _ => is_bedrock_api_key(self.api_key, self.model)
+  }
+}
+
 // ── Request Building ────────────────────────────────────────────────────────
 
 ///|
@@ -84,7 +95,16 @@ pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json 
   } else {
     false
   }
-  if self.is_anthropic_format() {
+  if self.is_bedrock_format() {
+    build_bedrock_request(
+      request.messages,
+      request.model,
+      request.tools,
+      request.max_tokens,
+      caching_enabled,
+      reasoning_effort=request.reasoning_effort,
+    )
+  } else if self.is_anthropic_format() {
     build_anthropic_request(
       request.messages,
       request.model,
@@ -115,7 +135,9 @@ pub fn Client::build_simple_request(
   max_tokens : Int,
 ) -> Json {
   let messages = [@message.Message::user(content)]
-  if self.is_anthropic_format() {
+  if self.is_bedrock_format() {
+    build_bedrock_request(messages, model, [], max_tokens, false)
+  } else if self.is_anthropic_format() {
     build_anthropic_request(messages, model, [], max_tokens, false)
   } else {
     build_openai_request(
@@ -135,7 +157,9 @@ pub fn Client::build_simple_request(
 /// Parse an API response JSON into an LlmResponse.
 /// Dispatches to the appropriate format module based on API type.
 pub fn Client::parse_response(self : Client, data : Json) -> LlmResponse {
-  if self.is_anthropic_format() {
+  if self.is_bedrock_format() {
+    parse_bedrock_response(data)
+  } else if self.is_anthropic_format() {
     parse_anthropic_response(data)
   } else {
     parse_openai_response(data)
@@ -152,7 +176,9 @@ pub fn Client::format_tool_results(
   response : LlmResponse,
   tool_results : Map[String, String],
 ) -> Array[@message.Message] {
-  if self.is_anthropic_format() {
+  if self.is_bedrock_format() {
+    format_bedrock_tool_results(response, tool_results)
+  } else if self.is_anthropic_format() {
     format_anthropic_tool_results(response, tool_results)
   } else {
     format_openai_tool_results(response, tool_results)
@@ -164,7 +190,9 @@ pub fn Client::format_tool_results(
 ///|
 /// Get the API endpoint path for this client's protocol.
 pub fn Client::api_path(self : Client) -> String {
-  if self.is_anthropic_format() {
+  if self.is_bedrock_format() {
+    bedrock_converse_path(self.model)
+  } else if self.is_anthropic_format() {
     anthropic_messages_path(self.base_url)
   } else {
     "chat/completions"

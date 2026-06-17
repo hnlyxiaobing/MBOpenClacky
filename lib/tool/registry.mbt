@@ -263,5 +263,8 @@ pub fn make_default_registry() -> ToolRegistry {
   registry.register(AnyTool::InvokeSkill(InvokeSkill::{  }))
   registry.register(AnyTool::MemoryTool(MemoryTool::{  }))
   registry.register(AnyTool::TodoTool(TodoTool::{  }))
+  registry.register(AnyTool::RequestUserFeedback(RequestUserFeedback::{  }))
+  registry.register(AnyTool::TrashManager(TrashManager::{  }))
+  registry.register(AnyTool::Browser(Browser::new()))
   registry
 }

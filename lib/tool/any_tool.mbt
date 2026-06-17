@@ -22,6 +22,9 @@ pub impl Tool for AnyTool with fn name(self) -> String {
     InvokeSkill(t) => t.name()
     MemoryTool(t) => t.name()
     TodoTool(t) => t.name()
+    RequestUserFeedback(t) => t.name()
+    TrashManager(t) => t.name()
+    Browser(t) => t.name()
   }
 }
 
@@ -39,6 +42,9 @@ pub impl Tool for AnyTool with fn description(self) -> String {
     InvokeSkill(t) => t.description()
     MemoryTool(t) => t.description()
     TodoTool(t) => t.description()
+    RequestUserFeedback(t) => t.description()
+    TrashManager(t) => t.description()
+    Browser(t) => t.description()
   }
 }
 
@@ -56,6 +62,9 @@ pub impl Tool for AnyTool with fn parameters(self) -> Json {
     InvokeSkill(t) => t.parameters()
     MemoryTool(t) => t.parameters()
     TodoTool(t) => t.parameters()
+    RequestUserFeedback(t) => t.parameters()
+    TrashManager(t) => t.parameters()
+    Browser(t) => t.parameters()
   }
 }
 
@@ -73,6 +82,9 @@ pub impl Tool for AnyTool with fn category(self) -> ToolCategory {
     InvokeSkill(t) => t.category()
     MemoryTool(t) => t.category()
     TodoTool(t) => t.category()
+    RequestUserFeedback(t) => t.category()
+    TrashManager(t) => t.category()
+    Browser(t) => t.category()
   }
 }
 
@@ -90,6 +102,9 @@ pub impl Tool for AnyTool with fn execute(self, args : Map[String, Json]) -> Too
     InvokeSkill(t) => t.execute(args)
     MemoryTool(t) => t.execute(args)
     TodoTool(t) => t.execute(args)
+    RequestUserFeedback(t) => t.execute(args)
+    TrashManager(t) => t.execute(args)
+    Browser(t) => t.execute(args)
   }
 }
 
@@ -107,6 +122,9 @@ pub impl Tool for AnyTool with fn format_call(self, args : Map[String, Json]) ->
     InvokeSkill(t) => t.format_call(args)
     MemoryTool(t) => t.format_call(args)
     TodoTool(t) => t.format_call(args)
+    RequestUserFeedback(t) => t.format_call(args)
+    TrashManager(t) => t.format_call(args)
+    Browser(t) => t.format_call(args)
   }
 }
 
@@ -124,6 +142,9 @@ pub impl Tool for AnyTool with fn format_result(self, result : ToolResult) -> St
     InvokeSkill(t) => t.format_result(result)
     MemoryTool(t) => t.format_result(result)
     TodoTool(t) => t.format_result(result)
+    RequestUserFeedback(t) => t.format_result(result)
+    TrashManager(t) => t.format_result(result)
+    Browser(t) => t.format_result(result)
   }
 }
 
@@ -141,5 +162,8 @@ pub impl Tool for AnyTool with fn to_function_definition(self) -> FunctionDefini
     InvokeSkill(t) => t.to_function_definition()
     MemoryTool(t) => t.to_function_definition()
     TodoTool(t) => t.to_function_definition()
+    RequestUserFeedback(t) => t.to_function_definition()
+    TrashManager(t) => t.to_function_definition()
+    Browser(t) => t.to_function_definition()
   }
 }

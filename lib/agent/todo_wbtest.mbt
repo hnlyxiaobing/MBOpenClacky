@@ -21,7 +21,7 @@ test "todo_status_to_string" {
     ),
   )
   inspect(
-    Cancelled.to_string_value(),
+    TodoStatus::Cancelled.to_string_value(),
     content=(
       #|cancelled
     ),

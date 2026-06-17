@@ -554,6 +554,324 @@ pub fn AnthropicStreamAggregator::to_response(
   }
 }
 
+// ── Bedrock Stream Aggregator ───────────────────────────────────────────────
+
+///|
+/// Kind of content block in a Bedrock Converse stream.
+priv enum BedrockBlockKind {
+  BedrockText
+  BedrockToolUse
+  BedrockReasoning
+}
+
+///|
+/// Internal accumulator for a single Bedrock content block.
+struct BedrockBlockAcc {
+  kind : BedrockBlockKind
+  text : String
+  tool_id : String?
+  tool_name : String?
+  input_str : String
+  reasoning : String
+}
+
+///|
+/// Reassembles a Bedrock Converse event stream into a non-streaming
+/// LlmResponse. Mirrors Ruby's BedrockStreamAggregator.
+///
+/// Handles 6 Bedrock event types:
+/// - messageStart → sets role
+/// - contentBlockStart → initializes block (text or tool_use)
+/// - contentBlockDelta → appends text/toolUse input/reasoningContent
+/// - contentBlockStop → no-op
+/// - messageStop → sets stopReason
+/// - metadata → merges usage
+pub(all) struct BedrockStreamAggregator {
+  mut role : String
+  mut blocks : Map[Int, BedrockBlockAcc]
+  mut stop_reason : String?
+  mut input_tokens : Int
+  mut output_tokens : Int
+  mut cache_read : Int
+  mut cache_write : Int
+}
+
+///|
+/// Create a new Bedrock stream aggregator.
+pub fn BedrockStreamAggregator::new() -> BedrockStreamAggregator {
+  {
+    role: "assistant",
+    blocks: {},
+    stop_reason: None,
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read: 0,
+    cache_write: 0,
+  }
+}
+
+///|
+/// Handle a single SSE event+data pair from the Bedrock stream.
+pub fn BedrockStreamAggregator::handle(
+  self : BedrockStreamAggregator,
+  event : String,
+  data_str : String,
+) -> Unit {
+  let json = @json.parse(data_str) catch { _ => return }
+
+  match event {
+    "messageStart" =>
+      match (if json is Object(obj) { obj.get("role") } else { None }) {
+        Some(String(r)) => self.role = r
+        _ => ()
+      }
+    "contentBlockStart" => {
+      let idx = json_int(json, "contentBlockIndex")
+      match (if json is Object(obj) { obj.get("start") } else { None }) {
+        Some(Object(start)) =>
+          match start.get("toolUse") {
+            Some(Object(tu)) => {
+              let id = match tu.get("toolUseId") {
+                Some(String(s)) => Some(s)
+                _ => None
+              }
+              let name = match tu.get("name") {
+                Some(String(s)) => Some(s)
+                _ => None
+              }
+              self.blocks[idx] = {
+                kind: BedrockToolUse,
+                text: "",
+                tool_id: id,
+                tool_name: name,
+                input_str: "",
+                reasoning: "",
+              }
+            }
+            _ =>
+              self.blocks[idx] = {
+                kind: BedrockText,
+                text: "",
+                tool_id: None,
+                tool_name: None,
+                input_str: "",
+                reasoning: "",
+              }
+          }
+        _ => ()
+      }
+    }
+    "contentBlockDelta" => {
+      let idx = json_int(json, "contentBlockIndex")
+      match (if json is Object(obj) { obj.get("delta") } else { None }) {
+        Some(Object(delta)) => {
+          // Check for text delta
+          match delta.get("text") {
+            Some(String(text)) =>
+              match self.blocks.get(idx) {
+                Some(block) =>
+                  self.blocks[idx] = {
+                    kind: block.kind,
+                    text: block.text + text,
+                    tool_id: block.tool_id,
+                    tool_name: block.tool_name,
+                    input_str: block.input_str,
+                    reasoning: block.reasoning,
+                  }
+                None =>
+                  self.blocks[idx] = {
+                    kind: BedrockText,
+                    text,
+                    tool_id: None,
+                    tool_name: None,
+                    input_str: "",
+                    reasoning: "",
+                  }
+              }
+            _ => ()
+          }
+          // Check for toolUse delta
+          match delta.get("toolUse") {
+            Some(Object(tu)) => {
+              let input_delta = match tu.get("input") {
+                Some(String(s)) => s
+                _ => ""
+              }
+              match self.blocks.get(idx) {
+                Some(block) => {
+                  let id = match tu.get("toolUseId") {
+                    Some(String(s)) => Some(s)
+                    _ => block.tool_id
+                  }
+                  let name = match tu.get("name") {
+                    Some(String(s)) => Some(s)
+                    _ => block.tool_name
+                  }
+                  self.blocks[idx] = {
+                    kind: BedrockToolUse,
+                    text: block.text,
+                    tool_id: id,
+                    tool_name: name,
+                    input_str: block.input_str + input_delta,
+                    reasoning: block.reasoning,
+                  }
+                }
+                None =>
+                  self.blocks[idx] = {
+                    kind: BedrockToolUse,
+                    text: "",
+                    tool_id: match tu.get("toolUseId") {
+                      Some(String(s)) => Some(s)
+                      _ => None
+                    },
+                    tool_name: match tu.get("name") {
+                      Some(String(s)) => Some(s)
+                      _ => None
+                    },
+                    input_str: input_delta,
+                    reasoning: "",
+                  }
+              }
+            }
+            _ => ()
+          }
+          // Check for reasoningContent delta
+          match delta.get("reasoningContent") {
+            Some(Object(rc)) => {
+              let reasoning_delta = match rc.get("text") {
+                Some(String(s)) => s
+                _ => ""
+              }
+              match self.blocks.get(idx) {
+                Some(block) =>
+                  self.blocks[idx] = {
+                    kind: BedrockReasoning,
+                    text: block.text,
+                    tool_id: block.tool_id,
+                    tool_name: block.tool_name,
+                    input_str: block.input_str,
+                    reasoning: block.reasoning + reasoning_delta,
+                  }
+                None =>
+                  self.blocks[idx] = {
+                    kind: BedrockReasoning,
+                    text: "",
+                    tool_id: None,
+                    tool_name: None,
+                    input_str: "",
+                    reasoning: reasoning_delta,
+                  }
+              }
+            }
+            _ => ()
+          }
+        }
+        _ => ()
+      }
+    }
+    "contentBlockStop" => ()
+    "messageStop" =>
+      match (if json is Object(obj) { obj.get("stopReason") } else { None }) {
+        Some(String(reason)) => self.stop_reason = Some(reason)
+        _ => ()
+      }
+    "metadata" =>
+      match (if json is Object(obj) { obj.get("usage") } else { None }) {
+        Some(u) => {
+          self.input_tokens = self.input_tokens + json_int(u, "inputTokens")
+          self.output_tokens = self.output_tokens + json_int(u, "outputTokens")
+          self.cache_read = self.cache_read +
+            json_int(u, "cacheReadInputTokens")
+          self.cache_write = self.cache_write +
+            json_int(u, "cacheWriteInputTokens")
+        }
+        _ => ()
+      }
+    _ => ()
+  }
+}
+
+///|
+/// Render the accumulated stream data as a Bedrock Converse response JSON,
+/// suitable for consumption by parse_bedrock_response.
+pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json {
+  // Collect and sort block indices
+  let indices : Array[Int] = []
+  for k, _ in self.blocks {
+    indices.push(k)
+  }
+  indices.sort()
+
+  // Build content blocks array
+  let content_blocks : Array[Json] = []
+  for idx in indices {
+    match self.blocks.get(idx) {
+      Some(block) =>
+        match block.kind {
+          BedrockToolUse => {
+            let id = match block.tool_id {
+              Some(id) => id
+              _ => ""
+            }
+            let name = match block.tool_name {
+              Some(n) => n
+              _ => ""
+            }
+            let input : Json = if block.input_str.length() == 0 {
+              Json::object({})
+            } else {
+              @json.parse(block.input_str) catch {
+                _ => Json::object({})
+              }
+            }
+            content_blocks.push(
+              Json::object({
+                "toolUse": Json::object({
+                  "toolUseId": id.to_json(),
+                  "name": name.to_json(),
+                  "input": input,
+                }),
+              }),
+            )
+          }
+          _ =>
+            content_blocks.push(Json::object({ "text": block.text.to_json() }))
+        }
+      None => ()
+    }
+  }
+
+  // Build response body
+  let body : Map[String, Json] = {
+    "output": Json::object({
+      "message": Json::object({
+        "role": self.role.to_json(),
+        "content": content_blocks.to_json(),
+      }),
+    }),
+    "usage": Json::object({
+      "inputTokens": self.input_tokens.to_json(),
+      "outputTokens": self.output_tokens.to_json(),
+      "cacheReadInputTokens": self.cache_read.to_json(),
+      "cacheWriteInputTokens": self.cache_write.to_json(),
+    }),
+  }
+  match self.stop_reason {
+    Some(r) => body["stopReason"] = r.to_json()
+    None => ()
+  }
+  Json::object(body)
+}
+
+///|
+/// Convert accumulated stream data into a non-streaming LlmResponse.
+/// Renders to Bedrock response JSON and delegates to parse_bedrock_response.
+pub fn BedrockStreamAggregator::to_response(
+  self : BedrockStreamAggregator,
+) -> LlmResponse {
+  parse_bedrock_response(self.to_json())
+}
+
 // ── JSON Helpers ────────────────────────────────────────────────────────────
 
 ///|

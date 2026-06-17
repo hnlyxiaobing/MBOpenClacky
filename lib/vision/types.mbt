@@ -1,0 +1,83 @@
+///|
+/// Vision processing result status
+pub(all) enum VisionStatus {
+  Ok
+  Empty
+  CallFailed
+  BadImage
+} derive(Eq, Debug, ToJson)
+
+///|
+/// Vision processing result
+pub(all) struct VisionResult {
+  status : VisionStatus
+  text : String?
+  error : String?
+  cached : Bool
+} derive(Eq, Debug, ToJson)
+
+///|
+/// Image input types
+pub(all) enum VisionInput {
+  VisionBytes(Bytes)
+  DataUrl(String)
+  FilePath(String)
+} derive(Debug)
+
+///|
+/// Vision resolver configuration
+pub(all) struct VisionConfig {
+  max_tokens : Int
+  cache_dir : String
+  default_prompt : String
+} derive(Eq, Debug)
+
+///|
+/// Default max tokens for vision requests
+let default_max_tokens : Int = 8192
+
+///|
+/// Default cache directory
+let default_cache_dir : String = "~/.mbopenclacky/ocr_cache/"
+
+///|
+/// Default vision prompt
+let default_vision_prompt : String = "Extract all text content from this image. Describe visual elements. Preserve table layouts using markdown formatting."
+
+///|
+/// Create a default VisionConfig
+pub fn VisionConfig::default() -> VisionConfig {
+  {
+    max_tokens: default_max_tokens,
+    cache_dir: default_cache_dir,
+    default_prompt: default_vision_prompt,
+  }
+}
+
+///|
+/// Create a VisionConfig with custom settings
+pub fn VisionConfig::new(
+  max_tokens : Int,
+  cache_dir : String,
+  default_prompt : String,
+) -> VisionConfig {
+  { max_tokens, cache_dir, default_prompt }
+}
+
+///|
+/// Build OK result
+pub fn ok_result(text : String, cached : Bool) -> VisionResult {
+  { status: Ok, text: Some(text), error: None, cached }
+}
+
+///|
+/// Build error result
+pub fn error_result(status : VisionStatus, error : String) -> VisionResult {
+  { status, text: None, error: Some(error), cached: false }
+}
+
+///|
+/// Build empty result
+pub fn empty_result() -> VisionResult {
+  { status: Empty, text: None, error: None, cached: false }
+}

@@ -26,6 +26,139 @@
 ## 变更记录
 
 
+### 2026-06-17  Phase 12-17 全量实现：MCP / Agent增强 / Web+TUI / 多模态 / 运维 / 商业扩展
+
+- `[feat]` **Phase 12: MCP 协议** — 新建 `lib/mcp/` 包（9 文件）
+  - `types.mbt` — MCP 类型定义（McpTool/McpServer/JsonRpcRequest/Response）
+  - `transport.mbt` — Transport trait 定义（send/receive/close）
+  - `stdio_transport.mbt` — 标准输入输出传输实现
+  - `http_transport.mbt` — HTTP/SSE 传输实现
+  - `client.mbt` — JSON-RPC 2.0 客户端（initialize/tools.list/tools.call）
+  - `registry.mbt` — 多服务器注册管理（McpRegistry）
+  - `virtual_skill.mbt` — MCP 工具映射为虚拟技能
+  - `mcp_wbtest.mbt` — MCP 测试
+- `[feat]` **Phase 12: 技能演进** — 扩展 `lib/skill/` 包（+4 文件）
+  - `evolution.mbt` — EvolutionEngine 入口 + EvolutionScenario 分发
+  - `reflector.mbt` — SkillReflector 执行后反思（评分/改进建议）
+  - `auto_creator.mbt` — AutoCreator 自动技能创建（模式检测/置信度/阈值）
+  - `evolution_wbtest.mbt` — 34 个演进测试用例
+  - 技能包测试总数达 61 个，全部通过
+- `[feat]` **Phase 13: Agent 增强** — 扩展 `lib/agent/` 包（+7 文件）
+  - `time_machine.mbt` + `time_machine_types.mbt` — 文件快照 undo/redo（祖先链恢复算法）
+  - `time_machine_wbtest.mbt` — Time Machine 测试
+  - `profile.mbt` + `profile_types.mbt` — AgentProfile 加载器（搜索路径 + SOUL.md/USER.md）
+  - `idle_timer.mbt` — IdleCompressionTimer（266s 空闲状态机）
+  - Agent 包测试总数达 160 个，全部通过
+- `[feat]` **Phase 13: Workspace Rules** — 新建 `lib/utils/workspace_rules.mbt`
+  - 优先级: `.clackyrules` > `.cursorrules` > `CLAUDE.md`
+  - 集成到 system_prompt 构建
+- `[feat]` **Phase 13.5 + 14.3: TUI 增强** — 扩展 `lib/tui/` 包（+6 文件）
+  - `slash_commands.mbt` — SlashCommand 枚举 + 解析器 + 自动补全（/config /model /clear /new /skills /help /exit）
+  - `markdown.mbt` — Markdown→ANSI 渲染（heading/bold/italic/code/codeblock/list）
+  - `theme.mbt` — 主题系统（ThemeName: Hacker/Minimal/Default）+ ANSI 色码
+  - `progress.mbt` — Spinner 动画（Dots/Line/Arrow 三种样式，函数式不可变更新）
+  - `realtime.mbt` — RealtimeRenderer 增量渲染（ANSI 光标控制）
+  - `tui_enhanced_wbtest.mbt` — 28 个 TUI 增强测试
+- `[feat]` **Phase 14.1: Web 前端 SPA** — 新建 `assets/web/` 目录（8 文件）
+  - `index.html` — SPA 入口
+  - `style.css` — 暗色主题响应式样式
+  - `app.js` — 前端核心逻辑
+  - `chat.js` — 聊天界面 + SSE 流式（fetch + ReadableStream）
+  - `sessions.js` — 会话列表管理
+  - `settings.js` — 设置面板
+  - `skills.js` — 技能管理界面
+  - `websocket.js` — WebSocket + 自动重连
+- `[feat]` **Phase 14.2: REST API 扩展** — 扩展 `lib/web/` 包（+12 文件）
+  - `router.mbt` — Router 路由匹配（支持 `:param` 参数提取）+ HttpRequest/HttpResponse 类型
+  - `static_server.mbt` — 静态文件服务 + MIME 映射 + SPA fallback
+  - `handlers_mcp.mbt` — 5 个 MCP 端点
+  - `handlers_channels.mbt` — 6 个 IM 渠道端点
+  - `handlers_schedules.mbt` — 6 个定时任务端点
+  - `handlers_backup.mbt` — 4 个备份端点
+  - `handlers_billing.mbt` — 3 个计费端点
+  - `handlers_skills.mbt` — 6 个技能管理端点
+  - `handlers_browser.mbt` — 5 个浏览器端点
+  - `handlers_trash.mbt` — 4 个回收站端点
+  - `handlers_bridge.mbt` — crescent Event 适配桥接
+  - `web_handlers_wbtest.mbt` — 35+ 个 handler 测试
+  - REST API 总数从 20+ 扩展到 68+ 端点
+- `[feat]` **Phase 15: 多模态** — 新建 3 个包
+  - `lib/parser/`（6 文件）— PDF/DOCX(ZIP+XML)/PPTX/XLSX 文档解析器，38 个测试
+  - `lib/media/`（6 文件）— Media 生成（OpenAI/Gemini/DashScope），27 个测试
+  - `lib/vision/`（3 文件）— Vision OCR + SHA256 缓存，28 个测试
+- `[feat]` **Phase 16: 运维集成** — 新建 `lib/server/` 包（10 文件）
+  - `cron.mbt` — 完整 Cron 表达式解析器（*, */n, n-m, 列表）
+  - `scheduler.mbt` — 定时任务调度（60 秒检查间隔）
+  - `browser_manager.mbt` — Chrome DevTools MCP 守护进程管理
+  - `backup_manager.mbt` — 配置备份到安全位置
+  - `discover.mbt` — PID 文件服务器发现
+  - 31 个运维测试全部通过
+- `[feat]` **Phase 17.1: IM 渠道** — 新建 `lib/channel/` 包（12 文件）
+  - AnyAdapter enum 模式（非 trait object）实现 6 平台适配器
+  - 飞书/企微/Telegram/Discord/钉钉/微信
+  - 25 个渠道测试全部通过
+- `[feat]` **Phase 17.2: Brand/License** — 新建 `lib/brand/` 包（5 文件）
+  - Brand 白标配置 + License key 格式验证（十六进制段）
+  - 心跳/宽限期逻辑
+  - 20 个 Brand 测试全部通过
+- `[feat]` **Phase 17.3: Shell Hook** — 新建 `lib/hook/` 包（3 文件）
+  - 7 种 Shell Hook 事件 + exit code 语义
+  - 20 个 Hook 测试全部通过
+- `[feat]` **Phase 17.4: Telemetry** — 新建 `lib/telemetry/` 包（4 文件）
+  - 匿名遥测（fire-and-forget）+ 环境变量退出
+  - 15 个遥测测试全部通过
+- `[fix]` 集成验证修复（7 个文件）
+  - `lib/mcp/client.mbt` — `let UPPERCASE` → `const`、Json 构造器用法修正
+  - `lib/mcp/registry.mbt` — `Map.each` 回调签名修正
+  - `lib/agent/todo_wbtest.mbt` — 构造器歧义消歧（`TodoStatus::Cancelled`）
+  - `lib/tui/slash_commands.mbt` — 补充 derive(Show)
+  - `lib/tui/markdown.mbt` — 补充 derive(Show)
+  - `lib/tui/theme.mbt` — 补充 derive(Show)
+  - `lib/agent/time_machine_wbtest.mbt` — `String?` Show 格式更新
+- `[test]` 全模块集成验证：**507 个测试全部通过**（`moon test --target wasm-gc`）
+  - lib/skill: 61 | lib/parser: 38 | lib/media: 27 | lib/vision: 28
+  - lib/server: 31 | lib/channel: 25 | lib/brand: 20 | lib/hook: 20
+  - lib/telemetry: 15 | lib/agent: 160 | lib/errors: 6 | lib/config: 27 | lib/tool: 49
+- `[chore]` `moon check` 通过：0 errors, 693 warnings（deprecated 语法警告）
+- `[docs]` 更新 README.md、development-plan.md、development-plan-comprehensive.md 同步 Phase 12-17 完成状态
+
+
+### 2026-06-17  Phase 11 核心补齐：Bedrock API / Provider 扩展 / 缺失工具
+
+- `[feat]` 实现 Bedrock Converse API 格式支持 `lib/client/format_bedrock.mbt`（~370 行）
+  - `build_bedrock_request` — 分离 system 消息、合并连续 tool result、转换 canonical 消息为 Bedrock 格式、toolSpec 工具定义、inferenceConfig 配置、cachePoint 缓存注入
+  - `parse_bedrock_response` — 从 output.message.content 提取文本/toolUse 块、stopReason 映射（end_turn→stop, tool_use→tool_calls, max_tokens→length）、usage 归一化
+  - `format_bedrock_tool_results` — canonical tool result 消息构建
+  - `is_bedrock_api_key` — 匹配 ABSK 前缀或 abs- 模型前缀
+  - `bedrock_converse_path` — 构建 `model/{modelId}/converse` 路径
+- `[feat]` 实现 Bedrock 流式聚合器 `lib/client/stream.mbt`（+320 行）
+  - `BedrockStreamAggregator` struct — 维护 blocks map（按 contentBlockIndex 索引）、role、stop_reason、usage
+  - `handle(event, data_str)` — 处理 6 种 SSE 事件：messageStart/contentBlockStart/contentBlockDelta/contentBlockStop/messageStop/metadata
+  - `to_json()` — 渲染为 parse_bedrock_response 可消费的 JSON 格式
+  - `to_response()` — 调用 parse_bedrock_response 完成流式→非流式转换
+  - `BedrockBlockKind` 枚举（Text/ToolUse/Reasoning）+ `BedrockBlockAcc` 块累加器
+- `[feat]` 集成 Bedrock 分发逻辑到 `lib/client/client.mbt`（+33 行）
+  - `is_bedrock_format()` 方法 — 判断是否使用 Bedrock API 格式
+  - 6 处分发分支：build_request_body / build_simple_request / parse_response / format_tool_results / api_path / request_headers
+  - Bedrock 检查在 Anthropic 之前，确保三协议正确分发
+- `[feat]` 扩展 Provider 预设系统 `lib/config/provider.mbt`
+  - 新增 6 个 Provider：DeepSeekV4、MiniMax、Kimi、Kimi-Coding、MiMo、GLM
+  - 更新现有 Provider：Anthropic（default_model → claude-sonnet-4-6）、OpenRouter（添加 claude-opus-4-8）、Qwen（qwen3.x 系列）
+  - Provider 总数从 6 个扩展到 12 个
+- `[feat]` 实现 3 个新工具（`lib/tool/`）
+  - `request_user_feedback.mbt`（~153 行）— 用户反馈请求工具，格式化 question/context/options 消息，参数 schema 与 Ruby 对齐
+  - `trash_manager.mbt`（~228 行）— 文件回收管理工具，支持 list/restore/status/empty/help 五种操作，`format_bytes()` 公开工具函数
+  - `browser.mbt`（~415 行）— 浏览器自动化工具结构化框架，完整参数 schema（9 个 action、12 个 act kind），配置检查框架，MCP 调用接口预留 Phase 12
+- `[feat]` 集成新工具到 ToolRegistry
+  - `types.mbt` — AnyTool 枚举新增 3 个变体
+  - `any_tool.mbt` — 7 个 Tool trait 方法的 dispatch 分支（+24 行）
+  - `registry.mbt` — 注册 3 个新工具，工具总数从 11 个扩展到 14 个
+- `[test]` 新增/扩展测试（共 201 个新测试用例）
+  - `client_wbtest.mbt`（+354 行，20+ 个 Bedrock 测试）— API key 检测、请求构建、响应解析、流式聚合、工具结果格式化、API 路径
+  - `tool_wbtest.mbt`（新建，~481 行，49 个测试）— RequestUserFeedback(8)、TrashManager(12)、Browser(13)、Registry(8)、AnyTool dispatch(3)、FunctionDefinition(3)
+  - `config_wbtest.mbt` — 新增 6 个 Provider 的查找/URL 匹配/api_type 测试
+- `[docs]` 更新 `docs/development-plan-comprehensive.md` Phase 11 状态为已完成，更新验证状态表（测试数 265→466），更新里程碑 M1 为已完成
+
 ### 2026-05-23  Phase 10 增强功能：Memory / Subagent / TodoManager
 
 - `[feat]` 实现 Agent 记忆系统 `lib/agent/memory.mbt`（202 行）+ `memory_types.mbt`（128 行）
