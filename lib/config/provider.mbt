@@ -59,6 +59,12 @@ pub(all) struct ProviderPreset {
   lite_models : Map[String, String]
   /// Primary-to-fallback model chain
   fallback_models : Map[String, String]
+  /// Default model capabilities for this provider
+  capabilities : ModelCapabilities
+  /// Per-model capability overrides (exact model name -> capabilities)
+  model_capabilities : Map[String, ModelCapabilities]
+  /// Per-model API type overrides (model name -> api_type string)
+  model_api_overrides : Map[String, String]
   /// Website URL for obtaining API keys
   website_url : String?
 } derive(Debug)
@@ -97,6 +103,11 @@ pub fn Providers::all() -> Array[ProviderPreset] {
         "abs-claude-fable-5": "abs-claude-opus-4-8",
         "abs-claude-sonnet-4-6": "abs-claude-sonnet-4-5",
       },
+      capabilities: ModelCapabilities::full(),
+      model_capabilities: {
+        "dsk-deepseek-v4-flash": ModelCapabilities::text_only(),
+      },
+      model_api_overrides: {},
       website_url: Some("https://www.openclacky.com/ai-keys"),
     },
     {
@@ -119,6 +130,20 @@ pub fn Providers::all() -> Array[ProviderPreset] {
         "openai/gpt-5.4": "openai/gpt-5.4-mini",
       },
       fallback_models: {},
+      capabilities: ModelCapabilities::with_vision(),
+      model_capabilities: {
+        "anthropic/claude-sonnet-4-6": ModelCapabilities::full(),
+        "anthropic/claude-opus-4-8": ModelCapabilities::full(),
+        "anthropic/claude-opus-4-7": ModelCapabilities::full(),
+        "anthropic/claude-opus-4-6": ModelCapabilities::full(),
+      },
+      model_api_overrides: {
+        "anthropic/claude-sonnet-4-6": "anthropic-messages",
+        "anthropic/claude-opus-4-8": "anthropic-messages",
+        "anthropic/claude-opus-4-7": "anthropic-messages",
+        "anthropic/claude-opus-4-6": "anthropic-messages",
+        "anthropic/claude-haiku-4-5": "anthropic-messages",
+      },
       website_url: Some("https://openrouter.ai/keys"),
     },
     {
@@ -130,6 +155,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["deepseek-v4-flash", "deepseek-v4-pro"],
       lite_models: { "deepseek-v4-pro": "deepseek-v4-flash" },
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://platform.deepseek.com/api_keys"),
     },
     {
@@ -141,6 +169,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.5"],
       lite_models: {},
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some(
         "https://www.minimaxi.com/user-center/basic-information/interface-key",
       ),
@@ -154,6 +185,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["kimi-k2.6", "kimi-k2.5"],
       lite_models: { "kimi-k2.6": "kimi-k2.5" },
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://platform.moonshot.cn/console/api-keys"),
     },
     {
@@ -165,6 +199,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["kimi-for-coding"],
       lite_models: {},
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://www.kimi.com/code"),
     },
     {
@@ -184,6 +221,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
         "claude-sonnet-4-6": "claude-haiku-4-5",
       },
       fallback_models: {},
+      capabilities: ModelCapabilities::full(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://console.anthropic.com/settings/keys"),
     },
     {
@@ -195,6 +235,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["mimo-v2.5-pro", "mimo-v2-pro", "mimo-v2-omni"],
       lite_models: { "mimo-v2.5-pro": "mimo-v2-pro" },
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://platform.xiaomimimo.com/"),
     },
     {
@@ -206,6 +249,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["glm-5.1", "glm-5", "glm-5-turbo", "glm-5v-turbo", "glm-4.7"],
       lite_models: { "glm-5.1": "glm-5-turbo", "glm-5": "glm-5-turbo" },
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: { "glm-5v-turbo": ModelCapabilities::with_vision() },
+      model_api_overrides: {},
       website_url: Some("https://open.bigmodel.cn/usercenter/apikeys"),
     },
     {
@@ -219,6 +265,12 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       ],
       lite_models: { "gpt-5.5": "gpt-5.4-mini", "gpt-5.4": "gpt-5.4-mini" },
       fallback_models: {},
+      capabilities: ModelCapabilities::full(),
+      model_capabilities: {
+        "o3": ModelCapabilities::reasoning_model(),
+        "o4-mini": ModelCapabilities::reasoning_model(),
+      },
+      model_api_overrides: {},
       website_url: Some("https://platform.openai.com/api-keys"),
     },
     {
@@ -230,6 +282,11 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       models: ["deepseek-chat", "deepseek-reasoner"],
       lite_models: {},
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {
+        "deepseek-reasoner": ModelCapabilities::reasoning_model(),
+      },
+      model_api_overrides: {},
       website_url: Some("https://platform.deepseek.com/api_keys"),
     },
     {
@@ -250,6 +307,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
         "qwen-plus-latest": "qwen3.6-flash",
       },
       fallback_models: {},
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: {},
+      model_api_overrides: {},
       website_url: Some("https://bailian.console.aliyun.com/?apiKey=1"),
     },
   ]

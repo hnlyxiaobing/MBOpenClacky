@@ -15,7 +15,7 @@ pub(all) struct Terminal {
 
 ///|
 pub fn Terminal::new() -> Terminal {
-  { timeout: 60, max_output_chars: 4000 }
+  { timeout: 30000, max_output_chars: 100000 }
 }
 
 ///|
@@ -69,7 +69,7 @@ impl Tool for Terminal with fn parameters(_) -> Json {
       }),
       "timeout": Json::object({
         "type": "integer".to_json(),
-        "description": "Maximum execution time in seconds (default: 60)".to_json(),
+        "description": "Maximum execution time in milliseconds (default: 30000)".to_json(),
       }),
       "kill": Json::object({
         "type": "boolean".to_json(),
@@ -144,13 +144,23 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
     _ => return ToolResult::error("[Security] command validation failed")
   }
   if background {
-    ToolResult::success(
-      "[Terminal] Background: \{safe_cmd}\nPTY not yet implemented. Command validated by Security layer.",
+    let raw_output = "[Terminal] Background: \{safe_cmd}\nPTY not yet implemented. Command validated by Security layer."
+    let (cleaned, _) = process_terminal_output(
+      raw_output,
+      max_chars=self.max_output_chars,
     )
+    ToolResult::success(cleaned)
   } else {
-    ToolResult::success(
-      "[Terminal] Command: \{safe_cmd}\nPTY not yet implemented. Command validated by Security layer.\nCWD: \{cwd}, Timeout: \{timeout}s",
+    let raw_output = "[Terminal] Command: \{safe_cmd}\nPTY not yet implemented. Command validated by Security layer.\nCWD: \{cwd}, Timeout: \{timeout}ms"
+    let (cleaned, was_truncated) = process_terminal_output(
+      raw_output,
+      max_chars=self.max_output_chars,
     )
+    if was_truncated {
+      ToolResult::success(cleaned)
+    } else {
+      ToolResult::success(cleaned)
+    }
   }
 }
 

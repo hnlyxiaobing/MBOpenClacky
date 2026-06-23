@@ -1,10 +1,10 @@
-///| Message compression threshold detection for Agent sessions.
+///| Message compression system using Insert-then-Compress strategy.
 
-///| Phase 4 implements detection only; actual LLM-driven compression
+///| Instead of a separate API call, we insert a compression instruction into the
 
-///| requires async HTTP (Phase 5+).
+///| conversation flow, reusing the existing cache (system prompt + tools).
 
-///| Reference: openclacky/lib/clacky/agent/message_compressor_helper.rb
+///| Reference: openclacky/lib/clacky/agent/message_compressor.rb
 
 ///|
 
@@ -24,6 +24,68 @@ pub let max_recent_messages : Int = 20
 /// Target token count for the compressed summary.
 pub let target_compressed_tokens : Int = 10_000
 
+// ── Compression Prompt ────────────────────────────────────────────────────────
+
+///|
+/// The prompt text inserted into the conversation to instruct the LLM
+/// to compress the preceding history.
+let compression_prompt : String =
+  #|═════════════════════════════════════════════════════════════
+  #|CRITICAL: TASK CHANGE - MEMORY COMPRESSION MODE
+  #|═════════════════════════════════════════════════════════════
+  #|The conversation above has ENDED. You are now in MEMORY COMPRESSION MODE.
+  #|
+  #|CRITICAL INSTRUCTIONS - READ CAREFULLY:
+  #|
+  #|1. This is NOT a continuation of the conversation
+  #|2. DO NOT respond to any requests in the conversation above
+  #|3. DO NOT call ANY tools or functions
+  #|4. DO NOT use tool_calls in your response
+  #|5. Your response MUST be PURE TEXT ONLY
+  #|
+  #|YOUR ONLY TASK: Create a comprehensive summary of the conversation above.
+  #|
+  #|REQUIRED RESPONSE FORMAT:
+  #|First output a <topics> line listing 3-6 key topic phrases (comma-separated, concise).
+  #|Then output the full summary wrapped in <summary> tags.
+  #|
+  #|Example format:
+  #|<topics>Rails setup, database config, deploy pipeline, Tailwind CSS</topics>
+  #|<summary>
+  #|...full summary text...
+  #|</summary>
+  #|
+  #|Focus on:
+  #|- User's explicit requests and intents
+  #|- Key technical concepts and code changes
+  #|- Files examined and modified
+  #|- Errors encountered and fixes applied
+  #|- Current work status and pending tasks
+  #|
+  #|Begin your response NOW. Remember: PURE TEXT only, starting with <topics> then <summary>.
+
+// ── CompressionConfig ─────────────────────────────────────────────────────────
+
+///|
+/// Configuration for the compression system.
+pub(all) struct CompressionConfig {
+  max_recent_messages : Int
+  target_compressed_tokens : Int
+  idle_compression_threshold : Int
+} derive(Eq, Debug)
+
+///|
+/// Create a default compression configuration.
+pub fn CompressionConfig::default() -> CompressionConfig {
+  {
+    max_recent_messages: 20,
+    target_compressed_tokens: 10_000,
+    idle_compression_threshold: 20_000,
+  }
+}
+
+// ── CompressionContext ────────────────────────────────────────────────────────
+
 ///|
 /// Context captured when compression is triggered.
 pub(all) struct CompressionContext {
@@ -32,6 +94,17 @@ pub(all) struct CompressionContext {
   compression_level : Int
   recent_message_count : Int
 } derive(Eq, Debug)
+
+// ── ParsedCompression ─────────────────────────────────────────────────────────
+
+///|
+/// Result of parsing an LLM compression response.
+pub(all) struct ParsedCompression {
+  topics : String
+  summary : String
+} derive(Eq, Debug)
+
+// ── Core Detection Functions ──────────────────────────────────────────────────
 
 ///|
 /// Check whether the conversation history needs compression.
@@ -47,9 +120,8 @@ pub fn Agent::needs_compression(self : Agent) -> Bool {
 ///|
 /// Detect if compression is needed and prepare context.
 ///
-/// Phase 4 stub: returns Some(CompressionContext) when thresholds
-/// are exceeded but does not perform actual compression (requires
-/// LLM call via async HTTP). Returns None if no compression needed.
+/// Returns Some(CompressionContext) when thresholds are exceeded.
+/// Returns None if no compression needed.
 pub fn Agent::compress_messages_if_needed(
   self : Agent,
   force : Bool,
@@ -59,10 +131,11 @@ pub fn Agent::compress_messages_if_needed(
   }
   let token_count = estimate_history_tokens(self.history)
   let msg_count = self.history.length()
-  let recent = if msg_count < max_recent_messages {
+  let config = CompressionConfig::default()
+  let recent = if msg_count < config.max_recent_messages {
     msg_count
   } else {
-    max_recent_messages
+    config.max_recent_messages
   }
   Some({
     original_token_count: token_count,
@@ -71,6 +144,117 @@ pub fn Agent::compress_messages_if_needed(
     recent_message_count: recent,
   })
 }
+
+// ── Insert-then-Compress Functions ────────────────────────────────────────────
+
+///|
+/// Build the compression instruction message to be inserted into the conversation.
+/// This allows the LLM to use existing cache (system prompt + tools) for compression.
+pub fn build_compression_message() -> @message.Message {
+  {
+    role: @message.User,
+    content: @message.Text(compression_prompt),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+}
+
+///|
+/// Parse LLM response for compression: extract <topics> and <summary> tags.
+pub fn parse_compression_response(
+  content : String,
+) -> Result[ParsedCompression, String] {
+  let topics = extract_xml_content(content, "topics")
+  let summary = extract_xml_content(content, "summary")
+  match (topics, summary) {
+    (Some(t), Some(s)) => Ok({ topics: t, summary: s })
+    (None, Some(s)) =>
+      // Topics missing but summary present - use empty topics
+      Ok({ topics: "", summary: s })
+    (_, None) =>
+      Err("Failed to parse compression response: missing <summary> tag")
+  }
+}
+
+///|
+/// Rebuild message history after compression.
+/// Result: [system_message] + [compressed_summary_as_user] + [recent_messages]
+pub fn rebuild_history_with_compression(
+  original_messages : Array[@message.Message],
+  compressed_summary : String,
+  topics : String,
+  recent_count : Int,
+) -> Array[@message.Message] {
+  let result : Array[@message.Message] = []
+  // 1. Find and preserve system message
+  for msg in original_messages {
+    if msg.role == @message.System {
+      result.push(msg)
+      break
+    }
+  }
+  // 2. Add compressed summary as a user message (system_injected)
+  let summary_msg = build_compressed_summary_message(compressed_summary, topics)
+  result.push(summary_msg)
+  // 3. Add recent messages (tool pairs preserved)
+  let recent = get_recent_with_tool_pairs(original_messages, recent_count)
+  for msg in recent {
+    // Skip system messages in recent (already added)
+    if msg.role != @message.System {
+      result.push(msg)
+    }
+  }
+  result
+}
+
+///|
+/// Get the most recent N messages, ensuring tool_call/tool_result pairs stay together.
+/// If a message has tool_calls, include all following tool result messages too.
+pub fn get_recent_with_tool_pairs(
+  messages : Array[@message.Message],
+  count : Int,
+) -> Array[@message.Message] {
+  let len = messages.length()
+  if len == 0 || count <= 0 {
+    return []
+  }
+  // Filter out system messages for slicing
+  let non_system : Array[@message.Message] = []
+  for msg in messages {
+    if msg.role != @message.System {
+      non_system.push(msg)
+    }
+  }
+  let ns_len = non_system.length()
+  if ns_len <= count {
+    return non_system
+  }
+  // Start from the candidate cut point
+  let mut start = ns_len - count
+  // Walk backwards to avoid splitting a tool_call from its tool_results:
+  // If the message at `start` is a Tool message, its parent tool_call is before it,
+  // so include that parent too.
+  while start > 0 && non_system[start].role == @message.Tool {
+    start = start - 1
+  }
+  let result : Array[@message.Message] = []
+  for i = start; i < ns_len; i = i + 1 {
+    result.push(non_system[i])
+  }
+  result
+}
+
+// ── Token Estimation ──────────────────────────────────────────────────────────
 
 ///|
 /// Estimate the total token count across all messages in history.

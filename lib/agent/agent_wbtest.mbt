@@ -728,6 +728,14 @@ test "session_data_to_json_basic" {
     source: "manual",
     reasoning_effort: None,
     model_name: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "",
+    last_error: "",
   }
   let json = data.to_json()
   let json_str = json.stringify()
@@ -760,6 +768,14 @@ test "session_data_from_json_roundtrip" {
     source: "cli",
     reasoning_effort: Some("high"),
     model_name: Some("gpt-4"),
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "",
+    last_error: "",
   }
   // Direct JSON construction avoids stringify/parse roundtrip issues
   let json_obj = Json::object({
@@ -847,6 +863,14 @@ test "session_data_with_multiple_messages_json" {
     source: "test",
     reasoning_effort: None,
     model_name: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "",
+    last_error: "",
   }
   let json_str = data.to_json().stringify()
   let json = @json.parse(json_str)
@@ -881,6 +905,14 @@ test "format_session_summary_with_model" {
     source: "test",
     reasoning_effort: None,
     model_name: Some("gpt-4"),
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "",
+    last_error: "",
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_summary") is Some(_))
@@ -911,6 +943,14 @@ test "format_session_summary_no_model" {
     source: "test",
     reasoning_effort: None,
     model_name: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "",
+    last_error: "",
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_nomodel") is Some(_))

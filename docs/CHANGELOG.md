@@ -26,6 +26,63 @@
 ## 变更记录
 
 
+### 2026-06-23  Phase 18 深度补齐：计费 / 定价 / Utils扩展 / 服务器增强 / 消息历史 / 默认资源
+
+- `[feat]` **新建计费系统** — `lib/billing/` 包（3文件）
+  - `billing_record.mbt` (78行) — 计费记录创建/查询、Token 用量追踪
+  - `billing_store.mbt` (381行) — 费用计算、存储与聚合
+  - `billing_wbtest.mbt` (212行) — 11 个测试用例
+- `[feat]` **新建模型定价表** — `lib/pricing/` 包（3文件）
+  - `model_pricing.mbt` (677行) — 完整模型定价查询表，覆盖主流 LLM 模型
+  - `cost_calculator.mbt` (108行) — 成本计算器
+  - `pricing_wbtest.mbt` (224行) — 15 个测试用例
+- `[feat]` **新建平台 HTTP 客户端** — `lib/client/platform_http.mbt` (329行)
+  - 域名故障转移、重试逻辑、超时管理
+  - `platform_http_wbtest.mbt` (166行) — 12 个测试用例
+- `[feat]` **服务器进程管理增强** — `lib/server/` 新增 5 个文件
+  - `master.mbt` (285行) — ServerMaster 主/工作进程架构
+  - `worker.mbt` (140行) — Worker 进程实现
+  - `session_registry.mbt` (255行) — 线程安全会话注册表
+  - `git_panel.mbt` (371行) — Git 状态集成、文件变更追踪
+  - `master_wbtest.mbt` (216行) + `session_registry_wbtest.mbt` (212行) + `git_panel_wbtest.mbt` (204行) — 53 个测试
+- `[feat]` **Utils 工具库扩展** — `lib/utils/` 新增 13 个文件
+  - `encoding.mbt` (139行) — UTF-8 编码处理
+  - `environment_detector.mbt` (124行) — CI/Docker/WSL 环境检测
+  - `epipe_safe_io.mbt` (72行) — EPIPE 安全 IO
+  - `file_ignore_helper.mbt` (149行) — 文件忽略规则管理
+  - `gitignore_parser.mbt` (253行) — .gitignore 规则解析
+  - `limit_stack.mbt` (68行) — 递归深度限制
+  - `logger.mbt` (242行) — 日志轮转系统
+  - `proxy_config.mbt` (132行) — 代理配置管理
+  - `string_matcher.mbt` (172行) — 模糊字符串匹配
+  - `trash_directory.mbt` (183行) — 回收站目录管理
+  - `utils_p2_wbtest.mbt` + `utils_p2b_wbtest.mbt` + `gitignore_wbtest.mbt` + `logger_wbtest.mbt` — 51 个测试
+- `[feat]` **消息历史管理** — `lib/message/history.mbt` (342行) + `history_wbtest.mbt` (203行, 12 测试)
+  - 内部字段过滤、UTF-8 清洗、悬空工具调用清理
+- `[feat]` **Agent 核心增强** — `lib/agent/` 新增 3 个文件
+  - `compressor_helper.mbt` (168行) — LLM 驱动压缩辅助
+  - `default_profiles.mbt` (151行) — 默认 Agent 配置加载器
+  - `session_restore.mbt` (252行) — 会话恢复增强
+  - `compressor_wbtest.mbt` (242行) + `session_restore_wbtest.mbt` (344行) — 24 个测试
+- `[feat]` **配置系统增强** — `lib/config/` 新增 2 个文件
+  - `capabilities.mbt` (148行) — Provider 能力声明
+  - `env_compat.mbt` (180行) — 环境变量兼容层
+- `[feat]` **默认 Agent 配置** — `assets/agents/` 目录（6文件）
+  - `coding/config.toml` + `coding/system_prompt.md` — 编码 Agent 配置
+  - `general/config.toml` + `general/system_prompt.md` — 通用 Agent 配置
+  - `SOUL.md` + `USER.md` — Agent 人格与用户配置
+- `[feat]` **默认技能** — `assets/skills/` 目录（11 技能）
+  - code-explorer / cron-task-creator / deploy / mcp-manager / media-gen
+  - onboard / persist-memory / product-help / recall-memory / search-skills / skill-creator
+  - `lib/skill/default_skills.mbt` (173行) — 技能加载器集成
+- `[feat]` **工具系统增强** — `lib/tool/output_cleaner.mbt` (97行) — ANSI 输出清洗
+- `[test]` 测试用例总数: **507 → 969**（新增 462 个测试用例）
+  - 新增模块: billing(11) + pricing(15) + platform_http(12) + server(53) + utils(51)
+  - 增强模块: message(12) + agent(24) + tool(11)
+- `[chore]` `moon check` 通过: 0 errors, 484 warnings（deprecated 语法警告，从 693 降低）
+- `[docs]` 更新 CLAUDE.md / README.md / development-plan-0623.md / CHANGELOG.md 同步 Phase 18 完成状态
+
+
 ### 2026-06-17  Phase 12-17 全量实现：MCP / Agent增强 / Web+TUI / 多模态 / 运维 / 商业扩展
 
 - `[feat]` **Phase 12: MCP 协议** — 新建 `lib/mcp/` 包（9 文件）

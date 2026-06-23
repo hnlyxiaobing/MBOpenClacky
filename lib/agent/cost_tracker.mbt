@@ -118,6 +118,19 @@ fn Agent::track_cost(self : Agent, usage : @client.Usage) -> IterationTokenData 
   let total_tokens = usage.input_tokens + usage.output_tokens
   let delta = total_tokens - self.previous_total_tokens
   self.previous_total_tokens = total_tokens
+  // Record to billing store
+  let billing_record = @billing.BillingRecord::new(
+    session_id=self.session_id,
+    model=self.client.model,
+    prompt_tokens=usage.input_tokens,
+    completion_tokens=usage.output_tokens,
+    cache_read_tokens=usage.cache_read_input_tokens,
+    cache_write_tokens=usage.cache_creation_input_tokens,
+    cost_usd=cost,
+    cost_source=source.to_string_value(),
+  )
+  let store = @billing.BillingStore::default()
+  let _ = store.append(billing_record)
   {
     delta_tokens: delta,
     prompt_tokens: usage.input_tokens,

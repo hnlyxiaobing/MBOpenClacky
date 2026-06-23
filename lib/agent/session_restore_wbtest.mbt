@@ -1,0 +1,344 @@
+///| Tests for enhanced session serialization and restoration.
+
+///|
+test "ChannelInfo serialization roundtrip" {
+  let ci : ChannelInfo = {
+    platform: "feishu",
+    channel_id: "ch-001",
+    user_id: "u-abc",
+    webhook_url: "https://hook.example.com/cb",
+  }
+  let json = ci.to_json()
+  let parsed : ChannelInfo = @json.from_json(json)
+  assert_eq(parsed, ci)
+}
+
+///|
+test "SessionTaskMeta serialization roundtrip" {
+  let meta : SessionTaskMeta = {
+    title: "Fix login bug",
+    started_at: "1719100000000",
+    ended_at: "1719103600000",
+  }
+  let json = meta.to_json()
+  let parsed : SessionTaskMeta = @json.from_json(json)
+  assert_eq(parsed, meta)
+}
+
+///|
+test "SessionTimeMachine serialization roundtrip" {
+  let parents : Map[String, String] = {}
+  parents["2"] = "1"
+  parents["3"] = "2"
+  let meta_map : Map[String, SessionTaskMeta] = {}
+  meta_map["1"] = {
+    title: "Initial task",
+    started_at: "1719100000000",
+    ended_at: "1719101000000",
+  }
+  meta_map["2"] = {
+    title: "Sub task",
+    started_at: "1719101000000",
+    ended_at: "",
+  }
+  let tm : SessionTimeMachine = {
+    task_parents: parents,
+    task_meta: meta_map,
+    current_task_id: 3,
+    active_task_id: 2,
+  }
+  let json = tm.to_json()
+  let parsed : SessionTimeMachine = @json.from_json(json)
+  assert_eq(parsed.current_task_id, 3)
+  assert_eq(parsed.active_task_id, 2)
+  assert_eq(parsed.task_parents.get("2"), Some("1"))
+  assert_eq(parsed.task_parents.get("3"), Some("2"))
+  assert_eq(parsed.task_meta.get("1").unwrap().title, "Initial task")
+}
+
+///|
+test "SessionData with new fields serialization" {
+  let data : SessionData = {
+    session_id: "s_123",
+    name: "test-session",
+    messages: [],
+    stats: {
+      total_iterations: 5,
+      total_cost_usd: 0.05,
+      total_tasks: 2,
+      cost_source: "estimated",
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      total_requests: 5,
+      cache_hit_requests: 0,
+    },
+    working_dir: "/tmp/work",
+    created_at: "1719100000000",
+    source: "manual",
+    reasoning_effort: None,
+    model_name: Some("gpt-4"),
+    channel_info: Some({
+      platform: "telegram",
+      channel_id: "tg-123",
+      user_id: "user-7",
+      webhook_url: "",
+    }),
+    latest_latency_ms: Some(350),
+    latest_ttft_ms: Some(80),
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "https://api.openai.com",
+    last_status: "idle",
+    last_error: "",
+  }
+  let json = data.to_json()
+  let parsed : SessionData = @json.from_json(json)
+  assert_eq(parsed.session_id, "s_123")
+  assert_eq(parsed.channel_info.unwrap().platform, "telegram")
+  assert_eq(parsed.latest_latency_ms, Some(350))
+  assert_eq(parsed.latest_ttft_ms, Some(80))
+  assert_eq(parsed.pending_error_rollback, false)
+  assert_eq(parsed.model_base_url, "https://api.openai.com")
+  assert_eq(parsed.last_status, "idle")
+  assert_eq(parsed.last_error, "")
+}
+
+///|
+test "SessionData backward compatibility (missing new fields)" {
+  // Simulate old JSON without the new fields
+  let old_json =
+    #| {
+    #|   "session_id": "s_old",
+    #|   "name": "old-session",
+    #|   "messages": [],
+    #|   "stats": {
+    #|     "total_iterations": 1,
+    #|     "total_cost_usd": 0.01,
+    #|     "total_tasks": 1,
+    #|     "cost_source": "api"
+    #|   },
+    #|   "working_dir": "/home/user",
+    #|   "created_at": "1700000000000",
+    #|   "source": "manual"
+    #| }
+  let json = @json.parse(old_json)
+  let parsed : SessionData = @json.from_json(json)
+  assert_eq(parsed.session_id, "s_old")
+  assert_eq(parsed.channel_info, None)
+  assert_eq(parsed.latest_latency_ms, None)
+  assert_eq(parsed.latest_ttft_ms, None)
+  assert_eq(parsed.time_machine, None)
+  assert_eq(parsed.pending_error_rollback, false)
+  assert_eq(parsed.model_base_url, "")
+  assert_eq(parsed.last_status, "")
+  assert_eq(parsed.last_error, "")
+}
+
+///|
+test "restore_session_enhanced basic" {
+  let config = @config.AgentConfig::default()
+  let data : SessionData = {
+    session_id: "s_basic",
+    name: "basic-test",
+    messages: [@message.Message::user("hello")],
+    stats: {
+      total_iterations: 3,
+      total_cost_usd: 0.02,
+      total_tasks: 1,
+      cost_source: "estimated",
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      total_requests: 3,
+      cache_hit_requests: 0,
+    },
+    working_dir: "/tmp",
+    created_at: "1719000000000",
+    source: "manual",
+    reasoning_effort: None,
+    model_name: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "idle",
+    last_error: "",
+  }
+  let result = restore_session_enhanced(config, data)
+  assert_eq(result.session_id, "s_basic")
+  assert_eq(result.name, "basic-test")
+  assert_eq(result.messages.length(), 1)
+  assert_eq(result.total_cost, 0.02)
+  assert_eq(result.needs_error_rollback, false)
+  assert_eq(result.model_recovered, false)
+}
+
+///|
+test "restore_session_enhanced with channel_info" {
+  let config = @config.AgentConfig::default()
+  let ci : ChannelInfo = {
+    platform: "discord",
+    channel_id: "dc-999",
+    user_id: "user-42",
+    webhook_url: "https://discord.com/webhook/abc",
+  }
+  let data : SessionData = {
+    session_id: "s_chan",
+    name: "channel-test",
+    messages: [],
+    stats: {
+      total_iterations: 0,
+      total_cost_usd: 0.0,
+      total_tasks: 0,
+      cost_source: "estimated",
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      total_requests: 0,
+      cache_hit_requests: 0,
+    },
+    working_dir: "/tmp",
+    created_at: "1719000000000",
+    source: "channel",
+    reasoning_effort: None,
+    model_name: None,
+    channel_info: Some(ci),
+    latest_latency_ms: Some(200),
+    latest_ttft_ms: Some(40),
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "idle",
+    last_error: "",
+  }
+  let result = restore_session_enhanced(config, data)
+  assert_eq(result.channel_info.unwrap().platform, "discord")
+  assert_eq(result.channel_info.unwrap().channel_id, "dc-999")
+  assert_eq(result.latest_latency_ms, Some(200))
+  assert_eq(result.latest_ttft_ms, Some(40))
+}
+
+///|
+test "restore_session_enhanced error rollback detection" {
+  let config = @config.AgentConfig::default()
+  let data : SessionData = {
+    session_id: "s_err",
+    name: "error-test",
+    messages: [],
+    stats: {
+      total_iterations: 1,
+      total_cost_usd: 0.0,
+      total_tasks: 0,
+      cost_source: "estimated",
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      total_requests: 0,
+      cache_hit_requests: 0,
+    },
+    working_dir: "/tmp",
+    created_at: "1719000000000",
+    source: "manual",
+    reasoning_effort: None,
+    model_name: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "",
+    last_status: "error",
+    last_error: "Connection timeout",
+  }
+  let result = restore_session_enhanced(config, data)
+  assert_eq(result.needs_error_rollback, true)
+}
+
+///|
+test "apply_error_rollback" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::user("first question"),
+    @message.Message::assistant("first answer"),
+    @message.Message::user("second question"),
+    @message.Message::assistant("second answer (error happened after)"),
+  ]
+  let result = apply_error_rollback(msgs)
+  // Should keep up to and including the last real user message
+  assert_eq(result.length(), 3)
+  // Verify the last message is "second question"
+  let last = result[result.length() - 1]
+  assert_true(last.role == @message.User)
+}
+
+///|
+test "apply_error_rollback no user messages" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::assistant("orphan assistant msg"),
+  ]
+  let result = apply_error_rollback(msgs)
+  // Should return as-is since no user message found
+  assert_eq(result.length(), 1)
+}
+
+///|
+test "backfill_task_meta_from_history" {
+  let msg1 : @message.Message = {
+    role: @message.User,
+    content: @message.Text("Start task one"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    task_id: Some("1"),
+    created_at: Some("1719100000000"),
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let msg2 : @message.Message = {
+    role: @message.Assistant,
+    content: @message.Text("Working on it"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    task_id: Some("1"),
+    created_at: Some("1719100001000"),
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let msg3 : @message.Message = {
+    role: @message.User,
+    content: @message.Text("Now do task two"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    task_id: Some("2"),
+    created_at: Some("1719100002000"),
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let messages = [msg1, msg2, msg3]
+  let result = backfill_task_meta_from_history(messages, None)
+  // Task "1" should have meta with title from first user message
+  let meta1 = result.task_meta.get("1").unwrap()
+  assert_eq(meta1.title, "Start task one")
+  assert_eq(meta1.started_at, "1719100000000")
+  assert_eq(meta1.ended_at, "1719100001000")
+  // Task "2" should be a child of task "1"
+  assert_eq(result.task_parents.get("2"), Some("1"))
+  // Task "2" metadata
+  let meta2 = result.task_meta.get("2").unwrap()
+  assert_eq(meta2.title, "Now do task two")
+}

@@ -20,10 +20,20 @@ pub fn AgentConfig::load(path : String) -> AgentConfig raise {
 
 ///|
 /// Load configuration with environment variable overlay.
+/// Priority: TOML file (base) < CLAUDE_* < OPENCLACKY_* < CLACKY_* (highest).
 /// Environment variables override values from the config file.
 pub fn AgentConfig::load_with_env(path : String) -> AgentConfig raise {
   let config = AgentConfig::load(path)
-  config.apply_env_overlay()
+  config.env_source = "toml"
+  // Apply legacy MBOPENCLACKY_* overlay for backward compatibility
+  let after_legacy = config.apply_env_overlay()
+  // Apply priority-based env layers (CLACKY > OPENCLACKY > CLAUDE)
+  let env_config = load_config_from_env()
+  if env_config.env_source != "toml" {
+    merge_config(after_legacy, env_config)
+  } else {
+    after_legacy
+  }
 }
 
 ///|
@@ -95,6 +105,18 @@ fn AgentConfig::from_toml(value : TomlValue) -> AgentConfig {
           }
           match settings.get("current_model_id") {
             Some(TomlString(s)) => config.current_model_id = Some(s)
+            _ => ()
+          }
+          match settings.get("proxy_url") {
+            Some(TomlString(s)) => config.proxy_url = s
+            _ => ()
+          }
+          match settings.get("fallback_model") {
+            Some(TomlString(s)) => config.fallback_model = s
+            _ => ()
+          }
+          match settings.get("compression_threshold") {
+            Some(TomlInteger(n)) => config.compression_threshold = n.to_int()
             _ => ()
           }
         }
@@ -180,6 +202,17 @@ fn AgentConfig::to_toml(self : AgentConfig) -> TomlValue {
   match self.current_model_id {
     Some(id) => settings["current_model_id"] = TomlString(id)
     None => ()
+  }
+  if !self.proxy_url.is_empty() {
+    settings["proxy_url"] = TomlString(self.proxy_url)
+  }
+  if !self.fallback_model.is_empty() {
+    settings["fallback_model"] = TomlString(self.fallback_model)
+  }
+  if self.compression_threshold != 10000 {
+    settings["compression_threshold"] = TomlInteger(
+      Int64::from_int(self.compression_threshold),
+    )
   }
   root["settings"] = TomlTable(settings)
 

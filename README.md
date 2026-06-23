@@ -17,10 +17,11 @@
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件 | ~140+ 个 |
-| 代码总行数 | ~20,000+ 行 |
-| 测试用例 | 507+ 个（全部通过） |
-| 实现包数 | 28 个 |
+| `.mbt` 源文件（非测试） | ~174 个 |
+| 测试文件 | 39 个 |
+| 代码总行数 | ~27,000+ 行 |
+| 测试用例 | 969 个（全部通过 `moon check`） |
+| 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 68+ 个 |
@@ -118,27 +119,31 @@
 MBOpenClacky/
 ├── cmd/                # 可执行入口
 │   └── main.mbt
-├── lib/                # 库代码（28 个包）
-│   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer
-│   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）
+├── lib/                # 库代码（21 个顶级包）
+│   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer/Compressor/SessionRestore
+│   ├── billing/        # 计费系统（BillingRecord + BillingStore + 成本计算）
+│   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）+ 加密
 │   ├── channel/        # IM 渠道适配器（飞书/企微/Telegram/Discord/钉钉/微信）
-│   ├── client/         # LLM API 客户端（12 Provider 预设 + Bedrock）
-│   ├── config/         # 配置系统（TOML / 环境变量 / 路径）
+│   ├── client/         # LLM API 客户端（12 Provider + Bedrock + PlatformHTTP + 流聚合器）
+│   ├── config/         # 配置系统（TOML / 环境变量 / Provider / Capabilities / Permission）
 │   ├── errors/         # 统一错误类型层次
-│   ├── hook/           # Shell Hook 系统（7 种事件）
+│   ├── hook/           # Shell Hook 系统（7 种事件 + Shell Loader）
 │   ├── mcp/            # MCP 协议（Transport/JSON-RPC Client/Registry/VirtualSkill）
 │   ├── media/          # Media 生成（图像/视频/音频，OpenAI/Gemini/DashScope）
-│   ├── message/        # 消息类型（Message/Role/ToolCall/ToolResult）
+│   ├── message/        # 消息类型（Message/Role/ToolCall/ToolResult）+ 消息历史管理
 │   ├── parser/         # 文档解析器（PDF/DOCX/PPTX/XLSX）
-│   ├── server/         # 运维（Cron 解析器/Scheduler/BrowserManager/BackupManager/Discover）
-│   ├── skill/          # 技能系统 + 演进（EvolutionEngine/Reflector/AutoCreator）
+│   ├── pricing/        # 模型定价表（677 行完整定价数据）+ 成本计算器
+│   ├── server/         # 运维（Cron/Scheduler/BrowserManager/BackupManager/Discover/Master/Worker/SessionRegistry/GitPanel）
+│   ├── skill/          # 技能系统 + 演进（EvolutionEngine/Reflector/AutoCreator）+ 默认技能
 │   ├── telemetry/      # 匿名遥测（fire-and-forget）
-│   ├── tool/           # 工具系统（14 个内置工具）
-│   ├── tui/            # TUI 界面 + 斜杠命令/Markdown→ANSI/主题/Spinner
-│   ├── utils/          # 工具函数
+│   ├── tool/           # 工具系统（14 个内置工具 + Security + OutputCleaner）
+│   ├── tui/            # TUI 界面 + 斜杠命令/Markdown→ANSI/主题/Spinner/RealtimeRenderer
+│   ├── utils/          # 工具函数（18 个文件：Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser 等）
 │   ├── vision/         # Vision OCR + SHA256 缓存
-│   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router + StaticServer
+│   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router/StaticServer/SPA
 ├── assets/
+│   ├── agents/         # 默认 Agent 配置（coding/general + SOUL.md/USER.md）
+│   ├── skills/         # 11 个内置技能（code-explorer/deploy/mcp-manager 等）
 │   └── web/            # 前端 SPA（原生 JS, SSE 流式, WebSocket 实时, 暗色主题）
 ├── .repos/             # 上游与参考项目的本地镜像（仅供阅读对照）
 ├── .mooncakes/         # 依赖缓存（由 moon 自动管理）
@@ -146,7 +151,7 @@ MBOpenClacky/
 └── moon.mod.json       # 模块元信息与依赖声明
 ```
 
-主要模块对应原 openclacky 的核心概念：`message` 提供基础消息与工具调用类型；`config` 负责配置加载；`client` 抽象 LLM 后端；`tool` / `skill` 提供可扩展能力；`agent` 在其上实现对话循环；`mcp` 提供外部工具服务器协议支持；`channel` 实现多平台 IM 集成；`web` 暴露 REST API 与前端 SPA；`cmd` 是最终的 CLI 入口。
+主要模块对应原 openclacky 的核心概念：`message` 提供基础消息与工具调用类型；`config` 负责配置加载；`client` 抽象 LLM 后端；`tool` / `skill` 提供可扩展能力；`agent` 在其上实现对话循环；`mcp` 提供外部工具服务器协议支持；`channel` 实现多平台 IM 集成；`web` 暴露 REST API 与前端 SPA；`billing` / `pricing` 提供计费与定价功能；`server` 提供运维基础设施；`cmd` 是最终的 CLI 入口。
 
 ### 环境要求
 
@@ -197,7 +202,7 @@ moon run cmd
 moon test
 ```
 
-当前共有 **507+ 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、MCP、Channel、Hook 等），全部通过。
+当前共有 **969 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、MCP、Channel、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 484 warnings）。
 
 ### 开发阶段路线
 

@@ -7,6 +7,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/skill",
+  "hnlyxiaobing/MBOpenClacky/lib/billing",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",

@@ -72,6 +72,14 @@ fn truncate_session(session : SessionData) -> Unit {
     source: session.source,
     reasoning_effort: session.reasoning_effort,
     model_name: session.model_name,
+    channel_info: session.channel_info,
+    latest_latency_ms: session.latest_latency_ms,
+    latest_ttft_ms: session.latest_ttft_ms,
+    time_machine: session.time_machine,
+    pending_error_rollback: session.pending_error_rollback,
+    model_base_url: session.model_base_url,
+    last_status: session.last_status,
+    last_error: session.last_error,
   }
   save_session(data) catch {
     _ => ()

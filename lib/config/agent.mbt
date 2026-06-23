@@ -12,6 +12,10 @@ pub(all) struct AgentConfig {
   mut skill_evolution : Json?
   mut max_running_agents : Int
   mut max_idle_agents : Int
+  mut proxy_url : String
+  mut fallback_model : String
+  mut compression_threshold : Int
+  mut env_source : String
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -29,5 +33,9 @@ pub fn AgentConfig::default() -> AgentConfig {
     skill_evolution: None,
     max_running_agents: 10,
     max_idle_agents: 10,
+    proxy_url: "",
+    fallback_model: "",
+    compression_threshold: 10000,
+    env_source: "toml",
   }
 }

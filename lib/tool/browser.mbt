@@ -2,7 +2,7 @@
 /// Browser: drive the user's real Chrome browser for web automation.
 ///
 /// This is a structured framework implementation. The actual browser control
-/// is performed via the Chrome DevTools MCP server (chrome-devtools-mcp),
+/// is performed via the Chrome DevTools MCP server (browser-use),
 /// which requires MCP protocol support (Phase 12).
 ///
 /// Architecture:
@@ -16,6 +16,42 @@ pub(all) struct Browser {
   /// Whether the browser MCP daemon is currently connected
   mut daemon_connected : Bool
 } derive(Eq, Debug)
+
+// ── MCP Server Configuration ─────────────────────────────────────────────────
+
+///|
+/// The MCP server name used for browser automation.
+let browser_mcp_server : String = "browser-use"
+
+///|
+/// Module-level state holding the MCP registry reference for browser calls.
+priv struct BrowserMcpState {
+  mut registry : @mcp.McpRegistry?
+}
+
+///|
+/// Global browser MCP state (mutable via struct field).
+let browser_mcp_state : BrowserMcpState = { registry: None }
+
+///|
+/// Set the MCP registry for browser tool to use.
+/// Call this during application initialization to enable MCP-based browser control.
+pub fn set_browser_mcp_registry(registry : @mcp.McpRegistry) -> Unit {
+  browser_mcp_state.registry = Some(registry)
+}
+
+///|
+/// Check if the browser MCP server is available in the registry.
+pub fn is_browser_mcp_available() -> Bool {
+  match browser_mcp_state.registry {
+    Some(registry) =>
+      match registry.get_client(browser_mcp_server) {
+        Some(_) => true
+        None => false
+      }
+    None => false
+  }
+}
 
 ///|
 /// Create a new Browser tool instance.
@@ -182,12 +218,12 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
   }
   let bypass_config = action == "status" || (action == "act" && is_evaluate)
 
-  if not(bypass_config) {
+  if !bypass_config {
     // Check if browser is configured
-    if not(self.is_browser_configured()) {
+    if !self.is_browser_configured() {
       return ToolResult::error(browser_not_setup_error())
     }
-    if not(self.is_browser_enabled()) {
+    if !self.is_browser_enabled() {
       return ToolResult::error(browser_disabled_error())
     }
   }
@@ -197,34 +233,34 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
     "status" => ToolResult::success(self.handle_status())
     "open" =>
       match args.get("url") {
-        Some(String(url)) => self.mcp_call("navigate", url)
+        Some(String(_)) => self.mcp_call("navigate_page", args)
         None => ToolResult::error("url is required for 'open' action")
         _ => ToolResult::error("url must be a string")
       }
     "navigate" =>
       match args.get("url") {
-        Some(String(url)) => self.mcp_call("navigate", url)
+        Some(String(_)) => self.mcp_call("navigate_page", args)
         None => ToolResult::error("url is required for 'navigate' action")
         _ => ToolResult::error("url must be a string")
       }
-    "snapshot" => self.mcp_call("snapshot", "")
+    "snapshot" => self.mcp_call("take_snapshot", args)
     "act" =>
       match args.get("kind") {
-        Some(String(kind)) => self.mcp_call("act:\{kind}", "")
+        Some(String(kind)) => self.dispatch_act(kind, args)
         None => ToolResult::error("kind is required for 'act' action")
         _ => ToolResult::error("kind must be a string")
       }
-    "screenshot" => self.mcp_call("screenshot", "")
-    "tabs" => self.mcp_call("list_tabs", "")
+    "screenshot" => self.mcp_call("take_screenshot", args)
+    "tabs" => self.mcp_call("list_tabs", args)
     "focus" =>
       match args.get("target_id") {
-        Some(String(id)) => self.mcp_call("focus", id)
+        Some(String(_)) => self.mcp_call("focus_tab", args)
         None => ToolResult::error("target_id is required for 'focus' action")
         _ => ToolResult::error("target_id must be a string")
       }
     "close" =>
       match args.get("target_id") {
-        Some(String(id)) => self.mcp_call("close", id)
+        Some(String(_)) => self.mcp_call("close_tab", args)
         None => ToolResult::error("target_id is required for 'close' action")
         _ => ToolResult::error("target_id must be a string")
       }
@@ -269,18 +305,25 @@ impl Tool for Browser with fn to_function_definition(self) -> FunctionDefinition
 let browser_config_path : String = "~/.mbopenclacky/browser.yml"
 
 ///|
-/// Check if the browser configuration file exists.
-/// TODO: Phase 12 - implement actual FS check via @fs
+/// Check if the browser configuration file exists or MCP is available.
 pub fn Browser::is_browser_configured(self : Browser) -> Bool {
+  ignore(self)
+  // If MCP browser server is available, consider it configured
+  if is_browser_mcp_available() {
+    return true
+  }
   // TODO: Check if browser_config_path exists on the filesystem
-  // For now, return false to indicate browser is not set up
   false
 }
 
 ///|
-/// Check if the browser is enabled in the configuration.
-/// TODO: Phase 12 - read browser.yml and check 'enabled' flag
+/// Check if the browser is enabled in the configuration or via MCP.
 pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
+  ignore(self)
+  // If MCP browser server is available, consider it enabled
+  if is_browser_mcp_available() {
+    return true
+  }
   // TODO: Read browser_config_path and check if 'enabled' is true
   false
 }
@@ -288,22 +331,352 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
 // ── MCP Call Interface ───────────────────────────────────────────────────────
 
 ///|
-/// Call the Chrome DevTools MCP server with the given method and params.
-/// TODO: Phase 12 - implement actual MCP JSON-RPC 2.0 communication
+/// Dispatch an 'act' action to the appropriate MCP tool based on kind.
+fn Browser::dispatch_act(
+  self : Browser,
+  kind : String,
+  args : Map[String, Json],
+) -> ToolResult {
+  match kind {
+    "click" => self.mcp_call("click", args)
+    "dblclick" => self.mcp_call("click", args)
+    "type" => self.mcp_call("type", args)
+    "fill" => self.mcp_call("fill", args)
+    "press" => self.mcp_call("press_key", args)
+    "hover" => self.mcp_call("hover", args)
+    "drag" => self.mcp_call("drag", args)
+    "select" => self.mcp_call("select_option", args)
+    "scroll" => self.mcp_call("evaluate_script", args)
+    "wait" => self.mcp_call("wait_for", args)
+    "evaluate" => self.mcp_call("evaluate_script", args)
+    "click_at" => self.mcp_call("click_at", args)
+    _ => ToolResult::error("Unknown act kind: \{kind}")
+  }
+}
+
+///|
+/// Call the browser MCP server with the given tool name and arguments.
+/// If MCP is available, sends a JSON-RPC call through the registry.
+/// Falls back to a stub error message when MCP is not connected.
 pub fn Browser::mcp_call(
   self : Browser,
-  method : String,
-  _params : String,
+  tool_name : String,
+  args : Map[String, Json],
 ) -> ToolResult {
-  // TODO: Phase 12 MCP Protocol Support Required
-  // This will be implemented when MCP protocol is available:
-  // 1. Start chrome-devtools-mcp daemon if not running
-  // 2. Send JSON-RPC 2.0 request
-  // 3. Wait for response (timeout: 60s)
-  // 4. Parse and return result
-  ToolResult::error(
-    "Browser tool requires MCP protocol support (Phase 12). Method '\{method}' is not yet available.",
-  )
+  // Try MCP path first
+  if is_browser_mcp_available() {
+    let mcp_args = build_mcp_args(tool_name, args)
+    match browser_mcp_state.registry {
+      Some(registry) => {
+        let result = registry.call_tool(browser_mcp_server, tool_name, mcp_args) catch {
+          @mcp.McpError(msg) => {
+            let classified = classify_browser_error(msg)
+            return ToolResult::error(classified)
+          }
+        }
+        // Update daemon connection state
+        self.daemon_connected = true
+        // Parse and return the MCP response
+        parse_mcp_tool_response(result)
+      }
+      None =>
+        ToolResult::error(
+          "Browser MCP server not connected. Please ensure browser-use MCP is running.",
+        )
+    }
+  } else {
+    // Fallback: MCP not available
+    ToolResult::error(
+      "Browser MCP server not connected. Please ensure browser-use MCP is running.",
+    )
+  }
+}
+
+// ── MCP Argument Builders ────────────────────────────────────────────────────
+
+///|
+/// Build MCP tool arguments from the raw args map based on the tool being called.
+fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
+  match tool_name {
+    "navigate_page" => build_mcp_navigate_args(args)
+    "take_snapshot" => build_mcp_snapshot_args(args)
+    "take_screenshot" => build_mcp_screenshot_args(args)
+    "click" => build_mcp_click_args(args)
+    "type" => build_mcp_type_args(args)
+    "fill" => build_mcp_fill_args(args)
+    "press_key" => build_mcp_press_args(args)
+    "hover" => build_mcp_hover_args(args)
+    "drag" => build_mcp_drag_args(args)
+    "select_option" => build_mcp_select_args(args)
+    "wait_for" => build_mcp_wait_args(args)
+    "evaluate_script" => build_mcp_evaluate_args(args)
+    "click_at" => build_mcp_click_at_args(args)
+    "list_tabs" => Json::object({})
+    "focus_tab" => build_mcp_focus_args(args)
+    "close_tab" => build_mcp_close_args(args)
+    _ => Json::object({})
+  }
+}
+
+///|
+fn build_mcp_navigate_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("url") {
+    Some(String(url)) => obj["url"] = url.to_json()
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_snapshot_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("interactive") {
+    Some(v) => obj["interactive"] = v
+    _ => ()
+  }
+  match args.get("compact") {
+    Some(v) => obj["compact"] = v
+    _ => ()
+  }
+  match args.get("depth") {
+    Some(v) => obj["depth"] = v
+    _ => ()
+  }
+  match args.get("query") {
+    Some(v) => obj["query"] = v
+    _ => ()
+  }
+  match args.get("offset") {
+    Some(v) => obj["offset"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_screenshot_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["ref"] = v
+    _ => ()
+  }
+  match args.get("full_page") {
+    Some(v) => obj["full_page"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_click_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_type_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  match args.get("text") {
+    Some(v) => obj["text"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_fill_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  match args.get("text") {
+    Some(String(t)) => obj["value"] = t.to_json()
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_press_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("key") {
+    Some(v) => obj["key"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_hover_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_drag_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["source"] = v
+    _ => ()
+  }
+  match args.get("target_ref") {
+    Some(v) => obj["target"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_select_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("ref") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  match args.get("values") {
+    Some(v) => obj["values"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_wait_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("selector") {
+    Some(v) => obj["selector"] = v
+    _ => ()
+  }
+  match args.get("ms") {
+    Some(Number(n, ..)) => obj["timeout"] = n.to_int().to_json()
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  // For scroll simulation via evaluate_script
+  match args.get("direction") {
+    Some(String(dir)) => {
+      let amount = match args.get("amount") {
+        Some(Number(n, ..)) => n.to_int()
+        _ => 300
+      }
+      let scroll_js = match dir {
+        "up" => "window.scrollBy(0, -\{amount})"
+        "down" => "window.scrollBy(0, \{amount})"
+        "left" => "window.scrollBy(-\{amount}, 0)"
+        _ => "window.scrollBy(\{amount}, 0)"
+      }
+      obj["script"] = scroll_js.to_json()
+      return Json::object(obj)
+    }
+    _ => ()
+  }
+  // Regular evaluate
+  match args.get("js") {
+    Some(v) => obj["script"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_click_at_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("x") {
+    Some(v) => obj["x"] = v
+    _ => ()
+  }
+  match args.get("y") {
+    Some(v) => obj["y"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_focus_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("target_id") {
+    Some(v) => obj["target_id"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_close_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("target_id") {
+    Some(v) => obj["target_id"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+// ── MCP Response Parser ──────────────────────────────────────────────────────
+
+///|
+/// Parse the JSON response from an MCP tool call into a ToolResult.
+fn parse_mcp_tool_response(response : Json) -> ToolResult {
+  // MCP tool responses typically have: { "content": [{ "type": "text", "text": "..." }] }
+  match response {
+    { "isError": True, "content": Array(items), .. } => {
+      let parts : Array[String] = []
+      for item in items {
+        match item {
+          { "text": String(text), .. } => parts.push(text)
+          _ => ()
+        }
+      }
+      let msg = if parts.length() > 0 {
+        join_browser_parts(parts, "\n")
+      } else {
+        "MCP tool returned an error"
+      }
+      ToolResult::error(classify_browser_error(msg))
+    }
+    { "content": Array(items), .. } => {
+      let parts : Array[String] = []
+      for item in items {
+        match item {
+          { "text": String(text), .. } => parts.push(text)
+          _ => ()
+        }
+      }
+      if parts.length() > 0 {
+        let output = join_browser_parts(parts, "\n")
+        ToolResult::success(
+          truncate_browser_output(output, max_llm_output_chars),
+        )
+      } else {
+        ToolResult::success("(empty response)")
+      }
+    }
+    String(text) => ToolResult::success(text)
+    _ => {
+      // Try to stringify the raw response
+      let text = response.stringify()
+      ToolResult::success(truncate_browser_output(text, max_llm_output_chars))
+    }
+  }
 }
 
 // ── Action Handlers ──────────────────────────────────────────────────────────
@@ -311,15 +684,22 @@ pub fn Browser::mcp_call(
 ///|
 /// Handle the 'status' action - check browser and MCP daemon status.
 pub fn Browser::handle_status(self : Browser) -> String {
+  let mcp_available = is_browser_mcp_available()
   let parts : Array[String] = [
     "Browser Status:",
     "  Configured: \{self.is_browser_configured()}",
     "  Enabled: \{self.is_browser_enabled()}",
     "  MCP daemon connected: \{self.daemon_connected}",
+    "  MCP server available: \{mcp_available}",
+    "  MCP server name: \{browser_mcp_server}",
     "  Config path: \{browser_config_path}",
-    "",
-    "Note: Browser tool requires MCP protocol support (Phase 12) to function.",
   ]
+  if !mcp_available {
+    parts.push("")
+    parts.push(
+      "Note: Browser MCP server not connected. Ensure browser-use MCP is running.",
+    )
+  }
   join_browser_parts(parts, "\n")
 }
 
@@ -339,7 +719,6 @@ pub fn browser_disabled_error() -> String {
 
 ///|
 /// Classify a browser error and return an appropriate message.
-/// TODO: Phase 12 - implement full error classification
 pub fn classify_browser_error(error_msg : String) -> String {
   // Cause 4: Chrome unresponsive (timeout)
   if error_msg.find("timed out") is Some(_) {
