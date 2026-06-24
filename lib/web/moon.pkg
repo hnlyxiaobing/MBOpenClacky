@@ -6,6 +6,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
   "hnlyxiaobing/MBOpenClacky/lib/billing",
+  "hnlyxiaobing/MBOpenClacky/lib/channel",
   "hnlyxiaobing/MBOpenClacky/lib/web/sse",
   "hnlyxiaobing/MBOpenClacky/lib/web/middleware" @mid,
   "bobzhang/crescent",

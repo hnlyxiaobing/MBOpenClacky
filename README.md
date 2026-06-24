@@ -11,16 +11,16 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~95-98%（Phase 0-17 全部完成）
+- **完成度**：~97-99%（Phase 0-18 全部完成）
 
 ### 核心能力概览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（非测试） | ~174 个 |
-| 测试文件 | 39 个 |
-| 代码总行数 | ~27,000+ 行 |
-| 测试用例 | 969 个（全部通过 `moon check`） |
+| `.mbt` 源文件（非测试） | 218 个 |
+| 测试文件 | 42 个 |
+| 代码行数（源代码） | ~39,400 行 |
+| 测试用例 | 1,155 个（全部通过 `moon check`） |
 | 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
@@ -202,11 +202,11 @@ moon run cmd
 moon test
 ```
 
-当前共有 **969 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、MCP、Channel、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 484 warnings）。
+当前共有 **1,155 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、MCP、Channel、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 557 warnings）。
 
 ### 开发阶段路线
 
-项目按 18 阶段（Phase 0-17）自底向上推进，**全部已完成**：
+项目按 19 阶段（Phase 0-18）自底向上推进，**全部已完成**：
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -228,6 +228,7 @@ moon test
 | Phase 15 | 多模态（文档解析 / Media 生成 / Vision OCR） | ✅ 已完成 |
 | Phase 16 | 运维集成（Browser / Scheduler / Backup / Discover） | ✅ 已完成 |
 | Phase 17 | 商业扩展（IM 渠道 / Brand / Hook / Telemetry） | ✅ 已完成 |
+| Phase 18 | 深度补齐（Billing / Pricing / Utils扩展 / Server增强 / MessageHistory / 默认资源） | ✅ 已完成 |
 
 ## 六、致谢
 

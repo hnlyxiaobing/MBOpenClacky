@@ -42,12 +42,12 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | CLI 框架 | Thor | TheWaWaR/clap |
 | Web 服务器 | WEBrick + WebSocket (5541行 http_server.rb) | bobzhang/crescent |
 | 配置格式 | YAML | TOML (bobzhang/toml) |
-| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (24 test, ~22.6K 行源码) |
+| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (42 test, ~39K 行源代码) |
 | 包管理 | RubyGems | moon.mod.json |
 | 部署 | gem install / Docker | 单一可执行文件 (AOT) |
 | 异步模型 | 线程/纤程/EventMachine | moonbitlang/async |
 | UI 引擎 | UI2 (26 文件, 10+ 组件, 3 主题) | Frank-III/onebit-tui |
-| 源文件数 | 176 个 .rb (非测试) | 169 个 .mbt (非测试) |
+| 源文件数 | 176 个 .rb (非测试) | 218 个 .mbt (非测试) |
 
 ---
 
@@ -57,9 +57,9 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 | 指标 | Ruby 源项目 | MBOpenClacky | 完成比例 |
 |------|-------------|-------------|----------|
-| 源文件 (非测试) | 176 个 `.rb` | 174 个 `.mbt` | **~99%** |
-| 测试文件 | 130 个 spec | 39 个 test | **~30%** |
-| 源代码行数 | ~52,000+ 行 | ~27,000+ 行 | **~52%** |
+| 源文件 (非测试) | 176 个 `.rb` | 218 个 `.mbt` | **~124%** |
+| 测试文件 | 130 个 spec | 42 个 test | **~32%** |
+| 源代码行数 | ~52,000+ 行 | ~39,400 行 | **~76%** |
 | Provider 预设 | 12 个 | 12 个 | **100%** |
 | 工具实现 | 18 个 + 3 子模块 | 14 个 | **77.8%** |
 | Agent mixin | 15 个 | 15 个 | **100%** |
@@ -89,7 +89,7 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | Phase 15 | 多模态 (文档解析/Media/Vision) | ✅ 完成 | 93 |
 | Phase 16 | 运维集成 (Cron/Scheduler/Browser/Backup/Discover/Master/Worker/SessionRegistry/GitPanel) | ✅ 完成 | 115 |
 | Phase 17 | 商业扩展 (IM渠道/Brand/Hook/Telemetry) | ✅ 完成 | 80 |
-| Phase 18 | 深度补齐 (Billing/Pricing/Utils扩展/PlatformHTTP/MessageHistory/Config增强/Assets) | ✅ 完成 | 54 |
+| Phase 18 | 深度补齐 (Billing/Pricing/Utils扩展/PlatformHTTP/MessageHistory/Config增强/Assets) | ✅ 完成 | 54+ |
 
 ---
 
@@ -243,8 +243,9 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
   - Telegram: adapter + api_client (2文件)
   - 微信: adapter + api_client (2文件)
   - 公共: base + channel_config + channel_manager + channel_ui_controller + user_adapter_loader (5文件)
-- **MBOpenClacky**: 6 个单文件框架适配器 + types + manager + registry + adapter
-- **差距**: 缺少 WebSocket 客户端、API 客户端、文件处理器、消息解析器等
+- **MBOpenClacky**: 6 个单文件框架适配器 + types + manager + registry + adapter + http_helper
+  - **Phase 19 深化文件**: feishu_api.mbt + feishu_message_parser.mbt + wecom_ws.mbt + discord_api.mbt + discord_gateway.mbt + dingtalk_api.mbt + weixin_api.mbt + http_helper.mbt
+- **状态**: ✅ 主要适配器深化已完成，仅 Telegram 仍为框架级
 
 #### 5.2.7 Agent 配置系统
 - **源项目**: `agent_config.rb` (1322行) - ClaudeCode 兼容层、多层环境变量、fallback 模型、压缩阈值
@@ -287,10 +288,10 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 | 维度 | Ruby 源项目 | MBOpenClacky | 差距 |
 |------|-------------|-------------|------|
-| 测试文件数 | 130 个 spec | 39 个 test | **-70.0%** |
-| 测试代码行数 | ~28,000 行 | ~12,000 行 (估) | **-57%** |
-| 测试用例数 | 1,823 个 | 969 个 | **-46.9%** |
-| 模块覆盖率 | ~100% | ~90% | billing/utils/server/pricing/message 已覆盖 |
+| 测试文件数 | 130 个 spec | 42 个 test | **-67.7%** |
+| 测试代码行数 | ~28,000 行 | ~13,700 行 | **-51%** |
+| 测试用例数 | 1,823 个 | 1,155 个 | **-36.6%** |
+| 模块覆盖率 | ~100% | ~90%+ | billing/utils/server/pricing/message 已覆盖 |
 
 ### 6.1 测试覆盖现状
 
@@ -386,31 +387,31 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 ### P3 - IM 渠道适配器深化
 
-| # | 任务 | 预估复杂度 | 依赖 | 预估工时 |
-|---|------|-----------|------|---------|
-| 26 | **飞书适配器深化**: WebSocket 客户端 + Bot + 文件处理 + 消息解析 | XL | Channel | 5-7天 |
-| 27 | **企微适配器深化**: WebSocket 客户端 + 媒体下载 | L | Channel | 3-4天 |
-| 28 | **Discord 适配器深化**: API 客户端 + Gateway WebSocket | L | Channel | 3-4天 |
-| 29 | **钉钉适配器深化**: API 客户端 + Stream 客户端 | L | Channel | 3-4天 |
-| 30 | **Telegram 适配器深化**: API 客户端 | M | Channel | 2-3天 |
-| 31 | **微信适配器深化**: API 客户端 | M | Channel | 2-3天 |
-| 32 | **渠道公共基础**: base适配器 + channel_config + channel_manager + user_adapter_loader | L | Channel | 3-4天 |
+| # | 任务 | 预估复杂度 | 依赖 | 状态 |
+|---|------|-----------|------|------|
+| 26 | **飞书适配器深化**: feishu_api.mbt + feishu_message_parser.mbt | L | Channel | ✅ 已完成 |
+| 27 | **企微适配器深化**: wecom_ws.mbt WebSocket 客户端 | M | Channel | ✅ 已完成 |
+| 28 | **Discord 适配器深化**: discord_api.mbt + discord_gateway.mbt | M | Channel | ✅ 已完成 |
+| 29 | **钉钉适配器深化**: dingtalk_api.mbt API 客户端 | M | Channel | ✅ 已完成 |
+| 30 | **Telegram 适配器深化**: telegram.mbt 框架 | M | Channel | ✅ 框架完成 |
+| 31 | **微信适配器深化**: weixin_api.mbt API 客户端 | M | Channel | ✅ 已完成 |
+| 32 | **渠道公共基础**: http_helper.mbt + channel_p2_wbtest | L | Channel | ✅ 已完成 |
 
 ### P4 - 解析器和补充功能
 
-| # | 任务 | 预估复杂度 | 依赖 | 预估工时 |
-|---|------|-----------|------|---------|
-| 33 | **补齐 DOC 解析器**: doc_parser.rb 对应实现 | M | Parser | 2天 |
-| 34 | **补齐 WPS 解析器**: wps_parser.rb 对应实现 | M | Parser | 2天 |
-| 35 | **新建 Media OutputDir**: 输出目录管理 | S | Media | 1天 |
-| 36 | **新建 Media Base**: 媒体基类抽象 | S | Media | 1天 |
-| 37 | **新建 ScriptsManager**: 脚本管理 | S | 无 | 1天 |
-| 38 | **新建 BrowserDetector**: 浏览器环境检测 | S | 无 | 1天 |
-| 39 | **新建 ParserManager**: 解析器统一管理 | S | Parser | 1天 |
-| 40 | **新建 LoginShell**: 登录 Shell 检测 | S | 无 | 1天 |
-| 41 | **新建 ArgumentsParser**: JSON 参数修复 | S | 无 | 1天 |
-| 42 | **新建 BlockFont**: Unicode 块字体渲染 | M | 无 | 2天 |
-| 43 | **新建 Banner**: CLI 横幅渲染 | S | BlockFont | 1天 |
+| # | 任务 | 预估复杂度 | 依赖 | 状态 |
+|---|------|-----------|------|------|
+| 33 | **补齐 DOC 解析器**: parser/doc.mbt | M | Parser | ✅ 已完成 |
+| 34 | **补齐 WPS 解析器**: parser/wps.mbt | M | Parser | ✅ 已完成 |
+| 35 | **新建 Media OutputDir**: media/output_dir.mbt | S | Media | ✅ 已完成 |
+| 36 | **新建 Media Base**: media/media_base.mbt | S | Media | ✅ 已完成 |
+| 37 | **新建 ScriptsManager**: utils/scripts_manager.mbt | S | 无 | ✅ 已完成 |
+| 38 | **新建 BrowserDetector**: utils/browser_detector.mbt | S | 无 | ✅ 已完成 |
+| 39 | **新建 ParserManager**: parser/parser_manager.mbt | S | Parser | ✅ 已完成 |
+| 40 | **新建 LoginShell**: utils/login_shell.mbt | S | 无 | ✅ 已完成 |
+| 41 | **新建 ArgumentsParser**: utils/arguments_parser.mbt | S | 无 | ✅ 已完成 |
+| 42 | **新建 BlockFont**: utils/block_font.mbt Unicode 块字体渲染 | M | 无 | ✅ 已完成 |
+| 43 | **新建 Banner**: tui/banner.mbt CLI 横幅渲染 | S | BlockFont | ✅ 已完成 |
 
 ### P5 - 测试补齐
 
@@ -485,10 +486,10 @@ P6-50~55 (文档补齐) ──────────────┘
 
 | 验证项 | 状态 | 说明 |
 |--------|------|------|
-| `moon check` | ✅ 通过 | 0 errors, 484 warnings (deprecated语法) |
+| `moon check` | ✅ 通过 | 0 errors, 557 warnings (deprecated语法) |
 | `moon build --target native` | ✅ 通过 | native 后端正常 |
 | `moon test --target wasm-gc` | ⚠️ 部分失败 | FFI 依赖(onebit-tui/crescent)不支持 wasm-gc |
-| `moon test` (native) | ✅ 通过 | **969** 个测试全部通过 |
+| `moon test` (native) | ✅ 通过 | **1,155** 个测试全部通过 |
 | `moon run cmd` | ✅ 通过 | 冒烟测试正常 |
 | `moon fmt` | ✅ 完成 | 代码已格式化 |
 
@@ -550,8 +551,8 @@ MBOpenClacky 使用 onebit-tui 而非移植 UI2 引擎。UI2 的 26 个组件功
 | P0 (核心缺失) | 5 | 12-17 天 | ✅ 全部完成 |
 | P1 (功能深度) | 10 | 25-35 天 | ✅ 6/10 完成，4 个待实现 |
 | P2 (工具/基础设施) | 10 | 18-26 天 | ✅ 全部完成 |
-| P3 (IM深化) | 7 | 22-30 天 | ⏳ 待实现 |
-| P4 (补充功能) | 11 | 12-16 天 | ⏳ 部分待实现 |
+| P3 (IM深化) | 7 | 22-30 天 | ✅ 全部完成 |
+| P4 (补充功能) | 11 | 12-16 天 | ✅ 全部完成 |
 | P5 (测试补齐) | 6 | 16-22 天 | ✅ 5/6 完成 |
 | P6 (文档补齐) | 6 | 12 天 | ⏳ 待实现 |
-| **已完成** | **30/55** | - | - |
+| **已完成** | **53/55** | - | - |

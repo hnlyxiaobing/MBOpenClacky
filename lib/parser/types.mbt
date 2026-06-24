@@ -5,6 +5,8 @@ pub(all) enum DocumentFormat {
   Docx
   Pptx
   Xlsx
+  Doc
+  Wps
   Unknown(String)
 } derive(Eq, Debug, ToJson)
 
@@ -16,6 +18,8 @@ impl Show for DocumentFormat with fn output(self, logger) {
     Docx => logger.write_string("Docx")
     Pptx => logger.write_string("Pptx")
     Xlsx => logger.write_string("Xlsx")
+    Doc => logger.write_string("Doc")
+    Wps => logger.write_string("Wps")
     Unknown(s) => {
       logger.write_string("Unknown(")
       logger.write_string(s)
@@ -59,10 +63,16 @@ pub fn detect_format(path : String) -> DocumentFormat {
     Pdf
   } else if lower.has_suffix(".docx") {
     Docx
+  } else if lower.has_suffix(".doc") {
+    Doc
   } else if lower.has_suffix(".pptx") {
     Pptx
   } else if lower.has_suffix(".xlsx") {
     Xlsx
+  } else if lower.has_suffix(".wps") ||
+    lower.has_suffix(".et") ||
+    lower.has_suffix(".dps") {
+    Wps
   } else {
     // Extract extension
     let parts = lower.split(".")

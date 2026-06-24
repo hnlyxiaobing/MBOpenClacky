@@ -26,6 +26,36 @@
 ## 变更记录
 
 
+### 2026-06-23  Phase 19 文档全面校准：同步项目最新状态指标
+
+- `[docs]` **全量重新校准所有文档**
+  - 实际项目指标同步：源文件 218 / 测试文件 42 / 源代码行 ~39,400 / 测试用例 1,155
+  - `moon check` 状态：0 errors, 557 warnings
+  - Phase 0-18 全部完成，覆盖率 ~97-99%
+- `[docs]` **CLAUDE.md 全面重写**
+  - 修复文档重复 bug：合并移除重复的旧版内容（200+ 行）
+  - 补充 `assets/` 目录树（agents/skills/web）
+  - 新增「Current State Metrics」状态汇总表
+  - Package Layout 完整列出 21 个顶级包
+  - Tool/LLM Client/Enhanced Features/Web API/Default Resources 完整描述
+- `[docs]` **README.md 指标同步**
+  - 源文件: 174 → 218
+  - 测试文件: 39 → 42
+  - 代码行数: ~27,000+ → ~39,400
+  - 测试用例: 969 → 1,155
+  - 警告数: 484 → 557
+  - Phase 0-17 → Phase 0-18
+  - 完成度: ~95-98% → ~97-99%
+- `[docs]` **development-plan-0623.md 指标同步**
+  - 技术栈对比表：源文件 169 → 218，测试 24 → 42
+  - 项目指标表：源码行 ~27,000+ → ~39,400，完成比例全面重算
+  - 测试覆盖差距表：测试用例 969 → 1,155，代码行 ~12,000 → ~13,700
+  - 验证状态表：warnings 484 → 557，测试数 969 → 1,155
+- `[docs]` **compiler-error-efficiency-report.md 校对**
+  - 历史 Phase 18 数据保留，仅同步最新指标 (1,155 tests)
+- `[verify]` `moon check` 最终验证：0 errors, 557 warnings
+
+
 ### 2026-06-23  Phase 18 深度补齐：计费 / 定价 / Utils扩展 / 服务器增强 / 消息历史 / 默认资源
 
 - `[feat]` **新建计费系统** — `lib/billing/` 包（3文件）

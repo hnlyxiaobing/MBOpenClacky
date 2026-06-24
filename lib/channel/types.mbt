@@ -50,6 +50,13 @@ pub(all) struct Attachment {
 } derive(Eq, Debug, ToJson)
 
 ///|
+/// Chat type: direct message or group chat.
+pub(all) enum ChatType {
+  Direct
+  Group
+} derive(Eq, Debug, ToJson)
+
+///|
 /// Unified channel event (all platforms normalize to this).
 pub(all) struct ChannelEvent {
   event_type : EventType
@@ -62,6 +69,9 @@ pub(all) struct ChannelEvent {
   attachments : Array[Attachment]
   timestamp : Int // milliseconds
   reply_to : String?
+  chat_type : ChatType
+  raw : Json?
+  observe_only : Bool
 } derive(Eq, Debug, ToJson)
 
 ///|

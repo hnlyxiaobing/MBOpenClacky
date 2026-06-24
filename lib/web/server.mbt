@@ -1,6 +1,42 @@
 ///| MBOpenClacky Web Server based on crescent framework.
 
 ///|
+/// Webhook handler registry for IM channel callbacks.
+/// Allows loose coupling between the web server and channel module.
+/// External callers register handlers via `register()` before starting the server.
+pub(all) struct WebhookRegistry {
+  mut handlers : Map[String, (Json) -> Result[Unit, String]]
+}
+
+///|
+pub fn WebhookRegistry::new() -> WebhookRegistry {
+  { handlers: Map::new() }
+}
+
+///|
+/// Register a webhook handler for a given platform.
+pub fn WebhookRegistry::register(
+  self : WebhookRegistry,
+  platform : String,
+  handler : (Json) -> Result[Unit, String],
+) -> Unit {
+  self.handlers.set(platform, handler)
+}
+
+///|
+/// Handle an incoming webhook payload for the given platform.
+pub fn WebhookRegistry::handle(
+  self : WebhookRegistry,
+  platform : String,
+  body : Json,
+) -> Result[Unit, String] {
+  match self.handlers.get(platform) {
+    Some(handler) => handler(body)
+    None => Err("No handler registered for platform: " + platform)
+  }
+}
+
+///|
 /// Web server state management.
 pub(all) struct WebServer {
   /// Active agent instances keyed by session_id
@@ -13,6 +49,8 @@ pub(all) struct WebServer {
   mut start_time : Int64
   /// Mutex for atomic access (simplified: single-threaded access model)
   mut cancelled : Map[String, Bool]
+  /// Webhook registry for IM channel callbacks
+  webhook_registry : WebhookRegistry
 }
 
 ///|
@@ -27,6 +65,7 @@ pub fn WebServer::new(
     api_key,
     start_time: 0,
     cancelled: Map::new(),
+    webhook_registry: WebhookRegistry::new(),
   }
 }
 
@@ -223,6 +262,11 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       br.get("/screenshot", event => {
         handle_browser_screenshot_bridge(server_ref, event)
       })
+    })
+
+    // Webhooks (IM channel callbacks)
+    api.group("/webhooks", (wh : @crescent.App) => {
+      wh.post("/:platform", event => handle_webhook_bridge(server_ref, event))
     })
 
     // Trash

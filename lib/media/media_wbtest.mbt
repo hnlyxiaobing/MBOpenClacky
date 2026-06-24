@@ -302,3 +302,219 @@ test "generator_route_to_gemini" {
   assert_false(result.success)
   assert_eq(result.provider, "gemini")
 }
+
+// ============================================================
+// MediaOutputDir tests
+// ============================================================
+
+///|
+test "media_output_dir_new" {
+  let dir = MediaOutputDir::new("/tmp/media")
+  assert_eq(dir.get_path(), "/tmp/media/media")
+}
+
+///|
+test "media_output_dir_with_prefix" {
+  let dir = MediaOutputDir::with_prefix("/tmp/media", "images")
+  assert_eq(dir.get_path(), "/tmp/media/images")
+}
+
+///|
+test "media_output_dir_ensure_exists" {
+  let dir = MediaOutputDir::new("/tmp")
+  match dir.ensure_exists() {
+    Ok(_) => ()
+    Err(e) => fail("unexpected error: " + e)
+  }
+}
+
+///|
+test "media_output_dir_generate_filename_increments" {
+  let dir = MediaOutputDir::new("/tmp")
+  let f1 = dir.generate_filename("img", "png")
+  let f2 = dir.generate_filename("img", "png")
+  let f3 = dir.generate_filename("img", "jpg")
+  assert_eq(f1, "img_1.png")
+  assert_eq(f2, "img_2.png")
+  assert_eq(f3, "img_3.jpg")
+}
+
+///|
+test "media_output_dir_generate_path" {
+  let dir = MediaOutputDir::new("/tmp")
+  let path = dir.generate_path("sub", "clip", "mp4")
+  assert_eq(path, "/tmp/media/sub/clip_1.mp4")
+}
+
+///|
+test "media_output_dir_list_files_empty" {
+  let dir = MediaOutputDir::new("/tmp")
+  let files = dir.list_files()
+  assert_eq(files.length(), 0)
+}
+
+///|
+test "media_output_dir_cleanup_returns_zero" {
+  let dir = MediaOutputDir::new("/tmp")
+  assert_eq(dir.cleanup(24), 0)
+}
+
+///|
+test "media_output_dir_total_size_returns_zero" {
+  let dir = MediaOutputDir::new("/tmp")
+  assert_eq(dir.total_size(), 0L)
+}
+
+///|
+test "sanitize_filename_normal" {
+  assert_eq(sanitize_filename("hello"), "hello")
+}
+
+///|
+test "sanitize_filename_illegal_chars" {
+  assert_eq(sanitize_filename("my file/name"), "my_file_name")
+  assert_eq(sanitize_filename("a:b"), "a_b")
+  assert_eq(sanitize_filename("a*b?c"), "a_b_c")
+}
+
+///|
+test "sanitize_filename_empty" {
+  assert_eq(sanitize_filename(""), "unnamed")
+}
+
+// ============================================================
+// MediaGeneratorConfig tests
+// ============================================================
+
+///|
+test "media_generator_config_default" {
+  let cfg = MediaGeneratorConfig::default("https://api.example.com", "sk-key")
+  assert_eq(cfg.base_url, "https://api.example.com")
+  assert_eq(cfg.api_key, "sk-key")
+  assert_true(cfg.model is None)
+  assert_eq(cfg.output_dir, "./output")
+  assert_eq(cfg.timeout_seconds, 30)
+  assert_eq(cfg.retry_count, 3)
+  assert_eq(cfg.max_file_size_mb, 50)
+}
+
+///|
+test "media_generator_config_validate_valid" {
+  let cfg = MediaGeneratorConfig::default("https://api.example.com", "sk-key")
+  let errors = cfg.validate()
+  assert_eq(errors.length(), 0)
+}
+
+///|
+test "media_generator_config_validate_empty_url" {
+  let cfg = MediaGeneratorConfig::default("", "sk-key")
+  let errors = cfg.validate()
+  assert_true(errors.length() > 0)
+  assert_true(errors[0].contains("base_url"))
+}
+
+///|
+test "media_generator_config_validate_empty_key" {
+  let cfg = MediaGeneratorConfig::default("https://api.example.com", "")
+  let errors = cfg.validate()
+  assert_true(errors.length() > 0)
+  assert_true(errors[0].contains("api_key"))
+}
+
+///|
+test "media_generator_config_validate_all_invalid" {
+  let cfg : MediaGeneratorConfig = {
+    base_url: "",
+    api_key: "",
+    model: None,
+    output_dir: "./output",
+    timeout_seconds: 0,
+    retry_count: -1,
+    max_file_size_mb: 0,
+  }
+  let errors = cfg.validate()
+  assert_eq(errors.length(), 5)
+}
+
+// ============================================================
+// provider_capabilities and provider_supports tests
+// ============================================================
+
+///|
+test "provider_capabilities_openai" {
+  let caps = provider_capabilities(OpenAICompat)
+  assert_eq(caps.length(), 2)
+  assert_true(caps.contains(ImageGen))
+  assert_true(caps.contains(SpeechSynth))
+}
+
+///|
+test "provider_capabilities_gemini" {
+  let caps = provider_capabilities(Gemini)
+  assert_eq(caps.length(), 2)
+  assert_true(caps.contains(ImageGen))
+  assert_true(caps.contains(VideoGen))
+}
+
+///|
+test "provider_capabilities_dashscope" {
+  let caps = provider_capabilities(DashScope)
+  assert_eq(caps.length(), 1)
+  assert_true(caps.contains(ImageGen))
+}
+
+///|
+test "provider_supports_openai_image" {
+  assert_true(provider_supports(OpenAICompat, ImageGen))
+}
+
+///|
+test "provider_supports_openai_no_video" {
+  assert_false(provider_supports(OpenAICompat, VideoGen))
+}
+
+///|
+test "provider_supports_gemini_video" {
+  assert_true(provider_supports(Gemini, VideoGen))
+}
+
+///|
+test "provider_supports_dashscope_no_speech" {
+  assert_false(provider_supports(DashScope, SpeechSynth))
+}
+
+// ============================================================
+// create_generator and capability_name tests
+// ============================================================
+
+///|
+test "create_generator_from_config" {
+  let cfg = MediaGeneratorConfig::default("https://api.openai.com/v1", "sk-key")
+  let gen = cfg.create_generator()
+  assert_eq(gen.base_url, "https://api.openai.com/v1")
+  assert_eq(gen.api_key, "sk-key")
+  assert_true(gen.model is None)
+}
+
+///|
+test "create_generator_with_model" {
+  let cfg : MediaGeneratorConfig = {
+    base_url: "https://api.openai.com/v1",
+    api_key: "sk-key",
+    model: Some("dall-e-3"),
+    output_dir: "./output",
+    timeout_seconds: 30,
+    retry_count: 3,
+    max_file_size_mb: 50,
+  }
+  let gen = cfg.create_generator()
+  assert_true(gen.model == Some("dall-e-3"))
+}
+
+///|
+test "capability_name_values" {
+  assert_eq(capability_name(ImageGen), "Image Generation")
+  assert_eq(capability_name(VideoGen), "Video Generation")
+  assert_eq(capability_name(AudioGen), "Audio Generation")
+  assert_eq(capability_name(SpeechSynth), "Speech Synthesis")
+}

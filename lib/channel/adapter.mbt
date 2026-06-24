@@ -14,7 +14,10 @@ pub(open) trait Adapter {
 
   ///| Send a text message to a chat.
   /// params: chat_id, text, reply_to
-  fn send_text(Self, String, String, String?) -> SendResult
+  fn send_text(Self, String, String, String?) -> Result[
+    SendResult,
+    ChannelError,
+  ]
 
   ///| Update an existing message (for streaming progress).
   /// params: chat_id, message_id, new_text
@@ -86,7 +89,7 @@ pub impl Adapter for AnyAdapter with fn send_text(
   chat_id : String,
   text : String,
   reply_to : String?,
-) -> SendResult {
+) -> Result[SendResult, ChannelError] {
   match self {
     Feishu(a) => a.send_text(chat_id, text, reply_to)
     WeCom(a) => a.send_text(chat_id, text, reply_to)

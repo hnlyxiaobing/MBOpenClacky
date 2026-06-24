@@ -336,3 +336,298 @@ test "parse_error_raise_catch" {
     _ => fail("wrong error type")
   }
 }
+
+// ============================================================
+// DOC format detection tests
+// ============================================================
+
+///|
+test "detect_format_doc" {
+  assert_eq(detect_format("document.doc"), Doc)
+  assert_eq(detect_format("/path/to/file.DOC"), Doc)
+  assert_eq(detect_format("C:\\docs\\report.Doc"), Doc)
+}
+
+///|
+test "detect_format_doc_vs_docx" {
+  // .docx must not be detected as .doc
+  assert_eq(detect_format("file.docx"), Docx)
+  assert_eq(detect_format("file.doc"), Doc)
+}
+
+///|
+test "is_doc_format_positive" {
+  assert_true(is_doc_format("report.doc"))
+  assert_true(is_doc_format("/tmp/file.DOC"))
+}
+
+///|
+test "is_doc_format_negative" {
+  assert_false(is_doc_format("file.docx"))
+  assert_false(is_doc_format("file.txt"))
+  assert_false(is_doc_format("file.pdf"))
+}
+
+///|
+test "detect_doc_subformat_doc" {
+  assert_eq(detect_doc_subformat("report.doc"), "doc")
+  assert_eq(detect_doc_subformat("template.dot"), "dot")
+  assert_eq(detect_doc_subformat("readme.rtf"), "rtf")
+}
+
+// ============================================================
+// WPS format detection tests
+// ============================================================
+
+///|
+test "detect_format_wps" {
+  assert_eq(detect_format("document.wps"), Wps)
+  assert_eq(detect_format("spreadsheet.et"), Wps)
+  assert_eq(detect_format("presentation.dps"), Wps)
+}
+
+///|
+test "detect_format_wps_case_insensitive" {
+  assert_eq(detect_format("DOCUMENT.WPS"), Wps)
+  assert_eq(detect_format("sheet.ET"), Wps)
+  assert_eq(detect_format("slides.DPS"), Wps)
+}
+
+///|
+test "is_wps_format_positive" {
+  assert_true(is_wps_format("file.wps"))
+  assert_true(is_wps_format("file.et"))
+  assert_true(is_wps_format("file.dps"))
+  assert_true(is_wps_format("FILE.WPS"))
+}
+
+///|
+test "is_wps_format_negative" {
+  assert_false(is_wps_format("file.doc"))
+  assert_false(is_wps_format("file.pdf"))
+  assert_false(is_wps_format("file.xlsx"))
+}
+
+///|
+test "wps_format_name_values" {
+  assert_eq(wps_format_name("doc.wps"), "wps")
+  assert_eq(wps_format_name("sheet.et"), "et")
+  assert_eq(wps_format_name("slides.dps"), "dps")
+  assert_eq(wps_format_name("file.txt"), "unknown")
+}
+
+///|
+test "detect_wps_format_valid" {
+  assert_eq(detect_wps_format("file.wps"), Wps)
+  assert_eq(detect_wps_format("file.et"), Wps)
+  assert_eq(detect_wps_format("file.dps"), Wps)
+}
+
+///|
+test "detect_wps_format_invalid" {
+  let fmt = detect_wps_format("file.txt")
+  match fmt {
+    Unknown(ext) => assert_eq(ext, "txt")
+    _ => fail("expected Unknown for .txt")
+  }
+}
+
+// ============================================================
+// DocParser tests
+// ============================================================
+
+///|
+test "doc_parser_new" {
+  let parser = DocParser::new()
+  assert_true(parser.preserve_formatting)
+}
+
+///|
+test "doc_parser_with_formatting" {
+  let parser = DocParser::with_formatting(false)
+  assert_false(parser.preserve_formatting)
+}
+
+///|
+test "doc_parser_parse_placeholder" {
+  let parser = DocParser::new()
+  let result = parser.parse("report.doc")
+  assert_true(result.is_success)
+  assert_true(result.content.contains("placeholder"))
+  assert_true(result.content.contains("report.doc"))
+  assert_true(result.metadata.format == Doc)
+}
+
+///|
+test "doc_parser_parse_wrong_extension" {
+  let parser = DocParser::new()
+  let result = parser.parse("report.txt")
+  assert_false(result.is_success)
+  assert_true(result.error is Some(_))
+}
+
+///|
+test "extract_doc_text_from_ole2_placeholder" {
+  let data = b"dummy"
+  let text = extract_doc_text_from_ole2(data)
+  assert_true(text.contains("not yet implemented"))
+}
+
+///|
+test "extract_doc_metadata_from_ole2_placeholder" {
+  let data = b"dummy"
+  let metadata = extract_doc_metadata_from_ole2(data)
+  assert_true(metadata.title is None)
+  assert_true(metadata.format == Doc)
+}
+
+// ============================================================
+// WpsParser tests
+// ============================================================
+
+///|
+test "wps_parser_new" {
+  let parser = WpsParser::new()
+  assert_true(parser.preserve_formatting)
+}
+
+///|
+test "wps_parser_with_formatting" {
+  let parser = WpsParser::with_formatting(false)
+  assert_false(parser.preserve_formatting)
+}
+
+///|
+test "wps_parser_parse_wps_placeholder" {
+  let parser = WpsParser::new()
+  let result = parser.parse("document.wps")
+  assert_true(result.is_success)
+  assert_true(result.content.contains("placeholder"))
+  assert_true(result.content.contains("WPS Document"))
+  assert_true(result.metadata.format == Wps)
+}
+
+///|
+test "wps_parser_parse_et_placeholder" {
+  let parser = WpsParser::new()
+  let result = parser.parse("spreadsheet.et")
+  assert_true(result.is_success)
+  assert_true(result.content.contains("WPS Spreadsheet"))
+  assert_true(result.metadata.format == Wps)
+}
+
+///|
+test "wps_parser_parse_dps_placeholder" {
+  let parser = WpsParser::new()
+  let result = parser.parse("slides.dps")
+  assert_true(result.is_success)
+  assert_true(result.content.contains("WPS Presentation"))
+  assert_true(result.metadata.format == Wps)
+}
+
+///|
+test "wps_parser_parse_wrong_extension" {
+  let parser = WpsParser::new()
+  let result = parser.parse("file.doc")
+  assert_false(result.is_success)
+  assert_true(result.error is Some(_))
+}
+
+// ============================================================
+// ParserManager tests
+// ============================================================
+
+///|
+test "parser_manager_new" {
+  let mgr = ParserManager::new()
+  assert_true(mgr.preserve_formatting)
+}
+
+///|
+test "parser_manager_with_formatting" {
+  let mgr = ParserManager::with_formatting(false)
+  assert_false(mgr.preserve_formatting)
+}
+
+///|
+test "parser_manager_can_parse_supported" {
+  assert_true(ParserManager::can_parse("file.pdf"))
+  assert_true(ParserManager::can_parse("file.docx"))
+  assert_true(ParserManager::can_parse("file.pptx"))
+  assert_true(ParserManager::can_parse("file.xlsx"))
+  assert_true(ParserManager::can_parse("file.doc"))
+  assert_true(ParserManager::can_parse("file.wps"))
+  assert_true(ParserManager::can_parse("file.et"))
+  assert_true(ParserManager::can_parse("file.dps"))
+}
+
+///|
+test "parser_manager_can_parse_unsupported" {
+  assert_false(ParserManager::can_parse("file.txt"))
+  assert_false(ParserManager::can_parse("file.csv"))
+  assert_false(ParserManager::can_parse("file.html"))
+}
+
+///|
+test "parser_manager_parse_pdf" {
+  let mgr = ParserManager::new()
+  let result = mgr.parse("report.pdf")
+  assert_true(result.is_success)
+  assert_true(result.metadata.format == Pdf)
+}
+
+///|
+test "parser_manager_parse_docx" {
+  let mgr = ParserManager::new()
+  let result = mgr.parse("report.docx")
+  assert_true(result.is_success)
+  assert_true(result.metadata.format == Docx)
+}
+
+///|
+test "parser_manager_parse_doc" {
+  let mgr = ParserManager::new()
+  let result = mgr.parse("report.doc")
+  assert_true(result.is_success)
+  assert_true(result.metadata.format == Doc)
+}
+
+///|
+test "parser_manager_parse_wps" {
+  let mgr = ParserManager::new()
+  let result = mgr.parse("document.wps")
+  assert_true(result.is_success)
+  assert_true(result.metadata.format == Wps)
+}
+
+///|
+test "parser_manager_parse_unknown" {
+  let mgr = ParserManager::new()
+  let result = mgr.parse("file.xyz")
+  assert_false(result.is_success)
+  assert_true(result.error == Some("Unsupported format: xyz"))
+}
+
+///|
+test "parser_manager_supported_extensions" {
+  let exts = supported_extensions()
+  assert_eq(exts.length(), 8)
+  assert_true(exts.contains(".pdf"))
+  assert_true(exts.contains(".docx"))
+  assert_true(exts.contains(".doc"))
+  assert_true(exts.contains(".wps"))
+  assert_true(exts.contains(".et"))
+  assert_true(exts.contains(".dps"))
+}
+
+///|
+test "parser_manager_supported_formats" {
+  let fmts = supported_formats()
+  assert_eq(fmts.length(), 6)
+  assert_true(fmts.contains(Pdf))
+  assert_true(fmts.contains(Docx))
+  assert_true(fmts.contains(Pptx))
+  assert_true(fmts.contains(Xlsx))
+  assert_true(fmts.contains(Doc))
+  assert_true(fmts.contains(Wps))
+}

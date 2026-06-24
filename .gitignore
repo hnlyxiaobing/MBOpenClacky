@@ -33,6 +33,7 @@ memory/
 Thumbs.db
 
 test_output.txt
+_review_diff.txt
 
 # AI 工具配置文件
 CLAUDE.md

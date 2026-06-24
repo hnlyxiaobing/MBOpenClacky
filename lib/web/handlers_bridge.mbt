@@ -156,6 +156,51 @@ fn handle_channels_status_bridge(
   response_to_core(handle_channels_status(req))
 }
 
+// ── Webhook Bridge ─────────────────────────────────────────────────
+
+///|
+/// POST /api/webhooks/:platform — Receive incoming IM webhook events.
+/// Routes the payload to the registered WebhookRegistry handler for the platform.
+/// Also handles Feishu URL-verification challenge.
+fn handle_webhook_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let platform = match event.param("platform") {
+    Some(p) => p.to_string()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: platform".to_json() }),
+      )
+  }
+  let body : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  // Feishu URL-verification challenge: return the challenge string directly
+  if platform == "feishu" {
+    match @channel.handle_feishu_challenge(body) {
+      Some(challenge) =>
+        return @core.HttpResponse::ok()
+          .header("Content-Type", "text/plain")
+          .body(challenge)
+      None => ()
+    }
+  }
+  match server_ref.val.webhook_registry.handle(platform, body) {
+    Ok(_) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "status": "ok".to_json() }),
+      )
+    Err(e) =>
+      @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": e.to_json() }),
+      )
+  }
+}
+
 // ── Schedule Bridges ──────────────────────────────────────────────
 
 ///|

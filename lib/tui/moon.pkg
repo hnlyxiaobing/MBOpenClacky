@@ -2,6 +2,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
   "Frank-III/onebit-tui/core" @tui_core,
   "Frank-III/onebit-tui/widget",
   "Frank-III/onebit-tui/view",
