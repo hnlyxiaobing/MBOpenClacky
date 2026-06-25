@@ -21,6 +21,9 @@ let safe_readonly_commands : Array[String] = [
   "ls", "pwd", "cat", "less", "more", "head", "tail", "grep", "find", "which", "whereis",
   "whoami", "ps", "top", "htop", "df", "du", "git", "echo", "printf", "wc", "date",
   "file", "stat", "env", "printenv", "curl", "wget",
+  // Windows-specific read-only commands
+   "dir", "type", "where", "tasklist", "systeminfo", "ipconfig", "hostname", "wmic",
+  "ver", "vol", "set",
 ]
 
 ///|

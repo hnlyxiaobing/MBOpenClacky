@@ -68,7 +68,14 @@ pub fn shell_config_path(shell : ShellType) -> String? {
         Zsh => Some(home + "/.zshrc")
         Fish => Some(home + "/.config/fish/config.fish")
         Pwsh =>
-          Some(home + "/Documents/PowerShell/Microsoft.PowerShell_profile.ps1")
+          Some(
+            @path.Path::join(
+              home,
+              @path.Path(
+                "Documents/PowerShell/Microsoft.PowerShell_profile.ps1",
+              ),
+            ).to_string(),
+          )
         Cmd => None
         Unknown(_) => None
       }
@@ -99,12 +106,18 @@ pub fn shell_rc_files(shell : ShellType) -> Array[String] {
         Fish =>
           [home + "/.config/fish/config.fish", home + "/.config/fish/conf.d"]
         Pwsh => {
-          let doc_profile = home +
-            "/Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
-          let allusers = "/etc/powershell/profile.ps1"
+          let doc_profile = @path.Path::join(
+            home,
+            @path.Path("Documents/PowerShell/Microsoft.PowerShell_profile.ps1"),
+          ).to_string()
+          let allusers = match @sys.get_env_var("PSHOME") {
+            Some(pshome) =>
+              @path.Path::join(pshome, @path.Path("profile.ps1")).to_string()
+            _ => "/etc/powershell/profile.ps1"
+          }
           [doc_profile, allusers]
         }
-        Cmd => [home + "/autoexec.bat"]
+        Cmd => []
         Unknown(_) => []
       }
     None => []

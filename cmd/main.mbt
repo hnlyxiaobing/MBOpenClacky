@@ -217,7 +217,16 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
   let working_dir = match get_named_arg(value, "path") {
     Some(p) => p
     None => {
-      let pwd_opt : String? = @sys.get_env_var("PWD")
+      // Windows uses CD for the current directory; Unix uses PWD.
+      // Try CD first, then PWD, then fall back to "."
+      let pwd_opt : String? = match @sys.get_env_var("CD") {
+        Some(p) if !p.is_empty() => Some(p)
+        _ =>
+          match @sys.get_env_var("PWD") {
+            Some(p) if !p.is_empty() => Some(p)
+            _ => None
+          }
+      }
       pwd_opt.unwrap_or(".")
     }
   }

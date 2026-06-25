@@ -26,15 +26,40 @@ fn make_test_agent() -> @agent.Agent {
 test "TuiState::from_agent creates correct initial state" {
   let agent = make_test_agent()
   let state = TuiState::from_agent(agent)
-  inspect(state.session_id, content="\"test-session\"")
-  inspect(state.model_name, content="\"test-model\"")
+  inspect(
+    state.session_id,
+    content=(
+      #|test-session
+    ),
+  )
+  inspect(
+    state.model_name,
+    content=(
+      #|test-model
+    ),
+  )
   inspect(state.mode, content="Idle")
   inspect(state.iterations, content="0")
   inspect(state.messages.length(), content="0")
-  inspect(state.tool_output, content="\"\"")
-  inspect(state.total_cost, content="0.0")
+  inspect(
+    state.tool_output,
+    content=(
+      #|
+    ),
+  )
+  inspect(
+    state.total_cost,
+    content=(
+      #|0
+    ),
+  )
   inspect(state.latest_delta, content="0")
-  inspect(state.input_text, content="\"\"")
+  inspect(
+    state.input_text,
+    content=(
+      #|
+    ),
+  )
   inspect(state.last_error, content="None")
 }
 
@@ -47,34 +72,84 @@ test "TuiState fields are mutable via Ref" {
   inspect(state_ref.val.mode, content="Running")
 
   state_ref.val.agent_status = "running"
-  inspect(state_ref.val.agent_status, content="\"running\"")
+  inspect(
+    state_ref.val.agent_status,
+    content=(
+      #|running
+    ),
+  )
 
   state_ref.val.iterations = 5
   inspect(state_ref.val.iterations, content="5")
 
   state_ref.val.tool_output = "test output"
-  inspect(state_ref.val.tool_output, content="\"test output\"")
+  inspect(
+    state_ref.val.tool_output,
+    content=(
+      #|test output
+    ),
+  )
 
   state_ref.val.last_error = Some("test error")
-  inspect(state_ref.val.last_error, content="Some(\"test error\")")
+  inspect(
+    state_ref.val.last_error,
+    content=(
+      #|Some(test error)
+    ),
+  )
 
   state_ref.val.total_cost = 0.05
   state_ref.val.cost_source = "api"
-  inspect(state_ref.val.cost_source, content="\"api\"")
+  inspect(
+    state_ref.val.cost_source,
+    content=(
+      #|api
+    ),
+  )
 }
 
 ///|
 test "format_cost pads to 4 decimal places" {
-  inspect(format_cost(0.0), content="\"0.0000\"")
-  inspect(format_cost(1.5), content="\"1.5000\"")
-  inspect(format_cost(0.1234), content="\"0.1234\"")
+  inspect(
+    format_cost(0.0),
+    content=(
+      #|0.0000
+    ),
+  )
+  inspect(
+    format_cost(1.5),
+    content=(
+      #|1.5000
+    ),
+  )
+  inspect(
+    format_cost(0.1234),
+    content=(
+      #|0.1234
+    ),
+  )
 }
 
 ///|
 test "format_cost handles various cases" {
-  inspect(format_cost(0.123456), content="\"0.123456\"")
-  inspect(format_cost(42.0), content="\"42.0000\"")
-  inspect(format_cost(100.0), content="\"100.0000\"")
+  inspect(
+    format_cost(0.123456),
+    content=(
+      #|0.123456
+    ),
+  )
+  inspect(
+    format_cost(42.0),
+    content=(
+      #|42.0000
+    ),
+  )
+  inspect(
+    format_cost(100.0),
+    content=(
+      #|100.0000
+    ),
+  )
 }
 
 ///|
@@ -89,7 +164,12 @@ test "handle_hook_event updates state correctly" {
       @agent.AgentStatus::Running,
     ),
   )
-  inspect(state_ref.val.agent_status, content="\"running\"")
+  inspect(
+    state_ref.val.agent_status,
+    content=(
+      #|running
+    ),
+  )
 
   handle_hook_event(state_ref, @agent.HookEvent::BeforeIteration(3))
   inspect(state_ref.val.iterations, content="3")
@@ -98,14 +178,29 @@ test "handle_hook_event updates state correctly" {
     state_ref,
     @agent.HookEvent::ToolExecuting("read_file", "test.txt"),
   )
-  inspect(state_ref.val.tool_output, content="\"Running: read_file(test.txt)\"")
+  inspect(
+    state_ref.val.tool_output,
+    content=(
+      #|Running: read_file(test.txt)
+    ),
+  )
 
   handle_hook_event(
     state_ref,
     @agent.HookEvent::ErrorOccurred("something broke"),
   )
-  inspect(state_ref.val.last_error, content="Some(\"something broke\")")
-  inspect(state_ref.val.agent_status, content="\"error\"")
+  inspect(
+    state_ref.val.last_error,
+    content=(
+      #|Some(something broke)
+    ),
+  )
+  inspect(
+    state_ref.val.agent_status,
+    content=(
+      #|error
+    ),
+  )
 }
 
 ///|
@@ -134,14 +229,24 @@ test "handle_hook_event_ToolExecuted" {
     state_ref,
     @agent.HookEvent::ToolExecuted("read_file", entry),
   )
-  inspect(state_ref.val.tool_output, content="\"Completed: read_file\"")
+  inspect(
+    state_ref.val.tool_output,
+    content=(
+      #|Completed: read_file
+    ),
+  )
 }
 
 ///|
 test "TuiState::from_agent maps agent status correctly" {
   let agent = make_test_agent()
   let state = TuiState::from_agent(agent)
-  inspect(state.agent_status, content="\"idle\"")
+  inspect(
+    state.agent_status,
+    content=(
+      #|idle
+    ),
+  )
 }
 
 ///|

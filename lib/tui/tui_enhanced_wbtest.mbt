@@ -10,14 +10,24 @@
 test "slash_parse_config" {
   let parser = SlashCommandParser::new()
   let result = parser.parse("/config theme dark")
-  inspect(result, content="Ok(Config(key=\"theme\", value=\"dark\"))")
+  inspect(
+    result,
+    content=(
+      #|Ok(Config(key=theme, value=dark))
+    ),
+  )
 }
 
 ///|
 test "slash_parse_model" {
   let parser = SlashCommandParser::new()
   let result = parser.parse("/model gpt-4o")
-  inspect(result, content="Ok(Model(name=\"gpt-4o\"))")
+  inspect(
+    result,
+    content=(
+      #|Ok(Model(name=gpt-4o))
+    ),
+  )
 }
 
 ///|
@@ -38,14 +48,24 @@ test "slash_parse_help" {
 test "slash_parse_unknown" {
   let parser = SlashCommandParser::new()
   let result = parser.parse("/foobar")
-  inspect(result, content="Err(\"Unknown command: /foobar\")")
+  inspect(
+    result,
+    content=(
+      #|Err(Unknown command: /foobar)
+    ),
+  )
 }
 
 ///|
 test "slash_completions" {
   let parser = SlashCommandParser::new()
   let completions = parser.get_completions("/he")
-  inspect(completions, content="[\"/help\"]")
+  inspect(
+    completions,
+    content=(
+      #|[/help]
+    ),
+  )
 }
 
 ///|
@@ -59,27 +79,47 @@ test "slash_parse_exit" {
 test "slash_parse_new_with_title" {
   let parser = SlashCommandParser::new()
   let result = parser.parse("/new My Session")
-  inspect(result, content="Ok(New(title=\"My Session\"))")
+  inspect(
+    result,
+    content=(
+      #|Ok(New(title=My Session))
+    ),
+  )
 }
 
 ///|
 test "slash_parse_skills_default" {
   let parser = SlashCommandParser::new()
   let result = parser.parse("/skills")
-  inspect(result, content="Ok(Skills(action=\"list\"))")
+  inspect(
+    result,
+    content=(
+      #|Ok(Skills(action=list))
+    ),
+  )
 }
 
 ///|
 test "slash_execute_config" {
   let result = execute(Config(key="theme", value="dark"))
-  inspect(result, content="Ok(\"Configuration set: theme = dark\")")
+  inspect(
+    result,
+    content=(
+      #|Ok(Configuration set: theme = dark)
+    ),
+  )
 }
 
 ///|
 test "slash_completions_multiple" {
   let parser = SlashCommandParser::new()
   let completions = parser.get_completions("/c")
-  inspect(completions, content="[\"/config\", \"/clear\"]")
+  inspect(
+    completions,
+    content=(
+      #|[/config, /clear]
+    ),
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -89,7 +129,12 @@ test "slash_completions_multiple" {
 ///|
 test "markdown_tokenize_heading" {
   let tokens = tokenize("# Hello World")
-  inspect(tokens, content="[Heading(level=1, text=\"Hello World\")]")
+  inspect(
+    tokens,
+    content=(
+      #|[Heading(level=1, text=Hello World)]
+    ),
+  )
 }
 
 ///|
@@ -97,7 +142,9 @@ test "markdown_tokenize_bold_italic" {
   let tokens = tokenize("**bold** and *italic*")
   inspect(
     tokens,
-    content="[Bold(text=\"bold\"), Paragraph(text=\" and \"), Italic(text=\"italic\")]",
+    content=(
+      #|[Bold(text=bold), Paragraph(text= and ), Italic(text=italic)]
+    ),
   )
 }
 
@@ -105,7 +152,12 @@ test "markdown_tokenize_bold_italic" {
 test "markdown_tokenize_code_block" {
   let input = "```rust\nfn main() {}\n```"
   let tokens = tokenize(input)
-  inspect(tokens, content="[CodeBlock(lang=\"rust\", code=\"fn main() {}\")]")
+  inspect(
+    tokens,
+    content=(
+      #|[CodeBlock(lang=rust, code=fn main() {})]
+    ),
+  )
 }
 
 ///|
@@ -129,7 +181,12 @@ test "markdown_render_code" {
 ///|
 test "markdown_tokenize_list_item" {
   let tokens = tokenize("- item one")
-  inspect(tokens, content="[ListItem(indent=0, text=\"item one\")]")
+  inspect(
+    tokens,
+    content=(
+      #|[ListItem(indent=0, text=item one)]
+    ),
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -148,7 +205,12 @@ test "theme_default" {
 test "theme_hacker_colors" {
   let theme = Theme::hacker()
   inspect(theme.name, content="Hacker")
-  inspect(theme.primary_color, content="\"\x1b[32m\"")
+  inspect(
+    theme.primary_color,
+    content=(
+      #|[32m
+    ),
+  )
 }
 
 ///|
@@ -191,7 +253,12 @@ test "spinner_next_frame_cycles" {
 test "spinner_render" {
   let spinner = Spinner::new(Dots, "Please wait")
   let output = spinner.render_frame()
-  inspect(output, content="\"⠋ Please wait\"")
+  inspect(
+    output,
+    content=(
+      #|⠋ Please wait
+    ),
+  )
 }
 
 ///|
@@ -200,7 +267,12 @@ test "spinner_arrow_style" {
   inspect(spinner.frames.length(), content="8")
   inspect(spinner.interval_ms, content="100")
   let output = spinner.render_frame()
-  inspect(output, content="\"← test\"")
+  inspect(
+    output,
+    content=(
+      #|← test
+    ),
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -211,10 +283,21 @@ test "spinner_arrow_style" {
 test "realtime_append" {
   let r = RealtimeRenderer::new(max_width=80)
   let r2 = r.append("hello")
-  inspect(r2.buffer, content="\"hello\"")
+  inspect(
+    r2.buffer,
+    content=(
+      #|hello
+    ),
+  )
   inspect(r2.line_count, content="0")
   let r3 = r2.append(" world\n")
-  inspect(r3.buffer, content="\"hello world\\n\"")
+  inspect(
+    r3.buffer,
+    content=(
+      #|hello world
+      #|
+    ),
+  )
   inspect(r3.line_count, content="1")
 }
 
@@ -224,7 +307,12 @@ test "realtime_render_delta" {
   let r1 = r0.append("hello")
   // First render from empty state
   let delta = r1.render_delta(r0)
-  inspect(delta, content="\"hello\"")
+  inspect(
+    delta,
+    content=(
+      #|hello
+    ),
+  )
 }
 
 ///|
@@ -234,7 +322,12 @@ test "realtime_clear" {
   let (seq, r3) = r2.clear()
   // Should produce clear sequence for single line
   assert_true(seq.contains("\r"))
-  inspect(r3.buffer, content="\"\"")
+  inspect(
+    r3.buffer,
+    content=(
+      #|
+    ),
+  )
   inspect(r3.line_count, content="0")
 }
 
@@ -243,5 +336,10 @@ test "realtime_render_delta_no_change" {
   let r = RealtimeRenderer::new(max_width=80)
   let r2 = r.append("same")
   let delta = r2.render_delta(r2)
-  inspect(delta, content="\"\"")
+  inspect(
+    delta,
+    content=(
+      #|
+    ),
+  )
 }

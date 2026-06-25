@@ -12,7 +12,14 @@ let pid_file_prefix : String = "mbopenclacky-master-"
 
 ///|
 /// PID file directory
-let pid_file_dir : String = "/tmp/"
+let pid_file_dir : String = match @sys.get_env_var("TEMP") {
+  Some(d) if !d.is_empty() => d + "\\"
+  _ =>
+    match @sys.get_env_var("TMPDIR") {
+      Some(d) if !d.is_empty() => d + "/"
+      _ => "/tmp/"
+    }
+}
 
 ///|
 /// Find the first active local server
