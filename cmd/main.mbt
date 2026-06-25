@@ -42,6 +42,26 @@ async fn main {
         nargs=@clap.Nargs::AtMost(1),
         help="Attach to a specific session by ID",
       ),
+      "ndjson": @clap.Arg::flag(help="Enable NDJSON (JSON Lines) log output"),
+      "patches-dir": @clap.Arg::named(
+        nargs=@clap.Nargs::Fixed(1),
+        help="Custom patches directory (default: ~/.clacky/patches/)",
+      ),
+      "hooks-dir": @clap.Arg::named(
+        nargs=@clap.Nargs::Fixed(1),
+        help="Custom hooks directory (default: ~/.clacky/hooks/)",
+      ),
+      "extensions-dir": @clap.Arg::named(
+        nargs=@clap.Nargs::Fixed(1),
+        help="Custom API extensions directory (default: ~/.clacky/api_extensions/)",
+      ),
+      "scaffold-channel": @clap.Arg::named(
+        nargs=@clap.Nargs::Fixed(1),
+        help="Generate channel adapter template for the given platform",
+      ),
+      "list-templates": @clap.Arg::flag(
+        help="List available channel adapter templates",
+      ),
     },
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
@@ -81,6 +101,21 @@ async fn main {
     return
   }
 
+  // Handle --list-templates
+  if value.get_flag("list-templates") == Some(true) {
+    handle_list_templates()
+    return
+  }
+
+  // Handle --scaffold-channel <platform>
+  match get_named_arg(value, "scaffold-channel") {
+    Some(platform) => {
+      handle_scaffold_channel(platform)
+      return
+    }
+    None => ()
+  }
+
   // Handle subcommands: billing, server
   match value.subcmd {
     Some(sub) =>
@@ -103,13 +138,36 @@ async fn main {
   }
 
   // Default: agent mode
-  run_agent(value)
+  // Initialize NDJSON logger if --ndjson flag is set
+  let ndjson_enabled = value.get_flag("ndjson") == Some(true)
+  let logger = NdjsonLogger::new(ndjson_enabled)
+  run_agent(value, logger)
 }
 
 ///|
 fn handle_billing() -> Unit {
   println("Billing summary (not yet implemented -- Phase 6)")
   println("Use --help to see available commands")
+}
+
+///|
+fn handle_list_templates() -> Unit {
+  let templates = list_channel_templates()
+  println("Available channel adapter templates:")
+  for t in templates {
+    println("  - \{t}")
+  }
+}
+
+///|
+fn handle_scaffold_channel(platform : String) -> Unit {
+  match scaffold_channel(platform) {
+    Ok(_) => println("Channel scaffold generated successfully.")
+    Err(e) => {
+      println("Error: \{e}")
+      @sys.exit(1)
+    }
+  }
 }
 
 ///|
@@ -151,7 +209,7 @@ fn get_named_arg(value : @clap.SimpleValue, name : String) -> String? {
 }
 
 ///|
-fn run_agent(value : @clap.SimpleValue) -> Unit {
+fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // 1. Load configuration from default path (~/.mbopenclacky/config.toml)
   let config = @config.AgentConfig::load_default() catch {
     err => {
@@ -237,12 +295,57 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
     get_named_arg(value, "attach"),
   )
 
-  // 10. Create the agent
+  // 10. Load patches
+  let patches_dir = get_named_arg(value, "patches-dir")
+  let patch_loader = match patches_dir {
+    Some(d) => PatchLoader::new(d)
+    None => PatchLoader::default()
+  }
+  let patches = patch_loader.load_patches()
+  if !patches.is_empty() {
+    logger.info("Loaded \{patches.length()} patch(es)")
+    match patch_loader.apply_patches(patches) {
+      Ok(_) => ()
+      Err(err) => logger.warn("Patch apply error: \{err}")
+    }
+  }
+
+  // 11. Load hooks
+  let hooks_dir = get_named_arg(value, "hooks-dir")
+  let hooks = load_shell_hooks(config_dir=hooks_dir)
+  if !hooks.is_empty() {
+    logger.info("Loaded \{hooks.length()} hook(s)")
+    let hook_ctx : HookContext = {
+      session_id: "pending",
+      message: None,
+      working_dir: ".",
+    }
+    for h in hooks {
+      match execute_hook(h, hook_ctx) {
+        Ok(_) => ()
+        Err(err) => logger.warn("Hook error: \{err}")
+      }
+    }
+  }
+
+  // 12. Load API extensions
+  let ext_dir = get_named_arg(value, "extensions-dir")
+  let extensions = load_extensions(ext_dir~)
+  if !extensions.is_empty() {
+    logger.info("Loaded \{extensions.length()} API extension(s)")
+    match register_extensions(extensions) {
+      Ok(_) => ()
+      Err(err) => logger.warn("Extension register error: \{err}")
+    }
+  }
+
+  // 13. Create the agent
   let agent = @agent.Agent::new(
     session_id, "CLI Agent", working_dir, client, config,
   )
+  logger.info("Agent created: session=\{session_id}")
 
-  // 11. Restore session state if continuing or attaching
+  // 14. Restore session state if continuing or attaching
   match session_data {
     Some(data) => {
       agent.restore_from_session(data)
@@ -255,7 +358,7 @@ fn run_agent(value : @clap.SimpleValue) -> Unit {
     None => ()
   }
 
-  // 12. Check if --message was provided (non-interactive mode)
+  // 15. Check if --message was provided (non-interactive mode)
   let msg_opt = get_named_arg(value, "message")
   match msg_opt {
     Some(msg) => run_non_interactive(agent, msg)

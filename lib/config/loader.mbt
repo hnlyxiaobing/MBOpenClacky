@@ -119,6 +119,10 @@ fn AgentConfig::from_toml(value : TomlValue) -> AgentConfig {
             Some(TomlInteger(n)) => config.compression_threshold = n.to_int()
             _ => ()
           }
+          match settings.get("default_working_dir") {
+            Some(TomlString(s)) => config.default_working_dir = Some(s)
+            _ => ()
+          }
         }
         _ => ()
       }
@@ -172,7 +176,20 @@ fn ModelConfig::from_toml(value : TomlValue) -> ModelConfig? {
         Some(TomlBoolean(b)) => b
         _ => false
       }
-      Some({ id, type_, api_key, base_url, model, anthropic_format })
+      let media_type = match table.get("media_type") {
+        Some(TomlString(s)) => Some(s)
+        _ => None
+      }
+      Some({
+        id,
+        type_,
+        api_key,
+        base_url,
+        model,
+        anthropic_format,
+        runtime_id: id,
+        media_type,
+      })
     }
     _ => None
   }
@@ -214,6 +231,10 @@ fn AgentConfig::to_toml(self : AgentConfig) -> TomlValue {
       Int64::from_int(self.compression_threshold),
     )
   }
+  match self.default_working_dir {
+    Some(dir) => settings["default_working_dir"] = TomlString(dir)
+    None => ()
+  }
   root["settings"] = TomlTable(settings)
 
   // Build [[models]] array
@@ -242,6 +263,10 @@ fn ModelConfig::to_toml(self : ModelConfig) -> TomlValue {
   table["model"] = TomlString(self.model)
   if self.anthropic_format {
     table["anthropic_format"] = TomlBoolean(true)
+  }
+  match self.media_type {
+    Some(mt) => table["media_type"] = TomlString(mt)
+    None => ()
   }
   TomlTable(table)
 }
@@ -277,6 +302,8 @@ pub fn AgentConfig::apply_env_overlay(self : AgentConfig) -> AgentConfig {
           base_url,
           model,
           anthropic_format,
+          runtime_id: "default",
+          media_type: None,
         }
         config.models.push(env_model)
         if config.current_model_id is None {

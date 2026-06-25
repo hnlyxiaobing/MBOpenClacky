@@ -6,3 +6,10 @@ import {
   "moonbitlang/x/sys",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
 }
+
+options(
+  targets: {
+    "terminal_exec.mbt": [ "native" ],
+    "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],
+  },
+)

@@ -84,6 +84,17 @@ pub fn CompressionConfig::default() -> CompressionConfig {
   }
 }
 
+// ── CompressedSummary ─────────────────────────────────────────────────────────
+
+///|
+/// Record of a single compression operation for tracking history.
+pub(all) struct CompressedSummary {
+  timestamp : String
+  original_count : Int
+  compressed_count : Int
+  token_savings : Double
+} derive(Eq, Debug)
+
 // ── CompressionContext ────────────────────────────────────────────────────────
 
 ///|
@@ -93,6 +104,9 @@ pub(all) struct CompressionContext {
   original_message_count : Int
   compression_level : Int
   recent_message_count : Int
+  chunk_path : String?
+  previous_chunks : Array[String]
+  compression_history : Array[CompressedSummary]
 } derive(Eq, Debug)
 
 // ── ParsedCompression ─────────────────────────────────────────────────────────
@@ -142,6 +156,9 @@ pub fn Agent::compress_messages_if_needed(
     original_message_count: msg_count,
     compression_level: self.compression_level,
     recent_message_count: recent,
+    chunk_path: None,
+    previous_chunks: [],
+    compression_history: [],
   })
 }
 
@@ -288,4 +305,128 @@ fn message_token_estimate(msg : @message.Message) -> Int {
     None => 0
   }
   content_tokens + tc_tokens
+}
+
+// ── Dynamic Recent Count ─────────────────────────────────────────────────────
+
+///|
+/// Calculate the target number of recent messages to preserve after compression.
+///
+/// Based on total message count and desired compression ratio:
+/// - Higher message counts yield more recent messages (up to max 50)
+/// - Higher compression ratios reduce the count (fewer messages kept)
+/// - Result is clamped to [10, 50]
+pub fn calculate_target_recent_count(
+  total_messages : Int,
+  compression_ratio : Double,
+) -> Int {
+  let base = (total_messages.to_double() * (1.0 - compression_ratio)).to_int()
+  let clamped = base.max(10).min(50)
+  clamped
+}
+
+// ── Compression Skip Logic ───────────────────────────────────────────────────
+
+///|
+/// Check if compression should be skipped based on the last reduction percentage.
+///
+/// If the last compression achieved less than 10% reduction, it's not
+/// worth compressing again yet — the conversation hasn't grown enough.
+pub fn should_skip_compression(last_reduction_pct : Double) -> Bool {
+  last_reduction_pct < 0.1
+}
+
+// ── Overflow Recovery ────────────────────────────────────────────────────────
+
+///|
+/// Pop messages from the tail until total tokens are within `max_tokens`.
+///
+/// Returns (kept_messages, pulled_back_messages).
+/// Ensures tool_call/tool_result pair integrity: if a tool_result is kept,
+/// its parent assistant message with tool_calls is also kept.
+pub fn pulled_back_messages(
+  messages : Array[@message.Message],
+  max_tokens : Int,
+) -> (Array[@message.Message], Array[@message.Message]) {
+  let total = messages.length()
+  let kept : Array[@message.Message] = []
+  for msg in messages {
+    kept.push(msg)
+  }
+
+  let mut total_tokens = estimate_history_tokens(kept)
+
+  // Pop from tail until within budget
+  while total_tokens > max_tokens && kept.length() > 1 {
+    let msg = kept[kept.length() - 1]
+    let msg_tokens = message_token_estimate(msg)
+    let _ = kept.pop()
+    total_tokens = total_tokens - msg_tokens
+  }
+
+  // Fix tool pair integrity: if a kept Tool message references an assistant
+  // tool_call that is no longer in kept, move that assistant to pulled too.
+  let kept_ids : Map[String, Bool] = {}
+  for msg in kept {
+    if msg.role == @message.Assistant {
+      match msg.tool_calls {
+        Some(calls) =>
+          for call in calls {
+            kept_ids[call.id] = true
+          }
+        None => ()
+      }
+    }
+  }
+  // Remove orphan tool results from kept (Tool messages whose call_id isn't in kept)
+  let clean_kept : Array[@message.Message] = []
+  for msg in kept {
+    if msg.role == @message.Tool {
+      match msg.tool_call_id {
+        Some(tc_id) =>
+          if kept_ids.get(tc_id) is Some(_) {
+            clean_kept.push(msg)
+          }
+        None => clean_kept.push(msg)
+      }
+    } else {
+      clean_kept.push(msg)
+    }
+  }
+
+  // Build pulled: messages not in clean_kept (in original order)
+  let kept_len = clean_kept.length()
+  let pulled : Array[@message.Message] = []
+  for i = kept_len; i < total; i = i + 1 {
+    pulled.push(messages[i])
+  }
+  // Also add any orphaned tool results that were removed from kept
+  // (they may be at indices < kept_len)
+  if clean_kept.length() < kept.length() {
+    // Some messages were removed from middle of kept; rebuild pulled
+    while pulled.length() > 0 {
+      let _ = pulled.pop()
+    }
+    // Simple approach: messages in original but not in clean_kept
+    let kept_set : Map[Int, Bool] = {}
+    let mut ki = 0
+    for msg in clean_kept {
+      // Find msg in original messages
+      for j = 0; j < total; j = j + 1 {
+        if messages[j] == msg && kept_set.get(j) is None {
+          kept_set[j] = true
+          break
+        }
+      }
+      let _ = ki
+      ki = ki + 1
+    }
+    for j = 0; j < total; j = j + 1 {
+      if kept_set.get(j) is None {
+        pulled.push(messages[j])
+      }
+    }
+  }
+
+  (clean_kept, pulled)
 }

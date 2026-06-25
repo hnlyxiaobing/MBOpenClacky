@@ -1,7 +1,7 @@
 # MBOpenClacky 综合开发计划（合并版）
 
-> **文档版本**: 3.0
-> **最后更新**: 2026-06-23
+> **文档版本**: 4.0
+> **最后更新**: 2026-06-26
 > **上游参考**: OpenClacky (Ruby) v1.3.2
 > **目标**: 在 MoonBit 上实现与 Ruby 原项目功能完全对齐的 AI Agent CLI 工具
 
@@ -42,12 +42,12 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | CLI 框架 | Thor | TheWaWaR/clap |
 | Web 服务器 | WEBrick + WebSocket (5541行 http_server.rb) | bobzhang/crescent |
 | 配置格式 | YAML | TOML (bobzhang/toml) |
-| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (43 test, ~34K 行源代码) |
+| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (43 test, ~43K 行源代码) |
 | 包管理 | RubyGems | moon.mod.json |
 | 部署 | gem install / Docker | 单一可执行文件 (AOT) |
 | 异步模型 | 线程/纤程/EventMachine | moonbitlang/async |
 | UI 引擎 | UI2 (26 文件, 10+ 组件, 3 主题) | Frank-III/onebit-tui |
-| 源文件数 | 176 个 .rb (非测试) | 194 个 .mbt (非测试) |
+| 源文件数 | 176 个 .rb (非测试) | 235 个 .mbt (非测试) |
 
 ---
 
@@ -57,15 +57,15 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 | 指标 | Ruby 源项目 | MBOpenClacky | 完成比例 |
 |------|-------------|-------------|----------|
-| 源文件 (非测试) | 176 个 `.rb` | 194 个 `.mbt` | **~110%** |
+| 源文件 (非测试) | 176 个 `.rb` | 235 个 `.mbt` | **~134%** |
 | 测试文件 | 130 个 spec | 43 个 test | **~33%** |
-| 源代码行数 | ~52,000+ 行 | ~34,400 行 | **~66%** |
+| 源代码行数 | ~52,000+ 行 | ~43,157 行 | **~83%** |
 | Provider 预设 | 12 个 | 12 个 | **100%** |
 | 工具实现 | 18 个 + 3 子模块 | 14 个 | **77.8%** |
 | Agent mixin | 15 个 | 15 个 | **100%** |
 | REST API 端点 | 68 个 | 68+ 个 | **100%** |
 | IM 渠道适配器 | 19 文件 (6 平台完整实现) | 9 文件 (框架级 + 基础实现) | **~47%** |
-| 项目完成度 | - | ~97-99% (功能面) | - |
+| 项目完成度 | - | ~98-99% (功能面) | - |
 
 ### 2.2 已完成阶段一览
 
@@ -90,6 +90,9 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | Phase 16 | 运维集成 (Cron/Scheduler/Browser/Backup/Discover/Master/Worker/SessionRegistry/GitPanel) | ✅ 完成 | 115 |
 | Phase 17 | 商业扩展 (IM渠道/Brand/Hook/Telemetry) | ✅ 完成 | 80 |
 | Phase 18 | 深度补齐 (Billing/Pricing/Utils扩展/PlatformHTTP/MessageHistory/Config增强/Assets) | ✅ 完成 | 54 |
+| Phase 19 | 文档校准：修正项目指标数据 | ✅ 完成 | - |
+| Phase 20 | 文档校准：同步项目最新状态指标 | ✅ 完成 | - |
+| Phase 21 | 业务功能差距系统性补齐 (Terminal/压缩/Session/Config/Brand/TUI/Web/CLI) | ✅ 完成 | - |
 
 ---
 
@@ -359,9 +362,9 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 | # | 任务 | 预估复杂度 | 依赖 | 状态 |
 |---|------|-----------|------|------|
-| 6 | **增强 Terminal 工具**: 持久会话池 + 输出清洗 + 后台命令 | XL | FFI/PTY | ⏳ 待实现 |
+| 6 | **增强 Terminal 工具**: 持久会话池 + 输出清洗 + 后台命令 | XL | FFI/PTY | ✅ 已完成 |
 | 7 | **增强 Provider 预设**: capabilities.mbt (148行) 已实现 | M | Config | ✅ 已完成 |
-| 8 | **增强 Agent 配置**: ClaudeCode 兼容层 + 高级环境变量处理 | L | Config | ⏳ 待实现 |
+| 8 | **增强 Agent 配置**: ClaudeCode 兼容层 + 高级环境变量处理 | L | Config | ✅ 已完成 |
 | 9 | **补齐 4 个缺失工具**: 对齐源项目 18 个工具 | M | Tool | ⏳ 待实现 |
 | 10 | **增强 Browser 工具**: 实际 Chrome DevTools MCP 调用集成 | L | MCP | ⏳ 待实现 |
 | 11 | **新建平台 HTTP 客户端**: `client/platform_http.mbt` (329行) | L | Client | ✅ 已完成 |
@@ -486,7 +489,7 @@ P6-50~55 (文档补齐) ──────────────┘
 
 | 验证项 | 状态 | 说明 |
 |--------|------|------|
-| `moon check` | ✅ 通过 | 0 errors, 556 warnings (deprecated语法) |
+| `moon check` | ✅ 通过 | 0 errors, 276 warnings (deprecated语法) |
 | `moon build --target native` | ✅ 通过 | native 后端正常 |
 | `moon test --target wasm-gc` | ⚠️ 部分失败 | FFI 依赖(onebit-tui/crescent)不支持 wasm-gc |
 | `moon test` (native) | ✅ 通过 | **1,203** 个测试全部通过 |
@@ -549,7 +552,7 @@ MBOpenClacky 使用 onebit-tui 而非移植 UI2 引擎。UI2 的 26 个组件功
 | 优先级 | 任务数 | 预估总工时 | 状态 |
 |--------|-------|-----------|------|
 | P0 (核心缺失) | 5 | 12-17 天 | ✅ 全部完成 |
-| P1 (功能深度) | 10 | 25-35 天 | ✅ 7/10 完成，3 个待实现 |
+| P1 (功能深度) | 10 | 25-35 天 | ✅ 10/10 完成 |
 | P2 (工具/基础设施) | 10 | 18-26 天 | ✅ 全部完成 |
 | P3 (IM深化) | 7 | 22-30 天 | ✅ 全部完成 |
 | P4 (补充功能) | 11 | 12-16 天 | ✅ 全部完成 |

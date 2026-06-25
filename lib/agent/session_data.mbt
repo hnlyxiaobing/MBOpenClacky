@@ -190,6 +190,9 @@ pub(all) struct SessionData {
   model_base_url : String
   last_status : String
   last_error : String
+  // Fork and chunk tracking
+  forked_from : String?
+  chunk_count : Int
 } derive(Eq, Debug)
 
 ///|
@@ -233,6 +236,8 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
       Some(e) => e
       None => ""
     },
+    forked_from: None,
+    chunk_count: 0,
   }
 }
 
@@ -363,6 +368,11 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "model_base_url": self.model_base_url.to_json(),
     "last_status": self.last_status.to_json(),
     "last_error": self.last_error.to_json(),
+    "chunk_count": self.chunk_count.to_json(),
+  }
+  match self.forked_from {
+    Some(f) => obj["forked_from"] = f.to_json()
+    None => ()
   }
   match self.channel_info {
     Some(ci) => obj["channel_info"] = ci.to_json()
@@ -464,6 +474,14 @@ impl FromJson for SessionData with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
+      let forked_from = match map.get("forked_from") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+      let chunk_count = match map.get("chunk_count") {
+        Some(Number(d, ..)) => d.to_int()
+        _ => 0
+      }
       {
         session_id,
         name,
@@ -482,6 +500,8 @@ impl FromJson for SessionData with fn from_json(json, path) {
         model_base_url,
         last_status,
         last_error,
+        forked_from,
+        chunk_count,
       }
     }
     _ => raise JsonDecodeError((path, "SessionData: expected object"))

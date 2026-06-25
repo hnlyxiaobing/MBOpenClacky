@@ -4,6 +4,7 @@ import {
   "moonbitlang/core/hashset",
   "moonbitlang/x/sys",
   "moonbitlang/x/fs",
+  "moonbitlang/x/path",
   "TheWaWaR/clap",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
@@ -11,6 +12,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/tui",
   "hnlyxiaobing/MBOpenClacky/lib/web",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
 
 options(

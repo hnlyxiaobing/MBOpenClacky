@@ -66,6 +66,8 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
         base_url,
         model: model_name,
         anthropic_format: true,
+        runtime_id: "default",
+        media_type: None,
       }
       config.models = [env_model]
       config.current_model_id = Some("default")
@@ -115,6 +117,8 @@ fn load_claude_compat() -> AgentConfig? {
         base_url,
         model: model_name,
         anthropic_format: true,
+        runtime_id: "default",
+        media_type: None,
       }
       config.models = [env_model]
       config.current_model_id = Some("default")

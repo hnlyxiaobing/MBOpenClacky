@@ -229,3 +229,150 @@ fn sync_state_from_agent(state : Ref[TuiState], agent : @agent.Agent) -> Unit {
   }
   s.messages = display_messages
 }
+
+// ── TuiController ────────────────────────────────────────────────────
+
+///|
+/// UI interaction mode for the TuiController.
+pub(all) enum UiMode {
+  /// Normal browsing mode.
+  Normal
+  /// A modal dialog is active.
+  Dialog
+  /// Sidebar panel is visible.
+  Sidebar
+} derive(Eq, Debug, Show)
+
+///|
+/// High-level UI controller that coordinates layout, output, screen,
+/// dialogs, and sidebar. Built on top of the lower-level components.
+pub(all) struct TuiController {
+  /// Layout manager for screen regions.
+  layout_manager : LayoutManager
+  /// Output buffer for conversation history.
+  output_buffer : OutputBuffer
+  /// Screen buffer for cell-level rendering.
+  screen_buffer : ScreenBuffer
+  /// Currently active modal dialog.
+  mut active_dialog : Dialog?
+  /// Sidebar panel.
+  mut sidebar : SidebarPanel?
+  /// Current UI interaction mode.
+  mut mode : UiMode
+} derive(Debug)
+
+///|
+/// Create a new TuiController with the given screen dimensions.
+pub fn TuiController::new(width : Int, height : Int) -> TuiController {
+  {
+    layout_manager: LayoutManager::new(width, height),
+    output_buffer: OutputBuffer::new(1000, height - 4),
+    screen_buffer: ScreenBuffer::new(width, height),
+    active_dialog: None,
+    sidebar: None,
+    mode: Normal,
+  }
+}
+
+///|
+/// Enter dialog mode with the given dialog.
+pub fn TuiController::enter_dialog_mode(
+  self : TuiController,
+  dialog : Dialog,
+) -> Unit {
+  dialog.open()
+  self.active_dialog = Some(dialog)
+  self.mode = Dialog
+}
+
+///|
+/// Exit dialog mode, submitting the dialog and returning the result.
+pub fn TuiController::exit_dialog_mode(self : TuiController) -> String? {
+  match self.active_dialog {
+    Some(dialog) => {
+      let result = dialog.submit()
+      dialog.close()
+      self.active_dialog = None
+      self.mode = Normal
+      result
+    }
+    None => {
+      self.mode = Normal
+      None
+    }
+  }
+}
+
+///|
+/// Toggle the sidebar panel visibility.
+pub fn TuiController::toggle_sidebar(self : TuiController) -> Unit {
+  match self.sidebar {
+    Some(sb) => {
+      sb.toggle_visibility()
+      if sb.visible {
+        self.mode = Sidebar
+      } else {
+        self.mode = Normal
+      }
+    }
+    None => {
+      // Create a default sidebar
+      let sb = SidebarPanel::new("Sessions", 25)
+      sb.toggle_visibility()
+      self.sidebar = Some(sb)
+      self.mode = Sidebar
+    }
+  }
+}
+
+///|
+/// Handle a window resize event.
+pub fn TuiController::handle_resize(
+  self : TuiController,
+  width : Int,
+  height : Int,
+) -> Unit {
+  self.layout_manager.resize(width, height)
+  self.output_buffer.set_viewport_height(height - 4)
+  self.screen_buffer.resize(width, height)
+}
+
+///|
+/// Render a complete frame as an array of text lines.
+///
+/// Combines output buffer, sidebar, and dialog into a single frame.
+pub fn TuiController::render_frame(self : TuiController) -> Array[String] {
+  let lines : Array[String] = []
+
+  // Render visible output lines
+  let visible = self.output_buffer.get_visible_lines()
+  for line in visible {
+    lines.push(line.content)
+  }
+
+  // Render sidebar if visible
+  match self.sidebar {
+    Some(sb) =>
+      if sb.visible {
+        let sb_lines = sb.render()
+        for sl in sb_lines {
+          lines.push(sl)
+        }
+      }
+    None => ()
+  }
+
+  // Render dialog overlay if active
+  match self.active_dialog {
+    Some(dialog) =>
+      if dialog.is_open {
+        let dialog_lines = dialog.render()
+        for dl in dialog_lines {
+          lines.push(dl)
+        }
+      }
+    None => ()
+  }
+
+  lines
+}

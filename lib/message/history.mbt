@@ -199,9 +199,123 @@ pub fn MessageHistory::size(self : MessageHistory) -> Int {
 }
 
 ///|
+
+///|
 /// Check if the history is empty.
 pub fn MessageHistory::is_empty(self : MessageHistory) -> Bool {
   self.messages.is_empty()
+}
+
+// ── Bulk mutation operations ─────────────────────────────────────────────────
+
+///|
+/// Replace the entire message list with a new array.
+/// Used by compression rebuild and session fork.
+pub fn MessageHistory::replace_all(
+  self : MessageHistory,
+  new_messages : Array[Message],
+) -> Unit {
+  let sanitized : Array[Message] = []
+  for msg in new_messages {
+    sanitized.push(deep_sanitize_utf8(msg))
+  }
+  self.messages = sanitized
+}
+
+///|
+/// Remove all messages satisfying the predicate.
+pub fn MessageHistory::delete_where(
+  self : MessageHistory,
+  predicate : (Message) -> Bool,
+) -> Unit {
+  let kept : Array[Message] = []
+  for msg in self.messages {
+    if !predicate(msg) {
+      kept.push(msg)
+    }
+  }
+  self.messages = kept
+}
+
+///|
+/// Find the last message matching the predicate and mutate it in-place.
+/// Returns true if a matching message was found and transformed.
+pub fn MessageHistory::mutate_last_matching(
+  self : MessageHistory,
+  predicate : (Message) -> Bool,
+  transform : (Message) -> Message,
+) -> Bool {
+  let len = self.messages.length()
+  let mut found_idx = -1
+  for i = len - 1; i >= 0; i = i - 1 {
+    if predicate(self.messages[i]) {
+      found_idx = i
+      break
+    }
+  }
+  if found_idx >= 0 {
+    self.messages[found_idx] = transform(self.messages[found_idx])
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Truncate history starting from the user message with the given created_at timestamp.
+/// Removes that message and everything after it.
+pub fn MessageHistory::truncate_from_created_at(
+  self : MessageHistory,
+  timestamp : String,
+) -> Unit {
+  let len = self.messages.length()
+  let mut found_idx = -1
+  for i = 0; i < len; i = i + 1 {
+    if self.messages[i].role == User {
+      match self.messages[i].created_at {
+        Some(ts) =>
+          if ts == timestamp {
+            found_idx = i
+            break
+          }
+        None => ()
+      }
+    }
+  }
+  if found_idx >= 0 {
+    self.truncate_from(found_idx)
+  }
+}
+
+///|
+/// Roll back the history to just before the message with the given message_id.
+/// The `message_id` is matched against the `task_id` field of each message.
+/// Removes the matched message and everything after it.
+pub fn MessageHistory::rollback_before(
+  self : MessageHistory,
+  message_id : String,
+) -> Unit {
+  let len = self.messages.length()
+  let mut found_idx = -1
+  for i = 0; i < len; i = i + 1 {
+    match self.messages[i].task_id {
+      Some(tid) =>
+        if tid == message_id {
+          found_idx = i
+          break
+        }
+      None => ()
+    }
+  }
+  if found_idx >= 0 {
+    self.truncate_from(found_idx)
+  }
+}
+
+///|
+/// Clear all messages from the history.
+pub fn MessageHistory::clear(self : MessageHistory) -> Unit {
+  self.messages = []
 }
 
 // ── Private helpers ──────────────────────────────────────────────────────────
@@ -335,8 +449,35 @@ fn estimate_token_count(s : String) -> Int {
 
 ///|
 /// subsequent tool result (dangling). Called before appending user messages.
-fn MessageHistory::drop_dangling_tool_calls(self : MessageHistory) -> Unit {
+
+///|
+/// Also removes orphan tool_result messages without a preceding tool_call.
+pub fn MessageHistory::drop_dangling_tool_calls(self : MessageHistory) -> Unit {
+  // First, remove trailing dangling assistant tool_calls
   if self.pending_tool_calls() {
     let _ = self.messages.pop()
   }
+  // Second, remove orphan tool_result messages (those without a matching tool_call)
+  let tool_call_ids : Map[String, Bool] = {}
+  for msg in self.messages {
+    match msg.tool_calls {
+      Some(calls) =>
+        for tc in calls {
+          tool_call_ids[tc.id] = true
+        }
+      None => ()
+    }
+  }
+  let kept : Array[Message] = []
+  for msg in self.messages {
+    if msg.role == Tool {
+      match msg.tool_call_id {
+        Some(id) => if tool_call_ids.get(id) is Some(_) { kept.push(msg) }
+        None => kept.push(msg)
+      }
+    } else {
+      kept.push(msg)
+    }
+  }
+  self.messages = kept
 }

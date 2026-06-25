@@ -90,6 +90,8 @@ test "SessionData with new fields serialization" {
     model_base_url: "https://api.openai.com",
     last_status: "idle",
     last_error: "",
+    forked_from: None,
+    chunk_count: 0,
   }
   let json = data.to_json()
   let parsed : SessionData = @json.from_json(json)
@@ -164,6 +166,8 @@ test "restore_session_enhanced basic" {
     model_base_url: "",
     last_status: "idle",
     last_error: "",
+    forked_from: None,
+    chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
   assert_eq(result.session_id, "s_basic")
@@ -210,6 +214,8 @@ test "restore_session_enhanced with channel_info" {
     model_base_url: "",
     last_status: "idle",
     last_error: "",
+    forked_from: None,
+    chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
   assert_eq(result.channel_info.unwrap().platform, "discord")
@@ -248,6 +254,8 @@ test "restore_session_enhanced error rollback detection" {
     model_base_url: "",
     last_status: "error",
     last_error: "Connection timeout",
+    forked_from: None,
+    chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
   assert_eq(result.needs_error_rollback, true)

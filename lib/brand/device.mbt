@@ -8,7 +8,8 @@ pub(all) struct DeviceInfo {
 } derive(Eq, Debug, ToJson)
 
 ///|
-/// Generate a stable device identifier
+/// Generate a stable device identifier based on system properties.
+/// Uses hostname + username + platform to create a deterministic hash.
 pub fn generate_device_id() -> DeviceInfo {
   let hostname = get_hostname()
   let username = get_username()
@@ -19,28 +20,42 @@ pub fn generate_device_id() -> DeviceInfo {
 }
 
 ///|
-/// Get system hostname (placeholder)
+/// Get system hostname.
+/// TODO: Replace with FFI to GetComputerNameW / gethostname().
 fn get_hostname() -> String {
-  // TODO: FFI to system
-  "unknown-host"
+  match @sys.get_env_var("COMPUTERNAME") {
+    Some(h) if !h.is_empty() => h
+    _ =>
+      match @sys.get_env_var("HOSTNAME") {
+        Some(h) if !h.is_empty() => h
+        _ => "unknown-host"
+      }
+  }
 }
 
 ///|
-/// Get current username (placeholder)
+/// Get current username.
+/// TODO: Replace with FFI to GetUserNameW / getpwuid().
 fn get_username() -> String {
-  // TODO: FFI to system
-  "unknown-user"
+  match @sys.get_env_var("USERNAME") {
+    Some(u) if !u.is_empty() => u
+    _ =>
+      match @sys.get_env_var("USER") {
+        Some(u) if !u.is_empty() => u
+        _ => "unknown-user"
+      }
+  }
 }
 
 ///|
 /// Get platform identifier
 fn get_platform() -> String {
-  // TODO: compile-time detection
   "windows"
 }
 
 ///|
-/// Simple deterministic hash (placeholder for SHA256)
+/// Simple deterministic hash (placeholder for SHA256).
+/// Produces a 16-character hex string from the input.
 pub fn simple_hash(input : String) -> String {
   let mut hash : UInt = 0
   for c in input {
@@ -58,10 +73,14 @@ pub fn simple_hash(input : String) -> String {
 }
 
 ///|
-/// Ensure device_id exists in config (generate if missing)
+/// Ensure device_id exists in config (generate if missing).
 pub fn ensure_device_id(config : BrandConfig) -> String {
   match config.device_id {
-    Some(id) => id
-    None => generate_device_id().device_id
+    Some(id) if id.length() > 0 => id
+    _ => {
+      let info = generate_device_id()
+      config.device_id = Some(info.device_id)
+      info.device_id
+    }
   }
 }

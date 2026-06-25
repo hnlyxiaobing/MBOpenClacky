@@ -11,15 +11,17 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~97-99%（Phase 0-18 全部完成）
+- **完成度**：~98-99%（Phase 0-21 全部完成）
 
 ### 核心能力概览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（非测试） | 194 个 |
+| `.mbt` 源文件（非测试） | 235 个 |
 | 测试文件 | 43 个 |
-| 代码行数（源代码） | ~34,400 行 |
+| 代码行数（源代码） | ~43,157 行 |
+| 代码行数（测试） | ~13,239 行 |
+| 代码行数（总计） | ~56,396 行 |
 | 测试用例 | 1,203 个（全部通过 `moon check`） |
 | 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
@@ -117,8 +119,8 @@
 
 ```
 MBOpenClacky/
-├── cmd/                # 可执行入口
-│   └── main.mbt
+├── cmd/                # 可执行入口（7 个文件：main + NDJSON日志/补丁加载/Hook加载/Channel脚手架/API扩展）
+│   └── main.mbt + 5 辅助模块
 ├── lib/                # 库代码（21 个顶级包）
 │   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer/Compressor/SessionRestore
 │   ├── billing/        # 计费系统（BillingRecord + BillingStore + 成本计算）
@@ -202,11 +204,11 @@ moon run cmd
 moon test
 ```
 
-当前共有 **1,203 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 556 warnings）。
+当前共有 **1,203 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 276 warnings）。
 
 ### 开发阶段路线
 
-项目按 19 阶段（Phase 0-18）自底向上推进，**全部已完成**：
+项目按 21 阶段（Phase 0-18 + Phase 19-21）自底向上推进，**全部已完成**：
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -229,6 +231,9 @@ moon test
 | Phase 16 | 运维集成（Browser / Scheduler / Backup / Discover） | ✅ 已完成 |
 | Phase 17 | 商业扩展（IM 渠道 / Brand / Hook / Telemetry） | ✅ 已完成 |
 | Phase 18 | 深度补齐（Billing / Pricing / Utils扩展 / Server增强 / MessageHistory / 默认资源） | ✅ 已完成 |
+| Phase 19 | 文档校准：修正项目指标数据 | ✅ 已完成 |
+| Phase 20 | 文档校准：同步项目最新状态指标 | ✅ 已完成 |
+| Phase 21 | 业务功能差距系统性补齐（Terminal/压缩/Session/Config/Brand/TUI/Web/CLI） | ✅ 已完成 |
 
 ## 六、致谢
 
