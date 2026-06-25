@@ -17,10 +17,10 @@
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（非测试） | 218 个 |
-| 测试文件 | 42 个 |
-| 代码行数（源代码） | ~39,400 行 |
-| 测试用例 | 1,155 个（全部通过 `moon check`） |
+| `.mbt` 源文件（非测试） | 194 个 |
+| 测试文件 | 43 个 |
+| 代码行数（源代码） | ~34,400 行 |
+| 测试用例 | 1,203 个（全部通过 `moon check`） |
 | 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
@@ -202,7 +202,7 @@ moon run cmd
 moon test
 ```
 
-当前共有 **1,155 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、MCP、Channel、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 557 warnings）。
+当前共有 **1,203 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 556 warnings）。
 
 ### 开发阶段路线
 

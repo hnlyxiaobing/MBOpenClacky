@@ -280,6 +280,28 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     })
   })
 
+  // ── Static Files ──────────────────────────────────────────────
+  app.static_assets("/", @static_file.StaticFileProvider(path="assets/web"))
+
+  // ── SPA Fallback ─────────────────────────────────────────────
+  // For non-API, non-WS, non-health paths, serve index.html for client-side routing.
+  app.set_not_found_handler((event : @crescent.Event) => {
+    let path = event.req.path()
+    if !path.has_prefix("/api/") &&
+      !path.has_prefix("/ws/") &&
+      path != "/health" {
+      let content = @fs.read_file_to_string("assets/web/index.html") catch {
+        _ => ""
+      }
+      if !content.is_empty() {
+        return @core.HttpResponse::ok()
+          .header("Content-Type", "text/html; charset=utf-8")
+          .body(content)
+      }
+    }
+    @core.HttpResponse::not_found().body("Not Found")
+  })
+
   // ── WebSocket ─────────────────────────────────────────────────
   app.ws(
     "/ws/sessions/:id",

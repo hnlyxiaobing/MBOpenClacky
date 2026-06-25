@@ -1,5 +1,7 @@
 ///| Static file server with MIME type mapping and SPA fallback.
 
+///| Uses moonbitlang/x/fs for real filesystem I/O.
+
 ///|
 pub(all) struct StaticServer {
   root_dir : String
@@ -60,23 +62,38 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
     return HttpResponse::bad_request("Invalid path")
   }
   let full_path = self.root_dir + "/" + clean_path
-  // TODO: Actually read file from filesystem
-  // In MoonBit/WASM environment, file I/O would use platform-specific FFI
-  // For now, return placeholder responses based on path
   let mime = get_mime_type(full_path)
-  // Simulate file existence check
-  // In production: attempt to read file, if not found do SPA fallback
+  // Attempt to read the file from the filesystem
   if is_static_asset(clean_path) {
-    // Return placeholder for known static assets
-    HttpResponse::{
-      status: 200,
-      body: "/* static content for: \{clean_path} */",
-      content_type: mime,
-      headers: [("Cache-Control", "public, max-age=3600")],
+    // Known static asset extension: try to read the file
+    match try_read_file(full_path) {
+      Some(content) =>
+        HttpResponse::{
+          status: 200,
+          body: content,
+          content_type: mime,
+          headers: [("Cache-Control", "public, max-age=3600")],
+        }
+      None =>
+        // File not found on disk
+        HttpResponse::not_found("File not found: \{clean_path}")
     }
   } else {
-    // SPA fallback: return index.html for non-API routes
+    // Non-asset path: SPA fallback → serve index.html
     spa_fallback(self)
+  }
+}
+
+///|
+/// Attempt to read a file from the filesystem.
+/// Returns Some(content) on success, None on failure.
+fn try_read_file(path : String) -> String? {
+  if @fs.path_exists(path) {
+    Some(@fs.read_file_to_string(path)) catch {
+      _ => None
+    }
+  } else {
+    None
   }
 }
 
@@ -98,8 +115,14 @@ fn is_static_asset(path : String) -> Bool {
 ///|
 /// SPA fallback: serve index.html for unmatched non-API routes.
 fn spa_fallback(server : StaticServer) -> HttpResponse {
-  // TODO: Read actual index.html from root_dir
-  let fallback_body = "<!DOCTYPE html><html><body><div id=\"app\"></div><script src=\"/js/app.js\"></script></body></html>"
+  let index_path = server.root_dir + "/" + server.index_file
+  let fallback_body = if @fs.path_exists(index_path) {
+    @fs.read_file_to_string(index_path) catch {
+      _ => "<!DOCTYPE html><html><body><div id=\"app\"></div></body></html>"
+    }
+  } else {
+    "<!DOCTYPE html><html><body><div id=\"app\"></div></body></html>"
+  }
   HttpResponse::{
     status: 200,
     body: fallback_body,
@@ -109,4 +132,17 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
       ("X-SPA-Fallback", server.index_file),
     ],
   }
+}
+
+///|
+/// Convert local HttpResponse to crescent HttpResponse for use in handlers.
+fn HttpResponse::to_crescent(self : HttpResponse) -> @core.HttpResponse {
+  let status_code = @core.StatusCode::from_int(self.status)
+  let resp = @core.HttpResponse::http_response(status_code~)
+  // Set Content-Type before body() so String responder won't override it
+  resp.headers.set("Content-Type", self.content_type)
+  for pair in self.headers {
+    resp.headers.set(pair.0, pair.1)
+  }
+  resp.body(self.body)
 }

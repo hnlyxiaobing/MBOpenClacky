@@ -12,8 +12,10 @@ import {
   "bobzhang/crescent",
   "bobzhang/crescent/core",
   "bobzhang/crescent/cors",
+  "bobzhang/crescent/static_file",
   "bobzhang/crescent/websocket" @ws,
   "moonbitlang/core/json",
+  "moonbitlang/x/fs",
   "moonbitlang/async",
   "moonbitlang/async/http",
 }
