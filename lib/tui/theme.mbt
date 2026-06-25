@@ -26,18 +26,18 @@ pub(all) struct Theme {
   error_color : String
   /// Dim/muted text color.
   dim_color : String
-} derive(Eq, Debug)
+} derive(Eq, Debug, Show)
 
 ///|
 /// Create the default theme (blue/cyan tones).
 pub fn Theme::default_() -> Theme {
   {
     name: Default,
-    primary_color: "\x1b[34m",
-    secondary_color: "\x1b[36m",
-    accent_color: "\x1b[35m",
-    error_color: "\x1b[31m",
-    dim_color: "\x1b[90m",
+    primary_color: "\u001b[34m",
+    secondary_color: "\u001b[36m",
+    accent_color: "\u001b[35m",
+    error_color: "\u001b[31m",
+    dim_color: "\u001b[90m",
   }
 }
 
@@ -46,11 +46,11 @@ pub fn Theme::default_() -> Theme {
 pub fn Theme::hacker() -> Theme {
   {
     name: Hacker,
-    primary_color: "\x1b[32m",
-    secondary_color: "\x1b[92m",
-    accent_color: "\x1b[32m",
-    error_color: "\x1b[31m",
-    dim_color: "\x1b[90m",
+    primary_color: "\u001b[32m",
+    secondary_color: "\u001b[92m",
+    accent_color: "\u001b[32m",
+    error_color: "\u001b[31m",
+    dim_color: "\u001b[90m",
   }
 }
 
@@ -59,11 +59,11 @@ pub fn Theme::hacker() -> Theme {
 pub fn Theme::minimal() -> Theme {
   {
     name: Minimal,
-    primary_color: "\x1b[37m",
-    secondary_color: "\x1b[97m",
-    accent_color: "\x1b[37m",
-    error_color: "\x1b[31m",
-    dim_color: "\x1b[90m",
+    primary_color: "\u001b[37m",
+    secondary_color: "\u001b[97m",
+    accent_color: "\u001b[37m",
+    error_color: "\u001b[31m",
+    dim_color: "\u001b[90m",
   }
 }
 

@@ -73,8 +73,8 @@ pub fn list_sessions() -> Array[SessionData] {
   let sessions : Array[SessionData] = []
   for name in filenames {
     if name.has_suffix(".json") {
-      let session_id = name[:name.length() - 5].to_string()
-      let result = load_session(session_id) catch { _ => None }
+      let session_id = name[:name.length() - 5].to_owned()
+      let result = load_session(session_id)
       match result {
         Some(s) => sessions.push(s)
         None => ()

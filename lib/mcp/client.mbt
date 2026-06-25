@@ -118,14 +118,14 @@ pub fn McpClient::call_tool(
 /// Send a JSON-RPC request and return the result.
 fn McpClient::send_request(
   self : McpClient,
-  method : String,
+  http_method : String,
   params : Json?,
 ) -> Json raise McpError {
   let id = self.next_id
   self.next_id += 1
   self.last_used_at = Some(0) // Placeholder: should be current timestamp
   // Build and send the request
-  let request_str = build_jsonrpc_request(id, method, params)
+  let request_str = build_jsonrpc_request(id, http_method, params)
   self.transport.send_message(request_str)
   // In a real implementation, we would wait for the response asynchronously.
   // For now, this is a synchronous placeholder that would be filled in
@@ -135,7 +135,7 @@ fn McpClient::send_request(
   // The actual response would come through the transport's on_message handler.
   raise McpError(
     "Response handling requires async runtime (method: " +
-    method +
+    http_method +
     ", id: " +
     id.to_string() +
     ")",
@@ -147,14 +147,14 @@ fn McpClient::send_request(
 /// This simulates the full request-response cycle with a known response.
 pub fn McpClient::send_request_with_response(
   self : McpClient,
-  method : String,
+  http_method : String,
   params : Json?,
   response_text : String,
 ) -> Json raise McpError {
   let id = self.next_id
   self.next_id += 1
   self.last_used_at = Some(0)
-  let request_str = build_jsonrpc_request(id, method, params)
+  let request_str = build_jsonrpc_request(id, http_method, params)
   ignore(request_str)
   // Parse the provided response
   match parse_jsonrpc_response(response_text) {
@@ -170,7 +170,8 @@ pub fn McpClient::send_request_with_response(
             None => Json::null()
           }
       }
-    None => raise McpError("Failed to parse response for method: " + method)
+    None =>
+      raise McpError("Failed to parse response for method: " + http_method)
   }
 }
 

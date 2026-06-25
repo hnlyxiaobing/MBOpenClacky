@@ -282,7 +282,7 @@ impl Tool for Browser with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     let msg = result.content
     if msg.length() > 80 {
-      "[Error] \{msg[:80].to_string()}"
+      "[Error] \{msg[:80].to_owned()}"
     } else {
       "[Error] \{msg}"
     }
@@ -748,7 +748,7 @@ let max_llm_output_chars : Int = 6000
 
 ///|
 /// Lines of context to show around a query match in snapshot.
-let snapshot_query_window : Int = 60
+let _snapshot_query_window : Int = 60
 
 ///|
 /// Truncate output to a maximum number of characters.
@@ -756,7 +756,7 @@ pub fn truncate_browser_output(output : String, max_chars : Int) -> String {
   if output.length() <= max_chars {
     output
   } else {
-    output[:max_chars].to_string() +
+    output[:max_chars].to_owned() +
     "\n... (truncated, \{output.length() - max_chars} more chars)"
   }
 }

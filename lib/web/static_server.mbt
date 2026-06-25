@@ -53,7 +53,7 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
   let clean_path = if path == "/" || path == "" {
     self.index_file
   } else if path[0] == '/' {
-    path[1:].to_string()
+    path[1:].to_owned()
   } else {
     path
   }
@@ -136,7 +136,7 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
 
 ///|
 /// Convert local HttpResponse to crescent HttpResponse for use in handlers.
-fn HttpResponse::to_crescent(self : HttpResponse) -> @core.HttpResponse {
+pub fn HttpResponse::to_crescent(self : HttpResponse) -> @core.HttpResponse {
   let status_code = @core.StatusCode::from_int(self.status)
   let resp = @core.HttpResponse::http_response(status_code~)
   // Set Content-Type before body() so String responder won't override it

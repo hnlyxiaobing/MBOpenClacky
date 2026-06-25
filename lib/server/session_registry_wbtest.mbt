@@ -48,7 +48,7 @@ test "unregister removes session" {
   let wid : WorkerId = { id: 1, name: "w1" }
   let _ = reg.register("s1", wid, created_at="2024-01-01T00:00:00Z")
   let res = reg.unregister("s1")
-  inspect(res.is_ok(), content="true")
+  inspect(res is Ok(_), content="true")
   inspect(reg.count(), content="0")
 }
 
@@ -56,7 +56,7 @@ test "unregister removes session" {
 test "unregister missing fails" {
   let reg = SessionRegistry::new()
   let res = reg.unregister("nonexistent")
-  inspect(res.is_err(), content="true")
+  inspect(res is Err(_), content="true")
   inspect(res.unwrap_err(), content="Session not found: nonexistent")
 }
 
@@ -66,14 +66,14 @@ test "find existing session" {
   let wid : WorkerId = { id: 1, name: "w1" }
   let _ = reg.register("s1", wid, created_at="2024-01-01T00:00:00Z")
   let found = reg.find("s1")
-  inspect(found.is_empty(), content="false")
+  inspect(found is Some(_), content="false")
 }
 
 ///|
 test "find missing returns None" {
   let reg = SessionRegistry::new()
   let found = reg.find("missing")
-  inspect(found.is_empty(), content="true")
+  inspect(found is None, content="true")
 }
 
 ///|

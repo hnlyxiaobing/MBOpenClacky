@@ -16,10 +16,10 @@
 /// Matches API key with "ABSK" prefix (native AWS Bedrock)
 /// or model ID with "abs-" prefix (ClackyAI proxy that speaks Bedrock Converse).
 pub fn is_bedrock_api_key(api_key : String, model : String) -> Bool {
-  if api_key.length() >= 4 && api_key[:4].to_string() == "ABSK" {
+  if api_key.length() >= 4 && api_key[:4].to_owned() == "ABSK" {
     return true
   }
-  model.length() >= 4 && model[:4].to_string() == "abs-"
+  model.length() >= 4 && model[:4].to_owned() == "abs-"
 }
 
 ///|
@@ -30,7 +30,7 @@ pub fn is_bedrock_api_key(api_key : String, model : String) -> Bool {
 /// Merges consecutive tool result messages (Bedrock requires alternating roles).
 pub fn build_bedrock_request(
   messages : Array[@message.Message],
-  model : String,
+  _model : String,
   tools : Array[Json],
   max_tokens : Int,
   enable_caching : Bool,
@@ -396,17 +396,17 @@ fn url_to_bedrock_image(url : String) -> Json? {
   if url.length() == 0 {
     return None
   }
-  if url.length() >= 5 && url[:5].to_string() == "data:" {
+  if url.length() >= 5 && url[:5].to_owned() == "data:" {
     // Parse data URI: data:image/<format>;base64,<data>
     match url.find(";base64,") {
       Some(sep) => {
-        let media_type = url[5:sep].to_string()
+        let media_type = url[5:sep].to_owned()
         // Extract format from media_type (e.g. "image/png" -> "png")
         let format = match media_type.find("/") {
-          Some(slash) => media_type[slash + 1:].to_string()
+          Some(slash) => media_type[slash + 1:].to_owned()
           None => media_type
         }
-        let data = url[sep + 8:].to_string()
+        let data = url[sep + 8:].to_owned()
         Some(
           Json::object({
             "image": Json::object({

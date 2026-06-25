@@ -1,7 +1,7 @@
 ///| Time Machine implementation for task snapshot/undo/redo.
 
 ///|
-let absent_marker : String = ".mbopenclacky-absent"
+let _absent_marker : String = ".mbopenclacky-absent"
 
 ///|
 /// Create a new TimeMachine for a session.

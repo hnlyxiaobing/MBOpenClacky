@@ -29,12 +29,12 @@ test "dispatch_task assigns to idle worker" {
   let master = ServerMaster::new()
   master.start()
   let result = master.dispatch_task("process request")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   let wid = result.unwrap()
   assert_eq(wid.id, 1)
   // Worker should now be busy
   let w = master.find_worker(wid)
-  assert_true(not(w.is_empty()))
+  assert_true(w is Some(_))
   assert_eq(w.unwrap().status, Busy("process request"))
 }
 
@@ -53,7 +53,7 @@ test "dispatch_task scales up when needed" {
   let _ = master.dispatch_task("task1")
   // Second task should create a new worker
   let r2 = master.dispatch_task("task2")
-  assert_true(r2.is_ok())
+  assert_true(r2 is Ok(_))
   assert_eq(master.workers.length(), 2)
 }
 
@@ -70,7 +70,7 @@ test "dispatch_task fails when at max" {
   master.start()
   let _ = master.dispatch_task("task1")
   let r2 = master.dispatch_task("task2")
-  assert_true(r2.is_err())
+  assert_true(r2 is Err(_))
 }
 
 ///|
@@ -90,7 +90,7 @@ test "scale_up adds worker" {
   master.start()
   assert_eq(master.workers.length(), 1)
   let result = master.scale_up()
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   assert_eq(master.workers.length(), 2)
 }
 
@@ -108,7 +108,7 @@ test "scale_down removes idle worker" {
   let _ = master.scale_up()
   assert_eq(master.workers.length(), 2)
   let result = master.scale_down()
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   assert_eq(master.workers.length(), 1)
 }
 
@@ -133,7 +133,7 @@ test "restart_worker replaces failed" {
   let w = master.find_worker(wid).unwrap()
   w.status = Failed("crash")
   let result = master.restart_worker(wid)
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   let w2 = master.find_worker(wid).unwrap()
   assert_eq(w2.status, Idle)
 }

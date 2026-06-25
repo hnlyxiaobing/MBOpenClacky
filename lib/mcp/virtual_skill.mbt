@@ -105,7 +105,7 @@ pub fn VirtualSkill::build_tool_call_instruction(
       break
     }
   }
-  if not(found) {
+  if !found {
     buf.write_string("(Tool not found in this skill's tool list)\n")
   }
   buf.to_string()

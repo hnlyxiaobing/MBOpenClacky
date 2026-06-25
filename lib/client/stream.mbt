@@ -30,10 +30,10 @@ pub fn parse_sse_frames(text : String) -> Array[SseFrame] {
   let mut pos = 0
   let len = text.length()
   while pos < len {
-    let rest = text[pos:].to_string()
+    let rest = text[pos:].to_owned()
     match rest.find("\n\n") {
       Some(sep_offset) => {
-        let frame_text = text[pos:pos + sep_offset].to_string()
+        let frame_text = text[pos:pos + sep_offset].to_owned()
         pos = pos + sep_offset + 2
         match parse_single_frame(frame_text) {
           Some(frame) => frames.push(frame)
@@ -57,12 +57,12 @@ fn parse_single_frame(frame_text : String) -> SseFrame? {
   let len = frame_text.length()
 
   while pos < len {
-    let rest = frame_text[pos:].to_string()
+    let rest = frame_text[pos:].to_owned()
     let line_end = match rest.find("\n") {
       Some(offset) => pos + offset
       None => len
     }
-    let line = frame_text[pos:line_end].to_string()
+    let line = frame_text[pos:line_end].to_owned()
     pos = if line_end < len { line_end + 1 } else { len }
 
     if is_line_prefix(line, "event:") {
@@ -86,15 +86,15 @@ fn parse_single_frame(frame_text : String) -> SseFrame? {
 /// Check if a line starts with the given prefix.
 fn is_line_prefix(line : String, prefix : String) -> Bool {
   line.length() >= prefix.length() &&
-  line[:prefix.length()].to_string() == prefix
+  line[:prefix.length()].to_owned() == prefix
 }
 
 ///|
 /// Strip an SSE field prefix and optional leading space.
 fn strip_sse_field(line : String, prefix : String) -> String {
-  let rest = line[prefix.length():].to_string()
-  if rest.length() > 0 && rest[:1].to_string() == " " {
-    rest[1:].to_string()
+  let rest = line[prefix.length():].to_owned()
+  if rest.length() > 0 && rest[:1].to_owned() == " " {
+    rest[1:].to_owned()
   } else {
     rest
   }

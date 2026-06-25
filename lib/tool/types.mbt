@@ -34,7 +34,7 @@ pub fn ToolCategory::from_string(s : String) -> ToolCategory? {
 }
 
 ///|
-impl ToJson for ToolCategory with fn to_json(self) {
+pub impl ToJson for ToolCategory with fn to_json(self) {
   self.to_string_value().to_json()
 }
 

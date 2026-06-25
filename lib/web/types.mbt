@@ -215,7 +215,7 @@ impl ToJson for AggregateStatsResponse with fn to_json(self) {
 }
 
 ///|
-impl ToJson for HealthResponse with fn to_json(self) {
+pub impl ToJson for HealthResponse with fn to_json(self) {
   Json::object({
     "status": self.status.to_json(),
     "uptime_seconds": self.uptime_seconds.to_json(),

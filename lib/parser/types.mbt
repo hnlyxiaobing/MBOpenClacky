@@ -12,7 +12,7 @@ pub(all) enum DocumentFormat {
 
 ///|
 /// Show implementation for DocumentFormat
-impl Show for DocumentFormat with fn output(self, logger) {
+pub impl Show for DocumentFormat with fn output(self, logger) {
   match self {
     Pdf => logger.write_string("Pdf")
     Docx => logger.write_string("Docx")

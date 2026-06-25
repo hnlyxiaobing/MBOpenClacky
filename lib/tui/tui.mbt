@@ -20,9 +20,9 @@
 ///
 /// Falls back to a console message if terminal initialization fails.
 pub fn run_tui_interactive(agent : @agent.Agent) -> Unit {
-  let state = Ref::new(TuiState::from_agent(agent))
-  let input_ref = Ref::new("")
-  let should_quit = Ref::new(false)
+  let state = Ref(TuiState::from_agent(agent))
+  let input_ref = Ref("")
+  let should_quit = Ref(false)
 
   match @tui_core.App::init() {
     None => {
@@ -138,10 +138,10 @@ fn handle_hook_event(state : Ref[TuiState], event : @agent.HookEvent) -> Unit {
 ///
 /// Returns true if the event was consumed, false to let it propagate.
 fn handle_global_event(
-  state : Ref[TuiState],
-  input_ref : Ref[String],
+  _state : Ref[TuiState],
+  _input_ref : Ref[String],
   should_quit : Ref[Bool],
-  agent : @agent.Agent,
+  _agent : @agent.Agent,
   event : @ffi.InputEvent,
 ) -> Bool {
   if should_quit.val {
@@ -165,7 +165,7 @@ fn submit_input(
   input_ref : Ref[String],
   agent : @agent.Agent,
 ) -> Unit {
-  let input_text = input_ref.val.trim().to_string()
+  let input_text = input_ref.val.trim().to_owned()
   if input_text.length() == 0 {
     return
   }

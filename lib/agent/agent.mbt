@@ -133,7 +133,7 @@ fn normalize_reasoning_effort(value : String?) -> String? {
   match value {
     None => None
     Some(v) => {
-      let lower = v.to_lower().trim().to_string()
+      let lower = v.to_lower().trim().to_owned()
       if lower == "" || lower == "off" || lower == "none" {
         None
       } else {

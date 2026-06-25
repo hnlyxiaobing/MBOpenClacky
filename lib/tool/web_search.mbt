@@ -71,7 +71,7 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
 impl Tool for WebSearch with fn format_call(_, args : Map[String, Json]) -> String {
   match args.get("query") {
     Some(String(q)) => {
-      let display = if q.length() > 40 { q[:40].to_string() + "..." } else { q }
+      let display = if q.length() > 40 { q[:40].to_owned() + "..." } else { q }
       "web_search(\"\{display}\")"
     }
     _ => "web_search(?)"

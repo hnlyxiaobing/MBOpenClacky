@@ -290,7 +290,7 @@ fn resolve_session(
   } else {
     match attach_id {
       Some(id) => {
-        let session_opt = @agent.load_session(id) catch { _ => None }
+        let session_opt = @agent.load_session(id)
         match session_opt {
           Some(data) => {
             println("Attached to session: \{id}")

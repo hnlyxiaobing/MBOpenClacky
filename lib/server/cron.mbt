@@ -7,7 +7,7 @@ pub(all) enum CronField {
   Range(Int, Int)
   RangeStep(Int, Int, Int)
   List(Array[Int])
-} derive(Eq, Debug, ToJson, Show)
+} derive(Eq, Debug, Show, ToJson)
 
 ///|
 /// Cron expression (5 fields: minute hour day month weekday)
@@ -18,7 +18,7 @@ pub(all) struct CronExpression {
   month : CronField
   day_of_week : CronField
   raw : String
-} derive(Eq, Debug, ToJson)
+} derive(Eq, Debug, Show, ToJson)
 
 ///|
 /// Parse a cron expression string (5 fields separated by whitespace)
@@ -65,7 +65,7 @@ pub fn parse_cron_field(
   }
   // Check for */n pattern (step from min)
   if field.has_prefix("*/") {
-    let step_str = field.substring(start=2)
+    let step_str = field[2:].to_owned()
     match parse_int(step_str) {
       Some(step) =>
         if step > 0 && step <= max - min {

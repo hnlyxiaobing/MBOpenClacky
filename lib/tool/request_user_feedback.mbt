@@ -48,7 +48,7 @@ impl Tool for RequestUserFeedback with fn category(_) -> ToolCategory {
 impl Tool for RequestUserFeedback with fn execute(_, args : Map[String, Json]) -> ToolResult {
   // Extract question (required)
   let question = match args.get("question") {
-    Some(String(q)) => q.trim().to_string()
+    Some(String(q)) => q.trim().to_owned()
     _ => ""
   }
   if question.length() == 0 {
@@ -105,7 +105,7 @@ impl Tool for RequestUserFeedback with fn format_call(
     _ => "?"
   }
   let preview = if question.length() > 60 {
-    question[:60].to_string() + "..."
+    question[:60].to_owned() + "..."
   } else {
     question
   }

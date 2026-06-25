@@ -6,7 +6,7 @@ pub(all) enum MemoryCategory {
   TaskSummary
   ExpertKnowledge
   LearnedSkill
-} derive(Eq, Compare, Show, Debug)
+} derive(Eq, Compare, Debug, Show)
 
 ///|
 pub fn MemoryCategory::to_string_value(self : MemoryCategory) -> String {
@@ -37,7 +37,7 @@ impl ToJson for MemoryCategory with fn to_json(self) {
 }
 
 ///|
-impl FromJson for MemoryCategory with fn from_json(json, path) {
+pub impl FromJson for MemoryCategory with fn from_json(json, path) {
   match json {
     String(s) =>
       match MemoryCategory::from_string(s) {

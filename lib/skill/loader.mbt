@@ -3,7 +3,7 @@
 /// Returns a tuple of (fields map, body content after frontmatter).
 pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
   let fields : Map[String, String] = {}
-  let trimmed = content.trim().to_string()
+  let trimmed = content.trim().to_owned()
   if !trimmed.has_prefix("---") {
     return (fields, content)
   }
@@ -47,15 +47,15 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
       line_chars.push(chars[j])
       j = j + 1
     }
-    let line = String::from_array(line_chars).trim().to_string()
+    let line = String::from_array(line_chars).trim().to_owned()
     if line.is_empty() {
       continue
     }
     // Parse key: value using String.find
     match line.find(":") {
       Some(colon_pos) => {
-        let key_raw = line.substring(start=0, end=colon_pos).trim().to_string()
-        let value_raw = line.substring(start=colon_pos + 1).trim().to_string()
+        let key_raw = line[0:colon_pos].trim().to_owned()
+        let value_raw = line[colon_pos + 1:].trim().to_owned()
         // Remove surrounding quotes if present
         let clean_value = strip_quotes(value_raw)
         if !key_raw.is_empty() {
@@ -80,9 +80,9 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
 /// Remove surrounding single or double quotes from a string if present.
 fn strip_quotes(s : String) -> String {
   if s.has_prefix("\"") && s.has_suffix("\"") && s.length() >= 2 {
-    s.substring(start=1, end=s.length() - 1)
+    s[1:s.length() - 1].to_owned()
   } else if s.has_prefix("'") && s.has_suffix("'") && s.length() >= 2 {
-    s.substring(start=1, end=s.length() - 1)
+    s[1:s.length() - 1].to_owned()
   } else {
     s
   }
@@ -91,20 +91,20 @@ fn strip_quotes(s : String) -> String {
 ///|
 /// Parse a YAML-like inline list: [a, b, c] or a, b, c
 fn parse_string_list(val : String) -> Array[String]? {
-  let v = val.trim().to_string()
+  let v = val.trim().to_owned()
   if v.is_empty() {
     return None
   }
   // Handle YAML flow sequence: [a, b, c]
   let inner = if v.has_prefix("[") && v.has_suffix("]") && v.length() >= 2 {
-    v.substring(start=1, end=v.length() - 1)
+    v[1:v.length() - 1].to_owned()
   } else {
     v
   }
   let items = inner.split(",")
   let result : Array[String] = []
   for item in items {
-    let t = item.trim().to_string()
+    let t = item.trim().to_owned()
     let clean = strip_quotes(t)
     if !clean.is_empty() {
       result.push(clean)
@@ -129,7 +129,7 @@ pub fn load_skill_from_content(
     Some(n) => n
     None => return None
   }
-  let context = if body.trim().to_string().is_empty() {
+  let context = if body.trim().to_owned().is_empty() {
     None
   } else {
     Some(body)

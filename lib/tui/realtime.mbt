@@ -51,12 +51,12 @@ pub fn RealtimeRenderer::render_delta(
   // Move cursor up to beginning of previous output
   if lines_up > 0 {
     // ANSI: move cursor up N lines
-    out.write_string("\x1b[\{lines_up}A")
+    out.write_string("\u001b[\{lines_up}A")
   }
   // Carriage return to start of line
   out.write_string("\r")
   // Clear from cursor to end of screen
-  out.write_string("\x1b[J")
+  out.write_string("\u001b[J")
   // Write new content
   out.write_string(self.buffer)
   out.to_string()
@@ -70,13 +70,13 @@ pub fn RealtimeRenderer::clear(
   let out = StringBuilder::new()
   if self.line_count > 0 {
     // Move up to clear all lines
-    out.write_string("\x1b[\{self.line_count}A")
+    out.write_string("\u001b[\{self.line_count}A")
     out.write_string("\r")
-    out.write_string("\x1b[J")
+    out.write_string("\u001b[J")
   } else if self.buffer.length() > 0 {
     // Single line — just clear the line
     out.write_string("\r")
-    out.write_string("\x1b[K")
+    out.write_string("\u001b[K")
   }
   let new_state : RealtimeRenderer = {
     buffer: "",

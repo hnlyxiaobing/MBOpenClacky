@@ -9,7 +9,7 @@ pub(all) struct DefaultSkillMeta {
   user_invocable : Bool
   allowed_tools : Array[String]
   category : String
-} derive(Show, Eq, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Get all built-in skill metadata definitions.

@@ -97,10 +97,7 @@ pub fn Agent::execute_single_tool(
     _ => ()
   }
   // Execute — AnyTool implements Tool trait
-  let result : @tool.ToolResult = @tool.Tool::execute(tool, args) catch {
-    err =>
-      return build_error_result(call, "Tool execution error: \{err.to_repr()}")
-  }
+  let result : @tool.ToolResult = @tool.Tool::execute(tool, args)
   if result.is_error {
     build_error_result(call, result.content)
   } else {

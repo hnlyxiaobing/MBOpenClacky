@@ -26,7 +26,7 @@ pub fn McpRegistry::new() -> McpRegistry {
 
 ///|
 /// Load registry from an mcp.json config file.
-pub fn McpRegistry::load_from_file(path : String) -> McpRegistry raise McpError {
+pub fn McpRegistry::load_from_file(path : String) -> McpRegistry {
   // TODO: FFI implementation needed for file reading
   // In production, this would:
   // 1. Read file contents from `path`
@@ -187,13 +187,13 @@ pub fn McpRegistry::shutdown(self : McpRegistry) -> Unit {
 ///|
 /// Get the number of registered specs.
 pub fn McpRegistry::spec_count(self : McpRegistry) -> Int {
-  self.specs.size()
+  self.specs.length()
 }
 
 ///|
 /// Get the number of active clients.
 pub fn McpRegistry::client_count(self : McpRegistry) -> Int {
-  self.clients.size()
+  self.clients.length()
 }
 
 ///|

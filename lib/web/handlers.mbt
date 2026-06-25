@@ -69,13 +69,13 @@ fn handle_get_session(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
-  let session_opt = @agent.load_session(id) catch { _ => None }
+  let session_opt = @agent.load_session(id)
   match session_opt {
     Some(data) => @core.HttpResponse::ok().json_value(data.to_json())
     None =>
@@ -92,7 +92,7 @@ fn handle_delete_session(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -110,13 +110,13 @@ fn handle_restore_session(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
-  let session_opt = @agent.load_session(id) catch { _ => None }
+  let session_opt = @agent.load_session(id)
   match session_opt {
     Some(data) => {
       let agent = server_ref.val.get_or_create_agent(id)
@@ -141,7 +141,7 @@ fn handle_chat(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -222,7 +222,7 @@ fn handle_chat_stream(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -310,7 +310,7 @@ fn handle_get_status(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -356,7 +356,7 @@ fn handle_cancel(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -376,7 +376,7 @@ fn handle_get_cost(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -428,7 +428,7 @@ fn handle_list_tools(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: id".to_json() }),
@@ -600,7 +600,7 @@ fn handle_info(
     version: "0.1.0",
     name: "MBOpenClacky",
     uptime_seconds: uptime,
-    active_sessions: s.active_agents.size(),
+    active_sessions: s.active_agents.length(),
   }
   @core.HttpResponse::ok().json_value(response.to_json())
 }
@@ -662,7 +662,7 @@ fn handle_websocket(
 
           // Send captured events via WebSocket
           for evt in captured {
-            let payload = "event: \{evt.event_type}\ndata: \{evt.data.to_string()}"
+            let payload = "event: \{evt.event_type}\ndata: \{evt.data.stringify()}"
             peer.text(payload)
           }
 

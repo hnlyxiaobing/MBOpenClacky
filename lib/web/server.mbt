@@ -10,7 +10,7 @@ pub(all) struct WebhookRegistry {
 
 ///|
 pub fn WebhookRegistry::new() -> WebhookRegistry {
-  { handlers: Map::new() }
+  { handlers: Map([]) }
 }
 
 ///|
@@ -60,11 +60,11 @@ pub fn WebServer::new(
   api_key : String?,
 ) -> WebServer {
   {
-    active_agents: Map::new(),
+    active_agents: Map([]),
     config,
     api_key,
     start_time: 0,
-    cancelled: Map::new(),
+    cancelled: Map([]),
     webhook_registry: WebhookRegistry::new(),
   }
 }
@@ -117,7 +117,7 @@ pub fn WebServer::get_or_create_agent(
 pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
   self.start_time = @async.now()
   let app = @crescent.App()
-  let server_ref : Ref[WebServer] = Ref::new(self)
+  let server_ref : Ref[WebServer] = Ref(self)
 
   // ── Middleware ─────────────────────────────────────────────────
   app.use_middleware(@mid.logging_middleware())

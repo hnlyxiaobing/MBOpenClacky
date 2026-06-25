@@ -78,13 +78,13 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
   let mut pos = 0
   let content_len = content.length()
   while pos < content_len {
-    match content[pos:].to_string().find("\n") {
+    match content[pos:].to_owned().find("\n") {
       Some(idx) => {
-        lines.push(content[pos:pos + idx].to_string())
+        lines.push(content[pos:pos + idx].to_owned())
         pos = pos + idx + 1
       }
       None => {
-        lines.push(content[pos:].to_string())
+        lines.push(content[pos:].to_owned())
         pos = content_len
       }
     }
@@ -105,7 +105,7 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
   while i < actual_end {
     let line = lines[i]
     let display = if line.length() > self.max_line_chars {
-      line[:self.max_line_chars].to_string() + "...(truncated)"
+      line[:self.max_line_chars].to_owned() + "...(truncated)"
     } else {
       line
     }
@@ -196,9 +196,9 @@ pub fn get_basename(path : String) -> String {
   let mut last = s
   let mut pos = 0
   while pos < s.length() {
-    if s[pos:pos + 1].to_string() == "/" {
+    if s[pos:pos + 1].to_owned() == "/" {
       if pos + 1 < s.length() {
-        last = s[pos + 1:].to_string()
+        last = s[pos + 1:].to_owned()
       }
     }
     pos = pos + 1

@@ -103,10 +103,10 @@ impl Tool for WebFetch with fn to_function_definition(self) -> FunctionDefinitio
 
 ///|
 fn normalize_url(url : String) -> String {
-  let trimmed = url.trim().to_string()
+  let trimmed = url.trim().to_owned()
   if trimmed.find("://") is Some(_) {
     if trimmed.has_prefix("http://") {
-      "https://" + trimmed["http://".length():].to_string()
+      "https://" + trimmed["http://".length():].to_owned()
     } else {
       trimmed
     }
@@ -118,14 +118,14 @@ fn normalize_url(url : String) -> String {
 ///|
 fn extract_domain(url : String) -> String {
   let stripped = if url.has_prefix("https://") {
-    url["https://".length():].to_string()
+    url["https://".length():].to_owned()
   } else if url.has_prefix("http://") {
-    url["http://".length():].to_string()
+    url["http://".length():].to_owned()
   } else {
     url
   }
   match stripped.find("/") {
-    Some(idx) => stripped[:idx].to_string()
+    Some(idx) => stripped[:idx].to_owned()
     None => stripped
   }
 }

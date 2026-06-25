@@ -6,7 +6,7 @@ pub(all) enum TodoStatus {
   Completed
   Cancelled
   Failed
-} derive(Eq, Compare, Show, Debug)
+} derive(Eq, Compare, Debug, Show)
 
 ///|
 pub fn TodoStatus::to_string_value(self : TodoStatus) -> String {
@@ -37,7 +37,7 @@ impl ToJson for TodoStatus with fn to_json(self) {
 }
 
 ///|
-impl FromJson for TodoStatus with fn from_json(json, path) {
+pub impl FromJson for TodoStatus with fn from_json(json, path) {
   match json {
     String(s) =>
       match TodoStatus::from_string(s) {

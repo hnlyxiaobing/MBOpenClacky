@@ -49,7 +49,7 @@ pub fn BrowserManager::start(
     return Err(BrowserError("Daemon is already running"))
   }
   // 2. Check if enabled
-  if not(self.config.enabled) {
+  if !self.config.enabled {
     return Err(BrowserError("Browser is not enabled in configuration"))
   }
   // 3. Build command with features flags
@@ -68,7 +68,7 @@ pub fn BrowserManager::start(
 pub fn BrowserManager::stop(
   self : BrowserManager,
 ) -> Result[Unit, BrowserError] {
-  if not(self.is_running) {
+  if !self.is_running {
     return Err(BrowserError("Daemon is not running"))
   }
   match self.daemon_pid {
@@ -131,11 +131,11 @@ pub fn BrowserManager::configure(
 ///|
 /// Toggle enabled state, returns new state
 pub fn BrowserManager::toggle(self : BrowserManager) -> Bool {
-  let new_state = not(self.config.enabled)
+  let new_state = !self.config.enabled
   // Note: config is immutable struct, in real impl would need mutable config
   // For now return toggled value
   let _ = new_state
-  not(self.config.enabled)
+  !self.config.enabled
 }
 
 ///|
@@ -162,7 +162,7 @@ pub fn BrowserManager::mcp_call(
 
 ///|
 /// Check if daemon process is alive
-fn check_process_alive(pid : Int) -> Bool {
+pub fn check_process_alive(pid : Int) -> Bool {
   // TODO: FFI - check if process with given PID is alive
   let _ = pid
   true

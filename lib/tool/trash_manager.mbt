@@ -102,7 +102,7 @@ impl Tool for TrashManager with fn format_result(_, result : ToolResult) -> Stri
   } else {
     let content = result.content
     if content.length() > 200 {
-      content[:200].to_string() + "..."
+      content[:200].to_owned() + "..."
     } else {
       content
     }

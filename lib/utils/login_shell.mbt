@@ -13,7 +13,7 @@ pub enum ShellType {
 } derive(Debug, Eq)
 
 ///|
-impl Show for ShellType with fn output(self, logger) {
+pub impl Show for ShellType with fn output(self, logger) {
   match self {
     Bash => logger.write_string("Bash")
     Zsh => logger.write_string("Zsh")

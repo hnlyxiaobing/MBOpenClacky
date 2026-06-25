@@ -4,7 +4,6 @@ test "agent_interrupted_raise_catch" {
     raise AgentInterrupted("user cancelled")
   } catch {
     AgentInterrupted(msg) => inspect(msg, content="user cancelled")
-    _ => inspect("wrong", content="should not reach here")
   }
 }
 
@@ -14,7 +13,6 @@ test "agent_error_raise_catch" {
     raise AgentError("something went wrong")
   } catch {
     AgentError(msg) => inspect(msg, content="something went wrong")
-    _ => inspect("wrong", content="should not reach here")
   }
 }
 
@@ -27,7 +25,6 @@ test "bad_request_error_raise_catch" {
       assert_eq(status, 400)
       inspect(msg, content="invalid request")
     }
-    _ => inspect("wrong", content="should not reach here")
   }
 }
 
@@ -40,7 +37,6 @@ test "tool_call_error_raise_catch" {
       inspect(tool_name, content="file_reader")
       inspect(msg, content="file not found")
     }
-    _ => inspect("wrong", content="should not reach here")
   }
 }
 

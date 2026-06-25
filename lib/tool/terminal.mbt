@@ -194,7 +194,7 @@ impl Tool for Terminal with fn format_call(_, args : Map[String, Json]) -> Strin
   match args.get("command") {
     Some(String(cmd)) => {
       let display = if cmd.length() > 60 {
-        cmd[:60].to_string() + "..."
+        cmd[:60].to_owned() + "..."
       } else {
         cmd
       }

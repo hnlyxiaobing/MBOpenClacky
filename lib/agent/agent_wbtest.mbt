@@ -19,7 +19,7 @@ fn make_test_agent() -> Agent {
 }
 
 ///|
-fn make_anthropic_agent() -> Agent {
+fn _make_anthropic_agent() -> Agent {
   let client = @client.Client::new(
     "test-key",
     "https://api.test.com",
@@ -822,7 +822,7 @@ test "session_data_from_json_missing_optional" {
   let map : Map[String, Json] = {
     "session_id": "s_minimal".to_json(),
     "name": "minimal".to_json(),
-    "messages": ([].to_json() : Json),
+    "messages": (([] : Array[Json]).to_json() : Json),
     "stats": stats.to_json(),
     "working_dir": "/tmp".to_json(),
     "created_at": "0".to_json(),

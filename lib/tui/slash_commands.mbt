@@ -22,7 +22,7 @@ pub(all) struct SlashCommandDef {
   name : String
   description : String
   usage : String
-} derive(Eq, Debug)
+} derive(Eq, Debug, Show)
 
 ///|
 /// Parser for slash commands with registered command definitions.
@@ -65,14 +65,14 @@ pub fn SlashCommandParser::parse(
   self : SlashCommandParser,
   input : String,
 ) -> Result[SlashCommand, String] {
-  let trimmed = input.trim().to_string()
+  let trimmed = input.trim().to_owned()
   let trimmed_chars = trimmed.to_array()
   if trimmed_chars.length() == 0 || trimmed_chars[0] != '/' {
     return Err("Input is not a slash command")
   }
 
   // Remove leading '/'
-  let body = trimmed.substring(start=1)
+  let body = trimmed[1:].to_owned()
   let parts = split_whitespace_impl(body)
   if parts.length() == 0 {
     return Err("Empty command")
@@ -145,7 +145,7 @@ pub fn SlashCommandParser::get_completions(
     return results
   }
 
-  let search = prefix.substring(start=1).to_string()
+  let search = prefix[1:].to_owned()
   for cmd in self.commands {
     if cmd.name.has_prefix(search) {
       results.push("/\{cmd.name}")

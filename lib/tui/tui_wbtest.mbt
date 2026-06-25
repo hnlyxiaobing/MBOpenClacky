@@ -66,7 +66,7 @@ test "TuiState::from_agent creates correct initial state" {
 ///|
 test "TuiState fields are mutable via Ref" {
   let agent = make_test_agent()
-  let state_ref = Ref::new(TuiState::from_agent(agent))
+  let state_ref = Ref(TuiState::from_agent(agent))
 
   state_ref.val.mode = Running
   inspect(state_ref.val.mode, content="Running")
@@ -155,7 +155,7 @@ test "format_cost handles various cases" {
 ///|
 test "handle_hook_event updates state correctly" {
   let agent = make_test_agent()
-  let state_ref = Ref::new(TuiState::from_agent(agent))
+  let state_ref = Ref(TuiState::from_agent(agent))
 
   handle_hook_event(
     state_ref,
@@ -206,7 +206,7 @@ test "handle_hook_event updates state correctly" {
 ///|
 test "handle_hook_event_simple_events_no_crash" {
   let agent = make_test_agent()
-  let state_ref = Ref::new(TuiState::from_agent(agent))
+  let state_ref = Ref(TuiState::from_agent(agent))
 
   handle_hook_event(state_ref, @agent.HookEvent::BeforeLlmCall)
   handle_hook_event(state_ref, @agent.HookEvent::AfterLlmCall)
@@ -218,7 +218,7 @@ test "handle_hook_event_simple_events_no_crash" {
 ///|
 test "handle_hook_event_ToolExecuted" {
   let agent = make_test_agent()
-  let state_ref = Ref::new(TuiState::from_agent(agent))
+  let state_ref = Ref(TuiState::from_agent(agent))
 
   let entry = @agent.ToolResultEntry::{
     id: "call_1",

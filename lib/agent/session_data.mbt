@@ -133,7 +133,7 @@ impl FromJson for SessionTimeMachine with fn from_json(json, path) {
       let task_meta : Map[String, SessionTaskMeta] = {}
       match map.get("task_meta") {
         Some(Object(mm)) =>
-          mm.each(fn(k, v) {
+          mm.each(fn(k, v) raise @json.JsonDecodeError {
             let meta : SessionTaskMeta = FromJson::from_json(
               v,
               path.add_key("task_meta"),
@@ -167,7 +167,7 @@ pub(all) struct SessionStats {
   cache_read_input_tokens : Int
   total_requests : Int
   cache_hit_requests : Int
-} derive(Eq, Debug)
+} derive(Eq, Debug, Show)
 
 ///|
 /// Complete serializable snapshot of an Agent session.

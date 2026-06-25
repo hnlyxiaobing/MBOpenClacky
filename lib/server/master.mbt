@@ -6,7 +6,7 @@ pub(all) struct MasterConfig {
   worker_timeout_ms : Int
   auto_restart : Bool
   graceful_shutdown_ms : Int
-} derive(Show)
+} derive(Debug, Show)
 
 ///|
 /// ServerMaster running state
@@ -15,7 +15,7 @@ pub enum MasterStatus {
   Running
   ShuttingDown
   MasterStopped
-} derive(Show, Eq)
+} derive(Debug, Eq, Show)
 
 ///|
 /// Worker pool statistics
@@ -27,7 +27,7 @@ pub(all) struct PoolStats {
   total_tasks_completed : Int
   total_tasks_failed : Int
   uptime_seconds : Int
-} derive(Show, Eq, ToJson, FromJson)
+} derive(Debug, Eq, Show, ToJson, FromJson)
 
 ///|
 /// ServerMaster — manages a pool of Workers
@@ -37,7 +37,7 @@ pub(all) struct ServerMaster {
   mut workers : Array[Worker]
   mut next_worker_id : Int
   mut started_at : String
-} derive(Show)
+} derive(Debug, Show)
 
 ///|
 /// Create default MasterConfig

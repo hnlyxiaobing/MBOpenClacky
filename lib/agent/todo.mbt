@@ -127,7 +127,7 @@ pub fn TodoManager::is_blocked(self : TodoManager, id : String) -> Bool {
 /// Return tasks that are Pending and not blocked (all deps Completed).
 pub fn TodoManager::list_actionable(self : TodoManager) -> Array[TodoItem] {
   self.items.filter(fn(item) {
-    item.status == Pending && not(self.is_blocked(item.id))
+    item.status == Pending && !self.is_blocked(item.id)
   })
 }
 

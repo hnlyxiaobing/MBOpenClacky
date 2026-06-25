@@ -155,9 +155,9 @@ pub fn simple_glob_match(name : String, pat : String) -> Bool {
   // prefix*suffix pattern
   match pat.find("*") {
     Some(star_idx) => {
-      let prefix = pat[:star_idx].to_string()
+      let prefix = pat[:star_idx].to_owned()
       let suffix = if star_idx + 1 < pat.length() {
-        pat[star_idx + 1:].to_string()
+        pat[star_idx + 1:].to_owned()
       } else {
         ""
       }

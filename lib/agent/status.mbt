@@ -39,11 +39,11 @@ pub fn AgentSource::to_string_value(self : AgentSource) -> String {
 }
 
 ///|
-impl ToJson for AgentStatus with fn to_json(self) {
+pub impl ToJson for AgentStatus with fn to_json(self) {
   self.to_string_value().to_json()
 }
 
 ///|
-impl ToJson for AgentSource with fn to_json(self) {
+pub impl ToJson for AgentSource with fn to_json(self) {
   self.to_string_value().to_json()
 }

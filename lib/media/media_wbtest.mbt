@@ -272,7 +272,6 @@ test "media_error_raise_catch" {
     raise MediaError("generation failed")
   } catch {
     MediaError(msg) => inspect(msg, content="generation failed")
-    _ => fail("wrong error type")
   }
 }
 

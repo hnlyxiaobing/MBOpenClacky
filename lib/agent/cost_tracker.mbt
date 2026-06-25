@@ -32,7 +32,7 @@ pub fn CostSource::to_string_value(self : CostSource) -> String {
 }
 
 ///|
-impl ToJson for CostSource with fn to_json(self) {
+pub impl ToJson for CostSource with fn to_json(self) {
   self.to_string_value().to_json()
 }
 

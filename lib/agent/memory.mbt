@@ -106,7 +106,7 @@ pub fn MemoryStore::search(
       Some(c) => e.category == c
       None => true
     }
-    if not(cat_ok) {
+    if !cat_ok {
       return false
     }
     if e.title.to_lower().contains(q) {

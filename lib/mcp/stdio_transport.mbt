@@ -92,7 +92,7 @@ pub impl Transport for StdioTransport with fn on_message(self, handler) {
 pub impl Transport for StdioTransport with fn stderr_tail(self) -> String {
   if self.stderr_buffer.length() > MAX_STDERR_BYTES {
     let start = self.stderr_buffer.length() - MAX_STDERR_BYTES
-    self.stderr_buffer[start:].to_string()
+    self.stderr_buffer[start:].to_owned()
   } else {
     self.stderr_buffer
   }
@@ -108,7 +108,7 @@ pub fn StdioTransport::append_stderr(
   // Trim if exceeds max
   if self.stderr_buffer.length() > MAX_STDERR_BYTES {
     let start = self.stderr_buffer.length() - MAX_STDERR_BYTES
-    self.stderr_buffer = self.stderr_buffer[start:].to_string()
+    self.stderr_buffer = self.stderr_buffer[start:].to_owned()
   }
 }
 

@@ -202,7 +202,7 @@ test "todo_manager_list_actionable" {
   let t1 = tm.add("Independent", "")
   let t2 = tm.add("Blocked task", "")
   let _ = tm.set_blocked_by(t2.id, [t1.id])
-  let t3 = tm.add("Another independent", "")
+  let _t3 = tm.add("Another independent", "")
   let actionable = tm.list_actionable()
   // t1 and t3 are actionable (Pending and not blocked)
   // t2 is blocked by t1

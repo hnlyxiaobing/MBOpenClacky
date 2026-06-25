@@ -30,7 +30,7 @@ pub fn BackupManager::load_config(
 pub fn BackupManager::run(
   self : BackupManager,
 ) -> Result[BackupResult, BackupError] {
-  if not(self.config.enabled) {
+  if !self.config.enabled {
     return Err(BackupError("Backup is not enabled"))
   }
   // 1. Enumerate files in source_dir (excluding backup_excludes)

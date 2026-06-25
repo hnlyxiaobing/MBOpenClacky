@@ -9,7 +9,7 @@ pub(all) struct SubAgentConfig {
 } derive(Eq, Debug)
 
 ///|
-impl ToJson for SubAgentConfig with fn to_json(self) {
+pub impl ToJson for SubAgentConfig with fn to_json(self) {
   Json::object({
     "name": self.name.to_json(),
     "model": self.model.to_json(),
@@ -26,7 +26,7 @@ pub(all) enum SubAgentStatus {
   Running
   Completed
   Failed
-} derive(Eq, Compare, Show, Debug)
+} derive(Eq, Compare, Debug, Show)
 
 ///|
 pub fn SubAgentStatus::to_string_value(self : SubAgentStatus) -> String {
@@ -39,7 +39,7 @@ pub fn SubAgentStatus::to_string_value(self : SubAgentStatus) -> String {
 }
 
 ///|
-impl ToJson for SubAgentStatus with fn to_json(self) {
+pub impl ToJson for SubAgentStatus with fn to_json(self) {
   self.to_string_value().to_json()
 }
 

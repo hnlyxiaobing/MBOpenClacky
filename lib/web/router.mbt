@@ -8,7 +8,7 @@ pub(all) enum HttpMethod {
   POST
   PUT
   DELETE
-} derive(Eq, Show, Debug)
+} derive(Eq, Debug, Show)
 
 ///|
 pub(all) struct HttpRequest {
@@ -181,7 +181,7 @@ fn match_path_pattern(
     let up = path_parts[i]
     if pp.length() > 0 && pp[0] == ':' {
       // Parameter segment
-      let param_name = pp[1:].to_string()
+      let param_name = pp[1:].to_owned()
       params.push((param_name, up))
     } else if pp != up {
       return None

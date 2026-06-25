@@ -333,7 +333,6 @@ test "parse_error_raise_catch" {
     raise ParseError("invalid format")
   } catch {
     ParseError(msg) => inspect(msg, content="invalid format")
-    _ => fail("wrong error type")
   }
 }
 

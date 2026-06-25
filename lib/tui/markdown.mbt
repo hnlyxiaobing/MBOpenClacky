@@ -30,19 +30,19 @@ pub fn MarkdownRenderer::new(theme~ : Theme) -> MarkdownRenderer {
 
 ///|
 /// ANSI escape code constants.
-let ansi_reset : String = "\x1b[0m"
+let ansi_reset : String = "\u001b[0m"
 
 ///|
-let ansi_bold : String = "\x1b[1m"
+let ansi_bold : String = "\u001b[1m"
 
 ///|
-let ansi_italic : String = "\x1b[3m"
+let ansi_italic : String = "\u001b[3m"
 
 ///|
-let ansi_cyan : String = "\x1b[36m"
+let ansi_cyan : String = "\u001b[36m"
 
 ///|
-let ansi_yellow : String = "\x1b[33m"
+let ansi_yellow : String = "\u001b[33m"
 
 ///|
 /// Tokenize a Markdown string into an array of tokens.
@@ -57,7 +57,7 @@ pub fn tokenize(input : String) -> Array[MarkdownToken] {
     let line = lines[i.val]
     if line.has_prefix("```") {
       // Code block
-      let lang = line.substring(start=3).trim().to_string()
+      let lang = line[3:].trim().to_owned()
       let code_lines : Array[String] = []
       i.val = i.val + 1
       while i.val < lines.length() && !lines[i.val].has_prefix("```") {
@@ -71,32 +71,28 @@ pub fn tokenize(input : String) -> Array[MarkdownToken] {
       let code = code_lines.join("\n")
       tokens.push(CodeBlock(lang~, code~))
     } else if line.has_prefix("### ") {
-      let text = line.substring(start=4).trim().to_string()
+      let text = line[4:].trim().to_owned()
       tokens.push(Heading(level=3, text~))
       i.val = i.val + 1
     } else if line.has_prefix("## ") {
-      let text = line.substring(start=3).trim().to_string()
+      let text = line[3:].trim().to_owned()
       tokens.push(Heading(level=2, text~))
       i.val = i.val + 1
     } else if line.has_prefix("# ") {
-      let text = line.substring(start=2).trim().to_string()
+      let text = line[2:].trim().to_owned()
       tokens.push(Heading(level=1, text~))
       i.val = i.val + 1
     } else if line.has_prefix("- ") ||
       line.has_prefix("  - ") ||
       line.has_prefix("    - ") {
       let indent = count_leading_spaces_impl(line) / 2
-      let text = line.trim().to_string()
-      let text2 = if text.has_prefix("- ") {
-        text.substring(start=2)
-      } else {
-        text
-      }
+      let text = line.trim().to_owned()
+      let text2 = if text.has_prefix("- ") { text[2:].to_owned() } else { text }
       tokens.push(ListItem(indent~, text=text2))
       i.val = i.val + 1
     } else {
       // Parse inline elements within a paragraph line
-      let trimmed = line.trim().to_string()
+      let trimmed = line.trim().to_owned()
       if trimmed.length() > 0 {
         // Check for inline bold, italic, code
         let parsed = parse_inline_impl(trimmed)
@@ -132,7 +128,7 @@ fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
             !(chars[i.val] == '*' && chars[i.val + 1] == '*') {
         i.val = i.val + 1
       }
-      let text = line.substring(start~, end=i.val)
+      let text = line[start:i.val].to_owned()
       tokens.push(Bold(text~))
       if i.val + 1 < chars.length() {
         i.val = i.val + 2
@@ -149,7 +145,7 @@ fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
       while i.val < chars.length() && chars[i.val] != '*' {
         i.val = i.val + 1
       }
-      let text = line.substring(start~, end=i.val)
+      let text = line[start:i.val].to_owned()
       tokens.push(Italic(text~))
       if i.val < chars.length() {
         i.val = i.val + 1
@@ -165,7 +161,7 @@ fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
       while i.val < chars.length() && chars[i.val] != '`' {
         i.val = i.val + 1
       }
-      let text = line.substring(start~, end=i.val)
+      let text = line[start:i.val].to_owned()
       tokens.push(Code(text~))
       if i.val < chars.length() {
         i.val = i.val + 1

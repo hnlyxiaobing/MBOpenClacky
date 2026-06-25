@@ -16,7 +16,7 @@ pub(all) struct ProfileSpec {
   allowed_tools : Array[String] // tools this profile can use
   hooks : Array[String] // lifecycle hooks
   is_default : Bool // whether this is the fallback profile
-} derive(Show, Eq, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Get all built-in profile specifications.

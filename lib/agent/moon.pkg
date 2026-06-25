@@ -10,7 +10,6 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/billing",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "moonbitlang/x/sys",
 }
 
 options(

@@ -203,7 +203,7 @@ pub fn Client::api_path(self : Client) -> String {
 /// Build the full URL for an API path.
 pub fn Client::build_url(self : Client, path : String) -> String {
   let base = self.base_url.trim_end()
-  if base.length() > 0 && base[base.length() - 1:].to_string() == "/" {
+  if base.length() > 0 && base[base.length() - 1:].to_owned() == "/" {
     "\{base}\{path}"
   } else {
     "\{base}/\{path}"
@@ -263,8 +263,8 @@ pub fn Client::supports_prompt_caching(_ : Client, model : String) -> Bool {
   let model_lower = model.to_lower()
   // Strip "abs-" prefix used by ClackyAI Bedrock proxy
   let stripped : String = if model_lower.length() > 4 &&
-    model_lower[:4].to_string() == "abs-" {
-    model_lower[4:].to_string()
+    model_lower[:4].to_owned() == "abs-" {
+    model_lower[4:].to_owned()
   } else {
     model_lower
   }
@@ -330,13 +330,13 @@ pub fn map_http_error(status : Int, body_text : String) -> String? {
 pub fn is_html_response(body_text : String) -> Bool {
   let trimmed = body_text.trim_start()
   if trimmed.length() >= 9 {
-    let prefix = trimmed[:9].to_string().to_lower()
+    let prefix = trimmed[:9].to_owned().to_lower()
     if prefix == "<!doctype" {
       return true
     }
   }
   if trimmed.length() >= 5 {
-    let prefix5 = trimmed[:5].to_string().to_lower()
+    let prefix5 = trimmed[:5].to_owned().to_lower()
     if prefix5 == "<html" {
       return true
     }
@@ -356,7 +356,7 @@ pub fn extract_error_message(raw_body : String) -> String {
   let json = @json.parse(raw_body) catch {
     _ =>
       if raw_body.length() > 200 {
-        return raw_body[:200].to_string() + "..."
+        return raw_body[:200].to_owned() + "..."
       } else {
         return raw_body
       }
@@ -386,7 +386,7 @@ pub fn extract_error_message(raw_body : String) -> String {
 
   // Fallback to truncated raw body
   if raw_body.length() > 200 {
-    raw_body[:200].to_string() + "..."
+    raw_body[:200].to_owned() + "..."
   } else {
     raw_body
   }

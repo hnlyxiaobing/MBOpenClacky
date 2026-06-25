@@ -39,7 +39,7 @@ fn response_to_core(resp : HttpResponse) -> @core.HttpResponse {
 /// Extract params from crescent event for a single :id param.
 fn extract_id_param(event : @crescent.Event) -> Array[(String, String)] {
   match event.param("id") {
-    Some(v) => [("id", v.to_string())]
+    Some(v) => [("id", v.to_owned())]
     None => []
   }
 }
@@ -48,7 +48,7 @@ fn extract_id_param(event : @crescent.Event) -> Array[(String, String)] {
 /// Extract params from crescent event for a single :name param.
 fn extract_name_param(event : @crescent.Event) -> Array[(String, String)] {
   match event.param("name") {
-    Some(v) => [("name", v.to_string())]
+    Some(v) => [("name", v.to_owned())]
     None => []
   }
 }
@@ -167,7 +167,7 @@ fn handle_webhook_bridge(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let platform = match event.param("platform") {
-    Some(p) => p.to_string()
+    Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "Missing parameter: platform".to_json() }),

@@ -44,13 +44,13 @@ fn get_platform() -> String {
 pub fn simple_hash(input : String) -> String {
   let mut hash : UInt = 0
   for c in input {
-    hash = hash * 31 + c.to_int().to_uint()
+    hash = hash * 31 + c.to_int().reinterpret_as_uint()
   }
   let hex_chars = "0123456789abcdef"
   let mut result = ""
   let mut h = hash
   for i = 0; i < 16; i = i + 1 {
-    let idx = (h & 0xF).to_int()
+    let idx = (h & 0xF).reinterpret_as_int()
     result = result + hex_chars[idx].to_string()
     h = h >> 4
   }

@@ -32,7 +32,7 @@ pub(all) struct EvolutionResult {
   action : EvolutionAction
   skill_name : String
   diff_summary : String
-} derive(Eq, Debug)
+} derive(Eq, Debug, Show)
 
 ///|
 /// Create an EvolutionEngine with default settings.

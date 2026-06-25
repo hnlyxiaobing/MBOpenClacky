@@ -289,7 +289,7 @@ pub fn detect_weixin_aes_mode(data_header : String) -> WeixinAesMode {
     // Check for common image magic bytes (JPEG: 0xFFD8, PNG: 0x8950)
     // In string representation, these appear as specific byte patterns
     let first = data_header[0:1].to_owned()
-    if first == "\xFF" || first == "\x89" {
+    if first == "\u00FF" || first == "\u0089" {
       WeixinAesMode::OutboundImage
     } else {
       WeixinAesMode::Inbound

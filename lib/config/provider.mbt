@@ -72,7 +72,7 @@ pub(all) struct ProviderPreset {
 ///|
 /// Built-in provider presets.
 /// Provides default configurations for supported AI model providers.
-pub struct Providers {}
+pub(all) struct Providers {}
 
 ///|
 /// All built-in provider presets.
@@ -369,12 +369,12 @@ pub fn Providers::api_type_for(base_url : String) -> ApiType {
 }
 
 ///|
-impl ToJson for ApiType with fn to_json(self) {
+pub impl ToJson for ApiType with fn to_json(self) {
   self.to_string_value().to_json()
 }
 
 ///|
-impl FromJson for ApiType with fn from_json(json, path) {
+pub impl FromJson for ApiType with fn from_json(json, path) {
   match json {
     String(s) =>
       match ApiType::from_string(s) {

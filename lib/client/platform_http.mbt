@@ -12,7 +12,7 @@ pub struct PlatformHttpConfig {
   max_retries : Int
   initial_backoff_ms : Int
   proxy_url : String
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Create a new platform HTTP config with sensible defaults.
@@ -40,11 +40,11 @@ pub fn PlatformHttpConfig::new(
 
 ///|
 /// HTTP response returned from platform requests.
-pub struct HttpResponse {
+pub(all) struct HttpResponse {
   status_code : Int
   body : String
   headers : Array[(String, String)]
-} derive(Show)
+} derive(Debug, Show)
 
 ///|
 /// HTTP request method.
@@ -53,7 +53,7 @@ pub enum HttpMethod {
   Post
   Put
   Delete
-} derive(Show)
+} derive(Debug, Show)
 
 ///|
 /// HTTP request error types.
@@ -63,7 +63,7 @@ pub enum HttpError {
   ServerError(Int, String)
   ClientError(Int, String)
   AllHostsFailed(String)
-} derive(Show)
+} derive(Debug, Show)
 
 // ── Platform HTTP Client ─────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ pub fn PlatformHttpClient::delete(
 /// Execute request with retry and failover logic.
 fn PlatformHttpClient::execute_with_retry(
   self : PlatformHttpClient,
-  method : HttpMethod,
+  http_method : HttpMethod,
   path : String,
   body : String,
   headers : Array[(String, String)],
@@ -150,7 +150,7 @@ fn PlatformHttpClient::execute_with_retry(
     }
     let url = build_request_url(self.current_host, path)
     let result = send_request(
-      method,
+      http_method,
       url,
       body,
       headers,
@@ -164,7 +164,7 @@ fn PlatformHttpClient::execute_with_retry(
       Err(err) => {
         last_error = err
         self.consecutive_failures = self.consecutive_failures + 1
-        if not(is_retryable(last_error)) {
+        if !is_retryable(last_error) {
           return Err(last_error)
         }
       }
@@ -183,7 +183,7 @@ fn PlatformHttpClient::execute_with_retry(
         }
         let url = build_request_url(self.current_host, path)
         let result = send_request(
-          method,
+          http_method,
           url,
           body,
           headers,
@@ -197,7 +197,7 @@ fn PlatformHttpClient::execute_with_retry(
           Err(err) => {
             last_error = err
             self.consecutive_failures = self.consecutive_failures + 1
-            if not(is_retryable(last_error)) {
+            if !is_retryable(last_error) {
               return Err(last_error)
             }
           }
@@ -301,13 +301,13 @@ pub fn is_retryable(error : HttpError) -> Bool {
 /// Build a full URL from host and path.
 fn build_request_url(host : String, path : String) -> String {
   let trimmed_host = if host.length() > 0 &&
-    host[host.length() - 1:].to_string() == "/" {
-    host[:host.length() - 1].to_string()
+    host[host.length() - 1:].to_owned() == "/" {
+    host[:host.length() - 1].to_owned()
   } else {
     host
   }
-  let trimmed_path = if path.length() > 0 && path[:1].to_string() == "/" {
-    path[1:].to_string()
+  let trimmed_path = if path.length() > 0 && path[:1].to_owned() == "/" {
+    path[1:].to_owned()
   } else {
     path
   }

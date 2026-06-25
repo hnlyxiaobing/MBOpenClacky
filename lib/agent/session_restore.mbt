@@ -243,9 +243,9 @@ fn extract_title_from_content(content : @message.MessageContent) -> String {
     @message.Text(s) => s
     @message.Blocks(_) => ""
   }
-  let trimmed = text.trim().to_string()
+  let trimmed = text.trim().to_owned()
   if trimmed.length() > 60 {
-    trimmed[:57].to_string() + "..."
+    trimmed[:57].to_owned() + "..."
   } else {
     trimmed
   }

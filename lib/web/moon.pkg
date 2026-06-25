@@ -17,5 +17,4 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "moonbitlang/async",
-  "moonbitlang/async/http",
 }

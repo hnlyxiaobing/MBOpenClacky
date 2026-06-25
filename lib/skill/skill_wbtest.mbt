@@ -32,7 +32,7 @@ test "parse_frontmatter: normal frontmatter" {
       #|Some(true)
     ),
   )
-  inspect(body.trim().to_string(), content="Skill body here.")
+  inspect(body.trim().to_owned(), content="Skill body here.")
 }
 
 ///|
@@ -43,7 +43,7 @@ test "parse_frontmatter: empty frontmatter" {
     #|Body content.
   let (fields, body) = parse_frontmatter(content)
   inspect(fields.length(), content="0")
-  inspect(body.trim().to_string(), content="Body content.")
+  inspect(body.trim().to_owned(), content="Body content.")
 }
 
 ///|

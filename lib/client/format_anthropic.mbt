@@ -274,12 +274,12 @@ fn url_to_anthropic_image(url : String) -> Json? {
   if url.length() == 0 {
     return None
   }
-  if url.length() >= 5 && url[:5].to_string() == "data:" {
+  if url.length() >= 5 && url[:5].to_owned() == "data:" {
     // Parse data URI: data:<media_type>;base64,<data>
     match url.find(";base64,") {
       Some(sep) => {
-        let media_type = url[5:sep].to_string()
-        let data = url[sep + 8:].to_string()
+        let media_type = url[5:sep].to_owned()
+        let data = url[sep + 8:].to_owned()
         Some(
           Json::object({
             "type": "image".to_json(),
@@ -487,9 +487,9 @@ pub fn format_anthropic_tool_results(
 pub fn anthropic_messages_path(base_url : String) -> String {
   let trimmed = base_url.trim_end()
   let len = trimmed.length()
-  if len >= 3 && trimmed[len - 3:].to_string() == "/v1" {
+  if len >= 3 && trimmed[len - 3:].to_owned() == "/v1" {
     "messages"
-  } else if len >= 4 && trimmed[len - 4:].to_string() == "/v1/" {
+  } else if len >= 4 && trimmed[len - 4:].to_owned() == "/v1/" {
     "messages"
   } else {
     "v1/messages"

@@ -72,10 +72,10 @@ pub fn remove_pid_file(port : Int) -> Result[Unit, String] {
 pub fn extract_port_from_filename(filename : String) -> Int? {
   // Expected format: "mbopenclacky-master-{port}.pid"
   let prefix = pid_file_prefix
-  if not(filename.has_prefix(prefix)) {
+  if !filename.has_prefix(prefix) {
     return None
   }
-  if not(filename.has_suffix(".pid")) {
+  if !filename.has_suffix(".pid") {
     return None
   }
   // Extract the port part between prefix and ".pid"
@@ -84,13 +84,13 @@ pub fn extract_port_from_filename(filename : String) -> Int? {
   if start >= end {
     return None
   }
-  let port_str = filename.substring(start~, end~)
+  let port_str = filename[start:end].to_owned()
   parse_int(port_str)
 }
 
 ///|
 /// Check if a process is alive by PID
-fn is_process_alive(pid : Int) -> Bool {
+pub fn is_process_alive(pid : Int) -> Bool {
   // TODO: FFI - check if process is alive
   let _ = pid
   true

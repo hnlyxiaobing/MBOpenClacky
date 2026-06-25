@@ -34,7 +34,7 @@ pub fn AgentPool::get(self : AgentPool, id : String) -> SubAgentHandle? {
 /// Returns the collected handles.
 pub fn AgentPool::collect_completed(self : AgentPool) -> Array[SubAgentHandle] {
   let done = self.handles.filter(fn(h) { h.is_done() })
-  self.handles = self.handles.filter(fn(h) { not(h.is_done()) })
+  self.handles = self.handles.filter(fn(h) { !h.is_done() })
   done
 }
 
@@ -58,7 +58,7 @@ pub fn AgentPool::all_done(self : AgentPool) -> Bool {
   }
   let mut done = true
   for h in self.handles {
-    if not(h.is_done()) {
+    if !h.is_done() {
       done = false
       break
     }

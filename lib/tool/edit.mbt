@@ -12,12 +12,12 @@ pub fn Edit::new() -> Edit {
 }
 
 ///|
-impl Tool for Edit with fn name(self) -> String {
+impl Tool for Edit with fn name(_self) -> String {
   "edit"
 }
 
 ///|
-impl Tool for Edit with fn description(self) -> String {
+impl Tool for Edit with fn description(_self) -> String {
   "Performs exact string replacements in files.\n" +
   "- old_str must include all whitespace, indentation, and surrounding code exactly.\n" +
   "- Use replace_all for replacing all occurrences.\n" +
@@ -106,9 +106,9 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
   } else {
     match content.find(old_string) {
       Some(idx) =>
-        content[:idx].to_string() +
+        content[:idx].to_owned() +
         new_string +
-        content[idx + old_string.length():].to_string()
+        content[idx + old_string.length():].to_owned()
       None => content
     }
   }
@@ -154,7 +154,7 @@ fn count_occurrences(text : String, substring : String) -> Int {
   let sub_len = substring.length()
   let text_len = text.length()
   while pos + sub_len <= text_len {
-    if text[pos:pos + sub_len].to_string() == substring {
+    if text[pos:pos + sub_len].to_owned() == substring {
       count = count + 1
       pos = pos + sub_len
     } else {

@@ -1,9 +1,4 @@
 import {
-  "bobzhang/crescent",
-  "bobzhang/crescent/core",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
-  "hnlyxiaobing/MBOpenClacky/lib/message",
   "moonbitlang/core/json",
-  "moonbitlang/async",
-  "moonbitlang/async/http",
 }

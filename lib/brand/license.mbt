@@ -13,7 +13,7 @@ pub(all) enum LicenseStatus {
   GraceExceeded
   Invalid
   NotConfigured
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, Show, ToJson)
 
 ///|
 /// License validator

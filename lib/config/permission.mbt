@@ -35,7 +35,7 @@ impl ToJson for PermissionMode with fn to_json(self) {
 }
 
 ///|
-impl FromJson for PermissionMode with fn from_json(json, path) {
+pub impl FromJson for PermissionMode with fn from_json(json, path) {
   match json {
     String(s) =>
       match PermissionMode::from_string(s) {

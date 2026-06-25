@@ -135,7 +135,7 @@ pub fn generate_anonymous_id(
   // Simple deterministic hash (placeholder for SHA256)
   let mut hash : UInt = 0
   for c in raw {
-    hash = hash * 31 + c.to_int().to_uint()
+    hash = hash * 31 + c.to_int().reinterpret_as_uint()
   }
   hash.to_string()
 }

@@ -125,8 +125,8 @@ pub fn truncate_text(text : String, max_chars : Int) -> String {
   if text.length() <= max_chars {
     text
   } else if max_chars <= 3 {
-    text[:max_chars].to_string()
+    text[:max_chars].to_owned()
   } else {
-    text[:max_chars - 3].to_string() + "..."
+    text[:max_chars - 3].to_owned() + "..."
   }
 }

@@ -4,7 +4,7 @@ pub(all) enum TelemetryEventType {
   Startup
   Task
   Share
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Startup event payload
@@ -13,7 +13,7 @@ pub(all) struct StartupPayload {
   version : String
   brand : String?
   container : String?
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Task completion event payload
@@ -31,7 +31,7 @@ pub(all) struct TaskPayload {
   completion_tokens : Int
   cache_creation_tokens : Int
   cache_read_tokens : Int
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Share event payload
@@ -39,7 +39,7 @@ pub(all) struct SharePayload {
   device_id : String
   event : String
   extra : Map[String, String]?
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Unified telemetry event
@@ -47,4 +47,4 @@ pub(all) enum TelemetryEvent {
   StartupEvent(StartupPayload)
   TaskEvent(TaskPayload)
   ShareEvent(SharePayload)
-} derive(Eq, Show, Debug, ToJson)
+} derive(Eq, Debug, ToJson)

@@ -1,8 +1,6 @@
 import {
   "bobzhang/crescent",
   "bobzhang/crescent/core",
-  "bobzhang/crescent/httputil",
   "moonbitlang/core/json",
   "moonbitlang/async",
-  "moonbitlang/async/http",
 }

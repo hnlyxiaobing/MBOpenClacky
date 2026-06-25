@@ -90,7 +90,7 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   assert_eq(state.session_id, Some("session_xyz"))
 
   // 5. Build Heartbeat
-  let hb = build_heartbeat_payload(None)
+  let _hb = build_heartbeat_payload(None)
   state.mark_heartbeat_sent()
   assert_false(state.heartbeat_acked)
   state.mark_heartbeat_acked()
@@ -134,8 +134,8 @@ test "discord_gateway_reconnect_flow" {
   // Build Resume payload
   match state.last_seq {
     Some(seq) => {
-      let resume = build_resume_payload("TOK", "sess1", seq)
-      match resume {
+      let resume_fn = build_resume_payload("TOK", "sess1", seq)
+      match resume_fn {
         Object(obj) => {
           assert_eq(obj.get("op"), Some((6).to_json()))
           match obj.get("d") {
@@ -298,7 +298,7 @@ test "dingtalk_stream_callback_ack_flow" {
     _ => Json::object({})
   }
   match parse_stream_frame(frame_json) {
-    Ok((frame_type, data)) => {
+    Ok((frame_type, _data)) => {
       assert_eq(frame_type, "CALLBACK")
       // Build ACK
       let ack = build_stream_ack("msg_001")

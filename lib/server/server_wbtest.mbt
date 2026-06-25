@@ -94,13 +94,13 @@ test "cron_parse_weekday" {
 test "cron_parse_invalid" {
   // Too few fields
   let r1 = CronExpression::parse("* * *")
-  assert_true(r1.is_err())
+  assert_true(r1 is Err(_))
   // Invalid value
   let r2 = CronExpression::parse("60 * * * *")
-  assert_true(r2.is_err())
+  assert_true(r2 is Err(_))
   // Invalid range
   let r3 = CronExpression::parse("* 25 * * *")
-  assert_true(r3.is_err())
+  assert_true(r3 is Err(_))
 }
 
 ///|
@@ -176,7 +176,7 @@ test "scheduler_add_schedule" {
   let result = scheduler.add_schedule(
     "daily-backup", "backup", "0 2 * * *", true,
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   assert_eq(scheduler.config.schedules.length(), 1)
   assert_eq(scheduler.config.schedules[0].name, "daily-backup")
   assert_eq(scheduler.config.schedules[0].task_name, "backup")
@@ -194,11 +194,11 @@ test "scheduler_remove_schedule" {
   let _ = scheduler.add_schedule("test-task", "test", "* * * * *", true)
   assert_eq(scheduler.config.schedules.length(), 1)
   let result = scheduler.remove_schedule("test-task")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   assert_eq(scheduler.config.schedules.length(), 0)
   // Remove non-existent
   let r2 = scheduler.remove_schedule("nonexistent")
-  assert_true(r2.is_err())
+  assert_true(r2 is Err(_))
 }
 
 ///|
@@ -264,7 +264,7 @@ test "scheduler_get_schedule" {
     }
     None => fail("schedule not found")
   }
-  assert_true(scheduler.get_schedule("nonexistent").is_empty())
+  assert_true(scheduler.get_schedule("nonexistent") is None)
 }
 
 ///|

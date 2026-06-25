@@ -164,18 +164,18 @@ test "markdown_tokenize_code_block" {
 test "markdown_render_heading" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let output = renderer.render("# Title")
-  assert_true(output.contains("\x1b[33m"))
+  assert_true(output.contains("\u001b[33m"))
   assert_true(output.contains("Title"))
-  assert_true(output.contains("\x1b[0m"))
+  assert_true(output.contains("\u001b[0m"))
 }
 
 ///|
 test "markdown_render_code" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let output = renderer.render("`hello`")
-  assert_true(output.contains("\x1b[36m"))
+  assert_true(output.contains("\u001b[36m"))
   assert_true(output.contains("hello"))
-  assert_true(output.contains("\x1b[0m"))
+  assert_true(output.contains("\u001b[0m"))
 }
 
 ///|
@@ -198,7 +198,7 @@ test "theme_default" {
   let theme = Theme::default_()
   inspect(theme.name, content="Default")
   assert_true(theme.primary_color.length() > 0)
-  assert_true(theme.error_color == "\x1b[31m")
+  assert_true(theme.error_color == "\u001b[31m")
 }
 
 ///|

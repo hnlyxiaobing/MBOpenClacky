@@ -231,13 +231,13 @@ fn search_in_content(
   let mut pos = 0
   let content_len = content.length()
   while pos < content_len {
-    match content[pos:].to_string().find("\n") {
+    match content[pos:].to_owned().find("\n") {
       Some(idx) => {
-        lines.push(content[pos:pos + idx].to_string())
+        lines.push(content[pos:pos + idx].to_owned())
         pos = pos + idx + 1
       }
       None => {
-        lines.push(content[pos:].to_string())
+        lines.push(content[pos:].to_owned())
         pos = content_len
       }
     }
@@ -260,7 +260,7 @@ fn search_in_content(
     if search_line.find(effective) is Some(_) {
       let line_num = i + 1
       let display = if line.length() > max_line_len {
-        line[:max_line_len].to_string() + "..."
+        line[:max_line_len].to_owned() + "..."
       } else {
         line
       }
@@ -270,7 +270,7 @@ fn search_in_content(
         let mut j = ctx_start
         while j < i {
           let ctx_line = if lines[j].length() > max_line_len {
-            lines[j][:max_line_len].to_string() + "..."
+            lines[j][:max_line_len].to_owned() + "..."
           } else {
             lines[j]
           }
@@ -290,7 +290,7 @@ fn search_in_content(
         let mut j = i + 1
         while j < ctx_end {
           let ctx_line = if lines[j].length() > max_line_len {
-            lines[j][:max_line_len].to_string() + "..."
+            lines[j][:max_line_len].to_owned() + "..."
           } else {
             lines[j]
           }
@@ -346,7 +346,7 @@ fn has_null_bytes(content : String) -> Bool {
   let mut null_count = 0
   let mut i = 0
   while i < check_len {
-    if content[i:i + 1].to_string() == "\u0000" {
+    if content[i:i + 1].to_owned() == "\u0000" {
       null_count = null_count + 1
       if null_count > 3 {
         return true

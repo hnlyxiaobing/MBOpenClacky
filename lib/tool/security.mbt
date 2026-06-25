@@ -42,7 +42,7 @@ let secret_write_patterns : Array[String] = [
 /// Returns the (possibly rewritten) safe command.
 /// Raises SecurityError if the command is too dangerous.
 pub fn make_safe(command : String) -> String raise SecurityError {
-  let trimmed = command.trim().to_string()
+  let trimmed = command.trim().to_owned()
   guard !trimmed.is_empty() else { return trimmed }
 
   // Block: killing clacky process
@@ -85,10 +85,10 @@ pub fn make_safe(command : String) -> String raise SecurityError {
 pub fn command_safe_for_auto_execution(command : String) -> Bool {
   guard !command.is_empty() else { return false }
 
-  let trimmed = command.trim().to_string()
+  let trimmed = command.trim().to_owned()
   // Extract base command name (first word)
   let cmd_name = match trimmed.split(" ").next() {
-    Some(s) => s.to_string()
+    Some(s) => s.to_owned()
     None => trimmed
   }
 
@@ -229,9 +229,9 @@ fn expand_path(path : String) -> String {
         if path.length() == 1 {
           home
         } else if path.length() > 1 {
-          if path[1:].to_string().has_prefix("/") ||
-            path[1:].to_string().has_prefix("\\") {
-            home + path[1:].to_string()
+          if path[1:].to_owned().has_prefix("/") ||
+            path[1:].to_owned().has_prefix("\\") {
+            home + path[1:].to_owned()
           } else {
             path
           }
