@@ -11,4 +11,5 @@ import {
 
 options(
   "native-stub": [ "crypto_native.c" ],
+  link: { "native": { "cc-link-flags": "-lcrypto" } },
 )

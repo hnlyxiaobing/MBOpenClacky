@@ -29,11 +29,9 @@ pub fn sha256_hex(input : String) -> String {
 /// Constant-time comparison of two byte arrays to prevent timing attacks.
 /// Returns true only if both arrays have the same length and identical content.
 pub fn secure_compare(a : Array[Byte], b : Array[Byte]) -> Bool {
-  if a.length() != b.length() {
-    return false
-  }
-  let mut diff : Int = 0
-  for i = 0; i < a.length(); i = i + 1 {
+  let len = if a.length() < b.length() { a.length() } else { b.length() }
+  let mut diff = a.length() ^ b.length()
+  for i = 0; i < len; i = i + 1 {
     diff = diff | (a[i].to_int() ^ b[i].to_int())
   }
   diff == 0
@@ -112,10 +110,14 @@ pub fn generate_nonce() -> Result[Array[Byte], String] {
 }
 
 ///|
-/// Derive a key from password using SHA-256 hash.
+/// Derive a key from password using iterated SHA-256 hash (10000 rounds).
+/// Provides basic key stretching to resist brute-force attacks.
 /// TODO: Replace with proper KDF (PBKDF2-HMAC-SHA256, scrypt, or Argon2).
 pub fn derive_key(password : String) -> Array[Byte] {
-  let hash = @crypto.sha256(@utf8.encode(password))
+  let mut hash = @crypto.sha256(@utf8.encode(password))
+  for round = 1; round < 10000; round = round + 1 {
+    hash = @crypto.sha256(hash)
+  }
   let result : Array[Byte] = Array::make(hash.length(), b'\x00')
   for i = 0; i < hash.length(); i = i + 1 {
     result[i] = hash[i]

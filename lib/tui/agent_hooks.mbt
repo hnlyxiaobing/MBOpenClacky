@@ -59,7 +59,7 @@ pub fn AgentHookHandler::register_all(
 
 ///|
 /// Reset the handler state for a new agent run.
-/// Clears tool history, LLM call count, phase stack, and errors.
+/// Clears tool history, LLM call count, phase stack, progress, and errors.
 pub fn AgentHookHandler::reset_for_run(self : AgentHookHandler) -> Unit {
   let s = self.state.val
   s.tool_history = []
@@ -69,6 +69,7 @@ pub fn AgentHookHandler::reset_for_run(self : AgentHookHandler) -> Unit {
   s.current_tool_name = ""
   s.current_tool_args = ""
   s.last_error = None
+  s.progress_stack.close_all()
 }
 
 ///|
@@ -106,6 +107,8 @@ fn dispatch_hook_event(
       if config.track_phases {
         s.phase_stack.push("llm_call")
       }
+      // Push progress spinner for LLM call
+      ignore(s.progress_stack.push("Thinking..."))
     }
     AfterLlmCall => {
       s.llm_calling = false
@@ -113,6 +116,8 @@ fn dispatch_hook_event(
       if config.track_phases && s.phase_stack.length() > 0 {
         ignore(s.phase_stack.pop())
       }
+      // Close the LLM spinner
+      s.progress_stack.close_last()
     }
     MessageAdded => s.agent_status = "message_added"
     ToolExecuting(name, args) => {
@@ -131,6 +136,8 @@ fn dispatch_hook_event(
           result_summary: "",
         })
       }
+      // Push progress spinner for tool execution
+      ignore(s.progress_stack.push("Running: \{name}"))
     }
     ToolExecuted(name, _result) => {
       s.tool_output = "Completed: \{name}"
@@ -151,6 +158,8 @@ fn dispatch_hook_event(
           i = i - 1
         }
       }
+      // Close the tool spinner
+      s.progress_stack.close_last()
     }
     ErrorOccurred(msg) => {
       s.last_error = Some(msg)
@@ -160,6 +169,8 @@ fn dispatch_hook_event(
           ignore(s.phase_stack.pop())
         }
       }
+      // Close all spinners on error
+      s.progress_stack.close_all()
     }
     RunCompleted(result) => {
       s.agent_status = "completed"
@@ -173,6 +184,8 @@ fn dispatch_hook_event(
           ignore(s.phase_stack.pop())
         }
       }
+      // Close all spinners on completion
+      s.progress_stack.close_all()
     }
   }
 }

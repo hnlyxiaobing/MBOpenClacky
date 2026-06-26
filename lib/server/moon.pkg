@@ -1,4 +1,9 @@
 import {
   "moonbitlang/core/json",
+  "moonbitlang/core/buffer",
   "moonbitlang/x/sys",
 }
+
+options(
+  "native-stub": [ "browser_process.c" ],
+)

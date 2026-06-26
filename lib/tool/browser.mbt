@@ -15,6 +15,15 @@
 pub(all) struct Browser {
   /// Whether the browser MCP daemon is currently connected
   mut daemon_connected : Bool
+  /// Cache for the currently selected page to avoid redundant list_pages calls
+  mut page_cache : PageCache
+} derive(Eq, Debug)
+
+///|
+/// Cache for the currently selected page to avoid redundant list_pages calls.
+struct PageCache {
+  mut current : String?
+  mut invalidated : Bool
 } derive(Eq, Debug)
 
 // ── MCP Server Configuration ─────────────────────────────────────────────────
@@ -56,7 +65,7 @@ pub fn is_browser_mcp_available() -> Bool {
 ///|
 /// Create a new Browser tool instance.
 pub fn Browser::new() -> Browser {
-  { daemon_connected: false }
+  { daemon_connected: false, page_cache: { current: None, invalidated: true } }
 }
 
 ///|
@@ -233,18 +242,22 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
     "status" => ToolResult::success(self.handle_status())
     "open" =>
       match args.get("url") {
-        Some(String(_)) => self.mcp_call("new_page", args)
+        Some(String(_)) => {
+          let result = self.mcp_call("new_page", args)
+          self.invalidate_page_cache()
+          result
+        }
         None => ToolResult::error("url is required for 'open' action")
         _ => ToolResult::error("url must be a string")
       }
     "navigate" =>
       match args.get("url") {
-        Some(String(_)) => self.mcp_call("navigate_page", args)
+        Some(String(_)) => self.with_page("navigate_page", args)
         None => ToolResult::error("url is required for 'navigate' action")
         _ => ToolResult::error("url must be a string")
       }
     "snapshot" => {
-      let raw_result = self.mcp_call("take_snapshot", args)
+      let raw_result = self.with_page("take_snapshot", args)
       // Post-process: apply query window or compression on success
       if !raw_result.is_error {
         let output = raw_result.content
@@ -270,7 +283,7 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
         _ => ToolResult::error("kind must be a string")
       }
     "screenshot" => {
-      let raw_result = self.mcp_call("take_screenshot", args)
+      let raw_result = self.with_page("take_screenshot", args)
       if !raw_result.is_error {
         let ref_param = match args.get("ref") {
           Some(String(r)) => Some(r)
@@ -286,13 +299,30 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
     "tabs" => self.mcp_call("list_pages", args)
     "focus" =>
       match args.get("target_id") {
-        Some(String(_)) => self.mcp_call("select_page", args)
+        Some(String(_)) => {
+          let result = self.mcp_call("select_page", args)
+          // Update cache: after focus, the targeted page becomes current
+          if !result.is_error {
+            match args.get("target_id") {
+              Some(String(tid)) => {
+                self.page_cache.current = Some(tid)
+                self.page_cache.invalidated = false
+              }
+              _ => ()
+            }
+          }
+          result
+        }
         None => ToolResult::error("target_id is required for 'focus' action")
         _ => ToolResult::error("target_id must be a string")
       }
     "close" =>
       match args.get("target_id") {
-        Some(String(_)) => self.mcp_call("close_page", args)
+        Some(String(_)) => {
+          let result = self.mcp_call("close_page", args)
+          self.invalidate_page_cache()
+          result
+        }
         None => ToolResult::error("target_id is required for 'close' action")
         _ => ToolResult::error("target_id must be a string")
       }
@@ -362,10 +392,132 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
 
 // ── MCP Call Interface ───────────────────────────────────────────────────────
 
+// ── Page Cache & Error Recovery ─────────────────────────────────────────────
+
+///|
+/// Error patterns that indicate the selected page is no longer available.
+/// When these errors are encountered, the page cache should be invalidated
+/// and the operation retried after selecting a new page.
+let retryable_page_errors : Array[String] = [
+  "selected page has been closed",
+  "No page found",
+  "no active page",
+  "Target closed",
+  "page is detached",
+]
+
+///|
+/// Invalidate the page cache, forcing the next operation to re-resolve the page.
+/// Called after close_page, open/new_page, or any page-related error.
+pub fn Browser::invalidate_page_cache(self : Browser) -> Unit {
+  self.page_cache.current = None
+  self.page_cache.invalidated = true
+}
+
+///|
+/// Recover the selected page by listing available pages and selecting the first one.
+/// Updates the page cache with the newly selected page ID.
+/// Returns the recovered page ID or None if no pages are available.
+pub fn Browser::recover_selected_page(self : Browser) -> String? {
+  let list_result = self.mcp_call("list_pages", {})
+  if list_result.is_error {
+    return None
+  }
+  // Parse the page list response to find the first available page ID
+  let page_id = extract_first_page_id(list_result.content)
+  match page_id {
+    Some(pid) => {
+      // Select the recovered page via MCP (bypass with_page to avoid recursion)
+      let select_args : Map[String, Json] = { "target_id": pid.to_json() }
+      ignore(self.mcp_call("select_page", select_args))
+      // Update cache
+      self.page_cache.current = Some(pid)
+      self.page_cache.invalidated = false
+      Some(pid)
+    }
+    None => None
+  }
+}
+
+///|
+/// Extract the first page ID from a list_pages MCP response.
+/// Looks for JSON patterns like `"id":"<value>"` or `"pageId":"<value>"`.
+fn extract_first_page_id(content : String) -> String? {
+  // Try to find "id" field in the response (common in page list responses)
+  let patterns = ["\"id\":\"", "\"pageId\":\""]
+  for pat in patterns {
+    match content.find(pat) {
+      Some(idx) => {
+        let start = idx + pat.length()
+        if start < content.length() {
+          let rest = content[start:].to_owned()
+          match rest.find("\"") {
+            Some(end) => return Some(rest[:end].to_owned())
+            None => ()
+          }
+        }
+      }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+/// Check if an error message matches any retryable page error pattern.
+fn is_retryable_page_error(error_msg : String) -> Bool {
+  for pattern in retryable_page_errors {
+    if error_msg.contains(pattern) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// Resolve the current page ID, using cache if valid, otherwise recovering.
+/// Returns the page ID or None if recovery fails.
+fn Browser::resolve_page_id(self : Browser) -> String? {
+  // Check cache first
+  if !self.page_cache.invalidated {
+    match self.page_cache.current {
+      Some(pid) => return Some(pid)
+      None => ()
+    }
+  }
+  // Cache miss or invalidated — recover
+  self.recover_selected_page()
+}
+
+///|
+/// Execute an MCP call with automatic page ID injection and error recovery.
+/// If the page cache is valid, uses the cached page ID.
+/// If the page cache is empty/invalidated, recovers by selecting the first available page.
+/// On retryable page errors, invalidates cache, recovers, and retries once.
+pub fn Browser::with_page(
+  self : Browser,
+  tool_name : String,
+  args : Map[String, Json],
+) -> ToolResult {
+  let page_id = self.resolve_page_id()
+  // First attempt with resolved page_id
+  let result = self.mcp_call(tool_name, args, page_id~)
+  // Check for retryable page errors
+  if result.is_error && is_retryable_page_error(result.content) {
+    self.invalidate_page_cache()
+    match self.recover_selected_page() {
+      Some(new_pid) => self.mcp_call(tool_name, args, page_id=Some(new_pid))
+      None => result
+    }
+  } else {
+    result
+  }
+}
+
 ///|
 /// Kinds that require a `ref` parameter in the args map.
 let require_ref_kinds : Array[String] = [
-  "click", "dblclick", "type", "fill", "hover", "select",
+  "click", "dblclick", "type", "fill", "hover", "select", "drag",
 ]
 
 ///|
@@ -387,7 +539,7 @@ fn Browser::dispatch_act(
     }
   }
   match kind {
-    "click" => self.mcp_call("click", args)
+    "click" => self.with_page("click", args)
     "dblclick" => {
       // Add dblClick flag so the MCP server knows to double-click
       let augmented : Map[String, Json] = {}
@@ -395,17 +547,22 @@ fn Browser::dispatch_act(
         augmented[entry.0] = entry.1
       }
       augmented["dblClick"] = true.to_json()
-      self.mcp_call("click", augmented)
+      self.with_page("click", augmented)
     }
-    "type" | "fill" => self.mcp_call("fill", args)
-    "press" => self.mcp_call("press_key", args)
-    "hover" => self.mcp_call("hover", args)
-    "drag" => self.mcp_call("drag", args)
-    "select" => self.mcp_call("select_option", args)
-    "scroll" => self.mcp_call("evaluate_script", args)
-    "wait" => self.mcp_call("wait_for", args)
+    "type" | "fill" => {
+      // type is an alias for fill — both map to the MCP "fill" verb.
+      // "fill" replaces existing content then types; "type" is kept as
+      // a user-facing synonym for backward compatibility.
+      self.with_page("fill", args)
+    }
+    "press" => self.with_page("press_key", args)
+    "hover" => self.with_page("hover", args)
+    "drag" => self.with_page("drag", args)
+    "select" => self.with_page("select_option", args)
+    "scroll" => self.with_page("evaluate_script", args)
+    "wait" => self.with_page("wait_for", args)
     "evaluate" => self.mcp_call("evaluate_script", args)
-    "click_at" => self.mcp_call("click_at", args)
+    "click_at" => self.with_page("click_at", args)
     _ => ToolResult::error("Unknown act kind: \{kind}")
   }
 }
@@ -418,10 +575,23 @@ pub fn Browser::mcp_call(
   self : Browser,
   tool_name : String,
   args : Map[String, Json],
+  page_id? : String? = None,
 ) -> ToolResult {
   // Try MCP path first
   if is_browser_mcp_available() {
-    let mcp_args = build_mcp_args(tool_name, args)
+    // Inject pageId into args if provided
+    let effective_args = match page_id {
+      Some(pid) => {
+        let augmented : Map[String, Json] = {}
+        for entry in args.iter() {
+          augmented[entry.0] = entry.1
+        }
+        augmented["pageId"] = pid.to_json()
+        augmented
+      }
+      None => args
+    }
+    let mcp_args = build_mcp_args(tool_name, effective_args)
     match browser_mcp_state.registry {
       Some(registry) => {
         let result = registry.call_tool(browser_mcp_server, tool_name, mcp_args) catch {
@@ -453,7 +623,7 @@ pub fn Browser::mcp_call(
 ///|
 /// Build MCP tool arguments from the raw args map based on the tool being called.
 fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
-  match tool_name {
+  let base = match tool_name {
     "new_page" => build_mcp_navigate_args(args)
     "navigate_page" => build_mcp_navigate_args(args)
     "take_snapshot" => build_mcp_snapshot_args(args)
@@ -471,6 +641,19 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
     "select_page" => build_mcp_select_page_args(args)
     "close_page" => build_mcp_close_page_args(args)
     _ => Json::object({})
+  }
+  // Propagate pageId from args if present (injected by with_page / mcp_call)
+  match args.get("pageId") {
+    Some(v) => {
+      match base {
+        Object(obj) => {
+          obj["pageId"] = v
+          Json::object(obj)
+        }
+        _ => base
+      }
+    }
+    None => base
   }
 }
 
@@ -860,7 +1043,7 @@ pub fn compress_snapshot(snapshot : String) -> String {
       cleaned.push(line)
     }
   }
-  // Stage 2: Merge consecutive StaticText lines at same indent
+  // Stage 2: Merge consecutive StaticText lines at same indent as "a / b / c"
   let merged : Array[String] = []
   let mut i = 0
   while i < cleaned.length() {
@@ -880,8 +1063,16 @@ pub fn compress_snapshot(snapshot : String) -> String {
         }
       }
       if j > i + 1 {
-        // Merge: keep first line, append " ..."
-        merged.push(line + " ...")
+        // Merge: extract text values and join with " / "
+        let texts : Array[String] = []
+        let mut k = i
+        while k < j {
+          texts.push(extract_static_text_value(cleaned[k].trim().to_owned()))
+          k = k + 1
+        }
+        let merged_text = join_browser_parts(texts, " / ")
+        let prefix = line[:indent].to_owned()
+        merged.push(prefix + "StaticText: " + merged_text)
         i = j
       } else {
         merged.push(line)
@@ -931,6 +1122,36 @@ fn is_all_decoration(s : String) -> Bool {
   true
 }
 
+// ── Page Readiness Polling ───────────────────────────────────────────────────
+
+///|
+/// Poll `list_pages` until a page with `selected: true` is found.
+/// Uses iteration-based waiting (each poll = ~one MCP round-trip).
+/// `timeout_ms` is converted to a max poll count (est. 150ms per poll).
+/// Returns Ok(()) when a selected page is found, Err on timeout.
+pub fn Browser::wait_for_page_ready(
+  self : Browser,
+  timeout_ms? : Int = 1500,
+) -> Result[Unit, String] {
+  // Estimate ~150ms per MCP poll round-trip
+  let max_polls = if timeout_ms / 150 > 0 { timeout_ms / 150 } else { 1 }
+  let mut polls = 0
+  while polls < max_polls {
+    let result = self.mcp_call("list_pages", {})
+    if !result.is_error {
+      // Check if the response contains a selected page indicator
+      let content = result.content
+      if content.contains("selected") && content.contains("true") {
+        return Ok(())
+      }
+    }
+    polls = polls + 1
+  }
+  Err(
+    "Page not ready after \{timeout_ms}ms (\{max_polls} polls). The browser may still be loading.",
+  )
+}
+
 ///|
 /// Check if a trimmed line looks like a StaticText node.
 /// Heuristic: lines that don't end with a ref marker `[ref=N]` and
@@ -940,6 +1161,20 @@ fn is_static_text_line(trimmed : String) -> Bool {
     return true
   }
   false
+}
+
+///|
+/// Extract the text value from a StaticText line (after "StaticText:" or "text:").
+fn extract_static_text_value(trimmed : String) -> String {
+  if trimmed.has_prefix("StaticText:") {
+    let rest = trimmed[11:].to_owned()
+    rest.trim().to_owned()
+  } else if trimmed.has_prefix("text:") {
+    let rest = trimmed[5:].to_owned()
+    rest.trim().to_owned()
+  } else {
+    trimmed
+  }
 }
 
 ///|
@@ -1031,33 +1266,142 @@ fn join_browser_parts(parts : Array[String], sep : String) -> String {
 
 ///|
 /// Maximum screenshot width before downscaling (pixels).
-let max_screenshot_width : Int = 800
+/// TODO: used when libpng FFI is available for downscaling.
+let _max_screenshot_width : Int = 800
 
 ///|
 /// Maximum screenshot file size (bytes). Images above this are noted as oversized.
 let max_screenshot_bytes : Int = 150 * 1024 // 150 KB
 
 ///|
+/// Get the system temporary directory for saving screenshots.
+fn get_screenshot_temp_dir() -> String {
+  let dir = match @sys.get_env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @sys.get_env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+  let subdir = @path.Path(dir).join(@path.Path("mbopenclacky_screenshots"))
+  let subdir_str = subdir.to_string()
+  if !@fs.path_exists(subdir_str) {
+    @fs.create_dir(subdir_str) catch { _ => () }
+  }
+  subdir_str
+}
+
+///|
+/// Generate a unique screenshot filename using timestamp.
+/// Fix: [H1] 截图文件计数器并发不安全 — 改用时间戳确保文件名唯一性
+fn next_screenshot_filename() -> String {
+  let ts = @async.now()
+  "screenshot_\{ts}.png"
+}
+
+///|
 /// Format a screenshot MCP response for LLM consumption.
-/// Adds metadata about the image and formats as an injectable reference.
-/// The actual image downscaling and disk save would be performed by an
-/// image processing pipeline (not available without an image library).
+/// Saves the raw PNG to a temp directory, checks the 150KB size limit,
+/// and returns a structured `{ content_string, image_inject }` payload.
+/// TODO: 800px downscaling requires libpng FFI — currently skipped.
 pub fn format_screenshot_result(
   mcp_output : String,
   ref_param? : String? = None,
 ) -> String {
   let parts : Array[String] = []
   // Determine if this was an element-level or full-page screenshot
-  match ref_param {
-    Some(r) => parts.push("Screenshot captured for element ref=\{r}")
-    None => parts.push("Full-page screenshot captured")
+  let caption = match ref_param {
+    Some(r) => "Screenshot captured for element ref=\{r}"
+    None => "Full-page screenshot captured"
   }
-  // Pass through the MCP output (typically base64 or a file path)
-  parts.push("")
-  parts.push(mcp_output)
-  parts.push("")
-  parts.push(
-    "Note: Image pipeline stub — actual downscaling (max \{max_screenshot_width}px) and compression (max \{max_screenshot_bytes / 1024}KB) require an image processing library.",
-  )
+  parts.push(caption)
+  // Attempt to extract base64 image data and save to disk
+  let base64_data = extract_base64_image(mcp_output)
+  match base64_data {
+    Some(b64) => {
+      let png_bytes = @base64.decode(b64.view()) catch { _ => Bytes::make(0, b'\x00') }
+      let byte_len = png_bytes.length()
+      let temp_dir = get_screenshot_temp_dir()
+      let filename = next_screenshot_filename()
+      let filepath = @path.Path(temp_dir).join(@path.Path(filename)).to_string()
+      @fs.write_bytes_to_file(filepath, png_bytes) catch {
+        _ => {
+          parts.push("")
+          parts.push("[image_inject]")
+          parts.push("mime_type: image/png")
+          parts.push("base64_data: (\{b64.length()} chars)")
+          parts.push("")
+          parts.push(
+            "Note: Failed to save screenshot to disk. Image data returned inline.",
+          )
+          return join_browser_parts(parts, "\n")
+        }
+      }
+      parts.push("")
+      parts.push("[image_inject]")
+      parts.push("mime_type: image/png")
+      parts.push("base64_data: (\{b64.length()} chars)")
+      parts.push("path: \{filepath}")
+      // Size limit check
+      if byte_len > max_screenshot_bytes {
+        parts.push("")
+        parts.push(
+          "⚠ Screenshot is \{byte_len / 1024}KB (limit \{max_screenshot_bytes / 1024}KB). Consider using snapshot instead for text-heavy pages.",
+        )
+      }
+      // TODO: downscale to max_screenshot_width px — requires libpng FFI
+    }
+    None => {
+      // MCP returned text-only output (no base64 image)
+      parts.push("")
+      parts.push(mcp_output)
+    }
+  }
   join_browser_parts(parts, "\n")
+}
+
+///|
+/// Try to extract a base64 image payload from the MCP screenshot response.
+/// Looks for common patterns: data URI prefix or raw base64 block.
+fn extract_base64_image(mcp_output : String) -> String? {
+  // Pattern 1: data URI — "data:image/png;base64,<data>"
+  match mcp_output.find("base64,") {
+    Some(idx) => {
+      let start = idx + 7
+      if start < mcp_output.length() {
+        return Some(mcp_output[start:].to_owned().trim().to_owned())
+      }
+      return None
+    }
+    None => ()
+  }
+  // Pattern 2: line starting with a long base64 string (>100 chars, only [A-Za-z0-9+/=])
+  for sv in mcp_output.split("\n") {
+    let line = sv.trim().to_owned()
+    if line.length() > 100 && is_base64_like(line) {
+      return Some(line)
+    }
+  }
+  None
+}
+
+///|
+/// Heuristic check: does the string look like base64 (only valid chars)?
+fn is_base64_like(s : String) -> Bool {
+  let mut i = 0
+  while i < s.length() {
+    let c = s[i]
+    let valid = (c >= 'A' && c <= 'Z') ||
+      (c >= 'a' && c <= 'z') ||
+      (c >= '0' && c <= '9') ||
+      c == '+' ||
+      c == '/' ||
+      c == '='
+    if !valid {
+      return false
+    }
+    i = i + 1
+  }
+  true
 }

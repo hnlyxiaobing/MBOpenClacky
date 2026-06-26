@@ -85,6 +85,14 @@ pub(all) struct TuiState {
   // ── Error ───────────────────────────────────────────────────
   /// Most recent error message, if any.
   mut last_error : String?
+
+  // ── Progress ────────────────────────────────────────────────
+  /// Stack-based progress tracker for spinner animation.
+  progress_stack : ProgressStack
+
+  // ── Sidebar ─────────────────────────────────────────────────
+  /// Sidebar panel for navigation and session management.
+  sidebar_panel : SidebarPanel
 } derive(Debug)
 
 ///|
@@ -109,5 +117,15 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     latest_delta: 0,
     input_text: "",
     last_error: None,
+    progress_stack: ProgressStack::new(),
+    sidebar_panel: init_default_sidebar(),
   }
+}
+
+///|
+/// Initialize the default sidebar panel with session navigation items.
+fn init_default_sidebar() -> SidebarPanel {
+  let panel = SidebarPanel::new("Sessions", 24)
+  panel.add_item(SidebarItem::with_icon("current", "Current", "●"))
+  panel
 }

@@ -16,6 +16,9 @@ pub(all) struct BrowserStatus {
   chrome_version : String?
   pid : Int?
   uptime_seconds : Int?
+  last_error : String?
+  endpoint : String?
+  mcp_version : String?
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -37,3 +40,7 @@ pub fn BrowserConfig::default_config() -> BrowserConfig {
     ],
   }
 }
+
+///|
+/// MCP protocol version used for handshake
+pub let mcp_protocol_version : String = "2024-11-05"

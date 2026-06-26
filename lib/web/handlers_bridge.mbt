@@ -380,53 +380,6 @@ fn handle_skills_evolution_history_bridge(
   response_to_core(handle_skills_evolution_history(req))
 }
 
-// ── Browser Bridges ───────────────────────────────────────────────
-
-///|
-fn handle_browser_status_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_browser_status(req))
-}
-
-///|
-fn handle_browser_start_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_browser_start(req))
-}
-
-///|
-fn handle_browser_stop_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_browser_stop(req))
-}
-
-///|
-fn handle_browser_navigate_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_browser_navigate(req))
-}
-
-///|
-fn handle_browser_screenshot_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_browser_screenshot(req))
-}
-
 // ── Trash Bridges ─────────────────────────────────────────────────
 
 ///|

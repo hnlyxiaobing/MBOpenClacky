@@ -7,6 +7,9 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/tool",
   "hnlyxiaobing/MBOpenClacky/lib/billing",
   "hnlyxiaobing/MBOpenClacky/lib/channel",
+  "hnlyxiaobing/MBOpenClacky/lib/server",
+  "hnlyxiaobing/MBOpenClacky/lib/brand",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/web/sse",
   "hnlyxiaobing/MBOpenClacky/lib/web/middleware" @mid,
   "hnlyxiaobing/MBOpenClacky/lib/web/broadcast",
@@ -17,5 +20,7 @@ import {
   "bobzhang/crescent/websocket" @ws,
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/x/codec/base64",
   "moonbitlang/async",
 }

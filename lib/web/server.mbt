@@ -53,6 +53,8 @@ pub(all) struct WebServer {
   webhook_registry : WebhookRegistry
   /// WebSocket broadcast hub for multi-client fan-out
   hub : @broadcast.Hub
+  /// Browser automation manager (mutable for daemon lifecycle control)
+  mut browser_manager : @server.BrowserManager
 }
 
 ///|
@@ -69,6 +71,7 @@ pub fn WebServer::new(
     cancelled: Map([]),
     webhook_registry: WebhookRegistry::new(),
     hub: @broadcast.Hub::new(),
+    browser_manager: @server.BrowserManager::new("~/.mbopenclacky/browser.yml"),
   }
 }
 
@@ -122,13 +125,21 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
   let app = @crescent.App()
   let server_ref : Ref[WebServer] = Ref(self)
 
-  // ── Middleware ─────────────────────────────────────────────────
+  // ── Middleware (outermost → innermost) ────────────────────────────
+  // 1. Logging: outermost so every request/response is logged
   app.use_middleware(@mid.logging_middleware())
+  // 2. Error envelope: catch downstream panics and wrap in standard JSON
+  app.use_middleware(@mid.error_envelope_middleware())
+  // 3. Auth: API key verification (conditional)
   match self.api_key {
     Some(key) => app.use_middleware(@mid.auth_middleware(key))
     None => ()
   }
-  // CORS support
+  // 4. Timeout: route-specific advisory timeouts
+  app.use_middleware(@mid.timeout_middleware())
+  // 5. Cache-Control: set response cache headers closest to handler
+  app.use_middleware(@mid.cache_control_middleware())
+  // 6. CORS support
   app.use_middleware(@cors.handle_cors())
 
   // ── Routes (no auth required) ──────────────────────────────────
@@ -152,6 +163,12 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       s.post("/:id/cancel", event => handle_cancel(server_ref, event))
       s.get("/:id/cost", event => handle_get_cost(server_ref, event))
       s.get("/:id/tools", event => handle_list_tools(server_ref, event))
+      // Extended session endpoints (export, fork, rename, messages)
+      s.post("/:id/export", event => handle_session_export(server_ref, event))
+      s.post("/:id/fork", event => handle_session_fork(server_ref, event))
+      // rename uses POST because crescent does not support PATCH
+      s.post("/:id/rename", event => handle_session_rename(server_ref, event))
+      s.get("/:id/messages", event => handle_session_messages(server_ref, event))
     })
 
     // Config
@@ -256,16 +273,20 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
 
     // Browser
     api.group("/browser", (br : @crescent.App) => {
-      br.get("/status", event => handle_browser_status_bridge(server_ref, event))
-      br.post("/start", event => handle_browser_start_bridge(server_ref, event))
-      br.post("/stop", event => handle_browser_stop_bridge(server_ref, event))
-      br.post("/navigate", event => {
-        handle_browser_navigate_bridge(server_ref, event)
-      })
-      br.get("/screenshot", event => {
-        handle_browser_screenshot_bridge(server_ref, event)
-      })
+      br.get("/status", event => handle_browser_status(server_ref, event))
+      br.post("/start", event => handle_browser_start(server_ref, event))
+      br.post("/stop", event => handle_browser_stop(server_ref, event))
+      br.post("/navigate", event => handle_browser_navigate(server_ref, event))
+      // Fix: [C1] screenshot路由方法不匹配前端 — 添加GET路由匹配前端browser.js的API.get调用
+      br.get("/screenshot", event => handle_browser_screenshot(server_ref, event))
+      br.post("/screenshot", event => handle_browser_screenshot(server_ref, event))
+      br.post("/configure", event => handle_browser_configure(server_ref, event))
+      br.post("/reload", event => handle_browser_reload(server_ref, event))
+      br.post("/toggle", event => handle_browser_toggle(server_ref, event))
     })
+
+    // Browser tool proxy
+    api.post("/tool/browser", event => handle_browser_tool_call(server_ref, event))
 
     // Webhooks (IM channel callbacks)
     api.group("/webhooks", (wh : @crescent.App) => {
@@ -281,6 +302,30 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       tr.delete("/:id", event => handle_trash_delete_bridge(server_ref, event))
       tr.delete("", event => handle_trash_empty_bridge(server_ref, event))
     })
+
+    // Brand / License
+    api.group("/brand", (br : @crescent.App) => {
+      br.get("/config", event => handle_brand_config(server_ref, event))
+      br.post("/activate", event => handle_brand_activate(server_ref, event))
+      br.get("/status", event => handle_brand_status(server_ref, event))
+      br.get("/heartbeat", event => handle_brand_heartbeat(server_ref, event))
+    })
+
+    // Files
+    api.group("/files", (fl : @crescent.App) => {
+      fl.get("/list", event => handle_files_list(server_ref, event))
+      fl.get("/read", event => handle_files_read(server_ref, event))
+      fl.post("/write", event => handle_files_write(server_ref, event))
+      fl.post("/upload", event => handle_files_upload(server_ref, event))
+      fl.get("/paths", event => handle_files_paths(server_ref, event))
+    })
+
+    // ── API Extensions ──────────────────────────────────────────
+    // Load extensions from ~/.clacky/api_extensions (or configured dir)
+    // and register their routes under /api/ext/<name>/
+    let extensions = load_api_extensions()
+    let dispatcher = ExtensionDispatcher::new(extensions)
+    dispatcher.register_routes(api)
   })
 
   // ── Static Files ──────────────────────────────────────────────
@@ -293,10 +338,11 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     if !path.has_prefix("/api/") &&
       !path.has_prefix("/ws/") &&
       path != "/health" {
-      let content = @fs.read_file_to_string("assets/web/index.html") catch {
+      let raw = @fs.read_file_to_string("assets/web/index.html") catch {
         _ => ""
       }
-      if !content.is_empty() {
+      if !raw.is_empty() {
+        let content = process_template(raw, TemplateConfig::default())
         return @core.HttpResponse::ok()
           .header("Content-Type", "text/html; charset=utf-8")
           .body(content)

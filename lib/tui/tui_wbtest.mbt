@@ -157,8 +157,9 @@ test "handle_hook_event updates state correctly" {
   let agent = make_test_agent()
   let state_ref = Ref(TuiState::from_agent(agent))
 
-  handle_hook_event(
+  dispatch_hook_event(
     state_ref,
+    default_hook_config(),
     @agent.HookEvent::StatusChanged(
       @agent.AgentStatus::Idle,
       @agent.AgentStatus::Running,
@@ -171,11 +172,12 @@ test "handle_hook_event updates state correctly" {
     ),
   )
 
-  handle_hook_event(state_ref, @agent.HookEvent::BeforeIteration(3))
+  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeIteration(3))
   inspect(state_ref.val.iterations, content="3")
 
-  handle_hook_event(
+  dispatch_hook_event(
     state_ref,
+    default_hook_config(),
     @agent.HookEvent::ToolExecuting("read_file", "test.txt"),
   )
   inspect(
@@ -185,8 +187,9 @@ test "handle_hook_event updates state correctly" {
     ),
   )
 
-  handle_hook_event(
+  dispatch_hook_event(
     state_ref,
+    default_hook_config(),
     @agent.HookEvent::ErrorOccurred("something broke"),
   )
   inspect(
@@ -208,10 +211,10 @@ test "handle_hook_event_simple_events_no_crash" {
   let agent = make_test_agent()
   let state_ref = Ref(TuiState::from_agent(agent))
 
-  handle_hook_event(state_ref, @agent.HookEvent::BeforeLlmCall)
-  handle_hook_event(state_ref, @agent.HookEvent::AfterLlmCall)
-  handle_hook_event(state_ref, @agent.HookEvent::MessageAdded)
-  handle_hook_event(state_ref, @agent.HookEvent::BeforeIteration(1))
+  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeLlmCall)
+  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::AfterLlmCall)
+  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::MessageAdded)
+  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeIteration(1))
   inspect(state_ref.val.iterations, content="1")
 }
 
@@ -225,8 +228,9 @@ test "handle_hook_event_ToolExecuted" {
     content: "file contents",
     is_error: false,
   }
-  handle_hook_event(
+  dispatch_hook_event(
     state_ref,
+    default_hook_config(),
     @agent.HookEvent::ToolExecuted("read_file", entry),
   )
   inspect(

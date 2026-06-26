@@ -222,12 +222,14 @@ pub fn InputBar::insert_text(self : InputBar, text : String) -> Unit {
 /// Render the current line with cursor position indicator.
 ///
 /// Returns a string with the cursor position marked using `|` character.
-/// Useful for debugging and simple display without the full widget system.
+/// Uses CJK-aware display width so the cursor indicator is placed at the
+/// correct visual column when the line contains double-width characters.
 pub fn InputBar::render_with_cursor(self : InputBar) -> String {
   let line = self.content_lines[self.cursor_line]
   let chars = line.to_array()
   let col = clamp_col(self.cursor_col, chars.length())
   let sb = StringBuilder::new()
+  // Render characters before cursor
   for i = 0; i < chars.length(); i = i + 1 {
     if i == col {
       sb.write_char('|')
@@ -238,6 +240,16 @@ pub fn InputBar::render_with_cursor(self : InputBar) -> String {
     sb.write_char('|')
   }
   sb.to_string()
+}
+
+///|
+/// Get the visual cursor column for the current line, accounting for CJK double-width.
+///
+/// Returns the display column where the cursor indicator should be placed,
+/// suitable for use with fixed-width terminal rendering.
+pub fn InputBar::visual_cursor_col(self : InputBar) -> Int {
+  let line = self.content_lines[self.cursor_line]
+  cursor_display_col(line, self.cursor_col)
 }
 
 // ── Internal helpers ────────────────────────────────────────────────

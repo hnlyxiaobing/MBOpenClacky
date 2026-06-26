@@ -195,15 +195,15 @@ assets/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (non-test) | 219 |
-| Test files (`*_wbtest.mbt`) | 43 |
-| Source lines (non-test) | ~46,100 |
-| Test lines (`*_wbtest.mbt`) | ~14,900 |
-| Test cases | 1,203+ |
+| `.mbt` source files (total) | 293 |
+| Test files (`*_wbtest.mbt`) | 44 |
+| Source lines (non-test) | ~47,105 |
+| Test lines (`*_wbtest.mbt`) | ~13,544 |
+| Test cases | 1,254+ |
 | Top-level packages | 21 |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 11 |
 | REST API endpoints | 68+ |
 | `moon check` | 0 errors, 280 warnings |
-| Phase coverage | Phase 0-18 + Phase 21 gap-filling in progress |
+| Phase coverage | ~85-90% (backend ~95%, Web frontend ~40-50%, deploy infra ~30%) |

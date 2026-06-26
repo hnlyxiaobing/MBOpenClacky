@@ -8,4 +8,5 @@ import {
   "Frank-III/onebit-tui/view",
   "Frank-III/onebit-tui/runtime",
   "Frank-III/onebit-tui/ffi",
+  "moonbitlang/async",
 }

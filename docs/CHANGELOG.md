@@ -55,7 +55,7 @@
   - 升级 `lib/tui/tui.mbt` / `dialog.mbt` / `input_bar.mbt` / `state.mbt`
   - 新增约 580+ 行代码
 - `[docs]` **全量文档校准**
-  - 同步 `CLAUDE.md` / `README.md` 指标：源文件 219、源代码行 ~46,100、测试行 ~14,900
+  - 同步 `CLAUDE.md` / `README.md` 指标：源文件 293、源代码行 ~47,105、测试行 ~13,544、测试用例 1,254、完成度 ~85-90%
   - 更新 `moon check` 状态：0 errors, 280 warnings
   - 补充 Phase 22 进行中状态与差距填补计划文档 `docs/gap-filling-solutions-plan-0626.md`
 - `[verify]` `moon check` 最终验证：0 errors, 280 warnings

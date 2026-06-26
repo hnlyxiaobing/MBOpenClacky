@@ -61,7 +61,7 @@ pub(all) struct ProgressStackData {
 /// as a list of spinner animations with messages.
 pub(all) struct ProgressStack {
   data : Ref[ProgressStackData]
-}
+} derive(Debug)
 
 ///|
 /// Create a new empty progress stack.
@@ -83,7 +83,7 @@ pub fn ProgressStack::push(
   d.next_id = d.next_id + 1
   let entry = ProgressEntry::{
     id,
-    start_time: 0L, // Will be set by caller or use relative timing
+    start_time: @async.now(),
     message,
     is_closed: false,
     metadata: "",
@@ -146,6 +146,20 @@ pub fn ProgressStack::close_all(self : ProgressStack) -> Unit {
   }
 }
 
+///|
+/// Close the most recently opened (last pushed) progress entry.
+pub fn ProgressStack::close_last(self : ProgressStack) -> Unit {
+  let d = self.data.val
+  let mut i = d.entries.length() - 1
+  while i >= 0 {
+    if !d.entries[i].is_closed {
+      d.entries[i].is_closed = true
+      break
+    }
+    i = i - 1
+  }
+}
+
 // ── ProgressHandle Methods ──────────────────────────────────────────────────
 
 ///|
@@ -196,21 +210,24 @@ pub fn ProgressHandle::is_open(self : ProgressHandle) -> Bool {
 
 ///|
 /// Calculate elapsed seconds from a start timestamp.
-/// Uses a simple counter since we don't have System::time() in all contexts.
-fn elapsed_seconds(_start_time : Int64) -> Int {
-  // In a real integration, this would use @async.now() or similar.
-  // For now, return 0 as a placeholder — the actual frame-time
-  // calculation happens in the TUI render loop.
-  0
+/// Uses `@async.now()` (millisecond Int64) for real wall-clock time.
+fn elapsed_seconds(start_time : Int64) -> Int {
+  let now_ms = @async.now()
+  let diff_ms = now_ms - start_time
+  // Convert milliseconds to whole seconds
+  (diff_ms / 1000L).to_int()
 }
 
 ///|
 /// Select a spinner frame character based on elapsed time.
-/// Uses the Dots style from progress.mbt (braille spinner).
-fn spinner_frame(elapsed : Int) -> String {
+/// Uses the Dots style (braille spinner) with ~100ms per frame.
+fn spinner_frame(elapsed_sec : Int) -> String {
   let frames = [
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
   ]
-  let idx = elapsed % frames.length()
+  // Use current time in 100ms ticks for smooth animation
+  let now_ms = @async.now()
+  let tick = (now_ms / 100L).to_int()
+  let idx = tick % frames.length()
   frames[idx]
 }

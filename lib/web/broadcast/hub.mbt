@@ -122,6 +122,9 @@ pub fn Hub::subscribe_global(self : Hub, conn_id : String) -> Unit {
 
 ///|
 /// Broadcast a text message to all connections subscribed to a session.
+/// Stale connection IDs (present in the subs list but missing from the
+/// connections map) are collected and unregistered after iteration to
+/// avoid mutating the subscription list mid-loop.
 pub fn Hub::broadcast_session(
   self : Hub,
   session_id : String,
@@ -129,20 +132,35 @@ pub fn Hub::broadcast_session(
 ) -> Unit {
   guard self.session_subs.contains(session_id) else { return }
   let conn_ids = self.session_subs[session_id]
+  let stale : Array[String] = []
   for conn_id in conn_ids {
     if self.connections.contains(conn_id) {
       self.connections[conn_id].peer.text(message)
+    } else {
+      stale.push(conn_id)
     }
+  }
+  for conn_id in stale {
+    self.unregister(conn_id)
   }
 }
 
 ///|
 /// Broadcast a text message to all globally-subscribed connections.
+/// Stale connection IDs (present in the subs list but missing from the
+/// connections map) are collected and unregistered after iteration to
+/// avoid mutating the subscription list mid-loop.
 pub fn Hub::broadcast_global(self : Hub, message : String) -> Unit {
+  let stale : Array[String] = []
   for conn_id in self.global_subs {
     if self.connections.contains(conn_id) {
       self.connections[conn_id].peer.text(message)
+    } else {
+      stale.push(conn_id)
     }
+  }
+  for conn_id in stale {
+    self.unregister(conn_id)
   }
 }
 
@@ -171,6 +189,17 @@ pub fn Hub::broadcast_global_json(
 ) -> Unit {
   let payload = Json::object({ "type": event_type.to_json(), "data": data }).stringify()
   self.broadcast_global(payload)
+}
+
+///|
+/// Broadcast a heartbeat ping to all globally-subscribed connections.
+/// Used to keep idle WebSocket connections alive.
+pub fn Hub::broadcast_heartbeat(self : Hub) -> Unit {
+  let ts = @async.now()
+  self.broadcast_global_json(
+    "heartbeat",
+    Json::object({ "timestamp": ts.to_json() }),
+  )
 }
 
 ///|

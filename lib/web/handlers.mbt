@@ -299,6 +299,14 @@ fn handle_chat_stream(
   // Build SSE body from captured events, resuming from Last-Event-ID if applicable
   let sse_body = @sse.build_sse_body(captured, result, resume_from=last_id)
 
+  // Prepend heartbeat to signal connection alive before buffered events.
+  // TODO: crescent does not yet support true chunked/streaming responses,
+  // so the entire SSE body is sent at once after agent.run() completes.
+  // When crescent adds streaming support, inject periodic heartbeats
+  // during agent execution via @sse.format_heartbeat() to prevent
+  // proxy/keep-alive timeouts on long-running operations.
+  let sse_body = @sse.format_heartbeat() + sse_body
+
   @core.HttpResponse::ok()
   .header("Content-Type", "text/event-stream")
   .header("Cache-Control", "no-cache")
@@ -720,7 +728,13 @@ fn handle_websocket(
                 )
               })
 
-              // Run agent (blocking)
+              // Run agent (blocking).
+              // NOTE: MoonBit currently lacks a lightweight TaskGroup/spawn
+              // primitive for safe async fan-out. Wrapping agent.run() in
+              // @async would risk unbounded concurrent runs per session.
+              // The hook callback above streams events incrementally, so
+              // the client receives progress updates even during long runs.
+              // Revisit when @async provides structured concurrency.
               let _result = agent.run(message) catch {
                 _ => {
                   hub.broadcast_session(

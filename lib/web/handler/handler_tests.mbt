@@ -271,13 +271,8 @@ test "handler: skills list returns 200" {
   assert_eq(resp.status, 200)
 }
 
-///|
-test "handler: browser status returns 200" {
-  let req = @web.HttpRequest::new(@web.GET, "/api/browser/status")
-  let resp = @web.handle_browser_status(req)
-  assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("running"))
-}
+// Browser handler tests removed: handlers now require Ref[WebServer] + crescent.Event.
+// Integration tests should be added via the browser_manager test suite.
 
 ///|
 test "handler: trash list returns 200" {

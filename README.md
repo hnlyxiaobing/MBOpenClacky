@@ -11,18 +11,18 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~98-99%（Phase 0-21 主体完成，差距填补方案持续实施中）
+- **完成度**：~85-90%（后端核心 ~95%，Web 前端 ~40-50%，部署基础设施 ~30%）
 
 ### 核心能力概览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（非测试） | 219 个 |
-| 测试文件 | 43 个 |
-| 代码行数（源代码） | ~46,100 行 |
-| 代码行数（测试） | ~14,900 行 |
-| 代码行数（总计） | ~61,000 行 |
-| 测试用例 | 1,203+ 个 |
+| `.mbt` 源文件（总计） | 293 个 |
+| 测试文件 | 44 个 |
+| 代码行数（源代码） | ~47,105 行 |
+| 代码行数（测试） | ~13,544 行 |
+| 代码行数（总计） | ~60,649 行 |
+| 测试用例 | 1,254+ 个 |
 | 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
@@ -204,7 +204,7 @@ moon run cmd
 moon test
 ```
 
-当前共有 **1,203+ 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），`moon check` 验证通过（0 errors, 280 warnings）。`moon test` 在当前环境需要系统 C 编译器支持（native 目标）。
+当前共有 **1,254+ 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），`moon check` 验证通过（0 errors, 280 warnings）。`moon test` 在当前环境需要系统 C 编译器支持（native 目标）。
 
 ### 开发阶段路线
 

@@ -67,13 +67,20 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
   if is_static_asset(clean_path) {
     // Known static asset extension: try to read the file
     match try_read_file(full_path) {
-      Some(content) =>
+      Some(content) => {
+        // Apply template processing for HTML files only
+        let body = if mime == "text/html" {
+          process_template(content, TemplateConfig::default())
+        } else {
+          content
+        }
         HttpResponse::{
           status: 200,
-          body: content,
+          body,
           content_type: mime,
           headers: [("Cache-Control", "public, max-age=3600")],
         }
+      }
       None =>
         // File not found on disk
         HttpResponse::not_found("File not found: \{clean_path}")
@@ -116,13 +123,15 @@ fn is_static_asset(path : String) -> Bool {
 /// SPA fallback: serve index.html for unmatched non-API routes.
 fn spa_fallback(server : StaticServer) -> HttpResponse {
   let index_path = server.root_dir + "/" + server.index_file
-  let fallback_body = if @fs.path_exists(index_path) {
+  let raw_body = if @fs.path_exists(index_path) {
     @fs.read_file_to_string(index_path) catch {
       _ => "<!DOCTYPE html><html><body><div id=\"app\"></div></body></html>"
     }
   } else {
     "<!DOCTYPE html><html><body><div id=\"app\"></div></body></html>"
   }
+  // Apply template variable replacement for SPA fallback HTML
+  let fallback_body = process_template(raw_body, TemplateConfig::default())
   HttpResponse::{
     status: 200,
     body: fallback_body,

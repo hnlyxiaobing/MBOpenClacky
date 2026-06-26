@@ -305,6 +305,16 @@ pub fn InputBar::get_cursor_position(self : InputBar) -> (Int, Int) {
 }
 
 ///|
+/// Get the current cursor's display column, accounting for CJK double-width characters.
+///
+/// Unlike `get_cursor_position` which returns the character index, this
+/// returns the visual column offset using `cursor_display_col` from cjk_width.
+pub fn InputBar::get_cursor_display_col(self : InputBar) -> Int {
+  let line = self.content_lines[self.cursor_line]
+  cursor_display_col(line, self.cursor_col)
+}
+
+///|
 /// Build the input bar view with command suggestions dropdown above.
 ///
 /// When `suggestions` is visible, renders the dropdown above the input field.
@@ -466,6 +476,24 @@ pub fn InputSession::handle_enter(self : InputSession) -> String? {
   } else {
     self.bar.handle_enter()
   }
+}
+
+///|
+/// Handle Ctrl-K: kill from cursor to end of line.
+pub fn InputSession::handle_kill_to_end(self : InputSession) -> Unit {
+  self.bar.kill_to_end()
+}
+
+///|
+/// Handle Ctrl-U: kill from start of line to cursor.
+pub fn InputSession::handle_kill_to_start(self : InputSession) -> Unit {
+  self.bar.kill_to_start()
+}
+
+///|
+/// Handle Ctrl-W: kill the previous word.
+pub fn InputSession::handle_kill_word(self : InputSession) -> Unit {
+  self.bar.kill_word()
 }
 
 ///|

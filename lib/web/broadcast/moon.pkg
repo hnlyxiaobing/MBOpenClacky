@@ -1,4 +1,5 @@
 import {
   "bobzhang/crescent/websocket" @ws,
   "moonbitlang/core/json",
+  "moonbitlang/async" @async,
 }
