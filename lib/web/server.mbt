@@ -51,6 +51,8 @@ pub(all) struct WebServer {
   mut cancelled : Map[String, Bool]
   /// Webhook registry for IM channel callbacks
   webhook_registry : WebhookRegistry
+  /// WebSocket broadcast hub for multi-client fan-out
+  hub : @broadcast.Hub
 }
 
 ///|
@@ -66,6 +68,7 @@ pub fn WebServer::new(
     start_time: 0,
     cancelled: Map([]),
     webhook_registry: WebhookRegistry::new(),
+    hub: @broadcast.Hub::new(),
   }
 }
 

@@ -42,12 +42,12 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | CLI 框架 | Thor | TheWaWaR/clap |
 | Web 服务器 | WEBrick + WebSocket (5541行 http_server.rb) | bobzhang/crescent |
 | 配置格式 | YAML | TOML (bobzhang/toml) |
-| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (43 test, ~43K 行源代码) |
+| 测试框架 | RSpec (130 spec, ~28K 行) | moon test (43 test, ~46K 行源代码) |
 | 包管理 | RubyGems | moon.mod.json |
 | 部署 | gem install / Docker | 单一可执行文件 (AOT) |
 | 异步模型 | 线程/纤程/EventMachine | moonbitlang/async |
 | UI 引擎 | UI2 (26 文件, 10+ 组件, 3 主题) | Frank-III/onebit-tui |
-| 源文件数 | 176 个 .rb (非测试) | 235 个 .mbt (非测试) |
+| 源文件数 | 176 个 .rb (非测试) | 219 个 .mbt (非测试) |
 
 ---
 
@@ -57,9 +57,9 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 
 | 指标 | Ruby 源项目 | MBOpenClacky | 完成比例 |
 |------|-------------|-------------|----------|
-| 源文件 (非测试) | 176 个 `.rb` | 235 个 `.mbt` | **~134%** |
+| 源文件 (非测试) | 176 个 `.rb` | 219 个 `.mbt` | **~124%** |
 | 测试文件 | 130 个 spec | 43 个 test | **~33%** |
-| 源代码行数 | ~52,000+ 行 | ~43,157 行 | **~83%** |
+| 源代码行数 | ~52,000+ 行 | ~46,100 行 | **~89%** |
 | Provider 预设 | 12 个 | 12 个 | **100%** |
 | 工具实现 | 18 个 + 3 子模块 | 14 个 | **77.8%** |
 | Agent mixin | 15 个 | 15 个 | **100%** |
@@ -93,6 +93,7 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 | Phase 19 | 文档校准：修正项目指标数据 | ✅ 完成 | - |
 | Phase 20 | 文档校准：同步项目最新状态指标 | ✅ 完成 | - |
 | Phase 21 | 业务功能差距系统性补齐 (Terminal/压缩/Session/Config/Brand/TUI/Web/CLI) | ✅ 完成 | - |
+| Phase 22 | 差距填补方案实施：HTTP 安全/广播/超时、浏览器工具、AES-GCM 加密、TUI 控制器增强 | 🔄 进行中 | - |
 
 ---
 
@@ -293,7 +294,7 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 M
 |------|-------------|-------------|------|
 | 测试文件数 | 130 个 spec | 43 个 test | **-66.9%** |
 | 测试代码行数 | ~28,000 行 | ~13,100 行 | **-53%** |
-| 测试用例数 | 1,823 个 | 1,203 个 | **-34%** |
+| 测试用例数 | 1,823 个 | 1,203+ 个 | **-34%** |
 | 模块覆盖率 | ~100% | ~90%+ | billing/utils/server/pricing/message 已覆盖 |
 
 ### 6.1 测试覆盖现状
@@ -489,10 +490,10 @@ P6-50~55 (文档补齐) ──────────────┘
 
 | 验证项 | 状态 | 说明 |
 |--------|------|------|
-| `moon check` | ✅ 通过 | 0 errors, 276 warnings (deprecated语法) |
+| `moon check` | ✅ 通过 | 0 errors, 280 warnings (deprecated语法) |
 | `moon build --target native` | ✅ 通过 | native 后端正常 |
 | `moon test --target wasm-gc` | ⚠️ 部分失败 | FFI 依赖(onebit-tui/crescent)不支持 wasm-gc |
-| `moon test` (native) | ✅ 通过 | **1,203** 个测试全部通过 |
+| `moon test` (native) | ⚠️ 需 C 编译器 | **1,203+** 个测试（当前环境缺少 C 编译器无法运行） |
 | `moon run cmd` | ✅ 通过 | 冒烟测试正常 |
 | `moon fmt` | ✅ 完成 | 代码已格式化 |
 

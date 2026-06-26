@@ -11,18 +11,18 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~98-99%（Phase 0-21 全部完成）
+- **完成度**：~98-99%（Phase 0-21 主体完成，差距填补方案持续实施中）
 
 ### 核心能力概览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（非测试） | 235 个 |
+| `.mbt` 源文件（非测试） | 219 个 |
 | 测试文件 | 43 个 |
-| 代码行数（源代码） | ~43,157 行 |
-| 代码行数（测试） | ~13,239 行 |
-| 代码行数（总计） | ~56,396 行 |
-| 测试用例 | 1,203 个（全部通过 `moon check`） |
+| 代码行数（源代码） | ~46,100 行 |
+| 代码行数（测试） | ~14,900 行 |
+| 代码行数（总计） | ~61,000 行 |
+| 测试用例 | 1,203+ 个 |
 | 实现包数 | 21 个（顶级包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
@@ -119,12 +119,12 @@
 
 ```
 MBOpenClacky/
-├── cmd/                # 可执行入口（7 个文件：main + NDJSON日志/补丁加载/Hook加载/Channel脚手架/API扩展）
-│   └── main.mbt + 5 辅助模块
+├── cmd/                # 可执行入口（main + NDJSON日志/补丁加载/Hook加载/Channel脚手架/API扩展等）
+│   └── main.mbt + 辅助模块
 ├── lib/                # 库代码（21 个顶级包）
 │   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer/Compressor/SessionRestore
 │   ├── billing/        # 计费系统（BillingRecord + BillingStore + 成本计算）
-│   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）+ 加密
+│   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）+ 加密（C FFI native stub）
 │   ├── channel/        # IM 渠道适配器（飞书/企微/Telegram/Discord/钉钉/微信）
 │   ├── client/         # LLM API 客户端（12 Provider + Bedrock + PlatformHTTP + 流聚合器）
 │   ├── config/         # 配置系统（TOML / 环境变量 / Provider / Capabilities / Permission）
@@ -139,10 +139,10 @@ MBOpenClacky/
 │   ├── skill/          # 技能系统 + 演进（EvolutionEngine/Reflector/AutoCreator）+ 默认技能
 │   ├── telemetry/      # 匿名遥测（fire-and-forget）
 │   ├── tool/           # 工具系统（14 个内置工具 + Security + OutputCleaner）
-│   ├── tui/            # TUI 界面 + 斜杠命令/Markdown→ANSI/主题/Spinner/RealtimeRenderer
-│   ├── utils/          # 工具函数（18 个文件：Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser 等）
+│   ├── tui/            # TUI 界面 + 斜杠命令/Markdown→ANSI/主题/Spinner/RealtimeRenderer + Hook处理器/进度栈/编辑器/模态/CJK宽度
+│   ├── utils/          # 工具函数（Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser/BrowserDetector 等）
 │   ├── vision/         # Vision OCR + SHA256 缓存
-│   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router/StaticServer/SPA
+│   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router/StaticServer/SPA + 广播/超时/错误信封/模板处理
 ├── assets/
 │   ├── agents/         # 默认 Agent 配置（coding/general + SOUL.md/USER.md）
 │   ├── skills/         # 11 个内置技能（code-explorer/deploy/mcp-manager 等）
@@ -204,7 +204,7 @@ moon run cmd
 moon test
 ```
 
-当前共有 **1,203 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），全部通过 `moon check` 验证（0 errors, 276 warnings）。
+当前共有 **1,203+ 个测试用例**，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等），`moon check` 验证通过（0 errors, 280 warnings）。`moon test` 在当前环境需要系统 C 编译器支持（native 目标）。
 
 ### 开发阶段路线
 
@@ -233,7 +233,8 @@ moon test
 | Phase 18 | 深度补齐（Billing / Pricing / Utils扩展 / Server增强 / MessageHistory / 默认资源） | ✅ 已完成 |
 | Phase 19 | 文档校准：修正项目指标数据 | ✅ 已完成 |
 | Phase 20 | 文档校准：同步项目最新状态指标 | ✅ 已完成 |
-| Phase 21 | 业务功能差距系统性补齐（Terminal/压缩/Session/Config/Brand/TUI/Web/CLI） | ✅ 已完成 |
+| Phase 21 | 业务功能差距系统性补齐（Terminal/压缩/Session/Config/Brand/TUI/Web/CLI） | ✅ 主体完成 |
+| Phase 22 | 差距填补方案实施：HTTP 服务器安全/广播/超时、浏览器工具、AES-GCM 加密、TUI 控制器增强 | 🔄 进行中 |
 
 ## 六、致谢
 

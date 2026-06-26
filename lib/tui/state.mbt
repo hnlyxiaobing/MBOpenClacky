@@ -15,6 +15,19 @@ pub(all) enum TuiMode {
 } derive(Eq, Debug, Show)
 
 ///|
+/// A record of a tool execution for display in the tool panel.
+pub(all) struct ToolExecution {
+  /// Tool name.
+  name : String
+  /// Tool arguments (JSON string).
+  args : String
+  /// Whether the tool has completed.
+  mut completed : Bool
+  /// Result summary (set after completion).
+  mut result_summary : String
+} derive(Debug)
+
+///|
 /// Shared state between TUI rendering and Agent hooks.
 pub(all) struct TuiState {
   // ── Agent Identity ─────────────────────────────────────────
@@ -40,6 +53,22 @@ pub(all) struct TuiState {
   // ── Tool Output ─────────────────────────────────────────────
   /// Latest tool execution summary text.
   mut tool_output : String
+  /// Name of the currently executing tool (empty if none).
+  mut current_tool_name : String
+  /// Arguments of the currently executing tool.
+  mut current_tool_args : String
+  /// History of tool executions in the current run.
+  mut tool_history : Array[ToolExecution]
+
+  // ── LLM Call Tracking ──────────────────────────────────────
+  /// Number of LLM calls made in the current run.
+  mut llm_call_count : Int
+  /// Whether an LLM call is currently in progress.
+  mut llm_calling : Bool
+
+  // ── Phase Stack ─────────────────────────────────────────────
+  /// Stack of active phase names (e.g., "thinking", "tool_call").
+  mut phase_stack : Array[String]
 
   // ── Cost ────────────────────────────────────────────────────
   /// Total accumulated cost in USD.
@@ -69,6 +98,12 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     iterations: agent.iterations,
     messages: [],
     tool_output: "",
+    current_tool_name: "",
+    current_tool_args: "",
+    tool_history: [],
+    llm_call_count: 0,
+    llm_calling: false,
+    phase_stack: [],
     total_cost: agent.total_cost,
     cost_source: agent.cost_source.to_string_value(),
     latest_delta: 0,

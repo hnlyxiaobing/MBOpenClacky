@@ -3,6 +3,12 @@ import {
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
+  "moonbitlang/x/crypto",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
+
+options(
+  "native-stub": [ "crypto_native.c" ],
+)

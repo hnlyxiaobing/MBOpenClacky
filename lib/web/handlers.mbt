@@ -251,10 +251,15 @@ fn handle_chat_stream(
 
   let agent = server_ref.val.get_or_create_agent(id)
 
-  // Register hook callback to capture events
+  // Parse Last-Event-ID for resume support
+  let last_id = @sse.parse_last_event_id(event.req.get_header("Last-Event-ID"))
+
+  // Register hook callback to capture events with sequential IDs
   let captured : Array[@sse.CapturedHookEvent] = []
+  let mut event_counter = 0
   agent.hook_manager.register(fn(evt : @agent.HookEvent) {
-    captured.push(@sse.capture_hook_event(evt))
+    event_counter = event_counter + 1
+    captured.push(@sse.capture_hook_event(evt, id=event_counter))
   })
 
   // Run agent (blocking)
@@ -291,8 +296,8 @@ fn handle_chat_stream(
     _ => ()
   }
 
-  // Build SSE body from captured events
-  let sse_body = @sse.build_sse_body(captured, result)
+  // Build SSE body from captured events, resuming from Last-Event-ID if applicable
+  let sse_body = @sse.build_sse_body(captured, result, resume_from=last_id)
 
   @core.HttpResponse::ok()
   .header("Content-Type", "text/event-stream")
@@ -611,16 +616,23 @@ fn handle_info(
 
 ///|
 /// Handle WebSocket events for /ws/sessions/:id
+/// Supports message types: subscribe, message, interrupt, list_sessions, ping.
 fn handle_websocket(
   server_ref : Ref[WebServer],
   event : @ws.WebSocketEvent,
 ) -> Unit {
   match event {
     Open(peer) => {
+      let hub = server_ref.val.hub
+      hub.register(peer)
       let session_id = peer.param("session_id")
       let sid = match session_id {
         Some(id) => id
         None => "unknown"
+      }
+      // Auto-subscribe to the session from the URL
+      if sid != "unknown" {
+        hub.subscribe_session(peer.connection_id(), sid)
       }
       peer.text("{ \"type\": \"connected\", \"session_id\": \"\{sid}\" }")
     }
@@ -628,55 +640,116 @@ fn handle_websocket(
       match msg {
         Text(text) => {
           let json = @json.parse(text) catch { _ => return }
-          let message : String = match json {
-            Object(obj) =>
-              match obj.get("message") {
+          let obj = match json {
+            Object(o) => o
+            _ => return
+          }
+          let msg_type = match obj.get("type") {
+            Some(String(t)) => t
+            _ => "message"
+          }
+          match msg_type {
+            "ping" => peer.text("{ \"type\": \"pong\" }")
+            "subscribe" => {
+              let hub = server_ref.val.hub
+              let target = match obj.get("session_id") {
+                Some(String(sid)) => sid
+                _ => "global"
+              }
+              if target == "global" {
+                hub.subscribe_global(peer.connection_id())
+                peer.text(
+                  "{ \"type\": \"subscribed\", \"target\": \"global\" }",
+                )
+              } else {
+                hub.subscribe_session(peer.connection_id(), target)
+                peer.text(
+                  "{ \"type\": \"subscribed\", \"target\": \"\{target}\" }",
+                )
+              }
+            }
+            "list_sessions" => {
+              let hub = server_ref.val.hub
+              let sessions = hub.active_sessions()
+              let json_arr = Json::array(sessions.map(s => s.to_json()))
+              peer.text(
+                Json::object({ "type": "sessions", "sessions": json_arr }).stringify(),
+              )
+            }
+            "interrupt" => {
+              let sid = match obj.get("session_id") {
+                Some(String(s)) => s
+                _ =>
+                  match peer.param("session_id") {
+                    Some(s) => s
+                    None => return
+                  }
+              }
+              server_ref.val.cancelled[sid] = true
+              let hub = server_ref.val.hub
+              hub.broadcast_session(
+                sid,
+                "{ \"type\": \"interrupted\", \"session_id\": \"\{sid}\" }",
+              )
+            }
+            _ => {
+              // Default: "message" type — run agent and broadcast
+              let message = match obj.get("message") {
                 Some(String(m)) => m
                 _ => return
               }
-            _ => return
-          }
-          let session_id = peer.param("session_id")
-          let sid = match session_id {
-            Some(id) => id
-            None => return
-          }
+              let session_id = match obj.get("session_id") {
+                Some(String(s)) => s
+                _ =>
+                  match peer.param("session_id") {
+                    Some(s) => s
+                    None => return
+                  }
+              }
 
-          let agent = server_ref.val.get_or_create_agent(sid)
+              let agent = server_ref.val.get_or_create_agent(session_id)
+              let hub = server_ref.val.hub
 
-          // Capture hook events
-          let captured : Array[@sse.CapturedHookEvent] = []
-          agent.hook_manager.register(fn(evt : @agent.HookEvent) {
-            captured.push(@sse.capture_hook_event(evt))
-          })
+              // Register hook to broadcast events to all session subscribers
+              agent.hook_manager.register(fn(evt : @agent.HookEvent) {
+                let captured = @sse.capture_hook_event(evt)
+                hub.broadcast_session_json(
+                  session_id,
+                  captured.event_type,
+                  captured.data,
+                )
+              })
 
-          // Run agent (blocking)
-          let _result = agent.run(message) catch {
-            _ => {
-              peer.text(
-                "{ \"type\": \"error\", \"message\": \"Agent execution failed\" }",
+              // Run agent (blocking)
+              let _result = agent.run(message) catch {
+                _ => {
+                  hub.broadcast_session(
+                    session_id, "{ \"type\": \"error\", \"message\": \"Agent execution failed\" }",
+                  )
+                  return
+                }
+              }
+
+              // Broadcast done event
+              hub.broadcast_session_json(
+                session_id,
+                "done",
+                Json::object({ "session_id": session_id.to_json() }),
               )
-              return
+
+              // Save session
+              let data = agent.to_session_data()
+              @agent.save_session(data) catch {
+                _ => ()
+              }
             }
-          }
-
-          // Send captured events via WebSocket
-          for evt in captured {
-            let payload = "event: \{evt.event_type}\ndata: \{evt.data.stringify()}"
-            peer.text(payload)
-          }
-
-          // Send final done event
-          peer.text("{ \"type\": \"done\", \"session_id\": \"\{sid}\" }")
-
-          // Save session
-          let data = agent.to_session_data()
-          @agent.save_session(data) catch {
-            _ => ()
           }
         }
         Binary(_) => ()
       }
-    Close(_peer) => ()
+    Close(peer) => {
+      let hub = server_ref.val.hub
+      hub.unregister(peer.connection_id())
+    }
   }
 }

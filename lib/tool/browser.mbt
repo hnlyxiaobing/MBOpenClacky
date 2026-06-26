@@ -233,7 +233,7 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
     "status" => ToolResult::success(self.handle_status())
     "open" =>
       match args.get("url") {
-        Some(String(_)) => self.mcp_call("navigate_page", args)
+        Some(String(_)) => self.mcp_call("new_page", args)
         None => ToolResult::error("url is required for 'open' action")
         _ => ToolResult::error("url must be a string")
       }
@@ -243,24 +243,56 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
         None => ToolResult::error("url is required for 'navigate' action")
         _ => ToolResult::error("url must be a string")
       }
-    "snapshot" => self.mcp_call("take_snapshot", args)
+    "snapshot" => {
+      let raw_result = self.mcp_call("take_snapshot", args)
+      // Post-process: apply query window or compression on success
+      if !raw_result.is_error {
+        let output = raw_result.content
+        let result_text = match args.get("query") {
+          Some(String(q)) => {
+            let offset = match args.get("offset") {
+              Some(Number(n, ..)) => n.to_int()
+              _ => 0
+            }
+            query_snapshot(output, q, offset~)
+          }
+          _ => compress_snapshot(output)
+        }
+        ToolResult::success(result_text)
+      } else {
+        raw_result
+      }
+    }
     "act" =>
       match args.get("kind") {
         Some(String(kind)) => self.dispatch_act(kind, args)
         None => ToolResult::error("kind is required for 'act' action")
         _ => ToolResult::error("kind must be a string")
       }
-    "screenshot" => self.mcp_call("take_screenshot", args)
-    "tabs" => self.mcp_call("list_tabs", args)
+    "screenshot" => {
+      let raw_result = self.mcp_call("take_screenshot", args)
+      if !raw_result.is_error {
+        let ref_param = match args.get("ref") {
+          Some(String(r)) => Some(r)
+          _ => None
+        }
+        ToolResult::success(
+          format_screenshot_result(raw_result.content, ref_param~),
+        )
+      } else {
+        raw_result
+      }
+    }
+    "tabs" => self.mcp_call("list_pages", args)
     "focus" =>
       match args.get("target_id") {
-        Some(String(_)) => self.mcp_call("focus_tab", args)
+        Some(String(_)) => self.mcp_call("select_page", args)
         None => ToolResult::error("target_id is required for 'focus' action")
         _ => ToolResult::error("target_id must be a string")
       }
     "close" =>
       match args.get("target_id") {
-        Some(String(_)) => self.mcp_call("close_tab", args)
+        Some(String(_)) => self.mcp_call("close_page", args)
         None => ToolResult::error("target_id is required for 'close' action")
         _ => ToolResult::error("target_id must be a string")
       }
@@ -331,17 +363,41 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
 // ── MCP Call Interface ───────────────────────────────────────────────────────
 
 ///|
+/// Kinds that require a `ref` parameter in the args map.
+let require_ref_kinds : Array[String] = [
+  "click", "dblclick", "type", "fill", "hover", "select",
+]
+
+///|
 /// Dispatch an 'act' action to the appropriate MCP tool based on kind.
+/// Validates require_ref before dispatching.
 fn Browser::dispatch_act(
   self : Browser,
   kind : String,
   args : Map[String, Json],
 ) -> ToolResult {
+  // Validate require_ref: actions that target a specific element need `ref`
+  if require_ref_kinds.contains(kind) {
+    match args.get("ref") {
+      Some(String(_)) => ()
+      _ =>
+        return ToolResult::error(
+          "ref is required for act kind '\{kind}'. Use snapshot to find element refs.",
+        )
+    }
+  }
   match kind {
     "click" => self.mcp_call("click", args)
-    "dblclick" => self.mcp_call("click", args)
-    "type" => self.mcp_call("type", args)
-    "fill" => self.mcp_call("fill", args)
+    "dblclick" => {
+      // Add dblClick flag so the MCP server knows to double-click
+      let augmented : Map[String, Json] = {}
+      for entry in args.iter() {
+        augmented[entry.0] = entry.1
+      }
+      augmented["dblClick"] = true.to_json()
+      self.mcp_call("click", augmented)
+    }
+    "type" | "fill" => self.mcp_call("fill", args)
     "press" => self.mcp_call("press_key", args)
     "hover" => self.mcp_call("hover", args)
     "drag" => self.mcp_call("drag", args)
@@ -398,11 +454,11 @@ pub fn Browser::mcp_call(
 /// Build MCP tool arguments from the raw args map based on the tool being called.
 fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
   match tool_name {
+    "new_page" => build_mcp_navigate_args(args)
     "navigate_page" => build_mcp_navigate_args(args)
     "take_snapshot" => build_mcp_snapshot_args(args)
     "take_screenshot" => build_mcp_screenshot_args(args)
     "click" => build_mcp_click_args(args)
-    "type" => build_mcp_type_args(args)
     "fill" => build_mcp_fill_args(args)
     "press_key" => build_mcp_press_args(args)
     "hover" => build_mcp_hover_args(args)
@@ -411,9 +467,9 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
     "wait_for" => build_mcp_wait_args(args)
     "evaluate_script" => build_mcp_evaluate_args(args)
     "click_at" => build_mcp_click_at_args(args)
-    "list_tabs" => Json::object({})
-    "focus_tab" => build_mcp_focus_args(args)
-    "close_tab" => build_mcp_close_args(args)
+    "list_pages" => Json::object({})
+    "select_page" => build_mcp_select_page_args(args)
+    "close_page" => build_mcp_close_page_args(args)
     _ => Json::object({})
   }
 }
@@ -475,18 +531,9 @@ fn build_mcp_click_args(args : Map[String, Json]) -> Json {
     Some(v) => obj["selector"] = v
     _ => ()
   }
-  Json::object(obj)
-}
-
-///|
-fn build_mcp_type_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
-  match args.get("ref") {
-    Some(v) => obj["selector"] = v
-    _ => ()
-  }
-  match args.get("text") {
-    Some(v) => obj["text"] = v
+  // Pass dblClick flag for double-click actions
+  match args.get("dblClick") {
+    Some(v) => obj["dblClick"] = v
     _ => ()
   }
   Json::object(obj)
@@ -499,9 +546,14 @@ fn build_mcp_fill_args(args : Map[String, Json]) -> Json {
     Some(v) => obj["selector"] = v
     _ => ()
   }
+  // Accept both "text" (user-facing) and "value" (direct MCP) keys
   match args.get("text") {
     Some(String(t)) => obj["value"] = t.to_json()
-    _ => ()
+    _ =>
+      match args.get("value") {
+        Some(v) => obj["value"] = v
+        _ => ()
+      }
   }
   Json::object(obj)
 }
@@ -530,11 +582,11 @@ fn build_mcp_hover_args(args : Map[String, Json]) -> Json {
 fn build_mcp_drag_args(args : Map[String, Json]) -> Json {
   let obj : Map[String, Json] = {}
   match args.get("ref") {
-    Some(v) => obj["source"] = v
+    Some(v) => obj["from_uid"] = v
     _ => ()
   }
   match args.get("target_ref") {
-    Some(v) => obj["target"] = v
+    Some(v) => obj["to_uid"] = v
     _ => ()
   }
   Json::object(obj)
@@ -589,8 +641,16 @@ fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
     }
     _ => ()
   }
-  // Regular evaluate
+  // Regular evaluate: wrap in IIFE if not already wrapped
   match args.get("js") {
+    Some(String(js)) => {
+      let script = if js.has_prefix("(function") || js.has_prefix("(()") {
+        js
+      } else {
+        "(function() { " + js + " })()"
+      }
+      obj["script"] = script.to_json()
+    }
     Some(v) => obj["script"] = v
     _ => ()
   }
@@ -612,20 +672,32 @@ fn build_mcp_click_at_args(args : Map[String, Json]) -> Json {
 }
 
 ///|
-fn build_mcp_focus_args(args : Map[String, Json]) -> Json {
+fn build_mcp_select_page_args(args : Map[String, Json]) -> Json {
   let obj : Map[String, Json] = {}
   match args.get("target_id") {
-    Some(v) => obj["target_id"] = v
+    Some(v) => obj["pageId"] = v
     _ => ()
   }
+  // Also accept pageId directly
+  match args.get("pageId") {
+    Some(v) => obj["pageId"] = v
+    _ => ()
+  }
+  // Add bringToFront for focus behavior
+  obj["bringToFront"] = true.to_json()
   Json::object(obj)
 }
 
 ///|
-fn build_mcp_close_args(args : Map[String, Json]) -> Json {
+fn build_mcp_close_page_args(args : Map[String, Json]) -> Json {
   let obj : Map[String, Json] = {}
   match args.get("target_id") {
-    Some(v) => obj["target_id"] = v
+    Some(v) => obj["pageId"] = v
+    _ => ()
+  }
+  // Also accept pageId directly
+  match args.get("pageId") {
+    Some(v) => obj["pageId"] = v
     _ => ()
   }
   Json::object(obj)
@@ -762,11 +834,182 @@ pub fn truncate_browser_output(output : String, max_chars : Int) -> String {
 }
 
 ///|
-/// Compress a snapshot by removing empty containers and excessive whitespace.
-/// TODO: Implement full compression logic matching Ruby
+/// Compress a snapshot by removing noise and merging consecutive static text.
+/// Two-stage compression matching Ruby's approach:
+///   Stage 1: Remove noise lines (empty containers, decoration-only lines)
+///   Stage 2: Merge consecutive StaticText lines at the same indent
+/// Then truncate to max_snapshot_chars.
 pub fn compress_snapshot(snapshot : String) -> String {
-  // Basic implementation: truncate to max_snapshot_chars
-  truncate_browser_output(snapshot, max_snapshot_chars)
+  // Collect lines into Array[String] (split returns Iter[StringView])
+  let lines : Array[String] = []
+  for sv in snapshot.split("\n") {
+    lines.push(sv.to_owned())
+  }
+  // Stage 1: Remove noise lines
+  let cleaned : Array[String] = []
+  for line in lines {
+    let trimmed = line.trim().to_owned()
+    if trimmed == "" {
+      // keep blank lines for readability only if last cleaned line wasn't blank
+      if cleaned.length() > 0 && cleaned[cleaned.length() - 1].trim() != "" {
+        cleaned.push(line)
+      }
+    } else if is_noise_line(trimmed) {
+      // skip noise
+    } else {
+      cleaned.push(line)
+    }
+  }
+  // Stage 2: Merge consecutive StaticText lines at same indent
+  let merged : Array[String] = []
+  let mut i = 0
+  while i < cleaned.length() {
+    let line = cleaned[i]
+    let indent = leading_indent(line)
+    let trimmed = line.trim().to_owned()
+    if is_static_text_line(trimmed) && i + 1 < cleaned.length() {
+      // Look ahead for consecutive StaticText at same indent
+      let mut j = i + 1
+      while j < cleaned.length() {
+        let next_trimmed = cleaned[j].trim().to_owned()
+        let next_indent = leading_indent(cleaned[j])
+        if is_static_text_line(next_trimmed) && next_indent == indent {
+          j = j + 1
+        } else {
+          break
+        }
+      }
+      if j > i + 1 {
+        // Merge: keep first line, append " ..."
+        merged.push(line + " ...")
+        i = j
+      } else {
+        merged.push(line)
+        i = i + 1
+      }
+    } else {
+      merged.push(line)
+      i = i + 1
+    }
+  }
+  let result = join_browser_parts(merged, "\n")
+  truncate_browser_output(result, max_snapshot_chars)
+}
+
+///|
+/// Check if a trimmed line is noise (empty container, decoration, etc.)
+fn is_noise_line(trimmed : String) -> Bool {
+  if trimmed == "()" || trimmed == "[]" || trimmed == "{}" {
+    return true
+  }
+  // Lines that are only box-drawing characters (─, │, ├, └, ┌, ┐, ┘, ┤)
+  if trimmed.length() > 0 && is_all_decoration(trimmed) {
+    return true
+  }
+  false
+}
+
+///|
+/// Check if a string consists entirely of box-drawing decoration characters.
+fn is_all_decoration(s : String) -> Bool {
+  let mut i = 0
+  while i < s.length() {
+    let c = s[i]
+    if c != '─' &&
+      c != '│' &&
+      c != '├' &&
+      c != '└' &&
+      c != '┌' &&
+      c != '┐' &&
+      c != '┘' &&
+      c != '┤' &&
+      c != ' ' {
+      return false
+    }
+    i = i + 1
+  }
+  true
+}
+
+///|
+/// Check if a trimmed line looks like a StaticText node.
+/// Heuristic: lines that don't end with a ref marker `[ref=N]` and
+/// don't have typical interactive element patterns (button, link, input).
+fn is_static_text_line(trimmed : String) -> Bool {
+  if trimmed.has_prefix("StaticText:") || trimmed.has_prefix("text:") {
+    return true
+  }
+  false
+}
+
+///|
+/// Count the leading whitespace indent of a line.
+fn leading_indent(line : String) -> Int {
+  let mut count = 0
+  while count < line.length() {
+    let c = line[count]
+    if c == ' ' || c == '\t' {
+      count = count + 1
+    } else {
+      break
+    }
+  }
+  count
+}
+
+///|
+/// Query a snapshot for a text pattern, returning a window of lines around the match.
+/// Supports offset-based paging for navigating through large snapshots.
+pub fn query_snapshot(
+  snapshot : String,
+  query : String,
+  offset? : Int = 0,
+) -> String {
+  let compressed = compress_snapshot(snapshot)
+  // Collect into Array[String] for indexed access
+  let lines : Array[String] = []
+  for sv in compressed.split("\n") {
+    lines.push(sv.to_owned())
+  }
+  // Find first match at or after offset
+  let mut match_line = -1
+  let mut i = offset
+  let lower_query = query.to_lower()
+  while i < lines.length() {
+    if lines[i].to_lower().contains(lower_query) {
+      match_line = i
+      break
+    }
+    i = i + 1
+  }
+  if match_line < 0 {
+    return "No match found for query \"\{query}\"" +
+      (if offset > 0 { " (after line \{offset})" } else { "" })
+  }
+  // Extract window around match
+  let half = _snapshot_query_window / 2
+  let start = if match_line - half > 0 { match_line - half } else { 0 }
+  let end = if match_line + half < lines.length() {
+    match_line + half
+  } else {
+    lines.length()
+  }
+  let window : Array[String] = []
+  // Add header with match info
+  window.push(
+    "--- match at line \{match_line + 1}, showing lines \{start + 1}-\{end} of \{lines.length()} ---",
+  )
+  let mut li = start
+  while li < end {
+    let marker = if li == match_line { ">> " } else { "   " }
+    window.push(marker + lines[li])
+    li = li + 1
+  }
+  // Add paging hint if there's more
+  if end < lines.length() {
+    window.push("--- use offset=\{end} to see next page ---")
+  }
+  join_browser_parts(window, "\n")
 }
 
 ///|
@@ -782,4 +1025,39 @@ fn join_browser_parts(parts : Array[String], sep : String) -> String {
     i = i + 1
   }
   result
+}
+
+// ── Screenshot Pipeline ────────────────────────────────────────────────────
+
+///|
+/// Maximum screenshot width before downscaling (pixels).
+let max_screenshot_width : Int = 800
+
+///|
+/// Maximum screenshot file size (bytes). Images above this are noted as oversized.
+let max_screenshot_bytes : Int = 150 * 1024 // 150 KB
+
+///|
+/// Format a screenshot MCP response for LLM consumption.
+/// Adds metadata about the image and formats as an injectable reference.
+/// The actual image downscaling and disk save would be performed by an
+/// image processing pipeline (not available without an image library).
+pub fn format_screenshot_result(
+  mcp_output : String,
+  ref_param? : String? = None,
+) -> String {
+  let parts : Array[String] = []
+  // Determine if this was an element-level or full-page screenshot
+  match ref_param {
+    Some(r) => parts.push("Screenshot captured for element ref=\{r}")
+    None => parts.push("Full-page screenshot captured")
+  }
+  // Pass through the MCP output (typically base64 or a file path)
+  parts.push("")
+  parts.push(mcp_output)
+  parts.push("")
+  parts.push(
+    "Note: Image pipeline stub — actual downscaling (max \{max_screenshot_width}px) and compression (max \{max_screenshot_bytes / 1024}KB) require an image processing library.",
+  )
+  join_browser_parts(parts, "\n")
 }

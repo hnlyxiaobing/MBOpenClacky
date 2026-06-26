@@ -186,3 +186,101 @@ fn parse_browser_name(name : String) -> BrowserType {
     Unknown(name)
   }
 }
+
+// ── Chrome DevToolsActivePort Detection ─────────────────────────────────────
+
+///|
+/// Detected Chrome WebSocket endpoint information.
+pub(all) struct ChromeWsEndpoint {
+  port : Int
+  ws_path : String
+  ws_url : String
+}
+
+///|
+/// Detect Chrome's WebSocket debugging endpoint by reading DevToolsActivePort files.
+/// Checks platform-specific Chrome user data directories.
+/// Returns None if Chrome is not running with remote debugging enabled.
+pub fn detect_chrome_ws_endpoint() -> ChromeWsEndpoint? {
+  let dirs = chrome_user_data_dirs()
+  for dir in dirs {
+    let port_file = dir + "/DevToolsActivePort"
+    if @fs.path_exists(port_file) {
+      let result = parse_devtools_active_port(port_file)
+      match result {
+        Some(ep) => return Some(ep)
+        None => ()
+      }
+    }
+  }
+  None
+}
+
+///|
+/// Get platform-specific Chrome user data directories.
+fn chrome_user_data_dirs() -> Array[String] {
+  let home = match @sys.get_env_var("HOME") {
+    Some(h) => h
+    None =>
+      match @sys.get_env_var("USERPROFILE") {
+        Some(h) => h
+        None => return []
+      }
+  }
+  let os = match @sys.get_env_var("OS") {
+    Some(v) => v.to_lower()
+    None => ""
+  }
+  if os.contains("windows") {
+    // Windows paths
+    [
+      home + "/AppData/Local/Google/Chrome/User Data",
+      home + "/AppData/Local/Google/Chrome SxS/User Data",
+      home + "/AppData/Local/Chromium/User Data",
+      home + "/AppData/Local/BraveSoftware/Brave-Browser/User Data",
+      home + "/AppData/Local/Microsoft/Edge/User Data",
+    ]
+  } else {
+    // macOS and Linux paths
+    [
+      home + "/.config/google-chrome",
+      home + "/.config/google-chrome-unstable",
+      home + "/.config/chromium",
+      home + "/.config/BraveSoftware/Brave-Browser",
+      home + "/.config/microsoft-edge",
+      home + "/Library/Application Support/Google/Chrome",
+    ]
+  }
+}
+
+///|
+/// Parse a DevToolsActivePort file.
+/// Format: first line is the port number, second line is the WebSocket path.
+fn parse_devtools_active_port(file_path : String) -> ChromeWsEndpoint? {
+  let content = @fs.read_file_to_string(file_path) catch { _ => return None }
+  let lines = content.split("\n").collect()
+  if lines.length() < 2 {
+    return None
+  }
+  let port_str = lines[0].trim_start().trim_end()
+  let ws_path = lines[1].trim_start().trim_end()
+  let mut port = 0
+  let mut i = 0
+  while i < port_str.length() {
+    let c = port_str[i]
+    if c >= '0' && c <= '9' {
+      port = port * 10 + (c.to_int() - '0'.to_int())
+    } else {
+      return None
+    }
+    i = i + 1
+  }
+  if port <= 0 {
+    return None
+  }
+  Some({
+    port,
+    ws_path: ws_path.to_owned(),
+    ws_url: "ws://127.0.0.1:\{port}/\{ws_path}",
+  })
+}

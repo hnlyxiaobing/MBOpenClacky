@@ -54,22 +54,12 @@ fn get_platform() -> String {
 }
 
 ///|
-/// Simple deterministic hash (placeholder for SHA256).
-/// Produces a 16-character hex string from the input.
+/// Deterministic hash using SHA-256, truncated to 16 hex characters.
+/// Produces a stable, cryptographically-derived hash suitable for device IDs
+/// and non-security-critical identifiers.
 pub fn simple_hash(input : String) -> String {
-  let mut hash : UInt = 0
-  for c in input {
-    hash = hash * 31 + c.to_int().reinterpret_as_uint()
-  }
-  let hex_chars = "0123456789abcdef"
-  let mut result = ""
-  let mut h = hash
-  for i = 0; i < 16; i = i + 1 {
-    let idx = (h & 0xF).reinterpret_as_int()
-    result = result + hex_chars[idx].to_string()
-    h = h >> 4
-  }
-  result
+  let full = sha256_hex(input)
+  full[:16].to_owned()
 }
 
 ///|

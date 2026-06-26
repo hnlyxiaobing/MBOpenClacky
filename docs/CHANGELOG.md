@@ -26,6 +26,41 @@
 ## 变更记录
 
 
+### 2026-06-26  Phase 22 差距填补方案启动实施
+
+- `[feat]` **HTTP 服务器安全与广播基础设施**
+  - 新增 `lib/web/middleware/error_envelope.mbt` — 统一错误信封响应
+  - 新增 `lib/web/middleware/timeout.mbt` — 分层超时中间件
+  - 新增 `lib/web/broadcast/hub.mbt` — WebSocket 广播集线器
+  - 新增 `lib/web/template_processor.mbt` — 静态模板预处理器
+  - 升级 `lib/web/middleware/auth.mbt` — 常量时间比较、Bearer/Query/Cookie 认证回退、IP 限制、回环绕过
+  - 升级 `lib/web/handlers.mbt` / `server.mbt` / `sse/sse.mbt` — 广播、SSE 流式增强集成
+  - 新增约 1,600+ 行代码
+- `[feat]` **浏览器工具深度增强**
+  - 升级 `lib/tool/browser.mbt` — 多标签管理、高级表单交互、截图/快照压缩、页面缓存与重试
+  - 升级 `lib/utils/browser_detector.mbt` — Chrome DevTools 端点检测
+  - 新增约 450+ 行代码
+- `[feat]` **AES-GCM 加密 C FFI 脚手架**
+  - 新增 `lib/brand/crypto_native.c` — OpenSSL/libcrypto native stub
+  - 重构 `lib/brand/crypto.mbt` — HMAC/SHA256 真实实现、AES-GCM 加解密接口
+  - 更新 `lib/brand/device.mbt` / `moon.pkg` / `brand_wbtest.mbt`
+  - 新增约 360+ 行代码
+- `[feat]` **TUI 控制器与输入增强**
+  - 新增 `lib/tui/agent_hooks.mbt` — 完整 Agent Hook → UI 更新映射
+  - 新增 `lib/tui/progress_stack.mbt` — 进度句柄栈语义
+  - 新增 `lib/tui/editor.mbt` — 多行编辑器基础
+  - 新增 `lib/tui/command_suggestions.mbt` — 命令建议下拉
+  - 新增 `lib/tui/modal_lifecycle.mbt` — 模态生命周期管理
+  - 新增 `lib/tui/cjk_width.mbt` — CJK 字符显示宽度
+  - 升级 `lib/tui/tui.mbt` / `dialog.mbt` / `input_bar.mbt` / `state.mbt`
+  - 新增约 580+ 行代码
+- `[docs]` **全量文档校准**
+  - 同步 `CLAUDE.md` / `README.md` 指标：源文件 219、源代码行 ~46,100、测试行 ~14,900
+  - 更新 `moon check` 状态：0 errors, 280 warnings
+  - 补充 Phase 22 进行中状态与差距填补计划文档 `docs/gap-filling-solutions-plan-0626.md`
+- `[verify]` `moon check` 最终验证：0 errors, 280 warnings
+
+
 ### 2026-06-26  Phase 21 业务功能差距系统性补齐
 
 - `[feat]` **Terminal 工具核心实现** — 从 15% 提升到 60%+

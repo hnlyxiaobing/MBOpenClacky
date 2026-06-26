@@ -768,3 +768,34 @@ Phase 18 继续验证了 Phase 12-17 沉淀的开发策略的有效性：
 在 Phase 21 的 8 个 Task 实施过程中，新增约 8,494 行代码的同时，通过同步进行编译警告治理，将警告数从 672 降至 276。主要治理方向包括 deprecated 语法迁移、冗余注解清理等。
 
 ---
+
+## 13. Phase 22 更新：差距填补方案实施期间的编译状态
+
+> 日期: 2026-06-26
+> 范围: 差距填补解决方案计划（HTTP 服务器/浏览器工具/AES-GCM 加密/TUI 控制器）实施期间的编译状态
+
+### 13.1 代码规模变化
+
+| 指标 | Phase 21 结束时 | 当前（差距填补实施中） | 变化 |
+|------|-----------------|----------------------|------|
+| `moon check` errors | 0 | **0** | 持平 |
+| `moon check` warnings | 276 | **280** | **+4 (+1.4%)** |
+| 源代码行数 | ~43,157 | **~46,100** | +2,943 (+6.8%) |
+| 源文件数 (非测试) | 235 | **219** | -16* |
+| 测试文件数 | 43 | **43** | 持平 |
+| 测试代码行数 | ~13,239 | **~14,900** | +1,661 (+12.5%) |
+
+*注：源文件数下降是因为统计口径统一为 `lib/` 与 `cmd/` 下的 `.mbt` 文件，去除了历史统计中的重复/辅助文件计数。
+
+### 13.2 新增模块与文件
+
+- **HTTP 服务器**：`lib/web/middleware/error_envelope.mbt`、`lib/web/middleware/timeout.mbt`、`lib/web/broadcast/hub.mbt`、`lib/web/template_processor.mbt`
+- **浏览器工具**：`lib/tool/browser.mbt` 大幅增强、`lib/utils/browser_detector.mbt` 增强
+- **AES-GCM 加密**：`lib/brand/crypto_native.c` native stub、`lib/brand/crypto.mbt` 重构
+- **TUI 控制器**：`lib/tui/agent_hooks.mbt`、`lib/tui/progress_stack.mbt`、`lib/tui/editor.mbt`、`lib/tui/command_suggestions.mbt`、`lib/tui/modal_lifecycle.mbt`、`lib/tui/cjk_width.mbt`
+
+### 13.3 说明
+
+差距填补方案实施期间以保持 `moon check` 0 errors 为底线，新增代码带来少量警告上升（+4），主要来自新模块中的 deprecated 语法与外部依赖（crescent/onebit-tui）的既有警告。后续将继续推进警告治理，目标在差距填补完成后回到 250 以下。
+
+---

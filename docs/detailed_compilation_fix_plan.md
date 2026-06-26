@@ -15,11 +15,11 @@
 
 | 验证命令 | 结果 | 说明 |
 |---------|------|------|
-| `moon check --target native` | ✅ 通过 | 0 errors, 555 warnings |
+| `moon check --target native` | ✅ 通过 | 0 errors, 280 warnings（当前） |
 | `moon build --target native` | ❌ 失败 | 未找到系统 C 编译器 |
 | `moon run cmd --target native -- --version` | ❌ 失败 | 未找到系统 C 编译器 |
 | `moon test --target native lib/utils` | ❌ 失败 | 未找到系统 C 编译器 |
-| `moon check --target wasm-gc` | ❌ 失败 | 147 errors, 395 warnings |
+| `moon check --target wasm-gc` | ❌ 失败 | 147 errors, 395 warnings（外部依赖 FFI 限制） |
 
 **结论**：项目的 MoonBit 类型检查已经通过，核心编译错误已被修复；当前无法运行的根本原因是 **Windows 系统缺少 C 编译器**，导致 native 目标无法完成链接和生成可执行文件。
 
@@ -81,7 +81,7 @@ Windows 默认不存在 `PWD`，会回退到 `"."`，不影响运行但不够原
 | P1 | 阶段 3 | 修复 Windows 运行时差异（PWD、路径、Shell 检测） | 影响体验 |
 | P1 | 阶段 4 | 验证 `moon run cmd --version` 与基础 Agent 运行 | 必经关卡 |
 | P2 | 阶段 5 | 修复 wasm-gc 依赖兼容性问题（可选） | 不影响 native |
-| P2 | 阶段 6 | 清理编译警告（555 个 warnings） | 代码质量 |
+| P2 | 阶段 6 | 清理编译警告（当前 280 个 warnings） | 代码质量 |
 | P3 | 阶段 7 | 运行全量测试 `moon test --target native` | 最终验收 |
 
 ---
@@ -297,7 +297,7 @@ moon update
 
 ### 阶段 6：清理编译警告
 
-当前 `moon check --target native` 有 555 个 warnings，主要包括：
+当前 `moon check --target native` 有 280 个 warnings，主要包括：
 
 - `unused_value`：trait 方法中未使用的 `self`，改为 `_self` 或 `_`
 - `deprecated`：`starts_with` / `ends_with` → `has_prefix` / `has_suffix`

@@ -127,19 +127,19 @@ moon test --target native
 
 | 检查项 | 结果 |
 |--------|------|
-| `moon check --target native` | 0 errors, 555 warnings |
+| `moon check --target native` | 0 errors, 555 warnings（历史记录）；当前状态 0 errors, 280 warnings |
 | `moon build --target native` | 成功，生成 cmd.exe (4.4MB) |
 | `moon run cmd -- --version` | `MBOpenClacky v0.1.0` |
 | `moon run cmd -- --help` | 帮助信息正常显示 |
-| `moon test --target native` | 1194/1194 通过 |
+| `moon test --target native` | 1194/1194 通过（历史记录，当前环境需配置 C 编译器） |
 
 ## 5. 已知限制与未来工作
 
 ### 5.1 TUI 交互模式
 
-当前 TUI 使用 stub 实现，交互模式下不会渲染真正的终端 UI。非交互模式（`--message`）完全可用。
+当前 TUI 已基于 `onebit-tui` 实现完整交互界面（消息视图、输入栏、状态栏、Markdown 渲染、主题、Spinner、Hook 驱动的实时更新等）。早期 Windows 适配曾使用 stub，现已移除。
 
-**改进方案**: 安装 Zig 编译器后，运行 `build_opentui.sh` 构建真正的 Windows 版 OpenTUI 库，然后从 `moon.pkg.json` 恢复原始配置。
+**注意**: 在缺少 Zig/OpenTUI 原生库的环境中，`onebit-tui` 仍可能需要正确的 native stub 支持。
 
 ### 5.2 wasm-gc 目标
 
@@ -147,7 +147,7 @@ moon test --target native
 
 ### 5.3 编译警告
 
-当前有 555 个 warnings，主要包括:
+历史记录有 555 个 warnings；当前项目状态约 280 个 warnings，主要包括:
 - `deprecated`: `to_string()` → `to_owned()` / `Debug`
 - `unused_value`: 未使用的 trait 实现和变量
 - `deprecated_syntax`: `\x..` → `\u..` 转义语法

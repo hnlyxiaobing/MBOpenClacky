@@ -78,6 +78,10 @@ pub(all) struct Dialog {
   title : String
   /// Dialog message body.
   message : String
+  /// Risk level (for approval dialogs).
+  mut risk_level : RiskLevel?
+  /// Action fingerprint (for approval dialogs).
+  mut fingerprint : String
   /// Form fields (for Form type).
   mut form_fields : Array[FormField]
   /// Current form field values.
@@ -99,10 +103,35 @@ pub fn Dialog::approval(title : String, message : String) -> Dialog {
     dialog_type: Approval,
     title,
     message,
+    risk_level: None,
+    fingerprint: "",
     form_fields: [],
     form_values: [],
     selected_button: 0,
     buttons: ["Approve", "Deny"],
+    result: None,
+    is_open: false,
+  }
+}
+
+///|
+/// Create an approval dialog with risk level and action fingerprint.
+pub fn Dialog::risk_approval(
+  title : String,
+  message : String,
+  risk : RiskLevel,
+  fingerprint? : String = "",
+) -> Dialog {
+  {
+    dialog_type: Approval,
+    title,
+    message,
+    risk_level: Some(risk),
+    fingerprint,
+    form_fields: [],
+    form_values: [],
+    selected_button: 0,
+    buttons: ["Approve", "Deny", "Always Allow"],
     result: None,
     is_open: false,
   }
@@ -119,6 +148,8 @@ pub fn Dialog::form(title : String, fields : Array[FormField]) -> Dialog {
     dialog_type: Form,
     title,
     message: "",
+    risk_level: None,
+    fingerprint: "",
     form_fields: fields,
     form_values: values,
     selected_button: 0,
@@ -135,6 +166,8 @@ pub fn Dialog::confirm(title : String, message : String) -> Dialog {
     dialog_type: Confirm,
     title,
     message,
+    risk_level: None,
+    fingerprint: "",
     form_fields: [],
     form_values: [],
     selected_button: 0,
@@ -151,6 +184,8 @@ pub fn Dialog::alert(title : String, message : String) -> Dialog {
     dialog_type: Alert,
     title,
     message,
+    risk_level: None,
+    fingerprint: "",
     form_fields: [],
     form_values: [],
     selected_button: 0,
@@ -240,6 +275,20 @@ pub fn Dialog::render(self : Dialog) -> Array[String] {
 
   // Separator
   lines.push("╠\{"═".repeat(border_w - 2)}╣")
+
+  // Risk level header (for approval dialogs)
+  match self.risk_level {
+    Some(risk) => {
+      let risk_line = " ⚠ Risk: \{risk.label()} \{risk.bar()}"
+      lines.push("║\{pad_right(risk_line, border_w - 2)}║")
+      if self.fingerprint.length() > 0 {
+        let fp_line = " Action: \{self.fingerprint}"
+        lines.push("║\{pad_right(fp_line, border_w - 2)}║")
+      }
+      lines.push("║\{" ".repeat(border_w - 2)}║")
+    }
+    None => ()
+  }
 
   // Message lines (wrap at border width)
   if self.message.length() > 0 {

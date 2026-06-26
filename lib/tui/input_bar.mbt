@@ -304,6 +304,219 @@ pub fn InputBar::get_cursor_position(self : InputBar) -> (Int, Int) {
   (self.cursor_line, self.cursor_col)
 }
 
+///|
+/// Build the input bar view with command suggestions dropdown above.
+///
+/// When `suggestions` is visible, renders the dropdown above the input field.
+/// Parameters:
+/// - `input_ref`: shared Ref[String] for the TextInput widget
+/// - `suggestions`: command suggestions controller
+/// - `on_submit`: callback when the user submits a message
+/// - `on_quit`: callback when the user quits
+pub fn input_bar_render_with_suggestions(
+  input_ref : Ref[String],
+  suggestions : CommandSuggestions,
+  on_submit : () -> Unit,
+  on_quit : () -> Unit,
+) -> @view.View {
+  let views : Array[@view.View] = []
+  // Render suggestions dropdown if visible
+  if suggestions.is_visible() {
+    let suggestion_lines = suggestions.render()
+    let suggestion_views : Array[@view.View] = []
+    for line in suggestion_lines {
+      suggestion_views.push(@view.View::text(line, color=@tui_core.Yellow))
+    }
+    views.push(@view.View::container_views(suggestion_views))
+  }
+  // Input field and buttons
+  let input = @widget.TextInput::new(input_ref)
+    .placeholder("Type a message or /command...")
+    .width(60.0)
+  let submit_btn = @widget.Button::primary(" Submit ", on_submit)
+  let quit_btn = @widget.Button::secondary(" Quit ", on_quit)
+  views.push(
+    @view.View::container_views([
+      @widget.row([
+        input,
+        @widget.Text::new("  "),
+        submit_btn,
+        @widget.Text::new("  "),
+        quit_btn,
+      ]),
+    ])
+    .padding(1.0)
+    .background(@tui_core.RGB(0.12, 0.12, 0.17)),
+  )
+  @view.View::container_views(views).direction(Column)
+}
+
+// ── InputSession: unified editor + suggestions controller ────────────
+
+///|
+/// A unified input session combining InputBar editing with CommandSuggestions.
+///
+/// Coordinates between the text editor and the suggestion dropdown:
+/// when the user types a "/" prefix, suggestions appear; Tab/Up/Down
+/// navigate them; Enter accepts; Escape dismisses.
+pub(all) struct InputSession {
+  /// The underlying text editor.
+  bar : InputBar
+  /// Command suggestions dropdown.
+  suggestions : CommandSuggestions
+  /// Whether to auto-show suggestions when "/" is typed.
+  auto_suggest : Bool
+} derive(Debug)
+
+///|
+/// Create a new InputSession with default settings.
+pub fn InputSession::new() -> InputSession {
+  {
+    bar: InputBar::multiline_bar(),
+    suggestions: CommandSuggestions::new(),
+    auto_suggest: true,
+  }
+}
+
+///|
+/// Create an InputSession with custom skill commands.
+pub fn InputSession::with_skills(
+  skill_commands : Array[SuggestionItem],
+) -> InputSession {
+  {
+    bar: InputBar::multiline_bar(),
+    suggestions: CommandSuggestions::with_skills(skill_commands),
+    auto_suggest: true,
+  }
+}
+
+///|
+/// Handle a character insertion, updating suggestions as needed.
+pub fn InputSession::handle_char(self : InputSession, ch : Char) -> Unit {
+  self.bar.insert_char(ch)
+  self.maybe_update_suggestions()
+}
+
+///|
+/// Handle backspace, updating suggestions as needed.
+pub fn InputSession::handle_backspace(self : InputSession) -> Unit {
+  self.bar.delete_char()
+  self.maybe_update_suggestions()
+}
+
+///|
+/// Handle Tab key — navigate suggestions or insert tab.
+///
+/// Returns true if the Tab was consumed by suggestions.
+pub fn InputSession::handle_tab(self : InputSession) -> Bool {
+  if self.suggestions.is_visible() {
+    self.suggestions.select_next()
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Handle Shift+Tab — navigate suggestions backwards.
+///
+/// Returns true if consumed.
+pub fn InputSession::handle_shift_tab(self : InputSession) -> Bool {
+  if self.suggestions.is_visible() {
+    self.suggestions.select_prev()
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Handle Escape key — dismiss suggestions.
+///
+/// Returns true if consumed.
+pub fn InputSession::handle_escape(self : InputSession) -> Bool {
+  if self.suggestions.is_visible() {
+    self.suggestions.hide()
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Handle Enter key — accept suggestion or submit.
+///
+/// Returns the submitted content if a submission occurred,
+/// or None if a suggestion was accepted (content is replaced)
+/// or if multi-line mode inserted a newline.
+pub fn InputSession::handle_enter(self : InputSession) -> String? {
+  if self.suggestions.is_visible() {
+    match self.suggestions.accept() {
+      Some(cmd) => {
+        // Replace input content with selected command
+        self.bar.clear()
+        for c in cmd.iter() {
+          self.bar.insert_char(c)
+        }
+        self.suggestions.hide()
+        None
+      }
+      None => self.bar.handle_enter()
+    }
+  } else {
+    self.bar.handle_enter()
+  }
+}
+
+///|
+/// Submit the current input, adding to history.
+pub fn InputSession::submit(self : InputSession) -> String? {
+  self.suggestions.hide()
+  self.bar.handle_submit()
+}
+
+///|
+/// Get the current input content.
+pub fn InputSession::get_content(self : InputSession) -> String {
+  self.bar.get_content()
+}
+
+///|
+/// Render the input session for display.
+///
+/// Returns suggestion lines (if visible) followed by the current
+/// input line with cursor indicator.
+pub fn InputSession::render(self : InputSession) -> Array[String] {
+  let lines : Array[String] = []
+  if self.suggestions.is_visible() {
+    for sl in self.suggestions.render() {
+      lines.push(sl)
+    }
+  }
+  lines.push(self.bar.render_with_cursor())
+  lines
+}
+
+// ── Internal helpers for InputSession ────────────────────────────────
+
+///|
+/// Check if the current input looks like a command prefix and
+/// update suggestions accordingly.
+fn InputSession::maybe_update_suggestions(self : InputSession) -> Unit {
+  if !self.auto_suggest {
+    return
+  }
+  let content = self.bar.get_content()
+  // Only show suggestions for single-line slash prefixes
+  if self.bar.content_lines.length() == 1 &&
+    content.length() > 0 &&
+    content.to_array()[0] == '/' {
+    self.suggestions.update_filter(content)
+  } else {
+    self.suggestions.hide()
+  }
+}
+
 // ── Internal helpers ────────────────────────────────────────────────
 
 ///|

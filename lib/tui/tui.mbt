@@ -8,12 +8,9 @@
 ///   polls for keyboard input and renders the full view tree.
 ///
 /// - **Running mode**: agent.run() is on the call stack. Hook callbacks
-///   update the shared TuiState. After agent.run() returns, the event loop
-///   resumes and renders the updated state on the next frame.
-///
-/// Phase 7 note: Inline rendering during agent.run() (live screen updates)
-/// is deferred to a future enhancement. The screen updates after each
-/// agent run completes.
+///   update the shared TuiState immediately. The onebit-tui render loop
+///   picks up state changes on the next frame (~60 FPS), providing
+///   real-time visual feedback during agent execution.
 
 ///|
 /// Entry point: launch the TUI with an initialized agent.
@@ -23,6 +20,7 @@ pub fn run_tui_interactive(agent : @agent.Agent) -> Unit {
   let state = Ref(TuiState::from_agent(agent))
   let input_ref = Ref("")
   let should_quit = Ref(false)
+  let modal_lifecycle = Ref(ModalLifecycle::new())
 
   match @tui_core.App::init() {
     None => {
@@ -44,7 +42,9 @@ pub fn run_tui_interactive(agent : @agent.Agent) -> Unit {
 
       // ── Handle global input events ───────────────────────────────
       fn on_global_event(event : @ffi.InputEvent) -> Bool {
-        handle_global_event(state, input_ref, should_quit, agent, event)
+        handle_global_event(
+          state, input_ref, should_quit, modal_lifecycle, agent, event,
+        )
       }
 
       // ── Run event loop (blocks until quit) ───────────────────────
@@ -106,30 +106,104 @@ fn build_main_layout(
 }
 
 ///|
-/// Handle a hook event by updating TUI state.
+/// Handle a hook event by updating TUI state immediately.
+///
+/// Every hook event updates the shared Ref[TuiState] so the next render
+/// frame reflects the latest agent activity. This provides real-time
+/// visual feedback during agent execution.
 fn handle_hook_event(state : Ref[TuiState], event : @agent.HookEvent) -> Unit {
+  let s = state.val
   match event {
-    StatusChanged(_old, new) => state.val.agent_status = new.to_string_value()
-    BeforeIteration(n) => state.val.iterations = n
-    AfterLlmCall =>
-      // Cost data is available via hook, but we let the next event loop
-      // cycle pick up the latest agent state
-      ()
+    StatusChanged(_old, new) => s.agent_status = new.to_string_value()
+    BeforeIteration(n) => {
+      s.iterations = n
+      s.agent_status = "iterating"
+      // Push iteration phase
+      s.phase_stack.push("iteration_\{n}")
+      // Clear previous tool state for new iteration
+      s.current_tool_name = ""
+      s.current_tool_args = ""
+    }
+    AfterIteration(n) => {
+      s.iterations = n
+      s.agent_status = "iteration_done"
+      // Pop iteration phase
+      if s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
+    }
+    BeforeLlmCall => {
+      s.llm_call_count = s.llm_call_count + 1
+      s.llm_calling = true
+      s.agent_status = "thinking"
+      s.phase_stack.push("llm_call")
+    }
+    AfterLlmCall => {
+      s.llm_calling = false
+      s.agent_status = "llm_done"
+      // Pop llm_call phase
+      if s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
+    }
     MessageAdded =>
-      // Messages are read from agent on next render
-      ()
-    ToolExecuting(name, args) =>
-      state.val.tool_output = "Running: \{name}(\{args})"
-    ToolExecuted(name, _result) => state.val.tool_output = "Completed: \{name}"
+      // Mark that a new message was added; the message content
+      // is pulled from agent.history in sync_state_from_agent
+      s.agent_status = "message_added"
+    ToolExecuting(name, args) => {
+      s.current_tool_name = name
+      s.current_tool_args = args
+      s.tool_output = "Running: \{name}(\{args})"
+      s.agent_status = "tool_call"
+      s.phase_stack.push("tool_\{name}")
+      // Add to tool history as in-progress
+      s.tool_history.push(ToolExecution::{
+        name,
+        args,
+        completed: false,
+        result_summary: "",
+      })
+    }
+    ToolExecuted(name, _result) => {
+      s.tool_output = "Completed: \{name}"
+      s.current_tool_name = ""
+      s.current_tool_args = ""
+      s.agent_status = "tool_done"
+      // Pop tool phase
+      if s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
+      // Mark the last matching tool in history as completed
+      let mut i = s.tool_history.length() - 1
+      while i >= 0 {
+        if s.tool_history[i].name == name && !s.tool_history[i].completed {
+          s.tool_history[i].completed = true
+          s.tool_history[i].result_summary = "ok"
+          break
+        }
+        i = i - 1
+      }
+    }
     ErrorOccurred(msg) => {
-      state.val.last_error = Some(msg)
-      state.val.agent_status = "error"
+      s.last_error = Some(msg)
+      s.agent_status = "error"
+      // Clear phase stack on error
+      while s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
     }
     RunCompleted(result) => {
-      state.val.agent_status = "completed"
-      state.val.total_cost = result.total_cost_usd
+      s.agent_status = "completed"
+      s.total_cost = result.total_cost_usd
+      s.iterations = result.iterations
+      // Clear all running state
+      s.llm_calling = false
+      s.current_tool_name = ""
+      s.current_tool_args = ""
+      while s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
     }
-    _ => ()
   }
 }
 
@@ -141,6 +215,7 @@ fn handle_global_event(
   _state : Ref[TuiState],
   _input_ref : Ref[String],
   should_quit : Ref[Bool],
+  modal_lifecycle : Ref[ModalLifecycle],
   _agent : @agent.Agent,
   event : @ffi.InputEvent,
 ) -> Bool {
@@ -154,6 +229,14 @@ fn handle_global_event(
       should_quit.val = true
       true
     }
+    // Escape key — close topmost modal if any
+    KeyMod(Char(27), _) =>
+      if modal_lifecycle.val.is_active() {
+        modal_lifecycle.val.close_top()
+        true
+      } else {
+        false
+      }
     _ => false // Let other events propagate to focused views
   }
 }
