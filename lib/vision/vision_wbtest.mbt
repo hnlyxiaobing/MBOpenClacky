@@ -14,10 +14,11 @@ test "vision_config_defaults" {
 
 ///|
 test "vision_config_custom" {
-  let config = VisionConfig::new(4096, "/tmp/cache/", "Describe this image")
+  let config = VisionConfig::new("test-key", "https://api.openai.com/v1", "gpt-4o", max_tokens=4096, cache_dir="/tmp/cache/", default_prompt="Describe this image")
   assert_eq(config.max_tokens, 4096)
   assert_eq(config.cache_dir, "/tmp/cache/")
   assert_eq(config.default_prompt, "Describe this image")
+  assert_eq(config.api_key, "test-key")
 }
 
 // ============================================================
@@ -33,7 +34,7 @@ test "vision_resolver_new" {
 
 ///|
 test "vision_resolver_with_config" {
-  let config = VisionConfig::new(2048, "/my/cache/", "OCR this")
+  let config = VisionConfig::new("sk-test", "https://api.test.com/v1", "gpt-4o-mini", max_tokens=2048, cache_dir="/my/cache/", default_prompt="OCR this")
   let resolver = VisionResolver::with_config(config)
   assert_eq(resolver.get_config().max_tokens, 2048)
   assert_eq(resolver.get_config().cache_dir, "/my/cache/")

@@ -67,11 +67,30 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
 
   let max_len = get_int_arg(args, "max_length", self.max_length)
 
-  ToolResult::success(
-    "[WebFetch ready] URL: \{normalized}, max_length: \{max_len}\n" +
-    "Requires async HTTP client for live web fetching. " +
-    "Tool metadata and parameters are fully configured.",
-  )
+  // Send HTTP GET request
+  let headers : Array[(String, String)] = [
+    ("User-Agent", "Mozilla/5.0 (compatible; MBOpenClacky/1.0)"),
+    ("Accept", "text/html,application/xhtml+xml,text/plain"),
+  ]
+  let result = @client.http_get(normalized, headers, 15000)
+  match result {
+    Ok(response) => {
+      if response.status_code >= 200 && response.status_code < 300 {
+        let text = strip_html_tags(response.body)
+        let truncated = if text.length() > max_len {
+          text[:max_len].to_owned() + "\n[truncated]"
+        } else {
+          text
+        }
+        ToolResult::success(truncated)
+      } else {
+        ToolResult::error(
+          "HTTP error \{response.status_code} fetching \{normalized}",
+        )
+      }
+    }
+    Err(err) => ToolResult::error("Failed to fetch \{normalized}: \{err}")
+  }
 }
 
 ///|
@@ -100,6 +119,31 @@ impl Tool for WebFetch with fn to_function_definition(self) -> FunctionDefinitio
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+///|
+/// Simple HTML tag stripper: removes all <...> tags and decodes common entities.
+fn strip_html_tags(html : String) -> String {
+  let mut result = ""
+  let mut in_tag = false
+  let chars = html.iter()
+  for ch in chars {
+    if ch == '<' {
+      in_tag = true
+    } else if ch == '>' {
+      in_tag = false
+    } else if !in_tag {
+      result = result + ch.to_string()
+    }
+  }
+  // Decode common HTML entities
+  result
+    .replace(old="&nbsp;", new=" ")
+    .replace(old="&amp;", new="&")
+    .replace(old="&lt;", new="<")
+    .replace(old="&gt;", new=">")
+    .replace(old="&quot;", new="\"")
+    .replace(old="&#39;", new="'")
+}
 
 ///|
 fn normalize_url(url : String) -> String {

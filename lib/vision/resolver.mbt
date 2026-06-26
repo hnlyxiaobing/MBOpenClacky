@@ -40,17 +40,79 @@ pub fn VisionResolver::describe(
     Err(msg) => return error_result(BadImage, msg)
     _ => ()
   }
-  // 4. Build LLM request with image content
-  // TODO: FFI needed - Make actual API call to vision-capable model
-  // The request would include:
-  //   - model: vision-capable model (e.g., gpt-4o, gemini-pro-vision)
-  //   - messages: [{ role: "user", content: [{ type: "image_url", ... }, { type: "text", text: prompt }] }]
-  //   - max_tokens: self.config.max_tokens
-  // 5. For now, return a placeholder result
-  let result = error_result(
-    CallFailed,
-    "Vision API call requires HTTP FFI - not yet implemented",
-  )
+  // 4. Build and send LLM request with image content
+  let image_url = match input {
+    DataUrl(url) => url
+    VisionBytes(data) => {
+      // Convert raw bytes to a base64 data URL
+      "data:image/png;base64," + @base64.encode(data.view())
+    }
+    FilePath(path) => "file://" + path
+  }
+  let content_arr : Array[Json] = [
+    Json::object({
+      "type": "text".to_json(),
+      "text": effective_prompt.to_json(),
+    }),
+    Json::object({
+      "type": "image_url".to_json(),
+      "image_url": Json::object({
+        "url": image_url.to_json(),
+        "detail": "high".to_json(),
+      }),
+    }),
+  ]
+  let body : Map[String, Json] = {
+    "model": self.config.model.to_json(),
+    "max_tokens": self.config.max_tokens.to_json(),
+    "messages": Json::array([
+      Json::object({
+        "role": "user".to_json(),
+        "content": content_arr.to_json(),
+      }),
+    ]),
+  }
+  let body_str = Json::object(body).stringify()
+  // Build request URL
+  let base = self.config.base_url.trim_end()
+  let url = if base.length() > 0 && base[base.length() - 1:].to_owned() == "/" {
+    "\{base}chat/completions"
+  } else {
+    "\{base}/chat/completions"
+  }
+  let headers : Array[(String, String)] = [
+    ("Content-Type", "application/json"),
+    ("Authorization", "Bearer \{self.config.api_key}"),
+  ]
+  // 5. Send HTTP request
+  let http_result = @client.http_post(url, body_str, headers, 60000)
+  let result = match http_result {
+    Err(err) =>
+      error_result(CallFailed, "Vision API HTTP request failed: \{err}")
+    Ok(http_resp) => {
+      if http_resp.status_code < 200 || http_resp.status_code >= 300 {
+        let err_msg = @client.extract_error_message(http_resp.body)
+        error_result(CallFailed, "Vision API error (\{http_resp.status_code}): \{err_msg}")
+      } else if @client.is_html_response(http_resp.body) {
+        error_result(CallFailed, "Vision API returned HTML (invalid endpoint)")
+      } else {
+        // Parse JSON response and extract text content
+        let json_data = @json.parse(http_resp.body) catch {
+          _ =>
+            return {
+              let r = error_result(CallFailed, "Failed to parse Vision API response as JSON")
+              self.cache_result(key, r)
+              r
+            }
+        }
+        let response = @client.parse_openai_response(json_data)
+        match response.content {
+          Some(text) if text.length() > 0 => ok_result(text, false)
+          _ => error_result(CallFailed, "Vision API returned empty content")
+        }
+      }
+    }
+  }
   // 6. Cache result (even errors, to avoid repeated failing calls)
   self.cache_result(key, result)
   result

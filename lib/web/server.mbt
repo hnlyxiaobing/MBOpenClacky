@@ -143,7 +143,7 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
   app.use_middleware(@cors.handle_cors())
 
   // ── Routes (no auth required) ──────────────────────────────────
-  app.get_raw("/health", _ => "{\"status\":\"ok\"}")
+  app.get_raw("/health", _ => "{\"status\":\"ok\",\"version\":\"0.1.0\"}")
 
   // ── API Routes ────────────────────────────────────────────────
   app.group("/api", (api : @crescent.App) => {

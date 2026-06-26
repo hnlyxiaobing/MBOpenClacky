@@ -256,15 +256,124 @@ fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
 }
 
 ///|
-/// Actual HTTP transport (stub - returns ConnectionFailed until wired).
-fn send_request(
-  _method : HttpMethod,
-  _url : String,
-  _body : String,
-  _headers : Array[(String, String)],
-  _timeout_ms : Int,
+/// Maximum response body buffer size (4 MB).
+let http_response_buf_size : Int = 4 * 1024 * 1024
+
+///|
+/// C FFI: synchronous HTTP request via WinHTTP (Windows) or libcurl (Linux).
+/// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
+#cfg(target="native")
+#borrow(method_b, url_b, headers_b, body_b, resp_buf, meta_buf, err_buf)
+extern "C" fn http_post_ffi(
+  method_b : Bytes,
+  url_b : Bytes,
+  headers_b : Bytes,
+  body_b : Bytes,
+  timeout_ms : Int,
+  resp_buf : Bytes,
+  meta_buf : Bytes,
+  err_buf : Bytes,
+) -> Int = "mbopenclacky_http_post"
+
+///|
+/// Read a little-endian Int32 from a Bytes buffer at the given offset.
+fn read_le_int32(buf : Bytes, offset : Int) -> Int {
+  let b0 = buf[offset].to_int()
+  let b1 = buf[offset + 1].to_int()
+  let b2 = buf[offset + 2].to_int()
+  let b3 = buf[offset + 3].to_int()
+  b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+}
+
+///|
+/// Convert an HttpMethod enum to its HTTP method string.
+fn http_method_str(m : HttpMethod) -> String {
+  match m {
+    Get => "GET"
+    Post => "POST"
+    Put => "PUT"
+    Delete => "DELETE"
+  }
+}
+
+///|
+/// Format request headers as "Key: Value\r\n" pairs for the C FFI.
+fn format_headers(headers : Array[(String, String)]) -> String {
+  let mut result = ""
+  for pair in headers {
+    let (k, v) = pair
+    result = result + k + ": " + v + "\r\n"
+  }
+  result
+}
+
+///|
+/// Actual HTTP transport via C FFI (WinHTTP on Windows, libcurl on Linux/macOS).
+pub fn send_request(
+  method : HttpMethod,
+  url : String,
+  body : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
-  Err(ConnectionFailed("HTTP transport not yet wired"))
+  let method_str = http_method_str(method)
+  let headers_str = format_headers(headers)
+  // Prepare FFI input buffers (null-terminated)
+  let method_b = method_str.to_bytes()
+  let url_b = url.to_bytes()
+  let headers_b = headers_str.to_bytes()
+  let body_b = body.to_bytes()
+  // Allocate output buffers
+  let resp_buf = Bytes::make(http_response_buf_size, 0)
+  let meta_buf = Bytes::make(8, 0)
+  let err_buf = Bytes::make(1024, 0)
+  // Call C FFI
+  let ffi_result = http_post_ffi(
+    method_b, url_b, headers_b, body_b,
+    timeout_ms, resp_buf, meta_buf, err_buf,
+  )
+  // Parse metadata from meta_buf
+  let http_status = read_le_int32(meta_buf, 0)
+  let body_size = read_le_int32(meta_buf, 4)
+  if ffi_result != 0 {
+    let err_msg = err_buf[:1024].to_string()
+    return Err(ConnectionFailed(err_msg))
+  }
+  let resp_body = if body_size > 0 {
+    resp_buf[:body_size].to_string()
+  } else {
+    ""
+  }
+  // Build response headers array (empty for now; not parsed from C response)
+  let resp_headers : Array[(String, String)] = []
+  Ok(HttpResponse::{
+    status_code: http_status,
+    body: resp_body,
+    headers: resp_headers,
+  })
+}
+
+///|
+/// Convenience wrapper: send an HTTP POST request with the given URL, body, and headers.
+/// Designed for external callers (e.g. agent package) who don't have direct access to HttpMethod.
+pub fn http_post(
+  url : String,
+  body : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponse, HttpError] {
+  send_request(Post, url, body, headers, timeout_ms)
+}
+
+///|
+/// Convenience wrapper: send an HTTP GET request with the given URL and headers.
+/// Designed for external callers (e.g. web_fetch, web_search tools) who need simple GET requests.
+pub fn http_get(
+  url : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponse, HttpError] {
+  send_request(Get, url, "", headers, timeout_ms)
 }
 
 // ── Public Helpers ───────────────────────────────────────────────────────────

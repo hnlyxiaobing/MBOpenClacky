@@ -172,7 +172,7 @@ fn get_temp_dir() -> String {
 /// Build a temp file path for command output capture.
 fn build_output_file_path(session_id : Int) -> String {
   let tmp_dir = get_temp_dir()
-  tmp_dir + "/clacky_term_\{session_id}.out"
+  @path.Path::join(tmp_dir, @path.Path("clacky_term_\{session_id}.out")).to_string()
 }
 
 ///|

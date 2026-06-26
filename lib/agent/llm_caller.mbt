@@ -55,15 +55,64 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
     return response
   }
 
-  // ── Real path (Phase 5+ HTTP) ──────────────────────────────────────
-  // Build the request (validates the pipeline even without HTTP)
-  let _request = self.build_send_request()
-  let _body = self.client.build_request_body(_request)
+  // ── Real HTTP path ──────────────────────────────────────────────
+  let request = self.build_send_request()
+  let body_json = self.client.build_request_body(request)
+  let url = self.client.request_url()
+  let headers_map = self.client.request_headers()
 
-  // No HTTP transport wired yet — raise a descriptive error
-  raise @errors.AgentError(
-    "LLM HTTP transport not yet available. Use mock_responses for testing.",
+  // Convert headers Map to Array for send_request
+  let headers_arr : Array[(String, String)] = []
+  for k, v in headers_map {
+    headers_arr.push((k, v))
+  }
+
+  let body_str = body_json.to_string()
+
+  // Send HTTP request via C FFI
+  let http_result = @client.http_post(
+    url,
+    body_str,
+    headers_arr,
+    60000, // 60s timeout for LLM API calls
   )
+
+  match http_result {
+    Err(err) =>
+      raise @errors.RetryableError("HTTP request failed: \{err}")
+    Ok(http_resp) => {
+      // Check for HTTP errors
+      match @client.map_http_error(http_resp.status_code, http_resp.body) {
+        Some(err_msg) => {
+          // 5xx and 429 are retryable
+          if http_resp.status_code == 429 ||
+            (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
+            raise @errors.RetryableError(err_msg)
+          }
+          raise @errors.BadRequestError(http_resp.status_code, err_msg)
+        }
+        None => ()
+      }
+      // Check for HTML response
+      if @client.is_html_response(http_resp.body) {
+        raise @errors.AgentError(
+          "LLM API returned HTML response (invalid endpoint)",
+        )
+      }
+      // Parse JSON response
+      let json_data = @json.parse(http_resp.body) catch {
+        _ =>
+          raise @errors.AgentError("Failed to parse LLM API response as JSON")
+      }
+      let response = self.client.parse_response(json_data)
+      // Track cost if usage is present
+      match response.usage {
+        Some(usage) => self.track_cost(usage) |> ignore
+        None => ()
+      }
+      response
+    }
+  }
 }
 
 ///|

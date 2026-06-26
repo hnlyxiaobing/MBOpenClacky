@@ -6,6 +6,7 @@ import {
   "moonbitlang/x/sys",
   "moonbitlang/x/codec/base64",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
   "moonbitlang/async",
 }
 

@@ -3,3 +3,8 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
 }
+
+options(
+  "native-stub": [ "http_native.c" ],
+  link: { "native": { "cc-link-flags": "-lcurl" } },
+)

@@ -27,6 +27,9 @@ pub(all) enum VisionInput {
 ///|
 /// Vision resolver configuration
 pub(all) struct VisionConfig {
+  api_key : String
+  base_url : String
+  model : String
   max_tokens : Int
   cache_dir : String
   default_prompt : String
@@ -48,6 +51,9 @@ let default_vision_prompt : String = "Extract all text content from this image. 
 /// Create a default VisionConfig
 pub fn VisionConfig::default() -> VisionConfig {
   {
+    api_key: "",
+    base_url: "https://api.openai.com/v1",
+    model: "gpt-4o",
     max_tokens: default_max_tokens,
     cache_dir: default_cache_dir,
     default_prompt: default_vision_prompt,
@@ -57,11 +63,14 @@ pub fn VisionConfig::default() -> VisionConfig {
 ///|
 /// Create a VisionConfig with custom settings
 pub fn VisionConfig::new(
-  max_tokens : Int,
-  cache_dir : String,
-  default_prompt : String,
+  api_key : String,
+  base_url : String,
+  model : String,
+  max_tokens? : Int = default_max_tokens,
+  cache_dir? : String = default_cache_dir,
+  default_prompt? : String = default_vision_prompt,
 ) -> VisionConfig {
-  { max_tokens, cache_dir, default_prompt }
+  { api_key, base_url, model, max_tokens, cache_dir, default_prompt }
 }
 
 ///|

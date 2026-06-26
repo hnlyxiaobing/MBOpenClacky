@@ -294,9 +294,9 @@ fn has_claude_cache_gen(model : String) -> Bool {
 
 ///|
 /// Map an HTTP status code and response body to a project error.
-/// Returns None for 200 OK, or Some(error_description) for errors.
+/// Returns None for 2xx success, or Some(error_description) for errors.
 pub fn map_http_error(status : Int, body_text : String) -> String? {
-  guard status != 200 else { return None }
+  guard status < 200 || status >= 300 else { return None }
   let error_message = extract_error_message(body_text)
 
   let msg = match status {
