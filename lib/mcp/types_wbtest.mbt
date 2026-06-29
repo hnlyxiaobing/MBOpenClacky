@@ -1,5 +1,5 @@
-///| MCP module tests: JSON-RPC, types, and transport helpers.
-
+///|
+/// MCP module tests: JSON-RPC, types, and transport helpers.
 test "JsonRpcRequest construction" {
   let req : JsonRpcRequest = {
     jsonrpc: "2.0",
@@ -13,6 +13,7 @@ test "JsonRpcRequest construction" {
   assert_true(req.params is None)
 }
 
+///|
 test "JsonRpcRequest with params" {
   let params = Json::object({ "name": "test_tool".to_json() })
   let req : JsonRpcRequest = {
@@ -25,6 +26,7 @@ test "JsonRpcRequest with params" {
   assert_true(req.params is Some(_))
 }
 
+///|
 test "JsonRpcResponse success parsing" {
   let json_str = "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[]}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
@@ -40,6 +42,7 @@ test "JsonRpcResponse success parsing" {
   }
 }
 
+///|
 test "JsonRpcResponse error parsing" {
   let json_str = "{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
@@ -60,12 +63,13 @@ test "JsonRpcResponse error parsing" {
   }
 }
 
+///|
 test "JsonRpcResponse with data field" {
   let json_str = "{\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32603,\"message\":\"Internal error\",\"data\":{\"detail\":\"timeout\"}}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
   let resp = JsonRpcResponse::from_json(json)
   match resp {
-    Some(response) => {
+    Some(response) =>
       match response.error {
         Some(err) => {
           assert_eq(err.code, -32603)
@@ -73,11 +77,11 @@ test "JsonRpcResponse with data field" {
         }
         None => assert_true(false)
       }
-    }
     None => assert_true(false)
   }
 }
 
+///|
 test "McpTool parsing" {
   let json_str = "{\"name\":\"read_file\",\"description\":\"Reads a file\",\"inputSchema\":{\"type\":\"object\"}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
@@ -91,18 +95,18 @@ test "McpTool parsing" {
   }
 }
 
+///|
 test "McpTool parsing with input_schema variant" {
   let json_str = "{\"name\":\"search\",\"description\":\"Search web\",\"input_schema\":{\"type\":\"object\"}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
   let tool = McpTool::from_json(json)
   match tool {
-    Some(t) => {
-      assert_eq(t.name, "search")
-    }
+    Some(t) => assert_eq(t.name, "search")
     None => assert_true(false)
   }
 }
 
+///|
 test "McpServerSpec stdio construction" {
   let spec = McpServerSpec::stdio(
     "test-server",
@@ -119,6 +123,7 @@ test "McpServerSpec stdio construction" {
   assert_true(spec.url is None)
 }
 
+///|
 test "McpServerSpec http construction" {
   let spec = McpServerSpec::http(
     "api-server",
@@ -134,6 +139,7 @@ test "McpServerSpec http construction" {
   }
 }
 
+///|
 test "McpServerSpec from_json stdio" {
   let json_str = "{\"command\":\"python\",\"args\":[\"-m\",\"server\"],\"env\":{\"DEBUG\":\"1\"}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
@@ -151,6 +157,7 @@ test "McpServerSpec from_json stdio" {
   }
 }
 
+///|
 test "McpServerSpec from_json http" {
   let json_str = "{\"url\":\"http://localhost:8080\",\"headers\":{\"Authorization\":\"Bearer token\"}}"
   let json : Json = @json.parse(json_str) catch { _ => return }
@@ -167,6 +174,7 @@ test "McpServerSpec from_json http" {
   }
 }
 
+///|
 test "McpCapabilities default" {
   let caps : McpCapabilities = { tools: true, prompts: false, resources: false }
   assert_true(caps.tools)
@@ -174,6 +182,7 @@ test "McpCapabilities default" {
   assert_false(caps.resources)
 }
 
+///|
 test "TransportType equality" {
   let stdio1 = Stdio
   let stdio2 = Stdio
@@ -183,6 +192,7 @@ test "TransportType equality" {
   assert_true(stdio1 != http1)
 }
 
+///|
 test "build_jsonrpc_request without params" {
   let req_str = build_jsonrpc_request(1, "initialize", None)
   let json : Json = @json.parse(req_str) catch { _ => return }
@@ -196,6 +206,7 @@ test "build_jsonrpc_request without params" {
   }
 }
 
+///|
 test "build_jsonrpc_request with params" {
   let params = Json::object({
     "protocolVersion": "2024-11-05".to_json(),
@@ -207,7 +218,12 @@ test "build_jsonrpc_request with params" {
   let req_str = build_jsonrpc_request(2, "initialize", Some(params))
   let json : Json = @json.parse(req_str) catch { _ => return }
   match json {
-    { "jsonrpc": String(ver), "method": String(m), "params": { "protocolVersion": String(pv), .. }, .. } => {
+    {
+      "jsonrpc": String(ver),
+      "method": String(m),
+      "params": { "protocolVersion": String(pv), .. },
+      ..
+    } => {
       assert_eq(ver, "2.0")
       assert_eq(m, "initialize")
       assert_eq(pv, "2024-11-05")
@@ -216,6 +232,7 @@ test "build_jsonrpc_request with params" {
   }
 }
 
+///|
 test "parse_jsonrpc_response success" {
   let text = "{\"jsonrpc\":\"2.0\",\"id\":5,\"result\":{\"serverInfo\":{\"name\":\"test\",\"version\":\"1.0\"}}}"
   let resp = parse_jsonrpc_response(text)
@@ -229,6 +246,7 @@ test "parse_jsonrpc_response success" {
   }
 }
 
+///|
 test "parse_jsonrpc_response error" {
   let text = "{\"jsonrpc\":\"2.0\",\"id\":6,\"error\":{\"code\":-32600,\"message\":\"Invalid Request\"}}"
   let resp = parse_jsonrpc_response(text)
@@ -244,16 +262,19 @@ test "parse_jsonrpc_response error" {
   }
 }
 
+///|
 test "parse_jsonrpc_response empty string" {
   let resp = parse_jsonrpc_response("")
   assert_true(resp is None)
 }
 
+///|
 test "parse_jsonrpc_response invalid json" {
   let resp = parse_jsonrpc_response("not valid json")
   assert_true(resp is None)
 }
 
+///|
 test "JsonRpcRequest to_json" {
   let req : JsonRpcRequest = {
     jsonrpc: "2.0",
@@ -272,6 +293,7 @@ test "JsonRpcRequest to_json" {
   }
 }
 
+///|
 test "McpTool to_json roundtrip" {
   let tool : McpTool = {
     name: "test_tool",
@@ -288,6 +310,7 @@ test "McpTool to_json roundtrip" {
   }
 }
 
+///|
 test "TransportError construction" {
   let err : TransportError = TransportError("connection lost")
   match err {
@@ -295,6 +318,7 @@ test "TransportError construction" {
   }
 }
 
+///|
 test "McpError construction" {
   let err : McpError = McpError("invalid protocol")
   match err {
@@ -302,6 +326,7 @@ test "McpError construction" {
   }
 }
 
+///|
 test "McpServerInfo from_json" {
   let json_str = "{\"serverInfo\":{\"name\":\"test-server\",\"version\":\"2.0\"},\"capabilities\":{\"tools\":{},\"prompts\":{},\"resources\":{}}}"
   let json : Json = @json.parse(json_str) catch { _ => return }

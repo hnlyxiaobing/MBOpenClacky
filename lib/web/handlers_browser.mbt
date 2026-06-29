@@ -23,7 +23,10 @@ pub fn handle_browser_start(
   match server_ref.val.browser_manager.start() {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "status": "started".to_json(), "message": "Browser daemon started".to_json() }),
+        Json::object({
+          "status": "started".to_json(),
+          "message": "Browser daemon started".to_json(),
+        }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
@@ -41,7 +44,10 @@ pub fn handle_browser_stop(
   match server_ref.val.browser_manager.stop() {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "status": "stopped".to_json(), "message": "Browser daemon stopped".to_json() }),
+        Json::object({
+          "status": "stopped".to_json(),
+          "message": "Browser daemon stopped".to_json(),
+        }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
@@ -77,9 +83,7 @@ pub fn handle_browser_screenshot(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => Json::object({})
-  }
+  let body : Json = event.req.body() catch { _ => Json::object({}) }
   match server_ref.val.browser_manager.mcp_call("take_screenshot", body) {
     Ok(result) => @core.HttpResponse::ok().json_value(result)
     Err(e) =>
@@ -105,13 +109,18 @@ pub fn handle_browser_configure(
     { "chrome_version": String(v), .. } => v
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing or invalid 'chrome_version' field".to_json() }),
+        Json::object({
+          "error": "Missing or invalid 'chrome_version' field".to_json(),
+        }),
       )
   }
   match server_ref.val.browser_manager.configure(chrome_version) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "status": "configured".to_json(), "chrome_version": chrome_version.to_json() }),
+        Json::object({
+          "status": "configured".to_json(),
+          "chrome_version": chrome_version.to_json(),
+        }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
@@ -129,7 +138,10 @@ pub fn handle_browser_reload(
   match server_ref.val.browser_manager.reload() {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "status": "reloaded".to_json(), "message": "Browser daemon reloaded".to_json() }),
+        Json::object({
+          "status": "reloaded".to_json(),
+          "message": "Browser daemon reloaded".to_json(),
+        }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(

@@ -30,23 +30,27 @@ pub fn run_tui_interactive(agent : @agent.Agent) -> Unit {
       )
     }
     Some(app) => {
-      // 鈹€鈹€ Wire hooks to update shared state 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+      // Setup terminal: hide cursor, enter alternate screen, query capabilities.
+      app.get_renderer().setup_terminal(true)
       AgentHookHandler::new(state).register_all(agent.hook_manager)
 
-      // 鈹€鈹€ Build the full view tree from current state 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+      // Build the full view tree from current state
       fn build_ui() -> @view.View {
         build_main_layout(state, input_ref, agent, should_quit)
       }
 
-      // 鈹€鈹€ Handle global input events 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+      // Handle global input events
       fn on_global_event(event : @ffi.InputEvent) -> Bool {
         handle_global_event(
           state, input_ref, should_quit, modal_lifecycle, agent, event,
         )
       }
 
-      // 鈹€鈹€ Run event loop (blocks until quit) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+      // Run event loop (blocks until quit)
       @runtime.run_event_loop(app, build_ui, on_global_event~)
+
+      // Clean up: restore terminal, exit alternate screen
+      app.cleanup()
     }
   }
 }
@@ -73,14 +77,14 @@ fn build_main_layout(
     for line in banner_text.split("\n") {
       banner_views.push(@view.View::text(line.to_owned(), color=@tui_core.Cyan))
     }
-    @view.View::container_views(banner_views)
-      .padding(1.0)
-      .flex(2.0)
+    @view.View::container_views(banner_views).padding(1.0).flex(2.0)
   } else {
     message_view_render(state).flex(2.0)
   }
   let tool_out = tool_view_render(state).flex(1.0)
-  let content_center = @view.View::container_views([main_panel, tool_out]).direction(Row)
+  let content_center = @view.View::container_views([main_panel, tool_out]).direction(
+    Row,
+  )
 
   // Sidebar: render alongside main content when visible
   let content = if s.sidebar_panel.visible {
@@ -90,7 +94,9 @@ fn build_main_layout(
       sidebar_views.push(@view.View::text(line, color=@tui_core.White))
     }
     let sidebar_view = @view.View::container_views(sidebar_views)
-    @view.View::container_views([content_center.flex(1.0), sidebar_view]).direction(Row)
+    @view.View::container_views([content_center.flex(1.0), sidebar_view]).direction(
+      Row,
+    )
   } else {
     content_center
   }
@@ -110,13 +116,11 @@ fn build_main_layout(
         ),
       ]
       for line in progress_lines {
-        children.push(
-          @view.View::text("  \{line}", color=@tui_core.Cyan),
-        )
+        children.push(@view.View::text("  \{line}", color=@tui_core.Cyan))
       }
       @view.View::container_views(children)
-        .padding(1.0)
-        .background(@tui_core.RGB(0.12, 0.12, 0.17))
+      .padding(1.0)
+      .background(@tui_core.RGB(0.12, 0.12, 0.17))
     }
     Idle =>
       input_bar_render(
@@ -137,7 +141,6 @@ fn build_main_layout(
     Column,
   )
 }
-
 
 ///|
 /// Handle a global input event from the event loop.

@@ -46,9 +46,7 @@ static int alloc_handle() {
 
 /* Convert MoonBit UTF-16 string to UTF-8 C string. Caller must free. */
 static char *mbstr_to_utf8(moonbit_string_t str) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)str - 8);
-  int len = hdr->arr.len; /* number of uint16_t code units */
-  int cap = len * 3 + 1;
+  int len = Moonbit_array_length(str); /* number of uint16_t code units */  int cap = len * 3 + 1;
   char *buf = (char *)malloc(cap);
   if (!buf) return NULL;
   int j = 0;
@@ -70,22 +68,15 @@ static char *mbstr_to_utf8(moonbit_string_t str) {
 }
 
 /* Get element from a MoonBit ref array (Array[String]) */
-static moonbit_string_t ref_array_get(moonbit_ref_array_t arr, int index) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)arr - 8);
-  (void)hdr;
+static moonbit_string_t ref_array_get(moonbit_string_t* arr, int index) {
   return arr[index];
 }
-
-static int ref_array_length(moonbit_ref_array_t arr) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)arr - 8);
-  return hdr->arr.len;
+static int ref_array_length(moonbit_string_t* arr) {
+  return Moonbit_array_length(arr);
 }
-
 static int bytes_length(moonbit_bytes_t buf) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)buf - 8);
-  return hdr->arr.len;
+  return Moonbit_array_length(buf);
 }
-
 /* Append bytes to a handle's line buffer */
 static void append_to_buf(int handle, const char *data, int len) {
   browser_proc_t *p = &g_procs[handle];
@@ -103,7 +94,7 @@ static void append_to_buf(int handle, const char *data, int len) {
 MOONBIT_FFI_EXPORT
 int32_t mbopenclacky_spawn_process(
   moonbit_string_t command,
-  moonbit_ref_array_t args,
+  moonbit_string_t* args,
   int32_t arg_count
 ) {
   /* Defensive check: clamp arg_count to actual array length */
@@ -389,10 +380,8 @@ static int alloc_handle() {
 }
 
 static char *mbstr_to_utf8(moonbit_string_t str) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)str - 8);
-  int len = hdr->arr.len;
-  int cap = len * 3 + 1;
-  char *buf = (char *)malloc(cap);
+  int len = Moonbit_array_length(str);
+  int cap = len * 3 + 1;  char *buf = (char *)malloc(cap);
   if (!buf) return NULL;
   int j = 0;
   for (int i = 0; i < len; i++) {
@@ -412,20 +401,16 @@ static char *mbstr_to_utf8(moonbit_string_t str) {
   return buf;
 }
 
-static moonbit_string_t ref_array_get(moonbit_ref_array_t arr, int index) {
+static moonbit_string_t ref_array_get(moonbit_string_t* arr, int index) {
   return arr[index];
 }
 
-static int ref_array_length(moonbit_ref_array_t arr) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)arr - 8);
-  return hdr->arr.len;
+static int ref_array_length(moonbit_string_t* arr) {
+  return Moonbit_array_length(arr);
 }
-
 static int bytes_length(moonbit_bytes_t buf) {
-  struct moonbit_object *hdr = (struct moonbit_object *)((char *)buf - 8);
-  return hdr->arr.len;
+  return Moonbit_array_length(buf);
 }
-
 static void append_to_buf(int handle, const char *data, int len) {
   browser_proc_posix_t *p = &g_procs[handle];
   while (p->line_buf_len + len > p->line_buf_cap) {
@@ -442,7 +427,7 @@ static void append_to_buf(int handle, const char *data, int len) {
 MOONBIT_FFI_EXPORT
 int32_t mbopenclacky_spawn_process(
   moonbit_string_t command,
-  moonbit_ref_array_t args,
+  moonbit_string_t* args,
   int32_t arg_count
 ) {
   int handle = alloc_handle();

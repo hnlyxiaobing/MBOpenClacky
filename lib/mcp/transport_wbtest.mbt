@@ -1,5 +1,5 @@
-///| Transport layer whitebox tests.
-
+///|
+/// Transport layer whitebox tests.
 test "StdioTransport lifecycle" {
   let spec = McpServerSpec::stdio("test", "node", args=Some(["server.js"]))
   let t = StdioTransport::new(spec)
@@ -12,6 +12,7 @@ test "StdioTransport lifecycle" {
   assert_false(t.alive())
 }
 
+///|
 test "HttpTransport session_id and build_headers" {
   let spec = McpServerSpec::http(
     "api",
@@ -28,6 +29,7 @@ test "HttpTransport session_id and build_headers" {
   assert_eq(headers["Authorization"], "Bearer tok")
 }
 
+///|
 test "build_jsonrpc_request ID format" {
   let req_str = build_jsonrpc_request(42, "tools/call", None)
   let json : Json = @json.parse(req_str) catch { _ => return }

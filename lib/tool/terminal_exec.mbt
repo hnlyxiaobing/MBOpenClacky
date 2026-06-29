@@ -5,7 +5,7 @@
 ///|
 /// FFI to C's system() for synchronous command execution.
 #borrow(_cmd)
-extern "C" fn c_system(_cmd : Bytes) -> Int = "system"
+extern "C" fn c_system(_cmd : Bytes) -> Int = "mb_system"
 
 ///|
 /// Run a system command and return the exit code.

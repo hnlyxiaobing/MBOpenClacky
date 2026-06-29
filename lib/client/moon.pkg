@@ -5,6 +5,8 @@ import {
 }
 
 options(
-  "native-stub": [ "http_native.c" ],
-  link: { "native": { "cc-link-flags": "-lcurl" } },
+  "native-stub": [ "http_native.c", "mb_stubs.c" ],
+  // Windows: WinHTTP is auto-linked via #pragma comment(lib,"winhttp.lib") in http_native.c (MSVC/mingw)
+  // Linux/macOS: uncomment the line below to link libcurl when building on Linux
+  // link: { "native": { "cc-link-flags": "-lcurl" } },
 )

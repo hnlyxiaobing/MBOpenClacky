@@ -41,13 +41,19 @@ fn handle_files_list(
   }
   if !@fs.path_exists(dir) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "Path not found".to_json(), "path": dir.to_json() }),
+      Json::object({
+        "error": "Path not found".to_json(),
+        "path": dir.to_json(),
+      }),
     )
   }
   let entries = @fs.read_dir(dir) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "Failed to read directory".to_json(), "detail": e.to_string().to_json() }),
+        Json::object({
+          "error": "Failed to read directory".to_json(),
+          "detail": e.to_string().to_json(),
+        }),
       )
   }
   let items : Array[Json] = []
@@ -55,10 +61,7 @@ fn handle_files_list(
     let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let is_dir = @fs.path_exists(full) && is_directory(full)
     items.push(
-      Json::object({
-        "name": name.to_json(),
-        "is_dir": is_dir.to_json(),
-      }),
+      Json::object({ "name": name.to_json(), "is_dir": is_dir.to_json() }),
     )
   }
   @core.HttpResponse::ok().json_value(
@@ -94,13 +97,19 @@ fn handle_files_read(
   }
   if !@fs.path_exists(file_path) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "File not found".to_json(), "path": file_path.to_json() }),
+      Json::object({
+        "error": "File not found".to_json(),
+        "path": file_path.to_json(),
+      }),
     )
   }
   let content = @fs.read_file_to_string(file_path) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "Failed to read file".to_json(), "detail": e.to_string().to_json() }),
+        Json::object({
+          "error": "Failed to read file".to_json(),
+          "detail": e.to_string().to_json(),
+        }),
       )
   }
   @core.HttpResponse::ok().json_value(
@@ -170,7 +179,10 @@ fn handle_files_write(
   @fs.write_string_to_file(file_path, content) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "Failed to write file".to_json(), "detail": e.to_string().to_json() }),
+        Json::object({
+          "error": "Failed to write file".to_json(),
+          "detail": e.to_string().to_json(),
+        }),
       )
   }
   @core.HttpResponse::ok().json_value(
@@ -261,7 +273,10 @@ fn handle_files_upload(
   @fs.write_bytes_to_file(target, bytes) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "Failed to write file".to_json(), "detail": e.to_string().to_json() }),
+        Json::object({
+          "error": "Failed to write file".to_json(),
+          "detail": e.to_string().to_json(),
+        }),
       )
   }
   @core.HttpResponse::ok().json_value(

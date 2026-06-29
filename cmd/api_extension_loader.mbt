@@ -2,7 +2,8 @@
 /// The canonical type definitions live in lib/web/ext_loader.mbt.
 /// This module re-exports them for convenient use in cmd/main.mbt.
 
-///| Re-export: load extensions from directory (delegates to @web).
+///|
+/// Re-export: load extensions from directory (delegates to @web).
 pub fn load_extensions(ext_dir? : String? = None) -> Array[@web.ApiExtension] {
   @web.load_api_extensions(ext_dir~)
 }

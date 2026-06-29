@@ -30,7 +30,8 @@ pub(all) struct ApiExtension {
   enabled : Bool
 } derive(Show)
 
-///| Default extension execution timeout in milliseconds (30 seconds).
+///|
+/// Default extension execution timeout in milliseconds (30 seconds).
 pub let default_ext_timeout_ms : Int = 30000
 
 ///|
@@ -75,7 +76,9 @@ pub fn load_api_extensions(ext_dir? : String? = None) -> Array[ApiExtension] {
 
 ///|
 /// Filter extensions to only those that are enabled.
-pub fn enabled_extensions(extensions : Array[ApiExtension]) -> Array[ApiExtension] {
+pub fn enabled_extensions(
+  extensions : Array[ApiExtension],
+) -> Array[ApiExtension] {
   let result : Array[ApiExtension] = []
   for ext in extensions {
     if ext.enabled {

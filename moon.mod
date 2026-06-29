@@ -19,4 +19,6 @@ keywords = [ "ai", "agent", "cli", "llm" ]
 
 description = "AI Agent CLI tool rewritten in MoonBit"
 
-preferred_target = "native"
+options(
+  link: { "native": { "cc": "-lcurl -lssl -lcrypto" } },
+)

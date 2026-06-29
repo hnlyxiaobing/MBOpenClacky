@@ -116,7 +116,11 @@ pub fn BrowserProcess::read_line(
     return Err("Process is not alive")
   }
   let buffer = Bytes::make(process_read_buffer_size, 0)
-  let bytes_read = read_process_stdout_line_ffi(self.handle, buffer, process_read_buffer_size)
+  let bytes_read = read_process_stdout_line_ffi(
+    self.handle,
+    buffer,
+    process_read_buffer_size,
+  )
   if bytes_read < 0 {
     self.alive = false
     return Err("Failed to read from process stdout")

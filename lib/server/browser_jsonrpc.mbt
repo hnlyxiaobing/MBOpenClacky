@@ -150,9 +150,7 @@ pub fn JsonRpcClient::notify(
 /// Then: notifications/initialized notification.
 /// Returns the server capabilities from the response.
 #cfg(target="native")
-pub fn JsonRpcClient::initialize(
-  self : JsonRpcClient,
-) -> Result[Json, String] {
+pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
   let params : Json = Json::object({
     "protocolVersion": mcp_protocol_version.to_json(),
     "capabilities": Json::object({}),
@@ -204,8 +202,6 @@ pub fn JsonRpcClient::notify(
 ///|
 /// Perform MCP initialize handshake (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn JsonRpcClient::initialize(
-  self : JsonRpcClient,
-) -> Result[Json, String] {
+pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
   Err("JSON-RPC not supported on wasm target")
 }

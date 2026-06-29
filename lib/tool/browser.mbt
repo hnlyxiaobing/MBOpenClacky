@@ -399,10 +399,7 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
 /// When these errors are encountered, the page cache should be invalidated
 /// and the operation retried after selecting a new page.
 let retryable_page_errors : Array[String] = [
-  "selected page has been closed",
-  "No page found",
-  "no active page",
-  "Target closed",
+  "selected page has been closed", "No page found", "no active page", "Target closed",
   "page is detached",
 ]
 
@@ -549,12 +546,11 @@ fn Browser::dispatch_act(
       augmented["dblClick"] = true.to_json()
       self.with_page("click", augmented)
     }
-    "type" | "fill" => {
+    "type" | "fill" =>
       // type is an alias for fill — both map to the MCP "fill" verb.
       // "fill" replaces existing content then types; "type" is kept as
       // a user-facing synonym for backward compatibility.
       self.with_page("fill", args)
-    }
     "press" => self.with_page("press_key", args)
     "hover" => self.with_page("hover", args)
     "drag" => self.with_page("drag", args)
@@ -644,7 +640,7 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
   }
   // Propagate pageId from args if present (injected by with_page / mcp_call)
   match args.get("pageId") {
-    Some(v) => {
+    Some(v) =>
       match base {
         Object(obj) => {
           obj["pageId"] = v
@@ -652,7 +648,6 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
         }
         _ => base
       }
-    }
     None => base
   }
 }
@@ -1287,7 +1282,9 @@ fn get_screenshot_temp_dir() -> String {
   let subdir = @path.Path(dir).join(@path.Path("mbopenclacky_screenshots"))
   let subdir_str = subdir.to_string()
   if !@fs.path_exists(subdir_str) {
-    @fs.create_dir(subdir_str) catch { _ => () }
+    @fs.create_dir(subdir_str) catch {
+      _ => ()
+    }
   }
   subdir_str
 }
@@ -1320,7 +1317,9 @@ pub fn format_screenshot_result(
   let base64_data = extract_base64_image(mcp_output)
   match base64_data {
     Some(b64) => {
-      let png_bytes = @base64.decode(b64.view()) catch { _ => Bytes::make(0, b'\x00') }
+      let png_bytes = @base64.decode(b64.view()) catch {
+        _ => Bytes::make(0, b'\x00')
+      }
       let byte_len = png_bytes.length()
       let temp_dir = get_screenshot_temp_dir()
       let filename = next_screenshot_filename()

@@ -74,7 +74,7 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
   ]
   let result = @client.http_get(normalized, headers, 15000)
   match result {
-    Ok(response) => {
+    Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         let text = strip_html_tags(response.body)
         let truncated = if text.length() > max_len {
@@ -88,7 +88,6 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
           "HTTP error \{response.status_code} fetching \{normalized}",
         )
       }
-    }
     Err(err) => ToolResult::error("Failed to fetch \{normalized}: \{err}")
   }
 }
@@ -137,12 +136,12 @@ fn strip_html_tags(html : String) -> String {
   }
   // Decode common HTML entities
   result
-    .replace(old="&nbsp;", new=" ")
-    .replace(old="&amp;", new="&")
-    .replace(old="&lt;", new="<")
-    .replace(old="&gt;", new=">")
-    .replace(old="&quot;", new="\"")
-    .replace(old="&#39;", new="'")
+  .replace(old="&nbsp;", new=" ")
+  .replace(old="&amp;", new="&")
+  .replace(old="&lt;", new="<")
+  .replace(old="&gt;", new=">")
+  .replace(old="&quot;", new="\"")
+  .replace(old="&#39;", new="'")
 }
 
 ///|

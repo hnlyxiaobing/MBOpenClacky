@@ -329,8 +329,7 @@ pub fn send_request(
   let err_buf = Bytes::make(1024, 0)
   // Call C FFI
   let ffi_result = http_post_ffi(
-    method_b, url_b, headers_b, body_b,
-    timeout_ms, resp_buf, meta_buf, err_buf,
+    method_b, url_b, headers_b, body_b, timeout_ms, resp_buf, meta_buf, err_buf,
   )
   // Parse metadata from meta_buf
   let http_status = read_le_int32(meta_buf, 0)

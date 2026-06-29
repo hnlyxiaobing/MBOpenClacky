@@ -137,12 +137,11 @@ pub fn BrowserManager::status(self : BrowserManager) -> BrowserStatus {
     uptime_seconds: uptime,
     last_error: self.last_error,
     endpoint: None,
-    mcp_version:
-      if self.is_running {
-        Some(mcp_protocol_version)
-      } else {
-        None
-      },
+    mcp_version: if self.is_running {
+      Some(mcp_protocol_version)
+    } else {
+      None
+    },
   }
 }
 

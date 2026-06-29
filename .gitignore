@@ -32,3 +32,7 @@ nul
 # AI 工具配置文件
 CLAUDE.md
 AGENTS.md
+
+# 备份与临时文件
+moon.mod.bak
+.gitcommit_msg.txt

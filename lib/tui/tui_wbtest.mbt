@@ -172,7 +172,11 @@ test "handle_hook_event updates state correctly" {
     ),
   )
 
-  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeIteration(3))
+  dispatch_hook_event(
+    state_ref,
+    default_hook_config(),
+    @agent.HookEvent::BeforeIteration(3),
+  )
   inspect(state_ref.val.iterations, content="3")
 
   dispatch_hook_event(
@@ -211,10 +215,26 @@ test "handle_hook_event_simple_events_no_crash" {
   let agent = make_test_agent()
   let state_ref = Ref(TuiState::from_agent(agent))
 
-  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeLlmCall)
-  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::AfterLlmCall)
-  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::MessageAdded)
-  dispatch_hook_event(state_ref, default_hook_config(), @agent.HookEvent::BeforeIteration(1))
+  dispatch_hook_event(
+    state_ref,
+    default_hook_config(),
+    @agent.HookEvent::BeforeLlmCall,
+  )
+  dispatch_hook_event(
+    state_ref,
+    default_hook_config(),
+    @agent.HookEvent::AfterLlmCall,
+  )
+  dispatch_hook_event(
+    state_ref,
+    default_hook_config(),
+    @agent.HookEvent::MessageAdded,
+  )
+  dispatch_hook_event(
+    state_ref,
+    default_hook_config(),
+    @agent.HookEvent::BeforeIteration(1),
+  )
   inspect(state_ref.val.iterations, content="1")
 }
 

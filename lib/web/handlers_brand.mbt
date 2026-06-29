@@ -12,7 +12,8 @@ fn brand_config_dir() -> String {
     Some(d) => d
     None =>
       match @utils.home_dir() {
-        Some(home) => @path.Path(home).join(@path.Path(".mbopenclacky/brand")).to_string()
+        Some(home) =>
+          @path.Path(home).join(@path.Path(".mbopenclacky/brand")).to_string()
         None => ".mbopenclacky/brand"
       }
   }

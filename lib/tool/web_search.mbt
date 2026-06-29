@@ -69,7 +69,7 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
   ]
   let result = @client.http_get(search_url, headers, 15000)
   match result {
-    Ok(response) => {
+    Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         let results = parse_search_results(response.body, capped)
         if results.length() == 0 {
@@ -82,7 +82,6 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
           "HTTP error \{response.status_code} searching for: \{query}",
         )
       }
-    }
     Err(err) => ToolResult::error("Failed to search: \{err}")
   }
 }
@@ -150,7 +149,10 @@ fn url_encode(s : String) -> String {
 
 ///|
 /// Parse search results from DuckDuckGo HTML response.
-fn parse_search_results(html : String, max_results : Int) -> Array[SearchResult] {
+fn parse_search_results(
+  html : String,
+  max_results : Int,
+) -> Array[SearchResult] {
   let results : Array[SearchResult] = []
   // Simple extraction: look for result links and snippets in DuckDuckGo HTML
   // DuckDuckGo HTML has results in <a> tags with class "result__a" and snippets in "result__snippet"
@@ -249,14 +251,14 @@ fn strip_simple_html(s : String) -> String {
     }
   }
   result
-    .replace(old="&nbsp;", new=" ")
-    .replace(old="&amp;", new="&")
-    .replace(old="&lt;", new="<")
-    .replace(old="&gt;", new=">")
-    .replace(old="&quot;", new="\"")
-    .replace(old="&#39;", new="'")
-    .trim()
-    .to_owned()
+  .replace(old="&nbsp;", new=" ")
+  .replace(old="&amp;", new="&")
+  .replace(old="&lt;", new="<")
+  .replace(old="&gt;", new=">")
+  .replace(old="&quot;", new="\"")
+  .replace(old="&#39;", new="'")
+  .trim()
+  .to_owned()
 }
 
 ///|

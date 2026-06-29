@@ -43,10 +43,9 @@ pub fn VisionResolver::describe(
   // 4. Build and send LLM request with image content
   let image_url = match input {
     DataUrl(url) => url
-    VisionBytes(data) => {
+    VisionBytes(data) =>
       // Convert raw bytes to a base64 data URL
       "data:image/png;base64," + @base64.encode(data.view())
-    }
     FilePath(path) => "file://" + path
   }
   let content_arr : Array[Json] = [
@@ -89,10 +88,13 @@ pub fn VisionResolver::describe(
   let result = match http_result {
     Err(err) =>
       error_result(CallFailed, "Vision API HTTP request failed: \{err}")
-    Ok(http_resp) => {
+    Ok(http_resp) =>
       if http_resp.status_code < 200 || http_resp.status_code >= 300 {
         let err_msg = @client.extract_error_message(http_resp.body)
-        error_result(CallFailed, "Vision API error (\{http_resp.status_code}): \{err_msg}")
+        error_result(
+          CallFailed,
+          "Vision API error (\{http_resp.status_code}): \{err_msg}",
+        )
       } else if @client.is_html_response(http_resp.body) {
         error_result(CallFailed, "Vision API returned HTML (invalid endpoint)")
       } else {
@@ -100,7 +102,10 @@ pub fn VisionResolver::describe(
         let json_data = @json.parse(http_resp.body) catch {
           _ =>
             return {
-              let r = error_result(CallFailed, "Failed to parse Vision API response as JSON")
+              let r = error_result(
+                CallFailed,
+                "Failed to parse Vision API response as JSON",
+              )
               self.cache_result(key, r)
               r
             }
@@ -111,7 +116,6 @@ pub fn VisionResolver::describe(
           _ => error_result(CallFailed, "Vision API returned empty content")
         }
       }
-    }
   }
   // 6. Cache result (even errors, to avoid repeated failing calls)
   self.cache_result(key, result)

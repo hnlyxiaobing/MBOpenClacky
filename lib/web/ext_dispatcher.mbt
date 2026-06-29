@@ -13,14 +13,19 @@ pub(all) struct ExtensionDispatcher {
 
 ///|
 /// Create a new dispatcher from a set of loaded extensions.
-pub fn ExtensionDispatcher::new(extensions : Array[ApiExtension]) -> ExtensionDispatcher {
-  { extensions }
+pub fn ExtensionDispatcher::new(
+  extensions : Array[ApiExtension],
+) -> ExtensionDispatcher {
+  { extensions, }
 }
 
 ///|
 /// Register all enabled extension routes with the crescent App.
 /// Each extension gets its own route group at `/api/ext/<name>/`.
-pub fn ExtensionDispatcher::register_routes(self : ExtensionDispatcher, app : @crescent.App) -> Unit {
+pub fn ExtensionDispatcher::register_routes(
+  self : ExtensionDispatcher,
+  app : @crescent.App,
+) -> Unit {
   let active = enabled_extensions(self.extensions)
   if active.length() == 0 {
     return
@@ -36,7 +41,9 @@ pub fn ExtensionDispatcher::register_routes(self : ExtensionDispatcher, app : @c
 
 ///|
 /// Return a summary of all registered extension routes (for diagnostics).
-pub fn ExtensionDispatcher::route_summary(self : ExtensionDispatcher) -> Array[String] {
+pub fn ExtensionDispatcher::route_summary(
+  self : ExtensionDispatcher,
+) -> Array[String] {
   let lines : Array[String] = []
   for ext in enabled_extensions(self.extensions) {
     for route in ext.routes {
@@ -74,11 +81,7 @@ fn register_route_entry(
   route : ExtensionRoute,
 ) -> Unit {
   let handler = make_ext_handler(ext_name, route)
-  let path = if route.path.is_empty() {
-    ""
-  } else {
-    route.path
-  }
+  let path = if route.path.is_empty() { "" } else { route.path }
   match route.method.to_upper() {
     "GET" => app.get(path, handler)
     "POST" => app.post(path, handler)
@@ -106,8 +109,8 @@ fn make_ext_handler(
   async fn(_event : @crescent.Event) -> &@core.Responder {
     let body = "{\"extension\":\"\{name}\",\"handler\":\"\{handler_name}\",\"timeout_ms\":\{timeout},\"status\":\"stub\"}"
     @core.HttpResponse::ok()
-      .header("Content-Type", "application/json")
-      .header("X-Ext-Timeout", timeout.to_string())
-      .body(body)
+    .header("Content-Type", "application/json")
+    .header("X-Ext-Timeout", timeout.to_string())
+    .body(body)
   }
 }

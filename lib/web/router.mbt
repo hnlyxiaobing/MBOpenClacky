@@ -1,6 +1,7 @@
 /// @deprecated This standalone Router is kept for unit-test coverage only.
 /// The live server uses crescent's built-in routing registered in server.mbt.
 /// Do not add new routes here; add them to the crescent App in WebServer::start.
+
 ///| REST API Router with path matching and parameter extraction.
 
 // ── Core Types ────────────────────────────────────────────────────

@@ -44,19 +44,19 @@ async fn main {
       ),
       "ndjson": @clap.Arg::flag(help="Enable NDJSON (JSON Lines) log output"),
       "patches-dir": @clap.Arg::named(
-        nargs=@clap.Nargs::Fixed(1),
+        nargs=@clap.Nargs::AtMost(1),
         help="Custom patches directory (default: ~/.clacky/patches/)",
       ),
       "hooks-dir": @clap.Arg::named(
-        nargs=@clap.Nargs::Fixed(1),
+        nargs=@clap.Nargs::AtMost(1),
         help="Custom hooks directory (default: ~/.clacky/hooks/)",
       ),
       "extensions-dir": @clap.Arg::named(
-        nargs=@clap.Nargs::Fixed(1),
+        nargs=@clap.Nargs::AtMost(1),
         help="Custom API extensions directory (default: ~/.clacky/api_extensions/)",
       ),
       "scaffold-channel": @clap.Arg::named(
-        nargs=@clap.Nargs::Fixed(1),
+        nargs=@clap.Nargs::AtMost(1),
         help="Generate channel adapter template for the given platform",
       ),
       "list-templates": @clap.Arg::flag(
@@ -210,6 +210,9 @@ fn get_named_arg(value : @clap.SimpleValue, name : String) -> String? {
 
 ///|
 fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
+  // 0. Save original working directory for restore on exit
+  let original_dir = @utils.current_dir()
+
   // 1. Load configuration from default path (~/.mbopenclacky/config.toml)
   let config = @config.AgentConfig::load_default() catch {
     err => {
@@ -289,6 +292,11 @@ fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
     }
   }
 
+  // 8b. Switch to working directory if different from current
+  if working_dir != original_dir && working_dir != "." {
+    @utils.change_dir(working_dir)
+  }
+
   // 9. Resolve session ID and optional restore data
   let (session_id, session_data) = resolve_session(
     value.get_flag("continue") == Some(true),
@@ -365,6 +373,11 @@ fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
     None =>
       // Launch TUI in interactive mode
       @tui.run_tui_interactive(agent)
+  }
+
+  // 16. Restore original working directory
+  if working_dir != original_dir && working_dir != "." {
+    @utils.change_dir(original_dir)
   }
 }
 

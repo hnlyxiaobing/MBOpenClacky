@@ -278,15 +278,21 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       br.post("/stop", event => handle_browser_stop(server_ref, event))
       br.post("/navigate", event => handle_browser_navigate(server_ref, event))
       // Fix: [C1] screenshot路由方法不匹配前端 — 添加GET路由匹配前端browser.js的API.get调用
-      br.get("/screenshot", event => handle_browser_screenshot(server_ref, event))
-      br.post("/screenshot", event => handle_browser_screenshot(server_ref, event))
+      br.get("/screenshot", event => {
+        handle_browser_screenshot(server_ref, event)
+      })
+      br.post("/screenshot", event => {
+        handle_browser_screenshot(server_ref, event)
+      })
       br.post("/configure", event => handle_browser_configure(server_ref, event))
       br.post("/reload", event => handle_browser_reload(server_ref, event))
       br.post("/toggle", event => handle_browser_toggle(server_ref, event))
     })
 
     // Browser tool proxy
-    api.post("/tool/browser", event => handle_browser_tool_call(server_ref, event))
+    api.post("/tool/browser", event => {
+      handle_browser_tool_call(server_ref, event)
+    })
 
     // Webhooks (IM channel callbacks)
     api.group("/webhooks", (wh : @crescent.App) => {

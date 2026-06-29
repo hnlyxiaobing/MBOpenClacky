@@ -71,15 +71,11 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
 
   // Send HTTP request via C FFI
   let http_result = @client.http_post(
-    url,
-    body_str,
-    headers_arr,
-    60000, // 60s timeout for LLM API calls
+    url, body_str, headers_arr, 60000, // 60s timeout for LLM API calls
   )
 
   match http_result {
-    Err(err) =>
-      raise @errors.RetryableError("HTTP request failed: \{err}")
+    Err(err) => raise @errors.RetryableError("HTTP request failed: \{err}")
     Ok(http_resp) => {
       // Check for HTTP errors
       match @client.map_http_error(http_resp.status_code, http_resp.body) {

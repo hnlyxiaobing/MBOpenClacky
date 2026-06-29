@@ -20,6 +20,8 @@ pub fn input_bar_render(
   let input = @widget.TextInput::new(input_ref)
     .placeholder("Type a message and press Enter or Submit...")
     .width(60.0)
+    .with_id(1)
+    .with_on_submit(on_submit)
 
   let submit_btn = @widget.Button::primary(" Submit ", on_submit)
   let quit_btn = @widget.Button::secondary(" Quit ", on_quit)

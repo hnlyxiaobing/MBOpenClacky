@@ -1,0 +1,31 @@
+///|
+/// System extension FFI: chdir / getcwd
+/// Bridging MoonBit to platform-native directory operations.
+
+///|
+/// Change the current working directory.
+/// Returns 0 on success, -1 on error.
+#cfg(target="native")
+#borrow(path)
+extern "C" fn chdir_ffi(path : String) -> Int = "mbopenclacky_chdir"
+
+///|
+/// Get the current working directory as a String.
+/// Returns empty string on error.
+#cfg(target="native")
+extern "C" fn getcwd_ffi() -> String = "mbopenclacky_getcwd"
+
+///|
+/// Public API: change working directory
+pub fn change_dir(path : String) -> Unit {
+  let ret = chdir_ffi(path)
+  if ret != 0 {
+    // Could raise error, but for now silent — caller checks
+  }
+}
+
+///|
+/// Public API: get current working directory
+pub fn current_dir() -> String {
+  getcwd_ffi()
+}
