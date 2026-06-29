@@ -127,7 +127,7 @@ fn build_main_layout(
         input_ref,
         fn() {
           // Submit callback
-          submit_input(state, input_ref, agent)
+          submit_input(state, input_ref, agent, should_quit)
         },
         fn() {
           // Quit callback
@@ -189,14 +189,53 @@ fn handle_global_event(
 
 ///|
 /// Submit the current input text to the agent for execution.
+///
+/// Slash commands (input starting with "/") are intercepted and handled
+/// locally; only plain text is forwarded to agent.run().
 fn submit_input(
   state : Ref[TuiState],
   input_ref : Ref[String],
   agent : @agent.Agent,
+  should_quit : Ref[Bool],
 ) -> Unit {
   let input_text = input_ref.val.trim().to_owned()
   if input_text.length() == 0 {
     return
+  }
+
+  // Check for slash commands
+  let input_chars = input_text.to_array()
+  if input_chars.length() > 0 && input_chars[0] == '/' {
+    let parser = SlashCommandParser::new()
+    match parser.parse(input_text) {
+      Ok(cmd) =>
+        match cmd {
+          Exit => {
+            should_quit.val = true
+            input_ref.val = ""
+            return
+          }
+          Clear => {
+            state.val.messages = []
+            state.val.messages.push("[system] Message history cleared")
+            input_ref.val = ""
+            return
+          }
+          _ => {
+            match execute(cmd) {
+              Ok(result) => state.val.messages.push("[system] \{result}")
+              Err(err) => state.val.messages.push("[system] Error: \{err}")
+            }
+            input_ref.val = ""
+            return
+          }
+        }
+      Err(err) => {
+        state.val.messages.push("[system] \{err}")
+        input_ref.val = ""
+        return
+      }
+    }
   }
 
   // Switch to Running mode
@@ -204,7 +243,7 @@ fn submit_input(
   state.val.agent_status = "running"
   input_ref.val = ""
 
-  // Run the agent (blocking 鈥?hooks update state during execution)
+  // Run the agent (blocking — hooks update state during execution)
   try {
     let _ = agent.run(input_text)
     ()

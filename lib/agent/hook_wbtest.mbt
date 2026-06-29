@@ -71,6 +71,17 @@ test "hook_emit_all_event_types" {
       ToolExecuted(_, _) => event_types.push("tool_done")
       ErrorOccurred(_) => event_types.push("error")
       RunCompleted(_) => event_types.push("completed")
+      StreamChunk(_) => event_types.push("stream")
+      SessionStarted(_) => event_types.push("session_start")
+      SessionEnded(_) => event_types.push("session_end")
+      CostUpdated(_) => event_types.push("cost")
+      WarningOccurred(_) => event_types.push("warning")
+      FileAccessed(_, _) => event_types.push("file")
+      ThinkingStarted => event_types.push("think_start")
+      ThinkingEnded => event_types.push("think_end")
+      SubagentStarted(_) => event_types.push("subagent_start")
+      SubagentEnded(_) => event_types.push("subagent_end")
+      RetryAttempt(_, _) => event_types.push("retry")
     }
   })
 
@@ -96,8 +107,19 @@ test "hook_emit_all_event_types" {
       error: None,
     }),
   )
+  hm.emit(StreamChunk("hello"))
+  hm.emit(SessionStarted("s1"))
+  hm.emit(SessionEnded("s1"))
+  hm.emit(CostUpdated(0.01))
+  hm.emit(WarningOccurred("low balance"))
+  hm.emit(FileAccessed("/tmp/test", "read"))
+  hm.emit(ThinkingStarted)
+  hm.emit(ThinkingEnded)
+  hm.emit(SubagentStarted("coder"))
+  hm.emit(SubagentEnded("coder"))
+  hm.emit(RetryAttempt(1, "rate limit"))
 
-  inspect(event_types.length(), content="10")
+  inspect(event_types.length(), content="21")
 }
 
 ///|

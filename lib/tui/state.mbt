@@ -32,7 +32,7 @@ pub(all) struct ToolExecution {
 pub(all) struct TuiState {
   // ── Agent Identity ─────────────────────────────────────────
   /// Current session identifier.
-  session_id : String
+  mut session_id : String
   /// Name of the LLM model in use.
   model_name : String
 
@@ -49,6 +49,12 @@ pub(all) struct TuiState {
   // ── Messages ────────────────────────────────────────────────
   /// Formatted message lines for display ("[ROLE] content").
   mut messages : Array[String]
+
+  // ── Streaming ─────────────────────────────────────────────────
+  /// Buffer for accumulating streaming LLM output.
+  mut streaming_buffer : String
+  /// Whether streaming is currently active.
+  mut streaming_active : Bool
 
   // ── Tool Output ─────────────────────────────────────────────
   /// Latest tool execution summary text.
@@ -93,6 +99,10 @@ pub(all) struct TuiState {
   // ── Sidebar ─────────────────────────────────────────────────
   /// Sidebar panel for navigation and session management.
   sidebar_panel : SidebarPanel
+
+  // ── Theme ─────────────────────────────────────────────────
+  /// Current UI theme for rendering.
+  mut theme : Theme
 } derive(Debug)
 
 ///|
@@ -105,6 +115,8 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     agent_status: agent.status.to_string_value(),
     iterations: agent.iterations,
     messages: [],
+    streaming_buffer: "",
+    streaming_active: false,
     tool_output: "",
     current_tool_name: "",
     current_tool_args: "",
@@ -119,6 +131,7 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     last_error: None,
     progress_stack: ProgressStack::new(),
     sidebar_panel: init_default_sidebar(),
+    theme: Theme::default_(),
   }
 }
 

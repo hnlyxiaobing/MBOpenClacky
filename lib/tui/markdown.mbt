@@ -14,6 +14,10 @@ pub(all) enum MarkdownToken {
   CodeBlock(lang~ : String, code~ : String)
   ListItem(indent~ : Int, text~ : String)
   Paragraph(text~ : String)
+  BlockQuote(text~ : String)
+  HorizontalRule
+  TaskItem(checked~ : Bool, text~ : String)
+  Link(text~ : String, url~ : String)
 } derive(Eq, Debug, Show)
 
 ///|
@@ -45,10 +49,20 @@ let ansi_cyan : String = "\u001b[36m"
 let ansi_yellow : String = "\u001b[33m"
 
 ///|
+let ansi_gray : String = "\u001b[90m"
+
+///|
+let ansi_green : String = "\u001b[32m"
+
+///|
+let ansi_underline : String = "\u001b[4m"
+
+///|
 /// Tokenize a Markdown string into an array of tokens.
 ///
 /// Supports: headings (#), bold (**), italic (*), inline code (`),
-/// code blocks (```), and list items (- ).
+/// code blocks (```), list items (- ), block quotes (> ),
+/// horizontal rules (---, ***, ___), and task lists (- [x] / - [ ]).
 pub fn tokenize(input : String) -> Array[MarkdownToken] {
   let tokens : Array[MarkdownToken] = []
   let lines = split_lines_impl(input)
@@ -82,19 +96,36 @@ pub fn tokenize(input : String) -> Array[MarkdownToken] {
       let text = line[2:].trim().to_owned()
       tokens.push(Heading(level=1, text~))
       i.val = i.val + 1
+    } else if is_horizontal_rule_impl(line.trim().to_owned()) {
+      tokens.push(HorizontalRule)
+      i.val = i.val + 1
+    } else if line.has_prefix("> ") {
+      // Block quote
+      let text = line[2:].trim().to_owned()
+      tokens.push(BlockQuote(text~))
+      i.val = i.val + 1
     } else if line.has_prefix("- ") ||
       line.has_prefix("  - ") ||
       line.has_prefix("    - ") {
       let indent = count_leading_spaces_impl(line) / 2
       let text = line.trim().to_owned()
       let text2 = if text.has_prefix("- ") { text[2:].to_owned() } else { text }
-      tokens.push(ListItem(indent~, text=text2))
+      // Check for task list checkbox pattern: [x] or [ ]
+      if text2.has_prefix("[x] ") || text2.has_prefix("[X] ") {
+        let task_text = text2[4:].to_owned()
+        tokens.push(TaskItem(checked=true, text=task_text))
+      } else if text2.has_prefix("[ ] ") {
+        let task_text = text2[4:].to_owned()
+        tokens.push(TaskItem(checked=false, text=task_text))
+      } else {
+        tokens.push(ListItem(indent~, text=text2))
+      }
       i.val = i.val + 1
     } else {
       // Parse inline elements within a paragraph line
       let trimmed = line.trim().to_owned()
       if trimmed.length() > 0 {
-        // Check for inline bold, italic, code
+        // Check for inline bold, italic, code, links
         let parsed = parse_inline_impl(trimmed)
         for t in parsed {
           tokens.push(t)
@@ -107,14 +138,54 @@ pub fn tokenize(input : String) -> Array[MarkdownToken] {
 }
 
 ///|
-/// Parse inline Markdown elements (bold, italic, code) from a single line.
+/// Check whether a trimmed line is a horizontal rule.
+///
+/// A horizontal rule consists of 3 or more identical characters
+/// from the set: `-`, `*`, `_`.
+fn is_horizontal_rule_impl(line : String) -> Bool {
+  let trimmed = line.trim()
+  if trimmed.length() < 3 {
+    return false
+  }
+  let chars = trimmed.to_array()
+  let first = chars[0]
+  if first != '-' && first != '*' && first != '_' {
+    return false
+  }
+  for c in chars {
+    if c != first {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Parse inline Markdown elements (bold, italic, code, links) from a single line.
 fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
   let tokens : Array[MarkdownToken] = []
   let chars = line.to_array()
   let buf = StringBuilder::new()
   let i = Ref(0)
   while i.val < chars.length() {
-    if i.val + 1 < chars.length() &&
+    if chars[i.val] == '[' {
+      // Potential link: [text](url)
+      let link = try_parse_link_impl(line, i.val)
+      match link {
+        Some((text, url, end_pos)) => {
+          if buf.to_string().length() > 0 {
+            tokens.push(Paragraph(text=buf.to_string()))
+            buf.reset()
+          }
+          tokens.push(Link(text~, url~))
+          i.val = end_pos
+        }
+        None => {
+          buf.write_char(chars[i.val])
+          i.val = i.val + 1
+        }
+      }
+    } else if i.val + 1 < chars.length() &&
       chars[i.val] == '*' &&
       chars[i.val + 1] == '*' {
       // Bold: **text**
@@ -178,6 +249,42 @@ fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
 }
 
 ///|
+/// Attempt to parse a Markdown link `[text](url)` starting at position `start`.
+///
+/// Returns `Some((text, url, end_position))` on success, `None` if no
+/// valid link pattern is found.
+fn try_parse_link_impl(line : String, start : Int) -> (String, String, Int)? {
+  let chars = line.to_array()
+  if start >= chars.length() || chars[start] != '[' {
+    return None
+  }
+  // Find closing ]
+  let mut pos = start + 1
+  while pos < chars.length() && chars[pos] != ']' {
+    pos = pos + 1
+  }
+  if pos >= chars.length() {
+    return None
+  }
+  let text = line[start + 1:pos].to_owned()
+  pos = pos + 1
+  // Expect immediately (
+  if pos >= chars.length() || chars[pos] != '(' {
+    return None
+  }
+  pos = pos + 1
+  let url_start = pos
+  while pos < chars.length() && chars[pos] != ')' {
+    pos = pos + 1
+  }
+  if pos >= chars.length() {
+    return None
+  }
+  let url = line[url_start:pos].to_owned()
+  Some((text, url, pos + 1))
+}
+
+///|
 /// Render a Markdown string to an ANSI-colored string.
 pub fn MarkdownRenderer::render(
   self : MarkdownRenderer,
@@ -226,6 +333,41 @@ pub fn MarkdownRenderer::render(
         out.write_string("\n")
       }
       Paragraph(text~) => out.write_string(text)
+      BlockQuote(text~) => {
+        out.write_string(ansi_gray)
+        out.write_string("\u2502 ")
+        out.write_string(text)
+        out.write_string(ansi_reset)
+        out.write_string("\n")
+      }
+      HorizontalRule => {
+        out.write_string(self.theme.dim_color)
+        out.write_string("\u2500".repeat(40))
+        out.write_string(ansi_reset)
+        out.write_string("\n")
+      }
+      TaskItem(checked~, text~) => {
+        if checked {
+          out.write_string(ansi_green)
+          out.write_string("\u2611 ")
+          out.write_string(text)
+          out.write_string(ansi_reset)
+        } else {
+          out.write_string(ansi_gray)
+          out.write_string("\u2610 ")
+          out.write_string(text)
+          out.write_string(ansi_reset)
+        }
+        out.write_string("\n")
+      }
+      Link(text~, url~) => {
+        out.write_string(ansi_underline)
+        out.write_string(text)
+        out.write_string(ansi_reset)
+        out.write_string(" (")
+        out.write_string(url)
+        out.write_string(")")
+      }
     }
   }
   out.to_string()

@@ -118,6 +118,12 @@ fn dispatch_hook_event(
       }
       // Close the LLM spinner
       s.progress_stack.close_last()
+      // Finalize streaming buffer
+      if s.streaming_buffer.length() > 0 {
+        s.messages.push("[assistant] \{s.streaming_buffer}")
+        s.streaming_buffer = ""
+      }
+      s.streaming_active = false
     }
     MessageAdded => s.agent_status = "message_added"
     ToolExecuting(name, args) => {
@@ -171,6 +177,8 @@ fn dispatch_hook_event(
       }
       // Close all spinners on error
       s.progress_stack.close_all()
+      s.streaming_buffer = ""
+      s.streaming_active = false
     }
     RunCompleted(result) => {
       s.agent_status = "completed"
@@ -186,6 +194,59 @@ fn dispatch_hook_event(
       }
       // Close all spinners on completion
       s.progress_stack.close_all()
+      s.streaming_buffer = ""
+      s.streaming_active = false
+    }
+    StreamChunk(chunk) => {
+      s.streaming_buffer = s.streaming_buffer + chunk
+      s.streaming_active = true
+      s.agent_status = "streaming"
+    }
+    SessionStarted(id) => {
+      s.session_id = id
+      s.agent_status = "session_started"
+    }
+    SessionEnded(_id) => s.agent_status = "session_ended"
+    CostUpdated(cost) => s.total_cost = cost
+    WarningOccurred(msg) => {
+      match s.last_error {
+        None => s.last_error = Some(msg)
+        _ => ()
+      }
+      s.agent_status = "warning"
+    }
+    FileAccessed(path, op) => s.tool_output = "File: \{op} \{path}"
+    ThinkingStarted => {
+      if config.track_phases {
+        s.phase_stack.push("thinking")
+      }
+      ignore(s.progress_stack.push("Thinking..."))
+    }
+    ThinkingEnded => {
+      if config.track_phases && s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
+      s.progress_stack.close_last()
+    }
+    SubagentStarted(name) => {
+      if config.track_phases {
+        s.phase_stack.push("subagent_\{name}")
+      }
+      ignore(s.progress_stack.push("Sub-agent: \{name}"))
+    }
+    SubagentEnded(_name) => {
+      if config.track_phases && s.phase_stack.length() > 0 {
+        ignore(s.phase_stack.pop())
+      }
+      s.progress_stack.close_last()
+    }
+    RetryAttempt(n, reason) => {
+      s.agent_status = "retry_\{n}"
+      // Close previous retry spinner if any
+      if n > 1 {
+        s.progress_stack.close_last()
+      }
+      ignore(s.progress_stack.push("Retry #\{n}: \{reason}"))
     }
   }
 }

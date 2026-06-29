@@ -124,6 +124,53 @@ pub fn capture_hook_event(
       })
       { event_type: "done", data: j, id }
     }
+    StreamChunk(chunk) => {
+      let j = Json::object({ "chunk": chunk.to_json() })
+      { event_type: "stream", data: j, id }
+    }
+    SessionStarted(session_id) => {
+      let j = Json::object({ "session_id": session_id.to_json() })
+      { event_type: "session_start", data: j, id }
+    }
+    SessionEnded(session_id) => {
+      let j = Json::object({ "session_id": session_id.to_json() })
+      { event_type: "session_end", data: j, id }
+    }
+    CostUpdated(cost) => {
+      let j = Json::object({ "cost": cost.to_json() })
+      { event_type: "cost", data: j, id }
+    }
+    WarningOccurred(msg) => {
+      let j = Json::object({ "message": msg.to_json() })
+      { event_type: "warning", data: j, id }
+    }
+    FileAccessed(path, op) => {
+      let j = Json::object({ "path": path.to_json(), "op": op.to_json() })
+      { event_type: "file", data: j, id }
+    }
+    ThinkingStarted => {
+      let j = Json::object({ "phase": "thinking".to_json() })
+      { event_type: "think_start", data: j, id }
+    }
+    ThinkingEnded => {
+      let j = Json::object({ "phase": "thinking".to_json() })
+      { event_type: "think_end", data: j, id }
+    }
+    SubagentStarted(name) => {
+      let j = Json::object({ "agent": name.to_json() })
+      { event_type: "subagent_start", data: j, id }
+    }
+    SubagentEnded(name) => {
+      let j = Json::object({ "agent": name.to_json() })
+      { event_type: "subagent_end", data: j, id }
+    }
+    RetryAttempt(n, reason) => {
+      let j = Json::object({
+        "attempt": n.to_json(),
+        "reason": reason.to_json(),
+      })
+      { event_type: "retry", data: j, id }
+    }
   }
 }
 

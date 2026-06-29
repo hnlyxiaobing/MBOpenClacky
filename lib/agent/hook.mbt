@@ -27,6 +27,28 @@ pub(all) enum HookEvent {
   ErrorOccurred(String)
   /// Agent run completed with final result.
   RunCompleted(RunResult)
+  /// LLM streaming response chunk (text fragment).
+  StreamChunk(String)
+  /// Session started (session_id).
+  SessionStarted(String)
+  /// Session ended (session_id).
+  SessionEnded(String)
+  /// Cost updated (new total cost in USD).
+  CostUpdated(Double)
+  /// Non-fatal warning occurred (message).
+  WarningOccurred(String)
+  /// File accessed (path, operation: "read"/"write"/"delete").
+  FileAccessed(String, String)
+  /// Extended thinking phase started.
+  ThinkingStarted
+  /// Extended thinking phase ended.
+  ThinkingEnded
+  /// Sub-agent started (agent_name).
+  SubagentStarted(String)
+  /// Sub-agent ended (agent_name).
+  SubagentEnded(String)
+  /// Retry attempt (attempt_number, reason).
+  RetryAttempt(Int, String)
 }
 
 ///|

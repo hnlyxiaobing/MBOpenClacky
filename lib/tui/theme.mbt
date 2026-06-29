@@ -1,7 +1,7 @@
 ///|
 /// Theme system for TUI color customization.
 ///
-/// Provides predefined color themes (Default, Hacker, Minimal) using ANSI
+/// Provides predefined color themes (Default, Hacker, Minimal, Light) using ANSI
 /// escape codes. Components use the active theme to render consistent colors.
 
 ///|
@@ -10,6 +10,7 @@ pub(all) enum ThemeName {
   Hacker
   Minimal
   Default
+  Light
 } derive(Eq, Debug, Show)
 
 ///|
@@ -68,11 +69,44 @@ pub fn Theme::minimal() -> Theme {
 }
 
 ///|
+/// Create the light theme (dark text on light terminal backgrounds).
+///
+/// Uses darker ANSI colors so text remains legible against
+/// a bright background.
+pub fn Theme::light() -> Theme {
+  {
+    name: Light,
+    primary_color: "\u001b[30m",
+    secondary_color: "\u001b[34m",
+    accent_color: "\u001b[35m",
+    error_color: "\u001b[31m",
+    dim_color: "\u001b[90m",
+  }
+}
+
+///|
 /// Create a theme from a ThemeName.
 pub fn Theme::from_name(name : ThemeName) -> Theme {
   match name {
     Hacker => Theme::hacker()
     Minimal => Theme::minimal()
     Default => Theme::default_()
+    Light => Theme::light()
   }
+}
+
+///|
+/// Return whether the terminal background is assumed to be light.
+///
+/// Currently returns `false` (dark background assumed). This stub can
+/// be enhanced in the future with a terminal background-color query
+/// (e.g., OSC 11 response) to auto-detect the actual background.
+pub fn is_light_background() -> Bool {
+  false
+}
+
+///|
+/// Return all available theme presets.
+pub fn all_themes() -> Array[Theme] {
+  [Theme::default_(), Theme::hacker(), Theme::minimal(), Theme::light()]
 }
