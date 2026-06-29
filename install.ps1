@@ -54,16 +54,76 @@ Write-OK "moon found: $moonVersion"
 Write-Step "Checking C compiler (cl.exe)..."
 
 $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
+$activated = $false
 if (-not $clCmd) {
-    Write-Warn "cl.exe not found in PATH."
-    Write-Host "  Native builds require MSVC Build Tools v18+."
-    Write-Host "  Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
-    Write-Host "  You can still build for wasm-gc without a C compiler."
-    $hasCC = $false
+    Write-Warn "cl.exe not found in PATH. Attempting to activate MSVC environment..."
+
+    # Try vswhere.exe to find VS installation dynamically
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        $vsPath = & $vswhere -latest -property installationPath 2>$null
+        if ($vsPath) {
+            $vcvarsall = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
+            if (Test-Path $vcvarsall) {
+                Write-Host "  Found VS at: $vsPath" -ForegroundColor Gray
+                Write-Host "  Activating MSVC via vcvarsall.bat x64..." -ForegroundColor Gray
+                cmd /c "`"$vcvarsall`" x64 >nul 2>&1 && set" | ForEach-Object {
+                    if ($_ -match "^(.+?)=(.*)$") {
+                        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+                    }
+                }
+                $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
+                if ($clCmd) {
+                    $activated = $true
+                    Write-OK "cl.exe activated: $($clCmd.Source)"
+                }
+            }
+        }
+    }
+
+    # Fallback: check common VS paths if vswhere didn't work
+    if (-not $activated) {
+        $commonPaths = @(
+            "$env:ProgramFiles\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+            "$env:ProgramFiles\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat",
+            "$env:ProgramFiles\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat",
+            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat",
+            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat",
+            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        )
+        foreach ($vcvarsall in $commonPaths) {
+            if (Test-Path $vcvarsall) {
+                Write-Host "  Found vcvarsall at: $vcvarsall" -ForegroundColor Gray
+                Write-Host "  Activating MSVC via vcvarsall.bat x64..." -ForegroundColor Gray
+                cmd /c "`"$vcvarsall`" x64 >nul 2>&1 && set" | ForEach-Object {
+                    if ($_ -match "^(.+?)=(.*)$") {
+                        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+                    }
+                }
+                $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
+                if ($clCmd) {
+                    $activated = $true
+                    Write-OK "cl.exe activated: $($clCmd.Source)"
+                    break
+                }
+            }
+        }
+    }
+
+    if (-not $activated) {
+        Write-Host "  Native builds require MSVC Build Tools." -ForegroundColor Yellow
+        Write-Host "  Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
+        Write-Host "  Or open 'x64 Native Tools Command Prompt' and re-run this script."
+        Write-Host "  You can still build for wasm-gc without a C compiler."
+        $hasCC = $false
+    }
 } else {
     Write-OK "cl.exe found: $($clCmd.Source)"
     $hasCC = $true
 }
+
+# Set $hasCC if activation succeeded
+if ($activated) { $hasCC = $true }
 
 # ── Step 3: Update & install dependencies ───────────────────────────────────
 

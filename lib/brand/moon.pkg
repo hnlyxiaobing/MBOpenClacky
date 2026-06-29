@@ -11,7 +11,7 @@ import {
 
 options(
   "native-stub": [ "crypto_native.c", "brand_stubs.c" ],
-  // Windows: BCrypt is auto-linked via #pragma comment(lib,"bcrypt.lib") in crypto_native.c (MSVC/mingw)
-  // Linux/macOS: uncomment the line below to link OpenSSL libcrypto when building on Linux
+  // Windows: BCrypt is auto-linked via #pragma comment(lib,"bcrypt.lib") in crypto_native.c
+  // Linux/macOS: install libssl-dev, then uncomment the line below:
   // link: { "native": { "cc-link-flags": "-lcrypto" } },
 )
