@@ -100,6 +100,14 @@ pub(all) struct TuiState {
   /// Sidebar panel for navigation and session management.
   sidebar_panel : SidebarPanel
 
+  // ── Session Bar ───────────────────────────────────────────────
+  /// Session bar displaying session metadata.
+  session_bar : SessionBar
+
+  // ── Todo Area ─────────────────────────────────────────────────
+  /// Todo area displaying active task list.
+  todo_area : TodoArea
+
   // ── Theme ─────────────────────────────────────────────────
   /// Current UI theme for rendering.
   mut theme : Theme
@@ -131,6 +139,8 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     last_error: None,
     progress_stack: ProgressStack::new(),
     sidebar_panel: init_default_sidebar(),
+    session_bar: SessionBar::new(),
+    todo_area: TodoArea::new(),
     theme: Theme::default_(),
   }
 }

@@ -12,14 +12,25 @@
 /// - `input_ref`: shared Ref[String] for the TextInput widget
 /// - `on_submit`: callback when the user submits a message
 /// - `on_quit`: callback when the user quits
+/// - `terminal_width`: current terminal width in columns for dynamic sizing
 pub fn input_bar_render(
   input_ref : Ref[String],
   on_submit : () -> Unit,
   on_quit : () -> Unit,
+  terminal_width? : Int = 80,
 ) -> @view.View {
+  // Calculate dynamic input width: terminal_width - buttons(~22) - padding(~2)
+  let input_w = {
+    let w = terminal_width - 24
+    if w < 20 {
+      20.0
+    } else {
+      w.to_double()
+    }
+  }
   let input = @widget.TextInput::new(input_ref)
     .placeholder("Type a message and press Enter or Submit...")
-    .width(60.0)
+    .width(input_w)
     .with_id(1)
     .with_on_submit(on_submit)
 
@@ -325,11 +336,13 @@ pub fn InputBar::get_cursor_display_col(self : InputBar) -> Int {
 /// - `suggestions`: command suggestions controller
 /// - `on_submit`: callback when the user submits a message
 /// - `on_quit`: callback when the user quits
+/// - `terminal_width`: current terminal width in columns for dynamic sizing
 pub fn input_bar_render_with_suggestions(
   input_ref : Ref[String],
   suggestions : CommandSuggestions,
   on_submit : () -> Unit,
   on_quit : () -> Unit,
+  terminal_width? : Int = 80,
 ) -> @view.View {
   let views : Array[@view.View] = []
   // Render suggestions dropdown if visible
@@ -341,10 +354,19 @@ pub fn input_bar_render_with_suggestions(
     }
     views.push(@view.View::container_views(suggestion_views))
   }
+  // Calculate dynamic input width: terminal_width - buttons(~22) - padding(~2)
+  let input_w = {
+    let w = terminal_width - 24
+    if w < 20 {
+      20.0
+    } else {
+      w.to_double()
+    }
+  }
   // Input field and buttons
   let input = @widget.TextInput::new(input_ref)
     .placeholder("Type a message or /command...")
-    .width(60.0)
+    .width(input_w)
   let submit_btn = @widget.Button::primary(" Submit ", on_submit)
   let quit_btn = @widget.Button::secondary(" Quit ", on_quit)
   views.push(

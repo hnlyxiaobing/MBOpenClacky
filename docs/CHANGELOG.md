@@ -26,6 +26,25 @@
 ## 变更记录
 
 
+### 2026-06-30  Native 编译环境修复 + TUI Windows 渲染修复
+
+- `[fix]` **Native 编译环境修复（Windows MSVC 兼容）**
+  - `fix(build)`: 移除 `moon.mod` 全局 `-lcurl -lssl -lcrypto` 链接标志（Windows MSVC 不兼容 `-l` 语法，导致 LNK1181 错误）
+  - `fix(build)`: 添加 `MB_WEAK` 跨编译器兼容宏（`brand_stubs.c`、`mb_stubs.c`）—— MSVC 下为空宏，GCC/Clang 保留 `__attribute__((weak))`
+  - `fix(build)`: MSVC 条件编译排除与 `onebit-tui` 冲突的 curl stub 函数（`#ifndef _MSC_VER` 守护）
+  - `fix(build)`: `lib/tool` 添加 `Frank-III/onebit-tui/ffi` 依赖，解决 `mb_system` 等标准符号链接问题
+  - `feat(install)`: `install.ps1` 新增 vswhere 动态检测 + vcvarsall.bat 自动 MSVC 激活
+  - `docs`: 各包 `moon.pkg` 改进 Linux/macOS 链接配置说明
+- `[fix]` **TUI Windows 渲染修复**
+  - `fix(tui)`: 修复 Windows VT Processing 时序——在 `createRenderer` 发送 ANSI 序列前启用 VT 处理
+  - `fix(tui)`: 修复 `setupTerminal` C stub 签名与 MoonBit FFI 声明对齐（添加 `useAlternateScreen` 参数）
+  - `fix(tui)`: 修复 `render()` 行尾清除（添加 `\033[K`）防止前帧残留
+  - `fix(tui)`: 修复 TextBuffer 系列 FFI 签名不匹配（`createTextBuffer`、`textBufferSetSelection`、`bufferDrawTextBuffer`、`textBufferWriteChunk`）
+  - `fix(tui)`: 修复 `sym()` Windows 实现（`return NULL` → `GetProcAddress` 真实符号查找）
+  - `fix(tui)`: 修复 `buf_free` 对嵌入式结构体成员的 `free()` 未定义行为
+  - `feat(tui)`: Banner 和 InputBar 组件自适应终端宽度
+
+
 ### 2026-06-26  Phase 22 差距填补方案启动实施
 
 - `[feat]` **HTTP 服务器安全与广播基础设施**

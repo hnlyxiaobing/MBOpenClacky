@@ -30,15 +30,18 @@ pub fn default_hook_config() -> HookHandlerConfig {
 pub(all) struct AgentHookHandler {
   state : Ref[TuiState]
   config : HookHandlerConfig
-} derive(Debug)
+  /// Optional agent reference for updating TodoArea during iteration.
+  agent : @agent.Agent?
+}
 
 ///|
 /// Create a new AgentHookHandler.
 pub fn AgentHookHandler::new(
   state : Ref[TuiState],
   config? : HookHandlerConfig = default_hook_config(),
+  agent? : @agent.Agent? = None,
 ) -> AgentHookHandler {
-  { state, config }
+  { state, config, agent }
 }
 
 ///|
@@ -53,7 +56,7 @@ pub fn AgentHookHandler::register_all(
   let state = self.state
   let config = self.config
   hook_manager.register(fn(event : @agent.HookEvent) {
-    dispatch_hook_event(state, config, event)
+    dispatch_hook_event(state, config, self.agent, event)
   })
 }
 
@@ -77,6 +80,7 @@ pub fn AgentHookHandler::reset_for_run(self : AgentHookHandler) -> Unit {
 fn dispatch_hook_event(
   state : Ref[TuiState],
   config : HookHandlerConfig,
+  agent : @agent.Agent?,
   event : @agent.HookEvent,
 ) -> Unit {
   let s = state.val
@@ -96,6 +100,30 @@ fn dispatch_hook_event(
       s.agent_status = "iteration_done"
       if config.track_phases && s.phase_stack.length() > 0 {
         ignore(s.phase_stack.pop())
+      }
+      // Update TodoArea from agent's TodoManager if available
+      match agent {
+        Some(a) => {
+          let todo_items = a.todo_manager.list_all()
+          let display_items : Array[TodoDisplayItem] = []
+          let mut completed = 0
+          let mut idx = 0
+          for item in todo_items {
+            let status_str = item.status.to_string_value()
+            if status_str == "completed" {
+              completed = completed + 1
+            }
+            display_items.push(TodoDisplayItem::{
+              id: idx + 1,
+              title: item.title,
+              status: status_str,
+              description: item.description,
+            })
+            idx = idx + 1
+          }
+          s.todo_area.update(display_items, completed, todo_items.length())
+        }
+        None => ()
       }
     }
     BeforeLlmCall => {

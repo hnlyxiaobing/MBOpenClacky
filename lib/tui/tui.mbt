@@ -32,7 +32,9 @@ pub fn run_tui_interactive(agent : @agent.Agent) -> Unit {
     Some(app) => {
       // Setup terminal: hide cursor, enter alternate screen, query capabilities.
       app.get_renderer().setup_terminal(true)
-      AgentHookHandler::new(state).register_all(agent.hook_manager)
+      AgentHookHandler::new(state, agent=Some(agent)).register_all(
+        agent.hook_manager,
+      )
 
       // Build the full view tree from current state
       fn build_ui() -> @view.View {
@@ -65,13 +67,25 @@ fn build_main_layout(
 ) -> @view.View {
   let s = state.val
 
+  // Get current terminal dimensions for adaptive component sizing
+  let (term_w, _term_h) = @ffi.get_terminal_size()
+  let terminal_width = term_w.reinterpret_as_int()
+
   // Status bar
   let status = status_bar_render(state)
+
+  // Session bar: update from state and render
+  s.session_bar.update_from_state(s)
+  let session_bar_view = s.session_bar.render()
+
+  // Todo area: render above message area
+  let todo_view = s.todo_area.render()
 
   // Main content area: split into message history + tool output
   // Show welcome banner when no messages yet
   let main_panel = if s.messages.length() == 0 {
-    let banner = Banner::new()
+    let banner_width = Banner::adaptive_width(terminal_width)
+    let banner = Banner::with_width(banner_width)
     let banner_text = banner.render("OpenClacky", Some("AI Agent TUI"))
     let banner_views : Array[@view.View] = []
     for line in banner_text.split("\n") {
@@ -133,13 +147,19 @@ fn build_main_layout(
           // Quit callback
           should_quit.val = true
         },
+        terminal_width~,
       )
   }
 
   // Assemble full layout
-  @view.View::container_views([status, content.flex(1.0), stats, footer]).direction(
-    Column,
-  )
+  @view.View::container_views([
+    status,
+    session_bar_view,
+    todo_view,
+    content.flex(1.0),
+    stats,
+    footer,
+  ]).direction(Column)
 }
 
 ///|
@@ -217,12 +237,20 @@ fn submit_input(
           }
           Clear => {
             state.val.messages = []
+            // Also clear agent conversation history
+            try {
+              agent.history.clear()
+              agent.iterations = 0
+              ()
+            } catch {
+              _ => ()
+            }
             state.val.messages.push("[system] Message history cleared")
             input_ref.val = ""
             return
           }
           _ => {
-            match execute(cmd) {
+            match execute(cmd, agent) {
               Ok(result) => state.val.messages.push("[system] \{result}")
               Err(err) => state.val.messages.push("[system] Error: \{err}")
             }
@@ -269,6 +297,31 @@ fn sync_state_from_agent(state : Ref[TuiState], agent : @agent.Agent) -> Unit {
   s.total_cost = agent.total_cost
   s.cost_source = agent.cost_source.to_string_value()
   s.iterations = agent.iterations
+
+  // Update session bar from agent
+  s.session_bar.update_from_state(s)
+  s.session_bar.working_dir = agent.working_dir
+  s.session_bar.task_count = agent.todo_manager.size()
+
+  // Update todo area from agent's TodoManager
+  let todo_items = agent.todo_manager.list_all()
+  let display_items : Array[TodoDisplayItem] = []
+  let mut completed = 0
+  let mut idx = 0
+  for item in todo_items {
+    let status_str = item.status.to_string_value()
+    if status_str == "completed" {
+      completed = completed + 1
+    }
+    display_items.push(TodoDisplayItem::{
+      id: idx + 1,
+      title: item.title,
+      status: status_str,
+      description: item.description,
+    })
+    idx = idx + 1
+  }
+  s.todo_area.update(display_items, completed, todo_items.length())
 
   // Pull messages from agent history
   let display_messages : Array[String] = []

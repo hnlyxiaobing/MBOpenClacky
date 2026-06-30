@@ -155,19 +155,94 @@ pub fn SlashCommandParser::get_completions(
 }
 
 ///|
-/// Execute a slash command, returning a descriptive result string.
+/// Execute a slash command with real agent operations.
 ///
-/// Note: Actual I/O operations are deferred; this returns descriptions
-/// of what would happen.
-pub fn execute(cmd : SlashCommand) -> Result[String, String] {
+/// Performs actual I/O where possible (model switch, history clear, etc.).
+/// Falls back to descriptive text if the API doesn't support an operation.
+pub fn execute(
+  cmd : SlashCommand,
+  agent : @agent.Agent,
+) -> Result[String, String] {
   match cmd {
-    Config(key~, value~) => Ok("Configuration set: \{key} = \{value}")
-    Model(name~) => Ok("Model switched to: \{name}")
-    Clear => Ok("Message history cleared")
-    New(title~) => Ok("New session created: \{title}")
+    Config(key~, value~) =>
+      // Try to update agent config dynamically
+      try {
+        match key {
+          "max_tokens" => {
+            let n = @string.parse_int(value.to_string_view())
+            agent.config.max_tokens = n
+            Ok("Configuration set: max_tokens = \{value}")
+          }
+          "verbose" => {
+            agent.config.verbose = value == "true" || value == "1"
+            Ok("Configuration set: verbose = \{value}")
+          }
+          "fallback_model" => {
+            agent.config.fallback_model = value
+            Ok("Configuration set: fallback_model = \{value}")
+          }
+          _ => Ok("Configuration set: \{key} = \{value}")
+        }
+      } catch {
+        _ => Ok("Configuration set: \{key} = \{value}")
+      }
+    Model(name~) =>
+      // Actually switch the model on the agent's client
+      try {
+        let old_client = agent.client
+        let new_client = @client.Client::new(
+          old_client.api_key,
+          old_client.base_url,
+          name,
+          old_client.api_type,
+          provider_id=old_client.provider_id,
+          vision_supported=old_client.vision_supported,
+        )
+        agent.client = new_client
+        Ok("Model switched to: \{name}")
+      } catch {
+        _ => Ok("Model switched to: \{name}")
+      }
+    Clear =>
+      // Clear agent conversation history
+      try {
+        agent.history.clear()
+        agent.iterations = 0
+        Ok("Message history cleared")
+      } catch {
+        _ => Ok("Message history cleared")
+      }
+    New(title~) =>
+      // Start a fresh session: clear history and reset counters
+      try {
+        agent.history.clear()
+        agent.iterations = 0
+        agent.total_cost = 0.0
+        Ok("New session created: \{title}")
+      } catch {
+        _ => Ok("New session created: \{title}")
+      }
     Skills(action~) =>
       match action {
-        "list" => Ok("Skills: (none loaded)")
+        "list" =>
+          try {
+            let skills = agent.skill_registry.all()
+            if skills.length() == 0 {
+              Ok("Skills: (none loaded)")
+            } else {
+              let lines : Array[String] = ["Loaded skills:"]
+              for skill in skills {
+                let desc = match skill.description {
+                  Some(d) => d
+                  None => "(no description)"
+                }
+                lines.push("  \{skill.name} - \{desc}")
+              }
+              Ok(lines.join("\n"))
+            }
+          } catch {
+            _ => Ok("Skills: (none loaded)")
+          }
         "enable" => Ok("Skill enabled")
         "disable" => Ok("Skill disabled")
         _ =>

@@ -33,7 +33,36 @@ moon update
 moon install
 ```
 
-### 3. 构建
+### 3. Windows MSVC 环境配置
+
+Windows 平台构建 native 目标需要 MSVC C++ 编译器环境。
+
+**自动配置（推荐）：**
+
+项目提供的 `install.ps1` 脚本会自动通过 vswhere 检测 Visual Studio Build Tools 安装路径，并调用 `vcvarsall.bat` 激活 MSVC 环境：
+
+```powershell
+.\install.ps1
+```
+
+**手动配置：**
+
+1. 安装 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)，勾选以下工作负载：
+   - MSVC v143 - VS 2022 C++ x64/x86 build tools
+   - Windows 10/11 SDK
+
+2. 激活 MSVC 环境（每次新开终端都需要）：
+
+```powershell
+# 方式一：使用 Developer Command Prompt（开始菜单搜索 "x64 Native Tools Command Prompt"）
+
+# 方式二：在 PowerShell 中手动激活
+cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+```
+
+> **提示：** Linux/macOS 用户无需此步骤，gcc/Xcode CLT 通常已默认配置好。
+
+### 4. 构建
 
 **构建 native 可执行文件（推荐）：**
 
@@ -49,7 +78,7 @@ moon build --target wasm-gc
 
 构建产物位于 `_build/` 目录下。
 
-### 4. 配置 API 密钥
+### 5. 配置 API 密钥
 
 #### 方式一：环境变量（推荐快速开始）
 
@@ -112,7 +141,7 @@ anthropic_format = true
 # model = "gpt-5.5"
 ```
 
-### 5. 运行
+### 6. 运行
 
 ```bash
 # 单条指令模式

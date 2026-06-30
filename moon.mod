@@ -19,6 +19,8 @@ keywords = [ "ai", "agent", "cli", "llm" ]
 
 description = "AI Agent CLI tool rewritten in MoonBit"
 
+preferred_target = "native"
+
 // native link flags are platform-specific:
 //   Windows: bcrypt.lib / winhttp.lib via #pragma comment(lib,...) in C sources
 //   Linux/macOS: uncomment cc-link-flags in lib/brand/moon.pkg and lib/client/moon.pkg

@@ -100,8 +100,21 @@ test "slash_parse_skills_default" {
 }
 
 ///|
+fn _make_test_agent() -> @agent.Agent {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "test-model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  @agent.Agent::new("test-session", "test-agent", "/tmp/test", client, config)
+}
+
+///|
 test "slash_execute_config" {
-  let result = execute(Config(key="theme", value="dark"))
+  let agent = _make_test_agent()
+  let result = execute(Config(key="theme", value="dark"), agent)
   inspect(
     result,
     content=(

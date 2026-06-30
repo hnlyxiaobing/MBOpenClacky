@@ -25,9 +25,35 @@ pub fn Banner::new() -> Banner {
 }
 
 ///|
+/// Create a new Banner with custom width (Boxed style, no color).
+pub fn Banner::with_width(width : Int) -> Banner {
+  { style: Boxed, width, use_color: false }
+}
+
+///|
 /// Create with custom style.
 pub fn Banner::with_style(style : BannerStyle) -> Banner {
   { style, width: 60, use_color: false }
+}
+
+///|
+/// Create with custom style and width.
+pub fn Banner::with_style_and_width(style : BannerStyle, width : Int) -> Banner {
+  { style, width, use_color: false }
+}
+
+///|
+/// Compute an adaptive banner width based on terminal width.
+/// Returns min(terminal_width - 4, 60), with a minimum of 20.
+pub fn Banner::adaptive_width(terminal_width : Int) -> Int {
+  let w = terminal_width - 4
+  if w < 20 {
+    20
+  } else if w > 60 {
+    60
+  } else {
+    w
+  }
 }
 
 ///|
