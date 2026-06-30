@@ -92,6 +92,41 @@ pub fn get_default_skill_metas() -> Array[DefaultSkillMeta] {
       allowed_tools: ["WebSearch", "WebFetch"],
       category: "utility",
     },
+    {
+      name: "browser_setup",
+      description: "Guide user through browser automation setup",
+      user_invocable: true,
+      allowed_tools: ["Terminal", "FileReader", "Write"],
+      category: "management",
+    },
+    {
+      name: "channel_manager",
+      description: "Manage IM channel connections (Feishu/WeCom/Telegram/Discord/DingTalk/WeChat)",
+      user_invocable: true,
+      allowed_tools: ["Terminal", "FileReader", "Write", "Edit"],
+      category: "management",
+    },
+    {
+      name: "new",
+      description: "Create a new project from scratch",
+      user_invocable: true,
+      allowed_tools: ["Terminal", "Write", "FileReader"],
+      category: "development",
+    },
+    {
+      name: "personal_website",
+      description: "Generate and deploy a personal website",
+      user_invocable: true,
+      allowed_tools: ["Terminal", "Write", "FileReader", "WebFetch"],
+      category: "development",
+    },
+    {
+      name: "skill_add",
+      description: "Install a skill from URL or local path",
+      user_invocable: true,
+      allowed_tools: ["Terminal", "FileReader", "Write", "WebFetch"],
+      category: "utility",
+    },
   ]
 }
 

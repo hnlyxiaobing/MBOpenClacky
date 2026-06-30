@@ -7,8 +7,51 @@
 #
 # Or from a custom project root:
 #   PROJECT_ROOT=/path/to/MBOpenClacky ./install.sh
+#
+# Options:
+#   --yes / -y          Non-interactive mode (CI/CD friendly), auto-confirm all
+#   --install-moon      Force-install MoonBit if not found
+#   --target <target>   Override build target (native/wasm-gc)
+#   --china-mirror      Use China region mirror (when available)
 
 set -euo pipefail
+
+# ── Command-line argument parsing ────────────────────────────────────────────
+
+auto_yes=false
+install_moon=false
+china_mirror=false
+user_target=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --yes|-y)
+            auto_yes=true
+            shift
+            ;;
+        --install-moon)
+            install_moon=true
+            shift
+            ;;
+        --target)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --target requires a value (native/wasm-gc)"
+                exit 1
+            fi
+            user_target="$2"
+            shift 2
+            ;;
+        --china-mirror)
+            china_mirror=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--yes|-y] [--install-moon] [--target <target>] [--china-mirror]"
+            exit 1
+            ;;
+    esac
+done
 
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "$0")" && pwd)}"
 
@@ -19,22 +62,94 @@ ok()    { printf "  \033[32m[OK]\033[0m %s\n" "$1"; }
 warn()  { printf "  \033[33m[!]\033[0m %s\n" "$1"; }
 err()   { printf "  \033[31m[ERROR]\033[0m %s\n" "$1"; }
 
+# ── Utility functions ────────────────────────────────────────────────────────
+
+detect_os() {
+    case "$(uname -s)" in
+        Linux*)  OS="linux";;
+        Darwin*) OS="macos";;
+        MINGW*|MSYS*|CYGWIN*) OS="windows";;
+        *)       OS="unknown";;
+    esac
+    ARCH="$(uname -m)"
+}
+
+add_to_path() {
+    local dir="$1"
+    if echo ":${PATH}:" | grep -qF ":${dir}:"; then
+        return 0  # Already in PATH
+    fi
+    local shell_rc=""
+    case "${SHELL:-/bin/sh}" in
+        */bash) shell_rc="$HOME/.bashrc";;
+        */zsh)  shell_rc="$HOME/.zshrc";;
+        */fish) shell_rc="$HOME/.config/fish/config.fish";;
+    esac
+    if [ -n "$shell_rc" ]; then
+        if ! grep -qF "$dir" "$shell_rc" 2>/dev/null; then
+            echo "export PATH=\"$dir:\$PATH\"" >> "$shell_rc"
+            ok "Added $dir to PATH in $shell_rc"
+        fi
+    fi
+}
+
+install_moonbit() {
+    local mirror="https://cli.moonbitlang.com"
+    if [ "${CHINA_MIRROR:-}" = "1" ] || [ "${china_mirror:-false}" = "true" ]; then
+        mirror="https://cli.moonbitlang.com"  # 目前只有官方源
+        warn "China mirror not yet available, using official source"
+    fi
+    step "Installing MoonBit toolchain..."
+    if ! curl -fsSL "$mirror/install/unix.sh" | bash; then
+        err "Failed to install MoonBit toolchain."
+        echo "  Please install manually from https://www.moonbitlang.com/download/"
+        exit 1
+    fi
+    # Add to PATH
+    add_to_path "$HOME/.moon/bin"
+    export PATH="$HOME/.moon/bin:$PATH"
+    ok "MoonBit installed successfully."
+}
+
+# ── Step 0: Detect OS ───────────────────────────────────────────────────────
+
+detect_os
+step "Detected OS: $OS ($ARCH)"
+ok "Platform: $OS/$ARCH"
+
 # ── Step 1: Check moon ──────────────────────────────────────────────────────
 
 step "Checking MoonBit toolchain..."
 
 if ! command -v moon &>/dev/null; then
-    err "moon command not found."
-    echo "  Please install MoonBit from https://www.moonbitlang.com/download/"
-    echo "  Then add it to PATH and re-run this script."
-    echo ""
-    echo "  Quick install (if available):"
-    echo "    curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash"
-    exit 1
+    if [ "$auto_yes" = true ] || [ "$install_moon" = true ]; then
+        warn "moon command not found, auto-installing..."
+        install_moonbit
+    else
+        err "moon command not found."
+        echo "  Please install MoonBit from https://www.moonbitlang.com/download/"
+        echo "  Then add it to PATH and re-run this script."
+        echo ""
+        echo "  Quick install (if available):"
+        echo "    curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash"
+        echo ""
+        echo "  Or re-run with --install-moon to install automatically:"
+        echo "    ./install.sh --install-moon"
+        exit 1
+    fi
 fi
 
 MOON_VERSION=$(moon version 2>&1 | head -1)
 ok "moon found: $MOON_VERSION"
+
+# ── Version check ───────────────────────────────────────────────────────────
+
+MOON_VERSION_NUM=$(echo "$MOON_VERSION" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+if [ -z "$MOON_VERSION_NUM" ]; then
+    warn "Could not parse moon version: $MOON_VERSION"
+else
+    ok "MoonBit version: $MOON_VERSION_NUM"
+fi
 
 # ── Step 2: Check C compiler ────────────────────────────────────────────────
 
@@ -87,7 +202,11 @@ ok "Dependencies installed."
 
 # ── Step 4: Build ────────────────────────────────────────────────────────────
 
-if [ "$HAS_CC" = true ]; then
+# Determine build target: user override > auto-detect
+if [ -n "$user_target" ]; then
+    BUILD_TARGET="$user_target"
+    ok "Using user-specified target: $BUILD_TARGET"
+elif [ "$HAS_CC" = true ]; then
     BUILD_TARGET="native"
 else
     BUILD_TARGET="wasm-gc"

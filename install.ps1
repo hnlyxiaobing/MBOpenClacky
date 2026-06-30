@@ -7,10 +7,21 @@
     and prints configuration guidance.
 .NOTES
     Run from the project root directory or pass -ProjectRoot.
+.PARAMETER ProjectRoot
+    Path to the project root directory.
+.PARAMETER AutoInstall
+    Non-interactive mode: auto-install MoonBit if missing (CI/CD friendly).
+.PARAMETER ChinaMirror
+    Use China region mirror for downloads (when available).
+.PARAMETER Target
+    Override build target (native/wasm-gc).
 #>
 
 param(
-    [string]$ProjectRoot = (Split-Path -Parent $MyInvocation.MyCommand.Definition)
+    [string]$ProjectRoot = (Split-Path -Parent $MyInvocation.MyCommand.Definition),
+    [switch]$AutoInstall,
+    [switch]$ChinaMirror,
+    [string]$Target = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,20 +45,78 @@ function Write-Err($msg) {
     Write-Host "  [ERROR] $msg" -ForegroundColor Red
 }
 
+# ── Utility functions ────────────────────────────────────────────────────────
+
+function Add-ToUserPath {
+    param([string]$Dir)
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $entries = $currentPath -split ';' | Where-Object { $_ -ne '' }
+    if ($entries -notcontains $Dir) {
+        $newPath = ($entries + $Dir) -join ';'
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+        Write-OK "Added $Dir to user PATH"
+    }
+}
+
+function Install-MoonBit {
+    # NOTE: China mirror is not yet available; both paths use the official source.
+    # Update this when a China CDN becomes available.
+    $mirror = "https://cli.moonbitlang.com"
+    if ($ChinaMirror) {
+        Write-Warn "China mirror not yet available, using official source: $mirror"
+    }
+    Write-Step "Installing MoonBit toolchain..."
+    try {
+        $installScript = Invoke-WebRequest -Uri "$mirror/install/powershell.ps1" -UseBasicParsing
+        Invoke-Expression $installScript.Content
+        Add-ToUserPath "$env:USERPROFILE\.moon\bin"
+        $env:Path = "$env:USERPROFILE\.moon\bin;$env:Path"
+        Write-OK "MoonBit installed successfully."
+    } catch {
+        Write-Err "Failed to install MoonBit: $_"
+        Write-Host "  Please install manually from https://www.moonbitlang.com/download/"
+        exit 1
+    }
+}
+
 # ── Step 1: Check moon ──────────────────────────────────────────────────────
 
 Write-Step "Checking MoonBit toolchain..."
 
 $moonCmd = Get-Command moon -ErrorAction SilentlyContinue
 if (-not $moonCmd) {
-    Write-Err "moon command not found."
-    Write-Host "  Please install MoonBit from https://www.moonbitlang.com/download/"
-    Write-Host "  Then add it to PATH and re-run this script."
-    exit 1
+    if ($AutoInstall) {
+        Write-Warn "moon command not found, auto-installing..."
+        Install-MoonBit
+        $moonCmd = Get-Command moon -ErrorAction SilentlyContinue
+        if (-not $moonCmd) {
+            Write-Err "MoonBit installation completed but moon is still not in PATH."
+            Write-Host "  Please restart your terminal and re-run this script."
+            exit 1
+        }
+    } else {
+        Write-Err "moon command not found."
+        Write-Host "  Please install MoonBit from https://www.moonbitlang.com/download/"
+        Write-Host "  Then add it to PATH and re-run this script."
+        Write-Host ""
+        Write-Host "  Or re-run with -AutoInstall to install automatically:"
+        Write-Host "    .\install.ps1 -AutoInstall"
+        exit 1
+    }
 }
 
 $moonVersion = (moon version 2>&1) -join " "
 Write-OK "moon found: $moonVersion"
+
+# ── Version check ───────────────────────────────────────────────────────────
+
+$versionMatch = [regex]::Match($moonVersion, '(\d+\.\d+\.\d+)')
+if ($versionMatch.Success) {
+    $moonVersionNum = $versionMatch.Groups[1].Value
+    Write-OK "MoonBit version: $moonVersionNum"
+} else {
+    Write-Warn "Could not parse moon version: $moonVersion"
+}
 
 # ── Step 2: Check C compiler ────────────────────────────────────────────────
 
@@ -148,7 +217,13 @@ Write-OK "Dependencies installed."
 
 # ── Step 4: Build ────────────────────────────────────────────────────────────
 
-$buildTarget = if ($hasCC) { "native" } else { "wasm-gc" }
+# Determine build target: user override > auto-detect
+if ($Target -ne "") {
+    $buildTarget = $Target
+    Write-OK "Using user-specified target: $buildTarget"
+} else {
+    $buildTarget = if ($hasCC) { "native" } else { "wasm-gc" }
+}
 Write-Step "Building project (target: $buildTarget)..."
 
 moon build --target $buildTarget

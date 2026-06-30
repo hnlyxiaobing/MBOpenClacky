@@ -123,6 +123,47 @@ pub fn split_by_pages(text : String) -> Array[String] {
 }
 
 ///|
+/// Parse a PDF with OCR fallback for scanned documents.
+/// If text extraction yields empty or minimal content (< 50 words),
+/// attempts OCR via VisionOCR on the PDF file.
+pub fn PdfParser::parse_with_ocr(
+  self : PdfParser,
+  path : String,
+  ocr : @vision.VisionOCR,
+) -> ParseResult {
+  // 1. Try normal text extraction first
+  let text_result = self.parse(path)
+  // 2. If text extraction completely failed (e.g. file not found, not a PDF),
+  //    don't waste an OCR call — return the error directly.
+  if !text_result.is_success {
+    return text_result
+  }
+  // 3. If text extraction succeeded and has enough words, return it
+  let word_count = count_words(text_result.content)
+  if word_count >= 50 {
+    return text_result
+  }
+  // 4. Text extraction produced sparse output (< 50 words) — attempt OCR fallback
+  // Note: Full PDF-to-image conversion requires FFI (poppler-utils).
+  // For now, OCR works on the PDF file path directly if the vision API supports it.
+  match ocr.ocr(FilePath(path)) {
+    Ok(ocr_result) => {
+      let sections = [ocr_result.text]
+      let metadata = {
+        title: None,
+        author: None,
+        created_at: None,
+        page_count: None,
+        word_count: Some(ocr_result.word_count),
+        format: Pdf,
+      }
+      ParseResult::success(ocr_result.text, metadata, sections)
+    }
+    Err(_err) => text_result
+  }
+}
+
+///|
 /// Count words in text (split by whitespace)
 pub fn count_words(text : String) -> Int {
   let mut count = 0

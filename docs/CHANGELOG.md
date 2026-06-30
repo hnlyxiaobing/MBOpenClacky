@@ -26,6 +26,35 @@
 ## 变更记录
 
 
+### 2026-07-01  Browser 模块拆分重构 + Vision OCR + 安装脚本增强
+
+- `[refactor]` **Browser 模块拆分为 5 个职责单一的文件**
+  - `browser.mbt` 从 ~900 行瘦身到 ~507 行，保留核心类型、MCP 调用、响应解析
+  - `browser_action.mbt` (99行) — Action 分发、状态查询、错误分类
+  - `browser_mcp_args.mbt` (265行) — MCP 工具参数构建器
+  - `browser_page.mbt` (149行) — 页面缓存、错误恢复、就绪轮询
+  - `browser_screenshot.mbt` (167行) — 截图管道（base64 提取/保存/尺寸检查）
+  - `browser_snapshot.mbt` (239行) — 快照压缩/截断/查询/行合并
+- `[feat]` **Vision OCR 模块** — `lib/vision/ocr.mbt` (122行)
+  - `OCRResult` 结构体、`OCRProvider` trait（扩展点）、`VisionOCR` 实现
+  - `count_ocr_words` 单词计数、`ocr_wbtest.mbt` (96行) 8 个测试
+- `[feat]` **PDF OCR 回退** — `lib/parser/pdf.mbt` 新增 `parse_with_ocr` 方法
+  - 文本提取产出 < 50 词时自动回退到 Vision LLM OCR
+  - `lib/parser/moon.pkg` 添加 `lib/vision` 依赖
+- `[feat]` **默认技能扩展** — `lib/skill/default_skills.mbt` 新增 5 个技能
+  - `browser_setup` / `channel_manager` / `new` / `personal_website` / `skill_add`
+- `[feat]` **安装脚本增强**
+  - `install.ps1`：新增 `-AutoInstall` / `-ChinaMirror` / `-Target` 参数、MoonBit 自动安装、版本解析
+  - `install.sh`：新增 `--yes` / `--install-moon` / `--target` / `--china-mirror` 参数、OS 检测、自动安装
+- `[fix]` **对抗性审查修复**
+  - `browser_screenshot.mbt`：base64 解码失败不再写入空文件，改为返回内联引用
+  - `pdf.mbt`：`parse()` 完全失败时短路返回，不再浪费 OCR 调用
+  - `install.sh`：`add_to_path` PATH 检测改用 `:PATH:` 包裹匹配，消除子串误判
+  - `ocr.mbt`：`OCRProvider` trait 补充用途说明注释
+  - `install.ps1`：消除 ChinaMirror 两分支 URL 相同的误导性逻辑
+- `[verify]` `moon check` 最终验证：0 errors, 323 warnings
+
+
 ### 2026-06-30  Phase 23 部署阻碍修复 + 文档全量校准 + 全量测试通过
 
 - `[fix]` **P0/P1 级测试失败全部修复 — 1,341 / 1,341 测试通过（100%）**
