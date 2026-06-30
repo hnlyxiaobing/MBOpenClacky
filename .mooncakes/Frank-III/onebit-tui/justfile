@@ -1,0 +1,92 @@
+#!/usr/bin/env just --justfile
+
+# Default recipe shows available commands
+default:
+  @just --list
+
+# Build all packages (native)
+build:
+  moon build --target native
+
+# Build only the demo package
+build-demo:
+  moon build --target native -C src/demo
+
+# Build FFI wrapper (required for terminal input)
+build-ffi:
+  ./build_ffi.sh
+
+# Complete build: FFI wrapper + MoonBit packages
+build-all: build-ffi build
+  @echo "✅ Complete build finished"
+
+# Run the interactive event loop demo with keyboard input
+run-interactive: build-all
+  @echo "🚀 Starting interactive demo..."
+  @echo "Use arrow keys to navigate, Space to toggle buttons, q/ESC to quit"
+  ./target/native/release/build/demo/demo.exe
+
+# Run the advanced mouse and resize demo
+run-advanced: build-all
+  @echo "🚀 Starting advanced demo with mouse support..."
+  @echo "Features: Mouse tracking, terminal resize detection, extended keyboard"
+  @echo "Run directly in terminal: ./target/native/release/build/demo/demo.exe"
+
+# Run the basic demo (build demo main and execute binary)
+run: build-all
+  @echo "🚀 Running OneBit-TUI demo (native)"
+  @echo "(Tip: run in a real TTY for input support)"
+  @if [ -f "./target/native/release/build/demo/demo.exe" ]; then \
+    ./target/native/release/build/demo/demo.exe; \
+  else \
+    echo "Building demo binary..."; \
+    moon build --target native -C src/demo && ./target/native/release/build/demo/demo.exe; \
+  fi
+
+# Check syntax/types without building (native)
+check:
+  moon check --target native
+
+# Check only demo package
+check-demo:
+  moon check --target native -C src/demo
+
+# Run tests (native)
+test:
+  moon test --target native
+
+# Run focused tests
+test-core:
+  moon test --target native -C src/core
+
+test-ffi:
+  moon test --target native -C src/ffi
+
+test-reactive:
+  moon test --target native -C src/reactive
+
+# Clean build artifacts
+clean:
+  moon clean
+  rm -rf target/
+  rm -rf build/
+
+# Watch for changes and rebuild
+watch:
+  @echo "Watching for changes..."
+  @while true; do \
+    fswatch -1 src/ && just build; \
+  done
+
+# Show project status
+status:
+  @echo "📊 OneBit-TUI Project Status"
+  @echo "=============================="
+  @echo "FFI Library:"
+  @ls -la lib/libopentui_ffi.* 2>/dev/null || echo "  ❌ Not built (run 'just build-ffi')"
+  @echo ""
+  @echo "MoonBit Build:"
+  @ls -la target/native/release/build/demo/demo.exe 2>/dev/null || echo "  ❌ Not built (run 'just build')"
+  @echo ""
+  @echo "Terminal Size:"
+  @tput cols && tput lines || echo "  Unable to detect"

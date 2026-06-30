@@ -1,0 +1,14 @@
+{
+  "name": "Frank-III/onebit-yoga",
+  "version": "0.2.6",
+  "readme": "README.md",
+  "repository": "https://github.com/Frank-III/opentui",
+  "license": "MIT",
+  "keywords": ["yoga", "layout", "flexbox", "ui"],
+  "description": "MoonBit bindings for Yoga Layout Engine",
+  "source": "src",
+  "preferred-target": "native",
+  "scripts": {
+    "postadd": "bash scripts/postadd.sh"
+  }
+}

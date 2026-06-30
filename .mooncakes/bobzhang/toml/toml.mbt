@@ -1,0 +1,130 @@
+///|
+/// TOML Value types that represent different TOML data types
+pub(all) enum TomlValue {
+  TomlString(String)
+  TomlInteger(Int64)
+  TomlFloat(Double)
+  TomlBoolean(Bool)
+  TomlArray(Array[TomlValue])
+  TomlTable(Map[String, TomlValue])
+  TomlDateTime(TomlDateTime)
+} derive(Eq, Debug)
+
+///|
+/// Extract datetime variant name and value string from a TomlDateTime value.
+/// Returns `(kind, value)` where kind is one of:
+/// "OffsetDateTime", "LocalDateTime", "LocalDate", "LocalTime"
+pub fn TomlValue::datetime_info(self : TomlValue) -> (String, String)? {
+  match self {
+    TomlDateTime(OffsetDateTime(s)) => Some(("OffsetDateTime", s))
+    TomlDateTime(LocalDateTime(s)) => Some(("LocalDateTime", s))
+    TomlDateTime(LocalDate(s)) => Some(("LocalDate", s))
+    TomlDateTime(LocalTime(s)) => Some(("LocalTime", s))
+    _ => None
+  }
+}
+
+///|
+/// Parser state (will implement methods later)
+pub struct Parser {
+  tokens : Array[Token]
+  mut position : Int
+}
+
+///|
+pub fn Parser::view(
+  self : Self,
+  skip_newlines? : Bool = false,
+) -> ArrayView[Token] {
+  if skip_newlines {
+    for view = self.view() {
+      match view {
+        [Newline(..), .. rest] => continue rest
+        rest => break rest
+      }
+    }
+  } else {
+    self.tokens[self.position:]
+  }
+}
+
+///|
+/// FIXME: expose upstream in the core
+fn[T] ArrayView::start(self : ArrayView[T]) -> Int = "%arrayview.start"
+
+///|
+pub fn Parser::update_view(self : Parser, view : ArrayView[Token]) -> Unit {
+  let new_offset = view.start() // consistent
+  self.position = new_offset
+}
+
+///|
+/// Create a new parser
+pub fn Parser::new(tokens : Array[Token]) -> Parser {
+  { tokens, position: 0 }
+}
+
+///|
+/// Check if an array contains homogeneous types (TOML spec requirement)
+pub fn TomlValue::is_homogeneous_array(arr : Array[TomlValue]) -> Bool {
+  match arr {
+    [] => true
+    [first, .. rest] => {
+      fn type_id(value : TomlValue) -> Int {
+        match value {
+          TomlString(_) => 0
+          TomlInteger(_) => 1
+          TomlFloat(_) => 2
+          TomlBoolean(_) => 3
+          TomlArray(_) => 4
+          TomlTable(_) => 5
+          TomlDateTime(_) => 6
+        }
+      }
+
+      let first_type = type_id(first)
+      rest.all(x => type_id(x) == first_type)
+    }
+  }
+}
+
+///|
+/// Get the type name of a TomlValue for error messages
+pub fn TomlValue::type_name(self : TomlValue) -> String {
+  match self {
+    TomlString(_) => "string"
+    TomlInteger(_) => "integer"
+    TomlFloat(_) => "float"
+    TomlBoolean(_) => "boolean"
+    TomlArray(_) => "array"
+    TomlTable(_) => "table"
+    TomlDateTime(_) => "datetime"
+  }
+}
+
+///|
+/// Validate that a TomlValue follows TOML specification rules
+pub fn TomlValue::validate(self : TomlValue) -> Bool {
+  match self {
+    TomlArray(arr) => {
+      // Check homogeneity
+      if !TomlValue::is_homogeneous_array(arr) {
+        return false
+      }
+      // Recursively validate nested values
+      for i = 0; i < arr.length(); i = i + 1 {
+        if !arr[i].validate() {
+          return false
+        }
+      }
+      true
+    }
+    TomlTable(table) => {
+      // Recursively validate all values in the table
+      let mut valid = true
+      table.each(fn(_key, value) { if !value.validate() { valid = false } })
+      valid
+    }
+    _ => true // All other types are always valid by themselves
+  }
+}

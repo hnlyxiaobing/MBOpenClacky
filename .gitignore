@@ -1,8 +1,6 @@
 # MoonBit 构建产物
 _build/
 
-# 包缓存
-.mooncakes/
 
 # 源码缓存（mooncakes 下载源）
 .repos/

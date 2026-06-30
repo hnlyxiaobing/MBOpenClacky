@@ -1,0 +1,14 @@
+{
+  "import": [
+    { "path": "Frank-III/onebit-yoga/yoga", "alias": "yoga" },
+    { "path": "Frank-III/onebit-yoga/types", "alias": "types" },
+    { "path": "Frank-III/onebit-yoga/ffi", "alias": "ffi" }
+  ],
+  "is-main": true,
+  "link": {
+    "native": {
+      "cc": "clang",
+      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lsrc/ffi/yoga-install/lib -lyogacore -lc++"
+    }
+  }
+}

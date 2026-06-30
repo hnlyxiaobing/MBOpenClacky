@@ -1,0 +1,4 @@
+{
+  "import": ["Frank-III/onebit-yoga/types", "Frank-III/onebit-yoga/ffi"],
+  "link": false
+}

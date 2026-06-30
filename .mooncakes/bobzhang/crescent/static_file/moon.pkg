@@ -1,0 +1,11 @@
+import {
+  "bobzhang/crescent",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
+  "moonbitlang/async/os_error",
+  "moonbitlang/async/socket",
+}
+
+warnings = "-29+74"

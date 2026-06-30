@@ -1,0 +1,6 @@
+{
+  "yoga": {
+    "repo": "https://github.com/facebook/yoga",
+    "ref": "main"
+  }
+}
