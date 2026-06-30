@@ -1,10 +1,9 @@
 # MBOpenClacky 项目综合状态与部署问题解决指南
 
-> **文档版本**: 1.1（基于代码库深度审计修正）  
-> **合并日期**: 2026-06-27  
+> **文档版本**: 2.0（基于 2026-06-30 全量验证更新）  
+> **更新日期**: 2026-06-30  
 > **合并来源**: detailed_compilation_fix_plan.md、development-gap-analysis-0625.md、development-plan-0623.md、development-plan-WebUI.md、gap-filling-solutions-plan-0626.md、windows_platform_adaptation.md  
 > **目标**: 提供项目部署和运行问题解决的权威指南
-
 ---
 
 ## 目录
@@ -25,32 +24,34 @@
 
 MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI），同时借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
 
-### 当前状态快照（2026-06-27）
+### 当前状态快照（2026-06-30）
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| 源代码行数 | ~60,649 行 | 含测试 ~60,649 行（非测试源码 ~47,105 行） |
-| 源代码文件数 | 293 个 .mbt（lib: 286, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
-| 测试文件数 | 44 个 _wbtest.mbt | Ruby 约 138 个 spec |
-| 测试用例数 | 1,254 | Ruby 待验证 |
-| 编译状态 | 0 errors, 280 warnings | `moon check --target native` |
-| 构建状态 | ✅ 成功 | 生成 cmd.exe (4.4MB) |
-| 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常 |
+| 源代码行数 | ~64,331 行 | 含测试 ~64,331 行（非测试源码 ~48,555 行，测试 ~15,776 行） |
+| 源代码文件数 | 275 个 .mbt（lib: 268, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
+| 测试文件数 | 49 个 _wbtest.mbt | Ruby 约 138 个 spec |
+| 测试用例数 | 1,341 | 全部通过（moon test native） |
+| 编译状态 | 0 errors, 323 warnings | `moon check`（native target） |
+| 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe (~3.8MB release) |
+| 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
 | 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |
-
 ### 关键发现
 
-1. **编译错误已全部修复**：MoonBit 类型检查通过，核心编译错误已解决
-2. **Windows 构建已打通**：通过 MSVC Build Tools + C stub 适配，native 构建成功
-3. **主要差距已大幅缩小**：
+1. **编译错误已全部修复**：`moon check` 通过（0 errors, 323 warnings）
+2. **全量测试 100% 通过**：1,341 / 1,341 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
+3. **P0 级部署阻碍已清除**：
+   - AES-256-GCM 加密通过 C FFI（OpenSSL）实现，72 个 brand 测试全过
+   - Dockerfile 构建产物路径修正为 `_build/native/release/build/cmd/cmd.exe`
+   - Web 服务端口统一为 7070（兼容原版 OpenClacky），支持环境变量覆盖
+   - `-lcrypto` 链接问题通过 `cmd/moon.pkg` 的 `--no-as-needed` + `moon build cmd` 解决
+4. **Windows 构建已打通**：通过 MSVC Build Tools + C stub 适配，native 构建成功（但 brand 加密在 Windows 上使用弱桩回退）
+5. **主要差距已大幅缩小**：
    - HTTP 服务器增强：middleware（auth/error_envelope/timeout/logging）+ broadcast/hub + 12 个 handlers 已实现
    - 浏览器工具实现：从骨架增长到 ~2,074 行，完成度 65-70%
-   - AES-GCM 加密：HMAC/SHA256 已用 @crypto 实现，AES-GCM 已通过 C FFI（OpenSSL+CNG 双路径）
    - TUI 控制器：从 ~2,078 行增长到 4,605 行/25 文件
-4. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
-5. **测试覆盖率偏低**：44 个测试文件 / 1,254 个测试用例，需持续改进
-6. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块缺少测试覆盖、browser_manager 的 load_config 仍为 stub 实现（部分底层操作硬依赖 MCP 服务器连接）
-
+6. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
+7. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块缺少测试覆盖、无 CI/CD 流水线、无进程守护方案
 ---
 
 ## 项目状态总览
@@ -628,7 +629,7 @@ app.get_raw("/*path", (event : @crescent.Event) => {
 **任务 P0-3：端到端验证**
 
 验证清单：
-1. `moon run cmd -- --server` 启动后，浏览器访问 http://localhost:4000
+1. `moon run cmd -- server` 启动后，浏览器访问 http://localhost:7070
 2. 确认加载完整 index.html（非占位符）
 3. 确认 CSS 样式正常渲染（暗色主题）
 4. 确认 JS 脚本正常加载（F12 无 404/脚本错误）
@@ -752,19 +753,20 @@ dir, type, where, tasklist, systeminfo, ipconfig, hostname, wmic, ver, vol, set
 REM 在 cmd.exe 中执行
 call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 cd /d D:\MoonBit\MBOpenClacky
-moon build --target native
-moon test --target native
+moon build --target native --release cmd
+moon test
 ```
+
+> **注意**：使用 `moon build --target native --release cmd`（显式指定 cmd 包），而非裸 `moon build`，以避免 moon #1488 bug（库包 link 块触发误链接）。
 
 验证结果：
 | 检查项 | 结果 |
 |--------|------|
-| moon check --target native | 0 errors, 280 warnings |
-| moon build --target native | 成功，生成 cmd.exe (4.4MB) |
+| moon check | 0 errors, 323 warnings |
+| moon build --target native --release cmd | 成功，生成 cmd.exe (~3.8MB release) |
 | moon run cmd -- --version | MBOpenClacky v0.1.0 |
 | moon run cmd -- --help | 帮助信息正常显示 |
-| moon test --target native | 1194/1194 通过（历史） |
-
+| moon test | 1,341 / 1,341 通过 |
 ---
 
 ## 实施路线图
@@ -833,7 +835,7 @@ moon test --target native
 **M1：Web UI 可用（P0 完成）— 基础已就绪，待完善**
 
 验收标准：
-- [x] moon run cmd -- --server 启动后，浏览器访问 http://localhost:4000 正常加载（静态文件服务已修复）
+- [x] moon run cmd -- server 启动后，浏览器访问 http://localhost:7070 正常加载（静态文件服务已修复）
 - [ ] 创建/切换/删除会话正常
 - [ ] 发送消息 → SSE 流式响应正常
 - [ ] 设置面板正常保存/读取
@@ -892,17 +894,107 @@ moon test --target native
 
 ---
 
-## 附录
+## 运维现状与规划
 
+### Docker 部署
+
+项目根目录提供 `Dockerfile`，采用多阶段构建：
+
+```bash
+# 构建镜像
+docker build -t mbopenclacky:latest .
+
+# 运行容器（端口 7070）
+docker run -d \
+  --name mbopenclacky \
+  -p 7070:7070 \
+  -e CLACKY_API_KEY="your-api-key" \
+  -e CLACKY_BASE_URL="https://api.anthropic.com" \
+  -e CLACKY_MODEL="claude-sonnet-4-6" \
+  mbopenclacky:latest
+```
+
+**Dockerfile 关键细节**：
+- **Builder 阶段**：基于 `ubuntu:22.04`，安装 `libssl-dev`（提供 libcrypto 用于 AES-256-GCM C FFI），构建命令为 `moon build --target native --release cmd`
+- **构建产物路径**：`_build/native/release/build/cmd/cmd.exe`（release 模式，约 3.8MB）
+- **Runtime 阶段**：基于 `debian:bookworm-slim`，安装 `libssl3`（运行时 libcrypto.so.3），以非 root 用户运行
+- **端口**：默认 `EXPOSE 7070`，通过 `MBOPENCLACKY_WEB_PORT` 环境变量可覆盖
+- **健康检查**：`curl -f http://localhost:7070/health`
+
+> **注意**：构建产物路径必须使用 `release` 而非 `debug`。`moon build --target native --release cmd` 产出在 `_build/native/release/build/cmd/cmd.exe`；`moon build --target native cmd`（debug）产出在 `_build/native/debug/build/cmd/cmd.exe`（约 14MB）。Dockerfile 使用 release 以获得更小的镜像体积。
+
+### 当前缺失的运维能力
+
+| 能力 | 当前状态 | 影响 | 规划 |
+|------|---------|------|------|
+| **CI/CD 流水线** | ❌ 缺失 | 所有测试和构建依赖手动执行，无自动化回归保障 | 计划使用 GitHub Actions：`moon check` + `moon test` + Docker 镜像构建推送 |
+| **进程守护** | ❌ 缺失 | 服务意外退出后无法自动重启 | 计划提供 systemd service 模板和 docker-compose 编排文件 |
+| **日志轮转** | ❌ 缺失 | 长时间运行日志文件无限增长 | 计划集成 logrotate 或应用内日志轮转（lib/utils/logger.mbt 已有基础框架） |
+| **配置热更新** | ❌ 缺失 | 修改配置需重启服务 | 低优先级，后续评估 |
+| **监控告警** | ❌ 缺失 | 无运行时指标采集和异常告警 | 低优先级，后续评估 |
+
+### 进程守护方案规划
+
+#### systemd service 模板（计划中）
+
+```ini
+[Unit]
+Description=MBOpenClacky AI Agent Server
+After=network.target
+
+[Service]
+Type=simple
+User=mbopenclacky
+WorkingDirectory=/opt/mbopenclacky
+Environment=MBOPENCLACKY_WEB_PORT=7070
+Environment=CLACKY_API_KEY=your-api-key
+ExecStart=/opt/mbopenclacky/mbopenclacky server
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### docker-compose 编排（计划中）
+
+```yaml
+version: "3.8"
+services:
+  mbopenclacky:
+    build: .
+    ports:
+      - "7070:7070"
+    environment:
+      - CLACKY_API_KEY=${CLACKY_API_KEY}
+      - CLACKY_BASE_URL=${CLACKY_BASE_URL}
+      - CLACKY_MODEL=${CLACKY_MODEL}
+      - MBOPENCLACKY_WEB_PORT=7070
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
+
+### 日志轮转规划
+
+当前 `lib/utils/logger.mbt`（242 行）已实现基础日志框架，但缺少自动轮转。规划方案：
+
+1. **应用内轮转**：按文件大小（如 10MB）自动切割，保留最近 N 个日志文件
+2. **logrotate 集成**：提供 logrotate 配置模板供系统管理员使用
+3. **结构化日志**：后续可考虑迁移到 JSON 格式日志，便于日志聚合工具（如 ELK/Loki）采集
+
+---
+
+## 附录
 ### A. 测试覆盖差距
 
 | 维度 | Ruby 源项目 | MBOpenClacky | 差距 |
 |------|-------------|-------------|------|
-| 测试文件数 | 138 个 spec | 44 个 test | -68.1% |
-| 测试代码行数 | ~28,842 行 | ~13,544 行 | -53.0% |
-| 测试用例数 | 待验证 | 1,254 个 | - |
+| 测试文件数 | 138 个 spec | 49 个 test | -64.5% |
+| 测试代码行数 | ~28,842 行 | ~15,776 行 | -45.3% |
+| 测试用例数 | 待验证 | 1,341 个（全部通过） | - |
 | 模块覆盖率 | ~100% | ~90%+ | billing/utils/server/pricing/message 已覆盖 |
-
 模块级测试覆盖（MBOpenClacky）：
 
 | 模块 | 当前测试数 | 状态 |

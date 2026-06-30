@@ -12,6 +12,7 @@ import {
 options(
   "native-stub": [ "crypto_native.c", "brand_stubs.c" ],
   // Windows: BCrypt is auto-linked via #pragma comment(lib,"bcrypt.lib") in crypto_native.c
-  // Linux/macOS: install libssl-dev, then uncomment the line below:
-  // link: { "native": { "cc-link-flags": "-lcrypto" } },
+  // Linux/macOS: link against OpenSSL libcrypto for AES-256-GCM / RAND_bytes.
+  // Needed here so the test shared library (libbrand.so) resolves EVP_*/RAND_bytes.
+  link: { "native": { "cc-link-flags": "-lcrypto" } },
 )

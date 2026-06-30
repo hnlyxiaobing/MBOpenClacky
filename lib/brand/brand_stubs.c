@@ -1,5 +1,22 @@
-// MoonBit stubs for OpenSSL crypto (weak — overridden by libcrypto in full builds)
+// MoonBit fallback stubs for OpenSSL crypto.
+//
+// IMPORTANT (root-cause fix 2026-06-30):
+//   These weak stubs were unconditionally compiled into libbrand.a and, because
+//   GNU ld resolves a static archive's undefined symbols against object files
+//   already on the link line BEFORE pulling new members from `-lcrypto`, the
+//   weak (but *defined*) stubs here satisfied crypto_native.o's references to
+//   RAND_bytes / EVP_* — so the real OpenSSL was never linked. The result was a
+//   non-random nonce and AES-GCM that produced all-zero ciphertext / never
+//   verified tags (every brand crypto test failed).
+//
+//   The stubs are now disabled by default. They are ONLY compiled when the build
+//   explicitly opts out of OpenSSL via -DMBOPENCLACKY_NO_OPENSSL (e.g. a minimal
+//   build on a platform with no libcrypto and no Windows CNG). In every normal
+//   native build the real OpenSSL (Linux/macOS) or BCrypt (Windows) path in
+//   crypto_native.c is used, with `-lcrypto` linked via moon.pkg link flags.
 #include <stdint.h>
+
+#ifdef MBOPENCLACKY_NO_OPENSSL
 
 #ifdef _MSC_VER
 #define MB_WEAK
@@ -7,8 +24,7 @@
 #define MB_WEAK __attribute__((weak))
 #endif
 
-// ── Random bytes ──────────────────────────────────────────────────────
-
+// ── Random bytes (INSECURE placeholder — only for no-OpenSSL builds) ──
 MB_WEAK int32_t RAND_bytes(unsigned char* buf, int num) {
     for (int i = 0; i < num; i++) buf[i] = (unsigned char)(i % 256);
     return 1;
@@ -77,3 +93,11 @@ MB_WEAK const EVP_CIPHER* EVP_aes_256_gcm(void) { return &evp_aes_256_gcm_val; }
 
 #define EVP_CTRL_GCM_SET_IVLEN 0x9
 #define EVP_CTRL_GCM_GET_TAG   0x10
+
+#else  /* !MBOPENCLACKY_NO_OPENSSL */
+
+// Real OpenSSL / BCrypt is used (see crypto_native.c). Provide a dummy
+// translation unit symbol so the object file is non-empty and portable.
+int mbopenclacky_brand_stubs_disabled = 1;
+
+#endif /* MBOPENCLACKY_NO_OPENSSL */

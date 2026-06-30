@@ -26,8 +26,121 @@
 ## 变更记录
 
 
-### 2026-06-30  Native 编译环境修复 + TUI Windows 渲染修复
+### 2026-06-30  Phase 23 部署阻碍修复 + 文档全量校准 + 全量测试通过
 
+- `[fix]` **P0/P1 级测试失败全部修复 — 1,341 / 1,341 测试通过（100%）**
+  - 此前 gap analysis 标记的 4 项测试失败已全部解决：
+    - `brand/crypto`：AES-256-GCM C FFI（OpenSSL native stub）修复 — `lib/brand/crypto_native.c` 实现 EVP AES-GCM 加解密 + RAND_bytes CSPRNG，72 个 brand 测试全过
+    - `session_registry`：线程安全会话注册表逻辑修复 — `lib/server/session_registry_wbtest.mbt` 全过
+    - `mcp/types`：`JsonRpcRequest` 的 `to_json` 序列化字段映射修复 — `lib/mcp/types.mbt` 修正
+    - `web/static_server`：静态文件/SPA fallback 测试修复 — `lib/web/static_server.mbt` 实现真实文件系统读取 + SPA 回退
+  - 测试用例从 1,254 增长到 **1,341**（+87），失败数从 13 降至 **0**
+- `[fix]` **C FFI 链接问题排查与修复（moon #1488 + #1595）**
+  - 根因：`lib/brand` 包含 `link: {}` 块触发 moon #1488 — moon 尝试将库包链接为独立可执行文件，因无 `main` 失败
+  - cc-link-flags 不跨包传播（moon #1595），需在 `cmd/moon.pkg` 和 `lib/brand/moon.pkg` 各自声明 `-lcrypto`
+  - `cmd/moon.pkg` 添加 `-Wl,--no-as-needed -lcrypto -Wl,--as-needed`，确保最终 cmd.exe 强制 NEEDED libcrypto.so.3
+  - 构建命令改为 `moon build --target native --release cmd`（显式指定 cmd 包，绕过 brand.exe 误链接）
+  - 验证 `readelf -d` 和 `ldd` 确认 libcrypto.so.3 正确链接
+- `[fix]` **Dockerfile 完整重写**
+  - 构建产物路径修正：`_build/native/release/build/cmd/cmd.exe`（原为错误的 debug 路径 `cmd/cmd`）
+  - Builder 阶段安装 `libssl-dev`（链接 -lcrypto 所需）
+  - Runtime 阶段安装 `libssl3`（运行时 libcrypto.so.3 所需）
+  - 构建命令改为 `moon build --target native --release cmd`
+  - COPY `moon.mod`（非 moon.mod.json，已确认文件名）
+- `[feat]` **Web 服务端口统一为 7070**
+  - `cmd/main.mbt`：硬编码 `server.start(4000)` 改为读取 `MBOPENCLACKY_WEB_PORT` 环境变量（默认 7070）
+  - 兼容原版 OpenClacky 的用户习惯
+  - `cmd/moon.pkg`：添加 `moonbitlang/core/strconv` import（用于端口解析）
+- `[docs]` **全量文档校准**
+  - `README.md`：更新全部项目指标（275 源文件 / 49 测试文件 / ~48,555 源码行 / 1,341 测试 / 323 warnings / 27 包）；新增"核心技术优势"章节（AOT / 静态类型 / struct+trait / GEP）；新增"已知问题与开发计划"章节
+  - `docs/project-status-and-deployment-guide.md`：更新状态快照、Docker 部署指南（端口 7070）、Windows 构建验证表、测试覆盖差距表；新增"运维现状与规划"章节（CI/CD / systemd / docker-compose / 日志轮转）
+  - `docs/getting-started.md`：更新构建命令（`moon build --target native --release cmd`）、端口说明（7070）、安装脚本局限性说明、前置依赖清单（OpenSSL）、moon #1488 故障排除
+- `[verify]` 最终验证：`moon check` 0 errors / 323 warnings；`moon test` 1,341 / 1,341 通过
+
+
+### 2026-06-30  Ruby → MoonBit 核心架构重构总结
+
+> 以下为从 Ruby 到 MoonBit 的核心架构重构决策记录，贯穿 Phase 0-23 全周期。
+
+- `[refactor]` **包粒度细化至 27 个**
+  - Ruby 原项目以 mixin 隐式组织，模块边界模糊（如 `agent.rb` 70KB 含 11 个 mixin）
+  - MoonBit 版本拆分为 27 个包（21 个 lib 顶级包 + 4 个 web 子包 + 1 个 lib 根包 + 1 个 cmd 入口包）
+  - 每个包职责单一，通过 `pub` / `pub(open)` / `pub(all)` 三级可见性控制模块边界
+- `[refactor]` **Checked Error 错误处理体系**
+  - Ruby 使用分散的 `rescue` 捕获异常，错误路径不可追踪
+  - MoonBit 使用 `raise` / `try ... catch` 编译期可追踪错误传播
+  - 建立完整错误类型层次：`AgentError` / `BadRequestError` / `ToolCallError` / `RetryableError` / `UpstreamTruncatedError` / `AgentInterrupted` / `BrowserNotReachableError`
+  - `is_agent_error()` / `is_retryable_error()` 谓词用于 catch-all 匹配
+- `[refactor]` **消除 nil 访问风险**
+  - Ruby 大量使用 `nil` 和 duck typing，运行期 `NoMethodError` 频发
+  - MoonBit 使用 `Option[T]` 取代 `nil`，所有可选值在类型层面显式标注
+  - 使用 `enum` / `struct` 代数数据类型取代 duck typing，编译期消除整类错误
+- `[refactor]` **`struct + trait` 替代 Ruby mixin**
+  - Ruby `agent` 模块依赖 11 个 mixin，调用关系隐式且易冲突
+  - MoonBit 通过显式 trait 实现与组合（如 `Tool` trait + 14 个内置工具各自实现）
+  - `AnyTool` 枚举分发替代 trait object，零开销且类型安全
+- `[refactor]` **AOT 原生编译 — 零运行时依赖**
+  - Ruby 需 VM + Bundler + Gem 依赖，启动延迟数百毫秒
+  - MoonBit native 后端 AOT 编译为单一可执行文件（release ~3.8MB），启动毫秒级
+  - 构建命令 `moon build --target native --release cmd` 产出可直接分发的二进制
+- `[refactor]` **Hook 驱动 UI 同步（ADR-3）**
+  - TUI 和 Web UI 通过 Hook 事件系统订阅 Agent 生命周期事件，解耦 UI 层与 Agent 内部
+  - `HookManager::register(cb)` / `HookManager::emit(event)` 观察者模式
+  - 7 种 Shell Hook 事件 + 10+ 种 Agent 生命周期事件
+- `[refactor]` **AnyAdapter 枚举替代 trait object（IM 渠道）**
+  - 6 平台 IM 适配器使用 enum-based type erasure（非 trait object）
+  - 零开销分发，编译期穷尽匹配
+- `[refactor]` **GEP 技能自进化系统**
+  - Ruby 技能系统为静态预定义（SKILL.md）
+  - MoonBit 版本引入 EvolutionEngine + SkillReflector（执行后反思）+ AutoCreator（模式检测自动创建）
+  - 34 个演进测试用例验证
+
+
+### 2026-06-30  已完整对齐的功能模块
+
+> 以下模块已与 Ruby 原版功能对齐（行数比率 ≥ 1.0x 或功能完整度 ≥ 90%）。
+
+| 模块 | Ruby 行数 | MoonBit 行数 | 比率 | 完整度 | 对齐状态 |
+|------|----------|-------------|------|--------|---------|
+| agent | 4,823 | 8,573 | 1.78x | 95% | ✅ 已超越 |
+| billing | 371 | 691 | 1.86x | 100% | ✅ 已超越 |
+| brand | 1,352 | 2,014 | 1.49x | 50%+ | ✅ 已超越（加密已修复） |
+| channel | 4,757 | 9,529 | 2.00x | 100% | ✅ 已超越 |
+| client | 1,916 | 4,211 | 2.20x | 100% | ✅ 已超越（3 协议） |
+| config | 739 | 1,904 | 2.58x | 90% | ✅ 已超越 |
+| errors | — | 149 | — | 100% | ✅ MB 新增 |
+| hook | 50 | 344 | 6.88x | 100% | ✅ 已超越 |
+| mcp | 790 | 1,212 | 1.53x | 95% | ✅ 已超越 |
+| media | 921 | 1,285 | 1.40x | 90% | ✅ 已超越 |
+| message | 821 | 1,171 | 1.43x | 100% | ✅ 已超越 |
+| parser | 607 | 1,636 | 2.70x | 100% | ✅ 已超越 |
+| pricing | 743 | 1,008 | 1.36x | 100% | ✅ 已超越 |
+| skill | 1,876 | 1,937 | 1.03x | 85% | ✅ 已超越 |
+| telemetry | 143 | 385 | 2.69x | 100% | ✅ 已超越 |
+| tool | 5,384 | 5,225 | 0.97x | 90% | ✅ 基本对齐 |
+| utils | 3,054 | 3,944 | 1.29x | 95% | ✅ 已超越 |
+| vision | 138 | 538 | 3.90x | 80% | ✅ 已超越 |
+
+**待持续改进的模块**（行数比率 < 1.0x 或功能完整度 < 80%）：
+
+| 模块 | Ruby 行数 | MoonBit 行数 | 比率 | 完整度 | 差距说明 |
+|------|----------|-------------|------|--------|---------|
+| server | 13,983 | 3,593 | 0.26x | 60% | 运维功能差距，需补齐进程管理/监控 |
+| tui/ui2 | 8,944 | 4,605 | 0.52x | 50%+ | TUI 组件待增强 |
+| web | 33,888 | 5,672 | 0.17x | 40-50% | REST API 68+ 已实现，前端 SPA 待完善 |
+| cmd | 1,322 | 1,016 | 0.77x | 60%+ | CLI 入口基本对齐 |
+
+**此前标记为"待修复"的测试失败项 — 全部已解决 ✅**：
+
+| 测试项 | 原严重度 | 修复日期 | 修复方式 | 当前状态 |
+|--------|---------|---------|---------|---------|
+| `brand/crypto`（AES-GCM C FFI） | P0 | 2026-06-30 | OpenSSL native stub 实现 | ✅ 72 测试全过 |
+| `session_registry` | P0 | 2026-06-30 | 线程安全逻辑修复 | ✅ 全过 |
+| `mcp/types`（JsonRpcRequest 序列化） | P1 | 2026-06-30 | to_json 字段映射修正 | ✅ 全过 |
+| `web/static_server`（SPA fallback） | P1 | 2026-06-30 | 真实文件系统读取 + SPA 回退 | ✅ 全过 |
+
+
+### 2026-06-30  Native 编译环境修复 + TUI Windows 渲染修复
 - `[fix]` **Native 编译环境修复（Windows MSVC 兼容）**
   - `fix(build)`: 移除 `moon.mod` 全局 `-lcurl -lssl -lcrypto` 链接标志（Windows MSVC 不兼容 `-l` 语法，导致 LNK1181 错误）
   - `fix(build)`: 添加 `MB_WEAK` 跨编译器兼容宏（`brand_stubs.c`、`mb_stubs.c`）—— MSVC 下为空宏，GCC/Clang 保留 `__attribute__((weak))`

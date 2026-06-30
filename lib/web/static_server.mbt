@@ -82,8 +82,16 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
         }
       }
       None =>
-        // File not found on disk
-        HttpResponse::not_found("File not found: \{clean_path}")
+        // If the requested asset is the configured index file (i.e. the
+        // root route resolved to it) and it is missing on disk, degrade
+        // gracefully to the SPA fallback page (200) rather than 404 — a
+        // single-page app must always render a shell at "/".
+        if clean_path == self.index_file {
+          spa_fallback(self)
+        } else {
+          // Other static asset missing on disk → genuine 404.
+          HttpResponse::not_found("File not found: \{clean_path}")
+        }
     }
   } else {
     // Non-asset path: SPA fallback → serve index.html

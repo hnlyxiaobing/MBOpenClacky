@@ -8,10 +8,10 @@ MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持�
 
 | 依赖项 | 最低版本 | 说明 |
 |--------|----------|------|
-| MoonBit 工具链 | moon 0.1.20260417+ | 编译器与构建系统 |
+| MoonBit 工具链 | moon 0.1.20260629+ | 编译器与构建系统 |
 | C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
+| OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM C FFI 所需（仅 Linux/macOS） |
 | API 密钥 | 任意支持的提供商 | 至少配置一个 |
-
 ---
 
 ## 安装步骤
@@ -64,22 +64,27 @@ cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxili
 
 ### 4. 构建
 
-**构建 native 可执行文件（推荐）：**
+**构建 native 可执行文件（推荐 release 模式）：**
 
 ```bash
-moon build --target native
+# 显式指定 cmd 包构建，避免 moon #1488 bug
+# （裸 moon build 会尝试链接 lib/brand 库包为独立可执行文件，因无 main 函数而失败）
+moon build --target native --release cmd
 ```
 
-**构建 WebAssembly（用于浏览器/嵌入式场景）：**
+构建产物路径：`_build/native/release/build/cmd/cmd.exe`（release，约 3.8MB）。
+
+**Debug 构建（体积更大，约 14MB，含调试符号）：**
 
 ```bash
-moon build --target wasm-gc
+moon build --target native cmd
 ```
 
-构建产物位于 `_build/` 目录下。
+> **重要**：始终使用 `moon build ... cmd`（显式指定 cmd 包），而非裸 `moon build`。这是因为 `lib/brand` 包含 `link: {}` 块会触发 [moon#1488](https://github.com/moonbitlang/moon/issues/1488)，导致 moon 尝试将库包链接为独立可执行文件而失败。
+
+> **注意**：`moon build --target wasm-gc` 因 `onebit-tui` 和 `crescent` 的 FFI 依赖不可用。请使用 `moon check` 进行类型验证。
 
 ### 5. 配置 API 密钥
-
 #### 方式一：环境变量（推荐快速开始）
 
 ```bash
@@ -147,10 +152,23 @@ anthropic_format = true
 # 单条指令模式
 moon run cmd -- --message "列出当前目录的文件" --mode auto_approve
 
-# 交互模式（带 Web UI）
-moon run cmd -- --server
+# 交互模式（TUI）
+moon run cmd
+
+# Web 服务器模式（默认端口 7070，兼容原版 OpenClacky）
+moon run cmd -- server
+
+# 或直接运行已构建的 release 二进制
+./_build/native/release/build/cmd/cmd.exe server
 ```
 
+**Web 服务端口**：默认 **7070**（兼容原版 OpenClacky）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
+
+```bash
+MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
+```
+
+启动后浏览器访问 `http://localhost:7070` 即可使用 Web UI。
 ---
 
 ## 配置参考
@@ -220,6 +238,60 @@ MBOpenClacky 内置 12 个 Provider 预设：
 
 ---
 
+## 安装脚本
+
+项目提供两个平台安装脚本，可自动检查前置依赖、安装 MoonBit 工具链、构建项目并输出配置指引。
+
+### install.sh（Linux/macOS）
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+**脚本功能**：
+1. 检查 `moon` 命令是否可用，未安装时自动下载安装
+2. 检查 C 编译器（gcc/clang），缺失时提示安装命令
+3. 执行 `moon update && moon install` 获取依赖
+4. 执行 `moon build --target native` 构建项目
+5. 输出配置指引（环境变量、TOML 配置文件路径）
+
+### install.ps1（Windows）
+
+```powershell
+.\install.ps1
+```
+
+**脚本功能**：
+1. 检查 `moon` 命令是否可用，未安装时自动下载安装
+2. 通过 vswhere 动态检测 Visual Studio Build Tools 安装路径
+3. 自动调用 `vcvarsall.bat x64` 激活 MSVC 环境
+4. 执行 `moon build --target native` 构建项目
+5. 输出配置指引
+
+### 已知局限性
+
+> ⚠️ 安装脚本当前存在以下局限，后续计划修复：
+
+| 局限 | 影响 | 临时解决方案 |
+|------|------|------------|
+| 使用 `moon build --target native` 而非 `moon build --target native --release cmd` | 可能触发 moon #1488 bug（库包误链接） | 手动执行 `moon build --target native --release cmd` |
+| 未安装 OpenSSL 开发库（libssl-dev） | brand 包 AES-256-GCM 加密链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
+| 未构建 release 模式 | 产出 debug 二进制（约 14MB，含调试符号） | 手动追加 `--release` 标志 |
+| Windows 平台 brand 加密使用弱桩回退 | AES-256-GCM 加解密功能不可用 | 后续计划适配 Windows BCrypt/CNG API |
+
+### 前置环境依赖清单
+
+| 平台 | 依赖 | 安装命令 |
+|------|------|---------|
+| Linux (Debian/Ubuntu) | gcc, make, libssl-dev | `sudo apt-get install build-essential libssl-dev` |
+| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` |
+| macOS | Xcode CLT (含 clang) | `xcode-select --install` |
+| Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
+| 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
+
+---
+
 ## 故障排除
 
 ### 构建失败：找不到 C 编译器
@@ -242,13 +314,12 @@ xcode-select --install
 **Linux：**
 
 ```bash
-# Ubuntu/Debian
-sudo apt-get install build-essential
+# Ubuntu/Debian（含 OpenSSL 开发库，brand 加密所需）
+sudo apt-get install build-essential libssl-dev
 
 # Fedora
-sudo dnf install gcc
+sudo dnf install gcc make openssl-devel
 ```
-
 ### `moon` 命令未找到
 
 确保 MoonBit 安装目录已加入 PATH：
@@ -272,6 +343,16 @@ $env:PATH = "$env:USERPROFILE\.moon\bin;$env:PATH"
 确保 MSVC Build Tools 包含 Windows SDK 组件。在 Visual Studio Installer 中勾选：
 - MSVC v143 - VS 2022 C++ x64/x86 build tools
 - Windows 10/11 SDK
+
+### `moon build` 报 "undefined reference to main"
+
+这是 [moon#1488](https://github.com/moonbitlang/moon/issues/1488) 的已知问题：裸 `moon build` 会尝试将 `lib/brand`（含 `link: {}` 块的库包）链接为独立可执行文件，因无 `main` 函数而失败。
+
+**解决方案**：始终显式指定 cmd 包：
+
+```bash
+moon build --target native --release cmd
+```
 
 ### `moon check` 报 Warning 但 0 errors
 

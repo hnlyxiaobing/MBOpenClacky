@@ -304,13 +304,13 @@ test "traversal: body contains 'Invalid path'" {
 // ══════════════════════════════════════════════════════════════════
 
 ///|
-test "serve: non-existent asset extension returns 200 placeholder" {
-  // Current impl returns placeholder for any path with a known extension
+test "serve: non-existent asset returns 404" {
+  // A known static-asset extension that does not exist on disk must 404,
+  // not silently return a placeholder — real filesystem I/O is the source
+  // of truth for static assets.
   let server = StaticServer::new("./assets/web")
   let resp = server.serve("/nonexistent.css")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/css")
-  assert_true(resp.body.contains("static content for"))
+  assert_eq(resp.status, 404)
 }
 
 ///|

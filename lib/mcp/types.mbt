@@ -36,7 +36,25 @@ pub(all) struct JsonRpcRequest {
   id : Int
   rpc_method : String
   params : Json?
-} derive(Eq, Debug, ToJson)
+} derive(Eq, Debug)
+
+///|
+/// Serialize to a JSON-RPC 2.0 compliant object.
+/// Note: the MoonBit field `rpc_method` maps to the spec key `"method"`,
+/// and `params` is omitted when `None` (per JSON-RPC 2.0 which allows
+/// requests with no params member).
+pub fn JsonRpcRequest::to_json(self : JsonRpcRequest) -> Json {
+  let fields : Map[String, Json] = {
+    "jsonrpc": self.jsonrpc.to_json(),
+    "id": self.id.to_json(),
+    "method": self.rpc_method.to_json(),
+  }
+  match self.params {
+    Some(p) => fields["params"] = p
+    None => ()
+  }
+  Json::object(fields)
+}
 
 ///|
 /// JSON-RPC 2.0 response structure.

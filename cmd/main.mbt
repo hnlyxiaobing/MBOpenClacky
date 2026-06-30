@@ -194,9 +194,23 @@ async fn handle_server() -> Unit {
   // Get API key for web auth from env or config
   let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
-  // Create and start the web server
+  // Create and start the web server.
+  // Default port is 7070 to stay compatible with the original OpenClacky;
+  // override with the MBOPENCLACKY_WEB_PORT environment variable.
+  let port = match @sys.get_env_var("MBOPENCLACKY_WEB_PORT") {
+    Some(p) => {
+      let n = @strconv.parse_int(p.trim()) catch { _ => 7070 }
+      if n > 0 && n < 65536 {
+        n
+      } else {
+        7070
+      }
+    }
+    None => 7070
+  }
   let server = @web.WebServer::new(config, api_key)
-  server.start(4000)
+  println("Starting MBOpenClacky web server on http://0.0.0.0:\{port}")
+  server.start(port)
   println("Server stopped.")
 }
 

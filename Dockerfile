@@ -8,7 +8,9 @@ FROM ubuntu:22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies
+# Install build dependencies.
+# libssl-dev provides libcrypto for the brand package's AES-256-GCM /
+# RAND_bytes C stubs (linked via -lcrypto in cmd/moon.pkg & lib/brand/moon.pkg).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -16,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     git \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MoonBit toolchain
@@ -36,18 +39,28 @@ RUN moon update && moon install
 # Copy full project source
 COPY . .
 
-# Build native binary (release mode for smaller size)
-RUN moon build --target native
+# Build the native binary in release mode for a smaller, faster artifact.
+# We build the `cmd` package explicitly: a plain `moon build` would also try to
+# link the non-main `lib/brand` package as a standalone executable (moon issue
+# #1488) and fail with "undefined reference to main". Targeting `cmd` builds
+# only the real entrypoint and produces _build/native/release/build/cmd/cmd.exe.
+RUN moon build --target native --release cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install minimal runtime dependencies
+# Web server listens on 7070 by default (compatible with the original
+# OpenClacky). Override at runtime with -e MBOPENCLACKY_WEB_PORT=...
+ENV MBOPENCLACKY_WEB_PORT=7070
+
+# Install minimal runtime dependencies.
+# libssl3 ships libcrypto.so.3 required by the AES-256-GCM crypto stubs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -55,8 +68,8 @@ RUN groupadd -r mbopenclacky && useradd -r -g mbopenclacky -m mbopenclacky
 
 WORKDIR /app
 
-# Copy built binary from builder stage
-COPY --from=builder /build/_build/native/debug/build/cmd/cmd ./mbopenclacky
+# Copy built binary from builder stage (release artifact is named cmd.exe)
+COPY --from=builder /build/_build/native/release/build/cmd/cmd.exe ./mbopenclacky
 
 # Copy static web assets
 COPY --from=builder /build/assets/ ./assets/
@@ -69,11 +82,11 @@ RUN mkdir -p /app/logs /app/memory \
 USER mbopenclacky
 
 # Expose Web UI port
-EXPOSE 4000
+EXPOSE 7070
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:4000/health || exit 1
+    CMD curl -f http://localhost:7070/health || exit 1
 
 # Default entrypoint: start the web server
 ENTRYPOINT ["./mbopenclacky", "server"]

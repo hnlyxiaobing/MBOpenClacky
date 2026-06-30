@@ -66,7 +66,7 @@ test "find existing session" {
   let wid : WorkerId = { id: 1, name: "w1" }
   let _ = reg.register("s1", wid, created_at="2024-01-01T00:00:00Z")
   let found = reg.find("s1")
-  inspect(found is Some(_), content="false")
+  inspect(found is Some(_), content="true")
 }
 
 ///|

@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/json",
+  "moonbitlang/core/strconv",
   "moonbitlang/async",
   "moonbitlang/core/hashset",
   "moonbitlang/x/sys",
@@ -17,4 +18,15 @@ import {
 
 options(
   "is-main": true,
+  // The brand package's C stubs (crypto_native.c) call OpenSSL (libcrypto)
+  // for AES-256-GCM and RAND_bytes on Linux/macOS. We force the dependency
+  // with --no-as-needed because the EVP_*/RAND_bytes symbols live inside
+  // libbrand.a, not in cmd.c directly; without it the linker's default
+  // --as-needed would drop libcrypto and the crypto symbols would be unresolved
+  // at runtime. brand/moon.pkg also lists -lcrypto so its test .so resolves.
+  // Windows uses BCrypt (auto-linked via #pragma comment in crypto_native.c),
+  // so this flag must not be applied there.
+  link: {
+    "native": { "cc-link-flags": "-Wl,--no-as-needed -lcrypto -Wl,--as-needed" },
+  },
 )
