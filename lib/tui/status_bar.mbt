@@ -1,54 +1,159 @@
 ///|
-/// Status bar component displaying agent status, model name, and iteration count.
+/// Status bar component — formats agent status into colored segments
+/// for direct terminal rendering via ScreenBuffer.
 ///
-/// Renders as a single row at the bottom of the TUI layout (above input).
-/// Uses onebit-tui raw Views for a lightweight, non-interactive display.
+/// The status bar is a single-line display showing:
+/// ```text
+/// ● idle | c6f1feb6 | /path/to/dir | confirm_safes | model-name | 0 tasks | $0.0000
+/// ```
 
 ///|
-/// Build the status bar view from the current TUI state.
-pub fn status_bar_render(state : Ref[TuiState]) -> @view.View {
-  let s = state.val
-  let status_color = match s.agent_status {
-    "running" => @tui_core.Green
-    "error" => @tui_core.Red
-    "completed" => @tui_core.Blue
-    _ => @tui_core.Gray
-  }
-  
-  // Format: ● idle | c6f1feb6 | /mnt/d/MoonBit/MBOpenClacky | confirm_safes | or-gemini-3-1-pro | 0 tasks | $0.0
-  let session_hash = if s.session_id.length() >= 8 { s.session_id.substring(end=8) } else { s.session_id }
-  
-  // Create parts
-  let status_text = "● \{s.agent_status}"
-  let sep = " | "
-  let session_text = session_hash
-  let dir_text = s.working_dir
-  let perm_text = s.permission_mode
-  let model_text = s.model_name
-  let tasks_text = "\{s.active_tasks} tasks"
-  
-  // Format total cost properly. For now we use debug string interpolation.
-  // Assuming total_cost is Double, let's round it manually or format.
-  let cost_cents = (s.total_cost * 10000.0).to_int()
-  let cost_str = "$\{cost_cents / 10000}.\{cost_cents % 10000}" // Simple workaround if formatting is tricky
-  // Actually, let's just use Double to String.
-  let cost_text = "$\{s.total_cost}"
+/// Color category for a status bar segment.
+pub(all) enum SegmentColor {
+  /// Status indicator — color depends on agent status text.
+  Status
+  /// Session ID (cyan).
+  Session
+  /// Working directory (white).
+  Dir
+  /// Permission mode (yellow).
+  Permission
+  /// Model name (magenta).
+  Model
+  /// Task count (white).
+  Tasks
+  /// Cost (green).
+  Cost
+  /// Separator / dim text (gray).
+  Dim
+  /// Default foreground.
+  Default
+} derive(Debug)
 
-  @view.View::container_views([
-    @view.View::text(status_text, color=status_color),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(session_text, color=@tui_core.Cyan),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(dir_text, color=@tui_core.BrightWhite),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(perm_text, color=@tui_core.Yellow),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(model_text, color=@tui_core.Magenta),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(tasks_text, color=@tui_core.BrightWhite),
-    @view.View::text(sep, color=@tui_core.Gray),
-    @view.View::text(cost_text, color=@tui_core.Green),
-  ])
-  .direction(Row)
-  .background(@tui_core.RGB(0.15, 0.15, 0.2))
+///|
+/// A single colored text segment.
+pub(all) struct StatusSegment {
+  text : String
+  color : SegmentColor
+} derive(Debug)
+
+///|
+/// Status bar component that formats status data into colored segments.
+pub(all) struct StatusBar {
+  mut segments : Array[StatusSegment]
+} derive(Debug)
+
+///|
+/// Create a new empty StatusBar.
+pub fn StatusBar::new() -> StatusBar {
+  { segments: [] }
+}
+
+///|
+/// Build status segments from TuiState.
+///
+/// Produces the standard status line:
+/// `● <status> | <session> | <dir> | <perm> | <model> | <n> tasks | $<cost>`
+pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit {
+  self.segments.clear()
+  // Status indicator with color hint
+  let status_text = "● \{state.agent_status}"
+  self.segments.push(
+    StatusSegment::{ text: status_text, color: SegmentColor::Status },
+  )
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Session ID (truncated to 8 chars)
+  let sid = if state.session_id.length() > 8 {
+    state.session_id[0:8].to_string()
+  } else {
+    state.session_id
+  }
+  self.segments.push(StatusSegment::{ text: sid, color: Session })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Working directory (truncated)
+  let dir = truncate_dir(state.working_dir, 30)
+  self.segments.push(StatusSegment::{ text: dir, color: Dir })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Permission mode
+  self.segments.push(
+    StatusSegment::{ text: state.permission_mode, color: Permission },
+  )
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Model name (truncated)
+  let model = truncate_model(state.model_name, 24)
+  self.segments.push(StatusSegment::{ text: model, color: Model })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Task count
+  let tasks = "\{state.active_tasks} tasks"
+  self.segments.push(StatusSegment::{ text: tasks, color: Tasks })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Cost
+  let cost = "$\{format_cost(state.total_cost)}"
+  self.segments.push(StatusSegment::{ text: cost, color: Cost })
+}
+
+///|
+/// Build a simplified status bar (just status + model + cost).
+pub fn StatusBar::format_compact(
+  self : StatusBar,
+  status : String,
+  model : String,
+  cost : Double,
+) -> Unit {
+  self.segments.clear()
+  self.segments.push(
+    StatusSegment::{ text: "● \{status}", color: SegmentColor::Status },
+  )
+  self.segments.push(StatusSegment::{ text: "  ", color: Dim })
+  self.segments.push(StatusSegment::{ text: model, color: Model })
+  self.segments.push(StatusSegment::{ text: "  ", color: Dim })
+  self.segments.push(
+    StatusSegment::{ text: "$\{format_cost(cost)}", color: Cost },
+  )
+}
+
+///|
+/// Return the plain-text representation (no color codes).
+pub fn StatusBar::plain_text(self : StatusBar) -> String {
+  let sb = StringBuilder::new()
+  for seg in self.segments {
+    sb.write_string(seg.text)
+  }
+  sb.to_string()
+}
+
+///|
+/// Number of segments.
+pub fn StatusBar::segment_count(self : StatusBar) -> Int {
+  self.segments.length()
+}
+
+///|
+/// Get a segment by index.
+pub fn StatusBar::get_segment(
+  self : StatusBar,
+  i : Int,
+) -> StatusSegment {
+  self.segments[i]
+}
+
+///|
+/// Truncate a directory path for display.
+/// Shows the last `max_len` characters with "..." prefix if too long.
+fn truncate_dir(path : String, max_len : Int) -> String {
+  if path.length() <= max_len {
+    path
+  } else {
+    "..." + path[path.length() - max_len + 3:].to_string()
+  }
+}
+
+///|
+/// Truncate a model name for display.
+fn truncate_model(name : String, max_len : Int) -> String {
+  if name.length() <= max_len {
+    name
+  } else {
+    name[0:max_len - 3].to_string() + "..."
+  }
 }

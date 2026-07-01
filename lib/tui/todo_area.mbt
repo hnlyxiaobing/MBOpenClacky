@@ -1,8 +1,8 @@
 ///|
-/// Todo area component displaying active tasks above the message area.
+/// Todo area component — active task list display.
 ///
-/// Shows up to max_display tasks with their status indicators.
-/// Can be hidden/shown dynamically based on whether tasks exist.
+/// Phase 0 stub: keeps the struct and data methods, removes onebit-tui
+/// View rendering. Full inline rendering will be implemented in Phase 6.
 
 ///|
 /// A single display item in the todo area.
@@ -45,26 +45,16 @@ pub fn TodoArea::new() -> TodoArea {
 }
 
 ///|
-/// Render the todo area as a View.
+/// Render the todo area as an array of ANSI strings (inline mode).
 ///
-/// Shows up to max_display items with status bullets:
-/// ```
-/// Tasks [2/5]:
-///   ● #3 - Current task description
-///   ○ #4 - Pending task
-/// ```
-pub fn TodoArea::render(self : TodoArea) -> @view.View {
+/// Returns one string per line for direct terminal output.
+pub fn TodoArea::render_lines(self : TodoArea) -> Array[String] {
   if self.hidden || self.items.length() == 0 {
-    return @view.View::container_views([])
+    return []
   }
-
-  let children : Array[@view.View] = []
-
-  // Header line
+  let lines : Array[String] = []
   let header = "Tasks [\{self.completed_count}/\{self.total_count}]:"
-  children.push(@view.View::text(header, color=@tui_core.Yellow))
-
-  // Render up to max_display items
+  lines.push(header)
   let limit = if self.items.length() < self.max_display {
     self.items.length()
   } else {
@@ -80,29 +70,14 @@ pub fn TodoArea::render(self : TodoArea) -> @view.View {
       "failed" => "✗"
       _ => "○"
     }
-    let bullet_color = match item.status {
-      "completed" => @tui_core.Green
-      "in_progress" => @tui_core.Cyan
-      "cancelled" => @tui_core.Gray
-      "failed" => @tui_core.Red
-      _ => @tui_core.Gray
-    }
-    let line = "  \{bullet} #\{item.id} - \{item.title}"
-    children.push(@view.View::text(line, color=bullet_color))
+    lines.push("  \{bullet} #\{item.id} - \{item.title}")
     i = i + 1
   }
-
-  // Show overflow indicator
   if self.items.length() > self.max_display {
     let remaining = self.items.length() - self.max_display
-    children.push(
-      @view.View::text("  ... and \{remaining} more", color=@tui_core.Gray),
-    )
+    lines.push("  ... and \{remaining} more")
   }
-
-  @view.View::container_views(children)
-  .padding(1.0)
-  .background(@tui_core.RGB(0.1, 0.1, 0.14))
+  lines
 }
 
 ///|

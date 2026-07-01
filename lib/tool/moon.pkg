@@ -8,8 +8,6 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "moonbitlang/async",
-  // onebit-tui/ffi provides mb_system() C symbol for native target
-  "Frank-III/onebit-tui/ffi",
 }
 
 options(

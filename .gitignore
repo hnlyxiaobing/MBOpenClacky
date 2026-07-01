@@ -31,6 +31,7 @@ nul
 moon.mod.bak
 .gitcommit_msg.txt
 _review_diff.txt
+_bak_tui_v1/
 
 # Real Yoga build artifacts (rebuild with scripts/setup_yoga.sh)
 vendor/yoga/obj/

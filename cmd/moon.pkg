@@ -26,7 +26,8 @@ options(
   // at runtime. brand/moon.pkg also lists -lcrypto so its test .so resolves.
   // Windows uses BCrypt (auto-linked via #pragma comment in crypto_native.c),
   // so this flag must not be applied there.
+  // Note: Yoga link flags removed — TUI migrated to moonbit-community/tty inline mode.
   link: {
-    "native": { "cc-link-flags": "-Wl,--no-as-needed -lcrypto -lcurl -Wl,--as-needed /mnt/d/MoonBit/MBOpenClacky/vendor/yoga/lib/libyoga_full.a -lstdc++ -lm" },
+    "native": { "cc-link-flags": "-Wl,--no-as-needed -lcrypto -lcurl -Wl,--as-needed" },
   },
 )

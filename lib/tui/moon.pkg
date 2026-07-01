@@ -3,17 +3,9 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
-  "Frank-III/onebit-tui/core" @tui_core,
-  "Frank-III/onebit-tui/widget",
-  "Frank-III/onebit-tui/view",
-  "Frank-III/onebit-tui/runtime",
-  "Frank-III/onebit-tui/layout",
-  "Frank-III/onebit-tui/ffi",
+  "moonbit-community/tty",
+  "moonbit-community/tty/input" @tty/input,
+  "moonbit-community/tty/color" @color,
   "moonbitlang/async",
+  "moonbitlang/async/io" @async/io,
 }
-
-options(
-  link: {
-    "native": { "cc-link-flags": "/mnt/d/MoonBit/MBOpenClacky/vendor/yoga/lib/libyoga_full.a -lstdc++ -lm" },
-  },
-)

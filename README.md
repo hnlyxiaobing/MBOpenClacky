@@ -17,19 +17,19 @@
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（总计） | 275 个 |
-| 测试文件 | 49 个 |
-| 代码行数（源代码） | ~48,555 行 |
-| 代码行数（测试） | ~15,776 行 |
-| 代码行数（总计） | ~64,331 行 |
-| 测试用例 | 1,355 个（全部通过） |
-| MoonBit 包数 | 27 个（21 个 lib 顶级包 + 4 个 web 子包 + 1 个 lib 根包 + 1 个 cmd 入口包） |
+| `.mbt` 源文件（总计） | 317 个 |
+| 测试文件 | 51 个 |
+| 代码行数（源代码） | ~96,141 行 |
+| 代码行数（测试） | ~15,965 行 |
+| 代码行数（总计） | ~112,106 行 |
+| 测试用例 | 1,352 个（全部通过） |
+| MoonBit 包数 | 28 个（22 个 lib 顶级包 + 4 个 web 子包 + 1 个 lib 根包 + 1 个 cmd 入口包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 68+ 个 |
 | IM 渠道适配器 | 6 个 |
-| `moon check` | 0 errors, 326 warnings |
-| `moon test` | 1,355 / 1,355 通过 |
+| `moon check` | 0 errors, 355 warnings |
+| `moon test` | 1,352 / 1,352 通过 |
 
 ### 功能亮点
 
@@ -144,7 +144,7 @@ MBOpenClacky/
 │   ├── skill/          # 技能系统 + GEP 演进（EvolutionEngine/Reflector/AutoCreator）+ 默认技能
 │   ├── telemetry/      # 匿名遥测（fire-and-forget）
 │   ├── tool/           # 工具系统（14 个内置工具 + Security + OutputCleaner）
-│   ├── tui/            # TUI 界面 + 斜杠命令/Markdown→ANSI/主题/Spinner/RealtimeRenderer + Hook处理器/进度栈/编辑器/模态/CJK宽度
+│   ├── tui/            # TUI 界面（moonbit-community/tty，Inline Scrolling 架构：ScreenBuffer/OutputBuffer/LineEditor/LayoutManager）
 │   ├── utils/          # 工具函数（Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser/BrowserDetector 等）
 │   ├── vision/         # Vision OCR + SHA256 缓存
 │   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router/StaticServer/SPA + 广播/超时/错误信封/模板处理
@@ -222,7 +222,7 @@ moon run cmd -- server
 MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
 ```
 
-当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）、TUI 交互界面（onebit-tui）、服务器模式（crescent Web 服务器）、完整错误处理以及技能/记忆/任务系统集成。
+当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）、TUI 交互界面（基于 moonbit-community/tty 的 Inline Scrolling 架构）、服务器模式（crescent Web 服务器）、完整错误处理以及技能/记忆/任务系统集成。
 
 ### 测试
 
@@ -230,9 +230,9 @@ MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
 moon test
 ```
 
-当前共有 **1,341 个测试用例**，全部通过，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等）。
+当前共有 **1,352 个测试用例**，全部通过，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等）。
 
-> **注意**：`moon test` 仅支持 native 目标。`moon test --target wasm-gc` 因 `onebit-tui` 和 `crescent` 的 FFI 依赖而失败，请使用 `moon check` 进行类型验证。
+> **注意**：`moon test` 仅支持 native 目标。`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖而失败，请使用 `moon check` 进行类型验证。
 
 ### 开发阶段路线
 
@@ -247,7 +247,7 @@ moon test
 | Phase 4 | Agent 核心（对话循环、工具调用、成本追踪） | ✅ 已完成 |
 | Phase 5 | CLI 界面（基于 clap） | ✅ 已完成 |
 | Phase 6 | 会话持久化（JSON 文件存储 + 管理） | ✅ 已完成 |
-| Phase 7 | TUI 界面（基于 onebit-tui） | ✅ 已完成 |
+| Phase 7 | TUI 界面（基于 moonbit-community/tty，Inline Scrolling 架构） | ✅ 已完成 |
 | Phase 8 | Web 服务器（基于 crescent，含 WebSocket / SSE） | ✅ 已完成 |
 | Phase 9 | 技能系统（加载/解析/发现/注册/上下文构建） | ✅ 已完成 |
 | Phase 10 | 增强功能（Memory / Subagent / TodoManager / AgentPool） | ✅ 已完成 |
@@ -294,15 +294,16 @@ moon test
    - **计划**：后续按平台条件化处理，Windows 使用 BCrypt/CNG API
 
 3. **wasm-gc 目标不支持**（P2）
-   - **现象**：`moon test --target wasm-gc` 因 `onebit-tui` 和 `crescent` 的 FFI 依赖失败
+   - **现象**：`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖失败
    - **Workaround**：使用 `moon check` 进行类型验证
 
 #### TUI 相关
 
-4. **Yoga 布局引擎已修复**（✅ 2026-07-01 解决）
-   - **原问题**：`onebit-yoga` 的 `yoga_stubs.c` 是空桩，导致所有 TUI 组件堆叠在左上角
-   - **修复**：替换为真实 Facebook Yoga 2.0.2 静态库，根布局添加显式终端尺寸约束
-   - **详见**：[`docs/TUI_DEBUG_PLAN.md`](./docs/TUI_DEBUG_PLAN.md)
+4. **TUI 已迁移至 Inline Scrolling 架构**（✅ 2026-07-01 完成 Phase 0-5）
+   - **原问题**：基于 onebit-tui 的 Full-screen Retained-mode TUI 存在 5 个渲染 Bug（边框消失、光标覆盖、状态栏溢出等）
+   - **修复**：迁移至 `moonbit-community/tty@0.2.5`，采用 Inline Scrolling 架构（ScreenBuffer + OutputBuffer + LineEditor + LayoutManager），彻底消除 Yoga/C stubs/dlsym 依赖
+   - **状态**：Phase 0-5 已完成（编译通过，测试通过），Phase 6（Dialog + TodoArea + 清理）待实施
+   - **详见**：[`docs/tui-inline-migration-plan.md`](./docs/tui-inline-migration-plan.md)
    - **注意**：启动 TUI 建议直接运行编译好的二进制 `./_build/native/debug/build/cmd/cmd.exe`，`moon run cmd` 包装器在某些终端环境下可能不启动 TUI
 
 #### 功能相关

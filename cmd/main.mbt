@@ -223,7 +223,7 @@ fn get_named_arg(value : @clap.SimpleValue, name : String) -> String? {
 }
 
 ///|
-fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
+async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // 0. Save original working directory for restore on exit
   let original_dir = @utils.current_dir()
 

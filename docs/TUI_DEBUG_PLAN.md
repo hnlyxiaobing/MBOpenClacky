@@ -1,7 +1,7 @@
 # MBOpenClacky TUI 调试报告：Yoga 布局引擎修复
 
 > **日期**：2026-07-01
-> **状态**：✅ 已解决
+> **状态**：⚠️ 已过时 — 本文档涉及 onebit-tui + Yoga 架构的修复。TUI 已迁移至 `moonbit-community/tty` Inline Scrolling 架构，Yoga/onebit-tui 依赖已完全移除。详见 [`docs/tui-inline-migration-plan.md`](./tui-inline-migration-plan.md)
 > **相关提交**：`497c4c4` (布局对齐), `b6e2c43` (Yoga 引擎替换)
 
 ---

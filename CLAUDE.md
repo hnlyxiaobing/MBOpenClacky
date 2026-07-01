@@ -13,18 +13,18 @@ moon check              # Type-check the entire project (0 errors expected)
 moon build              # Build native binary (preferred_target = native)
 moon run cmd            # Run CLI entry point
 moon run cmd -- --message "Hello"   # Non-interactive agent mode
-moon run cmd -- --server            # Start web UI server on port 4000
+moon run cmd -- --server            # Start web UI server on port 7070
 moon test               # Run all white-box tests (*_wbtest.mbt) — native target only
 moon update && moon install         # Sync dependencies
 ```
 
 - Tests are co-located as `*_wbtest.mbt` files next to source (MoonBit white-box test convention).
-- `moon test --target wasm-gc` fails due to FFI dependencies in `onebit-tui` and `crescent`; use `moon check` for validation instead.
+- `moon test --target wasm-gc` fails due to FFI dependencies in `tty` and `crescent`; use `moon check` for validation instead.
 - No lint tool is configured beyond `moon check`.
 
 ## Architecture
 
-### Package Layout (21 top-level packages)
+### Package Layout (22 top-level packages)
 
 ```
 cmd/          — CLI entry point (clap argument parsing, agent lifecycle orchestration)
@@ -55,9 +55,12 @@ lib/
   telemetry/  — Anonymous telemetry (fire-and-forget)
   tool/       — Tool trait + 14 built-in tools + registry with alias resolution, security,
                 output cleaner
-  tui/        — Terminal UI (onebit-tui): message view, tool view, stats, input bar, markdown
-                rendering, slash commands, themes, spinner, realtime renderer, agent hook
-                handler, progress stack, command suggestions, editor, modal lifecycle, CJK width
+  tui/        — Terminal UI (moonbit-community/tty): inline scrolling TUI with
+                ScreenBuffer (ANSI primitives), OutputBuffer (committed-line
+                semantics), LineEditor (CJK-aware grapheme editor), LayoutManager
+                (scroll region + fixed areas), StatusBar, InputArea, TodoArea,
+                markdown rendering, slash commands, themes, progress stack,
+                command suggestions, agent hook handler, CJK width
   utils/      — Env vars, path resolution, encoding, environment detector, EPIPE safe IO,
                 file ignore helper, gitignore parser, limit stack, logger, proxy config,
                 string matcher, trash directory, workspace rules
@@ -121,7 +124,7 @@ The `Agent` struct (25+ fields) is the central orchestrator:
 | Interface | Technology | Location |
 |-----------|-----------|----------|
 | CLI | clap argument parser | `cmd/main.mbt` |
-| TUI | onebit-tui | `lib/tui/` (24+ files) |
+| TUI | moonbit-community/tty (inline scrolling) | `lib/tui/` (24+ files) |
 | Web | crescent (REST + WebSocket + SSE) | `lib/web/` (24+ files, 68+ endpoints) |
 
 All three interfaces share the same `Agent` core via the hook system (`lib/agent/hook.mbt`).
@@ -195,15 +198,15 @@ assets/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (total) | 293 |
-| Test files (`*_wbtest.mbt`) | 44 |
-| Source lines (non-test) | ~47,105 |
-| Test lines (`*_wbtest.mbt`) | ~13,544 |
-| Test cases | 1,254+ |
-| Top-level packages | 21 |
+| `.mbt` source files (total) | 317 |
+| Test files (`*_wbtest.mbt`) | 51 |
+| Source lines (non-test) | ~96,141 |
+| Test lines (`*_wbtest.mbt`) | ~15,965 |
+| Test cases | 1,352+ |
+| Top-level packages | 22 |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 11 |
 | REST API endpoints | 68+ |
-| `moon check` | 0 errors, 280 warnings |
+| `moon check` | 0 errors, 355 warnings |
 | Phase coverage | ~85-90% (backend ~95%, Web frontend ~40-50%, deploy infra ~30%) |

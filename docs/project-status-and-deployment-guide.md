@@ -24,22 +24,22 @@
 
 MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI），同时借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
 
-### 当前状态快照（2026-06-30）
+### 当前状态快照（2026-07-01）
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| 源代码行数 | ~64,331 行 | 含测试 ~64,331 行（非测试源码 ~48,555 行，测试 ~15,776 行） |
-| 源代码文件数 | 275 个 .mbt（lib: 268, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
-| 测试文件数 | 49 个 _wbtest.mbt | Ruby 约 138 个 spec |
-| 测试用例数 | 1,355 | 全部通过（moon test native） |
-| 编译状态 | 0 errors, 326 warnings | `moon check`（native target） |
+| 源代码行数 | ~112,106 行 | 含测试 ~112,106 行（非测试源码 ~96,141 行，测试 ~15,965 行） |
+| 源代码文件数 | 317 个 .mbt（lib: 310, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
+| 测试文件数 | 51 个 _wbtest.mbt | Ruby 约 138 个 spec |
+| 测试用例数 | 1,352 | 全部通过（moon test native） |
+| 编译状态 | 0 errors, 355 warnings | `moon check`（native target） |
 | 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe (~3.8MB release) |
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
 | 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |
 ### 关键发现
 
-1. **编译错误已全部修复**：`moon check` 通过（0 errors, 323 warnings）
-2. **全量测试 100% 通过**：1,341 / 1,341 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
+1. **编译错误已全部修复**：`moon check` 通过（0 errors, 355 warnings）
+2. **全量测试 100% 通过**：1,352 / 1,352 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
 3. **P0 级部署阻碍已清除**：
    - AES-256-GCM 加密通过 C FFI（OpenSSL）实现，72 个 brand 测试全过
    - Dockerfile 构建产物路径修正为 `_build/native/release/build/cmd/cmd.exe`
@@ -190,10 +190,9 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 
 **现状**：
 - Ruby UI2 约 8944 行（UIController + RichUIController）
-- MBOpenClacky 已从 ~2,078 行骨架增长到 4,605 行/25 文件
-- 新增文件：agent_hooks、command_suggestions、editor、cjk_width、modal_lifecycle、progress_stack 等
-- 已拥抱 onebit-tui 基础设施，废弃并行骨架
-
+- MBOpenClacky 已迁移至 `moonbit-community/tty` Inline Scrolling 架构，TUI 模块 26 个文件
+- 新增文件：screen_buffer、output_buffer、line_editor、layout_manager、input_area、status_bar、tui_controller 等
+- 已废弃 onebit-tui + vendor/yoga + C FFI 渲染器，改用纯 MoonBit tty crate
 **剩余问题**：
 - 仅翻译约 6/25 个钩子事件类型（待继续补齐）
 - 组件增强（session_bar/todo_area/markdown_view）待实现
@@ -416,7 +415,7 @@ lib/web/
 **方案选择：C FFI 绑定 OpenSSL/libcrypto（推荐）**
 
 理由：
-- 项目已有强烈的 C FFI 先例（onebit-tui、moonbitlang/async/tls）
+- 项目已有强烈的 C FFI 先例（brand/crypto OpenSSL、moonbitlang/async/tls）
 - async/tls 已演示如何用 dlopen 动态加载 libcrypto
 - 性能和安全性最佳
 - 无需实现纯 MoonBit AES/GCM（非常复杂且易出错）
@@ -484,10 +483,11 @@ lib/brand/
 
 ### 方案 4：TUI 控制器完善
 
-#### 关键决策：拥抱 onebit-tui，废弃并行骨架
+#### 关键决策：~~拥抱 onebit-tui~~ → ⚠️ 已迁移至 moonbit-community/tty Inline Scrolling 架构
+
+> **更新（2026-07-01）**：以下原始方案基于 onebit-tui，但实际实施中已放弃该方案，改用 `moonbit-community/tty@0.2.5` 的 Inline Scrolling 架构。详见 `docs/tui-inline-migration-plan.md`。以下内容保留为历史参考。
 
 **不再**：试图让 TuiController/LayoutManager/ScreenBuffer/OutputBuffer 工作
-
 **而是**：在 onebit-tui 现有基础设施上构建 Ruby 级功能，利用其已有：
 - ModalManager / Modal 组件
 - List / Progress / TextArea 组件
@@ -870,8 +870,7 @@ moon test
 | 风险 | 影响 | 可能性 | 缓解方案 |
 |------|------|--------|---------|
 | C FFI 复杂度 | HIGH | MEDIUM | 重用 async/tls 模式、分阶段交付、充分的 FFI 测试 |
-| onebit-tui 未成熟 | MEDIUM | MEDIUM | 谨慎扩展、向上游反馈、必要时 fork 修改 |
-| crescent PATCH 缺失 | LOW | HIGH | 方法覆盖、同时向上游贡献 PATCH 支持 |
+| ~~onebit-tui 未成熟~~ | ~~MEDIUM~~ | ~~MEDIUM~~ | ⚠️ 已废弃 onebit-tui，改用 moonbit-community/tty || crescent PATCH 缺失 | LOW | HIGH | 方法覆盖、同时向上游贡献 PATCH 支持 |
 | 无 Thread/Mutex | MEDIUM | HIGH | 使用单线程事件循环帧计时、Ref 足够 |
 | Windows CNG 工作量 | MEDIUM | LOW | 优先交付 OpenSSL 版本、Windows CNG 标注为实验性 |
 | CJK 宽度计算遗漏 | LOW | MEDIUM | 嵌入 Unicode EastAsianWidth 表、充分测试 |
@@ -887,7 +886,7 @@ moon test
 ### 缓解策略总结
 
 1. **分阶段交付**：每个阶段有可工作的软件
-2. **重用已知模式**：async/tls FFI、onebit-tui 组件
+2. **重用已知模式**：async/tls FFI（已迁移至 moonbit-community/tty 的 TUI 不再需要 onebit-tui 组件）
 3. **缺省降级**：OpenSSL 优先、CNG 其次、或标注实验性
 4. **上游友好**：尽量向上游贡献有用的补丁
 5. **充分测试**：加密用 NIST 向量、服务器端点集成测试
@@ -1049,7 +1048,7 @@ services:
 | moonbitlang/async | 异步原语 | client, web |
 | bobzhang/toml | TOML 解析 | config |
 | TheWaWaR/clap | CLI 参数解析 | cmd |
-| Frank-III/onebit-tui | 终端 UI | tui |
+| moonbit-community/tty | 终端 UI | tui |
 | bobzhang/crescent | Web 服务器 | web |
 | bobzhang/lexer | 词法分析 | skill |
 | moonbitlang/quickcheck | 属性测试 | 测试 |
@@ -1071,9 +1070,8 @@ MoonBit 是 AOT 编译语言，不支持运行时方法替换。替代方案为�
 **ADR-5：优先 native 后端**
 native 后端依赖 C 编译器（已配置 MSVC Build Tools），跨平台一致性更好。wasm-gc 因 FFI 依赖不支持。
 
-**ADR-6：UI 引擎差异保留**
-MBOpenClacky 使用 onebit-tui 而非移植 UI2 引擎。UI2 的 26 个组件功能通过 onebit-tui + 增强实现等效覆盖。
-
+**ADR-6：TUI 架构迁移**
+MBOpenClacky 已从 onebit-tui 迁移至 `moonbit-community/tty` Inline Scrolling 架构。UI2 的 26 个组件功能通过 tty + 自建 ScreenBuffer/OutputBuffer/LineEditor/LayoutManager 实现等效覆盖。详见 `docs/tui-inline-migration-plan.md`。
 ### E. 参考文件列表
 
 **Ruby 源（D:/MoonBit/openclacky/）：**

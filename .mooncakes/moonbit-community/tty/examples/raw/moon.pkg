@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/io" @async/io,
+  "moonbitlang/async/stdio" @async/stdio,
+  "moonbit-community/tty",
+}
+
+supported_targets = "native"
+
+options(
+  "is-main": true,
+)

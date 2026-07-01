@@ -7,8 +7,8 @@ import {
   "moonbitlang/async@0.19.1",
   "bobzhang/toml@0.2.1",
   "TheWaWaR/clap@0.2.6",
-  "Frank-III/onebit-tui@0.1.3",
   "bobzhang/crescent@0.10.0",
+  "moonbit-community/tty@0.2.5",
 }
 
 repository = "https://github.com/hnlyxiaobing/MBOpenClacky"

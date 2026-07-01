@@ -1,8 +1,8 @@
 ///|
-/// Session bar component displaying session metadata in a single line.
+/// Session bar component — session metadata display.
 ///
-/// Shows session ID, working directory, mode, model name, and cost.
-/// Rendered between the content area and the input/status bar.
+/// Phase 0 stub: keeps the struct and data methods, removes onebit-tui
+/// View rendering. Full inline rendering will be implemented in Phase 4.
 
 ///|
 /// Session bar data for rendering session-level metadata.
@@ -41,11 +41,10 @@ pub fn SessionBar::new() -> SessionBar {
 }
 
 ///|
-/// Render the session bar as a single-line View.
+/// Render the session bar as a formatted string (inline mode).
 ///
-/// Output format:
-///   [session: abcd1234]  dir: ~/proj  |  mode: auto  |  model: claude-3  |  $0.05
-pub fn SessionBar::render(self : SessionBar) -> @view.View {
+/// Returns a single-line ANSI string for direct terminal output.
+pub fn SessionBar::render_line(self : SessionBar) -> String {
   let sid = if self.session_id.length() > 8 {
     self.session_id[0:8].to_string()
   } else {
@@ -56,27 +55,8 @@ pub fn SessionBar::render(self : SessionBar) -> @view.View {
   } else {
     self.working_dir
   }
-
-  let session_text = "[session: \{sid}]"
-  let dir_text = "dir: \{dir_display}"
-  let mode_text = "mode: \{self.mode}"
-  let model_text = "model: \{self.model}"
-  let cost_text = "$\{format_session_cost(self.cost)}"
-
-  @view.View::container_views([
-    @view.View::text(session_text, color=@tui_core.Cyan),
-    @view.View::text("  "),
-    @view.View::text(dir_text, color=@tui_core.Gray),
-    @view.View::text("  |  ", color=@tui_core.Gray),
-    @view.View::text(mode_text, color=@tui_core.BrightWhite),
-    @view.View::text("  |  ", color=@tui_core.Gray),
-    @view.View::text(model_text, color=@tui_core.Blue),
-    @view.View::text("  |  ", color=@tui_core.Gray),
-    @view.View::text(cost_text, color=@tui_core.Green),
-  ])
-  .direction(Row)
-  .padding(1.0)
-  .background(@tui_core.RGB(0.12, 0.12, 0.18))
+  let cost_str = format_session_cost(self.cost)
+  "[session: \{sid}]  dir: \{dir_display}  |  mode: \{self.mode}  |  model: \{self.model}  |  $\{cost_str}"
 }
 
 ///|
@@ -97,9 +77,32 @@ pub fn SessionBar::update_from_state(
 }
 
 ///|
+/// Format cost for display with at least 4 decimal places.
+///
+/// Preserves extra precision if the value has more than 4 decimal digits.
+/// Example: 0.0 → "0.0000", 1.5 → "1.5000", 0.123456 → "0.123456"
+pub fn format_cost(cost : Double) -> String {
+  let s = cost.to_string()
+  if s.contains(".") {
+    let parts = s.split(".").to_array()
+    if parts.length() >= 2 {
+      let decimals = parts[1]
+      if decimals.length() >= 4 {
+        s
+      } else {
+        s + String::repeat("0", 4 - decimals.length())
+      }
+    } else {
+      s + ".0000"
+    }
+  } else {
+    s + ".0000"
+  }
+}
+
+///|
 /// Format cost for session bar display (2 decimal places).
 fn format_session_cost(cost : Double) -> String {
-  // Multiply by 100, round, then format manually
   let cents = (cost * 100.0).round().to_int()
   let dollars = cents / 100
   let remainder = cents - dollars * 100

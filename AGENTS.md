@@ -8,7 +8,7 @@ The module root is defined in `moon.mod` (`hnlyxiaobing/MBOpenClacky`, `preferre
 
 ```
 cmd/              CLI entry point (clap parsing, agent lifecycle)
-lib/              21 top-level packages
+lib/              22 top-level packages
   agent/          ReAct loop, LLM caller, session/memory/todo, time machine
   client/         LLM API client (OpenAI/Anthropic/Bedrock), SSE streaming
   config/         TOML loader, 12 provider presets, permissions
@@ -42,7 +42,7 @@ moon fmt                                # Format source
 moon info                               # Verify public API changes (mbti diff)
 ```
 
-`moon test --target wasm-gc` fails on FFI in `onebit-tui`/`crescent`; use `moon check` to validate.
+`moon test --target wasm-gc` fails on FFI in `moonbit-community/tty`/`crescent`; use `moon check` to validate.
 
 ## Coding Style & Naming Conventions
 
