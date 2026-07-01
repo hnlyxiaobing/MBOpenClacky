@@ -122,6 +122,9 @@ fn dispatch_hook_event(
             idx = idx + 1
           }
           s.todo_area.update(display_items, completed, todo_items.length())
+          s.active_tasks = a.todo_manager.size()
+          s.working_dir = a.working_dir
+          s.permission_mode = a.config.permission_mode.to_string_value()
         }
         None => ()
       }

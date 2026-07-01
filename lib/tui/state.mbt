@@ -45,6 +45,12 @@ pub(all) struct TuiState {
   mut agent_status : String
   /// Number of completed iterations.
   mut iterations : Int
+  /// Current working directory.
+  mut working_dir : String
+  /// Permission mode.
+  mut permission_mode : String
+  /// Active task count.
+  mut active_tasks : Int
 
   // ── Messages ────────────────────────────────────────────────
   /// Formatted message lines for display ("[ROLE] content").
@@ -122,6 +128,9 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     mode: Idle,
     agent_status: agent.status.to_string_value(),
     iterations: agent.iterations,
+    working_dir: agent.working_dir,
+    permission_mode: agent.config.permission_mode.to_string_value(),
+    active_tasks: agent.todo_manager.size(),
     messages: [],
     streaming_buffer: "",
     streaming_active: false,

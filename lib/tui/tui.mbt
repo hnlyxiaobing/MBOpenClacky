@@ -68,18 +68,12 @@ fn build_main_layout(
   let s = state.val
 
   // Get current terminal dimensions for adaptive component sizing
-  let (term_w, _term_h) = @ffi.get_terminal_size()
+  let (term_w, term_h) = @ffi.get_terminal_size()
   let terminal_width = term_w.reinterpret_as_int()
+  let terminal_height = term_h.reinterpret_as_int()
 
   // Status bar
   let status = status_bar_render(state)
-
-  // Session bar: update from state and render
-  s.session_bar.update_from_state(s)
-  let session_bar_view = s.session_bar.render()
-
-  // Todo area: render above message area
-  let todo_view = s.todo_area.render()
 
   // Main content area: split into message history + tool output
   // Show welcome banner when no messages yet
@@ -93,12 +87,9 @@ fn build_main_layout(
     }
     @view.View::container_views(banner_views).padding(1.0).flex(2.0)
   } else {
-    message_view_render(state).flex(2.0)
+    message_view_render(state)
   }
-  let tool_out = tool_view_render(state).flex(1.0)
-  let content_center = @view.View::container_views([main_panel, tool_out]).direction(
-    Row,
-  )
+  let content_center = main_panel
 
   // Sidebar: render alongside main content when visible
   let content = if s.sidebar_panel.visible {
@@ -114,9 +105,6 @@ fn build_main_layout(
   } else {
     content_center
   }
-
-  // Stats bar
-  let stats = stats_bar_render(state)
 
   // Input bar or running indicator
   let footer = match s.mode {
@@ -153,13 +141,12 @@ fn build_main_layout(
 
   // Assemble full layout
   @view.View::container_views([
-    status,
-    session_bar_view,
-    todo_view,
     content.flex(1.0),
-    stats,
+    status,
     footer,
   ]).direction(Column)
+  .width(terminal_width.to_double())
+  .height(terminal_height.to_double())
 }
 
 ///|
