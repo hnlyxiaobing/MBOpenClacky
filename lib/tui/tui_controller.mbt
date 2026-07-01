@@ -181,7 +181,7 @@ async fn TuiController::place_cursor(self : TuiController) -> Unit {
   let top = h - input_h
   let (cursor_line, cursor_col) = self.input.cursor_display_pos()
   let row = top + 1 + cursor_line
-  let col = 3 + cursor_col  // +3 for "│ " prefix
+  let col = 3 + cursor_col // +3 for "│ " prefix
   self.screen.move_cursor(row, col)
   self.screen.show_cursor()
 }
@@ -264,13 +264,10 @@ async fn TuiController::handle_key(
 ) -> Unit {
   match key.code {
     // Ctrl-C: quit
-    Char('c') if key.modifiers.ctrl() => {
-      self.quit = true
-    }
+    Char('c') if key.modifiers.ctrl() => self.quit = true
     // Ctrl-D: quit if input empty
-    Char('d') if key.modifiers.ctrl() && self.input.is_empty() => {
+    Char('d') if key.modifiers.ctrl() && self.input.is_empty() =>
       self.quit = true
-    }
     // Ctrl-J or Enter: submit or newline
     Enter => self.handle_enter_key()
     Char('j') if key.modifiers.ctrl() => {
@@ -279,9 +276,7 @@ async fn TuiController::handle_key(
       self.dirty = true
     }
     // Ctrl-L: full redraw
-    Char('l') if key.modifiers.ctrl() => {
-      self.full_redraw()
-    }
+    Char('l') if key.modifiers.ctrl() => self.full_redraw()
     // Ctrl-K: kill to end of line
     Char('k') if key.modifiers.ctrl() => {
       self.input.kill_to_end()

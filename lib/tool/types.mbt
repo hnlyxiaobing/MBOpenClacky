@@ -75,10 +75,13 @@ pub(all) struct FunctionDefinition {
   function : FunctionDef
 } derive(Eq, Debug)
 
-///| Manually implement ToJson so `type_` serializes as `"type"` (not `"type_"`)
+///|
+/// Manually implement ToJson so `type_` serializes as `"type"` (not `"type_"`)
 /// in the JSON sent to LLM APIs. The OpenAI tools schema requires the key to
 /// be exactly `"type"`.
-pub impl ToJson for FunctionDefinition with fn to_json(self : FunctionDefinition) -> Json {
+pub impl ToJson for FunctionDefinition with fn to_json(
+  self : FunctionDefinition,
+) -> Json {
   Json::object({
     "type": self.type_.to_json(),
     "function": self.function.to_json(),

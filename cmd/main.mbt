@@ -62,6 +62,10 @@ async fn main {
       "list-templates": @clap.Arg::flag(
         help="List available channel adapter templates",
       ),
+      "tui-eval": @clap.Arg::named(
+        nargs=@clap.Nargs::AtMost(1),
+        help="Run TUI eval scenarios from the given directory (headless mode)",
+      ),
     },
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
@@ -111,6 +115,15 @@ async fn main {
   match get_named_arg(value, "scaffold-channel") {
     Some(platform) => {
       handle_scaffold_channel(platform)
+      return
+    }
+    None => ()
+  }
+
+  // Handle --tui-eval <dir>
+  match get_named_arg(value, "tui-eval") {
+    Some(dir) => {
+      handle_tui_eval(dir)
       return
     }
     None => ()
@@ -167,6 +180,29 @@ fn handle_scaffold_channel(platform : String) -> Unit {
       println("Error: \{e}")
       @sys.exit(1)
     }
+  }
+}
+
+///|
+/// Run TUI eval scenarios from the given directory (headless mode).
+fn handle_tui_eval(dir : String) -> Unit {
+  println("Running TUI eval scenarios from: \{dir}")
+  println("")
+  let batch = @test_tui.run_eval_scenarios(dir)
+  let report = @eval.format_eval_report(batch)
+  println(report)
+  // Write report to logs
+  let log_dir = "logs"
+  @utils.ensure_dir(log_dir)
+  let log_path = @path.Path::join(log_dir, @path.Path("tui_eval_report.txt")).to_string()
+  @fs.write_string_to_file(log_path, report) catch {
+    e => println("Warning: Failed to save report: \{e}")
+  }
+  println("")
+  println("Report saved to: \{log_path}")
+  // Exit with error code if any scenario failed
+  if batch.failed_count > 0 {
+    @sys.exit(1)
   }
 }
 

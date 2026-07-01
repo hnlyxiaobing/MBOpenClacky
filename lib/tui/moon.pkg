@@ -5,7 +5,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbit-community/tty",
   "moonbit-community/tty/input" @tty/input,
-  "moonbit-community/tty/color" @color,
+  "moonbit-community/tty/color",
   "moonbitlang/async",
   "moonbitlang/async/io" @async/io,
 }

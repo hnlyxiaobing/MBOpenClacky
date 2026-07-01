@@ -18,6 +18,11 @@ lib/              22 top-level packages
   channel/        6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin)
   server/         cron scheduler, browser/backup manager, git panel
   tui/  web/  parser/  media/  vision/  billing/  pricing/  ...
+test/             Eval framework (module-agnostic, zero-intrusion to lib/)
+  eval/           Generic eval engine (result types, file loading, reporting)
+  tui/            TUI eval adapter (VirtualScreen, headless simulator, scenarios)
+  scenarios/      Scenario JSON definitions (by module subdirectory)
+    tui/          TUI scenarios (basic_startup, type_and_submit, input_editing)
 assets/           agents, skills, web (CSS/JS), gep templates
 docs/             changelog and development plans
 ```
@@ -54,8 +59,10 @@ moon info                               # Verify public API changes (mbti diff)
 ## Testing Guidelines
 
 - Tests are co-located white-box files named `*_wbtest.mbt` next to source (e.g. `lib/agent/session_restore_wbtest.mbt`).
+- Eval framework tests live in `test/` (e.g. `test/eval/eval_engine_wbtest.mbt`, `test/tui/tui_eval_adapter_wbtest.mbt`).
 - Name tests descriptively around the behavior under test; keep them package-local.
 - Validate after every edit with `moon check` then the relevant `moon test` scope. Use `moon test --update` for snapshot changes.
+- Run TUI eval scenarios: `moon build --target native --release cmd` then `cmd.exe --tui-eval test/scenarios/tui/`
 
 ## Commit & Pull Request Guidelines
 

@@ -48,8 +48,16 @@ fn query_size_safe(tty : @tty.Tty) -> (Int, Int) {
   } noraise {
     size =>
       (
-        if size.cols < 1 { 80 } else { size.cols },
-        if size.rows < 1 { 24 } else { size.rows },
+        if size.cols < 1 {
+          80
+        } else {
+          size.cols
+        },
+        if size.rows < 1 {
+          24
+        } else {
+          size.rows
+        },
       )
   }
 }
@@ -144,10 +152,7 @@ async fn ScreenBuffer::clear_scrollback(self : ScreenBuffer) -> Unit {
 
 ///|
 /// Write a string at the current cursor position.
-async fn ScreenBuffer::write_string(
-  self : ScreenBuffer,
-  text : String,
-) -> Unit {
+async fn ScreenBuffer::write_string(self : ScreenBuffer, text : String) -> Unit {
   self.tty.write_string(text)
 }
 
@@ -156,10 +161,7 @@ async fn ScreenBuffer::write_string(
 ///
 /// Uses \r\n for maximum terminal compatibility (some terminals
 /// treat bare \n as line feed without carriage return).
-async fn ScreenBuffer::write_line(
-  self : ScreenBuffer,
-  text : String,
-) -> Unit {
+async fn ScreenBuffer::write_line(self : ScreenBuffer, text : String) -> Unit {
   self.tty.write_string(text + "\r\n")
 }
 

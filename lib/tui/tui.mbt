@@ -11,7 +11,7 @@
 /// Falls back to a console message if terminal initialization fails.
 pub async fn run_tui_interactive(agent : @agent.Agent) -> Unit {
   let tty = @tty.Tty::stdio()
-  try tty.with_raw_mode(() => {
+  tty.with_raw_mode(() => {
     let controller = TuiController::new(tty, agent)
     controller.run()
   }) catch {

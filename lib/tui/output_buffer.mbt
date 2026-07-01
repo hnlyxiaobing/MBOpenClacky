@@ -119,12 +119,7 @@ pub fn OutputBuffer::append(
 ) -> Int {
   let id = self.next_id
   self.next_id = self.next_id + 1
-  let entry = {
-    id,
-    lines: lines.copy(),
-    kind,
-    committed_line_offset: 0,
-  }
+  let entry = { id, lines: lines.copy(), kind, committed_line_offset: 0 }
   self.entries.push(entry)
   self.trim_if_needed()
   self.version = self.version + 1
@@ -200,10 +195,7 @@ pub fn OutputBuffer::replace(
 /// Returns the removed entry if successful, or `None` if:
 /// - The entry doesn't exist
 /// - The entry has any committed lines (committed_line_offset > 0)
-pub fn OutputBuffer::remove(
-  self : OutputBuffer,
-  id : Int,
-) -> OutputEntry? {
+pub fn OutputBuffer::remove(self : OutputBuffer, id : Int) -> OutputEntry? {
   let mut found_index = -1
   for i = 0; i < self.entries.length(); i = i + 1 {
     if self.entries[i].id == id {
@@ -241,10 +233,7 @@ pub fn OutputBuffer::remove(
 /// After this call, all entries up to and including the one with the
 /// given id are in the scrollback and can never be modified again.
 /// Entries after the given id are unaffected.
-pub fn OutputBuffer::commit_through(
-  self : OutputBuffer,
-  id : Int,
-) -> Unit {
+pub fn OutputBuffer::commit_through(self : OutputBuffer, id : Int) -> Unit {
   let mut found = false
   for i = 0; i < self.entries.length(); i = i + 1 {
     let entry = self.entries[i]
@@ -286,11 +275,7 @@ pub fn OutputBuffer::commit_oldest_lines(
     if available <= 0 {
       continue
     }
-    let to_commit = if remaining < available {
-      remaining
-    } else {
-      available
-    }
+    let to_commit = if remaining < available { remaining } else { available }
     entry.committed_line_offset = entry.committed_line_offset + to_commit
     remaining = remaining - to_commit
   }
@@ -316,10 +301,7 @@ pub fn OutputBuffer::live_entries(self : OutputBuffer) -> Array[OutputEntry] {
 /// Get the last N visual lines across all entries (live + committed).
 ///
 /// Used for rendering the visible portion of the output area.
-pub fn OutputBuffer::tail_lines(
-  self : OutputBuffer,
-  n : Int,
-) -> Array[String] {
+pub fn OutputBuffer::tail_lines(self : OutputBuffer, n : Int) -> Array[String] {
   if n <= 0 {
     return []
   }
@@ -377,10 +359,7 @@ pub fn OutputBuffer::live_tail_lines(
 
 ///|
 /// Check if an entry with the given id is live (has uncommitted lines).
-pub fn OutputBuffer::is_live(
-  self : OutputBuffer,
-  id : Int,
-) -> Bool {
+pub fn OutputBuffer::is_live(self : OutputBuffer, id : Int) -> Bool {
   for entry in self.entries {
     if entry.id == id {
       return entry.is_live()
@@ -391,10 +370,7 @@ pub fn OutputBuffer::is_live(
 
 ///|
 /// Check if an entry is fully editable (exists and has no committed lines).
-pub fn OutputBuffer::is_fully_editable(
-  self : OutputBuffer,
-  id : Int,
-) -> Bool {
+pub fn OutputBuffer::is_fully_editable(self : OutputBuffer, id : Int) -> Bool {
   for entry in self.entries {
     if entry.id == id {
       return entry.is_fully_editable()
@@ -405,10 +381,7 @@ pub fn OutputBuffer::is_fully_editable(
 
 ///|
 /// Get an entry by id, if it exists.
-pub fn OutputBuffer::get_entry(
-  self : OutputBuffer,
-  id : Int,
-) -> OutputEntry? {
+pub fn OutputBuffer::get_entry(self : OutputBuffer, id : Int) -> OutputEntry? {
   for entry in self.entries {
     if entry.id == id {
       return Some(entry)

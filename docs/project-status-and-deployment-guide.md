@@ -28,18 +28,18 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| 源代码行数 | ~112,106 行 | 含测试 ~112,106 行（非测试源码 ~96,141 行，测试 ~15,965 行） |
-| 源代码文件数 | 317 个 .mbt（lib: 310, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
-| 测试文件数 | 51 个 _wbtest.mbt | Ruby 约 138 个 spec |
-| 测试用例数 | 1,352 | 全部通过（moon test native） |
-| 编译状态 | 0 errors, 355 warnings | `moon check`（native target） |
+| 源代码行数 | ~65,233 行 | 含测试 ~65,233 行（非测试源码 ~50,613 行，测试 ~14,620 行） |
+| 源代码文件数 | 314 个 .mbt（lib: 301, cmd: 7, test: 6） | Ruby 约 196 个核心 .rb（lib/） |
+| 测试文件数 | 53 个 _wbtest.mbt | Ruby 约 138 个 spec |
+| 测试用例数 | 1,344 | 全部通过（moon test native） |
+| 编译状态 | 0 errors, 426 warnings | `moon check`（native target） |
 | 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe (~3.8MB release) |
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
 | 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |
 ### 关键发现
 
-1. **编译错误已全部修复**：`moon check` 通过（0 errors, 355 warnings）
-2. **全量测试 100% 通过**：1,352 / 1,352 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
+1. **编译错误已全部修复**：`moon check` 通过（0 errors, 426 warnings）
+2. **全量测试 100% 通过**：1,344 / 1,344 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
 3. **P0 级部署阻碍已清除**：
    - AES-256-GCM 加密通过 C FFI（OpenSSL）实现，72 个 brand 测试全过
    - Dockerfile 构建产物路径修正为 `_build/native/release/build/cmd/cmd.exe`
@@ -49,7 +49,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 5. **主要差距已大幅缩小**：
    - HTTP 服务器增强：middleware（auth/error_envelope/timeout/logging）+ broadcast/hub + 12 个 handlers 已实现
    - 浏览器工具实现：从骨架增长到 ~2,074 行，完成度 65-70%
-   - TUI 控制器：从 ~2,078 行增长到 4,605 行/25 文件
+   - TUI 控制器：从 ~2,078 行增长到 5,971 行/26 文件；Eval 框架已提取到 `test/` 目录（6 文件/1,258 行）
 6. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
 7. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块缺少测试覆盖、无 CI/CD 流水线、无进程守护方案
 ---
@@ -77,7 +77,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 | skill | 1,876 / 11 | 1,937 / 12 | 1.03x | ✅ MB已超越 |
 | telemetry | 143 / 1 | 385 / 4 | 2.69x | ✅ MB已超越 |
 | **tool** | 5,384 / 18 | 5,225 / 26 | 0.97x | ✅ 基本对齐 |
-| **tui/ui2** | 8,944 / 40 | 4,605 / 25 | 0.52x | 🟡 **不足（+38%↑）** |
+| **tui/ui2** | 8,944 / 40 | 5,971 / 26 | 0.67x | 🟡 **不足（+38%↑）** |
 | utils | 3,054 / 17 | 3,944 / 26 | 1.29x | ✅ MB已超越 |
 | vision | 138 / 1 | 538 / 4 | 3.90x | ✅ MB已超越 |
 | **web** | 33,888 / 85 | 5,672 / 33 | 0.17x | 🟡 **不足（+51%↑）** |
@@ -118,6 +118,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 | 媒体生成 | ✅ 已完成 | 90% | DashScope/Gemini/OpenAI |
 | MCP协议 | ✅ 已完成 | 95% | Stdio/HTTP传输 |
 | 文档解析 | ✅ 已完成 | 100% | PDF/DOCX/PPTX/XLSX |
+| Eval 框架 | ✅ 已完成 | 90% | test/eval 通用引擎 + test/tui TUI 适配层 + 3 个 scenario，插件式架构可扩展至其他模块 |
 
 ---
 
@@ -191,6 +192,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 **现状**：
 - Ruby UI2 约 8944 行（UIController + RichUIController）
 - MBOpenClacky 已迁移至 `moonbit-community/tty` Inline Scrolling 架构，TUI 模块 26 个文件
+- Eval 框架已提取到独立的 `test/` 目录体系（`test/eval/` 通用引擎 + `test/tui/` TUI 适配层 + `test/scenarios/` 场景定义），对 `lib/tui/` 零侵入
 - 新增文件：screen_buffer、output_buffer、line_editor、layout_manager、input_area、status_bar、tui_controller 等
 - 已废弃 onebit-tui + vendor/yoga + C FFI 渲染器，改用纯 MoonBit tty crate
 **剩余问题**：
@@ -762,11 +764,11 @@ moon test
 验证结果：
 | 检查项 | 结果 |
 |--------|------|
-| moon check | 0 errors, 323 warnings |
+| moon check | 0 errors, 426 warnings |
 | moon build --target native --release cmd | 成功，生成 cmd.exe (~3.8MB release) |
 | moon run cmd -- --version | MBOpenClacky v0.1.0 |
 | moon run cmd -- --help | 帮助信息正常显示 |
-| moon test | 1,341 / 1,341 通过 |
+| moon test | 1,344 / 1,344 通过 |
 ---
 
 ## 实施路线图
@@ -805,7 +807,7 @@ moon test
 - [x] 静态文件服务和路由已修复（server.mbt catch-all + SPA fallback）
 
 #### 阶段 4：TUI 增强（P1，约 1.5 周）✅ 大部分已完成
-目标：TUI 达到 Ruby 80% 功能（当前 4,605 行/25 文件）
+目标：TUI 达到 Ruby 80% 功能（当前 5,971 行/26 文件）
 - [x] 领域 4.1：移除“阶段 7”限制，集成所有钩子 — agent_hooks.mbt 已创建
 - [x] 领域 4.2：进度栈和 Spinner — progress_stack.mbt 已创建
 - [x] 领域 4.3：多行编辑器和命令建议 — editor.mbt、command_suggestions.mbt、cjk_width.mbt 已创建
@@ -990,9 +992,9 @@ services:
 
 | 维度 | Ruby 源项目 | MBOpenClacky | 差距 |
 |------|-------------|-------------|------|
-| 测试文件数 | 138 个 spec | 49 个 test | -64.5% |
-| 测试代码行数 | ~28,842 行 | ~15,776 行 | -45.3% |
-| 测试用例数 | 待验证 | 1,341 个（全部通过） | - |
+| 测试文件数 | 138 个 spec | 53 个 test | -61.6% |
+| 测试代码行数 | ~28,842 行 | ~14,620 行 | -49.3% |
+| 测试用例数 | 待验证 | 1,344 个（全部通过） | - |
 | 模块覆盖率 | ~100% | ~90%+ | billing/utils/server/pricing/message 已覆盖 |
 模块级测试覆盖（MBOpenClacky）：
 
@@ -1009,18 +1011,20 @@ services:
 | lib/billing/ | 11 | ✅ 新建已覆盖 |
 | lib/pricing/ | 15 | ✅ 新建已覆盖 |
 | lib/channel/ | 187 | ✅ 含完整适配器测试 |
-| lib/brand/ | 20 | ✅ |
+| lib/brand/ | 72 | ✅ |
 | lib/hook/ | 20 | ✅ |
 | lib/telemetry/ | 15 | ✅ |
 | lib/parser/ | 73 | ✅ |
 | lib/media/ | 53 | ✅ |
-| lib/vision/ | 28 | ✅ |
-| lib/mcp/ | 0 | ⚠️ 测试待补齐（7个源文件但 0 个测试文件） |
-| lib/tui/ | 47 | ✅ |
+| lib/vision/ | 39 | ✅ |
+| lib/mcp/ | 46 | ✅ |
+| lib/tui/ | 50 | ✅ eval 测试已迁移至 test/tui/ |
 | lib/errors/ | 6 | ✅ |
-| lib/web/ | 87 | ✅ |
+| lib/web/ | 86 | ✅ |
+| test/eval/ | 4 | ✅ 通用 eval 引擎单元测试 |
+| test/tui/ | 26 | ✅ TUI eval 适配层集成测试 |
 
-无测试模块：mcp（待补齐，当前 7 个源文件但 0 个测试文件）
+无测试覆盖模块：无（所有模块均已覆盖）
 
 ### B. 文档差距分析
 

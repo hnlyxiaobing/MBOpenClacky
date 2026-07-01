@@ -14,6 +14,8 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/tui",
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "hnlyxiaobing/MBOpenClacky/test/eval",
+  "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
 }
 
 options(
@@ -28,6 +30,8 @@ options(
   // so this flag must not be applied there.
   // Note: Yoga link flags removed — TUI migrated to moonbit-community/tty inline mode.
   link: {
-    "native": { "cc-link-flags": "-Wl,--no-as-needed -lcrypto -lcurl -Wl,--as-needed" },
+    "native": {
+      "cc-link-flags": "-lcrypto -lcurl",
+    },
   },
 )

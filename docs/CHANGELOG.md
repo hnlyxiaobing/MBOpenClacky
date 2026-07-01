@@ -26,6 +26,28 @@
 ## 变更记录
 
 
+### 2026-07-01  Eval 框架全局重构
+
+- `[refactor]` **Eval 框架从 `lib/tui/` 提取到独立的 `test/` 包体系**
+  - 新建 `test/eval/eval_engine.mbt` (96行) — 通用 eval 引擎：结果类型 + 文件加载 + 报告格式化
+  - 新建 `test/eval/eval_engine_wbtest.mbt` (77行) — 引擎单元测试 4 个
+  - 新建 `test/tui/virtual_screen.mbt` (328行) — 从 `lib/tui/` 迁移
+  - 新建 `test/tui/tui_eval_adapter.mbt` (570行) — 合并原 eval_scenario.mbt + eval_runner.mbt，使用 `@eval.EvalScenarioResult` 等通用类型
+  - 新建 `test/tui/virtual_screen_wbtest.mbt` (132行) + `tui_eval_adapter_wbtest.mbt` (153行) — 迁移测试
+  - 迁移 `assets/evals/tui/*.json` → `test/scenarios/tui/`
+- `[chore]` **清理 `lib/tui/` eval 文件和依赖**
+  - 删除 5 个文件：virtual_screen.mbt、eval_scenario.mbt、eval_runner.mbt、virtual_screen_wbtest.mbt、eval_runner_wbtest.mbt
+  - `lib/tui/moon.pkg` 移除 json/fs/path 三个依赖
+- `[chore]` **更新 `cmd/` 引用**
+  - `cmd/moon.pkg` 添加 `test/eval` + `test/tui` 依赖
+  - `cmd/main.mbt` `handle_tui_eval()` 改用 `@test_tui.run_eval_scenarios()` + `@eval.format_eval_report()`
+- `[docs]` **更新 AGENTS.MD、project-status、CHANGELOG**
+
+**架构设计要点**：
+- 三层架构：`test/eval/`（通用引擎）→ `test/tui/`（插件式适配层）→ `test/scenarios/`（场景定义）
+- 对 `lib/` 业务代码零侵入，通过 `pub(all)` API 驱动
+- 可扩展至其他模块：在 `test/{module}/` 创建适配器，返回 `@eval.EvalScenarioResult` 即可接入统一报告
+
 ### 2026-07-01  Browser 模块拆分重构 + Vision OCR + 安装脚本增强
 
 - `[refactor]` **Browser 模块拆分为 5 个职责单一的文件**

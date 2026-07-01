@@ -1,0 +1,18 @@
+{
+  "name": "input_editing",
+  "description": "Test input editing: type, backspace, and cursor movement",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "hello world" },
+    { "type": "press", "key": "Backspace" },
+    { "type": "press", "key": "Backspace" },
+    { "type": "screenshot" }
+  ],
+  "assertions": [
+    { "check": "input_contains", "text": "hello wor" },
+    { "check": "not_contains", "text": "hello world" }
+  ]
+}

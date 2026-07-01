@@ -75,9 +75,13 @@ pub fn LineEditor::line_count(self : LineEditor) -> Int {
 ///|
 /// Get a specific line (clamped to valid range).
 pub fn LineEditor::get_line(self : LineEditor, idx : Int) -> String {
-  let i = if idx < 0 { 0 } else if idx >= self.lines.length() {
+  let i = if idx < 0 {
+    0
+  } else if idx >= self.lines.length() {
     self.lines.length() - 1
-  } else { idx }
+  } else {
+    idx
+  }
   self.lines[i]
 }
 
@@ -119,7 +123,10 @@ pub fn LineEditor::snapshot(self : LineEditor) -> LineEditorSnapshot {
 
 ///|
 /// Restore from a snapshot.
-pub fn LineEditor::restore(self : LineEditor, snap : LineEditorSnapshot) -> Unit {
+pub fn LineEditor::restore(
+  self : LineEditor,
+  snap : LineEditorSnapshot,
+) -> Unit {
   self.lines.clear()
   for l in snap.lines {
     self.lines.push(l)
@@ -361,7 +368,10 @@ pub fn LineEditor::cursor_right(self : LineEditor) -> Unit {
 pub fn LineEditor::cursor_up(self : LineEditor) -> Unit {
   if self.multiline && self.cursor_line > 0 {
     self.cursor_line = self.cursor_line - 1
-    self.cursor_col = clamp_col(self.cursor_col, self.lines[self.cursor_line].length())
+    self.cursor_col = clamp_col(
+      self.cursor_col,
+      self.lines[self.cursor_line].length(),
+    )
   }
 }
 
@@ -370,7 +380,10 @@ pub fn LineEditor::cursor_up(self : LineEditor) -> Unit {
 pub fn LineEditor::cursor_down(self : LineEditor) -> Unit {
   if self.multiline && self.cursor_line < self.lines.length() - 1 {
     self.cursor_line = self.cursor_line + 1
-    self.cursor_col = clamp_col(self.cursor_col, self.lines[self.cursor_line].length())
+    self.cursor_col = clamp_col(
+      self.cursor_col,
+      self.lines[self.cursor_line].length(),
+    )
   }
 }
 

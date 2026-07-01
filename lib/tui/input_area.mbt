@@ -7,7 +7,6 @@
 /// - Display cursor position (accounting for CJK width)
 /// - Prompt prefix support
 /// - Placeholder text when empty
-
 pub(all) struct InputArea {
   /// The underlying line editor.
   editor : LineEditor
@@ -265,9 +264,6 @@ pub fn InputArea::snapshot(self : InputArea) -> LineEditorSnapshot {
 
 ///|
 /// Restore the editor state from a snapshot.
-pub fn InputArea::restore(
-  self : InputArea,
-  snap : LineEditorSnapshot,
-) -> Unit {
+pub fn InputArea::restore(self : InputArea, snap : LineEditorSnapshot) -> Unit {
   self.editor.restore(snap)
 }

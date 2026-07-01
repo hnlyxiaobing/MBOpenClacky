@@ -58,9 +58,10 @@ pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit 
   self.segments.clear()
   // Status indicator with color hint
   let status_text = "● \{state.agent_status}"
-  self.segments.push(
-    StatusSegment::{ text: status_text, color: SegmentColor::Status },
-  )
+  self.segments.push(StatusSegment::{
+    text: status_text,
+    color: SegmentColor::Status,
+  })
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
   // Session ID (truncated to 8 chars)
   let sid = if state.session_id.length() > 8 {
@@ -75,9 +76,10 @@ pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit 
   self.segments.push(StatusSegment::{ text: dir, color: Dir })
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
   // Permission mode
-  self.segments.push(
-    StatusSegment::{ text: state.permission_mode, color: Permission },
-  )
+  self.segments.push(StatusSegment::{
+    text: state.permission_mode,
+    color: Permission,
+  })
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
   // Model name (truncated)
   let model = truncate_model(state.model_name, 24)
@@ -101,15 +103,17 @@ pub fn StatusBar::format_compact(
   cost : Double,
 ) -> Unit {
   self.segments.clear()
-  self.segments.push(
-    StatusSegment::{ text: "● \{status}", color: SegmentColor::Status },
-  )
+  self.segments.push(StatusSegment::{
+    text: "● \{status}",
+    color: SegmentColor::Status,
+  })
   self.segments.push(StatusSegment::{ text: "  ", color: Dim })
   self.segments.push(StatusSegment::{ text: model, color: Model })
   self.segments.push(StatusSegment::{ text: "  ", color: Dim })
-  self.segments.push(
-    StatusSegment::{ text: "$\{format_cost(cost)}", color: Cost },
-  )
+  self.segments.push(StatusSegment::{
+    text: "$\{format_cost(cost)}",
+    color: Cost,
+  })
 }
 
 ///|
@@ -130,10 +134,7 @@ pub fn StatusBar::segment_count(self : StatusBar) -> Int {
 
 ///|
 /// Get a segment by index.
-pub fn StatusBar::get_segment(
-  self : StatusBar,
-  i : Int,
-) -> StatusSegment {
+pub fn StatusBar::get_segment(self : StatusBar, i : Int) -> StatusSegment {
   self.segments[i]
 }
 

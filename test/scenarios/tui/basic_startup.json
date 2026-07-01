@@ -1,0 +1,13 @@
+{
+  "name": "basic_startup",
+  "description": "Verify TUI renders correctly on startup with default state",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [],
+  "assertions": [
+    { "check": "status_contains", "text": "idle" },
+    { "check": "input_contains", "text": "Input" }
+  ]
+}

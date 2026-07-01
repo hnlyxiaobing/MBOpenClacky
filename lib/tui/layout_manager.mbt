@@ -15,7 +15,6 @@
 ///
 /// **Commit invariant**: committed output lines are never re-rendered.
 /// Only live (uncommitted) entries are redrawn on each frame.
-
 pub(all) struct LayoutManager {
   screen : ScreenBuffer
   output : OutputBuffer
@@ -32,8 +31,8 @@ pub(all) struct LayoutManager {
 pub fn LayoutManager::new(
   screen : ScreenBuffer,
   output : OutputBuffer,
-  status_h~ : Int = 1,
-  input_h~ : Int = 3,
+  status_h? : Int = 1,
+  input_h? : Int = 3,
 ) -> LayoutManager {
   let m = {
     screen,
@@ -44,7 +43,7 @@ pub fn LayoutManager::new(
     height: 24,
     msg_top: 1,
     msg_bottom: 20,
-    msg_height: 20
+    msg_height: 20,
   }
   m.compute_layout()
   m
@@ -157,9 +156,7 @@ async fn LayoutManager::render_input_area(
     self.screen.clear_to_eol()
     if i == 0 {
       // Top border: ┌─ Input ────┐
-      self.screen.set_foreground(
-        @color.Color::Basic(@color.BasicColor::Blue),
-      )
+      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Blue))
       self.screen.write_string("┌─ Input ")
       let border_w = self.width - 10
       for j = 0; j < border_w; j = j + 1 {
@@ -168,9 +165,7 @@ async fn LayoutManager::render_input_area(
       self.screen.reset_style()
     } else if i == self.input_h - 1 {
       // Bottom border: └──────┘
-      self.screen.set_foreground(
-        @color.Color::Basic(@color.BasicColor::Blue),
-      )
+      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Blue))
       self.screen.write_string("└")
       let border_w = self.width - 2
       for j = 0; j < border_w; j = j + 1 {
@@ -180,17 +175,13 @@ async fn LayoutManager::render_input_area(
       self.screen.reset_style()
     } else if i - 1 < lines.length() {
       // Content line: │ text
-      self.screen.set_foreground(
-        @color.Color::Basic(@color.BasicColor::Blue),
-      )
+      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Blue))
       self.screen.write_string("│ ")
       self.screen.reset_style()
       self.screen.write_string(lines[i - 1])
     } else {
       // Empty line: │
-      self.screen.set_foreground(
-        @color.Color::Basic(@color.BasicColor::Blue),
-      )
+      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Blue))
       self.screen.write_string("│")
       self.screen.reset_style()
     }
