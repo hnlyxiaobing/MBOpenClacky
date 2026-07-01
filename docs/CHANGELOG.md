@@ -55,8 +55,43 @@
 - `[verify]` `moon check` 最终验证：0 errors, 323 warnings
 
 
-### 2026-06-30  Phase 23 部署阻碍修复 + 文档全量校准 + 全量测试通过
+### 2026-07-01  TUI 布局修复：Yoga 引擎替换 + 视觉层次对齐
 
+- `[fix]` **根因定位：onebit-yoga 的 yoga_stubs.c 是空桩，所有子节点坍塌到 (0,0)**
+  - `onebit-yoga` 提供的 `yoga_stubs.c` 中 `YGNodeCalculateLayout` 返回全零布局（top=0, left=0, width=0, height=0）
+  - Yoga 布局引擎在 Flexbox 列布局下，父节点无明确高度 → 子节点 flex(1.0) 被解析为 0 → 所有组件（状态栏/输入框/按钮/占位符）堆叠在终端左上角
+  - 表现为截图中文字交叠（`stimated)00t yetP%P%P%P%...`）和 Submit/Quit 按钮乱入
+- `[fix]` **替换为真实 Facebook Yoga 引擎**
+  - `scripts/setup_yoga.sh` — 编译脚本：下载 Facebook Yoga 2.0.2 C++ 源码 + C wrapper（`vendor/yoga/`），构建 `libyoga_full.a` 静态库
+  - `cmd/moon.pkg` / `lib/tui/moon.pkg` — 添加 `-lyoga_full -lstdc++` 链接标志
+  - `.mooncakes/Frank-III/onebit-yoga/src/ffi/moon.pkg.json` — 从 native-stub 中移除空桩 yoga_stubs.c
+  - 构建产物：`vendor/yoga/lib/libyoga_full.a`（~408KB）
+- `[fix]` **根布局约束修复** — `lib/tui/tui.mbt` `build_main_layout`
+  - 根 Column 容器添加 `.width(terminal_width.to_double())` 和 `.height(terminal_height.to_double())`，强制撑开全屏
+  - 消息视图 `message_view_render` 改为从终端高度计算可见行数 + 自动滚动
+  - `lib/tui/message_view.mbt` — `message_view_render` 重写：`max_visible_lines` 基于终端高度动态计算
+- `[fix]` **状态栏重构** — `lib/tui/status_bar.mbt` (42 行重写)
+  - 从顶部移至底部（输入栏上方），更接近源项目 Inline TUI 的视觉习惯
+  - 显示内容：Agent 状态 / 模型名 / 迭代次数 / 工作目录 / 权限模式 / 活跃任务数
+  - 颜色映射：running→Green / error→Red / completed→Blue / 其他→Gray
+- `[feat]` **TuiState 扩展** — `lib/tui/state.mbt`
+  - 新增字段：`working_dir : String`、`permission_mode : String`、`active_tasks : Int`
+  - `from_agent` 工厂方法同步新增字段
+- `[feat]` **Agent Hooks 增强** — `lib/tui/agent_hooks.mbt`
+  - RunCompleted 事件中同步 `working_dir`、`active_tasks` 到 TuiState
+- `[test]` **布局回归测试** — `lib/tui/tui_layout_wbtest.mbt` (94 行)
+  - 验证：容器子节点 Y 轴偏移递增不重叠（Flex 列布局正确展开）
+  - 验证：flex(1.0) 子节点获得正高度（弹性空间分配正确）
+  - 验证：固定高度子节点不被压缩
+- `[fix]` **构建依赖补充**
+  - `lib/agent/moon.pkg`、`lib/client/moon.pkg`、`lib/tool/moon.pkg`、`lib/vision/moon.pkg` — 添加 `-lcurl` 链接标志（test 二进制链接 lib/client 需要 libcurl）
+- `[verify]` **全量验证通过**
+  - `moon check`：0 errors
+  - `moon test --target native`：1,355 / 1,355 通过（+14 新测试）
+  - TUI 交互验证：在 tmux 终端中运行 `_build/native/debug/build/cmd/cmd.exe`，确认渲染 OpenClacky / AI Agent TUI 欢迎横幅 + 输入栏，按 `q` 正常退出
+
+
+### 2026-06-30  Phase 23 部署阻碍修复 + 文档全量校准 + 全量测试通过
 - `[fix]` **P0/P1 级测试失败全部修复 — 1,341 / 1,341 测试通过（100%）**
   - 此前 gap analysis 标记的 4 项测试失败已全部解决：
     - `brand/crypto`：AES-256-GCM C FFI（OpenSSL native stub）修复 — `lib/brand/crypto_native.c` 实现 EVP AES-GCM 加解密 + RAND_bytes CSPRNG，72 个 brand 测试全过

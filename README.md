@@ -22,14 +22,14 @@
 | 代码行数（源代码） | ~48,555 行 |
 | 代码行数（测试） | ~15,776 行 |
 | 代码行数（总计） | ~64,331 行 |
-| 测试用例 | 1,341 个（全部通过） |
+| 测试用例 | 1,355 个（全部通过） |
 | MoonBit 包数 | 27 个（21 个 lib 顶级包 + 4 个 web 子包 + 1 个 lib 根包 + 1 个 cmd 入口包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 68+ 个 |
 | IM 渠道适配器 | 6 个 |
-| `moon check` | 0 errors, 323 warnings |
-| `moon test` | 1,341 / 1,341 通过 |
+| `moon check` | 0 errors, 326 warnings |
+| `moon test` | 1,355 / 1,355 通过 |
 
 ### 功能亮点
 
@@ -204,11 +204,11 @@ moon build --target native cmd
 ### 运行
 
 ```bash
-# 直接运行 cmd 入口
-moon run cmd
+# 直接运行 cmd 入口（非交互模式用 --message，交互模式直接启动 TUI）
+moon run cmd -- --message "Hello"
 
-# 或运行已构建的 release 可执行文件
-./_build/native/release/build/cmd/cmd.exe
+# 启动 TUI 交互模式（推荐直接运行编译好的二进制）
+./_build/native/debug/build/cmd/cmd.exe
 
 # 启动 Web 服务器模式（默认端口 7070）
 moon run cmd -- server
@@ -296,6 +296,14 @@ moon test
 3. **wasm-gc 目标不支持**（P2）
    - **现象**：`moon test --target wasm-gc` 因 `onebit-tui` 和 `crescent` 的 FFI 依赖失败
    - **Workaround**：使用 `moon check` 进行类型验证
+
+#### TUI 相关
+
+4. **Yoga 布局引擎已修复**（✅ 2026-07-01 解决）
+   - **原问题**：`onebit-yoga` 的 `yoga_stubs.c` 是空桩，导致所有 TUI 组件堆叠在左上角
+   - **修复**：替换为真实 Facebook Yoga 2.0.2 静态库，根布局添加显式终端尺寸约束
+   - **详见**：[`docs/TUI_DEBUG_PLAN.md`](./docs/TUI_DEBUG_PLAN.md)
+   - **注意**：启动 TUI 建议直接运行编译好的二进制 `./_build/native/debug/build/cmd/cmd.exe`，`moon run cmd` 包装器在某些终端环境下可能不启动 TUI
 
 #### 功能相关
 

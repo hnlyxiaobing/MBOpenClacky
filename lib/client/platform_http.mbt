@@ -263,12 +263,12 @@ let http_response_buf_size : Int = 4 * 1024 * 1024
 /// C FFI: synchronous HTTP request via WinHTTP (Windows) or libcurl (Linux).
 /// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
 #cfg(target="native")
-#borrow(method_b, url_b, headers_b, body_b, resp_buf, meta_buf, err_buf)
+#borrow(method, url, headers, body, resp_buf, meta_buf, err_buf)
 extern "C" fn http_post_ffi(
-  method_b : Bytes,
-  url_b : Bytes,
-  headers_b : Bytes,
-  body_b : Bytes,
+  method : String,
+  url : String,
+  headers : String,
+  body : String,
   timeout_ms : Int,
   resp_buf : Bytes,
   meta_buf : Bytes,
@@ -309,6 +309,7 @@ fn format_headers(headers : Array[(String, String)]) -> String {
 
 ///|
 /// Actual HTTP transport via C FFI (WinHTTP on Windows, libcurl on Linux/macOS).
+/// The C side handles UTF-16→UTF-8 conversion for MoonBit String parameters.
 pub fn send_request(
   method : HttpMethod,
   url : String,
@@ -318,28 +319,23 @@ pub fn send_request(
 ) -> Result[HttpResponse, HttpError] {
   let method_str = http_method_str(method)
   let headers_str = format_headers(headers)
-  // Prepare FFI input buffers (null-terminated)
-  let method_b = method_str.to_bytes()
-  let url_b = url.to_bytes()
-  let headers_b = headers_str.to_bytes()
-  let body_b = body.to_bytes()
   // Allocate output buffers
   let resp_buf = Bytes::make(http_response_buf_size, 0)
   let meta_buf = Bytes::make(8, 0)
   let err_buf = Bytes::make(1024, 0)
-  // Call C FFI
+  // Call C FFI (C handles String→UTF-8 conversion internally)
   let ffi_result = http_post_ffi(
-    method_b, url_b, headers_b, body_b, timeout_ms, resp_buf, meta_buf, err_buf,
+    method_str, url, headers_str, body, timeout_ms, resp_buf, meta_buf, err_buf,
   )
   // Parse metadata from meta_buf
   let http_status = read_le_int32(meta_buf, 0)
   let body_size = read_le_int32(meta_buf, 4)
   if ffi_result != 0 {
-    let err_msg = err_buf[:1024].to_string()
+    let err_msg = @utf8.decode_lossy(err_buf[:1024])
     return Err(ConnectionFailed(err_msg))
   }
   let resp_body = if body_size > 0 {
-    resp_buf[:body_size].to_string()
+    @utf8.decode_lossy(resp_buf[:body_size])
   } else {
     ""
   }

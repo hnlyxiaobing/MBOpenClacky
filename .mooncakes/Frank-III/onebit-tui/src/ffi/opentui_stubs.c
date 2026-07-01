@@ -35,16 +35,13 @@ int32_t mb_system(const char* cmd) {
     return (int32_t)system(cmd);
 }
 
-// ── Stub: curl (not needed for TUI rendering) ──────────────────────────
-
-void* curl_easy_init(void) { return NULL; }
-void curl_easy_cleanup(void* h) { (void)h; }
-int curl_easy_setopt(void* h, int opt, ...) { (void)h; (void)opt; return 0; }
-int curl_easy_perform(void* h) { (void)h; return 1; }
-int curl_easy_getinfo(void* h, int info, void* p) { (void)h; (void)info; (void)p; return 1; }
-const char* curl_easy_strerror(int code) { (void)code; return "curl stub"; }
-struct curl_slist* curl_slist_append(struct curl_slist* list, const char* s) { (void)s; return list; }
-void curl_slist_free_all(struct curl_slist* list) { (void)list; }
+// ── Curl stubs removed ─────────────────────────────────────────────────
+// The original onebit-tui package provided no-op stubs for curl_easy_init,
+// curl_easy_setopt, etc.  In ELF, a weak definition in the main executable
+// shadows the strong definition in libcurl.so, so even with -lcurl linked
+// the stubs were called and curl_easy_init() returned NULL.
+// Stubs removed — libcurl is now linked directly (see lib/client/moon.pkg
+// and cmd/moon.pkg cc-link-flags).
 
 // ── types ──────────────────────────────────────────────────────────────
 

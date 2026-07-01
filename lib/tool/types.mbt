@@ -67,10 +67,23 @@ pub(all) struct FunctionDef {
 
 ///|
 /// OpenAI-compatible function definition for tool registration.
+/// Note: `type_` field (with trailing underscore because `type` is a
+/// MoonBit keyword) is manually serialized as `"type"` in JSON via
+/// the custom ToJson implementation below.
 pub(all) struct FunctionDefinition {
   type_ : String
   function : FunctionDef
-} derive(Eq, Debug, ToJson)
+} derive(Eq, Debug)
+
+///| Manually implement ToJson so `type_` serializes as `"type"` (not `"type_"`)
+/// in the JSON sent to LLM APIs. The OpenAI tools schema requires the key to
+/// be exactly `"type"`.
+pub impl ToJson for FunctionDefinition with fn to_json(self : FunctionDefinition) -> Json {
+  Json::object({
+    "type": self.type_.to_json(),
+    "function": self.function.to_json(),
+  })
+}
 
 ///|
 /// Create a FunctionDefinition with the default type "function".

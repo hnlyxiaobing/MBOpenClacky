@@ -31,8 +31,8 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 | 源代码行数 | ~64,331 行 | 含测试 ~64,331 行（非测试源码 ~48,555 行，测试 ~15,776 行） |
 | 源代码文件数 | 275 个 .mbt（lib: 268, cmd: 7） | Ruby 约 196 个核心 .rb（lib/） |
 | 测试文件数 | 49 个 _wbtest.mbt | Ruby 约 138 个 spec |
-| 测试用例数 | 1,341 | 全部通过（moon test native） |
-| 编译状态 | 0 errors, 323 warnings | `moon check`（native target） |
+| 测试用例数 | 1,355 | 全部通过（moon test native） |
+| 编译状态 | 0 errors, 326 warnings | `moon check`（native target） |
 | 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe (~3.8MB release) |
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
 | 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |

@@ -153,6 +153,10 @@ anthropic_format = true
 moon run cmd -- --message "列出当前目录的文件" --mode auto_approve
 
 # 交互模式（TUI）
+# 推荐：直接运行编译好的二进制（moon run cmd 包装器在某些终端下可能不启动 TUI）
+./_build/native/debug/build/cmd/cmd.exe
+
+# 或使用 moon run（可能在无头终端下不启动 TUI）
 moon run cmd
 
 # Web 服务器模式（默认端口 7070，兼容原版 OpenClacky）

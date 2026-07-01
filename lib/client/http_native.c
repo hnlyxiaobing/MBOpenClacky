@@ -3,7 +3,7 @@
  * Provides synchronous HTTP POST via WinHTTP (Windows) or libcurl (Linux/macOS).
  *
  * FFI contract:
- *   - method, url, headers, body: input as null-terminated UTF-8 byte arrays
+ *   - method, url, headers, body: input as MoonBit String (UTF-16, moonbit_string_t)
  *   - headers: formatted as "Key: Value\r\n" pairs (may be empty)
  *   - resp_body_buf: pre-allocated buffer for response body
  *   - meta_buf: 8-byte output buffer:
@@ -38,6 +38,51 @@ static void write_error(moonbit_bytes_t error_buf, const char *msg) {
   if (elen > cap - 1) elen = cap - 1;
   memcpy(error_buf, msg, (size_t)elen);
   error_buf[elen] = 0;
+}
+
+/*
+ * Convert MoonBit String (UTF-16, moonbit_string_t) to null-terminated UTF-8 C string.
+ * Returns malloc'd buffer; caller must free.
+ * Sets *out_len to the UTF-8 byte length (excluding null terminator).
+ */
+static char *moonbit_string_to_cstr(moonbit_string_t str, int *out_len) {
+  int len = Moonbit_array_length(str);
+  /* Worst case: each UTF-16 code unit → 3 UTF-8 bytes, plus null */
+  char *buf = (char *)malloc((size_t)len * 3 + 1);
+  if (!buf) {
+    if (out_len) *out_len = 0;
+    return NULL;
+  }
+  int j = 0;
+  for (int i = 0; i < len; i++) {
+    uint16_t c = str[i];
+    if (c < 0x80) {
+      buf[j++] = (char)c;
+    } else if (c < 0x800) {
+      buf[j++] = (char)(0xC0 | (c >> 6));
+      buf[j++] = (char)(0x80 | (c & 0x3F));
+    } else {
+      /* Check for surrogate pair (characters outside BMP) */
+      if (c >= 0xD800 && c <= 0xDBFF && i + 1 < len) {
+        uint16_t c2 = str[i + 1];
+        if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+          uint32_t cp = 0x10000 + ((uint32_t)(c - 0xD800) << 10) + (c2 - 0xDC00);
+          buf[j++] = (char)(0xF0 | (cp >> 18));
+          buf[j++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+          buf[j++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+          buf[j++] = (char)(0x80 | (cp & 0x3F));
+          i++;
+          continue;
+        }
+      }
+      buf[j++] = (char)(0xE0 | (c >> 12));
+      buf[j++] = (char)(0x80 | ((c >> 6) & 0x3F));
+      buf[j++] = (char)(0x80 | (c & 0x3F));
+    }
+  }
+  buf[j] = '\0';
+  if (out_len) *out_len = j;
+  return buf;
 }
 
 #ifdef _WIN32
@@ -102,22 +147,21 @@ static int parse_url(
 
 MOONBIT_FFI_EXPORT
 int32_t mbopenclacky_http_post(
-  moonbit_bytes_t method_mbt,
-  moonbit_bytes_t url_mbt,
-  moonbit_bytes_t headers_mbt,
-  moonbit_bytes_t body_mbt,
+  moonbit_string_t method_mbt,
+  moonbit_string_t url_mbt,
+  moonbit_string_t headers_mbt,
+  moonbit_string_t body_mbt,
   int32_t timeout_ms,
   moonbit_bytes_t resp_body_buf,
   moonbit_bytes_t meta_buf,
   moonbit_bytes_t error_buf
 ) {
   int32_t result = -1;
-  const char *method = (const char *)method_mbt;
-  const char *url = (const char *)url_mbt;
-  const char *body = (const char *)body_mbt;
-  int body_len = Moonbit_array_length(body_mbt);
-  const char *headers_str = (const char *)headers_mbt;
-  int headers_len = Moonbit_array_length(headers_mbt);
+  int method_len = 0, url_len = 0, headers_len = 0, body_len = 0;
+  char *method = moonbit_string_to_cstr(method_mbt, &method_len);
+  char *url = moonbit_string_to_cstr(url_mbt, &url_len);
+  char *headers_str = moonbit_string_to_cstr(headers_mbt, &headers_len);
+  char *body = moonbit_string_to_cstr(body_mbt, &body_len);
   int resp_cap = Moonbit_array_length(resp_body_buf);
 
   HINTERNET session = NULL, connect = NULL, request = NULL;
@@ -126,9 +170,14 @@ int32_t mbopenclacky_http_post(
 
   write_meta(meta_buf, 0, 0);
 
+  if (!url || !method) {
+    write_error(error_buf, "string conversion failed");
+    goto win_done;
+  }
+
   if (parse_url(url, w_host, 512, w_path, 4096, &use_https, &port) != 0) {
     write_error(error_buf, "invalid URL format");
-    return -1;
+    goto win_done;
   }
 
   session = WinHttpOpen(
@@ -139,13 +188,13 @@ int32_t mbopenclacky_http_post(
   );
   if (!session) {
     write_error(error_buf, "WinHttpOpen failed");
-    return -1;
+    goto win_done;
   }
   int connect_timeout = timeout_ms > 10000 ? 10000 : timeout_ms;
   WinHttpSetTimeouts(session, timeout_ms, connect_timeout, timeout_ms, timeout_ms);
 
   connect = WinHttpConnect(session, w_host, (INTERNET_PORT)port, 0);
-  if (!connect) goto done;
+  if (!connect) goto win_done;
 
   wchar_t w_method[16];
   MultiByteToWideChar(CP_UTF8, 0, method, -1, w_method, 16);
@@ -156,7 +205,7 @@ int32_t mbopenclacky_http_post(
     NULL, WINHTTP_NO_REFERER,
     WINHTTP_DEFAULT_ACCEPT_TYPES, flags
   );
-  if (!request) goto done;
+  if (!request) goto win_done;
 
   /* SSL certificate errors are NOT ignored in production */
 
@@ -165,7 +214,7 @@ int32_t mbopenclacky_http_post(
     int whl = MultiByteToWideChar(CP_UTF8, 0, headers_str, headers_len, w_headers, 16380);
     if (whl <= 0) {
       write_error(error_buf, "headers too long for WinHTTP buffer");
-      goto done;
+      goto win_done;
     }
     w_headers[whl] = 0;
     WinHttpAddRequestHeaders(
@@ -179,8 +228,8 @@ int32_t mbopenclacky_http_post(
     body_len > 0 ? (LPVOID)body : WINHTTP_NO_REQUEST_DATA,
     (DWORD)body_len, 0, NULL
   );
-  if (!sent) goto done;
-  if (!WinHttpReceiveResponse(request, NULL)) goto done;
+  if (!sent) goto win_done;
+  if (!WinHttpReceiveResponse(request, NULL)) goto win_done;
 
   DWORD status_code = 0, status_size = sizeof(status_code);
   WinHttpQueryHeaders(
@@ -205,7 +254,7 @@ int32_t mbopenclacky_http_post(
   write_meta(meta_buf, (int32_t)status_code, total_read);
   result = 0;
 
-done:
+win_done:
   if (result != 0) {
     char errbuf[256];
     snprintf(errbuf, sizeof(errbuf), "WinHTTP error: 0x%08lX", GetLastError());
@@ -214,6 +263,10 @@ done:
   if (request) WinHttpCloseHandle(request);
   if (connect) WinHttpCloseHandle(connect);
   if (session) WinHttpCloseHandle(session);
+  free(method);
+  free(url);
+  free(headers_str);
+  free(body);
   return result;
 }
 
@@ -247,31 +300,36 @@ static size_t curl_write_cb(char *ptr, size_t size, size_t nmemb, void *userdata
 
 MOONBIT_FFI_EXPORT
 int32_t mbopenclacky_http_post(
-  moonbit_bytes_t method_mbt,
-  moonbit_bytes_t url_mbt,
-  moonbit_bytes_t headers_mbt,
-  moonbit_bytes_t body_mbt,
+  moonbit_string_t method_mbt,
+  moonbit_string_t url_mbt,
+  moonbit_string_t headers_mbt,
+  moonbit_string_t body_mbt,
   int32_t timeout_ms,
   moonbit_bytes_t resp_body_buf,
   moonbit_bytes_t meta_buf,
   moonbit_bytes_t error_buf
 ) {
-  const char *method = (const char *)method_mbt;
-  const char *url = (const char *)url_mbt;
-  const char *body = (const char *)body_mbt;
-  int body_len = Moonbit_array_length(body_mbt);
-  const char *headers_str = (const char *)headers_mbt;
-  int headers_len = Moonbit_array_length(headers_mbt);
+  int method_len = 0, url_len = 0, headers_len = 0, body_len = 0;
+  char *method = moonbit_string_to_cstr(method_mbt, &method_len);
+  char *url = moonbit_string_to_cstr(url_mbt, &url_len);
+  char *headers_str = moonbit_string_to_cstr(headers_mbt, &headers_len);
+  char *body = moonbit_string_to_cstr(body_mbt, &body_len);
   int resp_cap = Moonbit_array_length(resp_body_buf);
 
   write_meta(meta_buf, 0, 0);
 
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    write_error(error_buf, "curl_easy_init failed");
+  if (!url || !method) {
+    write_error(error_buf, "string conversion failed");
+    free(method); free(url); free(headers_str); free(body);
     return -1;
   }
 
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    write_error(error_buf, "curl_easy_init failed");
+    free(method); free(url); free(headers_str); free(body);
+    return -1;
+  }
   struct curl_slist *header_list = NULL;
   if (headers_len > 0) {
     char *hdr_copy = (char *)malloc((size_t)headers_len + 1);
@@ -326,6 +384,7 @@ int32_t mbopenclacky_http_post(
 
   if (header_list) curl_slist_free_all(header_list);
   curl_easy_cleanup(curl);
+  free(method); free(url); free(headers_str); free(body);
   return (res == CURLE_OK) ? 0 : -1;
 }
 

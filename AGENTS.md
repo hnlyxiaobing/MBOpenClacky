@@ -27,11 +27,14 @@ Package boundaries live in `moon.pkg` files; generated public APIs in `pkg.gener
 ## Build, Test, and Development Commands
 
 ```bash
+moon build --target native --release cmd  # 推荐：显式指定 cmd 包，避免 moon #1488 bug
+moon build --target native cmd            # Debug 构建
 moon check                              # Type-check whole project (0 errors expected)
-moon build                              # Build native binary
 moon run cmd                            # Run the CLI
+moon run cmd -- --server                # Start web UI server (port 7070)
 moon run cmd -- --message "Hello"       # Non-interactive agent mode
-moon run cmd -- --server                # Start web UI server (port 4000)
+# TUI 交互模式推荐直接运行编译好的二进制（moon run cmd 包装器在某些终端下可能不启动 TUI）
+./_build/native/debug/build/cmd/cmd.exe
 moon test                               # Run white-box tests (native only)
 moon test lib/agent --filter "session*" # Targeted test run
 moon update && moon install             # Sync dependencies

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(deep-research)",
+      "WebSearch",
+      "mcp__web-search-prime__web_search_prime",
+      "mcp__zread__get_repo_structure",
+      "Bash(where moon *)",
+      "Bash(moon version *)",
+      "Bash(moon --version)",
+      "Read(//c/Users/hnlyh/.moon/lib/**)",
+      "Read(//c/Users/hnlyh/.moon/**)",
+      "WebFetch(domain:docs.moonbitlang.com)",
+      "Bash(awk -F/ '{print $2}')",
+      "WebFetch(domain:mooncakes.io)",
+      "Bash(xargs wc -l)",
+      "WebFetch(domain:github.com)",
+      "Bash(xargs -0 wc -l)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d[0]['text']\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(moon check *)",
+      "Bash(moon test *)",
+      "Bash(git -C D:/MoonBit/MBOpenClacky status --short)",
+      "Bash(git -C D:/MoonBit/MBOpenClacky diff --stat)",
+      "Bash(git -C D:/MoonBit/MBOpenClacky diff --stat -- docs/ CLAUDE.md README.md .gitignore)",
+      "Bash(git -C D:/MoonBit/MBOpenClacky diff --stat CLAUDE.md README.md docs/ .gitignore)",
+      "Bash(git -C D:/MoonBit/MBOpenClacky diff CLAUDE.md)",
+      "Bash(git *)",
+      "Bash(ping *)"
+    ]
+  }
+}

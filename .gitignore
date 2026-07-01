@@ -34,4 +34,4 @@ _review_diff.txt
 
 # Real Yoga build artifacts (rebuild with scripts/setup_yoga.sh)
 vendor/yoga/obj/
-.mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/
+.mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/.claude/
