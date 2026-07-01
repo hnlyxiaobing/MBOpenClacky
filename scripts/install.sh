@@ -2,11 +2,11 @@
 # MBOpenClacky installation script for macOS/Linux.
 #
 # Usage:
-#   chmod +x install.sh
-#   ./install.sh
+#   chmod +x scripts/install.sh
+#   ./scripts/install.sh
 #
 # Or from a custom project root:
-#   PROJECT_ROOT=/path/to/MBOpenClacky ./install.sh
+#   PROJECT_ROOT=/path/to/MBOpenClacky ./scripts/install.sh
 #
 # Options:
 #   --yes / -y          Non-interactive mode (CI/CD friendly), auto-confirm all
@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "$0")" && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -134,7 +134,7 @@ if ! command -v moon &>/dev/null; then
         echo "    curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash"
         echo ""
         echo "  Or re-run with --install-moon to install automatically:"
-        echo "    ./install.sh --install-moon"
+        echo "    ./scripts/install.sh --install-moon"
         exit 1
     fi
 fi

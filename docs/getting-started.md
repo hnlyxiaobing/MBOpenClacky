@@ -39,10 +39,10 @@ Windows 平台构建 native 目标需要 MSVC C++ 编译器环境。
 
 **自动配置（推荐）：**
 
-项目提供的 `install.ps1` 脚本会自动通过 vswhere 检测 Visual Studio Build Tools 安装路径，并调用 `vcvarsall.bat` 激活 MSVC 环境：
+项目提供的 `scripts/install.ps1` 脚本会自动通过 vswhere 检测 Visual Studio Build Tools 安装路径，并调用 `vcvarsall.bat` 激活 MSVC 环境：
 
 ```powershell
-.\install.ps1
+.\scripts\install.ps1
 ```
 
 **手动配置：**
@@ -249,8 +249,8 @@ MBOpenClacky 内置 12 个 Provider 预设：
 ### install.sh（Linux/macOS）
 
 ```bash
-chmod +x install.sh
-./install.sh
+chmod +x scripts/install.sh
+./scripts/install.sh
 ```
 
 **脚本功能**：
@@ -263,7 +263,7 @@ chmod +x install.sh
 ### install.ps1（Windows）
 
 ```powershell
-.\install.ps1
+.\scripts\install.ps1
 ```
 
 **脚本功能**：

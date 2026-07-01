@@ -156,8 +156,10 @@ MBOpenClacky/
 │   ├── agents/         # 默认 Agent 配置（coding/general + SOUL.md/USER.md）
 │   ├── skills/         # 11 个内置技能（code-explorer/deploy/mcp-manager 等）
 │   └── web/            # 前端 SPA（原生 JS, SSE 流式, WebSocket 实时, 暗色主题）
-├── install.sh          # Linux/macOS 安装脚本
-├── install.ps1         # Windows 安装脚本
+├── scripts/
+│   ├── install.sh      # Linux/macOS 安装脚本
+│   ├── install.ps1     # Windows 安装脚本
+│   └── setup_yoga.sh   # Yoga 布局引擎编译脚本
 ├── Dockerfile          # 多阶段 Docker 构建
 ├── moon.mod            # 模块元信息与依赖声明
 └── docs/               # 项目文档
