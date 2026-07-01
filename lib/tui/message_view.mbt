@@ -23,8 +23,32 @@ pub fn message_view_render(state : Ref[TuiState]) -> @view.View {
     components.push(@widget.Text::new(streaming_text).color(@tui_core.Cyan))
   }
 
+  // Compute visible rows from the actual terminal height so the message pane
+  // fills the screen instead of a hardcoded 15 rows (which caused the pane to
+  // collapse / mismatch the terminal). Reserve rows for the status bar (1),
+  // the input footer (~3), and the ScrollBox border (2).
+  let (_, term_h) = @ffi.get_terminal_size()
+  let terminal_height = term_h.reinterpret_as_int()
+  let reserved = 6
+  let visible_rows = if terminal_height > reserved + 3 {
+    terminal_height - reserved
+  } else {
+    3
+  }
+
+  // Auto-scroll to the bottom so the most recent messages are always shown.
+  let offset = Ref::new(0)
+  let total = components.length()
+  if total > visible_rows {
+    offset.val = total - visible_rows
+  }
+
   // Wrap in a ScrollBox with a border and title
-  let scroll = @widget.ScrollBox::new(components, visible_rows=15)
+  let scroll = @widget.ScrollBox::new(
+    components,
+    visible_rows~,
+    offset~,
+  )
   scroll.title("Messages").border(Single).render()
 }
 

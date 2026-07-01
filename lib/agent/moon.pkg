@@ -14,4 +14,7 @@ import {
 
 options(
   "native-stub": [ "time_stub.c" ],
+  // lib/client/http_native.c requires libcurl on Linux/macOS. Test binaries for
+  // packages that transitively import lib/client need curl on the link line.
+  link: { "native": { "cc-link-flags": "-lcurl" } },
 )

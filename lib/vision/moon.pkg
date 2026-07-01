@@ -3,3 +3,8 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "moonbitlang/x/codec/base64",
 }
+
+options(
+  // lib/client/http_native.c requires libcurl on Linux/macOS.
+  link: { "native": { "cc-link-flags": "-lcurl" } },
+)

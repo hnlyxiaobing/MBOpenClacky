@@ -139,14 +139,18 @@ fn build_main_layout(
       )
   }
 
-  // Assemble full layout
-  @view.View::container_views([
-    content.flex(1.0),
-    status,
-    footer,
-  ]).direction(Column)
-  .width(terminal_width.to_double())
-  .height(terminal_height.to_double())
+  // Assemble full layout.
+  //
+  // The root container must FILL the terminal. onebit-tui's event loop calls
+  // `calculate_layout(ui, app.width, app.height)`, so Yoga already knows the
+  // available space — but a root node with Auto size shrinks to fit its content
+  // (the flex-collapse bug). Using width/height 100% makes the root resolve
+  // against the available space and lets flex children distribute correctly.
+  // (Percent is resize-safe; fixed pixels desync on terminal resize.)
+  @view.View::container_views([content.flex(1.0), status, footer])
+  .direction(Column)
+  .width_percent(100.0)
+  .height_percent(100.0)
 }
 
 ///|

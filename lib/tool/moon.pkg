@@ -18,4 +18,6 @@ options(
     "terminal_exec.mbt": [ "native" ],
     "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],
   },
+  // lib.client/http_native.c requires libcurl on Linux/macOS.
+  link: { "native": { "cc-link-flags": "-lcurl" } },
 )

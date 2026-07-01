@@ -7,6 +7,13 @@ import {
   "Frank-III/onebit-tui/widget",
   "Frank-III/onebit-tui/view",
   "Frank-III/onebit-tui/runtime",
+  "Frank-III/onebit-tui/layout",
   "Frank-III/onebit-tui/ffi",
   "moonbitlang/async",
 }
+
+options(
+  link: {
+    "native": { "cc-link-flags": "/mnt/d/MoonBit/MBOpenClacky/vendor/yoga/lib/libyoga_full.a -lstdc++ -lm" },
+  },
+)

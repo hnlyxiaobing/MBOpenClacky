@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
 }
@@ -8,5 +9,5 @@ options(
   "native-stub": [ "http_native.c", "mb_stubs.c" ],
   // Windows: WinHTTP is auto-linked via #pragma comment(lib,"winhttp.lib") in http_native.c
   // Linux/macOS: install libcurl-dev, then uncomment the line below:
-  // link: { "native": { "cc-link-flags": "-lcurl" } },
+  link: { "native": { "cc-link-flags": "-lcurl" } },
 )
