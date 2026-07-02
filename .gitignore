@@ -36,3 +36,4 @@ _bak_tui_v1/
 # Real Yoga build artifacts (rebuild with scripts/setup_yoga.sh)
 vendor/yoga/obj/
 .mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/.claude/
+.worktrees/
