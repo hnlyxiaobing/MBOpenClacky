@@ -489,3 +489,29 @@ fn handle_restart_bridge(
 ) -> @core.HttpResponse {
   handle_restart(server_ref, event)
 }
+
+// ── OCR Bridges ───────────────────────────────────────────────────
+
+///|
+fn handle_config_ocr_update_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_config_ocr_update(server_ref, event)
+}
+
+///|
+fn handle_config_ocr_test_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_config_ocr_test(server_ref, event)
+}
+
+///|
+fn handle_internal_ocr_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_internal_ocr_image(server_ref, event)
+}
