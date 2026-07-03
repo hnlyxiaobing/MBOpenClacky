@@ -445,7 +445,7 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
 
   if background {
     // Background mode: execute and report as background session
-    let (raw_output, exit_code, _output_file) = execute_command_sync(
+    let (raw_output, exit_code, _output_file) = execute_command(
       safe_cmd, cwd, timeout, sid,
     )
     let (cleaned, was_truncated, overflow_file) = enhanced_process_terminal_output(
@@ -475,7 +475,7 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
     ToolResult::success(result_parts.join("\n"))
   } else {
     // Foreground mode: execute and wait for completion
-    let (raw_output, exit_code, _output_file) = execute_command_sync(
+    let (raw_output, exit_code, _output_file) = execute_command(
       safe_cmd, cwd, timeout, sid,
     )
     let (cleaned, was_truncated, overflow_file) = enhanced_process_terminal_output(
