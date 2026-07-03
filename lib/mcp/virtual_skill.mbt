@@ -1,4 +1,5 @@
 ///| VirtualSkill: wraps MCP server tools as agent-invocable skills.
+/// See SkillProvider for file-system-based skill discovery.
 
 ///|
 /// A virtual skill backed by MCP server tools.
@@ -126,4 +127,17 @@ pub fn VirtualSkill::has_tool(self : VirtualSkill, tool_name : String) -> Bool {
     }
   }
   false
+}
+
+///|
+/// Create a VirtualSkill from a SkillInfo discovered by SkillProvider.
+/// See SkillProvider for file-system-based skill discovery.
+pub fn VirtualSkill::from_skill_info(info : SkillInfo) -> VirtualSkill {
+  {
+    name: info.name,
+    description: info.description,
+    mcp_server_name: "skill-provider",
+    mcp_tools: [],
+    fork_agent: true,
+  }
 }
