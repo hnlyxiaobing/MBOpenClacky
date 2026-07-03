@@ -417,3 +417,143 @@ fn handle_trash_empty_bridge(
   let req = event_to_request(event, [])
   response_to_core(handle_trash_empty(req))
 }
+
+// ── Onboarding Bridges ────────────────────────────────────────────
+
+///|
+fn handle_onboard_device_start_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_device_start(server_ref, event)
+}
+
+///|
+fn handle_onboard_device_poll_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_device_poll(server_ref, event)
+}
+
+///|
+fn handle_onboard_complete_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_complete(server_ref, event)
+}
+
+///|
+fn handle_onboard_skip_soul_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_skip_soul(server_ref, event)
+}
+
+// ── Local Image Proxy Bridge ──────────────────────────────────────
+
+///|
+fn handle_local_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_local_image(server_ref, event)
+}
+
+// ── Exchange Rate Bridge ──────────────────────────────────────────
+
+///|
+fn handle_exchange_rate_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_exchange_rate(server_ref, event)
+}
+
+// ── Version / Restart Bridges ─────────────────────────────────────
+
+///|
+fn handle_version_upgrade_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_version_upgrade(server_ref, event)
+}
+
+///|
+fn handle_restart_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_restart(server_ref, event)
+}
+
+// ── OCR Bridges ───────────────────────────────────────────────────
+
+///|
+fn handle_config_ocr_update_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_config_ocr_update(server_ref, event)
+}
+
+///|
+fn handle_config_ocr_test_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_config_ocr_test(server_ref, event)
+}
+
+///|
+fn handle_internal_ocr_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_internal_ocr_image(server_ref, event)
+}
+
+// ── Media Bridges ─────────────────────────────────────────────────
+
+///|
+fn handle_media_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_image(server_ref, event)
+}
+
+///|
+fn handle_media_video_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_video(server_ref, event)
+}
+
+///|
+fn handle_media_speech_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_speech(server_ref, event)
+}
+
+///|
+fn handle_media_transcription_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_transcription(server_ref, event)
+}
+
+///|
+fn handle_media_video_understand_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_video_understand(server_ref, event)
+}
