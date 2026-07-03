@@ -3,6 +3,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "moonbitlang/core/random",
   "moonbit-community/tty",
   "moonbit-community/tty/input" @tty/input,
   "moonbit-community/tty/color",
