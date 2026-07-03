@@ -1,0 +1,14 @@
+[profile]
+name = "general"
+display_name = "General Assistant"
+max_turns = 100
+temperature = 0.7
+
+[behavior]
+proactive_suggestions = true
+use_memory = true
+web_search_enabled = true
+
+[limits]
+max_file_edit_lines = 200
+max_web_searches_per_turn = 3

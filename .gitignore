@@ -15,9 +15,7 @@ _build/
 
 
 # 构建生成产物
-assets/
 logs/
-
 # Evolver 进化状态
 memory/
 

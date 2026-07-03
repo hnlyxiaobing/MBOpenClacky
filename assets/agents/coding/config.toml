@@ -1,0 +1,14 @@
+[profile]
+name = "coding"
+display_name = "Coding Assistant"
+max_turns = 50
+temperature = 0.3
+
+[behavior]
+auto_test = true
+auto_format = true
+prefer_minimal_changes = true
+
+[limits]
+max_file_edit_lines = 500
+max_concurrent_edits = 3
