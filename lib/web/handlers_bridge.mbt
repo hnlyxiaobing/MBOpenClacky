@@ -417,3 +417,47 @@ fn handle_trash_empty_bridge(
   let req = event_to_request(event, [])
   response_to_core(handle_trash_empty(req))
 }
+
+// ── Onboarding Bridges ────────────────────────────────────────────
+
+///|
+fn handle_onboard_device_start_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_device_start(server_ref, event)
+}
+
+///|
+fn handle_onboard_device_poll_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_device_poll(server_ref, event)
+}
+
+///|
+fn handle_onboard_complete_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_complete(server_ref, event)
+}
+
+///|
+fn handle_onboard_skip_soul_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_onboard_skip_soul(server_ref, event)
+}
+
+// ── Local Image Proxy Bridge ──────────────────────────────────────
+
+///|
+fn handle_local_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_local_image(server_ref, event)
+}

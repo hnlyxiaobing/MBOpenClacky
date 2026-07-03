@@ -19,6 +19,8 @@ import {
   "bobzhang/crescent/static_file",
   "bobzhang/crescent/websocket" @ws,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/sys",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/codec/base64",
