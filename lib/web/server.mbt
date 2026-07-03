@@ -177,6 +177,8 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       c.put("", event => handle_update_config(server_ref, event))
       c.get("/models", event => handle_list_models(server_ref, event))
       c.get("/permissions", event => handle_get_permissions(server_ref, event))
+      c.patch("/ocr", event => handle_config_ocr_update(server_ref, event))
+      c.post("/ocr/test", event => handle_config_ocr_test(server_ref, event))
     })
 
     // Stats
@@ -325,6 +327,48 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       fl.post("/upload", event => handle_files_upload(server_ref, event))
       fl.get("/paths", event => handle_files_paths(server_ref, event))
     })
+
+    // Onboarding
+    api.group("/onboard", (ob : @crescent.App) => {
+      ob.post("/device/start", event => {
+        handle_onboard_device_start(server_ref, event)
+      })
+      ob.get("/device/poll", event => {
+        handle_onboard_device_poll(server_ref, event)
+      })
+      ob.post("/complete", event => handle_onboard_complete(server_ref, event))
+      ob.post("/skip-soul", event => handle_onboard_skip_soul(server_ref, event))
+    })
+
+    // Local Image Proxy
+    api.get("/local-image", event => handle_local_image(server_ref, event))
+
+    // Exchange Rate
+    api.get("/exchange-rate", event => handle_exchange_rate(server_ref, event))
+
+    // Media
+    api.group("/media", (md : @crescent.App) => {
+      md.post("/image", event => handle_media_image(server_ref, event))
+      md.post("/video", event => handle_media_video(server_ref, event))
+      md.post("/audio/speech", event => handle_media_speech(server_ref, event))
+      md.post("/audio/transcriptions", event => {
+        handle_media_transcription(server_ref, event)
+      })
+      md.post("/video/understand", event => {
+        handle_media_video_understand(server_ref, event)
+      })
+    })
+
+    // Internal OCR
+    api.post("/internal/ocr-image", event => {
+      handle_internal_ocr_image(server_ref, event)
+    })
+
+    // Version
+    api.group("/version", (v : @crescent.App) => {
+      v.post("/upgrade", event => handle_version_upgrade(server_ref, event))
+    })
+    api.post("/restart", event => handle_restart(server_ref, event))
 
     // ── API Extensions ──────────────────────────────────────────
     // Load extensions from ~/.clacky/api_extensions (or configured dir)

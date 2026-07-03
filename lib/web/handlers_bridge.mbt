@@ -515,3 +515,45 @@ fn handle_internal_ocr_image_bridge(
 ) -> @core.HttpResponse {
   handle_internal_ocr_image(server_ref, event)
 }
+
+// ── Media Bridges ─────────────────────────────────────────────────
+
+///|
+fn handle_media_image_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_image(server_ref, event)
+}
+
+///|
+fn handle_media_video_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_video(server_ref, event)
+}
+
+///|
+fn handle_media_speech_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_speech(server_ref, event)
+}
+
+///|
+fn handle_media_transcription_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_transcription(server_ref, event)
+}
+
+///|
+fn handle_media_video_understand_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_media_video_understand(server_ref, event)
+}
