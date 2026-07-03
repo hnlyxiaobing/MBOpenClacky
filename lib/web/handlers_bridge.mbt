@@ -461,3 +461,31 @@ fn handle_local_image_bridge(
 ) -> @core.HttpResponse {
   handle_local_image(server_ref, event)
 }
+
+// ── Exchange Rate Bridge ──────────────────────────────────────────
+
+///|
+fn handle_exchange_rate_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_exchange_rate(server_ref, event)
+}
+
+// ── Version / Restart Bridges ─────────────────────────────────────
+
+///|
+fn handle_version_upgrade_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_version_upgrade(server_ref, event)
+}
+
+///|
+fn handle_restart_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_restart(server_ref, event)
+}
