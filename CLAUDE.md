@@ -24,7 +24,7 @@ moon update && moon install         # Sync dependencies
 
 ## Architecture
 
-### Package Layout (22 top-level packages)
+### Package Layout (21 top-level packages)
 
 ```
 cmd/          — CLI entry point (clap argument parsing, agent lifecycle orchestration)
@@ -43,7 +43,7 @@ lib/
   errors/     — Error type hierarchy (AgentError, RetryableError, ToolCallError, etc.)
   hook/       — Shell hook system (7 event types) with shell loader
   mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client, registry,
-                virtual skill mapping
+                virtual skill mapping, skill provider module
   media/      — Media generation (image/video/audio) via OpenAI/Gemini/DashScope compatible APIs
   message/    — Message/Role/ContentBlock/ToolCall types with JSON serialization, message history
   parser/     — Document parsers: PDF, DOCX (ZIP+XML), PPTX, XLSX
@@ -54,20 +54,23 @@ lib/
                 (Reflector/AutoCreator), default skills
   telemetry/  — Anonymous telemetry (fire-and-forget)
   tool/       — Tool trait + 14 built-in tools + registry with alias resolution, security,
-                output cleaner
+                output cleaner; Terminal tool now uses PTY-based execution (pty/pty_ffi/
+                pty_session/pty_stubs.c)
   tui/        — Terminal UI (moonbit-community/tty): inline scrolling TUI with
                 ScreenBuffer (ANSI primitives), OutputBuffer (committed-line
                 semantics), LineEditor (CJK-aware grapheme editor), LayoutManager
                 (scroll region + fixed areas), StatusBar, InputArea, TodoArea,
                 markdown rendering, slash commands, themes, progress stack,
-                command suggestions, agent hook handler, CJK width
+                command suggestions, agent hook handler, CJK width,
+                block-font rendering, thinking verbs
   utils/      — Env vars, path resolution, encoding, environment detector, EPIPE safe IO,
                 file ignore helper, gitignore parser, limit stack, logger, proxy config,
                 string matcher, trash directory, workspace rules
   vision/     — Vision OCR + SHA256 caching
-  web/        — HTTP server (crescent): REST API (68+ endpoints), SSE, WebSocket, auth/logging
+  web/        — HTTP server (crescent): REST API (90+ endpoints), SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope middleware, broadcast hub, template processor,
-                router, static server, SPA serving
+                router, static server, SPA serving; added handlers for exchange-rate,
+                local-image proxy, onboarding, media, OCR config/test, version/upgrade, restart
 ```
 
 ### Agent Core (`lib/agent/`)
@@ -107,7 +110,7 @@ The `Agent` struct (25+ fields) is the central orchestrator:
 - `Skill` struct with name, description, allowed_tools, context, hooks, fork_agent, model, etc.
 - Discovery scans configured directories, registry provides lookups, executor runs skill hooks
 - Evolution engine (`evolution.mbt`): SkillReflector (post-execution review) + AutoCreator (pattern detection)
-- Default skills (`default_skills.mbt`): 11 built-in skills in `assets/skills/`
+- Default skills (`default_skills.mbt`): 16 built-in skills in `assets/skills/`
 
 ### Enhanced Features (Phase 10+)
 
@@ -125,7 +128,7 @@ The `Agent` struct (25+ fields) is the central orchestrator:
 |-----------|-----------|----------|
 | CLI | clap argument parser | `cmd/main.mbt` |
 | TUI | moonbit-community/tty (inline scrolling) | `lib/tui/` (24+ files) |
-| Web | crescent (REST + WebSocket + SSE) | `lib/web/` (24+ files, 68+ endpoints) |
+| Web | crescent (REST + WebSocket + SSE) | `lib/web/` (33+ files, 90+ endpoints) |
 
 All three interfaces share the same `Agent` core via the hook system (`lib/agent/hook.mbt`).
 
@@ -148,24 +151,37 @@ TOML config loaded from `~/.mbopenclacky/config.toml`. Environment variable `MBO
 
 ### Web API
 
-68+ REST API endpoints organized by domain:
-- Sessions: CRUD, chat, stream (SSE), WebSocket, status, cancel, cost
-- Config: get/put, models, permissions
+90+ REST API endpoints organized by domain:
+- Sessions: CRUD, chat, stream (SSE), WebSocket, status, cancel, cost, export, fork, rename, messages
+- Config: get/put, models, permissions, OCR config/test
 - Stats: session stats, aggregate stats
 - MCP: server management endpoints
 - Channels: IM channel management
 - Schedules: cron task management
 - Backup: configuration backup/restore
 - Billing: usage and billing endpoints
-- Skills: skill management
+- Skills: skill management, evolution history
 - Browser: browser automation endpoints
 - Trash: file trash management
+- Brand / License: config, activate, status, heartbeat
+- Files: list, read, write, upload, paths
+- Onboarding: device start/poll, complete, skip-soul
+- Local Image Proxy: `/api/local-image`
+- Exchange Rate: `/api/exchange-rate`
+- Media: image, video, audio/speech, audio/transcriptions, video/understand
+- Internal OCR: `/api/internal/ocr-image`
+- Version / Restart: upgrade, restart
 
-Auth via `MBOPENCLACKY_WEB_API_KEY` env var. SPA frontend served from `assets/web/`.
+Auth via `MBOPENCLACKY_WEB_API_KEY` env var. SPA frontend served from `web/`.
 
-## Default Resources (`assets/`)
+## Default Resources
 
 ```
+web/                       # SPA frontend
+  index.html
+  css/
+  js/
+
 assets/
   agents/
     coding/
@@ -176,37 +192,39 @@ assets/
       system_prompt.md
     SOUL.md
     USER.md
-  skills/                    # 11 built-in skills
+  skills/                    # 16 built-in skills
+    browser_setup/
+    channel_manager/
     code-explorer/
     cron-task-creator/
     deploy/
+    extend-openclacky/
     mcp-manager/
     media-gen/
+    new/
     onboard/
     persist-memory/
+    personal_website/
     product-help/
     recall-memory/
     search-skills/
+    skill_add/
     skill-creator/
-  web/                       # SPA frontend
-    index.html
-    css/
-    js/
 ```
 
 ## Current State Metrics
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (total) | 317 |
-| Test files (`*_wbtest.mbt`) | 51 |
-| Source lines (non-test) | ~96,141 |
-| Test lines (`*_wbtest.mbt`) | ~15,965 |
-| Test cases | 1,352+ |
-| Top-level packages | 22 |
+| `.mbt` source files (total) | 248 |
+| Test files (`*_wbtest.mbt`) | 62 |
+| Source lines (non-test) | ~52,806 |
+| Test lines (`*_wbtest.mbt`) | ~17,463 |
+| Test cases | 1,400+ |
+| Top-level packages | 21 |
 | Built-in tools | 14 |
 | Provider presets | 12 |
-| Default skills | 11 |
-| REST API endpoints | 68+ |
-| `moon check` | 0 errors, 355 warnings |
+| Default skills | 16 |
+| REST API endpoints | 90+ |
+| `moon check` | 0 errors, 426 warnings |
 | Phase coverage | ~85-90% (backend ~95%, Web frontend ~40-50%, deploy infra ~30%) |

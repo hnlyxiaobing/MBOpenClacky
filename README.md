@@ -17,34 +17,38 @@
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（总计） | 317 个 |
-| 测试文件 | 51 个 |
-| 代码行数（源代码） | ~96,141 行 |
-| 代码行数（测试） | ~15,965 行 |
-| 代码行数（总计） | ~112,106 行 |
-| 测试用例 | 1,352 个（全部通过） |
-| MoonBit 包数 | 28 个（22 个 lib 顶级包 + 4 个 web 子包 + 1 个 lib 根包 + 1 个 cmd 入口包） |
+| `.mbt` 源文件（总计） | 248 个 |
+| 测试文件 | 62 个 |
+| 代码行数（源代码） | ~52,806 行 |
+| 代码行数（测试） | ~17,463 行 |
+| 代码行数（总计） | ~70,269 行 |
+| 测试用例 | 1,400+ |
+| MoonBit 包数 | 22 个（21 个 lib 顶级包 + 1 个 cmd 入口包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | 68+ 个 |
+| REST API 端点 | 90+ 个 |
 | IM 渠道适配器 | 6 个 |
-| `moon check` | 0 errors, 355 warnings |
-| `moon test` | 1,352 / 1,352 通过 |
+| 默认 Skill | 16 个 |
+| `moon check` | 0 errors, 426 warnings |
+| `moon test` | native 目标需启用 `lib/client/moon.pkg` 中的 `-lcurl` 并安装 libcurl-dev；当前默认配置下链接阶段会失败 |
 
 ### 功能亮点
 
 - **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider 预设
-- **MCP 协议**：完整支持 Stdio/HTTP 传输 + JSON-RPC 2.0 + 多服务器管理
+- **MCP 协议**：完整支持 Stdio/HTTP 传输 + JSON-RPC 2.0 + 多服务器管理；`lib/mcp/skill_provider.mbt` 支持虚拟 Skill 映射
 - **6 平台 IM 渠道集成**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
-- **Web 前端 SPA**：暗色主题 + SSE 流式响应 + WebSocket 实时通信，默认端口 **7070**
+- **Web 前端 SPA / REST API**：暗色主题 + SSE 流式响应 + WebSocket 实时通信，默认端口 **7070**；后端已扩展汇率、本地图片代理、Onboarding、Media、OCR、版本/重启等接口
 - **多模态文档处理**：PDF / DOCX / PPTX / XLSX 解析 + Vision OCR + SHA256 缓存
 - **Media 生成**：图像/视频/音频（OpenAI / Gemini / DashScope 兼容）
 - **GEP 技能自进化系统**：EvolutionEngine + SkillReflector（执行后反思）+ AutoCreator（模式检测自动创建技能）
+- **16 个内置 Skill**：含 code-explorer、cron-task-creator、deploy、media-gen、browser_setup、channel_manager、new、personal_website、skill_add、skill-creator 等
 - **Time Machine**：文件快照与回滚
 - **Cron 定时任务调度**：解析器 + Scheduler + 周期性执行
 - **Shell Hook 系统**：7 种事件钩子
 - **匿名遥测**：fire-and-forget 无阻塞上报
 - **Brand 与 License 验证**：AES-256-GCM 加密（C FFI OpenSSL）+ 心跳 + 宽限期机制
+- **PTY 终端执行**：Terminal 工具基于 PTY 会话实现真实交互式命令执行与输出标记
+- **TUI 增强**：基于 moonbit-community/tty 的 Inline Scrolling 架构，新增 block-font 渲染与 thinking verbs 动效组件
 
 原始 openclacky 的核心模块包括 `agent`（11 个 mixin）、`client`（LLM API）、`server`（Web）、`tools`（插件系统）、`skills`（可扩展能力）、`ui2`（TUI）、`utils`（工具集）等，本项目以 MoonBit 的 `struct + trait` 组合模式完成了全部对应重写。
 
@@ -54,7 +58,7 @@
 
 ### 1. AOT 原生编译 — 零运行时依赖
 
-MoonBit 的 native 后端将代码 AOT 编译为单一原生可执行文件，无需 Ruby VM / Bundler / Gem 依赖。CLI 启动延迟从 Ruby 的数百毫秒降至毫秒级，二进制可直接分发部署。`moon build --target native --release cmd` 产出约 3.8 MB 的 release 二进制（含全部 14 个工具、12 个 Provider、68+ REST 端点）。
+MoonBit 的 native 后端将代码 AOT 编译为单一原生可执行文件，无需 Ruby VM / Bundler / Gem 依赖。CLI 启动延迟从 Ruby 的数百毫秒降至毫秒级，二进制可直接分发部署。`moon build --target native --release cmd` 产出约 3.8 MB 的 release 二进制（含全部 14 个工具、12 个 Provider、90+ REST 端点）。
 
 ### 2. 静态类型安全 — 编译期消除整类错误
 
@@ -70,7 +74,7 @@ MoonBit 的 native 后端将代码 AOT 编译为单一原生可执行文件，�
 - **显式 trait 实现**：`Tool` trait 定义工具契约，14 个内置工具各自实现，能力边界在类型层面显形
 - **`AnyTool` 枚举分发**：替代 trait object 的动态分发，零开销且类型安全
 - **包级可见性模型**：`pub` / `pub(open)` / `pub(all)` 三级可见性比 Ruby 的 `private` / `protected` 更清晰，模块边界更难被破坏
-- **27 个细粒度包**：将原项目的超大单文件（如 `http_server.rb` 181KB、`agent.rb` 70KB）拆分为 27 个关注点分离的包，每个包职责单一
+- **22 个细粒度包**：将原项目的超大单文件（如 `http_server.rb` 181KB、`agent.rb` 70KB）拆分为 22 个关注点分离的包，每个包职责单一
 
 ### 4. GEP 技能自进化系统
 
@@ -126,7 +130,7 @@ MoonBit 的 native 后端将代码 AOT 编译为单一原生可执行文件，�
 MBOpenClacky/
 ├── cmd/                # 可执行入口（main + NDJSON日志/补丁加载/Hook加载/Channel脚手架/API扩展等）
 │   └── main.mbt + 辅助模块
-├── lib/                # 库代码（21 个顶级包，含 4 个 web 子包，共 26 个库包）
+├── lib/                # 库代码（22 个顶级包，含 4 个 web 子包，共 26 个库包）
 │   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer/Compressor/SessionRestore
 │   ├── billing/        # 计费系统（BillingRecord + BillingStore + 成本计算）
 │   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）+ 加密（AES-256-GCM C FFI）
@@ -154,7 +158,7 @@ MBOpenClacky/
 │       └── sse/        # SSE 流式响应
 ├── assets/
 │   ├── agents/         # 默认 Agent 配置（coding/general + SOUL.md/USER.md）
-│   ├── skills/         # 11 个内置技能（code-explorer/deploy/mcp-manager 等）
+│   ├── skills/         # 16 个内置技能（code-explorer/deploy/mcp-manager/browser_setup/channel_manager/extend-openclacky 等）
 │   └── web/            # 前端 SPA（原生 JS, SSE 流式, WebSocket 实时, 暗色主题）
 ├── scripts/
 │   ├── install.sh      # Linux/macOS 安装脚本
@@ -232,9 +236,11 @@ MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
 moon test
 ```
 
-当前共有 **1,352 个测试用例**，全部通过，覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等）。
+代码库包含 **1,400+ 个测试用例**（`*_wbtest.mbt`），覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等）。
 
-> **注意**：`moon test` 仅支持 native 目标。`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖而失败，请使用 `moon check` 进行类型验证。
+> **注意**：
+> - `moon test` 仅支持 native 目标。`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖而失败，请使用 `moon check` 进行类型验证。
+> - 当前 `lib/client/moon.pkg` 中 `-lcurl` 链接标志默认被注释，运行 `moon test` 前需取消注释并确保系统已安装 libcurl-dev（Linux：`libssl-dev`/`libcurl-dev`；macOS：Xcode CLT 通常已包含），否则链接阶段会报 curl 符号未解析。
 
 ### 开发阶段路线
 
@@ -265,6 +271,7 @@ moon test
 | Phase 21 | 业务功能差距系统性补齐（Terminal/压缩/Session/Config/Brand/TUI/Web/CLI） | ✅ 已完成 |
 | Phase 22 | 差距填补方案实施：HTTP 安全/广播、浏览器工具、AES-GCM 加密、TUI 增强 | ✅ 已完成 |
 | Phase 23 | 部署阻碍修复：Dockerfile 路径修正、端口统一 7070、C FFI 链接修复、全量测试通过 | ✅ 已完成 |
+| Phase 24 | API 端点扩展（汇率/本地图片/Onboarding/Media/OCR/版本/重启）+ TUI 组件增强（block_font/thinking_verbs）+ MCP SkillProvider 独立模块 + Terminal PTY 执行 | ✅ 已完成 |
 
 ## 六、已知问题与开发计划
 
@@ -301,10 +308,11 @@ moon test
 
 #### TUI 相关
 
-4. **TUI 已迁移至 Inline Scrolling 架构**（✅ 2026-07-01 完成 Phase 0-5）
+4. **TUI 已迁移至 Inline Scrolling 架构**（✅ Phase 0-5 已完成，Phase 6 部分完成）
    - **原问题**：基于 onebit-tui 的 Full-screen Retained-mode TUI 存在 5 个渲染 Bug（边框消失、光标覆盖、状态栏溢出等）
    - **修复**：迁移至 `moonbit-community/tty@0.2.5`，采用 Inline Scrolling 架构（ScreenBuffer + OutputBuffer + LineEditor + LayoutManager），彻底消除 Yoga/C stubs/dlsym 依赖
-   - **状态**：Phase 0-5 已完成（编译通过，测试通过），Phase 6（Dialog + TodoArea + 清理）待实施
+   - **新增组件**：`block_font.mbt`（块状字体渲染）、`thinking_verbs.mbt`（思考动词动效）
+   - **状态**：Phase 0-5 已完成（编译通过，测试通过）；Phase 6（Dialog + TodoArea + 清理）部分推进中
    - **详见**：[`docs/tui-inline-migration-plan.md`](./docs/tui-inline-migration-plan.md)
    - **注意**：启动 TUI 建议直接运行编译好的二进制 `./_build/native/debug/build/cmd/cmd.exe`，`moon run cmd` 包装器在某些终端环境下可能不启动 TUI
 
@@ -313,8 +321,8 @@ moon test
 4. **`derive_key` 使用简化迭代 SHA-256**（P2）
    - 非标准 PBKDF2，有 TODO 标记，计划后续实现 PBKDF2-HMAC-SHA256
 
-5. **MCP 模块测试覆盖为零**（P1）
-   - 7 个源文件但 0 个测试文件，需补齐测试
+5. **MCP 模块测试覆盖持续提升**（P1 → P2）
+   - 已新增 `lib/mcp/skill_provider_wbtest.mbt`、`lib/mcp/virtual_skill.mbt` 等测试与实现；原有“0 测试”问题已解决，仍继续补齐场景覆盖
 
 6. **Web 前端完成度 ~40-50%**（P1）
    - 基础 SPA 可用，但 8 个管理面板（MCP/Channels/Schedules/Backups/Billing/Browser/Trash/Git）尚未全部实现

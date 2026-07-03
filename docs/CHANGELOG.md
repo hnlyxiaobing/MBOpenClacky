@@ -25,9 +25,35 @@
 
 ## 变更记录
 
+### 2026-07-03  Phase 24 功能扩展与文档同步
+
+- `[feat]` **Terminal 工具 PTY 执行**
+  - 新增 `lib/tool/pty.mbt` / `pty_unix.mbt` / `pty_windows.mbt` / `pty_stubs.c`
+  - 支持交互式命令会话（`session_start/session_send/session_read/session_close`），Mac/Linux 基于 posix_openpt，Windows 使用 CreateProcess + 命名管道
+- `[feat]` **Web API 扩展**
+  - 新增汇率换算 (`handlers_exchange_rate.mbt`)
+  - 新增本地图片处理 (`handlers_local_image.mbt`)
+  - 新增媒体生成端点 (`handlers_media.mbt`)
+  - 新增 OCR 文本识别端点 (`handlers_ocr.mbt`)
+  - 新增 onboarding (`handlers_onboard.mbt`) 和版本信息 (`handlers_version.mbt`) 端点
+  - REST API 端点总数从 68+ 增长到 **90+**
+- `[feat]` **MCP 技能提供方**
+  - 新增 `lib/mcp/skill_provider.mbt` / `lib/mcp/virtual_skill.mbt`
+  - 将 MCP 工具暴露为 OpenClacky 技能，支持通过技能系统调用 MCP 服务器
+- `[feat]` **TUI 视觉增强**
+  - 新增 `lib/tui/block_font.mbt` — 标题/横幅大字体渲染
+  - 新增 `lib/tui/thinking_verbs.mbt` — 动态思考状态动词提示
+- `[feat]` **默认技能扩展**
+  - `lib/skill/default_skills.mbt` 内置技能从 11 个扩展到 **16 个**
+  - 新增 `browser-setup`、`channel-manager`、`cron-task-creator`、`mcp-manager`、`media-gen`、`obsidian-note-writer` 等技能
+- `[chore]` **libcurl 链接依赖**
+  - `lib/client/moon.pkg` 中 `-lcurl` 当前默认被注释；运行 native 测试或需要 HTTP 客户端时，需安装 libcurl-dev 并取消注释
+- `[docs]` **项目文档全量同步**
+  - 更新 `CLAUDE.md`、`README.md`、`AGENTS.md`、`docs/getting-started.md`、`docs/project-status-and-deployment-guide.md`、`docs/CHANGELOG.md`
+  - 修正 TUI 依赖库名称（`moonbit-community/tty`）
+  - 刷新项目指标：248 源文件、62 测试文件、~70,269 总代码行、1,400+ 测试用例、16 默认技能、90+ REST 端点、429 warnings
 
 ### 2026-07-01  Eval 框架全局重构
-
 - `[refactor]` **Eval 框架从 `lib/tui/` 提取到独立的 `test/` 包体系**
   - 新建 `test/eval/eval_engine.mbt` (96行) — 通用 eval 引擎：结果类型 + 文件加载 + 报告格式化
   - 新建 `test/eval/eval_engine_wbtest.mbt` (77行) — 引擎单元测试 4 个
@@ -454,7 +480,7 @@
   - `progress.mbt` — Spinner 动画（Dots/Line/Arrow 三种样式，函数式不可变更新）
   - `realtime.mbt` — RealtimeRenderer 增量渲染（ANSI 光标控制）
   - `tui_enhanced_wbtest.mbt` — 28 个 TUI 增强测试
-- `[feat]` **Phase 14.1: Web 前端 SPA** — 新建 `assets/web/` 目录（8 文件）
+- `[feat]` **Phase 14.1: Web 前端 SPA** — 新建 `web/` 目录（8 文件）
   - `index.html` — SPA 入口
   - `style.css` — 暗色主题响应式样式
   - `app.js` — 前端核心逻辑

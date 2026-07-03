@@ -82,7 +82,7 @@ test "mime: no extension returns octet-stream" {
 
 ///|
 test "mime: full path with extension works" {
-  assert_eq(get_mime_type("assets/web/css/style.css"), "text/css")
+  assert_eq(get_mime_type("web/css/style.css"), "text/css")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -155,7 +155,7 @@ test "is_static_asset: route-like path" {
 
 ///|
 test "serve: root '/' returns index.html with text/html" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -163,7 +163,7 @@ test "serve: root '/' returns index.html with text/html" {
 
 ///|
 test "serve: empty path returns index.html with text/html" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -171,7 +171,7 @@ test "serve: empty path returns index.html with text/html" {
 
 ///|
 test "serve: custom index_file" {
-  let server = StaticServer::new("./assets/web", index_file="main.html")
+  let server = StaticServer::new("./web", index_file="main.html")
   // Root path should resolve to custom index file (main.html)
   let resp = server.serve("/")
   assert_eq(resp.status, 200)
@@ -184,7 +184,7 @@ test "serve: custom index_file" {
 
 ///|
 test "serve: css file returns text/css" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/css/style.css")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/css")
@@ -192,7 +192,7 @@ test "serve: css file returns text/css" {
 
 ///|
 test "serve: js file returns application/javascript" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/js/app.js")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "application/javascript")
@@ -200,7 +200,7 @@ test "serve: js file returns application/javascript" {
 
 ///|
 test "serve: js file includes cache header" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/js/app.js")
   assert_eq(resp.status, 200)
   assert_true(resp.headers.length() > 0)
@@ -216,7 +216,7 @@ test "serve: js file includes cache header" {
 
 ///|
 test "spa_fallback: non-asset path returns index.html content" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/dashboard")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -226,7 +226,7 @@ test "spa_fallback: non-asset path returns index.html content" {
 
 ///|
 test "spa_fallback: nested route returns html" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/settings/advanced")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -234,7 +234,7 @@ test "spa_fallback: nested route returns html" {
 
 ///|
 test "spa_fallback: includes X-SPA-Fallback header" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/some/route")
   assert_eq(resp.status, 200)
   // Find the X-SPA-Fallback header
@@ -252,7 +252,7 @@ test "spa_fallback: includes X-SPA-Fallback header" {
 
 ///|
 test "spa_fallback: Cache-Control is no-cache" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/some/route")
   let mut found = false
   let mut i = 0
@@ -272,28 +272,28 @@ test "spa_fallback: Cache-Control is no-cache" {
 
 ///|
 test "traversal: '../etc/passwd' blocked with 400" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/../../../etc/passwd")
   assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: simple '..' blocked" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/../secret.txt")
   assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: embedded '..' blocked" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/css/../../etc/shadow")
   assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: body contains 'Invalid path'" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/../../etc/hosts")
   assert_eq(resp.status, 400)
   assert_true(resp.body.contains("Invalid path"))
@@ -308,7 +308,7 @@ test "serve: non-existent asset returns 404" {
   // A known static-asset extension that does not exist on disk must 404,
   // not silently return a placeholder — real filesystem I/O is the source
   // of truth for static assets.
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/nonexistent.css")
   assert_eq(resp.status, 404)
 }
@@ -316,7 +316,7 @@ test "serve: non-existent asset returns 404" {
 ///|
 test "serve: non-asset non-existent path triggers SPA fallback" {
   // Paths without known extensions trigger SPA fallback
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/nonexistent_page")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -329,7 +329,7 @@ test "serve: non-asset non-existent path triggers SPA fallback" {
 
 ///|
 test "serve: leading slash stripped for asset path" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp1 = server.serve("/css/style.css")
   let resp2 = server.serve("css/style.css")
   // Both should return same MIME type
@@ -339,7 +339,7 @@ test "serve: leading slash stripped for asset path" {
 
 ///|
 test "serve: path without leading slash for asset" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("js/app.js")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "application/javascript")
@@ -351,7 +351,7 @@ test "serve: path without leading slash for asset" {
 
 ///|
 test "spa_fallback: direct call returns proper response" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = spa_fallback(server)
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -361,7 +361,7 @@ test "spa_fallback: direct call returns proper response" {
 
 ///|
 test "spa_fallback: uses custom index_file in header" {
-  let server = StaticServer::new("./assets/web", index_file="main.html")
+  let server = StaticServer::new("./web", index_file="main.html")
   let resp = spa_fallback(server)
   let mut found = false
   let mut i = 0

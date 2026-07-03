@@ -1,11 +1,10 @@
 # MBOpenClacky CLI 用户界面实现状况评审报告
 
-> **文档版本**: 1.0  
-> **评审日期**: 2026-06-29  
+> **文档版本**: 1.1  
+> **评审日期**: 2026-06-29（2026-07-03 同步最新代码）  
 > **评审范围**: `cmd/main.mbt` 入口 + `lib/tui/` 模块 + CLI 流程编排  
-> **基线文档**: `docs/gap-analysis-between-projects-0627.md`、`docs/project-status-and-deployment-guide.md`  
+> **基线文档**: `docs/gap-analysis-between-projects-2026-06-30.md`、`docs/project-status-and-deployment-guide.md`  
 > **评审目的**: 对前次 CLI 评估报告进行事实校正与细化，形成权威问题清单与修复时间表
-
 ---
 
 ## 目录
@@ -27,8 +26,8 @@
 | 对象 | 路径 | 实际行数/文件数 |
 |------|------|---------------|
 | CLI 主入口 | `cmd/main.mbt` | 530 行 |
-| CLI 辅助模块 | `cmd/` | 7 个文件（含 main + 5 个辅助 + moon.pkg + pkg.generated.mbti） |
-| TUI 模块 | `lib/tui/` | 25 个 `.mbt` + 3 个 `*_wbtest.mbt`，共 4,605 行（含测试） |
+| CLI 辅助模块 | `cmd/` | 8 个文件（main + 5 个辅助 .mbt + moon.pkg + pkg.generated.mbti） |
+| TUI 模块 | `lib/tui/` | 29 个 `.mbt` + 4 个 `*_wbtest.mbt`，共 6,784 行（含测试） |
 | 会话管理支撑 | `lib/agent/session_manager.mbt` | 339 行（已实现 fork_session） |
 | 服务发现支撑 | `lib/server/discover.mbt` | 98 行（find_all_local 为 stub） |
 | 计费支撑 | `lib/billing/billing_store.mbt` 等 | 4 个文件，691 行（完整实现） |
@@ -169,7 +168,7 @@
 | 编号 | 问题 | 影响范围 | 涉及文件 | 基础评估 |
 |------|------|---------|---------|---------|
 | **P2-01** | 缺少 `--theme` 选项（hacker/minimal 双主题） | TUI 视觉偏好 | `cmd/main.mbt`（新增 args）+ `lib/tui/theme.mbt`（扩展主题枚举）+ 源项目 `cli.rb` 已实现参考 | **0.5 天** |
-| **P2-02** | 缺少 `--ui` UI 引擎选择（默认 onebit-tui，可选 rich） | 高级终端用户偏好 | `cmd/main.mbt`（新增 args）+ `lib/tui/tui.mbt`（调度分支） | 依赖 P2-05 Rich UI 实现，**0.5 天**（不含 Rich UI 工作） |
+| **P2-02** | 缺少 `--ui` UI 引擎选择（默认 `moonbit-community/tty`，可选 rich） | 高级终端用户偏好 | `cmd/main.mbt`（新增 args）+ `lib/tui/tui.mbt`（调度分支） | 依赖 P2-05 Rich UI 实现，**0.5 天**（不含 Rich UI 工作） |
 | **P2-03** | `lib/tui/state.mbt` 中无 `session_bar`/`todo_area` 字段 | TUI 信息丰富度 | `lib/tui/state.mbt`（扩字段）+ `lib/tui/components/session_bar.mbt`（新建）+ `lib/tui/components/todo_area.mbt`（新建）+ `lib/tui/tui.mbt::build_main_layout`（集成） | **2 天**（两个新组件） |
 | **P2-04** | TUI 缺少 Client Factory 模式 + BrowserManager 清理 | 长时间运行稳定性、退出残留 | `cmd/main.mbt::run_agent`（重构 Client 构造）+ `cmd/main.mbt::run_non_interactive`（增加 `ensure` 块调用 `@server.BrowserManager::instance.stop()`） | **0.5 天** |
 | **P2-05** | Rich UI 第二套实现完全缺失（`rich_ui/` 14 个文件） | 高级终端用户 | 新建 `lib/tui/rich/` 子目录（参考源项目） | **5-8 天**（可选，影响等级中等） |

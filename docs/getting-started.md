@@ -11,6 +11,7 @@ MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持�
 | MoonBit 工具链 | moon 0.1.20260629+ | 编译器与构建系统 |
 | C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
 | OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM C FFI 所需（仅 Linux/macOS） |
+| libcurl 开发库 | libcurl-dev / libcurl4-openssl-dev (Debian/Ubuntu) / curl 自带 (macOS) | client HTTP 请求 C FFI 所需；运行 `moon test` 前需取消注释 `lib/client/moon.pkg` 中的 `-lcurl` |
 | API 密钥 | 任意支持的提供商 | 至少配置一个 |
 ---
 
@@ -82,7 +83,7 @@ moon build --target native cmd
 
 > **重要**：始终使用 `moon build ... cmd`（显式指定 cmd 包），而非裸 `moon build`。这是因为 `lib/brand` 包含 `link: {}` 块会触发 [moon#1488](https://github.com/moonbitlang/moon/issues/1488)，导致 moon 尝试将库包链接为独立可执行文件而失败。
 
-> **注意**：`moon build --target wasm-gc` 因 `onebit-tui` 和 `crescent` 的 FFI 依赖不可用。请使用 `moon check` 进行类型验证。
+> **注意**：`moon build --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖不可用。请使用 `moon check` 进行类型验证。
 
 ### 5. 配置 API 密钥
 #### 方式一：环境变量（推荐快速开始）
@@ -288,8 +289,8 @@ chmod +x scripts/install.sh
 
 | 平台 | 依赖 | 安装命令 |
 |------|------|---------|
-| Linux (Debian/Ubuntu) | gcc, make, libssl-dev | `sudo apt-get install build-essential libssl-dev` |
-| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` |
+| Linux (Debian/Ubuntu) | gcc, make, libssl-dev, libcurl-dev | `sudo apt-get install build-essential libssl-dev libcurl-dev` |
+| Linux (Fedora) | gcc, make, openssl-devel, libcurl-devel | `sudo dnf install gcc make openssl-devel libcurl-devel` |
 | macOS | Xcode CLT (含 clang) | `xcode-select --install` |
 | Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
 | 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
@@ -360,8 +361,15 @@ moon build --target native --release cmd
 
 ### `moon check` 报 Warning 但 0 errors
 
-Warnings 为已知的代码风格提示（如 deprecated Show trait），不影响编译和运行。
+Warnings 为已知的代码风格提示（如 deprecated Show trait），不影响编译和运行。当前 `moon check` 结果约为 426 warnings、0 errors。
 
-### Web 工具（web_fetch / web_search）返回提示信息
+### `moon test` 链接阶段报 curl 符号未解析
 
-当前版本的 web_fetch 和 web_search 为元数据就绪状态，实际 HTTP 请求需要异步客户端支持。工具会返回友好提示而非抛出错误，不会阻断 Agent 循环。
+`lib/client/moon.pkg` 中 `-lcurl` 链接标志默认被注释。运行 native 测试前：
+1. 安装 libcurl 开发库（Debian/Ubuntu：`sudo apt-get install libcurl-dev` 或 `libcurl4-openssl-dev`；macOS：Xcode CLT 通常已包含）。
+2. 取消注释 `lib/client/moon.pkg` 中的 `cc-link-flags: "-lcurl"` 行。
+3. 重新运行 `moon test`。
+
+### Web 工具（web_fetch / web_search）
+
+`web_search` 已实现 DuckDuckGo HTML 搜索并解析结果；`web_fetch` 已实现同步 HTTP GET 获取页面内容。二者均通过 `lib/client` 的同步 HTTP 接口工作，不再需要单独的异步客户端支持。

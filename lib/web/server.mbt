@@ -378,19 +378,34 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     dispatcher.register_routes(api)
   })
 
-  // ── Static Files ──────────────────────────────────────────────
-  app.static_assets("/", @static_file.StaticFileProvider(path="assets/web"))
+  // ── Static Files & SPA Fallback ───────────────────────────────
+  // Serve files from the web/ directory at the root path. For non-asset
+  // routes (client-side routing) fall back to index.html.
+  let static_server = StaticServer::new("web")
+  app.use_middleware((event, next) => {
+    let path = event.req.path()
+    if path.has_prefix("/api/") || path.has_prefix("/ws/") || path == "/health" {
+      return next()
+    }
+    if event.req.http_method != Get && event.req.http_method != Head {
+      return next()
+    }
+    let resp = static_server.serve(path)
+    if resp.status == 404 {
+      return next()
+    }
+    resp.to_crescent()
+  })
 
-  // ── SPA Fallback ─────────────────────────────────────────────
-  // For non-API, non-WS, non-health paths, serve index.html for client-side routing.
+  // ── Final Fallback ───────────────────────────────────────────
+  // If the static middleware could not resolve the path (e.g. missing
+  // index.html), return a plain 404 instead of a generic empty response.
   app.set_not_found_handler((event : @crescent.Event) => {
     let path = event.req.path()
     if !path.has_prefix("/api/") &&
       !path.has_prefix("/ws/") &&
       path != "/health" {
-      let raw = @fs.read_file_to_string("assets/web/index.html") catch {
-        _ => ""
-      }
+      let raw = @fs.read_file_to_string("web/index.html") catch { _ => "" }
       if !raw.is_empty() {
         let content = process_template(raw, TemplateConfig::default())
         return @core.HttpResponse::ok()

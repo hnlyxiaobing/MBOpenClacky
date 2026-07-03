@@ -26,7 +26,20 @@
       "Bash(git -C D:/MoonBit/MBOpenClacky diff --stat CLAUDE.md README.md docs/ .gitignore)",
       "Bash(git -C D:/MoonBit/MBOpenClacky diff CLAUDE.md)",
       "Bash(git *)",
-      "Bash(ping *)"
+      "Bash(ping *)",
+      "Bash(cmd //c \"\\\\\"C:\\\\\\\\Program Files \\(x86\\)\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\BuildTools\\\\\\\\VC\\\\\\\\Auxiliary\\\\\\\\Build\\\\\\\\vcvarsall.bat\\\\\" x64 > nul && set\")",
+      "Read(//tmp/**)",
+      "Bash(cmd //c \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\18\\\\BuildTools\\\\VC\\\\Auxiliary\\\\Build\\\\vcvarsall.bat x64 > nul && set\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(cmd //c \"echo hello\")",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/18/BuildTools/Common7/Tools//**)",
+      "Bash(cmd //c 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\18\\\\BuildTools\\\\Common7\\\\Tools\\\\VsDevCmd.bat -arch=x64 && set')",
+      "Bash(cmd //c \"\\\\\"C:\\\\\\\\Program Files \\(x86\\)\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\BuildTools\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 && set\")",
+      "Bash(bash scripts/with_msvc_env.sh moon test lib/web)",
+      "Bash(bash scripts/with_msvc_env.sh moon test lib/web --filter \"handlers_onboard*\")",
+      "Bash(moon clean *)",
+      "Bash(moon fmt *)",
+      "Bash(bash scripts/with_msvc_env.sh moon build --target native --release cmd)"
     ]
   }
 }

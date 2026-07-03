@@ -314,7 +314,7 @@ test "static_server: mime type unknown fallback" {
 
 ///|
 test "static_server: spa fallback for non-asset path" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/dashboard")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")
@@ -323,7 +323,7 @@ test "static_server: spa fallback for non-asset path" {
 
 ///|
 test "static_server: serves known static asset" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/css/style.css")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/css")
@@ -331,14 +331,14 @@ test "static_server: serves known static asset" {
 
 ///|
 test "static_server: directory traversal blocked" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/../../../etc/passwd")
   assert_eq(resp.status, 400)
 }
 
 ///|
 test "static_server: root path serves index" {
-  let server = StaticServer::new("./assets/web")
+  let server = StaticServer::new("./web")
   let resp = server.serve("/")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/html")

@@ -28,18 +28,17 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| 源代码行数 | ~65,233 行 | 含测试 ~65,233 行（非测试源码 ~50,613 行，测试 ~14,620 行） |
-| 源代码文件数 | 314 个 .mbt（lib: 301, cmd: 7, test: 6） | Ruby 约 196 个核心 .rb（lib/） |
-| 测试文件数 | 53 个 _wbtest.mbt | Ruby 约 138 个 spec |
-| 测试用例数 | 1,344 | 全部通过（moon test native） |
+| 源代码行数 | ~70,269 行 | `.mbt` 非测试源码 ~52,806 行 + 测试 ~17,463 行 |
+| 源代码文件数 | 248 个 .mbt 源文件（lib: 239, cmd: 6, test/eval: 3） | Ruby 约 196 个核心 .rb（lib/） |
+| 测试文件数 | 62 个 _wbtest.mbt | Ruby 约 138 个 spec |
+| 测试用例数 | 1,400+ | 用例数随代码增长；native 测试需启用 `lib/client/moon.pkg` 的 `-lcurl` 并安装 libcurl-dev |
 | 编译状态 | 0 errors, 426 warnings | `moon check`（native target） |
-| 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe (~3.8MB release) |
+| 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe（release 约 3.8MB） |
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
-| 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |
-### 关键发现
+| 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |### 关键发现
 
 1. **编译错误已全部修复**：`moon check` 通过（0 errors, 426 warnings）
-2. **全量测试 100% 通过**：1,344 / 1,344 个测试用例通过（`moon test`），此前的 P0/P1 级测试失败（brand/crypto、session_registry、mcp/types、web/static_server）已全部修复
+2. **测试用例持续增长**：约 1,400+ 个测试用例；运行 native 测试需安装 libcurl 开发库并启用 `lib/client/moon.pkg` 中的 `-lcurl`。
 3. **P0 级部署阻碍已清除**：
    - AES-256-GCM 加密通过 C FFI（OpenSSL）实现，72 个 brand 测试全过
    - Dockerfile 构建产物路径修正为 `_build/native/release/build/cmd/cmd.exe`
@@ -47,10 +46,9 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
    - `-lcrypto` 链接问题通过 `cmd/moon.pkg` 的 `--no-as-needed` + `moon build cmd` 解决
 4. **Windows 构建已打通**：通过 MSVC Build Tools + C stub 适配，native 构建成功（但 brand 加密在 Windows 上使用弱桩回退）
 5. **主要差距已大幅缩小**：
-   - HTTP 服务器增强：middleware（auth/error_envelope/timeout/logging）+ broadcast/hub + 12 个 handlers 已实现
+   - HTTP 服务器增强：middleware（auth/error_envelope/timeout/logging）+ broadcast/hub + 30+ handlers 已实现，REST API 端点 90+
    - 浏览器工具实现：从骨架增长到 ~2,074 行，完成度 65-70%
-   - TUI 控制器：从 ~2,078 行增长到 5,971 行/26 文件；Eval 框架已提取到 `test/` 目录（6 文件/1,258 行）
-6. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
+   - TUI 控制器：增长到 6,784 行/29 文件；Eval 框架已提取到 `test/` 目录（6 文件/1,427 行）6. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
 7. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块缺少测试覆盖、无 CI/CD 流水线、无进程守护方案
 ---
 
@@ -60,29 +58,28 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 
 | 模块 | Ruby (行/文件) | MBOpenClacky (行/文件) | 比率 | 评估 |
 |------|---------------|----------------------|------|------|
-| agent | 4,823 / 15 | 8,573 / 39 | 1.78x | ✅ MB已超越 |
-| billing | 371 / 2 | 691 / 4 | 1.86x | ✅ MB已超越 |
-| brand | 1,352 / 1 | 2,014 / 8 | 1.49x | ✅ MB已超越 |
-| channel | 4,757 / 23 | 9,529 / 21 | 2.00x | ✅ MB已超越 |
-| client | 1,916 / 混合 | 4,211 / 10 | 2.20x | ✅ MB已超越 |
-| config | 739+ / 混合 | 1,904 / 9 | 2.58x | ✅ MB已超越 |
-| errors | - | 149 / 3 | - | ✅ MB新增 |
-| hook | 50 / 1 | 344 / 4 | 6.88x | ✅ MB已超越 |
-| mcp | 790 / 7 | 1,212 / 8 | 1.53x | ✅ MB已超越 |
-| media | 921 / 5 | 1,285 / 9 | 1.40x | ✅ MB已超越 |
-| message | 821 / 3 | 1,171 / 7 | 1.43x | ✅ MB已超越 |
-| parser | 607 / 6 | 1,636 / 10 | 2.70x | ✅ MB已超越 |
-| pricing | 743 / 1 | 1,008 / 4 | 1.36x | ✅ MB已超越 |
-| **server** | 13,983 / 35 | 3,593 / 19 | 0.26x | 🟡 **不足（+13%）** |
-| skill | 1,876 / 11 | 1,937 / 12 | 1.03x | ✅ MB已超越 |
-| telemetry | 143 / 1 | 385 / 4 | 2.69x | ✅ MB已超越 |
-| **tool** | 5,384 / 18 | 5,225 / 26 | 0.97x | ✅ 基本对齐 |
-| **tui/ui2** | 8,944 / 40 | 5,971 / 26 | 0.67x | 🟡 **不足（+38%↑）** |
-| utils | 3,054 / 17 | 3,944 / 26 | 1.29x | ✅ MB已超越 |
-| vision | 138 / 1 | 538 / 4 | 3.90x | ✅ MB已超越 |
-| **web** | 33,888 / 85 | 5,672 / 33 | 0.17x | 🟡 **不足（+51%↑）** |
-| cmd | 1,322 / 1 | 1,016 / 7 | 0.77x | 🟡 基本对齐 |
-
+| agent | 4,823 / 15 | 8,821 / 38 | 1.83x | ✅ MB已超越 |
+| billing | 371 / 2 | 671 / 3 | 1.81x | ✅ MB已超越 |
+| brand | 1,352 / 1 | 2,127 / 7 | 1.57x | ✅ MB已超越 |
+| channel | 4,757 / 23 | 9,740 / 20 | 2.05x | ✅ MB已超越 |
+| client | 1,916 / 混合 | 4,463 / 9 | 2.33x | ✅ MB已超越 |
+| config | 739+ / 混合 | 1,907 / 8 | 2.58x | ✅ MB已超越 |
+| errors | - | 137 / 2 | - | ✅ MB新增 |
+| hook | 50 / 1 | 329 / 3 | 6.58x | ✅ MB已超越 |
+| mcp | 790 / 7 | 2,253 / 14 | 2.85x | ✅ MB已超越；新增 skill_provider、virtual_skill、更多 transport 实现 |
+| media | 921 / 5 | 1,284 / 8 | 1.39x | ✅ MB已超越 |
+| message | 821 / 3 | 1,171 / 6 | 1.43x | ✅ MB已超越 |
+| parser | 607 / 6 | 1,711 / 9 | 2.82x | ✅ MB已超越 |
+| pricing | 743 / 1 | 1,009 / 3 | 1.36x | ✅ MB已超越 |
+| **server** | 13,983 / 35 | 3,568 / 18 | 0.26x | 🟡 **不足（+13%）** |
+| skill | 1,876 / 11 | 1,980 / 11 | 1.06x | ✅ MB已超越；内置技能从 11 个扩展到 16 个 |
+| telemetry | 143 / 1 | 354 / 3 | 2.48x | ✅ MB已超越 |
+| **tool** | 5,384 / 18 | 6,480 / 35 | 1.20x | ✅ MB已超越；新增 PTY Terminal、trash_manager 等工具 |
+| **tui/ui2** | 8,944 / 40 | 6,784 / 29 | 0.76x | 🟡 仍不足，但新增 block_font、thinking_verbs、布局/编辑/滚动组件持续完善 |
+| utils | 3,054 / 17 | 4,080 / 26 | 1.34x | ✅ MB已超越 |
+| vision | 138 / 1 | 851 / 5 | 6.17x | ✅ MB已超越 |
+| **web** | 33,888 / 85 | 7,982 / 41 | 0.24x | 🟡 仍不足；新增 exchange_rate、local_image、media、ocr、onboard、version 等端点，API 总数 90+ |
+| cmd | 1,322 / 1 | 1,140 / 6 | 0.86x | 🟡 基本对齐 |
 ### 功能实现状态矩阵
 
 #### P0 - 核心功能（必须完成）
@@ -130,7 +127,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 - Ruby http_server.rb 约 6374 行，包含 100+ 个 REST 端点
 - MBOpenClacky server 模块已从 3,175 行增长到 3,593 行/19 文件（+13%）
 - web 模块从 3,759 行增长到 5,672 行/33 文件（+51%）
-- 已实现：middleware（auth/error_envelope/timeout/logging 4文件470行）、broadcast/hub（228行）、12 个 handlers 文件、template_processor、ext_loader+ext_dispatcher（后端 .mbt 口径：5,672 行/33 文件；Web UI 前端 assets/web/ 口径：6,850 行/26 文件）
+- 已实现：middleware（auth/error_envelope/timeout/logging 4文件470行）、broadcast/hub（228行）、12 个 handlers 文件、template_processor、ext_loader+ext_dispatcher（后端 .mbt 口径：5,672 行/33 文件；Web UI 前端 web/ 口径：6,850 行/26 文件）
 
 **剩余技术差距**：
 
@@ -616,7 +613,7 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
 
 ```moonbit
 // ── Static Files (SPA) ──────────────────────────────────────
-let static_server = @static.StaticServer::new("assets/web")
+let static_server = @static.StaticServer::new("web")
 app.get_raw("/*path", (event : @crescent.Event) => {
   let path = event.req.path()
   if path.starts_with("/api/") || path.starts_with("/ws/") || path == "/health" {
@@ -675,7 +672,7 @@ app.get_raw("/*path", (event : @crescent.Event) => {
 
 每个管理面板遵循统一的设计模式：
 1. 在 index.html 中添加 view-{name} 视图容器
-2. 创建 assets/web/js/{name}.js 模块文件
+2. 创建 web/js/{name}.js 模块文件
 3. 在 app.js 中注册路由和初始化
 4. 在 index.html 中引入脚本
 
@@ -768,8 +765,7 @@ moon test
 | moon build --target native --release cmd | 成功，生成 cmd.exe (~3.8MB release) |
 | moon run cmd -- --version | MBOpenClacky v0.1.0 |
 | moon run cmd -- --help | 帮助信息正常显示 |
-| moon test | 1,344 / 1,344 通过 |
----
+| moon test | 1,400+ 用例（native 需启用 `-lcurl`） |---
 
 ## 实施路线图
 

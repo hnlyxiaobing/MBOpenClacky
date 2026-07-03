@@ -79,8 +79,12 @@ test "render with spaces preserves the gap" {
 ///|
 test "render supports common punctuation" {
   // Each of these glyphs is defined; we just check no crash and
- // that the output is exactly 5 lines.
-  for ch in [".", ",", "!", "?", ":", "-", "_", "/", "\\", "(", ")", "@", "#", "+", "*", "="] {
+  // that the output is exactly 5 lines.
+  for
+    ch in [
+      ".", ",", "!", "?", ":", "-", "_", "/", "\\", "(", ")", "@", "#", "+", "*",
+      "=",
+    ] {
     let lines = render_lines(ch)
     assert_eq(lines.length(), 5)
   }
@@ -96,10 +100,7 @@ test "render multi-line input is stacked with a blank separator" {
 
 ///|
 test "render_with_style(Standard) matches render" {
-  assert_eq(
-    render_with_style("Hi", Standard),
-    render("Hi"),
-  )
+  assert_eq(render_with_style("Hi", Standard), render("Hi"))
 }
 
 ///|
@@ -107,7 +108,7 @@ test "render_with_style(Banner) adds a box frame" {
   let std = render_lines("Hi")
   let banner = render_lines_with_style("Hi", Banner)
   // Banner output has 2 extra rows (top and bottom borders) and
- // 2 extra columns (left and right borders) compared to Standard.
+  // 2 extra columns (left and right borders) compared to Standard.
   assert_eq(banner.length(), std.length() + 2)
   // First line is the top border and must use double-line chars.
   let first : String = banner[0]
@@ -124,10 +125,10 @@ test "render_with_style(Shadow) adds a drop shadow row" {
   let std = render_lines("Hi")
   let shadow = render_lines_with_style("Hi", Shadow)
   // Shadow adds exactly one row at the bottom and one column on the
- // right compared to Standard.
+  // right compared to Standard.
   assert_eq(shadow.length(), std.length() + 1)
   // The bottom row should consist of a leading space followed by
- // light-shade characters (a "drop shadow" pattern).
+  // light-shade characters (a "drop shadow" pattern).
   let bottom : String = shadow[shadow.length() - 1]
   assert_eq(bottom[0], ' ')
   for i in 1..<bottom.length() {
@@ -140,7 +141,7 @@ test "CJK characters fall back to the original character" {
   let lines = render_lines("中")
   assert_eq(lines.length(), 5)
   // Every row must preserve the original character verbatim, so a
- // grep for "中" should match in every rendered row.
+  // grep for "中" should match in every rendered row.
   for line in lines {
     assert_eq(line.contains("中"), true)
   }

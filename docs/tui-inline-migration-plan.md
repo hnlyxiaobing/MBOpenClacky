@@ -1,9 +1,9 @@
 # MBOpenClacky TUI 重构方案：迁移至 moonbit-community/tty 内联滚动式架构
 
-> **日期**：2026-07-01
+> **日期**：2026-07-01（2026-07-03 同步）
 > **方案**：Option B — 彻底迁移到 `moonbit-community/tty@0.2.5` Inline Scrolling TUI
 > **作者**：可莱克（AI 技术合伙人）
-> **状态**：🔄 实施中 — Phase 0-5 已完成（moon check 0 errors, moon test 1352/1352 通过），Phase 6（Dialog + TodoArea + 清理）待实施
+> **状态**：🔄 实施中 — Phase 0-5 已完成；Phase 24 在 `lib/tui/` 新增 `block_font.mbt`（标题大字体）与 `thinking_verbs.mbt`（动态思考提示）。Phase 6（Dialog + TodoArea 完整集成 + 清理）仍待实施；`moon check` 0 errors，测试需启用 `-lcurl`。
 
 ---
 

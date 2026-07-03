@@ -8,16 +8,18 @@ The module root is defined in `moon.mod` (`hnlyxiaobing/MBOpenClacky`, `preferre
 
 ```
 cmd/              CLI entry point (clap parsing, agent lifecycle)
-lib/              22 top-level packages
+lib/              22 top-level packages (27 total with web subpackages + cmd)
   agent/          ReAct loop, LLM caller, session/memory/todo, time machine
   client/         LLM API client (OpenAI/Anthropic/Bedrock), SSE streaming
   config/         TOML loader, 12 provider presets, permissions
-  tool/           Tool trait + 14 built-in tools, registry, security
-  skill/          SKILL.md parsing, registry, evolution engine
-  mcp/            MCP protocol (Stdio/HTTP), JSON-RPC 2.0
+  tool/           Tool trait + 14 built-in tools (Terminal now PTY-based), registry, security
+  skill/          SKILL.md parsing, registry, evolution engine; 16 default skills
+  mcp/            MCP protocol (Stdio/HTTP), JSON-RPC 2.0, skill provider/virtual skill
   channel/        6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin)
   server/         cron scheduler, browser/backup manager, git panel
-  tui/  web/  parser/  media/  vision/  billing/  pricing/  ...
+  tui/            Inline scrolling TUI (moonbit-community/tty), block_font/thinking_verbs
+  web/            crescent REST server, 90+ endpoints
+  parser/  media/  vision/  billing/  pricing/  ...
 test/             Eval framework (module-agnostic, zero-intrusion to lib/)
   eval/           Generic eval engine (result types, file loading, reporting)
   tui/            TUI eval adapter (VirtualScreen, headless simulator, scenarios)
@@ -48,6 +50,8 @@ moon info                               # Verify public API changes (mbti diff)
 ```
 
 `moon test --target wasm-gc` fails on FFI in `moonbit-community/tty`/`crescent`; use `moon check` to validate.
+
+`moon test` native requires `-lcurl` to be enabled in `lib/client/moon.pkg` and libcurl-dev installed; the flag is currently commented by default and will cause link errors otherwise.
 
 ## Coding Style & Naming Conventions
 
