@@ -10,3 +10,5 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/io" @async/io,
 }
+
+supported_targets = "native"

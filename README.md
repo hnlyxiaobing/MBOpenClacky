@@ -11,24 +11,24 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~85-90%（后端核心 ~95%，Web 前端 ~40-50%，部署基础设施 ~30%）
+- **完成度**：~87-92%（后端核心 ~95%，Web 前端 ~40-50%，部署基础设施 ~50%）
 
 ### 核心能力概览
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（总计） | 248 个 |
+| `.mbt` 源文件（总计） | 272 个 |
 | 测试文件 | 62 个 |
-| 代码行数（源代码） | ~52,806 行 |
-| 代码行数（测试） | ~17,463 行 |
-| 代码行数（总计） | ~70,269 行 |
+| 代码行数（源代码） | ~56,951 行 |
+| 代码行数（测试） | ~17,459 行 |
+| 代码行数（总计） | ~74,410 行 |
 | 测试用例 | 1,400+ |
 | MoonBit 包数 | 22 个（21 个 lib 顶级包 + 1 个 cmd 入口包） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 90+ 个 |
 | IM 渠道适配器 | 6 个 |
-| 默认 Skill | 16 个 |
+| 默认 Skill | 17 个 |
 | `moon check` | 0 errors, 426 warnings |
 | `moon test` | native 目标需启用 `lib/client/moon.pkg` 中的 `-lcurl` 并安装 libcurl-dev；当前默认配置下链接阶段会失败 |
 
@@ -41,7 +41,7 @@
 - **多模态文档处理**：PDF / DOCX / PPTX / XLSX 解析 + Vision OCR + SHA256 缓存
 - **Media 生成**：图像/视频/音频（OpenAI / Gemini / DashScope 兼容）
 - **GEP 技能自进化系统**：EvolutionEngine + SkillReflector（执行后反思）+ AutoCreator（模式检测自动创建技能）
-- **16 个内置 Skill**：含 code-explorer、cron-task-creator、deploy、media-gen、browser_setup、channel_manager、new、personal_website、skill_add、skill-creator 等
+- **17 个内置 Skill**：含 code-explorer、cron-task-creator、deploy、media-gen、browser_setup、channel_manager、new、personal_website、skill_add、skill-creator 等
 - **Time Machine**：文件快照与回滚
 - **Cron 定时任务调度**：解析器 + Scheduler + 周期性执行
 - **Shell Hook 系统**：7 种事件钩子
@@ -164,6 +164,9 @@ MBOpenClacky/
 │   ├── install.sh      # Linux/macOS 安装脚本
 │   ├── install.ps1     # Windows 安装脚本
 │   └── setup_yoga.sh   # Yoga 布局引擎编译脚本
+├── specs/              # Harness 方法论（模板 + 活跃 spec + 已完成归档 + 决策记录）
+├── codemaps/           # 10 个核心包代码地形索引
+├── .github/            # CI/CD 工作流（ci.yml + docker.yml）
 ├── Dockerfile          # 多阶段 Docker 构建
 ├── moon.mod            # 模块元信息与依赖声明
 └── docs/               # 项目文档
@@ -272,6 +275,7 @@ moon test
 | Phase 22 | 差距填补方案实施：HTTP 安全/广播、浏览器工具、AES-GCM 加密、TUI 增强 | ✅ 已完成 |
 | Phase 23 | 部署阻碍修复：Dockerfile 路径修正、端口统一 7070、C FFI 链接修复、全量测试通过 | ✅ 已完成 |
 | Phase 24 | API 端点扩展（汇率/本地图片/Onboarding/Media/OCR/版本/重启）+ TUI 组件增强（block_font/thinking_verbs）+ MCP SkillProvider 独立模块 + Terminal PTY 执行 | ✅ 已完成 |
+| Phase 25 | CI/CD 流水线建设（GitHub Actions: ci.yml + docker.yml + 缓存优化）+ Harness 方法论落地（specs/ 目录 + 模板 + 首个 spec 完成归档）+ Codemaps 代码地形索引生成（10 个核心包） | ✅ 已完成 |
 
 ## 六、已知问题与开发计划
 
@@ -327,10 +331,12 @@ moon test
 6. **Web 前端完成度 ~40-50%**（P1）
    - 基础 SPA 可用，但 8 个管理面板（MCP/Channels/Schedules/Backups/Billing/Browser/Trash/Git）尚未全部实现
 
-7. **部署基础设施完成度 ~30%**（P1）
-   - 无 CI/CD 流水线（手动测试）
-   - 无进程守护方案（systemd/docker-compose）
-   - 无日志轮转机制
+7. **部署基础设施完成度 ~50%**（P1）
+   - ✅ CI/CD 流水线已搭建（GitHub Actions：`ci.yml` + `docker.yml`，含缓存优化）
+   - ✅ Harness 方法论已落地（`specs/` 目录结构 + 模板 + 首个 spec 已完成归档）
+   - ✅ Codemaps 已生成（10 个核心包代码地形索引）
+   - ❌ 无进程守护方案（systemd/docker-compose）
+   - ❌ 无日志轮转机制
 
 ### 短期开发目标
 
@@ -338,7 +344,7 @@ moon test
 |--------|------|---------|
 | P0 | MCP 模块测试补齐 | 2-3 天 |
 | P1 | Web 前端管理面板补齐（8 个面板） | 1-2 周 |
-| P1 | CI/CD 流水线搭建（GitHub Actions） | 2-3 天 |
+| P1 | CI/CD 流水线搭建（GitHub Actions） | ✅ 已完成 |
 | P1 | docker-compose 编排 + systemd 服务模板 | 1-2 天 |
 | P2 | `derive_key` 迁移到 PBKDF2 | 1 天 |
 | P2 | Windows BCrypt/CNG 加密适配 | 3-5 天 |

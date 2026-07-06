@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Check · Build · Test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            curl \
+            libssl-dev
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Cache MoonBit toolchain
+        id: cache-moon
+        uses: actions/cache@v4
+        with:
+          path: ~/.moon
+          key: moon-toolchain-${{ runner.os }}-v1
+
+      - name: Install MoonBit toolchain
+        if: steps.cache-moon.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+
+      - name: Add MoonBit to PATH
+        run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Verify MoonBit installation
+        run: moon version
+
+      - name: Cache project dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: .mooncakes
+          key: mooncakes-deps-${{ runner.os }}-${{ hashFiles('moon.mod') }}
+
+      - name: Install project dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          moon update
+          moon install
+
+      - name: Type check
+        run: moon check
+
+      - name: Build (native release)
+        run: moon build --target native --release cmd
+
+      - name: Run tests
+        run: moon test

@@ -1,6 +1,8 @@
 # MBOpenClacky 与 OpenClacky 差距分析报告
 
-> **分析日期**：2026-06-30
+> ⚠️ **状态：已被取代** — 本报告的指标数据已定格于 2026-07-03。项目最新状态请参阅 [`docs/project-status-and-deployment-guide.md`](./project-status-and-deployment-guide.md)（权威状态源）和 [`README.md`](../README.md)。
+
+> **分析日期**：2026-06-30（最后同步：2026-07-03）
 > **分析对象**：
 > - MBOpenClacky（MoonBit 重写版）：`/mnt/d/MoonBit/MBOpenClacky/`
 > - OpenClacky（Ruby 原版）：`/mnt/d/MoonBit/openclacky/`

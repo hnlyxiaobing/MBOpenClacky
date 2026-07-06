@@ -1,6 +1,7 @@
 # MBOpenClacky 编译错误修复效率调查分析报告
 
-> 调查日期: 2026-05-23
+> 调查日期: 2026-05-23  
+> **状态：历史文档** — 本报告记录 Phase 3 期间的编译错误修复过程，数据定格于当时。项目当前 `moon check` 状态为 0 errors, 426 warnings。  
 > 调查范围: Phase 3 (Tool System) 实现过程中 `lib/tool/*.mbt` 的 65 个编译错误
 > 数据来源: `_check_output5.txt` (1585 行, 156 warnings, 65 errors)
 

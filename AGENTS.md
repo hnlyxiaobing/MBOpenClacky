@@ -13,7 +13,7 @@ lib/              22 top-level packages (27 total with web subpackages + cmd)
   client/         LLM API client (OpenAI/Anthropic/Bedrock), SSE streaming
   config/         TOML loader, 12 provider presets, permissions
   tool/           Tool trait + 14 built-in tools (Terminal now PTY-based), registry, security
-  skill/          SKILL.md parsing, registry, evolution engine; 16 default skills
+  skill/          SKILL.md parsing, registry, evolution engine; 17 default skills
   mcp/            MCP protocol (Stdio/HTTP), JSON-RPC 2.0, skill provider/virtual skill
   channel/        6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin)
   server/         cron scheduler, browser/backup manager, git panel
@@ -27,6 +27,9 @@ test/             Eval framework (module-agnostic, zero-intrusion to lib/)
     tui/          TUI scenarios (basic_startup, type_and_submit, input_editing)
 assets/           agents, skills, web (CSS/JS), gep templates
 docs/             changelog and development plans
+specs/            Harness methodology (templates, active specs, completed archive)
+codemaps/         Code terrain indexes for 10 core packages
+.github/          CI/CD workflows (ci.yml, docker.yml)
 ```
 
 Package boundaries live in `moon.pkg` files; generated public APIs in `pkg.generated.mbti`.
@@ -78,4 +81,4 @@ Follow the conventions in `git log`: lowercase type prefixes such as `feat:`, `f
 
 ## Agent-Specific Instructions
 
-Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Use `#alias(old_api, deprecated)` when backward compatibility matters. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/` — they are build/tool caches.
+Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Use `#alias(old_api, deprecated)` when backward compatibility matters. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/` — they are build/tool caches. Follow Harness methodology: create specs in `specs/active/` before starting non-trivial work, move completed specs to `specs/completed/`.

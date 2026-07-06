@@ -8,3 +8,5 @@ import {
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
 }
+
+supported_targets = "native"

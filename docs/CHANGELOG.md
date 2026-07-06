@@ -25,6 +25,32 @@
 
 ## 变更记录
 
+### 2026-07-06  Phase 25 CI/CD 流水线建设 + Harness 方法论落地 + Codemaps 生成
+
+- `[chore]` **GitHub Actions CI 流水线** — 新建 `.github/workflows/ci.yml`（67 行）
+  - PR + main push 自动触发 `moon check` + `moon build --target native --release cmd` + `moon test`
+  - MoonBit 工具链缓存（`~/.moon/`，按 OS+v1 做 key）
+  - 项目依赖缓存（`.mooncakes/`，按 `moon.mod` hash 做 key）
+  - 缓存命中时跳过安装步骤，目标将 CI 总耗时从 ~3-5 分钟降低到 ~1-2 分钟
+- `[chore]` **Docker 镜像自动构建** — 新建 `.github/workflows/docker.yml`（45 行）
+  - 仅 main push 触发，使用现有 Dockerfile 多阶段构建
+  - `docker/build-push-action@v6` + `docker/metadata-action@v5` 自动 tag（commit SHA + latest）
+  - GHA layer cache 加速构建
+- `[chore]` **Harness 方法论落地**
+  - 新建 `specs/` 目录结构：`_templates/`（idea-doc / incremental-spec / task-package 3 个模板）、`active/`、`completed/`、`decisions/`
+  - 首个 spec `2026-07-06_cicd-pipeline.md`（启动 spec）已创建并完成 3 个任务包（base-pipeline / docker-automation / cache-optimization）
+  - 所有 CI/CD spec 已归档至 `specs/completed/`
+- `[docs]` **Codemaps 代码地形索引** — 新建 `codemaps/` 目录（10 个核心包）
+  - agent / client / tool / skill / mcp / channel / server / web / tui / config
+  - 每个 codemap 含入口函数、关键类型、核心调用链、外部依赖、风险点
+- `[docs]` **全量文档校准**
+  - 更新指标数据：272 源文件 / ~56,951 源码行 / ~74,410 总行数 / 17 默认技能
+  - 部署基础设施完成度从 ~30% 调整为 ~50%（CI/CD 已搭建）
+  - 删除已被取代的 `gap-analysis-between-projects-0627.md`，新版加弃用提示
+  - 历史文档加状态标注
+- `[chore]` 整体完成度从 ~85-90% 调整为 ~87-92%
+- `[verify]` `moon check` 最终验证：0 errors, 426 warnings
+
 ### 2026-07-03  Phase 24 功能扩展与文档同步
 
 - `[feat]` **Terminal 工具 PTY 执行**

@@ -192,7 +192,7 @@ assets/
       system_prompt.md
     SOUL.md
     USER.md
-  skills/                    # 16 built-in skills
+  skills/                    # 17 built-in skills
     browser_setup/
     channel_manager/
     code-explorer/
@@ -216,15 +216,19 @@ assets/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (total) | 248 |
+| `.mbt` source files (total) | 272 |
 | Test files (`*_wbtest.mbt`) | 62 |
-| Source lines (non-test) | ~52,806 |
-| Test lines (`*_wbtest.mbt`) | ~17,463 |
+| Source lines (non-test) | ~56,951 |
+| Test lines (`*_wbtest.mbt`) | ~17,459 |
+| Total lines (source + test) | ~74,410 |
 | Test cases | 1,400+ |
 | Top-level packages | 21 |
 | Built-in tools | 14 |
 | Provider presets | 12 |
-| Default skills | 16 |
+| Default skills | 17 |
 | REST API endpoints | 90+ |
 | `moon check` | 0 errors, 426 warnings |
-| Phase coverage | ~85-90% (backend ~95%, Web frontend ~40-50%, deploy infra ~30%) |
+| CI/CD | ✅ GitHub Actions (`ci.yml` + `docker.yml`) |
+| Specs | ✅ Harness methodology (`specs/` with templates) |
+| Codemaps | ✅ 10 core packages (`codemaps/`) |
+| Phase coverage | ~87-92% (backend ~95%, Web frontend ~40-50%, deploy infra ~50%) |

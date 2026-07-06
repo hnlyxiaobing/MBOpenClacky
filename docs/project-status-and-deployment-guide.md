@@ -1,7 +1,7 @@
 # MBOpenClacky 项目综合状态与部署问题解决指南
 
-> **文档版本**: 2.0（基于 2026-06-30 全量验证更新）  
-> **更新日期**: 2026-06-30  
+> **文档版本**: 3.0（基于 2026-07-06 全量验证更新）  
+> **更新日期**: 2026-07-06  
 > **合并来源**: detailed_compilation_fix_plan.md、development-gap-analysis-0625.md、development-plan-0623.md、development-plan-WebUI.md、gap-filling-solutions-plan-0626.md、windows_platform_adaptation.md  
 > **目标**: 提供项目部署和运行问题解决的权威指南
 ---
@@ -24,18 +24,23 @@
 
 MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI），同时借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
 
-### 当前状态快照（2026-07-01）
+### 当前状态快照（2026-07-06）
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
-| 源代码行数 | ~70,269 行 | `.mbt` 非测试源码 ~52,806 行 + 测试 ~17,463 行 |
-| 源代码文件数 | 248 个 .mbt 源文件（lib: 239, cmd: 6, test/eval: 3） | Ruby 约 196 个核心 .rb（lib/） |
+| 源代码行数 | ~74,410 行 | `.mbt` 非测试源码 ~56,951 行 + 测试 ~17,459 行 |
+| 源代码文件数 | 272 个 .mbt 源文件（lib + cmd） | Ruby 约 196 个核心 .rb（lib/） |
 | 测试文件数 | 62 个 _wbtest.mbt | Ruby 约 138 个 spec |
 | 测试用例数 | 1,400+ | 用例数随代码增长；native 测试需启用 `lib/client/moon.pkg` 的 `-lcurl` 并安装 libcurl-dev |
 | 编译状态 | 0 errors, 426 warnings | `moon check`（native target） |
 | 构建状态 | ✅ 成功 | `moon build --target native --release cmd` 生成 cmd.exe（release 约 3.8MB） |
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
-| 整体完成度 | ~85-90% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~30% |### 关键发现
+| CI/CD | ✅ GitHub Actions | `ci.yml`（check + build + test + 缓存优化）+ `docker.yml`（镜像自动构建） |
+| Harness Spec | ✅ 已落地 | `specs/` 目录结构 + 3 个模板 + 首个 spec（CI/CD）已完成归档 |
+| Codemaps | ✅ 已生成 | 10 个核心包代码地形索引（agent/client/tool/skill/mcp/channel/server/web/tui/config） |
+| 整体完成度 | ~87-92% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~50% |
+
+### 关键发现
 
 1. **编译错误已全部修复**：`moon check` 通过（0 errors, 426 warnings）
 2. **测试用例持续增长**：约 1,400+ 个测试用例；运行 native 测试需安装 libcurl 开发库并启用 `lib/client/moon.pkg` 中的 `-lcurl`。
@@ -49,7 +54,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
    - HTTP 服务器增强：middleware（auth/error_envelope/timeout/logging）+ broadcast/hub + 30+ handlers 已实现，REST API 端点 90+
    - 浏览器工具实现：从骨架增长到 ~2,074 行，完成度 65-70%
    - TUI 控制器：增长到 6,784 行/29 文件；Eval 框架已提取到 `test/` 目录（6 文件/1,427 行）6. **Web UI 阻塞缺陷已修复**：静态文件服务已实现真实文件系统读取，catch-all 路由和 SPA 回退已注册
-7. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块缺少测试覆盖、无 CI/CD 流水线、无进程守护方案
+7. **已知遗留问题**：vision 模块 LLM 调用仍为 placeholder、derive_key 使用简化迭代 SHA-256、MCP 模块测试覆盖持续补齐、CI/CD 已搭建但缺少进程守护方案
 ---
 
 ## 项目状态总览
@@ -924,7 +929,8 @@ docker run -d \
 
 | 能力 | 当前状态 | 影响 | 规划 |
 |------|---------|------|------|
-| **CI/CD 流水线** | ❌ 缺失 | 所有测试和构建依赖手动执行，无自动化回归保障 | 计划使用 GitHub Actions：`moon check` + `moon test` + Docker 镜像构建推送 |
+| **CI/CD 流水线** | ✅ GitHub Actions | `.github/workflows/ci.yml`（check + build + test + 缓存优化）+ `docker.yml`（镜像自动构建） |
+| **Harness 方法论** | ✅ 已落地 | `specs/` 目录结构 + 3 个模板 + 首个 spec 完成归档；`codemaps/` 10 个核心包索引 |
 | **进程守护** | ❌ 缺失 | 服务意外退出后无法自动重启 | 计划提供 systemd service 模板和 docker-compose 编排文件 |
 | **日志轮转** | ❌ 缺失 | 长时间运行日志文件无限增长 | 计划集成 logrotate 或应用内日志轮转（lib/utils/logger.mbt 已有基础框架） |
 | **配置热更新** | ❌ 缺失 | 修改配置需重启服务 | 低优先级，后续评估 |
@@ -1127,14 +1133,14 @@ moon ide doc "@sys"
 
 ---
 
-> **文档版本**：1.1（2026-06-27，基于代码库深度审计修正）  
+> **文档版本**：3.0（2026-07-06，CI/CD + Harness + Codemaps 完成状态同步）  
 > **合并来源**：6 个独立文档  
 > **状态**：权威指南，涵盖项目部署和运行问题解决  
 
 **整体完成度评估**：
 - 后端核心功能：~95%
 - Web 前端体验层：~40-50%（与源项目相比）
-- 部署基础设施：~30%（缺少 Docker/安装脚本等）
-- 整体综合：~85-90%
+- 部署基础设施：~50%（CI/CD 已搭建，缺少进程守护和日志轮转）
+- 整体综合：~87-92%
 
-> **修正说明**：v1.0 版本中整体完成度标注为 ~98-99%，系按 Phase 完成比例估算。v1.1 基于代码库深度审计，按模块级功能覆盖率重新计算，将 Web 前端（~40-50%）、部署基础设施（~30%）等短板纳入加权，调整为 ~85-90%。
+> **修正说明**：v3.0 同步 CI/CD 流水线建设完成、Harness 方法论落地、Codemaps 生成等状态，更新指标数据（272 源文件 / ~56,951 源码行 / ~74,410 总行数）。v2.0 版本整体完成度 ~85-90%，v3.0 因 CI/CD 补齐调整为 ~87-92%。

@@ -18,6 +18,8 @@ import {
   "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
 }
 
+supported_targets = "native"
+
 options(
   "is-main": true,
   // The brand package's C stubs (crypto_native.c) call OpenSSL (libcrypto)
