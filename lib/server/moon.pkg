@@ -5,5 +5,5 @@ import {
 }
 
 options(
-  "native-stub": [ "browser_process.c" ],
+  "native-stub": [ "browser_process.c", "git_exec.c" ],
 )

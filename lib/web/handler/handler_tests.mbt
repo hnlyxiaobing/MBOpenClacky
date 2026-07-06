@@ -197,27 +197,30 @@ test "http_request: get_header case insensitive" {
 
 ///|
 test "handler: mcp list servers returns 200" {
+  let registry = @mcp.McpRegistry::new()
   let req = @web.HttpRequest::new(@web.GET, "/api/mcp/servers")
-  let resp = @web.handle_mcp_list_servers(req)
+  let resp = @web.handle_mcp_list_servers(registry, req)
   assert_eq(resp.status, 200)
   assert_true(resp.body.contains("servers"))
 }
 
 ///|
 test "handler: mcp register server requires body" {
+  let registry = @mcp.McpRegistry::new()
   let req = @web.HttpRequest::new(@web.POST, "/api/mcp/servers")
-  let resp = @web.handle_mcp_register_server(req)
+  let resp = @web.handle_mcp_register_server(registry, req)
   assert_eq(resp.status, 400)
 }
 
 ///|
 test "handler: mcp register server with body returns 201" {
+  let registry = @mcp.McpRegistry::new()
   let req = @web.HttpRequest::new(
     @web.POST,
     "/api/mcp/servers",
     body="{\"name\":\"test\"}",
   )
-  let resp = @web.handle_mcp_register_server(req)
+  let resp = @web.handle_mcp_register_server(registry, req)
   assert_eq(resp.status, 201)
 }
 

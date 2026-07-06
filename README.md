@@ -11,7 +11,7 @@
 - **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
 - **本项目语言**：MoonBit
 - **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~87-92%（后端核心 ~95%，Web 前端 ~40-50%，部署基础设施 ~50%）
+- **完成度**：~90-94%（后端核心 ~97%，Web 后端 ~95%，Web 前端 ~40-50%，部署基础设施 ~50%）
 
 ### 核心能力概览
 
@@ -151,7 +151,7 @@ MBOpenClacky/
 │   ├── tui/            # TUI 界面（moonbit-community/tty，Inline Scrolling 架构：ScreenBuffer/OutputBuffer/LineEditor/LayoutManager）
 │   ├── utils/          # 工具函数（Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser/BrowserDetector 等）
 │   ├── vision/         # Vision OCR + SHA256 缓存
-│   └── web/            # Web 服务器 + REST API（68+ 端点）+ Router/StaticServer/SPA + 广播/超时/错误信封/模板处理
+│   └── web/            # Web 服务器 + REST API（90+ 端点，8 个管理面板后端已全量实现）+ Router/StaticServer/SPA + 广播/超时/错误信封/模板处理
 │       ├── broadcast/  # WebSocket 广播集线器
 │       ├── handler/    # REST API handler 集合
 │       ├── middleware/ # 中间件（auth/timeout/error_envelope/logging）
@@ -276,6 +276,7 @@ moon test
 | Phase 23 | 部署阻碍修复：Dockerfile 路径修正、端口统一 7070、C FFI 链接修复、全量测试通过 | ✅ 已完成 |
 | Phase 24 | API 端点扩展（汇率/本地图片/Onboarding/Media/OCR/版本/重启）+ TUI 组件增强（block_font/thinking_verbs）+ MCP SkillProvider 独立模块 + Terminal PTY 执行 | ✅ 已完成 |
 | Phase 25 | CI/CD 流水线建设（GitHub Actions: ci.yml + docker.yml + 缓存优化）+ Harness 方法论落地（specs/ 目录 + 模板 + 首个 spec 完成归档）+ Codemaps 代码地形索引生成（10 个核心包） | ✅ 已完成 |
+| Phase 26 | Web 管理面板后端全量实现（Trash/Git/MCP/Schedules/Channels/Backup/Billing/Browser，8 个面板、72 handler、2,741 行） | ✅ 已完成 |
 
 ## 六、已知问题与开发计划
 
@@ -329,7 +330,8 @@ moon test
    - 已新增 `lib/mcp/skill_provider_wbtest.mbt`、`lib/mcp/virtual_skill.mbt` 等测试与实现；原有“0 测试”问题已解决，仍继续补齐场景覆盖
 
 6. **Web 前端完成度 ~40-50%**（P1）
-   - 基础 SPA 可用，但 8 个管理面板（MCP/Channels/Schedules/Backups/Billing/Browser/Trash/Git）尚未全部实现
+   - 后端 8 个管理面板已全部实现（Trash/Git/MCP/Schedules/Channels/Backup/Billing/Browser，72 handler，2,741 行）
+   - 基础 SPA 可用，但前端到后端的端到端集成尚未完善
 
 7. **部署基础设施完成度 ~50%**（P1）
    - ✅ CI/CD 流水线已搭建（GitHub Actions：`ci.yml` + `docker.yml`，含缓存优化）
@@ -343,7 +345,7 @@ moon test
 | 优先级 | 目标 | 预估工时 |
 |--------|------|---------|
 | P0 | MCP 模块测试补齐 | 2-3 天 |
-| P1 | Web 前端管理面板补齐（8 个面板） | 1-2 周 |
+| P1 | Web 前端管理面板补齐（8 个面板后端已完成，前端待完善） | 后端✅ 前端 1-2 周 |
 | P1 | CI/CD 流水线搭建（GitHub Actions） | ✅ 已完成 |
 | P1 | docker-compose 编排 + systemd 服务模板 | 1-2 天 |
 | P2 | `derive_key` 迁移到 PBKDF2 | 1 天 |

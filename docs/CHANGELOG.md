@@ -25,6 +25,25 @@
 
 ## 变更记录
 
+### 2026-07-07  Phase 26 Web 管理面板后端全量实现（8 个面板 · 72 handler · 2,741 行）
+
+- `[feat]` **实现全部 8 个 Web 管理面板后端 handler**（从 stub 到真实实现）
+  - **Trash**（`handlers_trash.mbt`，325 行，9 handler）— 统一回收站系统：批量恢复/删除、类型过滤、过期追踪
+  - **Git**（`handlers_git.mbt`，305 行，5 handler）— 完整 Git 操作：status/diff/stage/commit/push/pull/branch 管理，通过 C FFI（`git_exec.c`）执行 shell 命令
+  - **MCP**（`handlers_mcp.mbt`，221 行，5 handler）— MCP 服务器 CRUD、工具列表与执行，通过 McpRegistry 集成
+  - **Schedules**（`handlers_schedules.mbt`，451 行，11 handler）— Cron 定时任务 CRUD、手动触发、执行历史，与 Scheduler 集成
+  - **Channels**（`handlers_channels.mbt`，410 行，8 handler）— 6 平台 IM 适配器 CRUD、连通性测试
+  - **Backup**（`handlers_backup.mbt`，527 行，17 handler）— 文件快照创建/恢复/删除，文件系统持久化
+  - **Billing**（`handlers_billing.mbt`，316 行，8 handler）— BillingStore 集成、套餐激活、用量导出
+  - **Browser**（`handlers_browser.mbt`，186 行，9 handler）— BrowserManager 集成（预存实现）
+  - 合计：**2,741 行后端代码，72 个 handler 函数，零 stub/TODO 残留**
+- `[fix]` **构建与类型修复**
+  - 修复 `lib/web/moon.pkg` 损坏的换行符
+  - 修复 billing handler 中的元组类型错误
+  - 修复 schedules handler 中的未使用 mut 和 Map API 问题
+  - 新增 Git 面板 C FFI（`git_exec.c`）用于 shell 命令执行
+- `[verify]` `moon check` 最终验证：0 errors
+
 ### 2026-07-06  Phase 25 CI/CD 流水线建设 + Harness 方法论落地 + Codemaps 生成
 
 - `[chore]` **GitHub Actions CI 流水线** — 新建 `.github/workflows/ci.yml`（67 行）

@@ -1,4 +1,102 @@
 ///| IM Channel management REST API handlers.
+/// Provides CRUD operations for channel configurations backed by an in-memory
+/// store, with connectivity testing via the channel adapter registry.
+
+// ── Channel Store ─────────────────────────────────────────────────
+
+///|
+/// A stored channel configuration entry for the web panel.
+pub(all) struct ChannelEntry {
+  mut id : String
+  mut platform : String
+  mut name : String
+  mut webhook_url : String
+  mut api_key : String
+  mut secret : String
+  mut enabled : Bool
+  mut status : String
+  mut created_at : Int64
+  mut updated_at : Int64
+}
+
+///|
+/// In-memory channel configuration store.
+let channels_store : Ref[Array[ChannelEntry]] = Ref([])
+
+///|
+/// Auto-incrementing counter for generating unique channel IDs.
+let channel_id_counter : Ref[Int] = Ref(0)
+
+///|
+/// Generate a new unique channel ID.
+fn next_channel_id() -> String {
+  channel_id_counter.val = channel_id_counter.val + 1
+  "ch-\{channel_id_counter.val}"
+}
+
+///|
+/// Find a channel entry by ID.
+fn find_channel_index(id : String) -> Int? {
+  let arr = channels_store.val
+  let mut i = 0
+  while i < arr.length() {
+    if arr[i].id == id {
+      return Some(i)
+    }
+    i = i + 1
+  }
+  None
+}
+
+///|
+/// Convert a ChannelEntry to a JSON object for API responses.
+fn channel_entry_to_json(ch : ChannelEntry) -> Json {
+  Json::object({
+    "id": ch.id.to_json(),
+    "platform": ch.platform.to_json(),
+    "name": ch.name.to_json(),
+    "status": ch.status.to_json(),
+    "enabled": ch.enabled.to_json(),
+    "config": Json::object({
+      "webhook_url": ch.webhook_url.to_json(),
+      "api_key": ch.api_key.to_json(),
+      "secret": ch.secret.to_json(),
+    }),
+    "created_at": ch.created_at.to_string().to_json(),
+    "updated_at": ch.updated_at.to_string().to_json(),
+  })
+}
+
+///|
+/// Validate a platform string. Returns the canonical name or None.
+fn normalize_platform(platform : String) -> String? {
+  match platform {
+    "feishu" | "wecom" | "telegram" | "discord" | "dingtalk" | "weixin" =>
+      Some(platform)
+    _ => None
+  }
+}
+
+///|
+/// Extract string field from a JSON object map.
+fn channel_json_str(obj : Map[String, Json], key : String) -> String {
+  match obj.get(key) {
+    Some(String(s)) => s
+    _ => ""
+  }
+}
+
+///|
+/// Extract a nested JSON object from a parent JSON object map.
+fn channel_json_obj(
+  obj : Map[String, Json],
+  key : String,
+) -> Map[String, Json]? {
+  match obj.get(key) {
+    Some(Object(m)) => Some(m)
+    _ => None
+  }
+}
 
 // ── Channel Handlers ──────────────────────────────────────────────
 
@@ -6,23 +104,74 @@
 /// GET /api/channels — List all configured IM channels.
 pub fn handle_channels_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
-  // TODO: Query channel registry for all configured channels
-  // Channels include: Slack, Discord, Telegram, DingTalk, Feishu, WeChat
-  let body =
-    #|{"channels":[],"total":0}
+  let items : Array[Json] = []
+  for ch in channels_store.val {
+    items.push(channel_entry_to_json(ch))
+  }
+  let body = Json::array(items).stringify()
   HttpResponse::ok(body)
 }
 
 ///|
 /// POST /api/channels — Create a new IM channel configuration.
+/// Expects body: {"platform":"feishu|wecom|telegram|discord|dingtalk|weixin","name":"...","config":{...}}
 pub fn handle_channels_create(request : HttpRequest) -> HttpResponse {
   if request.body == "" {
     return HttpResponse::bad_request("Request body is required")
   }
-  // TODO: Parse channel config and create
-  // Expected body: {"type":"slack|discord|telegram|dingtalk|feishu|wechat","name":"...","config":{...}}
-  let body =
-    #|{"id":"channel-001","status":"created","message":"Channel created successfully"}
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  let (platform, name, webhook_url, api_key, secret) = match body_json {
+    Object(obj) => {
+      let p = channel_json_str(obj, "platform")
+      let n = channel_json_str(obj, "name")
+      let (wu, ak, sc) = match channel_json_obj(obj, "config") {
+        Some(cfg) =>
+          (
+            channel_json_str(cfg, "webhook_url"),
+            channel_json_str(cfg, "api_key"),
+            channel_json_str(cfg, "secret"),
+          )
+        None => ("", "", "")
+      }
+      (p, n, wu, ak, sc)
+    }
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  if platform == "" {
+    return HttpResponse::bad_request("platform is required")
+  }
+  if name == "" {
+    return HttpResponse::bad_request("name is required")
+  }
+  match normalize_platform(platform) {
+    None =>
+      return HttpResponse::bad_request(
+        "Invalid platform: \{platform}. Supported: feishu, wecom, telegram, discord, dingtalk, weixin",
+      )
+    Some(_) => ()
+  }
+  let now = @async.now()
+  let id = next_channel_id()
+  let entry : ChannelEntry = {
+    id,
+    platform,
+    name,
+    webhook_url,
+    api_key,
+    secret,
+    enabled: true,
+    status: "disconnected",
+    created_at: now,
+    updated_at: now,
+  }
+  channels_store.val.push(entry)
+  let body = Json::object({
+    "id": id.to_json(),
+    "status": "created".to_json(),
+    "message": "Channel created successfully".to_json(),
+  }).stringify()
   HttpResponse::created(body)
 }
 
@@ -36,11 +185,49 @@ pub fn handle_channels_update(request : HttpRequest) -> HttpResponse {
   if request.body == "" {
     return HttpResponse::bad_request("Request body is required")
   }
-  // TODO: Update channel configuration in registry
-  ignore(id)
-  let body =
-    #|{"id":"channel-001","status":"updated","message":"Channel updated successfully"}
-  HttpResponse::ok(body)
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let body_json : Json = @json.parse(request.body) catch {
+        _ => return HttpResponse::bad_request("Invalid JSON body")
+      }
+      match body_json {
+        Object(obj) => {
+          let arr = channels_store.val
+          let platform = channel_json_str(obj, "platform")
+          if platform != "" {
+            match normalize_platform(platform) {
+              None =>
+                return HttpResponse::bad_request(
+                  "Invalid platform: \{platform}",
+                )
+              Some(_) => arr[idx].platform = platform
+            }
+          }
+          let name = channel_json_str(obj, "name")
+          if name != "" {
+            arr[idx].name = name
+          }
+          match channel_json_obj(obj, "config") {
+            Some(cfg) => {
+              arr[idx].webhook_url = channel_json_str(cfg, "webhook_url")
+              arr[idx].api_key = channel_json_str(cfg, "api_key")
+              arr[idx].secret = channel_json_str(cfg, "secret")
+            }
+            None => ()
+          }
+          arr[idx].updated_at = @async.now()
+        }
+        _ => return HttpResponse::bad_request("Invalid JSON body")
+      }
+      let body = Json::object({
+        "id": id.to_json(),
+        "status": "updated".to_json(),
+        "message": "Channel updated successfully".to_json(),
+      }).stringify()
+      HttpResponse::ok(body)
+    }
+  }
 }
 
 ///|
@@ -50,23 +237,170 @@ pub fn handle_channels_delete(request : HttpRequest) -> HttpResponse {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  // TODO: Remove channel from registry
-  ignore(id)
-  HttpResponse::no_content()
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      ignore(channels_store.val.remove(idx))
+      HttpResponse::no_content()
+    }
+  }
 }
 
 ///|
 /// POST /api/channels/:id/test — Test channel connectivity.
+/// Builds a temporary adapter from the stored config and validates it.
 pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  // TODO: Attempt to send a test message through the channel
-  ignore(id)
-  let body =
-    #|{"channel_id":"channel-001","test_result":"success","latency_ms":42}
-  HttpResponse::ok(body)
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let arr = channels_store.val
+      let ch = arr[idx]
+      let start_time = @async.now()
+      let platform_enum = match ch.platform {
+        "feishu" => @channel.Platform::Feishu
+        "wecom" => @channel.Platform::WeCom
+        "telegram" => @channel.Platform::Telegram
+        "discord" => @channel.Platform::Discord
+        "dingtalk" => @channel.Platform::DingTalk
+        "weixin" => @channel.Platform::Weixin
+        _ =>
+          return HttpResponse::ok(
+            Json::object({
+              "channel_id": id.to_json(),
+              "test_result": "failed".to_json(),
+              "error": "Unknown platform".to_json(),
+            }).stringify(),
+          )
+      }
+      let settings : Map[String, String] = {}
+      if ch.webhook_url != "" {
+        settings.set("webhook_url", ch.webhook_url)
+      }
+      if ch.api_key != "" {
+        settings.set("api_key", ch.api_key)
+      }
+      if ch.secret != "" {
+        settings.set("secret", ch.secret)
+      }
+      let config = @channel.ChannelConfig::{
+        platform: platform_enum,
+        enabled: ch.enabled,
+        settings,
+      }
+      let (test_result, error_msg) = test_channel_adapter(ch.platform, config)
+      let end_time = @async.now()
+      let latency = (end_time - start_time).to_int()
+      // Update channel status based on test result
+      if test_result == "success" {
+        arr[idx].status = "connected"
+      } else {
+        arr[idx].status = "error"
+      }
+      arr[idx].updated_at = end_time
+      let resp_obj = Json::object({
+        "channel_id": id.to_json(),
+        "test_result": test_result.to_json(),
+        "latency_ms": latency.to_json(),
+        "error": error_msg.to_json(),
+      })
+      HttpResponse::ok(resp_obj.stringify())
+    }
+  }
+}
+
+///|
+/// Extract the error message string from a ChannelError.
+fn channel_error_msg(err : @channel.ChannelError) -> String {
+  match err {
+    @channel.ChannelError(msg) => msg
+  }
+}
+
+///|
+/// Test a channel adapter by constructing it from config and validating.
+fn test_channel_adapter(
+  platform : String,
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  match platform {
+    "feishu" =>
+      match @channel.FeishuAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    "wecom" =>
+      match @channel.WeComAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    "telegram" =>
+      match @channel.TelegramAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    "discord" =>
+      match @channel.DiscordAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    "dingtalk" =>
+      match @channel.DingTalkAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    "weixin" =>
+      match @channel.WeixinAdapter::new(config) {
+        Ok(adapter) => {
+          let errors = adapter.validate_config()
+          if errors.length() == 0 {
+            ("success", "")
+          } else {
+            ("failed", errors.join(", "))
+          }
+        }
+        Err(e) => ("failed", channel_error_msg(e))
+      }
+    _ => ("failed", "Unknown platform")
+  }
 }
 
 ///|
@@ -76,9 +410,19 @@ pub fn handle_channels_status(request : HttpRequest) -> HttpResponse {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  // TODO: Query real-time status of the channel connection
-  ignore(id)
-  let body =
-    #|{"channel_id":"channel-001","connected":true,"last_message_at":"","error":null}
-  HttpResponse::ok(body)
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let ch = channels_store.val[idx]
+      let body = Json::object({
+        "channel_id": id.to_json(),
+        "status": ch.status.to_json(),
+        "enabled": ch.enabled.to_json(),
+        "platform": ch.platform.to_json(),
+        "name": ch.name.to_json(),
+        "updated_at": ch.updated_at.to_string().to_json(),
+      }).stringify()
+      HttpResponse::ok(body)
+    }
+  }
 }

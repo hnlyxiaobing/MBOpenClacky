@@ -1,3 +1,4 @@
 import {
   "hnlyxiaobing/MBOpenClacky/lib/web",
+  "hnlyxiaobing/MBOpenClacky/lib/mcp",
 }

@@ -11,6 +11,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/brand",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/vision",
+  "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/web/sse",
   "hnlyxiaobing/MBOpenClacky/lib/web/middleware" @mid,
   "hnlyxiaobing/MBOpenClacky/lib/web/broadcast",
@@ -26,3 +27,7 @@ import {
   "moonbitlang/x/codec/base64",
   "moonbitlang/async",
 }
+
+options(
+  "native-stub": [ "git_exec.c" ],
+)

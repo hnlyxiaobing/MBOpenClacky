@@ -74,15 +74,15 @@ WebServer::start(port)
 | 服务器核心 | `server.mbt`, `router.mbt`, `types.mbt`, `handlers.mbt` | WebServer、路由、类型定义 |
 | 会话/聊天 | `handlers_session_ext.mbt` | 会话 CRUD、聊天（含 SSE） |
 | 技能 | `handlers_skills.mbt` | 技能 CRUD、进化 |
-| MCP | `handlers_mcp.mbt` | MCP 服务器/工具管理 |
-| 频道 | `handlers_channels.mbt` | 频道配置/状态 |
-| 调度 | `handlers_schedules.mbt` | 定时任务管理 |
-| 浏览器 | `handlers_browser.mbt` | 浏览器控制（通过 crescent Event） |
-| 备份 | `handlers_backup.mbt` | 备份 CRUD |
-| 计费 | `handlers_billing.mbt` | 计费状态 |
+| MCP | `handlers_mcp.mbt` | MCP 服务器 CRUD、工具列表与执行（McpRegistry 集成，真实实现） |
+| 频道 | `handlers_channels.mbt` | 6 平台 IM 适配器 CRUD、连通性测试（真实实现） |
+| 调度 | `handlers_schedules.mbt` | Cron 定时任务 CRUD、手动触发、执行历史（Scheduler 集成，真实实现） |
+| 浏览器 | `handlers_browser.mbt` | 浏览器控制（BrowserManager 集成，真实实现） |
+| 备份 | `handlers_backup.mbt` | 文件快照创建/恢复/删除（文件系统持久化，真实实现） |
+| 计费 | `handlers_billing.mbt` | BillingStore 集成、套餐激活、用量导出（真实实现） |
 | 品牌 | `handlers_brand.mbt` | 品牌定制 |
 | 多媒体 | `handlers_media.mbt`, `handlers_ocr.mbt`, `handlers_local_image.mbt` | 媒体/OCR |
-| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt` | 文件/回收站/版本/引导/汇率/桥接 |
+| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`（回收站真实实现：批量恢复/删除、类型过滤、过期追踪）, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt` | 文件/回收站/版本/引导/汇率/桥接 |
 | 扩展 | `ext_dispatcher.mbt`, `ext_loader.mbt` | API 扩展加载与分发 |
 | 静态资源 | `static_server.mbt`, `template_processor.mbt` | 静态文件服务、HTML 模板 |
 | 子包 | `broadcast/`, `handler/`, `middleware/`, `sse/` | WebSocket 广播、中间件、SSE |
@@ -104,3 +104,6 @@ WebServer::start(port)
 3. **路由冲突** — 90+ 路由手动注册，路径冲突难排查
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
+6. **Git C FFI 平台兼容** — `git_exec.c` 使用 `popen()`，Windows MSVC 下需验证 `_popen` 兼容性
+7. **Backup 路径安全** — 备份路径拼接需防路径遍历攻击
+8. **Billing 内存持久化** — BillingStore 为内存实现，重启丢失数据

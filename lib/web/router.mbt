@@ -276,6 +276,8 @@ pub fn register_all_routes(router : Router) -> Router {
   // Trash endpoints
   let r = r
     .add_route(GET, "/api/trash", "handle_trash_list")
+    .add_route(GET, "/api/trash/stats", "handle_trash_stats")
+    .add_route(POST, "/api/trash/restore-batch", "handle_trash_restore_batch")
     .add_route(POST, "/api/trash/:id/restore", "handle_trash_restore")
     .add_route(DELETE, "/api/trash/:id", "handle_trash_delete")
     .add_route(DELETE, "/api/trash", "handle_trash_empty")

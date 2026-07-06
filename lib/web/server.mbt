@@ -55,6 +55,8 @@ pub(all) struct WebServer {
   hub : @broadcast.Hub
   /// Browser automation manager (mutable for daemon lifecycle control)
   mut browser_manager : @server.BrowserManager
+  /// MCP server registry for managing MCP server connections and tools
+  mcp_registry : @mcp.McpRegistry
 }
 
 ///|
@@ -72,6 +74,7 @@ pub fn WebServer::new(
     webhook_registry: WebhookRegistry::new(),
     hub: @broadcast.Hub::new(),
     browser_manager: @server.BrowserManager::new("~/.mbopenclacky/browser.yml"),
+    mcp_registry: @mcp.McpRegistry::load_default(),
   }
 }
 
@@ -255,6 +258,7 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
         handle_billing_activate_bridge(server_ref, event)
       })
       bl.get("/usage", event => handle_billing_usage_bridge(server_ref, event))
+      bl.get("/export", event => handle_billing_export_bridge(server_ref, event))
     })
 
     // Skills
@@ -296,6 +300,19 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       handle_browser_tool_call(server_ref, event)
     })
 
+    // Git Panel
+    api.group("/git", (git : @crescent.App) => {
+      git.get("/status", event => handle_git_status(server_ref, event))
+      git.get("/diff", event => handle_git_diff(server_ref, event))
+      git.post("/stage", event => handle_git_stage(server_ref, event))
+      git.post("/unstage", event => handle_git_unstage(server_ref, event))
+      git.post("/commit", event => handle_git_commit(server_ref, event))
+      git.post("/push", event => handle_git_push(server_ref, event))
+      git.post("/pull", event => handle_git_pull(server_ref, event))
+      git.get("/branches", event => handle_git_branches(server_ref, event))
+      git.post("/checkout", event => handle_git_checkout(server_ref, event))
+    })
+
     // Webhooks (IM channel callbacks)
     api.group("/webhooks", (wh : @crescent.App) => {
       wh.post("/:platform", event => handle_webhook_bridge(server_ref, event))
@@ -304,6 +321,10 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     // Trash
     api.group("/trash", (tr : @crescent.App) => {
       tr.get("", event => handle_trash_list_bridge(server_ref, event))
+      tr.get("/stats", event => handle_trash_stats_bridge(server_ref, event))
+      tr.post("/restore-batch", event => {
+        handle_trash_restore_batch_bridge(server_ref, event)
+      })
       tr.post("/:id/restore", event => {
         handle_trash_restore_bridge(server_ref, event)
       })

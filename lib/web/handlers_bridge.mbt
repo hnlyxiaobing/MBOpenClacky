@@ -53,51 +53,81 @@ fn extract_name_param(event : @crescent.Event) -> Array[(String, String)] {
   }
 }
 
+///|
+/// Extract a query parameter value from a URL string.
+/// Parses `?key=value` or `&key=value` segments.
+fn find_query_param(url : String, key : String) -> String? {
+  let target = "\{key}="
+  match url.find(target) {
+    Some(idx) => {
+      let start = idx + target.length()
+      let chars = url.to_array()
+      let buf = StringBuilder::new()
+      let mut i = start
+      while i < chars.length() {
+        let c = chars[i]
+        if c == '&' {
+          break
+        }
+        buf.write_char(c)
+        i = i + 1
+      }
+      let val = buf.to_string()
+      if val.is_empty() {
+        None
+      } else {
+        Some(val)
+      }
+    }
+    None => None
+  }
+}
+
 // ── MCP Bridges ───────────────────────────────────────────────────
 
 ///|
 fn handle_mcp_list_servers_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
-  response_to_core(handle_mcp_list_servers(req))
+  response_to_core(handle_mcp_list_servers(server_ref.val.mcp_registry, req))
 }
 
 ///|
 fn handle_mcp_register_server_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
-  response_to_core(handle_mcp_register_server(req))
+  response_to_core(handle_mcp_register_server(server_ref.val.mcp_registry, req))
 }
 
 ///|
 fn handle_mcp_remove_server_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_mcp_remove_server(req))
+  response_to_core(handle_mcp_remove_server(server_ref.val.mcp_registry, req))
 }
 
 ///|
 fn handle_mcp_list_tools_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
-  response_to_core(handle_mcp_list_tools(req))
+  response_to_core(handle_mcp_list_tools(server_ref.val.mcp_registry, req))
 }
 
 ///|
 fn handle_mcp_execute_tool_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_name_param(event))
-  response_to_core(handle_mcp_execute_tool(req))
+  response_to_core(handle_mcp_execute_tool(server_ref.val.mcp_registry, req))
 }
 
 // ── Channel Bridges ───────────────────────────────────────────────
@@ -324,6 +354,15 @@ fn handle_billing_usage_bridge(
   response_to_core(handle_billing_usage(req))
 }
 
+///|
+fn handle_billing_export_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_billing_export(req))
+}
+
 // ── Skills Bridges ────────────────────────────────────────────────
 
 ///|
@@ -387,7 +426,14 @@ fn handle_trash_list_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
+  // Extract query parameter ?type= for filtering
+  let url = event.req.url
+  let params : Array[(String, String)] = []
+  match find_query_param(url, "type") {
+    Some(v) => params.push(("type", v))
+    None => ()
+  }
+  let req = event_to_request(event, params)
   response_to_core(handle_trash_list(req))
 }
 
@@ -398,6 +444,15 @@ fn handle_trash_restore_bridge(
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
   response_to_core(handle_trash_restore(req))
+}
+
+///|
+fn handle_trash_restore_batch_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_trash_restore_batch(req))
 }
 
 ///|
@@ -416,6 +471,15 @@ fn handle_trash_empty_bridge(
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
   response_to_core(handle_trash_empty(req))
+}
+
+///|
+fn handle_trash_stats_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_trash_stats(req))
 }
 
 // ── Onboarding Bridges ────────────────────────────────────────────
