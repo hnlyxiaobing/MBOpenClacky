@@ -7,7 +7,7 @@ MBOpenClacky is a MoonBit rewrite of the openclacky AI Agent CLI — an LLM-powe
 The module root is defined in `moon.mod` (`hnlyxiaobing/MBOpenClacky`, `preferred_target = native`).
 
 ```
-cmd/              CLI entry point (clap parsing, agent lifecycle)
+cmd/              CLI entry point (clap parsing, agent lifecycle; billing subcommand wired to BillingStore; hooks/patches execute real shell commands via shell_exec.mbt with CLACKY_* env context; extension registration validates duplicate names/routes)
 lib/              22 top-level packages (27 total with web subpackages + cmd)
   agent/          ReAct loop, LLM caller, session/memory/todo, time machine
   client/         LLM API client (OpenAI/Anthropic/Bedrock), SSE streaming
@@ -18,7 +18,7 @@ lib/              22 top-level packages (27 total with web subpackages + cmd)
   channel/        6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin)
   server/         cron scheduler, browser/backup manager, git panel
   tui/            Inline scrolling TUI (moonbit-community/tty), block_font/thinking_verbs
-  web/            crescent REST server, 90+ endpoints
+  web/            crescent REST server, 95+ endpoints
   parser/  media/  vision/  billing/  pricing/  ...
 test/             Eval framework (module-agnostic, zero-intrusion to lib/)
   eval/           Generic eval engine (result types, file loading, reporting)

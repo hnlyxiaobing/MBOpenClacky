@@ -27,7 +27,10 @@ moon update && moon install         # Sync dependencies
 ### Package Layout (21 top-level packages)
 
 ```
-cmd/          — CLI entry point (clap argument parsing, agent lifecycle orchestration)
+cmd/          — CLI entry point (clap argument parsing, agent lifecycle orchestration; billing
+                subcommand wired to BillingStore; hooks/patches execute real shell commands via
+                shell_exec.mbt with CLACKY_* env context; extension registration validates
+                duplicate names/routes and HTTP methods)
 lib/
   agent/      — Core: Agent struct, ReAct loop, LLM caller, system prompt, session persistence,
                 hook system, memory store, todo manager, subagent pool, cost tracker, compressor,
@@ -67,7 +70,7 @@ lib/
                 file ignore helper, gitignore parser, limit stack, logger, proxy config,
                 string matcher, trash directory, workspace rules
   vision/     — Vision OCR + SHA256 caching
-  web/        — HTTP server (crescent): REST API (90+ endpoints), SSE, WebSocket, auth/logging
+  web/        — HTTP server (crescent): REST API (95+ endpoints), SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope middleware, broadcast hub, template processor,
                 router, static server, SPA serving; added handlers for exchange-rate,
                 local-image proxy, onboarding, media, OCR config/test, version/upgrade, restart
@@ -117,7 +120,7 @@ The `Agent` struct (25+ fields) is the central orchestrator:
 - **MemoryStore** (`memory.mbt`, `memory_types.mbt`): Category-based persistent memory with CRUD and context injection
 - **TodoManager** (`todo.mbt`, `todo_types.mbt`): Task tracking with dependency blocking
 - **SubAgent/AgentPool** (`subagent.mbt`, `agent_pool.mbt`): Concurrent sub-agents with lifecycle management
-- **Billing** (`billing_record.mbt`, `billing_store.mbt`): Usage tracking and cost calculation
+- **Billing** (`billing_record.mbt`, `billing_store.mbt`, `time_stub.c`): Usage tracking, cost calculation, real UTC date formatting via C FFI timestamp
 - **Pricing** (`model_pricing.mbt`, `cost_calculator.mbt`): Complete model pricing table
 - **Message History** (`history.mbt`): Advanced message history management with UTF-8 cleaning
 - **Server Infrastructure**: Master/worker process model, session registry, git panel integration
@@ -160,7 +163,7 @@ TOML config loaded from `~/.mbopenclacky/config.toml`. Environment variable `MBO
 - Schedules: cron task management
 - Backup: configuration backup/restore
 - Billing: usage and billing endpoints
-- Skills: skill management, evolution history
+- Skills: skill management, install, content get/put, toggle enable/disable, evolution history, store listing, creator listing
 - Browser: browser automation endpoints
 - Trash: file trash management
 - Brand / License: config, activate, status, heartbeat
@@ -216,8 +219,8 @@ assets/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (total) | 272 |
-| Test files (`*_wbtest.mbt`) | 62 |
+| `.mbt` source files (total) | 310 |
+| Test files (`*_wbtest.mbt`) | 61 |
 | Source lines (non-test) | ~56,951 |
 | Test lines (`*_wbtest.mbt`) | ~17,459 |
 | Total lines (source + test) | ~74,410 |
@@ -226,7 +229,7 @@ assets/
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
-| REST API endpoints | 90+ |
+| REST API endpoints | 95+ |
 | `moon check` | 0 errors, 426 warnings |
 | CI/CD | ✅ GitHub Actions (`ci.yml` + `docker.yml`) |
 | Specs | ✅ Harness methodology (`specs/` with templates) |

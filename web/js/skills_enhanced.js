@@ -109,15 +109,12 @@ const SkillEditorView = {
     content.innerHTML = '<div class="text-center"><div class="spinner" style="margin:40px auto"></div></div>';
 
     try {
-      const [storeSkills, creatorSkills] = await Promise.all([
+      const [storeSkills, creatorSkills, installed] = await Promise.all([
         SkillEditorStore.fetchStoreSkills(),
         SkillEditorStore.fetchCreatorSkills(),
+        API.get('/api/skills').catch(() => null),
       ]);
-      // 加载已安装的技能
-      if (typeof Skills !== 'undefined') {
-        SkillEditorStore.skills_list = Skills.skills || [];
-      }
-      this.renderSkillPanel();
+      SkillEditorStore.skills_list = (installed && installed.skills) || (typeof Skills !== 'undefined' ? Skills.skills : []) || [];      this.renderSkillPanel();
     } catch (err) {
       content.innerHTML = '<p class="text-muted text-center">Failed to load skills</p>';
     }

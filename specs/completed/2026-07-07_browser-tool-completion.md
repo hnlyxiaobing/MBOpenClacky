@@ -244,3 +244,4 @@ click, dblclick, type, fill, press, hover, drag, select, scroll, wait, evaluate,
 | 2026-07-07 | 全面重写：修正架构为 MCP-based，基于实际代码现状分析 | 背景研究偏离事实（CDP → MCP、BrowserAction 枚举 → 字符串分发），需基于代码实际状态 |
 | 2026-07-07 | 确认文件组织策略：所有代码在 lib/tool/ 包下按 browser_*.mbt 拆分 | 遵循项目惯例 |
 | 2026-07-07 | 状态更新为"已完成"，添加验收报告 | 三个任务包全部实现并验收通过 |
+| 2026-07-07 | 复核归档：moon check 0 errors、moon test lib/tool 85/85、cmd 二进制构建正常，spec 移入 completed/ | 收尾归档 |

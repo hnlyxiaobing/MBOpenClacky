@@ -265,6 +265,21 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     api.group("/skills", (sk : @crescent.App) => {
       sk.get("", event => handle_skills_list_bridge(server_ref, event))
       sk.post("", event => handle_skills_create_bridge(server_ref, event))
+      sk.post("/install", event => {
+        handle_skills_install_bridge(server_ref, event)
+      })
+      sk.get("/evolution/history", event => {
+        handle_skills_evolution_history_bridge(server_ref, event)
+      })
+      sk.get("/:name/content", event => {
+        handle_skills_get_content_bridge(server_ref, event)
+      })
+      sk.put("/:name/content", event => {
+        handle_skills_put_content_bridge(server_ref, event)
+      })
+      sk.post("/:name/toggle", event => {
+        handle_skills_toggle_bridge(server_ref, event)
+      })
       sk.put("/:name", event => handle_skills_update_bridge(server_ref, event))
       sk.delete("/:name", event => {
         handle_skills_delete_bridge(server_ref, event)
@@ -272,9 +287,14 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       sk.post("/:name/evolve", event => {
         handle_skills_evolve_bridge(server_ref, event)
       })
-      sk.get("/evolution/history", event => {
-        handle_skills_evolution_history_bridge(server_ref, event)
-      })
+    })
+
+    // Skill store & creator
+    api.get("/store/skills", event => {
+      handle_store_skills_bridge(server_ref, event)
+    })
+    api.get("/creator/skills", event => {
+      handle_creator_skills_bridge(server_ref, event)
     })
 
     // Browser

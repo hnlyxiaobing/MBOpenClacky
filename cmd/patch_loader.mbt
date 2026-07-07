@@ -1,11 +1,14 @@
 ///|
 /// Patch loader - scans and applies patches from a directory.
 /// Patches are described by .toml or .json files.
+/// Since MoonBit is AOT-compiled, runtime code patching is impossible;
+/// a patch declares an optional startup `command` that is executed on apply.
 pub(all) struct PatchInfo {
   name : String
   version : String
   description : String
   target_module : String
+  command : String
   enabled : Bool
 } derive(Show)
 
@@ -57,11 +60,16 @@ pub fn PatchLoader::load_patches(self : PatchLoader) -> Array[PatchInfo] {
 }
 
 ///|
-/// Apply patches grouped by target_module (stub: logs each patch).
+/// Apply patches grouped by target_module.
+/// A patch with a `command` executes it (CLACKY_PATCH_* env vars set);
+/// a patch without a command is a metadata-only declaration and is skipped.
+/// Returns Err listing all failed patches, if any.
 pub fn PatchLoader::apply_patches(
   self : PatchLoader,
   patches : Array[PatchInfo],
 ) -> Result[Unit, String] {
+  let _ = self
+  let failures : Array[String] = []
   let groups : Map[String, Array[PatchInfo]] = {}
   for p in patches {
     if !p.enabled {
@@ -80,11 +88,32 @@ pub fn PatchLoader::apply_patches(
       "[PatchLoader] Applying \{module_patches.length()} patch(es) to module: \{module}",
     )
     for p in module_patches {
-      println("[PatchLoader]   - \{p.name} v\{p.version}: \{p.description}")
+      if p.command.trim().to_owned().is_empty() {
+        println(
+          "[PatchLoader]   - \{p.name} v\{p.version}: no command, skipped (metadata only)",
+        )
+        continue
+      }
+      println("[PatchLoader]   - \{p.name} v\{p.version}: \{p.command}")
+      let result = run_shell_command(p.command, env_vars=[
+        ("CLACKY_PATCH_NAME", p.name),
+        ("CLACKY_PATCH_VERSION", p.version),
+        ("CLACKY_PATCH_MODULE", p.target_module),
+      ])
+      let out = result.output.trim().to_owned()
+      if !out.is_empty() {
+        println("[PatchLoader]     output: \{out}")
+      }
+      if result.exit_code != 0 {
+        failures.push("\{p.name} (exit code \{result.exit_code})")
+      }
     }
   })
-  let _ = self
-  Ok(())
+  if failures.is_empty() {
+    Ok(())
+  } else {
+    Err("Patch(es) failed: \{failures.join(", ")}")
+  }
 }
 
 ///|
@@ -122,6 +151,7 @@ fn parse_patch_json(content : String) -> PatchInfo? {
         version: get_str("version"),
         description: get_str("description"),
         target_module: get_str("target_module"),
+        command: get_str("command"),
         enabled,
       })
     }
@@ -169,6 +199,7 @@ fn parse_patch_simple(content : String, filename : String) -> PatchInfo? {
     version: fields.get("version").unwrap_or("0.0.0"),
     description: fields.get("description").unwrap_or(""),
     target_module: fields.get("target_module").unwrap_or("default"),
+    command: fields.get("command").unwrap_or(""),
     enabled: match fields.get("enabled") {
       Some("false") => false
       _ => true

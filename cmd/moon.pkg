@@ -9,6 +9,7 @@ import {
   "TheWaWaR/clap",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/billing",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/tui",

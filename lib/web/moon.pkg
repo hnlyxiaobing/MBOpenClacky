@@ -8,6 +8,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/billing",
   "hnlyxiaobing/MBOpenClacky/lib/channel",
   "hnlyxiaobing/MBOpenClacky/lib/server",
+  "hnlyxiaobing/MBOpenClacky/lib/skill",
   "hnlyxiaobing/MBOpenClacky/lib/brand",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/vision",

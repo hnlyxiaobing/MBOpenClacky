@@ -159,8 +159,60 @@ async fn main {
 
 ///|
 fn handle_billing() -> Unit {
-  println("Billing summary (not yet implemented -- Phase 6)")
-  println("Use --help to see available commands")
+  let store = @billing.BillingStore::default()
+  let all = store.summary(@billing.TimePeriod::All)
+  if all.record_count == 0 {
+    println("No billing records found.")
+    println("Records are created automatically when the agent runs.")
+    return
+  }
+  println("Billing Summary (all time)")
+  println("==========================")
+  println("Requests:          \{all.record_count}")
+  println("Total cost:        $\{format_usd(all.total_cost)}")
+  println("Prompt tokens:     \{all.total_prompt_tokens}")
+  println("Completion tokens: \{all.total_completion_tokens}")
+  if all.total_cache_read_tokens > 0 || all.total_cache_write_tokens > 0 {
+    println("Cache read:        \{all.total_cache_read_tokens}")
+    println("Cache write:       \{all.total_cache_write_tokens}")
+  }
+  if !all.by_model.is_empty() {
+    println("")
+    println("By model:")
+    all.by_model.each(fn(model, ms) {
+      println(
+        "  \{model}: $\{format_usd(ms.cost)} (\{ms.requests} req, \{ms.prompt_tokens}+\{ms.completion_tokens} tokens)",
+      )
+    })
+  }
+  let days = store.daily_breakdown(days=7)
+  if !days.is_empty() {
+    println("")
+    println("Last 7 days:")
+    for d in days {
+      println(
+        "  \{d.date}: $\{format_usd(d.total_cost)} (\{d.request_count} req, \{d.total_tokens} tokens)",
+      )
+    }
+  }
+}
+
+///|
+/// Format a USD amount with 4 decimal places.
+fn format_usd(amount : Double) -> String {
+  let cents = (amount * 10000.0 + 0.5).to_int()
+  let whole = cents / 10000
+  let frac = cents % 10000
+  let frac_str = if frac < 10 {
+    "000\{frac}"
+  } else if frac < 100 {
+    "00\{frac}"
+  } else if frac < 1000 {
+    "0\{frac}"
+  } else {
+    frac.to_string()
+  }
+  "\{whole}.\{frac_str}"
 }
 
 ///|

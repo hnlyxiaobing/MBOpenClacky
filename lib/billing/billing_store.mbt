@@ -303,10 +303,23 @@ fn get_period_start_ms(period : TimePeriod) -> Int64 {
 }
 
 ///|
-/// Convert milliseconds to date string "YYYY-MM-DD" (simplified).
-fn ms_to_date_string(_ms : Int64) -> String {
-  // Simplified: without full date formatting support, return placeholder
-  "0000-00-00"
+/// Convert milliseconds since Unix epoch to a UTC date string "YYYY-MM-DD".
+/// Uses the civil-from-days algorithm (Howard Hinnant).
+fn ms_to_date_string(ms : Int64) -> String {
+  let days = (ms / 86_400_000L).to_int()
+  let z = days + 719468
+  let era = (if z >= 0 { z } else { z - 146096 }) / 146097
+  let doe = z - era * 146097
+  let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
+  let y = yoe + era * 400
+  let doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+  let mp = (5 * doy + 2) / 153
+  let d = doy - (153 * mp + 2) / 5 + 1
+  let m = if mp < 10 { mp + 3 } else { mp - 9 }
+  let year = if m <= 2 { y + 1 } else { y }
+  let mm = if m < 10 { "0\{m}" } else { m.to_string() }
+  let dd = if d < 10 { "0\{d}" } else { d.to_string() }
+  "\{year}-\{mm}-\{dd}"
 }
 
 ///|

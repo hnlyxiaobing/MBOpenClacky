@@ -54,7 +54,9 @@ pub fn load_shell_hooks(config_dir? : String? = None) -> Array[HookConfig] {
 }
 
 ///|
-/// Execute a hook with the given context (stub: prints log).
+/// Execute a hook by spawning its shell command.
+/// Context is passed via CLACKY_* environment variables.
+/// Non-zero exit codes are reported as Err.
 pub fn execute_hook(
   hook : HookConfig,
   context : HookContext,
@@ -62,18 +64,38 @@ pub fn execute_hook(
   if !hook.enabled {
     return Ok(())
   }
+  if hook.command.trim().to_owned().is_empty() {
+    return Err("Hook '\{hook.name}' has an empty command")
+  }
   println("[HookLoader] Executing hook '\{hook.name}' (event: \{hook.event})")
   println("[HookLoader]   command: \{hook.command}")
-  println(
-    "[HookLoader]   session: \{context.session_id}, dir: \{context.working_dir}",
-  )
+  let env_vars : Array[(String, String)] = [
+    ("CLACKY_HOOK_NAME", hook.name),
+    ("CLACKY_HOOK_EVENT", hook.event),
+    ("CLACKY_SESSION_ID", context.session_id),
+    ("CLACKY_WORKING_DIR", context.working_dir),
+  ]
   match context.message {
-    Some(msg) => println("[HookLoader]   message: \{msg}")
+    Some(msg) => env_vars.push(("CLACKY_MESSAGE", msg))
     None => ()
   }
-  // Stub: actual execution would spawn a shell process
-  println("[HookLoader]   (stub) hook completed successfully")
-  Ok(())
+  let result = run_shell_command(
+    hook.command,
+    env_vars~,
+    working_dir=Some(context.working_dir),
+  )
+  let trimmed_output = result.output.trim().to_owned()
+  if !trimmed_output.is_empty() {
+    println("[HookLoader]   output: \{trimmed_output}")
+  }
+  if result.exit_code == 0 {
+    Ok(())
+  } else {
+    Err(
+      "Hook '\{hook.name}' failed with exit code \{result.exit_code}" +
+      (if trimmed_output.is_empty() { "" } else { ": \{trimmed_output}" }),
+    )
+  }
 }
 
 ///|

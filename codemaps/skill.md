@@ -62,11 +62,13 @@ EvolutionEngine::evolve(scenario)
 ## 外部依赖
 
 - `assets/skills/` — 默认技能 SKILL.md 文件目录
+- `~/.mbopenclacky/skills/` — 用户技能目录（可编辑、可删除）
 - `moonbitlang/core/json` — JSON 序列化
+- `lib/web/handlers_skills.mbt` — Web REST API 层（CRUD、install、content get/put、toggle、store、creator）
 
-## 默认技能清单（16 个）
+## 默认技能清单（17 个）
 
-包括: `new`, `onboard`, `deploy`, `browser_setup`, `channel_manager`, `code-explorer`, `cron-task-creator`, `extend-openclacky`, `mcp-manager`, `media-gen`, `persist-memory`, `personal_website`, `product-help`, `recall-memory`, `search-skills`, `skill-creator` 等。
+包括: `new`, `onboard`, `deploy`, `browser_setup`, `channel_manager`, `code-explorer`, `cron-task-creator`, `extend-openclacky`, `mcp-manager`, `media-gen`, `persist-memory`, `personal_website`, `product-help`, `recall-memory`, `search-skills`, `skill_add`, `skill-creator`。
 
 ## 风险点
 
@@ -74,3 +76,4 @@ EvolutionEngine::evolve(scenario)
 2. **进化引擎依赖 LLM** — `SkillReflector::reflect()` 和 `apply_improvements()` 需要 LLM 调用，失败时技能不会进化
 3. **技能路径硬编码** — `default_discovery_paths()` 依赖 `assets/skills/` 路径
 4. **技能名冲突** — 用户自定义技能可能与默认技能同名覆盖
+5. **技能安装安全** — `handle_skills_install` 从 builtin 目录复制 SKILL.md，需确保路径遍历已被 `is_valid_skill_name()` 阻止

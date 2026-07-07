@@ -411,6 +411,60 @@ fn handle_skills_evolve_bridge(
 }
 
 ///|
+fn handle_skills_get_content_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_skills_get_content(req))
+}
+
+///|
+fn handle_skills_put_content_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_skills_put_content(req))
+}
+
+///|
+fn handle_skills_toggle_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_skills_toggle(req))
+}
+
+///|
+fn handle_skills_install_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_skills_install(req))
+}
+
+///|
+fn handle_store_skills_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_skills(req))
+}
+
+///|
+fn handle_creator_skills_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_creator_skills(req))
+}
+
+///|
 fn handle_skills_evolution_history_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
