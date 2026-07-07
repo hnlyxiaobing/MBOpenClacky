@@ -1,6 +1,6 @@
-# web — REST 服务器 · 95+ 端点 · WebSocket 广播 · 静态资源
+# web — REST 服务器 · 110 端点 · WebSocket 广播 · 静态资源
 
-> 路径: `lib/web/` · 35+ 文件（含子包） · Web UI 服务层
+> 路径: `lib/web/` · 45 文件（含子包，src=36, test=9）· Web UI 服务层
 
 ## 入口函数
 
@@ -8,7 +8,7 @@
 |------|------|------|
 | `WebServer::new(config, api_key?)` | `server.mbt` | 创建 Web 服务器 |
 | `WebServer::start(port)` | `server.mbt` | **主入口** — 启动 crescent HTTP 服务器（async） |
-| `register_all_routes(router)` | `router.mbt` | 注册全部路由（95+ 端点） |
+| `register_all_routes(router)` | `router.mbt` | 注册全部路由（110 端点） |
 | `StaticServer::new(root_dir)` | `static_server.mbt` | 静态资源服务器 |
 
 ## 关键类型
@@ -60,8 +60,8 @@ WebServer::start(port)
   │   ├─ /api/channels/*             # 频道管理
   │   ├─ /api/schedules/*            # 调度管理
   │   ├─ /api/browser/*              # 浏览器控制
-  │   ├─ /api/backups/*              # 备份管理
-  │   ├─ /api/billing/*              # 计费
+  │   ├─ /api/git/*                  # Git 仓库操作（status/diff/stage/commit/push/pull/branches/checkout）
+  │   ├─ /api/backups/*              # 备份管理  │   ├─ /api/billing/*              # 计费
   │   ├─ /api/trash/*                # 回收站
   │   ├─ /api/media/*, /api/ocr/*    # 多媒体/OCR
   │   └─ /ws                         # WebSocket
@@ -80,8 +80,8 @@ WebServer::start(port)
 | 频道 | `handlers_channels.mbt` | 6 平台 IM 适配器 CRUD、连通性测试（真实实现） |
 | 调度 | `handlers_schedules.mbt` | Cron 定时任务 CRUD、手动触发、执行历史（Scheduler 集成，真实实现） |
 | 浏览器 | `handlers_browser.mbt` | 浏览器控制（BrowserManager 集成，真实实现） |
-| 备份 | `handlers_backup.mbt` | 文件快照创建/恢复/删除（文件系统持久化，真实实现） |
-| 计费 | `handlers_billing.mbt` | BillingStore 集成、套餐激活、用量导出（真实实现） |
+| Git | `handlers_git.mbt`, `git_exec.mbt`, `git_exec.c` | Git 仓库操作（status/diff/stage/commit/push/pull/branches/checkout） |
+| 备份 | `handlers_backup.mbt` | 文件快照创建/恢复/删除（文件系统持久化，真实实现） || 计费 | `handlers_billing.mbt` | BillingStore 集成、套餐激活、用量导出（真实实现） |
 | 品牌 | `handlers_brand.mbt` | 品牌定制 |
 | 多媒体 | `handlers_media.mbt`, `handlers_ocr.mbt`, `handlers_local_image.mbt` | 媒体/OCR |
 | 其他 | `handlers_files.mbt`, `handlers_trash.mbt`（回收站真实实现：批量恢复/删除、类型过滤、过期追踪）, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt`（桥接层：技能 install/content/toggle/store/creator 等新增端点） | 文件/回收站/版本/引导/汇率/桥接 |

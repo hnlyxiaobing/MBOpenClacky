@@ -37,7 +37,7 @@ MBOpenClacky 是 openclacky（Ruby）的 MoonBit 语言重写版本，目标是�
 | 运行状态 | ✅ 基础可用 | `moon run cmd -- --version` 正常，Web 服务默认端口 7070 |
 | CI/CD | ✅ GitHub Actions | `ci.yml`（check + build + test + 缓存优化）+ `docker.yml`（镜像自动构建） |
 | Harness Spec | ✅ 已落地 | `specs/` 目录结构 + 3 个模板 + 首个 spec（CI/CD）已完成归档 |
-| Codemaps | ✅ 已生成 | 10 个核心包代码地形索引（agent/client/tool/skill/mcp/channel/server/web/tui/config） |
+| Codemaps | ✅ 已生成 | 10 个核心包 + 1 个子系统代码地形索引（agent/client/tool/browser/skill/mcp/channel/server/web/tui/config） |
 | 整体完成度 | ~87-92% (综合) | 后端核心 ~95%，Web前端 ~40-50%，部署基础设施 ~50% |
 
 ### 关键发现
@@ -930,7 +930,7 @@ docker run -d \
 | 能力 | 当前状态 | 影响 | 规划 |
 |------|---------|------|------|
 | **CI/CD 流水线** | ✅ GitHub Actions | `.github/workflows/ci.yml`（check + build + test + 缓存优化）+ `docker.yml`（镜像自动构建） |
-| **Harness 方法论** | ✅ 已落地 | `specs/` 目录结构 + 3 个模板 + 首个 spec 完成归档；`codemaps/` 10 个核心包索引 |
+| **Harness 方法论** | ✅ 已落地 | `specs/` 目录结构 + 3 个模板 + 首个 spec 完成归档；`codemaps/` 10 个核心包 + 1 个子系统索引 |
 | **进程守护** | ❌ 缺失 | 服务意外退出后无法自动重启 | 计划提供 systemd service 模板和 docker-compose 编排文件 |
 | **日志轮转** | ❌ 缺失 | 长时间运行日志文件无限增长 | 计划集成 logrotate 或应用内日志轮转（lib/utils/logger.mbt 已有基础框架） |
 | **配置热更新** | ❌ 缺失 | 修改配置需重启服务 | 低优先级，后续评估 |

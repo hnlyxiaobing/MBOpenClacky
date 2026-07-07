@@ -1,6 +1,6 @@
 # config — TOML 配置加载 · 12 Provider 预设 · 权限控制
 
-> 路径: `lib/config/` · 10 文件 · 配置管理
+> 路径: `lib/config/` · 8 文件 · 配置管理
 
 ## 入口函数
 

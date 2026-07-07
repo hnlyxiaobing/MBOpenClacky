@@ -22,14 +22,14 @@
 | agent | `agent.md` | ReAct 循环、LLM 调用、会话管理 |
 | client | `client.md` | LLM API 客户端、SSE 流式 |
 | tool | `tool.md` | Tool trait + 14 个内置工具 |
+| browser | `browser.md` | 浏览器自动化（tool 包子系统） |
 | skill | `skill.md` | SKILL.md 解析、注册、进化引擎 |
 | mcp | `mcp.md` | MCP 协议（Stdio/HTTP） |
 | channel | `channel.md` | 6 个 IM 适配器 |
 | server | `server.md` | Cron 调度、浏览器管理、Git 面板 |
-| web | `web.md` | REST 服务器、90+ 端点 |
+| web | `web.md` | REST 服务器、110 端点 |
 | tui | `tui.md` | TUI 控制器、组件 |
 | config | `config.md` | TOML 配置加载 |
-
 ## 如何生成
 
 1. 让 AI 扫描包目录和关键文件

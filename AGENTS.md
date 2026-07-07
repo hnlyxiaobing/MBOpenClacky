@@ -28,7 +28,7 @@ test/             Eval framework (module-agnostic, zero-intrusion to lib/)
 assets/           agents, skills, web (CSS/JS), gep templates
 docs/             changelog and development plans
 specs/            Harness methodology (templates, active specs, completed archive)
-codemaps/         Code terrain indexes for 10 core packages
+codemaps/         Code terrain indexes for 10 core packages + 1 subsystem
 .github/          CI/CD workflows (ci.yml, docker.yml)
 ```
 

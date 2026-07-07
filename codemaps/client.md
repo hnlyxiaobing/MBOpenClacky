@@ -1,6 +1,6 @@
 # client — LLM API 客户端 · SSE 流式 · 多 Provider 适配
 
-> 路径: `lib/client/` · 13 文件 · LLM 通信层
+> 路径: `lib/client/` · 11 文件 · LLM 通信层
 
 ## 入口函数
 

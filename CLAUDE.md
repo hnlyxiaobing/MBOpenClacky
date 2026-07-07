@@ -233,5 +233,5 @@ assets/
 | `moon check` | 0 errors, 426 warnings |
 | CI/CD | ✅ GitHub Actions (`ci.yml` + `docker.yml`) |
 | Specs | ✅ Harness methodology (`specs/` with templates) |
-| Codemaps | ✅ 10 core packages (`codemaps/`) |
+| Codemaps | ✅ 10 core packages + 1 subsystem (`codemaps/`) |
 | Phase coverage | ~87-92% (backend ~95%, Web frontend ~40-50%, deploy infra ~50%) |

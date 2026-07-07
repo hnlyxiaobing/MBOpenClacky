@@ -1,6 +1,6 @@
 # mcp — MCP 协议 · Stdio/HTTP 传输 · JSON-RPC 2.0 · 虚拟技能
 
-> 路径: `lib/mcp/` · 15 文件 · Model Context Protocol 实现
+> 路径: `lib/mcp/` · 14 文件 · Model Context Protocol 实现
 
 ## 入口函数
 

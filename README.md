@@ -165,7 +165,7 @@ MBOpenClacky/
 │   ├── install.ps1     # Windows 安装脚本
 │   └── setup_yoga.sh   # Yoga 布局引擎编译脚本
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 已完成归档 + 决策记录）
-├── codemaps/           # 10 个核心包代码地形索引
+├── codemaps/           # 10 个核心包 + 1 个子系统代码地形索引
 ├── .github/            # CI/CD 工作流（ci.yml + docker.yml）
 ├── Dockerfile          # 多阶段 Docker 构建
 ├── moon.mod            # 模块元信息与依赖声明
