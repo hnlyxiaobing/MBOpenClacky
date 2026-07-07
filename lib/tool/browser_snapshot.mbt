@@ -7,6 +7,12 @@ let max_snapshot_chars : Int = 8000
 let max_llm_output_chars : Int = 6000
 
 ///|
+/// Threshold in characters for triggering two-stage compression.
+/// Snapshots smaller than this skip compression and only get truncated.
+/// 150KB ≈ 153600 characters.
+let snapshot_compress_threshold : Int = 150 * 1024
+
+///|
 /// Lines of context to show around a query match in snapshot.
 let _snapshot_query_window : Int = 60
 
@@ -27,12 +33,18 @@ pub fn truncate_browser_output(output : String, max_chars : Int) -> String {
 ///   Stage 1: Remove noise lines (empty containers, decoration-only lines)
 ///   Stage 2: Merge consecutive StaticText lines at the same indent
 /// Then truncate to max_snapshot_chars.
+/// Snapshots below the threshold (150KB) skip compression and only get truncated.
 pub fn compress_snapshot(snapshot : String) -> String {
+  // Threshold gate: skip two-stage compression for small snapshots
+  if snapshot.length() <= snapshot_compress_threshold {
+    return truncate_browser_output(snapshot, max_snapshot_chars)
+  }
   // Collect lines into Array[String] (split returns Iter[StringView])
   let lines : Array[String] = []
   for sv in snapshot.split("\n") {
     lines.push(sv.to_owned())
   }
+  let original_size = snapshot.length()
   // Stage 1: Remove noise lines
   let cleaned : Array[String] = []
   for line in lines {
@@ -47,6 +59,14 @@ pub fn compress_snapshot(snapshot : String) -> String {
     } else {
       cleaned.push(line)
     }
+  }
+  // Compute stage 1 size
+  let stage1_size = {
+    let mut n = 0
+    for l in cleaned {
+      n = n + l.length() + 1
+    }
+    n
   }
   // Stage 2: Merge consecutive StaticText lines at same indent as "a / b / c"
   let merged : Array[String] = []
@@ -89,7 +109,27 @@ pub fn compress_snapshot(snapshot : String) -> String {
     }
   }
   let result = join_browser_parts(merged, "\n")
-  truncate_browser_output(result, max_snapshot_chars)
+  let stage2_size = result.length()
+  // Compression log: three-stage sizes with ratio
+  let log_line = format_compress_log(original_size, stage1_size, stage2_size)
+  println(log_line)
+  let final_result = "// " + log_line + "\n" + result
+  truncate_browser_output(final_result, max_snapshot_chars)
+}
+
+///|
+/// Format a compression log line with three-stage sizes and compression ratio.
+/// Sizes are in characters; output in KB with 1 decimal place.
+fn format_compress_log(original : Int, stage1 : Int, stage2 : Int) -> String {
+  let orig_kb = original * 10 / 1024
+  let s1_kb = stage1 * 10 / 1024
+  let s2_kb = stage2 * 10 / 1024
+  let ratio = if original > 0 {
+    (original - stage2) * 100 / original
+  } else {
+    0
+  }
+  "[snapshot-compress] original=\{orig_kb / 10}.\{orig_kb % 10}kb → stage1=\{s1_kb / 10}.\{s1_kb % 10}kb → stage2=\{s2_kb / 10}.\{s2_kb % 10}kb (ratio=\{ratio}%)"
 }
 
 ///|

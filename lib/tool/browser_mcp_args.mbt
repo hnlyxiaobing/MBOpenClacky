@@ -14,6 +14,7 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
     "select_option" => build_mcp_select_args(args)
     "wait_for" => build_mcp_wait_args(args)
     "evaluate_script" => build_mcp_evaluate_args(args)
+    "scroll_page" => build_mcp_scroll_args(args)
     "click_at" => build_mcp_click_at_args(args)
     "list_pages" => Json::object({})
     "select_page" => build_mcp_select_page_args(args)
@@ -79,6 +80,16 @@ fn build_mcp_screenshot_args(args : Map[String, Json]) -> Json {
   }
   match args.get("full_page") {
     Some(v) => obj["full_page"] = v
+    _ => ()
+  }
+  // Pass through format ("png"/"jpeg") to MCP take_screenshot
+  match args.get("format") {
+    Some(v) => obj["format"] = v
+    _ => ()
+  }
+  // Pass through quality (0-100, only meaningful for jpeg) to MCP take_screenshot
+  match args.get("quality") {
+    Some(v) => obj["quality"] = v
     _ => ()
   }
   Json::object(obj)
@@ -212,6 +223,20 @@ fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
       obj["script"] = script.to_json()
     }
     Some(v) => obj["script"] = v
+    _ => ()
+  }
+  Json::object(obj)
+}
+
+///|
+fn build_mcp_scroll_args(args : Map[String, Json]) -> Json {
+  let obj : Map[String, Json] = {}
+  match args.get("direction") {
+    Some(v) => obj["direction"] = v
+    _ => ()
+  }
+  match args.get("amount") {
+    Some(v) => obj["amount"] = v
     _ => ()
   }
   Json::object(obj)

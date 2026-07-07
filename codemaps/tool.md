@@ -72,7 +72,7 @@ Agent::execute_single_tool(tool_call)
 | 文件操作 | `file_reader.mbt`, `edit.mbt`, `glob.mbt`, `grep.mbt` | 文件读写、搜索 |
 | 终端执行 | `terminal.mbt`, `terminal_session.mbt`, `terminal_exec.mbt` | 命令执行 |
 | PTY 层 | `pty.mbt`, `pty_ffi.mbt`, `pty_ffi_wasm.mbt`, `pty_marker.mbt`, `pty_session.mbt`, `pty_stubs.c` | PTY 伪终端（C FFI） |
-| 浏览器 | `browser.mbt`, `browser_action.mbt`, `browser_mcp_args.mbt`, `browser_page.mbt`, `browser_screenshot.mbt`, `browser_snapshot.mbt` | 浏览器自动化 |
+| 浏览器 | `browser.mbt`, `browser_action.mbt`, `browser_mcp_args.mbt`, `browser_page.mbt`, `browser_screenshot.mbt`, `browser_snapshot.mbt`, `browser_wbtest.mbt` | 浏览器自动化（scroll 原生 MCP、fill 增强、截图管道、快照阈值门控） |
 | Agent 工具 | `invoke_skill.mbt`, `memory_tool.mbt`, `todo_tool.mbt`, `request_user_feedback.mbt` | Agent 级工具 |
 | 安全 | `security.mbt` | 路径安全检查、秘密文件保护 |
 | 辅助 | `output_cleaner.mbt`, `trash_manager.mbt` | 输出清理、回收站 |

@@ -203,6 +203,28 @@ impl Tool for Browser with fn parameters(_) -> Json {
         "type": "boolean".to_json(),
         "description": "screenshot: full page".to_json(),
       }),
+      "format": Json::object({
+        "type": "string".to_json(),
+        "description": "screenshot: output format ('png' or 'jpeg', default 'png')".to_json(),
+        "enum": ["png".to_json(), "jpeg".to_json()],
+      }),
+      "quality": Json::object({
+        "type": "integer".to_json(),
+        "description": "screenshot: jpeg quality 0-100 (only applies when format='jpeg')".to_json(),
+      }),
+      "save_path": Json::object({
+        "type": "string".to_json(),
+        "description": "screenshot: custom file path to save (default: temp dir)".to_json(),
+      }),
+      // TODO: max_width / max_height — enforce via MCP clip or libpng FFI when available
+      "max_width": Json::object({
+        "type": "integer".to_json(),
+        "description": "screenshot: max width in pixels (TODO: not yet enforced)".to_json(),
+      }),
+      "max_height": Json::object({
+        "type": "integer".to_json(),
+        "description": "screenshot: max height in pixels (TODO: not yet enforced)".to_json(),
+      }),
     }),
     "required": ["action".to_json()],
   })
@@ -289,8 +311,21 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
           Some(String(r)) => Some(r)
           _ => None
         }
+        let format_param : String? = match args.get("format") {
+          Some(String(f)) => Some(f)
+          _ => None
+        }
+        let save_path_param : String? = match args.get("save_path") {
+          Some(String(sp)) => Some(sp)
+          _ => None
+        }
         ToolResult::success(
-          format_screenshot_result(raw_result.content, ref_param~),
+          format_screenshot_result(
+            raw_result.content,
+            ref_param~,
+            format=format_param,
+            save_path=save_path_param,
+          ),
         )
       } else {
         raw_result

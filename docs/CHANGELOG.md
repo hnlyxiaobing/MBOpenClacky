@@ -25,6 +25,25 @@
 
 ## 变更记录
 
+### 2026-07-07  feat(tool): 浏览器工具完善 — 表单交互增强、截图管道、快照压缩
+
+**表单交互增强**：
+- scroll 操作改用原生 MCP scroll_page 工具，失败时自动回退到 evaluate_script
+- fill 操作增加 focus/blur 事件增强，提升 React/Vue 等框架兼容性
+- 新增 escape_js_string 辅助函数，完整转义 JS 字符串特殊字符
+
+**截图管道完善**：
+- 支持 format（jpeg/png）和 quality 参数透传到 MCP
+- 新增 savePath 自定义保存路径
+- 参数 schema 新增 max_width/max_height 预留（TODO）
+
+**快照压缩阈值门控**：
+- compress_snapshot 增加 150KB 阈值判断，小快照跳过压缩
+- 压缩日志记录三阶段大小（原始 → 去噪 → 合并）
+
+**测试**：新建 browser_wbtest.mbt，18+ 个白盒测试覆盖全部功能
+- `[verify]` `moon check` 0 errors，`moon test lib/tool` 85 tests 全部通过
+
 ### 2026-07-07  Phase 26 Web 管理面板后端全量实现（8 个面板 · 72 handler · 2,741 行）
 
 - `[feat]` **实现全部 8 个 Web 管理面板后端 handler**（从 stub 到真实实现）
