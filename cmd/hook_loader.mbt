@@ -79,7 +79,7 @@ pub fn execute_hook(
     Some(msg) => env_vars.push(("CLACKY_MESSAGE", msg))
     None => ()
   }
-  let result = run_shell_command(
+  let result = @tool.run_shell_command(
     hook.command,
     env_vars~,
     working_dir=Some(context.working_dir),

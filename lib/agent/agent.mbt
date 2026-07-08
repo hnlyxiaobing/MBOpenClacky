@@ -44,6 +44,10 @@ pub(all) struct Agent {
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
+  // ── Confirmation ──────────────────────────────────────────────────
+  /// UI confirmation callback: (tool_name, args_summary) -> approved?
+  /// None = headless (tools needing confirmation are denied).
+  mut confirmation_callback : ((String, String) -> Bool)?
   // ── Test Support ─────────────────────────────────────────────────
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
@@ -109,6 +113,8 @@ pub fn Agent::new(
     compression_level: 0,
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
+    // No confirmation callback by default (headless mode)
+    confirmation_callback: None,
     // Test support
     mock_responses: [],
   }

@@ -12,6 +12,7 @@ pub(all) enum SlashCommand {
   Clear
   New(title~ : String)
   Skills(action~ : String)
+  Todo
   Help
   Exit
 } derive(Eq, Debug, Show)
@@ -46,6 +47,7 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
     },
     { name: "clear", description: "Clear message history", usage: "/clear" },
     { name: "new", description: "Start a new session", usage: "/new [title]" },
+    { name: "todo", description: "Toggle todo area visibility", usage: "/todo" },
     {
       name: "skills",
       description: "Manage skills",
@@ -101,6 +103,7 @@ pub fn SlashCommandParser::parse(
       Ok(Model(name~))
     }
     "clear" => Ok(Clear)
+    "todo" => Ok(Todo)
     "new" => {
       let title = if parts.length() >= 2 {
         let title_parts : Array[String] = []
@@ -257,6 +260,9 @@ pub fn execute(
       Ok(lines.join("\n"))
     }
     Exit => Ok("Exiting application")
+    Todo =>
+      // Toggle todo area visibility (controller will handle the toggle)
+      Ok("Todo area toggled")
   }
 }
 

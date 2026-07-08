@@ -135,7 +135,24 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
   app.use_middleware(@mid.error_envelope_middleware())
   // 3. Auth: API key verification (conditional)
   match self.api_key {
-    Some(key) => app.use_middleware(@mid.auth_middleware(key))
+    Some(key) => {
+      // Dev-only escape hatch: loopback bypass. The client IP is derived
+      // from forgeable headers, so this is NOT a security boundary —
+      // never enable it on an exposed port.
+      let allow_loopback = match
+        @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
+        Some("1") | Some("true") => {
+          println(
+            "[WebServer] WARNING: loopback auth bypass ENABLED (MBOPENCLACKY_DEV_ALLOW_LOOPBACK) — do NOT expose this port",
+          )
+          true
+        }
+        _ => false
+      }
+      app.use_middleware(
+        @mid.auth_middleware(key, allow_loopback_bypass=allow_loopback),
+      )
+    }
     None => ()
   }
   // 4. Timeout: route-specific advisory timeouts

@@ -95,7 +95,7 @@ pub fn PatchLoader::apply_patches(
         continue
       }
       println("[PatchLoader]   - \{p.name} v\{p.version}: \{p.command}")
-      let result = run_shell_command(p.command, env_vars=[
+      let result = @tool.run_shell_command(p.command, env_vars=[
         ("CLACKY_PATCH_NAME", p.name),
         ("CLACKY_PATCH_VERSION", p.version),
         ("CLACKY_PATCH_MODULE", p.target_module),

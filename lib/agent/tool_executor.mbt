@@ -21,7 +21,7 @@ pub(all) struct ToolResultEntry {
 ///
 /// - AutoApprove: all tools auto-execute
 /// - ConfirmSafes: read-only tools + safe terminal commands auto-execute
-/// - ConfirmAll: all tools auto-execute (UI shows confirmation for awareness)
+/// - ConfirmAll: no tools auto-execute (all require user confirmation)
 pub fn Agent::should_auto_execute(
   self : Agent,
   tool_name : String,
@@ -30,7 +30,7 @@ pub fn Agent::should_auto_execute(
   match self.config.permission_mode {
     @config.AutoApprove => true
     @config.ConfirmSafes => self.is_safe_operation(tool_name, tool_params)
-    @config.ConfirmAll => true
+    @config.ConfirmAll => false
   }
 }
 

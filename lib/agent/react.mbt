@@ -223,10 +223,26 @@ fn Agent::act(
     // Permission check
     let args = parse_tool_arguments(call)
     if !self.should_auto_execute(tool_name, args) {
-      // Without a UI callback in Phase 4, deny tools that need confirmation
-      let entry = build_denied_result(call, None)
-      results.push(entry)
-      denied = true
+      // Tool needs confirmation
+      let approved = match self.confirmation_callback {
+        Some(cb) => {
+          let args_summary = call.function.arguments
+          cb(tool_name, args_summary)
+        }
+        None => false // Headless: deny tools needing confirmation
+      }
+      if approved {
+        // User approved — execute the tool
+        let args_json = call.function.arguments
+        self.hook_manager.emit(ToolExecuting(tool_name, args_json))
+        let entry = self.execute_single_tool(call)
+        self.hook_manager.emit(ToolExecuted(tool_name, entry))
+        results.push(entry)
+      } else {
+        let entry = build_denied_result(call, None)
+        results.push(entry)
+        denied = true
+      }
     } else {
       // Emit hook before execution
       let args_json = call.function.arguments

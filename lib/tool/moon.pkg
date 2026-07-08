@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/json",
   "moonbitlang/core/string",
+  "moonbitlang/core/strconv",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
@@ -18,6 +19,8 @@ options(
     "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],
     "pty_ffi.mbt": [ "native" ],
     "pty_ffi_wasm.mbt": [ "wasm", "wasm-gc" ],
+    "shell_exec.mbt": [ "native" ],
+    "shell_exec_wbtest.mbt": [ "native" ],
   },
   // lib.client/http_native.c requires libcurl on Linux/macOS.
   link: { "native": { "cc-link-flags": "-lcurl" } },

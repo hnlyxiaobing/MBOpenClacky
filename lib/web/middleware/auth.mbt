@@ -1,7 +1,8 @@
 ///|
 /// API Key authentication middleware with enhanced security.
 /// Supports Bearer header, query parameter, and cookie fallback.
-/// Implements IP-based rate limiting and loopback bypass.
+/// Implements IP-based rate limiting and a public-path allowlist.
+/// Loopback bypass is opt-in (dev only) and disabled by default.
 
 ///|
 /// Constant-time string comparison to prevent timing attacks.
@@ -182,20 +183,49 @@ fn extract_api_key(req : @core.HttpRequest) -> String? {
 }
 
 ///|
+/// Public endpoints that never require authentication.
+/// - /health: monitoring probes need credential-less access
+/// - GET /api/version: version query (note: POST /api/version/upgrade is NOT public)
+pub fn is_public_path(method : String, path : String) -> Bool {
+  if path == "/health" {
+    return true
+  }
+  method == "GET" && path == "/api/version"
+}
+
+///|
 /// Creates enhanced authentication middleware with:
 /// - Constant-time key comparison
 /// - Multi-method auth (Bearer, X-API-Key header, query param, cookie)
 /// - IP rate limiting (10 failures / 300s window)
-/// - Loopback IP bypass
-pub fn auth_middleware(api_key : String) -> @crescent.Middleware {
+/// - Public-path allowlist (/health, GET /api/version)
+/// - Optional loopback bypass (dev only, default OFF)
+///
+/// SECURITY: `client_ip` is derived from X-Forwarded-For / X-Real-IP request
+/// headers, which are client-controlled. It is therefore used ONLY for rate
+/// limiting and logging — never as an authentication decision input, unless
+/// `allow_loopback_bypass` is explicitly enabled (development convenience,
+/// NOT a security boundary: a remote client can forge the header).
+pub fn auth_middleware(
+  api_key : String,
+  allow_loopback_bypass? : Bool = false,
+) -> @crescent.Middleware {
   let limiter = IpRateLimiter::new()
   let mw : @crescent.Middleware = (event, next) => {
     let req = event.req
+    let path = req.path()
+    let method = req.method_string()
+
+    // Public endpoint allowlist: no auth required
+    if is_public_path(method, path) {
+      return next()
+    }
     let client_ip = extract_client_ip(req)
     let now = @async.now()
 
-    // Loopback bypass: skip auth for localhost requests
-    if is_loopback_ip(client_ip) {
+    // Optional loopback bypass (dev only; disabled by default because the
+    // client IP comes from forgeable headers)
+    if allow_loopback_bypass && is_loopback_ip(client_ip) {
       return next()
     }
 

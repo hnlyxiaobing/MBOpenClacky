@@ -1,19 +1,19 @@
 ///|
 test "run_shell_command captures output and exit code" {
-  let r = run_shell_command("echo hello")
+  let r = @tool.run_shell_command("echo hello")
   assert_eq(r.exit_code, 0)
   assert_true(r.output.contains("hello"))
 }
 
 ///|
 test "run_shell_command reports non-zero exit code" {
-  let r = run_shell_command("exit 3")
+  let r = @tool.run_shell_command("exit 3")
   assert_eq(r.exit_code, 3)
 }
 
 ///|
 test "run_shell_command passes env vars to child process" {
-  let r = run_shell_command("echo val=$CLACKY_TEST_VAR", env_vars=[
+  let r = @tool.run_shell_command("echo val=$CLACKY_TEST_VAR", env_vars=[
     ("CLACKY_TEST_VAR", "42"),
   ])
   assert_eq(r.exit_code, 0)
@@ -127,7 +127,14 @@ test "apply_patches reports failing patch" {
 ///|
 test "register_extensions rejects duplicate names and bad routes" {
   let mk_route = fn(method : String, path : String) -> @web.ExtensionRoute {
-    { method, path, handler_name: "h", description: "", timeout_ms: 1000 }
+    {
+      method,
+      path,
+      handler_name: "h",
+      command: "",
+      description: "",
+      timeout_ms: 1000,
+    }
   }
   // Duplicate extension name
   let dup : Array[@web.ApiExtension] = [
@@ -168,6 +175,7 @@ test "register_extensions accepts valid extensions" {
           method: "GET",
           path: "/status",
           handler_name: "status",
+          command: "",
           description: "",
           timeout_ms: 5000,
         },

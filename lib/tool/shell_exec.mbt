@@ -1,11 +1,12 @@
 ///|
-/// Shared shell execution for cmd-layer hooks and patches.
+/// Shared shell execution for hooks, patches, and extension handlers.
 /// Uses the same mb_system FFI provided by lib/tool/tool_stubs.c and the
 /// output-file + completion-marker pattern from lib/tool/terminal.mbt.
-
-///|
-#borrow(_cmd)
-extern "C" fn cmd_c_system(_cmd : Bytes) -> Int = "mb_system"
+///
+/// Concurrency safety: env vars are INLINED into the command prefix
+/// (export VAR='val' on Unix, set "VAR=val" on Windows) rather than
+/// modifying the parent process environment. This is safe for concurrent
+/// web server requests.
 
 ///|
 /// String::to_bytes() is UTF-16LE; system() needs a NUL-terminated UTF-8 C string.
@@ -65,10 +66,48 @@ fn shell_is_windows() -> Bool {
 }
 
 ///|
+/// Escape a value for single-quoted context on Unix (sh).
+/// Replaces ' with '\'' — the standard idiom for embedding single quotes.
+fn shell_escape_single(value : String) -> String {
+  let buf : Array[String] = []
+  for c in value {
+    if c == '\'' {
+      buf.push("'\\''")
+    } else {
+      buf.push(c.to_string())
+    }
+  }
+  buf.join("")
+}
+
+///|
+/// Build the env-var prefix for the command.
+/// Unix:  export VAR='val' && export VAR2='val2' &&
+/// Win:   set "VAR=val" && set "VAR2=val2" &&
+fn build_env_prefix(
+  env_vars : Array[(String, String)],
+  is_win : Bool,
+) -> String {
+  if env_vars.length() == 0 {
+    return ""
+  }
+  let parts : Array[String] = []
+  for kv in env_vars {
+    let key = kv.0
+    let val = kv.1
+    if is_win {
+      parts.push("set \"\{key}=\{val}\"")
+    } else {
+      parts.push("export \{key}='\{shell_escape_single(val)}'")
+    }
+  }
+  parts.join(" && ") + " && "
+}
+
+///|
 /// Execute a shell command, capturing combined stdout/stderr and the real
-/// exit code via a completion marker. Extra environment variables are set
-/// in the parent process before the call (inherited by the child) and
-/// removed afterwards.
+/// exit code via a completion marker. Environment variables are inlined
+/// into the command prefix (concurrency-safe — no parent env mutation).
 pub fn run_shell_command(
   command : String,
   env_vars? : Array[(String, String)] = [],
@@ -85,12 +124,14 @@ pub fn run_shell_command(
     Some(d) if !d.is_empty() && d != "." => Some(d)
     _ => None
   }
+  let env_prefix = build_env_prefix(env_vars, is_win)
   let shell_cmd = if is_win {
     let cd_part = match cwd {
       Some(d) => "cd /d \"" + d + "\" && "
       None => ""
     }
     cd_part +
+    env_prefix +
     "(" +
     command +
     ") > \"" +
@@ -107,6 +148,7 @@ pub fn run_shell_command(
       None => ""
     }
     cd_part +
+    env_prefix +
     "( " +
     command +
     " ) > '" +
@@ -125,13 +167,7 @@ pub fn run_shell_command(
   } else {
     shell_cmd
   }
-  for kv in env_vars {
-    @sys.set_env_var(kv.0, kv.1)
-  }
-  let sys_exit = cmd_c_system(to_c_string(full_cmd))
-  for kv in env_vars {
-    @sys.unset_env_var(kv.0)
-  }
+  let sys_exit = c_system(to_c_string(full_cmd))
   let raw = @fs.read_file_to_string(output_file) catch { _ => "" }
   @fs.remove_file(output_file) catch {
     _ => ()

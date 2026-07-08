@@ -28,6 +28,22 @@ pub(all) struct ToolExecution {
 } derive(Debug)
 
 ///|
+/// Pending confirmation data for tool approval prompts.
+///
+/// Set when the agent requests user confirmation for a tool call.
+/// The TUI renders this as an inline dialog and reads a key synchronously.
+pub(all) struct PendingConfirmation {
+  /// Name of the tool requesting confirmation.
+  tool_name : String
+  /// Brief summary of tool arguments.
+  tool_args : String
+  /// Full prompt text shown to the user.
+  prompt_text : String
+  /// Whether the default action (Enter) is "yes".
+  default_yes : Bool
+} derive(Debug)
+
+///|
 /// Shared state between TUI rendering and Agent hooks.
 pub(all) struct TuiState {
   // ── Agent Identity ─────────────────────────────────────────
@@ -103,16 +119,18 @@ pub(all) struct TuiState {
   progress_stack : ProgressStack
 
   // ── Sidebar ─────────────────────────────────────────────────
-  /// Sidebar panel for navigation and session management.
-  sidebar_panel : SidebarPanel
+  // (Removed in Phase 6.5: sidebar_panel deprecated, inline mode doesn't use it)
 
   // ── Session Bar ───────────────────────────────────────────────
-  /// Session bar displaying session metadata.
-  session_bar : SessionBar
+  // (Removed in Phase 6.5: session_bar deprecated, merged into status_bar.mbt)
 
   // ── Todo Area ─────────────────────────────────────────────────
   /// Todo area displaying active task list.
   todo_area : TodoArea
+
+  // ── Confirmation ──────────────────────────────────────────────
+  /// Pending confirmation prompt for tool approval (None = no pending).
+  mut pending_confirmation : PendingConfirmation?
 
   // ── Theme ─────────────────────────────────────────────────
   /// Current UI theme for rendering.
@@ -147,17 +165,8 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     input_text: "",
     last_error: None,
     progress_stack: ProgressStack::new(),
-    sidebar_panel: init_default_sidebar(),
-    session_bar: SessionBar::new(),
     todo_area: TodoArea::new(),
+    pending_confirmation: None,
     theme: Theme::default_(),
   }
-}
-
-///|
-/// Initialize the default sidebar panel with session navigation items.
-fn init_default_sidebar() -> SidebarPanel {
-  let panel = SidebarPanel::new("Sessions", 24)
-  panel.add_item(SidebarItem::with_icon("current", "Current", "●"))
-  panel
 }

@@ -129,6 +129,34 @@ async fn TuiController::redraw_status(self : TuiController) -> Unit {
 /// Redraw the output/message area.
 async fn TuiController::redraw_output(self : TuiController) -> Unit {
   self.layout.redraw_live()
+  // Render todo area below output if visible
+  self.redraw_todo()
+}
+
+///|
+/// Redraw the todo area above the input box.
+///
+/// Renders the todo_area lines between the output area and the input box.
+/// Only renders when todo_area is visible.
+async fn TuiController::redraw_todo(self : TuiController) -> Unit {
+  let todo_lines = self.state.val.todo_area.render_lines()
+  if todo_lines.length() == 0 {
+    return
+  }
+  let (w, h) = self.layout.screen_size()
+  let input_h = 4
+  // Render todo lines just above the input area
+  let todo_bottom = h - input_h
+  for i = 0; i < todo_lines.length(); i = i + 1 {
+    let row = todo_bottom - todo_lines.length() + i
+    if row > 1 {
+      self.screen.move_cursor(row, 1)
+      self.screen.clear_to_eol()
+      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Cyan))
+      self.screen.write_string(todo_lines[i])
+      self.screen.reset_style()
+    }
+  }
 }
 
 ///|
@@ -202,6 +230,22 @@ async fn TuiController::restore_terminal(self : TuiController) -> Unit {
 pub async fn TuiController::run(self : TuiController) -> Unit {
   // Register hooks
   self.hooks.register_all(self.agent.hook_manager)
+  // Register confirmation callback for TUI mode
+  let state_ref = self.state
+  self.agent.confirmation_callback = Some(fn(
+    tool_name : String,
+    tool_args : String,
+  ) -> Bool {
+    // Set pending confirmation on state (for rendering/testing observation)
+    let prompt_text = build_tool_prompt(tool_name, tool_args)
+    request_confirmation(state_ref.val, tool_name, tool_args, prompt_text)
+    // Render and read key synchronously (bypasses async I/O)
+    // default_yes = false for safety (Enter = deny)
+    let result = prompt_confirmation(tool_name, tool_args, false)
+    // Clear pending confirmation
+    consume_confirmation(state_ref.val)
+    result
+  })
   // Enter raw mode
   self.tty.with_raw_mode(() => self.event_loop())
 }
@@ -346,6 +390,52 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
   }
   let text = self.input.submit()
   if text.length() > 0 {
+    // Check for slash commands
+    if text[0:1] == "/" {
+      let parser = SlashCommandParser::new()
+      match parser.parse(text) {
+        Ok(cmd) => {
+          match cmd {
+            Todo => {
+              // Toggle todo area visibility
+              if self.state.val.todo_area.hidden {
+                self.state.val.todo_area.show()
+              } else {
+                self.state.val.todo_area.hide()
+              }
+              self.dirty = true
+              self.redraw()
+              return
+            }
+            _ => ()
+          }
+          // Execute other slash commands
+          let result = execute(cmd, self.agent)
+          match result {
+            Ok(msg) => {
+              ignore(
+                self.output.append_text("[system] \{msg}", OutputKind::Text),
+              )
+              self.layout.commit_all()
+              self.dirty = true
+              self.redraw()
+            }
+            Err(err) => {
+              ignore(
+                self.output.append_text("[error] \{err}", OutputKind::Text),
+              )
+              self.layout.commit_all()
+              self.dirty = true
+              self.redraw()
+            }
+          }
+          return
+        }
+        Err(_) =>
+          // Not a valid slash command — send as regular input
+          ()
+      }
+    }
     // Add user message to output buffer
     ignore(self.output.append_text("[user] \{text}", OutputKind::Text))
     // Commit it immediately

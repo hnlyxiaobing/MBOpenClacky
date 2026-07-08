@@ -12,6 +12,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/billing",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
+  "hnlyxiaobing/MBOpenClacky/lib/tool",
   "hnlyxiaobing/MBOpenClacky/lib/tui",
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "hnlyxiaobing/MBOpenClacky/lib/utils",

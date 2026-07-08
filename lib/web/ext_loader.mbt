@@ -11,6 +11,8 @@ pub(all) struct ExtensionRoute {
   path : String
   /// Logical handler name used for dispatch
   handler_name : String
+  /// Shell command to execute for this route (empty = stub fallback)
+  command : String
   /// Human-readable description
   description : String
   /// Per-route execution timeout in milliseconds (default 30 000)
@@ -88,6 +90,27 @@ pub fn enabled_extensions(
   result
 }
 
+// ── Internal helpers ────────────────────────────────────────────
+
+///|
+/// Expand a leading `~` to the user's home directory.
+/// Only expands when `~` appears at the start of the string.
+fn expand_tilde(path : String) -> String {
+  if path.has_prefix("~/") {
+    match @utils.home_dir() {
+      Some(home) => home + path[1:].to_string()
+      None => path
+    }
+  } else if path == "~" {
+    match @utils.home_dir() {
+      Some(home) => home
+      None => path
+    }
+  } else {
+    path
+  }
+}
+
 // ── Internal parsers ────────────────────────────────────────────
 
 ///|
@@ -122,10 +145,13 @@ fn parse_ext_json(content : String) -> ApiExtension? {
                   Some(Number(n, ..)) => n.to_int()
                   _ => default_ext_timeout_ms
                 }
+                let raw_command = rget("command")
+                let command = expand_tilde(raw_command)
                 routes.push({
                   method: rget("method"),
                   path: rget("path"),
                   handler_name: rget("handler_name"),
+                  command,
                   description: rget("description"),
                   timeout_ms: timeout,
                 })

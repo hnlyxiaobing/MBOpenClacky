@@ -158,3 +158,29 @@ fn truncate_model(name : String, max_len : Int) -> String {
     name[0:max_len - 3].to_string() + "..."
   }
 }
+
+///|
+/// Format cost for display with at least 4 decimal places.
+///
+/// Preserves extra precision if the value has more than 4 decimal digits.
+/// Example: 0.0 → "0.0000", 1.5 → "1.5000", 0.123456 → "0.123456"
+///
+/// Migrated from session_bar.mbt (deprecated, deleted in Phase 6.5).
+pub fn format_cost(cost : Double) -> String {
+  let s = cost.to_string()
+  if s.contains(".") {
+    let parts = s.split(".").to_array()
+    if parts.length() >= 2 {
+      let decimals = parts[1]
+      if decimals.length() >= 4 {
+        s
+      } else {
+        s + String::repeat("0", 4 - decimals.length())
+      }
+    } else {
+      s + ".0000"
+    }
+  } else {
+    s + ".0000"
+  }
+}

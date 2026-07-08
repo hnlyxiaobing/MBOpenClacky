@@ -29,7 +29,7 @@ pub enum ThinkingVerbMode {
   Sequential
   /// Pick a random verb from the list on every call.
   Random
-} derive(Eq, Show)
+} derive(Eq, Debug, Show)
 
 ///|
 /// Mutable state for a thinking verb animator. Construct with

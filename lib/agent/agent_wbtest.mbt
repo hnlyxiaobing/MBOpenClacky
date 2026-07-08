@@ -226,8 +226,11 @@ test "should_auto_execute_confirm_safes_terminal_safe" {
 test "should_auto_execute_confirm_all" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmAll
-  assert_true(agent.should_auto_execute("file_reader", {}))
-  assert_true(agent.should_auto_execute("terminal", {}))
+  // ConfirmAll: all tools should require confirmation (returns false)
+  // This was changed in Phase 6.3 — ConfirmAll previously returned true
+  // (auto-execute all), which made the permission mode name misleading.
+  assert_false(agent.should_auto_execute("file_reader", {}))
+  assert_false(agent.should_auto_execute("terminal", {}))
 }
 
 ///|

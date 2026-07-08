@@ -12,3 +12,7 @@ import {
 }
 
 supported_targets = "native"
+
+options(
+  "native-stub": [ "confirm_io.c" ],
+)
