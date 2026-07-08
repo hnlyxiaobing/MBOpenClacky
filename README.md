@@ -2,355 +2,141 @@
 
 > 使用 [MoonBit](https://www.moonbitlang.com/) 编程语言完全重写的 AI Agent CLI 工具。
 
-## 一、项目介绍
+## 项目介绍
 
 **MBOpenClacky** 是开源项目 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 MoonBit 完整重写版本，已实现原项目全部核心功能并扩展至商业可用级别。
 
-- **原始项目**：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git)
-- **原始语言**：Ruby (>= 3.1.0)
-- **原始定位**：业界最节省 Token 的开源 AI Agent CLI 工具
+- **原始项目**：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git)（Ruby）
 - **本项目语言**：MoonBit
-- **本项目目标**：在保留原项目核心能力（LLM 交互、自主 Agent、工具系统、技能系统、IM 渠道集成、CLI + Web UI）的同时，借助 MoonBit 的语言特性带来更强的类型安全、更小的运行时体积与更易演化的工程结构。
-- **完成度**：~90-94%（后端核心 ~97%，Web 后端 ~95%，Web 前端 ~40-50%，部署基础设施 ~50%）
+- **完成度**：~87-92%（后端 ~95%，Web 前端 ~40-50%，部署 ~50%）
 
-### 核心能力概览
+### 核心能力
 
 | 指标 | 数值 |
 |------|------|
-| `.mbt` 源文件（总计） | 272 个 |
-| 测试文件 | 62 个 |
-| 代码行数（源代码） | ~56,951 行 |
-| 代码行数（测试） | ~17,459 行 |
-| 代码行数（总计） | ~74,410 行 |
+| 代码行数 | ~75,700 行（源码 ~55,700 + 测试 ~18,600 + test/ ~1,400） |
 | 测试用例 | 1,400+ |
-| MoonBit 包数 | 22 个（21 个 lib 顶级包 + 1 个 cmd 入口包） |
+| 包数 | 21 个 lib 包 + 1 个 cmd 入口 |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 90+ 个 |
-| IM 渠道适配器 | 6 个 |
 | 默认 Skill | 17 个 |
-| `moon check` | 0 errors, 426 warnings |
-| `moon test` | native 目标需启用 `lib/client/moon.pkg` 中的 `-lcurl` 并安装 libcurl-dev；当前默认配置下链接阶段会失败 |
+| `moon check` | 0 errors, ~426 warnings |
 
 ### 功能亮点
 
-- **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider 预设
-- **MCP 协议**：完整支持 Stdio/HTTP 传输 + JSON-RPC 2.0 + 多服务器管理；`lib/mcp/skill_provider.mbt` 支持虚拟 Skill 映射
-- **6 平台 IM 渠道集成**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
-- **Web 前端 SPA / REST API**：暗色主题 + SSE 流式响应 + WebSocket 实时通信，默认端口 **7070**；后端已扩展汇率、本地图片代理、Onboarding、Media、OCR、版本/重启等接口
-- **多模态文档处理**：PDF / DOCX / PPTX / XLSX 解析 + Vision OCR + SHA256 缓存
-- **Media 生成**：图像/视频/音频（OpenAI / Gemini / DashScope 兼容）
-- **GEP 技能自进化系统**：EvolutionEngine + SkillReflector（执行后反思）+ AutoCreator（模式检测自动创建技能）
-- **17 个内置 Skill**：含 code-explorer、cron-task-creator、deploy、media-gen、browser_setup、channel_manager、new、personal_website、skill_add、skill-creator 等
+- **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
+- **MCP 协议**：Stdio/HTTP 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射
+- **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
+- **Web 前端 SPA + REST API**：暗色主题 + SSE 流式 + WebSocket 实时通信，默认端口 7070
+- **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + Media 生成
+- **GEP 技能自进化**：EvolutionEngine + SkillReflector + AutoCreator
 - **Time Machine**：文件快照与回滚
-- **Cron 定时任务调度**：解析器 + Scheduler + 周期性执行
-- **Shell Hook 系统**：7 种事件钩子
-- **匿名遥测**：fire-and-forget 无阻塞上报
-- **Brand 与 License 验证**：AES-256-GCM 加密（C FFI OpenSSL）+ 心跳 + 宽限期机制
-- **PTY 终端执行**：Terminal 工具基于 PTY 会话实现真实交互式命令执行与输出标记
-- **TUI 增强**：基于 moonbit-community/tty 的 Inline Scrolling 架构，新增 block-font 渲染与 thinking verbs 动效组件
+- **PTY 终端执行**：真实交互式命令会话
+- **TUI**：基于 moonbit-community/tty 的 Inline Scrolling 架构
 
-原始 openclacky 的核心模块包括 `agent`（11 个 mixin）、`client`（LLM API）、`server`（Web）、`tools`（插件系统）、`skills`（可扩展能力）、`ui2`（TUI）、`utils`（工具集）等，本项目以 MoonBit 的 `struct + trait` 组合模式完成了全部对应重写。
+---
 
-## 二、核心技术优势
+## 核心技术优势
 
-相较原 Ruby 实现，MoonBit 重写版带来以下核心收益：
+相较原 Ruby 实现，MoonBit 重写版带来：
 
-### 1. AOT 原生编译 — 零运行时依赖
+1. **AOT 原生编译** — 单一可执行文件（~3.8MB），毫秒级启动，零运行时依赖
+2. **静态类型安全** — 代数数据类型、Checked Error、`Option[T]` 消除 nil 访问
+3. **`struct + trait` 现代架构** — 显式 trait 实现 + `AnyTool` 枚举分发，替代 Ruby mixin 隐式耦合
+4. **GEP 技能自进化系统** — 执行后反思 + 模式检测自动创建技能
+5. **`moon` 一体化工具链** — build/check/test/fmt 开箱即用
 
-MoonBit 的 native 后端将代码 AOT 编译为单一原生可执行文件，无需 Ruby VM / Bundler / Gem 依赖。CLI 启动延迟从 Ruby 的数百毫秒降至毫秒级，二进制可直接分发部署。`moon build --target native --release cmd` 产出约 3.8 MB 的 release 二进制（含全部 14 个工具、12 个 Provider、90+ REST 端点）。
+---
 
-### 2. 静态类型安全 — 编译期消除整类错误
-
-- **代数数据类型**：以 `enum` / `struct` 取代 Ruby 的 duck typing，消除大量运行期 `NoMethodError` / `nil` 访问隐患
-- **Checked Error Handling**：MoonBit 的 `raise` / `try ... catch` 错误传播机制使错误路径在编译期可追踪，替代 Ruby 中分散的 `rescue`
-- **`Option[T]` 取代 `nil`**：彻底规避 nil-pointer 类问题，所有可选值在类型层面显式标注
-- **编译期验证**：`moon check` 在构建前完成全项目类型检查（当前 0 errors），将运行时错误前置为编译期错误
-
-### 3. `struct + trait` 现代架构 — 替代 Ruby mixin 隐式耦合
-
-原项目 `agent` 模块依赖 11 个 Ruby mixin，调用关系隐式且易冲突。MoonBit 版本通过：
-
-- **显式 trait 实现**：`Tool` trait 定义工具契约，14 个内置工具各自实现，能力边界在类型层面显形
-- **`AnyTool` 枚举分发**：替代 trait object 的动态分发，零开销且类型安全
-- **包级可见性模型**：`pub` / `pub(open)` / `pub(all)` 三级可见性比 Ruby 的 `private` / `protected` 更清晰，模块边界更难被破坏
-- **22 个细粒度包**：将原项目的超大单文件（如 `http_server.rb` 181KB、`agent.rb` 70KB）拆分为 22 个关注点分离的包，每个包职责单一
-
-### 4. GEP 技能自进化系统
-
-原项目的技能系统是静态的（预定义 SKILL.md），MBOpenClacky 引入了基于进化计算的动态技能增强：
-
-- **EvolutionEngine**：统一入口，分发 `EvolutionScenario`（反思 / 自动创建）
-- **SkillReflector**：技能执行后自动评分 + 生成改进建议（基于执行结果、工具使用模式、用户反馈）
-- **AutoCreator**：检测重复使用模式，当置信度超过阈值时自动创建新技能
-
-### 5. 其他工程优势
-
-- **`moon` 一体化工具链**：`moon build / check / test / fmt / doc / ide` 开箱即用，依赖与构建可复现
-- **异步原语**：借助 `moonbitlang/async` 的统一异步模型（HTTP、WebSocket、Process），流式 LLM 响应处理与并发工具调用更直观
-- **FFI 边界清晰**：C FFI 仅用于性能关键路径（AES-256-GCM 加密、终端 I/O），其余逻辑全在 MoonBit 类型安全范围内
-
-## 三、开源协议
-
-本项目遵循与上游原项目 **完全一致** 的开源协议：
-
-**MIT License**
-
-许可声明、Copyright 及条款与 [openclacky](https://github.com/clacky-ai/openclacky.git) 保持兼容。详细条款请见仓库根目录的 [`LICENSE`](./LICENSE) 文件。
-
-> 注：原项目作者保留所有原始版权，MBOpenClacky 仅是基于其设计与功能的语言级重写实现。
-
-## 四、重写动机
-
-发起本项目主要出于以下三点考虑：
-
-1. **丰富 MoonBit 编程语言生态**
-   MoonBit 是一门面向云原生、AI 与跨平台场景的新兴静态强类型语言。当前生态中尚缺少端到端的 AI Agent CLI 实现，本项目希望以一个有真实使用价值的中等规模工程，补齐 MoonBit 在「LLM 客户端 / Agent 编排 / 工具调用 / TUI / Web 服务」方向的实践样本，并在过程中沉淀可复用的库（HTTP、SSE、TOML 配置、TUI、WebSocket 等）。
-
-2. **个人学习与 AI Agent 原理探索**
-   本项目是一个 **个人学习项目**，重点关注：
-   - 一个通用 AI Agent 是如何组织对话循环、工具调用、迭代控制与成本追踪的；
-   - 多 LLM 后端（Claude / OpenAI / DeepSeek 等）的统一抽象方式；
-   - Tool / Skill 这类「可扩展能力」机制的设计取舍；
-   - 流式响应（SSE）、Web UI 与 TUI 在同一 Agent 内核之上的协作。
-
-3. **以重写驱动深度理解**
-   阅读源码与亲手重写之间存在巨大的理解差。通过将一个生产可用的 Ruby 项目逐模块迁移到 MoonBit，可以在「类型系统 / 错误处理 / 异步模型 / FFI 边界」上反复对原设计提问，从而真正吃透 Agent 工程的每一个决策点。
-
-期望达成的目标：
-- 产出一个可独立运行的 MoonBit 版 AI Agent CLI；
-- 形成一份可被社区参考的 Ruby → MoonBit 迁移范式；
-- 沉淀若干可独立发布到 mooncakes.io 的基础组件。
-
-## 五、项目结构与使用说明
-
-### 目录结构
-
-```
-MBOpenClacky/
-├── cmd/                # 可执行入口（main + NDJSON日志/补丁加载/Hook加载/Channel脚手架/API扩展等）
-│   └── main.mbt + 辅助模块
-├── lib/                # 库代码（22 个顶级包，含 4 个 web 子包，共 26 个库包）
-│   ├── agent/          # Agent 核心 + Time Machine/Profile/Rules/IdleTimer/Compressor/SessionRestore
-│   ├── billing/        # 计费系统（BillingRecord + BillingStore + 成本计算）
-│   ├── brand/          # Brand 配置 + License 验证（心跳/宽限期）+ 加密（AES-256-GCM C FFI）
-│   ├── channel/        # IM 渠道适配器（飞书/企微/Telegram/Discord/钉钉/微信）
-│   ├── client/         # LLM API 客户端（12 Provider + Bedrock + PlatformHTTP + 流聚合器）
-│   ├── config/         # 配置系统（TOML / 环境变量 / Provider / Capabilities / Permission）
-│   ├── errors/         # 统一错误类型层次（AgentError/RetryableError/ToolCallError 等）
-│   ├── hook/           # Shell Hook 系统（7 种事件 + Shell Loader）
-│   ├── mcp/            # MCP 协议（Transport/JSON-RPC Client/Registry/VirtualSkill）
-│   ├── media/          # Media 生成（图像/视频/音频，OpenAI/Gemini/DashScope）
-│   ├── message/        # 消息类型（Message/Role/ToolCall/ToolResult）+ 消息历史管理
-│   ├── parser/         # 文档解析器（PDF/DOCX/PPTX/XLSX）
-│   ├── pricing/        # 模型定价表（677 行完整定价数据）+ 成本计算器
-│   ├── server/         # 运维（Cron/Scheduler/BrowserManager/BackupManager/Discover/Master/Worker/SessionRegistry/GitPanel）
-│   ├── skill/          # 技能系统 + GEP 演进（EvolutionEngine/Reflector/AutoCreator）+ 默认技能
-│   ├── telemetry/      # 匿名遥测（fire-and-forget）
-│   ├── tool/           # 工具系统（14 个内置工具 + Security + OutputCleaner）
-│   ├── tui/            # TUI 界面（moonbit-community/tty，Inline Scrolling 架构：ScreenBuffer/OutputBuffer/LineEditor/LayoutManager）
-│   ├── utils/          # 工具函数（Env/Path/Encoding/Logger/ProxyConfig/GitignoreParser/BrowserDetector 等）
-│   ├── vision/         # Vision OCR + SHA256 缓存
-│   └── web/            # Web 服务器 + REST API（90+ 端点，8 个管理面板后端已全量实现）+ Router/StaticServer/SPA + 广播/超时/错误信封/模板处理
-│       ├── broadcast/  # WebSocket 广播集线器
-│       ├── handler/    # REST API handler 集合
-│       ├── middleware/ # 中间件（auth/timeout/error_envelope/logging）
-│       └── sse/        # SSE 流式响应
-├── assets/
-│   ├── agents/         # 默认 Agent 配置（coding/general + SOUL.md/USER.md）
-│   ├── skills/         # 16 个内置技能（code-explorer/deploy/mcp-manager/browser_setup/channel_manager/extend-openclacky 等）
-│   └── web/            # 前端 SPA（原生 JS, SSE 流式, WebSocket 实时, 暗色主题）
-├── scripts/
-│   ├── install.sh      # Linux/macOS 安装脚本
-│   ├── install.ps1     # Windows 安装脚本
-│   └── setup_yoga.sh   # Yoga 布局引擎编译脚本
-├── specs/              # Harness 方法论（模板 + 活跃 spec + 已完成归档 + 决策记录）
-├── codemaps/           # 10 个核心包 + 1 个子系统代码地形索引
-├── .github/            # CI/CD 工作流（ci.yml + docker.yml）
-├── Dockerfile          # 多阶段 Docker 构建
-├── moon.mod            # 模块元信息与依赖声明
-└── docs/               # 项目文档
-```
-
-### 环境要求
-
-- **MoonBit 工具链**：`moon` 0.1.20260629 或更高版本
-- **推荐目标**：`native`（已在 `moon.mod` 中声明为 `preferred-target`）
-- **C 编译器**：Linux/macOS 需要 gcc/clang；Windows 需要 MSVC Build Tools
-- **OpenSSL 开发库**（仅 Linux/macOS）：`libssl-dev`（Debian/Ubuntu）或 `openssl-devel`（Fedora），用于 brand 包的 AES-256-GCM C FFI
-- **操作系统**：Windows / macOS / Linux 均可
-
-> 安装 MoonBit 请参考官方说明：<https://www.moonbitlang.com/download/>
-
-### 获取依赖
+## 快速开始
 
 ```bash
-moon update
-moon install
-```
+# 安装依赖
+moon update && moon install
 
-### 类型与语法检查
-
-```bash
+# 类型检查
 moon check
-```
 
-### 构建
-
-```bash
-# 推荐：显式指定 cmd 包构建，避免 moon #1488 bug
-# （不加 cmd 时 moon 会尝试链接非 main 的 lib/brand 包为独立可执行文件，报 "undefined reference to main"）
+# 构建（显式指定 cmd 包，避免 moon #1488 bug）
 moon build --target native --release cmd
 
-# Debug 构建（体积更大，约 14MB）
-moon build --target native cmd
-```
+# 运行
+moon run cmd -- --message "Hello"          # 非交互模式
+./_build/native/debug/build/cmd/cmd.exe    # TUI 交互模式
+moon run cmd -- --server                   # Web 服务（端口 7070）
 
-构建产物路径：`_build/native/release/build/cmd/cmd.exe`（release）或 `_build/native/debug/build/cmd/cmd.exe`（debug）。
-
-> **注意**：不要使用裸 `moon build`，因为 moon 会尝试将 `lib/brand`（含 `link: {}` 块的库包）链接为独立可执行文件，但库包没有 `main` 函数导致失败。这是 [moon#1488](https://github.com/moonbitlang/moon/issues/1488) 的已知问题。
-
-### 运行
-
-```bash
-# 直接运行 cmd 入口（非交互模式用 --message，交互模式直接启动 TUI）
-moon run cmd -- --message "Hello"
-
-# 启动 TUI 交互模式（推荐直接运行编译好的二进制）
-./_build/native/debug/build/cmd/cmd.exe
-
-# 启动 Web 服务器模式（默认端口 7070）
-moon run cmd -- server
-# 或
-./_build/native/release/build/cmd/cmd.exe server
-```
-
-**Web 服务端口**：默认 **7070**（兼容原版 OpenClacky 的用户习惯）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
-
-```bash
-MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
-```
-
-当前 `cmd/main.mbt` 已实现完整的 CLI 功能：10 个命令行选项（`--message/-m`、`--mode`、`--model`、`--agent`、`--path`、`--verbose/-v`、`--version/-V`、`--continue`、`--list`、`--attach`）、2 个子命令（`billing`、`server`）、非交互式 Agent 运行模式、会话管理（保存/恢复/列表/上限控制）、TUI 交互界面（基于 moonbit-community/tty 的 Inline Scrolling 架构）、服务器模式（crescent Web 服务器）、完整错误处理以及技能/记忆/任务系统集成。
-
-### 测试
-
-```bash
+# 测试
 moon test
 ```
 
-代码库包含 **1,400+ 个测试用例**（`*_wbtest.mbt`），覆盖所有核心模块（Agent、Client、Config、Tool、Skill、Channel、MCP、Hook、Billing、Pricing、Server、Utils、Message 等）。
+详细的环境要求、安装步骤、配置指南和故障排除，请参阅 [快速入门指南](docs/getting-started.md)。
 
-> **注意**：
-> - `moon test` 仅支持 native 目标。`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖而失败，请使用 `moon check` 进行类型验证。
-> - 当前 `lib/client/moon.pkg` 中 `-lcurl` 链接标志默认被注释，运行 `moon test` 前需取消注释并确保系统已安装 libcurl-dev（Linux：`libssl-dev`/`libcurl-dev`；macOS：Xcode CLT 通常已包含），否则链接阶段会报 curl 符号未解析。
+---
 
-### 开发阶段路线
+## 项目结构
 
-项目按 22 个阶段（Phase 0-22）自底向上推进：
+```
+MBOpenClacky/
+├── cmd/                # CLI 入口
+├── lib/                # 21 个库包
+│   ├── agent/          # Agent 核心（ReAct 循环、会话、压缩、Time Machine）
+│   ├── client/         # LLM API 客户端（3 协议、12 Provider）
+│   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）
+│   ├── skill/          # 技能系统 + GEP 进化引擎
+│   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
+│   ├── channel/        # 6 平台 IM 适配器
+│   ├── web/            # Web 服务器（90+ REST 端点、SSE、WebSocket）
+│   ├── tui/            # TUI 界面（moonbit-community/tty）
+│   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
+│   ├── config/         # 配置系统（TOML、12 Provider）
+│   ├── billing/        # 计费系统
+│   ├── brand/          # 品牌配置 + AES-256-GCM 加密
+│   ├── media/          # 媒体生成
+│   ├── parser/         # 文档解析（PDF/DOCX/PPTX/XLSX）
+│   ├── vision/         # Vision OCR
+│   ├── pricing/        # 模型定价表
+│   ├── message/        # 消息类型
+│   ├── hook/           # Shell Hook 系统
+│   ├── telemetry/      # 匿名遥测
+│   ├── errors/         # 错误类型层次
+│   └── utils/          # 工具函数
+├── test/               # Eval 框架（通用引擎 + TUI 适配层 + 场景）
+├── assets/             # Agent 配置、技能、Web 前端
+├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
+├── codemaps/           # 代码地形索引
+├── .github/            # CI/CD 工作流
+└── docs/               # 项目文档
+```
 
-| 阶段 | 内容 | 状态 |
-|------|------|------|
-| Phase 0 | 项目脚手架 + 核心类型 | ✅ 已完成 |
-| Phase 1 | 配置系统（TOML / 环境变量 / 路径） | ✅ 已完成 |
-| Phase 2 | HTTP 客户端 + LLM API（含 SSE 流式） | ✅ 已完成 |
-| Phase 3 | 工具系统（Tool trait + 内置工具） | ✅ 已完成 |
-| Phase 4 | Agent 核心（对话循环、工具调用、成本追踪） | ✅ 已完成 |
-| Phase 5 | CLI 界面（基于 clap） | ✅ 已完成 |
-| Phase 6 | 会话持久化（JSON 文件存储 + 管理） | ✅ 已完成 |
-| Phase 7 | TUI 界面（基于 moonbit-community/tty，Inline Scrolling 架构） | ✅ 已完成 |
-| Phase 8 | Web 服务器（基于 crescent，含 WebSocket / SSE） | ✅ 已完成 |
-| Phase 9 | 技能系统（加载/解析/发现/注册/上下文构建） | ✅ 已完成 |
-| Phase 10 | 增强功能（Memory / Subagent / TodoManager / AgentPool） | ✅ 已完成 |
-| Phase 11 | 核心补齐（Bedrock / Provider / Tools 扩展） | ✅ 已完成 |
-| Phase 12 | MCP 协议 + 技能演进 | ✅ 已完成 |
-| Phase 13 | Agent 增强（TimeMachine / Profile / Rules / IdleTimer） | ✅ 已完成 |
-| Phase 14 | Web 前端 SPA + REST API 扩展 + TUI 增强 | ✅ 已完成 |
-| Phase 15 | 多模态（文档解析 / Media 生成 / Vision OCR） | ✅ 已完成 |
-| Phase 16 | 运维集成（Browser / Scheduler / Backup / Discover） | ✅ 已完成 |
-| Phase 17 | 商业扩展（IM 渠道 / Brand / Hook / Telemetry） | ✅ 已完成 |
-| Phase 18 | 深度补齐（Billing / Pricing / Utils扩展 / Server增强 / MessageHistory / 默认资源） | ✅ 已完成 |
-| Phase 19-20 | 文档校准（修正项目指标数据 / 同步最新状态） | ✅ 已完成 |
-| Phase 21 | 业务功能差距系统性补齐（Terminal/压缩/Session/Config/Brand/TUI/Web/CLI） | ✅ 已完成 |
-| Phase 22 | 差距填补方案实施：HTTP 安全/广播、浏览器工具、AES-GCM 加密、TUI 增强 | ✅ 已完成 |
-| Phase 23 | 部署阻碍修复：Dockerfile 路径修正、端口统一 7070、C FFI 链接修复、全量测试通过 | ✅ 已完成 |
-| Phase 24 | API 端点扩展（汇率/本地图片/Onboarding/Media/OCR/版本/重启）+ TUI 组件增强（block_font/thinking_verbs）+ MCP SkillProvider 独立模块 + Terminal PTY 执行 | ✅ 已完成 |
-| Phase 25 | CI/CD 流水线建设（GitHub Actions: ci.yml + docker.yml + 缓存优化）+ Harness 方法论落地（specs/ 目录 + 模板 + 首个 spec 完成归档）+ Codemaps 代码地形索引生成（10 个核心包） | ✅ 已完成 |
-| Phase 26 | Web 管理面板后端全量实现（Trash/Git/MCP/Schedules/Channels/Backup/Billing/Browser，8 个面板、72 handler、2,741 行） | ✅ 已完成 |
+---
 
-## 六、已知问题与开发计划
+## 开发阶段
 
-### 已解决的 P0 级问题 ✅
+项目按 26 个阶段自底向上推进，全部已完成：
 
-以下问题曾在 gap analysis 中被标记为 P0 阻碍，现已全部修复并通过测试验证：
+| 阶段 | 内容 |
+|------|------|
+| Phase 0-4 | 项目脚手架 → 配置系统 → LLM 客户端 → 工具系统 → Agent 核心 |
+| Phase 5-8 | CLI 界面 → 会话持久化 → TUI 界面 → Web 服务器 |
+| Phase 9-11 | 技能系统 → 增强功能（Memory/SubAgent/TodoManager）→ 核心补齐（Bedrock/Provider） |
+| Phase 12-14 | MCP 协议 + 技能演进 → Agent 增强 → Web 前端 SPA + TUI 增强 |
+| Phase 15-17 | 多模态 → 运维集成 → 商业扩展（IM 渠道/Brand/Hook/Telemetry） |
+| Phase 18-22 | 深度补齐 → 文档校准 → 业务功能补齐 → 差距填补方案实施 |
+| Phase 23-26 | 部署阻碍修复 → API 扩展 + TUI 增强 → CI/CD + Harness + Codemaps → Web 管理面板全量实现 |
 
-| 问题 | 原严重度 | 状态 | 修复方式 |
-|------|---------|------|---------|
-| AES-256-GCM C FFI 加密（OpenSSL native stub） | P0 | ✅ 已修复 | `lib/brand/crypto_native.c` 实现 OpenSSL AES-GCM，72 个 brand 测试全过 |
-| `session_registry` 测试失败 | P0 | ✅ 已修复 | 修复线程安全会话注册表逻辑 |
-| `mcp/types` JsonRpcRequest 序列化 | P1 | ✅ 已修复 | 修正 `to_json` 序列化字段映射 |
-| `web/static_server` 静态文件/SPA fallback 测试 | P1 | ✅ 已修复 | 实现真实文件系统读取 + SPA 回退 |
-| Dockerfile 构建产物路径错误 | P0 | ✅ 已修复 | 路径修正为 `_build/native/release/build/cmd/cmd.exe` |
-| Web 端口不统一（4000 vs 7070） | P0 | ✅ 已修复 | 默认端口统一为 7070，支持 `MBOPENCLACKY_WEB_PORT` 环境变量 |
+---
 
-### 当前已知问题与限制
+## 当前状态与已知问题
 
-#### 构建相关
+详见 [项目状态文档](docs/project-status.md)。
 
-1. **moon #1488 — 库包 link 块触发误链接**（P0，已有 workaround）
-   - **现象**：裸 `moon build` 会尝试将 `lib/brand`（含 `link: {}` 块）链接为独立可执行文件，因无 `main` 函数而失败
-   - **Workaround**：始终使用 `moon build --target native --release cmd` 显式指定 cmd 包
-   - **跟踪**：[moon#1488](https://github.com/moonbitlang/moon/issues/1488)
+---
 
-2. **Windows 平台 `-lcrypto` 不兼容**（P1）
-   - **现象**：`-lcrypto` 和 `--no-as-needed` 是 GCC/Clang 链接器选项，Windows MSVC 不支持
-   - **影响**：Windows native 构建时 brand 包的 AES-256-GCM 加密功能不可用（弱桩回退）
-   - **计划**：后续按平台条件化处理，Windows 使用 BCrypt/CNG API
+## 开源协议
 
-3. **wasm-gc 目标不支持**（P2）
-   - **现象**：`moon test --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖失败
-   - **Workaround**：使用 `moon check` 进行类型验证
+**MIT License** — 与上游 [openclacky](https://github.com/clacky-ai/openclacky.git) 保持兼容。详见 [`LICENSE`](./LICENSE)。
 
-#### TUI 相关
+## 致谢
 
-4. **TUI 已迁移至 Inline Scrolling 架构**（✅ Phase 0-5 已完成，Phase 6 部分完成）
-   - **原问题**：基于 onebit-tui 的 Full-screen Retained-mode TUI 存在 5 个渲染 Bug（边框消失、光标覆盖、状态栏溢出等）
-   - **修复**：迁移至 `moonbit-community/tty@0.2.5`，采用 Inline Scrolling 架构（ScreenBuffer + OutputBuffer + LineEditor + LayoutManager），彻底消除 Yoga/C stubs/dlsym 依赖
-   - **新增组件**：`block_font.mbt`（块状字体渲染）、`thinking_verbs.mbt`（思考动词动效）
-   - **状态**：Phase 0-5 已完成（编译通过，测试通过）；Phase 6（Dialog + TodoArea + 清理）部分推进中
-   - **详见**：[`docs/tui-inline-migration-plan.md`](./docs/tui-inline-migration-plan.md)
-   - **注意**：启动 TUI 建议直接运行编译好的二进制 `./_build/native/debug/build/cmd/cmd.exe`，`moon run cmd` 包装器在某些终端环境下可能不启动 TUI
-
-#### 功能相关
-
-4. **`derive_key` 使用简化迭代 SHA-256**（P2）
-   - 非标准 PBKDF2，有 TODO 标记，计划后续实现 PBKDF2-HMAC-SHA256
-
-5. **MCP 模块测试覆盖持续提升**（P1 → P2）
-   - 已新增 `lib/mcp/skill_provider_wbtest.mbt`、`lib/mcp/virtual_skill.mbt` 等测试与实现；原有“0 测试”问题已解决，仍继续补齐场景覆盖
-
-6. **Web 前端完成度 ~40-50%**（P1）
-   - 后端 8 个管理面板已全部实现（Trash/Git/MCP/Schedules/Channels/Backup/Billing/Browser，72 handler，2,741 行）
-   - 基础 SPA 可用，但前端到后端的端到端集成尚未完善
-
-7. **部署基础设施完成度 ~50%**（P1）
-   - ✅ CI/CD 流水线已搭建（GitHub Actions：`ci.yml` + `docker.yml`，含缓存优化）
-   - ✅ Harness 方法论已落地（`specs/` 目录结构 + 模板 + 首个 spec 已完成归档）
-   - ✅ Codemaps 已生成（10 个核心包代码地形索引）
-   - ❌ 无进程守护方案（systemd/docker-compose）
-   - ❌ 无日志轮转机制
-
-### 短期开发目标
-
-| 优先级 | 目标 | 预估工时 |
-|--------|------|---------|
-| P0 | MCP 模块测试补齐 | 2-3 天 |
-| P1 | Web 前端管理面板补齐（8 个面板后端已完成，前端待完善） | 后端✅ 前端 1-2 周 |
-| P1 | CI/CD 流水线搭建（GitHub Actions） | ✅ 已完成 |
-| P1 | docker-compose 编排 + systemd 服务模板 | 1-2 天 |
-| P2 | `derive_key` 迁移到 PBKDF2 | 1 天 |
-| P2 | Windows BCrypt/CNG 加密适配 | 3-5 天 |
-
-## 七、致谢
-
-特别感谢原项目 [clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git) 的作者与贡献者，他们的设计与实现是本重写工作的全部起点。本项目仅以学习与生态贡献为目的，所有原创性归属于上游。
+特别感谢原项目 [clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git) 的作者与贡献者，他们的设计与实现是本重写工作的全部起点。

@@ -25,8 +25,21 @@
 
 ## 变更记录
 
-### 2026-07-07  feat(tool): 浏览器工具完善 — 表单交互增强、截图管道、快照压缩
+### 2026-07-08  docs: 文档合并精简
 
+- `[docs]` **docs/ 目录精简**：10 → 3 个文档
+  - 删除 5 个过时文档：`cli-interface-assessment-review-0629.md`、`compiler-error-efficiency-report.md`、`gap-analysis-between-projects-2026-06-30.md`、`TUI_DEBUG_PLAN.md`、`tui-overhaul-plan.md`
+  - 归档 2 个到 specs/：`harness-methodology-application-plan.md` → `specs/decisions/`、`tui-inline-migration-plan.md` → `specs/completed/`
+  - 重写 `project-status-and-deployment-guide.md` → `project-status.md`（精简为纯状态文档）
+- `[docs]` **docs/ 以外文档同步更新**
+  - `README.md`：精简，去掉与其他文档重复的内容，聚焦项目介绍+快速开始
+  - `CLAUDE.md`：精简架构速查卡，与 AGENTS.md 分工明确
+  - `AGENTS.md`：去重，专注开发规范
+  - `codemaps/README.md`：同步最新指标
+- `[docs]` **CHANGELOG.md**：补充本次文档合并记录
+- 最终文档职责分工：README（介绍）→ getting-started（入门）→ project-status（状态）→ CLAUDE.md（AI 架构速查）→ AGENTS.md（开发规范）→ CHANGELOG（变更历史）
+
+### 2026-07-07  feat(tool): 浏览器工具完善 — 表单交互增强、截图管道、快照压缩
 **表单交互增强**：
 - scroll 操作改用原生 MCP scroll_page 工具，失败时自动回退到 evaluate_script
 - fill 操作增加 focus/blur 事件增强，提升 React/Vue 等框架兼容性
