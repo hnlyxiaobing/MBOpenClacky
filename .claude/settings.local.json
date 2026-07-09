@@ -39,7 +39,10 @@
       "Bash(bash scripts/with_msvc_env.sh moon test lib/web --filter \"handlers_onboard*\")",
       "Bash(moon clean *)",
       "Bash(moon fmt *)",
-      "Bash(bash scripts/with_msvc_env.sh moon build --target native --release cmd)"
+      "Bash(bash scripts/with_msvc_env.sh moon build --target native --release cmd)",
+      "Bash(make-moonbit)",
+      "Bash(ocaml2moonbit\")",
+      "Bash(powershell -Command \"Get-ChildItem 'D:\\\\MoonBit\\\\MBOpenClacky\\\\.qoder\\\\skills' | Where-Object { \\\\$_.Name -like 'moonbit-*' -or \\\\$_.Name -like 'make-moonbit-*' -or \\\\$_.Name -like 'ocaml2moonbit-*' } | Select-Object Name\")"
     ]
   }
 }
