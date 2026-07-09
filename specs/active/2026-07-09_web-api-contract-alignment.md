@@ -73,3 +73,95 @@
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本 | 差距分析 P0-2 |
+
+## 实施状态更新（2026-07-09 审计）
+
+> 本 spec 基于"差距分析扫描"假设 6 个端点前端已调用、后端缺失（`grep` 全量匹配为 0）。
+> 实际审计 `lib/web/server.mbt` 路由表与 `handlers_*.mbt` 后确认：**这 6 个端点当前已全部实现并注册**，
+> 原扫描结论已过时（可能由其他并行工作合入）。因此本轮回填内容为：
+> 1. 全量契约对照表（验收标准 #2）；
+> 2. 为 spec 关注但此前缺 wbtest 的 4 组端点补齐白盒测试（验收标准 #1）。
+> 未重复实现已存在的 handler，避免路由重复注册冲突。
+
+| spec 端点 | 后端现状 | 证据 |
+|---|---|---|
+| `/api/profile` GET/PUT | ✅ 已实现 | `handlers_profile.mbt` + `server.mbt:405-408` |
+| `/api/brand/skills` GET/POST | ✅ 已实现 | `handlers_brand.mbt:191-251` + `server.mbt:381-382` |
+| `/api/config/media/test` POST | ✅ 已实现 | `handlers_configtest.mbt:87-158` + `server.mbt:203` |
+| `/api/dirs/mkdir` POST | ✅ 已实现（含越权防护） | `handlers_dirs.mbt:57-133` + `server.mbt:401` |
+| `/api/onboard/status` GET | ✅ 已实现 | `handlers_onboard.mbt:121-127` + `server.mbt:412` |
+| `/api/version/check` POST | ✅ 已实现 | `handlers_version.mbt:150-184` + `server.mbt:452` |
+
+## 附录：前端 `web/js` `API.*` 调用 ↔ 后端路由 契约对照表
+
+> 扫描范围：`web/js/*.js` 全部 `API.get/post/put/delete/patch` 调用。`✅`= 后端路由表存在且语义对齐；`⚠️`= 前端调用但后端路由表中未发现（潜在 404，超出本 spec 范围，仅标记）。
+
+| 前端调用 | 方法 | 调用文件 | 后端路由 | 状态 |
+|---|---|---|---|---|
+| `/api/backups` | GET | backups.js | `/api/backups` | ✅ |
+| `/api/backups` | POST | backups.js | `/api/backups` | ✅ |
+| `/api/backups/:id/restore` | POST | backups.js | `/api/backups/:id/restore` | ✅ |
+| `/api/brand/status` | GET | brand.js | `/api/brand/status` | ✅ |
+| `/api/brand` | POST | brand.js | `/api/brand` | ✅ |
+| `/api/brand/skills` | GET | brand.js | `/api/brand/skills` | ✅（spec） |
+| `/api/brand/skills` | POST | brand.js | `/api/brand/skills` | ✅（spec） |
+| `/api/billing/status` | GET | billing.js | `/api/billing/status` | ✅ |
+| `/api/billing/usage` | GET | billing.js | `/api/billing/usage` | ✅ |
+| `/api/billing/activate` | POST | billing.js | `/api/billing/activate` | ✅ |
+| `/api/channels` | GET | channels.js | `/api/channels` | ✅ |
+| `/api/channels/:id` | PUT | channels.js | `/api/channels/:id` | ✅ |
+| `/api/channels` | POST | channels.js | `/api/channels` | ✅ |
+| `/api/channels/:id/test` | POST | channels.js | `/api/channels/:id/test` | ✅ |
+| `/api/channels/:id/status` | GET | channels.js | `/api/channels/:id/status` | ✅ |
+| `/api/browser/status` | GET | browser.js | `/api/browser/status` | ✅ |
+| `/api/browser/start` | POST | browser.js | `/api/browser/start` | ✅ |
+| `/api/browser/stop` | POST | browser.js | `/api/browser/stop` | ✅ |
+| `/api/browser/navigate` | POST | browser.js | `/api/browser/navigate` | ✅ |
+| `/api/browser/screenshot` | GET | browser.js | `/api/browser/screenshot` | ✅ |
+| `/api/git/status` | GET | git_panel.js | `/api/git/status` | ✅ |
+| `/api/git/diff` | GET | git_panel.js | `/api/git/diff` | ✅ |
+| `/api/git/commit` | POST | git_panel.js | `/api/git/commit` | ✅ |
+| `/api/creator/skills` | GET | creator.js | `/api/creator/skills` | ✅ |
+| `/api/my-skills/:name/publish` | POST | creator.js | （无） | ⚠️ 潜在 404（超出本 spec） |
+| `/api/creator/skills` | POST | creator.js | `/api/creator/skills` | ✅ |
+| `/api/profile` | GET | profile.js | `/api/profile` | ✅（spec） |
+| `/api/profile` | PUT | profile.js | `/api/profile` | ✅（spec） |
+| `/api/onboard/status` | GET | onboard.js | `/api/onboard/status` | ✅（spec） |
+| `/api/onboard/start` | POST | onboard.js | `/api/onboard/start` | ✅ |
+| `/api/onboard/complete` | POST | onboard.js | `/api/onboard/complete` | ✅ |
+| `/api/onboard/skip` | POST | onboard.js | `/api/onboard/skip` | ✅ |
+| `/api/config` | PUT | onboard.js | `/api/config` | ✅ |
+| `/api/dirs` | GET | workspace.js | `/api/dirs` | ✅ |
+| `/api/dirs/mkdir` | POST | workspace.js | `/api/dirs/mkdir` | ✅（spec，含越权防护） |
+| `/api/sessions/:id/working_dir` | POST | workspace.js | （无） | ⚠️ 潜在 404（超出本 spec） |
+| `/api/config/test` | POST | model_test.js | `/api/config/test` | ✅ |
+| `/api/config/media/test` | POST | model_test.js | `/api/config/media/test` | ✅（spec） |
+| `/api/version` | GET | versions.js | `/api/version` | ✅ |
+| `/api/version/check` | POST | versions.js | `/api/version/check` | ✅（spec） |
+| `/api/version/upgrade` | POST | versions.js | `/api/version/upgrade` | ✅ |
+| `/api/mcp/servers` | GET | mcp.js | `/api/mcp/servers` | ✅ |
+| `/api/mcp/tools` | GET | mcp.js | `/api/mcp/tools` | ✅ |
+| `/api/mcp/servers` | POST | mcp.js | `/api/mcp/servers` | ✅ |
+| `/api/mcp/tools/:name/execute` | POST | mcp.js | `/api/mcp/tools/:name/execute` | ✅ |
+| `/api/trash` | GET | trash.js | `/api/trash` | ✅ |
+| `/api/trash/stats` | GET | trash.js | `/api/trash/stats` | ✅ |
+| `/api/trash/:id/restore` | POST | trash.js | `/api/trash/:id/restore` | ✅ |
+| `/api/trash/restore-batch` | POST | trash.js | `/api/trash/restore-batch` | ✅ |
+| `/api/skills/:name/content` | GET | skills_enhanced.js | `/api/skills/:name/content` | ✅ |
+| `/api/skills/:name/content` | PUT | skills_enhanced.js | `/api/skills/:name/content` | ✅ |
+| `/api/skills/:name/toggle` | POST | skills_enhanced.js | `/api/skills/:name/toggle` | ✅ |
+| `/api/store/skills` | GET | skills_enhanced.js | `/api/store/skills` | ✅ |
+| `/api/creator/skills` | GET | skills_enhanced.js | `/api/creator/skills` | ✅ |
+| `/api/skills` | GET | skills_enhanced.js | `/api/skills` | ✅ |
+| `/api/skills/install` | POST | skills_enhanced.js | `/api/skills/install` | ✅ |
+| `/api/schedules` | GET | schedules.js | `/api/schedules` | ✅ |
+| `/api/schedules/:id` | PUT | schedules.js | `/api/schedules/:id` | ✅ |
+| `/api/schedules` | POST | schedules.js | `/api/schedules` | ✅ |
+
+### 审计结论
+
+- spec 关注的 **6 个端点全部已对齐**，无 404。
+- 全量扫描发现 **2 个潜在 404**（均超出本 spec 范围，仅标记，不实现）：
+  - `POST /api/sessions/:id/working_dir`（workspace.js 调用）
+  - `POST /api/my-skills/:name/publish`（creator.js 调用）
+  建议另立 spec 或并入相关面板补齐工作。
