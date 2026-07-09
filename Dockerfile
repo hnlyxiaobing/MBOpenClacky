@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git \
     libssl-dev \
+    libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MoonBit toolchain
@@ -33,8 +34,9 @@ WORKDIR /build
 # Copy dependency manifest first for better layer caching
 COPY moon.mod ./
 
-# Pre-fetch dependencies
-RUN moon update && moon install
+# Pre-fetch dependencies using the exact versions pinned in moon.mod
+# (no `moon update`, so CI stays deterministic and won't pull breaking patches).
+RUN moon install
 
 # Copy full project source
 COPY . .
@@ -61,6 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     libssl3 \
+    libcurl4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
