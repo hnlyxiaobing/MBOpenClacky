@@ -203,21 +203,62 @@ pub fn BrandConfig::distribution_refresh_due(
 }
 
 ///|
-/// Refresh distribution from public endpoint (HTTP stub).
+/// Refresh distribution from public endpoint via HTTP GET.
+/// Falls back gracefully: on network error returns Err without blocking startup.
 pub fn BrandConfig::refresh_distribution(
   self : BrandConfig,
-  _current_time : Int,
+  current_time : Int,
 ) -> Result[Unit, String] {
   guard self.is_branded() else { return Err("Not branded") }
   guard !self.activated() else {
     return Err("License activated — use heartbeat")
   }
-  match self.package_name {
-    Some(pkg) if pkg.length() > 0 => ()
+  let pkg = match self.package_name {
+    Some(p) if p.length() > 0 => p
     _ => return Err("package_name not configured")
   }
-  // TODO: HTTP GET /api/v1/distributions/lookup?package_name=<pkg>
-  Err("HTTP client not available (stub)")
+  // Construct distribution lookup URL.
+  // Override via MBOPENCLACKY_DISTRIBUTION_URL env var for custom deployments.
+  let base_url = match @sys.get_env_var("MBOPENCLACKY_DISTRIBUTION_URL") {
+    Some(u) if u.length() > 0 => u
+    _ => "https://api.mbopenclacky.com"
+  }
+  let url = "\{base_url}/api/v1/distributions/lookup?package_name=\{pkg}"
+  match brand_http_get(url, 8000) {
+    Ok((status, body)) if status >= 200 && status < 300 => {
+      // Parse JSON response and apply distribution fields.
+      let json = @json.parse(body) catch {
+        _ => return Err("Invalid JSON response")
+      }
+      match json {
+        Object(fields) => {
+          fn get_str(m : Map[String, Json], k : String) -> String? {
+            match m.get(k) {
+              Some(String(s)) => Some(s)
+              _ => None
+            }
+          }
+          let dist : Map[String, String] = {}
+          let keys = [
+            "product_name", "package_name", "logo_url", "support_contact", "support_qr_url",
+            "theme_color", "homepage_url",
+          ]
+          for key in keys {
+            match get_str(fields, key) {
+              Some(v) => dist[key] = v
+              None => ()
+            }
+          }
+          self.apply_distribution(dist)
+        }
+        _ => return Err("Unexpected JSON shape")
+      }
+      self.distribution_last_refreshed_at = Some(format_iso8601(current_time))
+      Ok(())
+    }
+    Ok((status, _)) => Err("HTTP \{status} from distribution endpoint")
+    Err(e) => Err(e)
+  }
 }
 
 ///|

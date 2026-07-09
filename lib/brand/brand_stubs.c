@@ -15,8 +15,17 @@
 //   native build the real OpenSSL (Linux/macOS) or BCrypt (Windows) path in
 //   crypto_native.c is used, with `-lcrypto` linked via moon.pkg link flags.
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef MBOPENCLACKY_NO_OPENSSL
+
+/*
+ * SECURITY WARNING (build-time):
+ *   Compiling with MBOPENCLACKY_NO_OPENSSL disables real cryptographic
+ *   primitives.  The stubs below provide *deterministic but insecure*
+ *   placeholders.  NEVER ship a release build with this flag.
+ */
+#pragma message("WARNING: MBOPENCLACKY_NO_OPENSSL is defined — crypto stubs are INSECURE. Do not use in release builds!")
 
 #ifdef _MSC_VER
 #define MB_WEAK
@@ -25,7 +34,15 @@
 #endif
 
 // ── Random bytes (INSECURE placeholder — only for no-OpenSSL builds) ──
+static int mbopenclacky_weak_stub_warned = 0;
+
 MB_WEAK int32_t RAND_bytes(unsigned char* buf, int num) {
+    if (!mbopenclacky_weak_stub_warned) {
+        fprintf(stderr,
+            "[MBOpenClacky] SECURITY WARNING: Using INSECURE crypto stubs "
+            "(MBOPENCLACKY_NO_OPENSSL build). Do not use in production!\n");
+        mbopenclacky_weak_stub_warned = 1;
+    }
     for (int i = 0; i < num; i++) buf[i] = (unsigned char)(i % 256);
     return 1;
 }

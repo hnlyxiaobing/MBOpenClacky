@@ -110,17 +110,51 @@ pub fn generate_nonce() -> Result[Array[Byte], String] {
 }
 
 ///|
-/// Derive a key from password using iterated SHA-256 hash (10000 rounds).
-/// Provides basic key stretching to resist brute-force attacks.
-/// TODO: Replace with proper KDF (PBKDF2-HMAC-SHA256, scrypt, or Argon2).
-pub fn derive_key(password : String) -> Array[Byte] {
-  let mut hash = @crypto.sha256(@utf8.encode(password))
-  for round = 1; round < 10000; round = round + 1 {
-    hash = @crypto.sha256(hash)
+/// Default PBKDF2 iteration count.
+/// 100 000 rounds of HMAC-SHA256 — meets OWASP 2023 recommendation.
+pub let pbkdf2_default_iterations : Int = 100000
+
+///|
+/// Derive a 32-byte key from a password and salt using PBKDF2-HMAC-SHA256.
+///
+/// Uses the standard PBKDF2 construction (RFC 8018 §5.2) with HMAC-SHA256
+/// as the PRF.  Because the output is exactly 32 bytes (= one PRF block),
+/// only a single iteration of the outer loop (i = 1) is needed.
+///
+/// The `salt` defaults to an empty byte-string so that callers who only
+/// need a deterministic KDF (e.g. unit tests, brand-key derivation with a
+/// fixed per-device salt) can omit it.
+pub fn derive_key(password : String, salt? : Array[Byte] = []) -> Array[Byte] {
+  let pass_bytes = @utf8.encode(password)
+  let salt_len = salt.length()
+  // U1 = HMAC-SHA256(password, salt || INT_32_BE(1))
+  let u_input : Array[Byte] = Array::make(salt_len + 4, b'\x00')
+  for i = 0; i < salt_len; i = i + 1 {
+    u_input[i] = salt[i]
   }
-  let result : Array[Byte] = Array::make(hash.length(), b'\x00')
-  for i = 0; i < hash.length(); i = i + 1 {
-    result[i] = hash[i]
+  u_input[salt_len] = b'\x00'
+  u_input[salt_len + 1] = b'\x00'
+  u_input[salt_len + 2] = b'\x00'
+  u_input[salt_len + 3] = b'\x01'
+  let mut u = @crypto.hmac(
+    @crypto.SHA256::new(),
+    pass_bytes[:],
+    array_to_bytes(u_input)[:],
+  )
+  let result : Array[Byte] = Array::make(32, b'\x00')
+  for j = 0; j < 32; j = j + 1 {
+    result[j] = u[j]
+  }
+  // T = U1 ^ U2 ^ ... ^ U_c
+  for _round = 1; _round < pbkdf2_default_iterations; _round = _round + 1 {
+    u = @crypto.hmac(
+      @crypto.SHA256::new(),
+      pass_bytes[:],
+      u.unsafe_reinterpret_as_bytes(),
+    )
+    for j = 0; j < 32; j = j + 1 {
+      result[j] = (result[j].to_int() ^ u[j].to_int()).to_byte()
+    }
   }
   result
 }
@@ -204,4 +238,73 @@ fn crypto_aes256gcm_decrypt(
 #cfg(target_arch="wasm32")
 fn crypto_random_bytes(_out : Bytes) -> Int {
   -1
+}
+
+// ---- Brand HTTP FFI (native target) ----
+
+///|
+/// HTTP GET response buffer size (64 KB — distribution payloads are small).
+let brand_http_resp_buf_size : Int = 65536
+
+///|
+/// C FFI: synchronous HTTP GET for brand distribution refresh.
+/// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
+#cfg(not(target_arch="wasm32"))
+#borrow(url, resp_buf, meta_buf, err_buf)
+extern "C" fn brand_http_get_ffi(
+  url : String,
+  timeout_ms : Int,
+  resp_buf : Bytes,
+  meta_buf : Bytes,
+  err_buf : Bytes,
+) -> Int = "mbopenclacky_brand_http_get"
+
+///|
+/// WASM stub for brand HTTP GET.
+#cfg(target_arch="wasm32")
+fn brand_http_get_ffi(
+  _url : String,
+  _timeout_ms : Int,
+  _resp_buf : Bytes,
+  _meta_buf : Bytes,
+  _err_buf : Bytes,
+) -> Int {
+  -1
+}
+
+///|
+/// Read a little-endian Int32 from a Bytes buffer at the given offset.
+fn brand_read_le_int32(buf : Bytes, offset : Int) -> Int {
+  let b0 = buf[offset].to_int()
+  let b1 = buf[offset + 1].to_int()
+  let b2 = buf[offset + 2].to_int()
+  let b3 = buf[offset + 3].to_int()
+  b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+}
+
+///|
+/// Perform an HTTP GET request and return (status_code, body).
+/// Returns Err on transport failure.
+pub fn brand_http_get(
+  url : String,
+  timeout_ms : Int,
+) -> Result[(Int, String), String] {
+  let resp_buf = Bytes::make(brand_http_resp_buf_size, 0)
+  let meta_buf = Bytes::make(8, 0)
+  let err_buf = Bytes::make(512, 0)
+  let ffi_result = brand_http_get_ffi(
+    url, timeout_ms, resp_buf, meta_buf, err_buf,
+  )
+  guard ffi_result == 0 else {
+    let err_msg = @utf8.decode_lossy(err_buf[:512])
+    return Err("HTTP GET failed: \{err_msg}")
+  }
+  let status = brand_read_le_int32(meta_buf, 0)
+  let body_size = brand_read_le_int32(meta_buf, 4)
+  let body = if body_size > 0 {
+    @utf8.decode_lossy(resp_buf[:body_size])
+  } else {
+    ""
+  }
+  Ok((status, body))
 }
