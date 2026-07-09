@@ -37,6 +37,7 @@ MBOpenClacky 当前无法在 `wasm-gc` 目标上完整构建。虽然内部的�
 |---|---|---|---|---|---|
 | `lib/utils/sys_ext.mbt` | `chdir_ffi`, `getcwd_ffi` | `#cfg(target="native")` 声明，公共函数无条件调用 | ❌ 未绑定 | 增加 `#cfg(any(target="wasm", target="wasm-gc", target="js"))` 返回空/失败；或把 CWD 操作改为无状态 | 小 |
 | `lib/client/platform_http.mbt` | `http_post_ffi` → `mbopenclacky_http_post` | `#cfg(target="native")` 声明，`send_request` 无条件调用 | ❌ 未绑定 | wasm-gc 下返回 `Err(NetworkUnavailable)`；未来接 fetch/XMLHttpRequest | 小 |
+| `lib/web/git_exec.mbt` | `git_system_ffi` → `git_system` | 无任何 target guard，公共 `git_run` 无条件调用 | ❌ 未绑定 | 增加 wasm-gc stub 返回 `0` / 空输出；或让 git panel 在 wasm 下不可用 | 小 |
 | `lib/server/browser_jsonrpc.mbt` | `JsonRpcClient::call/notify/initialize` | 仅 `#cfg(target="native")` | ⚠️ 已隔离 | 已存在 wasm stub（返回错误），但调用方需处于 wasm 分支 | 小 |
 | `lib/server/browser_process.mbt` | 进程 spawn / stdin / stdout / kill | native FFI + wasm stub | ✅ 已处理 | wasm stub 返回错误 | 已存在 |
 | `lib/server/git_exec.mbt` | `run_git_command` | native FFI + wasm stub | ✅ 已处理 | wasm 返回空字符串 | 已存在 |
@@ -45,7 +46,7 @@ MBOpenClacky 当前无法在 `wasm-gc` 目标上完整构建。虽然内部的�
 | `lib/agent/time.mbt` | `current_time_ms` | native FFI + wasm stub 返回 0 | ✅ 已处理 | wasm 返回 0 | 已存在 |
 | `lib/billing/billing_record.mbt` | `current_time_ms` | native FFI + wasm stub 返回 0 | ✅ 已处理 | wasm 返回 0 | 已存在 |
 
-**结论**：内部可控 FFI 只剩 `utils/sys_ext.mbt` 和 `client/platform_http.mbt` 两处需要补充 wasm-gc fallback，工作量很小。
+**结论**：内部可控 FFI 只剩 `utils/sys_ext.mbt`、`client/platform_http.mbt` 和 `web/git_exec.mbt` 三处需要补充 wasm-gc fallback，工作量很小。
 
 ### 2. 外部依赖 FFI（不可控，主要阻塞）
 
