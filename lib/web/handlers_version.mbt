@@ -128,6 +128,62 @@ fn fetch_latest_version() -> Result[String, String] {
 // ── Handlers ──────────────────────────────────────────────────────
 
 ///|
+/// GET /api/version
+/// Returns current version info without performing a remote check.
+fn handle_version_info(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "current_version": VERSION.to_json(),
+      "version": VERSION.to_json(),
+      "available_update": Json::null(),
+      "changelog": "".to_json(),
+    }),
+  )
+}
+
+///|
+/// POST /api/version/check
+/// Fetches the latest release from GitHub and compares versions.
+fn handle_version_check(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  match fetch_latest_version() {
+    Ok(latest) => {
+      let needs_update = version_is_newer(VERSION, latest)
+      let update_json : Json = if needs_update {
+        Json::object({ "version": latest.to_json() })
+      } else {
+        Json::null()
+      }
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "current_version": VERSION.to_json(),
+          "available_update": update_json,
+          "update": update_json,
+          "needs_update": needs_update.to_json(),
+        }),
+      )
+    }
+    Err(msg) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "current_version": VERSION.to_json(),
+          "available_update": Json::null(),
+          "update": Json::null(),
+          "needs_update": false.to_json(),
+          "message": ("Unable to check for updates: " + msg).to_json(),
+        }),
+      )
+  }
+}
+
+///|
 /// POST /api/version/upgrade
 /// Checks for a newer release and reports whether an upgrade is available.
 /// The actual binary download/replacement is intentionally deferred to the

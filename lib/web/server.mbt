@@ -199,6 +199,8 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       c.get("/permissions", event => handle_get_permissions(server_ref, event))
       c.patch("/ocr", event => handle_config_ocr_update(server_ref, event))
       c.post("/ocr/test", event => handle_config_ocr_test(server_ref, event))
+      c.post("/test", event => handle_config_test(server_ref, event))
+      c.post("/media/test", event => handle_config_media_test(server_ref, event))
     })
 
     // Stats
@@ -373,8 +375,15 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     api.group("/brand", (br : @crescent.App) => {
       br.get("/config", event => handle_brand_config(server_ref, event))
       br.post("/activate", event => handle_brand_activate(server_ref, event))
+      br.post("", event => handle_brand_activate_alias(server_ref, event))
       br.get("/status", event => handle_brand_status(server_ref, event))
       br.get("/heartbeat", event => handle_brand_heartbeat(server_ref, event))
+      br.get("/skills", event => handle_brand_skills_list(server_ref, event))
+      br.post("/skills", event => handle_brand_skills_install(server_ref, event))
+      br.delete("/skills/:name", event => {
+        handle_brand_skills_delete(server_ref, event)
+      })
+      br.delete("/license", event => handle_brand_deactivate(server_ref, event))
     })
 
     // Files
@@ -386,8 +395,23 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       fl.get("/paths", event => handle_files_paths(server_ref, event))
     })
 
+    // Directories
+    api.group("/dirs", (dr : @crescent.App) => {
+      dr.get("", event => handle_dirs_list(server_ref, event))
+      dr.post("/mkdir", event => handle_dirs_mkdir(server_ref, event))
+    })
+
+    // User Profile
+    api.group("/profile", (pf : @crescent.App) => {
+      pf.get("", event => handle_profile_get(server_ref, event))
+      pf.put("", event => handle_profile_put(server_ref, event))
+    })
+
     // Onboarding
     api.group("/onboard", (ob : @crescent.App) => {
+      ob.get("/status", event => handle_onboard_status(server_ref, event))
+      ob.post("/start", event => handle_onboard_start(server_ref, event))
+      ob.post("/skip", event => handle_onboard_skip(server_ref, event))
       ob.post("/device/start", event => {
         handle_onboard_device_start(server_ref, event)
       })
@@ -424,6 +448,8 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
 
     // Version
     api.group("/version", (v : @crescent.App) => {
+      v.get("", event => handle_version_info(server_ref, event))
+      v.post("/check", event => handle_version_check(server_ref, event))
       v.post("/upgrade", event => handle_version_upgrade(server_ref, event))
     })
     api.post("/restart", event => handle_restart(server_ref, event))

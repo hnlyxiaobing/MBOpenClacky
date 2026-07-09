@@ -60,6 +60,121 @@ fn handle_onboard_device_poll(
   }
 }
 
+// ── Onboarding Status & Simple Flow ───────────────────────────────
+
+///|
+fn onboard_state_path() -> String? {
+  match @utils.config_dir() {
+    Some(d) =>
+      Some(
+        @path.Path::join(@path.Path(d), @path.Path("onboard.json")).to_string(),
+      )
+    None => None
+  }
+}
+
+///|
+fn load_onboard_state() -> Json {
+  match onboard_state_path() {
+    Some(path) => {
+      let content = @fs.read_file_to_string(path) catch {
+        _ => return default_onboard_state()
+      }
+      if content.is_empty() {
+        return default_onboard_state()
+      }
+      @json.parse(content) catch {
+        _ => default_onboard_state()
+      }
+    }
+    None => default_onboard_state()
+  }
+}
+
+///|
+fn default_onboard_state() -> Json {
+  Json::object({
+    "completed": false.to_json(),
+    "step": (0).to_json(),
+    "skipped": false.to_json(),
+  })
+}
+
+///|
+fn save_onboard_state(j : Json) -> Unit {
+  match onboard_state_path() {
+    Some(path) => {
+      match @utils.config_dir() {
+        Some(dir) => @utils.ensure_dir(dir)
+        None => ()
+      }
+      @fs.write_string_to_file(path, j.stringify()) catch {
+        _ => ()
+      }
+    }
+    None => ()
+  }
+}
+
+///|
+/// GET /api/onboard/status
+fn handle_onboard_status(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let state = load_onboard_state()
+  @core.HttpResponse::ok().json_value(state)
+}
+
+///|
+/// POST /api/onboard/start
+fn handle_onboard_start(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let state = load_onboard_state()
+  let new_state = Json::object({
+    "completed": false.to_json(),
+    "step": (1).to_json(),
+    "skipped": json_get_bool(state, "skipped"),
+  })
+  save_onboard_state(new_state)
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "ok": true.to_json(),
+      "step": (1).to_json(),
+      "device_code": Json::null(),
+    }),
+  )
+}
+
+///|
+/// POST /api/onboard/skip
+fn handle_onboard_skip(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let new_state = Json::object({
+    "completed": true.to_json(),
+    "step": (2).to_json(),
+    "skipped": true.to_json(),
+  })
+  save_onboard_state(new_state)
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+}
+
+///|
+fn json_get_bool(j : Json, key : String) -> Json {
+  match j {
+    Object(obj) =>
+      match obj.get(key) {
+        Some(v) => v
+        _ => false.to_json()
+      }
+    _ => false.to_json()
+  }
+}
+
 // ── Onboarding Completion ─────────────────────────────────────────
 
 ///|

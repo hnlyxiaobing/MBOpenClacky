@@ -179,3 +179,137 @@ fn handle_brand_heartbeat(
     )
   }
 }
+
+// ── Brand Skills ──────────────────────────────────────────────────
+
+///|
+fn brand_skills_config_dir() -> String {
+  brand_config_dir()
+}
+
+///|
+/// GET /api/brand/skills
+fn handle_brand_skills_list(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let dir = brand_skills_config_dir()
+  let cfg = @brand.BrandConfig::load(dir)
+  let manager = @brand.BrandSkillManager::new(cfg)
+  let skills = manager.list_installed_skills(dir)
+  let items : Array[Json] = []
+  for s in skills {
+    items.push(s.to_json())
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({ "skills": items.to_json() }),
+  )
+}
+
+///|
+/// POST /api/brand/skills
+/// Expected body: {"name": "skill-name"}
+fn handle_brand_skills_install(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let name = match j {
+    Object(obj) =>
+      match obj.get("name") {
+        Some(String(n)) => n
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing 'name' field".to_json() }),
+          )
+      }
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let sanitized = @brand.sanitize_skill_name(name)
+  let dir = brand_skills_config_dir()
+  let cfg = @brand.BrandConfig::load(dir)
+  let manager = @brand.BrandSkillManager::new(cfg)
+  match
+    manager.create_skill(dir, Json::object({ "name": sanitized.to_json() })) {
+    Ok(_) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json(), "name": sanitized.to_json() }),
+      )
+    Err(msg) =>
+      @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": msg.to_json() }),
+      )
+  }
+}
+
+///|
+/// DELETE /api/brand/skills/:name
+fn handle_brand_skills_delete(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let name = match event.param("name") {
+    Some(n) => n.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing skill name".to_json() }),
+      )
+  }
+  let dir = brand_skills_config_dir()
+  let cfg = @brand.BrandConfig::load(dir)
+  let manager = @brand.BrandSkillManager::new(cfg)
+  match manager.delete_skill(dir, name, true) {
+    Ok(_) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json(), "name": name.to_json() }),
+      )
+    Err(msg) =>
+      @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": msg.to_json() }),
+      )
+  }
+}
+
+// ── License Activate/Deactivate Aliases ───────────────────────────
+
+///|
+/// POST /api/brand
+/// Alias for /api/brand/activate (frontend calls POST /api/brand directly).
+fn handle_brand_activate_alias(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  handle_brand_activate(server_ref, event)
+}
+
+///|
+/// DELETE /api/brand/license
+/// Deactivates the license by clearing the key.
+fn handle_brand_deactivate(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let dir = brand_skills_config_dir()
+  let cfg = @brand.BrandConfig::load(dir)
+  cfg.license_key = None
+  cfg.license_activated_at = None
+  cfg.license_expires_at = None
+  match cfg.save(dir) {
+    Ok(_) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json() }),
+      )
+    Err(msg) =>
+      @core.HttpResponse::internal_server_error().json_value(
+        Json::object({ "error": msg.to_json() }),
+      )
+  }
+}
