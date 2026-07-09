@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/x/path",
+  "moonbitlang/x/sys",
+  "moonbitlang/x/fs",
+  "moonbitlang/core/json",
+}
+
+options(
+  "native-stub": [ "sys_native.c" ],
+  // auto-link: no explicit flags needed — kernel32 (Windows) / unistd (POSIX) are default
+)
