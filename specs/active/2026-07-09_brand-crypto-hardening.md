@@ -1,7 +1,7 @@
 # Brand Crypto 加固 · 增量 Spec
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 实施中  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P0-3）  
 > **负责方向**: Agent-F（安全）
 
@@ -42,6 +42,29 @@
 4. **迁移说明**：文档化密钥派生变更的影响与重新激活步骤。
 5. **回归**：`moon test lib/brand` 全绿，手动验证品牌激活/校验流程。
 
+## 密钥派生变更迁移说明
+
+### 影响范围
+
+`derive_key` 从迭代 SHA-256 改为 PBKDF2-HMAC-SHA256（100 000 轮）。此变更影响所有通过 `derive_key` 派生密钥的加密持久化数据（如品牌技能加密包）。
+
+### 不兼容说明
+
+- 旧版派生密钥（迭代 SHA-256，10 000 轮）与新版（PBKDF2-HMAC-SHA256）输出不同。
+- 已加密的品牌数据（如加密技能包）在升级后无法用新密钥解密。
+
+### 重新激活步骤
+
+1. 升级到包含此变更的版本。
+2. 运行 `moon run cmd -- --brand-restart` 或手动删除 `~/.mbopenclacky/brand.toml` 中的 `license_key` 字段。
+3. 使用许可证密钥重新激活品牌：`LicenseValidator::activate(key, timestamp)`。
+4. 加密技能包需重新下载并解密。
+
+### 向后兼容缓解
+
+- `derive_key` 的 `salt` 参数默认为空数组，保持确定性（适合单元测试和固定盐场景）。
+- 生产调用方应始终传入唯一的随机 salt 并将 salt 与加密数据一同存储。
+
 ## 验收标准
 
 - [ ] `derive_key` 使用 PBKDF2-HMAC-SHA256，迭代次数 ≥ 配置阈值
@@ -64,4 +87,5 @@
 
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
-| 2026-07-09 | 初始版本，由"Windows 弱桩修复"调整为"brand crypto 加固" | 代码核对发现 Windows 已用 BCrypt |
+| 2026-07-09 | 初始版本，由“Windows 弱桩修复”调整为“brand crypto 加固” | 代码核对发现 Windows 已用 BCrypt |
+| 2026-07-09 | 实施：PBKDF2 纯 MoonBit 实现、refresh_distribution HTTP 接入、弱桩运行时警告 | spec 实施计划 |

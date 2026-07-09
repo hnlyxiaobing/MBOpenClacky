@@ -179,6 +179,26 @@ test "crypto_derive_key_different_inputs" {
 }
 
 ///|
+test "crypto_derive_key_pbkdf2_with_salt" {
+  // PBKDF2 with explicit salt must be deterministic.
+  let salt : Array[Byte] = [b's', b'a', b'l', b't', b'_', b'v', b'a', b'l']
+  let k1 = derive_key("password", salt~)
+  let k2 = derive_key("password", salt~)
+  assert_eq(k1.length(), 32)
+  assert_eq(k1, k2)
+  // A different salt must produce a different key.
+  let salt : Array[Byte] = [b'o', b't', b'h', b'e', b'r']
+  let k3 = derive_key("password", salt~)
+  assert_true(k1 != k3)
+}
+
+///|
+test "crypto_derive_key_pbkdf2_iteration_count" {
+  // The iteration count constant must be >= 100 000 (OWASP recommendation).
+  assert_true(pbkdf2_default_iterations >= 100000)
+}
+
+///|
 test "crypto_encrypted_data_struct_fields" {
   let key : Array[Byte] = Array::make(32, b'\x0E')
   let plaintext : Array[Byte] = [b't', b'e', b's', b't']
