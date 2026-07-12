@@ -9,6 +9,10 @@
   <script src="js/lib/marked.min.js"></script>
   <link rel="stylesheet" href="css/github-dark.min.css">
   <script src="js/lib/highlight.min.js"></script>
+  <!-- Rich component libraries (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
   <div id="app">
@@ -82,6 +86,18 @@
         </button>
         <button id="btn-onboard" class="btn btn-ghost btn-nav" title="Onboard" data-i18n-title="sidebar.onboard">
           <span class="icon">&#128640;</span> <span data-i18n="sidebar.onboard">Onboard</span>
+        </button>
+        <button id="btn-tasks" class="btn btn-ghost btn-nav" title="Tasks" data-i18n-title="sidebar.tasks_title">
+          <span class="icon">&#9745;</span> <span data-i18n="sidebar.tasks">Tasks</span>
+        </button>
+        <button id="btn-media" class="btn btn-ghost btn-nav" title="Media" data-i18n-title="sidebar.media_title">
+          <span class="icon">&#127912;</span> <span data-i18n="sidebar.media">Media</span>
+        </button>
+        <button id="btn-marketplace" class="btn btn-ghost btn-nav" title="Marketplace" data-i18n-title="sidebar.marketplace_title">
+          <span class="icon">&#128722;</span> <span data-i18n="sidebar.marketplace">Marketplace</span>
+        </button>
+        <button id="btn-meeting" class="btn btn-ghost btn-nav" title="Meeting" data-i18n-title="sidebar.meeting_title">
+          <span class="icon">&#128249;</span> <span data-i18n="sidebar.meeting">Meeting</span>
         </button>
       </div>
     </aside>
@@ -308,6 +324,42 @@
         </div>
         <div id="skills-enhanced-content" class="view-content"></div>
       </div>
+
+      <!-- Tasks View -->
+      <div id="view-tasks" class="view">
+        <div class="view-header">
+          <h2 data-i18n="page.tasks">Tasks</h2>
+          <button class="btn btn-ghost btn-sm btn-close-panel" data-view="chat">&#10005;</button>
+        </div>
+        <div id="tasks-content" class="view-content"></div>
+      </div>
+
+      <!-- Media View -->
+      <div id="view-media" class="view">
+        <div class="view-header">
+          <h2 data-i18n="page.media">Media Generation</h2>
+          <button class="btn btn-ghost btn-sm btn-close-panel" data-view="chat">&#10005;</button>
+        </div>
+        <div id="media-content" class="view-content"></div>
+      </div>
+
+      <!-- Marketplace View -->
+      <div id="view-marketplace" class="view">
+        <div class="view-header">
+          <h2 data-i18n="page.marketplace">Marketplace</h2>
+          <button class="btn btn-ghost btn-sm btn-close-panel" data-view="chat">&#10005;</button>
+        </div>
+        <div id="marketplace-content" class="view-content"></div>
+      </div>
+
+      <!-- Meeting View -->
+      <div id="view-meeting" class="view">
+        <div class="view-header">
+          <h2 data-i18n="page.meeting">Meeting</h2>
+          <button class="btn btn-ghost btn-sm btn-close-panel" data-view="chat">&#10005;</button>
+        </div>
+        <div id="meeting-content" class="view-content"></div>
+      </div>
     </main>
   </div>
 
@@ -355,6 +407,10 @@
   <script src="js/workspace.js"></script>
   <script src="js/creator.js"></script>
   <script src="js/onboard.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/media.js"></script>
+  <script src="js/marketplace.js"></script>
+  <script src="js/meeting.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

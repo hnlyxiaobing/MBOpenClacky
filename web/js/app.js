@@ -109,6 +109,10 @@ const App = {
     if (typeof WorkspaceView !== 'undefined') WorkspaceView.init();
     if (typeof CreatorView !== 'undefined') CreatorView.init();
     if (typeof OnboardView !== 'undefined') OnboardView.init();
+    if (typeof TaskView !== 'undefined') TaskView.init();
+    if (typeof MediaView !== 'undefined') MediaView.init();
+    if (typeof MarketplaceView !== 'undefined') MarketplaceView.init();
+    if (typeof MeetingView !== 'undefined') MeetingView.init();
 
     // Bind global UI events
     this.bindEvents();
@@ -174,6 +178,10 @@ const App = {
       { btn: 'btn-creator', view: 'creator', module: 'CreatorView' },
       { btn: 'btn-version', view: 'version', module: 'VersionView' },
       { btn: 'btn-onboard', view: 'onboard', module: 'OnboardView' },
+      { btn: 'btn-tasks', view: 'tasks', module: 'TaskView' },
+      { btn: 'btn-media', view: 'media', module: 'MediaView' },
+      { btn: 'btn-marketplace', view: 'marketplace', module: 'MarketplaceView' },
+      { btn: 'btn-meeting', view: 'meeting', module: 'MeetingView' },
     ];
     navModules.forEach(({ btn, view, module }) => {
       const el = document.getElementById(btn);

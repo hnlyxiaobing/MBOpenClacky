@@ -86,7 +86,36 @@ const ShareView = {
       <div id="share-result" class="settings-group" style="display:none">
         <div class="settings-group-title">Export Result</div>
         <div id="share-result-content" style="max-height:400px;overflow:auto"></div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">QR Code Share</div>
+        ${!hasSession ? '<p class="text-muted" style="padding:8px 0">Select a session first.</p>' : `
+          <div style="display:flex;align-items:center;gap:16px;padding:8px 0">
+            <div id="share-qrcode" style="background:#fff;padding:8px;border-radius:var(--radius)"></div>
+            <div style="font-size:12px;color:var(--text-muted)">
+              <p>Scan to share this session</p>
+              <code style="font-size:11px;word-break:break-all">${window.location.origin}/share/${ShareStore.session_id}</code>
+            </div>
+          </div>`}
       </div>`;
+
+    // Generate QR code if library is available
+    if (hasSession && typeof QRCode !== 'undefined') {
+      const qrEl = document.getElementById('share-qrcode');
+      if (qrEl) {
+        try {
+          QRCode.toCanvas(
+            document.createElement('canvas'),
+            `${window.location.origin}/share/${ShareStore.session_id}`,
+            { width: 120, margin: 1 },
+            (err, canvas) => {
+              if (!err && canvas) qrEl.appendChild(canvas);
+            }
+          );
+        } catch (e) { /* QR generation failed silently */ }
+      }
+    }
   },
 
   /** 导出会话 */

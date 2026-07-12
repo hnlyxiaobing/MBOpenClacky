@@ -109,6 +109,11 @@ const Schedules = {
         <div class="help-text">Standard cron format: minute hour day month weekday (e.g. "0 9 * * *" = daily at 9am)</div>
       </div>
       <div class="settings-field">
+        <label for="schedule-datetime">Quick Date/Time Picker</label>
+        <input type="datetime-local" id="schedule-datetime" style="padding:9px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;outline:none">
+        <div class="help-text">Select a date/time to auto-fill the cron expression</div>
+      </div>
+      <div class="settings-field">
         <div class="toggle-wrapper">
           <label>Enabled</label>
           <div class="toggle ${activeClass}" id="schedule-enabled-toggle" onclick="this.classList.toggle('active')"></div>
@@ -121,6 +126,19 @@ const Schedules = {
 
     App.showModal(isEdit ? 'Edit Schedule' : 'New Schedule', body, footer);
     setTimeout(() => document.getElementById('schedule-name')?.focus(), 100);
+
+    // Datepicker auto-fill: convert datetime-local to cron
+    const dtInput = document.getElementById('schedule-datetime');
+    if (dtInput) {
+      dtInput.addEventListener('change', () => {
+        const dt = new Date(dtInput.value);
+        if (!isNaN(dt.getTime())) {
+          const cron = `${dt.getMinutes()} ${dt.getHours()} ${dt.getDate()} ${dt.getMonth() + 1} *`;
+          const cronInput = document.getElementById('schedule-cron');
+          if (cronInput) cronInput.value = cron;
+        }
+      });
+    }
   },
 
   async handleSave(id) {

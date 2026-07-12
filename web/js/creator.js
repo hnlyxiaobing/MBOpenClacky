@@ -105,6 +105,40 @@ const CreatorView = {
       </div>
 
       <div class="settings-group">
+        <div class="settings-group-title">${I18n.t('creator.scaffold_title')}</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;padding:8px 0">
+          <div class="settings-field" style="margin-bottom:10px">
+            <label for="scaffold-template">${I18n.t('creator.template')}</label>
+            <select id="scaffold-template" style="width:100%;padding:9px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px">
+              <option value="basic">${I18n.t('creator.template_basic')}</option>
+              <option value="tool">${I18n.t('creator.template_tool')}</option>
+              <option value="mcp">${I18n.t('creator.template_mcp')}</option>
+            </select>
+          </div>
+          <div class="settings-field" style="margin-bottom:10px">
+            <label for="scaffold-name">Skill Name</label>
+            <input type="text" id="scaffold-name" placeholder="my-awesome-skill" style="width:100%;padding:9px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="CreatorView.handleScaffold()">${I18n.t('creator.scaffold_btn')}</button>
+        </div>
+        <div id="scaffold-preview" style="display:none;margin-top:12px">
+          <div class="settings-group-title" style="font-size:13px">${I18n.t('creator.preview_structure')}</div>
+          <pre id="scaffold-tree" style="background:var(--bg-tertiary);padding:12px;border-radius:var(--radius-sm);font-size:12px;line-height:1.5;overflow-x:auto;color:var(--text-secondary);border:1px solid var(--border)"></pre>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">${I18n.t('creator.pack_title')}</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;padding:8px 0">
+          <p style="margin-bottom:10px">Package your skill for distribution and publishing to the marketplace.</p>
+          <button class="btn btn-ghost btn-sm" onclick="CreatorView.handlePackage()">${I18n.t('creator.pack_btn')}</button>
+        </div>
+        <div id="package-preview" style="display:none;margin-top:12px">
+          <pre id="package-tree" style="background:var(--bg-tertiary);padding:12px;border-radius:var(--radius-sm);font-size:12px;line-height:1.5;overflow-x:auto;color:var(--text-secondary);border:1px solid var(--border)"></pre>
+        </div>
+      </div>
+
+      <div class="settings-group">
         <div class="settings-group-title">Creator Guidelines</div>
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;padding:8px 0">
           <ul style="padding-left:20px">
@@ -178,6 +212,104 @@ const CreatorView = {
     } catch (err) {
       App.showNotification('Create failed: ' + err.message, 'error');
     }
+  },
+
+  /** Scaffold 模板目录结构 */
+  _scaffoldTemplates: {
+    basic(name) {
+      return `${name}/
+├── SKILL.md            # Skill manifest & documentation
+├── prompts/
+│   └── system.md       # System prompt template
+├── examples/
+│   └── basic.md        # Usage examples
+└── README.md           # User-facing documentation`;
+    },
+    tool(name) {
+      return `${name}/
+├── SKILL.md            # Skill manifest with tool definitions
+├── tools/
+│   └── main.json       # Tool schema definitions
+├── prompts/
+│   ├── system.md       # System prompt
+│   └── tool_use.md     # Tool usage instructions
+├── examples/
+│   └── tool_usage.md   # Tool invocation examples
+└── README.md`;
+    },
+    mcp(name) {
+      return `${name}/
+├── SKILL.md            # Skill manifest with MCP config
+├── mcp/
+│   ├── server.json     # MCP server configuration
+│   └── tools.json      # MCP tool definitions
+├── prompts/
+│   └── system.md       # System prompt
+├── examples/
+│   └── mcp_usage.md    # MCP integration examples
+└── README.md`;
+    },
+  },
+
+  /** 处理 Scaffold 生成 */
+  handleScaffold() {
+    const tplSelect = document.getElementById('scaffold-template');
+    const nameInput = document.getElementById('scaffold-name');
+    const template = tplSelect ? tplSelect.value : 'basic';
+    const name = nameInput ? nameInput.value.trim() : '';
+
+    if (!name) {
+      App.showNotification('Skill name is required for scaffold', 'warning');
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+      App.showNotification('Name must be lowercase with hyphens only', 'warning');
+      return;
+    }
+
+    const treeFn = this._scaffoldTemplates[template] || this._scaffoldTemplates.basic;
+    const tree = treeFn(name);
+
+    const previewEl = document.getElementById('scaffold-preview');
+    const treeEl = document.getElementById('scaffold-tree');
+    if (previewEl && treeEl) {
+      treeEl.textContent = tree;
+      previewEl.style.display = 'block';
+    }
+
+    App.showNotification(`Scaffold preview for "${name}" (${template})`, 'success');
+  },
+
+  /** 处理打包预览 */
+  handlePackage() {
+    const skills = CreatorStore.my_skills;
+    if (skills.length === 0) {
+      App.showNotification('No skills to package. Create a skill first.', 'warning');
+      return;
+    }
+
+    // Pick the first unpublished skill or the first one
+    const skill = skills.find(s => typeof s === 'object' && !s.published) || skills[0];
+    const name = typeof skill === 'string' ? skill : (skill.name || 'unknown');
+
+    const packageTree = `${name}.skill-pack/
+├── manifest.json       # Package metadata
+├── SKILL.md            # Skill documentation
+├── prompts/            # Bundled prompts
+├── tools/              # Tool definitions (if any)
+└── assets/             # Static assets (if any)
+
+Package size: ~estimated
+Target: marketplace distribution`;
+
+    const previewEl = document.getElementById('package-preview');
+    const treeEl = document.getElementById('package-tree');
+    if (previewEl && treeEl) {
+      treeEl.textContent = packageTree;
+      previewEl.style.display = 'block';
+    }
+
+    App.showNotification(`Package preview for "${name}"`, 'info');
   },
 
   /** HTML 转义 */

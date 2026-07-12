@@ -489,6 +489,18 @@ const Chat = {
           return `<div class="code-block-header"><span>${langLabel}</span><button class="btn-copy-code" onclick="Chat.copyCode(this)">${I18n.t('chat.copy')}</button></div><pre><code class="${lang ? 'language-' + lang : ''}">${code}</code></pre>`;
         });
 
+      // KaTeX math rendering: $$...$$ for display, $...$ for inline
+      if (typeof katex !== 'undefined') {
+        html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
+          try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }); }
+          catch (e) { return `<span style="color:var(--danger)">${this.escapeHtml(tex)}</span>`; }
+        });
+        html = html.replace(/\$([^$\n]+?)\$/g, (_, tex) => {
+          try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }); }
+          catch (e) { return `<code>${this.escapeHtml(tex)}</code>`; }
+        });
+      }
+
       return html;
     }
 
