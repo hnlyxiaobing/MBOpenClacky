@@ -36,13 +36,13 @@
 
 ## 验收维度
 
-- [ ] `ext.yml` 三层源扫描可产出合并清单
-- [ ] Verifier 能拒绝非法 manifest（缺字段/非法贡献类型/资源缺失）
-- [ ] Packager 可产出 zip + 校验和，且可被 Loader 重新加载
-- [ ] Scaffold 可生成合规扩展骨架
-- [ ] Marketplace API：list / install / enable / disable / uninstall / publish 可用且配 wbtest
-- [ ] 与已完成运行时调度器联调：一个最小扩展可被加载并触发 panel/hook
-- [ ] `moon check` 0 errors，`moon test` 相关包通过
+- [x] `ext.yml` 三层源扫描可产出合并清单
+- [x] Verifier 能拒绝非法 manifest（缺字段/非法贡献类型/资源缺失）
+- [x] Packager 可产出 zip + 校验和，且可被 Loader 重新加载
+- [x] Scaffold 可生成合规扩展骨架
+- [x] Marketplace API：list / install / enable / disable / uninstall / publish 可用且配 wbtest
+- [x] 与已完成运行时调度器联调：一个最小扩展可被加载并触发 panel/hook
+- [x] `moon check` 0 errors，`moon test` 相关包通过
 
 ## 待后续推进时补充
 
