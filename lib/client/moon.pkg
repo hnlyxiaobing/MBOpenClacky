@@ -8,6 +8,12 @@ import {
 options(
   "native-stub": [ "http_native.c", "mb_stubs.c" ],
   // Windows: WinHTTP is auto-linked via #pragma comment(lib,"winhttp.lib") in http_native.c
-  // Linux/macOS: install libcurl-dev, then uncomment the line below:
+  // Linux/macOS: http_native.c calls libcurl (curl_easy_init, curl_easy_setopt, etc.);
+  // -lcurl is required on the link line. The moon toolchain propagates cc-link-flags
+  // from the package being tested to the test binary, so this flag is essential for
+  // `moon test lib/client` to link successfully. Other packages that transitively import
+  // lib/client must also declare -lcurl in their own moon.pkg (see lib/agent, lib/tool,
+  // lib/vision moon.pkg files).
+  // Prerequisite: libcurl4-openssl-dev (Debian/Ubuntu) or curl (Homebrew) installed.
   link: { "native": { "cc-link-flags": "-lcurl" } },
 )
