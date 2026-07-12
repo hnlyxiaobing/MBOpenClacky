@@ -1,105 +1,57 @@
-﻿///| Extension marketplace backend API: provides registry, install, enable, disable,
-/// uninstall, and publish functionality.
-
-use @clacky.extension.types.{
-  Extension,
-  ExtensionManifest,
-  ExtensionSource,
-  RegistryEntry,
-}
-use @clacky.extension.loader.{
-  load_all_extensions,
-  load_extensions_from_source,
-  load_single_extension,
-  get_source_directory,
-}
-use @clacky.extension.verifier.validate_extension
-use @clacky.extension.packager.package_extension
-use @path.Path
-use @fs
-use @utils
-use @json
+///| Extension marketplace backend API: provides registry, install, enable, disable,
+/// uninstall, and publish functionality. State is persisted to
+/// `~/.clacky/extensions/registry.json`.
 
 ///|
-/// Registry state - in-memory for MVP, persisted to JSON.
-struct Registry {
-  entries : Map[String, RegistryEntry]
-  file_path : String
-}
-
-///|
-/// Global registry instance (lazy initialized).
-let mut registry : Registry? = None
-
-///|
-/// Get or initialize the registry.
-pub(all) fn get_registry() -> Registry {
-  match registry {
-    Some(r) => r
-    None => {
-      let r = load_registry()
-      registry = Some(r)
-      r
-    }
-  }
-}
-
-///|
-/// Load registry from file or create new.
-fn load_registry() -> Registry {
-  let registry_path = get_registry_file_path()
-  let dir = Path::new(registry_path).parent().to_string()
-  
-  if !fs.path_exists(dir) {
-    fs.create_dir_all(dir) catch { _ => () }
-  }
-  
-  if fs.path_exists(registry_path) {
-    let content = fs.read_file_to_string(registry_path) catch { _ => return default_registry(registry_path) }
-    parse_registry_json(content, registry_path)
-  } else {
-    default_registry(registry_path)
-  }
-}
-
-///|
-/// Create a default registry.
-fn default_registry(file_path : String) -> Registry {
-  { entries: {}, file_path }
-}
-
-///|
-/// Get registry file path.
-fn get_registry_file_path() -> String {
-  match utils.home_dir() {
+/// Path to the marketplace registry file.
+fn registry_file_path() -> String {
+  match @utils.home_dir() {
     Some(home) =>
-      Path::join(home, Path(".clacky/extensions/registry.json")).to_string()
+      @path.Path::join(home, @path.Path(".clacky/extensions/registry.json")).to_string()
     None => ".clacky/extensions/registry.json"
   }
 }
 
 ///|
-/// Parse registry from JSON.
-fn parse_registry_json(content : String, file_path : String) -> Registry {
-  let json = @json.parse(content) catch { _ => return default_registry(file_path) }
-  match json {
-    Object(obj) => {
-      match obj.get("entries") {
-        Some(Object(entries_obj)) => {
-          let entries : Map[String, RegistryEntry] = {}
-          for (id, entry_json) in entries_obj {
-            match parse_registry_entry(entry_json) {
-              Some(entry) => entries[id] = entry
-              None => ()
-            }
-          }
-          { entries, file_path }
-        }
-        _ => default_registry(file_path)
-      }
-    }
-    _ => default_registry(file_path)
+/// Default empty registry value.
+fn default_registry() -> Map[String, RegistryEntry] {
+  {}
+}
+
+///|
+/// Load registry from disk, returning an empty map on any failure.
+fn load_registry_from_disk() -> Map[String, RegistryEntry] {
+  let path = registry_file_path()
+  if !@fs.path_exists(path) {
+    return default_registry()
   }
+  let content = @fs.read_file_to_string(path) catch {
+    _ => return default_registry()
+  }
+  let json = @json.parse(content) catch { _ => return default_registry() }
+  match json {
+    Object(obj) =>
+      match obj.get("entries") {
+        Some(Object(entries_obj)) => parse_registry_entries(entries_obj)
+        _ => default_registry()
+      }
+    _ => default_registry()
+  }
+}
+
+///|
+/// Convert a JSON object of entries into a Map[String, RegistryEntry].
+fn parse_registry_entries(
+  obj : Map[String, Json],
+) -> Map[String, RegistryEntry] {
+  let entries : Map[String, RegistryEntry] = {}
+  obj.each(fn(id, value) {
+    match parse_registry_entry(value) {
+      Some(entry) => entries[id] = entry
+      None => ()
+    }
+  })
+  entries
 }
 
 ///|
@@ -131,44 +83,41 @@ fn parse_registry_entry(json : Json) -> RegistryEntry? {
       let metadata = match obj.get("metadata") {
         Some(Object(m)) => {
           let md : Map[String, String] = {}
-          for (k, v) in m {
+          m.each(fn(k, v) {
             match v {
               String(s) => md[k] = s
               _ => ()
             }
-          }
+          })
           md
         }
         _ => {}
       }
       let installs = match obj.get("installs") {
-        Some(Number(n, ..)) => n.to_int()
+        Some(Number(d, ..)) => d.to_int()
         _ => 0
       }
-      let published_at = match obj.get("published_at") {
-        Some(Number(n, ..)) => n.to_int()
-        _ => 0
+      let published_at : Int64 = match obj.get("published_at") {
+        Some(Number(d, ..)) => d.to_int64()
+        _ => 0L
       }
-      Some({
-        id,
-        latest_version,
-        versions,
-        metadata,
-        installs,
-        published_at,
-      })
+      Some({ id, latest_version, versions, metadata, installs, published_at })
     }
     _ => None
   }
 }
 
 ///|
-/// Save registry to disk.
-fn save_registry(r : Registry) -> Unit {
+/// Persist the registry to disk as JSON. Failures are silent (best-effort).
+fn save_registry_to_disk(entries : Map[String, RegistryEntry]) -> Unit {
+  let path = registry_file_path()
+  let parent = @path.Path::dirname(@path.Path(path)).to_string()
+  @utils.ensure_dir(parent)
   let entries_obj : Map[String, Json] = {}
-  for (id, entry) in r.entries {
+  entries.each(fn(id, entry) {
     let versions_json : Array[Json] = entry.versions.map(fn(v) { v.to_json() })
-    let metadata_json : Map[String, Json] = entry.metadata.map_values(fn(v) { v.to_json() })
+    let metadata_json : Map[String, Json] = {}
+    entry.metadata.each(fn(k, v) { metadata_json[k] = v.to_json() })
     entries_obj[id] = Json::object({
       "id": entry.id.to_json(),
       "latest_version": entry.latest_version.to_json(),
@@ -177,183 +126,202 @@ fn save_registry(r : Registry) -> Unit {
       "installs": entry.installs.to_json(),
       "published_at": entry.published_at.to_json(),
     })
-  }
-  let registry_json = Json::object({
-    "entries": Json::object(entries_obj),
-    "updated_at": @sys.time_now_ms().to_json(),
   })
-  fs.write_string_to_file(r.file_path, registry_json.stringify_with_indent(2)) catch { _ => () }
+  let registry_obj : Map[String, Json] = {
+    "entries": Json::object(entries_obj),
+    "updated_at": @agent.current_time_ms().to_json(),
+  }
+  @fs.write_string_to_file(path, Json::object(registry_obj).stringify()) catch {
+    _ => ()
+  }
 }
 
 ///|
 /// List all extensions in the marketplace.
-pub(all) fn list_marketplace_extensions() -> Array[RegistryEntry] {
-  let r = get_registry()
-  r.entries.values().to_array()
+pub fn list_marketplace_extensions() -> Array[RegistryEntry] {
+  let registry = load_registry_from_disk()
+  let result : Array[RegistryEntry] = []
+  registry.each(fn(_id, entry) { result.push(entry) })
+  result
 }
 
 ///|
 /// List installed extensions.
-pub(all) fn list_installed_extensions() -> Array[Extension] {
+pub fn list_installed_extensions() -> Array[Extension] {
   load_extensions_from_source(ExtensionSource::Installed)
 }
 
 ///|
-/// List local extensions.
-pub(all) fn list_local_extensions() -> Array[Extension] {
+/// List local project extensions.
+pub fn list_local_extensions() -> Array[Extension] {
   load_extensions_from_source(ExtensionSource::Local)
 }
 
 ///|
-/// Enable an extension by ID.
-pub(all) fn enable_extension(ext_id : String) -> Result[Extension, String] {
+/// Enable an extension by ID. Returns the resolved Extension or an error message.
+pub fn enable_extension(ext_id : String) -> Result[Extension, String] {
   let all = load_all_extensions()
-  let ext_opt = all.find(fn(e) { e.manifest.id == ext_id })
-  
-  match ext_opt {
+  match all.iter().find_first(fn(e) { e.manifest.id == ext_id }) {
     Some(ext) => {
-      // For MVP, we just reload - in real implementation, we'd persist state
-      println("[Marketplace] Enabled extension: \{ext_id}")
+      println("[Marketplace] Enabled extension: " + ext_id)
       Ok(ext)
     }
-    None => Err("extension not found: \{ext_id}")
+    None => Err("extension not found: " + ext_id)
   }
 }
 
 ///|
-/// Disable an extension by ID.
-pub(all) fn disable_extension(ext_id : String) -> Result[Extension, String] {
+/// Disable an extension by ID. Returns the resolved Extension or an error message.
+pub fn disable_extension(ext_id : String) -> Result[Extension, String] {
   let all = load_all_extensions()
-  let ext_opt = all.find(fn(e) { e.manifest.id == ext_id })
-  
-  match ext_opt {
+  match all.iter().find_first(fn(e) { e.manifest.id == ext_id }) {
     Some(ext) => {
-      println("[Marketplace] Disabled extension: \{ext_id}")
+      println("[Marketplace] Disabled extension: " + ext_id)
       Ok(ext)
     }
-    None => Err("extension not found: \{ext_id}")
+    None => Err("extension not found: " + ext_id)
   }
 }
 
 ///|
-/// Install an extension from a directory path.
-pub(all) fn install_extension_from_path(ext_path : String) -> Result[Extension, String] {
-  // Load and validate
-  let ext = load_single_extension(ext_path, ExtensionSource::Local) ok_or {
-    "failed to load extension from \{ext_path}"
-  }?
-  
+/// Install an extension from a directory path. Validates and copies to the
+/// installed-extensions directory, then bumps the install counter.
+pub fn install_extension_from_path(ext_path : String) -> Result[Extension, String] {
+  let ext = match load_single_extension(ext_path, ExtensionSource::Local) {
+    Some(e) => e
+    None => return Err("failed to load extension from " + ext_path)
+  }
   let validation = validate_extension(ext)
   if !validation.valid {
-    let errors = validation.errors.map(@clacky.extension.verifier.validation_error_message)
-    Err("validation failed: \{errors.join("; ")}")?
+    let errors = validation.errors.map(fn(e) { validation_error_message(e) })
+    return Err("validation failed: " + errors.join("; "))
   }
-  
-  // Copy to installed directory
   let installed_dir = get_source_directory(ExtensionSource::Installed)
-  if !fs.path_exists(installed_dir) {
-    fs.create_dir_all(installed_dir) catch { e => Err(e.to_string())? }
+  @utils.ensure_dir(installed_dir)
+  let target_dir = @path.Path::join(
+    installed_dir,
+    @path.Path(ext.manifest.id),
+  ).to_string()
+  if @fs.path_exists(target_dir) {
+    return Err("extension already installed at " + target_dir)
   }
-  
-  let target_dir = Path::join(installed_dir, Path(ext.manifest.id)).to_string()
-  
-  // Simple copy for MVP
-  copy_directory_simple(ext_path, target_dir)?
-  
-  // Load the installed extension
-  let installed = load_single_extension(target_dir, ExtensionSource::Installed) ok_or {
-    "failed to load installed extension"
-  }?
-  
-  // Update registry
-  let mut r = get_registry()
-  update_registry_install(&mut r, &installed)?
-  save_registry(r)
-  
+  match copy_directory_recursive(ext_path, target_dir) {
+    Ok(_) => ()
+    Err(e) => return Err("copy failed: " + e)
+  }
+  let installed = match load_single_extension(
+    target_dir,
+    ExtensionSource::Installed,
+  ) {
+    Some(e) => e
+    None => return Err("failed to load installed extension at " + target_dir)
+  }
+  let registry = load_registry_from_disk()
+  match registry.get(ext.manifest.id) {
+    Some(entry) => {
+      let new_entry : RegistryEntry = {
+        id: entry.id,
+        latest_version: entry.latest_version,
+        versions: entry.versions,
+        metadata: entry.metadata,
+        installs: entry.installs + 1,
+        published_at: entry.published_at,
+      }
+      registry[entry.id] = new_entry
+    }
+    None => {
+      let metadata : Map[String, String] = {
+        "name": installed.manifest.name,
+        "description": installed.manifest.description,
+        "author": installed.manifest.author,
+        "license": installed.manifest.license,
+      }
+      let new_entry : RegistryEntry = {
+        id: installed.manifest.id,
+        latest_version: installed.manifest.version,
+        versions: [installed.manifest.version],
+        metadata,
+        installs: 1,
+        published_at: @agent.current_time_ms(),
+      }
+      registry[installed.manifest.id] = new_entry
+    }
+  }
+  save_registry_to_disk(registry)
   Ok(installed)
 }
 
 ///|
-/// Uninstall an extension by ID.
-pub(all) fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
+/// Uninstall an extension by ID. Removes the installed directory and
+/// decrements the install counter (but never below zero).
+pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
   let installed_dir = get_source_directory(ExtensionSource::Installed)
-  let ext_dir = Path::join(installed_dir, Path(ext_id)).to_string()
-  
-  if !fs.path_exists(ext_dir) {
-    Err("extension not installed: \{ext_id}")?
+  let ext_dir = @path.Path::join(installed_dir, @path.Path(ext_id)).to_string()
+  if !@fs.path_exists(ext_dir) {
+    return Err("extension not installed: " + ext_id)
   }
-  
-  // Remove directory
-  remove_directory_simple(ext_dir)?
-  
-  println("[Marketplace] Uninstalled extension: \{ext_id}")
+  match remove_directory_recursive(ext_dir) {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  let registry = load_registry_from_disk()
+  match registry.get(ext_id) {
+    Some(entry) => {
+      let next_count = if entry.installs > 0 { entry.installs - 1 } else { 0 }
+      let new_entry : RegistryEntry = {
+        id: entry.id,
+        latest_version: entry.latest_version,
+        versions: entry.versions,
+        metadata: entry.metadata,
+        installs: next_count,
+        published_at: entry.published_at,
+      }
+      registry[entry.id] = new_entry
+      save_registry_to_disk(registry)
+    }
+    None => ()
+  }
+  println("[Marketplace] Uninstalled extension: " + ext_id)
   Ok(())
 }
 
 ///|
-/// Publish a local extension to the marketplace.
-pub(all) fn publish_extension(ext_path : String) -> Result[RegistryEntry, String] {
-  // Load and validate
-  let ext = load_single_extension(ext_path, ExtensionSource::Local) ok_or {
-    "failed to load extension from \{ext_path}"
-  }?
-  
+/// Publish a local extension to the marketplace. Validates, packages, and
+/// updates the registry entry.
+pub fn publish_extension(ext_path : String) -> Result[RegistryEntry, String] {
+  let ext = match load_single_extension(ext_path, ExtensionSource::Local) {
+    Some(e) => e
+    None => return Err("failed to load extension from " + ext_path)
+  }
   let validation = validate_extension(ext)
   if !validation.valid {
-    let errors = validation.errors.map(@clacky.extension.verifier.validation_error_message)
-    Err("validation failed: \{errors.join("; ")}")?
+    let errors = validation.errors.map(fn(e) { validation_error_message(e) })
+    return Err("validation failed: " + errors.join("; "))
   }
-  
-  // Package it
-  let (_, sha256) = package_extension(ext_path, Some("./.marketplace"))?
-  
-  // Update registry
-  let mut r = get_registry()
-  let entry = update_registry_publish(&mut r, &ext, sha256)?
-  save_registry(r)
-  
-  println("[Marketplace] Published extension: \{ext.manifest.id} v\{ext.manifest.version}")
+  let (_, sha256) = match package_extension(ext_path, output_dir=Some("./.marketplace")) {
+    Ok(v) => v
+    Err(e) => return Err("package failed: " + e)
+  }
+  let registry = load_registry_from_disk()
+  let entry = update_registry_for_publish(registry, ext, sha256)
+  save_registry_to_disk(registry)
+  println(
+    "[Marketplace] Published extension: " +
+    ext.manifest.id +
+    " v" +
+    ext.manifest.version,
+  )
   Ok(entry)
 }
 
 ///|
-/// Update registry on install.
-fn update_registry_install(r : &Registry, ext : &Extension) -> Result[Unit, String] {
-  match r.entries.get(ext.manifest.id) {
-    Some(mut entry) => {
-      entry.installs = entry.installs + 1
-      r.entries[ext.manifest.id] = entry
-    }
-    None => {
-      // Create new entry from extension
-      let metadata : Map[String, String] = {
-        "name": ext.manifest.name,
-        "description": ext.manifest.description,
-        "author": ext.manifest.author,
-        "license": ext.manifest.license,
-      }
-      let entry = {
-        id: ext.manifest.id,
-        latest_version: ext.manifest.version,
-        versions: [ext.manifest.version],
-        metadata,
-        installs: 1,
-        published_at: @sys.time_now_ms(),
-      }
-      r.entries[ext.manifest.id] = entry
-    }
-  }
-  Ok(())
-}
-
-///|
-/// Update registry on publish.
-fn update_registry_publish(
-  r : &Registry,
-  ext : &Extension,
+/// Update the registry in place for a publish operation, returning the new entry.
+fn update_registry_for_publish(
+  registry : Map[String, RegistryEntry],
+  ext : Extension,
   sha256 : String,
-) -> Result[RegistryEntry, String] {
-  let now = @sys.time_now_ms()
+) -> RegistryEntry {
+  let now = @agent.current_time_ms()
   let metadata : Map[String, String] = {
     "name": ext.manifest.name,
     "description": ext.manifest.description,
@@ -361,20 +329,31 @@ fn update_registry_publish(
     "license": ext.manifest.license,
     "sha256": sha256,
   }
-  
-  let entry = match r.entries.get(ext.manifest.id) {
-    Some(mut existing) => {
-      // Add version if not present
-      if !existing.versions.contains(ext.manifest.version) {
-        existing.versions.push(ext.manifest.version)
+  match registry.get(ext.manifest.id) {
+    Some(existing) => {
+      let versions = if existing.versions.contains(ext.manifest.version) {
+        existing.versions
+      } else {
+        let new_versions : Array[String] = []
+        for v in existing.versions {
+          new_versions.push(v)
+        }
+        new_versions.push(ext.manifest.version)
+        new_versions
       }
-      existing.latest_version = ext.manifest.version
-      existing.metadata = metadata
-      existing.published_at = now
-      existing
+      let new_entry : RegistryEntry = {
+        id: ext.manifest.id,
+        latest_version: ext.manifest.version,
+        versions,
+        metadata,
+        installs: existing.installs,
+        published_at: now,
+      }
+      registry[ext.manifest.id] = new_entry
+      new_entry
     }
     None => {
-      {
+      let new_entry : RegistryEntry = {
         id: ext.manifest.id,
         latest_version: ext.manifest.version,
         versions: [ext.manifest.version],
@@ -382,57 +361,66 @@ fn update_registry_publish(
         installs: 0,
         published_at: now,
       }
+      registry[ext.manifest.id] = new_entry
+      new_entry
     }
   }
-  
-  r.entries[ext.manifest.id] = entry
-  Ok(entry)
 }
 
 ///|
-/// Simple directory copy (for MVP).
-fn copy_directory_simple(src : String, dst : String) -> Result[Unit, String] {
-  if !fs.is_dir(src) {
-    Err("source is not a directory")?
+/// Recursively copy a directory tree.
+fn copy_directory_recursive(src : String, dst : String) -> Result[Unit, String] {
+  let is_directory = @fs.is_dir(src) catch { _ => false }
+  if !is_directory {
+    return Err("source is not a directory: " + src)
   }
-  
-  if !fs.path_exists(dst) {
-    fs.create_dir_all(dst) catch { e => Err(e.to_string())? }
-  }
-  
-  let entries = fs.read_dir(src) catch { e => Err(e.to_string())? }
+  @utils.ensure_dir(dst)
+  let entries = @fs.read_dir(src) catch { e => return Err(e.to_string()) }
   for entry in entries {
-    let src_path = Path::join(src, Path(entry)).to_string()
-    let dst_path = Path::join(dst, Path(entry)).to_string()
-    if fs.is_dir(src_path) {
-      copy_directory_simple(src_path, dst_path)?
+    let src_path = @path.Path::join(src, @path.Path(entry)).to_string()
+    let dst_path = @path.Path::join(dst, @path.Path(entry)).to_string()
+    let child_is_dir = @fs.is_dir(src_path) catch { _ => false }
+    if child_is_dir {
+      match copy_directory_recursive(src_path, dst_path) {
+        Ok(_) => ()
+        Err(e) => return Err(e)
+      }
     } else {
-      let content = fs.read_file_to_string(src_path) catch { e => Err(e.to_string())? }
-      fs.write_string_to_file(dst_path, content) catch { e => Err(e.to_string())? }
+      let content = @fs.read_file_to_string(src_path) catch {
+        e => return Err("read " + src_path + ": " + e.to_string())
+      }
+      @fs.write_string_to_file(dst_path, content) catch {
+        e => return Err("write " + dst_path + ": " + e.to_string())
+      }
     }
   }
   Ok(())
 }
 
 ///|
-/// Simple directory removal (for MVP).
-fn remove_directory_simple(dir : String) -> Result[Unit, String] {
-  let entries = fs.read_dir(dir) catch { _ => return Ok(()) }
+/// Recursively delete a directory tree. Best-effort: errors during descent
+/// are silently swallowed so the caller gets the cleanest possible result.
+fn remove_directory_recursive(dir : String) -> Result[Unit, String] {
+  let entries = @fs.read_dir(dir) catch { _ => return Ok(()) }
   for entry in entries {
-    let path = Path::join(dir, Path(entry)).to_string()
-    if fs.is_dir(path) {
-      remove_directory_simple(path)?
+    let path = @path.Path::join(dir, @path.Path(entry)).to_string()
+    let is_directory = @fs.is_dir(path) catch { _ => false }
+    if is_directory {
+      match remove_directory_recursive(path) {
+        Ok(_) => ()
+        Err(_) => ()
+      }
     } else {
-      fs.remove_file(path) catch { _ => () }
+      @fs.remove_file(path) catch { _ => () }
     }
   }
-  fs.remove_dir(dir) catch { e => Err(e.to_string())? }
+  @fs.remove_dir(dir) catch { e => return Err(e.to_string()) }
   Ok(())
 }
 
 ///|
-/// Get extension by ID.
-pub(all) fn get_extension_by_id(ext_id : String) -> Extension? {
+/// Get an extension by ID from any source. Returns None if not found.
+pub fn get_extension_by_id(ext_id : String) -> Extension? {
   let all = load_all_extensions()
-  all.find(fn(e) { e.manifest.id == ext_id })
+  all.iter().find_first(fn(e) { e.manifest.id == ext_id })
 }

@@ -1,7 +1,10 @@
 # Extension 框架 MVP · 启动 Spec (IDEA_DOC)
 
-> **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **创建日期**: 2026-07-09
+> **完成日期**: 2026-07-13  
+> **状态**: 已完成 ✅
+> **负责分支**: `feature/extension-framework-mvp`
+> **关联 PR**: TBD
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P1-1）  
 > **关联历史**: `specs/completed/2026-07-07_extension-runtime-activation.md`（已激活运行时调度）  
 > **负责人**: Agent-C

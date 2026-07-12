@@ -1,63 +1,54 @@
-﻿///| Extension loader: three-level source scanning and merging.
+///| Extension loader: three-level source scanning and merging.
 /// Scans builtin (assets/extensions), installed (~/.clacky/extensions),
 /// and local (./extensions) sources, then merges with priority ordering.
 
-use @clacky.extension.types.{
-  Extension,
-  ExtensionManifest,
-  ExtensionSource,
-  ExtensionContribution,
-  ExtensionContributionType,
-}
-use @path.Path
-use @fs
-use @utils
-use @json
-
 ///|
 /// Load extensions from all three sources and merge with priority.
-/// Priority: Local > Installed > Builtin
-pub(all) fn load_all_extensions() -> Array[Extension] {
+/// Priority: Local > Installed > Builtin.
+pub fn load_all_extensions() -> Array[Extension] {
   let builtin = load_extensions_from_source(ExtensionSource::Builtin)
   let installed = load_extensions_from_source(ExtensionSource::Installed)
   let local = load_extensions_from_source(ExtensionSource::Local)
-  
   merge_extensions_with_priority(builtin, installed, local)
 }
 
 ///|
 /// Load extensions from a specific source.
-pub(all) fn load_extensions_from_source(source : ExtensionSource) -> Array[Extension] {
+pub fn load_extensions_from_source(
+  source : ExtensionSource,
+) -> Array[Extension] {
   let dir = get_source_directory(source)
-  if !fs.path_exists(dir) {
+  if !@fs.path_exists(dir) {
     return []
   }
-  
   let extensions : Array[Extension] = []
-  let entries = fs.read_dir(dir) catch { _ => return [] }
-  
+  let entries = @fs.read_dir(dir) catch { _ => return [] }
   for entry in entries {
-    let full_path = Path::join(dir, Path(entry)).to_string()
-    if fs.is_dir(full_path) {
+    let full_path = @path.Path::join(dir, @path.Path(entry)).to_string()
+    let is_directory = @fs.is_dir(full_path) catch { _ => false }
+    if is_directory {
       match load_single_extension(full_path, source) {
         Some(ext) => extensions.push(ext)
         None => ()
       }
     }
   }
-  
   extensions
 }
 
 ///|
 /// Get the directory path for a specific source.
-pub(all) fn get_source_directory(source : ExtensionSource) -> String {
+pub fn get_source_directory(source : ExtensionSource) -> String {
   match source {
     ExtensionSource::Builtin =>
-      Path::join(utils.get_project_root(), Path("assets/extensions")).to_string()
+      @path.Path::join(
+        @utils.current_dir(),
+        @path.Path("assets/extensions"),
+      ).to_string()
     ExtensionSource::Installed =>
-      match utils.home_dir() {
-        Some(home) => Path::join(home, Path(".clacky/extensions")).to_string()
+      match @utils.home_dir() {
+        Some(home) =>
+          @path.Path::join(home, @path.Path(".clacky/extensions")).to_string()
         None => ".clacky/extensions"
       }
     ExtensionSource::Local => "./extensions"
@@ -66,23 +57,17 @@ pub(all) fn get_source_directory(source : ExtensionSource) -> String {
 
 ///|
 /// Load a single extension from a directory.
-pub(all) fn load_single_extension(
+/// Returns None if ext.yml (or ext.yaml) is missing or malformed.
+pub fn load_single_extension(
   dir_path : String,
   source : ExtensionSource,
 ) -> Extension? {
-  let manifest_path = Path::join(dir_path, Path("ext.yml")).to_string()
-  if !fs.path_exists(manifest_path) {
-    // Try ext.yaml as fallback
-    let yaml_path = Path::join(dir_path, Path("ext.yaml")).to_string()
-    if !fs.path_exists(yaml_path) {
-      return None
-    }
+  let manifest = match load_manifest(dir_path) {
+    Some(m) => m
+    None => return None
   }
-  
-  let manifest = load_manifest(dir_path) catch { _ => return None }
   let enabled = manifest.enabled_by_default
-  let loaded_at = @sys.time_now_ms()
-  
+  let loaded_at = @agent.current_time_ms()
   Some({
     manifest,
     source,
@@ -95,7 +80,7 @@ pub(all) fn load_single_extension(
 
 ///|
 /// Merge extensions from three sources with priority ordering.
-/// Priority: Local > Installed > Builtin
+/// Priority: Local > Installed > Builtin.
 fn merge_extensions_with_priority(
   builtin : Array[Extension],
   installed : Array[Extension],
@@ -103,174 +88,202 @@ fn merge_extensions_with_priority(
 ) -> Array[Extension] {
   let seen : Map[String, Bool] = {}
   let result : Array[Extension] = []
-  
-  // Local extensions (highest priority)
   for ext in local {
-    let id = ext.manifest.id
-    if !seen.contains_key(id) {
-      seen[id] = true
+    if !seen.contains(ext.manifest.id) {
+      seen[ext.manifest.id] = true
       result.push(ext)
     }
   }
-  
-  // Installed extensions
   for ext in installed {
-    let id = ext.manifest.id
-    if !seen.contains_key(id) {
-      seen[id] = true
+    if !seen.contains(ext.manifest.id) {
+      seen[ext.manifest.id] = true
       result.push(ext)
     }
   }
-  
-  // Builtin extensions (lowest priority)
   for ext in builtin {
-    let id = ext.manifest.id
-    if !seen.contains_key(id) {
-      seen[id] = true
+    if !seen.contains(ext.manifest.id) {
+      seen[ext.manifest.id] = true
       result.push(ext)
     }
   }
-  
   result
 }
 
 ///|
 /// Load extension manifest from ext.yml or ext.yaml.
-fn load_manifest(dir_path : String) -> Result[ExtensionManifest, String] {
-  let yml_path = Path::join(dir_path, Path("ext.yml")).to_string()
-  let yaml_path = Path::join(dir_path, Path("ext.yaml")).to_string()
-  
-  let content = if fs.path_exists(yml_path) {
-    fs.read_file_to_string(yml_path) catch { e => Err(e.to_string())? }
-  } else if fs.path_exists(yaml_path) {
-    fs.read_file_to_string(yaml_path) catch { e => Err(e.to_string())? }
+fn load_manifest(dir_path : String) -> ExtensionManifest? {
+  let yml_path = @path.Path::join(dir_path, @path.Path("ext.yml")).to_string()
+  let yaml_path = @path.Path::join(dir_path, @path.Path("ext.yaml")).to_string()
+  let content = if @fs.path_exists(yml_path) {
+    @fs.read_file_to_string(yml_path) catch { _ => return None }
+  } else if @fs.path_exists(yaml_path) {
+    @fs.read_file_to_string(yaml_path) catch { _ => return None }
   } else {
-    Err("ext.yml or ext.yaml not found")?
+    return None
   }
-  
-  // For MVP, we use JSON-like parsing (we can implement proper YAML later)
-  // For now, let's support a simple JSON format in ext.yml
   parse_manifest_json(content)
 }
 
 ///|
 /// Parse manifest from JSON content.
-fn parse_manifest_json(content : String) -> Result[ExtensionManifest, String] {
-  let json = json.parse(content) catch { e => Err(e.to_string())? }
-  
+/// ext.yml is treated as JSON for MVP simplicity.
+fn parse_manifest_json(content : String) -> ExtensionManifest? {
+  let json = @json.parse(content) catch { _ => return None }
   match json {
-    Object(obj) => {
-      let id = get_required_string(obj, "id")?
-      let name = get_required_string(obj, "name")?
-      let version = get_required_string(obj, "version")?
-      let description = get_required_string(obj, "description")?
-      let author = get_required_string(obj, "author")?
-      let license = get_required_string(obj, "license")?
-      
-      let homepage = get_optional_string(obj, "homepage")
-      let repository = get_optional_string(obj, "repository")
-      
-      let keywords = get_string_array(obj, "keywords")
-      let dependencies = get_string_map(obj, "dependencies")
-      let contributions = parse_contributions(obj, "contributions")?
-      
-      let enabled_by_default = match obj.get("enabled_by_default") {
-        Some(False) => false
-        _ => true
+    Object(obj) =>
+      match build_manifest_from_obj(obj) {
+        Some(m) => Some(m)
+        None => None
       }
-      
-      Ok({
-        id,
-        name,
-        version,
-        description,
-        author,
-        license,
-        homepage,
-        repository,
-        keywords,
-        dependencies,
-        contributions,
-        enabled_by_default,
-      })
-    }
-    _ => Err("manifest must be a JSON object")
-  }
-}
-
-///|
-/// Parse contributions from manifest.
-fn parse_contributions(
-  obj : Map[String, Json],
-  key : String,
-) -> Result[Array[ExtensionContribution], String] {
-  match obj.get(key) {
-    Some(Array(arr)) => {
-      let contributions : Array[ExtensionContribution] = []
-      for item in arr {
-        match item {
-          Object(cobj) => {
-            let type_str = get_required_string(cobj, "type")?
-            let type_ = parse_contribution_type(type_str)?
-            let id = get_required_string(cobj, "id")?
-            let name = get_required_string(cobj, "name")?
-            let description = get_required_string(cobj, "description")?
-            let path = get_required_string(cobj, "path")?
-            let config = get_string_map(cobj, "config")
-            
-            contributions.push({
-              type_,
-              id,
-              name,
-              description,
-              path,
-              config,
-            })
-          }
-          _ => Err("contribution must be an object")?
-        }
-      }
-      Ok(contributions)
-    }
-    _ => Ok([])
-  }
-}
-
-///|
-/// Parse contribution type from string.
-fn parse_contribution_type(s : String) -> Result[ExtensionContributionType, String] {
-  match s.to_lower() {
-    "panel" => Ok(ExtensionContributionType::Panel)
-    "skill" => Ok(ExtensionContributionType::Skill)
-    "agent" => Ok(ExtensionContributionType::Agent)
-    "api" => Ok(ExtensionContributionType::Api)
-    "hook" => Ok(ExtensionContributionType::Hook)
-    "patch" => Ok(ExtensionContributionType::Patch)
-    _ => Err("invalid contribution type: \{s}")
-  }
-}
-
-///|
-/// Get required string field from JSON object.
-fn get_required_string(obj : Map[String, Json], key : String) -> Result[String, String] {
-  match obj.get(key) {
-    Some(String(s)) => Ok(s)
-    _ => Err("missing or invalid required field: \{key}")
-  }
-}
-
-///|
-/// Get optional string field from JSON object.
-fn get_optional_string(obj : Map[String, Json], key : String) -> String? {
-  match obj.get(key) {
-    Some(String(s)) => Some(s)
     _ => None
   }
 }
 
 ///|
-/// Get string array from JSON object.
-fn get_string_array(obj : Map[String, Json], key : String) -> Array[String] {
+/// Build an ExtensionManifest from a JSON object map.
+fn build_manifest_from_obj(
+  obj : Map[String, Json],
+) -> ExtensionManifest? {
+  let id = match obj.get("id") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  if id.is_empty() {
+    return None
+  }
+  let name = match obj.get("name") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let version = match obj.get("version") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let description = match obj.get("description") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let author = match obj.get("author") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let license = match obj.get("license") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let homepage = match obj.get("homepage") {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+  let repository = match obj.get("repository") {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+  let keywords = parse_string_array(obj, "keywords")
+  let dependencies = parse_string_map(obj, "dependencies")
+  let contributions = match parse_contributions(obj, "contributions") {
+    Some(arr) => arr
+    None => return None
+  }
+  let enabled_by_default = match obj.get("enabled_by_default") {
+    Some(False) => false
+    _ => true
+  }
+  Some({
+    id,
+    name,
+    version,
+    description,
+    author,
+    license,
+    homepage,
+    repository,
+    keywords,
+    dependencies,
+    contributions,
+    enabled_by_default,
+  })
+}
+
+///|
+/// Parse contributions array from a manifest object.
+fn parse_contributions(
+  obj : Map[String, Json],
+  key : String,
+) -> Array[ExtensionContribution]? {
+  match obj.get(key) {
+    Some(Array(arr)) => {
+      let contributions : Array[ExtensionContribution] = []
+      for item in arr {
+        match item {
+          Object(cobj) =>
+            match build_contribution_from_obj(cobj) {
+              Some(c) => contributions.push(c)
+              None => ()
+            }
+          _ => ()
+        }
+      }
+      Some(contributions)
+    }
+    _ => Some([])
+  }
+}
+
+///|
+/// Build a single ExtensionContribution from a JSON object.
+fn build_contribution_from_obj(
+  cobj : Map[String, Json],
+) -> ExtensionContribution? {
+  let type_str = match cobj.get("type") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let type_ = match parse_contribution_type(type_str) {
+    Some(t) => t
+    None => return None
+  }
+  let id = match cobj.get("id") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  if id.is_empty() {
+    return None
+  }
+  let name = match cobj.get("name") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let description = match cobj.get("description") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let path = match cobj.get("path") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let config = parse_string_map(cobj, "config")
+  Some({ type_, id, name, description, path, config })
+}
+
+///|
+/// Parse contribution type from string.
+fn parse_contribution_type(s : String) -> ExtensionContributionType? {
+  let lower = s.to_lower()
+  match lower {
+    "panel" => Some(ExtensionContributionType::Panel)
+    "skill" => Some(ExtensionContributionType::Skill)
+    "agent" => Some(ExtensionContributionType::Agent)
+    "api" => Some(ExtensionContributionType::Api)
+    "hook" => Some(ExtensionContributionType::Hook)
+    "patch" => Some(ExtensionContributionType::Patch)
+    _ => None
+  }
+}
+
+///|
+/// Parse a string array field from a JSON object.
+fn parse_string_array(obj : Map[String, Json], key : String) -> Array[String] {
   match obj.get(key) {
     Some(Array(arr)) => {
       let result : Array[String] = []
@@ -287,17 +300,20 @@ fn get_string_array(obj : Map[String, Json], key : String) -> Array[String] {
 }
 
 ///|
-/// Get string map from JSON object.
-fn get_string_map(obj : Map[String, Json], key : String) -> Map[String, String] {
+/// Parse a string map field from a JSON object.
+fn parse_string_map(
+  obj : Map[String, Json],
+  key : String,
+) -> Map[String, String] {
   match obj.get(key) {
     Some(Object(m)) => {
       let result : Map[String, String] = {}
-      for (k, v) in m {
+      m.each(fn(k, v) {
         match v {
           String(s) => result[k] = s
           _ => ()
         }
-      }
+      })
       result
     }
     _ => {}
@@ -305,8 +321,8 @@ fn get_string_map(obj : Map[String, Json], key : String) -> Map[String, String] 
 }
 
 ///|
-/// Filter extensions to only those that are enabled.
-pub(all) fn enabled_extensions(extensions : Array[Extension]) -> Array[Extension] {
+/// Filter extensions to only those that are currently enabled.
+pub fn enabled_extensions(extensions : Array[Extension]) -> Array[Extension] {
   let result : Array[Extension] = []
   for ext in extensions {
     if ext.enabled {
