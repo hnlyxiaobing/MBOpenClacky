@@ -1,6 +1,6 @@
 # skill — SKILL.md 解析 · 技能注册 · GEP 进化引擎
 
-> 路径: `lib/skill/` · 11 文件（src=9, test=2）· 技能管理与进化
+> 路径: `lib/skill/` · 12 文件（src=10, test=2）· 技能管理与进化
 
 ## 入口函数
 
@@ -8,7 +8,7 @@
 |------|------|------|
 | `discover_skills(env)` | `skill.mbt` | 从 discovery_paths 扫描并加载所有 SKILL.md |
 | `load_skill_from_content(name, content, dir?)` | `skill.mbt` | 解析单个 SKILL.md 文件（frontmatter + body） |
-| `register_default_skills(registry)` | `default_skills.mbt` | 注册 16 个内置默认技能 |
+| `register_default_skills(registry)` | `default_skills.mbt` | 注册 15 个内置默认技能 |
 | `EvolutionEngine::evolve(scenario)` | `evolution.mbt` | 触发技能进化流程 |
 | `parse_frontmatter(content)` | `skill.mbt` | 解析 YAML frontmatter 元数据 |
 
@@ -55,7 +55,7 @@ EvolutionEngine::evolve(scenario)
 |------|------|
 | `skill.mbt` | Skill 类型、SKILL.md 解析、load_skill_from_content |
 | `registry.mbt` | SkillRegistry、技能注册/查询/列表/删除 |
-| `default_skills.mbt` | DefaultSkillMeta、get_default_skill_metas（16 个）、register_default_skills |
+| `default_skills.mbt` | DefaultSkillMeta、get_default_skill_metas（15 个）、register_default_skills |
 | `discovery.mbt` | default_discovery_paths、discover_skills（支持 SKILL.md 和 skill.json） |
 | `loader.mbt` | parse_frontmatter（YAML frontmatter 解析）、load_skill_from_json_value |
 | `executor.mbt` | SkillResult、build_skill_context（技能执行上下文注入） |
@@ -69,9 +69,11 @@ EvolutionEngine::evolve(scenario)
 - `moonbitlang/core/json` — JSON 序列化
 - `lib/web/handlers_skills.mbt` — Web REST API 层（CRUD、install、content get/put、toggle、store、creator）
 
-## 默认技能清单（17 个）
+## 默认技能清单（15 个代码注册 + 2 个仅资源）
 
-包括: `new`, `onboard`, `deploy`, `browser_setup`, `channel_manager`, `code-explorer`, `cron-task-creator`, `extend-openclacky`, `mcp-manager`, `media-gen`, `persist-memory`, `personal_website`, `product-help`, `recall-memory`, `search-skills`, `skill_add`, `skill-creator`。
+代码注册（`default_skills.mbt`）: `new`, `onboard`, `deploy`, `browser_setup`, `channel_manager`, `code-explorer`, `cron-task-creator`, `mcp-manager`, `media-gen`, `persist-memory`, `personal_website`, `product-help`, `recall-memory`, `search-skills`, `skill-creator`。
+
+仅资源目录（`assets/skills/`）: `extend-openclacky`, `skill_add`。
 
 ## 风险点
 

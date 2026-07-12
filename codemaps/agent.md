@@ -68,7 +68,8 @@ Agent::run(user_input)
 | 子 Agent | `subagent.mbt`, `agent_pool.mbt`, `agent_result.mbt` | 子 Agent 编排 |
 | Profile | `profile.mbt`, `profile_types.mbt`, `default_profiles.mbt` | Agent 配置文件 |
 | 技能管理 | `skill_manager.mbt` | Agent 技能加载/查询/摘要方法 |
-| 系统提示 | `system_prompt.mbt` | 系统提示词组装 || 空闲压缩 | `idle_timer.mbt` | 空闲压缩定时器 |
+| 系统提示 | `system_prompt.mbt` | 系统提示词组装 |
+| 空闲压缩 | `idle_timer.mbt` | 空闲压缩定时器 |
 | 时间 | `time.mbt`, `time_stub.c` | 时间工具（C FFI） |
 
 ## 外部依赖

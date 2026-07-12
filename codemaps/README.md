@@ -27,7 +27,7 @@
 | mcp | `mcp.md` | MCP 协议（Stdio/HTTP） |
 | channel | `channel.md` | 6 个 IM 适配器 |
 | server | `server.md` | Cron 调度、浏览器管理、Git 面板 |
-| web | `web.md` | REST 服务器、90+ 端点 |
+| web | `web.md` | REST 服务器、127 端点、前端 SPA |
 | tui | `tui.md` | TUI 控制器、组件 |
 | config | `config.md` | TOML 配置加载 |
 ## 如何生成

@@ -1,7 +1,6 @@
 # tool — Tool trait · 14 个内置工具 · ToolRegistry · PTY/终端 · 安全检查
 
-> 路径: `lib/tool/` · 38 文件（src=35, test=3）· 工具执行层
-> 含 browser 子系统 7 文件（详见 `browser.md`）
+> 路径: `lib/tool/` · 39 文件（src=34, test=4）· 含 browser 子系统 7 文件（详见 `browser.md`）
 
 ## 入口函数
 
@@ -79,7 +78,7 @@ Agent::execute_single_tool(tool_name, args)
 | 浏览器工具 | `browser.mbt`, `browser_action.mbt`, `browser_mcp_args.mbt`, `browser_page.mbt`, `browser_screenshot.mbt`, `browser_snapshot.mbt`, `browser_wbtest.mbt` | 浏览器自动化（详见 `browser.md`） |
 | Web 工具 | `web_search.mbt`, `web_fetch.mbt` | 网页搜索、网页抓取 |
 | Agent 工具 | `invoke_skill.mbt`, `memory_tool.mbt`, `todo_tool.mbt`, `request_user_feedback.mbt` | 技能调用、记忆管理、任务管理、用户反馈 |
-| 其他 | `output_cleaner.mbt`, `tool_stubs.c` | 输出清理、C FFI stubs |
+| 其他 | `output_cleaner.mbt`, `shell_exec.mbt`, `tool_stubs.c` | 输出清理、Shell 执行抽象层、C FFI stubs |
 
 ## 14 个内置工具清单
 

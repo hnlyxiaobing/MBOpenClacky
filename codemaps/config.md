@@ -1,6 +1,6 @@
 # config — TOML 配置加载 · 12 Provider 预设 · 权限控制
 
-> 路径: `lib/config/` · 8 文件 · 配置管理
+> 路径: `lib/config/` · 9 文件（src=7, test=1）· 配置管理
 
 ## 入口函数
 
@@ -63,7 +63,7 @@ Providers::resolve(provider_id)
 
 ## Provider 预设清单（12 个）
 
-包括 OpenAI、Anthropic、AWS Bedrock、Google Gemini、DeepSeek、Moonshot、Zhipu、SiliconFlow、Groq、Mistral、Cohere、自定义等。
+包括 OpenClacky、OpenRouter、DeepSeek V4、Minimax、Kimi、Kimi Code、Anthropic、MiMo、GLM、OpenAI、DeepSeek (Legacy)、Qwen 等 12 个。
 
 ## 外部依赖
 
