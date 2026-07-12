@@ -59,6 +59,12 @@ jobs:
       - name: Type check
         run: moon check
 
+      - name: Guard insecure crypto build
+        # Refuse to ship the weak crypto stubs (lib/brand/brand_stubs.c) in a
+        # release artifact. This complements the compile-time #error guard in
+        # brand_stubs.c with a CI-level safety net.
+        run: bash scripts/check-crypto-build.sh release
+
       - name: Build (native release)
         run: moon build --target native --release cmd
 
