@@ -191,6 +191,20 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
     })
 
+    // Meetings
+    api.group("/meetings", (m : @crescent.App) => {
+      m.get("", event => handle_list_meetings(server_ref, event))
+      m.post("", event => handle_create_meeting(server_ref, event))
+      m.get("/:id", event => handle_get_meeting(server_ref, event))
+      m.post("/:id/transcript", event => {
+        handle_add_transcript(server_ref, event)
+      })
+      m.post("/:id/end", event => handle_end_meeting(server_ref, event))
+      m.post("/:id/summarize", event => {
+        handle_summarize_meeting(server_ref, event)
+      })
+    })
+
     // Config
     api.group("/config", (c : @crescent.App) => {
       c.get("", event => handle_get_config(server_ref, event))

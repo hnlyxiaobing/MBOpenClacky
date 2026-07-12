@@ -81,7 +81,10 @@ test "validate_manifest warns about dependencies" {
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
   assert_eq(result.warnings.length() > 0, true)
   let joined = result.warnings.join("; ")
-  assert_eq(joined.contains("Dependencies are not automatically resolved"), true)
+  assert_eq(
+    joined.contains("Dependencies are not automatically resolved"),
+    true,
+  )
 }
 
 ///|

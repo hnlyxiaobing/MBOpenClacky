@@ -7,11 +7,11 @@
 
 ## 问题描述
 
-`moon check` 0 errors / **488 warnings**，`moon build --release cmd` 0 errors / 279 warnings。warnings 主要为 `Show` trait 弃用、unused package、未使用绑定等。噪声掩盖真实问题，需削减至 ≤200，并建立"新增代码零 warning"约束。
+`moon check` 0 errors / **522 warnings**，`moon build --release cmd` 0 errors / 279 warnings。warnings 主要为 `Show` trait 弃用、unused package、未使用绑定等。噪声掩盖真实问题，需削减至 ≤200，并建立“新增代码零 warning”约束。
 
 ## 现状分析
 
-- 488 warnings 分布需按类别统计（`moon check 2>&1 | grep -c`）。
+- 522 warnings 分布需按类别统计（`moon check 2>&1 | grep -c`）。
 - `Show` 弃用类占比较大（MoonBit 标准库迭代遗留）。
 - 部分为 unused import/package，可安全清理。
 - 少量可能揭示真实死代码。

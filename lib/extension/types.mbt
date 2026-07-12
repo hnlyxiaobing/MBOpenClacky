@@ -1,4 +1,5 @@
 ///| Extension framework types and core data structures.
+
 ///| Defines the manifest format, extension types, and state management.
 
 ///|

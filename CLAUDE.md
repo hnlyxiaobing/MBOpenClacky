@@ -35,7 +35,7 @@ lib/
                 Terminal/PTY, WebSearch, WebFetch, InvokeSkill, MemoryTool, TodoTool,
                 RequestUserFeedback, TrashManager, Browser) + registry with 70+ aliases
   skill/      — SKILL.md parsing, registry, discovery, executor, evolution engine
-                (Reflector/AutoCreator), 17 default skills
+                (Reflector/AutoCreator), 16 default skills
   mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
                 registry, virtual skill mapping, skill provider
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
@@ -82,17 +82,17 @@ lib/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 248 |
-| Test files (`_wbtest.mbt`) | 67 |
-| Source lines | ~55,700 |
-| Test lines | ~18,600 |
-| Total lines (incl. test/) | ~75,700 |
+| `.mbt` source files (lib + cmd) | 258 |
+| Test files (`_wbtest.mbt`) | 73 |
+| Source lines | ~54,400 |
+| Test lines | ~17,400 |
+| Total lines (incl. test/) | ~73,200 |
 | Test cases | 1,400+ |
 | Packages | 21 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
-| Default skills | 17 |
+| Default skills | 16 |
 | REST API endpoints | 90+ |
-| `moon check` | 0 errors, ~426 warnings |
+| `moon check` | 0 errors, ~522 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~87-92% |

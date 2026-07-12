@@ -25,6 +25,17 @@
 
 ## 变更记录
 
+### 2026-07-13  docs: 全量文档指标同步与精简
+
+- `[docs]` **项目指标全量同步**（基于实际统计）
+  - 源文件数: 248 → 258，测试文件: 67 → 73
+  - 源码行: ~55,700 → ~54,400，测试行: ~18,600 → ~17,400，总行: ~75,700 → ~73,200
+  - 默认技能: 17 → 16（代码实际注册数）
+  - `moon check` warnings: ~488 → ~522
+  - 统一 REST API 端点描述为“90+”（消除“127”不一致）
+- `[docs]` **受影响文件**：CLAUDE.md、README.md、docs/project-status.md、docs/getting-started.md、codemaps/README.md、codemaps/web.md、codemaps/skill.md
+- `[docs]` **codemaps/skill.md 修正**：默认技能清单从 15 个更正为 16 个，补充完整技能名列表，修正“仅资源目录”为 `extend-openclacky` + `meeting-summarizer`
+
 ### 2026-07-12  docs: Spec 归档与文档同步更新
 
 - `[docs]` **Spec 归档（Harness 方法论流程）**

@@ -28,10 +28,7 @@ pub fn create_extension_scaffold(
     return Err("extension directory already exists: " + ext_dir)
   }
   @utils.ensure_dir(ext_dir)
-  let contrib_dir = @path.Path::join(
-    ext_dir,
-    @path.Path("contributions"),
-  ).to_string()
+  let contrib_dir = @path.Path::join(ext_dir, @path.Path("contributions")).to_string()
   @utils.ensure_dir(contrib_dir)
   // Generate the manifest.
   let manifest = build_manifest_from_template(template)
@@ -96,15 +93,21 @@ fn contribution_template_info(
     ExtensionContributionType::Panel =>
       ("main-panel", "Main Panel", "A sample panel contribution", "panel.json")
     ExtensionContributionType::Skill =>
-      ("sample-skill", "Sample Skill", "A sample skill contribution", "skill.json")
+      (
+        "sample-skill", "Sample Skill", "A sample skill contribution", "skill.json",
+      )
     ExtensionContributionType::Agent =>
-      ("sample-agent", "Sample Agent", "A sample agent contribution", "agent.json")
+      (
+        "sample-agent", "Sample Agent", "A sample agent contribution", "agent.json",
+      )
     ExtensionContributionType::Api =>
       ("sample-api", "Sample API", "A sample API contribution", "api.json")
     ExtensionContributionType::Hook =>
       ("sample-hook", "Sample Hook", "A sample hook contribution", "hook.json")
     ExtensionContributionType::Patch =>
-      ("sample-patch", "Sample Patch", "A sample patch contribution", "patch.json")
+      (
+        "sample-patch", "Sample Patch", "A sample patch contribution", "patch.json",
+      )
   }
 }
 
@@ -167,10 +170,7 @@ fn create_contribution_template(
   type_ : ExtensionContributionType,
 ) -> Result[Unit, String] {
   let info = contribution_template_info(type_)
-  let file_path = @path.Path::join(
-    contrib_dir,
-    @path.Path(info.3),
-  ).to_string()
+  let file_path = @path.Path::join(contrib_dir, @path.Path(info.3)).to_string()
   let content = match type_ {
     ExtensionContributionType::Panel =>
       generate_panel_template(ext_id, info.0, info.1, info.2)
@@ -186,7 +186,13 @@ fn create_contribution_template(
       generate_patch_template(ext_id, info.0, info.1, info.2)
   }
   @fs.write_string_to_file(file_path, content) catch {
-    e => return Err("failed to write contribution template to " + file_path + ": " + e.to_string())
+    e =>
+      return Err(
+        "failed to write contribution template to " +
+        file_path +
+        ": " +
+        e.to_string(),
+      )
   }
   Ok(())
 }
@@ -258,7 +264,9 @@ fn generate_agent_template(
     "type": "agent".to_json(),
     "extension": ext_id.to_json(),
     "config": Json::object({
-      "system_prompt": ("You are a helpful assistant for the " + ext_id + " extension.").to_json(),
+      "system_prompt": ("You are a helpful assistant for the " +
+      ext_id +
+      " extension.").to_json(),
       "temperature": 0.7.to_json(),
     }),
   }
@@ -349,27 +357,35 @@ fn generate_readme(template : ExtensionTemplate) -> String {
     contrib_names.push(contribution_type_name(c))
   }
   let contrib_list = contrib_names.join(", ")
-  "# " + template.name + "\n" +
+  "# " +
+  template.name +
   "\n" +
-  template.description + "\n" +
+  "\n" +
+  template.description +
+  "\n" +
   "\n" +
   "## Installation\n" +
   "\n" +
-  "1. Copy this directory to `~/.clacky/extensions/" + template.id + "`\n" +
+  "1. Copy this directory to `~/.clacky/extensions/" +
+  template.id +
+  "`\n" +
   "2. Restart Clacky\n" +
   "3. Enable the extension in settings\n" +
   "\n" +
   "## Contributions\n" +
   "\n" +
-  contrib_list + "\n" +
+  contrib_list +
+  "\n" +
   "\n" +
   "## License\n" +
   "\n" +
-  template.license + "\n" +
+  template.license +
+  "\n" +
   "\n" +
   "## Author\n" +
   "\n" +
-  template.author + "\n"
+  template.author +
+  "\n"
 }
 
 ///|
@@ -395,6 +411,9 @@ pub fn default_template(id : String, name : String) -> ExtensionTemplate {
     description: "A new Clacky extension",
     author: "Your Name",
     license: "MIT",
-    contributions: [ExtensionContributionType::Panel, ExtensionContributionType::Skill],
+    contributions: [
+      ExtensionContributionType::Panel,
+      ExtensionContributionType::Skill,
+    ],
   }
 }

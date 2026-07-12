@@ -1,0 +1,29 @@
+{
+  "id": "time-machine",
+  "name": "Time Machine",
+  "version": "1.0.0",
+  "description": "Built-in time machine extension with timeline panel and backup hooks.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["time-machine", "history", "backup"],
+  "contributions": [
+    {
+      "type": "panel",
+      "id": "timeline-panel",
+      "name": "Timeline Panel",
+      "description": "Browse project history and restore previous states.",
+      "path": "contributions/panel.json",
+      "config": {}
+    },
+    {
+      "type": "hook",
+      "id": "timeline-backup",
+      "name": "Backup Hook",
+      "description": "Triggered periodically to create project snapshots.",
+      "path": "contributions/timeline-hook.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

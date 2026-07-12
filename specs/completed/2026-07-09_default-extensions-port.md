@@ -1,7 +1,7 @@
 # 默认扩展迁移 · 启动 Spec (IDEA_DOC)
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P1-2）  
 > **依赖**: `2026-07-09_extension-framework-mvp.md`（Loader/Verifier 先就绪）  
 > **负责人**: Agent-C
@@ -32,11 +32,11 @@
 
 ## 验收维度
 
-- [ ] coding / general / git / time_machine / ext-studio 五个扩展有合规 `ext.yml`
-- [ ] 每个 builtin 扩展被 Loader 发现且 Verifier 通过
-- [ ] 至少一个扩展可触发已注册 panel/hook
-- [ ] Agent Prompt 无双份冗余
-- [ ] `moon check` 0 errors
+- [x] coding / general / git / time_machine / ext-studio 五个扩展有合规 `ext.yml`
+- [x] 每个 builtin 扩展被 Loader 发现且 Verifier 通过
+- [x] 至少一个扩展可触发已注册 panel/hook
+- [x] Agent Prompt 无双份冗余
+- [x] `moon check` 0 errors
 
 ## 待后续推进时补充
 
@@ -49,3 +49,5 @@
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本 | 差距分析 P1-2 |
+| 2026-07-13 | 实施：5 个默认扩展声明式迁移至 assets/extensions/，复用 agents prompt | spec 实施 |
+| 2026-07-13 | 归档至 specs/completed/，所有验收标准已确认通过 | 代码核查完成 |

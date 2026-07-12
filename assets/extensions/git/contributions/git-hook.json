@@ -1,0 +1,14 @@
+{
+  "id": "git-post-commit",
+  "name": "Post-Commit Hook",
+  "description": "Triggered after each commit to refresh status panel and update commit log.",
+  "type": "hook",
+  "extension": "git",
+  "hooks": [
+    {
+      "event": "post_commit",
+      "handler": "refresh_git_status",
+      "description": "Refresh Git status panel after a commit operation."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "meeting-transcript-hook",
+  "name": "Transcript Hook",
+  "description": "Capture chat messages as meeting transcript entries.",
+  "type": "hook",
+  "extension": "meeting",
+  "hooks": [
+    {
+      "event": "message_sent",
+      "handler": "capture_transcript_entry",
+      "description": "Capture outgoing messages as meeting transcript entries when a meeting is active."
+    }
+  ]
+}

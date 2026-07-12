@@ -1,0 +1,18 @@
+{
+  "id": "scaffold-skill",
+  "name": "Extension Scaffold",
+  "description": "Generate new extension scaffolds with ext.yml manifest and template contributions.",
+  "type": "skill",
+  "extension": "ext-studio",
+  "skills": [
+    {
+      "name": "scaffold_extension",
+      "description": "Create a new extension scaffold with manifest and contribution templates.",
+      "parameters": {
+        "name": "Extension ID (lowercase, dashes allowed)",
+        "display_name": "Human-readable extension name",
+        "contributions": "Comma-separated contribution types: panel,skill,agent,api,hook,patch"
+      }
+    }
+  ]
+}

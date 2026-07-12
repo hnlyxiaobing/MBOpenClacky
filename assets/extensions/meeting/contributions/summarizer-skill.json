@@ -1,0 +1,16 @@
+{
+  "id": "meeting-summarizer",
+  "name": "Meeting Summarizer",
+  "description": "Generate structured summaries from meeting transcripts.",
+  "type": "skill",
+  "extension": "meeting",
+  "skills": [
+    {
+      "name": "meeting_summarizer",
+      "description": "Generate structured meeting summaries with key decisions, action items, and discussion points.",
+      "parameters": {
+        "meeting_id": "The ID of the meeting to summarize"
+      }
+    }
+  ]
+}

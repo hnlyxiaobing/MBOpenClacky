@@ -64,8 +64,7 @@ fn validate_id_format(id : String, errors : Array[ValidationError]) -> Unit {
     if !valid_chars(c) {
       errors.push(
         ValidationError::InvalidField(
-          "id",
-          "must contain only lowercase letters, numbers, and dashes",
+          "id", "must contain only lowercase letters, numbers, and dashes",
         ),
       )
       break
@@ -73,10 +72,7 @@ fn validate_id_format(id : String, errors : Array[ValidationError]) -> Unit {
   }
   if id.has_prefix("-") || id.has_suffix("-") {
     errors.push(
-      ValidationError::InvalidField(
-        "id",
-        "must not start or end with a dash",
-      ),
+      ValidationError::InvalidField("id", "must not start or end with a dash"),
     )
   }
 }
@@ -186,10 +182,7 @@ fn validate_resources_exist(
     if contrib.path.is_empty() {
       continue
     }
-    let resource_path = @path.Path::join(
-      root_path,
-      @path.Path(contrib.path),
-    ).to_string()
+    let resource_path = @path.Path::join(root_path, @path.Path(contrib.path)).to_string()
     if !@fs.path_exists(resource_path) {
       errors.push(ValidationError::MissingResource(contrib.path))
     }

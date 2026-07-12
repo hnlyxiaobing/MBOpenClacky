@@ -1,0 +1,37 @@
+{
+  "id": "meeting",
+  "name": "Meeting Support",
+  "version": "1.0.0",
+  "description": "Built-in meeting extension with meeting panel, summarizer skill, and transcript hooks.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["meeting", "collaboration", "summarizer"],
+  "contributions": [
+    {
+      "type": "panel",
+      "id": "meeting-panel",
+      "name": "Meeting Panel",
+      "description": "View meetings, manage transcripts, and trigger summaries.",
+      "path": "contributions/panel.json",
+      "config": {}
+    },
+    {
+      "type": "skill",
+      "id": "meeting-summarizer",
+      "name": "Meeting Summarizer",
+      "description": "Generate structured summaries from meeting transcripts.",
+      "path": "contributions/summarizer-skill.json",
+      "config": {}
+    },
+    {
+      "type": "hook",
+      "id": "meeting-transcript-hook",
+      "name": "Transcript Hook",
+      "description": "Capture chat messages as meeting transcript entries.",
+      "path": "contributions/meeting-hook.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

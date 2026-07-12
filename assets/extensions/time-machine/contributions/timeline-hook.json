@@ -1,0 +1,14 @@
+{
+  "id": "timeline-backup",
+  "name": "Backup Hook",
+  "description": "Triggered periodically to create project snapshots for the time machine.",
+  "type": "hook",
+  "extension": "time-machine",
+  "hooks": [
+    {
+      "event": "session_save",
+      "handler": "create_snapshot",
+      "description": "Create a project snapshot when session state is saved."
+    }
+  ]
+}

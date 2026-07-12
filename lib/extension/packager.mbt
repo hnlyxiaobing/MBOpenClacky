@@ -30,10 +30,7 @@ pub fn package_extension(
   @utils.ensure_dir(out_dir)
   // Compute destination path.
   let package_name = ext.manifest.id + "-" + ext.manifest.version
-  let package_path = @path.Path::join(
-    out_dir,
-    @path.Path(package_name),
-  ).to_string()
+  let package_path = @path.Path::join(out_dir, @path.Path(package_name)).to_string()
   // Avoid clobbering an existing package.
   if @fs.path_exists(package_path) {
     return Err("package already exists at " + package_path)
@@ -53,10 +50,7 @@ pub fn package_extension(
   info_obj["sha256"] = sha256.to_json()
   info_obj["root_path"] = ext_dir.to_json()
   info_obj["packaged_at"] = @agent.current_time_ms().to_json()
-  let info_path = @path.Path::join(
-    out_dir,
-    @path.Path(package_name + ".json"),
-  ).to_string()
+  let info_path = @path.Path::join(out_dir, @path.Path(package_name + ".json")).to_string()
   @fs.write_string_to_file(info_path, Json::object(info_obj).stringify()) catch {
     e => return Err("failed to write package info: " + e.to_string())
   }
@@ -66,11 +60,7 @@ pub fn package_extension(
 ///|
 /// Recursively copy a directory tree.
 fn copy_directory(src : String, dst : String) -> Result[Unit, String] {
-  let src_is_dir = try {
-    @fs.is_dir(src)
-  } catch {
-    _ => false
-  }
+  let src_is_dir = @fs.is_dir(src) catch { _ => false }
   if !src_is_dir {
     return Err("source is not a directory: " + src)
   }
@@ -103,7 +93,7 @@ fn copy_directory(src : String, dst : String) -> Result[Unit, String] {
 /// Real SHA256 support can replace this without changing the public signature.
 fn compute_checksum(id : String, version : String, path : String) -> String {
   let mut hash : Int64 = 0xcbf29ce484222325L
-  for c in (id + ":" + version + ":" + path) {
+  for c in id + ":" + version + ":" + path {
     hash = (hash ^ c.to_int().to_int64()) * 0x100000001b3L
   }
   // Format as 16 hex chars (lowercase).
@@ -139,10 +129,7 @@ pub fn unpack_extension(
     Some(e) => e
     None => return Err("failed to load extension from package " + package_path)
   }
-  let ext_target_dir = @path.Path::join(
-    target,
-    @path.Path(ext.manifest.id),
-  ).to_string()
+  let ext_target_dir = @path.Path::join(target, @path.Path(ext.manifest.id)).to_string()
   if @fs.path_exists(ext_target_dir) {
     return Err("extension already installed at " + ext_target_dir)
   }

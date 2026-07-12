@@ -20,15 +20,16 @@ test "create_extension_scaffold writes manifest, contributions, and README" {
     description: "Scaffold for wbtest",
     author: "wbtest",
     license: "MIT",
-    contributions: [ExtensionContributionType::Panel, ExtensionContributionType::Skill],
+    contributions: [
+      ExtensionContributionType::Panel,
+      ExtensionContributionType::Skill,
+    ],
   }
-  let dir = @path.Path::join(
-    ".",
-    @path.Path("_wbtest_scaffold_out"),
-  ).to_string()
+  let dir = @path.Path::join(".", @path.Path("_wbtest_scaffold_out")).to_string()
   // Pre-clean: in case a prior run left the directory behind.
   let _ = pre_clean(dir)
-  let ext_dir = match create_extension_scaffold(template, output_dir=Some(dir)) {
+  let ext_dir = match
+    create_extension_scaffold(template, output_dir=Some(dir)) {
     Ok(d) => d
     Err(e) => {
       println("scaffold failed: " + e.to_string())
@@ -38,7 +39,9 @@ test "create_extension_scaffold writes manifest, contributions, and README" {
   }
   assert_eq(@fs.path_exists(ext_dir), true)
   assert_eq(
-    @fs.path_exists(@path.Path::join(ext_dir, @path.Path("ext.yml")).to_string()),
+    @fs.path_exists(
+      @path.Path::join(ext_dir, @path.Path("ext.yml")).to_string(),
+    ),
     true,
   )
   assert_eq(
@@ -103,8 +106,12 @@ fn pre_clean(dir : String) -> Unit {
     if is_directory {
       pre_clean(path)
     } else {
-      @fs.remove_file(path) catch { _ => () }
+      @fs.remove_file(path) catch {
+        _ => ()
+      }
     }
   }
-  @fs.remove_dir(dir) catch { _ => () }
+  @fs.remove_dir(dir) catch {
+    _ => ()
+  }
 }

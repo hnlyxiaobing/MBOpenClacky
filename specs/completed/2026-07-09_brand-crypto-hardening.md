@@ -1,7 +1,7 @@
 # Brand Crypto 加固 · 增量 Spec
 
 > **创建日期**: 2026-07-09  
-> **状态**: 实施中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P0-3）  
 > **负责方向**: Agent-F（安全）
 
@@ -67,12 +67,12 @@
 
 ## 验收标准
 
-- [ ] `derive_key` 使用 PBKDF2-HMAC-SHA256，迭代次数 ≥ 配置阈值
-- [ ] `refresh_distribution` 不再返回 stub 错误
-- [ ] 弱桩路径无法进入 release 构建
-- [ ] `moon check` 0 errors，`moon test lib/brand` 通过
-- [ ] Windows BCrypt 路径保持可用（不回归）
-- [ ] 密钥派生变更的兼容性有文档说明
+- [x] `derive_key` 使用 PBKDF2-HMAC-SHA256，迭代次数 ≥ 配置阈值
+- [x] `refresh_distribution` 不再返回 stub 错误
+- [x] 弱桩路径无法进入 release 构建
+- [x] `moon check` 0 errors，`moon test lib/brand` 通过
+- [x] Windows BCrypt 路径保持可用（不回归）
+- [x] 密钥派生变更的兼容性有文档说明
 
 ## 风险评估
 
@@ -89,3 +89,4 @@
 |---|---|---|
 | 2026-07-09 | 初始版本，由“Windows 弱桩修复”调整为“brand crypto 加固” | 代码核对发现 Windows 已用 BCrypt |
 | 2026-07-09 | 实施：PBKDF2 纯 MoonBit 实现、refresh_distribution HTTP 接入、弱桩运行时警告 | spec 实施计划 |
+| 2026-07-13 | 归档至 specs/completed/，所有验收标准已确认通过 | 代码核查完成 |

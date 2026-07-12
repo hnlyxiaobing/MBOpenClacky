@@ -1,0 +1,23 @@
+{
+  "id": "general",
+  "name": "General Assistant",
+  "version": "1.0.0",
+  "description": "Built-in general-purpose assistant with proactive suggestions, memory, and web search.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["general", "assistant", "conversational"],
+  "contributions": [
+    {
+      "type": "agent",
+      "id": "general-agent",
+      "name": "General Agent",
+      "description": "Versatile general assistant with memory and web search capabilities.",
+      "path": "../../agents/general/system_prompt.md",
+      "config": {
+        "config_path": "../../agents/general/config.toml"
+      }
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

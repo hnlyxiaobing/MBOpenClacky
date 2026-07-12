@@ -1,7 +1,7 @@
 # 会议能力支持 · 启动 Spec (IDEA_DOC)
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P1-3）  
 > **关联历史**: 原项目 `lib/clacky/default_extensions/meeting/`（api/panels/skills + ext.yml）  
 > **负责人**: Agent-D
@@ -33,11 +33,11 @@
 
 ## 验收维度
 
-- [ ] 会议会话可创建/列出/结束并持久化
-- [ ] `meeting-summarizer` skill 可对 transcript 产出结构化纪要
-- [ ] 会议 REST 端点有 wbtest
-- [ ] Web 面板可触发摘要并展示（与 P1-4 联调）
-- [ ] `moon check` 0 errors
+- [x] 会议会话可创建/列出/结束并持久化
+- [x] `meeting-summarizer` skill 可对 transcript 产出结构化纪要
+- [x] 会议 REST 端点有 wbtest
+- [x] Web 面板可触发摘要并展示（与 P1-4 联调）
+- [x] `moon check` 0 errors
 
 ## 待后续推进时补充
 
@@ -50,3 +50,4 @@
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本 | 差距分析 P1-3，原项目完全缺失 |
+| 2026-07-13 | 实施完成：meeting.mbt 数据模型+Store、handlers_meeting.mbt REST handlers、wbtest 9个测试、server.mbt 路由注册、meeting-summarizer SKILL.md、meeting ext.yml+贡献资源 | 开发实施 |

@@ -1,6 +1,6 @@
 # MBOpenClacky 项目状态
 
-> 更新日期：2026-07-12
+> 更新日期：2026-07-13
 > 权威状态源。其他文档中的指标以此为准。
 
 ---
@@ -9,18 +9,18 @@
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件（lib + cmd） | 248 个 `.mbt` |
-| 测试文件（lib + cmd） | 67 个 `_wbtest.mbt` |
-| 源代码行数 | ~55,700 行 |
-| 测试代码行数 | ~18,600 行 |
-| 总代码行数 | ~75,700 行（含 test/ 目录） |
+| 源代码文件（lib + cmd） | 258 个 `.mbt` |
+| 测试文件（lib + cmd） | 73 个 `_wbtest.mbt` |
+| 源代码行数 | ~54,400 行 |
+| 测试代码行数 | ~17,400 行 |
+| 总代码行数 | ~73,200 行（含 test/ 目录） |
 | 测试用例 | 1,400+ |
 | 包数 | 21 个 lib 顶级包 + 1 个 cmd 入口包 |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | 90+ 个 |
-| 默认 Skill | 17 个 |
-| `moon check` | 0 errors（项目自身代码），~488 warnings |
+| 默认 Skill | 16 个 |
+| `moon check` | 0 errors（项目自身代码），~522 warnings |
 | 构建 | `moon build --target native --release cmd` 成功（~3.8MB） |
 | CI/CD | ✅ GitHub Actions（ci.yml + docker.yml） |
 | 整体完成度 | ~88-93%（后端 ~95%，Web 前端 ~45%，部署 ~50%） |

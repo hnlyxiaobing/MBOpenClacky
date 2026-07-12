@@ -1,0 +1,28 @@
+{
+  "id": "meeting-panel",
+  "name": "Meeting Panel",
+  "description": "View meetings, manage transcripts, and trigger summaries.",
+  "type": "panel",
+  "extension": "meeting",
+  "ui": {
+    "title": "Meetings",
+    "components": [
+      {
+        "type": "meeting-list",
+        "label": "Meeting List",
+        "data_source": "/api/meetings"
+      },
+      {
+        "type": "meeting-detail",
+        "label": "Meeting Detail",
+        "data_source": "/api/meetings/:id"
+      },
+      {
+        "type": "action-button",
+        "label": "Generate Summary",
+        "action": "POST",
+        "data_source": "/api/meetings/:id/summarize"
+      }
+    ]
+  }
+}
