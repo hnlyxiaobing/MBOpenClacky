@@ -25,6 +25,21 @@
 
 ## 变更记录
 
+### 2026-07-12  docs: Spec 归档与文档同步更新
+
+- `[docs]` **Spec 归档（Harness 方法论流程）**
+  - 归档 3 份 spec 从 `specs/active/` 到 `specs/completed/`：
+    - `2026-07-09_wasm-gc-target-feasibility.md` — 可行性评估完成，决策暂缓（根因：`moonbitlang/async` 缺 wasm-gc 支持）
+    - `2026-07-09_web-api-contract-alignment.md` — 6 个端点全部实现，契约对照表完成，wbtest 已补齐
+    - `2026-07-07_priority-analysis-and-specs-overview.md` — 决策文档，优先项已由后续 spec 覆盖
+  - 14 份 spec 保留在 `specs/active/`（讨论中/实施中/待评审）
+- `[docs]` **project-status.md 同步更新**
+  - 移除已过时的已知问题：`derive_key` PBKDF2（已实现）、Windows BCrypt（已实现）、TUI Phase 6（已完成）
+  - 更新 brand 模块完成度 80% → 90%、web 模块完成度 70% → 75%
+  - 更新 wasm-gc 状态为“已评估，建议暂缓”
+  - 更新短期目标对齐当前 gap-driven 任务划分
+- `[docs]` **CHANGELOG.md**：补充本次归档记录
+
 ### 2026-07-08  docs: 文档合并精简
 
 - `[docs]` **docs/ 目录精简**：10 → 3 个文档

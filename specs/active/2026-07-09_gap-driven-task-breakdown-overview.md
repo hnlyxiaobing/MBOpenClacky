@@ -37,9 +37,9 @@
 | ID | 任务 | spec 文件 | 姿态 | 负责方向 |
 |---|---|---|---|---|
 | P0-1 | `moon test` 链接修复（curl/crypto 符号传播到测试可执行文件） | `2026-07-09_moon-test-link-fix.md` | incremental-spec | Agent-F（测试） |
-| P0-2 | Web 前后端 API 契约对齐（6 个缺失端点 + 全量审计） | `2026-07-09_web-api-contract-alignment.md` | incremental-spec | Agent-A（Web 后端） |
+| P0-2 | Web 前后端 API 契约对齐（6 个缺失端点 + 全量审计） | `2026-07-09_web-api-contract-alignment.md` | incremental-spec | ✅ 已完成归档 |
 | P0-3 | Brand crypto 加固（derive_key PBKDF2、refresh_distribution HTTP、验证 Windows BCrypt） | `2026-07-09_brand-crypto-hardening.md` | incremental-spec | Agent-F（安全） |
-| P0-4 | wasm-gc 目标可行性（tty/crescent FFI 依赖评估） | `2026-07-09_wasm-gc-target-feasibility.md` | idea-doc | Agent-F（探索） |
+| P0-4 | wasm-gc 目标可行性（tty/crescent FFI 依赖评估） | `2026-07-09_wasm-gc-target-feasibility.md` | idea-doc | ✅ 已完成归档（决策暂缓） |
 
 ### P1 — 功能完整性
 

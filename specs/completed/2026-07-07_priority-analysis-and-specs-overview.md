@@ -1,7 +1,7 @@
 # MBOpenClacky 项目对比分析与优先级排序 · 决策文档
 
 > **创建日期**: 2026-07-07  
-> **状态**: 已评审  
+> **状态**: 已完成（决策已执行，优先项已由后续 spec 覆盖）  
 > **分析对象**: MBOpenClacky (MoonBit 重写) vs OpenClacky (Ruby 原版)  
 > **原项目路径**: `D:\MoonBit\openclacky\`  
 > **当前项目路径**: `D:\MoonBit\MBOpenClacky\`  

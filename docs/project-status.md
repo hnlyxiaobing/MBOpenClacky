@@ -1,6 +1,6 @@
 # MBOpenClacky 项目状态
 
-> 更新日期：2026-07-08
+> 更新日期：2026-07-12
 > 权威状态源。其他文档中的指标以此为准。
 
 ---
@@ -20,10 +20,10 @@
 | 内置工具 | 14 个 |
 | REST API 端点 | 90+ 个 |
 | 默认 Skill | 17 个 |
-| `moon check` | 0 errors, ~426 warnings |
+| `moon check` | 0 errors（项目自身代码），~488 warnings |
 | 构建 | `moon build --target native --release cmd` 成功（~3.8MB） |
 | CI/CD | ✅ GitHub Actions（ci.yml + docker.yml） |
-| 整体完成度 | ~87-92%（后端 ~95%，Web 前端 ~40-50%，部署 ~50%） |
+| 整体完成度 | ~88-93%（后端 ~95%，Web 前端 ~45%，部署 ~50%） |
 
 ---
 
@@ -33,7 +33,7 @@
 |------|------|--------|------|
 | agent | ~8,800 | 95% | ReAct 循环、会话管理、压缩、Time Machine、Profile |
 | billing | ~670 | 100% | 计费记录、Token 追踪、成本计算 |
-| brand | ~2,100 | 80% | AES-256-GCM 加密（C FFI）、许可证验证、心跳 |
+| brand | ~2,100 | 90% | AES-256-GCM 加密（C FFI）、PBKDF2 密钥派生、许可证验证、心跳 |
 | channel | ~9,700 | 100% | 6 平台 IM 适配器（飞书/企微/Telegram/Discord/钉钉/微信） |
 | client | ~4,500 | 100% | 三协议支持（OpenAI/Anthropic/Bedrock）、流式聚合 |
 | config | ~1,900 | 90% | TOML 加载、12 Provider 预设、权限模式 |
@@ -51,7 +51,7 @@
 | tui | ~6,800 | 60% | Inline Scrolling TUI（moonbit-community/tty） |
 | utils | ~4,100 | 95% | 环境变量、路径、编码、日志、代理等 |
 | vision | ~850 | 80% | Vision OCR + SHA256 缓存 |
-| web | ~8,000 | 70% | REST API 90+ 端点、WebSocket、SSE、中间件 |
+| web | ~8,200 | 75% | REST API 90+ 端点、WebSocket、SSE、中间件、6 个契约对齐端点 |
 | cmd | ~1,100 | 70% | CLI 入口、会话管理、TUI/Web 启动 |
 
 ---
@@ -60,14 +60,12 @@
 
 ### 构建相关
 - **moon #1488**：裸 `moon build` 会误链接库包，需显式指定 `moon build --target native --release cmd`
-- **Windows `-lcrypto`**：MSVC 不支持 `-l` 语法，brand 加密在 Windows 使用弱桩回退
-- **wasm-gc 目标**：因 tty/crescent 的 FFI 依赖不可用
+- **wasm-gc 目标**：已评估，建议暂缓（根因：`moonbitlang/async` 缺 wasm-gc 支持，详见 `specs/completed/2026-07-09_wasm-gc-target-feasibility.md`）
 
 ### 功能相关
-- **`derive_key`**：使用简化迭代 SHA-256（非标准 PBKDF2），有 TODO 标记
-- **Web 前端**：完成度 ~40-50%，8 个管理面板后端已实现但前端待完善
+- **Web 前端**：完成度 ~45%，8 个管理面板后端已实现，前端待完善（扩展市场/创作者工作室/媒体生成等面板待补齐）
 - **部署基础设施**：缺少 systemd/docker-compose 模板和日志轮转
-- **TUI Phase 6**：Dialog + TodoArea 完整集成待实施
+- **Extension 框架**：运行时调度已激活，完整 MVP（Loader/Verifier/Packager/Scaffold/Marketplace）待实施
 
 ### 测试相关
 - `moon test` 需启用 `lib/client/moon.pkg` 中的 `-lcurl` 并安装 libcurl-dev
@@ -78,8 +76,9 @@
 
 | 优先级 | 目标 | 预估 |
 |--------|------|------|
-| P1 | Web 前端管理面板补齐 | 1-2 周 |
-| P1 | docker-compose + systemd 模板 | 1-2 天 |
-| P2 | `derive_key` → PBKDF2 | 1 天 |
-| P2 | Windows BCrypt/CNG 加密适配 | 3-5 天 |
-| P2 | TUI Phase 6 收尾 | 2-3 天 |
+| P0 | `moon test` 链接修复（curl/crypto 符号传播） | 1 天 |
+| P1 | Extension 框架 MVP（Loader/Verifier/Packager） | 2-3 天 |
+| P1 | REST API 补齐（profile/memories/settings 等） | 2-3 天 |
+| P1 | Web 前端面板补齐 | 1-2 周 |
+| P2 | Brand crypto 弱桩路径构建期阻断 | 0.5 天 |
+| P2 | Warnings 削减（488 → ≤200） | 1-2 天 |

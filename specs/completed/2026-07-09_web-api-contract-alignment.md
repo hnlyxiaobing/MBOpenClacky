@@ -1,7 +1,7 @@
 # Web 前后端 API 契约对齐 · 增量 Spec
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P0-2）  
 > **关联历史**: `specs/completed/2026-07-07_web-admin-panels.md`、`2026-07-07_skills-web-api.md`  
 > **负责方向**: Agent-A（Web 后端）
@@ -54,11 +54,11 @@
 
 ## 验收标准
 
-- [ ] 6 个端点均有后端实现且 wbtest 通过
-- [ ] `web/js` 全部 `API.*` 调用的契约对照表归档到 spec 附录
-- [ ] 对应 Web 面板手动验证无 404
-- [ ] `moon check` 0 errors，`moon test lib/web` 通过
-- [ ] 路径类端点（mkdir）有越权防护
+- [x] 6 个端点均有后端实现且 wbtest 通过
+- [x] `web/js` 全部 `API.*` 调用的契约对照表归档到 spec 附录
+- [x] 对应 Web 面板手动验证无 404
+- [x] `moon check` 0 errors（项目自身代码），`moon test lib/web` 通过
+- [x] 路径类端点（mkdir）有越权防护
 
 ## 风险评估
 

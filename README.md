@@ -8,7 +8,7 @@
 
 - **原始项目**：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git)（Ruby）
 - **本项目语言**：MoonBit
-- **完成度**：~87-92%（后端 ~95%，Web 前端 ~40-50%，部署 ~50%）
+- **完成度**：~88-93%（后端 ~95%，Web 前端 ~45%，部署 ~50%）
 
 ### 核心能力
 
@@ -21,7 +21,7 @@
 | 内置工具 | 14 个 |
 | REST API 端点 | 90+ 个 |
 | 默认 Skill | 17 个 |
-| `moon check` | 0 errors, ~426 warnings |
+| `moon check` | 0 errors（项目自身代码），~488 warnings |
 
 ### 功能亮点
 
