@@ -14,6 +14,16 @@
 //   build on a platform with no libcrypto and no Windows CNG). In every normal
 //   native build the real OpenSSL (Linux/macOS) or BCrypt (Windows) path in
 //   crypto_native.c is used, with `-lcrypto` linked via moon.pkg link flags.
+//
+//   BUILD-TIME GUARD: the insecure stubs below are compiled ONLY when
+//   MBOPENCLACKY_NO_OPENSSL is defined.  They must never reach a release or
+//   production artifact.  Two independent guards enforce this:
+//     (1) This file issues a hard #error unless MBOPENCLACKY_INSECURE_DEBUG_BUILD
+//         is also defined, acknowledging a minimal/debug-only, no-real-crypto
+//         build.  Without that acknowledgement the insecure stubs cannot be
+//         compiled at all, so they cannot slip into a release artifact.
+//     (2) CI runs scripts/check-crypto-build.{sh,ps1}, which fails any RELEASE
+//         build performed with MBOPENCLACKY_NO_OPENSSL set.
 #include <stdint.h>
 #include <stdio.h>
 
@@ -26,6 +36,17 @@
  *   placeholders.  NEVER ship a release build with this flag.
  */
 #pragma message("WARNING: MBOPENCLACKY_NO_OPENSSL is defined — crypto stubs are INSECURE. Do not use in release builds!")
+
+// (1) Hard compile-time guard.  Any build that opts out of real crypto MUST
+//     explicitly acknowledge it is a minimal/debug-only build.  Without this
+//     acknowledgement the insecure stubs cannot be compiled at all, which makes
+//     it impossible for them to slip into a release artifact.
+#ifndef MBOPENCLACKY_INSECURE_DEBUG_BUILD
+#error "MBOPENCLACKY_NO_OPENSSL selected but MBOPENCLACKY_INSECURE_DEBUG_BUILD is not defined. " \
+       "The insecure crypto stubs in brand_stubs.c are forbidden in every build that could ship. " \
+       "Define MBOPENCLACKY_INSECURE_DEBUG_BUILD only for minimal/debug builds that explicitly opt out of real crypto, " \
+       "or drop -DMBOPENCLACKY_NO_OPENSSL to use OpenSSL (Linux/macOS) / BCrypt (Windows)."
+#endif
 
 #ifdef _MSC_VER
 #define MB_WEAK
