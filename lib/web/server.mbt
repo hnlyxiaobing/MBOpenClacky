@@ -371,6 +371,20 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       tr.delete("", event => handle_trash_empty_bridge(server_ref, event))
     })
 
+    // Meetings
+    api.group("/meetings", (mt : @crescent.App) => {
+      mt.get("", event => handle_meetings_list_bridge(server_ref, event))
+      mt.post("", event => handle_meetings_create_bridge(server_ref, event))
+      mt.get("/:id", event => handle_meetings_get_bridge(server_ref, event))
+      mt.put("/:id", event => handle_meetings_update_bridge(server_ref, event))
+      mt.delete("/:id", event => {
+        handle_meetings_delete_bridge(server_ref, event)
+      })
+      mt.post("/:id/summarize", event => {
+        handle_meetings_summarize_bridge(server_ref, event)
+      })
+    })
+
     // Brand / License
     api.group("/brand", (br : @crescent.App) => {
       br.get("/config", event => handle_brand_config(server_ref, event))

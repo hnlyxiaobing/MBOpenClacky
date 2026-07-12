@@ -675,3 +675,65 @@ fn handle_media_video_understand_bridge(
 ) -> @core.HttpResponse {
   handle_media_video_understand(server_ref, event)
 }
+
+// ── Meeting Bridges ───────────────────────────────────────────────
+
+///|
+fn handle_meetings_list_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let url = event.req.url
+  let params : Array[(String, String)] = []
+  match find_query_param(url, "status") {
+    Some(v) => params.push(("status", v))
+    None => ()
+  }
+  let req = event_to_request(event, params)
+  response_to_core(handle_meetings_list(req))
+}
+
+///|
+fn handle_meetings_create_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_meetings_create(req))
+}
+
+///|
+fn handle_meetings_get_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_meetings_get(req))
+}
+
+///|
+fn handle_meetings_update_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_meetings_update(req))
+}
+
+///|
+fn handle_meetings_delete_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_meetings_delete(req))
+}
+
+///|
+fn handle_meetings_summarize_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_meetings_summarize(req))
+}

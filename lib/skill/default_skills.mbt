@@ -127,6 +127,13 @@ pub fn get_default_skill_metas() -> Array[DefaultSkillMeta] {
       allowed_tools: ["Terminal", "FileReader", "Write", "WebFetch"],
       category: "utility",
     },
+    {
+      name: "meeting-summarizer",
+      description: "Summarize completed meetings from transcripts into structured summaries with key decisions, action items, and discussion highlights",
+      user_invocable: true,
+      allowed_tools: ["FileReader", "Write", "Terminal"],
+      category: "utility",
+    },
   ]
 }
 
