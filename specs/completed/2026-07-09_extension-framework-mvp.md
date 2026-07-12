@@ -1,7 +1,10 @@
 # Extension 框架 MVP · 启动 Spec (IDEA_DOC)
 
-> **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **创建日期**: 2026-07-09
+> **完成日期**: 2026-07-13  
+> **状态**: 已完成 ✅
+> **负责分支**: `feature/extension-framework-mvp`
+> **关联 PR**: TBD
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P1-1）  
 > **关联历史**: `specs/completed/2026-07-07_extension-runtime-activation.md`（已激活运行时调度）  
 > **负责人**: Agent-C
@@ -36,13 +39,13 @@
 
 ## 验收维度
 
-- [ ] `ext.yml` 三层源扫描可产出合并清单
-- [ ] Verifier 能拒绝非法 manifest（缺字段/非法贡献类型/资源缺失）
-- [ ] Packager 可产出 zip + 校验和，且可被 Loader 重新加载
-- [ ] Scaffold 可生成合规扩展骨架
-- [ ] Marketplace API：list / install / enable / disable / uninstall / publish 可用且配 wbtest
-- [ ] 与已完成运行时调度器联调：一个最小扩展可被加载并触发 panel/hook
-- [ ] `moon check` 0 errors，`moon test` 相关包通过
+- [x] `ext.yml` 三层源扫描可产出合并清单
+- [x] Verifier 能拒绝非法 manifest（缺字段/非法贡献类型/资源缺失）
+- [x] Packager 可产出 zip + 校验和，且可被 Loader 重新加载
+- [x] Scaffold 可生成合规扩展骨架
+- [x] Marketplace API：list / install / enable / disable / uninstall / publish 可用且配 wbtest
+- [x] 与已完成运行时调度器联调：一个最小扩展可被加载并触发 panel/hook
+- [x] `moon check` 0 errors，`moon test` 相关包通过
 
 ## 待后续推进时补充
 

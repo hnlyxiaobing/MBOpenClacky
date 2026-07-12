@@ -1,124 +1,124 @@
-﻿///| Extension framework types and core data structures.
+///| Extension framework types and core data structures.
 ///| Defines the manifest format, extension types, and state management.
 
 ///|
-///| Extension source type for three-level discovery.
+/// Extension source type for three-level discovery.
 pub(all) enum ExtensionSource {
   /// Builtin extension from assets/extensions
-  Builtin,
+  Builtin
   /// Installed extension from ~/.clacky/extensions
-  Installed,
+  Installed
   /// Local project extension from ./extensions
-  Local,
+  Local
 } derive(Show, Eq)
 
 ///|
-///| Extension contribution type.
+/// Extension contribution type.
 pub(all) enum ExtensionContributionType {
-  Panel,
-  Skill,
-  Agent,
-  Api,
-  Hook,
-  Patch,
+  Panel
+  Skill
+  Agent
+  Api
+  Hook
+  Patch
 } derive(Show, Eq)
 
 ///|
-///| Extension manifest structure (ext.yml).
+/// Extension manifest structure (ext.yml).
+/// ext.yml is read as JSON for MVP simplicity; YAML support can be added later.
 pub(all) struct ExtensionManifest {
   /// Unique extension identifier
-  id : String,
+  id : String
   /// Human-readable name
-  name : String,
+  name : String
   /// Semantic version
-  version : String,
+  version : String
   /// Short description
-  description : String,
+  description : String
   /// Author name
-  author : String,
+  author : String
   /// License
-  license : String,
+  license : String
   /// Homepage URL (optional)
-  homepage : String?,
+  homepage : String?
   /// Repository URL (optional)
-  repository : String?,
+  repository : String?
   /// Keywords for search
-  keywords : Array[String],
+  keywords : Array[String]
   /// Dependencies (extension_id -> version constraint)
-  dependencies : Map[String, String],
+  dependencies : Map[String, String]
   /// Contributions provided by this extension
-  contributions : Array[ExtensionContribution],
+  contributions : Array[ExtensionContribution]
   /// Whether this extension is enabled by default
-  enabled_by_default : Bool,
-} derive(Show)
+  enabled_by_default : Bool
+}
 
 ///|
-///| Single extension contribution.
+/// Single extension contribution.
 pub(all) struct ExtensionContribution {
   /// Contribution type
-  type_ : ExtensionContributionType,
+  type_ : ExtensionContributionType
   /// Contribution ID (unique within extension)
-  id : String,
+  id : String
   /// Human-readable name
-  name : String,
+  name : String
   /// Description
-  description : String,
+  description : String
   /// Path to the contribution file (relative to extension root)
-  path : String,
+  path : String
   /// Additional configuration (type-specific)
-  config : Map[String, String],
-} derive(Show)
+  config : Map[String, String]
+}
 
 ///|
-///| Loaded extension with metadata and state.
+/// Loaded extension with metadata and state.
 pub(all) struct Extension {
   /// Manifest
-  manifest : ExtensionManifest,
+  manifest : ExtensionManifest
   /// Source type
-  source : ExtensionSource,
+  source : ExtensionSource
   /// Root directory path
-  root_path : String,
+  root_path : String
   /// Whether the extension is currently enabled
-  enabled : Bool,
-  /// Load timestamp
-  loaded_at : Int,
+  enabled : Bool
+  /// Load timestamp (ms since epoch)
+  loaded_at : Int64
   /// SHA256 hash of the extension package (if packaged)
-  sha256 : String?,
-} derive(Show)
+  sha256 : String?
+}
 
 ///|
-///| Validation error type.
+/// Validation error type.
 pub(all) enum ValidationError {
-  MissingRequiredField(String),
-  InvalidField(String, String),
-  InvalidContributionType(String),
-  MissingResource(String),
-  DependencyConflict(String, String),
-  InvalidVersion(String),
-} derive(Show)
+  MissingRequiredField(String)
+  InvalidField(String, String)
+  InvalidContributionType(String)
+  MissingResource(String)
+  DependencyConflict(String, String)
+  InvalidVersion(String)
+}
 
 ///|
-///| Validation result.
+/// Validation result.
 pub(all) struct ValidationResult {
-  valid : Bool,
-  errors : Array[ValidationError],
-  warnings : Array[String],
-} derive(Show)
+  valid : Bool
+  errors : Array[ValidationError]
+  warnings : Array[String]
+}
 
 ///|
-///| Extension registry entry for marketplace.
+/// Extension registry entry for marketplace.
 pub(all) struct RegistryEntry {
   /// Extension ID
-  id : String,
+  id : String
   /// Latest version
-  latest_version : String,
+  latest_version : String
   /// All available versions
-  versions : Array[String],
+  versions : Array[String]
   /// Metadata (name, description, author, etc.)
-  metadata : Map[String, String],
+  metadata : Map[String, String]
   /// Installation count
-  installs : Int,
-  /// Publish timestamp
-  published_at : Int,
-} derive(Show)
-
+  installs : Int
+  /// Publish timestamp (ms since epoch)
+  published_at : Int64
+}

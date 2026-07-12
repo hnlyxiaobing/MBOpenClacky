@@ -1,14 +1,5 @@
-﻿///| Extension scaffold: generates a new extension skeleton with manifest
+///| Extension scaffold: generates a new extension skeleton with manifest
 /// and template files for different contribution types.
-
-use @clacky.extension.types.{
-  ExtensionManifest,
-  ExtensionContribution,
-  ExtensionContributionType,
-}
-use @path.Path
-use @fs
-use @utils
 
 ///|
 /// Template configuration for a new extension.
@@ -20,65 +11,66 @@ pub(all) struct ExtensionTemplate {
   author : String
   license : String
   contributions : Array[ExtensionContributionType]
-} derive(Show)
+} derive(Eq)
 
 ///|
 /// Create a new extension scaffold from a template.
-pub(all) fn create_extension_scaffold(
+pub fn create_extension_scaffold(
   template : ExtensionTemplate,
   output_dir? : String? = None,
 ) -> Result[String, String] {
-  let out_dir = output_dir.unwrap_or("./extensions")
-  let ext_dir = Path::join(out_dir, Path(template.id)).to_string()
-  
-  // Check if directory already exists
-  if fs.path_exists(ext_dir) {
-    Err("extension directory already exists: \{ext_dir}")?
+  let out_dir = match output_dir {
+    Some(d) => d
+    None => "./extensions"
   }
-  
-  // Create directory structure
-  fs.create_dir_all(ext_dir) catch { e => Err(e.to_string())? }
-  
-  // Create contributions directory
-  let contrib_dir = Path::join(ext_dir, Path("contributions")).to_string()
-  fs.create_dir_all(contrib_dir) catch { e => Err(e.to_string())? }
-  
-  // Generate manifest
-  let manifest = create_manifest_from_template(template)
-  let manifest_content = generate_manifest_json(manifest)
-  let manifest_path = Path::join(ext_dir, Path("ext.yml")).to_string()
-  fs.write_string_to_file(manifest_path, manifest_content) catch { e => Err(e.to_string())? }
-  
-  // Generate contribution template files
+  let ext_dir = @path.Path::join(out_dir, @path.Path(template.id)).to_string()
+  if @fs.path_exists(ext_dir) {
+    return Err("extension directory already exists: " + ext_dir)
+  }
+  @utils.ensure_dir(ext_dir)
+  let contrib_dir = @path.Path::join(
+    ext_dir,
+    @path.Path("contributions"),
+  ).to_string()
+  @utils.ensure_dir(contrib_dir)
+  // Generate the manifest.
+  let manifest = build_manifest_from_template(template)
+  let manifest_path = @path.Path::join(ext_dir, @path.Path("ext.yml")).to_string()
+  @fs.write_string_to_file(manifest_path, generate_manifest_json(manifest)) catch {
+    e => return Err("failed to write manifest: " + e.to_string())
+  }
+  // Generate one template file per contribution type.
   for contrib_type in template.contributions {
-    create_contribution_template(contrib_dir, template.id, contrib_type)?
+    match create_contribution_template(contrib_dir, template.id, contrib_type) {
+      Ok(_) => ()
+      Err(e) => return Err(e)
+    }
   }
-  
-  // Create README
-  let readme_content = generate_readme(template)
-  let readme_path = Path::join(ext_dir, Path("README.md")).to_string()
-  fs.write_string_to_file(readme_path, readme_content) catch { e => Err(e.to_string())? }
-  
+  // Write a friendly README.
+  let readme_path = @path.Path::join(ext_dir, @path.Path("README.md")).to_string()
+  @fs.write_string_to_file(readme_path, generate_readme(template)) catch {
+    e => return Err("failed to write README: " + e.to_string())
+  }
   Ok(ext_dir)
 }
 
 ///|
-/// Create a manifest from a template.
-fn create_manifest_from_template(template : ExtensionTemplate) -> ExtensionManifest {
+/// Build a manifest from a template.
+fn build_manifest_from_template(
+  template : ExtensionTemplate,
+) -> ExtensionManifest {
   let contributions : Array[ExtensionContribution] = []
-  
   for contrib_type in template.contributions {
-    let (id, name, desc, path) = contribution_template_info(contrib_type)
+    let info = contribution_template_info(contrib_type)
     contributions.push({
       type_: contrib_type,
-      id,
-      name,
-      description: desc,
-      path,
+      id: info.0,
+      name: info.1,
+      description: info.2,
+      path: info.3,
       config: {},
     })
   }
-  
   {
     id: template.id,
     name: template.name,
@@ -96,28 +88,28 @@ fn create_manifest_from_template(template : ExtensionTemplate) -> ExtensionManif
 }
 
 ///|
-/// Get template info for a contribution type.
+/// Look up the template defaults (id, name, description, path) for a contribution type.
 fn contribution_template_info(
   type_ : ExtensionContributionType,
 ) -> (String, String, String, String) {
   match type_ {
     ExtensionContributionType::Panel =>
-      ("main-panel", "Main Panel", "A sample panel contribution", "contributions/panel.json")
+      ("main-panel", "Main Panel", "A sample panel contribution", "panel.json")
     ExtensionContributionType::Skill =>
-      ("sample-skill", "Sample Skill", "A sample skill contribution", "contributions/skill.json")
+      ("sample-skill", "Sample Skill", "A sample skill contribution", "skill.json")
     ExtensionContributionType::Agent =>
-      ("sample-agent", "Sample Agent", "A sample agent contribution", "contributions/agent.json")
+      ("sample-agent", "Sample Agent", "A sample agent contribution", "agent.json")
     ExtensionContributionType::Api =>
-      ("sample-api", "Sample API", "A sample API contribution", "contributions/api.json")
+      ("sample-api", "Sample API", "A sample API contribution", "api.json")
     ExtensionContributionType::Hook =>
-      ("sample-hook", "Sample Hook", "A sample hook contribution", "contributions/hook.json")
+      ("sample-hook", "Sample Hook", "A sample hook contribution", "hook.json")
     ExtensionContributionType::Patch =>
-      ("sample-patch", "Sample Patch", "A sample patch contribution", "contributions/patch.json")
+      ("sample-patch", "Sample Patch", "A sample patch contribution", "patch.json")
   }
 }
 
 ///|
-/// Generate manifest JSON content.
+/// Render the manifest as a JSON string (ext.yml is JSON-formatted for MVP).
 fn generate_manifest_json(manifest : ExtensionManifest) -> String {
   let contributions_json : Array[Json] = []
   for contrib in manifest.contributions {
@@ -129,16 +121,19 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
       ExtensionContributionType::Hook => "hook"
       ExtensionContributionType::Patch => "patch"
     }
-    contributions_json.push(Json::object({
-      "type": type_str.to_json(),
-      "id": contrib.id.to_json(),
-      "name": contrib.name.to_json(),
-      "description": contrib.description.to_json(),
-      "path": contrib.path.to_json(),
-      "config": Json::object(contrib.config.map_values(fn(v) { v.to_json() })),
-    }))
+    let config_obj : Map[String, Json] = {}
+    contrib.config.each(fn(k, v) { config_obj[k] = v.to_json() })
+    contributions_json.push(
+      Json::object({
+        "type": type_str.to_json(),
+        "id": contrib.id.to_json(),
+        "name": contrib.name.to_json(),
+        "description": contrib.description.to_json(),
+        "path": contrib.path.to_json(),
+        "config": Json::object(config_obj),
+      }),
+    )
   }
-  
   let manifest_obj : Map[String, Json] = {
     "id": manifest.id.to_json(),
     "name": manifest.name.to_json(),
@@ -147,12 +142,9 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
     "author": manifest.author.to_json(),
     "license": manifest.license.to_json(),
     "keywords": Json::array(manifest.keywords.map(fn(k) { k.to_json() })),
-    "dependencies": Json::object(manifest.dependencies.map_values(fn(v) { v.to_json() })),
     "contributions": Json::array(contributions_json),
-    "enabled_by_default": Json::bool(manifest.enabled_by_default),
+    "enabled_by_default": manifest.enabled_by_default.to_json(),
   }
-  
-  // Add optional fields
   match manifest.homepage {
     Some(hp) => manifest_obj["homepage"] = hp.to_json()
     None => ()
@@ -161,179 +153,241 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
     Some(repo) => manifest_obj["repository"] = repo.to_json()
     None => ()
   }
-  
-  Json::object(manifest_obj).stringify_with_indent(2)
+  let deps_obj : Map[String, Json] = {}
+  manifest.dependencies.each(fn(k, v) { deps_obj[k] = v.to_json() })
+  manifest_obj["dependencies"] = Json::object(deps_obj)
+  Json::object(manifest_obj).stringify()
 }
 
 ///|
-/// Create a template file for a contribution.
+/// Create a template file for a given contribution type.
 fn create_contribution_template(
   contrib_dir : String,
   ext_id : String,
   type_ : ExtensionContributionType,
 ) -> Result[Unit, String] {
-  let (id, name, desc, path) = contribution_template_info(type_)
-  let file_path = Path::join(contrib_dir, Path(Path::new(path).file_name())).to_string()
-  
+  let info = contribution_template_info(type_)
+  let file_path = @path.Path::join(
+    contrib_dir,
+    @path.Path(info.3),
+  ).to_string()
   let content = match type_ {
     ExtensionContributionType::Panel =>
-      generate_panel_template(ext_id, id, name, desc)
+      generate_panel_template(ext_id, info.0, info.1, info.2)
     ExtensionContributionType::Skill =>
-      generate_skill_template(ext_id, id, name, desc)
+      generate_skill_template(ext_id, info.0, info.1, info.2)
     ExtensionContributionType::Agent =>
-      generate_agent_template(ext_id, id, name, desc)
+      generate_agent_template(ext_id, info.0, info.1, info.2)
     ExtensionContributionType::Api =>
-      generate_api_template(ext_id, id, name, desc)
+      generate_api_template(ext_id, info.0, info.1, info.2)
     ExtensionContributionType::Hook =>
-      generate_hook_template(ext_id, id, name, desc)
+      generate_hook_template(ext_id, info.0, info.1, info.2)
     ExtensionContributionType::Patch =>
-      generate_patch_template(ext_id, id, name, desc)
+      generate_patch_template(ext_id, info.0, info.1, info.2)
   }
-  
-  fs.write_string_to_file(file_path, content) catch { e => Err(e.to_string())? }
+  @fs.write_string_to_file(file_path, content) catch {
+    e => return Err("failed to write contribution template to " + file_path + ": " + e.to_string())
+  }
   Ok(())
 }
 
 ///|
-/// Generate panel template.
-fn generate_panel_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"panel\",
-  \"ui\": {
-    \"title\": \"\{name}\",
-    \"components\": [
-      {
-        \"type\": \"text\",
-        \"content\": \"Welcome to the \{name} panel!\"
-      }
-    ]
+/// Render a panel contribution template.
+fn generate_panel_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "panel".to_json(),
+    "extension": ext_id.to_json(),
+    "ui": Json::object({
+      "title": name.to_json(),
+      "components": Json::array([
+        Json::object({
+          "type": "text".to_json(),
+          "content": ("Welcome to the " + name + " panel!").to_json(),
+        }),
+      ]),
+    }),
   }
-}"
+  Json::object(obj).stringify()
 }
 
 ///|
-/// Generate skill template.
-fn generate_skill_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"skill\",
-  \"skills\": [
-    {
-      \"name\": \"sample_action\",
-      \"description\": \"A sample skill action\",
-      \"parameters\": {}
-    }
-  ]
-}"
-}
-
-///|
-/// Generate agent template.
-fn generate_agent_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"agent\",
-  \"config\": {
-    \"system_prompt\": \"You are a helpful assistant for the \{ext_id} extension.\",
-    \"temperature\": 0.7
+/// Render a skill contribution template.
+fn generate_skill_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "skill".to_json(),
+    "extension": ext_id.to_json(),
+    "skills": Json::array([
+      Json::object({
+        "name": "sample_action".to_json(),
+        "description": "A sample skill action".to_json(),
+        "parameters": Json::object({}),
+      }),
+    ]),
   }
-}"
+  Json::object(obj).stringify()
 }
 
 ///|
-/// Generate API template.
-fn generate_api_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"api\",
-  \"routes\": [
-    {
-      \"method\": \"GET\",
-      \"path\": \"/hello\",
-      \"handler\": \"hello_world\",
-      \"description\": \"A sample API endpoint\"
-    }
-  ]
-}"
+/// Render an agent contribution template.
+fn generate_agent_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "agent".to_json(),
+    "extension": ext_id.to_json(),
+    "config": Json::object({
+      "system_prompt": ("You are a helpful assistant for the " + ext_id + " extension.").to_json(),
+      "temperature": 0.7.to_json(),
+    }),
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
-/// Generate hook template.
-fn generate_hook_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"hook\",
-  \"hooks\": [
-    {
-      \"event\": \"session_start\",
-      \"handler\": \"on_session_start\",
-      \"description\": \"Called when a session starts\"
-    }
-  ]
-}"
+/// Render an API contribution template.
+fn generate_api_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "api".to_json(),
+    "extension": ext_id.to_json(),
+    "routes": Json::array([
+      Json::object({
+        "method": "GET".to_json(),
+        "path": "/hello".to_json(),
+        "handler": "hello_world".to_json(),
+        "description": "A sample API endpoint".to_json(),
+      }),
+    ]),
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
-/// Generate patch template.
-fn generate_patch_template(ext_id : String, id : String, name : String, desc : String) -> String {
-  "{
-  \"id\": \"\{id}\",
-  \"name\": \"\{name}\",
-  \"description\": \"\{desc}\",
-  \"type\": \"patch\",
-  \"patches\": [
-    {
-      \"target\": \"some_config\",
-      \"operation\": \"merge\",
-      \"value\": {
-        \"enabled\": true
-      }
-    }
-  ]
-}"
+/// Render a hook contribution template.
+fn generate_hook_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "hook".to_json(),
+    "extension": ext_id.to_json(),
+    "hooks": Json::array([
+      Json::object({
+        "event": "session_start".to_json(),
+        "handler": "on_session_start".to_json(),
+        "description": "Called when a session starts".to_json(),
+      }),
+    ]),
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
-/// Generate README for the extension.
+/// Render a patch contribution template.
+fn generate_patch_template(
+  ext_id : String,
+  id : String,
+  name : String,
+  desc : String,
+) -> String {
+  let obj : Map[String, Json] = {
+    "id": id.to_json(),
+    "name": name.to_json(),
+    "description": desc.to_json(),
+    "type": "patch".to_json(),
+    "extension": ext_id.to_json(),
+    "patches": Json::array([
+      Json::object({
+        "target": "some_config".to_json(),
+        "operation": "merge".to_json(),
+        "value": Json::object({ "enabled": true.to_json() }),
+      }),
+    ]),
+  }
+  Json::object(obj).stringify()
+}
+
+///|
+/// Render a README describing the new extension.
 fn generate_readme(template : ExtensionTemplate) -> String {
-  "# \{template.name}
-
-\{template.description}
-
-## Installation
-
-1. Copy this directory to `~/.clacky/extensions/\{template.id}`
-2. Restart Clacky
-3. Enable the extension in settings
-
-## Usage
-
-Describe how to use this extension.
-
-## License
-
-\{template.license}
-
-## Author
-
-\{template.author}
-"
+  let contrib_names : Array[String] = []
+  for c in template.contributions {
+    contrib_names.push(contribution_type_name(c))
+  }
+  let contrib_list = contrib_names.join(", ")
+  "# " + template.name + "\n" +
+  "\n" +
+  template.description + "\n" +
+  "\n" +
+  "## Installation\n" +
+  "\n" +
+  "1. Copy this directory to `~/.clacky/extensions/" + template.id + "`\n" +
+  "2. Restart Clacky\n" +
+  "3. Enable the extension in settings\n" +
+  "\n" +
+  "## Contributions\n" +
+  "\n" +
+  contrib_list + "\n" +
+  "\n" +
+  "## License\n" +
+  "\n" +
+  template.license + "\n" +
+  "\n" +
+  "## Author\n" +
+  "\n" +
+  template.author + "\n"
 }
 
 ///|
-/// Create a default extension template with reasonable defaults.
-pub(all) fn default_template(id : String, name : String) -> ExtensionTemplate {
+/// Human-readable name of a contribution type.
+fn contribution_type_name(type_ : ExtensionContributionType) -> String {
+  match type_ {
+    ExtensionContributionType::Panel => "panel"
+    ExtensionContributionType::Skill => "skill"
+    ExtensionContributionType::Agent => "agent"
+    ExtensionContributionType::Api => "api"
+    ExtensionContributionType::Hook => "hook"
+    ExtensionContributionType::Patch => "patch"
+  }
+}
+
+///|
+/// Construct a default extension template with reasonable defaults.
+pub fn default_template(id : String, name : String) -> ExtensionTemplate {
   {
     id,
     name,

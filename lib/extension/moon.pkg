@@ -1,11 +1,8 @@
 import {
-  "moonbitlang/x/path",
-  "moonbitlang/x/sys",
-  "moonbitlang/x/fs",
   "moonbitlang/core/json",
+  "moonbitlang/x/path",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
 }
-
-options(
-  "native-stub": [ "sys_native.c" ],
-  // auto-link: no explicit flags needed — kernel32 (Windows) / unistd (POSIX) are default
-)
