@@ -37,6 +37,13 @@ pub(all) struct ApiExtension {
 pub let default_ext_timeout_ms : Int = 30000
 
 ///|
+/// Maximum extension execution timeout in milliseconds (10 minutes). Routes
+/// declaring a `timeout_ms` greater than this (or non-positive) fall back
+/// to `default_ext_timeout_ms`. This prevents a single extension from
+/// claiming an unbounded execution budget.
+pub let max_ext_timeout_ms : Int = 600000
+
+///|
 /// Load API extensions from a directory.
 /// Scans for .json or .toml extension descriptor files.
 /// Returns only extensions that pass validation (non-empty name).
@@ -77,6 +84,64 @@ pub fn load_api_extensions(ext_dir? : String? = None) -> Array[ApiExtension] {
 }
 
 ///|
+/// Load API extensions from a list of (extension_id, file_path) pairs
+/// produced by the extension framework's `collect_api_contribution_paths`.
+/// This is the bridge that turns `ext.yml` `api` contributions into
+/// `ApiExtension` values ready for `ExtensionDispatcher` registration.
+///
+/// Each file is parsed as JSON (`.json` suffix) or the simple TOML-like
+/// format (`.toml` or other). When the parsed descriptor's `name` is
+/// empty, the extension id is used as a fallback. Parse failures and
+/// missing files are logged and skipped — a single bad extension must
+/// not prevent the rest of the dispatcher from loading.
+pub fn load_extensions_from_paths(
+  paths : Array[(String, String)],
+) -> Array[ApiExtension] {
+  let result : Array[ApiExtension] = []
+  for pair in paths {
+    let (ext_id, file_path) = pair
+    if !@fs.path_exists(file_path) {
+      println(
+        "[ext_loader] api contribution file not found, skipping: " +
+        file_path +
+        " (ext=" +
+        ext_id +
+        ")",
+      )
+      continue
+    }
+    let content = @fs.read_file_to_string(file_path) catch {
+      _ => {
+        println(
+          "[ext_loader] failed to read api contribution file, skipping: " +
+          file_path,
+        )
+        continue
+      }
+    }
+    let is_json = file_path.has_suffix(".json")
+    let parsed = if is_json {
+      parse_ext_json(content)
+    } else {
+      parse_ext_simple(content, file_path)
+    }
+    match parsed {
+      Some(e) => {
+        // Prefer the descriptor's own `name`; fall back to ext_id
+        let name = if e.name.is_empty() { ext_id } else { e.name }
+        result.push({ ..e, name, })
+      }
+      None =>
+        println(
+          "[ext_loader] failed to parse api contribution descriptor: " +
+          file_path,
+        )
+    }
+  }
+  result
+}
+
+///|
 /// Filter extensions to only those that are enabled.
 pub fn enabled_extensions(
   extensions : Array[ApiExtension],
@@ -84,6 +149,32 @@ pub fn enabled_extensions(
   let result : Array[ApiExtension] = []
   for ext in extensions {
     if ext.enabled {
+      result.push(ext)
+    }
+  }
+  result
+}
+
+///|
+/// Merge two arrays of `ApiExtension` by name. Entries in `b` override
+/// entries in `a` on name clash — this lets ext.yml `api` contributions
+/// win over standalone descriptor files for the same extension name,
+/// so the unified (contribution-driven) flow is authoritative.
+pub fn merge_api_extensions(
+  a : Array[ApiExtension],
+  b : Array[ApiExtension],
+) -> Array[ApiExtension] {
+  let seen : Map[String, Bool] = {}
+  let result : Array[ApiExtension] = []
+  for ext in b {
+    if !seen.contains(ext.name) {
+      seen[ext.name] = true
+      result.push(ext)
+    }
+  }
+  for ext in a {
+    if !seen.contains(ext.name) {
+      seen[ext.name] = true
       result.push(ext)
     }
   }

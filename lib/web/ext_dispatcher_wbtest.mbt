@@ -225,3 +225,197 @@ test "route_summary: shows command info for routes" {
   assert_true(summary[0].contains("cmd: echo hello"))
   assert_true(summary[1].contains("stub"))
 }
+
+// ── Task 4: error envelope enhancement tests ───────────────────
+
+///|
+test "parse_ext_response: exit 124 returns 504 + EXT_TIMEOUT" {
+  let (status, ct, body) = parse_ext_response("killed by timeout", 124)
+  @debug.assert_eq(status, 504)
+  @debug.assert_eq(ct, "application/json")
+  assert_true(body.contains("\"code\":\"EXT_TIMEOUT\""))
+  assert_true(body.contains("\"error\":\"timeout\""))
+}
+
+///|
+test "parse_ext_response: exit 130 (SIGINT) returns 502 + EXT_CRASH" {
+  let (status, ct, body) = parse_ext_response("", 130)
+  @debug.assert_eq(status, 502)
+  @debug.assert_eq(ct, "application/json")
+  assert_true(body.contains("\"code\":\"EXT_CRASH\""))
+  assert_true(body.contains("\"error\":\"handler crashed\""))
+  // 130 - 128 = 2 (SIGINT on most Unix)
+  assert_true(body.contains("\"signal\":2"))
+}
+
+///|
+test "parse_ext_response: exit 139 (SIGSEGV) returns 502 + signal 11" {
+  let (status, _ct, body) = parse_ext_response("segfault", 139)
+  @debug.assert_eq(status, 502)
+  // 139 - 128 = 11 (SIGSEGV)
+  assert_true(body.contains("\"signal\":11"))
+}
+
+///|
+test "parse_ext_response: exit 255 (boundary) returns 502 + EXT_CRASH" {
+  let (status, _ct, body) = parse_ext_response("", 255)
+  @debug.assert_eq(status, 502)
+  assert_true(body.contains("\"code\":\"EXT_CRASH\""))
+  // 255 - 128 = 127
+  assert_true(body.contains("\"signal\":127"))
+}
+
+///|
+test "parse_ext_response: exit 127 (low signal-like) NOT treated as crash" {
+  // 127 is "command not found", not a signal — should be regular error
+  let (status, _ct, body) = parse_ext_response("command not found", 127)
+  @debug.assert_eq(status, 500)
+  // Should NOT contain EXT_CRASH
+  assert_true(!body.contains("EXT_CRASH"))
+}
+
+///|
+test "parse_ext_response: exit 256 (out of range) NOT treated as crash" {
+  let (status, _ct, body) = parse_ext_response("oops", 256)
+  @debug.assert_eq(status, 500)
+  assert_true(!body.contains("EXT_CRASH"))
+}
+
+// ── Task 2: timeout clamping tests ─────────────────────────────
+
+///|
+test "max_ext_timeout_ms: constant is 600_000" {
+  @debug.assert_eq(max_ext_timeout_ms, 600000)
+}
+
+///|
+test "default_ext_timeout_ms: constant is 30_000" {
+  @debug.assert_eq(default_ext_timeout_ms, 30000)
+}
+
+// ── Task 3: dispatcher construction & hot-reload tests ─────────
+
+///|
+test "ExtensionDispatcher::new: builds route map from extensions" {
+  let exts : Array[ApiExtension] = [
+    {
+      name: "foo",
+      version: "1.0",
+      routes: [
+        {
+          http_method: "GET",
+          path: "/a",
+          handler_name: "a",
+          command: "echo a",
+          description: "",
+          timeout_ms: 5000,
+        },
+        {
+          http_method: "POST",
+          path: "/b",
+          handler_name: "b",
+          command: "echo b",
+          description: "",
+          timeout_ms: 5000,
+        },
+      ],
+      enabled: true,
+    },
+  ]
+  let d = ExtensionDispatcher::new(exts)
+  @debug.assert_eq(d.routes_ref.val.length(), 2)
+  // Verify keys
+  assert_true(d.routes_ref.val.contains("/api/ext/foo/a"))
+  assert_true(d.routes_ref.val.contains("/api/ext/foo/b"))
+}
+
+///|
+test "ExtensionDispatcher::new: without ext_dir is a no-op for ensure_fresh" {
+  let d = ExtensionDispatcher::new([])
+  // Should not throw; just returns
+  d.ensure_fresh()
+  @debug.assert_eq(d.request_count.val, 0)
+}
+
+///|
+test "ExtensionDispatcher::new_with_dir: initial signature is set" {
+  // Use a temp directory that doesn't exist; signature should be "" (empty)
+  let d = ExtensionDispatcher::new_with_dir(
+    [],
+    "/tmp/_wbtest_ext_dir_does_not_exist_\{@async.now()}",
+  )
+  @debug.assert_eq(d.last_signature.val, "")
+}
+
+///|
+test "ExtensionDispatcher::ensure_fresh: throttled by check_every" {
+  let d = ExtensionDispatcher::new_with_dir(
+    [],
+    "/tmp/_wbtest_throttle_\{@async.now()}",
+    check_every=5,
+  )
+  // First 4 calls: counter increments but no work
+  for _i = 0; _i < 4; _i = _i + 1 {
+    d.ensure_fresh()
+  }
+  @debug.assert_eq(d.request_count.val, 4)
+  // 5th call: triggers check (signature will be "" so no reload)
+  d.ensure_fresh()
+  @debug.assert_eq(d.request_count.val, 5)
+}
+
+///|
+test "compute_dir_signature: empty/missing dir returns empty string" {
+  @debug.assert_eq(
+    compute_dir_signature("/tmp/_wbtest_sig_missing_\{@async.now()}"),
+    "",
+  )
+}
+
+///|
+test "compute_dir_signature: same content yields same signature" {
+  let tmp = "/tmp/_wbtest_sig_same_\{@async.now()}"
+  @fs.create_dir(tmp) catch {
+    _ => ()
+  }
+  let f = "\{tmp}/a.json"
+  @fs.write_string_to_file(f, "{\"name\":\"x\"}") catch {
+    _ => ()
+  }
+  let s1 = compute_dir_signature(tmp)
+  let s2 = compute_dir_signature(tmp)
+  @debug.assert_eq(s1, s2)
+  assert_true(s1.contains("a.json|"))
+  // Cleanup
+  @fs.remove_file(f) catch {
+    _ => ()
+  }
+  @fs.remove_dir(tmp) catch {
+    _ => ()
+  }
+}
+
+///|
+test "compute_dir_signature: different sizes yield different signatures" {
+  let tmp = "/tmp/_wbtest_sig_diff_\{@async.now()}"
+  @fs.create_dir(tmp) catch {
+    _ => ()
+  }
+  let f = "\{tmp}/a.json"
+  @fs.write_string_to_file(f, "small") catch {
+    _ => ()
+  }
+  let s1 = compute_dir_signature(tmp)
+  @fs.write_string_to_file(f, "this is a much larger file content") catch {
+    _ => ()
+  }
+  let s2 = compute_dir_signature(tmp)
+  assert_true(s1 != s2)
+  // Cleanup
+  @fs.remove_file(f) catch {
+    _ => ()
+  }
+  @fs.remove_dir(tmp) catch {
+    _ => ()
+  }
+}

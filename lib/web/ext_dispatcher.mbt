@@ -11,22 +11,76 @@
 /// Dispatches extension routes to their handlers.
 /// All extension routes are mounted under `/api/ext/<extension_name>/`
 /// to avoid conflicts with core API routes.
+///
+/// The dispatcher supports **hot reload**: when constructed with
+/// `new_with_dir`, the handler closures re-read the extension directory
+/// on a throttled schedule, and updates to existing routes'
+/// `command`/`description`/`timeout_ms` fields take effect on subsequent
+/// requests without a server restart. New routes and removed routes
+/// still require a restart because crescent's route table is
+/// immutable after `app.serve`.
 pub(all) struct ExtensionDispatcher {
-  /// All loaded extensions (both enabled and disabled)
+  /// All loaded extensions (initial state; for diagnostics)
   extensions : Array[ApiExtension]
+  /// Live route map for hot reload. Key: "/api/ext/<ext_name><path>".
+  /// Value: the current `ExtensionRoute` (may be updated by ensure_fresh).
+  routes_ref : Ref[Map[String, ExtensionRoute]]
+  /// Extension directory to watch. None disables hot reload.
+  ext_dir : String?
+  /// Last directory signature (sorted "name|size" tuples) for change detection.
+  last_signature : Ref[String]
+  /// Counter for throttling filesystem checks.
+  request_count : Ref[Int]
+  /// Check for directory changes every Nth request (default 20).
+  check_every : Int
 }
 
 ///|
-/// Create a new dispatcher from a set of loaded extensions.
+/// Create a new dispatcher without hot-reload support. The initial
+/// extension set is captured at construction time and never changes.
 pub fn ExtensionDispatcher::new(
   extensions : Array[ApiExtension],
 ) -> ExtensionDispatcher {
-  { extensions, }
+  {
+    extensions,
+    routes_ref: Ref(build_route_map(extensions)),
+    ext_dir: None,
+    last_signature: Ref(""),
+    request_count: Ref(0),
+    check_every: 20,
+  }
+}
+
+///|
+/// Create a new dispatcher with hot-reload support. The dispatcher
+/// watches `ext_dir` for changes; on the throttled schedule set by
+/// `check_every`, the route map is refreshed by re-reading the
+/// descriptor files in the directory.
+///
+/// Note: only edits to *existing* routes' fields are picked up. New
+/// routes and removed routes require a server restart.
+pub fn ExtensionDispatcher::new_with_dir(
+  extensions : Array[ApiExtension],
+  ext_dir : String,
+  check_every? : Int = 20,
+) -> ExtensionDispatcher {
+  {
+    extensions,
+    routes_ref: Ref(build_route_map(extensions)),
+    ext_dir: Some(ext_dir),
+    last_signature: Ref(compute_dir_signature(ext_dir)),
+    request_count: Ref(0),
+    check_every,
+  }
 }
 
 ///|
 /// Register all enabled extension routes with the crescent App.
 /// Each extension gets its own route group at `/api/ext/<name>/`.
+///
+/// Each registered handler is a thin closure that defers route lookup
+/// to `routes_ref` so that hot-reloaded route fields (command,
+/// timeout_ms, description) take effect without a server restart.
 pub fn ExtensionDispatcher::register_routes(
   self : ExtensionDispatcher,
   app : @crescent.App,
@@ -39,9 +93,42 @@ pub fn ExtensionDispatcher::register_routes(
   // Fix: [C2] Extension路由双重/api前缀 — server.mbt已在/api组内调用，此处改为/ext避免/api/api/ext
   app.group("/ext", (ext_group : @crescent.App) => {
     for ext in active {
-      register_single_extension(ext_group, ext)
+      register_single_extension(ext_group, ext, self)
     }
   })
+}
+
+///|
+/// Check whether the extension directory has changed since the last
+/// check. If so, re-read the descriptor files and update `routes_ref`
+/// so subsequent requests pick up the new commands/timeouts.
+///
+/// This is a no-op when `ext_dir` is None. The check is throttled
+/// to once per `check_every` requests to bound filesystem I/O.
+pub fn ExtensionDispatcher::ensure_fresh(self : ExtensionDispatcher) -> Unit {
+  match self.ext_dir {
+    None => ()
+    Some(dir) => {
+      let count = self.request_count.val + 1
+      self.request_count.val = count
+      if count % self.check_every != 0 {
+        return
+      }
+      let sig = compute_dir_signature(dir)
+      if sig == self.last_signature.val {
+        return
+      }
+      // Signature changed — reload
+      let reloaded = load_api_extensions(ext_dir=Some(dir))
+      self.routes_ref.val = build_route_map(reloaded)
+      self.last_signature.val = sig
+      println(
+        "[ExtensionDispatcher] Hot-reloaded extensions from " +
+        dir +
+        " (signature changed)",
+      )
+    }
+  }
 }
 
 ///|
@@ -68,8 +155,56 @@ pub fn ExtensionDispatcher::route_summary(
 // ── Internal helpers ────────────────────────────────────────────
 
 ///|
+/// Build the live route map from a list of extensions. Key format:
+/// "/api/ext/<ext_name><path>".
+fn build_route_map(
+  extensions : Array[ApiExtension],
+) -> Map[String, ExtensionRoute] {
+  let m : Map[String, ExtensionRoute] = {}
+  for ext in extensions {
+    for route in ext.routes {
+      let key = "/api/ext/\{ext.name}\{route.path}"
+      m[key] = route
+    }
+  }
+  m
+}
+
+///|
+/// Compute a lightweight signature of a directory: sorted list of
+/// "filename|filesize" entries for `.json` and `.toml` files. Two
+/// signatures are equal iff the same set of files with the same sizes
+/// exist. This is a coarse change detector — it does not detect edits
+/// that result in the same size, but that's acceptable for a poll-based
+/// hot-reload (false positives just cause one extra reload).
+fn compute_dir_signature(dir : String) -> String {
+  if !@fs.path_exists(dir) {
+    return ""
+  }
+  let entries = @fs.read_dir(dir) catch { _ => return "" }
+  let sig_entries : Array[String] = []
+  for fname in entries {
+    let is_json = fname.has_suffix(".json")
+    let is_toml = fname.has_suffix(".toml")
+    if !is_json && !is_toml {
+      continue
+    }
+    let full = @path.Path::join(dir, @path.Path(fname)).to_string()
+    let content = @fs.read_file_to_string(full) catch { _ => "" }
+    let size = content.length()
+    sig_entries.push("\{fname}|\{size}")
+  }
+  sig_entries.sort()
+  sig_entries.join(";")
+}
+
+///|
 /// Register routes for a single extension under its own sub-group.
-fn register_single_extension(app : @crescent.App, ext : ApiExtension) -> Unit {
+fn register_single_extension(
+  app : @crescent.App,
+  ext : ApiExtension,
+  dispatcher : ExtensionDispatcher,
+) -> Unit {
   println(
     "[ExtensionDispatcher]   \{ext.name} v\{ext.version}: \{ext.routes.length()} route(s)",
   )
@@ -78,24 +213,28 @@ fn register_single_extension(app : @crescent.App, ext : ApiExtension) -> Unit {
   }
   app.group("/\{ext.name}", (g : @crescent.App) => {
     for route in ext.routes {
-      register_route_entry(g, ext.name, route)
+      register_route_entry(g, ext.name, route, dispatcher)
     }
   })
 }
 
 ///|
 /// Register a single route entry with the appropriate HTTP method.
+/// The handler closure defers `command`/`timeout_ms` lookup to
+/// `dispatcher.routes_ref` so that hot-reloaded values take effect.
 fn register_route_entry(
   app : @crescent.App,
   ext_name : String,
   route : ExtensionRoute,
+  dispatcher : ExtensionDispatcher,
 ) -> Unit {
-  let handler = make_ext_handler(ext_name, route)
+  let handler = make_ext_handler(ext_name, route, dispatcher)
   let path = if route.path.is_empty() { "" } else { route.path }
   match route.http_method.to_upper() {
     "GET" => app.get(path, handler)
     "POST" => app.post(path, handler)
     "PUT" => app.put(path, handler)
+    "PATCH" => app.patch(path, handler)
     "DELETE" => app.delete(path, handler)
     other =>
       println(
@@ -183,7 +322,9 @@ fn write_body_to_temp(body : String, token : String) -> String {
 /// Returns (status_code, content_type, response_body).
 ///
 /// - Exit code 0: stdout is the response body (default Content-Type: application/json)
-/// - Exit code non-0: stderr parsed as JSON error envelope, or raw stderr as error
+/// - Exit code 124: Unix `timeout` killed the handler — return 504 + EXT_TIMEOUT
+/// - Exit code 128-255: handler was killed by a signal — return 502 + EXT_CRASH
+/// - Exit code non-0 (other): stderr parsed as JSON error envelope, or raw stderr as error
 ///
 /// If the first line of stdout is `Content-Type: <type>`, it is used as the
 /// response content type and stripped from the body.
@@ -213,6 +354,26 @@ fn parse_ext_response(
     }
     let body = output.trim().to_owned()
     return (200, "application/json", body)
+  }
+  // Exit code 124: Unix `timeout` killed the handler
+  if exit_code == 124 {
+    let error_body = Json::object({
+      "error": "timeout".to_json(),
+      "code": "EXT_TIMEOUT".to_json(),
+      "hint": "handler exceeded its timeout budget".to_json(),
+    }).stringify()
+    return (504, "application/json", error_body)
+  }
+  // Exit code 128-255: handler was killed by signal (signal = exit_code - 128)
+  if exit_code >= 128 && exit_code < 256 {
+    let signal_num = exit_code - 128
+    let error_body = Json::object({
+      "error": "handler crashed".to_json(),
+      "code": "EXT_CRASH".to_json(),
+      "signal": signal_num.to_json(),
+      "hint": "handler terminated by signal".to_json(),
+    }).stringify()
+    return (502, "application/json", error_body)
   }
   // Non-zero exit: try to parse output as JSON error
   let trimmed = output.trim().to_owned()
@@ -264,21 +425,46 @@ fn parse_ext_response(
 /// becomes the HTTP response body.
 ///
 /// If `command` is empty, the handler returns a stub response and logs a warning.
+///
+/// The route is looked up from `dispatcher.routes_ref` on every request
+/// so that hot-reloaded fields (command, timeout_ms, description) take
+/// effect without a server restart. The initially-registered route is
+/// used as a fallback if the route is removed from the live map.
 fn make_ext_handler(
   ext_name : String,
-  route : ExtensionRoute,
+  initial_route : ExtensionRoute,
+  dispatcher : ExtensionDispatcher,
 ) -> async (@crescent.Event) -> &@core.Responder {
   let name = ext_name
-  let handler_name = route.handler_name
-  let timeout = route.timeout_ms
-  let command = route.command
-  let has_command = !command.is_empty()
-  if !has_command {
+  let route_path = initial_route.path
+  let route_key = "/api/ext/\{name}\{route_path}"
+  let fallback_command = initial_route.command
+  let handler_name = initial_route.handler_name
+  let has_initial_command = !fallback_command.is_empty()
+  if !has_initial_command {
     println(
-      "[ExtensionDispatcher]   WARNING: route \{name}\{route.path} (\{handler_name}) has no command — returning stub",
+      "[ExtensionDispatcher]   WARNING: route \{name}\{route_path} (\{handler_name}) has no command — returning stub",
     )
   }
   fn(event : @crescent.Event) -> &@core.Responder {
+    // Throttled hot-reload check
+    dispatcher.ensure_fresh()
+    // Look up the (possibly hot-reloaded) route. Fall back to the
+    // initial route if the live map no longer contains it.
+    let route = match dispatcher.routes_ref.val.get(route_key) {
+      Some(r) => r
+      None => initial_route
+    }
+    // Clamp timeout on every request (so hot-reloaded timeouts are also clamped)
+    let requested_timeout = route.timeout_ms
+    let timeout = if requested_timeout <= 0 ||
+      requested_timeout > max_ext_timeout_ms {
+      default_ext_timeout_ms
+    } else {
+      requested_timeout
+    }
+    let command = route.command
+    let has_command = !command.is_empty()
     if !has_command {
       let body = "{\"extension\":\"\{name}\",\"handler\":\"\{handler_name}\",\"timeout_ms\":\{timeout},\"status\":\"stub\"}"
       return @core.HttpResponse::ok()

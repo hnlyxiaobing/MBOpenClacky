@@ -330,3 +330,74 @@ pub fn enabled_extensions(extensions : Array[Extension]) -> Array[Extension] {
   }
   result
 }
+
+///|
+/// Collect absolute file paths for all `api`-type contributions in enabled
+/// extensions. Each tuple is `(extension_id, abs_file_path)`. Skips
+/// contributions whose `path` field is empty or whose resolved file does
+/// not exist on disk.
+///
+/// This is the bridge between the extension framework (ext.yml) and the
+/// web server's ApiExtension router: callers feed the returned pairs to
+/// `load_extensions_from_paths` to obtain `ApiExtension` values ready for
+/// `ExtensionDispatcher` registration.
+pub fn collect_api_contribution_paths(
+  extensions : Array[Extension],
+) -> Array[(String, String)] {
+  let result : Array[(String, String)] = []
+  for ext in extensions {
+    if !ext.enabled {
+      continue
+    }
+    for contrib in ext.manifest.contributions {
+      if contrib.type_ != ExtensionContributionType::Api {
+        continue
+      }
+      let raw_path = contrib.path.trim().to_owned()
+      if raw_path.is_empty() {
+        continue
+      }
+      let abs_path = resolve_contribution_path(ext.root_path, raw_path)
+      if @fs.path_exists(abs_path) {
+        result.push((ext.manifest.id, abs_path))
+      } else {
+        println(
+          "[extension.loader] api contribution file not found, skipping: " +
+          abs_path +
+          " (ext=" +
+          ext.manifest.id +
+          ")",
+        )
+      }
+    }
+  }
+  result
+}
+
+///|
+/// Resolve a contribution's `path` field against the extension root.
+/// Absolute paths (Unix `/...` or Windows `C:\...` / `C:/...`) and
+/// tilde-prefixed paths are returned as-is; relative paths are joined
+/// with `root_path`.
+fn resolve_contribution_path(root_path : String, rel_path : String) -> String {
+  // Unix absolute
+  if rel_path.has_prefix("/") {
+    return rel_path
+  }
+  // Windows absolute (e.g. C:\foo or C:/foo) — drive letter at index 0
+  if rel_path.length() >= 3 {
+    let second = rel_path[1]
+    if second == ':' {
+      let third = rel_path[2]
+      if third == '\\' || third == '/' {
+        return rel_path
+      }
+    }
+  }
+  // Tilde paths are kept as-is; consumers (e.g. shell commands) handle
+  // their own expansion via @utils.home_dir.
+  if rel_path.has_prefix("~/") || rel_path == "~" {
+    return rel_path
+  }
+  @path.Path::join(root_path, @path.Path(rel_path)).to_string()
+}

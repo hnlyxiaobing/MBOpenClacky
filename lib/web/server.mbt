@@ -186,8 +186,7 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       // Extended session endpoints (export, fork, rename, messages)
       s.post("/:id/export", event => handle_session_export(server_ref, event))
       s.post("/:id/fork", event => handle_session_fork(server_ref, event))
-      // rename uses POST because crescent does not support PATCH
-      s.post("/:id/rename", event => handle_session_rename(server_ref, event))
+      s.patch("/:id/rename", event => handle_session_rename(server_ref, event))
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
       // Session-scoped Time Machine points (P1-5)
       s.get("/:id/time-machine", event => {
@@ -520,10 +519,29 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     api.post("/restart", event => handle_restart(server_ref, event))
 
     // ── API Extensions ──────────────────────────────────────────
-    // Load extensions from ~/.clacky/api_extensions (or configured dir)
-    // and register their routes under /api/ext/<name>/
-    let extensions = load_api_extensions()
-    let dispatcher = ExtensionDispatcher::new(extensions)
+    // Two extension sources are merged:
+    //   1. Standalone descriptor files in ~/.clacky/api_extensions
+    //      (or configured dir) — backward-compatible "drop a JSON file" flow.
+    //   2. `api` contributions declared in ext.yml manifests loaded via the
+    //      extension framework — the unified "contribute an API endpoint"
+    //      flow. Their `path` field points to a JSON/TOML descriptor file
+    //      inside the extension root.
+    let ext_dir = match @utils.home_dir() {
+      Some(home) =>
+        @path.Path::join(home, @path.Path(".clacky/api_extensions")).to_string()
+      None => ".clacky/api_extensions"
+    }
+    let standalone = load_api_extensions(ext_dir=Some(ext_dir))
+    let manifest_exts = @extension.load_all_extensions()
+    let api_paths = @extension.collect_api_contribution_paths(manifest_exts)
+    let contributed = load_extensions_from_paths(api_paths)
+    // Merge: standalone first, contributed second (contributed wins on name clash
+    // so an ext.yml `api` contribution overrides a same-named descriptor file).
+    let merged = merge_api_extensions(standalone, contributed)
+    // Use new_with_dir so the dispatcher hot-reloads edits to standalone
+    // descriptor files. ext.yml `api` contributions don't currently support
+    // hot reload because they live in different directories per extension.
+    let dispatcher = ExtensionDispatcher::new_with_dir(merged, ext_dir)
     dispatcher.register_routes(api)
   })
 
