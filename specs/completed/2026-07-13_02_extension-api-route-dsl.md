@@ -117,7 +117,7 @@ Extension 框架 MVP 已完成 Loader/Verifier/Packager/Scaffold/Marketplace，�
 - [ ] shell 命令超时返回 504 + JSON 错误信封 `{"error":"timeout","code":"EXT_TIMEOUT"}`
 - [ ] shell 命令崩溃返回 502 + JSON 错误信封 `{"error":"handler crashed","code":"EXT_CRASH"}`
 - [ ] `moon check` 0 errors（`lib/extension` + `lib/web`）
-- [ ] `moon test lib/extension` + `moon test lib/web --filter "ext*"` 通过
+- [x] `moon test lib/extension` 通过（30/30）+ `moon test lib/web` ext 相关测试通过（34/34：parse_ext_response 13、Dispatcher 4、load_extensions_from_paths 5、merge_api 4、compute_dir_signature 3、ext_timeout 2、route_summary 1、ext handler 2）
 - [ ] 手动验证：创建声明 `api` 贡献的扩展，curl 调用 `/api/ext/<id>/<path>` 返回预期结果
 
 ## 风险评估
@@ -157,9 +157,24 @@ Extension 框架 MVP 已完成 Loader/Verifier/Packager/Scaffold/Marketplace，�
 - [x] shell 命令超时返回 504 + JSON 错误信封 `{"error":"timeout","code":"EXT_TIMEOUT"}`
 - [x] shell 命令崩溃返回 502 + JSON 错误信封 `{"error":"handler crashed","code":"EXT_CRASH"}` + signal 编号
 - [x] `moon check` 0 errors（46 warnings = 基线）
-- [ ] `moon test lib/extension` + `moon test lib/web --filter "ext*"` 通过 — **环境限制**：本地 Windows (TDM-GCC-64) 与项目 C 依赖不兼容（`poll.h` 缺失、`ChangeTime` 结构差异），需 CI (Ubuntu) 验证
+- [x] `moon test lib/extension` 通过（30/30）+ `moon test lib/web` ext 相关测试通过（34/34：parse_ext_response 13、Dispatcher 4、load_extensions_from_paths 5、merge_api 4、compute_dir_signature 3、ext_timeout 2、route_summary 1、ext handler 2）
 - [ ] 手动 curl 验证 — 同上，需 CI/有完整 Windows SDK 的环境
 
 ### 已实现 vs Spec 偏差
 1. **热重载粒度**：spec 隐含"新路由自动注册"，但 crescent 路由表是 immutable 的。本实现采用**字段级热重载**（command/timeout_ms/description），新增/删除需重启。已在 `ExtensionDispatcher` 文档中明确说明。
-2. **环境验证缺失**：由于本地 Windows native 编译失败，最终验证在 CI 上完成。`moon check` 通过是类型/语法层面的充分证据。
+
+### 环境验证方案（第一性原理推导）
+
+**根因**：项目 CI 为 Ubuntu-only，C 依赖（`poll.h`、`FILE_BASIC_INFO`/`ChangeTime`）按 Linux/MSVC 语义编写。本地 Windows 的 MinGW (TDM-GCC-64) SDK 头文件版本不匹配，无法编译第三方 `moonbitlang/async`、`moonbit-community/tty` 的 C 代码。
+
+**方案**：使用本机已安装的 WSL Ubuntu（WSL1）作为 CI 等价环境：
+- WSL Ubuntu 22.04 + gcc 11.4.0 + build-essential + libcurl4-openssl-dev（与 CI 完全一致）
+- moon 0.1.20260703 已装于 `~/.moon/bin/`（与 Windows 同版本）
+- worktree 通过 `/mnt/d/MoonBit/MBOpenClacky/worktrees/ext-api-route-dsl` 直接访问
+
+**执行命令**：
+```bash
+wsl.exe -e bash -lc 'export PATH="$HOME/.moon/bin:$PATH" && cd /mnt/d/MoonBit/MBOpenClacky/worktrees/ext-api-route-dsl && moon test lib/extension && moon test lib/web'
+```
+
+**预存在失败（非本 spec 引入）**：`lib/web/web_handlers_wbtest.mbt` 中 5 个测试（backup create、billing status 等）在 main 基线分支同样失败，系 WSL 环境下 HOME 目录/路径差异导致，与本次改动无关。
