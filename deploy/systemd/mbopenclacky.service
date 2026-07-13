@@ -1,0 +1,50 @@
+# ============================================================
+# MBOpenClacky — systemd service unit
+# Native (non-Docker) production daemon.
+#
+# Install:
+#   sudo cp mbopenclacky.service /etc/systemd/system/
+#   sudo useradd -r -s /usr/sbin/nologin -d /opt/mbopenclacky mbopenclacky
+#   sudo mkdir -p /opt/mbopenclacky
+#   sudo cp mbopenclacky /opt/mbopenclacky/   # the built binary
+#   sudo chown -R mbopenclacky:mbopenclacky /opt/mbopenclacky
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now mbopenclacky
+#
+# Inspect:
+#   sudo journalctl -u mbopenclacky -f
+# ============================================================
+
+[Unit]
+Description=MBOpenClacky AI Agent Web Server
+Documentation=https://github.com/hnlyxiaobing/MBOpenClacky
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mbopenclacky
+Group=mbopenclacky
+WorkingDirectory=/opt/mbopenclacky
+ExecStart=/opt/mbopenclacky/mbopenclacky server
+Restart=on-failure
+RestartSec=5
+
+# The config directory (~/.mbopenclacky) is derived from HOME, so we
+# pin HOME to the install dir and keep all data writable there.
+Environment=HOME=/opt/mbopenclacky
+Environment=MBOPENCLACKY_WEB_PORT=7070
+
+# Hardening: drop privileges, restrict filesystem writes.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mbopenclacky /var/log/mbopenclacky
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mbopenclacky
+
+[Install]
+WantedBy=multi-user.target

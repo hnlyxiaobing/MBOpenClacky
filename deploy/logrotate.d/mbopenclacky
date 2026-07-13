@@ -1,0 +1,30 @@
+# ============================================================
+# MBOpenClacky — logrotate configuration
+# Rotates the JSON session / server logs produced under
+# ~/.mbopenclacky/logs (filenames: clacky-YYYY-MM-DD.log).
+#
+# Install:
+#   sudo cp mbopenclacky /etc/logrotate.d/
+#   sudo logrotate -d /etc/logrotate.d/mbopenclacky   # dry-run
+#   sudo logrotate /etc/logrotate.d/mbopenclacky       # apply
+#
+# If you changed HOME (e.g. via the systemd unit) the path below
+# must match: for HOME=/opt/mbopenclacky it is
+#   /opt/mbopenclacky/.mbopenclacky/logs/clacky-*.log
+# ============================================================
+
+/home/*/.mbopenclacky/logs/clacky-*.log
+/opt/mbopenclacky/.mbopenclacky/logs/clacky-*.log
+{
+    # One file per day is already created by the app; rotate weekly
+    # to cap disk usage and compress older days.
+    weekly
+    missingok
+    rotate 12
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+    # Keep permissions/ownership of the live file intact.
+    create 0644 mbopenclacky mbopenclacky
+}
