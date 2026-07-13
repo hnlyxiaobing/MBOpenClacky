@@ -137,7 +137,7 @@ fn render_block(text : String, style : BlockFontStyle) -> Array[String] {
   let rows : Array[String] = Array::make(n_rows, "")
   let mut first = true
   for c in text.iter() {
-    if not(first) {
+    if !first {
       for i in 0..<n_rows {
         rows[i] = rows[i] + " "
       }

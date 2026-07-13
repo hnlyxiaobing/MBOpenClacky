@@ -61,7 +61,7 @@ pub fn build_tool_prompt(tool_name : String, tool_args : String) -> String {
   // Truncate args if too long
   let max_args = 60
   let display_args = if tool_args.length() > max_args {
-    tool_args[0:max_args].to_string() + "..."
+    tool_args[0:max_args].to_owned() + "..."
   } else {
     tool_args
   }

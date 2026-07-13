@@ -175,7 +175,7 @@ test "ext handler: shell command execution via run_shell_command" {
   // Test that a simple echo command works through shell_exec
   let result = @tool.run_shell_command("echo '{\"status\":\"ok\"}'")
   assert_eq(result.exit_code, 0)
-  let output = result.output.trim().to_string()
+  let output = result.output.trim().to_owned()
   assert_true(output.contains("ok"))
 }
 
@@ -187,7 +187,7 @@ test "ext handler: env vars passed to command" {
     env_vars=[("CLACKY_EXT_NAME", "myext"), ("CLACKY_EXT_METHOD", "GET")],
   )
   assert_eq(result.exit_code, 0)
-  assert_eq(result.output.trim().to_string(), "myext-GET")
+  assert_eq(result.output.trim().to_owned(), "myext-GET")
 }
 
 // ── Dispatcher route_summary tests ──────────────────────────────

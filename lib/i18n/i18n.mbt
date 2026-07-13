@@ -6,12 +6,15 @@
 /// be kept in sync across the two layers. Error responses, IM channel
 /// messages and Web API error payloads are the priority paths covered.
 
+///|
 /// Default fallback locale when a requested locale is unset or unsupported.
 pub let default_locale : String = "en"
 
+///|
 /// Locales supported by the backend dictionary.
 pub let supported_locales : Array[String] = ["en", "zh"]
 
+///|
 /// English dictionary (default locale).
 let en_dict : Map[String, String] = {
   "error.invalid_json": "Invalid JSON body",
@@ -39,6 +42,7 @@ let en_dict : Map[String, String] = {
   "brand.invalid_license": "Invalid or expired license",
 }
 
+///|
 /// Chinese (Simplified) dictionary.
 let zh_dict : Map[String, String] = {
   "error.invalid_json": "无效的 JSON 请求体",
@@ -66,13 +70,12 @@ let zh_dict : Map[String, String] = {
   "brand.invalid_license": "许可证无效或已过期",
 }
 
+///|
 /// Locale → dictionary table.
-let dicts : Map[String, Map[String, String]] = {
-  "en": en_dict,
-  "zh": zh_dict,
-}
+let dicts : Map[String, Map[String, String]] = { "en": en_dict, "zh": zh_dict }
 
-///| True when `locale` is a supported backend locale.
+///|
+/// True when `locale` is a supported backend locale.
 pub fn is_supported(locale : String) -> Bool {
   let lower = locale.to_lower()
   for l in supported_locales {
@@ -83,7 +86,8 @@ pub fn is_supported(locale : String) -> Bool {
   false
 }
 
-///| Resolve the effective locale from a priority chain:
+///|
+/// Resolve the effective locale from a priority chain:
 /// channel config > session settings > global default.
 pub fn resolve_locale(
   channel_locale : String?,
@@ -99,19 +103,25 @@ pub fn resolve_locale(
   }
 }
 
-///| Translate `key` for `locale`, falling back to the default locale and
+///|
+/// Translate `key` for `locale`, falling back to the default locale and
 /// finally to the raw key if still missing.
 pub fn t(locale : String, key : String) -> String {
   t_with_params(locale, key, {})
 }
 
-///| Translate `key` with `{{name}}` parameter substitution.
+///|
+/// Translate `key` with `{{name}}` parameter substitution.
 pub fn t_with_params(
   locale : String,
   key : String,
   params : Map[String, String],
 ) -> String {
-  let loc = if is_supported(locale) { locale.to_lower() } else { default_locale }
+  let loc = if is_supported(locale) {
+    locale.to_lower()
+  } else {
+    default_locale
+  }
   match lookup(loc, key) {
     Some(s) => substitute(s, params)
     None =>
@@ -122,7 +132,8 @@ pub fn t_with_params(
   }
 }
 
-///| True when `key` exists in the default locale dictionary.
+///|
+/// True when `key` exists in the default locale dictionary.
 pub fn has(key : String) -> Bool {
   match lookup(default_locale, key) {
     Some(_) => true
@@ -130,6 +141,7 @@ pub fn has(key : String) -> Bool {
   }
 }
 
+///|
 /// Look up a key within a single locale dictionary.
 fn lookup(locale : String, key : String) -> String? {
   match dicts.get(locale) {
@@ -138,9 +150,10 @@ fn lookup(locale : String, key : String) -> String? {
   }
 }
 
+///|
 /// Substitute {{name}} placeholders from `params` into `template`.
 fn substitute(template : String, params : Map[String, String]) -> String {
-  if params.size() == 0 {
+  if params.length() == 0 {
     return template
   }
   let mut result = template

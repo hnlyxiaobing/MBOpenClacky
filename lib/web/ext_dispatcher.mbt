@@ -195,27 +195,27 @@ fn parse_ext_response(
     // Check for Content-Type override on first line
     let lines = output.split("\n").to_array()
     if lines.length() > 0 {
-      let first_line = lines[0].trim().to_string()
+      let first_line = lines[0].trim().to_owned()
       if first_line.has_prefix("Content-Type:") {
         let content_type = first_line["Content-Type:".length():]
           .trim()
-          .to_string()
+          .to_owned()
         // Strip first line from body
         let body_lines : Array[String] = []
         for idx, line in lines {
           if idx > 0 {
-            body_lines.push(line.to_string())
+            body_lines.push(line.to_owned())
           }
         }
-        let body = body_lines.join("\n").trim().to_string()
+        let body = body_lines.join("\n").trim().to_owned()
         return (200, content_type, body)
       }
     }
-    let body = output.trim().to_string()
+    let body = output.trim().to_owned()
     return (200, "application/json", body)
   }
   // Non-zero exit: try to parse output as JSON error
-  let trimmed = output.trim().to_string()
+  let trimmed = output.trim().to_owned()
   let parsed = @json.parse(trimmed) catch {
     _ => {
       // Fallback: raw output as error

@@ -53,7 +53,7 @@ pub fn load_scenario_files(dir_path : String) -> Array[String] {
   let entries = @fs.read_dir(dir_path) catch { _ => return texts }
   for entry in entries {
     let path = @path.Path::join(dir_path, @path.Path(entry)).to_string()
-    if path.ends_with(".json") {
+    if path.has_suffix(".json") {
       let content = @fs.read_file_to_string(path) catch { _ => continue }
       texts.push(content)
     }

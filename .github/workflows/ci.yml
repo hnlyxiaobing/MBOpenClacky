@@ -59,6 +59,12 @@ jobs:
       - name: Type check
         run: moon check
 
+      - name: Warning budget gate (P2-3)
+        # Reports the MoonBit warning count against the P2-3 budget. Runs in
+        # report-only mode so CI is not broken by pre-existing warnings; flip
+        # to strict once the count is driven down to the <=200 target.
+        run: bash scripts/warn_count.sh 200
+
       - name: Guard insecure crypto build
         # Refuse to ship the weak crypto stubs (lib/brand/brand_stubs.c) in a
         # release artifact. This complements the compile-time #error guard in

@@ -1,9 +1,15 @@
 ///| White-box tests for the supplementary REST API handlers (P1-5):
+
 ///| Memories, Settings, Share, Model presets, Benchmark session model,
+
 ///| and Session-scoped Time Machine points.
+
 ///|
+
 ///| These handlers persist JSON files under the config directory, so each
+
 ///| test redirects USERPROFILE to "_build" and cleans up afterward. The
+
 ///| handlers are invoked directly (no live server).
 
 ///|
@@ -13,6 +19,11 @@ fn ex_make_event(
   body? : String = "",
   params? : Array[(String, String)] = [],
 ) -> @crescent.Event {
+  let pmap : Map[String, StringView] = {}
+  for t in params {
+    let (k, v) = t
+    pmap[k] = v.to_string_view()
+  }
   {
     req: @crescent.HttpRequest::http_request(
       method,
@@ -21,7 +32,7 @@ fn ex_make_event(
       raw_body=@utf8.encode(body),
     ),
     res: @crescent.HttpResponse::http_response(status_code=OK),
-    params: params,
+    params: pmap,
   }
 }
 
@@ -37,7 +48,8 @@ fn ex_response_json(resp : @core.HttpResponse) -> Json {
   }
 }
 
-///| Redirect USERPROFILE to a temp dir and return the previous value.
+///|
+/// Redirect USERPROFILE to a temp dir and return the previous value.
 fn ex_push_profile() -> String? {
   let old = @sys.get_env_var("USERPROFILE")
   @sys.set_env_var("USERPROFILE", "_build")
@@ -52,13 +64,16 @@ fn ex_pop_profile(old : String?) -> Unit {
   }
 }
 
-///| Remove a config-dir-backed data file (ignored if missing).
+///|
+/// Remove a config-dir-backed data file (ignored if missing).
 fn ex_clean(filename : String) -> Unit {
   match @utils.config_dir() {
     Some(d) =>
       @fs.remove_file(
         @path.Path::join(@path.Path(d), @path.Path(filename)).to_string(),
-      ) catch { _ => () }
+      ) catch {
+        _ => ()
+      }
     None => ()
   }
 }
@@ -230,12 +245,9 @@ test "models lifecycle create list update delete" {
   assert_eq(ex_arr_field(ex_response_json(get), "models").length(), 1)
   let put = handle_models_put(
     sref,
-    ex_make_event(
-      Put,
-      "/api/models/" + mid,
-      body="{\"name\":\"m2\"}",
-      params=[("id", mid)],
-    ),
+    ex_make_event(Put, "/api/models/" + mid, body="{\"name\":\"m2\"}", params=[
+      ("id", mid),
+    ]),
   )
   assert_eq(put.status_code.to_int(), 200)
   let get2 = handle_models_get(sref, ex_make_event(Get, "/api/models"))
@@ -276,11 +288,9 @@ test "benchmark model get default then post updates" {
   let sid = "sess-bm"
   let g0 = handle_benchmark_model_get(
     sref,
-    ex_make_event(
-      Get,
-      "/api/benchmark/sessions/" + sid + "/model",
-      params=[("id", sid)],
-    ),
+    ex_make_event(Get, "/api/benchmark/sessions/" + sid + "/model", params=[
+      ("id", sid),
+    ]),
   )
   assert_eq(g0.status_code.to_int(), 200)
   assert_eq(ex_str_field(ex_response_json(g0), "model"), "")
@@ -297,11 +307,9 @@ test "benchmark model get default then post updates" {
   assert_eq(ex_str_field(ex_response_json(p), "model"), "gpt-4")
   let g1 = handle_benchmark_model_get(
     sref,
-    ex_make_event(
-      Get,
-      "/api/benchmark/sessions/" + sid + "/model",
-      params=[("id", sid)],
-    ),
+    ex_make_event(Get, "/api/benchmark/sessions/" + sid + "/model", params=[
+      ("id", sid),
+    ]),
   )
   assert_eq(ex_str_field(ex_response_json(g1), "model"), "gpt-4")
   ex_clean("benchmark_models.json")
@@ -312,12 +320,9 @@ test "benchmark model get default then post updates" {
 test "benchmark model post rejects missing model" {
   let resp = handle_benchmark_model_post(
     ex_make_server_ref(),
-    ex_make_event(
-      Post,
-      "/api/benchmark/sessions/x/model",
-      body="{}",
-      params=[("id", "x")],
-    ),
+    ex_make_event(Post, "/api/benchmark/sessions/x/model", body="{}", params=[
+      ("id", "x"),
+    ]),
   )
   assert_eq(resp.status_code.to_int(), 400)
 }
@@ -344,17 +349,12 @@ test "time machine add point then list" {
   assert_true(!pid.is_empty())
   let get = handle_session_time_machine_get(
     sref,
-    ex_make_event(
-      Get,
-      "/api/sessions/" + sid + "/time-machine",
-      params=[("id", sid)],
-    ),
+    ex_make_event(Get, "/api/sessions/" + sid + "/time-machine", params=[
+      ("id", sid),
+    ]),
   )
   assert_eq(get.status_code.to_int(), 200)
-  assert_eq(
-    ex_arr_field(ex_response_json(get), "points").length(),
-    1,
-  )
+  assert_eq(ex_arr_field(ex_response_json(get), "points").length(), 1)
   ex_clean("time_machine_" + sid + ".json")
   ex_pop_profile(old)
 }

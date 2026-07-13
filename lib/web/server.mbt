@@ -190,8 +190,12 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       s.post("/:id/rename", event => handle_session_rename(server_ref, event))
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
       // Session-scoped Time Machine points (P1-5)
-      s.get("/:id/time-machine", event => handle_session_time_machine_get(server_ref, event))
-      s.post("/:id/time-machine", event => handle_session_time_machine_post(server_ref, event))
+      s.get("/:id/time-machine", event => {
+        handle_session_time_machine_get(server_ref, event)
+      })
+      s.post("/:id/time-machine", event => {
+        handle_session_time_machine_post(server_ref, event)
+      })
     })
 
     // Meetings
@@ -460,8 +464,12 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       md.delete("/:id", event => handle_models_delete(server_ref, event))
     })
     api.group("/benchmark", (bm : @crescent.App) => {
-      bm.get("/sessions/:id/model", event => handle_benchmark_model_get(server_ref, event))
-      bm.post("/sessions/:id/model", event => handle_benchmark_model_post(server_ref, event))
+      bm.get("/sessions/:id/model", event => {
+        handle_benchmark_model_get(server_ref, event)
+      })
+      bm.post("/sessions/:id/model", event => {
+        handle_benchmark_model_post(server_ref, event)
+      })
     })
 
     // Onboarding

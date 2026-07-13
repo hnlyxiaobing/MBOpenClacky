@@ -13,6 +13,7 @@
 /// capability not yet exposed by the git_exec layer, so it is deferred;
 /// the global /api/git endpoints already cover git operations.
 
+///|
 /// Resolve a data file path under the config directory.
 fn extra_path(filename : String) -> String? {
   match @utils.config_dir() {
@@ -22,28 +23,27 @@ fn extra_path(filename : String) -> String? {
   }
 }
 
+///|
 /// Empty JSON array with a concrete element type.
 fn empty_arr() -> Array[Json] {
   []
 }
 
+///|
 /// Load a JSON array from `path`, returning [] when missing/invalid.
 fn load_array(path : String) -> Array[Json] {
-  let content = @fs.read_file_to_string(path) catch {
-    _ => return empty_arr()
-  }
+  let content = @fs.read_file_to_string(path) catch { _ => return empty_arr() }
   if content.is_empty() {
     return empty_arr()
   }
-  let parsed = @json.parse(content) catch {
-    _ => return empty_arr()
-  }
+  let parsed = @json.parse(content) catch { _ => return empty_arr() }
   match parsed {
     Array(arr) => arr
     _ => empty_arr()
   }
 }
 
+///|
 /// Persist a JSON array to `path`, ensuring the config dir exists.
 fn save_array(path : String, arr : Array[Json]) -> Result[Unit, String] {
   match @utils.config_dir() {
@@ -56,6 +56,7 @@ fn save_array(path : String, arr : Array[Json]) -> Result[Unit, String] {
   Ok(())
 }
 
+///|
 /// Read a String field from a JSON object ("" when absent/invalid).
 fn extra_json_str(j : Json, key : String) -> String {
   match j {
@@ -68,6 +69,7 @@ fn extra_json_str(j : Json, key : String) -> String {
   }
 }
 
+///|
 /// JSON error body helpers.
 fn bad_json() -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
@@ -75,18 +77,21 @@ fn bad_json() -> @core.HttpResponse {
   )
 }
 
+///|
 fn err_no_config() -> @core.HttpResponse {
   @core.HttpResponse::internal_server_error().json_value(
     Json::object({ "error": "Config directory unavailable".to_json() }),
   )
 }
 
+///|
 fn err_msg(msg : String) -> @core.HttpResponse {
   @core.HttpResponse::internal_server_error().json_value(
     Json::object({ "error": msg.to_json() }),
   )
 }
 
+///|
 /// Parse a single query parameter value from a raw query string.
 fn query_param(qs : String, key : String) -> String? {
   if qs.is_empty() {
@@ -94,24 +99,27 @@ fn query_param(qs : String, key : String) -> String? {
   }
   let prefix = key + "="
   for p in qs.split("&") {
-    let ps = p.to_string()
+    let ps = p.to_owned()
     if ps.has_prefix(prefix) {
-      return Some(ps[prefix.length():].to_string())
+      return Some(ps[prefix.length():].to_owned())
     }
   }
   None
 }
 
+///|
 /// Short unique id for new records.
 fn extra_id() -> String {
   @agent.generate_session_id()[:12].to_owned()
 }
 
+///|
 /// Current time in milliseconds.
 fn now_ms() -> Int64 {
   @agent.current_time_ms()
 }
 
+///|
 /// Extract a `:id` path parameter (returns "" when missing).
 fn path_id(event : @crescent.Event) -> String {
   match event.param("id") {
@@ -122,6 +130,7 @@ fn path_id(event : @crescent.Event) -> String {
 
 // ── Memories ─────────────────────────────────────────────
 
+///|
 /// GET /api/memories -> list all memories.
 pub fn handle_memories_get(
   _server_ref : Ref[WebServer],
@@ -136,14 +145,13 @@ pub fn handle_memories_get(
   }
 }
 
+///|
 /// POST /api/memories -> create {content, tags?}.
 pub fn handle_memories_post(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   let content = extra_json_str(body, "content")
   if content.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
@@ -181,14 +189,13 @@ pub fn handle_memories_post(
   }
 }
 
+///|
 /// PUT /api/memories -> update by id {id, content?, tags?}.
 pub fn handle_memories_put(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   let id = extra_json_str(body, "id")
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
@@ -260,6 +267,7 @@ pub fn handle_memories_put(
   }
 }
 
+///|
 /// DELETE /api/memories?id=<id>.
 pub fn handle_memories_delete(
   _server_ref : Ref[WebServer],
@@ -305,6 +313,7 @@ pub fn handle_memories_delete(
 
 // ── Settings ───────────────────────────────────────────
 
+///|
 /// GET /api/settings -> stored settings object.
 pub fn handle_settings_get(
   _server_ref : Ref[WebServer],
@@ -325,14 +334,13 @@ pub fn handle_settings_get(
   }
 }
 
+///|
 /// PUT /api/settings -> merge & persist a settings object.
 pub fn handle_settings_put(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   match body {
     Object(_) => ()
     _ =>
@@ -346,9 +354,7 @@ pub fn handle_settings_put(
       let arr = load_array(p)
       for e in arr {
         match e {
-          Object(_) => {
-            merged = merge_objects(merged, e)
-          }
+          Object(_) => merged = merge_objects(merged, e)
           _ => ()
         }
       }
@@ -364,6 +370,7 @@ pub fn handle_settings_put(
   }
 }
 
+///|
 /// Shallow-merge two JSON objects (b overrides a).
 fn merge_objects(a : Json, b : Json) -> Json {
   match (a, b) {
@@ -381,6 +388,7 @@ fn merge_objects(a : Json, b : Json) -> Json {
 
 // ── Share ──────────────────────────────────────────────
 
+///|
 /// GET /api/share -> list shares.
 pub fn handle_share_get(
   _server_ref : Ref[WebServer],
@@ -395,14 +403,13 @@ pub fn handle_share_get(
   }
 }
 
+///|
 /// POST /api/share -> create {type, target, content?}.
 pub fn handle_share_post(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   let stype = extra_json_str(body, "type")
   let target = extra_json_str(body, "target")
   if stype.is_empty() || target.is_empty() {
@@ -437,6 +444,7 @@ pub fn handle_share_post(
 
 // ── Model presets (custom) ──────────────────────────────
 
+///|
 /// GET /api/models -> list custom model presets.
 pub fn handle_models_get(
   _server_ref : Ref[WebServer],
@@ -451,14 +459,13 @@ pub fn handle_models_get(
   }
 }
 
+///|
 /// POST /api/models -> create {name, base_url, model, api_key?}.
 pub fn handle_models_post(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   let name = extra_json_str(body, "name")
   let model = extra_json_str(body, "model")
   if name.is_empty() || model.is_empty() {
@@ -490,6 +497,7 @@ pub fn handle_models_post(
   }
 }
 
+///|
 /// PUT /api/models/:id -> update a custom model preset.
 pub fn handle_models_put(
   _server_ref : Ref[WebServer],
@@ -501,9 +509,7 @@ pub fn handle_models_put(
       Json::object({ "error": "id path parameter required".to_json() }),
     )
   }
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   match extra_path("models.json") {
     Some(p) => {
       let arr = load_array(p)
@@ -544,6 +550,7 @@ pub fn handle_models_put(
   }
 }
 
+///|
 /// DELETE /api/models/:id.
 pub fn handle_models_delete(
   _server_ref : Ref[WebServer],
@@ -582,6 +589,7 @@ pub fn handle_models_delete(
 
 // ── Benchmark session model ─────────────────────────────
 
+///|
 /// GET /api/benchmark/sessions/:id/model.
 pub fn handle_benchmark_model_get(
   _server_ref : Ref[WebServer],
@@ -608,13 +616,17 @@ pub fn handle_benchmark_model_get(
         }
       }
       @core.HttpResponse::ok().json_value(
-        Json::object({ "session_id": session_id.to_json(), "model": "".to_json() }),
+        Json::object({
+          "session_id": session_id.to_json(),
+          "model": "".to_json(),
+        }),
       )
     }
     None => err_no_config()
   }
 }
 
+///|
 /// POST /api/benchmark/sessions/:id/model {model}.
 pub fn handle_benchmark_model_post(
   _server_ref : Ref[WebServer],
@@ -626,9 +638,7 @@ pub fn handle_benchmark_model_post(
       Json::object({ "error": "session id required".to_json() }),
     )
   }
-  let body : Json = event.req.body() catch {
-    _ => return bad_json()
-  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
   let model = extra_json_str(body, "model")
   if model.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
@@ -679,6 +689,7 @@ pub fn handle_benchmark_model_post(
 
 // ── Session-scoped Time Machine points ──────────────────
 
+///|
 /// GET /api/sessions/:id/time-machine -> list points.
 pub fn handle_session_time_machine_get(
   _server_ref : Ref[WebServer],
@@ -702,6 +713,7 @@ pub fn handle_session_time_machine_get(
   }
 }
 
+///|
 /// POST /api/sessions/:id/time-machine {description?} -> add a point.
 pub fn handle_session_time_machine_post(
   _server_ref : Ref[WebServer],
@@ -713,9 +725,7 @@ pub fn handle_session_time_machine_post(
       Json::object({ "error": "session id required".to_json() }),
     )
   }
-  let body : Json = event.req.body() catch {
-    _ => Json::object({})
-  }
+  let body : Json = event.req.body() catch { _ => Json::object({}) }
   let description = extra_json_str(body, "description")
   match extra_path("time_machine_" + session_id + ".json") {
     Some(p) => {

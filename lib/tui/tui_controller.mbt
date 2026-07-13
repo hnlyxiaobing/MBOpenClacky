@@ -255,7 +255,7 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
 async fn TuiController::event_loop(self : TuiController) -> Unit {
   // Initial full redraw
   self.full_redraw()
-  while not(self.quit) {
+  while !self.quit {
     let event = self.tty.read_event(esc_timeout_ms~) catch {
       @async/io.ReaderClosed => {
         self.quit = true
@@ -370,7 +370,7 @@ async fn TuiController::handle_key(
       self.dirty = true
     }
     // Regular character input
-    Char(ch) if not(key.modifiers.ctrl()) && not(key.modifiers.alt()) => {
+    Char(ch) if !key.modifiers.ctrl() && !key.modifiers.alt() => {
       self.input.insert_char(ch)
       self.dirty = true
     }

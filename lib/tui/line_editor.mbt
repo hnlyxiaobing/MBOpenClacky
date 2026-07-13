@@ -306,7 +306,7 @@ pub fn LineEditor::delete_forward(self : LineEditor) -> Unit {
 ///|
 /// Split the current line at the cursor (Enter key).
 pub fn LineEditor::handle_enter(self : LineEditor) -> Unit {
-  if not(self.multiline) {
+  if !self.multiline {
     return
   }
   let line = self.lines[self.cursor_line]
@@ -462,7 +462,7 @@ pub fn LineEditor::kill_word(self : LineEditor) -> Unit {
     new_col = new_col - 1
   }
   // Skip word characters
-  while new_col > 0 && not(is_word_separator(chars[new_col - 1])) {
+  while new_col > 0 && !is_word_separator(chars[new_col - 1]) {
     new_col = new_col - 1
   }
   let sb = StringBuilder::new()

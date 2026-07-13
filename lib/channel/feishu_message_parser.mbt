@@ -330,7 +330,7 @@ fn join_strings(arr : Array[String], sep : String) -> String {
   if arr.length() == 0 {
     return ""
   }
-  let mut result = arr[0].to_string()
+  let mut result = arr[0]
   let mut i = 1
   while i < arr.length() {
     result = result + sep + arr[i]

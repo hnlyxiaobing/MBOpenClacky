@@ -65,7 +65,7 @@ pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit 
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
   // Session ID (truncated to 8 chars)
   let sid = if state.session_id.length() > 8 {
-    state.session_id[0:8].to_string()
+    state.session_id[0:8].to_owned()
   } else {
     state.session_id
   }
@@ -145,7 +145,7 @@ fn truncate_dir(path : String, max_len : Int) -> String {
   if path.length() <= max_len {
     path
   } else {
-    "..." + path[path.length() - max_len + 3:].to_string()
+    "..." + path[path.length() - max_len + 3:].to_owned()
   }
 }
 
@@ -155,7 +155,7 @@ fn truncate_model(name : String, max_len : Int) -> String {
   if name.length() <= max_len {
     name
   } else {
-    name[0:max_len - 3].to_string() + "..."
+    name[0:max_len - 3].to_owned() + "..."
   }
 }
 

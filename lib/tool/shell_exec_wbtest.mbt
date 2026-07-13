@@ -4,7 +4,7 @@
 test "run_shell_command: basic echo" {
   let result = run_shell_command("echo hello_world")
   assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_string() == "hello_world")
+  assert_true(result.output.trim().to_owned() == "hello_world")
 }
 
 ///|
@@ -19,7 +19,7 @@ test "run_shell_command: env vars inlined into command" {
     ("CLACKY_TEST_SHELLVAR", "env_value_42"),
   ])
   assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_string() == "VAL=env_value_42")
+  assert_true(result.output.trim().to_owned() == "VAL=env_value_42")
 }
 
 ///|
@@ -34,8 +34,8 @@ test "run_shell_command: two calls do not pollute env" {
   ])
   assert_eq(r1.exit_code, 0)
   assert_eq(r2.exit_code, 0)
-  let out1 = r1.output.trim().to_string()
-  let out2 = r2.output.trim().to_string()
+  let out1 = r1.output.trim().to_owned()
+  let out2 = r2.output.trim().to_owned()
   // r1 should see A=aaa and B=empty (not polluted by r2)
   assert_true(out1 == "A=aaa B=")
   // r2 should see A=empty and B=bbb (not polluted by r1)
@@ -46,18 +46,18 @@ test "run_shell_command: two calls do not pollute env" {
 test "run_shell_command: working directory" {
   let result = run_shell_command("pwd", working_dir=Some("/tmp"))
   assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_string() == "/tmp")
+  assert_true(result.output.trim().to_owned() == "/tmp")
 }
 
 ///|
 test "run_shell_command: multi-line output" {
   let result = run_shell_command("echo line1; echo line2; echo line3")
   assert_eq(result.exit_code, 0)
-  let lines = result.output.trim().to_string().split("\n").to_array()
+  let lines = result.output.trim().to_owned().split("\n").to_array()
   assert_eq(lines.length(), 3)
-  assert_eq(lines[0].to_string(), "line1")
-  assert_eq(lines[1].to_string(), "line2")
-  assert_eq(lines[2].to_string(), "line3")
+  assert_eq(lines[0].to_owned(), "line1")
+  assert_eq(lines[1].to_owned(), "line2")
+  assert_eq(lines[2].to_owned(), "line3")
 }
 
 ///|
@@ -65,7 +65,7 @@ test "run_shell_command: stderr captured" {
   let result = run_shell_command("echo to_stderr 1>&2; echo to_stdout")
   assert_eq(result.exit_code, 0)
   // Both stdout and stderr go to the same output file (2>&1)
-  let out = result.output.trim().to_string()
+  let out = result.output.trim().to_owned()
   assert_true(out.contains("to_stderr"))
   assert_true(out.contains("to_stdout"))
 }
@@ -76,14 +76,14 @@ test "run_shell_command: env var with special chars" {
     ("CLACKY_TEST_SPECIAL", "it's a test"),
   ])
   assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_string() == "it's a test")
+  assert_true(result.output.trim().to_owned() == "it's a test")
 }
 
 ///|
 test "run_shell_command: no env vars (empty default)" {
   let result = run_shell_command("echo no_env")
   assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_string() == "no_env")
+  assert_true(result.output.trim().to_owned() == "no_env")
 }
 
 ///|

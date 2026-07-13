@@ -182,7 +182,7 @@ pub fn handle_skills_list(request : HttpRequest) -> HttpResponse {
   HttpResponse::ok(
     Json::object({
       "skills": Json::array(skills),
-      "total": merged.size().to_json(),
+      "total": merged.length().to_json(),
     }).stringify(),
   )
 }

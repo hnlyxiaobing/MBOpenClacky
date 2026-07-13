@@ -98,7 +98,7 @@ pub fn enabled_extensions(
 fn expand_tilde(path : String) -> String {
   if path.has_prefix("~/") {
     match @utils.home_dir() {
-      Some(home) => home + path[1:].to_string()
+      Some(home) => home + path[1:].to_owned()
       None => path
     }
   } else if path == "~" {

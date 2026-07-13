@@ -115,7 +115,7 @@ test "random mode returns verbs drawn from the list" {
     let v = a.next()
     assert_eq(v.has_suffix("..."), true)
     // Strip the "..." suffix and check the base verb is in the pool.
-    let base = v[:v.length() - 3].to_string()
+    let base = v[:v.length() - 3].to_owned()
     assert_eq(pool.contains(base), true)
   }
 }
@@ -130,7 +130,7 @@ test "random mode is non-deterministic across many calls" {
   let seen : Array[String] = []
   for _ in 0..<20 {
     let v = a.next()
-    if not(seen.contains(v)) {
+    if !seen.contains(v) {
       seen.push(v)
     }
   }
