@@ -189,6 +189,9 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       // rename uses POST because crescent does not support PATCH
       s.post("/:id/rename", event => handle_session_rename(server_ref, event))
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
+      // Session-scoped Time Machine points (P1-5)
+      s.get("/:id/time-machine", event => handle_session_time_machine_get(server_ref, event))
+      s.post("/:id/time-machine", event => handle_session_time_machine_post(server_ref, event))
     })
 
     // Meetings
@@ -433,6 +436,32 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
     api.group("/profile", (pf : @crescent.App) => {
       pf.get("", event => handle_profile_get(server_ref, event))
       pf.put("", event => handle_profile_put(server_ref, event))
+    })
+
+    // ── Supplementary API (P1-5 completion) ──────────────────
+    api.group("/memories", (mm : @crescent.App) => {
+      mm.get("", event => handle_memories_get(server_ref, event))
+      mm.post("", event => handle_memories_post(server_ref, event))
+      mm.put("", event => handle_memories_put(server_ref, event))
+      mm.delete("", event => handle_memories_delete(server_ref, event))
+    })
+    api.group("/settings", (st : @crescent.App) => {
+      st.get("", event => handle_settings_get(server_ref, event))
+      st.put("", event => handle_settings_put(server_ref, event))
+    })
+    api.group("/share", (sh : @crescent.App) => {
+      sh.get("", event => handle_share_get(server_ref, event))
+      sh.post("", event => handle_share_post(server_ref, event))
+    })
+    api.group("/models", (md : @crescent.App) => {
+      md.get("", event => handle_models_get(server_ref, event))
+      md.post("", event => handle_models_post(server_ref, event))
+      md.put("/:id", event => handle_models_put(server_ref, event))
+      md.delete("/:id", event => handle_models_delete(server_ref, event))
+    })
+    api.group("/benchmark", (bm : @crescent.App) => {
+      bm.get("/sessions/:id/model", event => handle_benchmark_model_get(server_ref, event))
+      bm.post("/sessions/:id/model", event => handle_benchmark_model_post(server_ref, event))
     })
 
     // Onboarding
