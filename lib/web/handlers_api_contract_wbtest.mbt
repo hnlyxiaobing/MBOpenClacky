@@ -1,7 +1,11 @@
 ///| White-box tests for the web API contract handlers covered by
+
 ///| spec `2026-07-09_web-api-contract-alignment`: profile, dirs (mkdir),
+
 ///| brand/skills, and config/media/test. These complement the existing
+
 ///| onboard/version wbtests so that every endpoint listed in the spec has
+
 ///| white-box coverage.
 
 ///|
@@ -56,7 +60,11 @@ test "profile put merges fields and persists" {
   let server_ref = cc_make_server_ref()
   let resp = handle_profile_put(
     server_ref,
-    cc_make_event(Put, "/api/profile", body="{\"name\":\"Ada\",\"theme\":\"light\"}"),
+    cc_make_event(
+      Put,
+      "/api/profile",
+      body="{\"name\":\"Ada\",\"theme\":\"light\"}",
+    ),
   )
   match old_userprofile {
     Some(v) => @sys.set_env_var("USERPROFILE", v)
@@ -66,7 +74,9 @@ test "profile put merges fields and persists" {
   let j = cc_response_json(resp)
   guard j is Object(obj)
   assert_eq(obj.get("ok"), Some(true.to_json()))
-  @fs.remove_file("_build/.mbopenclacky/profile.json") catch { _ => () }
+  @fs.remove_file("_build/.mbopenclacky/profile.json") catch {
+    _ => ()
+  }
 }
 
 // ── Dirs / mkdir ──────────────────────────────────────────────────────
@@ -76,7 +86,11 @@ test "dirs mkdir rejects path traversal in parent" {
   let server_ref = cc_make_server_ref()
   let resp = handle_dirs_mkdir(
     server_ref,
-    cc_make_event(Post, "/api/dirs/mkdir", body="{\"path\":\"../../etc\",\"name\":\"x\"}"),
+    cc_make_event(
+      Post,
+      "/api/dirs/mkdir",
+      body="{\"path\":\"../../etc\",\"name\":\"x\"}",
+    ),
   )
   assert_eq(resp.status_code.to_int(), 400)
   let j = cc_response_json(resp)
@@ -89,7 +103,11 @@ test "dirs mkdir rejects path traversal in name" {
   let server_ref = cc_make_server_ref()
   let resp = handle_dirs_mkdir(
     server_ref,
-    cc_make_event(Post, "/api/dirs/mkdir", body="{\"path\":\".\",\"name\":\"../x\"}"),
+    cc_make_event(
+      Post,
+      "/api/dirs/mkdir",
+      body="{\"path\":\".\",\"name\":\"../x\"}",
+    ),
   )
   assert_eq(resp.status_code.to_int(), 400)
 }
@@ -101,7 +119,11 @@ test "dirs mkdir creates directory under cwd" {
   let server_ref = cc_make_server_ref()
   let resp = handle_dirs_mkdir(
     server_ref,
-    cc_make_event(Post, "/api/dirs/mkdir", body="{\"path\":\".\",\"name\":\"cc_test_dir\"}"),
+    cc_make_event(
+      Post,
+      "/api/dirs/mkdir",
+      body="{\"path\":\".\",\"name\":\"cc_test_dir\"}",
+    ),
   )
   match old_userprofile {
     Some(v) => @sys.set_env_var("USERPROFILE", v)
@@ -112,7 +134,9 @@ test "dirs mkdir creates directory under cwd" {
   guard j is Object(obj)
   assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("path"))
-  @fs.remove_dir("cc_test_dir") catch { _ => () }
+  @fs.remove_dir("cc_test_dir") catch {
+    _ => ()
+  }
 }
 
 // ── Brand / skills ────────────────────────────────────────────────────
@@ -120,7 +144,10 @@ test "dirs mkdir creates directory under cwd" {
 ///|
 test "brand skills list returns skills array" {
   let server_ref = cc_make_server_ref()
-  let resp = handle_brand_skills_list(server_ref, cc_make_event(Get, "/api/brand/skills"))
+  let resp = handle_brand_skills_list(
+    server_ref,
+    cc_make_event(Get, "/api/brand/skills"),
+  )
   assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)

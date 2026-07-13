@@ -1,0 +1,31 @@
+{
+  "id": "coding",
+  "name": "Coding Assistant",
+  "version": "1.0.0",
+  "description": "Built-in coding assistant with auto-test, auto-format, and minimal-change workflow.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["coding", "development", "assistant"],
+  "contributions": [
+    {
+      "type": "agent",
+      "id": "coding-agent",
+      "name": "Coding Agent",
+      "description": "Specialized coding agent with auto-test and auto-format behaviors.",
+      "path": "../../agents/coding/system_prompt.md",
+      "config": {
+        "config_path": "../../agents/coding/config.toml"
+      }
+    },
+    {
+      "type": "skill",
+      "id": "code-explorer",
+      "name": "Code Explorer",
+      "description": "Explore and navigate codebases with semantic search.",
+      "path": "contributions/code-explorer-skill.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

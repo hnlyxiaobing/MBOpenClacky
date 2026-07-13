@@ -1,0 +1,27 @@
+{
+  "id": "git-panel",
+  "name": "Git Status Panel",
+  "description": "View repository status, branches, and recent commits.",
+  "type": "panel",
+  "extension": "git",
+  "ui": {
+    "title": "Git Status",
+    "components": [
+      {
+        "type": "branch-selector",
+        "label": "Current Branch",
+        "data_source": "/api/git/branches"
+      },
+      {
+        "type": "file-list",
+        "label": "Changed Files",
+        "data_source": "/api/git/status"
+      },
+      {
+        "type": "commit-log",
+        "label": "Recent Commits",
+        "data_source": "/api/git/log"
+      }
+    ]
+  }
+}

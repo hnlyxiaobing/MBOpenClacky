@@ -1,0 +1,29 @@
+{
+  "id": "ext-studio",
+  "name": "Extension Studio",
+  "version": "1.0.0",
+  "description": "Built-in extension creator studio with scaffold skill and management panel.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["extension", "studio", "scaffold", "creator"],
+  "contributions": [
+    {
+      "type": "panel",
+      "id": "studio-panel",
+      "name": "Creator Studio Panel",
+      "description": "Manage and create extensions from a visual interface.",
+      "path": "contributions/panel.json",
+      "config": {}
+    },
+    {
+      "type": "skill",
+      "id": "scaffold-skill",
+      "name": "Extension Scaffold",
+      "description": "Generate new extension scaffolds with templates.",
+      "path": "contributions/scaffold-skill.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

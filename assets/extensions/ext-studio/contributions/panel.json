@@ -1,0 +1,22 @@
+{
+  "id": "studio-panel",
+  "name": "Creator Studio Panel",
+  "description": "Manage and create extensions from a visual interface.",
+  "type": "panel",
+  "extension": "ext-studio",
+  "ui": {
+    "title": "Extension Studio",
+    "components": [
+      {
+        "type": "extension-list",
+        "label": "Installed Extensions",
+        "data_source": "/api/extensions/list"
+      },
+      {
+        "type": "scaffold-form",
+        "label": "Create New Extension",
+        "action": "/api/extensions/scaffold"
+      }
+    ]
+  }
+}

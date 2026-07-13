@@ -186,7 +186,9 @@ pub fn disable_extension(ext_id : String) -> Result[Extension, String] {
 ///|
 /// Install an extension from a directory path. Validates and copies to the
 /// installed-extensions directory, then bumps the install counter.
-pub fn install_extension_from_path(ext_path : String) -> Result[Extension, String] {
+pub fn install_extension_from_path(
+  ext_path : String,
+) -> Result[Extension, String] {
   let ext = match load_single_extension(ext_path, ExtensionSource::Local) {
     Some(e) => e
     None => return Err("failed to load extension from " + ext_path)
@@ -198,10 +200,7 @@ pub fn install_extension_from_path(ext_path : String) -> Result[Extension, Strin
   }
   let installed_dir = get_source_directory(ExtensionSource::Installed)
   @utils.ensure_dir(installed_dir)
-  let target_dir = @path.Path::join(
-    installed_dir,
-    @path.Path(ext.manifest.id),
-  ).to_string()
+  let target_dir = @path.Path::join(installed_dir, @path.Path(ext.manifest.id)).to_string()
   if @fs.path_exists(target_dir) {
     return Err("extension already installed at " + target_dir)
   }
@@ -209,10 +208,8 @@ pub fn install_extension_from_path(ext_path : String) -> Result[Extension, Strin
     Ok(_) => ()
     Err(e) => return Err("copy failed: " + e)
   }
-  let installed = match load_single_extension(
-    target_dir,
-    ExtensionSource::Installed,
-  ) {
+  let installed = match
+    load_single_extension(target_dir, ExtensionSource::Installed) {
     Some(e) => e
     None => return Err("failed to load installed extension at " + target_dir)
   }
@@ -298,7 +295,8 @@ pub fn publish_extension(ext_path : String) -> Result[RegistryEntry, String] {
     let errors = validation.errors.map(fn(e) { validation_error_message(e) })
     return Err("validation failed: " + errors.join("; "))
   }
-  let (_, sha256) = match package_extension(ext_path, output_dir=Some("./.marketplace")) {
+  let (_, sha256) = match
+    package_extension(ext_path, output_dir=Some("./.marketplace")) {
     Ok(v) => v
     Err(e) => return Err("package failed: " + e)
   }
@@ -411,10 +409,14 @@ fn remove_directory_recursive(dir : String) -> Result[Unit, String] {
         Err(_) => ()
       }
     } else {
-      @fs.remove_file(path) catch { _ => () }
+      @fs.remove_file(path) catch {
+        _ => ()
+      }
     }
   }
-  @fs.remove_dir(dir) catch { e => return Err(e.to_string()) }
+  @fs.remove_dir(dir) catch {
+    e => return Err(e.to_string())
+  }
   Ok(())
 }
 

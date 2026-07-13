@@ -41,10 +41,7 @@ pub fn load_extensions_from_source(
 pub fn get_source_directory(source : ExtensionSource) -> String {
   match source {
     ExtensionSource::Builtin =>
-      @path.Path::join(
-        @utils.current_dir(),
-        @path.Path("assets/extensions"),
-      ).to_string()
+      @path.Path::join(@utils.current_dir(), @path.Path("assets/extensions")).to_string()
     ExtensionSource::Installed =>
       match @utils.home_dir() {
         Some(home) =>
@@ -115,9 +112,13 @@ fn load_manifest(dir_path : String) -> ExtensionManifest? {
   let yml_path = @path.Path::join(dir_path, @path.Path("ext.yml")).to_string()
   let yaml_path = @path.Path::join(dir_path, @path.Path("ext.yaml")).to_string()
   let content = if @fs.path_exists(yml_path) {
-    @fs.read_file_to_string(yml_path) catch { _ => return None }
+    @fs.read_file_to_string(yml_path) catch {
+      _ => return None
+    }
   } else if @fs.path_exists(yaml_path) {
-    @fs.read_file_to_string(yaml_path) catch { _ => return None }
+    @fs.read_file_to_string(yaml_path) catch {
+      _ => return None
+    }
   } else {
     return None
   }
@@ -141,9 +142,7 @@ fn parse_manifest_json(content : String) -> ExtensionManifest? {
 
 ///|
 /// Build an ExtensionManifest from a JSON object map.
-fn build_manifest_from_obj(
-  obj : Map[String, Json],
-) -> ExtensionManifest? {
+fn build_manifest_from_obj(obj : Map[String, Json]) -> ExtensionManifest? {
   let id = match obj.get("id") {
     Some(String(s)) => s
     _ => return None

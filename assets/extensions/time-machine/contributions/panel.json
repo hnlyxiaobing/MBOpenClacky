@@ -1,0 +1,22 @@
+{
+  "id": "timeline-panel",
+  "name": "Timeline Panel",
+  "description": "Browse project history, view snapshots, and restore previous states.",
+  "type": "panel",
+  "extension": "time-machine",
+  "ui": {
+    "title": "Time Machine",
+    "components": [
+      {
+        "type": "timeline-list",
+        "label": "Project Snapshots",
+        "data_source": "/api/backups/list"
+      },
+      {
+        "type": "snapshot-detail",
+        "label": "Snapshot Detail",
+        "data_source": "/api/backups/:id"
+      }
+    ]
+  }
+}

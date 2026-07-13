@@ -1,6 +1,6 @@
 # Brand Crypto 密钥派生变更 · 迁移说明
 
-> 关联规格：`specs/active/2026-07-09_brand-crypto-hardening.md`
+> 关联规格：`specs/completed/2026-07-09_brand-crypto-hardening.md`
 > 适用版本：包含 "Brand Crypto 加固" 变更的发布
 
 ## 变更摘要

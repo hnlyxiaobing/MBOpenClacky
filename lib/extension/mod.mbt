@@ -1,4 +1,5 @@
-///| Extension framework main module.
+///|
+/// Extension framework main module.
 /// Re-exports the public API of every extension-framework module.
 pub fn extension_id(ext : Extension) -> String {
   ext.manifest.id

@@ -1,4 +1,4 @@
-# web — REST 服务器 · 127 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 90+ 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
 > 路径: `lib/web/` · 52 文件（含子包，src=39, test=13）· Web UI 服务层
 > 前端静态资源: `web/` · 31 文件（HTML 1 + CSS 2 + JS 28）
@@ -47,7 +47,7 @@
 
 ```
 WebServer::start(port)
-  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（127 端点）
+  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（90+ 端点）
   │   ├─ /health                          # 健康检查
   │   ├─ /api/info                        # 系统信息
   │   ├─ /api/sessions/*                  # 会话管理（15 端点）
@@ -115,7 +115,7 @@ WebServer::start(port)
 
 1. **Agent 实例管理** — `active_agents: Map[String, Agent]` 无上限控制，大量会话可能耗尽内存
 2. **API 认证** — `api_key` 为 None 时禁用认证，生产环境风险
-3. **路由分散** — 路由分布在 server.mbt（127 端点）和 router.mbt（已废弃）两处，维护成本高
+3. **路由分散** — 路由分布在 server.mbt（90+ 端点）和 router.mbt（已废弃）两处，维护成本高
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
 6. **Git C FFI 平台兼容** — `git_exec.c` 使用 `popen()`，Windows MSVC 下需验证 `_popen` 兼容性

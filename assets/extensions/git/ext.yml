@@ -1,0 +1,29 @@
+{
+  "id": "git",
+  "name": "Git Workflow",
+  "version": "1.0.0",
+  "description": "Built-in Git workflow extension with status panel and commit hooks.",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["git", "version-control", "workflow"],
+  "contributions": [
+    {
+      "type": "panel",
+      "id": "git-panel",
+      "name": "Git Status Panel",
+      "description": "View repository status, branches, and recent commits.",
+      "path": "contributions/panel.json",
+      "config": {}
+    },
+    {
+      "type": "hook",
+      "id": "git-post-commit",
+      "name": "Post-Commit Hook",
+      "description": "Triggered after each commit to update status and log.",
+      "path": "contributions/git-hook.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

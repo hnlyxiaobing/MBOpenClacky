@@ -35,7 +35,9 @@ test "validation_error_message formats each constructor" {
     "Invalid version: too short",
   )
   assert_eq(
-    validation_error_message(ValidationError::MissingResource("contribs/x.json")),
+    validation_error_message(
+      ValidationError::MissingResource("contribs/x.json"),
+    ),
     "Missing resource: contribs/x.json",
   )
 }

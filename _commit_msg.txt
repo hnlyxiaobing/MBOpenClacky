@@ -1,0 +1,11 @@
+docs: sync all documentation metrics with actual project state
+
+- Update metrics across CLAUDE.md, README.md, project-status.md, getting-started.md
+  (258 src files, 73 test files, ~54,400 src lines, ~522 warnings, 16 default skills)
+- Unify REST API endpoint description to 90+ across codemaps
+- Fix codemaps/skill.md default skill count (15 -> 16) and resource-only dirs
+- Archive 3 specs from active to completed (brand-crypto, extensions-port, meeting)
+- Update warnings-reduction spec baseline (488 -> 522)
+- Add meeting support backend (handlers_meeting, meeting types, web server routes)
+- Add extension framework MVP (loader, verifier, packager, scaffold, marketplace)
+- Add CHANGELOG entry for documentation sync

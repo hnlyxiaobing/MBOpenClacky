@@ -1,0 +1,17 @@
+{
+  "id": "code-explorer",
+  "name": "Code Explorer",
+  "description": "Explore and navigate codebases with semantic search and structural analysis.",
+  "type": "skill",
+  "extension": "coding",
+  "skills": [
+    {
+      "name": "code_explorer",
+      "description": "Search and explore code structure, find definitions, references, and call hierarchies.",
+      "parameters": {
+        "query": "The search query or symbol name",
+        "scope": "Search scope: file, package, or project"
+      }
+    }
+  ]
+}

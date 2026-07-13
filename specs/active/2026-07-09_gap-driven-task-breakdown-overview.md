@@ -38,7 +38,7 @@
 |---|---|---|---|---|
 | P0-1 | `moon test` 链接修复（curl/crypto 符号传播到测试可执行文件） | `2026-07-09_moon-test-link-fix.md` | incremental-spec | Agent-F（测试） |
 | P0-2 | Web 前后端 API 契约对齐（6 个缺失端点 + 全量审计） | `2026-07-09_web-api-contract-alignment.md` | incremental-spec | ✅ 已完成归档 |
-| P0-3 | Brand crypto 加固（derive_key PBKDF2、refresh_distribution HTTP、验证 Windows BCrypt） | `2026-07-09_brand-crypto-hardening.md` | incremental-spec | Agent-F（安全） |
+| P0-3 | Brand crypto 加固（derive_key PBKDF2、refresh_distribution HTTP、验证 Windows BCrypt） | `specs/completed/2026-07-09_brand-crypto-hardening.md` | incremental-spec | ✅ 已完成归档 |
 | P0-4 | wasm-gc 目标可行性（tty/crescent FFI 依赖评估） | `2026-07-09_wasm-gc-target-feasibility.md` | idea-doc | ✅ 已完成归档（决策暂缓） |
 
 ### P1 — 功能完整性
@@ -46,8 +46,8 @@
 | ID | 任务 | spec 文件 | 姿态 | 负责方向 |
 |---|---|---|---|---|
 | P1-1 | Extension 框架 MVP（Loader/Verifier/Packager/Scaffold/Publish/Marketplace + ext.yml 三层发现） | `2026-07-09_extension-framework-mvp.md` | idea-doc | Agent-C（扩展） |
-| P1-2 | 默认扩展迁移（coding/general/git/time_machine/ext-studio） | `2026-07-09_default-extensions-port.md` | idea-doc | Agent-C（扩展） |
-| P1-3 | 会议能力（后端会话 + Web 面板 + meeting-summarizer skill） | `2026-07-09_meeting-support.md` | idea-doc | Agent-D（TUI/会议） |
+| P1-2 | 默认扩展迁移（coding/general/git/time_machine/ext-studio） | `specs/completed/2026-07-09_default-extensions-port.md` | idea-doc | ✅ 已完成归档 |
+| P1-3 | 会议能力（后端会话 + Web 面板 + meeting-summarizer skill） | `specs/completed/2026-07-09_meeting-support.md` | idea-doc | ✅ 已完成归档 |
 | P1-4 | Web 前端面板补齐（扩展市场/创作者工作室/媒体生成/任务/代码编辑器/LaTeX/QRCode） | `2026-07-09_web-frontend-panels-completion.md` | idea-doc | Agent-B（Web 前端） |
 | P1-5 | REST API 补齐（profile/memories/model CRUD/settings/share/benchmark/session-scoped git/time_machine/files/brand skills） | `2026-07-09_rest-api-completion.md` | incremental-spec | Agent-A（Web 后端） |
 | P1-6 | TUI Rich UI 收尾（dialog/todo 完整集成、Rich UI 侧边栏、会议集成，第二轮） | `2026-07-09_tui-rich-ui-completion.md` | incremental-spec | Agent-D（TUI/会议） |
@@ -59,7 +59,7 @@
 |---|---|---|---|---|
 | P2-1 | 部署模板（docker-compose / systemd / logrotate） | `2026-07-09_deployment-templates.md` | idea-doc | Agent-E（部署运维） |
 | P2-2 | 分发打包（Homebrew 公式 / 卸载脚本 / 完整安装脚本 / Windows 安装包） | `2026-07-09_distribution-packaging.md` | idea-doc | Agent-E（部署运维） |
-| P2-3 | MoonBit warnings 削减（488 → ≤200） | `2026-07-09_warnings-reduction.md` | incremental-spec | Agent-F（质量） |
+| P2-3 | MoonBit warnings 削减（522 → ≤200） | `2026-07-09_warnings-reduction.md` | incremental-spec | Agent-F（质量） |
 | P2-4 | 测试覆盖扩展（Web/TUI/Extension eval 场景，1400+ → 2000+） | `2026-07-09_test-coverage-expansion.md` | incremental-spec | Agent-F（测试） |
 
 ## 五、并行与依赖关系
