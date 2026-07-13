@@ -286,6 +286,11 @@ pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
 /// Publish a local extension to the marketplace. Validates, packages, and
 /// updates the registry entry.
 pub fn publish_extension(ext_path : String) -> Result[RegistryEntry, String] {
+  if !@brand.is_bound() {
+    return Err(
+      "identity_not_bound: please bind device first via 'clacky onboard'",
+    )
+  }
   let ext = match load_single_extension(ext_path, ExtensionSource::Local) {
     Some(e) => e
     None => return Err("failed to load extension from " + ext_path)

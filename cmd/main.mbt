@@ -70,6 +70,9 @@ async fn main {
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
       "server": @clap.SubCommand::new(help="Start the web UI server"),
+      "onboard": @clap.SubCommand::new(
+        help="Device binding and identity management",
+      ),
     },
   )
 
@@ -129,7 +132,7 @@ async fn main {
     None => ()
   }
 
-  // Handle subcommands: billing, server
+  // Handle subcommands: billing, server, onboard
   match value.subcmd {
     Some(sub) =>
       if sub.name == "billing" {
@@ -139,6 +142,9 @@ async fn main {
         handle_server() catch {
           err => println("Server error: \{err}")
         }
+        return
+      } else if sub.name == "onboard" {
+        handle_onboard()
         return
       }
     None => ()
@@ -213,6 +219,41 @@ fn format_usd(amount : Double) -> String {
     frac.to_string()
   }
   "\{whole}.\{frac_str}"
+}
+
+///|
+/// handle_onboard: display device binding status and guide the user.
+fn handle_onboard() -> Unit {
+  if @brand.is_bound() {
+    match @brand.load_identity() {
+      Some(id) => {
+        println("Device is bound.")
+        println("")
+        println("  User ID:      \{id.user_id}")
+        println("  Device ID:    \{id.device_info.device_id}")
+        println("  Hostname:     \{id.device_info.hostname}")
+        println("  Platform:     \{id.device_info.platform}")
+        println("  Bound at:     \{id.bound_at}")
+      }
+      None => {
+        println("Identity file exists but could not be parsed.")
+        println("Run 'clacky onboard' again or check ~/.clacky/identity.json")
+      }
+    }
+  } else {
+    println("Device is not bound to an identity.")
+    println("")
+    println("To bind your device:")
+    println("  1. Start the web server:  clacky server")
+    println("  2. Open http://localhost:7070 in your browser")
+    println("  3. Follow the onboarding flow under Settings > Device Binding")
+    println("")
+    println("Or use the API directly:")
+    println(
+      "  POST /api/onboard/device/start  →  get device_code & user_code",
+    )
+    println("  GET  /api/onboard/device/poll   →  check authorization status")
+  }
 }
 
 ///|

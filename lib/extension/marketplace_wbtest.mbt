@@ -45,7 +45,11 @@ test "publish_extension rejects non-existent path" {
   let result = publish_extension("_wbtest_definitely_does_not_exist_xyz")
   match result {
     Ok(_) => @debug.assert_eq(true, false)
-    Err(msg) => @debug.assert_eq(msg.contains("failed to load"), true)
+    Err(msg) =>
+      @debug.assert_eq(
+        msg.contains("failed to load") || msg.contains("identity_not_bound"),
+        true,
+      )
   }
 }
 
