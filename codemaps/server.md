@@ -1,6 +1,6 @@
 # server — Cron 调度 · 浏览器管理 · Git 面板 · 进程池
 
-> 路径: `lib/server/` · 20 文件（src=16, test=4）· 后台服务管理
+> 路径: `lib/server/` · 21 文件（src=17, test=4）· 后台服务管理
 
 ## 入口函数
 
@@ -84,7 +84,7 @@ build_git_status(dir)
 | 进程池 | `master.mbt`, `worker.mbt` | Worker 池管理 |
 | 会话注册 | `session_registry.mbt` | 会话→Worker 映射 |
 | 备份 | `backup_manager.mbt`, `backup_types.mbt` | 项目备份 |
-| Git | `git_panel.mbt`, `git_exec.mbt` | Git 仓库状态、Git 命令执行（C FFI） |
+| Git | `git_panel.mbt`, `git_exec.mbt`, `git_exec.c` | Git 仓库状态、Git 命令执行（C FFI） |
 | 服务发现 | `discover.mbt` | 本地服务实例发现（PID 文件） |
 
 ## 外部依赖

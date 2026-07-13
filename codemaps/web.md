@@ -1,7 +1,7 @@
 # web — REST 服务器 · 90+ 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 52 文件（含子包，src=39, test=13）· Web UI 服务层
-> 前端静态资源: `web/` · 31 文件（HTML 1 + CSS 2 + JS 28）
+> 路径: `lib/web/` · 58 文件（含子包，src=42, test=16）· Web UI 服务层
+> 前端静态资源: `web/` · 36 文件（HTML 1 + CSS 2 + JS 33）
 
 ## 入口函数
 
@@ -40,7 +40,7 @@
 ### 子包
 - **`broadcast/`** — WebSocket 广播 Hub（`hub.mbt`，多客户端 fan-out）
 - **`handler/`** — 处理器子模块（`handler_tests.mbt`）
-- **`middleware/`** — 中间件（`auth.mbt` 认证、`logging.mbt` 日志、`timeout.mbt` 超时、`error_envelope.mbt` 错误封装）
+- **`middleware/`** — 中间件（`auth.mbt` 认证、`logging.mbt` 日志、`timeout.mbt` 超时、`error_envelope.mbt` 错误封装、`auth_wbtest.mbt` 认证测试）
 - **`sse/`** — SSE 流式响应（`sse.mbt`）
 
 ## 核心调用链
@@ -96,7 +96,8 @@ WebServer::start(port)
 | 配置测试 | `handlers_configtest.mbt` | 配置连通性测试（OCR/Media/通用） |
 | 目录 | `handlers_dirs.mbt` | 目录列表、创建 |
 | 用户配置 | `handlers_profile.mbt` | 用户配置读写 |
-| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt` | 文件/回收站/版本/引导/汇率/桥接层 |
+| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt`, `handlers_extra.mbt` | 文件/回收站/版本/引导/汇率/桥接层/补充 API（记忆 CRUD 等） |
+| 会议 | `handlers_meeting.mbt`, `handlers_meetings.mbt`, `meeting.mbt` | 会议管理（创建/列表/结束/摘要）、会议数据模型与持久化 |
 | 扩展 | `ext_dispatcher.mbt`, `ext_loader.mbt` | API 扩展加载与分发 |
 | 静态资源 | `static_server.mbt`, `template_processor.mbt` | 静态文件服务、HTML 模板 |
 | 子包 | `broadcast/`, `handler/`, `middleware/`, `sse/` | WebSocket 广播、中间件、SSE |
@@ -125,7 +126,7 @@ WebServer::start(port)
 
 ## 前端静态资源（`web/`）
 
-> 31 文件 · 单页应用（SPA）+ crescent 静态文件服务 + 路由回退 index.html
+> 36 文件 · 单页应用（SPA）+ crescent 静态文件服务 + 路由回退 index.html
 
 ### 文件结构
 
@@ -140,6 +141,7 @@ WebServer::start(port)
 | `js/settings.js` | 197 | 配置面板（模型/权限/压缩等） |
 | `js/skills.js` | 118 | 技能管理基础 |
 | `js/skills_enhanced.js` | 296 | 技能管理增强（商店、创建者、进化） |
+| `js/marketplace.js` | - | 技能市场（搜索、安装、发布） |
 | `js/mcp.js` | 351 | MCP 服务器管理、工具列表与执行 |
 | `js/channels.js` | 308 | 6 平台 IM 频道管理 |
 | `js/schedules.js` | 192 | Cron 定时任务管理 |
@@ -152,6 +154,9 @@ WebServer::start(port)
 | `js/onboard.js` | 252 | 新用户引导流程 |
 | `js/profile.js` | 137 | 用户配置 |
 | `js/versions.js` | 140 | 版本管理与升级 |
+| `js/media.js` | - | 多媒体管理 |
+| `js/meeting.js` | - | 会议管理 |
+| `js/tasks.js` | - | 任务管理 |
 | `js/workspace.js` | 183 | 工作区管理 |
 | `js/creator.js` | 171 | 创建者技能管理 |
 | `js/model_test.js` | 160 | 模型连通性测试 |
@@ -182,5 +187,8 @@ WebServer::start(port)
 | `onboard.js` | `handlers_onboard.mbt` | `/api/onboard/*` |
 | `profile.js` | `handlers_profile.mbt` | `/api/profile` |
 | `versions.js` | `handlers_version.mbt` | `/api/version/*` |
+| `meeting.js` | `handlers_meeting.mbt` + `handlers_meetings.mbt` | `/api/meetings/*` |
+| `media.js` | `handlers_media.mbt` | `/api/media/*` |
+| `marketplace.js` | `handlers_skills.mbt` + `handlers_bridge.mbt` | `/api/store/skills`, `/api/creator/skills` |
 | `workspace.js` | `handlers_dirs.mbt` + `handlers_files.mbt` | `/api/dirs/*`, `/api/files/*` |
 | `websocket.js` | `broadcast/hub.mbt` | `/ws` |

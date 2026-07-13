@@ -1,6 +1,6 @@
 # channel — 6 个 IM 适配器 · 消息收发 · WebSocket 网关
 
-> 路径: `lib/channel/` · 21 文件（src=18, test=2）· 即时通讯平台接入层
+> 路径: `lib/channel/` · 20 文件（src=18, test=2）· 即时通讯平台接入层
 
 ## 入口函数
 

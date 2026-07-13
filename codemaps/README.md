@@ -2,11 +2,11 @@
 
 本目录存放 MBOpenClacky 各核心包的 **代码地形索引**（CODEMAP）。
 
-> **核心原则**: 节约上下文 — 不用把整个 repo 塞给模型，用一份摘要导航按需回读。
+> **核心原则**: 节约上下文 - 不用把整个 repo 塞给模型，用一份摘要导航按需回读。
 
 ## 用途
 
-- 1→N 场景起手：让模型先读 codemap 定位地形
+- 1->N 场景起手：让模型先读 codemap 定位地形
 - 跨包改动前：快速了解影响面
 - 新成员上手：快速理解包结构
 
@@ -30,6 +30,20 @@
 | web | `web.md` | REST 服务器、90+ 端点、前端 SPA |
 | tui | `tui.md` | TUI 控制器、组件 |
 | config | `config.md` | TOML 配置加载 |
+| message | `message.md` | 消息模型、历史管理、工具调用 |
+| parser | `parser.md` | 文档解析（PDF/DOCX/XLSX/PPTX/WPS） |
+| media | `media.md` | 多媒体生成（图像/视频/语音） |
+| vision | `vision.md` | 视觉理解、OCR、图像描述 |
+| extension | `extension.md` | 扩展系统、脚手架、打包、市场 |
+| billing | `billing.md` | 计费记录、用量统计 |
+| pricing | `pricing.md` | 模型定价表、成本计算 |
+| brand | `brand.md` | 白标定制、许可证、加密 |
+| telemetry | `telemetry.md` | 匿名遥测、事件上报 |
+| hook | `hook.md` | Shell Hook 加载器 |
+| errors | `errors.md` | Agent 错误层次、重试判定 |
+| i18n | `i18n.md` | 国际化、多语言翻译 |
+| utils | `utils.md` | 通用工具集（环境/日志/路径/编码/忽略规则） |
+
 ## 如何生成
 
 1. 让 AI 扫描包目录和关键文件
