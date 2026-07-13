@@ -1,6 +1,6 @@
 # web — REST 服务器 · 90+ 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 58 文件（含子包，src=42, test=16）· Web UI 服务层
+> 路径: `lib/web/` · 59 文件（含子包，src=42, test=17）· Web UI 服务层
 > 前端静态资源: `web/` · 36 文件（HTML 1 + CSS 2 + JS 33）
 
 ## 入口函数
@@ -96,10 +96,10 @@ WebServer::start(port)
 | 配置测试 | `handlers_configtest.mbt` | 配置连通性测试（OCR/Media/通用） |
 | 目录 | `handlers_dirs.mbt` | 目录列表、创建 |
 | 用户配置 | `handlers_profile.mbt` | 用户配置读写 |
-| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_onboard.mbt`, `handlers_exchange_rate.mbt`, `handlers_bridge.mbt`, `handlers_extra.mbt` | 文件/回收站/版本/引导/汇率/桥接层/补充 API（记忆 CRUD 等） |
+| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_version_wbtest.mbt`, `handlers_onboard.mbt`, `handlers_onboard_wbtest.mbt`, `handlers_exchange_rate.mbt`, `handlers_exchange_rate_wbtest.mbt`, `handlers_bridge.mbt`, `handlers_extra.mbt`, `handlers_extra_wbtest.mbt`, `handlers_api_contract_wbtest.mbt`, `web_handlers_wbtest.mbt` | 文件/回收站/版本/引导/汇率/桥接层/补充 API（记忆/Profile 等） |
 | 会议 | `handlers_meeting.mbt`, `handlers_meetings.mbt`, `meeting.mbt` | 会议管理（创建/列表/结束/摘要）、会议数据模型与持久化 |
 | 扩展 | `ext_dispatcher.mbt`, `ext_loader.mbt` | API 扩展加载与分发 |
-| 静态资源 | `static_server.mbt`, `template_processor.mbt` | 静态文件服务、HTML 模板 |
+| 静态资源 | `static_server.mbt`, `static_server_wbtest.mbt`, `template_processor.mbt` | 静态文件服务、HTML 模板 |
 | 子包 | `broadcast/`, `handler/`, `middleware/`, `sse/` | WebSocket 广播、中间件、SSE |
 
 ## 外部依赖

@@ -1,6 +1,6 @@
 # tui — Inline TUI 控制器 · 多行编辑器 · Markdown 渲染 · CJK 宽度 · Hook 集成
 
-> 路径: `lib/tui/` · 34 文件（src=25, test=9）· 终端交互界面
+> 路径: `lib/tui/` · 32 文件（src=24, test=8）· 终端交互界面
 
 ## 入口函数
 
@@ -76,13 +76,13 @@ TuiController::run()
 
 | 文件组 | 文件 | 职责 |
 |--------|------|------|
-| 控制器 | `tui_controller.mbt`, `state.mbt` | TuiController 主循环、TuiState 共享状态 |
+| 控制器 | `tui.mbt`, `tui_controller.mbt`, `state.mbt`, `tui_wbtest.mbt`, `tui_enhanced_wbtest.mbt`, `tui_banner_wbtest.mbt` | TUI 启动入口、TuiController 主循环、TuiState 共享状态 |
 | Hook 集成 | `agent_hooks.mbt` | AgentHookHandler、Hook 事件→TUI 状态路由 |
 | 布局与缓冲 | `layout_manager.mbt`, `screen_buffer.mbt`, `output_buffer.mbt` | 布局管理、屏幕缓冲、输出行管理 |
 | 输入编辑 | `input_area.mbt`, `line_editor.mbt`, `command_suggestions.mbt`, `slash_commands.mbt` | 输入区域、多行编辑器、命令建议、斜杠命令 |
-| 显示组件 | `status_bar.mbt`, `todo_area.mbt` | 状态栏、任务区 |
-| 渲染 | `banner.mbt`, `block_font.mbt`, `markdown.mbt`, `progress_stack.mbt`, `thinking_verbs.mbt`, `thinking_view.mbt` | 横幅、块字体、Markdown、进度堆栈、思考动画、思考实时视图 |
-| 对话框与模态 | `confirm_io.mbt`, `confirm_io.c`, `dialog.mbt`, `modal_lifecycle.mbt` | 确认 I/O（C FFI）、对话框渲染、模态生命周期管理 |
+| 显示组件 | `status_bar.mbt`, `todo_area.mbt`, `todo_area_wbtest.mbt` | 状态栏、任务区 |
+| 渲染 | `banner.mbt`, `block_font.mbt`, `block_font_wbtest.mbt`, `markdown.mbt`, `markdown_wbtest.mbt`, `progress_stack.mbt`, `thinking_verbs.mbt`, `thinking_verbs_wbtest.mbt` | 横幅、块字体、Markdown、进度堆栈、思考动画 |
+| 对话框与模态 | `confirm_io.mbt`, `confirm_io.c`, `dialog.mbt`, `modal_lifecycle.mbt`, `modal_lifecycle_wbtest.mbt` | 确认 I/O（C FFI）、对话框渲染、模态生命周期管理 |
 | 主题 | `theme.mbt` | 主题系统（default/hacker/minimal/light） |
 | 字符工具 | `cjk_width.mbt` | CJK 字符宽度计算、换行、光标定位 |
 | 入口 | `tui.mbt` | TUI 启动入口 |

@@ -1,6 +1,6 @@
 # extension - 扩展系统 · 脚手架 · 打包 · 验证 · 市场
 
-> 路径: `lib/extension/` · 11 文件（src=7, test=4）· OpenClacky 扩展生命周期管理
+> 路径: `lib/extension/` · 12 文件（src=7, test=5）· OpenClacky 扩展生命周期管理
 
 ## 入口函数
 
@@ -64,7 +64,7 @@ publish_extension(ext_path)
 | 文件组 | 文件 | 职责 |
 |--------|------|------|
 | 类型定义 | `types.mbt` | Extension、ExtensionManifest、ExtensionContribution、ValidationError、RegistryEntry |
-| 加载 | `loader.mbt` | 扩展加载、来源目录解析、enabled_extensions |
+| 加载 | `loader.mbt`, `loader_wbtest.mbt` | 扩展加载、来源目录解析、enabled_extensions |
 | 脚手架 | `scaffold.mbt` | create_extension_scaffold、default_template |
 | 打包 | `packager.mbt` | package_extension、unpack_extension、list_packaged_extensions |
 | 验证 | `verifier.mbt` | validate_extension、validate_manifest、validate_all_extensions |

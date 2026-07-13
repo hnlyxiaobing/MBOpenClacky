@@ -21,8 +21,7 @@ moon update && moon install                         # Sync dependencies
 
 ## Architecture
 
-21 lib packages + 1 cmd entry. All three interfaces (CLI, TUI, Web) share the same `Agent` core via the hook system.
-
+23 lib packages + 1 cmd entry. All three interfaces (CLI, TUI, Web) share the same `Agent` core via the hook system.
 ```
 cmd/          — CLI entry (clap parsing, agent lifecycle, session management)
 lib/
@@ -35,22 +34,23 @@ lib/
                 Terminal/PTY, WebSearch, WebFetch, InvokeSkill, MemoryTool, TodoTool,
                 RequestUserFeedback, TrashManager, Browser) + registry with 70+ aliases
   skill/      — SKILL.md parsing, registry, discovery, executor, evolution engine
-                (Reflector/AutoCreator), 16 default skills
-  mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
-                registry, virtual skill mapping, skill provider
+                (Reflector/AutoCreator), 17 default skills
+  extension/  — Extension lifecycle: loader, verifier, packager, scaffold,
+                marketplace, API extension dispatcher/loader, route contributions
+  mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,                registry, virtual skill mapping, skill provider
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
-  web/        — crescent HTTP server: 90+ REST endpoints, SSE, WebSocket, auth/logging
+  web/        — crescent HTTP server: ~154 REST endpoints, SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope, broadcast hub, template processor,
-                static server with SPA fallback
-  tui/        — Inline scrolling TUI (moonbit-community/tty): ScreenBuffer, OutputBuffer,
+                static server with SPA fallback  tui/        — Inline scrolling TUI (moonbit-community/tty): ScreenBuffer, OutputBuffer,
                 LineEditor (CJK-aware), LayoutManager, StatusBar, InputArea, TodoArea,
                 markdown rendering, slash commands, themes, progress stack, block-font
   server/     — Cron parser, scheduler, browser manager, backup manager, discover,
                 master/worker, session registry, git panel
   config/     — TOML loader, 12 provider presets, capabilities, permission modes, env compat
   billing/    — Billing records, token tracking, cost calculation
-  brand/      — White-label config, license validation, AES-GCM/HMAC/SHA256 (C FFI)
-  media/      — Image/video/audio generation (OpenAI/Gemini/DashScope)
+  brand/      — White-label config, license validation, device binding, identity
+                persistence, AES-GCM/HMAC/SHA256 (C FFI)
+  media/      — Image/video/audio generation logic (OpenAI/Gemini/DashScope); REST handlers are 501 stubs
   parser/     — PDF, DOCX (ZIP+XML), PPTX, XLSX parsers
   vision/     — Vision OCR + SHA256 caching
   pricing/    — Model pricing table (677 lines), cost calculator
@@ -82,17 +82,17 @@ lib/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 258 |
-| Test files (`_wbtest.mbt`) | 73 |
-| Source lines | ~54,400 |
-| Test lines | ~17,400 |
-| Total lines (incl. test/) | ~73,200 |
-| Test cases | 1,400+ |
-| Packages | 21 lib + 1 cmd |
+| `.mbt` source files (lib + cmd) | 268 |
+| Test files (`_wbtest.mbt`) | 95 |
+| Source lines | ~61,804 |
+| Test lines | ~23,248 |
+| Total lines (incl. test/) | ~85,052 |
+| Test cases | 1,850+ |
+| Packages | 23 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
-| Default skills | 16 |
-| REST API endpoints | 90+ |
-| `moon check` | 0 errors, ~522 warnings |
+| Default skills | 17 |
+| REST API endpoints | ~156 |
+| `moon check` | 0 errors, 46 warnings |
 | CI/CD | ✅ GitHub Actions |
-| Phase coverage | ~87-92% |
+| Phase coverage | ~90-92% |

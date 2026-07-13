@@ -1,6 +1,6 @@
 # brand - 白标定制 · 许可证管理 · 加密 · 设备绑定
 
-> 路径: `lib/brand/` · 9 文件（src=7, test=2）· 品牌定制与许可证系统
+> 路径: `lib/brand/` · 13 文件（src=9, test=4）· 品牌定制、许可证、设备绑定与身份持久化
 
 ## 入口函数
 
@@ -14,6 +14,11 @@
 | `LicenseValidator::activate(key)` | `license.mbt` | 激活许可证 |
 | `LicenseValidator::heartbeat()` | `license.mbt` | 心跳上报（保持激活状态） |
 | `generate_device_id()` | `device.mbt` | 生成设备唯一标识 |
+| `DeviceAuthStore::new()` | `device_auth.mbt` | 创建设备授权会话存储 |
+| `DeviceAuthStore::start_flow(...)` | `device_auth.mbt` | 启动 RFC 8628 设备授权流 |
+| `DeviceAuthStore::poll(...)` | `device_auth.mbt` | 轮询设备授权结果 |
+| `load_identity()` | `identity.mbt` | 从磁盘加载已绑定身份 |
+| `create_identity(...)` | `identity.mbt` | 从授权结果创建 Identity |
 | `encrypt_aes256gcm(...)` / `decrypt_aes256gcm(...)` | `crypto.mbt` | AES-256-GCM 加解密 |
 | `derive_key(password, salt)` | `crypto.mbt` | PBKDF2 密钥派生 |
 | `BrandSkillManager::new(config)` | `skill_manager.mbt` | 品牌技能管理器 |
@@ -23,6 +28,10 @@
 ### 品牌配置
 - **`BrandConfig`** - 品牌配置（brand_name, display_name, activated, license_key, device_id, distribution, expires_at...）
 - **`DeviceInfo`** - 设备信息（device_id, platform, hostname）
+- **`DeviceAuthSession`** - RFC 8628 授权会话（device_code, user_code, verification_uri, expires_at, approved）
+- **`PollResult`** - 轮询结果：`Pending | Approved(String) | Expired | SlowDown`
+- **`DeviceAuthStore`** - 线程安全的内存会话存储
+- **`Identity`** - 已绑定身份（device_token, user_id, bound_at, device_info）
 
 ### 许可证
 - **`LicenseValidator`** - 许可证验证器（config, status, last_heartbeat, activated_at）
@@ -60,6 +69,8 @@ cmd/main.mbt
 | 许可证 | `license.mbt` | LicenseValidator、激活/验证/心跳/宽限期 |
 | 加密 | `crypto.mbt`, `crypto_native.c` | AES-256-GCM、HMAC-SHA256、PBKDF2、secure_compare |
 | 设备 | `device.mbt` | DeviceInfo、generate_device_id、ensure_device_id |
+| 设备授权 | `device_auth.mbt`, `device_auth_wbtest.mbt` | RFC 8628 设备授权流、会话存储与轮询 |
+| 身份绑定 | `identity.mbt`, `identity_wbtest.mbt` | Identity 持久化、加载、解析 |
 | 技能 | `skill_manager.mbt` | BrandSkillManager、品牌技能管理 |
 | Stubs | `brand_stubs.c` | C FFI stubs（wasm 兼容） |
 
