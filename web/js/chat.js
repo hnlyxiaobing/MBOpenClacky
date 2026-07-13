@@ -76,50 +76,10 @@ const Chat = {
     this.currentReader = await WS.connectSSE(
       App.currentSessionId,
       text,
-      (chunk) => this.handleStreamChunk(chunk),
+      (chunk) => Dispatcher.dispatch(chunk),
       () => this.handleStreamDone(),
       (err) => this.handleStreamError(err)
     );
-  },
-
-  /**
-   * Handle incoming SSE chunk
-   */
-  handleStreamChunk(chunk) {
-    const type = chunk.type || '';
-
-    switch (type) {
-      case 'content_delta':
-      case 'text_delta':
-        if (chunk.content || chunk.text || chunk.delta) {
-          this.appendStreamChunk(chunk.content || chunk.text || chunk.delta);
-        }
-        break;
-      case 'tool_use_start':
-      case 'tool_executing':
-        this.renderToolCallInStream(chunk);
-        break;
-      case 'tool_result':
-        this.updateToolResult(chunk);
-        break;
-      case 'message_complete':
-      case 'assistant_message':
-        if (chunk.content) {
-          this.streamBuffer = chunk.content;
-          this.updateStreamingMessage();
-        }
-        break;
-      case 'error':
-        this.handleStreamError(chunk);
-        break;
-      default:
-        // Try to extract text content from any event
-        if (chunk.content && typeof chunk.content === 'string') {
-          this.appendStreamChunk(chunk.content);
-        } else if (chunk.raw && typeof chunk.raw === 'string') {
-          this.appendStreamChunk(chunk.raw);
-        }
-    }
   },
 
   /**
@@ -151,38 +111,33 @@ const Chat = {
    * Handle stream completion
    */
   handleStreamDone() {
-    // Clear any pending debounced render
+    this.finalizeStream();
+    this.setStreaming(false);
+    this.scrollToBottom();
+  },
+
+  finalizeStream() {
     if (this._renderTimeout) {
       clearTimeout(this._renderTimeout);
       this._renderTimeout = null;
     }
-
-    // Do a final render with full content
     if (this.streamingMessageEl) {
       const contentEl = this.streamingMessageEl.querySelector('.message-text');
       if (contentEl && this.streamBuffer) {
         contentEl.innerHTML = this.renderMarkdown(this.streamBuffer);
       }
-    }
-
-    // Finalize the message
-    if (this.streamBuffer) {
-      this.messages.push({
-        role: 'assistant',
-        content: this.streamBuffer,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Remove loading indicator
-    if (this.streamingMessageEl) {
       const loader = this.streamingMessageEl.querySelector('.loading-dots');
       if (loader) loader.remove();
+      if (this.streamBuffer) {
+        this.messages.push({
+          role: 'assistant',
+          content: this.streamBuffer,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
-
-    this.setStreaming(false);
     this.streamingMessageEl = null;
-    this.scrollToBottom();
+    this.streamBuffer = '';
   },
 
   /**
@@ -270,7 +225,8 @@ const Chat = {
    * Render all messages
    */
   renderAllMessages() {
-    const container = document.getElementById('chat-messages');
+    Dispatcher.reset();
+    const container = Dispatcher.outer();
     container.innerHTML = '';
 
     if (this.messages.length === 0) {
@@ -296,7 +252,7 @@ const Chat = {
    */
   addMessage(msg) {
     this.messages.push(msg);
-    const container = document.getElementById('chat-messages');
+    const container = Dispatcher.current();
 
     // Remove empty state if present
     const emptyState = container.querySelector('.empty-state');
@@ -337,7 +293,7 @@ const Chat = {
    * Create streaming message placeholder
    */
   createStreamingMessage() {
-    const container = document.getElementById('chat-messages');
+    const container = Dispatcher.current();
     const emptyState = container.querySelector('.empty-state');
     if (emptyState) emptyState.remove();
 
@@ -366,11 +322,11 @@ const Chat = {
 
     const panel = document.createElement('div');
     panel.className = 'tool-call';
-    panel.dataset.toolId = toolCall.id || '';
+    panel.dataset.toolId = toolCall.id || toolCall.tool || '';
     panel.innerHTML = `
       <div class="tool-call-header" onclick="this.parentElement.classList.toggle('expanded')">
         <span class="tool-call-icon">&#9881;</span>
-        <span class="tool-call-name">${this.escapeHtml(toolCall.name || toolCall.tool_name || 'Tool')}</span>
+        <span class="tool-call-name">${this.escapeHtml(toolCall.name || toolCall.tool_name || toolCall.tool || 'Tool')}</span>
         <span class="tool-call-toggle">&#9654;</span>
       </div>
       <div class="tool-call-body">${this.escapeHtml(JSON.stringify(toolCall.input || toolCall.arguments || {}, null, 2))}</div>`;
@@ -383,7 +339,7 @@ const Chat = {
    */
   updateToolResult(result) {
     if (!this.streamingMessageEl) return;
-    const toolId = result.tool_use_id || result.id || '';
+    const toolId = result.tool_use_id || result.id || result.tool || '';
     const panel = this.streamingMessageEl.querySelector(`[data-tool-id="${toolId}"]`);
     if (panel) {
       const body = panel.querySelector('.tool-call-body');
@@ -594,7 +550,7 @@ const Chat = {
   },
 
   scrollToBottom() {
-    const container = document.getElementById('chat-messages');
+    const container = Dispatcher.outer();
     requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
     });
@@ -608,7 +564,8 @@ const Chat = {
     this.streamBuffer = '';
     this.streamingMessageEl = null;
     this.isStreaming = false;
-    document.getElementById('chat-messages').innerHTML = `
+    Dispatcher.reset();
+    Dispatcher.outer().innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">&#128172;</div>
         <h3>${I18n.t('chat.no_conversation')}</h3>

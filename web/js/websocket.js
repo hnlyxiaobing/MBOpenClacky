@@ -111,14 +111,14 @@ const WS = {
       case 'error':
         this.emit('generation_error', data);
         break;
-      case 'status_changed':
+      case 'status':
         this.emit('status_update', data);
         break;
       case 'message_added':
         this.emit('new_message', data);
         break;
       case 'tool_executing':
-      case 'tool_result':
+      case 'tool_executed':
         this.emit('tool_event', data);
         break;
     }
