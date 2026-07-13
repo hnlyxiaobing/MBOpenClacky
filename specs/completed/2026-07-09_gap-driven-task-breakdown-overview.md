@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-07-09  
 > **状态**: 已完成  
-> **依据**: `docs/project_gap_analysis_and_development_plan.md`（2026-07-08 差距分析）  
+> **依据**: `docs/project-status.md`（由 2026-07-08 差距分析沉淀而来）  
 > **方法论**: `specs/decisions/harness-methodology-application-plan.md`（Harness 方法论）  
 > **阶段姿态**: 本轮只产出 spec 文档，不进入开发
 

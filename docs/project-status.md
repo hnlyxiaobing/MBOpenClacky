@@ -80,5 +80,4 @@
 | P1 | Extension 框架 MVP（Loader/Verifier/Packager） | 2-3 天 |
 | P1 | REST API 补齐（profile/memories/settings 等） | 2-3 天 |
 | P1 | Web 前端面板补齐 | 1-2 周 |
-| P2 | Brand crypto 弱桩路径构建期阻断 | 0.5 天 |
-| P2 | Warnings 削减（488 → ≤200） | 1-2 天 |
+| P2 | Warnings 削减（522 → ≤200） | 1-2 天 |

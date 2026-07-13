@@ -11,7 +11,7 @@ MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持�
 | MoonBit 工具链 | moon 0.1.20260629+ | 编译器与构建系统 |
 | C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
 | OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM C FFI 所需（仅 Linux/macOS） |
-| libcurl 开发库 | libcurl-dev / libcurl4-openssl-dev (Debian/Ubuntu) / curl 自带 (macOS) | client HTTP 请求 C FFI 所需；运行 `moon test` 前需取消注释 `lib/client/moon.pkg` 中的 `-lcurl` |
+| libcurl 开发库 | libcurl-dev / libcurl4-openssl-dev (Debian/Ubuntu) / curl 自带 (macOS) | client HTTP 请求 C FFI 所需；`lib/client/moon.pkg` 已默认启用 `-lcurl`，只需安装开发库即可运行 `moon test` |
 | API 密钥 | 任意支持的提供商 | 至少配置一个 |
 ---
 
@@ -283,7 +283,7 @@ chmod +x scripts/install.sh
 | 使用 `moon build --target native` 而非 `moon build --target native --release cmd` | 可能触发 moon #1488 bug（库包误链接） | 手动执行 `moon build --target native --release cmd` |
 | 未安装 OpenSSL 开发库（libssl-dev） | brand 包 AES-256-GCM 加密链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
 | 未构建 release 模式 | 产出 debug 二进制（约 14MB，含调试符号） | 手动追加 `--release` 标志 |
-| Windows 平台 brand 加密使用弱桩回退 | AES-256-GCM 加解密功能不可用 | 后续计划适配 Windows BCrypt/CNG API |
+| `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release（详见下方「品牌加密与密钥派生」） |
 
 ### 前置环境依赖清单
 
@@ -294,6 +294,37 @@ chmod +x scripts/install.sh
 | macOS | Xcode CLT (含 clang) | `xcode-select --install` |
 | Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
 | 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
+
+---
+
+## 品牌加密与密钥派生
+
+`lib/brand` 使用 AES-256-GCM 进行品牌数据加密，密钥通过 `derive_key` 派生。
+
+### 密钥派生（PBKDF2-HMAC-SHA256）
+
+`derive_key` 使用标准 **PBKDF2-HMAC-SHA256**，迭代 **100,000 轮**（OWASP 2023 阈值），取代早期的迭代 SHA-256。所有经 `derive_key` 派生的密钥所加密的持久化数据（如加密品牌技能包）都会受影响。
+
+- `salt` 参数默认为空数组，保持确定性——适合单元测试与固定盐场景。
+- 生产调用方应始终传入**唯一的随机 salt**，并将 salt 与加密数据一同持久化。
+
+### 升级后重新激活品牌
+
+升级到含 "Brand Crypto 加固" 变更的版本后，旧版派生密钥（迭代 SHA-256）无法解密已加密的品牌数据，请按以下方式重建品牌状态：
+
+1. **手动清除**（推荐）：删除 `~/.mbopenclacky/brand.toml` 中的 `license_key` 字段，或直接删除整个 `brand.toml` 后重新激活。
+2. **命令行**（如构建已暴露）：运行 `moon run cmd -- --brand-restart`（若 CLI 未提供该旗标，请用手动方式）。
+3. 使用许可证密钥重新激活：`LicenseValidator::activate(key, timestamp)`。
+4. 加密技能包需重新下载并解密。
+
+### 弱桩路径安全约束（MBOPENCLACKY_NO_OPENSSL）
+
+`scripts/check-crypto-build.{sh,ps1}` 与 `brand_stubs.c` 共同保障不安全桩代码无法进入生产：
+
+- **编译期**：`brand_stubs.c` 在未同时定义 `MBOPENCLACKY_INSECURE_DEBUG_BUILD` 时直接 `#error`，使不安全桩根本无法被编译。它仅在显式 `-DMBOPENCLACKY_NO_OPENSSL`（无 libcrypto 且无 Windows CNG 的极简/调试构建）时编入。
+- **CI / 构建脚本**：`scripts/check-crypto-build.sh release` 在 `MBOPENCLACKY_NO_OPENSSL` 与 release 组合下返回非零退出码，CI 步骤 `Guard insecure crypto build` 会因此失败。
+
+> ⚠️ 该不安全桩使用非随机 nonce、全零密文，**严禁用于 release / 生产构建**。Windows 正常构建走 `crypto_native.c` 的 BCrypt 路径，无需 OpenSSL。
 
 ---
 
@@ -365,9 +396,9 @@ Warnings 为已知的代码风格提示（如 deprecated Show trait），不影�
 
 ### `moon test` 链接阶段报 curl 符号未解析
 
-`lib/client/moon.pkg` 中 `-lcurl` 链接标志默认被注释。运行 native 测试前：
-1. 安装 libcurl 开发库（Debian/Ubuntu：`sudo apt-get install libcurl-dev` 或 `libcurl4-openssl-dev`；macOS：Xcode CLT 通常已包含）。
-2. 取消注释 `lib/client/moon.pkg` 中的 `cc-link-flags: "-lcurl"` 行。
+`lib/client/moon.pkg` 已默认启用 `-lcurl` 链接标志。若仍报 curl 符号未解析：
+1. 确认已安装 libcurl 开发库（Debian/Ubuntu：`sudo apt-get install libcurl-dev` 或 `libcurl4-openssl-dev`；macOS：Xcode CLT 通常已包含）。
+2. 确认本地 `lib/client/moon.pkg` 未被修改去掉 `link: { "native": { "cc-link-flags": "-lcurl" } }`。
 3. 重新运行 `moon test`。
 
 ### Web 工具（web_fetch / web_search）

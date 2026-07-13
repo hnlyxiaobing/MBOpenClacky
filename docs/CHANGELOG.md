@@ -36,6 +36,17 @@
 - `[docs]` **受影响文件**：CLAUDE.md、README.md、docs/project-status.md、docs/getting-started.md、codemaps/README.md、codemaps/web.md、codemaps/skill.md
 - `[docs]` **codemaps/skill.md 修正**：默认技能清单从 15 个更正为 16 个，补充完整技能名列表，修正“仅资源目录”为 `extend-openclacky` + `meeting-summarizer`
 
+### 2026-07-13  docs: 合并废弃文档并同步实际状态
+
+- `[docs]` **合并并删除 2 个过时文档**
+  - `docs/brand-crypto-migration.md`：品牌加密升级迁移说明并入 `docs/getting-started.md`（新增「品牌加密与密钥派生」章节：PBKDF2-HMAC-SHA256 100,000 轮、升级后重新激活步骤、弱桩路径安全约束）
+  - `docs/project_gap_analysis_and_development_plan.md`：差距分析结论已沉淀至 `docs/project-status.md`，不再单独保留
+- `[docs]` **getting-started.md 同步实际状态**
+  - 修正 `-lcurl` 描述：`lib/client/moon.pkg` 已默认启用 `-lcurl`（此前文档称需手动取消注释）
+  - 修正 Windows brand 加密局限：Windows 已接入 BCrypt/CNG（`crypto_native.c`），弱桩仅存在于 `MBOPENCLACKY_NO_OPENSSL` 调试构建（编译期 `#error` + CI `check-crypto-build` 双重拦截）
+- `[docs]` **引用修复**：`specs/README.md`、`specs/completed/2026-07-09_gap-driven-task-breakdown-overview.md` 将差距分析文档引用改为 `docs/project-status.md`
+- `[docs]` **project-status.md**：P2「Brand crypto 弱桩路径构建期阻断」已落地，从短期目标移除
+
 ### 2026-07-12  docs: Spec 归档与文档同步更新
 
 - `[docs]` **Spec 归档（Harness 方法论流程）**

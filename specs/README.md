@@ -33,7 +33,7 @@ specs/
 
 ## Active Spec 索引（2026-07-09 差距分析驱动）
 \r
-本轮基于 `docs/project_gap_analysis_and_development_plan.md` 划分 15 个任务，详见总览文档：
+本轮基于 2026-07-08 差距分析（结论已沉淀至 `docs/project-status.md`）划分 15 个任务，详见总览文档：
 \r
 `active/2026-07-09_gap-driven-task-breakdown-overview.md`
 \r
