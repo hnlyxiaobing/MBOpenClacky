@@ -44,4 +44,11 @@ Follow lowercase type prefixes: `feat:`, `fix:`, `docs:`, `chore:`, plus scoped 
 
 ## Agent Instructions
 
-Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/`. Follow Harness methodology: create specs in `specs/active/` before non-trivial work, move completed specs to `specs/completed/`.
+Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/`. Follow Harness methodology: create specs in `specs/draft/` first, pass adversarial review (see `specs/decisions/harness-methodology-v2-upgrade.md`), then move to `specs/active/` for development, finally archive to `specs/completed/` after acceptance.
+
+**Harness v2 key rules**:
+- Gap document is a hypothesis, not ground truth - verify every "missing" claim with `grep`/`glob` before writing spec
+- Specs start in `specs/draft/`, require adversarial review before entering `specs/active/`
+- All template sections marked [必填] must be filled - incomplete specs are rejected
+- MoonBit AOT constraint: runtime-loaded extensions cannot implement traits - use shell commands instead
+- Verify crescent API capabilities (PATCH/PUT/DELETE) with `grep` before claiming "not supported"
