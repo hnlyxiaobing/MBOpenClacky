@@ -1,7 +1,7 @@
 # 分发打包 · 启动 Spec (IDEA_DOC)
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 已完成（2026-07-13 实施）  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P2-2）  
 > **负责人**: Agent-E（部署运维）
 
@@ -50,3 +50,4 @@
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本 | 差距分析 P2-2 |
+| 2026-07-13 | 实施完成：新增 Homebrew 公式 `deploy/homebrew/Formula/mbopenclacky.rb`、卸载脚本 `scripts/uninstall.sh`/`uninstall.ps1`（默认保留数据，`--purge` 全删）、浏览器远程调试助手 `scripts/install_browser.sh`、Windows Inno Setup 安装包 `deploy/windows/mbopenclacky.iss`；`scripts/install.sh` 新增 libcurl/libssl 系统依赖检测 | 闭环实施 |
