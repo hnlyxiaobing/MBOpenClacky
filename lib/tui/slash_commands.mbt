@@ -15,6 +15,7 @@ pub(all) enum SlashCommand {
   Todo
   Help
   Exit
+  Meeting
 } derive(Eq, Debug, Show)
 
 ///|
@@ -55,6 +56,11 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
     },
     { name: "help", description: "Show available commands", usage: "/help" },
     { name: "exit", description: "Exit the application", usage: "/exit" },
+    {
+      name: "meeting",
+      description: "Meeting summaries (managed in Web UI)",
+      usage: "/meeting",
+    },
   ]
   { commands, }
 }
@@ -122,6 +128,7 @@ pub fn SlashCommandParser::parse(
     }
     "help" => Ok(Help)
     "exit" => Ok(Exit)
+    "meeting" => Ok(Meeting)
     _ => {
       // Check if this is a known command (for better error messages)
       let known = self.commands.iter().any(fn(c) { c.name == cmd_name })
@@ -260,6 +267,10 @@ pub fn execute(
       Ok(lines.join("\n"))
     }
     Exit => Ok("Exiting application")
+    Meeting =>
+      Ok(
+        "Meeting management is available in the Web UI dashboard (start / summarize meetings there). The TUI shows this summary entry only.",
+      )
     Todo =>
       // Toggle todo area visibility (controller will handle the toggle)
       Ok("Todo area toggled")
