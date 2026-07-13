@@ -5,4 +5,5 @@ import {
   "moonbitlang/x/fs",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/brand",
 }

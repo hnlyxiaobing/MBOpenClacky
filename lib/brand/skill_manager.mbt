@@ -137,6 +137,11 @@ pub fn BrandSkillManager::install_skill(
   name : String,
   version : String,
 ) -> Result[Unit, String] {
+  if !is_bound() {
+    return Err(
+      "identity_not_bound: please bind device first via 'clacky onboard'",
+    )
+  }
   let skill_path = self.skill_base_path(config_dir, name)
   @utils.ensure_dir(skill_path)
   let meta_file = @path.Path::join(skill_path, @path.Path("skill.json")).to_string()
@@ -444,6 +449,11 @@ pub fn BrandSkillManager::create_skill(
   config_dir : String,
   spec : Json,
 ) -> Result[Unit, String] {
+  if !is_bound() {
+    return Err(
+      "identity_not_bound: please bind device first via 'clacky onboard'",
+    )
+  }
   let (name, version, description, encrypted) = match spec {
     Object(fields) => {
       let n = match fields.get("name") {

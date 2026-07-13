@@ -6,33 +6,39 @@
 
 ///|
 /// POST /api/onboard/device/start
-/// Starts a device authorization flow. In the current implementation this returns
-/// a deterministic, locally-generated device code pair; a future iteration can
-/// integrate with the platform OAuth endpoint.
+/// Starts an RFC 8628 device authorization flow. Generates a device_code / user_code
+/// pair, stores the session in memory, and returns polling instructions.
 fn handle_onboard_device_start(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let device_code = "DEV-" + @agent.generate_session_id()
-  let user_code = @agent.generate_session_id()[:8].to_owned().to_upper()
+  let now_ms = @agent.current_time_ms()
+  let device_info = @brand.generate_device_id()
+  let session = server_ref.val.device_auth_store.start_device_flow(
+    now_ms,
+    device_info.device_id,
+  )
+  let verification_uri_complete = session.verification_uri +
+    "?user_code=" +
+    session.user_code
   @core.HttpResponse::ok().json_value(
     Json::object({
       "ok": true.to_json(),
-      "device_code": device_code.to_json(),
-      "user_code": user_code.to_json(),
-      "verification_uri": "https://mbopenclacky.example.com/activate".to_json(),
-      "verification_uri_complete": ("https://mbopenclacky.example.com/activate?user_code=" +
-      user_code).to_json(),
-      "interval": (5).to_json(),
+      "device_code": session.device_code.to_json(),
+      "user_code": session.user_code.to_json(),
+      "verification_uri": session.verification_uri.to_json(),
+      "verification_uri_complete": verification_uri_complete.to_json(),
+      "expires_in": (900).to_json(),
+      "interval": session.interval.to_json(),
     }),
   )
 }
 
 ///|
 /// GET /api/onboard/device/poll?device_code=...
-/// Polls the status of a device authorization request.
+/// Polls the status of an RFC 8628 device authorization request.
 fn handle_onboard_device_poll(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let device_code = match event.req.get_query("device_code") {
@@ -44,19 +50,36 @@ fn handle_onboard_device_poll(
         }),
       )
   }
-  // Simulated approval heuristic: codes beginning with "DEV-APPROVED-" are approved.
-  if device_code.has_prefix("DEV-APPROVED-") {
-    @core.HttpResponse::ok().json_value(
-      Json::object({
-        "ok": true.to_json(),
-        "status": "approved".to_json(),
-        "default_model": "default".to_json(),
-      }),
-    )
-  } else {
-    @core.HttpResponse::ok().json_value(
-      Json::object({ "ok": true.to_json(), "status": "pending".to_json() }),
-    )
+  let now_ms = @agent.current_time_ms()
+  match server_ref.val.device_auth_store.poll_device_flow(device_code, now_ms) {
+    @brand.Approved(token) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "approved".to_json(),
+          "device_token": token.to_json(),
+        }),
+      )
+    @brand.Pending =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json(), "status": "pending".to_json() }),
+      )
+    @brand.Expired =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "expired".to_json(),
+          "error": "authorization_pending".to_json(),
+        }),
+      )
+    @brand.SlowDown =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "pending".to_json(),
+          "error": "slow_down".to_json(),
+        }),
+      )
   }
 }
 

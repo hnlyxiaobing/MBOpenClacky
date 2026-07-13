@@ -57,6 +57,8 @@ pub(all) struct WebServer {
   mut browser_manager : @server.BrowserManager
   /// MCP server registry for managing MCP server connections and tools
   mcp_registry : @mcp.McpRegistry
+  /// Device authorization session store (RFC 8628)
+  mut device_auth_store : @brand.DeviceAuthStore
 }
 
 ///|
@@ -75,6 +77,7 @@ pub fn WebServer::new(
     hub: @broadcast.Hub::new(),
     browser_manager: @server.BrowserManager::new("~/.mbopenclacky/browser.yml"),
     mcp_registry: @mcp.McpRegistry::load_default(),
+    device_auth_store: @brand.DeviceAuthStore::new(),
   }
 }
 
