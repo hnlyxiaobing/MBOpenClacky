@@ -61,48 +61,102 @@ pub fn Agent::is_safe_operation(
 /// Execute a single tool call, resolving the name and dispatching
 /// to the ToolRegistry.
 ///
+/// Patch chain is evaluated before execution; a `Block` decision
+/// short-circuits and returns an error result. After successful
+/// (or failed) execution an audit entry is appended for every tool
+/// call so the trail is complete.
+///
 /// Returns a ToolResultEntry with the execution result.
 pub fn Agent::execute_single_tool(
   self : Agent,
   call : @message.ToolCall,
 ) -> ToolResultEntry {
   let tool_name = call.function.name
+  let args = parse_tool_arguments(call)
+  // ── Patch chain: before-hook ────────────────────────────────
+  // Short-circuit on Block so a misbehaving patch can deny the call
+  // before we even resolve the tool.
+  match self.patch_chain.check_before(tool_name, args) {
+    Block(reason) => {
+      let msg = "Tool '\{tool_name}' blocked by patch: \{reason}"
+      return build_error_result(call, msg)
+    }
+    Allow => ()
+  }
   // Resolve canonical name
   let canonical = match self.tool_registry.resolve(tool_name) {
     Some(name) => name
     None => {
       let names = self.tool_registry.tool_names().join(", ")
-      return build_error_result(
+      let result = build_error_result(
         call,
         "Unknown tool: \{tool_name}. Available: \{names}",
       )
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
     }
   }
   // Get the tool instance
   let tool = match self.tool_registry.get(canonical) {
     Some(t) => t
-    None =>
-      return build_error_result(
+    None => {
+      let result = build_error_result(
         call,
         "Tool '\{canonical}' registered but not found",
       )
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
+    }
   }
-  // Parse arguments
-  let args = parse_tool_arguments(call)
   // Intercept agent-context tools before generic dispatch
   match canonical {
-    "invoke_skill" => return self.execute_invoke_skill(call, args)
-    "memory" => return self.execute_memory_tool(call, args)
-    "todo_manager" => return self.execute_todo_tool(call, args)
+    "invoke_skill" => {
+      let result = self.execute_invoke_skill(call, args)
+      self.patch_chain.check_after(
+        tool_name,
+        args,
+        result.content,
+        result.is_error,
+      )
+      return result
+    }
+    "memory" => {
+      let result = self.execute_memory_tool(call, args)
+      self.patch_chain.check_after(
+        tool_name,
+        args,
+        result.content,
+        result.is_error,
+      )
+      return result
+    }
+    "todo_manager" => {
+      let result = self.execute_todo_tool(call, args)
+      self.patch_chain.check_after(
+        tool_name,
+        args,
+        result.content,
+        result.is_error,
+      )
+      return result
+    }
     _ => ()
   }
   // Execute — AnyTool implements Tool trait
   let result : @tool.ToolResult = @tool.Tool::execute(tool, args)
-  if result.is_error {
+  let final_result = if result.is_error {
     build_error_result(call, result.content)
   } else {
     build_success_result(call, result)
   }
+  // ── Patch chain: after-hook (audit only, never blocks) ────────
+  self.patch_chain.check_after(
+    tool_name,
+    args,
+    final_result.content,
+    final_result.is_error,
+  )
+  final_result
 }
 
 ///|

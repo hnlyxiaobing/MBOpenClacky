@@ -44,6 +44,11 @@ pub(all) struct Agent {
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
+  // ── Patch System ────────────────────────────────────────────────
+  /// Ordered chain of patch rules evaluated before/after every tool call.
+  /// Owned by the Agent; extension patches are folded in at construction
+  /// or via `register_patch_rule`. An empty chain is a no-op.
+  patch_chain : PatchChain
   // ── Confirmation ──────────────────────────────────────────────────
   /// UI confirmation callback: (tool_name, args_summary) -> approved?
   /// None = headless (tools needing confirmation are denied).
@@ -113,11 +118,29 @@ pub fn Agent::new(
     compression_level: 0,
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
+    // Empty patch chain — extension patches are added via
+    // `register_patch_rule` after extensions have been discovered.
+    patch_chain: PatchChain::new(),
     // No confirmation callback by default (headless mode)
     confirmation_callback: None,
     // Test support
     mock_responses: [],
   }
+}
+
+///|
+/// Register an additional patch rule on the agent's chain.
+///
+/// Rules accumulate in registration order. Use this to fold in rules
+/// loaded from extension manifests via `lib/extension/patch_loader`.
+pub fn Agent::register_patch_rule(self : Agent, rule : PatchRule) -> Unit {
+  self.patch_chain.add_rule(rule)
+}
+
+///|
+/// Read-only access to the agent's patch chain (for inspection / tests).
+pub fn Agent::patch_chain_view(self : Agent) -> PatchChain {
+  self.patch_chain
 }
 
 ///|
