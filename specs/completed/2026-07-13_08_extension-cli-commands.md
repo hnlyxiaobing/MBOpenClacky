@@ -1,7 +1,7 @@
 # Extension CLI 命令实现 · 增量 Spec
 
 > **创建日期**: 2026-07-13
-> **状态**: 讨论中
+> **状态**: 已完成
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G8（P1 重要功能差距）
 > **关联历史**: `specs/completed/2026-07-09_extension-framework-mvp.md`（MVP 已完成）
 > **来源差距**: G8 - Extension CLI 命令（ext list/install/create/enable/disable/uninstall）

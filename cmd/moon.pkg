@@ -15,6 +15,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/brand",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
+  "hnlyxiaobing/MBOpenClacky/lib/extension",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
   "hnlyxiaobing/MBOpenClacky/lib/tui",
   "hnlyxiaobing/MBOpenClacky/lib/web",

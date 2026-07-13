@@ -1,6 +1,6 @@
 ///| Extension marketplace backend API: provides registry, install, enable, disable,
 /// uninstall, and publish functionality. State is persisted to
-/// `~/.clacky/extensions/registry.json`.
+/// `~/.clacky/extensions/registry.json` and `~/.clacky/extensions/enabled_state.json`.
 
 ///|
 /// Path to the marketplace registry file.
@@ -9,6 +9,66 @@ fn registry_file_path() -> String {
     Some(home) =>
       @path.Path::join(home, @path.Path(".clacky/extensions/registry.json")).to_string()
     None => ".clacky/extensions/registry.json"
+  }
+}
+
+///|
+/// Path to the per-extension enable/disable state file.
+fn enabled_state_file_path() -> String {
+  match @utils.home_dir() {
+    Some(home) =>
+      @path.Path::join(
+        home,
+        @path.Path(".clacky/extensions/enabled_state.json"),
+      ).to_string()
+    None => ".clacky/extensions/enabled_state.json"
+  }
+}
+
+///|
+/// Read the enable/disable state file, returning an empty map on any error.
+/// The file format is `{"states": {"<ext_id>": <bool>}, "updated_at": <int64>}`.
+fn load_enabled_state_from_disk() -> Map[String, Bool] {
+  let path = enabled_state_file_path()
+  let result : Map[String, Bool] = {}
+  if !@fs.path_exists(path) {
+    return result
+  }
+  let content = @fs.read_file_to_string(path) catch { _ => return result }
+  let json = @json.parse(content) catch { _ => return result }
+  match json {
+    Object(obj) =>
+      match obj.get("states") {
+        Some(Object(entries)) =>
+          entries.each(fn(id, value) {
+            match value {
+              True => result[id] = true
+              False => result[id] = false
+              _ => ()
+            }
+          })
+        _ => ()
+      }
+    _ => ()
+  }
+  result
+}
+
+///|
+/// Persist the enable/disable state map to disk as JSON. Best-effort: failures
+/// are silently swallowed so the caller's control flow stays simple.
+fn save_enabled_state_to_disk(state : Map[String, Bool]) -> Unit {
+  let path = enabled_state_file_path()
+  let parent = @path.Path::dirname(@path.Path(path)).to_string()
+  @utils.ensure_dir(parent)
+  let states_obj : Map[String, Json] = {}
+  state.each(fn(id, value) { states_obj[id] = value.to_json() })
+  let wrapper : Map[String, Json] = {
+    "states": Json::object(states_obj),
+    "updated_at": @agent.current_time_ms().to_json(),
+  }
+  @fs.write_string_to_file(path, Json::object(wrapper).stringify()) catch {
+    _ => ()
   }
 }
 
@@ -158,29 +218,78 @@ pub fn list_local_extensions() -> Array[Extension] {
 }
 
 ///|
-/// Enable an extension by ID. Returns the resolved Extension or an error message.
+/// Enable an extension by ID. Persists the new state to
+/// `~/.clacky/extensions/enabled_state.json` and returns the resolved
+/// Extension. Fails with an error if the extension is not on disk.
 pub fn enable_extension(ext_id : String) -> Result[Extension, String] {
-  let all = load_all_extensions()
+  let all = apply_enabled_state_to(load_all_extensions())
   match all.iter().find_first(fn(e) { e.manifest.id == ext_id }) {
     Some(ext) => {
+      let state = load_enabled_state_from_disk()
+      state[ext_id] = true
+      save_enabled_state_to_disk(state)
       println("[Marketplace] Enabled extension: " + ext_id)
-      Ok(ext)
+      Ok({ ..ext, enabled: true })
     }
     None => Err("extension not found: " + ext_id)
   }
 }
 
 ///|
-/// Disable an extension by ID. Returns the resolved Extension or an error message.
+/// Disable an extension by ID. Persists the new state to
+/// `~/.clacky/extensions/enabled_state.json` and returns the resolved
+/// Extension. Fails with an error if the extension is not on disk.
 pub fn disable_extension(ext_id : String) -> Result[Extension, String] {
-  let all = load_all_extensions()
+  let all = apply_enabled_state_to(load_all_extensions())
   match all.iter().find_first(fn(e) { e.manifest.id == ext_id }) {
     Some(ext) => {
+      let state = load_enabled_state_from_disk()
+      state[ext_id] = false
+      save_enabled_state_to_disk(state)
       println("[Marketplace] Disabled extension: " + ext_id)
-      Ok(ext)
+      Ok({ ..ext, enabled: false })
     }
     None => Err("extension not found: " + ext_id)
   }
+}
+
+///|
+/// Look up whether an extension is currently enabled. When the extension
+/// is unknown to the persistence layer, fall back to its manifest default.
+pub fn is_extension_enabled(ext_id : String) -> Bool {
+  let state = load_enabled_state_from_disk()
+  match state.get(ext_id) {
+    Some(b) => b
+    None =>
+      match
+        load_all_extensions()
+        .iter()
+        .find_first(fn(e) { e.manifest.id == ext_id }) {
+        Some(ext) => ext.manifest.enabled_by_default
+        None => false
+      }
+  }
+}
+
+///|
+/// Apply the persisted enable/disable state to a list of extensions,
+/// returning a new array with each entry's `enabled` field overwritten
+/// when an override exists. This is the bridge used by the loader and by
+/// the marketplace getters to ensure runtime state is consistent with the
+/// user's last `ext enable/disable` invocation.
+pub fn apply_enabled_state_to(
+  extensions : Array[Extension],
+) -> Array[Extension] {
+  let state = load_enabled_state_from_disk()
+  let result : Array[Extension] = []
+  for ext in extensions {
+    let next_enabled = match state.get(ext.manifest.id) {
+      Some(b) => b
+      None => ext.enabled
+    }
+    result.push({ ..ext, enabled: next_enabled })
+  }
+  result
 }
 
 ///|
@@ -249,8 +358,10 @@ pub fn install_extension_from_path(
 }
 
 ///|
-/// Uninstall an extension by ID. Removes the installed directory and
-/// decrements the install counter (but never below zero).
+/// Uninstall an extension by ID. Removes the installed directory,
+/// decrements the install counter (but never below zero), clears any
+/// persisted enable/disable state for the extension, and removes the
+/// registry entry when it has no remaining installs.
 pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
   let installed_dir = get_source_directory(ExtensionSource::Installed)
   let ext_dir = @path.Path::join(installed_dir, @path.Path(ext_id)).to_string()
@@ -262,21 +373,34 @@ pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
     Err(e) => return Err(e)
   }
   let registry = load_registry_from_disk()
+  let mut should_remove_entry = false
   match registry.get(ext_id) {
     Some(entry) => {
       let next_count = if entry.installs > 0 { entry.installs - 1 } else { 0 }
-      let new_entry : RegistryEntry = {
-        id: entry.id,
-        latest_version: entry.latest_version,
-        versions: entry.versions,
-        metadata: entry.metadata,
-        installs: next_count,
-        published_at: entry.published_at,
+      if next_count == 0 {
+        should_remove_entry = true
+      } else {
+        let new_entry : RegistryEntry = {
+          id: entry.id,
+          latest_version: entry.latest_version,
+          versions: entry.versions,
+          metadata: entry.metadata,
+          installs: next_count,
+          published_at: entry.published_at,
+        }
+        registry[entry.id] = new_entry
       }
-      registry[entry.id] = new_entry
-      save_registry_to_disk(registry)
     }
     None => ()
+  }
+  if should_remove_entry {
+    ignore(registry.remove(ext_id))
+  }
+  save_registry_to_disk(registry)
+  let state = load_enabled_state_from_disk()
+  if state.contains(ext_id) {
+    ignore(state.remove(ext_id))
+    save_enabled_state_to_disk(state)
   }
   println("[Marketplace] Uninstalled extension: " + ext_id)
   Ok(())

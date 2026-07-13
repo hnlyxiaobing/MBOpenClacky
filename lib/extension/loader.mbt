@@ -3,13 +3,16 @@
 /// and local (./extensions) sources, then merges with priority ordering.
 
 ///|
-/// Load extensions from all three sources and merge with priority.
+/// Load extensions from all three sources and merge with priority,
+/// then apply the persisted enable/disable state so callers see the
+/// user's most recent `ext enable/disable` choice.
 /// Priority: Local > Installed > Builtin.
 pub fn load_all_extensions() -> Array[Extension] {
   let builtin = load_extensions_from_source(ExtensionSource::Builtin)
   let installed = load_extensions_from_source(ExtensionSource::Installed)
   let local_exts = load_extensions_from_source(ExtensionSource::Local)
-  merge_extensions_with_priority(builtin, installed, local_exts)
+  let merged = merge_extensions_with_priority(builtin, installed, local_exts)
+  apply_enabled_state_to(merged)
 }
 
 ///|

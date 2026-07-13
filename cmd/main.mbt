@@ -73,6 +73,77 @@ async fn main {
       "onboard": @clap.SubCommand::new(
         help="Device binding and identity management",
       ),
+      "ext": @clap.SubCommand::new(
+        help="Manage installed extensions (list/install/uninstall/enable/disable/info/search/create)",
+        subcmds={
+          "list": @clap.SubCommand::new(
+            help="List installed and local extensions",
+          ),
+          "install": @clap.SubCommand::new(
+            args={
+              "path": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Path to a local extension directory",
+              ),
+            },
+            help="Install a local extension from <path>",
+          ),
+          "uninstall": @clap.SubCommand::new(
+            args={
+              "id": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Extension ID to remove",
+              ),
+            },
+            help="Uninstall an installed extension by ID",
+          ),
+          "enable": @clap.SubCommand::new(
+            args={
+              "id": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Extension ID to enable",
+              ),
+            },
+            help="Enable an installed extension",
+          ),
+          "disable": @clap.SubCommand::new(
+            args={
+              "id": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Extension ID to disable",
+              ),
+            },
+            help="Disable an installed extension",
+          ),
+          "info": @clap.SubCommand::new(
+            args={
+              "id": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Extension ID to show info for",
+              ),
+            },
+            help="Show detailed info about an extension",
+          ),
+          "search": @clap.SubCommand::new(
+            args={
+              "query": @clap.Arg::named(
+                nargs=@clap.Nargs::AtMost(1),
+                help="Optional query to filter marketplace entries",
+              ),
+            },
+            help="Search the local marketplace registry",
+          ),
+          "create": @clap.SubCommand::new(
+            args={
+              "id": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Extension ID for the new scaffold",
+              ),
+            },
+            help="Scaffold a new extension in ./extensions",
+          ),
+        },
+      ),
     },
   )
 
@@ -132,7 +203,7 @@ async fn main {
     None => ()
   }
 
-  // Handle subcommands: billing, server, onboard
+  // Handle subcommands: billing, server, onboard, ext
   match value.subcmd {
     Some(sub) =>
       if sub.name == "billing" {
@@ -145,6 +216,9 @@ async fn main {
         return
       } else if sub.name == "onboard" {
         handle_onboard()
+        return
+      } else if sub.name == "ext" {
+        handle_ext(sub)
         return
       }
     None => ()

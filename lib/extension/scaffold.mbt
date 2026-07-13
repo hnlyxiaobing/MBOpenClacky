@@ -38,7 +38,7 @@ pub fn create_extension_scaffold(
   }
   // Generate one template file per contribution type.
   for contrib_type in template.contributions {
-    match create_contribution_template(contrib_dir, template.id, contrib_type) {
+    match create_contribution_template(ext_dir, template.id, contrib_type) {
       Ok(_) => ()
       Err(e) => return Err(e)
     }
@@ -86,27 +86,35 @@ fn build_manifest_from_template(
 
 ///|
 /// Look up the template defaults (id, name, description, path) for a contribution type.
+/// The path is relative to the extension root and matches the directory layout
+/// produced by `create_extension_scaffold` (files live in `contributions/`).
 fn contribution_template_info(
   type_ : ExtensionContributionType,
 ) -> (String, String, String, String) {
   match type_ {
     ExtensionContributionType::Panel =>
-      ("main-panel", "Main Panel", "A sample panel contribution", "panel.json")
+      (
+        "main-panel", "Main Panel", "A sample panel contribution", "contributions/panel.json",
+      )
     ExtensionContributionType::Skill =>
       (
-        "sample-skill", "Sample Skill", "A sample skill contribution", "skill.json",
+        "sample-skill", "Sample Skill", "A sample skill contribution", "contributions/skill.json",
       )
     ExtensionContributionType::Agent =>
       (
-        "sample-agent", "Sample Agent", "A sample agent contribution", "agent.json",
+        "sample-agent", "Sample Agent", "A sample agent contribution", "contributions/agent.json",
       )
     ExtensionContributionType::Api =>
-      ("sample-api", "Sample API", "A sample API contribution", "api.json")
+      (
+        "sample-api", "Sample API", "A sample API contribution", "contributions/api.json",
+      )
     ExtensionContributionType::Hook =>
-      ("sample-hook", "Sample Hook", "A sample hook contribution", "hook.json")
+      (
+        "sample-hook", "Sample Hook", "A sample hook contribution", "contributions/hook.json",
+      )
     ExtensionContributionType::Patch =>
       (
-        "sample-patch", "Sample Patch", "A sample patch contribution", "patch.json",
+        "sample-patch", "Sample Patch", "A sample patch contribution", "contributions/patch.json",
       )
   }
 }
@@ -165,12 +173,15 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
 ///|
 /// Create a template file for a given contribution type.
 fn create_contribution_template(
-  contrib_dir : String,
+  ext_dir : String,
   ext_id : String,
   type_ : ExtensionContributionType,
 ) -> Result[Unit, String] {
   let info = contribution_template_info(type_)
-  let file_path = @path.Path::join(contrib_dir, @path.Path(info.3)).to_string()
+  // info.3 already includes the `contributions/` subdir prefix so the
+  // manifest `path` field stays consistent with the file's on-disk location.
+  let file_path = @path.Path::join(ext_dir, @path.Path(info.3)).to_string()
+  @utils.ensure_dir(@path.Path::dirname(@path.Path(file_path)).to_string())
   let content = match type_ {
     ExtensionContributionType::Panel =>
       generate_panel_template(ext_id, info.0, info.1, info.2)
