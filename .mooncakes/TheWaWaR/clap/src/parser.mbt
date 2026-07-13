@@ -34,7 +34,7 @@ pub(all) suberror ParserError {
   InvalidArgumentValueLength(String)
   TooManyArgs(String)
   InvalidSpec(String)
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// Parse the command line arguments
@@ -128,7 +128,7 @@ pub fn[V : Value] Parser::parse(
         let nargs = arg.nargs().unwrap()
         if nargs.is_exceeded(new_length) {
           raise TooManyArgs(
-            "Argument length limit: \{nargs}, current length: \{new_length}",
+            "Argument length limit: \{nargs.to_repr()}, current length: \{new_length}",
           )
         }
         if (not(positional_arg.is_empty()) || not(subcmds.is_empty())) &&
@@ -363,14 +363,14 @@ fn[V : Value] complete_level(
             } else {
               nargs_error = Some(
                 InvalidArgumentValueLength(
-                  "Invalid positional argument length=\{length}, limit: \{nargs}",
+                  "Invalid positional argument length=\{length}, limit: \{nargs.to_repr()}",
                 ),
               )
             }
           } else if final_subcmd {
             nargs_error = Some(
               InvalidArgumentValueLength(
-                "Invalid name argument length=\{length}, limit: \{nargs}, final: \{final_subcmd}",
+                "Invalid name argument length=\{length}, limit: \{nargs.to_repr()}, final: \{final_subcmd}",
               ),
             )
           }

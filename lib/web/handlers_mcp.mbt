@@ -191,7 +191,7 @@ pub fn handle_mcp_execute_tool(
   let mut result_json : Json? = None
   let mut error_msg : String? = None
   registry.specs.each(fn(server_name, _spec) {
-    if result_json.is_some() {
+    if result_json is Some(_) {
       return ()
     }
     match registry.get_client(server_name) {

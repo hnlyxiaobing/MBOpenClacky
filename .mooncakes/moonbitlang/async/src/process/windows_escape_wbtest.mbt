@@ -25,7 +25,7 @@ test "windows command line arg escape" {
   // https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
   let test_str =
     #|a b c
-  inspect(
+  @debug.debug_inspect(
     test_arg(test_str),
     content=(
       #|"a b c"
@@ -33,7 +33,7 @@ test "windows command line arg escape" {
   )
   let test_str =
     #|ab"c
-  inspect(
+  @debug.debug_inspect(
     test_arg(test_str),
     content=(
       #|"ab\"c"
@@ -41,13 +41,13 @@ test "windows command line arg escape" {
   )
   let test_str =
     #|\
-  inspect(test_arg(test_str), content="\\")
+  @debug.debug_inspect(test_arg(test_str), content="\\")
   let test_str =
     #|a\\\c
-  inspect(test_arg(test_str), content="a\\\\\\c")
+  @debug.debug_inspect(test_arg(test_str), content="a\\\\\\c")
   let test_str =
     #|a\"c
-  inspect(
+  @debug.debug_inspect(
     test_arg(test_str),
     content=(
       #|"a\\\"c"
@@ -55,7 +55,7 @@ test "windows command line arg escape" {
   )
   let test_str =
     #|a\\b c
-  inspect(
+  @debug.debug_inspect(
     test_arg(test_str),
     content=(
       #|"a\\b c"
@@ -63,7 +63,7 @@ test "windows command line arg escape" {
   )
   let test_str =
     #|ab" c d
-  inspect(
+  @debug.debug_inspect(
     test_arg(test_str),
     content=(
       #|"ab\" c d"

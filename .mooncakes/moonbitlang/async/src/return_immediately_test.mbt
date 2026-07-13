@@ -29,7 +29,7 @@ async test "return_immediately basic" {
       }),
     ),
   )
-  inspect(log.to_string(), content="Ok(())")
+  @debug.debug_inspect(log.to_string(), content="Ok(())")
 }
 
 ///|
@@ -55,7 +55,7 @@ async test "return_immediately nested" {
       }),
     ),
   )
-  inspect(log.to_string(), content="Ok(())")
+  @debug.debug_inspect(log.to_string(), content="Ok(())")
 }
 
 ///|
@@ -80,7 +80,7 @@ async test "return_immediately error on cancel" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task cancelled, causing other error

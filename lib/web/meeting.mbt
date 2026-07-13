@@ -11,7 +11,7 @@ pub(all) enum MeetingStatus {
   Active
   /// Meeting has been ended.
   Ended
-} derive(Eq, Show, Debug)
+} derive(Eq, Debug)
 
 ///|
 pub fn MeetingStatus::to_string_value(self : MeetingStatus) -> String {
@@ -69,6 +69,7 @@ impl FromJson for TranscriptEntry with fn from_json(json, path) {
       }
       let timestamp = match obj.get("timestamp") {
         Some(Number(n, ..)) => n.to_int64()
+        Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
       { speaker, content, timestamp }
@@ -116,6 +117,7 @@ impl FromJson for MeetingSummary with fn from_json(json, path) {
       let discussion_points = parse_str_arr(obj, "discussion_points")
       let generated_at = match obj.get("generated_at") {
         Some(Number(n, ..)) => n.to_int64()
+        Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
       { overview, key_decisions, action_items, discussion_points, generated_at }
@@ -146,6 +148,7 @@ fn parse_transcript_arr(json_opt : Json?) -> Array[TranscriptEntry] {
 /// Helper to optionally parse a MeetingSummary from a JSON value.
 fn parse_summary_opt(json_opt : Json?) -> MeetingSummary? {
   match json_opt {
+    Some(Null) | None => None
     Some(j) => {
       let s : MeetingSummary = @json.from_json(j) catch {
         _ =>
@@ -159,7 +162,6 @@ fn parse_summary_opt(json_opt : Json?) -> MeetingSummary? {
       }
       Some(s)
     }
-    None => None
   }
 }
 
@@ -252,10 +254,12 @@ impl FromJson for Meeting with fn from_json(json, path) {
       let summary = parse_summary_opt(obj.get("summary"))
       let created_at = match obj.get("created_at") {
         Some(Number(n, ..)) => n.to_int64()
+        Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
       let ended_at = match obj.get("ended_at") {
         Some(Number(n, ..)) => n.to_int64()
+        Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
       {
@@ -303,8 +307,8 @@ pub fn save_meeting(meeting : Meeting) -> Result[Unit, String] {
     None => return Err("Cannot determine meetings directory")
   }
   let path = @path.Path::join(dir, @path.Path(meeting.id + ".json")).to_string()
-  @fs.write_string_to_file(path, meeting.to_json().to_string()) catch {
-    e => return Err("Failed to save meeting: \{e}")
+  @fs.write_string_to_file(path, meeting.to_json().stringify()) catch {
+    e => return Err("Failed to save meeting: \{@debug.to_string(e)}")
   }
   Ok(())
 }

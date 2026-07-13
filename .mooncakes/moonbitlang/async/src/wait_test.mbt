@@ -33,7 +33,7 @@ async test "wait basic" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|200ms tick
@@ -66,7 +66,7 @@ async test "wait cancelled" {
   }) catch {
     err => buf.write_string(@debug.to_string(err))
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|`wait` cancelled with Cancelled
@@ -91,7 +91,7 @@ async test "try_wait" {
     }
     log.write_string("task finished with \{task.wait()}\n")
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|300ms: None

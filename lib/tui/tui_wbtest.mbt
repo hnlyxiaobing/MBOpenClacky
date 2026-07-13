@@ -26,41 +26,41 @@ fn make_test_agent() -> @agent.Agent {
 test "TuiState::from_agent creates correct initial state" {
   let agent = make_test_agent()
   let state = TuiState::from_agent(agent)
-  inspect(
+  @debug.debug_inspect(
     state.session_id,
     content=(
-      #|test-session
+      #|"test-session"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     state.model_name,
     content=(
-      #|test-model
+      #|"test-model"
     ),
   )
-  inspect(state.mode, content="Idle")
-  inspect(state.iterations, content="0")
-  inspect(state.messages.length(), content="0")
-  inspect(
+  @debug.debug_inspect(state.mode, content="Idle")
+  @debug.debug_inspect(state.iterations, content="0")
+  @debug.debug_inspect(state.messages.length(), content="0")
+  @debug.debug_inspect(
     state.tool_output,
     content=(
-      #|
+      #|""
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     state.total_cost,
     content=(
       #|0
     ),
   )
-  inspect(state.latest_delta, content="0")
-  inspect(
+  @debug.debug_inspect(state.latest_delta, content="0")
+  @debug.debug_inspect(
     state.input_text,
     content=(
-      #|
+      #|""
     ),
   )
-  inspect(state.last_error, content="None")
+  @debug.debug_inspect(state.last_error, content="None")
 }
 
 ///|
@@ -69,85 +69,85 @@ test "TuiState fields are mutable via Ref" {
   let state_ref = Ref(TuiState::from_agent(agent))
 
   state_ref.val.mode = Running
-  inspect(state_ref.val.mode, content="Running")
+  @debug.debug_inspect(state_ref.val.mode, content="Running")
 
   state_ref.val.agent_status = "running"
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.agent_status,
     content=(
-      #|running
+      #|"running"
     ),
   )
 
   state_ref.val.iterations = 5
-  inspect(state_ref.val.iterations, content="5")
+  @debug.debug_inspect(state_ref.val.iterations, content="5")
 
   state_ref.val.tool_output = "test output"
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.tool_output,
     content=(
-      #|test output
+      #|"test output"
     ),
   )
 
   state_ref.val.last_error = Some("test error")
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.last_error,
     content=(
-      #|Some(test error)
+      #|Some("test error")
     ),
   )
 
   state_ref.val.total_cost = 0.05
   state_ref.val.cost_source = "api"
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.cost_source,
     content=(
-      #|api
+      #|"api"
     ),
   )
 }
 
 ///|
 test "format_cost pads to 4 decimal places" {
-  inspect(
+  @debug.debug_inspect(
     format_cost(0.0),
     content=(
-      #|0.0000
+      #|"0.0000"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     format_cost(1.5),
     content=(
-      #|1.5000
+      #|"1.5000"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     format_cost(0.1234),
     content=(
-      #|0.1234
+      #|"0.1234"
     ),
   )
 }
 
 ///|
 test "format_cost handles various cases" {
-  inspect(
+  @debug.debug_inspect(
     format_cost(0.123456),
     content=(
-      #|0.123456
+      #|"0.123456"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     format_cost(42.0),
     content=(
-      #|42.0000
+      #|"42.0000"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     format_cost(100.0),
     content=(
-      #|100.0000
+      #|"100.0000"
     ),
   )
 }
@@ -166,10 +166,10 @@ test "handle_hook_event updates state correctly" {
       @agent.AgentStatus::Running,
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.agent_status,
     content=(
-      #|running
+      #|"running"
     ),
   )
 
@@ -179,7 +179,7 @@ test "handle_hook_event updates state correctly" {
     None,
     @agent.HookEvent::BeforeIteration(3),
   )
-  inspect(state_ref.val.iterations, content="3")
+  @debug.debug_inspect(state_ref.val.iterations, content="3")
 
   dispatch_hook_event(
     state_ref,
@@ -187,10 +187,10 @@ test "handle_hook_event updates state correctly" {
     None,
     @agent.HookEvent::ToolExecuting("read_file", "test.txt"),
   )
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.tool_output,
     content=(
-      #|Running: read_file(test.txt)
+      #|"Running: read_file(test.txt)"
     ),
   )
 
@@ -200,16 +200,16 @@ test "handle_hook_event updates state correctly" {
     None,
     @agent.HookEvent::ErrorOccurred("something broke"),
   )
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.last_error,
     content=(
-      #|Some(something broke)
+      #|Some("something broke")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.agent_status,
     content=(
-      #|error
+      #|"error"
     ),
   )
 }
@@ -243,7 +243,7 @@ test "handle_hook_event_simple_events_no_crash" {
     None,
     @agent.HookEvent::BeforeIteration(1),
   )
-  inspect(state_ref.val.iterations, content="1")
+  @debug.debug_inspect(state_ref.val.iterations, content="1")
 }
 
 ///|
@@ -262,10 +262,10 @@ test "handle_hook_event_ToolExecuted" {
     None,
     @agent.HookEvent::ToolExecuted("read_file", entry),
   )
-  inspect(
+  @debug.debug_inspect(
     state_ref.val.tool_output,
     content=(
-      #|Completed: read_file
+      #|"Completed: read_file"
     ),
   )
 }
@@ -274,17 +274,17 @@ test "handle_hook_event_ToolExecuted" {
 test "TuiState::from_agent maps agent status correctly" {
   let agent = make_test_agent()
   let state = TuiState::from_agent(agent)
-  inspect(
+  @debug.debug_inspect(
     state.agent_status,
     content=(
-      #|idle
+      #|"idle"
     ),
   )
 }
 
 ///|
 test "TuiMode equality works" {
-  inspect(Idle == Idle, content="true")
-  inspect(Running == Running, content="true")
-  inspect(Idle != Running, content="true")
+  @debug.debug_inspect(Idle == Idle, content="true")
+  @debug.debug_inspect(Running == Running, content="true")
+  @debug.debug_inspect(Idle != Running, content="true")
 }

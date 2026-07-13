@@ -1,63 +1,63 @@
 ///|
 test "serialize simple string" {
   let value = @toml.TomlString("hello world")
-  inspect(value, content="\"hello world\"")
+  @debug.debug_inspect(value, content="\"hello world\"")
 }
 
 ///|
 test "serialize string with escapes" {
   let value = @toml.TomlString("hello\nworld\t\"quoted\"\\backslash")
-  inspect(value, content="\"hello\\nworld\\t\\\"quoted\\\"\\\\backslash\"")
+  @debug.debug_inspect(value, content="\"hello\\nworld\\t\\\"quoted\\\"\\\\backslash\"")
 }
 
 ///|
 test "serialize string with control characters" {
   let value = @toml.TomlString("null:\u0000 bell:\u0007 delete:\u007F")
-  inspect(value, content="\"null:\\u0000 bell:\\u0007 delete:\\u007F\"")
+  @debug.debug_inspect(value, content="\"null:\\u0000 bell:\\u0007 delete:\\u007F\"")
 }
 
 ///|
 test "serialize integers" {
-  inspect(@toml.TomlInteger(42L), content="42")
-  inspect(@toml.TomlInteger(-1234L), content="-1234")
-  inspect(@toml.TomlInteger(0L), content="0")
+  @debug.debug_inspect(@toml.TomlInteger(42L), content="42")
+  @debug.debug_inspect(@toml.TomlInteger(-1234L), content="-1234")
+  @debug.debug_inspect(@toml.TomlInteger(0L), content="0")
 }
 
 ///|
 test "serialize floats" {
-  inspect(@toml.TomlFloat(3.14), content="3.14")
-  inspect(@toml.TomlFloat(-0.001), content="-0.001")
-  inspect(@toml.TomlFloat(6.0), content="6.0")
+  @debug.debug_inspect(@toml.TomlFloat(3.14), content="3.14")
+  @debug.debug_inspect(@toml.TomlFloat(-0.001), content="-0.001")
+  @debug.debug_inspect(@toml.TomlFloat(6.0), content="6.0")
 }
 
 ///|
 test "serialize special float values" {
-  inspect(@toml.TomlFloat(1.0 / 0.0), content="inf")
-  inspect(@toml.TomlFloat(-1.0 / 0.0), content="-inf")
-  inspect(@toml.TomlFloat(0.0 / 0.0), content="nan")
+  @debug.debug_inspect(@toml.TomlFloat(1.0 / 0.0), content="inf")
+  @debug.debug_inspect(@toml.TomlFloat(-1.0 / 0.0), content="-inf")
+  @debug.debug_inspect(@toml.TomlFloat(0.0 / 0.0), content="nan")
 }
 
 ///|
 test "serialize booleans" {
-  inspect(@toml.TomlBoolean(true), content="true")
-  inspect(@toml.TomlBoolean(false), content="false")
+  @debug.debug_inspect(@toml.TomlBoolean(true), content="true")
+  @debug.debug_inspect(@toml.TomlBoolean(false), content="false")
 }
 
 ///|
 test "serialize datetime values" {
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlDateTime(@tokenize.OffsetDateTime("1979-05-27T07:32:00Z")),
     content="1979-05-27T07:32:00Z",
   )
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlDateTime(@tokenize.LocalDateTime("1979-05-27T07:32:00")),
     content="1979-05-27T07:32:00",
   )
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlDateTime(@tokenize.LocalDate("1979-05-27")),
     content="1979-05-27",
   )
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlDateTime(@tokenize.LocalTime("07:32:00")),
     content="07:32:00",
   )
@@ -70,7 +70,7 @@ test "serialize inline array" {
     @toml.TomlInteger(2L),
     @toml.TomlInteger(3L),
   ])
-  inspect(array, content="[1, 2, 3]")
+  @debug.debug_inspect(array, content="[1, 2, 3]")
 }
 
 ///|
@@ -79,7 +79,7 @@ test "serialize mixed type inline array" {
     @toml.TomlString("hello"),
     @toml.TomlString("world"),
   ])
-  inspect(array, content="[\"hello\", \"world\"]")
+  @debug.debug_inspect(array, content="[\"hello\", \"world\"]")
 }
 
 ///|
@@ -88,7 +88,7 @@ test "serialize nested array" {
     @toml.TomlArray([@toml.TomlInteger(1L), @toml.TomlInteger(2L)]),
     @toml.TomlArray([@toml.TomlInteger(3L), @toml.TomlInteger(4L)]),
   ])
-  inspect(array, content="[[1, 2], [3, 4]]")
+  @debug.debug_inspect(array, content="[[1, 2], [3, 4]]")
 }
 
 ///|
@@ -101,7 +101,7 @@ test "serialize multiline array" {
     @toml.TomlInteger(5L),
     @toml.TomlInteger(6L),
   ])
-  inspect(
+  @debug.debug_inspect(
     array,
     content=(
       #|[
@@ -123,7 +123,7 @@ test "serialize simple table" {
     ("age", @toml.TomlInteger(30L)),
     ("active", @toml.TomlBoolean(true)),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(table),
     content=(
       #|name = "Alice"
@@ -147,7 +147,7 @@ test "serialize table with arrays" {
       ]),
     ),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(table),
     content=(
       #|title = "Example"
@@ -168,7 +168,7 @@ test "serialize nested table" {
     ("name", @toml.TomlString("test")),
     ("position", @toml.TomlTable(inner_table)),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(outer_table),
     content=(
       #|name = "test"
@@ -189,7 +189,7 @@ test "serialize deeply nested tables" {
     ("top", @toml.TomlString("level")),
     ("sub", @toml.TomlTable(level2)),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(level1),
     content=(
       #|top = "level"
@@ -219,7 +219,7 @@ test "serialize array of tables" {
       @toml.TomlArray([@toml.TomlTable(table1), @toml.TomlTable(table2)]),
     ),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(root),
     content=(
       #|title = "High Scores"
@@ -268,7 +268,7 @@ test "serialize complex nested structure" {
     ("server", @toml.TomlTable(server)),
     ("environments", @toml.TomlTable(environments)),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(root),
     content=(
       #|title = "Application Config"
@@ -307,7 +307,7 @@ test "serialize table with special key names" {
     ("key\"with\"quotes", @toml.TomlString("value4")),
     ("key#with#hash", @toml.TomlString("value5")),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(table),
     content=(
       #|normal-key = "value1"
@@ -322,15 +322,15 @@ test "serialize table with special key names" {
 
 ///|
 test "serialize empty structures" {
-  inspect(@toml.TomlArray([]), content="[]")
-  inspect(@toml.TomlTable(Map::new()), content="")
+  @debug.debug_inspect(@toml.TomlArray([]), content="[]")
+  @debug.debug_inspect(@toml.TomlTable(Map([])), content="")
 }
 
 ///|
 test "serialize array with tables should be multiline" {
   let table1 = Map::from_array([("a", @toml.TomlInteger(1L))])
   let array = @toml.TomlArray([@toml.TomlTable(table1), @toml.TomlInteger(2L)])
-  inspect(
+  @debug.debug_inspect(
     array,
     content=(
       #|[
@@ -359,7 +359,7 @@ test "serialize table with multiple array of tables" {
       @toml.TomlArray([@toml.TomlTable(product1), @toml.TomlTable(product2)]),
     ),
   ])
-  inspect(
+  @debug.debug_inspect(
     @toml.TomlTable(root),
     content=(
       #|[[products]]
@@ -385,7 +385,7 @@ test "roundtrip simple key-value pairs" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -401,7 +401,7 @@ test "roundtrip nested tables" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -417,7 +417,7 @@ test "roundtrip array of tables" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -430,7 +430,7 @@ test "roundtrip datetimes" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -442,7 +442,7 @@ test "roundtrip arrays" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -458,7 +458,7 @@ test "roundtrip special floats" {
   let serialized = parsed.to_string()
   let roundtripped = @toml.parse(serialized)
   // Check that the serialized form re-parses correctly
-  inspect(
+  @debug.debug_inspect(
     serialized,
     content=(
       #|pos_inf = inf
@@ -503,7 +503,7 @@ test "roundtrip complex config" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -513,7 +513,7 @@ test "roundtrip string escapes" {
     #|
   let parsed = @toml.parse(toml)
   let roundtripped = @toml.parse(parsed.to_string())
-  assert_eq(parsed, roundtripped)
+  @debug.assert_eq(parsed, roundtripped)
 }
 
 ///|
@@ -561,7 +561,7 @@ test "roundtrip simple example" {
     ),
   ])
   let value = @toml.TomlTable(doc)
-  inspect(
+  @debug.debug_inspect(
     value,
     content=(
       #|title = "TOML Example"
@@ -583,5 +583,5 @@ test "roundtrip simple example" {
   )
   // Verify roundtrip
   let roundtripped = @toml.parse(value.to_string())
-  assert_eq(value, roundtripped)
+  @debug.assert_eq(value, roundtripped)
 }

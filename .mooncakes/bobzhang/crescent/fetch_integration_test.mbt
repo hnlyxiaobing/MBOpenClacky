@@ -20,10 +20,10 @@ async test "fetch uses async client for request headers and payloads" {
     let response1 = @fetch.get(localhost_url(port, "/fetch/hello?via=async"), headers={
       "X-Name": "moon",
     })
-    assert_eq(response1.status_code, OK)
+    @debug.assert_eq(response1.status_code, OK)
     let body1 : String = response1.read_body()
-    inspect(body1, content="hello:moon")
-    inspect(response1.headers.get("x-reply").unwrap_or(""), content="native")
+    @debug.debug_inspect(body1, content="hello:moon")
+    @debug.debug_inspect(response1.headers.get("x-reply").unwrap_or(""), content="native")
 
     let response2 = @fetch.fetch(
       localhost_url(port, "/fetch/echo"),
@@ -31,23 +31,23 @@ async test "fetch uses async client for request headers and payloads" {
       body="payload",
       headers={ "X-Test": "yes" },
     )
-    assert_eq(response2.status_code, Created)
+    @debug.assert_eq(response2.status_code, Created)
     let body2 : String = response2.read_body()
-    inspect(body2, content="post:payload")
-    inspect(response2.headers.get("x-body-len").unwrap_or(""), content="7")
+    @debug.debug_inspect(body2, content="post:payload")
+    @debug.debug_inspect(response2.headers.get("x-body-len").unwrap_or(""), content="7")
 
     let response3 = @fetch.patch(
       localhost_url(port, "/fetch/bin"),
-      data=b"\x00\x01\x02",
+      data=b"\u{00}\u{01}\u{02}",
     )
-    assert_eq(response3.status_code, OK)
-    assert_eq(response3.raw_body, b"\x00\x01\x02")
-    inspect(response3.headers.get("x-body-len").unwrap_or(""), content="3")
+    @debug.assert_eq(response3.status_code, OK)
+    @debug.assert_eq(response3.raw_body, b"\u{00}\u{01}\u{02}")
+    @debug.debug_inspect(response3.headers.get("x-body-len").unwrap_or(""), content="3")
 
     let response4 = @fetch.get("http://127.0.0.1:\{port}?via=query")
-    assert_eq(response4.status_code, OK)
+    @debug.assert_eq(response4.status_code, OK)
     let body4 : String = response4.read_body()
-    inspect(body4, content="root")
+    @debug.debug_inspect(body4, content="root")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -56,7 +56,7 @@ async test "fetch uses async client for request headers and payloads" {
 
 ///|
 async test "fetch preserves explicit content-type without duplicate request headers" {
-  let raw_headers = Ref::new("")
+  let raw_headers = Ref("")
   @async.with_task_group(group => {
     let server = @socket.TcpServer(@socket.Addr::parse("127.0.0.1:0"))
     let port = server.addr.port()
@@ -75,16 +75,16 @@ async test "fetch preserves explicit content-type without duplicate request head
       data=@crescent.text("body"),
       headers={ "content-type": "application/custom", "X-Test": "yes" },
     )
-    assert_eq(response.status_code, OK)
-    assert_eq(response.raw_body, b"")
+    @debug.assert_eq(response.status_code, OK)
+    @debug.assert_eq(response.raw_body, b"")
   })
 
-  assert_eq(
+  @debug.assert_eq(
     raw_header_value(raw_headers.val, "content-type"),
     Some("application/custom"),
   )
-  assert_eq(raw_header_count(raw_headers.val, "content-type"), 1)
-  assert_eq(raw_header_value(raw_headers.val, "x-test"), Some("yes"))
+  @debug.assert_eq(raw_header_count(raw_headers.val, "content-type"), 1)
+  @debug.assert_eq(raw_header_value(raw_headers.val, "x-test"), Some("yes"))
 }
 
 ///|
@@ -96,10 +96,10 @@ async test "fetch supports head and rejects unsupported protocols" {
   })
   with_test_server(app, port => {
     let response = @fetch.head(localhost_url(port, "/fetch/head"))
-    assert_eq(response.status_code, NoContent)
+    @debug.assert_eq(response.status_code, NoContent)
     let body : String = response.read_body()
-    inspect(body, content="")
-    inspect(response.headers.get("x-reply").unwrap_or(""), content="head")
+    @debug.debug_inspect(body, content="")
+    @debug.debug_inspect(response.headers.get("x-reply").unwrap_or(""), content="head")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -108,7 +108,7 @@ async test "fetch supports head and rejects unsupported protocols" {
   let unsupported = try? @fetch.get("ftp://example.com/data")
   match unsupported {
     Err(@fetch.FetchError::RequestFailed(message)) =>
-      inspect(message, content="unsupported protocol: ftp")
+      @debug.debug_inspect(message, content="unsupported protocol: ftp")
     Err(err) => fail("unexpected error: \{err}")
     Ok(_) => fail("expected fetch to reject unsupported protocol")
   }

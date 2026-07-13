@@ -6,7 +6,7 @@ pub(all) enum TodoStatus {
   Completed
   Cancelled
   Failed
-} derive(Eq, Compare, Debug, Show)
+} derive(Eq, Compare, Debug)
 
 ///|
 pub fn TodoStatus::to_string_value(self : TodoStatus) -> String {

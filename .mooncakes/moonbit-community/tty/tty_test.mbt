@@ -38,7 +38,7 @@ async test "pipe tty with alt screen restores on success" {
   let output = with_pipe_tty_output(tty => {
     tty.with_alt_screen(() => tty.write("body"))
   })
-  inspect(output, content="\u{1B}[?1049hbody\u{1B}[?1049l")
+  @debug.debug_inspect(output, content="\u{1B}[?1049hbody\u{1B}[?1049l")
 }
 
 ///|
@@ -50,7 +50,7 @@ async test "pipe tty with top bottom margins restores on success" {
     })
     assert_true(value == 42)
   })
-  inspect(output, content="\u{1B}[2;7rbody\u{1B}[r")
+  @debug.debug_inspect(output, content="\u{1B}[2;7rbody\u{1B}[r")
 }
 
 ///|

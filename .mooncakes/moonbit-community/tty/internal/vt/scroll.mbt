@@ -11,8 +11,8 @@ pub fn set_top_bottom_margins(top : Int, bottom : Int) -> Bytes {
 
 ///|
 /// Reset Top and Bottom Margins (DECSTBM), DEC private sequence.
-pub let reset_top_bottom_margins : Bytes = b"\x1b[r"
+pub let reset_top_bottom_margins : Bytes = b"\u{1b}[r"
 
 ///|
 /// Reverse Index (RI), ECMA-48.
-pub let reverse_index : Bytes = b"\x1bM"
+pub let reverse_index : Bytes = b"\u{1b}M"

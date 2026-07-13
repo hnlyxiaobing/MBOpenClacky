@@ -52,7 +52,7 @@ pub fn package_extension(
   info_obj["packaged_at"] = @agent.current_time_ms().to_json()
   let info_path = @path.Path::join(out_dir, @path.Path(package_name + ".json")).to_string()
   @fs.write_string_to_file(info_path, Json::object(info_obj).stringify()) catch {
-    e => return Err("failed to write package info: " + e.to_string())
+    e => return Err("failed to write package info: " + @debug.to_string(e))
   }
   Ok((package_path, sha256))
 }
@@ -65,7 +65,7 @@ fn copy_directory(src : String, dst : String) -> Result[Unit, String] {
     return Err("source is not a directory: " + src)
   }
   @utils.ensure_dir(dst)
-  let entries = @fs.read_dir(src) catch { e => return Err(e.to_string()) }
+  let entries = @fs.read_dir(src) catch { e => return Err(@debug.to_string(e)) }
   for entry in entries {
     let src_path = @path.Path::join(src, @path.Path(entry)).to_string()
     let dst_path = @path.Path::join(dst, @path.Path(entry)).to_string()
@@ -77,10 +77,10 @@ fn copy_directory(src : String, dst : String) -> Result[Unit, String] {
       }
     } else {
       let content = @fs.read_file_to_string(src_path) catch {
-        e => return Err("read " + src_path + ": " + e.to_string())
+        e => return Err("read " + src_path + ": " + @debug.to_string(e))
       }
       @fs.write_string_to_file(dst_path, content) catch {
-        e => return Err("write " + dst_path + ": " + e.to_string())
+        e => return Err("write " + dst_path + ": " + @debug.to_string(e))
       }
     }
   }

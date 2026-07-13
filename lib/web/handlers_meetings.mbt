@@ -21,18 +21,18 @@ pub(all) struct MeetingData {
 
 ///|
 /// In-memory meeting state loaded from disk on first access.
-struct MeetingState {
+priv struct MeetingState {
   meetings : Map[String, MeetingData]
   mut loaded : Bool
 }
 
 ///|
 /// Global meeting state singleton (module-level mutable).
-let meeting_state : Ref[MeetingState] = Ref::new({ meetings: {}, loaded: false })
+let meeting_state : Ref[MeetingState] = Ref({ meetings: {}, loaded: false })
 
 ///|
 /// Counter for generating unique IDs.
-let meeting_id_counter : Ref[Int] = Ref::new(0)
+let meeting_id_counter : Ref[Int] = Ref(0)
 
 ///|
 /// Path to the meetings state file.

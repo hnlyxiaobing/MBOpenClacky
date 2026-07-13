@@ -29,7 +29,7 @@ async test "no_wait cancelled" {
     @async.sleep(100)
     buf <+ "main task terminate\n"
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|main task terminate
@@ -56,7 +56,7 @@ async test "no_wait normal exit" {
     @async.sleep(200)
     buf <+ "main task terminate\n"
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|`no_wait` task finished successfully

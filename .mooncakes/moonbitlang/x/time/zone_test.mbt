@@ -14,11 +14,11 @@
 
 ///|
 test "fixed" {
-  inspect(@time.fixed_zone("CST", 8 * 60 * 60), content="CST")
-  inspect(@time.fixed_zone("CST", 8 * 60 * 60).is_fixed(), content="true")
+  @debug.debug_inspect(@time.fixed_zone("CST", 8 * 60 * 60), content="CST")
+  @debug.debug_inspect(@time.fixed_zone("CST", 8 * 60 * 60).is_fixed(), content="true")
 }
 
 ///|
 test "utc" {
-  inspect(@time.utc_zone, content="UTC")
+  @debug.debug_inspect(@time.utc_zone, content="UTC")
 }

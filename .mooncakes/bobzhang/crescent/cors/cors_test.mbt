@@ -29,7 +29,7 @@ test "origin=* with credentials=true reflects request origin" {
 test "explicit origin is preserved with credentials" {
   let event = make_event(Get, { "origin": "https://myapp.com" })
   append_cors_headers(event, origin="https://allowed.com", credentials=true)
-  assert_eq(
+  @debug.assert_eq(
     event.res.headers.get("Access-Control-Allow-Origin"),
     Some("https://allowed.com"),
   )
@@ -49,7 +49,7 @@ test "Vary header handles existing lowercase vary" {
       vary_count = vary_count + 1
     }
   })
-  assert_eq(vary_count, 1)
+  @debug.assert_eq(vary_count, 1)
   // The existing header should now contain both tokens
   let vary = event.res.headers.get("vary").unwrap()
   assert_true(vary.contains("Accept-Encoding"))
@@ -62,19 +62,19 @@ test "Vary header doesn't duplicate Origin token" {
   event.res.headers["Vary"] = "Origin"
   append_cors_headers(event, origin="*", credentials=true)
   // Should not create "Origin, Origin"
-  assert_eq(event.res.headers.get("Vary"), Some("Origin"))
+  @debug.assert_eq(event.res.headers.get("Vary"), Some("Origin"))
 }
 
 ///|
 test "origin=* without credentials stays as *" {
   let event = make_event(Get, { "origin": "https://any.com" })
   append_cors_headers(event, origin="*", credentials=false)
-  assert_eq(event.res.headers.get("Access-Control-Allow-Origin"), Some("*"))
+  @debug.assert_eq(event.res.headers.get("Access-Control-Allow-Origin"), Some("*"))
 }
 
 ///|
 test "is_preflight_request requires cors headers and options" {
-  inspect(
+  @debug.debug_inspect(
     is_preflight_request(
       make_event(Options, {
         "origin": "https://example.com",
@@ -83,13 +83,13 @@ test "is_preflight_request requires cors headers and options" {
     ),
     content="true",
   )
-  inspect(
+  @debug.debug_inspect(
     is_preflight_request(
       make_event(Options, { "origin": "https://example.com" }),
     ),
     content="false",
   )
-  inspect(
+  @debug.debug_inspect(
     is_preflight_request(
       make_event(Get, {
         "origin": "https://example.com",
@@ -181,7 +181,7 @@ async fn issue_raw_request_headers(port : Int, request : String) -> String {
 
 ///|
 async test "handle_cors serves preflight requests through async server" {
-  let handler_called = Ref::new(false)
+  let handler_called = Ref(false)
   let app = @crescent.App()
   app.use_middleware(
     handle_cors(
@@ -201,8 +201,8 @@ async test "handle_cors serves preflight requests through async server" {
       "origin": "https://frontend.example",
       "access-control-request-method": "PATCH",
     })
-    assert_eq(response.code, 200)
-    assert_eq(body, b"")
+    @debug.assert_eq(response.code, 200)
+    @debug.assert_eq(body, b"")
     guard response.headers
       is {
         "access-control-allow-origin": "https://frontend.example",
@@ -214,7 +214,7 @@ async test "handle_cors serves preflight requests through async server" {
       } else {
       fail("missing expected preflight CORS headers")
     }
-    inspect(handler_called.val, content="false")
+    @debug.debug_inspect(handler_called.val, content="false")
   })
 }
 
@@ -235,8 +235,8 @@ async test "handle_cors decorates normal requests through async server" {
     let (response, body) = issue_request(port, Get, "/resource", headers={
       "origin": "https://frontend.example",
     })
-    assert_eq(response.code, 200)
-    assert_eq(@utf8.decode(body) catch { _ => "" }, "ok")
+    @debug.assert_eq(response.code, 200)
+    @debug.assert_eq(@utf8.decode(body) catch { _ => "" }, "ok")
     guard response.headers
       is {
         "access-control-allow-origin": "https://frontend.example",
@@ -253,7 +253,7 @@ async test "handle_cors decorates normal requests through async server" {
 
 ///|
 async test "handle_cors does not short-circuit non-preflight options" {
-  let handler_called = Ref::new(false)
+  let handler_called = Ref(false)
   let app = @crescent.App()
   app.use_middleware(
     handle_cors(
@@ -272,8 +272,8 @@ async test "handle_cors does not short-circuit non-preflight options" {
     let (response, body) = issue_request(port, Options, "/resource", headers={
       "origin": "https://frontend.example",
     })
-    assert_eq(response.code, 200)
-    assert_eq(@utf8.decode(body) catch { _ => "" }, "regular-options")
+    @debug.assert_eq(response.code, 200)
+    @debug.assert_eq(@utf8.decode(body) catch { _ => "" }, "regular-options")
     guard response.headers
       is {
         "access-control-allow-origin": "https://frontend.example",
@@ -286,8 +286,8 @@ async test "handle_cors does not short-circuit non-preflight options" {
       fail("missing expected CORS headers on non-preflight OPTIONS")
     }
     // non-preflight OPTIONS must NOT carry a preflight-only Max-Age
-    assert_eq(response.headers.get("access-control-max-age"), None)
-    inspect(handler_called.val, content="true")
+    @debug.assert_eq(response.headers.get("access-control-max-age"), None)
+    @debug.debug_inspect(handler_called.val, content="true")
   })
 }
 

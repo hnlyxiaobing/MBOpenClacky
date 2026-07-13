@@ -115,10 +115,10 @@ async test "UTF8 validation large message" {
         client.end_message()
       }
       let reply = client.recv()
-      inspect(@utf8.decode(reply.read_exactly(1)), content="a")
+      @debug.debug_inspect(@utf8.decode(reply.read_exactly(1)), content="a")
       for n = 0; n < 10240; n = n + chunk_bin.length() {
         let reply_chunk = reply.read_exactly(chunk_bin.length())
-        assert_eq(@utf8.decode(reply_chunk), chunk_text)
+        @debug.assert_eq(@utf8.decode(reply_chunk), chunk_text)
       }
       debug_inspect(reply.read_some(), content="None")
     }

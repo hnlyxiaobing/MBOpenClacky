@@ -8,7 +8,7 @@ test "env_var_returns_none_for_empty" {
 test "env_var_returns_value_when_set" {
   @sys.set_env_var("MB_TEST_VALUE", "hello")
   match env_var("MB_TEST_VALUE") {
-    Some(v) => assert_eq(v, "hello")
+    Some(v) => @debug.assert_eq(v, "hello")
     None => fail("expected Some")
   }
   @sys.set_env_var("MB_TEST_VALUE", "")
@@ -47,16 +47,16 @@ test "env_bool_unset_returns_false" {
 ///|
 test "env_int_valid_values" {
   @sys.set_env_var("MB_TEST_INT", "42")
-  assert_eq(env_int("MB_TEST_INT"), Some(42))
+  @debug.assert_eq(env_int("MB_TEST_INT"), Some(42))
 
   @sys.set_env_var("MB_TEST_INT", "-7")
-  assert_eq(env_int("MB_TEST_INT"), Some(-7))
+  @debug.assert_eq(env_int("MB_TEST_INT"), Some(-7))
 
   @sys.set_env_var("MB_TEST_INT", "0")
-  assert_eq(env_int("MB_TEST_INT"), Some(0))
+  @debug.assert_eq(env_int("MB_TEST_INT"), Some(0))
 
   @sys.set_env_var("MB_TEST_INT", "+100")
-  assert_eq(env_int("MB_TEST_INT"), Some(100))
+  @debug.assert_eq(env_int("MB_TEST_INT"), Some(100))
 
   @sys.set_env_var("MB_TEST_INT", "")
 }
@@ -73,10 +73,10 @@ test "env_int_invalid_values" {
 
 ///|
 test "parse_int_safe_cases" {
-  assert_eq(parse_int_safe("0"), Some(0))
-  assert_eq(parse_int_safe("123"), Some(123))
-  assert_eq(parse_int_safe("-456"), Some(-456))
-  assert_eq(parse_int_safe("+789"), Some(789))
+  @debug.assert_eq(parse_int_safe("0"), Some(0))
+  @debug.assert_eq(parse_int_safe("123"), Some(123))
+  @debug.assert_eq(parse_int_safe("-456"), Some(-456))
+  @debug.assert_eq(parse_int_safe("+789"), Some(789))
   assert_true(parse_int_safe("") is None)
   assert_true(parse_int_safe("abc") is None)
   assert_true(parse_int_safe("-") is None)

@@ -2,7 +2,7 @@
 pub(all) struct Equivalence[T] {
   lhs : T
   rhs : T
-} derive(Show)
+} derive(Debug)
 
 ///|
 pub fn[T] Equivalence::new(lhs : T, rhs : T) -> Equivalence[T] {

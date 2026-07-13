@@ -221,11 +221,10 @@ fn elapsed_seconds(start_time : Int64) -> Int {
 ///|
 /// Select a spinner frame character based on elapsed time.
 /// Uses the Dots style (braille spinner) with ~100ms per frame.
-fn spinner_frame(elapsed_sec : Int) -> String {
+fn spinner_frame(_elapsed_sec : Int) -> String {
   let frames = [
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
   ]
-  // Use current time in 100ms ticks for smooth animation
   let now_ms = @async.now()
   let tick = (now_ms / 100L).to_int()
   let idx = tick % frames.length()

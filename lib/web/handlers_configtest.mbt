@@ -65,7 +65,7 @@ fn handle_config_test(
           @core.HttpResponse::ok().json_value(
             Json::object({
               "ok": false.to_json(),
-              "error": e.to_string().to_json(),
+              "error": @debug.to_string(e).to_json(),
             }),
           )
       }
@@ -141,7 +141,7 @@ fn handle_config_media_test(
           @core.HttpResponse::ok().json_value(
             Json::object({
               "ok": false.to_json(),
-              "error": e.to_string().to_json(),
+              "error": @debug.to_string(e).to_json(),
             }),
           )
       }

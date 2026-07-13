@@ -16,9 +16,9 @@ test "trash_filename no extension" {
 ///|
 test "create_trash_entry defaults" {
   let entry = create_trash_entry("/home/user/test.txt")
-  assert_eq(entry.original_path, "/home/user/test.txt")
-  assert_eq(entry.deleted_at, "1970-01-01T00:00:00Z")
-  assert_eq(entry.size_bytes, 0)
+  @debug.assert_eq(entry.original_path, "/home/user/test.txt")
+  @debug.assert_eq(entry.deleted_at, "1970-01-01T00:00:00Z")
+  @debug.assert_eq(entry.size_bytes, 0)
   assert_true(entry.trash_path.contains("trash"))
 }
 
@@ -28,7 +28,7 @@ test "create_trash_entry with timestamp" {
     "/tmp/data.json",
     timestamp="2024-03-20T14:00:00Z",
   )
-  assert_eq(entry.deleted_at, "2024-03-20T14:00:00Z")
+  @debug.assert_eq(entry.deleted_at, "2024-03-20T14:00:00Z")
   assert_true(entry.trash_path.contains("data"))
 }
 
@@ -49,10 +49,10 @@ test "find_in_trash by name" {
     },
   ]
   let found = find_in_trash(entries, "a.txt")
-  assert_eq(found.length(), 1)
-  assert_eq(found[0].original_path, "/home/user/a.txt")
+  @debug.assert_eq(found.length(), 1)
+  @debug.assert_eq(found[0].original_path, "/home/user/a.txt")
   let not_found = find_in_trash(entries, "c.txt")
-  assert_eq(not_found.length(), 0)
+  @debug.assert_eq(not_found.length(), 0)
 }
 
 ///|
@@ -72,8 +72,8 @@ test "expired_entries filters old" {
     },
   ]
   let expired = expired_entries(entries, 30, "2024-06-23")
-  assert_eq(expired.length(), 1)
-  assert_eq(expired[0].original_path, "old.txt")
+  @debug.assert_eq(expired.length(), 1)
+  @debug.assert_eq(expired[0].original_path, "old.txt")
 }
 
 ///|
@@ -100,7 +100,7 @@ test "format_trash_summary formatting" {
 ///|
 test "format_trash_summary empty" {
   let empty : Array[TrashEntry] = []
-  assert_eq(format_trash_summary(empty), "Trash is empty.")
+  @debug.assert_eq(format_trash_summary(empty), "Trash is empty.")
 }
 
 ///|

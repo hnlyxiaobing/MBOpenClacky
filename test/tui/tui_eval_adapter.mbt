@@ -100,11 +100,11 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
       let setup = match obj.get("setup") {
         Some(Object(s)) => {
           let cols = match s.get("cols") {
-            Some(Number(n)) => n.to_int()
+            Some(Number(n, ..)) => n.to_int()
             _ => 80
           }
           let rows = match s.get("rows") {
-            Some(Number(n)) => n.to_int()
+            Some(Number(n, ..)) => n.to_int()
             _ => 24
           }
           let mock = match s.get("mock_response") {
@@ -141,7 +141,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                 }
                 let get_i = fn(k : String) -> Int {
                   match a.get(k) {
-                    Some(Number(n)) => n.to_int()
+                    Some(Number(n, ..)) => n.to_int()
                     _ => 0
                   }
                 }
@@ -183,7 +183,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                 }
                 let get_i = fn(k : String) -> Int {
                   match a.get(k) {
-                    Some(Number(n)) => n.to_int()
+                    Some(Number(n, ..)) => n.to_int()
                     _ => 0
                   }
                 }

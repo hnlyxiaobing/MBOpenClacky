@@ -48,7 +48,7 @@ async test "protect_from_cancel" {
   }) catch {
     err => log.write_string(@debug.to_string(err))
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|non-critial job cancelled with error Cancelled
@@ -90,7 +90,7 @@ async test "protect_from_cancel wait" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -122,7 +122,7 @@ async test "protect_from_cancel with_timeout" {
     |> ignore
     log <+ "`with_timeout` containing critical job finished\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -153,7 +153,7 @@ async test "protect_from_cancel fail" {
     })
   })
   log.write_string(@debug.to_string(result))
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -185,7 +185,7 @@ async test "protect_from_cancel nested1" {
     |> ignore
     log <+ "`with_timeout` containing critical job finished\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -222,7 +222,7 @@ async test "protect_from_cancel nested2" {
     |> ignore
     log <+ "`with_timeout` containing critical job finished\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -259,7 +259,7 @@ async test "protect_from_cancel in cancellation handler" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|start cancellation
@@ -301,7 +301,7 @@ async test "cancel while scheduled" {
     })
     root.spawn_bg(() => task1.cancel())
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|`pause` cancelled with Cancelled
@@ -345,7 +345,7 @@ async test "error in async cancel" {
     )
     log <+ "\ngroup terminates\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|main task of inner group done

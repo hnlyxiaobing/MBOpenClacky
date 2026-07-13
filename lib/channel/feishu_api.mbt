@@ -346,7 +346,7 @@ pub fn FeishuApiClient::fetch_chat_history(
 pub fn build_feishu_text_content(text : String) -> Json {
   let inner : Map[String, Json] = {}
   inner.set("text", text.to_json())
-  let content_str = Json::object(inner).to_string()
+  let content_str = Json::object(inner).stringify()
   let outer : Map[String, Json] = {}
   outer.set("msg_type", "text".to_json())
   outer.set("content", content_str.to_json())
@@ -372,7 +372,7 @@ pub fn build_feishu_card_content(text : String) -> Json {
   card.set("elements", Json::array(elements))
   let outer : Map[String, Json] = {}
   outer.set("msg_type", "interactive".to_json())
-  outer.set("content", Json::object(card).to_string().to_json())
+  outer.set("content", Json::object(card).stringify().to_json())
   Json::object(outer)
 }
 
@@ -385,7 +385,7 @@ pub fn build_feishu_post_content(elements : Array[Json]) -> Json {
   post.set("zh_cn", Json::object(post_body))
   let outer : Map[String, Json] = {}
   outer.set("msg_type", "post".to_json())
-  outer.set("content", Json::object(post).to_string().to_json())
+  outer.set("content", Json::object(post).stringify().to_json())
   Json::object(outer)
 }
 

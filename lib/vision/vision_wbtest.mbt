@@ -7,8 +7,8 @@
 ///|
 test "vision_config_defaults" {
   let config = VisionConfig::default()
-  assert_eq(config.max_tokens, 8192)
-  assert_eq(config.cache_dir, "~/.mbopenclacky/ocr_cache/")
+  @debug.assert_eq(config.max_tokens, 8192)
+  @debug.assert_eq(config.cache_dir, "~/.mbopenclacky/ocr_cache/")
   assert_true(config.default_prompt.contains("Extract all text"))
 }
 
@@ -22,10 +22,10 @@ test "vision_config_custom" {
     cache_dir="/tmp/cache/",
     default_prompt="Describe this image",
   )
-  assert_eq(config.max_tokens, 4096)
-  assert_eq(config.cache_dir, "/tmp/cache/")
-  assert_eq(config.default_prompt, "Describe this image")
-  assert_eq(config.api_key, "test-key")
+  @debug.assert_eq(config.max_tokens, 4096)
+  @debug.assert_eq(config.cache_dir, "/tmp/cache/")
+  @debug.assert_eq(config.default_prompt, "Describe this image")
+  @debug.assert_eq(config.api_key, "test-key")
 }
 
 // ============================================================
@@ -35,8 +35,8 @@ test "vision_config_custom" {
 ///|
 test "vision_resolver_new" {
   let resolver = VisionResolver::new()
-  assert_eq(resolver.cache_size(), 0)
-  assert_eq(resolver.get_config().max_tokens, 8192)
+  @debug.assert_eq(resolver.cache_size(), 0)
+  @debug.assert_eq(resolver.get_config().max_tokens, 8192)
 }
 
 ///|
@@ -50,8 +50,8 @@ test "vision_resolver_with_config" {
     default_prompt="OCR this",
   )
   let resolver = VisionResolver::with_config(config)
-  assert_eq(resolver.get_config().max_tokens, 2048)
-  assert_eq(resolver.get_config().cache_dir, "/my/cache/")
+  @debug.assert_eq(resolver.get_config().max_tokens, 2048)
+  @debug.assert_eq(resolver.get_config().cache_dir, "/my/cache/")
 }
 
 // ============================================================
@@ -83,19 +83,19 @@ test "clear_cache" {
   let resolver = VisionResolver::new()
   resolver.cache_result("k1", ok_result("text1", false))
   resolver.cache_result("k2", ok_result("text2", false))
-  assert_eq(resolver.cache_size(), 2)
+  @debug.assert_eq(resolver.cache_size(), 2)
   resolver.clear_cache()
-  assert_eq(resolver.cache_size(), 0)
+  @debug.assert_eq(resolver.cache_size(), 0)
 }
 
 ///|
 test "cache_size" {
   let resolver = VisionResolver::new()
-  assert_eq(resolver.cache_size(), 0)
+  @debug.assert_eq(resolver.cache_size(), 0)
   resolver.cache_result("a", ok_result("t1", false))
-  assert_eq(resolver.cache_size(), 1)
+  @debug.assert_eq(resolver.cache_size(), 1)
   resolver.cache_result("b", ok_result("t2", false))
-  assert_eq(resolver.cache_size(), 2)
+  @debug.assert_eq(resolver.cache_size(), 2)
 }
 
 ///|
@@ -103,7 +103,7 @@ test "cache_overwrite" {
   let resolver = VisionResolver::new()
   resolver.cache_result("key", ok_result("first", false))
   resolver.cache_result("key", ok_result("second", false))
-  assert_eq(resolver.cache_size(), 1)
+  @debug.assert_eq(resolver.cache_size(), 1)
   match resolver.check_cache("key") {
     Some(r) => assert_true(r.text == Some("second"))
     None => fail("expected cache hit")
@@ -119,7 +119,7 @@ test "compute_cache_key_deterministic" {
   let input = FilePath("/path/to/image.png")
   let key1 = compute_cache_key(input, "describe this")
   let key2 = compute_cache_key(input, "describe this")
-  assert_eq(key1, key2)
+  @debug.assert_eq(key1, key2)
 }
 
 ///|
@@ -203,7 +203,7 @@ test "empty_result_construction" {
 ///|
 test "vision_status_variants" {
   let statuses : Array[VisionStatus] = [Ok, Empty, CallFailed, BadImage]
-  assert_eq(statuses.length(), 4)
+  @debug.assert_eq(statuses.length(), 4)
   assert_true(statuses[0] == Ok)
   assert_true(statuses[1] == Empty)
   assert_true(statuses[2] == CallFailed)
@@ -218,7 +218,7 @@ test "vision_status_variants" {
 test "vision_input_file_path" {
   let input = FilePath("/home/user/photo.jpg")
   match input {
-    FilePath(p) => assert_eq(p, "/home/user/photo.jpg")
+    FilePath(p) => @debug.assert_eq(p, "/home/user/photo.jpg")
     _ => fail("expected FilePath")
   }
 }
@@ -237,7 +237,7 @@ test "vision_input_bytes" {
   let data = Bytes::make(5, 0xFF)
   let input = VisionBytes(data)
   match input {
-    VisionBytes(d) => assert_eq(d.length(), 5)
+    VisionBytes(d) => @debug.assert_eq(d.length(), 5)
     _ => fail("expected VisionBytes")
   }
 }
@@ -253,12 +253,12 @@ test "describe_uses_cache" {
   let input = FilePath("/test/image.png")
   let result1 = resolver.describe(input, Some("test"))
   // Result should be cached now
-  assert_eq(resolver.cache_size(), 1)
+  @debug.assert_eq(resolver.cache_size(), 1)
   // Second call - should hit cache
   let result2 = resolver.describe(input, Some("test"))
   assert_true(result2.cached)
   // Cache still has only 1 entry
-  assert_eq(resolver.cache_size(), 1)
+  @debug.assert_eq(resolver.cache_size(), 1)
   let _ = result1
 }
 

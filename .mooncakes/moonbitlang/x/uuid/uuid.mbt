@@ -95,10 +95,10 @@ test "bytes" {
       Int::to_byte,
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     from_bytes(buf).to_bytes(),
     content=(
-      #|b"\xc9\x82\xfbh\xdfPL\xa1\x91\xf8\xba\xa2\x04\x09\xe5\xb9"
+      #|b"\u{c9}\u{82}\u{fb}h\u{df}PL\u{a1}\u{91}\u{f8}\u{ba}\u{a2}\u{04}\u{09}\u{e5}\u{b9}"
     ),
   )
   assert_true((try? from_bytes(Bytes::new(15))) is Err(_))

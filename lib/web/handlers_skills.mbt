@@ -128,7 +128,7 @@ fn json_bool_field(body : String, key : String) -> Bool? {
 
 ///|
 fn remove_dir_recursive(dir : String) -> Result[Unit, String] {
-  let entries = @fs.read_dir(dir) catch { e => return Err(e.to_string()) }
+  let entries = @fs.read_dir(dir) catch { e => return Err(@debug.to_string(e)) }
   for entry in entries {
     let full = dir + "/" + entry
     let is_sub_dir = @fs.is_dir(full) catch { _ => false }
@@ -139,12 +139,12 @@ fn remove_dir_recursive(dir : String) -> Result[Unit, String] {
       }
     } else {
       @fs.remove_file(full) catch {
-        e => return Err(e.to_string())
+        e => return Err(@debug.to_string(e))
       }
     }
   }
   @fs.remove_dir(dir) catch {
-    e => return Err(e.to_string())
+    e => return Err(@debug.to_string(e))
   }
   Ok(())
 }
@@ -168,7 +168,7 @@ fn validated_name(request : HttpRequest) -> Result[String, HttpResponse] {
 /// GET /api/skills — List all available skills (user overrides builtin).
 pub fn handle_skills_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
-  let merged : Map[String, Json] = Map::new()
+  let merged : Map[String, Json] = Map([])
   for pair in scan_skills(BUILTIN_SKILLS_DIR, "builtin") {
     merged.set(pair.0, pair.1)
   }
@@ -226,7 +226,7 @@ pub fn handle_skills_create(request : HttpRequest) -> HttpResponse {
   @fs.write_string_to_file(dir + "/SKILL.md", content) catch {
     e =>
       return HttpResponse::bad_request(
-        "Failed to write skill: " + e.to_string(),
+        "Failed to write skill: " + @debug.to_string(e),
       )
   }
   HttpResponse::created(
@@ -250,7 +250,7 @@ pub fn handle_skills_get_content(request : HttpRequest) -> HttpResponse {
       let content = @fs.read_file_to_string(dir + "/SKILL.md") catch {
         e =>
           return HttpResponse::bad_request(
-            "Failed to read skill: " + e.to_string(),
+            "Failed to read skill: " + @debug.to_string(e),
           )
       }
       HttpResponse::ok(
@@ -273,7 +273,7 @@ fn write_skill_content(name : String, content : String) -> HttpResponse {
   @fs.write_string_to_file(dir + "/SKILL.md", content) catch {
     e =>
       return HttpResponse::bad_request(
-        "Failed to write skill: " + e.to_string(),
+        "Failed to write skill: " + @debug.to_string(e),
       )
   }
   HttpResponse::ok(
@@ -334,7 +334,7 @@ pub fn handle_skills_toggle(request : HttpRequest) -> HttpResponse {
       @fs.remove_file(marker) catch {
         e =>
           return HttpResponse::bad_request(
-            "Failed to enable skill: " + e.to_string(),
+            "Failed to enable skill: " + @debug.to_string(e),
           )
       }
     }
@@ -342,7 +342,7 @@ pub fn handle_skills_toggle(request : HttpRequest) -> HttpResponse {
     @fs.write_string_to_file(marker, "") catch {
       e =>
         return HttpResponse::bad_request(
-          "Failed to disable skill: " + e.to_string(),
+          "Failed to disable skill: " + @debug.to_string(e),
         )
     }
   }
@@ -424,7 +424,7 @@ pub fn handle_skills_install(request : HttpRequest) -> HttpResponse {
   @fs.write_string_to_file(user_path + "/SKILL.md", content) catch {
     e =>
       return HttpResponse::bad_request(
-        "Failed to install skill: " + e.to_string(),
+        "Failed to install skill: " + @debug.to_string(e),
       )
   }
   HttpResponse::created(

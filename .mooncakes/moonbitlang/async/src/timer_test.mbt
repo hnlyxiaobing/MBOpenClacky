@@ -34,7 +34,7 @@ async test "basic sleep" {
     }
   })
   debug_inspect(result, content="Ok(())")
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|task 1, tick 1

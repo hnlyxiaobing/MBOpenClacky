@@ -290,43 +290,43 @@ pub fn sm3_from_iter(data : Iter[Byte]) -> FixedArray[Byte] {
 
 ///|
 test {
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(
       sm3(
-        b"\x61\x62\x63", // abc in utf-8
+        b"\u{61}\u{62}\u{63}", // abc in utf-8
       ),
     ),
     content="66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0",
   )
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(
       sm3(
         // abcd * 16 in utf-8
-        b"\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64",
+        b"\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}",
       ),
     ),
     content="debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732",
   )
   let hash1 = "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0"
   let ctx = SM3::new()
-  ctx.update(b"\x61".to_fixedarray())
-  ctx.update(b"\x62".to_fixedarray())
-  ctx.update(b"\x63".to_fixedarray())
+  ctx.update(b"\u{61}".to_fixedarray())
+  ctx.update(b"\u{62}".to_fixedarray())
+  ctx.update(b"\u{63}".to_fixedarray())
   assert_eq(hash1, bytes_to_hex_string(ctx.finalize()))
   let ctx = SM3::new()
-  let data = b"\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64"
+  let data = b"\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}"
   for i = 0; i < data.length(); i = i + 1 {
     ctx.update(FixedArray::make(1, data[i]))
   }
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732",
   )
   let ctx = SM3::new()
   for i = 0; i < data.length(); i = i + 4 {
-    ctx.update_from_iter(b"\x61\x62\x63\x64".iter())
+    ctx.update_from_iter(b"\u{61}\u{62}\u{63}\u{64}".iter())
   }
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732",
   )
@@ -337,17 +337,17 @@ test "sm3 reentry" {
   let string = b"abcd"
   let ctx = SM3::new()
   ctx.update(string)
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="82ec580fe6d36ae4f81cae3c73f4a5b3b5a09c943172dc9053c69fd8e18dca1e",
   )
   ctx.update(string)
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="b58b85b795b34879c354428f7c78cd1486c4ef25ea4c5d68e611ff41c15731ef",
   )
   ctx.update(string)
-  inspect(
+  @debug.debug_inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="fd959b2560dadd0c0839144be6090cb665915156179c1fa6dc00292da7a2b9c2",
   )

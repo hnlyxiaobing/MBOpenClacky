@@ -21,7 +21,7 @@ async test "main" {
 
   let result = try? main_prog(println)
   log.write_string(@debug.to_string(result))
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|client 0 sent: ping

@@ -14,7 +14,7 @@
 
 ///|
 async test "resolve mooncakes.io" {
-  inspect(
+  @debug.debug_inspect(
     @socket.Addr::resolve("mooncakes.io", port=443),
     content="54.188.190.230:443",
   )
@@ -33,7 +33,7 @@ async test "resolve cancel" {
     task.cancel()
     log <+ "host resolution cancelled\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|host resolution cancelled
@@ -50,19 +50,19 @@ async test "resolve failure" {
 
 ///|
 async test "resolve preference" {
-  inspect(
+  @debug.debug_inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=FavorV4),
     content="127.0.0.1:80",
   )
-  inspect(
+  @debug.debug_inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=OnlyV4),
     content="127.0.0.1:80",
   )
-  inspect(
+  @debug.debug_inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=FavorV6),
     content="[::1]:80",
   )
-  inspect(
+  @debug.debug_inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=OnlyV6),
     content="[::1]:80",
   )

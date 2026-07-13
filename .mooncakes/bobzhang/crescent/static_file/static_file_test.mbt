@@ -76,29 +76,29 @@ async fn try_remove(path : String) -> Unit noraise {
 test "get_type returns correct MIME types for common extensions" {
   let provider = @static_file.StaticFileProvider(path=".")
   // Text types
-  assert_eq(provider.get_type("html"), Some("text/html; charset=utf-8"))
-  assert_eq(provider.get_type("htm"), Some("text/html; charset=utf-8"))
-  assert_eq(provider.get_type("css"), Some("text/css; charset=utf-8"))
-  assert_eq(
+  @debug.assert_eq(provider.get_type("html"), Some("text/html; charset=utf-8"))
+  @debug.assert_eq(provider.get_type("htm"), Some("text/html; charset=utf-8"))
+  @debug.assert_eq(provider.get_type("css"), Some("text/css; charset=utf-8"))
+  @debug.assert_eq(
     provider.get_type("js"),
     Some("application/javascript; charset=utf-8"),
   )
-  assert_eq(provider.get_type("json"), Some("application/json; charset=utf-8"))
-  assert_eq(provider.get_type("txt"), Some("text/plain; charset=utf-8"))
+  @debug.assert_eq(provider.get_type("json"), Some("application/json; charset=utf-8"))
+  @debug.assert_eq(provider.get_type("txt"), Some("text/plain; charset=utf-8"))
   // Images
-  assert_eq(provider.get_type("png"), Some("image/png"))
-  assert_eq(provider.get_type("jpg"), Some("image/jpeg"))
-  assert_eq(provider.get_type("jpeg"), Some("image/jpeg"))
-  assert_eq(provider.get_type("svg"), Some("image/svg+xml"))
-  assert_eq(provider.get_type("webp"), Some("image/webp"))
+  @debug.assert_eq(provider.get_type("png"), Some("image/png"))
+  @debug.assert_eq(provider.get_type("jpg"), Some("image/jpeg"))
+  @debug.assert_eq(provider.get_type("jpeg"), Some("image/jpeg"))
+  @debug.assert_eq(provider.get_type("svg"), Some("image/svg+xml"))
+  @debug.assert_eq(provider.get_type("webp"), Some("image/webp"))
   // Fonts
-  assert_eq(provider.get_type("woff2"), Some("font/woff2"))
+  @debug.assert_eq(provider.get_type("woff2"), Some("font/woff2"))
   // Application
-  assert_eq(provider.get_type("wasm"), Some("application/wasm"))
-  assert_eq(provider.get_type("pdf"), Some("application/pdf"))
+  @debug.assert_eq(provider.get_type("wasm"), Some("application/wasm"))
+  @debug.assert_eq(provider.get_type("pdf"), Some("application/pdf"))
   // Unknown
-  assert_eq(provider.get_type("xyz"), None)
-  assert_eq(provider.get_type(""), None)
+  @debug.assert_eq(provider.get_type("xyz"), None)
+  @debug.assert_eq(provider.get_type(""), None)
 }
 
 ///|
@@ -127,7 +127,7 @@ async test "static_file provider exposes file metadata" {
   let provider = @static_file.StaticFileProvider(path="static_file/testdata")
   match provider.get_meta("hello.txt") {
     Some(meta) => {
-      assert_eq(meta.size, Some(16L))
+      @debug.assert_eq(meta.size, Some(16L))
       // Path is now canonicalized (absolute), so check suffix
       match meta.path {
         Some(path) =>
@@ -153,15 +153,15 @@ async test "static_file serves files and directory index" {
     let (file_response, file_body) = @http.get(
       localhost_url(port, "/assets/hello.txt"),
     )
-    assert_eq(file_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(file_response.code, 200)
+    @debug.assert_eq(
       file_body.binary(),
       @fs.read_file("static_file/testdata/hello.txt").binary(),
     )
 
     let (index_response, index_body) = @http.get(localhost_url(port, "/assets"))
-    assert_eq(index_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(index_response.code, 200)
+    @debug.assert_eq(
       index_body.binary(),
       @fs.read_file("static_file/testdata/index.html").binary(),
     )
@@ -182,8 +182,8 @@ async test "static_file serves head and validates etags" {
     let (get_response, get_body) = @http.get(
       localhost_url(port, "/assets/hello.txt"),
     )
-    assert_eq(get_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(get_response.code, 200)
+    @debug.assert_eq(
       get_body.binary(),
       @fs.read_file("static_file/testdata/hello.txt").binary(),
     )
@@ -201,11 +201,11 @@ async test "static_file serves head and validates etags" {
       Head,
       "/assets/hello.txt",
     )
-    assert_eq(head_response.code, 200)
-    assert_eq(head_body, b"")
-    assert_eq(head_response.headers.get("etag"), Some(etag))
-    assert_eq(head_response.headers.get("last-modified"), Some(last_modified))
-    assert_eq(head_response.headers.get("content-length"), Some("16"))
+    @debug.assert_eq(head_response.code, 200)
+    @debug.assert_eq(head_body, b"")
+    @debug.assert_eq(head_response.headers.get("etag"), Some(etag))
+    @debug.assert_eq(head_response.headers.get("last-modified"), Some(last_modified))
+    @debug.assert_eq(head_response.headers.get("content-length"), Some("16"))
 
     let (cached_response, cached_body) = issue_request(
       port,
@@ -213,10 +213,10 @@ async test "static_file serves head and validates etags" {
       "/assets/hello.txt",
       headers={ "If-None-Match": etag },
     )
-    assert_eq(cached_response.code, 304)
-    assert_eq(cached_body, b"")
-    assert_eq(cached_response.headers.get("etag"), Some(etag))
-    assert_eq(cached_response.headers.get("last-modified"), Some(last_modified))
+    @debug.assert_eq(cached_response.code, 304)
+    @debug.assert_eq(cached_body, b"")
+    @debug.assert_eq(cached_response.headers.get("etag"), Some(etag))
+    @debug.assert_eq(cached_response.headers.get("last-modified"), Some(last_modified))
 
     let weak_etag = "W/\{etag}"
     let (weak_response, weak_body) = issue_request(
@@ -225,8 +225,8 @@ async test "static_file serves head and validates etags" {
       "/assets/hello.txt",
       headers={ "If-None-Match": weak_etag },
     )
-    assert_eq(weak_response.code, 304)
-    assert_eq(weak_body, b"")
+    @debug.assert_eq(weak_response.code, 304)
+    @debug.assert_eq(weak_body, b"")
 
     let (multi_response, multi_body) = issue_request(
       port,
@@ -234,8 +234,8 @@ async test "static_file serves head and validates etags" {
       "/assets/hello.txt",
       headers={ "If-None-Match": "\"miss\", \{etag}" },
     )
-    assert_eq(multi_response.code, 304)
-    assert_eq(multi_body, b"")
+    @debug.assert_eq(multi_response.code, 304)
+    @debug.assert_eq(multi_body, b"")
 
     let (ims_response, ims_body) = issue_request(
       port,
@@ -243,10 +243,10 @@ async test "static_file serves head and validates etags" {
       "/assets/hello.txt",
       headers={ "If-Modified-Since": last_modified },
     )
-    assert_eq(ims_response.code, 304)
-    assert_eq(ims_body, b"")
-    assert_eq(ims_response.headers.get("etag"), Some(etag))
-    assert_eq(ims_response.headers.get("last-modified"), Some(last_modified))
+    @debug.assert_eq(ims_response.code, 304)
+    @debug.assert_eq(ims_body, b"")
+    @debug.assert_eq(ims_response.headers.get("etag"), Some(etag))
+    @debug.assert_eq(ims_response.headers.get("last-modified"), Some(last_modified))
 
     let (stale_response, stale_body) = issue_request(
       port,
@@ -254,8 +254,8 @@ async test "static_file serves head and validates etags" {
       "/assets/hello.txt",
       headers={ "If-Modified-Since": "Thu, 01 Jan 1970 00:00:00 GMT" },
     )
-    assert_eq(stale_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(stale_response.code, 200)
+    @debug.assert_eq(
       stale_body,
       @fs.read_file("static_file/testdata/hello.txt").binary(),
     )
@@ -269,8 +269,8 @@ async test "static_file serves head and validates etags" {
         "If-Modified-Since": last_modified,
       },
     )
-    assert_eq(precedence_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(precedence_response.code, 200)
+    @debug.assert_eq(
       precedence_body,
       @fs.read_file("static_file/testdata/hello.txt").binary(),
     )
@@ -293,8 +293,8 @@ async test "static_file respects grouped mounts and blocks traversal" {
     let (file_response, file_body) = @http.get(
       localhost_url(port, "/api/assets/hello.txt"),
     )
-    assert_eq(file_response.code, 200)
-    assert_eq(
+    @debug.assert_eq(file_response.code, 200)
+    @debug.assert_eq(
       file_body.binary(),
       @fs.read_file("static_file/testdata/hello.txt").binary(),
     )
@@ -302,14 +302,14 @@ async test "static_file respects grouped mounts and blocks traversal" {
     let (missing_response, missing_body) = @http.get(
       localhost_url(port, "/api/assets/missing.txt"),
     )
-    assert_eq(missing_response.code, 404)
-    assert_eq(missing_body.text().trim(chars="\r\n"), "Not Found")
+    @debug.assert_eq(missing_response.code, 404)
+    @debug.assert_eq(missing_body.text().trim(chars="\r\n"), "Not Found")
 
     let (traversal_response, traversal_body) = @http.get(
       localhost_url(port, "/api/assets/../README.md"),
     )
-    assert_eq(traversal_response.code, 404)
-    assert_eq(traversal_body.text().trim(chars="\r\n"), "Not Found")
+    @debug.assert_eq(traversal_response.code, 404)
+    @debug.assert_eq(traversal_body.text().trim(chars="\r\n"), "Not Found")
   }) catch {
     SocketBindUnavailable => return
     err => raise err

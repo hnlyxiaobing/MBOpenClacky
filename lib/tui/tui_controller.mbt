@@ -16,8 +16,6 @@
 let esc_timeout_ms : Int = 50
 
 ///|
-/// Spinner tick interval (ms).
-let spinner_tick_ms : Int = 200
 
 ///|
 /// Controller for the inline TUI application.
@@ -59,7 +57,7 @@ pub fn TuiController::new(
   let screen = ScreenBuffer::new(tty)
   let output = OutputBuffer::new()
   let layout = LayoutManager::new(screen, output, status_h=1, input_h=4)
-  let state = Ref::new(TuiState::from_agent(agent))
+  let state = Ref(TuiState::from_agent(agent))
   let hooks = AgentHookHandler::new(state, agent=Some(agent))
   {
     tty,
@@ -143,7 +141,7 @@ async fn TuiController::redraw_todo(self : TuiController) -> Unit {
   if todo_lines.length() == 0 {
     return
   }
-  let (w, h) = self.layout.screen_size()
+  let (_, h) = self.layout.screen_size()
   let input_h = 4
   // Render todo lines just above the input area
   let todo_bottom = h - input_h
@@ -164,8 +162,6 @@ async fn TuiController::redraw_todo(self : TuiController) -> Unit {
 async fn TuiController::redraw_input(self : TuiController) -> Unit {
   let input_lines = self.input.render_lines()
   let (w, h) = self.layout.screen_size()
-  let input_top = h - self.layout.status_h
-  // input_h from layout — recompute
   let input_h = 4
   let top = h - input_h
   for i = 0; i < input_h; i = i + 1 {
@@ -204,7 +200,7 @@ async fn TuiController::redraw_input(self : TuiController) -> Unit {
 ///|
 /// Place the terminal cursor at the input editor position.
 async fn TuiController::place_cursor(self : TuiController) -> Unit {
-  let (w, h) = self.layout.screen_size()
+  let (_, h) = self.layout.screen_size()
   let input_h = 4
   let top = h - input_h
   let (cursor_line, cursor_col) = self.input.cursor_display_pos()

@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/debug",
   "bobzhang/crescent",
   "bobzhang/crescent/core",
   "moonbitlang/core/json",

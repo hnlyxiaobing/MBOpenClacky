@@ -2,18 +2,18 @@
 /// White-box tests for MessageHistory.
 test "MessageHistory new and empty" {
   let h = MessageHistory::new()
-  inspect(h.is_empty(), content="true")
-  inspect(h.size(), content="0")
+  @debug.debug_inspect(h.is_empty(), content="true")
+  @debug.debug_inspect(h.size(), content="0")
 }
 
 ///|
 test "MessageHistory append and size" {
   let h = MessageHistory::new()
   h.append(Message::user("hello"))
-  inspect(h.size(), content="1")
-  inspect(h.is_empty(), content="false")
+  @debug.debug_inspect(h.size(), content="1")
+  @debug.debug_inspect(h.is_empty(), content="false")
   h.append(Message::assistant("hi"))
-  inspect(h.size(), content="2")
+  @debug.debug_inspect(h.size(), content="2")
 }
 
 ///|
@@ -38,15 +38,15 @@ test "MessageHistory to_api strips internal fields" {
   let api_msgs = h.to_api()
   let api_msg = api_msgs[0]
   // Core fields preserved
-  inspect(api_msg.role == User, content="true")
+  @debug.debug_inspect(api_msg.role == User, content="true")
   // Internal fields stripped
-  inspect(api_msg.task_id, content="None")
-  inspect(api_msg.created_at, content="None")
-  inspect(api_msg.system_injected, content="None")
-  inspect(api_msg.subagent_instructions, content="None")
-  inspect(api_msg.subagent_result, content="None")
-  inspect(api_msg.compressed_summary, content="None")
-  inspect(api_msg.transient, content="None")
+  @debug.debug_inspect(api_msg.task_id, content="None")
+  @debug.debug_inspect(api_msg.created_at, content="None")
+  @debug.debug_inspect(api_msg.system_injected, content="None")
+  @debug.debug_inspect(api_msg.subagent_instructions, content="None")
+  @debug.debug_inspect(api_msg.subagent_result, content="None")
+  @debug.debug_inspect(api_msg.compressed_summary, content="None")
+  @debug.debug_inspect(api_msg.transient, content="None")
 }
 
 ///|
@@ -75,17 +75,17 @@ test "MessageHistory real_user_messages" {
   // Another real user message
   h.append(Message::user("another real"))
   let real = h.real_user_messages()
-  inspect(real.length(), content="2")
+  @debug.debug_inspect(real.length(), content="2")
 }
 
 ///|
 test "MessageHistory pending_tool_calls" {
   let h = MessageHistory::new()
   // No messages - no pending
-  inspect(h.pending_tool_calls(), content="false")
+  @debug.debug_inspect(h.pending_tool_calls(), content="false")
   // Add assistant without tool_calls
   h.append(Message::assistant("no tools"))
-  inspect(h.pending_tool_calls(), content="false")
+  @debug.debug_inspect(h.pending_tool_calls(), content="false")
   // Add assistant with tool_calls
   let tc = ToolCall::new("call-1", "search", "{}")
   let assistant_with_tools : Message = {
@@ -105,10 +105,10 @@ test "MessageHistory pending_tool_calls" {
     transient: None,
   }
   let h2 = MessageHistory::from_messages([assistant_with_tools])
-  inspect(h2.pending_tool_calls(), content="true")
+  @debug.debug_inspect(h2.pending_tool_calls(), content="true")
   // After adding tool result, no longer pending
   h2.append(Message::tool_result("call-1", "search", "result"))
-  inspect(h2.pending_tool_calls(), content="false")
+  @debug.debug_inspect(h2.pending_tool_calls(), content="false")
 }
 
 ///|
@@ -118,19 +118,19 @@ test "MessageHistory estimate_tokens" {
   h.append(Message::user("hello"))
   let tokens = h.estimate_tokens()
   // 4 overhead + ceil(5/4)=2 = 6
-  inspect(tokens, content="6")
+  @debug.debug_inspect(tokens, content="6")
 }
 
 ///|
 test "MessageHistory last_real_user_index" {
   let h = MessageHistory::new()
   // Empty history
-  inspect(h.last_real_user_index(), content="None")
+  @debug.debug_inspect(h.last_real_user_index(), content="None")
   h.append(Message::system("sys"))
   h.append(Message::user("first"))
   h.append(Message::assistant("reply"))
   h.append(Message::user("second"))
-  inspect(h.last_real_user_index(), content="Some(3)")
+  @debug.debug_inspect(h.last_real_user_index(), content="Some(3)")
 }
 
 ///|
@@ -153,22 +153,22 @@ test "MessageHistory drop_dangling_tool_calls" {
     transient: None,
   }
   let h = MessageHistory::from_messages([Message::user("hi"), assistant_msg])
-  inspect(h.size(), content="2")
+  @debug.debug_inspect(h.size(), content="2")
   // Appending a user message should drop the dangling assistant
   h.append(Message::user("new question"))
   // Dangling assistant removed, user added => size = 2
-  inspect(h.size(), content="2")
+  @debug.debug_inspect(h.size(), content="2")
 }
 
 ///|
 test "MessageHistory pop_last" {
   let h = MessageHistory::new()
-  inspect(h.pop_last() is None, content="true")
+  @debug.debug_inspect(h.pop_last() is None, content="true")
   h.append(Message::user("one"))
   h.append(Message::user("two"))
   let popped = h.pop_last()
-  inspect(popped is Some(_), content="true")
-  inspect(h.size(), content="1")
+  @debug.debug_inspect(popped is Some(_), content="true")
+  @debug.debug_inspect(h.size(), content="1")
 }
 
 ///|
@@ -179,7 +179,7 @@ test "MessageHistory truncate_from" {
   h.append(Message::user("c"))
   h.append(Message::assistant("d"))
   h.truncate_from(2)
-  inspect(h.size(), content="2")
+  @debug.debug_inspect(h.size(), content="2")
 }
 
 ///|
@@ -188,16 +188,16 @@ test "MessageHistory replace_system_prompt" {
   h.append(Message::system("old prompt"))
   h.append(Message::user("hi"))
   h.replace_system_prompt("new prompt")
-  inspect(h.size(), content="2")
+  @debug.debug_inspect(h.size(), content="2")
   let msgs = h.all()
   let is_new_prompt = msgs[0].content == MessageContent::Text("new prompt")
-  inspect(is_new_prompt, content="true")
+  @debug.debug_inspect(is_new_prompt, content="true")
 }
 
 ///|
 test "MessageHistory from_messages" {
   let msgs = [Message::user("a"), Message::assistant("b")]
   let h = MessageHistory::from_messages(msgs)
-  inspect(h.size(), content="2")
-  inspect(h.is_empty(), content="false")
+  @debug.debug_inspect(h.size(), content="2")
+  @debug.debug_inspect(h.is_empty(), content="false")
 }

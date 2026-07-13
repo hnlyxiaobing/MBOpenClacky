@@ -2,11 +2,11 @@
 
 ///|
 fn make_media_event(
-  method : @crescent.HttpMethod,
+  http_method : @crescent.HttpMethod,
   url : String,
 ) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::http_request(method, url, {}, raw_body=b""),
+    req: @crescent.HttpRequest::http_request(http_method, url, {}, raw_body=b""),
     res: @crescent.HttpResponse::http_response(status_code=OK),
     params: {},
   }
@@ -23,7 +23,7 @@ test "media image returns 501 stub" {
     make_media_server_ref(),
     make_media_event(Post, "/api/media/image"),
   )
-  assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 501)
 }
 
 ///|
@@ -32,7 +32,7 @@ test "media video returns 501 stub" {
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video"),
   )
-  assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 501)
 }
 
 ///|
@@ -41,7 +41,7 @@ test "media speech returns 501 stub" {
     make_media_server_ref(),
     make_media_event(Post, "/api/media/audio/speech"),
   )
-  assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 501)
 }
 
 ///|
@@ -50,7 +50,7 @@ test "media transcription returns 501 stub" {
     make_media_server_ref(),
     make_media_event(Post, "/api/media/audio/transcriptions"),
   )
-  assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 501)
 }
 
 ///|
@@ -59,5 +59,5 @@ test "media video understand returns 501 stub" {
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video/understand"),
   )
-  assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 501)
 }

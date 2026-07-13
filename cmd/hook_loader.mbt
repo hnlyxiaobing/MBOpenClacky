@@ -5,7 +5,7 @@ pub(all) struct HookConfig {
   event : String
   command : String
   enabled : Bool
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// Context passed to hooks when they execute.
@@ -13,7 +13,7 @@ pub(all) struct HookContext {
   session_id : String
   message : String?
   working_dir : String
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// Load hook configurations from a directory.

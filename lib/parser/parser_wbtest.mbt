@@ -6,34 +6,34 @@
 
 ///|
 test "detect_format_pdf" {
-  assert_eq(detect_format("document.pdf"), Pdf)
-  assert_eq(detect_format("/path/to/file.PDF"), Pdf)
-  assert_eq(detect_format("C:\\docs\\report.Pdf"), Pdf)
+  @debug.assert_eq(detect_format("document.pdf"), Pdf)
+  @debug.assert_eq(detect_format("/path/to/file.PDF"), Pdf)
+  @debug.assert_eq(detect_format("C:\\docs\\report.Pdf"), Pdf)
 }
 
 ///|
 test "detect_format_docx" {
-  assert_eq(detect_format("report.docx"), Docx)
-  assert_eq(detect_format("/tmp/my_file.DOCX"), Docx)
+  @debug.assert_eq(detect_format("report.docx"), Docx)
+  @debug.assert_eq(detect_format("/tmp/my_file.DOCX"), Docx)
 }
 
 ///|
 test "detect_format_pptx" {
-  assert_eq(detect_format("slides.pptx"), Pptx)
-  assert_eq(detect_format("presentation.PPTX"), Pptx)
+  @debug.assert_eq(detect_format("slides.pptx"), Pptx)
+  @debug.assert_eq(detect_format("presentation.PPTX"), Pptx)
 }
 
 ///|
 test "detect_format_xlsx" {
-  assert_eq(detect_format("data.xlsx"), Xlsx)
-  assert_eq(detect_format("/home/user/sheet.XLSX"), Xlsx)
+  @debug.assert_eq(detect_format("data.xlsx"), Xlsx)
+  @debug.assert_eq(detect_format("/home/user/sheet.XLSX"), Xlsx)
 }
 
 ///|
 test "detect_format_unknown" {
   let fmt = detect_format("readme.txt")
   match fmt {
-    Unknown(ext) => assert_eq(ext, "txt")
+    Unknown(ext) => @debug.assert_eq(ext, "txt")
     _ => fail("expected Unknown")
   }
 }
@@ -63,8 +63,8 @@ test "parse_result_success" {
   }
   let result = ParseResult::success("Hello world", metadata, ["page1", "page2"])
   assert_true(result.is_success)
-  assert_eq(result.content, "Hello world")
-  assert_eq(result.sections.length(), 2)
+  @debug.assert_eq(result.content, "Hello world")
+  @debug.assert_eq(result.sections.length(), 2)
   assert_true(result.error is None)
 }
 
@@ -72,8 +72,8 @@ test "parse_result_success" {
 test "parse_result_error" {
   let result = ParseResult::error("File not found", Pdf)
   assert_false(result.is_success)
-  assert_eq(result.content, "")
-  assert_eq(result.sections.length(), 0)
+  @debug.assert_eq(result.content, "")
+  @debug.assert_eq(result.sections.length(), 0)
   assert_true(result.error == Some("File not found"))
   assert_true(result.metadata.format == Pdf)
 }
@@ -85,14 +85,14 @@ test "parse_result_error" {
 ///|
 test "pdf_parser_new" {
   let parser = PdfParser::new()
-  assert_eq(parser.command, "pdftotext")
+  @debug.assert_eq(parser.command, "pdftotext")
   assert_true(parser.max_pages is None)
 }
 
 ///|
 test "pdf_parser_with_command" {
   let parser = PdfParser::with_command("/usr/local/bin/pdftotext")
-  assert_eq(parser.command, "/usr/local/bin/pdftotext")
+  @debug.assert_eq(parser.command, "/usr/local/bin/pdftotext")
 }
 
 ///|
@@ -105,41 +105,41 @@ test "pdf_parser_with_max_pages" {
 test "pdf_split_by_pages_single" {
   let text = "Page one content"
   let pages = split_by_pages(text)
-  assert_eq(pages.length(), 1)
-  assert_eq(pages[0], "Page one content")
+  @debug.assert_eq(pages.length(), 1)
+  @debug.assert_eq(pages[0], "Page one content")
 }
 
 ///|
 test "pdf_split_by_pages_multiple" {
   let text = "Page 1\u000cPage 2\u000cPage 3"
   let pages = split_by_pages(text)
-  assert_eq(pages.length(), 3)
-  assert_eq(pages[0], "Page 1")
-  assert_eq(pages[1], "Page 2")
-  assert_eq(pages[2], "Page 3")
+  @debug.assert_eq(pages.length(), 3)
+  @debug.assert_eq(pages[0], "Page 1")
+  @debug.assert_eq(pages[1], "Page 2")
+  @debug.assert_eq(pages[2], "Page 3")
 }
 
 ///|
 test "pdf_split_by_pages_trailing_ff" {
   let text = "Only page\u000c"
   let pages = split_by_pages(text)
-  assert_eq(pages.length(), 1)
-  assert_eq(pages[0], "Only page")
+  @debug.assert_eq(pages.length(), 1)
+  @debug.assert_eq(pages[0], "Only page")
 }
 
 ///|
 test "count_words_basic" {
-  assert_eq(count_words("hello world"), 2)
-  assert_eq(count_words("one two three four"), 4)
-  assert_eq(count_words(""), 0)
-  assert_eq(count_words("single"), 1)
+  @debug.assert_eq(count_words("hello world"), 2)
+  @debug.assert_eq(count_words("one two three four"), 4)
+  @debug.assert_eq(count_words(""), 0)
+  @debug.assert_eq(count_words("single"), 1)
 }
 
 ///|
 test "count_words_whitespace_variants" {
-  assert_eq(count_words("tab\there"), 2)
-  assert_eq(count_words("new\nline"), 2)
-  assert_eq(count_words("  spaces  around  "), 2)
+  @debug.assert_eq(count_words("tab\there"), 2)
+  @debug.assert_eq(count_words("new\nline"), 2)
+  @debug.assert_eq(count_words("  spaces  around  "), 2)
 }
 
 // ============================================================
@@ -164,24 +164,24 @@ test "docx_extract_text_from_xml_simple" {
 test "docx_extract_xml_text_basic" {
   let xml = "<root><w:t>First</w:t><w:t>Second</w:t></root>"
   let results = extract_xml_text(xml, "w:t")
-  assert_eq(results.length(), 2)
-  assert_eq(results[0], "First")
-  assert_eq(results[1], "Second")
+  @debug.assert_eq(results.length(), 2)
+  @debug.assert_eq(results[0], "First")
+  @debug.assert_eq(results[1], "Second")
 }
 
 ///|
 test "docx_extract_xml_text_empty" {
   let xml = "<root>no tags here</root>"
   let results = extract_xml_text(xml, "w:t")
-  assert_eq(results.length(), 0)
+  @debug.assert_eq(results.length(), 0)
 }
 
 ///|
 test "docx_extract_xml_text_nested" {
   let xml = "<w:t xml:space=\"preserve\">Content with attributes</w:t>"
   let results = extract_xml_text(xml, "w:t")
-  assert_eq(results.length(), 1)
-  assert_eq(results[0], "Content with attributes")
+  @debug.assert_eq(results.length(), 1)
+  @debug.assert_eq(results[0], "Content with attributes")
 }
 
 ///|
@@ -268,17 +268,17 @@ test "xlsx_parser_new" {
 test "xlsx_build_shared_strings" {
   let xml = "<sst><si><t>Hello</t></si><si><t>World</t></si><si><t>Test</t></si></sst>"
   let strings = build_shared_strings(xml)
-  assert_eq(strings.length(), 3)
-  assert_eq(strings[0], "Hello")
-  assert_eq(strings[1], "World")
-  assert_eq(strings[2], "Test")
+  @debug.assert_eq(strings.length(), 3)
+  @debug.assert_eq(strings[0], "Hello")
+  @debug.assert_eq(strings[1], "World")
+  @debug.assert_eq(strings[2], "Test")
 }
 
 ///|
 test "xlsx_build_shared_strings_empty" {
   let xml = "<sst></sst>"
   let strings = build_shared_strings(xml)
-  assert_eq(strings.length(), 0)
+  @debug.assert_eq(strings.length(), 0)
 }
 
 ///|
@@ -307,7 +307,7 @@ test "xlsx_format_as_table_without_headers" {
 test "xlsx_format_as_table_empty" {
   let rows : Array[Array[String]] = []
   let table = format_as_table(rows, true)
-  assert_eq(table, "")
+  @debug.assert_eq(table, "")
 }
 
 // ============================================================
@@ -316,15 +316,15 @@ test "xlsx_format_as_table_empty" {
 
 ///|
 test "index_of_from_basic" {
-  assert_eq(index_of_from("hello world", "world", 0), 6)
-  assert_eq(index_of_from("hello world", "hello", 0), 0)
-  assert_eq(index_of_from("hello world", "xyz", 0), -1)
+  @debug.assert_eq(index_of_from("hello world", "world", 0), 6)
+  @debug.assert_eq(index_of_from("hello world", "hello", 0), 0)
+  @debug.assert_eq(index_of_from("hello world", "xyz", 0), -1)
 }
 
 ///|
 test "index_of_from_offset" {
-  assert_eq(index_of_from("abcabc", "abc", 1), 3)
-  assert_eq(index_of_from("abcabc", "abc", 4), -1)
+  @debug.assert_eq(index_of_from("abcabc", "abc", 1), 3)
+  @debug.assert_eq(index_of_from("abcabc", "abc", 4), -1)
 }
 
 ///|
@@ -332,7 +332,13 @@ test "parse_error_raise_catch" {
   try {
     raise ParseError("invalid format")
   } catch {
-    ParseError(msg) => inspect(msg, content="invalid format")
+    ParseError(msg) =>
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"invalid format"
+        ),
+      )
   }
 }
 
@@ -342,16 +348,16 @@ test "parse_error_raise_catch" {
 
 ///|
 test "detect_format_doc" {
-  assert_eq(detect_format("document.doc"), Doc)
-  assert_eq(detect_format("/path/to/file.DOC"), Doc)
-  assert_eq(detect_format("C:\\docs\\report.Doc"), Doc)
+  @debug.assert_eq(detect_format("document.doc"), Doc)
+  @debug.assert_eq(detect_format("/path/to/file.DOC"), Doc)
+  @debug.assert_eq(detect_format("C:\\docs\\report.Doc"), Doc)
 }
 
 ///|
 test "detect_format_doc_vs_docx" {
   // .docx must not be detected as .doc
-  assert_eq(detect_format("file.docx"), Docx)
-  assert_eq(detect_format("file.doc"), Doc)
+  @debug.assert_eq(detect_format("file.docx"), Docx)
+  @debug.assert_eq(detect_format("file.doc"), Doc)
 }
 
 ///|
@@ -369,9 +375,9 @@ test "is_doc_format_negative" {
 
 ///|
 test "detect_doc_subformat_doc" {
-  assert_eq(detect_doc_subformat("report.doc"), "doc")
-  assert_eq(detect_doc_subformat("template.dot"), "dot")
-  assert_eq(detect_doc_subformat("readme.rtf"), "rtf")
+  @debug.assert_eq(detect_doc_subformat("report.doc"), "doc")
+  @debug.assert_eq(detect_doc_subformat("template.dot"), "dot")
+  @debug.assert_eq(detect_doc_subformat("readme.rtf"), "rtf")
 }
 
 // ============================================================
@@ -380,16 +386,16 @@ test "detect_doc_subformat_doc" {
 
 ///|
 test "detect_format_wps" {
-  assert_eq(detect_format("document.wps"), Wps)
-  assert_eq(detect_format("spreadsheet.et"), Wps)
-  assert_eq(detect_format("presentation.dps"), Wps)
+  @debug.assert_eq(detect_format("document.wps"), Wps)
+  @debug.assert_eq(detect_format("spreadsheet.et"), Wps)
+  @debug.assert_eq(detect_format("presentation.dps"), Wps)
 }
 
 ///|
 test "detect_format_wps_case_insensitive" {
-  assert_eq(detect_format("DOCUMENT.WPS"), Wps)
-  assert_eq(detect_format("sheet.ET"), Wps)
-  assert_eq(detect_format("slides.DPS"), Wps)
+  @debug.assert_eq(detect_format("DOCUMENT.WPS"), Wps)
+  @debug.assert_eq(detect_format("sheet.ET"), Wps)
+  @debug.assert_eq(detect_format("slides.DPS"), Wps)
 }
 
 ///|
@@ -409,24 +415,24 @@ test "is_wps_format_negative" {
 
 ///|
 test "wps_format_name_values" {
-  assert_eq(wps_format_name("doc.wps"), "wps")
-  assert_eq(wps_format_name("sheet.et"), "et")
-  assert_eq(wps_format_name("slides.dps"), "dps")
-  assert_eq(wps_format_name("file.txt"), "unknown")
+  @debug.assert_eq(wps_format_name("doc.wps"), "wps")
+  @debug.assert_eq(wps_format_name("sheet.et"), "et")
+  @debug.assert_eq(wps_format_name("slides.dps"), "dps")
+  @debug.assert_eq(wps_format_name("file.txt"), "unknown")
 }
 
 ///|
 test "detect_wps_format_valid" {
-  assert_eq(detect_wps_format("file.wps"), Wps)
-  assert_eq(detect_wps_format("file.et"), Wps)
-  assert_eq(detect_wps_format("file.dps"), Wps)
+  @debug.assert_eq(detect_wps_format("file.wps"), Wps)
+  @debug.assert_eq(detect_wps_format("file.et"), Wps)
+  @debug.assert_eq(detect_wps_format("file.dps"), Wps)
 }
 
 ///|
 test "detect_wps_format_invalid" {
   let fmt = detect_wps_format("file.txt")
   match fmt {
-    Unknown(ext) => assert_eq(ext, "txt")
+    Unknown(ext) => @debug.assert_eq(ext, "txt")
     _ => fail("expected Unknown for .txt")
   }
 }
@@ -610,7 +616,7 @@ test "parser_manager_parse_unknown" {
 ///|
 test "parser_manager_supported_extensions" {
   let exts = supported_extensions()
-  assert_eq(exts.length(), 8)
+  @debug.assert_eq(exts.length(), 8)
   assert_true(exts.contains(".pdf"))
   assert_true(exts.contains(".docx"))
   assert_true(exts.contains(".doc"))
@@ -622,7 +628,7 @@ test "parser_manager_supported_extensions" {
 ///|
 test "parser_manager_supported_formats" {
   let fmts = supported_formats()
-  assert_eq(fmts.length(), 6)
+  @debug.assert_eq(fmts.length(), 6)
   assert_true(fmts.contains(Pdf))
   assert_true(fmts.contains(Docx))
   assert_true(fmts.contains(Pptx))

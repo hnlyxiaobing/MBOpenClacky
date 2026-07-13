@@ -7,82 +7,82 @@
 
 ///|
 test "mime: .html returns text/html" {
-  assert_eq(get_mime_type("page.html"), "text/html")
+  @debug.assert_eq(get_mime_type("page.html"), "text/html")
 }
 
 ///|
 test "mime: .htm returns text/html" {
-  assert_eq(get_mime_type("page.htm"), "text/html")
+  @debug.assert_eq(get_mime_type("page.htm"), "text/html")
 }
 
 ///|
 test "mime: .css returns text/css" {
-  assert_eq(get_mime_type("style.css"), "text/css")
+  @debug.assert_eq(get_mime_type("style.css"), "text/css")
 }
 
 ///|
 test "mime: .js returns application/javascript" {
-  assert_eq(get_mime_type("app.js"), "application/javascript")
+  @debug.assert_eq(get_mime_type("app.js"), "application/javascript")
 }
 
 ///|
 test "mime: .json returns application/json" {
-  assert_eq(get_mime_type("data.json"), "application/json")
+  @debug.assert_eq(get_mime_type("data.json"), "application/json")
 }
 
 ///|
 test "mime: .png returns image/png" {
-  assert_eq(get_mime_type("logo.png"), "image/png")
+  @debug.assert_eq(get_mime_type("logo.png"), "image/png")
 }
 
 ///|
 test "mime: .svg returns image/svg+xml" {
-  assert_eq(get_mime_type("icon.svg"), "image/svg+xml")
+  @debug.assert_eq(get_mime_type("icon.svg"), "image/svg+xml")
 }
 
 ///|
 test "mime: .jpg returns image/jpeg" {
-  assert_eq(get_mime_type("photo.jpg"), "image/jpeg")
+  @debug.assert_eq(get_mime_type("photo.jpg"), "image/jpeg")
 }
 
 ///|
 test "mime: .jpeg returns image/jpeg" {
-  assert_eq(get_mime_type("photo.jpeg"), "image/jpeg")
+  @debug.assert_eq(get_mime_type("photo.jpeg"), "image/jpeg")
 }
 
 ///|
 test "mime: .gif returns image/gif" {
-  assert_eq(get_mime_type("anim.gif"), "image/gif")
+  @debug.assert_eq(get_mime_type("anim.gif"), "image/gif")
 }
 
 ///|
 test "mime: .ico returns image/x-icon" {
-  assert_eq(get_mime_type("favicon.ico"), "image/x-icon")
+  @debug.assert_eq(get_mime_type("favicon.ico"), "image/x-icon")
 }
 
 ///|
 test "mime: .woff returns font/woff2" {
-  assert_eq(get_mime_type("font.woff"), "font/woff2")
+  @debug.assert_eq(get_mime_type("font.woff"), "font/woff2")
 }
 
 ///|
 test "mime: .woff2 returns font/woff2" {
-  assert_eq(get_mime_type("font.woff2"), "font/woff2")
+  @debug.assert_eq(get_mime_type("font.woff2"), "font/woff2")
 }
 
 ///|
 test "mime: unknown extension returns octet-stream" {
-  assert_eq(get_mime_type("file.xyz"), "application/octet-stream")
+  @debug.assert_eq(get_mime_type("file.xyz"), "application/octet-stream")
 }
 
 ///|
 test "mime: no extension returns octet-stream" {
-  assert_eq(get_mime_type("Makefile"), "application/octet-stream")
+  @debug.assert_eq(get_mime_type("Makefile"), "application/octet-stream")
 }
 
 ///|
 test "mime: full path with extension works" {
-  assert_eq(get_mime_type("web/css/style.css"), "text/css")
+  @debug.assert_eq(get_mime_type("web/css/style.css"), "text/css")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -157,16 +157,16 @@ test "is_static_asset: route-like path" {
 test "serve: root '/' returns index.html with text/html" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
 }
 
 ///|
 test "serve: empty path returns index.html with text/html" {
   let server = StaticServer::new("./web")
   let resp = server.serve("")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
 }
 
 ///|
@@ -174,8 +174,8 @@ test "serve: custom index_file" {
   let server = StaticServer::new("./web", index_file="main.html")
   // Root path should resolve to custom index file (main.html)
   let resp = server.serve("/")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -186,27 +186,27 @@ test "serve: custom index_file" {
 test "serve: css file returns text/css" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/css/style.css")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/css")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/css")
 }
 
 ///|
 test "serve: js file returns application/javascript" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/js/app.js")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "application/javascript")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "application/javascript")
 }
 
 ///|
 test "serve: js file includes cache header" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/js/app.js")
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   assert_true(resp.headers.length() > 0)
   // Verify Cache-Control header is set for static assets
   let cache_header = resp.headers[0]
-  assert_eq(cache_header.0, "Cache-Control")
+  @debug.assert_eq(cache_header.0, "Cache-Control")
   assert_true(cache_header.1.contains("public"))
 }
 
@@ -218,8 +218,8 @@ test "serve: js file includes cache header" {
 test "spa_fallback: non-asset path returns index.html content" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/dashboard")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
   // SPA fallback body contains app div
   assert_true(resp.body.contains("app"))
 }
@@ -228,22 +228,22 @@ test "spa_fallback: non-asset path returns index.html content" {
 test "spa_fallback: nested route returns html" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/settings/advanced")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
 }
 
 ///|
 test "spa_fallback: includes X-SPA-Fallback header" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/some/route")
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   // Find the X-SPA-Fallback header
   let mut found = false
   let mut i = 0
   while i < resp.headers.length() {
     if resp.headers[i].0 == "X-SPA-Fallback" {
       found = true
-      assert_eq(resp.headers[i].1, "index.html")
+      @debug.assert_eq(resp.headers[i].1, "index.html")
     }
     i = i + 1
   }
@@ -259,7 +259,7 @@ test "spa_fallback: Cache-Control is no-cache" {
   while i < resp.headers.length() {
     if resp.headers[i].0 == "Cache-Control" {
       found = true
-      assert_eq(resp.headers[i].1, "no-cache")
+      @debug.assert_eq(resp.headers[i].1, "no-cache")
     }
     i = i + 1
   }
@@ -274,28 +274,28 @@ test "spa_fallback: Cache-Control is no-cache" {
 test "traversal: '../etc/passwd' blocked with 400" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/../../../etc/passwd")
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: simple '..' blocked" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/../secret.txt")
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: embedded '..' blocked" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/css/../../etc/shadow")
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: body contains 'Invalid path'" {
   let server = StaticServer::new("./web")
   let resp = server.serve("/../../etc/hosts")
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
   assert_true(resp.body.contains("Invalid path"))
 }
 
@@ -310,7 +310,7 @@ test "serve: non-existent asset returns 404" {
   // of truth for static assets.
   let server = StaticServer::new("./web")
   let resp = server.serve("/nonexistent.css")
-  assert_eq(resp.status, 404)
+  @debug.assert_eq(resp.status, 404)
 }
 
 ///|
@@ -318,8 +318,8 @@ test "serve: non-asset non-existent path triggers SPA fallback" {
   // Paths without known extensions trigger SPA fallback
   let server = StaticServer::new("./web")
   let resp = server.serve("/nonexistent_page")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
   assert_true(resp.body.contains("app"))
 }
 
@@ -333,16 +333,16 @@ test "serve: leading slash stripped for asset path" {
   let resp1 = server.serve("/css/style.css")
   let resp2 = server.serve("css/style.css")
   // Both should return same MIME type
-  assert_eq(resp1.content_type, resp2.content_type)
-  assert_eq(resp1.status, resp2.status)
+  @debug.assert_eq(resp1.content_type, resp2.content_type)
+  @debug.assert_eq(resp1.status, resp2.status)
 }
 
 ///|
 test "serve: path without leading slash for asset" {
   let server = StaticServer::new("./web")
   let resp = server.serve("js/app.js")
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "application/javascript")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "application/javascript")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -353,8 +353,8 @@ test "serve: path without leading slash for asset" {
 test "spa_fallback: direct call returns proper response" {
   let server = StaticServer::new("./web")
   let resp = spa_fallback(server)
-  assert_eq(resp.status, 200)
-  assert_eq(resp.content_type, "text/html")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/html")
   assert_true(resp.body.contains("<!DOCTYPE html>"))
   assert_true(resp.body.contains("<script"))
 }
@@ -368,7 +368,7 @@ test "spa_fallback: uses custom index_file in header" {
   while i < resp.headers.length() {
     if resp.headers[i].0 == "X-SPA-Fallback" {
       found = true
-      assert_eq(resp.headers[i].1, "main.html")
+      @debug.assert_eq(resp.headers[i].1, "main.html")
     }
     i = i + 1
   }

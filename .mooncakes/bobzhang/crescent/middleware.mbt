@@ -19,22 +19,22 @@ fn normalize_middleware_base_path(base_path : String) -> String {
 
 ///|
 test "normalize_middleware_base_path with empty string" {
-  inspect(normalize_middleware_base_path(""), content="")
+  @debug.debug_inspect(normalize_middleware_base_path(""), content="")
 }
 
 ///|
 test "normalize_middleware_base_path with root slash" {
-  inspect(normalize_middleware_base_path("/"), content="/")
+  @debug.debug_inspect(normalize_middleware_base_path("/"), content="/")
 }
 
 ///|
 test "normalize_middleware_base_path strips trailing slash" {
-  inspect(normalize_middleware_base_path("/api/"), content="/api")
+  @debug.debug_inspect(normalize_middleware_base_path("/api/"), content="/api")
 }
 
 ///|
 test "normalize_middleware_base_path keeps path without trailing slash" {
-  inspect(normalize_middleware_base_path("/api"), content="/api")
+  @debug.debug_inspect(normalize_middleware_base_path("/api"), content="/api")
 }
 
 ///|
@@ -113,7 +113,7 @@ async test "empty middleware list calls final handler directly" {
   let result = execute_middlewares([], event, handler)
   let buf = @buffer.new()
   result.output(buf)
-  inspect(@utf8.decode(buf.contents()), content="handler-result")
+  @debug.debug_inspect(@utf8.decode(buf.contents()), content="handler-result")
 }
 
 ///|
@@ -136,7 +136,7 @@ async test "single middleware wraps final handler" {
   }
   let middlewares : Array[(String, Middleware)] = [("", mw)]
   ignore(execute_middlewares(middlewares, event, handler))
-  inspect(
+  @debug.debug_inspect(
     order,
     content=(
       #|["mw-before", "handler", "mw-after"]
@@ -170,7 +170,7 @@ async test "multiple middlewares execute in onion model order" {
   }
   let middlewares : Array[(String, Middleware)] = [("", mw1), ("", mw2)]
   ignore(execute_middlewares(middlewares, event, handler))
-  inspect(
+  @debug.debug_inspect(
     order,
     content=(
       #|["mw1-before", "mw2-before", "handler", "mw2-after", "mw1-after"]
@@ -196,7 +196,7 @@ async test "path-scoped middleware skips non-matching request" {
   }
   let middlewares : Array[(String, Middleware)] = [("/api", mw)]
   ignore(execute_middlewares(middlewares, event, handler))
-  inspect(
+  @debug.debug_inspect(
     order,
     content=(
       #|["handler"]
@@ -222,7 +222,7 @@ async test "path-scoped middleware executes for matching request" {
   }
   let middlewares : Array[(String, Middleware)] = [("/api", mw)]
   ignore(execute_middlewares(middlewares, event, handler))
-  inspect(
+  @debug.debug_inspect(
     order,
     content=(
       #|["api-mw", "handler"]

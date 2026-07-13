@@ -25,7 +25,7 @@ test "skill name: path traversal rejected" {
 
 ///|
 test "json_str_field extracts string" {
-  assert_eq(
+  @debug.assert_eq(
     json_str_field(
       (
         #|{"name":"foo","description":"bar"}
@@ -34,7 +34,7 @@ test "json_str_field extracts string" {
     ),
     Some("foo"),
   )
-  assert_eq(
+  @debug.assert_eq(
     json_str_field(
       (
         #|{"name":123}
@@ -43,12 +43,12 @@ test "json_str_field extracts string" {
     ),
     None,
   )
-  assert_eq(json_str_field("not json", "name"), None)
+  @debug.assert_eq(json_str_field("not json", "name"), None)
 }
 
 ///|
 test "json_bool_field extracts bool" {
-  assert_eq(
+  @debug.assert_eq(
     json_bool_field(
       (
         #|{"enabled":true}
@@ -57,7 +57,7 @@ test "json_bool_field extracts bool" {
     ),
     Some(true),
   )
-  assert_eq(
+  @debug.assert_eq(
     json_bool_field(
       (
         #|{"enabled":false}
@@ -66,7 +66,7 @@ test "json_bool_field extracts bool" {
     ),
     Some(false),
   )
-  assert_eq(
+  @debug.assert_eq(
     json_bool_field(
       (
         #|{"enabled":"yes"}
@@ -88,8 +88,8 @@ test "skill_description_of parses frontmatter" {
     #|---
     #|
     #|# Demo
-  assert_eq(skill_description_of(content), "A demo skill")
-  assert_eq(skill_description_of("no frontmatter here"), "")
+  @debug.assert_eq(skill_description_of(content), "A demo skill")
+  @debug.assert_eq(skill_description_of("no frontmatter here"), "")
 }
 
 // ── Handler behavior (uses real assets/skills, read-only cases) ───
@@ -98,7 +98,7 @@ test "skill_description_of parses frontmatter" {
 test "handler: skills list returns real builtin skills" {
   let req = HttpRequest::new(GET, "/api/skills")
   let resp = handle_skills_list(req)
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   assert_true(resp.body.contains("code-explorer"))
   assert_true(resp.body.contains("\"source\""))
   assert_false(resp.body.contains("\"total\":0"))
@@ -111,7 +111,7 @@ test "handler: skills get content reads builtin SKILL.md" {
     params: [("name", "code-explorer")],
   }
   let resp = handle_skills_get_content(req)
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   assert_true(resp.body.contains("\"content\""))
 }
 
@@ -122,7 +122,7 @@ test "handler: skills get content 404 for unknown" {
     params: [("name", "no-such-skill-xyz")],
   }
   let resp = handle_skills_get_content(req)
-  assert_eq(resp.status, 404)
+  @debug.assert_eq(resp.status, 404)
 }
 
 ///|
@@ -132,14 +132,14 @@ test "handler: skills get content rejects traversal" {
     params: [("name", "../../etc")],
   }
   let resp = handle_skills_get_content(req)
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "handler: skills create requires body" {
   let req = HttpRequest::new(POST, "/api/skills")
   let resp = handle_skills_create(req)
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
@@ -152,7 +152,7 @@ test "handler: skills create rejects invalid name" {
     ),
   )
   let resp = handle_skills_create(req)
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
@@ -164,7 +164,7 @@ test "handler: skills delete protects builtin" {
   let resp = handle_skills_delete(req)
   // Builtin skill without a user override must not be deletable.
   if resp.status != 204 {
-    assert_eq(resp.status, 400)
+    @debug.assert_eq(resp.status, 400)
     assert_true(resp.body.contains("builtin"))
   }
 }
@@ -182,14 +182,14 @@ test "handler: skills toggle requires enabled field" {
     params: [("name", "code-explorer")],
   }
   let resp = handle_skills_toggle(req)
-  assert_eq(resp.status, 400)
+  @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "handler: store skills returns metadata with installed flag" {
   let req = HttpRequest::new(GET, "/api/store/skills")
   let resp = handle_store_skills(req)
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   assert_true(resp.body.contains("code-explorer"))
   assert_true(resp.body.contains("\"installed\""))
   assert_true(resp.body.contains("\"category\""))
@@ -199,7 +199,7 @@ test "handler: store skills returns metadata with installed flag" {
 test "handler: creator skills returns 200" {
   let req = HttpRequest::new(GET, "/api/creator/skills")
   let resp = handle_creator_skills(req)
-  assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.status, 200)
   assert_true(resp.body.contains("\"skills\""))
 }
 
@@ -226,11 +226,11 @@ test "handler: user skill full lifecycle" {
     ),
   )
   let create_resp = handle_skills_create(create_req)
-  assert_eq(create_resp.status, 201)
+  @debug.assert_eq(create_resp.status, 201)
 
   // Duplicate create rejected
   let dup_resp = handle_skills_create(create_req)
-  assert_eq(dup_resp.status, 400)
+  @debug.assert_eq(dup_resp.status, 400)
 
   // Read content
   let get_req = {
@@ -238,7 +238,7 @@ test "handler: user skill full lifecycle" {
     params: [("name", name)],
   }
   let get_resp = handle_skills_get_content(get_req)
-  assert_eq(get_resp.status, 200)
+  @debug.assert_eq(get_resp.status, 200)
   assert_true(get_resp.body.contains("lifecycle test"))
   assert_true(get_resp.body.contains("\"source\":\"user\""))
 
@@ -254,7 +254,7 @@ test "handler: user skill full lifecycle" {
     params: [("name", name)],
   }
   let put_resp = handle_skills_put_content(put_req)
-  assert_eq(put_resp.status, 200)
+  @debug.assert_eq(put_resp.status, 200)
   let get_resp2 = handle_skills_get_content(get_req)
   assert_true(get_resp2.body.contains("updated desc"))
 
@@ -270,7 +270,7 @@ test "handler: user skill full lifecycle" {
     params: [("name", name)],
   }
   let toggle_resp = handle_skills_toggle(toggle_req)
-  assert_eq(toggle_resp.status, 200)
+  @debug.assert_eq(toggle_resp.status, 200)
   assert_true(@fs.path_exists(dir + "/.disabled"))
 
   // Re-enable
@@ -285,7 +285,7 @@ test "handler: user skill full lifecycle" {
     params: [("name", name)],
   }
   let enable_resp = handle_skills_toggle(enable_req)
-  assert_eq(enable_resp.status, 200)
+  @debug.assert_eq(enable_resp.status, 200)
   assert_false(@fs.path_exists(dir + "/.disabled"))
 
   // Delete
@@ -294,6 +294,6 @@ test "handler: user skill full lifecycle" {
     params: [("name", name)],
   }
   let del_resp = handle_skills_delete(del_req)
-  assert_eq(del_resp.status, 204)
+  @debug.assert_eq(del_resp.status, 204)
   assert_false(@fs.path_exists(dir))
 }

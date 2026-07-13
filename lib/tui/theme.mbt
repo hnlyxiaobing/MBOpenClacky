@@ -11,7 +11,7 @@ pub(all) enum ThemeName {
   Minimal
   Default
   Light
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// A color theme defined by ANSI escape code strings.
@@ -27,7 +27,7 @@ pub(all) struct Theme {
   error_color : String
   /// Dim/muted text color.
   dim_color : String
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// Create the default theme (blue/cyan tones).

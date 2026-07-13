@@ -9,97 +9,97 @@
 ///|
 test "tokenize: empty input yields no tokens" {
   let tokens = tokenize("")
-  assert_eq(tokens.length(), 0)
+  @debug.assert_eq(tokens.length(), 0)
 }
 
 ///|
 test "tokenize: heading level 1" {
   let tokens = tokenize("# Title")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Heading(level=1, text="Title"))
 }
 
 ///|
 test "tokenize: heading level 2" {
   let tokens = tokenize("## Subtitle")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Heading(level=2, text="Subtitle"))
 }
 
 ///|
 test "tokenize: heading level 3" {
   let tokens = tokenize("### Deep")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Heading(level=3, text="Deep"))
 }
 
 ///|
 test "tokenize: block quote" {
   let tokens = tokenize("> a quote")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == BlockQuote(text="a quote"))
 }
 
 ///|
 test "tokenize: simple list item" {
   let tokens = tokenize("- item one")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == ListItem(indent=0, text="item one"))
 }
 
 ///|
 test "tokenize: nested list item keeps indent" {
   let tokens = tokenize("  - nested")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == ListItem(indent=1, text="nested"))
 }
 
 ///|
 test "tokenize: doubly nested list item" {
   let tokens = tokenize("    - deep")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == ListItem(indent=2, text="deep"))
 }
 
 ///|
 test "tokenize: checked task item" {
   let tokens = tokenize("- [x] done")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == TaskItem(checked=true, text="done"))
 }
 
 ///|
 test "tokenize: unchecked task item" {
   let tokens = tokenize("- [ ] todo")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == TaskItem(checked=false, text="todo"))
 }
 
 ///|
 test "tokenize: dash horizontal rule" {
   let tokens = tokenize("---")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == HorizontalRule)
 }
 
 ///|
 test "tokenize: star horizontal rule" {
   let tokens = tokenize("***")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == HorizontalRule)
 }
 
 ///|
 test "tokenize: underscore horizontal rule" {
   let tokens = tokenize("___")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == HorizontalRule)
 }
 
 ///|
 test "tokenize: two dashes is not a rule" {
   let tokens = tokenize("--")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(
     match tokens[0] {
       Paragraph(text~) => text == "--"
@@ -111,63 +111,63 @@ test "tokenize: two dashes is not a rule" {
 ///|
 test "tokenize: empty code fence" {
   let tokens = tokenize("```")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == CodeBlock(lang="", code=""))
 }
 
 ///|
 test "tokenize: code block with body" {
   let tokens = tokenize("```\nlet x = 1\n```")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == CodeBlock(lang="", code="let x = 1"))
 }
 
 ///|
 test "tokenize: code block with language" {
   let tokens = tokenize("```rust\nfn main() {}\n```")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == CodeBlock(lang="rust", code="fn main() {}"))
 }
 
 ///|
 test "tokenize: plain paragraph" {
   let tokens = tokenize("just text")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Paragraph(text="just text"))
 }
 
 ///|
 test "tokenize: bold inline" {
   let tokens = tokenize("**bold**")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Bold(text="bold"))
 }
 
 ///|
 test "tokenize: italic inline" {
   let tokens = tokenize("*italic*")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Italic(text="italic"))
 }
 
 ///|
 test "tokenize: inline code" {
   let tokens = tokenize("`code`")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Code(text="code"))
 }
 
 ///|
 test "tokenize: link inline" {
   let tokens = tokenize("[text](url)")
-  assert_eq(tokens.length(), 1)
+  @debug.assert_eq(tokens.length(), 1)
   assert_true(tokens[0] == Link(text="text", url="url"))
 }
 
 ///|
 test "tokenize: multiple lines produce multiple tokens" {
   let tokens = tokenize("# H\nplain\n- item")
-  assert_eq(tokens.length(), 3)
+  @debug.assert_eq(tokens.length(), 3)
   assert_true(tokens[0] == Heading(level=1, text="H"))
   assert_true(tokens[1] == Paragraph(text="plain"))
   assert_true(tokens[2] == ListItem(indent=0, text="item"))
@@ -176,7 +176,7 @@ test "tokenize: multiple lines produce multiple tokens" {
 ///|
 test "render: empty input renders empty string" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
-  assert_eq(renderer.render(""), "")
+  @debug.assert_eq(renderer.render(""), "")
 }
 
 ///|
@@ -282,7 +282,7 @@ test "render: link with url" {
 test "render: plain paragraph is passed through" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("plain")
-  assert_eq(out, "plain")
+  @debug.assert_eq(out, "plain")
 }
 
 ///|

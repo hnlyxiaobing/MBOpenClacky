@@ -87,7 +87,10 @@ pub fn VisionResolver::describe(
   let http_result = @client.http_post(url, body_str, headers, 60000)
   let result = match http_result {
     Err(err) =>
-      error_result(CallFailed, "Vision API HTTP request failed: \{err}")
+      error_result(
+        CallFailed,
+        "Vision API HTTP request failed: \{err.to_repr()}",
+      )
     Ok(http_resp) =>
       if http_resp.status_code < 200 || http_resp.status_code >= 300 {
         let err_msg = @client.extract_error_message(http_resp.body)

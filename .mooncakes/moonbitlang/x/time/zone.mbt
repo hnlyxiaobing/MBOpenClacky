@@ -337,21 +337,21 @@ test "Zone::from_tzif2" {
   ]
   let name = "America/Los_Angeles"
   let zone = Zone::from_tzif2(name, data)
-  inspect(zone, content="America/Los_Angeles")
+  @debug.debug_inspect(zone, content="America/Los_Angeles")
   let current_time_seconds = 1706659200L // Tuesday, January 30, 2024 4:00:00pm PST
   let got = unix(current_time_seconds, zone~)
-  inspect(got, content="2024-01-30T16:00:00-08:00[PST]")
-  inspect(got.offset(), content="-08:00")
-  inspect(got.offset().is_dst(), content="false")
+  @debug.debug_inspect(got, content="2024-01-30T16:00:00-08:00[PST]")
+  @debug.debug_inspect(got.offset(), content="-08:00")
+  @debug.debug_inspect(got.offset().is_dst(), content="false")
   let current_time_seconds = 1754006400L // Thursday, July 31, 2025 5:00:00pm PDT
   let got = unix(current_time_seconds, zone~)
-  inspect(got, content="2025-07-31T17:00:00-07:00[PDT]")
-  inspect(got.offset(), content="-07:00")
-  inspect(got.offset().is_dst(), content="true")
+  @debug.debug_inspect(got, content="2025-07-31T17:00:00-07:00[PDT]")
+  @debug.debug_inspect(got.offset(), content="-07:00")
+  @debug.debug_inspect(got.offset().is_dst(), content="true")
   // Behavior of a fixed-offset zone:
   let zone = fixed_zone(name, -25200, abbrev="PDT", dst=true)
   let got = unix(current_time_seconds, zone~)
-  inspect(got, content="2025-07-31T17:00:00-07:00[PDT]")
-  inspect(got.offset(), content="-07:00")
-  inspect(got.offset().is_dst(), content="true")
+  @debug.debug_inspect(got, content="2025-07-31T17:00:00-07:00[PDT]")
+  @debug.debug_inspect(got.offset(), content="-07:00")
+  @debug.debug_inspect(got.offset().is_dst(), content="true")
 }

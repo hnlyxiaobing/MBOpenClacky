@@ -30,7 +30,7 @@ fn handle_dirs_list(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to read directory".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }
@@ -123,7 +123,7 @@ fn handle_dirs_mkdir(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to create directory".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }

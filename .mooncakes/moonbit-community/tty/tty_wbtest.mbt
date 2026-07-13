@@ -23,33 +23,33 @@ async fn with_pipe_tty(input_bytes : Bytes, f : async (Tty) -> Unit) -> String {
 
 ///|
 test "style color sequences encode semantic colors" {
-  @debug.assert_eq(foreground_sequence(Default), b"\x1b[39m")
-  @debug.assert_eq(foreground_sequence(Basic(Black)), b"\x1b[30m")
-  @debug.assert_eq(foreground_sequence(Basic(Red)), b"\x1b[31m")
-  @debug.assert_eq(foreground_sequence(Basic(White)), b"\x1b[37m")
-  @debug.assert_eq(foreground_sequence(Basic(BrightBlack)), b"\x1b[90m")
-  @debug.assert_eq(foreground_sequence(Basic(BrightRed)), b"\x1b[91m")
-  @debug.assert_eq(foreground_sequence(Basic(BrightWhite)), b"\x1b[97m")
-  @debug.assert_eq(background_sequence(Default), b"\x1b[49m")
-  @debug.assert_eq(background_sequence(Basic(Black)), b"\x1b[40m")
-  @debug.assert_eq(background_sequence(Basic(Red)), b"\x1b[41m")
-  @debug.assert_eq(background_sequence(Basic(White)), b"\x1b[47m")
-  @debug.assert_eq(background_sequence(Basic(BrightBlack)), b"\x1b[100m")
-  @debug.assert_eq(background_sequence(Basic(BrightRed)), b"\x1b[101m")
-  @debug.assert_eq(background_sequence(Basic(BrightWhite)), b"\x1b[107m")
-  @debug.assert_eq(foreground_sequence(Indexed(-1)), b"\x1b[38;5;0m")
-  @debug.assert_eq(foreground_sequence(Indexed(42)), b"\x1b[38;5;42m")
-  @debug.assert_eq(foreground_sequence(Indexed(999)), b"\x1b[38;5;255m")
-  @debug.assert_eq(background_sequence(Indexed(-1)), b"\x1b[48;5;0m")
-  @debug.assert_eq(background_sequence(Indexed(42)), b"\x1b[48;5;42m")
-  @debug.assert_eq(background_sequence(Indexed(999)), b"\x1b[48;5;255m")
+  @debug.assert_eq(foreground_sequence(Default), b"\u{1b}[39m")
+  @debug.assert_eq(foreground_sequence(Basic(Black)), b"\u{1b}[30m")
+  @debug.assert_eq(foreground_sequence(Basic(Red)), b"\u{1b}[31m")
+  @debug.assert_eq(foreground_sequence(Basic(White)), b"\u{1b}[37m")
+  @debug.assert_eq(foreground_sequence(Basic(BrightBlack)), b"\u{1b}[90m")
+  @debug.assert_eq(foreground_sequence(Basic(BrightRed)), b"\u{1b}[91m")
+  @debug.assert_eq(foreground_sequence(Basic(BrightWhite)), b"\u{1b}[97m")
+  @debug.assert_eq(background_sequence(Default), b"\u{1b}[49m")
+  @debug.assert_eq(background_sequence(Basic(Black)), b"\u{1b}[40m")
+  @debug.assert_eq(background_sequence(Basic(Red)), b"\u{1b}[41m")
+  @debug.assert_eq(background_sequence(Basic(White)), b"\u{1b}[47m")
+  @debug.assert_eq(background_sequence(Basic(BrightBlack)), b"\u{1b}[100m")
+  @debug.assert_eq(background_sequence(Basic(BrightRed)), b"\u{1b}[101m")
+  @debug.assert_eq(background_sequence(Basic(BrightWhite)), b"\u{1b}[107m")
+  @debug.assert_eq(foreground_sequence(Indexed(-1)), b"\u{1b}[38;5;0m")
+  @debug.assert_eq(foreground_sequence(Indexed(42)), b"\u{1b}[38;5;42m")
+  @debug.assert_eq(foreground_sequence(Indexed(999)), b"\u{1b}[38;5;255m")
+  @debug.assert_eq(background_sequence(Indexed(-1)), b"\u{1b}[48;5;0m")
+  @debug.assert_eq(background_sequence(Indexed(42)), b"\u{1b}[48;5;42m")
+  @debug.assert_eq(background_sequence(Indexed(999)), b"\u{1b}[48;5;255m")
   @debug.assert_eq(
     foreground_sequence(Rgb(-1, 127, 999)),
-    b"\x1b[38;2;0;127;255m",
+    b"\u{1b}[38;2;0;127;255m",
   )
   @debug.assert_eq(
     background_sequence(Rgb(-1, 127, 999)),
-    b"\x1b[48;2;0;127;255m",
+    b"\u{1b}[48;2;0;127;255m",
   )
 }
 
@@ -85,7 +85,7 @@ async test "pipe tty terminal commands write sequences" {
     tty.disable_bracketed_paste()
     tty.leave_alt_screen()
   })
-  inspect(
+  @debug.debug_inspect(
     output,
     content="\u{1B}[?1049h\u{1B}[?2004h\u{1B}[?25l\u{1B}[3;4H\u{1B}[2A\u{1B}[3C\u{1B}[2K\u{1B}[2J\u{1B}[3J\u{1B}[1;5r\u{1B}M\u{1B}[r\u{1B}[31m\u{1B}[39m\u{1B}[48;5;42m\u{1B}[49m\u{1B}[1m\u{1B}[22m\u{1B}[3m\u{1B}[23m\u{1B}[4m\u{1B}[24m\u{1B}[7m\u{1B}[27m\u{1B}[0m\u{1B}[?25h\u{1B}[?2004l\u{1B}[?1049l",
   )
@@ -101,7 +101,7 @@ async test "pipe tty mouse mode commands write sequences" {
     tty.enable_mouse(Motion)
     tty.disable_mouse()
   })
-  inspect(
+  @debug.debug_inspect(
     output,
     content="\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006h\u{1B}[?1000h\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006h\u{1B}[?1002h\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006h\u{1B}[?1003h\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006l",
   )
@@ -113,7 +113,7 @@ async test "pipe tty focus tracking commands write sequences" {
     tty.enable_focus_tracking()
     tty.disable_focus_tracking()
   })
-  inspect(output, content="\u{1B}[?1004h\u{1B}[?1004l")
+  @debug.debug_inspect(output, content="\u{1B}[?1004h\u{1B}[?1004l")
 }
 
 ///|
@@ -122,7 +122,7 @@ async test "pipe tty auto wrap commands write sequences" {
     tty.enable_auto_wrap()
     tty.disable_auto_wrap()
   })
-  inspect(output, content="\u{1B}[?7h\u{1B}[?7l")
+  @debug.debug_inspect(output, content="\u{1B}[?7h\u{1B}[?7l")
 }
 
 ///|
@@ -130,7 +130,7 @@ async test "pipe tty with focus tracking restores on success" {
   let output = with_pipe_tty(b"", tty => {
     tty.with_focus_tracking(() => tty.write("body"))
   })
-  inspect(output, content="\u{1B}[?1004hbody\u{1B}[?1004l")
+  @debug.debug_inspect(output, content="\u{1B}[?1004hbody\u{1B}[?1004l")
 }
 
 ///|
@@ -163,7 +163,7 @@ async test "pipe tty keyboard enhancement commands write sequences" {
     )
     tty.pop_keyboard_enhancement_flags()
   })
-  inspect(output, content="\u{1B}[>3u\u{1B}[<1u")
+  @debug.debug_inspect(output, content="\u{1B}[>3u\u{1B}[<1u")
 }
 
 ///|
@@ -173,7 +173,7 @@ async test "pipe tty with keyboard enhancements restores on success" {
       tty.write("body")
     })
   })
-  inspect(output, content="\u{1B}[>1ubody\u{1B}[<1u")
+  @debug.debug_inspect(output, content="\u{1B}[>1ubody\u{1B}[<1u")
 }
 
 ///|
@@ -181,7 +181,7 @@ async test "pipe tty with kitty keyboard uses full flags" {
   let output = with_pipe_tty(b"", tty => {
     tty.with_kitty_keyboard(() => tty.write("body"))
   })
-  inspect(output, content="\u{1B}[>31ubody\u{1B}[<1u")
+  @debug.debug_inspect(output, content="\u{1B}[>31ubody\u{1B}[<1u")
 }
 
 ///|
@@ -189,7 +189,7 @@ async test "pipe tty with mouse restores on success" {
   let output = with_pipe_tty(b"", tty => {
     tty.with_mouse(Drag, () => tty.write("body"))
   })
-  inspect(
+  @debug.debug_inspect(
     output,
     content="\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006h\u{1B}[?1002hbody\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l\u{1B}[?1006l",
   )
@@ -197,7 +197,7 @@ async test "pipe tty with mouse restores on success" {
 
 ///|
 async test "tty query cursor position coordinates input and output" {
-  let output = with_pipe_tty(b"a\x1b[7;9R", tty => {
+  let output = with_pipe_tty(b"a\u{1b}[7;9R", tty => {
     match tty.query_cursor_position() {
       Some(pos) => {
         @debug.assert_eq(pos.row, 7)
@@ -214,12 +214,12 @@ async test "tty query cursor position coordinates input and output" {
       Resize(_) => fail("expected pending input")
     }
   })
-  inspect(output, content="\u{1B}[6n")
+  @debug.debug_inspect(output, content="\u{1B}[6n")
 }
 
 ///|
 async test "tty query cursor position preserves interleaved focus input" {
-  let output = with_pipe_tty(b"\x1b[I\x1b[7;9R", tty => {
+  let output = with_pipe_tty(b"\u{1b}[I\u{1b}[7;9R", tty => {
     match tty.query_cursor_position() {
       Some(pos) => {
         @debug.assert_eq(pos.row, 7)
@@ -232,13 +232,13 @@ async test "tty query cursor position preserves interleaved focus input" {
       Resize(_) => fail("expected pending input")
     }
   })
-  inspect(output, content="\u{1B}[6n")
+  @debug.debug_inspect(output, content="\u{1B}[6n")
 }
 
 ///|
 async test "tty query dynamic colors coordinates input and output" {
   let output = with_pipe_tty(
-    b"a\x1b]10;rgb:ff/00/80\x07\x1b]11;rgb:0000/ffff/0000\x1b\\\x1b]12;rgb:0/0/f\x07",
+    b"a\u{1b}]10;rgb:ff/00/80\u{07}\u{1b}]11;rgb:0000/ffff/0000\u{1b}\\\u{1b}]12;rgb:0/0/f\u{07}",
     tty => {
       match tty.query_default_foreground_color() {
         Some(color) => {
@@ -274,7 +274,7 @@ async test "tty query dynamic colors coordinates input and output" {
       }
     },
   )
-  inspect(
+  @debug.debug_inspect(
     output,
     content="\u{1B}]10;?\u{1B}\\\u{1B}]11;?\u{1B}\\\u{1B}]12;?\u{1B}\\",
   )
@@ -282,23 +282,23 @@ async test "tty query dynamic colors coordinates input and output" {
 
 ///|
 async test "tty query kitty keyboard support returns true for flags reply" {
-  let output = with_pipe_tty(b"\x1b[?1u", tty => {
+  let output = with_pipe_tty(b"\u{1b}[?1u", tty => {
     @debug.assert_eq(tty.query_kitty_keyboard_support(), true)
   })
-  inspect(output, content="\u{1B}[?u\u{1B}[c")
+  @debug.debug_inspect(output, content="\u{1B}[?u\u{1B}[c")
 }
 
 ///|
 async test "tty query kitty keyboard support returns false for da reply" {
-  let output = with_pipe_tty(b"\x1b[?1;2c", tty => {
+  let output = with_pipe_tty(b"\u{1b}[?1;2c", tty => {
     @debug.assert_eq(tty.query_kitty_keyboard_support(), false)
   })
-  inspect(output, content="\u{1B}[?u\u{1B}[c")
+  @debug.debug_inspect(output, content="\u{1B}[?u\u{1B}[c")
 }
 
 ///|
 async test "tty query kitty keyboard support preserves interleaved input" {
-  let output = with_pipe_tty(b"a\x1b[?1u", tty => {
+  let output = with_pipe_tty(b"a\u{1b}[?1u", tty => {
     @debug.assert_eq(tty.query_kitty_keyboard_support(), true)
     match tty.read_event() {
       Input(event) =>
@@ -309,7 +309,7 @@ async test "tty query kitty keyboard support preserves interleaved input" {
       Resize(_) => fail("expected pending input")
     }
   })
-  inspect(output, content="\u{1B}[?u\u{1B}[c")
+  @debug.debug_inspect(output, content="\u{1B}[?u\u{1B}[c")
 }
 
 ///|

@@ -15,7 +15,7 @@
 ///|
 test "decoder rejects invalid gzip header" {
   let result = try? decode(
-    b"\x1f\x8b\x08\x02\x00\x00\x00\x00\x00\x00\x1d\x26\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+    b"\u{1f}\u{8b}\u{08}\u{02}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{1d}\u{26}\u{03}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}",
     expected_len=0,
   )
   assert_true(result is Err(_))
@@ -23,9 +23,9 @@ test "decoder rejects invalid gzip header" {
 
 ///|
 test "decoder verifies trailer automatically" {
-  let encoded = encode(b"\x00")
+  let encoded = encode(b"\u{00}")
   let corrupted = encoded[:encoded.length() - 8].to_owned() +
-    b"\x00\x00\x00\x00\x01\x00\x00\x00"
+    b"\u{00}\u{00}\u{00}\u{00}\u{01}\u{00}\u{00}\u{00}"
   let result = try? decode(corrupted, expected_len=1)
   assert_true(result is Err(_))
 }

@@ -12,7 +12,7 @@ pub(all) enum TuiMode {
   Idle
   /// Agent is executing (ReAct loop is on the call stack).
   Running
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// A record of a tool execution for display in the tool panel.

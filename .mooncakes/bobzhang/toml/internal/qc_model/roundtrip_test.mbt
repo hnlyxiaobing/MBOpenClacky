@@ -51,7 +51,7 @@ fn roundtrip_property(doc : @qc_model.SimpleDocument) -> @qc.Property {
 
 ///|
 test "quickcheck simple document roundtrip" {
-  inspect(
+  @debug.debug_inspect(
     @qc.quick_check_silence(
       @qc.forall_shrink(
         simple_document_gen(),

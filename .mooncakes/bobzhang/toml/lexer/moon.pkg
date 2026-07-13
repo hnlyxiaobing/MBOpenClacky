@@ -1,3 +1,7 @@
+import {
+  "moonbitlang/core/debug",
+}
+
 options(
   name: "bobzhang/toml/lexer",
 )

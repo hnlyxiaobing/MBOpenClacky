@@ -278,7 +278,7 @@ fn handle_onboard_skip_soul(
           return @core.HttpResponse::internal_server_error().json_value(
             Json::object({
               "error": "Failed to create config directory".to_json(),
-              "detail": e.to_string().to_json(),
+              "detail": @debug.to_string(e).to_json(),
             }),
           )
       }
@@ -289,7 +289,7 @@ fn handle_onboard_skip_soul(
           return @core.HttpResponse::internal_server_error().json_value(
             Json::object({
               "error": "Failed to create agents directory".to_json(),
-              "detail": e.to_string().to_json(),
+              "detail": @debug.to_string(e).to_json(),
             }),
           )
       }
@@ -299,7 +299,7 @@ fn handle_onboard_skip_soul(
         return @core.HttpResponse::internal_server_error().json_value(
           Json::object({
             "error": "Failed to write SOUL.md".to_json(),
-            "detail": e.to_string().to_json(),
+            "detail": @debug.to_string(e).to_json(),
           }),
         )
     }

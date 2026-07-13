@@ -19,8 +19,8 @@ async test "collect_stdout" {
     "-c",
     "\{write_stdout} abcd",
   ])
-  inspect(code, content="0")
-  inspect(output.text(), content="abcd")
+  @debug.debug_inspect(code, content="0")
+  @debug.debug_inspect(output.text(), content="abcd")
 }
 
 ///|
@@ -29,8 +29,8 @@ async test "collect_error" {
     "-c",
     "\{write_stderr} abcd",
   ])
-  inspect(code, content="0")
-  inspect(output.text(), content="abcd")
+  @debug.debug_inspect(code, content="0")
+  @debug.debug_inspect(output.text(), content="abcd")
 }
 
 ///|
@@ -39,9 +39,9 @@ async test "collect_output" {
     "-c",
     "\{write_stdout} ab; \{write_stderr} ab; \{write_stdout} cd; \{write_stderr} cd",
   ])
-  inspect(code, content="0")
-  inspect(stdout.text(), content="abcd")
-  inspect(stderr.text(), content="abcd")
+  @debug.debug_inspect(code, content="0")
+  @debug.debug_inspect(stdout.text(), content="abcd")
+  @debug.debug_inspect(stderr.text(), content="abcd")
 }
 
 ///|
@@ -50,8 +50,8 @@ async test "collect_output_merged" {
     "-c",
     "\{write_stdout} ab; \{write_stderr} ab; \{write_stdout} cd; \{write_stderr} cd",
   ])
-  inspect(code, content="0")
-  inspect(output.text(), content="ababcdcd")
+  @debug.debug_inspect(code, content="0")
+  @debug.debug_inspect(output.text(), content="ababcdcd")
 }
 
 ///|
@@ -71,8 +71,8 @@ async test "collect_output blocked" {
       ["-stderr"],
       stdin=cat_read,
     )
-    inspect(code, content="0")
-    inspect(stdout.text(), content="")
-    inspect(stderr.binary().length(), content="1048576")
+    @debug.debug_inspect(code, content="0")
+    @debug.debug_inspect(stdout.text(), content="")
+    @debug.debug_inspect(stderr.binary().length(), content="1048576")
   }
 }

@@ -16,7 +16,7 @@ pub(all) enum SlashCommand {
   Help
   Exit
   Meeting
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// Definition of a registered slash command.
@@ -24,7 +24,7 @@ pub(all) struct SlashCommandDef {
   name : String
   description : String
   usage : String
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// Parser for slash commands with registered command definitions.
@@ -196,63 +196,51 @@ pub fn execute(
       } catch {
         _ => Ok("Configuration set: \{key} = \{value}")
       }
-    Model(name~) =>
+    Model(name~) => {
       // Actually switch the model on the agent's client
-      try {
-        let old_client = agent.client
-        let new_client = @client.Client::new(
-          old_client.api_key,
-          old_client.base_url,
-          name,
-          old_client.api_type,
-          provider_id=old_client.provider_id,
-          vision_supported=old_client.vision_supported,
-        )
-        agent.client = new_client
-        Ok("Model switched to: \{name}")
-      } catch {
-        _ => Ok("Model switched to: \{name}")
-      }
-    Clear =>
+      let old_client = agent.client
+      let new_client = @client.Client::new(
+        old_client.api_key,
+        old_client.base_url,
+        name,
+        old_client.api_type,
+        provider_id=old_client.provider_id,
+        vision_supported=old_client.vision_supported,
+      )
+      agent.client = new_client
+      Ok("Model switched to: \{name}")
+    }
+    Clear => {
       // Clear agent conversation history
-      try {
-        agent.history.clear()
-        agent.iterations = 0
-        Ok("Message history cleared")
-      } catch {
-        _ => Ok("Message history cleared")
-      }
-    New(title~) =>
+      agent.history.clear()
+      agent.iterations = 0
+      Ok("Message history cleared")
+    }
+    New(title~) => {
       // Start a fresh session: clear history and reset counters
-      try {
-        agent.history.clear()
-        agent.iterations = 0
-        agent.total_cost = 0.0
-        Ok("New session created: \{title}")
-      } catch {
-        _ => Ok("New session created: \{title}")
-      }
+      agent.history.clear()
+      agent.iterations = 0
+      agent.total_cost = 0.0
+      Ok("New session created: \{title}")
+    }
     Skills(action~) =>
       match action {
-        "list" =>
-          try {
-            let skills = agent.skill_registry.all()
-            if skills.length() == 0 {
-              Ok("Skills: (none loaded)")
-            } else {
-              let lines : Array[String] = ["Loaded skills:"]
-              for skill in skills {
-                let desc = match skill.description {
-                  Some(d) => d
-                  None => "(no description)"
-                }
-                lines.push("  \{skill.name} - \{desc}")
+        "list" => {
+          let skills = agent.skill_registry.all()
+          if skills.length() == 0 {
+            Ok("Skills: (none loaded)")
+          } else {
+            let lines : Array[String] = ["Loaded skills:"]
+            for skill in skills {
+              let desc = match skill.description {
+                Some(d) => d
+                None => "(no description)"
               }
-              Ok(lines.join("\n"))
+              lines.push("  \{skill.name} - \{desc}")
             }
-          } catch {
-            _ => Ok("Skills: (none loaded)")
+            Ok(lines.join("\n"))
           }
+        }
         "enable" => Ok("Skill enabled")
         "disable" => Ok("Skill disabled")
         _ =>

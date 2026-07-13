@@ -8,7 +8,7 @@ pub enum BlockStyle {
   Full // Full block characters (█)
   Half // Half block characters (▀▄)
   Outline // Outline characters (░▒▓)
-} derive(Debug, Eq, Show)
+} derive(Debug, Eq)
 
 ///|
 /// Character bitmap: 5 rows of 5 columns.

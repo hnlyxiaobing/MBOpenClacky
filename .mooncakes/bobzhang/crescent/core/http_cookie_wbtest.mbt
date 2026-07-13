@@ -18,7 +18,7 @@ test "get_cookie supports case-insensitive header lookup and delete_cookie expir
   guard req_mixed.get_cookie("theme") is Some({ value: "dark", .. }) else {
     fail("Expected theme cookie")
   }
-  assert_eq(req_mixed.get_cookie("missing"), None)
+  @debug.assert_eq(req_mixed.get_cookie("missing"), None)
   let res = HttpResponse(status_code=OK)
   res.delete_cookie("session")
   guard res.cookies.get("session") is Some({ value: "", max_age: Some(0), .. }) else {

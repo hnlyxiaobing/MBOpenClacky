@@ -26,7 +26,7 @@ pub(all) enum SubAgentStatus {
   Running
   Completed
   Failed
-} derive(Eq, Compare, Debug, Show)
+} derive(Eq, Compare, Debug)
 
 ///|
 pub fn SubAgentStatus::to_string_value(self : SubAgentStatus) -> String {

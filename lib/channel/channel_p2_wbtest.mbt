@@ -14,8 +14,8 @@ test "telegram_parse_event_photo_message" {
   let json = @json.parse(json_str) catch { _ => Json::object({}) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
-      assert_eq(evt.chat_id, "456")
-      assert_eq(evt.text, "nice pic")
+      @debug.assert_eq(evt.chat_id, "456")
+      @debug.assert_eq(evt.text, "nice pic")
       assert_true(evt.chat_type == ChatType::Group)
       assert_true(evt.attachments.length() >= 1)
     }
@@ -29,7 +29,7 @@ test "telegram_parse_event_document" {
   let json = @json.parse(json_str) catch { _ => Json::object({}) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
-      assert_eq(evt.text, "") // no text or caption
+      @debug.assert_eq(evt.text, "") // no text or caption
       assert_true(evt.attachments.length() >= 1)
     }
     Err(_) => assert_true(false)
@@ -42,8 +42,8 @@ test "telegram_parse_event_reply_to" {
   let json = @json.parse(json_str) catch { _ => Json::object({}) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
-      assert_eq(evt.reply_to, Some("15"))
-      assert_eq(evt.text, "reply text")
+      @debug.assert_eq(evt.reply_to, Some("15"))
+      @debug.assert_eq(evt.text, "reply text")
     }
     Err(_) => assert_true(false)
   }
@@ -64,12 +64,12 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   }
   match parse_gateway_event(hello_json) {
     Ok((op, data)) => {
-      assert_eq(op, 10)
+      @debug.assert_eq(op, 10)
       match parse_hello_payload(data) {
         Ok(interval) => {
           state.handle_hello(interval)
           assert_true(state.is_connected)
-          assert_eq(state.heartbeat_interval, 41250)
+          @debug.assert_eq(state.heartbeat_interval, 41250)
         }
         Err(_) => assert_true(false)
       }
@@ -80,14 +80,14 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   // 3. Build Identify payload
   let identify = build_identify_payload("BOT_TOKEN", DEFAULT_INTENTS)
   match identify {
-    Object(obj) => assert_eq(obj.get("op"), Some((2).to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("op"), Some((2).to_json()))
     _ => assert_true(false)
   }
 
   // 4. Simulate READY event
   state.handle_ready("session_xyz", Some("wss://resume.discord.gg"))
   assert_true(state.is_ready)
-  assert_eq(state.session_id, Some("session_xyz"))
+  @debug.assert_eq(state.session_id, Some("session_xyz"))
 
   // 5. Build Heartbeat
   let _hb = build_heartbeat_payload(None)
@@ -104,12 +104,12 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   }
   match parse_gateway_event(dispatch) {
     Ok((op, _d)) => {
-      assert_eq(op, 0)
+      @debug.assert_eq(op, 0)
       match extract_seq(dispatch) {
         Some(s) => state.update_seq(s)
         None => assert_true(false)
       }
-      assert_eq(state.last_seq, Some(5))
+      @debug.assert_eq(state.last_seq, Some(5))
     }
     Err(_) => assert_true(false)
   }
@@ -129,7 +129,7 @@ test "discord_gateway_reconnect_flow" {
 
   // Record reconnect attempt
   state.record_reconnect_attempt()
-  assert_eq(state.reconnect_attempts, 1)
+  @debug.assert_eq(state.reconnect_attempts, 1)
 
   // Build Resume payload
   match state.last_seq {
@@ -137,11 +137,11 @@ test "discord_gateway_reconnect_flow" {
       let resume_fn = build_resume_payload("TOK", "sess1", seq)
       match resume_fn {
         Object(obj) => {
-          assert_eq(obj.get("op"), Some((6).to_json()))
+          @debug.assert_eq(obj.get("op"), Some((6).to_json()))
           match obj.get("d") {
             Some(Object(d)) => {
-              assert_eq(d.get("session_id"), Some("sess1".to_json()))
-              assert_eq(d.get("seq"), Some((10).to_json()))
+              @debug.assert_eq(d.get("session_id"), Some("sess1".to_json()))
+              @debug.assert_eq(d.get("seq"), Some((10).to_json()))
             }
             _ => assert_true(false)
           }
@@ -172,7 +172,7 @@ test "discord_gateway_invalid_session" {
   }
   match parse_gateway_event(event) {
     Ok((op, d)) => {
-      assert_eq(op, 9)
+      @debug.assert_eq(op, 9)
       assert_true(parse_invalid_session(d))
     }
     Err(_) => assert_true(false)
@@ -183,7 +183,7 @@ test "discord_gateway_invalid_session" {
   }
   match parse_gateway_event(event2) {
     Ok((op, d)) => {
-      assert_eq(op, 9)
+      @debug.assert_eq(op, 9)
       assert_false(parse_invalid_session(d))
     }
     Err(_) => assert_true(false)
@@ -200,8 +200,8 @@ test "wecom_subscribe_and_send_flow" {
   let auth = state.build_auth_frame()
   match auth {
     Object(obj) => {
-      assert_eq(obj.get("type"), Some("aibot_subscribe".to_json()))
-      assert_eq(obj.get("bot_id"), Some("bot123".to_json()))
+      @debug.assert_eq(obj.get("type"), Some("aibot_subscribe".to_json()))
+      @debug.assert_eq(obj.get("bot_id"), Some("bot123".to_json()))
     }
     _ => assert_true(false)
   }
@@ -214,8 +214,8 @@ test "wecom_subscribe_and_send_flow" {
   let msg_frame = state.build_msg_frame("chat1", "Hello WeCom", "text")
   match msg_frame {
     Object(obj) => {
-      assert_eq(obj.get("type"), Some("aibot_send_msg".to_json()))
-      assert_eq(obj.get("chat_id"), Some("chat1".to_json()))
+      @debug.assert_eq(obj.get("type"), Some("aibot_send_msg".to_json()))
+      @debug.assert_eq(obj.get("chat_id"), Some("chat1".to_json()))
       assert_true(obj.get("req_id") is Some(_))
     }
     _ => assert_true(false)
@@ -232,16 +232,16 @@ test "wecom_subscribe_and_send_flow" {
       assert_true(ft == WeComFrameType::Data)
       assert_true(needs_ack(ft))
       match extract_data_content(frame_data) {
-        Some(c) => assert_eq(c, "user msg")
+        Some(c) => @debug.assert_eq(c, "user msg")
         None => assert_true(false)
       }
       match extract_data_chat_id(frame_data) {
-        Some(cid) => assert_eq(cid, "c1")
+        Some(cid) => @debug.assert_eq(cid, "c1")
         None => assert_true(false)
       }
       let (sid, sname) = extract_data_sender(frame_data)
-      assert_eq(sid, "u1")
-      assert_eq(sname, "Alice")
+      @debug.assert_eq(sid, "u1")
+      @debug.assert_eq(sname, "Alice")
     }
     Err(_) => assert_true(false)
   }
@@ -254,13 +254,13 @@ test "wecom_chunked_upload_flow" {
   // 2MB file, 512KB chunks → 4 chunks
   let us = WeComUploadState::new(2097152)
   us.set_upload_id("upload_abc")
-  assert_eq(us.upload_id, "upload_abc")
+  @debug.assert_eq(us.upload_id, "upload_abc")
 
   // Init frame
   let init = build_upload_init_frame("upload_abc", "bigfile.zip", 2097152)
   match init {
     Object(obj) =>
-      assert_eq(obj.get("type"), Some("aibot_upload_init".to_json()))
+      @debug.assert_eq(obj.get("type"), Some("aibot_upload_init".to_json()))
     _ => assert_true(false)
   }
 
@@ -271,18 +271,18 @@ test "wecom_chunked_upload_flow" {
     let chunk = build_upload_chunk_frame("upload_abc", idx, "chunk_data")
     match chunk {
       Object(obj) =>
-        assert_eq(obj.get("type"), Some("aibot_upload_chunk".to_json()))
+        @debug.assert_eq(obj.get("type"), Some("aibot_upload_chunk".to_json()))
       _ => assert_true(false)
     }
     chunk_count = chunk_count + 1
   }
-  assert_eq(chunk_count, 4)
+  @debug.assert_eq(chunk_count, 4)
 
   // Finish frame
   let finish = build_upload_finish_frame("upload_abc")
   match finish {
     Object(obj) =>
-      assert_eq(obj.get("type"), Some("aibot_upload_finish".to_json()))
+      @debug.assert_eq(obj.get("type"), Some("aibot_upload_finish".to_json()))
     _ => assert_true(false)
   }
 }
@@ -299,13 +299,13 @@ test "dingtalk_stream_callback_ack_flow" {
   }
   match parse_stream_frame(frame_json) {
     Ok((frame_type, _data)) => {
-      assert_eq(frame_type, "CALLBACK")
+      @debug.assert_eq(frame_type, "CALLBACK")
       // Build ACK
       let ack = build_stream_ack("msg_001")
       match ack {
         Object(obj) => {
-          assert_eq(obj.get("code"), Some((200).to_json()))
-          assert_eq(obj.get("messageId"), Some("msg_001".to_json()))
+          @debug.assert_eq(obj.get("code"), Some((200).to_json()))
+          @debug.assert_eq(obj.get("messageId"), Some("msg_001".to_json()))
         }
         _ => assert_true(false)
       }
@@ -321,10 +321,10 @@ test "dingtalk_stream_callback_ack_flow" {
   }
   match parse_stream_frame(ping_json) {
     Ok((ft, _)) => {
-      assert_eq(ft, "SYSTEM")
+      @debug.assert_eq(ft, "SYSTEM")
       let pong = build_stream_pong()
       match pong {
-        Object(obj) => assert_eq(obj.get("type"), Some("pong".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("type"), Some("pong".to_json()))
         _ => assert_true(false)
       }
     }
@@ -342,8 +342,8 @@ test "dingtalk_token_request_and_parse_flow" {
   let new_api_body = client.build_access_token_request()
   match new_api_body {
     Object(obj) => {
-      assert_eq(obj.get("appKey"), Some("appkey1".to_json()))
-      assert_eq(obj.get("appSecret"), Some("appsecret1".to_json()))
+      @debug.assert_eq(obj.get("appKey"), Some("appkey1".to_json()))
+      @debug.assert_eq(obj.get("appSecret"), Some("appsecret1".to_json()))
     }
     _ => assert_true(false)
   }
@@ -356,8 +356,8 @@ test "dingtalk_token_request_and_parse_flow" {
   }
   match DingTalkApiClient::parse_token_response(new_api_resp) {
     Ok((tok, exp)) => {
-      assert_eq(tok, "new_tok_abc")
-      assert_eq(exp, 7200)
+      @debug.assert_eq(tok, "new_tok_abc")
+      @debug.assert_eq(exp, 7200)
     }
     Err(_) => assert_true(false)
   }
@@ -374,8 +374,8 @@ test "dingtalk_token_request_and_parse_flow" {
   }
   match DingTalkApiClient::parse_token_response(oapi_resp) {
     Ok((tok, exp)) => {
-      assert_eq(tok, "oapi_tok_xyz")
-      assert_eq(exp, 7200)
+      @debug.assert_eq(tok, "oapi_tok_xyz")
+      @debug.assert_eq(exp, 7200)
     }
     Err(_) => assert_true(false)
   }
@@ -423,14 +423,14 @@ test "feishu_resolve_mentions_multiple" {
     Json::object({ "key": "@_user_2".to_json(), "name": "Bob".to_json() }),
   ]
   let result = resolve_feishu_mentions("@_user_1 and @_user_2 meet", mentions)
-  assert_eq(result, "@Alice and @Bob meet")
+  @debug.assert_eq(result, "@Alice and @Bob meet")
 }
 
 ///|
 test "feishu_extract_doc_urls_multiple" {
   let text = "Check https://docs.feishu.cn/docx/abc and https://mycompany.feishu.cn/wiki/xyz"
   let urls = extract_feishu_doc_urls(text)
-  assert_eq(urls.length(), 2)
+  @debug.assert_eq(urls.length(), 2)
 }
 
 ///|
@@ -441,8 +441,8 @@ test "feishu_parse_message_file_type" {
   }
   match parse_feishu_message(msg) {
     Ok(parsed) => {
-      assert_eq(parsed.msg_type, "file")
-      assert_eq(parsed.attachments.length(), 1)
+      @debug.assert_eq(parsed.msg_type, "file")
+      @debug.assert_eq(parsed.attachments.length(), 1)
     }
     Err(_) => assert_true(false)
   }
@@ -457,26 +457,26 @@ test "weixin_send_queue_multiple_messages" {
   q.enqueue({ chat_id: "c1", text: "msg1", context_token: "t1", retry_count: 0 })
   q.enqueue({ chat_id: "c1", text: "msg2", context_token: "t2", retry_count: 0 })
   q.enqueue({ chat_id: "c1", text: "msg3", context_token: "t3", retry_count: 1 })
-  assert_eq(q.pending_count(), 3)
+  @debug.assert_eq(q.pending_count(), 3)
   assert_true(q.should_flush())
 
   // Dequeue in order
   match q.dequeue() {
-    Some(m) => assert_eq(m.text, "msg1")
+    Some(m) => @debug.assert_eq(m.text, "msg1")
     None => assert_true(false)
   }
   match q.dequeue() {
-    Some(m) => assert_eq(m.text, "msg2")
+    Some(m) => @debug.assert_eq(m.text, "msg2")
     None => assert_true(false)
   }
   match q.dequeue() {
     Some(m) => {
-      assert_eq(m.text, "msg3")
-      assert_eq(q.calculate_retry_delay(m.retry_count), 2000)
+      @debug.assert_eq(m.text, "msg3")
+      @debug.assert_eq(q.calculate_retry_delay(m.retry_count), 2000)
     }
     None => assert_true(false)
   }
-  assert_eq(q.pending_count(), 0)
+  @debug.assert_eq(q.pending_count(), 0)
   assert_false(q.should_flush())
 }
 
@@ -484,7 +484,7 @@ test "weixin_send_queue_multiple_messages" {
 test "weixin_sanitize_complex_markdown" {
   let md = "**bold** and *italic* with `code` and [link](https://example.com)"
   let clean = sanitize_for_weixin(md)
-  assert_eq(clean, "bold and italic with code and link")
+  @debug.assert_eq(clean, "bold and italic with code and link")
 }
 
 ///|
@@ -514,7 +514,7 @@ test "cross_platform_dedup_different_platforms" {
   // Actually, dedup is based on message digest which includes platform, so this should pass through
   // But we can't easily test telegram webhook without a registered adapter
   // Just verify first event was received
-  assert_eq(received_count, 1)
+  @debug.assert_eq(received_count, 1)
 }
 
 // ── Feishu: Content builder round-trip ──────────────────────────────────────
@@ -524,7 +524,7 @@ test "feishu_text_content_roundtrip" {
   let content = build_feishu_text_content("Hello World")
   match content {
     Object(obj) => {
-      assert_eq(obj.get("msg_type"), Some("text".to_json()))
+      @debug.assert_eq(obj.get("msg_type"), Some("text".to_json()))
       // content field is a serialized JSON string (using Show trait, not strict JSON)
       assert_true(obj.get("content") is Some(_))
     }
@@ -536,7 +536,8 @@ test "feishu_text_content_roundtrip" {
 test "feishu_card_content_roundtrip" {
   let content = build_feishu_card_content("```rust\nfn main() {}\n```")
   match content {
-    Object(obj) => assert_eq(obj.get("msg_type"), Some("interactive".to_json()))
+    Object(obj) =>
+      @debug.assert_eq(obj.get("msg_type"), Some("interactive".to_json()))
     _ => assert_true(false)
   }
 }
@@ -551,7 +552,7 @@ test "http_full_request_response_flow" {
     .content_type("application/json")
     .set("User-Agent", "DiscordBot (test)")
   let arr = headers.to_array()
-  assert_eq(arr.length(), 3)
+  @debug.assert_eq(arr.length(), 3)
 
   // Build request body
   let payload : Map[String, Json] = {}
@@ -572,7 +573,7 @@ test "http_full_request_response_flow" {
   match err_resp {
     Ok(json) => {
       let err_msg = extract_api_error(json)
-      assert_eq(err_msg, "Missing Access")
+      @debug.assert_eq(err_msg, "Missing Access")
     }
     Err(_) => assert_true(false)
   }
@@ -582,10 +583,10 @@ test "http_full_request_response_flow" {
 test "retry_config_backoff_sequence" {
   let rc = RetryConfig::default()
   // Verify exponential sequence: 1000, 2000, 4000, 8000
-  assert_eq(rc.delay_for_attempt(0), 1000)
-  assert_eq(rc.delay_for_attempt(1), 2000)
-  assert_eq(rc.delay_for_attempt(2), 4000)
-  assert_eq(rc.delay_for_attempt(3), 8000)
+  @debug.assert_eq(rc.delay_for_attempt(0), 1000)
+  @debug.assert_eq(rc.delay_for_attempt(1), 2000)
+  @debug.assert_eq(rc.delay_for_attempt(2), 4000)
+  @debug.assert_eq(rc.delay_for_attempt(3), 8000)
 }
 
 // ── Weixin: AES mode detection ──────────────────────────────────────────────
@@ -607,5 +608,5 @@ test "weixin_media_encryption_check" {
 ///|
 test "weixin_aes_key_build" {
   let (key, _iv) = build_weixin_aes_key("12345678901234567890123456789012extra")
-  assert_eq(key.length(), 32)
+  @debug.assert_eq(key.length(), 32)
 }

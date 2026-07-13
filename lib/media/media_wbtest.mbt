@@ -50,8 +50,8 @@ test "detect_provider_openrouter_as_openai" {
 test "media_request_image" {
   let req = MediaRequest::image("a cat", "/tmp")
   assert_true(req.media_type == Image)
-  assert_eq(req.prompt, "a cat")
-  assert_eq(req.output_dir, "/tmp")
+  @debug.assert_eq(req.prompt, "a cat")
+  @debug.assert_eq(req.output_dir, "/tmp")
   assert_true(req.aspect_ratio is None)
 }
 
@@ -142,7 +142,7 @@ test "parse_openai_image_response_b64" {
     "data": Json::array([Json::object({ "b64_json": "abc123".to_json() })]),
   })
   match parse_openai_image_response(response) {
-    Ok(data) => assert_eq(data, "abc123")
+    Ok(data) => @debug.assert_eq(data, "abc123")
     Err(e) => fail("unexpected error: " + e)
   }
 }
@@ -155,7 +155,7 @@ test "parse_openai_image_response_url" {
     ]),
   })
   match parse_openai_image_response(response) {
-    Ok(url) => assert_eq(url, "https://img.example.com/1.png")
+    Ok(url) => @debug.assert_eq(url, "https://img.example.com/1.png")
     Err(e) => fail("unexpected error: " + e)
   }
 }
@@ -210,7 +210,7 @@ test "parse_gemini_image_response_success" {
     ]),
   })
   match parse_gemini_image_response(response) {
-    Ok(data) => assert_eq(data, "base64data")
+    Ok(data) => @debug.assert_eq(data, "base64data")
     Err(e) => fail("unexpected error: " + e)
   }
 }
@@ -239,7 +239,7 @@ test "parse_dashscope_response_url" {
     }),
   })
   match parse_dashscope_response(response) {
-    Ok(url) => assert_eq(url, "https://oss.example.com/img.png")
+    Ok(url) => @debug.assert_eq(url, "https://oss.example.com/img.png")
     Err(e) => fail("unexpected error: " + e)
   }
 }
@@ -250,7 +250,7 @@ test "parse_dashscope_response_task_id" {
     "output": Json::object({ "task_id": "t12345".to_json() }),
   })
   match parse_dashscope_response(response) {
-    Ok(val) => assert_eq(val, "task:t12345")
+    Ok(val) => @debug.assert_eq(val, "task:t12345")
     Err(e) => fail("unexpected error: " + e)
   }
 }
@@ -261,9 +261,9 @@ test "parse_dashscope_response_task_id" {
 
 ///|
 test "provider_name_values" {
-  assert_eq(provider_name(OpenAICompat), "openai_compat")
-  assert_eq(provider_name(Gemini), "gemini")
-  assert_eq(provider_name(DashScope), "dashscope")
+  @debug.assert_eq(provider_name(OpenAICompat), "openai_compat")
+  @debug.assert_eq(provider_name(Gemini), "gemini")
+  @debug.assert_eq(provider_name(DashScope), "dashscope")
 }
 
 ///|
@@ -271,7 +271,13 @@ test "media_error_raise_catch" {
   try {
     raise MediaError("generation failed")
   } catch {
-    MediaError(msg) => inspect(msg, content="generation failed")
+    MediaError(msg) =>
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"generation failed"
+        ),
+      )
   }
 }
 
@@ -286,7 +292,7 @@ test "generator_route_to_openai" {
   let result = gen.generate_image(req)
   // Should route to OpenAI and fail with not-implemented
   assert_false(result.success)
-  assert_eq(result.provider, "openai_compat")
+  @debug.assert_eq(result.provider, "openai_compat")
 }
 
 ///|
@@ -299,7 +305,7 @@ test "generator_route_to_gemini" {
   let req = MediaRequest::image("test", "/out")
   let result = gen.generate_image(req)
   assert_false(result.success)
-  assert_eq(result.provider, "gemini")
+  @debug.assert_eq(result.provider, "gemini")
 }
 
 // ============================================================
@@ -309,13 +315,13 @@ test "generator_route_to_gemini" {
 ///|
 test "media_output_dir_new" {
   let dir = MediaOutputDir::new("/tmp/media")
-  assert_eq(dir.get_path(), "/tmp/media/media")
+  @debug.assert_eq(dir.get_path(), "/tmp/media/media")
 }
 
 ///|
 test "media_output_dir_with_prefix" {
   let dir = MediaOutputDir::with_prefix("/tmp/media", "images")
-  assert_eq(dir.get_path(), "/tmp/media/images")
+  @debug.assert_eq(dir.get_path(), "/tmp/media/images")
 }
 
 ///|
@@ -333,52 +339,52 @@ test "media_output_dir_generate_filename_increments" {
   let f1 = dir.generate_filename("img", "png")
   let f2 = dir.generate_filename("img", "png")
   let f3 = dir.generate_filename("img", "jpg")
-  assert_eq(f1, "img_1.png")
-  assert_eq(f2, "img_2.png")
-  assert_eq(f3, "img_3.jpg")
+  @debug.assert_eq(f1, "img_1.png")
+  @debug.assert_eq(f2, "img_2.png")
+  @debug.assert_eq(f3, "img_3.jpg")
 }
 
 ///|
 test "media_output_dir_generate_path" {
   let dir = MediaOutputDir::new("/tmp")
   let path = dir.generate_path("sub", "clip", "mp4")
-  assert_eq(path, "/tmp/media/sub/clip_1.mp4")
+  @debug.assert_eq(path, "/tmp/media/sub/clip_1.mp4")
 }
 
 ///|
 test "media_output_dir_list_files_empty" {
   let dir = MediaOutputDir::new("/tmp")
   let files = dir.list_files()
-  assert_eq(files.length(), 0)
+  @debug.assert_eq(files.length(), 0)
 }
 
 ///|
 test "media_output_dir_cleanup_returns_zero" {
   let dir = MediaOutputDir::new("/tmp")
-  assert_eq(dir.cleanup(24), 0)
+  @debug.assert_eq(dir.cleanup(24), 0)
 }
 
 ///|
 test "media_output_dir_total_size_returns_zero" {
   let dir = MediaOutputDir::new("/tmp")
-  assert_eq(dir.total_size(), 0L)
+  @debug.assert_eq(dir.total_size(), 0L)
 }
 
 ///|
 test "sanitize_filename_normal" {
-  assert_eq(sanitize_filename("hello"), "hello")
+  @debug.assert_eq(sanitize_filename("hello"), "hello")
 }
 
 ///|
 test "sanitize_filename_illegal_chars" {
-  assert_eq(sanitize_filename("my file/name"), "my_file_name")
-  assert_eq(sanitize_filename("a:b"), "a_b")
-  assert_eq(sanitize_filename("a*b?c"), "a_b_c")
+  @debug.assert_eq(sanitize_filename("my file/name"), "my_file_name")
+  @debug.assert_eq(sanitize_filename("a:b"), "a_b")
+  @debug.assert_eq(sanitize_filename("a*b?c"), "a_b_c")
 }
 
 ///|
 test "sanitize_filename_empty" {
-  assert_eq(sanitize_filename(""), "unnamed")
+  @debug.assert_eq(sanitize_filename(""), "unnamed")
 }
 
 // ============================================================
@@ -388,20 +394,20 @@ test "sanitize_filename_empty" {
 ///|
 test "media_generator_config_default" {
   let cfg = MediaGeneratorConfig::default("https://api.example.com", "sk-key")
-  assert_eq(cfg.base_url, "https://api.example.com")
-  assert_eq(cfg.api_key, "sk-key")
+  @debug.assert_eq(cfg.base_url, "https://api.example.com")
+  @debug.assert_eq(cfg.api_key, "sk-key")
   assert_true(cfg.model is None)
-  assert_eq(cfg.output_dir, "./output")
-  assert_eq(cfg.timeout_seconds, 30)
-  assert_eq(cfg.retry_count, 3)
-  assert_eq(cfg.max_file_size_mb, 50)
+  @debug.assert_eq(cfg.output_dir, "./output")
+  @debug.assert_eq(cfg.timeout_seconds, 30)
+  @debug.assert_eq(cfg.retry_count, 3)
+  @debug.assert_eq(cfg.max_file_size_mb, 50)
 }
 
 ///|
 test "media_generator_config_validate_valid" {
   let cfg = MediaGeneratorConfig::default("https://api.example.com", "sk-key")
   let errors = cfg.validate()
-  assert_eq(errors.length(), 0)
+  @debug.assert_eq(errors.length(), 0)
 }
 
 ///|
@@ -432,7 +438,7 @@ test "media_generator_config_validate_all_invalid" {
     max_file_size_mb: 0,
   }
   let errors = cfg.validate()
-  assert_eq(errors.length(), 5)
+  @debug.assert_eq(errors.length(), 5)
 }
 
 // ============================================================
@@ -442,7 +448,7 @@ test "media_generator_config_validate_all_invalid" {
 ///|
 test "provider_capabilities_openai" {
   let caps = provider_capabilities(OpenAICompat)
-  assert_eq(caps.length(), 2)
+  @debug.assert_eq(caps.length(), 2)
   assert_true(caps.contains(ImageGen))
   assert_true(caps.contains(SpeechSynth))
 }
@@ -450,7 +456,7 @@ test "provider_capabilities_openai" {
 ///|
 test "provider_capabilities_gemini" {
   let caps = provider_capabilities(Gemini)
-  assert_eq(caps.length(), 2)
+  @debug.assert_eq(caps.length(), 2)
   assert_true(caps.contains(ImageGen))
   assert_true(caps.contains(VideoGen))
 }
@@ -458,7 +464,7 @@ test "provider_capabilities_gemini" {
 ///|
 test "provider_capabilities_dashscope" {
   let caps = provider_capabilities(DashScope)
-  assert_eq(caps.length(), 1)
+  @debug.assert_eq(caps.length(), 1)
   assert_true(caps.contains(ImageGen))
 }
 
@@ -490,8 +496,8 @@ test "provider_supports_dashscope_no_speech" {
 test "create_generator_from_config" {
   let cfg = MediaGeneratorConfig::default("https://api.openai.com/v1", "sk-key")
   let gen = cfg.create_generator()
-  assert_eq(gen.base_url, "https://api.openai.com/v1")
-  assert_eq(gen.api_key, "sk-key")
+  @debug.assert_eq(gen.base_url, "https://api.openai.com/v1")
+  @debug.assert_eq(gen.api_key, "sk-key")
   assert_true(gen.model is None)
 }
 
@@ -512,8 +518,8 @@ test "create_generator_with_model" {
 
 ///|
 test "capability_name_values" {
-  assert_eq(capability_name(ImageGen), "Image Generation")
-  assert_eq(capability_name(VideoGen), "Video Generation")
-  assert_eq(capability_name(AudioGen), "Audio Generation")
-  assert_eq(capability_name(SpeechSynth), "Speech Synthesis")
+  @debug.assert_eq(capability_name(ImageGen), "Image Generation")
+  @debug.assert_eq(capability_name(VideoGen), "Video Generation")
+  @debug.assert_eq(capability_name(AudioGen), "Audio Generation")
+  @debug.assert_eq(capability_name(SpeechSynth), "Speech Synthesis")
 }

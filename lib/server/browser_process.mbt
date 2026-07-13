@@ -97,7 +97,7 @@ pub fn BrowserProcess::write_line(
   if !self.alive {
     return Err("Process is not alive")
   }
-  let data = (line + "\n").to_bytes()
+  let data = @utf8.encode(line + "\n")
   let result = write_process_stdin_ffi(self.handle, data, data.length())
   if result < 0 {
     self.alive = false

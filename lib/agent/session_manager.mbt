@@ -171,7 +171,7 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
         chunk_count: 0,
       }
       save_session(forked) catch {
-        e => return Err("Failed to save forked session: \{e}")
+        e => return Err("Failed to save forked session: \{@debug.to_string(e)}")
       }
       Ok(forked)
     }
@@ -246,7 +246,7 @@ pub fn write_chunk(
   let filename = session_id + "-chunk-" + index.to_string() + ".md"
   let chunk_path = @path.Path::join(dir, @path.Path(filename)).to_string()
   @fs.write_string_to_file(chunk_path, content) catch {
-    e => return Err("Failed to write chunk: \{e}")
+    e => return Err("Failed to write chunk: \{@debug.to_string(e)}")
   }
   Ok(chunk_path)
 }

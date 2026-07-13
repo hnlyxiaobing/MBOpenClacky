@@ -15,10 +15,6 @@ pub(all) struct BrowserManager {
 let mcp_handshake_timeout : Int = 15
 
 ///|
-/// MCP call timeout in seconds
-let mcp_call_timeout : Int = 30
-
-///|
 /// Create a new BrowserManager
 pub fn BrowserManager::new(config_path : String) -> BrowserManager {
   {

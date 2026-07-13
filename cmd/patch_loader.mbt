@@ -10,7 +10,7 @@ pub(all) struct PatchInfo {
   target_module : String
   command : String
   enabled : Bool
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// PatchLoader scans a directory for patch description files and applies them.
@@ -83,9 +83,9 @@ pub fn PatchLoader::apply_patches(
       }
     }
   }
-  groups.each(fn(module, module_patches) {
+  groups.each(fn(module_name, module_patches) {
     println(
-      "[PatchLoader] Applying \{module_patches.length()} patch(es) to module: \{module}",
+      "[PatchLoader] Applying \{module_patches.length()} patch(es) to module_name: \{module_name}",
     )
     for p in module_patches {
       if p.command.trim().to_owned().is_empty() {

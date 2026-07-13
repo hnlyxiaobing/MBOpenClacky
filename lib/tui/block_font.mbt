@@ -22,7 +22,7 @@ pub enum BlockFontStyle {
   Banner
   /// Same bitmap with a one-cell drop shadow drawn in light shade.
   Shadow
-} derive(Eq, Show)
+} derive(Eq)
 
 ///|
 /// Height in rows of a single Standard-style glyph.

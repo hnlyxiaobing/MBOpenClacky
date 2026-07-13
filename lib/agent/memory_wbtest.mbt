@@ -2,57 +2,57 @@
 
 ///|
 test "memory_category_to_string" {
-  inspect(
+  @debug.debug_inspect(
     UserPreference.to_string_value(),
     content=(
-      #|user_preference
+      #|"user_preference"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     ProjectInfo.to_string_value(),
     content=(
-      #|project_info
+      #|"project_info"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     TaskSummary.to_string_value(),
     content=(
-      #|task_summary
+      #|"task_summary"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     ExpertKnowledge.to_string_value(),
     content=(
-      #|expert_knowledge
+      #|"expert_knowledge"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     LearnedSkill.to_string_value(),
     content=(
-      #|learned_skill
+      #|"learned_skill"
     ),
   )
 }
 
 ///|
 test "memory_category_from_string_valid" {
-  inspect(
+  @debug.debug_inspect(
     MemoryCategory::from_string("user_preference"),
     content="Some(UserPreference)",
   )
-  inspect(
+  @debug.debug_inspect(
     MemoryCategory::from_string("project_info"),
     content="Some(ProjectInfo)",
   )
-  inspect(
+  @debug.debug_inspect(
     MemoryCategory::from_string("task_summary"),
     content="Some(TaskSummary)",
   )
-  inspect(
+  @debug.debug_inspect(
     MemoryCategory::from_string("expert_knowledge"),
     content="Some(ExpertKnowledge)",
   )
-  inspect(
+  @debug.debug_inspect(
     MemoryCategory::from_string("learned_skill"),
     content="Some(LearnedSkill)",
   )
@@ -60,18 +60,18 @@ test "memory_category_from_string_valid" {
 
 ///|
 test "memory_category_from_string_invalid" {
-  inspect(MemoryCategory::from_string("unknown"), content="None")
-  inspect(MemoryCategory::from_string(""), content="None")
+  @debug.debug_inspect(MemoryCategory::from_string("unknown"), content="None")
+  @debug.debug_inspect(MemoryCategory::from_string(""), content="None")
 }
 
 ///|
 test "memory_store_new" {
   let store = MemoryStore::new("/tmp/memory.json")
-  inspect(store.size(), content="0")
-  inspect(
+  @debug.debug_inspect(store.size(), content="0")
+  @debug.debug_inspect(
     store.storage_path,
     content=(
-      #|/tmp/memory.json
+      #|"/tmp/memory.json"
     ),
   )
 }
@@ -80,26 +80,26 @@ test "memory_store_new" {
 test "memory_store_add" {
   let store = MemoryStore::new("/tmp/mem")
   let e = store.add("Test title", "Test content", ProjectInfo, ["key1", "key2"])
-  inspect(
+  @debug.debug_inspect(
     e.id,
     content=(
-      #|mem_1
+      #|"mem_1"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     e.title,
     content=(
-      #|Test title
+      #|"Test title"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     e.content,
     content=(
-      #|Test content
+      #|"Test content"
     ),
   )
-  inspect(e.category, content="ProjectInfo")
-  inspect(store.size(), content="1")
+  @debug.debug_inspect(e.category, content="ProjectInfo")
+  @debug.debug_inspect(store.size(), content="1")
 }
 
 ///|
@@ -107,19 +107,19 @@ test "memory_store_add_multiple_ids" {
   let store = MemoryStore::new("/tmp/mem")
   let e1 = store.add("First", "Content 1", UserPreference, [])
   let e2 = store.add("Second", "Content 2", TaskSummary, [])
-  inspect(
+  @debug.debug_inspect(
     e1.id,
     content=(
-      #|mem_1
+      #|"mem_1"
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     e2.id,
     content=(
-      #|mem_2
+      #|"mem_2"
     ),
   )
-  inspect(store.size(), content="2")
+  @debug.debug_inspect(store.size(), content="2")
 }
 
 ///|
@@ -127,13 +127,13 @@ test "memory_store_get" {
   let store = MemoryStore::new("/tmp/mem")
   let e = store.add("Find Me", "Content", ExpertKnowledge, ["expert"])
   let found = store.get(e.id)
-  inspect(found is None, content="false")
+  @debug.debug_inspect(found is None, content="false")
   match found {
     Some(entry) =>
-      inspect(
+      @debug.debug_inspect(
         entry.title,
         content=(
-          #|Find Me
+          #|"Find Me"
         ),
       )
     None => fail("Expected to find entry")
@@ -144,7 +144,7 @@ test "memory_store_get" {
 test "memory_store_get_missing" {
   let store = MemoryStore::new("/tmp/mem")
   let found = store.get("mem_999")
-  inspect(found is None, content="true")
+  @debug.debug_inspect(found is None, content="true")
 }
 
 ///|
@@ -152,13 +152,13 @@ test "memory_store_update" {
   let store = MemoryStore::new("/tmp/mem")
   let e = store.add("Title", "Old content", LearnedSkill, ["old"])
   let ok = store.update(e.id, "New content")
-  inspect(ok, content="true")
+  @debug.debug_inspect(ok, content="true")
   match store.get(e.id) {
     Some(updated) =>
-      inspect(
+      @debug.debug_inspect(
         updated.content,
         content=(
-          #|New content
+          #|"New content"
         ),
       )
     None => fail("Entry should exist after update")
@@ -169,24 +169,24 @@ test "memory_store_update" {
 test "memory_store_update_missing" {
   let store = MemoryStore::new("/tmp/mem")
   let ok = store.update("mem_999", "New content")
-  inspect(ok, content="false")
+  @debug.debug_inspect(ok, content="false")
 }
 
 ///|
 test "memory_store_delete" {
   let store = MemoryStore::new("/tmp/mem")
   let e = store.add("Delete Me", "content", ProjectInfo, [])
-  inspect(store.size(), content="1")
+  @debug.debug_inspect(store.size(), content="1")
   let ok = store.delete(e.id)
-  inspect(ok, content="true")
-  inspect(store.size(), content="0")
+  @debug.debug_inspect(ok, content="true")
+  @debug.debug_inspect(store.size(), content="0")
 }
 
 ///|
 test "memory_store_delete_missing" {
   let store = MemoryStore::new("/tmp/mem")
   let ok = store.delete("mem_999")
-  inspect(ok, content="false")
+  @debug.debug_inspect(ok, content="false")
 }
 
 ///|
@@ -195,11 +195,11 @@ test "memory_store_search_by_title" {
   let _ = store.add("MoonBit tips", "content", ExpertKnowledge, [])
   let _ = store.add("Ruby notes", "content", ProjectInfo, [])
   let results = store.search("moonbit", None)
-  inspect(results.length(), content="1")
-  inspect(
+  @debug.debug_inspect(results.length(), content="1")
+  @debug.debug_inspect(
     results[0].title,
     content=(
-      #|MoonBit tips
+      #|"MoonBit tips"
     ),
   )
 }
@@ -212,11 +212,11 @@ test "memory_store_search_by_keyword" {
   ])
   let _ = store.add("Other title", "content", UserPreference, ["ruby", "rails"])
   let results = store.search("compiler", None)
-  inspect(results.length(), content="1")
-  inspect(
+  @debug.debug_inspect(results.length(), content="1")
+  @debug.debug_inspect(
     results[0].keywords[0],
     content=(
-      #|moonbit
+      #|"moonbit"
     ),
   )
 }
@@ -226,7 +226,7 @@ test "memory_store_search_no_results" {
   let store = MemoryStore::new("/tmp/mem")
   let _ = store.add("Title", "content", TaskSummary, ["key"])
   let results = store.search("nonexistent_xyz", None)
-  inspect(results.length(), content="0")
+  @debug.debug_inspect(results.length(), content="0")
 }
 
 ///|
@@ -235,8 +235,8 @@ test "memory_store_search_with_category_filter" {
   let _ = store.add("Skill entry", "content", LearnedSkill, ["skill"])
   let _ = store.add("Expert entry", "content", ExpertKnowledge, ["skill"])
   let results = store.search("skill", Some(LearnedSkill))
-  inspect(results.length(), content="1")
-  inspect(results[0].category, content="LearnedSkill")
+  @debug.debug_inspect(results.length(), content="1")
+  @debug.debug_inspect(results[0].category, content="LearnedSkill")
 }
 
 ///|
@@ -246,7 +246,7 @@ test "memory_store_by_category" {
   let _ = store.add("B", "content", UserPreference, [])
   let _ = store.add("C", "content", ProjectInfo, [])
   let results = store.by_category(ProjectInfo)
-  inspect(results.length(), content="2")
+  @debug.debug_inspect(results.length(), content="2")
 }
 
 ///|
@@ -255,7 +255,7 @@ test "memory_store_all" {
   let _ = store.add("A", "c1", ProjectInfo, [])
   let _ = store.add("B", "c2", LearnedSkill, [])
   let all = store.all()
-  inspect(all.length(), content="2")
+  @debug.debug_inspect(all.length(), content="2")
 }
 
 ///|
@@ -267,25 +267,25 @@ test "memory_store_to_json_and_load" {
 
   let store2 = MemoryStore::new("/tmp/mem")
   store2.load_from_json(json)
-  inspect(store2.size(), content="2")
+  @debug.debug_inspect(store2.size(), content="2")
   match store2.get("mem_1") {
     Some(e) => {
-      inspect(
+      @debug.debug_inspect(
         e.title,
         content=(
-          #|Title One
+          #|"Title One"
         ),
       )
-      inspect(e.category, content="ExpertKnowledge")
+      @debug.debug_inspect(e.category, content="ExpertKnowledge")
     }
     None => fail("Entry mem_1 should exist after load")
   }
   match store2.get("mem_2") {
     Some(e) =>
-      inspect(
+      @debug.debug_inspect(
         e.title,
         content=(
-          #|Title Two
+          #|"Title Two"
         ),
       )
     None => fail("Entry mem_2 should exist after load")
@@ -295,10 +295,10 @@ test "memory_store_to_json_and_load" {
 ///|
 test "memory_store_summary_empty" {
   let store = MemoryStore::new("/tmp/mem")
-  inspect(
+  @debug.debug_inspect(
     store.summary(),
     content=(
-      #|No memories stored.
+      #|"No memories stored."
     ),
   )
 }

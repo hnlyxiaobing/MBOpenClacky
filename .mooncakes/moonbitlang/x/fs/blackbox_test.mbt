@@ -33,10 +33,10 @@ test "write_and_read" {
   let content_2 = "Hello, MoonBit"
   @fs.write_bytes_to_file(path_1, @encoding.encode(UTF16, content_1))
   let res_1 = @fs.read_file_to_bytes(path_1)
-  inspect(res_1.to_unchecked_string(), content=content_1)
+  @debug.debug_inspect(res_1.to_unchecked_string(), content=content_1)
   @fs.write_string_to_file(path_2, content_2)
   let res_2 = @fs.read_file_to_string(path_2)
-  inspect(res_2, content=content_2)
+  @debug.debug_inspect(res_2, content=content_2)
   @fs.remove_file(path_1)
   @fs.remove_file(path_2)
   @fs.remove_dir(dir)
@@ -71,7 +71,7 @@ test "read_dir" {
   @fs.write_string_to_file(file_b, "b")
   let files = @fs.read_dir(dir)
   files.sort()
-  inspect(
+  @debug.debug_inspect(
     files,
     content=(
       #|["file_a.txt", "file_b.txt", ".hidden_dir", "example_dir"]
@@ -104,7 +104,7 @@ test "create_dir_and_remove_dir" {
 ///|
 #warnings("-deprecated")
 test "io_error show" {
-  inspect(
+  @debug.debug_inspect(
     @fs.IOError("boom"),
     content=(
       #|IOError("boom")

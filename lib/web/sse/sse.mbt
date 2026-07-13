@@ -19,7 +19,7 @@ pub fn format_sse_event(
   data : Json,
   id? : Int = -1,
 ) -> String {
-  let data_str = data.to_string()
+  let data_str = @debug.to_string(data)
   if id >= 0 {
     "id: \{id}\nevent: \{event_type}\ndata: \{data_str}\n\n"
   } else {

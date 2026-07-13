@@ -1,4 +1,6 @@
 import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/string",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/client",
@@ -31,4 +33,5 @@ import {
 
 options(
   "native-stub": [ "git_exec.c" ],
+  link: { "native": { "cc-link-flags": "-lcurl" } },
 )

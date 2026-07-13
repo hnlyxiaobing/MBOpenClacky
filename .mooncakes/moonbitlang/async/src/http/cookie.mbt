@@ -71,7 +71,7 @@ fn Cookie::parse(line : StringView) -> Cookie raise {
         "path" => path = Some(value.to_owned())
         "expires" => expires_raw = Some(value.to_owned())
         "max-age" => {
-          let value = @string.parse_int64(value) catch { _ => raise BadRequest }
+          let value = @strconv.parse_int64(value) catch { _ => raise BadRequest }
           max_age = Some(value)
         }
         "domain" => domain = Some(value.to_owned())

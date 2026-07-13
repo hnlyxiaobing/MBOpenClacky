@@ -30,7 +30,7 @@ async test "aqueue basic" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|put(0)
@@ -68,7 +68,7 @@ async test "aqueue multi-reader" {
     queue.put(1)
     queue.put(2)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 2: get => 1
@@ -94,7 +94,7 @@ async test "aqueue cancellation" {
     @async.TimeoutError => ()
     err => raise err
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|`queue.get()` cancelled with Cancelled
@@ -116,7 +116,7 @@ async test "aqueue cancellation no_swallow" {
     @async.sleep(100)
     debug_inspect(q.try_get(), content="None")
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|get() => 42
@@ -149,7 +149,7 @@ async test "aqueue fairness" {
     queue.put(3)
     queue.put(4)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 1: get => 1
@@ -185,7 +185,7 @@ async test "aqueue fairness2" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 1: get => 1

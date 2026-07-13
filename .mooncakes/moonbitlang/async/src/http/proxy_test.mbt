@@ -25,7 +25,7 @@ async test "passthrough mode" {
       defer conn.close()
       let request = conn.read_request()
       debug_inspect(request.meth, content="Connect")
-      inspect(request.path, content="/path")
+      @debug.debug_inspect(request.path, content="/path")
       conn..send_response(200, "OK").end_response()
       conn.enter_passthrough_mode()
       while conn.read_some() is Some(packet) {
@@ -36,7 +36,7 @@ async test "passthrough mode" {
     let client = @http.Client("http://localhost:\{server_addr.port()}")
     defer client.close()
     let response = client..request(Connect, "/path").end_request()
-    inspect(response.code, content="200")
+    @debug.debug_inspect(response.code, content="200")
     client.enter_passthrough_mode()
     for packet in ["abcd", "efgh", "ijkl"] {
       log.push("client sending: \{packet}")
@@ -62,9 +62,9 @@ async test "passthrough mode remaining data" {
       defer conn.close()
       let request = conn.read_request()
       debug_inspect(request.meth, content="Get")
-      inspect(request.path, content="/")
+      @debug.debug_inspect(request.path, content="/")
       conn.enter_passthrough_mode()
-      inspect(conn.read_all().text(), content="remaining data")
+      @debug.debug_inspect(conn.read_all().text(), content="remaining data")
     }
     let client = @socket.Tcp::connect(
       @socket.Addr::parse("127.0.0.1:\{server_addr.port()}"),
@@ -91,7 +91,7 @@ async fn handle_connect(
   }
   let client = try {
     let host = request.path[:index]
-    let port = @string.parse_int(request.path[index + 1:])
+    let port = @strconv.parse_int(request.path[index + 1:])
     @socket.Tcp::connect_to_host(host, port~)
   } catch {
     err => {
@@ -217,7 +217,7 @@ async test "proxy error" {
       )
     catch {
       err =>
-        inspect(
+        @debug.debug_inspect(
           err,
           content=(
             #|ProxyError({code: 407, reason: "ProxyAuthenticationRequired", headers: {"content-length": "0"}})

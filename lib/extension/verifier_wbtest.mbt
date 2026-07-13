@@ -5,41 +5,41 @@ test "validate_manifest rejects empty id" {
   let manifest = sample_manifest("valid-id")
   let bad = { ..manifest, id: "" }
   let result = validate_manifest(bad, "/tmp/does-not-matter")
-  assert_eq(result.valid, false)
-  assert_eq(result.errors.length() > 0, true)
+  @debug.assert_eq(result.valid, false)
+  @debug.assert_eq(result.errors.length() > 0, true)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
   let joined = messages.join("; ")
-  assert_eq(joined.contains("id"), true)
+  @debug.assert_eq(joined.contains("id"), true)
 }
 
 ///|
 test "validate_manifest rejects id with uppercase characters" {
   let manifest = sample_manifest("BadID")
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
-  assert_eq(result.valid, false)
+  @debug.assert_eq(result.valid, false)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
   let joined = messages.join("; ")
-  assert_eq(joined.contains("lowercase"), true)
+  @debug.assert_eq(joined.contains("lowercase"), true)
 }
 
 ///|
 test "validate_manifest rejects id with leading dash" {
   let manifest = sample_manifest("-bad-id")
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
-  assert_eq(result.valid, false)
+  @debug.assert_eq(result.valid, false)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
   let joined = messages.join("; ")
-  assert_eq(joined.contains("dash"), true)
+  @debug.assert_eq(joined.contains("dash"), true)
 }
 
 ///|
 test "validate_manifest rejects bad version" {
   let manifest = { ..sample_manifest("good-id"), version: "1" }
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
-  assert_eq(result.valid, false)
+  @debug.assert_eq(result.valid, false)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
   let joined = messages.join("; ")
-  assert_eq(joined.contains("Invalid version"), true)
+  @debug.assert_eq(joined.contains("Invalid version"), true)
 }
 
 ///|
@@ -50,7 +50,7 @@ test "validate_manifest accepts a clean manifest structurally" {
   // Resource check will likely flag missing contribution paths, so this just
   // ensures we did not return early on structural errors.
   let _ = result
-  assert_eq(true, true)
+  @debug.assert_eq(true, true)
 }
 
 ///|
@@ -70,8 +70,8 @@ test "validate_manifest flags missing required fields" {
     enabled_by_default: true,
   }
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
-  assert_eq(result.valid, false)
-  assert_eq(result.errors.length() >= 6, true)
+  @debug.assert_eq(result.valid, false)
+  @debug.assert_eq(result.errors.length() >= 6, true)
 }
 
 ///|
@@ -79,9 +79,9 @@ test "validate_manifest warns about dependencies" {
   let deps : Map[String, String] = { "other-ext": "^1.0.0" }
   let manifest = { ..sample_manifest("with-deps"), dependencies: deps }
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
-  assert_eq(result.warnings.length() > 0, true)
+  @debug.assert_eq(result.warnings.length() > 0, true)
   let joined = result.warnings.join("; ")
-  assert_eq(
+  @debug.assert_eq(
     joined.contains("Dependencies are not automatically resolved"),
     true,
   )
@@ -110,10 +110,10 @@ test "validate_manifest rejects duplicate contribution ids" {
     contributions: [contrib_a, contrib_b],
   }
   let result = validate_manifest(manifest, ".")
-  assert_eq(result.valid, false)
+  @debug.assert_eq(result.valid, false)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
   let joined = messages.join("; ")
-  assert_eq(joined.contains("duplicate"), true)
+  @debug.assert_eq(joined.contains("duplicate"), true)
 }
 
 ///|

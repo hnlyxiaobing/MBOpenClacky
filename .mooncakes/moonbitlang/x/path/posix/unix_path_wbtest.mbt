@@ -15,78 +15,78 @@
 ///|
 test "Unix absolute path" {
   let path = UnixPath::parse("/../folder/file")
-  inspect(path, content="/folder/file")
+  @debug.debug_inspect(path, content="/folder/file")
   let path = UnixPath::parse("/folder/file")
-  inspect(path, content="/folder/file")
+  @debug.debug_inspect(path, content="/folder/file")
   let path = UnixPath::parse("/")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
 }
 
 ///|
 test "Unix path normalization" {
   let path = UnixPath::parse("./a/b/./c/../d/../..")
-  inspect(path, content="a")
+  @debug.debug_inspect(path, content="a")
   let path = UnixPath::parse("/a/b/..")
-  inspect(path, content="/a")
+  @debug.debug_inspect(path, content="/a")
   let path = UnixPath::parse("/../..")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
   let path = UnixPath::parse("/../a/b/../c/../../..")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
   let path = UnixPath::parse("/../a/b/../c/../..")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
   let path = UnixPath::parse("/../a/b/../c")
-  inspect(path, content="/a/c")
+  @debug.debug_inspect(path, content="/a/c")
 }
 
 ///|
 test "Unix relative path" {
   let path = UnixPath::parse("./folder/file")
-  inspect(path, content="folder/file")
+  @debug.debug_inspect(path, content="folder/file")
   let path = UnixPath::parse("containers/finger_tree")
-  inspect(path, content="containers/finger_tree")
+  @debug.debug_inspect(path, content="containers/finger_tree")
   let path = UnixPath::parse("containers/finger_tree/finger_tree.mbt")
-  inspect(path, content="containers/finger_tree/finger_tree.mbt")
+  @debug.debug_inspect(path, content="containers/finger_tree/finger_tree.mbt")
 }
 
 ///|
 test "Unix inner path normalization for slashes" {
   let path = UnixPath::parse("./a//b////c")
-  inspect(path, content="a/b/c")
+  @debug.debug_inspect(path, content="a/b/c")
 }
 
 ///|
 test "Unix slashes normalization" {
   let path = UnixPath::parse("///home/username/project")
-  inspect(path, content="/home/username/project")
+  @debug.debug_inspect(path, content="/home/username/project")
   let path = UnixPath::parse(".//a/b//c/e////d")
-  inspect(path, content="a/b/c/e/d")
+  @debug.debug_inspect(path, content="a/b/c/e/d")
 }
 
 ///|
 test "Unix multiple tailing slashes normalization" {
   let path = UnixPath::parse("/folder//")
-  inspect(path, content="/folder")
+  @debug.debug_inspect(path, content="/folder")
   let path = UnixPath::parse("./a/b/c///")
-  inspect(path, content="a/b/c")
+  @debug.debug_inspect(path, content="a/b/c")
   let path = UnixPath::parse("./a/b/c////")
-  inspect(path, content="a/b/c")
+  @debug.debug_inspect(path, content="a/b/c")
 }
 
 ///|
 test "Unix edge cases" {
   let path = UnixPath::parse("/")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
   let path = UnixPath::parse("./")
-  inspect(path)
+  @debug.debug_inspect(path)
   let path = UnixPath::parse("//")
-  inspect(path, content="//")
+  @debug.debug_inspect(path, content="//")
   let path = UnixPath::parse("///")
-  inspect(path, content="/")
+  @debug.debug_inspect(path, content="/")
 }
 
 ///|
 test "PathError show" {
-  inspect(
+  @debug.debug_inspect(
     PathError::PathError(
       start=3,
       message="Unix path: empty path component not allowed",

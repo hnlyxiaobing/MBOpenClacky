@@ -36,7 +36,7 @@ async test "group defer basic" {
       @async.sleep(1000)
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|second task finished
@@ -81,7 +81,7 @@ async test "group defer error" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|second task raise error
@@ -131,7 +131,7 @@ async test "group defer cancelled" {
     |> ignore
     log <+ "group terminated\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick

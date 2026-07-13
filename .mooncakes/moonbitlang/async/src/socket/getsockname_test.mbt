@@ -25,8 +25,8 @@ async test "getsockname TCP" {
       defer server.close()
       let (conn, peer_addr) = server.accept()
       defer conn.close()
-      assert_eq(conn.addr, server_addr)
-      inspect(conn.read_all().text(), content="abcd")
+      @debug.assert_eq(conn.addr, server_addr)
+      @debug.debug_inspect(conn.read_all().text(), content="abcd")
       peer_addr
     })
     let client_addr = group.spawn(() => {
@@ -35,7 +35,7 @@ async test "getsockname TCP" {
       client.write("abcd")
       client.addr
     })
-    assert_eq(client_addr_from_server.wait(), client_addr.wait())
+    @debug.assert_eq(client_addr_from_server.wait(), client_addr.wait())
   }
 }
 
@@ -53,7 +53,7 @@ async test "getsockname UDP" {
       let buf = FixedArray::make(1024, b'\x00')
       let (n, peer_addr) = server.recvfrom(buf)
       let data = buf.unsafe_reinterpret_as_bytes()[:n]
-      inspect(@utf8.decode(data), content="abcd")
+      @debug.debug_inspect(@utf8.decode(data), content="abcd")
       peer_addr
     })
     let client_addr = group.spawn(() => {
@@ -62,6 +62,6 @@ async test "getsockname UDP" {
       client.send(b"abcd")
       client.addr
     })
-    assert_eq(client_addr_from_server.wait(), client_addr.wait())
+    @debug.assert_eq(client_addr_from_server.wait(), client_addr.wait())
   }
 }

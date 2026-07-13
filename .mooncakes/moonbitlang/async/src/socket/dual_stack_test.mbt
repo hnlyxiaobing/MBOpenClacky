@@ -55,7 +55,7 @@ async test "Only_V4 server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received "message" from 127.0.0.1
@@ -108,7 +108,7 @@ async test "Only_V6 server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::1]
@@ -154,7 +154,7 @@ async test "dual stack server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::ffff:127.0.0.1]
@@ -205,7 +205,7 @@ async test "Only_V4 UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received "message" from 127.0.0.1
@@ -257,7 +257,7 @@ async test "Only_V6 UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|client(FavorV4): Ok(())
@@ -306,7 +306,7 @@ async test "dual stack UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::ffff:127.0.0.1]

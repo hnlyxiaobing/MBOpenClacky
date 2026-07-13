@@ -348,7 +348,7 @@ pub fn StatusCode::to_int(self : StatusCode) -> Int {
 
 ///|
 test {
-  inspect(StatusCode::OK.to_int(), content="200")
-  inspect(StatusCode::from_int(200), content="OK")
-  inspect(StatusCode::from_int(599), content="Custom(599)")
+  @debug.debug_inspect(StatusCode::OK.to_int(), content="200")
+  @debug.debug_inspect(StatusCode::from_int(200), content="OK")
+  @debug.debug_inspect(StatusCode::from_int(599), content="Custom(599)")
 }

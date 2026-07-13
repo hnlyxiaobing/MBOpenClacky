@@ -20,7 +20,7 @@ async test "Promise::from_async" {
       42
     }
   })
-  inspect(result, content="42")
+  @debug.debug_inspect(result, content="42")
 }
 
 ///|
@@ -82,7 +82,7 @@ async test "read file" {
   let content = @js_async.run_promise(signal => {
     (fsPromises.readFile)("LICENSE", { encoding: "utf8", signal })
   })
-  inspect(
+  @debug.debug_inspect(
     content,
     content=(
       #|

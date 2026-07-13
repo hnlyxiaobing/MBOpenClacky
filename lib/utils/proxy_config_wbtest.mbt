@@ -6,17 +6,17 @@
 ///|
 test "proxy_config: new is empty and disabled" {
   let p = ProxyConfig::new()
-  assert_eq(p.proxy_url(), "")
-  assert_eq(p.current_epoch(), 0)
+  @debug.assert_eq(p.proxy_url(), "")
+  @debug.assert_eq(p.current_epoch(), 0)
   assert_false(p.is_enabled())
 }
 
 ///|
 test "proxy_config: install with explicit url enables proxy" {
   let p = ProxyConfig::install(proxy_url="http://proxy:8080")
-  assert_eq(p.proxy_url(), "http://proxy:8080")
+  @debug.assert_eq(p.proxy_url(), "http://proxy:8080")
   assert_true(p.is_enabled())
-  assert_eq(p.current_epoch(), 1)
+  @debug.assert_eq(p.current_epoch(), 1)
 }
 
 ///|
@@ -57,14 +57,14 @@ test "proxy_config: should_bypass is case-insensitive" {
 test "proxy_config: reset clears url and bumps epoch" {
   let p = ProxyConfig::install(proxy_url="http://proxy:8080")
   let r = p.reset()
-  assert_eq(r.proxy_url(), "")
+  @debug.assert_eq(r.proxy_url(), "")
   assert_false(r.is_enabled())
-  assert_eq(r.current_epoch(), 2)
+  @debug.assert_eq(r.current_epoch(), 2)
 }
 
 ///|
 test "proxy_config: install with empty url stays disabled" {
   let p = ProxyConfig::install(proxy_url="")
   assert_false(p.is_enabled())
-  assert_eq(p.proxy_url(), "")
+  @debug.assert_eq(p.proxy_url(), "")
 }

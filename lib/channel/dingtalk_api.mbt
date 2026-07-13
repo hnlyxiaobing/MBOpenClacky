@@ -273,7 +273,7 @@ pub fn DingTalkApiClient::build_send_msg_param(
     }
     _ => param.set("content", content.to_json())
   }
-  Json::object(param).to_string()
+  Json::object(param).stringify()
 }
 
 ///|

@@ -47,7 +47,7 @@ let utf_8_len : ReadOnlyArray[Int] = [
 /// # Examples
 ///
 /// ```moonbit
-/// let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
+/// let inputs = [b"abc", b"\u{f0}", b"\u{9f}\u{90}\u{b0}"] // UTF8(🐰) == <F09F 90B0>
 /// let decoder = decoder(UTF8)
 /// inspect(decoder.consume(inputs[0]), content="abc")
 /// inspect(decoder.consume(inputs[1]), content="")
@@ -93,7 +93,7 @@ pub fn decoder(encoding : Encoding) -> Decoder {
 ///
 /// ```moonbit check
 /// test {
-///   let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
+///   let inputs = [b"abc", b"\u{f0}", b"\u{9f}\u{90}\u{b0}"] // UTF8(🐰) == <F09F 90B0>
 ///   let decoder = @encoding.decoder(UTF8)
 ///   inspect(decoder.decode(inputs[0], stream=true), content="abc")
 ///   inspect(decoder.decode(inputs[1], stream=true), content="")
@@ -654,14 +654,14 @@ fn r_utf_16_lo(
   if lo < 0xDC00 || lo > 0xDFFF {
     // NOTE(jinser): only hi malformed, skip lo if lo is illegal
     //
-    // For example, b"\xD8\x00\x00\x48" (BE)
-    // Since \xD8\x00 is *legal* hi, here will try to parse lo next,
-    // however the whole \xD8\x00\x00\x48 is *illegal* so the result will be a `Malformed[b"\xD8\x00\x00\x48"]`
+    // For example, b"\u{D8}\u{00}\u{00}\u{48}" (BE)
+    // Since \u{D8}\u{00} is *legal* hi, here will try to parse lo next,
+    // however the whole \u{D8}\u{00}\u{00}\u{48} is *illegal* so the result will be a `Malformed[b"\u{D8}\u{00}\u{00}\u{48}"]`
     //
-    // But \x00\x48 itself is a *legal* UTF16 code point with a value of `H`,
-    // the ideal result should be: `[Malformed(b"\xD8\x00"), Uchar('H')]`
+    // But \u{00}\u{48} itself is a *legal* UTF16 code point with a value of `H`,
+    // the ideal result should be: `[Malformed(b"\u{D8}\u{00}"), Uchar('H')]`
     //
-    // > printf '\xD8\x00\x00\x48' | uconv --from-code UTF16BE --to-code UTF8 --from-callback substitute
+    // > printf '\u{D8}\u{00}\u{00}\u{48}' | uconv --from-code UTF16BE --to-code UTF8 --from-callback substitute
     // �H
     Malformed([bytes[offset0], bytes[offset1]])
   } else {

@@ -14,7 +14,7 @@ test "HttpMethod round-trips through string conversion" {
   for meth in meths {
     let s = meth.to_method_string()
     let back = HttpMethod::from_string(s)
-    assert_eq(meth, back)
+    @debug.assert_eq(meth, back)
   }
 }
 
@@ -22,7 +22,7 @@ test "HttpMethod round-trips through string conversion" {
 test "HttpMethod::from_string handles unknown methods" {
   let custom = HttpMethod::from_string("PURGE")
   assert_true(custom is Other(_))
-  assert_eq(custom.to_method_string(), "PURGE")
+  @debug.assert_eq(custom.to_method_string(), "PURGE")
 }
 
 ///|
@@ -33,12 +33,12 @@ test "HttpMethod pattern matching in handlers" {
     Post => "post"
     _ => "other"
   }
-  assert_eq(result, "get")
+  @debug.assert_eq(result, "get")
 }
 
 ///|
 test "HttpMethod string interpolation via Show" {
   let meth : HttpMethod = Post
   let s = "\{meth}"
-  assert_eq(s, "POST")
+  @debug.assert_eq(s, "POST")
 }

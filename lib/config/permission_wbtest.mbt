@@ -4,9 +4,12 @@
 
 ///|
 test "permission_mode: to_string_value mappings" {
-  assert_eq(PermissionMode::to_string_value(AutoApprove), "auto_approve")
-  assert_eq(PermissionMode::to_string_value(ConfirmSafes), "confirm_safes")
-  assert_eq(PermissionMode::to_string_value(ConfirmAll), "confirm_all")
+  @debug.assert_eq(PermissionMode::to_string_value(AutoApprove), "auto_approve")
+  @debug.assert_eq(
+    PermissionMode::to_string_value(ConfirmSafes),
+    "confirm_safes",
+  )
+  @debug.assert_eq(PermissionMode::to_string_value(ConfirmAll), "confirm_all")
 }
 
 ///|

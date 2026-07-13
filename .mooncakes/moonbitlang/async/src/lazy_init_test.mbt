@@ -48,7 +48,7 @@ async test "lazy init failure" {
   }
 
   let result = try? x.wait()
-  inspect(current_tick(), content="1")
+  @debug.debug_inspect(current_tick(), content="1")
   debug_inspect(
     result,
     content=(
@@ -56,7 +56,7 @@ async test "lazy init failure" {
     ),
   )
   let result = try? x.wait()
-  inspect(current_tick(), content="1")
+  @debug.debug_inspect(current_tick(), content="1")
   debug_inspect(
     result,
     content=(

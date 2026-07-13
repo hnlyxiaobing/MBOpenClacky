@@ -31,7 +31,7 @@ pub fn[T] Stack::new() -> Stack[T] {
 ///|
 test "new" {
   let s : Stack[Int] = new()
-  inspect(s, content="Stack::[]")
+  @debug.debug_inspect(s, content="Stack::[]")
 }
 
 ///|
@@ -50,8 +50,8 @@ pub fn[T] Stack::from_array(array : Array[T]) -> Stack[T] {
 ///|
 test "from_array" {
   let s = Stack::from_array([1, 2, 3])
-  inspect(s, content="Stack::[1, 2, 3]")
-  inspect(s.len, content="3")
+  @debug.debug_inspect(s, content="Stack::[1, 2, 3]")
+  @debug.debug_inspect(s.len, content="3")
 }
 
 ///|
@@ -64,8 +64,8 @@ pub fn[T] Stack::from_iter(iter : Iter[T]) -> Stack[T] {
 ///|
 test "from_iter" {
   let s = Stack::from_iter([1, 2, 3].iter())
-  inspect(s, content="Stack::[1, 2, 3]")
-  inspect(s.len, content="3")
+  @debug.debug_inspect(s, content="Stack::[1, 2, 3]")
+  @debug.debug_inspect(s.len, content="3")
 }
 
 ///|
@@ -85,7 +85,7 @@ pub fn[T] Stack::of(array : FixedArray[T]) -> Stack[T] {
 ///|
 test "of" {
   let s = of([1, 2, 3])
-  inspect(s, content="Stack::[1, 2, 3]")
+  @debug.debug_inspect(s, content="Stack::[1, 2, 3]")
 }
 
 ///|
@@ -105,8 +105,8 @@ pub impl[T : Show] Show for Stack[T] with output(self, logger : &Logger) -> Unit
 ///|
 test "to_string" {
   let empty : Stack[Int] = new()
-  inspect(empty, content="Stack::[]")
-  inspect(of([1, 2, 3, 4, 5]), content="Stack::[1, 2, 3, 4, 5]")
+  @debug.debug_inspect(empty, content="Stack::[]")
+  @debug.debug_inspect(of([1, 2, 3, 4, 5]), content="Stack::[1, 2, 3, 4, 5]")
 }
 
 ///|
@@ -127,7 +127,7 @@ pub fn[T] Stack::from_stack(other : Stack[T]) -> Stack[T] {
 test "from_stack" {
   let s = of([1, 2, 3])
   let s1 = Stack::from_stack(s)
-  inspect(s1.elements == s.elements, content="true")
+  @debug.debug_inspect(s1.elements == s.elements, content="true")
 }
 
 ///|
@@ -149,7 +149,7 @@ pub fn[T] Stack::clear(self : Stack[T]) -> Unit {
 test "clear" {
   let s = of([1, 2, 3])
   s.clear()
-  inspect(s, content="Stack::[]")
+  @debug.debug_inspect(s, content="Stack::[]")
 }
 
 ///|
@@ -169,7 +169,7 @@ pub fn[T] Stack::return_with_clear(self : Stack[T]) -> Stack[T] {
 ///|
 test "return_with_clear" {
   let s = of([1, 2, 3]).return_with_clear()
-  inspect(s, content="Stack::[]")
+  @debug.debug_inspect(s, content="Stack::[]")
 }
 
 ///|
@@ -191,8 +191,8 @@ pub fn[T] Stack::push(self : Stack[T], x : T) -> Unit {
 test "push" {
   let s = new()
   s.push(1)
-  inspect(s, content="Stack::[1]")
-  inspect(s.len, content="1")
+  @debug.debug_inspect(s, content="Stack::[1]")
+  @debug.debug_inspect(s.len, content="1")
 }
 
 ///|
@@ -215,8 +215,8 @@ test "push_stack" {
   let s = of([1, 2, 3])
   let s1 : Stack[Int] = new()
   s1.push_stack(s)
-  inspect(s1, content="Stack::[3, 2, 1]")
-  inspect(s.length() == s1.length(), content="true")
+  @debug.debug_inspect(s1, content="Stack::[3, 2, 1]")
+  @debug.debug_inspect(s.length() == s1.length(), content="true")
 }
 
 ///|
@@ -237,8 +237,8 @@ pub fn[T] Stack::push_array(self : Stack[T], array : Array[T]) -> Unit {
 test "push_array" {
   let s : Stack[Int] = new()
   s.push_array([1, 2, 3])
-  inspect(s, content="Stack::[3, 2, 1]")
-  inspect(s.len, content="3")
+  @debug.debug_inspect(s, content="Stack::[3, 2, 1]")
+  @debug.debug_inspect(s.len, content="3")
 }
 
 ///|
@@ -269,12 +269,12 @@ pub fn[T] Stack::pop(self : Stack[T]) -> T? {
 test "pop" {
   let s = of([1, 2, 3])
   let s1 : Stack[Int] = new()
-  inspect(s.pop(), content="Some(1)")
-  inspect(s, content="Stack::[2, 3]")
-  inspect(s.len, content="2")
-  inspect(s1.pop(), content="None")
-  inspect(s1, content="Stack::[]")
-  inspect(s1.len, content="0")
+  @debug.debug_inspect(s.pop(), content="Some(1)")
+  @debug.debug_inspect(s, content="Stack::[2, 3]")
+  @debug.debug_inspect(s.len, content="2")
+  @debug.debug_inspect(s1.pop(), content="None")
+  @debug.debug_inspect(s1, content="Stack::[]")
+  @debug.debug_inspect(s1.len, content="0")
 }
 
 ///|
@@ -296,9 +296,9 @@ pub fn[T] Stack::unsafe_pop(self : Stack[T]) -> T {
 ///|
 test "unsafe_pop" {
   let s = of([1, 2, 3])
-  inspect(s.unsafe_pop(), content="1")
-  inspect(s, content="Stack::[2, 3]")
-  inspect(s.len, content="2")
+  @debug.debug_inspect(s.unsafe_pop(), content="1")
+  @debug.debug_inspect(s, content="Stack::[2, 3]")
+  @debug.debug_inspect(s.len, content="2")
 }
 
 ///|
@@ -326,8 +326,8 @@ pub fn[T] Stack::drop(self : Stack[T]) -> Unit {
 test "drop" {
   let s = of([1, 2, 3])
   s.drop()
-  inspect(s, content="Stack::[2, 3]")
-  inspect(s.len, content="2")
+  @debug.debug_inspect(s, content="Stack::[2, 3]")
+  @debug.debug_inspect(s.len, content="2")
 }
 
 ///|
@@ -356,10 +356,10 @@ pub fn[T] Stack::drop_result(self : Stack[T]) -> Result[Unit, Unit] {
 test "drop_result" {
   let s = of([1, 2, 3])
   let s1 : Stack[Int] = new()
-  inspect(s1.drop_result() == Err(()), content="true")
-  inspect(s.drop_result() == Ok(()), content="true")
-  inspect(s, content="Stack::[2, 3]")
-  inspect(s.len, content="2")
+  @debug.debug_inspect(s1.drop_result() == Err(()), content="true")
+  @debug.debug_inspect(s.drop_result() == Ok(()), content="true")
+  @debug.debug_inspect(s, content="Stack::[2, 3]")
+  @debug.debug_inspect(s.len, content="2")
 }
 
 ///|
@@ -380,9 +380,9 @@ pub fn[T] Stack::peek(self : Stack[T]) -> T? {
 ///|
 test "peek" {
   let s = of([1, 2, 3])
-  inspect(s.peek(), content="Some(1)")
-  inspect(s, content="Stack::[1, 2, 3]")
-  inspect(s.len, content="3")
+  @debug.debug_inspect(s.peek(), content="Some(1)")
+  @debug.debug_inspect(s, content="Stack::[1, 2, 3]")
+  @debug.debug_inspect(s.len, content="3")
 }
 
 ///|
@@ -397,9 +397,9 @@ pub fn[T] Stack::unsafe_peek(self : Stack[T]) -> T {
 ///|
 test "unsafe_peek" {
   let s : Stack[Int] = of([1, 2, 3])
-  inspect(s.unsafe_peek(), content="1")
-  inspect(s, content="Stack::[1, 2, 3]")
-  inspect(s.len, content="3")
+  @debug.debug_inspect(s.unsafe_peek(), content="1")
+  @debug.debug_inspect(s, content="Stack::[1, 2, 3]")
+  @debug.debug_inspect(s.len, content="3")
 }
 
 ///|
@@ -420,8 +420,8 @@ pub fn[T] Stack::is_empty(self : Stack[T]) -> Bool {
 ///|
 test "is_empty" {
   let empty : Stack[Unit] = new()
-  inspect(of([1, 2, 3]).is_empty(), content="false")
-  inspect(empty.is_empty(), content="true")
+  @debug.debug_inspect(of([1, 2, 3]).is_empty(), content="false")
+  @debug.debug_inspect(empty.is_empty(), content="true")
 }
 
 ///|
@@ -450,17 +450,17 @@ test "iter" {
   let mut sum = 0
   let mut sub = 0
   s.each(fn(i) { sum = sum + i })
-  inspect(sum, content="0")
+  @debug.debug_inspect(sum, content="0")
   s.push(1)
   s.push(2)
   s.push(3)
-  inspect(s.unsafe_peek(), content="3")
+  @debug.debug_inspect(s.unsafe_peek(), content="3")
   sum = 0
   sub = s.unsafe_peek()
   s.each(fn(i) { sum = sum + i })
   s.each(fn(i) { sub = sub - i }) // 3 - 3 - 2 - 1
-  inspect(sum, content="6")
-  inspect(sub, content="-3")
+  @debug.debug_inspect(sum, content="6")
+  @debug.debug_inspect(sub, content="-3")
 }
 
 ///|
@@ -480,7 +480,7 @@ pub fn[T, U] Stack::fold(self : Stack[T], init~ : U, f : (U, T) -> U) -> U {
 test "fold" {
   let s = of([1, 2, 3])
   let sum = s.fold(init=0, fn(acc, i) { acc + i })
-  inspect(sum, content="6")
+  @debug.debug_inspect(sum, content="6")
 }
 
 ///|
@@ -493,7 +493,7 @@ test "fold" {
 /// stack.push(3)
 /// stack.push(2)
 /// stack.push(1)
-/// inspect(stack.iter(), content="[1, 2, 3]")
+/// @debug.debug_inspect(stack.iter(), content="[1, 2, 3]")
 /// ```
 pub fn[T] Stack::iter(self : Stack[T]) -> Iter[T] {
   self.elements.iter()
@@ -513,7 +513,7 @@ pub fn[T] Stack::to_array(self : Stack[T]) -> Array[T] {
 
 ///|
 test "to_array" {
-  inspect(of([3, 2, 1]).to_array(), content="[3, 2, 1]")
+  @debug.debug_inspect(of([3, 2, 1]).to_array(), content="[3, 2, 1]")
 }
 
 ///|
@@ -542,6 +542,6 @@ pub fn[T : Eq] Stack::op_equal(self : Stack[T], other : Stack[T]) -> Bool {
 
 ///|
 test "equal" {
-  inspect(of([2, 4, 6]).equal(of([2, 4, 6])), content="true")
-  inspect(of([2, 4, 6]).equal(of([2, 4, 7])), content="false")
+  @debug.debug_inspect(of([2, 4, 6]).equal(of([2, 4, 6])), content="true")
+  @debug.debug_inspect(of([2, 4, 6]).equal(of([2, 4, 7])), content="false")
 }

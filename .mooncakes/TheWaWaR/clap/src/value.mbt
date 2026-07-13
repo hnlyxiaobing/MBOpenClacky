@@ -5,7 +5,7 @@ pub(all) struct SimpleValue {
   flags : @hashmap.HashMap[String, Bool]
   positional_args : Array[String]
   mut subcmd : SimpleValue?
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Create a simple value to hold the parsed result

@@ -68,6 +68,11 @@ priv struct SessionManagerState {
 let session_manager_state : SessionManagerState = { sessions: [], next_id: 0 }
 
 ///|
+let _terminal_session_manager : TerminalSessionManager = TerminalSessionManager::{
+
+}
+
+///|
 /// Session manager operations (namespace via empty struct).
 pub struct TerminalSessionManager {}
 

@@ -56,7 +56,7 @@ async test "connection burst" {
       root.spawn_bg(() => client(b"exit", addr))
     }
   }
-  inspect(result, content="7")
+  @debug.debug_inspect(result, content="7")
 }
 
 ///|
@@ -78,5 +78,5 @@ async test "connection burst with ipv6" {
       root.spawn_bg(() => client(b"exit", addr))
     }
   }
-  inspect(result, content="7")
+  @debug.debug_inspect(result, content="7")
 }

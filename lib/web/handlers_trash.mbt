@@ -25,18 +25,14 @@ pub(all) struct TrashStats {
 ///|
 /// In-memory trash state loaded from disk on first access.
 /// Persisted to ~/.mbopenclacky/trash.json after mutations.
-struct TrashState {
+priv struct TrashState {
   mut items : Array[TrashItem]
   mut loaded : Bool
 }
 
 ///|
 /// Global trash state singleton (module-level mutable).
-let trash_state : Ref[TrashState] = Ref::new({ items: [], loaded: false })
-
-///|
-/// Counter for generating unique IDs.
-let trash_id_counter : Ref[Int] = Ref::new(0)
+let trash_state : Ref[TrashState] = Ref({ items: [], loaded: false })
 
 ///|
 /// Path to the trash state file.
@@ -45,14 +41,6 @@ fn trash_file_path() -> String {
     Some(dir) => @path.Path::join(dir, @path.Path("trash.json")).to_string()
     None => ".mbopenclacky/trash.json"
   }
-}
-
-///|
-/// Generate a unique trash item ID.
-fn next_trash_id() -> String {
-  let ts = @async.now()
-  trash_id_counter.val = trash_id_counter.val + 1
-  "trash-\{ts}-\{trash_id_counter.val}"
 }
 
 ///|

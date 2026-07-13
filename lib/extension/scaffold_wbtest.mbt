@@ -3,12 +3,12 @@
 ///|
 test "default_template seeds sensible defaults" {
   let t = default_template("my-ext", "My Extension")
-  assert_eq(t.id, "my-ext")
-  assert_eq(t.name, "My Extension")
-  assert_eq(t.version, "0.1.0")
-  assert_eq(t.author, "Your Name")
-  assert_eq(t.license, "MIT")
-  assert_eq(t.contributions.length() >= 1, true)
+  @debug.assert_eq(t.id, "my-ext")
+  @debug.assert_eq(t.name, "My Extension")
+  @debug.assert_eq(t.version, "0.1.0")
+  @debug.assert_eq(t.author, "Your Name")
+  @debug.assert_eq(t.license, "MIT")
+  @debug.assert_eq(t.contributions.length() >= 1, true)
 }
 
 ///|
@@ -33,24 +33,24 @@ test "create_extension_scaffold writes manifest, contributions, and README" {
     Ok(d) => d
     Err(e) => {
       println("scaffold failed: " + e.to_string())
-      assert_eq(true, false)
+      @debug.assert_eq(true, false)
       ""
     }
   }
-  assert_eq(@fs.path_exists(ext_dir), true)
-  assert_eq(
+  @debug.assert_eq(@fs.path_exists(ext_dir), true)
+  @debug.assert_eq(
     @fs.path_exists(
       @path.Path::join(ext_dir, @path.Path("ext.yml")).to_string(),
     ),
     true,
   )
-  assert_eq(
+  @debug.assert_eq(
     @fs.path_exists(
       @path.Path::join(ext_dir, @path.Path("contributions")).to_string(),
     ),
     true,
   )
-  assert_eq(
+  @debug.assert_eq(
     @fs.path_exists(
       @path.Path::join(ext_dir, @path.Path("README.md")).to_string(),
     ),
@@ -60,11 +60,11 @@ test "create_extension_scaffold writes manifest, contributions, and README" {
   let loaded = load_single_extension(ext_dir, ExtensionSource::Local)
   match loaded {
     Some(e) => {
-      assert_eq(e.manifest.id, "wbtest-scaffold")
-      assert_eq(e.manifest.name, "WbTest Scaffold")
-      assert_eq(e.manifest.contributions.length() == 2, true)
+      @debug.assert_eq(e.manifest.id, "wbtest-scaffold")
+      @debug.assert_eq(e.manifest.name, "WbTest Scaffold")
+      @debug.assert_eq(e.manifest.contributions.length() == 2, true)
     }
-    None => assert_eq(true, false)
+    None => @debug.assert_eq(true, false)
   }
   // Cleanup so the test is hermetic.
   pre_clean(ext_dir)
@@ -80,14 +80,14 @@ test "create_extension_scaffold rejects duplicate directory" {
     Ok(d) => d
     Err(e) => {
       println("unexpected: " + e.to_string())
-      assert_eq(true, false)
+      @debug.assert_eq(true, false)
       ""
     }
   }
   let second = create_extension_scaffold(template, output_dir=Some(dir))
   match second {
-    Ok(_) => assert_eq(true, false)
-    Err(msg) => assert_eq(msg.contains("already exists"), true)
+    Ok(_) => @debug.assert_eq(true, false)
+    Err(msg) => @debug.assert_eq(msg.contains("already exists"), true)
   }
   let ext_dir = @path.Path::join(dir, @path.Path("dup-ext")).to_string()
   pre_clean(ext_dir)

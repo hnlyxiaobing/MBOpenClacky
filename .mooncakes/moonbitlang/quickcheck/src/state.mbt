@@ -247,7 +247,7 @@ priv struct Coverage {
 
 ///|
 fn Coverage::new() -> Coverage {
-  { labels: @sorted_map.new(), classes: Map::new() }
+  { labels: @sorted_map.new(), classes: Map([]) }
 }
 
 ///|

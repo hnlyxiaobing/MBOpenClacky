@@ -3,7 +3,13 @@ test "agent_interrupted_raise_catch" {
   try {
     raise AgentInterrupted("user cancelled")
   } catch {
-    AgentInterrupted(msg) => inspect(msg, content="user cancelled")
+    AgentInterrupted(msg) =>
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"user cancelled"
+        ),
+      )
   }
 }
 
@@ -12,7 +18,13 @@ test "agent_error_raise_catch" {
   try {
     raise AgentError("something went wrong")
   } catch {
-    AgentError(msg) => inspect(msg, content="something went wrong")
+    AgentError(msg) =>
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"something went wrong"
+        ),
+      )
   }
 }
 
@@ -22,8 +34,13 @@ test "bad_request_error_raise_catch" {
     raise BadRequestError(400, "invalid request")
   } catch {
     BadRequestError(status, msg) => {
-      assert_eq(status, 400)
-      inspect(msg, content="invalid request")
+      @debug.assert_eq(status, 400)
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"invalid request"
+        ),
+      )
     }
   }
 }
@@ -34,8 +51,18 @@ test "tool_call_error_raise_catch" {
     raise ToolCallError("file_reader", "file not found")
   } catch {
     ToolCallError(tool_name, msg) => {
-      inspect(tool_name, content="file_reader")
-      inspect(msg, content="file not found")
+      @debug.debug_inspect(
+        tool_name,
+        content=(
+          #|"file_reader"
+        ),
+      )
+      @debug.debug_inspect(
+        msg,
+        content=(
+          #|"file not found"
+        ),
+      )
     }
   }
 }

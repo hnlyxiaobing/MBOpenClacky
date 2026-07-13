@@ -2,15 +2,15 @@
 test "agent_config_default_values" {
   let config = AgentConfig::default()
   assert_true(config.permission_mode == ConfirmSafes)
-  assert_eq(config.max_tokens, 16384)
+  @debug.assert_eq(config.max_tokens, 16384)
   assert_false(config.verbose)
   assert_true(config.enable_compression)
   assert_true(config.enable_prompt_caching)
   assert_true(config.models.is_empty())
   assert_true(config.current_model_id is None)
   assert_false(config.memory_update_enabled)
-  assert_eq(config.max_running_agents, 10)
-  assert_eq(config.max_idle_agents, 10)
+  @debug.assert_eq(config.max_running_agents, 10)
+  @debug.assert_eq(config.max_idle_agents, 10)
 }
 
 ///|
@@ -38,7 +38,7 @@ test "api_type_roundtrip" {
   ]
   let mut i = 0
   while i < types.length() {
-    assert_eq(types[i].to_string_value(), expected[i])
+    @debug.assert_eq(types[i].to_string_value(), expected[i])
     let parsed = ApiType::from_string(expected[i])
     assert_true(parsed is Some(_))
     assert_true(parsed.unwrap() == types[i])
@@ -54,7 +54,7 @@ test "api_type_from_string_invalid" {
 ///|
 test "providers_all_has_twelve_providers" {
   let all = Providers::all()
-  assert_eq(all.length(), 12)
+  @debug.assert_eq(all.length(), 12)
 }
 
 ///|
@@ -66,7 +66,7 @@ test "providers_find_known" {
   for id in ids {
     let found = Providers::find(id)
     assert_true(found is Some(_))
-    assert_eq(found.unwrap().id, id)
+    @debug.assert_eq(found.unwrap().id, id)
   }
 }
 
@@ -79,30 +79,30 @@ test "providers_find_unknown" {
 test "providers_resolve_by_base_url" {
   let p = Providers::resolve("https://api.anthropic.com")
   assert_true(p is Some(_))
-  assert_eq(p.unwrap().id, "anthropic")
+  @debug.assert_eq(p.unwrap().id, "anthropic")
 
   let p2 = Providers::resolve("https://api.openai.com/v1")
   assert_true(p2 is Some(_))
-  assert_eq(p2.unwrap().id, "openai")
+  @debug.assert_eq(p2.unwrap().id, "openai")
 
   assert_true(Providers::resolve("https://unknown.example.com") is None)
 
   // New providers
   let p3 = Providers::resolve("https://api.minimaxi.com/v1")
   assert_true(p3 is Some(_))
-  assert_eq(p3.unwrap().id, "minimax")
+  @debug.assert_eq(p3.unwrap().id, "minimax")
 
   let p4 = Providers::resolve("https://api.moonshot.cn/v1")
   assert_true(p4 is Some(_))
-  assert_eq(p4.unwrap().id, "kimi")
+  @debug.assert_eq(p4.unwrap().id, "kimi")
 
   let p5 = Providers::resolve("https://api.kimi.com/coding")
   assert_true(p5 is Some(_))
-  assert_eq(p5.unwrap().id, "kimi-coding")
+  @debug.assert_eq(p5.unwrap().id, "kimi-coding")
 
   let p6 = Providers::resolve("https://open.bigmodel.cn/api/paas/v4")
   assert_true(p6 is Some(_))
-  assert_eq(p6.unwrap().id, "glm")
+  @debug.assert_eq(p6.unwrap().id, "glm")
 }
 
 ///|
@@ -111,7 +111,7 @@ test "providers_lite_model_mapping" {
     "https://api.openclacky.com", "abs-claude-opus-4-7",
   )
   assert_true(lite is Some(_))
-  assert_eq(lite.unwrap(), "abs-claude-haiku-4-5")
+  @debug.assert_eq(lite.unwrap(), "abs-claude-haiku-4-5")
 
   assert_true(
     Providers::lite_model("https://api.openclacky.com", "unknown-model") is None,
@@ -127,7 +127,7 @@ test "providers_fallback_model_mapping" {
     "https://api.openclacky.com", "abs-claude-sonnet-4-6",
   )
   assert_true(fb is Some(_))
-  assert_eq(fb.unwrap(), "abs-claude-sonnet-4-5")
+  @debug.assert_eq(fb.unwrap(), "abs-claude-sonnet-4-5")
 
   assert_true(
     Providers::fallback_model(
@@ -178,9 +178,9 @@ test "from_toml_empty_string_returns_default" {
   let config = AgentConfig::from_toml(value)
   let default = AgentConfig::default()
   assert_true(config.permission_mode == default.permission_mode)
-  assert_eq(config.max_tokens, default.max_tokens)
-  assert_eq(config.verbose, default.verbose)
-  assert_eq(config.enable_compression, default.enable_compression)
+  @debug.assert_eq(config.max_tokens, default.max_tokens)
+  @debug.assert_eq(config.verbose, default.verbose)
+  @debug.assert_eq(config.enable_compression, default.enable_compression)
   assert_true(config.models.is_empty())
 }
 
@@ -200,14 +200,14 @@ test "from_toml_settings_section" {
   ])
   let config = AgentConfig::from_toml(value)
   assert_true(config.permission_mode == AutoApprove)
-  assert_eq(config.max_tokens, 8192)
+  @debug.assert_eq(config.max_tokens, 8192)
   assert_true(config.verbose)
   assert_false(config.enable_compression)
   assert_false(config.enable_prompt_caching)
   assert_true(config.memory_update_enabled)
-  assert_eq(config.max_running_agents, 5)
-  assert_eq(config.max_idle_agents, 3)
-  assert_eq(config.current_model_id, Some("my-model"))
+  @debug.assert_eq(config.max_running_agents, 5)
+  @debug.assert_eq(config.max_idle_agents, 3)
+  @debug.assert_eq(config.current_model_id, Some("my-model"))
 }
 
 ///|
@@ -228,20 +228,20 @@ test "from_toml_models_array" {
     "anthropic_format = true",
   ])
   let config = AgentConfig::from_toml(value)
-  assert_eq(config.models.length(), 2)
+  @debug.assert_eq(config.models.length(), 2)
 
   let m1 = config.models[0]
-  assert_eq(m1.id, "m1")
-  assert_eq(m1.api_key, "key1")
-  assert_eq(m1.base_url, "https://api.anthropic.com")
-  assert_eq(m1.model, "claude-sonnet-4-5")
+  @debug.assert_eq(m1.id, "m1")
+  @debug.assert_eq(m1.api_key, "key1")
+  @debug.assert_eq(m1.base_url, "https://api.anthropic.com")
+  @debug.assert_eq(m1.model, "claude-sonnet-4-5")
   assert_true(m1.type_ is None)
   assert_false(m1.anthropic_format)
 
   let m2 = config.models[1]
-  assert_eq(m2.id, "m2")
-  assert_eq(m2.api_key, "key2")
-  assert_eq(m2.type_, Some("openai"))
+  @debug.assert_eq(m2.id, "m2")
+  @debug.assert_eq(m2.api_key, "key2")
+  @debug.assert_eq(m2.type_, Some("openai"))
   assert_true(m2.anthropic_format)
 }
 
@@ -270,17 +270,17 @@ test "toml_roundtrip" {
   let config2 = AgentConfig::from_toml(serialized)
 
   assert_true(config2.permission_mode == ConfirmAll)
-  assert_eq(config2.max_tokens, 4096)
+  @debug.assert_eq(config2.max_tokens, 4096)
   assert_true(config2.verbose)
   assert_false(config2.enable_compression)
   assert_true(config2.enable_prompt_caching)
   assert_true(config2.memory_update_enabled)
-  assert_eq(config2.max_running_agents, 3)
-  assert_eq(config2.max_idle_agents, 2)
-  assert_eq(config2.current_model_id, Some("test-id"))
-  assert_eq(config2.models.length(), 1)
-  assert_eq(config2.models[0].id, "test-id")
-  assert_eq(config2.models[0].api_key, "sk-test")
+  @debug.assert_eq(config2.max_running_agents, 3)
+  @debug.assert_eq(config2.max_idle_agents, 2)
+  @debug.assert_eq(config2.current_model_id, Some("test-id"))
+  @debug.assert_eq(config2.models.length(), 1)
+  @debug.assert_eq(config2.models[0].id, "test-id")
+  @debug.assert_eq(config2.models[0].api_key, "sk-test")
 }
 
 ///|
@@ -294,7 +294,7 @@ test "current_model_with_explicit_id" {
   )
   config.current_model_id = Some("m2")
   match config.current_model() {
-    Some(m) => assert_eq(m.id, "m2")
+    Some(m) => @debug.assert_eq(m.id, "m2")
     None => fail("expected current_model to return Some")
   }
 }
@@ -306,7 +306,7 @@ test "current_model_single_model_no_id" {
     ModelConfig::new("only", "key", "https://api.test.com", "model-x"),
   )
   match config.current_model() {
-    Some(m) => assert_eq(m.id, "only")
+    Some(m) => @debug.assert_eq(m.id, "only")
     None => fail("expected single model to be returned")
   }
 }
@@ -377,11 +377,11 @@ test "apply_env_overlay_creates_model_from_env" {
   @sys.set_env_var("MBOPENCLACKY_MODEL", "my-custom-model")
   let config = AgentConfig::default()
   let result = config.apply_env_overlay()
-  assert_eq(result.models.length(), 1)
-  assert_eq(result.models[0].api_key, "sk-env-key")
-  assert_eq(result.models[0].base_url, "https://api.custom.com")
-  assert_eq(result.models[0].model, "my-custom-model")
-  assert_eq(result.current_model_id, Some("default"))
+  @debug.assert_eq(result.models.length(), 1)
+  @debug.assert_eq(result.models[0].api_key, "sk-env-key")
+  @debug.assert_eq(result.models[0].base_url, "https://api.custom.com")
+  @debug.assert_eq(result.models[0].model, "my-custom-model")
+  @debug.assert_eq(result.current_model_id, Some("default"))
   @sys.set_env_var("MBOPENCLACKY_API_KEY", "")
   @sys.set_env_var("MBOPENCLACKY_BASE_URL", "")
   @sys.set_env_var("MBOPENCLACKY_MODEL", "")
@@ -397,7 +397,7 @@ test "apply_env_overlay_skips_when_models_exist" {
     ),
   )
   let result = config.apply_env_overlay()
-  assert_eq(result.models.length(), 1)
-  assert_eq(result.models[0].id, "existing")
+  @debug.assert_eq(result.models.length(), 1)
+  @debug.assert_eq(result.models[0].id, "existing")
   @sys.set_env_var("MBOPENCLACKY_API_KEY", "")
 }

@@ -35,7 +35,7 @@ async test "external client" {
       "src/websocket/client.ts",
       "ws://localhost:\{port}",
     ])
-    inspect(
+    @debug.debug_inspect(
       output.text(),
       content=(
         #|Connection opened

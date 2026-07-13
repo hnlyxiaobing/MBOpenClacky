@@ -52,7 +52,7 @@ fn handle_files_list(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to read directory".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }
@@ -108,7 +108,7 @@ fn handle_files_read(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to read file".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }
@@ -181,7 +181,7 @@ fn handle_files_write(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to write file".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }
@@ -275,7 +275,7 @@ fn handle_files_upload(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to write file".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }

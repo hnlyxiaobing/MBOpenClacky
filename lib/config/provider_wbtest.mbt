@@ -5,10 +5,19 @@
 
 ///|
 test "api_type: to_string_value mappings" {
-  assert_eq(ApiType::to_string_value(OpenAICompletions), "openai-completions")
-  assert_eq(ApiType::to_string_value(AnthropicMessages), "anthropic-messages")
-  assert_eq(ApiType::to_string_value(Bedrock), "bedrock")
-  assert_eq(ApiType::to_string_value(OpenAIResponses), "openai-responses")
+  @debug.assert_eq(
+    ApiType::to_string_value(OpenAICompletions),
+    "openai-completions",
+  )
+  @debug.assert_eq(
+    ApiType::to_string_value(AnthropicMessages),
+    "anthropic-messages",
+  )
+  @debug.assert_eq(ApiType::to_string_value(Bedrock), "bedrock")
+  @debug.assert_eq(
+    ApiType::to_string_value(OpenAIResponses),
+    "openai-responses",
+  )
 }
 
 ///|
@@ -31,15 +40,15 @@ test "api_type: from_string rejects unknown" {
 
 ///|
 test "providers: all returns the full preset list" {
-  assert_eq(Providers::all().length(), 12)
+  @debug.assert_eq(Providers::all().length(), 12)
 }
 
 ///|
 test "providers: find resolves by id" {
   match Providers::find("openai") {
     Some(p) => {
-      assert_eq(p.id, "openai")
-      assert_eq(p.default_model, "gpt-5.5")
+      @debug.assert_eq(p.id, "openai")
+      @debug.assert_eq(p.default_model, "gpt-5.5")
     }
     None => fail("expected to find openai")
   }
@@ -53,7 +62,7 @@ test "providers: find returns none for unknown id" {
 ///|
 test "providers: resolve matches by base_url" {
   match Providers::resolve("https://api.anthropic.com") {
-    Some(p) => assert_eq(p.id, "anthropic")
+    Some(p) => @debug.assert_eq(p.id, "anthropic")
     None => fail("expected to resolve anthropic")
   }
 }
@@ -115,7 +124,7 @@ test "providers: openai preset exposes gpt models" {
 ///|
 test "providers: openrouter default model" {
   match Providers::find("openrouter") {
-    Some(p) => assert_eq(p.default_model, "anthropic/claude-sonnet-4-6")
+    Some(p) => @debug.assert_eq(p.default_model, "anthropic/claude-sonnet-4-6")
     None => fail("expected openrouter preset")
   }
 }
@@ -123,7 +132,7 @@ test "providers: openrouter default model" {
 ///|
 test "providers: anthropic base url" {
   match Providers::find("anthropic") {
-    Some(p) => assert_eq(p.base_url, "https://api.anthropic.com")
+    Some(p) => @debug.assert_eq(p.base_url, "https://api.anthropic.com")
     None => fail("expected anthropic preset")
   }
 }
@@ -173,7 +182,7 @@ test "providers: every preset has a non-empty id" {
 ///|
 test "providers: resolve openai base url" {
   match Providers::resolve("https://api.openai.com/v1") {
-    Some(p) => assert_eq(p.id, "openai")
+    Some(p) => @debug.assert_eq(p.id, "openai")
     None => fail("expected to resolve openai")
   }
 }
@@ -181,7 +190,7 @@ test "providers: resolve openai base url" {
 ///|
 test "providers: qwen default model" {
   match Providers::find("qwen") {
-    Some(p) => assert_eq(p.default_model, "qwen3.7-max")
+    Some(p) => @debug.assert_eq(p.default_model, "qwen3.7-max")
     None => fail("expected qwen preset")
   }
 }

@@ -128,7 +128,7 @@ pub fn parse_cookie(cookie : StringView) -> Map[String, CookieItem] {
     }
   }
 
-  let res = Map::new()
+  let res = Map([])
   let mut last_cookie_item : (String, CookieItem)? = None
   fn on_key_value(key : StringView, value : StringView) -> Unit {
     let key = key.to_string()
@@ -140,7 +140,7 @@ pub fn parse_cookie(cookie : StringView) -> Map[String, CookieItem] {
         "(?i:max-age)" =>
           {
             ..item,
-            max_age: try @string.parse_int(value) catch {
+            max_age: try @strconv.parse_int(value) catch {
               _ => None
             } noraise {
               x => Some(x)

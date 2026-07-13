@@ -23,7 +23,7 @@ async fn main {
         guard rest is [t, .. rest] else {
           fail("expected duration value after `-duration`")
         }
-        duration = @string.parse_int(t)
+        duration = @strconv.parse_int(t)
         continue rest
       }
       ["-shared", .. rest] => {

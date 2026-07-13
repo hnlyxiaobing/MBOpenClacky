@@ -104,9 +104,9 @@ async fn main {
     } else {
     fail("invalid arguments")
   }
-  let total_conn = @string.parse_int(total_conn_str)
-  let max_concurrent_conn = @string.parse_int(max_concurrent_conn_str)
-  let conn_duration = @string.parse_int(conn_duration_str)
+  let total_conn = @strconv.parse_int(total_conn_str)
+  let max_concurrent_conn = @strconv.parse_int(max_concurrent_conn_str)
+  let conn_duration = @strconv.parse_int(conn_duration_str)
   let addr = @socket.Addr::parse(addr_str)
   let rand = {
     let seed = @buffer.new()

@@ -59,7 +59,7 @@ test "readdir clear errno" {
     let dir = @fs.opendir("src/fs")
     defer dir.close()
     let list = dir.read_all()
-    inspect(
+    @debug.debug_inspect(
       list.length(),
       content=(
         #|30

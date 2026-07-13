@@ -13,14 +13,6 @@ const GITHUB_LATEST_URL : String = "https://api.github.com/repos/moonbit-communi
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
-struct VersionInfoResponse {
-  current : String
-  latest : String?
-  needs_update : Bool
-  message : String?
-} derive(ToJson)
-
-///|
 struct UpgradeResponse {
   ok : Bool
   current : String
@@ -61,11 +53,11 @@ fn parse_latest_version(body : String) -> Result[String, String] {
 fn version_is_newer(current : String, latest : String) -> Bool {
   let current_parts : Array[String] = []
   for part in current.split(".") {
-    current_parts.push(part.to_string())
+    current_parts.push(part.to_owned())
   }
   let latest_parts : Array[String] = []
   for part in latest.split(".") {
-    latest_parts.push(part.to_string())
+    latest_parts.push(part.to_owned())
   }
   for i = 0; i < current_parts.length() && i < latest_parts.length(); i = i + 1 {
     let c = parse_int_safe(current_parts[i]).unwrap_or(0)
@@ -121,7 +113,7 @@ fn fetch_latest_version() -> Result[String, String] {
       } else {
         Err("GitHub returned HTTP " + resp.status_code.to_string())
       }
-    Err(e) => Err(e.to_string())
+    Err(e) => Err(@debug.to_string(e))
   }
 }
 

@@ -5,17 +5,22 @@
 
 ///|
 test "browser_type_show_chrome" {
-  inspect(Chrome, content="Chrome")
+  @debug.debug_inspect(Chrome, content="Chrome")
 }
 
 ///|
 test "browser_type_show_firefox" {
-  inspect(Firefox, content="Firefox")
+  @debug.debug_inspect(Firefox, content="Firefox")
 }
 
 ///|
 test "browser_type_show_unknown" {
-  inspect(BrowserType::Unknown("test"), content="Unknown(test)")
+  @debug.debug_inspect(
+    BrowserType::Unknown("test"),
+    content=(
+      #|Unknown("test")
+    ),
+  )
 }
 
 // ── detect_browser tests ────────────────────────────────────────────────────
@@ -40,7 +45,7 @@ test "detect_browser_with_chrome_path" {
   @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   let info = detect_browser()
   assert_true(info.browser_type == Chrome)
-  assert_eq(info.path, Some("/usr/bin/chrome"))
+  @debug.assert_eq(info.path, Some("/usr/bin/chrome"))
   @sys.set_env_var("CHROME_PATH", "")
 }
 
@@ -106,26 +111,29 @@ test "browser_summary_format" {
 ///|
 test "scripts_manager_new_defaults" {
   let mgr = ScriptsManager::new("/scripts")
-  assert_eq(mgr.scripts_dir, "/scripts")
-  assert_eq(mgr.extensions.length(), 6)
+  @debug.assert_eq(mgr.scripts_dir, "/scripts")
+  @debug.assert_eq(mgr.extensions.length(), 6)
 }
 
 ///|
 test "scripts_manager_with_extensions" {
   let mgr = ScriptsManager::with_extensions("/scripts", [".py", ".js"])
-  assert_eq(mgr.extensions.length(), 2)
+  @debug.assert_eq(mgr.extensions.length(), 2)
 }
 
 ///|
 test "scripts_manager_build_script_path" {
   let mgr = ScriptsManager::new("/home/user/scripts")
-  assert_eq(mgr.build_script_path("deploy.sh"), "/home/user/scripts/deploy.sh")
+  @debug.assert_eq(
+    mgr.build_script_path("deploy.sh"),
+    "/home/user/scripts/deploy.sh",
+  )
 }
 
 ///|
 test "scripts_manager_list_scripts_empty" {
   let mgr = ScriptsManager::new("/scripts")
-  assert_eq(mgr.list_scripts().length(), 0)
+  @debug.assert_eq(mgr.list_scripts().length(), 0)
 }
 
 ///|
@@ -141,22 +149,22 @@ test "scripts_manager_validate_script_ok" {
 
 ///|
 test "detect_script_extension_sh" {
-  assert_eq(detect_script_extension("deploy.sh"), ".sh")
+  @debug.assert_eq(detect_script_extension("deploy.sh"), ".sh")
 }
 
 ///|
 test "detect_script_extension_py" {
-  assert_eq(detect_script_extension("script.py"), ".py")
+  @debug.assert_eq(detect_script_extension("script.py"), ".py")
 }
 
 ///|
 test "detect_script_extension_none" {
-  assert_eq(detect_script_extension("no_extension"), "")
+  @debug.assert_eq(detect_script_extension("no_extension"), "")
 }
 
 ///|
 test "detect_script_extension_multiple_dots" {
-  assert_eq(detect_script_extension("my.script.js"), ".js")
+  @debug.assert_eq(detect_script_extension("my.script.js"), ".js")
 }
 
 // ── is_script_extension tests ───────────────────────────────────────────────
@@ -178,17 +186,27 @@ test "is_script_extension_unknown" {
 
 ///|
 test "shell_type_show_bash" {
-  inspect(Bash, content="Bash")
+  @debug.debug_inspect(Bash, content="Bash")
 }
 
 ///|
 test "shell_type_show_pwsh" {
-  inspect(Pwsh, content="PowerShell")
+  @debug.debug_inspect(
+    Pwsh,
+    content=(
+      #|Pwsh
+    ),
+  )
 }
 
 ///|
 test "shell_type_show_unknown" {
-  inspect(ShellType::Unknown("test"), content="Unknown(test)")
+  @debug.debug_inspect(
+    ShellType::Unknown("test"),
+    content=(
+      #|Unknown("test")
+    ),
+  )
 }
 
 // ── detect_login_shell tests ────────────────────────────────────────────────
@@ -273,24 +291,24 @@ test "shell_rc_files_zsh" {
 ///|
 test "shell_rc_files_unknown_empty" {
   let files = shell_rc_files(ShellType::Unknown("weird"))
-  assert_eq(files.length(), 0)
+  @debug.assert_eq(files.length(), 0)
 }
 
 // ── shell_name tests ────────────────────────────────────────────────────────
 
 ///|
 test "shell_name_bash" {
-  assert_eq(shell_name(Bash), "Bash")
+  @debug.assert_eq(shell_name(Bash), "Bash")
 }
 
 ///|
 test "shell_name_pwsh" {
-  assert_eq(shell_name(Pwsh), "PowerShell")
+  @debug.assert_eq(shell_name(Pwsh), "PowerShell")
 }
 
 ///|
 test "shell_name_unknown" {
-  assert_eq(shell_name(ShellType::Unknown("weird")), "Unknown(weird)")
+  @debug.assert_eq(shell_name(ShellType::Unknown("weird")), "Unknown(weird)")
 }
 
 // ── JsonArgParser::parse tests ──────────────────────────────────────────────
@@ -301,7 +319,7 @@ test "json_arg_parser_parse_valid" {
   match parser.parse("{\"key\":\"value\"}") {
     Ok(json) =>
       match json {
-        Object(obj) => assert_eq(obj.get("key"), Some("value".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("key"), Some("value".to_json()))
         _ => fail("expected Object")
       }
     Err(msg) => fail("expected Ok, got: \{msg}")
@@ -323,7 +341,7 @@ test "json_arg_parser_parse_with_trailing_comma" {
   match parser.parse("{\"key\":\"value\",}") {
     Ok(json) =>
       match json {
-        Object(obj) => assert_eq(obj.get("key"), Some("value".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("key"), Some("value".to_json()))
         _ => fail("expected Object")
       }
     Err(msg) => fail("expected Ok after fix, got: \{msg}")
@@ -334,22 +352,22 @@ test "json_arg_parser_parse_with_trailing_comma" {
 
 ///|
 test "fix_json_string_trailing_comma_object" {
-  assert_eq(fix_json_string("{\"a\":1,}"), "{\"a\":1}")
+  @debug.assert_eq(fix_json_string("{\"a\":1,}"), "{\"a\":1}")
 }
 
 ///|
 test "fix_json_string_trailing_comma_array" {
-  assert_eq(fix_json_string("[1,2,]"), "[1,2]")
+  @debug.assert_eq(fix_json_string("[1,2,]"), "[1,2]")
 }
 
 ///|
 test "fix_json_string_single_quotes" {
-  assert_eq(fix_json_string("{'key':'value'}"), "{\"key\":\"value\"}")
+  @debug.assert_eq(fix_json_string("{'key':'value'}"), "{\"key\":\"value\"}")
 }
 
 ///|
 test "fix_json_string_empty" {
-  assert_eq(fix_json_string(""), "{}")
+  @debug.assert_eq(fix_json_string(""), "{}")
 }
 
 // ── extract_key_value_pairs tests ────────────────────────────────────────────
@@ -357,27 +375,27 @@ test "fix_json_string_empty" {
 ///|
 test "extract_key_value_pairs_basic" {
   let pairs = extract_key_value_pairs("{\"name\":\"Alice\",\"age\":\"30\"}")
-  assert_eq(pairs.length(), 2)
-  assert_eq(pairs[0].0, "name")
-  assert_eq(pairs[0].1, "Alice")
-  assert_eq(pairs[1].0, "age")
-  assert_eq(pairs[1].1, "30")
+  @debug.assert_eq(pairs.length(), 2)
+  @debug.assert_eq(pairs[0].0, "name")
+  @debug.assert_eq(pairs[0].1, "Alice")
+  @debug.assert_eq(pairs[1].0, "age")
+  @debug.assert_eq(pairs[1].1, "30")
 }
 
 ///|
 test "extract_key_value_pairs_empty_object" {
   let pairs = extract_key_value_pairs("{}")
-  assert_eq(pairs.length(), 0)
+  @debug.assert_eq(pairs.length(), 0)
 }
 
 ///|
 test "extract_key_value_pairs_unquoted_values" {
   let pairs = extract_key_value_pairs("{\"key\":true,\"num\":42}")
-  assert_eq(pairs.length(), 2)
-  assert_eq(pairs[0].0, "key")
-  assert_eq(pairs[0].1, "true")
-  assert_eq(pairs[1].0, "num")
-  assert_eq(pairs[1].1, "42")
+  @debug.assert_eq(pairs.length(), 2)
+  @debug.assert_eq(pairs[0].0, "key")
+  @debug.assert_eq(pairs[0].1, "true")
+  @debug.assert_eq(pairs[1].0, "num")
+  @debug.assert_eq(pairs[1].1, "42")
 }
 
 // ── validate_required_args tests ────────────────────────────────────────────
@@ -386,14 +404,14 @@ test "extract_key_value_pairs_unquoted_values" {
 test "validate_required_args_all_present" {
   let json = @json.parse("{\"a\":1,\"b\":2}") catch { _ => Json::object({}) }
   let missing = validate_required_args(json, ["a", "b"])
-  assert_eq(missing.length(), 0)
+  @debug.assert_eq(missing.length(), 0)
 }
 
 ///|
 test "validate_required_args_some_missing" {
   let json = @json.parse("{\"a\":1}") catch { _ => Json::object({}) }
   let missing = validate_required_args(json, ["a", "b", "c"])
-  assert_eq(missing.length(), 2)
+  @debug.assert_eq(missing.length(), 2)
   assert_true(missing.contains("b"))
   assert_true(missing.contains("c"))
 }
@@ -402,7 +420,7 @@ test "validate_required_args_some_missing" {
 test "validate_required_args_non_object" {
   let json = @json.parse("[1,2,3]") catch { _ => Json::array([]) }
   let missing = validate_required_args(json, ["a"])
-  assert_eq(missing.length(), 1)
+  @debug.assert_eq(missing.length(), 1)
 }
 
 // ── merge_json_args tests ───────────────────────────────────────────────────
@@ -414,8 +432,8 @@ test "merge_json_args_basic" {
   let merged = merge_json_args([obj1, obj2])
   match merged {
     Object(obj) => {
-      assert_eq(obj.get("a"), Some((1).to_json()))
-      assert_eq(obj.get("b"), Some((2).to_json()))
+      @debug.assert_eq(obj.get("a"), Some((1).to_json()))
+      @debug.assert_eq(obj.get("b"), Some((2).to_json()))
     }
     _ => fail("expected Object")
   }
@@ -427,7 +445,7 @@ test "merge_json_args_override" {
   let obj2 = @json.parse("{\"a\":99}") catch { _ => Json::object({}) }
   let merged = merge_json_args([obj1, obj2])
   match merged {
-    Object(obj) => assert_eq(obj.get("a"), Some((99).to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("a"), Some((99).to_json()))
     _ => fail("expected Object")
   }
 }

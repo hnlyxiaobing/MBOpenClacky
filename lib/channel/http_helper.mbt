@@ -111,7 +111,7 @@ pub fn HttpHeaders::to_array(self : HttpHeaders) -> Array[(String, String)] {
 ///|
 /// Build a JSON request body from a Map.
 pub fn build_json_body(payload : Map[String, Json]) -> String {
-  Json::object(payload).to_string()
+  Json::object(payload).stringify()
 }
 
 ///|

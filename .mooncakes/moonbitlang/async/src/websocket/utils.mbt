@@ -61,12 +61,12 @@ fn base64_encode(data : Bytes) -> String {
 
 ///|
 test "base64 encode" {
-  inspect(base64_encode(b"light w"), content="bGlnaHQgdw==")
-  inspect(base64_encode(b"light wo"), content="bGlnaHQgd28=")
-  inspect(base64_encode(b"light wor"), content="bGlnaHQgd29y")
-  inspect(base64_encode(b"light work"), content="bGlnaHQgd29yaw==")
-  inspect(base64_encode(b"light work."), content="bGlnaHQgd29yay4=")
-  inspect(
+  @debug.debug_inspect(base64_encode(b"light w"), content="bGlnaHQgdw==")
+  @debug.debug_inspect(base64_encode(b"light wo"), content="bGlnaHQgd28=")
+  @debug.debug_inspect(base64_encode(b"light wor"), content="bGlnaHQgd29y")
+  @debug.debug_inspect(base64_encode(b"light work"), content="bGlnaHQgd29yaw==")
+  @debug.debug_inspect(base64_encode(b"light work."), content="bGlnaHQgd29yay4=")
+  @debug.debug_inspect(
     base64_encode(b"a Ā 𐀀 文 🦄"),
     content="YSDEgCDwkICAIOaWhyDwn6aE",
   )

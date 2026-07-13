@@ -78,7 +78,7 @@ test "request_user_feedback_format_call_long_question" {
 ///|
 test "request_user_feedback_name_and_category" {
   let tool = RequestUserFeedback::{  }
-  assert_eq(tool.name(), "request_user_feedback")
+  @debug.assert_eq(tool.name(), "request_user_feedback")
   assert_true(tool.category() == General)
 }
 
@@ -162,24 +162,24 @@ test "trash_manager_format_call" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "list".to_json() }
   let formatted = tool.format_call(args)
-  assert_eq(formatted, "TrashManager(list)")
+  @debug.assert_eq(formatted, "TrashManager(list)")
 }
 
 ///|
 test "trash_manager_name_and_category" {
   let tool = TrashManager::{  }
-  assert_eq(tool.name(), "trash_manager")
+  @debug.assert_eq(tool.name(), "trash_manager")
   assert_true(tool.category() == FileSystem)
 }
 
 ///|
 test "format_bytes_zero" {
-  assert_eq(format_bytes(0), "0 B")
+  @debug.assert_eq(format_bytes(0), "0 B")
 }
 
 ///|
 test "format_bytes_small" {
-  assert_eq(format_bytes(512), "512 B")
+  @debug.assert_eq(format_bytes(512), "512 B")
 }
 
 ///|
@@ -199,7 +199,7 @@ test "format_bytes_mb" {
 ///|
 test "browser_name_and_category" {
   let tool = Browser::new()
-  assert_eq(tool.name(), "browser")
+  @debug.assert_eq(tool.name(), "browser")
   assert_true(tool.category() == Web)
 }
 
@@ -236,7 +236,7 @@ test "browser_format_call" {
   let tool = Browser::new()
   let args : Map[String, Json] = { "action": "navigate".to_json() }
   let formatted = tool.format_call(args)
-  assert_eq(formatted, "browser(navigate)")
+  @debug.assert_eq(formatted, "browser(navigate)")
 }
 
 ///|
@@ -304,7 +304,7 @@ test "classify_browser_error_mcp" {
 ///|
 test "truncate_browser_output_short" {
   let result = truncate_browser_output("short text", 100)
-  assert_eq(result, "short text")
+  @debug.assert_eq(result, "short text")
 }
 
 ///|
@@ -319,7 +319,7 @@ test "truncate_browser_output_long" {
 ///|
 test "registry_has_all_fourteen_tools" {
   let registry = make_default_registry()
-  assert_eq(registry.size(), 14)
+  @debug.assert_eq(registry.size(), 14)
 }
 
 ///|
@@ -378,7 +378,7 @@ test "registry_get_browser" {
 test "registry_all_definitions_has_fourteen" {
   let registry = make_default_registry()
   let defs = registry.all_definitions()
-  assert_eq(defs.length(), 14)
+  @debug.assert_eq(defs.length(), 14)
 }
 
 ///|
@@ -398,7 +398,7 @@ test "registry_by_category_web_has_browser" {
 ///|
 test "anytool_request_user_feedback_via_anytool" {
   let tool = AnyTool::RequestUserFeedback(RequestUserFeedback::{  })
-  assert_eq(tool.name(), "request_user_feedback")
+  @debug.assert_eq(tool.name(), "request_user_feedback")
   assert_true(tool.category() == General)
   let args : Map[String, Json] = { "question": "test question".to_json() }
   let result = tool.execute(args)
@@ -409,7 +409,7 @@ test "anytool_request_user_feedback_via_anytool" {
 ///|
 test "anytool_trash_manager_via_anytool" {
   let tool = AnyTool::TrashManager(TrashManager::{  })
-  assert_eq(tool.name(), "trash_manager")
+  @debug.assert_eq(tool.name(), "trash_manager")
   let args : Map[String, Json] = { "action": "help".to_json() }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -419,7 +419,7 @@ test "anytool_trash_manager_via_anytool" {
 ///|
 test "anytool_browser_via_anytool" {
   let tool = AnyTool::Browser(Browser::new())
-  assert_eq(tool.name(), "browser")
+  @debug.assert_eq(tool.name(), "browser")
   let args : Map[String, Json] = { "action": "status".to_json() }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -432,22 +432,22 @@ test "anytool_browser_via_anytool" {
 test "request_user_feedback_to_function_definition" {
   let tool = RequestUserFeedback::{  }
   let def = tool.to_function_definition()
-  assert_eq(def.type_, "function")
-  assert_eq(def.function.name, "request_user_feedback")
+  @debug.assert_eq(def.type_, "function")
+  @debug.assert_eq(def.function.name, "request_user_feedback")
 }
 
 ///|
 test "trash_manager_to_function_definition" {
   let tool = TrashManager::{  }
   let def = tool.to_function_definition()
-  assert_eq(def.type_, "function")
-  assert_eq(def.function.name, "trash_manager")
+  @debug.assert_eq(def.type_, "function")
+  @debug.assert_eq(def.function.name, "trash_manager")
 }
 
 ///|
 test "browser_to_function_definition" {
   let tool = Browser::new()
   let def = tool.to_function_definition()
-  assert_eq(def.type_, "function")
-  assert_eq(def.function.name, "browser")
+  @debug.assert_eq(def.type_, "function")
+  @debug.assert_eq(def.function.name, "browser")
 }

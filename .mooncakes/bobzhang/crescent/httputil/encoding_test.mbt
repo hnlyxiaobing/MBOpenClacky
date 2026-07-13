@@ -2,14 +2,14 @@
 test "url_decode" {
   let encoded = @utf8.encode("Hello%20World%21")
   let decoded = url_decode(encoded[:])
-  assert_eq(decoded, "Hello World!")
+  @debug.assert_eq(decoded, "Hello World!")
 }
 
 ///|
 test "url_decode_plus" {
   let encoded = @utf8.encode("Hello+World")
   let decoded = url_decode(encoded[:])
-  assert_eq(decoded, "Hello World")
+  @debug.assert_eq(decoded, "Hello World")
 }
 
 ///|
@@ -17,12 +17,12 @@ test "url_decode_utf8" {
   // %E4%BD%A0%E5%A5%BD = 你好
   let encoded = @utf8.encode("%E4%BD%A0%E5%A5%BD")
   let decoded = url_decode(encoded[:])
-  assert_eq(decoded, "你好")
+  @debug.assert_eq(decoded, "你好")
 }
 
 ///|
 test "form_encode" {
-  let map = Map::new()
+  let map = Map([])
   map.set("key", "value")
   map.set("foo", "bar")
   let encoded = form_encode(map)
@@ -38,24 +38,24 @@ test "form_encode" {
 test "parse_form_data" {
   let encoded = @utf8.encode("key=value&foo=bar%20baz")
   let map = parse_form_data(encoded[:])
-  assert_eq(map.get("key"), Some("value"))
-  assert_eq(map.get("foo"), Some("bar baz"))
+  @debug.assert_eq(map.get("key"), Some("value"))
+  @debug.assert_eq(map.get("foo"), Some("bar baz"))
 }
 
 ///|
 test "url_decode_str matches url_decode for ASCII-percent-encoded input" {
   // RFC 3986 guarantees percent-encoded URLs are ASCII; the StringView wrapper
   // should produce the same output as the byte-oriented version.
-  assert_eq(url_decode_str("Hello%20World%21"), "Hello World!")
-  assert_eq(url_decode_str("Hello+World"), "Hello World")
-  assert_eq(url_decode_str("%E4%BD%A0%E5%A5%BD"), "你好")
+  @debug.assert_eq(url_decode_str("Hello%20World%21"), "Hello World!")
+  @debug.assert_eq(url_decode_str("Hello+World"), "Hello World")
+  @debug.assert_eq(url_decode_str("%E4%BD%A0%E5%A5%BD"), "你好")
 }
 
 ///|
 test "parse_form_data_str matches parse_form_data" {
   let map = parse_form_data_str("key=value&foo=bar%20baz")
-  assert_eq(map.get("key"), Some("value"))
-  assert_eq(map.get("foo"), Some("bar baz"))
+  @debug.assert_eq(map.get("key"), Some("value"))
+  @debug.assert_eq(map.get("foo"), Some("bar baz"))
 }
 
 ///|
@@ -65,27 +65,27 @@ test "parse_multipart" {
   let bytes = @utf8.encode(body)
   let parts = parse_multipart(bytes[:], boundary)
   let field1 = first_multipart_value(parts, "field1")
-  inspect(
+  @debug.debug_inspect(
     field1.map(v => @utf8.decode(v.data) catch { _ => "" }),
     content=(
       #|Some("value1")
     ),
   )
-  inspect(field1.bind(v => v.filename), content="None")
+  @debug.debug_inspect(field1.bind(v => v.filename), content="None")
   let field2 = first_multipart_value(parts, "field2")
-  inspect(
+  @debug.debug_inspect(
     field2.map(v => @utf8.decode(v.data) catch { _ => "" }),
     content=(
       #|Some("value2")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     field2.bind(v => v.filename),
     content=(
       #|Some("example.txt")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     field2.bind(v => v.content_type),
     content=(
       #|Some("text/plain")
@@ -100,9 +100,9 @@ test "parse_multipart with repeated field names" {
   let bytes = @utf8.encode(body)
   let parts = parse_multipart(bytes[:], boundary)
   let tags = parts.get("tag").unwrap()
-  assert_eq(tags.length(), 3)
+  @debug.assert_eq(tags.length(), 3)
   let values = tags.map(v => @utf8.decode(v.data) catch { _ => "" })
-  assert_eq(values, ["foo", "bar", "baz"])
+  @debug.assert_eq(values, ["foo", "bar", "baz"])
 }
 
 ///|
@@ -113,8 +113,8 @@ test "parse_multipart handles semicolons inside quoted filenames" {
   let parts = parse_multipart(bytes[:], boundary)
   let v = first_multipart_value(parts, "file").unwrap()
   // The semicolon inside the quoted filename must be preserved
-  assert_eq(v.filename, Some("a;b.txt"))
-  assert_eq(v.content_type, Some("text/plain"))
+  @debug.assert_eq(v.filename, Some("a;b.txt"))
+  @debug.assert_eq(v.content_type, Some("text/plain"))
 }
 
 ///|
@@ -127,7 +127,7 @@ test "parse_multipart handles colons in content-type" {
   let v = first_multipart_value(parts, "x").unwrap()
   // The colon inside the content-type value must be preserved, not
   // treated as a new header separator.
-  assert_eq(v.content_type, Some("application/foo; bar=a:b"))
+  @debug.assert_eq(v.content_type, Some("application/foo; bar=a:b"))
 }
 
 ///|
@@ -138,5 +138,5 @@ test "parse_multipart handles unquoted disposition values" {
   let parts = parse_multipart(bytes[:], boundary)
   let v = first_multipart_value(parts, "field1").unwrap()
   let decoded = @utf8.decode(v.data) catch { _ => "" }
-  assert_eq(decoded, "value1")
+  @debug.assert_eq(decoded, "value1")
 }

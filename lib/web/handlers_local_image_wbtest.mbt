@@ -19,7 +19,7 @@ test "local image proxy requires path" {
   let server_ref = make_image_server_ref()
   let event = make_image_event("/api/local-image")
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -27,7 +27,7 @@ test "local image proxy rejects path traversal" {
   let server_ref = make_image_server_ref()
   let event = make_image_event("/api/local-image?path=../secret.png")
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 403)
+  @debug.assert_eq(resp.status_code.to_int(), 403)
 }
 
 ///|
@@ -35,7 +35,7 @@ test "local image proxy rejects unsupported extension" {
   let server_ref = make_image_server_ref()
   let event = make_image_event("/api/local-image?path=/tmp/data.exe")
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 403)
+  @debug.assert_eq(resp.status_code.to_int(), 403)
 }
 
 ///|
@@ -45,7 +45,7 @@ test "local image proxy returns 404 for missing file" {
     "/api/local-image?path=/tmp/DefinitelyMissing.png",
   )
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 404)
+  @debug.assert_eq(resp.status_code.to_int(), 404)
 }
 
 ///|
@@ -57,10 +57,13 @@ test "local image proxy serves png with correct mime and cache header" {
   }
   let event = make_image_event("/api/local-image?path=" + tmp_path)
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 200)
-  assert_eq(resp.headers.get("Content-Type"), Some("image/png"))
-  assert_eq(resp.headers.get("Cache-Control"), Some("public, max-age=3600"))
-  assert_eq(resp.raw_body, @utf8.encode("fake-png-bytes"))
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.headers.get("Content-Type"), Some("image/png"))
+  @debug.assert_eq(
+    resp.headers.get("Cache-Control"),
+    Some("public, max-age=3600"),
+  )
+  @debug.assert_eq(resp.raw_body, @utf8.encode("fake-png-bytes"))
   @fs.remove_file(tmp_path) catch {
     _ => ()
   }
@@ -75,9 +78,9 @@ test "local image proxy strips file protocol prefix" {
   }
   let event = make_image_event("/api/local-image?path=file:///" + tmp_path)
   let resp = handle_local_image(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 200)
-  assert_eq(resp.headers.get("Content-Type"), Some("image/jpeg"))
-  assert_eq(resp.raw_body, @utf8.encode("fake-jpg-bytes"))
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.headers.get("Content-Type"), Some("image/jpeg"))
+  @debug.assert_eq(resp.raw_body, @utf8.encode("fake-jpg-bytes"))
   @fs.remove_file(tmp_path) catch {
     _ => ()
   }

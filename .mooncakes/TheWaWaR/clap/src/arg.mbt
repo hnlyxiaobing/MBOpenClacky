@@ -147,7 +147,7 @@ pub(all) enum Nargs {
   AtMost(UInt)
   /// X <= n < Y
   Range(UInt, UInt)
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Check if the length is constrained by Nargs

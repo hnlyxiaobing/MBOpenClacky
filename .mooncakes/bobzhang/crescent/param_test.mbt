@@ -5,8 +5,8 @@ test "param returns string value" {
     res: HttpResponse(status_code=OK),
     params: { "id": "42" },
   }
-  inspect(event.param("id"), content="Some(\"42\")")
-  inspect(event.param("missing"), content="None")
+  @debug.debug_inspect(event.param("id"), content="Some(\"42\")")
+  @debug.debug_inspect(event.param("missing"), content="None")
 }
 
 ///|
@@ -16,8 +16,8 @@ test "param_int parses integer" {
     res: HttpResponse(status_code=OK),
     params: { "id": "123" },
   }
-  inspect(event.param_int("id"), content="Some(123)")
-  inspect(event.param_int("missing"), content="None")
+  @debug.debug_inspect(event.param_int("id"), content="Some(123)")
+  @debug.debug_inspect(event.param_int("missing"), content="None")
 }
 
 ///|
@@ -27,7 +27,7 @@ test "param_int returns none for non-integer" {
     res: HttpResponse(status_code=OK),
     params: { "id": "abc" },
   }
-  inspect(event.param_int("id"), content="None")
+  @debug.debug_inspect(event.param_int("id"), content="None")
 }
 
 ///|
@@ -38,7 +38,7 @@ test "require_param returns value when present" {
     params: { "name": "alice" },
   }
   let name = event.require_param("name")
-  assert_eq(name, "alice")
+  @debug.assert_eq(name, "alice")
 }
 
 ///|
@@ -60,7 +60,7 @@ test "require_param_int returns parsed integer" {
     params: { "id": "42" },
   }
   let id = event.require_param_int("id")
-  assert_eq(id, 42)
+  @debug.assert_eq(id, 42)
 }
 
 ///|
@@ -93,7 +93,7 @@ test "require_param_int64 returns parsed int64" {
     params: { "id": "9999999999" },
   }
   let id = event.require_param_int64("id")
-  assert_eq(id, 9999999999L)
+  @debug.assert_eq(id, 9999999999L)
 }
 
 ///|
@@ -114,8 +114,8 @@ test "param_decoded URL-decodes the value" {
     res: HttpResponse(status_code=OK),
     params: { "query": "hello%20world" },
   }
-  assert_eq(event.param("query"), Some("hello%20world"))
-  assert_eq(event.param_decoded("query"), Some("hello world"))
+  @debug.assert_eq(event.param("query"), Some("hello%20world"))
+  @debug.assert_eq(event.param_decoded("query"), Some("hello world"))
 }
 
 ///|
@@ -125,5 +125,5 @@ test "param_decoded returns None when missing" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  assert_eq(event.param_decoded("missing"), None)
+  @debug.assert_eq(event.param_decoded("missing"), None)
 }

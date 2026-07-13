@@ -14,7 +14,7 @@
 
 ///|
 fn ex_make_event(
-  method : @crescent.HttpMethod,
+  http_method : @crescent.HttpMethod,
   url : String,
   body? : String = "",
   params? : Array[(String, String)] = [],
@@ -26,7 +26,7 @@ fn ex_make_event(
   }
   {
     req: @crescent.HttpRequest::http_request(
-      method,
+      http_method,
       url,
       {},
       raw_body=@utf8.encode(body),
@@ -112,8 +112,8 @@ test "memories get returns empty list when no store exists" {
     ex_make_event(Get, "/api/memories"),
   )
   ex_pop_profile(old)
-  assert_eq(resp.status_code.to_int(), 200)
-  assert_eq(ex_arr_field(ex_response_json(resp), "memories").length(), 0)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(ex_arr_field(ex_response_json(resp), "memories").length(), 0)
 }
 
 ///|
@@ -122,7 +122,7 @@ test "memories post rejects empty content" {
     ex_make_server_ref(),
     ex_make_event(Post, "/api/memories", body="{}"),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -134,7 +134,7 @@ test "memories lifecycle create update get delete" {
     sref,
     ex_make_event(Post, "/api/memories", body="{\"content\":\"hello\"}"),
   )
-  assert_eq(post.status_code.to_int(), 200)
+  @debug.assert_eq(post.status_code.to_int(), 200)
   let mid = ex_str_field(ex_response_json(post), "id")
   assert_true(!mid.is_empty())
   let put = handle_memories_put(
@@ -145,22 +145,22 @@ test "memories lifecycle create update get delete" {
       body="{\"id\":\"" + mid + "\",\"content\":\"world\"}",
     ),
   )
-  assert_eq(put.status_code.to_int(), 200)
+  @debug.assert_eq(put.status_code.to_int(), 200)
   let get = handle_memories_get(sref, ex_make_event(Get, "/api/memories"))
   let arr = ex_arr_field(ex_response_json(get), "memories")
-  assert_eq(arr.length(), 1)
+  @debug.assert_eq(arr.length(), 1)
   let first = match arr[0] {
     Object(o) => Json::object(o)
     _ => Json::object({})
   }
-  assert_eq(ex_str_field(first, "content"), "world")
+  @debug.assert_eq(ex_str_field(first, "content"), "world")
   let del = handle_memories_delete(
     sref,
     ex_make_event(Delete, "/api/memories?id=" + mid),
   )
-  assert_eq(del.status_code.to_int(), 200)
+  @debug.assert_eq(del.status_code.to_int(), 200)
   let get2 = handle_memories_get(sref, ex_make_event(Get, "/api/memories"))
-  assert_eq(ex_arr_field(ex_response_json(get2), "memories").length(), 0)
+  @debug.assert_eq(ex_arr_field(ex_response_json(get2), "memories").length(), 0)
   ex_clean("memories.json")
   ex_pop_profile(old)
 }
@@ -171,7 +171,7 @@ test "memories delete rejects missing id" {
     ex_make_server_ref(),
     ex_make_event(Delete, "/api/memories"),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Settings ────────────────────────────────────────────────────────────
@@ -185,9 +185,9 @@ test "settings put then get persists values" {
     sref,
     ex_make_event(Put, "/api/settings", body="{\"theme\":\"light\"}"),
   )
-  assert_eq(put.status_code.to_int(), 200)
+  @debug.assert_eq(put.status_code.to_int(), 200)
   let get = handle_settings_get(sref, ex_make_event(Get, "/api/settings"))
-  assert_eq(ex_str_field(ex_response_json(get), "theme"), "light")
+  @debug.assert_eq(ex_str_field(ex_response_json(get), "theme"), "light")
   ex_clean("settings.json")
   ex_pop_profile(old)
 }
@@ -207,9 +207,9 @@ test "share post then get lists entry" {
       body="{\"type\":\"link\",\"target\":\"http://example\"}",
     ),
   )
-  assert_eq(post.status_code.to_int(), 200)
+  @debug.assert_eq(post.status_code.to_int(), 200)
   let get = handle_share_get(sref, ex_make_event(Get, "/api/share"))
-  assert_eq(ex_arr_field(ex_response_json(get), "shares").length(), 1)
+  @debug.assert_eq(ex_arr_field(ex_response_json(get), "shares").length(), 1)
   ex_clean("shares.json")
   ex_pop_profile(old)
 }
@@ -220,7 +220,7 @@ test "share post requires type and target" {
     ex_make_server_ref(),
     ex_make_event(Post, "/api/share", body="{\"type\":\"link\"}"),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Model presets ──────────────────────────────────────────────────────
@@ -238,33 +238,33 @@ test "models lifecycle create list update delete" {
       body="{\"name\":\"m1\",\"model\":\"gpt\"}",
     ),
   )
-  assert_eq(post.status_code.to_int(), 200)
+  @debug.assert_eq(post.status_code.to_int(), 200)
   let mid = ex_str_field(ex_response_json(post), "id")
   assert_true(!mid.is_empty())
   let get = handle_models_get(sref, ex_make_event(Get, "/api/models"))
-  assert_eq(ex_arr_field(ex_response_json(get), "models").length(), 1)
+  @debug.assert_eq(ex_arr_field(ex_response_json(get), "models").length(), 1)
   let put = handle_models_put(
     sref,
     ex_make_event(Put, "/api/models/" + mid, body="{\"name\":\"m2\"}", params=[
       ("id", mid),
     ]),
   )
-  assert_eq(put.status_code.to_int(), 200)
+  @debug.assert_eq(put.status_code.to_int(), 200)
   let get2 = handle_models_get(sref, ex_make_event(Get, "/api/models"))
   let arr = ex_arr_field(ex_response_json(get2), "models")
-  assert_eq(arr.length(), 1)
+  @debug.assert_eq(arr.length(), 1)
   let first = match arr[0] {
     Object(o) => Json::object(o)
     _ => Json::object({})
   }
-  assert_eq(ex_str_field(first, "name"), "m2")
+  @debug.assert_eq(ex_str_field(first, "name"), "m2")
   let del = handle_models_delete(
     sref,
     ex_make_event(Delete, "/api/models/" + mid, params=[("id", mid)]),
   )
-  assert_eq(del.status_code.to_int(), 200)
+  @debug.assert_eq(del.status_code.to_int(), 200)
   let get3 = handle_models_get(sref, ex_make_event(Get, "/api/models"))
-  assert_eq(ex_arr_field(ex_response_json(get3), "models").length(), 0)
+  @debug.assert_eq(ex_arr_field(ex_response_json(get3), "models").length(), 0)
   ex_clean("models.json")
   ex_pop_profile(old)
 }
@@ -275,7 +275,7 @@ test "models put rejects missing id" {
     ex_make_server_ref(),
     ex_make_event(Put, "/api/models/xyz", body="{}", params=[]),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Benchmark session model ─────────────────────────────────────────────
@@ -292,8 +292,8 @@ test "benchmark model get default then post updates" {
       ("id", sid),
     ]),
   )
-  assert_eq(g0.status_code.to_int(), 200)
-  assert_eq(ex_str_field(ex_response_json(g0), "model"), "")
+  @debug.assert_eq(g0.status_code.to_int(), 200)
+  @debug.assert_eq(ex_str_field(ex_response_json(g0), "model"), "")
   let p = handle_benchmark_model_post(
     sref,
     ex_make_event(
@@ -303,15 +303,15 @@ test "benchmark model get default then post updates" {
       params=[("id", sid)],
     ),
   )
-  assert_eq(p.status_code.to_int(), 200)
-  assert_eq(ex_str_field(ex_response_json(p), "model"), "gpt-4")
+  @debug.assert_eq(p.status_code.to_int(), 200)
+  @debug.assert_eq(ex_str_field(ex_response_json(p), "model"), "gpt-4")
   let g1 = handle_benchmark_model_get(
     sref,
     ex_make_event(Get, "/api/benchmark/sessions/" + sid + "/model", params=[
       ("id", sid),
     ]),
   )
-  assert_eq(ex_str_field(ex_response_json(g1), "model"), "gpt-4")
+  @debug.assert_eq(ex_str_field(ex_response_json(g1), "model"), "gpt-4")
   ex_clean("benchmark_models.json")
   ex_pop_profile(old)
 }
@@ -324,7 +324,7 @@ test "benchmark model post rejects missing model" {
       ("id", "x"),
     ]),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Session-scoped Time Machine ─────────────────────────────────────────
@@ -344,7 +344,7 @@ test "time machine add point then list" {
       params=[("id", sid)],
     ),
   )
-  assert_eq(post.status_code.to_int(), 200)
+  @debug.assert_eq(post.status_code.to_int(), 200)
   let pid = ex_str_field(ex_response_json(post), "id")
   assert_true(!pid.is_empty())
   let get = handle_session_time_machine_get(
@@ -353,8 +353,8 @@ test "time machine add point then list" {
       ("id", sid),
     ]),
   )
-  assert_eq(get.status_code.to_int(), 200)
-  assert_eq(ex_arr_field(ex_response_json(get), "points").length(), 1)
+  @debug.assert_eq(get.status_code.to_int(), 200)
+  @debug.assert_eq(ex_arr_field(ex_response_json(get), "points").length(), 1)
   ex_clean("time_machine_" + sid + ".json")
   ex_pop_profile(old)
 }
@@ -365,5 +365,5 @@ test "time machine get rejects missing id" {
     ex_make_server_ref(),
     ex_make_event(Get, "/api/sessions/x/time-machine", params=[]),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }

@@ -8,7 +8,7 @@ extern "C" fn git_system_ffi(_cmd : Bytes) -> Int = "git_system"
 ///|
 /// Run a system command and return the exit code.
 fn git_run_command(command : String) -> Int {
-  let cmd_bytes = command.to_bytes()
+  let cmd_bytes = @utf8.encode(command)
   git_system_ffi(cmd_bytes)
 }
 

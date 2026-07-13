@@ -14,16 +14,16 @@ test "VirtualSkill from_mcp_server with tools" {
     },
   ]
   let skill = VirtualSkill::from_mcp_server("my-server", tools)
-  assert_eq(skill.name, "mcp-my-server")
-  assert_eq(skill.mcp_server_name, "my-server")
+  @debug.assert_eq(skill.name, "mcp-my-server")
+  @debug.assert_eq(skill.mcp_server_name, "my-server")
   assert_true(skill.fork_agent)
-  assert_eq(skill.tool_count(), 2)
+  @debug.assert_eq(skill.tool_count(), 2)
 }
 
 ///|
 test "VirtualSkill from_mcp_server without tools" {
   let skill = VirtualSkill::from_mcp_server("empty", [])
-  assert_eq(skill.tool_count(), 0)
+  @debug.assert_eq(skill.tool_count(), 0)
   assert_true(skill.description.contains("(no tools discovered yet)"))
 }
 
@@ -49,7 +49,7 @@ test "VirtualSkill tool_count" {
     { name: "c", description: "C", input_schema: Json::null() },
   ]
   let skill = VirtualSkill::from_mcp_server("multi", tools)
-  assert_eq(skill.tool_count(), 3)
+  @debug.assert_eq(skill.tool_count(), 3)
 }
 
 ///|

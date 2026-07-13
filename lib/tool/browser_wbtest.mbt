@@ -59,7 +59,7 @@ test "build_mcp_screenshot_args_omits_format_when_absent" {
   let args : Map[String, Json] = {}
   let result = build_mcp_screenshot_args(args)
   let s = result.stringify()
-  assert_eq(s, "{}")
+  @debug.assert_eq(s, "{}")
 }
 
 ///|
@@ -122,7 +122,7 @@ test "build_mcp_scroll_args_empty" {
   let args : Map[String, Json] = {}
   let result = build_mcp_scroll_args(args)
   let s = result.stringify()
-  assert_eq(s, "{}")
+  @debug.assert_eq(s, "{}")
 }
 
 ///|
@@ -141,33 +141,33 @@ test "build_mcp_args_routes_scroll_page" {
 
 ///|
 test "escape_js_string_no_special_chars" {
-  assert_eq(escape_js_string("e1"), "e1")
-  assert_eq(escape_js_string("hello"), "hello")
+  @debug.assert_eq(escape_js_string("e1"), "e1")
+  @debug.assert_eq(escape_js_string("hello"), "hello")
 }
 
 ///|
 test "escape_js_string_with_backslash" {
   let result = escape_js_string("a\\b")
-  assert_eq(result, "a\\\\b")
+  @debug.assert_eq(result, "a\\\\b")
 }
 
 ///|
 test "escape_js_string_with_single_quote" {
   let result = escape_js_string("it's")
-  assert_eq(result, "it\\'s")
+  @debug.assert_eq(result, "it\\'s")
 }
 
 ///|
 test "escape_js_string_with_double_quote" {
   let result = escape_js_string("a\"b")
-  assert_eq(result, "a\\\"b")
+  @debug.assert_eq(result, "a\\\"b")
 }
 
 ///|
 test "escape_js_string_with_control_chars" {
-  assert_eq(escape_js_string("a\nb"), "a\\nb")
-  assert_eq(escape_js_string("a\rb"), "a\\rb")
-  assert_eq(escape_js_string("a\tb"), "a\\tb")
+  @debug.assert_eq(escape_js_string("a\nb"), "a\\nb")
+  @debug.assert_eq(escape_js_string("a\rb"), "a\\rb")
+  @debug.assert_eq(escape_js_string("a\tb"), "a\\tb")
 }
 
 // ── Scroll Dispatch Tests ───────────────────────────────────────────────────
@@ -298,7 +298,7 @@ test "compress_snapshot_below_threshold_skips_compression" {
   assert_true(result.find("[snapshot-compress]") is None)
   // Result should be equivalent to plain truncation (small input won't be truncated)
   let expected = truncate_browser_output(small, max_snapshot_chars)
-  assert_eq(result, expected)
+  @debug.assert_eq(result, expected)
 }
 
 ///|

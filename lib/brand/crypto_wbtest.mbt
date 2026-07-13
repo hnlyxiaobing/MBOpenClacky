@@ -5,13 +5,13 @@ test "crypto_aes_gcm_roundtrip_large_payload" {
   guard encrypt_aes256gcm(plaintext, key) is Ok(encrypted) else {
     fail("encryption of large payload should succeed")
   }
-  assert_eq(encrypted.ciphertext.length(), 256)
-  assert_eq(encrypted.tag.length(), 16)
-  assert_eq(encrypted.nonce.length(), 12)
+  @debug.assert_eq(encrypted.ciphertext.length(), 256)
+  @debug.assert_eq(encrypted.tag.length(), 16)
+  @debug.assert_eq(encrypted.nonce.length(), 12)
   guard decrypt_aes256gcm(encrypted, key) is Ok(decrypted) else {
     fail("decryption of large payload should succeed")
   }
-  assert_eq(decrypted, plaintext)
+  @debug.assert_eq(decrypted, plaintext)
 }
 
 ///|
@@ -76,7 +76,7 @@ test "crypto_hmac_sha256_known_vector" {
   // Key = "Jefe", Data = "what do ya want for nothing?"
   // HMAC-SHA256 = 5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843
   let result = hmac_sha256("Jefe", "what do ya want for nothing?")
-  assert_eq(
+  @debug.assert_eq(
     result, "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843",
   )
 }
@@ -85,7 +85,7 @@ test "crypto_hmac_sha256_known_vector" {
 test "crypto_hmac_sha256_deterministic" {
   let r1 = hmac_sha256("key", "message")
   let r2 = hmac_sha256("key", "message")
-  assert_eq(r1, r2)
+  @debug.assert_eq(r1, r2)
 }
 
 ///|
@@ -106,7 +106,7 @@ test "crypto_hmac_sha256_different_data" {
 test "crypto_sha256_known_vector" {
   // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
   let result = sha256_hex("abc")
-  assert_eq(
+  @debug.assert_eq(
     result, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
   )
 }
@@ -115,7 +115,7 @@ test "crypto_sha256_known_vector" {
 test "crypto_sha256_empty_string" {
   // SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   let result = sha256_hex("")
-  assert_eq(
+  @debug.assert_eq(
     result, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   )
 }
@@ -124,7 +124,7 @@ test "crypto_sha256_empty_string" {
 test "crypto_sha256_output_length" {
   let result = sha256_hex("test")
   // SHA-256 produces 32 bytes = 64 hex characters
-  assert_eq(result.length(), 64)
+  @debug.assert_eq(result.length(), 64)
 }
 
 ///|
@@ -148,7 +148,7 @@ test "crypto_generate_nonce_length_12_bytes" {
   guard generate_nonce() is Ok(nonce) else {
     fail("nonce generation should succeed")
   }
-  assert_eq(nonce.length(), 12)
+  @debug.assert_eq(nonce.length(), 12)
 }
 
 ///|
@@ -161,14 +161,14 @@ test "crypto_generate_nonce_two_different" {
 ///|
 test "crypto_derive_key_output_32_bytes" {
   let key = derive_key("test-password")
-  assert_eq(key.length(), 32)
+  @debug.assert_eq(key.length(), 32)
 }
 
 ///|
 test "crypto_derive_key_deterministic_output" {
   let k1 = derive_key("same-password")
   let k2 = derive_key("same-password")
-  assert_eq(k1, k2)
+  @debug.assert_eq(k1, k2)
 }
 
 ///|
@@ -184,8 +184,8 @@ test "crypto_derive_key_pbkdf2_with_salt" {
   let salt : Array[Byte] = [b's', b'a', b'l', b't', b'_', b'v', b'a', b'l']
   let k1 = derive_key("password", salt~)
   let k2 = derive_key("password", salt~)
-  assert_eq(k1.length(), 32)
-  assert_eq(k1, k2)
+  @debug.assert_eq(k1.length(), 32)
+  @debug.assert_eq(k1, k2)
   // A different salt must produce a different key.
   let salt : Array[Byte] = [b'o', b't', b'h', b'e', b'r']
   let k3 = derive_key("password", salt~)
@@ -206,8 +206,8 @@ test "crypto_encrypted_data_struct_fields" {
   guard encrypt_aes256gcm(plaintext, key, aad~) is Ok(encrypted) else {
     fail("encryption should succeed")
   }
-  assert_eq(encrypted.nonce.length(), 12)
-  assert_eq(encrypted.tag.length(), 16)
-  assert_eq(encrypted.ciphertext.length(), plaintext.length())
-  assert_eq(encrypted.aad, aad)
+  @debug.assert_eq(encrypted.nonce.length(), 12)
+  @debug.assert_eq(encrypted.tag.length(), 16)
+  @debug.assert_eq(encrypted.ciphertext.length(), plaintext.length())
+  @debug.assert_eq(encrypted.aad, aad)
 }

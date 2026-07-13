@@ -2,9 +2,9 @@
 /// Tests for the Insert-then-Compress message compression system.
 test "CompressionConfig default values" {
   let config = CompressionConfig::default()
-  inspect(config.max_recent_messages, content="20")
-  inspect(config.target_compressed_tokens, content="10000")
-  inspect(config.idle_compression_threshold, content="20000")
+  @debug.debug_inspect(config.max_recent_messages, content="20")
+  @debug.debug_inspect(config.target_compressed_tokens, content="10000")
+  @debug.debug_inspect(config.idle_compression_threshold, content="20000")
 }
 
 ///|
@@ -33,7 +33,10 @@ test "parse_compression_response valid format" {
   let result = parse_compression_response(response)
   match result {
     Ok(parsed) => {
-      assert_eq(parsed.topics, "MoonBit setup, agent config, tool system")
+      @debug.assert_eq(
+        parsed.topics,
+        "MoonBit setup, agent config, tool system",
+      )
       assert_true(parsed.summary.contains("MoonBit project"))
       assert_true(parsed.summary.contains("tool system"))
     }
@@ -58,7 +61,7 @@ test "parse_compression_response missing topics only" {
   match result {
     Ok(parsed) => {
       // Topics should be empty string when missing
-      assert_eq(parsed.topics, "")
+      @debug.assert_eq(parsed.topics, "")
       assert_true(parsed.summary.contains("Some summary content"))
     }
     Err(e) => fail("Expected Ok but got Err: \{e}")
@@ -159,7 +162,7 @@ test "get_recent_with_tool_pairs respects count" {
   ]
   let recent = get_recent_with_tool_pairs(messages, 4)
   // Should return exactly 4 messages
-  assert_eq(recent.length(), 4)
+  @debug.assert_eq(recent.length(), 4)
   // Last should be the final assistant message
   assert_true(recent[recent.length() - 1].role == @message.Assistant)
 }
@@ -168,7 +171,7 @@ test "get_recent_with_tool_pairs respects count" {
 test "extract_xml_content" {
   // Basic extraction
   let result = extract_xml_content("<topics>hello, world</topics>", "topics")
-  assert_eq(result, Some("hello, world"))
+  @debug.assert_eq(result, Some("hello, world"))
   // Multiline content
   let multi = extract_xml_content(
     "<summary>\nLine 1\nLine 2\n</summary>", "summary",
@@ -179,7 +182,7 @@ test "extract_xml_content" {
   }
   // Missing tag
   let missing = extract_xml_content("no tags here", "topics")
-  assert_eq(missing, None)
+  @debug.assert_eq(missing, None)
   // Empty tag
   let empty = extract_xml_content("<topics></topics>", "topics")
   assert_true(empty == None)
@@ -207,9 +210,9 @@ test "should_trigger_idle_compression" {
 ///|
 test "calculate_compression_savings" {
   let stats = calculate_compression_savings(100000, 10000, 50, 5)
-  assert_eq(stats.before_tokens, 100000)
-  assert_eq(stats.after_tokens, 10000)
-  assert_eq(stats.messages_removed, 45)
+  @debug.assert_eq(stats.before_tokens, 100000)
+  @debug.assert_eq(stats.after_tokens, 10000)
+  @debug.assert_eq(stats.messages_removed, 45)
   // Compression ratio should be 0.9 (90% reduction)
   assert_true(stats.compression_ratio > 0.89)
   assert_true(stats.compression_ratio < 0.91)
@@ -219,7 +222,7 @@ test "calculate_compression_savings" {
 test "calculate_compression_savings zero before" {
   let stats = calculate_compression_savings(0, 0, 0, 0)
   assert_true(stats.compression_ratio == 0.0)
-  assert_eq(stats.messages_removed, 0)
+  @debug.assert_eq(stats.messages_removed, 0)
 }
 
 ///|
@@ -235,8 +238,8 @@ test "count_messages_to_compress" {
   ]
   // 6 non-system messages, keeping 2 recent => 4 to compress
   let count = count_messages_to_compress(messages, 2)
-  assert_eq(count, 4)
+  @debug.assert_eq(count, 4)
   // Keep more than available => 0 to compress
   let count2 = count_messages_to_compress(messages, 10)
-  assert_eq(count2, 0)
+  @debug.assert_eq(count2, 0)
 }

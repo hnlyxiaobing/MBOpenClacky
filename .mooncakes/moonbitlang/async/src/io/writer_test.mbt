@@ -23,7 +23,7 @@ async test "write large data" {
     }
     root.spawn_bg() <| () => {
       defer r.close()
-      inspect(r.read_all().binary().length(), content="16384")
+      @debug.debug_inspect(r.read_all().binary().length(), content="16384")
     }
   }
 }
@@ -58,7 +58,7 @@ async test "write reader" {
       w2.write(b"ijkl")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|sending 4 bytes
@@ -93,7 +93,7 @@ async test "write cancel" {
   @async.with_timeout_opt(450, () => writer.write(b"abcd")) |> ignore
   // The `write` here is partial and corrupted,
   // but we have no choice because making `write` atomic may cause hang
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|writing byte b'\x61'
@@ -111,6 +111,6 @@ async test "write_string" {
       defer w.close()
       w.write("abcd中文☺")
     }
-    inspect(r.read_all().text(), content="abcd中文☺")
+    @debug.debug_inspect(r.read_all().text(), content="abcd中文☺")
   }
 }

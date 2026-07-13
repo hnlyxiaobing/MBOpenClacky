@@ -8,37 +8,37 @@
 test "parse_sse_frames_single_frame" {
   let text = "data: hello world\n\n"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 1)
-  assert_eq(frames[0].event, "message")
-  assert_eq(frames[0].data, "hello world")
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].event, "message")
+  @debug.assert_eq(frames[0].data, "hello world")
 }
 
 ///|
 test "parse_sse_frames_with_event" {
   let text = "event: message_start\ndata: {\"type\":\"start\"}\n\n"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 1)
-  assert_eq(frames[0].event, "message_start")
-  assert_eq(frames[0].data, "{\"type\":\"start\"}")
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].event, "message_start")
+  @debug.assert_eq(frames[0].data, "{\"type\":\"start\"}")
 }
 
 ///|
 test "parse_sse_frames_multiple" {
   let text = "data: first\n\ndata: second\n\ndata: third\n\n"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 3)
-  assert_eq(frames[0].data, "first")
-  assert_eq(frames[1].data, "second")
-  assert_eq(frames[2].data, "third")
+  @debug.assert_eq(frames.length(), 3)
+  @debug.assert_eq(frames[0].data, "first")
+  @debug.assert_eq(frames[1].data, "second")
+  @debug.assert_eq(frames[2].data, "third")
 }
 
 ///|
 test "parse_sse_frames_done_sentinel" {
   let text = "data: hello\n\ndata: [DONE]\n\n"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 2)
-  assert_eq(frames[0].data, "hello")
-  assert_eq(frames[1].data, "[DONE]")
+  @debug.assert_eq(frames.length(), 2)
+  @debug.assert_eq(frames[0].data, "hello")
+  @debug.assert_eq(frames[1].data, "[DONE]")
 }
 
 ///|
@@ -46,21 +46,21 @@ test "parse_sse_frames_incomplete_discarded" {
   // No trailing \n\n means the frame is incomplete
   let text = "data: incomplete"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 0)
+  @debug.assert_eq(frames.length(), 0)
 }
 
 ///|
 test "parse_sse_frames_empty" {
   let frames = parse_sse_frames("")
-  assert_eq(frames.length(), 0)
+  @debug.assert_eq(frames.length(), 0)
 }
 
 ///|
 test "parse_sse_frames_comment_ignored" {
   let text = ": this is a comment\ndata: actual_data\n\n"
   let frames = parse_sse_frames(text)
-  assert_eq(frames.length(), 1)
-  assert_eq(frames[0].data, "actual_data")
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].data, "actual_data")
 }
 
 // ── OpenAI Request Building Tests ───────────────────────────────────────────
@@ -73,10 +73,10 @@ test "build_openai_request_basic" {
     Object(o) => o
     _ => abort("expected object")
   }
-  assert_eq(obj.get("model").unwrap().stringify(), "\"gpt-4\"")
-  assert_eq(obj.get("max_tokens").unwrap().stringify(), "1024")
+  @debug.assert_eq(obj.get("model").unwrap().stringify(), "\"gpt-4\"")
+  @debug.assert_eq(obj.get("max_tokens").unwrap().stringify(), "1024")
   match obj.get("messages") {
-    Some(Array(msgs)) => assert_eq(msgs.length(), 1)
+    Some(Array(msgs)) => @debug.assert_eq(msgs.length(), 1)
     _ => abort("expected messages array")
   }
 }
@@ -100,7 +100,7 @@ test "build_openai_request_with_tools" {
     _ => abort("expected object")
   }
   match obj.get("tools") {
-    Some(Array(t)) => assert_eq(t.length(), 1)
+    Some(Array(t)) => @debug.assert_eq(t.length(), 1)
     _ => abort("expected tools array")
   }
 }
@@ -149,11 +149,11 @@ test "parse_openai_response_basic" {
   let json = @json.parse(raw)
   let resp = parse_openai_response(json)
   assert_true(resp.content is Some(_))
-  assert_eq(resp.content.unwrap(), "Hello!")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hello!")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
   assert_true(resp.usage is Some(_))
-  assert_eq(resp.usage.unwrap().input_tokens, 10)
-  assert_eq(resp.usage.unwrap().output_tokens, 5)
+  @debug.assert_eq(resp.usage.unwrap().input_tokens, 10)
+  @debug.assert_eq(resp.usage.unwrap().output_tokens, 5)
 }
 
 ///|
@@ -163,10 +163,10 @@ test "parse_openai_response_with_tool_calls" {
   let resp = parse_openai_response(json)
   assert_true(resp.has_tool_calls())
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls.length(), 1)
-  assert_eq(calls[0].id, "call_1")
-  assert_eq(calls[0].function.name, "shell")
-  assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
+  @debug.assert_eq(calls.length(), 1)
+  @debug.assert_eq(calls[0].id, "call_1")
+  @debug.assert_eq(calls[0].function.name, "shell")
+  @debug.assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
 }
 
 ///|
@@ -174,7 +174,7 @@ test "parse_openai_response_empty" {
   let raw = "{\"choices\":[]}"
   let json = @json.parse(raw)
   let resp = parse_openai_response(json)
-  assert_eq(resp.content.unwrap(), "")
+  @debug.assert_eq(resp.content.unwrap(), "")
 }
 
 // ── Anthropic Request Building Tests ────────────────────────────────────────
@@ -198,12 +198,12 @@ test "build_anthropic_request_separates_system" {
   }
   // System should be extracted into top-level field
   match obj.get("system") {
-    Some(String(s)) => assert_eq(s, "You are helpful")
+    Some(String(s)) => @debug.assert_eq(s, "You are helpful")
     _ => abort("expected system string")
   }
   // Only user message in messages array
   match obj.get("messages") {
-    Some(Array(msgs)) => assert_eq(msgs.length(), 1)
+    Some(Array(msgs)) => @debug.assert_eq(msgs.length(), 1)
     _ => abort("expected messages array")
   }
 }
@@ -233,7 +233,7 @@ test "build_anthropic_request_converts_tools" {
   }
   match obj.get("tools") {
     Some(Array(t)) => {
-      assert_eq(t.length(), 1)
+      @debug.assert_eq(t.length(), 1)
       // Should have input_schema, not parameters
       match t[0] {
         Object(tool) => {
@@ -272,8 +272,8 @@ test "parse_anthropic_response_text" {
   let raw = "{\"content\":[{\"type\":\"text\",\"text\":\"Hi there!\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":5,\"output_tokens\":3}}"
   let json = @json.parse(raw)
   let resp = parse_anthropic_response(json)
-  assert_eq(resp.content.unwrap(), "Hi there!")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hi there!")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
   assert_true(resp.usage is Some(_))
 }
 
@@ -283,11 +283,11 @@ test "parse_anthropic_response_tool_use" {
   let json = @json.parse(raw)
   let resp = parse_anthropic_response(json)
   assert_true(resp.has_tool_calls())
-  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "tool_calls")
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls.length(), 1)
-  assert_eq(calls[0].id, "tu_1")
-  assert_eq(calls[0].function.name, "shell")
+  @debug.assert_eq(calls.length(), 1)
+  @debug.assert_eq(calls[0].id, "tu_1")
+  @debug.assert_eq(calls[0].function.name, "shell")
 }
 
 ///|
@@ -295,7 +295,7 @@ test "parse_anthropic_response_max_tokens" {
   let raw = "{\"content\":[{\"type\":\"text\",\"text\":\"partial\"}],\"stop_reason\":\"max_tokens\",\"usage\":{\"input_tokens\":5,\"output_tokens\":100}}"
   let json = @json.parse(raw)
   let resp = parse_anthropic_response(json)
-  assert_eq(resp.finish_reason.unwrap(), "length")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "length")
 }
 
 ///|
@@ -305,10 +305,10 @@ test "parse_anthropic_response_with_cache_usage" {
   let resp = parse_anthropic_response(json)
   let usage = resp.usage.unwrap()
   // Anthropic: input_tokens = raw_input + cache_read = 100 + 80
-  assert_eq(usage.input_tokens, 180)
-  assert_eq(usage.output_tokens, 50)
-  assert_eq(usage.cache_read_input_tokens, 80)
-  assert_eq(usage.cache_creation_input_tokens, 20)
+  @debug.assert_eq(usage.input_tokens, 180)
+  @debug.assert_eq(usage.output_tokens, 50)
+  @debug.assert_eq(usage.cache_read_input_tokens, 80)
+  @debug.assert_eq(usage.cache_creation_input_tokens, 20)
 }
 
 // ── Tool Result Formatting Tests ────────────────────────────────────────────
@@ -324,10 +324,10 @@ test "format_openai_tool_results" {
   }
   let results : Map[String, String] = { "tc_1": "file list output" }
   let msgs = format_openai_tool_results(resp, results)
-  assert_eq(msgs.length(), 1)
+  @debug.assert_eq(msgs.length(), 1)
   assert_true(msgs[0].role == @message.Tool)
   match msgs[0].content {
-    @message.Text(text) => assert_eq(text, "file list output")
+    @message.Text(text) => @debug.assert_eq(text, "file list output")
     _ => abort("expected text content")
   }
 }
@@ -349,7 +349,7 @@ test "format_anthropic_tool_results" {
     "tu_2": "command output",
   }
   let msgs = format_anthropic_tool_results(resp, results)
-  assert_eq(msgs.length(), 2)
+  @debug.assert_eq(msgs.length(), 2)
   assert_true(msgs[0].role == @message.Tool)
   assert_true(msgs[1].role == @message.Tool)
 }
@@ -365,7 +365,7 @@ test "format_tool_results_missing_result" {
   }
   let results : Map[String, String] = {}
   let msgs = format_openai_tool_results(resp, results)
-  assert_eq(msgs.length(), 1)
+  @debug.assert_eq(msgs.length(), 1)
   match msgs[0].content {
     @message.Text(text) => assert_true(text.find("missing") is Some(_))
     _ => abort("expected text content")
@@ -377,19 +377,19 @@ test "format_tool_results_missing_result" {
 ///|
 test "extract_error_message_json_error" {
   let msg = extract_error_message("{\"error\":{\"message\":\"Invalid model\"}}")
-  assert_eq(msg, "Invalid model")
+  @debug.assert_eq(msg, "Invalid model")
 }
 
 ///|
 test "extract_error_message_upstream" {
   let msg = extract_error_message("{\"upstreamMessage\":\"Quota exceeded\"}")
-  assert_eq(msg, "Quota exceeded")
+  @debug.assert_eq(msg, "Quota exceeded")
 }
 
 ///|
 test "extract_error_message_plain_string" {
   let msg = extract_error_message("Something went wrong")
-  assert_eq(msg, "Something went wrong")
+  @debug.assert_eq(msg, "Something went wrong")
 }
 
 ///|
@@ -446,7 +446,7 @@ test "build_url_basic" {
     "gpt-4",
     @config.OpenAICompletions,
   )
-  assert_eq(
+  @debug.assert_eq(
     client.build_url("chat/completions"),
     "https://api.openai.com/v1/chat/completions",
   )
@@ -460,7 +460,7 @@ test "build_url_trailing_slash" {
     "gpt-4",
     @config.OpenAICompletions,
   )
-  assert_eq(
+  @debug.assert_eq(
     client.build_url("chat/completions"),
     "https://api.openai.com/v1/chat/completions",
   )
@@ -468,12 +468,18 @@ test "build_url_trailing_slash" {
 
 ///|
 test "anthropic_messages_path_no_v1" {
-  assert_eq(anthropic_messages_path("https://api.anthropic.com"), "v1/messages")
+  @debug.assert_eq(
+    anthropic_messages_path("https://api.anthropic.com"),
+    "v1/messages",
+  )
 }
 
 ///|
 test "anthropic_messages_path_with_v1" {
-  assert_eq(anthropic_messages_path("https://openrouter.ai/api/v1"), "messages")
+  @debug.assert_eq(
+    anthropic_messages_path("https://openrouter.ai/api/v1"),
+    "messages",
+  )
 }
 
 // ── OpenAI Stream Aggregator Tests ──────────────────────────────────────────
@@ -486,8 +492,8 @@ test "openai_aggregator_content" {
   agg.handle("{\"choices\":[{\"delta\":{\"content\":\" world\"}}]}")
   agg.handle("{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}")
   let resp = agg.to_response()
-  assert_eq(resp.content.unwrap(), "Hello world")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hello world")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
 }
 
 ///|
@@ -503,9 +509,9 @@ test "openai_aggregator_tool_calls" {
   let resp = agg.to_response()
   assert_true(resp.has_tool_calls())
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls.length(), 1)
-  assert_eq(calls[0].function.name, "shell")
-  assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
+  @debug.assert_eq(calls.length(), 1)
+  @debug.assert_eq(calls[0].function.name, "shell")
+  @debug.assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
 }
 
 ///|
@@ -524,8 +530,8 @@ test "openai_aggregator_usage" {
   )
   let resp = agg.to_response()
   assert_true(resp.usage is Some(_))
-  assert_eq(resp.usage.unwrap().input_tokens, 100)
-  assert_eq(resp.usage.unwrap().output_tokens, 50)
+  @debug.assert_eq(resp.usage.unwrap().input_tokens, 100)
+  @debug.assert_eq(resp.usage.unwrap().output_tokens, 50)
 }
 
 // ── Anthropic Stream Aggregator Tests ───────────────────────────────────────
@@ -548,8 +554,8 @@ test "anthropic_aggregator_text" {
     "message_delta", "{\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":5}}",
   )
   let resp = agg.to_response()
-  assert_eq(resp.content.unwrap(), "Hello there")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hello there")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
 }
 
 ///|
@@ -570,11 +576,11 @@ test "anthropic_aggregator_tool_use" {
   )
   let resp = agg.to_response()
   assert_true(resp.has_tool_calls())
-  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "tool_calls")
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls[0].id, "tu_1")
-  assert_eq(calls[0].function.name, "read_file")
-  assert_eq(calls[0].function.arguments, "{\"path\":\"/test.txt\"}")
+  @debug.assert_eq(calls[0].id, "tu_1")
+  @debug.assert_eq(calls[0].function.name, "read_file")
+  @debug.assert_eq(calls[0].function.arguments, "{\"path\":\"/test.txt\"}")
 }
 
 // ── Usage Helper Tests ──────────────────────────────────────────────────────
@@ -582,20 +588,20 @@ test "anthropic_aggregator_tool_use" {
 ///|
 test "usage_from_openai" {
   let usage = Usage::from_openai(100, 50, cache_creation=10, cache_read=20)
-  assert_eq(usage.input_tokens, 100)
-  assert_eq(usage.output_tokens, 50)
-  assert_eq(usage.cache_creation_input_tokens, 10)
-  assert_eq(usage.cache_read_input_tokens, 20)
+  @debug.assert_eq(usage.input_tokens, 100)
+  @debug.assert_eq(usage.output_tokens, 50)
+  @debug.assert_eq(usage.cache_creation_input_tokens, 10)
+  @debug.assert_eq(usage.cache_read_input_tokens, 20)
 }
 
 ///|
 test "usage_from_anthropic" {
   let usage = Usage::from_anthropic(100, 50, cache_creation=10, cache_read=20)
   // Anthropic: input_tokens = raw_input + cache_read = 100 + 20 = 120
-  assert_eq(usage.input_tokens, 120)
-  assert_eq(usage.output_tokens, 50)
-  assert_eq(usage.cache_creation_input_tokens, 10)
-  assert_eq(usage.cache_read_input_tokens, 20)
+  @debug.assert_eq(usage.input_tokens, 120)
+  @debug.assert_eq(usage.output_tokens, 50)
+  @debug.assert_eq(usage.cache_creation_input_tokens, 10)
+  @debug.assert_eq(usage.cache_read_input_tokens, 20)
 }
 
 // ── Bedrock API Key Detection Tests ──────────────────────────────────────────
@@ -661,7 +667,7 @@ test "client_not_bedrock_format" {
 
 ///|
 test "bedrock_converse_path_format" {
-  assert_eq(
+  @debug.assert_eq(
     bedrock_converse_path("abs-claude-sonnet-4-6"),
     "model/abs-claude-sonnet-4-6/converse",
   )
@@ -692,7 +698,7 @@ test "build_bedrock_request_separates_system" {
       match arr[0] {
         Object(sys_obj) =>
           match sys_obj.get("text") {
-            Some(String(s)) => assert_eq(s, "You are helpful")
+            Some(String(s)) => @debug.assert_eq(s, "You are helpful")
             _ => abort("expected system text")
           }
         _ => abort("expected system object")
@@ -701,7 +707,7 @@ test "build_bedrock_request_separates_system" {
   }
   // Only user message in messages array
   match obj.get("messages") {
-    Some(Array(msgs)) => assert_eq(msgs.length(), 1)
+    Some(Array(msgs)) => @debug.assert_eq(msgs.length(), 1)
     _ => abort("expected messages array")
   }
   // Should have inferenceConfig, not max_tokens
@@ -742,7 +748,7 @@ test "build_bedrock_request_converts_tools" {
     Some(Object(tc)) =>
       match tc.get("tools") {
         Some(Array(arr)) => {
-          assert_eq(arr.length(), 1)
+          @debug.assert_eq(arr.length(), 1)
           match arr[0] {
             Object(tool) =>
               match tool.get("toolSpec") {
@@ -794,11 +800,11 @@ test "parse_bedrock_response_text" {
   let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"Hello!\"}]}},\"stopReason\":\"end_turn\",\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}"
   let json = @json.parse(raw)
   let resp = parse_bedrock_response(json)
-  assert_eq(resp.content.unwrap(), "Hello!")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hello!")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
   assert_true(resp.usage is Some(_))
-  assert_eq(resp.usage.unwrap().input_tokens, 10)
-  assert_eq(resp.usage.unwrap().output_tokens, 5)
+  @debug.assert_eq(resp.usage.unwrap().input_tokens, 10)
+  @debug.assert_eq(resp.usage.unwrap().output_tokens, 5)
 }
 
 ///|
@@ -807,12 +813,12 @@ test "parse_bedrock_response_tool_use" {
   let json = @json.parse(raw)
   let resp = parse_bedrock_response(json)
   assert_true(resp.has_tool_calls())
-  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "tool_calls")
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls.length(), 1)
-  assert_eq(calls[0].id, "tu_1")
-  assert_eq(calls[0].function.name, "shell")
-  assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
+  @debug.assert_eq(calls.length(), 1)
+  @debug.assert_eq(calls[0].id, "tu_1")
+  @debug.assert_eq(calls[0].function.name, "shell")
+  @debug.assert_eq(calls[0].function.arguments, "{\"cmd\":\"ls\"}")
 }
 
 ///|
@@ -820,7 +826,7 @@ test "parse_bedrock_response_max_tokens" {
   let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"partial\"}]}},\"stopReason\":\"max_tokens\",\"usage\":{\"inputTokens\":5,\"outputTokens\":100}}"
   let json = @json.parse(raw)
   let resp = parse_bedrock_response(json)
-  assert_eq(resp.finish_reason.unwrap(), "length")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "length")
 }
 
 ///|
@@ -830,10 +836,10 @@ test "parse_bedrock_response_cache_usage" {
   let resp = parse_bedrock_response(json)
   let usage = resp.usage.unwrap()
   // Bedrock: prompt_tokens = inputTokens + cacheReadInputTokens = 20 + 80 = 100
-  assert_eq(usage.input_tokens, 100)
-  assert_eq(usage.output_tokens, 50)
-  assert_eq(usage.cache_read_input_tokens, 80)
-  assert_eq(usage.cache_creation_input_tokens, 10)
+  @debug.assert_eq(usage.input_tokens, 100)
+  @debug.assert_eq(usage.output_tokens, 50)
+  @debug.assert_eq(usage.cache_read_input_tokens, 80)
+  @debug.assert_eq(usage.cache_creation_input_tokens, 10)
 }
 
 ///|
@@ -847,8 +853,8 @@ test "client_parse_response_bedrock_dispatch" {
   let raw = "{\"output\":{\"message\":{\"role\":\"assistant\",\"content\":[{\"text\":\"Hi\"}]}},\"stopReason\":\"end_turn\",\"usage\":{\"inputTokens\":5,\"outputTokens\":3}}"
   let json = @json.parse(raw)
   let resp = client.parse_response(json)
-  assert_eq(resp.content.unwrap(), "Hi")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hi")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
 }
 
 // ── Bedrock Tool Result Formatting Tests ─────────────────────────────────────
@@ -864,10 +870,10 @@ test "format_bedrock_tool_results" {
   }
   let results : Map[String, String] = { "tu_1": "command output" }
   let msgs = format_bedrock_tool_results(resp, results)
-  assert_eq(msgs.length(), 1)
+  @debug.assert_eq(msgs.length(), 1)
   assert_true(msgs[0].role == @message.Tool)
   match msgs[0].content {
-    @message.Text(text) => assert_eq(text, "command output")
+    @message.Text(text) => @debug.assert_eq(text, "command output")
     _ => abort("expected text content")
   }
 }
@@ -880,7 +886,7 @@ test "client_api_path_bedrock" {
     "abs-claude-sonnet-4-6",
     @config.Bedrock,
   )
-  assert_eq(client.api_path(), "model/abs-claude-sonnet-4-6/converse")
+  @debug.assert_eq(client.api_path(), "model/abs-claude-sonnet-4-6/converse")
 }
 
 // ── Bedrock Stream Aggregator Tests ──────────────────────────────────────────
@@ -900,11 +906,11 @@ test "bedrock_aggregator_text" {
   agg.handle("messageStop", "{\"stopReason\":\"end_turn\"}")
   agg.handle("metadata", "{\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}")
   let resp = agg.to_response()
-  assert_eq(resp.content.unwrap(), "Hello there")
-  assert_eq(resp.finish_reason.unwrap(), "stop")
+  @debug.assert_eq(resp.content.unwrap(), "Hello there")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "stop")
   assert_true(resp.usage is Some(_))
-  assert_eq(resp.usage.unwrap().input_tokens, 10)
-  assert_eq(resp.usage.unwrap().output_tokens, 5)
+  @debug.assert_eq(resp.usage.unwrap().input_tokens, 10)
+  @debug.assert_eq(resp.usage.unwrap().output_tokens, 5)
 }
 
 ///|
@@ -925,11 +931,11 @@ test "bedrock_aggregator_tool_use" {
   agg.handle("metadata", "{\"usage\":{\"inputTokens\":10,\"outputTokens\":5}}")
   let resp = agg.to_response()
   assert_true(resp.has_tool_calls())
-  assert_eq(resp.finish_reason.unwrap(), "tool_calls")
+  @debug.assert_eq(resp.finish_reason.unwrap(), "tool_calls")
   let calls = resp.tool_calls.unwrap()
-  assert_eq(calls[0].id, "tu_1")
-  assert_eq(calls[0].function.name, "read_file")
-  assert_eq(calls[0].function.arguments, "{\"path\":\"/test.txt\"}")
+  @debug.assert_eq(calls[0].id, "tu_1")
+  @debug.assert_eq(calls[0].function.name, "read_file")
+  @debug.assert_eq(calls[0].function.arguments, "{\"path\":\"/test.txt\"}")
 }
 
 ///|
@@ -948,8 +954,8 @@ test "bedrock_aggregator_cache_usage" {
   let resp = agg.to_response()
   let usage = resp.usage.unwrap()
   // Bedrock: prompt_tokens = inputTokens + cacheReadInputTokens = 20 + 80 = 100
-  assert_eq(usage.input_tokens, 100)
-  assert_eq(usage.output_tokens, 50)
-  assert_eq(usage.cache_read_input_tokens, 80)
-  assert_eq(usage.cache_creation_input_tokens, 10)
+  @debug.assert_eq(usage.input_tokens, 100)
+  @debug.assert_eq(usage.output_tokens, 50)
+  @debug.assert_eq(usage.cache_read_input_tokens, 80)
+  @debug.assert_eq(usage.cache_creation_input_tokens, 10)
 }

@@ -140,11 +140,14 @@ test "modal: consume clears state" {
 ///|
 test "modal: confirmation_prompt_text" {
   let state = test_state()
-  assert_eq(confirmation_prompt_text(state), "")
+  @debug.assert_eq(confirmation_prompt_text(state), "")
   request_confirmation(
     state, "write", "/tmp/test.txt", "Modify file: /tmp/test.txt",
   )
-  assert_eq(confirmation_prompt_text(state), "Modify file: /tmp/test.txt")
+  @debug.assert_eq(
+    confirmation_prompt_text(state),
+    "Modify file: /tmp/test.txt",
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -155,7 +158,7 @@ test "modal: confirmation_prompt_text" {
 test "dialog: render_confirmation_lines empty when no pending" {
   let state = test_state()
   let lines = render_confirmation_lines(state)
-  assert_eq(lines.length(), 0)
+  @debug.assert_eq(lines.length(), 0)
 }
 
 ///|
@@ -165,7 +168,7 @@ test "dialog: render_confirmation_lines shows tool name and prompt" {
     state, "terminal", "rm -rf /tmp/cache", "Run: rm -rf /tmp/cache",
   )
   let lines = render_confirmation_lines(state)
-  assert_eq(lines.length(), 1)
+  @debug.assert_eq(lines.length(), 1)
   let line = lines[0]
   assert_true(line.contains("terminal"))
   assert_true(line.contains("Run: rm -rf /tmp/cache"))
@@ -194,14 +197,14 @@ test "dialog: render_confirmation_line returns single string" {
 test "dialog: render_confirmation_line empty when no pending" {
   let state = test_state()
   let line = render_confirmation_line(state)
-  assert_eq(line, "")
+  @debug.assert_eq(line, "")
 }
 
 ///|
 test "dialog: clear_confirmation_sequence produces ANSI" {
   let seq = clear_confirmation_sequence()
   assert_true(seq.contains("\r"))
-  assert_true(seq.contains("\x1b[K"))
+  assert_true(seq.contains("\u{1b}[K"))
 }
 
 ///|

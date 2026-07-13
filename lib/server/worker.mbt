@@ -6,14 +6,14 @@ pub enum WorkerStatus {
   Stopping
   Stopped
   Failed(String)
-} derive(Debug, Eq, Show)
+} derive(Debug, Eq)
 
 ///|
 /// Worker identifier
 pub(all) struct WorkerId {
   id : Int
   name : String
-} derive(Debug, Eq, Show, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Worker configuration
@@ -22,7 +22,7 @@ pub(all) struct WorkerConfig {
   max_tasks : Int
   heartbeat_interval_ms : Int
   shutdown_timeout_ms : Int
-} derive(Debug, Show)
+} derive(Debug)
 
 ///|
 /// Worker instance in the pool
@@ -33,7 +33,7 @@ pub(all) struct Worker {
   mut tasks_failed : Int
   mut last_heartbeat : String
   mut started_at : String
-} derive(Debug, Show)
+} derive(Debug)
 
 ///|
 /// Create a new Worker with default Idle status

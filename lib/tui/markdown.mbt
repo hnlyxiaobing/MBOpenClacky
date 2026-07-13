@@ -18,7 +18,7 @@ pub(all) enum MarkdownToken {
   HorizontalRule
   TaskItem(checked~ : Bool, text~ : String)
   Link(text~ : String, url~ : String)
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// Renderer that converts Markdown to ANSI-colored strings.

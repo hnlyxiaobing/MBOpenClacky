@@ -96,7 +96,7 @@ async test "basic" {
       client_log..write_string(file).write_string("\n")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     client_log,
     content=(
       #|client: GET /examples/http_file_server

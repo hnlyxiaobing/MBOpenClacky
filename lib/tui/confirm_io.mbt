@@ -85,12 +85,12 @@ pub fn prompt_confirmation(
   // Build the prompt
   let prompt_text = build_tool_prompt(tool_name, tool_args)
   let yn = if default_yes { "[Y/n]" } else { "[y/N]" }
-  let prompt_line = "\r\x1b[K⚠ [\{tool_name}] \{prompt_text}  \{yn} "
+  let prompt_line = "\r\u{1b}[K⚠ [\{tool_name}] \{prompt_text}  \{yn} "
   // Write the prompt
   sync_write_stdout(prompt_line)
   // Read the key
   let result = read_confirmation_key(default_yes)
   // Clear the prompt
-  sync_write_stdout("\r\x1b[K")
+  sync_write_stdout("\r\u{1b}[K")
   result
 }

@@ -12,7 +12,7 @@ pub(all) enum LicenseStatus {
   GraceExceeded
   Invalid
   NotConfigured
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 pub(all) struct LicenseValidator {

@@ -2,11 +2,11 @@
 
 ///|
 fn make_version_event(
-  method : @crescent.HttpMethod,
+  http_method : @crescent.HttpMethod,
   url : String,
 ) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::http_request(method, url, {}, raw_body=b""),
+    req: @crescent.HttpRequest::http_request(http_method, url, {}, raw_body=b""),
     res: @crescent.HttpResponse::http_response(status_code=OK),
     params: {},
   }
@@ -30,14 +30,14 @@ fn version_response_json(resp : @core.HttpResponse) -> Json {
 test "parse latest version strips leading v" {
   let body = "{\"tag_name\":\"v0.2.0\"}"
   let result = parse_latest_version(body)
-  assert_eq(result, Ok("0.2.0"))
+  @debug.assert_eq(result, Ok("0.2.0"))
 }
 
 ///|
 test "parse latest version keeps version without v" {
   let body = "{\"tag_name\":\"0.2.0\"}"
   let result = parse_latest_version(body)
-  assert_eq(result, Ok("0.2.0"))
+  @debug.assert_eq(result, Ok("0.2.0"))
 }
 
 ///|
@@ -81,10 +81,10 @@ test "version upgrade returns current version" {
     server_ref,
     make_version_event(Post, "/api/version/upgrade"),
   )
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = version_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("current"), Some(VERSION.to_json()))
+  @debug.assert_eq(obj.get("current"), Some(VERSION.to_json()))
   assert_true(obj.contains("message"))
 }
 
@@ -95,9 +95,9 @@ test "restart returns ok message" {
     server_ref,
     make_version_event(Post, "/api/restart"),
   )
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = version_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("message"))
 }

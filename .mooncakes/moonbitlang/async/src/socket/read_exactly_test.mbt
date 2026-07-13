@@ -48,7 +48,7 @@ async test "read_exactly" {
       log("second message sent")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|first message sent
@@ -99,7 +99,7 @@ async test "read_exactly failure" {
   }) catch {
     err => log(err.to_string())
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|first message sent

@@ -99,7 +99,7 @@ pub fn NativeServeOptions::NativeServeOptions(
 ///|
 test "NativeServeOptions accepts all defaults" {
   let opts = NativeServeOptions()
-  inspect(opts.max_connections, content="None")
+  @debug.debug_inspect(opts.max_connections, content="None")
 }
 
 ///|
@@ -115,20 +115,20 @@ test "NativeServeOptions accepts valid values" {
     websocket_read_timeout_ms=100,
     websocket_max_message_bytes=1024,
   )
-  inspect(opts.max_connections, content="Some(5)")
-  inspect(opts.max_request_body_bytes, content="Some(1024)")
+  @debug.debug_inspect(opts.max_connections, content="Some(5)")
+  @debug.debug_inspect(opts.max_request_body_bytes, content="Some(1024)")
 }
 
 ///|
 test "NativeServeOptions accepts zero max_request_body_bytes" {
   let opts = NativeServeOptions(max_request_body_bytes=0)
-  inspect(opts.max_request_body_bytes, content="Some(0)")
+  @debug.debug_inspect(opts.max_request_body_bytes, content="Some(0)")
 }
 
 ///|
 test "NativeServeOptions accepts zero websocket_max_message_bytes" {
   let opts = NativeServeOptions(websocket_max_message_bytes=0)
-  inspect(opts.websocket_max_message_bytes, content="Some(0)")
+  @debug.debug_inspect(opts.websocket_max_message_bytes, content="Some(0)")
 }
 
 ///|
@@ -136,7 +136,7 @@ test "NativeServeOptions rejects zero max_connections" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     max_connections=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -144,7 +144,7 @@ test "NativeServeOptions rejects negative max_connections" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     max_connections=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -152,7 +152,7 @@ test "NativeServeOptions rejects negative max_request_body_bytes" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     max_request_body_bytes=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -160,7 +160,7 @@ test "NativeServeOptions rejects zero request_body_read_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     request_body_read_timeout_ms=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -168,7 +168,7 @@ test "NativeServeOptions rejects negative request_body_read_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     request_body_read_timeout_ms=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -176,7 +176,7 @@ test "NativeServeOptions rejects zero handler_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     handler_timeout_ms=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -184,7 +184,7 @@ test "NativeServeOptions rejects negative handler_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     handler_timeout_ms=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -192,7 +192,7 @@ test "NativeServeOptions rejects zero shutdown_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     shutdown_timeout_ms=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -200,7 +200,7 @@ test "NativeServeOptions rejects negative shutdown_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     shutdown_timeout_ms=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -208,7 +208,7 @@ test "NativeServeOptions rejects negative websocket_max_message_bytes" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     websocket_max_message_bytes=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -216,7 +216,7 @@ test "NativeServeOptions rejects zero websocket_outgoing_queue_capacity" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     websocket_outgoing_queue_capacity=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -224,7 +224,7 @@ test "NativeServeOptions rejects negative websocket_outgoing_queue_capacity" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     websocket_outgoing_queue_capacity=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -232,7 +232,7 @@ test "NativeServeOptions rejects zero websocket_read_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     websocket_read_timeout_ms=0,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }
 
 ///|
@@ -240,5 +240,5 @@ test "NativeServeOptions rejects negative websocket_read_timeout_ms" {
   let result : Result[NativeServeOptions, Error] = try? NativeServeOptions(
     websocket_read_timeout_ms=-1,
   )
-  inspect(result is Err(_), content="true")
+  @debug.debug_inspect(result is Err(_), content="true")
 }

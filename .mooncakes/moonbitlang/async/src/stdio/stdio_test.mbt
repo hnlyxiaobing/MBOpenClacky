@@ -36,8 +36,8 @@ async test "redirect_file" {
     stdin=@process.redirect_from_file("moon.mod.json"),
     stdout=@process.redirect_to_file(out_file, create_mode=CreateOrTruncate),
   )
-  inspect(code, content="0")
-  assert_eq(
+  @debug.debug_inspect(code, content="0")
+  @debug.assert_eq(
     @fs.read_file(out_file).text(),
     @fs.read_file("moon.mod.json").text(),
   )
@@ -51,7 +51,7 @@ async test "redirect pipe" {
     let (we_read, cat_write) = @process.read_from_process()
     root.spawn_bg() <| () => {
       let code = @process.run(cat, [], stdin=cat_read, stdout=cat_write)
-      inspect(code, content="0")
+      @debug.debug_inspect(code, content="0")
     }
     root.spawn_bg() <| () => {
       defer we_write.close()
@@ -60,7 +60,7 @@ async test "redirect pipe" {
       we_write.write(b"defg\n")
     }
     defer we_read.close()
-    inspect(
+    @debug.debug_inspect(
       we_read.read_all().text(),
       content=(
         #|abcd
@@ -84,7 +84,7 @@ async test "stdio cancel" {
         stdin=cat_read,
         stdout=cat_write,
       )
-      inspect(code, content="1")
+      @debug.debug_inspect(code, content="1")
     }
     defer we_write.close()
     defer we_read.close()
@@ -96,7 +96,7 @@ async test "stdio cancel" {
       ),
     )
     @async.sleep(750)
-    inspect(
+    @debug.debug_inspect(
       we_read.read_all().text().trim(chars="\r\n"),
       content="TimeoutError",
     )

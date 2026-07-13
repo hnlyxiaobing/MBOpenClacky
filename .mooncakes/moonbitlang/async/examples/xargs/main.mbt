@@ -43,7 +43,7 @@ async fn main {
     ],
   ).parse()
   let max_jobs = match matches.values {
-    { "jobs": [count], .. } => Some(@async.Semaphore(@string.parse_int(count)))
+    { "jobs": [count], .. } => Some(@async.Semaphore(@strconv.parse_int(count)))
     _ => None
   }
   guard matches.values is { "cmd": [cmd], .. } else {

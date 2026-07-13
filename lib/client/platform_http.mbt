@@ -44,7 +44,7 @@ pub(all) struct HttpResponse {
   status_code : Int
   body : String
   headers : Array[(String, String)]
-} derive(Debug, Show)
+} derive(Debug)
 
 ///|
 /// HTTP request method.
@@ -53,7 +53,7 @@ pub enum HttpMethod {
   Post
   Put
   Delete
-} derive(Debug, Show)
+} derive(Debug)
 
 ///|
 /// HTTP request error types.
@@ -63,7 +63,7 @@ pub enum HttpError {
   ServerError(Int, String)
   ClientError(Int, String)
   AllHostsFailed(String)
-} derive(Debug, Show)
+} derive(Debug)
 
 // ── Platform HTTP Client ─────────────────────────────────────────────────────
 
@@ -205,7 +205,9 @@ fn PlatformHttpClient::execute_with_retry(
       }
     }
   }
-  Err(AllHostsFailed("All hosts exhausted after retries: \{last_error}"))
+  Err(
+    AllHostsFailed("All hosts exhausted after retries: \{last_error.to_repr()}"),
+  )
 }
 
 ///|
@@ -263,9 +265,9 @@ let http_response_buf_size : Int = 4 * 1024 * 1024
 /// C FFI: synchronous HTTP request via WinHTTP (Windows) or libcurl (Linux).
 /// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
 #cfg(target="native")
-#borrow(method, url, headers, body, resp_buf, meta_buf, err_buf)
+#borrow(http_method, url, headers, body, resp_buf, meta_buf, err_buf)
 extern "C" fn http_post_ffi(
-  method : String,
+  http_method : String,
   url : String,
   headers : String,
   body : String,
@@ -311,13 +313,13 @@ fn format_headers(headers : Array[(String, String)]) -> String {
 /// Actual HTTP transport via C FFI (WinHTTP on Windows, libcurl on Linux/macOS).
 /// The C side handles UTF-16→UTF-8 conversion for MoonBit String parameters.
 pub fn send_request(
-  method : HttpMethod,
+  http_method : HttpMethod,
   url : String,
   body : String,
   headers : Array[(String, String)],
   timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
-  let method_str = http_method_str(method)
+  let method_str = http_method_str(http_method)
   let headers_str = format_headers(headers)
   // Allocate output buffers
   let resp_buf = Bytes::make(http_response_buf_size, 0)

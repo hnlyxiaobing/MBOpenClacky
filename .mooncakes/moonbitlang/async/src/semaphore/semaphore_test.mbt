@@ -31,7 +31,7 @@ async test "semaphore mutex" {
       @async.sleep(300)
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 0 obtained resource
@@ -64,7 +64,7 @@ async test "semaphore multiple value" {
       @async.sleep(300)
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 0 obtained resource
@@ -95,7 +95,7 @@ async test "semaphore cancellation" {
       content="Err(TimeoutError)",
     )
     @async.sleep(500)
-    inspect(semaphore.try_acquire(), content="true")
+    @debug.debug_inspect(semaphore.try_acquire(), content="true")
   }
 }
 
@@ -113,9 +113,9 @@ async test "semaphore cancellation no_swallow" {
     semaphore.release()
     acquire_taskire_task.cancel()
     @async.sleep(100)
-    inspect(semaphore.try_acquire(), content="false")
+    @debug.debug_inspect(semaphore.try_acquire(), content="false")
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|acquire() succeed
@@ -147,7 +147,7 @@ async test "semaphore fairness" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 1 acquired resource
@@ -164,13 +164,13 @@ async test "semaphore fairness" {
 ///|
 test "try_acquire" {
   let semaphore = @semaphore.Semaphore(2, initial_value=0)
-  inspect(semaphore.try_acquire(), content="false")
+  @debug.debug_inspect(semaphore.try_acquire(), content="false")
   semaphore.release()
-  inspect(semaphore.try_acquire(), content="true")
-  inspect(semaphore.try_acquire(), content="false")
+  @debug.debug_inspect(semaphore.try_acquire(), content="true")
+  @debug.debug_inspect(semaphore.try_acquire(), content="false")
   semaphore.release()
   semaphore.release()
-  inspect(semaphore.try_acquire(), content="true")
-  inspect(semaphore.try_acquire(), content="true")
-  inspect(semaphore.try_acquire(), content="false")
+  @debug.debug_inspect(semaphore.try_acquire(), content="true")
+  @debug.debug_inspect(semaphore.try_acquire(), content="true")
+  @debug.debug_inspect(semaphore.try_acquire(), content="false")
 }

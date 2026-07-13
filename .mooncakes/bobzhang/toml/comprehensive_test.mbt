@@ -421,14 +421,14 @@ test "microservice configuration" {
 test "error handling" {
 
   // Missing value
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key ="),
     content=(
       #|Expected value at { start: { line: 1, column: 6 }, end: { line: 1, column: 6 } }
     ),
   )
   // Missing key
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("= \"value\""),
     content=(
       #|Expected key at { start: { line: 1, column: 1 }, end: { line: 1, column: 2 } }
@@ -436,7 +436,7 @@ test "error handling" {
   )
 
   // Unterminated string
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = \"unterminated"),
     content=(
       #|Unterminated string at line 1, column 8
@@ -444,7 +444,7 @@ test "error handling" {
   )
 
   // Invalid syntax - incomplete array
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = [1, 2"),
     content=(
       #|Expected ',' or ']' in array at { start: { line: 1, column: 12 }, end: { line: 1, column: 12 } }
@@ -452,7 +452,7 @@ test "error handling" {
   )
 
   // Empty key
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(" = \"value\""),
     content=(
       #|Expected key at { start: { line: 1, column: 2 }, end: { line: 1, column: 3 } }
@@ -465,7 +465,7 @@ test "error handling" {
 test "error location tracking" {
 
   // Test 1: Error at beginning of line
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("=missing_key"),
     content=(
       #|Expected key at { start: { line: 1, column: 1 }, end: { line: 1, column: 2 } }
@@ -473,7 +473,7 @@ test "error location tracking" {
   )
 
   // Test 2: Error in the middle of a line
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("valid_key = "),
     content=(
       #|Expected value at { start: { line: 1, column: 13 }, end: { line: 1, column: 13 } }
@@ -481,7 +481,7 @@ test "error location tracking" {
   )
 
   // Test 3: Error with spaces before it
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("   key = "),
     content=(
       #|Expected value at { start: { line: 1, column: 10 }, end: { line: 1, column: 10 } }
@@ -489,7 +489,7 @@ test "error location tracking" {
   )
 
   // Test 4: Missing equals sign
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key \"value\""),
     content=(
       #|Expected '=' at { start: { line: 1, column: 5 }, end: { line: 1, column: 12 } }
@@ -497,7 +497,7 @@ test "error location tracking" {
   )
 
   // Test 5: Invalid value type
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = invalid_unquoted"),
     content=(
       #|Expected value at { start: { line: 1, column: 7 }, end: { line: 1, column: 23 } }
@@ -514,7 +514,7 @@ test "multiline error locations" {
     #|key1 = "valid"
     #|key2 =
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(multiline_test1),
     content=(
       #|Expected value at { start: { line: 2, column: 7 }, end: { line: 3, column: 1 } }
@@ -527,7 +527,7 @@ test "multiline error locations" {
     #|key2 = "also_valid"
     #|= missing_key
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(multiline_test2),
     content=(
       #|Expected key at { start: { line: 3, column: 1 }, end: { line: 3, column: 2 } }
@@ -539,7 +539,7 @@ test "multiline error locations" {
     #|key1 = "valid"
     #|key2 = [1, 2,
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(multiline_test3),
     content=(
       #|Expected value at { start: { line: 2, column: 14 }, end: { line: 3, column: 1 } }
@@ -554,7 +554,7 @@ test "multiline error locations" {
     #|
     #|= error_here
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(multiline_test4),
     content=(
       #|Expected key at { start: { line: 5, column: 1 }, end: { line: 5, column: 2 } }
@@ -567,7 +567,7 @@ test "multiline error locations" {
 test "array error locations" {
 
   // Test 1: Missing closing bracket at specific position
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("arr = [1, 2, 3"),
     content=(
       #|Expected ',' or ']' in array at { start: { line: 1, column: 15 }, end: { line: 1, column: 15 } }
@@ -575,7 +575,7 @@ test "array error locations" {
   )
 
   // Test 2: Missing comma between elements
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("arr = [1 2]"),
     content=(
       #|Expected ',' or ']' in array at { start: { line: 1, column: 10 }, end: { line: 1, column: 11 } }
@@ -583,7 +583,7 @@ test "array error locations" {
   )
 
   // Test 3: Invalid value in array
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("arr = [1, invalid, 3]"),
     content=(
       #|Expected value at { start: { line: 1, column: 11 }, end: { line: 1, column: 18 } }
@@ -591,7 +591,7 @@ test "array error locations" {
   )
 
   // Test 4: Nested array error
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("arr = [[1, 2], [3, ]"),
     content=(
       #|Expected ',' or ']' in array at { start: { line: 1, column: 21 }, end: { line: 1, column: 21 } }
@@ -606,7 +606,7 @@ test "array error locations" {
     #|  invalid_value
     #|]
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(array_multiline),
     content=(
       #|Expected value at { start: { line: 3, column: 5 }, end: { line: 4, column: 1 } }
@@ -619,7 +619,7 @@ test "array error locations" {
 test "inline table error locations" {
 
   // Test 1: Missing closing brace
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("table = {key = \"value\""),
     content=(
       #|Expected ',' or '}' in inline table at { start: { line: 1, column: 23 }, end: { line: 1, column: 23 } }
@@ -627,7 +627,7 @@ test "inline table error locations" {
   )
 
   // Test 2: Missing key in inline table
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("table = {= \"value\"}"),
     content=(
       #|Expected key at { start: { line: 1, column: 10 }, end: { line: 1, column: 11 } }
@@ -635,7 +635,7 @@ test "inline table error locations" {
   )
 
   // Test 3: Missing value in inline table
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("table = {key = }"),
     content=(
       #|Expected value at { start: { line: 1, column: 16 }, end: { line: 1, column: 17 } }
@@ -643,7 +643,7 @@ test "inline table error locations" {
   )
 
   // Test 4: Missing equals in inline table
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("table = {key \"value\"}"),
     content=(
       #|Expected '=' at { start: { line: 1, column: 14 }, end: { line: 1, column: 21 } }
@@ -664,7 +664,7 @@ test "inline table error locations" {
 test "table header error locations" {
 
   // Test 1: Missing closing bracket in table header
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("[table_name"),
     content=(
       #|Expected ']' at { start: { line: 1, column: 12 }, end: { line: 1, column: 12 } }
@@ -672,7 +672,7 @@ test "table header error locations" {
   )
 
   // Test 2: Missing table name
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("[]"),
     content=(
       #|Expected key at { start: { line: 1, column: 2 }, end: { line: 1, column: 3 } }
@@ -680,7 +680,7 @@ test "table header error locations" {
   )
 
   // Test 3: Array of tables missing second bracket
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("[[table_name]"),
     content=(
       #|Expected ']]' at { start: { line: 1, column: 13 }, end: { line: 1, column: 14 } }
@@ -688,7 +688,7 @@ test "table header error locations" {
   )
 
   // Test 4: Array of tables missing table name
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("[[]]"),
     content=(
       #|Expected key at { start: { line: 1, column: 3 }, end: { line: 1, column: 4 } }
@@ -696,7 +696,7 @@ test "table header error locations" {
   )
 
   // Test 5: Invalid character in table name position
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("[#invalid]"),
     content=(
       #|Expected key at { start: { line: 1, column: 11 }, end: { line: 1, column: 11 } }
@@ -709,7 +709,7 @@ test "table header error locations" {
 test "precise column tracking" {
 
   // Test 1: Error at specific column with tabs (assuming tab = 1 column)
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("\tkey ="),
     content=(
       #|Expected value at { start: { line: 1, column: 7 }, end: { line: 1, column: 7 } }
@@ -717,7 +717,7 @@ test "precise column tracking" {
   )
 
   // Test 2: Error with mixed spaces and content (should fail due to missing newline)
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("  key1 = \"val\"  key2 = "),
     content=(
       #|Expected newline or end of file after key-value pair at { start: { line: 1, column: 17 }, end: { line: 1, column: 21 } }
@@ -725,7 +725,7 @@ test "precise column tracking" {
   )
 
   // Test 3: Long key name error position
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("very_long_key_name_here = "),
     content=(
       #|Expected value at { start: { line: 1, column: 27 }, end: { line: 1, column: 27 } }
@@ -733,7 +733,7 @@ test "precise column tracking" {
   )
 
   // Test 4: Error position after unicode characters
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("café = "),
     content=(
       #|Unexpected character: 'é'
@@ -741,7 +741,7 @@ test "precise column tracking" {
   )
 
   // Test 5: Multiple equals signs - error on second one
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = = \"value\""),
     content=(
       #|Expected value at { start: { line: 1, column: 7 }, end: { line: 1, column: 8 } }
@@ -763,7 +763,7 @@ test "complex error location scenarios" {
     #|  }
     #|}
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(deep_nested),
     content=(
       #|Expected value at { start: { line: 4, column: 12 }, end: { line: 5, column: 1 } }
@@ -771,7 +771,7 @@ test "complex error location scenarios" {
   )
 
   // Test 2: Error at end of file
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = [1, 2, 3"),
     content=(
       #|Expected ',' or ']' in array at { start: { line: 1, column: 15 }, end: { line: 1, column: 15 } }
@@ -779,7 +779,7 @@ test "complex error location scenarios" {
   )
 
   // Test 3: Error with different quote types
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = 'unterminated"),
     content=(
       #|Unterminated string at line 1, column 8
@@ -794,7 +794,7 @@ test "complex error location scenarios" {
     #|[[servers]]
     #|name =
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(aot_error),
     content=(
       #|Expected value at { start: { line: 5, column: 7 }, end: { line: 6, column: 1 } }
@@ -807,7 +807,7 @@ test "complex error location scenarios" {
     #|key2 =
     #|
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(trailing_ws),
     content=(
       #|Expected value at { start: { line: 2, column: 7 }, end: { line: 3, column: 1 } }
@@ -820,7 +820,7 @@ test "complex error location scenarios" {
 test "location tracking with special cases" {
 
   // Test 1: Error after comment on same line (should fail since comments aren't implemented)
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key = # comment"),
     content=(
       #|Expected value at { start: { line: 1, column: 16 }, end: { line: 1, column: 16 } }
@@ -828,7 +828,7 @@ test "location tracking with special cases" {
   )
 
   // Test 2: Error with windows-style line endings (if supported)
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("key1 = \"value\"\r\nkey2 = "),
     content=(
       #|Expected value at { start: { line: 2, column: 8 }, end: { line: 2, column: 8 } }
@@ -836,7 +836,7 @@ test "location tracking with special cases" {
   )
 
   // Test 3: Error with just spaces as a key
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail("   = \"value\""),
     content=(
       #|Expected key at { start: { line: 1, column: 4 }, end: { line: 1, column: 5 } }
@@ -851,7 +851,7 @@ test "location tracking with special cases" {
     #|  [true, false, invalid_token]
     #|]
     #|
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(complex_array),
     content=(
       #|Expected value at { start: { line: 4, column: 17 }, end: { line: 4, column: 30 } }
@@ -860,7 +860,7 @@ test "location tracking with special cases" {
 
   // Test 5: Very long line with error at the end
   let long_line = "very_long_key_name_that_goes_on_and_on_and_on_and_on_and_on = "
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(long_line),
     content=(
       #|Expected value at { start: { line: 1, column: 63 }, end: { line: 1, column: 63 } }
@@ -945,7 +945,7 @@ test "newline significate" {
   let data =
     #|key1 =
     #|  3
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(data),
     content=(
       #|Expected value at { start: { line: 1, column: 7 }, end: { line: 2, column: 1 } }
@@ -956,7 +956,7 @@ test "newline significate" {
     #| server = {host =
     #|   "localhost"
     #| }
-  inspect(
+  @debug.debug_inspect(
     parse_expect_to_fail(data2),
     content=(
       #|Expected value at { start: { line: 1, column: 18 }, end: { line: 2, column: 1 } }

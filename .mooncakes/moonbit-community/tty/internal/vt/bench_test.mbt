@@ -123,11 +123,11 @@ test "decimal byte writers agree" {
   let scratch : FixedArray[Byte] = FixedArray::make(20, 0)
   for n in cases {
     let expected = decimal_bytes_string_utf8(n)
-    assert_eq(decimal_bytes_manual_recount(n), expected)
-    assert_eq(decimal_bytes_manual_counted(n), expected)
-    assert_eq(decimal_bytes_scratch_copy(n), expected)
-    assert_eq(decimal_bytes_scratch_reuse(n, scratch), expected)
-    assert_eq(decimal_bytes_fast_small(n), expected)
+    @debug.assert_eq(decimal_bytes_manual_recount(n), expected)
+    @debug.assert_eq(decimal_bytes_manual_counted(n), expected)
+    @debug.assert_eq(decimal_bytes_scratch_copy(n), expected)
+    @debug.assert_eq(decimal_bytes_scratch_reuse(n, scratch), expected)
+    @debug.assert_eq(decimal_bytes_fast_small(n), expected)
   }
 }
 

@@ -67,7 +67,7 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
     headers_arr.push((k, v))
   }
 
-  let body_str = body_json.to_string()
+  let body_str = body_json.stringify()
 
   // Send HTTP request via C FFI
   let http_result = @client.http_post(
@@ -75,7 +75,8 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
   )
 
   match http_result {
-    Err(err) => raise @errors.RetryableError("HTTP request failed: \{err}")
+    Err(err) =>
+      raise @errors.RetryableError("HTTP request failed: \{err.to_repr()}")
     Ok(http_resp) => {
       // Check for HTTP errors
       match @client.map_http_error(http_resp.status_code, http_resp.body) {

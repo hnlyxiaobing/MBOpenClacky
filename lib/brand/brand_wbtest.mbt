@@ -29,7 +29,7 @@ test "brand_config_is_branded_true" {
 ///|
 test "brand_display_name_default" {
   let config = BrandConfig::default_config()
-  assert_eq(config.display_name(), "MBOpenClacky")
+  @debug.assert_eq(config.display_name(), "MBOpenClacky")
 }
 
 ///|
@@ -38,7 +38,7 @@ test "brand_display_name_custom" {
     ..BrandConfig::default_config(),
     product_name: Some("CustomAgent"),
   }
-  assert_eq(config.display_name(), "CustomAgent")
+  @debug.assert_eq(config.display_name(), "CustomAgent")
 }
 
 ///|
@@ -65,7 +65,7 @@ test "brand_config_user_licensed" {
 test "license_status_not_configured" {
   let config = BrandConfig::default_config()
   let validator = LicenseValidator::new(config)
-  assert_eq(validator.validate(0), NotConfigured)
+  @debug.assert_eq(validator.validate(0), NotConfigured)
 }
 
 ///|
@@ -110,7 +110,7 @@ test "parse_user_id_from_key" {
   let uid = parse_user_id_from_key(
     "0000002A-00000007-DEADBEEF-CAFEBABE-A1B2C3D4",
   )
-  assert_eq(uid, 42)
+  @debug.assert_eq(uid, 42)
 }
 
 ///|
@@ -151,7 +151,7 @@ test "decrypt_requires_32_byte_key" {
 
 ///|
 test "hmac_sha256_deterministic" {
-  assert_eq(hmac_sha256("key", "data"), hmac_sha256("key", "data"))
+  @debug.assert_eq(hmac_sha256("key", "data"), hmac_sha256("key", "data"))
   assert_true(hmac_sha256("key", "data") != hmac_sha256("key", "other"))
 }
 
@@ -160,8 +160,8 @@ test "hmac_sha256_known_vector" {
   // RFC 4231 Test Case 2: HMAC-SHA-256
   // Key = "Jefe", Data = "what do ya want for nothing?"
   let result = hmac_sha256("Jefe", "what do ya want for nothing?")
-  assert_eq(result.length(), 64) // 32 bytes = 64 hex chars
-  assert_eq(
+  @debug.assert_eq(result.length(), 64) // 32 bytes = 64 hex chars
+  @debug.assert_eq(
     result, "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843",
   )
 }
@@ -169,7 +169,7 @@ test "hmac_sha256_known_vector" {
 ///|
 test "sha256_hex_known_vector" {
   // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
-  assert_eq(
+  @debug.assert_eq(
     sha256_hex("abc"),
     "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
   )
@@ -178,7 +178,7 @@ test "sha256_hex_known_vector" {
 ///|
 test "sha256_hex_empty" {
   // SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-  assert_eq(
+  @debug.assert_eq(
     sha256_hex(""),
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   )
@@ -191,14 +191,14 @@ test "aes_gcm_roundtrip" {
   guard encrypt_aes256gcm(plaintext, key) is Ok(encrypted) else {
     fail("encryption should succeed with 32-byte key")
   }
-  assert_eq(encrypted.ciphertext.length(), 5)
-  assert_eq(encrypted.nonce.length(), 12)
-  assert_eq(encrypted.tag.length(), 16)
+  @debug.assert_eq(encrypted.ciphertext.length(), 5)
+  @debug.assert_eq(encrypted.nonce.length(), 12)
+  @debug.assert_eq(encrypted.tag.length(), 16)
   assert_true(encrypted.ciphertext != plaintext)
   guard decrypt_aes256gcm(encrypted, key) is Ok(decrypted) else {
     fail("decryption should succeed with correct key")
   }
-  assert_eq(decrypted, plaintext)
+  @debug.assert_eq(decrypted, plaintext)
 }
 
 ///|
@@ -209,11 +209,11 @@ test "aes_gcm_roundtrip_with_aad" {
   guard encrypt_aes256gcm(plaintext, key, aad~) is Ok(encrypted) else {
     fail("encryption with AAD should succeed")
   }
-  assert_eq(encrypted.aad, aad)
+  @debug.assert_eq(encrypted.aad, aad)
   guard decrypt_aes256gcm(encrypted, key) is Ok(decrypted) else {
     fail("decryption with correct AAD should succeed")
   }
-  assert_eq(decrypted, plaintext)
+  @debug.assert_eq(decrypted, plaintext)
 }
 
 ///|
@@ -234,11 +234,11 @@ test "aes_gcm_empty_plaintext" {
   guard encrypt_aes256gcm(plaintext, key) is Ok(encrypted) else {
     fail("encryption of empty plaintext should succeed")
   }
-  assert_eq(encrypted.ciphertext.length(), 0)
+  @debug.assert_eq(encrypted.ciphertext.length(), 0)
   guard decrypt_aes256gcm(encrypted, key) is Ok(decrypted) else {
     fail("decryption of empty ciphertext should succeed")
   }
-  assert_eq(decrypted.length(), 0)
+  @debug.assert_eq(decrypted.length(), 0)
 }
 
 ///|
@@ -246,7 +246,7 @@ test "generate_nonce_nonzero" {
   guard generate_nonce() is Ok(nonce) else {
     fail("nonce generation should succeed")
   }
-  assert_eq(nonce.length(), 12)
+  @debug.assert_eq(nonce.length(), 12)
   // At least one byte should be non-zero (probabilistically guaranteed)
   let mut has_nonzero = false
   for b in nonce {
@@ -289,8 +289,8 @@ test "secure_compare_different_length" {
 test "derive_key_deterministic" {
   let k1 = derive_key("password123")
   let k2 = derive_key("password123")
-  assert_eq(k1, k2)
-  assert_eq(k1.length(), 32)
+  @debug.assert_eq(k1, k2)
+  @debug.assert_eq(k1.length(), 32)
 }
 
 ///|
@@ -303,18 +303,21 @@ test "derive_key_different_passwords" {
 ///|
 test "device_id_generation" {
   let info = generate_device_id()
-  assert_eq(info.platform, "windows")
+  @debug.assert_eq(info.platform, "windows")
   assert_true(info.device_id.length() > 0)
 }
 
 ///|
 test "device_id_deterministic" {
-  assert_eq(generate_device_id().device_id, generate_device_id().device_id)
+  @debug.assert_eq(
+    generate_device_id().device_id,
+    generate_device_id().device_id,
+  )
 }
 
 ///|
 test "simple_hash_deterministic" {
-  assert_eq(simple_hash("hello"), simple_hash("hello"))
+  @debug.assert_eq(simple_hash("hello"), simple_hash("hello"))
   assert_true(simple_hash("hello") != simple_hash("world"))
 }
 
@@ -324,7 +327,7 @@ test "ensure_device_id_existing" {
     ..BrandConfig::default_config(),
     device_id: Some("existing-id"),
   }
-  assert_eq(ensure_device_id(config), "existing-id")
+  @debug.assert_eq(ensure_device_id(config), "existing-id")
 }
 
 ///|
@@ -347,14 +350,14 @@ test "brand_skill_info_struct" {
     installed: false,
     encrypted: true,
   }
-  assert_eq(info.name, "test")
+  @debug.assert_eq(info.name, "test")
 }
 
 ///|
 test "sanitize_skill_name_basic" {
-  assert_eq(sanitize_skill_name("my-skill"), "my-skill")
-  assert_eq(sanitize_skill_name("My Skill"), "my-skill")
-  assert_eq(sanitize_skill_name("My_Skill_Name"), "my-skill-name")
+  @debug.assert_eq(sanitize_skill_name("my-skill"), "my-skill")
+  @debug.assert_eq(sanitize_skill_name("My Skill"), "my-skill")
+  @debug.assert_eq(sanitize_skill_name("My_Skill_Name"), "my-skill-name")
 }
 
 ///|

@@ -287,9 +287,9 @@ fn extract_message_digest(platform : String, body : Json) -> String {
         _ => ()
       }
       // Fallback: use full body string
-      body.to_string()
+      @debug.to_string(body)
     }
-    _ => body.to_string()
+    _ => @debug.to_string(body)
   }
 }
 

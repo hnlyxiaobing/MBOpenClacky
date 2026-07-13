@@ -41,7 +41,7 @@ async test "worker basic" {
     perform_sleep_job(1000)
     log <+ "done\n"
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick
@@ -70,7 +70,7 @@ async test "worker multiple" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|#0 done
@@ -108,7 +108,7 @@ async test "worker cancel1" {
     log <+ "trying to cancel\n"
     task.cancel()
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick
@@ -146,7 +146,7 @@ async test "worker cancel2" {
     log <+ "trying to terminate now\n"
     root.return_immediately(())
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick

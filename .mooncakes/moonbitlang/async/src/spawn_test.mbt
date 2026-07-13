@@ -26,7 +26,7 @@ async test "spawn error1" {
     }
   })
   buf.write_string(@debug.to_string(result))
-  inspect(buf.to_string(), content="Err(Err)")
+  @debug.debug_inspect(buf.to_string(), content="Err(Err)")
 }
 
 ///|
@@ -43,7 +43,7 @@ async test "spawn error2" {
     }
   })
   buf.write_string(@debug.to_string(result))
-  inspect(buf.to_string(), content="Err(Err)")
+  @debug.debug_inspect(buf.to_string(), content="Err(Err)")
 }
 
 ///|

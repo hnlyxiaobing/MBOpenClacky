@@ -10,13 +10,18 @@ test "parse_eval_scenario parses valid JSON" {
   let json = "{\"name\":\"test_scenario\",\"description\":\"A test\",\"setup\":{\"cols\":40,\"rows\":10},\"actions\":[{\"type\":\"type\",\"text\":\"hi\"},{\"type\":\"press\",\"key\":\"Enter\"}],\"assertions\":[{\"check\":\"contains\",\"text\":\"hi\",\"region\":\"\"}]}"
   match parse_eval_scenario(json) {
     Ok(scenario) => {
-      inspect(scenario.name, content="test_scenario")
-      inspect(scenario.setup.cols, content="40")
-      inspect(scenario.setup.rows, content="10")
-      inspect(scenario.actions.length(), content="2")
-      inspect(scenario.assertions.length(), content="1")
+      @debug.debug_inspect(
+        scenario.name,
+        content=(
+          #|"test_scenario"
+        ),
+      )
+      @debug.debug_inspect(scenario.setup.cols, content="40")
+      @debug.debug_inspect(scenario.setup.rows, content="10")
+      @debug.debug_inspect(scenario.actions.length(), content="2")
+      @debug.debug_inspect(scenario.assertions.length(), content="1")
     }
-    Err(e) => inspect("expected Ok", content=e)
+    Err(e) => @debug.debug_inspect("expected Ok", content=e)
   }
 }
 
@@ -25,19 +30,30 @@ test "parse_eval_scenario handles missing setup" {
   let json = "{\"name\":\"minimal\",\"description\":\"\",\"actions\":[],\"assertions\":[]}"
   match parse_eval_scenario(json) {
     Ok(scenario) => {
-      inspect(scenario.name, content="minimal")
-      inspect(scenario.setup.cols, content="80")
-      inspect(scenario.setup.rows, content="24")
+      @debug.debug_inspect(
+        scenario.name,
+        content=(
+          #|"minimal"
+        ),
+      )
+      @debug.debug_inspect(scenario.setup.cols, content="80")
+      @debug.debug_inspect(scenario.setup.rows, content="24")
     }
-    Err(e) => inspect("expected Ok", content=e)
+    Err(e) => @debug.debug_inspect("expected Ok", content=e)
   }
 }
 
 ///|
 test "parse_eval_scenario rejects invalid JSON" {
   match parse_eval_scenario("not json") {
-    Ok(_) => inspect("expected Err", content="got Ok")
-    Err(e) => inspect(e, content="Failed to parse JSON")
+    Ok(_) => @debug.debug_inspect("expected Err", content="got Ok")
+    Err(e) =>
+      @debug.debug_inspect(
+        e,
+        content=(
+          #|"Failed to parse JSON"
+        ),
+      )
   }
 }
 
@@ -47,7 +63,7 @@ test "TuiEvalSimulator type_text inserts characters" {
   sim.full_redraw()
   sim.type_text("hello")
   sim.full_redraw()
-  inspect(sim.screen.contains("hello"), content="true")
+  @debug.debug_inspect(sim.screen.contains("hello"), content="true")
 }
 
 ///|
@@ -57,8 +73,8 @@ test "TuiEvalSimulator press_key Enter submits message" {
   sim.type_text("test message")
   sim.press_key("Enter")
   sim.full_redraw()
-  inspect(sim.screen.contains("[user]"), content="true")
-  inspect(sim.screen.contains("test message"), content="true")
+  @debug.debug_inspect(sim.screen.contains("[user]"), content="true")
+  @debug.debug_inspect(sim.screen.contains("test message"), content="true")
 }
 
 ///|
@@ -68,7 +84,7 @@ test "TuiEvalSimulator press_key Backspace removes character" {
   sim.type_text("abc")
   sim.press_key("Backspace")
   sim.full_redraw()
-  inspect(sim.screen.contains("ab"), content="true")
+  @debug.debug_inspect(sim.screen.contains("ab"), content="true")
 }
 
 ///|
@@ -80,7 +96,7 @@ test "TuiEvalSimulator check_assertion contains" {
   let result = sim.check_assertion(
     EvalAssertion::Contains(text="hello", region=""),
   )
-  inspect(result.passed, content="true")
+  @debug.debug_inspect(result.passed, content="true")
 }
 
 ///|
@@ -90,7 +106,7 @@ test "TuiEvalSimulator check_assertion not_contains" {
   let result = sim.check_assertion(
     EvalAssertion::NotContains(text="nonexistent"),
   )
-  inspect(result.passed, content="true")
+  @debug.debug_inspect(result.passed, content="true")
 }
 
 ///|
@@ -100,8 +116,8 @@ test "TuiEvalSimulator screenshot captures state" {
   sim.type_text("captured")
   sim.full_redraw()
   let shot = sim.screenshot()
-  inspect(shot.contains("captured"), content="true")
-  inspect(sim.screenshots.length(), content="1")
+  @debug.debug_inspect(shot.contains("captured"), content="true")
+  @debug.debug_inspect(sim.screenshots.length(), content="1")
 }
 
 ///|
@@ -114,8 +130,13 @@ test "run_eval_scenario executes full scenario" {
     assertions: [EvalAssertion::Contains(text="hi", region="")],
   }
   let result = run_eval_scenario(scenario)
-  inspect(result.scenario_name, content="inline_test")
-  inspect(result.passed, content="true")
+  @debug.debug_inspect(
+    result.scenario_name,
+    content=(
+      #|"inline_test"
+    ),
+  )
+  @debug.debug_inspect(result.passed, content="true")
 }
 
 ///|
@@ -148,9 +169,9 @@ test "format_eval_report formats correctly" {
     total_count: 2,
   }
   let report = @eval.format_eval_report(batch)
-  inspect(report.contains("PASS"), content="true")
-  inspect(report.contains("FAIL"), content="true")
-  inspect(report.contains("pass_test"), content="true")
-  inspect(report.contains("fail_test"), content="true")
-  inspect(report.contains("Total: 2"), content="true")
+  @debug.debug_inspect(report.contains("PASS"), content="true")
+  @debug.debug_inspect(report.contains("FAIL"), content="true")
+  @debug.debug_inspect(report.contains("pass_test"), content="true")
+  @debug.debug_inspect(report.contains("fail_test"), content="true")
+  @debug.debug_inspect(report.contains("Total: 2"), content="true")
 }

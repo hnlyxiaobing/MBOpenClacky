@@ -373,7 +373,7 @@ fn copy_directory_recursive(src : String, dst : String) -> Result[Unit, String] 
     return Err("source is not a directory: " + src)
   }
   @utils.ensure_dir(dst)
-  let entries = @fs.read_dir(src) catch { e => return Err(e.to_string()) }
+  let entries = @fs.read_dir(src) catch { e => return Err(@debug.to_string(e)) }
   for entry in entries {
     let src_path = @path.Path::join(src, @path.Path(entry)).to_string()
     let dst_path = @path.Path::join(dst, @path.Path(entry)).to_string()
@@ -385,10 +385,10 @@ fn copy_directory_recursive(src : String, dst : String) -> Result[Unit, String] 
       }
     } else {
       let content = @fs.read_file_to_string(src_path) catch {
-        e => return Err("read " + src_path + ": " + e.to_string())
+        e => return Err("read " + src_path + ": " + @debug.to_string(e))
       }
       @fs.write_string_to_file(dst_path, content) catch {
-        e => return Err("write " + dst_path + ": " + e.to_string())
+        e => return Err("write " + dst_path + ": " + @debug.to_string(e))
       }
     }
   }
@@ -415,7 +415,7 @@ fn remove_directory_recursive(dir : String) -> Result[Unit, String] {
     }
   }
   @fs.remove_dir(dir) catch {
-    e => return Err(e.to_string())
+    e => return Err(@debug.to_string(e))
   }
   Ok(())
 }

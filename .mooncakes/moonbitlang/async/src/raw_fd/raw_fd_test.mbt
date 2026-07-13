@@ -78,9 +78,9 @@ async test "file as raw fd" {
   } nobreak {
     raise Failure::Failure("too many data")
   }
-  assert_eq(len, truth.length())
+  @debug.assert_eq(len, truth.length())
   let raw_fd_result = buf.unsafe_reinterpret_as_bytes()[:len]
-  assert_eq(truth[:], raw_fd_result)
+  @debug.assert_eq(truth[:], raw_fd_result)
 }
 
 ///|

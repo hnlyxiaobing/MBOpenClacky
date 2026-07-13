@@ -51,7 +51,7 @@ fn save_array(path : String, arr : Array[Json]) -> Result[Unit, String] {
     None => ()
   }
   @fs.write_string_to_file(path, Json::array(arr).stringify()) catch {
-    e => return Err(e.to_string())
+    e => return Err(@debug.to_string(e))
   }
   Ok(())
 }

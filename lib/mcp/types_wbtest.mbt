@@ -7,9 +7,9 @@ test "JsonRpcRequest construction" {
     rpc_method: "tools/list",
     params: None,
   }
-  assert_eq(req.jsonrpc, "2.0")
-  assert_eq(req.id, 1)
-  assert_eq(req.rpc_method, "tools/list")
+  @debug.assert_eq(req.jsonrpc, "2.0")
+  @debug.assert_eq(req.id, 1)
+  @debug.assert_eq(req.rpc_method, "tools/list")
   assert_true(req.params is None)
 }
 
@@ -22,7 +22,7 @@ test "JsonRpcRequest with params" {
     rpc_method: "tools/call",
     params: Some(params),
   }
-  assert_eq(req.id, 42)
+  @debug.assert_eq(req.id, 42)
   assert_true(req.params is Some(_))
 }
 
@@ -33,8 +33,8 @@ test "JsonRpcResponse success parsing" {
   let resp = JsonRpcResponse::from_json(json)
   match resp {
     Some(response) => {
-      assert_eq(response.jsonrpc, "2.0")
-      assert_eq(response.id, Some(1))
+      @debug.assert_eq(response.jsonrpc, "2.0")
+      @debug.assert_eq(response.id, Some(1))
       assert_true(response.result is Some(_))
       assert_true(response.error is None)
     }
@@ -49,12 +49,12 @@ test "JsonRpcResponse error parsing" {
   let resp = JsonRpcResponse::from_json(json)
   match resp {
     Some(response) => {
-      assert_eq(response.id, Some(2))
+      @debug.assert_eq(response.id, Some(2))
       assert_true(response.result is None)
       match response.error {
         Some(err) => {
-          assert_eq(err.code, -32601)
-          assert_eq(err.message, "Method not found")
+          @debug.assert_eq(err.code, -32601)
+          @debug.assert_eq(err.message, "Method not found")
         }
         None => assert_true(false)
       }
@@ -72,7 +72,7 @@ test "JsonRpcResponse with data field" {
     Some(response) =>
       match response.error {
         Some(err) => {
-          assert_eq(err.code, -32603)
+          @debug.assert_eq(err.code, -32603)
           assert_true(err.data is Some(_))
         }
         None => assert_true(false)
@@ -88,8 +88,8 @@ test "McpTool parsing" {
   let tool = McpTool::from_json(json)
   match tool {
     Some(t) => {
-      assert_eq(t.name, "read_file")
-      assert_eq(t.description, "Reads a file")
+      @debug.assert_eq(t.name, "read_file")
+      @debug.assert_eq(t.description, "Reads a file")
     }
     None => assert_true(false)
   }
@@ -101,7 +101,7 @@ test "McpTool parsing with input_schema variant" {
   let json : Json = @json.parse(json_str) catch { _ => return }
   let tool = McpTool::from_json(json)
   match tool {
-    Some(t) => assert_eq(t.name, "search")
+    Some(t) => @debug.assert_eq(t.name, "search")
     None => assert_true(false)
   }
 }
@@ -114,10 +114,10 @@ test "McpServerSpec stdio construction" {
     args=Some(["server.js"]),
     description=Some("Test MCP server"),
   )
-  assert_eq(spec.name, "test-server")
+  @debug.assert_eq(spec.name, "test-server")
   assert_true(spec.server_type == Stdio)
   match spec.command {
-    Some(cmd) => assert_eq(cmd, "node")
+    Some(cmd) => @debug.assert_eq(cmd, "node")
     None => assert_true(false)
   }
   assert_true(spec.url is None)
@@ -130,11 +130,11 @@ test "McpServerSpec http construction" {
     "http://localhost:3000",
     description=Some("HTTP MCP server"),
   )
-  assert_eq(spec.name, "api-server")
+  @debug.assert_eq(spec.name, "api-server")
   assert_true(spec.server_type == Http)
   assert_true(spec.command is None)
   match spec.url {
-    Some(u) => assert_eq(u, "http://localhost:3000")
+    Some(u) => @debug.assert_eq(u, "http://localhost:3000")
     None => assert_true(false)
   }
 }
@@ -146,10 +146,10 @@ test "McpServerSpec from_json stdio" {
   let spec = McpServerSpec::from_json("my-server", json)
   match spec {
     Some(s) => {
-      assert_eq(s.name, "my-server")
+      @debug.assert_eq(s.name, "my-server")
       assert_true(s.server_type == Stdio)
       match s.command {
-        Some(cmd) => assert_eq(cmd, "python")
+        Some(cmd) => @debug.assert_eq(cmd, "python")
         None => assert_true(false)
       }
     }
@@ -166,7 +166,7 @@ test "McpServerSpec from_json http" {
     Some(s) => {
       assert_true(s.server_type == Http)
       match s.url {
-        Some(u) => assert_eq(u, "http://localhost:8080")
+        Some(u) => @debug.assert_eq(u, "http://localhost:8080")
         None => assert_true(false)
       }
     }
@@ -198,9 +198,9 @@ test "build_jsonrpc_request without params" {
   let json : Json = @json.parse(req_str) catch { _ => return }
   match json {
     { "jsonrpc": String(ver), "id": Number(id, ..), "method": String(m), .. } => {
-      assert_eq(ver, "2.0")
-      assert_eq(id.to_int(), 1)
-      assert_eq(m, "initialize")
+      @debug.assert_eq(ver, "2.0")
+      @debug.assert_eq(id.to_int(), 1)
+      @debug.assert_eq(m, "initialize")
     }
     _ => assert_true(false)
   }
@@ -224,9 +224,9 @@ test "build_jsonrpc_request with params" {
       "params": { "protocolVersion": String(pv), .. },
       ..
     } => {
-      assert_eq(ver, "2.0")
-      assert_eq(m, "initialize")
-      assert_eq(pv, "2024-11-05")
+      @debug.assert_eq(ver, "2.0")
+      @debug.assert_eq(m, "initialize")
+      @debug.assert_eq(pv, "2024-11-05")
     }
     _ => assert_true(false)
   }
@@ -238,8 +238,8 @@ test "parse_jsonrpc_response success" {
   let resp = parse_jsonrpc_response(text)
   match resp {
     Some(r) => {
-      assert_eq(r.jsonrpc, "2.0")
-      assert_eq(r.id, Some(5))
+      @debug.assert_eq(r.jsonrpc, "2.0")
+      @debug.assert_eq(r.id, Some(5))
       assert_true(r.result is Some(_))
     }
     None => assert_true(false)
@@ -254,7 +254,7 @@ test "parse_jsonrpc_response error" {
     Some(r) => {
       assert_true(r.error is Some(_))
       match r.error {
-        Some(err) => assert_eq(err.code, -32600)
+        Some(err) => @debug.assert_eq(err.code, -32600)
         None => assert_true(false)
       }
     }
@@ -285,9 +285,9 @@ test "JsonRpcRequest to_json" {
   let json = req.to_json()
   match json {
     { "jsonrpc": String(ver), "id": Number(id, ..), "method": String(m), .. } => {
-      assert_eq(ver, "2.0")
-      assert_eq(id.to_int(), 10)
-      assert_eq(m, "tools/list")
+      @debug.assert_eq(ver, "2.0")
+      @debug.assert_eq(id.to_int(), 10)
+      @debug.assert_eq(m, "tools/list")
     }
     _ => assert_true(false)
   }
@@ -303,8 +303,8 @@ test "McpTool to_json roundtrip" {
   let json = tool.to_json()
   match json {
     { "name": String(name), "description": String(desc), .. } => {
-      assert_eq(name, "test_tool")
-      assert_eq(desc, "A test tool")
+      @debug.assert_eq(name, "test_tool")
+      @debug.assert_eq(desc, "A test tool")
     }
     _ => assert_true(false)
   }
@@ -314,7 +314,7 @@ test "McpTool to_json roundtrip" {
 test "TransportError construction" {
   let err : TransportError = TransportError("connection lost")
   match err {
-    TransportError(msg) => assert_eq(msg, "connection lost")
+    TransportError(msg) => @debug.assert_eq(msg, "connection lost")
   }
 }
 
@@ -322,7 +322,7 @@ test "TransportError construction" {
 test "McpError construction" {
   let err : McpError = McpError("invalid protocol")
   match err {
-    McpError(msg) => assert_eq(msg, "invalid protocol")
+    McpError(msg) => @debug.assert_eq(msg, "invalid protocol")
   }
 }
 
@@ -333,8 +333,8 @@ test "McpServerInfo from_json" {
   let info = McpServerInfo::from_json(json)
   match info {
     Some(i) => {
-      assert_eq(i.name, "test-server")
-      assert_eq(i.version, "2.0")
+      @debug.assert_eq(i.name, "test-server")
+      @debug.assert_eq(i.version, "2.0")
       assert_true(i.capabilities.tools)
       assert_true(i.capabilities.prompts)
       assert_true(i.capabilities.resources)

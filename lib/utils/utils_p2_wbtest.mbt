@@ -3,11 +3,11 @@ test "limit_stack push pop" {
   let stack = LimitStack::new(max_depth=5)
   assert_true(stack.push(label="a"))
   assert_true(stack.push(label="b"))
-  assert_eq(stack.depth(), 2)
+  @debug.assert_eq(stack.depth(), 2)
   stack.pop()
-  assert_eq(stack.depth(), 1)
+  @debug.assert_eq(stack.depth(), 1)
   stack.pop()
-  assert_eq(stack.depth(), 0)
+  @debug.assert_eq(stack.depth(), 0)
 }
 
 ///|
@@ -18,7 +18,7 @@ test "limit_stack exceeded" {
   assert_true(stack.push(label="3"))
   assert_false(stack.push(label="4"))
   assert_true(stack.is_exceeded())
-  assert_eq(stack.remaining(), 0)
+  @debug.assert_eq(stack.remaining(), 0)
 }
 
 ///|
@@ -27,9 +27,9 @@ test "limit_stack reset" {
   assert_true(stack.push(label="x"))
   assert_true(stack.push(label="y"))
   stack.reset()
-  assert_eq(stack.depth(), 0)
-  assert_eq(stack.remaining(), 5)
-  assert_eq(stack.stack_trace().length(), 0)
+  @debug.assert_eq(stack.depth(), 0)
+  @debug.assert_eq(stack.remaining(), 5)
+  @debug.assert_eq(stack.stack_trace().length(), 0)
 }
 
 ///|
@@ -61,15 +61,15 @@ test "glob_match question mark" {
 
 ///|
 test "levenshtein_distance identical" {
-  assert_eq(levenshtein_distance("hello", "hello"), 0)
-  assert_eq(levenshtein_distance("", ""), 0)
+  @debug.assert_eq(levenshtein_distance("hello", "hello"), 0)
+  @debug.assert_eq(levenshtein_distance("", ""), 0)
 }
 
 ///|
 test "levenshtein_distance one_edit" {
-  assert_eq(levenshtein_distance("cat", "hat"), 1)
-  assert_eq(levenshtein_distance("cat", "cats"), 1)
-  assert_eq(levenshtein_distance("cat", "at"), 1)
+  @debug.assert_eq(levenshtein_distance("cat", "hat"), 1)
+  @debug.assert_eq(levenshtein_distance("cat", "cats"), 1)
+  @debug.assert_eq(levenshtein_distance("cat", "at"), 1)
 }
 
 ///|
@@ -81,8 +81,8 @@ test "fuzzy_match within threshold" {
 
 ///|
 test "similarity_score perfect" {
-  assert_eq(similarity_score("hello", "hello"), 1.0)
-  assert_eq(similarity_score("", ""), 1.0)
+  @debug.assert_eq(similarity_score("hello", "hello"), 1.0)
+  @debug.assert_eq(similarity_score("", ""), 1.0)
   assert_true(similarity_score("cat", "hat") > 0.6)
 }
 
@@ -98,31 +98,31 @@ test "best_match finds closest" {
 ///|
 test "sanitize_string removes invalid" {
   // Normal ASCII stays unchanged
-  assert_eq(sanitize_string("hello"), "hello")
+  @debug.assert_eq(sanitize_string("hello"), "hello")
   // Normal unicode stays unchanged
-  assert_eq(sanitize_string("你好世界"), "你好世界")
+  @debug.assert_eq(sanitize_string("你好世界"), "你好世界")
 }
 
 ///|
 test "safe_truncate respects boundaries" {
-  assert_eq(safe_truncate("hello", 3), "hel")
-  assert_eq(safe_truncate("hi", 10), "hi")
-  assert_eq(safe_truncate("abc", 0), "")
+  @debug.assert_eq(safe_truncate("hello", 3), "hel")
+  @debug.assert_eq(safe_truncate("hi", 10), "hi")
+  @debug.assert_eq(safe_truncate("abc", 0), "")
 }
 
 ///|
 test "strip_bom removes BOM" {
   let with_bom = "\u{FEFF}hello"
-  assert_eq(strip_bom(with_bom), "hello")
-  assert_eq(strip_bom("no bom"), "no bom")
+  @debug.assert_eq(strip_bom(with_bom), "hello")
+  @debug.assert_eq(strip_bom("no bom"), "no bom")
 }
 
 ///|
 test "estimate_utf8_byte_length ascii" {
-  assert_eq(estimate_utf8_byte_length("hello"), 5)
-  assert_eq(estimate_utf8_byte_length(""), 0)
+  @debug.assert_eq(estimate_utf8_byte_length("hello"), 5)
+  @debug.assert_eq(estimate_utf8_byte_length(""), 0)
   // Chinese chars are 3 bytes each in UTF-8
-  assert_eq(estimate_utf8_byte_length("你好"), 6)
+  @debug.assert_eq(estimate_utf8_byte_length("你好"), 6)
 }
 
 ///|

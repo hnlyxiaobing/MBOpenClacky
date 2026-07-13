@@ -834,7 +834,7 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
               }),
             )
           }
-          _ =>
+          BedrockText | BedrockReasoning =>
             content_blocks.push(Json::object({ "text": block.text.to_json() }))
         }
       None => ()

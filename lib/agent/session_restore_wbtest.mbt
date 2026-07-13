@@ -10,7 +10,7 @@ test "ChannelInfo serialization roundtrip" {
   }
   let json = ci.to_json()
   let parsed : ChannelInfo = @json.from_json(json)
-  assert_eq(parsed, ci)
+  @debug.assert_eq(parsed, ci)
 }
 
 ///|
@@ -22,7 +22,7 @@ test "SessionTaskMeta serialization roundtrip" {
   }
   let json = meta.to_json()
   let parsed : SessionTaskMeta = @json.from_json(json)
-  assert_eq(parsed, meta)
+  @debug.assert_eq(parsed, meta)
 }
 
 ///|
@@ -49,11 +49,11 @@ test "SessionTimeMachine serialization roundtrip" {
   }
   let json = tm.to_json()
   let parsed : SessionTimeMachine = @json.from_json(json)
-  assert_eq(parsed.current_task_id, 3)
-  assert_eq(parsed.active_task_id, 2)
-  assert_eq(parsed.task_parents.get("2"), Some("1"))
-  assert_eq(parsed.task_parents.get("3"), Some("2"))
-  assert_eq(parsed.task_meta.get("1").unwrap().title, "Initial task")
+  @debug.assert_eq(parsed.current_task_id, 3)
+  @debug.assert_eq(parsed.active_task_id, 2)
+  @debug.assert_eq(parsed.task_parents.get("2"), Some("1"))
+  @debug.assert_eq(parsed.task_parents.get("3"), Some("2"))
+  @debug.assert_eq(parsed.task_meta.get("1").unwrap().title, "Initial task")
 }
 
 ///|
@@ -95,14 +95,14 @@ test "SessionData with new fields serialization" {
   }
   let json = data.to_json()
   let parsed : SessionData = @json.from_json(json)
-  assert_eq(parsed.session_id, "s_123")
-  assert_eq(parsed.channel_info.unwrap().platform, "telegram")
-  assert_eq(parsed.latest_latency_ms, Some(350))
-  assert_eq(parsed.latest_ttft_ms, Some(80))
-  assert_eq(parsed.pending_error_rollback, false)
-  assert_eq(parsed.model_base_url, "https://api.openai.com")
-  assert_eq(parsed.last_status, "idle")
-  assert_eq(parsed.last_error, "")
+  @debug.assert_eq(parsed.session_id, "s_123")
+  @debug.assert_eq(parsed.channel_info.unwrap().platform, "telegram")
+  @debug.assert_eq(parsed.latest_latency_ms, Some(350))
+  @debug.assert_eq(parsed.latest_ttft_ms, Some(80))
+  @debug.assert_eq(parsed.pending_error_rollback, false)
+  @debug.assert_eq(parsed.model_base_url, "https://api.openai.com")
+  @debug.assert_eq(parsed.last_status, "idle")
+  @debug.assert_eq(parsed.last_error, "")
 }
 
 ///|
@@ -125,15 +125,15 @@ test "SessionData backward compatibility (missing new fields)" {
     #| }
   let json = @json.parse(old_json)
   let parsed : SessionData = @json.from_json(json)
-  assert_eq(parsed.session_id, "s_old")
-  assert_eq(parsed.channel_info, None)
-  assert_eq(parsed.latest_latency_ms, None)
-  assert_eq(parsed.latest_ttft_ms, None)
-  assert_eq(parsed.time_machine, None)
-  assert_eq(parsed.pending_error_rollback, false)
-  assert_eq(parsed.model_base_url, "")
-  assert_eq(parsed.last_status, "")
-  assert_eq(parsed.last_error, "")
+  @debug.assert_eq(parsed.session_id, "s_old")
+  @debug.assert_eq(parsed.channel_info, None)
+  @debug.assert_eq(parsed.latest_latency_ms, None)
+  @debug.assert_eq(parsed.latest_ttft_ms, None)
+  @debug.assert_eq(parsed.time_machine, None)
+  @debug.assert_eq(parsed.pending_error_rollback, false)
+  @debug.assert_eq(parsed.model_base_url, "")
+  @debug.assert_eq(parsed.last_status, "")
+  @debug.assert_eq(parsed.last_error, "")
 }
 
 ///|
@@ -170,12 +170,12 @@ test "restore_session_enhanced basic" {
     chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
-  assert_eq(result.session_id, "s_basic")
-  assert_eq(result.name, "basic-test")
-  assert_eq(result.messages.length(), 1)
-  assert_eq(result.total_cost, 0.02)
-  assert_eq(result.needs_error_rollback, false)
-  assert_eq(result.model_recovered, false)
+  @debug.assert_eq(result.session_id, "s_basic")
+  @debug.assert_eq(result.name, "basic-test")
+  @debug.assert_eq(result.messages.length(), 1)
+  @debug.assert_eq(result.total_cost, 0.02)
+  @debug.assert_eq(result.needs_error_rollback, false)
+  @debug.assert_eq(result.model_recovered, false)
 }
 
 ///|
@@ -218,10 +218,10 @@ test "restore_session_enhanced with channel_info" {
     chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
-  assert_eq(result.channel_info.unwrap().platform, "discord")
-  assert_eq(result.channel_info.unwrap().channel_id, "dc-999")
-  assert_eq(result.latest_latency_ms, Some(200))
-  assert_eq(result.latest_ttft_ms, Some(40))
+  @debug.assert_eq(result.channel_info.unwrap().platform, "discord")
+  @debug.assert_eq(result.channel_info.unwrap().channel_id, "dc-999")
+  @debug.assert_eq(result.latest_latency_ms, Some(200))
+  @debug.assert_eq(result.latest_ttft_ms, Some(40))
 }
 
 ///|
@@ -258,7 +258,7 @@ test "restore_session_enhanced error rollback detection" {
     chunk_count: 0,
   }
   let result = restore_session_enhanced(config, data)
-  assert_eq(result.needs_error_rollback, true)
+  @debug.assert_eq(result.needs_error_rollback, true)
 }
 
 ///|
@@ -271,7 +271,7 @@ test "apply_error_rollback" {
   ]
   let result = apply_error_rollback(msgs)
   // Should keep up to and including the last real user message
-  assert_eq(result.length(), 3)
+  @debug.assert_eq(result.length(), 3)
   // Verify the last message is "second question"
   let last = result[result.length() - 1]
   assert_true(last.role == @message.User)
@@ -284,7 +284,7 @@ test "apply_error_rollback no user messages" {
   ]
   let result = apply_error_rollback(msgs)
   // Should return as-is since no user message found
-  assert_eq(result.length(), 1)
+  @debug.assert_eq(result.length(), 1)
 }
 
 ///|
@@ -341,12 +341,12 @@ test "backfill_task_meta_from_history" {
   let result = backfill_task_meta_from_history(messages, None)
   // Task "1" should have meta with title from first user message
   let meta1 = result.task_meta.get("1").unwrap()
-  assert_eq(meta1.title, "Start task one")
-  assert_eq(meta1.started_at, "1719100000000")
-  assert_eq(meta1.ended_at, "1719100001000")
+  @debug.assert_eq(meta1.title, "Start task one")
+  @debug.assert_eq(meta1.started_at, "1719100000000")
+  @debug.assert_eq(meta1.ended_at, "1719100001000")
   // Task "2" should be a child of task "1"
-  assert_eq(result.task_parents.get("2"), Some("1"))
+  @debug.assert_eq(result.task_parents.get("2"), Some("1"))
   // Task "2" metadata
   let meta2 = result.task_meta.get("2").unwrap()
-  assert_eq(meta2.title, "Now do task two")
+  @debug.assert_eq(meta2.title, "Now do task two")
 }

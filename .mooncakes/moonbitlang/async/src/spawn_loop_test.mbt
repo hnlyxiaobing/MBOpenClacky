@@ -29,7 +29,7 @@ async test "spawn_loop basic" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick 0
@@ -57,7 +57,7 @@ async test "spawn_loop basic-error" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick 0

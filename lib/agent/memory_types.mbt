@@ -6,7 +6,7 @@ pub(all) enum MemoryCategory {
   TaskSummary
   ExpertKnowledge
   LearnedSkill
-} derive(Eq, Compare, Debug, Show)
+} derive(Eq, Compare, Debug)
 
 ///|
 pub fn MemoryCategory::to_string_value(self : MemoryCategory) -> String {

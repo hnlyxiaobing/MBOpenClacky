@@ -66,12 +66,12 @@ async test "named fifo" {
     group.spawn_bg() <| () => {
       let r = @fs.open(path, mode=ReadOnly)
       defer r.close()
-      inspect(r.read_until("\n").unwrap_or(""), content="abcd")
+      @debug.debug_inspect(r.read_until("\n").unwrap_or(""), content="abcd")
       debug_inspect(
         @async.with_timeout_opt(250, () => r.read_all().text()),
         content="None",
       )
-      inspect(r.read_all().text(), content="efgh")
+      @debug.debug_inspect(r.read_all().text(), content="efgh")
     }
     group.spawn_bg() <| () => {
       let w = @fs.open(path, mode=WriteOnly)
@@ -99,12 +99,12 @@ async test "named pipe" {
     group.spawn_bg() <| () => {
       let r = @fs.open(path, mode=ReadOnly)
       defer r.close()
-      inspect(r.read_until("\n").unwrap_or(""), content="abcd")
+      @debug.debug_inspect(r.read_until("\n").unwrap_or(""), content="abcd")
       debug_inspect(
         @async.with_timeout_opt(250, () => r.read_all().text()),
         content="None",
       )
-      inspect(r.read_all().text(), content="efgh")
+      @debug.debug_inspect(r.read_all().text(), content="efgh")
     }
     group.spawn_bg() <| () => {
       // wait for the client to connect

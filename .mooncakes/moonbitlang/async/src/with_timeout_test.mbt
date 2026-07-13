@@ -51,7 +51,7 @@ async test "with_timeout failure" {
   }) catch {
     err => log.write_string(@debug.to_string(err))
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|main task fail with Err
@@ -85,7 +85,7 @@ async test "with_timeout timeout" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task cancelled
@@ -128,7 +128,7 @@ async test "with_timeout nested1" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|200ms tick
@@ -173,7 +173,7 @@ async test "with_timeout nested2" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|300ms tick
@@ -209,7 +209,7 @@ async test "with_timeout error_on_cancel" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|causing other error on cancellation
@@ -241,7 +241,7 @@ async test "with_timeout error-on-timeout" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task cancelled
@@ -291,7 +291,7 @@ async test "with_timeout_opt failure" {
   }) catch {
     err => log.write_string(@debug.to_string(err))
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|main task fail with Err

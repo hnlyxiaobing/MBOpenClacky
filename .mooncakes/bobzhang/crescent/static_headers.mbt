@@ -40,20 +40,20 @@ fn parse_accept_encoding_token(token : StringView) -> String? {
 
 ///|
 test "parse_accept_encoding_token strips whitespace and lowercases" {
-  inspect(parse_accept_encoding_token("gzip"), content="Some(\"gzip\")")
-  inspect(parse_accept_encoding_token("  gzip  "), content="Some(\"gzip\")")
-  inspect(parse_accept_encoding_token("gzip;q=0.8"), content="Some(\"gzip\")")
-  inspect(parse_accept_encoding_token("BR"), content="Some(\"br\")")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip"), content="Some(\"gzip\")")
+  @debug.debug_inspect(parse_accept_encoding_token("  gzip  "), content="Some(\"gzip\")")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip;q=0.8"), content="Some(\"gzip\")")
+  @debug.debug_inspect(parse_accept_encoding_token("BR"), content="Some(\"br\")")
 }
 
 ///|
 test "parse_accept_encoding_token rejects q=0" {
-  inspect(parse_accept_encoding_token("gzip;q=0"), content="None")
-  inspect(parse_accept_encoding_token("gzip; q=0.0"), content="None")
-  inspect(parse_accept_encoding_token("br;q=0.00"), content="None")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip;q=0"), content="None")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip; q=0.0"), content="None")
+  @debug.debug_inspect(parse_accept_encoding_token("br;q=0.00"), content="None")
   // Non-zero q-values are accepted
-  inspect(parse_accept_encoding_token("gzip;q=0.5"), content="Some(\"gzip\")")
-  inspect(parse_accept_encoding_token("gzip;q=1.0"), content="Some(\"gzip\")")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip;q=0.5"), content="Some(\"gzip\")")
+  @debug.debug_inspect(parse_accept_encoding_token("gzip;q=1.0"), content="Some(\"gzip\")")
 }
 
 ///|
@@ -69,10 +69,10 @@ fn normalize_etag_token(token : StringView) -> String {
 
 ///|
 test "normalize_etag_token strips weak prefix and whitespace" {
-  inspect(normalize_etag_token("\"abc\""), content="\"abc\"")
-  inspect(normalize_etag_token("W/\"abc\""), content="\"abc\"")
-  inspect(normalize_etag_token("w/\"abc\""), content="\"abc\"")
-  inspect(normalize_etag_token("  \"abc\"  "), content="\"abc\"")
+  @debug.debug_inspect(normalize_etag_token("\"abc\""), content="\"abc\"")
+  @debug.debug_inspect(normalize_etag_token("W/\"abc\""), content="\"abc\"")
+  @debug.debug_inspect(normalize_etag_token("w/\"abc\""), content="\"abc\"")
+  @debug.debug_inspect(normalize_etag_token("  \"abc\"  "), content="\"abc\"")
 }
 
 ///|

@@ -4,45 +4,45 @@
 ///|
 test "Banner::new defaults" {
   let banner = Banner::new()
-  assert_eq(banner.style, Boxed)
-  assert_eq(banner.width, 60)
-  assert_eq(banner.use_color, false)
+  @debug.assert_eq(banner.style, Boxed)
+  @debug.assert_eq(banner.width, 60)
+  @debug.assert_eq(banner.use_color, false)
 }
 
 ///|
 test "Banner::with_style creates correct style" {
   let banner = Banner::with_style(Minimal)
-  assert_eq(banner.style, Minimal)
-  assert_eq(banner.width, 60)
+  @debug.assert_eq(banner.style, Minimal)
+  @debug.assert_eq(banner.width, 60)
 }
 
 ///|
 test "Banner::with_width creates correct width" {
   let banner = Banner::with_width(40)
-  assert_eq(banner.style, Boxed)
-  assert_eq(banner.width, 40)
-  assert_eq(banner.use_color, false)
+  @debug.assert_eq(banner.style, Boxed)
+  @debug.assert_eq(banner.width, 40)
+  @debug.assert_eq(banner.use_color, false)
 }
 
 ///|
 test "Banner::with_style_and_width creates correct style and width" {
   let banner = Banner::with_style_and_width(Minimal, 80)
-  assert_eq(banner.style, Minimal)
-  assert_eq(banner.width, 80)
+  @debug.assert_eq(banner.style, Minimal)
+  @debug.assert_eq(banner.width, 80)
 }
 
 ///|
 test "Banner::adaptive_width clamps correctly" {
   // Small terminal: (30 - 4) = 26, within range
-  assert_eq(Banner::adaptive_width(30), 26)
+  @debug.assert_eq(Banner::adaptive_width(30), 26)
   // Very small terminal: (10 - 4) = 6, clamped to 20
-  assert_eq(Banner::adaptive_width(10), 20)
+  @debug.assert_eq(Banner::adaptive_width(10), 20)
   // Large terminal: (200 - 4) = 196, clamped to 60
-  assert_eq(Banner::adaptive_width(200), 60)
+  @debug.assert_eq(Banner::adaptive_width(200), 60)
   // Standard 80-column terminal: (80 - 4) = 76, clamped to 60
-  assert_eq(Banner::adaptive_width(80), 60)
+  @debug.assert_eq(Banner::adaptive_width(80), 60)
   // Exact boundary: 64 - 4 = 60, should be 60
-  assert_eq(Banner::adaptive_width(64), 60)
+  @debug.assert_eq(Banner::adaptive_width(64), 60)
 }
 
 ///|
@@ -50,7 +50,7 @@ test "Banner::render_separator width for Boxed" {
   let banner = Banner::new()
   let sep = banner.render_separator()
   // Boxed separator uses width-2 = 58 '═' chars
-  assert_eq(sep.length(), 58)
+  @debug.assert_eq(sep.length(), 58)
   assert_true(sep.contains("═"))
 }
 
@@ -59,7 +59,7 @@ test "Banner::render_separator width for Minimal" {
   let banner = Banner::with_style(Minimal)
   let sep = banner.render_separator()
   // Minimal separator uses full width = 60 '─' chars
-  assert_eq(sep.length(), 60)
+  @debug.assert_eq(sep.length(), 60)
   assert_true(sep.contains("─"))
 }
 

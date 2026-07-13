@@ -1,3 +1,7 @@
+import {
+  "moonbitlang/core/debug",
+}
+
 options(
   "native-stub": [ "native_stub.c" ],
   targets: {

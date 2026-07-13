@@ -84,7 +84,7 @@ async fn main {
   let value = @clap.SimpleValue::new(parser.prog)
   let help_msg = parser.parse(value, cli_view) catch {
     err => {
-      println("Error: \{err}")
+      println("Error: \{err.to_repr()}")
       @sys.exit(1)
       None
     }
@@ -248,7 +248,7 @@ fn handle_tui_eval(dir : String) -> Unit {
   @utils.ensure_dir(log_dir)
   let log_path = @path.Path::join(log_dir, @path.Path("tui_eval_report.txt")).to_string()
   @fs.write_string_to_file(log_path, report) catch {
-    e => println("Warning: Failed to save report: \{e}")
+    e => println("Warning: Failed to save report: \{@debug.to_string(e)}")
   }
   println("")
   println("Report saved to: \{log_path}")
@@ -287,7 +287,7 @@ async fn handle_server() -> Unit {
   // override with the MBOPENCLACKY_WEB_PORT environment variable.
   let port = match @sys.get_env_var("MBOPENCLACKY_WEB_PORT") {
     Some(p) => {
-      let n = @strconv.parse_int(p.trim()) catch { _ => 7070 }
+      let n = @string.parse_int(p.trim()) catch { _ => 7070 }
       if n > 0 && n < 65536 {
         n
       } else {
@@ -596,7 +596,7 @@ fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
   @agent.save_session(session_data) catch {
     err =>
       if agent.config.verbose {
-        println("Warning: Failed to save session: \{err}")
+        println("Warning: Failed to save session: \{@debug.to_string(err)}")
       }
   }
   // Enforce session cap after save

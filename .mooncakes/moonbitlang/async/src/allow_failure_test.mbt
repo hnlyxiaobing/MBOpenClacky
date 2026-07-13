@@ -20,7 +20,7 @@ async test "allow_failure ignored" {
     @async.sleep(100)
     buf <+ "main task terminate\n"
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|main task terminate
@@ -42,7 +42,7 @@ async test "allow_failure waited" {
       }),
     ),
   )
-  inspect(buf.to_string(), content="Err(Err)")
+  @debug.debug_inspect(buf.to_string(), content="Err(Err)")
 }
 
 ///|
@@ -60,7 +60,7 @@ async test "allow_failure no error" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|main task terminate

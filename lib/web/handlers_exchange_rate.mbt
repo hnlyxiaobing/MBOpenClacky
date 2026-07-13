@@ -15,7 +15,7 @@ struct ExchangeRateResponse {
 } derive(ToJson)
 
 ///|
-struct ExchangeRateCacheEntry {
+priv struct ExchangeRateCacheEntry {
   from : String
   to : String
   response : ExchangeRateResponse
@@ -49,7 +49,7 @@ fn validate_currency_code(code : String) -> String? {
 /// Try to extract a rate from the open.er-api.com response.
 fn parse_open_er_rate(
   body : String,
-  from : String,
+  _from : String,
   to : String,
 ) -> Result[Double, String] {
   let j = @json.parse(body) catch {
@@ -61,7 +61,7 @@ fn parse_open_er_rate(
   match obj.get("rates") {
     Some(Object(rates)) =>
       match rates.get(to) {
-        Some(Number(rate)) => Ok(rate)
+        Some(Number(rate, ..)) => Ok(rate)
         Some(_) => Err("Rate for " + to + " is not a number")
         None => Err("Rate for " + to + " not found")
       }
@@ -73,7 +73,7 @@ fn parse_open_er_rate(
 /// Try to extract a rate from the frankfurter.app response.
 fn parse_frankfurter_rate(
   body : String,
-  from : String,
+  _from : String,
   to : String,
 ) -> Result[Double, String] {
   let j = @json.parse(body) catch {
@@ -85,7 +85,7 @@ fn parse_frankfurter_rate(
   match obj.get("rates") {
     Some(Object(rates)) =>
       match rates.get(to) {
-        Some(Number(rate)) => Ok(rate)
+        Some(Number(rate, ..)) => Ok(rate)
         Some(_) => Err("Rate for " + to + " is not a number")
         None => Err("Rate for " + to + " not found")
       }
@@ -112,7 +112,7 @@ fn fetch_rate(
       } else {
         Err("HTTP " + resp.status_code.to_string())
       }
-    Err(e) => Err(e.to_string())
+    Err(e) => Err(@debug.to_string(e))
   }
 }
 

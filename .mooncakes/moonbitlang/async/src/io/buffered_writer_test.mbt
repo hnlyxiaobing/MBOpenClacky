@@ -37,7 +37,7 @@ async test "BufferedWriter" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|2 bytes written
@@ -82,7 +82,7 @@ async test "BufferedWriter::write_reader" {
       w2.write(b"ijkl")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|sending 4 bytes

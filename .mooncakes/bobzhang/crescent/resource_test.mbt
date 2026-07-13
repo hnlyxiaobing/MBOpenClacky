@@ -52,12 +52,12 @@ async test "resource registers all CRUD routes" {
   let client = @test_client.TestClient(app)
   // GET /api/items — list
   let res = client.get("/api/items")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let list : Array[ResourceItem] = res.body_json()
-  assert_eq(list.length(), 2)
+  @debug.assert_eq(list.length(), 2)
   // GET /api/items/1 — get single
   let res2 = client.get("/api/items/1")
-  assert_eq(res2.status, OK)
+  @debug.assert_eq(res2.status, OK)
   let item : ResourceItem = res2.body_json()
   debug_inspect(
     item,
@@ -67,26 +67,26 @@ async test "resource registers all CRUD routes" {
   )
   // GET /api/items/999 — not found
   let res3 = client.get("/api/items/999")
-  assert_eq(res3.status, NotFound)
+  @debug.assert_eq(res3.status, NotFound)
   // POST /api/items — create
   let body = @utf8.encode(
     ({ name: "Gamma" } : CreateItem).to_json().stringify(),
   )
   let res4 = client.post("/api/items", body~)
-  assert_eq(res4.status, Created)
+  @debug.assert_eq(res4.status, Created)
   let created : ResourceItem = res4.body_json()
-  assert_eq(created.name, "Gamma")
+  @debug.assert_eq(created.name, "Gamma")
   // PUT /api/items/1 — update
   let body2 = @utf8.encode(
     ({ name: "Updated" } : CreateItem).to_json().stringify(),
   )
   let res5 = client.put("/api/items/1", body=body2)
-  assert_eq(res5.status, OK)
+  @debug.assert_eq(res5.status, OK)
   let updated : ResourceItem = res5.body_json()
-  assert_eq(updated.name, "Updated")
+  @debug.assert_eq(updated.name, "Updated")
   // DELETE /api/items/1
   let res6 = client.delete("/api/items/1")
-  assert_eq(res6.status, NoContent)
+  @debug.assert_eq(res6.status, NoContent)
 }
 
 ///|
@@ -99,8 +99,8 @@ async test "resource with partial config only registers provided handlers" {
   let client = @test_client.TestClient(app)
   // GET works
   let res = client.get("/api/readonly")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   // POST returns 405 (GET exists at this path, but POST doesn't)
   let res2 = client.post("/api/readonly", body=b"{}")
-  assert_eq(res2.status, MethodNotAllowed)
+  @debug.assert_eq(res2.status, MethodNotAllowed)
 }

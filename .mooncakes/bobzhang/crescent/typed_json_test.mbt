@@ -23,7 +23,7 @@ test "HttpRequest::json parses struct from body" {
     raw_body=b"{\"name\":\"Alice\",\"age\":30}",
   )
   let user : TestUser = req.json()
-  assert_eq(user, { name: "Alice", age: 30 })
+  @debug.assert_eq(user, { name: "Alice", age: 30 })
 }
 
 ///|
@@ -66,8 +66,8 @@ test "HttpRequest::json parses nested struct" {
     raw_body=b"{\"name\":\"Bob\",\"age\":25}",
   )
   let user : TestUser = req.json()
-  assert_eq(user.name, "Bob")
-  assert_eq(user.age, 25)
+  @debug.assert_eq(user.name, "Bob")
+  @debug.assert_eq(user.age, 25)
 }
 
 ///|
@@ -81,12 +81,12 @@ test "HttpRequest::json parses empty body as error" {
 test "HttpResponse::json_value sets content type and body" {
   let user : TestUser = { name: "Alice", age: 30 }
   let res = @crescent.HttpResponse::ok().json_value(user)
-  inspect(res.status_code, content="OK")
-  inspect(
+  @debug.debug_inspect(res.status_code, content="OK")
+  @debug.debug_inspect(
     res.headers.get("Content-Type"),
     content="Some(\"application/json; charset=utf-8\")",
   )
-  inspect(@utf8.decode(res.raw_body), content="{\"name\":\"Alice\",\"age\":30}")
+  @debug.debug_inspect(@utf8.decode(res.raw_body), content="{\"name\":\"Alice\",\"age\":30}")
 }
 
 ///|
@@ -96,7 +96,7 @@ test "HttpResponse::json_value with array" {
     { name: "Bob", age: 25 },
   ]
   let res = @crescent.HttpResponse::ok().json_value(users)
-  inspect(
+  @debug.debug_inspect(
     @utf8.decode(res.raw_body),
     content="[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":25}]",
   )

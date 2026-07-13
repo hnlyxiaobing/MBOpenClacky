@@ -60,7 +60,7 @@ fn validate_local_image_path(path : String) -> Result[(String, String), String] 
     return Err("Path traversal not allowed")
   }
   let ext_view = @path.Path::extname(@path.Path(path))
-  let ext_str = ext_view.to_string()
+  let ext_str = ext_view.to_owned()
   let ext = if ext_str.length() > 1 {
     ext_str[1:].to_owned().to_lower()
   } else {
@@ -113,7 +113,7 @@ fn handle_local_image(
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
           "error": "Failed to read file".to_json(),
-          "detail": e.to_string().to_json(),
+          "detail": @debug.to_string(e).to_json(),
         }),
       )
   }

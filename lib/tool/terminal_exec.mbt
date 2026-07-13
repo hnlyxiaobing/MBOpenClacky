@@ -10,6 +10,6 @@ extern "C" fn c_system(_cmd : Bytes) -> Int = "mb_system"
 ///|
 /// Run a system command and return the exit code.
 fn run_system_command(command : String) -> Int {
-  let cmd_bytes = command.to_bytes()
+  let cmd_bytes = @utf8.encode(command)
   c_system(cmd_bytes)
 }

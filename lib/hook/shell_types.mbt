@@ -8,7 +8,7 @@ pub(all) enum ShellHookEvent {
   OnIteration
   OnComplete
   SessionRollback
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// A single shell hook definition
@@ -17,7 +17,7 @@ pub(all) struct ShellHook {
   command : String
   timeout : Int
   event : ShellHookEvent
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Hook execution result
@@ -25,13 +25,13 @@ pub(all) enum HookExecResult {
   Allow
   Deny(String)
   Error(String)
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Shell hook configuration (from hooks.yml)
 pub(all) struct ShellHookConfig {
   hooks : Map[String, Array[ShellHook]]
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Parse event name string to ShellHookEvent

@@ -1,13 +1,13 @@
 ///|
 test "parse_gitignore skips comments" {
   let rules = parse_gitignore("# this is a comment\n\n# another comment\n")
-  assert_eq(rules.length(), 0)
+  @debug.assert_eq(rules.length(), 0)
 }
 
 ///|
 test "parse_gitignore handles negation" {
   let rules = parse_gitignore("*.log\n!important.log\n")
-  assert_eq(rules.length(), 2)
+  @debug.assert_eq(rules.length(), 2)
   assert_false(rules[0].is_negation)
   assert_true(rules[1].is_negation)
 }
@@ -15,7 +15,7 @@ test "parse_gitignore handles negation" {
 ///|
 test "parse_gitignore handles directory marker" {
   let rules = parse_gitignore("build/\nlogs/\n")
-  assert_eq(rules.length(), 2)
+  @debug.assert_eq(rules.length(), 2)
   assert_true(rules[0].is_directory)
   assert_true(rules[1].is_directory)
 }
@@ -23,7 +23,7 @@ test "parse_gitignore handles directory marker" {
 ///|
 test "parse_gitignore handles anchored paths" {
   let rules = parse_gitignore("/root_only\nsrc/build\n")
-  assert_eq(rules.length(), 2)
+  @debug.assert_eq(rules.length(), 2)
   // /root_only -> after stripping leading /, pattern is "root_only" with no /
   assert_false(rules[0].is_anchored) // leading / stripped, no / remaining
   assert_true(rules[1].is_anchored) // contains / in pattern
@@ -123,7 +123,7 @@ test "filter_paths removes ignored" {
   let config = IgnoreConfig::new().add_custom_pattern("*.log")
   let paths = ["src/main.mbt", "debug.log", "lib/util.mbt", "error.log"]
   let filtered = config.filter_paths(paths)
-  assert_eq(filtered.length(), 2)
+  @debug.assert_eq(filtered.length(), 2)
   assert_true(filtered.contains("src/main.mbt"))
   assert_true(filtered.contains("lib/util.mbt"))
 }
@@ -133,7 +133,7 @@ test "ignore_reason reports matching rule" {
   let config = IgnoreConfig::new()
   // .git is a builtin pattern
   match config.ignore_reason(".git") {
-    Some(reason) => assert_eq(reason, ".git")
+    Some(reason) => @debug.assert_eq(reason, ".git")
     None => fail("expected a reason for .git")
   }
   assert_true(config.ignore_reason("src/main.mbt") is None)
@@ -143,7 +143,7 @@ test "ignore_reason reports matching rule" {
 test "IgnoreConfig new has builtins" {
   let config = IgnoreConfig::new()
   let (gi, cu, bu) = config.stats()
-  assert_eq(gi, 0)
-  assert_eq(cu, 0)
+  @debug.assert_eq(gi, 0)
+  @debug.assert_eq(cu, 0)
   assert_true(bu > 0)
 }

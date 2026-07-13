@@ -12,7 +12,7 @@ pub(all) enum HttpMethod {
   POST
   PUT
   DELETE
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct HttpRequest {
@@ -164,7 +164,7 @@ pub fn Router::match_route(
       }
     }
   }
-  Err("No route found for \{http_method} \{path}")
+  Err("No route found for \{http_method.to_repr()} \{path}")
 }
 
 ///|

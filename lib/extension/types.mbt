@@ -11,7 +11,7 @@ pub(all) enum ExtensionSource {
   Installed
   /// Local project extension from ./extensions
   Local
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Extension contribution type.
@@ -22,7 +22,7 @@ pub(all) enum ExtensionContributionType {
   Api
   Hook
   Patch
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Extension manifest structure (ext.yml).

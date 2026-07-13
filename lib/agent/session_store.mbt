@@ -30,7 +30,7 @@ fn session_file_path(sessions_dir : String, session_id : String) -> String {
 pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
   let dir = ensure_sessions_dir()
   let path = session_file_path(dir, data.session_id)
-  let json_str = data.to_json().to_string()
+  let json_str = data.to_json().stringify()
   @fs.write_string_to_file(path, json_str)
 }
 

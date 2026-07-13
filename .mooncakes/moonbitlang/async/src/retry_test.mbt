@@ -23,7 +23,7 @@ async test "retry immediate" {
       raise Err
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick 0
@@ -92,7 +92,7 @@ async test "retry cancelled1" {
     @async.TimeoutError => ()
     err => raise err
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|loop 0
@@ -116,7 +116,7 @@ async test "retry cancelled2" {
     @async.TimeoutError => ()
     err => raise err
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|loop 0
@@ -151,7 +151,7 @@ async test "retry fatal_error" {
       #|Err(Failure("fatal error"))
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|worker run #0

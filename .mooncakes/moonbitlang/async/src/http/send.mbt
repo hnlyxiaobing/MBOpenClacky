@@ -272,7 +272,7 @@ async fn Sender::send_headers(
     let (k, v) = pair
     let k_lower = k.to_lower()
     if k_lower is "content-length" {
-      let len = @string.parse_int64(v.trim(), base=10)
+      let len = @strconv.parse_int64(v.trim(), base=10)
       content_length = Some(len)
     } else if forbidden_headers.contains(k_lower) {
       continue

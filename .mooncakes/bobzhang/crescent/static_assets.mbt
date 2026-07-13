@@ -16,10 +16,10 @@ fn normalize_mount_path(path : String) -> String {
 
 ///|
 test "normalize_mount_path normalizes empty, root, and trailing slashes" {
-  inspect(normalize_mount_path(""), content="/")
-  inspect(normalize_mount_path("/"), content="/")
-  inspect(normalize_mount_path("/api/"), content="/api")
-  inspect(normalize_mount_path("/api"), content="/api")
+  @debug.debug_inspect(normalize_mount_path(""), content="/")
+  @debug.debug_inspect(normalize_mount_path("/"), content="/")
+  @debug.debug_inspect(normalize_mount_path("/api/"), content="/api")
+  @debug.debug_inspect(normalize_mount_path("/api"), content="/api")
 }
 
 ///|
@@ -39,11 +39,11 @@ fn mounted_asset_id(mount_path : String, request_path : String) -> String {
 
 ///|
 test "mounted_asset_id extracts asset id relative to mount path" {
-  inspect(mounted_asset_id("/", "/"), content="")
-  inspect(mounted_asset_id("/", "/hello.txt"), content="hello.txt")
-  inspect(mounted_asset_id("/static", "/static"), content="")
-  inspect(mounted_asset_id("/static", "/static/hello.txt"), content="hello.txt")
-  inspect(
+  @debug.debug_inspect(mounted_asset_id("/", "/"), content="")
+  @debug.debug_inspect(mounted_asset_id("/", "/hello.txt"), content="hello.txt")
+  @debug.debug_inspect(mounted_asset_id("/static", "/static"), content="")
+  @debug.debug_inspect(mounted_asset_id("/static", "/static/hello.txt"), content="hello.txt")
+  @debug.debug_inspect(
     mounted_asset_id("/static", "/static/sub/file.txt"),
     content="sub/file.txt",
   )

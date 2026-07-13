@@ -19,7 +19,7 @@ async test "merge multiple" {
     let (r, w) = @pipe.pipe()
     root.spawn_bg(no_wait=true) <| () => {
       defer r.close()
-      inspect(
+      @debug.debug_inspect(
         r.read_all().text(),
         content=(
           #|abcd
@@ -60,7 +60,7 @@ async test "redirect to file" {
         create_mode=CreateOrTruncate,
       ),
     )
-    inspect(@fs.read_file(output_file).text(), content="abcd")
+    @debug.debug_inspect(@fs.read_file(output_file).text(), content="abcd")
   }
 }
 
@@ -76,6 +76,6 @@ async test "merge stdout and stderr" {
       stdout=w,
       stderr=w,
     )
-    inspect(r.read_all().text(), content="abcdefgh")
+    @debug.debug_inspect(r.read_all().text(), content="abcdefgh")
   }
 }

@@ -58,7 +58,7 @@ pub fn ExtensionDispatcher::route_summary(
         " (cmd: \{route.command})"
       }
       lines.push(
-        "\{route.method} /api/ext/\{ext.name}\{route.path} -> \{route.handler_name}\{cmd_info} (timeout: \{route.timeout_ms}ms)",
+        "\{route.http_method} /api/ext/\{ext.name}\{route.path} -> \{route.handler_name}\{cmd_info} (timeout: \{route.timeout_ms}ms)",
       )
     }
   }
@@ -92,7 +92,7 @@ fn register_route_entry(
 ) -> Unit {
   let handler = make_ext_handler(ext_name, route)
   let path = if route.path.is_empty() { "" } else { route.path }
-  match route.method.to_upper() {
+  match route.http_method.to_upper() {
     "GET" => app.get(path, handler)
     "POST" => app.post(path, handler)
     "PUT" => app.put(path, handler)
@@ -146,7 +146,7 @@ fn build_ext_env_vars(
   // Route params as JSON object
   let params_map : Map[String, Json] = {}
   for kv in event.params {
-    params_map[kv.0] = kv.1.to_string().to_json()
+    params_map[kv.0] = kv.1.to_owned().to_json()
   }
   let params_json = Json::object(params_map)
   envs.push(("CLACKY_EXT_PARAMS", params_json.stringify()))
@@ -278,7 +278,7 @@ fn make_ext_handler(
       "[ExtensionDispatcher]   WARNING: route \{name}\{route.path} (\{handler_name}) has no command — returning stub",
     )
   }
-  async fn(event : @crescent.Event) -> &@core.Responder {
+  fn(event : @crescent.Event) -> &@core.Responder {
     if !has_command {
       let body = "{\"extension\":\"\{name}\",\"handler\":\"\{handler_name}\",\"timeout_ms\":\{timeout},\"status\":\"stub\"}"
       return @core.HttpResponse::ok()

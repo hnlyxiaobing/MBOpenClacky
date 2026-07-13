@@ -56,7 +56,7 @@ async test "basic_cat" {
     }
     group.spawn_bg() <| () => {
       defer we_read.close()
-      inspect(we_read.read_all().text(), content="abcdefgh")
+      @debug.debug_inspect(we_read.read_all().text(), content="abcdefgh")
     }
   }
 }

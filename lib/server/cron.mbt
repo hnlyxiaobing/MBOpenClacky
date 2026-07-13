@@ -7,7 +7,7 @@ pub(all) enum CronField {
   Range(Int, Int)
   RangeStep(Int, Int, Int)
   List(Array[Int])
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Cron expression (5 fields: minute hour day month weekday)
@@ -18,7 +18,7 @@ pub(all) struct CronExpression {
   month : CronField
   day_of_week : CronField
   raw : String
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Parse a cron expression string (5 fields separated by whitespace)

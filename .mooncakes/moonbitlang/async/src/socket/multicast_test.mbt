@@ -85,7 +85,7 @@ async test "multicast discovery then unicast" {
     log.push("server received: \{@utf8.decode(data)}. Sending reply...")
     ignore <| server.sendto(b"I am here", peer_addr)
     let (n, peer_addr2) = server.recvfrom(buf)
-    assert_eq(peer_addr, peer_addr2)
+    @debug.assert_eq(peer_addr, peer_addr2)
     let data = buf.unsafe_reinterpret_as_bytes()[:n]
     log.push("server received: \{@utf8.decode(data)}. Sending reply...")
     ignore <| server.sendto(b"Hello", peer_addr2)
@@ -185,7 +185,7 @@ async test "multicast discovery then unicast v6" {
     log.push("server received: \{@utf8.decode(data)}. Sending reply...")
     ignore <| server.sendto(b"I am here", peer_addr)
     let (n, peer_addr2) = server.recvfrom(buf)
-    assert_eq(peer_addr, peer_addr2)
+    @debug.assert_eq(peer_addr, peer_addr2)
     let data = buf.unsafe_reinterpret_as_bytes()[:n]
     log.push("server received: \{@utf8.decode(data)}. Sending reply...")
     ignore <| server.sendto(b"Hello", peer_addr2)

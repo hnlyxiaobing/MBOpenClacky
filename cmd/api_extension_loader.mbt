@@ -34,15 +34,15 @@ pub fn register_extensions(
     seen_names[ext.name] = true
     let seen_routes : Map[String, Bool] = {}
     for route in ext.routes {
-      let method = route.method.to_upper()
-      match method {
+      let http_method = route.http_method.to_upper()
+      match http_method {
         "GET" | "POST" | "PUT" | "DELETE" => ()
         other =>
           errors.push(
-            "Extension '\{ext.name}': unsupported method '\{other}' for \{route.path}",
+            "Extension '\{ext.name}': unsupported http_method '\{other}' for \{route.path}",
           )
       }
-      let route_key = "\{method} \{route.path}"
+      let route_key = "\{http_method} \{route.path}"
       if seen_routes.contains(route_key) {
         errors.push("Extension '\{ext.name}': duplicate route \{route_key}")
       } else {
@@ -59,7 +59,7 @@ pub fn register_extensions(
     )
     for route in ext.routes {
       println(
-        "[ApiExtension]   \{route.method.to_upper()} /api/ext/\{ext.name}\{route.path} -> \{route.handler_name}",
+        "[ApiExtension]   \{route.http_method.to_upper()} /api/ext/\{ext.name}\{route.path} -> \{route.handler_name}",
       )
     }
   }

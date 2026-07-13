@@ -2,11 +2,11 @@
 
 ///|
 test "meeting_status_roundtrip" {
-  assert_eq(MeetingStatus::Active.to_string_value(), "active")
-  assert_eq(MeetingStatus::Ended.to_string_value(), "ended")
-  assert_eq(meeting_status_from_string("active"), MeetingStatus::Active)
-  assert_eq(meeting_status_from_string("ended"), MeetingStatus::Ended)
-  assert_eq(meeting_status_from_string("unknown"), MeetingStatus::Active)
+  @debug.assert_eq(MeetingStatus::Active.to_string_value(), "active")
+  @debug.assert_eq(MeetingStatus::Ended.to_string_value(), "ended")
+  @debug.assert_eq(meeting_status_from_string("active"), MeetingStatus::Active)
+  @debug.assert_eq(meeting_status_from_string("ended"), MeetingStatus::Ended)
+  @debug.assert_eq(meeting_status_from_string("unknown"), MeetingStatus::Active)
 }
 
 ///|
@@ -18,9 +18,9 @@ test "transcript_entry_json_roundtrip" {
   }
   let json = entry.to_json()
   let parsed : TranscriptEntry = @json.from_json(json)
-  assert_eq(parsed.speaker, "Alice")
-  assert_eq(parsed.content, "Let's discuss the roadmap.")
-  assert_eq(parsed.timestamp, 1700000000000L)
+  @debug.assert_eq(parsed.speaker, "Alice")
+  @debug.assert_eq(parsed.content, "Let's discuss the roadmap.")
+  @debug.assert_eq(parsed.timestamp, 1700000000000L)
 }
 
 ///|
@@ -34,11 +34,11 @@ test "meeting_summary_json_roundtrip" {
   }
   let json = summary.to_json()
   let parsed : MeetingSummary = @json.from_json(json)
-  assert_eq(parsed.overview, "Productive meeting")
-  assert_eq(parsed.key_decisions.length(), 2)
-  assert_eq(parsed.action_items.length(), 2)
-  assert_eq(parsed.discussion_points.length(), 2)
-  assert_eq(parsed.generated_at, 1700000001000L)
+  @debug.assert_eq(parsed.overview, "Productive meeting")
+  @debug.assert_eq(parsed.key_decisions.length(), 2)
+  @debug.assert_eq(parsed.action_items.length(), 2)
+  @debug.assert_eq(parsed.discussion_points.length(), 2)
+  @debug.assert_eq(parsed.generated_at, 1700000001000L)
 }
 
 ///|
@@ -59,15 +59,15 @@ test "meeting_json_roundtrip" {
   }
   let json = meeting.to_json()
   let parsed : Meeting = @json.from_json(json)
-  assert_eq(parsed.id, "m_test_001")
-  assert_eq(parsed.title, "Sprint Planning")
-  assert_eq(parsed.status, MeetingStatus::Active)
-  assert_eq(parsed.session_id, Some("s_123"))
-  assert_eq(parsed.participants.length(), 2)
-  assert_eq(parsed.transcript.length(), 2)
-  assert_true(parsed.summary.is_none())
-  assert_eq(parsed.created_at, 1700000000000L)
-  assert_eq(parsed.ended_at, 0L)
+  @debug.assert_eq(parsed.id, "m_test_001")
+  @debug.assert_eq(parsed.title, "Sprint Planning")
+  @debug.assert_eq(parsed.status, MeetingStatus::Active)
+  @debug.assert_eq(parsed.session_id, Some("s_123"))
+  @debug.assert_eq(parsed.participants.length(), 2)
+  @debug.assert_eq(parsed.transcript.length(), 2)
+  assert_true(parsed.summary is None)
+  @debug.assert_eq(parsed.created_at, 1700000000000L)
+  @debug.assert_eq(parsed.ended_at, 0L)
 }
 
 ///|
@@ -97,16 +97,16 @@ test "meeting_with_summary_json_roundtrip" {
   }
   let json = meeting.to_json()
   let parsed : Meeting = @json.from_json(json)
-  assert_eq(parsed.id, "m_test_002")
-  assert_eq(parsed.status, MeetingStatus::Ended)
+  @debug.assert_eq(parsed.id, "m_test_002")
+  @debug.assert_eq(parsed.status, MeetingStatus::Ended)
   match parsed.summary {
     Some(s) => {
-      assert_eq(s.overview, "Good retro")
-      assert_eq(s.key_decisions.length(), 1)
+      @debug.assert_eq(s.overview, "Good retro")
+      @debug.assert_eq(s.key_decisions.length(), 1)
     }
-    None => assert_eq(true, false)
+    None => @debug.assert_eq(true, false)
   }
-  assert_eq(parsed.ended_at, 1700000004000L)
+  @debug.assert_eq(parsed.ended_at, 1700000004000L)
 }
 
 ///|
@@ -124,18 +124,18 @@ test "extract_discussion_points_groups_by_speaker" {
     { speaker: "Alice", content: "Point 3", timestamp: 3L },
   ]
   let points = extract_discussion_points(transcript)
-  assert_eq(points.length(), 2)
-  assert_eq(points[0], "Discussion by Alice")
-  assert_eq(points[1], "Discussion by Bob")
+  @debug.assert_eq(points.length(), 2)
+  @debug.assert_eq(points[0], "Discussion by Alice")
+  @debug.assert_eq(points[1], "Discussion by Bob")
 }
 
 ///|
 test "parse_summary_opt_none" {
-  assert_true(parse_summary_opt(None).is_none())
+  assert_true(parse_summary_opt(None) is None)
 }
 
 ///|
 test "parse_transcript_arr_empty" {
   let arr = parse_transcript_arr(None)
-  assert_eq(arr.length(), 0)
+  @debug.assert_eq(arr.length(), 0)
 }

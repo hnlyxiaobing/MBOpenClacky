@@ -4,7 +4,7 @@
 test "hook_manager_empty_new" {
   let hm = HookManager::new()
   // No callbacks registered initially
-  inspect(hm.callbacks.length(), content="0")
+  @debug.debug_inspect(hm.callbacks.length(), content="0")
 }
 
 ///|
@@ -24,7 +24,7 @@ test "hook_emit_multiple_callbacks" {
   hm.register(fn(_event : HookEvent) { count = count + 1 })
   hm.register(fn(_event : HookEvent) { count = count + 1 })
   hm.emit(BeforeIteration(1))
-  inspect(count, content="3")
+  @debug.debug_inspect(count, content="3")
 }
 
 ///|
@@ -51,7 +51,7 @@ test "hook_emit_event_payload" {
     }
   })
   hm.emit(BeforeIteration(42))
-  inspect(received_iteration, content="42")
+  @debug.debug_inspect(received_iteration, content="42")
 }
 
 ///|
@@ -119,7 +119,7 @@ test "hook_emit_all_event_types" {
   hm.emit(SubagentEnded("coder"))
   hm.emit(RetryAttempt(1, "rate limit"))
 
-  inspect(event_types.length(), content="21")
+  @debug.debug_inspect(event_types.length(), content="21")
 }
 
 ///|
@@ -154,8 +154,13 @@ test "hook_integration_agent_status_changes" {
   // Run the agent
   let result = agent.run("Say hello")
 
-  inspect(status_changed_count, content="2")
-  inspect(result.status.to_string_value(), content="Success")
+  @debug.debug_inspect(status_changed_count, content="2")
+  @debug.debug_inspect(
+    result.status.to_string_value(),
+    content=(
+      #|"Success"
+    ),
+  )
 }
 
 ///|
@@ -190,7 +195,12 @@ test "hook_integration_iteration_events" {
   })
 
   let result = agent.run("Hi")
-  inspect(result.status.to_string_value(), content="Success")
+  @debug.debug_inspect(
+    result.status.to_string_value(),
+    content=(
+      #|"Success"
+    ),
+  )
   // Should have at least one iteration
   guard before_iterations.length() >= 1 else {
     fail("Expected at least one BeforeIteration event")
@@ -230,7 +240,12 @@ test "hook_integration_message_events" {
   })
 
   let result = agent.run("Test messages")
-  inspect(result.status.to_string_value(), content="Success")
+  @debug.debug_inspect(
+    result.status.to_string_value(),
+    content=(
+      #|"Success"
+    ),
+  )
   // System prompt + user message + assistant response = at least 3 messages
   guard message_count >= 3 else {
     fail("Expected at least 3 MessageAdded events (got \{message_count})")
@@ -305,7 +320,12 @@ test "hook_multiple_events_in_order" {
   })
 
   let result = agent.run("Hello")
-  inspect(result.status.to_string_value(), content="Success")
+  @debug.debug_inspect(
+    result.status.to_string_value(),
+    content=(
+      #|"Success"
+    ),
+  )
 
   // Check that important events are in the log
   guard event_log.contains("status_changed") else {

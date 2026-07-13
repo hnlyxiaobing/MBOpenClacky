@@ -24,7 +24,7 @@ pub fn Event::param_decoded(self : Event, name : String) -> String? {
 pub fn Event::param_int(self : Event, name : String) -> Int? {
   match self.params.get(name) {
     Some(v) =>
-      try @string.parse_int(v) catch {
+      try @strconv.parse_int(v) catch {
         _ => None
       } noraise {
         n => Some(n)
@@ -38,7 +38,7 @@ pub fn Event::param_int(self : Event, name : String) -> Int? {
 pub fn Event::param_int64(self : Event, name : String) -> Int64? {
   match self.params.get(name) {
     Some(v) =>
-      try @string.parse_int64(v) catch {
+      try @strconv.parse_int64(v) catch {
         _ => None
       } noraise {
         n => Some(n)
@@ -66,7 +66,7 @@ pub fn Event::require_param(self : Event, name : String) -> String raise {
 pub fn Event::require_param_int(self : Event, name : String) -> Int raise {
   match self.params.get(name) {
     Some(v) =>
-      @string.parse_int(v) catch {
+      @strconv.parse_int(v) catch {
         _ =>
           raise HttpError::HttpError(
             BadRequest,
@@ -87,7 +87,7 @@ pub fn Event::require_param_int(self : Event, name : String) -> Int raise {
 pub fn Event::require_param_int64(self : Event, name : String) -> Int64 raise {
   match self.params.get(name) {
     Some(v) =>
-      @string.parse_int64(v) catch {
+      @strconv.parse_int64(v) catch {
         _ =>
           raise HttpError::HttpError(
             BadRequest,

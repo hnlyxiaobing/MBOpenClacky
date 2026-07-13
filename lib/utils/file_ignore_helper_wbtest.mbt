@@ -7,7 +7,7 @@
 ///|
 test "builtin_ignore_patterns: non-empty known set" {
   let pats = builtin_ignore_patterns()
-  assert_eq(pats.length(), 16)
+  @debug.assert_eq(pats.length(), 16)
   assert_true(pats.contains(".git"))
   assert_true(pats.contains("node_modules"))
 }
@@ -16,9 +16,9 @@ test "builtin_ignore_patterns: non-empty known set" {
 test "ignore_config: new seeds builtin rules only" {
   let cfg = IgnoreConfig::new()
   let (g, c, b) = cfg.stats()
-  assert_eq(g, 0)
-  assert_eq(c, 0)
-  assert_eq(b, 16)
+  @debug.assert_eq(g, 0)
+  @debug.assert_eq(c, 0)
+  @debug.assert_eq(b, 16)
 }
 
 ///|
@@ -55,9 +55,9 @@ test "ignore_config: custom pattern is honored" {
 test "ignore_config: filter_paths drops ignored entries" {
   let cfg = IgnoreConfig::new()
   let kept = cfg.filter_paths(["a.pyc", "b.txt", "c.md"])
-  assert_eq(kept.length(), 2)
-  assert_eq(kept[0], "b.txt")
-  assert_eq(kept[1], "c.md")
+  @debug.assert_eq(kept.length(), 2)
+  @debug.assert_eq(kept[0], "b.txt")
+  @debug.assert_eq(kept[1], "c.md")
 }
 
 ///|

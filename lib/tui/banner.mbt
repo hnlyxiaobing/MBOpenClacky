@@ -8,7 +8,7 @@ pub enum BannerStyle {
   Boxed // Box drawing characters border
   Minimal // Simple separator lines
   Block // Unicode block font
-} derive(Debug, Eq, Show)
+} derive(Debug, Eq)
 
 ///|
 /// Banner renderer

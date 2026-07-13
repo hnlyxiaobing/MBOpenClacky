@@ -45,7 +45,7 @@ async test "cond var cancellation no_swallow" {
     wait_task.cancel()
     @async.sleep(100)
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|waiter 1 succeed
@@ -78,7 +78,7 @@ async test "cond var fairness" {
       @async.sleep(50)
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 1 received signal
@@ -106,7 +106,7 @@ async test "cond var broadcast" {
     @async.sleep(100)
     cond.broadcast()
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 0 received signal
@@ -131,7 +131,7 @@ async test "cond var broadcast cancellation" {
     @async.sleep(500)
     cond.broadcast()
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task 2 received signal

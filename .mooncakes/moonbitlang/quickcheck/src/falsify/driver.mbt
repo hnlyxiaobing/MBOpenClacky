@@ -3,13 +3,13 @@ struct Success[T] {
   result : T
   seed : RandomState
   run : TestRun
-} derive(Show)
+} derive(Debug)
 
 ///|
 struct Failure[E] {
   seed : RandomState
   run : ShrinkExplain[(E, TestRun), TestRun]
-} derive(Show)
+} derive(Debug)
 
 ///|
 struct Config {
@@ -19,7 +19,7 @@ struct Config {
   max_ratio : Int
   verbose : Bool
   expect_failure : Bool
-} derive(Show)
+} derive(Debug)
 
 ///|
 pub impl Default for Config with default() {

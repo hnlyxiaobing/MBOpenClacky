@@ -105,7 +105,7 @@ async test "request streaming" {
       log <+ "client sending GET request\n"
       let (response, client) = @http.get_stream("http://localhost:\{port}/get")
       defer client.close()
-      inspect(response.code, content="200")
+      @debug.debug_inspect(response.code, content="200")
       fetch_response(client)
     }
     {
@@ -119,7 +119,7 @@ async test "request streaming" {
       log <+ "client: sending PUT data part 2\n"
       client.write("PUT data part 2\n")
       let response = client.end_request()
-      inspect(response.code, content="200")
+      @debug.debug_inspect(response.code, content="200")
       fetch_response(client)
     }
     {
@@ -133,14 +133,14 @@ async test "request streaming" {
       log <+ "client: sending POST data part 2\n"
       client.write("POST data part 2\n")
       let response = client.end_request()
-      inspect(response.code, content="200")
+      @debug.debug_inspect(response.code, content="200")
       fetch_response(client)
     }
     // give some time for the client to close,
     // so that the port occupied by the server can be reused immediately.
     @async.sleep(200)
   }
-  inspect(
+  @debug.debug_inspect(
     log,
     content=(
       #|client sending GET request
@@ -179,9 +179,9 @@ async test "multiple request" {
   let client = @http.Client("https://www.moonbitlang.com")
   defer client.close()
   let response1 = client.get("/")
-  inspect(response1.code, content="200")
+  @debug.debug_inspect(response1.code, content="200")
   assert_true(client.read_all().text().has_prefix("<!doctype html>"))
   let response2 = client.get("/download")
-  inspect(response2.code, content="200")
+  @debug.debug_inspect(response2.code, content="200")
   assert_true(client.read_all().text().has_prefix("<!doctype html>"))
 }

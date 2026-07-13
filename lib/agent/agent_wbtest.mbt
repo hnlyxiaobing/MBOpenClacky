@@ -58,24 +58,24 @@ fn make_tool_call(
 ///|
 test "cache_stats_new_defaults" {
   let stats = CacheStats::new()
-  assert_eq(stats.cache_creation_input_tokens, 0)
-  assert_eq(stats.cache_read_input_tokens, 0)
-  assert_eq(stats.total_requests, 0)
-  assert_eq(stats.cache_hit_requests, 0)
+  @debug.assert_eq(stats.cache_creation_input_tokens, 0)
+  @debug.assert_eq(stats.cache_read_input_tokens, 0)
+  @debug.assert_eq(stats.total_requests, 0)
+  @debug.assert_eq(stats.cache_hit_requests, 0)
 }
 
 ///|
 test "cost_source_to_string" {
-  assert_eq(CostSource::Api.to_string_value(), "api")
-  assert_eq(CostSource::Price.to_string_value(), "price")
-  assert_eq(CostSource::Default.to_string_value(), "default")
-  assert_eq(CostSource::Estimated.to_string_value(), "estimated")
+  @debug.assert_eq(CostSource::Api.to_string_value(), "api")
+  @debug.assert_eq(CostSource::Price.to_string_value(), "price")
+  @debug.assert_eq(CostSource::Default.to_string_value(), "default")
+  @debug.assert_eq(CostSource::Estimated.to_string_value(), "estimated")
 }
 
 ///|
 test "cost_source_json" {
   let json = CostSource::Api.to_json()
-  assert_eq(json, "api".to_json())
+  @debug.assert_eq(json, "api".to_json())
 }
 
 ///|
@@ -83,12 +83,12 @@ test "track_cost_basic" {
   let agent = make_test_agent()
   let usage = @client.Usage::from_openai(1000, 500)
   let token_data = agent.track_cost(usage)
-  assert_eq(token_data.prompt_tokens, 1000)
-  assert_eq(token_data.completion_tokens, 500)
-  assert_eq(token_data.total_tokens, 1500)
-  assert_eq(agent.total_cost, 0.0) // No pricing table in Phase 4
-  assert_eq(agent.previous_total_tokens, 1500)
-  assert_eq(agent.cache_stats.total_requests, 1)
+  @debug.assert_eq(token_data.prompt_tokens, 1000)
+  @debug.assert_eq(token_data.completion_tokens, 500)
+  @debug.assert_eq(token_data.total_tokens, 1500)
+  @debug.assert_eq(agent.total_cost, 0.0) // No pricing table in Phase 4
+  @debug.assert_eq(agent.previous_total_tokens, 1500)
+  @debug.assert_eq(agent.cache_stats.total_requests, 1)
 }
 
 ///|
@@ -101,9 +101,9 @@ test "track_cost_with_cache" {
     cache_read=300,
   )
   let _ = agent.track_cost(usage)
-  assert_eq(agent.cache_stats.cache_creation_input_tokens, 200)
-  assert_eq(agent.cache_stats.cache_read_input_tokens, 300)
-  assert_eq(agent.cache_stats.cache_hit_requests, 1)
+  @debug.assert_eq(agent.cache_stats.cache_creation_input_tokens, 200)
+  @debug.assert_eq(agent.cache_stats.cache_read_input_tokens, 300)
+  @debug.assert_eq(agent.cache_stats.cache_hit_requests, 1)
 }
 
 ///|
@@ -111,19 +111,19 @@ test "track_cost_delta_tokens" {
   let agent = make_test_agent()
   let usage1 = @client.Usage::from_openai(1000, 500)
   let data1 = agent.track_cost(usage1)
-  assert_eq(data1.delta_tokens, 1500)
+  @debug.assert_eq(data1.delta_tokens, 1500)
   let usage2 = @client.Usage::from_openai(2000, 1000)
   let data2 = agent.track_cost(usage2)
-  assert_eq(data2.delta_tokens, 1500) // 3000 - 1500
+  @debug.assert_eq(data2.delta_tokens, 1500) // 3000 - 1500
 }
 
 ///|
 test "estimate_token_count" {
-  assert_eq(estimate_token_count(""), 0)
-  assert_eq(estimate_token_count("a"), 1)
-  assert_eq(estimate_token_count("abcd"), 1)
-  assert_eq(estimate_token_count("abcde"), 2)
-  assert_eq(estimate_token_count("12345678"), 2)
+  @debug.assert_eq(estimate_token_count(""), 0)
+  @debug.assert_eq(estimate_token_count("a"), 1)
+  @debug.assert_eq(estimate_token_count("abcd"), 1)
+  @debug.assert_eq(estimate_token_count("abcde"), 2)
+  @debug.assert_eq(estimate_token_count("12345678"), 2)
 }
 
 // ── SystemPrompt Tests ────────────────────────────────────────────────────────
@@ -172,18 +172,18 @@ test "format_prompt_section" {
 
 ///|
 test "truncate_text_short" {
-  assert_eq(truncate_text("hello", 10), "hello")
+  @debug.assert_eq(truncate_text("hello", 10), "hello")
 }
 
 ///|
 test "truncate_text_long" {
   let result = truncate_text("hello world", 8)
-  assert_eq(result, "hello...")
+  @debug.assert_eq(result, "hello...")
 }
 
 ///|
 test "truncate_text_exact" {
-  assert_eq(truncate_text("hello", 5), "hello")
+  @debug.assert_eq(truncate_text("hello", 5), "hello")
 }
 
 // ── ToolExecutor Tests ────────────────────────────────────────────────────────
@@ -256,8 +256,8 @@ test "build_success_result" {
   let call = make_tool_call("call_1", "file_reader", "{}")
   let result = @tool.ToolResult::success("file content")
   let entry = build_success_result(call, result)
-  assert_eq(entry.id, "call_1")
-  assert_eq(entry.content, "file content")
+  @debug.assert_eq(entry.id, "call_1")
+  @debug.assert_eq(entry.content, "file content")
   assert_false(entry.is_error)
 }
 
@@ -265,7 +265,7 @@ test "build_success_result" {
 test "build_error_result" {
   let call = make_tool_call("call_2", "file_reader", "{}")
   let entry = build_error_result(call, "file not found")
-  assert_eq(entry.id, "call_2")
+  @debug.assert_eq(entry.id, "call_2")
   assert_true(entry.is_error)
 }
 
@@ -273,7 +273,7 @@ test "build_error_result" {
 test "build_denied_result_no_feedback" {
   let call = make_tool_call("call_3", "terminal", "{}")
   let entry = build_denied_result(call, None)
-  assert_eq(entry.id, "call_3")
+  @debug.assert_eq(entry.id, "call_3")
   assert_true(entry.is_error)
   assert_true(entry.content.find("denied") is Some(_))
 }
@@ -298,14 +298,14 @@ test "parse_tool_arguments_valid_json" {
 test "parse_tool_arguments_invalid_json" {
   let call = make_tool_call("call_1", "file_reader", "{invalid}")
   let args = parse_tool_arguments(call)
-  assert_eq(args.length(), 0)
+  @debug.assert_eq(args.length(), 0)
 }
 
 ///|
 test "parse_tool_arguments_empty" {
   let call = make_tool_call("call_1", "file_reader", "")
   let args = parse_tool_arguments(call)
-  assert_eq(args.length(), 0)
+  @debug.assert_eq(args.length(), 0)
 }
 
 // ── Agent Lifecycle Tests ─────────────────────────────────────────────────────
@@ -313,12 +313,12 @@ test "parse_tool_arguments_empty" {
 ///|
 test "agent_new_with_client" {
   let agent = make_test_agent()
-  assert_eq(agent.session_id, "test-session")
-  assert_eq(agent.name, "test-agent")
-  assert_eq(agent.working_dir, "/tmp/test")
-  assert_eq(agent.current_model(), "test-model")
-  assert_eq(agent.iterations, 0)
-  assert_eq(agent.total_cost, 0.0)
+  @debug.assert_eq(agent.session_id, "test-session")
+  @debug.assert_eq(agent.name, "test-agent")
+  @debug.assert_eq(agent.working_dir, "/tmp/test")
+  @debug.assert_eq(agent.current_model(), "test-model")
+  @debug.assert_eq(agent.iterations, 0)
+  @debug.assert_eq(agent.total_cost, 0.0)
   assert_true(agent.status == Idle)
 }
 
@@ -326,28 +326,28 @@ test "agent_new_with_client" {
 test "agent_set_reasoning_effort" {
   let agent = make_test_agent()
   agent.set_reasoning_effort(Some("high"))
-  assert_eq(agent.reasoning_effort, Some("high"))
+  @debug.assert_eq(agent.reasoning_effort, Some("high"))
 }
 
 ///|
 test "agent_set_reasoning_effort_off" {
   let agent = make_test_agent()
   agent.set_reasoning_effort(Some("off"))
-  assert_eq(agent.reasoning_effort, None)
+  @debug.assert_eq(agent.reasoning_effort, None)
 }
 
 ///|
 test "agent_set_reasoning_effort_none" {
   let agent = make_test_agent()
   agent.set_reasoning_effort(Some("none"))
-  assert_eq(agent.reasoning_effort, None)
+  @debug.assert_eq(agent.reasoning_effort, None)
 }
 
 ///|
 test "agent_set_reasoning_effort_empty" {
   let agent = make_test_agent()
   agent.set_reasoning_effort(Some(""))
-  assert_eq(agent.reasoning_effort, None)
+  @debug.assert_eq(agent.reasoning_effort, None)
 }
 
 ///|
@@ -355,10 +355,10 @@ test "agent_to_session_data" {
   let agent = make_test_agent()
   agent.history.push(@message.Message::user("hello"))
   let data = agent.to_session_data()
-  assert_eq(data.session_id, "test-session")
-  assert_eq(data.name, "test-agent")
-  assert_eq(data.messages.length(), 1)
-  assert_eq(data.stats.total_iterations, 0)
+  @debug.assert_eq(data.session_id, "test-session")
+  @debug.assert_eq(data.name, "test-agent")
+  @debug.assert_eq(data.messages.length(), 1)
+  @debug.assert_eq(data.stats.total_iterations, 0)
 }
 
 ///|
@@ -368,8 +368,8 @@ test "agent_restore_from_session" {
   agent.iterations = 10
   agent.total_cost = 5.0
   agent.restore_from_session(data)
-  assert_eq(agent.iterations, 0)
-  assert_eq(agent.total_cost, 0.0)
+  @debug.assert_eq(agent.iterations, 0)
+  @debug.assert_eq(agent.total_cost, 0.0)
   assert_true(agent.status == Idle)
 }
 
@@ -392,7 +392,7 @@ test "run_increments_iterations" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("Done", None))
   let _ = agent.run("test") catch { _ => abort("unexpected error") }
-  assert_eq(agent.iterations, 1)
+  @debug.assert_eq(agent.iterations, 1)
 }
 
 ///|
@@ -401,7 +401,7 @@ test "run_no_tool_calls_breaks" {
   agent.mock_responses.push(make_mock_response("Final answer", None))
   let result = agent.run("question") catch { _ => abort("unexpected error") }
   assert_true(result.status == Success)
-  assert_eq(agent.iterations, 1)
+  @debug.assert_eq(agent.iterations, 1)
 }
 
 ///|
@@ -418,7 +418,7 @@ test "run_with_tool_calls_executes" {
   agent.mock_responses.push(make_mock_response("Done", None))
   let result = agent.run("read file") catch { _ => abort("unexpected error") }
   assert_true(result.status == Success)
-  assert_eq(agent.iterations, 2)
+  @debug.assert_eq(agent.iterations, 2)
 }
 
 ///|
@@ -455,8 +455,8 @@ test "build_result_success" {
   agent.total_cost = 0.5
   let result = agent.build_result(Success)
   assert_true(result.status == Success)
-  assert_eq(result.iterations, 5)
-  assert_eq(result.total_cost_usd, 0.5)
+  @debug.assert_eq(result.iterations, 5)
+  @debug.assert_eq(result.total_cost_usd, 0.5)
 }
 
 ///|
@@ -464,7 +464,7 @@ test "build_result_error" {
   let agent = make_test_agent()
   let result = agent.build_result(Error, error=Some("test error"))
   assert_true(result.status == Error)
-  assert_eq(result.error, Some("test error"))
+  @debug.assert_eq(result.error, Some("test error"))
 }
 
 // ── Fallback State Machine Tests ──────────────────────────────────────────────
@@ -566,13 +566,13 @@ test "call_llm_mock_response" {
   let mock_resp = make_mock_response("mock response", None)
   agent.mock_responses.push(mock_resp)
   let resp = agent.call_llm() catch { _ => abort("unexpected error") }
-  assert_eq(resp.content, Some("mock response"))
+  @debug.assert_eq(resp.content, Some("mock response"))
 }
 
 ///|
 test "call_llm_no_mock_raises" {
   let agent = make_test_agent()
-  let result = try? agent.call_llm()
+  let result = Ok(agent.call_llm()) catch { e => Err(e) }
   assert_true(result is Err(_))
 }
 
@@ -582,7 +582,7 @@ test "messages_for_api_strips_internal" {
   let msg = @message.Message::user("test")
   agent.history.push(msg)
   let api_msgs = agent.messages_for_api()
-  assert_eq(api_msgs.length(), 1)
+  @debug.assert_eq(api_msgs.length(), 1)
   // Internal fields should be stripped by to_api_message
   assert_true(api_msgs[0].task_id is None)
   assert_true(api_msgs[0].created_at is None)
@@ -597,7 +597,7 @@ test "handle_context_overflow_standard" {
   agent.history.push(@message.Message::user("msg2"))
   let removed = agent.handle_context_overflow(Standard)
   assert_true(removed)
-  assert_eq(agent.history.length(), 2) // system + msg1
+  @debug.assert_eq(agent.history.length(), 2) // system + msg1
 }
 
 ///|
@@ -629,7 +629,7 @@ test "detect_upstream_truncation_valid" {
 test "detect_upstream_truncation_invalid" {
   let tool_call = make_tool_call("call_1", "file_reader", "{invalid json")
   let resp = make_mock_response("ok", Some([tool_call]))
-  let result = try? Agent::detect_upstream_truncation(resp)
+  let result = Ok(Agent::detect_upstream_truncation(resp)) catch { e => Err(e) }
   assert_true(result is Err(_))
 }
 
@@ -644,9 +644,9 @@ test "session_data_roundtrip" {
   let data = agent.to_session_data()
   let agent2 = make_test_agent()
   agent2.restore_from_session(data)
-  assert_eq(agent2.iterations, 5)
-  assert_eq(agent2.total_cost, 1.5)
-  assert_eq(agent2.history.length(), 1)
+  @debug.assert_eq(agent2.iterations, 5)
+  @debug.assert_eq(agent2.total_cost, 1.5)
+  @debug.assert_eq(agent2.history.length(), 1)
 }
 
 ///|
@@ -656,9 +656,9 @@ test "session_stats_fields" {
   agent.total_cost = 2.0
   agent.total_tasks = 3
   let data = agent.to_session_data()
-  assert_eq(data.stats.total_iterations, 10)
-  assert_eq(data.stats.total_cost_usd, 2.0)
-  assert_eq(data.stats.total_tasks, 3)
+  @debug.assert_eq(data.stats.total_iterations, 10)
+  @debug.assert_eq(data.stats.total_cost_usd, 2.0)
+  @debug.assert_eq(data.stats.total_tasks, 3)
 }
 
 // ── Session JSON Serialization Tests ──────────────────────────────────────────
@@ -698,14 +698,14 @@ test "session_stats_from_json_roundtrip" {
   let json_str = original.to_json().stringify()
   let json = @json.parse(json_str)
   let parsed : SessionStats = @json.from_json(json)
-  assert_eq(parsed.total_iterations, 10)
-  assert_eq(parsed.total_cost_usd, 3.5)
-  assert_eq(parsed.total_tasks, 5)
-  assert_eq(parsed.cost_source, "estimated")
-  assert_eq(parsed.cache_creation_input_tokens, 50)
-  assert_eq(parsed.cache_read_input_tokens, 75)
-  assert_eq(parsed.total_requests, 8)
-  assert_eq(parsed.cache_hit_requests, 2)
+  @debug.assert_eq(parsed.total_iterations, 10)
+  @debug.assert_eq(parsed.total_cost_usd, 3.5)
+  @debug.assert_eq(parsed.total_tasks, 5)
+  @debug.assert_eq(parsed.cost_source, "estimated")
+  @debug.assert_eq(parsed.cache_creation_input_tokens, 50)
+  @debug.assert_eq(parsed.cache_read_input_tokens, 75)
+  @debug.assert_eq(parsed.total_requests, 8)
+  @debug.assert_eq(parsed.cache_hit_requests, 2)
 }
 
 ///|
@@ -797,20 +797,20 @@ test "session_data_from_json_roundtrip" {
     "model_name": "gpt-4".to_json(),
   })
   let parsed : SessionData = @json.from_json(json_obj)
-  assert_eq(parsed.session_id, "s_roundtrip")
-  assert_eq(parsed.name, "roundtrip-test")
-  assert_eq(parsed.messages.length(), 1)
+  @debug.assert_eq(parsed.session_id, "s_roundtrip")
+  @debug.assert_eq(parsed.name, "roundtrip-test")
+  @debug.assert_eq(parsed.messages.length(), 1)
   assert_true(
     parsed.messages[0].content ==
     (@message.MessageContent::Text("hello world") : @message.MessageContent),
   )
-  assert_eq(parsed.stats.total_iterations, 3)
-  assert_eq(parsed.stats.total_cost_usd, 0.75)
-  assert_eq(parsed.working_dir, "/home/test")
-  assert_eq(parsed.created_at, "9876543210")
-  assert_eq(parsed.source, "cli")
-  assert_eq(parsed.reasoning_effort, Some("high"))
-  assert_eq(parsed.model_name, Some("gpt-4"))
+  @debug.assert_eq(parsed.stats.total_iterations, 3)
+  @debug.assert_eq(parsed.stats.total_cost_usd, 0.75)
+  @debug.assert_eq(parsed.working_dir, "/home/test")
+  @debug.assert_eq(parsed.created_at, "9876543210")
+  @debug.assert_eq(parsed.source, "cli")
+  @debug.assert_eq(parsed.reasoning_effort, Some("high"))
+  @debug.assert_eq(parsed.model_name, Some("gpt-4"))
 }
 
 ///|
@@ -837,10 +837,10 @@ test "session_data_from_json_missing_optional" {
   let json_str = Json::object(map).stringify()
   let json = @json.parse(json_str)
   let parsed : SessionData = @json.from_json(json)
-  assert_eq(parsed.session_id, "s_minimal")
-  assert_eq(parsed.source, "manual")
-  assert_eq(parsed.reasoning_effort, None)
-  assert_eq(parsed.model_name, None)
+  @debug.assert_eq(parsed.session_id, "s_minimal")
+  @debug.assert_eq(parsed.source, "manual")
+  @debug.assert_eq(parsed.reasoning_effort, None)
+  @debug.assert_eq(parsed.model_name, None)
 }
 
 ///|
@@ -884,7 +884,7 @@ test "session_data_with_multiple_messages_json" {
   let json_str = data.to_json().stringify()
   let json = @json.parse(json_str)
   let parsed : SessionData = @json.from_json(json)
-  assert_eq(parsed.messages.length(), 3)
+  @debug.assert_eq(parsed.messages.length(), 3)
   assert_true(parsed.messages[0].role == @message.System)
   assert_true(parsed.messages[1].role == @message.User)
   assert_true(parsed.messages[2].role == @message.Assistant)

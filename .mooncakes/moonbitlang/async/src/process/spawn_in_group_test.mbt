@@ -37,7 +37,7 @@ async test "spawn_in_group cancel" {
     let (r, w) = @process.read_from_process()
     outer.spawn_bg() <| () => {
       defer r.close()
-      inspect(r.read_all().text().trim(), content="received termination signal")
+      @debug.debug_inspect(r.read_all().text().trim(), content="received termination signal")
     }
     @async.with_task_group() <| inner => {
       let _ = @process.spawn(inner, sleep, ["10000"], stdout=w, no_wait=true)
@@ -55,10 +55,10 @@ async test "Process::wait" {
     t0 = @async.now()
     let result = child.wait()
     let t = (@async.now() - t0).to_int() / 250
-    inspect(t, content="2")
-    inspect(result, content="42")
+    @debug.debug_inspect(t, content="2")
+    @debug.debug_inspect(result, content="42")
     // `.wait()` should be idempotent
-    inspect(child.wait(), content="42")
+    @debug.debug_inspect(child.wait(), content="42")
   }
 }
 
@@ -82,7 +82,7 @@ async test "Process:cancel" {
     let (r, w) = @process.read_from_process()
     group.spawn_bg() <| () => {
       defer r.close()
-      inspect(r.read_all().text().trim(), content="received termination signal")
+      @debug.debug_inspect(r.read_all().text().trim(), content="received termination signal")
     }
     let child = @process.spawn(group, sleep, ["10000"], stdout=w)
     t0 = @async.now()
@@ -90,5 +90,5 @@ async test "Process:cancel" {
     child.cancel()
   }
   let t = (@async.now() - t0).to_int() / 500
-  inspect(t, content="1")
+  @debug.debug_inspect(t, content="1")
 }

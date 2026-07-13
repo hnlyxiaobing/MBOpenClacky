@@ -27,7 +27,7 @@ pub fn JsonRpcClient::get_process(self : JsonRpcClient) -> BrowserProcess {
 
 ///|
 /// Build a JSON-RPC 2.0 request string with the given id, method, and params.
-fn build_request(id : Int, method : String, params : Json?) -> String {
+fn build_request(id : Int, http_method : String, params : Json?) -> String {
   let p : Json = match params {
     Some(p) => p
     None => Json::object({})
@@ -35,21 +35,21 @@ fn build_request(id : Int, method : String, params : Json?) -> String {
   Json::object({
     "jsonrpc": "2.0".to_json(),
     "id": id.to_json(),
-    "method": method.to_json(),
+    "method": http_method.to_json(),
     "params": p,
   }).stringify()
 }
 
 ///|
 /// Build a JSON-RPC 2.0 notification string (no id field, no response expected).
-fn build_notification(method : String, params : Json?) -> String {
+fn build_notification(http_method : String, params : Json?) -> String {
   let p : Json = match params {
     Some(p) => p
     None => Json::object({})
   }
   Json::object({
     "jsonrpc": "2.0".to_json(),
-    "method": method.to_json(),
+    "method": http_method.to_json(),
     "params": p,
   }).stringify()
 }
@@ -101,12 +101,12 @@ fn parse_response(text : String) -> Result[(Int, Json), String] {
 #cfg(target="native")
 pub fn JsonRpcClient::call(
   self : JsonRpcClient,
-  method : String,
+  http_method : String,
   params : Json,
 ) -> Result[Json, String] {
   let id = self.id_counter
   self.id_counter = self.id_counter + 1
-  let request_str = build_request(id, method, Some(params))
+  let request_str = build_request(id, http_method, Some(params))
   // Send request
   match self.process.write_line(request_str) {
     Ok(_) => ()
@@ -133,10 +133,10 @@ pub fn JsonRpcClient::call(
 #cfg(target="native")
 pub fn JsonRpcClient::notify(
   self : JsonRpcClient,
-  method : String,
+  http_method : String,
   params : Json,
 ) -> Result[Unit, String] {
-  let notif_str = build_notification(method, Some(params))
+  let notif_str = build_notification(http_method, Some(params))
   match self.process.write_line(notif_str) {
     Ok(_) => ()
     Err(e) => return Err(e)
@@ -178,10 +178,10 @@ pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub fn JsonRpcClient::call(
   self : JsonRpcClient,
-  method : String,
+  http_method : String,
   params : Json,
 ) -> Result[Json, String] {
-  let _ = method
+  let _ = http_method
   let _ = params
   Err("JSON-RPC not supported on wasm target")
 }
@@ -191,10 +191,10 @@ pub fn JsonRpcClient::call(
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub fn JsonRpcClient::notify(
   self : JsonRpcClient,
-  method : String,
+  http_method : String,
   params : Json,
 ) -> Result[Unit, String] {
-  let _ = method
+  let _ = http_method
   let _ = params
   Err("JSON-RPC not supported on wasm target")
 }

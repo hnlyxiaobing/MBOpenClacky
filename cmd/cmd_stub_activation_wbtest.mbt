@@ -1,14 +1,14 @@
 ///|
 test "run_shell_command captures output and exit code" {
   let r = @tool.run_shell_command("echo hello")
-  assert_eq(r.exit_code, 0)
+  @debug.assert_eq(r.exit_code, 0)
   assert_true(r.output.contains("hello"))
 }
 
 ///|
 test "run_shell_command reports non-zero exit code" {
   let r = @tool.run_shell_command("exit 3")
-  assert_eq(r.exit_code, 3)
+  @debug.assert_eq(r.exit_code, 3)
 }
 
 ///|
@@ -16,7 +16,7 @@ test "run_shell_command passes env vars to child process" {
   let r = @tool.run_shell_command("echo val=$CLACKY_TEST_VAR", env_vars=[
     ("CLACKY_TEST_VAR", "42"),
   ])
-  assert_eq(r.exit_code, 0)
+  @debug.assert_eq(r.exit_code, 0)
   assert_true(r.output.contains("val=42"))
 }
 
@@ -126,9 +126,12 @@ test "apply_patches reports failing patch" {
 
 ///|
 test "register_extensions rejects duplicate names and bad routes" {
-  let mk_route = fn(method : String, path : String) -> @web.ExtensionRoute {
+  let mk_route = fn(
+    http_method : String,
+    path : String,
+  ) -> @web.ExtensionRoute {
     {
-      method,
+      http_method,
       path,
       handler_name: "h",
       command: "",
@@ -172,7 +175,7 @@ test "register_extensions accepts valid extensions" {
       version: "1.0",
       routes: [
         {
-          method: "GET",
+          http_method: "GET",
           path: "/status",
           handler_name: "status",
           command: "",

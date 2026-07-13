@@ -10,13 +10,13 @@
 
 ///|
 fn cc_make_event(
-  method : @crescent.HttpMethod,
+  http_method : @crescent.HttpMethod,
   url : String,
   body? : String = "",
 ) -> @crescent.Event {
   {
     req: @crescent.HttpRequest::http_request(
-      method,
+      http_method,
       url,
       {},
       raw_body=@utf8.encode(body),
@@ -44,7 +44,7 @@ fn cc_response_json(resp : @core.HttpResponse) -> Json {
 test "profile get returns default profile structure" {
   let server_ref = cc_make_server_ref()
   let resp = handle_profile_get(server_ref, cc_make_event(Get, "/api/profile"))
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
   assert_true(obj.contains("name"))
@@ -70,10 +70,10 @@ test "profile put merges fields and persists" {
     Some(v) => @sys.set_env_var("USERPROFILE", v)
     None => @sys.set_env_var("USERPROFILE", "")
   }
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @fs.remove_file("_build/.mbopenclacky/profile.json") catch {
     _ => ()
   }
@@ -92,7 +92,7 @@ test "dirs mkdir rejects path traversal in parent" {
       body="{\"path\":\"../../etc\",\"name\":\"x\"}",
     ),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = cc_response_json(resp)
   guard j is Object(obj)
   assert_true(obj.contains("error"))
@@ -109,7 +109,7 @@ test "dirs mkdir rejects path traversal in name" {
       body="{\"path\":\".\",\"name\":\"../x\"}",
     ),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -129,10 +129,10 @@ test "dirs mkdir creates directory under cwd" {
     Some(v) => @sys.set_env_var("USERPROFILE", v)
     None => @sys.set_env_var("USERPROFILE", "")
   }
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("path"))
   @fs.remove_dir("cc_test_dir") catch {
     _ => ()
@@ -148,7 +148,7 @@ test "brand skills list returns skills array" {
     server_ref,
     cc_make_event(Get, "/api/brand/skills"),
   )
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
   assert_true(obj.contains("skills"))
@@ -161,7 +161,7 @@ test "brand skills install requires name" {
     server_ref,
     cc_make_event(Post, "/api/brand/skills", body="{}"),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Config / media / test ─────────────────────────────────────────────
@@ -173,7 +173,7 @@ test "config media test requires kind" {
     server_ref,
     cc_make_event(Post, "/api/config/media/test", body="{}"),
   )
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -183,9 +183,9 @@ test "config media test reports no model for unknown kind" {
     server_ref,
     cc_make_event(Post, "/api/config/media/test", body="{\"kind\":\"image\"}"),
   )
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   assert_true(obj.contains("error"))
 }

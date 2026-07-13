@@ -34,7 +34,7 @@ pub fn create_extension_scaffold(
   let manifest = build_manifest_from_template(template)
   let manifest_path = @path.Path::join(ext_dir, @path.Path("ext.yml")).to_string()
   @fs.write_string_to_file(manifest_path, generate_manifest_json(manifest)) catch {
-    e => return Err("failed to write manifest: " + e.to_string())
+    e => return Err("failed to write manifest: " + @debug.to_string(e))
   }
   // Generate one template file per contribution type.
   for contrib_type in template.contributions {
@@ -46,7 +46,7 @@ pub fn create_extension_scaffold(
   // Write a friendly README.
   let readme_path = @path.Path::join(ext_dir, @path.Path("README.md")).to_string()
   @fs.write_string_to_file(readme_path, generate_readme(template)) catch {
-    e => return Err("failed to write README: " + e.to_string())
+    e => return Err("failed to write README: " + @debug.to_string(e))
   }
   Ok(ext_dir)
 }
@@ -191,7 +191,7 @@ fn create_contribution_template(
         "failed to write contribution template to " +
         file_path +
         ": " +
-        e.to_string(),
+        @debug.to_string(e),
       )
   }
   Ok(())

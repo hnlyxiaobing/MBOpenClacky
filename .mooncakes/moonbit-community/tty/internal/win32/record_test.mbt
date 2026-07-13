@@ -47,7 +47,7 @@ test "win32 raw input record parses window buffer size records" {
 
 ///|
 test "win32 raw input record parses unsupported records" {
-  match InputRecord::parse(b"\x01") {
+  match InputRecord::parse(b"\u{01}") {
     Unsupported(0) => ()
     _ => fail("expected unsupported short record")
   }

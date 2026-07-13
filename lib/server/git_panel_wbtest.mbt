@@ -1,16 +1,16 @@
 ///|
 test "GitStatus empty defaults" {
   let s = GitStatus::empty()
-  assert_eq(s.branch, "")
-  assert_eq(s.ahead, 0)
-  assert_eq(s.behind, 0)
-  assert_eq(s.staged, 0)
-  assert_eq(s.modified, 0)
-  assert_eq(s.untracked, 0)
-  assert_eq(s.deleted, 0)
-  assert_eq(s.conflicts, 0)
-  assert_eq(s.is_dirty, false)
-  assert_eq(s.is_detached, false)
+  @debug.assert_eq(s.branch, "")
+  @debug.assert_eq(s.ahead, 0)
+  @debug.assert_eq(s.behind, 0)
+  @debug.assert_eq(s.staged, 0)
+  @debug.assert_eq(s.modified, 0)
+  @debug.assert_eq(s.untracked, 0)
+  @debug.assert_eq(s.deleted, 0)
+  @debug.assert_eq(s.conflicts, 0)
+  @debug.assert_eq(s.is_dirty, false)
+  @debug.assert_eq(s.is_detached, false)
 }
 
 ///|
@@ -19,11 +19,11 @@ test "parse_porcelain_status staged files" {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     output,
   )
-  assert_eq(staged, 2)
-  assert_eq(modified, 0)
-  assert_eq(untracked, 0)
-  assert_eq(deleted, 0)
-  assert_eq(conflicts, 0)
+  @debug.assert_eq(staged, 2)
+  @debug.assert_eq(modified, 0)
+  @debug.assert_eq(untracked, 0)
+  @debug.assert_eq(deleted, 0)
+  @debug.assert_eq(conflicts, 0)
 }
 
 ///|
@@ -32,11 +32,11 @@ test "parse_porcelain_status modified" {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     output,
   )
-  assert_eq(staged, 0)
-  assert_eq(modified, 1)
-  assert_eq(untracked, 0)
-  assert_eq(deleted, 0)
-  assert_eq(conflicts, 0)
+  @debug.assert_eq(staged, 0)
+  @debug.assert_eq(modified, 1)
+  @debug.assert_eq(untracked, 0)
+  @debug.assert_eq(deleted, 0)
+  @debug.assert_eq(conflicts, 0)
 }
 
 ///|
@@ -45,11 +45,11 @@ test "parse_porcelain_status untracked" {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     output,
   )
-  assert_eq(staged, 0)
-  assert_eq(modified, 0)
-  assert_eq(untracked, 2)
-  assert_eq(deleted, 0)
-  assert_eq(conflicts, 0)
+  @debug.assert_eq(staged, 0)
+  @debug.assert_eq(modified, 0)
+  @debug.assert_eq(untracked, 2)
+  @debug.assert_eq(deleted, 0)
+  @debug.assert_eq(conflicts, 0)
 }
 
 ///|
@@ -58,11 +58,11 @@ test "parse_porcelain_status mixed" {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     output,
   )
-  assert_eq(staged, 1)
-  assert_eq(modified, 1)
-  assert_eq(untracked, 1)
-  assert_eq(deleted, 1)
-  assert_eq(conflicts, 1)
+  @debug.assert_eq(staged, 1)
+  @debug.assert_eq(modified, 1)
+  @debug.assert_eq(untracked, 1)
+  @debug.assert_eq(deleted, 1)
+  @debug.assert_eq(conflicts, 1)
 }
 
 ///|
@@ -70,46 +70,46 @@ test "parse_porcelain_status empty" {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     "",
   )
-  assert_eq(staged, 0)
-  assert_eq(modified, 0)
-  assert_eq(untracked, 0)
-  assert_eq(deleted, 0)
-  assert_eq(conflicts, 0)
+  @debug.assert_eq(staged, 0)
+  @debug.assert_eq(modified, 0)
+  @debug.assert_eq(untracked, 0)
+  @debug.assert_eq(deleted, 0)
+  @debug.assert_eq(conflicts, 0)
 }
 
 ///|
 test "parse_branch_info normal" {
   let output = "* main abc1234 commit message\n  dev  def5678 other\n"
   let (branch, ahead, behind, detached) = parse_branch_info(output)
-  assert_eq(branch, "main")
-  assert_eq(ahead, 0)
-  assert_eq(behind, 0)
-  assert_eq(detached, false)
+  @debug.assert_eq(branch, "main")
+  @debug.assert_eq(ahead, 0)
+  @debug.assert_eq(behind, 0)
+  @debug.assert_eq(detached, false)
 }
 
 ///|
 test "parse_branch_info ahead behind" {
   let output = "* main abc1234 [origin/main: ahead 2, behind 1] commit msg\n"
   let (branch, ahead, behind, detached) = parse_branch_info(output)
-  assert_eq(branch, "main")
-  assert_eq(ahead, 2)
-  assert_eq(behind, 1)
-  assert_eq(detached, false)
+  @debug.assert_eq(branch, "main")
+  @debug.assert_eq(ahead, 2)
+  @debug.assert_eq(behind, 1)
+  @debug.assert_eq(detached, false)
 }
 
 ///|
 test "parse_branch_info detached" {
   let output = "* (HEAD detached at abc1234)\n"
   let (_, _, _, detached) = parse_branch_info(output)
-  assert_eq(detached, true)
+  @debug.assert_eq(detached, true)
 }
 
 ///|
 test "parse_last_commit normal" {
   let output = "abc1234 fix: something important\n"
   let (hash, msg) = parse_last_commit(output)
-  assert_eq(hash, "abc1234")
-  assert_eq(msg, "fix: something important")
+  @debug.assert_eq(hash, "abc1234")
+  @debug.assert_eq(msg, "fix: something important")
 }
 
 ///|
@@ -123,17 +123,17 @@ test "build_git_status combines all" {
     log,
     commit_time="2024-01-01",
   )
-  assert_eq(status.branch, "main")
-  assert_eq(status.ahead, 1)
-  assert_eq(status.behind, 0)
-  assert_eq(status.staged, 1)
-  assert_eq(status.modified, 1)
-  assert_eq(status.untracked, 1)
-  assert_eq(status.last_commit_hash, "abc1234")
-  assert_eq(status.last_commit_msg, "feat: add feature")
-  assert_eq(status.last_commit_time, "2024-01-01")
-  assert_eq(status.is_dirty, true)
-  assert_eq(status.is_detached, false)
+  @debug.assert_eq(status.branch, "main")
+  @debug.assert_eq(status.ahead, 1)
+  @debug.assert_eq(status.behind, 0)
+  @debug.assert_eq(status.staged, 1)
+  @debug.assert_eq(status.modified, 1)
+  @debug.assert_eq(status.untracked, 1)
+  @debug.assert_eq(status.last_commit_hash, "abc1234")
+  @debug.assert_eq(status.last_commit_msg, "feat: add feature")
+  @debug.assert_eq(status.last_commit_time, "2024-01-01")
+  @debug.assert_eq(status.is_dirty, true)
+  @debug.assert_eq(status.is_detached, false)
 }
 
 ///|

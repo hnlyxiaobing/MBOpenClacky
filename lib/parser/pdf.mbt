@@ -99,7 +99,7 @@ fn extract_page_count(_path : String) -> Int? {
 }
 
 ///|
-/// Split text by page breaks (form feed character \x0c)
+/// Split text by page breaks (form feed character \u{0c})
 pub fn split_by_pages(text : String) -> Array[String] {
   let pages : Array[String] = []
   let buf = StringBuilder::new()

@@ -128,7 +128,7 @@ fn http_month_number(month : StringView) -> Int? {
 
 ///|
 fn parse_http_date_part(text : StringView) -> Int? {
-  try @string.parse_int(text) catch {
+  try @strconv.parse_int(text) catch {
     _ => None
   } noraise {
     value => Some(value)

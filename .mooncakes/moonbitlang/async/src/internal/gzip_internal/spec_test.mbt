@@ -21,34 +21,34 @@ fn add_metadata(deflate : Bytes, crc32 : UInt, input_size : UInt) -> Bytes {
   let trailer = FixedArray::make(8, b'\x00')
   trailer.unsafe_write_uint32_le(0, crc32)
   trailer.unsafe_write_uint32_le(4, input_size)
-  b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff" +
+  b"\u{1f}\u{8b}\u{08}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{ff}" +
   deflate +
   trailer.unsafe_reinterpret_as_bytes()
 }
 
 ///|
 test "zlib infcover stored block" {
-  let compressed = add_metadata(b"\x01\x01\x00\xfe\xff\x00", 3523407757U, 1U)
+  let compressed = add_metadata(b"\u{01}\u{01}\u{00}\u{fe}\u{ff}\u{00}", 3523407757U, 1U)
   let decoded = decode(compressed, expected_len=1)
   let decoded_min = decode(compressed, expected_len=1, input_step=Min)
-  assert_eq(decoded, b"\x00")
-  assert_eq(decoded_min, b"\x00")
-  assert_eq(decode(encode(decoded), expected_len=1), decoded)
+  @debug.assert_eq(decoded, b"\u{00}")
+  @debug.assert_eq(decoded_min, b"\u{00}")
+  @debug.assert_eq(decode(encode(decoded), expected_len=1), decoded)
 }
 
 ///|
 test "zlib infcover fixed huffman block" {
-  let compressed = add_metadata(b"\x03\x00", 0U, 0U)
+  let compressed = add_metadata(b"\u{03}\u{00}", 0U, 0U)
   let decoded = decode(compressed, expected_len=0)
   let decoded_min = decode(compressed, expected_len=0, input_step=Min)
-  assert_eq(decoded, b"")
-  assert_eq(decoded_min, b"")
-  assert_eq(decode(encode(decoded), expected_len=0), decoded)
+  @debug.assert_eq(decoded, b"")
+  @debug.assert_eq(decoded_min, b"")
+  @debug.assert_eq(decode(encode(decoded), expected_len=0), decoded)
 }
 
 ///|
 test "zlib infcover invalid stored block lengths" {
-  let compressed = add_metadata(b"\x00\x00\x00\x00\x00", 0U, 0U)
+  let compressed = add_metadata(b"\u{00}\u{00}\u{00}\u{00}\u{00}", 0U, 0U)
   let result = try? decode(compressed, expected_len=0)
   let result_min = try? decode(compressed, expected_len=0, input_step=Min)
   assert_true(result is Err(_))
@@ -57,7 +57,7 @@ test "zlib infcover invalid stored block lengths" {
 
 ///|
 test "zlib infcover invalid block type" {
-  let compressed = add_metadata(b"\x06", 0U, 0U)
+  let compressed = add_metadata(b"\u{06}", 0U, 0U)
   let result = try? decode(compressed, expected_len=0)
   let result_min = try? decode(compressed, expected_len=0, input_step=Min)
   assert_true(result is Err(_))
@@ -66,7 +66,7 @@ test "zlib infcover invalid block type" {
 
 ///|
 test "zlib infcover gzip optional header fields rejected" {
-  let compressed = b"\x1f\x8b\x08\x02\x00\x00\x00\x00\x00\x00\x1d\x26\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+  let compressed = b"\u{1f}\u{8b}\u{08}\u{02}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{1d}\u{26}\u{03}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}"
   let result = try? decode(compressed, expected_len=0)
   let result_min = try? decode(compressed, expected_len=0, input_step=Min)
   assert_true(result is Err(_))
@@ -76,27 +76,27 @@ test "zlib infcover gzip optional header fields rejected" {
 ///|
 test "zlib infcover dynamic huffman length extra" {
   let compressed = add_metadata(
-    b"\xed\xc0\x01\x01\x00\x00\x00\x40\x20\xff\x57\x1b\x42\x2c\x4f", 2893183767U,
+    b"\u{ed}\u{c0}\u{01}\u{01}\u{00}\u{00}\u{00}\u{40}\u{20}\u{ff}\u{57}\u{1b}\u{42}\u{2c}\u{4f}", 2893183767U,
     516U,
   )
   let decoded = decode(compressed, expected_len=516)
   let decoded_min = decode(compressed, expected_len=516, input_step=Min)
-  inspect(decoded.length(), content="516")
-  assert_eq(decoded_min.length(), 516)
-  assert_eq(decoded_min, decoded)
-  assert_eq(decode(encode(decoded), expected_len=516), decoded)
+  @debug.debug_inspect(decoded.length(), content="516")
+  @debug.assert_eq(decoded_min.length(), 516)
+  @debug.assert_eq(decoded_min, decoded)
+  @debug.assert_eq(decode(encode(decoded), expected_len=516), decoded)
 }
 
 ///|
 test "zlib infcover dynamic huffman window end" {
   let compressed = add_metadata(
-    b"\xed\xc0\x81\x00\x00\x00\x00\x80\xa0\xfd\xa9\x17\xa9\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x06",
+    b"\u{ed}\u{c0}\u{81}\u{00}\u{00}\u{00}\u{00}\u{80}\u{a0}\u{fd}\u{a9}\u{17}\u{a9}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{06}",
     4130011695U, 33025U,
   )
   let decoded = decode(compressed, expected_len=33025)
   let decoded_min = decode(compressed, expected_len=33025, input_step=Min)
-  inspect(decoded.length(), content="33025")
-  assert_eq(decoded_min.length(), 33025)
-  assert_eq(decoded_min, decoded)
-  assert_eq(decode(encode(decoded), expected_len=33025), decoded)
+  @debug.debug_inspect(decoded.length(), content="33025")
+  @debug.assert_eq(decoded_min.length(), 33025)
+  @debug.assert_eq(decoded_min, decoded)
+  @debug.assert_eq(decode(encode(decoded), expected_len=33025), decoded)
 }

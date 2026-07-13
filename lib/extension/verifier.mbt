@@ -87,7 +87,7 @@ fn validate_version_format(
     return
   }
   let parts : Array[String] = []
-  version.split(".").each(fn(p) { parts.push(p.to_string()) })
+  version.split(".").each(fn(p) { parts.push(@debug.to_string(p)) })
   let part_count = parts.length()
   if part_count < 2 || part_count > 3 {
     errors.push(

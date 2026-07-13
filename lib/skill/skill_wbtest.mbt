@@ -14,25 +14,30 @@ test "parse_frontmatter: normal frontmatter" {
     #|---
     #|Skill body here.
   let (fields, body) = parse_frontmatter(content)
-  inspect(
+  @debug.debug_inspect(
     fields.get("name"),
     content=(
-      #|Some(moonbit-orientation)
+      #|Some("moonbit-orientation")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     fields.get("description"),
     content=(
-      #|Some(MoonBit language guidance)
+      #|Some("MoonBit language guidance")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     fields.get("user_invocable"),
     content=(
-      #|Some(true)
+      #|Some("true")
     ),
   )
-  inspect(body.trim().to_owned(), content="Skill body here.")
+  @debug.debug_inspect(
+    body.trim().to_owned(),
+    content=(
+      #|"Skill body here."
+    ),
+  )
 }
 
 ///|
@@ -42,16 +47,26 @@ test "parse_frontmatter: empty frontmatter" {
     #|---
     #|Body content.
   let (fields, body) = parse_frontmatter(content)
-  inspect(fields.length(), content="0")
-  inspect(body.trim().to_owned(), content="Body content.")
+  @debug.debug_inspect(fields.length(), content="0")
+  @debug.debug_inspect(
+    body.trim().to_owned(),
+    content=(
+      #|"Body content."
+    ),
+  )
 }
 
 ///|
 test "parse_frontmatter: no frontmatter delimiter" {
   let content = "Just plain content without frontmatter."
   let (fields, body) = parse_frontmatter(content)
-  inspect(fields.length(), content="0")
-  inspect(body, content="Just plain content without frontmatter.")
+  @debug.debug_inspect(fields.length(), content="0")
+  @debug.debug_inspect(
+    body,
+    content=(
+      #|"Just plain content without frontmatter."
+    ),
+  )
 }
 
 ///|
@@ -62,16 +77,16 @@ test "parse_frontmatter: quoted values" {
     #|description: 'a quoted description'
     #|---
   let (fields, _) = parse_frontmatter(content)
-  inspect(
+  @debug.debug_inspect(
     fields.get("name"),
     content=(
-      #|Some(my-skill)
+      #|Some("my-skill")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     fields.get("description"),
     content=(
-      #|Some(a quoted description)
+      #|Some("a quoted description")
     ),
   )
 }
@@ -86,22 +101,22 @@ test "parse_frontmatter: multiple fields" {
     #|disable_model_invocation: false
     #|---
   let (fields, _) = parse_frontmatter(content)
-  inspect(
+  @debug.debug_inspect(
     fields.get("fork_agent"),
     content=(
-      #|Some(true)
+      #|Some("true")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     fields.get("auto_summarize"),
     content=(
-      #|Some(false)
+      #|Some("false")
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     fields.get("disable_model_invocation"),
     content=(
-      #|Some(false)
+      #|Some("false")
     ),
   )
 }
@@ -125,16 +140,26 @@ test "load_skill_from_content: valid skill" {
   let skill = load_skill_from_content(content, "test_source", None)
   assert_true(skill is Some(_))
   let s = skill.unwrap()
-  inspect(s.name, content="moonbit-orientation")
-  inspect(
+  @debug.debug_inspect(
+    s.name,
+    content=(
+      #|"moonbit-orientation"
+    ),
+  )
+  @debug.debug_inspect(
     s.description,
     content=(
-      #|Some(MoonBit language guidance)
+      #|Some("MoonBit language guidance")
     ),
   )
   assert_true(s.user_invocable)
   assert_false(s.fork_agent)
-  inspect(s.source, content="test_source")
+  @debug.debug_inspect(
+    s.source,
+    content=(
+      #|"test_source"
+    ),
+  )
 }
 
 ///|
@@ -160,10 +185,10 @@ test "load_skill_from_content: with directory" {
     Some("/path/to"),
   )
   assert_true(skill is Some(_))
-  inspect(
+  @debug.debug_inspect(
     skill.unwrap().directory,
     content=(
-      #|Some(/path/to)
+      #|Some("/path/to")
     ),
   )
 }
@@ -179,7 +204,7 @@ test "load_skill_from_content: allowed_tools parsed" {
   assert_true(skill is Some(_))
   let tools = skill.unwrap().allowed_tools
   assert_true(tools is Some(_))
-  inspect(tools.unwrap().length(), content="3")
+  @debug.debug_inspect(tools.unwrap().length(), content="3")
 }
 
 // ============================================================
@@ -199,14 +224,24 @@ test "load_skill_from_json_value: valid JSON" {
   let skill = load_skill_from_json_value(json, "json_source")
   assert_true(skill is Some(_))
   let s = skill.unwrap()
-  inspect(s.name, content="json-skill")
-  inspect(
-    s.description,
+  @debug.debug_inspect(
+    s.name,
     content=(
-      #|Some(A JSON-loaded skill)
+      #|"json-skill"
     ),
   )
-  inspect(s.source, content="json_source")
+  @debug.debug_inspect(
+    s.description,
+    content=(
+      #|Some("A JSON-loaded skill")
+    ),
+  )
+  @debug.debug_inspect(
+    s.source,
+    content=(
+      #|"json_source"
+    ),
+  )
 }
 
 ///|
@@ -233,10 +268,15 @@ test "SkillRegistry: register and get" {
   let skill = Skill::default("test-skill", "src")
   reg.register(skill)
   assert_true(reg.has("test-skill"))
-  inspect(reg.size(), content="1")
+  @debug.debug_inspect(reg.size(), content="1")
   let got = reg.get("test-skill")
   assert_true(got is Some(_))
-  inspect(got.unwrap().name, content="test-skill")
+  @debug.debug_inspect(
+    got.unwrap().name,
+    content=(
+      #|"test-skill"
+    ),
+  )
 }
 
 ///|
@@ -253,8 +293,13 @@ test "SkillRegistry: list_user_invocable" {
   reg.register(s1)
   reg.register(s2)
   let invocable = reg.list_user_invocable()
-  inspect(invocable.length(), content="1")
-  inspect(invocable[0].name, content="skill-a")
+  @debug.debug_inspect(invocable.length(), content="1")
+  @debug.debug_inspect(
+    invocable[0].name,
+    content=(
+      #|"skill-a"
+    ),
+  )
 }
 
 ///|
@@ -267,8 +312,13 @@ test "SkillRegistry: list_by_agent_type" {
   reg.register(s2)
   reg.register(s3)
   let coders = reg.list_by_agent_type("coder")
-  inspect(coders.length(), content="1")
-  inspect(coders[0].name, content="skill-x")
+  @debug.debug_inspect(coders.length(), content="1")
+  @debug.debug_inspect(
+    coders[0].name,
+    content=(
+      #|"skill-x"
+    ),
+  )
 }
 
 ///|
@@ -278,7 +328,7 @@ test "SkillRegistry: remove skill" {
   assert_true(reg.has("to-remove"))
   assert_true(reg.remove("to-remove"))
   assert_false(reg.has("to-remove"))
-  inspect(reg.size(), content="0")
+  @debug.debug_inspect(reg.size(), content="0")
 }
 
 ///|
@@ -293,7 +343,7 @@ test "SkillRegistry: all returns all skills" {
   reg.register(Skill::default("a", "src"))
   reg.register(Skill::default("b", "src"))
   reg.register(Skill::default("c", "src"))
-  inspect(reg.all().length(), content="3")
+  @debug.debug_inspect(reg.all().length(), content="3")
 }
 
 // ============================================================
@@ -303,10 +353,25 @@ test "SkillRegistry: all returns all skills" {
 ///|
 test "default_discovery_paths: returns 3 paths" {
   let paths = default_discovery_paths("/home/user/project")
-  inspect(paths.length(), content="3")
-  inspect(paths[0], content="/home/user/project/.qoder/skills")
-  inspect(paths[1], content="/home/user/project/skills")
-  inspect(paths[2], content="/home/user/project/.skills")
+  @debug.debug_inspect(paths.length(), content="3")
+  @debug.debug_inspect(
+    paths[0],
+    content=(
+      #|"/home/user/project/.qoder/skills"
+    ),
+  )
+  @debug.debug_inspect(
+    paths[1],
+    content=(
+      #|"/home/user/project/skills"
+    ),
+  )
+  @debug.debug_inspect(
+    paths[2],
+    content=(
+      #|"/home/user/project/.skills"
+    ),
+  )
 }
 
 ///|
@@ -320,8 +385,13 @@ test "discover_skills: discovers from skill.md content" {
     #|Context body.
   file_contents["/project/skills/skill.md"] = skill_md_content
   let skills = discover_skills(file_contents)
-  inspect(skills.length(), content="1")
-  inspect(skills[0].name, content="discovered-skill")
+  @debug.debug_inspect(skills.length(), content="1")
+  @debug.debug_inspect(
+    skills[0].name,
+    content=(
+      #|"discovered-skill"
+    ),
+  )
 }
 
 ///|
@@ -330,7 +400,7 @@ test "discover_skills: ignores unrelated files" {
   file_contents["/project/README.md"] = "# Project README"
   file_contents["/project/config.toml"] = "[settings]"
   let skills = discover_skills(file_contents)
-  inspect(skills.length(), content="0")
+  @debug.debug_inspect(skills.length(), content="0")
 }
 
 // ============================================================
@@ -368,7 +438,12 @@ test "build_skill_context: with context body" {
 ///|
 test "build_skills_summary: empty list" {
   let skills : Array[Skill] = []
-  inspect(build_skills_summary(skills), content="")
+  @debug.debug_inspect(
+    build_skills_summary(skills),
+    content=(
+      #|""
+    ),
+  )
 }
 
 ///|

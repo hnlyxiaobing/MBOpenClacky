@@ -58,19 +58,19 @@ test "extract ip from x-forwarded-for first entry" {
   let req = make_req(Get, "/api/info", {
     "X-Forwarded-For": "203.0.113.7, 10.0.0.1",
   })
-  assert_eq(extract_client_ip(req), "203.0.113.7")
+  @debug.assert_eq(extract_client_ip(req), "203.0.113.7")
 }
 
 ///|
 test "extract ip falls back to x-real-ip" {
   let req = make_req(Get, "/api/info", { "X-Real-IP": "198.51.100.9" })
-  assert_eq(extract_client_ip(req), "198.51.100.9")
+  @debug.assert_eq(extract_client_ip(req), "198.51.100.9")
 }
 
 ///|
 test "extract ip unknown when no headers" {
   let req = make_req(Get, "/api/info", {})
-  assert_eq(extract_client_ip(req), "unknown")
+  @debug.assert_eq(extract_client_ip(req), "unknown")
 }
 
 ///|

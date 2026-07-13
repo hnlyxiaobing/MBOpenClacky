@@ -14,13 +14,13 @@
 
 ///|
 test "Parse IPv4 address" {
-  assert_eq(@socket.Addr::parse("127.0.0.1:8080").to_string(), "127.0.0.1:8080")
-  assert_eq(@socket.Addr::parse("0.0.0.0:8080").to_string(), "0.0.0.0:8080")
-  assert_eq(
+  @debug.assert_eq(@socket.Addr::parse("127.0.0.1:8080").to_string(), "127.0.0.1:8080")
+  @debug.assert_eq(@socket.Addr::parse("0.0.0.0:8080").to_string(), "0.0.0.0:8080")
+  @debug.assert_eq(
     @socket.Addr::parse("255.255.255.255:8080").to_string(),
     "255.255.255.255:8080",
   )
-  assert_eq(
+  @debug.assert_eq(
     @socket.Addr::parse("172.31.254.253:8080").to_string(),
     "172.31.254.253:8080",
   )
@@ -44,21 +44,21 @@ test "Parse invalid IPv4 address" {
 ///|
 test "Parse IPv6 address" {
   let addr = @socket.Addr::parse("[2a02:6b8::11:11]:8080")
-  assert_eq(addr.to_string(), "[2a02:6b8::11:11]:8080")
-  assert_eq(
+  @debug.assert_eq(addr.to_string(), "[2a02:6b8::11:11]:8080")
+  @debug.assert_eq(
     @socket.Addr::parse("[0:0:0:0:0:0:0:0]:8080").to_string(),
     "[::]:8080",
   )
-  assert_eq(
+  @debug.assert_eq(
     @socket.Addr::parse("[0:0:0:0:0:0:0:1]:8080").to_string(),
     "[::1]:8080",
   )
-  assert_eq(@socket.Addr::parse("[::1]:8080").to_string(), "[::1]:8080")
-  assert_eq(
+  @debug.assert_eq(@socket.Addr::parse("[::1]:8080").to_string(), "[::1]:8080")
+  @debug.assert_eq(
     @socket.Addr::parse("[::1%\{test_interface}]:8080").to_string(),
     "[::1%\{test_interface}]:8080",
   )
-  assert_eq(
+  @debug.assert_eq(
     @socket.Addr::parse("[::1%\{test_interface_index}]:8080").to_string(),
     "[::1%\{test_interface}]:8080",
   )
@@ -86,9 +86,9 @@ test "Parse invalid IPv6 address" {
 ///|
 test "Parse IPv6 address with ipv4" {
   let addr = @socket.Addr::parse("[::ffff:192.0.2.33]:8080")
-  assert_eq(addr.to_string(), "[::ffff:192.0.2.33]:8080")
+  @debug.assert_eq(addr.to_string(), "[::ffff:192.0.2.33]:8080")
   let addr = @socket.Addr::parse("[::FFFF:192.0.2.33]:8080")
-  assert_eq(addr.to_string(), "[::ffff:192.0.2.33]:8080")
+  @debug.assert_eq(addr.to_string(), "[::ffff:192.0.2.33]:8080")
   // Not enough groups
   let v = try? @socket.Addr::parse("[1:2:3:4:5:127.0.0.1]:8080")
   assert_true(v is Err(_))

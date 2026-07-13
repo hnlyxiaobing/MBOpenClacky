@@ -7,30 +7,30 @@ test "McpClient from_spec stdio" {
     args=Some(["server.js"]),
   )
   let client = McpClient::from_spec(spec)
-  assert_eq(client.name, "test-server")
+  @debug.assert_eq(client.name, "test-server")
   assert_true(client.tools.length() == 0)
   assert_true(client.server_info is None)
   assert_true(client.started_at is None)
   assert_true(client.last_used_at is None)
-  assert_eq(client.next_id, 1)
+  @debug.assert_eq(client.next_id, 1)
 }
 
 ///|
 test "McpClient from_spec http" {
   let spec = McpServerSpec::http("api-server", "http://localhost:3000")
   let client = McpClient::from_spec(spec)
-  assert_eq(client.name, "api-server")
+  @debug.assert_eq(client.name, "api-server")
   assert_true(client.tools.length() == 0)
-  assert_eq(client.next_id, 1)
+  @debug.assert_eq(client.next_id, 1)
 }
 
 ///|
 test "McpClient protocol_version and timeouts" {
   let spec = McpServerSpec::stdio("test", "echo")
   let client = McpClient::from_spec(spec)
-  assert_eq(client.protocol_version(), "2024-11-05")
-  assert_eq(client.default_timeout(), 30)
-  assert_eq(client.init_timeout(), 15)
+  @debug.assert_eq(client.protocol_version(), "2024-11-05")
+  @debug.assert_eq(client.default_timeout(), 30)
+  @debug.assert_eq(client.init_timeout(), 15)
 }
 
 ///|
@@ -40,10 +40,10 @@ test "McpClient send_request_with_response success" {
   let response = "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"value\":42}}"
   let result = client.send_request_with_response("test_method", None, response)
   match result {
-    { "value": Number(n, ..), .. } => assert_eq(n.to_int(), 42)
+    { "value": Number(n, ..), .. } => @debug.assert_eq(n.to_int(), 42)
     _ => assert_true(false)
   }
-  assert_eq(client.next_id, 2)
+  @debug.assert_eq(client.next_id, 2)
 }
 
 ///|

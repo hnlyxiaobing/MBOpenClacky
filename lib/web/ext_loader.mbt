@@ -6,7 +6,7 @@
 /// A single route defined by an API extension.
 pub(all) struct ExtensionRoute {
   /// HTTP method: "GET", "POST", "PUT", "DELETE", etc.
-  method : String
+  http_method : String
   /// Path relative to the /api/ext/<name>/ prefix
   path : String
   /// Logical handler name used for dispatch
@@ -17,7 +17,7 @@ pub(all) struct ExtensionRoute {
   description : String
   /// Per-route execution timeout in milliseconds (default 30 000)
   timeout_ms : Int
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// API extension loaded from an extension descriptor file.
@@ -30,7 +30,7 @@ pub(all) struct ApiExtension {
   routes : Array[ExtensionRoute]
   /// Whether this extension is active
   enabled : Bool
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// Default extension execution timeout in milliseconds (30 seconds).
@@ -148,7 +148,7 @@ fn parse_ext_json(content : String) -> ApiExtension? {
                 let raw_command = rget("command")
                 let command = expand_tilde(raw_command)
                 routes.push({
-                  method: rget("method"),
+                  http_method: rget("method"),
                   path: rget("path"),
                   handler_name: rget("handler_name"),
                   command,

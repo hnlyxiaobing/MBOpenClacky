@@ -32,13 +32,7 @@ extern "C" fn mb_pty_write_c(fd : Int, data : String, len : Int) -> Int = "mb_pt
 extern "C" fn mb_pty_close_fd_c(fd : Int) -> Unit = "mb_pty_close_fd"
 
 ///|
-extern "C" fn mb_pty_wait_c(pid : Int, nohang : Int) -> Int = "mb_pty_wait"
-
-///|
 extern "C" fn mb_pty_kill_pid_c(pid : Int) -> Int = "mb_pty_kill_pid"
-
-///|
-extern "C" fn mb_pty_resize_c(fd : Int, cols : Int, rows : Int) -> Int = "mb_pty_resize"
 
 ///|
 extern "C" fn mb_pty_available_c() -> Int = "mb_pty_available"
@@ -103,19 +97,7 @@ fn pty_ffi_close(fd : Int) -> Unit {
 }
 
 ///|
-/// Wait for child process. Returns exit status or -2 if still running.
-fn pty_ffi_wait(pid : Int, nohang : Bool) -> Int {
-  mb_pty_wait_c(pid, if nohang { 1 } else { 0 })
-}
-
-///|
 /// Kill child process (SIGTERM then SIGKILL).
 fn pty_ffi_kill(pid : Int) -> Int {
   mb_pty_kill_pid_c(pid)
-}
-
-///|
-/// Resize the PTY window.
-fn pty_ffi_resize(fd : Int, cols : Int, rows : Int) -> Int {
-  mb_pty_resize_c(fd, cols, rows)
 }

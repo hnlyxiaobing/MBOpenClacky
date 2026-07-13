@@ -27,15 +27,15 @@ async test "websocket basic" {
       let msg = ws.recv()
       let msg_content = msg.read_all().text()
       debug_inspect(msg.kind, content="Binary")
-      inspect(msg_content, content="abcd")
+      @debug.debug_inspect(msg_content, content="abcd")
       ws..start_message(msg.kind)..write(msg_content).end_message()
       let msg = ws.recv()
       let msg_content = msg.read_all().text()
       debug_inspect(msg.kind, content="Text")
-      inspect(msg_content, content="abcd")
+      @debug.debug_inspect(msg_content, content="abcd")
       ws..start_message(msg.kind)..write(msg_content).end_message()
       try ws.recv() catch {
-        err => inspect(err, content="ConnectionClosed(Normal, None)")
+        err => @debug.debug_inspect(err, content="ConnectionClosed(Normal, None)")
       } noraise {
         _ => raise Failure::Failure("expected error, but nothing happens")
       }
@@ -45,11 +45,11 @@ async test "websocket basic" {
     client.send_binary(b"abcd")
     let msg = client.recv()
     debug_inspect(msg.kind, content="Binary")
-    inspect(msg.read_all().text(), content="abcd")
+    @debug.debug_inspect(msg.read_all().text(), content="abcd")
     client.send_text("abcd")
     let msg = client.recv()
     debug_inspect(msg.kind, content="Text")
-    inspect(msg.read_all().text(), content="abcd")
+    @debug.debug_inspect(msg.read_all().text(), content="abcd")
     client.send_close()
   }
 }
@@ -101,7 +101,7 @@ async test "ignored message" {
       let msg2 = ws.recv()
       // trying to read from `msg1` here should result in panic
       debug_inspect(msg2.kind, content="Text")
-      inspect(msg2.read_all().text(), content="1234")
+      @debug.debug_inspect(msg2.read_all().text(), content="1234")
     }
     let client = @websocket.connect("ws://localhost:\{addr.port()}")
     defer client.close()
@@ -186,7 +186,7 @@ async test "large message" {
       client.write(chunk)
     }
     client.end_message()
-    inspect(checksum, content="3745800")
-    inspect(server_checksum.wait(), content="3745800")
+    @debug.debug_inspect(checksum, content="3745800")
+    @debug.debug_inspect(server_checksum.wait(), content="3745800")
   }
 }

@@ -34,7 +34,7 @@ let pty_test_timeout_ms : Int = 2000
 priv struct PtyHandle {
   fd : Int
   pid : Int
-} derive(Debug)
+}
 
 ///|
 /// Result state of a read-until-marker operation.
@@ -84,21 +84,9 @@ fn PtyHandle::close(self : PtyHandle) -> Unit {
 }
 
 ///|
-/// Wait for the child process to exit.
-fn PtyHandle::wait(self : PtyHandle, nohang : Bool) -> Int {
-  pty_ffi_wait(self.pid, nohang)
-}
-
-///|
 /// Kill the child process.
 fn PtyHandle::kill(self : PtyHandle) -> Int {
   pty_ffi_kill(self.pid)
-}
-
-///|
-/// Resize the PTY window.
-fn PtyHandle::resize(self : PtyHandle, cols : Int, rows : Int) -> Int {
-  pty_ffi_resize(self.fd, cols, rows)
 }
 
 ///|

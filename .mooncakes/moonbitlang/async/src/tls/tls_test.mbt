@@ -70,10 +70,10 @@ async test "one way" {
       @async.sleep(50)
       client.write(b"ijkl")
       client.shutdown()
-      inspect(client.read_all().text(), content="")
+      @debug.debug_inspect(client.read_all().text(), content="")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received: abcd
@@ -119,14 +119,14 @@ async test "echo" {
       defer client.close()
       for data in [b"abcd", b"efgh", b"ijkl"] {
         client.write(data)
-        assert_eq(client.read_exactly(4), data)
+        @debug.assert_eq(client.read_exactly(4), data)
         @async.sleep(50)
       }
       client.shutdown()
-      inspect(client.read_all().text(), content="")
+      @debug.debug_inspect(client.read_all().text(), content="")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|server received: abcd
@@ -167,7 +167,7 @@ async test "`connect` accidental close" {
           client.close()
           fail("expected `ConnectionClosed` error")
         }
-        Err(err) => inspect(err, content="ConnectionClosed")
+        Err(err) => @debug.debug_inspect(err, content="ConnectionClosed")
       }
     }
   }
@@ -256,7 +256,7 @@ async test "client custom root certificate" {
         server_read_from_client, server_write_to_client,
       )
       defer server.close()
-      assert_eq(server.read_exactly(2), b"ok")
+      @debug.assert_eq(server.read_exactly(2), b"ok")
       server.shutdown()
     }
     root.spawn_bg() <| () => {
@@ -273,7 +273,7 @@ async test "client custom root certificate" {
       defer client.close()
       client.write(b"ok")
       client.shutdown()
-      inspect(client.read_all().text(), content="")
+      @debug.debug_inspect(client.read_all().text(), content="")
     }
   }
 }

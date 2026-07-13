@@ -46,7 +46,7 @@ let shell_exec_counter : ShellExecCounter = { value: 0 }
 pub(all) struct ShellExecResult {
   output : String
   exit_code : Int
-} derive(Show)
+} derive(Debug)
 
 ///|
 fn shell_temp_dir() -> String {
@@ -189,7 +189,7 @@ fn parse_shell_marker(output : String, token : String) -> Int? {
       match rest.find("__") {
         Some(end) => {
           let code_str = rest[:end].to_owned()
-          Some(@strconv.parse_int(code_str)) catch {
+          Some(@string.parse_int(code_str)) catch {
             _ => None
           }
         }

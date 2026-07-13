@@ -28,7 +28,7 @@ test "exchange rate rejects invalid from code" {
   let server_ref = make_rate_server_ref()
   let event = make_rate_event("/api/exchange-rate?from=US&to=CNY")
   let resp = handle_exchange_rate(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -36,7 +36,7 @@ test "exchange rate rejects invalid to code" {
   let server_ref = make_rate_server_ref()
   let event = make_rate_event("/api/exchange-rate?from=USD&to=CN")
   let resp = handle_exchange_rate(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 ///|
@@ -56,14 +56,14 @@ test "exchange rate normalizes currency codes to uppercase" {
 test "parse open.er-api rate extracts rate" {
   let body = "{\"rates\":{\"CNY\":7.25,\"EUR\":0.92}}"
   let result = parse_open_er_rate(body, "USD", "CNY")
-  assert_eq(result, Ok(7.25))
+  @debug.assert_eq(result, Ok(7.25))
 }
 
 ///|
 test "parse frankfurter rate extracts rate" {
   let body = "{\"rates\":{\"CNY\":7.25,\"EUR\":0.92}}"
   let result = parse_frankfurter_rate(body, "USD", "CNY")
-  assert_eq(result, Ok(7.25))
+  @debug.assert_eq(result, Ok(7.25))
 }
 
 ///|
@@ -96,11 +96,11 @@ test "exchange rate returns cached value when available" {
     server_ref,
     make_rate_event("/api/exchange-rate?from=USD&to=CNY"),
   )
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = rate_response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("rate"), Some(7.77.to_json()))
-  assert_eq(obj.get("source"), Some("test-cache".to_json()))
+  @debug.assert_eq(obj.get("rate"), Some(7.77.to_json()))
+  @debug.assert_eq(obj.get("source"), Some("test-cache".to_json()))
   // Reset cache so subsequent tests are not affected.
   exchange_rate_cache.val = None
 }

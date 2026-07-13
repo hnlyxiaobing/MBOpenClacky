@@ -28,7 +28,7 @@ async test "all basic" {
   ])
   let duration = (@async.now() - start).to_int()
   json_inspect(results, content=[1, 2, 3])
-  inspect((duration + 50) / 200, content="2")
+  @debug.debug_inspect((duration + 50) / 200, content="2")
 }
 
 ///|
@@ -170,7 +170,7 @@ async test "any basic" {
   ])
   let duration = (@async.now() - start).to_int()
   json_inspect(result, content=2)
-  inspect((duration + 50) / 200, content="1")
+  @debug.debug_inspect((duration + 50) / 200, content="1")
 }
 
 ///|

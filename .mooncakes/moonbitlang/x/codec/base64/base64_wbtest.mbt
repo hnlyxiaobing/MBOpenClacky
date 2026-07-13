@@ -30,28 +30,28 @@ impl Show for CustomBytes with output(self, logger) {
 
 ///|
 test "base64 encode" {
-  inspect(encode(b"light w"), content="bGlnaHQgdw==")
-  inspect(encode(b"light wo"), content="bGlnaHQgd28=")
-  inspect(encode(b"light wor"), content="bGlnaHQgd29y")
-  inspect(encode(b"light work"), content="bGlnaHQgd29yaw==")
-  inspect(encode(b"light work."), content="bGlnaHQgd29yay4=")
-  inspect(encode(b"a Ā 𐀀 文 🦄"), content="YSDEgCDwkICAIOaWhyDwn6aE")
+  @debug.debug_inspect(encode(b"light w"), content="bGlnaHQgdw==")
+  @debug.debug_inspect(encode(b"light wo"), content="bGlnaHQgd28=")
+  @debug.debug_inspect(encode(b"light wor"), content="bGlnaHQgd29y")
+  @debug.debug_inspect(encode(b"light work"), content="bGlnaHQgd29yaw==")
+  @debug.debug_inspect(encode(b"light work."), content="bGlnaHQgd29yay4=")
+  @debug.debug_inspect(encode(b"a Ā 𐀀 文 🦄"), content="YSDEgCDwkICAIOaWhyDwn6aE")
 }
 
 ///|
 test "base64 decode" {
-  inspect(CustomBytes(decode("bGlnaHQgdw==")), content="light w")
-  inspect(CustomBytes(decode("bGlnaHQgd28=")), content="light wo")
-  inspect(CustomBytes(decode("bGlnaHQgd29y")), content="light wor")
-  inspect(CustomBytes(decode("bGlnaHQgd29yaw==")), content="light work")
-  inspect(CustomBytes(decode("bGlnaHQgd29yay4=")), content="light work.")
-  inspect(
+  @debug.debug_inspect(CustomBytes(decode("bGlnaHQgdw==")), content="light w")
+  @debug.debug_inspect(CustomBytes(decode("bGlnaHQgd28=")), content="light wo")
+  @debug.debug_inspect(CustomBytes(decode("bGlnaHQgd29y")), content="light wor")
+  @debug.debug_inspect(CustomBytes(decode("bGlnaHQgd29yaw==")), content="light work")
+  @debug.debug_inspect(CustomBytes(decode("bGlnaHQgd29yay4=")), content="light work.")
+  @debug.debug_inspect(
     CustomBytes(decode("YSDEgCDwkICAIOaWhyDwn6aE")),
-    content="a \\xc4\\x80 \\xf0\\x90\\x80\\x80 \\xe6\\x96\\x87 \\xf0\\x9f\\xa6\\x84",
+    content="a \\u{c4}\\u{80} \\u{f0}\\u{90}\\u{80}\\u{80} \\u{e6}\\u{96}\\u{87} \\u{f0}\\u{9f}\\u{a6}\\u{84}",
   )
 }
 
 ///|
 test "base64 decode with errors" {
-  inspect(try? decode("中文"), content="Err(InvalidChar('中'))")
+  @debug.debug_inspect(try? decode("中文"), content="Err(InvalidChar('中'))")
 }

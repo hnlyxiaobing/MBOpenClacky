@@ -3,13 +3,13 @@
 ///|
 /// Helper to build a crescent Event for handler tests.
 fn make_event(
-  method : @crescent.HttpMethod,
+  http_method : @crescent.HttpMethod,
   url : String,
   body? : String = "",
 ) -> @crescent.Event {
   {
     req: @crescent.HttpRequest::http_request(
-      method,
+      http_method,
       url,
       {},
       raw_body=@utf8.encode(body),
@@ -39,15 +39,15 @@ test "onboard device start returns device and user codes" {
   let server_ref = make_server_ref()
   let event = make_event(Post, "/api/onboard/device/start")
   let resp = handle_onboard_device_start(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("device_code"))
   assert_true(obj.contains("user_code"))
   assert_true(obj.contains("verification_uri"))
   assert_true(obj.contains("verification_uri_complete"))
-  assert_eq(obj.get("interval"), Some((5).to_json()))
+  @debug.assert_eq(obj.get("interval"), Some((5).to_json()))
 }
 
 // ── Device Poll ───────────────────────────────────────────────────
@@ -57,11 +57,11 @@ test "onboard device poll returns pending for normal code" {
   let server_ref = make_server_ref()
   let event = make_event(Get, "/api/onboard/device/poll?device_code=DEV-123")
   let resp = handle_onboard_device_poll(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
-  assert_eq(obj.get("status"), Some("pending".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("status"), Some("pending".to_json()))
 }
 
 ///|
@@ -72,11 +72,11 @@ test "onboard device poll returns approved for approved prefix" {
     "/api/onboard/device/poll?device_code=DEV-APPROVED-123",
   )
   let resp = handle_onboard_device_poll(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("status"), Some("approved".to_json()))
-  assert_eq(obj.get("default_model"), Some("default".to_json()))
+  @debug.assert_eq(obj.get("status"), Some("approved".to_json()))
+  @debug.assert_eq(obj.get("default_model"), Some("default".to_json()))
 }
 
 ///|
@@ -84,7 +84,7 @@ test "onboard device poll requires device_code" {
   let server_ref = make_server_ref()
   let event = make_event(Get, "/api/onboard/device/poll")
   let resp = handle_onboard_device_poll(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
 }
 
 // ── Complete ──────────────────────────────────────────────────────
@@ -94,10 +94,10 @@ test "onboard complete fails without configured model" {
   let server_ref = make_server_ref()
   let event = make_event(Post, "/api/onboard/complete")
   let resp = handle_onboard_complete(server_ref, event)
-  assert_eq(resp.status_code.to_int(), 500)
+  @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("error"), Some("No model configured".to_json()))
+  @debug.assert_eq(obj.get("error"), Some("No model configured".to_json()))
 }
 
 // ── Skip Soul ─────────────────────────────────────────────────────
@@ -120,10 +120,10 @@ test "onboard skip soul returns ok" {
     Some(v) => @sys.set_env_var("USERPROFILE", v)
     None => @sys.set_env_var("USERPROFILE", "")
   }
-  assert_eq(resp.status_code.to_int(), 200)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard j is Object(obj)
-  assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("path"))
   // Cleanup created config dir.
   @fs.remove_dir("_build/.mbopenclacky") catch {

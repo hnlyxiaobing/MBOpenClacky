@@ -33,7 +33,7 @@ async test "manual cancel" {
     buf <+ "main task exit\n"
   })
   buf.write_string(@debug.to_string(result))
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|cancelled by error Cancelled
@@ -74,7 +74,7 @@ async test "error propagation" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|task 2, tick 1
@@ -145,7 +145,7 @@ async test "multiple scope" {
       }
     }
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|ctx 1 task 2 cancelled with Cancelled
@@ -184,7 +184,7 @@ async test "recursive cancel" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|tick
@@ -217,7 +217,7 @@ async test "spawn directly error" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|after spawn
@@ -244,7 +244,7 @@ async test "error in cancellation" {
       }),
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|causing other error in cancellation handler
@@ -266,7 +266,7 @@ async test "immediately cancelled" {
     log <+ "task spawned\n"
     task.cancel()
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|task spawned

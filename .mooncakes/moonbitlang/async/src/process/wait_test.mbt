@@ -28,7 +28,7 @@ async test "basic wait" {
     let result = @process.run(test_prog, ["750"])
     log.write_string("process completed with \{result}\n")
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|750ms tick
@@ -41,7 +41,7 @@ async test "basic wait" {
 
 ///|
 async test "wait exitcode" {
-  inspect(@process.run(shell, ["-c", "exit 42"]), content="42")
+  @debug.debug_inspect(@process.run(shell, ["-c", "exit 42"]), content="42")
 }
 
 ///|
@@ -58,7 +58,7 @@ async test "wait_pid" {
     let pid = @process.spawn_orphan(test_prog, ["1000", "-exit-code", "42"])
     log.write_string("process terminated with \{@process.wait_pid(pid)}\n")
   }
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|tick

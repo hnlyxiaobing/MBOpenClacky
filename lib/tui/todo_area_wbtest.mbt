@@ -5,9 +5,9 @@
 test "todo_area: new is hidden and empty" {
   let todo = TodoArea::new()
   assert_true(todo.hidden)
-  assert_eq(todo.items.length(), 0)
-  assert_eq(todo.completed_count, 0)
-  assert_eq(todo.total_count, 0)
+  @debug.assert_eq(todo.items.length(), 0)
+  @debug.assert_eq(todo.completed_count, 0)
+  @debug.assert_eq(todo.total_count, 0)
 }
 
 ///|
@@ -21,7 +21,7 @@ test "todo_area: render_lines empty when hidden" {
   )
   todo.hide()
   let lines = todo.render_lines()
-  assert_eq(lines.length(), 0)
+  @debug.assert_eq(lines.length(), 0)
 }
 
 ///|
@@ -29,7 +29,7 @@ test "todo_area: render_lines empty when no items" {
   let todo = TodoArea::new()
   todo.show()
   let lines = todo.render_lines()
-  assert_eq(lines.length(), 0)
+  @debug.assert_eq(lines.length(), 0)
 }
 
 ///|
@@ -46,7 +46,7 @@ test "todo_area: render_lines shows header and items" {
   )
   let lines = todo.render_lines()
   // Header + 2 items
-  assert_eq(lines.length(), 3)
+  @debug.assert_eq(lines.length(), 3)
   assert_true(lines[0].contains("Tasks [1/2]"))
   assert_true(lines[1].contains("○ #1"))
   assert_true(lines[1].contains("Task A"))
@@ -87,7 +87,7 @@ test "todo_area: max_display truncation" {
   todo.update(items, 0, 5)
   let lines = todo.render_lines()
   // Header + 3 items + "... and 2 more"
-  assert_eq(lines.length(), 5)
+  @debug.assert_eq(lines.length(), 5)
   assert_true(lines[4].contains("... and 2 more"))
 }
 
@@ -135,13 +135,13 @@ test "todo_area: update with empty items keeps hidden state" {
   todo.update([], 0, 0)
   // When items is empty, don't change hidden state (it stays shown)
   // But render_lines returns empty because items.length() == 0
-  assert_eq(todo.render_lines().length(), 0)
+  @debug.assert_eq(todo.render_lines().length(), 0)
 }
 
 ///|
 test "todo_area: slash command Todo variant exists" {
   // Verify the Todo variant is in the SlashCommand enum
   let cmd : SlashCommand = Todo
-  let s = cmd.to_string()
+  let s = @debug.to_string(cmd)
   assert_true(s.contains("Todo"))
 }

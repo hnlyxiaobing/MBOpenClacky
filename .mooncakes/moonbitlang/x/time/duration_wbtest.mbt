@@ -14,36 +14,36 @@
 
 ///|
 test "of" {
-  inspect(
+  @debug.debug_inspect(
     Duration::of(hours=1L, minutes=2L, seconds=3L, nanoseconds=456789L),
     content="PT1H2M3.000456789S",
   )
-  inspect(Duration::of(seconds=-1L, nanoseconds=1000L), content="PT-0.999999S")
-  inspect(
+  @debug.debug_inspect(Duration::of(seconds=-1L, nanoseconds=1000L), content="PT-0.999999S")
+  @debug.debug_inspect(
     Duration::of(seconds=-1L, nanoseconds=999_999_999L),
     content="PT-0.000000001S",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::of(hours=-1L, seconds=-10L, nanoseconds=2000000L),
     content="PT-1H-9.998S",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::of(nanoseconds=-20L * nanoseconds_per_second - 2L),
     content="PT-20.000000002S",
   )
-  inspect(Duration::of(nanoseconds=-200L), content="PT-0.0000002S")
+  @debug.debug_inspect(Duration::of(nanoseconds=-200L), content="PT-0.0000002S")
 }
 
 ///|
 test "add_hours" {
-  inspect(Duration::zero().add_hours(0L), content="PT0S")
-  inspect(Duration::zero().add_hours(1L), content="PT1H")
-  inspect(Duration::zero().add_hours(-1L), content="PT-1H")
-  inspect(
+  @debug.debug_inspect(Duration::zero().add_hours(0L), content="PT0S")
+  @debug.debug_inspect(Duration::zero().add_hours(1L), content="PT1H")
+  @debug.debug_inspect(Duration::zero().add_hours(-1L), content="PT-1H")
+  @debug.debug_inspect(
     Duration::zero().add_hours(@int64.MAX_VALUE / seconds_per_hour),
     content="PT2562047788015215H",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_hours(@int64.MIN_VALUE / seconds_per_hour),
     content="PT-2562047788015215H",
   )
@@ -53,14 +53,14 @@ test "add_hours" {
 
 ///|
 test "add_minutes" {
-  inspect(Duration::zero().add_minutes(0L), content="PT0S")
-  inspect(Duration::zero().add_minutes(1L), content="PT1M")
-  inspect(Duration::zero().add_minutes(-1L), content="PT-1M")
-  inspect(
+  @debug.debug_inspect(Duration::zero().add_minutes(0L), content="PT0S")
+  @debug.debug_inspect(Duration::zero().add_minutes(1L), content="PT1M")
+  @debug.debug_inspect(Duration::zero().add_minutes(-1L), content="PT-1M")
+  @debug.debug_inspect(
     Duration::zero().add_minutes(@int64.MAX_VALUE / seconds_per_minute),
     content="PT2562047788015215H30M",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_minutes(@int64.MIN_VALUE / seconds_per_minute),
     content="PT-2562047788015215H-30M",
   )
@@ -70,38 +70,38 @@ test "add_minutes" {
 
 ///|
 test "add_nanoseconds" {
-  inspect(Duration::zero().add_nanoseconds(0L), content="PT0S")
-  inspect(Duration::zero().add_nanoseconds(1L), content="PT0.000000001S")
-  inspect(Duration::zero().add_nanoseconds(-1L), content="PT-0.000000001S")
-  inspect(
+  @debug.debug_inspect(Duration::zero().add_nanoseconds(0L), content="PT0S")
+  @debug.debug_inspect(Duration::zero().add_nanoseconds(1L), content="PT0.000000001S")
+  @debug.debug_inspect(Duration::zero().add_nanoseconds(-1L), content="PT-0.000000001S")
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(nanoseconds_per_second),
     content="PT1S",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(-nanoseconds_per_second),
     content="PT-1S",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(nanoseconds_per_minute),
     content="PT1M",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(-nanoseconds_per_minute),
     content="PT-1M",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(nanoseconds_per_hour),
     content="PT1H",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(-nanoseconds_per_hour),
     content="PT-1H",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(@int64.MAX_VALUE),
     content="PT2562047H47M16.854775807S",
   )
-  inspect(
+  @debug.debug_inspect(
     Duration::zero().add_nanoseconds(@int64.MIN_VALUE),
     content="PT-2562047H-47M-16.854775808S",
   )
@@ -128,10 +128,10 @@ test "op_add" {
     nanoseconds=max_nanosecond.to_int64(),
   )
   let p4 = Duration::of(seconds=@int64.MIN_VALUE)
-  inspect(p1.op_add(Duration::zero()), content="PT1H1M1.000001S")
-  inspect(p1.op_add(p2), content="PT0S")
-  inspect(p1.op_add(p1), content="PT2H2M2.000002S")
-  inspect(p2.op_add(p2), content="PT-2H-2M-2.000002S")
+  @debug.debug_inspect(p1.op_add(Duration::zero()), content="PT1H1M1.000001S")
+  @debug.debug_inspect(p1.op_add(p2), content="PT0S")
+  @debug.debug_inspect(p1.op_add(p1), content="PT2H2M2.000002S")
+  @debug.debug_inspect(p2.op_add(p2), content="PT-2H-2M-2.000002S")
   assert_true((try? p1.op_add(p3)) is Err(_))
   assert_true((try? p2.op_add(p4)) is Err(_))
 }

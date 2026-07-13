@@ -75,7 +75,7 @@ fn build_todo_app() -> @crescent.App {
     { id: 1, title: "Learn MoonBit", done: true },
     { id: 2, title: "Build web app", done: false },
   ]
-  let next_id = Ref::new(3)
+  let next_id = Ref(3)
 
   // List todos
   app.get_raw("/api/todos", _ => @crescent.HttpResponse::ok().json_value(todos))
@@ -120,34 +120,34 @@ fn build_todo_app() -> @crescent.App {
 async test "full-stack: list todos returns json array" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.get("/api/todos")
-  assert_eq(res.status, OK)
-  inspect(
+  @debug.assert_eq(res.status, OK)
+  @debug.debug_inspect(
     res.headers.get("Content-Type"),
     content="Some(\"application/json; charset=utf-8\")",
   )
   let todos : Array[Todo] = res.body_json()
-  assert_eq(todos.length(), 2)
-  assert_eq(todos[0].title, "Learn MoonBit")
-  assert_eq(todos[1].done, false)
+  @debug.assert_eq(todos.length(), 2)
+  @debug.assert_eq(todos[0].title, "Learn MoonBit")
+  @debug.assert_eq(todos[1].done, false)
 }
 
 ///|
 async test "full-stack: get single todo by id" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.get("/api/todos/1")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let todo : Todo = res.body_json()
-  assert_eq(todo, { id: 1, title: "Learn MoonBit", done: true })
+  @debug.assert_eq(todo, { id: 1, title: "Learn MoonBit", done: true })
 }
 
 ///|
 async test "full-stack: get todo with invalid id returns 400" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.get("/api/todos/abc")
-  assert_eq(res.status, BadRequest)
+  @debug.assert_eq(res.status, BadRequest)
   let wrapper : ApiErrorWrapper = res.body_json()
   let err = wrapper.error
-  assert_eq(err.status, 400)
+  @debug.assert_eq(err.status, 400)
   assert_true(err.message.contains("invalid todo id"))
 }
 
@@ -155,10 +155,10 @@ async test "full-stack: get todo with invalid id returns 400" {
 async test "full-stack: get nonexistent todo returns 404" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.get("/api/todos/999")
-  assert_eq(res.status, NotFound)
+  @debug.assert_eq(res.status, NotFound)
   let wrapper : ApiErrorWrapper = res.body_json()
   let err = wrapper.error
-  assert_eq(err.status, 404)
+  @debug.assert_eq(err.status, 404)
   assert_true(err.message.contains("not found"))
 }
 
@@ -168,25 +168,25 @@ async test "full-stack: create todo with json body" {
   let input : CreateTodo = { title: "Write tests" }
   let body = input.to_json().stringify()
   let res = client.post("/api/todos", body=@utf8.encode(body))
-  assert_eq(res.status, Created)
+  @debug.assert_eq(res.status, Created)
   let todo : Todo = res.body_json()
-  assert_eq(todo.title, "Write tests")
-  assert_eq(todo.done, false)
-  assert_eq(todo.id, 3) // auto-incremented
+  @debug.assert_eq(todo.title, "Write tests")
+  @debug.assert_eq(todo.done, false)
+  @debug.assert_eq(todo.id, 3) // auto-incremented
 }
 
 ///|
 async test "full-stack: create todo with invalid json returns 400" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.post("/api/todos", body=b"not json")
-  assert_eq(res.status, BadRequest)
+  @debug.assert_eq(res.status, BadRequest)
 }
 
 ///|
 async test "full-stack: create todo with wrong schema returns 400" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.post("/api/todos", body=b"{\"wrong_field\":123}")
-  assert_eq(res.status, BadRequest)
+  @debug.assert_eq(res.status, BadRequest)
 }
 
 ///|
@@ -203,8 +203,8 @@ async test "full-stack: security headers applied to all responses" {
 async test "full-stack: health check is plain text" {
   let client = @test_client.TestClient(build_todo_app())
   let res = client.get("/health")
-  assert_eq(res.status, OK)
-  assert_eq(res.body_text(), "ok")
+  @debug.assert_eq(res.status, OK)
+  @debug.assert_eq(res.body_text(), "ok")
 }
 
 ///|
@@ -227,7 +227,7 @@ async test "full-stack: json round-trip preserves all fields" {
     raw_body=@utf8.encode(json_text),
   )
   let parsed : UserProfile = req.json()
-  assert_eq(parsed, profile)
+  @debug.assert_eq(parsed, profile)
 }
 
 ///|
@@ -250,10 +250,10 @@ async test "full-stack: nested json with optional fields" {
   }
   let body = @utf8.encode(profile.to_json().stringify())
   let res = client.post("/api/profile", body~)
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let result : UserProfile = res.body_json()
-  assert_eq(result.name, "Bob")
-  assert_eq(result.tags, ["user", "verified"])
+  @debug.assert_eq(result.name, "Bob")
+  @debug.assert_eq(result.tags, ["user", "verified"])
 }
 
 ///|
@@ -273,11 +273,11 @@ async test "full-stack: middleware chain with typed handlers" {
   })
   let client = @test_client.TestClient(app)
   let res = client.get("/api/data")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let todo : Todo = res.body_json()
-  assert_eq(todo.id, 1)
-  assert_eq(log[0], "before: GET /api/data")
-  assert_eq(log[1], "after")
+  @debug.assert_eq(todo.id, 1)
+  @debug.assert_eq(log[0], "before: GET /api/data")
+  @debug.assert_eq(log[1], "after")
 }
 
 ///|
@@ -294,9 +294,9 @@ async test "full-stack: event.json() shorthand parses request body" {
     ({ title: "Test shorthand" } : CreateTodo).to_json().stringify(),
   )
   let res = client.post("/api/todos", body~)
-  assert_eq(res.status, Created)
+  @debug.assert_eq(res.status, Created)
   let todo : Todo = res.body_json()
-  assert_eq(todo.title, "Test shorthand")
+  @debug.assert_eq(todo.title, "Test shorthand")
 }
 
 ///|
@@ -311,12 +311,12 @@ async test "full-stack: require_param_int simplifies typed handlers" {
   let client = @test_client.TestClient(app)
   // Valid ID
   let res = client.get("/api/todos/42")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let todo : Todo = res.body_json()
-  assert_eq(todo.id, 42)
+  @debug.assert_eq(todo.id, 42)
   // Invalid ID returns 400
   let res2 = client.get("/api/todos/abc")
-  assert_eq(res2.status, BadRequest)
+  @debug.assert_eq(res2.status, BadRequest)
 }
 
 ///|
@@ -333,8 +333,8 @@ async test "full-stack: require_param for string params" {
   })
   let client = @test_client.TestClient(app)
   let res = client.get("/api/users/alice/profile")
-  assert_eq(res.status, OK)
+  @debug.assert_eq(res.status, OK)
   let profile : UserProfile = res.body_json()
-  assert_eq(profile.name, "alice")
-  assert_eq(profile.email, "alice@test.com")
+  @debug.assert_eq(profile.name, "alice")
+  @debug.assert_eq(profile.email, "alice@test.com")
 }

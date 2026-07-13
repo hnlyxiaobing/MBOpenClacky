@@ -300,7 +300,7 @@ async fn read_raw_http_response(client : @socket.Tcp) -> (String, String) {
   } else {
     match raw_header_value(headers, "Content-Length") {
       Some(length_text) => {
-        let length = @string.parse_int(length_text) catch { _ => 0 }
+        let length = @strconv.parse_int(length_text) catch { _ => 0 }
         if length == 0 {
           ""
         } else {
@@ -338,7 +338,7 @@ async fn read_chunked_http_body(client : @socket.Tcp) -> String {
       Some(index) => chunk_len_line[:index].to_string()
       None => chunk_len_line
     }
-    let chunk_len = @string.parse_int(
+    let chunk_len = @strconv.parse_int(
       chunk_len_text.trim(chars="\r\n"),
       base=16,
     ) catch {
@@ -381,7 +381,7 @@ async fn read_raw_websocket_close_frame(
   client : @http.Client,
 ) -> (@websocket.CloseCode, String?) {
   let (opcode, payload) = read_raw_websocket_frame(client)
-  assert_eq(opcode, 0x08)
+  @debug.assert_eq(opcode, 0x08)
   if payload is [u16be(code), .. reason] {
     let reason = @utf8.decode(reason) catch {
       _ => fail("websocket close reason was not valid UTF-8")
@@ -526,25 +526,25 @@ async test "serve strips query and reads put bodies" {
     let (response1, body1) = @http.get(
       localhost_url(port, "/hello/moonbit?lang=en"),
     )
-    assert_eq(response1.code, 200)
-    inspect(body1.text(), content="Hello, moonbit!")
-    inspect(
+    @debug.assert_eq(response1.code, 200)
+    @debug.debug_inspect(body1.text(), content="Hello, moonbit!")
+    @debug.debug_inspect(
       response1.headers.get("x-raw-url").unwrap_or(""),
       content="/hello/moonbit?lang=en",
     )
-    inspect(
+    @debug.debug_inspect(
       response1.headers.get("x-path").unwrap_or(""),
       content="/hello/moonbit",
     )
-    inspect(response1.headers.get("x-lang").unwrap_or(""), content="en")
+    @debug.debug_inspect(response1.headers.get("x-lang").unwrap_or(""), content="en")
 
     let (response2, body2) = @http.put(
       localhost_url(port, "/echo/native?kind=test"),
       "payload",
     )
-    assert_eq(response2.code, 200)
-    inspect(body2.text(), content="native:payload")
-    inspect(response2.headers.get("x-kind").unwrap_or(""), content="test")
+    @debug.assert_eq(response2.code, 200)
+    @debug.debug_inspect(body2.text(), content="native:payload")
+    @debug.debug_inspect(response2.headers.get("x-kind").unwrap_or(""), content="test")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -581,9 +581,9 @@ async test "serve preserves middleware onion order" {
   })
   with_test_server(app, port => {
     let (response, body) = @http.get(localhost_url(port, "/"))
-    assert_eq(response.code, 200)
-    inspect(body.text(), content="ok")
-    inspect(log.join(","), content="before-1,before-2,handler,after-2,after-1")
+    @debug.assert_eq(response.code, 200)
+    @debug.debug_inspect(body.text(), content="ok")
+    @debug.debug_inspect(log.join(","), content="before-1,before-2,handler,after-2,after-1")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -592,10 +592,10 @@ async test "serve preserves middleware onion order" {
 
 ///|
 async test "serve keeps invalid websocket opcodes connection-local and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -629,7 +629,7 @@ async test "serve keeps invalid websocket opcodes connection-local and stays hea
           try? ws_client.recv().read_all().binary()
         }) {
         Some(Err(@websocket.ConnectionClosed(ProtocolError, Some(reason)))) =>
-          inspect(reason, content="Invalid OP code 11")
+          @debug.debug_inspect(reason, content="Invalid OP code 11")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected invalid websocket opcode close, got \{code} / \{reason}",
@@ -646,24 +646,24 @@ async test "serve keeps invalid websocket opcodes connection-local and stays hea
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -672,10 +672,10 @@ async test "serve keeps invalid websocket opcodes connection-local and stays hea
 
 ///|
 async test "serve keeps invalid websocket text payloads connection-local and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -705,7 +705,7 @@ async test "serve keeps invalid websocket text payloads connection-local and sta
     match
       @async.with_timeout_opt(200, () => try? client.recv().read_all().binary()) {
       Some(Err(@websocket.ConnectionClosed(InvalidFramePayload, Some(reason)))) =>
-        inspect(reason, content="Text message is not valid UTF8")
+        @debug.debug_inspect(reason, content="Text message is not valid UTF8")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected invalid websocket text payload close, got \{code} / \{reason}",
@@ -721,24 +721,24 @@ async test "serve keeps invalid websocket text payloads connection-local and sta
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -747,10 +747,10 @@ async test "serve keeps invalid websocket text payloads connection-local and sta
 
 ///|
 async test "serve keeps websocket protocol edge failures connection-local and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -787,8 +787,8 @@ async test "serve keeps websocket protocol edge failures connection-local and st
             try? ws_client.recv().read_all().binary()
           }) {
           Some(Err(@websocket.ConnectionClosed(code, Some(reason)))) => {
-            assert_eq(code, expected_code)
-            inspect(reason, content=expected_reason)
+            @debug.assert_eq(code, expected_code)
+            @debug.debug_inspect(reason, content=expected_reason)
           }
           Some(Err(@websocket.ConnectionClosed(code, reason))) =>
             fail(
@@ -822,24 +822,24 @@ async test "serve keeps websocket protocol edge failures connection-local and st
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 3 && closed.val == 3 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -848,10 +848,10 @@ async test "serve keeps websocket protocol edge failures connection-local and st
 
 ///|
 async test "serve keeps websocket sequencing and control-size failures connection-local and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -885,8 +885,8 @@ async test "serve keeps websocket sequencing and control-size failures connectio
       expected_reason : String,
     ) -> Unit {
       let (code, reason) = issue_raw_websocket_close(port, "/ws", frames)
-      assert_eq(code, expected_code)
-      inspect(reason.unwrap_or(""), content=expected_reason)
+      @debug.assert_eq(code, expected_code)
+      @debug.debug_inspect(reason.unwrap_or(""), content=expected_reason)
     }
 
     expect_bad_ws_frames(
@@ -913,24 +913,24 @@ async test "serve keeps websocket sequencing and control-size failures connectio
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 3 && closed.val == 3 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -939,10 +939,10 @@ async test "serve keeps websocket sequencing and control-size failures connectio
 
 ///|
 async test "serve keeps websocket continuation and length-format failures connection-local and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -969,8 +969,8 @@ async test "serve keeps websocket continuation and length-format failures connec
       expected_reason : String,
     ) -> Unit {
       let (code, reason) = issue_raw_websocket_close(port, "/ws", frames)
-      assert_eq(code, expected_code)
-      inspect(reason.unwrap_or(""), content=expected_reason)
+      @debug.assert_eq(code, expected_code)
+      @debug.debug_inspect(reason.unwrap_or(""), content=expected_reason)
     }
 
     expect_bad_ws_frames(
@@ -1004,24 +1004,24 @@ async test "serve keeps websocket continuation and length-format failures connec
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 3 && closed.val == 3 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 4 && closed.val == 4 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1030,10 +1030,10 @@ async test "serve keeps websocket continuation and length-format failures connec
 
 ///|
 async test "serve echoes websocket close reasons and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1057,29 +1057,29 @@ async test "serve echoes websocket close reasons and stays healthy" {
     let (code, reason) = issue_raw_websocket_close(port, "/ws", [
       raw_websocket_close_frame(1000, b"bye"),
     ])
-    assert_eq(code, Normal)
-    inspect(reason.unwrap_or(""), content="bye")
+    @debug.assert_eq(code, Normal)
+    @debug.debug_inspect(reason.unwrap_or(""), content="bye")
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1088,10 +1088,10 @@ async test "serve echoes websocket close reasons and stays healthy" {
 
 ///|
 async test "serve rejects invalid websocket close reasons and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1115,29 +1115,29 @@ async test "serve rejects invalid websocket close reasons and stays healthy" {
     let (code, reason) = issue_raw_websocket_close(port, "/ws", [
       raw_websocket_close_frame(1000, Bytes::from_array([b'\x80'])),
     ])
-    assert_eq(code, InvalidFramePayload)
-    inspect(reason.unwrap_or(""), content="Invalid UTF8 in close reason")
+    @debug.assert_eq(code, InvalidFramePayload)
+    @debug.debug_inspect(reason.unwrap_or(""), content="Invalid UTF8 in close reason")
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1146,10 +1146,10 @@ async test "serve rejects invalid websocket close reasons and stays healthy" {
 
 ///|
 async test "serve auto-replies to websocket ping frames without leaking control messages" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1180,29 +1180,29 @@ async test "serve auto-replies to websocket ping frames without leaking control 
       Bytes::from_array([b'\x89', 0x04, ..ping_payload.to_array()]),
     )
     let (opcode, payload) = read_raw_websocket_frame(http_client)
-    assert_eq(opcode, 0x0a)
-    inspect(
+    @debug.assert_eq(opcode, 0x0a)
+    @debug.debug_inspect(
       @utf8.decode(payload) catch {
         _ => fail("websocket pong payload was not valid UTF-8")
       },
       content="pong",
     )
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     ws_client.send_text("ok")
-    inspect(ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(ws_client.recv().read_all().text(), content="ok")
     ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1211,10 +1211,10 @@ async test "serve auto-replies to websocket ping frames without leaking control 
 
 ///|
 async test "serve ignores unsolicited websocket pong frames without leaking control messages" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1248,22 +1248,22 @@ async test "serve ignores unsolicited websocket pong frames without leaking cont
           "expected no wire response to unsolicited pong, got opcode \{opcode} with \{payload.length()} bytes",
         )
     }
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     ws_client.send_text("ok")
-    inspect(ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(ws_client.recv().read_all().text(), content="ok")
     ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1272,10 +1272,10 @@ async test "serve ignores unsolicited websocket pong frames without leaking cont
 
 ///|
 async test "serve routes fragmented websocket messages while replying to in-flight pings" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1305,8 +1305,8 @@ async test "serve routes fragmented websocket messages while replying to in-flig
     http_client.write(raw_websocket_small_frame(b'\x80', b"b"))
 
     let (pong_opcode, pong_payload) = read_raw_websocket_frame(http_client)
-    assert_eq(pong_opcode, 0x0a)
-    inspect(
+    @debug.assert_eq(pong_opcode, 0x0a)
+    @debug.debug_inspect(
       @utf8.decode(pong_payload) catch {
         _ => fail("websocket pong payload was not valid UTF-8")
       },
@@ -1314,19 +1314,19 @@ async test "serve routes fragmented websocket messages while replying to in-flig
     )
 
     let (text_opcode, text_payload) = read_raw_websocket_frame(http_client)
-    assert_eq(text_opcode, 0x01)
-    inspect(
+    @debug.assert_eq(text_opcode, 0x01)
+    @debug.debug_inspect(
       @utf8.decode(text_payload) catch {
         _ => fail("websocket text payload was not valid UTF-8")
       },
       content="ab",
     )
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
 
     http_client.write(raw_websocket_close_frame(1000, b""))
     let (close_code, close_reason) = read_raw_websocket_close_frame(http_client)
-    assert_eq(close_code, Normal)
-    inspect(close_reason.unwrap_or(""), content="")
+    @debug.assert_eq(close_code, Normal)
+    @debug.debug_inspect(close_reason.unwrap_or(""), content="")
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
@@ -1334,19 +1334,19 @@ async test "serve routes fragmented websocket messages while replying to in-flig
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("ok")
-    inspect(healthy_ws_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="ok")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 2)
+    @debug.assert_eq(messages.val, 2)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1355,10 +1355,10 @@ async test "serve routes fragmented websocket messages while replying to in-flig
 
 ///|
 async test "serve replies to multiple websocket pings in order without leaking control messages" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
-  let messages : Ref[Int] = Ref::new(0)
-  let healthy_hits : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
+  let messages : Ref[Int] = Ref(0)
+  let healthy_hits : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.ws("/ws", event => {
     match event {
@@ -1387,8 +1387,8 @@ async test "serve replies to multiple websocket pings in order without leaking c
     http_client.write(raw_websocket_small_frame(b'\x89', b"p2"))
 
     let (first_opcode, first_payload) = read_raw_websocket_frame(http_client)
-    assert_eq(first_opcode, 0x0a)
-    inspect(
+    @debug.assert_eq(first_opcode, 0x0a)
+    @debug.debug_inspect(
       @utf8.decode(first_payload) catch {
         _ => fail("first websocket pong payload was not valid UTF-8")
       },
@@ -1396,19 +1396,19 @@ async test "serve replies to multiple websocket pings in order without leaking c
     )
 
     let (second_opcode, second_payload) = read_raw_websocket_frame(http_client)
-    assert_eq(second_opcode, 0x0a)
-    inspect(
+    @debug.assert_eq(second_opcode, 0x0a)
+    @debug.debug_inspect(
       @utf8.decode(second_payload) catch {
         _ => fail("second websocket pong payload was not valid UTF-8")
       },
       content="p2",
     )
-    assert_eq(messages.val, 0)
+    @debug.assert_eq(messages.val, 0)
 
     http_client.write(raw_websocket_small_frame(b'\x81', b"ok"))
     let (text_opcode, text_payload) = read_raw_websocket_frame(http_client)
-    assert_eq(text_opcode, 0x01)
-    inspect(
+    @debug.assert_eq(text_opcode, 0x01)
+    @debug.debug_inspect(
       @utf8.decode(text_payload) catch {
         _ => fail("websocket text payload was not valid UTF-8")
       },
@@ -1417,29 +1417,29 @@ async test "serve replies to multiple websocket pings in order without leaking c
 
     http_client.write(raw_websocket_close_frame(1000, b""))
     let (close_code, close_reason) = read_raw_websocket_close_frame(http_client)
-    assert_eq(close_code, Normal)
-    inspect(close_reason.unwrap_or(""), content="")
+    @debug.assert_eq(close_code, Normal)
+    @debug.debug_inspect(close_reason.unwrap_or(""), content="")
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 1)
+    @debug.assert_eq(messages.val, 1)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
-    assert_eq(healthy_hits.val, 1)
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_hits.val, 1)
 
     let healthy_ws_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer healthy_ws_client.close()
     healthy_ws_client.send_text("fresh")
-    inspect(healthy_ws_client.recv().read_all().text(), content="fresh")
+    @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="fresh")
     healthy_ws_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 2 && closed.val == 2 else { raise ServerNotReady }
     })
-    assert_eq(messages.val, 2)
+    @debug.assert_eq(messages.val, 2)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1450,7 +1450,7 @@ async test "serve replies to multiple websocket pings in order without leaking c
 async test "serve_on enforces max_connections" {
   let app = @crescent.App()
   let gate = @async.Queue::new(kind=Unbounded)
-  let started : Ref[Int] = Ref::new(0)
+  let started : Ref[Int] = Ref(0)
   app.get("/serial", _ => {
     started.val += 1
     ignore(try? gate.get())
@@ -1482,13 +1482,13 @@ async test "serve_on enforces max_connections" {
           "expected second request to remain blocked while max_connections=1",
         )
     }
-    assert_eq(started.val, 1)
+    @debug.assert_eq(started.val, 1)
 
     gate.put(())
     match first.wait() {
       Ok((first_response, first_body)) => {
-        assert_eq(first_response.code, 200)
-        inspect(first_body.text(), content="ok")
+        @debug.assert_eq(first_response.code, 200)
+        @debug.debug_inspect(first_body.text(), content="ok")
       }
       Err(err) => fail("first limited request failed: \{err}")
     }
@@ -1507,8 +1507,8 @@ async test "serve_on enforces max_connections" {
     gate.put(())
     match second.wait() {
       Ok((second_response, second_body)) => {
-        assert_eq(second_response.code, 200)
-        inspect(second_body.text(), content="ok")
+        @debug.assert_eq(second_response.code, 200)
+        @debug.debug_inspect(second_body.text(), content="ok")
       }
       Err(err) => fail("second limited request failed: \{err}")
     }
@@ -1551,7 +1551,7 @@ async test "serve rejects non-positive max_connections" {
 ///|
 async test "serve_on enforces max_request_body_bytes for fixed-length bodies" {
   let app = @crescent.App()
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   app.post("/body", event => {
     handled.val += 1
     event.req.raw_body
@@ -1571,28 +1571,28 @@ async test "serve_on enforces max_request_body_bytes for fixed-length bodies" {
       "moon",
       headers={ "Connection": "close" },
     )
-    assert_eq(ok_response.code, 200)
-    inspect(ok_body.text(), content="moon")
-    assert_eq(handled.val, 1)
+    @debug.assert_eq(ok_response.code, 200)
+    @debug.debug_inspect(ok_body.text(), content="moon")
+    @debug.assert_eq(handled.val, 1)
 
     let (rejected_response, rejected_body) = @http.post(
       localhost_url(port, "/body"),
       "moonbit",
       headers={ "Connection": "close" },
     )
-    assert_eq(rejected_response.code, 413)
-    assert_eq(rejected_response.headers.get("connection"), Some("close"))
-    inspect(
+    @debug.assert_eq(rejected_response.code, 413)
+    @debug.assert_eq(rejected_response.headers.get("connection"), Some("close"))
+    @debug.debug_inspect(
       rejected_body.text().trim(chars="\r\n"),
       content="Request Entity Too Large",
     )
-    assert_eq(handled.val, 1)
+    @debug.assert_eq(handled.val, 1)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1602,7 +1602,7 @@ async test "serve_on enforces max_request_body_bytes for fixed-length bodies" {
 ///|
 async test "serve_on treats max_request_body_bytes=0 as empty-body only" {
   let app = @crescent.App()
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   app.post("/body", event => {
     handled.val += 1
     event.req.raw_body.length().to_string()
@@ -1622,49 +1622,49 @@ async test "serve_on treats max_request_body_bytes=0 as empty-body only" {
       "",
       headers={ "Connection": "close" },
     )
-    assert_eq(empty_response.code, 200)
-    inspect(empty_body.text(), content="0")
-    assert_eq(handled.val, 1)
+    @debug.assert_eq(empty_response.code, 200)
+    @debug.debug_inspect(empty_body.text(), content="0")
+    @debug.assert_eq(handled.val, 1)
 
     let (empty_chunked_headers, empty_chunked_body) = issue_raw_request_response(
       port, "POST /body HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n0\r\n\r\n",
     )
-    inspect(
+    @debug.debug_inspect(
       empty_chunked_headers.has_prefix("HTTP/1.1 200 OK").to_string(),
       content="true",
     )
-    inspect(empty_chunked_body.trim(chars="\r\n"), content="0")
-    assert_eq(handled.val, 2)
+    @debug.debug_inspect(empty_chunked_body.trim(chars="\r\n"), content="0")
+    @debug.assert_eq(handled.val, 2)
 
     let (fixed_response, fixed_body) = @http.post(
       localhost_url(port, "/body"),
       "x",
       headers={ "Connection": "close" },
     )
-    assert_eq(fixed_response.code, 413)
-    inspect(
+    @debug.assert_eq(fixed_response.code, 413)
+    @debug.debug_inspect(
       fixed_body.text().trim(chars="\r\n"),
       content="Request Entity Too Large",
     )
-    assert_eq(handled.val, 2)
+    @debug.assert_eq(handled.val, 2)
 
     let (chunked_headers, chunked_body) = issue_raw_request_response(
       port, "POST /body HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n1\r\nx\r\n0\r\n\r\n",
     )
-    inspect(
+    @debug.debug_inspect(
       chunked_headers
       .has_prefix("HTTP/1.1 413 RequestEntityTooLarge")
       .to_string(),
       content="true",
     )
-    inspect(chunked_body.trim(chars="\r\n"), content="Request Entity Too Large")
-    assert_eq(handled.val, 2)
+    @debug.debug_inspect(chunked_body.trim(chars="\r\n"), content="Request Entity Too Large")
+    @debug.assert_eq(handled.val, 2)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1674,7 +1674,7 @@ async test "serve_on treats max_request_body_bytes=0 as empty-body only" {
 ///|
 async test "serve_on enforces max_request_body_bytes for chunked bodies" {
   let app = @crescent.App()
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   app.post("/body", event => {
     handled.val += 1
     event.req.raw_body
@@ -1692,26 +1692,26 @@ async test "serve_on enforces max_request_body_bytes for chunked bodies" {
     let (headers, body) = issue_raw_request_response(
       port, "POST /body HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n3\r\nmoo\r\n4\r\nnbit\r\n0\r\n\r\n",
     )
-    inspect(
+    @debug.debug_inspect(
       headers.has_prefix("HTTP/1.1 413 RequestEntityTooLarge").to_string(),
       content="true",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Connection").unwrap_or(""),
       content="close",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Transfer-Encoding").unwrap_or("").to_lower(),
       content="chunked",
     )
-    inspect(body.trim(chars="\r\n"), content="Request Entity Too Large")
-    assert_eq(handled.val, 0)
+    @debug.debug_inspect(body.trim(chars="\r\n"), content="Request Entity Too Large")
+    @debug.assert_eq(handled.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -1721,7 +1721,7 @@ async test "serve_on enforces max_request_body_bytes for chunked bodies" {
 ///|
 async test "serve_on accepts exact-limit chunked bodies across multiple reads" {
   let app = @crescent.App()
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   app.post("/body", event => {
     handled.val += 1
     event.req.raw_body.length().to_string()
@@ -1745,15 +1745,15 @@ async test "serve_on accepts exact-limit chunked bodies across multiple reads" {
       port,
       "POST /body HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n400\r\n\{chunk1}\r\n400\r\n\{chunk2}\r\n0\r\n\r\n",
     )
-    inspect(headers.has_prefix("HTTP/1.1 200 OK").to_string(), content="true")
-    inspect(body.trim(chars="\r\n"), content="2048")
-    assert_eq(handled.val, 1)
+    @debug.debug_inspect(headers.has_prefix("HTTP/1.1 200 OK").to_string(), content="true")
+    @debug.debug_inspect(body.trim(chars="\r\n"), content="2048")
+    @debug.assert_eq(handled.val, 1)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2103,7 +2103,7 @@ async test "serve_until rejects negative websocket_max_message_bytes" {
 ///|
 async test "serve_on times out slow request bodies" {
   let app = @crescent.App()
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   app.post("/body", event => {
     handled.val += 1
     event.req.raw_body
@@ -2131,26 +2131,26 @@ async test "serve_on times out slow request bodies" {
     )
     @async.sleep(150)
     let (headers, body) = read_raw_http_response(client)
-    inspect(
+    @debug.debug_inspect(
       headers.has_prefix("HTTP/1.1 408 RequestTimeout").to_string(),
       content="true",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Connection").unwrap_or(""),
       content="close",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Transfer-Encoding").unwrap_or("").to_lower(),
       content="chunked",
     )
-    inspect(body.trim(chars="\r\n"), content="Request Timeout")
-    assert_eq(handled.val, 0)
+    @debug.debug_inspect(body.trim(chars="\r\n"), content="Request Timeout")
+    @debug.assert_eq(handled.val, 0)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2191,19 +2191,19 @@ async test "serve_on preserves head content-length for oversized requests" {
     let headers = issue_raw_request_headers(
       port, "HEAD /body HTTP/1.1\r\nHost: localhost\r\nContent-Length: 7\r\nConnection: close\r\n\r\nmoonbit",
     )
-    inspect(
+    @debug.debug_inspect(
       headers.has_prefix("HTTP/1.1 413 RequestEntityTooLarge").to_string(),
       content="true",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Connection").unwrap_or(""),
       content="close",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Content-Length").unwrap_or(""),
       content="24",
     )
-    inspect(
+    @debug.debug_inspect(
       raw_header_value(headers, "Transfer-Encoding").unwrap_or(""),
       content="",
     )
@@ -2211,8 +2211,8 @@ async test "serve_on preserves head content-length for oversized requests" {
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2238,28 +2238,28 @@ async test "serve matches middleware base paths by segment boundary" {
     let (api_root_response, api_root_body) = @http.get(
       localhost_url(port, "/api?role=admin"),
     )
-    assert_eq(api_root_response.code, 200)
-    inspect(api_root_body.text(), content="api-root")
+    @debug.assert_eq(api_root_response.code, 200)
+    @debug.debug_inspect(api_root_body.text(), content="api-root")
 
     let (api_root_slash_response, api_root_slash_body) = @http.get(
       localhost_url(port, "/api/?role=admin"),
     )
-    assert_eq(api_root_slash_response.code, 200)
-    inspect(api_root_slash_body.text(), content="api-root-slash")
+    @debug.assert_eq(api_root_slash_response.code, 200)
+    @debug.debug_inspect(api_root_slash_body.text(), content="api-root-slash")
 
     let (api_response, api_body) = @http.get(
       localhost_url(port, "/api/users?role=admin"),
     )
-    assert_eq(api_response.code, 200)
-    inspect(api_body.text(), content="api")
+    @debug.assert_eq(api_response.code, 200)
+    @debug.debug_inspect(api_body.text(), content="api")
 
     let (apiary_response, apiary_body) = @http.get(
       localhost_url(port, "/apiary?role=admin"),
     )
-    assert_eq(apiary_response.code, 200)
-    inspect(apiary_body.text(), content="apiary")
+    @debug.assert_eq(apiary_response.code, 200)
+    @debug.debug_inspect(apiary_body.text(), content="apiary")
 
-    inspect(log.join(","), content="/api,/api/,/api/users")
+    @debug.debug_inspect(log.join(","), content="/api,/api/,/api/users")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2280,8 +2280,8 @@ async test "serve_on_until stops on shutdown signal" {
     wait_until_ready(port)
 
     let (response, body) = @http.get(localhost_url(port, "/__app_ready"))
-    assert_eq(response.code, 200)
-    inspect(body.text(), content="ready")
+    @debug.assert_eq(response.code, 200)
+    @debug.debug_inspect(body.text(), content="ready")
 
     shutdown.put(())
 
@@ -2388,8 +2388,8 @@ async test "serve_until binds by port and stops on shutdown signal" {
         None => {
           wait_until_ready(port)
           let (response, body) = @http.get(localhost_url(port, "/__app_ready"))
-          assert_eq(response.code, 200)
-          inspect(body.text(), content="ready")
+          @debug.assert_eq(response.code, 200)
+          @debug.debug_inspect(body.text(), content="ready")
           shutdown.put(())
           match @async.with_timeout_opt(200, () => task.wait()) {
             Some(result) =>
@@ -2424,36 +2424,36 @@ async test "serve mounts static assets by prefix" {
   app.static_assets("/assets", TestStaticProvider::{  })
   with_test_server(app, port => {
     let (response1, body1) = @http.get(localhost_url(port, "/assets/hello.txt"))
-    assert_eq(response1.code, 200)
-    assert_eq(
+    @debug.assert_eq(response1.code, 200)
+    @debug.assert_eq(
       response1.headers.get("content-type"),
       Some("text/plain; charset=utf-8"),
     )
-    inspect(body1.text(), content="hi")
+    @debug.debug_inspect(body1.text(), content="hi")
 
     let (response2, body2) = @http.get(localhost_url(port, "/assets"))
-    assert_eq(response2.code, 200)
-    inspect(body2.text(), content="index")
+    @debug.assert_eq(response2.code, 200)
+    @debug.debug_inspect(body2.text(), content="index")
 
     let (response3, body3) = @http.get(
       localhost_url(port, "/assets/hello.txt?v=1"),
     )
-    assert_eq(response3.code, 200)
-    inspect(body3.text(), content="hi")
+    @debug.assert_eq(response3.code, 200)
+    @debug.debug_inspect(body3.text(), content="hi")
 
     let (response4, body4) = @http.get(localhost_url(port, "/assets?v=1"))
-    assert_eq(response4.code, 200)
-    inspect(body4.text(), content="index")
+    @debug.assert_eq(response4.code, 200)
+    @debug.debug_inspect(body4.text(), content="index")
 
     let (response5, body5) = @http.get(localhost_url(port, "/assets/?v=1"))
-    assert_eq(response5.code, 200)
-    inspect(body5.text(), content="index")
+    @debug.assert_eq(response5.code, 200)
+    @debug.debug_inspect(body5.text(), content="index")
 
     let (response6, _body6) = @http.post(
       localhost_url(port, "/assets/hello.txt"),
       "",
     )
-    assert_eq(response6.code, 405)
+    @debug.assert_eq(response6.code, 405)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2474,20 +2474,20 @@ async test "serve serves static assets from the root mount" {
     })
 
     let (index_response, index_body) = @http.get(localhost_url(port, "/"))
-    assert_eq(index_response.code, 200)
-    inspect(index_body.text(), content="index")
+    @debug.assert_eq(index_response.code, 200)
+    @debug.debug_inspect(index_body.text(), content="index")
 
     let (file_response, file_body) = @http.get(
       localhost_url(port, "/hello.txt"),
     )
-    assert_eq(file_response.code, 200)
-    inspect(file_body.text(), content="hi")
+    @debug.assert_eq(file_response.code, 200)
+    @debug.debug_inspect(file_body.text(), content="hi")
 
     let (missing_response, missing_body) = @http.get(
       localhost_url(port, "/missing.txt"),
     )
-    assert_eq(missing_response.code, 404)
-    inspect(missing_body.text().trim(chars="\r\n"), content="Not Found")
+    @debug.assert_eq(missing_response.code, 404)
+    @debug.debug_inspect(missing_body.text().trim(chars="\r\n"), content="Not Found")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2500,26 +2500,26 @@ async test "serve normalizes trailing-slash static mounts" {
   app.static_assets("/assets/", TestStaticProvider::{  })
   with_test_server(app, port => {
     let (index_response, index_body) = @http.get(localhost_url(port, "/assets"))
-    assert_eq(index_response.code, 200)
-    inspect(index_body.text(), content="index")
+    @debug.assert_eq(index_response.code, 200)
+    @debug.debug_inspect(index_body.text(), content="index")
 
     let (slash_response, slash_body) = @http.get(
       localhost_url(port, "/assets/"),
     )
-    assert_eq(slash_response.code, 200)
-    inspect(slash_body.text(), content="index")
+    @debug.assert_eq(slash_response.code, 200)
+    @debug.debug_inspect(slash_body.text(), content="index")
 
     let (file_response, file_body) = @http.get(
       localhost_url(port, "/assets/hello.txt"),
     )
-    assert_eq(file_response.code, 200)
-    inspect(file_body.text(), content="hi")
+    @debug.assert_eq(file_response.code, 200)
+    @debug.debug_inspect(file_body.text(), content="hi")
 
     let (missing_response, missing_body) = @http.get(
       localhost_url(port, "/assetsx"),
     )
-    assert_eq(missing_response.code, 404)
-    inspect(missing_body.text().trim(chars="\r\n"), content="Not Found")
+    @debug.assert_eq(missing_response.code, 404)
+    @debug.debug_inspect(missing_body.text().trim(chars="\r\n"), content="Not Found")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2537,9 +2537,9 @@ async test "serve preserves content-encoding for encoded static assets" {
       "/assets/hello.txt",
       headers={ "Accept-Encoding": "gzip" },
     )
-    assert_eq(get_response.code, 200)
-    assert_eq(get_response.headers.get("content-encoding"), Some("gzip"))
-    assert_eq(get_body, b"encoded")
+    @debug.assert_eq(get_response.code, 200)
+    @debug.assert_eq(get_response.headers.get("content-encoding"), Some("gzip"))
+    @debug.assert_eq(get_body, b"encoded")
 
     let (head_response, head_body) = issue_request(
       port,
@@ -2547,14 +2547,14 @@ async test "serve preserves content-encoding for encoded static assets" {
       "/assets/hello.txt",
       headers={ "Accept-Encoding": "gzip" },
     )
-    assert_eq(head_response.code, 200)
+    @debug.assert_eq(head_response.code, 200)
     guard head_response.headers
       is { "content-encoding": "gzip", "content-length": "7", .. } else {
       fail(
         "expected HEAD response to preserve content-encoding and content-length",
       )
     }
-    assert_eq(head_body, b"")
+    @debug.assert_eq(head_body, b"")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2572,9 +2572,9 @@ async test "serve preserves vary and last-modified on conditional static respons
       "/assets/hello.txt",
       headers={ "Accept-Encoding": "gzip" },
     )
-    assert_eq(get_response.code, 200)
-    assert_eq(get_body, b"encoded")
-    assert_eq(get_response.headers.get("vary"), Some("Accept-Encoding"))
+    @debug.assert_eq(get_response.code, 200)
+    @debug.assert_eq(get_body, b"encoded")
+    @debug.assert_eq(get_response.headers.get("vary"), Some("Accept-Encoding"))
     let etag = get_response.headers.get("etag").unwrap_or("")
     let last_modified = get_response.headers.get("last-modified").unwrap_or("")
     guard etag != "" else {
@@ -2590,11 +2590,11 @@ async test "serve preserves vary and last-modified on conditional static respons
       "/assets/hello.txt",
       headers={ "Accept-Encoding": "gzip", "If-None-Match": etag },
     )
-    assert_eq(etag_response.code, 304)
-    assert_eq(etag_body, b"")
-    assert_eq(etag_response.headers.get("vary"), Some("Accept-Encoding"))
-    assert_eq(etag_response.headers.get("etag"), Some(etag))
-    assert_eq(etag_response.headers.get("last-modified"), Some(last_modified))
+    @debug.assert_eq(etag_response.code, 304)
+    @debug.assert_eq(etag_body, b"")
+    @debug.assert_eq(etag_response.headers.get("vary"), Some("Accept-Encoding"))
+    @debug.assert_eq(etag_response.headers.get("etag"), Some(etag))
+    @debug.assert_eq(etag_response.headers.get("last-modified"), Some(last_modified))
 
     let (ims_response, ims_body) = issue_request(
       port,
@@ -2602,11 +2602,11 @@ async test "serve preserves vary and last-modified on conditional static respons
       "/assets/hello.txt",
       headers={ "Accept-Encoding": "gzip", "If-Modified-Since": last_modified },
     )
-    assert_eq(ims_response.code, 304)
-    assert_eq(ims_body, b"")
-    assert_eq(ims_response.headers.get("vary"), Some("Accept-Encoding"))
-    assert_eq(ims_response.headers.get("etag"), Some(etag))
-    assert_eq(ims_response.headers.get("last-modified"), Some(last_modified))
+    @debug.assert_eq(ims_response.code, 304)
+    @debug.assert_eq(ims_body, b"")
+    @debug.assert_eq(ims_response.headers.get("vary"), Some("Accept-Encoding"))
+    @debug.assert_eq(ims_response.headers.get("etag"), Some(etag))
+    @debug.assert_eq(ims_response.headers.get("last-modified"), Some(last_modified))
 
     let (precedence_response, precedence_body) = issue_request(
       port,
@@ -2618,9 +2618,9 @@ async test "serve preserves vary and last-modified on conditional static respons
         "If-Modified-Since": last_modified,
       },
     )
-    assert_eq(precedence_response.code, 200)
-    assert_eq(precedence_body, b"encoded")
-    assert_eq(precedence_response.headers.get("vary"), Some("Accept-Encoding"))
+    @debug.assert_eq(precedence_response.code, 200)
+    @debug.assert_eq(precedence_body, b"encoded")
+    @debug.assert_eq(precedence_response.headers.get("vary"), Some("Accept-Encoding"))
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2636,9 +2636,9 @@ async test "serve writes cookie headers" {
   })
   with_test_server(app, port => {
     let (response, body) = @http.get(localhost_url(port, "/cookie"))
-    assert_eq(response.code, 200)
-    inspect(body.text(), content="ok")
-    inspect(
+    @debug.assert_eq(response.code, 200)
+    @debug.debug_inspect(body.text(), content="ok")
+    @debug.debug_inspect(
       response.headers.get("set-cookie").unwrap_or(""),
       content="session=abc; Path=/; HttpOnly",
     )
@@ -2666,21 +2666,21 @@ async test "serve preserves explicit content-type headers without duplicates" {
       port, "GET /custom HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
     )
     assert_true(custom_headers.has_prefix("HTTP/1.1 200 "))
-    assert_eq(
+    @debug.assert_eq(
       raw_header_value(custom_headers, "content-type"),
       Some("application/custom"),
     )
-    assert_eq(raw_header_count(custom_headers, "content-type"), 1)
+    @debug.assert_eq(raw_header_count(custom_headers, "content-type"), 1)
 
     let override_headers = issue_raw_request_headers(
       port, "GET /override HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
     )
     assert_true(override_headers.has_prefix("HTTP/1.1 200 "))
-    assert_eq(
+    @debug.assert_eq(
       raw_header_value(override_headers, "content-type"),
       Some("application/json"),
     )
-    assert_eq(raw_header_count(override_headers, "content-type"), 1)
+    @debug.assert_eq(raw_header_count(override_headers, "content-type"), 1)
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2708,10 +2708,10 @@ async test "serve handles head fallback, method not allowed, and options" {
   })
   with_test_server(app, port => {
     let (head_response, head_body) = issue_request(port, Head, "/resource")
-    assert_eq(head_response.code, 200)
-    assert_eq(head_body, b"")
-    inspect(head_response.headers.get("x-reply").unwrap_or(""), content="get")
-    inspect(
+    @debug.assert_eq(head_response.code, 200)
+    @debug.assert_eq(head_body, b"")
+    @debug.debug_inspect(head_response.headers.get("x-reply").unwrap_or(""), content="get")
+    @debug.debug_inspect(
       head_response.headers.get("content-length").unwrap_or(""),
       content="7",
     )
@@ -2721,13 +2721,13 @@ async test "serve handles head fallback, method not allowed, and options" {
       Head,
       "/override",
     )
-    assert_eq(override_response.code, 200)
-    assert_eq(override_body, b"")
-    inspect(
+    @debug.assert_eq(override_response.code, 200)
+    @debug.assert_eq(override_body, b"")
+    @debug.debug_inspect(
       override_response.headers.get("x-reply").unwrap_or(""),
       content="head",
     )
-    inspect(
+    @debug.debug_inspect(
       override_response.headers.get("content-length").unwrap_or(""),
       content="8",
     )
@@ -2737,22 +2737,22 @@ async test "serve handles head fallback, method not allowed, and options" {
       Head,
       "/empty",
     )
-    assert_eq(empty_head_response.code, 200)
-    assert_eq(empty_head_body, b"")
-    inspect(
+    @debug.assert_eq(empty_head_response.code, 200)
+    @debug.assert_eq(empty_head_body, b"")
+    @debug.debug_inspect(
       empty_head_response.headers.get("content-length").unwrap_or(""),
       content="0",
     )
 
     let (method_response, method_body) = issue_request(port, Put, "/resource")
-    assert_eq(method_response.code, 405)
-    inspect(
+    @debug.assert_eq(method_response.code, 405)
+    @debug.debug_inspect(
       @utf8.decode(method_body) catch {
         _ => ""
       },
       content="Method Not Allowed",
     )
-    inspect(
+    @debug.debug_inspect(
       method_response.headers.get("allow").unwrap_or(""),
       content="GET, HEAD, POST",
     )
@@ -2762,9 +2762,9 @@ async test "serve handles head fallback, method not allowed, and options" {
       Options,
       "/resource",
     )
-    assert_eq(options_response.code, 204)
-    assert_eq(options_body, b"")
-    inspect(
+    @debug.assert_eq(options_response.code, 204)
+    @debug.assert_eq(options_body, b"")
+    @debug.debug_inspect(
       options_response.headers.get("allow").unwrap_or(""),
       content="GET, HEAD, POST, OPTIONS",
     )
@@ -2774,8 +2774,8 @@ async test "serve handles head fallback, method not allowed, and options" {
       Delete,
       "/missing",
     )
-    assert_eq(missing_response.code, 404)
-    inspect(@utf8.decode(missing_body) catch { _ => "" }, content="Not Found")
+    @debug.assert_eq(missing_response.code, 404)
+    @debug.debug_inspect(@utf8.decode(missing_body) catch { _ => "" }, content="Not Found")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2791,16 +2791,16 @@ async test "serve binds by port and dispatches trace and connect routes" {
   })
   with_port_bound_test_server(app, port => {
     let (trace_response, trace_body) = issue_request(port, Trace, "/trace")
-    assert_eq(trace_response.code, 200)
-    inspect(@utf8.decode(trace_body) catch { _ => "" }, content="trace")
+    @debug.assert_eq(trace_response.code, 200)
+    @debug.debug_inspect(@utf8.decode(trace_body) catch { _ => "" }, content="trace")
 
     let (connect_response, connect_body) = issue_request(
       port,
       Connect,
       "/connect",
     )
-    assert_eq(connect_response.code, 200)
-    inspect(@utf8.decode(connect_body) catch { _ => "" }, content="connect")
+    @debug.assert_eq(connect_response.code, 200)
+    @debug.debug_inspect(@utf8.decode(connect_body) catch { _ => "" }, content="connect")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -2816,28 +2816,28 @@ async test "serve does not overmatch non-terminal double wildcards" {
     let (meta_response, meta_body) = @http.get(
       localhost_url(port, "/files/a/b/meta"),
     )
-    assert_eq(meta_response.code, 200)
-    inspect(meta_body.text(), content="meta")
+    @debug.assert_eq(meta_response.code, 200)
+    @debug.debug_inspect(meta_body.text(), content="meta")
 
     let (missing_get_response, missing_get_body) = @http.get(
       localhost_url(port, "/files/a/b/raw"),
     )
-    assert_eq(missing_get_response.code, 404)
-    inspect(missing_get_body.text(), content="Not Found")
+    @debug.assert_eq(missing_get_response.code, 404)
+    @debug.debug_inspect(missing_get_body.text(), content="Not Found")
 
     let (short_get_response, short_get_body) = @http.get(
       localhost_url(port, "/files"),
     )
-    assert_eq(short_get_response.code, 404)
-    inspect(short_get_body.text(), content="Not Found")
+    @debug.assert_eq(short_get_response.code, 404)
+    @debug.debug_inspect(short_get_body.text(), content="Not Found")
 
     let (missing_put_response, missing_put_body) = issue_request(
       port,
       Put,
       "/files/a/b/raw",
     )
-    assert_eq(missing_put_response.code, 404)
-    inspect(
+    @debug.assert_eq(missing_put_response.code, 404)
+    @debug.debug_inspect(
       @utf8.decode(missing_put_body) catch {
         _ => ""
       },
@@ -2849,8 +2849,8 @@ async test "serve does not overmatch non-terminal double wildcards" {
       Options,
       "/files/a/b/raw",
     )
-    assert_eq(missing_options_response.code, 404)
-    inspect(
+    @debug.assert_eq(missing_options_response.code, 404)
+    @debug.debug_inspect(
       @utf8.decode(missing_options_body) catch {
         _ => ""
       },
@@ -2862,8 +2862,8 @@ async test "serve does not overmatch non-terminal double wildcards" {
       Options,
       "/files",
     )
-    assert_eq(short_options_response.code, 404)
-    inspect(
+    @debug.assert_eq(short_options_response.code, 404)
+    @debug.debug_inspect(
       @utf8.decode(short_options_body) catch {
         _ => ""
       },
@@ -2896,13 +2896,13 @@ async test "serve handles websocket text and binary messages" {
 
     client.send_text("moonbit")
     let text_reply = client.recv()
-    inspect(text_reply.kind, content="Text")
-    inspect(text_reply.read_all().text(), content="echo:moonbit")
+    @debug.debug_inspect(text_reply.kind, content="Text")
+    @debug.debug_inspect(text_reply.read_all().text(), content="echo:moonbit")
 
     client.send_binary(b"bytes")
     let binary_reply = client.recv()
-    inspect(binary_reply.kind, content="Binary")
-    inspect(binary_reply.read_all().text(), content="bytes")
+    @debug.debug_inspect(binary_reply.kind, content="Binary")
+    @debug.debug_inspect(binary_reply.read_all().text(), content="bytes")
 
     client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
@@ -2939,9 +2939,9 @@ async test "serve drops oldest buffered websocket messages on overflow when conf
       let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
       defer client.close()
 
-      inspect(client.recv().read_all().text(), content="two")
-      inspect(client.recv().read_all().text(), content="three")
-      inspect(
+      @debug.debug_inspect(client.recv().read_all().text(), content="two")
+      @debug.debug_inspect(client.recv().read_all().text(), content="three")
+      @debug.debug_inspect(
         @async.with_timeout_opt(100, () => client.recv().read_all().text()),
         content="None",
       )
@@ -2974,9 +2974,9 @@ async test "serve drops oldest buffered websocket messages by default" {
       let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
       defer client.close()
 
-      inspect(client.recv().read_all().text(), content="two")
-      inspect(client.recv().read_all().text(), content="three")
-      inspect(
+      @debug.debug_inspect(client.recv().read_all().text(), content="two")
+      @debug.debug_inspect(client.recv().read_all().text(), content="three")
+      @debug.debug_inspect(
         @async.with_timeout_opt(100, () => client.recv().read_all().text()),
         content="None",
       )
@@ -3012,9 +3012,9 @@ async test "serve drops latest buffered websocket messages on overflow when conf
       let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
       defer client.close()
 
-      inspect(client.recv().read_all().text(), content="one")
-      inspect(client.recv().read_all().text(), content="two")
-      inspect(
+      @debug.debug_inspect(client.recv().read_all().text(), content="one")
+      @debug.debug_inspect(client.recv().read_all().text(), content="two")
+      @debug.debug_inspect(
         @async.with_timeout_opt(100, () => client.recv().read_all().text()),
         content="None",
       )
@@ -3048,12 +3048,12 @@ async test "serve closes websocket clients after read timeout between messages" 
       defer client.close()
 
       client.send_text("ping")
-      inspect(client.recv().read_all().text(), content="echo:ping")
+      @debug.debug_inspect(client.recv().read_all().text(), content="echo:ping")
 
       match
         @async.with_timeout_opt(250, () => try? client.recv().read_all().text()) {
         Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-          inspect(reason, content="websocket read timeout")
+          @debug.debug_inspect(reason, content="websocket read timeout")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected websocket read timeout close code, got \{code} / \{reason}",
@@ -3074,8 +3074,8 @@ async test "serve closes websocket clients after read timeout between messages" 
       let (healthy_response, healthy_body) = @http.get(
         localhost_url(port, "/healthy"),
       )
-      assert_eq(healthy_response.code, 200)
-      inspect(healthy_body.text(), content="ok")
+      @debug.assert_eq(healthy_response.code, 200)
+      @debug.debug_inspect(healthy_body.text(), content="ok")
     },
   ) catch {
     SocketBindUnavailable => return
@@ -3112,7 +3112,7 @@ async test "serve closes oversized websocket text messages and stays healthy" {
           try? oversized_client.recv().read_all().text()
         }) {
         Some(Err(@websocket.ConnectionClosed(MessageTooBig, Some(reason)))) =>
-          inspect(reason, content="websocket message too big")
+          @debug.debug_inspect(reason, content="websocket message too big")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected oversized websocket text close code, got \{code} / \{reason}",
@@ -3137,14 +3137,14 @@ async test "serve closes oversized websocket text messages and stays healthy" {
       defer healthy_client.close()
 
       healthy_client.send_text("1234")
-      inspect(healthy_client.recv().read_all().text(), content="echo:1234")
+      @debug.debug_inspect(healthy_client.recv().read_all().text(), content="echo:1234")
       healthy_client.send_close()
 
       let (healthy_response, healthy_body) = @http.get(
         localhost_url(port, "/healthy"),
       )
-      assert_eq(healthy_response.code, 200)
-      inspect(healthy_body.text(), content="ok")
+      @debug.assert_eq(healthy_response.code, 200)
+      @debug.debug_inspect(healthy_body.text(), content="ok")
     },
   ) catch {
     SocketBindUnavailable => return
@@ -3180,7 +3180,7 @@ async test "serve closes oversized websocket binary messages" {
           try? client.recv().read_all().binary()
         }) {
         Some(Err(@websocket.ConnectionClosed(MessageTooBig, Some(reason)))) =>
-          inspect(reason, content="websocket message too big")
+          @debug.debug_inspect(reason, content="websocket message too big")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected oversized websocket binary close code, got \{code} / \{reason}",
@@ -3236,10 +3236,10 @@ async test "serve treats websocket_max_message_bytes=0 as empty-message only" {
       defer empty_client.close()
 
       empty_client.send_text("")
-      inspect(empty_client.recv().read_all().text(), content="text:0")
+      @debug.debug_inspect(empty_client.recv().read_all().text(), content="text:0")
 
       empty_client.send_binary(b"")
-      inspect(empty_client.recv().read_all().text(), content="binary:0")
+      @debug.debug_inspect(empty_client.recv().read_all().text(), content="binary:0")
       empty_client.send_close()
 
       let oversized_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
@@ -3251,7 +3251,7 @@ async test "serve treats websocket_max_message_bytes=0 as empty-message only" {
           try? oversized_client.recv().read_all().text()
         }) {
         Some(Err(@websocket.ConnectionClosed(MessageTooBig, Some(reason)))) =>
-          inspect(reason, content="websocket message too big")
+          @debug.debug_inspect(reason, content="websocket message too big")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected zero-limit websocket close code, got \{code} / \{reason}",
@@ -3274,7 +3274,7 @@ async test "serve treats websocket_max_message_bytes=0 as empty-message only" {
           try? oversized_binary_client.recv().read_all().text()
         }) {
         Some(Err(@websocket.ConnectionClosed(MessageTooBig, Some(reason)))) =>
-          inspect(reason, content="websocket message too big")
+          @debug.debug_inspect(reason, content="websocket message too big")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected zero-limit websocket binary close code, got \{code} / \{reason}",
@@ -3295,7 +3295,7 @@ async test "serve treats websocket_max_message_bytes=0 as empty-message only" {
       defer healthy_ws_client.close()
 
       healthy_ws_client.send_text("")
-      inspect(healthy_ws_client.recv().read_all().text(), content="text:0")
+      @debug.debug_inspect(healthy_ws_client.recv().read_all().text(), content="text:0")
       healthy_ws_client.send_close()
 
       @async.retry(FixedDelay(20), max_retry=50, () => {
@@ -3315,8 +3315,8 @@ async test "serve treats websocket_max_message_bytes=0 as empty-message only" {
       let (healthy_response, healthy_body) = @http.get(
         localhost_url(port, "/healthy"),
       )
-      assert_eq(healthy_response.code, 200)
-      inspect(healthy_body.text(), content="ok")
+      @debug.assert_eq(healthy_response.code, 200)
+      @debug.debug_inspect(healthy_body.text(), content="ok")
     },
   ) catch {
     SocketBindUnavailable => return
@@ -3352,7 +3352,7 @@ async test "serve enforces websocket_max_message_bytes across multiple reads" {
           try? oversized_client.recv().read_all().text()
         }) {
         Some(Err(@websocket.ConnectionClosed(MessageTooBig, Some(reason)))) =>
-          inspect(reason, content="websocket message too big")
+          @debug.debug_inspect(reason, content="websocket message too big")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected multi-read websocket limit close code, got \{code} / \{reason}",
@@ -3377,7 +3377,7 @@ async test "serve enforces websocket_max_message_bytes across multiple reads" {
       defer exact_limit_client.close()
 
       exact_limit_client.send_text(repeated_ascii_text("a", 1536))
-      inspect(exact_limit_client.recv().read_all().text(), content="1536")
+      @debug.debug_inspect(exact_limit_client.recv().read_all().text(), content="1536")
       exact_limit_client.send_close()
     },
   ) catch {
@@ -3388,7 +3388,7 @@ async test "serve enforces websocket_max_message_bytes across multiple reads" {
 
 ///|
 async test "serve rejects websocket upgrades for http-only routes" {
-  let handled : Ref[Int] = Ref::new(0)
+  let handled : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.get("/ws", _ => {
     handled.val += 1
@@ -3400,20 +3400,20 @@ async test "serve rejects websocket upgrades for http-only routes" {
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
     )
     assert_true(upgrade_headers.has_prefix("HTTP/1.1 404 "))
-    assert_eq(
+    @debug.assert_eq(
       raw_header_value(upgrade_headers, "content-type"),
       Some("text/plain; charset=utf-8"),
     )
-    assert_eq(raw_header_value(upgrade_headers, "connection"), Some("close"))
-    inspect(upgrade_body, content="Not Found")
-    assert_eq(handled.val, 0)
+    @debug.assert_eq(raw_header_value(upgrade_headers, "connection"), Some("close"))
+    @debug.debug_inspect(upgrade_body, content="Not Found")
+    @debug.assert_eq(handled.val, 0)
 
     let (tabbed_upgrade_headers, tabbed_upgrade_body) = issue_raw_request_response(
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive,\tUpgrade\t\r\nUpgrade: \tWebSocket\t\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
     )
     assert_true(tabbed_upgrade_headers.has_prefix("HTTP/1.1 404 "))
-    inspect(tabbed_upgrade_body, content="Not Found")
-    assert_eq(handled.val, 0)
+    @debug.debug_inspect(tabbed_upgrade_body, content="Not Found")
+    @debug.assert_eq(handled.val, 0)
 
     let (header_only_response, header_only_body) = issue_request(
       port,
@@ -3421,25 +3421,25 @@ async test "serve rejects websocket upgrades for http-only routes" {
       "/ws",
       headers={ "Upgrade": "websocket" },
     )
-    assert_eq(header_only_response.code, 200)
-    inspect(
+    @debug.assert_eq(header_only_response.code, 200)
+    @debug.debug_inspect(
       @utf8.decode(header_only_body) catch {
         _ => ""
       },
       content="http route",
     )
-    assert_eq(handled.val, 1)
+    @debug.assert_eq(handled.val, 1)
 
     let (http_response, http_body) = @http.get(localhost_url(port, "/ws"))
-    assert_eq(http_response.code, 200)
-    inspect(http_body.text(), content="http route")
-    assert_eq(handled.val, 2)
+    @debug.assert_eq(http_response.code, 200)
+    @debug.debug_inspect(http_body.text(), content="http route")
+    @debug.assert_eq(handled.val, 2)
 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -3475,8 +3475,8 @@ async test "serve accepts padded websocket handshake headers on matched routes" 
 
 ///|
 async test "serve rejects invalid websocket handshakes on matched routes and stays healthy" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.get("/healthy", _ => "ok")
   app.ws("/ws", event => {
@@ -3493,14 +3493,14 @@ async test "serve rejects invalid websocket handshakes on matched routes and sta
     )
     assert_true(invalid_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(invalid_body.contains("Sec-WebSocket-Key"))
-    assert_eq(opened.val, 0)
-    assert_eq(closed.val, 0)
+    @debug.assert_eq(opened.val, 0)
+    @debug.assert_eq(closed.val, 0)
 
     let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer client.close()
 
     client.send_text("ok")
-    inspect(client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(client.recv().read_all().text(), content="ok")
     client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
@@ -3509,8 +3509,8 @@ async test "serve rejects invalid websocket handshakes on matched routes and sta
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -3519,8 +3519,8 @@ async test "serve rejects invalid websocket handshakes on matched routes and sta
 
 ///|
 async test "serve rejects unsupported websocket versions and non-get upgrades" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.get("/healthy", _ => "ok")
   app.ws("/ws", event => {
@@ -3537,22 +3537,22 @@ async test "serve rejects unsupported websocket versions and non-get upgrades" {
     )
     assert_true(version_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(version_body.contains("version"))
-    assert_eq(opened.val, 0)
-    assert_eq(closed.val, 0)
+    @debug.assert_eq(opened.val, 0)
+    @debug.assert_eq(closed.val, 0)
 
     let (method_headers, method_body) = issue_raw_request_response(
       port, "POST /ws HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nContent-Length: 4\r\n\r\ndata",
     )
     assert_true(method_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(method_body.contains("must be GET"))
-    assert_eq(opened.val, 0)
-    assert_eq(closed.val, 0)
+    @debug.assert_eq(opened.val, 0)
+    @debug.assert_eq(closed.val, 0)
 
     let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer client.close()
 
     client.send_text("ok")
-    inspect(client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(client.recv().read_all().text(), content="ok")
     client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
@@ -3561,8 +3561,8 @@ async test "serve rejects unsupported websocket versions and non-get upgrades" {
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -3571,8 +3571,8 @@ async test "serve rejects unsupported websocket versions and non-get upgrades" {
 
 ///|
 async test "serve closes the connection after rejected websocket upgrades" {
-  let opened : Ref[Int] = Ref::new(0)
-  let closed : Ref[Int] = Ref::new(0)
+  let opened : Ref[Int] = Ref(0)
+  let closed : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.get("/healthy", _ => "ok")
   app.ws("/ws", event => {
@@ -3597,17 +3597,17 @@ async test "serve closes the connection after rejected websocket upgrades" {
     let (rejected_headers, rejected_body) = read_raw_http_response(client)
     assert_true(rejected_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(rejected_body.contains("must be GET"))
-    assert_eq(opened.val, 0)
-    assert_eq(closed.val, 0)
+    @debug.assert_eq(opened.val, 0)
+    @debug.assert_eq(closed.val, 0)
 
     let followup_headers = client.read_until("\r\n\r\n").unwrap_or("")
-    assert_eq(followup_headers, "")
+    @debug.assert_eq(followup_headers, "")
 
     let fresh_client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer fresh_client.close()
 
     fresh_client.send_text("ok")
-    inspect(fresh_client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(fresh_client.recv().read_all().text(), content="ok")
     fresh_client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard opened.val == 1 && closed.val == 1 else { raise ServerNotReady }
@@ -3616,8 +3616,8 @@ async test "serve closes the connection after rejected websocket upgrades" {
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -3626,9 +3626,9 @@ async test "serve closes the connection after rejected websocket upgrades" {
 
 ///|
 async test "serve rejects malformed websocket-like requests on websocket routes without stealing plain http" {
-  let http_hits : Ref[Int] = Ref::new(0)
-  let ws_opened : Ref[Int] = Ref::new(0)
-  let ws_closed : Ref[Int] = Ref::new(0)
+  let http_hits : Ref[Int] = Ref(0)
+  let ws_opened : Ref[Int] = Ref(0)
+  let ws_closed : Ref[Int] = Ref(0)
   let app = @crescent.App()
   app.get("/ws", _ => {
     http_hits.val += 1
@@ -3645,52 +3645,52 @@ async test "serve rejects malformed websocket-like requests on websocket routes 
   })
   with_test_server(app, port => {
     let (plain_response, plain_body) = @http.get(localhost_url(port, "/ws"))
-    assert_eq(plain_response.code, 200)
-    inspect(plain_body.text(), content="http route")
-    assert_eq(http_hits.val, 1)
-    assert_eq(ws_opened.val, 0)
-    assert_eq(ws_closed.val, 0)
+    @debug.assert_eq(plain_response.code, 200)
+    @debug.debug_inspect(plain_body.text(), content="http route")
+    @debug.assert_eq(http_hits.val, 1)
+    @debug.assert_eq(ws_opened.val, 0)
+    @debug.assert_eq(ws_closed.val, 0)
 
     let (other_upgrade_headers, other_upgrade_body) = issue_raw_request_response(
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n",
     )
     assert_true(other_upgrade_headers.has_prefix("HTTP/1.1 200 "))
-    inspect(other_upgrade_body, content="http route")
-    assert_eq(http_hits.val, 2)
-    assert_eq(ws_opened.val, 0)
-    assert_eq(ws_closed.val, 0)
+    @debug.debug_inspect(other_upgrade_body, content="http route")
+    @debug.assert_eq(http_hits.val, 2)
+    @debug.assert_eq(ws_opened.val, 0)
+    @debug.assert_eq(ws_closed.val, 0)
 
     let (upgrade_only_headers, upgrade_only_body) = issue_raw_request_response(
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nConnection: close\r\n\r\n",
     )
     assert_true(upgrade_only_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(upgrade_only_body.contains("Connection"))
-    assert_eq(http_hits.val, 2)
-    assert_eq(ws_opened.val, 0)
-    assert_eq(ws_closed.val, 0)
+    @debug.assert_eq(http_hits.val, 2)
+    @debug.assert_eq(ws_opened.val, 0)
+    @debug.assert_eq(ws_closed.val, 0)
 
     let (connection_only_headers, connection_only_body) = issue_raw_request_response(
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
     )
     assert_true(connection_only_headers.has_prefix("HTTP/1.1 400 "))
     assert_true(connection_only_body.contains("Upgrade"))
-    assert_eq(http_hits.val, 2)
-    assert_eq(ws_opened.val, 0)
-    assert_eq(ws_closed.val, 0)
+    @debug.assert_eq(http_hits.val, 2)
+    @debug.assert_eq(ws_opened.val, 0)
+    @debug.assert_eq(ws_closed.val, 0)
 
     let (accept_only_headers, _) = issue_raw_request_response(
       port, "GET /ws HTTP/1.1\r\nHost: localhost\r\nSec-WebSocket-Accept: bogus\r\nConnection: close\r\n\r\n",
     )
     assert_true(accept_only_headers.has_prefix("HTTP/1.1 400 "))
-    assert_eq(http_hits.val, 2)
-    assert_eq(ws_opened.val, 0)
-    assert_eq(ws_closed.val, 0)
+    @debug.assert_eq(http_hits.val, 2)
+    @debug.assert_eq(ws_opened.val, 0)
+    @debug.assert_eq(ws_closed.val, 0)
 
     let client = @websocket.connect("ws://127.0.0.1:\{port}/ws")
     defer client.close()
 
     client.send_text("ok")
-    inspect(client.recv().read_all().text(), content="ok")
+    @debug.debug_inspect(client.recv().read_all().text(), content="ok")
     client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard ws_opened.val == 1 && ws_closed.val == 1 else {
@@ -3701,8 +3701,8 @@ async test "serve rejects malformed websocket-like requests on websocket routes 
     let (healthy_response, healthy_body) = @http.get(
       localhost_url(port, "/healthy"),
     )
-    assert_eq(healthy_response.code, 200)
-    inspect(healthy_body.text(), content="ok")
+    @debug.assert_eq(healthy_response.code, 200)
+    @debug.debug_inspect(healthy_body.text(), content="ok")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -3726,28 +3726,28 @@ async test "serve honors mixed-case static and websocket upgrade headers" {
       port, "GET /assets/hello.txt HTTP/1.1\r\nHost: localhost\r\nAcCePt-EnCoDiNg: gzip\r\nConnection: close\r\n\r\n",
     )
     assert_true(encoded_headers.has_prefix("HTTP/1.1 200 "))
-    assert_eq(
+    @debug.assert_eq(
       raw_header_value(encoded_headers, "content-encoding"),
       Some("gzip"),
     )
     let last_modified = raw_header_value(encoded_headers, "last-modified").unwrap_or(
       "",
     )
-    assert_eq(raw_header_value(encoded_headers, "etag"), Some("\"encoded-v1\""))
+    @debug.assert_eq(raw_header_value(encoded_headers, "etag"), Some("\"encoded-v1\""))
     assert_true(last_modified != "")
 
     let etag_headers = issue_raw_request_headers(
       port, "GET /assets/hello.txt HTTP/1.1\r\nHost: localhost\r\nAcCePt-EnCoDiNg: gzip\r\nIf-NoNe-MaTcH: \"encoded-v1\"\r\nConnection: close\r\n\r\n",
     )
     assert_true(etag_headers.has_prefix("HTTP/1.1 304 "))
-    assert_eq(raw_header_value(etag_headers, "etag"), Some("\"encoded-v1\""))
+    @debug.assert_eq(raw_header_value(etag_headers, "etag"), Some("\"encoded-v1\""))
 
     let ims_headers = issue_raw_request_headers(
       port,
       "GET /assets/hello.txt HTTP/1.1\r\nHost: localhost\r\nAcCePt-EnCoDiNg: gzip\r\nIf-MoDiFiEd-SiNcE: \{last_modified}\r\nConnection: close\r\n\r\n",
     )
     assert_true(ims_headers.has_prefix("HTTP/1.1 304 "))
-    assert_eq(
+    @debug.assert_eq(
       raw_header_value(ims_headers, "last-modified"),
       Some(last_modified),
     )
@@ -3784,8 +3784,8 @@ async test "serve matches grouped and dynamic websocket routes" {
 
     client.send_text("joined")
     let reply = client.recv()
-    inspect(reply.kind, content="Text")
-    inspect(reply.read_all().text(), content="group:joined")
+    @debug.debug_inspect(reply.kind, content="Text")
+    @debug.debug_inspect(reply.read_all().text(), content="group:joined")
     client.send_close()
   }) catch {
     SocketBindUnavailable => return
@@ -3811,13 +3811,13 @@ async test "serve keeps websocket subscriptions across events" {
     defer client2.close()
 
     client1.send_text("publish")
-    inspect(client1.recv().read_all().text(), content="fanout")
-    inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client1.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
 
     client1.send_text("leave")
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client1.recv().read_all().text()),
       content="None",
     )
@@ -3848,17 +3848,17 @@ async test "serve lets close handlers publish to remaining websocket subscribers
     defer client2.close()
 
     client1.send_text("publish")
-    inspect(client1.recv().read_all().text(), content="fanout")
-    inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client1.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
 
     client1.send_close()
     match @async.with_timeout_opt(300, () => client2.recv().read_all().text()) {
-      Some(message) => inspect(message, content="left")
+      Some(message) => @debug.debug_inspect(message, content="left")
       None => fail("timed out waiting for close handler fanout")
     }
 
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
     client2.send_close()
   }) catch {
     SocketBindUnavailable => return
@@ -3891,15 +3891,15 @@ async test "serve isolates websocket channels per app" {
     defer client2.close()
 
     client1.send_text("publish")
-    inspect(client1.recv().read_all().text(), content="alpha")
-    inspect(
+    @debug.debug_inspect(client1.recv().read_all().text(), content="alpha")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="beta")
-    inspect(
+    @debug.debug_inspect(client2.recv().read_all().text(), content="beta")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client1.recv().read_all().text()),
       content="None",
     )
@@ -3929,15 +3929,15 @@ async test "serve isolates websocket channels per server invocation when reusing
     defer client2.close()
 
     client1.send_text("publish")
-    inspect(client1.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client1.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client1.recv().read_all().text()),
       content="None",
     )
@@ -3972,24 +3972,24 @@ async test "serve isolates close-handler websocket fanout per reused app server"
     client1a.send_close()
     match
       @async.with_timeout_opt(300, () => client1b.recv().read_all().text()) {
-      Some(message) => inspect(message, content="left")
+      Some(message) => @debug.debug_inspect(message, content="left")
       None => fail("timed out waiting for same-server close handler fanout")
     }
-    inspect(
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     client1b.send_text("publish")
-    inspect(client1b.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client1b.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client1b.recv().read_all().text()),
       content="None",
     )
@@ -4029,21 +4029,21 @@ async test "serve keeps other reused-app servers alive when one server is cancel
     defer client2.close()
 
     client1.send_text("publish")
-    inspect(client1.recv().read_all().text(), content="fanout")
-    inspect(
+    @debug.debug_inspect(client1.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     task1.cancel()
-    assert_eq(
+    @debug.assert_eq(
       @async.with_timeout_opt(200, () => ignore(try? task1.wait())),
       Some(()),
     )
     match
       @async.with_timeout_opt(300, () => try? client1.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected cancelled server websocket client to observe going-away close, got \{code} / \{reason}",
@@ -4061,7 +4061,7 @@ async test "serve keeps other reused-app servers alive when one server is cancel
     }
 
     client2.send_text("publish")
-    inspect(client2.recv().read_all().text(), content="fanout")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="fanout")
   }) catch {
     SocketBindUnavailable => return
     err => raise err
@@ -4089,13 +4089,13 @@ async test "serve_on_until sends going-away close to websocket clients on shutdo
     defer client.close()
 
     client.send_text("ping")
-    inspect(client.recv().read_all().text(), content="ping")
+    @debug.debug_inspect(client.recv().read_all().text(), content="ping")
 
     shutdown.put(())
     match
       @async.with_timeout_opt(300, () => try? client.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected websocket shutdown signal to send going-away close, got \{code} / \{reason}",
@@ -4152,16 +4152,16 @@ async test "serve_on_until broadcasts going-away close when the shutdown queue i
     defer client2.close()
 
     client1.send_text("left")
-    inspect(client1.recv().read_all().text(), content="left")
+    @debug.debug_inspect(client1.recv().read_all().text(), content="left")
     client2.send_text("right")
-    inspect(client2.recv().read_all().text(), content="right")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="right")
 
     shutdown.close()
 
     match
       @async.with_timeout_opt(300, () => try? client1.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected first websocket client to observe going-away close after queue close, got \{code} / \{reason}",
@@ -4180,7 +4180,7 @@ async test "serve_on_until broadcasts going-away close when the shutdown queue i
     match
       @async.with_timeout_opt(300, () => try? client2.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected second websocket client to observe going-away close after queue close, got \{code} / \{reason}",
@@ -4253,21 +4253,21 @@ async test "serve_on_until queue close stops remaining reused websocket servers 
     defer client2.close()
 
     client1.send_text("before-cancel")
-    inspect(client1.recv().read_all().text(), content="before-cancel")
-    inspect(
+    @debug.debug_inspect(client1.recv().read_all().text(), content="before-cancel")
+    @debug.debug_inspect(
       @async.with_timeout_opt(100, () => client2.recv().read_all().text()),
       content="None",
     )
 
     task1.cancel()
-    assert_eq(
+    @debug.assert_eq(
       @async.with_timeout_opt(200, () => ignore(try? task1.wait())),
       Some(()),
     )
     match
       @async.with_timeout_opt(300, () => try? client1.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected cancelled reused websocket client to observe going-away close, got \{code} / \{reason}",
@@ -4285,13 +4285,13 @@ async test "serve_on_until queue close stops remaining reused websocket servers 
     }
 
     client2.send_text("after-cancel")
-    inspect(client2.recv().read_all().text(), content="after-cancel")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="after-cancel")
 
     shutdown.close()
     match
       @async.with_timeout_opt(300, () => try? client2.recv().read_all().text()) {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
       Some(Err(@websocket.ConnectionClosed(code, reason))) =>
         fail(
           "expected surviving reused websocket client to observe going-away close after queue close, got \{code} / \{reason}",
@@ -4355,9 +4355,9 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
     defer client2.close()
 
     client1.send_text("before-signal-1")
-    inspect(client1.recv().read_all().text(), content="before-signal-1")
+    @debug.debug_inspect(client1.recv().read_all().text(), content="before-signal-1")
     client2.send_text("before-signal-2")
-    inspect(client2.recv().read_all().text(), content="before-signal-2")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="before-signal-2")
 
     shutdown.put(())
     let client1_after = @async.with_timeout_opt(300, () => {
@@ -4369,7 +4369,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
 
     match client1_after {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) => {
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
         match client2_after {
           None => ()
           Some(Err(@websocket.ConnectionClosed(code, why))) =>
@@ -4404,7 +4404,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
           None => ()
         }
         client2.send_text("after-signal")
-        inspect(client2.recv().read_all().text(), content="after-signal")
+        @debug.debug_inspect(client2.recv().read_all().text(), content="after-signal")
         try shutdown.try_put(()) catch {
           err =>
             fail(
@@ -4423,7 +4423,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
             try? client2.recv().read_all().text()
           }) {
           Some(Err(@websocket.ConnectionClosed(GoingAway, Some(second_reason)))) =>
-            inspect(second_reason, content="websocket server shutdown")
+            @debug.debug_inspect(second_reason, content="websocket server shutdown")
           Some(Err(@websocket.ConnectionClosed(code, reason))) =>
             fail(
               "expected surviving reused websocket client to observe going-away close after second shutdown signal, got \{code} / \{reason}",
@@ -4468,7 +4468,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
       None =>
         match client2_after {
           Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) => {
-            inspect(reason, content="websocket server shutdown")
+            @debug.debug_inspect(reason, content="websocket server shutdown")
             match @async.with_timeout_opt(300, () => try? task2.wait()) {
               Some(Ok(_)) => ()
               Some(Err(err)) =>
@@ -4488,7 +4488,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
               None => ()
             }
             client1.send_text("after-signal")
-            inspect(client1.recv().read_all().text(), content="after-signal")
+            @debug.debug_inspect(client1.recv().read_all().text(), content="after-signal")
             try shutdown.try_put(()) catch {
               err =>
                 fail(
@@ -4508,7 +4508,7 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
               }) {
               Some(
                 Err(@websocket.ConnectionClosed(GoingAway, Some(second_reason)))
-              ) => inspect(second_reason, content="websocket server shutdown")
+              ) => @debug.debug_inspect(second_reason, content="websocket server shutdown")
               Some(Err(@websocket.ConnectionClosed(code, reason))) =>
                 fail(
                   "expected surviving reused websocket client to observe going-away close after second shutdown signal, got \{code} / \{reason}",
@@ -4590,9 +4590,9 @@ async test "serve_on_until queue close stops surviving reused websocket server a
     defer client2.close()
 
     client1.send_text("before-signal-1")
-    inspect(client1.recv().read_all().text(), content="before-signal-1")
+    @debug.debug_inspect(client1.recv().read_all().text(), content="before-signal-1")
     client2.send_text("before-signal-2")
-    inspect(client2.recv().read_all().text(), content="before-signal-2")
+    @debug.debug_inspect(client2.recv().read_all().text(), content="before-signal-2")
 
     shutdown.put(())
     let client1_after = @async.with_timeout_opt(300, () => {
@@ -4604,7 +4604,7 @@ async test "serve_on_until queue close stops surviving reused websocket server a
 
     match client1_after {
       Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) => {
-        inspect(reason, content="websocket server shutdown")
+        @debug.debug_inspect(reason, content="websocket server shutdown")
         match client2_after {
           None => ()
           Some(Err(@websocket.ConnectionClosed(code, why))) =>
@@ -4639,14 +4639,14 @@ async test "serve_on_until queue close stops surviving reused websocket server a
           None => ()
         }
         client2.send_text("after-signal")
-        inspect(client2.recv().read_all().text(), content="after-signal")
+        @debug.debug_inspect(client2.recv().read_all().text(), content="after-signal")
         shutdown.close()
         match
           @async.with_timeout_opt(300, () => {
             try? client2.recv().read_all().text()
           }) {
           Some(Err(@websocket.ConnectionClosed(GoingAway, Some(close_reason)))) =>
-            inspect(close_reason, content="websocket server shutdown")
+            @debug.debug_inspect(close_reason, content="websocket server shutdown")
           Some(Err(@websocket.ConnectionClosed(code, reason))) =>
             fail(
               "expected surviving reused websocket client to observe going-away close after queue close, got \{code} / \{reason}",
@@ -4691,7 +4691,7 @@ async test "serve_on_until queue close stops surviving reused websocket server a
       None =>
         match client2_after {
           Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) => {
-            inspect(reason, content="websocket server shutdown")
+            @debug.debug_inspect(reason, content="websocket server shutdown")
             match @async.with_timeout_opt(300, () => try? task2.wait()) {
               Some(Ok(_)) => ()
               Some(Err(err)) =>
@@ -4711,7 +4711,7 @@ async test "serve_on_until queue close stops surviving reused websocket server a
               None => ()
             }
             client1.send_text("after-signal")
-            inspect(client1.recv().read_all().text(), content="after-signal")
+            @debug.debug_inspect(client1.recv().read_all().text(), content="after-signal")
             shutdown.close()
             match
               @async.with_timeout_opt(300, () => {
@@ -4719,7 +4719,7 @@ async test "serve_on_until queue close stops surviving reused websocket server a
               }) {
               Some(
                 Err(@websocket.ConnectionClosed(GoingAway, Some(close_reason)))
-              ) => inspect(close_reason, content="websocket server shutdown")
+              ) => @debug.debug_inspect(close_reason, content="websocket server shutdown")
               Some(Err(@websocket.ConnectionClosed(code, reason))) =>
                 fail(
                   "expected surviving reused websocket client to observe going-away close after queue close, got \{code} / \{reason}",
@@ -4821,7 +4821,7 @@ async test "serve_on_until queue close broadcasts to remaining reused websocket 
                 "expected exactly one reused websocket client to stop after shutdown signal, but client \{stopped_index + 1} and client \{i + 1} both closed",
               )
             }
-            inspect(reason, content="websocket server shutdown")
+            @debug.debug_inspect(reason, content="websocket server shutdown")
             stopped_index = i
           }
           Some(Err(@websocket.ConnectionClosed(code, reason))) =>
@@ -4853,7 +4853,7 @@ async test "serve_on_until queue close broadcasts to remaining reused websocket 
     ) -> Unit raise {
       match outcome {
         Some(Err(@websocket.ConnectionClosed(GoingAway, Some(reason)))) =>
-          inspect(reason, content="websocket server shutdown")
+          @debug.debug_inspect(reason, content="websocket server shutdown")
         Some(Err(@websocket.ConnectionClosed(code, reason))) =>
           fail(
             "expected client \{client_index + 1} to observe going-away close during \{phase}, got \{code} / \{reason}",
@@ -4876,7 +4876,7 @@ async test "serve_on_until queue close broadcasts to remaining reused websocket 
     for i = 0; i < clients.length(); i = i + 1 {
       let text = "before-signal-\{i + 1}"
       clients[i].send_text(text)
-      inspect(clients[i].recv().read_all().text(), content=text)
+      @debug.debug_inspect(clients[i].recv().read_all().text(), content=text)
     }
 
     shutdown.put(())
@@ -4920,7 +4920,7 @@ async test "serve_on_until queue close broadcasts to remaining reused websocket 
     for surviving_index in surviving_indexes {
       let text = "after-signal-\{surviving_index + 1}"
       clients[surviving_index].send_text(text)
-      inspect(clients[surviving_index].recv().read_all().text(), content=text)
+      @debug.debug_inspect(clients[surviving_index].recv().read_all().text(), content=text)
     }
 
     for surviving_index in surviving_indexes {

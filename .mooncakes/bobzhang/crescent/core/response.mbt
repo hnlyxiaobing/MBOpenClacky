@@ -156,7 +156,7 @@ test "read_response_body" {
   let res = HttpResponse::http_response(status_code=OK, raw_body=b"{\"Hello\":\"Response\"}")
   let text : String = res.read_body()
   let json : Json = res.read_body()
-  inspect(
+  @debug.debug_inspect(
     text,
     content=(
       #|{"Hello":"Response"}

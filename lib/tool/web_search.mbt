@@ -82,7 +82,7 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
           "HTTP error \{response.status_code} searching for: \{query}",
         )
       }
-    Err(err) => ToolResult::error("Failed to search: \{err}")
+    Err(err) => ToolResult::error("Failed to search: \{err.to_repr()}")
   }
 }
 
@@ -115,7 +115,7 @@ impl Tool for WebSearch with fn to_function_definition(self) -> FunctionDefiniti
 
 ///|
 /// A single search result.
-struct SearchResult {
+priv struct SearchResult {
   title : String
   url : String
   snippet : String

@@ -21,77 +21,77 @@ test "is_valid_utf8_content: cjk is valid" {
 
 ///|
 test "estimate_utf8_byte_length: empty is zero" {
-  assert_eq(estimate_utf8_byte_length(""), 0)
+  @debug.assert_eq(estimate_utf8_byte_length(""), 0)
 }
 
 ///|
 test "estimate_utf8_byte_length: ascii is one byte each" {
-  assert_eq(estimate_utf8_byte_length("abc"), 3)
+  @debug.assert_eq(estimate_utf8_byte_length("abc"), 3)
 }
 
 ///|
 test "estimate_utf8_byte_length: latin1 char is two bytes" {
-  assert_eq(estimate_utf8_byte_length("é"), 2)
+  @debug.assert_eq(estimate_utf8_byte_length("é"), 2)
 }
 
 ///|
 test "estimate_utf8_byte_length: bmp char is three bytes" {
-  assert_eq(estimate_utf8_byte_length("中"), 3)
+  @debug.assert_eq(estimate_utf8_byte_length("中"), 3)
 }
 
 ///|
 test "estimate_utf8_byte_length: mixed widths sum correctly" {
-  assert_eq(estimate_utf8_byte_length("a中b"), 5)
+  @debug.assert_eq(estimate_utf8_byte_length("a中b"), 5)
 }
 
 ///|
 test "sanitize_string: ascii passes through unchanged" {
-  assert_eq(sanitize_string("abc"), "abc")
+  @debug.assert_eq(sanitize_string("abc"), "abc")
 }
 
 ///|
 test "sanitize_string: empty stays empty" {
-  assert_eq(sanitize_string(""), "")
+  @debug.assert_eq(sanitize_string(""), "")
 }
 
 ///|
 test "sanitize_string: cjk preserved" {
-  assert_eq(sanitize_string("中文"), "中文")
+  @debug.assert_eq(sanitize_string("中文"), "中文")
 }
 
 ///|
 test "safe_truncate: no-op when shorter than limit" {
-  assert_eq(safe_truncate("hello", 5), "hello")
+  @debug.assert_eq(safe_truncate("hello", 5), "hello")
 }
 
 ///|
 test "safe_truncate: cuts at char boundary" {
-  assert_eq(safe_truncate("hello", 3), "hel")
+  @debug.assert_eq(safe_truncate("hello", 3), "hel")
 }
 
 ///|
 test "safe_truncate: zero limit yields empty" {
-  assert_eq(safe_truncate("ab", 0), "")
+  @debug.assert_eq(safe_truncate("ab", 0), "")
 }
 
 ///|
 test "safe_truncate: limit beyond length is no-op" {
-  assert_eq(safe_truncate("ab", 10), "ab")
+  @debug.assert_eq(safe_truncate("ab", 10), "ab")
 }
 
 ///|
 test "strip_bom: no bom passes through" {
-  assert_eq(strip_bom("abc"), "abc")
+  @debug.assert_eq(strip_bom("abc"), "abc")
 }
 
 ///|
 test "strip_bom: leading bom removed" {
-  assert_eq(strip_bom("\uFEFFabc"), "abc")
+  @debug.assert_eq(strip_bom("\uFEFFabc"), "abc")
 }
 
 ///|
 test "strip_bom: empty stays empty" {
-  assert_eq(strip_bom(""), "")
+  @debug.assert_eq(strip_bom(""), "")
 }
 
 ///|

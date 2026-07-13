@@ -15,7 +15,7 @@ pub(all) struct ChannelInfo {
   channel_id : String // Platform-specific channel identifier
   user_id : String // Platform user ID (empty string if unknown)
   webhook_url : String // Webhook URL (empty string if not configured)
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 impl ToJson for ChannelInfo with fn to_json(self) {
@@ -59,7 +59,7 @@ pub(all) struct SessionTaskMeta {
   title : String // Task title (empty if unnamed)
   started_at : String // ISO timestamp when started
   ended_at : String // ISO timestamp when ended (empty if ongoing)
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 impl ToJson for SessionTaskMeta with fn to_json(self) {
@@ -99,7 +99,7 @@ pub(all) struct SessionTimeMachine {
   task_meta : Map[String, SessionTaskMeta] // task_id -> metadata
   current_task_id : Int // Current active task ID
   active_task_id : Int // Active branch task ID
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 impl ToJson for SessionTimeMachine with fn to_json(self) {
@@ -167,7 +167,7 @@ pub(all) struct SessionStats {
   cache_read_input_tokens : Int
   total_requests : Int
   cache_hit_requests : Int
-} derive(Eq, Debug, Show)
+} derive(Eq, Debug)
 
 ///|
 /// Complete serializable snapshot of an Agent session.

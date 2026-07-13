@@ -6,13 +6,13 @@
 ///|
 test "re-export: HttpRequest constructor" {
   let req = @crescent.HttpRequest(Get, "/", {}, raw_body=b"")
-  assert_eq(req.http_method, Get)
+  @debug.assert_eq(req.http_method, Get)
 }
 
 ///|
 test "re-export: HttpResponse::ok()" {
   let res = @crescent.HttpResponse::ok()
-  inspect(res.status_code, content="OK")
+  @debug.debug_inspect(res.status_code, content="OK")
 }
 
 ///|
@@ -20,7 +20,7 @@ test "re-export: html() helper" {
   let responder = @crescent.html("<p>hi</p>")
   let buf = @buffer.new()
   responder.output(buf)
-  assert_eq(buf.contents(), @utf8.encode("<p>hi</p>"))
+  @debug.assert_eq(buf.contents(), @utf8.encode("<p>hi</p>"))
 }
 
 ///|
@@ -28,7 +28,7 @@ test "re-export: text() helper" {
   let responder = @crescent.text("hello")
   let buf = @buffer.new()
   responder.output(buf)
-  assert_eq(buf.contents(), @utf8.encode("hello"))
+  @debug.assert_eq(buf.contents(), @utf8.encode("hello"))
 }
 
 ///|
@@ -36,7 +36,7 @@ test "re-export: Responder trait" {
   let res = @crescent.HttpResponse(status_code=OK)
   let r : &@crescent.Responder = "test"
   r.options(res)
-  inspect(
+  @debug.debug_inspect(
     res.headers.get("Content-Type"),
     content="Some(\"text/plain; charset=utf-8\")",
   )

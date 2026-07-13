@@ -2,7 +2,7 @@
 /// Cursor Up (CUU), ECMA-48.
 pub fn cursor_up(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[A"
+    b"\u{1b}[A"
   } else {
     csi1(n, b'A')
   }
@@ -10,17 +10,17 @@ pub fn cursor_up(n : Int) -> Bytes {
 
 ///|
 /// Hide cursor, DEC private mode 25.
-pub let hide_cursor : Bytes = b"\x1b[?25l"
+pub let hide_cursor : Bytes = b"\u{1b}[?25l"
 
 ///|
 /// Show cursor, DEC private mode 25.
-pub let show_cursor : Bytes = b"\x1b[?25h"
+pub let show_cursor : Bytes = b"\u{1b}[?25h"
 
 ///|
 /// Cursor Down (CUD), ECMA-48.
 pub fn cursor_down(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[B"
+    b"\u{1b}[B"
   } else {
     csi1(n, b'B')
   }
@@ -30,7 +30,7 @@ pub fn cursor_down(n : Int) -> Bytes {
 /// Cursor Forward (CUF), ECMA-48.
 pub fn cursor_forward(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[C"
+    b"\u{1b}[C"
   } else {
     csi1(n, b'C')
   }
@@ -40,7 +40,7 @@ pub fn cursor_forward(n : Int) -> Bytes {
 /// Cursor Backward (CUB), ECMA-48.
 pub fn cursor_back(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[D"
+    b"\u{1b}[D"
   } else {
     csi1(n, b'D')
   }
@@ -50,7 +50,7 @@ pub fn cursor_back(n : Int) -> Bytes {
 /// Cursor Next Line (CNL), ECMA-48.
 pub fn cursor_next_line(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[E"
+    b"\u{1b}[E"
   } else {
     csi1(n, b'E')
   }
@@ -60,7 +60,7 @@ pub fn cursor_next_line(n : Int) -> Bytes {
 /// Cursor Previous Line (CPL), ECMA-48.
 pub fn cursor_prev_line(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[F"
+    b"\u{1b}[F"
   } else {
     csi1(n, b'F')
   }
@@ -70,7 +70,7 @@ pub fn cursor_prev_line(n : Int) -> Bytes {
 /// Cursor Character Absolute (CHA), ECMA-48.
 pub fn cursor_horizontal_absolute(n : Int) -> Bytes {
   if n <= 1 {
-    b"\x1b[G"
+    b"\u{1b}[G"
   } else {
     csi1(n, b'G')
   }
@@ -84,7 +84,7 @@ pub fn cursor_position(row : Int, col : Int) -> Bytes {
   let row = if row <= 1 { 1 } else { row }
   let col = if col <= 1 { 1 } else { col }
   if row == 1 && col == 1 {
-    b"\x1b[H"
+    b"\u{1b}[H"
   } else {
     csi2(row, col, b'H')
   }
@@ -95,4 +95,4 @@ pub fn cursor_position(row : Int, col : Int) -> Bytes {
 ///
 /// Terminals that support this request respond with a Cursor Position Report
 /// (CPR): `CSI row ; col R`.
-pub let request_cursor_position : Bytes = b"\x1b[6n"
+pub let request_cursor_position : Bytes = b"\u{1b}[6n"

@@ -242,7 +242,7 @@ fn try_parse_ipv4(input : String) -> (UInt, Int) raise InvalidAddr {
 ///|
 fn parse_port(port_str : StringView) -> Int raise InvalidAddr {
   guard !port_str.is_empty() else { raise InvalidAddr }
-  let port = @string.parse_int(port_str) catch { _ => raise InvalidAddr }
+  let port = @strconv.parse_int(port_str) catch { _ => raise InvalidAddr }
   guard 0 <= port && port < 65536 else { raise InvalidAddr }
   port
 }

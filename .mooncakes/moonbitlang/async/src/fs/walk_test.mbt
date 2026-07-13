@@ -37,7 +37,7 @@ async test "walk parallel" {
     @async.sleep(if i == 1 { 200 } else { 300 })
     log.write_string("finished handling \{path}\n")
   })
-  inspect(
+  @debug.debug_inspect(
     log.to_string(),
     content=(
       #|handling test_directory
@@ -63,7 +63,7 @@ async test "walk failure" {
       #|Err(Failure("failure when handling directory"))
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     log,
     content=(
       #|handling test_directory
@@ -85,7 +85,7 @@ async test "walk allow_failure" {
     }),
     content="Ok(())",
   )
-  inspect(
+  @debug.debug_inspect(
     log,
     content=(
       #|handling test_directory

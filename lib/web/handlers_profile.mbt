@@ -49,7 +49,7 @@ fn save_profile(j : Json) -> Result[Unit, String] {
         None => ()
       }
       @fs.write_string_to_file(path, j.stringify()) catch {
-        e => return Err(e.to_string())
+        e => return Err(@debug.to_string(e))
       }
       Ok(())
     }

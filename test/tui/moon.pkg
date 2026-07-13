@@ -1,12 +1,11 @@
 import {
+  "moonbitlang/core/debug",
   "hnlyxiaobing/MBOpenClacky/test/eval",
   "hnlyxiaobing/MBOpenClacky/lib/tui" @libtui,
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "moonbitlang/core/json",
-  "moonbitlang/x/fs",
-  "moonbitlang/x/path",
 }
 
 supported_targets = "native"

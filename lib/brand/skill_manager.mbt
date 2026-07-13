@@ -321,7 +321,7 @@ pub fn BrandSkillManager::decrypt_skill_package(
   _encrypted_data : Bytes,
   key : String,
 ) -> Result[Bytes, String] {
-  let key_bytes = key.to_bytes()
+  let key_bytes = @utf8.encode(key)
   if key_bytes.length() == 0 {
     return Err("Empty decryption key")
   }

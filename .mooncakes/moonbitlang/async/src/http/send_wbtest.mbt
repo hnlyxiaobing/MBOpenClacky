@@ -26,7 +26,7 @@ async test "send_request basic" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -56,7 +56,7 @@ async test "send_request stream" {
       sender..write_reader(file).end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -318,7 +318,7 @@ async test "send_request stream2" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -356,7 +356,7 @@ async test "send invalid header" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -394,7 +394,7 @@ async test "send fixed length" {
       .end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -716,7 +716,7 @@ async test "send_response cookies" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|HTTP/1.1 200 OK\r
@@ -747,7 +747,7 @@ async test "send_request empty body" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -785,7 +785,7 @@ async test "send_response empty body" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|HTTP/1.1 200 OK\r
@@ -819,7 +819,7 @@ async test "sender persistent header" {
       sender.end_body()
     }
     defer r.close()
-    inspect(
+    @debug.debug_inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r

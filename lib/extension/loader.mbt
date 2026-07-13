@@ -8,8 +8,8 @@
 pub fn load_all_extensions() -> Array[Extension] {
   let builtin = load_extensions_from_source(ExtensionSource::Builtin)
   let installed = load_extensions_from_source(ExtensionSource::Installed)
-  let local = load_extensions_from_source(ExtensionSource::Local)
-  merge_extensions_with_priority(builtin, installed, local)
+  let local_exts = load_extensions_from_source(ExtensionSource::Local)
+  merge_extensions_with_priority(builtin, installed, local_exts)
 }
 
 ///|
@@ -81,11 +81,11 @@ pub fn load_single_extension(
 fn merge_extensions_with_priority(
   builtin : Array[Extension],
   installed : Array[Extension],
-  local : Array[Extension],
+  local_exts : Array[Extension],
 ) -> Array[Extension] {
   let seen : Map[String, Bool] = {}
   let result : Array[Extension] = []
-  for ext in local {
+  for ext in local_exts {
     if !seen.contains(ext.manifest.id) {
       seen[ext.manifest.id] = true
       result.push(ext)

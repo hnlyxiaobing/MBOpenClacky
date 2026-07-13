@@ -8,7 +8,7 @@ pub(all) struct Schedule {
   mut last_run_at : Int?
   mut next_run_at : Int?
   mut run_count : Int
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Scheduler configuration
@@ -16,7 +16,7 @@ pub(all) struct SchedulerConfig {
   schedules : Array[Schedule]
   tasks_dir : String
   config_path : String
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Scheduler state
@@ -24,7 +24,7 @@ pub(all) enum SchedulerState {
   Stopped
   Running
   Paused
-} derive(Eq, Debug, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Scheduler error

@@ -41,7 +41,7 @@ async test "read_exactly" {
       w.write("ghijkl")
     }
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|first message sent
@@ -82,7 +82,7 @@ async test "read_exactly failure" {
   }) catch {
     err => log(err.to_string())
   }
-  inspect(
+  @debug.debug_inspect(
     buf.to_string(),
     content=(
       #|first message sent

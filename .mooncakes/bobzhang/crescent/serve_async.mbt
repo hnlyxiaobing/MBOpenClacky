@@ -15,15 +15,15 @@ fn request_method_to_string(meth : @http.RequestMethod) -> String {
 
 ///|
 test "request_method_to_string converts all HTTP methods" {
-  inspect(request_method_to_string(Get), content="GET")
-  inspect(request_method_to_string(Head), content="HEAD")
-  inspect(request_method_to_string(Post), content="POST")
-  inspect(request_method_to_string(Put), content="PUT")
-  inspect(request_method_to_string(Delete), content="DELETE")
-  inspect(request_method_to_string(Connect), content="CONNECT")
-  inspect(request_method_to_string(Options), content="OPTIONS")
-  inspect(request_method_to_string(Trace), content="TRACE")
-  inspect(request_method_to_string(Patch), content="PATCH")
+  @debug.debug_inspect(request_method_to_string(Get), content="GET")
+  @debug.debug_inspect(request_method_to_string(Head), content="HEAD")
+  @debug.debug_inspect(request_method_to_string(Post), content="POST")
+  @debug.debug_inspect(request_method_to_string(Put), content="PUT")
+  @debug.debug_inspect(request_method_to_string(Delete), content="DELETE")
+  @debug.debug_inspect(request_method_to_string(Connect), content="CONNECT")
+  @debug.debug_inspect(request_method_to_string(Options), content="OPTIONS")
+  @debug.debug_inspect(request_method_to_string(Trace), content="TRACE")
+  @debug.debug_inspect(request_method_to_string(Patch), content="PATCH")
 }
 
 /// Copies request headers from the async runtime.
@@ -36,7 +36,7 @@ fn copy_async_headers(headers : Map[String, String]) -> Map[String, String] {
 }
 
 ///|
-let ws_serve_runtime_counter : Ref[Int] = Ref::new(0)
+let ws_serve_runtime_counter : Ref[Int] = Ref(0)
 
 ///|
 fn next_ws_serve_runtime_id(app : App) -> String {
@@ -67,7 +67,7 @@ fn header_contains_token_case_insensitive(
 ///|
 test "header_contains_token_case_insensitive finds token in comma-separated list" {
   let headers : Map[String, String] = { "Connection": "keep-alive, Upgrade" }
-  inspect(
+  @debug.debug_inspect(
     header_contains_token_case_insensitive(headers, "Connection", "upgrade"),
     content="true",
   )
@@ -76,7 +76,7 @@ test "header_contains_token_case_insensitive finds token in comma-separated list
 ///|
 test "header_contains_token_case_insensitive returns false when token not found" {
   let headers : Map[String, String] = { "Connection": "keep-alive" }
-  inspect(
+  @debug.debug_inspect(
     header_contains_token_case_insensitive(headers, "Connection", "upgrade"),
     content="false",
   )
@@ -85,7 +85,7 @@ test "header_contains_token_case_insensitive returns false when token not found"
 ///|
 test "header_contains_token_case_insensitive is case insensitive on header name" {
   let headers : Map[String, String] = { "CONNECTION": "Upgrade" }
-  inspect(
+  @debug.debug_inspect(
     header_contains_token_case_insensitive(headers, "connection", "upgrade"),
     content="true",
   )
@@ -94,7 +94,7 @@ test "header_contains_token_case_insensitive is case insensitive on header name"
 ///|
 test "header_contains_token_case_insensitive returns false for missing header" {
   let headers : Map[String, String] = {}
-  inspect(
+  @debug.debug_inspect(
     header_contains_token_case_insensitive(headers, "Connection", "upgrade"),
     content="false",
   )
@@ -122,7 +122,7 @@ test "is_websocket_upgrade_request returns true with both headers" {
     path: "/",
     headers: { "Connection": "upgrade", "Upgrade": "websocket" },
   }
-  inspect(request.is_websocket_upgrade_request(), content="true")
+  @debug.debug_inspect(request.is_websocket_upgrade_request(), content="true")
 }
 
 ///|
@@ -132,7 +132,7 @@ test "is_websocket_upgrade_request returns false without Connection header" {
     path: "/",
     headers: { "Upgrade": "websocket" },
   }
-  inspect(request.is_websocket_upgrade_request(), content="false")
+  @debug.debug_inspect(request.is_websocket_upgrade_request(), content="false")
 }
 
 ///|
@@ -142,13 +142,13 @@ test "is_websocket_upgrade_request returns false without Upgrade header" {
     path: "/",
     headers: { "Connection": "upgrade" },
   }
-  inspect(request.is_websocket_upgrade_request(), content="false")
+  @debug.debug_inspect(request.is_websocket_upgrade_request(), content="false")
 }
 
 ///|
 test "is_websocket_upgrade_request returns false with empty headers" {
   let request : @http.Request = { meth: Get, path: "/", headers: {} }
-  inspect(request.is_websocket_upgrade_request(), content="false")
+  @debug.debug_inspect(request.is_websocket_upgrade_request(), content="false")
 }
 
 ///|
@@ -182,17 +182,17 @@ fn allow_header_value(methods : Array[String]) -> String {
 
 ///|
 test "allow_header_value joins methods with comma and space" {
-  inspect(allow_header_value(["GET", "POST", "PUT"]), content="GET, POST, PUT")
+  @debug.debug_inspect(allow_header_value(["GET", "POST", "PUT"]), content="GET, POST, PUT")
 }
 
 ///|
 test "allow_header_value with single method" {
-  inspect(allow_header_value(["GET"]), content="GET")
+  @debug.debug_inspect(allow_header_value(["GET"]), content="GET")
 }
 
 ///|
 test "allow_header_value with empty array" {
-  inspect(allow_header_value([]), content="")
+  @debug.debug_inspect(allow_header_value([]), content="")
 }
 
 ///|
@@ -502,7 +502,7 @@ pub async fn App::serve_on(
             Some(n) => Some(@async.Semaphore::new(n))
             None => None
           }
-          let draining : Ref[Bool] = Ref::new(false)
+          let draining : Ref[Bool] = Ref(false)
           let handlers_drained : @async.Queue[Unit] = @async.Queue::new(
             kind=Unbounded,
           )

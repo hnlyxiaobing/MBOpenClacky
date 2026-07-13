@@ -9,7 +9,6 @@ pub enum EnvironmentType {
   Docker // Docker container
   WSL // Windows Subsystem for Linux
   SSH // SSH remote connection
-  RemoteDesktop // Remote desktop session
 } derive(Debug, Eq)
 
 ///|
@@ -119,6 +118,5 @@ pub fn environment_summary() -> String {
     Docker => "Environment: Docker container (\{interactive})"
     WSL => "Environment: WSL (\{interactive})"
     SSH => "Environment: SSH session (\{interactive})"
-    RemoteDesktop => "Environment: Remote Desktop (\{interactive})"
   }
 }

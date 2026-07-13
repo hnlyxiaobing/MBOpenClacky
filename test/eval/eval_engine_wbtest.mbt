@@ -6,8 +6,13 @@ test "EvalAssertionResult construction" {
     passed: true,
     detail: "",
   }
-  inspect(r.passed, content="true")
-  inspect(r.description, content="test assertion")
+  @debug.debug_inspect(r.passed, content="true")
+  @debug.debug_inspect(
+    r.description,
+    content=(
+      #|"test assertion"
+    ),
+  )
 }
 
 ///|
@@ -25,8 +30,8 @@ test "EvalScenarioResult construction" {
     final_screen: "screen content",
     error: "",
   }
-  inspect(r.passed, content="false")
-  inspect(r.assertion_results.length(), content="1")
+  @debug.debug_inspect(r.passed, content="false")
+  @debug.debug_inspect(r.assertion_results.length(), content="1")
 }
 
 ///|
@@ -59,11 +64,11 @@ test "format_eval_report formats correctly" {
     total_count: 2,
   }
   let report = format_eval_report(batch)
-  inspect(report.contains("PASS"), content="true")
-  inspect(report.contains("FAIL"), content="true")
-  inspect(report.contains("pass_test"), content="true")
-  inspect(report.contains("fail_test"), content="true")
-  inspect(report.contains("Total: 2"), content="true")
+  @debug.debug_inspect(report.contains("PASS"), content="true")
+  @debug.debug_inspect(report.contains("FAIL"), content="true")
+  @debug.debug_inspect(report.contains("pass_test"), content="true")
+  @debug.debug_inspect(report.contains("fail_test"), content="true")
+  @debug.debug_inspect(report.contains("Total: 2"), content="true")
 }
 
 ///|
@@ -75,5 +80,5 @@ test "EvalBatchResult empty" {
     total_count: 0,
   }
   let report = format_eval_report(batch)
-  inspect(report.contains("Total: 0"), content="true")
+  @debug.debug_inspect(report.contains("Total: 0"), content="true")
 }

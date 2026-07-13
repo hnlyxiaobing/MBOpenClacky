@@ -17,7 +17,7 @@ async test "realpath absolute" {
   let rp = @fs.realpath("src/fs/realpath_test.mbt")
   guard @env.current_dir() is Some(cwd)
   assert_true(rp.has_prefix(cwd))
-  inspect(
+  @debug.debug_inspect(
     rp[cwd.length():].replace_all(old="\\", new="/"),
     content="/src/fs/realpath_test.mbt",
   )
@@ -37,7 +37,7 @@ async test "realpath link to absolute" {
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path)
     assert_true(rp.has_prefix(cwd))
-    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
   }
 }
 
@@ -52,7 +52,7 @@ async test "realpath link to relative" {
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path)
     assert_true(rp.has_prefix(cwd))
-    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
   }
 }
 
@@ -67,6 +67,6 @@ async test "realpath link to dir" {
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path + "/realpath_test.mbt")
     assert_true(rp.has_prefix(cwd))
-    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
   }
 }

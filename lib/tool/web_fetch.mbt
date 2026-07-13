@@ -88,7 +88,8 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
           "HTTP error \{response.status_code} fetching \{normalized}",
         )
       }
-    Err(err) => ToolResult::error("Failed to fetch \{normalized}: \{err}")
+    Err(err) =>
+      ToolResult::error("Failed to fetch \{normalized}: \{err.to_repr()}")
   }
 }
 

@@ -186,11 +186,11 @@ fn extract_api_key(req : @core.HttpRequest) -> String? {
 /// Public endpoints that never require authentication.
 /// - /health: monitoring probes need credential-less access
 /// - GET /api/version: version query (note: POST /api/version/upgrade is NOT public)
-pub fn is_public_path(method : String, path : String) -> Bool {
+pub fn is_public_path(http_method : String, path : String) -> Bool {
   if path == "/health" {
     return true
   }
-  method == "GET" && path == "/api/version"
+  http_method == "GET" && path == "/api/version"
 }
 
 ///|
@@ -214,10 +214,10 @@ pub fn auth_middleware(
   let mw : @crescent.Middleware = (event, next) => {
     let req = event.req
     let path = req.path()
-    let method = req.method_string()
+    let http_method = req.method_string()
 
     // Public endpoint allowlist: no auth required
-    if is_public_path(method, path) {
+    if is_public_path(http_method, path) {
       return next()
     }
     let client_ip = extract_client_ip(req)

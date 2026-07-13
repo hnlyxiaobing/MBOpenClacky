@@ -18,13 +18,6 @@ fn pty_generate_token() -> String {
 }
 
 ///|
-/// Build the marker string for a given token and exit code.
-/// Example: pty_make_marker("pty1", 0) → "__CLACKY_DONE_pty1_0__"
-fn pty_make_marker(token : String, exit_code : Int) -> String {
-  "__CLACKY_DONE_" + token + "_" + exit_code.to_string() + "__"
-}
-
-///|
 /// Build the shell command wrapper that prints the marker after command completion.
 ///
 /// The wrapper:

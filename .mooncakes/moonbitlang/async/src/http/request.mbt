@@ -63,7 +63,7 @@ fn resolve_host(
       (re"[0-9]+" as port_str) +
       re"$"
     ) {
-    let port = @string.parse_int(port_str) catch { _ => raise InvalidFormat }
+    let port = @strconv.parse_int(port_str) catch { _ => raise InvalidFormat }
     guard port is (1..<65536) else { raise InvalidFormat }
     (host, port)
   } else {

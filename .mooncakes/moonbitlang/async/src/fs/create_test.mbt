@@ -26,7 +26,7 @@ async test "basic create" {
     r.read_all().text()
   }
   @fs.remove(path)
-  inspect(
+  @debug.debug_inspect(
     result,
     content=(
       #|abcd
@@ -58,7 +58,7 @@ async test "create or append" {
     r.read_all().text()
   }
   @fs.remove(path)
-  inspect(result, content="abcdefgh")
+  @debug.debug_inspect(result, content="abcdefgh")
 }
 
 ///|
@@ -67,7 +67,7 @@ async test "wrapper test" {
   @fs.write_file(path, b"abcd", create_mode=CreateOrTruncate)
   let result = @fs.read_file(path).text()
   @fs.remove(path)
-  inspect(result, content="abcd")
+  @debug.debug_inspect(result, content="abcd")
 }
 
 ///|
@@ -83,7 +83,7 @@ async test "create_mode test" {
       group.add_defer(() => @fs.remove(path))
       file.write("abcd")
     }
-    inspect(@fs.read_file(path).text(), content="abcd")
+    @debug.debug_inspect(@fs.read_file(path).text(), content="abcd")
     assert_true((try? @fs.create(path, allow_existing=false)) is Err(_))
     assert_true(
       (try? @fs.open(path, mode=WriteOnly, create_mode=CreateNew)) is Err(_),
@@ -93,24 +93,24 @@ async test "create_mode test" {
       defer file.close()
       file.write("AB")
     }
-    inspect(@fs.read_file(path).text(), content="ABcd")
+    @debug.debug_inspect(@fs.read_file(path).text(), content="ABcd")
     {
       let file = @fs.open(path, mode=WriteOnly, create_mode=OpenOrCreate)
       defer file.close()
       file.write("XY")
     }
-    inspect(@fs.read_file(path).text(), content="XYcd")
+    @debug.debug_inspect(@fs.read_file(path).text(), content="XYcd")
     {
       let file = @fs.open(path, mode=WriteOnly, create_mode=CreateOrTruncate)
       defer file.close()
       file.write("12")
     }
-    inspect(@fs.read_file(path).text(), content="12")
+    @debug.debug_inspect(@fs.read_file(path).text(), content="12")
     {
       let file = @fs.open(path, mode=WriteOnly, create_mode=TruncateExisting)
       defer file.close()
       file.write("34")
     }
-    inspect(@fs.read_file(path).text(), content="34")
+    @debug.debug_inspect(@fs.read_file(path).text(), content="34")
   }
 }

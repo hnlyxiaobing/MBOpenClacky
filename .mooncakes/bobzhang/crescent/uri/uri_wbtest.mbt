@@ -7,7 +7,7 @@ test "RFC 3986 URI Reference Parsing" {
     query: None,
     fragment: None,
   }
-  assert_eq(
+  @debug.assert_eq(
     parse_uri_reference(
       "http://example.com/path/to/resource?query=parameter#fragment", uri,
     ),
@@ -31,14 +31,14 @@ test "RFC 3986 URI Reference Parsing" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, Some("http"))
-  // assert_eq(
+  // @debug.assert_eq(uri.scheme, Some("http"))
+  // @debug.assert_eq(
   //   uri.authority,
   //   Some({ userinfo: None, host: RegName("example.com"), port: None }),
   // )
-  // assert_eq(uri.path, ["path", "to", "resource"])
-  // assert_eq(uri.query, Some("query=parameter"))
-  // assert_eq(uri.fragment, Some("fragment"))
+  // @debug.assert_eq(uri.path, ["path", "to", "resource"])
+  // @debug.assert_eq(uri.query, Some("query=parameter"))
+  // @debug.assert_eq(uri.fragment, Some("fragment"))
 }
 
 ///|
@@ -50,7 +50,7 @@ test "RFC 3986 Authority with Userinfo and Port" {
     query: None,
     fragment: None,
   }
-  assert_eq(
+  @debug.assert_eq(
     parse_uri_reference("ftp://user:pass@ftp.example.com:21/path", uri),
     "",
   )
@@ -72,8 +72,8 @@ test "RFC 3986 Authority with Userinfo and Port" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, Some("ftp"))
-  // assert_eq(
+  // @debug.assert_eq(uri.scheme, Some("ftp"))
+  // @debug.assert_eq(
   //   uri.authority,
   //   Some({
   //     userinfo: Some("user:pass"),
@@ -81,7 +81,7 @@ test "RFC 3986 Authority with Userinfo and Port" {
   //     port: Some(21),
   //   }),
   // )
-  // assert_eq(uri.path, ["path"])
+  // @debug.assert_eq(uri.path, ["path"])
 }
 
 ///|
@@ -93,7 +93,7 @@ test "RFC 3986 IPv6 Literal" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("http://[2001:db8::1]:8080/", uri), "")
+  @debug.assert_eq(parse_uri_reference("http://[2001:db8::1]:8080/", uri), "")
   debug_inspect(
     uri,
     content=(
@@ -112,12 +112,12 @@ test "RFC 3986 IPv6 Literal" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, Some("http"))
-  // assert_eq(
+  // @debug.assert_eq(uri.scheme, Some("http"))
+  // @debug.assert_eq(
   //   uri.authority,
   //   Some({ userinfo: None, host: IPv6Address("2001:db8::1"), port: Some(8080) }),
   // )
-  // assert_eq(uri.path, [])
+  // @debug.assert_eq(uri.path, [])
 }
 
 ///|
@@ -129,9 +129,9 @@ test "RFC 3986 Percent Encoding Preservation" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("http://example.com/hello%20world", uri), "")
-  assert_eq(uri.scheme, Some("http"))
-  assert_eq(uri.path, ["hello%20world"]) // preserved, not decoded
+  @debug.assert_eq(parse_uri_reference("http://example.com/hello%20world", uri), "")
+  @debug.assert_eq(uri.scheme, Some("http"))
+  @debug.assert_eq(uri.path, ["hello%20world"]) // preserved, not decoded
 }
 
 ///|
@@ -143,7 +143,7 @@ test "RFC 3986 Relative Reference" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("../path/file.txt", uri), "")
+  @debug.assert_eq(parse_uri_reference("../path/file.txt", uri), "")
   debug_inspect(
     uri,
     content=(
@@ -156,9 +156,9 @@ test "RFC 3986 Relative Reference" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, None)
-  // assert_eq(uri.authority, None)
-  // assert_eq(uri.path, ["..", "path", "file.txt"])
+  // @debug.assert_eq(uri.scheme, None)
+  // @debug.assert_eq(uri.authority, None)
+  // @debug.assert_eq(uri.path, ["..", "path", "file.txt"])
 }
 
 ///|
@@ -170,7 +170,7 @@ test "RFC 3986 Absolute Path" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("/absolute/path", uri), "")
+  @debug.assert_eq(parse_uri_reference("/absolute/path", uri), "")
   debug_inspect(
     uri,
     content=(
@@ -183,9 +183,9 @@ test "RFC 3986 Absolute Path" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, None)
-  // assert_eq(uri.authority, None)
-  // assert_eq(uri.path, ["absolute", "path"])
+  // @debug.assert_eq(uri.scheme, None)
+  // @debug.assert_eq(uri.authority, None)
+  // @debug.assert_eq(uri.path, ["absolute", "path"])
 }
 
 ///|
@@ -197,7 +197,7 @@ test "RFC 3986 Query Only" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("?key=value&foo=bar", uri), "")
+  @debug.assert_eq(parse_uri_reference("?key=value&foo=bar", uri), "")
   debug_inspect(
     uri,
     content=(
@@ -210,10 +210,10 @@ test "RFC 3986 Query Only" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, None)
-  // assert_eq(uri.authority, None)
-  // assert_eq(uri.path, [])
-  // assert_eq(uri.query, Some("key=value&foo=bar"))
+  // @debug.assert_eq(uri.scheme, None)
+  // @debug.assert_eq(uri.authority, None)
+  // @debug.assert_eq(uri.path, [])
+  // @debug.assert_eq(uri.query, Some("key=value&foo=bar"))
 }
 
 ///|
@@ -225,7 +225,7 @@ test "RFC 3986 Fragment Only" {
     query: None,
     fragment: None,
   }
-  assert_eq(parse_uri_reference("#section1", uri), "")
+  @debug.assert_eq(parse_uri_reference("#section1", uri), "")
   debug_inspect(
     uri,
     content=(
@@ -238,58 +238,58 @@ test "RFC 3986 Fragment Only" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, None)
-  // assert_eq(uri.authority, None)
-  // assert_eq(uri.path, [])
-  // assert_eq(uri.fragment, Some("section1"))
+  // @debug.assert_eq(uri.scheme, None)
+  // @debug.assert_eq(uri.authority, None)
+  // @debug.assert_eq(uri.path, [])
+  // @debug.assert_eq(uri.fragment, Some("section1"))
 }
 
 ///|
 test "RFC 3986 Character Classification" {
   // Test unreserved characters
-  assert_eq(is_unreserved('A'), true)
-  assert_eq(is_unreserved('z'), true)
-  assert_eq(is_unreserved('0'), true)
-  assert_eq(is_unreserved('-'), true)
-  assert_eq(is_unreserved('.'), true)
-  assert_eq(is_unreserved('_'), true)
-  assert_eq(is_unreserved('~'), true)
-  assert_eq(is_unreserved('!'), false)
+  @debug.assert_eq(is_unreserved('A'), true)
+  @debug.assert_eq(is_unreserved('z'), true)
+  @debug.assert_eq(is_unreserved('0'), true)
+  @debug.assert_eq(is_unreserved('-'), true)
+  @debug.assert_eq(is_unreserved('.'), true)
+  @debug.assert_eq(is_unreserved('_'), true)
+  @debug.assert_eq(is_unreserved('~'), true)
+  @debug.assert_eq(is_unreserved('!'), false)
 
   // Test gen-delims
-  assert_eq(is_gen_delim(':'), true)
-  assert_eq(is_gen_delim('/'), true)
-  assert_eq(is_gen_delim('?'), true)
-  assert_eq(is_gen_delim('#'), true)
-  assert_eq(is_gen_delim('['), true)
-  assert_eq(is_gen_delim(']'), true)
-  assert_eq(is_gen_delim('@'), true)
+  @debug.assert_eq(is_gen_delim(':'), true)
+  @debug.assert_eq(is_gen_delim('/'), true)
+  @debug.assert_eq(is_gen_delim('?'), true)
+  @debug.assert_eq(is_gen_delim('#'), true)
+  @debug.assert_eq(is_gen_delim('['), true)
+  @debug.assert_eq(is_gen_delim(']'), true)
+  @debug.assert_eq(is_gen_delim('@'), true)
 
   // Test sub-delims
-  assert_eq(is_sub_delim('!'), true)
-  assert_eq(is_sub_delim('$'), true)
-  assert_eq(is_sub_delim('&'), true)
-  assert_eq(is_sub_delim('\''), true)
-  assert_eq(is_sub_delim('('), true)
-  assert_eq(is_sub_delim(')'), true)
-  assert_eq(is_sub_delim('*'), true)
-  assert_eq(is_sub_delim('+'), true)
-  assert_eq(is_sub_delim(','), true)
-  assert_eq(is_sub_delim(';'), true)
-  assert_eq(is_sub_delim('='), true)
+  @debug.assert_eq(is_sub_delim('!'), true)
+  @debug.assert_eq(is_sub_delim('$'), true)
+  @debug.assert_eq(is_sub_delim('&'), true)
+  @debug.assert_eq(is_sub_delim('\''), true)
+  @debug.assert_eq(is_sub_delim('('), true)
+  @debug.assert_eq(is_sub_delim(')'), true)
+  @debug.assert_eq(is_sub_delim('*'), true)
+  @debug.assert_eq(is_sub_delim('+'), true)
+  @debug.assert_eq(is_sub_delim(','), true)
+  @debug.assert_eq(is_sub_delim(';'), true)
+  @debug.assert_eq(is_sub_delim('='), true)
 }
 
 ///|
 test "RFC 3986 Dot Segment Removal" {
   let path1 : Array[StringView] = ["a", "b", "c", ".", "..", "..", "g"]
   let result1 = remove_dot_segments(path1)
-  assert_eq(result1, ["a", "g"])
+  @debug.assert_eq(result1, ["a", "g"])
   let path2 : Array[StringView] = ["..", "..", "a", "b"]
   let result2 = remove_dot_segments(path2)
-  assert_eq(result2, ["a", "b"])
+  @debug.assert_eq(result2, ["a", "b"])
   let path3 : Array[StringView] = [".", "a", ".", "b", "."]
   let result3 = remove_dot_segments(path3)
-  assert_eq(result3, ["a", "b"])
+  @debug.assert_eq(result3, ["a", "b"])
 }
 
 ///|
@@ -364,8 +364,8 @@ test "parse accepts bare relative reference" {
 test "parse relative ref with fragment puts value in fragment, not query" {
   // Regression test: "foo#bar" previously put "bar" in query field
   let uri = Uri("foo#bar")
-  assert_eq(uri.query, None)
-  assert_eq(uri.fragment, Some("bar"))
+  @debug.assert_eq(uri.query, None)
+  @debug.assert_eq(uri.fragment, Some("bar"))
 }
 
 ///|
@@ -377,7 +377,7 @@ test "RFC 3986 Absolute URI Parsing" {
     query: None,
     fragment: None,
   }
-  assert_eq(
+  @debug.assert_eq(
     parse_absolute_uri(
       "http://example.com/path/to/resource?query=parameter", uri,
     ),
@@ -401,12 +401,12 @@ test "RFC 3986 Absolute URI Parsing" {
       #|}
     ),
   )
-  // assert_eq(uri.scheme, Some("http"))
-  // assert_eq(
+  // @debug.assert_eq(uri.scheme, Some("http"))
+  // @debug.assert_eq(
   //   uri.authority,
   //   Some({ userinfo: None, host: RegName("example.com"), port: None }),
   // )
-  // assert_eq(uri.path, ["path", "to", "resource"])
-  // assert_eq(uri.query, Some("query=parameter"))
-  // assert_eq(uri.fragment, None)
+  // @debug.assert_eq(uri.path, ["path", "to", "resource"])
+  // @debug.assert_eq(uri.query, Some("query=parameter"))
+  // @debug.assert_eq(uri.fragment, None)
 }

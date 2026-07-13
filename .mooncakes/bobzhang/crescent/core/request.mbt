@@ -280,12 +280,12 @@ test "read_body" {
   let req = HttpRequest::http_request(
     Post,
     "/",
-    Map::new(),
+    Map([]),
     raw_body=b"{\"Hello\":\"World!\"}",
   )
   let text : String = req.body()
   let json : Json = req.body()
-  inspect(
+  @debug.debug_inspect(
     text,
     content=(
       #|{"Hello":"World!"}

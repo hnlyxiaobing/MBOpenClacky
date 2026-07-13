@@ -170,8 +170,8 @@ test "http_request: get_param returns value" {
     body: "",
     headers: [],
   }
-  assert_eq(req.get_param("id"), Some("ch-1"))
-  assert_eq(req.get_param("missing"), None)
+  @debug.assert_eq(req.get_param("id"), Some("ch-1"))
+  @debug.assert_eq(req.get_param("missing"), None)
 }
 
 ///|
@@ -186,9 +186,9 @@ test "http_request: get_header case insensitive" {
       ("Authorization", "Bearer token"),
     ],
   }
-  assert_eq(req.get_header("content-type"), Some("application/json"))
-  assert_eq(req.get_header("AUTHORIZATION"), Some("Bearer token"))
-  assert_eq(req.get_header("X-Missing"), None)
+  @debug.assert_eq(req.get_header("content-type"), Some("application/json"))
+  @debug.assert_eq(req.get_header("AUTHORIZATION"), Some("Bearer token"))
+  @debug.assert_eq(req.get_header("X-Missing"), None)
 }
 
 // ══════════════════════════════════════════════════════════════════

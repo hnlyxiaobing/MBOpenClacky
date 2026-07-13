@@ -73,7 +73,7 @@ test "compiled route: mixed parameter and wildcard" {
 ///|
 test "compiled route: segments are pre-parsed" {
   let route = @router.CompiledRoute("/api/:version/users/:id")
-  assert_eq(route.segments.length(), 5) // "", "api", ":version", "users", ":id"
+  @debug.assert_eq(route.segments.length(), 5) // "", "api", ":version", "users", ":id"
   assert_true(route.segments[0] is Static(_))
   assert_true(route.segments[2] is Param(_))
   assert_true(route.segments[4] is Param(_))
