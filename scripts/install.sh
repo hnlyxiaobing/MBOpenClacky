@@ -187,6 +187,53 @@ else
     echo "  You can still build for wasm-gc without a C compiler."
 fi
 
+# ── Step 2.5: Check system dependencies (libcurl / libssl) ──────────────
+# Native builds link libcurl (HTTP client) and libssl/libcrypto (crypto).
+# We only *detect* and *advise*; we do not auto-install system packages.
+
+step "Checking system dependencies (libcurl, libssl)..."
+
+check_pkg() {
+    # Returns 0 if the given pkg-config module is present.
+    command -v pkg-config >/dev/null 2>&1 && pkg-config --exists "$1" 2>/dev/null
+}
+
+MISSING_DEPS=""
+if ! check_pkg "libcurl"; then MISSING_DEPS="$MISSING_DEPS libcurl"; fi
+if ! check_pkg "openssl"; then MISSING_DEPS="$MISSING_DEPS libssl"; fi
+
+if [ -z "$MISSING_DEPS" ]; then
+    ok "System dependencies (libcurl, libssl) satisfied."
+else
+    warn "Missing system dependencies:$MISSING_DEPS"
+    echo "  The native build links these via -lcurl / -lcrypto."
+    echo "  Install them with your package manager, then re-run:"
+    case "$OS" in
+        linux)
+            if command -v apt-get >/dev/null 2>&1; then
+                echo "    sudo apt-get install -y libcurl4-openssl-dev libssl-dev"
+            elif command -v dnf >/dev/null 2>&1; then
+                echo "    sudo dnf install -y libcurl-devel openssl-devel"
+            elif command -v pacman >/dev/null 2>&1; then
+                echo "    sudo pacman -S libcurl openssl"
+            else
+                echo "    (install libcurl-dev and libssl-dev for your distro)"
+            fi
+            ;;
+        macos)
+            if command -v brew >/dev/null 2>&1; then
+                echo "    brew install curl openssl"
+            else
+                echo "    install curl + openssl (e.g. via Homebrew)"
+            fi
+            ;;
+        *)
+            echo "    install libcurl-dev and libssl-dev"
+            ;;
+    esac
+    echo "  (If you only need wasm-gc, a C compiler is not required.)"
+fi
+
 # ── Step 3: Update & install dependencies ───────────────────────────────────
 
 step "Updating MoonBit package index..."
