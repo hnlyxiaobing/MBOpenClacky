@@ -1,7 +1,7 @@
 # 基于差距分析的任务划分与 Spec 总览 · 决策文档
 
 > **创建日期**: 2026-07-09  
-> **状态**: 待评审  
+> **状态**: 已完成  
 > **依据**: `docs/project_gap_analysis_and_development_plan.md`（2026-07-08 差距分析）  
 > **方法论**: `specs/decisions/harness-methodology-application-plan.md`（Harness 方法论）  
 > **阶段姿态**: 本轮只产出 spec 文档，不进入开发
@@ -59,8 +59,8 @@
 |---|---|---|---|---|
 | P2-1 | 部署模板（docker-compose / systemd / logrotate） | `2026-07-09_deployment-templates.md` | idea-doc | Agent-E（部署运维） |
 | P2-2 | 分发打包（Homebrew 公式 / 卸载脚本 / 完整安装脚本 / Windows 安装包） | `2026-07-09_distribution-packaging.md` | idea-doc | Agent-E（部署运维） |
-| P2-3 | MoonBit warnings 削减（522 → ≤200） | `2026-07-09_warnings-reduction.md` | incremental-spec | Agent-F（质量） |
-| P2-4 | 测试覆盖扩展（Web/TUI/Extension eval 场景，1400+ → 2000+） | `2026-07-09_test-coverage-expansion.md` | incremental-spec | Agent-F（测试） |
+| P2-3 | MoonBit warnings 削减（522 → ≤200） | `specs/completed/2026-07-09_warnings-reduction.md` | incremental-spec | Agent-F（质量） | ✅ 已完成归档 |
+| P2-4 | 测试覆盖扩展（Web/TUI/Extension eval 场景，1400+ → 2000+） | `specs/completed/2026-07-09_test-coverage-expansion.md` | incremental-spec | Agent-F（测试） | ✅ 已完成归档 |
 
 ## 五、并行与依赖关系
 
@@ -103,3 +103,4 @@ git worktree add -b agent-f/quality       ../mb-agent-f   # P0-1 P0-3 P0-4 P2-3 
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本，划分 15 个任务并产出对应 spec | 落地差距分析为可执行 spec |
+| 2026-07-13 | 收尾：P2-3（warnings 削减）与 P2-4（测试覆盖扩展）均已达成并归档；本总览文档随之关闭 | 差距分析任务闭环 |
