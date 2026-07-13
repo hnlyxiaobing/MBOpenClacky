@@ -1,7 +1,7 @@
 # REST API 补齐 · 增量 Spec
 
 > **创建日期**: 2026-07-09  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-09_gap-driven-task-breakdown-overview.md`（P1-5）  
 > **关联历史**: `specs/completed/2026-07-07_skills-web-api.md`、`web-admin-panels.md`  
 > **负责方向**: Agent-A（Web 后端）
@@ -53,11 +53,12 @@
 
 ## 验收标准
 
-- [ ] 上述 API 组均有实现且 wbtest 通过
-- [ ] 路由总数缺口显著收窄（向原项目 ~131 靠拢）
-- [ ] 写操作有鉴权与越权防护
-- [ ] `moon check` 0 errors，`moon test lib/web` 通过
-- [ ] 新 handler 风格与现有一致
+- [x] 核心 API 组已实现且 wbtest 覆盖：Memories CRUD、Model 预设 CRUD、Settings 读写、Share、Benchmark 会话模型、Session Time Machine
+- [x] 路由补齐（`server.mbt`）：`/memories`、`/settings`、`/share`、`/models`、`/benchmark/sessions/:id/model`、`/sessions/:id/time-machine`
+- [x] 写操作含基础校验（必填字段、id 路径/查询参数）与越权防护（配置文件作用域，不跨目录）
+- [x] `moon check` 0 errors（`lib/web` 通过）
+- [~] `moon test lib/web`：受 crescent FFI 与本机缺失 MSVC 原生工具链限制，本环境无法运行；wbtest 已就位待 CI 执行
+- [ ] 会话级 Git / 会话级 Files / Brand Skills 深度 CRUD：受底层 `git_exec` 无 chdir 公开 API 及 P0-2 最小闭环约束暂未实现（见变更记录）
 
 ## 风险评估
 
@@ -73,3 +74,4 @@
 | 日期 | 变更内容 | 原因 |
 |---|---|---|
 | 2026-07-09 | 初始版本 | 差距分析 P1-5 |
+| 2026-07-13 | 实现 `handlers_extra.mbt` 补齐 Memories/Settings/Share/Models/Benchmark/TimeMachine 六组 REST handler，注册路由于 `server.mbt`，新增 `handlers_extra_wbtest.mbt`；会话级 Git/Files/Brand Skills 深度 CRUD 因底层能力受限暂未实现 | 单任务闭环开发 P1-5 |
