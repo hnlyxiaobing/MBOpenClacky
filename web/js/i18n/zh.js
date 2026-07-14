@@ -768,4 +768,32 @@ const I18nZh = {
 
   // ── WebSocket ───────────────────────────────────────────────
   'ws.disconnected':   'WebSocket 已断开连接',
+
+  // ── Schedules ────────────────────────────────────────────────
+  'schedules.title':           '定时任务',
+  'schedules.new':              '新建定时任务',
+  'schedules.edit':             '编辑定时任务',
+  'schedules.empty':            '暂无定时任务',
+  'schedules.empty_desc':       '创建一个定时任务来开始使用。',
+  'schedules.name':             '名称',
+  'schedules.message':         '消息',
+  'schedules.message_placeholder': '输入要发送的提示词或消息',
+  'schedules.cron':             'Cron 表达式',
+  'schedules.cron_help':       '标准 cron 格式：分 时 日 月 周（例如 "0 9 * * *" = 每天 9 点）',
+  'schedules.enabled':         '已启用',
+  'schedules.disabled':        '已禁用',
+  'schedules.name_required':   '名称为必填项',
+  'schedules.cron_required':   'Cron 表达式为必填项',
+  'schedules.updated':         '定时任务已更新',
+  'schedules.created':          '定时任务已创建',
+  'schedules.save_failed':    '保存定时任务失败',
+  'schedules.deleted':         '定时任务已删除',
+  'schedules.delete_failed':   '删除定时任务失败',
+  'schedules.delete_confirm':  '删除此定时任务？此操作不可撤销。',
+  'schedules.triggered':       '定时任务已触发',
+  'schedules.trigger_failed':  '触发定时任务失败',
+  'schedules.trigger_now':     '立即触发',
+  'schedules.load_failed':    '加载定时任务失败',
+  'schedules.next_run':       '下次运行：',
+  'schedules.cron_label':     'Cron：',
 };

@@ -768,4 +768,32 @@ const I18nEn = {
 
   // ── WebSocket ───────────────────────────────────────────────
   'ws.disconnected':   'WebSocket disconnected',
+
+  // ── Schedules ────────────────────────────────────────────────
+  'schedules.title':           'Scheduled Tasks',
+  'schedules.new':              'New Schedule',
+  'schedules.edit':             'Edit Schedule',
+  'schedules.empty':            'No Schedules',
+  'schedules.empty_desc':       'Create a scheduled task to get started.',
+  'schedules.name':             'Name',
+  'schedules.message':         'Message',
+  'schedules.message_placeholder': 'Enter the prompt or message to send',
+  'schedules.cron':             'Cron Expression',
+  'schedules.cron_help':       'Standard cron format: minute hour day month weekday (e.g. "0 9 * * *" = daily at 9am)',
+  'schedules.enabled':         'Enabled',
+  'schedules.disabled':        'Disabled',
+  'schedules.name_required':   'Name is required',
+  'schedules.cron_required':   'Cron expression is required',
+  'schedules.updated':         'Schedule updated',
+  'schedules.created':          'Schedule created',
+  'schedules.save_failed':    'Failed to save schedule',
+  'schedules.deleted':         'Schedule deleted',
+  'schedules.delete_failed':   'Failed to delete schedule',
+  'schedules.delete_confirm':  'Delete this schedule? This cannot be undone.',
+  'schedules.triggered':       'Schedule triggered successfully',
+  'schedules.trigger_failed':  'Failed to trigger schedule',
+  'schedules.trigger_now':     'Trigger now',
+  'schedules.load_failed':    'Failed to load schedules',
+  'schedules.next_run':       'Next run:',
+  'schedules.cron_label':     'Cron:',
 };

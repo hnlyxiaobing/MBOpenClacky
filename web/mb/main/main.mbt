@@ -125,4 +125,10 @@ fn main {
   let workspace_app = new(workspace_cell)
   workspace_app.with_init(workspace_emit(Init))
   workspace_app.mount("workspace-content")
+
+  // ── Schedules cell at #schedules-content (Phase 3.2) ───────────
+  let (schedules_emit, schedules_cell) = build_schedules_cell()
+  let schedules_app = new(schedules_cell)
+  schedules_app.with_init(schedules_emit(Init))
+  schedules_app.mount("schedules-content")
 }
