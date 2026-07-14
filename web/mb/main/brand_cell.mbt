@@ -113,6 +113,13 @@ async fn safe_del(path : String) -> Result[Json, String] noraise {
 }
 
 ///|
+async fn safe_put(path : String, body : Json) -> Result[Json, String] noraise {
+  Ok(api_put(path, body)) catch {
+    e => Err(e.to_string())
+  }
+}
+
+///|
 /// Run two fetches in parallel and dispatch a message for each result.
 fn fetch_status_and_skills(emit : @cmd.Emit[BrandMsg]) -> @cmd.Cmd {
   let status_cmd = @cmd.perform(r => emit(StatusLoaded(r)), async fn() noraise {

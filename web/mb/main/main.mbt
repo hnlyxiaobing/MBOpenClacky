@@ -71,4 +71,10 @@ fn main {
   let version_app = new(version_cell)
   version_app.with_init(version_emit(Init))
   version_app.mount("version-content")
+
+  // ── Profile cell at #profile-content (Phase 2.3) ─────────────────
+  let (profile_emit, profile_cell) = build_profile_cell()
+  let profile_app = new(profile_cell)
+  profile_app.with_init(profile_emit(Init))
+  profile_app.mount("profile-content")
 }

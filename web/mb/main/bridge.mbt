@@ -47,9 +47,7 @@ extern "js" fn api_post_promise(
 ///|
 /// Wrap the existing `API.del` from `web/js/app.js:55`.
 #cfg(target="js")
-extern "js" fn api_del_promise(path : String) -> @js.Promise = "(path) => API.del(path)"
-
-///|
+extern "js" fn api_del_promise(path : String) -> @js.Promise = "(path) => API.del(path)"///|
 /// `GET path` → parsed `Json`. Errors propagate as `raise`; callers should
 /// wrap with `try .. catch` (or use `fetch_json_safe` from `brand_cell.mbt`).
 #cfg(target="js")
@@ -75,6 +73,24 @@ pub async fn api_del(path : String) -> Json {
 }
 
 ///|
+/// Wrap the existing `API.put` from `web/js/app.js:43`. `body_str` is a
+/// JSON string (serialized in MoonBit) and re-parsed on the JS side.
+#cfg(target="js")
+extern "js" fn api_put_promise(
+  path : String,
+  body_str : String,
+) -> @js.Promise = "(path, body_str) => API.put(path, JSON.parse(body_str))"
+
+///|
+/// `PUT path body` → parsed `Json`. `body` is a `Json` value.
+#cfg(target="js")
+pub async fn api_put(path : String, body : Json) -> Json {
+  @json.parse(
+    api_put_promise(path, body.stringify()).wait().cast() |> js_stringify,
+  )
+}
+
+///|
 /// `encodeURIComponent` for safe path segments. The MBOpenClacky skill
 /// names in the legacy UI go through `encodeURIComponent` (see
 /// `web/js/brand.js:73`); we mirror that for `/api/brand/skills/:name`.
@@ -86,3 +102,12 @@ extern "js" fn js_encode_uri_component(s : String) -> String = "(s) => encodeURI
 /// deactivate / delete-skill confirmations that `web/js/brand.js` uses).
 #cfg(target="js")
 extern "js" fn window_confirm(msg : String) -> Bool = "(msg) => window.confirm(msg)"
+
+///|
+/// `I18n.setLocale(lang)` from `web/js/i18n.js` — apply the user's
+/// preferred language immediately after a profile save. The legacy
+/// `web/js/profile.js:138` does the same `if (I18n.getLocale() !==
+/// language) I18n.setLocale(language)`. We mirror that with a thin FFI
+/// wrapper so the rabbita cell can invoke it directly.
+#cfg(target="js")
+extern "js" fn i18n_set_locale(lang : String) = "(lang) => I18n.setLocale(lang)"
