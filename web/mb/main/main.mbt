@@ -143,4 +143,10 @@ fn main {
   let media_app = new(media_cell)
   media_app.with_init(media_emit(Init))
   media_app.mount("media-content")
+
+  // ── Onboard cell at #onboard-content (Phase 3.2) ───────────────
+  let (onboard_emit, onboard_cell) = build_onboard_cell()
+  let onboard_app = new(onboard_cell)
+  onboard_app.with_init(onboard_emit(Init))
+  onboard_app.mount("onboard-content")
 }

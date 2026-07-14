@@ -198,6 +198,11 @@ extern "js" fn i18n_t(key : String, params_json : String) -> String = "(key, par
 extern "js" fn i18n_get_locale() -> String = "() => I18n.getLocale()"
 
 ///|
+/// Switch the main view (e.g. to 'chat' after onboard completes).
+#cfg(target="js")
+extern "js" fn app_show_view(view : String) = "(view) => App.showView(view)"
+
+///|
 /// Register a callback for the `i18n:locale-changed` CustomEvent
 /// dispatched by `I18n.setLocale()` (see `web/js/i18n.js:62`). The
 /// MoonBit closure is wrapped as a JS function automatically by the
