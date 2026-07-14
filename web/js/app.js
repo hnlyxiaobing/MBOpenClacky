@@ -94,7 +94,8 @@ const App = {
     if (typeof Channels !== 'undefined') Channels.init();
     // Schedules: removed in Phase 3.2 (migrated to rabbita schedules_cell.mbt)
     // if (typeof Schedules !== 'undefined') Schedules.init();
-    if (typeof Billing !== 'undefined') Billing.init();
+    // Billing: removed in Phase 3.2 (migrated to rabbita billing_cell.mbt)
+    // if (typeof Billing !== 'undefined') Billing.init();
     if (typeof BrowserControl !== 'undefined') BrowserControl.init();
     if (typeof GitPanel !== 'undefined') GitPanel.init();
     if (typeof Trash !== 'undefined') Trash.init();
@@ -160,7 +161,7 @@ const App = {
       { btn: 'btn-mcp', view: 'mcp', module: 'MCP' },
       { btn: 'btn-channels', view: 'channels', module: 'Channels' },
       // { btn: 'btn-schedules', view: 'schedules', module: 'Schedules' }, // Phase 3.2
-      { btn: 'btn-billing', view: 'billing', module: 'Billing' },
+      // { btn: 'btn-billing', view: 'billing', module: 'Billing' }, // Phase 3.2
       { btn: 'btn-browser', view: 'browser', module: 'BrowserControl' },
       { btn: 'btn-git', view: 'git', module: 'GitPanel' },
       { btn: 'btn-trash', view: 'trash', module: 'Trash' },

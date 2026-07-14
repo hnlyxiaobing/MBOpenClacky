@@ -131,4 +131,10 @@ fn main {
   let schedules_app = new(schedules_cell)
   schedules_app.with_init(schedules_emit(Init))
   schedules_app.mount("schedules-content")
+
+  // ── Billing cell at #billing-content (Phase 3.2) ──────────────
+  let (billing_emit, billing_cell) = build_billing_cell()
+  let billing_app = new(billing_cell)
+  billing_app.with_init(billing_emit(Init))
+  billing_app.mount("billing-content")
 }
