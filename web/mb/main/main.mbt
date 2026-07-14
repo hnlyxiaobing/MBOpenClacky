@@ -13,7 +13,7 @@ enum Msg {
 
 ///|
 fn main {
-  // ── Debug cell at #mb-root (Phase 0 / 0.5 sanity check) ─────────
+  // ── Debug cell at #mb-root (Phase 1.3: moved from fixed bottom-right card into #app) ─
   let debug_app = simple_cell(
     model=0,
     update=(msg, count) => {
