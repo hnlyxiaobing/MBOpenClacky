@@ -15,6 +15,7 @@ specs/
 │   └── incremental-spec-template.md
 ├── active/                ← 进行中的 spec
 ├── completed/             ← 已完成的 spec（归档）
+├── deprecated/            ← 被否决或废弃的 spec（方案变更、需求不再适用等）
 └── decisions/             ← 架构决策记录（ADR）
 ```
 
@@ -24,6 +25,7 @@ specs/
 2. **开发中** → spec 随开发推进不断回写（活 spec）
 3. **checkpoint** → 协作中发现的东西沉淀回 spec
 4. **完成后** → spec 从 `active/` 移到 `completed/`
+5. **废弃时** → spec 从 `active/` 移到 `deprecated/`（方案变更、需求不再适用等）
 
 ## Spec 文件命名规范
 
