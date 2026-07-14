@@ -167,4 +167,10 @@ fn main {
   let channels_app = new(channels_cell)
   channels_app.with_init(channels_emit(Init))
   channels_app.mount("channels-content")
+
+  // ── MCP cell at #mcp-content (Phase 3.2) ───────────────────────
+  let (mcp_emit, mcp_cell) = build_mcp_cell()
+  let mcp_app = new(mcp_cell)
+  mcp_app.with_init(mcp_emit(Init))
+  mcp_app.mount("mcp-content")
 }

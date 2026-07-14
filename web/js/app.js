@@ -90,7 +90,7 @@ const App = {
     if (typeof NotificationManager !== 'undefined') NotificationManager.init();
 
     // Initialize management panel modules
-    if (typeof MCP !== 'undefined') MCP.init();
+    // if (typeof MCP !== 'undefined') MCP.init();
     // if (typeof Channels !== 'undefined') Channels.init();
     // Schedules: removed in Phase 3.2 (migrated to rabbita schedules_cell.mbt)
     // if (typeof Schedules !== 'undefined') Schedules.init();
@@ -159,7 +159,7 @@ const App = {
 
     // Management panel navigation buttons
     const navModules = [
-      { btn: 'btn-mcp', view: 'mcp', module: 'MCP' },
+      // { btn: 'btn-mcp', view: 'mcp', module: 'MCP' }, // Phase 3.2
       // { btn: 'btn-channels', view: 'channels', module: 'Channels' }, // Phase 3.2
       // { btn: 'btn-schedules', view: 'schedules', module: 'Schedules' }, // Phase 3.2
       // { btn: 'btn-billing', view: 'billing', module: 'Billing' }, // Phase 3.2
