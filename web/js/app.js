@@ -100,7 +100,6 @@ const App = {
     if (typeof Trash !== 'undefined') Trash.init();
 
     // Initialize new feature modules
-    if (false && typeof BrandView !== 'undefined') BrandView.init(); // Phase 1.2: temporarily disabled — rabbita brand cell takes over #brand-content
     if (typeof SkillEditorView !== 'undefined') SkillEditorView.init();
     if (typeof ProfileView !== 'undefined') ProfileView.init();
     if (typeof ShareView !== 'undefined') ShareView.init();
@@ -170,7 +169,6 @@ const App = {
       { btn: 'btn-git', view: 'git', module: 'GitPanel' },
       { btn: 'btn-trash', view: 'trash', module: 'Trash' },
       // New feature modules
-      { btn: 'btn-brand', view: 'brand', module: 'BrandView' },
       { btn: 'btn-profile', view: 'profile', module: 'ProfileView' },
       { btn: 'btn-share', view: 'share', module: 'ShareView' },
       { btn: 'btn-model-test', view: 'model-test', module: 'ModelTestView' },
