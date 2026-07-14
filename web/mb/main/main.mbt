@@ -161,4 +161,10 @@ fn main {
   let git_app = new(git_cell)
   git_app.with_init(git_emit(Init))
   git_app.mount("git-content")
+
+  // ── Channels cell at #channels-content (Phase 3.2) ─────────────
+  let (channels_emit, channels_cell) = build_channels_cell()
+  let channels_app = new(channels_cell)
+  channels_app.with_init(channels_emit(Init))
+  channels_app.mount("channels-content")
 }

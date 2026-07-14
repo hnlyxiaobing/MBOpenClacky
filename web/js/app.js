@@ -91,7 +91,7 @@ const App = {
 
     // Initialize management panel modules
     if (typeof MCP !== 'undefined') MCP.init();
-    if (typeof Channels !== 'undefined') Channels.init();
+    // if (typeof Channels !== 'undefined') Channels.init();
     // Schedules: removed in Phase 3.2 (migrated to rabbita schedules_cell.mbt)
     // if (typeof Schedules !== 'undefined') Schedules.init();
     // Billing: removed in Phase 3.2 (migrated to rabbita billing_cell.mbt)
@@ -160,7 +160,7 @@ const App = {
     // Management panel navigation buttons
     const navModules = [
       { btn: 'btn-mcp', view: 'mcp', module: 'MCP' },
-      { btn: 'btn-channels', view: 'channels', module: 'Channels' },
+      // { btn: 'btn-channels', view: 'channels', module: 'Channels' }, // Phase 3.2
       // { btn: 'btn-schedules', view: 'schedules', module: 'Schedules' }, // Phase 3.2
       // { btn: 'btn-billing', view: 'billing', module: 'Billing' }, // Phase 3.2
       { btn: 'btn-browser', view: 'browser', module: 'BrowserControl' },
