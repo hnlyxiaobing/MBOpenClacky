@@ -77,4 +77,10 @@ fn main {
   let profile_app = new(profile_cell)
   profile_app.with_init(profile_emit(Init))
   profile_app.mount("profile-content")
+
+  // ── Share cell at #share-content (Phase 2.4) ────────────────────
+  let (share_emit, share_cell) = build_share_cell()
+  let share_app = new(share_cell)
+  share_app.with_init(share_emit(Init))
+  share_app.mount("share-content")
 }

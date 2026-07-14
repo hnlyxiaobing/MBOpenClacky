@@ -111,3 +111,36 @@ extern "js" fn window_confirm(msg : String) -> Bool = "(msg) => window.confirm(m
 /// wrapper so the rabbita cell can invoke it directly.
 #cfg(target="js")
 extern "js" fn i18n_set_locale(lang : String) = "(lang) => I18n.setLocale(lang)"
+
+///|
+/// Read the current session id from `App.currentSessionId` (see
+/// `web/js/app.js:69`). The Share cell renders different markup
+/// depending on whether a session is active; we read the global
+/// synchronously on `Init` instead of fetching it.
+#cfg(target="js")
+extern "js" fn js_current_session_id() -> String = "() => App.currentSessionId || ''"
+
+///|
+/// Read the current page origin (e.g. `https://app.example.com`) so
+/// the Share cell can build an absolute share URL without going
+/// through `window.location.href` (which would include the path).
+#cfg(target="js")
+extern "js" fn js_origin() -> String = "() => window.location.origin"
+
+///|
+/// `fetch(path).then(r => r.text())` — used by the Share cell to
+/// export a session in `format=md` (a plain text body). The existing
+/// `API.get` from `web/js/app.js:8` always parses JSON, so the
+/// text-export endpoint needs a separate path. Wraps in `safe_*`
+/// style: caller turns the result into `Result[String, String]`.
+#cfg(target="js")
+extern "js" fn api_get_text_promise(path : String) -> @js.Promise = "(path) => fetch(path).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })"
+
+///|
+/// `GET path` → response body as `String` (no JSON parsing). Throws
+/// if the network layer rejects; callers wrap with `try` and stringify
+/// the error.
+#cfg(target="js")
+pub async fn api_get_text(path : String) -> String {
+  api_get_text_promise(path).wait().cast()
+}
