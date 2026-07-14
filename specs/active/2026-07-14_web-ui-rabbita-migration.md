@@ -295,6 +295,92 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 **验证标准**：每个面板迁移后功能不回归，旧 JS 文件可安全删除（grep 无残留引用）。
 
+#### Phase 2.1 — Backups 面板（222 行旧 JS）· 计划中
+
+**目标**：用 rabbita Cell 重写 Backups 面板，挂到 `#backups-content`（在 `#view-backups` 内），按 Phase 1 模板。
+
+**API 端点**（来自 `web/js/backups.js`）：
+- `GET /api/backups` → 备份列表
+- `POST /api/backups` → 创建备份
+- `POST /api/backups/:id/restore` → 恢复备份
+- `DELETE /api/backups/:id` → 删除备份
+
+**Cell 设计**：
+- `Model{backups: Array[Json], loading: Bool, busy_id: String, error: String}`
+- `enum Msg{Init, LoadBackups, BackupsLoaded(Result[Json, String]), CreateBackup, CreateDone(Result), RestoreBackup(id), RestoreDone(Result), DeleteBackup(id), DeleteDone(Result), ConfirmDeleteYes(id), ConfirmDeleteNo}`
+- `update` 复用 `safe_get/post/del`（桥接层已有），confirm 走 `window_confirm`
+- `view` 渲染表格（Created/Label/Size/Status/Actions）+ Create 按钮 + 空态；沿用 `web/js/backups.js:38-130` 的 inline style 字段以便最小化样式改动
+
+**index.html 改动**：
+- 现状：`<div id="view-backups" class="view">` (L201) 容器在，内有 `<div class="view-content">` 但无 id
+- 改造：在 `<div class="view-content">` 内加 `<div id="backups-content"></div>` 作为 rabbita mount 点
+- 移除 `<script src="js/backups.js">` 引用（`web/index.html:402`）
+
+**app.js 改动**：
+- 删除 `if (typeof Backups !== 'undefined') Backups.init();` (L93 区域)
+- 删除 `navModules` 里的 `{ btn: 'btn-backups', view: 'backups', module: 'Backups' }` 条目（L179 区域），改为在 main.mbt 中通过 `app.showView('backups')` 触发 rabbita 重渲染
+
+**main.mbt 改动**：
+- 新建 `web/mb/main/backups_cell.mbt`，结构同 `brand_cell.mbt`
+- main.mbt 添加 `BackupsCell` mount 到 `#backups-content`，并实现 `app_show_view('backups')` 桥接
+
+**回滚**：恢复 `#backups-content` 旧内容 + 重新添加 backups.js 引用
+
+**注意**：`POST /api/backups/:id/restore` 是带 body 的 POST，桥接层 `api_post` 已支持任意 body（传空 `Json::object([])` 即可）
+
+#### Phase 2.2 — Version 面板（155 行旧 JS）· 计划中
+
+**目标**：用 rabbita Cell 重写 Version 面板，挂到 `#version-content`，按 Phase 1 模板。
+
+**API 端点**（来自 `web/js/versions.js`）：
+- `GET /api/version` → 当前版本 + 可用更新
+- `POST /api/version/check` → 触发检查更新
+- `POST /api/version/upgrade` → 应用更新
+
+**Cell 设计**：
+- `Model{current_version: String, available_update: Option[Json], changelog: String, checking: Bool, upgrading: Bool, result_msg: String}`
+- `enum Msg{Init, LoadVersion, VersionLoaded(Result), CheckUpdate, CheckUpdateDone(Result), ApplyUpdate, UpgradeDone(Result)}`
+- `view` 复用 `web/js/versions.js:68-110` 的 settings-group 卡片样式，最小化视觉改动
+
+**index.html 改动**：
+- 现状：`<div id="version-content" class="view-content">` (L307)
+- 改造：清空容器内容，由 rabbita mount
+- 移除 `<script src="js/versions.js">` 引用
+
+**app.js 改动**：删除 `if (typeof VersionView !== 'undefined') VersionView.init();` (L107) + `navModules` 里的 VersionView 条目 (L192)
+
+**回滚**：恢复旧 JS + 容器内容
+
+#### Phase 2.3 — Profile 面板（150 行旧 JS）· 计划中
+
+**目标**：用 rabbita Cell 重写 Profile 面板，挂到 `#profile-content`，按 Phase 1 模板。
+
+**API 端点**（来自 `web/js/profile.js`）：
+- `GET /api/profile` → 用户资料
+- `PUT /api/profile` → 更新资料（**需新增 `api_put` 桥接**）
+
+**Cell 设计**：
+- `Model{name, email, theme, language, email_notif, loading, saving, error}`
+- `enum Msg{Init, LoadProfile, ProfileLoaded(Result), UpdateName/Email/Theme/Lang/Notif(String|Bool), SaveProfile, SaveDone(Result), Reload}`
+- `view` 复用 form 字段（name/email/theme/language/email_notifications）；`I18n.t(...)` 通过新桥接 `i18n_t(key)` 调用
+
+**index.html 改动**：
+- 现状：`<div id="view-profile" class="view">` (L257) 容器在，内有 `<div class="view-content">` 但无 id
+- 改造：在 `<div class="view-content">` 内加 `<div id="profile-content"></div>`
+- 移除 `<script src="js/profile.js">` 引用
+
+**app.js 改动**：删除 `if (typeof ProfileView !== 'undefined') ProfileView.init();` (L104) + `navModules` 里的 ProfileView 条目 (L188)
+
+**桥接层扩展**：
+- `bridge.mbt` 新增 `api_put_promise` + `api_put(path, body) -> Json`（参考 `api_post` 实现）
+- `bridge.mbt` 新增 `i18n_t(key) -> String` 桥接（包裹 `I18n.t(key)`），允许 Profile cell 渲染翻译字符串
+
+**回滚**：恢复旧 JS + 容器内容
+
+#### Phase 2.4+ — Trash / Share / ModelTest / Tasks / Browser · 暂不规划
+
+3 面板（Backups/Version/Profile）回顾通过后再做下一批计划
+
 ---
 
 ### Phase 3 — 高复杂度面板（Chat/Sessions/MCP/Channels/Billing/Skills/Schedules/Creator/Meeting/Media/Workspace/Onboard/Git/Marketplace）

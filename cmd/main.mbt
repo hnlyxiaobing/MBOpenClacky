@@ -319,7 +319,7 @@ fn handle_onboard() -> Unit {
     println("")
     println("To bind your device:")
     println("  1. Start the web server:  clacky server")
-    println("  2. Open http://localhost:7070 in your browser")
+    println("  2. Open http://localhost:7071 in your browser")
     println("  3. Follow the onboarding flow under Settings > Device Binding")
     println("")
     println("Or use the API directly:")
@@ -398,18 +398,18 @@ async fn handle_server() -> Unit {
   let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
   // Create and start the web server.
-  // Default port is 7070 to stay compatible with the original OpenClacky;
+  // Default port is 7071 to stay compatible with the original OpenClacky;
   // override with the MBOPENCLACKY_WEB_PORT environment variable.
   let port = match @sys.get_env_var("MBOPENCLACKY_WEB_PORT") {
     Some(p) => {
-      let n = @string.parse_int(p.trim()) catch { _ => 7070 }
+      let n = @string.parse_int(p.trim()) catch { _ => 7071 }
       if n > 0 && n < 65536 {
         n
       } else {
-        7070
+        7071
       }
     }
-    None => 7070
+    None => 7071
   }
   let server = @web.WebServer::new(config, api_key)
   println("Starting MBOpenClacky web server on http://0.0.0.0:\{port}")

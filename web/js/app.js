@@ -93,7 +93,6 @@ const App = {
     if (typeof MCP !== 'undefined') MCP.init();
     if (typeof Channels !== 'undefined') Channels.init();
     if (typeof Schedules !== 'undefined') Schedules.init();
-    if (typeof Backups !== 'undefined') Backups.init();
     if (typeof Billing !== 'undefined') Billing.init();
     if (typeof BrowserControl !== 'undefined') BrowserControl.init();
     if (typeof GitPanel !== 'undefined') GitPanel.init();
@@ -163,7 +162,6 @@ const App = {
       { btn: 'btn-mcp', view: 'mcp', module: 'MCP' },
       { btn: 'btn-channels', view: 'channels', module: 'Channels' },
       { btn: 'btn-schedules', view: 'schedules', module: 'Schedules' },
-      { btn: 'btn-backups', view: 'backups', module: 'Backups' },
       { btn: 'btn-billing', view: 'billing', module: 'Billing' },
       { btn: 'btn-browser', view: 'browser', module: 'BrowserControl' },
       { btn: 'btn-git', view: 'git', module: 'GitPanel' },

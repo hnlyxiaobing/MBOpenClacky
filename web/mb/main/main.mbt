@@ -1,7 +1,4 @@
 ///|
-using @html {button, div, h1}
-
-///|
 using @rabbita {new, simple_cell, cell_with_emit}
 
 ///|
@@ -35,19 +32,19 @@ fn main {
       }
     },
     view=(emit, count) => {
-      div(class="mb-counter") <| [
-        h1(class="mb-title", "Hello from Rabbita"),
-        button(
+      @html.div(class="mb-counter") <| [
+        @html.h1(class="mb-title", "Hello from Rabbita"),
+        @html.button(
           class="mb-btn",
           on_click=emit(Clicked),
           "Phase 0 counter: \{count}",
         ),
-        button(
+        @html.button(
           class="mb-btn",
           on_click=emit(TestNotify),
           "Test Bridge → Notify",
         ),
-        button(
+        @html.button(
           class="mb-btn",
           on_click=emit(TestModal),
           "Test Bridge → Modal",
@@ -62,4 +59,10 @@ fn main {
   let app = new(brand_cell)
   app.with_init(emit(Init))
   app.mount("brand-content")
+
+  // ── Backups cell at #backups-content (Phase 2.1) ─────────────────
+  let (backups_emit, backups_cell) = build_backups_cell()
+  let backups_app = new(backups_cell)
+  backups_app.with_init(backups_emit(Init))
+  backups_app.mount("backups-content")
 }
