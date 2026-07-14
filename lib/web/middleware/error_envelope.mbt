@@ -59,7 +59,7 @@ pub fn forbidden_response(message : String) -> @core.HttpResponse {
 ///|
 /// Create a 429 Too Many Requests response with standard error envelope.
 pub fn rate_limit_response(retry_after : Int) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
+  @core.HttpResponse::HttpResponse(
     status_code=@core.StatusCode::TooManyRequests,
   )
   .json_value(

@@ -25,13 +25,13 @@ fn ex_make_event(
     pmap[k] = v.to_string_view()
   }
   {
-    req: @crescent.HttpRequest::http_request(
+    req: @crescent.HttpRequest::HttpRequest(
       http_method,
       url,
       {},
       raw_body=@utf8.encode(body),
     ),
-    res: @crescent.HttpResponse::http_response(status_code=OK),
+    res: @crescent.HttpResponse::HttpResponse(status_code=OK),
     params: pmap,
   }
 }

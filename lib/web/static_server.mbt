@@ -155,7 +155,7 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
 /// Convert local HttpResponse to crescent HttpResponse for use in handlers.
 pub fn HttpResponse::to_crescent(self : HttpResponse) -> @core.HttpResponse {
   let status_code = @core.StatusCode::from_int(self.status)
-  let resp = @core.HttpResponse::http_response(status_code~)
+  let resp = @core.HttpResponse::HttpResponse(status_code~)
   // Set Content-Type before body() so String responder won't override it
   resp.headers.set("Content-Type", self.content_type)
   for pair in self.headers {

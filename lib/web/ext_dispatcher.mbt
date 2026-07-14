@@ -505,7 +505,7 @@ fn make_ext_handler(
       result.exit_code,
     )
     // Build HTTP response
-    let response = @core.HttpResponse::http_response(
+    let response = @core.HttpResponse::HttpResponse(
         status_code=@core.StatusCode::from_int(status),
       )
       .header("Content-Type", content_type)

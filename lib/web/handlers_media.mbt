@@ -19,9 +19,7 @@ fn handle_media_image(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
-    status_code=@core.StatusCode::NotImplemented,
-  ).json_value(
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     MediaErrorResponse::{
       ok: false,
       message: "Media image generation not yet implemented",
@@ -35,9 +33,7 @@ fn handle_media_video(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
-    status_code=@core.StatusCode::NotImplemented,
-  ).json_value(
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     MediaErrorResponse::{
       ok: false,
       message: "Media video generation not yet implemented",
@@ -51,9 +47,7 @@ fn handle_media_speech(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
-    status_code=@core.StatusCode::NotImplemented,
-  ).json_value(
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     MediaErrorResponse::{
       ok: false,
       message: "Media speech synthesis not yet implemented",
@@ -67,9 +61,7 @@ fn handle_media_transcription(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
-    status_code=@core.StatusCode::NotImplemented,
-  ).json_value(
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     MediaErrorResponse::{
       ok: false,
       message: "Media transcription not yet implemented",
@@ -83,9 +75,7 @@ fn handle_media_video_understand(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::http_response(
-    status_code=@core.StatusCode::NotImplemented,
-  ).json_value(
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     MediaErrorResponse::{
       ok: false,
       message: "Video understanding not yet implemented",

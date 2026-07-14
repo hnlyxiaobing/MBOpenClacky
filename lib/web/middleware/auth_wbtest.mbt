@@ -6,7 +6,7 @@ fn make_req(
   url : String,
   headers : Map[String, String],
 ) -> @core.HttpRequest {
-  @core.HttpRequest::http_request(meth, url, headers, raw_body=b"")
+  @core.HttpRequest::HttpRequest(meth, url, headers, raw_body=b"")
 }
 
 // ── is_public_path ────────────────────────────────────────────────

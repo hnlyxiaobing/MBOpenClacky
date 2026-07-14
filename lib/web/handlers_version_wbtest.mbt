@@ -6,8 +6,8 @@ fn make_version_event(
   url : String,
 ) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::http_request(http_method, url, {}, raw_body=b""),
-    res: @crescent.HttpResponse::http_response(status_code=OK),
+    req: @crescent.HttpRequest::HttpRequest(http_method, url, {}, raw_body=b""),
+    res: @crescent.HttpResponse::HttpResponse(status_code=OK),
     params: {},
   }
 }

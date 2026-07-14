@@ -232,7 +232,7 @@ pub fn auth_middleware(
     // Rate limit check
     if limiter.is_limited(client_ip, now) {
       let retry = limiter.retry_after(client_ip, now)
-      return @core.HttpResponse::http_response(
+      return @core.HttpResponse::HttpResponse(
           status_code=@core.StatusCode::TooManyRequests,
         )
         .json_value(

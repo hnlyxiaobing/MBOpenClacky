@@ -3,8 +3,8 @@
 ///|
 fn make_image_event(url : String) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::http_request(Get, url, {}, raw_body=b""),
-    res: @crescent.HttpResponse::http_response(status_code=OK),
+    req: @crescent.HttpRequest::HttpRequest(Get, url, {}, raw_body=b""),
+    res: @crescent.HttpResponse::HttpResponse(status_code=OK),
     params: {},
   }
 }
