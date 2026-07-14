@@ -106,7 +106,7 @@ const App = {
     if (typeof ShareView !== 'undefined') ShareView.init();
     if (typeof ModelTestView !== 'undefined') ModelTestView.init();
     if (typeof VersionView !== 'undefined') VersionView.init();
-    if (typeof CreatorView !== 'undefined') CreatorView.init();
+    // if (typeof CreatorView !== 'undefined') CreatorView.init();
     // if (typeof OnboardView !== 'undefined') OnboardView.init();
     if (typeof TaskView !== 'undefined') TaskView.init();
     // Media: removed in Phase 3.2 (migrated to rabbita media_cell.mbt)
@@ -170,7 +170,7 @@ const App = {
       { btn: 'btn-profile', view: 'profile', module: 'ProfileView' },
       { btn: 'btn-share', view: 'share', module: 'ShareView' },
       { btn: 'btn-model-test', view: 'model-test', module: 'ModelTestView' },
-      { btn: 'btn-creator', view: 'creator', module: 'CreatorView' },
+      // { btn: 'btn-creator', view: 'creator', module: 'CreatorView' }, // Phase 3.2
       { btn: 'btn-version', view: 'version', module: 'VersionView' },
       // { btn: 'btn-onboard', view: 'onboard', module: 'OnboardView' }, // Phase 3.2
       { btn: 'btn-tasks', view: 'tasks', module: 'TaskView' },

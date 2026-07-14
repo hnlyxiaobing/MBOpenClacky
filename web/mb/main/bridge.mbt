@@ -203,6 +203,11 @@ extern "js" fn i18n_get_locale() -> String = "() => I18n.getLocale()"
 extern "js" fn app_show_view(view : String) = "(view) => App.showView(view)"
 
 ///|
+/// Open the skill editor for a given skill name.
+#cfg(target="js")
+extern "js" fn skill_editor_open(name : String) = "(name) => { if (typeof SkillEditorView !== 'undefined') SkillEditorView.openEditor(name); }"
+
+///|
 /// Register a callback for the `i18n:locale-changed` CustomEvent
 /// dispatched by `I18n.setLocale()` (see `web/js/i18n.js:62`). The
 /// MoonBit closure is wrapped as a JS function automatically by the

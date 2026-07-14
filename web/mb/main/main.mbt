@@ -149,4 +149,10 @@ fn main {
   let onboard_app = new(onboard_cell)
   onboard_app.with_init(onboard_emit(Init))
   onboard_app.mount("onboard-content")
+
+  // ── Creator cell at #creator-content (Phase 3.2) ───────────────
+  let (creator_emit, creator_cell) = build_creator_cell()
+  let creator_app = new(creator_cell)
+  creator_app.with_init(creator_emit(Init))
+  creator_app.mount("creator-content")
 }
