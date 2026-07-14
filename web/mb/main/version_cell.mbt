@@ -137,9 +137,11 @@ fn version_update(
   match msg {
     Init => (version_fetch_cmd(emit), { ..model, busy: true })
     VersionLoaded(Ok(json)) => {
-      let v = version_json_string(json, "current_version", version_json_string(
-        json, "version", "unknown",
-      ))
+      let v = version_json_string(
+        json,
+        "current_version",
+        version_json_string(json, "version", "unknown"),
+      )
       let available = version_extract_update(json)
       let changelog = match available {
         Some(u) => u.changelog
@@ -200,10 +202,7 @@ fn version_update(
     }
     CheckDone(Err(e)) => {
       app_notify("Update check failed: \{e}", "error")
-      (
-        @cmd.none,
-        { ..model, busy: false, check_result: "Check failed: " + e },
-      )
+      (@cmd.none, { ..model, busy: false, check_result: "Check failed: " + e })
     }
     ClickUpgrade =>
       if model.busy {
@@ -220,9 +219,7 @@ fn version_update(
       }
     UpgradeDone(Ok(json)) => {
       let msg = version_json_string(
-        json,
-        "message",
-        "Upgrade initiated. Server may restart.",
+        json, "message", "Upgrade initiated. Server may restart.",
       )
       app_notify(msg, "success")
       (@cmd.none, { ..model, busy: false })
@@ -286,18 +283,18 @@ fn version_view(
         @html.div(class="version-changelog-empty", [@html.span("")])
       }
       @html.div(class="settings-group", [
-        @html.div(
-          class="settings-group-title version-update-title",
-          [@html.span("Update Available")],
-        ),
+        @html.div(class="settings-group-title version-update-title", [
+          @html.span("Update Available"),
+        ]),
         @html.div(class="version-update-card", [
           @html.div(class="version-update-header", [
             @html.div(class="version-update-text", [
-              @html.div(
-                class="version-update-name",
-                [@html.span("Version " + u.version)],
-              ),
-              @html.div(class="text-muted", [@html.span("A new version is available")]),
+              @html.div(class="version-update-name", [
+                @html.span("Version " + u.version),
+              ]),
+              @html.div(class="text-muted", [
+                @html.span("A new version is available"),
+              ]),
             ]),
             upgrade_button,
           ]),

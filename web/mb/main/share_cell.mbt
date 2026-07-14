@@ -90,30 +90,35 @@ fn share_export_cmd(
   session_id : String,
   format : String,
 ) -> @cmd.Cmd {
-  let path = "/api/sessions/" + js_encode_uri_component(session_id) +
-    "/export?format=" + format
+  let path = "/api/sessions/" +
+    js_encode_uri_component(session_id) +
+    "/export?format=" +
+    format
   if format == "md" {
     @cmd.perform(r => emit(ExportDone(r)), async fn() noraise {
-      Ok(api_get_text(path)) catch { e => Err(e.to_string()) }
+      Ok(api_get_text(path)) catch {
+        e => Err(e.to_string())
+      }
     })
   } else {
-    @cmd.perform(r => {
-      let s : Result[String, String] = match r {
-        Ok(json) => Ok((json : Json).stringify(indent=2))
-        Err(e) => Err(e)
-      }
-      emit(ExportDone(s))
-    }, async fn() noraise { safe_get(path) })
+    @cmd.perform(
+      r => {
+        let s : Result[String, String] = match r {
+          Ok(json) => Ok((json : Json).stringify(indent=2))
+          Err(e) => Err(e)
+        }
+        emit(ExportDone(s))
+      },
+      async fn() noraise { safe_get(path) },
+    )
   }
 }
 
 ///|
 fn share_copy_cmd(emit : @cmd.Emit[ShareMsg], url : String) -> @cmd.Cmd {
-  @clipboard.copy(
-    @clipboard.Text(url),
-    copied=emit(CopyDone(Ok(()))),
-    failed=e => emit(CopyDone(Err(e))),
-  )
+  @clipboard.copy(@clipboard.Text(url), copied=emit(CopyDone(Ok(()))), failed=e => {
+    emit(CopyDone(Err(e)))
+  })
 }
 
 ///|
@@ -123,8 +128,7 @@ fn share_update(
   model : ShareModel,
 ) -> (@cmd.Cmd, ShareModel) {
   match msg {
-    Init =>
-      (@cmd.none, { ..model, session_id: js_current_session_id() })
+    Init => (@cmd.none, { ..model, session_id: js_current_session_id() })
     FormatChanged(v) => (@cmd.none, { ..model, format: v })
     ClickExport =>
       if model.session_id == "" {
@@ -162,10 +166,7 @@ fn share_update(
 }
 
 ///|
-fn share_view(
-  emit : @cmd.Emit[ShareMsg],
-  model : ShareModel,
-) -> @html.Html {
+fn share_view(emit : @cmd.Emit[ShareMsg], model : ShareModel) -> @html.Html {
   let has_session = model.session_id != ""
   let export_button = if model.busy {
     @html.button(class="btn btn-primary", disabled=true, "Exporting...")
@@ -184,33 +185,25 @@ fn share_view(
     )
   }
   let session_info = if has_session {
-    @html.div(
-      class="settings-field",
-      [
-        @html.label(for_="share-session", [@html.span("Session")]),
-        @html.div(class="text-muted", [@html.span(model.session_id)]),
-      ],
-    )
+    @html.div(class="settings-field", [
+      @html.label(for_="share-session", [@html.span("Session")]),
+      @html.div(class="text-muted", [@html.span(model.session_id)]),
+    ])
   } else {
-    @html.p(
-      class="text-muted",
-      [@html.span("Select a session first to export.")],
-    )
+    @html.p(class="text-muted", [
+      @html.span("Select a session first to export."),
+    ])
   }
   let format_select = @html.select(
     id="share-format",
     on_change=s => emit(FormatChanged(s)),
     [
-      @html.option(
-        value="md",
-        selected=model.format == "md",
-        [@html.span("Markdown (.md)")],
-      ),
-      @html.option(
-        value="json",
-        selected=model.format == "json",
-        [@html.span("JSON (.json)")],
-      ),
+      @html.option(value="md", selected=model.format == "md", [
+        @html.span("Markdown (.md)"),
+      ]),
+      @html.option(value="json", selected=model.format == "json", [
+        @html.span("JSON (.json)"),
+      ]),
     ],
   )
   let result_block = if model.result.length() > 0 {
@@ -218,10 +211,9 @@ fn share_view(
       @html.div(class="settings-group-title", [@html.span("Export Result")]),
       @html.pre(
         style=[
-          "background:var(--bg-tertiary)", "padding:12px",
-          "border-radius:var(--radius-sm)", "font-size:12px",
-          "font-family:var(--font-mono)", "overflow-x:auto",
-          "white-space:pre-wrap", "max-height:400px", "overflow-y:auto",
+          "background:var(--bg-tertiary)", "padding:12px", "border-radius:var(--radius-sm)",
+          "font-size:12px", "font-family:var(--font-mono)", "overflow-x:auto", "white-space:pre-wrap",
+          "max-height:400px", "overflow-y:auto",
         ],
         [@html.span(model.result)],
       ),
@@ -242,14 +234,13 @@ fn share_view(
   let link_block = if has_session {
     @html.div(
       style=[
-        "display:flex", "align-items:center", "gap:8px", "padding:8px",
-        "background:var(--bg-tertiary)", "border-radius:var(--radius-sm)",
+        "display:flex", "align-items:center", "gap:8px", "padding:8px", "background:var(--bg-tertiary)",
+        "border-radius:var(--radius-sm)",
       ],
       [
-        @html.code(
-          style=["font-size:12px", "word-break:break-all", "flex:1"],
-          [@html.span(link_url)],
-        ),
+        @html.code(style=["font-size:12px", "word-break:break-all", "flex:1"], [
+          @html.span(link_url),
+        ]),
         copy_button,
       ],
     )

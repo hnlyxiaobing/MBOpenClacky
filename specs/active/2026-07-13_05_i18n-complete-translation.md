@@ -14,8 +14,7 @@
 
 ## 现状分析
 
-- `web/js/i18n/en.js`（436 行，~394 keys）+ `web/js/i18n/zh.js`（436 行，~394 keys）已存在，使用 `I18n.t(key)` 平铺字典查找模式（非嵌套对象路径）。
-- `web/js/i18n.js`（85 行）：i18n 框架，支持 `t(key, params)` 翻译 + `setLocale(locale)` 切换 + `translateDOM()` DOM 批量翻译（`data-i18n` / `data-i18n-placeholder` / `data-i18n-title` 属性）。
+- `web/js/i18n.js`（2,784 行）：i18n 框架，支持 `t(key, params)` 翻译 + `setLocale(locale)` 切换 + `translateDOM()` DOM 批量翻译（`data-i18n` / `data-i18n-placeholder` / `data-i18n-title` 属性）。翻译 key 和值已整合到此文件中。
 - 后端 `lib/i18n`（164 行）已基本对齐原项目 `locales/`（114 行）。
 - 翻译 key 格式为点分隔字符串（如 `"sessions.title"` / `"settings.model"`），存储在平铺字典中。
 - 当前缺失翻译在 Web 面板中显示为原始 key（`I18n.t()` 在找不到 key 时返回 key 本身）。

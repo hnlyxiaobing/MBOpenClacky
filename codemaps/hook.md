@@ -1,6 +1,6 @@
 # hook - Shell Hook 加载器 · 生命周期事件执行
 
-> 路径: `lib/hook/` · 3 文件（src=2, test=1）· 外部 Shell 脚本 Hook 系统
+> 路径: `lib/hook/` · 4 文件（src=3, test=1）· 外部 Shell 脚本 Hook 系统
 
 ## 入口函数
 

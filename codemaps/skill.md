@@ -69,11 +69,11 @@ EvolutionEngine::evolve(scenario)
 - `moonbitlang/core/json` — JSON 序列化
 - `lib/web/handlers_skills.mbt` — Web REST API 层（CRUD、install、content get/put、toggle、store、creator）
 
-## 默认技能清单（16 个代码注册 + 2 个仅资源）
+## 默认技能清单（17 个代码注册 + 1 个仅资源）
 
-代码注册（`default_skills.mbt`）: `code-explorer`, `mcp-manager`, `media-gen`, `persist-memory`, `recall-memory`, `search-skills`, `skill-creator`, `cron-task-creator`, `deploy`, `onboard`, `product-help`, `browser_setup`, `channel_manager`, `new`, `personal_website`, `skill_add`。
+代码注册（`default_skills.mbt`）: `code-explorer`, `mcp-manager`, `media-gen`, `persist-memory`, `recall-memory`, `search-skills`, `skill-creator`, `cron-task-creator`, `deploy`, `onboard`, `product-help`, `browser_setup`, `channel_manager`, `new`, `personal_website`, `skill_add`, `meeting-summarizer`。
 
-仅资源目录（`assets/skills/`）: `extend-openclacky`, `meeting-summarizer`。
+仅资源目录（`assets/skills/`）: `extend-openclacky`。
 
 ## 风险点
 

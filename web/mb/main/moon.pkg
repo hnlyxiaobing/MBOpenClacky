@@ -4,11 +4,10 @@ import {
   "moonbit-community/rabbita/clipboard",
   "moonbit-community/rabbita/html",
   "moonbit-community/rabbita/js",
+  "moonbit-community/rabbita/sub",
   "moonbitlang/core/json",
 }
 
 supported_targets = "js"
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")

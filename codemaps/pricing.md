@@ -1,6 +1,6 @@
 # pricing - 模型定价表 · 成本计算
 
-> 路径: `lib/pricing/` · 3 文件（src=2, test=1）· LLM 调用费用计算
+> 路径: `lib/pricing/` · 4 文件（src=3, test=1）· LLM 调用费用计算
 
 ## 入口函数
 

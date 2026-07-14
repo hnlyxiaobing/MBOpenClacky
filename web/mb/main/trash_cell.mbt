@@ -233,28 +233,22 @@ fn trash_fetch_items_cmd(
   } else {
     "/api/trash?type=" + filter
   }
-  @cmd.perform(
-    r => emit(ItemsLoaded(r)),
-    async fn() noraise {
-      match safe_get(path) {
-        Ok(json) => Ok(trash_parse_items(json))
-        Err(e) => Err(e)
-      }
-    },
-  )
+  @cmd.perform(r => emit(ItemsLoaded(r)), async fn() noraise {
+    match safe_get(path) {
+      Ok(json) => Ok(trash_parse_items(json))
+      Err(e) => Err(e)
+    }
+  })
 }
 
 ///|
 fn trash_fetch_stats_cmd(emit : @cmd.Emit[TrashMsg]) -> @cmd.Cmd {
-  @cmd.perform(
-    r => emit(StatsLoaded(r)),
-    async fn() noraise {
-      match safe_get("/api/trash/stats") {
-        Ok(json) => Ok(json)
-        Err(_) => Ok(Json::object(Map::new()))
-      }
-    },
-  )
+  @cmd.perform(r => emit(StatsLoaded(r)), async fn() noraise {
+    match safe_get("/api/trash/stats") {
+      Ok(json) => Ok(json)
+      Err(_) => Ok(Json::object(Map::new()))
+    }
+  })
 }
 
 ///|
@@ -317,13 +311,10 @@ fn trash_batch_delete_cmd(
       }
     })
   })
-  let refresh : @cmd.Cmd = @cmd.perform(
-    r => emit(BatchDeleteDone(r)),
-    async fn() noraise {
-      let _ = safe_get("/api/trash/stats")
-      Ok(())
-    },
-  )
+  let refresh : @cmd.Cmd = @cmd.perform(r => emit(BatchDeleteDone(r)), async fn() noraise {
+    let _ = safe_get("/api/trash/stats")
+    Ok(())
+  })
   @cmd.batch(cmds + [refresh])
 }
 
@@ -377,11 +368,7 @@ fn trash_update(
   model : TrashModel,
 ) -> (@cmd.Cmd, TrashModel) {
   match msg {
-    Init =>
-      (
-        trash_initial_fetch(emit),
-        { ..model, busy: "load", error: "" },
-      )
+    Init => (trash_initial_fetch(emit), { ..model, busy: "load", error: "" })
     Reload =>
       (
         @cmd.batch([
@@ -392,10 +379,7 @@ fn trash_update(
       )
     ItemsLoaded(Ok(items)) => {
       let next = { ..model, items, busy: "", loaded: true }
-      (
-        @cmd.none,
-        { ..next, filtered_items: trash_apply_filter(next) },
-      )
+      (@cmd.none, { ..next, filtered_items: trash_apply_filter(next) })
     }
     ItemsLoaded(Err(e)) => {
       app_notify("Failed to load trash: \{e}", "error")
@@ -493,13 +477,19 @@ fn trash_update(
         (@cmd.none, model)
       } else {
         let n = ids.length()
-        let msg = "Restore " + n.to_string() +
-          " selected item" + plural_s(n) + "?"
+        let msg = "Restore " +
+          n.to_string() +
+          " selected item" +
+          plural_s(n) +
+          "?"
         let ok = window_confirm(msg)
         if not(ok) {
           (@cmd.none, model)
         } else {
-          (trash_batch_restore_cmd(emit, ids), { ..model, busy: "batch-restore" })
+          (
+            trash_batch_restore_cmd(emit, ids),
+            { ..model, busy: "batch-restore" },
+          )
         }
       }
     }
@@ -523,8 +513,10 @@ fn trash_update(
         (@cmd.none, model)
       } else {
         let n = ids.length()
-        let msg = "Permanently delete " + n.to_string() +
-          " selected item" + plural_s(n) +
+        let msg = "Permanently delete " +
+          n.to_string() +
+          " selected item" +
+          plural_s(n) +
           "? This cannot be undone."
         let ok = window_confirm(msg)
         if not(ok) {
@@ -602,18 +594,15 @@ fn trash_item_row(
   item : TrashItem,
   selected : Bool,
 ) -> @html.Html {
-  let row_bg = if selected {
-    "var(--bg-tertiary)"
-  } else {
-    "transparent"
-  }
+  let row_bg = if selected { "var(--bg-tertiary)" } else { "transparent" }
   let (expiry_text, expired) = trash_format_expiry(item.expires_at)
   let expiry_color = if expired {
     "var(--color-danger, #f85149)"
   } else {
     "var(--text-muted)"
   }
-  let name_children : Array[@html.Html] = if item.name != "" && item.name != item.id {
+  let name_children : Array[@html.Html] = if item.name != "" &&
+    item.name != item.id {
     [
       @html.span(item.name),
       @html.div(
@@ -627,17 +616,14 @@ fn trash_item_row(
   } else {
     [@html.span(item.id)]
   }
-  let cb = @html.input(
-    input_type=Checkbox,
-    checked=selected,
-    on_change=_s => emit(ClickToggleItem(item.id)),
-  )
+  let cb = @html.input(input_type=Checkbox, checked=selected, on_change=_s => {
+    emit(ClickToggleItem(item.id))
+  })
   let cells : Array[@html.Html] = [
     @html.td(style=["padding:8px 4px"], [cb]),
     @html.td(
       style=[
-        "padding:8px 12px", "font-size:13px", "color:var(--text-primary)",
-        "word-break:break-all",
+        "padding:8px 12px", "font-size:13px", "color:var(--text-primary)", "word-break:break-all",
       ],
       name_children,
     ),
@@ -645,62 +631,59 @@ fn trash_item_row(
       @html.span(
         class="badge",
         style=[
-          "background:var(--bg-tertiary)", "color:var(--text-secondary)",
-          "padding:2px 8px", "border-radius:4px", "font-size:11px",
-          "text-transform:capitalize",
+          "background:var(--bg-tertiary)", "color:var(--text-secondary)", "padding:2px 8px",
+          "border-radius:4px", "font-size:11px", "text-transform:capitalize",
         ],
         item.item_type,
       ),
     ]),
     @html.td(
       style=[
-        "padding:8px 12px", "font-size:12px", "color:var(--text-muted)",
-        "white-space:nowrap",
+        "padding:8px 12px", "font-size:12px", "color:var(--text-muted)", "white-space:nowrap",
       ],
       [@html.span(trash_format_time(item.deleted_at))],
     ),
     @html.td(
       style=[
-        "padding:8px 12px", "font-size:12px", "white-space:nowrap",
+        "padding:8px 12px",
+        "font-size:12px",
+        "white-space:nowrap",
         "color:" + expiry_color,
       ],
       [@html.span(expiry_text)],
     ),
-    @html.td(style=["padding:8px 12px", "text-align:right", "white-space:nowrap"], [
-      @html.button(
-        class="btn btn-primary btn-sm",
-        style=["margin-right:4px"],
-        on_click=emit(ClickRestore(item.id)),
-        "↩",
-      ),
-      @html.button(
-        class="btn btn-danger btn-sm",
-        on_click=emit(ClickDelete(item.id)),
-        "✕",
-      ),
-    ]),
+    @html.td(
+      style=["padding:8px 12px", "text-align:right", "white-space:nowrap"],
+      [
+        @html.button(
+          class="btn btn-primary btn-sm",
+          style=["margin-right:4px"],
+          on_click=emit(ClickRestore(item.id)),
+          "↩",
+        ),
+        @html.button(
+          class="btn btn-danger btn-sm",
+          on_click=emit(ClickDelete(item.id)),
+          "✕",
+        ),
+      ],
+    ),
   ]
   @html.tr(
-    style=["border-bottom:1px solid var(--border-light)", "background:" + row_bg],
+    style=[
+      "border-bottom:1px solid var(--border-light)",
+      "background:" + row_bg,
+    ],
     cells,
   )
 }
 
 ///|
-fn trash_view(
-  emit : @cmd.Emit[TrashMsg],
-  model : TrashModel,
-) -> @html.Html {
+fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
   if not(model.loaded) {
-    return @html.div(
-      class="trash-panel",
-      [
-        @html.p(
-          class="text-muted",
-          [@html.span("Loading trash...")],
-        ),
-      ],
-    )
+    return @html.div(class="trash-panel", [
+      @html.p(class="text-muted", [@html.span("Loading trash...")]),
+    ])
   }
   let total = model.items.length()
   let selected_count = trash_selected_count(model.selected)
@@ -710,21 +693,30 @@ fn trash_view(
       None => 0
     }
   }
-  let filter_row = @html.div(
-    style=["display:flex", "gap:4px"],
-    [
-      trash_filter_button(emit, "all", "All", total, model.filter == "all"),
-      trash_filter_button(
-        emit, "session", "Sessions", stats_count("session"), model.filter == "session",
-      ),
-      trash_filter_button(
-        emit, "config", "Configs", stats_count("config"), model.filter == "config",
-      ),
-      trash_filter_button(
-        emit, "schedule", "Schedules", stats_count("schedule"), model.filter == "schedule",
-      ),
-    ],
-  )
+  let filter_row = @html.div(style=["display:flex", "gap:4px"], [
+    trash_filter_button(emit, "all", "All", total, model.filter == "all"),
+    trash_filter_button(
+      emit,
+      "session",
+      "Sessions",
+      stats_count("session"),
+      model.filter == "session",
+    ),
+    trash_filter_button(
+      emit,
+      "config",
+      "Configs",
+      stats_count("config"),
+      model.filter == "config",
+    ),
+    trash_filter_button(
+      emit,
+      "schedule",
+      "Schedules",
+      stats_count("schedule"),
+      model.filter == "schedule",
+    ),
+  ])
   let restore_label = if selected_count > 0 {
     "↩ Restore (" + selected_count.to_string() + ")"
   } else {
@@ -736,7 +728,9 @@ fn trash_view(
     "✕ Delete Selected"
   }
   let all_selected = model.filtered_items.length() > 0 &&
-    model.filtered_items.iter().all(fn(item) { model.selected.contains(item.id) })
+    model.filtered_items
+    .iter()
+    .all(fn(item) { model.selected.contains(item.id) })
   let empty_btn = @html.button(
     class="btn btn-danger btn-sm",
     on_click=emit(ClickEmptyAll),
@@ -748,8 +742,8 @@ fn trash_view(
     @html.span(
       class="badge",
       style=[
-        "background:var(--bg-tertiary)", "color:var(--text-secondary)",
-        "padding:2px 8px", "border-radius:10px", "font-size:12px",
+        "background:var(--bg-tertiary)", "color:var(--text-secondary)", "padding:2px 8px",
+        "border-radius:10px", "font-size:12px",
       ],
       total_label,
     ),
@@ -765,9 +759,8 @@ fn trash_view(
   let toolbar = @html.div(
     class="trash-toolbar",
     style=[
-      "display:flex", "align-items:center", "gap:8px", "padding:12px 0",
-      "border-bottom:1px solid var(--border-light)", "margin-bottom:8px",
-      "flex-wrap:wrap",
+      "display:flex", "align-items:center", "gap:8px", "padding:12px 0", "border-bottom:1px solid var(--border-light)",
+      "margin-bottom:8px", "flex-wrap:wrap",
     ],
     [
       filter_row,
@@ -809,80 +802,64 @@ fn trash_view(
     } else {
       "Trash is Empty"
     }
-    @html.div(
-      class="empty-state",
-      style=["padding:40px 0"],
-      [
-        @html.div(
-          class="empty-state-icon",
-          style=["font-size:48px", "opacity:0.3"],
-          [@html.span("🗑")],
-        ),
-        @html.h3(
-          style=["margin:12px 0 4px", "color:var(--text-secondary)"],
-          [@html.span(title)],
-        ),
-        @html.p(class="text-muted", style=["font-size:13px"], [@html.span(msg)]),
-      ],
-    )
+    @html.div(class="empty-state", style=["padding:40px 0"], [
+      @html.div(
+        class="empty-state-icon",
+        style=["font-size:48px", "opacity:0.3"],
+        [@html.span("🗑")],
+      ),
+      @html.h3(style=["margin:12px 0 4px", "color:var(--text-secondary)"], [
+        @html.span(title),
+      ]),
+      @html.p(class="text-muted", style=["font-size:13px"], [@html.span(msg)]),
+    ])
   } else {
     let rows : Array[@html.Html] = model.filtered_items.map(fn(item) {
       trash_item_row(emit, item, model.selected.contains(item.id))
     })
-    @html.table(
-      style=["width:100%", "border-collapse:collapse"],
-      [
-        @html.thead([
-          @html.tr(
-            style=["border-bottom:1px solid var(--border)"],
-            [
-              @html.th(style=["width:30px", "padding:8px 4px"], [@html.span("")]),
-              @html.th(
-                style=[
-                  "text-align:left", "padding:8px 12px", "font-size:12px",
-                  "font-weight:600", "color:var(--text-secondary)",
-                  "text-transform:uppercase", "letter-spacing:0.5px",
-                ],
-                [@html.span("Name / ID")],
-              ),
-              @html.th(
-                style=[
-                  "text-align:left", "padding:8px 12px", "font-size:12px",
-                  "font-weight:600", "color:var(--text-secondary)",
-                  "text-transform:uppercase", "letter-spacing:0.5px",
-                ],
-                [@html.span("Type")],
-              ),
-              @html.th(
-                style=[
-                  "text-align:left", "padding:8px 12px", "font-size:12px",
-                  "font-weight:600", "color:var(--text-secondary)",
-                  "text-transform:uppercase", "letter-spacing:0.5px",
-                ],
-                [@html.span("Deleted")],
-              ),
-              @html.th(
-                style=[
-                  "text-align:left", "padding:8px 12px", "font-size:12px",
-                  "font-weight:600", "color:var(--text-secondary)",
-                  "text-transform:uppercase", "letter-spacing:0.5px",
-                ],
-                [@html.span("Expires")],
-              ),
-              @html.th(
-                style=[
-                  "text-align:right", "padding:8px 12px", "font-size:12px",
-                  "font-weight:600", "color:var(--text-secondary)",
-                  "text-transform:uppercase", "letter-spacing:0.5px",
-                ],
-                [@html.span("Actions")],
-              ),
+    @html.table(style=["width:100%", "border-collapse:collapse"], [
+      @html.thead([
+        @html.tr(style=["border-bottom:1px solid var(--border)"], [
+          @html.th(style=["width:30px", "padding:8px 4px"], [@html.span("")]),
+          @html.th(
+            style=[
+              "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
+              "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
+            [@html.span("Name / ID")],
+          ),
+          @html.th(
+            style=[
+              "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
+              "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
+            ],
+            [@html.span("Type")],
+          ),
+          @html.th(
+            style=[
+              "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
+              "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
+            ],
+            [@html.span("Deleted")],
+          ),
+          @html.th(
+            style=[
+              "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
+              "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
+            ],
+            [@html.span("Expires")],
+          ),
+          @html.th(
+            style=[
+              "text-align:right", "padding:8px 12px", "font-size:12px", "font-weight:600",
+              "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
+            ],
+            [@html.span("Actions")],
           ),
         ]),
-        @html.tbody(rows),
-      ],
-    )
+      ]),
+      @html.tbody(rows),
+    ])
   }
   @html.div(class="trash-panel", [header, toolbar, list_block])
 }

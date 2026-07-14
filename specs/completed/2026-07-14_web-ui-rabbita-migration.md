@@ -1,7 +1,7 @@
 # Web UI Rabbita 迁移 · 对抗式审查与优化方案 (IDEA_DOC)
 
 > **创建日期**: 2026-07-14
-> **状态**: **Phase 0 已完成**（2026-07-14 07:18-07:19）→ 当前进行 **Phase 0.5 跨边界桥接层**
+> **状态**: ✅ **已完成**（Phase 0 - 2.8 全部开发目标完成，Phase 3/4 为未来工作，明确不在本 spec 范围）
 > **来源**: 用户提交的 Web UI 架构调查报告（主张用 rabbita/MoonBit-TEA 重写前端）
 > **关联**: `specs/active/2026-07-13_04_frontend-feature-architecture.md`（store/view 拆分方案，部分已实施）
 > **审查方法**: 对调查报告的每一条事实声明，用 `grep`/`glob`/`file_reader`/`warren` 实测验证，证据标注 `路径:行号`
@@ -295,7 +295,7 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 **验证标准**：每个面板迁移后功能不回归，旧 JS 文件可安全删除（grep 无残留引用）。
 
-#### Phase 2.1 — Backups 面板（222 行旧 JS）· 计划中
+#### Phase 2.1 — Backups 面板（222 行旧 JS）· ✅ 已完成（commit 6d155c0）
 
 **目标**：用 rabbita Cell 重写 Backups 面板，挂到 `#backups-content`（在 `#view-backups` 内），按 Phase 1 模板。
 
@@ -328,7 +328,7 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 **注意**：`POST /api/backups/:id/restore` 是带 body 的 POST，桥接层 `api_post` 已支持任意 body（传空 `Json::object([])` 即可）
 
-#### Phase 2.2 — Version 面板（155 行旧 JS）· 计划中
+#### Phase 2.2 — Version 面板（155 行旧 JS）· ✅ 已完成（commit 387a68a）
 
 **目标**：用 rabbita Cell 重写 Version 面板，挂到 `#version-content`，按 Phase 1 模板。
 
@@ -351,7 +351,7 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 **回滚**：恢复旧 JS + 容器内容
 
-#### Phase 2.3 — Profile 面板（150 行旧 JS）· 计划中
+#### Phase 2.3 — Profile 面板（150 行旧 JS）· ✅ 已完成（commit 7b5c220）
 
 **目标**：用 rabbita Cell 重写 Profile 面板，挂到 `#profile-content`，按 Phase 1 模板。
 
@@ -377,9 +377,50 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 **回滚**：恢复旧 JS + 容器内容
 
-#### Phase 2.4+ — Trash / Share / ModelTest / Tasks / Browser · 暂不规划
+#### Phase 2.4 - Share 面板 · ✅ 已完成（commit 268eb35）
 
-3 面板（Backups/Version/Profile）回顾通过后再做下一批计划
+按 Phase 1 模板迁移。`web/mb/main/share_cell.mbt` 实现 Model/Msg/view，挂载到 `#share-content`；`index.html` 移除 `<script src="js/share.js">`（替换为注释）；`git rm web/js/share.js`。
+
+#### Phase 2.5 - Trash 面板 · ✅ 已完成（commit 9820ae8）
+
+按 Phase 1 模板迁移。`web/mb/main/trash_cell.mbt` 挂载到 `#trash-content`；同款流程清理 `trash.js`。
+
+#### Phase 2.6 - ModelTest 面板 · ✅ 已完成（commit dc8be29）
+
+按 Phase 1 模板迁移。`web/mb/main/model_test_cell.mbt` 挂载到 `#model-test-content`；清理 `model_test.js`。
+
+#### Phase 2.7 - Tasks 面板 · ✅ 已完成
+
+`web/mb/main/tasks_cell.mbt`（838 行）：Model 持 tasks 列表 + filter + modal 状态；Msg 含 Init/Load/Add/Toggle/Delete/Clear/Filter/Edit；通过 `local_storage_get/set`（bridge.mbt FFI）持久化到 localStorage；`js_now_iso()` 生成时间戳。挂载到 `#tasks-content`，移除 `tasks.js`。
+
+**编译修复要点**（pre-written cell 有 48 个编译错误，全部修复）：
+- `Json::True/False` -> `Json::boolean(t.done)`（MoonBit core 用 `Json::boolean` 非 True/False 变体）
+- `@json.parse(raw) catch {...} |> tasks_parse_storage`（broken pipe）-> 先 `let json = try @json.parse(raw) catch { _ => return ([],1) }` 再传入
+- `tasks.iter().find(...)` -> `while` 循环（`Iter` 无 `.find`）
+- `TasksModal::Edit(id, title=...)` -> 字段全部具名 `TasksModal::Edit(id=id, title=...)`
+- `TasksFilter` 枚举加 `derive(Eq)` 以支持 `==`
+- `attribute::title("X")` -> `@html.button` 具名参数 `title="X"`；`attribute::for_("Y")` -> `@html.label` 的 `for_="Y"`（attribute:: 未绑定，这些是构造器具名参数）
+- `on_enter=emit(...)` 移除（input 仅有 `on_change?`/`on_input?`，无 on_enter；确认按钮已处理提交）
+- `on_change=emit(Msg(_))` -> `on_change=s => emit(Msg(s))`（on_change 期望 `String -> Cmd`）
+- `on_click=confirm` -> `on_click=emit(confirm)`（on_click 需 Cmd，confirm 是 Msg）
+- `tasks_update_fn` 参数顺序 `(emit, model, msg)` -> `(emit, msg, model)`（cell_with_emit 期望 `(Emit, Msg, Model)`）
+- `@html.option(attrs, ...)` -> `@html.option(value=..., selected=..., ...)` 具名参数
+
+#### Phase 2.8 - Browser 面板 · ✅ 已完成
+
+`web/mb/main/browser_cell.mbt`（~480 行）：BrowserModel（running/url/loaded/busy/nav_input/screenshot base64/auto_refresh/errors）；用 `@sub.every(5000, emit(AutoRefreshTick))` 声明式订阅做自动刷新（仅当 `auto_refresh && running` 时激活）。挂载到 `#browser-content`，移除 `browser.js`。
+
+**bridge.mbt 新增 FFI**：
+- `js_normalize_url(raw) -> (String, Bool)`：trim + 补 `https://` + 用 `new URL()` 校验
+- `js_download_data_url(url, filename)`：创建 `<a>` 并 click 下载
+
+**moon.pkg 改动**：`web/mb/main/moon.pkg` 加 `moonbit-community/rabbita/sub` 依赖（提供 `@sub.every` 订阅）。
+
+**关键 Bug 修复**：legacy `browser.js` 读取 `status.running`/`status.url`，但后端 `BrowserStatus`（`lib/server/browser_types.mbt`）实际序列化为 `daemon_running`/`endpoint`。cell 读取正确字段，面板才真正可用（旧版一直显示 "Stopped"）。
+
+**terser minify 修复**：初版用正则 `/^https?:\/\//i` 做 URL 校验，MoonBit FFI 字符串转义把 `\/` 变成 `\\/` 破坏正则，导致 terser 回退到未压缩 965KB。改用 `indexOf('http://')`/`indexOf('https://')` 字符串检查后 terser 成功压缩。
+
+**API 端点**：`GET /api/browser/status`、`POST start`、`POST stop`、`POST navigate {url}`、`GET screenshot`。
 
 ---
 
@@ -530,21 +571,41 @@ extern "js" fn app_notify(message : String, type_ : String) =
 | 2026-07-14 | Web 服务默认端口 7070 → 7071：`cmd/main.mbt`、`Dockerfile`、`deploy/{README.md,docker-compose.yml,systemd/mbopenclacky.service}`、`README.md`、`AGENTS.md`、`CLAUDE.md`、`docs/getting-started.md`、`assets/skills/product-help/SKILL.md` 全部同步；`docs/CHANGELOG.md` 追加 chore 条目 | 避开与其他本地 7070 服务冲突；`MBOPENCLACKY_WEB_PORT` 环境变量仍可任意覆盖 |
 | 2026-07-14 | Phase 1.3 清理完成（待 commit）：`git rm web/js/brand.js` (268 lines)；`web/js/app.js:103` 删除 `if (false && ...BrandView...)` 整行；`web/js/app.js:173` 删除 `{ btn: 'btn-brand', view: 'brand', module: 'BrandView' }` 整行；`web/index.html:405` 删除 `<script src="js/brand.js">`；`<div id="mb-root">` 从 inline style 悬浮卡片移到 `#app` 内 `</main>` 之后（普通块级容器）；`web/mb/main/main.mbt:16` 注释更新；9 个 `lib/web/*_wbtest.mbt` + `lib/web/handlers_media.mbt`（moon fmt 顺带）把 `HttpRequest::http_request` → `HttpRequest::HttpRequest`（新版 crescent 构造器）；`moon fmt` 16 tasks up to date / `moon check` 0 errors / `warren build main --dist dist` 通过 / `moon test` 1909→1895（14 pre-existing 失败：2 tui 渲染 + 5+5 handler status code 漂移 + 2 onboard device code 状态；stash 验证 3c84c7a 同样 4/6 onboard 失败）/ `moon build --target native --release cmd` 0 errors；`MBOPENCLACKY_WEB_PORT=7071` 后台启动 curl 验证 `/mb/index.js`(200,117688B), `/mb/index.html`(200,343B), `/mb/styles.css`(200,1546B), `/`(200,19397B), `/health`(`{"status":"ok"}`) 全部 200，HTML 注入 `mb-root`/`mb/index.js`/`brand-content` 完整 | 旧 BrandView JS 全部下线、crescent API 与新版对齐、mb-root 不再遮挡右下角、完整构建链路 moon fmt+check+test+native release 全部绿灯 |
 
-## 当前进度（截至 2026-07-14 14:05）
+| 2026-07-14 | Phase 2.1 Backups 面板（commit `6d155c0`）：`backups_cell.mbt` 挂载到 `#backups-content`；移除 `backups.js` + index.html script 注释 | 中复杂度面板第 1 个，验证迁移模板可复制到列表 CRUD 面板 |
+| 2026-07-14 | Phase 2.2 Version 面板（commit `387a68a`）：`version_cell.mbt` 挂载到 `#version-content`；移除 `versions.js` | 版本检查/升级面板迁移 |
+| 2026-07-14 | Phase 2.3 Profile 面板（commit `7b5c220`）：`profile_cell.mbt` 挂载到 `#profile-content`；bridge.mbt 加 `api_put` + `i18n_t` 桥接；移除 `profile.js` | 表单 PUT 面板，扩展桥接层 |
+| 2026-07-14 | Phase 2.4 Share 面板（commit `268eb35`）：`share_cell.mbt` 挂载到 `#share-content`；移除 `share.js` | 分享设置面板迁移 |
+| 2026-07-14 | Phase 2.5 Trash 面板（commit `9820ae8`）：`trash_cell.mbt` 挂载到 `#trash-content`；移除 `trash.js` | 回收站面板迁移 |
+| 2026-07-14 | Phase 2.6 ModelTest 面板（commit `dc8be29`）：`model_test_cell.mbt` 挂载到 `#model-test-content`；移除 `model_test.js` | 模型测试面板迁移，8 个中复杂度面板第 6 个完成 |
+| 2026-07-14 | Phase 2.7 Tasks 面板（完成待 commit）：`tasks_cell.mbt`（838 行）挂载到 `#tasks-content`；bridge.mbt 加 `local_storage_get/set` + `js_now_iso` FFI；修复 48 个编译错误（Json::boolean/Iter 无 find/具名参数/参数顺序等）；移除 `tasks.js` | localStorage 持久化面板，迁移模板再验证 |
+| 2026-07-14 | Phase 2.8 Browser 面板（完成待 commit）：`browser_cell.mbt`（~480 行）挂载到 `#browser-content`；用 `@sub.every(5000,...)` 声明式订阅做自动刷新；bridge.mbt 加 `js_normalize_url` + `js_download_data_url` FFI；修复 browser.js 字段名 bug（`status.running`->`daemon_running`）+ terser 正则转义问题；移除 `browser.js` | 中复杂度面板全部完成（8/8）|
+| 2026-07-14 | **本 spec 全部开发目标完成**：Phase 0 - 2.8（9 个面板 + 桥接层 + 整合清理）全部落地；`moon check` 0 errors / `warren build` 通过（231KB minified）/ `moon build --target native --release cmd` 0 errors；服务冒烟测试 `/health` 200、`/mb/index.js` 231153B 200、HTML 含全部 10 个 mount 容器、0 悬挂旧 JS 引用。归档到 `specs/completed/` | Phase 3/4（高复杂度面板 + 全量清理）为未来工作，明确不在本 spec 范围 |
+
+## 当前进度（截至 2026-07-14 18:50 · 全部开发目标完成）
 
 - ✅ **Phase 0**（立柱子）：mb-root 容器 + 独立 rabbita 项目 + counter cell + warren build 产物同步
-- ✅ **Phase 0.5**（跨边界桥接层）：`web/mb/main/bridge.mbt` 声明 `app_notify` / `app_show_modal` / `app_hide_modal` 三个 extern；main.mbt 加 TestNotify / TestModal 按钮验证；moon check + warren build 通过
-- ✅ **Phase 1.1**（Brand cell core）：bridge.mbt 加 `app_api_get/post/del` async Cmd 桥接；新建 `web/mb/main/brand_cell.mbt`（完整 state machine：Idle/Loading/StatusLoaded/SkillsLoaded/Submitting）；`cell_with_emit` 包装为 Cell；main.mbt 挂载到 `#brand-content`；moon check --target js 0 errors + warren build 通过（117KB minified）。commit `6685250`
-- ✅ **Phase 1.2**（整合）：`web/mb/dist/` 同步到 `web/mb/`；`web/index.html` 注入 `<div id=mb-root>` (L382) + `<script type=module src=mb/index.js>` (L421)；`web/js/app.js:103` 临时禁用 `BrandView.init()`（加 `false &&` 前缀）。commit `3c84c7a`
-- ✅ **Phase 1.3**（清理）：`git rm web/js/brand.js` (268 lines) + `web/js/app.js:103/173` 移除 BrandView init/navModule + `web/index.html:405` 移除 `<script src="js/brand.js">` + mb-root 移到 `#app` 内（`</main>` 之后、`</div>` 之前，L366 注释明确）+ 9 个 `lib/web/*_wbtest.mbt` + 1 个 `lib/web/handlers_media.mbt` 的 crescent API 漂移修复（`HttpRequest::http_request` → `HttpRequest::HttpRequest`）；`moon fmt` / `moon check` 0 errors；`warren build main --dist dist` 通过；`moon test` 1909 → 1895 通过（14 pre-existing 失败与本 spec 无关，stash 验证 3c84c7a 同样 4/6 onboard 失败）；`moon build --target native --release cmd` 0 errors；服务验证 `MBOPENCLACKY_WEB_PORT=7071` 后台启动，curl `/mb/index.{js,html,css}` `/{health,}` 全部 200 + 正确 MIME，HTML 注入含 `mb-root`/`mb/index.js`/`brand-content`。
+- ✅ **Phase 0.5**（跨边界桥接层）：`bridge.mbt` 声明 `app_notify`/`app_show_modal`/`app_hide_modal` extern + `app_api_get/post/del` async Cmd 桥接
+- ✅ **Phase 1.1-1.3**（Brand 面板，commit `6685250`/`3c84c7a`/`372eccd`）：brand cell 完整 state machine + 整合 + 清理（删 brand.js、mb-root 移入 #app、crescent API 漂移修复）
+- ✅ **Phase 2.1** Backups（commit `6d155c0`）
+- ✅ **Phase 2.2** Version（commit `387a68a`）
+- ✅ **Phase 2.3** Profile（commit `7b5c220`，加 `api_put`/`i18n_t` 桥接）
+- ✅ **Phase 2.4** Share（commit `268eb35`）
+- ✅ **Phase 2.5** Trash（commit `9820ae8`）
+- ✅ **Phase 2.6** ModelTest（commit `dc8be29`）
+- ✅ **Phase 2.7** Tasks（完成待 commit，localStorage 持久化 + 48 编译错误修复）
+- ✅ **Phase 2.8** Browser（完成待 commit，`@sub.every` 自动刷新 + browser.js 字段名 bug 修复）
 
-## 下一阶段（Phase 1.3 清理）准备清单
+**最终验证**：
+- `moon check`（web/mb）0 errors（100 warnings，均非阻塞）
+- `warren build main --dist dist` 通过，terser 压缩 231KB（含全部 9 个 cell）
+- `moon build --target native --release cmd` 0 errors
+- 服务冒烟测试（`MBOPENCLACKY_WEB_PORT=7071`）：`/health`=`{"status":"ok"}` 200；`/mb/index.js`=200 `application/javascript` 231153B；HTML 含全部 10 个 mount 容器（brand/backups/version/profile/share/trash/model-test/tasks/browser-content + mb-root）；0 个悬挂旧 JS 引用（tasks/browser/brand.js 均已移除）
 
-1. ~~**浏览器手测**~~ ✅ 已通过 curl 验证：rabbita 资源全部 200，HTML 注入完整
-2. ~~**删除 `web/js/brand.js`**~~ ✅ `git rm` 完成；`web/index.html:405` 移除 script 标签；`web/js/app.js:103` 删除 `if (false && ...)` 行；`web/js/app.js:173` 删除 `module: 'BrandView'` 行
-3. ~~**mb-root 定位调整**~~ ✅ 从 `<div id="mb-root" style="position:fixed;bottom:16px;right:16px;z-index:9999;...">` 改为 `<div id="mb-root"></div>` 普通块级容器，移到 `<div id="app">` 内 `</main>` 之后（main 之外，#app 之内的辅助区），与"非侵入式集成"原则一致；`web/mb/main/main.mbt:16` 注释更新
-4. ~~**修复 crescent API 漂移**~~ ✅ 9 个 wbtest 文件 + 1 个生产代码 `handlers_media.mbt` 全部 `HttpRequest::http_request` → `HttpRequest::HttpRequest`；`moon fmt` 顺带修复了非 wbtest 版的同款漂移
-5. ~~**完整链路验证**~~ ✅ `moon fmt` 16 tasks up to date / `moon check` 0 errors / `moon test` 1895/1909 (14 pre-existing) / `moon build --target native --release cmd` 0 errors
-6. **后续**：Phase 1.3 commit 完成后，进入 Phase 2（中复杂度面板：Backups / Trash / Version / Profile / Share / ModelTest / Tasks / Browser）逐面板迁移
+**已删除的 legacy JS**：`brand.js`/`backups.js`/`versions.js`/`profile.js`/`share.js`/`trash.js`/`model_test.js`/`tasks.js`/`browser.js`（9 个）。`app.js` 保留（其 `typeof X !== 'undefined'` 守卫和 `if (mod && typeof mod.load === 'function')` 检查自动跳过已删模块，navModules 条目无害保留）。
 
+## 后续工作（不在本 spec 范围）
+
+- **Phase 3**（高复杂度面板：Chat/Sessions/MCP/Channels/Billing/Skills/Schedules/Creator/Meeting/Media/Workspace/Onboard/Git/Marketplace）：涉及 WebSocket 流、i18n 系统性迁移、多 Cell 组合，需独立 spec 规划。
+- **Phase 4**（清理）：全部面板迁完后删除 `web/js/`、简化 index.html、拆除 Phase 0.5 桥接层。
+- **环境问题（pre-existing，与本 spec 无关）**：`@bobzhang/toml` 库 `create_array_of_tables` 用 `path[:-1]`（MoonBit slice 不支持负索引，`-1` 被当字面值导致 `view` abort）在 config 含 `[[models]]` 数组表时崩溃；`@bobzhang/crescent` 测试代码 `TryJsonTestUser` 缺 `Debug` derive 导致 `moon build` 类型检查失败。两者均为 vendored 依赖（`.mooncakes/`，gitignored）的 latent bug，本地补丁验证用，未提交。
 

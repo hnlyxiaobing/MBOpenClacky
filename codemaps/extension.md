@@ -1,6 +1,6 @@
 # extension - 扩展系统 · 脚手架 · 打包 · 验证 · 市场
 
-> 路径: `lib/extension/` · 12 文件（src=7, test=5）· OpenClacky 扩展生命周期管理
+> 路径: `lib/extension/` · 15 文件（src=10, test=5）· OpenClacky 扩展生命周期管理
 
 ## 入口函数
 

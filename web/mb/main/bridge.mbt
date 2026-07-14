@@ -29,6 +29,29 @@ extern "js" fn app_hide_modal() = "() => App.hideModal()"
 extern "js" fn js_stringify(v : @js.Value) -> String = "(v) => JSON.stringify(v)"
 
 ///|
+/// Read a value from `window.localStorage`. Returns the stored string
+/// or `""` if the key is missing / unset. Synchronous (no FFI marshalling
+/// for `localStorage` is needed because the API is already sync on the
+/// browser side). Used by the tasks panel for its client-side todo
+/// persistence (`mbopenclacky_tasks` key).
+#cfg(target="js")
+extern "js" fn local_storage_get(key : String) -> String = "(key) => { try { return window.localStorage.getItem(key) || ''; } catch (e) { return ''; } }"
+
+///|
+/// Write a value to `window.localStorage`. Returns `false` on failure
+/// (storage quota, private mode, etc.) so the caller can surface an
+/// `App.showNotification` warning.
+#cfg(target="js")
+extern "js" fn local_storage_set(key : String, value : String) -> Bool = "(key, value) => { try { window.localStorage.setItem(key, value); return true; } catch (e) { return false; } }"
+
+///|
+/// `new Date().toISOString()` — used by the tasks panel to stamp
+/// `created_at` / `completed_at` on each task so the timestamps match
+/// the legacy `TaskStore` output bit-for-bit.
+#cfg(target="js")
+extern "js" fn js_now_iso() -> String = "() => new Date().toISOString()"
+
+///|
 /// Wrap the existing `API.get` from `web/js/app.js:8` as a `Promise` of
 /// `@js.Value`. `API.get` is `async` and returns the parsed JSON body.
 #cfg(target="js")
@@ -47,9 +70,11 @@ extern "js" fn api_post_promise(
 ///|
 /// Wrap the existing `API.del` from `web/js/app.js:55`.
 #cfg(target="js")
-extern "js" fn api_del_promise(path : String) -> @js.Promise = "(path) => API.del(path)"///|
+extern "js" fn api_del_promise(path : String) -> @js.Promise = "(path) => API.del(path)" ///|
 /// `GET path` → parsed `Json`. Errors propagate as `raise`; callers should
 /// wrap with `try .. catch` (or use `fetch_json_safe` from `brand_cell.mbt`).
+
+///|
 #cfg(target="js")
 pub async fn api_get(path : String) -> Json {
   @json.parse(api_get_promise(path).wait().cast() |> js_stringify)
@@ -76,10 +101,7 @@ pub async fn api_del(path : String) -> Json {
 /// Wrap the existing `API.put` from `web/js/app.js:43`. `body_str` is a
 /// JSON string (serialized in MoonBit) and re-parsed on the JS side.
 #cfg(target="js")
-extern "js" fn api_put_promise(
-  path : String,
-  body_str : String,
-) -> @js.Promise = "(path, body_str) => API.put(path, JSON.parse(body_str))"
+extern "js" fn api_put_promise(path : String, body_str : String) -> @js.Promise = "(path, body_str) => API.put(path, JSON.parse(body_str))"
 
 ///|
 /// `PUT path body` → parsed `Json`. `body` is a `Json` value.
@@ -96,6 +118,22 @@ pub async fn api_put(path : String, body : Json) -> Json {
 /// `web/js/brand.js:73`); we mirror that for `/api/brand/skills/:name`.
 #cfg(target="js")
 extern "js" fn js_encode_uri_component(s : String) -> String = "(s) => encodeURIComponent(s)"
+
+///|
+/// Normalise a raw URL string the way `web/js/browser.js:handleNavigate`
+/// does: trim, prepend `https://` when no protocol is present, then
+/// validate with `new URL`. Returns `(url, valid)`; `valid` is `false`
+/// (and `url` is the prepped string) when the value is empty or not a
+/// parseable URL.
+#cfg(target="js")
+extern "js" fn js_normalize_url(raw : String) -> (String, Bool) = "(raw) => { let u = (raw || '').trim(); if (!u) return ['', false]; let lo = u.toLowerCase(); if (lo.indexOf('http://') !== 0 && lo.indexOf('https://') !== 0) u = 'https://' + u; try { new URL(u); return [u, true]; } catch (e) { return [u, false]; } }"
+
+///|
+/// Trigger a browser download of a data URL (used by the browser panel's
+/// screenshot Download button). Mirrors `web/js/browser.js:downloadScreenshot`
+/// which builds an `<a>` element, sets `href` + `download`, clicks it.
+#cfg(target="js")
+extern "js" fn js_download_data_url(url : String, filename : String) = "(url, filename) => { const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }"
 
 ///|
 /// Synchronous `window.confirm` for "are you sure?" prompts (e.g. the

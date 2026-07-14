@@ -19,8 +19,8 @@
 ## 现状分析（经代码验证）
 
 ### Approval Dialog 已有基础实现
-- **`lib/tui/dialog.mbt`**（75 行）：`render_confirmation_lines(state)` 渲染 `⚠ [tool_name] prompt_text [y/N]` 格式
-- **`lib/tui/modal_lifecycle.mbt`**（107 行）：完整状态机 `Idle -> PendingConfirm -> ResultReady -> Idle`，含 `request_confirmation()` / `handle_confirmation_input()`，有 wbtest
+- **`lib/tui/dialog.mbt`**（71 行）：`render_confirmation_lines(state)` 渲染 `⚠ [tool_name] prompt_text [y/N]` 格式
+- **`lib/tui/modal_lifecycle.mbt`**（102 行）：完整状态机 `Idle -> PendingConfirm -> ResultReady -> Idle`，含 `request_confirmation()` / `handle_confirmation_input()`，有 wbtest
 - **`lib/tui/confirm_io.c`**：C 语言同步按键读取
 - **`lib/tui/state.mbt`**：`TuiState.pending_confirmation : PendingConfirmation` 字段
 - **差距**：当前为 inline 单行渲染，缺少工具参数详情展开、"查看详情"展开/收起、多按钮（允许/拒绝/详情）交互

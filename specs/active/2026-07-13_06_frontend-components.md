@@ -22,7 +22,7 @@
 ## 现状分析
 
 - 当前 `web/js/` 中无 `components/` 目录。
-- **通知功能**：`web/js/notifications.js`（98 行）已实现完整的 `NotificationManager`，包含 toast UI 渲染（4 种类型：success/error/warning/info）、自动消失（success/info 3 秒）、手动关闭按钮、堆叠管理。**已具备 UI 渲染能力**，不是仅"数据层"。无需新建 notify 组件，但可重构为更通用的 `App.showNotification()` 接口（已存在）。
+- **通知功能**：`web/js/notifications.js`（3,097 行）已实现完整的 `NotificationManager`，包含 toast UI 渲染（4 种类型：success/error/warning/info）、自动消失（success/info 3 秒）、手动关闭按钮、堆叠管理。**已具备 UI 渲染能力**，不是仅"数据层"。无需新建 notify 组件，但可重构为更通用的 `App.showNotification()` 接口（已存在）。
 - **侧边栏**：`web/js/app.js` 的 `bindEvents()` 中有基础导航逻辑（`navModules` 数组映射按钮 -> 视图 -> 模块），侧边栏折叠/展开仅为 CSS class toggle。无独立 sidebar 组件。
 - **引导流程**：`web/js/onboard.js` 存在，包含 onboard 步骤逻辑。
 - **代码编辑器**：完全缺失。`chat.js` 的 `renderMarkdown` 已集成 highlight.js 做代码高亮，但无编辑能力。

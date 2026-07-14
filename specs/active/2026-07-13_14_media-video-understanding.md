@@ -12,7 +12,7 @@
 ## 现状分析（经代码验证）
 
 ### Media 模块
-- `lib/media/` 有 8 个文件：`media_base.mbt`、`dashscope.mbt`、`gemini.mbt`、`openai_compat.mbt`、`generator.mbt`、`types.mbt`、`output_dir.mbt`、`media_wbtest.mbt`
+- `lib/media/` 有 9 个文件：`media_base.mbt`、`dashscope.mbt`、`gemini.mbt`、`openai_compat.mbt`、`generator.mbt`、`types.mbt`、`output_dir.mbt`、`media_wbtest.mbt`、`pkg.generated.mbti`
 - **注意**：原 spec 提到的 `image_gen.mbt`、`audio_tts.mbt`、`video_gen.mbt` 文件名均不存在
 - Media 模块有 `MediaGenerator` 架构，支持 DashScope/Gemini/OpenAI 兼容协议
 

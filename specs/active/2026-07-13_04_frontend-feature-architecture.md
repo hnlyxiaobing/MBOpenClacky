@@ -10,11 +10,11 @@
 
 ## 核心目标
 
-将 `web/js/` 当前 flat 结构（33 个 JS 文件平铺）迁移为原项目的 feature-based 架构：每个功能模块包含 `store.js`（状态管理 + API 封装）和 `view.js`（DOM 渲染 + 交互处理），实现关注点分离和可维护性提升。
+将 `web/js/` 当前 flat 结构（21 个 JS 文件平铺，共 6,831 行）迁移为原项目的 feature-based 架构：每个功能模块包含 `store.js`（状态管理 + API 封装）和 `view.js`（DOM 渲染 + 交互处理），实现关注点分离和可维护性提升。
 
 ## 现状分析（经代码验证）
 
-- **33 个 JS 文件**平铺在 `web/js/` 下（含 `i18n/` 子目录下 2 个语言文件 + `i18n.js` 框架文件）
+- **21 个 JS 文件**平铺在 `web/js/` 下（共 6,831 行），无 `i18n/` 子目录（i18n 功能已整合到 `i18n.js` 中）
 - **所有模块已使用 Plain Object 模式**（如 `const Chat = {...}`、`const App = {...}`），与原项目风格一致，迁移时无需改变模块模式
 - **`app.js`（353 行）** 包含：统一 `API` 包装器（get/post/put/del）、`App` 主对象（初始化所有模块、`bindEvents` 导航逻辑、`showView` 面板切换、模态框管理、全局通知）
 - **导航逻辑** 在 `app.js` `bindEvents()` 中，通过 `navModules` 数组映射按钮 ID -> 视图 -> 模块

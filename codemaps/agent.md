@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 39 文件（src=31, test=8）· 项目核心调度包
+> 路径: `lib/agent/` · 41 文件（src=33, test=8）· 项目核心调度包
 
 ## 入口函数
 

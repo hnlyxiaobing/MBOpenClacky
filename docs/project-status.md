@@ -1,6 +1,6 @@
 # MBOpenClacky 项目状态
 
-> 更新日期：2026-07-13
+> 更新日期：2026-07-14
 > 权威状态源。其他文档中的指标以此为准。
 
 ---
@@ -9,18 +9,18 @@
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件（lib + cmd） | 268 个 `.mbt` |
-| 测试文件（lib + cmd + test） | 95 个 `_wbtest.mbt` |
-| 源代码行数 | ~61,804 行 |
-| 测试代码行数 | ~23,248 行 |
-| 总代码行数 | ~85,052 行 |
+| 源代码文件（lib + cmd） | 289 个 `.mbt` |
+| 测试文件（lib + cmd + test） | 93 个 `_wbtest.mbt` |
+| 源代码行数 | ~60,424 行 |
+| 测试代码行数 | ~20,741 行 |
+| 总代码行数 | ~81,165 行 |
 | 测试用例 | 1,850+ |
 | 包数 | 23 个 lib 顶级包 + 1 个 cmd 入口包 |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~154 个 |
-| 默认 Skill | 17 个 |
-| `moon check` | 0 errors（项目自身代码），46 warnings |
+| REST API 端点 | ~156 个 |
+| 默认 Skill | 17 个（16 个代码注册 + 1 个仅资源） |
+| `moon check` | 0 errors（项目自身代码），~500 warnings |
 | 构建 | `moon build --target native --release cmd` 成功（~4.6 MB） |
 | CI/CD | ✅ GitHub Actions（ci.yml + docker.yml） |
 | 整体完成度 | ~90-92%（后端 ~98%，Web 前端 ~65%，TUI ~85%，部署 ~95%） |
@@ -52,7 +52,7 @@
 | utils | ~2,800 | 95% | 环境变量、路径、编码、日志、代理等 |
 | vision | ~460 | 85% | Vision OCR + SHA256 缓存 |
 | web | ~12,900 | 90% | REST API ~156 端点、WebSocket、SSE、中间件、扩展路由 |
-| cmd | ~1,300 | 85% | CLI 入口、会话管理、TUI/Web 启动、扩展/Hook/Patch 加载 |---
+| cmd | ~1,300 | 85% | CLI 入口、会话管理、TUI/Web 启动、扩展/Hook/Patch 加载 |
 
 ## 已知问题
 
@@ -61,7 +61,7 @@
 - **wasm-gc 目标**：已评估，建议暂缓（根因：`moonbitlang/async` 缺 wasm-gc 支持，详见 `specs/completed/2026-07-09_wasm-gc-target-feasibility.md`）
 
 ### 功能相关
-- **Web 前端**：完成度 ~65%，主要管理面板已覆盖；ws-dispatcher 已实现，i18n 中英双语 394 key 已对齐；剩余 code-editor/datepicker/notify 等组件和 feature-based 架构迁移
+- **Web 前端**：完成度 ~65%，主要管理面板已覆盖；ws-dispatcher 已实现，i18n 已整合到 i18n.js（2,784 行）；剩余 code-editor/datepicker 等组件和 feature-based 架构迁移
 - **部署基础设施**：已提供 systemd/docker-compose 模板和日志轮转配置（见 `deploy/`）
 - **Extension 框架**：MVP 已实现（Loader/Verifier/Packager/Scaffold/Marketplace），API 扩展路由分发/热重载和 PatchLoader/HookLoader 已接入，剩余高级沙箱、CLI 命令增强和 Session ZIP 导出/导入
 - **Media 端点**：`lib/web/handlers_media.mbt` 中 image/video/audio/transcription/understand 均返回 501，需接入 `@media` 生成器（含 `POST /api/media/video/understand`）

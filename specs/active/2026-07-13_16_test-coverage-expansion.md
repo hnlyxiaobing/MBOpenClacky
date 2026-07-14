@@ -12,7 +12,7 @@
 
 ## 现状分析
 
-- 测试文件：91 个 `_wbtest.mbt`，分布在各 `lib/*/` 包中。
+- 测试文件：93 个 `_wbtest.mbt`，分布在各 `lib/*/` 包中。
 - 测试用例：1,842 个，其中 1,830 通过，12 失败。
 - 测试框架：MoonBit 内置 `test` 块，白盒测试模式。
 - 主要缺口：`lib/web` handlers（某些 handler 缺 wbtest）、`lib/extension`（新增模块缺测试）、`lib/tui`（受 tty FFI 限制）、`lib/agent`（部分路径缺测试）。

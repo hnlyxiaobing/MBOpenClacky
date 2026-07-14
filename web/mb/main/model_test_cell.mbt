@@ -194,8 +194,7 @@ fn model_test_update(
         }),
         model,
       )
-    ModelsLoaded(Err(e)) =>
-      (@cmd.none, { ..model, error: e, loaded: true })
+    ModelsLoaded(Err(e)) => (@cmd.none, { ..model, error: e, loaded: true })
     ModelsLoaded(Ok(arr)) => {
       // Legacy accepts an array; tolerate { models: [...] }.
       let models = match arr {
@@ -277,26 +276,20 @@ fn model_test_update(
       }
     TestMediaDone(kind, Err(e)) => {
       app_notify("Media test failed: " + e, "error")
-      (
-        @cmd.none,
-        { ..model, media_busy: "", media_result: "Error: " + e },
-      )
+      (@cmd.none, { ..model, media_busy: "", media_result: "Error: " + e })
     }
     TestMediaDone(kind, Ok(json)) => {
       let (ok, msg) = mt_decode_media(json)
-      let text = if ok {
-        kind + " model OK"
-      } else {
-        "Failed: " + msg
-      }
+      let text = if ok { kind + " model OK" } else { "Failed: " + msg }
       app_notify(
         kind + " model test " + (if ok { "passed" } else { "failed" }),
-        if ok { "success" } else { "error" },
+        if ok {
+          "success"
+        } else {
+          "error"
+        },
       )
-      (
-        @cmd.none,
-        { ..model, media_busy: "", media_result: text },
-      )
+      (@cmd.none, { ..model, media_busy: "", media_result: text })
     }
   }
 }
@@ -430,15 +423,12 @@ fn model_test_view(
   let is_busy = model.busy != ""
   let is_media_busy = model.media_busy != ""
   @html.div(class="settings-group", [
-    @html.div(
-      class="settings-group-title",
-      [
-        @html.span(
-          "Models (\{model.models.length()})" +
-          (if is_busy { " \u2014 testing\u2026" } else { "" }),
-        ),
-      ],
-    ),
+    @html.div(class="settings-group-title", [
+      @html.span(
+        "Models (\{model.models.length()})" +
+        (if is_busy { " \u2014 testing\u2026" } else { "" }),
+      ),
+    ]),
     @html.button(
       class="btn btn-ghost btn-sm",
       on_click=emit(TestAllClicked),
@@ -447,29 +437,26 @@ fn model_test_view(
     ),
     render_model_list(emit, model, is_busy),
     @html.div(class="settings-group-title", [@html.span("Media Models")]),
-    @html.div(
-      class="settings-group-content",
-      [
-        @html.button(
-          class="btn btn-ghost btn-sm",
-          on_click=emit(TestMediaClicked("image")),
-          disabled=is_media_busy,
-          "Test Image Generation",
-        ),
-        @html.button(
-          class="btn btn-ghost btn-sm",
-          on_click=emit(TestMediaClicked("audio")),
-          disabled=is_media_busy,
-          "Test Audio",
-        ),
-        @html.button(
-          class="btn btn-ghost btn-sm",
-          on_click=emit(TestMediaClicked("video")),
-          disabled=is_media_busy,
-          "Test Video",
-        ),
-      ],
-    ),
+    @html.div(class="settings-group-content", [
+      @html.button(
+        class="btn btn-ghost btn-sm",
+        on_click=emit(TestMediaClicked("image")),
+        disabled=is_media_busy,
+        "Test Image Generation",
+      ),
+      @html.button(
+        class="btn btn-ghost btn-sm",
+        on_click=emit(TestMediaClicked("audio")),
+        disabled=is_media_busy,
+        "Test Audio",
+      ),
+      @html.button(
+        class="btn btn-ghost btn-sm",
+        on_click=emit(TestMediaClicked("video")),
+        disabled=is_media_busy,
+        "Test Video",
+      ),
+    ]),
     if model.media_result == "" {
       @html.div(class="text-muted", mt_empty_string())
     } else {
@@ -478,10 +465,7 @@ fn model_test_view(
     if model.error == "" {
       @html.div(class="text-muted", mt_empty_string())
     } else {
-      @html.div(
-        class="text-muted",
-        [@html.span("Error: " + model.error)],
-      )
+      @html.div(class="text-muted", [@html.span("Error: " + model.error)])
     },
   ])
 }
@@ -495,10 +479,9 @@ fn render_model_list(
   if !model.loaded {
     @html.div(class="text-muted", [@html.span("Loading models...")])
   } else if model.models.length() == 0 {
-    @html.p(
-      class="text-muted",
-      [@html.span("No models configured. Add models in Settings.")],
-    )
+    @html.p(class="text-muted", [
+      @html.span("No models configured. Add models in Settings."),
+    ])
   } else {
     let rows : Array[@html.Html] = []
     for i = 0; i < model.models.length(); i = i + 1 {
@@ -516,22 +499,19 @@ fn render_model_list(
       }
       rows.push(
         @html.div(class="skill-card", [
-          @html.div(
-            class="skill-card-header",
-            [
-              @html.div(class="skill-card-meta", [
-                @html.div(class="skill-card-name", [@html.span(label)]),
-                @html.div(class="skill-card-desc", [@html.span(id)]),
-                status_line,
-              ]),
-              @html.button(
-                class="btn btn-primary btn-sm",
-                on_click=emit(TestClicked(id)),
-                disabled=is_busy || is_testing,
-                "Test",
-              ),
-            ],
-          ),
+          @html.div(class="skill-card-header", [
+            @html.div(class="skill-card-meta", [
+              @html.div(class="skill-card-name", [@html.span(label)]),
+              @html.div(class="skill-card-desc", [@html.span(id)]),
+              status_line,
+            ]),
+            @html.button(
+              class="btn btn-primary btn-sm",
+              on_click=emit(TestClicked(id)),
+              disabled=is_busy || is_testing,
+              "Test",
+            ),
+          ]),
         ]),
       )
     }
@@ -542,20 +522,17 @@ fn render_model_list(
 ///|
 fn mt_status_line(r : TestResult) -> @html.Html {
   match r.status {
-    Testing =>
-      @html.span(class="text-muted", [@html.span("\u23F3 Testing...")])
+    Testing => @html.span(class="text-muted", [@html.span("\u23F3 Testing...")])
     Success =>
-      @html.span(
-        class="text-success",
-        [
-          @html.span(
-            "\u2713 " +
-            r.message +
-            (if r.latency_ms == "" { "" } else { " (\{r.latency_ms}ms)" }),
-          ),
-        ],
-      )
-    Error => @html.span(class="text-danger", [@html.span("\u2717 " + r.message)])
+      @html.span(class="text-success", [
+        @html.span(
+          "\u2713 " +
+          r.message +
+          (if r.latency_ms == "" { "" } else { " (\{r.latency_ms}ms)" }),
+        ),
+      ])
+    Error =>
+      @html.span(class="text-danger", [@html.span("\u2717 " + r.message)])
   }
 }
 

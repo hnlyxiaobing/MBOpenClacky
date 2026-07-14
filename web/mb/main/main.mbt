@@ -95,4 +95,16 @@ fn main {
   let model_test_app = new(model_test_cell)
   model_test_app.with_init(model_test_emit(Init))
   model_test_app.mount("model-test-content")
+
+  // ── Tasks cell at #tasks-content (Phase 2.7) ────────────────────
+  let (tasks_emit, tasks_cell) = build_tasks_cell()
+  let tasks_app = new(tasks_cell)
+  tasks_app.with_init(tasks_emit(Init))
+  tasks_app.mount("tasks-content")
+
+  // ── Browser cell at #browser-content (Phase 2.8) ─────────────────
+  let (browser_emit, browser_cell) = build_browser_cell()
+  let browser_app = new(browser_cell)
+  browser_app.with_init(browser_emit(Init))
+  browser_app.mount("browser-content")
 }

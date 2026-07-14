@@ -1,6 +1,6 @@
 # errors - Agent 错误层次 · 重试判定
 
-> 路径: `lib/errors/` · 2 文件（src=1, test=1）· 全局错误类型定义
+> 路径: `lib/errors/` · 3 文件（src=2, test=1）· 全局错误类型定义
 
 ## 入口函数
 

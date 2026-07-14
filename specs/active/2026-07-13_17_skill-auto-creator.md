@@ -11,7 +11,7 @@
 
 ## 现状分析（经代码验证）
 
-### `auto_creator.mbt` 已有实现（205 行）
+### `auto_creator.mbt` 已有实现（194 行）
 - `AutoCreator` struct：`iteration_threshold`（默认 12）、`confidence_threshold`（默认 80）
 - `CreationCandidate` struct：name、description、pattern_count、confidence
 - `AutoCreator::new()` / `AutoCreator::with_thresholds()` 构造方法

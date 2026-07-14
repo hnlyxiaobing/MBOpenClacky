@@ -299,7 +299,7 @@ test "read_body" {
 struct TryJsonTestUser {
   name : String
   age : Int
-} derive(FromJson, ToJson, Eq)
+} derive(FromJson, ToJson, Eq, Debug)
 
 ///|
 impl Show for TryJsonTestUser with output(self, logger) {

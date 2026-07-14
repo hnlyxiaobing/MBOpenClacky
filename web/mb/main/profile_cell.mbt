@@ -164,10 +164,22 @@ fn profile_update(
     ProfileLoaded(Ok(json)) => {
       let user = profile_json_nested(json, "user")
       let prefs = profile_json_nested(json, "preferences")
-      let name = profile_json_string(json, "name", profile_json_string(user, "name", ""))
-      let email = profile_json_string(json, "email", profile_json_string(user, "email", ""))
+      let name = profile_json_string(
+        json,
+        "name",
+        profile_json_string(user, "name", ""),
+      )
+      let email = profile_json_string(
+        json,
+        "email",
+        profile_json_string(user, "email", ""),
+      )
       let theme = profile_normalize_theme(
-        profile_json_string(json, "theme", profile_json_string(prefs, "theme", "dark")),
+        profile_json_string(
+          json,
+          "theme",
+          profile_json_string(prefs, "theme", "dark"),
+        ),
       )
       let language = profile_json_string(prefs, "language", "en")
       let email_notif = profile_json_bool(prefs, "email_notifications", false)
@@ -195,7 +207,8 @@ fn profile_update(
     }
     NameChanged(v) => (@cmd.none, { ..model, name: v })
     EmailChanged(v) => (@cmd.none, { ..model, email: v })
-    ThemeChanged(v) => (@cmd.none, { ..model, theme: profile_normalize_theme(v) })
+    ThemeChanged(v) =>
+      (@cmd.none, { ..model, theme: profile_normalize_theme(v) })
     LanguageChanged(v) => (@cmd.none, { ..model, language: v })
     EmailNotifChanged(v) => (@cmd.none, { ..model, email_notif: v })
     ClickSave => {
@@ -231,15 +244,11 @@ fn profile_view(
   model : ProfileModel,
 ) -> @html.Html {
   if not(model.loaded) {
-    return @html.div(
-      class="profile-panel",
-      [
-        @html.p(
-          class="text-muted profile-loading",
-          [@html.span("Loading profile...")],
-        ),
-      ],
-    )
+    return @html.div(class="profile-panel", [
+      @html.p(class="text-muted profile-loading", [
+        @html.span("Loading profile..."),
+      ]),
+    ])
   }
   let save_button = if model.busy {
     @html.button(class="btn btn-primary", disabled=true, "Saving...")
@@ -257,14 +266,26 @@ fn profile_view(
     @html.p(class="profile-status-empty", [@html.span("")])
   }
   let theme_options = [
-    @html.option(value="dark", selected=model.theme == "dark", [@html.span("Dark")]),
-    @html.option(value="light", selected=model.theme == "light", [@html.span("Light")]),
-    @html.option(value="auto", selected=model.theme == "auto", [@html.span("System default")]),
+    @html.option(value="dark", selected=model.theme == "dark", [
+      @html.span("Dark"),
+    ]),
+    @html.option(value="light", selected=model.theme == "light", [
+      @html.span("Light"),
+    ]),
+    @html.option(value="auto", selected=model.theme == "auto", [
+      @html.span("System default"),
+    ]),
   ]
   let language_options = [
-    @html.option(value="en", selected=model.language == "en", [@html.span("English")]),
-    @html.option(value="zh", selected=model.language == "zh", [@html.span("中文")]),
-    @html.option(value="ja", selected=model.language == "ja", [@html.span("日本語")]),
+    @html.option(value="en", selected=model.language == "en", [
+      @html.span("English"),
+    ]),
+    @html.option(value="zh", selected=model.language == "zh", [
+      @html.span("中文"),
+    ]),
+    @html.option(value="ja", selected=model.language == "ja", [
+      @html.span("日本語"),
+    ]),
   ]
   @html.div(class="profile-panel", [
     @html.div(class="settings-group", [
@@ -317,7 +338,9 @@ fn profile_view(
           language_options,
         ),
         @html.div(class="help-text", [
-          @html.span("Currently English-only UI; preference is stored for future i18n."),
+          @html.span(
+            "Currently English-only UI; preference is stored for future i18n.",
+          ),
         ]),
       ]),
       @html.div(class="settings-field", [
@@ -327,11 +350,7 @@ fn profile_view(
             input_type=Checkbox,
             id="profile-email-notif",
             checked=model.email_notif,
-            class=if model.email_notif {
-              "toggle active"
-            } else {
-              "toggle"
-            },
+            class=if model.email_notif { "toggle active" } else { "toggle" },
             on_change=_s => emit(EmailNotifChanged(not(model.email_notif))),
           ),
         ]),

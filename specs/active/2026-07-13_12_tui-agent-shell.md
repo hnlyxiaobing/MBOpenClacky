@@ -12,7 +12,7 @@
 
 ## 现状分析（经代码验证）
 
-- `lib/tui/` 已有 31 个 `.mbt` 文件，Inline Scrolling 架构成熟。
+- `lib/tui/` 已有 32 个 `.mbt` 文件，Inline Scrolling 架构成熟。
 - 已有：消息渲染（`markdown.mbt`）、输入区域（`input_area.mbt`）、Todo 区域（`todo_area.mbt`）、命令建议（`slash_commands.mbt`）、Thinking 动画（`thinking_verbs.mbt`）、ScreenBuffer（`screen_buffer.mbt`）、模态生命周期（`modal_lifecycle.mbt`）。
 - `input_area.mbt` **无 Tab 键处理**（grep 确认无 tab/Tab/autocomplete 匹配），Tab 键可用于模式切换。
 - 缺少：多面板布局管理、文件浏览面板、上下文感知命令建议。

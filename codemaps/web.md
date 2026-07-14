@@ -1,7 +1,7 @@
 # web — REST 服务器 · 90+ 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 59 文件（含子包，src=42, test=17）· Web UI 服务层
-> 前端静态资源: `web/` · 36 文件（HTML 1 + CSS 2 + JS 33）
+> 路径: `lib/web/` · 51 文件（含子包，src=42, test=9）· Web UI 服务层
+> 前端静态资源: `web/` · 25 文件（HTML 1 + CSS 2 + JS 21）
 
 ## 入口函数
 

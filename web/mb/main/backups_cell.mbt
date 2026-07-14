@@ -66,10 +66,26 @@ fn initial_backups_model() -> BackupsModel {
 
 ///|
 fn backups_parse_backup(json : Json) -> Backup {
-  let id = backups_json_string(json, "id", backups_json_string(json, "backup_id", ""))
-  let created_at = backups_json_string(json, "created_at", backups_json_string(json, "timestamp", ""))
-  let label = backups_json_string(json, "label", backups_json_string(json, "name", "—"))
-  let size = backups_json_int(json, "size", backups_json_int(json, "size_bytes", 0))
+  let id = backups_json_string(
+    json,
+    "id",
+    backups_json_string(json, "backup_id", ""),
+  )
+  let created_at = backups_json_string(
+    json,
+    "created_at",
+    backups_json_string(json, "timestamp", ""),
+  )
+  let label = backups_json_string(
+    json,
+    "label",
+    backups_json_string(json, "name", "—"),
+  )
+  let size = backups_json_int(
+    json,
+    "size",
+    backups_json_int(json, "size_bytes", 0),
+  )
   let status = backups_json_string(json, "status", "completed")
   { id, created_at, label, size, status }
 }
@@ -105,7 +121,10 @@ fn backups_update(
     Init | Reload =>
       (backups_fetch_cmd(emit), { ..model, loading: true, error: "" })
     BackupsLoaded(Ok(json)) =>
-      (@cmd.none, { ..model, backups: backups_parse_backups(json), loading: false })
+      (
+        @cmd.none,
+        { ..model, backups: backups_parse_backups(json), loading: false },
+      )
     BackupsLoaded(Err(e)) => {
       app_notify("Failed to load backups: \{e}", "error")
       (@cmd.none, { ..model, loading: false, error: e, backups: [] })
@@ -244,7 +263,10 @@ fn backups_row(
 }
 
 ///|
-fn backups_view(emit : @cmd.Emit[BackupsMsg], model : BackupsModel) -> @html.Html {
+fn backups_view(
+  emit : @cmd.Emit[BackupsMsg],
+  model : BackupsModel,
+) -> @html.Html {
   let create_busy = model.busy == "create"
   let header = div(class="backups-header", [
     @html.span(class="backups-header-title", "Backup Archives"),
