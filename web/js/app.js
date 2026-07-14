@@ -97,7 +97,7 @@ const App = {
     // Billing: removed in Phase 3.2 (migrated to rabbita billing_cell.mbt)
     // if (typeof Billing !== 'undefined') Billing.init();
     if (typeof BrowserControl !== 'undefined') BrowserControl.init();
-    if (typeof GitPanel !== 'undefined') GitPanel.init();
+    // if (typeof GitPanel !== 'undefined') GitPanel.init();
     if (typeof Trash !== 'undefined') Trash.init();
 
     // Initialize new feature modules
@@ -164,7 +164,7 @@ const App = {
       // { btn: 'btn-schedules', view: 'schedules', module: 'Schedules' }, // Phase 3.2
       // { btn: 'btn-billing', view: 'billing', module: 'Billing' }, // Phase 3.2
       { btn: 'btn-browser', view: 'browser', module: 'BrowserControl' },
-      { btn: 'btn-git', view: 'git', module: 'GitPanel' },
+      // { btn: 'btn-git', view: 'git', module: 'GitPanel' }, // Phase 3.2
       { btn: 'btn-trash', view: 'trash', module: 'Trash' },
       // New feature modules
       { btn: 'btn-profile', view: 'profile', module: 'ProfileView' },

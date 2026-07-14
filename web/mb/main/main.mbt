@@ -155,4 +155,10 @@ fn main {
   let creator_app = new(creator_cell)
   creator_app.with_init(creator_emit(Init))
   creator_app.mount("creator-content")
+
+  // ── Git cell at #git-content (Phase 3.2) ───────────────────────
+  let (git_emit, git_cell) = build_git_cell()
+  let git_app = new(git_cell)
+  git_app.with_init(git_emit(Init))
+  git_app.mount("git-content")
 }
