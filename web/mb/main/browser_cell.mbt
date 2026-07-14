@@ -62,6 +62,7 @@ priv struct BrowserModel {
   auto_refresh : Bool
   /// Last user-facing error (start/stop/navigate failures).
   error : String
+  locale : String
 }
 
 ///|
@@ -80,6 +81,7 @@ enum BrowserMsg {
   ToggleAutoRefresh
   AutoRefreshTick
   ClickDownload
+  LocaleChanged
 }
 
 ///|
@@ -94,6 +96,7 @@ fn initial_browser_model() -> BrowserModel {
     screenshot_error: "",
     auto_refresh: false,
     error: "",
+    locale: "",
   }
 }
 
@@ -176,7 +179,14 @@ fn browser_update(
   model : BrowserModel,
 ) -> (@cmd.Cmd, BrowserModel) {
   match msg {
-    Init => (br_fetch_status(emit), model)
+    Init =>
+      (
+        @cmd.batch([
+          br_fetch_status(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, locale: i18n_get_locale() },
+      )
     StatusLoaded(Err(e)) => (@cmd.none, { ..model, loaded: true, error: e })
     StatusLoaded(Ok(json)) => {
       let (running, url, err) = br_parse_status(json)
@@ -205,12 +215,12 @@ fn browser_update(
         )
       }
     StartDone(Err(e)) => {
-      app_notify("Failed to start browser: " + e, "error")
+      app_notify(t1("browser.failed_start", "error", e), "error")
       (@cmd.none, { ..model, busy: "" })
     }
     StartDone(Ok(_)) => (br_fetch_status(emit), { ..model, busy: "" })
     StopDone(Err(e)) => {
-      app_notify("Failed to stop browser: " + e, "error")
+      app_notify(t1("browser.failed_stop", "error", e), "error")
       (@cmd.none, { ..model, busy: "" })
     }
     StopDone(Ok(_)) => (br_fetch_status(emit), { ..model, busy: "" })
@@ -221,7 +231,7 @@ fn browser_update(
       } else {
         let (url, valid) = js_normalize_url(model.nav_input)
         if not(valid) {
-          app_notify("Please enter a valid URL", "warning")
+          app_notify(t("browser.invalid_url"), "warning")
           (@cmd.none, model)
         } else {
           (
@@ -237,7 +247,7 @@ fn browser_update(
       (@cmd.none, { ..model, busy: "" })
     }
     NavigateDone(Ok(_)) => {
-      app_notify("Navigated to " + model.nav_input, "success")
+      app_notify(t1("browser.navigated", "url", model.nav_input), "success")
       (@cmd.none, { ..model, busy: "" })
     }
     ClickScreenshot =>
@@ -251,7 +261,7 @@ fn browser_update(
     ScreenshotDone(Ok(json)) => {
       let data = br_extract_screenshot(json)
       let m = if data == "" {
-        { ..model, busy: "", screenshot_error: "No image in response" }
+        { ..model, busy: "", screenshot_error: t("browser.no_image") }
       } else {
         { ..model, busy: "", screenshot: data, screenshot_error: "" }
       }
@@ -278,6 +288,7 @@ fn browser_update(
         )
         (@cmd.none, model)
       }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -315,10 +326,10 @@ fn browser_view(
 ///|
 fn br_status_card(model : BrowserModel) -> @html.Html {
   let (status_text, badge_cls, badge_style) = if model.running {
-    ("Running", "status-badge running", ([] : Array[String]))
+    (t("browser.running"), "status-badge running", ([] : Array[String]))
   } else {
     (
-      "Stopped",
+      t("browser.stopped"),
       "status-badge",
       ["background:rgba(247,118,142,0.15)", "color:var(--danger)"],
     )
@@ -326,13 +337,15 @@ fn br_status_card(model : BrowserModel) -> @html.Html {
   let url_line = if model.url == "" {
     @html.text("")
   } else {
-    @html.text("URL: " + model.url)
+    @html.text(t("browser.url_prefix") + model.url)
   }
   @html.div(
     class="stat-card",
     style=["margin-bottom:20px", "text-align:left", "padding:20px"],
     [
-      @html.div(class="settings-group-title", [@html.text("Browser Status")]),
+      @html.div(class="settings-group-title", [
+        @html.text(t("browser.status_title")),
+      ]),
       @html.div(
         style=[
           "display:flex", "align-items:center", "gap:16px", "margin-bottom:12px",
@@ -358,18 +371,28 @@ fn br_controls_card(
   let start_disabled = model.running || model.busy == "starting"
   let stop_disabled = not(model.running) || model.busy == "stopping"
   let start_label = if model.busy == "starting" {
-    "Starting..."
+    t("browser.starting")
   } else {
-    "Start"
+    t("browser.start")
   }
-  let stop_label = if model.busy == "stopping" { "Stopping..." } else { "Stop" }
+  let stop_label = if model.busy == "stopping" {
+    t("browser.stopping")
+  } else {
+    t("browser.stop")
+  }
   let go_disabled = not(model.running) || model.busy == "navigating"
-  let go_label = if model.busy == "navigating" { "..." } else { "Go" }
+  let go_label = if model.busy == "navigating" {
+    "..."
+  } else {
+    t("browser.go")
+  }
   @html.div(
     class="stat-card",
     style=["margin-bottom:20px", "text-align:left", "padding:20px"],
     [
-      @html.div(class="settings-group-title", [@html.text("Controls")]),
+      @html.div(class="settings-group-title", [
+        @html.text(t("browser.controls")),
+      ]),
       @html.div(style=["display:flex", "gap:8px", "margin-bottom:16px"], [
         @html.button(
           class="btn btn-primary",
@@ -385,7 +408,7 @@ fn br_controls_card(
         ),
       ]),
       @html.div(class="settings-group-title", style=["margin-top:16px"], [
-        @html.text("Navigate"),
+        @html.text(t("browser.navigate")),
       ]),
       @html.div(style=["display:flex", "gap:8px"], [
         @html.input(
@@ -419,14 +442,14 @@ fn br_screenshot_card(
   let toggle_cls = if model.auto_refresh { "toggle active" } else { "toggle" }
   let preview = if model.screenshot == "" {
     if model.screenshot_error == "" {
-      @html.span(class="text-muted", @html.text("No screenshot yet"))
+      @html.span(class="text-muted", @html.text(t("browser.no_screenshot")))
     } else {
       @html.span(class="text-danger", @html.text(model.screenshot_error))
     }
   } else {
     @html.img(
       src="data:image/png;base64," + model.screenshot,
-      alt="Screenshot",
+      alt=t("browser.screenshot"),
       style=["max-width:100%", "height:auto", "display:block"],
     )
   }
@@ -437,12 +460,14 @@ fn br_screenshot_card(
       @html.button(
         class="btn btn-ghost btn-sm",
         on_click=emit(ClickDownload),
-        @html.text("Download"),
+        @html.text(t("browser.download")),
       ),
     ]
   }
   @html.div(class="stat-card", style=["text-align:left", "padding:20px"], [
-    @html.div(class="settings-group-title", [@html.text("Screenshot")]),
+    @html.div(class="settings-group-title", [
+      @html.text(t("browser.screenshot")),
+    ]),
     @html.div(
       style=[
         "display:flex", "gap:8px", "align-items:center", "margin-bottom:16px",
@@ -452,7 +477,7 @@ fn br_screenshot_card(
           class="btn btn-primary",
           on_click=emit(ClickScreenshot),
           disabled=ss_disabled,
-          @html.text("Take Screenshot"),
+          @html.text(t("browser.take_screenshot")),
         ),
         @html.div(
           class="toggle-wrapper",
@@ -460,7 +485,7 @@ fn br_screenshot_card(
           [
             @html.span(
               style=["font-size:13px", "color:var(--text-primary)"],
-              @html.text("Auto-refresh (5s)"),
+              @html.text(t("browser.auto_refresh")),
             ),
             @html.div(
               class=toggle_cls,

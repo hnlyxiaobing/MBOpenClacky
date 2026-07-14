@@ -61,6 +61,7 @@ enum ProfileMsg {
   ClickReset
   /// Re-fetch result.
   ResetDone(Result[Json, String])
+  LocaleChanged
 }
 
 ///|
@@ -82,6 +83,7 @@ priv struct ProfileModel {
   status : String
   /// True after the first fetch has resolved at least once.
   loaded : Bool
+  locale : String
 }
 
 ///|
@@ -93,6 +95,7 @@ fn initial_profile_model() -> ProfileModel {
     language: "en",
     email_notif: false,
     busy: false,
+    locale: "",
     status: "",
     loaded: false,
   }
@@ -160,7 +163,14 @@ fn profile_update(
   model : ProfileModel,
 ) -> (@cmd.Cmd, ProfileModel) {
   match msg {
-    Init => (profile_fetch_cmd(emit), { ..model, busy: true })
+    Init =>
+      (
+        @cmd.batch([
+          profile_fetch_cmd(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, busy: true, locale: i18n_get_locale() },
+      )
     ProfileLoaded(Ok(json)) => {
       let user = profile_json_nested(json, "user")
       let prefs = profile_json_nested(json, "preferences")
@@ -193,16 +203,21 @@ fn profile_update(
           language,
           email_notif,
           busy: false,
-          status: "Loaded",
+          status: t("profile.status_loaded"),
           loaded: true,
         },
       )
     }
     ProfileLoaded(Err(e)) => {
-      app_notify("Failed to load profile: \{e}", "error")
+      app_notify(t1("profile.failed_load", "error", e), "error")
       (
         @cmd.none,
-        { ..model, busy: false, status: "Load failed: " + e, loaded: true },
+        {
+          ..model,
+          busy: false,
+          status: t1("profile.status_load_failed", "error", e),
+          loaded: true,
+        },
       )
     }
     NameChanged(v) => (@cmd.none, { ..model, name: v })
@@ -215,26 +230,41 @@ fn profile_update(
       let body = profile_build_save_body(model)
       (
         profile_save_cmd(emit, body),
-        { ..model, busy: true, status: "Saving..." },
+        { ..model, busy: true, status: t("profile.status_saving") },
       )
     }
     SaveDone(Ok(_)) => {
       i18n_set_locale(model.language)
-      app_notify("Profile saved", "success")
-      (@cmd.none, { ..model, busy: false, status: "Saved" })
+      app_notify(t("profile.saved"), "success")
+      (@cmd.none, { ..model, busy: false, status: t("profile.status_saved") })
     }
     SaveDone(Err(e)) => {
-      app_notify("Failed to save profile: \{e}", "error")
-      (@cmd.none, { ..model, busy: false, status: "Save failed: " + e })
+      app_notify(t1("profile.save_failed", "error", e), "error")
+      (
+        @cmd.none,
+        {
+          ..model,
+          busy: false,
+          status: t1("profile.status_save_failed", "error", e),
+        },
+      )
     }
     ClickReset => (profile_fetch_cmd(emit), { ..model, busy: true })
     ResetDone(Ok(_)) =>
       // The fetch will dispatch ProfileLoaded next; acknowledge for now.
-      (@cmd.none, { ..model, busy: false, status: "Reset" })
+      (@cmd.none, { ..model, busy: false, status: t("profile.status_reset") })
     ResetDone(Err(e)) => {
-      app_notify("Failed to reset profile: \{e}", "error")
-      (@cmd.none, { ..model, busy: false, status: "Reset failed: " + e })
+      app_notify(t1("profile.reset_failed", "error", e), "error")
+      (
+        @cmd.none,
+        {
+          ..model,
+          busy: false,
+          status: t1("profile.status_reset_failed", "error", e),
+        },
+      )
     }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -246,19 +276,27 @@ fn profile_view(
   if not(model.loaded) {
     return @html.div(class="profile-panel", [
       @html.p(class="text-muted profile-loading", [
-        @html.span("Loading profile..."),
+        @html.span(t("profile.loading")),
       ]),
     ])
   }
   let save_button = if model.busy {
-    @html.button(class="btn btn-primary", disabled=true, "Saving...")
+    @html.button(class="btn btn-primary", disabled=true, t("profile.saving"))
   } else {
-    @html.button(class="btn btn-primary", on_click=emit(ClickSave), "Save")
+    @html.button(
+      class="btn btn-primary",
+      on_click=emit(ClickSave),
+      t("profile.save_btn"),
+    )
   }
   let reset_button = if model.busy {
-    @html.button(class="btn btn-ghost", disabled=true, "Resetting...")
+    @html.button(class="btn btn-ghost", disabled=true, t("profile.resetting"))
   } else {
-    @html.button(class="btn btn-ghost", on_click=emit(ClickReset), "Reset")
+    @html.button(
+      class="btn btn-ghost",
+      on_click=emit(ClickReset),
+      t("profile.reset_btn"),
+    )
   }
   let status_line = if model.status.length() > 0 {
     @html.p(class="text-muted profile-status", [@html.span(model.status)])
@@ -267,13 +305,13 @@ fn profile_view(
   }
   let theme_options = [
     @html.option(value="dark", selected=model.theme == "dark", [
-      @html.span("Dark"),
+      @html.span(t("profile.dark")),
     ]),
     @html.option(value="light", selected=model.theme == "light", [
-      @html.span("Light"),
+      @html.span(t("profile.light")),
     ]),
     @html.option(value="auto", selected=model.theme == "auto", [
-      @html.span("System default"),
+      @html.span(t("profile.system_default")),
     ]),
   ]
   let language_options = [
@@ -289,63 +327,61 @@ fn profile_view(
   ]
   @html.div(class="profile-panel", [
     @html.div(class="settings-group", [
-      @html.div(class="settings-group-title", [@html.span("Personal Info")]),
+      @html.div(class="settings-group-title", [
+        @html.span(t("profile.personal_info")),
+      ]),
       @html.div(class="settings-field", [
-        @html.label(for_="profile-name", [@html.span("Display name")]),
+        @html.label(for_="profile-name", [@html.span(t("profile.display_name"))]),
         @html.input(
           input_type=Text,
           id="profile-name",
           value=model.name,
-          placeholder="Your name",
+          placeholder=t("profile.name_placeholder"),
           on_input=s => emit(NameChanged(s)),
         ),
         @html.div(class="help-text", [
-          @html.span("Shown to your collaborators."),
+          @html.span(t("profile.display_name_help")),
         ]),
       ]),
       @html.div(class="settings-field", [
-        @html.label(for_="profile-email", [@html.span("Email")]),
+        @html.label(for_="profile-email", [@html.span(t("profile.email_label"))]),
         @html.input(
           input_type=Text,
           id="profile-email",
           value=model.email,
-          placeholder="you@example.com",
+          placeholder=t("profile.email_placeholder"),
           on_input=s => emit(EmailChanged(s)),
         ),
-        @html.div(class="help-text", [
-          @html.span("Used for notifications and account recovery."),
-        ]),
+        @html.div(class="help-text", [@html.span(t("profile.email_help"))]),
       ]),
     ]),
     @html.div(class="settings-group", [
-      @html.div(class="settings-group-title", [@html.span("Preferences")]),
+      @html.div(class="settings-group-title", [
+        @html.span(t("profile.preferences")),
+      ]),
       @html.div(class="settings-field", [
-        @html.label(for_="profile-theme", [@html.span("Theme")]),
+        @html.label(for_="profile-theme", [@html.span(t("profile.theme"))]),
         @html.select(
           id="profile-theme",
           on_change=s => emit(ThemeChanged(s)),
           theme_options,
         ),
-        @html.div(class="help-text", [
-          @html.span("Choose how the interface looks."),
-        ]),
+        @html.div(class="help-text", [@html.span(t("profile.theme_help"))]),
       ]),
       @html.div(class="settings-field", [
-        @html.label(for_="profile-language", [@html.span("Language")]),
+        @html.label(for_="profile-language", [
+          @html.span(t("profile.language_label")),
+        ]),
         @html.select(
           id="profile-language",
           on_change=s => emit(LanguageChanged(s)),
           language_options,
         ),
-        @html.div(class="help-text", [
-          @html.span(
-            "Currently English-only UI; preference is stored for future i18n.",
-          ),
-        ]),
+        @html.div(class="help-text", [@html.span(t("profile.language_help"))]),
       ]),
       @html.div(class="settings-field", [
         @html.div(class="toggle-wrapper", [
-          @html.label([@html.span("Email notifications")]),
+          @html.label([@html.span(t("profile.email_notifications"))]),
           @html.input(
             input_type=Checkbox,
             id="profile-email-notif",
@@ -354,9 +390,7 @@ fn profile_view(
             on_change=_s => emit(EmailNotifChanged(not(model.email_notif))),
           ),
         ]),
-        @html.div(class="help-text", [
-          @html.span("Receive an email when your tasks complete."),
-        ]),
+        @html.div(class="help-text", [@html.span(t("profile.email_notif_help"))]),
       ]),
     ]),
     @html.div(class="profile-actions", [save_button, reset_button]),

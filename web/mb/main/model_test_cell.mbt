@@ -72,6 +72,7 @@ enum ModelTestMsg {
   TestMediaClicked(String)
   /// Result of `POST /api/config/media/test {kind}`.
   TestMediaDone(String, Result[Json, String])
+  LocaleChanged
 }
 
 ///|
@@ -96,6 +97,7 @@ priv struct ModelTestModel {
   error : String
   /// `true` once the initial `GET /api/config/models` resolves.
   loaded : Bool
+  locale : String
 }
 
 ///|
@@ -109,6 +111,7 @@ fn initial_model_test_model() -> ModelTestModel {
     media_busy: "",
     error: "",
     loaded: false,
+    locale: "",
   }
 }
 
@@ -189,10 +192,13 @@ fn model_test_update(
   match msg {
     Init =>
       (
-        @cmd.perform(r => emit(ModelsLoaded(r)), async fn() noraise {
-          safe_get("/api/config/models")
-        }),
-        model,
+        @cmd.batch([
+          @cmd.perform(r => emit(ModelsLoaded(r)), async fn() noraise {
+            safe_get("/api/config/models")
+          }),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, locale: i18n_get_locale() },
       )
     ModelsLoaded(Err(e)) => (@cmd.none, { ..model, error: e, loaded: true })
     ModelsLoaded(Ok(arr)) => {
@@ -214,7 +220,7 @@ fn model_test_update(
       } else {
         let pending : TestResult = {
           status: Testing,
-          message: "Testing...",
+          message: t("model_test.testing"),
           latency_ms: "",
         }
         model.results.set(model_id, pending)
@@ -235,7 +241,7 @@ fn model_test_update(
         let head = queue[0]
         let pending : TestResult = {
           status: Testing,
-          message: "Testing...",
+          message: t("model_test.testing"),
           latency_ms: "",
         }
         model.results.set(head, pending)
@@ -250,7 +256,7 @@ fn model_test_update(
     TestDone(model_id, Err(e)) => {
       let result : TestResult = { status: Error, message: e, latency_ms: "" }
       model.results.set(model_id, result)
-      app_notify("Test failed: " + e, "error")
+      app_notify(t1("model_test.failed", "error", e), "error")
       mt_after_test(emit, model, model_id)
     }
     TestDone(model_id, Ok(json)) => {
@@ -270,19 +276,34 @@ fn model_test_update(
           {
             ..model,
             media_busy: kind,
-            media_result: "Testing " + kind + " model...",
+            media_result: t1("model_test.media_testing", "kind", kind),
           },
         )
       }
     TestMediaDone(kind, Err(e)) => {
-      app_notify("Media test failed: " + e, "error")
-      (@cmd.none, { ..model, media_busy: "", media_result: "Error: " + e })
+      app_notify(t1("model_test.media_failed", "error", e), "error")
+      (
+        @cmd.none,
+        {
+          ..model,
+          media_busy: "",
+          media_result: t1("model_test.media_error", "error", e),
+        },
+      )
     }
     TestMediaDone(kind, Ok(json)) => {
       let (ok, msg) = mt_decode_media(json)
-      let text = if ok { kind + " model OK" } else { "Failed: " + msg }
+      let text = if ok {
+        t1("model_test.media_ok", "kind", kind)
+      } else {
+        t1("model_test.media_failed_msg", "error", msg)
+      }
       app_notify(
-        kind + " model test " + (if ok { "passed" } else { "failed" }),
+        if ok {
+          t1("model_test.media_test_passed", "kind", kind)
+        } else {
+          t1("model_test.media_test_failed", "kind", kind)
+        },
         if ok {
           "success"
         } else {
@@ -291,6 +312,7 @@ fn model_test_update(
       )
       (@cmd.none, { ..model, media_busy: "", media_result: text })
     }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -312,7 +334,7 @@ fn mt_after_test(
       let head = next_queue[0]
       let pending : TestResult = {
         status: Testing,
-        message: "Testing...",
+        message: t("model_test.testing"),
         latency_ms: "",
       }
       model.results.set(head, pending)
@@ -370,13 +392,13 @@ fn mt_decode_test(json : Json) -> (TestStatus, String, String) {
         _ => ""
       }
       if ok {
-        (Success, "Connection successful", latency)
+        (Success, t("model_test.connection_success"), latency)
       } else {
-        let m = if err == "" { "Test failed" } else { err }
+        let m = if err == "" { t("model_test.decode_failed") } else { err }
         (Error, m, latency)
       }
     }
-    _ => (Error, "Test failed", "")
+    _ => (Error, t("model_test.decode_failed"), "")
   }
 }
 
@@ -425,36 +447,42 @@ fn model_test_view(
   @html.div(class="settings-group", [
     @html.div(class="settings-group-title", [
       @html.span(
-        "Models (\{model.models.length()})" +
-        (if is_busy { " \u2014 testing\u2026" } else { "" }),
+        t1(
+          "model_test.models_count",
+          "count",
+          model.models.length().to_string(),
+        ) +
+        (if is_busy { t("model_test.testing_suffix") } else { "" }),
       ),
     ]),
     @html.button(
       class="btn btn-ghost btn-sm",
       on_click=emit(TestAllClicked),
       disabled=is_busy || model.models.length() == 0,
-      "Test All",
+      t("model_test.test_all"),
     ),
     render_model_list(emit, model, is_busy),
-    @html.div(class="settings-group-title", [@html.span("Media Models")]),
+    @html.div(class="settings-group-title", [
+      @html.span(t("model_test.media_models")),
+    ]),
     @html.div(class="settings-group-content", [
       @html.button(
         class="btn btn-ghost btn-sm",
         on_click=emit(TestMediaClicked("image")),
         disabled=is_media_busy,
-        "Test Image Generation",
+        t("model_test.test_image"),
       ),
       @html.button(
         class="btn btn-ghost btn-sm",
         on_click=emit(TestMediaClicked("audio")),
         disabled=is_media_busy,
-        "Test Audio",
+        t("model_test.test_audio"),
       ),
       @html.button(
         class="btn btn-ghost btn-sm",
         on_click=emit(TestMediaClicked("video")),
         disabled=is_media_busy,
-        "Test Video",
+        t("model_test.test_video"),
       ),
     ]),
     if model.media_result == "" {
@@ -465,7 +493,9 @@ fn model_test_view(
     if model.error == "" {
       @html.div(class="text-muted", mt_empty_string())
     } else {
-      @html.div(class="text-muted", [@html.span("Error: " + model.error)])
+      @html.div(class="text-muted", [
+        @html.span(t1("model_test.error_prefix", "error", model.error)),
+      ])
     },
   ])
 }
@@ -477,11 +507,9 @@ fn render_model_list(
   is_busy : Bool,
 ) -> @html.Html {
   if !model.loaded {
-    @html.div(class="text-muted", [@html.span("Loading models...")])
+    @html.div(class="text-muted", [@html.span(t("model_test.loading_models"))])
   } else if model.models.length() == 0 {
-    @html.p(class="text-muted", [
-      @html.span("No models configured. Add models in Settings."),
-    ])
+    @html.p(class="text-muted", [@html.span(t("model_test.no_models"))])
   } else {
     let rows : Array[@html.Html] = []
     for i = 0; i < model.models.length(); i = i + 1 {
@@ -509,7 +537,7 @@ fn render_model_list(
               class="btn btn-primary btn-sm",
               on_click=emit(TestClicked(id)),
               disabled=is_busy || is_testing,
-              "Test",
+              t("model_test.test_btn"),
             ),
           ]),
         ]),
@@ -522,7 +550,10 @@ fn render_model_list(
 ///|
 fn mt_status_line(r : TestResult) -> @html.Html {
   match r.status {
-    Testing => @html.span(class="text-muted", [@html.span("\u23F3 Testing...")])
+    Testing =>
+      @html.span(class="text-muted", [
+        @html.span("\u23F3 " + t("model_test.testing")),
+      ])
     Success =>
       @html.span(class="text-success", [
         @html.span(

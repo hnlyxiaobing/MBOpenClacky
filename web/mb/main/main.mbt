@@ -107,4 +107,22 @@ fn main {
   let browser_app = new(browser_cell)
   browser_app.with_init(browser_emit(Init))
   browser_app.mount("browser-content")
+
+  // ── Meeting cell at #meeting-content (Phase 3.1) ────────────────
+  let (meeting_emit, meeting_cell) = build_meeting_cell()
+  let meeting_app = new(meeting_cell)
+  meeting_app.with_init(meeting_emit(Init))
+  meeting_app.mount("meeting-content")
+
+  // ── Marketplace cell at #marketplace-content (Phase 3.1) ───────
+  let (marketplace_emit, marketplace_cell) = build_marketplace_cell()
+  let marketplace_app = new(marketplace_cell)
+  marketplace_app.with_init(marketplace_emit(Init))
+  marketplace_app.mount("marketplace-content")
+
+  // ── Workspace cell at #workspace-content (Phase 3.1) ───────────
+  let (workspace_emit, workspace_cell) = build_workspace_cell()
+  let workspace_app = new(workspace_cell)
+  workspace_app.with_init(workspace_emit(Init))
+  workspace_app.mount("workspace-content")
 }

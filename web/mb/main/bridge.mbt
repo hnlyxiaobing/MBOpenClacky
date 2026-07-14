@@ -184,6 +184,29 @@ pub async fn api_get_text(path : String) -> String {
 }
 
 ///|
+/// `I18n.t(key, params)` from `web/js/i18n.js` - translate a key with
+/// optional `{{param}}` substitution. `params_json` is a JSON string
+/// (e.g. `"{}"` or `"{\"name\":\"foo\"}"`) parsed on the JS side.
+/// Falls back to the key itself when the key is missing from both
+/// the current-locale and English dictionaries.
+#cfg(target="js")
+extern "js" fn i18n_t(key : String, params_json : String) -> String = "(key, params_json) => { let p; try { p = JSON.parse(params_json || '{}'); } catch(e) { p = {}; } return I18n.t(key, p); }"
+
+///|
+/// `I18n.getLocale()` from `web/js/i18n.js` - returns `"en"` or `"zh"`.
+#cfg(target="js")
+extern "js" fn i18n_get_locale() -> String = "() => I18n.getLocale()"
+
+///|
+/// Register a callback for the `i18n:locale-changed` CustomEvent
+/// dispatched by `I18n.setLocale()` (see `web/js/i18n.js:62`). The
+/// MoonBit closure is wrapped as a JS function automatically by the
+/// extern FFI. Used via `@cmd.custom_cmd` to feed `scheduler.add`
+/// back into the cell's update loop.
+#cfg(target="js")
+extern "js" fn i18n_on_locale_changed(callback : () -> Unit) = "(callback) => window.addEventListener('i18n:locale-changed', () => callback())"
+
+///|
 /// Parse a date string (epoch-seconds or ISO) and return a
 /// relative-time label such as "5m ago" / "3h ago" / "2d ago" /
 /// "2024-01-15" for older dates. Mirrors the logic in

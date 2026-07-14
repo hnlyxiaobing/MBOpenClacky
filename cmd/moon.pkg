@@ -26,8 +26,9 @@ import {
 
 supported_targets = "native"
 
+pkgtype(kind: "executable")
+
 options(
-  "is-main": true,
   // The brand package's C stubs (crypto_native.c) call OpenSSL (libcrypto)
   // for AES-256-GCM and RAND_bytes on Linux/macOS. We force the dependency
   // with --no-as-needed because the EVP_*/RAND_bytes symbols live inside

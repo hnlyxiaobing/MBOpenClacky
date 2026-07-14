@@ -54,6 +54,7 @@ enum ShareMsg {
   ClickCopyLink
   /// Result of the clipboard write.
   CopyDone(Result[Unit, String])
+  LocaleChanged
 }
 
 ///|
@@ -70,6 +71,7 @@ priv struct ShareModel {
   error : String
   /// Whether the last Copy succeeded (button briefly says "Copied!").
   copy_success : Bool
+  locale : String
 }
 
 ///|
@@ -81,6 +83,7 @@ fn initial_share_model() -> ShareModel {
     result: "",
     error: "",
     copy_success: false,
+    locale: "",
   }
 }
 
@@ -128,11 +131,19 @@ fn share_update(
   model : ShareModel,
 ) -> (@cmd.Cmd, ShareModel) {
   match msg {
-    Init => (@cmd.none, { ..model, session_id: js_current_session_id() })
+    Init =>
+      (
+        @cmd.batch([locale_change_cmd(emit, LocaleChanged)]),
+        {
+          ..model,
+          session_id: js_current_session_id(),
+          locale: i18n_get_locale(),
+        },
+      )
     FormatChanged(v) => (@cmd.none, { ..model, format: v })
     ClickExport =>
       if model.session_id == "" {
-        app_notify("Select a session first to export", "warning")
+        app_notify(t("share.select_session_export"), "warning")
         (@cmd.none, model)
       } else {
         (
@@ -143,25 +154,26 @@ fn share_update(
     ExportDone(Ok(s)) =>
       (@cmd.none, { ..model, busy: false, result: s, error: "" })
     ExportDone(Err(e)) => {
-      app_notify("Export failed: \{e}", "error")
+      app_notify(t1("share.export_failed", "error", e), "error")
       (@cmd.none, { ..model, busy: false, error: e })
     }
     ClickCopyLink =>
       if model.session_id == "" {
-        app_notify("Select a session first", "warning")
+        app_notify(t("share.select_session_first"), "warning")
         (@cmd.none, model)
       } else {
         let url = js_origin() + "/share/" + model.session_id
         (share_copy_cmd(emit, url), { ..model, busy: true })
       }
     CopyDone(Ok(_)) => {
-      app_notify("Share link copied to clipboard", "success")
+      app_notify(t("share.link_copied_notif"), "success")
       (@cmd.none, { ..model, busy: false, copy_success: true })
     }
     CopyDone(Err(e)) => {
-      app_notify("Failed to copy link: \{e}", "error")
+      app_notify(t1("share.copy_failed", "error", e), "error")
       (@cmd.none, { ..model, busy: false, error: e })
     }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -169,29 +181,33 @@ fn share_update(
 fn share_view(emit : @cmd.Emit[ShareMsg], model : ShareModel) -> @html.Html {
   let has_session = model.session_id != ""
   let export_button = if model.busy {
-    @html.button(class="btn btn-primary", disabled=true, "Exporting...")
+    @html.button(class="btn btn-primary", disabled=true, t("share.exporting"))
   } else {
-    @html.button(class="btn btn-primary", on_click=emit(ClickExport), "Export")
+    @html.button(
+      class="btn btn-primary",
+      on_click=emit(ClickExport),
+      t("share.export"),
+    )
   }
   let copy_button = if model.busy {
-    @html.button(class="btn btn-ghost", disabled=true, "Copying...")
+    @html.button(class="btn btn-ghost", disabled=true, t("share.copying"))
   } else if model.copy_success {
-    @html.button(class="btn btn-ghost", disabled=true, "Copied!")
+    @html.button(class="btn btn-ghost", disabled=true, t("share.copied"))
   } else {
     @html.button(
       class="btn btn-ghost",
       on_click=emit(ClickCopyLink),
-      "Copy Share Link",
+      t("share.copy_link"),
     )
   }
   let session_info = if has_session {
     @html.div(class="settings-field", [
-      @html.label(for_="share-session", [@html.span("Session")]),
+      @html.label(for_="share-session", [@html.span(t("share.session"))]),
       @html.div(class="text-muted", [@html.span(model.session_id)]),
     ])
   } else {
     @html.p(class="text-muted", [
-      @html.span("Select a session first to export."),
+      @html.span(t("share.select_session_export_hint")),
     ])
   }
   let format_select = @html.select(
@@ -199,16 +215,18 @@ fn share_view(emit : @cmd.Emit[ShareMsg], model : ShareModel) -> @html.Html {
     on_change=s => emit(FormatChanged(s)),
     [
       @html.option(value="md", selected=model.format == "md", [
-        @html.span("Markdown (.md)"),
+        @html.span(t("share.format_md")),
       ]),
       @html.option(value="json", selected=model.format == "json", [
-        @html.span("JSON (.json)"),
+        @html.span(t("share.format_json")),
       ]),
     ],
   )
   let result_block = if model.result.length() > 0 {
     @html.div(id="share-result", class="settings-group", [
-      @html.div(class="settings-group-title", [@html.span("Export Result")]),
+      @html.div(class="settings-group-title", [
+        @html.span(t("share.export_result")),
+      ]),
       @html.pre(
         style=[
           "background:var(--bg-tertiary)", "padding:12px", "border-radius:var(--radius-sm)",
@@ -245,18 +263,22 @@ fn share_view(emit : @cmd.Emit[ShareMsg], model : ShareModel) -> @html.Html {
       ],
     )
   } else {
-    @html.p(class="text-muted", [@html.span("Select a session first.")])
+    @html.p(class="text-muted", [@html.span(t("share.select_session_hint"))])
   }
   @html.div(class="share-panel", [
     @html.div(class="settings-group", [
-      @html.div(class="settings-group-title", [@html.span("Export Session")]),
+      @html.div(class="settings-group-title", [
+        @html.span(t("share.export_session")),
+      ]),
       session_info,
       if has_session {
         @html.div(class="settings-field", [
-          @html.label(for_="share-format", [@html.span("Export Format")]),
+          @html.label(for_="share-format", [
+            @html.span(t("share.export_format")),
+          ]),
           format_select,
           @html.div(class="help-text", [
-            @html.span("Choose the format for exporting the conversation"),
+            @html.span(t("share.export_format_help")),
           ]),
         ])
       } else {
@@ -272,7 +294,9 @@ fn share_view(emit : @cmd.Emit[ShareMsg], model : ShareModel) -> @html.Html {
     ]),
     result_block,
     @html.div(class="settings-group", [
-      @html.div(class="settings-group-title", [@html.span("Share Link")]),
+      @html.div(class="settings-group-title", [
+        @html.span(t("share.share_link_title")),
+      ]),
       link_block,
     ]),
     error_block,

@@ -1,7 +1,7 @@
 # Web UI Rabbita 迁移 Phase 3+4 · 增量 Spec
 
 > **创建日期**: 2026-07-14
-> **状态**: 讨论中
+> **状态**: 待开发
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G4（P1 重要功能差距）
 > **关联历史 spec**: `specs/active/2026-07-13_04_frontend-feature-architecture.md`（store/view 拆分，已被 rabbita 迁移取代）、`specs/completed/2026-07-14_web-ui-rabbita-migration.md`（Phase 0-2.8 已完成）
 > **来源差距**: G4 - Web 前端 Feature-based 架构迁移（rabbita TEA 方案）

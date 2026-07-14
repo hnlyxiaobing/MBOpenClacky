@@ -105,6 +105,7 @@ priv enum TasksMsg {
   ClickClearDone
   /// User clicked one of the three filter tabs.
   FilterChanged(TasksFilter)
+  LocaleChanged
 }
 
 ///|
@@ -133,6 +134,7 @@ priv struct TasksModel {
   /// Last user-facing error string (e.g. empty title, or a
   /// `localStorage.setItem` quota failure). Empty when idle.
   error : String
+  locale : String
 }
 
 ///|
@@ -143,6 +145,7 @@ fn initial_tasks_model() -> TasksModel {
     filter: TasksFilter::All,
     modal: TasksModal::None,
     error: "",
+    locale: "",
   }
 }
 
@@ -291,9 +294,9 @@ fn tasks_stats(tasks : Array[Task]) -> (Int, Int, Int) {
 /// Mirrors the legacy `priorityLabels` / `priorityColors` tables.
 fn tasks_priority_style(p : String) -> (String, String) {
   match p {
-    "high" => ("High", "var(--danger)")
-    "low" => ("Low", "var(--text-muted)")
-    _ => ("Normal", "var(--accent)")
+    "high" => (t("tasks.priority_high"), "var(--danger)")
+    "low" => (t("tasks.priority_low"), "var(--text-muted)")
+    _ => (t("tasks.priority_normal"), "var(--accent)")
   }
 }
 
@@ -303,7 +306,7 @@ fn tasks_priority_style(p : String) -> (String, String) {
 fn tasks_save(model : TasksModel) -> Bool {
   let ok = tasks_save_to_storage(model.tasks, model.next_id)
   if not(ok) {
-    app_notify("Failed to save tasks to local storage", "warning")
+    app_notify(t("tasks.save_failed"), "warning")
   }
   ok
 }
@@ -359,7 +362,10 @@ fn tasks_update_fn(
   match msg {
     TasksMsg::Init => {
       let (tasks, next_id) = tasks_load_from_storage()
-      (@cmd.none, { ..model, tasks, next_id })
+      (
+        locale_change_cmd(emit, TasksMsg::LocaleChanged),
+        { ..model, tasks, next_id, locale: i18n_get_locale() },
+      )
     }
     TasksMsg::ClickAdd =>
       (
@@ -382,10 +388,10 @@ fn tasks_update_fn(
       }
     TasksMsg::ClickConfirmAdd =>
       match model.modal {
-        TasksModal::Add(title=t, priority=p) => {
-          let trimmed = t.trim().to_string()
+        TasksModal::Add(title=title_str, priority=p) => {
+          let trimmed = title_str.trim().to_string()
           if trimmed == "" {
-            app_notify("Task title is required", "warning")
+            app_notify(t("tasks.required_title"), "warning")
             (@cmd.none, { ..model, error: "required" })
           } else {
             let new_task : Task = {
@@ -423,10 +429,10 @@ fn tasks_update_fn(
       }
     TasksMsg::ClickConfirmEdit =>
       match model.modal {
-        TasksModal::Edit(id~, title=t) => {
-          let trimmed = t.trim().to_string()
+        TasksModal::Edit(id~, title=title_str) => {
+          let trimmed = title_str.trim().to_string()
           if trimmed == "" {
-            app_notify("Task title is required", "warning")
+            app_notify(t("tasks.required_title"), "warning")
             (@cmd.none, { ..model, error: "required" })
           } else {
             let new_model = {
@@ -462,7 +468,7 @@ fn tasks_update_fn(
       (@cmd.none, new_model)
     }
     TasksMsg::ClickDelete(id) => {
-      let ok = window_confirm("Delete this task?")
+      let ok = window_confirm(t("tasks.delete_confirm"))
       if not(ok) {
         (@cmd.none, model)
       } else {
@@ -488,7 +494,7 @@ fn tasks_update_fn(
         // misleading "0 completed" dialog.
         (@cmd.none, model)
       } else {
-        let ok = window_confirm("Clear all completed tasks?")
+        let ok = window_confirm(t("tasks.clear_confirm"))
         if not(ok) {
           (@cmd.none, model)
         } else {
@@ -499,6 +505,8 @@ fn tasks_update_fn(
       }
     }
     TasksMsg::FilterChanged(f) => (@cmd.none, { ..model, filter: f })
+    TasksMsg::LocaleChanged =>
+      (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -515,7 +523,7 @@ fn tasks_view(emit : @cmd.Emit[TasksMsg], model : TasksModel) -> @html.Html {
       @html.button(
         class="btn btn-ghost btn-sm",
         on_click=emit(TasksMsg::ClickClearDone),
-        @html.text("Clear done"),
+        @html.text(t("tasks.clear_done")),
       ),
     )
   } else {
@@ -527,7 +535,9 @@ fn tasks_view(emit : @cmd.Emit[TasksMsg], model : TasksModel) -> @html.Html {
       "display:flex", "align-items:center", "justify-content:space-between",
     ],
     [
-      @html.span(@html.text("Tasks (\{active} remaining)")),
+      @html.span(
+        @html.text(t1("tasks.title_remaining", "count", active.to_string())),
+      ),
       @html.div(
         style=["display:flex", "gap:6px"],
         match cleared_button {
@@ -541,19 +551,25 @@ fn tasks_view(emit : @cmd.Emit[TasksMsg], model : TasksModel) -> @html.Html {
     class="skills-tabs",
     style=["margin-bottom:12px"],
     [
-      tasks_filter_tab(emit, model.filter, TasksFilter::All, "All", total),
+      tasks_filter_tab(
+        emit,
+        model.filter,
+        TasksFilter::All,
+        t("tasks.filter_all"),
+        total,
+      ),
       tasks_filter_tab(
         emit,
         model.filter,
         TasksFilter::Active,
-        "Active",
+        t("tasks.filter_active"),
         active,
       ),
       tasks_filter_tab(
         emit,
         model.filter,
         TasksFilter::Completed,
-        "Completed",
+        t("tasks.filter_completed"),
         completed,
       ),
     ],
@@ -572,7 +588,7 @@ fn tasks_add_button(emit : @cmd.Emit[TasksMsg]) -> @html.Html {
   @html.button(
     class="btn btn-primary btn-sm",
     on_click=emit(TasksMsg::ClickAdd),
-    @html.text("+ Add"),
+    @html.text(t("tasks.add_btn")),
   )
 }
 
@@ -601,8 +617,8 @@ fn tasks_list_view(
   if tasks.is_empty() {
     @html.div(class="empty-state", style=["padding:32px"], [
       @html.div(class="empty-state-icon", @html.text("☑")),
-      @html.h3(@html.text("No tasks")),
-      @html.p(class="text-muted", @html.text("Add a task to get started")),
+      @html.h3(@html.text(t("tasks.empty"))),
+      @html.p(class="text-muted", @html.text(t("tasks.empty_desc"))),
     ])
   } else {
     @html.div(
@@ -614,18 +630,18 @@ fn tasks_list_view(
 }
 
 ///|
-fn tasks_item(emit : @cmd.Emit[TasksMsg], t : Task) -> @html.Html {
-  let (label, colour) = tasks_priority_style(t.priority)
-  let toggle_cls = if t.done { "toggle active" } else { "toggle" }
-  let done_style = if t.done {
+fn tasks_item(emit : @cmd.Emit[TasksMsg], task : Task) -> @html.Html {
+  let (label, colour) = tasks_priority_style(task.priority)
+  let toggle_cls = if task.done { "toggle active" } else { "toggle" }
+  let done_style = if task.done {
     "text-decoration:line-through;opacity:0.5"
   } else {
     ""
   }
-  let done_meta = if t.completed_at == "" {
+  let done_meta = if task.completed_at == "" {
     @html.text("")
   } else {
-    @html.text(" · Completed at " + t.completed_at)
+    @html.text(t1("tasks.completed_at_time", "time", task.completed_at))
   }
   @html.div(
     class="task-item skill-card",
@@ -637,7 +653,7 @@ fn tasks_item(emit : @cmd.Emit[TasksMsg], t : Task) -> @html.Html {
       @html.div(
         class=toggle_cls,
         style=["flex-shrink:0", "cursor:pointer"],
-        on_click=emit(TasksMsg::ClickToggle(t.id)),
+        on_click=emit(TasksMsg::ClickToggle(task.id)),
         ([] : Array[@html.Html]),
       ),
       @html.div(style=["flex:1", "min-width:0"], [
@@ -646,7 +662,7 @@ fn tasks_item(emit : @cmd.Emit[TasksMsg], t : Task) -> @html.Html {
             "font-size:13px", "font-weight:500", "color:var(--text-primary)", "overflow:hidden",
             "text-overflow:ellipsis", "white-space:nowrap",
           ],
-          @html.text(t.title),
+          @html.text(task.title),
         ),
         @html.div(
           style=["font-size:11px", "color:var(--text-muted)", "margin-top:2px"],
@@ -656,21 +672,21 @@ fn tasks_item(emit : @cmd.Emit[TasksMsg], t : Task) -> @html.Html {
       @html.div(style=["display:flex", "gap:4px", "flex-shrink:0"], [
         @html.button(
           class="btn btn-ghost btn-sm",
-          title="Edit",
-          on_click=emit(TasksMsg::ClickEdit(t.id)),
+          title=t("common.edit"),
+          on_click=emit(TasksMsg::ClickEdit(task.id)),
           @html.text("✎"),
         ),
         @html.button(
           class="btn btn-ghost btn-sm",
-          title="Priority",
+          title=t("tasks.priority"),
           style=["color:\{colour}"],
-          on_click=emit(TasksMsg::ClickCyclePriority(t.id)),
+          on_click=emit(TasksMsg::ClickCyclePriority(task.id)),
           @html.text("⚑"),
         ),
         @html.button(
           class="btn btn-danger btn-sm",
-          title="Delete",
-          on_click=emit(TasksMsg::ClickDelete(t.id)),
+          title=t("common.delete"),
+          on_click=emit(TasksMsg::ClickDelete(task.id)),
           @html.text("🗑"),
         ),
       ]),
@@ -712,11 +728,11 @@ fn tasks_edit_form(
     ],
     [
       @html.div(class="settings-field", [
-        @html.label(for_="task-edit-title", @html.text("Task name")),
+        @html.label(for_="task-edit-title", @html.text(t("tasks.task_name"))),
         @html.input(
           input_type=@html.Text,
           id="task-edit-title",
-          placeholder="What needs doing?",
+          placeholder=t("tasks.task_placeholder"),
           value=title,
           on_change=s => emit(TasksMsg::EditTitleChanged(s)),
         ),
@@ -726,7 +742,7 @@ fn tasks_edit_form(
           @html.div(
             class="help-text",
             style=["color:var(--danger)"],
-            @html.text("Title is required"),
+            @html.text(t("tasks.title_required")),
           )
         },
       ]),
@@ -738,12 +754,12 @@ fn tasks_edit_form(
           @html.button(
             class="btn btn-ghost btn-sm",
             on_click=emit(TasksMsg::ClickCancelModal),
-            @html.text("Cancel"),
+            @html.text(t("common.cancel")),
           ),
           @html.button(
             class="btn btn-primary btn-sm",
             on_click=emit(TasksMsg::ClickConfirmEdit),
-            @html.text("Save"),
+            @html.text(t("common.save")),
           ),
         ],
       ),
@@ -773,17 +789,17 @@ fn tasks_form_scaffold(
     ],
     [
       @html.div(class="settings-field", [
-        @html.label(for_="task-title", @html.text("Task name")),
+        @html.label(for_="task-title", @html.text(t("tasks.task_name"))),
         @html.input(
           input_type=@html.Text,
           id="task-title",
-          placeholder="What needs doing?",
+          placeholder=t("tasks.task_placeholder"),
           value=title,
           on_change=s => emit(TasksMsg::AddTitleChanged(s)),
         ),
       ]),
       @html.div(class="settings-field", [
-        @html.label(for_="task-priority", @html.text("Priority")),
+        @html.label(for_="task-priority", @html.text(t("tasks.priority"))),
         tasks_priority_select(emit, priority),
       ]),
       if err == "" {
@@ -792,7 +808,7 @@ fn tasks_form_scaffold(
         @html.div(
           class="help-text",
           style=["color:var(--danger)"],
-          @html.text("Title is required"),
+          @html.text(t("tasks.title_required")),
         )
       },
       @html.div(
@@ -803,12 +819,12 @@ fn tasks_form_scaffold(
           @html.button(
             class="btn btn-ghost btn-sm",
             on_click=emit(TasksMsg::ClickCancelModal),
-            @html.text("Cancel"),
+            @html.text(t("common.cancel")),
           ),
           @html.button(
             class="btn btn-primary btn-sm",
             on_click=emit(confirm),
-            @html.text("Add"),
+            @html.text(t("tasks.add_confirm")),
           ),
         ],
       ),
@@ -825,9 +841,9 @@ fn tasks_priority_select(
     id="task-priority",
     on_change=s => emit(TasksMsg::AddPriorityChanged(s)),
     [
-      tasks_priority_option(emit, "low", "Low", current),
-      tasks_priority_option(emit, "normal", "Normal", current),
-      tasks_priority_option(emit, "high", "High", current),
+      tasks_priority_option(emit, "low", t("tasks.priority_low"), current),
+      tasks_priority_option(emit, "normal", t("tasks.priority_normal"), current),
+      tasks_priority_option(emit, "high", t("tasks.priority_high"), current),
     ],
   )
 }

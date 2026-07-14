@@ -39,6 +39,8 @@ priv enum BackupsMsg {
   ClickDelete(String)
   /// Delete result.
   DeleteDone(Result[Json, String])
+  /// Locale changed - re-render with new translations.
+  LocaleChanged
 }
 
 ///|
@@ -57,11 +59,12 @@ priv struct BackupsModel {
   /// "" if idle, "create" while creating, "<id>:restore" / "<id>:delete" while busy.
   busy : String
   error : String
+  locale : String
 }
 
 ///|
 fn initial_backups_model() -> BackupsModel {
-  { backups: [], loading: false, busy: "", error: "" }
+  { backups: [], loading: false, busy: "", error: "", locale: "" }
 }
 
 ///|
@@ -118,15 +121,23 @@ fn backups_update(
   model : BackupsModel,
 ) -> (@cmd.Cmd, BackupsModel) {
   match msg {
-    Init | Reload =>
-      (backups_fetch_cmd(emit), { ..model, loading: true, error: "" })
+    Init =>
+      (
+        @cmd.batch([
+          backups_fetch_cmd(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, loading: true, error: "", locale: i18n_get_locale() },
+      )
+    Reload => (backups_fetch_cmd(emit), { ..model, loading: true, error: "" })
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
     BackupsLoaded(Ok(json)) =>
       (
         @cmd.none,
         { ..model, backups: backups_parse_backups(json), loading: false },
       )
     BackupsLoaded(Err(e)) => {
-      app_notify("Failed to load backups: \{e}", "error")
+      app_notify(t1("backups.failed_load", "error", e), "error")
       (@cmd.none, { ..model, loading: false, error: e, backups: [] })
     }
     ClickCreate => {
@@ -137,17 +148,15 @@ fn backups_update(
       (cmd, { ..model, busy: "create" })
     }
     CreateDone(Ok(_)) => {
-      app_notify("Backup created successfully", "success")
+      app_notify(t("backups.created_success"), "success")
       (backups_fetch_cmd(emit), { ..model, busy: "" })
     }
     CreateDone(Err(e)) => {
-      app_notify("Failed to create backup: \{e}", "error")
+      app_notify(t1("backups.failed_create", "error", e), "error")
       (backups_fetch_cmd(emit), { ..model, busy: "" })
     }
     ClickRestore(id) => {
-      let ok = window_confirm(
-        "This will overwrite current data with this backup. Are you sure?",
-      )
+      let ok = window_confirm(t("backups.restore_confirm"))
       if not(ok) {
         (@cmd.none, model)
       } else {
@@ -160,15 +169,15 @@ fn backups_update(
       }
     }
     RestoreDone(Ok(_)) => {
-      app_notify("Backup restored successfully", "success")
+      app_notify(t("backups.restored_success"), "success")
       (@cmd.none, { ..model, busy: "" })
     }
     RestoreDone(Err(e)) => {
-      app_notify("Failed to restore backup: \{e}", "error")
+      app_notify(t1("backups.failed_restore", "error", e), "error")
       (@cmd.none, { ..model, busy: "" })
     }
     ClickDelete(id) => {
-      let ok = window_confirm("Delete this backup? This cannot be undone.")
+      let ok = window_confirm(t("backups.delete_confirm"))
       if not(ok) {
         (@cmd.none, model)
       } else {
@@ -180,11 +189,11 @@ fn backups_update(
       }
     }
     DeleteDone(Ok(_)) => {
-      app_notify("Backup deleted", "success")
+      app_notify(t("backups.deleted_success"), "success")
       (backups_fetch_cmd(emit), { ..model, busy: "" })
     }
     DeleteDone(Err(e)) => {
-      app_notify("Failed to delete backup: \{e}", "error")
+      app_notify(t1("backups.failed_delete", "error", e), "error")
       (@cmd.none, { ..model, busy: "" })
     }
   }
@@ -243,9 +252,9 @@ fn backups_row(
         disabled=create_busy || restoring || deleting,
         on_click=emit(ClickRestore(b.id)),
         if restoring {
-          "Restoring..."
+          t("backups.restoring")
         } else {
-          "Restore"
+          t("backups.restore")
         },
       ),
       button(
@@ -253,7 +262,7 @@ fn backups_row(
         disabled=create_busy || restoring || deleting,
         on_click=emit(ClickDelete(b.id)),
         if deleting {
-          "Deleting..."
+          t("backups.deleting")
         } else {
           "🗑"
         },
@@ -269,28 +278,28 @@ fn backups_view(
 ) -> @html.Html {
   let create_busy = model.busy == "create"
   let header = div(class="backups-header", [
-    @html.span(class="backups-header-title", "Backup Archives"),
+    @html.span(class="backups-header-title", t("backups.title")),
     button(
       class="btn btn-primary btn-sm",
       disabled=create_busy,
       on_click=emit(ClickCreate),
       if create_busy {
-        "Creating..."
+        t("backups.creating")
       } else {
-        "+ Create Backup"
+        t("backups.create")
       },
     ),
   ])
   if model.loading && model.backups.length() == 0 {
-    return div([header, @html.p(class="text-muted", "Loading backups...")])
+    return div([header, @html.p(class="text-muted", t("backups.loading"))])
   }
   if model.backups.length() == 0 {
     return div([
       header,
       div(class="empty-state", [
         div(class="empty-state-icon", "💾"),
-        @html.p(class="empty-state-title", "No Backups"),
-        @html.p(class="text-muted", "Create a backup to protect your data."),
+        @html.p(class="empty-state-title", t("backups.empty")),
+        @html.p(class="text-muted", t("backups.empty_desc")),
       ]),
     ])
   }
@@ -298,11 +307,11 @@ fn backups_view(
   let table_html = table(class="backups-table", [
     thead([
       tr([
-        th(class="backup-th", "Created"),
-        th(class="backup-th", "Label"),
-        th(class="backup-th", "Size"),
-        th(class="backup-th", "Status"),
-        th(class="backup-th", "Actions"),
+        th(class="backup-th", t("backups.col_created")),
+        th(class="backup-th", t("backups.col_label")),
+        th(class="backup-th", t("backups.col_size")),
+        th(class="backup-th", t("common.status")),
+        th(class="backup-th", t("common.actions")),
       ]),
     ]),
     tbody(rows),

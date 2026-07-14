@@ -37,6 +37,7 @@ priv enum VersionMsg {
   ClickUpgrade
   /// Upgrade response returned.
   UpgradeDone(Result[Json, String])
+  LocaleChanged
 }
 
 ///|
@@ -58,11 +59,12 @@ priv struct VersionModel {
   check_result : String
   /// True while any network call is in flight.
   busy : Bool
+  locale : String
 }
 
 ///|
 fn initial_version_model() -> VersionModel {
-  { current: "", available: None, check_result: "", busy: false }
+  { current: "", available: None, check_result: "", busy: false, locale: "" }
 }
 
 ///|
@@ -135,7 +137,14 @@ fn version_update(
   model : VersionModel,
 ) -> (@cmd.Cmd, VersionModel) {
   match msg {
-    Init => (version_fetch_cmd(emit), { ..model, busy: true })
+    Init =>
+      (
+        @cmd.batch([
+          version_fetch_cmd(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, busy: true, locale: i18n_get_locale() },
+      )
     VersionLoaded(Ok(json)) => {
       let v = version_json_string(
         json,
@@ -153,14 +162,14 @@ fn version_update(
       )
     }
     VersionLoaded(Err(e)) => {
-      app_notify("Failed to load version: \{e}", "error")
+      app_notify(t1("version.failed_load", "error", e), "error")
       (
         @cmd.none,
         {
           ..model,
           busy: false,
           current: "unknown",
-          check_result: "Load failed: " + e,
+          check_result: t1("version.load_failed", "error", e),
         },
       )
     }
@@ -170,7 +179,7 @@ fn version_update(
       } else {
         (
           version_check_cmd(emit),
-          { ..model, busy: true, check_result: "Checking for updates..." },
+          { ..model, busy: true, check_result: t("version.checking") },
         )
       }
     CheckDone(Ok(json)) => {
@@ -187,12 +196,12 @@ fn version_update(
       }
       let result_msg = match merged {
         Some(_) => {
-          app_notify("Update available!", "success")
+          app_notify(t("version.update_available_notif"), "success")
           ""
         }
         None => {
-          app_notify("No updates available", "info")
-          "You are running the latest version."
+          app_notify(t("version.no_updates"), "info")
+          t("version.up_to_date")
         }
       }
       (
@@ -201,16 +210,21 @@ fn version_update(
       )
     }
     CheckDone(Err(e)) => {
-      app_notify("Update check failed: \{e}", "error")
-      (@cmd.none, { ..model, busy: false, check_result: "Check failed: " + e })
+      app_notify(t1("version.check_failed", "error", e), "error")
+      (
+        @cmd.none,
+        {
+          ..model,
+          busy: false,
+          check_result: t1("version.check_failed", "error", e),
+        },
+      )
     }
     ClickUpgrade =>
       if model.busy {
         (@cmd.none, model)
       } else {
-        let confirmed = window_confirm(
-          "Upgrade to the latest version? The server may restart.",
-        )
+        let confirmed = window_confirm(t("version.upgrade_confirm"))
         if not(confirmed) {
           (@cmd.none, model)
         } else {
@@ -219,15 +233,18 @@ fn version_update(
       }
     UpgradeDone(Ok(json)) => {
       let msg = version_json_string(
-        json, "message", "Upgrade initiated. Server may restart.",
+        json,
+        "message",
+        t("version.upgrade_initiated"),
       )
       app_notify(msg, "success")
       (@cmd.none, { ..model, busy: false })
     }
     UpgradeDone(Err(e)) => {
-      app_notify("Upgrade failed: \{e}", "error")
+      app_notify(t1("version.upgrade_failed", "error", e), "error")
       (@cmd.none, { ..model, busy: false })
     }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -237,21 +254,25 @@ fn version_view(
   model : VersionModel,
 ) -> @html.Html {
   let current = if model.current.length() == 0 {
-    "Loading..."
+    t("common.loading")
   } else {
     model.current
   }
   let check_button = if model.busy {
-    @html.button(class="btn btn-ghost btn-sm", disabled=true, "Checking...")
+    @html.button(
+      class="btn btn-ghost btn-sm",
+      disabled=true,
+      t("version.checking"),
+    )
   } else {
     button(
       class="btn btn-ghost btn-sm",
       on_click=emit(ClickCheck),
-      "Check for Updates",
+      t("version.check_update"),
     )
   }
   let current_card = @html.div(class="settings-group", [
-    @html.div(class="settings-group-title", [@html.span("Current Version")]),
+    @html.div(class="settings-group-title", [@html.span(t("version.current"))]),
     @html.div(class="version-info-card", [
       @html.div(class="version-header", [
         @html.div(class="version-icon", [@html.span("📦")]),
@@ -266,17 +287,23 @@ fn version_view(
   let update_section = match model.available {
     Some(u) => {
       let upgrade_button = if model.busy {
-        @html.button(class="btn btn-primary", disabled=true, "Upgrading...")
+        @html.button(
+          class="btn btn-primary",
+          disabled=true,
+          t("version.upgrading"),
+        )
       } else {
         button(
           class="btn btn-primary",
           on_click=emit(ClickUpgrade),
-          "Upgrade Now",
+          t("version.upgrade_now"),
         )
       }
       let changelog_block = if u.changelog.length() > 0 {
         @html.div(class="version-changelog", [
-          @html.div(class="version-changelog-label", [@html.span("Changelog:")]),
+          @html.div(class="version-changelog-label", [
+            @html.span(t("version.release_notes")),
+          ]),
           @html.div(class="version-changelog-body", [@html.span(u.changelog)]),
         ])
       } else {
@@ -284,16 +311,16 @@ fn version_view(
       }
       @html.div(class="settings-group", [
         @html.div(class="settings-group-title version-update-title", [
-          @html.span("Update Available"),
+          @html.span(t("version.update_available_title")),
         ]),
         @html.div(class="version-update-card", [
           @html.div(class="version-update-header", [
             @html.div(class="version-update-text", [
               @html.div(class="version-update-name", [
-                @html.span("Version " + u.version),
+                @html.span(t1("version.version_label", "version", u.version)),
               ]),
               @html.div(class="text-muted", [
-                @html.span("A new version is available"),
+                @html.span(t("version.new_version_available")),
               ]),
             ]),
             upgrade_button,

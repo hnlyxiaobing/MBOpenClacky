@@ -56,6 +56,7 @@ priv enum BrandMsg {
   ClickDeleteSkill(String)
   /// Delete result.
   DeleteDone(Result[Json, String])
+  LocaleChanged
 }
 
 ///|
@@ -70,6 +71,7 @@ priv struct BrandModel {
   error : String // last user-facing error message
   pending_license_key : String // license key being activated
   pending_install_name : String // skill name being installed
+  locale : String
 }
 
 ///|
@@ -85,6 +87,7 @@ fn initial_brand_model() -> BrandModel {
     error: "",
     pending_license_key: "",
     pending_install_name: "",
+    locale: "",
   }
 }
 
@@ -138,14 +141,21 @@ fn update(
   model : BrandModel,
 ) -> (@cmd.Cmd, BrandModel) {
   match msg {
-    Init => (fetch_status_and_skills(emit), model)
+    Init =>
+      (
+        @cmd.batch([
+          fetch_status_and_skills(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, locale: i18n_get_locale() },
+      )
     StatusLoaded(Ok(json)) => {
       let status = json_string(json, "license_status", "inactive")
       let pname = json_string(json, "product_name", model.product_name)
       (none, { ..model, status, product_name: pname, error: "" })
     }
     StatusLoaded(Err(e)) => {
-      app_notify("Failed to load brand status: \{e}", "error")
+      app_notify(t1("brand.failed_load", "error", e), "error")
       (none, { ..model, status: "inactive", error: e })
     }
     SkillsLoaded(Ok(json)) => {
@@ -161,14 +171,14 @@ fn update(
       (none, { ..model, skills, error: "" })
     }
     SkillsLoaded(Err(e)) => {
-      app_notify("Failed to load brand skills: \{e}", "error")
+      app_notify(t1("brand.failed_skills", "error", e), "error")
       (none, { ..model, skills: [], error: e })
     }
     LicenseKeyChanged(s) => (none, { ..model, license_key_input: s })
     ClickActivate => {
       let key = model.license_key_input.trim().to_string()
       if key == "" {
-        app_notify("Please enter a license key", "warning")
+        app_notify(t("brand.license_key_required"), "warning")
         (none, model)
       } else {
         let body = Json::object(Map::of([("license_key", Json::string(key))]))
@@ -181,7 +191,7 @@ fn update(
     ActivateDone(Ok(json)) => {
       let status = json_string(json, "status", "active")
       let pname = json_string(json, "product_name", model.product_name)
-      app_notify("License activated", "success")
+      app_notify(t("brand.activated_success"), "success")
       (
         none,
         {
@@ -195,13 +205,11 @@ fn update(
       )
     }
     ActivateDone(Err(e)) => {
-      app_notify("Activation failed: \{e}", "error")
+      app_notify(t1("brand.activation_failed", "error", e), "error")
       (none, { ..model, busy: false, error: e, pending_license_key: "" })
     }
     ClickDeactivate => {
-      let ok = window_confirm(
-        "Deactivate license? This will remove brand customization.",
-      )
+      let ok = window_confirm(t("brand.deactivate_confirm"))
       if not(ok) {
         (none, model)
       } else {
@@ -212,7 +220,7 @@ fn update(
       }
     }
     DeactivateDone(_) => {
-      app_notify("License deactivated", "info")
+      app_notify(t("brand.deactivated_success"), "info")
       (
         fetch_status_and_skills(emit),
         { ..model, busy: false, status: "inactive" },
@@ -226,7 +234,7 @@ fn update(
     ClickConfirmInstall => {
       let name = model.skill_name_input.trim().to_string()
       if name == "" {
-        app_notify("Skill name is required", "warning")
+        app_notify(t("brand.skill_name_required"), "warning")
         (none, model)
       } else {
         let body = Json::object(Map::of([("name", Json::string(name))]))
@@ -246,7 +254,7 @@ fn update(
       }
     }
     InstallDone(Ok(_)) => {
-      app_notify("Skill installed", "success")
+      app_notify(t("brand.skill_installed"), "success")
       (
         @cmd.perform(r => emit(SkillsLoaded(r)), async fn() noraise {
           safe_get("/api/brand/skills")
@@ -255,11 +263,11 @@ fn update(
       )
     }
     InstallDone(Err(e)) => {
-      app_notify("Install failed: \{e}", "error")
+      app_notify(t1("brand.skill_install_failed", "error", e), "error")
       (none, { ..model, busy: false, error: e, pending_install_name: "" })
     }
     ClickDeleteSkill(name) => {
-      let ok = window_confirm("Delete brand skill \"\{name}\"?")
+      let ok = window_confirm(t1("brand.uninstall_confirm", "name", name))
       if not(ok) {
         (none, model)
       } else {
@@ -271,7 +279,7 @@ fn update(
       }
     }
     DeleteDone(_) => {
-      app_notify("Skill deleted", "success")
+      app_notify(t("brand.skill_uninstalled"), "success")
       (
         @cmd.perform(r => emit(SkillsLoaded(r)), async fn() noraise {
           safe_get("/api/brand/skills")
@@ -279,6 +287,7 @@ fn update(
         { ..model, busy: false },
       )
     }
+    LocaleChanged => (none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -286,9 +295,9 @@ fn update(
 /// View — small inline helper for the status badge.
 fn status_badge(status : String) -> @html.Html {
   let (cls, label) = match status {
-    "active" => ("brand-status-badge active", "Active")
-    "trial" => ("brand-status-badge trial", "Trial")
-    _ => ("brand-status-badge inactive", "Inactive")
+    "active" => ("brand-status-badge active", t("brand.status_active"))
+    "trial" => ("brand-status-badge trial", t("brand.status_trial"))
+    _ => ("brand-status-badge inactive", t("brand.status_inactive"))
   }
   span(class=cls, label)
 }
@@ -330,7 +339,7 @@ fn skill_row(emit : @cmd.Emit[BrandMsg], skill : Json) -> @html.Html {
         button(
           class="btn btn-danger btn-sm",
           on_click=emit(ClickDeleteSkill(name)),
-          "Delete",
+          t("common.delete"),
         ),
       ],
     ),
@@ -342,7 +351,7 @@ fn view(emit : @cmd.Emit[BrandMsg], model : BrandModel) -> @html.Html {
   let status = model.status
   let show_activate = status != "active"
   let skills_html = if model.skills.length() == 0 {
-    [p(class="text-muted", "No brand skills installed")]
+    [p(class="text-muted", t("brand.no_skills"))]
   } else {
     model.skills.map(s => skill_row(emit, s))
   }
@@ -354,37 +363,34 @@ fn view(emit : @cmd.Emit[BrandMsg], model : BrandModel) -> @html.Html {
         style=[
           "display:flex", "align-items:center", "justify-content:space-between",
         ],
-        [span("License Status"), status_badge(status)],
+        [span(t("brand.status")), status_badge(status)],
       ),
       div(class="brand-info-card", [
         div(class="settings-field", [
-          label("Product Name"),
+          label(t("brand.product_name")),
           div(class="text-muted", model.product_name),
         ]),
         if show_activate {
           div([
             div(class="settings-field", [
-              label("License Key"),
+              label(t("brand.license_key")),
               input(
                 input_type=@html.Text,
                 id="brand-license-key",
-                placeholder="Enter license key...",
+                placeholder=t("brand.enter_key"),
                 value=model.license_key_input,
                 on_change=s => emit(LicenseKeyChanged(s)),
               ),
-              div(
-                class="help-text",
-                "Enter your license key to activate branding",
-              ),
+              div(class="help-text", t("brand.license_key_help")),
             ]),
             div(style=["display:flex", "gap:8px", "margin-top:8px"], [
               button(
                 class="btn btn-primary",
                 on_click=emit(ClickActivate),
                 if model.busy && model.pending_license_key != "" {
-                  "Activating..."
+                  t("brand.activating")
                 } else {
-                  "Activate"
+                  t("brand.activate")
                 },
               ),
             ]),
@@ -394,7 +400,7 @@ fn view(emit : @cmd.Emit[BrandMsg], model : BrandModel) -> @html.Html {
             button(
               class="btn btn-danger btn-sm",
               on_click=emit(ClickDeactivate),
-              "Deactivate License",
+              t("brand.deactivate"),
             ),
           ])
         },
@@ -408,39 +414,41 @@ fn view(emit : @cmd.Emit[BrandMsg], model : BrandModel) -> @html.Html {
           "display:flex", "align-items:center", "justify-content:space-between",
         ],
         [
-          span("Brand Skills (\{model.skills.length()})"),
+          span(
+            t1("brand.skills_count", "count", model.skills.length().to_string()),
+          ),
           button(
             class="btn btn-primary btn-sm",
             on_click=emit(ClickOpenInstall),
-            "+ Install Skill",
+            t("brand.install_skill"),
           ),
         ],
       ),
       div(id="brand-skills-list", skills_html),
       if model.install_form_open {
         div(class="settings-field", [
-          label("New Skill Name"),
+          label(t("brand.skill_name")),
           input(
             input_type=@html.Text,
             id="brand-skill-name",
-            placeholder="Enter skill name...",
+            placeholder=t("brand.skill_name_placeholder"),
             value=model.skill_name_input,
             on_change=s => emit(SkillNameChanged(s)),
           ),
-          div(class="help-text", "Name of the brand skill to install"),
+          div(class="help-text", t("brand.skill_name_help")),
           div(style=["display:flex", "gap:8px", "margin-top:8px"], [
             button(
               class="btn btn-ghost",
               on_click=emit(ClickCancelInstall),
-              "Cancel",
+              t("common.cancel"),
             ),
             button(
               class="btn btn-primary",
               on_click=emit(ClickConfirmInstall),
               if model.busy && model.pending_install_name != "" {
-                "Installing..."
+                t("brand.installing")
               } else {
-                "Install"
+                t("brand.install")
               },
             ),
           ]),

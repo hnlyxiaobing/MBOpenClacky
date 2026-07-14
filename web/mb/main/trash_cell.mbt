@@ -46,11 +46,6 @@
 ///     and the "🗑 Empty Trash" button; the HTML markup is static
 ///     here, so the count badge and Empty button live inside the body
 ///     of the view function instead.
-///   - **Pluralisation is hand-rolled** with `plural_s(n)` returning
-///     `"s"` or `""`. MoonBit's string interpolation does not support
-///     inline `if` expressions with embedded string literals, so
-///     calling a helper is the cleanest way to render e.g.
-///     `"Restore 2 selected item(s)"`.
 
 ///|
 /// All `cmd` types are referenced via fully-qualified `@cmd.X` and all
@@ -93,6 +88,7 @@ enum TrashMsg {
   /// User clicked the "Empty Trash" button.
   ClickEmptyAll
   EmptyAllDone(Result[Unit, String])
+  LocaleChanged
 }
 
 ///|
@@ -127,6 +123,7 @@ priv struct TrashModel {
   error : String
   /// True after the first fetch has completed at least once.
   loaded : Bool
+  locale : String
 }
 
 ///|
@@ -141,17 +138,7 @@ fn initial_trash_model() -> TrashModel {
     busy: "",
     error: "",
     loaded: false,
-  }
-}
-
-///|
-/// Return `"s"` for non-1 counts, `""` for 1. Used for
-/// English-only pluralisation in user-visible strings.
-fn plural_s(n : Int) -> String {
-  if n == 1 {
-    ""
-  } else {
-    "s"
+    locale: "",
   }
 }
 
@@ -368,7 +355,14 @@ fn trash_update(
   model : TrashModel,
 ) -> (@cmd.Cmd, TrashModel) {
   match msg {
-    Init => (trash_initial_fetch(emit), { ..model, busy: "load", error: "" })
+    Init =>
+      (
+        @cmd.batch([
+          trash_initial_fetch(emit),
+          locale_change_cmd(emit, LocaleChanged),
+        ]),
+        { ..model, busy: "load", error: "", locale: i18n_get_locale() },
+      )
     Reload =>
       (
         @cmd.batch([
@@ -382,7 +376,7 @@ fn trash_update(
       (@cmd.none, { ..next, filtered_items: trash_apply_filter(next) })
     }
     ItemsLoaded(Err(e)) => {
-      app_notify("Failed to load trash: \{e}", "error")
+      app_notify(t1("trash.failed_load", "error", e), "error")
       (
         @cmd.none,
         {
@@ -432,7 +426,7 @@ fn trash_update(
         { ..model, busy: "restore:" + id, error: "" },
       )
     RestoreDone(Ok(_)) => {
-      app_notify("Item restored", "success")
+      app_notify(t("trash.restored"), "success")
       let sel = model.selected
       sel.clear()
       (
@@ -444,13 +438,11 @@ fn trash_update(
       )
     }
     RestoreDone(Err(e)) => {
-      app_notify("Failed to restore: \{e}", "error")
+      app_notify(t1("trash.failed_restore", "error", e), "error")
       (@cmd.none, { ..model, busy: "", error: e })
     }
     ClickDelete(id) => {
-      let ok = window_confirm(
-        "Permanently delete this item? This cannot be undone.",
-      )
+      let ok = window_confirm(t("trash.delete_confirm"))
       if not(ok) {
         (@cmd.none, model)
       } else {
@@ -458,7 +450,7 @@ fn trash_update(
       }
     }
     DeleteDone(Ok(_)) => {
-      app_notify("Item permanently deleted", "success")
+      app_notify(t("trash.permanently_deleted"), "success")
       (
         @cmd.batch([
           trash_fetch_items_cmd(emit, model.filter),
@@ -468,7 +460,7 @@ fn trash_update(
       )
     }
     DeleteDone(Err(e)) => {
-      app_notify("Failed to delete: \{e}", "error")
+      app_notify(t1("trash.failed_delete", "error", e), "error")
       (@cmd.none, { ..model, busy: "", error: e })
     }
     ClickBatchRestore => {
@@ -477,11 +469,7 @@ fn trash_update(
         (@cmd.none, model)
       } else {
         let n = ids.length()
-        let msg = "Restore " +
-          n.to_string() +
-          " selected item" +
-          plural_s(n) +
-          "?"
+        let msg = t1("trash.batch_restore_confirm", "count", n.to_string())
         let ok = window_confirm(msg)
         if not(ok) {
           (@cmd.none, model)
@@ -494,7 +482,7 @@ fn trash_update(
       }
     }
     BatchRestoreDone(Ok(_)) => {
-      app_notify("Items restored", "success")
+      app_notify(t("trash.batch_restored"), "success")
       (
         @cmd.batch([
           trash_fetch_items_cmd(emit, model.filter),
@@ -504,7 +492,7 @@ fn trash_update(
       )
     }
     BatchRestoreDone(Err(e)) => {
-      app_notify("Batch restore failed: \{e}", "error")
+      app_notify(t1("trash.batch_restore_failed", "error", e), "error")
       (@cmd.none, { ..model, busy: "", error: e })
     }
     ClickBatchDelete => {
@@ -513,11 +501,7 @@ fn trash_update(
         (@cmd.none, model)
       } else {
         let n = ids.length()
-        let msg = "Permanently delete " +
-          n.to_string() +
-          " selected item" +
-          plural_s(n) +
-          "? This cannot be undone."
+        let msg = t1("trash.batch_delete_confirm", "count", n.to_string())
         let ok = window_confirm(msg)
         if not(ok) {
           (@cmd.none, model)
@@ -529,7 +513,7 @@ fn trash_update(
     BatchDeleteDone(Ok(_)) => {
       let ids = trash_selected_ids(model.selected)
       let n = ids.length()
-      let msg = n.to_string() + " item" + plural_s(n) + " permanently deleted"
+      let msg = t1("trash.batch_deleted", "count", n.to_string())
       app_notify(msg, "success")
       (
         @cmd.batch([
@@ -541,9 +525,7 @@ fn trash_update(
     }
     BatchDeleteDone(Err(_)) => (@cmd.none, { ..model, busy: "" })
     ClickEmptyAll => {
-      let ok = window_confirm(
-        "Empty entire trash? All items will be permanently deleted. This cannot be undone.",
-      )
+      let ok = window_confirm(t("trash.purge_confirm"))
       if not(ok) {
         (@cmd.none, model)
       } else {
@@ -551,7 +533,7 @@ fn trash_update(
       }
     }
     EmptyAllDone(Ok(_)) => {
-      app_notify("Trash emptied", "success")
+      app_notify(t("trash.emptied"), "success")
       (
         @cmd.batch([
           trash_fetch_items_cmd(emit, model.filter),
@@ -561,9 +543,10 @@ fn trash_update(
       )
     }
     EmptyAllDone(Err(e)) => {
-      app_notify("Failed to empty trash: \{e}", "error")
+      app_notify(t1("trash.failed_purge", "error", e), "error")
       (@cmd.none, { ..model, busy: "", error: e })
     }
+    LocaleChanged => (@cmd.none, { ..model, locale: i18n_get_locale() })
   }
 }
 
@@ -682,7 +665,7 @@ fn trash_item_row(
 fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
   if not(model.loaded) {
     return @html.div(class="trash-panel", [
-      @html.p(class="text-muted", [@html.span("Loading trash...")]),
+      @html.p(class="text-muted", [@html.span(t("trash.loading"))]),
     ])
   }
   let total = model.items.length()
@@ -694,38 +677,44 @@ fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
     }
   }
   let filter_row = @html.div(style=["display:flex", "gap:4px"], [
-    trash_filter_button(emit, "all", "All", total, model.filter == "all"),
+    trash_filter_button(
+      emit,
+      "all",
+      t("trash.filter_all"),
+      total,
+      model.filter == "all",
+    ),
     trash_filter_button(
       emit,
       "session",
-      "Sessions",
+      t("trash.filter_sessions"),
       stats_count("session"),
       model.filter == "session",
     ),
     trash_filter_button(
       emit,
       "config",
-      "Configs",
+      t("trash.filter_configs"),
       stats_count("config"),
       model.filter == "config",
     ),
     trash_filter_button(
       emit,
       "schedule",
-      "Schedules",
+      t("trash.filter_schedules"),
       stats_count("schedule"),
       model.filter == "schedule",
     ),
   ])
   let restore_label = if selected_count > 0 {
-    "↩ Restore (" + selected_count.to_string() + ")"
+    t1("trash.restore_selected_count", "count", selected_count.to_string())
   } else {
-    "↩ Restore Selected"
+    t("trash.restore_selected")
   }
   let delete_label = if selected_count > 0 {
-    "✕ Delete (" + selected_count.to_string() + ")"
+    t1("trash.delete_selected_count", "count", selected_count.to_string())
   } else {
-    "✕ Delete Selected"
+    t("trash.delete_selected")
   }
   let all_selected = model.filtered_items.length() > 0 &&
     model.filtered_items
@@ -734,9 +723,9 @@ fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
   let empty_btn = @html.button(
     class="btn btn-danger btn-sm",
     on_click=emit(ClickEmptyAll),
-    "🗑 Empty Trash",
+    "🗑 " + t("trash.empty_trash"),
   )
-  let total_label = total.to_string() + " item" + plural_s(total)
+  let total_label = t1("trash.item_count", "count", total.to_string())
   let header_children : Array[@html.Html] = [
     @html.span("Trash"),
     @html.span(
@@ -767,7 +756,7 @@ fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
       @html.input(
         input_type=Text,
         id="trash-search-input",
-        placeholder="Search trash...",
+        placeholder=t("trash.search_placeholder"),
         value=model.search_query,
         on_input=s => emit(SearchChanged(s)),
       ),
@@ -793,14 +782,14 @@ fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
   )
   let list_block = if model.filtered_items.length() == 0 {
     let msg = if model.search_query != "" {
-      "No items match your search."
+      t("trash.no_search_results")
     } else {
-      "Trash is empty. Deleted items will appear here."
+      t("trash.empty_hint")
     }
     let title = if model.search_query != "" {
-      "No Results"
+      t("trash.no_results_title")
     } else {
-      "Trash is Empty"
+      t("trash.empty_title")
     }
     @html.div(class="empty-state", style=["padding:40px 0"], [
       @html.div(
@@ -826,35 +815,35 @@ fn trash_view(emit : @cmd.Emit[TrashMsg], model : TrashModel) -> @html.Html {
               "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
               "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
-            [@html.span("Name / ID")],
+            [@html.span(t("trash.col_name"))],
           ),
           @html.th(
             style=[
               "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
               "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
-            [@html.span("Type")],
+            [@html.span(t("trash.col_type"))],
           ),
           @html.th(
             style=[
               "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
               "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
-            [@html.span("Deleted")],
+            [@html.span(t("trash.col_deleted"))],
           ),
           @html.th(
             style=[
               "text-align:left", "padding:8px 12px", "font-size:12px", "font-weight:600",
               "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
-            [@html.span("Expires")],
+            [@html.span(t("trash.col_expiry"))],
           ),
           @html.th(
             style=[
               "text-align:right", "padding:8px 12px", "font-size:12px", "font-weight:600",
               "color:var(--text-secondary)", "text-transform:uppercase", "letter-spacing:0.5px",
             ],
-            [@html.span("Actions")],
+            [@html.span(t("trash.col_actions"))],
           ),
         ]),
       ]),
