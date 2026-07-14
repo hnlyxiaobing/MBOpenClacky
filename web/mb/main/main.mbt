@@ -89,4 +89,10 @@ fn main {
   let trash_app = new(trash_cell)
   trash_app.with_init(trash_emit(Init))
   trash_app.mount("trash-content")
+
+  // ── ModelTest cell at #model-test-content (Phase 2.6) ───────────
+  let (model_test_emit, model_test_cell) = build_model_test_cell()
+  let model_test_app = new(model_test_cell)
+  model_test_app.with_init(model_test_emit(Init))
+  model_test_app.mount("model-test-content")
 }
