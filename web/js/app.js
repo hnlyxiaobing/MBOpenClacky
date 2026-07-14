@@ -100,7 +100,7 @@ const App = {
     if (typeof Trash !== 'undefined') Trash.init();
 
     // Initialize new feature modules
-    if (typeof BrandView !== 'undefined') BrandView.init();
+    if (false && typeof BrandView !== 'undefined') BrandView.init(); // Phase 1.2: temporarily disabled — rabbita brand cell takes over #brand-content
     if (typeof SkillEditorView !== 'undefined') SkillEditorView.init();
     if (typeof ProfileView !== 'undefined') ProfileView.init();
     if (typeof ShareView !== 'undefined') ShareView.init();
