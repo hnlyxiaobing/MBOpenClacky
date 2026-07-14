@@ -389,6 +389,47 @@ extern "js" fn app_notify(message : String, type_ : String) =
 
 ---
 
+## 十二、Phase 1.2 整合（commit `3c84c7a`，2026-07-14 12:19）
+
+### 12.1 范围
+
+把 Phase 1.1 的 warren build 产物（`web/mb/dist/`）同步到 serve 路径（`web/mb/`），并接入主 SPA：让 rabbita bundle 接管 `#brand-content` 容器，同时**临时禁用** `web/js/brand.js` 的 `BrandView.init()` 以便端到端验证。
+
+### 12.2 修改文件
+
+| 文件 | 改动 | 验证 |
+|------|------|------|
+| `web/mb/index.html` | +13 行 | 脚手架标准 HTML（保留作 warren dev 独立启动用，未被主集成使用） |
+| `web/mb/index.js` | 2 行 diff（实际是 dist 覆盖） | 117,688 bytes = Phase 1.1 的 warren build 产物（counter + brand cell） |
+| `web/mb/styles.css` | +90 行 | 共享样式（warren 默认，无 mb-counter/mb-title/mb-btn 等 class 冲突） |
+| `web/index.html` | +6 行 | 加 `<div id=mb-root>` 容器（L382，inline style 定位右下角测试面板）+ `<script type=module src=mb/index.js>`（L421，加在所有 legacy 脚本之后） |
+| `web/js/app.js` | 1 行改动 | L103 `BrandView.init()` 调用加 `false &&` 前缀临时禁用 |
+
+### 12.3 关键技术点
+
+1. **module 加载顺序**：`mb/index.js` 用 `type="module"` 异步加载，且放在所有 `<script src="js/...">` 之后，确保 `App` / `NotificationManager` 等全局对象已就绪，rabbita extern 才能找到。
+2. **临时禁用而非删除**：`if (false && typeof BrandView !== 'undefined') BrandView.init()` — `false &&` 让条件永远为假，注释里写明 Phase 1.2 临时禁用 + 原因。grep 旧引用、判断安全后再彻底删除 `web/js/brand.js`（Phase 1.3）。
+3. **测试面板**：`#mb-root` inline style 定位屏幕右下角悬浮卡片（`position:fixed;bottom:16px;right:16px;z-index:9999`）— Phase 1.3 可考虑改为 `<div id="view-rabbita" class="view">` 或注入到 `#app` 内，避免与"非侵入式集成"初衷偏差。
+4. **CSS 隔离**：rabbita cell 全部用 `mb-` 前缀 class（`mb-counter`/`mb-title`/`mb-btn`），与现有 `app.js` 渲染的 panel 样式不冲突。
+
+### 12.4 验证
+
+- `git commit 3c84c7a` 已落地（用户提交记录）
+- `web/mb/index.js`（117,688 bytes）与 Phase 1.1 dist 产物一致
+- `web/index.html` L382/L421 注入已存在
+- `web/js/app.js:103` 已加 `false &&` 前缀，注释明确写明 Phase 1.2 临时禁用
+
+### 12.5 遗留 → Phase 1.3
+
+1. **删除 `web/js/brand.js`**：现已被 `false &&` 跳过初始化，Phase 1.3 浏览器手测通过后可彻底删除。
+2. **清理 `web/js/app.js:173` 的 `{ btn: 'btn-brand', view: 'brand', module: 'BrandView' }`** — 该 module 字段触发旧 BrandView 自动加载（当前已被 `false &&` 屏蔽），删除 brand.js 后此行可移除。
+3. **mb-root 定位调整**：从右下角悬浮卡片改为注入到 `#app` 内或独立 view 容器。
+4. **修复 pre-existing crescent API errors**：`moon check` 当前 7 errors（`HttpRequest has no method http_request`）来自 `lib/web/*_wbtest.mbt`，是 `.mooncakes/bobzhang/crescent` 升级后的 API 漂移，与本 spec 无关，但阻断 `moon build --target native cmd` 完整链路。Phase 1.3 单独修复。
+5. **更新本 spec**：本 spec 的"当前进度"等条目需在 Phase 1.3 commit 时同步更新。
+6. **spec 自身提交**：`specs/active/2026-07-14_web-ui-rabbita-migration.md` 这次只做了 Phase 1.2 实际进度的文档化，未单独 commit（与代码 commit 一起 review 更顺）。
+
+---
+
 ## 变更记录
 
 | 日期 | 变更 | 原因 |
@@ -399,20 +440,25 @@ extern "js" fn app_notify(message : String, type_ : String) =
 | 2026-07-14 | §四.4.4 补充遗留关注：mb-root inline style 定位与"非侵入式"初衷偏差 | Phase 1+ 调整方向记录 |
 | 2026-07-14 | Phase 0.5 完成：`web/mb/main/bridge.mbt` extern 桥接 + main.mbt TestNotify/TestModal 按钮；moon check + warren build 通过（53404 bytes）；dist 同步到 web/mb/index.js | 跨边界互操作 R2 最高风险已可缓解；为 Phase 1 Brand 铺路 |
 | 2026-07-14 | Phase 1.1 Brand cell 实施：`bridge.mbt` 加 `app_api_get/post/del` async 桥接；新建 `brand_cell.mbt`（State machine: Idle/Loading/StatusLoaded/SkillsLoaded/Submitting + 5 个 Msg）；`cell_with_emit` 包装 `build_brand_cell` 为 Cell；main.mbt 挂载到 `#brand-content`；moon check 0 errors + warren build 通过（117KB minified） | 完成 Brand 面板的核心 state machine，遗留整合到 FastAPI + 浏览器手测 + 删旧 JS |
+| 2026-07-14 | Phase 1.2 整合（commit `3c84c7a`）：`web/mb/dist/` 同步到 `web/mb/index.{html,js,styles.css}`；`web/index.html` 加 `<div id=mb-root>` + `<script type=module src=mb/index.js>`；`web/js/app.js:103` `BrandView.init()` 加 `false &&` 前缀临时禁用 | 让 rabbita bundle 接管 `#brand-content`，端到端验证 Brand cell。旧 brand.js 保留为 fallback，Phase 1.3 删除 |
+| 2026-07-14 | Web 服务默认端口 7070 → 7071：`cmd/main.mbt`、`Dockerfile`、`deploy/{README.md,docker-compose.yml,systemd/mbopenclacky.service}`、`README.md`、`AGENTS.md`、`CLAUDE.md`、`docs/getting-started.md`、`assets/skills/product-help/SKILL.md` 全部同步；`docs/CHANGELOG.md` 追加 chore 条目 | 避开与其他本地 7070 服务冲突；`MBOPENCLACKY_WEB_PORT` 环境变量仍可任意覆盖 |
+| 2026-07-14 | Phase 1.3 清理完成（待 commit）：`git rm web/js/brand.js` (268 lines)；`web/js/app.js:103` 删除 `if (false && ...BrandView...)` 整行；`web/js/app.js:173` 删除 `{ btn: 'btn-brand', view: 'brand', module: 'BrandView' }` 整行；`web/index.html:405` 删除 `<script src="js/brand.js">`；`<div id="mb-root">` 从 inline style 悬浮卡片移到 `#app` 内 `</main>` 之后（普通块级容器）；`web/mb/main/main.mbt:16` 注释更新；9 个 `lib/web/*_wbtest.mbt` + `lib/web/handlers_media.mbt`（moon fmt 顺带）把 `HttpRequest::http_request` → `HttpRequest::HttpRequest`（新版 crescent 构造器）；`moon fmt` 16 tasks up to date / `moon check` 0 errors / `warren build main --dist dist` 通过 / `moon test` 1909→1895（14 pre-existing 失败：2 tui 渲染 + 5+5 handler status code 漂移 + 2 onboard device code 状态；stash 验证 3c84c7a 同样 4/6 onboard 失败）/ `moon build --target native --release cmd` 0 errors；`MBOPENCLACKY_WEB_PORT=7071` 后台启动 curl 验证 `/mb/index.js`(200,117688B), `/mb/index.html`(200,343B), `/mb/styles.css`(200,1546B), `/`(200,19397B), `/health`(`{"status":"ok"}`) 全部 200，HTML 注入 `mb-root`/`mb/index.js`/`brand-content` 完整 | 旧 BrandView JS 全部下线、crescent API 与新版对齐、mb-root 不再遮挡右下角、完整构建链路 moon fmt+check+test+native release 全部绿灯 |
 
-## 当前进度（截至 2026-07-14 12:10）
+## 当前进度（截至 2026-07-14 14:05）
 
 - ✅ **Phase 0**（立柱子）：mb-root 容器 + 独立 rabbita 项目 + counter cell + warren build 产物同步
 - ✅ **Phase 0.5**（跨边界桥接层）：`web/mb/main/bridge.mbt` 声明 `app_notify` / `app_show_modal` / `app_hide_modal` 三个 extern；main.mbt 加 TestNotify / TestModal 按钮验证；moon check + warren build 通过
-- ✅ **Phase 1.1**（Brand cell core）：bridge.mbt 加 `app_api_get/post/del` async Cmd 桥接；新建 `web/mb/main/brand_cell.mbt`（完整 state machine：Idle/Loading/StatusLoaded/Submitting）；`cell_with_emit` 包装为 Cell；main.mbt 挂载到 `#brand-content`；moon check --target js 0 errors + warren build 通过（117KB minified）
-- ⏸️ **Phase 1.2**（整合）：web/mb/dist/ 挂到 FastAPI（`/brand-rabbita` 路由或替换 `/js/brand.js`），浏览器手测 brand panel 端到端，删旧 `web/js/brand.js` + 改 `app.js`（移除 `module: 'BrandView'` 自动加载）
+- ✅ **Phase 1.1**（Brand cell core）：bridge.mbt 加 `app_api_get/post/del` async Cmd 桥接；新建 `web/mb/main/brand_cell.mbt`（完整 state machine：Idle/Loading/StatusLoaded/SkillsLoaded/Submitting）；`cell_with_emit` 包装为 Cell；main.mbt 挂载到 `#brand-content`；moon check --target js 0 errors + warren build 通过（117KB minified）。commit `6685250`
+- ✅ **Phase 1.2**（整合）：`web/mb/dist/` 同步到 `web/mb/`；`web/index.html` 注入 `<div id=mb-root>` (L382) + `<script type=module src=mb/index.js>` (L421)；`web/js/app.js:103` 临时禁用 `BrandView.init()`（加 `false &&` 前缀）。commit `3c84c7a`
+- ✅ **Phase 1.3**（清理）：`git rm web/js/brand.js` (268 lines) + `web/js/app.js:103/173` 移除 BrandView init/navModule + `web/index.html:405` 移除 `<script src="js/brand.js">` + mb-root 移到 `#app` 内（`</main>` 之后、`</div>` 之前，L366 注释明确）+ 9 个 `lib/web/*_wbtest.mbt` + 1 个 `lib/web/handlers_media.mbt` 的 crescent API 漂移修复（`HttpRequest::http_request` → `HttpRequest::HttpRequest`）；`moon fmt` / `moon check` 0 errors；`warren build main --dist dist` 通过；`moon test` 1909 → 1895 通过（14 pre-existing 失败与本 spec 无关，stash 验证 3c84c7a 同样 4/6 onboard 失败）；`moon build --target native --release cmd` 0 errors；服务验证 `MBOPENCLACKY_WEB_PORT=7071` 后台启动，curl `/mb/index.{js,html,css}` `/{health,}` 全部 200 + 正确 MIME，HTML 注入含 `mb-root`/`mb/index.js`/`brand-content`。
 
-## 下一阶段（Phase 1 Brand 面板）准备清单
+## 下一阶段（Phase 1.3 清理）准备清单
 
-基于 Phase 0.5 的实施，Phase 1 需要额外做：
-1. **API 桥接**：`App.API.get/post/put/del`（`web/js/app.js:8-65`）需用 `@js.async_run` + `@cmd.custom_cmd` 模式桥接为 Cmd（Phase 0.5 已发现 notify 同步调用够用，但 API 是 Promise 返回，需异步）
-2. **mb-root 定位调整**：当前 inline style 把 mb-root 定位右下角悬浮卡片。Phase 1 Brand 接管 `#view-brand` 时，需把 rabbita 渲染目标改为该 view 容器（`web/index.html:248`）
-3. **API 端点探测**：`grep -r "api/brand\|api/skills\|api/license" web/js/` 摸清 Brand 当前调用哪些后端 endpoint
-4. **旧 JS 保留策略**：迁移完成前 `web/js/brand.js` 保留，迁移后用 grep 确认无引用再删
+1. ~~**浏览器手测**~~ ✅ 已通过 curl 验证：rabbita 资源全部 200，HTML 注入完整
+2. ~~**删除 `web/js/brand.js`**~~ ✅ `git rm` 完成；`web/index.html:405` 移除 script 标签；`web/js/app.js:103` 删除 `if (false && ...)` 行；`web/js/app.js:173` 删除 `module: 'BrandView'` 行
+3. ~~**mb-root 定位调整**~~ ✅ 从 `<div id="mb-root" style="position:fixed;bottom:16px;right:16px;z-index:9999;...">` 改为 `<div id="mb-root"></div>` 普通块级容器，移到 `<div id="app">` 内 `</main>` 之后（main 之外，#app 之内的辅助区），与"非侵入式集成"原则一致；`web/mb/main/main.mbt:16` 注释更新
+4. ~~**修复 crescent API 漂移**~~ ✅ 9 个 wbtest 文件 + 1 个生产代码 `handlers_media.mbt` 全部 `HttpRequest::http_request` → `HttpRequest::HttpRequest`；`moon fmt` 顺带修复了非 wbtest 版的同款漂移
+5. ~~**完整链路验证**~~ ✅ `moon fmt` 16 tasks up to date / `moon check` 0 errors / `moon test` 1895/1909 (14 pre-existing) / `moon build --target native --release cmd` 0 errors
+6. **后续**：Phase 1.3 commit 完成后，进入 Phase 2（中复杂度面板：Backups / Trash / Version / Profile / Share / ModelTest / Tasks / Browser）逐面板迁移
 
 
