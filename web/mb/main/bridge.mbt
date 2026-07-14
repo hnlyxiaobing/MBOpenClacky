@@ -144,3 +144,19 @@ extern "js" fn api_get_text_promise(path : String) -> @js.Promise = "(path) => f
 pub async fn api_get_text(path : String) -> String {
   api_get_text_promise(path).wait().cast()
 }
+
+///|
+/// Parse a date string (epoch-seconds or ISO) and return a
+/// relative-time label such as "5m ago" / "3h ago" / "2d ago" /
+/// "2024-01-15" for older dates. Mirrors the logic in
+/// `web/js/trash.js:531` (`formatTime`). Returns `"—"` if the value
+/// is empty or unparseable.
+#cfg(target="js")
+extern "js" fn js_parse_date(value : String) -> String = "(v) => { if (!v) return '\u2014'; let date; if (/^\\d+$/.test(v)) { date = new Date(parseInt(v) * 1000); } else { date = new Date(v); } if (isNaN(date.getTime())) return '\u2014'; const now = new Date(); const diffMs = now - date; const diffMin = Math.floor(diffMs / 60000); const diffHr = Math.floor(diffMs / 3600000); const diffDay = Math.floor(diffMs / 86400000); if (diffMin < 1) return 'just now'; if (diffMin < 60) return diffMin + 'm ago'; if (diffHr < 24) return diffHr + 'h ago'; if (diffDay < 7) return diffDay + 'd ago'; return date.toLocaleDateString(); }"
+
+///|
+/// Parse an expiry date and return `(text, expired)` — the relative
+/// label and a flag indicating whether the item has already expired.
+/// Mirrors `web/js/trash.js:495` (`formatExpiry`).
+#cfg(target="js")
+extern "js" fn js_format_expiry(value : String) -> (String, Bool) = "(v) => { if (!v) return ['\u2014', false]; let d; if (/^\\d+$/.test(v)) { d = new Date(parseInt(v) * 1000); } else { d = new Date(v); } if (isNaN(d.getTime())) return ['\u2014', false]; const now = new Date(); const diffMs = d - now; const diffDays = Math.ceil(diffMs / 86400000); if (diffDays < 0) return ['Expired', true]; if (diffDays === 0) return ['Expires today', false]; if (diffDays === 1) return ['1 day left', false]; return [diffDays + ' days left', false]; }"

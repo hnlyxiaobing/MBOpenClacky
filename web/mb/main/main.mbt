@@ -83,4 +83,10 @@ fn main {
   let share_app = new(share_cell)
   share_app.with_init(share_emit(Init))
   share_app.mount("share-content")
+
+  // ── Trash cell at #trash-content (Phase 2.5) ────────────────────
+  let (trash_emit, trash_cell) = build_trash_cell()
+  let trash_app = new(trash_cell)
+  trash_app.with_init(trash_emit(Init))
+  trash_app.mount("trash-content")
 }
