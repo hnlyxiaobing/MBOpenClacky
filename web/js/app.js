@@ -109,7 +109,8 @@ const App = {
     if (typeof CreatorView !== 'undefined') CreatorView.init();
     if (typeof OnboardView !== 'undefined') OnboardView.init();
     if (typeof TaskView !== 'undefined') TaskView.init();
-    if (typeof MediaView !== 'undefined') MediaView.init();
+    // Media: removed in Phase 3.2 (migrated to rabbita media_cell.mbt)
+    // if (typeof MediaView !== 'undefined') MediaView.init();
 
     // Bind global UI events
     this.bindEvents();
@@ -173,7 +174,7 @@ const App = {
       { btn: 'btn-version', view: 'version', module: 'VersionView' },
       { btn: 'btn-onboard', view: 'onboard', module: 'OnboardView' },
       { btn: 'btn-tasks', view: 'tasks', module: 'TaskView' },
-      { btn: 'btn-media', view: 'media', module: 'MediaView' },
+      // { btn: 'btn-media', view: 'media', module: 'MediaView' }, // Phase 3.2
     ];
     navModules.forEach(({ btn, view, module }) => {
       const el = document.getElementById(btn);

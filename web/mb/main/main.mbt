@@ -137,4 +137,10 @@ fn main {
   let billing_app = new(billing_cell)
   billing_app.with_init(billing_emit(Init))
   billing_app.mount("billing-content")
+
+  // ── Media cell at #media-content (Phase 3.2) ──────────────────
+  let (media_emit, media_cell) = build_media_cell()
+  let media_app = new(media_cell)
+  media_app.with_init(media_emit(Init))
+  media_app.mount("media-content")
 }
