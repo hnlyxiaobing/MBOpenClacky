@@ -65,4 +65,10 @@ fn main {
   let backups_app = new(backups_cell)
   backups_app.with_init(backups_emit(Init))
   backups_app.mount("backups-content")
+
+  // ── Version cell at #version-content (Phase 2.2) ─────────────────
+  let (version_emit, version_cell) = build_version_cell()
+  let version_app = new(version_cell)
+  version_app.with_init(version_emit(Init))
+  version_app.mount("version-content")
 }
