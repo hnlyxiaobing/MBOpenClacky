@@ -16,16 +16,16 @@
 ### `lib/agent/session_data.mbt` + `lib/agent/session_restore.mbt`
 - 两者均注释引用 `openclacky/lib/clacky/agent/session_serializer.rb`
 - 不存在独立的 `session_serializer.mbt` 文件（原 spec 引用有误）
-- 会话数据以 JSON 格式持久化到 `~/.clacky/sessions/<id>.json`
+- 会话数据以 JSON 格式持久化到 `~/.mbopenclacky/sessions/<id>.json`（见 `lib/utils/path.mbt:5` 的 `config_dir_name = ".mbopenclacky"` 及 `lib/agent/session_store.mbt`）
 
 ### `lib/web/handlers_session_ext.mbt`
 - `POST /api/sessions/:id/export` 已存在，返回 JSON 格式导出（非 ZIP）
 - `POST /api/sessions/:id/fork` 已存在
 
 ### ZIP 能力现状
-- **项目中无 ZIP 库**：`lib/parser/docx.mbt` 有 TODO 注释 "FFI needed - Open file as ZIP archive"，返回 placeholder
-- `lib/extension/packager.mbt` 注释 "A real ZIP-based distribution can be..." 也未实现真实 ZIP
-- MoonBit mooncakes 中无现成 ZIP 包
+- **项目中无 ZIP 库**：`lib/parser/docx.mbt` 有 TODO 注释 "FFI needed - Open file as ZIP archive"，返回 placeholder（`lib/parser/pptx.mbt` 和 `lib/parser/xlsx.mbt` 也有同样的 ZIP 依赖问题）
+- `lib/extension/packager.mbt` 注释 "A real ZIP-based distribution can be layered on top later" 也未实现真实 ZIP
+- MoonBit mooncakes 中无现成 ZIP 归档包。注意：`moonbitlang/async/src/gzip/` 提供 gzip 压缩/解压能力，但 gzip 不等于 ZIP 归档格式（ZIP 需要目录结构和多文件支持），无法直接复用
 - **引入 ZIP 能力是本 spec 的前置阻塞项**，也是 parser 模块 DOCX/PPTX/XLSX 解析的前置阻塞项
 
 ## 关键决策（含为什么）
@@ -47,6 +47,7 @@
 | `lib/agent/session_data.mbt` 或新建 `lib/agent/session_serializer.mbt` | 修改/新建 | 增加 `export_session_zip()` / `import_session_zip()` |
 | `lib/web/handlers_session_ext.mbt` | 修改 | export 端点增加 `format=zip` 参数支持；新增 import 端点 |
 | `lib/web/server.mbt` | 修改 | 注册 import 路由 |
+| `lib/web/moon.pkg` | 修改 | 添加 `bobzhang/crescent/httputil` 依赖（multipart 解析） |
 | 对应 `*_wbtest.mbt` | 新增 | 覆盖 ZIP 导出/导入往返 |
 
 ### 不涉及文件
@@ -68,13 +69,14 @@
 - 可选：工作目录文件快照打包
 
 ### 任务包 3：SessionSerializer ZIP 导入（1 天）
-- 实现 `import_session_zip(zip_data) -> Result[Session, String]`
+- 实现 `import_session_zip(zip_data) -> Result[SessionData, String]`
 - ZIP 解压 + JSON 反序列化 + 会话恢复
 - 可选：工作目录文件恢复
 
 ### 任务包 4：REST 端点 + 测试（0.5 天）
 - export 端点增加 `format=zip` 参数
-- 新增 import 端点（multipart/form-data 上传）
+- 新增 import 端点（multipart/form-data 上传，使用 crescent `httputil.parse_multipart()`）
+- 在 `lib/web/moon.pkg` 添加 `bobzhang/crescent/httputil` 依赖
 - wbtest：导出/导入往返数据完整性
 
 ## 验收标准
@@ -93,9 +95,9 @@
 
 | 风险 | 影响 | 缓解方案 |
 |------|------|---------|
-| miniz FFI 跨平台编译问题 | 高 | 在 `moon.pkg` 中针对平台配置；CI 多平台验证；参考项目已有 C FFI 经验（`lib/brand/crypto.mbt`） |
+| miniz FFI 跨平台编译问题 | 高 | 在 `moon.pkg` 中针对平台配置；CI 多平台验证；参考项目已有 C FFI 经验（`lib/brand/` 包：`crypto_native.c` + `brand_stubs.c` + `link.native` 配置 `-lcrypto -lcurl`；`lib/agent/`、`lib/billing/` 等包也使用 `native-stub`） |
 | miniz C 库安全漏洞 | 中 | 使用最新稳定版；审计 miniz 代码；限制暴露的 API 面 |
-| multipart/form-data 上传解析 | 中 | crescent 可能不支持 multipart 解析；fallback 为 base64 编码的 ZIP 数据通过 JSON body 上传 |
+| multipart/form-data 上传解析 | 低 | crescent `httputil` 包**已支持** multipart 解析：`parse_multipart(bytes, boundary) -> Map[String, Array[MultipartFormValue]]`，`Event.req.raw_body` 提供 `Bytes` 原始请求体访问。需在 `lib/web/moon.pkg` 中添加 `bobzhang/crescent/httputil` 依赖 |
 | ZIP 库引入工作量超出预估 | 中 | 任务包 1 可独立为单独 spec，不阻塞其他任务包的设计 |
 
 ## 变更记录
@@ -104,3 +106,4 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G9，P1 重要功能 |
 | 2026-07-13 | 审核修正：修正"session_serializer.mbt 存在"的错误描述（该文件不存在，功能在 session_data.mbt + session_restore.mbt 中）；补充"项目中无任何 ZIP 能力"的现状（parser 模块也受影响）；移除"10MB 分块归档"过度设计；标注 ZIP FFI 绑定可独立为单独 spec；补充 multipart 上传风险 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-15 | 二次审核修正：修正会话持久化路径 `~/.clacky/` → `~/.mbopenclacky/`（`lib/utils/path.mbt:5` 确认）；修正 multipart 风险评估——crescent `httputil` 包已提供 `parse_multipart()` API，风险从"中"降为"低"，移除不必要的 base64 fallback；精确化 C FFI 参考引用为 `lib/brand/` 包（含 `crypto_native.c` + `brand_stubs.c` + `link.native`）；补充 `pptx.mbt`/`xlsx.mbt` 同样缺失 ZIP 支持；补充 `moonbitlang/async/src/gzip/` 存在但不适用 ZIP 归档；新增 `lib/web/moon.pkg` 依赖修改项；修正返回类型 `Session` -> `SessionData` | 对抗性审核 + 第一性原理校验 |

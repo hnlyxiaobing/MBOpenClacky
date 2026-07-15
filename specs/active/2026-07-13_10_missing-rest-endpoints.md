@@ -15,11 +15,11 @@
 |------|------|---------|---------|
 | `GET /api/memories` | GET | ✅ 已实现 | `handlers_extra.mbt:134` + wbtest |
 | `POST /api/memories` | POST | ✅ 已实现 | `handlers_extra.mbt` + wbtest |
-| `GET /api/profile` | GET | ✅ 已实现 | `server.mbt:440-441` |
-| `PUT /api/profile` | PUT | ✅ 已实现 | `server.mbt:442` |
-| `POST /api/onboard/device/start` | POST | ⚠️ 模拟实现 | `handlers_onboard.mbt`（G3 升级） |
-| `GET /api/onboard/device/poll` | GET | ⚠️ 模拟实现 | `handlers_onboard.mbt`（G3 升级） |
-| `POST /api/restart` | POST | ✅ 已实现 | `server.mbt:520` + `handlers_version.mbt:219` + wbtest |
+| `GET /api/profile` | GET | ✅ 已实现 | `server.mbt:443` |
+| `PUT /api/profile` | PUT | ✅ 已实现 | `server.mbt:444` |
+| `POST /api/onboard/device/start` | POST | ⚠️ 模拟实现 | `handlers_onboard.mbt:11`（G3 升级） |
+| `GET /api/onboard/device/poll` | GET | ⚠️ 模拟实现 | `handlers_onboard.mbt:40`（G3 升级） |
+| `POST /api/restart` | POST | ✅ 已实现 | `server.mbt:522` + `handlers_version.mbt:223` + wbtest |
 | `PATCH /api/sessions/:id/working_dir` | PATCH | ❌ **唯一缺失** | 无对应路由和 handler |
 
 **结论**：本 spec 实际只需补齐 **1 个端点**（`PATCH /api/sessions/:id/working_dir`）。onboard device 端点的真实实现由 G3 交付。
@@ -27,23 +27,24 @@
 ## 现状分析（经代码验证）
 
 ### 已实现的端点（无需改动）
-- **Memories CRUD**：`lib/web/handlers_extra.mbt` 中 `handle_memories_get` / `handle_memories_create` / `handle_memories_delete`，有完整 wbtest
-- **Profile**：`server.mbt:440-442`，`pf.get("")` + `pf.put("")`
-- **Restart**：`server.mbt:520`，`api.post("/restart", ...)` -> `handlers_version.mbt:219 handle_restart`，有 wbtest（`handlers_version_wbtest.mbt:92`）
+- **Memories CRUD**：`lib/web/handlers_extra.mbt` 中 `handle_memories_get` / `handle_memories_post` / `handle_memories_put` / `handle_memories_delete`，有完整 wbtest
+- **Profile**：`server.mbt:442-445`，`pf.get("")` + `pf.put("")`
+- **Restart**：`server.mbt:522`，`api.post("/restart", ...)` -> `handlers_version.mbt:223 handle_restart`，有 wbtest（`handlers_version_wbtest.mbt:92`）
 
 ### 缺失的端点
-- **`PATCH /api/sessions/:id/working_dir`**：`server.mbt` 中 sessions 路由组无此路径。`Session` 结构体有 `working_dir` 字段（`handlers_session_ext.mbt:109` 在 fork 中使用），但无独立更新端点。
+- **`PATCH /api/sessions/:id/working_dir`**：`server.mbt` 中 sessions 路由组无此路径。`SessionData` 结构体有 `working_dir` 字段（`lib/agent/session_data.mbt` 定义，在 `handlers_session_ext.mbt` 的 rename handler 中被复制），但无独立更新端点。
 
 ### PATCH 方法支持
-- **crescent 已支持 PATCH**：`server.mbt:221` 有 `c.patch("/ocr", ...)` 在使用
-- 注：`server.mbt:189` 注释 "rename uses POST because crescent does not support PATCH" 已过时
+- **crescent 已支持 PATCH**：`server.mbt:192` 有 `s.patch("/:id/rename", ...)` 和 `server.mbt:223` 有 `c.patch("/ocr", ...)` 在使用
+- 注：`handlers_session_ext.mbt:68` 有过时注释 "Uses POST method as crescent does not support PATCH"，但实际路由已使用 PATCH。此注释应在本次开发中一并修正
 
 ## 关键决策（含为什么）
 
-1. **working_dir 用 PATCH 而非 POST**：crescent 已支持 PATCH 方法（`server.mbt:221` 在用），使用 PATCH 符合 REST 语义（部分更新）。原 spec 建议用 POST 是基于"crescent 不支持 PATCH"的错误前提。
-2. **路径校验防越权**：更新 working_dir 时限制在配置工作目录范围内，拒绝绝对路径和 `..` 路径逃逸。
+1. **working_dir 用 PATCH 而非 POST**：crescent 已支持 PATCH 方法（`server.mbt:192` 和 `server.mbt:223` 在用），使用 PATCH 符合 REST 语义（部分更新）。原 spec 建议用 POST 是基于"crescent 不支持 PATCH"的错误前提。
+2. **路径校验防越权**：更新 working_dir 时限制在配置工作目录范围内，拒绝绝对路径和 `..` 路径逃逸。项目已有 `validate_path()` 函数（`handlers_files.mbt:10`）可复用，该函数拒绝包含 `..` 的路径。
 3. **onboard device 端点由 G3 实现**：本 spec 不涉及，G3 spec 已包含 handler 升级计划。
 4. **无需新增 handlers 文件**：working_dir 端点可添加到已有的 `handlers_session_ext.mbt`。
+5. **修正过时注释**：`handlers_session_ext.mbt:68` 的 rename handler 注释 "Uses POST method as crescent does not support PATCH" 已过时（实际路由用 PATCH），应一并更新。
 
 ## 改动范围
 
@@ -51,9 +52,9 @@
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `lib/web/handlers_session_ext.mbt` | 修改 | 新增 `handle_update_working_dir` handler |
+| `lib/web/handlers_session_ext.mbt` | 修改 | 新增 `handle_update_working_dir` handler；修正 rename handler 过时注释（第 68 行） |
 | `lib/web/server.mbt` | 修改 | sessions 路由组增加 `s.patch("/:id/working_dir", ...)` |
-| `lib/web/handlers_session_ext_wbtest.mbt` | 修改 | 新增 working_dir 更新测试 |
+| `lib/web/handlers_session_ext_wbtest.mbt` | 新建 | working_dir 更新测试（该 wbtest 文件当前不存在） |
 
 ### 不涉及文件
 
@@ -68,9 +69,10 @@
 ### 任务包 1：working_dir 端点（0.5 天）
 - 实现 `handle_update_working_dir(server_ref, event)`
 - 从请求 body 读取 `working_dir` 字段
-- 路径校验：拒绝 `..` 路径逃逸、拒绝不在配置工作目录范围内的绝对路径
-- 更新 session 的 `working_dir` 字段并持久化
+- 路径校验：复用 `handlers_files.mbt:10` 的 `validate_path()` 拒绝 `..` 路径逃逸；额外拒绝不在配置工作目录范围内的绝对路径
+- 更新 session 的 `working_dir` 字段并持久化（通过 `@agent.save_session()`）
 - 注册路由 `s.patch("/:id/working_dir", ...)`
+- 修正 `handlers_session_ext.mbt:68` rename handler 的过时注释
 
 ### 任务包 2：测试（0.5 天）
 - 正常更新 working_dir
@@ -90,7 +92,7 @@
 | 风险 | 影响 | 缓解方案 |
 |------|------|---------|
 | working_dir 路径越权 | 高 | 拒绝 `..` 路径组件；拒绝不在配置工作目录范围内的绝对路径；仅允许相对路径或配置范围内的绝对路径 |
-| session 不存在时 404 | 低 | 检查 `active_agents` 中是否存在 session_id，不存在返回 404 |
+| session 不存在时 404 | 低 | 使用 `@agent.load_session(id)` 检查会话是否存在（从 `~/.mbopenclacky/sessions/<id>.json` 加载），不存在返回 404。注意：不应依赖 `active_agents`（仅包含内存中的 Agent 实例，不代表所有持久化会话） |
 
 ## 变更记录
 
@@ -98,3 +100,4 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G10，P1 重要功能 |
 | 2026-07-13 | 审核修正：修正"restart 缺失"的错误（`server.mbt:520` + `handlers_version.mbt:219` 已实现且有 wbtest）；修正"crescent 不支持 PATCH"的错误（`server.mbt:221` 在用 PATCH）；实际仅需补齐 1 个端点（working_dir）而非 8 个；大幅缩减改动范围和实施计划 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-15 | 二次审核修正：修正全部行号偏差（profile `440-442`→`442-445`，restart `520`→`522`，handle_restart `219`→`223`，PATCH /ocr `221`→`223`，新增 `s.patch("/:id/rename")` 在 `192`）；修正 PATCH 过时注释位置（`server.mbt:189`→`handlers_session_ext.mbt:68`，且该行是路由注册非注释）；修正 memories handler 名（`handle_memories_create`→`handle_memories_post`，补充 `handle_memories_put`）；修正 working_dir 字段引用（不在 fork handler 中，在 rename handler 中被复制）；修正 wbtest 文件操作（修改→新建，文件不存在）；补充 `validate_path()` 复用引用（`handlers_files.mbt:10`）；修正 404 检查方式（`active_agents`→`load_session()`）；新增 rename handler 过时注释修正任务 | 对抗性审核 + 第一性原理校验 |
