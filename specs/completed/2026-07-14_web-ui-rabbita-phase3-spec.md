@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-07-14
 > **最后更新**: 2026-07-15
-> **状态**: 开发中 — Task Pack 0-4 完成（22/22 面板已迁移），Task Pack 5（Phase 4 清理）待开始
+> **状态**: 已完成 — Phase 3 Task Pack 0-4 全部落地 (22/22 面板已迁移),Phase 4 清理已分阶段 (P1-5/1-6/1-7 完成, P1-1/1-2/1-3/1-4 拆为独立清理阶段)
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G4（P1 重要功能差距）
 > **关联历史 spec**: `specs/deprecated/2026-07-13_04_frontend-feature-architecture.md`（store/view 拆分，已被 rabbita 迁移取代）、`specs/completed/2026-07-14_web-ui-rabbita-migration.md`（Phase 0-2.8 已完成）
 > **来源差距**: G4 - Web 前端 Feature-based 架构迁移（rabbita TEA 方案）
@@ -25,8 +25,9 @@
 > | Task Pack 2h: MCP | ✅ 完成 | `99286ee` | |
 > | Task Pack 3a: Settings | ✅ 完成 | `3bff8b4` | |
 > | Task Pack 3b: Skills | ✅ 完成 | `ff57eec` | 含跨 Cell CustomEvent 通信 |
-> | Task Pack 4: Chat 集群 | ✅ 完成（待浏览器验证） | - | chat_cell.mbt + sessions_cell.mbt + 13 FFI + @websocket.listen |
-> | Task Pack 5: Phase 4 清理 | ⬜ 待开始 | — | 移除 app.js / i18n.js / notifications.js + 架构固化 |
+> | Task Pack 4: Chat 集群 | ✅ 完成 | `ff2ab23` | chat_cell.mbt + sessions_cell.mbt + 13 FFI + @websocket.listen, 浏览器端到端验证通过 (创建 session, 切换 session, 发送消息) |
+> | Task Pack 5: Phase 4 清理 (局部) | 🟡 部分完成 | `1d9d07e` | P1-5 (清理 orphan FFI `app_hide_modal`) + P1-6 (移除 #mb-root debug cell) + P1-7 (9 个旧 Cell i18n 回填,内嵌于 ff2ab23) |
+> | Task Pack 5 续: 大型清理 | ⏸️ 延期 | - | P1-1 (移除 app.js) / P1-2 (移除 i18n.js) / P1-3 (移除 notifications.js) / P1-4 (简化 index.html) 范围过大,需独立清理阶段 |
 
 ---
 
@@ -39,7 +40,7 @@ Phase 0-2.8 已完成 9 个面板的 rabbita 迁移（Brand/Backups/Version/Prof
 3. **app.js 仍是协调中枢**（~200 行残留）：提供 API 包装器、通知/模态框、视图切换、WS 事件路由、键盘快捷键。在 Chat 集群迁移完成前无法移除。
 4. **index.html 仍有 9 个活跃 script 引用**：app.js / i18n.js / i18n/en.js / i18n/zh.js / notifications.js / websocket.js / ws-dispatcher.js / chat.js / sessions.js（+ 2 个 lib/ 库）。
 
-本 Spec 规划 Phase 3 剩余工作（Task Pack 4: Chat 集群迁移）和 Phase 4（Task Pack 5: 全量清理与架构固化）。
+本 Spec 已完成 Phase 3 全部工作（Task Pack 0-4: 22/22 面板已迁移）和 Phase 4 局部清理（Task Pack 5 局部: P1-5/1-6/1-7）。剩余 P1-1/1-2/1-3/1-4 大型清理已拆为独立阶段,不在本 Spec 范围内。
 
 ---
 
@@ -129,7 +130,7 @@ Chat 集群由 4 个文件组成（共 1,255 行），构成前端最复杂的�
 **已完成迁移的面板（22/22）**：
 Meeting ✅ / Marketplace ✅ / Workspace ✅ / Schedules ✅ / Billing ✅ / Media ✅ / Onboard ✅ / Creator ✅ / Git ✅ / Channels ✅ / MCP ✅ / Settings ✅ / Skills ✅（Phase 3 新迁移 13 个）
 + Brand ✅ / Backups ✅ / Version ✅ / Profile ✅ / Share ✅ / Trash ✅ / ModelTest ✅ / Tasks ✅ / Browser ✅（Phase 0-2.8 已迁移 9 个，待 i18n 回填）
-+ Chat ✅ / Sessions ✅（Task Pack 4 新迁移 2 个，待浏览器验证）
++ Chat ✅ / Sessions ✅（Task Pack 4 新迁移 2 个,浏览器端到端验证通过 — 创建 session + 切换 session + 发送消息）
 
 #### app.js 残留职责
 
