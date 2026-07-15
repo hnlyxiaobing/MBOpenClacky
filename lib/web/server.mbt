@@ -188,6 +188,9 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       s.get("/:id/tools", event => handle_list_tools(server_ref, event))
       // Extended session endpoints (export, fork, rename, messages)
       s.post("/:id/export", event => handle_session_export(server_ref, event))
+      s.post("/:id/export/zip", event => {
+        handle_session_export_zip(server_ref, event)
+      })
       s.post("/:id/fork", event => handle_session_fork(server_ref, event))
       s.patch("/:id/rename", event => handle_session_rename(server_ref, event))
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
@@ -198,6 +201,16 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       s.post("/:id/time-machine", event => {
         handle_session_time_machine_post(server_ref, event)
       })
+    })
+    // Session import/export-all (top-level, not under /:id)
+    api.post("/sessions/import", event => {
+      handle_session_import(server_ref, event)
+    })
+    api.post("/sessions/import-all", event => {
+      handle_sessions_import_all(server_ref, event)
+    })
+    api.get("/sessions/export-all", event => {
+      handle_sessions_export_all(server_ref, event)
     })
 
     // Meetings

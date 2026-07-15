@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/bytes",
+  "moonbitlang/core/string",
+  "moonbitlang/core/result",
+}
+
+options(
+  "native-stub": [ "native-stub/miniz_zip.c" ],
+  link: { "native": { "cc-link-flags": "" } },
+)
