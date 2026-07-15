@@ -26,3 +26,18 @@ fn[Msg] locale_change_cmd(emit : @cmd.Emit[Msg], msg : Msg) -> @cmd.Cmd {
     i18n_on_locale_changed(() => scheduler.add(emit(msg)))
   })
 }
+
+///|
+/// Build a `@cmd.Cmd` that registers a DOM listener for the
+/// `skill:open-editor` CustomEvent dispatched by `skill_editor_open`.
+/// When the event fires, the listener calls
+/// `scheduler.add(emit(to_msg(name)))`, feeding an `OpenEditor(name)`
+/// message back into the cell's update loop.
+fn[Msg] skill_open_cmd(
+  emit : @cmd.Emit[Msg],
+  to_msg : (String) -> Msg,
+) -> @cmd.Cmd {
+  @cmd.custom_cmd(scheduler => {
+    on_skill_open_editor(name => scheduler.add(emit(to_msg(name))))
+  })
+}

@@ -203,9 +203,18 @@ extern "js" fn i18n_get_locale() -> String = "() => I18n.getLocale()"
 extern "js" fn app_show_view(view : String) = "(view) => App.showView(view)"
 
 ///|
-/// Open the skill editor for a given skill name.
+/// Dispatch a `skill:open-editor` CustomEvent so the skills rabbita cell
+/// (listening via `on_skill_open_editor`) can open the editor for the
+/// given skill name.  Called from `creator_cell.mbt:ClickEdit`.
 #cfg(target="js")
-extern "js" fn skill_editor_open(name : String) = "(name) => { if (typeof SkillEditorView !== 'undefined') SkillEditorView.openEditor(name); }"
+extern "js" fn skill_editor_open(name : String) = "(name) => { window.dispatchEvent(new CustomEvent('skill:open-editor', { detail: { name } })); }"
+
+///|
+/// Register a callback for the `skill:open-editor` CustomEvent dispatched
+/// by `skill_editor_open`.  Used via `@cmd.custom_cmd` in the skills cell
+/// to feed `scheduler.add` back into the cell's update loop.
+#cfg(target="js")
+extern "js" fn on_skill_open_editor(callback : (String) -> Unit) = "(callback) => { window.addEventListener('skill:open-editor', (e) => { const name = (e.detail && e.detail.name) || ''; if (name) callback(name); }); }"
 
 ///|
 /// Register a callback for the `i18n:locale-changed` CustomEvent

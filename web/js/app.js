@@ -84,7 +84,7 @@ const App = {
     Chat.init();
     Sessions.init();
     // Settings.init(); // Phase 3.3: migrated to rabbita settings_cell.mbt
-    Skills.init();
+    // Skills.init(); // Phase 3.3: migrated to rabbita skills_cell.mbt
 
     // Initialize notification manager
     if (typeof NotificationManager !== 'undefined') NotificationManager.init();
@@ -101,7 +101,7 @@ const App = {
     if (typeof Trash !== 'undefined') Trash.init();
 
     // Initialize new feature modules
-    if (typeof SkillEditorView !== 'undefined') SkillEditorView.init();
+    // if (typeof SkillEditorView !== 'undefined') SkillEditorView.init(); // Phase 3.3: migrated to rabbita skills_cell.mbt
     if (typeof ProfileView !== 'undefined') ProfileView.init();
     if (typeof ShareView !== 'undefined') ShareView.init();
     if (typeof ModelTestView !== 'undefined') ModelTestView.init();

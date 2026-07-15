@@ -179,4 +179,10 @@ fn main {
   let settings_app = new(settings_cell)
   settings_app.with_init(settings_emit(Init))
   settings_app.mount("settings-content")
+
+  // ── Skills cell at #skills-enhanced-content (Phase 3.3) ───────
+  let (skills_emit, skills_cell) = build_skills_cell()
+  let skills_app = new(skills_cell)
+  skills_app.with_init(skills_emit(Init))
+  skills_app.mount("skills-enhanced-content")
 }

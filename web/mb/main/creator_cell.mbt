@@ -183,6 +183,7 @@ fn creator_update(
       (@cmd.none, { ..model, busy: false })
     }
     ClickEdit(name) => {
+      app_show_view("skills-enhanced")
       skill_editor_open(name)
       (@cmd.none, model)
     }
