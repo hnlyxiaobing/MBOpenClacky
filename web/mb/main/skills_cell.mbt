@@ -215,6 +215,10 @@ fn skills_update(
           }
         _ => ""
       }
+      // Sync the mounted CodeMirror instance (no-op until the host node
+      // exists / the CDN module finishes loading; the loader reads the
+      // bound <textarea> value on first mount).
+      cm_set_doc("skill-editor-cm", content)
       (
         @cmd.none,
         {
@@ -614,12 +618,14 @@ fn skills_editor_area(
         ),
       ]),
     ]),
-    @html.textarea(
-      rows=16,
-      value=model.editor_content,
-      on_change=s => emit(EditorContentChanged(s)),
-      style=["width:100%", "min-height:400px", "font-family:var(--font-mono)", "font-size:12px", "background:var(--bg-tertiary)", "border:1px solid var(--border)", "border-radius:var(--radius-sm)", "color:var(--text-primary)", "padding:9px 12px", "resize:vertical", "outline:none"],
-      "",
+    // CodeMirror 6 editor (falls back to a visible <textarea> if the CDN
+    // module fails to load). `cm_set_doc` below keeps it in sync when a
+    // different skill's content is loaded.
+    code_editor_host(
+      "skill-editor-cm",
+      "skill-editor-ta",
+      model.editor_content,
+      s => emit(EditorContentChanged(s)),
     ),
   ])
 }

@@ -379,3 +379,13 @@ extern "js" fn skill_editor_open(name : String) = "(name) => { window.dispatchEv
 /// Register a callback for the `skill:open-editor` CustomEvent.
 #cfg(target="js")
 extern "js" fn on_skill_open_editor(callback : (String) -> Unit) = "(callback) => { window.addEventListener('skill:open-editor', function(e) { const name = (e.detail && e.detail.name) || ''; if (name) callback(name); }); }"
+
+///| ── Code editor (CodeMirror 6) ────────────────────────────────
+/// Pushed by `web/mb/public/editor.js` (loaded as an ES module in
+/// `index.html`). No-op when the editor host is not yet mounted, so it is
+/// safe to call from a cell `update` before the DOM node exists — the loader
+/// reads the bound <textarea> value on first mount.
+
+///|
+#cfg(target="js")
+extern "js" fn cm_set_doc(id : String, value : String) -> Unit = "(id, value) => { if (window.MBEditor) window.MBEditor.setDoc(id, value); }"

@@ -88,3 +88,22 @@ body {
     padding-top: 28px;
   }
 }
+
+/* ── Code editor (CodeMirror 6) ───────────────────────────── */
+.code-editor-host {
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1a1d24;
+  margin: 0;
+}
+
+.code-editor-host .cm-editor {
+  height: 420px;
+  font-size: 13px;
+}
+
+.code-editor-host .cm-scroller {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  line-height: 1.6;
+}

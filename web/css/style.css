@@ -1223,6 +1223,25 @@ html, body {
   tab-size: 2;
 }
 
+/* ── Code editor (CodeMirror 6) ───────────────────────────── */
+.code-editor-host {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  background: var(--bg-tertiary, #1a1d24);
+  margin: 0;
+}
+
+.code-editor-host .cm-editor {
+  height: 420px;
+  font-size: 13px;
+}
+
+.code-editor-host .cm-scroller {
+  font-family: var(--font-mono, monospace);
+  line-height: 1.6;
+}
+
 /* ── Workspace File List ──────────────────────────────────── */
 .workspace-file-list {
   max-height: 350px;
