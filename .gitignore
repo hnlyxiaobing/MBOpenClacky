@@ -26,6 +26,7 @@ nul
 
 
 # 备份与临时文件
+*.log
 moon.mod.bak
 .gitcommit_msg.txt
 _review_diff.txt
