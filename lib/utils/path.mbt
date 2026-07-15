@@ -67,15 +67,38 @@ pub fn skills_dir() -> String? {
 /// Ensure a directory exists, creating it (and any missing parents) if needed.
 /// Unlike `@fs.create_dir`, this creates intermediate directories.
 pub fn ensure_dir(dir : String) -> Unit {
+  let dir = normalize_path_sep(dir)
   if @fs.path_exists(dir) {
     return
   }
   // Create parent directories first
   let parent = @path.Path::dirname(@path.Path(dir)).to_string()
+  let parent = normalize_path_sep(parent)
   if !parent.is_empty() && parent != dir && !@fs.path_exists(parent) {
     ensure_dir(parent)
   }
   @fs.create_dir(dir) catch {
     _ => ()
   }
+}
+
+///|
+/// Normalize path separators to the OS-native form. On Windows, `@fs.create_dir`
+/// does not accept forward-slash paths, so convert `/` to `\`. On Unix paths are
+/// already forward-slash separated and are left unchanged.
+fn normalize_path_sep(p : String) -> String {
+  let is_win = match @sys.get_env_var("OS") {
+    Some(v) => v == "Windows_NT"
+    None => false
+  }
+  if !is_win {
+    return p
+  }
+  let chars = p.to_array()
+  for i = 0; i < chars.length(); i = i + 1 {
+    if chars[i] == '/' {
+      chars[i] = '\\'
+    }
+  }
+  String::from_array(chars)
 }
