@@ -29,6 +29,7 @@ priv enum ChatMsg {
   ShowCost
   ToolsLoaded(Result[Json, String])
   CostLoaded(Result[Json, String])
+  HideModal
   LocaleChanged
   WsMessage(String)
   ConfigLoaded(Result[Json, String])
@@ -81,6 +82,7 @@ priv struct ChatModel {
   model_display : String
   locale : String
   error : String
+  modal : (String, String)?
 }
 
 ///|
@@ -98,6 +100,7 @@ fn initial_chat_model() -> ChatModel {
     model_display: "",
     locale: "",
     error: "",
+    modal: None,
   }
 }
 
@@ -584,8 +587,7 @@ fn chat_update(
         }
         buf.to_string()
       }
-      app_show_modal(t("chat.tools"), body, "")
-      (none, model)
+      (none, { ..model, modal: Some((t("chat.tools"), body)) })
     }
     ToolsLoaded(Err(_)) => {
       app_notify(t("chat.failed_tools"), "error")
@@ -630,14 +632,13 @@ fn chat_update(
       }
       let cost_str = "$" + cost.to_string()
       let body = "<div class=\"stats-grid\"><div class=\"stat-card\"><div class=\"stat-card-value\">" + cost_str + "</div><div class=\"stat-card-label\">" + t("chat.total_cost") + "</div></div><div class=\"stat-card\"><div class=\"stat-card-value\">" + requests.to_int().to_string() + "</div><div class=\"stat-card-label\">" + t("chat.total_requests") + "</div></div><div class=\"stat-card\"><div class=\"stat-card-value\">" + cache.to_int().to_string() + "</div><div class=\"stat-card-label\">" + t("chat.cache_hits") + "</div></div></div>"
-      let _ = app_show_modal
-      app_show_modal(t("chat.cost_info"), body, "")
-      (none, { ..model, cost_display: cost_str })
+      (none, { ..model, cost_display: cost_str, modal: Some((t("chat.cost_info"), body)) })
     }
     CostLoaded(Err(_)) => {
       app_notify(t("chat.failed_cost"), "error")
       (none, model)
     }
+    HideModal => (none, { ..model, modal: None })
     LocaleChanged => (none, { ..model, locale: i18n_get_locale() })
     WsMessage(text) => handle_ws_message(emit, text, model)
   }
@@ -793,6 +794,38 @@ fn chat_view(emit : @cmd.Emit[ChatMsg], model : ChatModel) -> @html.Html {
         @html.span(id="chat-model-display", class="model-display", model.model_display),
       ]),
     ]),
+    match model.modal {
+      Some((title, body_html)) =>
+        @html.div(
+          class="modal-overlay",
+          on_click=emit(HideModal),
+          [
+            @html.div(
+              class="modal",
+              attrs=@html.Attrs::build().on_click(e => {
+                e.stop_propagation()
+                @cmd.none
+              }),
+              [
+                @html.div(class="modal-header", [
+                  @html.h3(title),
+                  @html.button(
+                    class="modal-close",
+                    on_click=emit(HideModal),
+                    "✕",
+                  ),
+                ]),
+                @html.div(
+                  class="modal-body",
+                  attrs=@html.Attrs::build().inner_html(body_html),
+                  "",
+                ),
+              ],
+            ),
+          ],
+        )
+      None => @html.nothing
+    },
   ])
 }
 

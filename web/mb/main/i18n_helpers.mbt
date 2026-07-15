@@ -1,18 +1,76 @@
 ///| Shared i18n helpers for all rabbita cells.
 
 ///|
-/// Translate a key with no parameters. Shorthand for
-/// `i18n_t(key, "{}")`.
+/// Look up a translation key in the MoonBit dictionary for the current
+/// locale, falling back to English, then to the key itself.
+fn i18n_lookup(key : String) -> String {
+  let locale = i18n_get_locale()
+  let dict = if locale == "zh" {
+    i18n_dict_zh
+  } else {
+    i18n_dict_en
+  }
+  match dict.get(key) {
+    Some(v) => v
+    None =>
+      match i18n_dict_en.get(key) {
+        Some(v) => v
+        None => key
+      }
+  }
+}
+
+///|
+/// Replace `{{param}}` placeholders in text with values from params.
+fn i18n_substitute(text : String, params : Map[String, String]) -> String {
+  let buf = StringBuilder::new()
+  let chars = text.to_array()
+  let len = chars.length()
+  let mut i = 0
+  while i < len {
+    if i + 1 < len && chars[i] == '{' && chars[i + 1] == '{' {
+      let mut end = i + 2
+      while end + 1 < len && not(chars[end] == '}' && chars[end + 1] == '}') {
+        end = end + 1
+      }
+      if end + 1 < len {
+        let name = text.substring(start=i + 2, end=end)
+        match params.get(name) {
+          Some(v) => buf.write_string(v)
+          None =>
+            match i18n_dict_en.get(name) {
+              Some(v) => buf.write_string(v)
+              None => {
+                buf.write_string("{{")
+                buf.write_string(name)
+                buf.write_string("}}")
+              }
+            }
+        }
+        i = end + 2
+      } else {
+        buf.write_char(chars[i])
+        i = i + 1
+      }
+    } else {
+      buf.write_char(chars[i])
+      i = i + 1
+    }
+  }
+  buf.to_string()
+}
+
+///|
+/// Translate a key with no parameters.
 fn t(key : String) -> String {
-  i18n_t(key, "{}")
+  i18n_lookup(key)
 }
 
 ///|
 /// Translate a key with a single `{{param}}` substitution.
-/// Builds `{"name":"value"}` as the params JSON.
 fn t1(key : String, name : String, value : String) -> String {
-  let body = Json::object(Map::of([(name, Json::string(value))]))
-  i18n_t(key, body.stringify())
+  let text = i18n_lookup(key)
+  i18n_substitute(text, Map::of([(name, value)]))
 }
 
 ///|

@@ -4,6 +4,9 @@ using @rabbita {new, cell_with_emit}
 ///|
 fn main {
 
+  // ── Bootstrap: generate sidebar + view containers before any mount ─
+  js_set_inner_html("app", bootstrap_html())
+
   // ── Brand cell at #brand-content (Phase 1.1) ────────────────────
   let (emit, brand_cell) = build_brand_cell()
   let app = new(brand_cell)
@@ -147,4 +150,22 @@ fn main {
   let chat_app = new(chat_cell)
   chat_app.with_init(chat_emit(Init))
   chat_app.mount("view-chat")
+
+  // ── Notification cell at #notifications-container (Phase 4-A) ─
+  let (notif_emit, notif_cell) = build_notification_cell()
+  let notif_app = new(notif_cell)
+  notif_app.with_init(notif_emit(Init))
+  notif_app.mount("notifications-container")
+
+  // ── Stats cell at #stats-content (Phase 4-C) ─────────────────
+  let (stats_emit, stats_cell) = build_stats_cell()
+  let stats_app = new(stats_cell)
+  stats_app.with_init(stats_emit(Init))
+  stats_app.mount("stats-content")
+
+  // ── Shell cell at #mb-root (Phase 4-E: view routing + keyboard) ─
+  let (shell_emit, shell_cell) = build_shell_cell()
+  let shell_app = new(shell_cell)
+  shell_app.with_init(shell_emit(Init))
+  shell_app.mount("mb-root")
 }
