@@ -25,6 +25,24 @@
 
 ## 变更记录
 
+### 2026-07-15  feat: i18n 翻译补齐与 Spec 归档
+
+- `[feat]` **i18n 翻译补齐完成**（基于增量 Spec `2026-07-13_05_i18n-complete-translation.md`）
+  - 英文词典：从 733 keys 去重后更新为 692 keys
+  - 中文词典：从 735 keys 去重后更新为 692 keys，补齐 210+ 个缺失翻译
+  - 翻译覆盖率：99.4%（英文和中文均为 99.4%）
+  - 中英文词典对称性：100%（两个词典 key 集合完全一致）
+- `[docs]` **Spec 归档**：`2026-07-13_05_i18n-complete-translation.md` 从 `specs/active/` 移动至 `specs/completed/`
+  - 状态更新：开发中 → 已完成
+  - 验收标准全部勾选
+  - 添加详细验收报告（含关键指标、主要改动、修改文件、工具支持）
+- `[chore]` **i18n 维护工具脚本**：创建 4 个工具脚本并移动至 `scripts/` 目录
+  - `extract_i18n_keys.ps1` - 翻译 key 提取与差异分析工具
+  - `verify_translation_coverage.py` - 翻译覆盖率验证工具
+  - `dedup_zh_dict.py` - 字典去重工具
+  - `check_zh_keys.py` - 中英文词典对称性检查工具
+  - 详细说明见 `scripts/README_i18n_tools.md`
+
 ### 2026-07-13  docs: 全量文档指标同步与精简
 
 - `[docs]` **项目指标全量同步**（基于实际统计）

@@ -61,7 +61,7 @@
 - **wasm-gc 目标**：已评估，建议暂缓（根因：`moonbitlang/async` 缺 wasm-gc 支持，详见 `specs/completed/2026-07-09_wasm-gc-target-feasibility.md`）
 
 ### 功能相关
-- **Web 前端**：完成度 ~65%，主要管理面板已覆盖；ws-dispatcher 已实现，i18n 已整合到 i18n.js（2,784 行）；剩余 code-editor/datepicker 等组件和 feature-based 架构迁移
+- **Web 前端**：完成度 ~65%，主要管理面板已覆盖；ws-dispatcher 已实现；i18n 已迁移至 MoonBit 实现（`web/mb/main/i18n_helpers.mbt` + `i18n_dict_en.mbt` + `i18n_dict_zh.mbt`），翻译 key 692 个，覆盖率 99.4%，中英文词典完全对称（详见 `specs/completed/2026-07-13_05_i18n-complete-translation.md`）；剩余 code-editor/datepicker 等组件和 feature-based 架构迁移
 - **部署基础设施**：已提供 systemd/docker-compose 模板和日志轮转配置（见 `deploy/`）
 - **Extension 框架**：MVP 已实现（Loader/Verifier/Packager/Scaffold/Marketplace），API 扩展路由分发/热重载和 PatchLoader/HookLoader 已接入，剩余高级沙箱、CLI 命令增强和 Session ZIP 导出/导入
 - **Media 端点**：`lib/web/handlers_media.mbt` 中 image/video/audio/transcription/understand 均返回 501，需接入 `@media` 生成器（含 `POST /api/media/video/understand`）
