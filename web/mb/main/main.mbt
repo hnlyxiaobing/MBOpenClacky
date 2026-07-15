@@ -173,4 +173,10 @@ fn main {
   let mcp_app = new(mcp_cell)
   mcp_app.with_init(mcp_emit(Init))
   mcp_app.mount("mcp-content")
+
+  // ── Settings cell at #settings-content (Phase 3.3) ────────────
+  let (settings_emit, settings_cell) = build_settings_cell()
+  let settings_app = new(settings_cell)
+  settings_app.with_init(settings_emit(Init))
+  settings_app.mount("settings-content")
 }

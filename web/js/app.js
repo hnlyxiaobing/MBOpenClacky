@@ -83,7 +83,7 @@ const App = {
     // Initialize core modules
     Chat.init();
     Sessions.init();
-    Settings.init();
+    // Settings.init(); // Phase 3.3: migrated to rabbita settings_cell.mbt
     Skills.init();
 
     // Initialize notification manager
@@ -166,6 +166,7 @@ const App = {
       { btn: 'btn-browser', view: 'browser', module: 'BrowserControl' },
       // { btn: 'btn-git', view: 'git', module: 'GitPanel' }, // Phase 3.2
       { btn: 'btn-trash', view: 'trash', module: 'Trash' },
+      { btn: 'btn-settings', view: 'settings', module: 'Settings' }, // Phase 3.3
       // New feature modules
       { btn: 'btn-profile', view: 'profile', module: 'ProfileView' },
       { btn: 'btn-share', view: 'share', module: 'ShareView' },
