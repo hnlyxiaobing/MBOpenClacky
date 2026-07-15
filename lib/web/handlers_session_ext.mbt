@@ -91,8 +91,8 @@ fn handle_session_fork(
 }
 
 ///|
-/// POST /api/sessions/:id/rename — Rename a session.
-/// Uses POST method as crescent does not support PATCH.
+/// PATCH /api/sessions/:id/rename — Rename a session.
+/// crescent supports PATCH (route is registered with s.patch).
 /// Expected body: {"name": "New Session Name"}
 fn handle_session_rename(
   _server_ref : Ref[WebServer],
@@ -168,6 +168,153 @@ fn handle_session_rename(
         Json::object({ "error": "Session not found".to_json() }),
       )
   }
+}
+
+///|
+/// PATCH /api/sessions/:id/working_dir — Update a session's working directory.
+/// Expected body: {"working_dir": "sub/dir"}.
+/// Rejects path traversal ("..") and absolute paths outside the configured
+/// working directory. Relative paths are always accepted.
+fn handle_update_working_dir(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let new_dir : String = match j {
+    Object(obj) =>
+      match obj.get("working_dir") {
+        Some(String(d)) => d
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing 'working_dir' field".to_json() }),
+          )
+      }
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  // Path safety: reject traversal and empty paths (reuses files API validator).
+  match validate_path(new_dir) {
+    Err(msg) =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": msg.to_json() }),
+      )
+    Ok(_) => ()
+  }
+  // Reject absolute paths outside the configured working directory.
+  if wd_is_absolute(new_dir) {
+    match server_ref.val.config.default_working_dir {
+      Some(cfg_dir) =>
+        if !wd_is_within_dir(cfg_dir, new_dir) {
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({
+              "error": "Absolute working_dir must be within the configured working directory".to_json(),
+            }),
+          )
+        }
+      None =>
+        return @core.HttpResponse::bad_request().json_value(
+          Json::object({
+            "error": "Absolute working_dir is not allowed without a configured working directory".to_json(),
+          }),
+        )
+    }
+  }
+  match @agent.load_session(id) {
+    Some(data) => {
+      let updated = @agent.SessionData::{
+        session_id: data.session_id,
+        name: data.name,
+        messages: data.messages,
+        stats: data.stats,
+        working_dir: new_dir,
+        created_at: data.created_at,
+        source: data.source,
+        reasoning_effort: data.reasoning_effort,
+        model_name: data.model_name,
+        channel_info: data.channel_info,
+        latest_latency_ms: data.latest_latency_ms,
+        latest_ttft_ms: data.latest_ttft_ms,
+        time_machine: data.time_machine,
+        pending_error_rollback: data.pending_error_rollback,
+        model_base_url: data.model_base_url,
+        last_status: data.last_status,
+        last_error: data.last_error,
+        forked_from: data.forked_from,
+        chunk_count: data.chunk_count,
+      }
+      @agent.save_session(updated) catch {
+        _ =>
+          return @core.HttpResponse::internal_server_error().json_value(
+            Json::object({ "error": "Failed to save session".to_json() }),
+          )
+      }
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "session_id": id.to_json(),
+          "working_dir": new_dir.to_json(),
+        }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
+  }
+}
+
+///|
+/// Heuristic check for whether a path is absolute.
+/// Recognizes Unix absolute paths ("/...") and Windows drive paths ("C:\..." / "C:/...").
+fn wd_is_absolute(p : String) -> Bool {
+  if p.has_prefix("/") {
+    return true
+  }
+  if p.length() >= 3 && p[1] == ':' && (p[2] == '\\' || p[2] == '/') {
+    return true
+  }
+  false
+}
+
+///|
+/// Check whether `target` equals or is nested under `dir`.
+/// Both paths are treated as absolute; separators are normalized to "/".
+fn wd_is_within_dir(dir : String, target : String) -> Bool {
+  let d = wd_normalize_sep(dir)
+  let t = wd_normalize_sep(target)
+  if d.is_empty() || t.is_empty() {
+    return false
+  }
+  if t == d {
+    return true
+  }
+  let prefixed = if d.has_suffix("/") { d } else { d + "/" }
+  t.has_prefix(prefixed)
+}
+
+///|
+/// Normalize path separators ("\" -> "/") for cross-platform comparison.
+fn wd_normalize_sep(p : String) -> String {
+  let chars = p.to_array()
+  for i = 0; i < chars.length(); i = i + 1 {
+    if chars[i] == '\\' {
+      chars[i] = '/'
+    }
+  }
+  String::from_array(chars)
 }
 
 ///|

@@ -193,6 +193,9 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       })
       s.post("/:id/fork", event => handle_session_fork(server_ref, event))
       s.patch("/:id/rename", event => handle_session_rename(server_ref, event))
+      s.patch("/:id/working_dir", event => {
+        handle_update_working_dir(server_ref, event)
+      })
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
       // Session-scoped Time Machine points (P1-5)
       s.get("/:id/time-machine", event => {
