@@ -347,7 +347,7 @@ fn tasks_update(
 ///|
 /// Reorder so that the task with `id` becomes the first element, while
 /// preserving the relative order of all other tasks. Mirrors the
-/// legacy `tasks.unshift(task)` behaviour.
+/// legacy `tasks.insert(0, task)` behaviour.
 fn tasks_prepend(tasks : Array[Task], t : Task) -> Array[Task] {
   [t, ..tasks]
 }

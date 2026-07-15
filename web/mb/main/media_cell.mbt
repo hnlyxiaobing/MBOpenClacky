@@ -13,7 +13,7 @@ priv enum MediaTab {
   VideoTab
   SpeechTab
   TranscribeTab
-}
+} derive(Eq)
 
 ///|
 priv enum MediaMsg {
@@ -124,9 +124,9 @@ fn media_update(
         app_notify(t("media.prompt_required"), "warning")
         (@cmd.none, model)
       } else {
-        let dur = match model.video_duration.to_int() {
-          Some(n) => if n >= 1 && n <= 60 { n } else { 5 }
-          None => 5
+        let dur = match (try? @strconv.parse_int(model.video_duration)) {
+          Ok(n) => if n >= 1 && n <= 60 { n } else { 5 }
+          Err(_) => 5
         }
         let body = Json::object(
           Map::of([
@@ -215,13 +215,13 @@ fn media_view(
 ///| Image generation form.
 fn media_image_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Html {
   let size_options = [
-    @html.option(value="1024x1024", selected=model.image_size == "1024x1024", ["1024 x 1024"]),
-    @html.option(value="512x512", selected=model.image_size == "512x512", ["512 x 512"]),
-    @html.option(value="1792x1024", selected=model.image_size == "1792x1024", ["1792 x 1024"]),
+    @html.option(value="1024x1024", selected=model.image_size == "1024x1024", "1024 x 1024"),
+    @html.option(value="512x512", selected=model.image_size == "512x512", "512 x 512"),
+    @html.option(value="1792x1024", selected=model.image_size == "1792x1024", "1792 x 1024"),
   ]
   let quality_options = [
-    @html.option(value="standard", selected=model.image_quality == "standard", [t("media.quality_standard")]),
-    @html.option(value="hd", selected=model.image_quality == "hd", [t("media.quality_hd")]),
+    @html.option(value="standard", selected=model.image_quality == "standard", t("media.quality_standard")),
+    @html.option(value="hd", selected=model.image_quality == "hd", t("media.quality_hd")),
   ]
   let children : Array[@html.Html] = [
     @html.div(class="settings-group", [
@@ -234,6 +234,7 @@ fn media_image_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Htm
           value=model.image_prompt,
           on_change=s => emit(ImagePromptChanged(s)),
           style=textarea_style(),
+          "",
         ),
       ]),
       @html.div(style=["display:flex", "gap:8px", "align-items:center"], [
@@ -271,6 +272,7 @@ fn media_video_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Htm
           value=model.video_prompt,
           on_change=s => emit(VideoPromptChanged(s)),
           style=textarea_style(),
+          "",
         ),
       ]),
       @html.div(class="settings-field", [
@@ -297,12 +299,12 @@ fn media_video_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Htm
 ///| Speech generation form.
 fn media_speech_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Html {
   let voice_options = [
-    @html.option(value="alloy", selected=model.speech_voice == "alloy", ["Alloy"]),
-    @html.option(value="echo", selected=model.speech_voice == "echo", ["Echo"]),
-    @html.option(value="fable", selected=model.speech_voice == "fable", ["Fable"]),
-    @html.option(value="onyx", selected=model.speech_voice == "onyx", ["Onyx"]),
-    @html.option(value="nova", selected=model.speech_voice == "nova", ["Nova"]),
-    @html.option(value="shimmer", selected=model.speech_voice == "shimmer", ["Shimmer"]),
+    @html.option(value="alloy", selected=model.speech_voice == "alloy", "Alloy"),
+    @html.option(value="echo", selected=model.speech_voice == "echo", "Echo"),
+    @html.option(value="fable", selected=model.speech_voice == "fable", "Fable"),
+    @html.option(value="onyx", selected=model.speech_voice == "onyx", "Onyx"),
+    @html.option(value="nova", selected=model.speech_voice == "nova", "Nova"),
+    @html.option(value="shimmer", selected=model.speech_voice == "shimmer", "Shimmer"),
   ]
   let children : Array[@html.Html] = [
     @html.div(class="settings-group", [
@@ -315,6 +317,7 @@ fn media_speech_form(emit : @cmd.Emit[MediaMsg], model : MediaModel) -> @html.Ht
           value=model.speech_text,
           on_change=s => emit(SpeechTextChanged(s)),
           style=textarea_style(),
+          "",
         ),
       ]),
       @html.div(class="settings-field", [
@@ -403,7 +406,8 @@ fn json_to_pretty_string(json : Json) -> String {
   match json {
     String(s) => s
     Number(n, ..) => n.to_string()
-    Boolean(b) => b.to_string()
+    True => "true"
+    False => "false"
     Null => "null"
     Array(arr) => {
       let parts : Array[String] = []

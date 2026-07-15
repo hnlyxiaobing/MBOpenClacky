@@ -172,12 +172,12 @@ fn mcp_update(
     FormArgsChanged(v) => (@cmd.none, { ..model, form_args: v })
     FormUrlChanged(v) => (@cmd.none, { ..model, form_url: v })
     ClickSaveServer => {
-      let name = model.form_name.trim()
+      let name = model.form_name.trim().to_string()
       if name.is_empty() {
         app_notify(t("mcp.required_name"), "error")
         (@cmd.none, model)
       } else if model.form_transport == "stdio" {
-        let cmd_val = model.form_command.trim()
+        let cmd_val = model.form_command.trim().to_string()
         if cmd_val.is_empty() {
           app_notify(t("mcp.required_command"), "error")
           (@cmd.none, model)
@@ -201,11 +201,11 @@ fn mcp_update(
               fields.push(("args", Json::array(args_arr)))
             }
           }
-          (add_mcp_server(emit, Json::object(Map::of(fields))), { ..model, busy: true })
+          (add_mcp_server(emit, Json::object(Map::from_array(fields))), { ..model, busy: true })
         }
       } else {
         // http transport
-        let url = model.form_url.trim()
+        let url = model.form_url.trim().to_string()
         if url.is_empty() {
           app_notify(t("mcp.required_url"), "error")
           (@cmd.none, model)
@@ -215,7 +215,7 @@ fn mcp_update(
             ("transport", Json::string("http")),
             ("url", Json::string(url)),
           ]
-          (add_mcp_server(emit, Json::object(Map::of(fields))), { ..model, busy: true })
+          (add_mcp_server(emit, Json::object(Map::from_array(fields))), { ..model, busy: true })
         }
       }
     }
@@ -251,7 +251,7 @@ fn mcp_update(
     ToolArgsChanged(v) => (@cmd.none, { ..model, tool_args: v })
     ClickExecuteTool => {
       // Try to parse tool_args as JSON
-      match model.tool_args.parse_json() {
+      match (try? @json.parse(model.tool_args)) {
         Ok(json) => {
           (execute_mcp_tool(emit, model.selected_tool, json), { ..model, busy: true })
         }
@@ -290,7 +290,7 @@ fn mcp_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
     let children : Array[@html.Html] = []
@@ -305,7 +305,7 @@ fn mcp_view(
       children.push(mcp_tools_section(emit, model))
     }
 
-    @html.div([], children)
+    @html.div(children)
   }
 }
 
@@ -323,7 +323,7 @@ fn mcp_servers_section(
         class="settings-group-title",
         style=["display:flex", "align-items:center", "justify-content:space-between"],
         [
-          @html.span([], "\{t("mcp.servers")} (\{model.servers.length()})"),
+          @html.span("\{t("mcp.servers")} (\{model.servers.length()})"),
           @html.button(
             class="btn btn-primary btn-sm",
             on_click=emit(ClickAddServer),
@@ -370,7 +370,7 @@ fn mcp_add_form_view(
   // Server name
   children.push(
     @html.div(class="settings-field", [
-      @html.label([], t("mcp.server_name")),
+      @html.label(t("mcp.server_name")),
       @html.input(
         input_type=@html.Text,
         value=model.form_name,
@@ -385,7 +385,7 @@ fn mcp_add_form_view(
   // Transport select
   children.push(
     @html.div(class="settings-field", [
-      @html.label([], t("mcp.transport_type")),
+      @html.label(t("mcp.transport_type")),
       @html.select(
         on_change=s => emit(FormTransportChanged(s)),
         style=input_style(),
@@ -409,7 +409,7 @@ fn mcp_add_form_view(
   if model.form_transport == "stdio" {
     children.push(
       @html.div(class="settings-field", [
-        @html.label([], t("mcp.command")),
+        @html.label(t("mcp.command")),
         @html.input(
           input_type=@html.Text,
           value=model.form_command,
@@ -422,7 +422,7 @@ fn mcp_add_form_view(
     )
     children.push(
       @html.div(class="settings-field", [
-        @html.label([], t("mcp.args")),
+        @html.label(t("mcp.args")),
         @html.input(
           input_type=@html.Text,
           value=model.form_args,
@@ -436,7 +436,7 @@ fn mcp_add_form_view(
   } else {
     children.push(
       @html.div(class="settings-field", [
-        @html.label([], t("mcp.server_url")),
+        @html.label(t("mcp.server_url")),
         @html.input(
           input_type=@html.Text,
           value=model.form_url,
@@ -619,7 +619,7 @@ fn mcp_tools_section(
     children.push(@html.div(class="skills-grid", cards))
   }
 
-  @html.div([], children)
+  @html.div(children)
 }
 
 ///|
@@ -676,7 +676,7 @@ fn mcp_tool_executor_view(
     @html.div(
       style=["display:flex", "align-items:center", "gap:10px", "margin-bottom:16px"],
       [
-        @html.h2([], t("mcp.execute_tool")),
+        @html.h2(t("mcp.execute_tool")),
         @html.span(
           style=["color:var(--accent)", "font-weight:600"],
           model.selected_tool,
@@ -687,11 +687,11 @@ fn mcp_tool_executor_view(
 
   // Find tool description
   let tool_desc = {
-    var desc = ""
+    let mut desc = ""
     for tool in model.tools {
       let name = json_str(tool, "name", "")
       if name == model.selected_tool {
-        desc := json_str(tool, "description", "")
+        desc = json_str(tool, "description", "")
         break
       }
     }
@@ -711,11 +711,11 @@ fn mcp_tool_executor_view(
   // Args textarea
   children.push(
     @html.div(class="settings-field", [
-      @html.label([], t("mcp.arguments_json")),
+      @html.label(t("mcp.arguments_json")),
       @html.textarea(
         rows=6,
         value=model.tool_args,
-        placeholder='{"key": "value"}',
+        placeholder="{\"key\": \"value\"}",
         on_change=s => emit(ToolArgsChanged(s)),
         style=[
           "width:100%",
@@ -728,6 +728,7 @@ fn mcp_tool_executor_view(
           "font-size:12px",
           "resize:vertical",
         ],
+        "",
       ),
       @html.div(class="help-text", t("mcp.args_help2")),
     ]),
@@ -781,7 +782,7 @@ fn mcp_tool_executor_view(
     )
   }
 
-  @html.div([], children)
+  @html.div(children)
 }
 
 ///|

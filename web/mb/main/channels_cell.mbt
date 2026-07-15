@@ -209,9 +209,9 @@ fn channels_update(
         if not(model.form_secret.is_empty()) {
           cfg_fields.push(("secret", Json::string(model.form_secret)))
         }
-        let config = Json::object(Map::of(cfg_fields))
+        let config = Json::object(Map::from_array(cfg_fields))
         (
-          save_channel(emit, model.editing_id, model.form_platform, model.form_name.trim(), config),
+          save_channel(emit, model.editing_id, model.form_platform, model.form_name.trim().to_string(), config),
           { ..model, busy: true },
         )
       }
@@ -292,7 +292,7 @@ fn channels_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
     let children : Array[@html.Html] = []
@@ -304,7 +304,7 @@ fn channels_view(
           class="settings-group-title",
           style=["display:flex", "align-items:center", "justify-content:space-between"],
           [
-            @html.span([], "\{t("channels.title")} (\{model.channels.length()})"),
+            @html.span("\{t("channels.title")} (\{model.channels.length()})"),
             @html.button(
               class="btn btn-primary btn-sm",
               on_click=emit(ClickAdd),
@@ -337,7 +337,7 @@ fn channels_view(
       children.push(@html.div(class="skills-grid", cards))
     }
 
-    @html.div([], children)
+    @html.div(children)
   }
 }
 
@@ -358,7 +358,7 @@ fn channels_form_view(
         style=["padding:8px 0"],
         [
           @html.div(class="settings-field", [
-            @html.label([], t("channels.platform")),
+            @html.label(t("channels.platform")),
             @html.select(
               on_change=s => emit(FormPlatformChanged(s)),
               style=input_style(),
@@ -398,7 +398,7 @@ fn channels_form_view(
             @html.div(class="help-text", t("channels.platform_help")),
           ]),
           @html.div(class="settings-field", [
-            @html.label([], t("channels.name")),
+            @html.label(t("channels.name")),
             @html.input(
               input_type=@html.Text,
               value=model.form_name,
@@ -409,7 +409,7 @@ fn channels_form_view(
             @html.div(class="help-text", t("channels.name_help")),
           ]),
           @html.div(class="settings-field", [
-            @html.label([], t("channels.webhook")),
+            @html.label(t("channels.webhook")),
             @html.input(
               input_type=@html.Text,
               value=model.form_webhook,
@@ -420,7 +420,7 @@ fn channels_form_view(
             @html.div(class="help-text", t("channels.webhook_help")),
           ]),
           @html.div(class="settings-field", [
-            @html.label([], t("channels.apikey")),
+            @html.label(t("channels.apikey")),
             @html.input(
               input_type=@html.Text,
               value=model.form_api_key,
@@ -431,7 +431,7 @@ fn channels_form_view(
             @html.div(class="help-text", t("channels.apikey_help")),
           ]),
           @html.div(class="settings-field", [
-            @html.label([], t("channels.secret")),
+            @html.label(t("channels.secret")),
             @html.input(
               input_type=@html.Password,
               value=model.form_secret,

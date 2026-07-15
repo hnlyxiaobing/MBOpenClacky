@@ -185,4 +185,16 @@ fn main {
   let skills_app = new(skills_cell)
   skills_app.with_init(skills_emit(Init))
   skills_app.mount("skills-enhanced-content")
+
+  // ── Sessions cell at #session-list (Phase 3.4) ────────────────
+  let (sessions_emit, sessions_cell) = build_sessions_cell()
+  let sessions_app = new(sessions_cell)
+  sessions_app.with_init(sessions_emit(Init))
+  sessions_app.mount("session-list")
+
+  // ── Chat cell at #view-chat (Phase 3.4) ───────────────────────
+  let (chat_emit, chat_cell) = build_chat_cell()
+  let chat_app = new(chat_cell)
+  chat_app.with_init(chat_emit(Init))
+  chat_app.mount("view-chat")
 }

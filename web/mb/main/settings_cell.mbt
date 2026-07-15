@@ -75,7 +75,7 @@ fn fetch_server_info(emit : @cmd.Emit[SettingsMsg]) -> @cmd.Cmd {
 }
 
 ///|
-fn save_config(emit : @cmd.Emit[SettingsMsg], body : Json) -> @cmd.Cmd {
+fn save_settings_config(emit : @cmd.Emit[SettingsMsg], body : Json) -> @cmd.Cmd {
   @cmd.perform(r => emit(SaveDone(r)), async fn() noraise {
     safe_put("/api/config", body)
   })
@@ -137,7 +137,7 @@ fn settings_update(
     ServerInfoLoaded(Ok(json)) => (@cmd.none, { ..model, server_info: json })
     ServerInfoLoaded(Err(_)) => (@cmd.none, model)
     ClickSave => {
-      let tokens_int = match model.max_tokens.parse_int() {
+      let tokens_int = match (try? @strconv.parse_int(model.max_tokens)) {
         Ok(n) => n
         Err(_) => 4096
       }
@@ -149,7 +149,7 @@ fn settings_update(
           ("current_model_id", Json::string(model.selected_model)),
         ]),
       )
-      (save_config(emit, body), { ..model, busy: true })
+      (save_settings_config(emit, body), { ..model, busy: true })
     }
     SaveDone(Ok(json)) => {
       app_notify(t("settings.saved"), "success")
@@ -176,7 +176,7 @@ fn settings_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
     let children : Array[@html.Html] = []
@@ -202,7 +202,7 @@ fn settings_view(
         ],
       ),
     )
-    @html.div([], children)
+    @html.div(children)
   }
 }
 
@@ -224,7 +224,7 @@ fn settings_model_section(
     }
     children.push(
       @html.div(class="settings-field", [
-        @html.label([], t("settings.current_model")),
+        @html.label(t("settings.current_model")),
         @html.input(
           input_type=@html.Text,
           value=display,
@@ -259,7 +259,7 @@ fn settings_model_section(
     }
     children.push(
       @html.div(class="settings-field", [
-        @html.label([], t("settings.active_model")),
+        @html.label(t("settings.active_model")),
         @html.select(
           on_change=s => emit(ModelChanged(s)),
           style=input_style(),
@@ -314,7 +314,7 @@ fn settings_permissions_section(
 
   children.push(
     @html.div(class="settings-field", [
-      @html.label([], t("settings.permission_mode")),
+      @html.label(t("settings.permission_mode")),
       @html.select(
         on_change=s => emit(PermissionChanged(s)),
         style=input_style(),
@@ -338,13 +338,13 @@ fn settings_generation_section(
   // Max tokens
   children.push(
     @html.div(class="settings-field", [
-      @html.label([], t("settings.max_tokens")),
+      @html.label(t("settings.max_tokens")),
       @html.input(
         input_type=@html.Number,
         value=model.max_tokens,
-        min=Some(256.0),
-        max=Some(200000.0),
-        step=Some(256.0),
+        min=256,
+        max=200000,
+        step=256,
         on_change=s => emit(MaxTokensChanged(s)),
         style=input_style(),
       ),
@@ -379,7 +379,7 @@ fn settings_generation_section(
   children.push(
     @html.div(class="settings-field", [
       @html.div(class="toggle-wrapper", style=["display:flex", "align-items:center", "justify-content:space-between"], [
-        @html.label([], t("settings.verbose_mode")),
+        @html.label(t("settings.verbose_mode")),
         @html.div(
           on_click=emit(ToggleVerbose),
           style=toggle_style,
@@ -428,21 +428,21 @@ fn settings_server_info_section(
       @html.div(
         style=["display:grid", "grid-template-columns:1fr 1fr", "gap:8px", "font-size:12px"],
         [
-          @html.div([], [
-            @html.strong([], "\{t("settings.version")} "),
-            version,
+          @html.div([
+            @html.strong("\{t("settings.version")} "),
+            @html.text(version),
           ]),
-          @html.div([], [
-            @html.strong([], "\{t("settings.uptime")} "),
-            uptime_str,
+          @html.div([
+            @html.strong("\{t("settings.uptime")} "),
+            @html.text(uptime_str),
           ]),
-          @html.div([], [
-            @html.strong([], "\{t("settings.active_sessions")} "),
-            active_sessions.to_string(),
+          @html.div([
+            @html.strong("\{t("settings.active_sessions")} "),
+            @html.text(active_sessions.to_string()),
           ]),
-          @html.div([], [
-            @html.strong([], "\{t("settings.name")} "),
-            name,
+          @html.div([
+            @html.strong("\{t("settings.name")} "),
+            @html.text(name),
           ]),
         ],
       ),

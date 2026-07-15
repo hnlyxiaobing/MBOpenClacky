@@ -77,7 +77,9 @@ extern "js" fn api_del_promise(path : String) -> @js.Promise = "(path) => API.de
 ///|
 #cfg(target="js")
 pub async fn api_get(path : String) -> Json {
-  @json.parse(api_get_promise(path).wait().cast() |> js_stringify)
+  @json.parse(api_get_promise(path).wait().cast() |> js_stringify) catch {
+    _ => Json::null()
+  }
 }
 
 ///|
@@ -87,7 +89,9 @@ pub async fn api_get(path : String) -> Json {
 pub async fn api_post(path : String, body : Json) -> Json {
   @json.parse(
     api_post_promise(path, body.stringify()).wait().cast() |> js_stringify,
-  )
+  ) catch {
+    _ => Json::null()
+  }
 }
 
 ///|
@@ -240,3 +244,210 @@ extern "js" fn js_parse_date(value : String) -> String = "(v) => { if (!v) retur
 /// Mirrors `web/js/trash.js:495` (`formatExpiry`).
 #cfg(target="js")
 extern "js" fn js_format_expiry(value : String) -> (String, Bool) = "(v) => { if (!v) return ['\u2014', false]; let d; if (/^\\d+$/.test(v)) { d = new Date(parseInt(v) * 1000); } else { d = new Date(v); } if (isNaN(d.getTime())) return ['\u2014', false]; const now = new Date(); const diffMs = d - now; const diffDays = Math.ceil(diffMs / 86400000); if (diffDays < 0) return ['Expired', true]; if (diffDays === 0) return ['Expires today', false]; if (diffDays === 1) return ['1 day left', false]; return [diffDays + ' days left', false]; }"
+
+// ── Task Pack 4: Chat cluster FFI bridges ──────────────────────
+
+///|
+/// Render Markdown to HTML using marked.js + highlight.js + KaTeX.
+/// Wraps the `Chat.renderMarkdown()` logic from `web/js/chat.js`.
+/// Returns an HTML string with code-block copy buttons; the caller
+/// injects it via `Attrs::inner_html`.
+#cfg(target="js")
+extern "js" fn js_render_markdown(text : String) -> String =
+#|(text) => {
+#|  if (!text) return '';
+#|  if (typeof marked !== 'undefined') {
+#|    marked.setOptions({ breaks: true, gfm: true, highlight: function(code, lang) {
+#|      if (typeof hljs !== 'undefined') { if (lang && hljs.getLanguage(lang)) { try { return hljs.highlight(code, { language: lang }).value; } catch(e){} } try { return hljs.highlightAuto(code).value; } catch(e){} } return code;
+#|    }});
+#|    let html = marked.parse(text);
+#|    html = html.replace(/<pre><code(?:\s+class="language-(\w+)")?>([^]*)<\/code><\/pre>/g, (match, lang, code) => {
+#|      const langLabel = lang || 'code';
+#|      return '<div class="code-block-header"><span>' + langLabel + '</span><button class="btn-copy-code" onclick="mbCopyCode(this)">Copy</button></div><pre><code class="' + (lang ? 'language-' + lang : '') + '">' + code + '</code></pre>';
+#|    });
+#|    if (typeof katex !== 'undefined') {
+#|      html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => { try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }); } catch(e) { return '<span style="color:var(--danger)">' + tex + '</span>'; } });
+#|      html = html.replace(/\$([^$\n]+?)\$/g, (_, tex) => { try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }); } catch(e) { return '<code>' + tex + '</code>'; } });
+#|    }
+#|    return html;
+#|  }
+#|  let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+#|  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => '<pre><code>' + code + '</code></pre>');
+#|  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+#|  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+#|  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+#|  html = html.replace(/\n/g, '<br>');
+#|  return html;
+#|}
+
+///|
+/// Start SSE streaming for a chat message. Mirrors `WS.connectSSE()`
+/// from `web/js/websocket.js`. Uses `fetch(POST) + ReadableStream.getReader()`
+/// to read the response stream chunk by chunk. Each SSE event is parsed
+/// (the `event:` / `data:` lines) and JSON-decoded; the resulting object
+/// is re-serialized as a JSON string and passed to `on_chunk`. When the
+/// stream ends, `on_done` is called. On error, `on_error` is called with
+/// the error message.
+#cfg(target="js")
+extern "js" fn js_connect_sse(
+  session_id : String,
+  message : String,
+  on_chunk : (String) -> Unit,
+  on_done : () -> Unit,
+  on_error : (String) -> Unit,
+) =
+#|(sessionId, message, onChunk, onDone, onError) => {
+#|  const url = '/api/sessions/' + sessionId + '/chat/stream';
+#|  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message }) })
+#|    .then(response => {
+#|      if (!response.ok) { response.json().catch(() => ({})).then(err => { onError(err.error || ('HTTP ' + response.status)); }); return; }
+#|      const reader = response.body.getReader();
+#|      const decoder = new TextDecoder();
+#|      let buffer = '';
+#|      function processSSE(buf) {
+#|        const lines = buf.split('\n');
+#|        let eventType = 'message';
+#|        let data = '';
+#|        for (const line of lines) {
+#|          if (line.startsWith('event: ')) { eventType = line.slice(7).trim(); }
+#|          else if (line.startsWith('data: ')) { data += (data ? '\n' : '') + line.slice(6); }
+#|          else if (line === 'data:') { data += '\n'; }
+#|        }
+#|        if (data) {
+#|          try { const parsed = JSON.parse(data); onChunk(JSON.stringify(Object.assign({ type: eventType }, parsed))); }
+#|          catch(e) { onChunk(JSON.stringify({ type: eventType, raw: data })); }
+#|        }
+#|      }
+#|      async function read() {
+#|        while (true) {
+#|          const { done, value } = await reader.read();
+#|          if (done) { if (buffer.trim()) processSSE(buffer); onDone(); break; }
+#|          buffer += decoder.decode(value, { stream: true });
+#|          const parts = buffer.split('\n\n');
+#|          buffer = parts.pop() || '';
+#|          for (const part of parts) { if (part.trim()) processSSE(part); }
+#|        }
+#|      }
+#|      read().catch(err => { if (err.name !== 'AbortError') onError(err.message || 'Stream error'); });
+#|    })
+#|    .catch(err => { onError(err.message || 'Network error'); });
+#|}
+
+///|
+/// Cancel an in-progress generation by POSTing to the cancel endpoint.
+/// Mirrors `Chat.cancelGeneration()` from `web/js/chat.js`.
+#cfg(target="js")
+extern "js" fn js_cancel_generation(session_id : String) =
+#|(sessionId) => {
+#|  fetch('/api/sessions/' + sessionId + '/cancel', { method: 'POST' }).catch(() => {});
+#|}
+
+///|
+/// Scroll the `#chat-messages` container to the bottom.
+#cfg(target="js")
+extern "js" fn js_scroll_chat_to_bottom() =
+#|() => {
+#|  const c = document.getElementById('chat-messages');
+#|  if (c) { requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; }); }
+#|}
+
+///|
+/// Dispatch a `chat:session-changed` CustomEvent so the ChatCell can
+/// react to a session switch or creation initiated by the SessionsCell.
+#cfg(target="js")
+extern "js" fn js_dispatch_session_changed(
+  session_id : String,
+  session_name : String,
+) =
+#|(sessionId, sessionName) => {
+#|  window.dispatchEvent(new CustomEvent('chat:session-changed', { detail: { sessionId, sessionName } }));
+#|}
+
+///|
+/// Register a callback for the `chat:session-changed` CustomEvent.
+/// Used by the ChatCell via `@cmd.custom_cmd` to load history and
+/// update the UI when the active session changes.
+#cfg(target="js")
+extern "js" fn js_on_session_changed(
+  callback : (String, String) -> Unit,
+) =
+#|(callback) => {
+#|  window.addEventListener('chat:session-changed', (e) => {
+#|    const d = e.detail || {};
+#|    callback(d.sessionId || '', d.sessionName || '');
+#|  });
+#|}
+
+///|
+/// Dispatch a `sessions:refresh` CustomEvent so the SessionsCell can
+/// reload its list (e.g. after a streaming round updates cost/counts).
+#cfg(target="js")
+extern "js" fn js_dispatch_sessions_refresh() =
+#|() => {
+#|  window.dispatchEvent(new CustomEvent('sessions:refresh', {}));
+#|}
+
+///|
+/// Register a callback for the `sessions:refresh` CustomEvent.
+/// Used by the SessionsCell via `@cmd.custom_cmd`.
+#cfg(target="js")
+extern "js" fn js_on_sessions_refresh(callback : () -> Unit) =
+#|(callback) => {
+#|  window.addEventListener('sessions:refresh', () => callback());
+#|}
+
+///|
+/// Register a callback for the `sessions:new-session` CustomEvent
+/// dispatched by app.js (Ctrl+N keyboard shortcut).
+#cfg(target="js")
+extern "js" fn js_on_new_session(callback : () -> Unit) =
+#|(callback) => {
+#|  window.addEventListener('sessions:new-session', () => callback());
+#|}
+
+///|
+/// Build the WebSocket URL for a session. Uses the page protocol/host
+/// to construct `ws://` or `wss://` URL.
+#cfg(target="js")
+extern "js" fn js_ws_url(session_id : String) -> String =
+#|(sessionId) => {
+#|  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+#|  return proto + '//' + location.host + '/ws/sessions/' + sessionId;
+#|}
+
+///|
+/// Register click + input handlers for the sidebar session controls
+/// (`#btn-new-session` and `#session-search`). These elements live
+/// outside the SessionsCell mount point (`#session-list`), so the
+/// cell registers listeners via FFI on Init.
+#cfg(target="js")
+extern "js" fn js_register_sessions_controls(
+  on_new : () -> Unit,
+  on_search : (String) -> Unit,
+) =
+#|(onNew, onSearch) => {
+#|  const btn = document.getElementById('btn-new-session');
+#|  if (btn) btn.addEventListener('click', () => onNew());
+#|  const search = document.getElementById('session-search');
+#|  if (search) search.addEventListener('input', (e) => onSearch(e.target.value));
+#|}
+
+///|
+/// Escape HTML special characters. Mirrors `Chat.escapeHtml()`.
+/// Used for user messages (displayed as escaped text, not rendered Markdown).
+#cfg(target="js")
+extern "js" fn js_escape_html(text : String) -> String =
+#|(text) => {
+#|  const div = document.createElement('div');
+#|  div.textContent = text;
+#|  return div.innerHTML;
+#|}
+
+///|
+/// Auto-resize a textarea to fit content (up to 150px max).
+#cfg(target="js")
+extern "js" fn js_auto_resize_textarea(id : String) =
+#|(id) => {
+#|  const el = document.getElementById(id);
+#|  if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px'; }
+#|}

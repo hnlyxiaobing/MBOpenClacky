@@ -111,25 +111,22 @@ fn billing_update(
 fn billing_format_num(n : Int) -> String {
   if n >= 1_000_000 {
     let m = (n.to_double() / 1_000_000.0)
-    let s = m.to_string()
-    // Trim to 1 decimal place
-    let dot = s.last_index_of(".")
-    let trimmed = match dot {
-      Some(idx) => s.substring(end=idx + 2)
-      None => s
-    }
-    trimmed + "M"
+    billing_truncate_dec(m.to_string()) + "M"
   } else if n >= 1_000 {
     let k = (n.to_double() / 1_000.0)
-    let s = k.to_string()
-    let dot = s.last_index_of(".")
-    let trimmed = match dot {
-      Some(idx) => s.substring(end=idx + 2)
-      None => s
-    }
-    trimmed + "K"
+    billing_truncate_dec(k.to_string()) + "K"
   } else {
     n.to_string()
+  }
+}
+
+fn billing_truncate_dec(s : String) -> String {
+  let parts = s.split(".").to_array().map(fn(sv) { sv.to_string() })
+  if parts.length() >= 2 {
+    let dec = parts[1]
+    parts[0] + "." + (if dec.length() >= 1 { dec[:1].to_string() } else { "" })
+  } else {
+    s
   }
 }
 
@@ -205,9 +202,9 @@ fn billing_view(
   // Activate section (only if not active)
   if !is_active {
     let plan_options = [
-      @html.option(value="monthly", selected=model.form_plan == "monthly", [t("billing.monthly")]),
-      @html.option(value="yearly", selected=model.form_plan == "yearly", [t("billing.yearly")]),
-      @html.option(value="pro", selected=model.form_plan == "pro", [t("billing.pro")]),
+      @html.option(value="monthly", selected=model.form_plan == "monthly", t("billing.monthly")),
+      @html.option(value="yearly", selected=model.form_plan == "yearly", t("billing.yearly")),
+      @html.option(value="pro", selected=model.form_plan == "pro", t("billing.pro")),
     ]
     children.push(
       @html.div(class="stat-card", style=["margin-bottom:20px", "text-align:left", "padding:20px"], [
@@ -272,7 +269,7 @@ fn billing_view(
 
 ///| Count keys in a JSON object field.
 fn billing_count_keys(json : Json, field : String) -> Int {
-  let count = ref 0
+  let count = Ref::new(0)
   match json {
     Object(map) =>
       match map.get(field) {
@@ -372,7 +369,7 @@ fn billing_usage_chart(usage : Json) -> @html.Html? {
   // Sort by date (entries.sort is available)
   entries.sort_by(fn(a, b) { a.0.compare(b.0) })
   // Find max for bar scaling
-  let max_val = ref 1
+  let max_val = Ref::new(1)
   entries.each(fn(entry) { if entry.1 > max_val.val { max_val.val = entry.1 } })
   let bars = entries.map(fn(entry) {
     let (day, tokens) = entry

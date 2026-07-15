@@ -97,7 +97,7 @@ fn git_update(
     DiffLoaded(Err(_)) => (@cmd.none, { ..model, diff: "", has_diff: false })
     CommitMessageChanged(v) => (@cmd.none, { ..model, commit_message: v })
     ClickCommit => {
-      let msg_text = model.commit_message.trim()
+      let msg_text = model.commit_message.trim().to_string()
       if msg_text.is_empty() {
         app_notify("Please enter a commit message", "error")
         (@cmd.none, model)
@@ -134,14 +134,14 @@ fn git_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
     let children : Array[@html.Html] = []
 
     // Header: branch badge + refresh
     let header_children : Array[@html.Html] = []
-    header_children.push(@html.h2([], "Git"))
+    header_children.push(@html.h2("Git"))
     let branch = git_branch(model.status)
     if not(branch.is_empty()) {
       header_children.push(
@@ -177,7 +177,7 @@ fn git_view(
       children.push(
         @html.div(class="empty-state", [
           @html.div(class="empty-state-icon", "⎇"),
-          @html.h3([], "No Git Data"),
+          @html.h3("No Git Data"),
           @html.p(class="text-muted", "Could not retrieve git status."),
         ]),
       )
@@ -192,7 +192,7 @@ fn git_view(
       children.push(git_commit_section(emit, model))
     }
 
-    @html.div([], children)
+    @html.div(children)
   }
 }
 
@@ -328,11 +328,15 @@ fn git_extract_files(status : Json) -> Array[GitFile] {
         Some(Array(staged_arr)) => {
           for f in staged_arr {
             let (path, st) = git_parse_file_entry(f)
-            let found = files.iter().find(fn(x) { x.path == path })
-            match found {
-              Some(_) => ()
-              None =>
-                files.push({ path, status: st, staged: true })
+            let mut found = false
+            for e in files {
+              if e.path == path {
+                found = true
+                break
+              }
+            }
+            if not(found) {
+              files.push({ path, status: st, staged: true })
             }
           }
         }
@@ -347,11 +351,15 @@ fn git_extract_files(status : Json) -> Array[GitFile] {
         Some(Array(unstaged_arr)) => {
           for f in unstaged_arr {
             let (path, st) = git_parse_file_entry(f)
-            let found = files.iter().find(fn(x) { x.path == path })
-            match found {
-              Some(_) => ()
-              None =>
-                files.push({ path, status: st, staged: false })
+            let mut found = false
+            for e in files {
+              if e.path == path {
+                found = true
+                break
+              }
+            }
+            if not(found) {
+              files.push({ path, status: st, staged: false })
             }
           }
         }
@@ -457,19 +465,19 @@ fn git_status_badge(status : String) -> (String, Array[String]) {
   ]
   match status {
     "added" | "new" | "untracked" => {
-      let s = [...base, "background:rgba(158,206,106,0.15)", "color:var(--success)"]
+      let s = base + ["background:rgba(158,206,106,0.15)", "color:var(--success)"]
       ("A", s)
     }
     "deleted" | "removed" => {
-      let s = [...base, "background:rgba(247,118,142,0.15)", "color:var(--danger)"]
+      let s = base + ["background:rgba(247,118,142,0.15)", "color:var(--danger)"]
       ("D", s)
     }
     "renamed" => {
-      let s = [...base, "background:rgba(224,175,104,0.15)", "color:var(--warning)"]
+      let s = base + ["background:rgba(224,175,104,0.15)", "color:var(--warning)"]
       ("R", s)
     }
     _ => {
-      let s = [...base, "background:rgba(122,162,247,0.15)", "color:var(--accent)"]
+      let s = base + ["background:rgba(122,162,247,0.15)", "color:var(--accent)"]
       ("M", s)
     }
   }
@@ -498,11 +506,12 @@ fn git_diff_section(diff : String) -> @html.Html {
   // Build diff table with colored lines
   let diff_lines = diff.split("\n").collect()
   let rows : Array[@html.Html] = []
-  for i, line in diff_lines {
-    if not(line.is_empty()) {
+  for i, sv in diff_lines {
+    if not(sv.is_empty()) {
+      let line = sv.to_string()
       let style = git_diff_line_style(line)
       rows.push(
-        @html.tr([], [
+        @html.tr([
           @html.td(style=style, line),
         ]),
       )
@@ -531,17 +540,17 @@ fn git_diff_section(diff : String) -> @html.Html {
 fn git_diff_line_style(line : String) -> Array[String] {
   let base : Array[String] = ["padding:2px 12px", "white-space:pre"]
   if line.has_prefix("+++") || line.has_prefix("---") {
-    [...base, "background:var(--bg-tertiary)", "color:var(--text-secondary)", "font-weight:600"]
+    base + ["background:var(--bg-tertiary)", "color:var(--text-secondary)", "font-weight:600"]
   } else if line.has_prefix("@@") {
-    [...base, "background:rgba(122,162,247,0.1)", "color:var(--info)"]
+    base + ["background:rgba(122,162,247,0.1)", "color:var(--info)"]
   } else if line.has_prefix("+") {
-    [...base, "background:rgba(158,206,106,0.12)", "color:var(--success)"]
+    base + ["background:rgba(158,206,106,0.12)", "color:var(--success)"]
   } else if line.has_prefix("-") {
-    [...base, "background:rgba(247,118,142,0.12)", "color:var(--danger)"]
+    base + ["background:rgba(247,118,142,0.12)", "color:var(--danger)"]
   } else if line.has_prefix("diff ") || line.has_prefix("index ") {
-    [...base, "background:var(--bg-tertiary)", "color:var(--text-muted)", "font-weight:500"]
+    base + ["background:var(--bg-tertiary)", "color:var(--text-muted)", "font-weight:500"]
   } else {
-    [...base, "color:var(--text-secondary)"]
+    base + ["color:var(--text-secondary)"]
   }
 }
 
@@ -586,6 +595,7 @@ fn git_commit_section(
           "resize:vertical",
           "outline:none",
         ],
+        "",
       ),
     ]),
     @html.button(

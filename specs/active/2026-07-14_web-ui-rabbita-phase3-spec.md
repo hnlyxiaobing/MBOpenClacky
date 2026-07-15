@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-07-14
 > **最后更新**: 2026-07-15
-> **状态**: 开发中 — Task Pack 0-3 完成（21/22 面板已迁移），Task Pack 4（Chat 集群）+ Task Pack 5（Phase 4 清理）待开始
+> **状态**: 开发中 — Task Pack 0-4 完成（22/22 面板已迁移），Task Pack 5（Phase 4 清理）待开始
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G4（P1 重要功能差距）
 > **关联历史 spec**: `specs/deprecated/2026-07-13_04_frontend-feature-architecture.md`（store/view 拆分，已被 rabbita 迁移取代）、`specs/completed/2026-07-14_web-ui-rabbita-migration.md`（Phase 0-2.8 已完成）
 > **来源差距**: G4 - Web 前端 Feature-based 架构迁移（rabbita TEA 方案）
@@ -25,7 +25,7 @@
 > | Task Pack 2h: MCP | ✅ 完成 | `99286ee` | |
 > | Task Pack 3a: Settings | ✅ 完成 | `3bff8b4` | |
 > | Task Pack 3b: Skills | ✅ 完成 | `ff57eec` | 含跨 Cell CustomEvent 通信 |
-> | Task Pack 4: Chat 集群 | ⬜ 待开始 | — | chat.js + sessions.js + websocket.js + ws-dispatcher.js（~1,255 行） |
+> | Task Pack 4: Chat 集群 | ✅ 完成（待浏览器验证） | - | chat_cell.mbt + sessions_cell.mbt + 13 FFI + @websocket.listen |
 > | Task Pack 5: Phase 4 清理 | ⬜ 待开始 | — | 移除 app.js / i18n.js / notifications.js + 架构固化 |
 
 ---
@@ -50,11 +50,11 @@ Phase 0-2.8 已完成 9 个面板的 rabbita 迁移（Brand/Backups/Version/Prof
 | 声称 | 验证命令 | 结果 | 结论 |
 |------|---------|------|------|
 | "22 个 rabbita Cell 已存在" | `ls web/mb/main/*_cell.mbt` | 22 文件 | ✅ 确认（Phase 0-2.8: 9 + Phase 3: 13） |
-| "仅剩 7 个 legacy JS" | `ls web/js/*.js` | app.js / chat.js / i18n.js / notifications.js / sessions.js / websocket.js / ws-dispatcher.js | ✅ 确认（15 个面板 JS 已删除） |
-| "bridge.mbt 有 28 个 extern 函数" | `grep -c 'extern "js"' web/mb/main/bridge.mbt` | 28 匹配 | ✅ 确认（Phase 0-2.8: 22 + Phase 3 新增 6: i18n_t/i18n_get_locale/i18n_on_locale_changed/app_show_view/skill_editor_open/on_skill_open_editor） |
+| "仅剩 7 个 legacy JS" | `ls web/js/*.js` | 原 7 个（app/chat/i18n/notifications/sessions/websocket/ws-dispatcher）→ Task Pack 4 后剩 3 个（app/i18n/notifications） | ✅ 确认（19 个面板 JS 已删除） |
+| "bridge.mbt 有 28 个 extern 函数" | `grep -c 'extern "js"' web/mb/main/bridge.mbt` | 原 28 -> Task Pack 4 后 41 匹配（Phase 0-2.8: 22 + Phase 3: 6 + Task Pack 4: 13） | ✅ 确认 |
 | "i18n_t 桥接已存在" | `grep 'i18n_t' web/mb/main/bridge.mbt` | 有 `i18n_t` 函数 | ✅ 已实现 |
 | "index.html 13 个 script 被注释" | `grep -c '<!-- <script' web/index.html` | 13 | ✅ 确认（已迁移面板的 script 已注释） |
-| "index.html 9 个活跃 script 引用" | `grep '<script src="js/' web/index.html` | app.js/i18n.js/i18n/en.js/i18n/zh.js/notifications.js/websocket.js/ws-dispatcher.js/chat.js/sessions.js + 2 个 lib/ | ✅ 确认 |
+| "index.html 9 个活跃 script 引用" | `grep '<script src="js/' web/index.html` | 原 9+2 个 -> Task Pack 4 后剩 5+2 个（app/i18n/i18n-en/i18n-zh/notifications + marked/highlight） | ✅ 确认 |
 | "chat.js 588 行" | `wc -l web/js/chat.js` | 588 | ✅ 确认 |
 | "sessions.js 243 行" | `wc -l web/js/sessions.js` | 243 | ✅ 确认 |
 | "websocket.js 278 行" | `wc -l web/js/websocket.js` | 278 | ✅ 确认 |
@@ -67,6 +67,16 @@ Phase 0-2.8 已完成 9 个面板的 rabbita 迁移（Brand/Backups/Version/Prof
 | "chat.js 用 fetch+ReadableStream 做 SSE 流式" | `grep 'getReader\|ReadableStream\|connectSSE' web/js/chat.js` | `WS.connectSSE()` 内 `response.body.getReader()` + `decoder.decode({stream:true})` | ✅ 确认非标准 SSE |
 | "chat.js 用 marked.js 渲染 Markdown" | `grep 'marked\|hljs\|katex' web/js/chat.js` | `marked.parse()` + `hljs.highlight()` + `katex.renderToString()` | ✅ 确认 |
 | "#04 spec 已归档为 deprecated" | `ls specs/deprecated/` | `2026-07-13_04_frontend-feature-architecture.md` 存在 | ✅ 确认已归档 |
+| "bridge.mbt Task Pack 4 新增 13 个 FFI" | `grep -c 'extern "js"' web/mb/main/bridge.mbt` | 41 匹配（Phase 0-2.8: 22 + Phase 3: 6 + Task Pack 4: 13） | ✅ 确认 |
+| "moon.pkg 含 websocket 依赖" | `grep websocket web/mb/main/moon.pkg` | `"moonbit-community/rabbita/websocket"` | ✅ 确认 |
+| "chat_cell.mbt 已创建" | `ls web/mb/main/chat_cell.mbt` | ~600 行 | ✅ 确认 |
+| "sessions_cell.mbt 已创建" | `ls web/mb/main/sessions_cell.mbt` | ~300 行 | ✅ 确认 |
+| "4 个旧 JS 文件已删除" | `ls web/js/{chat,sessions,websocket,ws-dispatcher}.js` | 不存在（git rm） | ✅ 确认 |
+| "index.html 4 个 script 已注释" | `grep '<!-- chat.js\|<!-- sessions.js\|<!-- websocket.js\|<!-- ws-dispatcher.js' web/index.html` | 4 匹配 | ✅ 确认 |
+| "moon check --target js 通过" | `moon check --target js web/mb/main` | 0 errors（392 warnings pre-existing） | ✅ 确认 |
+| "moon build --target js 通过" | `moon build --target js web/mb/main` | 通过，index.js 834KB | ✅ 确认 |
+| "ChatCell mount 到 #view-chat" | `grep 'view-chat' web/mb/main/main.mbt` | `mount("view-chat")` 存在 | ✅ 确认 |
+| "SessionsCell mount 到 #session-list" | `grep 'session-list' web/mb/main/main.mbt` | `mount("session-list")` 存在 | ✅ 确认 |
 
 ### 详细分析
 
@@ -114,11 +124,12 @@ Chat 集群由 4 个文件组成（共 1,255 行），构成前端最复杂的�
 | 分级 | 面板 | 文件 | 行数 | 状态 | 核心挑战 |
 |------|------|------|------|------|---------|
 | 🔴 P0-Remaining | i18n 旧 Cell 回填 | 9 个 Phase 0-2.8 Cell | - | ⬜ Task Pack 5 | brand/backups/version/profile/share/trash/model_test/tasks/browser 硬编码英文 |
-| 🔴 P1-High | Chat 集群 | chat+sessions+websocket+ws-dispatcher | 1,255 | ⬜ Task Pack 4 | SSE 流式、Dispatcher 状态机、Markdown FFI |
+| 🔴 P1-High | Chat 集群 | chat+sessions+websocket+ws-dispatcher | 1,255 | ✅ 已迁移 | SSE 流式（自定义 FFI）、Dispatcher 状态机（嵌套 ChatEntry）、Markdown FFI、@websocket.listen |
 
-**已完成迁移的面板（21/22）**：
+**已完成迁移的面板（22/22）**：
 Meeting ✅ / Marketplace ✅ / Workspace ✅ / Schedules ✅ / Billing ✅ / Media ✅ / Onboard ✅ / Creator ✅ / Git ✅ / Channels ✅ / MCP ✅ / Settings ✅ / Skills ✅（Phase 3 新迁移 13 个）
 + Brand ✅ / Backups ✅ / Version ✅ / Profile ✅ / Share ✅ / Trash ✅ / ModelTest ✅ / Tasks ✅ / Browser ✅（Phase 0-2.8 已迁移 9 个，待 i18n 回填）
++ Chat ✅ / Sessions ✅（Task Pack 4 新迁移 2 个，待浏览器验证）
 
 #### app.js 残留职责
 
@@ -219,11 +230,11 @@ app.js（~200 行，已从原始 349 行精简）当前承担以下不可移除�
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `web/mb/main/bridge.mbt` | ✅ 已修改（Phase 3 部分） | Phase 3 已新增 i18n_t/i18n_get_locale/i18n_on_locale_changed/app_show_view/skill_editor_open/on_skill_open_editor；Task Pack 4 需新增 js_connect_sse/js_render_markdown 等 |
-| `web/mb/main/main.mbt` | 修改 | 新增各面板 Cell 的 mount 调用 |
-| `web/mb/main/moon.pkg` | 修改 | 新增 `rabbita/websocket` 依赖（Chat WS 订阅） |
-| `web/mb/main/chat_cell.mbt` | 新建 | Chat Cell（Model/Msg/view，含 Dispatcher 状态机转换） |
-| `web/mb/main/sessions_cell.mbt` | 新建 | Sessions Cell（会话列表 + 切换 + 费用） |
+| `web/mb/main/bridge.mbt` | ✅ 已修改（Phase 3 + Task Pack 4） | Phase 3 新增 i18n_t/i18n_get_locale/i18n_on_locale_changed/app_show_view/skill_editor_open/on_skill_open_editor；Task Pack 4 新增 js_render_markdown/js_connect_sse/js_cancel_generation/js_scroll_chat_to_bottom/js_dispatch_session_changed 等 13 个 FFI（总计 41 个 extern 函数） |
+| `web/mb/main/main.mbt` | ✅ 已修改 | 新增各面板 Cell 的 mount 调用（含 ChatCell + SessionsCell） |
+| `web/mb/main/moon.pkg` | ✅ 已修改 | 新增 `rabbita/websocket` 依赖（Chat WS 订阅） |
+| `web/mb/main/chat_cell.mbt` | ✅ 已创建 | Chat Cell（Model/Msg/view，含 Dispatcher 状态机转换为嵌套 ChatEntry） |
+| `web/mb/main/sessions_cell.mbt` | ✅ 已创建 | Sessions Cell（会话列表 + 切换 + 跨 Cell 通信） |
 | `web/mb/main/settings_cell.mbt` | ✅ 已创建 | Settings Cell |
 | `web/mb/main/skills_cell.mbt` | ✅ 已创建 | Skills Cell（含代码编辑器） |
 | `web/mb/main/mcp_cell.mbt` | ✅ 已创建 | MCP Cell |
@@ -238,12 +249,12 @@ app.js（~200 行，已从原始 349 行精简）当前承担以下不可移除�
 | `web/mb/main/marketplace_cell.mbt` | ✅ 已创建 | Marketplace Cell |
 | `web/mb/main/meeting_cell.mbt` | ✅ 已创建 | Meeting Cell（占位面板） |
 | `web/mb/main/*_cell.mbt`（Phase 0-2.8 的 9 个） | ⬜ 待 Task Pack 5 | 回填 i18n_t 调用，替换硬编码英文字符串 |
-| `web/index.html` | ✅ 部分完成 | 13 个 script 已注释；Task Pack 4 后注释 chat/sessions/websocket/ws-dispatcher；Task Pack 5 后全部移除 |
-| `web/js/app.js` | 修改→最终删除 | 逐步移除 navModules/init 守卫，最终删除 |
-| `web/js/chat.js` | 删除 | 被 chat_cell.mbt 取代 |
-| `web/js/sessions.js` | 删除 | 被 sessions_cell.mbt 取代 |
-| `web/js/websocket.js` | 删除 | 被 @websocket.listen + bridge 取代 |
-| `web/js/ws-dispatcher.js` | 删除 | 被 ChatModel.cards 取代 |
+| `web/index.html` | ✅ 已完成 | 17 个 script 已注释（Phase 0-3: 13 + Task Pack 4: 4）；Task Pack 5 后全部移除 |
+| `web/js/app.js` | ✅ 已修改（Task Pack 4） | 移除 Chat.init/Sessions.init/setupWSListeners；Ctrl+N 改为 CustomEvent；新增 window.mbCopyCode |
+| `web/js/chat.js` | ✅ 已删除 | 被 chat_cell.mbt 取代 |
+| `web/js/sessions.js` | ✅ 已删除 | 被 sessions_cell.mbt 取代 |
+| `web/js/websocket.js` | ✅ 已删除 | 被 @websocket.listen + bridge 取代 |
+| `web/js/ws-dispatcher.js` | ✅ 已删除 | 被 ChatModel.entries（嵌套 ChatEntry）取代 |
 | `web/js/settings.js` | ✅ 已删除 | 被 settings_cell.mbt 取代 |
 | `web/js/skills.js` | ✅ 已删除 | 被 skills_cell.mbt 取代 |
 | `web/js/skills_enhanced.js` | ✅ 已删除 | 被 skills_cell.mbt 取代 |
@@ -462,6 +473,59 @@ app.js（~200 行，已从原始 349 行精简）当前承担以下不可移除�
 - [ ] `moon check` 0 errors / `warren build` 通过
 - [ ] `moon build --target native --release cmd` 0 errors
 
+#### 实际实现记录
+
+**Task Pack 4a 桥接层扩展**：
+- `bridge.mbt` 新增 13 个 FFI 函数：
+  - `js_render_markdown(text) -> String`：marked.js + hljs + KaTeX + 代码块 copy 按钮 HTML
+  - `js_connect_sse(session_id, message, on_chunk, on_done, on_error)`：fetch(POST) + ReadableStream.getReader()，JS 端解析 SSE 格式（`event:`/`data:` 行），JSON 解码后传 parsed event 为 JSON 字符串到 MoonBit 回调
+  - `js_cancel_generation(session_id)`：POST /api/sessions/:id/cancel
+  - `js_scroll_chat_to_bottom()`：聊天容器滚动到底部
+  - `js_dispatch_session_changed(session_id, session_name)` / `js_on_session_changed(callback)`：跨 Cell 会话切换通信
+  - `js_dispatch_sessions_refresh()` / `js_on_sessions_refresh(callback)`：跨 Cell 刷新通信
+  - `js_on_new_session(callback)`：Ctrl+N 新建会话监听
+  - `js_ws_url(session_id) -> String`：WS URL 构建器
+  - `js_register_sessions_controls(on_new, on_search)`：侧边栏按钮（新建会话 + 搜索）注册
+  - `js_escape_html(text) -> String`：HTML 转义
+  - `js_auto_resize_textarea(id)`：textarea 自动调整高度
+- `moon.pkg` 新增 `"moonbit-community/rabbita/websocket"` 依赖
+- bridge.mbt 总计 41 个 extern 函数（Phase 0-2.8: 22 + Phase 3: 6 + Task Pack 4: 13）
+
+**Task Pack 4b ChatCell**：
+- 创建 `chat_cell.mbt`（~600 行），mount 到 `#view-chat`（整个聊天视图容器）
+- **类型设计**：
+  - `ChatModel`：current_session_id, session_name, messages: Array[ChatEntry], streaming_message, is_streaming, input_text, cost, model, status, config, locale
+  - `ChatEntry` enum：`Message(ChatMessage) | Card(ChatCard) | ToolCall(ChatToolCall)`（Dispatcher 栈 -> 嵌套 Model）
+  - `ChatCard`：含 `entries: Array[ChatEntry]`，支持 Subagent/Thinking 嵌套
+  - `ChatMessage`：含 `rendered_html` 缓存字段，避免每次 stream chunk 重渲染全部消息
+  - `ChatMsg`：17 个 variant（Init/Send/StreamChunk/StreamDone/StreamError/CancelGeneration/LoadHistory/SessionChanged/InputChanged/ToggleCardCollapse/ShowTools/ShowCost/LocaleChanged/WsMessage/ConfigLoaded 等）
+- **SSE 事件路由**：`handle_sse_event()` 解析 JSON，按 `type` 字段路由：stream/subagent_start/end/think_start/end/tool_executing/tool_executed/error
+- **流式辅助函数**：`finalize_stream()`, `append_to_current_stream()`, `add_tool_call()`, `update_tool_result()`
+- **视图**：`chat_view()` 渲染 chat-header + chat-messages + chat-input-area；`render_message()`, `render_streaming_message()`, `render_card()`, `render_tool_call()`
+- **Markdown 渲染**：`js_render_markdown` 返回 HTML 字符串，通过 `@html.Attrs::build().inner_html()` 注入
+- **WebSocket 订阅**：`chat_subscriptions()` 返回 `@websocket.listen(ws_url, message=s => emit(WsMessage(s)))`，仅当 current_session_id 存在时订阅
+
+**Task Pack 4c SessionsCell**：
+- 创建 `sessions_cell.mbt`（~300 行），mount 到 `#session-list`
+- **类型设计**：
+  - `SessionsModel`：sessions, current_session_id, search_filter, show_new_dialog, new_session_name, locale
+  - `SessionsMsg`：12 个 variant（Init/SessionsLoaded/ClickSwitch/ClickDelete/SearchInput/NewSessionDialog/CreateSession/RefreshRequested/LocaleChanged 等）
+- **跨 Cell 通信**：
+  - SessionsCell `ClickSwitch` -> `js_dispatch_session_changed(id, name)` -> ChatCell 通过 `js_on_session_changed` 监听 -> `SessionChanged(id, name)` Msg
+  - ChatCell 发送消息完成 -> `js_dispatch_sessions_refresh()` -> SessionsCell 通过 `js_on_sessions_refresh` 监听 -> `RefreshRequested` Msg
+  - app.js Ctrl+N -> `window.dispatchEvent(new CustomEvent('sessions:new-session'))` -> SessionsCell 通过 `js_on_new_session` 监听
+- **初始加载自动选择第一个会话**
+- **FFI 控件注册**：`js_register_sessions_controls` 注册 `#btn-new-session` 和 `#session-search` 事件（这些元素不在 mount point 内，需通过 FFI 操作）
+
+**Task Pack 4d 整合与清理**：
+- `main.mbt`：新增 SessionsCell mount 到 `#session-list`、ChatCell mount 到 `#view-chat`
+- `index.html`：注释掉 4 个旧 script 标签（websocket.js / ws-dispatcher.js / chat.js / sessions.js）
+- `app.js`：注释掉 `Chat.init()` / `Sessions.init()` / `setupWSListeners()` 调用；Ctrl+N 改为 `window.dispatchEvent(new CustomEvent('sessions:new-session'))`；新增 `window.mbCopyCode` 全局函数
+- `git rm` 删除 4 个旧 JS 文件（chat.js / sessions.js / websocket.js / ws-dispatcher.js）
+- `moon build --target js web/mb/main` 通过，`web/mb/index.js` 更新（231KB -> 834KB）
+- `moon check --target js` 0 errors
+- ⚠️ **浏览器端到端验证尚未完成**：需要启动本地 HTTP 服务器验证聊天功能
+
 ### 任务包 5：Phase 4 全量清理与架构固化（预估 1 天）
 
 **前置条件**：任务包 0-4 全部完成（所有面板已迁移）
@@ -493,12 +557,12 @@ app.js（~200 行，已从原始 349 行精简）当前承担以下不可移除�
 
 - [x] 15 个 legacy JS 面板全部迁移为 rabbita Cell（13 个 Phase 3 + 2 个待 Chat 集群）
 - [x] 13 个旧 JS 文件已删除（settings/skills/skills_enhanced/mcp/channels/schedules/billing/git_panel/workspace/creator/onboard/media/marketplace/meeting）
-- [ ] Chat 集群 4 个旧 JS 文件删除（chat/sessions/websocket/ws-dispatcher）- 待 Task Pack 4
+- [x] Chat 集群 4 个旧 JS 文件删除（chat/sessions/websocket/ws-dispatcher）✅ Task Pack 4 完成
 - [x] `#04` spec 已归档到 `specs/deprecated/`
 - [ ] Phase 0-2.8 的 9 个 Cell i18n 回填 - 待 Task Pack 5
 - [x] Phase 3 新 Cell 的可见字符串通过 `i18n_t()` 获取，支持中英文切换
-- [ ] Chat 流式渲染、Markdown、工具调用、Subagent/Thinking 卡片功能不回归 - 待 Task Pack 4
-- [ ] 会话 CRUD、WS 连接/重连、SSE 流式功能不回归 - 待 Task Pack 4
+- [ ] Chat 流式渲染、Markdown、工具调用、Subagent/Thinking 卡片功能不回归 - ⚠️ 代码已实现，待浏览器验证
+- [ ] 会话 CRUD、WS 连接/重连、SSE 流式功能不回归 - ⚠️ 代码已实现，待浏览器验证
 - [ ] `web/js/` 仅保留 `lib/marked.min.js`、`lib/highlight.min.js`（Phase 4 完成后）- 待 Task Pack 5
 - [ ] `web/index.html` 仅含 `lib/*.js` + `<script type="module" src="mb/index.js">`（Phase 4 完成后）- 待 Task Pack 5
 - [x] `moon check` 0 errors（`web/mb/`）- 439 pre-existing warnings, 0 errors
@@ -604,3 +668,4 @@ app.js（~200 行，已从原始 349 行精简）当前承担以下不可移除�
 | 2026-07-14 | 初始版本：Phase 3+4 增量规划（i18n 基础设施 + 15 面板迁移 + Chat 集群 + 全量清理） | 整合 #04（store/view）与 rabbita 迁移文档中未完成的 Phase 3/4 工作 |
 | 2026-07-15 | Task Pack 0-3 完成：i18n 基础设施 + 13 面板迁移（Meeting/Marketplace/Workspace/Schedules/Billing/Media/Onboard/Creator/Git/Channels/MCP/Settings/Skills） | 21/22 面板已迁移，仅剩 Chat 集群 |
 | 2026-07-15 | 更新 spec 状态：标记 Task Pack 0-3 为已完成，更新验证记录和进度总览 | 同步 spec 文档与实际开发进度 |
+| 2026-07-15 | Task Pack 4 完成：Chat 集群迁移（chat_cell.mbt ~600 行 + sessions_cell.mbt ~300 行 + bridge.mbt 新增 13 个 FFI + @websocket.listen Sub + 跨 Cell CustomEvent 通信）。删除 4 个旧 JS 文件（chat/sessions/websocket/ws-dispatcher.js）。22/22 面板全部迁移完成。⚠️ 浏览器端到端验证待完成 | Phase 3 核心任务完成，仅剩 Phase 4 全量清理（Task Pack 5） |

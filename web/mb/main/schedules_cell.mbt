@@ -318,6 +318,7 @@ fn schedules_form(emit : @cmd.Emit[SchedulesMsg], model : SchedulesModel) -> @ht
         value=model.form_message,
         on_change=s => emit(FormMessageChanged(s)),
         style=textarea_style(),
+        "",
       ),
     ]),
     @html.div(class="settings-field", [
@@ -376,7 +377,7 @@ fn schedules_card(
       [
         @html.div(style=["font-size:14px", "font-weight:600", "color:var(--text-primary)"], name),
         @html.div(style=["display:flex", "gap:4px", "align-items:center"], [
-          @html.span(
+          @html.div(
             class=enabled_cls,
             on_click=emit(ClickToggle(id, s)),
             style=["font-size:10px", "padding:2px 8px", "border-radius:10px", "cursor:pointer"],

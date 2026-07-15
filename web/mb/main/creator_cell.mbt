@@ -83,7 +83,7 @@ fn create_skill(emit : @cmd.Emit[CreatorMsg], name : String, desc : String) -> @
     if not(desc.is_empty()) {
       fields.push(("description", Json::string(desc)))
     }
-    safe_post("/api/creator/skills", Json::object(Map::of(fields)))
+    safe_post("/api/creator/skills", Json::object(Map::from_array(fields)))
   })
 }
 
@@ -120,7 +120,7 @@ fn creator_update(
     CreateNameChanged(v) => (@cmd.none, { ..model, create_name: v })
     CreateDescChanged(v) => (@cmd.none, { ..model, create_desc: v })
     ClickDoCreate => {
-      let name = model.create_name.trim()
+      let name = model.create_name.trim().to_string()
       if name.is_empty() {
         app_notify("Skill name is required", "warning")
         (@cmd.none, model)
@@ -190,7 +190,7 @@ fn creator_update(
     TemplateChanged(v) => (@cmd.none, { ..model, scaffold_template: v })
     ScaffoldNameChanged(v) => (@cmd.none, { ..model, scaffold_name: v })
     ClickScaffold => {
-      let name = model.scaffold_name.trim()
+      let name = model.scaffold_name.trim().to_string()
       if name.is_empty() {
         app_notify("Skill name is required for scaffold", "warning")
         (@cmd.none, model)
@@ -253,55 +253,23 @@ fn is_lower_or_digit(c : Char) -> Bool {
 fn scaffold_tree(template : String, name : String) -> String {
   match template {
     "tool" =>
-      #|\{name}/
-├── SKILL.md            # Skill manifest with tool definitions
-├── tools/
-│   └── main.json       # Tool schema definitions
-├── prompts/
-│   ├── system.md       # System prompt
-│   └── tool_use.md     # Tool usage instructions
-├── examples/
-│   └── tool_usage.md   # Tool invocation examples
-└── README.md
+      "\{name}/\n├── SKILL.md            # Skill manifest with tool definitions\n├── tools/\n│   └── main.json       # Tool schema definitions\n├── prompts/\n│   ├── system.md       # System prompt\n│   └── tool_use.md     # Tool usage instructions\n├── examples/\n│   └── tool_usage.md   # Tool invocation examples\n└── README.md"
     "mcp" =>
-      #|\{name}/
-├── SKILL.md            # Skill manifest with MCP config
-├── mcp/
-│   ├── server.json     # MCP server configuration
-│   └── tools.json      # MCP tool definitions
-├── prompts/
-│   └── system.md       # System prompt
-├── examples/
-│   └── mcp_usage.md    # MCP integration examples
-└── README.md
+      "\{name}/\n├── SKILL.md            # Skill manifest with MCP config\n├── mcp/\n│   ├── server.json     # MCP server configuration\n│   └── tools.json      # MCP tool definitions\n├── prompts/\n│   └── system.md       # System prompt\n├── examples/\n│   └── mcp_usage.md    # MCP integration examples\n└── README.md"
     _ =>
-      #|\{name}/
-├── SKILL.md            # Skill manifest & documentation
-├── prompts/
-│   └── system.md       # System prompt template
-├── examples/
-│   └── basic.md        # Usage examples
-└── README.md           # User-facing documentation
+      "\{name}/\n├── SKILL.md            # Skill manifest & documentation\n├── prompts/\n│   └── system.md       # System prompt template\n├── examples/\n│   └── basic.md        # Usage examples\n└── README.md           # User-facing documentation"
   }
 }
 
 ///|
 fn package_tree(name : String) -> String {
-  #|\{name}.skill-pack/
-├── manifest.json       # Package metadata
-├── SKILL.md            # Skill documentation
-├── prompts/            # Bundled prompts
-├── tools/              # Tool definitions (if any)
-└── assets/             # Static assets (if any)
-
-Package size: ~estimated
-Target: marketplace distribution
+  "\{name}.skill-pack/\n├── manifest.json       # Package metadata\n├── SKILL.md            # Skill documentation\n├── prompts/            # Bundled prompts\n├── tools/              # Tool definitions (if any)\n└── assets/             # Static assets (if any)\n\nPackage size: ~estimated\nTarget: marketplace distribution"
 }
 
 ///|
 fn creator_pick_skill_name(skills : Array[Json]) -> String {
   // Find first unpublished skill, or fall back to first skill
-  var name = "unknown"
+  let mut name = "unknown"
   for skill in skills {
     let is_published = match skill {
       Object(map) =>
@@ -312,12 +280,12 @@ fn creator_pick_skill_name(skills : Array[Json]) -> String {
       _ => false
     }
     if not(is_published) {
-      name := json_str(skill, "name", "unknown")
+      name = json_str(skill, "name", "unknown")
       break
     }
   }
   if name == "unknown" && not(skills.is_empty()) {
-    name := json_str(skills[0], "name", "unknown")
+    name = json_str(skills[0], "name", "unknown")
   }
   name
 }
@@ -331,10 +299,10 @@ fn creator_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
-    @html.div([], [
+    @html.div([
       creator_skills_section(emit, model),
       creator_scaffold_section(emit, model),
       creator_package_section(emit, model),
@@ -356,7 +324,7 @@ fn creator_skills_section(
       class="settings-group-title",
       style=["display:flex", "align-items:center", "justify-content:space-between"],
       [
-        @html.span([], "My Skills (\{model.skills.length()})"),
+        @html.span("My Skills (\{model.skills.length()})"),
         @html.button(
           class="btn btn-primary btn-sm",
           on_click=emit(ClickCreate),
@@ -376,7 +344,7 @@ fn creator_skills_section(
     children.push(
       @html.div(class="empty-state", style=["padding:32px"], [
         @html.div(class="empty-state-icon", "📋"),
-        @html.h3([], "No Skills Created"),
+        @html.h3("No Skills Created"),
         @html.p(
           style=["color:var(--text-secondary)"],
           "Create skills using the skill editor to publish them to the store.",
@@ -403,7 +371,7 @@ fn creator_create_form(
     style=["margin-bottom:16px", "padding:16px", "background:var(--bg-tertiary)", "border-radius:var(--radius-sm)"],
     [
       @html.div(class="settings-field", [
-        @html.label([], "Skill Name"),
+        @html.label("Skill Name"),
         @html.input(
           input_type=@html.Text,
           value=model.create_name,
@@ -414,13 +382,14 @@ fn creator_create_form(
         @html.div(class="help-text", "Use lowercase with hyphens (e.g., my-skill-name)"),
       ]),
       @html.div(class="settings-field", [
-        @html.label([], "Description"),
+        @html.label("Description"),
         @html.textarea(
           rows=3,
           placeholder="What does this skill do?",
           value=model.create_desc,
           on_change=s => emit(CreateDescChanged(s)),
           style=textarea_style(),
+          "",
         ),
       ]),
       @html.div(
@@ -541,7 +510,7 @@ fn creator_scaffold_section(
       style=["font-size:13px", "color:var(--text-secondary)", "line-height:1.6", "padding:8px 0"],
       [
         @html.div(class="settings-field", style=["margin-bottom:10px"], [
-          @html.label([], t("creator.template")),
+          @html.label(t("creator.template")),
           @html.select(
             on_change=s => emit(TemplateChanged(s)),
             style=input_style(),
@@ -565,7 +534,7 @@ fn creator_scaffold_section(
           ),
         ]),
         @html.div(class="settings-field", style=["margin-bottom:10px"], [
-          @html.label([], "Skill Name"),
+          @html.label("Skill Name"),
           @html.input(
             input_type=@html.Text,
             value=model.scaffold_name,
@@ -672,10 +641,10 @@ fn creator_guidelines_section() -> @html.Html {
         @html.ul(
           style=["padding-left:20px"],
           [
-            @html.li([], "Skills must include a valid SKILL.md manifest"),
-            @html.li([], "Test your skill thoroughly before publishing"),
-            @html.li([], "Follow the skill naming conventions"),
-            @html.li([], "Provide clear descriptions and usage examples"),
+            @html.li("Skills must include a valid SKILL.md manifest"),
+            @html.li("Test your skill thoroughly before publishing"),
+            @html.li("Follow the skill naming conventions"),
+            @html.li("Provide clear descriptions and usage examples"),
           ],
         ),
       ],

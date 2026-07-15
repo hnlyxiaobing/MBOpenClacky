@@ -81,8 +81,8 @@ const App = {
     }
 
     // Initialize core modules
-    Chat.init();
-    Sessions.init();
+    // Chat.init(); // Phase 3.4: migrated to rabbita chat_cell.mbt
+    // Sessions.init(); // Phase 3.4: migrated to rabbita sessions_cell.mbt
     // Settings.init(); // Phase 3.3: migrated to rabbita settings_cell.mbt
     // Skills.init(); // Phase 3.3: migrated to rabbita skills_cell.mbt
 
@@ -119,7 +119,7 @@ const App = {
     await this.loadConfig();
 
     // Set up WebSocket event listeners
-    this.setupWSListeners();
+    // this.setupWSListeners(); // Phase 3.4: migrated to rabbita chat_cell.mbt
 
     console.log('[App] Initialization complete');
   },
@@ -197,7 +197,7 @@ const App = {
       // Ctrl+N: new session
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
-        Sessions.showNewSessionDialog();
+        window.dispatchEvent(new CustomEvent('sessions:new-session'));
       }
     });
   },
@@ -345,3 +345,18 @@ const App = {
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => App.init());
+
+// ── Global code-copy handler for Markdown rendered by rabbita ChatCell ──
+window.mbCopyCode = function(btn) {
+  const codeBlock = btn.closest('.code-block-header')?.nextElementSibling?.querySelector('code');
+  if (codeBlock) {
+    navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+      btn.textContent = (typeof I18n !== 'undefined') ? I18n.t('chat.copied') : 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = (typeof I18n !== 'undefined') ? I18n.t('chat.copy') : 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+};

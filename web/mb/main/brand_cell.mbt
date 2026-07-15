@@ -22,9 +22,6 @@
 using @html {span, p, label, h3, h4, input, br}
 
 ///|
-using @cmd {type Emit, type Cmd, perform, batch, none}
-
-///|
 priv enum BrandMsg {
   /// Mount-time signal: trigger initial fetch of status + skills.
   Init

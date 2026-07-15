@@ -81,11 +81,11 @@ fn complete_onboard(emit : @cmd.Emit[OnboardMsg]) -> @cmd.Cmd {
 ///|
 fn save_config(emit : @cmd.Emit[OnboardMsg], api_key : String, model : String) -> @cmd.Cmd {
   @cmd.perform(r => emit(ConfigSaved(r)), async fn() noraise {
-    let mut fields : Array[(String, Json)] = [("api_key", Json::string(api_key))]
+    let fields : Array[(String, Json)] = [("api_key", Json::string(api_key))]
     if not(model.is_empty()) {
       fields.push(("current_model_id", Json::string(model)))
     }
-    safe_put("/api/config", Json::object(Map::of(fields)))
+    safe_put("/api/config", Json::object(Map::from_array(fields)))
   })
 }
 
@@ -107,7 +107,7 @@ fn onboard_update(
       let device_code = json_str(json, "device_code", "")
       (@cmd.none, { ..model, completed, step, device_code })
     }
-    StatusLoaded(Err(_)) => (@cmd.none, { ..model, loading: false })
+    StatusLoaded(Err(_)) => (@cmd.none, { ..model, busy: false })
     ClickStart => (start_onboard(emit), { ..model, busy: true })
     StartDone(Ok(json)) => {
       let device_code = json_str(json, "device_code", "")
@@ -186,7 +186,7 @@ fn onboard_progress(active : Int) -> Array[@html.Html] {
       "onboard-dot"
     }
     dots.push(
-      @html.div(class=cls, style=["width:10px", "height:10px", "border-radius:50%", "background:var(--border)"], []),
+      @html.div(class=cls, style=["width:10px", "height:10px", "border-radius:50%", "background:var(--border)"], ""),
     )
   }
   dots

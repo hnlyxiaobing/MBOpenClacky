@@ -86,7 +86,7 @@ fn fetch_store_skills(emit : @cmd.Emit[SkillsMsg]) -> @cmd.Cmd {
 }
 
 ///|
-fn fetch_creator_skills(emit : @cmd.Emit[SkillsMsg]) -> @cmd.Cmd {
+fn fetch_skills_data(emit : @cmd.Emit[SkillsMsg]) -> @cmd.Cmd {
   @cmd.perform(r => emit(CreatorLoaded(r)), async fn() noraise {
     safe_get("/api/creator/skills")
   })
@@ -159,7 +159,7 @@ fn refresh_skills(emit : @cmd.Emit[SkillsMsg]) -> @cmd.Cmd {
   @cmd.batch([
     fetch_installed_skills(emit),
     fetch_store_skills(emit),
-    fetch_creator_skills(emit),
+    fetch_skills_data(emit),
   ])
 }
 
@@ -177,7 +177,7 @@ fn skills_update(
         @cmd.batch([
           fetch_installed_skills(emit),
           fetch_store_skills(emit),
-          fetch_creator_skills(emit),
+          fetch_skills_data(emit),
           locale_change_cmd(emit, LocaleChanged),
           skill_open_cmd(emit, name => OpenEditor(name)),
         ]),
@@ -329,7 +329,7 @@ fn skills_view(
 ) -> @html.Html {
   if model.loading {
     @html.div(class="text-center", [
-      @html.div(class="spinner", style=["margin:40px auto"], []),
+      @html.div(class="spinner", style=["margin:40px auto"], ""),
     ])
   } else {
     let children : Array[@html.Html] = []
@@ -341,7 +341,7 @@ fn skills_view(
     if model.editor_visible {
       children.push(skills_editor_area(emit, model))
     }
-    @html.div([], children)
+    @html.div(children)
   }
 }
 
@@ -380,7 +380,7 @@ fn skills_tab_content(
     "installed" => skills_installed_tab(emit, model)
     "store" => skills_store_tab(emit, model)
     "creator" => skills_creator_tab(emit, model)
-    _ => @html.div([], [])
+    _ => @html.div("")
   }
 }
 
@@ -484,7 +484,7 @@ fn skill_card_installed(
         @html.div(
           on_click=emit(ClickToggle(name, enabled)),
           style=toggle_style,
-          [@html.div(style=dot_style, [])],
+          [@html.div(style=dot_style, "")],
         ),
       ],
     ),
@@ -619,6 +619,7 @@ fn skills_editor_area(
       value=model.editor_content,
       on_change=s => emit(EditorContentChanged(s)),
       style=["width:100%", "min-height:400px", "font-family:var(--font-mono)", "font-size:12px", "background:var(--bg-tertiary)", "border:1px solid var(--border)", "border-radius:var(--radius-sm)", "color:var(--text-primary)", "padding:9px 12px", "resize:vertical", "outline:none"],
+      "",
     ),
   ])
 }
@@ -672,7 +673,7 @@ fn set_skill_enabled(s : Json, enabled : Bool) -> Json {
       if not(new_map.contains("enabled")) {
         new_map.set("enabled", Json::boolean(enabled))
       }
-      Object(new_map)
+      Json::object(new_map)
     }
     _ => s
   }
