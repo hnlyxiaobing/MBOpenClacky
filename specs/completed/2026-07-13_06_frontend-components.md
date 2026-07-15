@@ -1,7 +1,7 @@
 # Web 前端组件补齐（code-editor / notify / sidebar / onboard / datepicker） · 增量 Spec
 
 > **创建日期**: 2026-07-13
-> **状态**: 讨论中
+> **状态**: 已完成（2026-07-15 归档）
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G6（P1 重要功能差距）
 > **关联历史**: `specs/completed/2026-07-09_web-frontend-panels-completion.md`（面板已补齐）
 > **来源差距**: G6 — Web 前端组件（code-editor / notify / sidebar / onboard / datepicker）
@@ -82,3 +82,42 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G6，P1 重要功能 |
 | 2026-07-13 | 审核修正：修正"notifications.js 仅为数据层"的错误描述（实际已有完整 toast UI）；修正 G4 依赖关系为软依赖（组件可独立开发）；标注 code-editor 与 G15 的重叠关系（G15 先引入库，本 spec 封装组件）；datepicker 降优先级（当前无明确使用场景）；修正 notify 决策为重构现有代码而非新建 | 对抗性审核 + 第一性原理校验 |
+
+## 开发前校准分析（2026-07-15）
+
+> 在编写任何代码前，对 `web/` 目录做了严格实读校准。结论：**本 Spec 描述的旧架构（`web/js/*.js` vanilla）已不存在，前端已完全迁移到 MoonBit + `rabbita` 框架（`web/mb/main/*_cell.mbt`）**。因此大部分决策需按当前架构重新映射。
+
+### 现状 vs Spec 决策对照
+
+| Spec 组件 | Spec 计划（`web/js/...`） | 当前架构实读结果 | 校准结论 |
+|-----------|--------------------------|------------------|----------|
+| **notify** | 重构 `notifications.js` → `components/notify.js` | 已是 rabbita cell：`web/mb/main/notification_cell.mbt`，含 4 类 toast + 自动消失 + 堆叠；通过 `app_notify` / `on_app_notify`（`bridge.mbt`）以 CustomEvent 解耦 | ✅ **已完成**，无需开发 |
+| **sidebar** | 从 `app.js` 抽取导航逻辑 | 已是 rabbita：`bootstrap.mbt` 生成 sidebar HTML，`shell_cell.mbt` 负责路由 / 绑定 `js_bind_nav_buttons` / 折叠展开 | ✅ **已完成**，无需开发 |
+| **onboard** | 组件化为步骤向导（4 步） | 已是 rabbita cell：`web/mb/main/onboard_cell.mbt`，3 步向导（welcome → configure → complete），状态驱动 + 前进/后退/跳过，对接 `/api/onboard/*` | ✅ **已完成**（实际为 3 步，功能等价） |
+| **code-editor** | 新建 `components/code-editor.js`（CodeMirror 6） | `web/` 下无任何编辑器；`skills_cell.mbt` 的技能内容编辑器是纯 `<textarea>` | ❌ **唯一真实缺口** → 本次开发 |
+| **datepicker** | 原生 date input + 自定义样式 | 当前无使用场景（`schedules_cell.mbt` 已用原生 `<input type="date">`） | ⏸ 维持 Spec 自身决策：降优先级，推迟 |
+
+### 校准后开发方案（第一性原理）
+
+- 仅 **code-editor** 需要新开发。其余 4 个组件在 rabbita 中已存在且功能达标，强行"重建"会引入回归风险，故不重复实现。
+- code-editor 的集成落点遵循当前 rabbita 模式，而非旧 `components/` 目录：
+  1. **加载层**：`web/mb/public/editor.js`（ES module，从 esm.sh CDN 引入 CodeMirror 6 + `@codemirror/lang-markdown` + `@codemirror/theme-one-dark`）。
+  2. **FFI 桥接**：`bridge.mbt` 新增 `cm_set_doc(id, value)`，调用 `window.MBEditor.setDoc`。
+  3. **组件封装**：`web/mb/main/code_editor.mbt` 提供 `code_editor_host(id, ta_id, value, on_change)`，渲染一个 `code-editor-host` <div> + 一个隐藏的、模型绑定的 <textarea>。
+  4. **集成点**：`skills_cell.mbt` 的 `skills_editor_area` 用 `code_editor_host` 替换原 `<textarea>`；CodeMirror 编辑内容实时镜像回 <textarea>，复用既有 `EditorContentChanged` 更新回路（单一数据源）；CDN 失败时 <textarea> 自动作为 fallback 可见。
+  5. **挂载时机**：`editor.js` 用 `MutationObserver` 监听 `code-editor-host` 节点出现即挂载，并对被 re-render 移除的实例自动 `destroy`，规避 rabbita 声明式重渲染与命令式 CodeMirror 的生命周期冲突。
+- 入口 HTML（`web/index.html` 与 `web/mb/public/index.html`）引入 `editor.js`；CSS（`.code-editor-host`）补进 `web/css/style.css` 与 `web/mb/public/styles.css`。
+
+### 验收映射
+
+- [x] notify / sidebar / onboard：已在 rabbita 中满足 Spec 验收标准（无需改动）。
+- [x] code-editor：CodeMirror 6 集成，Markdown 语法高亮 + 行号（basicSetup）+ oneDark 主题；CDN 失败有 textarea fallback。
+- [x] 现有功能不回归：技能编辑器的 `on_change` 回路、保存/关闭逻辑保持不变。
+- [ ] datepicker：按 Spec 决策维持推迟。
+
+### 变更记录（本次）
+
+| 日期 | 变更内容 | 原因 |
+|------|---------|------|
+| 2026-07-15 | 开发前校准：确认前端已迁移到 rabbita，notify/sidebar/onboard 已实现，仅 code-editor 为缺口 | 代码实读 + 第一性原理，避免对过时 Spec 的机械执行 |
+| 2026-07-15 | 新增 `web/mb/public/editor.js`（CodeMirror 6 加载器 + MutationObserver 自动挂载）、`bridge.mbt` 的 `cm_set_doc` FFI、`code_editor.mbt` 组件封装；`skills_cell.mbt` 集成；HTML/CSS 接入 | 实现 Spec 的 code-editor 功能目标，契合当前 rabbita 架构 |
