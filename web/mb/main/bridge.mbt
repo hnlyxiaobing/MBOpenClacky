@@ -17,11 +17,6 @@ extern "js" fn app_notify(message : String, type_ : String) = "(message, type_) 
 extern "js" fn app_show_modal(title : String, body : String, footer : String) = "(title, body, footer) => App.showModal(title, body, footer)"
 
 ///|
-/// Hide modal dialog.
-#cfg(target="js")
-extern "js" fn app_hide_modal() = "() => App.hideModal()"
-
-///|
 /// `JSON.stringify` a JS value, exposed so the brand cell can serialize the
 /// parsed `API.get/post/put/del` result back into a MoonBit `Json` value
 /// (we receive `@js.Value` from a Promise and round-trip via string).
