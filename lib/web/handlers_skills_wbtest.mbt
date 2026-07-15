@@ -207,7 +207,7 @@ test "handler: creator skills returns 200" {
 
 ///|
 test "handler: user skill full lifecycle" {
-  let name = "wbtest-skill-lifecycle"
+  let name = "wbtest-skill-lifecycle-" + @async.now().to_string()
   // Cleanup any leftover from previous runs
   let dir = user_skills_dir() + "/" + name
   if @fs.path_exists(dir) {
@@ -226,6 +226,7 @@ test "handler: user skill full lifecycle" {
     ),
   )
   let create_resp = handle_skills_create(create_req)
+  println("WBTEST_SKILLS_BODY=" + create_resp.body)
   @debug.assert_eq(create_resp.status, 201)
 
   // Duplicate create rejected

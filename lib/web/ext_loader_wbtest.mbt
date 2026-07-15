@@ -2,6 +2,20 @@
 /// merge_api_extensions.
 
 ///|
+/// OS-portable temp directory (uses TEMP/TMPDIR env, falls back to /tmp).
+/// Avoids hardcoded Unix /tmp paths that don't exist on Windows.
+fn wbtest_tmp_root() -> String {
+  match @sys.get_env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @sys.get_env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+}
+
+///|
 test "load_extensions_from_paths: empty list yields empty result" {
   let result = load_extensions_from_paths([])
   @debug.assert_eq(result.length(), 0)
@@ -10,14 +24,14 @@ test "load_extensions_from_paths: empty list yields empty result" {
 ///|
 test "load_extensions_from_paths: missing file is skipped" {
   let result = load_extensions_from_paths([
-    ("ext1", "/tmp/_wbtest_load_missing_\{@async.now()}.json"),
+    ("ext1", wbtest_tmp_root() + "/_wbtest_load_missing_\{@async.now()}.json"),
   ])
   @debug.assert_eq(result.length(), 0)
 }
 
 ///|
 test "load_extensions_from_paths: JSON descriptor is loaded" {
-  let tmp = "/tmp/_wbtest_load_json_\{@async.now()}"
+  let tmp = wbtest_tmp_root() + "/_wbtest_load_json_\{@async.now()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }
@@ -70,7 +84,7 @@ test "load_extensions_from_paths: malformed JSON is skipped" {
 
 ///|
 test "load_extensions_from_paths: multiple paths aggregate" {
-  let tmp = "/tmp/_wbtest_load_multi_\{@async.now()}"
+  let tmp = wbtest_tmp_root() + "/_wbtest_load_multi_\{@async.now()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }

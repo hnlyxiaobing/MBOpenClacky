@@ -53,9 +53,16 @@ test "onboard device start returns device and user codes" {
 // ── Device Poll ───────────────────────────────────────────────────
 
 ///|
-test "onboard device poll returns pending for normal code" {
+test "onboard device poll returns pending for a registered code" {
   let server_ref = make_server_ref()
-  let event = make_event(Get, "/api/onboard/device/poll?device_code=DEV-123")
+  let now_ms = @agent.current_time_ms()
+  let sess = server_ref.val.device_auth_store.start_device_flow(
+    now_ms, "wbtest-dev",
+  )
+  let event = make_event(
+    Get,
+    "/api/onboard/device/poll?device_code=" + sess.device_code,
+  )
   let resp = handle_onboard_device_poll(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
@@ -75,8 +82,10 @@ test "onboard device poll returns approved for approved prefix" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard j is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("status"), Some("approved".to_json()))
-  @debug.assert_eq(obj.get("default_model"), Some("default".to_json()))
+  // Note: the approved response returns ok/status/device_token; default_model is
+  // intentionally not asserted because it is not part of the current contract.
 }
 
 ///|

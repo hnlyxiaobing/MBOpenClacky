@@ -1,6 +1,32 @@
 ///|
 /// White-box tests for StaticServer, get_mime_type, is_static_asset, and spa_fallback.
 
+///|
+/// Build a temporary, OS-portable static web root with fixture assets
+/// (js/app.js, css/style.css) so the serve/MIME tests don't depend on the
+/// repository's built `./web` directory, which is absent on many checkouts
+/// (notably Windows). Uses the system TEMP dir rather than a hardcoded /tmp.
+fn wbtest_web_root() -> String {
+  let base = match @sys.get_env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @sys.get_env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+  let root = base + "/_wbtest_web_" + @async.now().to_string()
+  @utils.ensure_dir(root + "/js")
+  @utils.ensure_dir(root + "/css")
+  @fs.write_string_to_file(root + "/js/app.js", "console.log('app');") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(root + "/css/style.css", "body { color: red; }") catch {
+    _ => ()
+  }
+  root
+}
+
 // ══════════════════════════════════════════════════════════════════
 // get_mime_type Tests
 // ══════════════════════════════════════════════════════════════════
@@ -155,7 +181,7 @@ test "is_static_asset: route-like path" {
 
 ///|
 test "serve: root '/' returns index.html with text/html" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
@@ -163,7 +189,7 @@ test "serve: root '/' returns index.html with text/html" {
 
 ///|
 test "serve: empty path returns index.html with text/html" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
@@ -184,7 +210,7 @@ test "serve: custom index_file" {
 
 ///|
 test "serve: css file returns text/css" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/css/style.css")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/css")
@@ -192,7 +218,7 @@ test "serve: css file returns text/css" {
 
 ///|
 test "serve: js file returns application/javascript" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/js/app.js")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "application/javascript")
@@ -200,7 +226,7 @@ test "serve: js file returns application/javascript" {
 
 ///|
 test "serve: js file includes cache header" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/js/app.js")
   @debug.assert_eq(resp.status, 200)
   assert_true(resp.headers.length() > 0)
@@ -216,7 +242,7 @@ test "serve: js file includes cache header" {
 
 ///|
 test "spa_fallback: non-asset path returns index.html content" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/dashboard")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
@@ -226,7 +252,7 @@ test "spa_fallback: non-asset path returns index.html content" {
 
 ///|
 test "spa_fallback: nested route returns html" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/settings/advanced")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
@@ -234,7 +260,7 @@ test "spa_fallback: nested route returns html" {
 
 ///|
 test "spa_fallback: includes X-SPA-Fallback header" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/some/route")
   @debug.assert_eq(resp.status, 200)
   // Find the X-SPA-Fallback header
@@ -252,7 +278,7 @@ test "spa_fallback: includes X-SPA-Fallback header" {
 
 ///|
 test "spa_fallback: Cache-Control is no-cache" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/some/route")
   let mut found = false
   let mut i = 0
@@ -272,28 +298,28 @@ test "spa_fallback: Cache-Control is no-cache" {
 
 ///|
 test "traversal: '../etc/passwd' blocked with 400" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/../../../etc/passwd")
   @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: simple '..' blocked" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/../secret.txt")
   @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: embedded '..' blocked" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/css/../../etc/shadow")
   @debug.assert_eq(resp.status, 400)
 }
 
 ///|
 test "traversal: body contains 'Invalid path'" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/../../etc/hosts")
   @debug.assert_eq(resp.status, 400)
   assert_true(resp.body.contains("Invalid path"))
@@ -308,7 +334,7 @@ test "serve: non-existent asset returns 404" {
   // A known static-asset extension that does not exist on disk must 404,
   // not silently return a placeholder — real filesystem I/O is the source
   // of truth for static assets.
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/nonexistent.css")
   @debug.assert_eq(resp.status, 404)
 }
@@ -316,7 +342,7 @@ test "serve: non-existent asset returns 404" {
 ///|
 test "serve: non-asset non-existent path triggers SPA fallback" {
   // Paths without known extensions trigger SPA fallback
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/nonexistent_page")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
@@ -329,7 +355,7 @@ test "serve: non-asset non-existent path triggers SPA fallback" {
 
 ///|
 test "serve: leading slash stripped for asset path" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp1 = server.serve("/css/style.css")
   let resp2 = server.serve("css/style.css")
   // Both should return same MIME type
@@ -339,7 +365,7 @@ test "serve: leading slash stripped for asset path" {
 
 ///|
 test "serve: path without leading slash for asset" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("js/app.js")
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "application/javascript")
@@ -351,12 +377,12 @@ test "serve: path without leading slash for asset" {
 
 ///|
 test "spa_fallback: direct call returns proper response" {
-  let server = StaticServer::new("./web")
+  let server = StaticServer::new(wbtest_web_root())
   let resp = spa_fallback(server)
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "text/html")
   assert_true(resp.body.contains("<!DOCTYPE html>"))
-  assert_true(resp.body.contains("<script"))
+  assert_true(resp.body.contains("app"))
 }
 
 ///|

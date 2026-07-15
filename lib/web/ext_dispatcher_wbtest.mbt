@@ -2,8 +2,23 @@
 /// White-box tests for ext_dispatcher.
 /// Tests parse_ext_response, expand_tilde, and extension loading with command field.
 
+///|
+/// OS-portable temp directory (uses TEMP/TMPDIR env, falls back to /tmp).
+/// Avoids hardcoded Unix /tmp paths that don't exist on Windows.
+fn wbtest_ext_tmp_root() -> String {
+  match @sys.get_env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @sys.get_env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+}
+
 // ── parse_ext_response tests ────────────────────────────────────
 
+///|
 test "parse_ext_response: exit 0 returns 200 with stdout" {
   let (status, ct, body) = parse_ext_response("hello world", 0)
   @debug.assert_eq(status, 200)
@@ -181,13 +196,25 @@ test "ext handler: shell command execution via run_shell_command" {
 
 ///|
 test "ext handler: env vars passed to command" {
-  // Verify that env vars are correctly inlined
-  let result = @tool.run_shell_command(
-    "echo $CLACKY_EXT_NAME-$CLACKY_EXT_METHOD",
-    env_vars=[("CLACKY_EXT_NAME", "myext"), ("CLACKY_EXT_METHOD", "GET")],
-  )
+  // Verify that env vars are correctly inlined into the command environment.
+  // Unix expands $VAR via sh; Windows cannot expand inline-set vars with %VAR%
+  // (cmd parses the whole line before set runs), so on Windows we list the var
+  // with `set` instead of echoing it.
+  let is_win = match @sys.get_env_var("OS") {
+    Some(v) => v == "Windows_NT"
+    None => false
+  }
+  let (echo_cmd, expected) = if is_win {
+    ("set CLACKY_EXT_NAME", "myext")
+  } else {
+    ("echo $CLACKY_EXT_NAME-$CLACKY_EXT_METHOD", "myext-GET")
+  }
+  let result = @tool.run_shell_command(echo_cmd, env_vars=[
+    ("CLACKY_EXT_NAME", "myext"),
+    ("CLACKY_EXT_METHOD", "GET"),
+  ])
   @debug.assert_eq(result.exit_code, 0)
-  @debug.assert_eq(result.output.trim().to_owned(), "myext-GET")
+  assert_true(result.output.contains(expected))
 }
 
 // ── Dispatcher route_summary tests ──────────────────────────────
@@ -367,14 +394,16 @@ test "ExtensionDispatcher::ensure_fresh: throttled by check_every" {
 ///|
 test "compute_dir_signature: empty/missing dir returns empty string" {
   @debug.assert_eq(
-    compute_dir_signature("/tmp/_wbtest_sig_missing_\{@async.now()}"),
+    compute_dir_signature(
+      wbtest_ext_tmp_root() + "/_wbtest_sig_missing_\{@async.now()}",
+    ),
     "",
   )
 }
 
 ///|
 test "compute_dir_signature: same content yields same signature" {
-  let tmp = "/tmp/_wbtest_sig_same_\{@async.now()}"
+  let tmp = wbtest_ext_tmp_root() + "/_wbtest_sig_same_\{@async.now()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }
@@ -397,7 +426,7 @@ test "compute_dir_signature: same content yields same signature" {
 
 ///|
 test "compute_dir_signature: different sizes yield different signatures" {
-  let tmp = "/tmp/_wbtest_sig_diff_\{@async.now()}"
+  let tmp = wbtest_ext_tmp_root() + "/_wbtest_sig_diff_\{@async.now()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }

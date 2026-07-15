@@ -202,7 +202,7 @@ test "handler: mcp register server with body returns 201" {
   let req = HttpRequest::new(
     POST,
     "/api/mcp/servers",
-    body="{\"name\":\"test\"}",
+    body="{\"name\":\"test\",\"command\":\"echo hi\"}",
   )
   let resp = handle_mcp_register_server(registry, req)
   @debug.assert_eq(resp.status, 201)
@@ -213,19 +213,38 @@ test "handler: channels list returns 200" {
   let req = HttpRequest::new(GET, "/api/channels")
   let resp = handle_channels_list(req)
   @debug.assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("channels"))
+  // The store may be empty in tests; assert a well-formed JSON array is returned.
+  let trimmed = resp.body.trim()
+  assert_true(trimmed.starts_with("["))
+  assert_true(trimmed.ends_with("]"))
 }
 
 ///|
-test "handler: channels delete requires id param" {
-  let req : HttpRequest = {
+test "handler: channels delete returns 204 for an existing channel" {
+  // Create a channel first so the delete target exists, then delete it.
+  let create_req = HttpRequest::new(
+    POST,
+    "/api/channels",
+    body="{\"platform\":\"telegram\",\"name\":\"wbtest-ch\"}",
+  )
+  let create_resp = handle_channels_create(create_req)
+  @debug.assert_eq(create_resp.status, 201)
+  let created_id = match @json.parse(create_resp.body) {
+    Object(obj) =>
+      match obj.get("id") {
+        Some(String(s)) => s
+        _ => panic()
+      }
+    _ => panic()
+  }
+  let del_req : HttpRequest = {
     http_method: DELETE,
-    path: "/api/channels/ch-1",
-    params: [("id", "ch-1")],
+    path: "/api/channels/" + created_id,
+    params: [("id", created_id)],
     body: "",
     headers: [],
   }
-  let resp = handle_channels_delete(req)
+  let resp = handle_channels_delete(del_req)
   @debug.assert_eq(resp.status, 204)
 }
 
@@ -248,7 +267,8 @@ test "handler: billing status returns 200" {
   let req = HttpRequest::new(GET, "/api/billing/status")
   let resp = handle_billing_status(req)
   @debug.assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("license_type"))
+  // The status payload exposes activation/plan state, not a "license_type" key.
+  assert_true(resp.body.contains("plan"))
 }
 
 ///|

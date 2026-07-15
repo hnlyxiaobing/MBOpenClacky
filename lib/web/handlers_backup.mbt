@@ -42,11 +42,9 @@ fn backup_data_dir(id : String) -> String {
 /// Ensure the backups directory exists.
 fn ensure_backups_dir() -> Unit {
   let dir = backups_dir()
-  if !@fs.path_exists(dir) {
-    @fs.create_dir(dir) catch {
-      _ => ()
-    }
-  }
+  // Use recursive ensure_dir so nested backup paths are created even when the
+  // parent config directory does not yet exist (e.g. in tests with no config_dir).
+  @utils.ensure_dir(dir)
 }
 
 ///|
