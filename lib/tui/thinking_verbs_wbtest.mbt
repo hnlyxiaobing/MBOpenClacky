@@ -61,7 +61,7 @@ test "sequential animator wraps back to the first verb after one full pass" {
   let a = ThinkingVerbAnimator::new()
   let total = all_verbs().length()
   let first = a.next()
-  for _ in 0..<total {
+  for _ in 0..<(total - 1) {
     let _ = a.next()
   }
   @debug.assert_eq(a.next(), first)

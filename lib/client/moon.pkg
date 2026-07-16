@@ -2,12 +2,14 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async/pipe",
+  "moonbitlang/async/io" @async/io,
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
 }
 
 options(
-  "native-stub": [ "http_native.c", "mb_stubs.c" ],
+  "native-stub": [ "http_native.c", "http_thread.c", "mb_stubs.c" ],
   // Windows: WinHTTP is auto-linked via #pragma comment(lib,"winhttp.lib") in http_native.c
   // Linux/macOS: http_native.c calls libcurl (curl_easy_init, curl_easy_setopt, etc.);
   // -lcurl is required on the link line. The moon toolchain propagates cc-link-flags

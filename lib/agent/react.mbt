@@ -279,3 +279,197 @@ fn Agent::observe(
     self.hook_manager.emit(MessageAdded)
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ASYNC VARIANTS (for TUI interactive mode - non-blocking HTTP)
+// ═══════════════════════════════════════════════════════════════════
+
+///|
+/// THINK phase (async): call the LLM via non-blocking HTTP.
+async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
+  match self.compress_messages_if_needed(false) {
+    Some(_) => ()
+    None => ()
+  }
+  self.hook_manager.emit(BeforeLlmCall)
+  let response = self.call_llm_async()
+  match response.latency {
+    Some(lat) => self.latest_latency = Some(lat)
+    None => ()
+  }
+  let content = match response.content {
+    Some(c) => c
+    None => ""
+  }
+  let msg = @message.Message::assistant(content)
+  msg.tool_calls = response.tool_calls
+  self.history.push(msg)
+  self.hook_manager.emit(MessageAdded)
+  self.hook_manager.emit(AfterLlmCall)
+  Some(response)
+}
+
+///|
+/// ACT phase (async): execute tool calls with async confirmation.
+async fn Agent::act_async(
+  self : Agent,
+  tool_calls : Array[@message.ToolCall],
+) -> ActionResult {
+  let results : Array[ToolResultEntry] = []
+  let mut denied = false
+  let feedback : String? = None
+  let awaiting_feedback = false
+
+  for call in tool_calls {
+    if denied {
+      break
+    }
+    let tool_name = call.function.name
+    let args = parse_tool_arguments(call)
+    if !self.should_auto_execute(tool_name, args) {
+      // Tool needs confirmation - use async queue if available
+      let approved = match self.confirmation_request {
+        Some(req_q) =>
+          match self.confirmation_response {
+            Some(resp_q) => {
+              req_q.put((tool_name, call.function.arguments))
+              resp_q.get()
+            }
+            None => false
+          }
+        None =>
+          // Fallback to sync callback (non-interactive mode)
+          match self.confirmation_callback {
+            Some(cb) => cb(tool_name, call.function.arguments)
+            None => false
+          }
+      }
+      if approved {
+        let args_json = call.function.arguments
+        self.hook_manager.emit(ToolExecuting(tool_name, args_json))
+        let entry = self.execute_single_tool(call)
+        self.hook_manager.emit(ToolExecuted(tool_name, entry))
+        results.push(entry)
+      } else {
+        let entry = build_denied_result(call, None)
+        results.push(entry)
+        denied = true
+      }
+    } else {
+      let args_json = call.function.arguments
+      self.hook_manager.emit(ToolExecuting(tool_name, args_json))
+      let entry = self.execute_single_tool(call)
+      self.hook_manager.emit(ToolExecuted(tool_name, entry))
+      results.push(entry)
+    }
+  }
+  { denied, feedback, tool_results: results, awaiting_feedback }
+}
+
+///|
+/// Internal async ReAct loop.
+async fn Agent::react_loop_async(self : Agent) -> RunResult {
+  let mut truncation_count = 0
+  let mut done : RunResult? = None
+  while done is None {
+    self.iterations = self.iterations + 1
+    self.hook_manager.emit(BeforeIteration(self.iterations))
+    let response = self.think_async()
+    match response {
+      None => ()
+      Some(resp) =>
+        match resp.finish_reason {
+          Some("length") => {
+            truncation_count = truncation_count + 1
+            if truncation_count >= 3 {
+              self.history.push(
+                @message.Message::assistant(
+                  "Response was truncated multiple times. Please break your task into smaller steps.",
+                ),
+              )
+              self.hook_manager.emit(MessageAdded)
+              done = Some(
+                self.build_result(
+                  Error,
+                  error=Some("Repeated response truncation"),
+                ),
+              )
+            } else {
+              self.history.push(
+                @message.Message::user(
+                  "Your previous response was truncated. Please continue from where you left off.",
+                ),
+              )
+              self.hook_manager.emit(MessageAdded)
+            }
+          }
+          _ => {
+            truncation_count = 0
+            let has_tool_calls = match resp.tool_calls {
+              Some(calls) => calls.length() > 0
+              None => false
+            }
+            if !has_tool_calls {
+              match resp.usage {
+                Some(usage) => self.track_cost(usage) |> ignore
+                None => ()
+              }
+              done = Some(self.build_result(Success))
+            } else {
+              let tool_calls = resp.tool_calls.unwrap()
+              let action_result = self.act_async(tool_calls)
+              self.observe(resp, action_result.tool_results)
+              if action_result.awaiting_feedback {
+                done = Some(self.build_result(Success))
+              } else if action_result.denied {
+                match action_result.feedback {
+                  Some(fb) if fb.length() > 0 => {
+                    self.history.push(@message.Message::user(fb))
+                    self.hook_manager.emit(MessageAdded)
+                  }
+                  _ => done = Some(self.build_result(Success))
+                }
+              }
+            }
+          }
+        }
+    }
+    self.hook_manager.emit(AfterIteration(self.iterations))
+  }
+  match done {
+    Some(r) => r
+    None => self.build_result(Success)
+  }
+}
+
+///|
+/// Async entry point: run the ReAct loop without blocking the event loop.
+/// Uses call_llm_async (C thread HTTP offloading) for non-blocking I/O.
+pub async fn Agent::run_async(self : Agent, user_input : String) -> RunResult {
+  let old_status = self.status
+  self.status = Running
+  self.hook_manager.emit(StatusChanged(old_status, Running))
+  self.error = None
+  if self.history.length() == 0 {
+    let system_prompt = self.build_system_prompt()
+    self.history.push(@message.Message::system(system_prompt))
+    self.hook_manager.emit(MessageAdded)
+  }
+  self.history.push(@message.Message::user(user_input))
+  self.hook_manager.emit(MessageAdded)
+  self.total_tasks = self.total_tasks + 1
+  let result = self.react_loop_async() catch {
+    err => {
+      self.status = Error
+      let err_msg = "\{err}"
+      self.error = Some(err_msg)
+      self.hook_manager.emit(ErrorOccurred(err_msg))
+      raise @errors.AgentError(err_msg)
+    }
+  }
+  let completed_status = self.status
+  self.status = Completed
+  self.hook_manager.emit(StatusChanged(completed_status, Completed))
+  self.hook_manager.emit(RunCompleted(result))
+  result
+}

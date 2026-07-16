@@ -1,7 +1,7 @@
 # TUI 全面优化升级 · Master Plan
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `docs/gap_analysis_and_development_plan.md` §4 G11/G12/G13
 > **关联历史**:
 > - `specs/deprecated/2026-07-13_11_tui-rich-dialogs.md`（G11，本方案替代）

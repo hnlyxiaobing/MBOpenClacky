@@ -20,32 +20,25 @@ let esc_timeout_ms : Int = 50
 ///|
 /// Controller for the inline TUI application.
 pub(all) struct TuiController {
-  /// Underlying terminal handle.
   tty : @tty.Tty
-  /// Screen buffer for low-level rendering.
   screen : ScreenBuffer
-  /// Logical output buffer.
   output : OutputBuffer
-  /// Layout manager.
   layout : LayoutManager
-  /// Status bar formatter.
   status_bar : StatusBar
-  /// Input area (wraps LineEditor).
   input : InputArea
-  /// Shared TUI state.
   state : Ref[TuiState]
-  /// Agent reference.
   agent : @agent.Agent
-  /// Hook handler for agent events.
   hooks : AgentHookHandler
-  /// Whether the TUI should quit.
   mut quit : Bool
-  /// Whether a redraw is needed on next loop iteration.
   mut dirty : Bool
-  /// Whether the agent is currently running.
   mut agent_running : Bool
-  /// Version of output buffer at last render.
   mut last_output_version : Int
+  events : @aqueue.Queue[TuiEvent]
+  mut confirmation_response : @aqueue.Queue[Bool]?
+  mut agent_task : @async.Task[@agent.RunResult]?
+  thinking_animator : ThinkingVerbAnimator
+  mut last_thinking_len : Int
+  file_browser : FileBrowser
 }
 
 ///|
@@ -73,6 +66,12 @@ pub fn TuiController::new(
     dirty: true,
     agent_running: false,
     last_output_version: -1,
+    events: @aqueue.Queue::Queue(kind=Unbounded),
+    confirmation_response: None,
+    agent_task: None,
+    thinking_animator: ThinkingVerbAnimator::new(),
+    last_thinking_len: 0,
+    file_browser: FileBrowser::new(state.val.working_dir),
   }
 }
 
@@ -82,6 +81,14 @@ pub fn TuiController::new(
 /// Full screen redraw: status bar, output area, input area.
 pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
   self.layout.compute_layout()
+  if self.state.val.shell_mode is ShellMode::FileBrowser {
+    self.screen.clear_display()
+    self.redraw_status()
+    self.redraw_file_browser()
+    self.redraw_input()
+    self.place_cursor()
+    return
+  }
   // Build status text from state
   self.status_bar.format_from_state(self.state.val)
   let status_text = self.status_bar.plain_text()
@@ -96,6 +103,13 @@ pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
 ///|
 /// Incremental redraw: only update what changed.
 pub async fn TuiController::redraw(self : TuiController) -> Unit {
+  if self.state.val.shell_mode is ShellMode::FileBrowser {
+    self.redraw_status()
+    self.redraw_file_browser()
+    self.redraw_input()
+    self.place_cursor()
+    return
+  }
   // Check if output buffer changed
   let ov = self.output.version
   if ov != self.last_output_version {
@@ -129,6 +143,61 @@ async fn TuiController::redraw_output(self : TuiController) -> Unit {
   self.layout.redraw_live()
   // Render todo area below output if visible
   self.redraw_todo()
+  // Render active dialog if present
+  self.redraw_dialog()
+}
+
+///|
+/// Render the active dialog (if any) using the Node system.
+async fn TuiController::redraw_dialog(self : TuiController) -> Unit {
+  match self.state.val.dialog {
+    NoDialog => ()
+    Approval(dialog) => {
+      let (w, h) = self.layout.screen_size()
+      let input_h = 4
+      let node = render_approval_dialog(dialog)
+      let _ = render_node(self.screen, node, h - input_h - 8, 2, w - 4)
+    }
+    ConfigMenu(dialog) => {
+      let (w, h) = self.layout.screen_size()
+      let input_h = 4
+      let node = render_config_menu(dialog)
+      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
+    }
+    Form(dialog) => {
+      let (w, h) = self.layout.screen_size()
+      let input_h = 4
+      let node = render_form_dialog(dialog)
+      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
+    }
+  }
+  self.redraw_thinking_view()
+}
+
+///|
+/// Render the thinking live view above the input area.
+async fn TuiController::redraw_thinking_view(self : TuiController) -> Unit {
+  let node = render_thinking_live_view(self.state.val, self.thinking_animator)
+  if node is Node::Empty {
+    return
+  }
+  let (w, h) = self.layout.screen_size()
+  let input_h = 4
+  let _ = render_node(self.screen, node, h - input_h - 10, 2, w - 4)
+}
+
+///|
+/// Render the file browser panel when in FileBrowser mode.
+async fn TuiController::redraw_file_browser(self : TuiController) -> Unit {
+  let (w, h) = self.layout.screen_size()
+  let node = render_file_browser(self.file_browser)
+  let input_h = 4
+  let available_h = h - input_h - 2
+  for i = 0; i < available_h; i = i + 1 {
+    self.screen.move_cursor(2 + i, 1)
+    self.screen.clear_to_eol()
+  }
+  let _ = render_node(self.screen, node, 2, 1, w - 2)
 }
 
 ///|
@@ -222,57 +291,149 @@ async fn TuiController::restore_terminal(self : TuiController) -> Unit {
 // ── Event Loop ───────────────────────────────────────────────────
 
 ///|
-/// Main run loop: enter raw mode, render, process events.
+/// Main run loop: set up async event loop with Queue-based event dispatch.
 pub async fn TuiController::run(self : TuiController) -> Unit {
-  // Register hooks
+  let req_q : @aqueue.Queue[(String, String)] = @aqueue.Queue::Queue(
+    kind=Unbounded,
+  )
+  let resp_q : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(kind=Unbounded)
+  self.agent.confirmation_request = Some(req_q)
+  self.agent.confirmation_response = Some(resp_q)
+  self.confirmation_response = Some(resp_q)
   self.hooks.register_all(self.agent.hook_manager)
-  // Register confirmation callback for TUI mode
-  let state_ref = self.state
-  self.agent.confirmation_callback = Some(fn(
-    tool_name : String,
-    tool_args : String,
-  ) -> Bool {
-    // Set pending confirmation on state (for rendering/testing observation)
-    let prompt_text = build_tool_prompt(tool_name, tool_args)
-    request_confirmation(state_ref.val, tool_name, tool_args, prompt_text)
-    // Render and read key synchronously (bypasses async I/O)
-    // default_yes = false for safety (Enter = deny)
-    let result = prompt_confirmation(tool_name, tool_args, false)
-    // Clear pending confirmation
-    consume_confirmation(state_ref.val)
-    result
-  })
-  // Enter raw mode
-  self.tty.with_raw_mode(() => self.event_loop())
+  self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q))
 }
 
 ///|
-/// Inner event loop (called inside raw mode).
-async fn TuiController::event_loop(self : TuiController) -> Unit {
-  // Initial full redraw
-  self.full_redraw()
-  while !self.quit {
+/// Async event loop using task groups and Queue event dispatch.
+async fn TuiController::async_event_loop(
+  self : TuiController,
+  req_q : @aqueue.Queue[(String, String)],
+  _resp_q : @aqueue.Queue[Bool],
+) -> Unit {
+  @async.with_task_group() <| group => {
+    let events = self.events
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      self.read_terminal_loop(events)
+    }
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      self.run_ticker(events)
+    }
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      self.run_confirmation_bridge(req_q, events)
+    }
+    self.main_loop(group)
+  }
+  self.restore_terminal()
+}
+
+///|
+/// Terminal reader: pushes tty events to the Queue.
+async fn TuiController::read_terminal_loop(
+  self : TuiController,
+  events : @aqueue.Queue[TuiEvent],
+) -> Unit {
+  while true {
     let event = self.tty.read_event(esc_timeout_ms~) catch {
       @async/io.ReaderClosed => {
-        self.quit = true
+        events.put(TerminalClosed)
         return
       }
       _ => return
     }
+    events.put(Terminal(event))
+  }
+}
+
+///|
+/// Ticker: pushes Tick events every 200ms for spinner/animation.
+async fn TuiController::run_ticker(
+  self : TuiController,
+  events : @aqueue.Queue[TuiEvent],
+) -> Unit {
+  while true {
+    @async.sleep(200)
+    events.put(Tick)
+  }
+}
+
+///|
+/// Confirmation bridge: forwards agent confirmation requests to main Queue.
+async fn TuiController::run_confirmation_bridge(
+  self : TuiController,
+  req_q : @aqueue.Queue[(String, String)],
+  events : @aqueue.Queue[TuiEvent],
+) -> Unit {
+  while true {
+    let (tool, args) = req_q.get()
+    events.put(ConfirmationRequest(tool, args))
+  }
+}
+
+///|
+/// Main event processing loop.
+async fn TuiController::main_loop(
+  self : TuiController,
+  group : @async.TaskGroup[Unit],
+) -> Unit {
+  self.full_redraw()
+  while !self.quit {
+    let event = self.events.get()
     match event {
-      Input(input) => self.handle_input(input)
-      Resize(_) => {
-        self.layout.compute_layout()
-        self.full_redraw()
+      Terminal(ev) =>
+        match ev {
+          Input(input) => self.handle_input(input)
+          Resize(_) => {
+            self.layout.compute_layout()
+            self.full_redraw()
+          }
+        }
+      ConfirmationRequest(tool, args) => {
+        let prompt = build_tool_prompt(tool, args)
+        request_confirmation(self.state.val, tool, args, prompt)
+        let dialog = ApprovalDialog::new(tool, args)
+        self.state.val.dialog = DialogState::Approval(dialog)
+        self.dirty = true
+        self.redraw()
       }
+      AgentDone(result) => {
+        self.agent_running = false
+        self.agent_task = None
+        self.state.val.mode = TuiMode::Idle
+        self.state.val.total_cost = result.total_cost_usd
+        self.state.val.iterations = result.iterations
+        self.layout.commit_all()
+        self.dirty = true
+        self.redraw()
+      }
+      AgentError(msg) => {
+        self.agent_running = false
+        self.agent_task = None
+        self.state.val.mode = TuiMode::Idle
+        ignore(self.output.append_text("[error] \{msg}", OutputKind::Text))
+        self.layout.commit_all()
+        self.dirty = true
+        self.redraw()
+      }
+      SubmitInput(text) => self.start_agent(group, text)
+      Tick => {
+        if self.agent_running || self.state.val.streaming_active {
+          self.dirty = true
+        }
+        if self.state.val.thinking_buffer.length() != self.last_thinking_len {
+          self.last_thinking_len = self.state.val.thinking_buffer.length()
+          truncate_thinking_buffer(self.state.val)
+          self.dirty = true
+        }
+      }
+      TerminalClosed => self.quit = true
+      HookEvent(_) => self.dirty = true
     }
-    // Redraw if needed
     if self.dirty {
       self.redraw()
       self.dirty = false
     }
   }
-  self.restore_terminal()
 }
 
 // ── Input Handling ───────────────────────────────────────────────
@@ -302,37 +463,143 @@ async fn TuiController::handle_key(
   self : TuiController,
   key : @tty/input.KeyEvent,
 ) -> Unit {
+  // If confirmation is pending, handle confirmation keys first
+  if has_pending_confirmation(self.state.val) {
+    match key.code {
+      Char('c') if key.modifiers.ctrl() => {
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        match self.confirmation_response {
+          Some(q) => ignore(q.try_put(false))
+          None => ()
+        }
+        match self.agent_task {
+          Some(t) => t.cancel()
+          None => ()
+        }
+        self.agent_task = None
+        self.agent_running = false
+        self.state.val.mode = TuiMode::Idle
+        self.dirty = true
+      }
+      Char('y') | Char('Y') => {
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        match self.confirmation_response {
+          Some(q) => ignore(q.try_put(true))
+          None => ()
+        }
+        self.dirty = true
+      }
+      Char('n') | Char('N') | Escape => {
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        match self.confirmation_response {
+          Some(q) => ignore(q.try_put(false))
+          None => ()
+        }
+        self.dirty = true
+      }
+      Char('d') | Char('D') | Tab =>
+        match self.state.val.dialog {
+          Approval(d) => {
+            d.toggle_details()
+            self.dirty = true
+          }
+          _ => ()
+        }
+      Enter => {
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        match self.confirmation_response {
+          Some(q) => ignore(q.try_put(false))
+          None => ()
+        }
+        self.dirty = true
+      }
+      _ => ()
+    }
+    return
+  }
+  // File browser mode: intercept navigation keys
+  if self.state.val.shell_mode is FileBrowser {
+    match key.code {
+      Char('c') if key.modifiers.ctrl() =>
+        match self.agent_task {
+          Some(t) => {
+            t.cancel()
+            self.agent_task = None
+            self.agent_running = false
+            self.state.val.mode = TuiMode::Idle
+            self.dirty = true
+          }
+          None => self.quit = true
+        }
+      Up => {
+        self.file_browser.move_up()
+        self.dirty = true
+      }
+      Down => {
+        self.file_browser.move_down()
+        self.dirty = true
+      }
+      Enter => {
+        self.file_browser.enter_selected()
+        self.dirty = true
+      }
+      Backspace => {
+        self.file_browser.go_parent()
+        self.dirty = true
+      }
+      Escape => {
+        self.state.val.shell_mode = ShellMode::Chat
+        self.full_redraw()
+      }
+      Tab => {
+        let new_mode = cycle_shell_mode(self.state.val.shell_mode)
+        self.state.val.shell_mode = new_mode
+        if new_mode is ShellMode::FileBrowser {
+          self.file_browser.current_path = self.state.val.working_dir
+          self.file_browser.load_dir()
+        }
+        self.full_redraw()
+      }
+      _ => ()
+    }
+    return
+  }
   match key.code {
-    // Ctrl-C: quit
-    Char('c') if key.modifiers.ctrl() => self.quit = true
-    // Ctrl-D: quit if input empty
+    Char('c') if key.modifiers.ctrl() =>
+      match self.agent_task {
+        Some(t) => {
+          t.cancel()
+          self.agent_task = None
+          self.agent_running = false
+          self.state.val.mode = TuiMode::Idle
+          self.dirty = true
+        }
+        None => self.quit = true
+      }
     Char('d') if key.modifiers.ctrl() && self.input.is_empty() =>
       self.quit = true
-    // Ctrl-J or Enter: submit or newline
     Enter => self.handle_enter_key()
     Char('j') if key.modifiers.ctrl() => {
-      // Insert newline in multi-line mode
       self.input.handle_enter()
       self.dirty = true
     }
-    // Ctrl-L: full redraw
     Char('l') if key.modifiers.ctrl() => self.full_redraw()
-    // Ctrl-K: kill to end of line
     Char('k') if key.modifiers.ctrl() => {
       self.input.kill_to_end()
       self.dirty = true
     }
-    // Ctrl-U: kill to start of line
     Char('u') if key.modifiers.ctrl() => {
       self.input.kill_to_start()
       self.dirty = true
     }
-    // Ctrl-W: kill word
     Char('w') if key.modifiers.ctrl() => {
       self.input.kill_word()
       self.dirty = true
     }
-    // Arrow keys
     Left => {
       self.input.cursor_left()
       self.dirty = true
@@ -365,7 +632,15 @@ async fn TuiController::handle_key(
       self.input.delete_forward()
       self.dirty = true
     }
-    // Regular character input
+    Tab => {
+      let new_mode = cycle_shell_mode(self.state.val.shell_mode)
+      self.state.val.shell_mode = new_mode
+      if new_mode is ShellMode::FileBrowser {
+        self.file_browser.current_path = self.state.val.working_dir
+        self.file_browser.load_dir()
+      }
+      self.full_redraw()
+    }
     Char(ch) if !key.modifiers.ctrl() && !key.modifiers.alt() => {
       self.input.insert_char(ch)
       self.dirty = true
@@ -442,23 +717,28 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
     self.hooks.reset_for_run()
     self.dirty = true
     self.redraw()
-    // Run agent (synchronous — blocks event loop during ReAct)
-    let _ = self.agent.run(text) catch {
-      _ =>
-        @agent.RunResult::{
-          status: @agent.RunStatus::Error,
-          session_id: "",
-          iterations: 0,
-          total_cost_usd: 0.0,
-          cost_source: @agent.CostSource::Default,
-          cache_stats: @agent.CacheStats::new(),
-          error: Some("Agent error"),
-        }
-    }
-    self.agent_running = false
-    self.state.val.mode = TuiMode::Idle
-    // Add agent response indicator
-    self.layout.commit_all()
-    self.dirty = true
+    self.events.put(SubmitInput(text))
   }
+}
+
+///|
+/// Start agent run in a background task.
+fn TuiController::start_agent(
+  self : TuiController,
+  group : @async.TaskGroup[Unit],
+  text : String,
+) -> Unit {
+  let events = self.events
+  let agent = self.agent
+  let task = group.spawn(allow_failure=true) <| () => {
+    let result = agent.run_async(text) catch {
+      err => {
+        events.put(AgentError("\{err}"))
+        raise err
+      }
+    }
+    events.put(AgentDone(result))
+    result
+  }
+  self.agent_task = Some(task)
 }

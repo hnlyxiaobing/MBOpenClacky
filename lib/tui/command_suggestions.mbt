@@ -85,6 +85,31 @@ pub fn CommandSuggestions::update_filter(
 }
 
 ///|
+/// Update the filtered list using context-aware suggestions based on TUI state.
+///
+/// When the user types just "/" with no additional characters, this method
+/// provides prioritized suggestions based on the current session context
+/// (e.g. after an error, after a file write, in a git repo).
+pub fn CommandSuggestions::update_context_filter(
+  self : CommandSuggestions,
+  state : TuiState,
+) -> Unit {
+  let suggested_names = context_aware_suggestions(state)
+  let results : Array[SuggestionItem] = []
+  for name in suggested_names {
+    for cmd in self.commands {
+      if cmd.name == name {
+        results.push(cmd)
+        break
+      }
+    }
+  }
+  self.filtered = results
+  self.selected_index = 0
+  self.visible = results.length() > 0
+}
+
+///|
 /// Move selection to the next item (Tab / Down arrow).
 pub fn CommandSuggestions::select_next(self : CommandSuggestions) -> Unit {
   if self.filtered.length() > 0 {

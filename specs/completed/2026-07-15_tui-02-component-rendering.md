@@ -1,7 +1,7 @@
 # TUI-02: 组件化渲染系统 · 增量 Spec
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `specs/active/2026-07-15_tui-overhaul-master-plan.md`
 > **来源差距**: 架构级 - 无组件系统，渲染逻辑硬编码 ANSI 拼接
 > **依赖**: TUI-01（需要异步事件循环提供 Msg 驱动基础）
@@ -169,14 +169,14 @@ pub enum TuiMsg {
 
 ## 验收标准 [必填]
 
-- [ ] `Node` 枚举支持 Text/Column/Row/Border/Padding/Styled 六种节点
-- [ ] `render_node()` 可正确渲染嵌套 Node 树到 ScreenBuffer
-- [ ] `TuiMsg` 枚举覆盖所有现有按键交互
-- [ ] `update()` 函数为纯函数（不直接产生副作用，返回 TuiCmd）
-- [ ] 对话框渲染使用 Node 构建（非手工 ANSI 拼接）
-- [ ] 现有 wbtest 通过（`modal_lifecycle_wbtest`、`todo_area_wbtest` 等）
-- [ ] `moon check` 0 errors（`lib/tui`）
-- [ ] TUI eval 场景通过（`cmd.exe --tui-eval test/scenarios/tui/`）
+- [x] `Node` 枚举支持 Text/Column/Row/Border/Padding/Styled 六种节点
+- [x] `render_node()` 可正确渲染嵌套 Node 树到 ScreenBuffer
+- [x] `TuiMsg` 枚举覆盖所有现有按键交互
+- [x] `update()` 函数为纯函数（不直接产生副作用，返回 TuiCmd）
+- [x] 对话框渲染使用 Node 构建（非手工 ANSI 拼接）
+- [x] 现有 wbtest 通过（`modal_lifecycle_wbtest`、`todo_area_wbtest` 等）
+- [x] `moon check` 0 errors（`lib/tui`）
+- [x] TUI eval 场景通过（`cmd.exe --tui-eval test/scenarios/tui/`）
 
 ## 风险评估 [必填]
 

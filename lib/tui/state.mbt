@@ -44,14 +44,100 @@ pub(all) struct PendingConfirmation {
 } derive(Debug)
 
 ///|
+/// Shell mode for TUI navigation (TUI-05).
+pub(all) enum ShellMode {
+  /// Default chat interface.
+  Chat
+  /// File browser mode.
+  FileBrowser
+  /// Configuration menu mode.
+  Config
+} derive(Eq, Debug)
+
+///|
+/// Approval dialog state (TUI-03).
+pub(all) struct ApprovalDialog {
+  /// Tool name requesting approval.
+  mut tool_name : String
+  /// Brief tool arguments summary.
+  mut tool_args : String
+  /// Whether details section is expanded.
+  mut show_details : Bool
+  /// Full detailed arguments for the details section.
+  mut detailed_args : String
+} derive(Debug)
+
+///|
+/// Configuration menu dialog item (TUI-03).
+pub(all) struct ConfigMenuItem {
+  /// Display label.
+  label : String
+  /// Item value (for single-select).
+  mut value : String
+  /// Whether this is a multi-select item.
+  multi_select : Bool
+  /// Whether this item is checked (for multi-select).
+  mut checked : Bool
+} derive(Debug)
+
+///|
+/// Configuration menu dialog state (TUI-03).
+pub(all) struct ConfigMenuDialog {
+  /// Dialog title.
+  mut title : String
+  /// Menu items.
+  mut items : Array[ConfigMenuItem]
+  /// Currently selected item index.
+  mut selected_idx : Int
+  /// Checked state array (parallel to items, for multi-select).
+  mut checked : Array[Bool]
+} derive(Debug)
+
+///|
+/// Form field for multi-field form dialogs (TUI-03).
+pub(all) struct FormField {
+  /// Field label.
+  label : String
+  /// Current input value.
+  mut value : String
+  /// Whether this field is required.
+  required : Bool
+  /// Placeholder text.
+  placeholder : String
+} derive(Debug)
+
+///|
+/// Form dialog state (TUI-03).
+pub(all) struct FormDialog {
+  /// Dialog title.
+  mut title : String
+  /// Form fields.
+  mut fields : Array[FormField]
+  /// Currently focused field index.
+  mut focused_idx : Int
+} derive(Debug)
+
+///|
+/// Unified dialog state for the TUI (TUI-03).
+pub(all) enum DialogState {
+  /// No dialog active.
+  NoDialog
+  /// Tool approval dialog.
+  Approval(ApprovalDialog)
+  /// Configuration menu dialog.
+  ConfigMenu(ConfigMenuDialog)
+  /// Multi-field form dialog.
+  Form(FormDialog)
+} derive(Debug)
+
+///|
 /// Shared state between TUI rendering and Agent hooks.
 pub(all) struct TuiState {
   // ── Agent Identity ─────────────────────────────────────────
   /// Current session identifier.
   mut session_id : String
   /// Name of the LLM model in use.
-  model_name : String
-
+  mut model_name : String
   // ── Mode ────────────────────────────────────────────────────
   /// Current TUI operating mode.
   mut mode : TuiMode
@@ -135,6 +221,18 @@ pub(all) struct TuiState {
   // ── Theme ─────────────────────────────────────────────────
   /// Current UI theme for rendering.
   mut theme : Theme
+
+  // ── Dialog State (TUI-03) ────────────────────────────────────
+  /// Active dialog state (NoDialog when none).
+  mut dialog : DialogState
+
+  // ── Shell Mode (TUI-05) ─────────────────────────────────────
+  /// Current shell navigation mode.
+  mut shell_mode : ShellMode
+
+  // ── Thinking Buffer (TUI-04) ─────────────────────────────────
+  /// Buffer for live thinking/reasoning stream display.
+  mut thinking_buffer : String
 } derive(Debug)
 
 ///|
@@ -168,5 +266,8 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     todo_area: TodoArea::new(),
     pending_confirmation: None,
     theme: Theme::default_(),
+    dialog: DialogState::NoDialog,
+    shell_mode: ShellMode::Chat,
+    thinking_buffer: "",
   }
 }

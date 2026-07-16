@@ -113,6 +113,64 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
 }
 
 ///|
+/// Async LLM API call: same as call_llm but uses non-blocking HTTP.
+/// Mock path returns immediately (no HTTP). Real path uses http_post_async.
+pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
+  // ── Mock path (testing) ────────────────────────────────────────────
+  if self.mock_responses.length() > 0 {
+    let response = self.mock_responses.remove(0)
+    match response.usage {
+      Some(usage) => self.track_cost(usage) |> ignore
+      None => ()
+    }
+    return response
+  }
+
+  // ── Real HTTP path (async, non-blocking) ───────────────────────
+  let request = self.build_send_request()
+  let body_json = self.client.build_request_body(request)
+  let url = self.client.request_url()
+  let headers_map = self.client.request_headers()
+  let headers_arr : Array[(String, String)] = []
+  for k, v in headers_map {
+    headers_arr.push((k, v))
+  }
+  let body_str = body_json.stringify()
+  let http_result = @client.http_post_async(url, body_str, headers_arr, 60000)
+  match http_result {
+    Err(err) =>
+      raise @errors.RetryableError("HTTP request failed: \{err.to_repr()}")
+    Ok(http_resp) => {
+      match @client.map_http_error(http_resp.status_code, http_resp.body) {
+        Some(err_msg) => {
+          if http_resp.status_code == 429 ||
+            (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
+            raise @errors.RetryableError(err_msg)
+          }
+          raise @errors.BadRequestError(http_resp.status_code, err_msg)
+        }
+        None => ()
+      }
+      if @client.is_html_response(http_resp.body) {
+        raise @errors.AgentError(
+          "LLM API returned HTML response (invalid endpoint)",
+        )
+      }
+      let json_data = @json.parse(http_resp.body) catch {
+        _ =>
+          raise @errors.AgentError("Failed to parse LLM API response as JSON")
+      }
+      let response = self.client.parse_response(json_data)
+      match response.usage {
+        Some(usage) => self.track_cost(usage) |> ignore
+        None => ()
+      }
+      response
+    }
+  }
+}
+
+///|
 /// Build a SendRequest from the current agent state.
 pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
   let messages = self.messages_for_api()

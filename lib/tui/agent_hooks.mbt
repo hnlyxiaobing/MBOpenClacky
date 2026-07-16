@@ -77,6 +77,16 @@ pub fn AgentHookHandler::reset_for_run(self : AgentHookHandler) -> Unit {
 
 ///|
 /// Internal event dispatch with configuration-gated tracking.
+fn is_thinking_active(s : TuiState) -> Bool {
+  for phase in s.phase_stack {
+    if phase == "thinking" {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn dispatch_hook_event(
   state : Ref[TuiState],
   config : HookHandlerConfig,
@@ -232,6 +242,9 @@ fn dispatch_hook_event(
       s.streaming_buffer = s.streaming_buffer + chunk
       s.streaming_active = true
       s.agent_status = "streaming"
+      if is_thinking_active(s) {
+        s.thinking_buffer = s.thinking_buffer + chunk
+      }
     }
     SessionStarted(id) => {
       s.session_id = id
@@ -248,6 +261,7 @@ fn dispatch_hook_event(
     }
     FileAccessed(path, op) => s.tool_output = "File: \{op} \{path}"
     ThinkingStarted => {
+      s.thinking_buffer = ""
       if config.track_phases {
         s.phase_stack.push("thinking")
       }

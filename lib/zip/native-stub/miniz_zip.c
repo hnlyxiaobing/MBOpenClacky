@@ -15,6 +15,123 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* ── MoonBit string <-> C string helpers ───────────────────────────── */
+/*
+ * Convert MoonBit String (UTF-16, moonbit_string_t) to null-terminated
+ * UTF-8 C string. Returns malloc'd buffer; caller must free.
+ * Sets *out_len to the UTF-8 byte length (excluding null terminator).
+ */
+static char *moonbit_string_to_cstr(moonbit_string_t str, int *out_len) {
+  int len = Moonbit_array_length(str);
+  char *buf = (char *)malloc((size_t)len * 4 + 1);
+  if (!buf) {
+    if (out_len) *out_len = 0;
+    return NULL;
+  }
+  int j = 0;
+  for (int i = 0; i < len; i++) {
+    uint16_t c = str[i];
+    if (c < 0x80) {
+      buf[j++] = (char)c;
+    } else if (c < 0x800) {
+      buf[j++] = (char)(0xC0 | (c >> 6));
+      buf[j++] = (char)(0x80 | (c & 0x3F));
+    } else if (c >= 0xD800 && c <= 0xDBFF && i + 1 < len) {
+      uint16_t c2 = str[i + 1];
+      if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+        uint32_t cp = 0x10000 + ((uint32_t)(c - 0xD800) << 10) + (c2 - 0xDC00);
+        buf[j++] = (char)(0xF0 | (cp >> 18));
+        buf[j++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+        buf[j++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        buf[j++] = (char)(0x80 | (cp & 0x3F));
+        i++;
+      } else {
+        buf[j++] = (char)(0xE0 | (c >> 12));
+        buf[j++] = (char)(0x80 | ((c >> 6) & 0x3F));
+        buf[j++] = (char)(0x80 | (c & 0x3F));
+      }
+    } else {
+      buf[j++] = (char)(0xE0 | (c >> 12));
+      buf[j++] = (char)(0x80 | ((c >> 6) & 0x3F));
+      buf[j++] = (char)(0x80 | (c & 0x3F));
+    }
+  }
+  buf[j] = '\0';
+  if (out_len) *out_len = j;
+  return buf;
+}
+
+/*
+ * Convert a UTF-8 C string to a MoonBit String (UTF-16). The input
+ * length is in bytes; pass -1 to use strlen(name). Returns NULL on
+ * allocation failure.
+ */
+static moonbit_string_t moonbit_string_from_cstr(const char *str, int len) {
+  if (len < 0) len = (int)strlen(str);
+  if (len == 0) {
+    return moonbit_make_string(0, 0);
+  }
+  int count = 0;
+  int i = 0;
+  while (i < len) {
+    uint8_t c = (uint8_t)str[i];
+    uint32_t cp;
+    if ((c & 0x80) == 0) {
+      cp = c;
+      i += 1;
+    } else if ((c & 0xE0) == 0xC0) {
+      cp = ((uint32_t)(c & 0x1F) << 6) | (uint32_t)(str[i + 1] & 0x3F);
+      i += 2;
+    } else if ((c & 0xF0) == 0xE0) {
+      cp = ((uint32_t)(c & 0x0F) << 12) | ((uint32_t)(str[i + 1] & 0x3F) << 6) |
+           (uint32_t)(str[i + 2] & 0x3F);
+      i += 3;
+    } else if ((c & 0xF8) == 0xF0) {
+      cp = ((uint32_t)(c & 0x07) << 18) | ((uint32_t)(str[i + 1] & 0x3F) << 12) |
+           ((uint32_t)(str[i + 2] & 0x3F) << 6) | (uint32_t)(str[i + 3] & 0x3F);
+      i += 4;
+    } else {
+      cp = 0xFFFD;
+      i += 1;
+    }
+    count += (cp >= 0x10000) ? 2 : 1;
+  }
+  moonbit_string_t result = moonbit_make_string(count, 0);
+  if (!result) return NULL;
+  int j = 0;
+  i = 0;
+  while (i < len) {
+    uint8_t c = (uint8_t)str[i];
+    uint32_t cp;
+    if ((c & 0x80) == 0) {
+      cp = c;
+      i += 1;
+    } else if ((c & 0xE0) == 0xC0) {
+      cp = ((uint32_t)(c & 0x1F) << 6) | (uint32_t)(str[i + 1] & 0x3F);
+      i += 2;
+    } else if ((c & 0xF0) == 0xE0) {
+      cp = ((uint32_t)(c & 0x0F) << 12) | ((uint32_t)(str[i + 1] & 0x3F) << 6) |
+           (uint32_t)(str[i + 2] & 0x3F);
+      i += 3;
+    } else if ((c & 0xF8) == 0xF0) {
+      cp = ((uint32_t)(c & 0x07) << 18) | ((uint32_t)(str[i + 1] & 0x3F) << 12) |
+           ((uint32_t)(str[i + 2] & 0x3F) << 6) | (uint32_t)(str[i + 3] & 0x3F);
+      i += 4;
+    } else {
+      cp = 0xFFFD;
+      i += 1;
+    }
+    if (cp >= 0x10000) {
+      uint32_t u = cp - 0x10000;
+      result[j++] = (uint16_t)(0xD800 | (u >> 10));
+      result[j++] = (uint16_t)(0xDC00 | (u & 0x3FF));
+    } else {
+      result[j++] = (uint16_t)cp;
+    }
+  }
+  return result;
+}
+
 /* ── CRC32 implementation ──────────────────────────────────────────── */
 
 static uint32_t crc32_table[256];

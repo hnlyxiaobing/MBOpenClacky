@@ -1,7 +1,7 @@
 # TUI-01: Agent 异步化与事件循环解耦 · 增量 Spec
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `specs/active/2026-07-15_tui-overhaul-master-plan.md`
 > **来源差距**: 架构级根因 — `agent.run()` 同步阻塞事件循环
 > **依赖**: 无（基础 spec，TUI-02/03/04/05 均依赖本 spec）
@@ -206,16 +206,16 @@ self.agent.confirmation_callback = Some(fn(tool_name, tool_args) -> Bool {
 
 ## 验收标准 [必填]
 
-- [ ] AI 处理期间用户可继续输入文字（排队到 LineEditor）
-- [ ] AI 处理期间 Ctrl-C 可在 1 秒内取消（下一个 await 点）
-- [ ] AI 处理期间 Spinner 每 200ms 更新动画
-- [ ] 工具确认通过事件循环渲染和处理（非 C FFI）
-- [ ] `confirm_io.c` / `confirm_io.mbt` 已删除，`moon.pkg` 无 `native-stub`
-- [ ] `--message` 非交互模式仍正常工作（sync `agent.run()` 路径）
-- [ ] `moon check` 0 errors（`lib/tui`、`lib/agent`、`lib/client`、`cmd`）
-- [ ] `moon test lib/agent` 通过（mock 路径不受影响）
-- [ ] `moon test lib/tui` 通过
-- [ ] WSL 环境手动验证：输入 -> agent 运行 -> 中途输入 -> Ctrl-C -> 确认对话框
+- [x] AI 处理期间用户可继续输入文字（排队到 LineEditor）
+- [x] AI 处理期间 Ctrl-C 可在 1 秒内取消（下一个 await 点）
+- [x] AI 处理期间 Spinner 每 200ms 更新动画
+- [x] 工具确认通过事件循环渲染和处理（非 C FFI）
+- [x] `confirm_io.c` / `confirm_io.mbt` 已删除，`moon.pkg` 无 `native-stub`
+- [x] `--message` 非交互模式仍正常工作（sync `agent.run()` 路径）
+- [x] `moon check` 0 errors（`lib/tui`、`lib/agent`、`lib/client`、`cmd`）
+- [x] `moon test lib/agent` 通过（mock 路径不受影响）
+- [x] `moon test lib/tui` 通过
+- [x] WSL 环境手动验证：输入 -> agent 运行 -> 中途输入 -> Ctrl-C -> 确认对话框
 
 ## 风险评估 [必填]
 

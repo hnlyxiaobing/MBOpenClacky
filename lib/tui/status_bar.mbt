@@ -89,6 +89,14 @@ pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit 
   let tasks = "\{state.active_tasks} tasks"
   self.segments.push(StatusSegment::{ text: tasks, color: Tasks })
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // LLM call count
+  let calls = "\{state.llm_call_count} calls"
+  self.segments.push(StatusSegment::{ text: calls, color: Tasks })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+  // Iterations
+  let iters = "\{state.iterations} iters"
+  self.segments.push(StatusSegment::{ text: iters, color: Tasks })
+  self.segments.push(StatusSegment::{ text: " | ", color: Dim })
   // Cost
   let cost = "$\{format_cost(state.total_cost)}"
   self.segments.push(StatusSegment::{ text: cost, color: Cost })
@@ -114,6 +122,29 @@ pub fn StatusBar::format_compact(
     text: "$\{format_cost(cost)}",
     color: Cost,
   })
+}
+
+///|
+/// Build a full status bar with all available information.
+///
+/// Includes everything from `format_from_state` plus thinking status
+/// indicator and latest token delta.
+pub fn StatusBar::format_full(self : StatusBar, state : TuiState) -> Unit {
+  self.format_from_state(state)
+  if is_thinking_phase_active(state) {
+    self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+    self.segments.push(StatusSegment::{
+      text: "🧠 thinking",
+      color: SegmentColor::Model,
+    })
+  }
+  if state.latest_delta > 0 {
+    self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+    self.segments.push(StatusSegment::{
+      text: "+\{state.latest_delta} tok",
+      color: Tasks,
+    })
+  }
 }
 
 ///|

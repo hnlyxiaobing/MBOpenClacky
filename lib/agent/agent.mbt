@@ -53,6 +53,10 @@ pub(all) struct Agent {
   /// UI confirmation callback: (tool_name, args_summary) -> approved?
   /// None = headless (tools needing confirmation are denied).
   mut confirmation_callback : ((String, String) -> Bool)?
+  /// Async confirmation: agent pushes (tool_name, args) and awaits response.
+  /// Set by TUI controller for interactive mode.
+  mut confirmation_request : @aqueue.Queue[(String, String)]?
+  mut confirmation_response : @aqueue.Queue[Bool]?
   // ── Test Support ─────────────────────────────────────────────────
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
@@ -123,6 +127,8 @@ pub fn Agent::new(
     patch_chain: PatchChain::new(),
     // No confirmation callback by default (headless mode)
     confirmation_callback: None,
+    confirmation_request: None,
+    confirmation_response: None,
     // Test support
     mock_responses: [],
   }

@@ -72,8 +72,8 @@ test "render with spaces preserves the gap" {
   for line in lines {
     @debug.assert_eq(line.length(), 17)
   }
-  // Row 0: A row + space + '     ' (5 spaces) + space + B row.
-  @debug.assert_eq(lines[0], "█████      █████")
+  // Row 0: A row (5) + gap (1) + space glyph (5) + gap (1) + B row (5) = 17.
+  @debug.assert_eq(lines[0], "█████       █████")
 }
 
 ///|

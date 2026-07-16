@@ -32,6 +32,9 @@ fn test_state() -> TuiState {
     todo_area: TodoArea::new(),
     pending_confirmation: None,
     theme: Theme::default_(),
+    dialog: DialogState::NoDialog,
+    shell_mode: ShellMode::Chat,
+    thinking_buffer: "",
   }
 }
 

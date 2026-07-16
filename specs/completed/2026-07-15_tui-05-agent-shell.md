@@ -1,7 +1,7 @@
 # TUI-05: Agent Shell（多面板模式切换）· 增量 Spec
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `specs/active/2026-07-15_tui-overhaul-master-plan.md`
 > **来源差距**: G12 - TUI Rich Agent Shell（高级交互模式）
 > **依赖**: TUI-01（异步事件循环 + 模式切换需 agent 运行时响应）、TUI-02（Node 渲染 + Msg 驱动）
@@ -151,17 +151,17 @@ pub enum ShellMode {
 
 ## 验收标准 [必填]
 
-- [ ] Tab 键在 Chat / FileBrowser 模式间切换
-- [ ] 文件浏览面板显示工作目录文件树（目录 + 文件）
-- [ ] 上下箭头导航文件列表，Enter 进入目录/预览文件
-- [ ] Backspace 返回上级目录，Esc 返回聊天模式
-- [ ] 模式切换在 agent 运行时仍可响应（TUI-01 异步事件循环保障）
-- [ ] 输入 `/` 时显示上下文感知的命令建议
-- [ ] 命令建议根据 agent 状态、tool_history、working_dir 动态调整
-- [ ] 大目录（> 100 条目）支持滚动，不卡顿
-- [ ] `moon check` 0 errors（`lib/tui`）
-- [ ] `moon test lib/tui` 通过
-- [ ] TUI eval 场景通过
+- [x] Tab 键在 Chat / FileBrowser 模式间切换
+- [x] 文件浏览面板显示工作目录文件树（目录 + 文件）
+- [x] 上下箭头导航文件列表，Enter 进入目录/预览文件
+- [x] Backspace 返回上级目录，Esc 返回聊天模式
+- [x] 模式切换在 agent 运行时仍可响应（TUI-01 异步事件循环保障）
+- [x] 输入 `/` 时显示上下文感知的命令建议
+- [x] 命令建议根据 agent 状态、tool_history、working_dir 动态调整
+- [x] 大目录（> 100 条目）支持滚动，不卡顿
+- [x] `moon check` 0 errors（`lib/tui`）
+- [x] `moon test lib/tui` 通过
+- [x] TUI eval 场景通过
 
 ## 风险评估 [必填]
 

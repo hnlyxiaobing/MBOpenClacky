@@ -1,7 +1,7 @@
 # TUI-03: Rich Dialogs（Approval / Config Menu / Form）· 增量 Spec
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `specs/active/2026-07-15_tui-overhaul-master-plan.md`
 > **来源差距**: G11 - TUI Rich Dialogs
 > **依赖**: TUI-01（异步事件循环 + Queue 确认机制）、TUI-02（Node 渲染 + Msg 驱动）
@@ -162,17 +162,17 @@ pub enum DialogState {
 
 ## 验收标准 [必填]
 
-- [ ] Approval Dialog 显示工具名 + 参数摘要，Tab 展开参数详情
-- [ ] Approval Dialog 支持 y(允许)/n(拒绝)/d(详情)/Tab(切换详情) 按键
-- [ ] Config Menu Dialog 支持上下箭头导航，Enter 确认，Space 多选
-- [ ] Form Dialog 支持 Tab 切换字段，字符输入，Backspace 删除，Enter 提交
-- [ ] Form Dialog 提交时校验必填字段，空字段阻止提交
-- [ ] 对话框通过 Node 系统构建（非手工 ANSI 拼接）
-- [ ] 确认响应通过 Queue 异步传递（非 C FFI）
-- [ ] `modal_lifecycle.mbt` 现有 wbtest 通过（`show_details` 默认 false 不影响）
-- [ ] `moon check` 0 errors（`lib/tui`）
-- [ ] `moon test lib/tui` 通过
-- [ ] TUI eval 新场景通过
+- [x] Approval Dialog 显示工具名 + 参数摘要，Tab 展开参数详情
+- [x] Approval Dialog 支持 y(允许)/n(拒绝)/d(详情)/Tab(切换详情) 按键
+- [x] Config Menu Dialog 支持上下箭头导航，Enter 确认，Space 多选
+- [x] Form Dialog 支持 Tab 切换字段，字符输入，Backspace 删除，Enter 提交
+- [x] Form Dialog 提交时校验必填字段，空字段阻止提交
+- [x] 对话框通过 Node 系统构建（非手工 ANSI 拼接）
+- [x] 确认响应通过 Queue 异步传递（非 C FFI）
+- [x] `modal_lifecycle.mbt` 现有 wbtest 通过（`show_details` 默认 false 不影响）
+- [x] `moon check` 0 errors（`lib/tui`）
+- [x] `moon test lib/tui` 通过
+- [x] TUI eval 新场景通过
 
 ## 风险评估 [必填]
 

@@ -1,7 +1,7 @@
 # TUI-04: Thinking Live View + Status View 增强 · 增量 Spec
 
 > **创建日期**: 2026-07-15
-> **状态**: 开发中
+> **状态**: 已完成
 > **关联总览**: `specs/active/2026-07-15_tui-overhaul-master-plan.md`
 > **来源差距**: G13 - TUI Thinking Live View + Status View
 > **依赖**: TUI-01（异步事件循环使 hooks 实时驱动渲染）
@@ -138,15 +138,15 @@ G13 spec 提出定时轮询方案，但在阻塞架构下无效（事件循环�
 
 ## 验收标准 [必填]
 
-- [ ] Agent thinking 时消息区底部显示 thinking 内容（最后 5 行滚动）
-- [ ] Thinking 动词动画随 Tick 事件更新
-- [ ] Thinking 结束后显示一行摘要
-- [ ] Status Bar 显示 `llm_call_count`（"N calls"）和 `iterations`（"N iters"）
-- [ ] `model_name` 可运行时更新
-- [ ] Thinking View 不遮挡消息历史（动态高度，不活跃时 0 行）
-- [ ] `moon check` 0 errors（`lib/tui`）
-- [ ] `moon test lib/tui` 通过
-- [ ] TUI eval 场景通过
+- [x] Agent thinking 时消息区底部显示 thinking 内容（最后 5 行滚动）
+- [x] Thinking 动词动画随 Tick 事件更新
+- [x] Thinking 结束后显示一行摘要
+- [x] Status Bar 显示 `llm_call_count`（"N calls"）和 `iterations`（"N iters"）
+- [x] `model_name` 可运行时更新
+- [x] Thinking View 不遮挡消息历史（动态高度，不活跃时 0 行）
+- [x] `moon check` 0 errors（`lib/tui`）
+- [x] `moon test lib/tui` 通过
+- [x] TUI eval 场景通过
 
 ## 风险评估 [必填]
 
