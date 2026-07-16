@@ -76,3 +76,123 @@ test "get_extension_by_id returns None for unknown id" {
     None => @debug.assert_eq(true, true)
   }
 }
+
+///|
+test "parse_registry_entry parses valid entry" {
+  let json_str =
+    #|{"id":"my-ext","latest_version":"2.0.0","versions":["1.0.0","2.0.0"],"metadata":{"name":"My Extension","author":"Tester"},"installs":42,"published_at":1700000000}
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(entry) => {
+      @debug.assert_eq(entry.id, "my-ext")
+      @debug.assert_eq(entry.latest_version, "2.0.0")
+      @debug.assert_eq(entry.versions.length(), 2)
+      @debug.assert_eq(entry.versions[0], "1.0.0")
+      @debug.assert_eq(entry.versions[1], "2.0.0")
+      @debug.assert_eq(entry.installs, 42)
+      @debug.assert_eq(entry.published_at, 1700000000L)
+      @debug.assert_eq(entry.metadata.get("name"), Some("My Extension"))
+      @debug.assert_eq(entry.metadata.get("author"), Some("Tester"))
+    }
+    None => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "parse_registry_entry returns None for missing id" {
+  let json_str =
+    #|{"latest_version":"1.0.0","versions":[]}
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(_) => @debug.assert_eq(true, false)
+    None => @debug.assert_eq(true, true)
+  }
+}
+
+///|
+test "parse_registry_entry returns None for missing latest_version" {
+  let json_str =
+    #|{"id":"my-ext","versions":[]}
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(_) => @debug.assert_eq(true, false)
+    None => @debug.assert_eq(true, true)
+  }
+}
+
+///|
+test "parse_registry_entry returns None for non-object json" {
+  let json_str = "\"just a string\""
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(_) => @debug.assert_eq(true, false)
+    None => @debug.assert_eq(true, true)
+  }
+}
+
+///|
+test "parse_registry_entry handles missing optional fields" {
+  let json_str =
+    #|{"id":"minimal","latest_version":"1.0.0"}
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(entry) => {
+      @debug.assert_eq(entry.id, "minimal")
+      @debug.assert_eq(entry.latest_version, "1.0.0")
+      @debug.assert_eq(entry.versions.length(), 0)
+      @debug.assert_eq(entry.installs, 0)
+      @debug.assert_eq(entry.published_at, 0L)
+      @debug.assert_eq(entry.metadata.length(), 0)
+    }
+    None => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "parse_registry_entry handles non-string versions entries" {
+  let json_str =
+    #|{"id":"ext","latest_version":"1.0.0","versions":["1.0.0",123,"2.0.0"]}
+  let json = @json.parse(json_str)
+  match parse_registry_entry(json) {
+    Some(entry) => {
+      @debug.assert_eq(entry.versions.length(), 2)
+      @debug.assert_eq(entry.versions[0], "1.0.0")
+      @debug.assert_eq(entry.versions[1], "2.0.0")
+    }
+    None => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "parse_registry_entries parses multiple entries" {
+  let json_str =
+    #|{"ext-a":{"id":"ext-a","latest_version":"1.0.0","versions":["1.0.0"],"metadata":{},"installs":5,"published_at":100},"ext-b":{"id":"ext-b","latest_version":"2.0.0","versions":["1.0.0","2.0.0"],"metadata":{"author":"B"},"installs":10,"published_at":200}}
+  let json = @json.parse(json_str)
+  match json {
+    Object(obj) => {
+      let entries = parse_registry_entries(obj)
+      @debug.assert_eq(entries.length(), 2)
+      @debug.assert_eq(entries.contains("ext-a"), true)
+      @debug.assert_eq(entries.contains("ext-b"), true)
+      let entry_b = entries.get("ext-b").unwrap()
+      @debug.assert_eq(entry_b.installs, 10)
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "parse_registry_entries skips invalid entries" {
+  let json_str =
+    #|{"valid":{"id":"valid","latest_version":"1.0.0"},"invalid":{"latest_version":"2.0.0"}}
+  let json = @json.parse(json_str)
+  match json {
+    Object(obj) => {
+      let entries = parse_registry_entries(obj)
+      @debug.assert_eq(entries.length(), 1)
+      @debug.assert_eq(entries.contains("valid"), true)
+      @debug.assert_eq(entries.contains("invalid"), false)
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}

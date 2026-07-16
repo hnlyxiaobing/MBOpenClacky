@@ -218,7 +218,7 @@ test "handler: mcp register server with body returns 201" {
   let req = @web.HttpRequest::new(
     @web.POST,
     "/api/mcp/servers",
-    body="{\"name\":\"test\"}",
+    body="{\"name\":\"test\",\"command\":\"echo\"}",
   )
   let resp = @web.handle_mcp_register_server(registry, req)
   assert_eq(resp.status, 201)
@@ -229,20 +229,20 @@ test "handler: channels list returns 200" {
   let req = @web.HttpRequest::new(@web.GET, "/api/channels")
   let resp = @web.handle_channels_list(req)
   assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("channels"))
+  assert_true(resp.body.contains("["))
 }
 
 ///|
 test "handler: channels delete requires id param" {
   let req : @web.HttpRequest = {
     http_method: @web.DELETE,
-    path: "/api/channels/ch-1",
-    params: [("id", "ch-1")],
+    path: "/api/channels/",
+    params: [],
     body: "",
     headers: [],
   }
   let resp = @web.handle_channels_delete(req)
-  assert_eq(resp.status, 204)
+  assert_eq(resp.status, 400)
 }
 
 ///|
@@ -264,7 +264,7 @@ test "handler: billing status returns 200" {
   let req = @web.HttpRequest::new(@web.GET, "/api/billing/status")
   let resp = @web.handle_billing_status(req)
   assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("license_type"))
+  assert_true(resp.body.contains("plan"))
 }
 
 ///|

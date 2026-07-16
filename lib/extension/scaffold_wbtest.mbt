@@ -115,3 +115,289 @@ fn pre_clean(dir : String) -> Unit {
     _ => ()
   }
 }
+
+///|
+test "generate_panel_template produces valid JSON with correct fields" {
+  let result = generate_panel_template(
+    "my-ext", "sample-panel", "My Panel", "A panel",
+  )
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("id") {
+        Some(String(s)) => @debug.assert_eq(s, "sample-panel")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "panel")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("extension") {
+        Some(String(s)) => @debug.assert_eq(s, "my-ext")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("name") {
+        Some(String(s)) => @debug.assert_eq(s, "My Panel")
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_skill_template produces valid JSON" {
+  let result = generate_skill_template("ext1", "sample-skill", "Skill", "desc")
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "skill")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("skills") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length() >= 1, true)
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_agent_template produces valid JSON" {
+  let result = generate_agent_template("ext1", "sample-agent", "Agent", "desc")
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "agent")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("config") {
+        Some(Object(_)) => ()
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_api_template produces valid JSON with routes" {
+  let result = generate_api_template("ext1", "sample-api", "API", "desc")
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "api")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("routes") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length() >= 1, true)
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_hook_template produces valid JSON with hooks" {
+  let result = generate_hook_template("ext1", "sample-hook", "Hook", "desc")
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "hook")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("hooks") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length() >= 1, true)
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_patch_template produces valid JSON with patches" {
+  let result = generate_patch_template("ext1", "sample-patch", "Patch", "desc")
+  let json = @json.parse(result)
+  match json {
+    Object(obj) => {
+      match obj.get("type") {
+        Some(String(s)) => @debug.assert_eq(s, "patch")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("patches") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length() >= 1, true)
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "contribution_type_name maps each variant" {
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Panel),
+    "panel",
+  )
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Skill),
+    "skill",
+  )
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Agent),
+    "agent",
+  )
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Api),
+    "api",
+  )
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Hook),
+    "hook",
+  )
+  @debug.assert_eq(
+    contribution_type_name(ExtensionContributionType::Patch),
+    "patch",
+  )
+}
+
+///|
+test "generate_readme includes name, description, and license" {
+  let template : ExtensionTemplate = {
+    id: "readme-test",
+    name: "Readme Test Extension",
+    version: "1.0.0",
+    description: "Testing README generation",
+    author: "TestAuthor",
+    license: "Apache-2.0",
+    contributions: [
+      ExtensionContributionType::Panel,
+      ExtensionContributionType::Skill,
+    ],
+  }
+  let readme = generate_readme(template)
+  @debug.assert_eq(readme.contains("Readme Test Extension"), true)
+  @debug.assert_eq(readme.contains("Testing README generation"), true)
+  @debug.assert_eq(readme.contains("Apache-2.0"), true)
+  @debug.assert_eq(readme.contains("TestAuthor"), true)
+  @debug.assert_eq(readme.contains("panel"), true)
+  @debug.assert_eq(readme.contains("skill"), true)
+  @debug.assert_eq(readme.contains("readme-test"), true)
+}
+
+///|
+test "generate_readme with empty contributions" {
+  let template : ExtensionTemplate = {
+    id: "empty-ext",
+    name: "Empty",
+    version: "0.1.0",
+    description: "No contributions",
+    author: "Nobody",
+    license: "MIT",
+    contributions: [],
+  }
+  let readme = generate_readme(template)
+  @debug.assert_eq(readme.contains("Empty"), true)
+  @debug.assert_eq(readme.contains("## Contributions"), true)
+}
+
+///|
+test "generate_manifest_json produces valid JSON with all fields" {
+  let manifest : ExtensionManifest = {
+    id: "manifest-test",
+    name: "Manifest Test",
+    version: "3.1.0",
+    description: "Testing manifest JSON",
+    author: "Author",
+    license: "MIT",
+    homepage: Some("https://example.com"),
+    repository: Some("https://github.com/example/repo"),
+    keywords: ["test", "manifest"],
+    dependencies: { "dep-a": "^1.0.0" },
+    contributions: [
+      {
+        type_: ExtensionContributionType::Panel,
+        id: "main-panel",
+        name: "Main Panel",
+        description: "A panel",
+        path: "contributions/panel.json",
+        config: {},
+      },
+    ],
+    enabled_by_default: true,
+  }
+  let json_str = generate_manifest_json(manifest)
+  let json = @json.parse(json_str)
+  match json {
+    Object(obj) => {
+      match obj.get("id") {
+        Some(String(s)) => @debug.assert_eq(s, "manifest-test")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("version") {
+        Some(String(s)) => @debug.assert_eq(s, "3.1.0")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("homepage") {
+        Some(String(s)) => @debug.assert_eq(s, "https://example.com")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("repository") {
+        Some(String(s)) =>
+          @debug.assert_eq(s, "https://github.com/example/repo")
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("enabled_by_default") {
+        Some(True) => @debug.assert_eq(true, true)
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("keywords") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length(), 2)
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("contributions") {
+        Some(Array(arr)) => @debug.assert_eq(arr.length(), 1)
+        _ => @debug.assert_eq(true, false)
+      }
+      match obj.get("dependencies") {
+        Some(Object(dep)) => @debug.assert_eq(dep.contains("dep-a"), true)
+        _ => @debug.assert_eq(true, false)
+      }
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
+
+///|
+test "generate_manifest_json omits homepage/repository when None" {
+  let manifest : ExtensionManifest = {
+    id: "no-links",
+    name: "No Links",
+    version: "1.0.0",
+    description: "No homepage or repo",
+    author: "A",
+    license: "MIT",
+    homepage: None,
+    repository: None,
+    keywords: [],
+    dependencies: {},
+    contributions: [],
+    enabled_by_default: false,
+  }
+  let json_str = generate_manifest_json(manifest)
+  let json = @json.parse(json_str)
+  match json {
+    Object(obj) => {
+      @debug.assert_eq(obj.contains("homepage"), false)
+      @debug.assert_eq(obj.contains("repository"), false)
+    }
+    _ => @debug.assert_eq(true, false)
+  }
+}
