@@ -36,7 +36,22 @@ COPY moon.mod ./
 
 # Pre-fetch dependencies using the exact versions pinned in moon.mod
 # (no `moon update`, so CI stays deterministic and won't pull breaking patches).
-RUN moon install
+# Retry up to 3 times to handle transient registry failures.
+RUN attempt=1; \
+    while [ $attempt -le 3 ]; do \
+      echo "Attempt $attempt: fetching dependencies..."; \
+      if moon build --target native cmd; then \
+        echo "Dependencies fetched successfully."; \
+        break; \
+      fi; \
+      if [ $attempt -eq 3 ]; then \
+        echo "ERROR: Failed to fetch dependencies after 3 attempts."; \
+        exit 1; \
+      fi; \
+      echo "Attempt $attempt failed, retrying in 10s..."; \
+      sleep 10; \
+      attempt=$((attempt + 1)); \
+    done
 
 # Copy full project source
 COPY . .
@@ -46,7 +61,8 @@ COPY . .
 # link the non-main `lib/brand` package as a standalone executable (moon issue
 # #1488) and fail with "undefined reference to main". Targeting `cmd` builds
 # only the real entrypoint and produces _build/native/release/build/cmd/cmd.exe.
-RUN moon build --target native --release cmd
+# --frozen skips dependency sync since we already fetched them above.
+RUN moon build --target native --release --frozen cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime

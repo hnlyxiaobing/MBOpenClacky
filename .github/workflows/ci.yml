@@ -54,10 +54,24 @@ jobs:
       - name: Install project dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
-          moon install
+          # Retry moon dependency fetch up to 3 times to handle transient
+          # registry failures (mooncakes.io availability).
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt: fetching dependencies..."
+            if moon build --target native cmd 2>&1; then
+              echo "Dependencies fetched successfully."
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "ERROR: Failed to fetch dependencies after 3 attempts."
+              exit 1
+            fi
+            echo "Attempt $attempt failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Type check
-        run: moon check
+        run: moon check --frozen
 
       - name: Warning budget gate (P2-3)
         # Reports the MoonBit warning count against the P2-3 budget. Runs in
@@ -72,7 +86,7 @@ jobs:
         run: bash scripts/check-crypto-build.sh release
 
       - name: Build (native release)
-        run: moon build --target native --release cmd
+        run: moon build --target native --release --frozen cmd
 
       - name: Run tests
-        run: moon test
+        run: moon test --frozen
