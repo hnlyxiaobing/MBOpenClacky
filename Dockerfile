@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install MoonBit toolchain
-RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+# Install MoonBit toolchain (pin to same version as local dev environment)
+RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.1.20260713
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
