@@ -14,6 +14,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/brand",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/extension",
+  "hnlyxiaobing/MBOpenClacky/lib/media",
   "hnlyxiaobing/MBOpenClacky/lib/vision",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/web/sse",
