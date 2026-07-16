@@ -1,7 +1,7 @@
 # Skill auto_creator 完善 · 增量 Spec
 
 > **创建日期**: 2026-07-13
-> **状态**: 讨论中
+> **状态**: 已完成
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G17（P2 增强性差距）
 > **来源差距**: G17 - skill 模块 auto_creator 完善
 
@@ -60,11 +60,11 @@
 
 ## 验收标准
 
-- [ ] `create_skill()` 生成合法 SKILL.md 文件并写入 `~/.clacky/skills/`
-- [ ] confidence/pattern_count 不足时返回 `Err`
-- [ ] `moon check` 0 errors（`lib/skill`）
-- [ ] `moon test lib/skill` 通过
-- [ ] 现有 `detect_candidates()` 测试不受影响
+- [x] `create_skill()` 生成合法 SKILL.md 文件并写入 `~/.clacky/skills/`
+- [x] confidence/pattern_count 不足时返回 `Err`
+- [x] `moon check` 0 errors（`lib/skill`）
+- [x] `moon test lib/skill` 通过
+- [x] 现有 `detect_candidates()` 测试不受影响
 
 ## 风险评估
 
@@ -81,3 +81,4 @@
 | 2026-07-13 | 初始版本 | 差距分析 G17，P2 增强性 |
 | 2026-07-13 | 审核修正：修正"缺少 auto_creator"的重大错误（`auto_creator.mbt` 已存在 205 行，`detect_candidates()` 完整实现，`evolution.mbt` 已集成，`evolution_wbtest.mbt` 已有测试）；修正触发阈值描述（实际为 iteration_threshold=12 + pattern_count>=3，非仅"3 次"）；修正检测机制描述（消息前缀匹配，非工具调用序列）；修正"无 `mod.mbt`"（文件不存在，注册在 `evolution.mbt`）；实际缺口仅为 `create_skill()` placeholder 补全 | 对抗性审核 + 第一性原理校验 |
 | 2026-07-16 | 审核修正：修正文件数（10 个 .mbt 源文件，非 11）；`auto_creator_wbtest.mbt` 仍未创建；TUI 已于 2026-07-15 完成架构重构（5 个 TUI spec），`TuiState` 结构已大幅变化，用户确认接口方案需对齐新 TUI 架构；`create_skill()` 仍为 placeholder，无变化 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | 开发完成：`create_skill()` 实现 SKILL.md 模板生成与磁盘写入；新增 `auto_creator_wbtest.mbt` 覆盖成功/失败路径；`moon check` 与 `moon test lib/skill --target native` 全部通过；用户确认接口与 LLM 描述生成按 spec 列为可选，本次未实现 | 按本 spec 达成开发目标后归档 |

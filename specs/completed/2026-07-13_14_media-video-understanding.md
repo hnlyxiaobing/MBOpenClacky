@@ -1,7 +1,8 @@
 # Media 视频理解 · 增量 Spec
 
 > **创建日期**: 2026-07-13
-> **状态**: 讨论中
+> **完成日期**: 2026-07-16
+> **状态**: 已完成
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G14（P2 增强性差距）
 > **来源差距**: G14 - media 模块视频理解（video/understand）
 
@@ -61,11 +62,11 @@
 
 ## 验收标准
 
-- [ ] `POST /api/media/video/understand` 可接收视频并返回分析结果
-- [ ] 分析结果包含视频内容摘要
-- [ ] 无 FFmpeg 时返回友好错误消息
-- [ ] `moon check` 0 errors（`lib/media` + `lib/web`）
-- [ ] `moon test lib/media` 通过
+- [x] `POST /api/media/video/understand` 可接收视频并返回分析结果
+- [x] 分析结果包含视频内容摘要
+- [x] 无 FFmpeg 时返回友好错误消息
+- [x] `moon check` 0 errors（`lib/media` + `lib/web`）
+- [x] `moon test lib/media` 通过（76 tests passed）
 
 ## 风险评估
 
@@ -83,3 +84,4 @@
 | 2026-07-13 | 初始版本 | 差距分析 G14，P2 增强性 |
 | 2026-07-13 | 审核修正：修正"`image_gen.mbt`/`audio_tts.mbt`/`video_gen.mbt` 已有"的错误（文件名不存在）；修正"media 模块完成度 75%"（实际所有 handler 为 501 stub）；补充 `lib/client` 视觉能力的准确验证（`vision_supported` 字段 + wbtest）；补充视频上传方式决策（base64 JSON body） | 对抗性审核 + 第一性原理校验 |
 | 2026-07-16 | 审核修正：修正文件数（8 个 .mbt 源文件，非 9）；修正 `handlers_media.mbt` 行数（84 行，非 94）；补充实际已有 5 个端点（含 `audio/transcriptions` 和 `video/understand`）；路由已在 `server.mbt:516-524` 注册，无需修改；`handlers_media_wbtest.mbt` 已存在（63 行），仅需扩展非新增；更新实施计划反映当前代码状态 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | 实现完成：新增 `lib/media/video_understand.mbt`（类型 + 纯逻辑）和 `lib/media/video_understand_wbtest.mbt`（20+ 测试）；修改 `lib/web/handlers_media.mbt`（替换 501 stub 为完整实现，含 FFmpeg 帧提取 + VisionResolver 视觉分析 + 摘要聚合）；更新 `lib/web/handlers_media_wbtest.mbt`（9 个测试覆盖 400/500 错误路径）；`moon check` 0 errors，`moon test lib/media` 76/76 通过 | 开发完成，验收标准全部满足 |

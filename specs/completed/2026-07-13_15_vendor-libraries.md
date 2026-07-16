@@ -1,7 +1,7 @@
 # Vendor 库集成（CodeMirror / 本地化 CDN 库） · 增量 Spec
 
 > **创建日期**: 2026-07-13
-> **状态**: 讨论中
+> **状态**: 已完成
 > **关联总览**: `gap_analysis_and_development_plan.md` §4 G15（P2 增强性差距）
 > **关联历史**: `specs/completed/2026-07-09_web-frontend-panels-completion.md`
 > **来源差距**: G15 - vendor 库集成
@@ -83,3 +83,4 @@
 | 2026-07-13 | 初始版本 | 差距分析 G15，P2 增强性 |
 | 2026-07-13 | 审核修正：修正"KaTeX ❌ 缺失"的错误（已通过 CDN 加载）；修正"qrcode.js ❌ 缺失"的错误（已通过 CDN 加载）；修正"highlight.js 和 marked.js 通过 CDN 引入"的错误（实际为本地 `web/js/lib/`）；实际仅 CodeMirror 缺失，大幅缩减改动范围；CDN 库本地化降级为可选项 | 对抗性审核 + 第一性原理校验 |
 | 2026-07-16 | 审核修正：**CodeMirror 6 已通过 CDN 集成**（`web/mb/public/editor.js` 从 `esm.sh` 动态导入，`web/mb/main/code_editor.mbt` 为 MoonBit 组件）；修正"CodeMirror ❌ 唯一缺失"的重大错误（5/5 库已全部集成）；spec 范围从"集成 CodeMirror"变更为"CDN 库本地化（离线支持）"；更新现状分析补充 `web/mb/` rabbita 前端架构；更新决策、改动范围、实施计划、验收标准全面反映新现实 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | **实施完成**：KaTeX v0.16.11 本地化到 `web/js/lib/katex/`（JS + CSS + 21 fonts）；QRCode v1.5.4 通过 esbuild 打包为 IIFE 到 `web/js/lib/qrcode/qrcode.min.js`（原 CDN 地址无效，实际从未加载）；CodeMirror 6 通过 esbuild 打包为 ESM bundle 到 `web/js/lib/codemirror/bundle.js`（含 codemirror@6.0.1 + @codemirror/lang-markdown@6.3.0 + @codemirror/theme-one-dark@6.1.2）；修改 `web/index.html` 替换所有 CDN 引用为本地路径；修改 `web/mb/public/editor.js` 替换 esm.sh 导入为本地 bundle；新增 `web/js/lib/README.md` 记录所有库版本和来源 | 实施 |
