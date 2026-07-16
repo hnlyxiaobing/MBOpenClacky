@@ -37,6 +37,10 @@ WORKDIR /build
 COPY . .
 
 # Build using vendored .mooncakes/ (patched deps committed to repo).
+# moon update populates the registry INDEX (metadata only, not package source);
+# the actual source is already in .mooncakes/ from the COPY above.
+RUN moon update
+
 # We build the `cmd` package explicitly: a plain `moon build` would also try to
 # link the non-main `lib/brand` package as a standalone executable (moon issue
 # #1488) and fail with "undefined reference to main". Targeting `cmd` builds
