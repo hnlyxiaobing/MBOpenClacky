@@ -31,38 +31,20 @@ RUN moon version
 
 WORKDIR /build
 
-# Copy dependency manifest first for better layer caching
-COPY moon.mod ./
-
-# Pre-fetch dependencies using the exact versions pinned in moon.mod
-# (no `moon update`, so CI stays deterministic and won't pull breaking patches).
-# Retry up to 3 times to handle transient registry failures.
-RUN attempt=1; \
-    while [ $attempt -le 3 ]; do \
-      echo "Attempt $attempt: fetching dependencies..."; \
-      if moon build --target native cmd; then \
-        echo "Dependencies fetched successfully."; \
-        break; \
-      fi; \
-      if [ $attempt -eq 3 ]; then \
-        echo "ERROR: Failed to fetch dependencies after 3 attempts."; \
-        exit 1; \
-      fi; \
-      echo "Attempt $attempt failed, retrying in 10s..."; \
-      sleep 10; \
-      attempt=$((attempt + 1)); \
-    done
-
-# Copy full project source
+# Copy full project source. moon needs the package structure (moon.pkg files)
+# to resolve dependencies — copying only moon.mod and pre-building is not
+# possible because the `cmd` package directory must exist.
 COPY . .
 
-# Build the native binary in release mode for a smaller, faster artifact.
+# Fetch dependencies and build in one step.
+# .mooncakes is mounted as a BuildKit cache so dependency downloads persist
+# across rebuilds even when source files change.
 # We build the `cmd` package explicitly: a plain `moon build` would also try to
 # link the non-main `lib/brand` package as a standalone executable (moon issue
 # #1488) and fail with "undefined reference to main". Targeting `cmd` builds
 # only the real entrypoint and produces _build/native/release/build/cmd/cmd.exe.
-# --frozen skips dependency sync since we already fetched them above.
-RUN moon build --target native --release --frozen cmd
+RUN --mount=type=cache,target=/build/.mooncakes \
+    moon build --target native --release cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
