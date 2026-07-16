@@ -160,20 +160,20 @@ moon run cmd -- --message "列出当前目录的文件" --mode auto_approve
 # 或使用 moon run（可能在无头终端下不启动 TUI）
 moon run cmd
 
-# Web 服务器模式（默认端口 7070，兼容原版 OpenClacky）
+# Web 服务器模式（默认端口 7071，与原版 OpenClacky 的 7070 区分）
 moon run cmd -- server
 
 # 或直接运行已构建的 release 二进制
 ./_build/native/release/build/cmd/cmd.exe server
 ```
 
-**Web 服务端口**：默认 **7070**（兼容原版 OpenClacky）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
+**Web 服务端口**：默认 **7071**（与原版 OpenClacky 的 7070 区分，避免端口冲突）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
 
 ```bash
 MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
 ```
 
-启动后浏览器访问 `http://localhost:7070` 即可使用 Web UI。
+启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。
 ---
 
 ## 配置参考

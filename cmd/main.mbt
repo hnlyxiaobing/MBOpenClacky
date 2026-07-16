@@ -398,8 +398,8 @@ async fn handle_server() -> Unit {
   let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
   // Create and start the web server.
-  // Default port is 7071 to stay compatible with the original OpenClacky;
-  // override with the MBOPENCLACKY_WEB_PORT environment variable.
+  // Default port is 7071 (to differentiate from the original OpenClacky,
+  // which uses 7070); override with the MBOPENCLACKY_WEB_PORT environment variable.
   let port = match @sys.get_env_var("MBOPENCLACKY_WEB_PORT") {
     Some(p) => {
       let n = @string.parse_int(p.trim()) catch { _ => 7071 }

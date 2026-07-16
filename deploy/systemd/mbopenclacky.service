@@ -33,7 +33,7 @@ RestartSec=5
 # The config directory (~/.mbopenclacky) is derived from HOME, so we
 # pin HOME to the install dir and keep all data writable there.
 Environment=HOME=/opt/mbopenclacky
-Environment=MBOPENCLACKY_WEB_PORT=7070
+Environment=MBOPENCLACKY_WEB_PORT=7071
 
 # Hardening: drop privileges, restrict filesystem writes.
 NoNewPrivileges=true

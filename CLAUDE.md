@@ -11,7 +11,7 @@ moon check                                          # Type-check (0 errors expec
 moon build --target native --release cmd            # Build native binary (always specify cmd)
 moon run cmd                                        # Run CLI
 moon run cmd -- --message "Hello"                   # Non-interactive mode
-moon run cmd -- --server                            # Web server (port 7070)
+moon run cmd -- --server                            # Web server (port 7071)
 moon test                                           # White-box tests (native only, needs -lcurl)
 moon update && moon install                         # Sync dependencies
 ```

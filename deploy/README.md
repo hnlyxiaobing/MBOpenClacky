@@ -1,6 +1,6 @@
 # MBOpenClacky 部署指南
 
-MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7070** 端口。
+MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071** 端口。
 
 > 前提：先构建原生二进制 `moon build --target native --release cmd`，产物位于
 > `_build/native/release/build/cmd/cmd.exe`（在 Linux/macOS 上为 `cmd`）。以下用
@@ -18,11 +18,11 @@ export MBOPENCLACKY_WEB_PORT=8080
 export TZ=Asia/Shanghai
 
 docker compose up -d --build
-curl http://localhost:${MBOPENCLACKY_WEB_PORT:-7070}/health
+curl http://localhost:${MBOPENCLACKY_WEB_PORT:-7071}/health
 ```
 
 - 数据（配置/会话/技能/日志）持久化于命名卷 `mbopenclacky-data`（容器内 `/app`）。
-- 内置健康检查：`curl -f http://localhost:7070/health`。
+- 内置健康检查：`curl -f http://localhost:7071/health`。
 - 重启策略：`unless-stopped`。
 
 ## 2. systemd（裸机生产）

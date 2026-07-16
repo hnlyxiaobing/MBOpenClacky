@@ -53,9 +53,9 @@ FROM debian:bookworm-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Web server listens on 7070 by default (compatible with the original
-# OpenClacky). Override at runtime with -e MBOPENCLACKY_WEB_PORT=...
-ENV MBOPENCLACKY_WEB_PORT=7070
+# Web server listens on 7071 by default (to differentiate from the
+# original OpenClacky, which uses 7070). Override at runtime with -e MBOPENCLACKY_WEB_PORT=...
+ENV MBOPENCLACKY_WEB_PORT=7071
 
 # Install minimal runtime dependencies.
 # libssl3 ships libcrypto.so.3 required by the AES-256-GCM crypto stubs.
@@ -85,11 +85,11 @@ RUN mkdir -p /app/logs /app/memory \
 USER mbopenclacky
 
 # Expose Web UI port
-EXPOSE 7070
+EXPOSE 7071
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:7070/health || exit 1
+    CMD curl -f http://localhost:7071/health || exit 1
 
 # Default entrypoint: start the web server
 ENTRYPOINT ["./mbopenclacky", "server"]

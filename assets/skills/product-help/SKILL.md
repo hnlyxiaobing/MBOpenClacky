@@ -65,7 +65,7 @@ moon run cmd
 # Run with a message (non-interactive)
 moon run cmd -- --message "Hello!"
 
-# Start the Web UI server (runs on port 7070)
+# Start the Web UI server (runs on port 7071)
 moon run cmd -- --server
 ```
 
@@ -135,7 +135,7 @@ Start the Web UI server:
 moon run cmd -- --server
 ```
 
-Then open `http://localhost:7070` in your browser.
+Then open `http://localhost:7071` in your browser.
 
 Features:
 - Chat interface with streaming responses
@@ -183,7 +183,7 @@ You can add `.mbopenclacky` directory to your project with:
 - Restart MBOpenClacky
 
 **"Web UI won't start"**
-- Check if port 7070 is already in use
+- Check if port 7071 is already in use
 - Try a different port with `--port 8080`
 
 ### Restarting the Server

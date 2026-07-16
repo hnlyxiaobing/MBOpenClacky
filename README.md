@@ -30,7 +30,7 @@
 - **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
 - **MCP 协议**：Stdio/HTTP 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射
 - **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
-- **Web 前端 SPA + REST API**：暗色主题 + SSE 流式 + WebSocket 实时通信，默认端口 7070
+- **Web 前端 SPA + REST API**：暗色主题 + SSE 流式 + WebSocket 实时通信，默认端口 7071
 - **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + Media 生成
 - **GEP 技能自进化**：EvolutionEngine + SkillReflector + AutoCreator
 - **Time Machine**：文件快照与回滚
@@ -66,7 +66,7 @@ moon build --target native --release cmd
 # 运行
 moon run cmd -- --message "Hello"          # 非交互模式
 ./_build/native/debug/build/cmd/cmd.exe    # TUI 交互模式
-moon run cmd -- --server                   # Web 服务（端口 7070）
+moon run cmd -- --server                   # Web 服务（端口 7071）
 
 # 测试
 moon test

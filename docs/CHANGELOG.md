@@ -25,8 +25,15 @@
 
 ## 变更记录
 
-### 2026-07-16  docs: 项目文档全量校准（指标同步与过时内容清理）
+### 2026-07-16  chore: Web 服务默认端口统一为 7071
 
+- `[chore]` **默认端口 7070 -> 7071（与原版 OpenClacky 区分，避免本地端口冲突）**
+  - 源码 `cmd/main.mbt` 默认端口已为 7071；本次补齐遗留 7070 的文档与部署配置
+  - `Dockerfile`（`ENV`/`EXPOSE`/`HEALTHCHECK`）、`deploy/docker-compose.yml`、`deploy/systemd/mbopenclacky.service`、`deploy/README.md`、`README.md`、`AGENTS.md`、`CLAUDE.md`、`docs/getting-started.md`、`assets/skills/product-help/SKILL.md` 全部同步
+  - 注释中“兼容原版 OpenClacky”措辞更正为“与原版区分”（原版仍为 7070）
+  - 历史条目（2026-06-30 CHANGELOG 记录、已完成 spec）保留原值 7070 不变
+
+### 2026-07-16  docs: 项目文档全量校准（指标同步与过时内容清理）
 - `[docs]` **核心指标全量同步（基于实际统计）**
   - 源文件数：289 → **309** 个 `.mbt`（lib + cmd）
   - 测试文件：93 → **103** 个 `_wbtest.mbt`（lib + cmd + test）
