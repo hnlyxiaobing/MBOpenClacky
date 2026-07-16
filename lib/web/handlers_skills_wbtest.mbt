@@ -221,12 +221,9 @@ test "handler: user skill full lifecycle" {
   let create_req = HttpRequest::new(
     POST,
     "/api/skills",
-    body=(
-      #|{"name":"wbtest-skill-lifecycle","description":"lifecycle test"}
-    ),
+    body="{\"name\":\"" + name + "\",\"description\":\"lifecycle test\"}",
   )
   let create_resp = handle_skills_create(create_req)
-  println("WBTEST_SKILLS_BODY=" + create_resp.body)
   @debug.assert_eq(create_resp.status, 201)
 
   // Duplicate create rejected
@@ -248,9 +245,9 @@ test "handler: user skill full lifecycle" {
     ..HttpRequest::new(
       PUT,
       "/api/skills/x/content",
-      body=(
-        #|{"content":"---\nname: wbtest-skill-lifecycle\ndescription: updated desc\n---\nbody"}
-      ),
+      body="{\"content\":\"---\\nname: " +
+        name +
+        "\\ndescription: updated desc\\n---\\nbody\"}",
     ),
     params: [("name", name)],
   }
