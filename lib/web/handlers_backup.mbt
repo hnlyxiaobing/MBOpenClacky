@@ -476,6 +476,9 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
   // Collect snapshot data
   let (snapshot, total_size) = collect_snapshot_data(scope)
 
+  // Ensure backups directory exists before writing snapshot data
+  ensure_backups_dir()
+
   // Write snapshot data to disk
   match write_snapshot_data(id, snapshot) {
     Err(e) =>
