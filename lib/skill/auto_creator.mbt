@@ -90,10 +90,11 @@ pub fn AutoCreator::detect_candidates(
 
 ///|
 /// Create a skill from a candidate.
-/// Currently a placeholder — real implementation would generate SKILL.md content.
+/// Generates a SKILL.md file and writes it to the skills directory.
 pub fn AutoCreator::create_skill(
   self : AutoCreator,
   candidate : CreationCandidate,
+  skills_dir? : String? = None,
 ) -> Result[String, String] {
   if candidate.confidence < self.confidence_threshold {
     return Err(
@@ -108,14 +109,60 @@ pub fn AutoCreator::create_skill(
       "Pattern count too low: " + candidate.pattern_count.to_string() + " < 3",
     )
   }
-  // TODO: Generate actual SKILL.md file content and write to disk
-  Ok(
-    "Skill created: " +
-    candidate.name +
-    " — " +
-    candidate.description +
-    " (placeholder)",
+  let base_dir = match resolve_skills_dir(skills_dir) {
+    Ok(dir) => dir
+    Err(e) => return Err(e)
+  }
+  let skill_dir = @path.Path::join(base_dir, @path.Path(candidate.name)).to_string()
+  @utils.ensure_dir(skill_dir)
+  let file_path = @path.Path::join(skill_dir, @path.Path("SKILL.md")).to_string()
+  let content = generate_skill_md(candidate)
+  @fs.write_string_to_file(file_path, content) catch {
+    @fs.IOError(msg) => return Err("Failed to write SKILL.md: " + msg)
+  }
+  Ok("Created skill '" + candidate.name + "' at " + file_path)
+}
+
+///|
+/// Resolve the skills directory, using an override or the global default.
+fn resolve_skills_dir(skills_dir : String?) -> Result[String, String] {
+  match skills_dir {
+    Some(dir) => Ok(dir)
+    None =>
+      match @utils.skills_dir() {
+        Some(dir) => Ok(dir)
+        None =>
+          Err("Could not determine skills directory (HOME/USERPROFILE not set)")
+      }
+  }
+}
+
+///|
+/// Generate SKILL.md content from a creation candidate.
+fn generate_skill_md(candidate : CreationCandidate) -> String {
+  let sb = StringBuilder::new()
+  sb.write_string("---\n")
+  sb.write_string("name: " + candidate.name + "\n")
+  sb.write_string("description: " + candidate.description + "\n")
+  sb.write_string("user_invocable: true\n")
+  sb.write_string("---\n\n")
+  sb.write_string("# " + candidate.name + "\n\n")
+  sb.write_string(candidate.description + "\n\n")
+  sb.write_string("## Trigger condition\n\n")
+  sb.write_string(
+    "This skill is triggered when the detected conversation pattern appears.\n\n",
   )
+  sb.write_string("## Suggested tool sequence\n\n")
+  sb.write_string("1. Analyze the user request.\n")
+  sb.write_string("2. Select the appropriate tools to fulfill the request.\n")
+  sb.write_string("3. Execute the selected tools.\n")
+  sb.write_string("4. Return the result to the user.\n\n")
+  sb.write_string("## Auto-creation metadata\n\n")
+  sb.write_string(
+    "- pattern_count: " + candidate.pattern_count.to_string() + "\n",
+  )
+  sb.write_string("- confidence: " + candidate.confidence.to_string() + "\n")
+  sb.to_string()
 }
 
 // ============================================================
