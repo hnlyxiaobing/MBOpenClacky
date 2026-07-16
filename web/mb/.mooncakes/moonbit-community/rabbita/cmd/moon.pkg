@@ -1,0 +1,10 @@
+import {
+  "moonbit-community/rabbita/js",
+  "moonbit-community/rabbita/common",
+  "moonbit-community/rabbita/internal/key",
+  "moonbitlang/core/queue",
+}
+
+warnings = "-unused_package"
+
+supported_targets = "js+native"

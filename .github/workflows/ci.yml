@@ -44,32 +44,6 @@ jobs:
       - name: Verify MoonBit installation
         run: moon version
 
-      - name: Cache project dependencies
-        id: cache-deps
-        uses: actions/cache@v6
-        with:
-          path: .mooncakes
-          key: mooncakes-deps-${{ runner.os }}-${{ hashFiles('moon.mod') }}
-
-      - name: Install project dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: |
-          # Retry moon dependency fetch up to 3 times to handle transient
-          # registry failures (mooncakes.io availability).
-          for attempt in 1 2 3; do
-            echo "Attempt $attempt: fetching dependencies..."
-            if moon build --target native cmd 2>&1; then
-              echo "Dependencies fetched successfully."
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "ERROR: Failed to fetch dependencies after 3 attempts."
-              exit 1
-            fi
-            echo "Attempt $attempt failed, retrying in 10s..."
-            sleep 10
-          done
-
       - name: Type check
         run: moon check --frozen
 

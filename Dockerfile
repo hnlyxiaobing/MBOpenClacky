@@ -36,15 +36,12 @@ WORKDIR /build
 # possible because the `cmd` package directory must exist.
 COPY . .
 
-# Fetch dependencies and build in one step.
-# .mooncakes is mounted as a BuildKit cache so dependency downloads persist
-# across rebuilds even when source files change.
+# Build using vendored .mooncakes/ (patched deps committed to repo).
 # We build the `cmd` package explicitly: a plain `moon build` would also try to
 # link the non-main `lib/brand` package as a standalone executable (moon issue
 # #1488) and fail with "undefined reference to main". Targeting `cmd` builds
 # only the real entrypoint and produces _build/native/release/build/cmd/cmd.exe.
-RUN --mount=type=cache,target=/build/.mooncakes \
-    moon build --target native --release cmd
+RUN moon build --target native --release cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime

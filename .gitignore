@@ -36,9 +36,7 @@ _bak_tui_v1/
 # Warren / Rabbita SPA build output
 web/mb/dist/
 
-# Per-package dependency cache
-.mooncakes/
-# Real Yoga build artifacts (rebuild with scripts/setup_yoga.sh)
+# Per-package dependency cache (.mooncakes/ is tracked for patched deps)# Real Yoga build artifacts (rebuild with scripts/setup_yoga.sh)
 vendor/yoga/obj/
 .mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/.claude/
 .worktrees/

@@ -1,0 +1,15 @@
+import {
+  "moonbit-community/rabbita/dom",
+  "moonbit-community/rabbita/common",
+  "moonbit-community/rabbita/cmd",
+  "moonbit-community/rabbita/variant",
+  "moonbitlang/core/queue",
+  "moonbitlang/core/random",
+  "moonbitlang/core/ref",
+  "moonbit-community/rabbita/js",
+  "moonbit-community/rabbita/internal/key",
+}
+
+warnings = "-unused_package"
+
+supported_targets = "js+native"
