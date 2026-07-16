@@ -5,18 +5,17 @@
 //   `web/js/components/code-editor.js` (CodeMirror 5/6) for the old
 //   vanilla-JS front end. That front end no longer exists — the UI was
 //   migrated to the `rabbita` framework (MoonBit, `web/mb/main/*_cell.mbt`).
-//   This file is the calibrated equivalent: it lazy-loads CodeMirror 6 from
-//   a CDN as an ES module and auto-mounts it into any element carrying the
-//   `code-editor-host` class. The MoonBit side (`code_editor.mbt`) renders a
-//   host <div> plus a hidden, model-bound <textarea>; edits in CodeMirror are
-//   mirrored back into that textarea, so the existing Elm-style `on_change`
-//   update loop stays the single source of truth. If the CDN fails to load,
-//   the visible <textarea> remains as a graceful fallback.
-
-import { EditorView, basicSetup } from "https://esm.sh/codemirror@6.0.1";
-import { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.3.0";
-import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.2";
-
+//   This file is the calibrated equivalent: it loads CodeMirror 6 from a
+//   local vendor bundle as an ES module and auto-mounts it into any element
+//   carrying the `code-editor-host` class. The MoonBit side (`code_editor.mbt`)
+//   renders a host <div> plus a hidden, model-bound <textarea>; edits in
+//   CodeMirror are mirrored back into that textarea, so the existing
+//   Elm-style `on_change` update loop stays the single source of truth. If
+//   the module fails to load, the visible <textarea> remains as a graceful
+//   fallback.
+import { EditorView, basicSetup } from "../../js/lib/codemirror/bundle.js";
+import { markdown } from "../../js/lib/codemirror/bundle.js";
+import { oneDark } from "../../js/lib/codemirror/bundle.js";
 const registry = {};
 
 function mountCM(host) {
