@@ -21,7 +21,7 @@ moon update && moon install                         # Sync dependencies
 
 ## Architecture
 
-23 lib packages + 1 cmd entry. All three interfaces (CLI, TUI, Web) share the same `Agent` core via the hook system.
+24 lib packages + 1 cmd entry. All three interfaces (CLI, TUI, Web) share the same `Agent` core via the hook system.
 ```
 cmd/          — CLI entry (clap parsing, agent lifecycle, session management)
 lib/
@@ -41,7 +41,10 @@ lib/
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
   web/        — crescent HTTP server: ~154 REST endpoints, SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope, broadcast hub, template processor,
-                static server with SPA fallback  tui/        — Inline scrolling TUI (moonbit-community/tty): ScreenBuffer, OutputBuffer,
+                static server with SPA fallback  tui/        — Inline scrolling TUI (moonbit-community/tty): async event loop
+                (Queue[TuiEvent]) + Elm-style Msg/update state transition, Node component
+                tree rendering, dialog system (approval/config/form), Agent Shell
+                (file browser), thinking live view, ScreenBuffer, OutputBuffer,
                 LineEditor (CJK-aware), LayoutManager, StatusBar, InputArea, TodoArea,
                 markdown rendering, slash commands, themes, progress stack, block-font
   server/     — Cron parser, scheduler, browser manager, backup manager, discover,
@@ -82,17 +85,17 @@ lib/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 268 |
-| Test files (`_wbtest.mbt`) | 95 |
-| Source lines | ~61,804 |
-| Test lines | ~23,248 |
-| Total lines (incl. test/) | ~85,052 |
+| `.mbt` source files (lib + cmd) | 309 |
+| Test files (`_wbtest.mbt`) | 103 |
+| Source lines | ~62,000 |
+| Test lines | ~23,000 |
+| Total lines (incl. test/) | ~85,000 |
 | Test cases | 1,850+ |
-| Packages | 23 lib + 1 cmd |
+| Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
-| REST API endpoints | ~156 |
-| `moon check` | 0 errors, 46 warnings |
+| REST API endpoints | ~154 |
+| `moon check` | 0 errors, ~500 warnings |
 | CI/CD | ✅ GitHub Actions |
-| Phase coverage | ~90-92% |
+| Phase coverage | ~95% |

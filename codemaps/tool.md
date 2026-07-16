@@ -1,6 +1,6 @@
 # tool — Tool trait · 14 个内置工具 · ToolRegistry · PTY/终端 · 安全检查
 
-> 路径: `lib/tool/` · 39 文件（src=35, test=4）· 含 browser 子系统 7 文件（详见 `browser.md`）
+> 路径: `lib/tool/` · 42 文件（src=34 mbt + 2 C, test=4, moon.pkg/.mbti 各 1）· 含 browser 子系统 7 文件（详见 `browser.md`）
 
 ## 入口函数
 

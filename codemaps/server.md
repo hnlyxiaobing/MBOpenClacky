@@ -1,6 +1,6 @@
 # server — Cron 调度 · 浏览器管理 · Git 面板 · 进程池
 
-> 路径: `lib/server/` · 20 文件（src=16, test=4）· 后台服务管理
+> 路径: `lib/server/` · 19 mbt + 2 C（src=15, test=4）+ moon.pkg/.mbti · 后台服务管理
 
 ## 入口函数
 

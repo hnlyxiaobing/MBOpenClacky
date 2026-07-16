@@ -24,7 +24,7 @@
 ### 已有集成
 - `lib/skill/evolution.mbt:9`：`auto_creator : AutoCreator` 字段已接入 evolution 引擎
 - `lib/skill/evolution_wbtest.mbt:133`：已有 "// AutoCreator tests" 测试
-- `lib/skill/` 有 11 个文件：`auto_creator.mbt`、`evolution.mbt`、`reflector.mbt`、`discovery.mbt`、`executor.mbt`、`loader.mbt`、`registry.mbt`、`default_skills.mbt`、`skill_wbtest.mbt`、`evolution_wbtest.mbt`、`pkg.generated.mbti`
+- `lib/skill/` 有 10 个 `.mbt` 源文件：`auto_creator.mbt`、`evolution.mbt`、`reflector.mbt`、`discovery.mbt`、`executor.mbt`、`loader.mbt`、`registry.mbt`、`default_skills.mbt`、`skill_wbtest.mbt`、`evolution_wbtest.mbt`（+ `pkg.generated.mbti` 自动生成）
 - **无 `mod.mbt`**（原 spec 提到的文件不存在）
 
 ### 实际缺口
@@ -38,7 +38,7 @@
 1. **保留现有 prefix 匹配检测机制**：`detect_candidates()` 已完整实现且有 wbtest，不重写为工具调用序列模式。prefix 匹配虽不完美但已可用。
 2. **`create_skill()` 补全真实实现**：生成 SKILL.md 内容（含描述 + 触发条件 + 工具调用序列），写入 `~/.clacky/skills/<name>/SKILL.md`。
 3. **LLM 辅助描述生成**：可选增强。首版用模板生成描述，后续可接入 LLM 生成更自然的技能描述。
-4. **用户确认接口**：在 `TuiState` / Web 层增加 `auto_creator_pending : Array[CreationCandidate]` 状态字段，各端轮询显示确认提示。
+4. **用户确认接口**：在 `TuiState`（`lib/tui/state.mbt:135`）/ Web 层增加 `auto_creator_pending : Array[CreationCandidate]` 状态字段，各端轮询显示确认提示。注意：TUI 已于 2026-07-15 完成架构重构（5 个 spec），`TuiState` 结构已大幅变化，需对齐新架构。
 5. **不新建 `mod.mbt`**：模块注册已在 `evolution.mbt` 中完成。
 
 ## 改动范围
@@ -80,3 +80,4 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G17，P2 增强性 |
 | 2026-07-13 | 审核修正：修正"缺少 auto_creator"的重大错误（`auto_creator.mbt` 已存在 205 行，`detect_candidates()` 完整实现，`evolution.mbt` 已集成，`evolution_wbtest.mbt` 已有测试）；修正触发阈值描述（实际为 iteration_threshold=12 + pattern_count>=3，非仅"3 次"）；修正检测机制描述（消息前缀匹配，非工具调用序列）；修正"无 `mod.mbt`"（文件不存在，注册在 `evolution.mbt`）；实际缺口仅为 `create_skill()` placeholder 补全 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | 审核修正：修正文件数（10 个 .mbt 源文件，非 11）；`auto_creator_wbtest.mbt` 仍未创建；TUI 已于 2026-07-15 完成架构重构（5 个 TUI spec），`TuiState` 结构已大幅变化，用户确认接口方案需对齐新 TUI 架构；`create_skill()` 仍为 placeholder，无变化 | 对抗性审核 + 第一性原理校验 |

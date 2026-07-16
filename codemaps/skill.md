@@ -8,7 +8,7 @@
 |------|------|------|
 | `discover_skills(env)` | `skill.mbt` | 从 discovery_paths 扫描并加载所有 SKILL.md |
 | `load_skill_from_content(name, content, dir?)` | `skill.mbt` | 解析单个 SKILL.md 文件（frontmatter + body） |
-| `register_default_skills(registry)` | `default_skills.mbt` | 注册 16 个内置默认技能 |
+| `register_default_skills(registry)` | `default_skills.mbt` | 注册 17 个内置默认技能 |
 | `EvolutionEngine::evolve(scenario)` | `evolution.mbt` | 触发技能进化流程 |
 | `parse_frontmatter(content)` | `skill.mbt` | 解析 YAML frontmatter 元数据 |
 
@@ -55,7 +55,7 @@ EvolutionEngine::evolve(scenario)
 |------|------|
 | `skill.mbt` | Skill 类型、SKILL.md 解析、load_skill_from_content |
 | `registry.mbt` | SkillRegistry、技能注册/查询/列表/删除 |
-| `default_skills.mbt` | DefaultSkillMeta、get_default_skill_metas（16 个）、register_default_skills |
+| `default_skills.mbt` | DefaultSkillMeta、get_default_skill_metas（17 个）、register_default_skills |
 | `discovery.mbt` | default_discovery_paths、discover_skills（支持 SKILL.md 和 skill.json） |
 | `loader.mbt` | parse_frontmatter（YAML frontmatter 解析）、load_skill_from_json_value |
 | `executor.mbt` | SkillResult、build_skill_context（技能执行上下文注入） |

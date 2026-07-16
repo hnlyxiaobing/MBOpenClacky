@@ -8,23 +8,23 @@
 
 - **原始项目**：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git)（Ruby）
 - **本项目语言**：MoonBit
-- **完成度**：~90-92%（后端 ~98%，Web 前端 ~65%，TUI ~85%，部署 ~95%）
+- **完成度**：~95%（后端 ~98%，Web 前端 ~95%，TUI ~95%，部署 ~95%）
 
 ### 核心能力
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件 | 289 个 `.mbt` |
-| 测试文件 | 93 个 `_wbtest.mbt` |
-| 代码行数 | ~81,165 行（源码 ~60,424 + 测试 ~20,741） |
+| 源代码文件 | 309 个 `.mbt`（lib + cmd） |
+| 测试文件 | 103 个 `_wbtest.mbt`（lib + cmd + test） |
+| 代码行数 | ~85,000 行（源码 ~62,000 + 测试 ~23,000） |
 | 测试用例 | 1,850+ |
-| 包数 | 23 个 lib 包 + 1 个 cmd 入口 |
+| 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~156 个 |
+| REST API 端点 | ~154 个 |
 | 默认 Skill | 17 个 |
 | `moon check` | 0 errors（项目自身代码），~500 warnings |
-| 原生二进制 | ~4.6 MB |
+| 原生二进制 | ~3.8 MB |
 ### 功能亮点
 
 - **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
@@ -81,7 +81,7 @@ moon test
 ```
 MBOpenClacky/
 ├── cmd/                # CLI 入口
-├── lib/                # 23 个库包
+├── lib/                # 24 个库包
 │   ├── agent/          # Agent 核心（ReAct 循环、会话、压缩、Time Machine）
 │   ├── client/         # LLM API 客户端（3 协议、12 Provider）
 │   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）

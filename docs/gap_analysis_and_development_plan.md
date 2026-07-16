@@ -11,13 +11,13 @@
 
 | 维度 | 原项目 (Ruby) | 当前项目 (MoonBit) | 差距 | 完成度 |
 |------|-------------|-------------------|------|--------|
-| 源代码文件数 | 372 `.rb` | 268 `.mbt` | -104 | — |
-| 源代码行数 | 103,673 行 | 61,804 行 | -41,869 | ~60%（表达力差异） |
-| 测试文件数 | 154 `_spec.rb` | 95 `_wbtest.mbt` | -59 | — |
-| 测试代码行数 | 37,475 行 | 23,248 行 | -14,227 | ~62% |
+| 源代码文件数 | 372 `.rb` | 309 `.mbt` | -63 | — |
+| 源代码行数 | 103,673 行 | ~62,000 行 | ~-41,000 | ~60%（表达力差异） |
+| 测试文件数 | 154 `_spec.rb` | 103 `_wbtest.mbt` | -51 | — |
+| 测试代码行数 | 37,475 行 | ~23,000 行 | ~-14,000 | ~62% |
 | 测试用例数 | — | 1,854 | — | — |
-| Web 前端 JS 文件 | 57 个 | 34 个 | -23 | — |
-| Web 前端 JS 行数 | 27,805 行 | 9,808 行 | -17,997 | ~35% |
+| Web 前端源文件 | 57 个 JS | 35 个 `.mbt`（web/mb/main）+ 编译产物 | — | 已重写为 MoonBit SPA |
+| Web 前端完成度 | — | MoonBit SPA 重写完成（web/mb → web/dist） | — | ~95%（剩余 Vendor 库 CDN） |
 | i18n key 数 | 2,117 行量级 | 394 key（en/zh 完全对齐） | — | ~100% |
 | REST API 路由 | ~131（80 静态+动态） | ~154 | +23 | ~100%+ |
 | 内置工具 | 15 | 14 | -1 | 93% |
@@ -25,9 +25,9 @@
 | 默认扩展 | 6 | 6 | 0 | 100% |
 | `moon check` / 语法检查 | — | 0 err / 46 warn | — | — |
 | CI/CD | — | ✅ GitHub Actions | — | 100% |
-| 整体完成度估算 | — | — | — | ~90-92% |
+| 整体完成度估算 | — | — | — | ~95% |
 
-> **注**：源代码行数差距主要源于 MoonBit 的静态类型、模式匹配和紧凑语法，不等于功能缺失。当前关键差距集中在 **Web 前端架构/组件**、**Extension CLI/PatchLoader**、**Session ZIP 导出/导入** 三个领域。
+> **注**：源代码行数差距主要源于 MoonBit 的静态类型、模式匹配和紧凑语法，不等于功能缺失。当前关键差距集中在 **Media REST 端点接线** 与 **Vendor 库（CodeMirror/KaTeX/QRCode）CDN 接入** 两个领域。
 
 ---
 
@@ -37,11 +37,11 @@
 
 | 领域 | 实现内容 | 关键文件 |
 |------|---------|---------|
-| WebSocket Dispatcher | `web/js/ws-dispatcher.js` 实现 RenderTarget 栈、subagent/think 折叠卡片 | `web/js/ws-dispatcher.js`, `web/js/websocket.js` |
+| WebSocket Dispatcher | MoonBit SPA 的 Cell 组件经 `bridge.mbt` 桥接实时事件，渲染 RenderTarget 栈、subagent/think 折叠卡片 | `web/mb/main/*_cell.mbt`, `web/mb/main/bridge.mbt` |
 | Extension API 路由 | `lib/extension/api_extension.mbt`、`api_dispatcher.mbt`、`api_loader.mbt` 实现动态 `/api/ext/<id>/` 路由、超时包裹、错误信封、热重载 | `lib/extension/api_*.mbt`, `lib/web/server.mbt` |
 | Identity / 设备绑定 | `lib/brand/identity.mbt`、`device_auth.mbt` 实现 RFC 8628 设备授权流，`~/.clacky/identity.yml` 持久化 | `lib/brand/identity.mbt`, `lib/brand/device_auth.mbt` |
 | 缺失 REST 端点 | `/api/memories*`、`/api/profile*`、`/api/restart`、`/api/onboard/device/*` 已实现 | `lib/web/handlers_extra.mbt`, `handlers_version.mbt`, `server.mbt` |
-| i18n 完整翻译 | `web/js/i18n/en.js` 与 `zh.js` 各 394 key，覆盖率对齐 | `web/js/i18n/*.js` |
+| i18n 完整翻译 | `web/mb/main/i18n_dict_en.mbt` 与 `i18n_dict_zh.mbt` 各 692 key，覆盖率 99.4% 对称 | `web/mb/main/i18n_dict_*.mbt` |
 | 测试覆盖扩展 | 新增多个 `_wbtest.mbt`，测试用例从 ~1,400 增至 1,854 | 各 `*_wbtest.mbt` |
 | 构建告警收敛 | `moon check` warnings 从 ~535 降至 46 | 全项目 |
 
@@ -51,7 +51,7 @@
 
 | 模块 | 当前行数 | 完成度 | 说明 |
 |------|---------|--------|------|
-| agent | ~5,800 | 95% | ReAct 循环、会话管理、压缩、Time Machine、Profile；剩余 Session ZIP 导出/导入/分块 |
+| agent | ~5,800 | 95% | ReAct 循环、会话管理、压缩、Time Machine、Profile、Session ZIP 导出/导入、PatchChain 补丁系统 |
 | billing | ~480 | 100% | 计费记录、Token 追踪、成本计算 |
 | brand | ~2,000 | 95% | AES-256-GCM 加密、PBKDF2、许可证验证、设备绑定、身份持久化、心跳 |
 | channel | ~7,300 | 100% | 6 平台 IM 适配器 |
@@ -79,20 +79,22 @@
 
 ## 四、剩余差距清单
 
-| ID | 差距 | 说明 | 优先级 | 预估 |
-|----|------|------|--------|------|
-| G1 | Web 前端 Feature-based 架构迁移与组件补齐 | 当前为 flat JS 结构；需迁移为 `web/js/features/<module>/store.js+view.js`，并补齐 code-editor/datepicker/notify/sidebar 等组件 | P0 | 1-2 周 |
-| G2 | TUI Rich UI 补齐 | Approval/Config Menu/Form Dialog、Rich Agent Shell、Thinking Live View、Status View | P1 | 3-5 天 |
-| G3 | Extension PatchLoader 与 CLI 命令 | 工具调用拦截/审计/阻止；`clacky ext list/install/uninstall/create/enable/disable` | P1 | 2-3 天 |
-| G4 | Session ZIP 导出/导入 | 原项目 SessionSerializer 支持 ZIP 打包、附件、分块归档 | P1 | 2-3 天 |
-| G5 | Vendor 库集成 | CodeMirror、KaTeX、qrcode.js  vendored 引入；highlight.js / marked.js 已集成（KaTeX/QRCode 当前为 CDN） | P1 | 2-3 天 |
-| G6 | Media REST 端点实现 | `lib/web/handlers_media.mbt` 中 image/video/audio/transcription/understand 均为 501 占位，需接入 `@media` 生成器 | P1 | 2-3 天 |
-| G7 | 测试覆盖率提升 | 测试行数从 23K 提升至 35K，重点补 web handlers、extension、brand | P2 | 持续 |
-| G8 | `POST /api/sessions/:id/working_dir` | crescent 不支持 PATCH，使用 POST 实现 working_dir 更新 | P1 | 1 天 |
+| ID | 差距 | 说明 | 优先级 | 预估 | 状态 |
+|----|------|------|--------|------|------|
+| G1 | Web 前端架构迁移 | 已由原生 JS 重写为 MoonBit SPA（`web/mb/` → `web/dist/`），所有管理面板与 i18n 就位；剩余 Vendor 库 CDN 接入 | — | — | ✅ 已完成 |
+| G2 | TUI Rich UI 补齐 | Approval/Config Menu/Form Dialog、Rich Agent Shell、Thinking Live View、Status View | — | — | ✅ 已完成 |
+| G3 | Extension PatchLoader 与 CLI 命令 | 工具调用拦截/审计/阻止；`clacky ext list/install/uninstall/create/enable/disable` | — | — | ✅ 已完成 |
+| G4 | Session ZIP 导出/导入 | 原项目 SessionSerializer 支持 ZIP 打包、附件、分块归档 | — | — | ✅ 已完成 |
+| G5 | Vendor 库集成 | CodeMirror、KaTeX、qrcode.js  vendored 引入；highlight.js / marked.js 已集成（KaTeX/QRCode 当前为 CDN） | P1 | 2-3 天 | 进行中 |
+| G6 | Media REST 端点实现 | `lib/web/handlers_media.mbt` 中 image/video/audio/transcription/understand 均为 501 占位，需接入 `@media` 生成器 | P1 | 2-3 天 | 待实现 |
+| G7 | 测试覆盖率提升 | 测试行数从 23K 提升至 35K，重点补 web handlers、extension、brand | P2 | 持续 | 进行中 |
+| G8 | `POST /api/sessions/:id/working_dir` | crescent 不支持 PATCH，已实现 `PATCH /:id/working_dir` 路由 | — | — | ✅ 已完成 |
 
 ---
 
 ## 五、详细开发方案
+
+> 以下为历史实现方案记录，供参考。各项当前状态见上方 §四 差距清单（G1/G2/G3/G4/G8 已完成，G5/G6/G7 进行中或待实现）。
 
 ### Phase 1：P0 Web 前端补齐（1-2 周）
 

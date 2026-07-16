@@ -1,6 +1,6 @@
 # client — LLM API 客户端 · SSE 流式 · 多 Provider 适配
 
-> 路径: `lib/client/` · 10 文件（src=8, test=2）· LLM 通信层
+> 路径: `lib/client/` · 15 文件（src=8 mbt + 3 C, test=2, moon.pkg/.mbti 各 1）· LLM 通信层
 
 ## 入口函数
 
@@ -10,7 +10,8 @@
 | `Client::build_request_body(SendRequest)` | `client.mbt` | 根据 ApiType 路由到对应 format 模块 |
 | `Client::parse_response(Json)` | `client.mbt` | 解析 LLM 响应（路由到 OpenAI/Anthropic/Bedrock） |
 | `Client::format_tool_results(response, results)` | `client.mbt` | 将工具结果格式化为对应 API 格式的消息 |
-| `http_post(url, body, headers, timeout)` | `client.mbt` | 底层 HTTP POST（C FFI 实现） |
+| `http_post(url, body, headers, timeout)` | `client.mbt` | 底层同步 HTTP POST（C FFI 实现） |
+| `http_post_async(url, body, headers, timeout_ms)` | `http_async.mbt` | 异步 HTTP POST — 将请求下放到 C 线程，经 OS 管道回读，不阻塞 async 事件循环（native 非 windows） |
 | `parse_sse_frames(buffer)` | `stream.mbt` | 解析 SSE 帧流 |
 
 ## 关键类型
@@ -63,7 +64,8 @@ Agent::call_llm()
 | `stream.mbt` | SSE 帧解析、三种 StreamAggregator |
 | `types.mbt` | LlmResponse、Usage、Latency、SendRequest 等类型 |
 | `platform_http.mbt` | 带 failover 的 HTTP 客户端 |
-| `http_native.c` / `mb_stubs.c` | C FFI HTTP 实现（libcurl） |
+| `http_async.mbt` | 异步 HTTP（C 线程 + OS 管道回读，供 async 事件循环使用） |
+| `http_native.c` / `http_thread.c` / `mb_stubs.c` | C FFI HTTP 实现（同步 libcurl/WinHTTP + 后台线程） |
 
 ## 外部依赖
 
@@ -74,7 +76,7 @@ Agent::call_llm()
 
 ## 风险点
 
-1. **同步 HTTP** — 当前 HTTP 调用是同步阻塞的（注释提到 async 依赖待解决）
+1. **同步/异步双路径** — `http_post` 为同步阻塞实现；`http_post_async` 通过 C 线程 + OS 管道提供非阻塞版本（仅 native 非 windows），两套需保持行为一致
 2. **C FFI 内存安全** — `http_native.c` / `mb_stubs.c` 手动管理 curl 句柄，需确保资源释放
 3. **SSE 解析边界** — `parse_sse_frames()` 按 `\n\n` 分帧，异常帧可能导致数据丢失
 4. **错误重试** — `is_retryable()` 判断逻辑需覆盖 429/500/503 等场景

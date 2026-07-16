@@ -12,18 +12,23 @@
 
 ## 现状分析
 
-- 测试文件：93 个 `_wbtest.mbt`，分布在各 `lib/*/` 包中。
-- 测试用例：1,842 个，其中 1,830 通过，12 失败。
+- 测试文件：99 个 `_wbtest.mbt`，分布在各 `lib/*/` 包中。
+- 测试用例：1,969 个，其中 1,962 通过，7 失败。
+- 测试代码行数：约 23,861 行。
 - 测试框架：MoonBit 内置 `test` 块，白盒测试模式。
-- 主要缺口：`lib/web` handlers（某些 handler 缺 wbtest）、`lib/extension`（新增模块缺测试）、`lib/tui`（受 tty FFI 限制）、`lib/agent`（部分路径缺测试）。
+- 本周进展（2026-07-13 → 2026-07-16）：+6 测试文件，+1,518 测试行，+127 测试用例，-5 失败测试。
+- 已有 `handlers_version_wbtest.mbt`、`handlers_session_ext_wbtest.mbt` 等 web handler 测试。
+- 已有 `device_auth_wbtest.mbt`、`identity_wbtest.mbt` 等 brand 测试。
+- 已有 `session_restore_wbtest.mbt` 等 agent 会话测试。
+- 主要剩余缺口：`lib/media`（video_understand 新增）、`lib/extension` 部分模块、`lib/skill/auto_creator`（create_skill 真实实现）。
 
 ## 决策
 
-1. **新增测试聚焦高风险模块**：web handlers > extension > brand > agent > media。
+1. **新增测试聚焦剩余高风险模块**：media（video_understand）> skill（auto_creator create_skill）> extension 剩余模块。
 2. **每个 P0/P1 任务完成后添加对应 wbtest**：本 spec 随其他 spec 实施进度持续追加测试。
-3. **修复 12 个失败测试**：优先处理，确保 CI 全绿。
+3. **修复 7 个失败测试**：优先处理，确保 CI 全绿。
 4. **测试策略**：白盒测试为主（`_wbtest.mbt`），覆盖正常路径 + 边界条件 + 错误路径。
-5. **目标不追求严格覆盖率百分比**：以测试行数 35K 为量化目标，因为 MoonBit 无行覆盖率工具。
+5. **目标不追求严格覆盖率百分比**：以测试行数 35K 为量化目标（当前 23,861 行，距目标 ~11K 行）。
 
 ## 改动范围
 
@@ -33,19 +38,17 @@
 
 ## 实施计划（任务包切分）
 
-1. **修复 12 个失败测试**：分析失败原因，逐一修复。（需运行 `moon test` 确认当前失败数）
-2. **web handlers 测试补齐**：为 `handlers_version.mbt`（restart 端点）、`handlers_session_ext.mbt`（working_dir 端点）等新增端点添加 wbtest。
-3. **extension 测试补齐**：为 `api_extension_loader.mbt`（`cmd/` 下）、`ext_dispatcher.mbt`、`patch_loader.mbt` 等新增模块添加 wbtest。
-4. **brand 测试补齐**：为 `device.mbt`（DeviceInfo 结构体）添加 wbtest。
-5. **agent 测试补齐**：为 `session_data.mbt` / `session_restore.mbt`（会话序列化）添加 wbtest。
-6. **media 测试补齐**：为 `video_understand.mbt`（G14 新增）添加 wbtest。
-7. **持续追加**：每周添加 3-5 个测试文件，直至达到 35K 行。
+1. **修复 7 个失败测试**：分析失败原因，逐一修复。
+2. **media 测试补齐**：为 `video_understand.mbt`（G14 新增）添加 wbtest，扩展 `handlers_media_wbtest.mbt`（已存在 63 行，需从 stub 测试改为真实实现测试）。
+3. **skill 测试补齐**：为 `auto_creator.mbt` 的 `create_skill()` 真实实现新建 `auto_creator_wbtest.mbt`。
+4. **extension 测试补齐**：为 `api_extension_loader.mbt`（`cmd/` 下）、`ext_dispatcher.mbt` 等模块添加 wbtest。
+5. **持续追加**：每周添加 3-5 个测试文件，直至达到 35K 行。
 
 ## 验收标准
 
-- [ ] 测试行数 ≥ 35,000 行
-- [ ] 测试文件数 ≥ 120 个
-- [ ] 12 个失败测试全部修复
+- [ ] 测试行数 ≥ 35,000 行（当前 23,861，距目标 ~11K）
+- [ ] 测试文件数 ≥ 120 个（当前 99 个）
+- [ ] 7 个失败测试全部修复
 - [ ] `moon test` 通过率 ≥ 99%
 - [ ] 每个新增模块有对应 wbtest
 
@@ -63,3 +66,4 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G16，P2 增强性 |
 | 2026-07-13 | 审核修正：修正实施计划中 3 个不存在的文件名引用（`handlers_restart.mbt` -> `handlers_version.mbt`，`session_serializer.mbt` -> `session_data.mbt`/`session_restore.mbt`，`identity.mbt`/`device_auth.mbt` -> `device.mbt`）；确认测试文件数 91 和行数 22,343 准确；补充需运行 `moon test` 确认当前失败数 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | 审核修正：更新测试数据（99 文件/23,861 行/1,969 测试/7 失败，非 93/22,343/1,842/12）；移除已完成的实施任务（`handlers_version_wbtest.mbt`、`handlers_session_ext_wbtest.mbt`、`device_auth_wbtest.mbt`、`session_restore_wbtest.mbt` 均已存在）；修正 `session_serializer.mbt` 确实存在（非不存在的文件名）；重新聚焦剩余缺口（media video_understand、skill auto_creator、extension 部分模块）；修正失败测试数 12→7 | 对抗性审核 + 第一性原理校验 |

@@ -1,6 +1,6 @@
 # errors - Agent 错误层次 · 重试判定
 
-> 路径: `lib/errors/` · 3 文件（src=2, test=1）· 全局错误类型定义
+> 路径: `lib/errors/` · `errors.mbt` + `errors_wbtest.mbt` + moon.pkg/.mbti（src=1, test=1）· 全局错误类型定义
 
 ## 入口函数
 

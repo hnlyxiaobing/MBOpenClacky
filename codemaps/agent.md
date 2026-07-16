@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 41 文件（src=33, test=8）· 项目核心调度包
+> 路径: `lib/agent/` · 44 文件（src=32 mbt + 1 C, test=9, moon.pkg/.mbti 各 1）· 项目核心调度包
 
 ## 入口函数
 
@@ -32,6 +32,7 @@
 - **`TimeMachineState`** / **`TaskSnapshot`** — 时间机器（文件快照 undo/redo）
 - **`IdleCompressionTimer`** — 空闲压缩触发器
 - **`AgentProfile`** / **`ProfileSpec`** — Agent 配置文件抽象（支持 system_prompt/skill_whitelist）
+- **`PatchChain`** / **`PatchRule`** / **`PatchAction`** — 工具执行补丁系统（每次工具调用前后评估，`Allow`/`Block(reason)`，支持声明式模式匹配与命令式 shell hook）
 
 ### 压缩体系
 - **`CompressionConfig`** / **`CompressionContext`** / **`CompressionStats`** — 上下文压缩参数与统计
@@ -58,7 +59,8 @@ Agent::run(user_input)
 | 文件组 | 文件 | 职责 |
 |--------|------|------|
 | 核心循环 | `agent.mbt`, `react.mbt`, `llm_caller.mbt`, `tool_executor.mbt` | ReAct 循环、LLM 调用、工具执行 |
-| 会话管理 | `session_data.mbt`, `session_manager.mbt`, `session_store.mbt`, `session_restore.mbt` | 会话 CRUD、恢复、fork |
+| 会话管理 | `session_data.mbt`, `session_manager.mbt`, `session_store.mbt`, `session_restore.mbt`, `session_serializer.mbt` | 会话 CRUD、恢复、fork、ZIP 导出/导入（依赖 `lib/zip`） |
+| 补丁系统 | `patch_chain.mbt` | PatchChain/PatchRule/PatchAction、工具调用前后拦截（Allow/Block） |
 | 压缩体系 | `compressor.mbt`, `compressor_chunk.mbt`, `compressor_helper.mbt` | 上下文压缩、分块摘要 |
 | 成本追踪 | `cost_tracker.mbt`, `status.mbt` | 费用计算、状态管理 |
 | 记忆系统 | `memory.mbt`, `memory_types.mbt` | 持久化记忆存储 |
@@ -79,6 +81,7 @@ Agent::run(user_input)
 - `lib/message` — Message、ToolCall 消息类型
 - `lib/tool` — ToolRegistry、Tool 执行
 - `lib/skill` — SkillRegistry、技能加载
+- `lib/zip` — 会话 ZIP 导出/导入（`session_serializer.mbt`）
 - `moonbitlang/x/fs` — 文件系统操作
 - `moonbitlang/core/json` — JSON 序列化
 

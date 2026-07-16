@@ -1,6 +1,6 @@
 # extension - 扩展系统 · 脚手架 · 打包 · 验证 · 市场
 
-> 路径: `lib/extension/` · 15 文件（src=10, test=5）· OpenClacky 扩展生命周期管理
+> 路径: `lib/extension/` · 14 mbt（src=8, test=6）+ README.md + moon.pkg/.mbti · OpenClacky 扩展生命周期管理
 
 ## 入口函数
 
@@ -17,6 +17,7 @@
 | `list_marketplace_extensions()` | `marketplace.mbt` | 列出市场扩展 |
 | `install_extension_from_path(path)` | `marketplace.mbt` | 从本地路径安装 |
 | `publish_extension(ext_path)` | `marketplace.mbt` | 发布扩展到市场 |
+| `patch_rule_from_contribution(ext, contrib)` | `patch_loader.mbt` | 将 `ExtensionContribution::Patch` 转换为 `@agent.PatchRule` |
 
 ## 关键类型
 
@@ -32,7 +33,7 @@
 ### 验证
 - **`ValidationResult`** - 验证结果（valid, errors, warnings）
 - **`ValidationError`** - 验证错误枚举（MissingField, InvalidValue, FileNotFound, Conflict...）
-- **`ExtensionContributionType`** - 贡献类型（`Skill | Panel | Agent | ApiRoute | Tool`）
+- **`ExtensionContributionType`** - 贡献类型（`Panel | Skill | Agent | Api | Hook | Patch`）
 
 ### 市场
 - **`RegistryEntry`** - 市场注册条目（id, name, version, description, author, download_url）
@@ -69,12 +70,14 @@ publish_extension(ext_path)
 | 打包 | `packager.mbt` | package_extension、unpack_extension、list_packaged_extensions |
 | 验证 | `verifier.mbt` | validate_extension、validate_manifest、validate_all_extensions |
 | 市场 | `marketplace.mbt` | 市场列表、安装/卸载/发布、enable/disable |
+| 补丁加载 | `patch_loader.mbt` | Patch 贡献→`@agent.PatchRule`（声明式 tool/block_pattern/allow_pattern + 命令式 shell 脚本，fail-open） |
 | 辅助 | `mod.mbt` | extension_id、source_dir 辅助函数 |
 
 ## 外部依赖
 
 - `lib/web` - ExtensionDispatcher 注册扩展路由
 - `lib/skill` - 扩展技能贡献
+- `lib/agent` - Patch 贡献转换为 PatchRule（`patch_loader.mbt`）
 - `moonbitlang/x/fs` - 文件系统操作
 - `moonbitlang/core/json` - manifest.json 解析
 

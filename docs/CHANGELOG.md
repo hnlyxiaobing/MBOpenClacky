@@ -25,6 +25,22 @@
 
 ## 变更记录
 
+### 2026-07-16  docs: 项目文档全量校准（指标同步与过时内容清理）
+
+- `[docs]` **核心指标全量同步（基于实际统计）**
+  - 源文件数：289 → **309** 个 `.mbt`（lib + cmd）
+  - 测试文件：93 → **103** 个 `_wbtest.mbt`（lib + cmd + test）
+  - 包数：23 → **24** 个 lib 顶级包（新增 `lib/zip`）+ 1 个 cmd 入口包
+  - REST API 端点数：统一为 **~154**（修正 `codemaps/web.md` 等处的 "90+" 不一致表述）
+  - 整体完成度：~90-92% → **~95%**（Web 前端 ~65%→95%、TUI ~85%→95%）
+  - 原生二进制大小：~4.6 MB → **~3.8 MB**；`moon check` warnings：46 → **~500**
+- `[docs]` **功能状态更新**
+  - Web 前端：已由原生 JS 重写为 **MoonBit SPA**（`web/mb/` → `web/dist/`），所有管理面板与 i18n（692 key，覆盖率 99.4%）就位
+  - TUI：Rich Dialogs / Agent Shell / Thinking Live View 已完成（异步事件循环 + Node 渲染）
+  - Extension 框架：Loader/Verifier/Packager/Scaffold/Marketplace、API 扩展路由分发/热重载、PatchLoader/HookLoader、CLI 命令、Session ZIP 导出导入均已完成
+- `[docs]` **受影响文件**：README.md、CLAUDE.md、docs/project-status.md、docs/gap_analysis_and_development_plan.md、codemaps/web.md
+- `[docs]` **lib/extension/README.md 重写**：原文仍称 "MVP / Next Steps: 实现 loader/verifier/packager…"，实际框架已全部实现，更新为完整功能描述
+
 ### 2026-07-15  feat: i18n 翻译补齐与 Spec 归档
 
 - `[feat]` **i18n 翻译补齐完成**（基于增量 Spec `2026-07-13_05_i18n-complete-translation.md`）

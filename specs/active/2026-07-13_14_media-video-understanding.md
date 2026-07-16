@@ -12,17 +12,21 @@
 ## 现状分析（经代码验证）
 
 ### Media 模块
-- `lib/media/` 有 9 个文件：`media_base.mbt`、`dashscope.mbt`、`gemini.mbt`、`openai_compat.mbt`、`generator.mbt`、`types.mbt`、`output_dir.mbt`、`media_wbtest.mbt`、`pkg.generated.mbti`
+- `lib/media/` 有 8 个 `.mbt` 源文件：`media_base.mbt`、`dashscope.mbt`、`gemini.mbt`、`openai_compat.mbt`、`generator.mbt`、`types.mbt`、`output_dir.mbt`、`media_wbtest.mbt`（+ `pkg.generated.mbti` 自动生成）
 - **注意**：原 spec 提到的 `image_gen.mbt`、`audio_tts.mbt`、`video_gen.mbt` 文件名均不存在
 - Media 模块有 `MediaGenerator` 架构，支持 DashScope/Gemini/OpenAI 兼容协议
 
 ### Web Handler 现状
-- `lib/web/handlers_media.mbt`（94 行）：**所有 media 端点均为 stub，返回 501 Not Implemented**
+- `lib/web/handlers_media.mbt`（84 行）：**所有 5 个 media 端点均为 stub，返回 501 Not Implemented**
   - `POST /api/media/image` -> 501
   - `POST /api/media/video` -> 501
   - `POST /api/media/audio/speech` -> 501
+  - `POST /api/media/audio/transcriptions` -> 501
+  - `POST /api/media/video/understand` -> 501
+- `lib/web/handlers_media_wbtest.mbt` 已存在（63 行），覆盖所有 5 个 stub handler 的 501 状态验证
+- **路由已在 `lib/web/server.mbt:516-524` 注册**，无需修改路由注册代码
 - 文件头注释："They will be wired to @media.MediaGenerator once the media-capabilities branch lands"
-- **结论**：所有 media 端点未接线，完成度远低于 75%
+- **结论**：所有 media 端点未接线，handler stub 和路由已就位，仅需替换 501 stub 为真实实现
 
 ### LLM Client 视觉能力
 - `lib/client/client.mbt:31`：`vision_supported : Bool` 字段存在
@@ -43,17 +47,17 @@
 - **涉及包**：`lib/media`、`lib/web`
 - **涉及文件**：
   - 新增 `lib/media/video_understand.mbt`：视频理解逻辑（帧提取 + LLM 视觉分析）
-  - 修改 `lib/web/handlers_media.mbt`：添加 `video/understand` 端点（当前为 501 stub，需替换为真实实现）
-  - 修改 `lib/web/server.mbt`：路由注册
-  - 对应 `*_wbtest.mbt`
+  - 修改 `lib/web/handlers_media.mbt`：将 `handle_media_video_understand` 从 501 stub 替换为真实实现
+  - 修改 `lib/web/handlers_media_wbtest.mbt`：扩展测试覆盖真实实现（替代当前的 501 stub 测试）
+  - **无需修改** `lib/web/server.mbt`：路由 `/video/understand` 已在 L522-524 注册
 - **不涉及**：`lib/client`（复用现有 vision API）、TUI、前端
 
 ## 实施计划（任务包切分）
 
 1. **视频帧提取**：调用 FFmpeg 提取关键帧到临时目录。
 2. **LLM 视觉分析**：多帧发送给视觉模型，汇总结果。
-3. **REST 端点**：`POST /api/media/video/understand`（替换 501 stub）。
-4. **wbtest**：覆盖帧提取、分析结果格式。
+3. **REST 端点实现**：替换 `handle_media_video_understand` 的 501 stub 为真实实现（handler 签名和路由已就位）。
+4. **wbtest 更新**：扩展 `handlers_media_wbtest.mbt` 和新增 `media_wbtest.mbt` 测试，覆盖帧提取、分析结果格式。
 
 ## 验收标准
 
@@ -78,3 +82,4 @@
 |------|---------|------|
 | 2026-07-13 | 初始版本 | 差距分析 G14，P2 增强性 |
 | 2026-07-13 | 审核修正：修正"`image_gen.mbt`/`audio_tts.mbt`/`video_gen.mbt` 已有"的错误（文件名不存在）；修正"media 模块完成度 75%"（实际所有 handler 为 501 stub）；补充 `lib/client` 视觉能力的准确验证（`vision_supported` 字段 + wbtest）；补充视频上传方式决策（base64 JSON body） | 对抗性审核 + 第一性原理校验 |
+| 2026-07-16 | 审核修正：修正文件数（8 个 .mbt 源文件，非 9）；修正 `handlers_media.mbt` 行数（84 行，非 94）；补充实际已有 5 个端点（含 `audio/transcriptions` 和 `video/understand`）；路由已在 `server.mbt:516-524` 注册，无需修改；`handlers_media_wbtest.mbt` 已存在（63 行），仅需扩展非新增；更新实施计划反映当前代码状态 | 对抗性审核 + 第一性原理校验 |

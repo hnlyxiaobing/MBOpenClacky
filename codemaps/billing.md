@@ -1,6 +1,6 @@
 # billing - 计费记录 · 用量统计 · 持久化
 
-> 路径: `lib/billing/` · 4 文件（src=3, test=1）· Token 用量与成本记录
+> 路径: `lib/billing/` · 2 mbt + 1 C（src=2, test=1）+ moon.pkg/.mbti · Token 用量与成本记录
 
 ## 入口函数
 

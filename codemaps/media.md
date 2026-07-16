@@ -1,6 +1,6 @@
 # media - 多媒体生成 · 多 Provider · 图像/视频/语音
 
-> 路径: `lib/media/` · 9 文件（src=8, test=1）· 文生图/文生视频/TTS 多模型适配
+> 路径: `lib/media/` · 8 mbt（src=7, test=1）+ moon.pkg/.mbti · 文生图/文生视频/TTS 多模型适配
 
 ## 入口函数
 
