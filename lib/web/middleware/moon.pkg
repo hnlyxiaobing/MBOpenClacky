@@ -1,7 +1,7 @@
 import {
   "moonbitlang/core/debug",
-  "bobzhang/crescent",
-  "bobzhang/crescent/core",
+  "hnlyxiaobing/crescent",
+  "hnlyxiaobing/crescent/core",
   "moonbitlang/core/json",
   "moonbitlang/async",
 }

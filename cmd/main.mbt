@@ -158,7 +158,7 @@ async fn main {
   let value = @clap.SimpleValue::new(parser.prog)
   let help_msg = parser.parse(value, cli_view) catch {
     err => {
-      println("Error: \{err.to_repr()}")
+      println("Error: \{err}")
       @sys.exit(1)
       None
     }
