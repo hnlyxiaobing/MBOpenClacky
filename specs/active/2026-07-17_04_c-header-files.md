@@ -65,12 +65,12 @@
 
 ## 验收标准 [必填]
 
-- [ ] `lib/client/http_native.h` 存在且包含正确的函数声明
-- [ ] `lib/client/http_thread.h` 存在且包含正确的函数声明
-- [ ] `http_native.c` 和 `http_thread.c` 包含对应的 `#include`
-- [ ] `moon check` 0 errors
-- [ ] `moon test lib/client` 通过
-- [ ] `moon build --target native --release cmd` 构建成功
+- [x] `lib/client/http_native.h` 存在且包含正确的函数声明
+- [x] `lib/client/http_thread.h` 存在且包含正确的函数声明
+- [x] `http_native.c` 和 `http_thread.c` 包含对应的 `#include`
+- [x] `moon check` 0 errors
+- [x] `moon test lib/client` 通过 (94/94)
+- [x] `moon build --target native --release cmd` 构建成功
 
 ## 风险评估 [必填]
 

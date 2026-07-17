@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "http_thread.h"
+
 #ifdef _WIN32
   #include <windows.h>
 #else

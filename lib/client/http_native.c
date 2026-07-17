@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "http_native.h"
+
 /* Helper: write status and body_size into meta_buf (little-endian) */
 static void write_meta(
   moonbit_bytes_t meta_buf, int32_t http_status, int32_t body_size
