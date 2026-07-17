@@ -1,7 +1,0 @@
-import {
-  "moonbitlang/async/semaphore" @async/semaphore,
-}
-
-import {
-  "moonbitlang/async",
-} for "test"

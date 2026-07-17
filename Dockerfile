@@ -31,37 +31,19 @@ RUN moon version
 
 WORKDIR /build
 
-# Copy vendored mooncakes sources into the project root so `moon build --frozen`
-# finds them without trying to install new packages into the modules directory.
-COPY .mooncakes /build/.mooncakes
-
-# Copy full project source. moon needs the package structure (moon.pkg files)
-# to resolve dependencies — copying only moon.mod and pre-building is not
-# possible because the `cmd` package directory must exist.
+# Copy full project source. moon will fetch registry dependencies from
+# mooncakes.io on first build; no vendored deps are required.
 COPY . .
 
-# Seed the registry index metadata so `moon build --frozen` can map versioned
-# dependencies to the vendored .mooncakes sources without network access.
-# MoonBit requires the index directory to look like a git working copy with an
-# origin remote pointing to mooncakes.io and a `main` branch.
-COPY .moon/registry-index/user /root/.moon/registry/index/user
-RUN cd /root/.moon/registry/index \
-    && git init -q \
-    && git config user.email "builder@mbopenclacky.local" \
-    && git config user.name "Builder" \
-    && git add user \
-    && git commit -q -m "seed registry index" \
-    && git branch -m main \
-    && git remote add origin https://mooncakes.io/git/index \
-    && git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+# Resolve registry dependencies (needs network) so subsequent layers can be
+# cached independently of source edits.
+RUN moon update
 
-# Build using vendored .mooncakes/ (patched deps committed to repo).
-# --frozen tells moon not to sync dependencies from mooncakes.io, so the
-# modified dependency sources in .mooncakes/ are used exactly as committed.
-# We tee the build log so that if this step fails, the real MoonBit error is
-# visible in the Docker build output instead of being swallowed by buildx.
+# Build the CLI binary. We tee the build log so that if this step fails, the
+# real MoonBit error is visible in the Docker build output instead of being
+# swallowed by buildx.
 RUN cd /build \
-    && (moon build --target native --release --frozen cmd 2>&1 | tee /tmp/moon-build.log) \
+    && (moon build --target native --release cmd 2>&1 | tee /tmp/moon-build.log) \
     && echo "moon build succeeded" \
     && rm /tmp/moon-build.log \
     || (echo "moon build failed; see log below" && cat /tmp/moon-build.log && exit 1)

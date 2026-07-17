@@ -33,6 +33,14 @@ jobs:
           path: ~/.moon
           key: moon-toolchain-${{ runner.os }}-v1
 
+      - name: Cache mooncakes dependencies
+        uses: actions/cache@v6
+        with:
+          path: .mooncakes
+          key: mooncakes-${{ runner.os }}-${{ hashFiles('moon.mod.json', 'moon.mod') }}
+          restore-keys: |
+            mooncakes-${{ runner.os }}-
+
       - name: Install MoonBit toolchain
         if: steps.cache-moon.outputs.cache-hit != 'true'
         run: |
@@ -48,7 +56,7 @@ jobs:
         run: moon update
 
       - name: Type check
-        run: moon check --frozen
+        run: moon check
 
       - name: Warning budget gate (P2-3)
         # Reports the MoonBit warning count against the P2-3 budget. Runs in
@@ -63,7 +71,7 @@ jobs:
         run: bash scripts/check-crypto-build.sh release
 
       - name: Build (native release)
-        run: moon build --target native --release --frozen cmd
+        run: moon build --target native --release cmd
 
       - name: Run tests
-        run: moon test --frozen
+        run: moon test

@@ -1,7 +1,0 @@
-members = [
-  "..",
-  ".",
-  "./isatty",
-  "./open",
-  "./resize",
-]

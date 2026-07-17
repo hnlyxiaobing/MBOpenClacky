@@ -3,6 +3,8 @@ _build/
 
 # MoonBit package caches
 .repos/
+.mooncakes/
+.moon/
 
 # IDE and tool data
 .qoder/

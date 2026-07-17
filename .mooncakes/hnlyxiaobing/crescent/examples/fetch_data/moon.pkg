@@ -1,8 +1,0 @@
-import {
-  "moonbitlang/async",
-  "hnlyxiaobing/crescent/fetch",
-}
-
-options(
-  "is-main": true,
-)
