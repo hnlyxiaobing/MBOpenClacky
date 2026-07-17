@@ -78,15 +78,16 @@
 
 ## 验收标准 [必填]
 
-- [ ] `web/js/lib/LICENSE-highlightjs` 存在且内容为 BSD-3-Clause
-- [ ] `web/js/lib/LICENSE-marked` 存在且内容为 MIT
-- [ ] `web/js/lib/LICENSE-katex` 存在且内容为 MIT
-- [ ] `web/js/lib/LICENSE-qrcode` 存在且内容为 MIT
-- [ ] `web/js/lib/LICENSE-codemirror` 存在且内容为 MIT
-- [ ] `web/js/lib/README.md` 中 highlight.js 版本为 `11.9.0`
-- [ ] `web/js/lib/README.md` 中 marked.js 版本为 `12.0.2`
-- [ ] `web/js/lib/README.md` 包含 LICENSE 文件名列
-- [ ] Web UI 功能不受影响（纯文档修改）
+- [x] `web/js/lib/LICENSE-highlightjs` 存在且内容为 BSD-3-Clause
+- [x] `web/js/lib/LICENSE-marked` 存在且内容为 MIT
+- [x] `web/js/lib/LICENSE-katex` 存在且内容为 MIT
+- [x] `web/js/lib/LICENSE-qrcode` 存在且内容为 MIT
+- [x] `web/js/lib/LICENSE-codemirror` 存在且内容为 MIT
+- [x] `web/js/lib/README.md` 中 highlight.js 版本为 `11.9.0`
+- [x] `web/js/lib/README.md` 中 marked.js 版本为 `12.0.2`
+- [x] `web/js/lib/README.md` 包含 LICENSE 文件名列
+- [x] Web UI 功能不受影响（纯文档修改）
+- [x] 根目录创建 `THIRD_PARTY_LICENSES.md` 汇总文件
 
 ## 风险评估 [必填]
 

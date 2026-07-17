@@ -4,13 +4,13 @@
 
 ## 库列表
 
-| 库 | 版本 | 用途 | 来源 |
-|----|------|------|------|
-| highlight.js | - | 代码语法高亮 | `web/js/lib/highlight.min.js` |
-| marked.js | - | Markdown 渲染 | `web/js/lib/marked.min.js` |
-| KaTeX | 0.16.11 | 数学公式渲染 | `web/js/lib/katex/` (npm: katex) |
-| QRCode | 1.5.4 | 二维码生成 | `web/js/lib/qrcode/` (npm: qrcode) |
-| CodeMirror 6 | 6.0.1 | 代码编辑器 | `web/js/lib/codemirror/bundle.js` |
+| 库 | 版本 | 用途 | LICENSE | 来源 |
+|----|------|------|---------|------|
+| highlight.js | 11.9.0 | 代码语法高亮 | [BSD-3-Clause](LICENSE-highlightjs) | `web/js/lib/highlight.min.js` |
+| marked.js | 12.0.2 | Markdown 渲染 | [MIT](LICENSE-marked) | `web/js/lib/marked.min.js` |
+| KaTeX | 0.16.11 | 数学公式渲染 | [MIT](LICENSE-katex) | `web/js/lib/katex/` (npm: katex) |
+| QRCode | 1.5.4 | 二维码生成 | [MIT](LICENSE-qrcode) | `web/js/lib/qrcode/` (npm: qrcode) |
+| CodeMirror 6 | 6.0.1 | 代码编辑器 | [MIT](LICENSE-codemirror) | `web/js/lib/codemirror/bundle.js` |
 
 ## CodeMirror 6 Bundle
 
