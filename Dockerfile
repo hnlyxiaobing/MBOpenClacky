@@ -39,7 +39,23 @@ COPY . .
 # Build using vendored .mooncakes/ (patched deps committed to repo).
 # --frozen tells moon not to sync dependencies from mooncakes.io, so the
 # modified dependency sources in .mooncakes/ are used exactly as committed.
-RUN moon build --target native --release --frozen cmd
+# However, the resolver still needs the registry index metadata to map
+# versioned dependencies to the vendored sources. We seed the index from
+# the committed .moon/registry-index/ directory, but moon also requires the
+# .git working copy metadata to recognize the index directory, so we
+# initialize a minimal registry index repository instead of hitting the network.
+COPY .moon/registry-index/user /root/.moon/registry/index/user
+RUN cd /root/.moon/registry/index \
+    && git init -q \
+    && git config user.email "builder@mbopenclacky.local" \
+    && git config user.name "Builder" \
+    && git add user \
+    && git commit -q -m "seed registry index" \
+    && git branch -m main \
+    && git remote add origin https://mooncakes.io/git/index \
+    && git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*' \
+    && cd /build \
+    && moon build --target native --release --frozen cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
