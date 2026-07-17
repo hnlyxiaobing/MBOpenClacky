@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install MoonBit toolchain (pin to same version as local dev environment)
-RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.1.20260713
+# Install MoonBit toolchain (use latest stable; pinned versions are not retained on CDN)
+RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
@@ -37,15 +37,9 @@ WORKDIR /build
 COPY . .
 
 # Build using vendored .mooncakes/ (patched deps committed to repo).
-# moon update populates the registry INDEX (metadata only, not package source);
-# the actual source is already in .mooncakes/ from the COPY above.
-RUN moon update
-
-# We build the `cmd` package explicitly: a plain `moon build` would also try to
-# link the non-main `lib/brand` package as a standalone executable (moon issue
-# #1488) and fail with "undefined reference to main". Targeting `cmd` builds
-# only the real entrypoint and produces _build/native/release/build/cmd/cmd.exe.
-RUN moon build --target native --release cmd
+# --frozen tells moon not to sync dependencies from mooncakes.io, so the
+# modified dependency sources in .mooncakes/ are used exactly as committed.
+RUN moon build --target native --release --frozen cmd
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
