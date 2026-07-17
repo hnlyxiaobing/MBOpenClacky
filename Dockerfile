@@ -31,8 +31,9 @@ RUN moon version
 
 WORKDIR /build
 
-# Copy vendored mooncakes sources before the full project copy.
-COPY .mooncakes /root/.moon/mooncakes
+# Copy vendored mooncakes sources into the project root so `moon build --frozen`
+# finds them without trying to install new packages into the modules directory.
+COPY .mooncakes /build/.mooncakes
 
 # Copy full project source. moon needs the package structure (moon.pkg files)
 # to resolve dependencies — copying only moon.mod and pre-building is not

@@ -2,7 +2,6 @@
 _build/
 
 # MoonBit package caches
-.mooncakes/
 .repos/
 
 # IDE and tool data
