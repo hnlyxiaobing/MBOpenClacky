@@ -123,20 +123,19 @@ pub fn DingTalkApiClient::parse_token_response(
 pub fn DingTalkApiClient::request_access_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
-  let _url = self.access_token_url()
-  let _body = self.build_access_token_request()
-  let _headers = HttpHeaders::new().content_type("application/json")
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // let json = parse_json_response(response.body)?
-  // let (token, expire) = self.parse_token_response(json)?
-  // self.access_token.set(token, expire * 1000)
-  // Ok(token)
-  Err(
-    ChannelError(
-      "DingTalkApiClient::request_access_token not yet wired to HTTP transport",
-    ),
-  )
+  let url = self.access_token_url()
+  let body = self.build_access_token_request().to_json().stringify()
+  let headers = HttpHeaders::new().content_type("application/json").to_array()
+  let json = match http_post_json(url, headers, body) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  let (token, expire) = match DingTalkApiClient::parse_token_response(json) {
+    Ok(pair) => pair
+    Err(e) => return Err(e)
+  }
+  self.access_token.set(token, expire * 1000)
+  Ok(token)
 }
 
 ///|
@@ -144,18 +143,18 @@ pub fn DingTalkApiClient::request_access_token(
 pub fn DingTalkApiClient::request_oapi_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
-  let _url = self.build_oapi_token_request()
-  // TODO: GET url via async HTTP FFI
-  // let response = @http.fetch(url, { method: "GET" })
-  // let json = parse_json_response(response.body)?
-  // let (token, expire) = self.parse_token_response(json)?
-  // self.oapi_token.set(token, expire * 1000)
-  // Ok(token)
-  Err(
-    ChannelError(
-      "DingTalkApiClient::request_oapi_token not yet wired to HTTP transport",
-    ),
-  )
+  let url = self.build_oapi_token_request()
+  let headers : Array[(String, String)] = []
+  let json = match http_get_json(url, headers) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  let (token, expire) = match DingTalkApiClient::parse_token_response(json) {
+    Ok(pair) => pair
+    Err(e) => return Err(e)
+  }
+  self.oapi_token.set(token, expire * 1000)
+  Ok(token)
 }
 
 ///|
@@ -232,21 +231,10 @@ pub fn DingTalkApiClient::send_via_webhook(
   text : String,
   msg_type : String,
 ) -> Result[Json, ChannelError] {
+  let _ = self
   let payload = DingTalkApiClient::build_webhook_payload(text, msg_type)
-  let _ = payload
-  let _headers = HttpHeaders::new().content_type("application/json")
-  // TODO: POST webhook_url with headers and body via async HTTP FFI
-  // let response = @http.fetch(webhook_url, { method: "POST", headers: ..., body: ... })
-  // if !is_success_status(response.status) {
-  //   return Err(http_status_error(response.status, response.body))
-  // }
-  // parse_json_response(response.body)
-  let _ = webhook_url
-  let _ = self.app_key
-  let result : Map[String, Json] = {}
-  result.set("errcode", (0).to_json())
-  result.set("errmsg", "ok".to_json())
-  Ok(Json::object(result))
+  let headers = HttpHeaders::new().content_type("application/json").to_array()
+  http_post_json(webhook_url, headers, payload.to_json().stringify())
 }
 
 // ── Robot message API (new API) ─────────────────────────────────────────────
@@ -286,27 +274,22 @@ pub fn DingTalkApiClient::send_to_user(
   msg_key : String,
   msg_param : String,
 ) -> Result[Json, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_base + "/v1.0/robot/oToMessages/batchSend"
-  let _body : Map[String, Json] = {}
-  _body.set("robotCode", robot_code.to_json())
+  let url = self.api_base + "/v1.0/robot/oToMessages/batchSend"
+  let body : Map[String, Json] = {}
+  body.set("robotCode", robot_code.to_json())
   let user_ids : Array[Json] = [user_id.to_json()]
-  _body.set("userIds", Json::array(user_ids))
-  _body.set("msgKey", msg_key.to_json())
-  _body.set("msgParam", msg_param.to_json())
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // if !is_success_status(response.status) {
-  //   return Err(http_status_error(response.status, response.body))
-  // }
-  // parse_json_response(response.body)
-  let _ = _body
-  let result : Map[String, Json] = {}
-  result.set("processQueryKey", "pending".to_json())
-  Ok(Json::object(result))
+  body.set("userIds", Json::array(user_ids))
+  body.set("msgKey", msg_key.to_json())
+  body.set("msgParam", msg_param.to_json())
+  http_post_json(
+    url,
+    headers.to_array(),
+    Json::object(body).to_json().stringify(),
+  )
 }
 
 ///|
@@ -319,26 +302,21 @@ pub fn DingTalkApiClient::send_to_group(
   msg_key : String,
   msg_param : String,
 ) -> Result[Json, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_base + "/v1.0/robot/groupMessages/send"
-  let _body : Map[String, Json] = {}
-  _body.set("robotCode", robot_code.to_json())
-  _body.set("openConversationId", open_conversation_id.to_json())
-  _body.set("msgKey", msg_key.to_json())
-  _body.set("msgParam", msg_param.to_json())
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // if !is_success_status(response.status) {
-  //   return Err(http_status_error(response.status, response.body))
-  // }
-  // parse_json_response(response.body)
-  let _ = _body
-  let result : Map[String, Json] = {}
-  result.set("processQueryKey", "pending".to_json())
-  Ok(Json::object(result))
+  let url = self.api_base + "/v1.0/robot/groupMessages/send"
+  let body : Map[String, Json] = {}
+  body.set("robotCode", robot_code.to_json())
+  body.set("openConversationId", open_conversation_id.to_json())
+  body.set("msgKey", msg_key.to_json())
+  body.set("msgParam", msg_param.to_json())
+  http_post_json(
+    url,
+    headers.to_array(),
+    Json::object(body).to_json().stringify(),
+  )
 }
 
 // ── Media upload API (OAPI) ─────────────────────────────────────────────────

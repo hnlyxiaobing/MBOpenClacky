@@ -118,13 +118,9 @@ pub impl Adapter for DiscordAdapter with fn send_text(
     Ok(v) => v
     Err(e) => return Err(e)
   }
-  let msg_id = match resp {
-    Object(obj) =>
-      match obj.get("id") {
-        Some(String(id)) => id
-        _ => "unknown"
-      }
-    _ => "unknown"
+  let msg_id = match extract_discord_message_id(resp) {
+    Some(id) => id
+    None => return Err(ChannelError("Discord response missing message id"))
   }
   Ok({ message_id: msg_id, success: true, error: None })
 }

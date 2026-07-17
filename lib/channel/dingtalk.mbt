@@ -119,8 +119,6 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
       // Use cached sessionWebhook for quick reply
       match self.api_client {
         Some(client) => {
-          let _payload = DingTalkApiClient::build_webhook_payload(text, "text")
-          let _ = _payload
           match client.send_via_webhook(url, text, "text") {
             Ok(_) => ()
             Err(e) => return Err(e)
@@ -132,9 +130,15 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
           })
         }
         None => {
-          // Build webhook request manually
-          let _payload = build_dingtalk_message(text)
-          // TODO: POST url with payload via async HTTP FFI
+          // No API client; POST directly to the session webhook URL
+          let payload = build_dingtalk_message(text)
+          let headers = HttpHeaders::new()
+            .content_type("application/json")
+            .to_array()
+          match http_post_json(url, headers, payload.to_json().stringify()) {
+            Ok(_) => ()
+            Err(e) => return Err(e)
+          }
           return Ok({
             message_id: "webhook_" + chat_id,
             success: true,
@@ -162,24 +166,34 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
         // Direct message
         client.send_to_user(chat_id, rc, "sampleText", msg_param)
       }
-      let _result = match send_result {
-        Ok(_) => ()
+      let resp_json = match send_result {
+        Ok(j) => j
         Err(e) => return Err(e)
       }
-      Ok({ message_id: "robot_" + chat_id, success: true, error: None })
+      let mid = match extract_dingtalk_message_id(resp_json) {
+        Some(id) => id
+        None => "robot_" + chat_id
+      }
+      Ok({ message_id: mid, success: true, error: None })
     }
     _ =>
       // Strategy 3: Fallback to configured webhook_url
       match self.webhook_url {
         Some(url) => {
-          let _payload = build_dingtalk_message(text)
-          // TODO: POST url with payload via async HTTP FFI
-          let _ = url
-          Ok({
-            message_id: "dingtalk_msg_placeholder",
-            success: true,
-            error: None,
-          })
+          let payload = build_dingtalk_message(text)
+          let headers = HttpHeaders::new()
+            .content_type("application/json")
+            .to_array()
+          let resp = match
+            http_post_json(url, headers, payload.to_json().stringify()) {
+            Ok(j) => j
+            Err(e) => return Err(e)
+          }
+          let mid = match extract_dingtalk_message_id(resp) {
+            Some(id) => id
+            None => "webhook_" + chat_id
+          }
+          Ok({ message_id: mid, success: true, error: None })
         }
         None =>
           Err(

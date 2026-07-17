@@ -86,13 +86,13 @@
 
 ## 验收标准 [必填]
 
-- [ ] `manager.mbt` 的 `load_config` 能从文件读取并解析渠道配置
-- [ ] dingtalk 发送消息后返回真实 `message_id`（非 "dingtalk_msg_placeholder"）
-- [ ] feishu 发送消息后返回真实 `message_id`（非 "feishu_msg_placeholder"）
-- [ ] discord API 调用返回真实响应（非 "placeholder success response"）
-- [ ] weixin AES-128-ECB 加解密功能正常
-- [ ] `moon check` 0 errors
-- [ ] `moon test lib/channel` 通过
+- [x] `manager.mbt` 的 `load_config` 能从文件读取并解析渠道配置
+- [x] dingtalk 发送消息后返回真实 `message_id`（非 "dingtalk_msg_placeholder"）
+- [x] feishu 发送消息后返回真实 `message_id`（非 "feishu_msg_placeholder"）
+- [x] discord API 调用返回真实响应（非 "placeholder success response"）
+- [ ] weixin AES-128-ECB 加解密功能正常（后续工作，见变更记录）
+- [x] `moon check` 0 errors
+- [x] `moon test lib/channel` 通过
 
 ## 风险评估 [必填]
 
@@ -114,3 +114,4 @@
 |------|---------|------|
 | 2026-07-17 | 初始版本 | 大赛验收反馈 #3 |
 | 2026-07-17 | 对抗性审查：修正 AES 调研结论、config 格式、HTTP transport 状态 | `x/crypto` 无 AES 已确认；config_path 是 yml 需改 json；feishu/discord/dingtalk 整体未接 HTTP transport |
+| 2026-07-17 | 完成 load_config、feishu/discord/dingtalk HTTP 接通；微信 AES 推迟 | 微信 AES-128-ECB 需要纯 MoonBit 实现（~300 行）或 OpenSSL FFI，属密码学敏感代码，需要独立 spec 处理 |

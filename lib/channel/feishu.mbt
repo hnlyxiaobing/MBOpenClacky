@@ -88,30 +88,42 @@ pub impl Adapter for FeishuAdapter with fn send_text(
   }
   match self.api_client {
     Some(client) => {
-      let _req = match client.build_send_request(chat_id, text, reply_to) {
+      let (url, headers, body) = match
+        client.build_send_request(chat_id, text, reply_to) {
         Ok(r) => r
         Err(e) => return Err(e)
       }
-      // TODO: Execute HTTP POST via async transport
-      // let (url, headers, body) = _req
-      // let json = client.send_message(chat_id, text, reply_to)?
-      // match json {
-      //   Object(obj) => match obj.get("data") {
-      //     Some(Object(data)) => match data.get("message_id") {
-      //       Some(String(mid)) => Ok({ message_id: mid, success: true, error: None })
-      //       _ => Ok({ message_id: "", success: true, error: None })
-      //     }
-      //     _ => Ok({ message_id: "", success: true, error: None })
-      //   }
-      //   _ => Err(ChannelError("Unexpected send response"))
-      // }
-      Ok({ message_id: "feishu_msg_pending", success: true, error: None })
+      let json = match http_post_json(url, headers, body) {
+        Ok(j) => j
+        Err(e) => return Err(e)
+      }
+      match extract_feishu_message_id(json) {
+        Some(mid) => Ok({ message_id: mid, success: true, error: None })
+        None =>
+          match json {
+            Object(obj) =>
+              match obj.get("code") {
+                Some(Number(n, ..)) if n.to_int() == 0 =>
+                  // Success but no message_id returned (edge case)
+                  Ok({ message_id: "", success: true, error: None })
+                _ =>
+                  Err(
+                    ChannelError(
+                      "Feishu send failed: " + extract_api_error(json),
+                    ),
+                  )
+              }
+            _ => Err(ChannelError("Unexpected Feishu send response"))
+          }
+      }
     }
-    None => {
-      // No API client configured: build payload for webhook relay
-      let _ = build_feishu_message(text, reply_to)
-      Ok({ message_id: "feishu_msg_placeholder", success: true, error: None })
-    }
+    None =>
+      // No API client configured: caller must configure app_id/app_secret
+      Err(
+        ChannelError(
+          "FeishuAdapter has no api_client; cannot send without credentials",
+        ),
+      )
   }
 }
 

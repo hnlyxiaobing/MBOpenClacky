@@ -23,6 +23,20 @@ pub fn Platform::to_string_value(self : Platform) -> String {
 }
 
 ///|
+/// Parse a platform name from a lowercase string.
+pub fn Platform::from_string(s : String) -> Platform? {
+  match s {
+    "feishu" => Some(Feishu)
+    "wecom" => Some(WeCom)
+    "weixin" => Some(Weixin)
+    "telegram" => Some(Telegram)
+    "discord" => Some(Discord)
+    "dingtalk" => Some(DingTalk)
+    _ => None
+  }
+}
+
+///|
 /// Message event type.
 pub(all) enum EventType {
   Message // regular message

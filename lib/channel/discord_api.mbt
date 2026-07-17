@@ -62,18 +62,10 @@ pub fn DiscordApiClient::send_message(
   content : String,
   reply_to : String?,
 ) -> Result[Json, ChannelError] {
-  let _url = self.api_url("channels/" + channel_id + "/messages")
-  let _headers = self.auth_headers()
-  let _body = build_discord_send_payload(content, reply_to)
-  // TODO: Execute async HTTP POST via @http:
-  //   let resp = await @http.post(url, headers.to_array(), body.to_string())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   parse_json_response(resp.body)
-  // For now, return a placeholder success response.
-  let result : Map[String, Json] = {}
-  result.set("id", "pending".to_json())
-  result.set("channel_id", channel_id.to_json())
-  Ok(Json::object(result))
+  let url = self.api_url("channels/" + channel_id + "/messages")
+  let headers = self.auth_headers().to_array()
+  let body = build_discord_send_payload(content, reply_to).to_json().stringify()
+  http_post_json(url, headers, body)
 }
 
 ///|

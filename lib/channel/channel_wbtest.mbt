@@ -189,6 +189,80 @@ test "channel_manager_status_empty" {
   @debug.assert_eq(status.length(), 0)
 }
 
+///|
+test "channel_manager_load_config_missing_file" {
+  let mgr = ChannelManager::new("/tmp/nonexistent_channels_$$$.json")
+  match mgr.load_config() {
+    Ok(_) => @debug.assert_eq(mgr.configs.length(), 0)
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+test "channel_manager_load_config_valid_json" {
+  let path = "/tmp/mbopenclacky_test_channels_load.json"
+  let content =
+    #|{
+    #|  "channels": [
+    #|    {
+    #|      "platform": "feishu",
+    #|      "enabled": true,
+    #|      "settings": { "app_id": "cli_xxx", "app_secret": "sec_yyy" }
+    #|    },
+    #|    {
+    #|      "platform": "discord",
+    #|      "enabled": false,
+    #|      "settings": { "bot_token": "tok" }
+    #|    }
+    #|  ]
+    #|}
+  @fs.write_string_to_file(path, content) catch {
+    _ => {
+      assert_true(false)
+      return
+    }
+  }
+  let mgr = ChannelManager::new(path)
+  match mgr.load_config() {
+    Ok(_) => {
+      @debug.assert_eq(mgr.configs.length(), 2)
+      @debug.assert_eq(mgr.configs[0].platform, Platform::Feishu)
+      @debug.assert_eq(mgr.configs[0].enabled, true)
+      @debug.assert_eq(mgr.configs[0].settings.get("app_id"), Some("cli_xxx"))
+      @debug.assert_eq(mgr.configs[1].platform, Platform::Discord)
+      @debug.assert_eq(mgr.configs[1].enabled, false)
+    }
+    Err(e) => {
+      let _ = e
+      assert_true(false)
+    }
+  }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+}
+
+///|
+test "channel_manager_load_config_invalid_platform" {
+  let path = "/tmp/mbopenclacky_test_channels_invalid.json"
+  let content =
+    #|{ "channels": [ { "platform": "unknown_im", "enabled": true, "settings": {} } ] }
+  @fs.write_string_to_file(path, content) catch {
+    _ => {
+      assert_true(false)
+      return
+    }
+  }
+  let mgr = ChannelManager::new(path)
+  match mgr.load_config() {
+    Ok(_) => assert_true(false)
+    Err(_) => ()
+  }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+}
+
 // ── FeishuAdapter Tests ─────────────────────────────────────────────────────
 
 ///|

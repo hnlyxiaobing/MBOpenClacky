@@ -6,7 +6,7 @@ pub(all) struct ChannelManager {
   registry : AdapterRegistry
   mut configs : Array[ChannelConfig]
   mut active_channels : Array[String] // names of running channels
-  config_path : String // ~/.mbopenclacky/channels.yml
+  config_path : String // ~/.mbopenclacky/channels.json
   mut message_handler : ((ChannelEvent) -> Unit)?
   mut recent_digests : Array[(String, Int)] // (digest, sequence) pairs for dedup
   mut digest_counter : Int // monotonically increasing counter for digest ordering
@@ -27,15 +27,89 @@ pub fn ChannelManager::new(config_path : String) -> ChannelManager {
 }
 
 ///|
-/// Load channel configurations from channels.yml.
-/// TODO: Implement YAML/JSON file reading via FFI.
+/// Load channel configurations from the JSON config file at `self.config_path`.
+///
+/// File format:
+/// ```json
+/// {
+///   "channels": [
+///     {
+///       "platform": "feishu",
+///       "enabled": true,
+///       "settings": { "app_id": "...", "app_secret": "..." }
+///     }
+///   ]
+/// }
+/// ```
+///
+/// Returns Ok(()) when the file does not exist (treated as empty config).
+/// Returns Err on JSON parse failure or invalid entries.
 pub fn ChannelManager::load_config(
   self : ChannelManager,
 ) -> Result[Unit, ChannelError] {
-  // Placeholder: In production this reads from self.config_path
-  let _ = self.config_path
-  self.configs = []
+  if !@fs.path_exists(self.config_path) {
+    self.configs = []
+    return Ok(())
+  }
+  let content = @fs.read_file_to_string(self.config_path) catch {
+    e => return Err(ChannelError("Failed to read config file: \{e}"))
+  }
+  let json = @json.parse(content) catch {
+    e => return Err(ChannelError("Invalid JSON in config file: \{e}"))
+  }
+  let root = match json {
+    Object(o) => o
+    _ => return Err(ChannelError("Config root must be an object"))
+  }
+  let channels_json = match root.get("channels") {
+    Some(Array(arr)) => arr
+    Some(_) => return Err(ChannelError("'channels' must be an array"))
+    None => []
+  }
+  let parsed : Array[ChannelConfig] = []
+  for entry in channels_json {
+    match parse_channel_config_entry(entry) {
+      Some(cfg) => parsed.push(cfg)
+      None =>
+        return Err(ChannelError("Invalid channel entry in config: \{entry}"))
+    }
+  }
+  self.configs = parsed
   Ok(())
+}
+
+///|
+/// Parse a single channel config entry from JSON.
+/// Expected shape: { "platform": "feishu", "enabled": true, "settings": {...} }
+fn parse_channel_config_entry(json : Json) -> ChannelConfig? {
+  let obj = match json {
+    Object(o) => o
+    _ => return None
+  }
+  let platform_str = match obj.get("platform") {
+    Some(String(s)) => s
+    _ => return None
+  }
+  let platform = match Platform::from_string(platform_str) {
+    Some(p) => p
+    None => return None
+  }
+  let enabled = match obj.get("enabled") {
+    Some(True) => true
+    _ => false
+  }
+  let settings : Map[String, String] = {}
+  match obj.get("settings") {
+    Some(Object(s)) =>
+      for k, v in s {
+        match v {
+          String(str_val) => settings.set(k, str_val)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  Some({ platform, enabled, settings })
 }
 
 ///|

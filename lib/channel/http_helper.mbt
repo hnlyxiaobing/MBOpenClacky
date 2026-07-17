@@ -248,3 +248,93 @@ pub const WEIXIN_API_BASE : String = "https://ilinkai.weixin.qq.com"
 
 ///|
 pub const WEIXIN_CDN_BASE : String = "https://novac2c.cdn.weixin.qq.com/c2c"
+
+///|
+/// Default HTTP timeout for channel API calls (30 seconds).
+pub const CHANNEL_HTTP_TIMEOUT_MS : Int = 30_000
+
+///|
+/// Execute an HTTP POST request with JSON body and parse the JSON response.
+/// Returns Err on network failure, non-2xx status, or JSON parse failure.
+pub fn http_post_json(
+  url : String,
+  headers : Array[(String, String)],
+  body : String,
+) -> Result[Json, ChannelError] {
+  let resp = @client.http_post(url, body, headers, CHANNEL_HTTP_TIMEOUT_MS) catch {
+    e => return Err(ChannelError("HTTP POST failed: \{e}"))
+  }
+  match resp {
+    Ok(r) => {
+      if !is_success_status(r.status_code) {
+        return Err(http_status_error(r.status_code, r.body))
+      }
+      parse_json_response(r.body)
+    }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
+/// Execute an HTTP GET request and parse the JSON response.
+pub fn http_get_json(
+  url : String,
+  headers : Array[(String, String)],
+) -> Result[Json, ChannelError] {
+  let resp = @client.http_get(url, headers, CHANNEL_HTTP_TIMEOUT_MS) catch {
+    e => return Err(ChannelError("HTTP GET failed: \{e}"))
+  }
+  match resp {
+    Ok(r) => {
+      if !is_success_status(r.status_code) {
+        return Err(http_status_error(r.status_code, r.body))
+      }
+      parse_json_response(r.body)
+    }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
+/// Extract `message_id` from a Feishu send-message response.
+/// Path: data.message_id
+pub fn extract_feishu_message_id(json : Json) -> String? {
+  match json {
+    Object(obj) =>
+      match obj.get("data") {
+        Some(Object(data)) =>
+          match data.get("message_id") {
+            Some(String(id)) => Some(id)
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Extract `id` from a Discord send-message response.
+pub fn extract_discord_message_id(json : Json) -> String? {
+  match json {
+    Object(obj) =>
+      match obj.get("id") {
+        Some(String(id)) => Some(id)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Extract `processQueryKey` from a DingTalk robot send-message response.
+pub fn extract_dingtalk_message_id(json : Json) -> String? {
+  match json {
+    Object(obj) =>
+      match obj.get("processQueryKey") {
+        Some(String(k)) => Some(k)
+        _ => None
+      }
+    _ => None
+  }
+}

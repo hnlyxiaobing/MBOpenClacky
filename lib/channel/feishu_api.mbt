@@ -68,38 +68,33 @@ pub fn FeishuApiClient::build_auth_body(self : FeishuApiClient) -> Json {
 pub fn FeishuApiClient::request_token(
   self : FeishuApiClient,
 ) -> Result[String, ChannelError] {
-  let _url = self.auth_url()
-  let _body = self.build_auth_body()
-  let _headers = HttpHeaders::new().content_type("application/json")
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // let json = parse_json_response(response_body)?
-  // match json {
-  //   Object(obj) => {
-  //     match obj.get("code") {
-  //       Some(Number(n, ..)) if n.to_int() == 0 => {
-  //         match obj.get("tenant_access_token") {
-  //           Some(String(token)) => {
-  //             let expire = match obj.get("expire") {
-  //               Some(Number(e, ..)) => e.to_int() * 1000
-  //               _ => 7200_000
-  //             }
-  //             self.token_cache.set(token, expire)
-  //             Ok(token)
-  //           }
-  //           _ => Err(ChannelError("Missing tenant_access_token in auth response"))
-  //         }
-  //       }
-  //       _ => Err(ChannelError("Auth failed: " + extract_api_error(json)))
-  //     }
-  //   }
-  //   _ => Err(ChannelError("Invalid auth response"))
-  // }
-  Err(
-    ChannelError(
-      "FeishuApiClient::request_token not yet wired to HTTP transport",
-    ),
-  )
+  let url = self.auth_url()
+  let body = self.build_auth_body().to_json().stringify()
+  let headers = HttpHeaders::new().content_type("application/json").to_array()
+  let json = match http_post_json(url, headers, body) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match json {
+    Object(obj) =>
+      match obj.get("code") {
+        Some(Number(n, ..)) if n.to_int() == 0 =>
+          match obj.get("tenant_access_token") {
+            Some(String(token)) => {
+              let expire = match obj.get("expire") {
+                Some(Number(e, ..)) => e.to_int() * 1000
+                _ => 7200_000
+              }
+              self.token_cache.set(token, expire)
+              Ok(token)
+            }
+            _ =>
+              Err(ChannelError("Missing tenant_access_token in auth response"))
+          }
+        _ => Err(ChannelError("Feishu auth failed: " + extract_api_error(json)))
+      }
+    _ => Err(ChannelError("Invalid Feishu auth response"))
+  }
 }
 
 ///|

@@ -1,4 +1,11 @@
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
 }
+
+options(
+  // lib/client/http_native.c requires libcurl on Linux/macOS for native tests.
+  link: { "native": { "cc-link-flags": "-lcurl" } },
+)
