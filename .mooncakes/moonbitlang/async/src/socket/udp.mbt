@@ -45,14 +45,11 @@ pub async fn UdpClient::UdpClient(addr : Addr) -> UdpClient {
   let context = "@socket.UdpClient::new()"
   let family = addr.family()
   let sock = make_udp_socket(family, multicast=false, context~)
-  let io = @event_loop.IoHandle::from_fd(sock, kind=Socket)
+  let io = @event_loop.IoHandle::from_fd(sock, kind=Socket, read_only=true)
   try {
     let dst_addr = if addr.is_multicast() {
-      if @event_loop.IS_WINDOWS {
-        let local_addr = match family {
-          IPv4 => ipv4_any
-          IPv6 => ipv6_any
-        }
+      if @event_loop.platform is Windows {
+        let local_addr = Addr::any(family)
         io.bind(local_addr.0, context~)
       }
       Some(addr)
@@ -278,7 +275,7 @@ pub async fn UdpServer::multicast(
   let sock = make_udp_socket(family, multicast=true, context~)
   let io = @event_loop.IoHandle::from_fd(sock, kind=Socket)
   try {
-    if @event_loop.IS_WINDOWS {
+    if @event_loop.platform is Windows {
       let local_addr = Addr::new(0, multi_addr.port())
       io.bind(local_addr.0, context~)
     } else {
@@ -461,7 +458,7 @@ pub async fn UdpClient::recv(
   offset? : Int = 0,
   max_len? : Int = buf.length() - offset,
 ) -> Int {
-  self.io.read(buf, offset~, len=max_len, context="@socket.UdpClient::recv")
+  self.io.read(buf, offset~, len=max_len, context="@socket.UdpClient::recv()")
 }
 
 ///|
@@ -481,7 +478,7 @@ pub async fn UdpClient::recvfrom(
     offset~,
     len=max_len,
     addr=addr.0,
-    context="@socket.UdpClient::recvfrom",
+    context="@socket.UdpClient::recvfrom()",
   )
   (n_read, addr)
 }
@@ -513,7 +510,7 @@ pub async fn UdpServer::recvfrom(
     offset~,
     len=max_len,
     addr=addr.0,
-    context="@socket.UdpServer::recvfrom",
+    context="@socket.UdpServer::recvfrom()",
   )
   (n_read, addr)
 }
@@ -564,7 +561,7 @@ pub async fn UdpServer::sendto(
     offset~,
     len~,
     addr=addr.0,
-    context="@socket.UdpServer::sendto",
+    context="@socket.UdpServer::sendto()",
   )
   |> ignore
 }

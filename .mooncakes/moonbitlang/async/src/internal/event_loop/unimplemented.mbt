@@ -19,7 +19,6 @@ let _ignore_unused_import : Unit = {
   ignore(@fd_util.unimplemented)
   ignore(@os_string.unimplemented)
   ignore(@os_error.unimplemented)
-  ignore(@time.ms_since_epoch)
   ignore(@coroutine.is_being_cancelled)
 }
 
@@ -37,4 +36,11 @@ pub fn Timer::new(duration : Int, callback : () -> Unit) -> Timer {
 pub fn Timer::cancel(timer : Timer) -> Unit {
   ignore(timer)
   abort("`Timer::cancel()` is unimplemented on WASM backend")
+}
+
+///|
+#warnings("-unused_async")
+pub async fn sleep(duration : Int) -> Unit {
+  ignore(duration)
+  abort("`sleep()` is unimplemented on WASM backend")
 }

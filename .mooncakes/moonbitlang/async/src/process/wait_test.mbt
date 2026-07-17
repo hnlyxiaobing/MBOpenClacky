@@ -28,7 +28,7 @@ async test "basic wait" {
     let result = @process.run(test_prog, ["750"])
     log.write_string("process completed with \{result}\n")
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|750ms tick
@@ -41,7 +41,7 @@ async test "basic wait" {
 
 ///|
 async test "wait exitcode" {
-  @debug.debug_inspect(@process.run(shell, ["-c", "exit 42"]), content="42")
+  inspect(@process.run(shell, ["-c", "exit 42"]), content="42")
 }
 
 ///|
@@ -58,13 +58,28 @@ async test "wait_pid" {
     let pid = @process.spawn_orphan(test_prog, ["1000", "-exit-code", "42"])
     log.write_string("process terminated with \{@process.wait_pid(pid)}\n")
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|tick
       #|process terminated with 42
       #|tick
       #|
+    ),
+  )
+}
+
+///|
+async test "wait exitcode STILL_ACTIVE" {
+  guard @event_loop.platform is Windows else {  }
+  // `259` is the special value for `STILL_ACTIVE`,
+  // wihch is returned by `GetExitCodeProcess` when the process is still running on Windows.
+  // However, 259 can also be a valid exit code,
+  // so we should not use it to determine whether the process has exited or not.
+  inspect(
+    @process.run(shell, ["-c", "exit 259"]),
+    content=(
+      #|259
     ),
   )
 }

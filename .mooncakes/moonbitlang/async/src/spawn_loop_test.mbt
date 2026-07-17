@@ -15,27 +15,23 @@
 ///|
 async test "spawn_loop basic" {
   let log = StringBuilder::new()
-  log.write_string(
-    @debug.to_string(
-      try? @async.with_task_group(root => {
-        let mut i = 0
-        root.spawn_loop() <| () => {
-          log.write_string("tick \{i}\n")
-          i = i + 1
-          if i >= 3 {
-            raise @async.BreakFromSpawnLoop
-          }
-        }
-      }),
-    ),
-  )
-  @debug.debug_inspect(
+  @async.with_task_group(root => {
+    let mut i = 0
+    root.spawn_loop() <| () => {
+      log.write_string("tick \{i}\n")
+      i = i + 1
+      if i >= 3 {
+        raise @async.BreakFromSpawnLoop
+      }
+    }
+  })
+  inspect(
     log.to_string(),
     content=(
       #|tick 0
       #|tick 1
       #|tick 2
-      #|Ok(())
+      #|
     ),
   )
 }
@@ -43,27 +39,26 @@ async test "spawn_loop basic" {
 ///|
 async test "spawn_loop basic-error" {
   let log = StringBuilder::new()
-  log.write_string(
-    @debug.to_string(
-      try? @async.with_task_group(root => {
-        let mut i = 0
-        root.spawn_loop() <| () => {
-          log.write_string("tick \{i}\n")
-          i = i + 1
-          if i >= 3 {
-            raise Err
-          }
+  let err = @test_util.expect_error_async <| () => {
+    @async.with_task_group(root => {
+      let mut i = 0
+      root.spawn_loop() <| () => {
+        log.write_string("tick \{i}\n")
+        i = i + 1
+        if i >= 3 {
+          raise Err
         }
-      }),
-    ),
-  )
-  @debug.debug_inspect(
+      }
+    })
+  }
+  log.write_string(@debug.to_string(err))
+  inspect(
     log.to_string(),
     content=(
       #|tick 0
       #|tick 1
       #|tick 2
-      #|Err(Err)
+      #|Err
     ),
   )
 }
@@ -73,9 +68,9 @@ async test "spawn_loop retry-exponential" {
   let log = []
   @async.with_task_group() <| group => {
     let mut i = 0
-    let start = @async.now()
+    let start = @env.now()
     fn tick() {
-      (@async.now() - start + 50).to_int() / 200
+      (@env.now() - start + 50).to_int() / 200
     }
     group.spawn_loop(
       retry=ExponentialDelay(initial=200, factor=2, maximum=600),

@@ -30,7 +30,7 @@ async test "aqueue basic" {
       }
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|put(0)
@@ -68,7 +68,7 @@ async test "aqueue multi-reader" {
     queue.put(1)
     queue.put(2)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 2: get => 1
@@ -81,7 +81,7 @@ async test "aqueue multi-reader" {
 ///|
 async test "aqueue cancellation" {
   let log = StringBuilder::new()
-  let queue : @aqueue.Queue[Int] = @aqueue.Queue(kind=Unbounded)
+  let queue : @aqueue.Queue[Int] = Queue(kind=Unbounded)
   @async.with_timeout(350, () => {
     let x = queue.get() catch {
       err => {
@@ -94,7 +94,7 @@ async test "aqueue cancellation" {
     @async.TimeoutError => ()
     err => raise err
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|`queue.get()` cancelled with Cancelled
@@ -116,7 +116,7 @@ async test "aqueue cancellation no_swallow" {
     @async.sleep(100)
     debug_inspect(q.try_get(), content="None")
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|get() => 42
@@ -149,7 +149,7 @@ async test "aqueue fairness" {
     queue.put(3)
     queue.put(4)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 1: get => 1
@@ -185,7 +185,7 @@ async test "aqueue fairness2" {
       }
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 1: get => 1

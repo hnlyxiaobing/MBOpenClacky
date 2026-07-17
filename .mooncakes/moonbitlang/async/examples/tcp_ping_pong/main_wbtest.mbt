@@ -19,9 +19,8 @@ async test "main" {
     log..write_string(msg).write_string("\n")
   }
 
-  let result = try? main_prog(println)
-  log.write_string(@debug.to_string(result))
-  @debug.debug_inspect(
+  main_prog(println)
+  inspect(
     log.to_string(),
     content=(
       #|received new connection
@@ -74,7 +73,7 @@ async test "main" {
       #|server initiate terminate
       #|client 6 received: pong
       #|server terminate: ServerTerminate
-      #|Ok(())
+      #|
     ),
   )
 }

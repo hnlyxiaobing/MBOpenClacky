@@ -17,5 +17,5 @@
 test "instant_elapsed_as_secs_f64() returns a reasonable value" {
   let i = instant_now()
   let elapsed = instant_elapsed_as_secs_f64(i)
-  @debug.debug_inspect(elapsed >= 0.0, content="true")
+  inspect(elapsed >= 0.0, content="true")
 }

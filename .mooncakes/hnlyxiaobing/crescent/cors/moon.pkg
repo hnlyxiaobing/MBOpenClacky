@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+  "moonbitlang/async/os_error",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/encoding/utf8",
+  "hnlyxiaobing/crescent",
+  "hnlyxiaobing/crescent/httputil" @httputil,
+}
+
+warnings = "-29+74"

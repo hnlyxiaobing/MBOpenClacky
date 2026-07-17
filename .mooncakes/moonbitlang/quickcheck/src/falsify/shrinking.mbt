@@ -3,13 +3,13 @@ priv enum ShrinkHistory[P, N] {
   ShrinkTo(P, ShrinkHistory[P, N])
   ShrinkDone(Iter[N])
   ShrinkStopped
-} derive(Debug)
+} derive(Show)
 
 ///|
 struct ShrinkExplain[P, N] {
   initial : P
   history : ShrinkHistory[P, N]
-} derive(Debug)
+} derive(Show)
 
 ///|
 pub fn[P, N] ShrinkExplain::limit_steps(

@@ -34,14 +34,15 @@
 pub async fn spawn_orphan(
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   stdout? : &ProcessOutput,
   stderr? : &ProcessOutput,
   cwd? : StringView,
+  no_console_window? : Bool = false,
 ) -> Int {
-  raw_spawn(
+  let proc = raw_spawn(
     cmd,
     args,
     extra_env~,
@@ -50,9 +51,12 @@ pub async fn spawn_orphan(
     stdout~,
     stderr~,
     cwd~,
+    no_console_window~,
     is_orphan=true,
     context="@process.spawn_orphan()",
-  ).pid()
+  )
+  defer proc.close()
+  proc.pid
 }
 
 ///|
@@ -98,6 +102,13 @@ pub async fn wait_pid(pid : Int) -> Int {
 /// If `cwd` is present, the spawned command will be executed
 /// in the directory specified by `cwd`.
 ///
+/// When `no_console_window` is `true` (`false` by default),
+/// creation of a new console window will be disabled on Windows.
+/// By default a new console window may be created
+/// when the calling process is a GUI application
+/// and the child process is a conlose application.
+/// `no_console_window` has no effect on non-Windows platforms.
+///
 /// If current task is cancelled while blocking,
 /// `cancel_handler` will be used to automatically stop the process.
 /// `@process.run` will not return until the process terminates, even if cancelled.
@@ -110,12 +121,13 @@ pub async fn wait_pid(pid : Int) -> Int {
 pub async fn run(
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   stdout? : &ProcessOutput,
   stderr? : &ProcessOutput,
   cwd? : StringView,
+  no_console_window? : Bool = false,
   cancel_handler? : CancellationHandler = graceful_cancel(timeout=5000),
 ) -> Int {
   let context = "@process.run()"
@@ -128,11 +140,12 @@ pub async fn run(
     stdout~,
     stderr~,
     cwd~,
+    no_console_window~,
     is_orphan=false,
     context~,
   )
   defer process.close()
-  let pid = process.pid()
+  let pid = process.pid
   process.wait_pid(context~) catch {
     _ if @coroutine.is_being_cancelled() =>
       @async.protect_from_cancel() <| () => {
@@ -192,12 +205,13 @@ pub async fn[X] spawn(
   group : @async.TaskGroup[X],
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   stdout? : &ProcessOutput,
   stderr? : &ProcessOutput,
   cwd? : StringView,
+  no_console_window? : Bool = false,
   cancel_handler? : CancellationHandler = graceful_cancel(timeout=5000),
   no_wait? : Bool,
 ) -> Process {
@@ -211,10 +225,11 @@ pub async fn[X] spawn(
     stdout~,
     stderr~,
     cwd~,
+    no_console_window~,
     is_orphan=false,
     context~,
   )
-  let pid = process.pid()
+  let pid = process.pid
   let result = group.spawn(no_wait?, () => {
     defer process.close()
     process.wait_pid(context~) catch {
@@ -239,17 +254,28 @@ pub async fn[X] spawn(
 pub async fn collect_stdout(
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   stderr? : &ProcessOutput,
   cwd? : StringView,
+  no_console_window? : Bool,
 ) -> (Int, &@io.Data) {
   let (r, w) = read_from_process()
   @async.with_task_group() <| group => {
     defer r.close()
     let exit_code = group.spawn(() => {
-      run(cmd, args, extra_env~, inherit_env~, stdin?, stdout=w, stderr?, cwd?)
+      run(
+        cmd,
+        args,
+        extra_env~,
+        inherit_env~,
+        stdin?,
+        stdout=w,
+        stderr?,
+        cwd?,
+        no_console_window?,
+      )
     })
     let output = r.read_all()
     (exit_code.wait(), output)
@@ -264,17 +290,28 @@ pub async fn collect_stdout(
 pub async fn collect_stderr(
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   stdout? : &ProcessOutput,
   cwd? : StringView,
+  no_console_window? : Bool,
 ) -> (Int, &@io.Data) {
   let (r, w) = read_from_process()
   @async.with_task_group() <| group => {
     defer r.close()
     let exit_code = group.spawn(() => {
-      run(cmd, args, extra_env~, inherit_env~, stdin?, stdout?, stderr=w, cwd?)
+      run(
+        cmd,
+        args,
+        extra_env~,
+        inherit_env~,
+        stdin?,
+        stdout?,
+        stderr=w,
+        cwd?,
+        no_console_window?,
+      )
     })
     let output = r.read_all()
     (exit_code.wait(), output)
@@ -290,10 +327,11 @@ pub async fn collect_stderr(
 pub async fn collect_output(
   cmd : StringView,
   args : ArrayView[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   cwd? : StringView,
+  no_console_window? : Bool,
 ) -> (Int, &@io.Data, &@io.Data) {
   let (r_out, w_out) = read_from_process()
   let (r_err, w_err) = read_from_process()
@@ -308,6 +346,7 @@ pub async fn collect_output(
         stdout=w_out,
         stderr=w_err,
         cwd?,
+        no_console_window?,
       )
     })
     let stdout = group.spawn(() => {
@@ -331,18 +370,64 @@ pub async fn collect_output(
 pub async fn collect_output_merged(
   cmd : StringView,
   args : Array[String],
-  extra_env? : Map[String, String] = {},
+  extra_env? : Map[String, String] = Map([]),
   inherit_env? : Bool = true,
   stdin? : &ProcessInput,
   cwd? : StringView,
+  no_console_window? : Bool,
 ) -> (Int, &@io.Data) {
   let (r, w) = read_from_process()
   @async.with_task_group() <| group => {
     defer r.close()
     let exit_code = group.spawn(() => {
-      run(cmd, args, extra_env~, inherit_env~, stdin?, stdout=w, stderr=w, cwd?)
+      run(
+        cmd,
+        args,
+        extra_env~,
+        inherit_env~,
+        stdin?,
+        stdout=w,
+        stderr=w,
+        cwd?,
+        no_console_window?,
+      )
     })
     let output = r.read_all()
     (exit_code.wait(), output)
+  }
+}
+
+///|
+priv suberror InvalidProcessArgument {
+  InteriorNul(String)
+} derive(Debug)
+
+///|
+fn check_no_nul(
+  context : String,
+  value : StringView,
+) -> Unit raise InvalidProcessArgument {
+  if value.find("\u{0}") is Some(_) {
+    raise InteriorNul(context)
+  }
+}
+
+///|
+fn check_process_arguments(
+  cmd : StringView,
+  args : ArrayView[String],
+  extra_env : Map[String, String],
+  cwd : StringView?,
+) -> Unit raise InvalidProcessArgument {
+  check_no_nul("command", cmd)
+  for arg in args {
+    check_no_nul("argument", arg)
+  }
+  for k, v in extra_env {
+    check_no_nul("environment key", k)
+    check_no_nul("environment value", v)
+  }
+  if cwd is Some(cwd) {
+    check_no_nul("working directory", cwd)
   }
 }

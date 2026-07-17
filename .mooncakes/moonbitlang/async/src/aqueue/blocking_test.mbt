@@ -146,7 +146,7 @@ async test "blocking fairness2" {
       }
     }
     @async.sleep(200)
-    @debug.debug_inspect(queue.get(), content="0")
+    inspect(queue.get(), content="0")
   }
   json_inspect(log, content=[
     "task 1: put() completed", "task 1: get() => 0", "task 2: put() completed", "task 2: get() => 0",
@@ -261,7 +261,7 @@ async test "blocked zero buffered try_put" {
   let log = []
   @async.with_task_group() <| group => {
     let q = @async.Queue(kind=Blocking(0))
-    @debug.assert_eq(false, q.try_put(-1))
+    assert_eq(false, q.try_put(-1))
     for _ in 0..<3 {
       group.spawn_bg() <| () => {
         let x = q.get()
@@ -277,7 +277,7 @@ async test "blocked zero buffered try_put" {
         }
       }
     }
-    @debug.assert_eq(false, q.try_put(-1))
+    assert_eq(false, q.try_put(-1))
   }
   json_inspect(log, content=[
     "try_put(0)", "try_put(1)", "try_put(2)", "get() => 0", "get() => 1", "get() => 2",

@@ -20,21 +20,23 @@ async test "Promise::from_async" {
       42
     }
   })
-  @debug.debug_inspect(result, content="42")
+  inspect(result, content="42")
 }
 
 ///|
 async test "Promise::from_async cancellation" {
   let mut worker_finished = false
-  let result = try? @async.with_timeout(100, () => {
-    @js_async.run_promise() <| abort_signal => {
-      @js_async.Promise::from_async(abort_signal~) <| () => {
-        @async.sleep(200)
-        worker_finished = true
+  let result = @test_util.expect_error_async <| () => {
+    @async.with_timeout(100, () => {
+      @js_async.run_promise() <| abort_signal => {
+        @js_async.Promise::from_async(abort_signal~) <| () => {
+          @async.sleep(200)
+          worker_finished = true
+        }
       }
-    }
-  })
-  debug_inspect(result, content="Err(TimeoutError)")
+    })
+  }
+  debug_inspect(result, content="TimeoutError")
   assert_false(worker_finished)
 }
 
@@ -47,9 +49,9 @@ async test "Promise::from_async cancellation 2" {
   @async.sleep(100)
   controller.abort()
   debug_inspect(
-    try? p.wait(),
+    @test_util.expect_error_async(() => p.wait()),
     content=(
-      #|Err(<moonbitlang/async/js_async.JsError.JsError: ...>)
+      #|<moonbitlang/async/js_async.JsError.JsError: ...>
     ),
   )
 }
@@ -62,7 +64,7 @@ async test "Promise::from_async cancellation 3" {
   })
   @async.sleep(200)
   controller.abort()
-  debug_inspect(try? p.wait(), content="Ok(())")
+  p.wait()
 }
 
 ///|
@@ -82,7 +84,7 @@ async test "read file" {
   let content = @js_async.run_promise(signal => {
     (fsPromises.readFile)("LICENSE", { encoding: "utf8", signal })
   })
-  @debug.debug_inspect(
+  inspect(
     content,
     content=(
       #|

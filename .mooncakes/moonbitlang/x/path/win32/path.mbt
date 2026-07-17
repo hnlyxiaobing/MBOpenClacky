@@ -36,7 +36,7 @@ pub impl Show for Path with to_string(path) {
 /// ```moonbit check
 /// test {
 ///   let path : Path = "usr\\local\\bin"
-///   @debug.debug_inspect(path.basename(), content="bin")
+///   inspect(path.basename(), content="bin")
 /// }
 /// ```
 pub fn Path::basename(path : Path) -> StringView {
@@ -59,7 +59,7 @@ pub fn Path::basename(path : Path) -> StringView {
 /// ```moonbit check
 /// test {
 ///   let path : Path = "usr\\local\\bin"
-///   @debug.debug_inspect(path.dirname(), content="usr\\local")
+///   inspect(path.dirname(), content="usr\\local")
 /// }
 /// ```
 pub fn Path::dirname(path : Path) -> Path {
@@ -95,8 +95,8 @@ pub fn Path::dirname(path : Path) -> Path {
 ///|
 test {
   let path : Path = "\\\\\\"
-  @debug.debug_inspect(path.prefix(), content="\\\\\\")
-  // @debug.debug_inspect(path.0.view)
+  inspect(path.prefix(), content="\\\\\\")
+  // inspect(path.0.view)
 }
 
 ///|
@@ -105,7 +105,7 @@ test {
 /// ```moonbit check
 /// test {
 ///   let path : Path = "archive.tar.gz"
-///   @debug.debug_inspect(path.extname(), content=".gz")
+///   inspect(path.extname(), content=".gz")
 /// }
 /// ```
 pub fn Path::extname(path : Path) -> StringView {
@@ -242,7 +242,7 @@ fn join_rest(lhs : StringView, rhs : StringView) -> StringView? {
 /// test {
 ///   let path1 : Path = "C::\\Program Files"
 ///   let path2 : Path = "App"
-///   @debug.debug_inspect(path1.join(path2), content="C::\\Program Files\\App")
+///   inspect(path1.join(path2), content="C::\\Program Files\\App")
 /// }
 /// ```
 pub fn Path::join(lhs : Path, rhs : Path) -> Path {
@@ -290,7 +290,7 @@ pub fn Path::join(lhs : Path, rhs : Path) -> Path {
 /// ```moonbit check
 /// test {
 ///   let path : Path = "C:\\usr\\\\local\\..\\bin\\"
-///   @debug.debug_inspect(path.normalize(), content="C:\\usr\\bin")
+///   inspect(path.normalize(), content="C:\\usr\\bin")
 /// }
 /// ```
 pub fn Path::normalize(path : Path) -> Path {
@@ -316,7 +316,7 @@ pub fn Path::normalize(path : Path) -> Path {
 /// test {
 ///   let path : Path = "C:\\Users\\Alice\\Documents\\Project"
 ///   let base : Path = "C:\\Users\\Alice"
-///   @debug.debug_inspect(path.relative(base~), content="Documents\\Project")
+///   inspect(path.relative(base~), content="Documents\\Project")
 /// }
 /// ```
 pub fn Path::relative(path : Path, base~ : Path) -> Path {
@@ -359,7 +359,7 @@ pub fn Path::relative(path : Path, base~ : Path) -> Path {
 /// 
 /// ```moonbit skip nocheck
 /// let path : Path = "Documents\\Project"
-/// @debug.debug_inspect(path.resolve(), content="C:\\your\\current_working_directory\\Documents\\Project")
+/// inspect(path.resolve(), content="C:\\your\\current_working_directory\\Documents\\Project")
 /// ```
 pub fn Path::resolve(path : Path) -> Path {
   if Path::is_absolute(path) {

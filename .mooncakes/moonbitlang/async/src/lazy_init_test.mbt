@@ -15,9 +15,9 @@
 ///|
 async test "lazy init basic" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn current_tick() -> Int {
-    (@async.now() - start + 20).to_int() / 200
+    (@env.now() - start + 20).to_int() / 200
   }
 
   let x = @async.Lazy(() => {
@@ -38,29 +38,29 @@ async test "lazy init basic" {
 
 ///|
 async test "lazy init failure" {
-  let x : @async.Lazy[Unit] = @async.Lazy(() => {
+  let x : @async.Lazy[Unit] = Lazy(() => {
     @async.sleep(200)
     raise Failure::Failure("msg")
   })
-  let start = @async.now()
+  let start = @env.now()
   fn current_tick() -> Int {
-    (@async.now() - start + 20).to_int() / 200
+    (@env.now() - start + 20).to_int() / 200
   }
 
-  let result = try? x.wait()
-  @debug.debug_inspect(current_tick(), content="1")
+  let result = @test_util.expect_error_async(() => x.wait())
+  inspect(current_tick(), content="1")
   debug_inspect(
     result,
     content=(
-      #|Err(Failure("msg"))
+      #|Failure("msg")
     ),
   )
-  let result = try? x.wait()
-  @debug.debug_inspect(current_tick(), content="1")
+  let result = @test_util.expect_error_async(() => x.wait())
+  inspect(current_tick(), content="1")
   debug_inspect(
     result,
     content=(
-      #|Err(Failure("msg"))
+      #|Failure("msg")
     ),
   )
 }
@@ -68,9 +68,9 @@ async test "lazy init failure" {
 ///|
 async test "lazy init cancelled" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn current_tick() -> Int {
-    (@async.now() - start + 20).to_int() / 200
+    (@env.now() - start + 20).to_int() / 200
   }
 
   let x = @async.Lazy(() => {
@@ -97,9 +97,9 @@ async test "lazy init cancelled" {
 ///|
 async test "lazy init multiple waiters 1" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn current_tick() -> Int {
-    (@async.now() - start + 20).to_int() / 200
+    (@env.now() - start + 20).to_int() / 200
   }
 
   let x = @async.Lazy(() => {
@@ -128,9 +128,9 @@ async test "lazy init multiple waiters 1" {
 ///|
 async test "lazy init multiple waiters 2" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn current_tick() -> Int {
-    (@async.now() - start + 20).to_int() / 200
+    (@env.now() - start + 20).to_int() / 200
   }
 
   let x = @async.Lazy(() => {

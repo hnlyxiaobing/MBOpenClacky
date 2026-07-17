@@ -6,9 +6,14 @@ import {
 import {
   "moonbitlang/async",
   "moonbitlang/async/fs",
+  "moonbitlang/async/internal/test_util",
 } for "test"
 
 options(
   "native-stub": [ "stub.c" ],
-  targets: { "error.mbt": [ "native" ], "os_error_test.mbt": [ "native" ] },
+  targets: {
+    "error.mbt": [ "native" ],
+    "error.wasm.mbt": [ "wasm" ],
+    "os_error_test.mbt": [ "native" ],
+  },
 )

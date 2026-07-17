@@ -23,7 +23,7 @@ async test "read_some basic" {
       log.write_string("received chunk: \{@utf8.decode(chunk)}\n")
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log,
     content=(
       #|writing 4 bytes of data
@@ -48,7 +48,7 @@ async test "read_some length limit 1" {
       log.write_string("received chunk: \{@utf8.decode(chunk)}\n")
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log,
     content=(
       #|writing 4 bytes of data
@@ -77,7 +77,7 @@ async test "read_some length limit 2" {
       log.write_string("received chunk: \{@utf8.decode(chunk)}\n")
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log,
     content=(
       #|writing 4 bytes of data
@@ -107,7 +107,7 @@ async test "read_some length limit 3" {
       log.write_string("received chunk: \{@utf8.decode(chunk)}\n")
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log,
     content=(
       #|received chunk: ab

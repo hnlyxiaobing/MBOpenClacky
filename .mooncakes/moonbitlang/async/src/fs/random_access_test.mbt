@@ -18,7 +18,7 @@ async test "write_at" {
   // initialize
   @fs.write_file(path, "abcdef", create_mode=CreateOrTruncate, sync=Full)
   // first read
-  @debug.debug_inspect(@fs.read_file(path).text(), content="abcdef")
+  inspect(@fs.read_file(path).text(), content="abcdef")
   // update content
   {
     let w = @fs.open(path, mode=WriteOnly)
@@ -31,7 +31,7 @@ async test "write_at" {
   {
     let r = @fs.open(path, mode=ReadOnly)
     defer r.close()
-    @debug.debug_inspect(r.read_all().text(), content="123456")
+    inspect(r.read_all().text(), content="123456")
   }
   @fs.remove(path)
 }
@@ -49,7 +49,7 @@ async test "read_at" {
     json_inspect(r.read_exactly(2), content="ab")
     let buf = FixedArray::make(2, b'\x00')
     let n = r.read_at(buf, position=5)
-    @debug.debug_inspect(n, content="1")
+    inspect(n, content="1")
     json_inspect(buf.unsafe_reinterpret_as_bytes()[:n], content="f")
   }
   @fs.remove(path)

@@ -1,7 +1,7 @@
 import {
-  "moonbitlang/core/debug",
   "moonbitlang/async/internal/fd_util",
   "moonbitlang/async/internal/event_loop",
+  "moonbitlang/async/io",
 }
 
 import {

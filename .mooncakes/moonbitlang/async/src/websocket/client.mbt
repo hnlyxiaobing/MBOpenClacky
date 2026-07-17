@@ -32,7 +32,7 @@
 pub async fn Conn::from_http_client(
   conn : @http.Client,
   path : StringView,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Conn {
   // Ref : https://datatracker.ietf.org/doc/html/rfc6455#section-4.1
   let seed = @tls.rand_bytes(32)
@@ -44,7 +44,7 @@ pub async fn Conn::from_http_client(
   nonce.unsafe_write_uint32_le(4, rand.uint())
   nonce.unsafe_write_uint32_le(8, rand.uint())
   nonce.unsafe_write_uint32_le(12, rand.uint())
-  let key = base64_encode(nonce.unsafe_reinterpret_as_bytes())
+  let key = @base64.encode(nonce.unsafe_reinterpret_as_bytes())
   extra_headers["Connection"] = "Upgrade"
   extra_headers["Upgrade"] = "websocket"
   extra_headers["Sec-WebSocket-Key"] = key
@@ -110,7 +110,7 @@ pub async fn Conn::from_http_client(
 #as_free_fn
 pub async fn Conn::connect(
   url : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : @http.Client,
 ) -> Conn {
   guard url.find("://") is Some(protocol_len) else {

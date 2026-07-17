@@ -87,6 +87,10 @@ fn CreateMode::to_int(self : CreateMode) -> Int = "%identity"
 ///   see `SyncMode` for more details. The default is `NoSync`
 ///
 /// - if `append` is `true` (`false` by default), the file will be opened in append mode.
+///   Under append mode, sequential write (via the `@io.Writer` interface)
+///   will always write to the end of the file, even if the file is modified externally.
+///   The semantic of reading from the file is unaffected by `append`.
+///   Random access write (`write_at`) is forbidden for file opened in append mode.
 ///
 /// - `create_mode` specify how to handle file creation, truncation, etc.
 ///   See the type `CreateMode` for more details.
@@ -189,12 +193,17 @@ pub async fn create(
 ///
 /// - EOF is reached before reading all requested data
 /// - the file is a named pipe, and not enough data is available
-pub impl @io.Reader for File with _direct_read(self, buf, offset~, max_len~) {
+///
+/// When reading a file via the `@io.Reader` interface,
+/// the content of the file will be read as a byte stream.
+/// The position of the read stream in the file is
+/// independent of the write stream (via the `@io.Writer` interface)
+pub impl @io.Reader for File with fn _direct_read(self, buf, offset~, max_len~) {
   self.io.read(buf, offset~, len=max_len, context="@fs.File::read()")
 }
 
 ///|
-pub impl @io.Reader for File with _get_internal_buffer(self) {
+pub impl @io.Reader for File with fn _get_internal_buffer(self) {
   self.read_buf
 }
 
@@ -241,7 +250,16 @@ pub async fn File::read_exactly_at(
 }
 
 ///|
-pub impl @io.Writer for File with write_once(self, buf, offset~, len~) {
+/// If the file is opened with `append=true`,
+/// writing to the file via the `@io.Writer` interface
+/// always append content at the end of the file.
+///
+/// If the file is opened with `append=false` (the default),
+/// content written to the file via the `@io.Writer` interface
+/// will be written as a byte stream, starting at offset 0.
+/// The position of the write stream in the file is
+/// independent of the read stream (via the `@io.Reader` interface)
+pub impl @io.Writer for File with fn write_once(self, buf, offset~, len~) {
   self.io.write(buf, offset~, len~, context="@fs.File::write()")
 }
 
@@ -266,7 +284,7 @@ pub async fn File::write_at(
     offset=buf.start_offset(),
     len=buf.length(),
     position~,
-    context="@fs.File::read_at()",
+    context="@fs.File::write_at()",
   )
 }
 
@@ -304,10 +322,22 @@ pub async fn File::lock(self : File, lock : Lock) -> Unit {
 }
 
 ///|
+#cfg(target="native")
 extern "C" fn errno_is_lock_violation(err : Int) -> Bool = "moonbitlang_async_errno_is_lock_violation"
 
 ///|
+#cfg(target="wasm")
+#unsafe_skip_stub_check
+fn errno_is_lock_violation(err : Int) -> Bool = "moonbitlang/async" "fs/errno_is_lock_violation"
+
+///|
+#cfg(target="native")
 extern "C" fn try_lock_ffi(fd : @fd_util.Fd, exclusive~ : Bool) -> Int = "moonbitlang_async_try_lock_file"
+
+///|
+#cfg(target="wasm")
+#unsafe_skip_stub_check
+fn try_lock_ffi(fd : @fd_util.Fd, exclusive~ : Bool) -> Int = "moonbitlang/async" "fs/try_lock_file"
 
 ///|
 /// Try to lock a file.
@@ -336,7 +366,13 @@ pub fn File::try_lock(self : File, lock : Lock) -> Bool raise {
 }
 
 ///|
+#cfg(target="native")
 extern "C" fn unlock_ffi(fd : @fd_util.Fd) -> Int = "moonbitlang_async_unlock_file"
+
+///|
+#cfg(target="wasm")
+#unsafe_skip_stub_check
+fn unlock_ffi(fd : @fd_util.Fd) -> Int = "moonbitlang/async" "fs/unlock_file"
 
 ///|
 /// Unlock a file that was previously locked by this process.
@@ -441,10 +477,7 @@ pub async fn read_file(
   defer file.close()
   let result = file.read_all()
   if sync_timestamp {
-    file.io.fsync(
-      only_data=false,
-      context="@fs.File::read_file(sync_timestamp=true)",
-    )
+    file.io.fsync(only_data=false, context="@fs.read_file(sync_timestamp=true)")
   }
   result
 }

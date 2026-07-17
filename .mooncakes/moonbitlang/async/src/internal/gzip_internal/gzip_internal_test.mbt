@@ -141,9 +141,9 @@ test "gzip decode one byte partial chunks" {
       output_offset += produced
     }
   }
-  @debug.debug_inspect(input_offset, content="48")
-  @debug.debug_inspect(compressed.length(), content="48")
-  @debug.debug_inspect(
+  inspect(input_offset, content="48")
+  inspect(compressed.length(), content="48")
+  inspect(
     output.unsafe_reinterpret_as_bytes()[:output_offset],
     content=(
       #|b"A simple message to compress"
@@ -152,11 +152,43 @@ test "gzip decode one byte partial chunks" {
 }
 
 ///|
+test "gzip decode partial resume copied bytes" {
+  let data = b"A simple message to compress"
+  let compressed = encode(data)
+  let expected = decode(compressed, expected_len=data.length())
+  let output = FixedArray::make(data.length() * 2, b'\x00')
+  let decoder = @gzip_internal.Decoder()
+
+  let (prefix_consumed, prefix_produced) = decoder.write(
+    compressed,
+    input_len=11,
+    output,
+    output_len=output.length(),
+  )
+  guard prefix_consumed == 11
+  decoder.write_partial_data(compressed, input_offset=11, input_len=5)
+  let (consumed, produced) = decoder.write(
+    compressed,
+    input_offset=16,
+    input_len=compressed.length() - 16,
+    output,
+    output_offset=prefix_produced,
+    output_len=output.length() - prefix_produced,
+  )
+  guard 16 + consumed == compressed.length()
+  guard decoder.is_finished()
+  assert_eq(
+    output.unsafe_reinterpret_as_bytes()[:prefix_produced + produced].to_owned(),
+    expected,
+  )
+}
+
+///|
 test "gzip encode min input 1" {
   let data = b"hello_gzip_world"
   let compressed = encode(data, input_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -164,7 +196,7 @@ test "gzip encode min output 1" {
   let data = b"hello_gzip_world"
   let compressed = encode(data, output_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -172,7 +204,7 @@ test "gzip decode min input 1" {
   let data = b"hello_gzip_world"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), input_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -180,7 +212,7 @@ test "gzip decode min output 1" {
   let data = b"hello_gzip_world"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), output_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -188,7 +220,7 @@ test "gzip encode min input abcdef" {
   let data = b"abcdef"
   let compressed = encode(data, input_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -196,7 +228,7 @@ test "gzip encode min output abcdef" {
   let data = b"abcdef"
   let compressed = encode(data, output_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -204,7 +236,7 @@ test "gzip decode min input abcdef" {
   let data = b"abcdef"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), input_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -212,7 +244,7 @@ test "gzip decode min output abcdef" {
   let data = b"abcdef"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), output_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -220,7 +252,7 @@ test "gzip encode min input abcdefgh" {
   let data = b"abcdefgh"
   let compressed = encode(data, input_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -228,7 +260,7 @@ test "gzip encode min output abcdefgh" {
   let data = b"abcdefgh"
   let compressed = encode(data, output_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -236,7 +268,7 @@ test "gzip decode min input abcdefgh" {
   let data = b"abcdefgh"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), input_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -244,7 +276,7 @@ test "gzip decode min output abcdefgh" {
   let data = b"abcdefgh"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), output_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -252,7 +284,7 @@ test "gzip encode min input hello node huffman" {
   let data = b"hello from node huffman stream"
   let compressed = encode(data, input_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -260,7 +292,7 @@ test "gzip encode min output hello node huffman" {
   let data = b"hello from node huffman stream"
   let compressed = encode(data, output_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -268,7 +300,7 @@ test "gzip decode min input hello node huffman" {
   let data = b"hello from node huffman stream"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), input_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -276,7 +308,15 @@ test "gzip decode min output hello node huffman" {
   let data = b"hello from node huffman stream"
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), output_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
+}
+
+///|
+test "gzip encoder hash table survives history wrap" {
+  let data = Bytes::makei(70000, i => (i % 251).to_byte())
+  let compressed = encode(data)
+  let data2 = decode(compressed, expected_len=data.length())
+  assert_eq(data, data2)
 }
 
 ///|
@@ -285,7 +325,7 @@ async test "gzip encode min input source file" {
   let data = @fs.read_file("src/internal/gzip_internal/decoder.mbt").binary()
   let compressed = encode(data, input_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -294,7 +334,7 @@ async test "gzip encode min output source file" {
   let data = @fs.read_file("src/internal/gzip_internal/decoder.mbt").binary()
   let compressed = encode(data, output_step=Min)
   let data2 = decode(compressed, expected_len=data.length())
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -303,7 +343,7 @@ async test "gzip decode min input source file" {
   let data = @fs.read_file("src/internal/gzip_internal/decoder.mbt").binary()
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), input_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|
@@ -312,7 +352,7 @@ async test "gzip decode min output source file" {
   let data = @fs.read_file("src/internal/gzip_internal/decoder.mbt").binary()
   let compressed = encode(data)
   let data2 = decode(compressed, expected_len=data.length(), output_step=Min)
-  @debug.assert_eq(data, data2)
+  assert_eq(data, data2)
 }
 
 ///|

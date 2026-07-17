@@ -15,37 +15,37 @@
 ///|
 test "WinPrefix::VerbatimSymlink" {
   let path = WinPath::parse("\\\\?\\GLOBALROOT\\file")
-  @debug.debug_inspect(path, content="\\\\?\\GLOBALROOT\\file")
+  inspect(path, content="\\\\?\\GLOBALROOT\\file")
   let path = WinPath::parse("\\\\?\\GLOBALROOT\\file.txt")
-  @debug.debug_inspect(path, content="\\\\?\\GLOBALROOT\\file.txt")
+  inspect(path, content="\\\\?\\GLOBALROOT\\file.txt")
   let path = WinPath::parse("\\\\?\\GLOBALROOT\\folder\\")
-  @debug.debug_inspect(path, content="\\\\?\\GLOBALROOT\\folder")
+  inspect(path, content="\\\\?\\GLOBALROOT\\folder")
   let path = WinPath::parse("\\\\?\\GLOBALROOT")
-  @debug.debug_inspect(path, content="\\\\?\\GLOBALROOT\\")
+  inspect(path, content="\\\\?\\GLOBALROOT\\")
 }
 
 ///|
 test "WinPrefix::VerbatimUNC" {
   let path = WinPath::parse("\\\\?\\UNC\\server\\share\\file")
-  @debug.debug_inspect(path, content="\\\\?\\UNC\\server\\share\\file")
+  inspect(path, content="\\\\?\\UNC\\server\\share\\file")
   let path = WinPath::parse("\\\\?\\UNC\\server\\share\\file.log")
-  @debug.debug_inspect(path, content="\\\\?\\UNC\\server\\share\\file.log")
+  inspect(path, content="\\\\?\\UNC\\server\\share\\file.log")
   let path = WinPath::parse("\\\\?\\UNC\\server\\share\\folder\\")
-  @debug.debug_inspect(path, content="\\\\?\\UNC\\server\\share\\folder")
+  inspect(path, content="\\\\?\\UNC\\server\\share\\folder")
   let path = WinPath::parse("\\\\?\\UNC\\server\\share")
-  @debug.debug_inspect(path, content="\\\\?\\UNC\\server\\share")
+  inspect(path, content="\\\\?\\UNC\\server\\share")
 }
 
 ///|
 test "WinPrefix::VerbatimVolumeLetter" {
   let path = WinPath::parse("\\\\?\\C:\\file")
-  @debug.debug_inspect(path, content="\\\\?\\C:\\file")
+  inspect(path, content="\\\\?\\C:\\file")
   let path = WinPath::parse("\\\\?\\C:\\file.md")
-  @debug.debug_inspect(path, content="\\\\?\\C:\\file.md")
+  inspect(path, content="\\\\?\\C:\\file.md")
   let path = WinPath::parse("\\\\?\\C:\\folder\\")
-  @debug.debug_inspect(path, content="\\\\?\\C:\\folder")
+  inspect(path, content="\\\\?\\C:\\folder")
   let path = WinPath::parse("\\\\?\\C:")
-  @debug.debug_inspect(path, content="\\\\?\\C:\\")
+  inspect(path, content="\\\\?\\C:\\")
 }
 
 ///|
@@ -53,145 +53,145 @@ test "WinPrefix::VerbatimVolumeGUID" {
   let path = WinPath::parse(
     "\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}file",
   )
-  @debug.debug_inspect(
+  inspect(
     path,
     content="\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}file\\",
   )
   let path = WinPath::parse(
     "\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}file.png",
   )
-  @debug.debug_inspect(
+  inspect(
     path,
     content="\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}file.png\\",
   )
   let path = WinPath::parse(
     "\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}folder\\",
   )
-  @debug.debug_inspect(
+  inspect(
     path,
     content="\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}folder\\",
   )
   let path = WinPath::parse(
     "\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}",
   )
-  @debug.debug_inspect(path, content="\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}\\")
+  inspect(path, content="\\\\?\\Volume{12345678-1234-1234-1234-1234567890AB}\\")
 }
 
 ///|
 test "WinPrefix::DeviceNS" {
   let path = WinPath::parse("\\\\.\\COM56\\file")
-  @debug.debug_inspect(path, content="\\\\.\\COM56\\file")
+  inspect(path, content="\\\\.\\COM56\\file")
   let path = WinPath::parse("\\\\.\\COM56\\file.bin")
-  @debug.debug_inspect(path, content="\\\\.\\COM56\\file.bin")
+  inspect(path, content="\\\\.\\COM56\\file.bin")
   let path = WinPath::parse("\\\\.\\COM56\\folder\\")
-  @debug.debug_inspect(path, content="\\\\.\\COM56\\folder")
+  inspect(path, content="\\\\.\\COM56\\folder")
   let path = WinPath::parse("\\\\.\\COM56")
-  @debug.debug_inspect(path, content="\\\\.\\COM56\\")
+  inspect(path, content="\\\\.\\COM56\\")
 }
 
 ///|
 test "WinPrefix::UNC" {
   let path = WinPath::parse("\\\\server\\share\\file")
-  @debug.debug_inspect(path, content="\\\\server\\share\\file")
+  inspect(path, content="\\\\server\\share\\file")
   let path = WinPath::parse("\\\\server\\share\\file.log")
-  @debug.debug_inspect(path, content="\\\\server\\share\\file.log")
+  inspect(path, content="\\\\server\\share\\file.log")
   let path = WinPath::parse("\\\\server\\share\\folder\\")
-  @debug.debug_inspect(path, content="\\\\server\\share\\folder")
+  inspect(path, content="\\\\server\\share\\folder")
   let path = WinPath::parse("\\\\server\\share")
-  @debug.debug_inspect(path, content="\\\\server\\share\\")
+  inspect(path, content="\\\\server\\share\\")
 }
 
 ///|
 test "WinPrefix::VolumeLetterRoot" {
   let path = WinPath::parse("C:\\")
-  @debug.debug_inspect(path, content="C:\\")
+  inspect(path, content="C:\\")
   let path = WinPath::parse("C:\\file")
-  @debug.debug_inspect(path, content="C:\\file")
+  inspect(path, content="C:\\file")
   let path = WinPath::parse("C:\\file.txt")
-  @debug.debug_inspect(path, content="C:\\file.txt")
+  inspect(path, content="C:\\file.txt")
   let path = WinPath::parse("C:\\folder\\")
-  @debug.debug_inspect(path, content="C:\\folder")
+  inspect(path, content="C:\\folder")
 }
 
 ///|
 test "WinPrefix::VolumeLetter" {
   let path = WinPath::parse("C:main.mbt")
-  @debug.debug_inspect(path, content="C:main.mbt")
+  inspect(path, content="C:main.mbt")
   let path = WinPath::parse("C:.\\..\\dir\\..\\main.mbt")
-  @debug.debug_inspect(path, content="C:main.mbt")
+  inspect(path, content="C:main.mbt")
 }
 
 ///|
 test "Windows root path without specified drive letter" {
   let path = WinPath::parse("\\folder\\file")
-  @debug.debug_inspect(path, content="\\folder\\file")
+  inspect(path, content="\\folder\\file")
   let path = WinPath::parse("\\..\\folder\\file")
-  @debug.debug_inspect(path, content="\\folder\\file")
+  inspect(path, content="\\folder\\file")
 }
 
 ///|
 test "Windows path normalization" {
   let path = WinPath::parse(".\\a\\b\\.\\c\\..\\d\\..\\..")
-  @debug.debug_inspect(path, content="a")
+  inspect(path, content="a")
   let path = WinPath::parse("\\a\\b\\..")
-  @debug.debug_inspect(path, content="\\a")
+  inspect(path, content="\\a")
   let path = WinPath::parse("\\..\\..\\")
-  @debug.debug_inspect(path, content="\\")
+  inspect(path, content="\\")
   let path = WinPath::parse("\\..\\a\\b\\..\\c\\..\\..\\..")
-  @debug.debug_inspect(path, content="\\")
+  inspect(path, content="\\")
   let path = WinPath::parse("\\..\\a\\b\\..\\c\\..\\..")
-  @debug.debug_inspect(path, content="\\")
+  inspect(path, content="\\")
   let path = WinPath::parse("\\..\\a\\b\\..\\c")
-  @debug.debug_inspect(path, content="\\a\\c")
+  inspect(path, content="\\a\\c")
   let path = WinPath::parse("C:\\..\\..\\c\\..")
-  @debug.debug_inspect(path, content="C:\\")
+  inspect(path, content="C:\\")
 }
 
 ///|
 test "Windows relative path" {
   let path = WinPath::parse(".\\folder\\file")
-  @debug.debug_inspect(path, content="folder\\file")
+  inspect(path, content="folder\\file")
   let path = WinPath::parse("containers\\finger_tree")
-  @debug.debug_inspect(path, content="containers\\finger_tree")
+  inspect(path, content="containers\\finger_tree")
   let path = WinPath::parse("containers\\finger_tree\\finger_tree.mbt")
-  @debug.debug_inspect(path, content="containers\\finger_tree\\finger_tree.mbt")
+  inspect(path, content="containers\\finger_tree\\finger_tree.mbt")
 }
 
 ///|
 test "Windows inner path normalization for backslashes" {
   let path = WinPath::parse(".\\a\\\\b\\\\\\\\c")
-  @debug.debug_inspect(path, content="a\\b\\c")
+  inspect(path, content="a\\b\\c")
 }
 
 ///|
 test "Windows backslashes normalization" {
   let path = WinPath::parse("C:\\\\\\\\a\\b")
-  @debug.debug_inspect(path, content="C:\\a\\b")
+  inspect(path, content="C:\\a\\b")
   let path = WinPath::parse(".\\\\\\a\\b\\c\\\\e")
-  @debug.debug_inspect(path, content="a\\b\\c\\e")
+  inspect(path, content="a\\b\\c\\e")
 }
 
 ///|
 test "Windows multiple tailing backslashes normalization" {
   let path = WinPath::parse("C:\\folder\\\\")
-  @debug.debug_inspect(path, content="C:\\folder")
+  inspect(path, content="C:\\folder")
   let path = WinPath::parse(".\\a\\b\\c\\\\\\")
-  @debug.debug_inspect(path, content="a\\b\\c")
+  inspect(path, content="a\\b\\c")
   let path = WinPath::parse(".\\a\\b\\c\\\\\\")
-  @debug.debug_inspect(path, content="a\\b\\c")
+  inspect(path, content="a\\b\\c")
 }
 
 ///|
 test "Windows edge cases" {
   let path = WinPath::parse("\\")
-  @debug.debug_inspect(path, content="\\")
+  inspect(path, content="\\")
   let path = WinPath::parse(".\\")
-  @debug.debug_inspect(path)
+  inspect(path)
 }
 
 ///|
 test "PathError show" {
-  @debug.debug_inspect(
+  inspect(
     PathError::PathError(
       start=7,
       message="Windows path: backslash '\\\\' at position 7 not allowed in path component",

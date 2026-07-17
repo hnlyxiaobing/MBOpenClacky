@@ -71,7 +71,7 @@ fn Response::write_show(self : Response, logger : &Logger) -> Unit {
 pub impl Show for RequestMethod
 
 ///|
-pub impl Show for RequestMethod with output(self, logger) {
+pub impl Show for RequestMethod with fn output(self, logger) {
   self.write_show(logger)
 }
 
@@ -80,7 +80,7 @@ pub impl Show for RequestMethod with output(self, logger) {
 pub impl Show for Request
 
 ///|
-pub impl Show for Request with output(self, logger) {
+pub impl Show for Request with fn output(self, logger) {
   self.write_show(logger)
 }
 
@@ -89,7 +89,7 @@ pub impl Show for Request with output(self, logger) {
 pub impl Show for Response
 
 ///|
-pub impl Show for Response with output(self, logger) {
+pub impl Show for Response with fn output(self, logger) {
   self.write_show(logger)
 }
 
@@ -98,7 +98,7 @@ pub impl Show for Response with output(self, logger) {
 pub impl Show for Protocol
 
 ///|
-pub impl Show for Protocol with output(self, logger) {
+pub impl Show for Protocol with fn output(self, logger) {
   self.write_show(logger)
 }
 
@@ -107,7 +107,7 @@ pub impl Show for Protocol with output(self, logger) {
 pub impl Show for URIParseError
 
 ///|
-pub impl Show for URIParseError with output(self, logger) {
+pub impl Show for URIParseError with fn output(self, logger) {
   match self {
     InvalidFormat => logger <+ "InvalidFormat"
     UnsupportedProtocol(protocol) =>
@@ -116,13 +116,13 @@ pub impl Show for URIParseError with output(self, logger) {
 }
 
 ///|
-#cfg(target="native")
+#cfg(any(target="native", target="wasm"))
 #deprecated("`Show` implementation for this type is deprecated, use `Debug` related API, or use `@debug.to_string` instead.")
 pub impl Show for ProxyError
 
 ///|
-#cfg(target="native")
-pub impl Show for ProxyError with output(self, logger) {
+#cfg(any(target="native", target="wasm"))
+pub impl Show for ProxyError with fn output(self, logger) {
   match self {
     ProxyError(response) => {
       logger <+ "ProxyError("
@@ -133,13 +133,13 @@ pub impl Show for ProxyError with output(self, logger) {
 }
 
 ///|
-#cfg(target="native")
+#cfg(any(target="native", target="wasm"))
 #deprecated("`Show` implementation for this type is deprecated, use `Debug` related API, or use `@debug.to_string` instead.")
 pub impl Show for HttpProtocolError
 
 ///|
-#cfg(target="native")
-pub impl Show for HttpProtocolError with output(self, logger) {
+#cfg(any(target="native", target="wasm"))
+pub impl Show for HttpProtocolError with fn output(self, logger) {
   match self {
     BadRequest => logger <+ "BadRequest"
     HttpVersionNotSupported(version) =>

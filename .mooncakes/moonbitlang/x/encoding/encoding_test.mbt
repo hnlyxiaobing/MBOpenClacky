@@ -16,10 +16,10 @@
 test "encoding String to UTF8" {
   let src = "你好👀"
   let bytes = @encoding.encode(UTF8, src)
-  @debug.debug_inspect(
+  inspect(
     bytes,
     content=(
-      #|b"\u{e4}\u{bd}\u{a0}\u{e5}\u{a5}\u{bd}\u{f0}\u{9f}\u{91}\u{80}"
+      #|b"\xe4\xbd\xa0\xe5\xa5\xbd\xf0\x9f\x91\x80"
     ),
   )
 }
@@ -29,10 +29,10 @@ test "encode_to/UTF8" {
   let src = "你好👀"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF8)
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"\u{e4}\u{bd}\u{a0}\u{e5}\u{a5}\u{bd}\u{f0}\u{9f}\u{91}\u{80}"
+      #|b"\xe4\xbd\xa0\xe5\xa5\xbd\xf0\x9f\x91\x80"
     ),
   )
 }
@@ -41,10 +41,10 @@ test "encode_to/UTF8" {
 test "encoding String to UTF16 (alias of UTF16LE)" {
   let src = "LISP programmers know the value of everything"
   let bytes = @encoding.encode(UTF16, src)
-  @debug.debug_inspect(
+  inspect(
     bytes,
     content=(
-      #|b"L\u{00}I\u{00}S\u{00}P\u{00} \u{00}p\u{00}r\u{00}o\u{00}g\u{00}r\u{00}a\u{00}m\u{00}m\u{00}e\u{00}r\u{00}s\u{00} \u{00}k\u{00}n\u{00}o\u{00}w\u{00} \u{00}t\u{00}h\u{00}e\u{00} \u{00}v\u{00}a\u{00}l\u{00}u\u{00}e\u{00} \u{00}o\u{00}f\u{00} \u{00}e\u{00}v\u{00}e\u{00}r\u{00}y\u{00}t\u{00}h\u{00}i\u{00}n\u{00}g\u{00}"
+      #|b"L\x00I\x00S\x00P\x00 \x00p\x00r\x00o\x00g\x00r\x00a\x00m\x00m\x00e\x00r\x00s\x00 \x00k\x00n\x00o\x00w\x00 \x00t\x00h\x00e\x00 \x00v\x00a\x00l\x00u\x00e\x00 \x00o\x00f\x00 \x00e\x00v\x00e\x00r\x00y\x00t\x00h\x00i\x00n\x00g\x00"
     ),
   )
 }
@@ -54,10 +54,10 @@ test "encode_to/UTF16" {
   let src = "LISP programmers know the value of everything"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16)
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"L\u{00}I\u{00}S\u{00}P\u{00} \u{00}p\u{00}r\u{00}o\u{00}g\u{00}r\u{00}a\u{00}m\u{00}m\u{00}e\u{00}r\u{00}s\u{00} \u{00}k\u{00}n\u{00}o\u{00}w\u{00} \u{00}t\u{00}h\u{00}e\u{00} \u{00}v\u{00}a\u{00}l\u{00}u\u{00}e\u{00} \u{00}o\u{00}f\u{00} \u{00}e\u{00}v\u{00}e\u{00}r\u{00}y\u{00}t\u{00}h\u{00}i\u{00}n\u{00}g\u{00}"
+      #|b"L\x00I\x00S\x00P\x00 \x00p\x00r\x00o\x00g\x00r\x00a\x00m\x00m\x00e\x00r\x00s\x00 \x00k\x00n\x00o\x00w\x00 \x00t\x00h\x00e\x00 \x00v\x00a\x00l\x00u\x00e\x00 \x00o\x00f\x00 \x00e\x00v\x00e\x00r\x00y\x00t\x00h\x00i\x00n\x00g\x00"
     ),
   )
 }
@@ -66,10 +66,10 @@ test "encode_to/UTF16" {
 test "encoding String to UTF16LE" {
   let src = "and the cost of nothing"
   let bytes = @encoding.encode(UTF16LE, src)
-  @debug.debug_inspect(
+  inspect(
     bytes,
     content=(
-      #|b"a\u{00}n\u{00}d\u{00} \u{00}t\u{00}h\u{00}e\u{00} \u{00}c\u{00}o\u{00}s\u{00}t\u{00} \u{00}o\u{00}f\u{00} \u{00}n\u{00}o\u{00}t\u{00}h\u{00}i\u{00}n\u{00}g\u{00}"
+      #|b"a\x00n\x00d\x00 \x00t\x00h\x00e\x00 \x00c\x00o\x00s\x00t\x00 \x00o\x00f\x00 \x00n\x00o\x00t\x00h\x00i\x00n\x00g\x00"
     ),
   )
 }
@@ -79,10 +79,10 @@ test "encode_to/UTF16LE" {
   let src = "and the cost of nothing"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16LE)
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"a\u{00}n\u{00}d\u{00} \u{00}t\u{00}h\u{00}e\u{00} \u{00}c\u{00}o\u{00}s\u{00}t\u{00} \u{00}o\u{00}f\u{00} \u{00}n\u{00}o\u{00}t\u{00}h\u{00}i\u{00}n\u{00}g\u{00}"
+      #|b"a\x00n\x00d\x00 \x00t\x00h\x00e\x00 \x00c\x00o\x00s\x00t\x00 \x00o\x00f\x00 \x00n\x00o\x00t\x00h\x00i\x00n\x00g\x00"
     ),
   )
 }
@@ -91,10 +91,10 @@ test "encode_to/UTF16LE" {
 test "encoding String to UTF16BE" {
   let src = "λf.(λx.f(x x))(λx.f(x x))"
   let bytes = @encoding.encode(UTF16BE, src)
-  @debug.debug_inspect(
+  inspect(
     bytes,
     content=(
-      #|b"\u{03}\u{bb}\u{00}f\u{00}.\u{00}(\u{03}\u{bb}\u{00}x\u{00}.\u{00}f\u{00}(\u{00}x\u{00} \u{00}x\u{00})\u{00})\u{00}(\u{03}\u{bb}\u{00}x\u{00}.\u{00}f\u{00}(\u{00}x\u{00} \u{00}x\u{00})\u{00})"
+      #|b"\x03\xbb\x00f\x00.\x00(\x03\xbb\x00x\x00.\x00f\x00(\x00x\x00 \x00x\x00)\x00)\x00(\x03\xbb\x00x\x00.\x00f\x00(\x00x\x00 \x00x\x00)\x00)"
     ),
   )
 }
@@ -104,122 +104,122 @@ test "encode_to/UTF16BE" {
   let src = "λf.(λx.f(x x))(λx.f(x x))"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16BE)
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"\u{03}\u{bb}\u{00}f\u{00}.\u{00}(\u{03}\u{bb}\u{00}x\u{00}.\u{00}f\u{00}(\u{00}x\u{00} \u{00}x\u{00})\u{00})\u{00}(\u{03}\u{bb}\u{00}x\u{00}.\u{00}f\u{00}(\u{00}x\u{00} \u{00}x\u{00})\u{00})"
+      #|b"\x03\xbb\x00f\x00.\x00(\x03\xbb\x00x\x00.\x00f\x00(\x00x\x00 \x00x\x00)\x00)\x00(\x03\xbb\x00x\x00.\x00f\x00(\x00x\x00 \x00x\x00)\x00)"
     ),
   )
 }
 
 ///|
 test "to_utf8_bytes" {
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf8_bytes('A'),
     content=(
       #|b"A"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf8_bytes('α'),
     content=(
-      #|b"\u{ce}\u{b1}"
+      #|b"\xce\xb1"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf8_bytes('啊'),
     content=(
-      #|b"\u{e5}\u{95}\u{8a}"
+      #|b"\xe5\x95\x8a"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf8_bytes('😦'),
     content=(
-      #|b"\u{f0}\u{9f}\u{98}\u{a6}"
+      #|b"\xf0\x9f\x98\xa6"
     ),
   )
 }
 
 ///|
 test "to_utf16_bytes (alias for to_utf16le_bytes)" {
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16_bytes('A'),
     content=(
-      #|b"A\u{00}"
+      #|b"A\x00"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16_bytes('α'),
     content=(
-      #|b"\u{b1}\u{03}"
+      #|b"\xb1\x03"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16_bytes('啊'),
     content=(
       #|b"JU"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16_bytes('😦'),
     content=(
-      #|b"=\u{d8}&\u{de}"
+      #|b"=\xd8&\xde"
     ),
   )
 }
 
 ///|
 test "to_utf16le_bytes" {
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16le_bytes('A'),
     content=(
-      #|b"A\u{00}"
+      #|b"A\x00"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16le_bytes('α'),
     content=(
-      #|b"\u{b1}\u{03}"
+      #|b"\xb1\x03"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16le_bytes('啊'),
     content=(
       #|b"JU"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16le_bytes('😦'),
     content=(
-      #|b"=\u{d8}&\u{de}"
+      #|b"=\xd8&\xde"
     ),
   )
 }
 
 ///|
 test "to_utf16be_bytes" {
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16be_bytes('A'),
     content=(
-      #|b"\u{00}A"
+      #|b"\x00A"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16be_bytes('α'),
     content=(
-      #|b"\u{03}\u{b1}"
+      #|b"\x03\xb1"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16be_bytes('啊'),
     content=(
       #|b"UJ"
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     @encoding.to_utf16be_bytes('😦'),
     content=(
-      #|b"\u{d8}=\u{de}&"
+      #|b"\xd8=\xde&"
     ),
   )
 }
@@ -231,10 +231,10 @@ test "write_utf8_char" {
   @encoding.write_utf8_char(buf, 'α')
   @encoding.write_utf8_char(buf, '啊')
   @encoding.write_utf8_char(buf, '😦')
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"A\u{ce}\u{b1}\u{e5}\u{95}\u{8a}\u{f0}\u{9f}\u{98}\u{a6}"
+      #|b"A\xce\xb1\xe5\x95\x8a\xf0\x9f\x98\xa6"
     ),
   )
 }
@@ -246,10 +246,10 @@ test "write_utf16_char (alias for write_utf16le_char)" {
   @encoding.write_utf16_char(buf, 'α')
   @encoding.write_utf16_char(buf, '啊')
   @encoding.write_utf16_char(buf, '😦')
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"A\u{00}\u{b1}\u{03}JU=\u{d8}&\u{de}"
+      #|b"A\x00\xb1\x03JU=\xd8&\xde"
     ),
   )
 }
@@ -261,10 +261,10 @@ test "write_utf16le_char" {
   @encoding.write_utf16le_char(buf, 'α')
   @encoding.write_utf16le_char(buf, '啊')
   @encoding.write_utf16le_char(buf, '😦')
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"A\u{00}\u{b1}\u{03}JU=\u{d8}&\u{de}"
+      #|b"A\x00\xb1\x03JU=\xd8&\xde"
     ),
   )
 }
@@ -276,10 +276,10 @@ test "write_utf16be_char" {
   @encoding.write_utf16be_char(buf, 'α')
   @encoding.write_utf16be_char(buf, '啊')
   @encoding.write_utf16be_char(buf, '😦')
-  @debug.debug_inspect(
+  inspect(
     buf.to_bytes(),
     content=(
-      #|b"\u{00}A\u{03}\u{b1}UJ\u{d8}=\u{de}&"
+      #|b"\x00A\x03\xb1UJ\xd8=\xde&"
     ),
   )
 }

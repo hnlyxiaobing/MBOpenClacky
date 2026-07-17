@@ -102,24 +102,24 @@ fn Decode::_use_decode_debug(self : Decode) -> Repr {
 ///|
 test {
   // make unused warning happy
-  @debug.debug_inspect(End.to_string(), content="End")
+  inspect(End.to_string(), content="End")
 }
 
 ///|
 test "decode show" {
-  @debug.debug_inspect(
+  inspect(
     Uchar('x'),
     content=(
       #|Uchar('x')
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     Malformed(b"ab"),
     content=(
       #|Malformed(b"ab")
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     Refill(b"cd"),
     content=(
       #|Refill(b"cd")

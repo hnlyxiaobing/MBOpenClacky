@@ -130,7 +130,7 @@ test "datetime arrays validation" {
 ///|
 /// Test datetime in complex nested structures
 test "datetime in nested structures" {
-  let event_table : Map[String, @toml.TomlValue] = Map([])
+  let event_table : Map[String, @toml.TomlValue] = Map::new()
   event_table["name"] = @toml.TomlString("Conference 2023")
   event_table["start_date"] = @toml.TomlDateTime(
     @tokenize.LocalDate("2023-06-15"),
@@ -142,13 +142,13 @@ test "datetime in nested structures" {
     @tokenize.LocalDateTime("2023-06-17T17:00:00"),
   )
   let sessions = Array::new()
-  let session1 : Map[String, @toml.TomlValue] = Map([])
+  let session1 : Map[String, @toml.TomlValue] = Map::new()
   session1["title"] = @toml.TomlString("Opening Keynote")
   session1["scheduled_at"] = @toml.TomlDateTime(
     @tokenize.OffsetDateTime("2023-06-15T09:00:00+00:00"),
   )
   sessions.push(@toml.TomlTable(session1))
-  let session2 : Map[String, @toml.TomlValue] = Map([])
+  let session2 : Map[String, @toml.TomlValue] = Map::new()
   session2["title"] = @toml.TomlString("Technical Workshop")
   session2["scheduled_at"] = @toml.TomlDateTime(
     @tokenize.OffsetDateTime("2023-06-15T14:00:00+00:00"),
@@ -384,7 +384,7 @@ test "timezone boundary cases" {
 /// Test realistic application scenarios
 test "realistic datetime scenarios" {
   // Application configuration with various datetime needs
-  let config : Map[String, @toml.TomlValue] = Map([])
+  let config : Map[String, @toml.TomlValue] = Map::new()
 
   // Deployment timestamp (offset datetime)
   config["deployed_at"] = @toml.TomlDateTime(

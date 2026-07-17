@@ -31,7 +31,7 @@ test "missing_close" {
       }
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|written abcd

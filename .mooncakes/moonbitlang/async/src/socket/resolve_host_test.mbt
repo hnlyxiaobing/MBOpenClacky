@@ -14,7 +14,7 @@
 
 ///|
 async test "resolve mooncakes.io" {
-  @debug.debug_inspect(
+  inspect(
     @socket.Addr::resolve("mooncakes.io", port=443),
     content="54.188.190.230:443",
   )
@@ -33,7 +33,7 @@ async test "resolve cancel" {
     task.cancel()
     log <+ "host resolution cancelled\n"
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|host resolution cancelled
@@ -44,25 +44,29 @@ async test "resolve cancel" {
 
 ///|
 async test "resolve failure" {
-  let result = try? @socket.Addr::resolve("does.not.exist", port=443)
-  assert_true(result is Err(@socket.ResolveHostnameError(_)))
+  assert_true(
+    (@test_util.expect_error_async <| () => {
+      @socket.Addr::resolve("does.not.exist", port=443)
+    })
+    is @socket.ResolveHostnameError(_),
+  )
 }
 
 ///|
 async test "resolve preference" {
-  @debug.debug_inspect(
+  inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=FavorV4),
     content="127.0.0.1:80",
   )
-  @debug.debug_inspect(
+  inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=OnlyV4),
     content="127.0.0.1:80",
   )
-  @debug.debug_inspect(
+  inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=FavorV6),
     content="[::1]:80",
   )
-  @debug.debug_inspect(
+  inspect(
     @socket.Addr::resolve("localhost", port=80, protocol=OnlyV6),
     content="[::1]:80",
   )

@@ -1,5 +1,4 @@
 import {
-  "moonbitlang/core/debug",
   "moonbitlang/async/internal/event_loop",
   "moonbitlang/async/internal/fd_util",
   "moonbitlang/async/io",
@@ -12,5 +11,8 @@ import {
 } for "test"
 
 options(
-  targets: { "stdio.mbt": [ "native" ], "stdio_test.mbt": [ "native" ] },
+  targets: {
+    "stdio.mbt": [ "native", "wasm" ],
+    "stdio_test.mbt": [ "native", "wasm" ],
+  },
 )

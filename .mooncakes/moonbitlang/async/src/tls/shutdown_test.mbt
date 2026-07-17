@@ -25,7 +25,7 @@ async test "peer close connection" {
       let server = test_server(conn, conn)
       defer server.close()
       server.write("1234")
-      @debug.debug_inspect(server.read_all().text(), content="abcd")
+      inspect(server.read_all().text(), content="abcd")
     }
     // client
     let conn = @socket.Tcp::connect(addr)
@@ -40,7 +40,7 @@ async test "peer close connection" {
     // the underlying TCP connection will be reset,
     // due to pending data in the recv buffer.
     // Read something before closing the connection solves the problem.
-    @debug.debug_inspect(@utf8.decode(client.read_exactly(4)), content="1234")
+    inspect(@utf8.decode(client.read_exactly(4)), content="1234")
     client.write("abcd")
     // close the underlying connection directly
   }

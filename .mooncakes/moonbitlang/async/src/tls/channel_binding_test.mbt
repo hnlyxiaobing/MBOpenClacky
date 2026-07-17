@@ -51,9 +51,9 @@ async test "channel binding" {
     })
     let (unique_binding_for_server, endpoint_binding_for_server) = server_task.wait()
     let (unique_binding_for_client, endpoint_binding_for_client) = client_task.wait()
-    @debug.assert_eq(unique_binding_for_client, unique_binding_for_server)
+    assert_eq(unique_binding_for_client, unique_binding_for_server)
     assert_true(unique_binding_for_client.length() > 0)
-    @debug.assert_eq(endpoint_binding_for_client, endpoint_binding_for_server)
+    assert_eq(endpoint_binding_for_client, endpoint_binding_for_server)
     assert_true(endpoint_binding_for_client.length() > 0)
   }
 }

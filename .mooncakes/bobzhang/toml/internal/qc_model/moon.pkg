@@ -1,5 +1,4 @@
 import {
-  "moonbitlang/core/debug",
   "bobzhang/toml/internal/tokenize" @tokenize,
   "bobzhang/toml" @toml,
 }

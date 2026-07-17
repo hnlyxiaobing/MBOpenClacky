@@ -39,7 +39,7 @@ pub suberror ProxyError {
 ///|
 async fn Client::connect(
   host : StringView,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   protocol? : Protocol = Https,
   proxy? : Client,
   trust? : @tls.TrustedRoot = SystemRoot,
@@ -129,7 +129,7 @@ async fn Client::connect(
 #label_migration(verify, fill=false, msg="use `trust` instead")
 pub async fn Client::Client(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
   verify? : Bool = true,
   trust? : @tls.TrustedRoot,
@@ -164,12 +164,17 @@ pub fn Client::close(self : Client) -> Unit {
 }
 
 ///|
-pub impl @io.Reader for Client with _direct_read(self, buf, offset~, max_len~) {
+pub impl @io.Reader for Client with fn _direct_read(
+  self,
+  buf,
+  offset~,
+  max_len~,
+) {
   self.reader._direct_read(buf, offset~, max_len~)
 }
 
 ///|
-pub impl @io.Reader for Client with _get_internal_buffer(self) {
+pub impl @io.Reader for Client with fn _get_internal_buffer(self) {
   self.reader._get_internal_buffer()
 }
 
@@ -180,13 +185,13 @@ pub impl @io.Reader for Client with _get_internal_buffer(self) {
 ///
 /// Writing to `@http.Client` MAY be buffered,
 /// call `flush` manually to ensure data is delivered to the remote peer.
-pub impl @io.Writer for Client with write_once(self, buf, offset~, len~) {
+pub impl @io.Writer for Client with fn write_once(self, buf, offset~, len~) {
   guard !(self.sender.mode is SendingHeader)
   self.sender.write_once(buf, offset~, len~)
 }
 
 ///|
-pub impl @io.Writer for Client with write_reader(self, reader) {
+pub impl @io.Writer for Client with fn write_reader(self, reader) {
   guard !(self.sender.mode is SendingHeader)
   self.sender.write_reader(reader)
 }
@@ -246,7 +251,7 @@ pub async fn Client::request(
   self : Client,
   meth : RequestMethod,
   path : StringView,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Unit {
   self.auto_decompress = self.sender.send_request(meth, path, extra_headers~)
   self.request_method = Some(meth)
@@ -261,10 +266,11 @@ pub async fn Client::skip_response_body(self : Client) -> Unit {
 
 ///|
 /// Perform a `GET` request to the server, see `Client::request` for more details.
+#label_migration(body, fill=false, msg="`GET` request should not contain a body")
 pub async fn Client::get(
   self : Client,
   path : String,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
   body? : &@io.Data,
 ) -> Response {
   self.request(Get, path, extra_headers~)
@@ -280,7 +286,7 @@ pub async fn Client::put(
   self : Client,
   path : String,
   body : &@io.Data,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Response {
   self..request(Put, path, extra_headers~)..write(body).end_request()
 }
@@ -291,7 +297,7 @@ pub async fn Client::post(
   self : Client,
   path : String,
   body : &@io.Data,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Response {
   self..request(Post, path, extra_headers~)..write(body).end_request()
 }

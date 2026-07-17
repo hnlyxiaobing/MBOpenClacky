@@ -33,7 +33,7 @@ async test "read_all basic" {
     let (r, w) = @io.pipe()
     defer r.close()
     root.spawn_bg(() => writer(log, w))
-    @debug.debug_inspect(r.read_all().text(), content="abcdefghijkl")
+    inspect(r.read_all().text(), content="abcdefghijkl")
   }
 }
 
@@ -46,6 +46,6 @@ async test "read_all large data" {
       defer w.close()
       w.write(Bytes::make(4097, 0))
     }
-    @debug.debug_inspect(r.read_all().binary().length(), content="4097")
+    inspect(r.read_all().binary().length(), content="4097")
   }
 }

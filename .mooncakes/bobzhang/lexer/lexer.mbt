@@ -22,7 +22,7 @@ struct Lexer {
 /// let lexer = Lexer::new("Hello, world!")
 /// lexer.advance()
 /// lexer.advance()
-/// @debug.debug_inspect(lexer.view(), content="llo, world!")
+/// inspect(lexer.view(), content="llo, world!")
 /// ```
 pub fn Lexer::view(self : Lexer) -> StringView {
   self.input.view(start_offset=self.position)
@@ -37,7 +37,7 @@ pub fn Lexer::view(self : Lexer) -> StringView {
 ///  [.."😈x", .. rest] => lexer.update_view(rest)
 ///  _ => ()
 /// }
-/// @debug.debug_inspect(lexer.peek(), content="Some('中')")
+/// inspect(lexer.peek(), content="Some('中')")
 /// ```
 pub fn Lexer::update_view(self : Lexer, view : StringView) -> Unit {
   let new_offset = view.start_offset()
@@ -55,10 +55,10 @@ pub fn Lexer::new(input : String) -> Lexer {
 /// Tests for lexer creation
 test "lexer creation" {
   let lexer = Lexer::new("key = value")
-  @debug.debug_inspect(lexer.input, content="key = value")
-  @debug.debug_inspect(lexer.position, content="0")
-  @debug.debug_inspect(lexer.line, content="1")
-  @debug.debug_inspect(lexer.column, content="1")
+  inspect(lexer.input, content="key = value")
+  inspect(lexer.position, content="0")
+  inspect(lexer.line, content="1")
+  inspect(lexer.column, content="1")
 }
 
 ///|
@@ -68,7 +68,7 @@ test "lexer creation" {
 /// ```
 /// let lexer = Lexer::new("  \t\rHello, world!")
 /// lexer.skip_whitespace()
-/// @debug.debug_inspect(lexer.peek(), content="Some('H')")
+/// inspect(lexer.peek(), content="Some('H')")
 /// ```
 pub fn Lexer::skip_whitespace(self : Lexer) -> Unit {
   let next = loop self.view() {
@@ -95,9 +95,9 @@ pub fn Lexer::skip_single_newline(self : Lexer) -> Unit {
 /// # Example:
 /// ```
 /// let lexer = Lexer::new("Hello, world!")
-/// @debug.debug_inspect(lexer.peek(), content="Some('H')")
+/// inspect(lexer.peek(), content="Some('H')")
 /// lexer.advance()
-/// @debug.debug_inspect(lexer.peek(), content="Some('e')")
+/// inspect(lexer.peek(), content="Some('e')")
 /// ```
 pub fn Lexer::peek(self : Lexer) -> Char? {
   self.input.get_char(self.position)
@@ -204,22 +204,22 @@ pub fn Lexer::advance(self : Lexer) -> Unit {
 /// Test position tracking with explicit new_line() API
 test "position tracking" {
   let lexer = Lexer::new("hello\nworld")
-  @debug.debug_inspect(lexer.get_loc().line, content="1")
-  @debug.debug_inspect(lexer.get_loc().column, content="1")
+  inspect(lexer.get_loc().line, content="1")
+  inspect(lexer.get_loc().column, content="1")
   lexer.advance() // h
-  @debug.debug_inspect(lexer.get_loc().column, content="2")
+  inspect(lexer.get_loc().column, content="2")
   for i = 0; i < 4; i = i + 1 {
     lexer.advance() // e,l,l,o
   }
-  @debug.debug_inspect(lexer.get_loc().column, content="6")
+  inspect(lexer.get_loc().column, content="6")
   lexer.advance() // \n
-  @debug.debug_inspect(lexer.get_loc().column, content="7") // Column advances normally
-  @debug.debug_inspect(lexer.get_loc().line, content="1") // Line doesn't change automatically
+  inspect(lexer.get_loc().column, content="7") // Column advances normally
+  inspect(lexer.get_loc().line, content="1") // Line doesn't change automatically
 
   // Explicitly call new_line() when encountering newline
   lexer.new_line()
-  @debug.debug_inspect(lexer.get_loc().line, content="2")
-  @debug.debug_inspect(lexer.get_loc().column, content="1")
+  inspect(lexer.get_loc().line, content="2")
+  inspect(lexer.get_loc().column, content="1")
 }
 
 ///|
@@ -227,22 +227,22 @@ test "position tracking" {
 test "skip whitespace with position tracking" {
   let lexer = Lexer::new("  \t\rH")
   lexer.skip_whitespace()
-  @debug.debug_inspect(lexer.get_loc().column, content="5") // moved past 4 whitespace chars
-  @debug.debug_inspect(lexer.peek(), content="Some('H')")
+  inspect(lexer.get_loc().column, content="5") // moved past 4 whitespace chars
+  inspect(lexer.peek(), content="Some('H')")
 }
 
 ///|
 /// Test explicit new_line API
 test "explicit new_line API" {
   let lexer = Lexer::new("test")
-  @debug.debug_inspect(lexer.get_loc().line, content="1")
-  @debug.debug_inspect(lexer.get_loc().column, content="1")
+  inspect(lexer.get_loc().line, content="1")
+  inspect(lexer.get_loc().column, content="1")
   lexer.new_line()
-  @debug.debug_inspect(lexer.get_loc().line, content="2")
-  @debug.debug_inspect(lexer.get_loc().column, content="1")
+  inspect(lexer.get_loc().line, content="2")
+  inspect(lexer.get_loc().column, content="1")
   lexer.advance() // t
-  @debug.debug_inspect(lexer.get_loc().column, content="2")
+  inspect(lexer.get_loc().column, content="2")
   lexer.new_line()
-  @debug.debug_inspect(lexer.get_loc().line, content="3")
-  @debug.debug_inspect(lexer.get_loc().column, content="1")
+  inspect(lexer.get_loc().line, content="3")
+  inspect(lexer.get_loc().column, content="1")
 }

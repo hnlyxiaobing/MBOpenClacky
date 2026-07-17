@@ -25,7 +25,7 @@ async test "passthrough mode" {
       defer conn.close()
       let request = conn.read_request()
       debug_inspect(request.meth, content="Connect")
-      @debug.debug_inspect(request.path, content="/path")
+      inspect(request.path, content="/path")
       conn..send_response(200, "OK").end_response()
       conn.enter_passthrough_mode()
       while conn.read_some() is Some(packet) {
@@ -36,7 +36,7 @@ async test "passthrough mode" {
     let client = @http.Client("http://localhost:\{server_addr.port()}")
     defer client.close()
     let response = client..request(Connect, "/path").end_request()
-    @debug.debug_inspect(response.code, content="200")
+    inspect(response.code, content="200")
     client.enter_passthrough_mode()
     for packet in ["abcd", "efgh", "ijkl"] {
       log.push("client sending: \{packet}")
@@ -62,9 +62,9 @@ async test "passthrough mode remaining data" {
       defer conn.close()
       let request = conn.read_request()
       debug_inspect(request.meth, content="Get")
-      @debug.debug_inspect(request.path, content="/")
+      inspect(request.path, content="/")
       conn.enter_passthrough_mode()
-      @debug.debug_inspect(conn.read_all().text(), content="remaining data")
+      inspect(conn.read_all().text(), content="remaining data")
     }
     let client = @socket.Tcp::connect(
       @socket.Addr::parse("127.0.0.1:\{server_addr.port()}"),
@@ -91,7 +91,7 @@ async fn handle_connect(
   }
   let client = try {
     let host = request.path[:index]
-    let port = @strconv.parse_int(request.path[index + 1:])
+    let port = @string.parse_int(request.path[index + 1:])
     @socket.Tcp::connect_to_host(host, port~)
   } catch {
     err => {
@@ -120,12 +120,10 @@ async test "proxied https request" {
         handle_connect(log, req, body, conn)
       })
     }
-    let (_, result) = @async.with_timeout(10000, () => {
-      @http.get(
-        "https://www.moonbitlang.com",
-        proxy=@http.Client("http://localhost:\{port}"),
-      )
-    })
+    let (_, result) = @http.get(
+      "https://www.moonbitlang.com",
+      proxy=Client("http://localhost:\{port}"),
+    )
     assert_true(result.text().has_prefix("<!doctype html>"))
   }
   json_inspect(log, content=[
@@ -146,7 +144,7 @@ async test "proxied http request" {
     }
     let (_, result) = @http.get(
       "http://www.example.org",
-      proxy=@http.Client("http://localhost:\{port}"),
+      proxy=Client("http://localhost:\{port}"),
     )
     assert_true(result.text().has_prefix("<!doctype html>"))
   }
@@ -213,11 +211,11 @@ async test "proxy error" {
     try
       @http.get(
         "https://www.moonbitlang.com",
-        proxy=@http.Client("http://localhost:\{port}"),
+        proxy=Client("http://localhost:\{port}"),
       )
     catch {
       err =>
-        @debug.debug_inspect(
+        inspect(
           err,
           content=(
             #|ProxyError({code: 407, reason: "ProxyAuthenticationRequired", headers: {"content-length": "0"}})

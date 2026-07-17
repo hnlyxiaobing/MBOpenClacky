@@ -34,6 +34,9 @@ extern "C" fn errno_is_EACCES(errno : Int) -> Bool = "moonbitlang_async_is_EACCE
 extern "C" fn errno_is_ECONNREFUSED(errno : Int) -> Bool = "moonbitlang_async_is_ECONNREFUSED"
 
 ///|
+extern "C" fn errno_is_ERROR_NOTIFY_ENUM_DIR(errno : Int) -> Bool = "moonbitlang_async_is_ERROR_NOTIFY_ENUM_DIR"
+
+///|
 pub fn is_nonblocking_io_error() -> Bool {
   errno_is_nonblocking_io_error(get_errno())
 }
@@ -58,7 +61,7 @@ pub(all) suberror OSError {
 } derive(ToJson)
 
 ///|
-pub impl Show for OSError with output(self, logger) -> Unit {
+pub impl Show for OSError with fn output(self, logger) -> Unit {
   let OSError(errno, context~) = self
   let msg = "\{context}: \{errno_to_string(errno)}"
   logger <+ "OSError(\{to_repr(msg)})"
@@ -105,6 +108,13 @@ pub fn OSError::is_ECONNREFUSED(err : OSError) -> Bool {
 }
 
 ///|
+/// Detect whether the error is the `ECONNREFUSED` (connection refused) error.
+pub fn OSError::is_ERROR_NOTIFY_ENUM_DIR(err : OSError) -> Bool {
+  let OSError(errno, ..) = err
+  errno_is_ERROR_NOTIFY_ENUM_DIR(errno)
+}
+
+///|
 pub fn check_errno(context : String) -> Unit raise OSError {
   let err_code = get_errno()
   if err_code != 0 {
@@ -117,3 +127,9 @@ extern "C" fn get_ENOTDIR() -> Int = "moonbitlang_async_get_ENOTDIR"
 
 ///|
 pub let errno_ENOTDIR : Int = get_ENOTDIR()
+
+///|
+pub fn OSError::is_ENOTDIR(err : OSError) -> Bool {
+  let OSError(errno, ..) = err
+  errno == errno_ENOTDIR
+}

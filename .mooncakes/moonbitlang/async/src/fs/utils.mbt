@@ -118,24 +118,43 @@ pub async fn can_execute(path : StringView) -> Bool {
 ///
 /// If the path contains cyclic symbolic link,
 /// an error will be raised.
+#cfg(target="native")
 pub async fn realpath(path : StringView) -> String {
   @event_loop.realpath(path, context="@fs.realpath()")
 }
 
 ///|
 /// Create a symbolic link to `old_path` at `new_path`.
-pub async fn symlink(target~ : StringView, path : StringView) -> Unit {
-  @event_loop.symlink(target, path, context="@fs.link()")
+///
+/// On Windows, creating true symbolic link requires admin privilege.
+/// So `@fs.symlink()` will try to create NTFS junction when feasible,
+/// which is similar to symlink in characteristics.
+/// NTFS junction is not as flexible as symlink, it will only be created when:
+///
+/// 1. the target path is an existing directory
+/// 2. the target path is onn the same local machine
+/// 3. the link is created on a NTFS volume
+///
+/// To force creation of true symbolic link on Windows, pass `force_symlink=true`.
+/// `force_symlink` has no effect on non-Windows platforms.
+pub async fn symlink(
+  target~ : StringView,
+  path : StringView,
+  force_symlink? : Bool = false,
+) -> Unit {
+  @event_loop.symlink(target, path, force_symlink~, context="@fs.symlink()")
 }
 
 ///|
 /// Change the permission of a file.
 /// Permission is represented as an integer in UNIX permission style.
 /// For example, `0o640` means:
+///
 /// - the owner of the file can read and write the file (`6`)
 /// - users in the owner group of the file can read the file (`4`)
 /// - other users can do nothing to the file
-#cfg(not(platform="windows"))
+///
+/// On Windows, `@fs.chmod` is not supported, and will fail with error.
 pub async fn chmod(path : StringView, mode : Int) -> Unit {
   @event_loop.chmod(path, mode, context="@fs.chmod()")
 }

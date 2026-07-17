@@ -49,7 +49,7 @@ async test "read_request basic" {
     log_request(request, log)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|Get /
@@ -80,7 +80,7 @@ async test "read_request fixed body" {
     log_request(request, log)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|Get /
@@ -90,6 +90,31 @@ async test "read_request fixed body" {
       #|message
     ),
   )
+}
+
+///|
+async test "read_request fixed body early EOF" {
+  @async.with_task_group() <| root => {
+    let (r, w) = @io.pipe()
+    root.spawn_bg() <| () => {
+      defer w.close()
+      w
+      ..write("GET / HTTP/1.1\r\n")
+      ..write("Host: x.y.org\r\n")
+      ..write("User-Agent: MoonBit\r\n")
+      ..write("Content-Length: 8\r\n\r\n")
+      .write("message")
+    }
+    defer r.close()
+    let input = Reader::new(r)
+    let _request = input.read_request()
+    debug_inspect(
+      @test_util.expect_error_async(() => input.read_all().binary()),
+      content=(
+        #|ReaderClosed
+      ),
+    )
+  }
 }
 
 ///|
@@ -116,7 +141,7 @@ async test "read_request chunked" {
     log_request(request, log)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|Get /
@@ -160,7 +185,7 @@ async test "read_request stream" {
       log.write_string("received \{data} from body\n")
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|Get /
@@ -217,7 +242,7 @@ async test "multiple request" {
     log_request(request, log)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|Get /
@@ -261,7 +286,7 @@ async test "read_response basic" {
     log_response(response, log)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|200 OK
@@ -297,7 +322,7 @@ async test "read_response passthrough fallback (no length headers)" {
     // Read body via PassThrough fallback (reads until EOF/connection close)
     log.write_string(input.read_all().text())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|200 OK
@@ -334,7 +359,7 @@ async test "read_response 204 No Content (no body)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|204 No Content
@@ -371,7 +396,7 @@ async test "read_response 205 Reset Content (no body)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|205 Reset Content
@@ -407,7 +432,7 @@ async test "read_response 304 Not Modified (no body)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|304 Not Modified
@@ -442,7 +467,7 @@ async test "read_response 100 Continue (no body)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|100 Continue
@@ -476,7 +501,7 @@ async test "read_response CONNECT 200 (no body, tunnel mode)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|200 Connection Established
@@ -512,7 +537,7 @@ async test "read_response HEAD 200 (no body)" {
     log <+ "body: "
     log.write_string(body_text)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|200 OK
@@ -525,51 +550,51 @@ async test "read_response HEAD 200 (no body)" {
 
 ///|
 test "should_read_body_until_close - true cases" {
-  let headers_no_length : Map[String, String] = {}
+  let headers_no_length : Map[String, String] = Map([])
 
   // 200 OK with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, Empty, None),
     content="true",
   )
 
   // 201 Created with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(201, headers_no_length, Empty, None),
     content="true",
   )
 
   // 202 Accepted with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(202, headers_no_length, Empty, None),
     content="true",
   )
 
   // 203 with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(203, headers_no_length, Empty, None),
     content="true",
   )
 
   // 3xx (except 304) with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(301, headers_no_length, Empty, None),
     content="true",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(302, headers_no_length, Empty, None),
     content="true",
   )
 
   // 4xx with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(404, headers_no_length, Empty, None),
     content="true",
   )
 
   // 5xx with no length headers
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(500, headers_no_length, Empty, None),
     content="true",
   )
@@ -577,38 +602,38 @@ test "should_read_body_until_close - true cases" {
 
 ///|
 test "should_read_body_until_close - false cases (bodyless status codes)" {
-  let headers_no_length : Map[String, String] = {}
+  let headers_no_length : Map[String, String] = Map([])
 
   // 1xx informational responses
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(100, headers_no_length, Empty, None),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(101, headers_no_length, Empty, None),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(199, headers_no_length, Empty, None),
     content="false",
   )
 
   // 204 No Content
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(204, headers_no_length, Empty, None),
     content="false",
   )
 
   // 205 Reset Content
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(205, headers_no_length, Empty, None),
     content="false",
   )
 
   // 304 Not Modified
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(304, headers_no_length, Empty, None),
     content="false",
   )
@@ -618,7 +643,7 @@ test "should_read_body_until_close - false cases (bodyless status codes)" {
 test "should_read_body_until_close - false cases (headers present)" {
   // Content-Length present
   let headers_with_length : Map[String, String] = { "content-length": "42" }
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_with_length, Empty, None),
     content="false",
   )
@@ -627,7 +652,7 @@ test "should_read_body_until_close - false cases (headers present)" {
   let headers_with_transfer : Map[String, String] = {
     "transfer-encoding": "chunked",
   }
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_with_transfer, Empty, None),
     content="false",
   )
@@ -637,7 +662,7 @@ test "should_read_body_until_close - false cases (headers present)" {
     "content-length": "42",
     "transfer-encoding": "chunked",
   }
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_with_both, Empty, None),
     content="false",
   )
@@ -645,22 +670,22 @@ test "should_read_body_until_close - false cases (headers present)" {
 
 ///|
 test "should_read_body_until_close - false cases (body already determined)" {
-  let headers_no_length : Map[String, String] = {}
+  let headers_no_length : Map[String, String] = Map([])
 
   // Body is Fixed (already determined by Content-Length)
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, Fixed(42), None),
     content="false",
   )
 
   // Body is Chunked (already determined by Transfer-Encoding)
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, Chunked(0), None),
     content="false",
   )
 
   // Body is PassThrough (already set)
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, PassThrough, None),
     content="false",
   )
@@ -668,32 +693,32 @@ test "should_read_body_until_close - false cases (body already determined)" {
 
 ///|
 test "should_read_body_until_close - false cases (CONNECT requests)" {
-  let headers_no_length : Map[String, String] = {}
+  let headers_no_length : Map[String, String] = Map([])
 
   // Successful CONNECT (2xx) responses become tunnels with no HTTP body
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, Empty, Some(Connect)),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(201, headers_no_length, Empty, Some(Connect)),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(299, headers_no_length, Empty, Some(Connect)),
     content="false",
   )
 
   // Failed CONNECT (non-2xx) should follow normal rules
   // 4xx error responses can have a body
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(400, headers_no_length, Empty, Some(Connect)),
     content="true",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(502, headers_no_length, Empty, Some(Connect)),
     content="true",
   )
@@ -701,27 +726,27 @@ test "should_read_body_until_close - false cases (CONNECT requests)" {
 
 ///|
 test "should_read_body_until_close - false cases (HEAD requests)" {
-  let headers_no_length : Map[String, String] = {}
+  let headers_no_length : Map[String, String] = Map([])
 
   // HEAD responses never have a message body, regardless of status code
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_no_length, Empty, Some(Head)),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(404, headers_no_length, Empty, Some(Head)),
     content="false",
   )
 
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(500, headers_no_length, Empty, Some(Head)),
     content="false",
   )
 
   // Even with Content-Length header, HEAD should not read body
   let headers_with_length : Map[String, String] = { "content-length": "42" }
-  @debug.debug_inspect(
+  inspect(
     should_read_body_until_close(200, headers_with_length, Empty, Some(Head)),
     content="false",
   )
@@ -757,8 +782,8 @@ async test "gzip split between chunks" {
       request_method=Some(Get),
       auto_decompress=true,
     )
-    @debug.debug_inspect(response.code, content="200")
-    @debug.debug_inspect(
+    inspect(response.code, content="200")
+    inspect(
       r.read_all().text(),
       content=(
         #|A simple message to compress

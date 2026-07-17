@@ -87,7 +87,7 @@ test "array_of_tables_path_with_integer_key" {
 ///|
 /// Test invalid Unicode escape sequences to trigger error paths
 test "invalid_unicode_escapes" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = "\uZZZZ"
@@ -102,7 +102,7 @@ test "invalid_unicode_escapes" {
 ///|
 /// Test invalid 8-byte Unicode escape
 test "invalid_8byte_unicode_escape" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = "\U00200000"
@@ -117,7 +117,7 @@ test "invalid_8byte_unicode_escape" {
 ///|
 /// Test unterminated multiline string
 test "unterminated_multiline_string" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = """This is unterminated
@@ -140,8 +140,8 @@ test "homogeneous_array_with_floats" {
 ///|
 /// Test homogeneous array with TomlTable
 test "homogeneous_array_with_tables" {
-  let table1 = Map([])
-  let table2 = Map([])
+  let table1 = Map::new()
+  let table2 = Map::new()
   let arr = [@toml.TomlTable(table1), @toml.TomlTable(table2)]
   let result = @toml.TomlValue::is_homogeneous_array(arr)
   debug_inspect(result, content="true")
@@ -158,7 +158,7 @@ test "homogeneous_array_type_check_boolean" {
 ///|
 /// Test homogeneous array type checking with TomlTable vs other
 test "homogeneous_array_type_check_table_vs_other" {
-  let table = Map([])
+  let table = Map::new()
   let arr = [@toml.TomlTable(table), @toml.TomlInteger(42L)]
   let result = @toml.TomlValue::is_homogeneous_array(arr)
   debug_inspect(result, content="false")
@@ -179,7 +179,7 @@ test "nested_validation_failure_in_array" {
 ///|
 /// Test table path conflict error  
 test "table_path_conflict_error" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = 42
@@ -195,7 +195,7 @@ test "table_path_conflict_error" {
 ///|
 /// Test array of tables path conflict error
 test "array_of_tables_path_conflict_error" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = 42
@@ -442,7 +442,7 @@ test "negative_number_parsing" {
 ///|
 /// Test error handling with invalid characters
 test "invalid_character_error" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(
       (
         #|key = @invalid

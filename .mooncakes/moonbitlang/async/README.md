@@ -15,7 +15,7 @@ WARNING: this library is current experimental, API is subject to future change.
 ## Installation
 In your MoonBit project root, run:
 ```bash
-moon add moonbitlang/async@0.19.1
+moon add moonbitlang/async@0.20.2
 ```
 This library provides the following packages:
 
@@ -54,7 +54,7 @@ To use these packages, add them to the `import` field of `moon.pkg.json`.
 - [X] signal handling
     - [X] graceful cancellation on receiving `SIGINT` etc.
     - [ ] custom signal handling logic
-- [ ] file system watching
+- [X] file system watching
 - [X] structured concurrency
 - [X] cooperative multi tasking
 - [X] IO worker thread
@@ -62,7 +62,8 @@ To use these packages, add them to the `import` field of `moon.pkg.json`.
 - [X] Linux support (`epoll`)
 - [X] MacOS support (`kqueue`)
 - [X] Windows support (`IOCP`)
-- [ ] WASM backend
+- [X] wasm1 backend
+- [ ] wasm-gc
 - [X] Javascript backend
     - [X] integration with JavaScript promise and Web API `ReadableStream`
     - [X] all IO-independent API, including:

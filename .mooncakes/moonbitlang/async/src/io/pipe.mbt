@@ -91,16 +91,24 @@ pub fn PipeWrite::close(self : PipeWrite) -> Unit {
 ///|
 /// Read data from a pipe. The data come from the write end of the pipe.
 /// Data transfer only happen when reader and writer are present at the same time.
-pub impl Reader for PipeRead with _direct_read(self, dst, offset~, max_len~) {
+pub impl Reader for PipeRead with fn _direct_read(self, dst, offset~, max_len~) {
   let PipeRead(self) = self
   guard self.reader is NoReader
+  @coroutine.check_cancellation()
   match self.writer {
     NoWriter => {
       let coro = @coroutine.current_coroutine()
       let reader = HasReader(coro~, buf=dst, offset~, max_len~, result=0)
       self.reader = reader
       defer (if self.reader is HasReader(_) { self.reader = NoReader })
-      @coroutine.suspend()
+      @coroutine.suspend() catch {
+        _ if reader is HasReader(result~, ..) && result > 0 =>
+          // if data is already transferred to the reader
+          // within the same scheduler round of cancellaiton,
+          // swallow the cancellation to avoid data loss
+          return result
+        err => raise err
+      }
       guard reader is HasReader(result~, ..)
       result
     }
@@ -110,14 +118,17 @@ pub impl Reader for PipeRead with _direct_read(self, dst, offset~, max_len~) {
       dst.blit_from_bytes(offset, writer.buf, writer.offset, len)
       writer.result = len
       writer.coro.wake()
-      @coroutine.pause()
+      // The pause here is not cancellable,
+      // because otherwise the writer cannot have correct knowledge on what is written,
+      // making writing not cancellation safe.
+      @coroutine.protect_from_cancel(@coroutine.pause, resume_on_cancel=true)
       len
     }
   }
 }
 
 ///|
-pub impl Reader for PipeRead with _get_internal_buffer(self) {
+pub impl Reader for PipeRead with fn _get_internal_buffer(self) {
   let PipeRead(self) = self
   self.read_buf
 }
@@ -130,16 +141,25 @@ pub suberror PipeClosed derive(Debug, ToJson)
 ///|
 /// Write data to a pipe. The data can be read from the read end of the pipe.
 /// Data transfer only happen when reader and writer are present at the same time.
-pub impl Writer for PipeWrite with write_once(self, buf, offset~, len~) {
+pub impl Writer for PipeWrite with fn write_once(self, buf, offset~, len~) {
   let PipeWrite(self) = self
   guard self.writer is NoWriter
+  @coroutine.check_cancellation()
   match self.reader {
     NoReader => {
       let coro = @coroutine.current_coroutine()
       let writer = HasWriter(coro~, buf~, offset~, len~, result=0)
       self.writer = writer
       defer (if self.writer is HasWriter(_) { self.writer = NoWriter })
-      @coroutine.suspend()
+      @coroutine.suspend() catch {
+        _ if self.writer is HasWriter(result~, ..) && result > 0 =>
+          // if data is already transferred to the reader
+          // within the same scheduler round of cancellaiton,
+          // swallow the cancellation so that the writer side
+          // can have correct knowledge of what is written
+          return result
+        err => raise err
+      }
       guard writer is HasWriter(result~, ..)
       guard result > 0 else { raise PipeClosed }
       result
@@ -158,7 +178,11 @@ pub impl Writer for PipeWrite with write_once(self, buf, offset~, len~) {
       // because in that case, an immediate write + read combo after this write
       // may complete faster than the previous read.
       // The `pause` here is also vital for preventing stackoverflow in a busy loop.
-      @coroutine.pause()
+      //
+      // The pause here is not cancellable,
+      // because otherwise the writer cannot have correct knowledge on what is written,
+      // making writing not cancellation safe.
+      @coroutine.protect_from_cancel(@coroutine.pause, resume_on_cancel=true)
       len
     }
   }

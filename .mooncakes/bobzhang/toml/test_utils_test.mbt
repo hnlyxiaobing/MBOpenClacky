@@ -22,7 +22,7 @@ fn parse_expect_to_fail(input : String) -> String {
 
 ///|
 test "verify parse_expect_to_fail output" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("key ="),
     content=(
       #|Expected value at { start: { line: 1, column: 6 }, end: { line: 1, column: 6 } }

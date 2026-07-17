@@ -33,7 +33,7 @@ async test "reuse addr" {
       @async.sleep(100)
       let conn = @socket.Tcp::connect(@socket.Addr::parse("127.0.0.1:\{port}"))
       defer conn.close()
-      @debug.debug_inspect(conn.read_all().text(), content="abcd")
+      inspect(conn.read_all().text(), content="abcd")
     }
   }
 }

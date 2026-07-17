@@ -36,7 +36,7 @@ jobs:
       - name: Install MoonBit toolchain
         if: steps.cache-moon.outputs.cache-hit != 'true'
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.1.20260713
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH

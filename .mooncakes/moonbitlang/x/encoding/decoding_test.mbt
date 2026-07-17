@@ -16,40 +16,40 @@
 
 ///|
 test "streaming decoding UTF8 rabbit" {
-  let inputs = [b"abc", b"\u{f0}", b"\u{9f}\u{90}\u{b0}"] // UTF8(🐰) == <F09F 90B0>
+  let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
   let decoder = @encoding.decoder(UTF8)
-  @debug.debug_inspect(decoder.consume(inputs[0]), content="abc")
-  @debug.debug_inspect(decoder.consume(inputs[1]), content="")
-  @debug.debug_inspect(decoder.consume(inputs[2]), content="🐰")
+  inspect(decoder.consume(inputs[0]), content="abc")
+  inspect(decoder.consume(inputs[1]), content="")
+  inspect(decoder.consume(inputs[2]), content="🐰")
   assert_true(decoder.finish().is_empty())
 }
 
 ///|
 test "decode_to/UTF8/stream" {
-  let inputs = [b"abc", b"\u{f0}", b"\u{9f}\u{90}\u{b0}"] // UTF8(🐰) == <F09F 90B0>
+  let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
   decoder.decode_to(inputs[0], acc, stream=true)
-  @debug.debug_inspect(acc, content="abc")
+  inspect(acc, content="abc")
   decoder.decode_to(inputs[1], acc, stream=true)
-  @debug.debug_inspect(acc, content="abc")
+  inspect(acc, content="abc")
   decoder.decode_to(inputs[2], acc, stream=true)
-  @debug.debug_inspect(acc, content="abc🐰")
+  inspect(acc, content="abc🐰")
 }
 
 ///|
 test "streaming decoding UTF16LE rabbit" {
   // UTF16LE(🐰) == <3DD8 30DC>
   let inputs = [
-    b"\u{3D}", b"\u{D8}\u{30}\u{DC}", b"\u{3D}\u{D8}", b"\u{30}\u{DC}", b"\u{3D}\u{D8}\u{30}", b"\u{DC}",
+    b"\x3D", b"\xD8\x30\xDC", b"\x3D\xD8", b"\x30\xDC", b"\x3D\xD8\x30", b"\xDC",
   ]
   let decoder = @encoding.decoder(UTF16LE)
-  @debug.debug_inspect(decoder.consume(inputs[0]), content="")
-  @debug.debug_inspect(decoder.consume(inputs[1]), content="🐰")
-  @debug.debug_inspect(decoder.consume(inputs[2]), content="")
-  @debug.debug_inspect(decoder.consume(inputs[3]), content="🐰")
-  @debug.debug_inspect(decoder.consume(inputs[4]), content="")
-  @debug.debug_inspect(decoder.consume(inputs[5]), content="🐰")
+  inspect(decoder.consume(inputs[0]), content="")
+  inspect(decoder.consume(inputs[1]), content="🐰")
+  inspect(decoder.consume(inputs[2]), content="")
+  inspect(decoder.consume(inputs[3]), content="🐰")
+  inspect(decoder.consume(inputs[4]), content="")
+  inspect(decoder.consume(inputs[5]), content="🐰")
   assert_true(decoder.finish().is_empty())
 }
 
@@ -57,22 +57,22 @@ test "streaming decoding UTF16LE rabbit" {
 test "decode_to/UTF16LE/stream" {
   // UTF16LE(🐰) == <3DD8 30DC>
   let inputs = [
-    b"\u{3D}", b"\u{D8}\u{30}\u{DC}", b"\u{3D}\u{D8}", b"\u{30}\u{DC}", b"\u{3D}\u{D8}\u{30}", b"\u{DC}",
+    b"\x3D", b"\xD8\x30\xDC", b"\x3D\xD8", b"\x30\xDC", b"\x3D\xD8\x30", b"\xDC",
   ]
   let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_to(inputs[0], acc, stream=true)
-  @debug.debug_inspect(acc, content="")
+  inspect(acc, content="")
   decoder.decode_to(inputs[1], acc, stream=true)
-  @debug.debug_inspect(acc, content="🐰")
+  inspect(acc, content="🐰")
   decoder.decode_to(inputs[2], acc, stream=true)
-  @debug.debug_inspect(acc, content="🐰")
+  inspect(acc, content="🐰")
   decoder.decode_to(inputs[3], acc, stream=true)
-  @debug.debug_inspect(acc, content="🐰🐰")
+  inspect(acc, content="🐰🐰")
   decoder.decode_to(inputs[4], acc, stream=true)
-  @debug.debug_inspect(acc, content="🐰🐰")
+  inspect(acc, content="🐰🐰")
   decoder.decode_to(inputs[5], acc, stream=true)
-  @debug.debug_inspect(acc, content="🐰🐰🐰")
+  inspect(acc, content="🐰🐰🐰")
 }
 
 ///|
@@ -83,31 +83,31 @@ test "streaming decoding UTF16LE ASCII" {
 
   // NOTE: `to_bytes` means `to_utf16le_bytes` to MoonBit String
   let chunks = @encoding.encode(UTF16, ascii).to_array().chunks(17)
-  @debug.assert_eq(chunks.length(), 5)
+  assert_eq(chunks.length(), 5)
 
   // chunk by chunk
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[0]),
-    b"\u{48}\u{00}\u{6f}\u{00}\u{77}\u{00}\u{20}\u{00}\u{64}\u{00}\u{6f}\u{00}\u{20}\u{00}\u{77}\u{00}\u{65}",
+    b"\x48\x00\x6f\x00\x77\x00\x20\x00\x64\x00\x6f\x00\x20\x00\x77\x00\x65",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[0])), content="How do w")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[0])), content="How do w")
+  assert_eq(
     from_array(chunks[1]),
-    b"\u{00}\u{20}\u{00}\u{67}\u{00}\u{72}\u{00}\u{61}\u{00}\u{73}\u{00}\u{70}\u{00}\u{20}\u{00}\u{61}\u{00}",
+    b"\x00\x20\x00\x67\x00\x72\x00\x61\x00\x73\x00\x70\x00\x20\x00\x61\x00",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[1])), content="e grasp a")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[1])), content="e grasp a")
+  assert_eq(
     from_array(chunks[2]),
-    b"\u{6c}\u{00}\u{6c}\u{00}\u{20}\u{00}\u{74}\u{00}\u{68}\u{00}\u{65}\u{00}\u{20}\u{00}\u{61}\u{00}\u{70}",
+    b"\x6c\x00\x6c\x00\x20\x00\x74\x00\x68\x00\x65\x00\x20\x00\x61\x00\x70",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[2])), content="ll the a")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[2])), content="ll the a")
+  assert_eq(
     from_array(chunks[3]),
-    b"\u{00}\u{70}\u{00}\u{6c}\u{00}\u{65}\u{00}\u{73}\u{00}\u{20}\u{00}\u{61}\u{00}\u{74}\u{00}\u{20}\u{00}",
+    b"\x00\x70\x00\x6c\x00\x65\x00\x73\x00\x20\x00\x61\x00\x74\x00\x20\x00",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[3])), content="pples at ")
-  @debug.assert_eq(from_array(chunks[4]), b"\u{6f}\u{00}\u{6e}\u{00}\u{63}\u{00}\u{65}\u{00}\u{3f}\u{00}")
-  @debug.debug_inspect(decoder.consume(from_array(chunks[4])), content="once?")
+  inspect(decoder.consume(from_array(chunks[3])), content="pples at ")
+  assert_eq(from_array(chunks[4]), b"\x6f\x00\x6e\x00\x63\x00\x65\x00\x3f\x00")
+  inspect(decoder.consume(from_array(chunks[4])), content="once?")
   // `decode_finish()` is an alias for `decode(b"", stream=false)`
   assert_true(decoder.finish().is_empty())
 
@@ -118,7 +118,7 @@ test "streaming decoding UTF16LE ASCII" {
     acc += decoder.consume(from_array(chunk))
   }
   assert_true(decoder.finish().is_empty())
-  @debug.assert_eq(acc, ascii)
+  assert_eq(acc, ascii)
 }
 
 ///|
@@ -135,30 +135,30 @@ test "streaming decoding UTF8 Emoji" {
   let buf = @buffer.new(size_hint=art_bytes.length())
   buf.write_bytes(art_bytes)
   let chunks = buf.contents().to_array().chunks(13)
-  @debug.assert_eq(chunks.length(), 4)
+  assert_eq(chunks.length(), 4)
 
   // chunk by chunk
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[0]),
-    b"\u{20}\u{20}\u{20}\u{f0}\u{9f}\u{8e}\u{a9}\u{0a}\u{20}\u{20}\u{20}\u{f0}\u{9f}",
+    b"\x20\x20\x20\xf0\x9f\x8e\xa9\x0a\x20\x20\x20\xf0\x9f",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[0])), content="   🎩\n   ")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[0])), content="   🎩\n   ")
+  assert_eq(
     from_array(chunks[1]),
-    b"\u{91}\u{b6}\u{0a}\u{20}\u{e2}\u{9c}\u{8b}\u{f0}\u{9f}\u{91}\u{95}\u{f0}\u{9f}",
+    b"\x91\xb6\x0a\x20\xe2\x9c\x8b\xf0\x9f\x91\x95\xf0\x9f",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[1])), content="👶\n ✋👕")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[1])), content="👶\n ✋👕")
+  assert_eq(
     from_array(chunks[2]),
-    b"\u{8c}\u{82}\u{0a}\u{20}\u{20}\u{20}\u{e2}\u{80}\u{bc}\u{ef}\u{b8}\u{8f}\u{0a}",
+    b"\x8c\x82\x0a\x20\x20\x20\xe2\x80\xbc\xef\xb8\x8f\x0a",
   )
-  @debug.debug_inspect(decoder.consume(from_array(chunks[2])), content="🌂\n   ‼️\n")
-  @debug.assert_eq(
+  inspect(decoder.consume(from_array(chunks[2])), content="🌂\n   ‼️\n")
+  assert_eq(
     from_array(chunks[3]),
-    b"\u{20}\u{20}\u{20}\u{f0}\u{9f}\u{91}\u{9e}\u{f0}\u{9f}\u{91}\u{9e}",
+    b"\x20\x20\x20\xf0\x9f\x91\x9e\xf0\x9f\x91\x9e",
   )
   // stream default to false
-  @debug.debug_inspect(decoder.decode(from_array(chunks[3])), content="   👞👞")
+  inspect(decoder.decode(from_array(chunks[3])), content="   👞👞")
 
   // check accumulator
   let decoder = @encoding.decoder(UTF8)
@@ -167,7 +167,7 @@ test "streaming decoding UTF8 Emoji" {
     acc += decoder.consume(from_array(chunk))
   }
   assert_true(decoder.finish().is_empty())
-  @debug.assert_eq(acc, art)
+  assert_eq(acc, art)
 }
 
 ///|
@@ -179,39 +179,39 @@ test "streaming decoding UTF16BE Tao71" {
   let buf = @buffer.new(size_hint=tao71_bytes.length())
   buf.write_bytes(tao71_bytes)
   let chunks = buf.contents().to_array().chunks(17)
-  @debug.assert_eq(chunks.length(), 4)
+  assert_eq(chunks.length(), 4)
 
   // chunk by chunk
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[0]),
-    b"\u{77}\u{e5}\u{4e}\u{0d}\u{77}\u{e5}\u{ff}\u{0c}\u{5c}\u{1a}\u{77}\u{e3}\u{ff}\u{1b}\u{4e}\u{0d}\u{77}",
+    b"\x77\xe5\x4e\x0d\x77\xe5\xff\x0c\x5c\x1a\x77\xe3\xff\x1b\x4e\x0d\x77",
   )
-  @debug.debug_inspect(
+  inspect(
     decoder.consume(from_array(chunks[0])),
     content="知不知，尚矣；不",
   )
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[1]),
-    b"\u{e5}\u{77}\u{e5}\u{ff}\u{0c}\u{75}\u{c5}\u{4e}\u{5f}\u{30}\u{02}\u{57}\u{23}\u{4e}\u{ba}\u{4e}\u{0d}",
+    b"\xe5\x77\xe5\xff\x0c\x75\xc5\x4e\x5f\x30\x02\x57\x23\x4e\xba\x4e\x0d",
   )
-  @debug.debug_inspect(
+  inspect(
     decoder.consume(from_array(chunks[1])),
     content="知知，病也。圣人不",
   )
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[2]),
-    b"\u{75}\u{c5}\u{ff}\u{0c}\u{4e}\u{e5}\u{51}\u{76}\u{75}\u{c5}\u{75}\u{c5}\u{ff}\u{0c}\u{59}\u{2b}\u{60}",
+    b"\x75\xc5\xff\x0c\x4e\xe5\x51\x76\x75\xc5\x75\xc5\xff\x0c\x59\x2b\x60",
   )
-  @debug.debug_inspect(
+  inspect(
     decoder.consume(from_array(chunks[2])),
     content="病，以其病病，夫",
   )
-  @debug.assert_eq(
+  assert_eq(
     from_array(chunks[3]),
-    b"\u{df}\u{75}\u{c5}\u{75}\u{c5}\u{ff}\u{0c}\u{66}\u{2f}\u{4e}\u{e5}\u{4e}\u{0d}\u{75}\u{c5}\u{30}\u{02}",
+    b"\xdf\x75\xc5\x75\xc5\xff\x0c\x66\x2f\x4e\xe5\x4e\x0d\x75\xc5\x30\x02",
   )
   // decoder.decode(input, stream~ = false)
-  @debug.debug_inspect(
+  inspect(
     decoder.decode(from_array(chunks[3])),
     content="惟病病，是以不病。",
   )
@@ -223,7 +223,7 @@ test "streaming decoding UTF16BE Tao71" {
     acc += decoder.consume(from_array(chunk))
   }
   assert_true(decoder.finish().is_empty())
-  @debug.assert_eq(acc, tao71)
+  assert_eq(acc, tao71)
 }
 
 // In one go
@@ -233,10 +233,10 @@ test "decoding String (UTF16LE encoded) to String (buffer.write_bytes)" {
   let src = "你好👀"
   let buf = @buffer.new(size_hint=@encoding.encode(UTF16, src).length())
   buf.write_bytes(@encoding.encode(UTF16, src))
-  @debug.assert_eq(buf.to_bytes(), b"\u{60}\u{4f}\u{7d}\u{59}\u{3d}\u{d8}\u{40}\u{dc}")
+  assert_eq(buf.to_bytes(), b"\x60\x4f\x7d\x59\x3d\xd8\x40\xdc")
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.assert_eq(chars, src)
+  assert_eq(chars, src)
 }
 
 ///|
@@ -247,7 +247,7 @@ test "decode_to/UTF16LE" {
   let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="你好👀")
+  inspect(acc.to_string(), content="你好👀")
 }
 
 ///|
@@ -257,110 +257,110 @@ test "decoding String (UTF16LE encoded) to String (buffer.write_char)" {
   for s in src {
     buf.write_char(s)
   }
-  @debug.assert_eq(buf.to_bytes(), b"\u{3d}\u{d8}\u{4b}\u{dc}\u{8d}\u{51}\u{c1}\u{89}")
+  assert_eq(buf.to_bytes(), b"\x3d\xd8\x4b\xdc\x8d\x51\xc1\x89")
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.assert_eq(chars, src)
+  assert_eq(chars, src)
 }
 
 ///|
 test "decoding UTF16LE encoded data to String" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{60}\u{4f}") // 你
-  buf.write_bytes(b"\u{7d}\u{59}") // 好
-  buf.write_bytes(b"\u{3d}\u{d8}\u{40}\u{dc}") // 👀
-  @debug.assert_eq(buf.to_bytes(), b"\u{60}\u{4f}\u{7d}\u{59}\u{3d}\u{d8}\u{40}\u{dc}")
+  buf.write_bytes(b"\x60\x4f") // 你
+  buf.write_bytes(b"\x7d\x59") // 好
+  buf.write_bytes(b"\x3d\xd8\x40\xdc") // 👀
+  assert_eq(buf.to_bytes(), b"\x60\x4f\x7d\x59\x3d\xd8\x40\xdc")
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.debug_inspect(chars, content="你好👀")
+  inspect(chars, content="你好👀")
 }
 
 ///|
 test "decoding UTF16 (alias for UTF16LE) encoded data to String" {
   let buf = @buffer.new(size_hint=20)
-  buf.write_bytes(b"\u{65}\u{18}")
-  buf.write_bytes(b"\u{20}\u{18}")
-  buf.write_bytes(b"\u{73}\u{18}")
-  buf.write_bytes(b"\u{64}\u{18}")
-  buf.write_bytes(b"\u{73}\u{18}")
-  buf.write_bytes(b"\u{36}\u{18}")
-  buf.write_bytes(b"\u{20}\u{18}")
-  @debug.assert_eq(
+  buf.write_bytes(b"\x65\x18")
+  buf.write_bytes(b"\x20\x18")
+  buf.write_bytes(b"\x73\x18")
+  buf.write_bytes(b"\x64\x18")
+  buf.write_bytes(b"\x73\x18")
+  buf.write_bytes(b"\x36\x18")
+  buf.write_bytes(b"\x20\x18")
+  assert_eq(
     buf.to_bytes(),
-    b"\u{65}\u{18}\u{20}\u{18}\u{73}\u{18}\u{64}\u{18}\u{73}\u{18}\u{36}\u{18}\u{20}\u{18}",
+    b"\x65\x18\x20\x18\x73\x18\x64\x18\x73\x18\x36\x18\x20\x18",
   )
   let decoder = @encoding.decoder(UTF16)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.debug_inspect(chars, content="ᡥᠠᡳᡤᡳᠶᠠ")
+  inspect(chars, content="ᡥᠠᡳᡤᡳᠶᠠ")
 }
 
 ///|
 test "decode_to/UTF16" {
   let buf = @buffer.new(size_hint=20)
-  buf.write_bytes(b"\u{65}\u{18}")
-  buf.write_bytes(b"\u{20}\u{18}")
-  buf.write_bytes(b"\u{73}\u{18}")
-  buf.write_bytes(b"\u{64}\u{18}")
-  buf.write_bytes(b"\u{73}\u{18}")
-  buf.write_bytes(b"\u{36}\u{18}")
-  buf.write_bytes(b"\u{20}\u{18}")
+  buf.write_bytes(b"\x65\x18")
+  buf.write_bytes(b"\x20\x18")
+  buf.write_bytes(b"\x73\x18")
+  buf.write_bytes(b"\x64\x18")
+  buf.write_bytes(b"\x73\x18")
+  buf.write_bytes(b"\x36\x18")
+  buf.write_bytes(b"\x20\x18")
   let decoder = @encoding.decoder(UTF16)
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="ᡥᠠᡳᡤᡳᠶᠠ")
+  inspect(acc.to_string(), content="ᡥᠠᡳᡤᡳᠶᠠ")
 }
 
 ///|
 test "decoding UTF16BE encoded data to String" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{08}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{31}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{07}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{30}")
-  @debug.assert_eq(
+  buf.write_bytes(b"\xd8\x3d\xdc\x08")
+  buf.write_bytes(b"\xd8\x3d\xdc\x31")
+  buf.write_bytes(b"\xd8\x3d\xdc\x07")
+  buf.write_bytes(b"\xd8\x3d\xdc\x30")
+  assert_eq(
     buf.to_bytes(),
-    b"\u{d8}\u{3d}\u{dc}\u{08}\u{d8}\u{3d}\u{dc}\u{31}\u{d8}\u{3d}\u{dc}\u{07}\u{d8}\u{3d}\u{dc}\u{30}",
+    b"\xd8\x3d\xdc\x08\xd8\x3d\xdc\x31\xd8\x3d\xdc\x07\xd8\x3d\xdc\x30",
   )
   let decoder = @encoding.decoder(UTF16BE)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.debug_inspect(chars, content="🐈🐱🐇🐰")
+  inspect(chars, content="🐈🐱🐇🐰")
 }
 
 ///|
 test "decode_to/UTF16BE" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{08}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{31}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{07}")
-  buf.write_bytes(b"\u{d8}\u{3d}\u{dc}\u{30}")
+  buf.write_bytes(b"\xd8\x3d\xdc\x08")
+  buf.write_bytes(b"\xd8\x3d\xdc\x31")
+  buf.write_bytes(b"\xd8\x3d\xdc\x07")
+  buf.write_bytes(b"\xd8\x3d\xdc\x30")
   let decoder = @encoding.decoder(UTF16BE)
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="🐈🐱🐇🐰")
+  inspect(acc.to_string(), content="🐈🐱🐇🐰")
 }
 
 ///|
 test "decoding UTF8 encoded data to String" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{e4}\u{bd}\u{a0}") // 你
-  buf.write_bytes(b"\u{e5}\u{a5}\u{bd}") // 好
-  buf.write_bytes(b"\u{f0}\u{9f}\u{91}\u{80}") // 👀
-  @debug.assert_eq(buf.to_bytes(), b"\u{e4}\u{bd}\u{a0}\u{e5}\u{a5}\u{bd}\u{f0}\u{9f}\u{91}\u{80}")
+  buf.write_bytes(b"\xe4\xbd\xa0") // 你
+  buf.write_bytes(b"\xe5\xa5\xbd") // 好
+  buf.write_bytes(b"\xf0\x9f\x91\x80") // 👀
+  assert_eq(buf.to_bytes(), b"\xe4\xbd\xa0\xe5\xa5\xbd\xf0\x9f\x91\x80")
   let decoder = @encoding.decoder(UTF8)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.debug_inspect(chars, content="你好👀")
+  inspect(chars, content="你好👀")
 }
 
 ///|
 test "decode_to/UTF8" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{e4}\u{bd}\u{a0}") // 你
-  buf.write_bytes(b"\u{e5}\u{a5}\u{bd}") // 好
-  buf.write_bytes(b"\u{f0}\u{9f}\u{91}\u{80}") // 👀
+  buf.write_bytes(b"\xe4\xbd\xa0") // 你
+  buf.write_bytes(b"\xe5\xa5\xbd") // 好
+  buf.write_bytes(b"\xf0\x9f\x91\x80") // 👀
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="你好👀")
+  inspect(acc.to_string(), content="你好👀")
 }
 
 ///|
@@ -370,10 +370,10 @@ test "decoding UTF8 encoded bytes to String" {
   for s in src {
     @encoding.write_utf8_char(buf, s)
   }
-  @debug.assert_eq(buf.to_bytes(), b"\u{f0}\u{9f}\u{91}\u{8b}\u{e5}\u{86}\u{8d}\u{e8}\u{a7}\u{81}")
+  assert_eq(buf.to_bytes(), b"\xf0\x9f\x91\x8b\xe5\x86\x8d\xe8\xa7\x81")
   let decoder = @encoding.decoder(UTF8)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.assert_eq(chars, src)
+  assert_eq(chars, src)
 }
 
 ///|
@@ -383,10 +383,10 @@ test "decoding UTF8 encoded data" {
   for s in src {
     @encoding.write_utf8_char(buf, s)
   }
-  @debug.assert_eq(buf.to_bytes(), b"\u{f0}\u{9f}\u{91}\u{8b}\u{e5}\u{86}\u{8d}\u{e8}\u{a7}\u{81}")
+  assert_eq(buf.to_bytes(), b"\xf0\x9f\x91\x8b\xe5\x86\x8d\xe8\xa7\x81")
   let decoder = @encoding.decoder(UTF8)
   let chars = decoder.decode(buf.to_bytes())
-  @debug.debug_inspect(chars.iter().collect(), content="['👋', '再', '见']")
+  inspect(chars.iter().collect(), content="['👋', '再', '见']")
 }
 
 ///|
@@ -396,15 +396,15 @@ test "decoding UTF16LE encoded data with UTF8" {
   for s in src {
     @encoding.write_utf16le_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{d1}\u{8d}\u{65}\u{6b}\u{3c}\u{d8}\u{c3}\u{df}\u{38}\u{6e}\u{f3}\u{6c}\u{3c}\u{d8}\u{ca}\u{df}",
+    b"\xd1\x8d\x65\x6b\x3c\xd8\xc3\xdf\x38\x6e\xf3\x6c\x3c\xd8\xca\xdf",
   )
   let decoder = @encoding.decoder(UTF8)
   // NOTE: Expected to be malformed here
   let chars = try? decoder.decode(buf.to_bytes())
   assert_true(chars is Err(_))
-  @debug.debug_inspect(
+  inspect(
     chars,
     content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
   )
@@ -419,7 +419,7 @@ test "decode_to/UTF16LE-UTF8/MalformedError" {
   }
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
-  @debug.debug_inspect(
+  inspect(
     try? decoder.decode_to(buf.to_bytes(), acc),
     content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
   )
@@ -437,7 +437,7 @@ test "decode_to/UTF16LE-UTF8/TruncatedError" {
   let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   let result = try? decoder.decode_to(bytes_view, acc)
-  @debug.debug_inspect(
+  inspect(
     result,
     content="Err(moonbitlang/x/encoding.TruncatedError.TruncatedError)",
   )
@@ -455,15 +455,15 @@ test "decode_to/UTF16LE-UTF8/stream" {
   let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   let result = try? decoder.decode_to(bytes_view, acc, stream=true)
-  @debug.debug_inspect(result, content="Ok(())")
-  @debug.debug_inspect(acc.to_string(), content="跑步🏃游泳")
+  inspect(result, content="Ok(())")
+  inspect(acc.to_string(), content="跑步🏃游泳")
   let result = try? decoder.decode_to(
     [bytes[bytes.length() - 1]],
     acc,
     stream=true,
   )
-  @debug.debug_inspect(result, content="Ok(())")
-  @debug.debug_inspect(acc.to_string(), content="跑步🏃游泳🏊")
+  inspect(result, content="Ok(())")
+  inspect(acc.to_string(), content="跑步🏃游泳🏊")
 }
 
 ///|
@@ -471,9 +471,9 @@ test "decode_to/empty" {
   let acc = StringBuilder::new()
   let decoder = @encoding.decoder(UTF8)
   decoder.decode_to("", acc)
-  @debug.debug_inspect(acc.to_string(), content="")
+  inspect(acc.to_string(), content="")
   @encoding.decode_to("", acc, encoding=UTF8)
-  @debug.debug_inspect(acc.to_string(), content="")
+  inspect(acc.to_string(), content="")
 }
 
 ///|
@@ -483,14 +483,14 @@ test "decoding UTF8 encoded data with UTF16LE" {
   for s in src {
     @encoding.write_utf8_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{e8}\u{b7}\u{91}\u{e6}\u{ad}\u{a5}\u{f0}\u{9f}\u{8f}\u{83}\u{e6}\u{b8}\u{b8}\u{e6}\u{b3}\u{b3}\u{f0}\u{9f}\u{8f}\u{8a}",
+    b"\xe8\xb7\x91\xe6\xad\xa5\xf0\x9f\x8f\x83\xe6\xb8\xb8\xe6\xb3\xb3\xf0\x9f\x8f\x8a",
   )
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
   // NOTE: Happens to be legal UTF16LE
-  @debug.debug_inspect(
+  inspect(
     chars.iter().collect(),
     content="['럨', '\\u{e691}', 'ꖭ', '鿰', '莏', '룦', '\\u{e6b8}', '뎳', '鿰', '誏']",
   )
@@ -507,7 +507,7 @@ test "decode_to/UTF8-UTF16LE" {
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
   // NOTE: Happens to be legal UTF16LE
-  @debug.debug_inspect(acc.to_string(), content="럨ꖭ鿰莏룦뎳鿰誏")
+  inspect(acc.to_string(), content="럨ꖭ鿰莏룦뎳鿰誏")
 }
 
 ///|
@@ -517,15 +517,15 @@ test "decoding UTF16BE encoded data with UTF8" {
   for s in src {
     @encoding.write_utf16be_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{8d}\u{d1}\u{6b}\u{65}\u{d8}\u{3c}\u{df}\u{c3}\u{6e}\u{38}\u{6c}\u{f3}\u{d8}\u{3c}\u{df}\u{ca}",
+    b"\x8d\xd1\x6b\x65\xd8\x3c\xdf\xc3\x6e\x38\x6c\xf3\xd8\x3c\xdf\xca",
   )
   let decoder = @encoding.decoder(UTF8)
   // NOTE: Expected to be malformed here
   let chars = try? decoder.decode(buf.to_bytes())
   assert_true(chars is Err(_))
-  @debug.debug_inspect(
+  inspect(
     chars,
     content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
   )
@@ -540,7 +540,7 @@ test "decode_to/UTF16BE-UTF8" {
   }
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
-  @debug.debug_inspect(
+  inspect(
     try? decoder.decode_to(buf.to_bytes(), acc),
     content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
   )
@@ -553,14 +553,14 @@ test "decoding UTF8 encoded data with UTF16BE" {
   for s in src {
     @encoding.write_utf8_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{e8}\u{b7}\u{91}\u{e6}\u{ad}\u{a5}\u{f0}\u{9f}\u{8f}\u{83}\u{e6}\u{b8}\u{b8}\u{e6}\u{b3}\u{b3}\u{f0}\u{9f}\u{8f}\u{8a}",
+    b"\xe8\xb7\x91\xe6\xad\xa5\xf0\x9f\x8f\x83\xe6\xb8\xb8\xe6\xb3\xb3\xf0\x9f\x8f\x8a",
   )
   let decoder = @encoding.decoder(UTF16BE)
   let chars = decoder.decode(buf.to_bytes())
   // NOTE: Happens to be legal UTF16BE
-  @debug.debug_inspect(
+  inspect(
     chars.to_array(),
     content="['\\u{e8b7}', '釦', '궥', '\\u{f09f}', '较', '\\u{e6b8}', '룦', '뎳', '\\u{f09f}', '辊']",
   )
@@ -577,7 +577,7 @@ test "decode_to/UTF8-UTF16BE" {
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
   // NOTE: Happens to be legal UTF16BE
-  @debug.debug_inspect(acc.to_string(), content="釦궥较룦뎳辊")
+  inspect(acc.to_string(), content="釦궥较룦뎳辊")
 }
 
 ///|
@@ -587,14 +587,14 @@ test "decoding UTF16LE encoded data with UTF16BE" {
   for s in src {
     @encoding.write_utf16le_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{d1}\u{8d}\u{65}\u{6b}\u{3c}\u{d8}\u{c3}\u{df}\u{38}\u{6e}\u{f3}\u{6c}\u{3c}\u{d8}\u{ca}\u{df}",
+    b"\xd1\x8d\x65\x6b\x3c\xd8\xc3\xdf\x38\x6e\xf3\x6c\x3c\xd8\xca\xdf",
   )
   let decoder = @encoding.decoder(UTF16BE)
   let chars = decoder.decode(buf.to_bytes())
   // NOTE: Happens to be legal UTF16BE
-  @debug.debug_inspect(
+  inspect(
     chars.to_array(),
     content="['톍', '敫', '㳘', '쏟', '㡮', '\\u{f36c}', '㳘', '쫟']",
   )
@@ -611,7 +611,7 @@ test "decode_to/UTF16LE-UTF16BE" {
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
   // NOTE: Happens to be legal UTF16BE
-  @debug.debug_inspect(acc.to_string(), content="톍敫㳘쏟㡮㳘쫟")
+  inspect(acc.to_string(), content="톍敫㳘쏟㡮㳘쫟")
 }
 
 ///|
@@ -621,14 +621,14 @@ test "decoding UTF16BE encoded data with UTF16LE" {
   for s in src {
     @encoding.write_utf16be_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{8d}\u{d1}\u{6b}\u{65}\u{d8}\u{3c}\u{df}\u{c3}\u{6e}\u{38}\u{6c}\u{f3}\u{d8}\u{3c}\u{df}\u{ca}",
+    b"\x8d\xd1\x6b\x65\xd8\x3c\xdf\xc3\x6e\x38\x6c\xf3\xd8\x3c\xdf\xca",
   )
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
   // NOTE: Happens to be legal UTF16LE
-  @debug.debug_inspect(
+  inspect(
     chars.to_array(),
     content="['톍', '敫', '㳘', '쏟', '㡮', '\\u{f36c}', '㳘', '쫟']",
   )
@@ -645,7 +645,7 @@ test "decode_to/UTF16BE-UTF16LE" {
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
   // NOTE: Happens to be legal UTF16LE
-  @debug.debug_inspect(acc.to_string(), content="톍敫㳘쏟㡮㳘쫟")
+  inspect(acc.to_string(), content="톍敫㳘쏟㡮㳘쫟")
 }
 
 ///|
@@ -655,13 +655,13 @@ test "lossy decoding UTF16LE encoded data with UTF8" {
   for s in src {
     @encoding.write_utf16le_char(buf, s)
   }
-  @debug.assert_eq(
+  assert_eq(
     buf.to_bytes(),
-    b"\u{d1}\u{8d}\u{65}\u{6b}\u{3c}\u{d8}\u{c3}\u{df}\u{38}\u{6e}\u{f3}\u{6c}\u{3c}\u{d8}\u{ca}\u{df}",
+    b"\xd1\x8d\x65\x6b\x3c\xd8\xc3\xdf\x38\x6e\xf3\x6c\x3c\xd8\xca\xdf",
   )
   let decoder = @encoding.decoder(UTF8)
   let chars = decoder.decode_lossy(buf.to_bytes())
-  @debug.debug_inspect(
+  inspect(
     chars.to_array(),
     content="['э', 'e', 'k', '<', '�', '�', 'n', '�', '�']",
   )
@@ -677,18 +677,18 @@ test "decode_lossy_to/UTF16LE-UTF8" {
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="эek<��n��")
+  inspect(acc.to_string(), content="эek<��n��")
 }
 
 ///|
 test "lossy decoding UTF16LE incorrectly encoded data to String" {
-  let src = b"\u{00}\u{D8}"
-  @debug.assert_eq(src, b"\u{00}\u{d8}")
+  let src = b"\x00\xD8"
+  assert_eq(src, b"\x00\xd8")
   let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode_lossy(src, stream=false)
-  @debug.debug_inspect(chars, content="�")
-  @debug.assert_eq(chars.length(), 1)
-  @debug.assert_eq(
+  inspect(chars, content="�")
+  assert_eq(chars.length(), 1)
+  assert_eq(
     Int::unsafe_to_char(chars.code_unit_at(0).to_int()),
     @encoding.U_REP,
   )
@@ -696,23 +696,23 @@ test "lossy decoding UTF16LE incorrectly encoded data to String" {
 
 ///|
 test "decode_lossy_to/UTF16LE" {
-  let src = b"\u{00}\u{D8}"
-  @debug.assert_eq(src, b"\u{00}\u{d8}")
+  let src = b"\x00\xD8"
+  assert_eq(src, b"\x00\xd8")
   let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(src, acc)
-  @debug.debug_inspect(acc.to_string(), content="�")
+  inspect(acc.to_string(), content="�")
 }
 
 ///|
 test "lossy decoding UTF16 (alias for UTF16LE) incorrectly encoded data to String" {
-  let src = b"\u{00}\u{D8}"
-  @debug.assert_eq(src, b"\u{00}\u{d8}")
+  let src = b"\x00\xD8"
+  assert_eq(src, b"\x00\xd8")
   let decoder = @encoding.decoder(UTF16)
   let chars = decoder.decode_lossy(src, stream=false)
-  @debug.debug_inspect(chars, content="�")
-  @debug.assert_eq(chars.length(), 1)
-  @debug.assert_eq(
+  inspect(chars, content="�")
+  assert_eq(chars.length(), 1)
+  assert_eq(
     Int::unsafe_to_char(chars.code_unit_at(0).to_int()),
     @encoding.U_REP,
   )
@@ -720,23 +720,23 @@ test "lossy decoding UTF16 (alias for UTF16LE) incorrectly encoded data to Strin
 
 ///|
 test "decode_lossy_to/UTF16" {
-  let src = b"\u{00}\u{D8}"
-  @debug.assert_eq(src, b"\u{00}\u{d8}")
+  let src = b"\x00\xD8"
+  assert_eq(src, b"\x00\xd8")
   let decoder = @encoding.decoder(UTF16)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(src, acc)
-  @debug.debug_inspect(acc.to_string(), content="�")
+  inspect(acc.to_string(), content="�")
 }
 
 ///|
 test "lossy decoding UTF16BE incorrectly encoded data to String" {
-  let src = b"\u{D8}\u{00}"
-  @debug.assert_eq(src, b"\u{d8}\u{00}")
+  let src = b"\xD8\x00"
+  assert_eq(src, b"\xd8\x00")
   let decoder = @encoding.decoder(UTF16BE)
   let chars = decoder.decode_lossy(src, stream=false)
-  @debug.debug_inspect(chars, content="�")
-  @debug.assert_eq(chars.length(), 1)
-  @debug.assert_eq(
+  inspect(chars, content="�")
+  assert_eq(chars.length(), 1)
+  assert_eq(
     Int::unsafe_to_char(chars.code_unit_at(0).to_int()),
     @encoding.U_REP,
   )
@@ -744,41 +744,41 @@ test "lossy decoding UTF16BE incorrectly encoded data to String" {
 
 ///|
 test "decode_lossy_to/UTF16BE" {
-  let src = b"\u{D8}\u{00}"
-  @debug.assert_eq(src, b"\u{d8}\u{00}")
+  let src = b"\xD8\x00"
+  assert_eq(src, b"\xd8\x00")
   let decoder = @encoding.decoder(UTF16BE)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(src, acc)
-  @debug.debug_inspect(acc.to_string(), content="�")
+  inspect(acc.to_string(), content="�")
 }
 
 ///|
 test "lossy decoding UTF16BE which is `HI+!LO`" {
-  let src = b"\u{D8}\u{00}\u{00}\u{48}"
-  @debug.assert_eq(src, b"\u{d8}\u{00}\u{00}\u{48}")
+  let src = b"\xD8\x00\x00\x48"
+  assert_eq(src, b"\xd8\x00\x00\x48")
   let decoder = @encoding.decoder(UTF16BE)
   let chars = decoder.decode_lossy(src, stream=false)
 
   // NOTE(jinser): should decode as many characters as possible
-  @debug.debug_inspect(chars, content="�H") // ✅
-  @debug.assert_eq(chars.length(), 2)
-  @debug.assert_eq(
+  inspect(chars, content="�H") // ✅
+  assert_eq(chars.length(), 2)
+  assert_eq(
     Int::unsafe_to_char(chars.code_unit_at(0).to_int()),
     @encoding.U_REP,
   )
-  @debug.assert_eq(chars.get_char(1), Some('H'))
+  assert_eq(chars.get_char(1), Some('H'))
 }
 
 ///|
 test "decode_lossy_to/UTF16BE_2" {
-  let src = b"\u{D8}\u{00}\u{00}\u{48}"
-  @debug.assert_eq(src, b"\u{d8}\u{00}\u{00}\u{48}")
+  let src = b"\xD8\x00\x00\x48"
+  assert_eq(src, b"\xd8\x00\x00\x48")
   let decoder = @encoding.decoder(UTF16BE)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(src, acc)
 
   // NOTE(jinser): should decode as many characters as possible
-  @debug.debug_inspect(acc.to_string(), content="�H") // ✅
+  inspect(acc.to_string(), content="�H") // ✅
 }
 
 ///|
@@ -786,12 +786,12 @@ test "decode_lossy_to/UTF16BE_2" {
 /// https://www.unicode.org/versions/Unicode16.0.0/core-spec/chapter-3/#G27506
 test "lossy decoding UTF8 incorrectly encoded data to String" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{E0}\u{9F}\u{80}")
-  @debug.assert_eq(buf.to_bytes(), b"\u{e0}\u{9f}\u{80}")
+  buf.write_bytes(b"\xE0\x9F\x80")
+  assert_eq(buf.to_bytes(), b"\xe0\x9f\x80")
   let decoder = @encoding.decoder(UTF8)
   let chars = decoder.decode_lossy(buf.to_bytes())
-  @debug.debug_inspect(chars, content="�")
-  @debug.assert_eq(
+  inspect(chars, content="�")
+  assert_eq(
     Int::unsafe_to_char(chars.code_unit_at(0).to_int()),
     @encoding.U_REP,
   )
@@ -800,12 +800,12 @@ test "lossy decoding UTF8 incorrectly encoded data to String" {
 ///|
 test "decode_lossy_to/UTF8" {
   let buf = @buffer.new(size_hint=10)
-  buf.write_bytes(b"\u{E0}\u{9F}\u{80}")
-  @debug.assert_eq(buf.to_bytes(), b"\u{e0}\u{9f}\u{80}")
+  buf.write_bytes(b"\xE0\x9F\x80")
+  assert_eq(buf.to_bytes(), b"\xe0\x9f\x80")
   let decoder = @encoding.decoder(UTF8)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(buf.to_bytes(), acc)
-  @debug.debug_inspect(acc.to_string(), content="�")
+  inspect(acc.to_string(), content="�")
 }
 
 ///|
@@ -813,7 +813,7 @@ test "decode_lossy_to/empty" {
   let acc = StringBuilder::new()
   let decoder = @encoding.decoder(UTF8)
   decoder.decode_lossy_to("", acc)
-  @debug.debug_inspect(acc.to_string(), content="")
+  inspect(acc.to_string(), content="")
 }
 
 ///|
@@ -821,12 +821,12 @@ test "decode_lossy_to/empty" {
 /// > The first (high) surrogate is a 16-bit code value in the range U+D800 to U+DBFF.
 /// > The second (low) surrogate is a 16-bit code value in the range U+DC00 to U+DFFF.
 test "Not all UTF16LE is format-legal UTF16BE and vice versa" {
-  let bytes_le = b"\u{D8}\u{00}\u{D9}\u{00}"
+  let bytes_le = b"\xD8\x00\xD9\x00"
 
   // valid in UTF16LE
   let decoder_utf16le = @encoding.decoder(UTF16LE)
   let chars_utf16le = decoder_utf16le.decode(bytes_le)
-  @debug.debug_inspect(chars_utf16le, content="ØÙ")
+  inspect(chars_utf16le, content="ØÙ")
 
   // invalid in UTF16BE
   let decoder_utf16be = @encoding.decoder(UTF16BE)
@@ -834,12 +834,12 @@ test "Not all UTF16LE is format-legal UTF16BE and vice versa" {
   assert_true(malformedError is Err(_))
 
   // vice versa
-  let bytes_be = b"\u{00}\u{D8}\u{00}\u{D9}"
+  let bytes_be = b"\x00\xD8\x00\xD9"
 
   // valid in UTF16BE
   let decoder_utf16be = @encoding.decoder(UTF16BE)
   let chars_utf16be = decoder_utf16be.decode(bytes_be)
-  @debug.debug_inspect(chars_utf16be, content="ØÙ")
+  inspect(chars_utf16be, content="ØÙ")
 
   // invalid in UTF16LE
   let decoder_utf16le = @encoding.decoder(UTF16LE)

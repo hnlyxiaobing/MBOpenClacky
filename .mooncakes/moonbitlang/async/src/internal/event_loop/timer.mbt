@@ -15,7 +15,7 @@
 ///|
 struct Timer {
   timer_id : Int
-  expire_time : Int64
+  expire_time : UInt64
   callback : () -> Unit
 }
 
@@ -25,7 +25,7 @@ let timer_id : Ref[Int] = { val: 0 }
 ///|
 pub fn Timer::new(duration : Int, callback : () -> Unit) -> Timer {
   guard curr_loop.val is Some(evloop)
-  let expire_time = @time.ms_since_epoch() + duration.to_int64()
+  let expire_time = @env.now() + duration.to_uint64()
   timer_id.val += 1
   let timer = { timer_id: timer_id.val, expire_time, callback }
   evloop.timers.add(timer)
@@ -39,14 +39,22 @@ pub fn Timer::cancel(timer : Timer) -> Unit {
 }
 
 ///|
-impl Eq for Timer with equal(t1, t2) {
+impl Eq for Timer with fn equal(t1, t2) {
   t1.timer_id == t2.timer_id
 }
 
 ///|
-impl Compare for Timer with compare(t1, t2) {
+impl Compare for Timer with fn compare(t1, t2) {
   match t1.expire_time.compare(t2.expire_time) {
     0 => t1.timer_id.compare(t2.timer_id)
     o => o
   }
+}
+
+///|
+pub async fn sleep(duration : Int) -> Unit {
+  let coro = @coroutine.current_coroutine()
+  let timer = Timer::new(duration, () => coro.wake())
+  defer timer.cancel()
+  @coroutine.suspend()
 }

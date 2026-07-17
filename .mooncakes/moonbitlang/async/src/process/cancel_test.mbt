@@ -34,7 +34,7 @@ async test "cancel process" {
     task.cancel()
     log <+ "cancelling task running process\n"
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|cancelling task running process
@@ -62,19 +62,22 @@ async test "cancel process timeout" {
       defer r.close()
       guard r.read_some() is Some(data)
       let data = @utf8.decode(data).trim_end(chars="\r\n")
-      let t = @async.now()
-      @debug.debug_inspect(data, content="received termination signal")
+      let t = @env.now()
+      inspect(data, content="received termination signal")
       t
     })
     @async.sleep(500)
-    let t_cancel = @async.now()
+    let t_cancel = @env.now()
     task.cancel()
-    debug_inspect(try? task.wait(), content="Err(Cancelled)")
-    let t_process_terminates = @async.now()
+    debug_inspect(
+      @test_util.expect_error_async(() => task.wait()),
+      content="Cancelled",
+    )
+    let t_process_terminates = @env.now()
     let t1 = t_receive_graceful_termination.wait() - t_cancel
     let t2 = t_process_terminates - t_cancel
-    @debug.debug_inspect(t1 / 250, content="0")
-    @debug.debug_inspect(t2 / 250, content="2")
+    inspect(t1 / 250, content="0")
+    inspect(t2 / 250, content="2")
   }
 }
 
@@ -93,14 +96,17 @@ async test "cancel process hard" {
     })
     root.spawn_bg() <| () => {
       defer r.close()
-      @debug.debug_inspect(r.read_all().text(), content="")
+      inspect(r.read_all().text(), content="")
     }
     @async.sleep(500)
-    let t0 = @async.now()
+    let t0 = @env.now()
     task.cancel()
-    debug_inspect(try? task.wait(), content="Err(Cancelled)")
-    let t1 = @async.now()
-    @debug.debug_inspect((t1 - t0) / 250, content="0")
+    debug_inspect(
+      @test_util.expect_error_async(() => task.wait()),
+      content="Cancelled",
+    )
+    let t1 = @env.now()
+    inspect((t1 - t0) / 250, content="0")
   }
 }
 
@@ -119,12 +125,12 @@ async test "orphan process" {
       @process.wait_pid(pid)
     })
     defer r.close()
-    @debug.debug_inspect(@utf8.decode(r.read_exactly(5)), content="first")
+    inspect(@utf8.decode(r.read_exactly(5)), content="first")
     task.cancel()
     log <+ "cancelling task running process\n"
-    @debug.debug_inspect(r.read_all().text(), content="second")
+    inspect(r.read_all().text(), content="second")
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|cancelling task running process
@@ -153,7 +159,7 @@ async test "kill children on hard cancel" {
     @async.TimeoutError => ()
     err => raise err
   }
-  @debug.debug_inspect(r.read_all().text().trim(), content="")
+  inspect(r.read_all().text().trim(), content="")
 }
 
 ///|
@@ -174,5 +180,5 @@ async test "do not kill orphan children on hard cancel" {
     @async.TimeoutError => ()
     err => raise err
   }
-  @debug.debug_inspect(r.read_all().text().trim(), content="after sleep")
+  inspect(r.read_all().text().trim(), content="after sleep")
 }

@@ -48,9 +48,11 @@ async test "UTF8 validation" {
       let client = @websocket.connect("ws://localhost:\{addr.port()}")
       defer client.close()
       client..start_message(Text)..write(msg).end_message()
-      let result = try? client.recv().read_all().binary()
+      let err = @test_util.expect_error_async <| () => {
+        client.recv().read_all().binary()
+      }
       log.push(
-        "client: \{@debug.to_string(msg.to_array())} => \{@debug.to_string(result)}",
+        "client: \{@debug.to_string(msg.to_array())} => Err(\{@debug.to_string(err)})",
       )
       @async.sleep(100)
     }
@@ -67,23 +69,23 @@ async test "UTF8 validation" {
   }
   json_inspect(log, content=[
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 0",
-    "client: [0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 1",
-    "client: [0x79, 0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0x79, 0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 2",
-    "client: [0xc0, 0x80, 0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xc0, 0x80, 0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 1",
-    "client: [0xc0, 0x79] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xc0, 0x79] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 3",
-    "client: [0xe0, 0x80, 0x80, 0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xe0, 0x80, 0x80, 0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 2",
-    "client: [0xe0, 0x80, 0x79] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xe0, 0x80, 0x79] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 4",
-    "client: [0xf0, 0x80, 0x80, 0x80, 0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xf0, 0x80, 0x80, 0x80, 0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 3",
-    "client: [0xf0, 0x80, 0x80, 0x79] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xf0, 0x80, 0x80, 0x79] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
     "server failed with ProtocolError(Text message is not valid UTF8) at byte 1",
-    "client: [0xf0, 0x79, 0x80, 0x80] => Err(\n  ConnectionClosed(\n    InvalidFramePayload,\n    Some(\"Text message is not valid UTF8\"),\n  ),\n)",
+    "client: [0xf0, 0x79, 0x80, 0x80] => Err(ConnectionClosed(\n  InvalidFramePayload,\n  Some(\"Text message is not valid UTF8\"),\n))",
   ])
 }
 
@@ -115,10 +117,10 @@ async test "UTF8 validation large message" {
         client.end_message()
       }
       let reply = client.recv()
-      @debug.debug_inspect(@utf8.decode(reply.read_exactly(1)), content="a")
+      inspect(@utf8.decode(reply.read_exactly(1)), content="a")
       for n = 0; n < 10240; n = n + chunk_bin.length() {
         let reply_chunk = reply.read_exactly(chunk_bin.length())
-        @debug.assert_eq(@utf8.decode(reply_chunk), chunk_text)
+        assert_eq(@utf8.decode(reply_chunk), chunk_text)
       }
       debug_inspect(reply.read_some(), content="None")
     }

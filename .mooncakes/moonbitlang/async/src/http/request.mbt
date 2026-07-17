@@ -51,7 +51,7 @@ fn resolve_url(uri : String) -> (Protocol, String, StringView) raise {
 }
 
 ///|
-#cfg(target="native")
+#cfg(any(target="native", target="wasm"))
 fn resolve_host(
   host : StringView,
   protocol~ : Protocol,
@@ -63,7 +63,7 @@ fn resolve_host(
       (re"[0-9]+" as port_str) +
       re"$"
     ) {
-    let port = @strconv.parse_int(port_str) catch { _ => raise InvalidFormat }
+    let port = @string.parse_int(port_str) catch { _ => raise InvalidFormat }
     guard port is (1..<65536) else { raise InvalidFormat }
     (host, port)
   } else {
@@ -96,9 +96,10 @@ async fn perform_request(
 /// `proxy` is not supported on JavaScript backend.
 ///
 /// See `Client::request` for more details.
+#label_migration(body, fill=false, msg="`GET` request should not contain a body")
 pub async fn get(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   body? : &@io.Data = b"",
   proxy? : Client,
 ) -> (Response, &@io.Data) {
@@ -110,7 +111,7 @@ pub async fn get(
 pub async fn put(
   uri : String,
   content : &@io.Data,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
 ) -> (Response, &@io.Data) {
   perform_request(uri, Put, headers, content, proxy?)
@@ -121,7 +122,7 @@ pub async fn put(
 pub async fn post(
   uri : String,
   content : &@io.Data,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
 ) -> (Response, &@io.Data) {
   perform_request(uri, Post, headers, content, proxy?)
@@ -137,9 +138,10 @@ pub async fn post(
 ///
 /// Note that the returned client must be manually closed via `.close()`
 /// to close the underlying connection used for the request.
+#label_migration(body, fill=false, msg="`GET` request should not contain a body")
 pub async fn get_stream(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   body? : &@io.Data = b"",
   proxy? : Client,
 ) -> (Response, Client) {
@@ -171,7 +173,7 @@ pub async fn get_stream(
 /// to close the underlying connection used for the request.
 pub async fn put_stream(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
 ) -> Client {
   let (protocol, host, path) = resolve_url(uri)
@@ -201,7 +203,7 @@ pub async fn put_stream(
 /// to close the underlying connection used for the request.
 pub async fn post_stream(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
 ) -> Client {
   let (protocol, host, path) = resolve_url(uri)

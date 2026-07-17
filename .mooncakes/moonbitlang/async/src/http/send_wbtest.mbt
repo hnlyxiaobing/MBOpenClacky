@@ -26,7 +26,7 @@ async test "send_request basic" {
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -56,7 +56,7 @@ async test "send_request stream" {
       sender..write_reader(file).end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -318,7 +318,7 @@ async test "send_request stream2" {
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -356,7 +356,7 @@ async test "send invalid header" {
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -394,7 +394,7 @@ async test "send fixed length" {
       .end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -629,9 +629,9 @@ async test "sender write incorrect length" {
     let data = Bytes::make(20, b'\x00')
     sender.write(data)
     debug_inspect(
-      try? sender.write(data),
+      @test_util.expect_error_async(() => sender.write(data)),
       content=(
-        #|Err(IncorrectBodyLength)
+        #|IncorrectBodyLength
       ),
     )
   }
@@ -655,9 +655,9 @@ async test "sender write_reader incorrect length" {
       "Content-Length": "2048",
     })
     debug_inspect(
-      try? sender.write_reader(license_file),
+      @test_util.expect_error_async(() => sender.write_reader(license_file)),
       content=(
-        #|Err(IncorrectBodyLength)
+        #|IncorrectBodyLength
       ),
     )
   }
@@ -679,9 +679,9 @@ async test "sender end_body incorrect length" {
       "content-length": "1",
     })
     debug_inspect(
-      try? sender.end_body(),
+      @test_util.expect_error_async(() => sender.end_body()),
       content=(
-        #|Err(IncorrectBodyLength)
+        #|IncorrectBodyLength
       ),
     )
   }
@@ -712,11 +712,17 @@ async test "send_response cookies" {
     group.spawn_bg() <| () => {
       defer w.close()
       let sender = Sender::new(w)
-      let _ = sender.send_response(200, "OK", cookies~, request_method=Get, extra_headers={})
+      let _ = sender.send_response(
+        200,
+        "OK",
+        cookies~,
+        request_method=Get,
+        extra_headers=Map([]),
+      )
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|HTTP/1.1 200 OK\r
@@ -739,15 +745,15 @@ async test "send_request empty body" {
     group.spawn_bg() <| () => {
       defer w.close()
       let sender = Sender::new(w)
-      let _ = sender.send_request(Get, "/", extra_headers={})
+      let _ = sender.send_request(Get, "/", extra_headers=Map([]))
       sender..write("").end_body()
-      let _ = sender.send_request(Head, "/", extra_headers={})
+      let _ = sender.send_request(Head, "/", extra_headers=Map([]))
       sender.end_body()
-      let _ = sender.send_request(Post, "/", extra_headers={})
+      let _ = sender.send_request(Post, "/", extra_headers=Map([]))
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r
@@ -773,19 +779,49 @@ async test "send_response empty body" {
     group.spawn_bg() <| () => {
       defer w.close()
       let sender = Sender::new(w)
-      let _ = sender.send_response(200, "OK", cookies=[], request_method=Get, extra_headers={})
+      let _ = sender.send_response(
+        200,
+        "OK",
+        cookies=[],
+        request_method=Get,
+        extra_headers=Map([]),
+      )
       sender.end_body()
-      let _ = sender.send_response(200, "OK", cookies=[], request_method=Head, extra_headers={})
+      let _ = sender.send_response(
+        200,
+        "OK",
+        cookies=[],
+        request_method=Head,
+        extra_headers=Map([]),
+      )
       sender..write("").end_body()
-      let _ = sender.send_response(102, "OK", cookies=[], request_method=Get, extra_headers={})
+      let _ = sender.send_response(
+        102,
+        "OK",
+        cookies=[],
+        request_method=Get,
+        extra_headers=Map([]),
+      )
       sender.end_body()
-      let _ = sender.send_response(204, "OK", cookies=[], request_method=Get, extra_headers={})
+      let _ = sender.send_response(
+        204,
+        "OK",
+        cookies=[],
+        request_method=Get,
+        extra_headers=Map([]),
+      )
       sender..write("").end_body()
-      let _ = sender.send_response(304, "OK", cookies=[], request_method=Get, extra_headers={})
+      let _ = sender.send_response(
+        304,
+        "OK",
+        cookies=[],
+        request_method=Get,
+        extra_headers=Map([]),
+      )
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|HTTP/1.1 200 OK\r
@@ -815,11 +851,11 @@ async test "sender persistent header" {
         "Host": "x.y.org",
         "User-Agent": "MoonBit",
       })
-      let _ = sender.send_request(Get, "/", extra_headers={})
+      let _ = sender.send_request(Get, "/", extra_headers=Map([]))
       sender.end_body()
     }
     defer r.close()
-    @debug.debug_inspect(
+    inspect(
       r.read_all().binary() |> @bytes_util.ascii_to_string,
       content=(
         #|GET / HTTP/1.1\r

@@ -37,7 +37,7 @@ test "coroutine ping-pong" {
     @coroutine.reschedule()
   }
   coro.unwrap()
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|ping

@@ -63,7 +63,7 @@ fn get_error_message() -> String {
 
 ///|
 fn read_file_to_bytes_internal(path : String) -> Bytes raise IOError {
-  let file = fopen_ffi(@ffi.mbt_string_to_utf8_bytes(path, true), b"rb\u{00}")
+  let file = fopen_ffi(@ffi.mbt_string_to_utf8_bytes(path, true), b"rb\x00")
   guard is_null(file) == 0 else { raise IOError(get_error_message()) }
   guard fseek_ffi(file, 0, 2) == 0 else { raise IOError(get_error_message()) }
   let size = ftell_ffi(file)
@@ -94,7 +94,7 @@ fn write_bytes_to_file_internal(
   path : String,
   content : Bytes,
 ) -> Unit raise IOError {
-  let file = fopen_ffi(@ffi.mbt_string_to_utf8_bytes(path, true), b"wb\u{00}")
+  let file = fopen_ffi(@ffi.mbt_string_to_utf8_bytes(path, true), b"wb\x00")
   guard is_null(file) == 0 else { raise IOError(get_error_message()) }
   let bytes_written = fwrite_ffi(content, 1, content.length(), file)
   guard bytes_written == content.length() else {

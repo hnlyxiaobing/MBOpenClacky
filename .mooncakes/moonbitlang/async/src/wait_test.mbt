@@ -15,32 +15,28 @@
 ///|
 async test "wait basic" {
   let buf = StringBuilder::new()
-  buf.write_string(
-    @debug.to_string(
-      try? @async.with_task_group(root => {
-        root.spawn_bg() <| () => {
-          @async.sleep(200)
-          buf <+ "200ms tick\n"
-          @async.sleep(200)
-          buf <+ "400ms tick\n"
-        }
-        let task = root.spawn(no_wait=true, () => {
-          @async.sleep(300)
-          buf <+ "task finished\n"
-        })
-        task.wait()
-        buf <+ "main task exit\n"
-      }),
-    ),
-  )
-  @debug.debug_inspect(
+  @async.with_task_group(root => {
+    root.spawn_bg() <| () => {
+      @async.sleep(200)
+      buf <+ "200ms tick\n"
+      @async.sleep(200)
+      buf <+ "400ms tick\n"
+    }
+    let task = root.spawn(no_wait=true, () => {
+      @async.sleep(300)
+      buf <+ "task finished\n"
+    })
+    task.wait()
+    buf <+ "main task exit\n"
+  })
+  inspect(
     buf.to_string(),
     content=(
       #|200ms tick
       #|task finished
       #|main task exit
       #|400ms tick
-      #|Ok(())
+      #|
     ),
   )
 }
@@ -66,7 +62,7 @@ async test "wait cancelled" {
   }) catch {
     err => buf.write_string(@debug.to_string(err))
   }
-  @debug.debug_inspect(
+  inspect(
     buf.to_string(),
     content=(
       #|`wait` cancelled with Cancelled
@@ -91,7 +87,7 @@ async test "try_wait" {
     }
     log.write_string("task finished with \{task.wait()}\n")
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|300ms: None

@@ -17,7 +17,7 @@ async test "realpath absolute" {
   let rp = @fs.realpath("src/fs/realpath_test.mbt")
   guard @env.current_dir() is Some(cwd)
   assert_true(rp.has_prefix(cwd))
-  @debug.debug_inspect(
+  inspect(
     rp[cwd.length():].replace_all(old="\\", new="/"),
     content="/src/fs/realpath_test.mbt",
   )
@@ -37,7 +37,7 @@ async test "realpath link to absolute" {
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path)
     assert_true(rp.has_prefix(cwd))
-    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
   }
 }
 
@@ -52,21 +52,41 @@ async test "realpath link to relative" {
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path)
     assert_true(rp.has_prefix(cwd))
-    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+  }
+}
+
+///|
+async test "realpath link to dir absolute" {
+  @async.with_task_group() <| root => {
+    guard @env.current_dir() is Some(cwd)
+    let path = match cwd {
+      [.., '/'] => cwd + "src/fs"
+      _ => cwd + "/src/fs"
+    }
+    let link_path = "_build/realpath_test_link_to_dir_absolute.test"
+    @fs.symlink(link_path, target=path)
+    root.add_defer(() => @fs.remove(link_path))
+    let rp = @fs.realpath(link_path + "/realpath_test.mbt")
+    assert_true(rp.has_prefix(cwd))
+    inspect(
+      rp[cwd.length():].replace_all(old="\\", new="/"),
+      content="/src/fs/realpath_test.mbt",
+    )
   }
 }
 
 ///|
 #cfg(not(platform="windows"))
-async test "realpath link to dir" {
+async test "realpath link to dir relative" {
+  guard @env.current_dir() is Some(cwd)
   @async.with_task_group() <| root => {
-    guard @env.current_dir() is Some(cwd)
     let rel_path = "../src/fs"
-    let link_path = "_build/realpath_test_link_to_dir.test"
+    let link_path = "_build/realpath_test_link_to_dir_relative.test"
     @fs.symlink(link_path, target=rel_path)
     root.add_defer(() => @fs.remove(link_path))
     let rp = @fs.realpath(link_path + "/realpath_test.mbt")
     assert_true(rp.has_prefix(cwd))
-    @debug.debug_inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
+    inspect(rp[cwd.length():], content="/src/fs/realpath_test.mbt")
   }
 }

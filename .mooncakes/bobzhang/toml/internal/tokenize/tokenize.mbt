@@ -962,7 +962,7 @@ fn Lexer::read_number_with_loc(
       raw=raw_s,
     )
   } else {
-    IntegerToken(@strconv.parse_int64(s), loc~) catch {
+    IntegerToken(@string.parse_int64(s), loc~) catch {
       _ => fail("Invalid integer: \{s}")
     }
   }

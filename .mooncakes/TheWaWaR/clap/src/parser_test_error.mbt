@@ -5,7 +5,7 @@ test "named argument length exceeded" {
   })
   let value = SimpleValue::new(parser.prog)
   let result = try? parser.parse(value, ["--arg1", "v1", "v2", "v3"])
-  assert_true(result.unwrap_err().to_repr().to_string().contains("TooManyArgs"))
+  assert_eq(result.unwrap_err().to_string().contains("TooManyArgs"), true)
 }
 
 ///|
@@ -15,11 +15,11 @@ test "flag argument duplicated" {
   })
   let value = SimpleValue::new(parser.prog)
   let result = try? parser.parse(value, ["--arg1", "--arg1"])
-  assert_true(
+  assert_eq(
     result
     .unwrap_err()
-    .to_repr()
     .to_string()
     .contains("Invalid flag argument length: 2 > 1"),
+    true,
   )
 }

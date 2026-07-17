@@ -14,18 +14,18 @@
 
 ///|
 fn make_test_prog(name : String) -> @async.Lazy[String] {
-  @async.Lazy() <| () => {
+  Lazy() <| () => {
     let code = @process.run("moon", [
-      "-C",
-      "src/process/test_programs",
       "build",
-      "\{name}",
+      "test_programs/\{name}",
       "--debug",
+      "--target-dir",
+      "_build/test_programs",
     ])
     if code != 0 {
       fail("failed to build test program `\{name}`: \{code}")
     }
-    "src/process/test_programs/_build/native/debug/build/\{name}/\{name}.exe"
+    "./_build/test_programs/native/debug/build/moonbitlang/async_test_programs/\{name}/\{name}.exe"
   }
 }
 
@@ -71,10 +71,7 @@ async test "cancel with ctrl+c" {
     let (r, w) = @process.read_from_process()
     let task = group.spawn(() => {
       defer log.push("process terminates")
-      let cancel_handler = @process.graceful_cancel(
-        timeout=5000,
-        signal=@signal.SIGINT,
-      )
+      let cancel_handler = @process.graceful_cancel(timeout=5000, signal=SIGINT)
       @process.run(test_prog, stdout=w, cancel_handler~, [
         "10000", "-use-default-handler", "-print-after-sleep", "normal exit", "-print-finally",
         "before exit",
@@ -106,10 +103,7 @@ async test "cancel with SIGHUP" {
     let (r, w) = @process.read_from_process()
     let task = group.spawn(() => {
       defer log.push("process terminates")
-      let cancel_handler = @process.graceful_cancel(
-        timeout=5000,
-        signal=@signal.SIGHUP,
-      )
+      let cancel_handler = @process.graceful_cancel(timeout=5000, signal=SIGHUP)
       @process.run(test_prog, stdout=w, cancel_handler~, [
         "10000", "-use-default-handler", "-print-after-sleep", "normal exit", "-print-finally",
         "before exit",

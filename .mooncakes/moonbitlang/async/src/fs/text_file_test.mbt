@@ -18,6 +18,6 @@ async test "text file" {
     let path = "_build/basic_text_file_test"
     root.add_defer(() => @fs.remove(path))
     @fs.write_file(path, "abcd", create_mode=CreateOrTruncate)
-    @debug.debug_inspect(@fs.read_file(path).text(), content="abcd")
+    inspect(@fs.read_file(path).text(), content="abcd")
   }
 }

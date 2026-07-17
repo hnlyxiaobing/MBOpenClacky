@@ -37,13 +37,13 @@ async fn main {
       PositionArg(
         "args",
         about="initial arguments for the command",
-        num_args=@argparse.ValueRange(lower=0),
+        num_args=ValueRange(lower=0),
         allow_hyphen_values=true,
       ),
     ],
   ).parse()
   let max_jobs = match matches.values {
-    { "jobs": [count], .. } => Some(@async.Semaphore(@strconv.parse_int(count)))
+    { "jobs": [count], .. } => Some(@async.Semaphore(@string.parse_int(count)))
     _ => None
   }
   guard matches.values is { "cmd": [cmd], .. } else {

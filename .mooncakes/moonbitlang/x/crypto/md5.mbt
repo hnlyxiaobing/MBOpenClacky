@@ -276,12 +276,12 @@ pub fn[Data : ByteSource] md5(data : Data) -> FixedArray[Byte] {
 ///|
 test {
   let ctx = MD5::new()
-  md5_update(ctx, b"\u{61}".to_fixedarray())
-  md5_update(ctx, b"\u{62}".to_fixedarray())
-  md5_update(ctx, b"\u{63}".to_fixedarray())
+  md5_update(ctx, b"\x61".to_fixedarray())
+  md5_update(ctx, b"\x62".to_fixedarray())
+  md5_update(ctx, b"\x63".to_fixedarray())
   let res1 = bytes_to_hex_string(ctx.md5_compute())
   let ctx = MD5::new()
-  md5_update(ctx, b"\u{61}\u{62}\u{63}".to_fixedarray())
+  md5_update(ctx, b"\x61\x62\x63".to_fixedarray())
   let res2 = bytes_to_hex_string(ctx.md5_compute())
   assert_eq(res1, res2)
 }

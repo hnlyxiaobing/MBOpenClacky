@@ -28,9 +28,9 @@ async test "discard oldest basic" {
 ///|
 async test "discard oldest try_put" {
   let q = @async.Queue(kind=DiscardOldest(2))
-  @debug.debug_inspect(q.try_put(1), content="true")
-  @debug.debug_inspect(q.try_put(2), content="true")
-  @debug.debug_inspect(q.try_put(3), content="false")
+  inspect(q.try_put(1), content="true")
+  inspect(q.try_put(2), content="true")
+  inspect(q.try_put(3), content="false")
   // the last put should not have any effect
   let result = []
   while q.try_get() is Some(x) {
@@ -55,9 +55,9 @@ async test "discard latest basic" {
 ///|
 async test "discard latest try_put" {
   let q = @async.Queue(kind=DiscardLatest(2))
-  @debug.debug_inspect(q.try_put(1), content="true")
-  @debug.debug_inspect(q.try_put(2), content="true")
-  @debug.debug_inspect(q.try_put(3), content="false")
+  inspect(q.try_put(1), content="true")
+  inspect(q.try_put(2), content="true")
+  inspect(q.try_put(3), content="false")
   // the last put should not have any effect
   let result = []
   while q.try_get() is Some(x) {
@@ -70,8 +70,8 @@ async test "discard latest try_put" {
 async test "discard oldest zero buffered" {
   let q = @async.Queue(kind=DiscardOldest(0))
   // all `put` should have no effect
-  @debug.debug_inspect(q.try_put(1), content="false")
-  @debug.debug_inspect(q.try_put(2), content="false")
+  inspect(q.try_put(1), content="false")
+  inspect(q.try_put(2), content="false")
   let result = []
   while q.try_get() is Some(x) {
     result.push(x)
@@ -83,8 +83,8 @@ async test "discard oldest zero buffered" {
 async test "discard latest zero buffered" {
   let q = @async.Queue(kind=DiscardLatest(0))
   // all `put` should have no effect
-  @debug.debug_inspect(q.try_put(1), content="false")
-  @debug.debug_inspect(q.try_put(2), content="false")
+  inspect(q.try_put(1), content="false")
+  inspect(q.try_put(2), content="false")
   let result = []
   while q.try_get() is Some(x) {
     result.push(x)

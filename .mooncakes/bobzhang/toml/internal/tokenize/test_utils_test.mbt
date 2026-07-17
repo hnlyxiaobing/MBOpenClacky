@@ -31,7 +31,7 @@ fn[T] lexer_action_expect_to_fail(action : () -> T raise) -> String {
 
 ///|
 test "verify lexer_expect_to_fail output" {
-  @debug.debug_inspect(
+  inspect(
     lexer_expect_to_fail(
       (
         #|key @ value
@@ -50,7 +50,7 @@ test "verify lexer_action_expect_to_fail output" {
       #|hello world
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     lexer_action_expect_to_fail(fn() raise { lexer.expect_string("goodbye") }),
     content=(
       #|Expected string: goodbye at line 1, column 1

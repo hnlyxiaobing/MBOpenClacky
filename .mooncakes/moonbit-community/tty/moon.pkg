@@ -7,9 +7,10 @@ import {
   "moonbitlang/async/stdio" @async/stdio,
   "moonbitlang/async/os_error",
   "moonbitlang/async/io" @async/io,
+  "moonbitlang/core/buffer",
   "moonbit-community/tty/color",
   "moonbit-community/tty/input" @public_input,
-  "moonbit-community/tty/internal/io" @internal_io,
+  "moonbit-community/tty/internal/lock",
   "moonbit-community/tty/internal/input",
   "moonbit-community/tty/internal/win32",
   "moonbit-community/tty/internal/vt",
@@ -19,6 +20,9 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/pipe" @async/pipe,
   "moonbitlang/async/stdio" @async/stdio,
+  "moonbitlang/core/debug",
+  "moonbit-community/tty/color",
+  "moonbit-community/tty/input" @public_input,
 } for "test"
 
 import {
@@ -29,12 +33,5 @@ import {
 supported_targets = "native"
 
 options(
-  "native-stub": [
-    "isatty.c",
-    "state.c",
-    "size.c",
-    "tty_open.c",
-    "resize.c",
-    "win32_input.c",
-  ],
+  "native-stub": [ "isatty.c", "state.c", "size.c", "tty_open.c", "resize.c" ],
 )

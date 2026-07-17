@@ -14,10 +14,10 @@
 
 ///|
 let all_protocol_preferences : FixedArray[@socket.IpProtocolPreference] = [
-  @socket.FavorV4,
-  @socket.OnlyV4,
-  @socket.FavorV6,
-  @socket.OnlyV6,
+  FavorV4,
+  OnlyV4,
+  FavorV6,
+  OnlyV6,
 ]
 
 ///|
@@ -46,7 +46,11 @@ async test "Only_V4 server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -55,7 +59,7 @@ async test "Only_V4 server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|server received "message" from 127.0.0.1
@@ -99,7 +103,11 @@ async test "Only_V6 server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -108,7 +116,7 @@ async test "Only_V6 server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::1]
@@ -145,7 +153,11 @@ async test "dual stack server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -154,7 +166,7 @@ async test "dual stack server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::ffff:127.0.0.1]
@@ -196,7 +208,11 @@ async test "Only_V4 UDP server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -205,7 +221,7 @@ async test "Only_V4 UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|server received "message" from 127.0.0.1
@@ -248,7 +264,11 @@ async test "Only_V6 UDP server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -257,7 +277,7 @@ async test "Only_V6 UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|client(FavorV4): Ok(())
@@ -297,7 +317,11 @@ async test "dual stack UDP server" {
     }
 
     for protocol in all_protocol_preferences {
-      let result = try? client(protocol)
+      let result = try client(protocol) catch {
+        err => Err(err)
+      } noraise {
+        value => Ok(value)
+      }
       @async.sleep(100)
       log.write_string(
         "client(\{@debug.to_string(protocol)}): \{@debug.to_string(result)}\n",
@@ -306,7 +330,7 @@ async test "dual stack UDP server" {
     // give some time for the server to process the last connection
     @async.sleep(300)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|server received "message" from [::ffff:127.0.0.1]

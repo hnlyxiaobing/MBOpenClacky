@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "hnlyxiaobing/crescent",
+  "hnlyxiaobing/crescent/static_file",
+}
+
+options(
+  "is-main": true,
+)

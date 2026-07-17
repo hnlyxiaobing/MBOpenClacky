@@ -6,7 +6,7 @@ extern "c" fn tty_isatty(fd : @async/types.Fd) -> Int = "moonbit_tty_isatty"
 ///
 /// Valid non-terminal handles return `false`; OS-level failures raise
 /// `OSError`.
-pub fn[T : Fd] isatty(fd : T) -> Bool raise @os_error.OSError {
+pub fn[T : Fd] isatty(fd : T) -> Bool raise {
   let fd = fd.fd()
   let rc = tty_isatty(fd)
   if rc < 0 {
@@ -22,7 +22,7 @@ pub fn[T : Fd] isatty(fd : T) -> Bool raise @os_error.OSError {
 ///|
 /// A handle that exposes an OS file descriptor.
 pub(open) trait Fd {
-  fn fd(Self) -> @async/types.Fd
+  fn fd(Self) -> @async/types.Fd raise
 }
 
 ///|
@@ -53,4 +53,11 @@ pub impl Fd for @async/stdio.Input with fn fd(self) {
 /// Allow process output handles to be used with file-descriptor based terminal APIs.
 pub impl Fd for @async/stdio.Output with fn fd(self) {
   @async/stdio.Output::fd(self)
+}
+
+///|
+/// Allow raw file-descriptor streams (used for the controlling terminal and
+/// Windows console devices) to be used with file-descriptor based terminal APIs.
+pub impl Fd for @async/raw_fd.RawFdStream with fn fd(self) {
+  self.fd
 }

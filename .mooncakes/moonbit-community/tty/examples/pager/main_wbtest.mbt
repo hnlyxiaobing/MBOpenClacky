@@ -1,6 +1,6 @@
 ///|
 test "split lines normalizes line endings" {
-  @debug.debug_inspect(split_lines("a\r\nb\rc\n").join("|"), content="a|b|c|")
+  inspect(split_lines("a\r\nb\rc\n").join("|"), content="a|b|c|")
 }
 
 ///|
@@ -20,11 +20,11 @@ test "parse file arg" {
 ///|
 test "clamp offset keeps viewport in range" {
   let lines = ["a", "b", "c", "d", "e"]
-  @debug.debug_inspect(max_offset(lines, 2), content="3")
-  @debug.debug_inspect(clamp_offset(-1, lines, 2), content="0")
-  @debug.debug_inspect(clamp_offset(2, lines, 2), content="2")
-  @debug.debug_inspect(clamp_offset(9, lines, 2), content="3")
-  @debug.debug_inspect(clamp_offset(9, lines, 8), content="0")
+  inspect(max_offset(lines, 2), content="3")
+  inspect(clamp_offset(-1, lines, 2), content="0")
+  inspect(clamp_offset(2, lines, 2), content="2")
+  inspect(clamp_offset(9, lines, 2), content="3")
+  inspect(clamp_offset(9, lines, 8), content="0")
 }
 
 ///|
@@ -36,9 +36,9 @@ test "content fit detection" {
 
 ///|
 test "fit line respects display width and graphemes" {
-  @debug.debug_inspect(fit_line("abcdef", 3), content="abc")
-  @debug.debug_inspect(fit_line("你好世界", 4), content="你好")
-  @debug.debug_inspect(
+  inspect(fit_line("abcdef", 3), content="abc")
+  inspect(fit_line("你好世界", 4), content="你好")
+  inspect(
     fit_line("x👨‍👩‍👧‍👦y", 3),
     content="x👨‍👩‍👧‍👦",
   )

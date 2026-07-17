@@ -17,20 +17,18 @@
 priv type Worker
 
 ///|
-extern "C" fn init_thread_pool_ffi(notify_send : @fd_util.Fd) = "moonbitlang_async_init_thread_pool"
+extern "C" fn init_thread_pool_ffi(event_bus : EventBus) -> @fd_util.Fd = "moonbitlang_async_init_thread_pool"
 
 ///|
 extern "C" fn destroy_thread_pool() = "moonbitlang_async_destroy_thread_pool"
 
 ///|
-#owned(init_job)
 extern "C" fn Worker::spawn(init_job_id : Int, init_job : Job) -> Worker = "moonbitlang_async_spawn_worker"
 
 ///|
 extern "C" fn Worker::free(worker : Worker) = "moonbitlang_async_free_worker"
 
 ///|
-#owned(job)
 extern "C" fn Worker::wake(worker : Worker, job_id : Int, job : Job) = "moonbitlang_async_wake_worker"
 
 ///|
@@ -63,15 +61,23 @@ extern "C" fn fetch_completion_ffi(
 ) -> Int = "moonbitlang_async_fetch_completion"
 
 ///|
+#external
 priv type Job
 
 ///|
-#borrow(self)
+extern "C" fn Job::free(self : Job) -> Unit = "moonbitlang_async_free_job"
+
+///|
 extern "C" fn Job::ret(self : Job) -> Int = "moonbitlang_async_job_get_ret"
 
 ///|
-#borrow(self)
 extern "C" fn Job::err(self : Job) -> Int = "moonbitlang_async_job_get_err"
+
+///|
+/// This is no-op on native, just to align API shape with Wasm.
+fn Job::copy_output(self : Job) -> Unit {
+  ignore(self)
+}
 
 ///|
 #owned(buf)
@@ -108,18 +114,22 @@ extern "C" fn Job::open(
   sync~ : Int,
   // permission for file when new file is created
   mode~ : Int,
-) -> OpenResult = "moonbitlang_async_make_open_job"
+) -> OpenJob = "moonbitlang_async_make_open_job"
 
 ///|
-struct OpenResult(Job)
+priv struct OpenJob(Job)
 
 ///|
-#borrow(job)
-pub extern "C" fn OpenResult::fd(job : OpenResult) -> @fd_util.Fd = "moonbitlang_async_open_job_get_fd"
+extern "C" fn OpenJob::fd(job : OpenJob) -> @fd_util.Fd = "moonbitlang_async_open_job_get_fd"
 
 ///|
-#borrow(job)
-pub extern "C" fn OpenResult::kind(job : OpenResult) -> @fd_util.FileKind = "moonbitlang_async_open_job_get_kind"
+extern "C" fn OpenJob::kind(job : OpenJob) -> @fd_util.FileKind = "moonbitlang_async_open_job_get_kind"
+
+///|
+extern "C" fn OpenJob::dev_id(job : OpenJob) -> UInt64 = "moonbitlang_async_open_job_get_dev_id"
+
+///|
+extern "C" fn OpenJob::file_id(job : OpenJob) -> UInt64 = "moonbitlang_async_open_job_get_file_id"
 
 ///|
 extern "C" fn Job::kind_of_fd(fd : @fd_util.Fd) -> Job = "moonbitlang_async_make_kind_of_fd_job"
@@ -136,7 +146,6 @@ extern "C" fn Job::file_kind_by_path(
 extern "C" fn Job::file_size(fd : @fd_util.Fd) -> Job = "moonbitlang_async_make_file_size_job"
 
 ///|
-#borrow(job)
 extern "C" fn Job::get_file_size_result(job : Job) -> Int64 = "moonbitlang_async_get_file_size_result"
 
 ///|
@@ -190,6 +199,7 @@ extern "C" fn Job::rename(
 extern "C" fn Job::symlink(
   target : @os_string.OsString,
   path : @os_string.OsString,
+  force_symlink~ : Bool,
 ) -> Job = "moonbitlang_async_make_symlink_job"
 
 ///|
@@ -201,11 +211,11 @@ extern "C" fn Job::mkdir(path : @os_string.OsString, mode : Int) -> Job = "moonb
 extern "C" fn Job::rmdir(path : @os_string.OsString) -> Job = "moonbitlang_async_make_rmdir_job"
 
 ///|
-#owned(buf)
 extern "C" fn Job::readdir(
   dir : @fd_util.Fd,
-  buf : FixedArray[Byte],
+  buf : @c_buffer.Buffer,
   len : Int,
+  restart : Bool,
 ) -> Job = "moonbitlang_async_make_readdir_job"
 
 ///|
@@ -213,45 +223,41 @@ extern "C" fn Job::readdir(
 extern "C" fn Job::realpath(path : @os_string.OsString) -> Job = "moonbitlang_async_make_realpath_job"
 
 ///|
-#cfg(not(platform="windows"))
-#borrow(job)
 extern "C" fn Job::get_realpath_result(job : Job) -> @c_buffer.Buffer = "moonbitlang_async_get_realpath_result"
 
 ///|
-#cfg(platform="windows")
-#borrow(job)
-extern "C" fn Job::get_realpath_result(job : Job) -> String = "moonbitlang_async_get_realpath_result"
+priv struct SpawnJob(Job)
 
 ///|
 #cfg(not(platform="windows"))
 #owned(path, args, env, cwd)
 extern "C" fn Job::spawn(
   path : @os_string.OsString,
-  args : FixedArray[@os_string.OsString?],
-  env : FixedArray[@os_string.OsString?],
+  args : @c_buffer.Buffer,
+  env : @c_buffer.Buffer,
+  inherited_env_entry_count : Int,
   stdin : @fd_util.Fd,
   stdout : @fd_util.Fd,
   stderr : @fd_util.Fd,
   cwd : @os_string.OsString?,
-) -> Job = "moonbitlang_async_make_spawn_job"
+) -> SpawnJob = "moonbitlang_async_make_spawn_job"
 
 ///|
 #cfg(platform="windows")
 #owned(command_line, env, cwd)
 extern "C" fn Job::spawn(
   command_line : @os_string.OsString,
-  env : @os_string.OsString?,
+  env : @c_buffer.Buffer,
   stdin : @fd_util.Fd,
   stdout : @fd_util.Fd,
   stderr : @fd_util.Fd,
   cwd : @os_string.OsString?,
+  no_console_window~ : Bool,
   is_orphan~ : Bool,
-) -> Job = "moonbitlang_async_make_spawn_job"
+) -> SpawnJob = "moonbitlang_async_make_spawn_job"
 
 ///|
-#cfg(platform="windows")
-#borrow(job)
-extern "C" fn Job::get_spawn_job_result_handle(job : Job) -> @fd_util.Fd = "moonbitlang_async_get_spawn_job_result_handle"
+extern "C" fn SpawnJob::result_handle(job : SpawnJob) -> @fd_util.Fd = "moonbitlang_async_get_spawn_job_result_handle"
 
 ///|
 #cfg(not(platform="windows"))
@@ -263,7 +269,6 @@ extern "C" fn Job::wait_for_process(handle : @fd_util.Fd) -> Job = "moonbitlang_
 
 ///|
 #cfg(platform="windows")
-#borrow(job)
 extern "C" fn Job::cancel_process_waiter(job : Job) = "moonbitlang_async_cancel_wait_for_process_job"
 
 ///|
@@ -275,7 +280,6 @@ extern "C" fn Job::bind(socket : @fd_util.Fd, addr : Bytes) -> Job = "moonbitlan
 extern "C" fn Job::getaddrinfo(host : @os_string.OsString) -> Job = "moonbitlang_async_make_getaddrinfo_job"
 
 ///|
-#borrow(job)
 extern "C" fn Job::get_getaddrinfo_result(job : Job) -> AddrInfo = "moonbitlang_async_get_getaddrinfo_result"
 
 ///|
@@ -284,5 +288,10 @@ extern "C" fn Job::get_getaddrinfo_result(job : Job) -> AddrInfo = "moonbitlang_
 extern "C" fn Job::sigwait(signals : ReadOnlyArray[Int]) -> Job = "moonbitlang_async_make_sigwait_job"
 
 ///|
-#cfg(platform="windows")
-let _mute_unused_warning : Unit = ignore(@c_buffer.Buffer::get)
+#cfg(not(platform="windows"))
+#owned(path)
+extern "C" fn Job::inotify_add_watch(
+  inotify : @fd_util.Fd,
+  path : @os_string.OsString,
+  is_dir : Bool,
+) -> Job = "moonbitlang_async_make_inotify_add_watch_job"

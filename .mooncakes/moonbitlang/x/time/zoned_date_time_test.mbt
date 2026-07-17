@@ -15,7 +15,7 @@
 ///|
 test "date_time" {
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
-  @debug.debug_inspect(
+  inspect(
     @time.date_time(2000, 1, 1, hour=10, minute=20, second=30, zone~),
     content="2000-01-01T10:20:30+08:00[Asia/Shanghai]",
   )
@@ -24,7 +24,7 @@ test "date_time" {
 ///|
 test "unix" {
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
-  @debug.debug_inspect(
+  inspect(
     @time.unix(1714227729L, nanosecond=1000, zone~),
     content="2024-04-27T22:22:09.000001+08:00[Asia/Shanghai]",
   )
@@ -32,12 +32,12 @@ test "unix" {
 
 ///|
 test "of" {
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::of(2000, 1, 1, hour=1, minute=2, second=3),
     content="2000-01-01T01:02:03Z",
   )
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::of(2000, 1, 1, hour=1, minute=2, second=3, zone~),
     content="2000-01-01T01:02:03+08:00[Asia/Shanghai]",
   )
@@ -47,7 +47,7 @@ test "of" {
 test "from_plain_datetime" {
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
   let datetime = @time.PlainDateTime::of(2000, 1, 1)
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::from_plain_datetime(datetime, zone~),
     content="2000-01-01T00:00:00+08:00[Asia/Shanghai]",
   )
@@ -56,15 +56,15 @@ test "from_plain_datetime" {
 ///|
 test "from_unix_second" {
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::from_unix_second(0L),
     content="1970-01-01T00:00:00Z",
   )
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::from_unix_second(60L * 60L, nanosecond=1000),
     content="1970-01-01T01:00:00.000001Z",
   )
-  @debug.debug_inspect(
+  inspect(
     @time.ZonedDateTime::from_unix_second(0L, zone~),
     content="1970-01-01T08:00:00+08:00[Asia/Shanghai]",
   )
@@ -73,8 +73,8 @@ test "from_unix_second" {
 ///|
 test "to_unix_second" {
   let zone = @time.fixed_zone("Asia/Shanghai", 8 * 60 * 60)
-  @debug.debug_inspect(@time.ZonedDateTime::of(1970, 1, 1).to_unix_second(), content="0")
-  @debug.debug_inspect(
+  inspect(@time.ZonedDateTime::of(1970, 1, 1).to_unix_second(), content="0")
+  inspect(
     @time.ZonedDateTime::of(1970, 1, 1, zone~).to_unix_second(),
     content="-28800",
   )
@@ -92,10 +92,10 @@ test "conversions" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.to_unix_second(), content="946659723")
-  @debug.debug_inspect(zdt.to_plain_date(), content="2000-01-01")
-  @debug.debug_inspect(zdt.to_plain_time(), content="01:02:03")
-  @debug.debug_inspect(zdt.to_plain_date_time(), content="2000-01-01T01:02:03")
+  inspect(zdt.to_unix_second(), content="946659723")
+  inspect(zdt.to_plain_date(), content="2000-01-01")
+  inspect(zdt.to_plain_time(), content="01:02:03")
+  inspect(zdt.to_plain_date_time(), content="2000-01-01T01:02:03")
 }
 
 ///|
@@ -111,23 +111,23 @@ test "getters" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.era(), content="CE")
-  @debug.debug_inspect(zdt.era_year(), content="2000")
-  @debug.debug_inspect(zdt.month(), content="1")
-  @debug.debug_inspect(zdt.day(), content="1")
-  @debug.debug_inspect(zdt.weekday(), content="Saturday")
-  @debug.debug_inspect(zdt.ordinal(), content="1")
-  @debug.debug_inspect(zdt.days_in_month(), content="31")
-  @debug.debug_inspect(zdt.days_in_week(), content="7")
-  @debug.debug_inspect(zdt.days_in_year(), content="366")
-  @debug.debug_inspect(zdt.months_in_year(), content="12")
-  @debug.debug_inspect(zdt.in_leap_year(), content="true")
-  @debug.debug_inspect(zdt.hour(), content="1")
-  @debug.debug_inspect(zdt.minute(), content="2")
-  @debug.debug_inspect(zdt.second(), content="3")
-  @debug.debug_inspect(zdt.nanosecond(), content="0")
-  @debug.debug_inspect(zdt.zone(), content="Asia/Shanghai")
-  @debug.debug_inspect(zdt.offset(), content="+08:00")
+  inspect(zdt.era(), content="CE")
+  inspect(zdt.era_year(), content="2000")
+  inspect(zdt.month(), content="1")
+  inspect(zdt.day(), content="1")
+  inspect(zdt.weekday(), content="Saturday")
+  inspect(zdt.ordinal(), content="1")
+  inspect(zdt.days_in_month(), content="31")
+  inspect(zdt.days_in_week(), content="7")
+  inspect(zdt.days_in_year(), content="366")
+  inspect(zdt.months_in_year(), content="12")
+  inspect(zdt.in_leap_year(), content="true")
+  inspect(zdt.hour(), content="1")
+  inspect(zdt.minute(), content="2")
+  inspect(zdt.second(), content="3")
+  inspect(zdt.nanosecond(), content="0")
+  inspect(zdt.zone(), content="Asia/Shanghai")
+  inspect(zdt.offset(), content="+08:00")
 }
 
 ///|
@@ -142,7 +142,7 @@ test "add_years" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.add_years(1L), content="2001-01-01T01:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.add_years(1L), content="2001-01-01T01:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -157,7 +157,7 @@ test "add_months" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.add_months(1L),
     content="2000-02-01T01:02:03+08:00[Asia/Shanghai]",
   )
@@ -175,7 +175,7 @@ test "add_weeks" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.add_weeks(1L), content="2000-01-08T01:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.add_weeks(1L), content="2000-01-08T01:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -190,7 +190,7 @@ test "add_days" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.add_days(1L), content="2000-01-02T01:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.add_days(1L), content="2000-01-02T01:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -205,7 +205,7 @@ test "add_hours" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.add_hours(1L), content="2000-01-01T02:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.add_hours(1L), content="2000-01-01T02:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -220,7 +220,7 @@ test "add_minutes" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.add_minutes(1L),
     content="2000-01-01T01:03:03+08:00[Asia/Shanghai]",
   )
@@ -238,7 +238,7 @@ test "add_seconds" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.add_seconds(1L),
     content="2000-01-01T01:02:04+08:00[Asia/Shanghai]",
   )
@@ -256,7 +256,7 @@ test "add_nanoseconds" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.add_nanoseconds(1000L),
     content="2000-01-01T01:02:03.000001+08:00[Asia/Shanghai]",
   )
@@ -274,7 +274,7 @@ test "with_year" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.with_year(2024),
     content="2024-01-01T01:02:03+08:00[Asia/Shanghai]",
   )
@@ -292,7 +292,7 @@ test "with_month" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.with_month(2), content="2000-02-01T01:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.with_month(2), content="2000-02-01T01:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -307,7 +307,7 @@ test "with_day" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.with_day(31), content="2000-01-31T01:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.with_day(31), content="2000-01-31T01:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -322,7 +322,7 @@ test "with_ordinal" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.with_ordinal(365),
     content="2000-12-30T01:02:03+08:00[Asia/Shanghai]",
   )
@@ -340,7 +340,7 @@ test "with_hour" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(zdt.with_hour(12), content="2000-01-01T12:02:03+08:00[Asia/Shanghai]")
+  inspect(zdt.with_hour(12), content="2000-01-01T12:02:03+08:00[Asia/Shanghai]")
 }
 
 ///|
@@ -355,7 +355,7 @@ test "with_minute" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.with_minute(30),
     content="2000-01-01T01:30:03+08:00[Asia/Shanghai]",
   )
@@ -373,7 +373,7 @@ test "with_second" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.with_second(30),
     content="2000-01-01T01:02:30+08:00[Asia/Shanghai]",
   )
@@ -391,7 +391,7 @@ test "with_nanosecond" {
     second=3,
     zone~,
   )
-  @debug.debug_inspect(
+  inspect(
     zdt.with_nanosecond(999_999_999),
     content="2000-01-01T01:02:03.999999999+08:00[Asia/Shanghai]",
   )

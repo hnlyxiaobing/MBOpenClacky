@@ -24,7 +24,7 @@ async test "ping auto-reply" {
       let request = conn.read_request()
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
     }
     let http_client = @http.Client("http://localhost:\{port}")
     let ws_client = @websocket.from_http_client(http_client, "/")
@@ -32,7 +32,7 @@ async test "ping auto-reply" {
     let ping_frame : Bytes = [0x89, 0x04, ..b"abcd"]
     http_client.write(ping_frame)
     json_inspect(http_client.read_exactly(2).to_array(), content=[0x8a, 0x04])
-    @debug.debug_inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
+    inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
     ws_client.send_text("1234")
   }
 }
@@ -49,7 +49,7 @@ async test "pong ignored" {
       let request = conn.read_request()
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("1234")
     }
     let http_client = @http.Client("http://localhost:\{port}")
@@ -58,7 +58,7 @@ async test "pong ignored" {
     let ping_frame : Bytes = [0x89, 0x04, ..b"abcd"]
     http_client.write(ping_frame)
     ws_client.send_text("1234")
-    @debug.debug_inspect(ws_client.recv().read_all().text(), content="1234")
+    inspect(ws_client.recv().read_all().text(), content="1234")
   }
 }
 
@@ -93,9 +93,9 @@ async test "ping auto-reply race-with-write" {
     http_client.write(ping_frame)
     // The `PONG` reply should come first
     json_inspect(http_client.read_exactly(2).to_array(), content=[0x8a, 0x04])
-    @debug.debug_inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
+    inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
     json_inspect(http_client.read_exactly(2).to_array(), content=[0x81, 0x04])
-    @debug.debug_inspect(@utf8.decode(http_client.read_exactly(4)), content="1234")
+    inspect(@utf8.decode(http_client.read_exactly(4)), content="1234")
   }
 }
 
@@ -115,9 +115,9 @@ async test "close test" {
         // currently, auto-reply is only triggered when the user is actually reading.
         group.spawn_bg() <| () => {
           debug_inspect(
-            try? ws.recv().read_all().text(),
+            @test_util.expect_error_async(() => ws.recv().read_all().text()),
             content=(
-              #|Err(ConnectionClosed(Normal, Some("abcd")))
+              #|ConnectionClosed(Normal, Some("abcd"))
             ),
           )
         }
@@ -137,8 +137,8 @@ async test "close test" {
     // The `close` reply should come first
     json_inspect(http_client.read_exactly(2).to_array(), content=[0x88, 6])
     guard http_client.read_exactly(2) is [u16be(code)]
-    @debug.debug_inspect(code, content="1000")
-    @debug.debug_inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
+    inspect(code, content="1000")
+    inspect(@utf8.decode(http_client.read_exactly(4)), content="abcd")
   }
 }
 
@@ -154,7 +154,7 @@ async test "send ping" {
       let request = conn.read_request()
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("abcd")
     }
     let ws = @websocket.connect("ws://localhost:\{port}")
@@ -164,7 +164,7 @@ async test "send ping" {
         ws.ping()
         ws.send_text("1234")
       }
-      @debug.debug_inspect(ws.recv().read_all().text(), content="abcd")
+      inspect(ws.recv().read_all().text(), content="abcd")
     }
   }
 }
@@ -181,7 +181,7 @@ async test "ping inside message" {
       let request = conn.read_request()
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("abcd")
     }
     let ws = @websocket.connect("ws://localhost:\{port}")
@@ -190,7 +190,7 @@ async test "ping inside message" {
       group.spawn_bg() <| () => {
         ws..start_message(Text)..ping()..write("1234").end_message()
       }
-      @debug.debug_inspect(ws.recv().read_all().text(), content="abcd")
+      inspect(ws.recv().read_all().text(), content="abcd")
     }
   }
 }
@@ -208,7 +208,7 @@ async test "multiple ping" {
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
       @async.sleep(100)
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("abcd")
     }
     let ws = @websocket.connect("ws://localhost:\{port}")
@@ -221,7 +221,7 @@ async test "multiple ping" {
         }
         ws.send_text("1234")
       }
-      @debug.debug_inspect(ws.recv().read_all().text(), content="abcd")
+      inspect(ws.recv().read_all().text(), content="abcd")
     }
   }
 }
@@ -239,14 +239,14 @@ async test "ping cancelled" {
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
       @async.sleep(200)
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("abcd")
     }
     let ws = @websocket.connect("ws://localhost:\{port}")
     defer ws.close()
     @async.with_task_group() <| group => {
       group.spawn_bg() <| () => {
-        @debug.debug_inspect(ws.recv().read_all().text(), content="abcd")
+        inspect(ws.recv().read_all().text(), content="abcd")
       }
       debug_inspect(
         @async.with_timeout_opt(100, () => ws.ping(msg=b"1")),
@@ -271,7 +271,7 @@ async test "duplicated ping" {
       let ws = @websocket.from_http_server(request, conn)
       defer ws.close()
       @async.sleep(100)
-      @debug.debug_inspect(ws.recv().read_all().text(), content="1234")
+      inspect(ws.recv().read_all().text(), content="1234")
       ws.send_text("abcd")
     }
     let ws = @websocket.connect("ws://localhost:\{port}")
@@ -282,16 +282,16 @@ async test "duplicated ping" {
           inner.spawn_bg(() => ws.ping(msg=b"1"))
           inner.spawn_bg() <| () => {
             debug_inspect(
-              try? ws.ping(msg=b"1"),
+              @test_util.expect_error_async(() => ws.ping(msg=b"1")),
               content=(
-                #|Err(Failure("A PING request with the same payload is already pending"))
+                #|Failure("A PING request with the same payload is already pending")
               ),
             )
           }
         }
         ws.send_text("1234")
       }
-      @debug.debug_inspect(ws.recv().read_all().text(), content="abcd")
+      inspect(ws.recv().read_all().text(), content="abcd")
     }
   }
 }

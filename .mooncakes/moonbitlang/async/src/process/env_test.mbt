@@ -26,7 +26,7 @@ async test "set_env" {
       stdout=w,
       extra_env={ "MAGIC_VAR": "MAGIC_VALUE" },
     )
-    @debug.debug_inspect(r.read_all().text(), content="MAGIC_VALUE")
+    inspect(r.read_all().text(), content="MAGIC_VALUE")
   }
 }
 
@@ -49,7 +49,7 @@ async test "set_env no inherit" {
       },
       inherit_env=false,
     )
-    @debug.debug_inspect(
+    inspect(
       r.read_all().text().replace_all(old="\r\n", new="\n"),
       content=(
         #|MAGIC_VAR_1=MAGIC_VALUE_1

@@ -1,5 +1,4 @@
 import {
-  "moonbitlang/core/debug",
   "moonbitlang/core/argparse",
   "moonbitlang/async",
   "moonbitlang/async/socket",
@@ -10,6 +9,4 @@ import {
 
 supported_targets = "+native"
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")

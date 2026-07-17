@@ -14,6 +14,7 @@ Asynchronous file system operations for MoonBit. This package provides comprehen
   - [Reading Directories](#reading-directories)
   - [Walking Directory Trees](#walking-directory-trees)
   - [Removing Directories](#removing-directories)
+- [File Watching](#file-watching)
 - [File Metadata](#file-metadata)
   - [File Kind](#file-kind)
   - [Timestamps](#timestamps)
@@ -66,6 +67,11 @@ async test "open with append mode" {
   inspect(content, content="First line\nSecond line\n")
 }
 ```
+
+When `append=true`, sequential writes through the `@io.Writer` interface
+always append to the current end of the file, even if another process extends
+the file after it is opened. Append mode does not change read behavior, and
+random-access writes with `write_at` are not supported on append-mode files.
 
 The `create` function is a convenience wrapper for creating new files:
 
@@ -137,6 +143,9 @@ async test "read_exactly specific bytes" {
 }
 ```
 
+When reading through the `@io.Reader` interface, a `File` is read as a byte
+stream. The read stream position is independent of the write stream position.
+
 ### Writing Files
 
 Write data to files using various methods:
@@ -193,6 +202,11 @@ async test "write_once for single write operation" {
   inspect(written, content="12")
 }
 ```
+
+Sequential writes through the `@io.Writer` interface write a byte stream
+starting at offset `0` by default. The write stream position is independent of
+the read stream position. For files opened with `append=true`, sequential writes
+append to the end of the file instead.
 
 ### Random access on files
 
@@ -254,6 +268,7 @@ Some important notes when using `read_at` and `write_at`:
 - only seekable files (i.e. regular files or block devices) support `read_at` and `write_at`. Calling `read_at` and `write_at` on unsupported file types result in error
 - `read_at` and `write_at` does not modify the cursor for reading/writing the file as a stream
 - `read_at` always read as much as possible. When its return value is smaller than requested length, it always indicates EOF
+- `write_at` is forbidden on files opened with `append=true`; use sequential writes to append data
 
 ## Directory Operations
 
@@ -296,10 +311,10 @@ async test "readdir - read directory entries" {
     include_hidden=false,
     include_special=false,
   )
-  @fs.remove("\{dir_path}/test1.txt")
-  @fs.remove("\{dir_path}/test2.txt")
-  @fs.rmdir(dir_path)
-  inspect(entries.length(), content="2")
+  // avoid platform inconsistent ordering
+  entries.sort()
+  @fs.rmdir(dir_path, recursive=true)
+  json_inspect(entries, content=["test1.txt", "test2.txt"])
 }
 
 ///|
@@ -311,14 +326,8 @@ async test "readdir with sorting" {
   @fs.write_file("\{dir_path}/a.txt", b"", create_mode=CreateOrTruncate)
   @fs.write_file("\{dir_path}/b.txt", b"", create_mode=CreateOrTruncate)
   let entries = @fs.readdir(dir_path, sort=true)
-  @fs.remove("\{dir_path}/a.txt")
-  @fs.remove("\{dir_path}/b.txt")
-  @fs.remove("\{dir_path}/c.txt")
-  @fs.rmdir(dir_path)
-  guard entries.length() >= 3 else { println(@debug.to_string(entries)) }
-  inspect(entries[0], content="a.txt")
-  inspect(entries[1], content="b.txt")
-  inspect(entries[2], content="c.txt")
+  @fs.rmdir(dir_path, recursive=true)
+  json_inspect(entries, content=["a.txt", "b.txt", "c.txt"])
 }
 
 ///|
@@ -329,14 +338,12 @@ async test "opendir and Directory::read_all" {
   @fs.write_file("\{dir_path}/file1.txt", b"test", create_mode=CreateOrTruncate)
   @fs.write_file("\{dir_path}/file2.txt", b"test", create_mode=CreateOrTruncate)
   let dir = @fs.opendir(dir_path)
-  let entries = dir.read_all(include_hidden=false, include_special=false)
+  let entries = dir
+    .read_all(include_hidden=false, include_special=false)
+    ..sort()
   dir.close()
-  @fs.remove("\{dir_path}/file1.txt")
-  @fs.remove("\{dir_path}/file2.txt")
-  @fs.rmdir(dir_path)
-  inspect(entries.length(), content="2")
-  inspect(entries.contains("file1.txt"), content="true")
-  inspect(entries.contains("file2.txt"), content="true")
+  @fs.rmdir(dir_path, recursive=true)
+  json_inspect(entries, content=["file1.txt", "file2.txt"])
 }
 ```
 
@@ -597,6 +604,73 @@ async test "remove - delete file" {
 }
 ```
 
+## File Watching
+
+`Watcher` watches a directory tree recursively and reports file system changes as
+[`FsEvent`](#fsevent) values. Events use paths relative to the watched directory,
+with `/` as the path separator. New files and directories are added to the
+watched tree automatically, and removed entries are unwatched automatically.
+Calling `.wait()` on the watcher will block and wait until the watched tree has changed
+since the last `.wait()` or `.wait_any()` call.
+A list of events describing the net changes on the watched tree
+since the last query will be returned.
+Note that events returned by `.wait()` report net change rather than detailed transaction.
+So for example a create event followed by a remove event on the same location will cancel each other.
+If the user only cares about when the watched tree change,
+and does not care about the detailed list of changes,
+`.wait_any()` can be used, which is slightly faster than `.wait()`.
+
+The watcher performs aggresive global rename detection using the physical identity of files.
+There are several cases where the watcher will not report rename event though:
+
+- renaming of directories are only reported as `Rename` when the renaming happen within the same parent directory
+- some rename sequences cannot be serialized as binary `Rename`, such as swapping two files
+
+In these cases, the rename will be split into separated `Remove` and `Create` events.
+
+The following options are available on watcher creation:
+
+- File system notifications are often delivered in bursts, so the watcher
+  debounces changes by default. The debounce behavior can be configured by the
+  `debounce_timeout` and `max_debounce_delay` options on watcher creation.
+  The watcher will wait until no event happens for `debounce_timeout` milliseconds
+  before reporting any events, but the total wait time will never exceed
+  `max_debounce_delay` milliseconds.
+- `ignored_paths`, if present, can be used to filter out paths that the user don't want to watch.
+  When a file or directory is going to be watched, its path
+  (relative to root of watched tree, using `/` as path separator, always without trailing `/`)
+  will be supplied to `ignored_paths`.
+  If `ignored_paths` return `true`, the file or directory will be ignored.
+  When a directory is ignored, all files/directories within it are also ignored.
+  So to ignore a single directory,
+  `ignored_paths` only need to handle paths of the files inside that ignored directory.
+- When a create/remove event is reported for a directory:
+  + if `report_child_event=true`, respective create/remove events will be emitted
+    for everything inside that directory.
+    This mode is useful if tracking the exact list of files in desirable.
+  + If `report_child_event=false` (the default),
+    only a single event for the directory itself will be emitted,
+    making the watcher less noisy
+- If `report_event_on_init=true` (`false` by default),
+  the first `wait` call will return immediately after watcher creation,
+  reporting events describing the initial structure of the watched directory.
+  This is useful for keeping the knowledge of the caller in sync with the watcher.
+  Note that you probably want to set `report_child_event=true` as well in this case.
+
+```moonbit nocheck
+///|
+#cfg(target="native")
+async fn watch_project_sources() -> Unit {
+  let watcher = @fs.Watcher("src", ignored_paths=path => {
+    path.has_prefix("_build/")
+  })
+  defer watcher.close()
+  while watcher.wait() is events {
+    debug(events)
+  }
+}
+```
+
 ## Types Reference
 
 ### FileKind
@@ -659,6 +733,16 @@ Directory handle for reading directory entries:
 - `close()` - Close directory
 - `read_all()` - Read all entries
 
+### FsEvent
+
+`FsEvent` describes a net change reported by `Watcher::wait`.
+All paths are relative to the watched directory and use `/` as the path separator.
+
+- `Modify(path)` reports that the regular file at `path` has been modified.
+- `Create(path)` reports that a file or directory now exists at `path`.
+- `Remove(path)` reports that the file or directory at `path` has been removed.
+- `Rename(old~, new~)` reports that a file or directory moved from `old` to `new`.
+
 ## Best Practices
 
 1. **Always close files**: Use `defer file.close()` after opening files
@@ -676,8 +760,7 @@ All async file operations can raise errors. Use proper error handling:
 ///|
 #cfg(target="native")
 async test "error handling example" {
-  let result = try? @fs.read_file("nonexistent.txt")
-  inspect(result is Err(_), content="true")
+  @test_util.assert_raise_async(() => @fs.read_file("nonexistent.txt"))
 }
 ```
 

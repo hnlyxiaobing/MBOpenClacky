@@ -13,7 +13,13 @@
 // limitations under the License.
 
 ///|
+#cfg(target="native")
 extern "C" fn kind_of_fd_sync_ffi(fd : @fd_util.Fd) -> Int = "moonbitlang_async_kind_of_fd"
+
+///|
+#cfg(target="wasm")
+#unsafe_skip_stub_check
+fn kind_of_fd_sync_ffi(fd : @fd_util.Fd) -> Int = "moonbitlang/async" "fd_util/kind_of_fd"
 
 ///|
 fn kind_of_fd_sync(
@@ -28,73 +34,88 @@ fn kind_of_fd_sync(
 }
 
 ///|
-#cfg(not(platform="windows"))
-fn setup_stdio(fd : Int, context~ : String) -> IoHandle {
-  let kind = kind_of_fd_sync(fd, context~) catch {
-    err => abort("\{context}: \{err}")
-  }
-  let is_async = try! @fd_util.fd_is_nonblocking(fd, context~)
-  let handle = { fd, kind, is_async, events: NoEvent, read: None, write: None }
-  register_hook(
-    init=() => {
-      guard curr_loop.val is Some(evloop)
-      guard evloop.fds.get(fd) is None
-      evloop.fds[fd] = handle
-    },
-    exit=() => {
-      let _ = handle.detach_from_event_loop()
-      handle.events = NoEvent
-    },
-  )
-  handle
-}
+#cfg(target="native")
+extern "C" fn get_stdio_handle(id : Int) -> @fd_util.Fd = "moonbitlang_async_get_stdio_handle"
 
 ///|
-#cfg(platform="windows")
-extern "C" fn get_std_handle(id : Int) -> @fd_util.Fd = "moonbitlang_async_get_std_handle"
+#cfg(target="wasm")
+#unsafe_skip_stub_check
+fn get_stdio_handle(id : Int) -> @fd_util.Fd = "moonbitlang/async" "stdio/get_stdio_handle"
 
 ///|
-#cfg(platform="windows")
-fn setup_stdio(id : Int, context~ : String) -> IoHandle {
-  // The value comes from https://learn.microsoft.com/en-us/windows/console/getstdhandle
-  let fd = get_std_handle(-10 - id)
+let stdio_handles : Map[@fd_util.Fd, IoHandle] = Map([])
+
+///|
+fn setup_stdio(id : Int, context~ : String) -> IoHandle raise {
+  let fd = get_stdio_handle(id)
   if !@fd_util.fd_is_valid(fd) {
-    let errno = @os_error.get_errno()
-    abort("\{context}: \{@os_error.errno_to_string(errno)}")
+    @os_error.check_errno(context)
   }
-  let kind = kind_of_fd_sync(fd, context~) catch {
-    @os_error.OSError(errno, context~) =>
-      abort("\{context}: \{@os_error.errno_to_string(errno)}")
-    err => abort("\{context}: \{err}")
+  if stdio_handles.get(fd) is Some(handle) {
+    // On Windows, when `stdout` and `stderr` are redirected to the same file/pipe,
+    // `GetStdHande` will return the same handle for them.
+    // In this case, avoid problem caused by duplicated handle value
+    return handle
   }
+  let kind = kind_of_fd_sync(fd, context~)
   let handle = {
     fd,
     kind,
+    // Stdio channels may be shared between many different processes,
+    // and some (argubly misbehaving ones) of them may
+    // change the blocking/non-blocking status of stdio channels.
+    // So we play safe here and always use the thread pool for stdio channels.
+    // As a consequence, the thread pool need to handle non blocking fd as well,
+    // see the code for `read_job_worker`/`write_job_worker` in `thread_pool.c` for more details.
     is_async: false,
-    reading: false,
-    read_offset: 0,
-    writing: false,
-    write_offset: 0,
+    read: Idle,
+    read_offset: if kind is Regular {
+      0
+    } else {
+      -1
+    },
+    write: Idle,
+    write_offset: if kind is Regular {
+      0
+    } else {
+      -1
+    },
   }
-
-  // register stdio on event loop creation.
-  // This allows multiple event loop inside a single program.
+  stdio_handles[fd] = handle
   register_hook(
     init=() => {
       guard curr_loop.val is Some(evloop)
       guard evloop.fds.get(fd) is None
       evloop.fds[fd] = handle
     },
-    exit=() => ignore(handle.detach_from_event_loop()),
+    exit=() => handle.detach_from_event_loop(),
   )
   handle
 }
 
 ///|
-pub let stdin : IoHandle = setup_stdio(0, context="initialize `stdin`")
+pub let stdin : Result[IoHandle, Error] = try
+  setup_stdio(0, context="initialize `stdin`")
+catch {
+  err => Err(err)
+} noraise {
+  handle => Ok(handle)
+}
 
 ///|
-pub let stdout : IoHandle = setup_stdio(1, context="initialize `stdout`")
+pub let stdout : Result[IoHandle, Error] = try
+  setup_stdio(1, context="initialize `stdout`")
+catch {
+  err => Err(err)
+} noraise {
+  handle => Ok(handle)
+}
 
 ///|
-pub let stderr : IoHandle = setup_stdio(2, context="initialize `stderr`")
+pub let stderr : Result[IoHandle, Error] = try
+  setup_stdio(2, context="initialize `stderr`")
+catch {
+  err => Err(err)
+} noraise {
+  handle => Ok(handle)
+}

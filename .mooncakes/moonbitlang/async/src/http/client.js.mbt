@@ -84,7 +84,7 @@ pub fn Client::close(self : Client) -> Unit {
 ///|
 fn Client::connect(
   host : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   protocol? : Protocol = Https,
   proxy? : Client,
 ) -> Client {
@@ -115,7 +115,7 @@ fn Client::connect(
 #label_migration(verify, fill=false, msg="verify is unsupported on Windows")
 pub async fn Client::Client(
   uri : String,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
   proxy? : Client,
   verify? : Bool = true,
 ) -> Client {
@@ -127,7 +127,7 @@ pub async fn Client::Client(
 }
 
 ///|
-pub impl @io.Writer for Client with write_once(self, buf, offset~, len~) {
+pub impl @io.Writer for Client with fn write_once(self, buf, offset~, len~) {
   guard self.request is Some(request)
   request.body_writer.write_once(buf, offset~, len~)
 }
@@ -140,13 +140,18 @@ pub async fn Client::flush(_ : Client) -> Unit {
 }
 
 ///|
-pub impl @io.Reader for Client with _get_internal_buffer(self) {
+pub impl @io.Reader for Client with fn _get_internal_buffer(self) {
   guard self.response_body is Some(stream)
   stream._get_internal_buffer()
 }
 
 ///|
-pub impl @io.Reader for Client with _direct_read(self, buf, offset~, max_len~) {
+pub impl @io.Reader for Client with fn _direct_read(
+  self,
+  buf,
+  offset~,
+  max_len~,
+) {
   guard self.response_body is Some(stream)
   stream._direct_read(buf, offset~, max_len~)
 }
@@ -162,7 +167,7 @@ pub async fn Client::end_request(self : Client) -> Response {
   self.response_body = Some(
     @js_async.ReadableStream::from_js(js_response.body()),
   )
-  let headers = {}
+  let headers = Map([])
   for entry in js_response.headers().to_array() {
     headers[entry[0].to_lower()] = entry[1]
   }
@@ -216,7 +221,7 @@ pub async fn Client::request(
   self : Client,
   meth : RequestMethod,
   path : StringView,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Unit {
   guard self.request is None
   let protocol = match self.protocol {
@@ -262,10 +267,11 @@ pub async fn Client::request(
 
 ///|
 /// Perform a `GET` request to the server, see `Client::request` for more details.
+#label_migration(body, fill=false, msg="`GET` request should not contain a body")
 pub async fn Client::get(
   self : Client,
   path : String,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
   body? : &@io.Data,
 ) -> Response {
   self.request(Get, path, extra_headers~)
@@ -281,7 +287,7 @@ pub async fn Client::put(
   self : Client,
   path : String,
   body : &@io.Data,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Response {
   self..request(Put, path, extra_headers~)..write(body).end_request()
 }
@@ -292,7 +298,7 @@ pub async fn Client::post(
   self : Client,
   path : String,
   body : &@io.Data,
-  extra_headers? : Map[String, String] = {},
+  extra_headers? : Map[String, String] = Map([]),
 ) -> Response {
   self..request(Post, path, extra_headers~)..write(body).end_request()
 }

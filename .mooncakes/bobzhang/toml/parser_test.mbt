@@ -128,7 +128,7 @@ test "parse inline table" {
 ///|
 /// Tests for uncovered parser error conditions
 test "test parser expect method failure" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("key = [missing_bracket"),
     content=(
       #|Expected value at { start: { line: 1, column: 8 }, end: { line: 1, column: 23 } }
@@ -148,7 +148,7 @@ test "test parser EOF handling in peek" {
 
 ///|
 test "test parser EOF handling in advance" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("key ="),
     content=(
       #|Expected value at { start: { line: 1, column: 6 }, end: { line: 1, column: 6 } }
@@ -158,7 +158,7 @@ test "test parser EOF handling in advance" {
 
 ///|
 test "test parser rejects dash-starting identifier as value" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("key = -abc"),
     content=(
       #|Expected value at { start: { line: 1, column: 7 }, end: { line: 1, column: 11 } }
@@ -178,7 +178,7 @@ test "test inline table with string keys" {
 
 ///|
 test "test inline table invalid syntax" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("table = {key value}"),
     content=(
       #|Expected '=' at { start: { line: 1, column: 14 }, end: { line: 1, column: 19 } }
@@ -188,7 +188,7 @@ test "test inline table invalid syntax" {
 
 ///|
 test "test inline table missing comma or closing brace" {
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("table = {key = \"value\" invalid}"),
     content=(
       #|Expected ',' or '}' in inline table at { start: { line: 1, column: 24 }, end: { line: 1, column: 31 } }
@@ -360,11 +360,11 @@ test "test exponent-like bare table headers" {
 test "overflow float rejected in value position" {
   // 1e100000 overflows Double but should NOT silently become infinity.
   // TOML reserves inf/nan as the only valid non-finite spellings.
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("x = 1e100000\n"),
     content="Invalid float: 1e100000 at { start: { line: 1, column: 5 }, end: { line: 1, column: 13 } }",
   )
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail("x = -31e368\n"),
     content="Invalid float: -31e368 at { start: { line: 1, column: 5 }, end: { line: 1, column: 12 } }",
   )
@@ -430,7 +430,7 @@ test "test duplicate table redefinition" {
     #|[table]
     #|key2 = "value2"
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(duplicate_table_toml),
     content=(
       #|Duplicate table definition: [table] at { start: { line: 3, column: 8 }, end: { line: 4, column: 1 } }
@@ -445,7 +445,7 @@ test "test table name conflicts with existing value" {
     #|[table]
     #|key = "value"
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(conflicting_table_toml),
     content=(
       #|ExpectedTable(\"table\", \"string\") at { start: { line: 2, column: 8 }, end: { line: 3, column: 1 } }

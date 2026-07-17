@@ -19,9 +19,8 @@ async test "main" {
     log..write_string(msg).write_string("\n")
   }
 
-  let result = try? main_prog(println)
-  log.write_string(@debug.to_string(result))
-  @debug.debug_inspect(
+  main_prog(println)
+  inspect(
     log.to_string(),
     content=(
       #|client 0 sent: ping
@@ -53,7 +52,7 @@ async test "main" {
       #|server sent: pong
       #|server initiate terminate
       #|server terminate: ServerTerminate
-      #|Ok(())
+      #|
     ),
   )
 }

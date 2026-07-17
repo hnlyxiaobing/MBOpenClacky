@@ -79,9 +79,9 @@ pub fn PlainDate::from_string(str : String) -> PlainDate raise Error {
       "-"
       ("[0-9]{2}" as day_str)
     ) => {
-      let year = @strconv.parse_int(year_str)
-      let month = @strconv.parse_int(month_str)
-      let day = @strconv.parse_int(day_str)
+      let year = @string.parse_int(year_str)
+      let month = @string.parse_int(month_str)
+      let day = @string.parse_int(day_str)
       PlainDate::of(year, month, day)
     }
     _ => fail(invalid_date_err)

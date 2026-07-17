@@ -39,11 +39,30 @@ let forbidden_headers : Set[String] = Set::from_array([
 ])
 
 ///|
+fn sanitize_header_value(s : String) -> String {
+  for c in s.code_units(); crlf_count = 0 {
+    if c is ('\r' | '\n') {
+      continue crlf_count + 1
+    }
+  } nobreak {
+    guard crlf_count > 0 else {
+      // fast path: no CRLF detected, return immediately
+      s
+    }
+    let buf = StringBuilder::new(size_hint=s.length() - crlf_count)
+    for c in s {
+      buf.write_char(c)
+    }
+    buf.to_string()
+  }
+}
+
+///|
 fn[W : @io.Writer] Sender::new(
   w : W,
-  headers? : Map[String, String] = {},
+  headers? : Map[String, String] = Map([]),
 ) -> Sender {
-  let header_text = @buffer.new()
+  let header_text = Buffer()
   let mut has_accept_encoding = false
   for k, v in headers {
     let k_lower = k.to_lower()
@@ -52,9 +71,9 @@ fn[W : @io.Writer] Sender::new(
         has_accept_encoding = true
       }
       header_text
-      ..write_string_utf8(k)
+      ..write_string_utf8(sanitize_header_value(k))
       ..write_bytes(b": ")
-      ..write_string_utf8(v)
+      ..write_string_utf8(sanitize_header_value(v))
       .write_bytes(b"\r\n")
     }
   }
@@ -89,7 +108,7 @@ const EMPTY_MESSAGE_HEADER_END : Bytes = b"Content-Length: 0\r\n\r\n"
 pub suberror IncorrectBodyLength derive(Debug, ToJson)
 
 ///|
-impl @io.Writer for Sender with write_once(self, buf, offset~, len~) {
+impl @io.Writer for Sender with fn write_once(self, buf, offset~, len~) {
   match self.mode {
     SendingHeader => {
       if self.send_len >= self.send_buf.length() {
@@ -153,7 +172,7 @@ impl @io.Writer for Sender with write_once(self, buf, offset~, len~) {
 }
 
 ///|
-impl @io.Writer for Sender with write_reader(self, reader) {
+impl @io.Writer for Sender with fn write_reader(self, reader) {
   match self.mode {
     SendingHeader =>
       for ;; {
@@ -272,12 +291,16 @@ async fn Sender::send_headers(
     let (k, v) = pair
     let k_lower = k.to_lower()
     if k_lower is "content-length" {
-      let len = @strconv.parse_int64(v.trim(), base=10)
+      let len = @string.parse_int64(v.trim(), base=10)
       content_length = Some(len)
     } else if forbidden_headers.contains(k_lower) {
       continue
     }
-    self..write(k)..write(b": ")..write(v).write(b"\r\n")
+    self
+    ..write(sanitize_header_value(k))
+    ..write(b": ")
+    ..write(sanitize_header_value(v))
+    .write(b"\r\n")
   }
   content_length
 }
@@ -342,7 +365,7 @@ async fn Sender::send_response(
     ..write(b"HTTP/1.1 ")
     ..write(encode_int(code, base=10))
     ..write(b" ")
-    ..write(reason)
+    ..write(sanitize_header_value(reason))
     ..write(b"\r\n")
     ..write(self.headers)
     .send_headers(extra_headers)

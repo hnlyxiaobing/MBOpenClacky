@@ -14,12 +14,12 @@
 
 ///|
 test "of" {
-  @debug.debug_inspect(@time.ZoneOffset::of(), content="Z")
-  @debug.debug_inspect(@time.ZoneOffset::of(hours=8), content="+08:00")
-  @debug.debug_inspect(@time.ZoneOffset::of(hours=-8), content="-08:00")
-  @debug.debug_inspect(@time.ZoneOffset::of(hours=18), content="+18:00")
-  @debug.debug_inspect(@time.ZoneOffset::of(hours=-18), content="-18:00")
-  @debug.debug_inspect(
+  inspect(@time.ZoneOffset::of(), content="Z")
+  inspect(@time.ZoneOffset::of(hours=8), content="+08:00")
+  inspect(@time.ZoneOffset::of(hours=-8), content="-08:00")
+  inspect(@time.ZoneOffset::of(hours=18), content="+18:00")
+  inspect(@time.ZoneOffset::of(hours=-18), content="-18:00")
+  inspect(
     @time.ZoneOffset::of(hours=1, minutes=30, seconds=30),
     content="+01:30:30",
   )
@@ -43,28 +43,28 @@ test "of" {
 
 ///|
 test "from_seconds" {
-  @debug.debug_inspect(@time.ZoneOffset::from_seconds(8 * 60 * 60), content="+08:00")
-  @debug.debug_inspect(@time.ZoneOffset::from_seconds(0), content="Z")
-  @debug.debug_inspect(@time.ZoneOffset::from_seconds(18 * 60 * 60), content="+18:00")
-  @debug.debug_inspect(@time.ZoneOffset::from_seconds(-18 * 60 * 60), content="-18:00")
+  inspect(@time.ZoneOffset::from_seconds(8 * 60 * 60), content="+08:00")
+  inspect(@time.ZoneOffset::from_seconds(0), content="Z")
+  inspect(@time.ZoneOffset::from_seconds(18 * 60 * 60), content="+18:00")
+  inspect(@time.ZoneOffset::from_seconds(-18 * 60 * 60), content="-18:00")
   assert_true((try? @time.ZoneOffset::from_seconds(19 * 60 * 60)) is Err(_))
   assert_true((try? @time.ZoneOffset::from_seconds(-19 * 60 * 60)) is Err(_))
 }
 
 ///|
 test "utc" {
-  @debug.debug_inspect(@time.utc_offset, content="Z")
-  @debug.debug_inspect(@time.utc_offset.id(), content="Z")
-  @debug.debug_inspect(@time.utc_offset.seconds(), content="0")
-  @debug.debug_inspect(@time.utc_offset.is_dst(), content="false")
+  inspect(@time.utc_offset, content="Z")
+  inspect(@time.utc_offset.id(), content="Z")
+  inspect(@time.utc_offset.seconds(), content="0")
+  inspect(@time.utc_offset.is_dst(), content="false")
 }
 
 ///|
 test "compare" {
   let o1 = @time.ZoneOffset::from_seconds(10)
   let o2 = @time.ZoneOffset::from_seconds(-10)
-  @debug.debug_inspect(o1 > o2, content="false")
-  @debug.debug_inspect(o1 == o2, content="false")
-  @debug.debug_inspect(o1 < o2, content="true")
-  @debug.debug_inspect(o1 == o1, content="true")
+  inspect(o1 > o2, content="false")
+  inspect(o1 == o2, content="false")
+  inspect(o1 < o2, content="true")
+  inspect(o1 == o1, content="true")
 }

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-#cfg(target="native")
+#cfg(any(target="native", target="wasm"))
 async fn test_server(group : @async.TaskGroup[Unit], log : &Logger) -> Int {
   let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
   group.spawn_bg(no_wait=true) <| () => {
@@ -105,7 +105,7 @@ async test "request streaming" {
       log <+ "client sending GET request\n"
       let (response, client) = @http.get_stream("http://localhost:\{port}/get")
       defer client.close()
-      @debug.debug_inspect(response.code, content="200")
+      inspect(response.code, content="200")
       fetch_response(client)
     }
     {
@@ -119,7 +119,7 @@ async test "request streaming" {
       log <+ "client: sending PUT data part 2\n"
       client.write("PUT data part 2\n")
       let response = client.end_request()
-      @debug.debug_inspect(response.code, content="200")
+      inspect(response.code, content="200")
       fetch_response(client)
     }
     {
@@ -133,14 +133,14 @@ async test "request streaming" {
       log <+ "client: sending POST data part 2\n"
       client.write("POST data part 2\n")
       let response = client.end_request()
-      @debug.debug_inspect(response.code, content="200")
+      inspect(response.code, content="200")
       fetch_response(client)
     }
     // give some time for the client to close,
     // so that the port occupied by the server can be reused immediately.
     @async.sleep(200)
   }
-  @debug.debug_inspect(
+  inspect(
     log,
     content=(
       #|client sending GET request
@@ -179,9 +179,9 @@ async test "multiple request" {
   let client = @http.Client("https://www.moonbitlang.com")
   defer client.close()
   let response1 = client.get("/")
-  @debug.debug_inspect(response1.code, content="200")
+  inspect(response1.code, content="200")
   assert_true(client.read_all().text().has_prefix("<!doctype html>"))
   let response2 = client.get("/download")
-  @debug.debug_inspect(response2.code, content="200")
+  inspect(response2.code, content="200")
   assert_true(client.read_all().text().has_prefix("<!doctype html>"))
 }

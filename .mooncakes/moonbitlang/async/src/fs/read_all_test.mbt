@@ -17,7 +17,7 @@ async test "read_all basic" {
   let path = "LICENSE"
   let r = @fs.open(path, mode=ReadOnly)
   defer r.close()
-  @debug.debug_inspect(
+  inspect(
     r.read_all().text(),
     content=(
       #|

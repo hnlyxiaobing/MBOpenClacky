@@ -321,7 +321,7 @@ pub async fn[R : @io.Reader, W : @io.Writer] Tls::server_from_pair(
 
 ///|
 #cfg(platform="windows")
-pub impl @io.Reader for Tls with _get_internal_buffer(self) {
+pub impl @io.Reader for Tls with fn _get_internal_buffer(self) {
   self.read_buf
 }
 
@@ -341,7 +341,7 @@ extern "C" fn Schannel::msg_trailer(ch : Schannel) -> Int = "moonbitlang_async_s
 
 ///|
 #cfg(platform="windows")
-pub impl @io.Reader for Tls with _direct_read(self, buf, offset~, max_len~) {
+pub impl @io.Reader for Tls with fn _direct_read(self, buf, offset~, max_len~) {
   if self.closed {
     return 0
   }
@@ -406,7 +406,7 @@ extern "C" fn Schannel::write(
 
 ///|
 #cfg(platform="windows")
-pub impl @io.Writer for Tls with write_once(self, buf, offset~, len~) {
+pub impl @io.Writer for Tls with fn write_once(self, buf, offset~, len~) {
   let write_buf = self.transport.write_buf
   guard write_buf.len == 0
   let max_len = write_buf.buf.length() -
@@ -457,32 +457,90 @@ pub async fn Tls::shutdown(self : Tls) -> Unit {
 
 ///|
 #cfg(platform="windows")
-#borrow(ch)
-extern "C" fn Schannel::get_peer_certificate(ch : Schannel) -> Bytes? = "moonbitlang_async_schannel_get_peer_certificate"
+priv struct PeerCertificate(@c_buffer.Buffer)
+
+///|
+#cfg(platform="windows")
+extern "C" fn PeerCertificate::free(self : PeerCertificate) -> Unit = "moonbitlang_async_schannel_free_peer_certificate"
+
+///|
+#cfg(platform="windows")
+extern "C" fn PeerCertificate::length(self : PeerCertificate) -> Int = "moonbitlang_async_schannel_peer_certificate_length"
+
+///|
+#cfg(platform="windows")
+#borrow(buf)
+extern "C" fn PeerCertificate::blit_to(
+  self : PeerCertificate,
+  buf : FixedArray[Byte],
+  len~ : Int,
+) -> Unit = "moonbitlang_async_schannel_peer_certificate_blit_to"
 
 ///|
 #cfg(platform="windows")
 #borrow(ch)
-extern "C" fn Schannel::unique_channel_binding(ch : Schannel) -> Bytes? = "moonbitlang_async_schannel_unique_channel_binding"
+extern "C" fn Schannel::get_peer_certificate(ch : Schannel) -> PeerCertificate = "moonbitlang_async_schannel_get_peer_certificate"
+
+///|
+#cfg(platform="windows")
+priv struct ChannelBinding(@c_buffer.Buffer)
+
+///|
+#cfg(platform="windows")
+extern "C" fn ChannelBinding::free(self : ChannelBinding) -> Unit = "moonbitlang_async_schannel_free_channel_binding"
+
+///|
+#cfg(platform="windows")
+extern "C" fn ChannelBinding::length(self : ChannelBinding) -> Int = "moonbitlang_async_schannel_channel_binding_length"
+
+///|
+#cfg(platform="windows")
+#borrow(buf)
+extern "C" fn ChannelBinding::blit_to(
+  self : ChannelBinding,
+  buf : FixedArray[Byte],
+  len~ : Int,
+) -> Unit = "moonbitlang_async_schannel_channel_binding_blit_to"
+
+///|
+#cfg(platform="windows")
+#borrow(ch)
+extern "C" fn Schannel::unique_channel_binding(ch : Schannel) -> ChannelBinding = "moonbitlang_async_schannel_unique_channel_binding"
 
 ///|
 #cfg(platform="windows")
 #borrow(ch)
 extern "C" fn Schannel::server_endpoint_channel_binding(
   ch : Schannel,
-) -> Bytes? = "moonbitlang_async_schannel_server_endpoint_channel_binding"
+) -> ChannelBinding = "moonbitlang_async_schannel_server_endpoint_channel_binding"
 
 ///|
 #cfg(platform="windows")
 pub fn Tls::get_peer_certificate(self : Tls) -> Bytes? raise {
-  let result = self.context.get_peer_certificate()
-  if result is None {
-    let errno = @os_error.get_errno()
-    if errno != 0 {
-      raise TlsError(@os_error.errno_to_string(errno))
-    }
+  let cert = self.context.get_peer_certificate()
+  if cert.0.is_null() {
+    @os_error.check_errno("@tls.Tls::get_peer_certificate()")
+    // if the error number is 0,
+    // no error is happening, the certificate simply does not exist
+    return None
   }
-  result
+  defer cert.free()
+  let len = cert.length()
+  guard len > 0
+  let result = FixedArray::make(len, b'\x00')
+  cert.blit_to(result, len~)
+  Some(result.unsafe_reinterpret_as_bytes())
+}
+
+///|
+#cfg(platform="windows")
+fn ChannelBinding::to_bytes(self : ChannelBinding) -> Bytes {
+  defer self.free()
+  let len = self.length()
+  guard len > 0
+  let buf = FixedArray::make(len, b'\x00')
+  self.blit_to(buf, len~)
+  buf.unsafe_reinterpret_as_bytes()
 }
 
 ///|
@@ -490,17 +548,16 @@ pub fn Tls::get_peer_certificate(self : Tls) -> Bytes? raise {
 /// according to RFC 5929
 #cfg(platform="windows")
 pub fn Tls::unique_channel_binding(self : Tls) -> Bytes raise {
-  match self.context.unique_channel_binding() {
-    Some(binding) => binding
-    None => {
-      let errno = @os_error.get_errno()
-      if errno != 0 {
-        raise TlsError(@os_error.errno_to_string(errno))
-      } else {
-        raise TlsError("tls-unique channel binding unavailable")
-      }
+  let binding = self.context.unique_channel_binding()
+  if binding.0.is_null() {
+    let errno = @os_error.get_errno()
+    if errno != 0 {
+      raise TlsError(@os_error.errno_to_string(errno))
+    } else {
+      raise TlsError("tls-unique channel binding unavailable")
     }
   }
+  binding.to_bytes()
 }
 
 ///|
@@ -510,24 +567,22 @@ pub fn Tls::unique_channel_binding(self : Tls) -> Bytes raise {
 /// so `tls-unique` is the more recommended approach when available.
 #cfg(platform="windows")
 pub fn Tls::server_endpoint_channel_binding(self : Tls) -> Bytes raise {
-  match self.context.server_endpoint_channel_binding() {
-    Some(binding) => binding
-    None => {
-      let errno = @os_error.get_errno()
-      if errno != 0 {
-        raise TlsError(@os_error.errno_to_string(errno))
-      } else {
-        raise TlsError("tls-server-endpoint channel binding unavailable")
-      }
+  let binding = self.context.server_endpoint_channel_binding()
+  if binding.0.is_null() {
+    let errno = @os_error.get_errno()
+    if errno != 0 {
+      raise TlsError(@os_error.errno_to_string(errno))
+    } else {
+      raise TlsError("tls-server-endpoint channel binding unavailable")
     }
   }
+  binding.to_bytes()
 }
 
 ///|
 // mute unused warning
 #cfg(platform="windows")
 let _unused : Unit = {
-  ignore(@c_buffer.Buffer::strlen)
   ignore(@bytes_util.ascii_to_string)
   ignore(@utf8.encode(""))
 }

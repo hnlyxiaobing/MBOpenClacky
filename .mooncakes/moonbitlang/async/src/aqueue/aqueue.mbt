@@ -80,9 +80,9 @@ pub fn[X] Queue::Queue(kind~ : Kind) -> Queue[X] {
   }
   {
     kind,
-    writers: @deque.Deque([]),
-    readers: @deque.Deque([]),
-    buffer: @deque.Deque([]),
+    writers: Deque([]),
+    readers: Deque([]),
+    buffer: Deque([]),
     closed: None,
   }
 }
@@ -237,10 +237,12 @@ pub async fn[X] Queue::get(self : Queue[X]) -> X {
       raise err
     }
   }
-  if self.closed is Some(err) {
+  if reader.value is Some(value) {
+    value
+  } else {
+    guard self.closed is Some(err)
     raise err
   }
-  reader.value.unwrap()
 }
 
 ///|

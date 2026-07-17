@@ -23,7 +23,7 @@ async test "retry immediate" {
       raise Err
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|tick 0
@@ -37,9 +37,9 @@ async test "retry immediate" {
 ///|
 async test "retry fixed" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn tick() {
-    (@async.now() - start + 50).to_int() / 200
+    (@env.now() - start + 50).to_int() / 200
   }
   let mut i = 0
   @async.retry(FixedDelay(200)) <| () => {
@@ -58,9 +58,9 @@ async test "retry fixed" {
 ///|
 async test "retry exponential" {
   let log = []
-  let start = @async.now()
+  let start = @env.now()
   fn tick() {
-    (@async.now() - start + 50).to_int() / 200
+    (@env.now() - start + 50).to_int() / 200
   }
   let mut i = 0
   @async.retry(ExponentialDelay(initial=200, factor=2, maximum=600)) <| () => {
@@ -92,7 +92,7 @@ async test "retry cancelled1" {
     @async.TimeoutError => ()
     err => raise err
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|loop 0
@@ -116,7 +116,7 @@ async test "retry cancelled2" {
     @async.TimeoutError => ()
     err => raise err
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|loop 0
@@ -146,12 +146,14 @@ async test "retry fatal_error" {
   }
 
   debug_inspect(
-    try? @async.retry(Immediate, fatal_error~, worker),
+    @test_util.expect_error_async <| () => {
+      @async.retry(Immediate, fatal_error~, worker)
+    },
     content=(
-      #|Err(Failure("fatal error"))
+      #|Failure("fatal error")
     ),
   )
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|worker run #0

@@ -234,7 +234,7 @@ pub fn sha256_from_iter(data : Iter[Byte]) -> FixedArray[Byte] {
 
 ///|
 test {
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(
       sha256(
         b"abc", // abc in utf-8
@@ -242,7 +242,7 @@ test {
     ),
     content="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
   )
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(
       sha256(
         // abcd * 16 in utf-8
@@ -253,24 +253,24 @@ test {
   )
   let hash1 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
   let ctx = SHA256::new()
-  ctx.update(b"\u{61}".to_fixedarray())
-  ctx.update(b"\u{62}".to_fixedarray())
-  ctx.update(b"\u{63}".to_fixedarray())
+  ctx.update(b"\x61".to_fixedarray())
+  ctx.update(b"\x62".to_fixedarray())
+  ctx.update(b"\x63".to_fixedarray())
   assert_eq(hash1, bytes_to_hex_string(ctx.finalize()))
   let ctx = SHA256::new()
-  let data = b"\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}"
+  let data = b"\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64"
   for i = 0; i < data.length(); i = i + 1 {
     ctx.update(FixedArray::make(1, data[i]))
   }
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="625b41490b883891943c5fa54ad45d7c900b9b6e91e159334e320b1f5215a209",
   )
   let ctx = SHA256::new()
   for i = 0; i < data.length(); i = i + 4 {
-    ctx.update_from_iter(b"\u{61}\u{62}\u{63}\u{64}".iter())
+    ctx.update_from_iter(b"\x61\x62\x63\x64".iter())
   }
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="625b41490b883891943c5fa54ad45d7c900b9b6e91e159334e320b1f5215a209",
   )
@@ -281,17 +281,17 @@ test "sha256 reentry" {
   let string = b"abcd"
   let ctx = SHA256::new()
   ctx.update(string)
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589",
   )
   ctx.update(string)
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="3bc49b73e2fb201924d9dcce5fb6d6fd7cfbf58c49be8cc46439c05dc634b151",
   )
   ctx.update(string)
-  @debug.debug_inspect(
+  inspect(
     bytes_to_hex_string(ctx.finalize()),
     content="887f2749b07e559d140605a4b9de9af5721e2accad06fade91301f0410ad5cdf",
   )

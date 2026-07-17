@@ -40,13 +40,13 @@ pub fn sha224_from_iter(data : Iter[Byte]) -> FixedArray[Byte] {
 test {
   // Sha224
   assert_eq(
-    bytes_to_hex_string(sha224(b"\u{61}\u{62}\u{63}".to_fixedarray())),
+    bytes_to_hex_string(sha224(b"\x61\x62\x63".to_fixedarray())),
     "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7",
   )
   assert_eq(
     bytes_to_hex_string(
       sha224(
-        b"\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}\u{61}\u{62}\u{63}\u{64}".to_fixedarray(),
+        b"\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64\x61\x62\x63\x64".to_fixedarray(),
       ),
     ),
     "fffd3b5e90c6fc3cb77c3d04b1f7660b16a426ef6655384e8486ae1f",

@@ -21,8 +21,10 @@ async test "cond var cancellation" {
       cond.signal()
     }
     debug_inspect(
-      try? @async.with_timeout(250, () => cond.wait()),
-      content="Err(TimeoutError)",
+      @test_util.expect_error_async <| () => {
+        @async.with_timeout(250, () => cond.wait())
+      },
+      content="TimeoutError",
     )
   }
 }
@@ -45,7 +47,7 @@ async test "cond var cancellation no_swallow" {
     wait_task.cancel()
     @async.sleep(100)
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|waiter 1 succeed
@@ -78,7 +80,7 @@ async test "cond var fairness" {
       @async.sleep(50)
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 1 received signal
@@ -106,7 +108,7 @@ async test "cond var broadcast" {
     @async.sleep(100)
     cond.broadcast()
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 0 received signal
@@ -131,7 +133,7 @@ async test "cond var broadcast cancellation" {
     @async.sleep(500)
     cond.broadcast()
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|task 2 received signal

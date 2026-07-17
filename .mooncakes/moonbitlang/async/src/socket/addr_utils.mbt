@@ -242,13 +242,13 @@ fn try_parse_ipv4(input : String) -> (UInt, Int) raise InvalidAddr {
 ///|
 fn parse_port(port_str : StringView) -> Int raise InvalidAddr {
   guard !port_str.is_empty() else { raise InvalidAddr }
-  let port = @strconv.parse_int(port_str) catch { _ => raise InvalidAddr }
+  let port = @string.parse_int(port_str) catch { _ => raise InvalidAddr }
   guard 0 <= port && port < 65536 else { raise InvalidAddr }
   port
 }
 
 ///|
-fn write_ipv6_str(addr : @c_buffer.Buffer, logger : &Logger) -> Unit {
+fn write_ipv6_str(addr : BytesView, logger : &Logger) -> Unit {
   let mut longest_zero_group = None
   fn add_zero_group(start, end) {
     if end > start {
@@ -294,8 +294,7 @@ fn write_ipv6_str(addr : @c_buffer.Buffer, logger : &Logger) -> Unit {
     }
   }
   if is_v4_mapped {
-    logger
-      <+
+    logger <+
       "\{addr[12].to_int()}.\{addr[13].to_int()}.\{addr[14].to_int()}.\{addr[15].to_int()}"
   }
 }

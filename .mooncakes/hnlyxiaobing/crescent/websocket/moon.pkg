@@ -1,0 +1,20 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+  "moonbitlang/async/websocket" @async_websocket,
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/async/socket",
+  "moonbitlang/async/os_error",
+} for "wbtest"
+
+warnings = "+missing_doc+unnecessary_annotation"
+
+// Native-only (depends on moonbitlang/async/{http,websocket}).
+
+options(
+  targets: { "runtime_wbtest.mbt": [ "native" ] },
+)

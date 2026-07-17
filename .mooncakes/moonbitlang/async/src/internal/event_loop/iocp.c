@@ -20,17 +20,17 @@
 #include <moonbit.h>
 
 MOONBIT_FFI_EXPORT
-HANDLE moonbitlang_async_poll_create() {
+HANDLE moonbitlang_async_event_bus_create() {
   return CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 }
 
 MOONBIT_FFI_EXPORT
-void moonbitlang_async_poll_destroy(HANDLE iocp) {
+void moonbitlang_async_event_bus_destroy(HANDLE iocp) {
   CloseHandle(iocp);
 }
 
 MOONBIT_FFI_EXPORT
-int moonbitlang_async_poll_register(HANDLE iocp, HANDLE fd) {
+int moonbitlang_async_event_bus_register(HANDLE iocp, HANDLE fd, int32_t read_only) {
   if (!SetFileCompletionNotificationModes(fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
     return -1;
   return CreateIoCompletionPort(fd, iocp, (ULONG_PTR)fd, 0) == NULL ? -1 : 0;
@@ -40,7 +40,7 @@ int moonbitlang_async_poll_register(HANDLE iocp, HANDLE fd) {
 static OVERLAPPED_ENTRY event_buffer[EVENT_BUFFER_SIZE];
 
 MOONBIT_FFI_EXPORT
-int moonbitlang_async_poll_wait(HANDLE iocp, int timeout) {
+int moonbitlang_async_event_bus_wait(HANDLE iocp, int timeout) {
   ULONG n;
   if (
     !GetQueuedCompletionStatusEx(
@@ -58,7 +58,7 @@ int moonbitlang_async_poll_wait(HANDLE iocp, int timeout) {
 }
 
 MOONBIT_FFI_EXPORT
-OVERLAPPED_ENTRY *moonbitlang_async_event_list_get(int index) {
+OVERLAPPED_ENTRY *moonbitlang_async_event_list_get(HANDLE iocp, int index) {
   return event_buffer + index;
 }
 

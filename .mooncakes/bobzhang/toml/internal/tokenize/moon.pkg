@@ -1,5 +1,4 @@
 import {
-  "moonbitlang/core/debug",
   "bobzhang/lexer",
   "moonbitlang/core/string",
 }

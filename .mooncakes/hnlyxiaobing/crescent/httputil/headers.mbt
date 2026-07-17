@@ -1,0 +1,208 @@
+/// Compares two HTTP header names for equality using case-insensitive matching.
+/// Uses character-by-character comparison to avoid String allocation from .to_lower().
+
+///|
+fn header_name_matches(left : String, right : String) -> Bool {
+  if left.length() != right.length() {
+    return false
+  }
+  let left_view = left.view()
+  let right_view = right.view()
+  for i = 0; i < left.length(); i = i + 1 {
+    let l = left_view.unsafe_get(i)
+    let r = right_view.unsafe_get(i)
+    // Fast path: exact match
+    if l == r {
+      continue
+    }
+    // ASCII case-insensitive comparison (a-z vs A-Z differ by 0x20)
+    let lc = if l >= 65 && l <= 90 { l + 32 } else { l }
+    let rc = if r >= 65 && r <= 90 { r + 32 } else { r }
+    if lc != rc {
+      return false
+    }
+  }
+  true
+}
+
+///|
+test "header_name_matches exact match" {
+  assert_eq(header_name_matches("Content-Type", "Content-Type"), true)
+  assert_eq(header_name_matches("host", "host"), true)
+}
+
+///|
+test "header_name_matches case insensitive" {
+  assert_eq(header_name_matches("Content-Type", "content-type"), true)
+  assert_eq(header_name_matches("HOST", "host"), true)
+  assert_eq(header_name_matches("Accept-Encoding", "ACCEPT-ENCODING"), true)
+}
+
+///|
+test "header_name_matches non-matching" {
+  assert_eq(header_name_matches("Content-Type", "Accept"), false)
+  assert_eq(header_name_matches("Host", "Hos"), false)
+  assert_eq(header_name_matches("", "Host"), false)
+  assert_eq(header_name_matches("Host", ""), false)
+}
+
+///|
+test "header_name_matches empty strings" {
+  assert_eq(header_name_matches("", ""), true)
+}
+
+/// Returns the original key from the headers map that matches the given header name
+/// case-insensitively, or `None` if no match is found.
+
+///|
+fn find_header_key_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+) -> String? {
+  for pair in headers {
+    let (key, _) = pair
+    if header_name_matches(key, header_name) {
+      return Some(key)
+    }
+  }
+  None
+}
+
+///|
+test "find_header_key_case_insensitive finds exact key" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(
+    find_header_key_case_insensitive(headers, "Content-Type"),
+    content="Some(\"Content-Type\")",
+  )
+}
+
+///|
+test "find_header_key_case_insensitive finds key case-insensitively" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(
+    find_header_key_case_insensitive(headers, "content-type"),
+    content="Some(\"Content-Type\")",
+  )
+}
+
+///|
+test "find_header_key_case_insensitive returns None for missing key" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(find_header_key_case_insensitive(headers, "Accept"), content="None")
+}
+
+///|
+test "find_header_key_case_insensitive empty map" {
+  let headers : Map[String, String] = {}
+  inspect(find_header_key_case_insensitive(headers, "Host"), content="None")
+}
+
+///|
+/// Retrieves the value of a header by name using case-insensitive lookup, or
+/// `None` if the header is not present.
+pub fn get_header_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+) -> String? {
+  match find_header_key_case_insensitive(headers, header_name) {
+    Some(key) => headers.get(key)
+    None => None
+  }
+}
+
+///|
+/// Returns `true` if the headers map contains a header matching the given name
+/// case-insensitively.
+pub fn has_header_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+) -> Bool {
+  get_header_case_insensitive(headers, header_name) is Some(_)
+}
+
+/// Sets a header value using case-insensitive key matching. If a header with the
+/// same name already exists (regardless of case), the existing entry is replaced;
+/// otherwise the new key-value pair is inserted.
+
+///|
+/// Sets a header value using case-insensitive key matching. If a header with
+/// the same name (ignoring case) already exists, the existing entry is replaced;
+/// otherwise a new entry is inserted.
+pub fn set_header_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+  value : String,
+) -> Unit {
+  match find_header_key_case_insensitive(headers, header_name) {
+    Some(existing_key) if existing_key != header_name => {
+      ignore(headers.remove(existing_key))
+      headers.set(header_name, value)
+    }
+    Some(existing_key) => headers.set(existing_key, value)
+    None => headers.set(header_name, value)
+  }
+}
+
+///|
+/// Sets a header value only if no header with the same name (case-insensitive)
+/// already exists in the map.
+pub fn set_missing_header_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+  value : String,
+) -> Unit {
+  if !has_header_case_insensitive(headers, header_name) {
+    headers.set(header_name, value)
+  }
+}
+
+///|
+/// Appends a token to a comma-separated header (like `Vary`) in a
+/// case-insensitive, token-safe way. Does nothing if the token is already
+/// present. Used for `Vary` updates where multiple middlewares may contribute.
+pub fn append_token_case_insensitive(
+  headers : Map[String, String],
+  header_name : String,
+  token : String,
+) -> Unit {
+  let lower_token = token.to_lower()
+  match find_header_key_case_insensitive(headers, header_name) {
+    Some(key) =>
+      match headers.get(key) {
+        Some(value) => {
+          // Check if token is already present.
+          let mut already_present = false
+          for part in value.split(",") {
+            if part.trim(chars=" \t").to_string().to_lower() == lower_token {
+              already_present = true
+              break
+            }
+          }
+          if !already_present {
+            headers[key] = value + ", " + token
+          }
+        }
+        None => headers[key] = token
+      }
+    None => headers[header_name] = token
+  }
+}
+
+///|
+/// Merges all headers from the source map into the target map using
+/// case-insensitive key matching, overwriting existing entries on conflict.
+pub fn merge_headers_case_insensitive(
+  target : Map[String, String],
+  source : Map[String, String],
+) -> Unit {
+  source.each((key, value) => set_header_case_insensitive(target, key, value))
+}
+
+///|
+/// Returns a shallow copy of the headers map.
+pub fn copy_headers(headers : Map[String, String]) -> Map[String, String] {
+  let out : Map[String, String] = {}
+  headers.each((k, v) => out.set(k, v))
+  out
+}

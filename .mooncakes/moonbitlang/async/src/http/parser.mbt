@@ -129,7 +129,7 @@ async fn Reader::decode_chunk(
 /// All reader related API of `HttpReader` should be called
 /// after a successful call to `read_request` or `read_response`,
 /// otherwise reading always result in EOF.
-impl @io.Reader for Reader with _direct_read(self, buf, offset~, max_len~) {
+impl @io.Reader for Reader with fn _direct_read(self, buf, offset~, max_len~) {
   match self.body {
     Empty => 0
     Fixed(remaining) => {
@@ -139,6 +139,9 @@ impl @io.Reader for Reader with _direct_read(self, buf, offset~, max_len~) {
         max_len~,
         limit=remaining,
       )
+      if produced is 0 {
+        raise @io.ReaderClosed
+      }
       let remaining = remaining - consumed
       self.body = if remaining == 0 {
         if self.gzip is Some(gzip) {
@@ -155,7 +158,7 @@ impl @io.Reader for Reader with _direct_read(self, buf, offset~, max_len~) {
       guard self.transport.read_until("\r\n") is Some(len_str) else {
         raise @io.ReaderClosed
       }
-      let next_chunk_len = @strconv.parse_int(len_str, base=16) catch {
+      let next_chunk_len = @string.parse_int(len_str, base=16) catch {
         _ => raise BadRequest
       }
       guard next_chunk_len > 0 else {
@@ -214,7 +217,7 @@ impl @io.Reader for Reader with _direct_read(self, buf, offset~, max_len~) {
 }
 
 ///|
-impl @io.Reader for Reader with _get_internal_buffer(self) {
+impl @io.Reader for Reader with fn _get_internal_buffer(self) {
   if self.body is PassThrough || self.body is WaitConnectionClose {
     self.transport._get_internal_buffer()
   } else {
@@ -226,7 +229,7 @@ impl @io.Reader for Reader with _get_internal_buffer(self) {
 async fn Reader::read_headers(
   self : Reader,
 ) -> (Map[String, String], Array[Cookie]) {
-  let headers = {}
+  let headers = Map([])
   let cookies = []
   for ;; {
     guard self.transport.read_until("\r\n") is Some(header_line) else {
@@ -248,7 +251,7 @@ async fn Reader::read_headers(
     match key {
       "content-length" => {
         guard !(self.body is Fixed(_)) else { raise BadRequest }
-        let len = @strconv.parse_int(value, base=10)
+        let len = @string.parse_int(value, base=10)
         if self.body is Empty && len > 0 {
           self.body = Fixed(len)
         }
@@ -385,7 +388,7 @@ async fn Reader::read_response(
   }
   let response_line = response_line[protocol_len + 1:]
   guard response_line.find(" ") is Some(code_len) else { raise BadRequest }
-  let code = @strconv.parse_int(response_line[:code_len], base=10) catch {
+  let code = @string.parse_int(response_line[:code_len], base=10) catch {
     _ => raise BadRequest
   }
   let reason = response_line[code_len + 1:].to_owned()
@@ -395,6 +398,8 @@ async fn Reader::read_response(
   // Other cases are handled in `read_headers` when parsing the headers, which will set the body kind accordingly.
   if should_read_body_until_close(code, headers, self.body, request_method) {
     self.body = WaitConnectionClose // Read until connection close
+  } else if request_method is Some(Head) {
+    self.body = Empty
   }
 
   { code, reason, headers, cookies }

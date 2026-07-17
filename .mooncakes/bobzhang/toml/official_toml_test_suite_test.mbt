@@ -544,7 +544,7 @@ test "inf failure" {
   let inf_failure_toml =
     #|inf = -infx
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(inf_failure_toml),
     content=(
       #|Invalid character 'x' after special value at line 1, column 11
@@ -553,7 +553,7 @@ test "inf failure" {
   let inf_failure_toml2 =
     #|inf = -infx=2
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(inf_failure_toml2),
     content=(
       #|Invalid character 'x' after special value at line 1, column 11
@@ -562,7 +562,7 @@ test "inf failure" {
   let inf_failure_toml2 =
     #|inf = -inf x=2
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(inf_failure_toml2),
     content=(
       #|Expected newline or end of file after key-value pair at { start: { line: 1, column: 12 }, end: { line: 1, column: 13 } }
@@ -571,7 +571,7 @@ test "inf failure" {
   let table_failure =
     #|a = 3 b = 2
     #|
-  @debug.debug_inspect(
+  inspect(
     parse_expect_to_fail(table_failure),
     content=(
       #|Expected newline or end of file after key-value pair at { start: { line: 1, column: 7 }, end: { line: 1, column: 8 } }

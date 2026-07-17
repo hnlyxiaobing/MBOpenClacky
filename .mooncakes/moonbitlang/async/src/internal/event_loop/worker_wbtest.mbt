@@ -19,7 +19,9 @@ extern "C" fn Job::sleep(time : Int) -> Job = "moonbitlang_async_make_sleep_job"
 ///|
 #cfg(target="native")
 async fn perform_sleep_job(t : Int) -> Unit {
-  perform_job_in_worker(Job::sleep(t), context="") |> ignore
+  let job = Job::sleep(t)
+  defer job.free()
+  perform_job_in_worker(job, context="") |> ignore
 }
 
 ///|
@@ -41,7 +43,7 @@ async test "worker basic" {
     perform_sleep_job(1000)
     log <+ "done\n"
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|tick
@@ -70,7 +72,7 @@ async test "worker multiple" {
       }
     }
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|#0 done
@@ -108,7 +110,7 @@ async test "worker cancel1" {
     log <+ "trying to cancel\n"
     task.cancel()
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|tick
@@ -146,7 +148,7 @@ async test "worker cancel2" {
     log <+ "trying to terminate now\n"
     root.return_immediately(())
   }
-  @debug.debug_inspect(
+  inspect(
     log.to_string(),
     content=(
       #|tick

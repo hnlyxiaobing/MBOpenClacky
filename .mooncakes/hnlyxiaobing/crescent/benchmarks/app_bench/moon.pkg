@@ -1,0 +1,8 @@
+import {
+  "hnlyxiaobing/crescent",
+  "moonbitlang/async",
+}
+
+options(
+  "is-main": true,
+)
