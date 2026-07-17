@@ -86,9 +86,40 @@ test "track_cost_basic" {
   @debug.assert_eq(token_data.prompt_tokens, 1000)
   @debug.assert_eq(token_data.completion_tokens, 500)
   @debug.assert_eq(token_data.total_tokens, 1500)
-  @debug.assert_eq(agent.total_cost, 0.0) // No pricing table in Phase 4
+  @debug.assert_eq(agent.total_cost, 0.0) // "test-model" not in pricing table
   @debug.assert_eq(agent.previous_total_tokens, 1500)
   @debug.assert_eq(agent.cache_stats.total_requests, 1)
+}
+
+///|
+test "track_cost_with_known_model" {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "claude-3-5-sonnet-20241022",
+    @config.AnthropicMessages,
+  )
+  let agent = Agent::new(
+    "test-session",
+    "test-agent",
+    "/tmp/test",
+    client,
+    @config.AgentConfig::default(),
+  )
+  let usage = @client.Usage::from_openai(1000, 500)
+  let token_data = agent.track_cost(usage)
+  @debug.assert_eq(token_data.cost_source, CostSource::Price)
+  assert_true(token_data.cost > 0.0)
+  assert_true(agent.total_cost > 0.0)
+}
+
+///|
+test "track_cost_unknown_model_falls_back_to_estimated" {
+  let agent = make_test_agent()
+  let usage = @client.Usage::from_openai(1000, 500)
+  let token_data = agent.track_cost(usage)
+  @debug.assert_eq(token_data.cost_source, CostSource::Estimated)
+  @debug.assert_eq(token_data.cost, 0.0)
 }
 
 ///|

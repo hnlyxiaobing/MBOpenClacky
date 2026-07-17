@@ -9,6 +9,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/skill",
   "hnlyxiaobing/MBOpenClacky/lib/billing",
+  "hnlyxiaobing/MBOpenClacky/lib/pricing",
   "hnlyxiaobing/MBOpenClacky/lib/zip",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",

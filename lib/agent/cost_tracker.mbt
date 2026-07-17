@@ -81,10 +81,20 @@ pub fn estimate_token_count(content : String) -> Int {
 }
 
 ///|
-/// Calculate cost for a model based on pricing table.
-/// Phase 4 stub: returns None (pricing table to be added later).
-fn calculate_model_cost(_model : String, _usage : @client.Usage) -> Double? {
-  None
+/// Calculate cost for a model using the pricing table.
+/// Returns None when the model is unknown to the pricing table.
+fn calculate_model_cost(model : String, usage : @client.Usage) -> Double? {
+  match
+    @pricing.calculate_cost(
+      model~,
+      prompt_tokens=usage.input_tokens,
+      completion_tokens=usage.output_tokens,
+      cache_write_tokens=usage.cache_creation_input_tokens,
+      cache_read_tokens=usage.cache_read_input_tokens,
+    ) {
+    Ok(result) => Some(result.total_cost)
+    Err(_) => None
+  }
 }
 
 ///|
