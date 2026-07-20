@@ -76,30 +76,35 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
 
   match http_result {
     Err(err) =>
-      raise @errors.RetryableError("HTTP request failed: \{err.to_repr()}")
+      raise @errors.RetryableError(
+        "HTTP request failed (url=\{url}): \{err.to_repr()}",
+      )
     Ok(http_resp) => {
       // Check for HTTP errors
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
+          let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
           // 5xx and 429 are retryable
           if http_resp.status_code == 429 ||
             (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
-            raise @errors.RetryableError(err_msg)
+            raise @errors.RetryableError(detail)
           }
-          raise @errors.BadRequestError(http_resp.status_code, err_msg)
+          raise @errors.BadRequestError(http_resp.status_code, detail)
         }
         None => ()
       }
       // Check for HTML response
       if @client.is_html_response(http_resp.body) {
         raise @errors.AgentError(
-          "LLM API returned HTML response (invalid endpoint)",
+          "LLM API returned HTML response (invalid endpoint): url=\{url} body=\{body_snippet(http_resp.body, 500)}",
         )
       }
       // Parse JSON response
       let json_data = @json.parse(http_resp.body) catch {
         _ =>
-          raise @errors.AgentError("Failed to parse LLM API response as JSON")
+          raise @errors.AgentError(
+            "Failed to parse LLM API response as JSON: url=\{url} body=\{body_snippet(http_resp.body, 500)}",
+          )
       }
       let response = self.client.parse_response(json_data)
       // Track cost if usage is present
@@ -139,26 +144,31 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
   let http_result = @client.http_post_async(url, body_str, headers_arr, 60000)
   match http_result {
     Err(err) =>
-      raise @errors.RetryableError("HTTP request failed: \{err.to_repr()}")
+      raise @errors.RetryableError(
+        "HTTP request failed (url=\{url}): \{err.to_repr()}",
+      )
     Ok(http_resp) => {
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
+          let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
           if http_resp.status_code == 429 ||
             (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
-            raise @errors.RetryableError(err_msg)
+            raise @errors.RetryableError(detail)
           }
-          raise @errors.BadRequestError(http_resp.status_code, err_msg)
+          raise @errors.BadRequestError(http_resp.status_code, detail)
         }
         None => ()
       }
       if @client.is_html_response(http_resp.body) {
         raise @errors.AgentError(
-          "LLM API returned HTML response (invalid endpoint)",
+          "LLM API returned HTML response (invalid endpoint): url=\{url} body=\{body_snippet(http_resp.body, 500)}",
         )
       }
       let json_data = @json.parse(http_resp.body) catch {
         _ =>
-          raise @errors.AgentError("Failed to parse LLM API response as JSON")
+          raise @errors.AgentError(
+            "Failed to parse LLM API response as JSON: url=\{url} body=\{body_snippet(http_resp.body, 500)}",
+          )
       }
       let response = self.client.parse_response(json_data)
       match response.usage {
@@ -310,6 +320,27 @@ pub fn Agent::handle_context_overflow(
 }
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
+
+///|
+/// Return the first `max_chars` characters of `body` for diagnostics.
+/// Appends "..." when the body was truncated.
+fn body_snippet(body : String, max_chars : Int) -> String {
+  let buf = StringBuilder::new()
+  let mut count = 0
+  let mut truncated = false
+  for c in body {
+    if count >= max_chars {
+      truncated = true
+      break
+    }
+    buf.write_char(c)
+    count = count + 1
+  }
+  if truncated {
+    buf.write_string("...")
+  }
+  buf.to_string()
+}
 
 ///|
 /// Check if a string is valid JSON (simple heuristic for truncation detection).

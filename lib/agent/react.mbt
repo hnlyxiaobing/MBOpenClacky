@@ -48,7 +48,7 @@ pub fn Agent::run(self : Agent, user_input : String) -> RunResult raise {
   let result = self.react_loop() catch {
     err => {
       self.status = Error
-      let err_msg = "\{err}"
+      let err_msg = @errors.error_message(err)
       self.error = Some(err_msg)
       self.hook_manager.emit(ErrorOccurred(err_msg))
       raise @errors.AgentError(err_msg)
@@ -461,7 +461,7 @@ pub async fn Agent::run_async(self : Agent, user_input : String) -> RunResult {
   let result = self.react_loop_async() catch {
     err => {
       self.status = Error
-      let err_msg = "\{err}"
+      let err_msg = @errors.error_message(err)
       self.error = Some(err_msg)
       self.hook_manager.emit(ErrorOccurred(err_msg))
       raise @errors.AgentError(err_msg)

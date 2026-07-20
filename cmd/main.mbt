@@ -717,7 +717,7 @@ fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
       }
     }
     err if @errors.is_agent_error(err) || @errors.is_retryable_error(err) => {
-      let err_str = err.to_string()
+      let err_str = @errors.error_message(err)
       @agent.RunResult::{
         status: @agent.RunStatus::Error,
         session_id: agent.session_id,
@@ -729,7 +729,7 @@ fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
       }
     }
     err => {
-      let err_str = err.to_string()
+      let err_str = @errors.error_message(err)
       println("Unexpected error: \{err_str}")
       @agent.RunResult::{
         status: @agent.RunStatus::Error,

@@ -54,6 +54,25 @@ pub(all) suberror UpstreamTruncatedError {
   UpstreamTruncatedError(String)
 } derive(ToJson, Debug)
 
+///| Extract a human-readable message from an error.
+
+///|
+/// The default `Error::to_string()` only prints the package path and
+/// constructor name; this pulls out the embedded message instead.
+/// Falls back to `to_string()` for unknown error types.
+pub fn error_message(err : Error) -> String {
+  match err {
+    AgentInterrupted(msg) => msg
+    AgentError(msg) => msg
+    BadRequestError(code, msg) => "[HTTP \{code}] \{msg}"
+    ToolCallError(name, msg) => "[Tool: \{name}] \{msg}"
+    BrowserNotReachableError(msg) => msg
+    RetryableError(msg) => msg
+    UpstreamTruncatedError(msg) => msg
+    _ => err.to_string()
+  }
+}
+
 ///| Check if an error is any of the agent-related error variants.
 
 ///|

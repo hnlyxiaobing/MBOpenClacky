@@ -83,3 +83,19 @@ test "is_retryable_error" {
   assert_true(is_retryable_error(UpstreamTruncatedError("test")))
   assert_false(is_retryable_error(AgentError("test")))
 }
+
+///|
+test "error_message extracts embedded messages" {
+  assert_eq(error_message(AgentError("boom")), "boom")
+  assert_eq(error_message(AgentInterrupted("user cancelled")), "user cancelled")
+  assert_eq(error_message(BadRequestError(400, "bad")), "[HTTP 400] bad")
+  assert_eq(
+    error_message(ToolCallError("file_reader", "nf")),
+    "[Tool: file_reader] nf",
+  )
+  assert_eq(error_message(BrowserNotReachableError("no port")), "no port")
+  assert_eq(error_message(RetryableError("try again")), "try again")
+  assert_eq(error_message(UpstreamTruncatedError("truncated")), "truncated")
+  // Must not degenerate into the package-path + constructor format.
+  assert_false(error_message(AgentError("boom")).contains("AgentError"))
+}
