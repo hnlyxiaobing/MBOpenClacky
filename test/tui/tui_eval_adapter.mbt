@@ -42,6 +42,15 @@ pub(all) enum EvalAction {
   Screenshot
   /// Wait (no-op, useful for pacing).
   Wait(ms~ : Int)
+  /// Set a pending confirmation dialog.
+  SetConfirmation(
+    tool_name~ : String,
+    tool_args~ : String,
+    prompt_text~ : String,
+    default_yes~ : Bool
+  )
+  /// Check an assertion immediately and record the result.
+  Assert(assertion~ : EvalAssertion)
 } derive(Debug)
 
 ///|
@@ -61,6 +70,8 @@ pub(all) enum EvalAssertion {
   InputContains(text~ : String)
   /// Output area contains the given text.
   OutputContains(text~ : String)
+  /// Confirmation dialog contains the given text.
+  DialogContains(text~ : String)
 } derive(Debug)
 
 ///|
@@ -79,6 +90,58 @@ pub(all) struct EvalScenario {
 } derive(Debug)
 
 // ── JSON Parsing ──────────────────────────────────────────────────────
+
+///|
+/// Parse a single EvalAssertion from a JSON object.
+fn parse_single_assertion(a : Map[String, Json]) -> EvalAssertion {
+  let get_s = fn(k : String) -> String {
+    match a.get(k) {
+      Some(String(sv)) => sv
+      _ => ""
+    }
+  }
+  let get_i = fn(k : String) -> Int {
+    match a.get(k) {
+      Some(Number(n, ..)) => n.to_int()
+      _ => 0
+    }
+  }
+  let check = get_s("check")
+  match check {
+    "contains" => {
+      let text = get_s("text")
+      let region = get_s("region")
+      EvalAssertion::Contains(text~, region~)
+    }
+    "not_contains" => {
+      let text = get_s("text")
+      EvalAssertion::NotContains(text~)
+    }
+    "screen_empty" => EvalAssertion::ScreenEmpty
+    "row_contains" => {
+      let row = get_i("row")
+      let text = get_s("text")
+      EvalAssertion::RowContains(row~, text~)
+    }
+    "status_contains" => {
+      let text = get_s("text")
+      EvalAssertion::StatusContains(text~)
+    }
+    "input_contains" => {
+      let text = get_s("text")
+      EvalAssertion::InputContains(text~)
+    }
+    "output_contains" => {
+      let text = get_s("text")
+      EvalAssertion::OutputContains(text~)
+    }
+    "dialog_contains" => {
+      let text = get_s("text")
+      EvalAssertion::DialogContains(text~)
+    }
+    _ => EvalAssertion::ScreenEmpty
+  }
+}
 
 ///|
 /// Parse an EvalScenario from a JSON string.
@@ -145,6 +208,13 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                     _ => 0
                   }
                 }
+                let get_b = fn(k : String) -> Bool {
+                  match a.get(k) {
+                    Some(True) => true
+                    Some(False) => false
+                    _ => false
+                  }
+                }
                 let atype = get_s("type")
                 let action = match atype {
                   "type" => {
@@ -160,6 +230,22 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                     let ms = get_i("ms")
                     EvalAction::Wait(ms~)
                   }
+                  "set_confirmation" => {
+                    let tool_name = get_s("tool_name")
+                    let tool_args = get_s("tool_args")
+                    let prompt_text = get_s("prompt_text")
+                    let default_yes = get_b("default_yes")
+                    EvalAction::SetConfirmation(
+                      tool_name~,
+                      tool_args~,
+                      prompt_text~,
+                      default_yes~,
+                    )
+                  }
+                  "assert" => {
+                    let assertion = parse_single_assertion(a)
+                    EvalAction::Assert(assertion~)
+                  }
                   _ => EvalAction::Wait(ms=0)
                 }
                 actions.push(action)
@@ -174,52 +260,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
         Some(Array(arr)) =>
           for item in arr {
             match item {
-              Object(a) => {
-                let get_s = fn(k : String) -> String {
-                  match a.get(k) {
-                    Some(String(sv)) => sv
-                    _ => ""
-                  }
-                }
-                let get_i = fn(k : String) -> Int {
-                  match a.get(k) {
-                    Some(Number(n, ..)) => n.to_int()
-                    _ => 0
-                  }
-                }
-                let check = get_s("check")
-                let assertion = match check {
-                  "contains" => {
-                    let text = get_s("text")
-                    let region = get_s("region")
-                    EvalAssertion::Contains(text~, region~)
-                  }
-                  "not_contains" => {
-                    let text = get_s("text")
-                    EvalAssertion::NotContains(text~)
-                  }
-                  "screen_empty" => EvalAssertion::ScreenEmpty
-                  "row_contains" => {
-                    let row = get_i("row")
-                    let text = get_s("text")
-                    EvalAssertion::RowContains(row~, text~)
-                  }
-                  "status_contains" => {
-                    let text = get_s("text")
-                    EvalAssertion::StatusContains(text~)
-                  }
-                  "input_contains" => {
-                    let text = get_s("text")
-                    EvalAssertion::InputContains(text~)
-                  }
-                  "output_contains" => {
-                    let text = get_s("text")
-                    EvalAssertion::OutputContains(text~)
-                  }
-                  _ => EvalAssertion::ScreenEmpty
-                }
-                assertions.push(assertion)
-              }
+              Object(a) => assertions.push(parse_single_assertion(a))
               _ => ()
             }
           }
@@ -255,6 +296,10 @@ pub(all) struct TuiEvalSimulator {
   status_h : Int
   /// Input area height.
   input_h : Int
+  /// Pending confirmation result (Some(true)=approved, Some(false)=denied, None=pending).
+  mut confirmation_result : Bool?
+  /// Mock LLM response text for eval scenarios.
+  mut mock_response : String
 }
 
 ///|
@@ -272,6 +317,8 @@ pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
     screenshots: [],
     status_h: 1,
     input_h: 4,
+    confirmation_result: None,
+    mock_response: "",
   }
 }
 
@@ -296,6 +343,7 @@ pub fn TuiEvalSimulator::full_redraw(self : TuiEvalSimulator) -> Unit {
   self.screen.clear_display()
   self.render_status()
   self.render_output()
+  self.render_confirmation()
   self.render_input()
 }
 
@@ -318,6 +366,20 @@ fn TuiEvalSimulator::render_output(self : TuiEvalSimulator) -> Unit {
   }
   let tail = self.output.tail_lines(msg_height)
   self.screen.render_output_lines(tail, msg_top, msg_height)
+}
+
+///|
+/// Render pending confirmation dialog above the input area.
+fn TuiEvalSimulator::render_confirmation(self : TuiEvalSimulator) -> Unit {
+  if @libtui.has_pending_confirmation(self.state.val) {
+    let line = @libtui.render_confirmation_line(self.state.val)
+    let row = self.screen.height - self.input_h
+    if row >= self.status_h + 1 {
+      self.screen.move_cursor(row, 1)
+      self.screen.clear_to_eol()
+      self.screen.write_string(line)
+    }
+  }
 }
 
 ///|
@@ -355,6 +417,25 @@ pub fn TuiEvalSimulator::press_key(
   self : TuiEvalSimulator,
   key : String,
 ) -> Unit {
+  // If a confirmation dialog is pending, route keys to it first.
+  if @libtui.has_pending_confirmation(self.state.val) {
+    let result = match key {
+      "y" | "Y" => Some(true)
+      "n" | "N" => Some(false)
+      "Enter" => Some(@libtui.confirmation_default_yes(self.state.val))
+      "Escape" => Some(false)
+      _ => None
+    }
+    match result {
+      Some(r) => {
+        self.confirmation_result = Some(r)
+        @libtui.consume_confirmation(self.state.val)
+        self.full_redraw()
+      }
+      None => ()
+    }
+    return
+  }
   match key {
     "Enter" => self.handle_enter()
     "Ctrl+J" => self.input.handle_enter()
@@ -394,9 +475,14 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     // Update state
     self.state.val.mode = @libtui.TuiMode::Running
     // Simulate agent response (append mock response)
+    let response_text = if self.mock_response.length() > 0 {
+      self.mock_response
+    } else {
+      "(eval mock response)"
+    }
     ignore(
       self.output.append_text(
-        "[assistant] (eval mock response)",
+        "[assistant] \{response_text}",
         @libtui.OutputKind::Text,
       ),
     )
@@ -481,6 +567,12 @@ pub fn TuiEvalSimulator::check_assertion(
       let detail = if passed { "" } else { "NOT FOUND in output area" }
       { description: desc, passed, detail }
     }
+    DialogContains(text~) => {
+      let passed = self.check_dialog_region(text)
+      let desc = "dialog contains '\{text}'"
+      let detail = if passed { "" } else { "NOT FOUND in dialog region" }
+      { description: desc, passed, detail }
+    }
   }
 }
 
@@ -524,15 +616,39 @@ fn TuiEvalSimulator::check_output_region(
   false
 }
 
+///|
+/// Check if the dialog region (just above input area) contains text.
+fn TuiEvalSimulator::check_dialog_region(
+  self : TuiEvalSimulator,
+  text : String,
+) -> Bool {
+  let row = self.screen.height - self.input_h
+  if row >= self.status_h + 1 {
+    return self.screen.row_contains(row, text)
+  }
+  false
+}
+
 // ── Scenario Execution ────────────────────────────────────────────────
 
 ///|
 /// Execute a complete TUI eval scenario and return the result.
 pub fn run_eval_scenario(scenario : EvalScenario) -> @eval.EvalScenarioResult {
   let sim = TuiEvalSimulator::new(scenario.setup.cols, scenario.setup.rows)
+  sim.mock_response = scenario.setup.mock_response
 
   // Initial full redraw
   sim.full_redraw()
+
+  // Track assertion results from both inline Assert actions and final assertions.
+  let results : Array[@eval.EvalAssertionResult] = []
+  let mut all_passed = true
+  fn record_result(result : @eval.EvalAssertionResult) -> Unit {
+    if !result.passed {
+      all_passed = false
+    }
+    results.push(result)
+  }
 
   // Execute actions
   for action in scenario.actions {
@@ -541,6 +657,18 @@ pub fn run_eval_scenario(scenario : EvalScenario) -> @eval.EvalScenarioResult {
       Press(key~) => sim.press_key(key)
       Screenshot => ignore(sim.screenshot())
       Wait(_) => ()
+      SetConfirmation(tool_name~, tool_args~, prompt_text~, default_yes~) => {
+        @libtui.request_confirmation(
+          sim.state.val,
+          tool_name,
+          tool_args,
+          prompt_text,
+          default_yes~,
+        )
+        sim.confirmation_result = None
+        sim.full_redraw()
+      }
+      Assert(assertion~) => record_result(sim.check_assertion(assertion))
     }
     if sim.quit {
       break
@@ -550,15 +678,9 @@ pub fn run_eval_scenario(scenario : EvalScenario) -> @eval.EvalScenarioResult {
   // Final render
   sim.full_redraw()
 
-  // Check assertions
-  let results : Array[@eval.EvalAssertionResult] = []
-  let mut all_passed = true
+  // Check final assertions
   for assertion in scenario.assertions {
-    let result = sim.check_assertion(assertion)
-    if !result.passed {
-      all_passed = false
-    }
-    results.push(result)
+    record_result(sim.check_assertion(assertion))
   }
 
   let final_screen = sim.screen.content()

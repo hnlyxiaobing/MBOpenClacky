@@ -1,0 +1,16 @@
+{
+  "name": "info",
+  "description": "Verify /api/info returns server metadata",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/info" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "MBOpenClacky" },
+    { "check": "json_path_eq", "path": "name", "value": "\"MBOpenClacky\"" }
+  ]
+}

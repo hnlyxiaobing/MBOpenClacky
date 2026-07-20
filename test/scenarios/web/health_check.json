@@ -1,0 +1,16 @@
+{
+  "name": "health_check",
+  "description": "Verify health endpoint returns ok",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/health" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "ok" },
+    { "check": "json_path_eq", "path": "status", "value": "\"ok\"" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "quit_with_ctrl_c",
+  "description": "Press Ctrl+C to quit the TUI",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "some text" },
+    { "type": "press", "key": "Ctrl+C" }
+  ],
+  "assertions": [
+    { "check": "input_contains", "text": "some text" },
+    { "check": "status_contains", "text": "idle" }
+  ]
+}

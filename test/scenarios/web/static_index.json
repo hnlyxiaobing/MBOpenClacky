@@ -1,0 +1,17 @@
+{
+  "name": "static_index",
+  "description": "Verify root path serves the SPA index.html",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "<html" },
+    { "check": "body_contains", "text": "mb/index.js" },
+    { "check": "header_contains", "name": "Content-Type", "text": "text/html" }
+  ]
+}

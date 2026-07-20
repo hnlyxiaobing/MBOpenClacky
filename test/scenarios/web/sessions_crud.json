@@ -1,0 +1,16 @@
+{
+  "name": "sessions_crud",
+  "description": "Create a session and verify the response structure",
+  "setup": {
+    "api_key": null,
+    "model_configured": true
+  },
+  "steps": [
+    { "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"E2E Test Session\"}" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 201 },
+    { "check": "body_contains", "text": "session_id" },
+    { "check": "body_contains", "text": "E2E Test Session" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ctrl_shortcuts",
+  "description": "Test common input editing shortcuts",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "hello world" },
+    { "type": "press", "key": "Home" },
+    { "type": "press", "key": "Ctrl+K" },
+    { "type": "screenshot" },
+    { "type": "type", "text": "replaced" },
+    { "type": "screenshot" }
+  ],
+  "assertions": [
+    { "check": "input_contains", "text": "replaced" },
+    { "check": "not_contains", "text": "hello world" }
+  ]
+}

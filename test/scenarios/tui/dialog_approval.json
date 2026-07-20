@@ -1,0 +1,17 @@
+{
+  "name": "dialog_approval",
+  "description": "Render a tool confirmation dialog and approve it",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "set_confirmation", "tool_name": "terminal", "tool_args": "ls -la", "prompt_text": "Run: ls -la", "default_yes": false },
+    { "type": "assert", "check": "dialog_contains", "text": "terminal" },
+    { "type": "assert", "check": "dialog_contains", "text": "Run: ls -la" },
+    { "type": "assert", "check": "dialog_contains", "text": "[y/N]" },
+    { "type": "press", "key": "y" },
+    { "type": "assert", "check": "not_contains", "text": "Run: ls -la" }
+  ],
+  "assertions": []
+}

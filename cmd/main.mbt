@@ -66,6 +66,10 @@ async fn main {
         nargs=@clap.Nargs::AtMost(1),
         help="Run TUI eval scenarios from the given directory (headless mode)",
       ),
+      "web-eval": @clap.Arg::named(
+        nargs=@clap.Nargs::AtMost(1),
+        help="Run Web API eval scenarios from the given directory (in-process)",
+      ),
     },
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
@@ -198,6 +202,15 @@ async fn main {
   match get_named_arg(value, "tui-eval") {
     Some(dir) => {
       handle_tui_eval(dir)
+      return
+    }
+    None => ()
+  }
+
+  // Handle --web-eval <dir>
+  match get_named_arg(value, "web-eval") {
+    Some(dir) => {
+      handle_web_eval(dir)
       return
     }
     None => ()
@@ -362,6 +375,29 @@ fn handle_tui_eval(dir : String) -> Unit {
   let log_dir = "logs"
   @utils.ensure_dir(log_dir)
   let log_path = @path.Path::join(log_dir, @path.Path("tui_eval_report.txt")).to_string()
+  @fs.write_string_to_file(log_path, report) catch {
+    e => println("Warning: Failed to save report: \{@debug.to_string(e)}")
+  }
+  println("")
+  println("Report saved to: \{log_path}")
+  // Exit with error code if any scenario failed
+  if batch.failed_count > 0 {
+    @sys.exit(1)
+  }
+}
+
+///|
+/// Run Web API eval scenarios from the given directory (in-process).
+async fn handle_web_eval(dir : String) -> Unit {
+  println("Running Web API eval scenarios from: \{dir}")
+  println("")
+  let batch = @test_web.run_web_eval_scenarios(dir)
+  let report = @eval.format_eval_report(batch)
+  println(report)
+  // Write report to logs
+  let log_dir = "logs"
+  @utils.ensure_dir(log_dir)
+  let log_path = @path.Path::join(log_dir, @path.Path("web_eval_report.txt")).to_string()
   @fs.write_string_to_file(log_path, report) catch {
     e => println("Warning: Failed to save report: \{@debug.to_string(e)}")
   }

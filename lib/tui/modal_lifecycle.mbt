@@ -105,3 +105,13 @@ pub fn confirmation_prompt_text(state : TuiState) -> String {
     None => ""
   }
 }
+
+///|
+/// Get the default yes flag for the pending confirmation.
+/// Returns false if no confirmation is pending.
+pub fn confirmation_default_yes(state : TuiState) -> Bool {
+  match state.pending_confirmation {
+    Some(p) => p.default_yes
+    None => false
+  }
+}

@@ -22,6 +22,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/test/eval",
   "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
+  "hnlyxiaobing/MBOpenClacky/test/web" @test_web,
 }
 
 supported_targets = "native"

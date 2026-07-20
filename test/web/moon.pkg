@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
+  "hnlyxiaobing/MBOpenClacky/test/eval",
+  "hnlyxiaobing/MBOpenClacky/lib/web" @webserver,
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/crescent/test_client",
+}
+
+supported_targets = "native"

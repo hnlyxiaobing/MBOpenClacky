@@ -140,6 +140,23 @@ test "run_eval_scenario executes full scenario" {
 }
 
 ///|
+test "TuiEvalSimulator renders confirmation dialog" {
+  let sim = TuiEvalSimulator::new(80, 24)
+  sim.full_redraw()
+  @libtui.request_confirmation(
+    sim.state.val,
+    "terminal",
+    "ls -la",
+    "Run: ls -la",
+    default_yes=false,
+  )
+  sim.full_redraw()
+  @debug.debug_inspect(sim.screen.contains("terminal"), content="true")
+  @debug.debug_inspect(sim.screen.contains("Run: ls -la"), content="true")
+  @debug.debug_inspect(sim.screen.contains("[y/N]"), content="true")
+}
+
+///|
 test "format_eval_report formats correctly" {
   let batch = @eval.EvalBatchResult::{
     results: [

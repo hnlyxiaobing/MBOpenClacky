@@ -122,12 +122,14 @@ pub fn WebServer::get_or_create_agent(
   }
 }
 
-///| Launch the HTTP server on the given port.
-
 ///|
-/// Registers all routes, middleware, and starts serving.
-pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
-  self.start_time = @async.now()
+/// Build the crescent App with all middleware, routes, and handlers wired.
+/// Returns the configured App and the server Ref used by handlers.
+/// This is public so tests can dispatch requests through the full pipeline
+/// without starting a TCP server.
+pub fn WebServer::build_app(
+  self : WebServer,
+) -> (@crescent.App, Ref[WebServer]) {
   let app = @crescent.App()
   let server_ref : Ref[WebServer] = Ref(self)
 
@@ -609,6 +611,17 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
       handle_websocket(server_ref, event)
     }),
   )
+
+  (app, server_ref)
+}
+
+///| Launch the HTTP server on the given port.
+
+///|
+/// Registers all routes, middleware, and starts serving.
+pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
+  self.start_time = @async.now()
+  let (app, _) = self.build_app()
 
   // ── Start Server ──────────────────────────────────────────────
   println("MBOpenClacky Web Server starting on port \{port}")
