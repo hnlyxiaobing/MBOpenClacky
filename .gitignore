@@ -34,6 +34,8 @@ moon.mod.bak
 _review_diff.txt
 _bak_tui_v1/
 .test_auto_creator/
+.test_web_compare/
+.git_panel_output.tmp
 
 # Warren / Rabbita SPA build output
 web/mb/dist/
