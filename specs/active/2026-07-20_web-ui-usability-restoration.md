@@ -1,7 +1,7 @@
 # Web UI 可用性恢复与原项目对齐 · 增量 Spec
 
 > **创建日期**: 2026-07-20  
-> **状态**: 审核通过（对抗性审查已完成，详见变更记录）  
+> **状态**: 已实施并验收通过（2026-07-20，验收报告见 `docs/web_ui_usability_restoration_acceptance.md`）  
 > **关联总览**: `docs/web_ui_comparison_report.md`（2026-07-20 对比测试报告）  
 > **关联历史 spec**: `specs/completed/2026-07-09_web-frontend-panels-completion.md`、`specs/completed/2026-07-09_web-api-contract-alignment.md`  
 > **来源差距**: 对比测试暴露的 6 项缺陷 + 8 类功能差距  
@@ -191,26 +191,26 @@ MBOpenClacky Web UI 当前处于**完全不可用状态**。对比测试（Playw
 
 ### P0 阻塞修复（必须全部通过）
 
-- [ ] 浏览器打开 `http://localhost:7071/` 正常渲染首页，Console 无 pageerror
-- [ ] `curl -N POST /api/sessions/{id}/chat/stream` 返回的 data 行为合法 JSON（可被 `JSON.parse` 解析）
-- [ ] `js_connect_sse` 中 `split('\\n')` 修复后，前端能正确分割 SSE 事件流（按换行符而非字面 `\n`）
-- [ ] 通过 Web UI 发送消息后，聊天区能渲染 AI 回复（需 LLM 端点可用）
-- [ ] `cmd.exe --message "Hello"` 能正常返回 AI 回复
-- [ ] `moon check` 0 errors（lib/web/sse、lib/errors、lib/agent、web/mb/main）
+- [x] 浏览器打开 `http://localhost:7071/` 正常渲染首页，Console 无 pageerror
+- [x] `curl -N POST /api/sessions/{id}/chat/stream` 返回的 data 行为合法 JSON（可被 `JSON.parse` 解析）
+- [x] `js_connect_sse` 中 `split('\\n')` 修复后，前端能正确分割 SSE 事件流（按换行符而非字面 `\n`）
+- [x] 通过 Web UI 发送消息后，聊天区能渲染 AI 回复（需 LLM 端点可用）
+- [x] `cmd.exe --message "Hello"` 能正常返回 AI 回复
+- [x] `moon check` 0 errors（lib/web/sse、lib/errors、lib/agent、web/mb/main）
 
 ### P1 功能补齐
 
-- [ ] 触发 LLM 错误时，Web UI 显示人类可读错误信息（非包路径+类型名）
-- [ ] Windows 下服务器启动后 stdout 无 `error code 267` 刷屏
-- [ ] `moon test lib/web` 通过
-- [ ] `moon test lib/errors` 通过（若新增测试）
+- [x] 触发 LLM 错误时，Web UI 显示人类可读错误信息（非包路径+类型名）
+- [x] Windows 下服务器启动后 stdout 无 `error code 267` 刷屏
+- [x] `moon test lib/web` 通过
+- [x] `moon test lib/errors` 通过（若新增测试）
 
 ### P2 回归验证
 
-- [ ] `.test_web_compare/test1_load.js` 所有探针通过（无需补丁注入）
-- [ ] `.test_web_compare/test3_chat.js` 消息发送后 30s 内收到流式回复
-- [ ] 无 Cost 模态框异常弹出
-- [ ] 会话列表时间字段显示正常
+- [x] `.test_web_compare/test1_load.js` 所有探针通过（无需补丁注入）
+- [x] `.test_web_compare/test3_chat.js` 消息发送后 30s 内收到流式回复
+- [x] 无 Cost 模态框异常弹出
+- [x] 会话列表时间字段显示正常
 
 ---
 
@@ -264,3 +264,4 @@ MBOpenClacky Web UI 当前处于**完全不可用状态**。对比测试（Playw
 |------|---------|------|
 | 2026-07-20 | 初始版本：基于 web_ui_comparison_report.md 创建 | 对比测试暴露 Web UI 完全不可用，需系统性修复 |
 | 2026-07-20 | 审核修正：1. 缺陷 #1 根因机制纠正（经 hex dump 验证，编译器对 `extern "js"` 体做 raw text 发射，非转义处理后发射）；2. 构建输出路径 `web/dist/index.js` -> `web/mb/index.js`；3. 修复策略解释纠正（`\\x` -> `\x` 而非 `\\/` -> `/`）；4. 新增 `js_connect_sse` 中 `split('\\n')` 同类 bug（P0 级 SSE 行解析阻断）；5. `js_format_expiry`/`js_parse_date` 转义问题确认（`\\d` 匹配字面 `\d`，`\\u2014` 显示字面 `\u2014`） | 对抗性审核 + hex dump 源码/产物对比验证 |
+| 2026-07-20 | 实施完成并验收通过：P0-1 bridge.mbt 4 个 extern "js" 函数转义修复；P0-2 SSE 改 `data.stringify()` + 白盒测试；P0-3 根因定位为 WinHTTP `WinHttpSendRequest` 的 `dwTotalLength=0`（ERROR_INVALID_PARAMETER 0x57），修复后 CLI/Web 均通；P1-1 新增 `error_message` 并在 handlers/CLI/react 统一使用；P1-2 根因为 `handlers_files.is_directory` 用 read_dir 探测文件（C 层逐文件打印 267），改用 `@fs.is_dir` 并给 handlers_backup 加守卫与首次 warn；P1-3 Cost 模态框根因为 `StreamDone` 复用 `CostLoaded` 自动弹窗，拆出 `CostRefreshed`；另修复新会话 `GET /api/sessions/:id`/`/messages` 404（active_agents 内存兜底）、添加 favicon/noscript/error boundary。E2E test1/2/3 全绿（无补丁注入），验收标准全部通过。验收报告：`docs/web_ui_usability_restoration_acceptance.md` | 按 Spec 分层实施 + P2 回归验证 |

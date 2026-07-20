@@ -1,0 +1,1 @@
+{"name": "wide_terminal_200x50", "description": "Verify layout at large terminal size 200x50", "setup": {"cols": 200, "rows": 50}, "actions": [{"type": "type", "text": "hello wide"}], "assertions": [{"check": "status_contains", "text": "idle"}, {"check": "input_contains", "text": "Input"}, {"check": "input_contains", "text": "hello wide"}]}

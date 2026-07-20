@@ -1,0 +1,1 @@
+{"name": "ctrl_u_kill_to_start", "description": "Test Ctrl+U kills text from cursor to start of line", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "hello world"}, {"type": "press", "key": "Ctrl+U"}, {"type": "screenshot"}], "assertions": [{"check": "not_contains", "text": "hello world"}]}

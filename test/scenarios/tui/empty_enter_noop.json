@@ -1,0 +1,1 @@
+{"name": "empty_enter_noop", "description": "Press Enter with empty input - should not submit", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "press", "key": "Enter"}, {"type": "press", "key": "Enter"}, {"type": "press", "key": "Enter"}], "assertions": [{"check": "not_contains", "text": "[user]"}, {"check": "status_contains", "text": "idle"}]}

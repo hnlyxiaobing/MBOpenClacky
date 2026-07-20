@@ -1,0 +1,1 @@
+{"name": "narrow_terminal_40x12", "description": "Verify layout integrity at minimum terminal size 40x12", "setup": {"cols": 40, "rows": 12}, "actions": [{"type": "type", "text": "hello"}], "assertions": [{"check": "status_contains", "text": "idle"}, {"check": "input_contains", "text": "Input"}, {"check": "input_contains", "text": "hello"}]}

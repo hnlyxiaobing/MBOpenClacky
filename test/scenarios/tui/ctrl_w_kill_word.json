@@ -1,0 +1,1 @@
+{"name": "ctrl_w_kill_word", "description": "Test Ctrl+W kills the previous word", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "hello world"}, {"type": "press", "key": "Ctrl+W"}, {"type": "screenshot"}], "assertions": [{"check": "input_contains", "text": "hello"}, {"check": "not_contains", "text": "world"}]}

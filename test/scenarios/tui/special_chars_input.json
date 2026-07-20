@@ -1,0 +1,1 @@
+{"name": "special_chars_input", "description": "Type special characters and verify they display correctly", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "!@#$%^&*(){}[]|\\:;<>?"}, {"type": "screenshot"}], "assertions": [{"check": "input_contains", "text": "!@#$%^&*()"}]}

@@ -1,0 +1,1 @@
+{"name": "multiline_ctrl_j", "description": "Test Ctrl+J for newline within input area", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "line1"}, {"type": "press", "key": "Ctrl+J"}, {"type": "type", "text": "line2"}, {"type": "screenshot"}], "assertions": [{"check": "input_contains", "text": "line1"}, {"check": "input_contains", "text": "line2"}]}

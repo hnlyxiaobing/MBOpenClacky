@@ -1,0 +1,1 @@
+{"name": "cjk_input_display", "description": "Type CJK characters and verify correct display in input area", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "你好世界"}, {"type": "screenshot"}], "assertions": [{"check": "input_contains", "text": "你好世界"}]}
