@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 44 文件（src=32 mbt + 1 C, test=9, moon.pkg/.mbti 各 1）· 项目核心调度包
+> 路径: `lib/agent/` · 42 个 .mbt（32 源 + 10 测试）+ 1 .c · 项目核心调度包
 
 ## 入口函数
 
@@ -87,7 +87,7 @@ Agent::run(user_input)
 
 ## 风险点
 
-1. **全局会话目录** — `ensure_sessions_dir()` 使用固定路径 `~/.clacky/sessions/`，并发写入可能冲突
+1. **全局会话目录** — `ensure_sessions_dir()` 使用固定路径 `~/.mbopenclacky/sessions/`，并发写入可能冲突
 2. **压缩精度** — 压缩后 token 估算使用 `estimate_token_count()`（简单字符除法），与实际 tokenizer 有偏差
 3. **Fallback 状态机** — `FallbackState` 转换依赖 `retries_before_fallback` / `fallback_cooldown_seconds` 常量，边界条件复杂
 4. **TimeMachine 文件快照** — 大文件快照可能占用大量磁盘空间

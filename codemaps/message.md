@@ -1,6 +1,6 @@
 # message - 消息模型 · 历史管理 · 工具调用 · 多模态内容
 
-> 路径: `lib/message/` · 6 mbt（src=5, test=1）+ moon.pkg/.mbti · LLM 对话消息的核心数据结构
+> 路径: `lib/message/` · 7 mbt（5 源 + 2 测试）+ moon.pkg/.mbti · LLM 对话消息的核心数据结构
 
 ## 入口函数
 

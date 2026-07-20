@@ -19,7 +19,7 @@
 | Web 前端源文件 | 57 个 JS | 35 个 `.mbt`（web/mb/main）+ 编译产物 | — | 已重写为 MoonBit SPA |
 | Web 前端完成度 | — | MoonBit SPA 重写完成（web/mb → web/dist） | — | ~95%（剩余 Vendor 库 CDN） |
 | i18n key 数 | 2,117 行量级 | 394 key（en/zh 完全对齐） | — | ~100% |
-| REST API 路由 | ~131（80 静态+动态） | ~154 | +23 | ~100%+ |
+| REST API 路由 | ~131（80 静态+动态） | ~162 | +23 | ~100%+ |
 | 内置工具 | 15 | 14 | -1 | 93% |
 | 默认技能 | 17 | 17 | 0 | 100% |
 | 默认扩展 | 6 | 6 | 0 | 100% |
@@ -39,7 +39,7 @@
 |------|---------|---------|
 | WebSocket Dispatcher | MoonBit SPA 的 Cell 组件经 `bridge.mbt` 桥接实时事件，渲染 RenderTarget 栈、subagent/think 折叠卡片 | `web/mb/main/*_cell.mbt`, `web/mb/main/bridge.mbt` |
 | Extension API 路由 | `lib/extension/api_extension.mbt`、`api_dispatcher.mbt`、`api_loader.mbt` 实现动态 `/api/ext/<id>/` 路由、超时包裹、错误信封、热重载 | `lib/extension/api_*.mbt`, `lib/web/server.mbt` |
-| Identity / 设备绑定 | `lib/brand/identity.mbt`、`device_auth.mbt` 实现 RFC 8628 设备授权流，`~/.clacky/identity.yml` 持久化 | `lib/brand/identity.mbt`, `lib/brand/device_auth.mbt` |
+| Identity / 设备绑定 | `lib/brand/identity.mbt`、`device_auth.mbt` 实现 RFC 8628 设备授权流，`~/.clacky/identity.json` 持久化 | `lib/brand/identity.mbt`, `lib/brand/device_auth.mbt` |
 | 缺失 REST 端点 | `/api/memories*`、`/api/profile*`、`/api/restart`、`/api/onboard/device/*` 已实现 | `lib/web/handlers_extra.mbt`, `handlers_version.mbt`, `server.mbt` |
 | i18n 完整翻译 | `web/mb/main/i18n_dict_en.mbt` 与 `i18n_dict_zh.mbt` 各 692 key，覆盖率 99.4% 对称 | `web/mb/main/i18n_dict_*.mbt` |
 | 测试覆盖扩展 | 新增多个 `_wbtest.mbt`，测试用例从 ~1,400 增至 1,854 | 各 `*_wbtest.mbt` |
@@ -72,7 +72,7 @@
 | tui | ~5,300 | 85% | Inline Scrolling TUI；剩余 Rich Dialogs、Agent Shell、Thinking Live View |
 | utils | ~2,800 | 95% | 环境变量、路径、编码、日志、代理等 |
 | vision | ~460 | 85% | Vision OCR + SHA256 缓存 |
-| web | ~12,900 | 90% | ~154 REST 端点、WebSocket、SSE、中间件、扩展路由；剩余 `sessions/:id/working_dir` 更新端点 |
+| web | ~12,900 | 90% | ~162 REST 端点、WebSocket、SSE、中间件、扩展路由；剩余 `sessions/:id/working_dir` 更新端点 |
 | cmd | ~1,300 | 85% | CLI 入口、会话管理、TUI/Web 启动、扩展/Hook/Patch 加载 |
 
 ---

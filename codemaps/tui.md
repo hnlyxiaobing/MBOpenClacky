@@ -1,6 +1,6 @@
 # tui — Inline TUI 控制器 · 多行编辑器 · Markdown 渲染 · CJK 宽度 · Node 渲染 · 对话框系统 · Agent Shell
 
-> 路径: `lib/tui/` · 44 mbt（src=31, test=13）+ moon.pkg/.mbti · 终端交互界面
+> 路径: `lib/tui/` · 45 mbt（31 源 + 14 测试）+ moon.pkg/.mbti · 终端交互界面
 > 架构: 异步事件循环（`Queue[TuiEvent]`）+ Msg 驱动状态转移（Elm 风格 `TuiMsg`/`update`）+ Node 树渲染
 
 ## 入口函数
@@ -40,26 +40,26 @@
 - **`InputArea`** — 输入区域，包装 LineEditor，提供渲染数据
 - **`LineEditor`** — 多行文本编辑器，Emacs 风格操作（insert/delete/kill/word-motion），CJK 感知光标定位
 - **`CommandSuggestions`** — 命令建议下拉（"/" 前缀触发自动补全，Tab/Up/Down 导航）
-- **`SlashCommands`** — 斜杠命令系统
+- **`SlashCommandParser`** — 斜杠命令解析与补全
 
 ### 对话框系统（Node 渲染）
 - **`ApprovalDialog`** — 工具审批对话框（`dialog_approval.mbt`，[y]Allow/[n]Deny/[d]Details，可展开详情）
 - **`ConfigMenuDialog`** — 配置菜单对话框（`dialog_config_menu.mbt`，单选/多选、Up/Down/Space/Enter）
 - **`FormDialog`** — 多字段表单对话框（`dialog_form.mbt`，Tab 切换、必填校验）
-- **`dialog.mbt`** / **`modal_lifecycle.mbt`** — 对话框基础渲染与模态生命周期管理
+- **`dialog.mbt`** / **`modal_lifecycle.mbt`** — 对话框基础渲染与模态生命周期管理（`request_confirmation` / `confirmation_prompt_text` / `confirmation_default_yes` 供测试断言）
 
 ### 显示组件
 - **`Banner`** / **`BannerStyle`** — 横幅渲染器（Boxed / Minimal / Block 三种风格）
 - **`BlockFont`** / **`BlockFontStyle`** — 5x5 ASCII 艺术块字体渲染
 - **`Markdown`** — Markdown→ANSI 转义码渲染器（简单 tokenizer）
 - **`ProgressStack`** — 进度堆栈（多进度叠加）
-- **`ThinkingVerbs`** — 思考动词动画
+- **`ThinkingVerbAnimator`** — 思考动词动画
 - **`render_thinking_live_view`** — 思考过程实时视图（`thinking_view.mbt`，边框面板显示最近 N 行）
 - **`TodoArea`** — 任务区域渲染
 - **文件浏览** — `file_browser.mbt`：工作目录文件树导航、目录进出、文件预览（Agent Shell）
 
 ### 工具与字符
-- **`CjkWidth`** — CJK 感知字符宽度计算（East Asian Wide/Fullwidth 双列宽度）
+- `cjk_width(String)` — CJK 感知字符宽度计算自由函数（East Asian Wide/Fullwidth 双列宽度）
 - **`ToolExecution`** — 工具执行记录（name, args, completed, result_summary）
 
 ### Hook 集成
@@ -118,3 +118,24 @@ TuiController::run()
 3. **并发渲染** — Hook 回调与用户输入同时修改 TuiState，需确保 `Ref[TuiState]` 访问安全
 4. **大输出滚动** — OutputBuffer 已提交行不可变，但大量输出可能消耗内存
 5. **终端 resize** — 布局需响应终端窗口大小变化，LayoutManager 重新计算区域
+
+## 端到端/集成测试（TUI Eval）
+
+> 测试代码在 `test/tui/`（`tui_eval_adapter.mbt` + `tui_eval_adapter_wbtest.mbt`），随 `moon test` 运行。
+
+通过 `TuiEvalSimulator` 将 `test/scenarios/tui/*.json` 场景加载为帧序列：模拟键盘/事件输入，渲染到屏幕缓冲区，再对 `sim.screen` 做断言（如 `screen.contains(text)`），验证输入编辑、命令补全、对话框、滚动等交互逻辑。
+
+### 场景（`test/scenarios/tui/`）
+
+| 文件 | 覆盖 |
+|------|------|
+| `ctrl_shortcuts.json` | Ctrl+Key 快捷键 |
+| `dialog_approval.json` | 审批对话框确认 / 取消 |
+| `multi_line_input.json` | 多行输入编辑 |
+| `quit_with_ctrl_c.json` | Ctrl+C 退出 |
+
+### 单元集成
+
+`tui_eval_adapter_wbtest.mbt` 直接驱动 `TuiEvalSimulator`：例如 push `ConfirmationModal`，经 `request_confirmation` 触发后用 `confirmation_default_yes` 读取默认选项并对 `sim.screen.contains(...)` 断言。
+
+运行方式：`moon build --target native --release cmd` 后 `cmd.exe --tui-eval test/scenarios/tui/`。

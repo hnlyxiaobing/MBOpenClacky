@@ -39,9 +39,10 @@ lib/
                 marketplace, API extension dispatcher/loader, route contributions
   mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,                registry, virtual skill mapping, skill provider
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
-  web/        — crescent HTTP server: ~154 REST endpoints, SSE, WebSocket, auth/logging
+  web/        — crescent HTTP server: ~162 REST endpoints, SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope, broadcast hub, template processor,
-                static server with SPA fallback  tui/        — Inline scrolling TUI (moonbit-community/tty): async event loop
+                static server with SPA fallback
+  tui/        — Inline scrolling TUI (moonbit-community/tty): async event loop
                 (Queue[TuiEvent]) + Elm-style Msg/update state transition, Node component
                 tree rendering, dialog system (approval/config/form), Agent Shell
                 (file browser), thinking live view, ScreenBuffer, OutputBuffer,
@@ -95,7 +96,7 @@ lib/
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
-| REST API endpoints | ~154 |
+| REST API endpoints | ~162 |
 | `moon check` | 0 errors, ~500 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |

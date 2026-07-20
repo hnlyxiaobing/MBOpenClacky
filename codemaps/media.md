@@ -1,6 +1,6 @@
 # media - 多媒体生成 · 多 Provider · 图像/视频/语音
 
-> 路径: `lib/media/` · 8 mbt（src=7, test=1）+ moon.pkg/.mbti · 文生图/文生视频/TTS 多模型适配
+> 路径: `lib/media/` · 10 mbt（8 源 + 2 测试）+ moon.pkg/.mbti · 文生图/文生视频/TTS 多模型适配
 
 ## 入口函数
 
@@ -25,7 +25,7 @@
 - **`MediaResult`** - 生成结果（success, output_path, error, provider, metadata）
 
 ### 枚举
-- **`MediaProvider`** - `OpenAI | DashScope | Gemini`
+- **`MediaProvider`** - `OpenAICompat | DashScope | Gemini`
 - **`MediaType`** - `Image | Video | Speech`
 - **`MediaCapability`** - `ImageGeneration | VideoGeneration | SpeechGeneration`
 - **`MediaErrorType`** - `UnsupportedProvider | InvalidRequest | ApiError | NetworkError | FileError`
@@ -39,7 +39,7 @@
 Web API /api/media/* 或 Agent
   └─ MediaGenerator::new(config)
       └─ MediaGenerator::generate_image(MediaRequest::image(prompt))
-          ├─ detect_provider() -> OpenAI/DashScope/Gemini
+          ├─ detect_provider() -> OpenAICompat/DashScope/Gemini
           ├─ OpenAI:   openai_generate_image()      # openai_compat.mbt
           ├─ DashScope: dashscope_generate_image()    # dashscope.mbt
           └─ Gemini:   gemini_generate_image()       # gemini.mbt
@@ -52,9 +52,10 @@ Web API /api/media/* 或 Agent
 |--------|------|------|
 | 核心 | `generator.mbt`, `media_base.mbt` | MediaGenerator、配置、Provider 检测、能力查询 |
 | 类型 | `types.mbt` | MediaRequest、MediaResult、MediaProvider、MediaType |
-| OpenAI | `openai_compat.mbt` | OpenAI/DALL-E 图像生成 + TTS |
+| OpenAICompat | `openai_compat.mbt` | OpenAI 兼容图像生成 + TTS |
 | DashScope | `dashscope.mbt` | 阿里 DashScope 图像生成（通义万相） |
 | Gemini | `gemini.mbt` | Google Gemini 图像 + 视频生成 |
+| 视频理解 | `video_understand.mbt` | 视频内容理解 / 抽帧 |
 | 输出 | `output_dir.mbt` | MediaOutputDir、文件路径管理、清理 |
 
 ## 外部依赖

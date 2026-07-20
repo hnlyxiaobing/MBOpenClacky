@@ -1,6 +1,6 @@
 # client — LLM API 客户端 · SSE 流式 · 多 Provider 适配
 
-> 路径: `lib/client/` · 15 文件（src=8 mbt + 3 C, test=2, moon.pkg/.mbti 各 1）· LLM 通信层
+> 路径: `lib/client/` · 11 mbt（8 源 + 3 测试）+ 3 C · LLM 通信层
 
 ## 入口函数
 

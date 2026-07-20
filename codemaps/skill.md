@@ -1,6 +1,6 @@
 # skill — SKILL.md 解析 · 技能注册 · GEP 进化引擎
 
-> 路径: `lib/skill/` · 11 文件（src=9, test=2）· 技能管理与进化
+> 路径: `lib/skill/` · 12 mbt（9 源 + 3 测试）· 技能管理与进化
 
 ## 入口函数
 

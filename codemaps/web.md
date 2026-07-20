@@ -1,4 +1,4 @@
-# web — REST 服务器 · ~154 端点 · WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 162 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
 > 路径: `lib/web/` · 顶层 51 mbt（src=35, test=16）+ `git_exec.c` + 4 子包（broadcast/handler/middleware/sse）· Web UI 服务层
 > 前端: `web/` — 已由原生 JS 重写为 **MoonBit SPA**（源码在 `web/mb/`，编译产物在 `web/dist/`、`web/mb/`）
@@ -10,6 +10,7 @@
 | `WebServer::new(config, api_key?)` | `server.mbt` | 创建 Web 服务器 |
 | `WebServer::start(port)` | `server.mbt` | **主入口** — 启动 crescent HTTP 服务器，路由注册在 server.mbt 内（router.mbt 已废弃） |
 | `StaticServer::new(root_dir)` | `static_server.mbt` | 静态资源服务器 |
+| `WebServer::build_app()` | `server.mbt` | 构建 crescent `App` 与 `Ref[WebServer]`，供进程内测试复用完整路由/中间件管线（不启动 TCP 服务器）；`start()` 内部调用 |
 
 ## 关键类型
 
@@ -47,7 +48,7 @@
 
 ```
 WebServer::start(port)
-  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（~154 端点）
+  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（162 个端点）
   │   ├─ /health                          # 健康检查
   │   ├─ /api/info                        # 系统信息
   │   ├─ /api/sessions/*                  # 会话管理（15 端点）
@@ -116,13 +117,55 @@ WebServer::start(port)
 
 1. **Agent 实例管理** — `active_agents: Map[String, Agent]` 无上限控制，大量会话可能耗尽内存
 2. **API 认证** — `api_key` 为 None 时禁用认证，生产环境风险
-3. **路由分散** — 路由分布在 server.mbt（~154 端点）和 router.mbt（已废弃）两处，维护成本高
+3. **路由分散** — 路由分布在 server.mbt（162 个端点）和 router.mbt（已废弃）两处，维护成本高
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
 6. **Git C FFI 平台兼容** — `git_exec.c` 使用 `popen()`，Windows MSVC 下需验证 `_popen` 兼容性
 7. **Backup 路径安全** — 备份路径拼接需防路径遍历攻击
 8. **Billing 内存持久化** — BillingStore 为内存实现，重启丢失数据
 9. **技能路径遍历** — `is_valid_skill_name()` 校验技能名，但需确保所有路径拼接均经过校验
+
+## Web API E2E 测试（进程内 HTTP 契约测试）
+
+> 测试代码位于 `test/web/web_e2e_adapter.mbt`（**不属于 `lib/web`**，随 `moon test` 运行）。
+
+基于 crescent 的 `TestClient`，将请求注入完整路由/中间件/处理器管线，**不启动真实 TCP 服务器**，可在进程内快速验证 API 契约（`WebServer::build_app()` 提供了可注入的 `App`）。
+
+### 入口函数
+
+| 函数 | 说明 |
+|------|------|
+| `parse_web_eval_scenario(json)` | 解析单个场景 JSON → `WebEvalScenario` |
+| `run_web_eval_scenario(scenario)` | 运行单个场景，返回 `EvalScenarioResult` |
+| `run_web_eval_scenarios(dir_path)` | 批量运行目录下所有 `*.json` 场景，返回 `EvalBatchResult` |
+
+### 场景 JSON 结构
+
+- `name` / `description`：场景标识与说明
+- `setup`：`{ api_key? , model_configured? }` — 运行前环境准备
+- `steps[]`：`{ http_method, path, body?, headers? }` — 依次发送的请求
+- `assertions[]`：期望断言，类型 `WebEvalAssertion`：
+  - `status_eq(n)` / `status_in([...])` — 响应状态码
+  - `body_contains(s)` / `body_not_contains(s)` — 响应体子串
+  - `json_path_eq(path, value)` — JSON 字段取值
+  - `header_contains(name, s)` — 响应头
+
+### 内置场景（`test/scenarios/web/`）
+
+| 文件 | 覆盖 |
+|------|------|
+| `health_check.json` | `/api/health` 健康检查 |
+| `info.json` | `/api/info` 版本与配置信息 |
+| `sessions_crud.json` | 会话创建/查询/删除（CRUD） |
+| `static_index.json` | 静态资源 `index.html` 返回 |
+
+### CLI
+
+```bash
+moon run cmd -- --web-eval test/scenarios/web/
+```
+
+`cmd/main.mbt` 的 `--web-eval <dir>` 调用 `run_web_eval_scenarios`，经 `@eval.format_eval_report` 格式化报告并写入 `logs/web_eval_report.txt`，任一场景失败则进程退出码为 1。
 
 ## 前端（`web/`）— MoonBit SPA
 

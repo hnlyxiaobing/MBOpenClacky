@@ -21,7 +21,7 @@
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~154 个 |
+| REST API 端点 | ~162 个 |
 | 默认 Skill | 17 个 |
 | `moon check` | 0 errors（项目自身代码），~500 warnings |
 | 原生二进制 | ~3.8 MB |
@@ -89,7 +89,8 @@ MBOpenClacky/
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
 │   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
 │   ├── channel/        # 6 平台 IM 适配器
-│   ├── web/            # Web 服务器（~154 REST 端点、SSE、WebSocket）│   ├── tui/            # TUI 界面（moonbit-community/tty）
+│   ├── web/            # Web 服务器（~162 REST 端点、SSE、WebSocket）
+│   ├── tui/            # TUI 界面（moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
 │   ├── config/         # 配置系统（TOML、12 Provider）
 │   ├── billing/        # 计费系统

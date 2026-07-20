@@ -1,13 +1,13 @@
 # config — TOML 配置加载 · 12 Provider 预设 · 权限控制
 
-> 路径: `lib/config/` · 12 mbt（src=7, test=5）+ moon.pkg/.mbti · 配置管理
+> 路径: `lib/config/` · 13 mbt（src=7, test=6）+ moon.pkg/.mbti · 配置管理
 
 ## 入口函数
 
 | 函数 | 文件 | 说明 |
 |------|------|------|
 | `AgentConfig::load(path)` | `loader.mbt` | 从 TOML 文件加载配置 |
-| `AgentConfig::load_default()` | `loader.mbt` | 从默认路径 `~/.clacky/config.toml` 加载 |
+| `AgentConfig::load_default()` | `loader.mbt` | 从默认路径 `~/.mbopenclacky/config.toml` 加载 |
 | `AgentConfig::load_with_env(path)` | `loader.mbt` | 加载配置并叠加环境变量覆盖 |
 | `load_config_from_env()` | `env_compat.mbt` | 纯从环境变量构建配置 |
 | `Providers::find(provider_id)` | `provider.mbt` | 查找 Provider 预设 |

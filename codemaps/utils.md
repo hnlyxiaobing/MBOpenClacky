@@ -1,6 +1,6 @@
 # utils - 通用工具集 · 环境检测 · 日志 · 路径 · 编码 · 忽略规则 · 浏览器检测
 
-> 路径: `lib/utils/` · 34 文件（src=20, test=14）· 跨包共享的基础工具库
+> 路径: `lib/utils/` · 36 mbt（19 源 + 17 测试）+ 1 .c · 跨包共享的基础工具库
 
 ## 入口函数
 
@@ -16,7 +16,7 @@
 | `glob_match(pattern, text)` | `string_matcher.mbt` | Glob 通配符匹配 |
 | `is_valid_utf8_content(text)` / `sanitize_string(text)` | `encoding.mbt` | UTF-8 编码工具 |
 | `WorkspaceRules::load(dir)` | `workspace_rules.mbt` | 加载工作区规则文件 |
-| `get_proxy_config()` | `proxy_config.mbt` | 获取代理配置 |
+| `ProxyConfig::new()` / `ProxyConfig::install()` | `proxy_config.mbt` | 代理配置（proxy_url, epoch） |
 | `ScriptsManager::new()` | `scripts_manager.mbt` | 脚本管理器 |
 | `LimitStack::new(max_depth)` | `limit_stack.mbt` | 递归深度限制栈 |
 
@@ -88,7 +88,7 @@ Agent 系统提示组装
 | 字符串 | `string_matcher.mbt`, `string_matcher_wbtest.mbt` | glob_match、模糊匹配、相似度评分 |
 | 忽略规则 | `gitignore_parser.mbt`, `gitignore_wbtest.mbt`, `file_ignore_helper.mbt`, `file_ignore_helper_wbtest.mbt` | IgnoreRule、GitignoreParser、IgnoreConfig |
 | 工作区 | `workspace_rules.mbt` | WorkspaceRules、规则文件加载 |
-| 代理 | `proxy_config.mbt`, `proxy_config_wbtest.mbt` | ProxyConfig、get_proxy_config |
+| 代理 | `proxy_config.mbt`, `proxy_config_wbtest.mbt` | ProxyConfig、代理配置（proxy_url, epoch） |
 | 脚本 | `scripts_manager.mbt` | ScriptsManager、ScriptInfo |
 | 递归限制 | `limit_stack.mbt`, `limit_stack_wbtest.mbt` | LimitStack、递归深度控制 |
 | 回收站 | `trash_directory.mbt` | TrashEntry、回收站目录管理 |

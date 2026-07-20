@@ -18,7 +18,7 @@
 | 包数 | 24 个 lib 顶级包 + 1 个 cmd 入口包（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~154 个 |
+| REST API 端点 | ~162 个 |
 | 默认 Skill | 17 个（16 个代码注册 + 1 个仅资源） |
 | `moon check` | 0 errors（项目自身代码），~500 warnings |
 | 构建 | `moon build --target native --release cmd` 成功（~3.8 MB） |
@@ -51,7 +51,7 @@
 | tui | ~5,300 | 95% | Inline Scrolling TUI（moonbit-community/tty）：异步事件循环、Node 渲染、对话框系统、Agent Shell、思考实时视图 |
 | utils | ~2,800 | 95% | 环境变量、路径、编码、日志、代理等 |
 | vision | ~460 | 85% | Vision OCR + SHA256 缓存 |
-| web | ~12,900 | 95% | REST API ~154 端点、WebSocket、SSE、中间件、扩展路由、MoonBit SPA 前端（web/mb） |
+| web | ~12,900 | 95% | REST API ~162 端点、WebSocket、SSE、中间件、扩展路由、MoonBit SPA 前端（web/mb） |
 | cmd | ~1,300 | 85% | CLI 入口、会话管理、TUI/Web 启动、扩展/Hook/Patch 加载 |
 
 ## 已知问题

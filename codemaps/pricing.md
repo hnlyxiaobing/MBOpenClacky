@@ -1,6 +1,6 @@
 # pricing - 模型定价表 · 成本计算
 
-> 路径: `lib/pricing/` · 3 mbt（src=2, test=1）+ moon.pkg/.mbti · LLM 调用费用计算
+> 路径: `lib/pricing/` · 4 mbt（2 源 + 2 测试）+ moon.pkg/.mbti · LLM 调用费用计算
 
 ## 入口函数
 
@@ -32,7 +32,7 @@ Agent::call_llm() -> 返回 Usage
 | 文件 | 职责 |
 |------|------|
 | `cost_calculator.mbt` | CostResult、calculate_cost 成本计算逻辑 |
-| `model_pricing.mbt` | ModelPricing、pricing_table（50+ 模型定价）、get_pricing、normalize_model_name |
+| `model_pricing.mbt` | ModelPricing、pricing_table（约 40 模型定价）、get_pricing、normalize_model_name |
 
 ## 外部依赖
 

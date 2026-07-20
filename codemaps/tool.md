@@ -1,6 +1,6 @@
 # tool — Tool trait · 14 个内置工具 · ToolRegistry · PTY/终端 · 安全检查
 
-> 路径: `lib/tool/` · 42 文件（src=34 mbt + 2 C, test=4, moon.pkg/.mbti 各 1）· 含 browser 子系统 7 文件（详见 `browser.md`）
+> 路径: `lib/tool/` · 42 mbt（34 源 + 8 测试）+ 2 C · 含 browser 子系统 7 文件（详见 `browser.md`）
 
 ## 入口函数
 
@@ -40,7 +40,7 @@
 
 ### 终端/PTY
 - **`Terminal`** — 终端工具（通过 PTY 执行 shell 命令）
-- **`PtySession`** — PTY 会话管理
+- **`TerminalSession`** — PTY 会话管理
 - **`TerminalSession`** — 终端会话（前台/后台命令、交互式 shell）
 
 ## 核心调用链
@@ -56,7 +56,7 @@ Agent::execute_single_tool(tool_name, args)
           ├─ Glob        → glob.mbt         # 文件名模式匹配
           ├─ Terminal    → terminal.mbt     # PTY shell 执行
           │   ├─ security.mbt::make_safe()  # 安全检查
-          │   └─ PtySession::exec()         # → pty_session.mbt
+          │   └─ TerminalSession::exec()         # → pty_session.mbt
           ├─ WebSearch   → web_search.mbt   # 网页搜索
           ├─ WebFetch    → web_fetch.mbt     # 网页抓取
           ├─ InvokeSkill → invoke_skill.mbt # 技能调用
@@ -112,7 +112,7 @@ Agent::execute_single_tool(tool_name, args)
 
 ## 风险点
 
-1. **PTY 进程泄漏** — `PtySession` 启动子进程后需确保 `stop()` 被调用，否则僵尸进程
+1. **PTY 进程泄漏** — `TerminalSession` 启动子进程后需确保 `stop()` 被调用，否则僵尸进程
 2. **安全检查覆盖** — `command_safe_for_auto_execution()` 白名单可能遗漏危险命令模式
 3. **工具别名冲突** — `tool_aliases` 中多个别名可能映射到同一工具，名称解析顺序敏感
 4. **大文件读取** — `FileReader` 读取大文件可能超出上下文限制，需分页

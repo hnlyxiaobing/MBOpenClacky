@@ -1,6 +1,6 @@
 # billing - 计费记录 · 用量统计 · 持久化
 
-> 路径: `lib/billing/` · 2 mbt + 1 C（src=2, test=1）+ moon.pkg/.mbti · Token 用量与成本记录
+> 路径: `lib/billing/` · 3 mbt（2 源 + 1 测试）+ 1 C · Token 用量与成本记录
 
 ## 入口函数
 
@@ -22,7 +22,6 @@
 - **`Summary`** - 汇总（total_input, total_output, total_cost, model_summaries, records_count）
 - **`ModelSummary`** - 单模型统计
 - **`DaySummary`** - 单日统计
-- **`TimePeriod`** - `Day | Week | Month`
 
 ### 辅助函数
 - `generate_id()` - 生成记录 ID

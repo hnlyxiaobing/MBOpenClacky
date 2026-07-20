@@ -24,7 +24,7 @@
 ### 视觉解析
 - **`VisionResolver`** - 视觉解析器（config, cache）
 - **`VisionConfig`** - 配置（model, max_tokens, cache_enabled, cache_dir）
-- **`VisionInput`** - 输入枚举：`ImagePath(String) | ImageBase64(String) | ImageUrl(String)`
+- **`VisionInput`** - 输入枚举：`VisionBytes(Bytes) | DataUrl(String) | FilePath(String)`
 - **`VisionResult`** - 结果（status, text, cached, error?）
 - **`VisionStatus`** - `Ok | NotSupported | Error | Empty`
 
@@ -34,7 +34,7 @@
 # OCR 文字识别
 VisionOCR::ocr(image_path)
   └─ OCRProvider::ocr(path)
-      └─ VisionResolver::describe(VisionInput::ImagePath(path))
+      └─ VisionResolver::describe(VisionInput::FilePath(path))
           ├─ VisionResolver::check_cache(cache_key)
           │   └─ cache hit -> 返回缓存结果
           └─ cache miss -> 调用多模态 LLM -> cache_result()
