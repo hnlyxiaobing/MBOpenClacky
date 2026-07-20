@@ -28,6 +28,8 @@ pub(all) struct WebEvalStep {
   body : String
   /// Optional request headers.
   headers : Map[String, String]
+  /// Optional per-step assertions (checked immediately after this step).
+  step_assertions : Array[WebEvalAssertion]
 } derive(Debug)
 
 ///|
@@ -45,6 +47,10 @@ pub(all) enum WebEvalAssertion {
   JsonPathEq(path~ : String, value~ : String)
   /// Response header contains the given text.
   HeaderContains(name~ : String, text~ : String)
+  /// Response body is valid SSE format (data: lines contain valid JSON).
+  SseValid
+  /// Response body length is greater than the given value.
+  BodyLengthGt(min~ : Int)
 } derive(Debug)
 
 ///|
@@ -126,7 +132,20 @@ pub fn parse_web_eval_scenario(
                     }
                   _ => ()
                 }
-                steps.push({ http_method, path, body, headers })
+                // Parse optional per-step assertions
+                let step_assertions : Array[WebEvalAssertion] = []
+                match s.get("assertions") {
+                  Some(Array(sa)) =>
+                    for ai in sa {
+                      match ai {
+                        Object(a) =>
+                          step_assertions.push(parse_single_assertion(a))
+                        _ => ()
+                      }
+                    }
+                  _ => ()
+                }
+                steps.push({ http_method, path, body, headers, step_assertions })
               }
               _ => ()
             }
@@ -190,6 +209,8 @@ fn parse_single_assertion(a : Map[String, Json]) -> WebEvalAssertion {
       WebEvalAssertion::JsonPathEq(path=get_s("path"), value=get_s("value"))
     "header_contains" =>
       WebEvalAssertion::HeaderContains(name=get_s("name"), text=get_s("text"))
+    "sse_valid" => WebEvalAssertion::SseValid
+    "body_length_gt" => WebEvalAssertion::BodyLengthGt(min=get_i("min"))
     _ => WebEvalAssertion::StatusEq(status=200)
   }
 }
@@ -345,6 +366,50 @@ fn check_web_assertion(
         },
       }
     }
+    SseValid => {
+      // SSE format: lines starting with "data:" must contain valid JSON.
+      // Comments (":") and empty lines are allowed.
+      let lines = body_text.split("\n")
+      let mut data_lines = 0
+      let mut invalid_lines = 0
+      for line in lines {
+        let trimmed = line.trim()
+        if trimmed.has_prefix("data:") {
+          data_lines = data_lines + 1
+          let payload = trimmed[5:].trim()
+          if payload.length() > 0 {
+            let _ = @json.parse(payload) catch {
+              _ => {
+                invalid_lines = invalid_lines + 1
+                continue
+              }
+            }
+          }
+        }
+      }
+      let passed = data_lines > 0 && invalid_lines == 0
+      {
+        description: "body is valid SSE (data: lines are JSON)",
+        passed,
+        detail: if passed {
+          ""
+        } else {
+          "data_lines: \{data_lines}, invalid: \{invalid_lines}"
+        },
+      }
+    }
+    BodyLengthGt(min~) => {
+      let passed = body_text.length() > min
+      {
+        description: "body length > \{min}",
+        passed,
+        detail: if passed {
+          ""
+        } else {
+          "length: \{body_text.length()}"
+        },
+      }
+    }
   }
 }
 
@@ -359,15 +424,26 @@ pub async fn run_web_eval_scenario(
   let (app, _server_ref) = server.build_app()
   let client = @test_client.TestClient(app)
 
-  // Execute all HTTP steps; only the last response is asserted.
+  // Execute all HTTP steps; check per-step assertions and final assertions.
   let mut last_response : @test_client.TestResponse? = None
-  for step in scenario.steps {
-    last_response = Some(dispatch_step(client, step))
-  }
-
-  // Check assertions against the last response.
   let results : Array[@eval.EvalAssertionResult] = []
   let mut all_passed = true
+  for step in scenario.steps {
+    let response = dispatch_step(client, step)
+    last_response = Some(response)
+    // Check per-step assertions immediately
+    if step.step_assertions.length() > 0 {
+      for assertion in step.step_assertions {
+        let result = check_web_assertion(response, assertion)
+        if !result.passed {
+          all_passed = false
+        }
+        results.push(result)
+      }
+    }
+  }
+
+  // Check final assertions against the last response.
   match last_response {
     Some(response) =>
       for assertion in scenario.assertions {

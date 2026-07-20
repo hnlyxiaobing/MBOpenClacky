@@ -143,21 +143,40 @@ WebServer::start(port)
 
 - `name` / `description`：场景标识与说明
 - `setup`：`{ api_key? , model_configured? }` — 运行前环境准备
-- `steps[]`：`{ http_method, path, body?, headers? }` — 依次发送的请求
-- `assertions[]`：期望断言，类型 `WebEvalAssertion`：
+- `steps[]`：`{ method, path, body?, headers?, assertions? }` — 依次发送的请求，每步可带逐步断言
+- `assertions[]`：最终断言（对最后一个响应），类型 `WebEvalAssertion`：
   - `status_eq(n)` / `status_in([...])` — 响应状态码
   - `body_contains(s)` / `body_not_contains(s)` — 响应体子串
   - `json_path_eq(path, value)` — JSON 字段取值
   - `header_contains(name, s)` — 响应头
+  - `sse_valid` — 响应体为合法 SSE 格式（data: 行均为合法 JSON）
+  - `body_length_gt(n)` — 响应体长度大于 n
 
-### 内置场景（`test/scenarios/web/`）
+### 内置场景（`test/scenarios/web/`，21 个）
 
 | 文件 | 覆盖 |
 |------|------|
-| `health_check.json` | `/api/health` 健康检查 |
+| `health_check.json` | `/health` 健康检查 |
 | `info.json` | `/api/info` 版本与配置信息 |
-| `sessions_crud.json` | 会话创建/查询/删除（CRUD） |
+| `sessions_crud.json` | 会话创建（CRUD） |
 | `static_index.json` | 静态资源 `index.html` 返回 |
+| `api_endpoints_no_errors.json` | 6 个关键端点均返回 2xx |
+| `auth_required_401.json` | 无 key 时返回 401 |
+| `auth_with_valid_key.json` | 正确 key 通过认证 |
+| `chat_invalid_json_400.json` | 非法 JSON 返回 400 |
+| `chat_missing_message_400.json` | 缺少 message 字段返回 400 |
+| `chat_stream_missing_message_400.json` | stream 端点输入验证 |
+| `chat_stream_sse_format.json` | SSE 流格式正确性 |
+| `concurrent_sessions.json` | 多会话独立创建 |
+| `config_structure.json` | 配置 API 返回预期字段 |
+| `cors_headers_present.json` | CORS 头正确设置 |
+| `dom_structure_prereqs.json` | index.html 含必要结构元素 |
+| `empty_session_list.json` | 会话列表为有效 JSON |
+| `session_lifecycle.json` | 创建→列表验证 |
+| `session_not_found_404.json` | 不存在的会话返回 404 |
+| `session_status_endpoint.json` | 状态端点可用 |
+| `static_css_accessible.json` | CSS 文件可访问 |
+| `static_js_accessible.json` | JS bundle 可访问 |
 
 ### CLI
 

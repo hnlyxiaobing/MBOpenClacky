@@ -1,0 +1,1 @@
+{"name": "auth_required_401", "description": "New: with API key configured, request without auth header returns 401", "setup": {"api_key": "test-secret-key-123", "model_configured": true}, "steps": [{"method": "GET", "path": "/api/sessions"}], "assertions": [{"check": "status_eq", "status": 401}, {"check": "body_contains", "text": "error"}]}

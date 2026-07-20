@@ -1,0 +1,1 @@
+{"name": "session_list_valid_json", "description": "New: GET /api/sessions returns valid JSON with sessions array field", "setup": {"api_key": null, "model_configured": true}, "steps": [{"method": "GET", "path": "/api/sessions"}], "assertions": [{"check": "status_eq", "status": 200}, {"check": "body_contains", "text": "sessions"}, {"check": "body_length_gt", "min": 10}]}
