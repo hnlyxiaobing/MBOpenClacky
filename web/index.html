@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MBOpenClacky - AI Agent</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234f8ef7'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='18' font-weight='bold' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/github-dark.min.css">
   <link rel="stylesheet" href="js/lib/katex/katex.min.css">
@@ -14,9 +15,28 @@
   <script type="module" src="mb/public/editor.js"></script>
 </head>
 <body>
+  <noscript>
+    <div style="padding:2rem;text-align:center;font-family:sans-serif">
+      MBOpenClacky requires JavaScript. Please enable JavaScript and reload.
+    </div>
+  </noscript>
   <div id="app"></div>
   <div id="notifications-container" class="notifications"></div>
   <script>
+    // Global error boundary: if the SPA fails to boot or crashes at runtime,
+    // surface a visible banner instead of leaving a silent blank page.
+    window.__mbFatalShown = false;
+    window.addEventListener('error', function(e) {
+      if (window.__mbFatalShown) return;
+      var app = document.getElementById('app');
+      // Only show the banner when the app never rendered anything.
+      if (app && app.childElementCount > 0) return;
+      window.__mbFatalShown = true;
+      var banner = document.createElement('div');
+      banner.style.cssText = 'margin:2rem;padding:1rem;border:1px solid #c00;border-radius:8px;font-family:sans-serif;color:#c00;background:#fff5f5';
+      banner.textContent = 'MBOpenClacky failed to start: ' + (e.message || 'script error') + '. Check the browser console for details.';
+      document.body.insertBefore(banner, app);
+    }, true);
     window.mbCopyCode = function(btn) {
       var codeBlock = btn.closest('.code-block-header')?.nextElementSibling?.querySelector('code');
       if (codeBlock) {

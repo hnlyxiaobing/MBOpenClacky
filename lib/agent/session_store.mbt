@@ -11,11 +11,38 @@
 pub fn ensure_sessions_dir() -> String raise @fs.IOError {
   match @utils.sessions_dir() {
     Some(dir) => {
+      let dir = strip_trailing_separators(dir)
+      if dir.is_empty() {
+        raise @fs.IOError(
+          "Sessions directory path is empty after normalization",
+        )
+      }
       @utils.ensure_dir(dir)
+      // Defensive: verify the directory really exists and is a directory
+      // before handing the path to read_dir (Windows error 267 otherwise).
+      let is_directory = @fs.is_dir(dir) catch { _ => false }
+      if !is_directory {
+        raise @fs.IOError("Sessions directory is not usable: \{dir}")
+      }
       dir
     }
     None => raise @fs.IOError("Could not determine home directory for sessions")
   }
+}
+
+///|
+/// Strip trailing `/` and `\` separators from a directory path.
+fn strip_trailing_separators(path : String) -> String {
+  let mut end = path.length()
+  while end > 0 {
+    let c = path[end - 1]
+    if c == '/' || c == '\\' {
+      end = end - 1
+    } else {
+      break
+    }
+  }
+  path[:end].to_owned()
 }
 
 ///|

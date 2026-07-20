@@ -323,7 +323,7 @@ fn wd_normalize_sep(p : String) -> String {
 /// GET /api/sessions/:id/messages — Retrieve the message history for a session.
 /// Returns an array of messages without the full session envelope.
 fn handle_session_messages(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
@@ -348,9 +348,27 @@ fn handle_session_messages(
       )
     }
     None =>
-      @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
-      )
+      // Fall back to the in-memory agent for sessions not yet persisted.
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) => {
+          let data = agent.to_session_data()
+          let messages_json : Array[Json] = []
+          for msg in data.messages {
+            messages_json.push(msg.to_json())
+          }
+          @core.HttpResponse::ok().json_value(
+            Json::object({
+              "session_id": id.to_json(),
+              "messages": messages_json.to_json(),
+              "message_count": data.messages.length().to_json(),
+            }),
+          )
+        }
+        None =>
+          @core.HttpResponse::not_found().json_value(
+            Json::object({ "error": "Session not found".to_json() }),
+          )
+      }
   }
 }
 

@@ -326,9 +326,11 @@ fn handle_files_paths(
 // ── Internal Helpers ─────────────────────────────────────────────
 
 ///|
-/// Heuristic: check if a path is a directory by attempting to read_dir it.
-/// Returns true if read_dir succeeds, false otherwise.
+/// Check if a path is a directory. Uses `@fs.is_dir` (GetFileAttributes on
+/// Windows) instead of probing with `read_dir` — the latter made the C FFI
+/// print "error code 267" to stderr for every regular file scanned.
 fn is_directory(path : String) -> Bool {
-  let _ = @fs.read_dir(path) catch { _ => return false }
-  true
+  @fs.is_dir(path) catch {
+    _ => false
+  }
 }

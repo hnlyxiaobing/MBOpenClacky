@@ -333,7 +333,13 @@ pub fn send_request(
   let http_status = read_le_int32(meta_buf, 0)
   let body_size = read_le_int32(meta_buf, 4)
   if ffi_result != 0 {
-    let err_msg = @utf8.decode_lossy(err_buf[:1024])
+    // The C side writes a null-terminated message; decode only up to the
+    // first NUL byte instead of the whole padded buffer.
+    let mut err_len = 0
+    while err_len < err_buf.length() && err_buf[err_len].to_int() != 0 {
+      err_len = err_len + 1
+    }
+    let err_msg = @utf8.decode_lossy(err_buf[:err_len])
     return Err(ConnectionFailed(err_msg))
   }
   let resp_body = if body_size > 0 {

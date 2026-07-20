@@ -228,7 +228,7 @@ int32_t mbopenclacky_http_post(
   BOOL sent = WinHttpSendRequest(
     request, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
     body_len > 0 ? (LPVOID)body : WINHTTP_NO_REQUEST_DATA,
-    (DWORD)body_len, 0, NULL
+    (DWORD)body_len, (DWORD)body_len, NULL
   );
   if (!sent) goto win_done;
   if (!WinHttpReceiveResponse(request, NULL)) goto win_done;
@@ -258,9 +258,12 @@ int32_t mbopenclacky_http_post(
 
 win_done:
   if (result != 0) {
-    char errbuf[256];
-    snprintf(errbuf, sizeof(errbuf), "WinHTTP error: 0x%08lX", GetLastError());
-    write_error(error_buf, errbuf);
+    /* Keep a more specific error message if one was already written. */
+    if (error_buf[0] == 0) {
+      char errbuf[256];
+      snprintf(errbuf, sizeof(errbuf), "WinHTTP error: 0x%08lX", GetLastError());
+      write_error(error_buf, errbuf);
+    }
   }
   if (request) WinHttpCloseHandle(request);
   if (connect) WinHttpCloseHandle(connect);

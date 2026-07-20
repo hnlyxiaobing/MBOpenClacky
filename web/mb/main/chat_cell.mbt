@@ -29,6 +29,7 @@ priv enum ChatMsg {
   ShowCost
   ToolsLoaded(Result[Json, String])
   CostLoaded(Result[Json, String])
+  CostRefreshed(Result[Json, String])
   HideModal
   LocaleChanged
   WsMessage(String)
@@ -512,7 +513,7 @@ fn chat_update(
     StreamDone => {
       let m = finalize_stream(model)
       let refresh_cmd = @cmd.custom_cmd(_ => js_dispatch_sessions_refresh())
-      let cost_cmd = @cmd.perform(r => emit(CostLoaded(r)), async fn() noraise {
+      let cost_cmd = @cmd.perform(r => emit(CostRefreshed(r)), async fn() noraise {
         safe_get("/api/sessions/\{model.current_session_id}/cost")
       })
       (
@@ -638,6 +639,21 @@ fn chat_update(
       app_notify(t("chat.failed_cost"), "error")
       (none, model)
     }
+    CostRefreshed(Ok(json)) => {
+      // Auto-refresh after a run completes: update the header cost badge
+      // only. The Cost Information modal opens only via the "$" button
+      // (ShowCost), so it never pops up unprompted after a message.
+      let cost = match json {
+        Object(map) =>
+          match map.get("total_cost_usd") {
+            Some(Number(n)) => n
+            _ => 0.0
+          }
+        _ => 0.0
+      }
+      (none, { ..model, cost_display: "$" + cost.to_string() })
+    }
+    CostRefreshed(Err(_)) => (none, model)
     HideModal => (none, { ..model, modal: None })
     LocaleChanged => (none, { ..model, locale: i18n_get_locale() })
     WsMessage(text) => handle_ws_message(emit, text, model)

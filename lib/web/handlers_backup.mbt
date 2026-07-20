@@ -18,6 +18,42 @@ priv struct BackupRecord {
 // ── Backup Storage Helpers ────────────────────────────────────────
 
 ///|
+/// Whether a read_dir failure warning has already been emitted.
+/// Used to warn only once instead of spamming the server log.
+let read_dir_warned : Ref[Bool] = Ref(false)
+
+///|
+/// Emit a one-time warning for a failed directory scan. The underlying
+/// C FFI already prints the OS error to stderr; callers normally catch
+/// silently, so this surfaces the failing path exactly once.
+fn warn_read_dir_once(path : String) -> Unit {
+  if !read_dir_warned.val {
+    read_dir_warned.val = true
+    println(
+      "[web] warn: failed to read directory: \{path} (further warnings suppressed)",
+    )
+  }
+}
+
+///|
+/// Read a directory only when the path is actually a directory.
+/// On Windows, calling `read_dir` on a regular file makes the C FFI
+/// print "error code 267" to stderr on every call; the `is_dir` guard
+/// avoids that spam.
+fn read_dir_if_dir(path : String) -> Array[String] {
+  let is_directory = @fs.is_dir(path) catch { _ => false }
+  if !is_directory {
+    return []
+  }
+  @fs.read_dir(path) catch {
+    _ => {
+      warn_read_dir_once(path)
+      []
+    }
+  }
+}
+
+///|
 /// Base directory for backup storage.
 fn backups_dir() -> String {
   match @utils.config_dir() {
@@ -162,7 +198,12 @@ fn load_all_backups() -> Array[BackupRecord] {
   if !@fs.path_exists(dir) {
     return []
   }
-  let entries = @fs.read_dir(dir) catch { _ => return [] }
+  let entries = @fs.read_dir(dir) catch {
+    _ => {
+      warn_read_dir_once(dir)
+      return []
+    }
+  }
   let records : Array[BackupRecord] = []
   for name in entries {
     if name.has_suffix(".json") {
@@ -262,7 +303,7 @@ fn collect_snapshot_data(scope : String) -> (Json, Int) {
       @path.Path("sessions"),
     ).to_string()
     if @fs.path_exists(sessions_dir) {
-      let entries = @fs.read_dir(sessions_dir) catch { _ => [] }
+      let entries = read_dir_if_dir(sessions_dir)
       for name in entries {
         let fpath = @path.Path::join(@path.Path(sessions_dir), @path.Path(name)).to_string()
         let content = @fs.read_file_to_string(fpath) catch { _ => continue }
@@ -278,7 +319,7 @@ fn collect_snapshot_data(scope : String) -> (Json, Int) {
       @path.Path("skills"),
     ).to_string()
     if @fs.path_exists(skills_dir) {
-      let entries = @fs.read_dir(skills_dir) catch { _ => [] }
+      let entries = read_dir_if_dir(skills_dir)
       for name in entries {
         let fpath = @path.Path::join(@path.Path(skills_dir), @path.Path(name)).to_string()
         let content = @fs.read_file_to_string(fpath) catch { _ => continue }
@@ -351,8 +392,8 @@ fn restore_snapshot_data(id : String) -> Result[Unit, String] {
   }
   for name in entries {
     let src_path = @path.Path::join(@path.Path(data_dir), @path.Path(name)).to_string()
-    // Check if this is a subdirectory
-    let sub_entries = @fs.read_dir(src_path) catch { _ => [] }
+    // Check if this is a subdirectory (guard avoids Win error 267 spam on files)
+    let sub_entries = read_dir_if_dir(src_path)
     if sub_entries.length() > 0 {
       // It's a directory - restore files inside it
       for sub_name in sub_entries {
@@ -398,8 +439,8 @@ fn remove_backup_data(id : String) -> Unit {
     let entries = @fs.read_dir(data_dir) catch { _ => return }
     for name in entries {
       let fpath = @path.Path::join(@path.Path(data_dir), @path.Path(name)).to_string()
-      // Check if subdirectory and remove contents
-      let sub_entries = @fs.read_dir(fpath) catch { _ => [] }
+      // Check if subdirectory and remove contents (guard: files are not dirs)
+      let sub_entries = read_dir_if_dir(fpath)
       if sub_entries.length() > 0 {
         for sub_name in sub_entries {
           let sub_path = @path.Path::join(

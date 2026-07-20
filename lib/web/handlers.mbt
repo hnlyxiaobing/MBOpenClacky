@@ -65,7 +65,7 @@ fn handle_create_session(
 ///|
 /// GET /api/sessions/:id
 fn handle_get_session(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
@@ -79,9 +79,17 @@ fn handle_get_session(
   match session_opt {
     Some(data) => @core.HttpResponse::ok().json_value(data.to_json())
     None =>
-      @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
-      )
+      // A freshly created session lives only in memory until its first
+      // run persists it; serve that instead of a 404 so the frontend
+      // history load does not error right after session creation.
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) =>
+          @core.HttpResponse::ok().json_value(agent.to_session_data().to_json())
+        None =>
+          @core.HttpResponse::not_found().json_value(
+            Json::object({ "error": "Session not found".to_json() }),
+          )
+      }
   }
 }
 
@@ -171,7 +179,7 @@ fn handle_chat(
   let agent = server_ref.val.get_or_create_agent(id)
   let result = agent.run(message) catch {
     err if @errors.is_agent_error(err) => {
-      let err_str = err.to_string()
+      let err_str = @errors.error_message(err)
       @agent.RunResult::{
         status: @agent.RunStatus::Error,
         session_id: id,
@@ -265,7 +273,7 @@ fn handle_chat_stream(
   // Run agent (blocking)
   let result = agent.run(message) catch {
     err if @errors.is_agent_error(err) => {
-      let err_str = err.to_string()
+      let err_str = @errors.error_message(err)
       @agent.RunResult::{
         status: @agent.RunStatus::Error,
         session_id: id,
