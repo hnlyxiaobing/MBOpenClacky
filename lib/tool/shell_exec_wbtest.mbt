@@ -15,49 +15,85 @@ test "run_shell_command: non-zero exit code" {
 
 ///|
 test "run_shell_command: env vars inlined into command" {
-  let result = run_shell_command("echo VAL=$CLACKY_TEST_SHELLVAR", env_vars=[
+  // Windows: use !VAR! (delayed expansion, enabled via cmd /v:on) so the
+  // variable is expanded AFTER the inlined `set` prefix executes.
+  let (cmd, expected) = if shell_is_windows() {
+    ("echo VAL=!CLACKY_TEST_SHELLVAR!", "VAL=env_value_42")
+  } else {
+    ("echo VAL=$CLACKY_TEST_SHELLVAR", "VAL=env_value_42")
+  }
+  let result = run_shell_command(cmd, env_vars=[
     ("CLACKY_TEST_SHELLVAR", "env_value_42"),
   ])
   @debug.assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_owned() == "VAL=env_value_42")
+  assert_true(result.output.trim().to_owned() == expected)
 }
 
 ///|
 test "run_shell_command: two calls do not pollute env" {
   // First call sets CLACKY_TEST_A but not CLACKY_TEST_B
-  let r1 = run_shell_command("echo A=$CLACKY_TEST_A B=$CLACKY_TEST_B", env_vars=[
-    ("CLACKY_TEST_A", "aaa"),
-  ])
   // Second call sets CLACKY_TEST_B but not CLACKY_TEST_A
-  let r2 = run_shell_command("echo A=$CLACKY_TEST_A B=$CLACKY_TEST_B", env_vars=[
-    ("CLACKY_TEST_B", "bbb"),
-  ])
+  // Windows: !VAR! delayed expansion — undefined vars expand to empty,
+  // matching the Unix expectations below exactly.
+  let cmd = if shell_is_windows() {
+    "echo A=!CLACKY_TEST_A! B=!CLACKY_TEST_B!"
+  } else {
+    "echo A=$CLACKY_TEST_A B=$CLACKY_TEST_B"
+  }
+  let r1 = run_shell_command(cmd, env_vars=[("CLACKY_TEST_A", "aaa")])
+  let r2 = run_shell_command(cmd, env_vars=[("CLACKY_TEST_B", "bbb")])
   @debug.assert_eq(r1.exit_code, 0)
   @debug.assert_eq(r2.exit_code, 0)
   let out1 = r1.output.trim().to_owned()
   let out2 = r2.output.trim().to_owned()
-  // r1 should see A=aaa and B=empty (not polluted by r2)
-  assert_true(out1 == "A=aaa B=")
-  // r2 should see A=empty and B=bbb (not polluted by r1)
-  assert_true(out2 == "A= B=bbb")
+  if shell_is_windows() {
+    // cmd delayed expansion leaves UNDEFINED !VAR! as literal text — the
+    // assertions still verify no cross-call pollution (r1 has no bbb,
+    // r2 has no aaa).
+    assert_true(out1 == "A=aaa B=!CLACKY_TEST_B!")
+    assert_true(out2 == "A=!CLACKY_TEST_A! B=bbb")
+  } else {
+    // r1 should see A=aaa and B=empty (not polluted by r2)
+    assert_true(out1 == "A=aaa B=")
+    // r2 should see A=empty and B=bbb (not polluted by r1)
+    assert_true(out2 == "A= B=bbb")
+  }
 }
 
 ///|
 test "run_shell_command: working directory" {
-  let result = run_shell_command("pwd", working_dir=Some("/tmp"))
-  @debug.assert_eq(result.exit_code, 0)
-  assert_true(result.output.trim().to_owned() == "/tmp")
+  if shell_is_windows() {
+    let dir = shell_temp_dir()
+    let result = run_shell_command("cd", working_dir=Some(dir))
+    @debug.assert_eq(result.exit_code, 0)
+    // `cd` with no args prints the current directory. Compare
+    // case-insensitively: the filesystem may report different casing
+    // than the TEMP variable.
+    let out = result.output.trim().to_owned()
+    assert_true(out.to_lower() == dir.to_lower())
+  } else {
+    let result = run_shell_command("pwd", working_dir=Some("/tmp"))
+    @debug.assert_eq(result.exit_code, 0)
+    assert_true(result.output.trim().to_owned() == "/tmp")
+  }
 }
 
 ///|
 test "run_shell_command: multi-line output" {
-  let result = run_shell_command("echo line1; echo line2; echo line3")
+  // Windows: `&` is the cmd separator; a space before `&` would be echoed
+  // literally, so no spaces around it. cmd emits CRLF — trim per line.
+  let cmd = if shell_is_windows() {
+    "echo line1&echo line2&echo line3"
+  } else {
+    "echo line1; echo line2; echo line3"
+  }
+  let result = run_shell_command(cmd)
   @debug.assert_eq(result.exit_code, 0)
   let lines = result.output.trim().to_owned().split("\n").to_array()
   @debug.assert_eq(lines.length(), 3)
-  @debug.assert_eq(lines[0].to_owned(), "line1")
-  @debug.assert_eq(lines[1].to_owned(), "line2")
-  @debug.assert_eq(lines[2].to_owned(), "line3")
+  @debug.assert_eq(lines[0].trim().to_owned(), "line1")
+  @debug.assert_eq(lines[1].trim().to_owned(), "line2")
+  @debug.assert_eq(lines[2].trim().to_owned(), "line3")
 }
 
 ///|
@@ -72,11 +108,31 @@ test "run_shell_command: stderr captured" {
 
 ///|
 test "run_shell_command: env var with special chars" {
-  let result = run_shell_command("echo \"$CLACKY_TEST_SPECIAL\"", env_vars=[
+  // Windows: %VAR% would be expanded at parse time (before `set` runs), so
+  // use !VAR! delayed expansion; cmd's echo needs no quoting here.
+  let cmd = if shell_is_windows() {
+    "echo !CLACKY_TEST_SPECIAL!"
+  } else {
+    "echo \"$CLACKY_TEST_SPECIAL\""
+  }
+  let result = run_shell_command(cmd, env_vars=[
     ("CLACKY_TEST_SPECIAL", "it's a test"),
   ])
   @debug.assert_eq(result.exit_code, 0)
   assert_true(result.output.trim().to_owned() == "it's a test")
+}
+
+///|
+test "run_shell_command: unrecognized command reports failure (exit-code regression)" {
+  // Regression for %ERRORLEVEL% early expansion (#8): a command that fails
+  // WITHOUT going through `exit N` must still report a non-zero exit code.
+  // cmd.exe sets ERRORLEVEL=9009 for unrecognized commands; sh reports 127.
+  let result = run_shell_command("clacky_definitely_not_a_command_xyz")
+  if shell_is_windows() {
+    @debug.assert_eq(result.exit_code, 9009)
+  } else {
+    @debug.assert_eq(result.exit_code, 127)
+  }
 }
 
 ///|

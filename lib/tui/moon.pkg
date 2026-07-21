@@ -6,6 +6,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/core/random",
   "moonbit-community/tty",
@@ -21,5 +22,6 @@ import {
 supported_targets = "native"
 
 options(
+  "native-stub": [ "console_cp_native.c" ],
   link: { "native": { "cc-link-flags": "-lcurl" } },
 )

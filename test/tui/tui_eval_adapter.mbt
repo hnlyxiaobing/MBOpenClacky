@@ -486,7 +486,10 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     // Add user message to output
     ignore(self.output.append_text("[user] \{text}", @libtui.OutputKind::Text))
     // Commit it
-    self.output.commit_through(self.output.entry_count())
+    match self.output.last_entry_id() {
+      Some(id) => self.output.commit_through(id)
+      None => ()
+    }
     // Update state
     self.state.val.mode = @libtui.TuiMode::Running
     // Simulate agent response (append mock response)
@@ -501,7 +504,10 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
         @libtui.OutputKind::Text,
       ),
     )
-    self.output.commit_through(self.output.entry_count())
+    match self.output.last_entry_id() {
+      Some(id) => self.output.commit_through(id)
+      None => ()
+    }
     // Reset state
     self.state.val.mode = @libtui.TuiMode::Idle
     self.state.val.agent_status = "idle"
@@ -534,7 +540,10 @@ fn TuiEvalSimulator::handle_slash_command(
           @libtui.OutputKind::Text,
         ),
       )
-      self.output.commit_through(self.output.entry_count())
+      match self.output.last_entry_id() {
+        Some(id) => self.output.commit_through(id)
+        None => ()
+      }
       self.full_redraw()
     }
     Clear => {
@@ -556,7 +565,10 @@ fn TuiEvalSimulator::handle_slash_command(
             self.output.append_text("[error] \{err}", @libtui.OutputKind::Text),
           )
       }
-      self.output.commit_through(self.output.entry_count())
+      match self.output.last_entry_id() {
+        Some(id) => self.output.commit_through(id)
+        None => ()
+      }
       self.full_redraw()
     }
   }

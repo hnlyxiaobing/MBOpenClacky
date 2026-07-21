@@ -285,14 +285,17 @@ fn Agent::observe(
 // ═══════════════════════════════════════════════════════════════════
 
 ///|
-/// THINK phase (async): call the LLM via non-blocking HTTP.
+/// THINK phase (async): call the LLM via non-blocking HTTP, streaming
+/// content deltas to the UI as StreamChunk hook events.
 async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   match self.compress_messages_if_needed(false) {
     Some(_) => ()
     None => ()
   }
   self.hook_manager.emit(BeforeLlmCall)
-  let response = self.call_llm_async()
+  let response = self.call_llm_stream_async(fn(chunk) {
+    self.hook_manager.emit(StreamChunk(chunk))
+  })
   match response.latency {
     Some(lat) => self.latest_latency = Some(lat)
     None => ()

@@ -669,7 +669,6 @@ async fn TuiController::main_loop(
         }
       }
       TerminalClosed => self.quit = true
-      HookEvent(_) => self.dirty = true
     }
     if self.dirty {
       self.redraw()
@@ -1021,7 +1020,7 @@ fn TuiController::start_agent(
   let task = group.spawn(allow_failure=true) <| () => {
     let result = agent.run_async(text) catch {
       err => {
-        events.put(AgentError("\{err}"))
+        events.put(AgentError(@errors.error_message(err)))
         raise err
       }
     }

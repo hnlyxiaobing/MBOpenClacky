@@ -11,6 +11,10 @@
 /// Falls back to a console message if terminal initialization fails.
 pub async fn run_tui_interactive(agent : @agent.Agent) -> Unit {
   let tty = @tty.Tty::stdio()
+  // Switch the Windows console to UTF-8 (CP 65001) so box-drawing / Braille /
+  // symbol glyphs render correctly; restore the original code pages on exit.
+  // No-op on POSIX.
+  let cp_token = set_console_utf8()
   tty.with_raw_mode(() => {
     let controller = TuiController::new(tty, agent)
     controller.run()
@@ -20,4 +24,5 @@ pub async fn run_tui_interactive(agent : @agent.Agent) -> Unit {
       println("Use --message to send a message, or --server for web UI.")
     }
   }
+  restore_console_cp(cp_token)
 }

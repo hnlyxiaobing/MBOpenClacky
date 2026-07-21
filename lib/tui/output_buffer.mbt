@@ -253,19 +253,24 @@ pub fn OutputBuffer::remove(self : OutputBuffer, id : Int) -> OutputEntry? {
 /// given id are in the scrollback and can never be modified again.
 /// Entries after the given id are unaffected.
 pub fn OutputBuffer::commit_through(self : OutputBuffer, id : Int) -> Unit {
-  let mut found = false
+  // Locate the target entry first: if the id is unknown, nothing is committed.
+  let mut found_index = -1
   for i = 0; i < self.entries.length(); i = i + 1 {
-    let entry = self.entries[i]
-    if entry.id == id {
-      found = true
+    if self.entries[i].id == id {
+      found_index = i
+      break
     }
-    if found && !entry.is_committed() {
+  }
+  if found_index < 0 {
+    return
+  }
+  for i = 0; i <= found_index; i = i + 1 {
+    let entry = self.entries[i]
+    if !entry.is_committed() {
       entry.committed_line_offset = entry.lines.length()
     }
   }
-  if found {
-    self.version = self.version + 1
-  }
+  self.version = self.version + 1
 }
 
 ///|
@@ -422,6 +427,20 @@ pub fn OutputBuffer::clear(self : OutputBuffer) -> Unit {
 /// Get the total number of entries (committed + live).
 pub fn OutputBuffer::entry_count(self : OutputBuffer) -> Int {
   self.entries.length()
+}
+
+///|
+/// Get the id of the newest (last) entry, or `None` if the buffer is empty.
+///
+/// Note: ids are monotonic and are NOT renumbered when old entries are
+/// trimmed, so `entry_count()` is not a valid id — always use this accessor
+/// when an id is needed (e.g. for `commit_through`).
+pub fn OutputBuffer::last_entry_id(self : OutputBuffer) -> Int? {
+  if self.entries.is_empty() {
+    None
+  } else {
+    Some(self.entries[self.entries.length() - 1].id)
+  }
 }
 
 ///|

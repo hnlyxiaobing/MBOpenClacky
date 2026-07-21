@@ -100,6 +100,97 @@ fn strip_sse_field(line : String, prefix : String) -> String {
   }
 }
 
+///|
+/// Parse one complete SSE frame text (without the trailing \n\n) into a
+/// frame. Returns None for frames without data lines (e.g. keep-alive
+/// comment lines starting with ':').
+pub fn parse_sse_frame(frame_text : String) -> SseFrame? {
+  parse_single_frame(frame_text)
+}
+
+// ── Incremental byte-level SSE pump ─────────────────────────────────────────
+
+///|
+/// Incremental byte-level SSE pump for streaming HTTP transports.
+///
+/// Transport chunks may split SSE frames (and UTF-8 sequences) at arbitrary
+/// positions; frames are only emitted once their terminating "\n\n" has
+/// arrived. Since the delimiter is pure ASCII, slicing at it never splits a
+/// multi-byte UTF-8 sequence, so each emitted frame text decodes cleanly.
+pub(all) struct SseBytePump {
+  mut pending : Array[Byte]
+}
+
+///|
+/// Create an empty pump.
+pub fn SseBytePump::new() -> SseBytePump {
+  { pending: [] }
+}
+
+///|
+/// Feed a raw transport chunk; returns all SSE frames completed by it
+/// (frames without data lines, such as keep-alive comments, are dropped).
+pub fn SseBytePump::feed(self : SseBytePump, chunk : Bytes) -> Array[SseFrame] {
+  for b in chunk {
+    self.pending.push(b)
+  }
+  let frames : Array[SseFrame] = []
+  for ;; {
+    let n = self.pending.length()
+    let mut sep = -1
+    let mut i = 0
+    while i + 1 < n {
+      if self.pending[i] == b'\n' && self.pending[i + 1] == b'\n' {
+        sep = i
+        break
+      }
+      i = i + 1
+    }
+    if sep < 0 {
+      break
+    }
+    let frame_bytes = Bytes::from_array(self.pending[:sep].to_array())
+    let rest : Array[Byte] = []
+    for j = sep + 2; j < n; j = j + 1 {
+      rest.push(self.pending[j])
+    }
+    self.pending = rest
+    match parse_sse_frame(@utf8.decode_lossy(frame_bytes)) {
+      Some(frame) => frames.push(frame)
+      None => ()
+    }
+  }
+  frames
+}
+
+///|
+/// Feed a text chunk whose boundaries are already UTF-8-safe (e.g. from a
+/// transport that decodes at complete-character boundaries, such as the
+/// Windows slot drain). Internally re-encoded to bytes so both feed paths
+/// share the same frame extraction.
+pub fn SseBytePump::feed_string(
+  self : SseBytePump,
+  chunk : String,
+) -> Array[SseFrame] {
+  self.feed(@utf8.encode(chunk))
+}
+
+///|
+/// Flush any trailing bytes at end-of-stream. Usually returns [] — a
+/// well-formed SSE stream ends every frame with "\n\n" — but tolerates a
+/// final unterminated frame.
+pub fn SseBytePump::finish(self : SseBytePump) -> Array[SseFrame] {
+  if self.pending.is_empty() {
+    return []
+  }
+  let text = @utf8.decode_lossy(Bytes::from_array(self.pending))
+  self.pending = []
+  match parse_sse_frame(text) {
+    Some(frame) => [frame]
+    None => []
+  }
+}
+
 // ── OpenAI Stream Aggregator ────────────────────────────────────────────────
 
 ///|
@@ -143,27 +234,45 @@ pub fn OpenAiStreamAggregator::handle(
   self : OpenAiStreamAggregator,
   data_str : String,
 ) -> Unit {
-  guard data_str != "[DONE]" else { return }
-  let json = @json.parse(data_str) catch { _ => return }
+  ignore(self.handle_delta(data_str))
+}
+
+///|
+/// Handle a single SSE data string from the OpenAI stream, returning the
+/// content text delta carried by this frame ("" when the frame carries no
+/// content, e.g. role frames, tool-call deltas, usage frames, [DONE]).
+pub fn OpenAiStreamAggregator::handle_delta(
+  self : OpenAiStreamAggregator,
+  data_str : String,
+) -> String {
+  guard data_str != "[DONE]" else { return "" }
+  let json = @json.parse(data_str) catch { _ => return "" }
+  let mut delta = ""
 
   // Process choice delta
   match (if json is Object(obj) { obj.get("choices") } else { None }) {
     Some(Array(choices)) if choices.length() > 0 => {
       let choice = choices[0]
       match (if choice is Object(obj) { obj.get("delta") } else { None }) {
-        Some(delta) => {
+        Some(delta_json) => {
           // Accumulate content
-          match (if delta is Object(obj) { obj.get("content") } else { None }) {
+          match
+            (if delta_json is Object(obj) { obj.get("content") } else { None }) {
             Some(String(text)) => {
               self.content_parts.push(text)
               self.content_len = self.content_len + text.length()
+              delta = text
             }
             _ => ()
           }
 
           // Accumulate tool calls
           match
-            (if delta is Object(obj) { obj.get("tool_calls") } else { None }) {
+            (if delta_json is Object(obj) {
+              obj.get("tool_calls")
+            } else {
+              None
+            }) {
             Some(Array(tcs)) =>
               for tc in tcs {
                 self.merge_tool_call(tc)
@@ -208,6 +317,7 @@ pub fn OpenAiStreamAggregator::handle(
     }
     _ => ()
   }
+  delta
 }
 
 ///|
@@ -342,7 +452,20 @@ pub fn AnthropicStreamAggregator::handle(
   event : String,
   data_str : String,
 ) -> Unit {
-  let json = @json.parse(data_str) catch { _ => return }
+  ignore(self.handle_delta(event, data_str))
+}
+
+///|
+/// Handle a single SSE event+data pair from the Anthropic stream, returning
+/// the visible text delta carried by this frame ("" for non-text events;
+/// thinking deltas are accumulated but NOT reported as visible text).
+pub fn AnthropicStreamAggregator::handle_delta(
+  self : AnthropicStreamAggregator,
+  event : String,
+  data_str : String,
+) -> String {
+  let json = @json.parse(data_str) catch { _ => return "" }
+  let mut visible_delta = ""
 
   match event {
     "message_start" =>
@@ -417,6 +540,7 @@ pub fn AnthropicStreamAggregator::handle(
                       input_str: block.input_str,
                     }
                     self.blocks[idx] = new_block
+                    visible_delta = text
                   }
                   _ => ()
                 }
@@ -484,6 +608,7 @@ pub fn AnthropicStreamAggregator::handle(
     "message_stop" | "ping" | "error" => ()
     _ => ()
   }
+  visible_delta
 }
 
 ///|

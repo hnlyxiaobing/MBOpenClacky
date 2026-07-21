@@ -179,3 +179,115 @@ test "anthropic_agg_output_tokens_delta" {
   let resp = agg.to_response()
   assert_true(resp.usage is Some(_))
 }
+
+// ── Streaming pipeline tests (#4) ───────────────────────────────────────────
+
+///|
+test "openai handle_delta returns content delta" {
+  let agg = OpenAiStreamAggregator::new()
+  @debug.assert_eq(
+    agg.handle_delta("{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}"),
+    "Hello",
+  )
+  // Role-only and finish frames carry no visible delta.
+  @debug.assert_eq(
+    agg.handle_delta("{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}"),
+    "",
+  )
+  @debug.assert_eq(
+    agg.handle_delta(
+      "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}",
+    ),
+    "",
+  )
+  @debug.assert_eq(agg.handle_delta("[DONE]"), "")
+  @debug.assert_eq(agg.handle_delta("not valid json"), "")
+  // Aggregation still works alongside delta reporting.
+  ignore(
+    agg.handle_delta("{\"choices\":[{\"delta\":{\"content\":\" world\"}}]}"),
+  )
+  let resp = agg.to_response()
+  @debug.assert_eq(resp.content, Some("Hello world"))
+}
+
+///|
+test "anthropic handle_delta returns text delta only" {
+  let agg = AnthropicStreamAggregator::new()
+  @debug.assert_eq(
+    agg.handle_delta(
+      "content_block_start", "{\"content_block\":{\"type\":\"text\"}}",
+    ),
+    "",
+  )
+  @debug.assert_eq(
+    agg.handle_delta(
+      "content_block_delta", "{\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}",
+    ),
+    "Hi",
+  )
+  // Thinking deltas are accumulated but NOT reported as visible text.
+  @debug.assert_eq(
+    agg.handle_delta(
+      "content_block_delta", "{\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"hmm\"}}",
+    ),
+    "",
+  )
+  @debug.assert_eq(
+    agg.handle_delta(
+      "message_delta", "{\"delta\":{\"stop_reason\":\"end_turn\"}}",
+    ),
+    "",
+  )
+  let resp = agg.to_response()
+  @debug.assert_eq(resp.content, Some("Hihmm"))
+}
+
+///|
+test "sse_byte_pump reassembles frames split across chunks" {
+  let pump = SseBytePump::new()
+  let bytes = @utf8.encode("data: {\"a\":1}\n\ndata: {\"b\":2}\n\n")
+  // Split at an awkward position (inside the first frame).
+  @debug.assert_eq(pump.feed(bytes[:7].to_bytes()).length(), 0)
+  let frames = pump.feed(bytes[7:].to_bytes())
+  @debug.assert_eq(frames.length(), 2)
+  @debug.assert_eq(frames[0].data, "{\"a\":1}")
+  @debug.assert_eq(frames[1].data, "{\"b\":2}")
+  @debug.assert_eq(pump.finish().length(), 0)
+}
+
+///|
+test "sse_byte_pump survives utf8 split across chunks" {
+  let pump = SseBytePump::new()
+  let bytes = @utf8.encode("data: 你好\n\n")
+  // Split inside the multi-byte character (byte 7 is mid-sequence:
+  // "data: " is 6 bytes, 你 is 3 bytes starting at offset 6).
+  @debug.assert_eq(pump.feed(bytes[:7].to_bytes()).length(), 0)
+  let frames = pump.feed(bytes[7:].to_bytes())
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].data, "你好")
+}
+
+///|
+test "sse_byte_pump drops keep-alive comment frames" {
+  let pump = SseBytePump::new()
+  let frames = pump.feed(@utf8.encode(": keep-alive\n\ndata: x\n\n"))
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].data, "x")
+}
+
+///|
+test "sse_byte_pump finish flushes unterminated trailing frame" {
+  let pump = SseBytePump::new()
+  @debug.assert_eq(pump.feed(@utf8.encode("data: tail")).length(), 0)
+  let frames = pump.finish()
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].data, "tail")
+}
+
+///|
+test "sse_byte_pump feed_string matches feed" {
+  let pump = SseBytePump::new()
+  let frames = pump.feed_string("data: hello\n\n")
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].data, "hello")
+}

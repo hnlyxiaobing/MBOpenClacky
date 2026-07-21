@@ -13,19 +13,30 @@ test "run_shell_command reports non-zero exit code" {
 
 ///|
 test "run_shell_command passes env vars to child process" {
-  let r = @tool.run_shell_command("echo val=$CLACKY_TEST_VAR", env_vars=[
-    ("CLACKY_TEST_VAR", "42"),
-  ])
+  // Windows: !VAR! delayed expansion (cmd /v:on) — %VAR% would be expanded
+  // at parse time, before the inlined `set` prefix executes.
+  let cmd = if @tool.shell_is_windows() {
+    "echo val=!CLACKY_TEST_VAR!"
+  } else {
+    "echo val=$CLACKY_TEST_VAR"
+  }
+  let r = @tool.run_shell_command(cmd, env_vars=[("CLACKY_TEST_VAR", "42")])
   @debug.assert_eq(r.exit_code, 0)
   assert_true(r.output.contains("val=42"))
 }
 
 ///|
 test "execute_hook runs command and succeeds" {
+  // Windows has no `test` builtin; use an `if` comparison instead.
+  let command = if @tool.shell_is_windows() {
+    "if not \"!CLACKY_SESSION_ID!\"==\"sess-1\" exit 1"
+  } else {
+    "test \"$CLACKY_SESSION_ID\" = sess-1"
+  }
   let hook : HookConfig = {
     name: "test-hook",
     event: "on_start",
-    command: "test \"$CLACKY_SESSION_ID\" = sess-1",
+    command,
     enabled: true,
   }
   let ctx : HookContext = {
@@ -95,7 +106,12 @@ test "apply_patches executes commands and skips metadata-only patches" {
       version: "1.0.0",
       description: "echo test",
       target_module: "agent",
-      command: "test \"$CLACKY_PATCH_NAME\" = runs-ok",
+      // Windows has no `test` builtin; use an `if` comparison instead.
+      command: if @tool.shell_is_windows() {
+        "if not \"!CLACKY_PATCH_NAME!\"==\"runs-ok\" exit 1"
+      } else {
+        "test \"$CLACKY_PATCH_NAME\" = runs-ok"
+      },
       enabled: true,
     },
   ]

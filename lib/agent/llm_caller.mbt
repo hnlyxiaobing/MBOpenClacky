@@ -181,6 +181,112 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
 }
 
 ///|
+/// Async streaming LLM API call: requests an SSE stream and invokes
+/// `on_chunk` with each visible content delta as it arrives, while
+/// reassembling the full response with the provider's stream aggregator.
+///
+/// - Mock path: emits the whole content as one chunk, returns immediately.
+/// - Bedrock: no SSE-over-HTTP transport — falls back to `call_llm_async`.
+/// - OpenAI-compatible: `stream:true` + `stream_options.include_usage`.
+/// - Anthropic: `stream:true`.
+///
+/// Error semantics match `call_llm_async` (HTTP error mapping, HTML check,
+/// cost tracking). If the stream breaks mid-way, the partial content
+/// already emitted stays in the consumer's streaming buffer until the
+/// RunCompleted/ErrorOccurred hooks clear it.
+pub async fn Agent::call_llm_stream_async(
+  self : Agent,
+  on_chunk : (String) -> Unit,
+) -> @client.LlmResponse {
+  // ── Mock path (testing) ────────────────────────────────────────────
+  if self.mock_responses.length() > 0 {
+    let response = self.mock_responses.remove(0)
+    match response.content {
+      Some(c) => if c.length() > 0 { on_chunk(c) }
+      None => ()
+    }
+    match response.usage {
+      Some(usage) => self.track_cost(usage) |> ignore
+      None => ()
+    }
+    return response
+  }
+
+  // ── Bedrock: no SSE-over-HTTP streaming, fall back ─────────────
+  if self.client.is_bedrock_format() {
+    return self.call_llm_async()
+  }
+
+  // ── Real HTTP path (async SSE streaming) ───────────────────────
+  let is_anthropic = self.client.is_anthropic_format()
+  let request = self.build_send_request()
+  let body_json0 = self.client.build_request_body(request)
+  let body_json = if is_anthropic {
+    @client.add_stream_flag(body_json0)
+  } else {
+    @client.add_stream_options(body_json0, true)
+  }
+  let url = self.client.request_url()
+  let headers_map = self.client.request_headers()
+  let headers_arr : Array[(String, String)] = []
+  for k, v in headers_map {
+    headers_arr.push((k, v))
+  }
+  let body_str = body_json.stringify()
+
+  let openai_agg = @client.OpenAiStreamAggregator::new()
+  let anthropic_agg = @client.AnthropicStreamAggregator::new()
+  let on_frame = fn(frame : @client.SseFrame) {
+    let delta = if is_anthropic {
+      anthropic_agg.handle_delta(frame.event, frame.data)
+    } else {
+      openai_agg.handle_delta(frame.data)
+    }
+    if delta.length() > 0 {
+      on_chunk(delta)
+    }
+  }
+
+  let http_result = @client.http_post_stream_async(
+    url, body_str, headers_arr, 60000, on_frame,
+  )
+  match http_result {
+    Err(err) =>
+      raise @errors.RetryableError(
+        "HTTP request failed (url=\{url}): \{err.to_repr()}",
+      )
+    Ok(http_resp) => {
+      match @client.map_http_error(http_resp.status_code, http_resp.body) {
+        Some(err_msg) => {
+          let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
+          if http_resp.status_code == 429 ||
+            (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
+            raise @errors.RetryableError(detail)
+          }
+          raise @errors.BadRequestError(http_resp.status_code, detail)
+        }
+        None => ()
+      }
+      if @client.is_html_response(http_resp.body) {
+        raise @errors.AgentError(
+          "LLM API returned HTML response (invalid endpoint): url=\{url} body=\{body_snippet(http_resp.body, 500)}",
+        )
+      }
+      let response = if is_anthropic {
+        anthropic_agg.to_response()
+      } else {
+        openai_agg.to_response()
+      }
+      match response.usage {
+        Some(usage) => self.track_cost(usage) |> ignore
+        None => ()
+      }
+      response
+    }
+  }
+}
+
+///|
 /// Build a SendRequest from the current agent state.
 pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
   let messages = self.messages_for_api()

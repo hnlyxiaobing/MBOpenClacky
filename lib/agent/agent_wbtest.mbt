@@ -1018,3 +1018,31 @@ test "current_timestamp_ms_format" {
     assert_true(c >= '0' && c <= '9')
   }
 }
+
+// ── Streaming pipeline tests (#4) ───────────────────────────────────────────
+
+///|
+async test "call_llm_stream_async mock path emits content as a single chunk" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(make_mock_response("Hello stream", None))
+  let chunks : Array[String] = []
+  let response = agent.call_llm_stream_async(fn(c) { chunks.push(c) })
+  @debug.assert_eq(chunks, ["Hello stream"])
+  @debug.assert_eq(response.content, Some("Hello stream"))
+}
+
+///|
+async test "call_llm_stream_async mock path with empty content emits no chunk" {
+  let agent = make_test_agent()
+  agent.mock_responses.push({
+    content: None,
+    tool_calls: None,
+    finish_reason: Some("stop"),
+    usage: None,
+    latency: None,
+  })
+  let chunks : Array[String] = []
+  let response = agent.call_llm_stream_async(fn(c) { chunks.push(c) })
+  @debug.assert_eq(chunks.length(), 0)
+  assert_true(response.content is None)
+}

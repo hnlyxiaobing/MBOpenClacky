@@ -61,8 +61,17 @@ fn shell_temp_dir() -> String {
 }
 
 ///|
-fn shell_is_windows() -> Bool {
+/// Detect whether the current process runs on Windows (cmd.exe semantics).
+/// Public so that cross-package tests can write platform-aware commands.
+pub fn shell_is_windows() -> Bool {
   @sys.get_env_var("OS") is Some(v) && v == "Windows_NT"
+}
+
+///|
+/// The temp directory used for shell output files (TEMP / TMPDIR / /tmp).
+/// Public so that tests can construct platform-appropriate temp paths.
+pub fn shell_temp_dir_pub() -> String {
+  shell_temp_dir()
 }
 
 ///|
@@ -139,7 +148,11 @@ pub fn run_shell_command(
     "\" 2>&1 & " +
     "echo __CLACKY_DONE_" +
     token +
-    "_%ERRORLEVEL%__ >> \"" +
+    // Delayed expansion (!ERRORLEVEL!): %ERRORLEVEL% would be expanded by
+    // cmd.exe when the whole /c line is parsed — BEFORE the command runs —
+    // so it would always capture the wrong (previous) exit code. Requires
+    // the /v:on flag on the cmd.exe wrapper below.
+    "_!ERRORLEVEL!__ >> \"" +
     output_file +
     "\""
   } else {
@@ -161,9 +174,10 @@ pub fn run_shell_command(
     "'"
   }
   // system() already runs the command via `sh -c` on Unix; only Windows
-  // needs the explicit cmd.exe wrapper.
+  // needs the explicit cmd.exe wrapper. /v:on enables delayed expansion so
+  // that !ERRORLEVEL! above is evaluated AFTER the command completes.
   let full_cmd = if is_win {
-    "cmd.exe /c \"" + shell_cmd + "\""
+    "cmd.exe /v:on /c \"" + shell_cmd + "\""
   } else {
     shell_cmd
   }

@@ -80,9 +80,38 @@ pub async fn LayoutManager::full_redraw(
 
 ///|
 /// Redraw only live (uncommitted) output entries.
+///
+/// Scrolling policy (conservative "page repaint" approach):
+/// - When the total output no longer fits in the message area, the oldest
+///   overflow lines are committed via `commit_oldest_lines` and the whole
+///   message area is repainted with `render_output_area` (visually
+///   equivalent to scrolling, at the cost of redrawing committed lines).
+/// - The newest live entry is never partially committed by this path, so an
+///   in-progress streaming entry stays `replace`-able.
+/// - When live lines still exceed the remaining space (e.g. a single entry
+///   taller than the screen), the NEWEST lines are kept and the oldest live
+///   lines are dropped, so streaming output always shows its latest tail.
 pub async fn LayoutManager::redraw_live(self : LayoutManager) -> Unit {
   let live_entries = self.output.live_entries()
   if live_entries.is_empty() {
+    return
+  }
+  // Overflow: total output taller than the message area. Commit the oldest
+  // overflow lines (never touching the newest live entry) and repaint the
+  // whole message area — this is the "scroll" path.
+  let total = self.output.total_lines()
+  if total > self.msg_height {
+    let newest_lines = live_entries[live_entries.length() - 1].line_count()
+    let committable = total - newest_lines
+    let to_commit = if total - self.msg_height < committable {
+      total - self.msg_height
+    } else {
+      committable
+    }
+    if to_commit > 0 {
+      ignore(self.output.commit_oldest_lines(to_commit))
+    }
+    self.render_output_area()
     return
   }
   let committed_lines = self.output.total_lines() -
@@ -98,20 +127,24 @@ pub async fn LayoutManager::redraw_live(self : LayoutManager) -> Unit {
       live_lines.push(line)
     }
   }
-  let max_lines = if live_lines.length() > available {
-    available
+  // Keep the NEWEST lines when the live region overflows: the latest
+  // streaming content must always be visible.
+  let skip = if live_lines.length() > available {
+    live_lines.length() - available
   } else {
-    live_lines.length()
+    0
   }
   // Clear the area we'll write into
   for row = start_row; row <= self.msg_bottom; row = row + 1 {
     self.screen.move_cursor(row + 1, 1)
     self.screen.clear_to_eol()
   }
-  // Write live lines
-  for i = 0; i < max_lines; i = i + 1 {
-    self.screen.move_cursor(start_row + i + 1, 1)
+  // Write live lines (newest `available` of them)
+  let mut i = skip
+  while i < live_lines.length() {
+    self.screen.move_cursor(start_row + (i - skip) + 1, 1)
     self.screen.write_string(live_lines[i])
+    i = i + 1
   }
 }
 
@@ -192,7 +225,10 @@ async fn LayoutManager::render_input_area(
 
 ///|
 pub fn LayoutManager::commit_all(self : LayoutManager) -> Unit {
-  self.output.commit_through(self.output.entry_count())
+  match self.output.last_entry_id() {
+    Some(id) => self.output.commit_through(id)
+    None => ()
+  }
 }
 
 ///|

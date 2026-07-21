@@ -1,5 +1,21 @@
 ///| Tests for the channel package: types, adapters, registry, manager, and platform APIs.
 
+///|
+/// Build a temp-file path that works on both Windows (%TEMP%) and Unix
+/// ($TMPDIR, fallback /tmp). Mirrors lib/tool's shell_temp_dir pattern.
+fn test_temp_path(name : String) -> String {
+  let dir = match @sys.get_env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @sys.get_env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+  let sep = if dir.has_suffix("/") || dir.has_suffix("\\") { "" } else { "/" }
+  dir + sep + name
+}
+
 // ── Platform & EventType Tests ──────────────────────────────────────────────
 
 ///|
@@ -200,7 +216,7 @@ test "channel_manager_load_config_missing_file" {
 
 ///|
 test "channel_manager_load_config_valid_json" {
-  let path = "/tmp/mbopenclacky_test_channels_load.json"
+  let path = test_temp_path("mbopenclacky_test_channels_load.json")
   let content =
     #|{
     #|  "channels": [
@@ -244,7 +260,7 @@ test "channel_manager_load_config_valid_json" {
 
 ///|
 test "channel_manager_load_config_invalid_platform" {
-  let path = "/tmp/mbopenclacky_test_channels_invalid.json"
+  let path = test_temp_path("mbopenclacky_test_channels_invalid.json")
   let content =
     #|{ "channels": [ { "platform": "unknown_im", "enabled": true, "settings": {} } ] }
   @fs.write_string_to_file(path, content) catch {
