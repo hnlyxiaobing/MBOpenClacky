@@ -168,7 +168,7 @@ fn FileBrowser::preview_selected(self : FileBrowser) -> Unit {
     }
   }
   if content.length() > fb_max_preview_chars {
-    self.preview_content = content.substring(start=0, end=fb_max_preview_chars) +
+    self.preview_content = content[:fb_max_preview_chars].to_owned() +
       "\n... (truncated)"
   } else {
     self.preview_content = content
@@ -245,10 +245,7 @@ pub fn render_file_browser(browser : FileBrowser) -> Node {
         break
       }
       children.push(
-        Node::Text(
-          "  \{line.to_string()}",
-          Style::new(fg=@color.Color::Default, dim=true),
-        ),
+        Node::Text("  \{line}", Style::new(fg=@color.Color::Default, dim=true)),
       )
       line_count = line_count + 1
     }
@@ -283,7 +280,7 @@ fn parent_path(path : String) -> String {
   }
   let mut trimmed = path
   while trimmed.length() > 1 && trimmed[trimmed.length() - 1] == '/' {
-    trimmed = trimmed[0:trimmed.length() - 1].to_string()
+    trimmed = trimmed[0:trimmed.length() - 1].to_owned()
   }
   let mut idx = -1
   for i = trimmed.length() - 1; i >= 0; i = i - 1 {
@@ -295,7 +292,7 @@ fn parent_path(path : String) -> String {
   if idx <= 0 {
     "/"
   } else {
-    trimmed[0:idx].to_string()
+    trimmed[0:idx].to_owned()
   }
 }
 

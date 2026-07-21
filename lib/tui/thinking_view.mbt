@@ -85,7 +85,7 @@ fn get_last_n_lines(text : String, n : Int) -> Array[String] {
   let start = if total > n { total - n } else { 0 }
   let result : Array[String] = []
   for i in start..<total {
-    let line = all_lines[i].to_string()
+    let line = all_lines[i].to_owned()
     let display = if line.length() > 120 {
       line[0:117].to_owned() + "..."
     } else {

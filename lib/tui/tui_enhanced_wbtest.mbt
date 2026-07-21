@@ -57,6 +57,30 @@ test "slash_parse_unknown" {
 }
 
 ///|
+test "parse_slash_command shared entry matches parser" {
+  @debug.debug_inspect(parse_slash_command("/help"), content="Ok(Help)")
+  @debug.debug_inspect(parse_slash_command("/clear"), content="Ok(Clear)")
+  @debug.debug_inspect(
+    parse_slash_command("/theme hacker"),
+    content=(
+      #|Ok(Theme(name="hacker"))
+    ),
+  )
+  @debug.debug_inspect(
+    parse_slash_command("hello"),
+    content=(
+      #|Err("Input is not a slash command")
+    ),
+  )
+  @debug.debug_inspect(
+    parse_slash_command("/foobar"),
+    content=(
+      #|Err("Unknown command: /foobar")
+    ),
+  )
+}
+
+///|
 test "slash_completions" {
   let parser = SlashCommandParser::new()
   let completions = parser.get_completions("/he")
@@ -265,3 +289,51 @@ test "theme_from_name" {
 // Realtime Renderer Tests — (Removed in Phase 6.5: realtime.mbt deprecated,
 // inline scrolling mode uses output_buffer.mbt instead)
 // ══════════════════════════════════════════════════════════════════════
+
+///|
+test "slash_parse_theme" {
+  let parser = SlashCommandParser::new()
+  let result = parser.parse("/theme hacker")
+  @debug.debug_inspect(
+    result,
+    content=(
+      #|Ok(Theme(name="hacker"))
+    ),
+  )
+}
+
+///|
+test "slash_parse_theme_missing_arg" {
+  let parser = SlashCommandParser::new()
+  let result = parser.parse("/theme")
+  @debug.debug_inspect(
+    result,
+    content=(
+      #|Err("Usage: /theme <default|hacker|minimal|light>")
+    ),
+  )
+}
+
+///|
+test "slash_parse_theme_unknown_name" {
+  let parser = SlashCommandParser::new()
+  let result = parser.parse("/theme neon")
+  @debug.debug_inspect(
+    result,
+    content=(
+      #|Err("Unknown theme: neon. Available: default, hacker, minimal, light")
+    ),
+  )
+}
+
+///|
+test "slash_completions_theme" {
+  let parser = SlashCommandParser::new()
+  let completions = parser.get_completions("/th")
+  @debug.debug_inspect(
+    completions,
+    content=(
+      #|["/theme"]
+    ),
+  )
+}

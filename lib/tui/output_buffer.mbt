@@ -95,6 +95,9 @@ pub(all) struct OutputBuffer {
   /// Monotonic version counter — incremented on every mutation.
   /// Renderers compare this to detect whether a redraw is needed.
   mut version : Int
+  /// Terminal width used to wrap lines in `append_text`.
+  /// Updated by the controller on startup and terminal resize.
+  mut width : Int
 }
 
 ///|
@@ -103,7 +106,7 @@ pub(all) struct OutputBuffer {
 /// `max_entries` defaults to 2000. When the entry count exceeds this,
 /// the oldest fully-committed entries are trimmed.
 pub fn OutputBuffer::new(max_entries? : Int = 2000) -> OutputBuffer {
-  { entries: [], next_id: 1, max_entries, version: 0 }
+  { entries: [], next_id: 1, max_entries, version: 0, width: 80 }
 }
 
 // ── Append ────────────────────────────────────────────────────────────
@@ -129,9 +132,11 @@ pub fn OutputBuffer::append(
 ///|
 /// Append a text entry, automatically splitting on newlines.
 ///
-/// Convenience method for simple text output. For text with embedded
-/// ANSI codes or requiring width-based wrapping, use `append` directly
-/// with pre-wrapped lines.
+/// Each plain line is wrapped at `self.width` display columns (CJK-aware)
+/// so overlong lines fold instead of being truncated at the screen edge.
+/// Lines carrying ANSI escape sequences (e.g. Markdown-rendered text) are
+/// stored as-is: a display-width counter would corrupt the escape
+/// sequences. For fully pre-wrapped content, use `append` directly.
 pub fn OutputBuffer::append_text(
   self : OutputBuffer,
   text : String,
@@ -139,13 +144,27 @@ pub fn OutputBuffer::append_text(
 ) -> Int {
   let lines : Array[String] = []
   for sv in text.split("\n") {
-    lines.push(sv.to_owned())
-  }
-  // Remove trailing empty line from text ending with \n
-  if lines.length() > 0 && lines[lines.length() - 1].length() == 0 {
-    // Keep it — trailing newline is meaningful for output formatting
+    let line = sv.to_owned()
+    if has_ansi_escape(line) {
+      lines.push(line)
+    } else {
+      for seg in wrap_line_at_width(line, self.width) {
+        lines.push(seg)
+      }
+    }
   }
   self.append(lines, kind)
+}
+
+///|
+/// Check whether a line contains ANSI escape sequences (ESC character).
+fn has_ansi_escape(line : String) -> Bool {
+  for c in line {
+    if c == '\u{1b}' {
+      return true
+    }
+  }
+  false
 }
 
 // ── Replace ──────────────────────────────────────────────────────────

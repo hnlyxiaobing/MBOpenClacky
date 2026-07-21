@@ -16,6 +16,7 @@ pub(all) enum SlashCommand {
   Help
   Exit
   Meeting
+  Theme(name~ : String)
 } derive(Eq, Debug)
 
 ///|
@@ -60,6 +61,11 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
       name: "meeting",
       description: "Meeting summaries (managed in Web UI)",
       usage: "/meeting",
+    },
+    {
+      name: "theme",
+      description: "Switch the color theme",
+      usage: "/theme <default|hacker|minimal|light>",
     },
   ]
   { commands, }
@@ -129,6 +135,19 @@ pub fn SlashCommandParser::parse(
     "help" => Ok(Help)
     "exit" => Ok(Exit)
     "meeting" => Ok(Meeting)
+    "theme" => {
+      if parts.length() < 2 {
+        return Err("Usage: /theme <default|hacker|minimal|light>")
+      }
+      let name = parts[1]
+      match name {
+        "default" | "hacker" | "minimal" | "light" => Ok(Theme(name~))
+        _ =>
+          Err(
+            "Unknown theme: \{name}. Available: default, hacker, minimal, light",
+          )
+      }
+    }
     _ => {
       // Check if this is a known command (for better error messages)
       let known = self.commands.iter().any(fn(c) { c.name == cmd_name })
@@ -139,6 +158,15 @@ pub fn SlashCommandParser::parse(
       }
     }
   }
+}
+
+///|
+/// Parse user input into a SlashCommand using the default command set.
+///
+/// Shared entry point used by both TuiController and the eval simulator so
+/// slash-command routing stays consistent between them.
+pub fn parse_slash_command(text : String) -> Result[SlashCommand, String] {
+  SlashCommandParser::new().parse(text)
 }
 
 ///|
@@ -255,6 +283,10 @@ pub fn execute(
       Ok(lines.join("\n"))
     }
     Exit => Ok("Exiting application")
+    Theme(name~) =>
+      // Theme switching is handled by the controller (it owns the Theme
+      // instance); this fallback keeps `execute` total.
+      Ok("Theme switched to: \{name}")
     Meeting =>
       Ok(
         "Meeting management is available in the Web UI dashboard (start / summarize meetings there). The TUI shows this summary entry only.",

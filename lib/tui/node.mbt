@@ -200,7 +200,7 @@ pub fn node_to_text(node : Node) -> String {
       for child in children {
         result = result + node_to_text(child) + " "
       }
-      result.trim_end().to_string()
+      result.trim_end().to_owned()
     }
     Border(title, children) => {
       let mut result = match title {

@@ -83,7 +83,7 @@ pub fn ProgressStack::push(
   d.next_id = d.next_id + 1
   let entry = ProgressEntry::{
     id,
-    start_time: @async.now(),
+    start_time: @env.now().reinterpret_as_int64(),
     message,
     is_closed: false,
     metadata: "",
@@ -210,9 +210,9 @@ pub fn ProgressHandle::is_open(self : ProgressHandle) -> Bool {
 
 ///|
 /// Calculate elapsed seconds from a start timestamp.
-/// Uses `@async.now()` (millisecond Int64) for real wall-clock time.
+/// Uses `@env.now()` (millisecond timestamp) for real wall-clock time.
 fn elapsed_seconds(start_time : Int64) -> Int {
-  let now_ms = @async.now()
+  let now_ms = @env.now().reinterpret_as_int64()
   let diff_ms = now_ms - start_time
   // Convert milliseconds to whole seconds
   (diff_ms / 1000L).to_int()
@@ -225,7 +225,7 @@ fn spinner_frame(_elapsed_sec : Int) -> String {
   let frames = [
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
   ]
-  let now_ms = @async.now()
+  let now_ms = @env.now().reinterpret_as_int64()
   let tick = (now_ms / 100L).to_int()
   let idx = tick % frames.length()
   frames[idx]

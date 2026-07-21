@@ -110,6 +110,53 @@ test "TuiEvalSimulator check_assertion not_contains" {
 }
 
 ///|
+test "TuiEvalSimulator slash help outputs command list" {
+  let sim = TuiEvalSimulator::new(80, 24)
+  sim.full_redraw()
+  sim.type_text("/help")
+  sim.press_key("Enter")
+  @debug.debug_inspect(sim.screen.contains("/config"), content="true")
+  @debug.debug_inspect(sim.screen.contains("/model"), content="true")
+  @debug.debug_inspect(sim.screen.contains("/clear"), content="true")
+  @debug.debug_inspect(sim.screen.contains("/help"), content="true")
+  // Slash commands must not be submitted as user messages
+  @debug.debug_inspect(sim.screen.contains("[user] /help"), content="false")
+}
+
+///|
+test "TuiEvalSimulator slash clear empties output area" {
+  let sim = TuiEvalSimulator::new(80, 24)
+  sim.full_redraw()
+  sim.type_text("hello")
+  sim.press_key("Enter")
+  @debug.debug_inspect(sim.screen.contains("[user] hello"), content="true")
+  sim.type_text("/clear")
+  sim.press_key("Enter")
+  @debug.debug_inspect(sim.screen.contains("[user] hello"), content="false")
+}
+
+///|
+test "TuiEvalSimulator slash theme outputs system message" {
+  let sim = TuiEvalSimulator::new(80, 24)
+  sim.full_redraw()
+  sim.type_text("/theme hacker")
+  sim.press_key("Enter")
+  @debug.debug_inspect(
+    sim.screen.contains("[system] Theme switched to: hacker"),
+    content="true",
+  )
+}
+
+///|
+test "TuiEvalSimulator unknown slash command sent as regular input" {
+  let sim = TuiEvalSimulator::new(80, 24)
+  sim.full_redraw()
+  sim.type_text("/foobar")
+  sim.press_key("Enter")
+  @debug.debug_inspect(sim.screen.contains("[user] /foobar"), content="true")
+}
+
+///|
 test "TuiEvalSimulator screenshot captures state" {
   let sim = TuiEvalSimulator::new(40, 10)
   sim.full_redraw()
@@ -191,4 +238,36 @@ test "format_eval_report formats correctly" {
   @debug.debug_inspect(report.contains("pass_test"), content="true")
   @debug.debug_inspect(report.contains("fail_test"), content="true")
   @debug.debug_inspect(report.contains("Total: 2"), content="true")
+}
+
+///|
+/// Regression test for the `long_output_scroll` scenario: a mock response
+/// with real newlines must produce one entry line per response line, and the
+/// message area must show the tail (line25 visible, line01 scrolled out).
+test "run_eval_scenario long output shows tail lines" {
+  let json = "{\"name\":\"long_output_scroll\",\"description\":\"Verify output area shows tail lines for long responses\",\"setup\":{\"cols\":80,\"rows\":24,\"mock_response\":\"line01\\nline02\\nline03\\nline04\\nline05\\nline06\\nline07\\nline08\\nline09\\nline10\\nline11\\nline12\\nline13\\nline14\\nline15\\nline16\\nline17\\nline18\\nline19\\nline20\\nline21\\nline22\\nline23\\nline24\\nline25\"},\"actions\":[{\"type\":\"type\",\"text\":\"test\"},{\"type\":\"press\",\"key\":\"Enter\"}],\"assertions\":[{\"check\":\"output_contains\",\"text\":\"line25\"},{\"check\":\"not_contains\",\"text\":\"line01\"}]}"
+  match parse_eval_scenario(json) {
+    Ok(scenario) => {
+      // JSON \n escape must decode to a real newline.
+      @debug.debug_inspect(
+        scenario.setup.mock_response.contains("\n"),
+        content="true",
+      )
+      @debug.debug_inspect(
+        scenario.setup.mock_response.contains("\\n"),
+        content="false",
+      )
+      let result = run_eval_scenario(scenario)
+      @debug.debug_inspect(result.passed, content="true")
+      @debug.debug_inspect(
+        result.final_screen.contains("line25"),
+        content="true",
+      )
+      @debug.debug_inspect(
+        result.final_screen.contains("line01"),
+        content="false",
+      )
+    }
+    Err(e) => @debug.debug_inspect("expected Ok", content=e)
+  }
 }

@@ -104,7 +104,7 @@ async fn ScreenBuffer::set_foreground(
 ///|
 /// Set bold style.
 async fn ScreenBuffer::bold(self : ScreenBuffer) -> Unit {
-  self.tty.bold()
+  self.tty.set_bold()
 }
 
 ///|

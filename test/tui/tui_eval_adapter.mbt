@@ -300,6 +300,8 @@ pub(all) struct TuiEvalSimulator {
   mut confirmation_result : Bool?
   /// Mock LLM response text for eval scenarios.
   mut mock_response : String
+  /// Mock agent backing slash-command execution (no real LLM calls).
+  agent : @agent.Agent
 }
 
 ///|
@@ -319,6 +321,7 @@ pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
     input_h: 4,
     confirmation_result: None,
     mock_response: "",
+    agent,
   }
 }
 
@@ -468,6 +471,18 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
   }
   let text = self.input.submit()
   if text.length() > 0 {
+    // Route slash commands through the shared parser, mirroring the real
+    // controller's behavior (TuiController::handle_enter_key).
+    if text[0:1] == "/" {
+      match @libtui.parse_slash_command(text) {
+        Ok(cmd) => {
+          self.handle_slash_command(cmd)
+          return
+        }
+        // Not a valid slash command — fall through as regular input.
+        Err(_) => ()
+      }
+    }
     // Add user message to output
     ignore(self.output.append_text("[user] \{text}", @libtui.OutputKind::Text))
     // Commit it
@@ -492,6 +507,58 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     self.state.val.agent_status = "idle"
     // Full redraw
     self.full_redraw()
+  }
+}
+
+///|
+/// Execute a parsed slash command against the mock agent, mirroring
+/// TuiController::handle_enter_key's routing and output format.
+fn TuiEvalSimulator::handle_slash_command(
+  self : TuiEvalSimulator,
+  cmd : @libtui.SlashCommand,
+) -> Unit {
+  match cmd {
+    Todo => {
+      // Toggle todo area visibility
+      if self.state.val.todo_area.hidden {
+        self.state.val.todo_area.show()
+      } else {
+        self.state.val.todo_area.hide()
+      }
+      self.full_redraw()
+    }
+    Theme(name~) => {
+      ignore(
+        self.output.append_text(
+          "[system] Theme switched to: \{name}",
+          @libtui.OutputKind::Text,
+        ),
+      )
+      self.output.commit_through(self.output.entry_count())
+      self.full_redraw()
+    }
+    Clear => {
+      // Clear the agent history (like the real controller) and the visible
+      // output buffer so the message area is empty afterwards.
+      ignore(@libtui.execute(cmd, self.agent))
+      self.output.clear()
+      self.full_redraw()
+    }
+    _ => {
+      let result = @libtui.execute(cmd, self.agent)
+      match result {
+        Ok(msg) =>
+          ignore(
+            self.output.append_text("[system] \{msg}", @libtui.OutputKind::Text),
+          )
+        Err(err) =>
+          ignore(
+            self.output.append_text("[error] \{err}", @libtui.OutputKind::Text),
+          )
+      }
+      self.output.commit_through(self.output.entry_count())
+      self.full_redraw()
+    }
   }
 }
 

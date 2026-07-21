@@ -1,7 +1,7 @@
 # TUI 集成断裂修复与效果恢复 · 增量 Spec
 
 > **创建日期**: 2026-07-20  
-> **状态**: 讨论中  
+> **状态**: 已完成（2026-07-21 验收通过）  
 > **关联总览**: `tui_effect_test_report.md`（2026-07-20 TUI 效果级测试报告）  
 > **关联历史 spec**: `specs/completed/2026-07-15_tui-overhaul-master-plan.md`（TUI 重构 Master Plan）  
 > **来源差距**: TUI 效果测试暴露的 1 项 P0 致命缺陷 + 5 项 P1 集成缺失 + 3 项 P2 问题  
@@ -264,30 +264,30 @@ layout_manager.mbt (redraw_live, L83)
 
 ### P0 致命缺陷修复（必须全部通过）
 
-- [ ] `cmd.exe` 交互模式发送消息后，输出区显示 `[assistant]` 回复
-- [ ] 流式回复实时显示（非等全部完成后一次性显示）
-- [ ] `moon check` 0 errors（lib/tui）
-- [ ] `moon test lib/tui` 全部通过（239+ 测试，含新增测试）
+- [x] `cmd.exe` 交互模式发送消息后，输出区显示 `[assistant]` 回复（AgentDone/AgentError 差量同步 `state.messages`，agent_output_sync_wbtest 覆盖）
+- [x] 流式回复实时显示（非等全部完成后一次性显示）（Tick 200ms 轮询 `streaming_buffer` 原位更新 live entry）
+- [x] `moon check` 0 errors（lib/tui）
+- [x] `moon test lib/tui` 全部通过（271 测试，含新增测试）
 
 ### P1 集成补齐
 
-- [ ] `[assistant]` 消息中的 Markdown（标题/代码块/列表）正确着色渲染
-- [ ] 输入 `/` 前缀弹出命令补全下拉框，Up/Down 导航，Enter 补全
-- [ ] 单行模式下 Up/Down 浏览输入历史
-- [ ] 启动时显示 Banner 品牌画面
-- [ ] `/theme <name>` 命令切换主题后配色变化
-- [ ] 超长行自动折行，不截断
+- [x] `[assistant]` 消息中的 Markdown（标题/代码块/列表）正确着色渲染
+- [x] 输入 `/` 前缀弹出命令补全下拉框，Up/Down 导航，Enter 补全
+- [x] 单行模式下 Up/Down 浏览输入历史
+- [x] 启动时显示 Banner 品牌画面
+- [x] `/theme <name>` 命令切换主题后配色变化
+- [x] 超长行自动折行，不截断（OutputBuffer.append_text 内按终端宽度 wrap_line_at_width）
 
 ### P2 效果增强
 
-- [ ] agent 运行期间显示 "Thinking... (Xs)" spinner 动画
-- [ ] eval 场景 `slash_command_help` 和 `slash_command_clear` PASS
-- [ ] 22 个 eval 场景全部 PASS（`cmd.exe --tui-eval test/scenarios/tui/`）
+- [x] agent 运行期间显示 "Thinking... (Xs)" spinner 动画（Tick 驱动重绘固定位置进度带）
+- [x] eval 场景 `slash_command_help` 和 `slash_command_clear` PASS
+- [x] 22 个 eval 场景全部 PASS（`cmd.exe --tui-eval test/scenarios/tui/`，2026-07-21 实测 22/22）
 
 ### P3 代码质量
 
-- [ ] `screen_buffer.mbt` 无 deprecated `bold()` 调用
-- [ ] `thinking_view.mbt` 无 deprecated `to_string()` 调用
+- [x] `screen_buffer.mbt` 无 deprecated `bold()` 调用（改为 `set_bold()`，以 tty 包实际签名为准）
+- [x] `thinking_view.mbt` 无 deprecated `to_string()` 调用（改为 `to_owned()`；lib/tui 内其余 8 处 deprecated 一并清零）
 
 ---
 
@@ -323,3 +323,4 @@ layout_manager.mbt (redraw_live, L83)
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-20 | 初始版本：基于 tui_effect_test_report.md 创建，所有缺失声明经 grep/glob/file_reader 验证 | TUI 效果测试暴露组件集成层致命断裂，需系统性修复 |
+| 2026-07-21 | 全部 7 个任务包完成并验收：新增 agent_output_sync.mbt（P0-1 消息/流式同步）；OutputBuffer 宽度折行 + Markdown 集成（P1-1/P2-1）；CommandSuggestions + 输入历史（P1-2/P1-3）；Banner + Theme + `/theme` 命令（P1-4/P1-5）；ProgressStack 固定位置渲染（P2-2）；提取 `parse_slash_command` 共享入口并接入 eval 模拟器（P0-2）；lib/tui deprecated API 清零（P3）。验证：`moon check` 0 errors；`moon test lib/tui` 271/271；`moon test test/tui` 32/32；22/22 eval 场景 PASS。另修复 long_output_scroll.json 中 `\\n` 双重转义导致的场景数据错误。注：真实 TTY 人工交互验证（流式视觉效果、spinner 动画）属 spec 既定的后置依赖，未在本次机器验收范围内；`commit_through` 语义与文档相反、`redraw_live` 满屏无滚动为已知技术债务，留待后续 spec | 开发目标全部达成，验收标准逐项通过 |
