@@ -86,17 +86,17 @@ lib/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 309 |
-| Test files (`_wbtest.mbt`) | 103 |
-| Source lines | ~62,000 |
-| Test lines | ~23,000 |
-| Total lines (incl. test/) | ~85,000 |
-| Test cases | 1,850+ |
+| `.mbt` source files (lib + cmd) | 312 |
+| Test files (`_wbtest.mbt`) | 137 |
+| Source lines | ~66,600 |
+| Test lines | ~30,200 |
+| Total lines (incl. test/) | ~96,800 |
+| Test cases | 2,790+ |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
-| REST API endpoints | ~162 |
+| REST API endpoints | ~159 |
 | `moon check` | 0 errors, ~500 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |
