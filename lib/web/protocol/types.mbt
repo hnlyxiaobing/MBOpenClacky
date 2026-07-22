@@ -189,24 +189,42 @@ pub let event_cost_update : String = "cost_update"
 
 ///|
 /// Build a downstream WS event JSON string.
-/// Format: {"type": "<event_type>", "session_id": "<sid>", "data": {...}}
+/// Format: {"type": "<event_type>", "session_id": "<sid>", ...flat fields}
+/// The data object's fields are merged into the top level so the frontend
+/// can access them directly (e.g. ev.content, ev.name) without a nested
+/// `data` wrapper.
 pub fn build_event(
   event_type : String,
   session_id : String,
   data : Json,
 ) -> String {
-  Json::object({
+  let obj : Map[String, Json] = {
     "type": event_type.to_json(),
     "session_id": session_id.to_json(),
-    "data": data,
-  }).stringify()
+  }
+  match data {
+    Object(m) =>
+      for entry in m {
+        obj[entry.0] = entry.1
+      }
+    _ => obj["data"] = data
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
 /// Build a downstream WS event JSON string without session_id.
-/// Format: {"type": "<event_type>", "data": {...}}
+/// Format: {"type": "<event_type>", ...flat fields}
 pub fn build_global_event(event_type : String, data : Json) -> String {
-  Json::object({ "type": event_type.to_json(), "data": data }).stringify()
+  let obj : Map[String, Json] = { "type": event_type.to_json() }
+  match data {
+    Object(m) =>
+      for entry in m {
+        obj[entry.0] = entry.1
+      }
+    _ => obj["data"] = data
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
@@ -215,7 +233,7 @@ pub fn build_error_event(session_id : String, message : String) -> String {
   build_event(
     event_error,
     session_id,
-    Json::object({ "error": message.to_json() }),
+    Json::object({ "message": message.to_json() }),
   )
 }
 
@@ -242,7 +260,7 @@ pub fn build_connected_event(session_id : String) -> String {
 pub fn build_subscribed_event(target : String) -> String {
   build_global_event(
     event_subscribed,
-    Json::object({ "target": target.to_json() }),
+    Json::object({ "session_id": target.to_json() }),
   )
 }
 
@@ -251,18 +269,19 @@ pub fn build_subscribed_event(target : String) -> String {
 pub fn build_session_list_event(sessions : Array[Json]) -> String {
   build_global_event(
     event_session_list,
-    Json::object({ "sessions": Json::array(sessions) }),
+    Json::object({
+      "sessions": Json::array(sessions),
+      "has_more": false.to_json(),
+      "cron_count": (0).to_json(),
+      "latest_cron_updated_at": Json::null(),
+    }),
   )
 }
 
 ///|
 /// Build an interrupted event.
 pub fn build_interrupted_event(session_id : String) -> String {
-  build_event(
-    event_interrupted,
-    session_id,
-    Json::object({ "session_id": session_id.to_json() }),
-  )
+  build_event(event_interrupted, session_id, Json::empty_object())
 }
 
 ///|
@@ -274,7 +293,11 @@ pub fn build_history_user_message(
   build_event(
     event_history_user_message,
     session_id,
-    Json::object({ "role": "user".to_json(), "content": content.to_json() }),
+    Json::object({
+      "role": "user".to_json(),
+      "content": content.to_json(),
+      "created_at": @agent.current_time_ms().to_string().to_json(),
+    }),
   )
 }
 

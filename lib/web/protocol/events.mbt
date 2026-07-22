@@ -25,95 +25,90 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
   match event {
     StatusChanged(_old, new) =>
       {
-        event_type: "status",
+        event_type: "session_update",
         data: Json::object({ "status": new.to_string_value().to_json() }),
       }
     BeforeIteration(n) =>
       {
         event_type: "progress",
         data: Json::object({
-          "iteration": n.to_json(),
-          "phase": "iteration_start".to_json(),
+          "phase": "active".to_json(),
+          "message": "Thinking...".to_json(),
+          "progress_type": "thinking".to_json(),
+          "metadata": Json::object({ "iteration": n.to_json() }),
+          "started_at": @agent.current_time_ms().to_string().to_json(),
         }),
       }
-    AfterIteration(n) =>
+    AfterIteration(_n) =>
       {
         event_type: "progress",
-        data: Json::object({
-          "iteration": n.to_json(),
-          "phase": "iteration_end".to_json(),
-        }),
+        data: Json::object({ "phase": "done".to_json() }),
       }
     BeforeLlmCall =>
       {
         event_type: "phase_start",
-        data: Json::object({ "phase": "llm_call".to_json() }),
+        data: Json::object({
+          "phase_id": "llm_call".to_json(),
+          "kind": "llm_call".to_json(),
+          "label": "LLM call".to_json(),
+        }),
       }
     AfterLlmCall =>
       {
         event_type: "phase_end",
-        data: Json::object({ "phase": "llm_call".to_json() }),
+        data: Json::object({ "phase_id": "llm_call".to_json() }),
       }
     MessageAdded =>
       {
         event_type: "progress",
-        data: Json::object({ "phase": "message_added".to_json() }),
+        data: Json::object({ "phase": "done".to_json() }),
       }
     ToolExecuting(name, args) =>
       {
         event_type: "tool_call",
         data: Json::object({
-          "tool": name.to_json(),
-          "arguments": args.to_json(),
+          "name": name.to_json(),
+          "args": args.to_json(),
+          "summary": Json::null(),
         }),
       }
-    ToolExecuted(name, result) => {
+    ToolExecuted(_name, result) => {
       let is_err = result.is_error
       let output = result.content
       if is_err {
         {
           event_type: "tool_error",
-          data: Json::object({
-            "tool": name.to_json(),
-            "error": output.to_json(),
-          }),
+          data: Json::object({ "error": output.to_json() }),
         }
       } else {
         {
           event_type: "tool_result",
-          data: Json::object({
-            "tool": name.to_json(),
-            "output": output.to_json(),
-          }),
+          data: Json::object({ "result": output.to_json() }),
         }
       }
     }
     ErrorOccurred(msg) =>
-      { event_type: "error", data: Json::object({ "error": msg.to_json() }) }
+      { event_type: "error", data: Json::object({ "message": msg.to_json() }) }
     RunCompleted(result) => {
-      let err_field : Json = match result.error {
-        Some(e) => e.to_json()
-        None => Json::null()
-      }
+      let cs = result.cache_stats
       {
         event_type: "complete",
         data: Json::object({
-          "status": result.status.to_string_value().to_json(),
-          "session_id": result.session_id.to_json(),
           "iterations": result.iterations.to_json(),
-          "total_cost_usd": result.total_cost_usd.to_json(),
-          "error": err_field,
+          "cost": result.total_cost_usd.to_json(),
+          "cost_source": result.cost_source.to_string_value().to_json(),
+          "cache_stats": Json::object({
+            "total_requests": cs.total_requests.to_json(),
+            "cache_hit_requests": cs.cache_hit_requests.to_json(),
+            "cache_read_input_tokens": cs.cache_read_input_tokens.to_json(),
+          }),
         }),
       }
     }
-    // NOTE: the WS push path aggregates StreamChunk into a single complete
-    // assistant_message in the WS adapter (spec decision 3); this branch is
-    // only a pure mapping for non-WS consumers.
     StreamChunk(chunk) =>
       {
         event_type: "assistant_message",
         data: Json::object({
-          "role": "assistant".to_json(),
           "content": chunk.to_json(),
           "partial": true.to_json(),
         }),
@@ -123,7 +118,7 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
         event_type: "session_update",
         data: Json::object({
           "session_id": session_id.to_json(),
-          "phase": "started".to_json(),
+          "status": "running".to_json(),
         }),
       }
     SessionEnded(session_id) =>
@@ -131,13 +126,13 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
         event_type: "session_update",
         data: Json::object({
           "session_id": session_id.to_json(),
-          "phase": "ended".to_json(),
+          "status": "idle".to_json(),
         }),
       }
     CostUpdated(cost) =>
       {
         event_type: "token_usage",
-        data: Json::object({ "total_cost_usd": cost.to_json() }),
+        data: Json::object({ "cost": cost.to_json() }),
       }
     WarningOccurred(msg) =>
       {
@@ -152,52 +147,65 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
     ThinkingStarted =>
       {
         event_type: "phase_start",
-        data: Json::object({ "phase": "thinking".to_json() }),
+        data: Json::object({
+          "phase_id": "thinking".to_json(),
+          "kind": "thinking".to_json(),
+          "label": "Thinking".to_json(),
+        }),
       }
     ThinkingEnded =>
       {
         event_type: "phase_end",
-        data: Json::object({ "phase": "thinking".to_json() }),
+        data: Json::object({ "phase_id": "thinking".to_json() }),
       }
     SubagentStarted(name) =>
       {
         event_type: "phase_start",
         data: Json::object({
-          "phase": "subagent".to_json(),
-          "agent": name.to_json(),
+          "phase_id": name.to_json(),
+          "kind": "skill_evolution".to_json(),
+          "label": name.to_json(),
         }),
       }
     SubagentEnded(name) =>
       {
         event_type: "phase_end",
         data: Json::object({
-          "phase": "subagent".to_json(),
-          "agent": name.to_json(),
+          "phase_id": name.to_json(),
+          "summary": Json::null(),
         }),
       }
     RetryAttempt(n, reason) =>
       {
         event_type: "progress",
         data: Json::object({
-          "phase": "retry".to_json(),
-          "attempt": n.to_json(),
-          "reason": reason.to_json(),
+          "phase": "active".to_json(),
+          "message": "Retrying...".to_json(),
+          "progress_type": "retry".to_json(),
+          "metadata": Json::object({
+            "attempt": n.to_json(),
+            "reason": reason.to_json(),
+          }),
+          "started_at": @agent.current_time_ms().to_string().to_json(),
         }),
       }
     ToolDenied(name) =>
       {
-        event_type: "tool_denied",
-        data: Json::object({ "tool": name.to_json() }),
+        event_type: "tool_error",
+        data: Json::object({ "error": ("Tool denied: " + name).to_json() }),
       }
     UsageUpdated(data) =>
       {
         event_type: "token_usage",
         data: Json::object({
-          "input_tokens": data.prompt_tokens.to_json(),
-          "output_tokens": data.completion_tokens.to_json(),
+          "prompt_tokens": data.prompt_tokens.to_json(),
+          "completion_tokens": data.completion_tokens.to_json(),
           "delta_tokens": data.delta_tokens.to_json(),
           "total_tokens": data.total_tokens.to_json(),
-          "cost_usd": data.cost.to_json(),
+          "cost": data.cost.to_json(),
+          "cost_source": data.cost_source.to_string_value().to_json(),
+          "cache_read": data.cache_read.to_json(),
+          "cache_write": data.cache_write.to_json(),
         }),
       }
   }
@@ -210,16 +218,13 @@ pub fn format_hook_event(
   event : @agent.HookEvent,
 ) -> String {
   let mapped = map_hook_event(event)
-  Json::object({
-    "type": mapped.event_type.to_json(),
-    "session_id": session_id.to_json(),
-    "data": mapped.data,
-  }).stringify()
+  build_event(mapped.event_type, session_id, mapped.data)
 }
 
 ///|
 /// Build a session_update snapshot event from a SessionData.
-/// This is sent on initial subscribe to give the client a full state picture.
+/// Sent on initial subscribe; uses the `session` object shape the frontend
+/// session_update handler expects (ws-dispatcher.js shape 1).
 pub fn build_session_snapshot(data : @agent.SessionData) -> String {
   let messages_arr : Array[Json] = []
   for msg in data.messages {
@@ -229,22 +234,26 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
     Some(m) => m.to_json()
     None => Json::null()
   }
-  Json::object({
-    "type": "session_update".to_json(),
-    "session_id": data.session_id.to_json(),
-    "data": Json::object({
-      "session_id": data.session_id.to_json(),
-      "name": data.name.to_json(),
-      "status": data.last_status.to_json(),
-      "working_dir": data.working_dir.to_json(),
-      "model": model_field,
-      "created_at": data.created_at.to_json(),
-      "total_tasks": data.stats.total_tasks.to_json(),
-      "total_cost_usd": data.stats.total_cost_usd.to_json(),
-      "iterations": data.stats.total_iterations.to_json(),
-      "messages": messages_arr.to_json(),
+  build_event(
+    "session_update",
+    data.session_id,
+    Json::object({
+      "session": Json::object({
+        "id": data.session_id.to_json(),
+        "name": data.name.to_json(),
+        "status": data.last_status.to_json(),
+        "working_dir": data.working_dir.to_json(),
+        "model": model_field,
+        "created_at": data.created_at.to_json(),
+        "total_tasks": data.stats.total_tasks.to_json(),
+        "total_cost": data.stats.total_cost_usd.to_json(),
+        "cost_source": data.stats.cost_source.to_json(),
+        "source": data.source.to_json(),
+        "latest_latency": data.latest_latency_ms.to_json(),
+        "messages": messages_arr.to_json(),
+      }),
     }),
-  }).stringify()
+  )
 }
 
 ///|
@@ -290,10 +299,8 @@ pub fn build_messages_history(
           "assistant_message"
         }).to_json(),
         "session_id": session_id.to_json(),
-        "data": Json::object({
-          "role": role.to_json(),
-          "content": content.to_json(),
-        }),
+        "role": role.to_json(),
+        "content": content.to_json(),
       }),
     )
     count = count + 1

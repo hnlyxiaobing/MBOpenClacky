@@ -312,7 +312,7 @@ fn handle_ws_interrupt(
 
 ///|
 /// Handle message (chat) message.
-/// Format: {"type": "message", "session_id": "...", "message": "..."}
+/// Format: {"type": "message", "session_id": "...", "content": "..."}
 /// Echoes the user message and starts an async agent run.
 fn handle_ws_message(
   server_ref : Ref[WebServer],
@@ -321,7 +321,7 @@ fn handle_ws_message(
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
-  let message = match obj.get("message") {
+  let message = match obj.get("content") {
     Some(String(m)) => m
     _ => return
   }
@@ -335,7 +335,7 @@ fn handle_ws_message(
 
 ///|
 /// Handle edit_message message.
-/// Format: {"type": "edit_message", "session_id": "...", "message": "..."}
+/// Format: {"type": "edit_message", "session_id": "...", "content": "..."}
 /// Replaces the last user message in the agent history (dropping everything
 /// after it) and re-runs the agent.
 fn handle_ws_edit_message(
@@ -345,7 +345,7 @@ fn handle_ws_edit_message(
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
-  let message = match obj.get("message") {
+  let message = match obj.get("content") {
     Some(String(m)) => m
     _ => return
   }
@@ -379,7 +379,7 @@ fn handle_ws_edit_message(
 
 ///|
 /// Handle confirmation message.
-/// Format: {"type": "confirmation", "request_id": "...", "confirmed": true/false}
+/// Format: {"type": "confirmation", "session_id": "...", "id": "...", "result": true/false}
 /// Delivers the reply to the pending confirmation queue that the
 /// confirmation bridge is awaiting, then acknowledges the client.
 fn handle_ws_confirmation(
@@ -387,14 +387,15 @@ fn handle_ws_confirmation(
   peer : @ws.WebSocketPeer,
   obj : Map[String, Json],
 ) -> Unit {
-  let request_id = match obj.get("request_id") {
+  let request_id = match obj.get("id") {
     Some(String(rid)) => rid
     _ => {
-      peer.text(@protocol.build_error_event("", "missing request_id"))
+      peer.text(@protocol.build_error_event("", "missing id"))
       return
     }
   }
-  let confirmed = match obj.get("confirmed") {
+  let confirmed = match obj.get("result") {
+    Some(String("yes")) => true
     Some(True) => true
     _ => false
   }
@@ -437,8 +438,11 @@ fn deliver_confirmation(
 
 ///|
 /// Handle run_task message.
-/// Format: {"type": "run_task", "session_id": "...", "task": "..."}
-/// Runs a background task in the session context.
+/// Format: {"type": "run_task", "session_id": "..."}
+/// Triggers an agent run for a session that was created via REST API
+/// (e.g. cron task run). The task content is already associated with the
+/// session on the server side; if a `task` field is present it is used
+/// directly as the message.
 fn handle_ws_run_task(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
@@ -446,25 +450,18 @@ fn handle_ws_run_task(
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
-  let task = match obj.get("task") {
-    Some(String(t)) => t
-    _ => return
-  }
   let session_id = match resolve_session_id(hub, conn_id, obj) {
     Some(s) => s
     None => return
   }
   ensure_subscribed(hub, conn_id, session_id)
-
-  // Broadcast progress start.
-  hub.broadcast_session(
-    session_id,
-    @protocol.build_event(
-      @protocol.event_progress,
-      session_id,
-      Json::object({ "phase": "task_start".to_json(), "task": task.to_json() }),
-    ),
-  )
+  let task = match obj.get("task") {
+    Some(String(t)) => t
+    _ => ""
+  }
+  if task.is_empty() {
+    return
+  }
   start_ws_run(server_ref, session_id, task)
 }
 
@@ -602,9 +599,8 @@ async fn run_confirmation_bridge(
         @protocol.event_request_confirmation,
         session_id,
         Json::object({
-          "request_id": request_id.to_json(),
-          "tool": tool.to_json(),
-          "arguments": args.to_json(),
+          "id": request_id.to_json(),
+          "message": ("Allow tool \"" + tool + "\" to execute?").to_json(),
         }),
       ),
     )
