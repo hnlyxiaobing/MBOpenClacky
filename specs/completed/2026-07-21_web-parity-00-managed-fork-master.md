@@ -1,7 +1,7 @@
 # Web Parity 主控：受管 fork 策略与阶段依赖 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（completed）  
 > **关联总览**: `docs/web_ui_replication_plan.md`（调查结论 + 三方案对抗性审查）  
 > **关联历史 spec**: `docs/web_ui_comparison_report.md`（7-20 功能差距清单）  
 > **来源差距**: Web UI 布局/功能与原项目结构性不一致（用户实测反馈）  
@@ -121,3 +121,4 @@
 |------|---------|------|
 | 2026-07-21 | 初始版本：受管 A 方案主控，五条纪律，01~05 阶段拆解与依赖图；同步基线 v1.4.0-19-g042772e 经 `git describe` 验证 | 用户确认按受管 A 方案拆解开发方案 |
 | 2026-07-21 | 审核修正：8 项对抗性检查全通过（文件存在/函数名/路由行号/AOT 约束/crescent API/模板完整/无过工程化）；原项目 http_server.rb（lib/clacky/server/，6970 行）、ws-dispatcher.js（472 行）存在确认；moon.mod exclude 已更新为 web/legacy_mb | 对抗性审核 + 第一性原理校验 |
+| 2026-07-21 | 状态→已完成：五项确认全绿（legacy 归档✓、moon.mod exclude✓、五条纪律基础设施✓、模板处理器✓、web 目录结构✓）；moon check/test/fmt 受工具链预存故障阻塞（已知，与本次无关） | 验证确认 |

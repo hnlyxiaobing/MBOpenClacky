@@ -1,7 +1,7 @@
 # Web Parity P1：WS /ws 协议 + 会话核心 REST（聊天主链路）· 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（implemented）  
 > **关联总览**: `docs/web_ui_replication_plan.md`（§1.2 WS 协议全表、§1.3 会话核心簇）  
 > **关联历史 spec**: `specs/active/2026-07-21_web-parity-00-managed-fork-master.md`、`...-01-assets-static-server.md`  
 > **来源差距**: 原前端聊天全部走单端点 WS `/ws`；本项目现有 `/ws/sessions/:id`（自设消息类型）+ SSE 伪流式，与原契约不兼容  

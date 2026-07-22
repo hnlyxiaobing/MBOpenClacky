@@ -1,7 +1,7 @@
 # TUI 对齐批次 2：Welcome Banner 与状态栏 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成  
 > **关联总览**: `docs/tui_feature_parity_plan.md`（功能差距矩阵）  
 > **关联历史 spec**: `specs/active/2026-07-21_tui-parity-01-command-usability.md`（批次 1）  
 > **来源差距**: W01 / W03 / W04 / W05 / W08 / S01 / S02（差距矩阵批次 2，P0——截图对比的核心视觉差异）  
@@ -109,3 +109,4 @@
 |------|---------|------|
 | 2026-07-21 | 初始版本：9 项声称经 grep 验证（含 workspace_rules 基础设施已存在、SegmentColor 未应用两项关键事实）；状态栏位置、logo 品牌字两处显式决策；W06 降级为可选项 | 差距矩阵批次 2（P0）落实 |
 | 2026-07-21 | 审核修正：TuiState `cwd` 字段名纠正为 `working_dir`；`block_font.mbt` 引用精确化（`lib/utils` BlockFont 为实际调用者，`lib/tui` 为伴生渲染器）；原版 `welcome_banner.rb` 行号标注为未验证外部参照；交叉引用 parity-01 draft->active | 对抗性审核 + 第一性原理校验 |
+| 2026-07-22 | 实施完成：banner 多区块渲染、状态栏分段 ANSI 上色、idle/working spinner 动画、3 个新 eval 场景 | 代码实施 |

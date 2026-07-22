@@ -1,7 +1,7 @@
 # TUI 对齐批次 3：/config 配置菜单与 /model 选择器 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成 
 > **关联总览**: `docs/tui_feature_parity_plan.md`（功能差距矩阵）  
 > **关联历史 spec**: `specs/active/2026-07-21_tui-parity-01-command-usability.md`（批次 1，controller 拦截模式）  
 > **来源差距**: C02 / C03 / C04 / K04（差距矩阵批次 3，P1——最大功能缺口）  
@@ -81,15 +81,15 @@
 
 ## 验收标准 [必填]
 
-- [ ] `/config` 打开模型列表菜单：掩码 key、当前模型高亮、jk/↑↓ 导航、Esc 关闭
-- [ ] 菜单内 Enter 切换模型立即生效（状态栏模型名变化）且重启后保持（持久化）
-- [ ] Add 表单可新增模型（Provider 预设 + key 掩码输入 + model + base_url），保存后出现在列表
-- [ ] Edit/Delete 流程可用；删除当前模型时有明确回退行为
-- [ ] `/model` 打开选择器；`/model <name>` 直切保留
-- [ ] 连接验证失败时消息区出现 [warning] 但配置已保存（降级语义）
-- [ ] `moon check` 0 errors；`moon test lib/tui`、`lib/config` 通过
-- [ ] `--tui-eval` 全量 PASS（含新增 3 场景）
-- [ ] 人工 TTY 完整走查 Add → Edit → 切换 → Delete
+- [x] `/config` 打开模型列表菜单：掩码 key、当前模型高亮、jk/↑↓ 导航、Esc 关闭
+- [x] 菜单内 Enter 切换模型立即生效（状态栏模型名变化）且重启后保持（持久化）
+- [x] Add 表单可新增模型（Provider 预设 + key 掩码输入 + model + base_url），保存后出现在列表
+- [x] Edit/Delete 流程可用；删除当前模型时有明确回退行为
+- [x] `/model` 打开选择器；`/model <name>` 直切保留
+- [x] 连接验证失败时消息区出现 [warning] 但配置已保存（降级语义）
+- [x] `moon check` 0 errors；`moon test lib/tui`、`lib/config` 通过
+- [x] `--tui-eval` 全量 PASS（含新增 3 场景）
+- [x] 人工 TTY 完整走查 Add → Edit → 切换 → Delete
 
 ## 风险评估 [必填]
 

@@ -1,7 +1,7 @@
 # Web Parity P0：原前端资产移植 + 静态服务与鉴权适配 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（implemented 2026-07-21）  
 > **关联总览**: `docs/web_ui_replication_plan.md`  
 > **关联历史 spec**: `specs/active/2026-07-21_web-parity-00-managed-fork-master.md`（主控）  
 > **来源差距**: Web UI 首页在归档后处于预期内破损状态；原前端未就位前一切后续工作无法实测  

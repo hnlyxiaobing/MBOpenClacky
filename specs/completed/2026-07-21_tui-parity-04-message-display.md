@@ -1,7 +1,7 @@
 # TUI 对齐批次 4：消息展示深度 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成 
 > **关联总览**: `docs/tui_feature_parity_plan.md`（功能差距矩阵）  
 > **关联历史 spec**: `specs/completed/2026-07-21_tui-remaining-issues.md`（流式管线，本批在其上叠加展示层）  
 > **来源差距**: M03 / M04 / M08 / M09 / M10 / P02-P04 / A01（差距矩阵批次 4，P1）  
@@ -85,16 +85,16 @@
 
 ## 验收标准 [必填]
 
-- [ ] 真实 LLM 会话中工具调用显示 `[=>] 摘要`，结果显示 `[<=]`（截 200 字符），拒绝显示 `[!!]`
-- [ ] shell 工具调用前有 `[C] command` 预览；文件操作有 `[F] path` + Creating/Modifying 着色
-- [ ] 每次 LLM 调用后有 token 统计行（delta 分档着色、cache、Cost）
-- [ ] >5 迭代的任务完成后显示摘要（iterations/cost/duration）
-- [ ] thinking/tool 阶段切换时出现 `▼`/`▲` 横幅
-- [ ] 进度帧含耗时与字符计数；<2s 完成的任务不留进度痕迹
-- [ ] 审批对话框 Shift+Tab 后同类工具本会话不再询问
-- [ ] `moon check` 0 errors；`moon test lib/tui`、`lib/agent` 通过
-- [ ] `--tui-eval` 全量 PASS（含新增 3 场景）
-- [ ] 人工 TTY 真实 LLM 多工具会话观感对照原版
+- [x] 真实 LLM 会话中工具调用显示 `[=>] 摘要`，结果显示 `[<=]`（截 200 字符），拒绝显示 `[!!]`
+- [x] shell 工具调用前有 `[C] command` 预览；文件操作有 `[F] path` + Creating/Modifying 着色
+- [x] 每次 LLM 调用后有 token 统计行（delta 分档着色、cache、Cost）
+- [x] >5 迭代的任务完成后显示摘要（iterations/cost/duration）
+- [x] thinking/tool 阶段切换时出现 `▼`/`▲` 横幅
+- [x] 进度帧含耗时与字符计数；<2s 完成的任务不留进度痕迹
+- [x] 审批对话框 Shift+Tab 后同类工具本会话不再询问
+- [x] `moon check` 0 errors；`moon test lib/tui`、`lib/agent` 通过
+- [x] `--tui-eval` 全量 PASS（含新增 3 场景）
+- [x] 人工 TTY 真实 LLM 多工具会话观感对照原版
 
 ## 风险评估 [必填]
 

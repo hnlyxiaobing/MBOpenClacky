@@ -1,7 +1,7 @@
 # Web Parity P3：次级面板簇（git/时光机/trash/billing/backup/cron/channels/mcp/版本/分享/onboard/媒体/品牌）· 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（completed）  
 > **关联总览**: `docs/web_ui_replication_plan.md`（§1.3 次级面板簇、§1.6 扩展机制）  
 > **关联历史 spec**: `specs/active/2026-07-21_web-parity-02-ws-chat-core.md`（P1）  
 > **来源差距**: 原前端 16 个 features 面板 + git/time_machine 两个 ext_ui 面板依赖的宿主端点尚未按原契约提供  

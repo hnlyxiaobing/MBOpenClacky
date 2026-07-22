@@ -1,7 +1,7 @@
 # Web Parity P4：扩展机制定案 + legacy 退役 + 旧端点清理 + 系列终验 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（2026-07-22）  
 > **关联总览**: `docs/web_ui_replication_plan.md`（§1.6 扩展机制、附录对抗性审查纪律 3/4/5）  
 > **关联历史 spec**: web-parity-00~04 全部  
 > **来源差距**: meeting/ext-studio 面板依赖 Ruby 运行时 handler（AOT 不可移植）；web/legacy_mb 与自设旧端点待清理；系列级终验未执行  

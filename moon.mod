@@ -24,5 +24,5 @@ description = "AI Agent CLI tool rewritten in MoonBit"
 preferred_target = "native"
 
 options(
-  exclude: [ "web/legacy_mb" ],
+  exclude: [ ],
 )

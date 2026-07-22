@@ -1,7 +1,7 @@
 # Web Parity P2：设置体系 / Profile / 记忆 / 技能 / Agent · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（implemented）  
 > **关联总览**: `docs/web_ui_replication_plan.md`（§1.3 配置/技能/Profile 簇）  
 > **关联历史 spec**: `specs/active/2026-07-21_web-parity-02-ws-chat-core.md`（P1）  
 > **来源差距**: 原项目设置分 Models/UI/General/Data Management/About 五分区；Profile 有 Soul/User/Memories 三区；技能页含启停/内容编辑/来源标记  

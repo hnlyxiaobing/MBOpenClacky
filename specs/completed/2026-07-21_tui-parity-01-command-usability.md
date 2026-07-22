@@ -1,7 +1,7 @@
 # TUI 对齐批次 1：斜杠命令可用性修复 · 增量 Spec
 
 > **创建日期**: 2026-07-21  
-> **状态**: 讨论中（draft，待对抗性审核）  
+> **状态**: 已完成（implemented）  
 > **关联总览**: `docs/tui_feature_parity_plan.md`（功能差距矩阵与五步方法论）  
 > **关联历史 spec**: `specs/completed/2026-07-21_tui-remaining-issues.md`（渲染管线治理，同周期）  
 > **来源差距**: C01 / C06 / C07 / C09 + placeholder 文案缺陷（差距矩阵批次 1，P0）  
