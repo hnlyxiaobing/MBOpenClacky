@@ -1,1 +1,16 @@
-{"name": "static_css_accessible", "description": "Migrated from test2_structure.js: verify CSS static assets are served correctly", "setup": {"api_key": null, "model_configured": false}, "steps": [{"method": "GET", "path": "/css/style.css"}], "assertions": [{"check": "status_eq", "status": 200}, {"check": "header_contains", "name": "Content-Type", "text": "text/css"}, {"check": "body_length_gt", "min": 50}]}
+{
+  "name": "static_css_accessible",
+  "description": "Verify CSS static assets are served correctly from the fork front-end skeleton",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/app.css" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "header_contains", "name": "Content-Type", "text": "text/css" },
+    { "check": "body_length_gt", "min": 50 }
+  ]
+}

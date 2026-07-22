@@ -1,0 +1,16 @@
+{
+  "name": "banner_startup",
+  "description": "Verify startup banner contains logo, tagline, tips, and AGENT MODE sections",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [],
+  "assertions": [
+    { "check": "output_contains", "text": "Your AI-powered coding companion" },
+    { "check": "output_contains", "text": "Tab" },
+    { "check": "output_contains", "text": "AGENT MODE" },
+    { "check": "output_contains", "text": "Mode:" },
+    { "check": "status_contains", "text": "idle" }
+  ]
+}

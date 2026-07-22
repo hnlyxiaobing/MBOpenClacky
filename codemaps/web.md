@@ -1,7 +1,7 @@
 # web — REST 服务器 · 159 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
 > 路径: `lib/web/` · 顶层 51 mbt（src=35, test=16）+ `git_exec.c` + 4 子包（broadcast/handler/middleware/sse）· Web UI 服务层
-> 前端: `web/` — 已由原生 JS 重写为 **MoonBit SPA**（源码在 `web/mb/`，编译产物在 `web/dist/`、`web/mb/`）
+> 前端: `web/` — fork 前端资产骨架（index.html + app.js + app.css），模板占位符由 `template_processor.mbt` 替换；`legacy_mb/`（旧 MoonBit SPA）已于 web-parity-05 删除
 
 ## 入口函数
 
@@ -152,7 +152,7 @@ WebServer::start(port)
   - `sse_valid` — 响应体为合法 SSE 格式（data: 行均为合法 JSON）
   - `body_length_gt(n)` — 响应体长度大于 n
 
-### 内置场景（`test/scenarios/web/`，21 个）
+### 内置场景（`test/scenarios/web/`，26 个）
 
 | 文件 | 覆盖 |
 |------|------|
@@ -165,8 +165,6 @@ WebServer::start(port)
 | `auth_with_valid_key.json` | 正确 key 通过认证 |
 | `chat_invalid_json_400.json` | 非法 JSON 返回 400 |
 | `chat_missing_message_400.json` | 缺少 message 字段返回 400 |
-| `chat_stream_missing_message_400.json` | stream 端点输入验证 |
-| `chat_stream_sse_format.json` | SSE 流格式正确性 |
 | `concurrent_sessions.json` | 多会话独立创建 |
 | `config_structure.json` | 配置 API 返回预期字段 |
 | `cors_headers_present.json` | CORS 头正确设置 |
@@ -177,6 +175,13 @@ WebServer::start(port)
 | `session_status_endpoint.json` | 状态端点可用 |
 | `static_css_accessible.json` | CSS 文件可访问 |
 | `static_js_accessible.json` | JS bundle 可访问 |
+| `agents_listing.json` | `/api/agents` 返回 agents 列表 |
+| `legacy_endpoints_removed.json` | web-parity-05 移除的旧端点返回 404 |
+| `media_ocr_config.json` | `/api/config/media/:kind`、`/api/config/ocr` 配置读取 |
+| `new_contract_endpoints_active.json` | 新契约端点（cron-tasks/backup/billing/models）逐步断言可用 |
+| `profile_user_soul.json` | `/api/profile` 返回 user/soul 内容段 |
+| `settings_alias_telemetry.json` | `/api/config/settings` 别名与 `/api/telemetry` noop（204） |
+| `web_parity_04_secondary_panels.json` | web-parity-04 二级面板端点无 5xx |
 
 ### CLI
 
@@ -186,53 +191,46 @@ moon run cmd -- --web-eval test/scenarios/web/
 
 `cmd/main.mbt` 的 `--web-eval <dir>` 调用 `run_web_eval_scenarios`，经 `@eval.format_eval_report` 格式化报告并写入 `logs/web_eval_report.txt`，任一场景失败则进程退出码为 1。
 
-## 前端（`web/`）— MoonBit SPA
+## 前端（`web/`）— 托管 fork 资产骨架
 
-> 前端已从原生 JS 全面重写为 **MoonBit 单页应用**（warren 框架，Cell 组件架构）。
-> `web/index.html` 通过 `<script type="module" src="mb/index.js">` 加载编译产物；旧的 `web/js/*.js` 单文件模块已不复存在（`web/js/` 现仅保留 `lib/` 第三方库）。
+> 前端为**托管 fork（managed fork）**方式维护的静态资产骨架：`index.html` + `app.js` + `app.css`，
+> 由 `static_server.mbt` 提供静态服务，`template_processor.mbt` 在响应时替换
+> `{{BRAND_NAME}}` / `{{EXT_SCRIPTS}}` 等模板占位符。
+> 旧的 MoonBit SPA（`web/mb/`、`web/legacy_mb/`、`web/css/`、`web/js/`）已于 web-parity-05 全部删除；
+> 上游同步流程见 `web/UPSTREAM_SYNC.md`，补丁登记见 `web/PATCHES.md`。
 
 ### 目录结构
 
 | 路径 | 职责 |
 |------|------|
-| `web/index.html` | SPA 入口，挂载 `#app`，加载 css + `mb/index.js`（编译后的 MoonBit）+ katex/qrcode/marked/highlight |
-| `web/css/style.css`, `css/github-dark.min.css` | 主样式表、代码高亮样式 |
-| `web/js/lib/highlight.min.js`, `marked.min.js` | 第三方库（仅保留 lib，业务 JS 已移除） |
-| `web/dist/` | 编译产物：`index.html` / `index.js` / `styles.css` |
-| `web/mb/` | MoonBit 前端工程：`moon.mod`、`main/`（源码）、`public/`、`dist/`、`_build/` |
-| `web/mb/main/` | 前端源码（35 mbt）：`main.mbt`/`bootstrap.mbt`/`bridge.mbt` + 各功能 Cell 组件 |
+| `web/index.html` | 单页入口骨架：`id="top-header"` 顶栏、侧边栏、主题切换、模板占位符 |
+| `web/app.js` | 前端骨架脚本 |
+| `web/app.css` | 前端骨架样式 |
+| `web/favicon.svg` | MBOpenClacky 占位品牌图标（兼作导航 logo） |
+| `web/PATCHES.md` | fork 补丁注册表（Active: P0-001 品牌占位、P0-002 骨架替身） |
+| `web/UPSTREAM_SYNC.md` | 上游同步基线与流程 |
 
-### Cell 组件（`web/mb/main/*_cell.mbt`）
+### API 路径与后端 Handler 对应关系
 
-每个功能面板对应一个 Cell 组件，与后端 handler 一一对应：
-`chat_cell`, `sessions_cell`, `settings_cell`, `skills_cell`, `mcp_cell`, `channels_cell`,
-`schedules_cell`, `browser_cell`, `git_cell`, `backups_cell`, `billing_cell`, `brand_cell`,
-`trash_cell`, `onboard_cell`, `profile_cell`, `version_cell`, `meeting_cell`, `media_cell`,
-`marketplace_cell`, `workspace_cell`, `creator_cell`, `model_test_cell`, `share_cell`,
-`notification_cell`, `stats_cell`, `tasks_cell`, `shell_cell`；
-辅助：`code_editor.mbt`、`shared_helpers.mbt`、`i18n_helpers.mbt` + `i18n_dict_en/zh.mbt`。
-
-### 前后端 API 对应关系
-
-| 前端 Cell | 后端 Handler | API 路径前缀 |
-|-----------|------------|------------|
-| `sessions_cell` / `chat_cell` | `handlers_session_ext.mbt` | `/api/sessions/*`、`/api/sessions/:id/chat*` |
-| `settings_cell` / `model_test_cell` | `handlers.mbt` + `handlers_configtest.mbt` | `/api/config/*` |
-| `skills_cell` / `marketplace_cell` / `creator_cell` | `handlers_skills.mbt` + `handlers_bridge.mbt` | `/api/skills/*`、`/api/store/skills`、`/api/creator/skills` |
-| `mcp_cell` | `handlers_mcp.mbt` | `/api/mcp/*` |
-| `channels_cell` | `handlers_channels.mbt` | `/api/channels/*` |
-| `schedules_cell` | `handlers_schedules.mbt` | `/api/schedules/*` |
-| `browser_cell` | `handlers_browser.mbt` | `/api/browser/*` |
-| `git_cell` | `handlers_git.mbt` | `/api/git/*` |
-| `backups_cell` | `handlers_backup.mbt` | `/api/backups/*` |
-| `billing_cell` | `handlers_billing.mbt` | `/api/billing/*` |
-| `brand_cell` | `handlers_brand.mbt` | `/api/brand/*` |
-| `trash_cell` | `handlers_trash.mbt` | `/api/trash/*` |
-| `onboard_cell` | `handlers_onboard.mbt` | `/api/onboard/*` |
-| `profile_cell` | `handlers_profile.mbt` | `/api/profile` |
-| `version_cell` | `handlers_version.mbt` | `/api/version/*` |
-| `meeting_cell` | `handlers_meeting.mbt` + `handlers_meetings.mbt` | `/api/meetings/*` |
-| `media_cell` | `handlers_media.mbt` | `/api/media/*` |
-| `workspace_cell` | `handlers_dirs.mbt` + `handlers_files.mbt` | `/api/dirs/*`、`/api/files/*` |
-| `stats_cell` | `handlers.mbt` | `/api/stats/*` |
-| （WebSocket 客户端） | `broadcast/hub.mbt` | `/ws` |
+| 后端 Handler | API 路径前缀 |
+|------------|------------|
+| `handlers_session_ext.mbt` | `/api/sessions/*`、`/api/sessions/:id/chat*` |
+| `handlers.mbt` + `handlers_configtest.mbt` | `/api/config/*` |
+| `handlers_skills.mbt` + `handlers_bridge.mbt` | `/api/skills/*`、`/api/store/skills`、`/api/creator/skills` |
+| `handlers_mcp.mbt` | `/api/mcp/*` |
+| `handlers_channels.mbt` | `/api/channels/*` |
+| `handlers_schedules.mbt` | `/api/schedules/*`（别名 `/api/cron-tasks*`） |
+| `handlers_browser.mbt` | `/api/browser/*` |
+| `handlers_git.mbt` | `/api/git/*` |
+| `handlers_backup.mbt` | `/api/backups/*`（别名 `/api/backup/status`） |
+| `handlers_billing.mbt` | `/api/billing/*` |
+| `handlers_brand.mbt` | `/api/brand/*` |
+| `handlers_trash.mbt` | `/api/trash/*` |
+| `handlers_onboard.mbt` | `/api/onboard/*` |
+| `handlers_profile.mbt` | `/api/profile` |
+| `handlers_version.mbt` | `/api/version/*` |
+| `handlers_meeting.mbt` + `handlers_meetings.mbt` | `/api/meetings/*` |
+| `handlers_media.mbt` | `/api/media/*` |
+| `handlers_dirs.mbt` + `handlers_files.mbt` | `/api/dirs/*`、`/api/files/*` |
+| `handlers.mbt` | `/api/stats/*` |
+| `broadcast/hub.mbt` | `/ws`（WebSocket） |

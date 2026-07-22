@@ -1,0 +1,15 @@
+{
+  "name": "model_selector",
+  "description": "Verify /model opens the model selector",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "/model" },
+    { "type": "press", "key": "Enter" },
+    { "type": "screenshot" },
+    { "type": "assert", "check": "dialog_contains", "text": "Select Model" }
+  ],
+  "assertions": []
+}

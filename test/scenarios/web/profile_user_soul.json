@@ -1,0 +1,19 @@
+{
+  "name": "profile_user_soul",
+  "description": "Verify /api/profile returns user and soul content sections",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/profile" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "ok" },
+    { "check": "body_contains", "text": "user" },
+    { "check": "body_contains", "text": "soul" },
+    { "check": "body_contains", "text": "content" },
+    { "check": "body_contains", "text": "is_default" }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "settings_alias_and_telemetry",
+  "description": "Verify /api/config/settings alias and /api/telemetry noop endpoint",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/api/config/settings",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/telemetry",
+      "body": "{\"event\":\"page_view\",\"extra\":{}}",
+      "assertions": [
+        { "check": "status_eq", "status": 204 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/memories",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    }
+  ]
+}

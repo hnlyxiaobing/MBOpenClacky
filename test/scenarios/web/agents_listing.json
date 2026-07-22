@@ -1,0 +1,19 @@
+{
+  "name": "agents_listing",
+  "description": "Verify /api/agents returns agent list from assets/agents/ directory",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/agents" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "agents" },
+    { "check": "body_contains", "text": "coding" },
+    { "check": "body_contains", "text": "general" },
+    { "check": "body_contains", "text": "description" },
+    { "check": "body_contains", "text": "source" }
+  ]
+}

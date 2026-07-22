@@ -1,0 +1,1 @@
+{"name": "paste_placeholder", "description": "Test that /undo command is registered and appears in /help output", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "/help"}, {"type": "press", "key": "Enter"}], "assertions": [{"check": "output_contains", "text": "/undo"}, {"check": "output_contains", "text": "undo"}]}

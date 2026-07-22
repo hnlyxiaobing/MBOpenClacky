@@ -111,7 +111,7 @@ test "TuiEvalSimulator check_assertion not_contains" {
 
 ///|
 test "TuiEvalSimulator slash help outputs command list" {
-  let sim = TuiEvalSimulator::new(80, 24)
+  let sim = TuiEvalSimulator::new(80, 48)
   sim.full_redraw()
   sim.type_text("/help")
   sim.press_key("Enter")

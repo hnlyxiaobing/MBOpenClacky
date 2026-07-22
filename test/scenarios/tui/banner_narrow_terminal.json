@@ -1,0 +1,15 @@
+{
+  "name": "banner_narrow_terminal",
+  "description": "Verify narrow terminal (<90 cols) degrades logo to plain text welcome line",
+  "setup": {
+    "cols": 80,
+    "rows": 30
+  },
+  "actions": [],
+  "assertions": [
+    { "check": "output_contains", "text": "Welcome, MBOpenClacky is here" },
+    { "check": "output_contains", "text": "AGENT MODE" },
+    { "check": "output_contains", "text": "Tab" },
+    { "check": "status_contains", "text": "idle" }
+  ]
+}

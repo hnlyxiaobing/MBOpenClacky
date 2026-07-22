@@ -1,0 +1,21 @@
+{
+  "name": "media_and_ocr_config",
+  "description": "Verify /api/config/media/:kind GET and /api/config/ocr GET return valid responses",
+  "setup": {
+    "api_key": null,
+    "model_configured": true
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/config/media/image" },
+    { "method": "GET", "path": "/api/config/media/voice" },
+    { "method": "GET", "path": "/api/config/media/tts" },
+    { "method": "GET", "path": "/api/config/media/stt" },
+    { "method": "GET", "path": "/api/config/media/video" },
+    { "method": "GET", "path": "/api/config/ocr" }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 200 },
+    { "check": "body_contains", "text": "ok" },
+    { "check": "body_contains", "text": "source" }
+  ]
+}

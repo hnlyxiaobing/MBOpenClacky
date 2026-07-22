@@ -1,0 +1,18 @@
+{
+  "name": "config_menu_switch",
+  "description": "Verify /config menu: navigate to the second model and press Enter to switch, status bar reflects the new model",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "/config" },
+    { "type": "press", "key": "Enter" },
+    { "type": "press", "key": "j" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "Model switched to:" },
+    { "check": "status_contains", "text": "claude-sonnet-4-6" }
+  ]
+}

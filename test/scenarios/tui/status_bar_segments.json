@@ -1,0 +1,15 @@
+{
+  "name": "status_bar_segments",
+  "description": "Verify status bar displays segmented information on startup",
+  "setup": {
+    "cols": 120,
+    "rows": 30
+  },
+  "actions": [],
+  "assertions": [
+    { "check": "status_contains", "text": "idle" },
+    { "check": "status_contains", "text": "|" },
+    { "check": "status_contains", "text": "eval-model" },
+    { "check": "status_contains", "text": "$0.0000" }
+  ]
+}

@@ -49,6 +49,11 @@ pub(all) enum EvalAction {
     prompt_text~ : String,
     default_yes~ : Bool
   )
+  /// Inject text directly into the output buffer.
+  InjectOutput(text~ : String, kind~ : String)
+  /// Emit a real agent hook event through the agent's hook manager
+  /// (drives the production hook → state/output pipeline).
+  EmitHook(event~ : String, args~ : Map[String, Json])
   /// Check an assertion immediately and record the result.
   Assert(assertion~ : EvalAssertion)
 } derive(Debug)
@@ -242,6 +247,15 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                       default_yes~,
                     )
                   }
+                  "inject_output" => {
+                    let text = get_s("text")
+                    let kind = get_s("kind")
+                    EvalAction::InjectOutput(text~, kind~)
+                  }
+                  "emit_hook" => {
+                    let event = get_s("event")
+                    EvalAction::EmitHook(event~, args=a)
+                  }
                   "assert" => {
                     let assertion = parse_single_assertion(a)
                     EvalAction::Assert(assertion~)
@@ -302,6 +316,8 @@ pub(all) struct TuiEvalSimulator {
   mut mock_response : String
   /// Mock agent backing slash-command execution (no real LLM calls).
   agent : @agent.Agent
+  /// Hook handler wiring hook events to state/output (production pipeline).
+  hooks : @libtui.AgentHookHandler
 }
 
 ///|
@@ -309,10 +325,32 @@ pub(all) struct TuiEvalSimulator {
 pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
   let agent = make_eval_agent()
   let state = Ref(@libtui.TuiState::from_agent(agent))
+  let output = @libtui.OutputBuffer::new()
+  // Render startup banner into the output buffer so eval scenarios
+  // can assert on banner content.
+  let banner_width = @libtui.Banner::adaptive_width(cols)
+  let banner = @libtui.Banner::block_with_width(banner_width)
+  let rules = @utils.WorkspaceRules::find_main(state.val.working_dir)
+  let has_rules = rules.has_rules()
+  let startup_text = banner.render_startup(
+    "0.1.0",
+    state.val.working_dir,
+    state.val.permission_mode,
+    has_rules,
+    false, // eval agent has an API key
+    terminal_width=cols,
+  )
+  output.width = cols
+  ignore(output.append_text(startup_text, @libtui.OutputKind::Text))
+  // Wire the production hook pipeline so emit_hook scenarios exercise the
+  // real event → state/output path (tool symbols, token stats, banners).
+  let hooks = @libtui.AgentHookHandler::new(state, agent=Some(agent))
+  hooks.set_output(output)
+  hooks.register_all(agent.hook_manager)
   {
     screen: VirtualScreen::new(cols, rows),
     input: @libtui.InputArea::multiline_new(),
-    output: @libtui.OutputBuffer::new(),
+    output,
     status_bar: @libtui.StatusBar::new(),
     state,
     quit: false,
@@ -322,6 +360,7 @@ pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
     confirmation_result: None,
     mock_response: "",
     agent,
+    hooks,
   }
 }
 
@@ -335,6 +374,17 @@ fn make_eval_agent() -> @agent.Agent {
     @config.OpenAICompletions,
   )
   let config = @config.AgentConfig::default()
+  // Add sample models so /config and /model eval scenarios have data
+  config.models = [
+    @config.ModelConfig::new(
+      "eval-openai", "sk-eval-test-key-12345678", "https://api.openai.com/v1", "gpt-4o",
+    ),
+    @config.ModelConfig::new(
+      "eval-anthropic", "sk-ant-eval-key-87654321", "https://api.anthropic.com",
+      "claude-sonnet-4-6",
+    ),
+  ]
+  config.current_model_id = Some("eval-openai")
   @agent.Agent::new("eval-session", "Eval Agent", "/tmp/eval", client, config)
 }
 
@@ -347,6 +397,7 @@ pub fn TuiEvalSimulator::full_redraw(self : TuiEvalSimulator) -> Unit {
   self.render_status()
   self.render_output()
   self.render_confirmation()
+  self.render_config_dialog()
   self.render_input()
 }
 
@@ -420,8 +471,227 @@ pub fn TuiEvalSimulator::press_key(
   self : TuiEvalSimulator,
   key : String,
 ) -> Unit {
+  // If a config/model dialog is active, route dialog keys first
+  match self.state.val.dialog {
+    @libtui.DialogState::ConfigMenu(dialog) =>
+      match key {
+        "Escape" => {
+          @libtui.close_config_dialog(self.state.val)
+          self.full_redraw()
+          return
+        }
+        "j" | "Down" => {
+          dialog.move_down()
+          self.full_redraw()
+          self.render_config_dialog()
+          return
+        }
+        "k" | "Up" => {
+          dialog.move_up()
+          self.full_redraw()
+          self.render_config_dialog()
+          return
+        }
+        "Enter" => {
+          // Mirror the real controller: switch to the selected model and
+          // report it (disk persistence is skipped in eval).
+          match dialog.get_selected() {
+            Some(item) => {
+              match self.agent.config.switch_model_by_id(item.value) {
+                Ok(_) => {
+                  self.state.val.model_name = match
+                    self.agent.config.current_model() {
+                    Some(m) => m.model
+                    None => self.state.val.model_name
+                  }
+                  ignore(
+                    self.output.append_text(
+                      "[system] Model switched to: \{item.label}",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+                }
+                Err(msg) =>
+                  ignore(
+                    self.output.append_text(
+                      "[error] \{msg}",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+              }
+              @libtui.close_config_dialog(self.state.val)
+            }
+            None => ()
+          }
+          self.full_redraw()
+          return
+        }
+        "a" => {
+          let mode : @libtui.ConfigMode = if dialog.title == "Select Model" {
+            ModelSelector
+          } else {
+            ConfigMenu
+          }
+          @libtui.open_add_form(self.state.val, mode)
+          self.full_redraw()
+          return
+        }
+        "e" => {
+          let idx = dialog.selected_idx
+          if idx >= 0 && idx < self.agent.config.models.length() {
+            let model = self.agent.config.models[idx]
+            let mode : @libtui.ConfigMode = if dialog.title == "Select Model" {
+              ModelSelector
+            } else {
+              ConfigMenu
+            }
+            @libtui.open_edit_form(self.state.val, mode, model, idx)
+          }
+          self.full_redraw()
+          return
+        }
+        "d" => {
+          let idx = dialog.selected_idx
+          if idx >= 0 && idx < self.agent.config.models.length() {
+            let model = self.agent.config.models[idx]
+            @libtui.request_confirmation(
+              self.state.val,
+              "delete_model",
+              model.model,
+              "Delete model '\{model.model}'? This cannot be undone.",
+            )
+          }
+          self.full_redraw()
+          return
+        }
+        _ => ()
+      }
+    @libtui.DialogState::Form(_) =>
+      if key == "Escape" {
+        @libtui.close_config_dialog(self.state.val)
+        self.full_redraw()
+        return
+      }
+    @libtui.DialogState::ConfigForm(mode~, form~, action~, target_idx~) =>
+      match key {
+        "Escape" => {
+          @libtui.return_to_config_menu(self.state.val, self.agent, mode)
+          self.full_redraw()
+          return
+        }
+        "Tab" => {
+          form.next_field()
+          self.full_redraw()
+          return
+        }
+        "Backspace" => {
+          form.backspace()
+          self.full_redraw()
+          return
+        }
+        "Enter" => {
+          // Mirror the real controller's form submit (no disk save in eval)
+          match form.validate() {
+            Some(err) =>
+              ignore(
+                self.output.append_text(
+                  "[error] \{err}",
+                  @libtui.OutputKind::Text,
+                ),
+              )
+            None => {
+              let values = form.collect_values()
+              match action {
+                @libtui.ConfigAction::Add => {
+                  let new_model = @config.ModelConfig::new(
+                    values[0].1,
+                    values[2].1,
+                    values[3].1,
+                    values[1].1,
+                  )
+                  self.agent.config.add_model(new_model)
+                  ignore(
+                    self.output.append_text(
+                      "[system] Model '\{values[0].1}' added",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+                }
+                @libtui.ConfigAction::Edit =>
+                  if target_idx >= 0 &&
+                    target_idx < self.agent.config.models.length() {
+                    let existing = self.agent.config.models[target_idx]
+                    let updated : @config.ModelConfig = {
+                      id: existing.id,
+                      type_: existing.type_,
+                      api_key: values[1].1,
+                      base_url: values[2].1,
+                      model: values[0].1,
+                      anthropic_format: existing.anthropic_format,
+                      runtime_id: existing.runtime_id,
+                      media_type: existing.media_type,
+                    }
+                    self.agent.config.models[target_idx] = updated
+                    match self.agent.config.current_model_id {
+                      Some(id) if id == updated.id =>
+                        self.state.val.model_name = updated.model
+                      _ => ()
+                    }
+                    ignore(
+                      self.output.append_text(
+                        "[system] Model '\{updated.id}' updated",
+                        @libtui.OutputKind::Text,
+                      ),
+                    )
+                  }
+              }
+              @libtui.return_to_config_menu(self.state.val, self.agent, mode)
+            }
+          }
+          self.full_redraw()
+          return
+        }
+        _ =>
+          // Single printable characters go to the focused form field
+          if key.length() == 1 {
+            for c in key {
+              form.input_char(c)
+            }
+            self.full_redraw()
+            return
+          }
+      }
+    _ => ()
+  }
   // If a confirmation dialog is pending, route keys to it first.
   if @libtui.has_pending_confirmation(self.state.val) {
+    let is_delete = match self.state.val.pending_confirmation {
+      Some(p) => p.tool_name == "delete_model"
+      None => false
+    }
+    let delete_idx = if is_delete {
+      match self.state.val.dialog {
+        @libtui.DialogState::ConfigMenu(d) => d.selected_idx
+        _ => -1
+      }
+    } else {
+      -1
+    }
+    if key == "Shift+Tab" {
+      // Mirror the real controller: approve all tools for this session
+      // (no permission-mode cycling while a confirmation is pending).
+      self.state.val.approved_all_tools = true
+      self.confirmation_result = Some(true)
+      @libtui.consume_confirmation(self.state.val)
+      ignore(
+        self.output.append_text(
+          "[system] All tools auto-approved for this session",
+          @libtui.OutputKind::Text,
+        ),
+      )
+      self.full_redraw()
+      return
+    }
     let result = match key {
       "y" | "Y" => Some(true)
       "n" | "N" => Some(false)
@@ -433,6 +703,15 @@ pub fn TuiEvalSimulator::press_key(
       Some(r) => {
         self.confirmation_result = Some(r)
         @libtui.consume_confirmation(self.state.val)
+        if is_delete {
+          // Local UI confirmation (delete_model): never touches the
+          // agent confirmation queue — same rule as the real controller.
+          if r && delete_idx >= 0 {
+            self.perform_model_delete(delete_idx)
+          } else if !r {
+            @libtui.open_config_menu(self.state.val, self.agent)
+          }
+        }
         self.full_redraw()
       }
       None => ()
@@ -448,6 +727,29 @@ pub fn TuiEvalSimulator::press_key(
     "Ctrl+U" => self.input.kill_to_start()
     "Ctrl+W" => self.input.kill_word()
     "Ctrl+L" => self.full_redraw()
+    "Tab" => if self.input.is_empty() { self.input.insert_char('/') }
+    "Shift+Tab" => {
+      // Shift+Tab (no dialog pending): toggle permission mode between
+      // confirm_safes and auto_approve (spec tui-parity-05, task 2).
+      let cur = @config.PermissionMode::from_string(
+        self.state.val.permission_mode,
+      )
+      let next = @libtui.cycle_permission_mode(
+        match cur {
+          Some(m) => m
+          None => @config.ConfirmSafes
+        },
+      )
+      self.state.val.permission_mode = next.to_string_value()
+      self.agent.config.permission_mode = next
+      ignore(
+        self.output.append_text(
+          "[system] Permission mode: \{next.to_string_value()}",
+          @libtui.OutputKind::Text,
+        ),
+      )
+      self.full_redraw()
+    }
     "Backspace" => self.input.backspace()
     "Delete" => self.input.delete_forward()
     "Left" => self.input.cursor_left()
@@ -471,6 +773,13 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
   }
   let text = self.input.submit()
   if text.length() > 0 {
+    // Bare text exit/quit: exact match (trimmed) triggers quit
+    let trimmed = text.trim().to_owned()
+    if trimmed == "exit" || trimmed == "quit" {
+      self.on_exit_save()
+      self.quit = true
+      return
+    }
     // Route slash commands through the shared parser, mirroring the real
     // controller's behavior (TuiController::handle_enter_key).
     if text[0:1] == "/" {
@@ -485,6 +794,8 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     }
     // Add user message to output
     ignore(self.output.append_text("[user] \{text}", @libtui.OutputKind::Text))
+    // Time machine: open a new task (mirrors the real controller)
+    ignore(self.state.val.time_machine.start_new_task(Some(text)))
     // Commit it
     match self.output.last_entry_id() {
       Some(id) => self.output.commit_through(id)
@@ -524,6 +835,10 @@ fn TuiEvalSimulator::handle_slash_command(
   cmd : @libtui.SlashCommand,
 ) -> Unit {
   match cmd {
+    @libtui.SlashCommand::Exit | @libtui.SlashCommand::Quit => {
+      self.on_exit_save()
+      self.quit = true
+    }
     Todo => {
       // Toggle todo area visibility
       if self.state.val.todo_area.hidden {
@@ -546,12 +861,74 @@ fn TuiEvalSimulator::handle_slash_command(
       }
       self.full_redraw()
     }
+    @libtui.SlashCommand::Undo => {
+      // Show task history from the time machine
+      let tasks = self.state.val.time_machine.get_task_history()
+      if tasks.length() == 0 {
+        ignore(
+          self.output.append_text(
+            "[system] No tasks in history to undo",
+            @libtui.OutputKind::Text,
+          ),
+        )
+      } else {
+        let lines : Array[String] = ["[system] Task history (time machine):"]
+        for t in tasks {
+          let desc = match t.description {
+            Some(d) => d
+            None => "(no description)"
+          }
+          lines.push("  \{t.task_id}: \{desc}")
+        }
+        match self.state.val.time_machine.undo_last_task() {
+          Ok(entries) =>
+            lines.push(
+              "[system] Undo complete: restored \{entries.length()} file(s)",
+            )
+          Err(msg) => lines.push("[system] Undo failed: \{msg}")
+        }
+        ignore(
+          self.output.append_text(lines.join("\n"), @libtui.OutputKind::Text),
+        )
+      }
+      self.full_redraw()
+    }
     Clear => {
       // Clear the agent history (like the real controller) and the visible
       // output buffer so the message area is empty afterwards.
       ignore(@libtui.execute(cmd, self.agent))
       self.output.clear()
       self.full_redraw()
+    }
+    @libtui.SlashCommand::Config(key~, value~) if key == "" => {
+      // No-arg /config: open config menu dialog
+      if self.agent.config.models.length() == 0 {
+        ignore(
+          self.output.append_text(
+            "[system] No models configured. Use /config <key> <value> to set options.",
+            @libtui.OutputKind::Text,
+          ),
+        )
+        self.full_redraw()
+        return
+      }
+      @libtui.open_config_menu(self.state.val, self.agent)
+      self.render_config_dialog()
+    }
+    @libtui.SlashCommand::Model(name~) if name == "" => {
+      // No-arg /model: open model selector dialog
+      if self.agent.config.models.length() <= 1 {
+        ignore(
+          self.output.append_text(
+            "[system] Only one model configured. Use /model <name> to switch.",
+            @libtui.OutputKind::Text,
+          ),
+        )
+        self.full_redraw()
+        return
+      }
+      @libtui.open_model_selector(self.state.val, self.agent)
+      self.render_config_dialog()
     }
     _ => {
       let result = @libtui.execute(cmd, self.agent)
@@ -575,6 +952,133 @@ fn TuiEvalSimulator::handle_slash_command(
 }
 
 // ── Assertions ────────────────────────────────────────────────────────
+
+///|
+/// Mirror the real controller's on_exit_save: when the session had
+/// content, the production code persists it via `agent.to_session_data()`
+/// + `save_session` and prints a saved notice. The eval adapter mirrors
+/// the observable output only (no disk I/O in tests).
+fn TuiEvalSimulator::on_exit_save(self : TuiEvalSimulator) -> Unit {
+  // entry_count > 1 means something beyond the startup banner was written
+  if self.output.entry_count() > 1 || self.agent.history.length() > 0 {
+    ignore(
+      self.output.append_text(
+        "[system] Session saved to disk: clacky --attach \{self.state.val.session_id}",
+        @libtui.OutputKind::Text,
+      ),
+    )
+  }
+}
+
+///|
+/// Perform model deletion after confirmation (mirrors the real
+/// controller, without disk persistence).
+fn TuiEvalSimulator::perform_model_delete(
+  self : TuiEvalSimulator,
+  idx : Int,
+) -> Unit {
+  if idx >= 0 && idx < self.agent.config.models.length() {
+    let removed = self.agent.config.models[idx]
+    ignore(self.agent.config.models.remove(idx))
+    match self.agent.config.current_model_id {
+      Some(id) if id == removed.id =>
+        if self.agent.config.models.length() > 0 {
+          self.agent.config.current_model_id = Some(
+            self.agent.config.models[0].id,
+          )
+          self.state.val.model_name = self.agent.config.models[0].model
+        } else {
+          self.agent.config.current_model_id = None
+          ignore(
+            self.output.append_text(
+              "[warning] No models configured after delete",
+              @libtui.OutputKind::Text,
+            ),
+          )
+        }
+      _ => ()
+    }
+    ignore(
+      self.output.append_text(
+        "[system] Model '\{removed.model}' deleted",
+        @libtui.OutputKind::Text,
+      ),
+    )
+    @libtui.open_config_menu(self.state.val, self.agent)
+  }
+}
+
+///|
+/// Emit a real agent hook event through the agent's hook manager,
+/// driving the production hook → state/output pipeline.
+fn TuiEvalSimulator::emit_hook(
+  self : TuiEvalSimulator,
+  event : String,
+  args : Map[String, Json],
+) -> Unit {
+  let get_s = fn(k : String) -> String {
+    match args.get(k) {
+      Some(String(sv)) => sv
+      _ => ""
+    }
+  }
+  let get_i = fn(k : String) -> Int {
+    match args.get(k) {
+      Some(Number(n, ..)) => n.to_int()
+      _ => 0
+    }
+  }
+  let get_f = fn(k : String) -> Double {
+    match args.get(k) {
+      Some(Number(n, ..)) => n
+      _ => 0.0
+    }
+  }
+  let get_b = fn(k : String) -> Bool {
+    match args.get(k) {
+      Some(True) => true
+      _ => false
+    }
+  }
+  match event {
+    "tool_executing" =>
+      self.agent.hook_manager.emit(
+        @agent.HookEvent::ToolExecuting(get_s("tool_name"), get_s("tool_args")),
+      )
+    "tool_executed" =>
+      self.agent.hook_manager.emit(
+        @agent.HookEvent::ToolExecuted(get_s("tool_name"), {
+          id: "eval_call",
+          content: get_s("content"),
+          is_error: get_b("is_error"),
+        }),
+      )
+    "tool_denied" =>
+      self.agent.hook_manager.emit(
+        @agent.HookEvent::ToolDenied(get_s("tool_name")),
+      )
+    "usage_updated" => {
+      let input_tokens = get_i("input_tokens")
+      let output_tokens = get_i("output_tokens")
+      self.agent.hook_manager.emit(
+        @agent.HookEvent::UsageUpdated({
+          delta_tokens: get_i("delta"),
+          prompt_tokens: input_tokens,
+          completion_tokens: output_tokens,
+          total_tokens: input_tokens + output_tokens,
+          cache_write: 0,
+          cache_read: get_i("cached"),
+          cost: get_f("cost"),
+          cost_source: @agent.CostSource::Price,
+        }),
+      )
+    }
+    "stream_chunk" =>
+      self.agent.hook_manager.emit(@agent.HookEvent::StreamChunk(get_s("text")))
+    _ => ()
+  }
+  self.full_redraw()
+}
 
 ///|
 /// Check a single assertion against the current screen state.
@@ -696,14 +1200,75 @@ fn TuiEvalSimulator::check_output_region(
 }
 
 ///|
-/// Check if the dialog region (just above input area) contains text.
+/// Render active config/model dialog as text lines on the VirtualScreen.
+fn TuiEvalSimulator::render_config_dialog(self : TuiEvalSimulator) -> Unit {
+  match self.state.val.dialog {
+    @libtui.DialogState::ConfigMenu(dialog) => {
+      let lines : Array[String] = []
+      lines.push("┌── \{dialog.title} ──┐")
+      for i in 0..<dialog.items.length() {
+        let item = dialog.items[i]
+        let marker = if i == dialog.selected_idx { "▶" } else { " " }
+        lines.push("│ \{marker} \{item.label} │")
+      }
+      lines.push("│ ↑↓/jk Navigate  Enter Select  Esc Close │")
+      lines.push(
+        "└───────────────────────────────────┘",
+      )
+      self.write_dialog_lines(lines)
+    }
+    @libtui.DialogState::Form(form) => self.write_dialog_lines(form_lines(form))
+    @libtui.DialogState::ConfigForm(form~, ..) =>
+      self.write_dialog_lines(form_lines(form))
+    _ => ()
+  }
+}
+
+///|
+/// Build the display lines for a form dialog.
+fn form_lines(form : @libtui.FormDialog) -> Array[String] {
+  let lines : Array[String] = []
+  lines.push("┌── \{form.title} ──┐")
+  for field in form.fields {
+    lines.push("│ \{field.label}: \{field.value} │")
+  }
+  lines.push("│ Tab Next  Enter Submit  Esc Cancel │")
+  lines.push(
+    "└───────────────────────────────────┘",
+  )
+  lines
+}
+
+///|
+/// Write dialog lines above the input area (rows are clamped to the
+/// drawable area, protecting against a negative base row).
+fn TuiEvalSimulator::write_dialog_lines(
+  self : TuiEvalSimulator,
+  lines : Array[String],
+) -> Unit {
+  let base_row = self.screen.height - self.input_h - lines.length()
+  for i in 0..<lines.length() {
+    let row = base_row + i
+    if row >= 2 && row <= self.screen.height - self.input_h {
+      self.screen.move_cursor(row, 1)
+      self.screen.clear_to_eol()
+      self.screen.write_string(lines[i])
+    }
+  }
+}
+
+///|
+/// Check if the dialog region (rows above input area) contains text.
 fn TuiEvalSimulator::check_dialog_region(
   self : TuiEvalSimulator,
   text : String,
 ) -> Bool {
-  let row = self.screen.height - self.input_h
-  if row >= self.status_h + 1 {
-    return self.screen.row_contains(row, text)
+  let top = self.status_h + 1
+  let bottom = self.screen.height - self.input_h
+  for row = top; row <= bottom; row = row + 1 {
+    if self.screen.row_contains(row, text) {
+      return true
+    }
   }
   false
 }
@@ -747,6 +1312,20 @@ pub fn run_eval_scenario(scenario : EvalScenario) -> @eval.EvalScenarioResult {
         sim.confirmation_result = None
         sim.full_redraw()
       }
+      InjectOutput(text~, kind~) => {
+        let output_kind = if kind == "system" {
+          @libtui.OutputKind::System
+        } else {
+          @libtui.OutputKind::Text
+        }
+        ignore(sim.output.append_text(text, output_kind))
+        match sim.output.last_entry_id() {
+          Some(id) => sim.output.commit_through(id)
+          None => ()
+        }
+        sim.full_redraw()
+      }
+      EmitHook(event~, args~) => sim.emit_hook(event, args)
       Assert(assertion~) => record_result(sim.check_assertion(assertion))
     }
     if sim.quit {

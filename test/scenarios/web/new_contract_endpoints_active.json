@@ -1,0 +1,45 @@
+{
+  "name": "new_contract_endpoints_active",
+  "description": "Verify new contract endpoints remain active after web-parity-05 cleanup",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron-tasks",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/backup/status",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/summary",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/models",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    }
+  ]
+}

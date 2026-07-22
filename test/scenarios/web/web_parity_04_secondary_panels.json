@@ -1,0 +1,33 @@
+{
+  "name": "web_parity_04_secondary_panels",
+  "description": "Verify web-parity-04 secondary panel endpoints return valid responses without 5xx errors",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/sessions/test-session/git/status" },
+    { "method": "GET", "path": "/api/sessions/test-session/git/diff" },
+    { "method": "GET", "path": "/api/sessions/test-session/git/log" },
+    { "method": "GET", "path": "/api/sessions/test-session/git/branches" },
+    { "method": "GET", "path": "/api/sessions/test-session/time_machine" },
+    { "method": "GET", "path": "/api/sessions/test-session/time-machine" },
+    { "method": "GET", "path": "/api/billing/summary" },
+    { "method": "GET", "path": "/api/billing/daily" },
+    { "method": "GET", "path": "/api/billing/records" },
+    { "method": "GET", "path": "/api/billing/sessions" },
+    { "method": "GET", "path": "/api/backup/status" },
+    { "method": "GET", "path": "/api/backup/config" },
+    { "method": "GET", "path": "/api/cron-tasks" },
+    { "method": "GET", "path": "/api/media/video/status" },
+    { "method": "GET", "path": "/api/media/types" },
+    { "method": "GET", "path": "/api/trash/sessions" },
+    { "method": "GET", "path": "/api/git/status" },
+    { "method": "GET", "path": "/api/git/branches" }
+  ],
+  "assertions": [
+    { "check": "status_not_eq", "status": 500 },
+    { "check": "status_not_eq", "status": 502 },
+    { "check": "status_not_eq", "status": 503 }
+  ]
+}

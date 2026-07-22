@@ -1,0 +1,1 @@
+{"name": "tab_empty_completion", "description": "Press Tab on empty input and verify '/' is inserted for completion", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "press", "key": "Tab"}], "assertions": [{"check": "input_contains", "text": "/"}]}

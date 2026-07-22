@@ -1,0 +1,15 @@
+{
+  "name": "config_menu_open",
+  "description": "Verify /config opens the config menu dialog",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "/config" },
+    { "type": "press", "key": "Enter" },
+    { "type": "screenshot" },
+    { "type": "assert", "check": "dialog_contains", "text": "Config" }
+  ],
+  "assertions": []
+}

@@ -1,0 +1,20 @@
+{
+  "name": "config_edit_form",
+  "description": "Verify /config then 'e' opens the edit form pre-filled with the selected model, and Enter submits it",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "/config" },
+    { "type": "press", "key": "Enter" },
+    { "type": "press", "key": "e" },
+    { "type": "screenshot" },
+    { "type": "assert", "check": "dialog_contains", "text": "Edit Model" },
+    { "type": "assert", "check": "dialog_contains", "text": "gpt-4o" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "updated" }
+  ]
+}

@@ -109,6 +109,17 @@ pub fn parse_web_eval_scenario(
           for item in arr {
             match item {
               Object(s) => {
+                // Reject unrecognized step fields (e.g. the retired
+                // "expect_404") instead of silently ignoring them.
+                for k, _ in s {
+                  if k != "method" &&
+                    k != "path" &&
+                    k != "body" &&
+                    k != "headers" &&
+                    k != "assertions" {
+                    return Err("Unknown step field: '\{k}'")
+                  }
+                }
                 let get_s = fn(k : String) -> String {
                   match s.get(k) {
                     Some(String(sv)) => sv
@@ -139,7 +150,10 @@ pub fn parse_web_eval_scenario(
                     for ai in sa {
                       match ai {
                         Object(a) =>
-                          step_assertions.push(parse_single_assertion(a))
+                          match parse_single_assertion(a) {
+                            Ok(assertion) => step_assertions.push(assertion)
+                            Err(e) => return Err("step assertions: \{e}")
+                          }
                         _ => ()
                       }
                     }
@@ -157,7 +171,11 @@ pub fn parse_web_eval_scenario(
         Some(Array(arr)) =>
           for item in arr {
             match item {
-              Object(a) => assertions.push(parse_single_assertion(a))
+              Object(a) =>
+                match parse_single_assertion(a) {
+                  Ok(assertion) => assertions.push(assertion)
+                  Err(e) => return Err("assertions: \{e}")
+                }
               _ => ()
             }
           }
@@ -171,7 +189,10 @@ pub fn parse_web_eval_scenario(
 
 ///|
 /// Parse a single WebEvalAssertion from a JSON object.
-fn parse_single_assertion(a : Map[String, Json]) -> WebEvalAssertion {
+/// Unknown check names are an error instead of silently passing as 200.
+fn parse_single_assertion(
+  a : Map[String, Json],
+) -> Result[WebEvalAssertion, String] {
   let get_s = fn(k : String) -> String {
     match a.get(k) {
       Some(String(sv)) => sv
@@ -200,18 +221,21 @@ fn parse_single_assertion(a : Map[String, Json]) -> WebEvalAssertion {
   }
   let check = get_s("check")
   match check {
-    "status_eq" => WebEvalAssertion::StatusEq(status=get_i("status"))
+    "status_eq" => Ok(WebEvalAssertion::StatusEq(status=get_i("status")))
     "status_in" =>
-      WebEvalAssertion::StatusIn(statuses=get_int_array("statuses"))
-    "body_contains" => WebEvalAssertion::BodyContains(text=get_s("text"))
-    "body_not_contains" => WebEvalAssertion::BodyNotContains(text=get_s("text"))
+      Ok(WebEvalAssertion::StatusIn(statuses=get_int_array("statuses")))
+    "body_contains" => Ok(WebEvalAssertion::BodyContains(text=get_s("text")))
+    "body_not_contains" =>
+      Ok(WebEvalAssertion::BodyNotContains(text=get_s("text")))
     "json_path_eq" =>
-      WebEvalAssertion::JsonPathEq(path=get_s("path"), value=get_s("value"))
+      Ok(WebEvalAssertion::JsonPathEq(path=get_s("path"), value=get_s("value")))
     "header_contains" =>
-      WebEvalAssertion::HeaderContains(name=get_s("name"), text=get_s("text"))
-    "sse_valid" => WebEvalAssertion::SseValid
-    "body_length_gt" => WebEvalAssertion::BodyLengthGt(min=get_i("min"))
-    _ => WebEvalAssertion::StatusEq(status=200)
+      Ok(
+        WebEvalAssertion::HeaderContains(name=get_s("name"), text=get_s("text")),
+      )
+    "sse_valid" => Ok(WebEvalAssertion::SseValid)
+    "body_length_gt" => Ok(WebEvalAssertion::BodyLengthGt(min=get_i("min")))
+    _ => Err("Unknown assertion check: '\{check}'")
   }
 }
 
@@ -498,7 +522,18 @@ pub async fn run_web_eval_scenarios(dir_path : String) -> @eval.EvalBatchResult 
         }
         results.push(result)
       }
-      Err(_) => ()
+      Err(e) => {
+        // Surface malformed scenarios as failures instead of silently
+        // dropping them from the batch.
+        failed = failed + 1
+        results.push({
+          scenario_name: "(unparseable scenario)",
+          passed: false,
+          assertion_results: [],
+          final_screen: "",
+          error: e,
+        })
+      }
     }
   }
 

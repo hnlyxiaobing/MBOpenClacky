@@ -1,0 +1,15 @@
+{
+  "name": "legacy_endpoints_removed",
+  "description": "Verify old/deprecated endpoints return 404 after web-parity-05 cleanup",
+  "setup": {
+    "api_key": null,
+    "model_configured": false
+  },
+  "steps": [
+    { "method": "GET", "path": "/api/schedules", "expect_404": true },
+    { "method": "POST", "path": "/api/sessions/test-id/chat/stream", "body": "{\"message\":\"test\"}", "expect_404": true }
+  ],
+  "assertions": [
+    { "check": "status_eq", "status": 404 }
+  ]
+}
