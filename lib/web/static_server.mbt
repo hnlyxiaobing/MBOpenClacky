@@ -39,6 +39,8 @@ pub fn get_mime_type(path : String) -> String {
     "image/x-icon"
   } else if path.has_suffix(".woff") || path.has_suffix(".woff2") {
     "font/woff2"
+  } else if path.has_suffix(".mp3") {
+    "audio/mpeg"
   } else {
     "application/octet-stream"
   }
@@ -65,38 +67,48 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
   let mime = get_mime_type(full_path)
   // Attempt to read the file from the filesystem
   if is_static_asset(clean_path) {
-    // Known static asset extension: try to read the file
-    match try_read_file(full_path) {
-      Some(content) => {
-        // Apply template processing for HTML files only
-        let body = if mime == "text/html" {
-          process_template(content, TemplateConfig::default())
-        } else {
-          content
-        }
-        // Spec web-parity-01: all static responses use no-store, aligned
-        // with the original project's FileHandler (no caching at all).
-        HttpResponse::{
-          status: 200,
-          body,
-          content_type: mime,
-          headers: [("Cache-Control", "no-store")],
-        }
+    if is_binary_asset(clean_path) {
+      match try_read_file_bytes(full_path) {
+        Some(bytes) =>
+          HttpResponse::{
+            status: 200,
+            body: "",
+            body_bytes: Some(bytes),
+            content_type: mime,
+            headers: [("Cache-Control", "no-store")],
+          }
+        None =>
+          if clean_path == self.index_file {
+            spa_fallback(self)
+          } else {
+            HttpResponse::not_found("File not found: \{clean_path}")
+          }
       }
-      None =>
-        // If the requested asset is the configured index file (i.e. the
-        // root route resolved to it) and it is missing on disk, degrade
-        // gracefully to the SPA fallback page (200) rather than 404 — a
-        // single-page app must always render a shell at "/".
-        if clean_path == self.index_file {
-          spa_fallback(self)
-        } else {
-          // Other static asset missing on disk → genuine 404.
-          HttpResponse::not_found("File not found: \{clean_path}")
+    } else {
+      match try_read_file(full_path) {
+        Some(content) => {
+          let body = if mime == "text/html" {
+            process_template(content, TemplateConfig::default())
+          } else {
+            content
+          }
+          HttpResponse::{
+            status: 200,
+            body,
+            body_bytes: None,
+            content_type: mime,
+            headers: [("Cache-Control", "no-store")],
+          }
         }
+        None =>
+          if clean_path == self.index_file {
+            spa_fallback(self)
+          } else {
+            HttpResponse::not_found("File not found: \{clean_path}")
+          }
+      }
     }
   } else {
-    // Non-asset path: SPA fallback → serve index.html
     spa_fallback(self)
   }
 }
@@ -115,6 +127,28 @@ fn try_read_file(path : String) -> String? {
 }
 
 ///|
+fn try_read_file_bytes(path : String) -> Bytes? {
+  if @fs.path_exists(path) {
+    Some(@fs.read_file_to_bytes(path)) catch {
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+fn is_binary_asset(path : String) -> Bool {
+  path.contains(".woff") ||
+  path.contains(".png") ||
+  path.contains(".jpg") ||
+  path.contains(".jpeg") ||
+  path.contains(".gif") ||
+  path.contains(".ico") ||
+  path.contains(".mp3")
+}
+
+///|
 /// Check if a path looks like a static asset (has a file extension).
 fn is_static_asset(path : String) -> Bool {
   path.contains(".html") ||
@@ -126,7 +160,8 @@ fn is_static_asset(path : String) -> Bool {
   path.contains(".jpg") ||
   path.contains(".gif") ||
   path.contains(".ico") ||
-  path.contains(".woff")
+  path.contains(".woff") ||
+  path.contains(".mp3")
 }
 
 ///|
@@ -145,6 +180,7 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
   HttpResponse::{
     status: 200,
     body: fallback_body,
+    body_bytes: None,
     content_type: "text/html",
     headers: [
       ("Cache-Control", "no-store"),
@@ -158,10 +194,15 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
 pub fn HttpResponse::to_crescent(self : HttpResponse) -> @core.HttpResponse {
   let status_code = @core.StatusCode::from_int(self.status)
   let resp = @core.HttpResponse::HttpResponse(status_code~)
-  // Set Content-Type before body() so String responder won't override it
   resp.headers.set("Content-Type", self.content_type)
   for pair in self.headers {
     resp.headers.set(pair.0, pair.1)
   }
-  resp.body(self.body)
+  match self.body_bytes {
+    Some(bytes) => {
+      resp.raw_body = bytes
+      resp
+    }
+    None => resp.body(self.body)
+  }
 }

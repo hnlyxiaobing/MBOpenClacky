@@ -344,6 +344,7 @@ pub fn handle_billing_export(request : HttpRequest) -> HttpResponse {
   {
     status: 200,
     body: csv,
+    body_bytes: None,
     content_type: "text/csv",
     headers: [
       ("Content-Disposition", "attachment; filename=billing_export.csv"),

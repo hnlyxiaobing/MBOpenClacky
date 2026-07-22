@@ -27,6 +27,7 @@ pub(all) struct HttpRequest {
 pub(all) struct HttpResponse {
   status : Int
   body : String
+  body_bytes : Bytes?
   content_type : String
   headers : Array[(String, String)]
 }
@@ -82,39 +83,81 @@ pub fn HttpRequest::get_header(self : HttpRequest, name : String) -> String? {
 
 ///|
 pub fn HttpResponse::ok(body : String) -> HttpResponse {
-  { status: 200, body, content_type: "application/json", headers: [] }
+  {
+    status: 200,
+    body,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::created(body : String) -> HttpResponse {
-  { status: 201, body, content_type: "application/json", headers: [] }
+  {
+    status: 201,
+    body,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::not_found(message : String) -> HttpResponse {
   let body = "{\"error\":\"\{message}\"}"
-  { status: 404, body, content_type: "application/json", headers: [] }
+  {
+    status: 404,
+    body,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::bad_request(message : String) -> HttpResponse {
   let body = "{\"error\":\"\{message}\"}"
-  { status: 400, body, content_type: "application/json", headers: [] }
+  {
+    status: 400,
+    body,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::no_content() -> HttpResponse {
-  { status: 204, body: "", content_type: "application/json", headers: [] }
+  {
+    status: 204,
+    body: "",
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::json(data : String) -> HttpResponse {
-  { status: 200, body: data, content_type: "application/json", headers: [] }
+  {
+    status: 200,
+    body: data,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 ///|
 pub fn HttpResponse::html(data : String) -> HttpResponse {
-  { status: 200, body: data, content_type: "text/html", headers: [] }
+  {
+    status: 200,
+    body: data,
+    body_bytes: None,
+    content_type: "text/html",
+    headers: [],
+  }
 }
 
 ///|

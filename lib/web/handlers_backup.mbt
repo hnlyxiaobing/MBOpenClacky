@@ -652,6 +652,7 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
           "error": "unimplemented".to_json(),
           "message": "Backup archive download not yet implemented".to_json(),
         }).stringify(),
+        body_bytes: None,
         content_type: "application/json",
         headers: [],
       }

@@ -424,3 +424,140 @@ test "spa_fallback: uses custom index_file in header" {
   }
   assert_true(found)
 }
+
+// ══════════════════════════════════════════════════════════════════
+// Binary Asset Tests (mp3, woff2, png, ico)
+// ══════════════════════════════════════════════════════════════════
+
+///|
+test "mime: .mp3 returns audio/mpeg" {
+  @debug.assert_eq(get_mime_type("notify.mp3"), "audio/mpeg")
+}
+
+///|
+test "is_static_asset: mp3 file" {
+  assert_true(is_static_asset("assets/notify.mp3"))
+}
+
+///|
+test "is_static_asset: woff2 file" {
+  assert_true(is_static_asset("fonts/KaTeX_Main-Regular.woff2"))
+}
+
+///|
+test "is_binary_asset: woff2 file" {
+  assert_true(is_binary_asset("fonts/KaTeX_Main-Regular.woff2"))
+}
+
+///|
+test "is_binary_asset: woff file" {
+  assert_true(is_binary_asset("fonts/KaTeX_Main-Regular.woff"))
+}
+
+///|
+test "is_binary_asset: mp3 file" {
+  assert_true(is_binary_asset("assets/notify.mp3"))
+}
+
+///|
+test "is_binary_asset: png file" {
+  assert_true(is_binary_asset("img/logo.png"))
+}
+
+///|
+test "is_binary_asset: ico file" {
+  assert_true(is_binary_asset("favicon.ico"))
+}
+
+///|
+test "is_binary_asset: jpg file" {
+  assert_true(is_binary_asset("photo.jpg"))
+}
+
+///|
+test "is_binary_asset: gif file" {
+  assert_true(is_binary_asset("anim.gif"))
+}
+
+///|
+test "is_binary_asset: css file (text, not binary)" {
+  assert_false(is_binary_asset("css/style.css"))
+}
+
+///|
+test "is_binary_asset: js file (text, not binary)" {
+  assert_false(is_binary_asset("js/app.js"))
+}
+
+///|
+test "is_binary_asset: html file (text, not binary)" {
+  assert_false(is_binary_asset("index.html"))
+}
+
+///|
+test "serve: binary png preserves byte integrity with null bytes" {
+  let root = wbtest_web_root()
+  let png_data = b"\x89PNG\x0d\x0a\x1a\x0a\x00\x00\x00\x0dIHDR\x00\x00\x00\xff\x00\x00\x00\xff"
+  @fs.write_bytes_to_file(root + "/test.png", png_data) catch {
+    _ => ()
+  }
+  let server = StaticServer::new(root)
+  let resp = server.serve("/test.png")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "image/png")
+  @debug.assert_eq(resp.body, "")
+  match resp.body_bytes {
+    Some(bytes) => assert_eq(bytes, png_data)
+    None => abort("Expected body_bytes to be Some for binary asset")
+  }
+}
+
+///|
+test "serve: mp3 returns audio/mpeg with binary body_bytes" {
+  let root = wbtest_web_root()
+  let mp3_data = b"\xff\xfb\x90\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+  @fs.write_bytes_to_file(root + "/notify.mp3", mp3_data) catch {
+    _ => ()
+  }
+  let server = StaticServer::new(root)
+  let resp = server.serve("/notify.mp3")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "audio/mpeg")
+  @debug.assert_eq(resp.body, "")
+  match resp.body_bytes {
+    Some(bytes) => assert_eq(bytes, mp3_data)
+    None => abort("Expected body_bytes to be Some for binary asset")
+  }
+}
+
+///|
+test "serve: woff2 returns font/woff2 with binary body_bytes" {
+  let root = wbtest_web_root()
+  let woff2_data = b"\x00\x01\x02\xff\xfe\x00\x42\x80\x81\x00"
+  @fs.write_bytes_to_file(root + "/font.woff2", woff2_data) catch {
+    _ => ()
+  }
+  let server = StaticServer::new(root)
+  let resp = server.serve("/font.woff2")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "font/woff2")
+  @debug.assert_eq(resp.body, "")
+  match resp.body_bytes {
+    Some(bytes) => assert_eq(bytes, woff2_data)
+    None => abort("Expected body_bytes to be Some for binary asset")
+  }
+}
+
+///|
+test "serve: text asset still uses body string (not body_bytes)" {
+  let root = wbtest_web_root()
+  let server = StaticServer::new(root)
+  let resp = server.serve("/css/style.css")
+  @debug.assert_eq(resp.status, 200)
+  @debug.assert_eq(resp.content_type, "text/css")
+  assert_true(resp.body.contains("color"))
+  match resp.body_bytes {
+    Some(_) => abort("Expected body_bytes to be None for text asset")
+    None => ()
+  }
+}
