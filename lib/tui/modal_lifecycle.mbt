@@ -115,3 +115,107 @@ pub fn confirmation_default_yes(state : TuiState) -> Bool {
     None => false
   }
 }
+
+// ── Multi-step config modal lifecycle ──────────────────────────
+
+///|
+/// Open the config menu dialog from the agent's current model configuration.
+pub fn open_config_menu(state : TuiState, agent : @agent.Agent) -> Unit {
+  let dialog = ConfigMenuDialog::from_models(
+    agent.config.models,
+    agent.config.current_model_id,
+  )
+  state.dialog = DialogState::ConfigMenu(dialog)
+}
+
+///|
+/// Open the model selector dialog from the agent's current model configuration.
+pub fn open_model_selector(state : TuiState, agent : @agent.Agent) -> Unit {
+  let dialog = ConfigMenuDialog::as_model_selector(
+    agent.config.models,
+    agent.config.current_model_id,
+  )
+  state.dialog = DialogState::ConfigMenu(dialog)
+}
+
+///|
+/// Transition from config menu to an Add form.
+pub fn open_add_form(state : TuiState, mode : ConfigMode) -> Unit {
+  let fields = [
+    ("name", true, "my-model", false),
+    ("model", true, "gpt-4o", false),
+    ("api_key", true, "sk-...", true),
+    ("base_url", true, "https://api.openai.com/v1", false),
+  ]
+  let form = FormDialog::new_with_mask("Add Model", fields)
+  state.dialog = ConfigForm(mode~, form~, action=Add, target_idx=-1)
+}
+
+///|
+/// Transition from config menu to an Edit form for the selected model.
+///
+/// The model id ("name") is immutable and therefore not editable; the form
+/// only exposes model / api_key / base_url (see tui-parity review: editing
+/// the name used to be a no-op that pretended to succeed).
+pub fn open_edit_form(
+  state : TuiState,
+  mode : ConfigMode,
+  model : @config.ModelConfig,
+  idx : Int,
+) -> Unit {
+  let fields = [
+    ("model", true, "gpt-4o", false),
+    ("api_key", true, "sk-...", true),
+    ("base_url", true, "https://api.openai.com/v1", false),
+  ]
+  let form = FormDialog::new_with_mask("Edit Model", fields)
+  // Pre-fill with existing values
+  form.fields[0].value = model.model
+  form.fields[1].value = model.api_key
+  form.fields[2].value = model.base_url
+  state.dialog = ConfigForm(mode~, form~, action=Edit, target_idx=idx)
+}
+
+///|
+/// Return from form back to the config menu.
+pub fn return_to_config_menu(
+  state : TuiState,
+  agent : @agent.Agent,
+  mode : ConfigMode,
+) -> Unit {
+  match mode {
+    ConfigMenu => open_config_menu(state, agent)
+    ModelSelector => open_model_selector(state, agent)
+  }
+}
+
+///|
+/// Close any config-related dialog and return to normal state.
+pub fn close_config_dialog(state : TuiState) -> Unit {
+  state.dialog = DialogState::NoDialog
+}
+
+///|
+/// Build a config form for model editing with pre-filled values.
+pub fn build_model_form(
+  title : String,
+  model : @config.ModelConfig?,
+) -> FormDialog {
+  let fields = [
+    ("name", true, "my-model", false),
+    ("model", true, "gpt-4o", false),
+    ("api_key", true, "sk-...", true),
+    ("base_url", true, "https://api.openai.com/v1", false),
+  ]
+  let form = FormDialog::new_with_mask(title, fields)
+  match model {
+    Some(m) => {
+      form.fields[0].value = m.id
+      form.fields[1].value = m.model
+      form.fields[2].value = m.api_key
+      form.fields[3].value = m.base_url
+    }
+    None => ()
+  }
+  form
+}

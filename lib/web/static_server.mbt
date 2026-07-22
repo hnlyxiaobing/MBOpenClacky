@@ -74,11 +74,13 @@ pub fn StaticServer::serve(self : StaticServer, path : String) -> HttpResponse {
         } else {
           content
         }
+        // Spec web-parity-01: all static responses use no-store, aligned
+        // with the original project's FileHandler (no caching at all).
         HttpResponse::{
           status: 200,
           body,
           content_type: mime,
-          headers: [("Cache-Control", "public, max-age=3600")],
+          headers: [("Cache-Control", "no-store")],
         }
       }
       None =>
@@ -145,7 +147,7 @@ fn spa_fallback(server : StaticServer) -> HttpResponse {
     body: fallback_body,
     content_type: "text/html",
     headers: [
-      ("Cache-Control", "no-cache"),
+      ("Cache-Control", "no-store"),
       ("X-SPA-Fallback", server.index_file),
     ],
   }

@@ -1,4 +1,5 @@
 import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/message",
   "moonbitlang/core/json",
 }

@@ -23,6 +23,10 @@ pub(all) enum HookEvent {
   ToolExecuting(String, String)
   /// A tool has completed execution (tool_name, result).
   ToolExecuted(String, ToolResultEntry)
+  /// A tool call was denied by the user (tool_name).
+  ToolDenied(String)
+  /// Token usage tracked for a single LLM call (delta/input/output/cost).
+  UsageUpdated(IterationTokenData)
   /// An error occurred during agent execution.
   ErrorOccurred(String)
   /// Agent run completed with final result.

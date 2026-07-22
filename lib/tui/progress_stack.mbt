@@ -42,6 +42,10 @@ struct ProgressEntry {
   mut is_closed : Bool
   /// Optional metadata (e.g., tool name, iteration number).
   mut metadata : String
+  /// Character count for streaming progress (e.g., streamed chars).
+  mut char_count : Int
+  /// Quiet mode: minimal display (spinner + short text only).
+  mut quiet : Bool
 } derive(Debug)
 
 ///|
@@ -87,10 +91,30 @@ pub fn ProgressStack::push(
     message,
     is_closed: false,
     metadata: "",
+    char_count: 0,
+    quiet: false,
   }
   let index = d.entries.length()
   d.entries.push(entry)
   ProgressHandle::{ id, stack: self.data, index }
+}
+
+///|
+/// Push a new progress entry with quiet mode.
+///
+/// Quiet entries display only a spinner and short text,
+/// and are automatically removed from the display when closed
+/// if they ran for less than 2 seconds.
+pub fn ProgressStack::push_quiet(
+  self : ProgressStack,
+  message : String,
+) -> ProgressHandle {
+  let handle = self.push(message)
+  let d = self.data.val
+  if handle.index < d.entries.length() {
+    d.entries[handle.index].quiet = true
+  }
+  handle
 }
 
 ///|
@@ -124,6 +148,8 @@ pub fn ProgressStack::has_open(self : ProgressStack) -> Bool {
 /// Each open entry is rendered as "[spinner] message (Ns)"
 /// where N is the elapsed time in seconds. The spinner frame
 /// is selected based on the current time for animation.
+/// Quiet entries omit the elapsed time. Entries with a char_count
+/// append `↓N chars`.
 pub fn ProgressStack::render(self : ProgressStack) -> Array[String] {
   let d = self.data.val
   let lines : Array[String] = []
@@ -131,7 +157,19 @@ pub fn ProgressStack::render(self : ProgressStack) -> Array[String] {
     if !entry.is_closed {
       let elapsed_sec = elapsed_seconds(entry.start_time)
       let frame = spinner_frame(elapsed_sec)
-      lines.push("\{frame} \{entry.message} (\{elapsed_sec}s)")
+      let mut line = "\{frame} \{entry.message}"
+      if !entry.quiet {
+        line = "\{line} (\{elapsed_sec}s)"
+      }
+      if entry.char_count > 0 {
+        let chars_k = entry.char_count / 1000
+        if chars_k > 0 {
+          line = "\{line} ↓\{chars_k}k chars"
+        } else {
+          line = "\{line} ↓\{entry.char_count} chars"
+        }
+      }
+      lines.push(line)
     }
   }
   lines
@@ -147,13 +185,41 @@ pub fn ProgressStack::close_all(self : ProgressStack) -> Unit {
 }
 
 ///|
+/// Update the char count of the most recently opened (still open) entry.
+/// Used by streaming to show `↓N chars` on the active progress frame.
+pub fn ProgressStack::update_last_char_count(
+  self : ProgressStack,
+  count : Int,
+) -> Unit {
+  let d = self.data.val
+  let mut i = d.entries.length() - 1
+  while i >= 0 {
+    if !d.entries[i].is_closed {
+      d.entries[i].char_count = count
+      break
+    }
+    i = i - 1
+  }
+}
+
+///|
 /// Close the most recently opened (last pushed) progress entry.
+/// Quiet entries that ran for less than 2 seconds are removed
+/// from the entries array entirely (no trace in output).
 pub fn ProgressStack::close_last(self : ProgressStack) -> Unit {
   let d = self.data.val
   let mut i = d.entries.length() - 1
   while i >= 0 {
     if !d.entries[i].is_closed {
       d.entries[i].is_closed = true
+      // Auto-clear quiet entries that completed in <2 seconds
+      if d.entries[i].quiet {
+        let elapsed_ms = @env.now().reinterpret_as_int64() -
+          d.entries[i].start_time
+        if elapsed_ms < 2000L {
+          d.entries.remove(i) |> ignore
+        }
+      }
       break
     }
     i = i - 1
@@ -188,10 +254,23 @@ pub fn ProgressHandle::set_metadata(
 
 ///|
 /// Close this progress entry, marking it as complete.
+/// Quiet entries that completed in <2 seconds are auto-removed.
 pub fn ProgressHandle::close(self : ProgressHandle) -> Unit {
   let d = self.stack.val
   if self.index < d.entries.length() {
     d.entries[self.index].is_closed = true
+  }
+}
+
+///|
+/// Update the character count for this progress entry.
+pub fn ProgressHandle::set_char_count(
+  self : ProgressHandle,
+  count : Int,
+) -> Unit {
+  let d = self.stack.val
+  if self.index < d.entries.length() {
+    d.entries[self.index].char_count = count
   }
 }
 

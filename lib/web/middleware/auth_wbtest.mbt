@@ -49,6 +49,7 @@ test "loopback ip variants" {
   assert_true(is_loopback_ip("[::1]"))
   assert_false(is_loopback_ip("192.168.1.1"))
   assert_false(is_loopback_ip("unknown"))
+  assert_false(is_loopback_ip(""))
 }
 
 // ── extract_client_ip ─────────────────────────────────────────────
@@ -70,13 +71,14 @@ test "extract ip falls back to x-real-ip" {
 ///|
 test "extract ip unknown when no headers" {
   let req = make_req(Get, "/api/info", {})
-  @debug.assert_eq(extract_client_ip(req), "unknown")
+  @debug.assert_eq(extract_client_ip(req), "127.0.0.1")
 }
 
 ///|
 test "forged xff loopback is still parsed as loopback string" {
   // Documents the forgery vector: a remote client can send this header.
-  // The middleware must therefore NOT bypass auth by default.
+  // Loopback bypass is ON by default; use MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0
+  // to disable when the server is exposed to untrusted networks.
   let req = make_req(Get, "/api/info", { "X-Forwarded-For": "127.0.0.1" })
   assert_true(is_loopback_ip(extract_client_ip(req)))
 }

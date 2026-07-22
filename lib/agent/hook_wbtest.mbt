@@ -82,6 +82,8 @@ test "hook_emit_all_event_types" {
       SubagentStarted(_) => event_types.push("subagent_start")
       SubagentEnded(_) => event_types.push("subagent_end")
       RetryAttempt(_, _) => event_types.push("retry")
+      ToolDenied(_) => event_types.push("tool_denied")
+      UsageUpdated(_) => event_types.push("usage")
     }
   })
 

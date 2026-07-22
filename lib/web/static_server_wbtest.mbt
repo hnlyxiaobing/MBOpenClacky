@@ -225,15 +225,16 @@ test "serve: js file returns application/javascript" {
 }
 
 ///|
-test "serve: js file includes cache header" {
+test "serve: js file includes no-store cache header" {
   let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/js/app.js")
   @debug.assert_eq(resp.status, 200)
   assert_true(resp.headers.length() > 0)
-  // Verify Cache-Control header is set for static assets
+  // Spec web-parity-01: ALL static assets get Cache-Control: no-store,
+  // aligned with the original project's FileHandler.
   let cache_header = resp.headers[0]
   @debug.assert_eq(cache_header.0, "Cache-Control")
-  assert_true(cache_header.1.contains("public"))
+  @debug.assert_eq(cache_header.1, "no-store")
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -277,7 +278,7 @@ test "spa_fallback: includes X-SPA-Fallback header" {
 }
 
 ///|
-test "spa_fallback: Cache-Control is no-cache" {
+test "spa_fallback: Cache-Control is no-store" {
   let server = StaticServer::new(wbtest_web_root())
   let resp = server.serve("/some/route")
   let mut found = false
@@ -285,7 +286,7 @@ test "spa_fallback: Cache-Control is no-cache" {
   while i < resp.headers.length() {
     if resp.headers[i].0 == "Cache-Control" {
       found = true
-      @debug.assert_eq(resp.headers[i].1, "no-cache")
+      @debug.assert_eq(resp.headers[i].1, "no-store")
     }
     i = i + 1
   }
@@ -323,6 +324,29 @@ test "traversal: body contains 'Invalid path'" {
   let resp = server.serve("/../../etc/hosts")
   @debug.assert_eq(resp.status, 400)
   assert_true(resp.body.contains("Invalid path"))
+}
+
+///|
+test "traversal: percent-encoded %2e%2e never escapes web root" {
+  // Pins the URL-decoding assumption behind the contains("..") check:
+  // serve() operates on the already-decoded path — once "%2e%2e" is decoded
+  // to "..", the traversal guard above blocks it with 400. If a path still
+  // arrives percent-encoded, "%2e%2e" is just a literal filename under the
+  // web root: it resolves to a missing file (SPA fallback / 404), never to
+  // a file outside the root.
+  let server = StaticServer::new(wbtest_web_root())
+  // Decoded form is blocked outright:
+  let decoded = server.serve("/../../etc/passwd")
+  @debug.assert_eq(decoded.status, 400)
+  // Encoded form must never serve the target file's content:
+  let encoded = server.serve("/%2e%2e/%2e%2e/etc/passwd")
+  assert_false(encoded.body.contains("root:"))
+  // It either resolves to the SPA fallback shell or a 4xx:
+  assert_true(
+    encoded.status == 400 ||
+    encoded.status == 404 ||
+    encoded.body.contains("<!DOCTYPE html>"),
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════

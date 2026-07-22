@@ -20,28 +20,28 @@ pub fn ProxyConfig::new() -> ProxyConfig {
 /// Install proxy settings from explicit parameters or environment variables.
 /// Priority: explicit parameter > HTTPS_PROXY > HTTP_PROXY.
 pub fn ProxyConfig::install(
-  proxy_url? : String = "",
-  no_proxy? : String = "",
+  proxy_url? : String? = None,
+  no_proxy? : String? = None,
 ) -> ProxyConfig {
-  let url = if proxy_url.length() > 0 {
-    proxy_url
-  } else {
-    match env_var("HTTPS_PROXY") {
-      Some(v) => v
-      None =>
-        match env_var("HTTP_PROXY") {
-          Some(v) => v
-          None => ""
-        }
-    }
+  let url = match proxy_url {
+    Some(u) => u
+    None =>
+      match env_var("HTTPS_PROXY") {
+        Some(v) => v
+        None =>
+          match env_var("HTTP_PROXY") {
+            Some(v) => v
+            None => ""
+          }
+      }
   }
-  let bypass = if no_proxy.length() > 0 {
-    no_proxy
-  } else {
-    match env_var("NO_PROXY") {
-      Some(v) => v
-      None => ""
-    }
+  let bypass = match no_proxy {
+    Some(n) => n
+    None =>
+      match env_var("NO_PROXY") {
+        Some(v) => v
+        None => ""
+      }
   }
   { proxy_url: url, epoch: 1, no_proxy: bypass }
 }

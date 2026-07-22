@@ -141,18 +141,16 @@ pub fn WebServer::build_app(
   // 3. Auth: API key verification (conditional)
   match self.api_key {
     Some(key) => {
-      // Dev-only escape hatch: loopback bypass. The client IP is derived
-      // from forgeable headers, so this is NOT a security boundary —
-      // never enable it on an exposed port.
-      let allow_loopback = match
-        @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
-        Some("1") | Some("true") => {
-          println(
-            "[WebServer] WARNING: loopback auth bypass ENABLED (MBOPENCLACKY_DEV_ALLOW_LOOPBACK) — do NOT expose this port",
-          )
-          true
-        }
-        _ => false
+      let allow_loopback = not(
+        match @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
+          Some("0") | Some("false") => true
+          _ => false
+        },
+      )
+      if allow_loopback {
+        println(
+          "[WebServer] loopback auth bypass ENABLED by default — set MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0 to disable",
+        )
       }
       app.use_middleware(
         @mid.auth_middleware(key, allow_loopback_bypass=allow_loopback),
@@ -182,8 +180,8 @@ pub fn WebServer::build_app(
       s.get("/:id", event => handle_get_session(server_ref, event))
       s.delete("/:id", event => handle_delete_session(server_ref, event))
       s.post("/:id/restore", event => handle_restore_session(server_ref, event))
-      s.post("/:id/chat", event => handle_chat(server_ref, event))
-      s.post("/:id/chat/stream", event => handle_chat_stream(server_ref, event))
+      // POST :id/chat and SSE chat/stream removed (web-parity-05):
+      // use the /ws WebSocket endpoint for real-time chat.
       s.get("/:id/status", event => handle_get_status(server_ref, event))
       s.post("/:id/cancel", event => handle_cancel(server_ref, event))
       s.get("/:id/cost", event => handle_get_cost(server_ref, event))
@@ -193,18 +191,52 @@ pub fn WebServer::build_app(
       s.post("/:id/export/zip", event => {
         handle_session_export_zip(server_ref, event)
       })
+      // GET export (zip download, web-parity-02 alignment).
+      s.get("/:id/export", event => {
+        handle_session_export_zip_get(server_ref, event)
+      })
       s.post("/:id/fork", event => handle_session_fork(server_ref, event))
       s.patch("/:id/rename", event => handle_session_rename(server_ref, event))
+      // PATCH /:id — supports name + pinned (web-parity-02).
+      s.patch("/:id", event => handle_session_patch(server_ref, event))
       s.patch("/:id/working_dir", event => {
         handle_update_working_dir(server_ref, event)
       })
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
+      // Session skills and files (web-parity-02).
+      s.get("/:id/skills", event => handle_session_skills(server_ref, event))
+      s.get("/:id/files", event => handle_session_files(server_ref, event))
       // Session-scoped Time Machine points (P1-5)
       s.get("/:id/time-machine", event => {
         handle_session_time_machine_get(server_ref, event)
       })
       s.post("/:id/time-machine", event => {
         handle_session_time_machine_post(server_ref, event)
+      })
+      // Time machine underscore alias (web-parity-04)
+      s.get("/:id/time_machine", event => {
+        handle_session_time_machine_get(server_ref, event)
+      })
+      s.post("/:id/time_machine", event => {
+        handle_session_time_machine_post(server_ref, event)
+      })
+      s.get("/:id/time_machine/:task_id/diff", event => {
+        handle_session_time_machine_diff(server_ref, event)
+      })
+      s.post("/:id/time_machine/:task_id/restore_preview", event => {
+        handle_session_time_machine_restore_preview(server_ref, event)
+      })
+      // Session-scoped Git endpoints (web-parity-04)
+      s.get("/:id/git/status", event => {
+        handle_session_git_status(server_ref, event)
+      })
+      s.get("/:id/git/diff", event => handle_session_git_diff(server_ref, event))
+      s.get("/:id/git/log", event => handle_session_git_log(server_ref, event))
+      s.get("/:id/git/branches", event => {
+        handle_session_git_branches(server_ref, event)
+      })
+      s.post("/:id/git/commit", event => {
+        handle_session_git_commit(server_ref, event)
       })
     })
     // Session import/export-all (top-level, not under /:id)
@@ -218,19 +250,8 @@ pub fn WebServer::build_app(
       handle_sessions_export_all(server_ref, event)
     })
 
-    // Meetings
-    api.group("/meetings", (m : @crescent.App) => {
-      m.get("", event => handle_list_meetings(server_ref, event))
-      m.post("", event => handle_create_meeting(server_ref, event))
-      m.get("/:id", event => handle_get_meeting(server_ref, event))
-      m.post("/:id/transcript", event => {
-        handle_add_transcript(server_ref, event)
-      })
-      m.post("/:id/end", event => handle_end_meeting(server_ref, event))
-      m.post("/:id/summarize", event => {
-        handle_summarize_meeting(server_ref, event)
-      })
-    })
+    // Meetings endpoints removed (web-parity-05): legacy-frontend-only,
+    // no consumer in the new frontend.
 
     // Config
     api.group("/config", (c : @crescent.App) => {
@@ -242,7 +263,45 @@ pub fn WebServer::build_app(
       c.post("/ocr/test", event => handle_config_ocr_test(server_ref, event))
       c.post("/test", event => handle_config_test(server_ref, event))
       c.post("/media/test", event => handle_config_media_test(server_ref, event))
+      // Media config by kind (web-parity-03).
+      c.get("/media/:kind", event => handle_config_media_get(server_ref, event))
+      c.patch("/media/:kind", event => {
+        handle_config_media_patch(server_ref, event)
+      })
+      // OCR config GET (web-parity-03).
+      c.get("/ocr", event => handle_config_ocr_get(server_ref, event))
+      // Settings alias (web-parity-03: /api/config/settings → /api/settings).
+      c.get("/settings", event => handle_config_settings_get(server_ref, event))
+      c.patch("/settings", event => {
+        handle_config_settings_patch(server_ref, event)
+      })
+      // Model CRUD alias routes (web-parity-02 alignment).
+      c.post("/models", event => handle_config_models_post(server_ref, event))
+      c.patch("/models/:id", event => {
+        handle_config_models_patch(server_ref, event)
+      })
+      c.delete("/models/:id", event => {
+        handle_config_models_delete(server_ref, event)
+      })
+      c.post("/models/:id/default", event => {
+        handle_config_models_set_default(server_ref, event)
+      })
     })
+
+    // Providers endpoint (web-parity-02).
+    api.get("/providers", event => handle_providers_list(server_ref, event))
+
+    // Agents (web-parity-03).
+    api.group("/agents", (ag : @crescent.App) => {
+      ag.get("", event => handle_agents_list(server_ref, event))
+      ag.get("/:id/skills", event => handle_agent_skills(server_ref, event))
+    })
+
+    // Telemetry (web-parity-03: accept and discard).
+    api.post("/telemetry", event => handle_telemetry_noop(server_ref, event))
+
+    // Upload alias (web-parity-02: POST /api/upload).
+    api.post("/upload", event => handle_upload_alias(server_ref, event))
 
     // Stats
     api.group("/stats", (s2 : @crescent.App) => {
@@ -253,16 +312,8 @@ pub fn WebServer::build_app(
     })
 
     // MCP
+    // NOTE: /api/mcp/servers* removed (web-parity-05, legacy-frontend-only).
     api.group("/mcp", (mcp : @crescent.App) => {
-      mcp.get("/servers", event => {
-        handle_mcp_list_servers_bridge(server_ref, event)
-      })
-      mcp.post("/servers", event => {
-        handle_mcp_register_server_bridge(server_ref, event)
-      })
-      mcp.delete("/servers/:id", event => {
-        handle_mcp_remove_server_bridge(server_ref, event)
-      })
       mcp.get("/tools", event => handle_mcp_list_tools_bridge(server_ref, event))
       mcp.post("/tools/:name/execute", event => {
         handle_mcp_execute_tool_bridge(server_ref, event)
@@ -285,40 +336,61 @@ pub fn WebServer::build_app(
       })
     })
 
-    // Schedules
-    api.group("/schedules", (sc : @crescent.App) => {
-      sc.get("", event => handle_schedules_list_bridge(server_ref, event))
-      sc.post("", event => handle_schedules_create_bridge(server_ref, event))
-      sc.put("/:id", event => handle_schedules_update_bridge(server_ref, event))
-      sc.delete("/:id", event => {
+    // Cron-tasks alias (web-parity-04: /api/cron-tasks* -> same handlers as schedules)
+    api.group("/cron-tasks", (ct : @crescent.App) => {
+      ct.get("", event => handle_schedules_list_bridge(server_ref, event))
+      ct.post("", event => handle_schedules_create_bridge(server_ref, event))
+      ct.put("/:id", event => handle_schedules_update_bridge(server_ref, event))
+      ct.delete("/:id", event => {
         handle_schedules_delete_bridge(server_ref, event)
       })
-      sc.post("/:id/trigger", event => {
+      ct.post("/:id/trigger", event => {
         handle_schedules_trigger_bridge(server_ref, event)
       })
-      sc.get("/:id/history", event => {
+      ct.get("/:id/history", event => {
         handle_schedules_history_bridge(server_ref, event)
       })
     })
 
-    // Backups
-    api.group("/backups", (bk : @crescent.App) => {
-      bk.get("", event => handle_backups_list_bridge(server_ref, event))
-      bk.post("", event => handle_backups_create_bridge(server_ref, event))
-      bk.post("/:id/restore", event => {
-        handle_backups_restore_bridge(server_ref, event)
+    // /api/backups group removed (web-parity-05, legacy-frontend-only).
+
+    // Backup alias routes (web-parity-04: /api/backup/{status,run,restore,open-folder,download,config})
+    api.group("/backup", (bkp : @crescent.App) => {
+      bkp.get("/status", event => handle_backup_status_bridge(server_ref, event))
+      bkp.post("/run", event => handle_backup_run_bridge(server_ref, event))
+      bkp.post("/restore/:id", event => {
+        handle_backup_restore_bridge(server_ref, event)
       })
-      bk.delete("/:id", event => handle_backups_delete_bridge(server_ref, event))
+      bkp.post("/open-folder", event => {
+        handle_backup_open_folder_bridge(server_ref, event)
+      })
+      bkp.get("/download/:id", event => {
+        handle_backup_download_bridge(server_ref, event)
+      })
+      bkp.get("/config", event => handle_backup_config_bridge(server_ref, event))
     })
 
     // Billing
+    // NOTE: /api/billing/{status,usage,export} removed (web-parity-05,
+    // legacy-frontend-only); the parity-04 contract endpoints remain.
     api.group("/billing", (bl : @crescent.App) => {
-      bl.get("/status", event => handle_billing_status_bridge(server_ref, event))
       bl.post("/activate", event => {
         handle_billing_activate_bridge(server_ref, event)
       })
-      bl.get("/usage", event => handle_billing_usage_bridge(server_ref, event))
-      bl.get("/export", event => handle_billing_export_bridge(server_ref, event))
+      // New endpoints (web-parity-04)
+      bl.get("/summary", event => {
+        handle_billing_summary_bridge(server_ref, event)
+      })
+      bl.get("/daily", event => handle_billing_daily_bridge(server_ref, event))
+      bl.get("/records", event => {
+        handle_billing_records_bridge(server_ref, event)
+      })
+      bl.get("/sessions", event => {
+        handle_billing_sessions_bridge(server_ref, event)
+      })
+      bl.delete("/clear", event => {
+        handle_billing_clear_bridge(server_ref, event)
+      })
     })
 
     // Skills
@@ -380,18 +452,8 @@ pub fn WebServer::build_app(
       handle_browser_tool_call(server_ref, event)
     })
 
-    // Git Panel
-    api.group("/git", (git : @crescent.App) => {
-      git.get("/status", event => handle_git_status(server_ref, event))
-      git.get("/diff", event => handle_git_diff(server_ref, event))
-      git.post("/stage", event => handle_git_stage(server_ref, event))
-      git.post("/unstage", event => handle_git_unstage(server_ref, event))
-      git.post("/commit", event => handle_git_commit(server_ref, event))
-      git.post("/push", event => handle_git_push(server_ref, event))
-      git.post("/pull", event => handle_git_pull(server_ref, event))
-      git.get("/branches", event => handle_git_branches(server_ref, event))
-      git.post("/checkout", event => handle_git_checkout(server_ref, event))
-    })
+    // Global /api/git group removed (web-parity-05, legacy-frontend-only);
+    // session-scoped git endpoints remain under /api/sessions/:id/git/*.
 
     // Webhooks (IM channel callbacks)
     api.group("/webhooks", (wh : @crescent.App) => {
@@ -410,21 +472,19 @@ pub fn WebServer::build_app(
       })
       tr.delete("/:id", event => handle_trash_delete_bridge(server_ref, event))
       tr.delete("", event => handle_trash_empty_bridge(server_ref, event))
+      // Trash sessions sub-cluster (web-parity-04)
+      tr.get("/sessions", event => {
+        handle_trash_sessions_list_bridge(server_ref, event)
+      })
+      tr.post("/sessions/:id/restore", event => {
+        handle_trash_sessions_restore_bridge(server_ref, event)
+      })
+      tr.delete("/sessions/:id", event => {
+        handle_trash_sessions_delete_bridge(server_ref, event)
+      })
     })
 
-    // Meetings
-    api.group("/meetings", (mt : @crescent.App) => {
-      mt.get("", event => handle_meetings_list_bridge(server_ref, event))
-      mt.post("", event => handle_meetings_create_bridge(server_ref, event))
-      mt.get("/:id", event => handle_meetings_get_bridge(server_ref, event))
-      mt.put("/:id", event => handle_meetings_update_bridge(server_ref, event))
-      mt.delete("/:id", event => {
-        handle_meetings_delete_bridge(server_ref, event)
-      })
-      mt.post("/:id/summarize", event => {
-        handle_meetings_summarize_bridge(server_ref, event)
-      })
-    })
+    // Duplicate /api/meetings group removed (web-parity-05).
 
     // Brand / License
     api.group("/brand", (br : @crescent.App) => {
@@ -468,20 +528,18 @@ pub fn WebServer::build_app(
       mm.post("", event => handle_memories_post(server_ref, event))
       mm.put("", event => handle_memories_put(server_ref, event))
       mm.delete("", event => handle_memories_delete(server_ref, event))
+      // Single-memory routes (original contract form).
+      mm.get("/:filename", event => handle_memory_file_get(server_ref, event))
+      mm.put("/:filename", event => handle_memory_file_put(server_ref, event))
+      mm.delete("/:filename", event => {
+        handle_memory_file_delete(server_ref, event)
+      })
     })
-    api.group("/settings", (st : @crescent.App) => {
-      st.get("", event => handle_settings_get(server_ref, event))
-      st.put("", event => handle_settings_put(server_ref, event))
-    })
+    // /api/settings and /api/models groups removed (web-parity-05,
+    // legacy-frontend-only); the new frontend uses /api/config/* instead.
     api.group("/share", (sh : @crescent.App) => {
       sh.get("", event => handle_share_get(server_ref, event))
       sh.post("", event => handle_share_post(server_ref, event))
-    })
-    api.group("/models", (md : @crescent.App) => {
-      md.get("", event => handle_models_get(server_ref, event))
-      md.post("", event => handle_models_post(server_ref, event))
-      md.put("/:id", event => handle_models_put(server_ref, event))
-      md.delete("/:id", event => handle_models_delete(server_ref, event))
     })
     api.group("/benchmark", (bm : @crescent.App) => {
       bm.get("/sessions/:id/model", event => {
@@ -510,6 +568,11 @@ pub fn WebServer::build_app(
     // Local Image Proxy
     api.get("/local-image", event => handle_local_image(server_ref, event))
 
+    // File Action (web-parity-04: open/reveal/download local files)
+    api.post("/file-action", event => {
+      handle_file_action_bridge(server_ref, event)
+    })
+
     // Exchange Rate
     api.get("/exchange-rate", event => handle_exchange_rate(server_ref, event))
 
@@ -524,6 +587,11 @@ pub fn WebServer::build_app(
       md.post("/video/understand", event => {
         handle_media_video_understand(server_ref, event)
       })
+      // New endpoints (web-parity-04)
+      md.get("/video/status", event => {
+        handle_media_video_status_bridge(server_ref, event)
+      })
+      md.get("/types", event => handle_media_types_bridge(server_ref, event))
     })
 
     // Internal OCR
@@ -572,7 +640,10 @@ pub fn WebServer::build_app(
   let static_server = StaticServer::new("web")
   app.use_middleware((event, next) => {
     let path = event.req.path()
-    if path.has_prefix("/api/") || path.has_prefix("/ws/") || path == "/health" {
+    if path.has_prefix("/api/") ||
+      path == "/ws" ||
+      path.has_prefix("/ws/") ||
+      path == "/health" {
       return next()
     }
     if event.req.http_method != Get && event.req.http_method != Head {
@@ -591,6 +662,7 @@ pub fn WebServer::build_app(
   app.set_not_found_handler((event : @crescent.Event) => {
     let path = event.req.path()
     if !path.has_prefix("/api/") &&
+      path != "/ws" &&
       !path.has_prefix("/ws/") &&
       path != "/health" {
       let raw = @fs.read_file_to_string("web/index.html") catch { _ => "" }
@@ -605,12 +677,15 @@ pub fn WebServer::build_app(
   })
 
   // ── WebSocket ─────────────────────────────────────────────────
+  // New single-endpoint /ws protocol (web-parity-02).
   app.ws(
-    "/ws/sessions/:id",
+    "/ws",
     @ws.WebSocketHandler((event : @ws.WebSocketEvent) => {
-      handle_websocket(server_ref, event)
+      handle_ws_global(server_ref, event)
     }),
   )
+  // Legacy /ws/sessions/:id removed (web-parity-05).
+  // New /ws single-endpoint protocol is the sole WebSocket entry point.
 
   (app, server_ref)
 }
@@ -626,7 +701,12 @@ pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
   // ── Start Server ──────────────────────────────────────────────
   println("MBOpenClacky Web Server starting on port \{port}")
   println("Health check: http://localhost:\{port}/health")
-  app.serve(port~) catch {
-    err => println("Server error: \{err}")
-  }
+  // Run the server inside a long-lived task group so WS handlers can spawn
+  // background agent runs (see handlers_ws.set_ws_task_group).
+  @async.with_task_group(group => {
+    set_ws_task_group(group)
+    app.serve(port~) catch {
+      err => println("Server error: \{err}")
+    }
+  })
 }

@@ -3,11 +3,91 @@
 ///
 /// Renders a configuration menu with selectable items.
 /// Supports both single-select (radio) and multi-select (checkbox) modes.
-/// Keyboard navigation: Up/Down to move, Space to toggle, Enter to confirm.
+/// Keyboard navigation: Up/Down/j/k to move, Space to toggle, Enter to confirm.
 
 ///|
 /// Maximum visible items before scrolling.
 let config_menu_max_visible = 10
+
+///|
+/// Mask an API key for display: show first 3 and last 4 characters.
+/// e.g. "sk-ant-abc123xyz789" -> "sk-...z789"
+pub fn mask_api_key(key : String) -> String {
+  let len = key.length()
+  if len <= 8 {
+    "****"
+  } else {
+    "\{key[0:3]}...\{key[len - 4:]}"
+  }
+}
+
+///|
+/// Build config menu items from an array of model configs.
+/// Highlights the current model and shows masked API keys.
+pub fn build_config_menu_items(
+  models : Array[@config.ModelConfig],
+  current_model_id : String?,
+) -> Array[ConfigMenuItem] {
+  let items : Array[ConfigMenuItem] = []
+  for m in models {
+    let is_current = match current_model_id {
+      Some(id) => id == m.id
+      None => false
+    }
+    let type_badge = match m.type_ {
+      Some(t) => "[\{t}]"
+      None => ""
+    }
+    let masked = mask_api_key(m.api_key)
+    let current_marker = if is_current { " ●" } else { "" }
+    let label = "\{m.model} \{type_badge} \{masked}\{current_marker}"
+    items.push({ label, value: m.id, multi_select: false, checked: false })
+  }
+  items
+}
+
+///|
+/// Build model selector items (simpler, just model name + current marker).
+pub fn build_model_selector_items(
+  models : Array[@config.ModelConfig],
+  current_model_id : String?,
+) -> Array[ConfigMenuItem] {
+  let items : Array[ConfigMenuItem] = []
+  for m in models {
+    let is_current = match current_model_id {
+      Some(id) => id == m.id
+      None => false
+    }
+    let current_marker = if is_current { " (active)" } else { "" }
+    items.push({
+      label: "\{m.model}\{current_marker}",
+      value: m.id,
+      multi_select: false,
+      checked: false,
+    })
+  }
+  items
+}
+
+///|
+/// Create a config menu dialog from model configs.
+pub fn ConfigMenuDialog::from_models(
+  models : Array[@config.ModelConfig],
+  current_model_id : String?,
+) -> ConfigMenuDialog {
+  let items = build_config_menu_items(models, current_model_id)
+  ConfigMenuDialog::new("Configuration Menu", items)
+}
+
+///|
+/// Create a model selector dialog from model configs.
+pub fn ConfigMenuDialog::as_model_selector(
+  models : Array[@config.ModelConfig],
+  current_model_id : String?,
+) -> ConfigMenuDialog {
+  let items = build_model_selector_items(models, current_model_id)
+  ConfigMenuDialog::new("Select Model", items)
+}
 
 ///|
 /// Render a ConfigMenuDialog as a Node tree.
@@ -71,7 +151,7 @@ pub fn render_config_menu(dialog : ConfigMenuDialog) -> Node {
   children.push(Node::Text("", Style::default_()))
   children.push(
     Node::Text(
-      "↑↓ Navigate  Space Toggle  Enter Confirm  Esc Cancel",
+      "↑↓/jk Navigate  Enter Select  a Add  e Edit  d Delete  Esc Close",
       Style::new(dim=true),
     ),
   )

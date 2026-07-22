@@ -321,7 +321,8 @@ fn wd_normalize_sep(p : String) -> String {
 
 ///|
 /// GET /api/sessions/:id/messages — Retrieve the message history for a session.
-/// Returns an array of messages without the full session envelope.
+/// Supports `limit` (default 100) and `before` (timestamp cursor) query params.
+/// Returns the WS-isomorphic contract shape {events, has_more}.
 fn handle_session_messages(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
@@ -333,42 +334,34 @@ fn handle_session_messages(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
-  match @agent.load_session(id) {
-    Some(data) => {
-      let messages_json : Array[Json] = []
-      for msg in data.messages {
-        messages_json.push(msg.to_json())
+  // Parse optional pagination params.
+  let limit = match event.req.get_query("limit") {
+    Some(s) =>
+      match (try? @strconv.parse_int(s)) {
+        Ok(n) => if n > 0 { n } else { 100 }
+        Err(_) => 100
       }
-      @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": id.to_json(),
-          "messages": messages_json.to_json(),
-          "message_count": data.messages.length().to_json(),
-        }),
-      )
-    }
+    None => 100
+  }
+  let before = event.req.get_query("before")
+  let messages = match @agent.load_session(id) {
+    Some(data) => Some(data.messages)
     None =>
       // Fall back to the in-memory agent for sessions not yet persisted.
       match server_ref.val.active_agents.get(id) {
-        Some(agent) => {
-          let data = agent.to_session_data()
-          let messages_json : Array[Json] = []
-          for msg in data.messages {
-            messages_json.push(msg.to_json())
-          }
-          @core.HttpResponse::ok().json_value(
-            Json::object({
-              "session_id": id.to_json(),
-              "messages": messages_json.to_json(),
-              "message_count": data.messages.length().to_json(),
-            }),
-          )
-        }
-        None =>
-          @core.HttpResponse::not_found().json_value(
-            Json::object({ "error": "Session not found".to_json() }),
-          )
+        Some(agent) => Some(agent.to_session_data().messages)
+        None => None
       }
+  }
+  match messages {
+    Some(msgs) => {
+      let history = @protocol.build_messages_history(id, msgs, limit~, before~)
+      @core.HttpResponse::ok().json_value(history)
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
   }
 }
 
@@ -453,4 +446,251 @@ fn handle_sessions_export_all(
         Json::object({ "error": msg.to_json() }),
       )
   }
+}
+
+// ── Web-Parity-02 Session Handlers ──────────────────────────────
+
+///|
+/// GET /api/sessions/:id/export — Export session as ZIP binary download.
+/// Aligned with the original frontend contract (GET, Content-Disposition: attachment).
+fn handle_session_export_zip_get(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  match @agent.export_session_zip(id) {
+    Ok(zip_data) =>
+      @core.HttpResponse::ok()
+      .header("Content-Type", "application/zip")
+      .header("Content-Disposition", "attachment; filename=" + id + ".zip")
+      .body(zip_data)
+    Err(msg) =>
+      @core.HttpResponse::internal_server_error().json_value(
+        Json::object({ "error": msg.to_json() }),
+      )
+  }
+}
+
+///|
+/// PATCH /api/sessions/:id — Update session name and/or pinned status.
+/// Body: {"name": "...", "pinned": true/false} (either field optional).
+/// Broadcasts session_updated event via the hub.
+fn handle_session_patch(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  match @agent.load_session(id) {
+    Some(data) => {
+      let obj = match j {
+        Object(o) => o
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Invalid JSON body".to_json() }),
+          )
+      }
+      let mut changed = false
+      // Apply name change.
+      let new_name = match obj.get("name") {
+        Some(String(n)) => {
+          changed = true
+          n
+        }
+        _ => data.name
+      }
+      // Apply pinned change (stored separately, not in SessionData).
+      let pinned_val : Json = match obj.get("pinned") {
+        Some(v) => {
+          changed = true
+          // Persist the pinned flag to the file-backed map.
+          let pinned_bool = match v {
+            True => Some(true)
+            False => Some(false)
+            _ => None
+          }
+          match pinned_bool {
+            Some(b) => {
+              let pinned_map = load_pinned_map()
+              pinned_map[id] = b
+              match save_pinned_map(pinned_map) {
+                Ok(_) => ()
+                Err(msg) =>
+                  return @core.HttpResponse::internal_server_error().json_value(
+                    Json::object({
+                      "error": "Failed to persist pinned state".to_json(),
+                      "detail": msg.to_json(),
+                    }),
+                  )
+              }
+            }
+            None => ()
+          }
+          v
+        }
+        _ => Json::null()
+      }
+      let updated = @agent.SessionData::{
+        session_id: data.session_id,
+        name: new_name,
+        messages: data.messages,
+        stats: data.stats,
+        working_dir: data.working_dir,
+        created_at: data.created_at,
+        source: data.source,
+        reasoning_effort: data.reasoning_effort,
+        model_name: data.model_name,
+        channel_info: data.channel_info,
+        latest_latency_ms: data.latest_latency_ms,
+        latest_ttft_ms: data.latest_ttft_ms,
+        time_machine: data.time_machine,
+        pending_error_rollback: data.pending_error_rollback,
+        model_base_url: data.model_base_url,
+        last_status: data.last_status,
+        last_error: data.last_error,
+        forked_from: data.forked_from,
+        chunk_count: data.chunk_count,
+      }
+      if changed {
+        @agent.save_session(updated) catch {
+          _ =>
+            return @core.HttpResponse::internal_server_error().json_value(
+              Json::object({ "error": "Failed to save session".to_json() }),
+            )
+        }
+        // Broadcast session_updated via hub.
+        let hub = server_ref.val.hub
+        let model_field : Json = match updated.model_name {
+          Some(m) => m.to_json()
+          None => Json::null()
+        }
+        hub.broadcast_session_json(
+          id,
+          "session_updated",
+          Json::object({
+            "session_id": id.to_json(),
+            "name": updated.name.to_json(),
+            "model": model_field,
+            "pinned": pinned_val,
+          }),
+        )
+      }
+      let effective_pinned = load_pinned_map().get(id).unwrap_or(false)
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "session_id": id.to_json(),
+          "name": updated.name.to_json(),
+          "pinned": effective_pinned.to_json(),
+        }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
+  }
+}
+
+///|
+/// GET /api/sessions/:id/skills — List skills available in the session context.
+/// Returns the session's enabled skills and any workspace-local skills.
+fn handle_session_skills(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  // Return available skills from the skill registry.
+  // For now, session skills are the same as global skills (empty list).
+  // TODO(P3): integrate with skill registry for session-scoped skills.
+  let _ = server_ref
+  @core.HttpResponse::ok().json_value(
+    Json::object({ "session_id": id.to_json(), "skills": Json::array([]) }),
+  )
+}
+
+///|
+/// GET /api/sessions/:id/files — List files in the session's working directory.
+/// Returns directory entries for the session's working_dir.
+fn handle_session_files(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  // Determine working directory for the session.
+  let working_dir = match @agent.load_session(id) {
+    Some(data) => data.working_dir
+    None =>
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) => agent.to_session_data().working_dir
+        None =>
+          return @core.HttpResponse::not_found().json_value(
+            Json::object({ "error": "Session not found".to_json() }),
+          )
+      }
+  }
+  let dir = if working_dir.is_empty() { "." } else { working_dir }
+  if !@fs.path_exists(dir) {
+    return @core.HttpResponse::ok().json_value(
+      Json::object({
+        "session_id": id.to_json(),
+        "path": dir.to_json(),
+        "files": Json::array([]),
+      }),
+    )
+  }
+  let entries = @fs.read_dir(dir) catch {
+    _ =>
+      return @core.HttpResponse::ok().json_value(
+        Json::object({
+          "session_id": id.to_json(),
+          "path": dir.to_json(),
+          "files": Json::array([]),
+        }),
+      )
+  }
+  let items : Array[Json] = []
+  for name in entries {
+    let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
+    let is_dir = @fs.path_exists(full) && is_directory(full)
+    items.push(
+      Json::object({ "name": name.to_json(), "is_dir": is_dir.to_json() }),
+    )
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "session_id": id.to_json(),
+      "path": dir.to_json(),
+      "files": items.to_json(),
+      "count": entries.length().to_json(),
+    }),
+  )
 }

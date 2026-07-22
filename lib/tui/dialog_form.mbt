@@ -28,6 +28,8 @@ pub fn render_form_dialog(dialog : FormDialog) -> Node {
       field.placeholder
     } else if field.value.length() == 0 && field.placeholder.length() > 0 {
       field.placeholder
+    } else if field.masked && field.value.length() > 0 {
+      mask_api_key(field.value)
     } else {
       field.value
     }
@@ -62,7 +64,21 @@ pub fn FormDialog::new(
 ) -> FormDialog {
   let form_fields = fields.map(fn(entry) {
     let (label, required, placeholder) = entry
-    { label, value: "", required, placeholder }
+    { label, value: "", required, placeholder, masked: false }
+  })
+  { title, fields: form_fields, focused_idx: 0 }
+}
+
+///|
+/// Create a FormDialog with masked field support.
+/// Each entry is (label, required, placeholder, masked).
+pub fn FormDialog::new_with_mask(
+  title : String,
+  fields : Array[(String, Bool, String, Bool)],
+) -> FormDialog {
+  let form_fields = fields.map(fn(entry) {
+    let (label, required, placeholder, masked) = entry
+    { label, value: "", required, placeholder, masked }
   })
   { title, fields: form_fields, focused_idx: 0 }
 }

@@ -161,6 +161,7 @@ test "handle_hook_event updates state correctly" {
     state_ref,
     default_hook_config(),
     None,
+    None,
     @agent.HookEvent::StatusChanged(
       @agent.AgentStatus::Idle,
       @agent.AgentStatus::Running,
@@ -177,6 +178,7 @@ test "handle_hook_event updates state correctly" {
     state_ref,
     default_hook_config(),
     None,
+    None,
     @agent.HookEvent::BeforeIteration(3),
   )
   @debug.debug_inspect(state_ref.val.iterations, content="3")
@@ -184,6 +186,7 @@ test "handle_hook_event updates state correctly" {
   dispatch_hook_event(
     state_ref,
     default_hook_config(),
+    None,
     None,
     @agent.HookEvent::ToolExecuting("read_file", "test.txt"),
   )
@@ -197,6 +200,7 @@ test "handle_hook_event updates state correctly" {
   dispatch_hook_event(
     state_ref,
     default_hook_config(),
+    None,
     None,
     @agent.HookEvent::ErrorOccurred("something broke"),
   )
@@ -223,11 +227,13 @@ test "handle_hook_event_simple_events_no_crash" {
     state_ref,
     default_hook_config(),
     None,
+    None,
     @agent.HookEvent::BeforeLlmCall,
   )
   dispatch_hook_event(
     state_ref,
     default_hook_config(),
+    None,
     None,
     @agent.HookEvent::AfterLlmCall,
   )
@@ -235,11 +241,13 @@ test "handle_hook_event_simple_events_no_crash" {
     state_ref,
     default_hook_config(),
     None,
+    None,
     @agent.HookEvent::MessageAdded,
   )
   dispatch_hook_event(
     state_ref,
     default_hook_config(),
+    None,
     None,
     @agent.HookEvent::BeforeIteration(1),
   )
@@ -259,6 +267,7 @@ test "handle_hook_event_ToolExecuted" {
   dispatch_hook_event(
     state_ref,
     default_hook_config(),
+    None,
     None,
     @agent.HookEvent::ToolExecuted("read_file", entry),
   )

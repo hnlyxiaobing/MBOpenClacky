@@ -141,7 +141,7 @@ fn Agent::track_cost(self : Agent, usage : @client.Usage) -> IterationTokenData 
   )
   let store = @billing.BillingStore::default()
   let _ = store.append(billing_record)
-  {
+  let data : IterationTokenData = {
     delta_tokens: delta,
     prompt_tokens: usage.input_tokens,
     completion_tokens: usage.output_tokens,
@@ -151,4 +151,6 @@ fn Agent::track_cost(self : Agent, usage : @client.Usage) -> IterationTokenData 
     cost,
     cost_source: source,
   }
+  self.hook_manager.emit(UsageUpdated(data))
+  data
 }

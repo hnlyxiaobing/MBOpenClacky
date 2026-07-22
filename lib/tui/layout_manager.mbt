@@ -157,7 +157,6 @@ async fn LayoutManager::render_status_bar(
 ) -> Unit {
   self.screen.move_cursor(1, 1)
   self.screen.clear_to_eol()
-  self.screen.bold()
   self.screen.write_string(text)
   self.screen.reset_style()
 }

@@ -6,11 +6,89 @@
 /// GET /api/sessions
 fn handle_list_sessions(
   _server_ref : Ref[WebServer],
-  _event : @crescent.Event,
+  event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let sessions = @agent.list_sessions()
+  // Parse query parameters
+  let limit_raw = event.req.get_query("limit").unwrap_or("20")
+  let limit = (@string.parse_int(limit_raw.to_string_view()) catch { _ => 20 })
+    .min(50)
+    .max(1)
+  let q_filter = event.req.get_query("q").unwrap_or("")
+  let before = event.req.get_query("before")
+  let type_filter = event.req.get_query("type")
+  let exclude_type = event.req.get_query("exclude_type")
+  // Fetch all sessions and map to summaries
+  let all_sessions = @agent.list_sessions()
+  let summaries : Array[SessionSummary] = []
+  for sd in all_sessions {
+    // Apply text search filter (name contains q)
+    if q_filter.length() > 0 && !sd.name.contains(q_filter) {
+      continue
+    }
+    // Apply before cursor: only sessions created before the cursor
+    // (ISO 8601 timestamps compare lexicographically).
+    match before {
+      Some(b) => if !b.is_empty() && sd.created_at >= b { continue }
+      None => ()
+    }
+    // Apply type filters against the session source field.
+    match type_filter {
+      Some(t) => if !t.is_empty() && sd.source != t { continue }
+      None => ()
+    }
+    match exclude_type {
+      Some(t) => if !t.is_empty() && sd.source == t { continue }
+      None => ()
+    }
+    summaries.push(SessionSummary::{
+      id: sd.session_id,
+      name: sd.name,
+      working_dir: sd.working_dir,
+      status: sd.last_status,
+      created_at: sd.created_at,
+      updated_at: sd.created_at,
+      total_tasks: sd.stats.total_tasks,
+      total_cost: sd.stats.total_cost_usd,
+      cost_source: sd.stats.cost_source,
+      error: sd.last_error,
+      model: sd.model_name,
+      source: sd.source,
+      latest_latency_ms: sd.latest_latency_ms,
+    })
+  }
+  let total = summaries.length()
+  let has_more = total > limit
+  // Apply limit (take first `limit` items)
+  let paged = if total > limit {
+    summaries[0:limit].to_array()
+  } else {
+    summaries
+  }
+  // Real cron task count from the schedule store (no updated_at is tracked
+  // per schedule, so latest_cron_updated_at stays None).
+  ensure_schedules_loaded()
+  let cron_count = schedule_state.val.scheduler.list_schedules().length()
+  // Merge the persisted pinned state into each summary (SessionSummary has
+  // no pinned field; pinned lives in a separate file-backed map).
+  let pinned_map = load_pinned_map()
+  let paged_json : Array[Json] = []
+  for s in paged {
+    let is_pinned = pinned_map.get(s.id).unwrap_or(false)
+    match s.to_json() {
+      Object(o) => {
+        o["pinned"] = is_pinned.to_json()
+        paged_json.push(Json::object(o))
+      }
+      other => paged_json.push(other)
+    }
+  }
   @core.HttpResponse::ok().json_value(
-    SessionListResponse::{ sessions, }.to_json(),
+    Json::object({
+      "sessions": paged_json.to_json(),
+      "has_more": has_more.to_json(),
+      "cron_count": cron_count.to_json(),
+      "latest_cron_updated_at": Json::null(),
+    }),
   )
 }
 
@@ -219,107 +297,6 @@ fn handle_chat(
     status: result.status.to_string_value(),
   }
   @core.HttpResponse::ok().json_value(response.to_json())
-}
-
-///|
-
-///|
-/// POST /api/sessions/:id/chat/stream
-fn handle_chat_stream(
-  server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let id = match event.param("id") {
-    Some(p) => p.to_owned()
-    None =>
-      return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
-      )
-  }
-  let j : Json = event.req.body() catch {
-    _ =>
-      return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
-      )
-  }
-  let message : String = match j {
-    Object(obj) =>
-      match obj.get("message") {
-        Some(String(m)) => m
-        _ =>
-          return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'message' field".to_json() }),
-          )
-      }
-    _ =>
-      return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
-      )
-  }
-
-  let agent = server_ref.val.get_or_create_agent(id)
-
-  // Parse Last-Event-ID for resume support
-  let last_id = @sse.parse_last_event_id(event.req.get_header("Last-Event-ID"))
-
-  // Register hook callback to capture events with sequential IDs
-  let captured : Array[@sse.CapturedHookEvent] = []
-  let mut event_counter = 0
-  agent.hook_manager.register(fn(evt : @agent.HookEvent) {
-    event_counter = event_counter + 1
-    captured.push(@sse.capture_hook_event(evt, id=event_counter))
-  })
-
-  // Run agent (blocking)
-  let result = agent.run(message) catch {
-    err if @errors.is_agent_error(err) => {
-      let err_str = @errors.error_message(err)
-      @agent.RunResult::{
-        status: @agent.RunStatus::Error,
-        session_id: id,
-        iterations: agent.iterations,
-        total_cost_usd: agent.total_cost,
-        cost_source: agent.cost_source,
-        cache_stats: agent.cache_stats,
-        error: Some(err_str),
-      }
-    }
-    err => {
-      println("[web] unhandled error: \{err}")
-      @agent.RunResult::{
-        status: @agent.RunStatus::Error,
-        session_id: id,
-        iterations: agent.iterations,
-        total_cost_usd: agent.total_cost,
-        cost_source: agent.cost_source,
-        cache_stats: agent.cache_stats,
-        error: Some("Internal error"),
-      }
-    }
-  }
-
-  // Save session after execution
-  let data = agent.to_session_data()
-  @agent.save_session(data) catch {
-    _ => ()
-  }
-
-  // Build SSE body from captured events, resuming from Last-Event-ID if applicable
-  let sse_body = @sse.build_sse_body(captured, result, resume_from=last_id)
-
-  // Prepend heartbeat to signal connection alive before buffered events.
-  // TODO: crescent does not yet support true chunked/streaming responses,
-  // so the entire SSE body is sent at once after agent.run() completes.
-  // When crescent adds streaming support, inject periodic heartbeats
-  // during agent execution via @sse.format_heartbeat() to prevent
-  // proxy/keep-alive timeouts on long-running operations.
-  let sse_body = @sse.format_heartbeat() + sse_body
-
-  @core.HttpResponse::ok()
-  .header("Content-Type", "text/event-stream")
-  .header("Cache-Control", "no-cache")
-  .header("Connection", "keep-alive")
-  .body(sse_body)
 }
 
 ///|
@@ -625,153 +602,5 @@ fn handle_info(
   }
   @core.HttpResponse::ok().json_value(response.to_json())
 }
-
-// ── WebSocket Handler ─────────────────────────────────────────────
-
-///|
-
-///|
-/// Handle WebSocket events for /ws/sessions/:id
-/// Supports message types: subscribe, message, interrupt, list_sessions, ping.
-fn handle_websocket(
-  server_ref : Ref[WebServer],
-  event : @ws.WebSocketEvent,
-) -> Unit {
-  match event {
-    Open(peer) => {
-      let hub = server_ref.val.hub
-      hub.register(peer)
-      let session_id = peer.param("session_id")
-      let sid = match session_id {
-        Some(id) => id
-        None => "unknown"
-      }
-      // Auto-subscribe to the session from the URL
-      if sid != "unknown" {
-        hub.subscribe_session(peer.connection_id(), sid)
-      }
-      peer.text("{ \"type\": \"connected\", \"session_id\": \"\{sid}\" }")
-    }
-    Message(peer, msg) =>
-      match msg {
-        Text(text) => {
-          let json = @json.parse(text) catch { _ => return }
-          let obj = match json {
-            Object(o) => o
-            _ => return
-          }
-          let msg_type = match obj.get("type") {
-            Some(String(t)) => t
-            _ => "message"
-          }
-          match msg_type {
-            "ping" => peer.text("{ \"type\": \"pong\" }")
-            "subscribe" => {
-              let hub = server_ref.val.hub
-              let target = match obj.get("session_id") {
-                Some(String(sid)) => sid
-                _ => "global"
-              }
-              if target == "global" {
-                hub.subscribe_global(peer.connection_id())
-                peer.text(
-                  "{ \"type\": \"subscribed\", \"target\": \"global\" }",
-                )
-              } else {
-                hub.subscribe_session(peer.connection_id(), target)
-                peer.text(
-                  "{ \"type\": \"subscribed\", \"target\": \"\{target}\" }",
-                )
-              }
-            }
-            "list_sessions" => {
-              let hub = server_ref.val.hub
-              let sessions = hub.active_sessions()
-              let json_arr = Json::array(sessions.map(s => s.to_json()))
-              peer.text(
-                Json::object({ "type": "sessions", "sessions": json_arr }).stringify(),
-              )
-            }
-            "interrupt" => {
-              let sid = match obj.get("session_id") {
-                Some(String(s)) => s
-                _ =>
-                  match peer.param("session_id") {
-                    Some(s) => s
-                    None => return
-                  }
-              }
-              server_ref.val.cancelled[sid] = true
-              let hub = server_ref.val.hub
-              hub.broadcast_session(
-                sid,
-                "{ \"type\": \"interrupted\", \"session_id\": \"\{sid}\" }",
-              )
-            }
-            _ => {
-              // Default: "message" type — run agent and broadcast
-              let message = match obj.get("message") {
-                Some(String(m)) => m
-                _ => return
-              }
-              let session_id = match obj.get("session_id") {
-                Some(String(s)) => s
-                _ =>
-                  match peer.param("session_id") {
-                    Some(s) => s
-                    None => return
-                  }
-              }
-
-              let agent = server_ref.val.get_or_create_agent(session_id)
-              let hub = server_ref.val.hub
-
-              // Register hook to broadcast events to all session subscribers
-              agent.hook_manager.register(fn(evt : @agent.HookEvent) {
-                let captured = @sse.capture_hook_event(evt)
-                hub.broadcast_session_json(
-                  session_id,
-                  captured.event_type,
-                  captured.data,
-                )
-              })
-
-              // Run agent (blocking).
-              // NOTE: MoonBit currently lacks a lightweight TaskGroup/spawn
-              // primitive for safe async fan-out. Wrapping agent.run() in
-              // @async would risk unbounded concurrent runs per session.
-              // The hook callback above streams events incrementally, so
-              // the client receives progress updates even during long runs.
-              // Revisit when @async provides structured concurrency.
-              let _result = agent.run(message) catch {
-                _ => {
-                  hub.broadcast_session(
-                    session_id, "{ \"type\": \"error\", \"message\": \"Agent execution failed\" }",
-                  )
-                  return
-                }
-              }
-
-              // Broadcast done event
-              hub.broadcast_session_json(
-                session_id,
-                "done",
-                Json::object({ "session_id": session_id.to_json() }),
-              )
-
-              // Save session
-              let data = agent.to_session_data()
-              @agent.save_session(data) catch {
-                _ => ()
-              }
-            }
-          }
-        }
-        Binary(_) => ()
-      }
-    Close(peer) => {
-      let hub = server_ref.val.hub
-      hub.unregister(peer.connection_id())
-    }
-  }
-}
+// Legacy /ws/sessions/:id handler removed (web-parity-05).
+// New /ws single-endpoint protocol in handlers_ws.mbt.

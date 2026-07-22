@@ -65,6 +65,7 @@ pub fn TuiController::new(
   let layout = LayoutManager::new(screen, output, status_h=1, input_h=4)
   let state = Ref(TuiState::from_agent(agent))
   let hooks = AgentHookHandler::new(state, agent=Some(agent))
+  hooks.set_output(output)
   {
     tty,
     screen,
@@ -187,7 +188,7 @@ pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
   }
   // Build status text from state
   self.status_bar.format_from_state(self.state.val)
-  let status_text = self.status_bar.plain_text()
+  let status_text = self.status_bar.colored_text()
   // Get input render lines
   let input_lines = self.input.render_lines()
   // Render
@@ -229,14 +230,13 @@ pub async fn TuiController::redraw(self : TuiController) -> Unit {
 }
 
 ///|
-/// Redraw just the status bar.
+/// Redraw just the status bar with per-segment ANSI colors.
 async fn TuiController::redraw_status(self : TuiController) -> Unit {
   self.status_bar.format_from_state(self.state.val)
-  let text = self.status_bar.plain_text()
+  let colored = self.status_bar.colored_text()
   self.screen.move_cursor(1, 1)
   self.screen.clear_to_eol()
-  self.screen.bold()
-  self.screen.write_string(text)
+  self.screen.write_string(colored)
   self.screen.reset_style()
 }
 
@@ -271,6 +271,12 @@ async fn TuiController::redraw_dialog(self : TuiController) -> Unit {
       let (w, h) = self.layout.screen_size()
       let input_h = 4
       let node = render_form_dialog(dialog)
+      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
+    }
+    ConfigForm(form~, ..) => {
+      let (w, h) = self.layout.screen_size()
+      let input_h = 4
+      let node = render_form_dialog(form)
       let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
     }
   }
@@ -503,17 +509,26 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
   // Wrap output lines at the real terminal width and show the startup
   // banner as the first output entry (it scrolls away naturally).
   self.output.width = self.layout.width
+  let banner_width = Banner::adaptive_width(self.layout.width)
   let banner = {
-    style: BannerStyle::Boxed,
-    width: Banner::adaptive_width(self.layout.width),
+    style: BannerStyle::Block,
+    width: banner_width,
     use_color: true,
   }
-  ignore(
-    self.output.append_text(
-      banner.render("MBOpenClacky", Some("v\{app_version}")),
-      OutputKind::Text,
-    ),
+  // Check if API key is missing
+  let api_key_missing = self.agent.client.api_key.length() == 0
+  // Check if workspace has rules
+  let rules = @utils.WorkspaceRules::find_main(self.state.val.working_dir)
+  let has_rules = rules.has_rules()
+  let startup_banner = banner.render_startup(
+    app_version,
+    self.state.val.working_dir,
+    self.state.val.permission_mode,
+    has_rules,
+    api_key_missing,
+    terminal_width=self.layout.width,
   )
+  ignore(self.output.append_text(startup_banner, OutputKind::Text))
   self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q))
 }
 
@@ -602,14 +617,22 @@ async fn TuiController::main_loop(
             self.full_redraw()
           }
         }
-      ConfirmationRequest(tool, args) => {
-        let prompt = build_tool_prompt(tool, args)
-        request_confirmation(self.state.val, tool, args, prompt)
-        let dialog = ApprovalDialog::new(tool, args)
-        self.state.val.dialog = DialogState::Approval(dialog)
-        self.dirty = true
-        self.redraw()
-      }
+      ConfirmationRequest(tool, args) =>
+        if self.state.val.approved_all_tools {
+          // Shift+Tab "approve all for this session": auto-approve without
+          // showing a dialog.
+          match self.confirmation_response {
+            Some(q) => ignore(q.try_put(true))
+            None => ()
+          }
+        } else {
+          let prompt = build_tool_prompt(tool, args)
+          request_confirmation(self.state.val, tool, args, prompt)
+          let dialog = ApprovalDialog::new(tool, args)
+          self.state.val.dialog = DialogState::Approval(dialog)
+          self.dirty = true
+          self.redraw()
+        }
       AgentDone(result) => {
         self.agent_running = false
         self.agent_task = None
@@ -646,6 +669,8 @@ async fn TuiController::main_loop(
       }
       SubmitInput(text) => self.start_agent(group, text)
       Tick => {
+        // Increment tick counter for spinner animation
+        self.state.val.tick_count = self.state.val.tick_count + 1
         // Poll the streaming buffer — hooks update it via Ref, bypassing
         // the event queue, so the Tick timer drives live reply rendering.
         if self.agent_output_sync.sync_streaming(
@@ -675,6 +700,8 @@ async fn TuiController::main_loop(
       self.dirty = false
     }
   }
+  // Exit save prompt: output session-saved message before leaving the loop
+  self.on_exit_save()
 }
 
 // ── Input Handling ───────────────────────────────────────────────
@@ -688,7 +715,19 @@ async fn TuiController::handle_input(
   match input {
     Key(key) => self.handle_key(key)
     Paste(text) => {
-      self.input.insert_text(text)
+      // Paste placeholder: collapse >5-line pastes into [#N Paste Text]
+      let n_lines = paste_line_count(text)
+      if n_lines > 5 {
+        self.state.val.paste_placeholder_count = self.state.val.paste_placeholder_count +
+          1
+        let num = self.state.val.paste_placeholder_count
+        self.state.val.paste_placeholders.push((num, text))
+        let tag = paste_placeholder_tag(num)
+        // Insert the placeholder text instead of the full paste
+        self.input.insert_text(tag)
+      } else {
+        self.input.insert_text(text)
+      }
       self.update_suggestions()
       self.dirty = true
     }
@@ -725,21 +764,69 @@ async fn TuiController::handle_key(
         self.dirty = true
       }
       Char('y') | Char('Y') => {
+        let is_delete = match self.state.val.pending_confirmation {
+          Some(p) => p.tool_name == "delete_model"
+          None => false
+        }
+        let delete_idx = if is_delete {
+          match self.state.val.dialog {
+            ConfigMenu(d) => d.selected_idx
+            _ => -1
+          }
+        } else {
+          -1
+        }
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        // Local UI confirmations (delete_model) must never touch the
+        // agent's shared confirmation queue: a leftover value would be
+        // consumed by the next real tool confirmation and silently
+        // auto-approve it.
+        if is_delete {
+          if delete_idx >= 0 {
+            self.perform_model_delete(delete_idx)
+          }
+        } else {
+          match self.confirmation_response {
+            Some(q) => ignore(q.try_put(true))
+            None => ()
+          }
+        }
+        self.dirty = true
+      }
+      Char('n') | Char('N') | Escape => {
+        let is_delete = match self.state.val.pending_confirmation {
+          Some(p) => p.tool_name == "delete_model"
+          None => false
+        }
+        consume_confirmation(self.state.val)
+        self.state.val.dialog = DialogState::NoDialog
+        if is_delete {
+          // Return to config menu when cancelling a delete (no queue write)
+          open_config_menu(self.state.val, self.agent)
+        } else {
+          match self.confirmation_response {
+            Some(q) => ignore(q.try_put(false))
+            None => ()
+          }
+        }
+        self.dirty = true
+      }
+      Tab if key.modifiers.shift() => {
+        // Shift+Tab: approve all tools for this session
+        self.state.val.approved_all_tools = true
         consume_confirmation(self.state.val)
         self.state.val.dialog = DialogState::NoDialog
         match self.confirmation_response {
           Some(q) => ignore(q.try_put(true))
           None => ()
         }
-        self.dirty = true
-      }
-      Char('n') | Char('N') | Escape => {
-        consume_confirmation(self.state.val)
-        self.state.val.dialog = DialogState::NoDialog
-        match self.confirmation_response {
-          Some(q) => ignore(q.try_put(false))
-          None => ()
-        }
+        ignore(
+          self.output.append_text(
+            "[system] All tools auto-approved for this session",
+            OutputKind::Text,
+          ),
+        )
         self.dirty = true
       }
       Char('d') | Char('D') | Tab =>
@@ -751,11 +838,21 @@ async fn TuiController::handle_key(
           _ => ()
         }
       Enter => {
+        let is_delete = match self.state.val.pending_confirmation {
+          Some(p) => p.tool_name == "delete_model"
+          None => false
+        }
+        // Enter follows the displayed default ([Y/n] vs [y/N])
+        let default_yes = confirmation_default_yes(self.state.val)
         consume_confirmation(self.state.val)
         self.state.val.dialog = DialogState::NoDialog
-        match self.confirmation_response {
-          Some(q) => ignore(q.try_put(false))
-          None => ()
+        if is_delete {
+          open_config_menu(self.state.val, self.agent)
+        } else {
+          match self.confirmation_response {
+            Some(q) => ignore(q.try_put(default_yes))
+            None => ()
+          }
         }
         self.dirty = true
       }
@@ -809,6 +906,184 @@ async fn TuiController::handle_key(
       _ => ()
     }
     return
+  }
+  // Config menu dialog: intercept all keys
+  match self.state.val.dialog {
+    ConfigMenu(dialog) => {
+      match key.code {
+        Char('j') | Down => {
+          dialog.move_down()
+          self.dirty = true
+        }
+        Char('k') | Up => {
+          dialog.move_up()
+          self.dirty = true
+        }
+        Enter =>
+          // Switch to selected model
+          match dialog.get_selected() {
+            Some(item) => {
+              let result = self.agent.config.switch_model_by_id(item.value)
+              match result {
+                Ok(_) => {
+                  // Hot-swap the client
+                  self.apply_model_switch()
+                  // Persist
+                  self.save_config()
+                  // Update state model name
+                  self.state.val.model_name = match
+                    self.agent.config.current_model() {
+                    Some(m) => m.model
+                    None => self.state.val.model_name
+                  }
+                  ignore(
+                    self.output.append_text(
+                      "[system] Model switched to: \{item.label}",
+                      OutputKind::Text,
+                    ),
+                  )
+                }
+                Err(msg) =>
+                  ignore(
+                    self.output.append_text("[error] \{msg}", OutputKind::Text),
+                  )
+              }
+              close_config_dialog(self.state.val)
+              self.dirty = true
+            }
+            None => ()
+          }
+        Char('a') => {
+          let mode : ConfigMode = if dialog.title == "Select Model" {
+            ModelSelector
+          } else {
+            ConfigMenu
+          }
+          open_add_form(self.state.val, mode)
+          self.dirty = true
+        }
+        Char('e') => {
+          let idx = dialog.selected_idx
+          if idx >= 0 && idx < self.agent.config.models.length() {
+            let model = self.agent.config.models[idx]
+            let mode : ConfigMode = if dialog.title == "Select Model" {
+              ModelSelector
+            } else {
+              ConfigMenu
+            }
+            open_edit_form(self.state.val, mode, model, idx)
+            self.dirty = true
+          }
+        }
+        Char('d') => {
+          let idx = dialog.selected_idx
+          if idx >= 0 && idx < self.agent.config.models.length() {
+            let model = self.agent.config.models[idx]
+            request_confirmation(
+              self.state.val,
+              "delete_model",
+              model.model,
+              "Delete model '\{model.model}'? This cannot be undone.",
+            )
+            self.dirty = true
+          }
+        }
+        Escape => {
+          close_config_dialog(self.state.val)
+          self.dirty = true
+        }
+        _ => ()
+      }
+      return
+    }
+    ConfigForm(mode~, form~, action~, target_idx~) => {
+      match key.code {
+        Tab => {
+          form.next_field()
+          self.dirty = true
+        }
+        Enter =>
+          match form.validate() {
+            Some(err) => {
+              ignore(
+                self.output.append_text("[error] \{err}", OutputKind::Text),
+              )
+              self.dirty = true
+            }
+            None => {
+              let values = form.collect_values()
+              match action {
+                Add => {
+                  let name = values[0].1
+                  let model_name = values[1].1
+                  let api_key = values[2].1
+                  let base_url = values[3].1
+                  let new_model = @config.ModelConfig::new(
+                    name, api_key, base_url, model_name,
+                  )
+                  self.agent.config.add_model(new_model)
+                  ignore(
+                    self.output.append_text(
+                      "[system] Model '\{name}' added",
+                      OutputKind::Text,
+                    ),
+                  )
+                }
+                Edit =>
+                  // The edit form has no "name" field (id is immutable);
+                  // values are [model, api_key, base_url].
+                  if target_idx >= 0 &&
+                    target_idx < self.agent.config.models.length() {
+                    let existing = self.agent.config.models[target_idx]
+                    let updated : @config.ModelConfig = {
+                      id: existing.id,
+                      type_: existing.type_,
+                      api_key: values[1].1,
+                      base_url: values[2].1,
+                      model: values[0].1,
+                      anthropic_format: existing.anthropic_format,
+                      runtime_id: existing.runtime_id,
+                      media_type: existing.media_type,
+                    }
+                    self.agent.config.models[target_idx] = updated
+                    // Hot-swap when the edited model is the active one
+                    match self.agent.config.current_model_id {
+                      Some(id) if id == updated.id => {
+                        self.apply_model_switch()
+                        self.state.val.model_name = updated.model
+                      }
+                      _ => ()
+                    }
+                    ignore(
+                      self.output.append_text(
+                        "[system] Model '\{updated.id}' updated",
+                        OutputKind::Text,
+                      ),
+                    )
+                  }
+              }
+              self.save_config()
+              return_to_config_menu(self.state.val, self.agent, mode)
+              self.dirty = true
+            }
+          }
+        Escape => {
+          return_to_config_menu(self.state.val, self.agent, mode)
+          self.dirty = true
+        }
+        Backspace => {
+          form.backspace()
+          self.dirty = true
+        }
+        Char(ch) if !key.modifiers.ctrl() && !key.modifiers.alt() => {
+          form.input_char(ch)
+          self.dirty = true
+        }
+        _ => ()
+      }
+      return
+    }
+    _ => ()
   }
   match key.code {
     Char('c') if key.modifiers.ctrl() =>
@@ -904,15 +1179,43 @@ async fn TuiController::handle_key(
         self.close_suggestions()
         self.dirty = true
       }
-    Tab => {
-      let new_mode = cycle_shell_mode(self.state.val.shell_mode)
-      self.state.val.shell_mode = new_mode
-      if new_mode is ShellMode::FileBrowser {
-        self.file_browser.current_path = self.state.val.working_dir
-        self.file_browser.load_dir()
-      }
-      self.full_redraw()
+    Tab if key.modifiers.shift() => {
+      // Shift+Tab (non-dialog): cycle permission mode
+      let cur = @config.PermissionMode::from_string(
+        self.state.val.permission_mode,
+      )
+      let next = cycle_permission_mode(
+        match cur {
+          Some(m) => m
+          None => @config.ConfirmSafes
+        },
+      )
+      self.state.val.permission_mode = next.to_string_value()
+      self.agent.config.permission_mode = next
+      ignore(
+        self.output.append_text(
+          "[system] Permission mode: \{next.to_string_value()}",
+          OutputKind::Text,
+        ),
+      )
+      self.dirty = true
     }
+    Tab =>
+      if self.input.is_empty() {
+        // Empty input: insert "/" and show all completions
+        self.input.insert_char('/')
+        self.suggestions.update_filter("/")
+        self.suggestions_active = self.suggestions.is_visible()
+        self.dirty = true
+      } else {
+        let new_mode = cycle_shell_mode(self.state.val.shell_mode)
+        self.state.val.shell_mode = new_mode
+        if new_mode is ShellMode::FileBrowser {
+          self.file_browser.current_path = self.state.val.working_dir
+          self.file_browser.load_dir()
+        }
+        self.full_redraw()
+      }
     Char(ch) if !key.modifiers.ctrl() && !key.modifiers.alt() => {
       self.input.insert_char(ch)
       self.update_suggestions()
@@ -934,12 +1237,79 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
   }
   let text = self.input.submit()
   self.close_suggestions()
-  if text.length() > 0 {
+  // Expand any paste placeholders before submission
+  let expanded_text = self.state.val.expand_paste_placeholders(text)
+  self.state.val.clear_paste_placeholders()
+  if expanded_text.length() > 0 {
+    // Bare text exit/quit: exact match (trimmed) triggers quit
+    let trimmed = expanded_text.trim().to_owned()
+    if trimmed == "exit" || trimmed == "quit" {
+      self.quit = true
+      return
+    }
     // Check for slash commands
-    if text[0:1] == "/" {
-      match parse_slash_command(text) {
+    if expanded_text[0:1] == "/" {
+      match parse_slash_command(expanded_text) {
         Ok(cmd) => {
           match cmd {
+            Exit | Quit => {
+              self.quit = true
+              return
+            }
+            Config(key~, value~) if key == "" => {
+              // No-arg /config: open config menu
+              if self.agent.config.models.length() == 0 {
+                ignore(
+                  self.output.append_text(
+                    "[system] No models configured. Use /config <key> <value> to set options.",
+                    OutputKind::Text,
+                  ),
+                )
+                self.redraw()
+                self.layout.commit_all()
+                self.dirty = true
+                return
+              }
+              open_config_menu(self.state.val, self.agent)
+              self.dirty = true
+              self.redraw()
+              return
+            }
+            Model(name~) if name == "" => {
+              // No-arg /model: open model selector
+              if self.agent.config.models.length() <= 1 {
+                ignore(
+                  self.output.append_text(
+                    "[system] Only one model configured. Use /model <name> to switch.",
+                    OutputKind::Text,
+                  ),
+                )
+                self.redraw()
+                self.layout.commit_all()
+                self.dirty = true
+                return
+              }
+              open_model_selector(self.state.val, self.agent)
+              self.dirty = true
+              self.redraw()
+              return
+            }
+            Clear => {
+              // Clear agent history + output buffer + reset cost, then redraw
+              ignore(execute(cmd, self.agent))
+              self.state.val.total_cost = 0.0
+              self.output.clear()
+              ignore(
+                self.output.append_text(
+                  "[system] Session cleared",
+                  OutputKind::Text,
+                ),
+              )
+              self.full_redraw()
+              self.layout.commit_all()
+              self.dirty = false
+              return
+            }
             Todo => {
               // Toggle todo area visibility
               if self.state.val.todo_area.hidden {
@@ -963,6 +1333,49 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               self.full_redraw()
               self.layout.commit_all()
               self.dirty = false
+              return
+            }
+            Undo => {
+              // Show task history from the time machine
+              let tasks = self.state.val.time_machine.get_task_history()
+              if tasks.length() == 0 {
+                ignore(
+                  self.output.append_text(
+                    "[system] No tasks in history to undo",
+                    OutputKind::Text,
+                  ),
+                )
+              } else {
+                let lines : Array[String] = [
+                  "[system] Task history (time machine):",
+                ]
+                for t in tasks {
+                  let desc = match t.description {
+                    Some(d) => d
+                    None => "(no description)"
+                  }
+                  let active = match
+                    self.state.val.time_machine.current_task_id {
+                    Some(id) if id == t.task_id => " \u{25c0} current"
+                    _ => ""
+                  }
+                  lines.push("  \{t.task_id}: \{desc}\{active}")
+                }
+                // Perform undo of the last task
+                match self.state.val.time_machine.undo_last_task() {
+                  Ok(entries) =>
+                    lines.push(
+                      "[system] Undo complete: restored \{entries.length()} file(s)",
+                    )
+                  Err(msg) => lines.push("[system] Undo failed: \{msg}")
+                }
+                ignore(
+                  self.output.append_text(lines.join("\n"), OutputKind::Text),
+                )
+              }
+              self.redraw()
+              self.layout.commit_all()
+              self.dirty = true
               return
             }
             _ => ()
@@ -995,16 +1408,20 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
       }
     }
     // Add user message to output buffer
-    ignore(self.output.append_text("[user] \{text}", OutputKind::Text))
+    ignore(self.output.append_text("[user] \{expanded_text}", OutputKind::Text))
+    // Time machine: open a new task so file writes in this run can be undone
+    ignore(self.state.val.time_machine.start_new_task(Some(expanded_text)))
     // Run agent
     self.state.val.mode = TuiMode::Running
+    self.state.val.run_start_ts = @env.now().reinterpret_as_int64()
+    self.state.val.total_iterations = 0
     self.agent_running = true
     self.hooks.reset_for_run()
     self.dirty = true
     // Draw the user message while still live, then commit it
     self.redraw()
     self.layout.commit_all()
-    self.events.put(SubmitInput(text))
+    self.events.put(SubmitInput(expanded_text))
   }
 }
 
@@ -1044,4 +1461,109 @@ fn TuiController::apply_theme(self : TuiController, name : String) -> Unit {
   }
   self.theme = Theme::from_name(theme_name)
   self.agent_output_sync.set_theme(self.theme)
+}
+
+///|
+/// Apply a model switch to the agent's client (hot-swap).
+fn TuiController::apply_model_switch(self : TuiController) -> Unit {
+  match self.agent.config.current_model() {
+    Some(m) => {
+      let old_client = self.agent.client
+      let new_client = @client.Client::new(
+        m.api_key,
+        m.base_url,
+        m.model,
+        old_client.api_type,
+        provider_id=old_client.provider_id,
+        vision_supported=old_client.vision_supported,
+      )
+      self.agent.client = new_client
+    }
+    None => ()
+  }
+}
+
+///|
+/// Persist the agent config to disk.
+fn TuiController::save_config(self : TuiController) -> Unit {
+  match @utils.config_file() {
+    Some(path) =>
+      self.agent.config.save(path) catch {
+        _ =>
+          ignore(
+            self.output.append_text(
+              "[warning] Failed to save configuration",
+              OutputKind::Text,
+            ),
+          )
+      }
+    None =>
+      ignore(
+        self.output.append_text(
+          "[warning] No config file path available",
+          OutputKind::Text,
+        ),
+      )
+  }
+}
+
+///|
+/// Perform model deletion after confirmation.
+fn TuiController::perform_model_delete(self : TuiController, idx : Int) -> Unit {
+  if idx >= 0 && idx < self.agent.config.models.length() {
+    let removed = self.agent.config.models[idx]
+    ignore(self.agent.config.models.remove(idx))
+    // If we deleted the current model, switch to first available
+    match self.agent.config.current_model_id {
+      Some(id) if id == removed.id =>
+        if self.agent.config.models.length() > 0 {
+          self.agent.config.current_model_id = Some(
+            self.agent.config.models[0].id,
+          )
+          self.apply_model_switch()
+          // Keep the status bar model name in sync (same as Enter switch)
+          self.state.val.model_name = self.agent.config.models[0].model
+        } else {
+          self.agent.config.current_model_id = None
+          ignore(
+            self.output.append_text(
+              "[warning] No models configured after delete",
+              OutputKind::Text,
+            ),
+          )
+        }
+      _ => ()
+    }
+    self.save_config()
+    ignore(
+      self.output.append_text(
+        "[system] Model '\{removed.model}' deleted",
+        OutputKind::Text,
+      ),
+    )
+    // Reopen config menu
+    open_config_menu(self.state.val, self.agent)
+  }
+}
+
+///|
+/// Called after the main loop exits. If the session had any content,
+/// persist it to disk (same path as the non-interactive mode in
+/// cmd/main.mbt) and tell the user how to re-attach.
+async fn TuiController::on_exit_save(self : TuiController) -> Unit {
+  // Only save when the session had meaningful content
+  if self.state.val.messages.length() > 0 || self.agent.history.length() > 0 {
+    let session_data = self.agent.to_session_data()
+    @agent.save_session(session_data) catch {
+      _ => ()
+    }
+    ignore(
+      self.output.append_text(
+        "[system] Session saved to disk: clacky --attach \{self.state.val.session_id}",
+        OutputKind::Text,
+      ),
+    )
+    // Final redraw so the message is visible
+    self.redraw()
+  }
 }

@@ -106,3 +106,31 @@ test "form: render produces Border node with title" {
   assert_true(text.contains("Name"))
   assert_true(text.contains("Email"))
 }
+
+///|
+test "form: new_with_mask creates masked fields" {
+  let fields = [
+    ("Name", true, "enter name", false),
+    ("API Key", true, "sk-...", true),
+  ]
+  let f = FormDialog::new_with_mask("Masked Form", fields)
+  @debug.assert_eq(f.fields.length(), 2)
+  assert_false(f.fields[0].masked)
+  assert_true(f.fields[1].masked)
+}
+
+///|
+test "form: masked field renders masked value" {
+  let fields = [("API Key", true, "sk-...", true)]
+  let f = FormDialog::new_with_mask("Masked Form", fields)
+  // Type a long key
+  for c in "sk-ant-api12345".iter() {
+    f.input_char(c)
+  }
+  let node = render_form_dialog(f)
+  let text = node_to_text(node)
+  // Should show masked version, not the raw key
+  assert_true(text.contains("..."))
+  // Should NOT contain the full raw key
+  assert_false(text.contains("sk-ant-api12345"))
+}

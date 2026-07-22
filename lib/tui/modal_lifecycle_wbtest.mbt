@@ -26,6 +26,8 @@ fn test_state() -> TuiState {
     total_cost: 0.0,
     cost_source: "estimated",
     latest_delta: 0,
+    last_input_tokens: 0,
+    last_output_tokens: 0,
     input_text: "",
     last_error: None,
     progress_stack: ProgressStack::new(),
@@ -35,6 +37,13 @@ fn test_state() -> TuiState {
     dialog: DialogState::NoDialog,
     shell_mode: ShellMode::Chat,
     thinking_buffer: "",
+    tick_count: 0,
+    run_start_ts: 0L,
+    total_iterations: 0,
+    approved_all_tools: false,
+    time_machine: @agent.TimeMachineState::new("test"),
+    paste_placeholder_count: 0,
+    paste_placeholders: [],
   }
 }
 
@@ -234,4 +243,99 @@ test "dialog: build_tool_prompt truncates long args" {
 test "dialog: build_tool_prompt for unknown tool" {
   let prompt = build_tool_prompt("custom_tool", "arg1 arg2")
   assert_true(prompt.contains("Execute"))
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Multi-step Config Modal Lifecycle Tests
+// ══════════════════════════════════════════════════════════════════════
+
+///|
+test "modal: open_config_menu sets dialog state" {
+  let state = test_state()
+  let agent = make_config_test_agent()
+  open_config_menu(state, agent)
+  match state.dialog {
+    ConfigMenu(dialog) => {
+      @debug.assert_eq(dialog.title, "Configuration Menu")
+      assert_true(dialog.items.length() > 0)
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "modal: open_model_selector sets dialog state" {
+  let state = test_state()
+  let agent = make_config_test_agent()
+  open_model_selector(state, agent)
+  match state.dialog {
+    ConfigMenu(dialog) => @debug.assert_eq(dialog.title, "Select Model")
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "modal: open_add_form sets ConfigForm state" {
+  let state = test_state()
+  open_add_form(state, ConfigMenu)
+  match state.dialog {
+    ConfigForm(mode~, form~, action~, target_idx~) => {
+      assert_true(mode == ConfigMenu)
+      assert_true(action == Add)
+      @debug.assert_eq(target_idx, -1)
+      @debug.assert_eq(form.title, "Add Model")
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "modal: open_edit_form pre-fills values" {
+  let state = test_state()
+  let model = @config.ModelConfig::new(
+    "test-id", "sk-test-key", "https://api.test.com", "gpt-4",
+  )
+  open_edit_form(state, ConfigMenu, model, 0)
+  match state.dialog {
+    ConfigForm(form~, action~, target_idx~, ..) => {
+      assert_true(action == Edit)
+      @debug.assert_eq(target_idx, 0)
+      // The edit form has no "name" field (id is immutable)
+      @debug.assert_eq(form.fields[0].value, "gpt-4")
+      @debug.assert_eq(form.fields[1].value, "sk-test-key")
+      @debug.assert_eq(form.fields[2].value, "https://api.test.com")
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "modal: close_config_dialog clears state" {
+  let state = test_state()
+  open_add_form(state, ConfigMenu)
+  assert_false(state.dialog is NoDialog)
+  close_config_dialog(state)
+  assert_true(state.dialog is NoDialog)
+}
+
+///|
+/// Helper: create a test agent with sample models
+fn make_config_test_agent() -> @agent.Agent {
+  let config = @config.AgentConfig::default()
+  config.add_model(
+    @config.ModelConfig::new("m1", "sk-key1", "https://api.test.com", "gpt-4"),
+  )
+  config.add_model(
+    @config.ModelConfig::new(
+      "m2", "sk-key2", "https://api.test.com", "claude-3",
+    ),
+  )
+  config.current_model_id = Some("m1")
+  let client = @client.Client::new(
+    "sk-key1",
+    "https://api.test.com",
+    "gpt-4",
+    @config.OpenAICompletions,
+  )
+  @agent.Agent::new("test", "test-agent", "/tmp", client, config)
 }

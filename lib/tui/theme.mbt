@@ -27,6 +27,20 @@ pub(all) struct Theme {
   error_color : String
   /// Dim/muted text color.
   dim_color : String
+  /// Symbol for tool call entry (e.g. "[=>]").
+  tool_call_symbol : String
+  /// Symbol for tool result entry (e.g. "[<=]").
+  tool_result_symbol : String
+  /// Symbol for tool denied entry (e.g. "[!!]").
+  tool_denied_symbol : String
+  /// Symbol for shell command preview (e.g. "[C]").
+  shell_preview_symbol : String
+  /// Symbol for file preview entry (e.g. "[F]").
+  file_preview_symbol : String
+  /// Symbol for phase enter banner (e.g. "▼").
+  phase_enter_symbol : String
+  /// Symbol for phase exit banner (e.g. "▲").
+  phase_exit_symbol : String
 } derive(Eq, Debug)
 
 ///|
@@ -39,6 +53,13 @@ pub fn Theme::default_() -> Theme {
     accent_color: "\u001b[35m",
     error_color: "\u001b[31m",
     dim_color: "\u001b[90m",
+    tool_call_symbol: "[=>]",
+    tool_result_symbol: "[<=]",
+    tool_denied_symbol: "[!!]",
+    shell_preview_symbol: "[C]",
+    file_preview_symbol: "[F]",
+    phase_enter_symbol: "▼",
+    phase_exit_symbol: "▲",
   }
 }
 
@@ -52,6 +73,13 @@ pub fn Theme::hacker() -> Theme {
     accent_color: "\u001b[32m",
     error_color: "\u001b[31m",
     dim_color: "\u001b[90m",
+    tool_call_symbol: "[=>]",
+    tool_result_symbol: "[<=]",
+    tool_denied_symbol: "[!!]",
+    shell_preview_symbol: "[C]",
+    file_preview_symbol: "[F]",
+    phase_enter_symbol: "▼",
+    phase_exit_symbol: "▲",
   }
 }
 
@@ -65,6 +93,13 @@ pub fn Theme::minimal() -> Theme {
     accent_color: "\u001b[37m",
     error_color: "\u001b[31m",
     dim_color: "\u001b[90m",
+    tool_call_symbol: ">",
+    tool_result_symbol: "<",
+    tool_denied_symbol: "*",
+    shell_preview_symbol: "$",
+    file_preview_symbol: "#",
+    phase_enter_symbol: ">",
+    phase_exit_symbol: "<",
   }
 }
 
@@ -81,6 +116,13 @@ pub fn Theme::light() -> Theme {
     accent_color: "\u001b[35m",
     error_color: "\u001b[31m",
     dim_color: "\u001b[90m",
+    tool_call_symbol: "[=>]",
+    tool_result_symbol: "[<=]",
+    tool_denied_symbol: "[!!]",
+    shell_preview_symbol: "[C]",
+    file_preview_symbol: "[F]",
+    phase_enter_symbol: "▼",
+    phase_exit_symbol: "▲",
   }
 }
 

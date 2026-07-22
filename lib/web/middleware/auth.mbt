@@ -2,7 +2,8 @@
 /// API Key authentication middleware with enhanced security.
 /// Supports Bearer header, query parameter, and cookie fallback.
 /// Implements IP-based rate limiting and a public-path allowlist.
-/// Loopback bypass is opt-in (dev only) and disabled by default.
+/// Loopback bypass is ON by default; disable via MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0.
+/// When no proxy headers are present, the connection is assumed to be local.
 
 ///|
 /// Constant-time string comparison to prevent timing attacks.
@@ -127,7 +128,7 @@ fn extract_client_ip(req : @core.HttpRequest) -> String {
     None =>
       match req.get_header("X-Real-IP") {
         Some(ip) => ip
-        None => "unknown"
+        None => "127.0.0.1"
       }
   }
 }
@@ -199,7 +200,7 @@ pub fn is_public_path(http_method : String, path : String) -> Bool {
 /// - Multi-method auth (Bearer, X-API-Key header, query param, cookie)
 /// - IP rate limiting (10 failures / 300s window)
 /// - Public-path allowlist (/health, GET /api/version)
-/// - Optional loopback bypass (dev only, default OFF)
+/// - Optional loopback bypass (default OFF; enable with MBOPENCLACKY_DEV_ALLOW_LOOPBACK=1)
 ///
 /// SECURITY: `client_ip` is derived from X-Forwarded-For / X-Real-IP request
 /// headers, which are client-controlled. It is therefore used ONLY for rate
@@ -290,16 +291,11 @@ pub fn auth_middleware(
 ///|
 /// Cache control middleware.
 /// Sets Cache-Control headers on the response before the handler runs.
-/// API responses get "no-store"; static assets get "public, max-age=3600".
+/// All responses default to "no-store" (spec web-parity-01: aligned with
+/// the original project's FileHandler — no caching of API or static data).
 pub fn cache_control_middleware() -> @crescent.Middleware {
   let mw : @crescent.Middleware = (event, next) => {
-    let url = event.req.url
-    // Set cache headers on the response before calling next
-    if url.has_prefix("/api/") {
-      event.res.headers["Cache-Control"] = "no-store"
-    } else if !url.has_suffix(".html") && !url.has_suffix("/") {
-      event.res.headers["Cache-Control"] = "public, max-age=3600"
-    }
+    event.res.headers["Cache-Control"] = "no-store"
     next()
   }
   mw

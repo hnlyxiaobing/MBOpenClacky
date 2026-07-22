@@ -100,3 +100,66 @@ test "config_menu: render produces Border node with title" {
   assert_true(text.contains("Option A"))
   assert_true(text.contains("Option B"))
 }
+
+///|
+test "config_menu: mask_api_key short key" {
+  @debug.assert_eq(mask_api_key("short"), "****")
+  @debug.assert_eq(mask_api_key("12345678"), "****")
+}
+
+///|
+test "config_menu: mask_api_key long key" {
+  let masked = mask_api_key("sk-ant-abc123xyz789")
+  assert_true(masked.has_prefix("sk-"))
+  assert_true(masked.has_suffix("z789"))
+  assert_true(masked.contains("..."))
+}
+
+///|
+test "config_menu: build_config_menu_items from models" {
+  let models = [
+    @config.ModelConfig::new(
+      "m1", "sk-key1abcdefgh", "https://api.example.com", "gpt-4",
+    ),
+    @config.ModelConfig::new(
+      "m2", "sk-key2abcdefgh", "https://api.example.com", "claude-3",
+    ),
+  ]
+  let items = build_config_menu_items(models, Some("m1"))
+  @debug.assert_eq(items.length(), 2)
+  // First item should have current marker
+  assert_true(items[0].label.contains("●"))
+  // Second item should not
+  assert_false(items[1].label.contains("●"))
+  // Both should have masked keys
+  assert_true(items[0].label.contains("..."))
+}
+
+///|
+test "config_menu: from_models creates dialog" {
+  let models = [
+    @config.ModelConfig::new(
+      "m1", "sk-key1", "https://api.example.com", "gpt-4",
+    ),
+  ]
+  let dialog = ConfigMenuDialog::from_models(models, Some("m1"))
+  @debug.assert_eq(dialog.title, "Configuration Menu")
+  @debug.assert_eq(dialog.items.length(), 1)
+}
+
+///|
+test "config_menu: as_model_selector creates dialog" {
+  let models = [
+    @config.ModelConfig::new(
+      "m1", "sk-key1", "https://api.example.com", "gpt-4",
+    ),
+    @config.ModelConfig::new(
+      "m2", "sk-key2", "https://api.example.com", "claude-3",
+    ),
+  ]
+  let dialog = ConfigMenuDialog::as_model_selector(models, None)
+  @debug.assert_eq(dialog.title, "Select Model")
+  @debug.assert_eq(dialog.items.length(), 2)
+  // First model should have (active) marker only if selected
+  assert_false(dialog.items[0].label.contains("(active)"))
+}

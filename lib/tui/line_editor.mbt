@@ -523,6 +523,26 @@ pub fn LineEditor::submit(self : LineEditor) -> String {
   text
 }
 
+// ── Paste helpers ──────────────────────────────────────────────
+
+///|
+/// Count the number of newline-separated lines in a paste text.
+pub fn paste_line_count(text : String) -> Int {
+  let mut count = 1
+  for c in text.iter() {
+    if c == '\n' {
+      count = count + 1
+    }
+  }
+  count
+}
+
+///|
+/// Build a paste placeholder tag like `[#3 Paste Text]`.
+pub fn paste_placeholder_tag(num : Int) -> String {
+  "[#\{num} Paste Text]"
+}
+
 // ── Internal helpers ─────────────────────────────────────────────
 
 ///|

@@ -270,20 +270,28 @@ pub fn CommandSuggestions::set_commands(
 
 ///|
 /// Build the default system command list.
+///
+/// Kept in sync with the registered set in slash_commands.mbt
+/// (`SlashCommandParser::new`).
 fn default_system_commands() -> Array[SuggestionItem] {
   [
     { name: "/clear", description: "Clear message history", usage: "/clear" },
     {
       name: "/config",
-      description: "Set a configuration value",
-      usage: "/config <key> <value>",
+      description: "Open config menu or set a value",
+      usage: "/config [key value]",
     },
     {
       name: "/model",
-      description: "Switch the active model",
-      usage: "/model <name>",
+      description: "Open model selector or switch model",
+      usage: "/model [name]",
     },
     { name: "/new", description: "Start a new session", usage: "/new [title]" },
+    {
+      name: "/todo",
+      description: "Toggle todo area visibility",
+      usage: "/todo",
+    },
     {
       name: "/skills",
       description: "Manage skills",
@@ -292,6 +300,21 @@ fn default_system_commands() -> Array[SuggestionItem] {
     { name: "/help", description: "Show available commands", usage: "/help" },
     { name: "/exit", description: "Exit the application", usage: "/exit" },
     { name: "/quit", description: "Quit (alias for exit)", usage: "/quit" },
+    {
+      name: "/meeting",
+      description: "Meeting summaries (managed in Web UI)",
+      usage: "/meeting",
+    },
+    {
+      name: "/theme",
+      description: "Switch the color theme",
+      usage: "/theme <default|hacker|minimal|light>",
+    },
+    {
+      name: "/undo",
+      description: "Open task history for undo/redo",
+      usage: "/undo",
+    },
   ]
 }
 

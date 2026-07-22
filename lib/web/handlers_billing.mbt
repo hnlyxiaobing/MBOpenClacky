@@ -352,6 +352,131 @@ pub fn handle_billing_export(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
+/// GET /api/billing/summary — Monthly summary (alias for status shape).
+pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  let store = @billing.BillingStore::default()
+  let summary = store.summary(@billing.Month)
+  let (active, plan, expires_at) = load_billing_state()
+  let expires_json : Json = match expires_at {
+    Some(s) => s.to_json()
+    None => Json::null()
+  }
+  let body : Map[String, Json] = {
+    let m : Map[String, Json] = {}
+    m.set("active", active.to_json())
+    m.set("plan", plan.to_json())
+    m.set("expires_at", expires_json)
+    m.set("total_cost", summary.total_cost.to_json())
+    m.set("total_requests", summary.record_count.to_json())
+    m.set(
+      "total_tokens",
+      (summary.total_prompt_tokens + summary.total_completion_tokens).to_json(),
+    )
+    m
+  }
+  HttpResponse::ok(Json::object(body).stringify())
+}
+
+///|
+/// GET /api/billing/daily — Daily breakdown for the last 30 days.
+pub fn handle_billing_daily(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  let store = @billing.BillingStore::default()
+  let daily = store.daily_breakdown(days=30)
+  let items : Array[Json] = []
+  daily.each(fn(ds) {
+    items.push(
+      Json::object({
+        "date": ds.date.to_json(),
+        "tokens": ds.total_tokens.to_json(),
+        "cost": ds.total_cost.to_json(),
+        "requests": ds.request_count.to_json(),
+      }),
+    )
+  })
+  HttpResponse::ok(
+    Json::object({ "daily": Json::array(items).to_json() }).stringify(),
+  )
+}
+
+///|
+/// GET /api/billing/records — Raw usage records (paginated, max 500).
+pub fn handle_billing_records(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  let store = @billing.BillingStore::default()
+  let records = store.query(limit=500)
+  let items : Array[Json] = []
+  for r in records {
+    items.push(
+      Json::object({
+        "id": r.id.to_json(),
+        "session_id": r.session_id.to_json(),
+        "timestamp": r.timestamp.to_string().to_json(),
+        "model": r.model.to_json(),
+        "prompt_tokens": r.prompt_tokens.to_json(),
+        "completion_tokens": r.completion_tokens.to_json(),
+        "cost_usd": r.cost_usd.to_json(),
+      }),
+    )
+  }
+  HttpResponse::ok(
+    Json::object({ "records": Json::array(items).to_json() }).stringify(),
+  )
+}
+
+///|
+/// GET /api/billing/sessions — Per-session cost aggregation.
+pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  let store = @billing.BillingStore::default()
+  let records = store.query(limit=2000)
+  // Aggregate by session_id
+  let session_map : Map[String, (Int, Double)] = {}
+  for r in records {
+    match session_map.get(r.session_id) {
+      Some((count, cost)) =>
+        session_map[r.session_id] = (count + 1, cost + r.cost_usd)
+      None => session_map[r.session_id] = (1, r.cost_usd)
+    }
+  }
+  let items : Array[Json] = []
+  session_map.each(fn(sid, pair) {
+    items.push(
+      Json::object({
+        "session_id": sid.to_json(),
+        "requests": pair.0.to_json(),
+        "total_cost": pair.1.to_json(),
+      }),
+    )
+  })
+  HttpResponse::ok(
+    Json::object({ "sessions": Json::array(items).to_json() }).stringify(),
+  )
+}
+
+///|
+/// DELETE /api/billing/clear — Clear all billing records.
+pub fn handle_billing_clear(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  let store = @billing.BillingStore::default()
+  // Clear ALL records: cleanup removes everything before the cutoff, so use
+  // a far-future cutoff. Named constant instead of a bare magic number;
+  // BillingStore exposes no dedicated clear-all API.
+  let clear_all_before_ms = 99999999999999L
+  let _ = store.cleanup(clear_all_before_ms)
+  // NOTE: only usage records are cleared. The persisted plan state
+  // (license/tier) is deliberately left untouched — clearing usage history
+  // must not silently downgrade the user's plan.
+  HttpResponse::ok(
+    Json::object({
+      "ok": true.to_json(),
+      "message": "Billing records cleared".to_json(),
+    }).stringify(),
+  )
+}
+
+///|
 fn billing_pad(n : Int, width : Int) -> String {
   let s = n.to_string()
   if s.length() >= width {

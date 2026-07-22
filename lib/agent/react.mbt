@@ -240,6 +240,7 @@ fn Agent::act(
         results.push(entry)
       } else {
         let entry = build_denied_result(call, None)
+        self.hook_manager.emit(ToolDenied(tool_name))
         results.push(entry)
         denied = true
       }
@@ -355,6 +356,7 @@ async fn Agent::act_async(
         results.push(entry)
       } else {
         let entry = build_denied_result(call, None)
+        self.hook_manager.emit(ToolDenied(tool_name))
         results.push(entry)
         denied = true
       }

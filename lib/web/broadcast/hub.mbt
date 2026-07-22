@@ -122,27 +122,14 @@ pub fn Hub::subscribe_global(self : Hub, conn_id : String) -> Unit {
 
 ///|
 /// Broadcast a text message to all connections subscribed to a session.
-/// Stale connection IDs (present in the subs list but missing from the
-/// connections map) are collected and unregistered after iteration to
-/// avoid mutating the subscription list mid-loop.
+/// Delegates to broadcast_session_raw; see its doc for stale-connection
+/// handling.
 pub fn Hub::broadcast_session(
   self : Hub,
   session_id : String,
   message : String,
 ) -> Unit {
-  guard self.session_subs.contains(session_id) else { return }
-  let conn_ids = self.session_subs[session_id]
-  let stale : Array[String] = []
-  for conn_id in conn_ids {
-    if self.connections.contains(conn_id) {
-      self.connections[conn_id].peer.text(message)
-    } else {
-      stale.push(conn_id)
-    }
-  }
-  for conn_id in stale {
-    self.unregister(conn_id)
-  }
+  self.broadcast_session_raw(session_id, message)
 }
 
 ///|
@@ -195,7 +182,7 @@ pub fn Hub::broadcast_global_json(
 /// Broadcast a heartbeat ping to all globally-subscribed connections.
 /// Used to keep idle WebSocket connections alive.
 pub fn Hub::broadcast_heartbeat(self : Hub) -> Unit {
-  let ts = @async.now()
+  let ts = @env.now()
   self.broadcast_global_json(
     "heartbeat",
     Json::object({ "timestamp": ts.to_json() }),
@@ -225,4 +212,84 @@ pub fn Hub::active_sessions(self : Hub) -> Array[String] {
     }
   }
   result
+}
+
+///|
+/// Switch a connection's session subscription.
+/// Unsubscribes from all currently subscribed sessions and subscribes
+/// to the new session. This supports the /ws model where a single
+/// connection dynamically switches between sessions via subscribe messages.
+/// Binding to a concrete session also drops the global subscription, so the
+/// connection no longer receives global broadcasts after switching.
+pub fn Hub::switch_session(
+  self : Hub,
+  conn_id : String,
+  new_session_id : String,
+) -> Unit {
+  guard self.connections.contains(conn_id) else { return }
+  let conn = self.connections[conn_id]
+  // Unsubscribe from all existing session subscriptions.
+  let old_sessions = conn.session_ids.copy()
+  for sid in old_sessions {
+    self.unsubscribe_session(conn_id, sid)
+  }
+  // Drop the global subscription: a connection bound to a specific session
+  // must not keep receiving global broadcasts.
+  let new_global : Array[String] = []
+  for id in self.global_subs {
+    if id != conn_id {
+      new_global.push(id)
+    }
+  }
+  self.global_subs = new_global
+  // Subscribe to the new session.
+  self.subscribe_session(conn_id, new_session_id)
+}
+
+///|
+/// Get the peer for a given connection_id, if it exists.
+pub fn Hub::get_peer(self : Hub, conn_id : String) -> @ws.WebSocketPeer? {
+  match self.connections.get(conn_id) {
+    Some(conn) => Some(conn.peer)
+    None => None
+  }
+}
+
+///|
+/// Get the list of session IDs a connection is currently subscribed to.
+pub fn Hub::get_connection_sessions(
+  self : Hub,
+  conn_id : String,
+) -> Array[String] {
+  match self.connections.get(conn_id) {
+    Some(conn) => conn.session_ids.copy()
+    None => []
+  }
+}
+
+///|
+/// Broadcast a raw (pre-built) JSON string to all connections subscribed to
+/// a session. This is the single fan-out implementation for session-bound
+/// broadcasts; broadcast_session delegates here.
+/// Stale connection IDs (present in the subs list but missing from the
+/// connections map) are collected and unregistered after iteration to
+/// avoid mutating the subscription list mid-loop.
+pub fn Hub::broadcast_session_raw(
+  self : Hub,
+  session_id : String,
+  raw_json : String,
+) -> Unit {
+  guard self.session_subs.contains(session_id) else { return }
+  let conn_ids = self.session_subs[session_id]
+  let stale : Array[String] = []
+  for conn_id in conn_ids {
+    if self.connections.contains(conn_id) {
+      self.connections[conn_id].peer.text(raw_json)
+    } else {
+      stale.push(conn_id)
+    }
+  }
+  for conn_id in stale {
+    self.unregister(conn_id)
+  }
 }

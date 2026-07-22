@@ -50,16 +50,31 @@ pub fn StatusBar::new() -> StatusBar {
 }
 
 ///|
+/// Spinner animation frames for the "working" state.
+let spinner_frames : Array[String] = [
+  "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
+]
+
+///|
 /// Build status segments from TuiState.
 ///
 /// Produces the standard status line:
 /// `● <status> | <session> | <dir> | <perm> | <model> | <n> tasks | $<cost>`
+///
+/// When the agent is working (not idle), the status indicator uses
+/// a spinner frame derived from `iterations` to animate on each Tick.
 pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit {
   self.segments.clear()
-  // Status indicator with color hint
-  let status_text = "● \{state.agent_status}"
+  // Status indicator: idle = ●, working = spinner frame
+  let is_idle = state.agent_status == "idle" || state.mode is TuiMode::Idle
+  let indicator = if is_idle {
+    "● \{state.agent_status}"
+  } else {
+    let frame_idx = state.tick_count % spinner_frames.length()
+    "\{spinner_frames[frame_idx]} \{state.agent_status}"
+  }
   self.segments.push(StatusSegment::{
-    text: status_text,
+    text: indicator,
     color: SegmentColor::Status,
   })
   self.segments.push(StatusSegment::{ text: " | ", color: Dim })
@@ -111,8 +126,14 @@ pub fn StatusBar::format_compact(
   cost : Double,
 ) -> Unit {
   self.segments.clear()
+  let is_idle = status == "idle"
+  let indicator = if is_idle {
+    "● \{status}"
+  } else {
+    "\{spinner_frames[0]} \{status}"
+  }
   self.segments.push(StatusSegment::{
-    text: "● \{status}",
+    text: indicator,
     color: SegmentColor::Status,
   })
   self.segments.push(StatusSegment::{ text: "  ", color: Dim })
@@ -155,6 +176,47 @@ pub fn StatusBar::plain_text(self : StatusBar) -> String {
     sb.write_string(seg.text)
   }
   sb.to_string()
+}
+
+///|
+/// Return the colored ANSI representation with per-segment colors.
+///
+/// Each segment is wrapped in the appropriate ANSI SGR codes based on
+/// its `SegmentColor`. Use this for terminal rendering instead of
+/// `plain_text` when color output is desired.
+pub fn StatusBar::colored_text(self : StatusBar) -> String {
+  let sb = StringBuilder::new()
+  for seg in self.segments {
+    sb.write_string(segment_color_code(seg.color))
+    sb.write_string(seg.text)
+    sb.write_string("\u{1b}[0m")
+  }
+  sb.to_string()
+}
+
+///|
+/// Return the ANSI SGR escape code for a given SegmentColor.
+fn segment_color_code(color : SegmentColor) -> String {
+  match color {
+    // Status: green for idle, yellow for working
+    Status => "\u{1b}[1m\u{1b}[32m"
+    // Session ID: cyan
+    Session => "\u{1b}[36m"
+    // Working directory: white (bright)
+    Dir => "\u{1b}[37m"
+    // Permission mode: yellow
+    Permission => "\u{1b}[33m"
+    // Model name: magenta
+    Model => "\u{1b}[35m"
+    // Task count: white
+    Tasks => "\u{1b}[37m"
+    // Cost: green
+    Cost => "\u{1b}[32m"
+    // Dim separators
+    Dim => "\u{1b}[2m"
+    // Default foreground
+    Default => "\u{1b}[0m"
+  }
 }
 
 ///|

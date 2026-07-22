@@ -626,3 +626,34 @@ pub fn handle_backups_delete(request : HttpRequest) -> HttpResponse {
     }
   }
 }
+
+///|
+/// GET /api/backup/download/:id — Download a backup as a zip archive.
+/// Zip packaging of the snapshot directory is not implemented; returning
+/// metadata in place of the archive would fake success, so answer 501.
+pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
+  let id = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  match load_backup(id) {
+    None =>
+      HttpResponse::not_found(
+        Json::object({
+          "error": "Backup not found".to_json(),
+          "id": id.to_json(),
+        }).stringify(),
+      )
+    Some(_) =>
+      HttpResponse::{
+        status: 501,
+        body: Json::object({
+          "ok": false.to_json(),
+          "error": "unimplemented".to_json(),
+          "message": "Backup archive download not yet implemented".to_json(),
+        }).stringify(),
+        content_type: "application/json",
+        headers: [],
+      }
+  }
+}

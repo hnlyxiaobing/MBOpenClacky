@@ -35,7 +35,7 @@ pub fn InputArea::multiline_new() -> InputArea {
   {
     editor: LineEditor::multiline_new(),
     prompt: "» ",
-    placeholder: "Type a message (Ctrl+Enter to send, Shift+Enter for newline)...",
+    placeholder: "Type a message (Enter to send, Ctrl+J for newline)...",
     border_color: @color.Color::Basic(@color.BasicColor::Blue),
   }
 }

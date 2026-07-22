@@ -104,6 +104,8 @@ pub(all) struct FormField {
   required : Bool
   /// Placeholder text.
   placeholder : String
+  /// Whether to mask the value in display (e.g. API keys).
+  masked : Bool
 } derive(Debug)
 
 ///|
@@ -118,6 +120,22 @@ pub(all) struct FormDialog {
 } derive(Debug)
 
 ///|
+/// Configuration menu mode discriminator.
+pub(all) enum ConfigMode {
+  /// Full config menu (add/edit/delete/switch models).
+  ConfigMenu
+  /// Model-only selector (switch only).
+  ModelSelector
+} derive(Eq, Debug)
+
+///|
+/// Config form action type.
+pub(all) enum ConfigAction {
+  Add
+  Edit
+} derive(Eq, Debug)
+
+///|
 /// Unified dialog state for the TUI (TUI-03).
 pub(all) enum DialogState {
   /// No dialog active.
@@ -128,6 +146,13 @@ pub(all) enum DialogState {
   ConfigMenu(ConfigMenuDialog)
   /// Multi-field form dialog.
   Form(FormDialog)
+  /// Config form with mode/action tracking.
+  ConfigForm(
+    mode~ : ConfigMode,
+    form~ : FormDialog,
+    action~ : ConfigAction,
+    target_idx~ : Int
+  )
 } derive(Debug)
 
 ///|
@@ -190,7 +215,11 @@ pub(all) struct TuiState {
   /// Source of the cost data.
   mut cost_source : String
   /// Token delta from the most recent LLM call.
-  latest_delta : Int
+  mut latest_delta : Int
+  /// Input token count from the most recent LLM call.
+  mut last_input_tokens : Int
+  /// Output token count from the most recent LLM call.
+  mut last_output_tokens : Int
 
   // ── Input ───────────────────────────────────────────────────
   /// Current text input content (shared with TextInput).
@@ -233,6 +262,26 @@ pub(all) struct TuiState {
   // ── Thinking Buffer (TUI-04) ─────────────────────────────────
   /// Buffer for live thinking/reasoning stream display.
   mut thinking_buffer : String
+  // ── Tick Counter (for spinner animation) ────────────────────────
+  /// Increments on every Tick event; used by StatusBar spinner.
+  mut tick_count : Int
+  // ── Run Timing (TUI-04) ──────────────────────────────────────────
+  /// Millisecond timestamp when the current agent run started.
+  mut run_start_ts : Int64
+  /// Total iterations in the current run (mirrors `iterations` but
+  /// available for the completion summary after RunCompleted).
+  mut total_iterations : Int
+  /// Whether the user has pressed Shift+Tab to approve all tools
+  /// for the remainder of this session.
+  mut approved_all_tools : Bool
+  // ── Time Machine (TUI-05) ────────────────────────────────────────
+  /// Time machine state for undo/redo task history.
+  time_machine : @agent.TimeMachineState
+  // ── Paste Placeholders (TUI-05) ──────────────────────────────────
+  /// Counter for paste placeholder numbering ([#1 Paste Text], ...).
+  mut paste_placeholder_count : Int
+  /// Stored paste texts keyed by placeholder number for expansion on submit.
+  mut paste_placeholders : Array[(Int, String)]
 } derive(Debug)
 
 ///|
@@ -260,6 +309,8 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     total_cost: agent.total_cost,
     cost_source: agent.cost_source.to_string_value(),
     latest_delta: 0,
+    last_input_tokens: 0,
+    last_output_tokens: 0,
     input_text: "",
     last_error: None,
     progress_stack: ProgressStack::new(),
@@ -269,5 +320,61 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     dialog: DialogState::NoDialog,
     shell_mode: ShellMode::Chat,
     thinking_buffer: "",
+    tick_count: 0,
+    run_start_ts: 0L,
+    total_iterations: 0,
+    approved_all_tools: false,
+    time_machine: @agent.TimeMachineState::new(agent.session_id),
+    paste_placeholder_count: 0,
+    paste_placeholders: [],
   }
+}
+
+///|
+/// Cycle the permission mode between the two interactive states:
+/// ConfirmSafes ⇄ AutoApprove (spec tui-parity-05, task 2).
+/// ConfirmAll (non-interactive default) falls back to ConfirmSafes.
+pub fn cycle_permission_mode(
+  mode : @config.PermissionMode,
+) -> @config.PermissionMode {
+  match mode {
+    @config.AutoApprove => @config.ConfirmSafes
+    @config.ConfirmSafes => @config.AutoApprove
+    @config.ConfirmAll => @config.ConfirmSafes
+  }
+}
+
+///|
+/// Look up a paste placeholder text by its number.
+pub fn TuiState::get_paste_placeholder(self : TuiState, num : Int) -> String? {
+  for pair in self.paste_placeholders {
+    let (n, text) = pair
+    if n == num {
+      return Some(text)
+    }
+  }
+  None
+}
+
+///|
+/// Expand all paste placeholders in the given text.
+/// Every occurrence of each `[#N Paste Text]` tag is replaced.
+pub fn TuiState::expand_paste_placeholders(
+  self : TuiState,
+  text : String,
+) -> String {
+  let mut result = text
+  for pair in self.paste_placeholders {
+    let (n, stored) = pair
+    let tag = "[#\{n} Paste Text]"
+    result = result.replace_all(old=tag, new=stored)
+  }
+  result
+}
+
+///|
+/// Clear all stored paste placeholders (called after submit).
+pub fn TuiState::clear_paste_placeholders(self : TuiState) -> Unit {
+  self.paste_placeholder_count = 0
+  self.paste_placeholders.clear()
 }

@@ -15,8 +15,11 @@ pub(all) enum SlashCommand {
   Todo
   Help
   Exit
+  Quit
   Meeting
   Theme(name~ : String)
+  /// Open the time-machine undo menu.
+  Undo
 } derive(Eq, Debug)
 
 ///|
@@ -39,13 +42,13 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
   let commands : Array[SlashCommandDef] = [
     {
       name: "config",
-      description: "Set a configuration value",
-      usage: "/config <key> <value>",
+      description: "Open config menu or set a value",
+      usage: "/config [key value]",
     },
     {
       name: "model",
-      description: "Switch the active model",
-      usage: "/model <name>",
+      description: "Open model selector or switch model",
+      usage: "/model [name]",
     },
     { name: "clear", description: "Clear message history", usage: "/clear" },
     { name: "new", description: "Start a new session", usage: "/new [title]" },
@@ -57,6 +60,7 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
     },
     { name: "help", description: "Show available commands", usage: "/help" },
     { name: "exit", description: "Exit the application", usage: "/exit" },
+    { name: "quit", description: "Quit (alias for exit)", usage: "/quit" },
     {
       name: "meeting",
       description: "Meeting summaries (managed in Web UI)",
@@ -66,6 +70,11 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
       name: "theme",
       description: "Switch the color theme",
       usage: "/theme <default|hacker|minimal|light>",
+    },
+    {
+      name: "undo",
+      description: "Open task history for undo/redo",
+      usage: "/undo",
     },
   ]
   { commands, }
@@ -95,6 +104,10 @@ pub fn SlashCommandParser::parse(
   let cmd_name = parts[0]
   match cmd_name {
     "config" => {
+      if parts.length() < 2 {
+        // No args: signal controller to open config menu
+        return Ok(Config(key="", value=""))
+      }
       if parts.length() < 3 {
         return Err("Usage: /config <key> <value>")
       }
@@ -109,7 +122,8 @@ pub fn SlashCommandParser::parse(
     }
     "model" => {
       if parts.length() < 2 {
-        return Err("Usage: /model <name>")
+        // No args: signal controller to open model selector
+        return Ok(Model(name=""))
       }
       let name = parts[1]
       Ok(Model(name~))
@@ -134,7 +148,9 @@ pub fn SlashCommandParser::parse(
     }
     "help" => Ok(Help)
     "exit" => Ok(Exit)
+    "quit" => Ok(Quit)
     "meeting" => Ok(Meeting)
+    "undo" => Ok(Undo)
     "theme" => {
       if parts.length() < 2 {
         return Err("Usage: /theme <default|hacker|minimal|light>")
@@ -280,9 +296,24 @@ pub fn execute(
       for cmd_def in parser.commands {
         lines.push("  /\{cmd_def.name} - \{cmd_def.description}")
       }
+      lines.push("")
+      lines.push("Keyboard shortcuts:")
+      lines.push("  Enter        - Send message")
+      lines.push("  Ctrl+J       - Insert newline")
+      lines.push("  Ctrl+C       - Cancel / Quit")
+      lines.push("  Ctrl+D       - Quit (when input empty)")
+      lines.push("  Ctrl+L       - Redraw screen")
+      lines.push("  Ctrl+K       - Kill to end of line")
+      lines.push("  Ctrl+U       - Kill to start of line")
+      lines.push("  Ctrl+W       - Kill previous word")
+      lines.push("  Tab          - Cycle shell mode / Complete")
+      lines.push("  Up/Down      - Browse history / Navigate")
+      lines.push("  Escape       - Dismiss suggestions")
+      lines.push("  Shift+Tab    - Cycle permission mode")
       Ok(lines.join("\n"))
     }
     Exit => Ok("Exiting application")
+    Quit => Ok("Exiting application")
     Theme(name~) =>
       // Theme switching is handled by the controller (it owns the Theme
       // instance); this fallback keeps `execute` total.
@@ -291,6 +322,9 @@ pub fn execute(
       Ok(
         "Meeting management is available in the Web UI dashboard (start / summarize meetings there). The TUI shows this summary entry only.",
       )
+    Undo =>
+      // /undo is handled by the controller (opens a menu); fallback text.
+      Ok("Time machine: use the controller to open the undo menu")
     Todo =>
       // Toggle todo area visibility (controller will handle the toggle)
       Ok("Todo area toggled")

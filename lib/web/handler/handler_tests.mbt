@@ -343,7 +343,7 @@ test "static_server: spa fallback for non-asset path" {
 ///|
 test "static_server: serves known static asset" {
   let server = @web.StaticServer::new("./web")
-  let resp = server.serve("/css/style.css")
+  let resp = server.serve("/app.css")
   assert_eq(resp.status, 200)
   assert_eq(resp.content_type, "text/css")
 }

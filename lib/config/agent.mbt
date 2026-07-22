@@ -87,9 +87,16 @@ pub fn AgentConfig::switch_model_by_name(
 ///|
 /// Dynamically add a model to the models mapping.
 /// Assigns a runtime_id if one is not already set.
+/// If a model with the same id already exists, it is replaced (dedup).
 pub fn AgentConfig::add_model(self : AgentConfig, model : ModelConfig) -> Unit {
   if model.runtime_id.is_empty() {
     model.runtime_id = model.id
+  }
+  for i = 0; i < self.models.length(); i = i + 1 {
+    if self.models[i].id == model.id {
+      self.models[i] = model
+      return
+    }
   }
   self.models.push(model)
 }

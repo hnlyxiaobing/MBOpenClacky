@@ -27,6 +27,8 @@ fn make_test_state_with_thinking(buffer : String, active : Bool) -> TuiState {
     total_cost: 0.001,
     cost_source: "estimated",
     latest_delta: 100,
+    last_input_tokens: 0,
+    last_output_tokens: 0,
     input_text: "",
     last_error: None,
     progress_stack: ProgressStack::new(),
@@ -36,6 +38,13 @@ fn make_test_state_with_thinking(buffer : String, active : Bool) -> TuiState {
     dialog: DialogState::NoDialog,
     shell_mode: ShellMode::Chat,
     thinking_buffer: buffer,
+    tick_count: 0,
+    run_start_ts: 0L,
+    total_iterations: 0,
+    approved_all_tools: false,
+    time_machine: @agent.TimeMachineState::new("test"),
+    paste_placeholder_count: 0,
+    paste_placeholders: [],
   }
   state
 }

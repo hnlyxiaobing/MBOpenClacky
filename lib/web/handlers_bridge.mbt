@@ -84,33 +84,7 @@ fn find_query_param(url : String, key : String) -> String? {
 }
 
 // ── MCP Bridges ───────────────────────────────────────────────────
-
-///|
-fn handle_mcp_list_servers_bridge(
-  server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_mcp_list_servers(server_ref.val.mcp_registry, req))
-}
-
-///|
-fn handle_mcp_register_server_bridge(
-  server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_mcp_register_server(server_ref.val.mcp_registry, req))
-}
-
-///|
-fn handle_mcp_remove_server_bridge(
-  server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_mcp_remove_server(server_ref.val.mcp_registry, req))
-}
+// NOTE: /api/mcp/servers* bridge routes removed (web-parity-05).
 
 ///|
 fn handle_mcp_list_tools_bridge(
@@ -288,53 +262,12 @@ fn handle_schedules_history_bridge(
 }
 
 // ── Backup Bridges ────────────────────────────────────────────────
-
-///|
-fn handle_backups_list_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_backups_list(req))
-}
-
-///|
-fn handle_backups_create_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_backups_create(req))
-}
-
-///|
-fn handle_backups_restore_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_backups_restore(req))
-}
-
-///|
-fn handle_backups_delete_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_backups_delete(req))
-}
+// NOTE: /api/backups group bridge routes removed (web-parity-05); the
+// /api/backup singular alias routes below call the same pub handlers.
 
 // ── Billing Bridges ───────────────────────────────────────────────
-
-///|
-fn handle_billing_status_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_billing_status(req))
-}
+// NOTE: /api/billing/{status,usage,export} bridge routes removed
+// (web-parity-05); activate and the parity-04 contract endpoints remain.
 
 ///|
 fn handle_billing_activate_bridge(
@@ -343,24 +276,6 @@ fn handle_billing_activate_bridge(
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
   response_to_core(handle_billing_activate(req))
-}
-
-///|
-fn handle_billing_usage_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_billing_usage(req))
-}
-
-///|
-fn handle_billing_export_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_billing_export(req))
 }
 
 // ── Skills Bridges ────────────────────────────────────────────────
@@ -537,63 +452,234 @@ fn handle_trash_stats_bridge(
 }
 
 // ── Meeting Bridges ───────────────────────────────────────────────
+// NOTE: /api/meetings* bridge routes removed (web-parity-05).
+
+// ── Billing New Bridges (web-parity-04) ────────────────────────
 
 ///|
-fn handle_meetings_list_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
-) -> @core.HttpResponse {
-  let url = event.req.url
-  let params : Array[(String, String)] = []
-  match find_query_param(url, "status") {
-    Some(v) => params.push(("status", v))
-    None => ()
-  }
-  let req = event_to_request(event, params)
-  response_to_core(handle_meetings_list(req))
-}
-
-///|
-fn handle_meetings_create_bridge(
+fn handle_billing_summary_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
-  response_to_core(handle_meetings_create(req))
+  response_to_core(handle_billing_summary(req))
 }
 
 ///|
-fn handle_meetings_get_bridge(
+fn handle_billing_daily_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_billing_daily(req))
+}
+
+///|
+fn handle_billing_records_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_billing_records(req))
+}
+
+///|
+fn handle_billing_sessions_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_billing_sessions(req))
+}
+
+///|
+fn handle_billing_clear_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_billing_clear(req))
+}
+
+// ── Backup Alias Bridges (web-parity-04) ────────────────────────
+
+///|
+/// GET /api/backup/status — alias for backup list.
+fn handle_backup_status_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_backups_list(req))
+}
+
+///|
+/// POST /api/backup/run — alias for backup create.
+fn handle_backup_run_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_backups_create(req))
+}
+
+///|
+/// POST /api/backup/restore/:id — alias for backup restore.
+fn handle_backup_restore_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_meetings_get(req))
+  response_to_core(handle_backups_restore(req))
 }
 
 ///|
-fn handle_meetings_update_bridge(
+/// POST /api/backup/open-folder — open backup folder in system file manager.
+fn handle_backup_open_folder_bridge(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Opening the system file manager requires OS integration that is not
+  // available in headless mode — report honestly instead of faking success.
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
+    Json::object({
+      "ok": false.to_json(),
+      "error": "unimplemented".to_json(),
+      "message": "backup open-folder not available in headless mode".to_json(),
+    }),
+  )
+}
+
+///|
+/// GET /api/backup/download/:id — download a backup archive.
+fn handle_backup_download_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_meetings_update(req))
+  // Reuse restore logic to verify backup exists, then return a download link
+  response_to_core(handle_backup_download(req))
 }
 
 ///|
-fn handle_meetings_delete_bridge(
+/// GET /api/backup/config — get backup configuration.
+fn handle_backup_config_bridge(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  response_to_core(
+    HttpResponse::ok(
+      Json::object({
+        "backup_dir": backups_dir().to_json(),
+        "auto_backup": false.to_json(),
+        "max_backups": (10).to_json(),
+      }).stringify(),
+    ),
+  )
+}
+
+// ── Media New Bridges (web-parity-04) ────────────────────────────
+
+///|
+/// GET /api/media/video/status — video generation job status.
+fn handle_media_video_status_bridge(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Video generation itself is not implemented (POST /api/media/video
+  // returns 501), so there is no job queue to report status for —
+  // answer 501 rather than a hardcoded "idle".
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
+    Json::object({
+      "ok": false.to_json(),
+      "error": "unimplemented".to_json(),
+      "message": "Video generation not yet implemented".to_json(),
+    }),
+  )
+}
+
+///|
+/// GET /api/media/types — supported media types.
+fn handle_media_types_bridge(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "image": Json::array(["png".to_json(), "jpg".to_json(), "webp".to_json()]),
+      "video": Json::array(["mp4".to_json(), "webm".to_json()]),
+      "audio": Json::array(["mp3".to_json(), "wav".to_json(), "ogg".to_json()]),
+    }),
+  )
+}
+
+// ── File Action Bridge (web-parity-04) ────────────────────────────
+
+///|
+/// POST /api/file-action — open/reveal/download a local file.
+fn handle_file_action_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let body : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let action = match body {
+    { "action": String(a), .. } => a
+    _ => ""
+  }
+  let path = match body {
+    { "path": String(p), .. } => p
+    _ => ""
+  }
+  if action.is_empty() || path.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "action and path required".to_json() }),
+    )
+  }
+  // Actual file open/reveal requires OS integration that is not available
+  // in headless mode — report honestly instead of faking success.
+  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
+    Json::object({
+      "ok": false.to_json(),
+      "error": "unimplemented".to_json(),
+      "message": ("file-action '" + action + "' not available in headless mode").to_json(),
+    }),
+  )
+}
+
+// ── Trash Sessions Bridge (web-parity-04) ────────────────────────
+
+///|
+/// GET /api/trash/sessions — list trashed sessions.
+fn handle_trash_sessions_list_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Reuse trash list with type=sessions filter
+  let req = event_to_request(event, [("type", "sessions")])
+  response_to_core(handle_trash_list(req))
+}
+
+///|
+/// POST /api/trash/sessions/:id/restore — restore a trashed session.
+fn handle_trash_sessions_restore_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_meetings_delete(req))
+  response_to_core(handle_trash_restore(req))
 }
 
 ///|
-fn handle_meetings_summarize_bridge(
+/// DELETE /api/trash/sessions/:id — permanently delete a trashed session.
+fn handle_trash_sessions_delete_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_meetings_summarize(req))
+  response_to_core(handle_trash_delete(req))
 }

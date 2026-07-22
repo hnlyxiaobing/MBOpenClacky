@@ -22,9 +22,31 @@ pub(all) struct UpdateConfigRequest {
 } derive(FromJson)
 
 ///|
-/// Response for session list
+/// Lightweight session summary returned by GET /api/sessions.
+/// Mirrors the upstream SessionSummary contract.
+pub(all) struct SessionSummary {
+  id : String
+  name : String
+  working_dir : String
+  status : String
+  created_at : String
+  updated_at : String
+  total_tasks : Int
+  total_cost : Double
+  cost_source : String
+  error : String
+  model : String?
+  source : String
+  latest_latency_ms : Int?
+}
+
+///|
+/// Response for session list (GET /api/sessions).
 pub(all) struct SessionListResponse {
-  sessions : Array[@agent.SessionData]
+  sessions : Array[SessionSummary]
+  has_more : Bool
+  cron_count : Int
+  latest_cron_updated_at : String?
 }
 
 ///|
@@ -135,8 +157,44 @@ pub(all) struct PermissionResponse {
 // ── JSON serialization for response types ────────────────────────
 
 ///|
+pub impl ToJson for SessionSummary with fn to_json(self) {
+  let latency = match self.latest_latency_ms {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let model = match self.model {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  Json::object({
+    "id": self.id.to_json(),
+    "name": self.name.to_json(),
+    "working_dir": self.working_dir.to_json(),
+    "status": self.status.to_json(),
+    "created_at": self.created_at.to_json(),
+    "updated_at": self.updated_at.to_json(),
+    "total_tasks": self.total_tasks.to_json(),
+    "total_cost": self.total_cost.to_json(),
+    "cost_source": self.cost_source.to_json(),
+    "error": self.error.to_json(),
+    "model": model,
+    "source": self.source.to_json(),
+    "latest_latency_ms": latency,
+  })
+}
+
+///|
 pub impl ToJson for SessionListResponse with fn to_json(self) {
-  Json::object({ "sessions": self.sessions.to_json() })
+  let cron_updated = match self.latest_cron_updated_at {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  Json::object({
+    "sessions": self.sessions.to_json(),
+    "has_more": self.has_more.to_json(),
+    "cron_count": self.cron_count.to_json(),
+    "latest_cron_updated_at": cron_updated,
+  })
 }
 
 ///|

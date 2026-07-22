@@ -19,12 +19,59 @@ pub(all) struct TemplateConfig {
 ///|
 /// Create a default template configuration.
 pub fn TemplateConfig::default() -> TemplateConfig {
+  // Read brand name from brand config (fallback to "MBOpenClacky")
+  let brand_name = resolve_brand_name()
+  // Build official panel script tags for git and time_machine
+  let official_tags = build_official_panel_script_tags()
   {
-    brand_name: "MBOpenClacky",
+    brand_name,
     panel_agents_script: "",
     global_ext_script_tags: "",
     agent_webui_script_tags: "",
-    official_panel_script_tags: "",
+    official_panel_script_tags: official_tags,
+  }
+}
+
+///|
+/// Resolve the brand name from the brand config directory.
+/// Falls back to "MBOpenClacky" if the config is unavailable.
+fn resolve_brand_name() -> String {
+  let dir = match @utils.config_dir() {
+    Some(d) => d
+    None =>
+      match @utils.home_dir() {
+        Some(home) =>
+          @path.Path(home).join(@path.Path(".mbopenclacky/brand")).to_string()
+        None => ".mbopenclacky/brand"
+      }
+  }
+  let cfg = @brand.BrandConfig::load(dir)
+  let name = cfg.display_name()
+  if name.is_empty() {
+    "MBOpenClacky"
+  } else {
+    name
+  }
+}
+
+///|
+/// Build script tags for official ext_ui panels (git and time_machine).
+/// A panel script tag is only injected when its asset actually exists under
+/// the static web root — otherwise every page load would 404 the missing
+/// script and produce a JS parse error in the console (spec web-parity-01
+/// decision: missing ext_ui assets must not be injected).
+fn build_official_panel_script_tags() -> String {
+  let mut tags = ""
+  if @fs.path_exists("web/ext_ui/git.js") {
+    tags = tags + "<script src=\"/ext_ui/git.js\" defer></script>\n"
+  }
+  if @fs.path_exists("web/ext_ui/time_machine.js") {
+    tags = tags + "<script src=\"/ext_ui/time_machine.js\" defer></script>\n"
+  }
+  if tags.has_suffix("\n") {
+    tags[:tags.length() - 1].to_owned()
+  } else {
+    tags
   }
 }
 
@@ -35,8 +82,8 @@ pub fn TemplateConfig::default() -> TemplateConfig {
 /// - `{{EXT_SCRIPTS}}` -> combined extension script tags
 pub fn process_template(content : String, config : TemplateConfig) -> String {
   let ext_scripts = inject_ext_scripts(config)
-  let result = content.replace(old="{{BRAND_NAME}}", new=config.brand_name)
-  result.replace(old="{{EXT_SCRIPTS}}", new=ext_scripts)
+  let result = content.replace_all(old="{{BRAND_NAME}}", new=config.brand_name)
+  result.replace_all(old="{{EXT_SCRIPTS}}", new=ext_scripts)
 }
 
 ///|

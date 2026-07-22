@@ -43,6 +43,13 @@ pub fn Banner::with_style_and_width(style : BannerStyle, width : Int) -> Banner 
 }
 
 ///|
+/// Create a Block-style banner with custom width (style variants are
+/// read-only outside this package, hence a dedicated constructor).
+pub fn Banner::block_with_width(width : Int) -> Banner {
+  { style: Block, width, use_color: false }
+}
+
+///|
 /// Compute an adaptive banner width based on terminal width.
 /// Returns min(terminal_width - 4, 60), with a minimum of 20.
 pub fn Banner::adaptive_width(terminal_width : Int) -> Int {
@@ -216,5 +223,172 @@ fn Banner::colorize(self : Banner, text : String) -> String {
     "\u{1b}[1m\u{1b}[36m\{text}\u{1b}[0m"
   } else {
     text
+  }
+}
+
+// ── Multi-section startup banner ────────────────────────────────────
+
+///|
+/// Minimum terminal width for showing the full ASCII art logo.
+/// Below this width, the logo degrades to a plain text welcome line.
+pub let min_width_for_logo : Int = 90
+
+///|
+/// Tagline shown below the logo.
+let banner_tagline : String = "Your AI-powered coding companion"
+
+///|
+/// Usage tips shown at startup.
+let banner_tips : Array[String] = [
+  "Press Tab for completions, /help for commands", "Type your message and press Enter to chat",
+]
+
+///|
+/// Render the full multi-section startup banner.
+///
+/// `terminal_width` is the actual terminal column count, used to decide
+/// whether to show the full ASCII art logo (>= 90) or a plain text fallback.
+///
+/// Sections:
+/// 1. Logo (block font or plain text if terminal < 90 cols)
+/// 2. Tagline + version
+/// 3. Tips
+/// 4. AGENT MODE separator
+/// 5. Info lines (working dir, mode, rules)
+/// 6. Optional API key warning
+pub fn Banner::render_startup(
+  self : Banner,
+  version : String,
+  working_dir : String,
+  permission_mode : String,
+  has_rules : Bool,
+  api_key_missing : Bool,
+  terminal_width? : Int = 0,
+) -> String {
+  let effective_width = if terminal_width > 0 {
+    terminal_width
+  } else {
+    self.width
+  }
+  let sections : Array[String] = []
+  // Section 1: Logo
+  sections.push(self.render_logo_section(effective_width))
+  // Section 2: Tagline + version
+  sections.push(self.render_tagline_section(version))
+  // Section 3: Tips
+  sections.push(self.render_tips_section())
+  // Section 4: AGENT MODE separator
+  sections.push(self.render_agent_mode_section())
+  // Section 5: Info lines
+  sections.push(
+    self.render_info_section(working_dir, permission_mode, has_rules),
+  )
+  // Section 6: Optional API key warning
+  if api_key_missing {
+    sections.push(self.render_api_key_warning())
+  }
+  sections.join("\n")
+}
+
+///|
+/// Render the logo section: block font for wide terminals, plain text for narrow.
+fn Banner::render_logo_section(self : Banner, effective_width : Int) -> String {
+  if effective_width >= min_width_for_logo {
+    // Full block font logo
+    let font = @utils.BlockFont::new()
+    let lines = font.render_text("MBOpenClacky")
+    let parts : Array[String] = []
+    for line in lines {
+      parts.push(self.colorize(line))
+    }
+    parts.join("\n")
+  } else {
+    // Narrow terminal: plain text fallback
+    self.colorize("Welcome, MBOpenClacky is here")
+  }
+}
+
+///|
+/// Render the tagline + version section.
+fn Banner::render_tagline_section(self : Banner, version : String) -> String {
+  let line = "  \{banner_tagline}  ·  v\{version}"
+  if self.use_color {
+    "\u{1b}[36m\{line}\u{1b}[0m"
+  } else {
+    line
+  }
+}
+
+///|
+/// Render the tips section.
+fn Banner::render_tips_section(self : Banner) -> String {
+  let parts : Array[String] = []
+  for tip in banner_tips {
+    let line = "  💡 \{tip}"
+    if self.use_color {
+      parts.push("\u{1b}[2m\{line}\u{1b}[0m")
+    } else {
+      parts.push(line)
+    }
+  }
+  parts.join("\n")
+}
+
+///|
+/// Render the AGENT MODE separator section.
+fn Banner::render_agent_mode_section(self : Banner) -> String {
+  let sep_width = if self.width > 40 { 40 } else { self.width }
+  // "  AGENT MODE  " is 14 display columns
+  let label_width = 14
+  let half = (sep_width - label_width) / 2
+  let left_pad = if half > 0 { half } else { 0 }
+  let right_pad = if sep_width - left_pad - label_width > 0 {
+    sep_width - left_pad - label_width
+  } else {
+    0
+  }
+  let sep_line = "─".repeat(left_pad) +
+    "  AGENT MODE  " +
+    "─".repeat(right_pad)
+  if self.use_color {
+    "\u{1b}[1m\u{1b}[33m\{sep_line}\u{1b}[0m"
+  } else {
+    sep_line
+  }
+}
+
+///|
+/// Render the info section with working directory, permission mode, and rules status.
+fn Banner::render_info_section(
+  self : Banner,
+  working_dir : String,
+  permission_mode : String,
+  has_rules : Bool,
+) -> String {
+  let rules_str = if has_rules { "✓" } else { "—" }
+  let parts : Array[String] = [
+    "  📁 \{working_dir}",
+    "  🔒 Mode: \{permission_mode}",
+    "  📋 Project Rules: \{rules_str}",
+  ]
+  if self.use_color {
+    let colored : Array[String] = []
+    for line in parts {
+      colored.push("\u{1b}[37m\{line}\u{1b}[0m")
+    }
+    colored.join("\n")
+  } else {
+    parts.join("\n")
+  }
+}
+
+///|
+/// Render the API key missing warning.
+fn Banner::render_api_key_warning(self : Banner) -> String {
+  let line = "  ⚠ [warning] No API key configured. Set OPENAI_API_KEY or use /config."
+  if self.use_color {
+    "\u{1b}[1m\u{1b}[33m\{line}\u{1b}[0m"
+  } else {
+    line
   }
 }

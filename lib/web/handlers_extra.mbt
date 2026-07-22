@@ -131,16 +131,95 @@ fn path_id(event : @crescent.Event) -> String {
 // ── Memories ─────────────────────────────────────────────
 
 ///|
-/// GET /api/memories -> list all memories.
+/// Enrich a raw memory JSON object with derived fields (topic, description, preview, size).
+fn enrich_memory_entry(raw : Json) -> Json {
+  match raw {
+    Object(o) => {
+      let id = match o.get("id") {
+        Some(String(s)) => s
+        _ => ""
+      }
+      let content = match o.get("content") {
+        Some(String(s)) => s
+        _ => ""
+      }
+      // Topic: first tag or first line of content.
+      let topic = match o.get("tags") {
+        Some(Array(arr)) if arr.length() > 0 =>
+          match arr[0] {
+            String(s) => s
+            _ => ""
+          }
+        _ =>
+          if content.length() > 0 {
+            let nl = content.find("\n")
+            match nl {
+              Some(n) => content[:n].to_owned()
+              None => content
+            }
+          } else {
+            ""
+          }
+      }
+      // Preview: first 100 chars of content.
+      let preview = if content.length() > 100 {
+        content[:100].to_owned() + "..."
+      } else {
+        content
+      }
+      let size = content.length()
+      let updated_at = match o.get("created_at") {
+        Some(n) => n
+        None => now_ms().to_json()
+      }
+      Json::object({
+        "id": id.to_json(),
+        "filename": (id + ".json").to_json(),
+        "topic": topic.to_json(),
+        "description": content.to_json(),
+        "content": content.to_json(),
+        "tags": match o.get("tags") {
+          Some(t) => t
+          None => Json::array(empty_arr())
+        },
+        "updated_at": updated_at,
+        "created_at": match o.get("created_at") {
+          Some(c) => c
+          None => now_ms().to_json()
+        },
+        "size": size.to_json(),
+        "preview": preview.to_json(),
+      })
+    }
+    _ => raw
+  }
+}
+
+///|
+/// GET /api/memories -> list all memories (enriched with topic/description/preview).
 pub fn handle_memories_get(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   match extra_path("memories.json") {
-    Some(p) =>
+    Some(p) => {
+      let raw_arr = load_array(p)
+      let enriched : Array[Json] = []
+      for e in raw_arr {
+        enriched.push(enrich_memory_entry(e))
+      }
+      let dir = match @utils.config_dir() {
+        Some(d) => d
+        None => ""
+      }
       @core.HttpResponse::ok().json_value(
-        Json::object({ "memories": Json::array(load_array(p)) }),
+        Json::object({
+          "ok": true.to_json(),
+          "dir": dir.to_json(),
+          "memories": Json::array(enriched),
+        }),
       )
+    }
     None => err_no_config()
   }
 }
@@ -299,6 +378,195 @@ pub fn handle_memories_delete(
           _ => true
         }
       })
+      match save_array(p, filtered) {
+        Ok(_) =>
+          @core.HttpResponse::ok().json_value(
+            Json::object({ "ok": true.to_json() }),
+          )
+        Err(e) => err_msg(e)
+      }
+    }
+    None => err_no_config()
+  }
+}
+
+// ── Settings ───────────────────────────────────────────
+
+///|
+/// Normalize a memories :filename path param to a memory id
+/// (accepts both "<id>" and "<id>.json").
+fn memory_filename_to_id(filename : String) -> String {
+  if filename.has_suffix(".json") {
+    filename[:filename.length() - 5].to_owned()
+  } else {
+    filename
+  }
+}
+
+///|
+/// Load the memories array from disk; returns None when config dir missing.
+fn load_memories_array() -> (String, Array[Json])? {
+  match extra_path("memories.json") {
+    Some(p) => Some((p, load_array(p)))
+    None => None
+  }
+}
+
+///|
+/// GET /api/memories/:filename — fetch a single memory by filename.
+pub fn handle_memory_file_get(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("filename") {
+    Some(p) => memory_filename_to_id(p.to_owned())
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: filename".to_json() }),
+      )
+  }
+  match load_memories_array() {
+    Some((_, arr)) => {
+      for e in arr {
+        match e {
+          Object(o) =>
+            match o.get("id") {
+              Some(String(existing)) if existing == id =>
+                return @core.HttpResponse::ok().json_value(
+                  Json::object({
+                    "ok": true.to_json(),
+                    "memory": enrich_memory_entry(e),
+                  }),
+                )
+              _ => ()
+            }
+          _ => ()
+        }
+      }
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "memory not found".to_json() }),
+      )
+    }
+    None => err_no_config()
+  }
+}
+
+///|
+/// PUT /api/memories/:filename — update a single memory by filename.
+/// Body: {content?, tags?}.
+pub fn handle_memory_file_put(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("filename") {
+    Some(p) => memory_filename_to_id(p.to_owned())
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: filename".to_json() }),
+      )
+  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
+  match load_memories_array() {
+    Some((p, arr)) => {
+      let mut found = false
+      for i = 0; i < arr.length(); i = i + 1 {
+        match arr[i] {
+          Object(o) =>
+            match o.get("id") {
+              Some(String(existing)) if existing == id => {
+                let content = if extra_json_str(body, "content").is_empty() {
+                  match o.get("content") {
+                    Some(c) => c
+                    None => "".to_json()
+                  }
+                } else {
+                  extra_json_str(body, "content").to_json()
+                }
+                let tags = match body {
+                  Object(bo) =>
+                    if bo.contains("tags") {
+                      match bo.get("tags") {
+                        Some(t) => t
+                        None => Json::array(empty_arr())
+                      }
+                    } else {
+                      match o.get("tags") {
+                        Some(t) => t
+                        None => Json::array(empty_arr())
+                      }
+                    }
+                  _ => Json::array(empty_arr())
+                }
+                arr[i] = Json::object({
+                  "id": id.to_json(),
+                  "content": content,
+                  "tags": tags,
+                  "created_at": match o.get("created_at") {
+                    Some(c) => c
+                    None => now_ms().to_json()
+                  },
+                })
+                found = true
+              }
+              _ => ()
+            }
+          _ => ()
+        }
+      }
+      if !found {
+        return @core.HttpResponse::not_found().json_value(
+          Json::object({ "error": "memory not found".to_json() }),
+        )
+      }
+      match save_array(p, arr) {
+        Ok(_) =>
+          @core.HttpResponse::ok().json_value(
+            Json::object({ "ok": true.to_json() }),
+          )
+        Err(e) => err_msg(e)
+      }
+    }
+    None => err_no_config()
+  }
+}
+
+///|
+/// DELETE /api/memories/:filename — delete a single memory by filename.
+pub fn handle_memory_file_delete(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("filename") {
+    Some(p) => memory_filename_to_id(p.to_owned())
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: filename".to_json() }),
+      )
+  }
+  match load_memories_array() {
+    Some((p, arr)) => {
+      let mut found = false
+      let filtered = arr.filter(fn(e) {
+        match e {
+          Object(o) =>
+            match o.get("id") {
+              Some(String(existing)) =>
+                if existing == id {
+                  found = true
+                  false
+                } else {
+                  true
+                }
+              _ => true
+            }
+          _ => true
+        }
+      })
+      if !found {
+        return @core.HttpResponse::not_found().json_value(
+          Json::object({ "error": "memory not found".to_json() }),
+        )
+      }
       match save_array(p, filtered) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
@@ -751,4 +1019,617 @@ pub fn handle_session_time_machine_post(
     }
     None => err_no_config()
   }
+}
+
+///|
+/// GET /api/sessions/:id/time_machine/:task_id/diff — diff for a time machine point.
+/// Returns a stub response; full task-snapshot diff requires deeper infra.
+pub fn handle_session_time_machine_diff(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let session_id = path_id(event)
+  if session_id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "session id required".to_json() }),
+    )
+  }
+  let task_id = match event.param("task_id") {
+    Some(v) => v.to_owned()
+    None => ""
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "session_id": session_id.to_json(),
+      "task_id": task_id.to_json(),
+      "diff": "".to_json(),
+      "available": false.to_json(),
+    }),
+  )
+}
+
+///|
+/// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub.
+pub fn handle_session_time_machine_restore_preview(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let session_id = path_id(event)
+  if session_id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "session id required".to_json() }),
+    )
+  }
+  let task_id = match event.param("task_id") {
+    Some(v) => v.to_owned()
+    None => ""
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "session_id": session_id.to_json(),
+      "task_id": task_id.to_json(),
+      "preview": "".to_json(),
+      "available": false.to_json(),
+    }),
+  )
+}
+
+// ── Config/Models CRUD (web-parity-02) ──────────────────
+
+///|
+/// Persist the agent config to the default config file.
+/// Returns Err with a message when the config path is unavailable or the
+/// write fails — callers must surface this instead of silently succeeding
+/// with an in-memory-only change.
+fn persist_agent_config(config : @config.AgentConfig) -> Result[Unit, String] {
+  match @utils.config_file() {
+    Some(path) => {
+      config.save(path) catch {
+        e => return Err(@debug.to_string(e))
+      }
+      Ok(())
+    }
+    None => Err("Config file path unavailable")
+  }
+}
+
+///|
+/// 500 response for a failed config persistence.
+fn err_config_persist(msg : String) -> @core.HttpResponse {
+  @core.HttpResponse::internal_server_error().json_value(
+    Json::object({
+      "ok": false.to_json(),
+      "error": "Failed to persist configuration".to_json(),
+      "detail": msg.to_json(),
+    }),
+  )
+}
+
+///|
+/// POST /api/config/models — Create a new model configuration.
+/// Aligned with the original contract: body includes name, base_url, model,
+/// api_key, anthropic_format, type.
+pub fn handle_config_models_post(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let body : Json = event.req.body() catch { _ => return bad_json() }
+  let cfg = server_ref.val.config
+  let new_id = extra_id()
+  let mc = @config.ModelConfig::new(
+    new_id,
+    extra_json_str(body, "api_key"),
+    extra_json_str(body, "base_url"),
+    extra_json_str(body, "model"),
+  )
+  cfg.models.push(mc)
+  match persist_agent_config(cfg) {
+    Ok(_) => ()
+    Err(msg) => return err_config_persist(msg)
+  }
+  @core.HttpResponse::created().json_value(
+    Json::object({
+      "ok": true.to_json(),
+      "model": mc.to_json(),
+      "current_index": (cfg.models.length() - 1).to_json(),
+    }),
+  )
+}
+
+///|
+/// PATCH /api/config/models/:id — Update an existing model configuration.
+pub fn handle_config_models_patch(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = path_id(event)
+  if id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "id required".to_json() }),
+    )
+  }
+  let body : Json = event.req.body() catch { _ => return bad_json() }
+  let cfg = server_ref.val.config
+  let mut found = false
+  for i = 0; i < cfg.models.length(); i = i + 1 {
+    let m = cfg.models[i]
+    if m.id == id {
+      let base_url = if extra_json_str(body, "base_url").is_empty() {
+        m.base_url
+      } else {
+        extra_json_str(body, "base_url")
+      }
+      let model = if extra_json_str(body, "model").is_empty() {
+        m.model
+      } else {
+        extra_json_str(body, "model")
+      }
+      let api_key = if extra_json_str(body, "api_key").is_empty() {
+        m.api_key
+      } else {
+        extra_json_str(body, "api_key")
+      }
+      // anthropic_format is preserved from the existing model.
+      // ModelConfig::new() sets it to false; for now this is acceptable.
+      cfg.models[i] = @config.ModelConfig::new(id, api_key, base_url, model)
+      found = true
+      break
+    }
+  }
+  if !found {
+    return @core.HttpResponse::not_found().json_value(
+      Json::object({ "error": "model not found".to_json() }),
+    )
+  }
+  match persist_agent_config(cfg) {
+    Ok(_) => ()
+    Err(msg) => return err_config_persist(msg)
+  }
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+}
+
+///|
+/// DELETE /api/config/models/:id — Remove a model configuration.
+pub fn handle_config_models_delete(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = path_id(event)
+  if id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "id required".to_json() }),
+    )
+  }
+  let cfg = server_ref.val.config
+  let before = cfg.models.length()
+  let filtered : Array[@config.ModelConfig] = []
+  for m in cfg.models {
+    if m.id != id {
+      filtered.push(m)
+    }
+  }
+  if filtered.length() == before {
+    return @core.HttpResponse::not_found().json_value(
+      Json::object({ "error": "model not found".to_json() }),
+    )
+  }
+  cfg.models = filtered
+  // Update current_model_id if the deleted model was active.
+  match cfg.current_model_id {
+    Some(cid) if cid == id => cfg.current_model_id = None
+    _ => ()
+  }
+  match persist_agent_config(cfg) {
+    Ok(_) => ()
+    Err(msg) => return err_config_persist(msg)
+  }
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+}
+
+///|
+/// POST /api/config/models/:id/default — Set a model as the default.
+pub fn handle_config_models_set_default(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = path_id(event)
+  if id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "id required".to_json() }),
+    )
+  }
+  let cfg = server_ref.val.config
+  let mut found = false
+  for m in cfg.models {
+    if m.id == id {
+      found = true
+      break
+    }
+  }
+  if !found {
+    return @core.HttpResponse::not_found().json_value(
+      Json::object({ "error": "model not found".to_json() }),
+    )
+  }
+  cfg.current_model_id = Some(id)
+  match persist_agent_config(cfg) {
+    Ok(_) => ()
+    Err(msg) => return err_config_persist(msg)
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({ "ok": true.to_json(), "current_model_id": id.to_json() }),
+  )
+}
+
+///|
+/// GET /api/providers — List supported LLM providers.
+/// Returns provider metadata for the frontend settings page.
+pub fn handle_providers_list(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Static list of known providers.
+  let providers : Array[Json] = [
+    Json::object({
+      "id": "openai".to_json(),
+      "name": "OpenAI".to_json(),
+      "base_url": "https://api.openai.com/v1".to_json(),
+    }),
+    Json::object({
+      "id": "anthropic".to_json(),
+      "name": "Anthropic".to_json(),
+      "base_url": "https://api.anthropic.com".to_json(),
+    }),
+    Json::object({
+      "id": "deepseek".to_json(),
+      "name": "DeepSeek".to_json(),
+      "base_url": "https://api.deepseek.com".to_json(),
+    }),
+    Json::object({
+      "id": "custom".to_json(),
+      "name": "Custom (OpenAI-compatible)".to_json(),
+      "base_url": "".to_json(),
+    }),
+  ]
+  @core.HttpResponse::ok().json_value(
+    Json::object({ "providers": providers.to_json() }),
+  )
+}
+
+///|
+/// POST /api/upload — Multipart file upload alias.
+/// Accepts multipart/form-data with field "file".
+/// Returns {ok, name, path}.
+pub fn handle_upload_alias(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Reuse the existing files upload handler logic.
+  handle_files_upload_impl(event)
+}
+
+///|
+/// Shared implementation for file upload.
+/// Parses the multipart/form-data body, extracts the first file part, and
+/// saves it, returning {ok, name, path}.
+fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
+  let body = event.req.raw_body
+  if body.length() == 0 {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "Empty request body".to_json() }),
+    )
+  }
+  let content_type = event.req.get_header("Content-Type").unwrap_or("")
+  let (filename, content) = match parse_multipart_file(body, content_type) {
+    Some(pair) => pair
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({
+          "error": "No file part found in multipart body".to_json(),
+        }),
+      )
+  }
+  // Sanitize: strip directory components and reject traversal sequences.
+  let save_name = sanitize_upload_filename(filename)
+  if save_name.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "Invalid file name".to_json() }),
+    )
+  }
+  // Save to a temp location under the config dir.
+  let upload_dir = match @utils.config_dir() {
+    Some(dir) =>
+      @path.Path::join(@path.Path(dir), @path.Path("uploads")).to_string()
+    None => "uploads"
+  }
+  match @utils.ensure_dir(upload_dir) {
+    _ => ()
+  }
+  let save_path = @path.Path::join(
+    @path.Path(upload_dir),
+    @path.Path(save_name),
+  ).to_string()
+  @fs.write_bytes_to_file(save_path, content) catch {
+    e =>
+      return @core.HttpResponse::internal_server_error().json_value(
+        Json::object({ "error": @debug.to_string(e).to_json() }),
+      )
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "ok": true.to_json(),
+      "name": save_name.to_json(),
+      "path": save_path.to_json(),
+    }),
+  )
+}
+
+///|
+/// Reduce an uploaded file name to a safe basename.
+/// Strips any directory components and rejects traversal sequences.
+fn sanitize_upload_filename(name : String) -> String {
+  let mut base = name
+  match base.rev_find("/") {
+    Some(i) => base = base[i + 1:].to_owned()
+    None => ()
+  }
+  match base.rev_find("\\") {
+    Some(i) => base = base[i + 1:].to_owned()
+    None => ()
+  }
+  if base.is_empty() || base.contains("..") {
+    ""
+  } else {
+    base
+  }
+}
+
+///|
+/// Find the first occurrence of an ASCII `needle` in `hay` at or after `from`.
+fn bytes_find(hay : Bytes, needle : String, from : Int) -> Int? {
+  let n = needle.length()
+  if n == 0 || from < 0 || hay.length() < from + n {
+    return None
+  }
+  let mut i = from
+  while i + n <= hay.length() {
+    let mut matched = true
+    for j = 0; j < n; j = j + 1 {
+      if hay[i + j].to_int() != needle[j].to_int() {
+        matched = false
+        break
+      }
+    }
+    if matched {
+      return Some(i)
+    }
+    i = i + 1
+  }
+  None
+}
+
+///|
+/// Parse a multipart/form-data body and return the first file part as
+/// (filename, content). Returns None when the request is not multipart or
+/// contains no file part.
+fn parse_multipart_file(
+  body : Bytes,
+  content_type : String,
+) -> (String, Bytes)? {
+  let bmarker = "boundary="
+  let bs = match content_type.find(bmarker) {
+    Some(s) => s
+    None => return None
+  }
+  let mut boundary = content_type[bs + bmarker.length():].to_owned()
+  // Boundary ends at ';', whitespace, or end of header; strip quotes.
+  let mut end = boundary.length()
+  for i = 0; i < boundary.length(); i = i + 1 {
+    let c = boundary[i]
+    if c == ';' || c == ' ' || c == '\t' {
+      end = i
+      break
+    }
+  }
+  boundary = boundary[:end].to_owned()
+  if boundary.has_prefix("\"") &&
+    boundary.has_suffix("\"") &&
+    boundary.length() > 1 {
+    boundary = boundary[1:boundary.length() - 1].to_owned()
+  }
+  if boundary.is_empty() {
+    return None
+  }
+  let delimiter = "--" + boundary
+  // First part starts after the first delimiter line.
+  let p0 = match bytes_find(body, delimiter, 0) {
+    Some(p) => p
+    None => return None
+  }
+  let headers_start = p0 + delimiter.length() + 2 // skip "\r\n"
+  let hdr_end = match bytes_find(body, "\r\n\r\n", headers_start) {
+    Some(p) => p
+    None => return None
+  }
+  // Extract filename from the part headers.
+  let headers = @utf8.decode(body[headers_start:hdr_end].to_bytes()) catch {
+    _ => return None
+  }
+  let filename = extract_multipart_filename(headers)
+  if filename.is_empty() {
+    return None
+  }
+  let content_start = hdr_end + 4
+  let closing = "\r\n" + delimiter
+  let content_end = match bytes_find(body, closing, content_start) {
+    Some(p) => p
+    None => return None
+  }
+  if content_end < content_start {
+    return None
+  }
+  let content = Bytes::makei(content_end - content_start, fn(i) {
+    body[content_start + i]
+  })
+  Some((filename, content))
+}
+
+///|
+/// Extract filename from Content-Type/Content-Disposition header.
+fn extract_multipart_filename(content_type : String) -> String {
+  // Simple extraction: look for filename="..." in the header.
+  let marker = "filename=\""
+  let start = content_type.find(marker)
+  match start {
+    Some(s) => {
+      let after = s + marker.length()
+      let end = content_type[after:].to_owned().find("\"")
+      match end {
+        Some(e) => content_type[after:after + e].to_owned()
+        None => ""
+      }
+    }
+    None => ""
+  }
+}
+
+// ── Session pinned state (file-backed) ──────────────────
+
+///|
+/// Load the pinned state map for all sessions.
+fn load_pinned_map() -> Map[String, Bool] {
+  match extra_path("session_pinned.json") {
+    Some(p) => {
+      let content = @fs.read_file_to_string(p) catch { _ => return Map([]) }
+      if content.is_empty() {
+        return Map([])
+      }
+      let parsed = @json.parse(content) catch { _ => return Map([]) }
+      match parsed {
+        Object(o) => {
+          let result : Map[String, Bool] = Map([])
+          for k, v in o {
+            match v {
+              True => result[k] = true
+              False => result[k] = false
+              _ => ()
+            }
+          }
+          result
+        }
+        _ => Map([])
+      }
+    }
+    None => Map([])
+  }
+}
+
+///|
+/// Save the pinned state map.
+fn save_pinned_map(m : Map[String, Bool]) -> Result[Unit, String] {
+  let obj : Map[String, Json] = Map([])
+  for k, v in m {
+    obj[k] = v.to_json()
+  }
+  match extra_path("session_pinned.json") {
+    Some(p) => {
+      match @utils.config_dir() {
+        Some(dir) => @utils.ensure_dir(dir)
+        None => ()
+      }
+      @fs.write_string_to_file(p, Json::object(obj).stringify()) catch {
+        e => return Err(@debug.to_string(e))
+      }
+      Ok(())
+    }
+    None => Err("Config directory unavailable")
+  }
+}
+
+// ── Settings alias (/api/config/settings) ─────────────────
+
+///|
+/// GET /api/config/settings — settings with contract defaults overlaid.
+/// Returns the same shape as the PATCH response ({ok, settings}), with the
+/// original contract fields (enable_compression, enable_prompt_caching,
+/// memory_update_enabled, proxy_url) defaulted when absent from storage.
+fn handle_config_settings_get(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  match extra_path("settings.json") {
+    Some(p) => {
+      // Contract field defaults (aligned with @config.AgentConfig defaults).
+      let defaults = Json::object({
+        "enable_compression": true.to_json(),
+        "enable_prompt_caching": true.to_json(),
+        "memory_update_enabled": false.to_json(),
+        "proxy_url": "".to_json(),
+      })
+      let mut stored : Json = Json::object({})
+      let arr = load_array(p)
+      for e in arr {
+        match e {
+          Object(_) => stored = e
+          _ => ()
+        }
+      }
+      let merged = merge_objects(defaults, stored)
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json(), "settings": merged }),
+      )
+    }
+    None => err_no_config()
+  }
+}
+
+///|
+/// PATCH /api/config/settings — merge partial settings (PATCH semantics).
+/// Same as PUT but semantically partial update.
+fn handle_config_settings_patch(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let body : Json = event.req.body() catch { _ => return bad_json() }
+  match body {
+    Object(_) => ()
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "settings object required".to_json() }),
+      )
+  }
+  match extra_path("settings.json") {
+    Some(p) => {
+      // Load existing settings.
+      let mut existing : Json = Json::object({})
+      let arr = load_array(p)
+      for e in arr {
+        match e {
+          Object(_) => existing = e
+          _ => ()
+        }
+      }
+      // Deep merge: body overrides existing.
+      let merged = merge_objects(existing, body)
+      match save_array(p, [merged]) {
+        Ok(_) =>
+          @core.HttpResponse::ok().json_value(
+            Json::object({ "ok": true.to_json(), "settings": merged }),
+          )
+        Err(e) => err_msg(e)
+      }
+    }
+    None => err_no_config()
+  }
+}
+
+// ── Telemetry (noop) ──────────────────────────────────
+
+///|
+/// POST /api/telemetry — accept and discard telemetry events (204 No Content).
+fn handle_telemetry_noop(
+  _server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  @core.HttpResponse::no_content()
 }
