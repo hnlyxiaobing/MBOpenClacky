@@ -95,7 +95,7 @@ fn handle_session_fork(
 /// crescent supports PATCH (route is registered with s.patch).
 /// Expected body: {"name": "New Session Name"}
 fn handle_session_rename(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
@@ -148,6 +148,8 @@ fn handle_session_rename(
         last_error: data.last_error,
         forked_from: data.forked_from,
         chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: data.sub_model,
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -155,6 +157,12 @@ fn handle_session_rename(
             Json::object({ "error": "Failed to save session".to_json() }),
           )
       }
+      // Broadcast session_renamed via WS so the sidebar updates in real time.
+      let hub = server_ref.val.hub
+      hub.broadcast_session(
+        id,
+        @protocol.build_session_renamed_event(id, new_name),
+      )
       @core.HttpResponse::ok().json_value(
         Json::object({
           "session_id": id.to_json(),
@@ -255,6 +263,8 @@ fn handle_update_working_dir(
         last_error: data.last_error,
         forked_from: data.forked_from,
         chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: data.sub_model,
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -567,6 +577,8 @@ fn handle_session_patch(
         last_error: data.last_error,
         forked_from: data.forked_from,
         chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: data.sub_model,
       }
       if changed {
         @agent.save_session(updated) catch {
@@ -577,6 +589,13 @@ fn handle_session_patch(
         }
         // Broadcast session_updated via hub.
         let hub = server_ref.val.hub
+        // Broadcast session_renamed via WS when the name changed.
+        if new_name != data.name {
+          hub.broadcast_session(
+            id,
+            @protocol.build_session_renamed_event(id, new_name),
+          )
+        }
         let model_field : Json = match updated.model_name {
           Some(m) => m.to_json()
           None => Json::null()
@@ -693,4 +712,329 @@ fn handle_session_files(
       "count": entries.length().to_json(),
     }),
   )
+}
+
+// ── Model / SubModel / ReasoningEffort PATCH endpoints (web-replication-05) ──
+
+///|
+/// PATCH /api/sessions/:id/model — Switch the session's primary model.
+/// Body: {"model_id": "..."}
+/// Looks up the model config by id/runtime_id, updates session data,
+/// swaps the active agent's client if running, and broadcasts session_updated.
+fn handle_session_model_patch(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let model_id = match j {
+    Object(o) =>
+      match o.get("model_id") {
+        Some(String(s)) => s
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing field: model_id".to_json() }),
+          )
+      }
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  // Look up model config by id or runtime_id.
+  let cfg = server_ref.val.config
+  let mut found : @config.ModelConfig? = None
+  for m in cfg.models {
+    if m.id == model_id || m.runtime_id == model_id {
+      found = Some(m)
+      break
+    }
+  }
+  let mc = match found {
+    Some(m) => m
+    None =>
+      return @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Model not found: \{model_id}".to_json() }),
+      )
+  }
+  match @agent.load_session(id) {
+    Some(data) => {
+      let updated = @agent.SessionData::{
+        session_id: data.session_id,
+        name: data.name,
+        messages: data.messages,
+        stats: data.stats,
+        working_dir: data.working_dir,
+        created_at: data.created_at,
+        source: data.source,
+        reasoning_effort: data.reasoning_effort,
+        model_name: Some(mc.model),
+        channel_info: data.channel_info,
+        latest_latency_ms: data.latest_latency_ms,
+        latest_ttft_ms: data.latest_ttft_ms,
+        time_machine: data.time_machine,
+        pending_error_rollback: data.pending_error_rollback,
+        model_base_url: mc.base_url,
+        last_status: data.last_status,
+        last_error: data.last_error,
+        forked_from: data.forked_from,
+        chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: data.sub_model,
+      }
+      @agent.save_session(updated) catch {
+        _ =>
+          return @core.HttpResponse::internal_server_error().json_value(
+            Json::object({ "error": "Failed to save session".to_json() }),
+          )
+      }
+      // Swap active agent's client if present.
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) => {
+          let api_type = if mc.anthropic_format {
+            @config.AnthropicMessages
+          } else {
+            @config.Providers::api_type_for(mc.base_url)
+          }
+          agent.client = @client.Client::new(
+            mc.api_key,
+            mc.base_url,
+            mc.model,
+            api_type,
+          )
+        }
+        None => ()
+      }
+      // Broadcast session_updated.
+      let hub = server_ref.val.hub
+      hub.broadcast_session_json(
+        id,
+        "session_updated",
+        Json::object({ "session_id": id.to_json(), "model": mc.model.to_json() }),
+      )
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "session_id": id.to_json(),
+          "model": mc.model.to_json(),
+          "model_id": mc.id.to_json(),
+        }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
+  }
+}
+
+///|
+/// PATCH /api/sessions/:id/submodel — Set the session's sub-model.
+/// Body: {"model_name": "..."}
+fn handle_session_submodel_patch(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let model_name : String? = match j {
+    Object(o) =>
+      match o.get("model_name") {
+        Some(String(s)) => Some(s)
+        Some(Null) => None
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "Missing field: model_name".to_json() }),
+          )
+      }
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  match @agent.load_session(id) {
+    Some(data) => {
+      let updated = @agent.SessionData::{
+        session_id: data.session_id,
+        name: data.name,
+        messages: data.messages,
+        stats: data.stats,
+        working_dir: data.working_dir,
+        created_at: data.created_at,
+        source: data.source,
+        reasoning_effort: data.reasoning_effort,
+        model_name: data.model_name,
+        channel_info: data.channel_info,
+        latest_latency_ms: data.latest_latency_ms,
+        latest_ttft_ms: data.latest_ttft_ms,
+        time_machine: data.time_machine,
+        pending_error_rollback: data.pending_error_rollback,
+        model_base_url: data.model_base_url,
+        last_status: data.last_status,
+        last_error: data.last_error,
+        forked_from: data.forked_from,
+        chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: model_name,
+      }
+      @agent.save_session(updated) catch {
+        _ =>
+          return @core.HttpResponse::internal_server_error().json_value(
+            Json::object({ "error": "Failed to save session".to_json() }),
+          )
+      }
+      // Broadcast session_updated.
+      let hub = server_ref.val.hub
+      let sub_json : Json = match model_name {
+        Some(s) => s.to_json()
+        None => Json::null()
+      }
+      hub.broadcast_session_json(
+        id,
+        "session_updated",
+        Json::object({ "session_id": id.to_json(), "sub_model": sub_json }),
+      )
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "session_id": id.to_json(), "sub_model": sub_json }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
+  }
+}
+
+///|
+/// PATCH /api/sessions/:id/reasoning_effort — Set reasoning effort level.
+/// Body: {"reasoning_effort": "low|medium|high|off"}
+fn handle_session_reasoning_effort_patch(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let id = match event.param("id") {
+    Some(p) => p.to_owned()
+    None =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Missing parameter: id".to_json() }),
+      )
+  }
+  let j : Json = event.req.body() catch {
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  let effort : String? = match j {
+    Object(o) =>
+      match o.get("reasoning_effort") {
+        Some(String(s)) => Some(s)
+        Some(Null) => None
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({
+              "error": "Missing field: reasoning_effort".to_json(),
+            }),
+          )
+      }
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "Invalid JSON body".to_json() }),
+      )
+  }
+  match @agent.load_session(id) {
+    Some(data) => {
+      // Normalize: "off"/"none"/"" → None
+      let normalized : String? = match effort {
+        Some(v) => {
+          let lower = v.to_lower()
+          if lower == "off" || lower == "none" || lower.is_empty() {
+            None
+          } else {
+            Some(lower)
+          }
+        }
+        None => None
+      }
+      let updated = @agent.SessionData::{
+        session_id: data.session_id,
+        name: data.name,
+        messages: data.messages,
+        stats: data.stats,
+        working_dir: data.working_dir,
+        created_at: data.created_at,
+        source: data.source,
+        reasoning_effort: normalized,
+        model_name: data.model_name,
+        channel_info: data.channel_info,
+        latest_latency_ms: data.latest_latency_ms,
+        latest_ttft_ms: data.latest_ttft_ms,
+        time_machine: data.time_machine,
+        pending_error_rollback: data.pending_error_rollback,
+        model_base_url: data.model_base_url,
+        last_status: data.last_status,
+        last_error: data.last_error,
+        forked_from: data.forked_from,
+        chunk_count: data.chunk_count,
+        agent_profile: data.agent_profile,
+        sub_model: data.sub_model,
+      }
+      @agent.save_session(updated) catch {
+        _ =>
+          return @core.HttpResponse::internal_server_error().json_value(
+            Json::object({ "error": "Failed to save session".to_json() }),
+          )
+      }
+      // Update active agent's reasoning_effort if present.
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) => agent.set_reasoning_effort(normalized)
+        None => ()
+      }
+      // Broadcast session_updated.
+      let hub = server_ref.val.hub
+      let eff_json : Json = match normalized {
+        Some(e) => e.to_json()
+        None => Json::null()
+      }
+      hub.broadcast_session_json(
+        id,
+        "session_updated",
+        Json::object({
+          "session_id": id.to_json(),
+          "reasoning_effort": eff_json,
+        }),
+      )
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "session_id": id.to_json(),
+          "reasoning_effort": eff_json,
+        }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
+  }
 }

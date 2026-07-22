@@ -5,7 +5,7 @@
 ///|
 /// GET /api/sessions
 fn handle_list_sessions(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   // Parse query parameters
@@ -19,6 +19,11 @@ fn handle_list_sessions(
   let exclude_type = event.req.get_query("exclude_type")
   // Fetch all sessions and map to summaries
   let all_sessions = @agent.list_sessions()
+  let pinned_map = load_pinned_map()
+  // Build sub_model_options from configured models.
+  let model_options : Array[String] = server_ref.val.config.models.map(m => {
+    m.model
+  })
   let summaries : Array[SessionSummary] = []
   for sd in all_sessions {
     // Apply text search filter (name contains q)
@@ -54,6 +59,11 @@ fn handle_list_sessions(
       model: sd.model_name,
       source: sd.source,
       latest_latency_ms: sd.latest_latency_ms,
+      pinned: pinned_map.get(sd.session_id).unwrap_or(false),
+      agent_profile: sd.agent_profile,
+      sub_model: sd.sub_model,
+      sub_model_options: model_options,
+      reasoning_effort: sd.reasoning_effort,
     })
   }
   let total = summaries.length()
@@ -68,19 +78,9 @@ fn handle_list_sessions(
   // per schedule, so latest_cron_updated_at stays None).
   ensure_schedules_loaded()
   let cron_count = schedule_state.val.scheduler.list_schedules().length()
-  // Merge the persisted pinned state into each summary (SessionSummary has
-  // no pinned field; pinned lives in a separate file-backed map).
-  let pinned_map = load_pinned_map()
   let paged_json : Array[Json] = []
   for s in paged {
-    let is_pinned = pinned_map.get(s.id).unwrap_or(false)
-    match s.to_json() {
-      Object(o) => {
-        o["pinned"] = is_pinned.to_json()
-        paged_json.push(Json::object(o))
-      }
-      other => paged_json.push(other)
-    }
+    paged_json.push(s.to_json())
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
@@ -108,6 +108,15 @@ fn handle_create_session(
         _ => "Web Session"
       }
     _ => "Web Session"
+  }
+  // Parse agent_profile from request (web-replication-05).
+  let agent_profile : String = match j {
+    Object(obj) =>
+      match obj.get("agent_profile") {
+        Some(String(s)) if !s.is_empty() => s
+        _ => "general"
+      }
+    _ => "general"
   }
   let session_id = @agent.generate_session_id()
   let model_config = match server_ref.val.config.current_model() {
@@ -137,7 +146,14 @@ fn handle_create_session(
   )
   server_ref.val.active_agents[session_id] = agent
   let data = agent.to_session_data()
-  @core.HttpResponse::created().json_value(data.to_json())
+  // Include agent_profile in the response (web-replication-05).
+  match data.to_json() {
+    Object(o) => {
+      o["agent_profile"] = agent_profile.to_json()
+      @core.HttpResponse::created().json_value(Json::object(o))
+    }
+    other => @core.HttpResponse::created().json_value(other)
+  }
 }
 
 ///|
@@ -186,6 +202,9 @@ fn handle_delete_session(
   }
   @agent.delete_session(id)
   let _ = server_ref.val.active_agents.remove(id)
+  // Broadcast session_deleted via WS so the sidebar updates in real time.
+  let hub = server_ref.val.hub
+  hub.broadcast_session(id, @protocol.build_session_deleted_event(id))
   @core.HttpResponse::no_content()
 }
 
@@ -207,7 +226,14 @@ fn handle_restore_session(
     Some(data) => {
       let agent = server_ref.val.get_or_create_agent(id)
       agent.restore_from_session(data)
-      @core.HttpResponse::ok().json_value(agent.to_session_data().to_json())
+      let session_data = agent.to_session_data()
+      // Broadcast session_restored via WS so the sidebar updates in real time.
+      let hub = server_ref.val.hub
+      hub.broadcast_session(
+        id,
+        @protocol.build_session_restored_event(id, session_data.to_json()),
+      )
+      @core.HttpResponse::ok().json_value(session_data.to_json())
     }
     None =>
       @core.HttpResponse::not_found().json_value(

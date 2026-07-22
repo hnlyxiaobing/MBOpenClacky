@@ -53,6 +53,14 @@ pub(all) enum HookEvent {
   SubagentEnded(String)
   /// Retry attempt (attempt_number, reason).
   RetryAttempt(Int, String)
+  /// Tool stdout output (lines as a single string, newline-separated).
+  ToolStdout(String)
+  /// Informational message (message text).
+  InfoMessage(String)
+  /// Success message (message text).
+  SuccessMessage(String)
+  /// Request user feedback (question, context, options).
+  FeedbackRequested(String, String?, Array[String]?)
 }
 
 ///|

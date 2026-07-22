@@ -359,6 +359,22 @@ fn dispatch_hook_event(
       }
       ignore(s.progress_stack.push("Retry #\{n}: \{reason}"))
     }
+    ToolStdout(text) => {
+      // Tool stdout output - append to output buffer
+      append_tool_stdout(output, theme, text)
+    }
+    InfoMessage(msg) => {
+      // Informational message - append to output buffer
+      append_info_message(output, theme, msg)
+    }
+    SuccessMessage(msg) => {
+      // Success message - append to output buffer
+      append_success_message(output, theme, msg)
+    }
+    FeedbackRequested(question, _context, _options) => {
+      // Feedback requested - append to output buffer
+      append_feedback_requested(output, theme, question)
+    }
   }
 }
 
@@ -590,6 +606,70 @@ fn append_run_summary(
       let now_ms = @env.now().reinterpret_as_int64()
       let duration_sec = ((now_ms - s.run_start_ts) / 1000L).to_int()
       let entry = "\{theme.dim_color}[Summary] \{result.iterations} iterations | $\{cost_str} | \{duration_sec}s\u001b[0m"
+      ignore(buf.append_text(entry, OutputKind::System))
+    }
+    None => ()
+  }
+}
+
+///|
+/// Append a tool stdout entry.
+fn append_tool_stdout(
+  output : OutputBuffer?,
+  theme : Theme,
+  text : String,
+) -> Unit {
+  match output {
+    Some(buf) => {
+      let entry = "\{theme.dim_color}\{text}\u001b[0m"
+      ignore(buf.append_text(entry, OutputKind::System))
+    }
+    None => ()
+  }
+}
+
+///|
+/// Append an informational message.
+fn append_info_message(
+  output : OutputBuffer?,
+  theme : Theme,
+  msg : String,
+) -> Unit {
+  match output {
+    Some(buf) => {
+      let entry = "\{theme.dim_color}[Info] \{msg}\u001b[0m"
+      ignore(buf.append_text(entry, OutputKind::System))
+    }
+    None => ()
+  }
+}
+
+///|
+/// Append a success message.
+fn append_success_message(
+  output : OutputBuffer?,
+  theme : Theme,
+  msg : String,
+) -> Unit {
+  match output {
+    Some(buf) => {
+      let entry = "\{theme.tool_denied_symbol} \{msg}"
+      ignore(buf.append_text(entry, OutputKind::System))
+    }
+    None => ()
+  }
+}
+
+///|
+/// Append a feedback requested entry.
+fn append_feedback_requested(
+  output : OutputBuffer?,
+  theme : Theme,
+  question : String,
+) -> Unit {
+  match output {
+    Some(buf) => {
+      let entry = "\{theme.dim_color}[?] \{question}\u001b[0m"
       ignore(buf.append_text(entry, OutputKind::System))
     }
     None => ()

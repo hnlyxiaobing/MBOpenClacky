@@ -208,7 +208,7 @@ test "handler: mcp list servers returns 200" {
 test "handler: mcp register server requires body" {
   let registry = @mcp.McpRegistry::new()
   let req = @web.HttpRequest::new(@web.POST, "/api/mcp/servers")
-  let resp = @web.handle_mcp_register_server(registry, req)
+  let resp = @web.handle_mcp_add_server(registry, req)
   assert_eq(resp.status, 400)
 }
 
@@ -220,7 +220,7 @@ test "handler: mcp register server with body returns 201" {
     "/api/mcp/servers",
     body="{\"name\":\"test\",\"command\":\"echo\"}",
   )
-  let resp = @web.handle_mcp_register_server(registry, req)
+  let resp = @web.handle_mcp_add_server(registry, req)
   assert_eq(resp.status, 201)
 }
 

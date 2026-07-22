@@ -84,9 +84,85 @@ fn find_query_param(url : String, key : String) -> String? {
 }
 
 // ── MCP Bridges ───────────────────────────────────────────────────
-// NOTE: /api/mcp/servers* bridge routes removed (web-parity-05).
 
 ///|
+fn handle_mcp_list_servers_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_mcp_list_servers(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_add_server_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_mcp_add_server(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_probe_server_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_mcp_probe_server(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_toggle_server_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_mcp_toggle_server(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_update_server_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_mcp_update_server(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_remove_server_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(handle_mcp_remove_server(server_ref.val.mcp_registry, req))
+}
+
+///|
+fn handle_mcp_list_server_tools_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(
+    handle_mcp_list_server_tools(server_ref.val.mcp_registry, req),
+  )
+}
+
+///|
+fn handle_mcp_call_server_tool_bridge(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_name_param(event))
+  response_to_core(
+    handle_mcp_call_server_tool(server_ref.val.mcp_registry, req),
+  )
+}
+
+///|
+/// (legacy) GET /api/mcp/tools — List all MCP tools across all servers.
 fn handle_mcp_list_tools_bridge(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
@@ -96,6 +172,7 @@ fn handle_mcp_list_tools_bridge(
 }
 
 ///|
+/// (legacy) POST /api/mcp/tools/:name/execute — Execute an MCP tool by name.
 fn handle_mcp_execute_tool_bridge(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
@@ -682,4 +759,52 @@ fn handle_trash_sessions_delete_bridge(
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
   response_to_core(handle_trash_delete(req))
+}
+
+
+///|
+/// Extract chat_id param from crescent event.
+fn extract_chat_id_param(event : @crescent.Event) -> Array[(String, String)] {
+  match event.param("chat_id") {
+    Some(v) => [("chat_id", v.to_owned())]
+    None => []
+  }
+}
+
+///|
+fn handle_channels_send_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_channels_send(req))
+}
+
+///|
+fn handle_channels_group_history_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_chat_id_param(event))
+  response_to_core(handle_channels_group_history(req))
+}
+
+///|
+fn handle_channels_users_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_channels_users(req))
+}
+
+///|
+/// PATCH /api/channels/:id/enabled - Toggle channel enabled state.
+/// The :id param accepts either a channel ID or a platform name.
+fn handle_channels_toggle_enabled_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, extract_id_param(event))
+  response_to_core(handle_channels_update(req))
 }

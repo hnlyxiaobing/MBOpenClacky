@@ -182,30 +182,108 @@ test "http_request: get_header case insensitive" {
 ///|
 test "handler: mcp list servers returns 200" {
   let registry = @mcp.McpRegistry::new()
-  let req = HttpRequest::new(GET, "/api/mcp/servers")
+  let req = HttpRequest::new(GET, "/api/mcp")
   let resp = handle_mcp_list_servers(registry, req)
   @debug.assert_eq(resp.status, 200)
   assert_true(resp.body.contains("servers"))
 }
 
 ///|
-test "handler: mcp register server requires body" {
+test "handler: mcp add server requires body" {
   let registry = @mcp.McpRegistry::new()
-  let req = HttpRequest::new(POST, "/api/mcp/servers")
-  let resp = handle_mcp_register_server(registry, req)
+  let req = HttpRequest::new(POST, "/api/mcp")
+  let resp = handle_mcp_add_server(registry, req)
   @debug.assert_eq(resp.status, 400)
 }
 
 ///|
-test "handler: mcp register server with body returns 201" {
+test "handler: mcp add server with body returns 201" {
   let registry = @mcp.McpRegistry::new()
   let req = HttpRequest::new(
     POST,
-    "/api/mcp/servers",
+    "/api/mcp",
     body="{\"name\":\"test\",\"command\":\"echo hi\"}",
   )
-  let resp = handle_mcp_register_server(registry, req)
+  let resp = handle_mcp_add_server(registry, req)
   @debug.assert_eq(resp.status, 201)
+}
+
+///|
+test "handler: mcp remove server by name returns ok" {
+  let registry = @mcp.McpRegistry::new()
+  let spec = @mcp.McpServerSpec::stdio("test_svr", "echo")
+  registry.add_server("test_svr", spec)
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/mcp/test_svr",
+    params: [("name", "test_svr")],
+    body: "",
+    headers: [],
+  }
+  let resp = handle_mcp_remove_server(registry, req)
+  @debug.assert_eq(resp.status, 200)
+  assert_true(resp.body.contains("ok"))
+}
+
+///|
+test "handler: mcp toggle server enabled" {
+  let registry = @mcp.McpRegistry::new()
+  let spec = @mcp.McpServerSpec::stdio("test_svr", "echo")
+  registry.add_server("test_svr", spec)
+  let req : HttpRequest = {
+    http_method: PUT,
+    path: "/api/mcp/test_svr/enabled",
+    params: [("name", "test_svr")],
+    body: "{\"enabled\":false}",
+    headers: [],
+  }
+  let resp = handle_mcp_toggle_server(registry, req)
+  @debug.assert_eq(resp.status, 200)
+  assert_true(resp.body.contains("ok"))
+  // Verify disabled state persisted
+  assert_false(registry.is_enabled("test_svr"))
+}
+
+///|
+test "handler: mcp probe server not found" {
+  let registry = @mcp.McpRegistry::new()
+  let req : HttpRequest = {
+    http_method: POST,
+    path: "/api/mcp/nonexistent/probe",
+    params: [("name", "nonexistent")],
+    body: "",
+    headers: [],
+  }
+  let resp = handle_mcp_probe_server(registry, req)
+  @debug.assert_eq(resp.status, 404)
+}
+
+///|
+test "handler: mcp list server tools not found" {
+  let registry = @mcp.McpRegistry::new()
+  let req : HttpRequest = {
+    http_method: GET,
+    path: "/api/mcp/nonexistent/tools",
+    params: [("name", "nonexistent")],
+    body: "",
+    headers: [],
+  }
+  let resp = handle_mcp_list_server_tools(registry, req)
+  @debug.assert_eq(resp.status, 404)
+}
+
+///|
+test "handler: mcp call tool not found" {
+  let registry = @mcp.McpRegistry::new()
+  let req : HttpRequest = {
+    http_method: POST,
+    path: "/api/mcp/nonexistent/call",
+    params: [("name", "nonexistent")],
+    body: "{\"tool_name\":\"echo\",\"arguments\":{}}",
+    headers: [],
+  }
+  let resp = handle_mcp_call_server_tool(registry, req)
+  @debug.assert_eq(resp.status, 404)
 }
 
 ///|

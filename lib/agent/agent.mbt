@@ -57,6 +57,11 @@ pub(all) struct Agent {
   /// Set by TUI controller for interactive mode.
   mut confirmation_request : @aqueue.Queue[(String, String)]?
   mut confirmation_response : @aqueue.Queue[Bool]?
+  // ── Feedback ─────────────────────────────────────────────────────
+  /// Async feedback: agent pushes (question, context, options) and awaits response.
+  /// Set by WS controller for interactive mode; None = headless (feedback denied).
+  mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?)]?
+  mut feedback_response : @aqueue.Queue[String]?
   // ── Test Support ─────────────────────────────────────────────────
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
@@ -129,6 +134,9 @@ pub fn Agent::new(
     confirmation_callback: None,
     confirmation_request: None,
     confirmation_response: None,
+    // Feedback (headless by default)
+    feedback_request: None,
+    feedback_response: None,
     // Test support
     mock_responses: [],
   }

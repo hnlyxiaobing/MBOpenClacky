@@ -10,6 +10,7 @@ pub(all) struct McpRegistry {
   mut clients : Map[String, McpClient]
   config_path : String?
   mut specs : Map[String, McpServerSpec]
+  mut enabled : Map[String, Bool]
   idle_timeout : Int // 300 seconds
 }
 
@@ -20,6 +21,7 @@ pub fn McpRegistry::new() -> McpRegistry {
     clients: {},
     config_path: None,
     specs: {},
+    enabled: {},
     idle_timeout: DEFAULT_IDLE_TIMEOUT,
   }
 }
@@ -33,10 +35,13 @@ pub fn McpRegistry::load_from_file(path : String) -> McpRegistry {
   // 2. Parse JSON
   // 3. Extract mcpServers section
   // For now, return an empty registry with the path stored
+  let specs : Map[String, McpServerSpec] = {}
+  let enabled : Map[String, Bool] = {}
   {
     clients: {},
     config_path: Some(path),
-    specs: {},
+    specs,
+    enabled,
     idle_timeout: DEFAULT_IDLE_TIMEOUT,
   }
 }
@@ -47,10 +52,13 @@ pub fn McpRegistry::load_from_json(
   json_str : String,
 ) -> McpRegistry raise McpError {
   let specs = parse_mcp_config(json_str)
+  let enabled : Map[String, Bool] = {}
+  specs.each(fn(name, _spec) { enabled[name] = true })
   let registry : McpRegistry = {
     clients: {},
     config_path: None,
     specs,
+    enabled,
     idle_timeout: DEFAULT_IDLE_TIMEOUT,
   }
   registry
@@ -72,6 +80,7 @@ pub fn McpRegistry::add_server(
   spec : McpServerSpec,
 ) -> Unit {
   self.specs[name] = spec
+  self.enabled[name] = true
 }
 
 ///|
@@ -84,6 +93,34 @@ pub fn McpRegistry::remove_server(self : McpRegistry, name : String) -> Unit {
   }
   self.clients.remove(name) |> ignore
   self.specs.remove(name) |> ignore
+  self.enabled.remove(name) |> ignore
+}
+
+///|
+/// Check whether a server is enabled.
+pub fn McpRegistry::is_enabled(self : McpRegistry, name : String) -> Bool {
+  match self.enabled.get(name) {
+    Some(v) => v
+    None => true // default: enabled
+  }
+}
+
+///|
+/// Set a server's enabled state.
+pub fn McpRegistry::set_enabled(
+  self : McpRegistry,
+  name : String,
+  enabled : Bool,
+) -> Unit {
+  self.enabled[name] = enabled
+  // When disabling, disconnect active client
+  if not(enabled) {
+    match self.clients.get(name) {
+      Some(client) => client.disconnect()
+      None => ()
+    }
+    self.clients.remove(name) |> ignore
+  }
 }
 
 ///|
@@ -144,6 +181,7 @@ pub fn McpRegistry::reload(self : McpRegistry) -> Unit raise McpError {
       // Reload from file
       let new_reg = McpRegistry::load_from_file(path)
       self.specs = new_reg.specs
+      self.enabled = new_reg.enabled
       self.clients = {}
     }
     None => raise McpError("No config path set for reload")

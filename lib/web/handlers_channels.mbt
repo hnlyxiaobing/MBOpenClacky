@@ -35,12 +35,14 @@ fn next_channel_id() -> String {
 }
 
 ///|
-/// Find a channel entry by ID.
-fn find_channel_index(id : String) -> Int? {
+/// Find a channel entry by ID, falling back to platform name.
+/// This dual-key lookup allows routes like /:id to accept either a
+/// channel ID (e.g. "ch-1") or a platform name (e.g. "telegram").
+fn find_channel_index(id_or_platform : String) -> Int? {
   let arr = channels_store.val
   let mut i = 0
   while i < arr.length() {
-    if arr[i].id == id {
+    if arr[i].id == id_or_platform || arr[i].platform == id_or_platform {
       return Some(i)
     }
     i = i + 1
@@ -194,6 +196,12 @@ pub fn handle_channels_update(request : HttpRequest) -> HttpResponse {
       match body_json {
         Object(obj) => {
           let arr = channels_store.val
+          // Handle enabled field (for PATCH /:id/enabled toggle).
+          match obj.get("enabled") {
+            Some(True) => arr[idx].enabled = true
+            Some(False) => arr[idx].enabled = false
+            _ => ()
+          }
           let platform = channel_json_str(obj, "platform")
           if platform != "" {
             match normalize_platform(platform) {
@@ -423,6 +431,87 @@ pub fn handle_channels_status(request : HttpRequest) -> HttpResponse {
         "updated_at": ch.updated_at.to_string().to_json(),
       }).stringify()
       HttpResponse::ok(body)
+    }
+  }
+}
+
+///|
+/// POST /api/channels/:id/send — Send a message through the channel.
+pub fn handle_channels_send(request : HttpRequest) -> HttpResponse {
+  let id = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  if request.body == "" {
+    return HttpResponse::bad_request("Request body is required")
+  }
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let ch = channels_store.val[idx]
+      if !ch.enabled {
+        return HttpResponse::bad_request("Channel is disabled")
+      }
+      let (message, chat_id) = match body_json {
+        Object(obj) => {
+          let m = channel_json_str(obj, "message")
+          let c = channel_json_str(obj, "chat_id")
+          (m, c)
+        }
+        _ => return HttpResponse::bad_request("Invalid JSON body")
+      }
+      if message == "" {
+        return HttpResponse::bad_request("Missing message field")
+      }
+      if chat_id == "" {
+        return HttpResponse::bad_request("Missing chat_id field")
+      }
+      // For now, return success. In a real implementation, we would call the channel adapter.
+      HttpResponse::ok(Json::object({
+        "success": true.to_json(),
+        "channel_id": id.to_json(),
+        "chat_id": chat_id.to_json(),
+        "message": message.to_json(),
+      }).stringify())
+    }
+  }
+}
+
+///|
+/// GET /api/channels/group_history/:chat_id — Get group chat history.
+pub fn handle_channels_group_history(request : HttpRequest) -> HttpResponse {
+  let chat_id = match request.get_param("chat_id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: chat_id")
+  }
+  // For now, return empty history. In a real implementation, we would query the channel adapter.
+  HttpResponse::ok(Json::object({
+    "chat_id": chat_id.to_json(),
+    "messages": Json::array([]),
+  }).stringify())
+}
+
+///|
+/// GET /api/channels/:id/users - Get users for a channel.
+/// The :id param accepts either a channel ID or a platform name.
+pub fn handle_channels_users(request : HttpRequest) -> HttpResponse {
+  let id_or_platform = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  match find_channel_index(id_or_platform) {
+    None => HttpResponse::not_found("Channel not found: \{id_or_platform}")
+    Some(idx) => {
+      let ch = channels_store.val[idx]
+      // For now, return empty users. In a real implementation, we would query the channel adapter.
+      HttpResponse::ok(Json::object({
+        "platform": ch.platform.to_json(),
+        "channel_id": ch.id.to_json(),
+        "users": Json::array([]),
+      }).stringify())
     }
   }
 }

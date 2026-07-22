@@ -92,6 +92,8 @@ test "SessionData with new fields serialization" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let json = data.to_json()
   let parsed : SessionData = @json.from_json(json)
@@ -168,6 +170,8 @@ test "restore_session_enhanced basic" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.session_id, "s_basic")
@@ -216,6 +220,8 @@ test "restore_session_enhanced with channel_info" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.channel_info.unwrap().platform, "discord")
@@ -256,6 +262,8 @@ test "restore_session_enhanced error rollback detection" {
     last_error: "Connection timeout",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.needs_error_rollback, true)

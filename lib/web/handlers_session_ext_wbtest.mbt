@@ -86,6 +86,8 @@ fn wd_make_session(id : String, wd : String) -> @agent.SessionData {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
 }
 

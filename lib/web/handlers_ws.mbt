@@ -33,6 +33,10 @@ priv struct WsSessionState {
   /// `confirmation` upstream message resolves the queue; the confirmation
   /// bridge task awaits it with a timeout.
   pending_confirmations : Map[String, @async.Queue[Bool]]
+  /// Pending feedback replies, keyed by request_id. The WS `feedback`
+  /// upstream message resolves the queue; the feedback bridge task awaits
+  /// it with a timeout.
+  pending_feedback : Map[String, @async.Queue[String]]
 }
 
 ///|
@@ -65,6 +69,7 @@ fn get_ws_state(session_id : String) -> WsSessionState {
         chunk_buf: "",
         confirm_seq: 0,
         pending_confirmations: Map([]),
+        pending_feedback: Map([]),
       }
       ws_states[session_id] = s
       s
@@ -128,6 +133,8 @@ fn handle_ws_global(
               handle_ws_edit_message(server_ref, peer, conn_id, hub, obj)
             Some(@protocol.Confirmation) =>
               handle_ws_confirmation(server_ref, peer, obj)
+            Some(@protocol.Feedback) =>
+              handle_ws_feedback(server_ref, peer, obj)
             Some(@protocol.RunTask) =>
               handle_ws_run_task(server_ref, peer, conn_id, hub, obj)
             None =>
@@ -214,10 +221,14 @@ fn handle_ws_list_sessions(
 /// Reuses SessionSummary so the WS payload is isomorphic to the REST
 /// GET /api/sessions response.
 fn send_session_list(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   peer : @ws.WebSocketPeer,
 ) -> Unit {
   let all_sessions = @agent.list_sessions()
+  let pinned_map = load_pinned_map()
+  let model_options : Array[String] = server_ref.val.config.models.map(m => {
+    m.model
+  })
   let summaries : Array[Json] = []
   for sd in all_sessions {
     summaries.push(
@@ -235,6 +246,11 @@ fn send_session_list(
         model: sd.model_name,
         source: sd.source,
         latest_latency_ms: sd.latest_latency_ms,
+        pinned: pinned_map.get(sd.session_id).unwrap_or(false),
+        agent_profile: sd.agent_profile,
+        sub_model: sd.sub_model,
+        sub_model_options: model_options,
+        reasoning_effort: sd.reasoning_effort,
       }.to_json(),
     )
   }
@@ -622,6 +638,151 @@ async fn run_confirmation_bridge(
 }
 
 ///|
+/// Set up the async feedback bridge for the agent (once per agent).
+/// The agent pushes (question, context, options) onto req_q and awaits a
+/// String on resp_q; the bridge task broadcasts request_feedback and waits
+/// (with timeout) for the client's feedback reply. Requires the WS task
+/// group; when unavailable (unit tests), feedback is unavailable.
+fn setup_feedback_bridge(
+  server_ref : Ref[WebServer],
+  agent : @agent.Agent,
+  session_id : String,
+) -> Unit {
+  if agent.feedback_request is Some(_) {
+    return
+  }
+  match ws_task_group.val {
+    Some(group) => {
+      let req_q : @async.Queue[(String, String?, Array[String]?)] = @async.Queue::Queue(
+        kind=Unbounded,
+      )
+      let resp_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
+      agent.feedback_request = Some(req_q)
+      agent.feedback_response = Some(resp_q)
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        run_feedback_bridge(server_ref, session_id, req_q, resp_q)
+      })
+    }
+    None => ()
+  }
+}
+
+///|
+/// Feedback bridge task: forwards agent feedback requests to WS clients
+/// and delivers their replies back to the agent. A reply that does not
+/// arrive within 300s is treated as empty (mirrors confirmation timeout).
+async fn run_feedback_bridge(
+  server_ref : Ref[WebServer],
+  session_id : String,
+  req_q : @async.Queue[(String, String?, Array[String]?)],
+  resp_q : @async.Queue[String],
+) -> Unit {
+  let hub = server_ref.val.hub
+  let state = get_ws_state(session_id)
+  while true {
+    let (question, context, options) = req_q.get()
+    state.confirm_seq = state.confirm_seq + 1
+    let request_id = session_id + "-fb-" + state.confirm_seq.to_string()
+    let reply_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
+    state.pending_feedback[request_id] = reply_q
+    let opt_json : Json = match options {
+      Some(arr) => arr.to_json()
+      None => Json::null()
+    }
+    let ctx_json : Json = match context {
+      Some(c) => c.to_json()
+      None => Json::null()
+    }
+    hub.broadcast_session(
+      session_id,
+      @protocol.build_event(
+        @protocol.event_request_feedback,
+        session_id,
+        Json::object({
+          "id": request_id.to_json(),
+          "question": question.to_json(),
+          "context": ctx_json,
+          "options": opt_json,
+        }),
+      ),
+    )
+    let answer = @async.with_timeout_opt(300_000, () => reply_q.get())
+    state.pending_feedback.remove(request_id)
+    match answer {
+      Some(text) => resp_q.put(text)
+      None => {
+        hub.broadcast_session(
+          session_id,
+          @protocol.build_error_event(
+            session_id, "feedback timed out, empty response",
+          ),
+        )
+        resp_q.put("")
+      }
+    }
+  }
+}
+
+///|
+/// Handle feedback message (client -> server).
+/// Format: {"type": "feedback", "session_id": "...", "id": "...", "content": "..."}
+/// Delivers the reply to the pending feedback queue that the feedback
+/// bridge is awaiting, then acknowledges the client.
+fn handle_ws_feedback(
+  _server_ref : Ref[WebServer],
+  peer : @ws.WebSocketPeer,
+  obj : Map[String, Json],
+) -> Unit {
+  let request_id = match obj.get("id") {
+    Some(String(rid)) => rid
+    _ => {
+      peer.text(@protocol.build_error_event("", "missing id"))
+      return
+    }
+  }
+  let content = match obj.get("content") {
+    Some(String(c)) => c
+    _ => ""
+  }
+  // Deliver the reply to the pending feedback, if any.
+  let mut delivered = false
+  match obj.get("session_id") {
+    Some(String(sid)) if !sid.is_empty() =>
+      match ws_states.get(sid) {
+        Some(state) =>
+          match state.pending_feedback.get(request_id) {
+            Some(q) => {
+              ignore(q.try_put(content) catch { _ => false })
+              delivered = true
+            }
+            None => ()
+          }
+        None => ()
+      }
+    _ =>
+      for _, state in ws_states {
+        match state.pending_feedback.get(request_id) {
+          Some(q) => {
+            ignore(q.try_put(content) catch { _ => false })
+            delivered = true
+            break
+          }
+          None => ()
+        }
+      }
+  } // Acknowledge the client.
+  peer.text(
+    @protocol.build_global_event(
+      "feedback_response",
+      Json::object({
+        "request_id": request_id.to_json(),
+        "received": delivered.to_json(),
+      }),
+    ),
+  )
+}
+
+///|
 /// Start an agent run for a session. Registers hooks/confirmation bridge,
 /// echoes the user message, clears the cancel flag, and dispatches the run
 /// to a background async task so the WS read loop returns immediately.
@@ -644,6 +805,7 @@ fn start_ws_run(
   let agent = server_ref.val.get_or_create_agent(session_id)
   register_ws_hooks(server_ref, agent, session_id)
   setup_confirmation_bridge(server_ref, agent, session_id)
+  setup_feedback_bridge(server_ref, agent, session_id)
 
   // Echo the user message back as history_user_message.
   hub.broadcast_session(
@@ -714,6 +876,9 @@ async fn run_ws_agent(
     _ => ()
   }
   @agent.enforce_session_cap()
+  // Broadcast task_finished globally so all connected clients can react
+  // (e.g. play a notification chime) - mirrors ws-dispatcher.js task_finished.
+  hub.broadcast_global(@protocol.build_task_finished_event(session_id))
 }
 
 ///|
@@ -756,4 +921,6 @@ fn run_ws_agent_blocking(
     _ => ()
   }
   @agent.enforce_session_cap()
+  // Broadcast task_finished globally (same as async path).
+  hub.broadcast_global(@protocol.build_task_finished_event(session_id))
 }

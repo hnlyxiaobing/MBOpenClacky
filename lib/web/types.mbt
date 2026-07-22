@@ -38,6 +38,12 @@ pub(all) struct SessionSummary {
   model : String?
   source : String
   latest_latency_ms : Int?
+  // Extended fields (web-replication-05)
+  pinned : Bool
+  agent_profile : String
+  sub_model : String?
+  sub_model_options : Array[String]
+  reasoning_effort : String?
 }
 
 ///|
@@ -166,6 +172,14 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     Some(v) => v.to_json()
     None => Json::null()
   }
+  let sub_model = match self.sub_model {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let reasoning_effort = match self.reasoning_effort {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
   Json::object({
     "id": self.id.to_json(),
     "name": self.name.to_json(),
@@ -180,6 +194,11 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     "model": model,
     "source": self.source.to_json(),
     "latest_latency_ms": latency,
+    "pinned": self.pinned.to_json(),
+    "agent_profile": self.agent_profile.to_json(),
+    "sub_model": sub_model,
+    "sub_model_options": self.sub_model_options.to_json(),
+    "reasoning_effort": reasoning_effort,
   })
 }
 

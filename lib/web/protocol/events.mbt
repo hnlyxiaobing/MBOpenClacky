@@ -189,6 +189,36 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
           "started_at": @agent.current_time_ms().to_string().to_json(),
         }),
       }
+    ToolStdout(lines) =>
+      {
+        event_type: "tool_stdout",
+        data: Json::object({ "lines": lines.to_json() }),
+      }
+    InfoMessage(msg) =>
+      { event_type: "info", data: Json::object({ "message": msg.to_json() }) }
+    SuccessMessage(msg) =>
+      {
+        event_type: "success",
+        data: Json::object({ "message": msg.to_json() }),
+      }
+    FeedbackRequested(question, context, options) => {
+      let opt_json : Json = match options {
+        Some(arr) => arr.to_json()
+        None => Json::null()
+      }
+      let ctx_json : Json = match context {
+        Some(c) => c.to_json()
+        None => Json::null()
+      }
+      {
+        event_type: "request_feedback",
+        data: Json::object({
+          "question": question.to_json(),
+          "context": ctx_json,
+          "options": opt_json,
+        }),
+      }
+    }
     ToolDenied(name) =>
       {
         event_type: "tool_error",

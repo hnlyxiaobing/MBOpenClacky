@@ -772,6 +772,8 @@ test "session_data_to_json_basic" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let json = data.to_json()
   let json_str = json.stringify()
@@ -814,6 +816,8 @@ test "session_data_from_json_roundtrip" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   // Direct JSON construction avoids stringify/parse roundtrip issues
   let json_obj = Json::object({
@@ -911,6 +915,8 @@ test "session_data_with_multiple_messages_json" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let json_str = data.to_json().stringify()
   let json = @json.parse(json_str)
@@ -955,6 +961,8 @@ test "format_session_summary_with_model" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_summary") is Some(_))
@@ -995,6 +1003,8 @@ test "format_session_summary_no_model" {
     last_error: "",
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_nomodel") is Some(_))

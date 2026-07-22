@@ -82,6 +82,8 @@ fn truncate_session(session : SessionData) -> Unit {
     last_error: session.last_error,
     forked_from: session.forked_from,
     chunk_count: session.chunk_count,
+    agent_profile: session.agent_profile,
+    sub_model: session.sub_model,
   }
   save_session(data) catch {
     _ => ()
@@ -169,6 +171,8 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
         last_error: "",
         forked_from: Some(src.session_id),
         chunk_count: 0,
+        agent_profile: src.agent_profile,
+        sub_model: src.sub_model,
       }
       save_session(forked) catch {
         e => return Err("Failed to save forked session: \{@debug.to_string(e)}")

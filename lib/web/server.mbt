@@ -202,6 +202,16 @@ pub fn WebServer::build_app(
       s.patch("/:id/working_dir", event => {
         handle_update_working_dir(server_ref, event)
       })
+      // PATCH model/submodel/reasoning_effort (web-replication-05)
+      s.patch("/:id/model", event => {
+        handle_session_model_patch(server_ref, event)
+      })
+      s.patch("/:id/submodel", event => {
+        handle_session_submodel_patch(server_ref, event)
+      })
+      s.patch("/:id/reasoning_effort", event => {
+        handle_session_reasoning_effort_patch(server_ref, event)
+      })
       s.get("/:id/messages", event => handle_session_messages(server_ref, event))
       // Session skills and files (web-parity-02).
       s.get("/:id/skills", event => handle_session_skills(server_ref, event))
@@ -312,11 +322,40 @@ pub fn WebServer::build_app(
     })
 
     // MCP
-    // NOTE: /api/mcp/servers* removed (web-parity-05, legacy-frontend-only).
     api.group("/mcp", (mcp : @crescent.App) => {
+      // (legacy) List all tools across all servers — must precede /:name/... to avoid route conflict
       mcp.get("/tools", event => handle_mcp_list_tools_bridge(server_ref, event))
+      // (legacy) Execute tool by name
       mcp.post("/tools/:name/execute", event => {
         handle_mcp_execute_tool_bridge(server_ref, event)
+      })
+      // List all registered servers
+      mcp.get("/", event => handle_mcp_list_servers_bridge(server_ref, event))
+      // Add new MCP server
+      mcp.post("/", event => handle_mcp_add_server_bridge(server_ref, event))
+      // Probe server connectivity
+      mcp.post("/:name/probe", event => {
+        handle_mcp_probe_server_bridge(server_ref, event)
+      })
+      // Enable/disable server
+      mcp.patch("/:name/enabled", event => {
+        handle_mcp_toggle_server_bridge(server_ref, event)
+      })
+      // Update server configuration
+      mcp.put("/:name", event => {
+        handle_mcp_update_server_bridge(server_ref, event)
+      })
+      // Remove server
+      mcp.delete("/:name", event => {
+        handle_mcp_remove_server_bridge(server_ref, event)
+      })
+      // List tools for specific server
+      mcp.get("/:name/tools", event => {
+        handle_mcp_list_server_tools_bridge(server_ref, event)
+      })
+      // Call tool on specific server
+      mcp.post("/:name/call", event => {
+        handle_mcp_call_server_tool_bridge(server_ref, event)
       })
     })
 
@@ -324,15 +363,32 @@ pub fn WebServer::build_app(
     api.group("/channels", (ch : @crescent.App) => {
       ch.get("", event => handle_channels_list_bridge(server_ref, event))
       ch.post("", event => handle_channels_create_bridge(server_ref, event))
+
+      // ID-based routes (also accept platform name via dual-key lookup)
       ch.put("/:id", event => handle_channels_update_bridge(server_ref, event))
       ch.delete("/:id", event => {
         handle_channels_delete_bridge(server_ref, event)
       })
+      ch.patch("/:id/enabled", event => {
+        handle_channels_toggle_enabled_bridge(server_ref, event)
+      })
+      ch.get("/:id", event => handle_channels_list_bridge(server_ref, event))
       ch.post("/:id/test", event => {
         handle_channels_test_bridge(server_ref, event)
       })
       ch.get("/:id/status", event => {
         handle_channels_status_bridge(server_ref, event)
+      })
+      ch.post("/:id/send", event => {
+        handle_channels_send_bridge(server_ref, event)
+      })
+      ch.get("/:id/users", event => {
+        handle_channels_users_bridge(server_ref, event)
+      })
+
+      // Group history route (chat_id-based)
+      ch.get("/group_history/:chat_id", event => {
+        handle_channels_group_history_bridge(server_ref, event)
       })
     })
 

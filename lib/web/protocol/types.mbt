@@ -22,6 +22,8 @@ pub(all) enum UpstreamMessageType {
   Interrupt
   /// Respond to a confirmation request.
   Confirmation
+  /// Respond to a feedback request.
+  Feedback
   /// Run a background task.
   RunTask
   /// Ping / keepalive.
@@ -40,6 +42,7 @@ pub fn parse_upstream_type(s : String) -> UpstreamMessageType? {
     "edit_message" => Some(EditMessage)
     "interrupt" => Some(Interrupt)
     "confirmation" => Some(Confirmation)
+    "feedback" => Some(Feedback)
     "run_task" => Some(RunTask)
     "ping" => Some(Ping)
     "list_sessions" => Some(ListSessions)
@@ -298,6 +301,47 @@ pub fn build_history_user_message(
       "content": content.to_json(),
       "created_at": @agent.current_time_ms().to_string().to_json(),
     }),
+  )
+}
+
+///|
+/// Build a session_renamed event.
+pub fn build_session_renamed_event(
+  session_id : String,
+  new_name : String,
+) -> String {
+  build_event(
+    "session_renamed",
+    session_id,
+    Json::object({ "name": new_name.to_json() }),
+  )
+}
+
+///|
+/// Build a session_deleted event.
+pub fn build_session_deleted_event(session_id : String) -> String {
+  build_event("session_deleted", session_id, Json::empty_object())
+}
+
+///|
+/// Build a session_restored event.
+pub fn build_session_restored_event(
+  session_id : String,
+  session : Json,
+) -> String {
+  build_event(
+    "session_restored",
+    session_id,
+    Json::object({ "session": session }),
+  )
+}
+
+///|
+/// Build a task_finished event (global broadcast, no session_id wrapping).
+pub fn build_task_finished_event(session_id : String) -> String {
+  build_global_event(
+    "task_finished",
+    Json::object({ "session_id": session_id.to_json() }),
   )
 }
 

@@ -266,7 +266,7 @@ pub fn register_all_routes(router : Router) -> Router {
   // MCP endpoints
   let r = router
     .add_route(GET, "/api/mcp/servers", "handle_mcp_list_servers")
-    .add_route(POST, "/api/mcp/servers", "handle_mcp_register_server")
+    .add_route(POST, "/api/mcp/servers", "handle_mcp_add_server")
     .add_route(DELETE, "/api/mcp/servers/:id", "handle_mcp_remove_server")
     .add_route(GET, "/api/mcp/tools", "handle_mcp_list_tools")
     .add_route(POST, "/api/mcp/tools/:name/execute", "handle_mcp_execute_tool")

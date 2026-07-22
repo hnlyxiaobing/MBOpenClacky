@@ -193,6 +193,9 @@ pub(all) struct SessionData {
   // Fork and chunk tracking
   forked_from : String?
   chunk_count : Int
+  // Session model switch & agent profile (web-replication-05)
+  agent_profile : String
+  sub_model : String?
 } derive(Eq, Debug)
 
 ///|
@@ -238,6 +241,8 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     },
     forked_from: None,
     chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
   }
 }
 
@@ -369,6 +374,8 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "last_status": self.last_status.to_json(),
     "last_error": self.last_error.to_json(),
     "chunk_count": self.chunk_count.to_json(),
+    "agent_profile": self.agent_profile.to_json(),
+    "sub_model": self.sub_model.to_json(),
   }
   match self.forked_from {
     Some(f) => obj["forked_from"] = f.to_json()
@@ -482,6 +489,14 @@ impl FromJson for SessionData with fn from_json(json, path) {
         Some(Number(d, ..)) => d.to_int()
         _ => 0
       }
+      let agent_profile = match map.get("agent_profile") {
+        Some(String(s)) => s
+        _ => "general"
+      }
+      let sub_model = match map.get("sub_model") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
       {
         session_id,
         name,
@@ -502,6 +517,8 @@ impl FromJson for SessionData with fn from_json(json, path) {
         last_error,
         forked_from,
         chunk_count,
+        agent_profile,
+        sub_model,
       }
     }
     _ => raise JsonDecodeError((path, "SessionData: expected object"))

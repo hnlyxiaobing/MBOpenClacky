@@ -84,6 +84,10 @@ test "hook_emit_all_event_types" {
       RetryAttempt(_, _) => event_types.push("retry")
       ToolDenied(_) => event_types.push("tool_denied")
       UsageUpdated(_) => event_types.push("usage")
+      ToolStdout(_) => event_types.push("tool_stdout")
+      InfoMessage(_) => event_types.push("info")
+      SuccessMessage(_) => event_types.push("success")
+      FeedbackRequested(_, _, _) => event_types.push("feedback")
     }
   })
 
@@ -120,8 +124,12 @@ test "hook_emit_all_event_types" {
   hm.emit(SubagentStarted("coder"))
   hm.emit(SubagentEnded("coder"))
   hm.emit(RetryAttempt(1, "rate limit"))
+  hm.emit(ToolStdout("output line"))
+  hm.emit(InfoMessage("info msg"))
+  hm.emit(SuccessMessage("success msg"))
+  hm.emit(FeedbackRequested("Continue?", None, None))
 
-  @debug.debug_inspect(event_types.length(), content="21")
+  @debug.debug_inspect(event_types.length(), content="25")
 }
 
 ///|
