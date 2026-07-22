@@ -6,19 +6,15 @@
 - **Baseline tag**: `v1.4.0`
 - **Baseline commit**: 未建立（上游资产尚未正式导入，无从考证基线提交；首次正式导入时记录 commit hash）
 - **Initial sync date**: 2026-07-21
-- **Last sync date**: 2026-07-22 (web-parity-05: legacy cleanup, brand assets)
+- **Last sync date**: 2026-07-22 (spec-02: full upstream asset import - 87 files)
 
 ## Current Status
 
 The web frontend uses a **managed fork** approach:
-- `index.html`, `app.css`, `app.js`: minimal skeleton satisfying the first-screen rendering contract
-  (`id="top-header"`, sidebar, theme toggle, i18n stub, `{{BRAND_NAME}}`/`{{EXT_SCRIPTS}}` placeholders).
-- Brand assets: MBOpenClacky-specific placeholders (see Brand Assets section below).
-- `web/PATCHES.md`: P0-001 (brand placeholders) and P0-002 (minimal skeleton) remain **Active**.
-
-The full upstream asset set has **not yet been imported**. Importing the complete upstream
-bundle is deferred until the legal review of brand assets and third-party vendor licenses
-is completed (tracked in `web/PATCHES.md`).
+- Full upstream asset set (87 files) imported on 2026-07-22 (spec-02). `index.html`, `app.js`, `app.css`, and all feature/vendor/i18n modules are upstream originals.
+- `{{BRAND_NAME}}` and `{{EXT_SCRIPTS}}` placeholders in `index.html` are processed at runtime by `lib/web/template_processor.mbt` (`process_template()`).
+- Brand assets (`favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`): upstream originals still in place - P0-001 active, must be replaced before external release (see `PATCHES.md`).
+- `web/PATCHES.md`: P0-001 (brand placeholders) remains **Active**. P0-002 (minimal skeleton) retired.
 
 ## Sync Procedure (Execution Checklist)
 
@@ -33,10 +29,10 @@ git clone --depth 1 --branch v1.4.0 https://github.com/clacky-ai/openclacky.git 
 ### 2. Diff Verification
 
 ```bash
-diff -rq /tmp/openclacky/lib/clacky/web/ ./web/
+diff -rq /tmp/openclacky/lib/clacky/web/ ./web/ --exclude=PATCHES.md --exclude=UPSTREAM_SYNC.md
 ```
 
-Record file count and notable deltas.
+Record file count and notable deltas. Expected: 87 upstream files + PATCHES.md + UPSTREAM_SYNC.md = 89 total.
 
 ### 3. Selective Sync
 
@@ -94,3 +90,4 @@ MBOpenClacky uses its own brand assets (not upstream OpenClacky brand):
 |------|-------------|---------------|-------|
 | 2026-07-21 | v1.4.0 | Initial import | Minimal skeleton created in-place (P0) |
 | 2026-07-22 | v1.4.0 | Legacy cleanup | web-parity-05: deleted `legacy_mb/` and old SPA assets |
+| 2026-07-22 | v1.4.0 | Full import (87 files) | spec-02: complete upstream asset set copied; P0-002 retired |
