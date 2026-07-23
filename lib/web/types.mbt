@@ -105,16 +105,6 @@ pub(all) struct ToolListResponse {
 }
 
 ///|
-/// Chat response (blocking endpoint)
-pub(all) struct ChatResponse {
-  session_id : String
-  messages : Array[@message.Message]
-  total_cost_usd : Double
-  iterations : Int
-  status : String
-}
-
-///|
 /// Status response
 pub(all) struct StatusResponse {
   session_id : String
@@ -264,17 +254,6 @@ impl ToJson for ToolListEntry with fn to_json(self) {
 ///|
 impl ToJson for ToolListResponse with fn to_json(self) {
   Json::object({ "tools": self.tools.to_json() })
-}
-
-///|
-impl ToJson for ChatResponse with fn to_json(self) {
-  Json::object({
-    "session_id": self.session_id.to_json(),
-    "messages": self.messages.to_json(),
-    "total_cost_usd": self.total_cost_usd.to_json(),
-    "iterations": self.iterations.to_json(),
-    "status": self.status.to_json(),
-  })
 }
 
 ///|

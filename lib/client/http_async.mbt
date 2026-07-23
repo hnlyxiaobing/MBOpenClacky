@@ -18,6 +18,7 @@ extern "C" fn start_http_thread(
 
 ///|
 /// Read a little-endian Int32 from a Bytes buffer at the given offset.
+#cfg(not(platform="windows"))
 fn read_le32(buf : Bytes, offset : Int) -> Int {
   let b0 = buf[offset].to_int()
   let b1 = buf[offset + 1].to_int()

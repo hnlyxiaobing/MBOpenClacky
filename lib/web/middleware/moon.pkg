@@ -4,5 +4,4 @@ import {
   "hnlyxiaobing/crescent",
   "hnlyxiaobing/crescent/core",
   "moonbitlang/core/json",
-  "moonbitlang/async",
 }

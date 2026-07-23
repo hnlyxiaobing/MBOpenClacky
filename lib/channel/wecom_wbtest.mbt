@@ -1,12 +1,12 @@
 ///|
 test "verify_hex_escape_length" {
-  let s = "\xFF"
+  let s = "\u{FF}"
   assert_true(s.length() == 1)
 }
 
 ///|
 test "verify_hex_escape_value" {
-  let s = "\xFF\xD8\xFF\x00"
+  let s = "\u{FF}\u{D8}\u{FF}\u{00}"
   assert_true(s[0].to_int() == 255)
   assert_true(s[1].to_int() == 216)
   assert_true(s[2].to_int() == 255)
@@ -16,12 +16,12 @@ test "verify_hex_escape_value" {
 
 ///|
 test "needs_aes_decrypt_jpeg" {
-  assert_false(needs_aes_decrypt("\xFF\xD8\xFF\x00"))
+  assert_false(needs_aes_decrypt("\u{FF}\u{D8}\u{FF}\u{00}"))
 }
 
 ///|
 test "needs_aes_decrypt_png" {
-  assert_false(needs_aes_decrypt("\x89PNG\x00\x00\x00"))
+  assert_false(needs_aes_decrypt("\u{89}PNG\u{00}\u{00}\u{00}"))
 }
 
 ///|
@@ -31,17 +31,17 @@ test "needs_aes_decrypt_gif" {
 
 ///|
 test "needs_aes_decrypt_bmp" {
-  assert_false(needs_aes_decrypt("BM\x00\x00"))
+  assert_false(needs_aes_decrypt("BM\u{00}\u{00}"))
 }
 
 ///|
 test "needs_aes_decrypt_riff_webp" {
-  assert_false(needs_aes_decrypt("RIFF\x00\x00\x00\x00WEBP"))
+  assert_false(needs_aes_decrypt("RIFF\u{00}\u{00}\u{00}\u{00}WEBP"))
 }
 
 ///|
 test "needs_aes_decrypt_unknown_returns_true" {
-  assert_true(needs_aes_decrypt("test\x00"))
+  assert_true(needs_aes_decrypt("test\u{00}"))
 }
 
 ///|
@@ -55,12 +55,12 @@ test "needs_aes_decrypt_short_string_returns_true" {
 
 ///|
 test "detect_mime_type_jpeg" {
-  assert_eq(detect_mime_type("\xFF\xD8\xFF\xE0"), "image/jpeg")
+  assert_eq(detect_mime_type("\u{FF}\u{D8}\u{FF}\u{E0}"), "image/jpeg")
 }
 
 ///|
 test "detect_mime_type_png" {
-  assert_eq(detect_mime_type("\x89PNG\r\n\x1a\n"), "image/png")
+  assert_eq(detect_mime_type("\u{89}PNG\r\n\u{1a}\n"), "image/png")
 }
 
 ///|
@@ -70,18 +70,18 @@ test "detect_mime_type_gif" {
 
 ///|
 test "detect_mime_type_bmp" {
-  assert_eq(detect_mime_type("BM\x00"), "image/bmp")
+  assert_eq(detect_mime_type("BM\u{00}"), "image/bmp")
 }
 
 ///|
 test "detect_mime_type_webp" {
-  assert_eq(detect_mime_type("RIFF\x00\x00\x00\x00WEBP"), "image/webp")
+  assert_eq(detect_mime_type("RIFF\u{00}\u{00}\u{00}\u{00}WEBP"), "image/webp")
 }
 
 ///|
 test "detect_mime_type_riff_not_webp" {
   assert_eq(
-    detect_mime_type("RIFF\x00\x00\x00\x00XXXX"),
+    detect_mime_type("RIFF\u{00}\u{00}\u{00}\u{00}XXXX"),
     "application/octet-stream",
   )
 }
@@ -93,7 +93,7 @@ test "detect_mime_type_pdf" {
 
 ///|
 test "detect_mime_type_unknown" {
-  assert_eq(detect_mime_type("test\x00\x00"), "application/octet-stream")
+  assert_eq(detect_mime_type("test\u{00}\u{00}"), "application/octet-stream")
 }
 
 ///|

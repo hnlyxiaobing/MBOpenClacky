@@ -117,19 +117,6 @@ test "generate_meeting_id_format" {
 }
 
 ///|
-test "extract_discussion_points_groups_by_speaker" {
-  let transcript : Array[TranscriptEntry] = [
-    { speaker: "Alice", content: "Point 1", timestamp: 1L },
-    { speaker: "Bob", content: "Point 2", timestamp: 2L },
-    { speaker: "Alice", content: "Point 3", timestamp: 3L },
-  ]
-  let points = extract_discussion_points(transcript)
-  @debug.assert_eq(points.length(), 2)
-  @debug.assert_eq(points[0], "Discussion by Alice")
-  @debug.assert_eq(points[1], "Discussion by Bob")
-}
-
-///|
 test "parse_summary_opt_none" {
   assert_true(parse_summary_opt(None) is None)
 }

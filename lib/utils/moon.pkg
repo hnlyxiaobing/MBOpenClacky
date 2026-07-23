@@ -1,3 +1,5 @@
+warnings = "-6"
+
 import {
   "moonbitlang/core/debug",
   "moonbitlang/x/path",
@@ -8,5 +10,5 @@ import {
 
 options(
   "native-stub": [ "sys_native.c" ],
-  // auto-link: no explicit flags needed — kernel32 (Windows) / unistd (POSIX) are default
+  // auto-link: no explicit flags needed -  kernel32 (Windows) / unistd (POSIX) are default
 )
