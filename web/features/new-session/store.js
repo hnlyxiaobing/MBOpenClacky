@@ -141,10 +141,9 @@ const NewSessionStore = (() => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const session = Clacky.ApiNorm.unwrapSession(data);
+      const data = await res.json();
 
-      if (!res.ok) {
-        const msg = (data && data.error) || "unknown error";
+      if (!res.ok) {        const msg = (data && data.error) || "unknown error";
         const friendly = res.status === 409
           ? I18n.t("sessions.dirNotEmpty")
           : I18n.t("sessions.createError") + msg;
@@ -152,6 +151,11 @@ const NewSessionStore = (() => {
         return null;
       }
 
+      const session = Clacky.ApiNorm.unwrapSession(data);
+      if (!session) {
+        alert(I18n.t("sessions.createError") + "no session returned");
+        return null;
+      }
       return session;    } catch (e) {
       alert(I18n.t("sessions.createError") + e.message);
       return null;

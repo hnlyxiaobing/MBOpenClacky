@@ -1,3 +1,10 @@
+// Defensive global-namespace init: utils.js is loaded BEFORE core/ext.js
+// in index.html, and Clacky.ApiNorm is attached at the bottom of this file.
+// Without this, `Clacky.ApiNorm = ApiNorm;` would throw ReferenceError,
+// silently aborting the rest of utils.js (Tooltip, IME helpers, …) and
+// leaving Clacky.ApiNorm undefined for the rest of the page.
+window.Clacky = window.Clacky || {};
+
 // Cross-browser IME composition guard for Enter-to-submit inputs.
 //
 // Problem: pressing Enter to confirm an IME composition (e.g. selecting a
