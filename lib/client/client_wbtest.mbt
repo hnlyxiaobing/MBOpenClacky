@@ -90,7 +90,7 @@ test "build_openai_request_with_tools" {
       "function": Json::object({
         "name": "shell".to_json(),
         "description": "Run shell command".to_json(),
-        "parameters": Json::object({}),
+        "parameters": Json::object(Map([])),
       }),
     }),
   ]
@@ -363,7 +363,7 @@ test "format_tool_results_missing_result" {
     usage: None,
     latency: None,
   }
-  let results : Map[String, String] = {}
+  let results : Map[String, String] = Map([])
   let msgs = format_openai_tool_results(resp, results)
   @debug.assert_eq(msgs.length(), 1)
   match msgs[0].content {

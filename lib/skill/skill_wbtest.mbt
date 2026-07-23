@@ -376,7 +376,7 @@ test "default_discovery_paths: returns 3 paths" {
 
 ///|
 test "discover_skills: discovers from skill.md content" {
-  let file_contents : Map[String, String] = {}
+  let file_contents : Map[String, String] = Map([])
   let skill_md_content =
     #|---
     #|name: discovered-skill
@@ -396,7 +396,7 @@ test "discover_skills: discovers from skill.md content" {
 
 ///|
 test "discover_skills: ignores unrelated files" {
-  let file_contents : Map[String, String] = {}
+  let file_contents : Map[String, String] = Map([])
   file_contents["/project/README.md"] = "# Project README"
   file_contents["/project/config.toml"] = "[settings]"
   let skills = discover_skills(file_contents)

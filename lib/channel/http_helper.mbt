@@ -62,7 +62,7 @@ pub(all) struct HttpHeaders {
 
 ///|
 pub fn HttpHeaders::new() -> HttpHeaders {
-  { headers: {} }
+  { headers: Map([]) }
 }
 
 ///|
@@ -261,9 +261,7 @@ pub fn http_post_json(
   headers : Array[(String, String)],
   body : String,
 ) -> Result[Json, ChannelError] {
-  let resp = @client.http_post(url, body, headers, CHANNEL_HTTP_TIMEOUT_MS) catch {
-    e => return Err(ChannelError("HTTP POST failed: \{e}"))
-  }
+  let resp = @client.http_post(url, body, headers, CHANNEL_HTTP_TIMEOUT_MS)
   match resp {
     Ok(r) => {
       if !is_success_status(r.status_code) {
@@ -281,9 +279,7 @@ pub fn http_get_json(
   url : String,
   headers : Array[(String, String)],
 ) -> Result[Json, ChannelError] {
-  let resp = @client.http_get(url, headers, CHANNEL_HTTP_TIMEOUT_MS) catch {
-    e => return Err(ChannelError("HTTP GET failed: \{e}"))
-  }
+  let resp = @client.http_get(url, headers, CHANNEL_HTTP_TIMEOUT_MS)
   match resp {
     Ok(r) => {
       if !is_success_status(r.status_code) {

@@ -417,9 +417,9 @@ fn join_feishu_strings(arr : Array[String], sep : String) -> String {
 ///|
 /// Build Feishu message payload JSON.
 pub fn build_feishu_message(text : String, reply_to : String?) -> Json {
-  let content : Map[String, Json] = {}
+  let content : Map[String, Json] = Map([])
   content.set("text", text.to_json())
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("msg_type", "text".to_json())
   msg.set("content", Json::object(content))
   match reply_to {

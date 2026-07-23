@@ -164,7 +164,7 @@ pub fn merge_api_extensions(
   a : Array[ApiExtension],
   b : Array[ApiExtension],
 ) -> Array[ApiExtension] {
-  let seen : Map[String, Bool] = {}
+  let seen : Map[String, Bool] = Map([])
   let result : Array[ApiExtension] = []
   for ext in b {
     if !seen.contains(ext.name) {
@@ -265,7 +265,7 @@ fn parse_ext_json(content : String) -> ApiExtension? {
 ///|
 /// Parse a simple TOML-like extension descriptor (key = "value" lines).
 fn parse_ext_simple(content : String, filename : String) -> ApiExtension? {
-  let fields : Map[String, String] = {}
+  let fields : Map[String, String] = Map([])
   let lines = content.split("\n")
   for line in lines {
     let trimmed = line.trim().to_owned()

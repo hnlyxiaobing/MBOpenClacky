@@ -28,7 +28,7 @@ priv struct MeetingState {
 
 ///|
 /// Global meeting state singleton (module-level mutable).
-let meeting_state : Ref[MeetingState] = Ref({ meetings: {}, loaded: false })
+let meeting_state : Ref[MeetingState] = Ref({ meetings: Map([]), loaded: false })
 
 ///|
 /// Counter for generating unique IDs.
@@ -46,7 +46,7 @@ fn meeting_file_path() -> String {
 ///|
 /// Generate a unique meeting ID.
 fn next_meeting_id() -> String {
-  let ts = @async.now()
+  let ts = @env.now().reinterpret_as_int64()
   meeting_id_counter.val = meeting_id_counter.val + 1
   "meeting-\{ts}-\{meeting_id_counter.val}"
 }
@@ -54,7 +54,7 @@ fn next_meeting_id() -> String {
 ///|
 /// Current time as epoch-seconds string.
 fn meeting_current_epoch_secs() -> String {
-  let ms = @async.now()
+  let ms = @env.now().reinterpret_as_int64()
   "\{ms / 1000L}"
 }
 

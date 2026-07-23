@@ -457,7 +457,7 @@ pub fn handle_schedules_trigger(request : HttpRequest) -> HttpResponse {
   match schedule_state.val.scheduler.get_schedule(id) {
     Some(schedule) => {
       // Record execution
-      let now = @async.now()
+      let now = @env.now().reinterpret_as_int64()
       let ts_str = format_timestamp_ms(now)
       schedule_state.val.executions.push({
         schedule_name: id,

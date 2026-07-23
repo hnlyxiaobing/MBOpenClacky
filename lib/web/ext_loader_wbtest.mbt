@@ -24,14 +24,19 @@ test "load_extensions_from_paths: empty list yields empty result" {
 ///|
 test "load_extensions_from_paths: missing file is skipped" {
   let result = load_extensions_from_paths([
-    ("ext1", wbtest_tmp_root() + "/_wbtest_load_missing_\{@async.now()}.json"),
+    (
+      "ext1",
+      wbtest_tmp_root() +
+      "/_wbtest_load_missing_\{@env.now().reinterpret_as_int64()}.json",
+    ),
   ])
   @debug.assert_eq(result.length(), 0)
 }
 
 ///|
 test "load_extensions_from_paths: JSON descriptor is loaded" {
-  let tmp = wbtest_tmp_root() + "/_wbtest_load_json_\{@async.now()}"
+  let tmp = wbtest_tmp_root() +
+    "/_wbtest_load_json_\{@env.now().reinterpret_as_int64()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }
@@ -64,7 +69,7 @@ test "load_extensions_from_paths: JSON descriptor is loaded" {
 
 ///|
 test "load_extensions_from_paths: malformed JSON is skipped" {
-  let tmp = "/tmp/_wbtest_load_bad_\{@async.now()}"
+  let tmp = "/tmp/_wbtest_load_bad_\{@env.now().reinterpret_as_int64()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }
@@ -84,7 +89,8 @@ test "load_extensions_from_paths: malformed JSON is skipped" {
 
 ///|
 test "load_extensions_from_paths: multiple paths aggregate" {
-  let tmp = wbtest_tmp_root() + "/_wbtest_load_multi_\{@async.now()}"
+  let tmp = wbtest_tmp_root() +
+    "/_wbtest_load_multi_\{@env.now().reinterpret_as_int64()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }

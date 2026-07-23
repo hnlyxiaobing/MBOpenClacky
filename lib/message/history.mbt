@@ -458,7 +458,7 @@ pub fn MessageHistory::drop_dangling_tool_calls(self : MessageHistory) -> Unit {
     let _ = self.messages.pop()
   }
   // Second, remove orphan tool_result messages (those without a matching tool_call)
-  let tool_call_ids : Map[String, Bool] = {}
+  let tool_call_ids : Map[String, Bool] = Map([])
   for msg in self.messages {
     match msg.tool_calls {
       Some(calls) =>

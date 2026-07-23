@@ -16,10 +16,10 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
     "evaluate_script" => build_mcp_evaluate_args(args)
     "scroll_page" => build_mcp_scroll_args(args)
     "click_at" => build_mcp_click_at_args(args)
-    "list_pages" => Json::object({})
+    "list_pages" => Json::object(Map([]))
     "select_page" => build_mcp_select_page_args(args)
     "close_page" => build_mcp_close_page_args(args)
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   // Propagate pageId from args if present (injected by with_page / mcp_call)
   match args.get("pageId") {
@@ -37,7 +37,7 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_navigate_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("url") {
     Some(String(url)) => obj["url"] = url.to_json()
     _ => ()
@@ -47,7 +47,7 @@ fn build_mcp_navigate_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_snapshot_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("interactive") {
     Some(v) => obj["interactive"] = v
     _ => ()
@@ -73,7 +73,7 @@ fn build_mcp_snapshot_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_screenshot_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["ref"] = v
     _ => ()
@@ -97,7 +97,7 @@ fn build_mcp_screenshot_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_click_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["selector"] = v
     _ => ()
@@ -112,7 +112,7 @@ fn build_mcp_click_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_fill_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["selector"] = v
     _ => ()
@@ -131,7 +131,7 @@ fn build_mcp_fill_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_press_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("key") {
     Some(v) => obj["key"] = v
     _ => ()
@@ -141,7 +141,7 @@ fn build_mcp_press_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_hover_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["selector"] = v
     _ => ()
@@ -151,7 +151,7 @@ fn build_mcp_hover_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_drag_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["from_uid"] = v
     _ => ()
@@ -165,7 +165,7 @@ fn build_mcp_drag_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_select_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("ref") {
     Some(v) => obj["selector"] = v
     _ => ()
@@ -179,7 +179,7 @@ fn build_mcp_select_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_wait_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("selector") {
     Some(v) => obj["selector"] = v
     _ => ()
@@ -193,7 +193,7 @@ fn build_mcp_wait_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   // For scroll simulation via evaluate_script
   match args.get("direction") {
     Some(String(dir)) => {
@@ -230,7 +230,7 @@ fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_scroll_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("direction") {
     Some(v) => obj["direction"] = v
     _ => ()
@@ -244,7 +244,7 @@ fn build_mcp_scroll_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_click_at_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("x") {
     Some(v) => obj["x"] = v
     _ => ()
@@ -258,7 +258,7 @@ fn build_mcp_click_at_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_select_page_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("target_id") {
     Some(v) => obj["pageId"] = v
     _ => ()
@@ -275,7 +275,7 @@ fn build_mcp_select_page_args(args : Map[String, Json]) -> Json {
 
 ///|
 fn build_mcp_close_page_args(args : Map[String, Json]) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match args.get("target_id") {
     Some(v) => obj["pageId"] = v
     _ => ()

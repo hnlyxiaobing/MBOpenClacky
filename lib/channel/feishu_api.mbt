@@ -56,7 +56,7 @@ pub fn FeishuApiClient::api_url(
 ///|
 /// Build the JSON body for the auth token request.
 pub fn FeishuApiClient::build_auth_body(self : FeishuApiClient) -> Json {
-  let body : Map[String, Json] = {}
+  let body : Map[String, Json] = Map([])
   body.set("app_id", self.app_id.to_json())
   body.set("app_secret", self.app_secret.to_json())
   Json::object(body)
@@ -147,13 +147,13 @@ pub fn FeishuApiClient::build_send_request(
     build_feishu_text_content(text)
   }
   let msg_type_str = content_type_of(content)
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("receive_id", chat_id.to_json())
   payload.set("msg_type", msg_type_str.to_json())
   payload.set("content", content.to_json())
   match reply_to {
     Some(id) => {
-      let reply_obj : Map[String, Json] = {}
+      let reply_obj : Map[String, Json] = Map([])
       reply_obj.set("message_id", id.to_json())
       payload.set("reply_to", Json::object(reply_obj))
     }
@@ -208,7 +208,7 @@ pub fn FeishuApiClient::build_update_request(
   } else {
     build_feishu_text_content(text)
   }
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("content", content.to_json())
   Ok((url, headers.to_array(), build_json_body(payload)))
 }
@@ -339,10 +339,10 @@ pub fn FeishuApiClient::fetch_chat_history(
 /// Build a Feishu text message content JSON.
 /// Format: {"msg_type":"text","content":"{\"text\":\"...\"}"}
 pub fn build_feishu_text_content(text : String) -> Json {
-  let inner : Map[String, Json] = {}
+  let inner : Map[String, Json] = Map([])
   inner.set("text", text.to_json())
   let content_str = Json::object(inner).stringify()
-  let outer : Map[String, Json] = {}
+  let outer : Map[String, Json] = Map([])
   outer.set("msg_type", "text".to_json())
   outer.set("content", content_str.to_json())
   Json::object(outer)
@@ -352,20 +352,20 @@ pub fn build_feishu_text_content(text : String) -> Json {
 /// Build a Feishu interactive card content JSON.
 /// Preferred for messages containing code blocks or markdown tables.
 pub fn build_feishu_card_content(text : String) -> Json {
-  let text_element : Map[String, Json] = {}
+  let text_element : Map[String, Json] = Map([])
   text_element.set("tag", "markdown".to_json())
   text_element.set("content", text.to_json())
   let elements : Array[Json] = [Json::object(text_element)]
-  let header : Map[String, Json] = {}
-  let title : Map[String, Json] = {}
+  let header : Map[String, Json] = Map([])
+  let title : Map[String, Json] = Map([])
   title.set("tag", "plain_text".to_json())
   title.set("content", "AI Assistant".to_json())
   header.set("title", Json::object(title))
   header.set("template", "blue".to_json())
-  let card : Map[String, Json] = {}
+  let card : Map[String, Json] = Map([])
   card.set("header", Json::object(header))
   card.set("elements", Json::array(elements))
-  let outer : Map[String, Json] = {}
+  let outer : Map[String, Json] = Map([])
   outer.set("msg_type", "interactive".to_json())
   outer.set("content", Json::object(card).stringify().to_json())
   Json::object(outer)
@@ -374,11 +374,11 @@ pub fn build_feishu_card_content(text : String) -> Json {
 ///|
 /// Build a Feishu post (rich text) content JSON from an array of element JSONs.
 pub fn build_feishu_post_content(elements : Array[Json]) -> Json {
-  let post_body : Map[String, Json] = {}
+  let post_body : Map[String, Json] = Map([])
   post_body.set("content", Json::array([Json::array(elements)]))
-  let post : Map[String, Json] = {}
+  let post : Map[String, Json] = Map([])
   post.set("zh_cn", Json::object(post_body))
-  let outer : Map[String, Json] = {}
+  let outer : Map[String, Json] = Map([])
   outer.set("msg_type", "post".to_json())
   outer.set("content", Json::object(post).stringify().to_json())
   Json::object(outer)

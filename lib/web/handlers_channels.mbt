@@ -154,7 +154,7 @@ pub fn handle_channels_create(request : HttpRequest) -> HttpResponse {
       )
     Some(_) => ()
   }
-  let now = @async.now()
+  let now = @env.now().reinterpret_as_int64()
   let id = next_channel_id()
   let entry : ChannelEntry = {
     id,
@@ -224,7 +224,7 @@ pub fn handle_channels_update(request : HttpRequest) -> HttpResponse {
             }
             None => ()
           }
-          arr[idx].updated_at = @async.now()
+          arr[idx].updated_at = @env.now().reinterpret_as_int64()
         }
         _ => return HttpResponse::bad_request("Invalid JSON body")
       }
@@ -267,7 +267,7 @@ pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
     Some(idx) => {
       let arr = channels_store.val
       let ch = arr[idx]
-      let start_time = @async.now()
+      let start_time = @env.now().reinterpret_as_int64()
       let platform_enum = match ch.platform {
         "feishu" => @channel.Platform::Feishu
         "wecom" => @channel.Platform::WeCom
@@ -284,7 +284,7 @@ pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
             }).stringify(),
           )
       }
-      let settings : Map[String, String] = {}
+      let settings : Map[String, String] = Map([])
       if ch.webhook_url != "" {
         settings.set("webhook_url", ch.webhook_url)
       }
@@ -300,7 +300,7 @@ pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
         settings,
       }
       let (test_result, error_msg) = test_channel_adapter(ch.platform, config)
-      let end_time = @async.now()
+      let end_time = @env.now().reinterpret_as_int64()
       let latency = (end_time - start_time).to_int()
       // Update channel status based on test result
       if test_result == "success" {

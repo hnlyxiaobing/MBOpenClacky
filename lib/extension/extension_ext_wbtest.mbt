@@ -93,7 +93,7 @@ test "ext_manifest_construction" {
     homepage: None,
     repository: None,
     keywords: ["test", "demo"],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: true,
   }
@@ -115,7 +115,7 @@ test "ext_manifest_with_homepage" {
     homepage: Some("https://example.com"),
     repository: Some("https://github.com/test/ext"),
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: false,
   }
@@ -133,7 +133,7 @@ test "ext_contribution_construction" {
     name: "My Panel",
     description: "A test panel",
     path: "./panel.html",
-    config: {},
+    config: Map([]),
   }
   assert_eq(c.id, "my-panel")
   assert_true(c.type_ == ExtensionContributionType::Panel)
@@ -147,7 +147,7 @@ test "ext_registry_entry_construction" {
     id: "ext-1",
     latest_version: "2.0.0",
     versions: ["1.0.0", "2.0.0"],
-    metadata: {},
+    metadata: Map([]),
     installs: 100,
     published_at: 1000L,
   }
@@ -171,7 +171,7 @@ test "ext_extension_id_from_manifest" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: true,
   }
@@ -250,7 +250,7 @@ test "ext_validation_error_all_variants" {
 
 ///|
 test "ext_manifest_with_dependencies" {
-  let deps : Map[String, String] = {}
+  let deps : Map[String, String] = Map([])
   deps.set("ext-a", ">=1.0.0")
   deps.set("ext-b", "^2.0.0")
   let m : ExtensionManifest = {
@@ -267,7 +267,7 @@ test "ext_manifest_with_dependencies" {
     contributions: [],
     enabled_by_default: true,
   }
-  assert_eq(m.dependencies.size(), 2)
+  assert_eq(m.dependencies.length(), 2)
 }
 
 ///|
@@ -278,7 +278,7 @@ test "ext_manifest_with_contributions" {
     name: "My Skill",
     description: "A skill",
     path: "./skill.md",
-    config: {},
+    config: Map([]),
   }
   let m : ExtensionManifest = {
     id: "ext",
@@ -290,7 +290,7 @@ test "ext_manifest_with_contributions" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [c],
     enabled_by_default: false,
   }
@@ -311,7 +311,7 @@ test "ext_extension_with_sha256" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: true,
   }
@@ -339,7 +339,7 @@ test "ext_extension_disabled" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: false,
   }
@@ -374,7 +374,7 @@ test "ext_validation_result_multiple_errors" {
 
 ///|
 test "ext_registry_entry_with_metadata" {
-  let meta : Map[String, String] = {}
+  let meta : Map[String, String] = Map([])
   meta.set("author", "TestAuthor")
   meta.set("description", "Test extension")
   let r : RegistryEntry = {
@@ -385,6 +385,6 @@ test "ext_registry_entry_with_metadata" {
     installs: 500,
     published_at: 99999L,
   }
-  assert_eq(r.metadata.size(), 2)
+  assert_eq(r.metadata.length(), 2)
   assert_eq(r.versions.length(), 3)
 }

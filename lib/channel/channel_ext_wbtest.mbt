@@ -88,7 +88,7 @@ test "ext_dingtalk_build_access_token_request" {
 ///|
 test "ext_dingtalk_parse_token_new_api" {
   let json = @json.parse("{\"accessToken\":\"token123\",\"expireIn\":3600}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
@@ -103,7 +103,7 @@ test "ext_dingtalk_parse_token_new_api" {
 ///|
 test "ext_dingtalk_parse_token_oapi" {
   let json_str = "{\"access_token\":\"tok456\",\"expires_in\":7200,\"errcode\":0}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Ok((token, expire)) => {
@@ -117,7 +117,7 @@ test "ext_dingtalk_parse_token_oapi" {
 ///|
 test "ext_dingtalk_parse_token_default_expire" {
   let json = @json.parse("{\"accessToken\":\"tok789\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
@@ -128,21 +128,23 @@ test "ext_dingtalk_parse_token_default_expire" {
 
 ///|
 test "ext_dingtalk_parse_token_invalid_json" {
-  let json = @json.parse("123") catch { _ => Json::object({}) }
+  let json = @json.parse("123") catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   assert_true(result is Err(_))
 }
 
 ///|
 test "ext_dingtalk_parse_token_missing_token" {
-  let json = @json.parse("{\"foo\":\"bar\"}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"foo\":\"bar\"}") catch {
+    _ => Json::object(Map([]))
+  }
   let result = DingTalkApiClient::parse_token_response(json)
   assert_true(result is Err(_))
 }
 
 ///|
 test "ext_dingtalk_parse_token_empty_object" {
-  let json = Json::object({})
+  let json = Json::object(Map([]))
   let result = DingTalkApiClient::parse_token_response(json)
   assert_true(result is Err(_))
 }
@@ -203,7 +205,7 @@ test "ext_dingtalk_oapi_request_full_check" {
 ///|
 test "ext_dingtalk_parse_token_with_errcode" {
   let json_str = "{\"access_token\":\"tok\",\"expires_in\":3600,\"errcode\":0,\"errmsg\":\"ok\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Ok((token, _)) => assert_eq(token, "tok")
@@ -213,18 +215,20 @@ test "ext_dingtalk_parse_token_with_errcode" {
 
 ///|
 test "ext_dingtalk_parse_token_string_value" {
-  let json = @json.parse("\"just a string\"") catch { _ => Json::object({}) }
+  let json = @json.parse("\"just a string\"") catch {
+    _ => Json::object(Map([]))
+  }
   assert_true(DingTalkApiClient::parse_token_response(json) is Err(_))
 }
 
 ///|
 test "ext_dingtalk_parse_token_array_value" {
-  let json = @json.parse("[1,2,3]") catch { _ => Json::object({}) }
+  let json = @json.parse("[1,2,3]") catch { _ => Json::object(Map([])) }
   assert_true(DingTalkApiClient::parse_token_response(json) is Err(_))
 }
 
 ///|
 test "ext_dingtalk_parse_token_null_value" {
-  let json = @json.parse("null") catch { _ => Json::object({}) }
+  let json = @json.parse("null") catch { _ => Json::object(Map([])) }
   assert_true(DingTalkApiClient::parse_token_response(json) is Err(_))
 }

@@ -632,7 +632,7 @@ pub fn handle_settings_get(
           _ => ()
         }
       }
-      @core.HttpResponse::ok().json_value(Json::object({}))
+      @core.HttpResponse::ok().json_value(Json::object(Map([])))
     }
     None => err_no_config()
   }
@@ -1091,7 +1091,7 @@ fn extract_err_snippet(body : String) -> String {
     Object(o) =>
       match o.get("error") {
         Some(String(s)) => s
-        Some(e) => e.to_string()
+        Some(e) => @debug.to_string(e)
         None =>
           match o.get("message") {
             Some(String(s)) => s
@@ -1159,7 +1159,7 @@ pub fn handle_session_time_machine_post(
       Json::object({ "error": "session id required".to_json() }),
     )
   }
-  let body : Json = event.req.body() catch { _ => Json::object({}) }
+  let body : Json = event.req.body() catch { _ => Json::object(Map([])) }
   let description = extra_json_str(body, "description")
   match extra_path("time_machine_" + session_id + ".json") {
     Some(p) => {
@@ -1255,7 +1255,7 @@ pub fn handle_session_time_machine_switch(
       Json::object({ "error": "session id required".to_json() }),
     )
   }
-  let body : Json = event.req.body() catch { _ => Json::object({}) }
+  let body : Json = event.req.body() catch { _ => Json::object(Map([])) }
   let task_id = extra_json_str(body, "task_id")
   if task_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
@@ -1717,7 +1717,7 @@ fn parse_multipart_file(
     None => return None
   }
   // Extract filename from the part headers.
-  let headers = @utf8.decode(body[headers_start:hdr_end].to_bytes()) catch {
+  let headers = @utf8.decode(body[headers_start:hdr_end].to_owned()) catch {
     _ => return None
   }
   let filename = extract_multipart_filename(headers)
@@ -1831,7 +1831,7 @@ fn handle_config_settings_get(
         "memory_update_enabled": false.to_json(),
         "proxy_url": "".to_json(),
       })
-      let mut stored : Json = Json::object({})
+      let mut stored : Json = Json::object(Map([]))
       let arr = load_array(p)
       for e in arr {
         match e {
@@ -1866,7 +1866,7 @@ fn handle_config_settings_patch(
   match extra_path("settings.json") {
     Some(p) => {
       // Load existing settings.
-      let mut existing : Json = Json::object({})
+      let mut existing : Json = Json::object(Map([]))
       let arr = load_array(p)
       for e in arr {
         match e {

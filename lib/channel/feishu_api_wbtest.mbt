@@ -64,7 +64,9 @@ test "feishu_build_text_content" {
       }
       match obj.get("content") {
         Some(String(content_str)) => {
-          let inner = @json.parse(content_str) catch { _ => Json::object({}) }
+          let inner = @json.parse(content_str) catch {
+            _ => Json::object(Map([]))
+          }
           match inner {
             Object(inner_obj) =>
               match inner_obj.get("text") {
@@ -107,7 +109,9 @@ test "feishu_build_card_content" {
       }
       match obj.get("content") {
         Some(String(card_str)) => {
-          let card_json = @json.parse(card_str) catch { _ => Json::object({}) }
+          let card_json = @json.parse(card_str) catch {
+            _ => Json::object(Map([]))
+          }
           match card_json {
             Object(card_obj) => {
               match card_obj.get("header") {
@@ -140,7 +144,9 @@ test "feishu_build_card_content_has_markdown_element" {
     Object(obj) =>
       match obj.get("content") {
         Some(String(card_str)) => {
-          let card_json = @json.parse(card_str) catch { _ => Json::object({}) }
+          let card_json = @json.parse(card_str) catch {
+            _ => Json::object(Map([]))
+          }
           match card_json {
             Object(card_obj) =>
               match card_obj.get("elements") {
@@ -206,7 +212,9 @@ test "feishu_build_post_content_multiple_elements" {
     Object(obj) =>
       match obj.get("content") {
         Some(String(post_str)) => {
-          let post_json = @json.parse(post_str) catch { _ => Json::object({}) }
+          let post_json = @json.parse(post_str) catch {
+            _ => Json::object(Map([]))
+          }
           match post_json {
             Object(post_obj) =>
               match post_obj.get("zh_cn") {

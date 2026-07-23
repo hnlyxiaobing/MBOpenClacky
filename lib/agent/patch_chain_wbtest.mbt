@@ -40,7 +40,7 @@ fn allow_rule(name : String, tool_pattern : String) -> PatchRule {
 ///|
 test "patch_chain_empty_allows_everything" {
   let chain = PatchChain::new()
-  let args : Map[String, Json] = {}
+  let args : Map[String, Json] = Map([])
   match chain.check_before("terminal", args) {
     Allow => ()
     Block(_) => fail("empty chain must not block")
@@ -147,7 +147,7 @@ test "patch_chain_check_after_appends_post_exec_audit" {
 ///|
 test "patch_chain_check_after_records_error_action" {
   let chain = PatchChain::new()
-  let args : Map[String, Json] = {}
+  let args : Map[String, Json] = Map([])
   chain.check_after("file_reader", args, "permission denied", true)
   let entries = chain.audit_entries()
   assert_eq(entries.length(), 1)

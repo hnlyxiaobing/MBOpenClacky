@@ -198,10 +198,10 @@ fn ModelConfig::from_toml(value : TomlValue) -> ModelConfig? {
 ///|
 /// Convert an AgentConfig to a TOML value for serialization.
 fn AgentConfig::to_toml(self : AgentConfig) -> TomlValue {
-  let root : Map[String, TomlValue] = {}
+  let root : Map[String, TomlValue] = Map([])
 
   // Build [settings] section
-  let settings : Map[String, TomlValue] = {}
+  let settings : Map[String, TomlValue] = Map([])
   settings["permission_mode"] = TomlString(
     self.permission_mode.to_string_value(),
   )
@@ -252,7 +252,7 @@ fn AgentConfig::to_toml(self : AgentConfig) -> TomlValue {
 ///|
 /// Convert a ModelConfig to a TOML value for serialization.
 fn ModelConfig::to_toml(self : ModelConfig) -> TomlValue {
-  let table : Map[String, TomlValue] = {}
+  let table : Map[String, TomlValue] = Map([])
   table["id"] = TomlString(self.id)
   match self.type_ {
     Some(t) => table["type"] = TomlString(t)

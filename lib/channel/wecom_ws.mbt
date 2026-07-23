@@ -102,7 +102,7 @@ pub fn WeComWsState::reset_counter(self : WeComWsState) -> Unit {
 ///
 /// Format: {"type":"aibot_subscribe","bot_id":"...","secret":"..."}
 pub fn build_subscribe_frame(bot_id : String, secret : String) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "aibot_subscribe".to_json())
   frame.set("bot_id", bot_id.to_json())
   frame.set("secret", secret.to_json())
@@ -119,7 +119,7 @@ pub fn build_send_msg_frame(
   msg_type : String,
   req_id : String,
 ) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "aibot_send_msg".to_json())
   frame.set("req_id", req_id.to_json())
   frame.set("chat_id", chat_id.to_json())
@@ -133,7 +133,7 @@ pub fn build_send_msg_frame(
 ///
 /// Format: {"type":"ping"}
 pub fn build_ping_frame() -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "ping".to_json())
   Json::object(frame)
 }
@@ -143,7 +143,7 @@ pub fn build_ping_frame() -> Json {
 ///
 /// Format: {"type":"ack","req_id":"..."}
 pub fn build_ack_frame(req_id : String) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "ack".to_json())
   frame.set("req_id", req_id.to_json())
   Json::object(frame)
@@ -336,7 +336,7 @@ pub fn build_upload_init_frame(
   filename : String,
   total_size : Int,
 ) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "aibot_upload_init".to_json())
   frame.set("upload_id", upload_id.to_json())
   frame.set("filename", filename.to_json())
@@ -353,7 +353,7 @@ pub fn build_upload_chunk_frame(
   chunk_index : Int,
   data : String,
 ) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "aibot_upload_chunk".to_json())
   frame.set("upload_id", upload_id.to_json())
   frame.set("chunk_index", chunk_index.to_json())
@@ -366,7 +366,7 @@ pub fn build_upload_chunk_frame(
 ///
 /// Step 3 of 3-step chunked upload: finalize and receive media_id.
 pub fn build_upload_finish_frame(upload_id : String) -> Json {
-  let frame : Map[String, Json] = {}
+  let frame : Map[String, Json] = Map([])
   frame.set("type", "aibot_upload_finish".to_json())
   frame.set("upload_id", upload_id.to_json())
   Json::object(frame)

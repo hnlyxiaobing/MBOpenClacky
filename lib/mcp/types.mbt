@@ -258,7 +258,7 @@ pub fn McpServerSpec::from_json(name : String, json : Json) -> McpServerSpec? {
       }
       let env : Map[String, String]? = match obj {
         { "env": Object(entries), .. } => {
-          let result : Map[String, String] = {}
+          let result : Map[String, String] = Map([])
           entries.each(fn(k, v) {
             match v {
               String(s) => result[k] = s
@@ -279,7 +279,7 @@ pub fn McpServerSpec::from_json(name : String, json : Json) -> McpServerSpec? {
       }
       let headers : Map[String, String]? = match obj {
         { "headers": Object(entries), .. } => {
-          let result : Map[String, String] = {}
+          let result : Map[String, String] = Map([])
           entries.each(fn(k, v) {
             match v {
               String(s) => result[k] = s

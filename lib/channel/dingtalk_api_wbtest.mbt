@@ -75,7 +75,7 @@ test "dingtalk_build_access_token_request" {
 ///|
 test "dingtalk_parse_token_response_new_api" {
   let json_str = "{\"accessToken\":\"tok_abc\",\"expireIn\":7200}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Ok((token, expire)) => {
@@ -89,7 +89,7 @@ test "dingtalk_parse_token_response_new_api" {
 ///|
 test "dingtalk_parse_token_response_new_api_default_expire" {
   let json_str = "{\"accessToken\":\"tok_def\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Ok((token, expire)) => {
@@ -103,7 +103,7 @@ test "dingtalk_parse_token_response_new_api_default_expire" {
 ///|
 test "dingtalk_parse_token_response_oapi" {
   let json_str = "{\"access_token\":\"tok_xyz\",\"expires_in\":3600,\"errcode\":0,\"errmsg\":\"ok\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Ok((token, expire)) => {
@@ -117,7 +117,7 @@ test "dingtalk_parse_token_response_oapi" {
 ///|
 test "dingtalk_parse_token_response_oapi_error" {
   let json_str = "{\"access_token\":\"\",\"expires_in\":0,\"errcode\":-1,\"errmsg\":\"invalid appkey\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   match result {
     Err(ChannelError(msg)) => assert_true(msg.contains("invalid appkey"))
@@ -128,7 +128,7 @@ test "dingtalk_parse_token_response_oapi_error" {
 ///|
 test "dingtalk_parse_token_response_missing_token" {
   let json_str = "{\"other\":\"value\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = DingTalkApiClient::parse_token_response(json)
   assert_true(result is Err(_))
 }
@@ -197,7 +197,7 @@ test "dingtalk_build_send_msg_param_sample_text" {
   let param_str = DingTalkApiClient::build_send_msg_param(
     "sampleText", "Hello World",
   )
-  let json = @json.parse(param_str) catch { _ => Json::object({}) }
+  let json = @json.parse(param_str) catch { _ => Json::object(Map([])) }
   match json {
     Object(obj) =>
       match obj.get("content") {
@@ -213,7 +213,7 @@ test "dingtalk_build_send_msg_param_sample_markdown" {
   let param_str = DingTalkApiClient::build_send_msg_param(
     "sampleMarkdown", "# Title",
   )
-  let json = @json.parse(param_str) catch { _ => Json::object({}) }
+  let json = @json.parse(param_str) catch { _ => Json::object(Map([])) }
   match json {
     Object(obj) => {
       match obj.get("title") {
@@ -234,7 +234,7 @@ test "dingtalk_build_send_msg_param_sample_action_card" {
   let param_str = DingTalkApiClient::build_send_msg_param(
     "sampleActionCard", "Card content",
   )
-  let json = @json.parse(param_str) catch { _ => Json::object({}) }
+  let json = @json.parse(param_str) catch { _ => Json::object(Map([])) }
   match json {
     Object(obj) => {
       match obj.get("title") {
@@ -259,7 +259,7 @@ test "dingtalk_build_send_msg_param_default" {
   let param_str = DingTalkApiClient::build_send_msg_param(
     "unknownKey", "Fallback",
   )
-  let json = @json.parse(param_str) catch { _ => Json::object({}) }
+  let json = @json.parse(param_str) catch { _ => Json::object(Map([])) }
   match json {
     Object(obj) =>
       match obj.get("content") {

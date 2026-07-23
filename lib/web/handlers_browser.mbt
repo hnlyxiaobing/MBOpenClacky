@@ -83,7 +83,7 @@ pub fn handle_browser_screenshot(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let body : Json = event.req.body() catch { _ => Json::object({}) }
+  let body : Json = event.req.body() catch { _ => Json::object(Map([])) }
   match server_ref.val.browser_manager.mcp_call("take_screenshot", body) {
     Ok(result) => @core.HttpResponse::ok().json_value(result)
     Err(e) =>
@@ -184,7 +184,7 @@ pub fn handle_browser_tool_call(
   }
   let arguments = match body {
     { "arguments": args, .. } => args
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match server_ref.val.browser_manager.mcp_call(tool_name, arguments) {
     Ok(result) => @core.HttpResponse::ok().json_value(result)

@@ -246,7 +246,7 @@ pub fn validate_required_args(
 ///|
 /// Merge multiple JSON objects (later objects override earlier ones).
 pub fn merge_json_args(objects : Array[Json]) -> Json {
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   for obj in objects {
     match obj {
       Object(o) =>

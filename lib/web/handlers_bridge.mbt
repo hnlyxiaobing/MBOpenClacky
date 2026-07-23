@@ -10,7 +10,7 @@ fn event_to_request(
   params : Array[(String, String)],
 ) -> HttpRequest {
   let body : String = {
-    let j : Json = event.req.body() catch { _ => Json::object({}) }
+    let j : Json = event.req.body() catch { _ => Json::object(Map([])) }
     j.stringify()
   }
   {

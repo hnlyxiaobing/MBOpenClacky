@@ -9,7 +9,7 @@ fn wd_make_event(
   body? : String = "",
   params? : Array[(String, String)] = [],
 ) -> @crescent.Event {
-  let pmap : Map[String, StringView] = {}
+  let pmap : Map[String, StringView] = Map([])
   for t in params {
     let (k, v) = t
     pmap[k] = v.to_string_view()
@@ -18,7 +18,7 @@ fn wd_make_event(
     req: @crescent.HttpRequest::HttpRequest(
       http_method,
       url,
-      {},
+      Map([]),
       raw_body=@utf8.encode(body),
     ),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
@@ -34,7 +34,7 @@ fn wd_make_server_ref() -> Ref[WebServer] {
 ///|
 fn wd_response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

@@ -23,7 +23,7 @@ fn ex_make_event(
   body? : String = "",
   params? : Array[(String, String)] = [],
 ) -> @crescent.Event {
-  let pmap : Map[String, StringView] = {}
+  let pmap : Map[String, StringView] = Map([])
   for t in params {
     let (k, v) = t
     pmap[k] = v.to_string_view()
@@ -32,7 +32,7 @@ fn ex_make_event(
     req: @crescent.HttpRequest::HttpRequest(
       http_method,
       url,
-      {},
+      Map([]),
       raw_body=@utf8.encode(body),
     ),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
@@ -48,7 +48,7 @@ fn ex_make_server_ref() -> Ref[WebServer] {
 ///|
 fn ex_response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 
@@ -155,7 +155,7 @@ test "memories lifecycle create update get delete" {
   @debug.assert_eq(arr.length(), 1)
   let first = match arr[0] {
     Object(o) => Json::object(o)
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(ex_str_field(first, "content"), "world")
   let del = handle_memories_delete(
@@ -259,7 +259,7 @@ test "models lifecycle create list update delete" {
   @debug.assert_eq(arr.length(), 1)
   let first = match arr[0] {
     Object(o) => Json::object(o)
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(ex_str_field(first, "name"), "m2")
   let del = handle_models_delete(
@@ -388,7 +388,7 @@ fn ex_find_model(j : Json, id : String) -> Json {
       _ => ()
     }
   }
-  Json::object({})
+  Json::object(Map([]))
 }
 
 ///|
@@ -399,7 +399,7 @@ fn ex_nested_str_field(j : Json, path : String) -> String {
   let parts = path.split(".")
   let mut cur = j
   for part in parts {
-    let k = part.to_string()
+    let k = part.to_owned()
     match cur {
       Object(o) =>
         match o.get(k) {
@@ -576,8 +576,8 @@ test "config models post rejects missing api_key with field name" {
   let body = ex_response_json(resp)
   let msg = ex_str_field(body, "error")
   assert_true(msg.contains("api_key"))
-  assert_true(not(msg.contains("base_url")))
-  assert_true(not(msg.contains("model")))
+  assert_true(!msg.contains("base_url"))
+  assert_true(!msg.contains("model"))
 }
 
 ///|
@@ -597,7 +597,7 @@ test "config models post rejects missing base_url with field name" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let msg = ex_str_field(ex_response_json(resp), "error")
   assert_true(msg.contains("base_url"))
-  assert_true(not(msg.contains("api_key")))
+  assert_true(!msg.contains("api_key"))
 }
 
 ///|

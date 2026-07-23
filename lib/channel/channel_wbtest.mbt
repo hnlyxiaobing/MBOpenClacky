@@ -496,7 +496,7 @@ test "channel_error_display" {
   let config : ChannelConfig = {
     platform: Platform::Feishu,
     enabled: true,
-    settings: {},
+    settings: Map([]),
   }
   let result = FeishuAdapter::new(config)
   match result {
@@ -511,7 +511,7 @@ test "channel_error_display" {
 test "channel_manager_handle_webhook_unknown_platform" {
   let mgr = ChannelManager::new("/tmp/channels.yml")
   mgr.on_message(fn(_event) { () })
-  let body = @json.parse("{}") catch { _ => Json::object({}) }
+  let body = @json.parse("{}") catch { _ => Json::object(Map([])) }
   let result = mgr.handle_webhook("unknown", body)
   match result {
     Ok(_) => assert_true(false)
@@ -523,7 +523,7 @@ test "channel_manager_handle_webhook_unknown_platform" {
 test "channel_manager_handle_webhook_no_handler" {
   let mgr = ChannelManager::new("/tmp/channels.yml")
   let feishu_event = "{\"event\":{\"message\":{\"chat_id\":\"c1\",\"message_id\":\"m1\",\"content\":\"hi\"},\"sender\":{\"sender_id\":{\"user_id\":\"u1\",\"name\":\"Alice\"}}}}"
-  let json = @json.parse(feishu_event) catch { _ => Json::object({}) }
+  let json = @json.parse(feishu_event) catch { _ => Json::object(Map([])) }
   let result = mgr.handle_webhook("feishu", json)
   match result {
     Ok(_) => assert_true(false)
@@ -537,7 +537,7 @@ test "channel_manager_dedup" {
   let mut received = 0
   mgr.on_message(fn(_event) { received = received + 1 })
   let event_json = "{\"event\":{\"message\":{\"chat_id\":\"c1\",\"message_id\":\"m1\",\"content\":\"hi\"},\"sender\":{\"sender_id\":{\"user_id\":\"u1\",\"name\":\"Alice\"}}}}"
-  let json = @json.parse(event_json) catch { _ => Json::object({}) }
+  let json = @json.parse(event_json) catch { _ => Json::object(Map([])) }
   let _ = mgr.handle_webhook("feishu", json)
   // Second call with same digest should be deduped
   let _ = mgr.handle_webhook("feishu", json)
@@ -547,7 +547,7 @@ test "channel_manager_dedup" {
 ///|
 test "feishu_challenge_verification" {
   let challenge_json = "{\"type\":\"url_verification\",\"challenge\":\"test_challenge_string\"}"
-  let json = @json.parse(challenge_json) catch { _ => Json::object({}) }
+  let json = @json.parse(challenge_json) catch { _ => Json::object(Map([])) }
   match handle_feishu_challenge(json) {
     Some(c) => @debug.assert_eq(c, "test_challenge_string")
     None => assert_true(false)
@@ -557,7 +557,7 @@ test "feishu_challenge_verification" {
 ///|
 test "feishu_challenge_non_verification" {
   let event_json = "{\"type\":\"event_callback\",\"event\":{}}"
-  let json = @json.parse(event_json) catch { _ => Json::object({}) }
+  let json = @json.parse(event_json) catch { _ => Json::object(Map([])) }
   match handle_feishu_challenge(json) {
     Some(_) => assert_true(false)
     None => assert_true(true) // Should return None for non-verification events
@@ -702,7 +702,7 @@ test "http_headers_chain" {
 
 ///|
 test "build_json_body_produces_json" {
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("key", "value".to_json())
   let body = build_json_body(payload)
   assert_true(body.contains("key"))
@@ -726,7 +726,7 @@ test "parse_json_response_invalid" {
 ///|
 test "extract_api_error_error_field" {
   let json = @json.parse("{\"error\":\"bad token\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_api_error(json), "bad token")
 }
@@ -734,7 +734,7 @@ test "extract_api_error_error_field" {
 ///|
 test "extract_api_error_message_field" {
   let json = @json.parse("{\"message\":\"rate limited\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_api_error(json), "rate limited")
 }
@@ -742,7 +742,7 @@ test "extract_api_error_message_field" {
 ///|
 test "extract_api_error_msg_field_feishu" {
   let json = @json.parse("{\"msg\":\"invalid app_id\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_api_error(json), "invalid app_id")
 }
@@ -750,7 +750,7 @@ test "extract_api_error_msg_field_feishu" {
 ///|
 test "extract_api_error_errmsg_field_wecom" {
   let json = @json.parse("{\"errmsg\":\"access denied\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_api_error(json), "access denied")
 }
@@ -758,14 +758,14 @@ test "extract_api_error_errmsg_field_wecom" {
 ///|
 test "extract_api_error_nested" {
   let json = @json.parse("{\"error\":{\"message\":\"nested error\"}}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_api_error(json), "nested error")
 }
 
 ///|
 test "extract_api_error_unknown" {
-  let json = @json.parse("{\"code\":500}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"code\":500}") catch { _ => Json::object(Map([])) }
   @debug.assert_eq(extract_api_error(json), "Unknown API error")
 }
 
@@ -880,7 +880,7 @@ test "telegram_parse_updates_ok" {
   let json = @json.parse(
     "{\"ok\":true,\"result\":[{\"update_id\":1},{\"update_id\":2}]}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match TelegramApiClient::parse_updates_response(json) {
     Ok(arr) => @debug.assert_eq(arr.length(), 2)
@@ -891,7 +891,7 @@ test "telegram_parse_updates_ok" {
 ///|
 test "telegram_parse_updates_error" {
   let json = @json.parse("{\"ok\":false,\"description\":\"Unauthorized\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match TelegramApiClient::parse_updates_response(json) {
     Ok(_) => assert_true(false)
@@ -989,7 +989,7 @@ test "detect_chat_type_group" {
 
 ///|
 test "detect_chat_type_no_chat" {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   assert_true(detect_chat_type(msg) == ChatType::Direct)
 }
 
@@ -1023,7 +1023,7 @@ test "telegram_parse_event_text_message" {
   let update_json = @json.parse(
     "{\"update_id\":100,\"message\":{\"message_id\":42,\"chat\":{\"id\":123,\"type\":\"private\"},\"from\":{\"id\":5,\"first_name\":\"Bob\"},\"text\":\"hi\",\"date\":1700000000}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match TelegramAdapter::parse_event(update_json) {
     Ok(evt) => {
@@ -1040,7 +1040,9 @@ test "telegram_parse_event_text_message" {
 
 ///|
 test "telegram_parse_event_missing_message" {
-  let json = @json.parse("{\"update_id\":1}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"update_id\":1}") catch {
+    _ => Json::object(Map([]))
+  }
   assert_true(TelegramAdapter::parse_event(json) is Err(_))
 }
 
@@ -1268,7 +1270,7 @@ test "build_resume_payload" {
 ///|
 test "parse_gateway_event_hello" {
   let json = @json.parse("{\"op\":10,\"d\":{\"heartbeat_interval\":41250}}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_gateway_event(json) {
     Ok((op, _d)) => @debug.assert_eq(op, 10)
@@ -1278,14 +1280,14 @@ test "parse_gateway_event_hello" {
 
 ///|
 test "parse_gateway_event_missing_op" {
-  let json = @json.parse("{\"d\":{}}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"d\":{}}") catch { _ => Json::object(Map([])) }
   assert_true(parse_gateway_event(json) is Err(_))
 }
 
 ///|
 test "parse_hello_payload" {
   let data = @json.parse("{\"heartbeat_interval\":41250}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_hello_payload(data) {
     Ok(interval) => @debug.assert_eq(interval, 41250)
@@ -1298,7 +1300,7 @@ test "parse_ready_payload" {
   let data = @json.parse(
     "{\"session_id\":\"abc\",\"resume_gateway_url\":\"wss://r.gg\"}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_ready_payload(data) {
     Ok((sid, url)) => {
@@ -1312,7 +1314,7 @@ test "parse_ready_payload" {
 ///|
 test "extract_seq_from_event" {
   let json = @json.parse("{\"s\":7,\"t\":\"MESSAGE_CREATE\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_seq(json), Some(7))
 }
@@ -1320,15 +1322,15 @@ test "extract_seq_from_event" {
 ///|
 test "extract_event_name" {
   let json = @json.parse("{\"t\":\"MESSAGE_CREATE\",\"s\":5}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   @debug.assert_eq(extract_event_name(json), Some("MESSAGE_CREATE"))
 }
 
 ///|
 test "parse_invalid_session_resumable" {
-  let t = @json.parse("true") catch { _ => Json::object({}) }
-  let f = @json.parse("false") catch { _ => Json::object({}) }
+  let t = @json.parse("true") catch { _ => Json::object(Map([])) }
+  let f = @json.parse("false") catch { _ => Json::object(Map([])) }
   assert_true(parse_invalid_session(t))
   assert_false(parse_invalid_session(f))
 }
@@ -1551,7 +1553,7 @@ test "build_ack_frame" {
 ///|
 test "parse_incoming_frame_subscribe" {
   let json = @json.parse("{\"type\":\"aibot_subscribe\",\"status\":\"ok\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_incoming_frame(json) {
     Ok((ft, _)) => assert_true(ft == WeComFrameType::Subscribe)
@@ -1562,14 +1564,14 @@ test "parse_incoming_frame_subscribe" {
 ///|
 test "parse_incoming_frame_unknown_type" {
   let json = @json.parse("{\"type\":\"unknown_type\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   assert_true(parse_incoming_frame(json) is Err(_))
 }
 
 ///|
 test "parse_incoming_frame_missing_type" {
-  let json = @json.parse("{\"data\":1}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"data\":1}") catch { _ => Json::object(Map([])) }
   assert_true(parse_incoming_frame(json) is Err(_))
 }
 
@@ -1578,20 +1580,24 @@ test "parse_incoming_frame_missing_type" {
 ///|
 test "is_auth_error_type_field" {
   let json = @json.parse("{\"type\":\"auth_error\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   assert_true(is_auth_error(json))
 }
 
 ///|
 test "is_auth_error_errcode" {
-  let json = @json.parse("{\"errcode\":40001}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"errcode\":40001}") catch {
+    _ => Json::object(Map([]))
+  }
   assert_true(is_auth_error(json))
 }
 
 ///|
 test "is_auth_error_false" {
-  let json = @json.parse("{\"type\":\"data\"}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"type\":\"data\"}") catch {
+    _ => Json::object(Map([]))
+  }
   assert_false(is_auth_error(json))
 }
 
@@ -1668,7 +1674,7 @@ test "dingtalk_build_oapi_token_request" {
 ///|
 test "dingtalk_parse_token_new_api" {
   let json = @json.parse("{\"accessToken\":\"tok123\",\"expireIn\":7200}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match DingTalkApiClient::parse_token_response(json) {
     Ok((tok, exp)) => {
@@ -1684,7 +1690,7 @@ test "dingtalk_parse_token_oapi" {
   let json = @json.parse(
     "{\"access_token\":\"oapi_tok\",\"expires_in\":7200,\"errcode\":0}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match DingTalkApiClient::parse_token_response(json) {
     Ok((tok, exp)) => {
@@ -1700,7 +1706,7 @@ test "dingtalk_parse_token_oapi_error" {
   let json = @json.parse(
     "{\"access_token\":\"\",\"errcode\":40001,\"errmsg\":\"bad appkey\"}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match DingTalkApiClient::parse_token_response(json) {
     Ok(_) => assert_true(false)
@@ -1734,7 +1740,7 @@ test "dingtalk_webhook_payload_markdown" {
 ///|
 test "dingtalk_parse_stream_frame" {
   let json = @json.parse("{\"type\":\"CALLBACK\",\"data\":{\"text\":\"hi\"}}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_stream_frame(json) {
     Ok((t, _d)) => @debug.assert_eq(t, "CALLBACK")
@@ -1822,7 +1828,7 @@ test "weixin_parse_get_updates_response_ok" {
   let json = @json.parse(
     "{\"ret\":0,\"item_list\":[{\"msg\":\"hi\"}],\"buf\":\"next_cursor\"}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match client.parse_get_updates_response(json) {
     Ok((msgs, buf)) => {
@@ -1837,7 +1843,7 @@ test "weixin_parse_get_updates_response_ok" {
 test "weixin_parse_get_updates_response_error" {
   let client = WeixinApiClient::new("t", "u")
   let json = @json.parse("{\"ret\":-1,\"errmsg\":\"auth failed\"}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   assert_true(client.parse_get_updates_response(json) is Err(_))
 }

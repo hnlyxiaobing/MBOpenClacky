@@ -12,11 +12,11 @@ fn make_media_event(
     req: @crescent.HttpRequest::HttpRequest(
       http_method,
       url,
-      {},
+      Map([]),
       raw_body=@utf8.encode(body),
     ),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
-    params: {},
+    params: Map([]),
   }
 }
 
@@ -28,7 +28,7 @@ fn make_media_server_ref() -> Ref[WebServer] {
 ///|
 fn media_response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 
@@ -119,7 +119,7 @@ test "video understand with no model configured returns 500" {
   guard j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   let err = match obj.get("error") {
-    Some(s) => s.to_string()
+    Some(s) => @debug.to_string(s)
     None => ""
   }
   assert_true(err.contains("vision"))

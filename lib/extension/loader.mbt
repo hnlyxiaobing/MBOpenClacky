@@ -86,7 +86,7 @@ fn merge_extensions_with_priority(
   installed : Array[Extension],
   local_exts : Array[Extension],
 ) -> Array[Extension] {
-  let seen : Map[String, Bool] = {}
+  let seen : Map[String, Bool] = Map([])
   let result : Array[Extension] = []
   for ext in local_exts {
     if !seen.contains(ext.manifest.id) {
@@ -309,7 +309,7 @@ fn parse_string_map(
 ) -> Map[String, String] {
   match obj.get(key) {
     Some(Object(m)) => {
-      let result : Map[String, String] = {}
+      let result : Map[String, String] = Map([])
       m.each(fn(k, v) {
         match v {
           String(s) => result[k] = s
@@ -318,7 +318,7 @@ fn parse_string_map(
       })
       result
     }
-    _ => {}
+    _ => Map([])
   }
 }
 

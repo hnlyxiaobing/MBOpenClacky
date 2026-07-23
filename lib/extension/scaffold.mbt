@@ -65,7 +65,7 @@ fn build_manifest_from_template(
       name: info.1,
       description: info.2,
       path: info.3,
-      config: {},
+      config: Map([]),
     })
   }
   {
@@ -78,7 +78,7 @@ fn build_manifest_from_template(
     homepage: None,
     repository: None,
     keywords: ["sample", "extension"],
-    dependencies: {},
+    dependencies: Map([]),
     contributions,
     enabled_by_default: true,
   }
@@ -132,7 +132,7 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
       ExtensionContributionType::Hook => "hook"
       ExtensionContributionType::Patch => "patch"
     }
-    let config_obj : Map[String, Json] = {}
+    let config_obj : Map[String, Json] = Map([])
     contrib.config.each(fn(k, v) { config_obj[k] = v.to_json() })
     contributions_json.push(
       Json::object({
@@ -164,7 +164,7 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
     Some(repo) => manifest_obj["repository"] = repo.to_json()
     None => ()
   }
-  let deps_obj : Map[String, Json] = {}
+  let deps_obj : Map[String, Json] = Map([])
   manifest.dependencies.each(fn(k, v) { deps_obj[k] = v.to_json() })
   manifest_obj["dependencies"] = Json::object(deps_obj)
   Json::object(manifest_obj).stringify()
@@ -253,7 +253,7 @@ fn generate_skill_template(
       Json::object({
         "name": "sample_action".to_json(),
         "description": "A sample skill action".to_json(),
-        "parameters": Json::object({}),
+        "parameters": Json::object(Map([])),
       }),
     ]),
   }

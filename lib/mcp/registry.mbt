@@ -18,10 +18,10 @@ pub(all) struct McpRegistry {
 /// Create a new empty McpRegistry.
 pub fn McpRegistry::new() -> McpRegistry {
   {
-    clients: {},
+    clients: Map([]),
     config_path: None,
-    specs: {},
-    enabled: {},
+    specs: Map([]),
+    enabled: Map([]),
     idle_timeout: DEFAULT_IDLE_TIMEOUT,
   }
 }
@@ -35,10 +35,10 @@ pub fn McpRegistry::load_from_file(path : String) -> McpRegistry {
   // 2. Parse JSON
   // 3. Extract mcpServers section
   // For now, return an empty registry with the path stored
-  let specs : Map[String, McpServerSpec] = {}
-  let enabled : Map[String, Bool] = {}
+  let specs : Map[String, McpServerSpec] = Map([])
+  let enabled : Map[String, Bool] = Map([])
   {
-    clients: {},
+    clients: Map([]),
     config_path: Some(path),
     specs,
     enabled,
@@ -52,10 +52,10 @@ pub fn McpRegistry::load_from_json(
   json_str : String,
 ) -> McpRegistry raise McpError {
   let specs = parse_mcp_config(json_str)
-  let enabled : Map[String, Bool] = {}
+  let enabled : Map[String, Bool] = Map([])
   specs.each(fn(name, _spec) { enabled[name] = true })
   let registry : McpRegistry = {
-    clients: {},
+    clients: Map([]),
     config_path: None,
     specs,
     enabled,
@@ -114,7 +114,7 @@ pub fn McpRegistry::set_enabled(
 ) -> Unit {
   self.enabled[name] = enabled
   // When disabling, disconnect active client
-  if not(enabled) {
+  if !enabled {
     match self.clients.get(name) {
       Some(client) => client.disconnect()
       None => ()
@@ -182,7 +182,7 @@ pub fn McpRegistry::reload(self : McpRegistry) -> Unit raise McpError {
       let new_reg = McpRegistry::load_from_file(path)
       self.specs = new_reg.specs
       self.enabled = new_reg.enabled
-      self.clients = {}
+      self.clients = Map([])
     }
     None => raise McpError("No config path set for reload")
   }
@@ -219,7 +219,7 @@ pub fn McpRegistry::cleanup_idle(self : McpRegistry) -> Unit {
 /// Shutdown all connections.
 pub fn McpRegistry::shutdown(self : McpRegistry) -> Unit {
   self.clients.each(fn(_name, client) { client.disconnect() })
-  self.clients = {}
+  self.clients = Map([])
 }
 
 ///|
@@ -243,7 +243,7 @@ pub fn parse_mcp_config(
   let json : Json = @json.parse(json_str) catch {
     _ => raise McpError("Failed to parse mcp.json: invalid JSON")
   }
-  let specs : Map[String, McpServerSpec] = {}
+  let specs : Map[String, McpServerSpec] = Map([])
   // Try "mcpServers" key first, then root object
   let servers_obj = match json {
     { "mcpServers": Object(servers), .. } => servers

@@ -76,11 +76,11 @@ fn save_billing_state(
     None => Json::null()
   }
   let state : Map[String, Json] = {
-    let m : Map[String, Json] = {}
+    let m : Map[String, Json] = Map([])
     m.set("active", active.to_json())
     m.set("plan", plan.to_json())
     m.set("expires_at", expires_json)
-    m.set("updated_at", @async.now().to_string().to_json())
+    m.set("updated_at", @env.now().to_string().to_json())
     m
   }
   // Ensure directory exists
@@ -134,7 +134,7 @@ pub fn handle_billing_status(request : HttpRequest) -> HttpResponse {
     None => Json::null()
   }
   let body : Map[String, Json] = {
-    let m : Map[String, Json] = {}
+    let m : Map[String, Json] = Map([])
     m.set("active", active.to_json())
     m.set("plan", plan.to_json())
     m.set("expires_at", expires_json)
@@ -177,7 +177,7 @@ pub fn handle_billing_activate(request : HttpRequest) -> HttpResponse {
       )
   }
   // Compute expiry based on plan type
-  let now_ms = @async.now()
+  let now_ms = @env.now().reinterpret_as_int64()
   let expires_at : String = match valid_plan {
     "monthly" => {
       let expires_ms = now_ms + 2_592_000_000L // ~30 days
@@ -193,7 +193,7 @@ pub fn handle_billing_activate(request : HttpRequest) -> HttpResponse {
   save_billing_state(true, valid_plan, Some(expires_at))
   // Return success response
   let resp : Map[String, Json] = {
-    let m : Map[String, Json] = {}
+    let m : Map[String, Json] = Map([])
     m.set("active", true.to_json())
     m.set("plan", valid_plan.to_json())
     m.set("expires_at", expires_at.to_json())
@@ -212,11 +212,11 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
   let store = @billing.BillingStore::default()
   let summary = store.summary(@billing.Month)
   // Build by_model as object: { "model_name": { tokens, cost, ... } }
-  let by_model_map : Map[String, Json] = {}
+  let by_model_map : Map[String, Json] = Map([])
   summary.by_model.each(fn(model, ms) {
     let tokens = ms.prompt_tokens + ms.completion_tokens
     let entry : Map[String, Json] = {
-      let m : Map[String, Json] = {}
+      let m : Map[String, Json] = Map([])
       m.set("tokens", tokens.to_json())
       m.set("cost", ms.cost.to_json())
       m.set("prompt_tokens", ms.prompt_tokens.to_json())
@@ -228,11 +228,11 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
   })
   // Build by_day from daily breakdown: { "YYYY-MM-DD": { tokens, cost, requests } }
   let daily = store.daily_breakdown(days=30)
-  let by_day_map : Map[String, Json] = {}
+  let by_day_map : Map[String, Json] = Map([])
   daily.each(fn(ds) {
     if ds.total_tokens > 0 || ds.request_count > 0 {
       let entry : Map[String, Json] = {
-        let m : Map[String, Json] = {}
+        let m : Map[String, Json] = Map([])
         m.set("tokens", ds.total_tokens.to_json())
         m.set("cost", ds.total_cost.to_json())
         m.set("requests", ds.request_count.to_json())
@@ -244,7 +244,7 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
   let total_tokens = summary.total_prompt_tokens +
     summary.total_completion_tokens
   let body : Map[String, Json] = {
-    let m : Map[String, Json] = {}
+    let m : Map[String, Json] = Map([])
     m.set("period", "current_month".to_json())
     m.set("total_tokens", total_tokens.to_json())
     m.set("total_requests", summary.record_count.to_json())
@@ -364,7 +364,7 @@ pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
     None => Json::null()
   }
   let body : Map[String, Json] = {
-    let m : Map[String, Json] = {}
+    let m : Map[String, Json] = Map([])
     m.set("active", active.to_json())
     m.set("plan", plan.to_json())
     m.set("expires_at", expires_json)
@@ -433,7 +433,7 @@ pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
   let store = @billing.BillingStore::default()
   let records = store.query(limit=2000)
   // Aggregate by session_id
-  let session_map : Map[String, (Int, Double)] = {}
+  let session_map : Map[String, (Int, Double)] = Map([])
   for r in records {
     match session_map.get(r.session_id) {
       Some((count, cost)) =>

@@ -41,7 +41,7 @@ pub fn parse_feishu_message(
     }
     "post" => {
       let content_json = @json.parse(content_str) catch {
-        _ => Json::object({})
+        _ => Json::object(Map([]))
       }
       let text = parse_feishu_post(content_json)
       let doc_urls = extract_feishu_doc_urls(text)
@@ -83,7 +83,7 @@ pub fn parse_feishu_message(
 /// Input is a JSON-encoded string like `{"text":"Hello @_user_1"}`.
 /// Returns the extracted plain text.
 pub fn parse_feishu_text(content_str : String) -> String {
-  let json = @json.parse(content_str) catch { _ => Json::object({}) }
+  let json = @json.parse(content_str) catch { _ => Json::object(Map([])) }
   match json {
     Object(obj) =>
       match obj.get("text") {
@@ -275,7 +275,9 @@ pub fn parse_feishu_image(message : Map[String, Json]) -> Attachment? {
     Some(String(s)) => s
     _ => return None
   }
-  let content_json = @json.parse(content_str) catch { _ => Json::object({}) }
+  let content_json = @json.parse(content_str) catch {
+    _ => Json::object(Map([]))
+  }
   let image_key = match content_json {
     Object(obj) =>
       match obj.get("image_key") {
@@ -300,7 +302,9 @@ pub fn parse_feishu_file(message : Map[String, Json]) -> Attachment? {
     Some(String(s)) => s
     _ => return None
   }
-  let content_json = @json.parse(content_str) catch { _ => Json::object({}) }
+  let content_json = @json.parse(content_str) catch {
+    _ => Json::object(Map([]))
+  }
   match content_json {
     Object(obj) => {
       let file_key = match obj.get("file_key") {

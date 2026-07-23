@@ -86,7 +86,7 @@ fn ensure_backups_dir() -> Unit {
 ///|
 /// Generate a unique backup ID from timestamp.
 fn generate_backup_id() -> String {
-  let ts = @async.now()
+  let ts = @env.now().reinterpret_as_int64()
   "backup-\{ts}"
 }
 
@@ -488,7 +488,7 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
   let mut description = ""
   if request.body != "" {
     let body_json : Json = @json.parse(request.body) catch {
-      _ => Json::object({})
+      _ => Json::object(Map([]))
     }
     match body_json {
       Object(obj) => {
@@ -506,7 +506,7 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
   }
 
   let id = generate_backup_id()
-  let epoch_ms = @async.now()
+  let epoch_ms = @env.now().reinterpret_as_int64()
   let created_at = format_iso_timestamp(epoch_ms)
   let label = if description != "" {
     description

@@ -63,15 +63,15 @@ pub(all) struct TodoItem {
 
 ///|
 impl ToJson for TodoItem with fn to_json(self) {
-  let deps : Array[Json] = self.blocked_by.map(d => d.to_json())
+  let deps : Array[Json] = self.blocked_by.map(d => ToJson::to_json(d))
   Json::object({
-    "id": self.id.to_json(),
-    "title": self.title.to_json(),
-    "description": self.description.to_json(),
-    "status": self.status.to_json(),
-    "blocked_by": deps.to_json(),
-    "created_at": self.created_at.to_json(),
-    "updated_at": self.updated_at.to_json(),
+    "id": ToJson::to_json(self.id),
+    "title": ToJson::to_json(self.title),
+    "description": ToJson::to_json(self.description),
+    "status": ToJson::to_json(self.status),
+    "blocked_by": ToJson::to_json(deps),
+    "created_at": ToJson::to_json(self.created_at),
+    "updated_at": ToJson::to_json(self.updated_at),
   })
 }
 

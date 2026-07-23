@@ -46,7 +46,7 @@ pub fn SessionRegistry::register(
     worker_id,
     created_at,
     last_activity: created_at,
-    metadata: {},
+    metadata: Map([]),
   }
   self.entries.push(entry)
   Ok(())

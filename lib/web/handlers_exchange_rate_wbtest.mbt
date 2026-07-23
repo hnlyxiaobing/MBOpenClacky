@@ -3,9 +3,9 @@
 ///|
 fn make_rate_event(url : String) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::HttpRequest(Get, url, {}, raw_body=b""),
+    req: @crescent.HttpRequest::HttpRequest(Get, url, Map([]), raw_body=b""),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
-    params: {},
+    params: Map([]),
   }
 }
 
@@ -17,7 +17,7 @@ fn make_rate_server_ref() -> Ref[WebServer] {
 ///|
 fn rate_response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

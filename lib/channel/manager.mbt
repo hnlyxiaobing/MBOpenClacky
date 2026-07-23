@@ -52,7 +52,10 @@ pub fn ChannelManager::load_config(
     return Ok(())
   }
   let content = @fs.read_file_to_string(self.config_path) catch {
-    e => return Err(ChannelError("Failed to read config file: \{e}"))
+    e =>
+      return Err(
+        ChannelError("Failed to read config file: \{@debug.to_repr(e)}"),
+      )
   }
   let json = @json.parse(content) catch {
     e => return Err(ChannelError("Invalid JSON in config file: \{e}"))
@@ -71,7 +74,11 @@ pub fn ChannelManager::load_config(
     match parse_channel_config_entry(entry) {
       Some(cfg) => parsed.push(cfg)
       None =>
-        return Err(ChannelError("Invalid channel entry in config: \{entry}"))
+        return Err(
+          ChannelError(
+            "Invalid channel entry in config: \{@debug.to_repr(entry)}",
+          ),
+        )
     }
   }
   self.configs = parsed
@@ -98,7 +105,7 @@ fn parse_channel_config_entry(json : Json) -> ChannelConfig? {
     Some(True) => true
     _ => false
   }
-  let settings : Map[String, String] = {}
+  let settings : Map[String, String] = Map([])
   match obj.get("settings") {
     Some(Object(s)) =>
       for k, v in s {
@@ -213,7 +220,7 @@ pub fn ChannelManager::status(self : ChannelManager) -> Array[(String, Bool)] {
 pub fn ChannelManager::validate_all(
   self : ChannelManager,
 ) -> Map[String, Array[String]] {
-  let result : Map[String, Array[String]] = {}
+  let result : Map[String, Array[String]] = Map([])
   for config in self.configs {
     let name = config.platform.to_string_value()
     match self.registry.find(name) {

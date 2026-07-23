@@ -189,7 +189,7 @@ test "weixin_api_build_upload_request" {
 test "weixin_api_parse_get_updates_success" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":0,\"item_list\":[{\"msg\":\"hello\"}],\"buf\":\"next_cursor\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_get_updates_response(json)
   match result {
     Ok((messages, next_buf)) => {
@@ -204,7 +204,7 @@ test "weixin_api_parse_get_updates_success" {
 test "weixin_api_parse_get_updates_empty_buf" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":0,\"item_list\":[],\"buf\":\"\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_get_updates_response(json)
   match result {
     Ok((messages, next_buf)) => {
@@ -219,7 +219,7 @@ test "weixin_api_parse_get_updates_empty_buf" {
 test "weixin_api_parse_get_updates_no_buf" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":0,\"item_list\":[]}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_get_updates_response(json)
   match result {
     Ok((_, next_buf)) => assert_true(next_buf is None)
@@ -231,7 +231,7 @@ test "weixin_api_parse_get_updates_no_buf" {
 test "weixin_api_parse_get_updates_error" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":-1,\"errmsg\":\"Invalid token\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_get_updates_response(json)
   match result {
     Err(ChannelError(msg)) => assert_true(msg.contains("Invalid token"))
@@ -253,7 +253,7 @@ test "weixin_api_parse_get_updates_invalid_format" {
 test "weixin_api_parse_send_response_success" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":0,\"msg_id\":\"msg_123\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_send_response(json)
   match result {
     Ok((msg_id, ret_code)) => {
@@ -268,7 +268,7 @@ test "weixin_api_parse_send_response_success" {
 test "weixin_api_parse_send_response_error" {
   let client = WeixinApiClient::new("tok", "uin")
   let json_str = "{\"ret\":-2,\"msg_id\":\"\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = client.parse_send_response(json)
   match result {
     Ok((msg_id, ret_code)) => {

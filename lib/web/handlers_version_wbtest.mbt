@@ -6,9 +6,14 @@ fn make_version_event(
   url : String,
 ) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::HttpRequest(http_method, url, {}, raw_body=b""),
+    req: @crescent.HttpRequest::HttpRequest(
+      http_method,
+      url,
+      Map([]),
+      raw_body=b"",
+    ),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
-    params: {},
+    params: Map([]),
   }
 }
 
@@ -20,7 +25,7 @@ fn make_version_server_ref() -> Ref[WebServer] {
 ///|
 fn version_response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

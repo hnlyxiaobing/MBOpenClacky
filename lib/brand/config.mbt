@@ -238,7 +238,7 @@ pub fn BrandConfig::refresh_distribution(
               _ => None
             }
           }
-          let dist : Map[String, String] = {}
+          let dist : Map[String, String] = Map([])
           let keys = [
             "product_name", "package_name", "logo_url", "support_contact", "support_qr_url",
             "theme_color", "homepage_url",
@@ -318,7 +318,7 @@ pub fn BrandConfig::save(
 
 ///|
 fn BrandConfig::to_toml_string(self : BrandConfig) -> String {
-  let root : Map[String, TomlValue] = {}
+  let root : Map[String, TomlValue] = Map([])
   fn put(m : Map[String, TomlValue], k : String, v : String?) -> Unit {
     match v {
       Some(s) => m[k] = TomlString(s)
@@ -354,7 +354,7 @@ fn BrandConfig::to_toml_string(self : BrandConfig) -> String {
 ///|
 /// Hash representation for JSON serialization.
 pub fn BrandConfig::to_h(self : BrandConfig) -> Map[String, String] {
-  let r : Map[String, String] = {}
+  let r : Map[String, String] = Map([])
   match self.product_name {
     Some(v) => r["product_name"] = v
     None => ()

@@ -70,7 +70,7 @@ pub fn PatchLoader::apply_patches(
 ) -> Result[Unit, String] {
   let _ = self
   let failures : Array[String] = []
-  let groups : Map[String, Array[PatchInfo]] = {}
+  let groups : Map[String, Array[PatchInfo]] = Map([])
   for p in patches {
     if !p.enabled {
       continue
@@ -162,7 +162,7 @@ fn parse_patch_json(content : String) -> PatchInfo? {
 ///|
 /// Parse a simple TOML-like patch descriptor (key = "value" lines).
 fn parse_patch_simple(content : String, filename : String) -> PatchInfo? {
-  let fields : Map[String, String] = {}
+  let fields : Map[String, String] = Map([])
   let lines = content.split("\n")
   for line in lines {
     let trimmed = line.trim().to_owned()

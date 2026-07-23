@@ -44,7 +44,7 @@ pub fn package_extension(
   // Compute checksum over the manifest id+version+root_path for traceability.
   let sha256 = compute_checksum(ext.manifest.id, ext.manifest.version, ext_dir)
   // Write sidecar metadata.
-  let info_obj : Map[String, Json] = {}
+  let info_obj : Map[String, Json] = Map([])
   info_obj["id"] = ext.manifest.id.to_json()
   info_obj["version"] = ext.manifest.version.to_json()
   info_obj["sha256"] = sha256.to_json()

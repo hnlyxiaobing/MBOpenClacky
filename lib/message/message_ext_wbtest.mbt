@@ -166,7 +166,7 @@ test "ext_history_delete_where_no_match" {
 test "ext_history_mutate_last_found" {
   let h = MessageHistory::new()
   h.append(Message::user("original"))
-  let found = h.mutate_last_matching(fn(msg) { msg.role == User }, fn(msg) {
+  let found = h.mutate_last_matching(fn(msg) { msg.role == User }, fn(_) {
     Message::user("mutated")
   })
   assert_true(found)
@@ -221,7 +221,7 @@ test "ext_imageblock_with_detail" {
 ///|
 test "ext_contentblock_text_to_json" {
   let cb = ContentBlock::Text({ text: "hi" })
-  match cb.to_json() {
+  match ToJson::to_json(cb) {
     Object(obj) => {
       assert_eq(obj.get("type"), Some("text".to_json()))
       match obj.get("text") {
@@ -236,7 +236,7 @@ test "ext_contentblock_text_to_json" {
 ///|
 test "ext_contentblock_image_to_json" {
   let cb = ContentBlock::Image({ url: "http://x.png", detail: None })
-  match cb.to_json() {
+  match ToJson::to_json(cb) {
     Object(obj) => assert_eq(obj.get("type"), Some("image_url".to_json()))
     _ => assert_true(false)
   }
@@ -245,7 +245,7 @@ test "ext_contentblock_image_to_json" {
 ///|
 test "ext_messagecontent_text_to_json" {
   let mc = MessageContent::Text("hello")
-  match mc.to_json() {
+  match ToJson::to_json(mc) {
     String(s) => assert_eq(s, "hello")
     _ => assert_true(false)
   }
@@ -257,7 +257,7 @@ test "ext_messagecontent_blocks_to_json" {
     ContentBlock::Text({ text: "a" }),
     ContentBlock::Image({ url: "u", detail: None }),
   ])
-  match mc.to_json() {
+  match ToJson::to_json(mc) {
     Array(arr) => assert_eq(arr.length(), 2)
     _ => assert_true(false)
   }
@@ -432,7 +432,7 @@ test "ext_history_append_user_drops_dangling" {
 ///|
 test "ext_history_delete_where_all" {
   let h = MessageHistory::from_messages([Message::user("a"), Message::user("b")])
-  h.delete_where(fn(msg) { true })
+  h.delete_where(fn(_) { true })
   assert_eq(h.size(), 0)
 }
 
@@ -443,7 +443,7 @@ test "ext_history_mutate_last_multiple_users" {
     Message::user("second"),
     Message::user("third"),
   ])
-  let found = h.mutate_last_matching(fn(msg) { msg.role == User }, fn(msg) {
+  let found = h.mutate_last_matching(fn(msg) { msg.role == User }, fn(_) {
     Message::user("replaced")
   })
   assert_true(found)
@@ -506,7 +506,7 @@ test "ext_history_pending_after_tool_result" {
 ///|
 test "ext_message_to_json_minimal" {
   let msg = Message::user("hello world")
-  match msg.to_json() {
+  match ToJson::to_json(msg) {
     Object(obj) => {
       assert_eq(obj.get("role"), Some("user".to_json()))
       assert_eq(obj.get("content"), Some("hello world".to_json()))
@@ -534,7 +534,7 @@ test "ext_message_to_json_with_tool_calls" {
     compressed_summary: None,
     transient: None,
   }
-  match msg.to_json() {
+  match ToJson::to_json(msg) {
     Object(obj) => assert_true(obj.get("tool_calls") is Some(_))
     _ => assert_true(false)
   }
@@ -543,7 +543,7 @@ test "ext_message_to_json_with_tool_calls" {
 ///|
 test "ext_toolcall_to_json_structure" {
   let tc = ToolCall::new("id-1", "func_name", "{\"arg\":1}")
-  match tc.to_json() {
+  match ToJson::to_json(tc) {
     Object(obj) => {
       assert_eq(obj.get("id"), Some("id-1".to_json()))
       assert_eq(obj.get("type_"), Some("function".to_json()))
@@ -561,10 +561,10 @@ test "ext_toolcall_to_json_structure" {
 
 ///|
 test "ext_role_to_json_all_variants" {
-  assert_true(User.to_json() == "user".to_json())
-  assert_true(Assistant.to_json() == "assistant".to_json())
-  assert_true(System.to_json() == "system".to_json())
-  assert_true(Tool.to_json() == "tool".to_json())
+  assert_true(ToJson::to_json(User) == "user".to_json())
+  assert_true(ToJson::to_json(Assistant) == "assistant".to_json())
+  assert_true(ToJson::to_json(System) == "system".to_json())
+  assert_true(ToJson::to_json(Tool) == "tool".to_json())
 }
 
 ///|

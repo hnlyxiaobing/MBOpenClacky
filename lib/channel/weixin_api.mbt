@@ -66,7 +66,7 @@ pub fn WeixinApiClient::build_get_updates_request(
   buf : String?,
 ) -> Json {
   let _ = self.token
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   let timeout = 40
   payload.set("timeout", timeout.to_json())
   match buf {
@@ -148,9 +148,9 @@ pub fn WeixinApiClient::build_send_text_request(
   context_token : String,
 ) -> Json {
   let _ = self.token
-  let text_item : Map[String, Json] = {}
+  let text_item : Map[String, Json] = Map([])
   text_item.set("text", text.to_json())
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("to_user_name", to_user_id.to_json())
   payload.set("text_item", Json::object(text_item))
   payload.set("context_token", context_token.to_json())
@@ -207,7 +207,7 @@ pub fn WeixinApiClient::build_typing_request(
   status : Int,
 ) -> Json {
   let _ = self.token
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("to_user_name", to_user_id.to_json())
   payload.set("typing_status", status.to_json())
   Json::object(payload)
@@ -238,7 +238,7 @@ pub fn WeixinApiClient::build_upload_request(
   file_size : Int,
 ) -> Json {
   let _ = self.token
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("media_type", media_type.to_json())
   payload.set("file_size", file_size.to_json())
   Json::object(payload)

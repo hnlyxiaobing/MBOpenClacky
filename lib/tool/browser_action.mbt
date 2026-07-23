@@ -28,7 +28,7 @@ fn Browser::dispatch_act(
     "click" => self.with_page("click", args)
     "dblclick" => {
       // Add dblClick flag so the MCP server knows to double-click
-      let augmented : Map[String, Json] = {}
+      let augmented : Map[String, Json] = Map([])
       for entry in args.iter() {
         augmented[entry.0] = entry.1
       }
@@ -66,7 +66,7 @@ fn Browser::dispatch_scroll(
     return native_result
   }
   // Fallback: build evaluate_script scrollBy args
-  let fallback_args : Map[String, Json] = {}
+  let fallback_args : Map[String, Json] = Map([])
   for entry in args.iter() {
     fallback_args[entry.0] = entry.1
   }

@@ -8,7 +8,7 @@ test "ChannelInfo serialization roundtrip" {
     user_id: "u-abc",
     webhook_url: "https://hook.example.com/cb",
   }
-  let json = ci.to_json()
+  let json = ToJson::to_json(ci)
   let parsed : ChannelInfo = @json.from_json(json)
   @debug.assert_eq(parsed, ci)
 }
@@ -20,17 +20,17 @@ test "SessionTaskMeta serialization roundtrip" {
     started_at: "1719100000000",
     ended_at: "1719103600000",
   }
-  let json = meta.to_json()
+  let json = ToJson::to_json(meta)
   let parsed : SessionTaskMeta = @json.from_json(json)
   @debug.assert_eq(parsed, meta)
 }
 
 ///|
 test "SessionTimeMachine serialization roundtrip" {
-  let parents : Map[String, String] = {}
+  let parents : Map[String, String] = Map([])
   parents["2"] = "1"
   parents["3"] = "2"
-  let meta_map : Map[String, SessionTaskMeta] = {}
+  let meta_map : Map[String, SessionTaskMeta] = Map([])
   meta_map["1"] = {
     title: "Initial task",
     started_at: "1719100000000",
@@ -47,7 +47,7 @@ test "SessionTimeMachine serialization roundtrip" {
     current_task_id: 3,
     active_task_id: 2,
   }
-  let json = tm.to_json()
+  let json = ToJson::to_json(tm)
   let parsed : SessionTimeMachine = @json.from_json(json)
   @debug.assert_eq(parsed.current_task_id, 3)
   @debug.assert_eq(parsed.active_task_id, 2)
@@ -95,7 +95,7 @@ test "SessionData with new fields serialization" {
     agent_profile: "general",
     sub_model: None,
   }
-  let json = data.to_json()
+  let json = ToJson::to_json(data)
   let parsed : SessionData = @json.from_json(json)
   @debug.assert_eq(parsed.session_id, "s_123")
   @debug.assert_eq(parsed.channel_info.unwrap().platform, "telegram")

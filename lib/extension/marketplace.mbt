@@ -30,7 +30,7 @@ fn enabled_state_file_path() -> String {
 /// The file format is `{"states": {"<ext_id>": <bool>}, "updated_at": <int64>}`.
 fn load_enabled_state_from_disk() -> Map[String, Bool] {
   let path = enabled_state_file_path()
-  let result : Map[String, Bool] = {}
+  let result : Map[String, Bool] = Map([])
   if !@fs.path_exists(path) {
     return result
   }
@@ -61,7 +61,7 @@ fn save_enabled_state_to_disk(state : Map[String, Bool]) -> Unit {
   let path = enabled_state_file_path()
   let parent = @path.Path::dirname(@path.Path(path)).to_string()
   @utils.ensure_dir(parent)
-  let states_obj : Map[String, Json] = {}
+  let states_obj : Map[String, Json] = Map([])
   state.each(fn(id, value) { states_obj[id] = value.to_json() })
   let wrapper : Map[String, Json] = {
     "states": Json::object(states_obj),
@@ -75,7 +75,7 @@ fn save_enabled_state_to_disk(state : Map[String, Bool]) -> Unit {
 ///|
 /// Default empty registry value.
 fn default_registry() -> Map[String, RegistryEntry] {
-  {}
+  Map([])
 }
 
 ///|
@@ -104,7 +104,7 @@ fn load_registry_from_disk() -> Map[String, RegistryEntry] {
 fn parse_registry_entries(
   obj : Map[String, Json],
 ) -> Map[String, RegistryEntry] {
-  let entries : Map[String, RegistryEntry] = {}
+  let entries : Map[String, RegistryEntry] = Map([])
   obj.each(fn(id, value) {
     match parse_registry_entry(value) {
       Some(entry) => entries[id] = entry
@@ -142,7 +142,7 @@ fn parse_registry_entry(json : Json) -> RegistryEntry? {
       }
       let metadata = match obj.get("metadata") {
         Some(Object(m)) => {
-          let md : Map[String, String] = {}
+          let md : Map[String, String] = Map([])
           m.each(fn(k, v) {
             match v {
               String(s) => md[k] = s
@@ -151,7 +151,7 @@ fn parse_registry_entry(json : Json) -> RegistryEntry? {
           })
           md
         }
-        _ => {}
+        _ => Map([])
       }
       let installs = match obj.get("installs") {
         Some(Number(d, ..)) => d.to_int()
@@ -173,10 +173,10 @@ fn save_registry_to_disk(entries : Map[String, RegistryEntry]) -> Unit {
   let path = registry_file_path()
   let parent = @path.Path::dirname(@path.Path(path)).to_string()
   @utils.ensure_dir(parent)
-  let entries_obj : Map[String, Json] = {}
+  let entries_obj : Map[String, Json] = Map([])
   entries.each(fn(id, entry) {
     let versions_json : Array[Json] = entry.versions.map(fn(v) { v.to_json() })
-    let metadata_json : Map[String, Json] = {}
+    let metadata_json : Map[String, Json] = Map([])
     entry.metadata.each(fn(k, v) { metadata_json[k] = v.to_json() })
     entries_obj[id] = Json::object({
       "id": entry.id.to_json(),

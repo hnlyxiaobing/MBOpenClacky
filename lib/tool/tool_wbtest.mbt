@@ -50,7 +50,7 @@ test "request_user_feedback_with_options" {
 ///|
 test "request_user_feedback_missing_question" {
   let tool = RequestUserFeedback::{  }
-  let args : Map[String, Json] = {}
+  let args : Map[String, Json] = Map([])
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("question") is Some(_))

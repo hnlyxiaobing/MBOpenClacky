@@ -402,14 +402,16 @@ test "extract_key_value_pairs_unquoted_values" {
 
 ///|
 test "validate_required_args_all_present" {
-  let json = @json.parse("{\"a\":1,\"b\":2}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"a\":1,\"b\":2}") catch {
+    _ => Json::object(Map([]))
+  }
   let missing = validate_required_args(json, ["a", "b"])
   @debug.assert_eq(missing.length(), 0)
 }
 
 ///|
 test "validate_required_args_some_missing" {
-  let json = @json.parse("{\"a\":1}") catch { _ => Json::object({}) }
+  let json = @json.parse("{\"a\":1}") catch { _ => Json::object(Map([])) }
   let missing = validate_required_args(json, ["a", "b", "c"])
   @debug.assert_eq(missing.length(), 2)
   assert_true(missing.contains("b"))
@@ -427,8 +429,8 @@ test "validate_required_args_non_object" {
 
 ///|
 test "merge_json_args_basic" {
-  let obj1 = @json.parse("{\"a\":1}") catch { _ => Json::object({}) }
-  let obj2 = @json.parse("{\"b\":2}") catch { _ => Json::object({}) }
+  let obj1 = @json.parse("{\"a\":1}") catch { _ => Json::object(Map([])) }
+  let obj2 = @json.parse("{\"b\":2}") catch { _ => Json::object(Map([])) }
   let merged = merge_json_args([obj1, obj2])
   match merged {
     Object(obj) => {
@@ -441,8 +443,8 @@ test "merge_json_args_basic" {
 
 ///|
 test "merge_json_args_override" {
-  let obj1 = @json.parse("{\"a\":1}") catch { _ => Json::object({}) }
-  let obj2 = @json.parse("{\"a\":99}") catch { _ => Json::object({}) }
+  let obj1 = @json.parse("{\"a\":1}") catch { _ => Json::object(Map([])) }
+  let obj2 = @json.parse("{\"a\":99}") catch { _ => Json::object(Map([])) }
   let merged = merge_json_args([obj1, obj2])
   match merged {
     Object(obj) => @debug.assert_eq(obj.get("a"), Some((99).to_json()))

@@ -2,7 +2,7 @@
 /// Parse YAML-like frontmatter from markdown content.
 /// Returns a tuple of (fields map, body content after frontmatter).
 pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
-  let fields : Map[String, String] = {}
+  let fields : Map[String, String] = Map([])
   let trimmed = content.trim().to_owned()
   if !trimmed.has_prefix("---") {
     return (fields, content)

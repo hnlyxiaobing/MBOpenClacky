@@ -141,12 +141,11 @@ pub fn WebServer::build_app(
   // 3. Auth: API key verification (conditional)
   match self.api_key {
     Some(key) => {
-      let allow_loopback = not(
-        match @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
+      let allow_loopback = !(match
+          @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
           Some("0") | Some("false") => true
           _ => false
-        },
-      )
+        })
       if allow_loopback {
         println(
           "[WebServer] loopback auth bypass ENABLED by default — set MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0 to disable",
@@ -839,7 +838,7 @@ pub fn WebServer::build_app(
 ///|
 /// Registers all routes, middleware, and starts serving.
 pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
-  self.start_time = @async.now()
+  self.start_time = @env.now().reinterpret_as_int64()
   let (app, _) = self.build_app()
 
   // ── Start Server ──────────────────────────────────────────────

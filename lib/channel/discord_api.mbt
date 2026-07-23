@@ -85,7 +85,7 @@ pub fn DiscordApiClient::edit_message(
   //   let resp = await @http.patch(url, headers.to_array(), body.to_string())
   //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
   //   parse_json_response(resp.body)
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   result.set("id", message_id.to_json())
   result.set("channel_id", channel_id.to_json())
   Ok(Json::object(result))
@@ -105,7 +105,7 @@ pub fn DiscordApiClient::delete_message(
   // TODO: Execute async HTTP DELETE via @http:
   //   let resp = await @http.delete(url, headers.to_array())
   //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   result.set("id", message_id.to_json())
   result.set("deleted", true.to_json())
   Ok(Json::object(result))
@@ -125,7 +125,7 @@ pub fn DiscordApiClient::get_current_user(
   //   let resp = await @http.get(url, headers.to_array())
   //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
   //   parse_json_response(resp.body)
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   result.set("id", "pending".to_json())
   result.set("username", "bot".to_json())
   result.set("bot", true.to_json())
@@ -152,7 +152,7 @@ pub fn DiscordApiClient::upload_file(
   //   let resp = await @http.post(url, headers.to_array(), multipart_body)
   //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
   //   parse_json_response(resp.body)
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   result.set("id", "pending".to_json())
   result.set("channel_id", channel_id.to_json())
   result.set("filename", filename.to_json())
@@ -182,11 +182,11 @@ pub fn DiscordApiClient::download_attachment(
 ///|
 /// Build the JSON payload for sending a Discord message.
 pub fn build_discord_send_payload(content : String, reply_to : String?) -> Json {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("content", content.to_json())
   match reply_to {
     Some(id) => {
-      let ref_obj : Map[String, Json] = {}
+      let ref_obj : Map[String, Json] = Map([])
       ref_obj.set("message_id", id.to_json())
       msg.set("message_reference", Json::object(ref_obj))
     }
@@ -198,7 +198,7 @@ pub fn build_discord_send_payload(content : String, reply_to : String?) -> Json 
 ///|
 /// Build the JSON payload for editing a Discord message.
 pub fn build_discord_edit_payload(content : String) -> Json {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("content", content.to_json())
   Json::object(msg)
 }

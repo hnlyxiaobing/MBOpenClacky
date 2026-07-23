@@ -369,7 +369,7 @@ test "ExtensionDispatcher::new_with_dir: initial signature is set" {
   // Use a temp directory that doesn't exist; signature should be "" (empty)
   let d = ExtensionDispatcher::new_with_dir(
     [],
-    "/tmp/_wbtest_ext_dir_does_not_exist_\{@async.now()}",
+    "/tmp/_wbtest_ext_dir_does_not_exist_\{@env.now().reinterpret_as_int64()}",
   )
   @debug.assert_eq(d.last_signature.val, "")
 }
@@ -378,7 +378,7 @@ test "ExtensionDispatcher::new_with_dir: initial signature is set" {
 test "ExtensionDispatcher::ensure_fresh: throttled by check_every" {
   let d = ExtensionDispatcher::new_with_dir(
     [],
-    "/tmp/_wbtest_throttle_\{@async.now()}",
+    "/tmp/_wbtest_throttle_\{@env.now().reinterpret_as_int64()}",
     check_every=5,
   )
   // First 4 calls: counter increments but no work
@@ -395,7 +395,8 @@ test "ExtensionDispatcher::ensure_fresh: throttled by check_every" {
 test "compute_dir_signature: empty/missing dir returns empty string" {
   @debug.assert_eq(
     compute_dir_signature(
-      wbtest_ext_tmp_root() + "/_wbtest_sig_missing_\{@async.now()}",
+      wbtest_ext_tmp_root() +
+      "/_wbtest_sig_missing_\{@env.now().reinterpret_as_int64()}",
     ),
     "",
   )
@@ -403,7 +404,8 @@ test "compute_dir_signature: empty/missing dir returns empty string" {
 
 ///|
 test "compute_dir_signature: same content yields same signature" {
-  let tmp = wbtest_ext_tmp_root() + "/_wbtest_sig_same_\{@async.now()}"
+  let tmp = wbtest_ext_tmp_root() +
+    "/_wbtest_sig_same_\{@env.now().reinterpret_as_int64()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }
@@ -426,7 +428,8 @@ test "compute_dir_signature: same content yields same signature" {
 
 ///|
 test "compute_dir_signature: different sizes yield different signatures" {
-  let tmp = wbtest_ext_tmp_root() + "/_wbtest_sig_diff_\{@async.now()}"
+  let tmp = wbtest_ext_tmp_root() +
+    "/_wbtest_sig_diff_\{@env.now().reinterpret_as_int64()}"
   @fs.create_dir(tmp) catch {
     _ => ()
   }

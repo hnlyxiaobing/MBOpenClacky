@@ -58,7 +58,7 @@ pub fn McpClient::initialize(self : McpClient) -> McpServerInfo raise McpError {
   // Build initialize params
   let params : Json = Json::object({
     "protocolVersion": mcp_protocol_version.to_json(),
-    "capabilities": Json::object({}),
+    "capabilities": Json::object(Map([])),
     "clientInfo": Json::object({
       "name": "MBOpenClacky".to_json(),
       "version": "0.1.0".to_json(),
@@ -74,7 +74,7 @@ pub fn McpClient::initialize(self : McpClient) -> McpServerInfo raise McpError {
   }
   self.server_info = Some(info)
   // Send initialized notification (no id, no response expected)
-  let notif_obj : Map[String, Json] = {}
+  let notif_obj : Map[String, Json] = Map([])
   notif_obj["jsonrpc"] = "2.0"
   notif_obj["method"] = "notifications/initialized"
   self.transport.send_message(Json::object(notif_obj).stringify())

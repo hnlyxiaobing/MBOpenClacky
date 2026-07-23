@@ -82,7 +82,7 @@ test "telegram_get_updates_payload" {
 ///|
 test "telegram_parse_updates_success" {
   let json_str = "{\"ok\":true,\"result\":[{\"update_id\":1},{\"update_id\":2}]}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_updates_response(json)
   match result {
     Ok(arr) => assert_eq(arr.length(), 2)
@@ -93,7 +93,7 @@ test "telegram_parse_updates_success" {
 ///|
 test "telegram_parse_updates_empty_result" {
   let json_str = "{\"ok\":true,\"result\":[]}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_updates_response(json)
   match result {
     Ok(arr) => assert_eq(arr.length(), 0)
@@ -104,7 +104,7 @@ test "telegram_parse_updates_empty_result" {
 ///|
 test "telegram_parse_updates_api_error" {
   let json_str = "{\"ok\":false,\"description\":\"Unauthorized\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_updates_response(json)
   match result {
     Err(ChannelError(msg)) => assert_eq(msg, "Unauthorized")
@@ -124,7 +124,7 @@ test "telegram_parse_updates_invalid_format" {
 ///|
 test "telegram_parse_send_response_success" {
   let json_str = "{\"ok\":true,\"result\":{\"message_id\":42}}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_send_response(json)
   match result {
     Ok(sr) => {
@@ -139,7 +139,7 @@ test "telegram_parse_send_response_success" {
 ///|
 test "telegram_parse_send_response_api_error" {
   let json_str = "{\"ok\":false,\"description\":\"Chat not found\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_send_response(json)
   match result {
     Err(ChannelError(msg)) => assert_eq(msg, "Chat not found")
@@ -159,7 +159,7 @@ test "telegram_parse_send_response_invalid_format" {
 ///|
 test "telegram_parse_ok_response_success" {
   let json_str = "{\"ok\":true}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_ok_response(json)
   match result {
     Ok(b) => assert_true(b)
@@ -170,7 +170,7 @@ test "telegram_parse_ok_response_success" {
 ///|
 test "telegram_parse_ok_response_error" {
   let json_str = "{\"ok\":false,\"description\":\"Bad request\"}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   let result = TelegramApiClient::parse_ok_response(json)
   match result {
     Err(ChannelError(msg)) => assert_eq(msg, "Bad request")

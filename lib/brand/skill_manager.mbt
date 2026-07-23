@@ -47,14 +47,14 @@ pub fn BrandSkillManager::skill_base_path(
 ///|
 fn load_installed_skills_json(config_dir : String) -> Map[String, Json] {
   let file_path = brand_skills_registry(config_dir)
-  let content = @fs.read_file_to_string(file_path) catch { _ => return {} }
+  let content = @fs.read_file_to_string(file_path) catch { _ => return Map([]) }
   if content.is_empty() {
-    return {}
+    return Map([])
   }
-  let json = @json.parse(content) catch { _ => return {} }
+  let json = @json.parse(content) catch { _ => return Map([]) }
   match json {
     Object(fields) => fields
-    _ => {}
+    _ => Map([])
   }
 }
 
@@ -82,7 +82,7 @@ fn BrandSkillManager::add_to_installed(
   encrypted : Bool,
 ) -> Unit {
   let skills = load_installed_skills_json(config_dir)
-  let meta : Map[String, Json] = {}
+  let meta : Map[String, Json] = Map([])
   meta["version"] = version.to_json()
   meta["description"] = description.to_json()
   meta["encrypted"] = encrypted.to_json()
@@ -265,7 +265,7 @@ pub fn BrandSkillManager::sync_skills(
   desired : Array[Json],
 ) -> Result[Unit, String] {
   let current = load_installed_skills_json(config_dir)
-  let desired_names : Map[String, Json] = {}
+  let desired_names : Map[String, Json] = Map([])
   for spec_json in desired {
     match spec_json {
       Object(fields) =>
@@ -479,7 +479,7 @@ pub fn BrandSkillManager::create_skill(
   }
   let skill_path = self.skill_base_path(config_dir, name)
   @utils.ensure_dir(skill_path)
-  let meta : Map[String, Json] = {}
+  let meta : Map[String, Json] = Map([])
   meta["name"] = name.to_json()
   meta["version"] = version.to_json()
   meta["description"] = description.to_json()

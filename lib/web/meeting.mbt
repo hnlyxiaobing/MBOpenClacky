@@ -43,9 +43,9 @@ pub(all) struct TranscriptEntry {
 ///|
 impl ToJson for TranscriptEntry with fn to_json(self) {
   Json::object({
-    "speaker": self.speaker.to_json(),
-    "content": self.content.to_json(),
-    "timestamp": self.timestamp.to_json(),
+    "speaker": ToJson::to_json(self.speaker),
+    "content": ToJson::to_json(self.content),
+    "timestamp": ToJson::to_json(self.timestamp),
   })
 }
 
@@ -96,11 +96,11 @@ pub(all) struct MeetingSummary {
 ///|
 impl ToJson for MeetingSummary with fn to_json(self) {
   Json::object({
-    "overview": self.overview.to_json(),
-    "key_decisions": self.key_decisions.to_json(),
-    "action_items": self.action_items.to_json(),
-    "discussion_points": self.discussion_points.to_json(),
-    "generated_at": self.generated_at.to_json(),
+    "overview": ToJson::to_json(self.overview),
+    "key_decisions": ToJson::to_json(self.key_decisions),
+    "action_items": ToJson::to_json(self.action_items),
+    "discussion_points": ToJson::to_json(self.discussion_points),
+    "generated_at": ToJson::to_json(self.generated_at),
   })
 }
 
@@ -209,23 +209,23 @@ pub(all) struct Meeting {
 ///|
 impl ToJson for Meeting with fn to_json(self) {
   let summary_json : Json = match self.summary {
-    Some(s) => s.to_json()
+    Some(s) => ToJson::to_json(s)
     None => Json::null()
   }
   let session_json : Json = match self.session_id {
-    Some(s) => s.to_json()
+    Some(s) => ToJson::to_json(s)
     None => Json::null()
   }
   Json::object({
-    "id": self.id.to_json(),
-    "title": self.title.to_json(),
+    "id": ToJson::to_json(self.id),
+    "title": ToJson::to_json(self.title),
     "status": self.status.to_string_value().to_json(),
     "session_id": session_json,
-    "participants": self.participants.to_json(),
-    "transcript": self.transcript.to_json(),
+    "participants": ToJson::to_json(self.participants),
+    "transcript": ToJson::to_json(self.transcript),
     "summary": summary_json,
-    "created_at": self.created_at.to_json(),
-    "ended_at": self.ended_at.to_json(),
+    "created_at": ToJson::to_json(self.created_at),
+    "ended_at": ToJson::to_json(self.ended_at),
   })
 }
 
@@ -307,7 +307,7 @@ pub fn save_meeting(meeting : Meeting) -> Result[Unit, String] {
     None => return Err("Cannot determine meetings directory")
   }
   let path = @path.Path::join(dir, @path.Path(meeting.id + ".json")).to_string()
-  @fs.write_string_to_file(path, meeting.to_json().stringify()) catch {
+  @fs.write_string_to_file(path, ToJson::to_json(meeting).stringify()) catch {
     e => return Err("Failed to save meeting: \{@debug.to_string(e)}")
   }
   Ok(())

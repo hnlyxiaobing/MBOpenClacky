@@ -11,7 +11,7 @@
 
 test "telegram_parse_event_photo_message" {
   let json_str = "{\"message\":{\"message_id\":10,\"chat\":{\"id\":456,\"type\":\"group\"},\"from\":{\"id\":7,\"first_name\":\"Carol\"},\"caption\":\"nice pic\",\"photo\":[{\"file_id\":\"small\",\"width\":90,\"height\":90},{\"file_id\":\"large\",\"width\":800,\"height\":600,\"file_size\":50000}],\"date\":1700001000}}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
       @debug.assert_eq(evt.chat_id, "456")
@@ -26,7 +26,7 @@ test "telegram_parse_event_photo_message" {
 ///|
 test "telegram_parse_event_document" {
   let json_str = "{\"message\":{\"message_id\":11,\"chat\":{\"id\":789,\"type\":\"private\"},\"from\":{\"id\":8,\"first_name\":\"Dave\"},\"document\":{\"file_id\":\"doc_abc\",\"file_name\":\"report.pdf\",\"file_size\":102400},\"date\":1700002000}}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
       @debug.assert_eq(evt.text, "") // no text or caption
@@ -39,7 +39,7 @@ test "telegram_parse_event_document" {
 ///|
 test "telegram_parse_event_reply_to" {
   let json_str = "{\"message\":{\"message_id\":20,\"chat\":{\"id\":100,\"type\":\"private\"},\"from\":{\"id\":9,\"first_name\":\"Eve\"},\"text\":\"reply text\",\"reply_to_message\":{\"message_id\":15},\"date\":1700003000}}"
-  let json = @json.parse(json_str) catch { _ => Json::object({}) }
+  let json = @json.parse(json_str) catch { _ => Json::object(Map([])) }
   match TelegramAdapter::parse_event(json) {
     Ok(evt) => {
       @debug.assert_eq(evt.reply_to, Some("15"))
@@ -60,7 +60,7 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   let hello_json = @json.parse(
     "{\"op\":10,\"d\":{\"heartbeat_interval\":41250}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_gateway_event(hello_json) {
     Ok((op, data)) => {
@@ -100,7 +100,7 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   let dispatch = @json.parse(
     "{\"op\":0,\"s\":5,\"t\":\"MESSAGE_CREATE\",\"d\":{\"content\":\"hi\"}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_gateway_event(dispatch) {
     Ok((op, _d)) => {
@@ -168,7 +168,7 @@ test "discord_gateway_fatal_close_no_reconnect" {
 test "discord_gateway_invalid_session" {
   // op 9 with d=true: session is resumable
   let event = @json.parse("{\"op\":9,\"d\":true}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_gateway_event(event) {
     Ok((op, d)) => {
@@ -179,7 +179,7 @@ test "discord_gateway_invalid_session" {
   }
   // op 9 with d=false: not resumable
   let event2 = @json.parse("{\"op\":9,\"d\":false}") catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_gateway_event(event2) {
     Ok((op, d)) => {
@@ -225,7 +225,7 @@ test "wecom_subscribe_and_send_flow" {
   let incoming = @json.parse(
     "{\"type\":\"data\",\"content\":\"user msg\",\"chat_id\":\"c1\",\"from_user_id\":\"u1\",\"from_user_name\":\"Alice\"}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_incoming_frame(incoming) {
     Ok((ft, frame_data)) => {
@@ -295,7 +295,7 @@ test "dingtalk_stream_callback_ack_flow" {
   let frame_json = @json.parse(
     "{\"type\":\"CALLBACK\",\"data\":{\"conversationId\":\"conv1\",\"text\":{\"content\":\"hello bot\"},\"msgId\":\"msg_001\"}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_stream_frame(frame_json) {
     Ok((frame_type, _data)) => {
@@ -317,7 +317,7 @@ test "dingtalk_stream_callback_ack_flow" {
   let ping_json = @json.parse(
     "{\"type\":\"SYSTEM\",\"data\":{\"topic\":\"ping\"}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match parse_stream_frame(ping_json) {
     Ok((ft, _)) => {
@@ -352,7 +352,7 @@ test "dingtalk_token_request_and_parse_flow" {
   let new_api_resp = @json.parse(
     "{\"accessToken\":\"new_tok_abc\",\"expireIn\":7200}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match DingTalkApiClient::parse_token_response(new_api_resp) {
     Ok((tok, exp)) => {
@@ -370,7 +370,7 @@ test "dingtalk_token_request_and_parse_flow" {
   let oapi_resp = @json.parse(
     "{\"access_token\":\"oapi_tok_xyz\",\"expires_in\":7200,\"errcode\":0}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   match DingTalkApiClient::parse_token_response(oapi_resp) {
     Ok((tok, exp)) => {
@@ -506,7 +506,7 @@ test "cross_platform_dedup_different_platforms" {
   let feishu_json = @json.parse(
     "{\"event\":{\"message\":{\"chat_id\":\"c1\",\"message_id\":\"unique_feishu_1\",\"content\":\"hello\"},\"sender\":{\"sender_id\":{\"user_id\":\"u1\",\"name\":\"Alice\"}}}}",
   ) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   let _ = mgr.handle_webhook("feishu", feishu_json)
 
@@ -555,7 +555,7 @@ test "http_full_request_response_flow" {
   @debug.assert_eq(arr.length(), 3)
 
   // Build request body
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("content", "Hello from bot".to_json())
   let body = build_json_body(payload)
   assert_true(body.contains("content"))

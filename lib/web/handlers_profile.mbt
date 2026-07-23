@@ -36,7 +36,7 @@ fn default_profile_json() -> Json {
   Json::object({
     "name": "".to_json(),
     "email": "".to_json(),
-    "preferences": Json::object({}),
+    "preferences": Json::object(Map([])),
     "theme": "dark".to_json(),
   })
 }
@@ -76,9 +76,9 @@ fn json_get_obj(j : Json, key : String) -> Json {
     Object(obj) =>
       match obj.get(key) {
         Some(o) => o
-        _ => Json::object({})
+        _ => Json::object(Map([]))
       }
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

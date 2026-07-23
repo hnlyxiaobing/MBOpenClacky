@@ -165,8 +165,8 @@ pub fn backfill_task_meta_from_history(
   messages : Array[@message.Message],
   existing : SessionTimeMachine?,
 ) -> SessionTimeMachine {
-  let task_parents : Map[String, String] = {}
-  let task_meta : Map[String, SessionTaskMeta] = {}
+  let task_parents : Map[String, String] = Map([])
+  let task_meta : Map[String, SessionTaskMeta] = Map([])
   let mut current_task_id = 0
   let mut active_task_id = 0
 

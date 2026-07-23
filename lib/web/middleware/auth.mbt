@@ -222,7 +222,7 @@ pub fn auth_middleware(
       return next()
     }
     let client_ip = extract_client_ip(req)
-    let now = @async.now()
+    let now = @env.now().reinterpret_as_int64()
 
     // Optional loopback bypass (dev only; disabled by default because the
     // client IP comes from forgeable headers)

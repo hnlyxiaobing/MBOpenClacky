@@ -53,7 +53,7 @@ test "ext_normalize_mimo_variations" {
 ///|
 test "ext_pricing_table_not_empty" {
   let table = pricing_table()
-  assert_true(table.size() > 20)
+  assert_true(table.length() > 20)
 }
 
 ///|
@@ -255,13 +255,13 @@ test "ext_normalize_model_empty_string" {
 ///|
 test "ext_pricing_table_has_entries" {
   let table = pricing_table()
-  assert_true(table.size() > 0)
+  assert_true(table.length() > 0)
 }
 
 ///|
 test "ext_pricing_table_contains_known_models" {
   let table = pricing_table()
-  assert_true(table.size() > 0)
+  assert_true(table.length() > 0)
   let mut found = false
   for entry in table.iter() {
     if entry.0.contains("claude") || entry.0.contains("gpt") {

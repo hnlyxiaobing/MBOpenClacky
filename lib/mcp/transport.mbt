@@ -21,7 +21,7 @@ pub fn build_jsonrpc_request(
 ) -> String {
   let p : Json = match params {
     Some(p) => p
-    None => Json::object({})
+    None => Json::object(Map([]))
   }
   let obj = Json::object({
     "jsonrpc": "2.0".to_json(),

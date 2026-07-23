@@ -57,7 +57,7 @@ pub impl Adapter for DiscordAdapter with fn start(
   let user_json = match self.api_client.get_current_user() {
     Ok(v) => v
     Err(_) => {
-      let empty : Map[String, Json] = {}
+      let empty : Map[String, Json] = Map([])
       Json::object(empty)
     }
   }
@@ -302,11 +302,11 @@ pub fn DiscordAdapter::parse_event(
 ///|
 /// Build Discord message payload JSON.
 pub fn build_discord_message(text : String, reply_to : String?) -> Json {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("content", text.to_json())
   match reply_to {
     Some(id) => {
-      let ref_obj : Map[String, Json] = {}
+      let ref_obj : Map[String, Json] = Map([])
       ref_obj.set("message_id", id.to_json())
       msg.set("message_reference", Json::object(ref_obj))
     }

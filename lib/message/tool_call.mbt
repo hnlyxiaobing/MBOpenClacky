@@ -56,7 +56,7 @@ impl FromJson for ToolCall with fn from_json(json, path) {
         _ => "function"
       }
       let function = match map.get("function") {
-        Some(f) => FunctionCall::from_json(f, path.add_key("function"))
+        Some(f) => FromJson::from_json(f, path.add_key("function"))
         _ => raise JsonDecodeError((path, "ToolCall: missing 'function'"))
       }
       { id, type_, function }

@@ -207,7 +207,7 @@ test "handler: creator skills returns 200" {
 
 ///|
 test "handler: user skill full lifecycle" {
-  let name = "wbtest-skill-lifecycle-" + @async.now().to_string()
+  let name = "wbtest-skill-lifecycle-" + @env.now().to_string()
   // Cleanup any leftover from previous runs
   let dir = user_skills_dir() + "/" + name
   if @fs.path_exists(dir) {

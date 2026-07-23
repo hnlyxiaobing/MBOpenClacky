@@ -63,15 +63,15 @@ pub(all) struct MemoryEntry {
 
 ///|
 impl ToJson for MemoryEntry with fn to_json(self) {
-  let kws : Array[Json] = self.keywords.map(k => k.to_json())
+  let kws : Array[Json] = self.keywords.map(k => ToJson::to_json(k))
   Json::object({
-    "id": self.id.to_json(),
-    "title": self.title.to_json(),
-    "content": self.content.to_json(),
-    "category": self.category.to_json(),
-    "keywords": kws.to_json(),
-    "created_at": self.created_at.to_json(),
-    "updated_at": self.updated_at.to_json(),
+    "id": ToJson::to_json(self.id),
+    "title": ToJson::to_json(self.title),
+    "content": ToJson::to_json(self.content),
+    "category": ToJson::to_json(self.category),
+    "keywords": ToJson::to_json(kws),
+    "created_at": ToJson::to_json(self.created_at),
+    "updated_at": ToJson::to_json(self.updated_at),
   })
 }
 

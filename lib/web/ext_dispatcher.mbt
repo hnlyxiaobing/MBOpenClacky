@@ -160,7 +160,7 @@ pub fn ExtensionDispatcher::route_summary(
 fn build_route_map(
   extensions : Array[ApiExtension],
 ) -> Map[String, ExtensionRoute] {
-  let m : Map[String, ExtensionRoute] = {}
+  let m : Map[String, ExtensionRoute] = Map([])
   for ext in extensions {
     for route in ext.routes {
       let key = "/api/ext/\{ext.name}\{route.path}"
@@ -283,7 +283,7 @@ fn build_ext_env_vars(
   }
   envs.push(("CLACKY_EXT_QUERY", query))
   // Route params as JSON object
-  let params_map : Map[String, Json] = {}
+  let params_map : Map[String, Json] = Map([])
   for kv in event.params {
     params_map[kv.0] = kv.1.to_owned().to_json()
   }
@@ -473,7 +473,7 @@ fn make_ext_handler(
         .body(body)
     }
     // Generate unique token for temp files
-    let token = "ext\{name}_\{@async.now()}"
+    let token = "ext\{name}_\{@env.now().reinterpret_as_int64()}"
     // Read request body
     let body_str : String = event.req.body() catch { _ => "" }
     // Write body to temp file

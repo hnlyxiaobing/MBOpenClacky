@@ -51,7 +51,7 @@ pub fn AutoCreator::detect_candidates(
     return candidates
   }
   // Find repeated prefixes — group by prefix of length min(20, string_len)
-  let prefix_groups : Map[String, Array[String]] = {}
+  let prefix_groups : Map[String, Array[String]] = Map([])
   for msg in history {
     let trimmed = msg.trim().to_owned()
     // Skip short or trivial messages

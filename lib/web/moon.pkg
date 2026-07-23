@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/string",
+  "moonbitlang/core/env",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/client",

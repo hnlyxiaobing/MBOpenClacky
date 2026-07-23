@@ -87,7 +87,7 @@ fn validate_version_format(
     return
   }
   let parts : Array[String] = []
-  version.split(".").each(fn(p) { parts.push(p.to_string()) })
+  version.split(".").each(fn(p) { parts.push(p.to_owned()) })
   let part_count = parts.length()
   if part_count < 2 || part_count > 3 {
     errors.push(
@@ -131,7 +131,7 @@ fn validate_contributions(
   errors : Array[ValidationError],
   warnings : Array[String],
 ) -> Unit {
-  let seen_ids : Map[String, Bool] = {}
+  let seen_ids : Map[String, Bool] = Map([])
   for contrib in contributions {
     if seen_ids.contains(contrib.id) {
       errors.push(
@@ -193,7 +193,7 @@ fn validate_resources_exist(
 /// Validate all loaded extensions and return a map of id -> ValidationResult.
 pub fn validate_all_extensions() -> Map[String, ValidationResult] {
   let extensions = load_all_extensions()
-  let results : Map[String, ValidationResult] = {}
+  let results : Map[String, ValidationResult] = Map([])
   for ext in extensions {
     let result = validate_extension(ext)
     results[ext.manifest.id] = result

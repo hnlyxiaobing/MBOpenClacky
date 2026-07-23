@@ -149,7 +149,7 @@ pub fn SseBytePump::feed(self : SseBytePump, chunk : Bytes) -> Array[SseFrame] {
     if sep < 0 {
       break
     }
-    let frame_bytes = Bytes::from_array(self.pending[:sep].to_array())
+    let frame_bytes = Bytes::from_array(self.pending[:sep].to_owned())
     let rest : Array[Byte] = []
     for j = sep + 2; j < n; j = j + 1 {
       rest.push(self.pending[j])
@@ -726,7 +726,7 @@ pub(all) struct BedrockStreamAggregator {
 pub fn BedrockStreamAggregator::new() -> BedrockStreamAggregator {
   {
     role: "assistant",
-    blocks: {},
+    blocks: Map([]),
     stop_reason: None,
     input_tokens: 0,
     output_tokens: 0,
@@ -943,10 +943,10 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
               _ => ""
             }
             let input : Json = if block.input_str.length() == 0 {
-              Json::object({})
+              Json::object(Map([]))
             } else {
               @json.parse(block.input_str) catch {
-                _ => Json::object({})
+                _ => Json::object(Map([]))
               }
             }
             content_blocks.push(

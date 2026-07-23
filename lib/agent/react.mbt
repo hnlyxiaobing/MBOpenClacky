@@ -269,7 +269,7 @@ fn Agent::observe(
   tool_results : Array[ToolResultEntry],
 ) -> Unit {
   // Build the map expected by format_tool_results
-  let results_map : Map[String, String] = {}
+  let results_map : Map[String, String] = Map([])
   for entry in tool_results {
     results_map[entry.id] = entry.content
   }

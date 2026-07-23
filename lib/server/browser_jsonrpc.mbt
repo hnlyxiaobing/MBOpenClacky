@@ -30,7 +30,7 @@ pub fn JsonRpcClient::get_process(self : JsonRpcClient) -> BrowserProcess {
 fn build_request(id : Int, http_method : String, params : Json?) -> String {
   let p : Json = match params {
     Some(p) => p
-    None => Json::object({})
+    None => Json::object(Map([]))
   }
   Json::object({
     "jsonrpc": "2.0".to_json(),
@@ -45,7 +45,7 @@ fn build_request(id : Int, http_method : String, params : Json?) -> String {
 fn build_notification(http_method : String, params : Json?) -> String {
   let p : Json = match params {
     Some(p) => p
-    None => Json::object({})
+    None => Json::object(Map([]))
   }
   Json::object({
     "jsonrpc": "2.0".to_json(),
@@ -88,7 +88,7 @@ fn parse_response(text : String) -> Result[(Int, Json), String] {
   // Extract result
   let result : Json = match json {
     { "result": r, .. } => r
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   Ok((id, result))
 }
@@ -153,7 +153,7 @@ pub fn JsonRpcClient::notify(
 pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
   let params : Json = Json::object({
     "protocolVersion": mcp_protocol_version.to_json(),
-    "capabilities": Json::object({}),
+    "capabilities": Json::object(Map([])),
     "clientInfo": Json::object({
       "name": "MBOpenClacky".to_json(),
       "version": "0.1.0".to_json(),
@@ -164,7 +164,7 @@ pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
     Err(e) => return Err(e)
   }
   // Send initialized notification
-  match self.notify("notifications/initialized", Json::object({})) {
+  match self.notify("notifications/initialized", Json::object(Map([]))) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }

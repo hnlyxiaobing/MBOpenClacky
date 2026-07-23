@@ -34,7 +34,7 @@ fn get_screenshot_temp_dir() -> String {
 /// Generate a unique screenshot filename using timestamp.
 /// Fix: [H1] 截图文件计数器并发不安全 — 改用时间戳确保文件名唯一性
 fn next_screenshot_filename(ext? : String = "png") -> String {
-  let ts = @async.now()
+  let ts = @env.now().reinterpret_as_int64()
   "screenshot_\{ts}.\{ext}"
 }
 

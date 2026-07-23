@@ -14,7 +14,7 @@ fn handle_list_meetings(
 ) -> @core.HttpResponse {
   let meetings = list_meetings()
   @core.HttpResponse::ok().json_value(
-    Json::object({ "meetings": meetings.to_json() }),
+    Json::object({ "meetings": ToJson::to_json(meetings) }),
   )
 }
 
@@ -55,10 +55,10 @@ fn handle_create_meeting(
     ended_at: 0L,
   }
   match save_meeting(meeting) {
-    Ok(_) => @core.HttpResponse::created().json_value(meeting.to_json())
+    Ok(_) => @core.HttpResponse::created().json_value(ToJson::to_json(meeting))
     Err(e) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": ToJson::to_json(e) }),
       )
   }
 }
@@ -98,7 +98,8 @@ fn handle_get_meeting(
       )
   }
   match load_meeting(id) {
-    Some(meeting) => @core.HttpResponse::ok().json_value(meeting.to_json())
+    Some(meeting) =>
+      @core.HttpResponse::ok().json_value(ToJson::to_json(meeting))
     None =>
       @core.HttpResponse::not_found().json_value(
         Json::object({ "error": "Meeting not found".to_json() }),
@@ -164,13 +165,13 @@ fn handle_add_transcript(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
+          "ok": ToJson::to_json(true),
           "transcript_count": meeting.transcript.length().to_json(),
         }),
       )
     Err(e) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": ToJson::to_json(e) }),
       )
   }
 }
@@ -196,15 +197,15 @@ fn handle_end_meeting(
       )
   }
   if meeting.status == MeetingStatus::Ended {
-    return @core.HttpResponse::ok().json_value(meeting.to_json())
+    return @core.HttpResponse::ok().json_value(ToJson::to_json(meeting))
   }
   meeting.status = MeetingStatus::Ended
   meeting.ended_at = @agent.current_time_ms()
   match save_meeting(meeting) {
-    Ok(_) => @core.HttpResponse::ok().json_value(meeting.to_json())
+    Ok(_) => @core.HttpResponse::ok().json_value(ToJson::to_json(meeting))
     Err(e) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": ToJson::to_json(e) }),
       )
   }
 }
@@ -255,13 +256,13 @@ fn handle_summarize_meeting(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "summary": summary.to_json(),
-          "transcript_text": transcript_text.to_json(),
+          "summary": ToJson::to_json(summary),
+          "transcript_text": ToJson::to_json(transcript_text),
         }),
       )
     Err(e) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": ToJson::to_json(e) }),
       )
   }
 }
@@ -272,7 +273,7 @@ fn extract_discussion_points(
   transcript : Array[TranscriptEntry],
 ) -> Array[String] {
   let points : Array[String] = []
-  let seen_speakers : Map[String, Bool] = {}
+  let seen_speakers : Map[String, Bool] = Map([])
   for entry in transcript {
     if !seen_speakers.contains(entry.speaker) {
       seen_speakers[entry.speaker] = true

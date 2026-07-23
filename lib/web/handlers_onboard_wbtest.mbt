@@ -11,11 +11,11 @@ fn make_event(
     req: @crescent.HttpRequest::HttpRequest(
       http_method,
       url,
-      {},
+      Map([]),
       raw_body=@utf8.encode(body),
     ),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
-    params: {},
+    params: Map([]),
   }
 }
 
@@ -23,7 +23,7 @@ fn make_event(
 /// Helper to decode a JSON response body; returns an empty object on failure.
 fn response_json(resp : @core.HttpResponse) -> Json {
   @json.parse(@utf8.decode(resp.raw_body)) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

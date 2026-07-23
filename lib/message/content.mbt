@@ -22,7 +22,7 @@ pub(all) enum ContentBlock {
 
 ///|
 impl ToJson for TextBlock with fn to_json(self) {
-  Json::object({ "type": "text".to_json(), "text": self.text.to_json() })
+  Json::object({ "type": "text".to_json(), "text": ToJson::to_json(self.text) })
 }
 
 ///|
@@ -30,8 +30,8 @@ impl ToJson for ImageBlock with fn to_json(self) {
   Json::object({
     "type": "image_url".to_json(),
     "image_url": Json::object({
-      "url": self.url.to_json(),
-      "detail": self.detail.to_json(),
+      "url": ToJson::to_json(self.url),
+      "detail": ToJson::to_json(self.detail),
     }),
   })
 }
@@ -39,8 +39,8 @@ impl ToJson for ImageBlock with fn to_json(self) {
 ///|
 impl ToJson for ContentBlock with fn to_json(self) {
   match self {
-    Text(tb) => tb.to_json()
-    Image(ib) => ib.to_json()
+    Text(tb) => ToJson::to_json(tb)
+    Image(ib) => ToJson::to_json(ib)
   }
 }
 
@@ -86,9 +86,9 @@ impl FromJson for ContentBlock with fn from_json(json, path) {
     Object(map) =>
       match map.get("type") {
         Some(String("text")) =>
-          ContentBlock::Text(TextBlock::from_json(json, path))
+          ContentBlock::Text(FromJson::from_json(json, path))
         Some(String("image_url")) =>
-          ContentBlock::Image(ImageBlock::from_json(json, path))
+          ContentBlock::Image(FromJson::from_json(json, path))
         Some(String(s)) =>
           raise JsonDecodeError((path, "ContentBlock: unknown type '\{s}'"))
         _ => raise JsonDecodeError((path, "ContentBlock: missing 'type' field"))

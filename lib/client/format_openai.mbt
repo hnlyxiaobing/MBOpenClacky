@@ -51,7 +51,7 @@ pub fn build_openai_request(
           let tool_obj = tools[i]
           match tool_obj {
             Object(obj) => {
-              let new_obj : Map[String, Json] = {}
+              let new_obj : Map[String, Json] = Map([])
               for k, v in obj {
                 new_obj[k] = v
               }

@@ -120,7 +120,7 @@ test "ext_telemetry_multiple_events" {
 ///|
 test "ext_telemetry_share_with_extra" {
   let t = Telemetry::new("dev")
-  let extra : Map[String, String] = {}
+  let extra : Map[String, String] = Map([])
   extra.set("key", "value")
   t.share("shared_link", Some(extra))
   assert_eq(t.get_events_sent(), 1)
@@ -228,7 +228,7 @@ test "ext_telemetry_share_various_events" {
 ///|
 test "ext_telemetry_share_with_extra_map" {
   let t = Telemetry::new("dev")
-  let extra : Map[String, String] = {}
+  let extra : Map[String, String] = Map([])
   extra.set("url", "https://example.com")
   extra.set("count", "5")
   t.share("export", Some(extra))
@@ -288,7 +288,7 @@ test "ext_telemetry_event_path_task_full" {
 
 ///|
 test "ext_telemetry_event_path_share_with_extra" {
-  let extra : Map[String, String] = {}
+  let extra : Map[String, String] = Map([])
   extra.set("key", "val")
   let payload : SharePayload = {
     device_id: "dev",

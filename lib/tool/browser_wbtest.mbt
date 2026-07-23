@@ -56,7 +56,7 @@ test "build_mcp_screenshot_args_passes_format_and_quality" {
 ///|
 /// Test: build_mcp_screenshot_args without format/quality omits them.
 test "build_mcp_screenshot_args_omits_format_when_absent" {
-  let args : Map[String, Json] = {}
+  let args : Map[String, Json] = Map([])
   let result = build_mcp_screenshot_args(args)
   let s = result.stringify()
   @debug.assert_eq(s, "{}")
@@ -119,7 +119,7 @@ test "build_mcp_scroll_args_direction_only" {
 
 ///|
 test "build_mcp_scroll_args_empty" {
-  let args : Map[String, Json] = {}
+  let args : Map[String, Json] = Map([])
   let result = build_mcp_scroll_args(args)
   let s = result.stringify()
   @debug.assert_eq(s, "{}")

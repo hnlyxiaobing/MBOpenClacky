@@ -293,8 +293,8 @@ test "handler: channels list returns 200" {
   @debug.assert_eq(resp.status, 200)
   // The store may be empty in tests; assert a well-formed JSON array is returned.
   let trimmed = resp.body.trim()
-  assert_true(trimmed.starts_with("["))
-  assert_true(trimmed.ends_with("]"))
+  assert_true(trimmed.has_prefix("["))
+  assert_true(trimmed.has_suffix("]"))
 }
 
 ///|

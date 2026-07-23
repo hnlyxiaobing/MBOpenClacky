@@ -150,7 +150,7 @@ fn parse_skill_md_content(
 /// Parse YAML-like frontmatter key-value pairs from content.
 /// Returns (fields_map, body_content_after_frontmatter).
 fn parse_frontmatter_fields(content : String) -> (Map[String, String], String) {
-  let fields : Map[String, String] = {}
+  let fields : Map[String, String] = Map([])
   let trimmed = content.trim().to_owned()
   if !trimmed.has_prefix("---") {
     return (fields, content)

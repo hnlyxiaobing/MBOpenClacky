@@ -3,9 +3,9 @@
 ///|
 fn make_image_event(url : String) -> @crescent.Event {
   {
-    req: @crescent.HttpRequest::HttpRequest(Get, url, {}, raw_body=b""),
+    req: @crescent.HttpRequest::HttpRequest(Get, url, Map([]), raw_body=b""),
     res: @crescent.HttpResponse::HttpResponse(status_code=OK),
-    params: {},
+    params: Map([]),
   }
 }
 

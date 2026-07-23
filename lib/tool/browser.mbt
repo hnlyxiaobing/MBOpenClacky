@@ -442,7 +442,7 @@ pub fn Browser::mcp_call(
     // Inject pageId into args if provided
     let effective_args = match page_id {
       Some(pid) => {
-        let augmented : Map[String, Json] = {}
+        let augmented : Map[String, Json] = Map([])
         for entry in args.iter() {
           augmented[entry.0] = entry.1
         }

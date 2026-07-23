@@ -141,7 +141,7 @@ test "security_auto_exec_windows_type_is_safe" {
 
 ///|
 test "security_auto_exec_empty_is_not_safe" {
-  assert_true(not(command_safe_for_auto_execution("")))
+  assert_true(!command_safe_for_auto_execution(""))
 }
 
 // ── is_secret_path ─────────────────────────────────────────────────────────
@@ -168,12 +168,12 @@ test "security_is_secret_path_ssh_uppercase" {
 
 ///|
 test "security_is_secret_path_normal_not_secret" {
-  assert_true(not(is_secret_path("~/projects/myfile.txt")))
+  assert_true(!is_secret_path("~/projects/myfile.txt"))
 }
 
 ///|
 test "security_is_secret_path_home_not_secret" {
-  assert_true(not(is_secret_path("~/README.md")))
+  assert_true(!is_secret_path("~/README.md"))
 }
 
 ///|

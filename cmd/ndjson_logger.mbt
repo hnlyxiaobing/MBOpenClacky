@@ -23,7 +23,7 @@ pub fn NdjsonLogger::log(
     return
   }
   self.seq = self.seq + 1
-  let ts = @async.now()
+  let ts = @env.now()
   let obj : Map[String, Json] = {
     "level": level.to_json(),
     "message": message.to_json(),

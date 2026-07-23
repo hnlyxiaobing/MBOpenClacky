@@ -46,14 +46,14 @@ fn trash_file_path() -> String {
 ///|
 /// Current time as epoch-seconds string.
 fn current_epoch_secs() -> String {
-  let ms = @async.now()
+  let ms = @env.now().reinterpret_as_int64()
   "\{ms / 1000L}"
 }
 
 ///|
 /// Compute expiry (7 days from now) as epoch-seconds string.
 fn compute_expiry_secs() -> String {
-  let ms = @async.now()
+  let ms = @env.now().reinterpret_as_int64()
   let seven_days : Int64 = 7L * 24L * 3600L
   "\{ms / 1000L + seven_days}"
 }

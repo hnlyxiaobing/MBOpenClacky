@@ -47,7 +47,7 @@ pub fn TelegramApiClient::get_updates_payload(
   offset : Int,
   timeout : Int,
 ) -> Json {
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("offset", offset.to_json())
   payload.set("timeout", timeout.to_json())
   payload.set("allowed_updates", Json::array([]))
@@ -562,7 +562,7 @@ pub fn build_telegram_send_request(
   reply_to : String?,
   parse_mode : String?,
 ) -> Json {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("chat_id", chat_id.to_json())
   msg.set("text", text.to_json())
   match parse_mode {
@@ -583,7 +583,7 @@ pub fn build_telegram_edit_request(
   message_id : String,
   text : String,
 ) -> Json {
-  let msg : Map[String, Json] = {}
+  let msg : Map[String, Json] = Map([])
   msg.set("chat_id", chat_id.to_json())
   msg.set("message_id", message_id.to_json())
   msg.set("text", text.to_json())
@@ -604,7 +604,7 @@ pub fn build_telegram_message(
 ///|
 /// Build the getFile request payload as JSON.
 pub fn build_telegram_get_file_request(file_id : String) -> Json {
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("file_id", file_id.to_json())
   Json::object(payload)
 }
@@ -615,7 +615,7 @@ pub fn build_telegram_delete_request(
   chat_id : String,
   message_id : String,
 ) -> Json {
-  let payload : Map[String, Json] = {}
+  let payload : Map[String, Json] = Map([])
   payload.set("chat_id", chat_id.to_json())
   payload.set("message_id", message_id.to_json())
   Json::object(payload)

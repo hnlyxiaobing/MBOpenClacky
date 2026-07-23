@@ -78,7 +78,7 @@ pub fn build_anthropic_request(
     let last_tool = api_tools[last_idx]
     match last_tool {
       Object(obj) => {
-        let new_obj : Map[String, Json] = {}
+        let new_obj : Map[String, Json] = Map([])
         for k, v in obj {
           new_obj[k] = v
         }
@@ -316,10 +316,10 @@ fn url_to_anthropic_image(url : String) -> Json? {
 /// Parse tool call arguments string as JSON, falling back to empty object.
 fn parse_tool_arguments(arguments : String) -> Json {
   if arguments.length() == 0 {
-    return Json::object({})
+    return Json::object(Map([]))
   }
   @json.parse(arguments) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 
@@ -332,7 +332,7 @@ fn to_anthropic_tool(tool : Json) -> Json {
     Object(obj) =>
       match obj.get("function") {
         Some(Object(func)) => {
-          let result : Map[String, Json] = {}
+          let result : Map[String, Json] = Map([])
           match func.get("name") {
             Some(v) => result["name"] = v
             _ => ()
@@ -343,7 +343,7 @@ fn to_anthropic_tool(tool : Json) -> Json {
           }
           match func.get("parameters") {
             Some(v) => result["input_schema"] = v
-            _ => result["input_schema"] = Json::object({})
+            _ => result["input_schema"] = Json::object(Map([]))
           }
           Json::object(result)
         }

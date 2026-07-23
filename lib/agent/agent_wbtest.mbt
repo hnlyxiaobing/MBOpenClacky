@@ -223,26 +223,26 @@ test "truncate_text_exact" {
 test "should_auto_execute_auto_approve" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.AutoApprove
-  assert_true(agent.should_auto_execute("file_reader", {}))
-  assert_true(agent.should_auto_execute("terminal", {}))
-  assert_true(agent.should_auto_execute("write", {}))
+  assert_true(agent.should_auto_execute("file_reader", Map([])))
+  assert_true(agent.should_auto_execute("terminal", Map([])))
+  assert_true(agent.should_auto_execute("write", Map([])))
 }
 
 ///|
 test "should_auto_execute_confirm_safes_read" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmSafes
-  assert_true(agent.should_auto_execute("file_reader", {}))
-  assert_true(agent.should_auto_execute("grep", {}))
-  assert_true(agent.should_auto_execute("glob", {}))
+  assert_true(agent.should_auto_execute("file_reader", Map([])))
+  assert_true(agent.should_auto_execute("grep", Map([])))
+  assert_true(agent.should_auto_execute("glob", Map([])))
 }
 
 ///|
 test "should_auto_execute_confirm_safes_write" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmSafes
-  assert_false(agent.should_auto_execute("write", {}))
-  assert_false(agent.should_auto_execute("edit", {}))
+  assert_false(agent.should_auto_execute("write", Map([])))
+  assert_false(agent.should_auto_execute("edit", Map([])))
 }
 
 ///|
@@ -260,26 +260,26 @@ test "should_auto_execute_confirm_all" {
   // ConfirmAll: all tools should require confirmation (returns false)
   // This was changed in Phase 6.3 — ConfirmAll previously returned true
   // (auto-execute all), which made the permission mode name misleading.
-  assert_false(agent.should_auto_execute("file_reader", {}))
-  assert_false(agent.should_auto_execute("terminal", {}))
+  assert_false(agent.should_auto_execute("file_reader", Map([])))
+  assert_false(agent.should_auto_execute("terminal", Map([])))
 }
 
 ///|
 test "is_safe_operation_file_reader" {
   let agent = make_test_agent()
-  assert_true(agent.is_safe_operation("file_reader", {}))
+  assert_true(agent.is_safe_operation("file_reader", Map([])))
 }
 
 ///|
 test "is_safe_operation_grep" {
   let agent = make_test_agent()
-  assert_true(agent.is_safe_operation("grep", {}))
+  assert_true(agent.is_safe_operation("grep", Map([])))
 }
 
 ///|
 test "is_safe_operation_write" {
   let agent = make_test_agent()
-  assert_false(agent.is_safe_operation("write", {}))
+  assert_false(agent.is_safe_operation("write", Map([])))
 }
 
 ///|
@@ -706,7 +706,7 @@ test "session_stats_to_json_basic" {
     total_requests: 3,
     cache_hit_requests: 1,
   }
-  let json = stats.to_json()
+  let json = ToJson::to_json(stats)
   let json_str = json.stringify()
   assert_true(json_str.find("\"total_iterations\"") is Some(_))
   assert_true(json_str.find("\"total_cost_usd\"") is Some(_))
@@ -726,7 +726,7 @@ test "session_stats_from_json_roundtrip" {
     total_requests: 8,
     cache_hit_requests: 2,
   }
-  let json_str = original.to_json().stringify()
+  let json_str = ToJson::to_json(original).stringify()
   let json = @json.parse(json_str)
   let parsed : SessionStats = @json.from_json(json)
   @debug.assert_eq(parsed.total_iterations, 10)
@@ -775,7 +775,7 @@ test "session_data_to_json_basic" {
     agent_profile: "general",
     sub_model: None,
   }
-  let json = data.to_json()
+  let json = ToJson::to_json(data)
   let json_str = json.stringify()
   assert_true(json_str.find("\"session_id\"") is Some(_))
   assert_true(json_str.find("s_test123") is Some(_))
@@ -823,8 +823,8 @@ test "session_data_from_json_roundtrip" {
   let json_obj = Json::object({
     "session_id": "s_roundtrip".to_json(),
     "name": "roundtrip-test".to_json(),
-    "messages": original.messages.to_json(),
-    "stats": original.stats.to_json(),
+    "messages": ToJson::to_json(original.messages),
+    "stats": ToJson::to_json(original.stats),
     "working_dir": "/home/test".to_json(),
     "created_at": "9876543210".to_json(),
     "source": "cli".to_json(),
@@ -865,7 +865,7 @@ test "session_data_from_json_missing_optional" {
     "session_id": "s_minimal".to_json(),
     "name": "minimal".to_json(),
     "messages": (([] : Array[Json]).to_json() : Json),
-    "stats": stats.to_json(),
+    "stats": ToJson::to_json(stats),
     "working_dir": "/tmp".to_json(),
     "created_at": "0".to_json(),
   }
@@ -918,7 +918,7 @@ test "session_data_with_multiple_messages_json" {
     agent_profile: "general",
     sub_model: None,
   }
-  let json_str = data.to_json().stringify()
+  let json_str = ToJson::to_json(data).stringify()
   let json = @json.parse(json_str)
   let parsed : SessionData = @json.from_json(json)
   @debug.assert_eq(parsed.messages.length(), 3)

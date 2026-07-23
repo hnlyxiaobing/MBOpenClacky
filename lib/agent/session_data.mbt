@@ -20,10 +20,10 @@ pub(all) struct ChannelInfo {
 ///|
 impl ToJson for ChannelInfo with fn to_json(self) {
   Json::object({
-    "platform": self.platform.to_json(),
-    "channel_id": self.channel_id.to_json(),
-    "user_id": self.user_id.to_json(),
-    "webhook_url": self.webhook_url.to_json(),
+    "platform": ToJson::to_json(self.platform),
+    "channel_id": ToJson::to_json(self.channel_id),
+    "user_id": ToJson::to_json(self.user_id),
+    "webhook_url": ToJson::to_json(self.webhook_url),
   })
 }
 
@@ -64,9 +64,9 @@ pub(all) struct SessionTaskMeta {
 ///|
 impl ToJson for SessionTaskMeta with fn to_json(self) {
   Json::object({
-    "title": self.title.to_json(),
-    "started_at": self.started_at.to_json(),
-    "ended_at": self.ended_at.to_json(),
+    "title": ToJson::to_json(self.title),
+    "started_at": ToJson::to_json(self.started_at),
+    "ended_at": ToJson::to_json(self.ended_at),
   })
 }
 
@@ -103,15 +103,15 @@ pub(all) struct SessionTimeMachine {
 
 ///|
 impl ToJson for SessionTimeMachine with fn to_json(self) {
-  let parents_json : Map[String, Json] = {}
-  self.task_parents.each(fn(k, v) { parents_json[k] = v.to_json() })
-  let meta_json : Map[String, Json] = {}
-  self.task_meta.each(fn(k, v) { meta_json[k] = v.to_json() })
+  let parents_json : Map[String, Json] = Map([])
+  self.task_parents.each(fn(k, v) { parents_json[k] = ToJson::to_json(v) })
+  let meta_json : Map[String, Json] = Map([])
+  self.task_meta.each(fn(k, v) { meta_json[k] = ToJson::to_json(v) })
   Json::object({
     "task_parents": Json::object(parents_json),
     "task_meta": Json::object(meta_json),
-    "current_task_id": self.current_task_id.to_json(),
-    "active_task_id": self.active_task_id.to_json(),
+    "current_task_id": ToJson::to_json(self.current_task_id),
+    "active_task_id": ToJson::to_json(self.active_task_id),
   })
 }
 
@@ -119,7 +119,7 @@ impl ToJson for SessionTimeMachine with fn to_json(self) {
 impl FromJson for SessionTimeMachine with fn from_json(json, path) {
   match json {
     Object(map) => {
-      let task_parents : Map[String, String] = {}
+      let task_parents : Map[String, String] = Map([])
       match map.get("task_parents") {
         Some(Object(pm)) =>
           pm.each(fn(k, v) {
@@ -130,7 +130,7 @@ impl FromJson for SessionTimeMachine with fn from_json(json, path) {
           })
         _ => ()
       }
-      let task_meta : Map[String, SessionTaskMeta] = {}
+      let task_meta : Map[String, SessionTaskMeta] = Map([])
       match map.get("task_meta") {
         Some(Object(mm)) =>
           mm.each(fn(k, v) raise @json.JsonDecodeError {
@@ -288,14 +288,16 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
 ///|
 impl ToJson for SessionStats with fn to_json(self) {
   Json::object({
-    "total_iterations": self.total_iterations.to_json(),
-    "total_cost_usd": self.total_cost_usd.to_json(),
-    "total_tasks": self.total_tasks.to_json(),
-    "cost_source": self.cost_source.to_json(),
-    "cache_creation_input_tokens": self.cache_creation_input_tokens.to_json(),
-    "cache_read_input_tokens": self.cache_read_input_tokens.to_json(),
-    "total_requests": self.total_requests.to_json(),
-    "cache_hit_requests": self.cache_hit_requests.to_json(),
+    "total_iterations": ToJson::to_json(self.total_iterations),
+    "total_cost_usd": ToJson::to_json(self.total_cost_usd),
+    "total_tasks": ToJson::to_json(self.total_tasks),
+    "cost_source": ToJson::to_json(self.cost_source),
+    "cache_creation_input_tokens": ToJson::to_json(
+      self.cache_creation_input_tokens,
+    ),
+    "cache_read_input_tokens": ToJson::to_json(self.cache_read_input_tokens),
+    "total_requests": ToJson::to_json(self.total_requests),
+    "cache_hit_requests": ToJson::to_json(self.cache_hit_requests),
   })
 }
 
@@ -360,41 +362,41 @@ impl FromJson for SessionStats with fn from_json(json, path) {
 pub impl ToJson for SessionData with fn to_json(self) {
   let msgs_json : Array[Json] = self.messages.map(m => ToJson::to_json(m))
   let obj : Map[String, Json] = {
-    "session_id": self.session_id.to_json(),
-    "name": self.name.to_json(),
-    "messages": msgs_json.to_json(),
-    "stats": self.stats.to_json(),
-    "working_dir": self.working_dir.to_json(),
-    "created_at": self.created_at.to_json(),
-    "source": self.source.to_json(),
-    "reasoning_effort": self.reasoning_effort.to_json(),
-    "model_name": self.model_name.to_json(),
-    "pending_error_rollback": self.pending_error_rollback.to_json(),
-    "model_base_url": self.model_base_url.to_json(),
-    "last_status": self.last_status.to_json(),
-    "last_error": self.last_error.to_json(),
-    "chunk_count": self.chunk_count.to_json(),
-    "agent_profile": self.agent_profile.to_json(),
-    "sub_model": self.sub_model.to_json(),
+    "session_id": ToJson::to_json(self.session_id),
+    "name": ToJson::to_json(self.name),
+    "messages": ToJson::to_json(msgs_json),
+    "stats": ToJson::to_json(self.stats),
+    "working_dir": ToJson::to_json(self.working_dir),
+    "created_at": ToJson::to_json(self.created_at),
+    "source": ToJson::to_json(self.source),
+    "reasoning_effort": ToJson::to_json(self.reasoning_effort),
+    "model_name": ToJson::to_json(self.model_name),
+    "pending_error_rollback": ToJson::to_json(self.pending_error_rollback),
+    "model_base_url": ToJson::to_json(self.model_base_url),
+    "last_status": ToJson::to_json(self.last_status),
+    "last_error": ToJson::to_json(self.last_error),
+    "chunk_count": ToJson::to_json(self.chunk_count),
+    "agent_profile": ToJson::to_json(self.agent_profile),
+    "sub_model": ToJson::to_json(self.sub_model),
   }
   match self.forked_from {
-    Some(f) => obj["forked_from"] = f.to_json()
+    Some(f) => obj["forked_from"] = ToJson::to_json(f)
     None => ()
   }
   match self.channel_info {
-    Some(ci) => obj["channel_info"] = ci.to_json()
+    Some(ci) => obj["channel_info"] = ToJson::to_json(ci)
     None => ()
   }
   match self.latest_latency_ms {
-    Some(ms) => obj["latest_latency_ms"] = ms.to_json()
+    Some(ms) => obj["latest_latency_ms"] = ToJson::to_json(ms)
     None => ()
   }
   match self.latest_ttft_ms {
-    Some(ms) => obj["latest_ttft_ms"] = ms.to_json()
+    Some(ms) => obj["latest_ttft_ms"] = ToJson::to_json(ms)
     None => ()
   }
   match self.time_machine {
-    Some(tm) => obj["time_machine"] = tm.to_json()
+    Some(tm) => obj["time_machine"] = ToJson::to_json(tm)
     None => ()
   }
   Json::object(obj)
@@ -423,7 +425,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
         _ => raise JsonDecodeError((path, "SessionData: missing 'messages'"))
       }
       let stats = match map.get("stats") {
-        Some(s) => SessionStats::from_json(s, path.add_key("stats"))
+        Some(s) => FromJson::from_json(s, path.add_key("stats"))
         _ => raise JsonDecodeError((path, "SessionData: missing 'stats'"))
       }
       let working_dir = match map.get("working_dir") {
@@ -449,7 +451,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
       // Enhanced fields — backward compatible (default if missing)
       let channel_info : ChannelInfo? = match map.get("channel_info") {
         Some(Object(_) as obj) =>
-          Some(ChannelInfo::from_json(obj, path.add_key("channel_info")))
+          Some(FromJson::from_json(obj, path.add_key("channel_info")))
         _ => None
       }
       let latest_latency_ms = match map.get("latest_latency_ms") {
@@ -462,7 +464,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
       }
       let time_machine : SessionTimeMachine? = match map.get("time_machine") {
         Some(Object(_) as obj) =>
-          Some(SessionTimeMachine::from_json(obj, path.add_key("time_machine")))
+          Some(FromJson::from_json(obj, path.add_key("time_machine")))
         _ => None
       }
       let pending_error_rollback = match map.get("pending_error_rollback") {

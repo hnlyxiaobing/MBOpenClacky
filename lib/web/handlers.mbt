@@ -70,7 +70,7 @@ fn handle_list_sessions(
   let has_more = total > limit
   // Apply limit (take first `limit` items)
   let paged = if total > limit {
-    summaries[0:limit].to_array()
+    summaries[0:limit].to_owned()
   } else {
     summaries
   }
@@ -80,13 +80,13 @@ fn handle_list_sessions(
   let cron_count = schedule_state.val.scheduler.list_schedules().length()
   let paged_json : Array[Json] = []
   for s in paged {
-    paged_json.push(s.to_json())
+    paged_json.push(ToJson::to_json(s))
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "sessions": paged_json.to_json(),
-      "has_more": has_more.to_json(),
-      "cron_count": cron_count.to_json(),
+      "sessions": ToJson::to_json(paged_json),
+      "has_more": ToJson::to_json(has_more),
+      "cron_count": ToJson::to_json(cron_count),
       "latest_cron_updated_at": Json::null(),
     }),
   )
@@ -147,9 +147,9 @@ fn handle_create_session(
   server_ref.val.active_agents[session_id] = agent
   let data = agent.to_session_data()
   // Include agent_profile in the response (web-replication-05).
-  match data.to_json() {
+  match ToJson::to_json(data) {
     Object(o) => {
-      o["agent_profile"] = agent_profile.to_json()
+      o["agent_profile"] = ToJson::to_json(agent_profile)
       @core.HttpResponse::created().json_value(Json::object(o))
     }
     other => @core.HttpResponse::created().json_value(other)
@@ -171,7 +171,7 @@ fn handle_get_session(
   }
   let session_opt = @agent.load_session(id)
   match session_opt {
-    Some(data) => @core.HttpResponse::ok().json_value(data.to_json())
+    Some(data) => @core.HttpResponse::ok().json_value(ToJson::to_json(data))
     None =>
       // A freshly created session lives only in memory until its first
       // run persists it; serve that instead of a 404 so the frontend
@@ -231,9 +231,12 @@ fn handle_restore_session(
       let hub = server_ref.val.hub
       hub.broadcast_session(
         id,
-        @protocol.build_session_restored_event(id, session_data.to_json()),
+        @protocol.build_session_restored_event(
+          id,
+          ToJson::to_json(session_data),
+        ),
       )
-      @core.HttpResponse::ok().json_value(session_data.to_json())
+      @core.HttpResponse::ok().json_value(ToJson::to_json(session_data))
     }
     None =>
       @core.HttpResponse::not_found().json_value(
@@ -322,7 +325,7 @@ fn handle_chat(
     iterations: result.iterations,
     status: result.status.to_string_value(),
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 ///|
@@ -348,7 +351,7 @@ fn handle_get_status(
         iterations: agent.iterations,
         error: agent.error,
       }
-      @core.HttpResponse::ok().json_value(response.to_json())
+      @core.HttpResponse::ok().json_value(ToJson::to_json(response))
     }
     None => {
       let session_opt = @agent.load_session(id)
@@ -360,7 +363,7 @@ fn handle_get_status(
             iterations: data.stats.total_iterations,
             error: None,
           }
-          @core.HttpResponse::ok().json_value(response.to_json())
+          @core.HttpResponse::ok().json_value(ToJson::to_json(response))
         }
         None =>
           @core.HttpResponse::not_found().json_value(
@@ -388,7 +391,7 @@ fn handle_cancel(
   }
   server_ref.val.cancelled[id] = true
   let response = CancelResponse::{ cancelled: true }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 ///|
@@ -417,7 +420,7 @@ fn handle_get_cost(
         total_requests: agent.cache_stats.total_requests,
         cache_hit_requests: agent.cache_stats.cache_hit_requests,
       }
-      @core.HttpResponse::ok().json_value(response.to_json())
+      @core.HttpResponse::ok().json_value(ToJson::to_json(response))
     }
     None => {
       let session_opt = @agent.load_session(id)
@@ -432,7 +435,7 @@ fn handle_get_cost(
             total_requests: data.stats.total_requests,
             cache_hit_requests: data.stats.cache_hit_requests,
           }
-          @core.HttpResponse::ok().json_value(response.to_json())
+          @core.HttpResponse::ok().json_value(ToJson::to_json(response))
         }
         None =>
           @core.HttpResponse::not_found().json_value(
@@ -468,7 +471,7 @@ fn handle_list_tools(
     }
   }
   let response = ToolListResponse::{ tools, }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 // ── Config Handlers ─────────────────────────────────────────────
@@ -487,7 +490,7 @@ fn handle_get_config(
     current_model_id: cfg.current_model_id,
     models: cfg.models,
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 ///|
@@ -547,7 +550,7 @@ fn handle_list_models(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let response = ModelListResponse::{ models: server_ref.val.config.models }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 ///|
@@ -561,7 +564,7 @@ fn handle_get_permissions(
     permission_mode: mode_str,
     safe_tools: ["file_reader", "grep", "glob", "web_search"],
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 // ── Stats Handlers ──────────────────────────────────────────────
@@ -587,7 +590,7 @@ fn handle_get_stats(
     total_iterations,
     total_tasks,
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 ///|
@@ -608,7 +611,7 @@ fn handle_get_aggregate_stats(
     session_count: sessions.length(),
     total_messages,
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
 // ── Info Handler ────────────────────────────────────────────────
@@ -620,14 +623,14 @@ fn handle_info(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let s = server_ref.val
-  let uptime = @async.now() - s.start_time
+  let uptime = @env.now().reinterpret_as_int64() - s.start_time
   let response = InfoResponse::{
     version: "0.1.0",
     name: "MBOpenClacky",
     uptime_seconds: uptime,
     active_sessions: s.active_agents.length(),
   }
-  @core.HttpResponse::ok().json_value(response.to_json())
+  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 // Legacy /ws/sessions/:id handler removed (web-parity-05).
 // New /ws single-endpoint protocol in handlers_ws.mbt.

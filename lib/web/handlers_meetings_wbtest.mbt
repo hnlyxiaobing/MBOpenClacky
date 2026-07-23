@@ -19,7 +19,7 @@ fn make_meeting_request(
 ///|
 fn resp_json(resp : HttpResponse) -> Json {
   @json.parse(resp.body) catch {
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
 }
 

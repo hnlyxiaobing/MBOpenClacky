@@ -44,7 +44,7 @@ test "SkillProvider discover_from_contents skips non-skill files" {
 ///|
 test "SkillProvider discover_from_contents empty map" {
   let provider = SkillProvider::new([])
-  let contents : Map[String, String] = {}
+  let contents : Map[String, String] = Map([])
   let skills = provider.discover_from_contents(contents)
   @debug.assert_eq(skills.length(), 0)
 }

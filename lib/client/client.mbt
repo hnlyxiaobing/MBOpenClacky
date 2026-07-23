@@ -399,7 +399,7 @@ pub fn extract_error_message(raw_body : String) -> String {
 pub fn add_stream_options(body : Json, include_usage : Bool) -> Json {
   match body {
     Object(obj) => {
-      let new_obj : Map[String, Json] = {}
+      let new_obj : Map[String, Json] = Map([])
       for k, v in obj {
         new_obj[k] = v
       }
@@ -420,7 +420,7 @@ pub fn add_stream_options(body : Json, include_usage : Bool) -> Json {
 pub fn add_stream_flag(body : Json) -> Json {
   match body {
     Object(obj) => {
-      let new_obj : Map[String, Json] = {}
+      let new_obj : Map[String, Json] = Map([])
       for k, v in obj {
         new_obj[k] = v
       }

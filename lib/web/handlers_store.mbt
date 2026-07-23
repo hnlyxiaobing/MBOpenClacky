@@ -8,7 +8,7 @@
 /// Serialize an Extension to a JSON object for the store API.
 fn extension_to_store_json(ext : @extension.Extension) -> Json {
   let m = ext.manifest
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   obj["id"] = m.id.to_json()
   obj["name"] = m.name.to_json()
   obj["version"] = m.version.to_json()
@@ -43,7 +43,7 @@ fn extension_to_store_json(ext : @extension.Extension) -> Json {
 ///|
 /// Serialize a RegistryEntry to a JSON object for the store catalog.
 fn registry_entry_to_store_json(entry : @extension.RegistryEntry) -> Json {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   obj["id"] = entry.id.to_json()
   let name = match entry.metadata.get("name") {
     Some(s) => s
@@ -90,7 +90,7 @@ pub fn handle_store_list(request : HttpRequest) -> HttpResponse {
   let entries = @extension.list_marketplace_extensions()
   // Mark installed extensions
   let installed = @extension.list_installed_extensions()
-  let installed_ids : Map[String, Unit] = {}
+  let installed_ids : Map[String, Unit] = Map([])
   installed.each(fn(e) { installed_ids[e.manifest.id] = () })
   let arr : Array[Json] = []
   entries.each(fn(e) {
@@ -197,7 +197,7 @@ pub fn handle_store_install(request : HttpRequest) -> HttpResponse {
   let body_json : Json = @json.parse(request.body) catch {
     _ => return HttpResponse::bad_request("Invalid JSON body")
   }
-  let (download_url, name) = match body_json {
+  let (download_url, _) = match body_json {
     Object(obj) => {
       let url = match obj.get("download_url") {
         Some(String(s)) => s

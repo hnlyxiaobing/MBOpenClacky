@@ -18,7 +18,7 @@ pub fn register_extensions(
   extensions : Array[@web.ApiExtension],
 ) -> Result[Unit, String] {
   let errors : Array[String] = []
-  let seen_names : Map[String, Bool] = {}
+  let seen_names : Map[String, Bool] = Map([])
   for ext in extensions {
     if !ext.enabled {
       continue
@@ -32,7 +32,7 @@ pub fn register_extensions(
       continue
     }
     seen_names[ext.name] = true
-    let seen_routes : Map[String, Bool] = {}
+    let seen_routes : Map[String, Bool] = Map([])
     for route in ext.routes {
       let http_method = route.http_method.to_upper()
       match http_method {

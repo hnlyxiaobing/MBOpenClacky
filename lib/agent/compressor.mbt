@@ -366,7 +366,7 @@ pub fn pulled_back_messages(
 
   // Fix tool pair integrity: if a kept Tool message references an assistant
   // tool_call that is no longer in kept, move that assistant to pulled too.
-  let kept_ids : Map[String, Bool] = {}
+  let kept_ids : Map[String, Bool] = Map([])
   for msg in kept {
     if msg.role == @message.Assistant {
       match msg.tool_calls {
@@ -408,7 +408,7 @@ pub fn pulled_back_messages(
       let _ = pulled.pop()
     }
     // Simple approach: messages in original but not in clean_kept
-    let kept_set : Map[Int, Bool] = {}
+    let kept_set : Map[Int, Bool] = Map([])
     let mut ki = 0
     for msg in clean_kept {
       // Find msg in original messages

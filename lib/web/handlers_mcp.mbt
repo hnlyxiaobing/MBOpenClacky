@@ -32,7 +32,7 @@ pub fn handle_mcp_list_servers(
         }
       None => "registered"
     }
-    let disabled = not(registry.is_enabled(name))
+    let disabled = !registry.is_enabled(name)
     let fields : Map[String, Json] = {
       "name": name.to_json(),
       "type": type_str.to_json(),
@@ -97,7 +97,7 @@ pub fn handle_mcp_add_server(
     }
     let headers : Map[String, String]? = match json {
       { "headers": Object(entries), .. } => {
-        let result : Map[String, String] = {}
+        let result : Map[String, String] = Map([])
         entries.each(fn(k, v) {
           match v {
             String(s) => result[k] = s
@@ -136,7 +136,7 @@ pub fn handle_mcp_add_server(
     }
     let env : Map[String, String]? = match json {
       { "env": Object(entries), .. } => {
-        let result : Map[String, String] = {}
+        let result : Map[String, String] = Map([])
         entries.each(fn(k, v) {
           match v {
             String(s) => result[k] = s
@@ -385,7 +385,7 @@ pub fn handle_mcp_call_server_tool(
       }
       let arguments : Json = match body_json {
         { "arguments": args, .. } => args
-        _ => Json::object({})
+        _ => Json::object(Map([]))
       }
       let result = registry.call_tool(name, tool_name, arguments) catch {
         @mcp.McpError(msg) =>
@@ -454,7 +454,7 @@ pub fn handle_mcp_execute_tool(
   }
   let arguments : Json = match body_json {
     { "arguments": args, .. } => args
-    _ => Json::object({})
+    _ => Json::object(Map([]))
   }
   // Find the server that provides this tool and execute it
   let mut result_json : Json? = None

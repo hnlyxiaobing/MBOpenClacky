@@ -15,7 +15,7 @@ fn wbtest_web_root() -> String {
         None => "/tmp"
       }
   }
-  let root = base + "/_wbtest_web_" + @async.now().to_string()
+  let root = base + "/_wbtest_web_" + @env.now().to_string()
   @utils.ensure_dir(root + "/js")
   @utils.ensure_dir(root + "/css")
   @fs.write_string_to_file(root + "/js/app.js", "console.log('app');") catch {

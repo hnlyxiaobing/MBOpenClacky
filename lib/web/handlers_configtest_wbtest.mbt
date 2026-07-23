@@ -31,7 +31,7 @@ test "config test reports missing api_key by name" {
   let body = ex_response_json(resp)
   let msg = ex_str_field(body, "message")
   assert_true(msg.contains("api_key"))
-  assert_true(not(msg.contains("base_url")))
+  assert_true(!msg.contains("base_url"))
 }
 
 ///|
@@ -48,7 +48,7 @@ test "config test reports missing base_url by name" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let msg = ex_str_field(ex_response_json(resp), "message")
   assert_true(msg.contains("base_url"))
-  assert_true(not(msg.contains("api_key")))
+  assert_true(!msg.contains("api_key"))
 }
 
 ///|

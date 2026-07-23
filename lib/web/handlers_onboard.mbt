@@ -325,7 +325,7 @@ fn handle_onboard_skip_soul(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let j : Json = event.req.body() catch { _ => Json::object({}) }
+  let j : Json = event.req.body() catch { _ => Json::object(Map([])) }
   let lang = match j {
     Object(obj) =>
       match obj.get("lang") {

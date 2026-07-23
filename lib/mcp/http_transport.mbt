@@ -22,7 +22,7 @@ pub fn HttpTransport::new(spec : McpServerSpec) -> HttpTransport {
   }
   let headers : Map[String, String] = match spec.headers {
     Some(h) => h
-    None => {}
+    None => Map([])
   }
   {
     url,
@@ -94,7 +94,7 @@ pub fn HttpTransport::get_session_id(self : HttpTransport) -> String? {
 pub fn HttpTransport::build_headers(
   self : HttpTransport,
 ) -> Map[String, String] {
-  let result : Map[String, String] = {}
+  let result : Map[String, String] = Map([])
   self.headers.each(fn(k, v) { result[k] = v })
   result["Content-Type"] = "application/json"
   match self.session_id {

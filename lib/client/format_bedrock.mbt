@@ -433,7 +433,7 @@ fn to_bedrock_tool(tool : Json) -> Json {
     Object(obj) =>
       match obj.get("function") {
         Some(Object(func)) => {
-          let spec : Map[String, Json] = {}
+          let spec : Map[String, Json] = Map([])
           match func.get("name") {
             Some(v) => spec["name"] = v
             _ => ()
@@ -445,7 +445,9 @@ fn to_bedrock_tool(tool : Json) -> Json {
           match func.get("parameters") {
             Some(v) => spec["inputSchema"] = Json::object({ "json": v })
             None =>
-              spec["inputSchema"] = Json::object({ "json": Json::object({}) })
+              spec["inputSchema"] = Json::object({
+                "json": Json::object(Map([])),
+              })
           }
           Json::object({ "toolSpec": Json::object(spec) })
         }

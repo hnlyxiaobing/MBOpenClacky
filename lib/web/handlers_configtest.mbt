@@ -16,14 +16,14 @@
 fn has_version_suffix(url : String) -> Bool {
   // Strip a single trailing slash so /v3/ also matches.
   let trimmed = if url.has_suffix("/") {
-    String::sub(url, end=url.length() - 1).to_string()
+    String::sub(url, end=url.length() - 1).to_owned()
   } else {
     url
   }
   match trimmed.rev_find("/") {
     None => false
     Some(idx) => {
-      let tail = String::sub(trimmed, start=idx + 1).to_string()
+      let tail = String::sub(trimmed, start=idx + 1).to_owned()
       if tail.length() < 2 {
         false
       } else {
@@ -58,7 +58,7 @@ fn has_version_suffix(url : String) -> Bool {
 /// before path concatenation so we never produce accidental `//` segments.
 fn strip_trailing_slash(url : String) -> String {
   if url.has_suffix("/") {
-    String::sub(url, end=url.length() - 1).to_string()
+    String::sub(url, end=url.length() - 1).to_owned()
   } else {
     url
   }
@@ -198,7 +198,7 @@ fn handle_config_test(
   // (/v1/messages). Using the OpenAI-shaped /v1/models probe on them
   // yields 404/401, which is misleading.
   let anthropic_format = extra_json_bool(j, "anthropic_format")
-  let start = @async.now()
+  let start = @env.now().reinterpret_as_int64()
   let result : Result[_, _] = if anthropic_format {
     let url = if has_version_suffix(base_url) {
       strip_trailing_slash(base_url) + "/messages"
@@ -225,7 +225,7 @@ fn handle_config_test(
     // surface a misleading "endpoint not found" to the user.
     probe_openai_compatible(base_url, api_key, model, 10000)
   }
-  let elapsed = (@async.now() - start).to_int()
+  let elapsed = (@env.now().reinterpret_as_int64() - start).to_int()
   match result {
     Ok(resp) =>
       if resp.status_code >= 200 && resp.status_code < 300 {
@@ -673,7 +673,7 @@ fn handle_config_media_all(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let config = server_ref.val.config
-  let media : Map[String, Json] = {}
+  let media : Map[String, Json] = Map([])
   for kind in ["image", "video", "audio", "stt", "video_understanding"] {
     let entry = match config.find_model_by_type(kind) {
       Some(mc) =>
@@ -704,7 +704,7 @@ fn handle_config_media_all(
     media[kind] = entry
   }
   // default_provider: derive from first model with media_type
-  let default_provider : Map[String, Json] = {}
+  let default_provider : Map[String, Json] = Map([])
   let mut found_default = false
   for m in config.models {
     match m.media_type {

@@ -8,8 +8,8 @@ pub(all) enum MessageContent {
 ///|
 impl ToJson for MessageContent with fn to_json(self) {
   match self {
-    Text(s) => s.to_json()
-    Blocks(blocks) => blocks.to_json()
+    Text(s) => ToJson::to_json(s)
+    Blocks(blocks) => ToJson::to_json(blocks)
   }
 }
 
@@ -20,7 +20,7 @@ impl FromJson for MessageContent with fn from_json(json, path) {
     Array(items) => {
       let blocks : Array[ContentBlock] = []
       for item in items {
-        blocks.push(ContentBlock::from_json(item, path))
+        blocks.push(FromJson::from_json(item, path))
       }
       MessageContent::Blocks(blocks)
     }
@@ -55,17 +55,17 @@ pub(all) struct Message {
 ///|
 pub impl ToJson for Message with fn to_json(self) {
   let obj : Map[String, Json] = {
-    "role": self.role.to_json(),
-    "content": self.content.to_json(),
+    "role": ToJson::to_json(self.role),
+    "content": ToJson::to_json(self.content),
   }
   if self.tool_calls is Some(_) {
-    obj["tool_calls"] = self.tool_calls.to_json()
+    obj["tool_calls"] = ToJson::to_json(self.tool_calls)
   }
   if self.tool_call_id is Some(_) {
-    obj["tool_call_id"] = self.tool_call_id.to_json()
+    obj["tool_call_id"] = ToJson::to_json(self.tool_call_id)
   }
   if self.name is Some(_) {
-    obj["name"] = self.name.to_json()
+    obj["name"] = ToJson::to_json(self.name)
   }
   Json::object(obj)
 }
@@ -184,18 +184,18 @@ pub impl FromJson for Message with fn from_json(json, path) {
   match json {
     Object(map) => {
       let role = match map.get("role") {
-        Some(r) => Role::from_json(r, path.add_key("role"))
+        Some(r) => FromJson::from_json(r, path.add_key("role"))
         _ => raise JsonDecodeError((path, "Message: missing 'role'"))
       }
       let content = match map.get("content") {
-        Some(c) => MessageContent::from_json(c, path.add_key("content"))
+        Some(c) => FromJson::from_json(c, path.add_key("content"))
         _ => MessageContent::Text("")
       }
       let tool_calls = match map.get("tool_calls") {
         Some(Array(items)) => {
           let calls : Array[ToolCall] = []
           for item in items {
-            calls.push(ToolCall::from_json(item, path.add_key("tool_calls")))
+            calls.push(FromJson::from_json(item, path.add_key("tool_calls")))
           }
           Some(calls)
         }

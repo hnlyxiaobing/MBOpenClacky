@@ -29,7 +29,7 @@ let tiered_pricing_threshold : Int = 200_000
 ///|
 /// Returns a Map from canonical model name to its pricing structure.
 pub fn pricing_table() -> Map[String, ModelPricing] {
-  let table : Map[String, ModelPricing] = {}
+  let table : Map[String, ModelPricing] = Map([])
   // --- Anthropic Claude Models ---
   table["claude-fable-5"] = {
     input_default: 10.0,

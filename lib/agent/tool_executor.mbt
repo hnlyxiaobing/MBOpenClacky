@@ -409,22 +409,22 @@ fn Agent::execute_todo_tool(
 pub fn parse_tool_arguments(call : @message.ToolCall) -> Map[String, Json] {
   let args_str = call.function.arguments.trim()
   if args_str.length() == 0 {
-    return {}
+    return Map([])
   }
   try {
     let parsed = @json.parse(args_str)
     match parsed {
       Object(obj) => {
-        let result : Map[String, Json] = {}
+        let result : Map[String, Json] = Map([])
         for k, v in obj {
           result[k] = v
         }
         result
       }
-      _ => {}
+      _ => Map([])
     }
   } catch {
-    _ => {}
+    _ => Map([])
   }
 }
 

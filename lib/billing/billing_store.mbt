@@ -152,7 +152,7 @@ pub fn BillingStore::daily_breakdown(
   let from_ms = now_ms - days.to_int64() * ms_per_day
   let records = self.query(from_ms~)
   // Group by day bucket
-  let day_map : Map[Int, (Double, Int, Int)] = {}
+  let day_map : Map[Int, (Double, Int, Int)] = Map([])
   for record in records {
     let day_offset = ((now_ms - record.timestamp) / ms_per_day).to_int()
     let key = days - 1 - day_offset
@@ -250,7 +250,7 @@ pub fn aggregate_summary(
   let mut total_completion = 0
   let mut total_cache_read = 0
   let mut total_cache_write = 0
-  let by_model : Map[String, ModelSummary] = {}
+  let by_model : Map[String, ModelSummary] = Map([])
   for record in records {
     total_cost = total_cost + record.cost_usd
     total_prompt = total_prompt + record.prompt_tokens
