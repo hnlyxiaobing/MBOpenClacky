@@ -1,6 +1,6 @@
 # parser - 文档解析 · PDF/DOCX/XLSX/PPTX/WPS · OCR 回退
 
-> 路径: `lib/parser/` · 9 mbt（src=8, test=1）+ moon.pkg/.mbti · 多格式文档文本提取
+> 路径: `lib/parser/` · 10 mbt（src=9, test=1）+ moon.pkg/.mbti · 多格式文档文本提取
 
 ## 入口函数
 

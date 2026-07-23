@@ -43,6 +43,7 @@
 | errors | `errors.md` | Agent 错误层次、重试判定 |
 | i18n | `i18n.md` | 国际化、多语言翻译 |
 | utils | `utils.md` | 通用工具集（环境/日志/路径/编码/忽略规则） |
+| zip | `zip.md` | ZIP 压缩/解压 |
 
 ## 如何生成
 

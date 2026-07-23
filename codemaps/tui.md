@@ -1,6 +1,6 @@
 # tui — Inline TUI 控制器 · 多行编辑器 · Markdown 渲染 · CJK 宽度 · Node 渲染 · 对话框系统 · Agent Shell
 
-> 路径: `lib/tui/` · 45 mbt（31 源 + 14 测试）+ moon.pkg/.mbti · 终端交互界面
+> 路径: `lib/tui/` · 51 mbt（33 源 + 18 测试）+ moon.pkg/.mbti · 终端交互界面
 > 架构: 异步事件循环（`Queue[TuiEvent]`）+ Msg 驱动状态转移（Elm 风格 `TuiMsg`/`update`）+ Node 树渲染
 
 ## 入口函数

@@ -1,7 +1,7 @@
-# web — REST 服务器 · 159 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 162 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 顶层 51 mbt（src=35, test=16）+ `git_exec.c` + 4 子包（broadcast/handler/middleware/sse）· Web UI 服务层
-> 前端: `web/` — fork 前端资产骨架（index.html + app.js + app.css），模板占位符由 `template_processor.mbt` 替换；`legacy_mb/`（旧 MoonBit SPA）已于 web-parity-05 删除
+> 路径: `lib/web/` · 72 mbt（src=51, test=21）+ `git_exec.c` + 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
+> 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 15 个功能模块），模板占位符由 `template_processor.mbt` 替换
 
 ## 入口函数
 

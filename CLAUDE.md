@@ -10,8 +10,8 @@ MBOpenClacky is a MoonBit rewrite of the openclacky AI Agent CLI — an LLM-powe
 moon check                                          # Type-check (0 errors expected)
 moon build --target native --release cmd            # Build native binary (always specify cmd)
 moon run cmd                                        # Run CLI
-moon run cmd -- --message "Hello"                   # Non-interactive mode
-moon run cmd -- --server                            # Web server (port 7071)
+moon run cmd --message "Hello"                   # Non-interactive mode
+moon run cmd -- server                              # Web server (port 7071)
 moon test                                           # White-box tests (native only, needs -lcurl)
 moon update && moon install                         # Sync dependencies
 ```
@@ -37,11 +37,12 @@ lib/
                 (Reflector/AutoCreator), 17 default skills
   extension/  — Extension lifecycle: loader, verifier, packager, scaffold,
                 marketplace, API extension dispatcher/loader, route contributions
-  mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,                registry, virtual skill mapping, skill provider
+  mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
+                registry, virtual skill mapping, skill provider
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
   web/        — crescent HTTP server: ~162 REST endpoints, SSE, WebSocket, auth/logging
                 middleware, timeout/error-envelope, broadcast hub, template processor,
-                static server with SPA fallback
+                static server with SPA fallback (native JS frontend in web/)
   tui/        — Inline scrolling TUI (moonbit-community/tty): async event loop
                 (Queue[TuiEvent]) + Elm-style Msg/update state transition, Node component
                 tree rendering, dialog system (approval/config/form), Agent Shell
@@ -62,7 +63,9 @@ lib/
   hook/       — Shell hook system (7 event types)
   telemetry/  — Anonymous telemetry (fire-and-forget)
   errors/     — Error type hierarchy
+  i18n/       — Internationalization (en/zh translations)
   utils/      — Env vars, path, encoding, logger, proxy config, gitignore parser, etc.
+  zip/        — ZIP compression/decompression
 ```
 
 ### Agent Core
@@ -86,17 +89,17 @@ lib/
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 312 |
-| Test files (`_wbtest.mbt`) | 137 |
-| Source lines | ~66,600 |
-| Test lines | ~30,200 |
-| Total lines (incl. test/) | ~96,800 |
-| Test cases | 2,790+ |
+| `.mbt` source files (lib + cmd) | 316 |
+| Test files (`_wbtest.mbt`) | 140 |
+| Source lines | ~74,200 |
+| Test lines | ~31,700 |
+| Total lines (incl. test/) | ~105,900 |
+| Test cases | 2,880+ |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
-| REST API endpoints | ~159 |
+| REST API endpoints | ~162 |
 | `moon check` | 0 errors, ~500 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |

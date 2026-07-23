@@ -73,9 +73,9 @@ cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxili
 moon build --target native --release cmd
 ```
 
-构建产物路径：`_build/native/release/build/cmd/cmd.exe`（release，约 3.8MB）。
+构建产物路径：`_build/native/release/build/cmd/cmd.exe`（release，约 3.6MB）。
 
-**Debug 构建（体积更大，约 14MB，含调试符号）：**
+**Debug 构建（体积更大，约 8MB，含调试符号）：**
 
 ```bash
 moon build --target native cmd
@@ -282,7 +282,7 @@ chmod +x scripts/install.sh
 |------|------|------------|
 | 使用 `moon build --target native` 而非 `moon build --target native --release cmd` | 可能触发 moon #1488 bug（库包误链接） | 手动执行 `moon build --target native --release cmd` |
 | 未安装 OpenSSL 开发库（libssl-dev） | brand 包 AES-256-GCM 加密链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
-| 未构建 release 模式 | 产出 debug 二进制（约 14MB，含调试符号） | 手动追加 `--release` 标志 |
+| 未构建 release 模式 | 产出 debug 二进制（约 8MB，含调试符号） | 手动追加 `--release` 标志 |
 | `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release（详见下方「品牌加密与密钥派生」） |
 
 ### 前置环境依赖清单

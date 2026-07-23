@@ -48,7 +48,7 @@ sudo journalctl -u mbopenclacky -f
 ```bash
 ./mbopenclacky server &          # 后台常驻并配合 nohup/supervisor 亦可
 # 或仅前端开发
-./mbopenclacky --server
+./mbopenclacky server
 ```
 
 ## 日志轮转

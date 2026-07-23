@@ -1,6 +1,6 @@
 # config — TOML 配置加载 · 12 Provider 预设 · 权限控制
 
-> 路径: `lib/config/` · 13 mbt（src=7, test=6）+ moon.pkg/.mbti · 配置管理
+> 路径: `lib/config/` · 14 mbt（src=8, test=6）+ moon.pkg/.mbti · 配置管理
 
 ## 入口函数
 

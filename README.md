@@ -14,17 +14,18 @@
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件 | 312 个 `.mbt`（lib + cmd） |
-| 测试文件 | 137 个 `_wbtest.mbt`（lib + cmd + test） |
-| 代码行数 | ~97,000 行（源码 ~66,600 + 测试 ~30,200） |
-| 测试用例 | 2,790+ |
+| 源代码文件 | 316 个 `.mbt`（lib + cmd） |
+| 测试文件 | 140 个 `_wbtest.mbt`（lib + cmd + test） |
+| 代码行数 | ~105,900 行（源码 ~74,200 + 测试 ~31,700） |
+| 测试用例 | 2,880+ |
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~159 个 |
+| REST API 端点 | ~162 个 |
 | 默认 Skill | 17 个 |
-| `moon check` | 0 errors（项目自身代码），~500 warnings |
-| 原生二进制 | ~3.3 MB |
+| `moon check` | 0 errors（项目自身代码），0 warnings |
+| 原生二进制 | ~3.6 MB |
+
 ### 功能亮点
 
 - **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
@@ -43,7 +44,7 @@
 
 相较原 Ruby 实现，MoonBit 重写版带来：
 
-1. **AOT 原生编译** — 单一可执行文件（~3.3MB），毫秒级启动，零运行时依赖
+1. **AOT 原生编译** — 单一可执行文件（~3.6MB），毫秒级启动，零运行时依赖
 2. **静态类型安全** — 代数数据类型、Checked Error、`Option[T]` 消除 nil 访问
 3. **`struct + trait` 现代架构** — 显式 trait 实现 + `AnyTool` 枚举分发，替代 Ruby mixin 隐式耦合
 4. **GEP 技能自进化系统** — 执行后反思 + 模式检测自动创建技能
@@ -83,9 +84,9 @@ moon check
 moon build --target native --release cmd
 
 # 运行
-moon run cmd -- --message "Hello"          # 非交互模式
+moon run cmd --message "Hello"          # 非交互模式
 ./_build/native/debug/build/cmd/cmd.exe    # TUI 交互模式
-moon run cmd -- --server                   # Web 服务（端口 7071）
+moon run cmd -- server                     # Web 服务（端口 7071）
 
 # 测试
 moon test
@@ -109,6 +110,7 @@ MBOpenClacky/
 │   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
 │   ├── channel/        # 6 平台 IM 适配器
 │   ├── web/            # Web 服务器（~162 REST 端点、SSE、WebSocket）
+│   ├── i18n/           # 国际化（中英文翻译）
 │   ├── tui/            # TUI 界面（moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
 │   ├── config/         # 配置系统（TOML、12 Provider）
@@ -122,7 +124,8 @@ MBOpenClacky/
 │   ├── hook/           # Shell Hook 系统
 │   ├── telemetry/      # 匿名遥测
 │   ├── errors/         # 错误类型层次
-│   └── utils/          # 工具函数
+│   ├── utils/          # 工具函数
+│   └── zip/            # ZIP 压缩/解压
 ├── test/               # Eval 框架（通用引擎 + TUI 适配层 + 场景）
 ├── assets/             # Agent 配置、技能、Web 前端
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
@@ -130,22 +133,6 @@ MBOpenClacky/
 ├── .github/            # CI/CD 工作流
 └── docs/               # 项目文档
 ```
-
----
-
-## 开发阶段
-
-项目按 26 个阶段自底向上推进，全部已完成：
-
-| 阶段 | 内容 |
-|------|------|
-| Phase 0-4 | 项目脚手架 → 配置系统 → LLM 客户端 → 工具系统 → Agent 核心 |
-| Phase 5-8 | CLI 界面 → 会话持久化 → TUI 界面 → Web 服务器 |
-| Phase 9-11 | 技能系统 → 增强功能（Memory/SubAgent/TodoManager）→ 核心补齐（Bedrock/Provider） |
-| Phase 12-14 | MCP 协议 + 技能演进 → Agent 增强 → Web 前端 SPA + TUI 增强 |
-| Phase 15-17 | 多模态 → 运维集成 → 商业扩展（IM 渠道/Brand/Hook/Telemetry） |
-| Phase 18-22 | 深度补齐 → 文档校准 → 业务功能补齐 → 差距填补方案实施 |
-| Phase 23-26 | 部署阻碍修复 → API 扩展 + TUI 增强 → CI/CD + Harness + Codemaps → Web 管理面板全量实现 |
 
 ---
 
