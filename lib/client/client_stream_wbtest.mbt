@@ -247,8 +247,8 @@ test "sse_byte_pump reassembles frames split across chunks" {
   let pump = SseBytePump::new()
   let bytes = @utf8.encode("data: {\"a\":1}\n\ndata: {\"b\":2}\n\n")
   // Split at an awkward position (inside the first frame).
-  @debug.assert_eq(pump.feed(bytes[:7].to_bytes()).length(), 0)
-  let frames = pump.feed(bytes[7:].to_bytes())
+  @debug.assert_eq(pump.feed(bytes[:7].to_owned()).length(), 0)
+  let frames = pump.feed(bytes[7:].to_owned())
   @debug.assert_eq(frames.length(), 2)
   @debug.assert_eq(frames[0].data, "{\"a\":1}")
   @debug.assert_eq(frames[1].data, "{\"b\":2}")
@@ -261,8 +261,8 @@ test "sse_byte_pump survives utf8 split across chunks" {
   let bytes = @utf8.encode("data: 你好\n\n")
   // Split inside the multi-byte character (byte 7 is mid-sequence:
   // "data: " is 6 bytes, 你 is 3 bytes starting at offset 6).
-  @debug.assert_eq(pump.feed(bytes[:7].to_bytes()).length(), 0)
-  let frames = pump.feed(bytes[7:].to_bytes())
+  @debug.assert_eq(pump.feed(bytes[:7].to_owned()).length(), 0)
+  let frames = pump.feed(bytes[7:].to_owned())
   @debug.assert_eq(frames.length(), 1)
   @debug.assert_eq(frames[0].data, "你好")
 }

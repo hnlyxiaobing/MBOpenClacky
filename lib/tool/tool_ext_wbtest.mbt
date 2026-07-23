@@ -276,7 +276,7 @@ test "ext_strip_control_all_control_range" {
   let chars : Array[Char] = []
   for i = 0; i < 0x20; i = i + 1 {
     if i != 0x0a && i != 0x0d && i != 0x09 {
-      chars.push(Char::from_int(i))
+      chars.push(i.unsafe_to_char())
     }
   }
   chars.push('a')

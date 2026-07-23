@@ -9,7 +9,7 @@ pub(all) struct AdapterRegistry {
 ///|
 /// Create a new empty AdapterRegistry.
 pub fn AdapterRegistry::new() -> AdapterRegistry {
-  { adapters: {} }
+  { adapters: Map([]) }
 }
 
 ///|

@@ -85,7 +85,7 @@ pub(all) struct ToolRegistry {
 ///|
 /// Create a new empty ToolRegistry.
 pub fn ToolRegistry::new() -> ToolRegistry {
-  { tools: {}, downcased_index: {} }
+  { tools: Map([]), downcased_index: Map([]) }
 }
 
 ///|

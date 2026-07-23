@@ -65,7 +65,7 @@ test "validate_manifest flags missing required fields" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: true,
   }
@@ -95,7 +95,7 @@ test "validate_manifest rejects duplicate contribution ids" {
     name: "A",
     description: "first",
     path: "a.json",
-    config: {},
+    config: Map([]),
   }
   let contrib_b : ExtensionContribution = {
     type_: ExtensionContributionType::Panel,
@@ -103,7 +103,7 @@ test "validate_manifest rejects duplicate contribution ids" {
     name: "B",
     description: "second",
     path: "b.json",
-    config: {},
+    config: Map([]),
   }
   let manifest = {
     ..sample_manifest("dup-contrib"),
@@ -128,7 +128,7 @@ fn sample_manifest(id : String) -> ExtensionManifest {
     homepage: None,
     repository: None,
     keywords: ["test"],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: true,
   }

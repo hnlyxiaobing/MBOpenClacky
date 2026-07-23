@@ -16,7 +16,7 @@ test "transcript_entry_json_roundtrip" {
     content: "Let's discuss the roadmap.",
     timestamp: 1700000000000L,
   }
-  let json = entry.to_json()
+  let json = ToJson::to_json(entry)
   let parsed : TranscriptEntry = @json.from_json(json)
   @debug.assert_eq(parsed.speaker, "Alice")
   @debug.assert_eq(parsed.content, "Let's discuss the roadmap.")
@@ -32,7 +32,7 @@ test "meeting_summary_json_roundtrip" {
     discussion_points: ["Architecture", "Timeline"],
     generated_at: 1700000001000L,
   }
-  let json = summary.to_json()
+  let json = ToJson::to_json(summary)
   let parsed : MeetingSummary = @json.from_json(json)
   @debug.assert_eq(parsed.overview, "Productive meeting")
   @debug.assert_eq(parsed.key_decisions.length(), 2)
@@ -57,7 +57,7 @@ test "meeting_json_roundtrip" {
     created_at: 1700000000000L,
     ended_at: 0L,
   }
-  let json = meeting.to_json()
+  let json = ToJson::to_json(meeting)
   let parsed : Meeting = @json.from_json(json)
   @debug.assert_eq(parsed.id, "m_test_001")
   @debug.assert_eq(parsed.title, "Sprint Planning")
@@ -95,7 +95,7 @@ test "meeting_with_summary_json_roundtrip" {
     created_at: 1700000002000L,
     ended_at: 1700000004000L,
   }
-  let json = meeting.to_json()
+  let json = ToJson::to_json(meeting)
   let parsed : Meeting = @json.from_json(json)
   @debug.assert_eq(parsed.id, "m_test_002")
   @debug.assert_eq(parsed.status, MeetingStatus::Ended)

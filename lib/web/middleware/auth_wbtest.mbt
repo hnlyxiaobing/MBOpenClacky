@@ -70,7 +70,7 @@ test "extract ip falls back to x-real-ip" {
 
 ///|
 test "extract ip unknown when no headers" {
-  let req = make_req(Get, "/api/info", {})
+  let req = make_req(Get, "/api/info", Map([]))
   @debug.assert_eq(extract_client_ip(req), "127.0.0.1")
 }
 

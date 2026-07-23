@@ -15,7 +15,7 @@
 /// Dispatch the `ext` subcommand. `ext_value` is the nested SimpleValue
 /// produced by clap for the `ext` subcommand; its `.subcmd` field names the
 /// concrete action (list/install/...).
-pub async fn handle_ext(ext_value : @clap.SimpleValue) -> Unit {
+pub fn handle_ext(ext_value : @clap.SimpleValue) -> Unit {
   let action = match ext_value.subcmd {
     Some(sub) => sub
     None => {

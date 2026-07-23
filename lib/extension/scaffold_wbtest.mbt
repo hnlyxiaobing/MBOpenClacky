@@ -328,7 +328,7 @@ test "generate_manifest_json produces valid JSON with all fields" {
         name: "Main Panel",
         description: "A panel",
         path: "contributions/panel.json",
-        config: {},
+        config: Map([]),
       },
     ],
     enabled_by_default: true,
@@ -387,7 +387,7 @@ test "generate_manifest_json omits homepage/repository when None" {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [],
     enabled_by_default: false,
   }

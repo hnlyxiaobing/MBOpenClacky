@@ -4,7 +4,6 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",
   "moonbitlang/async/pipe",
-  "moonbitlang/async/io" @async/io,
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
 }

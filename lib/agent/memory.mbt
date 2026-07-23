@@ -147,11 +147,11 @@ pub fn MemoryStore::size(self : MemoryStore) -> Int {
 ///|
 /// Serialize all entries to JSON.
 pub fn MemoryStore::to_json(self : MemoryStore) -> Json {
-  let items : Array[Json] = self.entries.map(e => e.to_json())
+  let items : Array[Json] = self.entries.map(e => ToJson::to_json(e))
   Json::object({
-    "storage_path": self.storage_path.to_json(),
-    "next_id": self.next_id.to_json(),
-    "entries": items.to_json(),
+    "storage_path": ToJson::to_json(self.storage_path),
+    "next_id": ToJson::to_json(self.next_id),
+    "entries": ToJson::to_json(items),
   })
 }
 

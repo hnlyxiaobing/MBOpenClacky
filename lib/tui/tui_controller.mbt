@@ -99,7 +99,7 @@ pub fn TuiController::new(
 
 ///|
 /// What the Up/Down arrow keys do, given the current UI state.
-enum ArrowKeyAction {
+priv enum ArrowKeyAction {
   /// Navigate the command suggestion dropdown.
   NavigateSuggestions
   /// Browse input history (single-line input only).
@@ -576,7 +576,7 @@ async fn TuiController::read_terminal_loop(
 ///|
 /// Ticker: pushes Tick events every 200ms for spinner/animation.
 async fn TuiController::run_ticker(
-  self : TuiController,
+  _self : TuiController,
   events : @aqueue.Queue[TuiEvent],
 ) -> Unit {
   while true {
@@ -588,7 +588,7 @@ async fn TuiController::run_ticker(
 ///|
 /// Confirmation bridge: forwards agent confirmation requests to main Queue.
 async fn TuiController::run_confirmation_bridge(
-  self : TuiController,
+  _self : TuiController,
   req_q : @aqueue.Queue[(String, String)],
   events : @aqueue.Queue[TuiEvent],
 ) -> Unit {
@@ -1256,7 +1256,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               self.quit = true
               return
             }
-            Config(key~, value~) if key == "" => {
+            Config(key~, ..) if key == "" => {
               // No-arg /config: open config menu
               if self.agent.config.models.length() == 0 {
                 ignore(

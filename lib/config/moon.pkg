@@ -3,7 +3,7 @@ import {
   "moonbitlang/core/json",
   "hnlyxiaobing/toml",
   "moonbitlang/x/fs",
-  "moonbitlang/x/path",
   "moonbitlang/x/sys",
+  "moonbitlang/x/path",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }

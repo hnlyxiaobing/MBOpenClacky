@@ -8,13 +8,13 @@ pub(all) struct VisionResolver {
 ///|
 /// Create a new VisionResolver with default config
 pub fn VisionResolver::new() -> VisionResolver {
-  { config: VisionConfig::default(), cache: {} }
+  { config: VisionConfig::default(), cache: Map([]) }
 }
 
 ///|
 /// Create a VisionResolver with custom config
 pub fn VisionResolver::with_config(config : VisionConfig) -> VisionResolver {
-  { config, cache: {} }
+  { config, cache: Map([]) }
 }
 
 ///|

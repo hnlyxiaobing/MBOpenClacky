@@ -176,10 +176,10 @@ pub fn TodoManager::summary(self : TodoManager) -> String {
 ///|
 /// Serialize the todo manager to JSON.
 pub fn TodoManager::to_json(self : TodoManager) -> Json {
-  let items_json : Array[Json] = self.items.map(i => i.to_json())
+  let items_json : Array[Json] = self.items.map(i => ToJson::to_json(i))
   Json::object({
-    "next_id": self.next_id.to_json(),
-    "items": items_json.to_json(),
+    "next_id": ToJson::to_json(self.next_id),
+    "items": ToJson::to_json(items_json),
   })
 }
 

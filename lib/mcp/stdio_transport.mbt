@@ -30,7 +30,7 @@ pub fn StdioTransport::new(spec : McpServerSpec) -> StdioTransport {
   }
   let env : Map[String, String] = match spec.env {
     Some(e) => e
-    None => {}
+    None => Map([])
   }
   {
     command,

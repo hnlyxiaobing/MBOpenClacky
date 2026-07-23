@@ -146,7 +146,7 @@ pub fn PatchChain::check_after(
   let args_str = serialize_args(tool_args)
   let action = if is_error { "ERROR" } else { "EXECUTED" }
   let excerpt = if result_excerpt.length() > 200 {
-    result_excerpt[0:200].to_string()
+    result_excerpt[0:200].to_owned()
   } else {
     result_excerpt
   }
@@ -189,7 +189,7 @@ fn serialize_args(args : Map[String, Json]) -> String {
 fn json_value_to_string(v : Json) -> String {
   match v {
     String(s) => "\"" + s + "\""
-    Number(n) => n.to_string()
+    Number(n, ..) => n.to_string()
     True => "true"
     False => "false"
     Null => "null"
@@ -213,7 +213,7 @@ fn glob_match(pattern : String, value : String) -> Bool {
   let mut first = true
   let is_suffix_anchored = !pattern.has_suffix("*")
   for part in parts {
-    let p = part.to_string()
+    let p = part.to_owned()
     if p == "" {
       continue
     }

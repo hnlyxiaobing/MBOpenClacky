@@ -346,11 +346,14 @@ fn handle_session_messages(
   }
   // Parse optional pagination params.
   let limit = match event.req.get_query("limit") {
-    Some(s) =>
-      match (try? @strconv.parse_int(s)) {
-        Ok(n) => if n > 0 { n } else { 100 }
-        Err(_) => 100
+    Some(s) => {
+      let n = @string.parse_int(s) catch { _ => 0 }
+      if n > 0 {
+        n
+      } else {
+        100
       }
+    }
     None => 100
   }
   let before = event.req.get_query("before")

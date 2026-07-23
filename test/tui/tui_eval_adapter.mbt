@@ -900,7 +900,7 @@ fn TuiEvalSimulator::handle_slash_command(
       self.output.clear()
       self.full_redraw()
     }
-    @libtui.SlashCommand::Config(key~, value~) if key == "" => {
+    @libtui.SlashCommand::Config(key~, ..) if key == "" => {
       // No-arg /config: open config menu dialog
       if self.agent.config.models.length() == 0 {
         ignore(

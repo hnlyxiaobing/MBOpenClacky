@@ -25,7 +25,7 @@ fn make_extension_with_patches(
       homepage: None,
       repository: None,
       keywords: [],
-      dependencies: {},
+      dependencies: Map([]),
       contributions,
       enabled_by_default: true,
     },
@@ -58,7 +58,7 @@ test "patch_rule_from_contribution_returns_none_for_non_patch" {
     name: "x",
     description: "",
     path: "",
-    config: {},
+    config: Map([]),
   }
   let ext = make_extension_with_patches("ext-a", true, [])
   match patch_rule_from_contribution(ext, contrib) {
@@ -70,7 +70,7 @@ test "patch_rule_from_contribution_returns_none_for_non_patch" {
 ///|
 test "patch_rule_from_contribution_skips_empty_patch" {
   // Patch with no config and no path is vacuous → None.
-  let contrib = patch_contrib("p1", "noop", "", {}, "")
+  let contrib = patch_contrib("p1", "noop", "", Map([]), "")
   let ext = make_extension_with_patches("ext-a", true, [])
   match patch_rule_from_contribution(ext, contrib) {
     Some(_) => fail("empty Patch contribution must yield None")
@@ -110,7 +110,7 @@ test "patch_rule_from_contribution_imperative_with_path" {
     "p1",
     "auditor",
     "audit via script",
-    {},
+    Map([]),
     "/opt/hooks/audit.sh",
   )
   let ext = make_extension_with_patches("ext-a", true, [])

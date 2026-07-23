@@ -22,7 +22,7 @@ pub fn Browser::invalidate_page_cache(self : Browser) -> Unit {
 /// Updates the page cache with the newly selected page ID.
 /// Returns the recovered page ID or None if no pages are available.
 pub fn Browser::recover_selected_page(self : Browser) -> String? {
-  let list_result = self.mcp_call("list_pages", {})
+  let list_result = self.mcp_call("list_pages", Map([]))
   if list_result.is_error {
     return None
   }
@@ -132,7 +132,7 @@ pub fn Browser::wait_for_page_ready(
   let max_polls = if timeout_ms / 150 > 0 { timeout_ms / 150 } else { 1 }
   let mut polls = 0
   while polls < max_polls {
-    let result = self.mcp_call("list_pages", {})
+    let result = self.mcp_call("list_pages", Map([]))
     if !result.is_error {
       // Check if the response contains a selected page indicator
       let content = result.content

@@ -289,7 +289,7 @@ pub fn ProgressHandle::is_open(self : ProgressHandle) -> Bool {
 
 ///|
 /// Calculate elapsed seconds from a start timestamp.
-/// Uses `@env.now()` (millisecond timestamp) for real wall-clock time.
+/// Uses `@env.now().reinterpret_as_int64()` (millisecond timestamp) for real wall-clock time.
 fn elapsed_seconds(start_time : Int64) -> Int {
   let now_ms = @env.now().reinterpret_as_int64()
   let diff_ms = now_ms - start_time

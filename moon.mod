@@ -23,6 +23,8 @@ description = "AI Agent CLI tool rewritten in MoonBit"
 
 preferred_target = "native"
 
+warnings = "-6-27-29"
+
 options(
   exclude: [ ],
 )

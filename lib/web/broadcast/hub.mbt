@@ -182,7 +182,7 @@ pub fn Hub::broadcast_global_json(
 /// Broadcast a heartbeat ping to all globally-subscribed connections.
 /// Used to keep idle WebSocket connections alive.
 pub fn Hub::broadcast_heartbeat(self : Hub) -> Unit {
-  let ts = @env.now()
+  let ts = @env.now().reinterpret_as_int64()
   self.broadcast_global_json(
     "heartbeat",
     Json::object({ "timestamp": ts.to_json() }),

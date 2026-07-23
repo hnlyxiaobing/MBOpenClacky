@@ -16,7 +16,6 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/io" @async/io,
   "moonbitlang/async/aqueue",
-  "moonbitlang/async/pipe",
   "moonbitlang/x/fs",
 }
 

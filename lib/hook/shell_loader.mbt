@@ -9,7 +9,7 @@ pub(all) struct ShellHookLoader {
 ///|
 pub fn ShellHookLoader::new(config_dir : String) -> ShellHookLoader {
   {
-    config: { hooks: {} },
+    config: { hooks: Map([]) },
     config_path: config_dir + "/hooks.yml",
     scripts_dir: config_dir + "/hook-scripts/",
   }

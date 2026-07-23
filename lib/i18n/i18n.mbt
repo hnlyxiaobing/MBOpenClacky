@@ -107,7 +107,7 @@ pub fn resolve_locale(
 /// Translate `key` for `locale`, falling back to the default locale and
 /// finally to the raw key if still missing.
 pub fn t(locale : String, key : String) -> String {
-  t_with_params(locale, key, {})
+  t_with_params(locale, key, Map([]))
 }
 
 ///|

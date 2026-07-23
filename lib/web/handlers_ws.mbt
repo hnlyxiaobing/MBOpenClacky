@@ -604,7 +604,7 @@ async fn run_confirmation_bridge(
   let hub = server_ref.val.hub
   let state = get_ws_state(session_id)
   while true {
-    let (tool, args) = req_q.get()
+    let (tool, _) = req_q.get()
     state.confirm_seq = state.confirm_seq + 1
     let request_id = session_id + "-conf-" + state.confirm_seq.to_string()
     let reply_q : @async.Queue[Bool] = @async.Queue::Queue(kind=Unbounded)

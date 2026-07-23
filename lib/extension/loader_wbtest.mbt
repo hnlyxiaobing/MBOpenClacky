@@ -20,7 +20,7 @@ test "collect_api_contribution_paths: disabled extension is skipped" {
         homepage: None,
         repository: None,
         keywords: [],
-        dependencies: {},
+        dependencies: Map([]),
         contributions: [
           {
             type_: ExtensionContributionType::Api,
@@ -28,7 +28,7 @@ test "collect_api_contribution_paths: disabled extension is skipped" {
             name: "API",
             description: "",
             path: "api.json",
-            config: {},
+            config: Map([]),
           },
         ],
         enabled_by_default: true,
@@ -66,7 +66,7 @@ test "collect_api_contribution_paths: non-Api contribution is skipped" {
         homepage: None,
         repository: None,
         keywords: [],
-        dependencies: {},
+        dependencies: Map([]),
         contributions: [
           {
             type_: ExtensionContributionType::Panel,
@@ -74,7 +74,7 @@ test "collect_api_contribution_paths: non-Api contribution is skipped" {
             name: "Panel",
             description: "",
             path: "panel.html",
-            config: {},
+            config: Map([]),
           },
         ],
         enabled_by_default: true,
@@ -111,7 +111,7 @@ test "collect_api_contribution_paths: missing path file is skipped (no crash)" {
         homepage: None,
         repository: None,
         keywords: [],
-        dependencies: {},
+        dependencies: Map([]),
         contributions: [
           {
             type_: ExtensionContributionType::Api,
@@ -119,7 +119,7 @@ test "collect_api_contribution_paths: missing path file is skipped (no crash)" {
             name: "API",
             description: "",
             path: "nonexistent.json",
-            config: {},
+            config: Map([]),
           },
         ],
         enabled_by_default: true,
@@ -175,7 +175,7 @@ test "collect_api_contribution_paths: existing JSON file is collected" {
         homepage: None,
         repository: None,
         keywords: [],
-        dependencies: {},
+        dependencies: Map([]),
         contributions: [
           {
             type_: ExtensionContributionType::Api,
@@ -183,7 +183,7 @@ test "collect_api_contribution_paths: existing JSON file is collected" {
             name: "API",
             description: "",
             path: "api.json",
-            config: {},
+            config: Map([]),
           },
         ],
         enabled_by_default: true,
@@ -219,7 +219,7 @@ test "collect_api_contribution_paths: empty contribution path is skipped" {
         homepage: None,
         repository: None,
         keywords: [],
-        dependencies: {},
+        dependencies: Map([]),
         contributions: [
           {
             type_: ExtensionContributionType::Api,
@@ -227,7 +227,7 @@ test "collect_api_contribution_paths: empty contribution path is skipped" {
             name: "API",
             description: "",
             path: "",
-            config: {},
+            config: Map([]),
           },
         ],
         enabled_by_default: true,
@@ -314,7 +314,7 @@ fn make_minimal_manifest(id : String) -> ExtensionManifest {
     homepage: None,
     repository: None,
     keywords: [],
-    dependencies: {},
+    dependencies: Map([]),
     contributions: [
       {
         type_: ExtensionContributionType::Panel,
@@ -322,7 +322,7 @@ fn make_minimal_manifest(id : String) -> ExtensionManifest {
         name: "p",
         description: "",
         path: "panel.html",
-        config: {},
+        config: Map([]),
       },
     ],
     enabled_by_default: true,
@@ -350,7 +350,7 @@ fn inject_api_contrib(
         name: "API",
         description: "",
         path: api_path,
-        config: {},
+        config: Map([]),
       })
       result.push({
         ..ext,

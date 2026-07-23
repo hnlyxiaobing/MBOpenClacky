@@ -18,7 +18,7 @@ pub fn export_session_zip(session_id : String) -> Result[Bytes, String] {
 
   // Serialize session to JSON
   let json_str = session_data.to_json().stringify()
-  let json_bytes = json_str.to_bytes()
+  let json_bytes = @utf8.encode(json_str)
 
   // Create export metadata
   let metadata = Json::object({
@@ -26,7 +26,7 @@ pub fn export_session_zip(session_id : String) -> Result[Bytes, String] {
     "format_version": (1).to_json(),
     "session_id": session_id.to_json(),
   })
-  let metadata_bytes = metadata.stringify().to_bytes()
+  let metadata_bytes = @utf8.encode(metadata.stringify())
 
   // Create ZIP with entries
   let entries : Array[@zip.ZipEntry] = [
@@ -98,7 +98,7 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
   for session in sessions {
     let json_str = session.to_json().stringify()
     let entry_name = "sessions/" + session.session_id + ".json"
-    entries.push({ name: entry_name, data: json_str.to_bytes() })
+    entries.push({ name: entry_name, data: @utf8.encode(json_str) })
   }
 
   // Add manifest
@@ -107,7 +107,10 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
     "format_version": (1).to_json(),
     "session_count": sessions.length().to_json(),
   })
-  entries.push({ name: "manifest.json", data: manifest.stringify().to_bytes() })
+  entries.push({
+    name: "manifest.json",
+    data: @utf8.encode(manifest.stringify()),
+  })
 
   @zip.create_zip(entries)
 }

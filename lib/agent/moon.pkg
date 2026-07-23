@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",

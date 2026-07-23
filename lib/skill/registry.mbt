@@ -8,7 +8,7 @@ pub(all) struct SkillRegistry {
 ///|
 /// Create a new empty SkillRegistry.
 pub fn SkillRegistry::new() -> SkillRegistry {
-  { skills: {}, discovery_paths: [] }
+  { skills: Map([]), discovery_paths: [] }
 }
 
 ///|

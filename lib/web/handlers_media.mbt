@@ -141,7 +141,7 @@ fn handle_media_video_understand(
     return @core.HttpResponse::internal_server_error().json_value(
       @media.build_video_error(
         "FFmpeg failed to extract frames: " +
-        extract_result.output.trim().to_string(),
+        extract_result.output.trim().to_owned(),
       ).to_json(),
     )
   }
@@ -268,7 +268,7 @@ fn resolve_video_source(
 
 ///|
 fn strip_data_url_prefix(b64 : String) -> String {
-  let trimmed : String = b64.trim().to_string()
+  let trimmed : String = b64.trim().to_owned()
   if trimmed.has_prefix("data:") {
     match trimmed.find(",") {
       Some(pos) => trimmed[pos + 1:].to_owned()
