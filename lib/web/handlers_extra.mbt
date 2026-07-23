@@ -70,6 +70,42 @@ fn extra_json_str(j : Json, key : String) -> String {
 }
 
 ///|
+/// Read an optional String field from a JSON object (None when absent/invalid).
+fn extra_json_str_opt(j : Json, key : String) -> String? {
+  match j {
+    Object(o) =>
+      match o.get(key) {
+        Some(String(s)) if !s.is_empty() => Some(s)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Read a Bool field from a JSON object (false when absent/invalid).
+fn extra_json_bool(j : Json, key : String) -> Bool {
+  match j {
+    Object(o) =>
+      match o.get(key) {
+        Some(True) => true
+        Some(False) => false
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+/// Check if a JSON object has a given key (regardless of value).
+fn body_has_key(j : Json, key : String) -> Bool {
+  match j {
+    Object(o) => o.get(key) is Some(_)
+    _ => false
+  }
+}
+
+///|
 /// JSON error body helpers.
 fn bad_json() -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
@@ -955,6 +991,136 @@ pub fn handle_benchmark_model_post(
   }
 }
 
+// ── Session Benchmark (real LLM latency test) ──────────────────────
+
+///|
+/// POST /api/sessions/:id/benchmark.
+/// Sends a minimal "Hi" prompt to every configured model and returns
+/// per-model latency results so the frontend can display TTFT badges.
+pub fn handle_session_benchmark(
+  server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let models = server_ref.val.config.models
+  if models.is_empty() {
+    return @core.HttpResponse::ok().json_value(
+      Json::object({ "ok": true.to_json(), "results": Json::array([]) }),
+    )
+  }
+
+  let results : Array[Json] = []
+
+  for m in models {
+    let model_id = m.id
+    // Determine API type from config
+    let api_type = if m.anthropic_format {
+      @config.AnthropicMessages
+    } else {
+      @config.Providers::api_type_for(m.base_url)
+    }
+    let client = @client.Client::new(m.api_key, m.base_url, m.model, api_type)
+    // Build a minimal request: single "Hi" message, no tools, 1 token
+    let body_json = client.build_simple_request("Hi", m.model, 1)
+    let url = client.request_url()
+    let headers_map = client.request_headers()
+    let headers_arr : Array[(String, String)] = []
+    for k, v in headers_map {
+      headers_arr.push((k, v))
+    }
+    let body_str = body_json.stringify()
+
+    let t0 = @agent.current_time_ms()
+    let http_result = @client.http_post(url, body_str, headers_arr, 30000)
+    let t1 = @agent.current_time_ms()
+    let elapsed = t1 - t0
+
+    match http_result {
+      Ok(http_resp) =>
+        if http_resp.status_code >= 200 && http_resp.status_code < 300 {
+          results.push(
+            Json::object({
+              "model_id": model_id.to_json(),
+              "ok": true.to_json(),
+              "ttft_ms": elapsed.to_json(),
+            }),
+          )
+        } else {
+          let err_msg = extract_err_snippet(http_resp.body)
+          results.push(
+            Json::object({
+              "model_id": model_id.to_json(),
+              "ok": false.to_json(),
+              "ttft_ms": elapsed.to_json(),
+              "error": err_msg.to_json(),
+            }),
+          )
+        }
+      Err(err) => {
+        let err_msg = match err {
+          @client.Timeout(_) => "timeout"
+          @client.ConnectionFailed(_) => "connection failed"
+          @client.ServerError(code, _) => "server error \{code}"
+          @client.ClientError(code, _) => "client error \{code}"
+          @client.AllHostsFailed(_) => "all hosts failed"
+        }
+        results.push(
+          Json::object({
+            "model_id": model_id.to_json(),
+            "ok": false.to_json(),
+            "ttft_ms": elapsed.to_json(),
+            "error": err_msg.to_json(),
+          }),
+        )
+      }
+    }
+  }
+
+  @core.HttpResponse::ok().json_value(
+    Json::object({ "ok": true.to_json(), "results": Json::array(results) }),
+  )
+}
+
+///|
+/// Extract a short error snippet from an API error response body.
+fn extract_err_snippet(body : String) -> String {
+  // Try to parse as JSON and extract "error" field
+  let json = @json.parse(body) catch {
+    _ => return body_snippet_local(body, 200)
+  }
+  match json {
+    Object(o) =>
+      match o.get("error") {
+        Some(String(s)) => s
+        Some(e) => e.to_string()
+        None =>
+          match o.get("message") {
+            Some(String(s)) => s
+            _ => body_snippet_local(body, 200)
+          }
+      }
+    _ => body_snippet_local(body, 200)
+  }
+}
+
+///|
+fn body_snippet_local(body : String, max_chars : Int) -> String {
+  let buf = StringBuilder::new()
+  let mut count = 0
+  let mut truncated = false
+  for c in body {
+    if count >= max_chars {
+      truncated = true
+      break
+    }
+    buf.write_char(c)
+    count = count + 1
+  }
+  if truncated {
+    buf.write_string("...")
+  }
+  buf.to_string()
+}
+
 // ── Session-scoped Time Machine points ──────────────────
 
 ///|
@@ -1074,6 +1240,65 @@ pub fn handle_session_time_machine_restore_preview(
   )
 }
 
+///|
+/// POST /api/sessions/:id/time_machine/switch {task_id} -> switch to a task.
+/// Looks up the task point in the session's time-machine JSON store.
+/// Returns `{ok: true, message, task_id}` on success or
+/// `{ok: false, error}` when the task is not found.
+pub fn handle_session_time_machine_switch(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let session_id = path_id(event)
+  if session_id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "session id required".to_json() }),
+    )
+  }
+  let body : Json = event.req.body() catch { _ => Json::object({}) }
+  let task_id = extra_json_str(body, "task_id")
+  if task_id.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "error": "task_id required".to_json() }),
+    )
+  }
+  match extra_path("time_machine_" + session_id + ".json") {
+    Some(p) => {
+      let arr = load_array(p)
+      let found = arr
+        .iter()
+        .find_first(fn(entry) {
+          match entry {
+            Object(o) =>
+              match o.get("id") {
+                Some(String(s)) => s == task_id
+                _ => false
+              }
+            _ => false
+          }
+        })
+      match found {
+        Some(_) =>
+          @core.HttpResponse::ok().json_value(
+            Json::object({
+              "ok": true.to_json(),
+              "message": ("Switched to task " + task_id).to_json(),
+              "task_id": task_id.to_json(),
+            }),
+          )
+        None =>
+          @core.HttpResponse::ok().json_value(
+            Json::object({
+              "ok": false.to_json(),
+              "error": "Task not found".to_json(),
+            }),
+          )
+      }
+    }
+    None => err_no_config()
+  }
+}
+
 // ── Config/Models CRUD (web-parity-02) ──────────────────
 
 ///|
@@ -1114,14 +1339,39 @@ pub fn handle_config_models_post(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let body : Json = event.req.body() catch { _ => return bad_json() }
+  // Required-field validation: model, base_url, api_key must all be non-empty.
+  // Without this an empty/partial body would silently create a phantom empty
+  // model row that breaks the config and clutters the settings UI.
+  let model_str = extra_json_str(body, "model")
+  let base_url_str = extra_json_str(body, "base_url")
+  let api_key_str = extra_json_str(body, "api_key")
+  if model_str.is_empty() || base_url_str.is_empty() || api_key_str.is_empty() {
+    let missing : Array[String] = []
+    if model_str.is_empty() {
+      missing.push("model")
+    }
+    if base_url_str.is_empty() {
+      missing.push("base_url")
+    }
+    if api_key_str.is_empty() {
+      missing.push("api_key")
+    }
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({
+        "ok": false.to_json(),
+        "error": ("Missing required field(s): " + missing.join(", ")).to_json(),
+      }),
+    )
+  }
   let cfg = server_ref.val.config
   let new_id = extra_id()
   let mc = @config.ModelConfig::new(
-    new_id,
-    extra_json_str(body, "api_key"),
-    extra_json_str(body, "base_url"),
-    extra_json_str(body, "model"),
+    new_id, api_key_str, base_url_str, model_str,
   )
+  // Honor frontend-supplied anthropic_format / type_ — without this,
+  // adding a Claude model silently saves as an OpenAI one.
+  mc.anthropic_format = extra_json_bool(body, "anthropic_format")
+  mc.type_ = extra_json_str_opt(body, "type")
   cfg.models.push(mc)
   match persist_agent_config(cfg) {
     Ok(_) => ()
@@ -1169,9 +1419,24 @@ pub fn handle_config_models_patch(
       } else {
         extra_json_str(body, "api_key")
       }
-      // anthropic_format is preserved from the existing model.
-      // ModelConfig::new() sets it to false; for now this is acceptable.
-      cfg.models[i] = @config.ModelConfig::new(id, api_key, base_url, model)
+      // Build a new ModelConfig that honors the frontend-supplied
+      // anthropic_format and type_, instead of hard-resetting them.
+      // If the body omitted these fields, fall back to the existing
+      // values so an unrelated PATCH can't silently drop them.
+      let anthropic_format = if body_has_key(body, "anthropic_format") {
+        extra_json_bool(body, "anthropic_format")
+      } else {
+        m.anthropic_format
+      }
+      let type_ = if body_has_key(body, "type") {
+        extra_json_str_opt(body, "type")
+      } else {
+        m.type_
+      }
+      let updated = @config.ModelConfig::new(id, api_key, base_url, model)
+      updated.anthropic_format = anthropic_format
+      updated.type_ = type_
+      cfg.models[i] = updated
       found = true
       break
     }

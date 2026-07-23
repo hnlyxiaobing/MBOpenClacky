@@ -2300,18 +2300,18 @@ const Sessions = (() => {
         const resp = await fetch(`/api/sessions/${encodeURIComponent(id)}`);
         if (!resp.ok) return null;
         const data = await resp.json();
-        if (!data || !data.session) return null;
+        const session = Clacky.ApiNorm.unwrapSession(data);
+        if (!session) return null;
         // Race guard: another caller may have hydrated meanwhile.
         if (!_sessions.find(s => s.id === id)
             && !_extraSessions.find(s => s.id === id)) {
-          _extraSessions.push(data.session);
+          _extraSessions.push(session);
         }
-        return data.session;
+        return session;
       } catch (e) {
         console.error("Sessions.findOrFetch failed:", e);
         return null;
-      }
-    },
+      }    },
 
     // Composer entry point — called by Skill autocomplete keydown handler
     // (in app.js) when the user presses Enter without an active completion.
@@ -2417,16 +2417,15 @@ const Sessions = (() => {
         body:    JSON.stringify({ name, source }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "failed to create session");
-      const session = data.session;
+      if (!res.ok) throw new Error((data && data.error) || "failed to create session");
+      const session = Clacky.ApiNorm.unwrapSession(data);
       if (!session) throw new Error("no session returned");
 
       Sessions.add(session);
       Sessions.renderList();
       Sessions.setPendingMessage(session.id, command, display);
       Sessions.select(session.id);
-      return session;
-    },
+      return session;    },
 
     /** Patch a single session's fields (from session_update event).
      *  If the session is not in the list yet (e.g. just created by another tab),
@@ -2791,12 +2790,12 @@ const Sessions = (() => {
           return;
         }
         const data = await res.json();
-        if (data.session) {
-          Sessions.add(data.session);
+        const session = Clacky.ApiNorm.unwrapSession(data);
+        if (session) {
+          Sessions.add(session);
           Sessions.renderList();
-          Sessions.select(data.session.id);
-        }
-      } catch (err) {
+          Sessions.select(session.id);
+        }      } catch (err) {
         console.error("Fork session error:", err);
       }
     },
@@ -3979,9 +3978,9 @@ const Sessions = (() => {
         body:    JSON.stringify({ name, agent_profile: agentProfile, source: "manual" })
       });
       const data = await res.json();
-      if (!res.ok) { alert(I18n.t("sessions.createError") + (data.error || "unknown")); return; }
+      if (!res.ok) { alert(I18n.t("sessions.createError") + ((data && data.error) || "unknown")); return; }
 
-      const session = data.session;
+      const session = Clacky.ApiNorm.unwrapSession(data);
       if (!session) return;
 
       Sessions.add(session);
@@ -3989,7 +3988,6 @@ const Sessions = (() => {
       Sessions.renderList();
       Sessions.select(session.id);
     },
-
     // ── History loading ────────────────────────────────────────────────────
 
     /** Load the most recent page of history for a session (called on first visit). */

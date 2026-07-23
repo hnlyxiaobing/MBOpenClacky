@@ -644,15 +644,161 @@ fn handle_backup_config_bridge(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
+  // Initialize backup_dir from defaults on first access
+  if backup_config.val.backup_dir == "" {
+    backup_config.val.backup_dir = backups_dir()
+  }
   response_to_core(
     HttpResponse::ok(
       Json::object({
-        "backup_dir": backups_dir().to_json(),
-        "auto_backup": false.to_json(),
-        "max_backups": (10).to_json(),
+        "backup_dir": backup_config.val.backup_dir.to_json(),
+        "auto_backup": backup_config.val.auto_backup.to_json(),
+        "max_backups": backup_config.val.max_backups.to_json(),
       }).stringify(),
     ),
   )
+}
+
+///|
+/// POST /api/backup/restore - restore backup via body {id}.
+/// Compatibility alias (spec-08): frontend sends id in body.
+fn handle_backup_restore_body_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  let body_json : Json = @json.parse(req.body) catch {
+    _ => return response_to_core(HttpResponse::bad_request("Invalid JSON body"))
+  }
+  let id = match body_json {
+    Object(obj) =>
+      match obj.get("id") {
+        Some(String(s)) => s
+        _ => ""
+      }
+    _ => ""
+  }
+  if id == "" {
+    return response_to_core(
+      HttpResponse::bad_request("Missing 'id' in request body"),
+    )
+  }
+  let req_with_id : HttpRequest = { ..req, params: [("id", id)] }
+  response_to_core(handle_backups_restore(req_with_id))
+}
+
+///|
+/// GET /api/backup/download?id=... - download via query param.
+/// Compatibility alias (spec-08): frontend sends id as query param.
+fn handle_backup_download_query_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let url = event.req.url
+  let id = match find_query_param(url, "id") {
+    Some(v) => v
+    None =>
+      return response_to_core(
+        HttpResponse::bad_request("Missing 'id' query parameter"),
+      )
+  }
+  let req = event_to_request(event, [("id", id)])
+  response_to_core(handle_backup_download(req))
+}
+
+///|
+/// PATCH /api/backup/config - update backup configuration.
+/// Compatibility alias (spec-08): frontend uses PATCH to update config.
+fn handle_backup_config_update_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_backup_config_update(req))
+}
+
+// ── Store Bridges (spec-09) ──────────────────────────────────────
+
+///|
+/// GET /api/store/extensions - list marketplace extensions.
+fn handle_store_list_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let url = event.req.url
+  // Extract query params for q and sort
+  let q = match find_query_param(url, "q") {
+    Some(v) => v
+    None => ""
+  }
+  let params = if q == "" { [] } else { [("q", q)] }
+  let req = event_to_request(event, params)
+  response_to_core(handle_store_list(req))
+}
+
+///|
+/// GET /api/store/extensions/installed - list installed extensions.
+fn handle_store_installed_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_installed(req))
+}
+
+///|
+/// GET /api/store/extension?id= - extension detail.
+fn handle_store_detail_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let url = event.req.url
+  let id = match find_query_param(url, "id") {
+    Some(v) => v
+    None => ""
+  }
+  let req = event_to_request(event, [("id", id)])
+  response_to_core(handle_store_detail(req))
+}
+
+///|
+/// POST /api/store/extension/install - install extension.
+fn handle_store_install_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_install(req))
+}
+
+///|
+/// POST /api/store/extension/enable - enable extension.
+fn handle_store_enable_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_enable(req))
+}
+
+///|
+/// POST /api/store/extension/disable - disable extension.
+fn handle_store_disable_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_disable(req))
+}
+
+///|
+/// DELETE /api/store/extension - uninstall extension.
+fn handle_store_uninstall_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_uninstall(req))
 }
 
 // ── Media New Bridges (web-parity-04) ────────────────────────────
@@ -752,6 +898,34 @@ fn handle_trash_sessions_restore_bridge(
 }
 
 ///|
+/// POST /api/trash/sessions/restore - restore session via body {session_id}.
+/// Compatibility alias (spec-08): frontend sends session_id in body.
+fn handle_trash_sessions_restore_body_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  let body_json : Json = @json.parse(req.body) catch {
+    _ => return response_to_core(HttpResponse::bad_request("Invalid JSON body"))
+  }
+  let session_id = match body_json {
+    Object(obj) =>
+      match obj.get("session_id") {
+        Some(String(s)) => s
+        _ => ""
+      }
+    _ => ""
+  }
+  if session_id == "" {
+    return response_to_core(
+      HttpResponse::bad_request("Missing 'session_id' in request body"),
+    )
+  }
+  let req_with_id : HttpRequest = { ..req, params: [("id", session_id)] }
+  response_to_core(handle_trash_restore(req_with_id))
+}
+
+///|
 /// DELETE /api/trash/sessions/:id — permanently delete a trashed session.
 fn handle_trash_sessions_delete_bridge(
   _server_ref : Ref[WebServer],
@@ -760,7 +934,6 @@ fn handle_trash_sessions_delete_bridge(
   let req = event_to_request(event, extract_id_param(event))
   response_to_core(handle_trash_delete(req))
 }
-
 
 ///|
 /// Extract chat_id param from crescent event.

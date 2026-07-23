@@ -44,7 +44,8 @@ fn mcp_has_key(j : Json, key : String) -> Bool {
   }
 }
 
-///| Get a string value from a Map[String, Json] directly (for nested objects).
+///|
+/// Get a string value from a Map[String, Json] directly (for nested objects).
 fn map_get_str(m : Map[String, Json], key : String) -> String {
   match m.get(key) {
     Some(String(v)) => v
@@ -52,7 +53,8 @@ fn map_get_str(m : Map[String, Json], key : String) -> String {
   }
 }
 
-///| Get a bool value from a Map[String, Json] directly.
+///|
+/// Get a bool value from a Map[String, Json] directly.
 fn map_get_bool(m : Map[String, Json], key : String) -> Bool {
   match m.get(key) {
     Some(True) => true
@@ -61,7 +63,8 @@ fn map_get_bool(m : Map[String, Json], key : String) -> Bool {
   }
 }
 
-///| Build an HttpRequest with optional name param and body.
+///|
+/// Build an HttpRequest with optional name param and body.
 fn mcp_req(
   m : HttpMethod,
   path : String,
@@ -134,8 +137,7 @@ test "mcp_add_server: stdio server with valid body" {
     mcp_req(
       POST,
       "/api/mcp",
-      body=
-        "{\"name\":\"my-server\",\"command\":\"node\",\"args\":[\"server.js\"],\"description\":\"Test server\"}",
+      body="{\"name\":\"my-server\",\"command\":\"node\",\"args\":[\"server.js\"],\"description\":\"Test server\"}",
     ),
   )
   @debug.assert_eq(resp.status, 201)
@@ -153,8 +155,7 @@ test "mcp_add_server: http server with url" {
     mcp_req(
       POST,
       "/api/mcp",
-      body=
-        "{\"name\":\"api-server\",\"transport\":\"http\",\"url\":\"http://localhost:3000\"}",
+      body="{\"name\":\"api-server\",\"transport\":\"http\",\"url\":\"http://localhost:3000\"}",
     ),
   )
   @debug.assert_eq(resp.status, 201)
@@ -260,10 +261,7 @@ test "mcp_toggle_server: missing enabled field returns 400" {
 ///|
 test "mcp_remove_server: existing server removed" {
   let reg = @mcp.McpRegistry::new()
-  reg.add_server(
-    "to-remove",
-    @mcp.McpServerSpec::stdio("to-remove", "node"),
-  )
+  reg.add_server("to-remove", @mcp.McpServerSpec::stdio("to-remove", "node"))
   @debug.assert_eq(reg.spec_count(), 1)
   let resp = handle_mcp_remove_server(
     reg,
@@ -427,12 +425,7 @@ test "mcp_call_server_tool: missing tool_name returns 400" {
   reg.add_server("srv1", @mcp.McpServerSpec::stdio("srv1", "node"))
   let resp = handle_mcp_call_server_tool(
     reg,
-    mcp_req(
-      POST,
-      "/api/mcp/srv1/call",
-      name="srv1",
-      body="{\"arguments\":{}}",
-    ),
+    mcp_req(POST, "/api/mcp/srv1/call", name="srv1", body="{\"arguments\":{}}"),
   )
   @debug.assert_eq(resp.status, 400)
 }

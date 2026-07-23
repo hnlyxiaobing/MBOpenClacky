@@ -236,8 +236,13 @@ const Settings = (() => {
     const modal = document.getElementById("model-edit-modal");
     modal.style.display = "none";
     document.body.style.overflow = "";
+    // Reset the "Save anyway" latch so the next modal open probes normally.
+    const saveBtn = document.getElementById("model-modal-save");
+    if (saveBtn) {
+      saveBtn.dataset.forceSave = "";
+      saveBtn.disabled = false;
+    }
   }
-
   function _openModalDuplicate(index) {
     const source = _models[index];
     if (!source) return;
@@ -337,12 +342,11 @@ const Settings = (() => {
         index:    typeof model.index === "number" ? model.index : index,
         anthropic_format: model.anthropic_format
       });
-      _showTestResult(index, result.ok, result.message);
+      _showTestResult(index, result.ok, result.message, result.error_code);
     } finally {
       if (testBtn) testBtn.disabled = false;
     }
   }
-
   async function _saveModalModel() {
     const saveBtn = document.getElementById("model-modal-save");
     const index = parseInt(document.getElementById("model-modal-index").value, 10);
@@ -351,7 +355,13 @@ const Settings = (() => {
     let base_url = document.getElementById("model-modal-baseurl").value.trim();
     const api_key = document.getElementById("model-modal-apikey").value.trim();
 
-    saveBtn.disabled = true;
+    // The test-failed-save-anyway state: when the connectivity probe failed
+    // (e.g. a provider whose /v1/models isn't OpenAI-compatible, or a
+    // network hiccup), the user can click Save a second time to skip the
+    // probe and persist the model as-is. The first click surfaces the
+    // failure; the second click actually saves.
+    const forceSave = saveBtn.dataset.forceSave === "1";
+    if (!forceSave) saveBtn.disabled = true;
 
     // Anthropic protocol is opted in only when the user picks the Anthropic
     // provider in the modal. Other providers leave the flag absent so the
@@ -365,31 +375,40 @@ const Settings = (() => {
     const existingId = existing.id || null;
     const sourceId = document.getElementById("model-modal-source-id").value || null;
 
-    // Step 1: Test first
-    saveBtn.textContent = I18n.t("settings.models.btn.testing");
-    _showModalTestResult(null, "");
+    // Step 1: Test first (skipped on the "Save anyway" re-click).
+    if (!forceSave) {
+      saveBtn.textContent = I18n.t("settings.models.btn.testing");
+      _showModalTestResult(null, "");
 
-    const result = await ModelTester.testConnection({
-      model, base_url, api_key, index, id: existingId || sourceId, anthropic_format
-    });
+      const result = await ModelTester.testConnection({
+        model, base_url, api_key, index, id: existingId || sourceId, anthropic_format
+      });
 
-    if (result.rewrote) {
-      base_url = result.base_url;
-      const baseInput = document.getElementById("model-modal-baseurl");
-      if (baseInput) baseInput.value = base_url;
+      if (result.rewrote) {
+        base_url = result.base_url;
+        const baseInput = document.getElementById("model-modal-baseurl");
+        if (baseInput) baseInput.value = base_url;
+      }
+
+      _showModalTestResult(result.ok, result.message, result.error_code);
+
+      if (!result.ok) {
+        // Don't block saving — the user may want to persist a model whose
+        // probe endpoint is non-standard, or save now and fix the key later.
+        // Convert the Save button into a "Save anyway" affordance: clicking
+        // it again runs the save flow without a second probe.
+        saveBtn.textContent = I18n.t("settings.models.btn.saveAnyway") || "Save anyway";
+        saveBtn.disabled = false;
+        saveBtn.dataset.forceSave = "1";
+        return;
+      }
     }
-
-    _showModalTestResult(result.ok, result.message);
-
-    if (!result.ok) {
-      saveBtn.textContent = I18n.t("settings.models.btn.save");
-      saveBtn.disabled = false;
-      return;
-    }
+    // Reset the force-save latch so the next normal save still probes.
+    saveBtn.dataset.forceSave = "";
+    saveBtn.disabled = true;
 
     // Step 2: Save
     saveBtn.textContent = I18n.t("settings.models.btn.saving");
-
     const hasId = !!existingId;
 
     const payload = { model, base_url, anthropic_format };
@@ -432,14 +451,28 @@ const Settings = (() => {
     }
   }
 
-  function _showModalTestResult(ok, message) {
+  function _showModalTestResult(ok, message, errorCode) {
     const el = document.getElementById("model-modal-test-result");
     if (!el) return;
     if (ok === null) { el.textContent = I18n.t("settings.models.btn.testing"); el.className = "model-test-result result-testing"; return; }
-    el.textContent = ok ? `✓ ${message || I18n.t("settings.models.connected")}` : `✗ ${I18n.t("settings.models.testFail")}: ${message || I18n.t("settings.models.failed")}`;
-    el.className = `model-test-result ${ok ? "result-ok" : "result-fail"}`;
+    // A 404 on the connectivity probe is treated as a soft warning, not a
+    // hard failure: it usually means the provider has no `/models` listing
+    // (e.g. Volces Ark Coding Plan only exposes `/chat/completions`), but
+    // the actual chat API may still work. Surface it in warning colour and
+    // tell the user the "Save anyway" button is still available.
+    const isSoftFail = ok === false && errorCode === "not_found";
+    if (ok) {
+      el.textContent = `✓ ${message || I18n.t("settings.models.connected")}`;
+      el.className = "model-test-result result-ok";
+    } else if (isSoftFail) {
+      const hint = I18n.t("settings.models.testWarnSaveAnyway") || " (you can still click Save anyway)";
+      el.textContent = `⚠ ${message || I18n.t("settings.models.testFail")}${hint}`;
+      el.className = "model-test-result result-warning";
+    } else {
+      el.textContent = `✗ ${I18n.t("settings.models.testFail")}: ${message || I18n.t("settings.models.failed")}`;
+      el.className = "model-test-result result-fail";
+    }
   }
-
   function _positionDropdownFixed(dropdown, anchor) {
     const rect = anchor.getBoundingClientRect();
     dropdown.style.position = "fixed";
@@ -1005,36 +1038,50 @@ const Settings = (() => {
     const updated = _readCard(index);
     if (!updated) return;
 
-    saveBtn.disabled = true;
+    // The test-failed-save-anyway state: the inline card form mirrors the
+    // modal flow — first click probes, on failure Save turns into "Save
+    // anyway" and the next click persists without a second probe.
+    const forceSave = saveBtn.dataset.forceSave === "1";
+    if (!forceSave) saveBtn.disabled = true;
 
-    // Step 1: auto-test first
-    saveBtn.textContent = I18n.t("settings.models.btn.testing");
-    _showTestResult(index, null, "");
+    // Step 1: auto-test first (skipped on the "Save anyway" re-click).
+    if (!forceSave) {
+      saveBtn.textContent = I18n.t("settings.models.btn.testing");
+      _showTestResult(index, null, "");
 
-    try {
-      const testRes = await fetch("/api/config/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...updated, index })
-      });
-      const testData = await testRes.json();
-      _showTestResult(index, testData.ok, testData.message);
+      try {
+        const testRes = await fetch("/api/config/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...updated, index })
+        });
+        const testData = await testRes.json();
+        _showTestResult(index, testData.ok, testData.message, testData.error_code);
 
-      if (!testData.ok) {
-        // Test failed — stop, let user fix
-        saveBtn.textContent = I18n.t("settings.models.btn.save");
+        if (!testData.ok) {
+          // Don't block saving — let the user persist an entry whose
+          // probe endpoint isn't OpenAI-compatible, or save now and fix
+          // the key later. The button label changes to make the second
+          // click's intent explicit.
+          saveBtn.textContent = I18n.t("settings.models.btn.saveAnyway") || "Save anyway";
+          saveBtn.disabled = false;
+          saveBtn.dataset.forceSave = "1";
+          return;
+        }
+      } catch (e) {
+        _showTestResult(index, false, e.message);
+        // Network-level failure — same affordance: a second click skips
+        // the probe and just saves.
+        saveBtn.textContent = I18n.t("settings.models.btn.saveAnyway") || "Save anyway";
         saveBtn.disabled = false;
+        saveBtn.dataset.forceSave = "1";
         return;
       }
-    } catch (e) {
-      _showTestResult(index, false, e.message);
-      saveBtn.textContent = I18n.t("settings.models.btn.save");
-      saveBtn.disabled = false;
-      return;
     }
+    saveBtn.dataset.forceSave = "";
+    saveBtn.disabled = true;
 
-    // Step 2: test passed — now save via single-item endpoint.
-    //
+    // Step 2: test passed — now save via single-item endpoint.    //
     // Contract (see http_server.rb):
     //   - Row has an id already → PATCH /api/config/models/:id
     //   - No id yet (locally-added row) → POST /api/config/models to
@@ -1107,14 +1154,23 @@ const Settings = (() => {
     }
   }
 
-  function _showTestResult(index, ok, message) {
+  function _showTestResult(index, ok, message, errorCode) {
     const el = document.querySelector(`.model-test-result[data-index="${index}"]`);
     if (!el) return;
     if (ok === null) { el.textContent = I18n.t("settings.models.btn.testing"); el.className = "model-test-result result-testing"; return; }
-    el.textContent = ok ? `✓ ${message || I18n.t("settings.models.connected")}` : `✗ ${I18n.t("settings.models.testFail")}: ${message || I18n.t("settings.models.failed")}`;
-    el.className   = `model-test-result ${ok ? "result-ok" : "result-fail"}`;
+    const isSoftFail = ok === false && errorCode === "not_found";
+    if (ok) {
+      el.textContent = `✓ ${message || I18n.t("settings.models.connected")}`;
+      el.className = "model-test-result result-ok";
+    } else if (isSoftFail) {
+      const hint = I18n.t("settings.models.testWarnSaveAnyway") || " (you can still click Save anyway)";
+      el.textContent = `⚠ ${message || I18n.t("settings.models.testFail")}${hint}`;
+      el.className = "model-test-result result-warning";
+    } else {
+      el.textContent = `✗ ${I18n.t("settings.models.testFail")}: ${message || I18n.t("settings.models.failed")}`;
+      el.className = "model-test-result result-fail";
+    }
   }
-
   // ── Set as Default Model ───────────────────────────────────────────────────
 
   async function _setAsDefault(index) {

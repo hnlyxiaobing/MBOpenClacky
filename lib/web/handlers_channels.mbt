@@ -470,12 +470,14 @@ pub fn handle_channels_send(request : HttpRequest) -> HttpResponse {
         return HttpResponse::bad_request("Missing chat_id field")
       }
       // For now, return success. In a real implementation, we would call the channel adapter.
-      HttpResponse::ok(Json::object({
-        "success": true.to_json(),
-        "channel_id": id.to_json(),
-        "chat_id": chat_id.to_json(),
-        "message": message.to_json(),
-      }).stringify())
+      HttpResponse::ok(
+        Json::object({
+          "success": true.to_json(),
+          "channel_id": id.to_json(),
+          "chat_id": chat_id.to_json(),
+          "message": message.to_json(),
+        }).stringify(),
+      )
     }
   }
 }
@@ -488,10 +490,9 @@ pub fn handle_channels_group_history(request : HttpRequest) -> HttpResponse {
     None => return HttpResponse::bad_request("Missing parameter: chat_id")
   }
   // For now, return empty history. In a real implementation, we would query the channel adapter.
-  HttpResponse::ok(Json::object({
-    "chat_id": chat_id.to_json(),
-    "messages": Json::array([]),
-  }).stringify())
+  HttpResponse::ok(
+    Json::object({ "chat_id": chat_id.to_json(), "messages": Json::array([]) }).stringify(),
+  )
 }
 
 ///|
@@ -507,11 +508,13 @@ pub fn handle_channels_users(request : HttpRequest) -> HttpResponse {
     Some(idx) => {
       let ch = channels_store.val[idx]
       // For now, return empty users. In a real implementation, we would query the channel adapter.
-      HttpResponse::ok(Json::object({
-        "platform": ch.platform.to_json(),
-        "channel_id": ch.id.to_json(),
-        "users": Json::array([]),
-      }).stringify())
+      HttpResponse::ok(
+        Json::object({
+          "platform": ch.platform.to_json(),
+          "channel_id": ch.id.to_json(),
+          "users": Json::array([]),
+        }).stringify(),
+      )
     }
   }
 }

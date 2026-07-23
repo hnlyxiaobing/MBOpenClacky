@@ -1,6 +1,42 @@
 ///| DTO types for Web API request/response.
 
 ///|
+/// Mask an API key for display: show first 3 and last 4 characters.
+/// e.g. "sk-ant-abc123xyz789" -> "sk-...z789"
+/// Mirrors lib/tui/dialog_config_menu::mask_api_key.
+fn web_mask_api_key(key : String) -> String {
+  let len = key.length()
+  if len <= 8 {
+    "****"
+  } else {
+    "\{key[0:3]}...\{key[len - 4:]}"
+  }
+}
+
+///|
+/// Convert a ModelConfig to the JSON shape the web frontend expects.
+/// Key differences from the derived ToJson:
+///   - api_key -> api_key_masked (masked, never exposes the raw key)
+///   - type_   -> type (frontend uses `model.type`)
+fn model_to_web_json(m : @config.ModelConfig) -> Json {
+  // Note: `m.type_.to_json()` would serialize `Some("claude")` as `["claude"]`
+  // because MoonBit's `ToJson for T?` uses array form (`[value]`). We want a
+  // plain string (or null) for the frontend, matching derived struct behavior.
+  let type_json = match m.type_ {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  Json::object({
+    "id": m.id.to_json(),
+    "type": type_json,
+    "model": m.model.to_json(),
+    "base_url": m.base_url.to_json(),
+    "api_key_masked": web_mask_api_key(m.api_key).to_json(),
+    "anthropic_format": m.anthropic_format.to_json(),
+  })
+}
+
+///|
 /// Request body for POST /api/sessions/:id/chat
 pub(all) struct ChatRequest {
   message : String
@@ -145,6 +181,7 @@ pub(all) struct ConfigResponse {
   max_tokens : Int
   verbose : Bool
   current_model_id : String?
+  models : Array[@config.ModelConfig]
 }
 
 ///|
@@ -311,17 +348,26 @@ impl ToJson for InfoResponse with fn to_json(self) {
 
 ///|
 impl ToJson for ConfigResponse with fn to_json(self) {
+  let models_json : Array[Json] = []
+  for m in self.models {
+    models_json.push(model_to_web_json(m))
+  }
   Json::object({
     "permission_mode": self.permission_mode.to_json(),
     "max_tokens": self.max_tokens.to_json(),
     "verbose": self.verbose.to_json(),
     "current_model_id": self.current_model_id.to_json(),
+    "models": models_json.to_json(),
   })
 }
 
 ///|
 impl ToJson for ModelListResponse with fn to_json(self) {
-  Json::object({ "models": self.models.to_json() })
+  let models_json : Array[Json] = []
+  for m in self.models {
+    models_json.push(model_to_web_json(m))
+  }
+  Json::object({ "models": models_json.to_json() })
 }
 
 ///|

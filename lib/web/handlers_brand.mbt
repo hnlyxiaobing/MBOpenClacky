@@ -126,14 +126,32 @@ fn handle_brand_status(
   let status = validator.validate(ts)
   let activated = cfg.activated()
   let branded = cfg.is_branded()
+  let needs_activation = branded && !activated
+  let is_grace = match status {
+    @brand.GracePeriod => true
+    @brand.GraceExceeded => true
+    _ => false
+  }
+  let warning = match status {
+    @brand.Expired => Some("License expired")
+    @brand.GraceExceeded => Some("License grace period exceeded")
+    @brand.Invalid => Some("License invalid")
+    _ => None
+  }
   @core.HttpResponse::ok().json_value(
     Json::object({
       "activated": activated.to_json(),
       "branded": branded.to_json(),
+      "needs_activation": needs_activation.to_json(),
+      "test_mode": (!branded).to_json(),
+      "user_licensed": activated.to_json(),
       "product_name": cfg.display_name().to_json(),
+      "theme_color": opt_str_json(cfg.theme_color),
       "license_status": license_status_json(status),
       "expires_at": opt_str_json(cfg.license_expires_at),
       "device_id": opt_str_json(cfg.device_id),
+      "warning": opt_str_json(warning),
+      "grace": is_grace.to_json(),
     }),
   )
 }
@@ -202,7 +220,12 @@ fn handle_brand_skills_list(
     items.push(s.to_json())
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "skills": items.to_json() }),
+    Json::object({
+      "ok": true.to_json(),
+      "skills": items.to_json(),
+      "free_mode": (!cfg.is_branded()).to_json(),
+      "paid_skills_count": (0).to_json(),
+    }),
   )
 }
 

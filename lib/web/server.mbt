@@ -236,6 +236,9 @@ pub fn WebServer::build_app(
       s.post("/:id/time_machine/:task_id/restore_preview", event => {
         handle_session_time_machine_restore_preview(server_ref, event)
       })
+      s.post("/:id/time_machine/switch", event => {
+        handle_session_time_machine_switch(server_ref, event)
+      })
       // Session-scoped Git endpoints (web-parity-04)
       s.get("/:id/git/status", event => {
         handle_session_git_status(server_ref, event)
@@ -247,6 +250,10 @@ pub fn WebServer::build_app(
       })
       s.post("/:id/git/commit", event => {
         handle_session_git_commit(server_ref, event)
+      })
+      // POST /:id/benchmark — run latency test against all configured models
+      s.post("/:id/benchmark", event => {
+        handle_session_benchmark(server_ref, event)
       })
     })
     // Session import/export-all (top-level, not under /:id)
@@ -273,6 +280,8 @@ pub fn WebServer::build_app(
       c.post("/ocr/test", event => handle_config_ocr_test(server_ref, event))
       c.post("/test", event => handle_config_test(server_ref, event))
       c.post("/media/test", event => handle_config_media_test(server_ref, event))
+      // GET /api/config/media - all media kinds at once.
+      c.get("/media", event => handle_config_media_all(server_ref, event))
       // Media config by kind (web-parity-03).
       c.get("/media/:kind", event => handle_config_media_get(server_ref, event))
       c.patch("/media/:kind", event => {
@@ -295,6 +304,21 @@ pub fn WebServer::build_app(
       })
       c.post("/models/:id/default", event => {
         handle_config_models_set_default(server_ref, event)
+      })
+    })
+
+    // Brand endpoints (spec-10).
+    api.group("/brand", (br : @crescent.App) => {
+      br.get("", event => handle_brand_config(server_ref, event))
+      br.post("", event => handle_brand_activate_alias(server_ref, event))
+      br.get("/status", event => handle_brand_status(server_ref, event))
+      br.get("/heartbeat", event => handle_brand_heartbeat(server_ref, event))
+      br.post("/activate", event => handle_brand_activate(server_ref, event))
+      br.delete("/license", event => handle_brand_deactivate(server_ref, event))
+      br.get("/skills", event => handle_brand_skills_list(server_ref, event))
+      br.post("/skills", event => handle_brand_skills_install(server_ref, event))
+      br.delete("/skills/:name", event => {
+        handle_brand_skills_delete(server_ref, event)
       })
     })
 
@@ -403,6 +427,13 @@ pub fn WebServer::build_app(
       ct.post("/:id/trigger", event => {
         handle_schedules_trigger_bridge(server_ref, event)
       })
+      // Compatibility aliases (spec-08): PATCH for update, /run for trigger
+      ct.patch("/:id", event => {
+        handle_schedules_update_bridge(server_ref, event)
+      })
+      ct.post("/:id/run", event => {
+        handle_schedules_trigger_bridge(server_ref, event)
+      })
       ct.get("/:id/history", event => {
         handle_schedules_history_bridge(server_ref, event)
       })
@@ -417,13 +448,48 @@ pub fn WebServer::build_app(
       bkp.post("/restore/:id", event => {
         handle_backup_restore_bridge(server_ref, event)
       })
+      // Compatibility alias (spec-08): POST /restore with body {id}
+      bkp.post("/restore", event => {
+        handle_backup_restore_body_bridge(server_ref, event)
+      })
       bkp.post("/open-folder", event => {
         handle_backup_open_folder_bridge(server_ref, event)
       })
       bkp.get("/download/:id", event => {
         handle_backup_download_bridge(server_ref, event)
       })
+      // Compatibility alias (spec-08): GET /download?id=...
+      bkp.get("/download", event => {
+        handle_backup_download_query_bridge(server_ref, event)
+      })
       bkp.get("/config", event => handle_backup_config_bridge(server_ref, event))
+      // Compatibility alias (spec-08): PATCH /config to update settings
+      bkp.patch("/config", event => {
+        handle_backup_config_update_bridge(server_ref, event)
+      })
+    })
+
+    // Extension store (spec-09): marketplace browse + install/enable/disable/uninstall
+    api.group("/store", (st : @crescent.App) => {
+      st.get("/extensions", event => handle_store_list_bridge(server_ref, event))
+      st.get("/extensions/installed", event => {
+        handle_store_installed_bridge(server_ref, event)
+      })
+      st.get("/extension", event => {
+        handle_store_detail_bridge(server_ref, event)
+      })
+      st.post("/extension/install", event => {
+        handle_store_install_bridge(server_ref, event)
+      })
+      st.post("/extension/enable", event => {
+        handle_store_enable_bridge(server_ref, event)
+      })
+      st.post("/extension/disable", event => {
+        handle_store_disable_bridge(server_ref, event)
+      })
+      st.delete("/extension", event => {
+        handle_store_uninstall_bridge(server_ref, event)
+      })
     })
 
     // Billing
@@ -477,6 +543,17 @@ pub fn WebServer::build_app(
       })
     })
 
+    // My-skills publish (spec-10: 501 not yet supported)
+    api.group("/my-skills", (ms : @crescent.App) => {
+      ms.post("/:name/publish", _event => {
+        @core.HttpResponse::HttpResponse(
+          status_code=@core.StatusCode::NotImplemented,
+        ).json_value(
+          Json::object({ "error": "publish not yet supported".to_json() }),
+        )
+      })
+    })
+
     // Skill store & creator
     api.get("/store/skills", event => {
       handle_store_skills_bridge(server_ref, event)
@@ -523,6 +600,10 @@ pub fn WebServer::build_app(
       tr.post("/restore-batch", event => {
         handle_trash_restore_batch_bridge(server_ref, event)
       })
+      // Compatibility alias (spec-08): POST /restore = POST /restore-batch
+      tr.post("/restore", event => {
+        handle_trash_restore_batch_bridge(server_ref, event)
+      })
       tr.post("/:id/restore", event => {
         handle_trash_restore_bridge(server_ref, event)
       })
@@ -534,6 +615,10 @@ pub fn WebServer::build_app(
       })
       tr.post("/sessions/:id/restore", event => {
         handle_trash_sessions_restore_bridge(server_ref, event)
+      })
+      // Compatibility alias (spec-08): POST /sessions/restore with body {session_id}
+      tr.post("/sessions/restore", event => {
+        handle_trash_sessions_restore_body_bridge(server_ref, event)
       })
       tr.delete("/sessions/:id", event => {
         handle_trash_sessions_delete_bridge(server_ref, event)
@@ -616,6 +701,9 @@ pub fn WebServer::build_app(
       })
       ob.get("/device/poll", event => {
         handle_onboard_device_poll(server_ref, event)
+      })
+      ob.post("/device/poll", event => {
+        handle_onboard_device_poll_post(server_ref, event)
       })
       ob.post("/complete", event => handle_onboard_complete(server_ref, event))
       ob.post("/skip-soul", event => handle_onboard_skip_soul(server_ref, event))

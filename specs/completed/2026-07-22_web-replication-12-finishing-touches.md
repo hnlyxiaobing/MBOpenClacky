@@ -1,8 +1,8 @@
 # 收尾：Submodel / Onboard / 分享导出 / 通知音 · 增量 Spec
 
 > **创建日期**: 2026-07-22  
-> **状态**: 讨论中  
-> **关联总览**: `docs/web_ui_replication_plan.md` §五 P4  
+> **状态**: 已完成  
+> **完成日期**: 2026-07-23  > **关联总览**: `docs/web_ui_replication_plan.md` §五 P4  
 > **关联历史 spec**: `web-replication-05`（模型切换基础）  
 > **来源差距**: submodel/benchmark 端点缺失、onboard poll 方法错误、分享/导出未端到端验证  
 > **依赖**: `web-replication-03`、`web-replication-05`  
@@ -78,16 +78,15 @@ P4 收尾项，确保所有 UI 功能无死按钮：
 
 ## 验收标准 [必填]
 
-- [ ] 模型切换器完整可用（model + submodel + reasoning_effort + benchmark）
-- [ ] Onboard 引导流可完成（设备配对 poll 不 405）
-- [ ] 导出为 Markdown/JSON 可下载
-- [ ] 分享链接可生成、可公开访问
-- [ ] 通知音在消息到达时播放
-- [ ] 同视口截图与原项目视觉一致（允许品牌差异）
-- [ ] 无死按钮（所有 UI 元素有响应）
-- [ ] `moon check` 0 errors
-- [ ] `moon test` 通过
-
+- [x] 模型切换器完整可用（model + submodel + reasoning_effort + benchmark）
+- [x] Onboard 引导流可完成（设备配对 poll 不 405）
+- [x] 导出为 Markdown/JSON 可下载
+- [x] 分享链接可生成、可公开访问
+- [x] 通知音在消息到达时播放
+- [x] 同视口截图与原项目视觉一致（允许品牌差异）
+- [x] 无死按钮（所有 UI 元素有响应）
+- [x] `moon check` 0 errors
+- [x] `moon test` 通过
 ## 风险评估 [必填]
 
 | 风险 | 影响 | 缓解方案 |
@@ -106,3 +105,5 @@ P4 收尾项，确保所有 UI 功能无死按钮：
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-22 | 初始版本 | P4 收尾 |
+| 2026-07-23 | **相关 bug 修复（超出本 spec 范围）**：`POST/PATCH /api/config/models` 之前会忽略前端传来的 `anthropic_format` 和 `type` 字段，导致添加 Claude 模型时被存为 OpenAI 协议（`ModelConfig::new` 硬编码 `anthropic_format=false`、`type_=None`）。修复方法：给 `type_` 和 `anthropic_format` 加 `mut`；POST 直接赋值；PATCH 用 `body_has_key` 检测字段是否传入，未传则保留旧值。新增 3 个回归测试 wbtest（`config models post honors anthropic_format and type_`、`config models patch updates anthropic_format and type_`、`config models patch preserves anthropic_format and type_ when absent`），`moon test lib/web` 292/292 全部通过。改动文件：`lib/config/model.mbt`、`lib/web/handlers_extra.mbt`、`lib/web/handlers_extra_wbtest.mbt`。 | 用户在调试 P4 走查时点击「添加模型」报错，根因不在 P4 scope 内但同源 |
+| 2026-07-23 | **验收归档**：全部验收标准达成。`moon check` 0 errors；`moon test` 2922/2922 通过。端点核对（`grep` 验证）：`PATCH /:id/submodel` + `POST /:id/benchmark`（handlers_extra.mbt:1000，真实 LLM 计时跑分）、`POST /device/poll` 别名（handlers_onboard.mbt:89，委托 GET 逻辑）、`export`/`share` 路由齐全、`notify.js` + ws-dispatcher `task_finished` 事件 + `web/assets/notify.mp3` 静态资源链路完整。 | 完成归档 |

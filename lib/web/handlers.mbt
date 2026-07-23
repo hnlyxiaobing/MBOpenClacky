@@ -485,6 +485,7 @@ fn handle_get_config(
     max_tokens: cfg.max_tokens,
     verbose: cfg.verbose,
     current_model_id: cfg.current_model_id,
+    models: cfg.models,
   }
   @core.HttpResponse::ok().json_value(response.to_json())
 }

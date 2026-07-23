@@ -56,6 +56,51 @@ const IME = (() => {
   return { track, bindEnter };
 })();
 
+// ── ApiNorm — response-shape adapter for legacy vs current endpoints ─────
+//
+// Some session endpoints were ported from the upstream OpenClacky API, which
+// wraps a single resource in `{ session: {...} }` and uses the field name
+// `id`. MBOpenClacky's backend instead returns the SessionData object
+// directly (no wrapper) and uses `session_id` (matching the SessionData
+// struct). This helper normalises both shapes so the rest of the UI can
+// treat them as `{ id, name, ... }` and stop sprinkling `data.session`
+// lookups across the codebase.
+//
+//   unwrapSession(raw)
+//     null / undefined          → null
+//     { session: {...} }        → {...session, id: session.session_id ?? session.id}
+//     { session_id, name, ... } → { ...raw, id: raw.session_id ?? raw.id }
+//     { id, name, ... }         → raw (already normalised, passed through)
+//
+// Returns null when nothing usable was provided, so callers can use the
+// result directly (`const s = ApiNorm.unwrapSession(data); if (!s) return;`).
+const ApiNorm = (() => {
+  function _ensureId(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    if (obj.id == null && typeof obj.session_id === "string") {
+      obj.id = obj.session_id;
+    }
+    return obj;
+  }
+
+  function unwrapSession(raw) {
+    if (raw == null) return null;
+    // Wrapper form: { session: {...} }
+    if (typeof raw === "object" && raw.session && typeof raw.session === "object") {
+      return _ensureId(raw.session);
+    }
+    // Direct SessionData / SessionInfo form
+    if (typeof raw === "object" && (raw.id || raw.session_id)) {
+      return _ensureId({ ...raw });
+    }
+    return null;
+  }
+
+  return { unwrapSession };
+})();
+
+Clacky.ApiNorm = ApiNorm;
+
 const Tooltip = (() => {
   const GAP = 8;
   let el = null;

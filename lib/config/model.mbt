@@ -2,11 +2,11 @@
 /// Configuration for a single LLM model endpoint.
 pub(all) struct ModelConfig {
   id : String
-  type_ : String?
+  mut type_ : String?
   api_key : String
   base_url : String
   model : String
-  anthropic_format : Bool
+  mut anthropic_format : Bool
   /// Stable runtime identifier (not persisted). Defaults to model id.
   mut runtime_id : String
   /// Optional media type tag: None=general, "image", "video", "audio", "ocr"

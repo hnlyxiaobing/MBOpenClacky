@@ -658,3 +658,61 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
       }
   }
 }
+
+// ── Backup Config (spec-08) ───────────────────────────────────────
+
+///|
+/// Mutable backup configuration state (spec-08 PATCH /api/backup/config).
+priv struct BackupConfig {
+  mut backup_dir : String
+  mut auto_backup : Bool
+  mut max_backups : Int
+}
+
+///|
+let backup_config : Ref[BackupConfig] = Ref({
+  backup_dir: "",
+  auto_backup: false,
+  max_backups: 10,
+})
+
+///|
+/// PATCH /api/backup/config - Update backup configuration.
+/// Accepts partial updates: {backup_dir?, auto_backup?, max_backups?}.
+pub fn handle_backup_config_update(request : HttpRequest) -> HttpResponse {
+  if request.body == "" {
+    return HttpResponse::bad_request("Request body is required")
+  }
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  // Initialize backup_dir from defaults on first use
+  if backup_config.val.backup_dir == "" {
+    backup_config.val.backup_dir = backups_dir()
+  }
+  match body_json {
+    Object(obj) => {
+      match obj.get("backup_dir") {
+        Some(String(s)) => backup_config.val.backup_dir = s
+        _ => ()
+      }
+      match obj.get("auto_backup") {
+        Some(True) => backup_config.val.auto_backup = true
+        Some(False) => backup_config.val.auto_backup = false
+        _ => ()
+      }
+      match obj.get("max_backups") {
+        Some(Number(n, ..)) => backup_config.val.max_backups = n.to_int()
+        _ => ()
+      }
+    }
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  let resp = Json::object({
+    "backup_dir": backup_config.val.backup_dir.to_json(),
+    "auto_backup": backup_config.val.auto_backup.to_json(),
+    "max_backups": backup_config.val.max_backups.to_json(),
+    "updated": true.to_json(),
+  }).stringify()
+  HttpResponse::ok(resp)
+}

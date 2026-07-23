@@ -5916,8 +5916,8 @@ body {
 }
 .result-ok      { color: var(--color-success); }
 .result-fail    { color: var(--color-error); }
-.result-testing { color: var(--color-text-secondary); }
-.btn-save-model {
+.result-warning { color: var(--color-warning); }
+.result-testing { color: var(--color-text-secondary); }.btn-save-model {
   font-size: 0.8125rem;
   padding: 0.375rem 1.125rem;
 }

@@ -55,24 +55,35 @@ fn resolve_brand_name() -> String {
 }
 
 ///|
-/// Build script tags for official ext_ui panels (git and time_machine).
-/// A panel script tag is only injected when its asset actually exists under
-/// the static web root — otherwise every page load would 404 the missing
-/// script and produce a JS parse error in the console (spec web-parity-01
-/// decision: missing ext_ui assets must not be injected).
+/// Build script tags for official ext_ui panels.
+/// Dynamically discovers enabled extensions with panel contributions and
+/// injects `<script src="/ext_ui/<ext_id>/panel.js" defer>` for each whose
+/// panel JS asset exists under the static web root. Extensions without a
+/// matching file are silently skipped (no 404 on page load).
 fn build_official_panel_script_tags() -> String {
-  let mut tags = ""
-  if @fs.path_exists("web/ext_ui/git.js") {
-    tags = tags + "<script src=\"/ext_ui/git.js\" defer></script>\n"
+  let extensions = @extension.load_all_extensions()
+  let tags : Array[String] = []
+  for ext in extensions {
+    if !ext.enabled {
+      continue
+    }
+    let has_panel = ext.manifest.contributions
+      .iter()
+      .find_first(fn(c) {
+        c.type_ == @extension.ExtensionContributionType::Panel
+      })
+    match has_panel {
+      Some(_) => {
+        let panel_path = "web/ext_ui/" + ext.manifest.id + "/panel.js"
+        if @fs.path_exists(panel_path) {
+          let src = "/ext_ui/" + ext.manifest.id + "/panel.js"
+          tags.push("<script src=\"" + src + "\" defer></script>")
+        }
+      }
+      None => ()
+    }
   }
-  if @fs.path_exists("web/ext_ui/time_machine.js") {
-    tags = tags + "<script src=\"/ext_ui/time_machine.js\" defer></script>\n"
-  }
-  if tags.has_suffix("\n") {
-    tags[:tags.length() - 1].to_owned()
-  } else {
-    tags
-  }
+  tags.join("\n")
 }
 
 ///|

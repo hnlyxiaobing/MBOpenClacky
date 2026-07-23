@@ -83,6 +83,69 @@ fn handle_onboard_device_poll(
   }
 }
 
+///|
+/// POST /api/onboard/device/poll { device_code }.
+/// Body-based alias for the GET handler (frontend sends POST with JSON body).
+fn handle_onboard_device_poll_post(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  // Try body first; fall back to query param for robustness.
+  let body : Json = event.req.body() catch { _ => Json::null() }
+  let device_code : String? = match body {
+    Object(o) =>
+      match o.get("device_code") {
+        Some(String(s)) if !s.is_empty() => Some(s)
+        _ => None
+      }
+    _ => None
+  }
+  let device_code = match device_code {
+    Some(s) => s
+    None =>
+      match event.req.get_query("device_code") {
+        Some(code) if !code.is_empty() => code
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({
+              "error": "Missing 'device_code' in body or query".to_json(),
+            }),
+          )
+      }
+  }
+  let now_ms = @agent.current_time_ms()
+  match server_ref.val.device_auth_store.poll_device_flow(device_code, now_ms) {
+    @brand.Approved(token) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "approved".to_json(),
+          "device_token": token.to_json(),
+        }),
+      )
+    @brand.Pending =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json(), "status": "pending".to_json() }),
+      )
+    @brand.Expired =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "expired".to_json(),
+          "error": "authorization_pending".to_json(),
+        }),
+      )
+    @brand.SlowDown =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({
+          "ok": true.to_json(),
+          "status": "pending".to_json(),
+          "error": "slow_down".to_json(),
+        }),
+      )
+  }
+}
+
 // ── Onboarding Status & Simple Flow ───────────────────────────────
 
 ///|

@@ -1,9 +1,136 @@
 ///| Model connectivity test REST API handlers.
 
 ///|
+/// Detect whether a URL ends with a version segment like `/v1`, `/v3`, or
+/// `/v10` (optionally with a trailing slash). Many OpenAI-compatible
+/// providers embed the API version in their base URL — e.g.
+/// `https://ark.cn-beijing.volces.com/api/coding/v3` (Volces Ark Coding
+/// Plan) or `https://api.deepseek.com/v1` (DeepSeek). A naïve
+/// `has_suffix("/v1")` misses every other version, producing a doubled
+/// `/v3/v1/models` probe URL that the upstream then returns 404 for.
+///
+/// We want to ask the upstream "do you have a /models endpoint at this
+/// base?" — which means "should I append /models or /v1/models?" If the
+/// base already has a version, we just append /models; otherwise we
+/// default to the OpenAI convention /v1/models.
+fn has_version_suffix(url : String) -> Bool {
+  // Strip a single trailing slash so /v3/ also matches.
+  let trimmed = if url.has_suffix("/") {
+    String::sub(url, end=url.length() - 1).to_string()
+  } else {
+    url
+  }
+  match trimmed.rev_find("/") {
+    None => false
+    Some(idx) => {
+      let tail = String::sub(trimmed, start=idx + 1).to_string()
+      if tail.length() < 2 {
+        false
+      } else {
+        match tail.get_char(0) {
+          Some('v') | Some('V') => {
+            // All remaining chars must be ASCII digits 0-9.
+            let mut all_digit = true
+            for i in 1..<tail.length() {
+              match tail.get_char(i) {
+                Some(c) =>
+                  if c.to_int() < 48 || c.to_int() > 57 {
+                    all_digit = false
+                    break
+                  }
+                None => {
+                  all_digit = false
+                  break
+                }
+              }
+            }
+            all_digit
+          }
+          _ => false
+        }
+      }
+    }
+  }
+}
+
+///|
+/// Strip a single trailing slash from a URL. Used to normalize base_url
+/// before path concatenation so we never produce accidental `//` segments.
+fn strip_trailing_slash(url : String) -> String {
+  if url.has_suffix("/") {
+    String::sub(url, end=url.length() - 1).to_string()
+  } else {
+    url
+  }
+}
+
+///|
+/// Probe an OpenAI-compatible endpoint with two fallback strategies so a
+/// non-standard layout (e.g. Volces Ark Coding Plan, which has no
+/// `/models` listing but does respond on `/chat/completions`) doesn't
+/// return a misleading 404. The call sequence is:
+///
+///   1. GET `{base}/models` (or `{base}/v1/models` if no version embedded)
+///   2. If that returns 404/405, POST `{base}/chat/completions` with a
+///      minimal payload — 1 token, no tools, no stream. The upstream
+///      should answer 2xx (real) or 4xx (auth/bad-model), and either
+///      outcome tells the user the endpoint and key are reachable.
+///
+/// The first 2xx is treated as success. If both probes fail we return
+/// the more informative of the two errors (network > 4xx > 5xx).
+fn probe_openai_compatible(
+  base_url : String,
+  api_key : String,
+  model : String,
+  timeout_ms : Int,
+) -> Result[@client.HttpResponse, @client.HttpError] {
+  let models_path = if has_version_suffix(base_url) {
+    base_url + "/models"
+  } else {
+    base_url + "/v1/models"
+  }
+  let headers = [("Authorization", "Bearer " + api_key)]
+  let get_result = @client.http_get(models_path, headers, timeout_ms)
+  match get_result {
+    Ok(resp) =>
+      if resp.status_code >= 200 && resp.status_code < 300 {
+        // /models responded — done.
+        Ok(resp)
+      } else if resp.status_code == 404 || resp.status_code == 405 {
+        // /models missing or method-not-allowed — fall through to
+        // /chat/completions probe. Don't return early; that would lose
+        // the chance to validate auth and reachability via the real
+        // inference path.
+        let chat_path = strip_trailing_slash(base_url) + "/chat/completions"
+        let body = "{\"model\":\"" +
+          model +
+          "\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1,\"stream\":false}"
+        let chat_headers = [
+          ("Authorization", "Bearer " + api_key),
+          ("Content-Type", "application/json"),
+        ]
+        @client.http_post(chat_path, body, chat_headers, timeout_ms)
+      } else {
+        // 401/403/4xx/5xx from /models — that's a real signal, no
+        // fallback needed.
+        Ok(resp)
+      }
+    Err(e) => Err(e)
+  }
+}
+
+///|
 /// POST /api/config/test
 /// Tests connectivity to a model endpoint by sending a lightweight HTTP request.
-/// Expected body: {"model_id": "model-id"}
+///
+/// Accepts the frontend payload: { model, base_url, api_key, id?, anthropic_format? }
+/// - For new (unsaved) models the caller supplies all fields directly.
+/// - For existing models the caller may send a masked/empty api_key plus the
+///   model `id`; the handler resolves the real api_key (and any missing
+///   base_url/model) from the stored config.
+///
+/// Response shape (matches ModelTester.testConnection expectations):
+///   { ok: bool, message: string, effective_base_url?: string }
 fn handle_config_test(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
@@ -14,69 +141,167 @@ fn handle_config_test(
         Json::object({ "error": "Invalid JSON body".to_json() }),
       )
   }
-  let model_id = match j {
-    Object(obj) =>
-      match obj.get("model_id") {
-        Some(String(id)) => id
-        _ =>
-          return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'model_id' field".to_json() }),
-          )
-      }
-    _ =>
-      return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
-      )
-  }
-  let mut model : @config.ModelConfig? = None
-  for m in server_ref.val.config.models {
-    if m.id == model_id {
-      model = Some(m)
-      break
-    }
-  }
-  match model {
-    Some(mc) => {
-      let url = mc.base_url + "/v1/models"
-      let headers = [("Authorization", "Bearer " + mc.api_key)]
-      let start = @async.now()
-      let result = @client.http_get(url, headers, 10000)
-      let elapsed = (@async.now() - start).to_int()
-      match result {
-        Ok(resp) =>
-          if resp.status_code >= 200 && resp.status_code < 300 {
-            @core.HttpResponse::ok().json_value(
-              Json::object({
-                "ok": true.to_json(),
-                "latency_ms": elapsed.to_json(),
-                "status_code": resp.status_code.to_json(),
-              }),
-            )
-          } else {
-            @core.HttpResponse::ok().json_value(
-              Json::object({
-                "ok": false.to_json(),
-                "error": ("HTTP " + resp.status_code.to_string()).to_json(),
-                "latency_ms": elapsed.to_json(),
-              }),
-            )
+  // Extract raw fields from the frontend payload.
+  let mut model = extra_json_str(j, "model")
+  let mut base_url = extra_json_str(j, "base_url")
+  let mut api_key = extra_json_str(j, "api_key")
+  let id = extra_json_str_opt(j, "id")
+  // Detect masked keys: mask_api_key produces "****" (short) or
+  // "xxx...xxxx" (first-3 + "..." + last-4). An empty key also needs
+  // resolution when an id is available.
+  let key_needs_resolve = api_key.is_empty() ||
+    api_key.contains("...") ||
+    api_key == "****"
+  // When the key is masked/empty and we have a model id, pull the real
+  // credentials from the persisted config.
+  if key_needs_resolve {
+    match id {
+      Some(mid) =>
+        for m in server_ref.val.config.models {
+          if m.id == mid {
+            if api_key.is_empty() ||
+              api_key.contains("...") ||
+              api_key == "****" {
+              api_key = m.api_key
+            }
+            if base_url.is_empty() {
+              base_url = m.base_url
+            }
+            if model.is_empty() {
+              model = m.model
+            }
+            break
           }
-        Err(e) =>
-          @core.HttpResponse::ok().json_value(
-            Json::object({
-              "ok": false.to_json(),
-              "error": @debug.to_string(e).to_json(),
-            }),
-          )
-      }
+        }
+      None => ()
     }
-    None =>
-      @core.HttpResponse::bad_request().json_value(
+  }
+  // We need at least base_url and api_key to attempt a connection test.
+  // Surface the specific missing field(s) so the user can fix the form
+  // without guessing — a bare "required" message is hard to act on.
+  if base_url.is_empty() || api_key.is_empty() {
+    let missing : Array[String] = []
+    if base_url.is_empty() {
+      missing.push("base_url")
+    }
+    if api_key.is_empty() {
+      missing.push("api_key")
+    }
+    let msg = "Missing required field(s): " + missing.join(", ")
+    return @core.HttpResponse::bad_request().json_value(
+      Json::object({ "ok": false.to_json(), "message": msg.to_json() }),
+    )
+  }
+  // Pick test protocol based on anthropic_format. Anthropic-compatible
+  // services use a different auth header (x-api-key instead of
+  // Authorization: Bearer) and a chat-completions-style endpoint
+  // (/v1/messages). Using the OpenAI-shaped /v1/models probe on them
+  // yields 404/401, which is misleading.
+  let anthropic_format = extra_json_bool(j, "anthropic_format")
+  let start = @async.now()
+  let result : Result[_, _] = if anthropic_format {
+    let url = if has_version_suffix(base_url) {
+      strip_trailing_slash(base_url) + "/messages"
+    } else {
+      base_url + "/v1/messages"
+    }
+    let headers = [
+      ("x-api-key", api_key),
+      ("anthropic-version", "2023-06-01"),
+      ("Content-Type", "application/json"),
+    ]
+    // Minimal body — just enough to validate the endpoint & auth without
+    // burning tokens. Anthropic returns 400 (bad model) even for valid auth,
+    // and 401 specifically for bad/missing keys, so we can still tell them
+    // apart.
+    let body = "{\"model\":\"" +
+      model +
+      "\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}"
+    @client.http_post(url, body, headers, 10000)
+  } else {
+    // OpenAI-compatible probe. The helper tries GET /models first then
+    // falls back to POST /chat/completions on 404/405, so a non-standard
+    // base URL (e.g. Volces Ark Coding Plan's /api/coding/v3) doesn't
+    // surface a misleading "endpoint not found" to the user.
+    probe_openai_compatible(base_url, api_key, model, 10000)
+  }
+  let elapsed = (@async.now() - start).to_int()
+  match result {
+    Ok(resp) =>
+      if resp.status_code >= 200 && resp.status_code < 300 {
+        @core.HttpResponse::ok().json_value(
+          Json::object({
+            "ok": true.to_json(),
+            "message": ("Connected (" +
+            resp.status_code.to_string() +
+            ", " +
+            elapsed.to_string() +
+            "ms)").to_json(),
+            "effective_base_url": base_url.to_json(),
+          }),
+        )
+      } else {
+        // Classify by status code so the UI can give a useful message
+        // instead of a bare "HTTP 404".
+        let (msg, code) : (String, String) = match resp.status_code {
+          401 | 403 =>
+            (
+              "Authentication failed (HTTP " +
+              resp.status_code.to_string() +
+              "): check API key",
+              "auth_failed",
+            )
+          404 =>
+            (
+              "Endpoint not found (HTTP 404): probe URL doesn't exist on this provider — try a different base URL",
+              "not_found",
+            )
+          400 =>
+            (
+              "Bad request (HTTP 400): check model id and provider requirements",
+              "bad_request",
+            )
+          429 => ("Rate limited (HTTP 429)", "rate_limited")
+          n if n >= 500 =>
+            (
+              "Upstream error (HTTP " +
+              n.to_string() +
+              "): provider unavailable",
+              "upstream_error",
+            )
+          n => ("HTTP " + n.to_string(), "http_" + n.to_string())
+        }
+        @core.HttpResponse::ok().json_value(
+          Json::object({
+            "ok": false.to_json(),
+            "message": msg.to_json(),
+            "error_code": code.to_json(),
+            "status_code": resp.status_code.to_json(),
+          }),
+        )
+      }
+    Err(e) =>
+      @core.HttpResponse::ok().json_value(
         Json::object({
-          "error": "Model not found".to_json(),
-          "model_id": model_id.to_json(),
+          "ok": false.to_json(),
+          "message": classify_http_error(e).to_json(),
+          "error_code": "network_error".to_json(),
         }),
       )
+  }
+}
+
+///|
+/// Map a low-level HttpError to a human-readable message.
+fn classify_http_error(e : @client.HttpError) -> String {
+  match e {
+    @client.HttpError::Timeout(_) => "Request timed out (10s)"
+    @client.HttpError::ConnectionFailed(msg) => "Connection failed: " + msg
+    @client.HttpError::ServerError(code, _) =>
+      "Server error (HTTP " + code.to_string() + ")"
+    @client.HttpError::ClientError(code, _) =>
+      "Client error (HTTP " + code.to_string() + ")"
+    @client.HttpError::AllHostsFailed(msg) => "All hosts failed: " + msg
   }
 }
 
@@ -120,9 +345,12 @@ fn handle_config_media_test(
   }
   match model {
     Some(mc) => {
-      let url = mc.base_url + "/v1/models"
-      let headers = [("Authorization", "Bearer " + mc.api_key)]
-      let result = @client.http_get(url, headers, 10000)
+      let result = probe_openai_compatible(
+        mc.base_url,
+        mc.api_key,
+        mc.model,
+        10000,
+      )
       match result {
         Ok(resp) =>
           if resp.status_code >= 200 && resp.status_code < 300 {
@@ -435,4 +663,69 @@ fn handle_config_ocr_get(
           )
       }
   }
+}
+
+///|
+/// GET /api/config/media - Get all media configurations at once.
+/// Returns { media: { image: {...}, video: {...}, ... }, default_provider: {...} }
+fn handle_config_media_all(
+  server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let config = server_ref.val.config
+  let media : Map[String, Json] = {}
+  for kind in ["image", "video", "audio", "stt", "video_understanding"] {
+    let entry = match config.find_model_by_type(kind) {
+      Some(mc) =>
+        Json::object({
+          "source": "custom".to_json(),
+          "model": mc.model.to_json(),
+          "base_url": mc.base_url.to_json(),
+          "configured": true.to_json(),
+        })
+      None =>
+        match config.derive_media_model(kind) {
+          Some(mc) =>
+            Json::object({
+              "source": "auto".to_json(),
+              "model": mc.model.to_json(),
+              "base_url": mc.base_url.to_json(),
+              "configured": false.to_json(),
+            })
+          None =>
+            Json::object({
+              "source": "off".to_json(),
+              "model": "".to_json(),
+              "base_url": "".to_json(),
+              "configured": false.to_json(),
+            })
+        }
+    }
+    media[kind] = entry
+  }
+  // default_provider: derive from first model with media_type
+  let default_provider : Map[String, Json] = {}
+  let mut found_default = false
+  for m in config.models {
+    match m.media_type {
+      Some(mt) => {
+        default_provider["model"] = m.model.to_json()
+        default_provider["base_url"] = m.base_url.to_json()
+        default_provider["kind"] = mt.to_json()
+        found_default = true
+        break
+      }
+      _ => ()
+    }
+  }
+  if !found_default {
+    default_provider["model"] = "".to_json()
+    default_provider["base_url"] = "".to_json()
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "media": Json::object(media),
+      "default_provider": Json::object(default_provider),
+    }),
+  )
 }

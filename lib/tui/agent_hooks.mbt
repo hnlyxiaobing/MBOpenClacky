@@ -359,22 +359,18 @@ fn dispatch_hook_event(
       }
       ignore(s.progress_stack.push("Retry #\{n}: \{reason}"))
     }
-    ToolStdout(text) => {
+    ToolStdout(text) =>
       // Tool stdout output - append to output buffer
       append_tool_stdout(output, theme, text)
-    }
-    InfoMessage(msg) => {
+    InfoMessage(msg) =>
       // Informational message - append to output buffer
       append_info_message(output, theme, msg)
-    }
-    SuccessMessage(msg) => {
+    SuccessMessage(msg) =>
       // Success message - append to output buffer
       append_success_message(output, theme, msg)
-    }
-    FeedbackRequested(question, _context, _options) => {
+    FeedbackRequested(question, _context, _options) =>
       // Feedback requested - append to output buffer
       append_feedback_requested(output, theme, question)
-    }
   }
 }
 
