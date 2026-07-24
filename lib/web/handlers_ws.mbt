@@ -229,6 +229,11 @@ fn send_session_list(
   let model_options : Array[String] = server_ref.val.config.models.map(m => {
     m.model
   })
+  // Fallback model for legacy session files missing model_name.
+  let default_model : String? = match server_ref.val.config.current_model() {
+    Some(mc) => Some(mc.model)
+    None => None
+  }
   let summaries : Array[Json] = []
   for sd in all_sessions {
     summaries.push(
@@ -243,9 +248,12 @@ fn send_session_list(
         total_cost: sd.stats.total_cost_usd,
         cost_source: sd.stats.cost_source,
         error: sd.last_error,
-        model: sd.model_name,
+        model: match sd.model_name {
+          Some(m) => Some(m)
+          None => default_model
+        },
         source: sd.source,
-        latest_latency_ms: sd.latest_latency_ms,
+        latest_latency: SessionLatency::from_session_data(sd),
         pinned: pinned_map.get(sd.session_id).unwrap_or(false),
         agent_profile: sd.agent_profile,
         sub_model: sd.sub_model,

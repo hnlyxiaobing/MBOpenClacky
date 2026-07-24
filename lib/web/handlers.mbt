@@ -24,6 +24,11 @@ fn handle_list_sessions(
   let model_options : Array[String] = server_ref.val.config.models.map(m => {
     m.model
   })
+  // Fallback model for legacy session files missing model_name.
+  let default_model : String? = match server_ref.val.config.current_model() {
+    Some(mc) => Some(mc.model)
+    None => None
+  }
   let summaries : Array[SessionSummary] = []
   for sd in all_sessions {
     // Apply text search filter (name contains q)
@@ -56,9 +61,12 @@ fn handle_list_sessions(
       total_cost: sd.stats.total_cost_usd,
       cost_source: sd.stats.cost_source,
       error: sd.last_error,
-      model: sd.model_name,
+      model: match sd.model_name {
+        Some(m) => Some(m)
+        None => default_model
+      },
       source: sd.source,
-      latest_latency_ms: sd.latest_latency_ms,
+      latest_latency: SessionLatency::from_session_data(sd),
       pinned: pinned_map.get(sd.session_id).unwrap_or(false),
       agent_profile: sd.agent_profile,
       sub_model: sd.sub_model,
@@ -146,10 +154,18 @@ fn handle_create_session(
   )
   server_ref.val.active_agents[session_id] = agent
   let data = agent.to_session_data()
-  // Include agent_profile in the response (web-replication-05).
+  // Persist an initial snapshot so the session is immediately visible in
+  // GET /api/sessions and WS session_list (both read from disk).
+  // IO failure only degrades to the previous in-memory-only behavior.
+  @agent.save_session(data) catch {
+    _ => ()
+  }
+  // Include agent_profile and updated_at in the response
+  // (web-replication-05; updated_at mirrors created_at for now).
   match ToJson::to_json(data) {
     Object(o) => {
       o["agent_profile"] = ToJson::to_json(agent_profile)
+      o["updated_at"] = data.created_at.to_json()
       @core.HttpResponse::created().json_value(Json::object(o))
     }
     other => @core.HttpResponse::created().json_value(other)
@@ -171,14 +187,19 @@ fn handle_get_session(
   }
   let session_opt = @agent.load_session(id)
   match session_opt {
-    Some(data) => @core.HttpResponse::ok().json_value(ToJson::to_json(data))
+    Some(data) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "session": ToJson::to_json(data) }),
+      )
     None =>
       // A freshly created session lives only in memory until its first
       // run persists it; serve that instead of a 404 so the frontend
       // history load does not error right after session creation.
       match server_ref.val.active_agents.get(id) {
         Some(agent) =>
-          @core.HttpResponse::ok().json_value(agent.to_session_data().to_json())
+          @core.HttpResponse::ok().json_value(
+            Json::object({ "session": agent.to_session_data().to_json() }),
+          )
         None =>
           @core.HttpResponse::not_found().json_value(
             Json::object({ "error": "Session not found".to_json() }),
