@@ -863,6 +863,17 @@ fn handle_file_action_bridge(
       Json::object({ "error": "action and path required".to_json() }),
     )
   }
+  // display-path is a pure path-translation query (no OS integration), so it
+  // works headless: under WSL a /mnt/<drive>/… path becomes a Windows path
+  // the user can paste into Explorer/Editors; anything else passes through.
+  if action == "display-path" {
+    return @core.HttpResponse::ok().json_value(
+      Json::object({
+        "ok": true.to_json(),
+        "path": linux_to_win_path(path).to_json(),
+      }),
+    )
+  }
   // Actual file open/reveal requires OS integration that is not available
   // in headless mode — report honestly instead of faking success.
   @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
@@ -872,6 +883,37 @@ fn handle_file_action_bridge(
       "message": ("file-action '" + action + "' not available in headless mode").to_json(),
     }),
   )
+}
+
+///|
+/// Translate a server-side path into a user-facing display path.
+/// Under WSL, `/mnt/c/Users/x` becomes `C:\Users\x` (mirrors upstream
+/// `wslpath -w` semantics for mounted drives); paths not on a mounted
+/// drive, and all paths on non-WSL hosts, are returned unchanged.
+fn linux_to_win_path(path : String) -> String {
+  if !@utils.is_wsl() {
+    return path
+  }
+  match mnt_path_to_win(path) {
+    Some(win) => win
+    None => path
+  }
+}
+
+///|
+/// Pure translation of a WSL mounted-drive path: `/mnt/c/Users/x` becomes
+/// `C:\Users\x`. Returns None when the path is not a mounted-drive path.
+fn mnt_path_to_win(path : String) -> String? {
+  guard path.strip_prefix("/mnt/") is Some(rest) else { return None }
+  let segs = rest.split("/").collect()
+  guard segs.length() >= 2 else { return None }
+  let drive = segs[0].to_owned().to_upper()
+  guard drive.length() == 1 && drive >= "A" && drive <= "Z" else { return None }
+  let tail : Array[String] = []
+  for i in 1..<segs.length() {
+    tail.push(segs[i].to_owned())
+  }
+  Some(drive + ":\\" + tail.join("\\"))
 }
 
 // ── Trash Sessions Bridge (web-parity-04) ────────────────────────

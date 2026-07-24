@@ -209,8 +209,11 @@ const ExtensionsView = (() => {
     if (remove) {
       remove.addEventListener("click", async () => {
         const id = remove.getAttribute("data-ext-remove");
-        const ok = await Modal.confirm(I18n.t("extensions.action.removeConfirm"));
-        if (ok) Extensions.uninstall(id);
+        const { ok, checked } = await Modal.confirmWithCheckbox(
+          I18n.t("extensions.action.removeConfirm"),
+          I18n.t("extensions.action.removePurgeData")
+        );
+        if (ok) Extensions.uninstall(id, checked);
       });
     }
 
@@ -313,7 +316,9 @@ const ExtensionsView = (() => {
   function _renderActions(ext) {
     const id = ext.id != null ? String(ext.id) : (ext.name || ext.slug || "");
     if (!ext.installed) {
-      if (ext.origin === "marketplace" && ext.download_url) {
+      // Show install button for both marketplace and brand-private (origin=self) extensions,
+      // as long as a download_url is available.
+      if (ext.download_url) {
         return `
       <div class="extension-detail-actions">
         <button type="button" class="extension-action extension-action-install" data-ext-install="${escapeHtml(id)}">${escapeHtml(I18n.t("extensions.action.install"))}</button>
@@ -407,6 +412,17 @@ const ExtensionsView = (() => {
       </div>`;
   }
 
+  // Show/hide the brand filter tab based on brand status from the store.
+  async function _applyBrandTab() {
+    try {
+      const data = await Extensions.fetchBrandStatus();
+      const brandTab = $("tab-extensions-brand");
+      if (brandTab) brandTab.style.display = data.branded ? "" : "none";
+    } catch (_e) {
+      // On error, keep tab hidden.
+    }
+  }
+
   function _wireDom() {
     if (_domWired) return;
 
@@ -432,9 +448,24 @@ const ExtensionsView = (() => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".extensions-filter-tab").forEach(b => b.classList.remove("extensions-filter-tab-active"));
         btn.classList.add("extensions-filter-tab-active");
-        Extensions.setFilterInstalled(btn.dataset.filter === "installed");
+        const filter = btn.dataset.filter;
+        if (filter === "installed") {
+          Extensions.setFilterInstalled(true);
+        } else if (filter === "brand") {
+          Extensions.setFilterBrand(true);
+        } else {
+          Extensions.setFilterInstalled(false);
+        }
       });
     });
+
+    // Subscribe to brand status changes to show/hide the brand tab.
+    if (window.Skills && Skills.on) {
+      Skills.on("brandStatus:changed", (p) => {
+        const brandTab = $("tab-extensions-brand");
+        if (brandTab) brandTab.style.display = p.branded ? "" : "none";
+      });
+    }
 
     const list = $("extensions-list");
     if (list) {
@@ -466,8 +497,12 @@ const ExtensionsView = (() => {
   }
 
   const viewApi = {
-    onPanelShow(opts) {
+    async onPanelShow(opts) {
       _wireDom();
+      // Apply brand tab visibility based on current status (fast path),
+      // then also refresh in background so it stays up-to-date.
+      _applyBrandTab();
+      if (window.Skills && Skills.refreshBrandStatus) Skills.refreshBrandStatus();
       const detailId = opts && opts.detailId;
       if (detailId) {
         Extensions.load();

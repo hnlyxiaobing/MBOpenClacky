@@ -122,19 +122,23 @@ const NewSessionStore = (() => {
     return "Session " + (maxN + 1);
   }
 
-  async function createSession({ existingSessions } = {}) {
+  async function createSession({ existingSessions, useDefaults = false } = {}) {
     if (_state.creating) return null;
     _state.creating = true;
     _emit("newSession:creating", { creating: true });
 
     try {
-      const agentId = _state.selectedAgentId || "general";
+      // useDefaults=true: quick-create from sidebar — use the default agent and
+      // skip advanced options (model / dir) so the session always starts clean.
+      const agentId = useDefaults ? "general" : (_state.selectedAgentId || "general");
       const adv = _state.advanced;
       const name = adv.name.trim() || _autoName(existingSessions);
 
       const payload = { name, agent_profile: agentId, source: "manual" };
-      if (adv.workingDir.trim()) payload.working_dir = adv.workingDir.trim();
-      if (adv.modelId) payload.model_id = adv.modelId;
+      if (!useDefaults) {
+        if (adv.workingDir.trim()) payload.working_dir = adv.workingDir.trim();
+        if (adv.modelId) payload.model_id = adv.modelId;
+      }
 
       const res = await fetch("/api/sessions", {
         method: "POST",
@@ -143,7 +147,8 @@ const NewSessionStore = (() => {
       });
       const data = await res.json();
 
-      if (!res.ok) {        const msg = (data && data.error) || "unknown error";
+      if (!res.ok) {
+        const msg = data.error || "unknown error";
         const friendly = res.status === 409
           ? I18n.t("sessions.dirNotEmpty")
           : I18n.t("sessions.createError") + msg;
@@ -151,12 +156,8 @@ const NewSessionStore = (() => {
         return null;
       }
 
-      const session = Clacky.ApiNorm.unwrapSession(data);
-      if (!session) {
-        alert(I18n.t("sessions.createError") + "no session returned");
-        return null;
-      }
-      return session;    } catch (e) {
+      return data.session || null;
+    } catch (e) {
       alert(I18n.t("sessions.createError") + e.message);
       return null;
     } finally {

@@ -23,11 +23,21 @@ pub(all) struct MappedWsEvent {
 /// shared by both the WS push path and the REST history path.
 pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
   match event {
-    StatusChanged(_old, new) =>
+    StatusChanged(_old, new) => {
+      // I-028: The frontend ws-dispatcher only recognises "idle" / "running".
+      // Agent-internal "completed" must be mapped to "idle" at the WS contract
+      // boundary so the frontend triggers Tasks/Skills refresh & clearProgress.
+      // TUI consumes AgentStatus directly (not via this mapping), so it is
+      // unaffected.
+      let status_str = match new {
+        @agent.Completed => "idle"
+        _ => new.to_string_value()
+      }
       {
         event_type: "session_update",
-        data: Json::object({ "status": new.to_string_value().to_json() }),
+        data: Json::object({ "status": status_str.to_json() }),
       }
+    }
     BeforeIteration(n) =>
       {
         event_type: "progress",

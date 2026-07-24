@@ -1533,29 +1533,46 @@ pub fn handle_providers_list(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  // Static list of known providers.
-  let providers : Array[Json] = [
-    Json::object({
-      "id": "openai".to_json(),
-      "name": "OpenAI".to_json(),
-      "base_url": "https://api.openai.com/v1".to_json(),
-    }),
-    Json::object({
-      "id": "anthropic".to_json(),
-      "name": "Anthropic".to_json(),
-      "base_url": "https://api.anthropic.com".to_json(),
-    }),
-    Json::object({
-      "id": "deepseek".to_json(),
-      "name": "DeepSeek".to_json(),
-      "base_url": "https://api.deepseek.com".to_json(),
-    }),
-    Json::object({
-      "id": "custom".to_json(),
-      "name": "Custom (OpenAI-compatible)".to_json(),
-      "base_url": "".to_json(),
-    }),
-  ]
+  // Serve the real preset registry — the frontend consumes default_model,
+  // models, endpoint_variants, name_key and website_url for quick setup,
+  // regional endpoint dropdowns and "get API key" links (upstream
+  // api_list_providers shape).
+  let providers : Array[Json] = []
+  for preset in @config.Providers::all() {
+    let obj : Map[String, Json] = Map([])
+    obj["id"] = preset.id.to_json()
+    obj["name"] = preset.name.to_json()
+    match preset.name_key {
+      Some(k) => obj["name_key"] = k.to_json()
+      None => ()
+    }
+    obj["base_url"] = preset.base_url.to_json()
+    obj["default_model"] = preset.default_model.to_json()
+    obj["models"] = preset.models.to_json()
+    if !preset.endpoint_variants.is_empty() {
+      let variants : Array[Json] = []
+      for v in preset.endpoint_variants {
+        let vobj : Map[String, Json] = Map([])
+        vobj["label"] = v.label.to_json()
+        match v.label_key {
+          Some(k) => vobj["label_key"] = k.to_json()
+          None => ()
+        }
+        vobj["base_url"] = v.base_url.to_json()
+        match v.region {
+          Some(r) => vobj["region"] = r.to_json()
+          None => ()
+        }
+        variants.push(Json::object(vobj))
+      }
+      obj["endpoint_variants"] = variants.to_json()
+    }
+    match preset.website_url {
+      Some(u) => obj["website_url"] = u.to_json()
+      None => ()
+    }
+    providers.push(Json::object(obj))
+  }
   @core.HttpResponse::ok().json_value(
     Json::object({ "providers": providers.to_json() }),
   )

@@ -17,6 +17,7 @@
 const Onboard = (() => {
   let _providers   = [];
   let _selectedLang = I18n.lang();  // language chosen during setup
+  let _branded      = false;        // true when running under a brand license
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ const Onboard = (() => {
       if (!data.needs_onboard) return { needsOnboard: false, phase: null };
 
       const phase = data.phase;
+      _branded = !!data.branded;
 
       if (phase === "key_setup") {
         // Mandatory: show full-screen setup panel, block boot.
@@ -111,9 +113,16 @@ const Onboard = (() => {
     $("setup-dot-1").className = "setup-step" + (step === "lang" ? " active" : " done");
     $("setup-dot-2").className = "setup-step" + (step === "key"  ? " active" : "");
     if (step === "key") {
-      $("setup-device-block").style.display   = "";
-      $("setup-manual-toggle").style.display  = "";
-      $("setup-manual-section").style.display = "none";
+      if (_branded) {
+        // Brand mode: skip the OpenClacky AI Keys card, go straight to manual config
+        $("setup-device-block").style.display   = "none";
+        $("setup-manual-toggle").style.display  = "none";
+        $("setup-manual-section").style.display = "";
+      } else {
+        $("setup-device-block").style.display   = "";
+        $("setup-manual-toggle").style.display  = "";
+        $("setup-manual-section").style.display = "none";
+      }
     }
   }
 
@@ -153,16 +162,20 @@ const Onboard = (() => {
     dropdown.appendChild(placeholder);
 
     _providers.forEach(p => {
+      // Prefer i18n key (localised); fall back to shipped English `name`.
+      const translated  = p.name_key ? I18n.t(p.name_key) : null;
+      const displayName = (translated && translated !== p.name_key) ? translated : p.name;
+
       const opt = document.createElement("div");
       opt.className     = "custom-select-option";
       opt.dataset.value = p.id;
-      opt.dataset.label = p.name;
+      opt.dataset.label = displayName;
       if (p.id === "openclacky") {
         const nameSpan = document.createElement("span");
-        nameSpan.textContent = p.name;
+        nameSpan.textContent = displayName;
         opt.innerHTML = nameSpan.outerHTML + ` <span class="provider-badge-recommended">${I18n.t("provider.recommended")}</span>`;
       } else {
-        opt.textContent = p.name;
+        opt.textContent = displayName;
       }
       dropdown.appendChild(opt);
     });
@@ -379,7 +392,8 @@ const Onboard = (() => {
     });
 
     $("setup-btn-back").addEventListener("click", () => {
-      if ($("setup-manual-section").style.display !== "none") {
+      if (!_branded && $("setup-manual-section").style.display !== "none") {
+        // Non-brand: collapse manual section back to device card
         $("setup-device-block").style.display  = "";
         $("setup-manual-toggle").style.display = "";
         $("setup-manual-section").style.display = "none";

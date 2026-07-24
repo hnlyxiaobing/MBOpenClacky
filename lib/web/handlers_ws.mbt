@@ -185,16 +185,28 @@ fn handle_ws_subscribe(
     }
   }
 
+  // I-013: Verify session exists before switching subscription.
+  // If neither persisted nor in-memory, reply with an error and keep the
+  // current subscription unchanged (prevents "ghost session" UX).
+  let session_opt = @agent.load_session(target)
+  let exists = match session_opt {
+    Some(_) => true
+    None => server_ref.val.active_agents.contains(target)
+  }
+  if !exists {
+    peer.text(@protocol.build_error_event(target, "Session not found"))
+    return
+  }
+
   // Switch to the new session (unsubscribe old, subscribe new).
   hub.switch_session(conn_id, target)
   peer.text(@protocol.build_subscribed_event(target))
 
-  // Send session snapshot if session exists.
-  let session_opt = @agent.load_session(target)
+  // Send session snapshot.
   match session_opt {
     Some(data) => peer.text(@protocol.build_session_snapshot(data))
     None =>
-      // Check in-memory active agents.
+      // In-memory active agent (guaranteed to exist by the check above).
       match server_ref.val.active_agents.get(target) {
         Some(agent) =>
           peer.text(@protocol.build_session_snapshot(agent.to_session_data()))
@@ -259,6 +271,12 @@ fn send_session_list(
         sub_model: sd.sub_model,
         sub_model_options: model_options,
         reasoning_effort: sd.reasoning_effort,
+        model_id: sd.model_name,
+        card_model: sd.model_name,
+        channel_info: sd.channel_info,
+        error_code: sd.error_code,
+        top_up_url: sd.top_up_url,
+        raw_message: sd.raw_message,
       }.to_json(),
     )
   }
@@ -329,6 +347,25 @@ fn handle_ws_interrupt(
           None => ()
         }
         hub.broadcast_session(sid, @protocol.build_interrupted_event(sid))
+        // I-027: After interrupt, send the same closing frames as a normal
+        // run end so the frontend status bar transitions to idle and the
+        // progress indicator clears.
+        hub.broadcast_session(
+          sid,
+          @protocol.build_event(
+            @protocol.event_session_update,
+            sid,
+            Json::object({ "status": "idle".to_json() }),
+          ),
+        )
+        hub.broadcast_session(
+          sid,
+          @protocol.build_event(
+            @protocol.event_progress,
+            sid,
+            Json::object({ "phase": "done".to_json() }),
+          ),
+        )
       }
     None => ()
   }
@@ -490,6 +527,48 @@ fn handle_ws_run_task(
 }
 
 ///|
+/// fix-08: Broadcast a partial session_update frame carrying latency
+/// metrics (ttft_ms, duration_ms, output_tokens, tps) derived from the
+/// agent's latest LLM call latency and the current usage data.
+fn broadcast_latency_frame(
+  hub : @broadcast.Hub,
+  sid : String,
+  agent : @agent.Agent,
+  usage_data : @agent.IterationTokenData,
+) -> Unit {
+  match agent.latest_latency {
+    Some(lat) => {
+      let tps = if lat.duration_ms > 0 {
+        usage_data.completion_tokens.to_double() *
+        1000.0 /
+        lat.duration_ms.to_double()
+      } else {
+        0.0
+      }
+      let ttft : Json = match lat.ttft_ms {
+        Some(t) => t.to_json()
+        None => Json::null()
+      }
+      let lat_inner : Map[String, Json] = {
+        "ttft_ms": ttft,
+        "duration_ms": lat.duration_ms.to_json(),
+        "output_tokens": usage_data.completion_tokens.to_json(),
+        "tps": tps.to_json(),
+      }
+      hub.broadcast_session_raw(
+        sid,
+        @protocol.build_event(
+          @protocol.event_session_update,
+          sid,
+          Json::object({ "latency": Json::object(lat_inner) }),
+        ),
+      )
+    }
+    None => ()
+  }
+}
+
+///|
 /// Register the WS broadcast hook on the agent (exactly once per agent
 /// instance). The hook:
 ///   - aggregates StreamChunk deltas into one complete assistant_message
@@ -561,6 +640,28 @@ fn register_ws_hooks(
         // Suppress the error event raised by an interrupt abort.
         if server_ref.val.cancelled.get(sid) != Some(true) {
           hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+        }
+      @agent.UsageUpdated(usage_data) =>
+        // I-040: Suppress duplicate token_usage frames where delta_tokens
+        // is zero (no new information). The frontend builds a DOM row per
+        // frame, so a second delta=0 frame creates a visually duplicate line.
+        if usage_data.delta_tokens != 0 {
+          hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+          // fix-08: Emit partial session_update frames for cost and latency
+          // so the frontend can patch the session without a full snapshot.
+          let cost_obj : Map[String, Json] = {
+            "cost": usage_data.cost.to_json(),
+            "cost_source": usage_data.cost_source.to_string_value().to_json(),
+          }
+          hub.broadcast_session_raw(
+            sid,
+            @protocol.build_event(
+              @protocol.event_session_update,
+              sid,
+              Json::object(cost_obj),
+            ),
+          )
+          broadcast_latency_frame(hub, sid, agent, usage_data)
         }
       _ => hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
     }
@@ -884,9 +985,13 @@ async fn run_ws_agent(
     _ => ()
   }
   @agent.enforce_session_cap()
-  // Broadcast task_finished globally so all connected clients can react
-  // (e.g. play a notification chime) - mirrors ws-dispatcher.js task_finished.
-  hub.broadcast_global(@protocol.build_task_finished_event(session_id))
+  // I-029: Broadcast task_finished to session subscribers (not global).
+  // The frontend subscribes per-session; global_subs is empty during normal
+  // browsing, so broadcast_global never reaches the client.
+  hub.broadcast_session(
+    session_id,
+    @protocol.build_task_finished_event(session_id),
+  )
 }
 
 ///|
@@ -929,6 +1034,9 @@ fn run_ws_agent_blocking(
     _ => ()
   }
   @agent.enforce_session_cap()
-  // Broadcast task_finished globally (same as async path).
-  hub.broadcast_global(@protocol.build_task_finished_event(session_id))
+  // I-029: Broadcast task_finished to session subscribers (same as async path).
+  hub.broadcast_session(
+    session_id,
+    @protocol.build_task_finished_event(session_id),
+  )
 }

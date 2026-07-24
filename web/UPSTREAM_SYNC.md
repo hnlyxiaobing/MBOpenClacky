@@ -3,17 +3,18 @@
 ## Source
 
 - **Upstream repository**: `github.com/clacky-ai/openclacky` (reference only — not a build dependency; see README.md)
-- **Baseline tag**: `v1.4.0`
-- **Baseline commit**: 未建立（上游资产尚未正式导入，无从考证基线提交；首次正式导入时记录 commit hash）
+- **Baseline tag**: `v1.5.0`
+- **Baseline commit**: `52205e1454ab101c2e642d6e212c6d6d5eb6ebcb`
 - **Initial sync date**: 2026-07-21
-- **Last sync date**: 2026-07-22 (spec-02: full upstream asset import - 87 files)
+- **Last sync date**: 2026-07-24 (fix-06: v1.4.0 → v1.5.0 sync - 87 upstream files)
 
 ## Current Status
 
 The web frontend uses a **managed fork** approach:
-- Full upstream asset set (87 files) imported on 2026-07-22 (spec-02). `index.html`, `app.js`, `app.css`, and all feature/vendor/i18n modules are upstream originals.
+- Full upstream asset set (87 files) synced to v1.5.0 on 2026-07-24 (fix-06). `index.html`, `app.js`, `app.css`, and all feature/vendor/i18n modules are upstream originals.
 - `{{BRAND_NAME}}` and `{{EXT_SCRIPTS}}` placeholders in `index.html` are processed at runtime by `lib/web/template_processor.mbt` (`process_template()`).
 - Brand assets (`favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`): upstream originals still in place - P0-001 active, must be replaced before external release (see `PATCHES.md`).
+- `web/ext_ui/` (git, time-machine panels): MBOpenClacky-specific additions, excluded from upstream sync.
 - `web/PATCHES.md`: P0-001 (brand placeholders) remains **Active**. P0-002 (minimal skeleton) retired.
 
 ## Sync Procedure (Execution Checklist)
@@ -42,6 +43,9 @@ rsync -av --delete \
   --exclude='icon*.svg' \
   --exclude='apple-touch-icon-180.png' \
   --exclude='logo_nav_dark.png' \
+  --exclude='ext_ui/' \
+  --exclude='PATCHES.md' \
+  --exclude='UPSTREAM_SYNC.md' \
   /tmp/openclacky/lib/clacky/web/ ./web/
 ```
 
@@ -91,3 +95,4 @@ MBOpenClacky uses its own brand assets (not upstream OpenClacky brand):
 | 2026-07-21 | v1.4.0 | Initial import | Minimal skeleton created in-place (P0) |
 | 2026-07-22 | v1.4.0 | Legacy cleanup | web-parity-05: deleted `legacy_mb/` and old SPA assets |
 | 2026-07-22 | v1.4.0 | Full import (87 files) | spec-02: complete upstream asset set copied; P0-002 retired |
+| 2026-07-24 | v1.5.0 | 15 files changed | fix-06: v1.4.0→v1.5.0 sync; new features: reload-header, advanced new-session options, extensions brand filter, background theme settings; ext_ui/ excluded from --delete |

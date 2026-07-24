@@ -84,6 +84,9 @@ fn wd_make_session(id : String, wd : String) -> @agent.SessionData {
     model_base_url: "",
     last_status: "",
     last_error: "",
+    error_code: None,
+    top_up_url: None,
+    raw_message: None,
     forked_from: None,
     chunk_count: 0,
     agent_profile: "general",
@@ -269,6 +272,12 @@ test "SessionSummary json emits latest_latency object" {
     sub_model: None,
     sub_model_options: [],
     reasoning_effort: None,
+    model_id: None,
+    card_model: None,
+    channel_info: None,
+    error_code: None,
+    top_up_url: None,
+    raw_message: None,
   }
   match ToJson::to_json(summary) {
     Object(map) =>
@@ -346,4 +355,109 @@ test "get session wraps response in session key" {
     _ => panic()
   }
   wd_pop_profile(old)
+}
+
+///|
+test "SessionSummary json emits fix-09 fields" {
+  let summary = SessionSummary::{
+    id: "s_fix09",
+    name: "fix09",
+    working_dir: ".",
+    status: "error",
+    created_at: "2026-07-24T12:00:00+08:00",
+    updated_at: "2026-07-24T12:00:00+08:00",
+    total_tasks: 1,
+    total_cost: 0.05,
+    cost_source: "estimated",
+    error: "Out of credits",
+    model: Some("claude-3-5-sonnet"),
+    source: "manual",
+    latest_latency: None,
+    pinned: false,
+    agent_profile: "general",
+    sub_model: None,
+    sub_model_options: [],
+    reasoning_effort: None,
+    model_id: Some("claude-3-5-sonnet"),
+    card_model: Some("claude-3-5-sonnet"),
+    channel_info: Some(@agent.ChannelInfo::{
+      platform: "telegram",
+      channel_id: "ch123",
+      user_id: "u456",
+      webhook_url: "",
+    }),
+    error_code: Some("insufficient_credit"),
+    top_up_url: Some("https://console.anthropic.com/settings/billing"),
+    raw_message: Some("Your credit balance is too low"),
+  }
+  match ToJson::to_json(summary) {
+    Object(map) => {
+      @debug.assert_eq(map.get("model_id"), Some("claude-3-5-sonnet".to_json()))
+      @debug.assert_eq(
+        map.get("card_model"),
+        Some("claude-3-5-sonnet".to_json()),
+      )
+      @debug.assert_eq(
+        map.get("error_code"),
+        Some("insufficient_credit".to_json()),
+      )
+      @debug.assert_eq(
+        map.get("top_up_url"),
+        Some("https://console.anthropic.com/settings/billing".to_json()),
+      )
+      @debug.assert_eq(
+        map.get("raw_message"),
+        Some("Your credit balance is too low".to_json()),
+      )
+      match map.get("channel_info") {
+        Some(Object(ci)) => {
+          @debug.assert_eq(ci.get("platform"), Some("telegram".to_json()))
+          @debug.assert_eq(ci.get("channel_id"), Some("ch123".to_json()))
+        }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "SessionSummary json emits null for absent fix-09 fields" {
+  let summary = SessionSummary::{
+    id: "s_null",
+    name: "null",
+    working_dir: ".",
+    status: "idle",
+    created_at: "2026-07-24T12:00:00+08:00",
+    updated_at: "2026-07-24T12:00:00+08:00",
+    total_tasks: 0,
+    total_cost: 0.0,
+    cost_source: "estimated",
+    error: "",
+    model: None,
+    source: "manual",
+    latest_latency: None,
+    pinned: false,
+    agent_profile: "general",
+    sub_model: None,
+    sub_model_options: [],
+    reasoning_effort: None,
+    model_id: None,
+    card_model: None,
+    channel_info: None,
+    error_code: None,
+    top_up_url: None,
+    raw_message: None,
+  }
+  match ToJson::to_json(summary) {
+    Object(map) => {
+      @debug.assert_eq(map.get("model_id"), Some(Json::null()))
+      @debug.assert_eq(map.get("card_model"), Some(Json::null()))
+      @debug.assert_eq(map.get("channel_info"), Some(Json::null()))
+      @debug.assert_eq(map.get("error_code"), Some(Json::null()))
+      @debug.assert_eq(map.get("top_up_url"), Some(Json::null()))
+      @debug.assert_eq(map.get("raw_message"), Some(Json::null()))
+    }
+    _ => panic()
+  }
 }

@@ -30,6 +30,26 @@ test "uninstall_extension rejects missing extension" {
 }
 
 ///|
+test "uninstall_extension with purge_data still rejects missing extension" {
+  let result = uninstall_extension(
+    "definitely-not-installed-purge",
+    purge_data=true,
+  )
+  match result {
+    Ok(_) => @debug.assert_eq(true, false)
+    Err(msg) => @debug.assert_eq(msg.contains("not installed"), true)
+  }
+}
+
+///|
+test "ext_data_dir lives under ~/.clacky/ext-data/<id>" {
+  let dir = ext_data_dir("my-ext")
+  @debug.assert_eq(dir.contains(".clacky"), true)
+  @debug.assert_eq(dir.contains("ext-data"), true)
+  @debug.assert_eq(dir.has_suffix("my-ext"), true)
+}
+
+///|
 test "install_extension_from_path rejects non-existent path" {
   let result = install_extension_from_path(
     "_wbtest_definitely_does_not_exist_xyz",

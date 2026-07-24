@@ -28,6 +28,9 @@ pub(all) struct Agent {
   mut total_tasks : Int
   mut status : AgentStatus
   mut error : String?
+  mut error_code : String?
+  mut top_up_url : String?
+  mut raw_message : String?
   mut reasoning_effort : String?
   pinned : Bool
   // ── Cost & Cache Tracking ──────────────────────────────────────────
@@ -112,6 +115,9 @@ pub fn Agent::new(
     total_tasks: 0,
     status: Idle,
     error: None,
+    error_code: None,
+    top_up_url: None,
+    raw_message: None,
     reasoning_effort: None,
     pinned: false,
     // Cost tracking

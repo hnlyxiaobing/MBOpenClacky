@@ -33,6 +33,9 @@ pub fn Agent::run(self : Agent, user_input : String) -> RunResult raise {
   self.status = Running
   self.hook_manager.emit(StatusChanged(old_status, Running))
   self.error = None
+  self.error_code = None
+  self.top_up_url = None
+  self.raw_message = None
   // Inject system prompt on first run
   if self.history.length() == 0 {
     let system_prompt = self.build_system_prompt()
@@ -455,6 +458,9 @@ pub async fn Agent::run_async(self : Agent, user_input : String) -> RunResult {
   self.status = Running
   self.hook_manager.emit(StatusChanged(old_status, Running))
   self.error = None
+  self.error_code = None
+  self.top_up_url = None
+  self.raw_message = None
   if self.history.length() == 0 {
     let system_prompt = self.build_system_prompt()
     self.history.push(@message.Message::system(system_prompt))

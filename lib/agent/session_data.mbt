@@ -18,7 +18,7 @@ pub(all) struct ChannelInfo {
 } derive(Eq, Debug)
 
 ///|
-impl ToJson for ChannelInfo with fn to_json(self) {
+pub impl ToJson for ChannelInfo with fn to_json(self) {
   Json::object({
     "platform": ToJson::to_json(self.platform),
     "channel_id": ToJson::to_json(self.channel_id),
@@ -190,6 +190,9 @@ pub(all) struct SessionData {
   model_base_url : String
   last_status : String
   last_error : String
+  error_code : String?
+  top_up_url : String?
+  raw_message : String?
   // Fork and chunk tracking
   forked_from : String?
   chunk_count : Int
@@ -239,6 +242,9 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
       Some(e) => e
       None => ""
     },
+    error_code: self.error_code,
+    top_up_url: self.top_up_url,
+    raw_message: self.raw_message,
     forked_from: None,
     chunk_count: 0,
     agent_profile: "general",
@@ -375,6 +381,9 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "model_base_url": ToJson::to_json(self.model_base_url),
     "last_status": ToJson::to_json(self.last_status),
     "last_error": ToJson::to_json(self.last_error),
+    "error_code": opt_string_json(self.error_code),
+    "top_up_url": opt_string_json(self.top_up_url),
+    "raw_message": opt_string_json(self.raw_message),
     "chunk_count": ToJson::to_json(self.chunk_count),
     "agent_profile": ToJson::to_json(self.agent_profile),
     "sub_model": opt_string_json(self.sub_model),
@@ -477,6 +486,9 @@ impl FromJson for SessionData with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
+      let error_code = opt_string_field(map, "error_code")
+      let top_up_url = opt_string_field(map, "top_up_url")
+      let raw_message = opt_string_field(map, "raw_message")
       let forked_from = match map.get("forked_from") {
         Some(String(s)) => Some(s)
         _ => None
@@ -508,6 +520,9 @@ impl FromJson for SessionData with fn from_json(json, path) {
         model_base_url,
         last_status,
         last_error,
+        error_code,
+        top_up_url,
+        raw_message,
         forked_from,
         chunk_count,
         agent_profile,

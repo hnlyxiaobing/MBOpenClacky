@@ -634,3 +634,50 @@ test "config models post still accepts a complete payload" {
   ex_pop_profile(old)
   @debug.assert_eq(resp.status_code.to_int(), 201)
 }
+
+///|
+/// GET /api/providers must serve the real preset registry (not a hardcoded
+/// stub), including default_model, website_url and endpoint_variants which
+/// the settings UI consumes for quick setup and regional endpoint dropdowns.
+test "providers list serves the full preset registry" {
+  let resp = handle_providers_list(
+    ex_make_server_ref(),
+    ex_make_event(Get, "/api/providers"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  guard ex_response_json(resp) is Object(top)
+  guard top.get("providers") is Some(Array(arr))
+  @debug.assert_eq(arr.length(), @config.Providers::all().length())
+  // Every entry must expose the fields the frontend needs.
+  let mut saw_openclacky = false
+  let mut saw_glm_variants = false
+  for item in arr {
+    match item {
+      Object(p) =>
+        match p.get("id") {
+          Some(String(pid)) => {
+            if pid == "openclacky" {
+              saw_openclacky = true
+            }
+            // default_model + models + base_url are always present.
+            assert_true(p.get("default_model") is Some(String(_)))
+            assert_true(p.get("models") is Some(Array(_)))
+            assert_true(p.get("base_url") is Some(String(_)))
+            if pid == "glm" {
+              match p.get("endpoint_variants") {
+                Some(Array(variants)) => {
+                  @debug.assert_eq(variants.length(), 4)
+                  saw_glm_variants = true
+                }
+                _ => assert_true(false)
+              }
+            }
+          }
+          _ => assert_true(false)
+        }
+      _ => assert_true(false)
+    }
+  }
+  assert_true(saw_openclacky)
+  assert_true(saw_glm_variants)
+}

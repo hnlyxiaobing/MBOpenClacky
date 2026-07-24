@@ -72,6 +72,12 @@ fn handle_list_sessions(
       sub_model: sd.sub_model,
       sub_model_options: model_options,
       reasoning_effort: sd.reasoning_effort,
+      model_id: sd.model_name,
+      card_model: sd.model_name,
+      channel_info: sd.channel_info,
+      error_code: sd.error_code,
+      top_up_url: sd.top_up_url,
+      raw_message: sd.raw_message,
     })
   }
   let total = summaries.length()

@@ -392,6 +392,44 @@ pub fn extract_error_message(raw_body : String) -> String {
   }
 }
 
+///|
+/// Extract an error code from a JSON error body.
+///
+/// Looks for `error.code` (string or number) or `error.type` in the JSON
+/// response. Returns `None` when no code is present.
+pub fn extract_error_code(raw_body : String) -> String? {
+  let json = @json.parse(raw_body) catch { _ => return None }
+  let error_obj = match json {
+    Object(obj) => obj.get("error")
+    _ => None
+  }
+  match error_obj {
+    Some(error) => {
+      // Try error.code first
+      let code_val = match error {
+        Object(eobj) => eobj.get("code")
+        _ => None
+      }
+      match code_val {
+        Some(String(code)) => return Some(code)
+        Some(Number(code, ..)) => return Some(code.to_string())
+        _ => ()
+      }
+      // Fall back to error.type
+      let type_val = match error {
+        Object(eobj) => eobj.get("type")
+        _ => None
+      }
+      match type_val {
+        Some(String(ty)) => return Some(ty)
+        _ => ()
+      }
+      None
+    }
+    _ => None
+  }
+}
+
 // ── Stream Body Helpers ─────────────────────────────────────────────────────
 
 ///|

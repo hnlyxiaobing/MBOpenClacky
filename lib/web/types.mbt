@@ -101,6 +101,13 @@ pub(all) struct SessionSummary {
   sub_model : String?
   sub_model_options : Array[String]
   reasoning_effort : String?
+  // fix-09: additional fields for frontend parity
+  model_id : String?
+  card_model : String?
+  channel_info : @agent.ChannelInfo?
+  error_code : String?
+  top_up_url : String?
+  raw_message : String?
 }
 
 ///|
@@ -238,6 +245,30 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     Some(v) => v.to_json()
     None => Json::null()
   }
+  let model_id = match self.model_id {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let card_model = match self.card_model {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let channel_info = match self.channel_info {
+    Some(ci) => ToJson::to_json(ci)
+    None => Json::null()
+  }
+  let error_code = match self.error_code {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let top_up_url = match self.top_up_url {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+  let raw_message = match self.raw_message {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
   Json::object({
     "id": self.id.to_json(),
     "name": self.name.to_json(),
@@ -257,6 +288,12 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     "sub_model": sub_model,
     "sub_model_options": self.sub_model_options.to_json(),
     "reasoning_effort": reasoning_effort,
+    "model_id": model_id,
+    "card_model": card_model,
+    "channel_info": channel_info,
+    "error_code": error_code,
+    "top_up_url": top_up_url,
+    "raw_message": raw_message,
   })
 }
 

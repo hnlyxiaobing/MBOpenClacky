@@ -327,7 +327,8 @@ pub fn handle_store_disable(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// DELETE /api/store/extension - Uninstall an extension.
-/// Body: {id}.
+/// Body: {id, purge_data?}. purge_data=true also deletes the extension's
+/// package-external user data (~/.clacky/ext-data/<id>).
 pub fn handle_store_uninstall(request : HttpRequest) -> HttpResponse {
   if request.body == "" {
     return HttpResponse::bad_request("Request body is required")
@@ -343,10 +344,18 @@ pub fn handle_store_uninstall(request : HttpRequest) -> HttpResponse {
       }
     _ => ""
   }
+  let purge_data = match body_json {
+    Object(obj) =>
+      match obj.get("purge_data") {
+        Some(True) => true
+        _ => false
+      }
+    _ => false
+  }
   if id == "" {
     return HttpResponse::bad_request("Missing 'id' in request body")
   }
-  match @extension.uninstall_extension(id) {
+  match @extension.uninstall_extension(id, purge_data~) {
     Ok(_) => {
       let resp = Json::object({
         "ok": true.to_json(),

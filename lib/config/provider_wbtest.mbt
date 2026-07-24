@@ -194,3 +194,78 @@ test "providers: qwen default model" {
     None => fail("expected qwen preset")
   }
 }
+
+///|
+test "providers: resolve matches endpoint variants" {
+  match Providers::resolve("https://api.z.ai/api/paas/v4") {
+    Some(p) => @debug.assert_eq(p.id, "glm")
+    None => fail("expected api.z.ai to resolve to glm")
+  }
+  match Providers::resolve("https://api.minimax.io/v1") {
+    Some(p) => @debug.assert_eq(p.id, "minimax")
+    None => fail("expected api.minimax.io to resolve to minimax")
+  }
+  match Providers::resolve("https://api.moonshot.ai/v1") {
+    Some(p) => @debug.assert_eq(p.id, "kimi")
+    None => fail("expected api.moonshot.ai to resolve to kimi")
+  }
+  match Providers::resolve("https://open.bigmodel.cn/api/coding/paas/v4") {
+    Some(p) => @debug.assert_eq(p.id, "glm")
+    None => fail("expected bigmodel coding path to resolve to glm")
+  }
+}
+
+///|
+test "providers: resolve ignores trailing slash and accepts sub-paths" {
+  match Providers::resolve("https://api.anthropic.com/") {
+    Some(p) => @debug.assert_eq(p.id, "anthropic")
+    None => fail("expected trailing-slash url to resolve")
+  }
+  match Providers::resolve("https://api.deepseek.com/v1") {
+    Some(p) => @debug.assert_eq(p.id, "deepseekv4")
+    None => fail("expected sub-path url to resolve")
+  }
+}
+
+///|
+test "providers: resolve rejects near-miss prefixes" {
+  // "api.anthropic.com.evil.com" must NOT match the anthropic preset.
+  assert_true(Providers::resolve("https://api.anthropic.com.evil.com") is None)
+  assert_true(Providers::resolve("") is None)
+}
+
+///|
+test "providers: glm declares four endpoint variants" {
+  match Providers::find("glm") {
+    Some(p) => {
+      @debug.assert_eq(p.endpoint_variants.length(), 4)
+      let urls = p.endpoint_variants.map(fn(v) { v.base_url })
+      assert_true(urls.contains("https://api.z.ai/api/coding/paas/v4"))
+      assert_true(urls.contains("https://open.bigmodel.cn/api/paas/v4"))
+      for v in p.endpoint_variants {
+        assert_true(v.label_key is Some(_))
+      }
+    }
+    None => fail("expected glm preset")
+  }
+}
+
+///|
+test "providers: minimax and kimi declare regional variants" {
+  match Providers::find("minimax") {
+    Some(p) => {
+      @debug.assert_eq(p.endpoint_variants.length(), 2)
+      let urls = p.endpoint_variants.map(fn(v) { v.base_url })
+      assert_true(urls.contains("https://api.minimax.io/v1"))
+    }
+    None => fail("expected minimax preset")
+  }
+  match Providers::find("kimi") {
+    Some(p) => {
+      @debug.assert_eq(p.endpoint_variants.length(), 2)
+      let urls = p.endpoint_variants.map(fn(v) { v.base_url })
+      assert_true(urls.contains("https://api.moonshot.ai/v1"))
+    }
+    None => fail("expected kimi preset")
+  }
+}

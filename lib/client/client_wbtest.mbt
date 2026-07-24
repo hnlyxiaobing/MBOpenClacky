@@ -959,3 +959,38 @@ test "bedrock_aggregator_cache_usage" {
   @debug.assert_eq(usage.cache_read_input_tokens, 80)
   @debug.assert_eq(usage.cache_creation_input_tokens, 10)
 }
+
+///|
+test "extract_error_code: string code from error.code" {
+  let body = "{\"error\":{\"code\":\"insufficient_credit\",\"message\":\"Out of credits\"}}"
+  @debug.assert_eq(extract_error_code(body), Some("insufficient_credit"))
+}
+
+///|
+test "extract_error_code: numeric code from error.code" {
+  let body = "{\"error\":{\"code\":402,\"message\":\"Payment required\"}}"
+  @debug.assert_eq(extract_error_code(body), Some("402"))
+}
+
+///|
+test "extract_error_code: fallback to error.type" {
+  let body = "{\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Too many requests\"}}"
+  @debug.assert_eq(extract_error_code(body), Some("rate_limit_error"))
+}
+
+///|
+test "extract_error_code: no code present" {
+  let body = "{\"error\":{\"message\":\"Something went wrong\"}}"
+  @debug.assert_eq(extract_error_code(body), None)
+}
+
+///|
+test "extract_error_code: invalid json" {
+  @debug.assert_eq(extract_error_code("not json"), None)
+}
+
+///|
+test "extract_error_code: no error object" {
+  let body = "{\"message\":\"Something went wrong\"}"
+  @debug.assert_eq(extract_error_code(body), None)
+}

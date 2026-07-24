@@ -143,3 +143,128 @@ test "build_history_user_message: includes created_at and content" {
   @debug.assert_eq(get_str(j, "role"), "user")
   assert_true(has_key(j, "created_at"))
 }
+
+///|
+/// I-028: StatusChanged(Completed) must map to "idle" at the WS boundary.
+test "map_hook_event: StatusChanged Completed maps to idle" {
+  let mapped = map_hook_event(
+    @agent.StatusChanged(@agent.Running, @agent.Completed),
+  )
+  @debug.assert_eq(mapped.event_type, "session_update")
+  let j = mapped.data
+  @debug.assert_eq(get_str(j, "status"), "idle")
+}
+
+///|
+/// I-028: Other statuses pass through unchanged.
+test "map_hook_event: StatusChanged Running passes through" {
+  let mapped = map_hook_event(@agent.StatusChanged(@agent.Idle, @agent.Running))
+  @debug.assert_eq(mapped.event_type, "session_update")
+  @debug.assert_eq(get_str(mapped.data, "status"), "running")
+}
+
+///|
+test "map_hook_event: StatusChanged Idle passes through" {
+  let mapped = map_hook_event(@agent.StatusChanged(@agent.Running, @agent.Idle))
+  @debug.assert_eq(mapped.event_type, "session_update")
+  @debug.assert_eq(get_str(mapped.data, "status"), "idle")
+}
+
+///|
+test "map_hook_event: StatusChanged Error passes through" {
+  let mapped = map_hook_event(
+    @agent.StatusChanged(@agent.Running, @agent.Error),
+  )
+  @debug.assert_eq(mapped.event_type, "session_update")
+  @debug.assert_eq(get_str(mapped.data, "status"), "error")
+}
+
+///|
+/// fix-08: cost partial session_update frame has flat cost/cost_source fields.
+test "build_event: cost session_update frame" {
+  let result = build_event(
+    event_session_update,
+    "sess-1",
+    Json::object({
+      "cost": 0.0042.to_json(),
+      "cost_source": "estimated".to_json(),
+    }),
+  )
+  let j = parse_json(result)
+  @debug.assert_eq(get_str(j, "type"), "session_update")
+  @debug.assert_eq(get_str(j, "session_id"), "sess-1")
+  assert_true(has_key(j, "cost"))
+  @debug.assert_eq(get_str(j, "cost_source"), "estimated")
+}
+
+///|
+/// fix-08: latency partial session_update frame has nested latency object.
+test "build_event: latency session_update frame" {
+  let lat_inner : Map[String, Json] = {
+    "ttft_ms": (120).to_json(),
+    "duration_ms": (2500).to_json(),
+    "output_tokens": (350).to_json(),
+    "tps": 140.0.to_json(),
+  }
+  let result = build_event(
+    event_session_update,
+    "sess-1",
+    Json::object({ "latency": Json::object(lat_inner) }),
+  )
+  let j = parse_json(result)
+  @debug.assert_eq(get_str(j, "type"), "session_update")
+  @debug.assert_eq(get_str(j, "session_id"), "sess-1")
+  assert_true(has_key(j, "latency"))
+  // Verify nested latency fields
+  match j {
+    Object(m) =>
+      match m.get("latency") {
+        Some(Object(lat_m)) => {
+          match lat_m.get("ttft_ms") {
+            Some(Number(n, ..)) => @debug.assert_eq(n.to_int(), 120)
+            _ => abort("expected ttft_ms number")
+          }
+          match lat_m.get("duration_ms") {
+            Some(Number(n, ..)) => @debug.assert_eq(n.to_int(), 2500)
+            _ => abort("expected duration_ms number")
+          }
+          match lat_m.get("output_tokens") {
+            Some(Number(n, ..)) => @debug.assert_eq(n.to_int(), 350)
+            _ => abort("expected output_tokens number")
+          }
+          assert_true(lat_m.contains("tps"))
+        }
+        _ => abort("expected latency object")
+      }
+    _ => abort("expected object")
+  }
+}
+
+///|
+/// fix-08: latency frame with null ttft_ms (streaming without TTFT).
+test "build_event: latency session_update with null ttft" {
+  let lat_inner : Map[String, Json] = {
+    "ttft_ms": Json::null(),
+    "duration_ms": (1000).to_json(),
+    "output_tokens": (100).to_json(),
+    "tps": 100.0.to_json(),
+  }
+  let result = build_event(
+    event_session_update,
+    "sess-1",
+    Json::object({ "latency": Json::object(lat_inner) }),
+  )
+  let j = parse_json(result)
+  match j {
+    Object(m) =>
+      match m.get("latency") {
+        Some(Object(lat_m)) =>
+          match lat_m.get("ttft_ms") {
+            Some(Null) => ()
+            _ => abort("expected null ttft_ms")
+          }
+        _ => abort("expected latency object")
+      }
+    _ => abort("expected object")
+  }
+}

@@ -358,11 +358,31 @@ pub fn install_extension_from_path(
 }
 
 ///|
+/// Package-external user data directory for an extension. Data lives outside
+/// the package tree so uninstalling never takes the data with it, and
+/// reinstalling the same extension transparently reconnects to it.
+/// Mirrors upstream `~/.clacky/ext-data/<id>`.
+fn ext_data_dir(ext_id : String) -> String {
+  match @utils.home_dir() {
+    Some(home) =>
+      @path.Path::join(home, @path.Path(".clacky/ext-data/" + ext_id)).to_string()
+    None => ".clacky/ext-data/" + ext_id
+  }
+}
+
+///|
 /// Uninstall an extension by ID. Removes the installed directory,
 /// decrements the install counter (but never below zero), clears any
 /// persisted enable/disable state for the extension, and removes the
 /// registry entry when it has no remaining installs.
-pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
+///
+/// When `purge_data` is true, the extension's package-external user data
+/// (`~/.clacky/ext-data/<id>`) is deleted as well; by default it is kept so
+/// a reinstall reconnects to it (upstream uninstall! semantics).
+pub fn uninstall_extension(
+  ext_id : String,
+  purge_data? : Bool = false,
+) -> Result[Unit, String] {
   let installed_dir = get_source_directory(ExtensionSource::Installed)
   let ext_dir = @path.Path::join(installed_dir, @path.Path(ext_id)).to_string()
   if !@fs.path_exists(ext_dir) {
@@ -371,6 +391,15 @@ pub fn uninstall_extension(ext_id : String) -> Result[Unit, String] {
   match remove_directory_recursive(ext_dir) {
     Ok(_) => ()
     Err(e) => return Err(e)
+  }
+  if purge_data {
+    let data_dir = ext_data_dir(ext_id)
+    if @fs.path_exists(data_dir) {
+      match remove_directory_recursive(data_dir) {
+        Ok(_) => ()
+        Err(e) => return Err(e)
+      }
+    }
   }
   let registry = load_registry_from_disk()
   let mut should_remove_entry = false

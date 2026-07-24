@@ -32,6 +32,59 @@ pub(all) enum OverflowMode {
 } derive(Eq, Debug)
 
 ///|
+/// Record the details of a failed LLM call for the session summary (fix-09).
+///
+/// error_code is extracted from the provider error body; per upstream
+/// semantics (client.rb raise_error) an HTTP 402 also maps to
+/// "insufficient_credit" regardless of the body. top_up_url resolves to the
+/// current provider preset's website_url — never a hardcoded console, since
+/// the agent may run against any provider.
+fn Agent::record_llm_error(self : Agent, status : Int, body : String) -> Unit {
+  let extracted = @client.extract_error_code(body)
+  let code = if extracted == Some("insufficient_credit") || status == 402 {
+    Some("insufficient_credit")
+  } else {
+    extracted
+  }
+  self.error_code = code
+  self.raw_message = Some(@client.extract_error_message(body))
+  match code {
+    Some(c) if c == "insufficient_credit" =>
+      self.top_up_url = self.provider_website_url()
+    _ => ()
+  }
+}
+
+///|
+/// Clear the recorded LLM error after a successful call, so a transient
+/// failure that was retried away (e.g. 429/5xx) does not leak into the
+/// session summary of an otherwise healthy session.
+fn Agent::clear_llm_error(self : Agent) -> Unit {
+  self.error_code = None
+  self.top_up_url = None
+  self.raw_message = None
+}
+
+///|
+/// Website of the current provider (used as the top-up link), resolved from
+/// the provider preset by provider_id first, then by base_url. Returns None
+/// for custom/unknown providers — the frontend simply hides the link then.
+fn Agent::provider_website_url(self : Agent) -> String? {
+  match self.client.provider_id {
+    Some(id) =>
+      match @config.Providers::find(id) {
+        Some(p) => return p.website_url
+        None => ()
+      }
+    None => ()
+  }
+  match @config.Providers::resolve(self.client.base_url) {
+    Some(p) => p.website_url
+    None => None
+  }
+}
+
+///|
 /// Perform an LLM API call, returning the response.
 ///
 /// Call flow:
@@ -83,6 +136,7 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
       // Check for HTTP errors
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
+          self.record_llm_error(http_resp.status_code, http_resp.body)
           let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
           // 5xx and 429 are retryable
           if http_resp.status_code == 429 ||
@@ -112,6 +166,7 @@ pub fn Agent::call_llm(self : Agent) -> @client.LlmResponse raise {
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
       }
+      self.clear_llm_error()
       response
     }
   }
@@ -150,6 +205,7 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
     Ok(http_resp) => {
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
+          self.record_llm_error(http_resp.status_code, http_resp.body)
           let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
           if http_resp.status_code == 429 ||
             (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
@@ -175,6 +231,7 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
       }
+      self.clear_llm_error()
       response
     }
   }
@@ -258,6 +315,7 @@ pub async fn Agent::call_llm_stream_async(
     Ok(http_resp) => {
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
+          self.record_llm_error(http_resp.status_code, http_resp.body)
           let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
           if http_resp.status_code == 429 ||
             (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
@@ -281,6 +339,7 @@ pub async fn Agent::call_llm_stream_async(
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
       }
+      self.clear_llm_error()
       response
     }
   }

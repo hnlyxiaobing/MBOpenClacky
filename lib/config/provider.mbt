@@ -42,6 +42,25 @@ pub fn ApiType::from_string(s : String) -> ApiType? {
 
 ///|
 /// A provider preset with its configuration metadata.
+
+///|
+/// A regional / billing-plan endpoint variant of a provider preset.
+/// Mirrors upstream `endpoint_variants` entries: some providers run several
+/// functionally-equivalent endpoints (mainland vs international, pay-as-you-go
+/// vs Coding Plan) under one identity, and every URL must resolve back to the
+/// same preset for capability and fallback checks to work.
+pub(all) struct EndpointVariant {
+  /// Shipped English label (fallback when label_key is untranslated)
+  label : String
+  /// Optional i18n key for the label
+  label_key : String?
+  /// Endpoint base URL
+  base_url : String
+  /// Optional region marker (e.g. "cn", "intl")
+  region : String?
+} derive(Debug)
+
+///|
 pub(all) struct ProviderPreset {
   /// Provider identifier (e.g. "openclacky", "openrouter")
   id : String
@@ -67,6 +86,11 @@ pub(all) struct ProviderPreset {
   model_api_overrides : Map[String, String]
   /// Website URL for obtaining API keys
   website_url : String?
+  /// Optional i18n key for the display name; the frontend falls back to
+  /// `name` when absent or untranslated (upstream `name_key`).
+  name_key : String?
+  /// Alternative endpoints that must resolve to this same preset.
+  endpoint_variants : Array[EndpointVariant]
 } derive(Debug)
 
 ///|
@@ -109,6 +133,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       },
       model_api_overrides: Map([]),
       website_url: Some("https://www.openclacky.com/ai-keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "openrouter",
@@ -145,6 +171,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
         "anthropic/claude-haiku-4-5": "anthropic-messages",
       },
       website_url: Some("https://openrouter.ai/keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "deepseekv4",
@@ -159,6 +187,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://platform.deepseek.com/api_keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "minimax",
@@ -175,6 +205,23 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       website_url: Some(
         "https://www.minimaxi.com/user-center/basic-information/interface-key",
       ),
+      name_key: None,
+      // MiniMax runs two regional endpoints with identical APIs & model
+      // lineup: mainland China (.com) and international (.io).
+      endpoint_variants: [
+        {
+          label: "Mainland China",
+          label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          base_url: "https://api.minimaxi.com/v1",
+          region: Some("cn"),
+        },
+        {
+          label: "International",
+          label_key: Some("settings.models.baseurl.variant.international"),
+          base_url: "https://api.minimax.io/v1",
+          region: Some("intl"),
+        },
+      ],
     },
     {
       id: "kimi",
@@ -189,6 +236,22 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://platform.moonshot.cn/console/api-keys"),
+      name_key: None,
+      // Moonshot PAYG endpoints: mainland China (.cn) and international (.ai).
+      endpoint_variants: [
+        {
+          label: "Mainland China",
+          label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          base_url: "https://api.moonshot.cn/v1",
+          region: Some("cn"),
+        },
+        {
+          label: "International",
+          label_key: Some("settings.models.baseurl.variant.international"),
+          base_url: "https://api.moonshot.ai/v1",
+          region: Some("intl"),
+        },
+      ],
     },
     {
       id: "kimi-coding",
@@ -203,6 +266,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://www.kimi.com/code"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "anthropic",
@@ -225,6 +290,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://console.anthropic.com/settings/keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "mimo",
@@ -239,6 +306,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://platform.xiaomimimo.com/"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "glm",
@@ -253,6 +322,40 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: { "glm-5v-turbo": ModelCapabilities::with_vision() },
       model_api_overrides: Map([]),
       website_url: Some("https://open.bigmodel.cn/usercenter/apikeys"),
+      name_key: None,
+      // Zhipu / Z.ai expose four functionally-equivalent endpoints: two
+      // regional sites each with a pay-as-you-go and a Coding-Plan subpath.
+      // They share the same model lineup & capability profile, so a single
+      // preset with variants is the right shape; otherwise users pointing at
+      // api.z.ai or the /coding/ path fell through to conservative defaults.
+      endpoint_variants: [
+        {
+          label: "Mainland · Pay-as-you-go",
+          label_key: Some("settings.models.baseurl.variant.mainland_cn_payg"),
+          base_url: "https://open.bigmodel.cn/api/paas/v4",
+          region: Some("cn"),
+        },
+        {
+          label: "Mainland · Coding Plan",
+          label_key: Some("settings.models.baseurl.variant.mainland_cn_coding"),
+          base_url: "https://open.bigmodel.cn/api/coding/paas/v4",
+          region: Some("cn"),
+        },
+        {
+          label: "International · Pay-as-you-go",
+          label_key: Some("settings.models.baseurl.variant.international_payg"),
+          base_url: "https://api.z.ai/api/paas/v4",
+          region: Some("intl"),
+        },
+        {
+          label: "International · Coding Plan",
+          label_key: Some(
+            "settings.models.baseurl.variant.international_coding",
+          ),
+          base_url: "https://api.z.ai/api/coding/paas/v4",
+          region: Some("intl"),
+        },
+      ],
     },
     {
       id: "openai",
@@ -272,6 +375,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       },
       model_api_overrides: Map([]),
       website_url: Some("https://platform.openai.com/api-keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "deepseek",
@@ -288,6 +393,8 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       },
       model_api_overrides: Map([]),
       website_url: Some("https://platform.deepseek.com/api_keys"),
+      name_key: None,
+      endpoint_variants: [],
     },
     {
       id: "qwen",
@@ -311,17 +418,46 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: Map([]),
       model_api_overrides: Map([]),
       website_url: Some("https://bailian.console.aliyun.com/?apiKey=1"),
+      name_key: None,
+      endpoint_variants: [],
     },
   ]
 }
 
 ///|
+/// Strip trailing slashes so endpoint matching is slash-agnostic.
+fn trim_trailing_slashes(url : String) -> String {
+  let mut end = url.length()
+  while end > 0 && url[end - 1] == '/' {
+    end = end - 1
+  }
+  url[:end].to_owned()
+}
+
+///|
 /// Resolve a provider preset by matching a base URL.
-/// Returns the first preset whose base_url matches the given URL.
+/// The canonical `base_url` and every declared `endpoint_variants[].base_url`
+/// are recognised, with trailing slashes ignored and sub-paths accepted
+/// (upstream find_by_base_url semantics: the URL must equal a candidate or
+/// start with it followed by "/").
 pub fn Providers::resolve(base_url : String) -> ProviderPreset? {
+  let normalized = trim_trailing_slashes(base_url)
+  if normalized.is_empty() {
+    return None
+  }
   for preset in Providers::all() {
-    if preset.base_url == base_url {
-      return Some(preset)
+    let candidates : Array[String] = [preset.base_url]
+    for variant in preset.endpoint_variants {
+      candidates.push(variant.base_url)
+    }
+    for candidate in candidates {
+      let preset_base = trim_trailing_slashes(candidate)
+      if preset_base.is_empty() {
+        continue
+      }
+      if normalized == preset_base || normalized.has_prefix(preset_base + "/") {
+        return Some(preset)
+      }
     }
   }
   None
