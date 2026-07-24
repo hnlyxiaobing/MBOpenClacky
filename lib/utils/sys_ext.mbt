@@ -16,6 +16,12 @@ extern "C" fn chdir_ffi(path : String) -> Int = "mbopenclacky_chdir"
 extern "C" fn getcwd_ffi() -> String = "mbopenclacky_getcwd"
 
 ///|
+/// Get the kernel release string (same content as
+/// /proc/sys/kernel/osrelease). Returns empty string on Windows/error.
+#cfg(target="native")
+extern "C" fn osrelease_ffi() -> String = "mbopenclacky_osrelease"
+
+///|
 /// Public API: change working directory
 pub fn change_dir(path : String) -> Unit {
   let ret = chdir_ffi(path)

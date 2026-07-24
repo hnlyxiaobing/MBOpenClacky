@@ -142,6 +142,14 @@ test "is_wsl checks env" {
 }
 
 ///|
+test "parse_is_wsl1 kernel strings" {
+  assert_true(parse_is_wsl1("4.4.0-26100-Microsoft"))
+  assert_false(parse_is_wsl1("5.15.90.1-microsoft-standard-WSL2"))
+  assert_false(parse_is_wsl1("6.8.0-51-generic"))
+  assert_false(parse_is_wsl1(""))
+}
+
+///|
 test "is_ssh checks env" {
   @sys.set_env_var("SSH_CLIENT", "")
   @sys.set_env_var("SSH_TTY", "")

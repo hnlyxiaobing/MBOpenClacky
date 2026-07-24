@@ -8,6 +8,7 @@ import {
   "moonbitlang/async/pipe",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
 
 options(

@@ -73,6 +73,56 @@ static char *mb_strdup(const char *s) {
   return p;
 }
 
+/* Convert UTF-8 bytes to a MoonBit string (UTF-16), lossy on invalid
+   sequences. Windows wraps MultiByteToWideChar; other platforms use a
+   small decoder (same approach as lib/server/git_exec.c). */
+static moonbit_string_t mb_str_from_utf8(const char *p, int len) {
+#ifdef _WIN32
+  if (len <= 0) return moonbit_make_string_raw(0);
+  int wlen = MultiByteToWideChar(CP_UTF8, 0, p, len, NULL, 0);
+  if (wlen <= 0) return moonbit_make_string_raw(0);
+  moonbit_string_t result = moonbit_make_string_raw(wlen);
+  if (!result) return moonbit_make_string_raw(0);
+  MultiByteToWideChar(CP_UTF8, 0, p, len, result, wlen);
+  return result;
+#else
+  if (len <= 0) return moonbit_make_string_raw(0);
+  /* A UTF-16 string never has more code units than the UTF-8 byte count. */
+  uint16_t *tmp = (uint16_t *)malloc(sizeof(uint16_t) * (size_t)len);
+  if (!tmp) return moonbit_make_string_raw(0);
+  int j = 0;
+  int i = 0;
+  while (i < len) {
+    unsigned char c = (unsigned char)p[i];
+    uint32_t cp;
+    int n;
+    if (c < 0x80) { cp = c; n = 1; }
+    else if (c >= 0xC2 && c < 0xE0) { cp = c & 0x1F; n = 2; }
+    else if (c >= 0xE0 && c < 0xF0) { cp = c & 0x0F; n = 3; }
+    else if (c >= 0xF0 && c <= 0xF4) { cp = c & 0x07; n = 4; }
+    else { cp = 0xFFFD; n = 1; }
+    if (i + n > len) { cp = 0xFFFD; n = 1; }
+    for (int k = 1; k < n; k++) {
+      if (((unsigned char)p[i + k] & 0xC0) != 0x80) { cp = 0xFFFD; n = 1; break; }
+      cp = (cp << 6) | (uint32_t)((unsigned char)p[i + k] & 0x3F);
+    }
+    if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) cp = 0xFFFD;
+    if (cp > 0xFFFF) {
+      cp -= 0x10000;
+      tmp[j++] = (uint16_t)(0xD800 | (cp >> 10));
+      tmp[j++] = (uint16_t)(0xDC00 | (cp & 0x3FF));
+    } else {
+      tmp[j++] = (uint16_t)cp;
+    }
+    i += n;
+  }
+  moonbit_string_t result = moonbit_make_string_raw(j);
+  if (result) memcpy(result, tmp, sizeof(uint16_t) * (size_t)j);
+  free(tmp);
+  return result ? result : moonbit_make_string_raw(0);
+#endif
+}
+
 /* ── Pipe write helpers ────────────────────────────────────────── */
 
 static void write_all(int fd, const void *data, int len) {
@@ -411,7 +461,7 @@ int32_t mbopenclacky_start_http_thread(
   return 0;
 }
 
-/* ── Windows slot-based async HTTP ─────────────────────────────────
+/* ── Slot-based async HTTP ───────────────────────────────────────────
  *
  * Why slots instead of the pipe used on Unix: on Windows the pipe ends
  * handed out by moonbitlang/async are named-pipe HANDLEs registered with
@@ -421,15 +471,18 @@ int32_t mbopenclacky_start_http_thread(
  * overlapped handle are undefined. So instead the worker thread stores
  * the result in a process-global slot and the MoonBit coroutine polls
  * the slot with @async.sleep between checks (the event loop stays free).
+ *
+ * WSL1 uses the slot path as well: there pipe(2) can return an fd that
+ * collides with one already registered in the async event loop, and
+ * IoHandle::from_fd panics (uncatchable) on the collision. The slot path
+ * registers no event-loop fds at all.
  */
-
-#ifdef _WIN32
 
 #define HTTP_SLOT_MAX 64
 
 typedef struct {
   /* 0 = free, 1 = in-flight, 2 = done */
-  volatile LONG state;
+  volatile int32_t state;
   int32_t result;      /* 0 = success, -1 = transport error */
   int32_t status;      /* HTTP status code (0 on transport error) */
   char *body;          /* malloc'd; response body or error message */
@@ -443,10 +496,15 @@ typedef struct {
 } http_slot;
 
 static http_slot g_http_slots[HTTP_SLOT_MAX];
+#ifdef _WIN32
 static CRITICAL_SECTION g_http_slots_lock;
 static int g_http_slots_ready = 0;
+#else
+static pthread_mutex_t g_http_slots_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static void http_slots_lock(void) {
+#ifdef _WIN32
   if (!g_http_slots_ready) {
     /* Best-effort one-time init; racing inits are harmless because
        InitializeCriticalSection on zero-initialized memory is idempotent
@@ -455,10 +513,17 @@ static void http_slots_lock(void) {
     g_http_slots_ready = 1;
   }
   EnterCriticalSection(&g_http_slots_lock);
+#else
+  pthread_mutex_lock(&g_http_slots_lock);
+#endif
 }
 
 static void http_slots_unlock(void) {
+#ifdef _WIN32
   LeaveCriticalSection(&g_http_slots_lock);
+#else
+  pthread_mutex_unlock(&g_http_slots_lock);
+#endif
 }
 
 typedef struct {
@@ -471,7 +536,11 @@ typedef struct {
   int timeout_ms;
 } http_slot_thread_arg;
 
+#ifdef _WIN32
 static DWORD WINAPI http_slot_thread_proc(LPVOID param) {
+#else
+static void *http_slot_thread_proc(void *param) {
+#endif
   http_slot_thread_arg *arg = (http_slot_thread_arg *)param;
 
   int resp_cap = 4 * 1024 * 1024;
@@ -597,10 +666,17 @@ int32_t mbopenclacky_http_start(
   arg->body_len = b_len;
   arg->timeout_ms = timeout_ms;
 
+#ifdef _WIN32
   HANDLE h = CreateThread(NULL, 0, http_slot_thread_proc, arg, 0, NULL);
   if (h) {
     CloseHandle(h);
   } else {
+#else
+  pthread_t tid;
+  if (pthread_create(&tid, NULL, http_slot_thread_proc, arg) == 0) {
+    pthread_detach(tid);
+  } else {
+#endif
     http_slots_lock();
     g_http_slots[slot_id].state = 0;
     http_slots_unlock();
@@ -616,7 +692,7 @@ MOONBIT_FFI_EXPORT
 int32_t mbopenclacky_http_poll(int32_t slot_id) {
   if (slot_id < 0 || slot_id >= HTTP_SLOT_MAX) return -1;
   http_slots_lock();
-  LONG state = g_http_slots[slot_id].state;
+  int32_t state = g_http_slots[slot_id].state;
   http_slots_unlock();
   if (state == 0) return -1;
   return state == 2 ? 1 : 0;
@@ -661,17 +737,7 @@ moonbit_string_t mbopenclacky_http_result_body(int32_t slot_id) {
     free(body);
     return moonbit_make_string_raw(0);
   }
-  int wlen = MultiByteToWideChar(CP_UTF8, 0, body, body_len, NULL, 0);
-  if (wlen <= 0) {
-    free(body);
-    return moonbit_make_string_raw(0);
-  }
-  moonbit_string_t result = moonbit_make_string_raw(wlen);
-  if (!result) {
-    free(body);
-    return moonbit_make_string_raw(0);
-  }
-  MultiByteToWideChar(CP_UTF8, 0, body, body_len, result, wlen);
+  moonbit_string_t result = mb_str_from_utf8(body, body_len);
   free(body);
   return result;
 }
@@ -700,24 +766,22 @@ void mbopenclacky_http_abandon(int32_t slot_id) {
   http_slots_unlock();
 }
 
-#endif /* _WIN32 */
-
 /* ── Streaming HTTP ────────────────────────────────────────────────
  *
  * Unlike the buffered request above, the streaming variant forwards the
  * response body to MoonBit INCREMENTALLY so SSE frames can be surfaced
  * token-by-token.
  *
- * Unix: the curl write callback pushes length-prefixed frames onto the
- * pipe as data arrives:
+ * Unix (except WSL1): the curl write callback pushes length-prefixed
+ * frames onto the pipe as data arrives:
  *   [4B LE len][len bytes]   repeated data chunks (raw response bytes)
  *   [4B LE 0]                end-of-stream marker
  *   [4B result][4B status]   trailer (result: 0 ok / -1 transport error)
  * On transport error the error message is sent as one final data chunk.
  *
- * Windows: same slot mechanism as the buffered path, plus a growable
- * stream buffer the worker thread appends to under the slot lock; the
- * MoonBit coroutine drains new bytes between polls.
+ * Windows and WSL1: same slot mechanism as the buffered path, plus a
+ * growable stream buffer the worker thread appends to under the slot
+ * lock; the MoonBit coroutine drains new bytes between polls.
  */
 
 #ifndef _WIN32
@@ -862,9 +926,7 @@ int32_t mbopenclacky_start_http_stream_thread(
 
 #endif /* !_WIN32 */
 
-#ifdef _WIN32
-
-/* ── Windows streaming slots ─────────────────────────────────────── */
+/* ── Streaming slots (Windows and WSL1) ──────────────────────────── */
 
 /* Append bytes to a slot's stream buffer (called from the worker thread). */
 static void slot_stream_append(int slot_id, const char *data, int len) {
@@ -911,6 +973,8 @@ static int utf8_complete_prefix_len(const char *p, int len) {
   }
   return i;
 }
+
+#ifdef _WIN32
 
 /* WinHTTP request that streams each received chunk into the slot. */
 static void perform_http_win_stream(
@@ -984,7 +1048,90 @@ win_stream_done:
   if (session) WinHttpCloseHandle(session);
 }
 
+#else /* Unix: libcurl, chunks appended to the slot */
+
+typedef struct {
+  int slot_id;
+} slot_stream_cb_ctx;
+
+static size_t slot_stream_write_cb(char *ptr, size_t size, size_t nmemb, void *ud) {
+  slot_stream_cb_ctx *ctx = (slot_stream_cb_ctx *)ud;
+  size_t total = size * nmemb;
+  if (total > 0) slot_stream_append(ctx->slot_id, ptr, (int)total);
+  return total;
+}
+
+/* libcurl request that streams each received chunk into the slot. */
+static void perform_http_curl_stream(
+  http_thread_arg *arg, int slot_id,
+  int32_t *out_result, int32_t *out_status,
+  char *err_buf, int err_cap
+) {
+  *out_result = -1; *out_status = 0;
+
+  CURL *curl = curl_easy_init();
+  if (!curl) { snprintf(err_buf, err_cap, "curl_easy_init failed"); return; }
+
+  struct curl_slist *header_list = NULL;
+  if (arg->headers && arg->headers[0]) {
+    char *hdr_copy = (char *)malloc(strlen(arg->headers) + 1);
+    if (hdr_copy) {
+      strcpy(hdr_copy, arg->headers);
+      char *saveptr = NULL;
+      char *line = strtok_r(hdr_copy, "\r\n", &saveptr);
+      while (line) {
+        if (strlen(line) > 0) header_list = curl_slist_append(header_list, line);
+        line = strtok_r(NULL, "\r\n", &saveptr);
+      }
+      free(hdr_copy);
+    }
+  }
+
+  curl_easy_setopt(curl, CURLOPT_URL, arg->url);
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, arg->method);
+  if (header_list) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  if (arg->body_len > 0) {
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, arg->body);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)arg->body_len);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0L);
+  }
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, (long)arg->timeout_ms);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS,
+    (long)(arg->timeout_ms > 1000 ? arg->timeout_ms / 2 : arg->timeout_ms));
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+  slot_stream_cb_ctx ctx = { .slot_id = slot_id };
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, slot_stream_write_cb);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ctx);
+
+  char curl_errbuf[CURL_ERROR_SIZE];
+  curl_errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_errbuf);
+
+  CURLcode res = curl_easy_perform(curl);
+  if (res == CURLE_OK) {
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    *out_result = 0;
+    *out_status = (int32_t)http_code;
+  } else {
+    const char *emsg = (curl_errbuf[0] != '\0') ? curl_errbuf : curl_easy_strerror(res);
+    snprintf(err_buf, err_cap, "%s", emsg);
+  }
+
+  if (header_list) curl_slist_free_all(header_list);
+  curl_easy_cleanup(curl);
+}
+
+#endif
+
+#ifdef _WIN32
 static DWORD WINAPI http_stream_slot_thread_proc(LPVOID param) {
+#else
+static void *http_stream_slot_thread_proc(void *param) {
+#endif
   http_slot_thread_arg *arg = (http_slot_thread_arg *)param;
 
   char err_buf[1024];
@@ -999,7 +1146,11 @@ static DWORD WINAPI http_stream_slot_thread_proc(LPVOID param) {
   ha.body_len = arg->body_len;
   ha.timeout_ms = arg->timeout_ms;
   ha.write_fd = -1;
+#ifdef _WIN32
   perform_http_win_stream(&ha, arg->slot_id, &result, &status, err_buf, sizeof(err_buf));
+#else
+  perform_http_curl_stream(&ha, arg->slot_id, &result, &status, err_buf, sizeof(err_buf));
+#endif
 
   http_slots_lock();
   http_slot *slot = &g_http_slots[arg->slot_id];
@@ -1092,10 +1243,17 @@ int32_t mbopenclacky_http_stream_start(
   arg->body_len = b_len;
   arg->timeout_ms = timeout_ms;
 
+#ifdef _WIN32
   HANDLE h = CreateThread(NULL, 0, http_stream_slot_thread_proc, arg, 0, NULL);
   if (h) {
     CloseHandle(h);
   } else {
+#else
+  pthread_t tid;
+  if (pthread_create(&tid, NULL, http_stream_slot_thread_proc, arg) == 0) {
+    pthread_detach(tid);
+  } else {
+#endif
     http_slots_lock();
     g_http_slots[slot_id].state = 0;
     http_slots_unlock();
@@ -1126,11 +1284,8 @@ moonbit_string_t mbopenclacky_http_stream_drain(int32_t slot_id) {
     http_slots_unlock();
     return moonbit_make_string_raw(0);
   }
-  int wlen = MultiByteToWideChar(CP_UTF8, 0, slot->stream_buf + slot->drain_pos, valid, NULL, 0);
-  moonbit_string_t result = wlen > 0 ? moonbit_make_string_raw(wlen) : NULL;
-  if (result) {
-    MultiByteToWideChar(CP_UTF8, 0, slot->stream_buf + slot->drain_pos, valid, result, wlen);
-  }
+  moonbit_string_t result =
+    mb_str_from_utf8(slot->stream_buf + slot->drain_pos, valid);
   slot->drain_pos += valid;
   /* Compact the buffer once fully drained to bound memory. */
   if (slot->drain_pos == slot->stream_len) {
@@ -1138,7 +1293,5 @@ moonbit_string_t mbopenclacky_http_stream_drain(int32_t slot_id) {
     slot->drain_pos = 0;
   }
   http_slots_unlock();
-  return result ? result : moonbit_make_string_raw(0);
+  return result;
 }
-
-#endif /* _WIN32 (streaming) */

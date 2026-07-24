@@ -12,6 +12,7 @@
   #pragma comment(lib, "kernel32.lib")
 #else
   #include <unistd.h>
+  #include <sys/utsname.h>
 #endif
 
 // ── UTF-8 to UTF-16 helper ──────────────────────────────────────────────────
@@ -140,5 +141,22 @@ moonbit_string_t mbopenclacky_getcwd(void) {
   moonbit_string_t result = mbstr_from_cstr(cwd);
   free(cwd);
   return result;
+#endif
+}
+
+// ── osrelease FFI ───────────────────────────────────────────────────────────
+
+/// Get the kernel release string (same content as
+/// /proc/sys/kernel/osrelease). POSIX: uname(). Windows: empty string.
+/// Used instead of reading /proc directly because the x/fs reader sizes
+/// the buffer via fseek/ftell, which yields 0 bytes on procfs files.
+MOONBIT_FFI_EXPORT
+moonbit_string_t mbopenclacky_osrelease(void) {
+#ifdef _WIN32
+  return moonbit_make_string_raw(0);
+#else
+  struct utsname u;
+  if (uname(&u) != 0) return moonbit_make_string_raw(0);
+  return mbstr_from_cstr(u.release);
 #endif
 }

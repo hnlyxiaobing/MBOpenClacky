@@ -49,6 +49,35 @@ pub fn is_wsl() -> Bool {
 }
 
 ///|
+/// Cached result of the WSL1 detection (osrelease is read at most once).
+let wsl1_cache : Ref[Bool?] = { val: None }
+
+///|
+/// Check if running in WSL1 specifically (not WSL2, not native Linux).
+/// Reads the kernel release string (via uname, cached after the first
+/// call); on non-Unix platforms the string is empty and this returns
+/// false.
+pub fn is_wsl1() -> Bool {
+  match wsl1_cache.val {
+    Some(v) => v
+    None => {
+      let v = parse_is_wsl1(osrelease_ffi())
+      wsl1_cache.val = Some(v)
+      v
+    }
+  }
+}
+
+///|
+/// Pure WSL1 check on a kernel osrelease string: WSL1 kernels report
+/// "Microsoft" (e.g. "4.4.0-26100-Microsoft"), WSL2 kernels report
+/// "microsoft-standard-WSL2", native Linux reports neither.
+pub fn parse_is_wsl1(osrelease : String) -> Bool {
+  let lower = osrelease.to_lower()
+  lower.contains("microsoft") && !lower.contains("wsl2")
+}
+
+///|
 /// Check if this is an SSH session.
 pub fn is_ssh() -> Bool {
   env_var("SSH_CLIENT") is Some(_) ||

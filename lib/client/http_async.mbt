@@ -38,6 +38,11 @@ pub async fn http_post_async(
   timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
   let headers_str = format_headers_async(headers)
+  // WSL1: pipe fds can collide with fds already registered in the event
+  // loop (uncatchable panic in IoHandle::from_fd), so use slots there.
+  if @utils.is_wsl1() {
+    return http_post_slot_async(url, body, headers_str, timeout_ms)
+  }
   let (read_end, write_end) = @pipe.pipe() catch {
     err => return Err(ConnectionFailed("pipe creation failed: \{err}"))
   }
@@ -75,15 +80,18 @@ pub async fn http_post_async(
 }
 
 ///|
-/// Windows async HTTP (slot-based): the worker thread performs the request
-/// and stores the result in a process-global slot; the coroutine polls the
-/// slot with @async.sleep between checks, so the event loop never blocks.
+/// Slot-based async HTTP (Windows always; WSL1 as a pipe fallback): the
+/// worker thread performs the request and stores the result in a
+/// process-global slot; the coroutine polls the slot with @async.sleep
+/// between checks, so the event loop never blocks.
 ///
 /// A slot-based design is used instead of the Unix pipe because the pipe
 /// HANDLEs handed out by moonbitlang/async are registered with the
 /// runtime's IOCP — overlapped writes from a non-runtime thread would post
-/// completion packets the event loop cannot interpret.
-#cfg(platform="windows")
+/// completion packets the event loop cannot interpret. On WSL1 the pipe
+/// fd can additionally collide with an fd already registered in the event
+/// loop, which makes IoHandle::from_fd panic (uncatchable).
+#cfg(target="native")
 #borrow(http_method, url, headers, body)
 extern "C" fn http_start_ffi(
   http_method : String,
@@ -94,25 +102,25 @@ extern "C" fn http_start_ffi(
 ) -> Int = "mbopenclacky_http_start"
 
 ///|
-#cfg(platform="windows")
+#cfg(target="native")
 extern "C" fn http_poll_ffi(slot_id : Int) -> Int = "mbopenclacky_http_poll"
 
 ///|
-#cfg(platform="windows")
+#cfg(target="native")
 extern "C" fn http_result_status_ffi(slot_id : Int) -> Int = "mbopenclacky_http_result_status"
 
 ///|
-#cfg(platform="windows")
+#cfg(target="native")
 extern "C" fn http_result_body_ffi(slot_id : Int) -> String = "mbopenclacky_http_result_body"
 
 ///|
-#cfg(platform="windows")
+#cfg(target="native")
 extern "C" fn http_abandon_ffi(slot_id : Int) -> Unit = "mbopenclacky_http_abandon"
 
 ///|
 /// Poll the request slot until the worker thread completes, yielding to
 /// the event loop between checks so the UI stays responsive.
-#cfg(platform="windows")
+#cfg(target="native")
 async fn wait_http_slot(slot_id : Int) -> Unit {
   for ;; {
     let state = http_poll_ffi(slot_id)
@@ -124,18 +132,18 @@ async fn wait_http_slot(slot_id : Int) -> Unit {
 }
 
 ///|
-/// Windows: offload the request to a C worker thread and poll its result
-/// slot — the async event loop (spinner, input, Ctrl-C) keeps running
-/// while the request is in flight. If the coroutine is cancelled, the
-/// slot is abandoned (the worker thread frees it on completion).
-#cfg(platform="windows")
-pub async fn http_post_async(
+/// Shared slot implementation: offload the request to a C worker thread
+/// and poll its result slot — the async event loop (spinner, input,
+/// Ctrl-C) keeps running while the request is in flight. If the coroutine
+/// is cancelled, the slot is abandoned (the worker thread frees it on
+/// completion).
+#cfg(target="native")
+async fn http_post_slot_async(
   url : String,
   body : String,
-  headers : Array[(String, String)],
+  headers_str : String,
   timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
-  let headers_str = format_headers_async(headers)
   let slot_id = http_start_ffi("POST", url, headers_str, body, timeout_ms)
   if slot_id < 0 {
     return Err(ConnectionFailed("failed to start HTTP thread"))
@@ -153,6 +161,18 @@ pub async fn http_post_async(
     return Err(ConnectionFailed(actual_body))
   }
   Ok(HttpResponse::{ status_code: status, body: actual_body, headers: [] })
+}
+
+///|
+/// Windows always uses the slot path.
+#cfg(platform="windows")
+pub async fn http_post_async(
+  url : String,
+  body : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponse, HttpError] {
+  http_post_slot_async(url, body, format_headers_async(headers), timeout_ms)
 }
 
 ///|
@@ -182,8 +202,9 @@ extern "C" fn start_http_stream_thread(
 ) -> Int = "mbopenclacky_start_http_stream_thread"
 
 ///|
-/// Windows streaming FFI: slot-based, drained incrementally.
-#cfg(platform="windows")
+/// Slot streaming FFI (Windows always; WSL1 as a pipe fallback): the
+/// worker appends response bytes to a slot, drained incrementally.
+#cfg(target="native")
 #borrow(http_method, url, headers, body)
 extern "C" fn http_stream_start_ffi(
   http_method : String,
@@ -194,7 +215,7 @@ extern "C" fn http_stream_start_ffi(
 ) -> Int = "mbopenclacky_http_stream_start"
 
 ///|
-#cfg(platform="windows")
+#cfg(target="native")
 extern "C" fn http_stream_drain_ffi(slot_id : Int) -> String = "mbopenclacky_http_stream_drain"
 
 ///|
@@ -211,6 +232,13 @@ pub async fn http_post_stream_async(
   on_frame : (SseFrame) -> Unit,
 ) -> Result[HttpResponse, HttpError] {
   let headers_str = format_headers_async(headers)
+  // WSL1: pipe fds can collide with fds already registered in the event
+  // loop (uncatchable panic in IoHandle::from_fd), so use slots there.
+  if @utils.is_wsl1() {
+    return http_post_stream_slot_async(
+      url, body, headers_str, timeout_ms, on_frame,
+    )
+  }
   let (read_end, write_end) = @pipe.pipe() catch {
     err => return Err(ConnectionFailed("pipe creation failed: \{err}"))
   }
@@ -282,19 +310,19 @@ async fn read_stream_frames(
 }
 
 ///|
-/// Streaming HTTP POST (Windows): the worker thread appends response bytes
-/// to a slot; the coroutine drains them between event-loop yields and
-/// extracts SSE frames. Drain boundaries are UTF-8-safe (guaranteed by the
-/// C side). If the coroutine is cancelled the slot is abandoned.
-#cfg(platform="windows")
-pub async fn http_post_stream_async(
+/// Shared slot streaming implementation: the worker thread appends
+/// response bytes to a slot; the coroutine drains them between event-loop
+/// yields and extracts SSE frames. Drain boundaries are UTF-8-safe
+/// (guaranteed by the C side). If the coroutine is cancelled the slot is
+/// abandoned.
+#cfg(target="native")
+async fn http_post_stream_slot_async(
   url : String,
   body : String,
-  headers : Array[(String, String)],
+  headers_str : String,
   timeout_ms : Int,
   on_frame : (SseFrame) -> Unit,
 ) -> Result[HttpResponse, HttpError] {
-  let headers_str = format_headers_async(headers)
   let slot_id = http_stream_start_ffi(
     "POST", url, headers_str, body, timeout_ms,
   )
@@ -319,8 +347,27 @@ pub async fn http_post_stream_async(
 }
 
 ///|
-/// Poll + drain a streaming slot until the worker thread completes.
+/// Windows always uses the slot streaming path.
 #cfg(platform="windows")
+pub async fn http_post_stream_async(
+  url : String,
+  body : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+  on_frame : (SseFrame) -> Unit,
+) -> Result[HttpResponse, HttpError] {
+  http_post_stream_slot_async(
+    url,
+    body,
+    format_headers_async(headers),
+    timeout_ms,
+    on_frame,
+  )
+}
+
+///|
+/// Poll + drain a streaming slot until the worker thread completes.
+#cfg(target="native")
 async fn wait_stream_slot(
   slot_id : Int,
   pump : SseBytePump,

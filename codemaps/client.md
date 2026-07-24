@@ -11,7 +11,7 @@
 | `Client::parse_response(Json)` | `client.mbt` | 解析 LLM 响应（路由到 OpenAI/Anthropic/Bedrock） |
 | `Client::format_tool_results(response, results)` | `client.mbt` | 将工具结果格式化为对应 API 格式的消息 |
 | `http_post(url, body, headers, timeout)` | `client.mbt` | 底层同步 HTTP POST（C FFI 实现） |
-| `http_post_async(url, body, headers, timeout_ms)` | `http_async.mbt` | 异步 HTTP POST — 将请求下放到 C 线程，经 OS 管道回读，不阻塞 async 事件循环（native 非 windows） |
+| `http_post_async(url, body, headers, timeout_ms)` | `http_async.mbt` | 异步 HTTP POST — C 线程执行；Unix 默认经 OS 管道回读，**WSL1 运行时检测（`@utils.is_wsl1()`）走 slot 轮询路径**（与 Windows 相同，规避 `IoHandle::from_fd` fd 冲突 panic），不阻塞 async 事件循环 |
 | `parse_sse_frames(buffer)` | `stream.mbt` | 解析 SSE 帧流 |
 
 ## 关键类型
@@ -64,8 +64,8 @@ Agent::call_llm()
 | `stream.mbt` | SSE 帧解析、三种 StreamAggregator |
 | `types.mbt` | LlmResponse、Usage、Latency、SendRequest 等类型 |
 | `platform_http.mbt` | 带 failover 的 HTTP 客户端 |
-| `http_async.mbt` | 异步 HTTP（C 线程 + OS 管道回读，供 async 事件循环使用） |
-| `http_native.c` / `http_thread.c` / `mb_stubs.c` | C FFI HTTP 实现（同步 libcurl/WinHTTP + 后台线程） |
+| `http_async.mbt` | 异步 HTTP（C 线程；Unix 默认 OS 管道回读，WSL1 走 slot 轮询） |
+| `http_native.c` / `http_thread.c` / `mb_stubs.c` | C FFI HTTP 实现（同步 libcurl/WinHTTP + 后台线程；`http_thread.c` 的 slot 实现已扩展 Unix——pthread+libcurl，供 WSL1 fallback 使用） |
 
 ## 外部依赖
 
