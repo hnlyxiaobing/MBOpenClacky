@@ -33,12 +33,27 @@ pub fn handle_mcp_list_servers(
       None => "registered"
     }
     let disabled = !registry.is_enabled(name)
+    let has_env = match spec.env {
+      Some(m) => !m.is_empty()
+      None => false
+    }
+    let has_headers = match spec.headers {
+      Some(m) => !m.is_empty()
+      None => false
+    }
     let fields : Map[String, Json] = {
       "name": name.to_json(),
       "type": type_str.to_json(),
       "disabled": disabled.to_json(),
       "status": status_str.to_json(),
       "tools": Json::array([]),
+      "has_env": has_env.to_json(),
+      "has_headers": has_headers.to_json(),
+      // Align with orig: url is always present (null for stdio servers).
+      "url": match spec.url {
+        Some(u) => u.to_json()
+        None => Json::null()
+      },
     }
     match spec.description {
       Some(d) => fields["description"] = d.to_json()
@@ -50,10 +65,6 @@ pub fn handle_mcp_list_servers(
     }
     match spec.args {
       Some(args) => fields["args"] = args.to_json()
-      None => ()
-    }
-    match spec.url {
-      Some(url) => fields["url"] = url.to_json()
       None => ()
     }
     servers_arr.push(Json::object(fields))

@@ -58,6 +58,27 @@ pub(all) struct UpdateConfigRequest {
 } derive(FromJson)
 
 ///|
+/// Latency summary embedded in SessionSummary as `latest_latency`.
+/// The frontend reads `lat.ttft_ms` as the visibility condition for the
+/// latency signal, so the object shape (not a bare ms number) is required.
+pub(all) struct SessionLatency {
+  ttft_ms : Int?
+  duration_ms : Int?
+} derive(Eq, Debug)
+
+///|
+/// Build the latency summary from a SessionData snapshot.
+/// None when neither ttft nor duration is known (frontend hides the signal).
+pub fn SessionLatency::from_session_data(
+  sd : @agent.SessionData,
+) -> SessionLatency? {
+  match (sd.latest_ttft_ms, sd.latest_latency_ms) {
+    (None, None) => None
+    (ttft_ms, duration_ms) => Some({ ttft_ms, duration_ms })
+  }
+}
+
+///|
 /// Lightweight session summary returned by GET /api/sessions.
 /// Mirrors the upstream SessionSummary contract.
 pub(all) struct SessionSummary {
@@ -73,7 +94,7 @@ pub(all) struct SessionSummary {
   error : String
   model : String?
   source : String
-  latest_latency_ms : Int?
+  latest_latency : SessionLatency?
   // Extended fields (web-replication-05)
   pinned : Bool
   agent_profile : String
@@ -191,8 +212,18 @@ pub(all) struct PermissionResponse {
 
 ///|
 pub impl ToJson for SessionSummary with fn to_json(self) {
-  let latency = match self.latest_latency_ms {
-    Some(v) => v.to_json()
+  let latest_latency = match self.latest_latency {
+    Some(lat) => {
+      let ttft = match lat.ttft_ms {
+        Some(v) => v.to_json()
+        None => Json::null()
+      }
+      let duration = match lat.duration_ms {
+        Some(v) => v.to_json()
+        None => Json::null()
+      }
+      Json::object({ "ttft_ms": ttft, "duration_ms": duration })
+    }
     None => Json::null()
   }
   let model = match self.model {
@@ -220,7 +251,7 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     "error": self.error.to_json(),
     "model": model,
     "source": self.source.to_json(),
-    "latest_latency_ms": latency,
+    "latest_latency": latest_latency,
     "pinned": self.pinned.to_json(),
     "agent_profile": self.agent_profile.to_json(),
     "sub_model": sub_model,

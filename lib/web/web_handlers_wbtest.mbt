@@ -291,10 +291,74 @@ test "handler: channels list returns 200" {
   let req = HttpRequest::new(GET, "/api/channels")
   let resp = handle_channels_list(req)
   @debug.assert_eq(resp.status, 200)
-  // The store may be empty in tests; assert a well-formed JSON array is returned.
+  // Response is wrapped as {"channels": [...]} (fix-04).
   let trimmed = resp.body.trim()
-  assert_true(trimmed.has_prefix("["))
-  assert_true(trimmed.has_suffix("]"))
+  assert_true(trimmed.has_prefix("{"))
+  assert_true(trimmed.contains("\"channels\""))
+}
+
+///|
+test "handler: channels list covers all platforms and masks secrets" {
+  // Configure one platform with secrets, then verify the list output.
+  let create_req = HttpRequest::new(
+    POST,
+    "/api/channels",
+    body="{\"platform\":\"wecom\",\"name\":\"fix04-ch\",\"config\":{\"api_key\":\"fix04-ak-plain\",\"secret\":\"fix04-sk-plain\"}}",
+  )
+  let create_resp = handle_channels_create(create_req)
+  @debug.assert_eq(create_resp.status, 201)
+  let req = HttpRequest::new(GET, "/api/channels")
+  let resp = handle_channels_list(req)
+  @debug.assert_eq(resp.status, 200)
+  let parsed = @json.parse(resp.body)
+  match parsed {
+    Object(top) =>
+      match top.get("channels") {
+        Some(Array(items)) => {
+          // One entry per supported platform.
+          @debug.assert_eq(items.length(), 6)
+          let mut configured_seen = false
+          let mut unconfigured_seen = false
+          for item in items {
+            match item {
+              Object(o) => {
+                assert_true(o.get("platform") is Some(_))
+                assert_true(o.get("enabled") is Some(_))
+                assert_true(o.get("running") is Some(_))
+                assert_true(o.get("has_config") is Some(_))
+                if o.get("has_config") == Some(true.to_json()) {
+                  configured_seen = true
+                  // Configured entries expose booleans, never plaintext.
+                  assert_true(o.get("has_api_key") is Some(_))
+                } else {
+                  unconfigured_seen = true
+                }
+              }
+              _ => panic()
+            }
+          }
+          assert_true(configured_seen)
+          assert_true(unconfigured_seen)
+        }
+        _ => panic()
+      }
+    _ => panic()
+  }
+  // No plaintext secrets anywhere in the response body.
+  assert_true(!resp.body.contains("fix04-ak-plain"))
+  assert_true(!resp.body.contains("fix04-sk-plain"))
+  assert_true(!resp.body.contains("\"api_key\""))
+  assert_true(!resp.body.contains("\"secret\""))
+  // Cleanup: delete the configured channel.
+  let del_req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/channels/wecom",
+    params: [("id", "wecom")],
+    body: "",
+    headers: [],
+  }
+  let del_resp = handle_channels_delete(del_req)
+  @debug.assert_eq(del_resp.status, 204)
 }
 
 ///|
@@ -331,6 +395,59 @@ test "handler: schedules list returns 200" {
   let req = HttpRequest::new(GET, "/api/schedules")
   let resp = handle_schedules_list(req)
   @debug.assert_eq(resp.status, 200)
+  // Response is wrapped as {"cron_tasks": [...]} (fix-04).
+  assert_true(resp.body.contains("\"cron_tasks\""))
+}
+
+///|
+test "handler: cron task items expose orig-compatible keys" {
+  let create_req = HttpRequest::new(
+    POST,
+    "/api/schedules",
+    body="{\"name\":\"fix04-cron-wbtest\",\"cron_expression\":\"0 9 * * *\",\"message\":\"fix04 content\"}",
+  )
+  let create_resp = handle_schedules_create(create_req)
+  @debug.assert_eq(create_resp.status, 201)
+  let req = HttpRequest::new(GET, "/api/schedules")
+  let resp = handle_schedules_list(req)
+  @debug.assert_eq(resp.status, 200)
+  let parsed = @json.parse(resp.body)
+  match parsed {
+    Object(top) =>
+      match top.get("cron_tasks") {
+        Some(Array(items)) => {
+          let mut found = false
+          for item in items {
+            match item {
+              Object(o) =>
+                if o.get("name") == Some("fix04-cron-wbtest".to_json()) {
+                  found = true
+                  @debug.assert_eq(o.get("cron"), Some("0 9 * * *".to_json()))
+                  @debug.assert_eq(
+                    o.get("content"),
+                    Some("fix04 content".to_json()),
+                  )
+                  @debug.assert_eq(o.get("scheduled"), Some(true.to_json()))
+                  @debug.assert_eq(o.get("enabled"), Some(true.to_json()))
+                }
+              _ => panic()
+            }
+          }
+          assert_true(found)
+        }
+        _ => panic()
+      }
+    _ => panic()
+  }
+  // Cleanup.
+  let del_req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/schedules/fix04-cron-wbtest",
+    params: [("id", "fix04-cron-wbtest")],
+    body: "",
+    headers: [],
+  }
+  ignore(handle_schedules_delete(del_req))
 }
 
 ///|

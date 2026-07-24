@@ -23,7 +23,7 @@ fn handle_session_export(
       @core.HttpResponse::ok().json_value(
         Json::object({
           "session": data.to_json(),
-          "exported_at": @agent.current_timestamp_ms().to_json(),
+          "exported_at": @agent.current_timestamp_iso().to_json(),
           "format_version": (1).to_json(),
         }),
       )
@@ -150,6 +150,14 @@ fn handle_session_rename(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+      }
+      // Sync the in-memory agent's name so a subsequent run does not
+      // overwrite the renamed session file with the old name.
+      if new_name != old_name {
+        match server_ref.val.active_agents.get(id) {
+          Some(agent) => agent.rename(new_name)
+          None => ()
+        }
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -584,6 +592,14 @@ fn handle_session_patch(
         sub_model: data.sub_model,
       }
       if changed {
+        // Sync the in-memory agent's name so a subsequent run does not
+        // overwrite the renamed session file with the old name.
+        if new_name != data.name {
+          match server_ref.val.active_agents.get(id) {
+            Some(agent) => agent.rename(new_name)
+            None => ()
+          }
+        }
         @agent.save_session(updated) catch {
           _ =>
             return @core.HttpResponse::internal_server_error().json_value(

@@ -94,7 +94,7 @@ fn wd_make_session(id : String, wd : String) -> @agent.SessionData {
 ///|
 test "working_dir update accepts relative path and persists" {
   let old = wd_push_profile()
-  let id = "wd_rel_" + @agent.current_timestamp_ms()
+  let id = "wd_rel_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
@@ -122,7 +122,7 @@ test "working_dir update accepts relative path and persists" {
 ///|
 test "working_dir update rejects path traversal" {
   let old = wd_push_profile()
-  let id = "wd_trav_" + @agent.current_timestamp_ms()
+  let id = "wd_trav_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
@@ -143,7 +143,7 @@ test "working_dir update rejects path traversal" {
 ///|
 test "working_dir update rejects absolute path without configured dir" {
   let old = wd_push_profile()
-  let id = "wd_absnone_" + @agent.current_timestamp_ms()
+  let id = "wd_absnone_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
@@ -165,7 +165,7 @@ test "working_dir update rejects absolute path without configured dir" {
 ///|
 test "working_dir update accepts absolute path within configured dir" {
   let old = wd_push_profile()
-  let id = "wd_absok_" + @agent.current_timestamp_ms()
+  let id = "wd_absok_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
@@ -205,7 +205,7 @@ test "working_dir update returns 404 for missing session" {
 ///|
 test "working_dir update rejects missing working_dir field" {
   let old = wd_push_profile()
-  let id = "wd_missing_" + @agent.current_timestamp_ms()
+  let id = "wd_missing_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
@@ -220,5 +220,130 @@ test "working_dir update rejects missing working_dir field" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+// ── latest_latency object shape (web-ui fix-03) ──────────────────────────────
+
+///|
+test "SessionLatency::from_session_data builds object or none" {
+  let base = wd_make_session("lat_test", ".")
+  // No latency data -> None (frontend hides the signal).
+  @debug.assert_eq(SessionLatency::from_session_data(base), None)
+  // ttft + duration -> object with both fields.
+  let with_lat = @agent.SessionData::{
+    ..base,
+    latest_ttft_ms: Some(80),
+    latest_latency_ms: Some(350),
+  }
+  @debug.assert_eq(
+    SessionLatency::from_session_data(with_lat),
+    Some({ ttft_ms: Some(80), duration_ms: Some(350) }),
+  )
+  // duration only -> still an object (ttft null, signal hidden by frontend).
+  let dur_only = @agent.SessionData::{ ..base, latest_latency_ms: Some(120) }
+  @debug.assert_eq(
+    SessionLatency::from_session_data(dur_only),
+    Some({ ttft_ms: None, duration_ms: Some(120) }),
+  )
+}
+
+///|
+test "SessionSummary json emits latest_latency object" {
+  let summary = SessionSummary::{
+    id: "s_lat",
+    name: "lat",
+    working_dir: ".",
+    status: "idle",
+    created_at: "2026-07-24T12:00:00+08:00",
+    updated_at: "2026-07-24T12:00:00+08:00",
+    total_tasks: 0,
+    total_cost: 0.0,
+    cost_source: "estimated",
+    error: "",
+    model: Some("kimi-k2"),
+    source: "manual",
+    latest_latency: Some({ ttft_ms: Some(80), duration_ms: Some(350) }),
+    pinned: false,
+    agent_profile: "general",
+    sub_model: None,
+    sub_model_options: [],
+    reasoning_effort: None,
+  }
+  match ToJson::to_json(summary) {
+    Object(map) =>
+      match map.get("latest_latency") {
+        Some(Object(lat)) => {
+          @debug.assert_eq(lat.get("ttft_ms"), Some((80).to_json()))
+          @debug.assert_eq(lat.get("duration_ms"), Some((350).to_json()))
+        }
+        _ => panic()
+      }
+    _ => panic()
+  }
+  let no_lat = SessionSummary::{ ..summary, latest_latency: None }
+  match ToJson::to_json(no_lat) {
+    Object(map) =>
+      @debug.assert_eq(map.get("latest_latency"), Some(Json::null()))
+    _ => panic()
+  }
+}
+
+// ── GET /api/sessions/:id wrapper (web-ui fix-04) ────────────────────────────
+
+///|
+test "get session wraps response in session key" {
+  let old = wd_push_profile()
+  let id = "wrap_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  // Disk-hit branch.
+  let resp = handle_get_session(
+    wd_make_server_ref(),
+    wd_make_event(Get, "/api/sessions/" + id, params=[("id", id)]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match wd_response_json(resp) {
+    Object(top) =>
+      match top.get("session") {
+        Some(Object(s)) =>
+          @debug.assert_eq(s.get("session_id"), Some(id.to_json()))
+        _ => panic()
+      }
+    _ => panic()
+  }
+  @agent.delete_session(id)
+  // In-memory fallback branch (no disk file, agent in active_agents).
+  let mem_id = "wrapmem_" + @agent.current_time_ms().to_string()
+  let server_ref = wd_make_server_ref()
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(
+    mem_id,
+    "mem-session",
+    ".",
+    client,
+    @config.AgentConfig::default(),
+  )
+  server_ref.val.active_agents[mem_id] = agent
+  let resp2 = handle_get_session(
+    server_ref,
+    wd_make_event(Get, "/api/sessions/" + mem_id, params=[("id", mem_id)]),
+  )
+  @debug.assert_eq(resp2.status_code.to_int(), 200)
+  match wd_response_json(resp2) {
+    Object(top) =>
+      match top.get("session") {
+        Some(Object(s)) =>
+          @debug.assert_eq(s.get("session_id"), Some(mem_id.to_json()))
+        _ => panic()
+      }
+    _ => panic()
+  }
   wd_pop_profile(old)
 }

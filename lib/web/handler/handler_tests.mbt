@@ -229,7 +229,7 @@ test "handler: channels list returns 200" {
   let req = @web.HttpRequest::new(@web.GET, "/api/channels")
   let resp = @web.handle_channels_list(req)
   assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("["))
+  assert_true(resp.body.contains("\"channels\""))
 }
 
 ///|
@@ -250,6 +250,7 @@ test "handler: schedules list returns 200" {
   let req = @web.HttpRequest::new(@web.GET, "/api/schedules")
   let resp = @web.handle_schedules_list(req)
   assert_eq(resp.status, 200)
+  assert_true(resp.body.contains("\"cron_tasks\""))
 }
 
 ///|

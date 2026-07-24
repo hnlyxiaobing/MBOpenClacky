@@ -52,6 +52,8 @@ fn find_channel_index(id_or_platform : String) -> Int? {
 
 ///|
 /// Convert a ChannelEntry to a JSON object for API responses.
+/// Secrets are never serialized in plaintext: api_key/secret are exposed
+/// as has_api_key/has_secret booleans only (aligns with orig safe fields).
 fn channel_entry_to_json(ch : ChannelEntry) -> Json {
   Json::object({
     "id": ch.id.to_json(),
@@ -59,15 +61,25 @@ fn channel_entry_to_json(ch : ChannelEntry) -> Json {
     "name": ch.name.to_json(),
     "status": ch.status.to_json(),
     "enabled": ch.enabled.to_json(),
+    "running": (ch.status == "connected").to_json(),
+    "has_config": true.to_json(),
+    "has_api_key": (ch.api_key != "").to_json(),
+    "has_secret": (ch.secret != "").to_json(),
     "config": Json::object({
       "webhook_url": ch.webhook_url.to_json(),
-      "api_key": ch.api_key.to_json(),
-      "secret": ch.secret.to_json(),
+      "has_api_key": (ch.api_key != "").to_json(),
+      "has_secret": (ch.secret != "").to_json(),
     }),
     "created_at": ch.created_at.to_string().to_json(),
     "updated_at": ch.updated_at.to_string().to_json(),
   })
 }
+
+///|
+/// All supported channel platforms (canonical list, mirrors normalize_platform).
+let supported_platforms : Array[String] = [
+  "feishu", "wecom", "telegram", "discord", "dingtalk", "weixin",
+]
 
 ///|
 /// Validate a platform string. Returns the canonical name or None.
@@ -103,14 +115,28 @@ fn channel_json_obj(
 // ── Channel Handlers ──────────────────────────────────────────────
 
 ///|
-/// GET /api/channels — List all configured IM channels.
+/// GET /api/channels — List all supported IM channel platforms.
+/// Returns {channels: [...]} with one item per supported platform;
+/// unconfigured platforms get {platform, enabled:false, running:false,
+/// has_config:false} so the frontend can render every platform card.
 pub fn handle_channels_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
   let items : Array[Json] = []
-  for ch in channels_store.val {
-    items.push(channel_entry_to_json(ch))
+  for platform in supported_platforms {
+    match find_channel_index(platform) {
+      Some(idx) => items.push(channel_entry_to_json(channels_store.val[idx]))
+      None =>
+        items.push(
+          Json::object({
+            "platform": platform.to_json(),
+            "enabled": false.to_json(),
+            "running": false.to_json(),
+            "has_config": false.to_json(),
+          }),
+        )
+    }
   }
-  let body = Json::array(items).stringify()
+  let body = Json::object({ "channels": Json::array(items) }).stringify()
   HttpResponse::ok(body)
 }
 

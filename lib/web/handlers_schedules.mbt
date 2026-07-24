@@ -167,7 +167,10 @@ fn json_bool(obj : Map[String, Json], key : String) -> Bool {
 
 ///|
 /// Convert a Schedule to the JSON format expected by the frontend.
-/// Frontend expects: {id, name, cron_expression, enabled, next_execution, message}
+/// Frontend expects: {id, name, cron_expression, enabled, next_execution,
+/// message, cron, content, scheduled} — cron/content/scheduled are the
+/// orig-compatible aliases (cron=cron_expression, content=message,
+/// scheduled=true since every entry here has a schedule).
 fn schedule_to_api_json(s : @server.Schedule, message : String) -> Json {
   let next_exec = match s.next_run_at {
     Some(ts) => ts.to_string()
@@ -178,9 +181,12 @@ fn schedule_to_api_json(s : @server.Schedule, message : String) -> Json {
     "schedule_id": s.name.to_json(),
     "name": s.name.to_json(),
     "cron_expression": s.cron.raw.to_json(),
+    "cron": s.cron.raw.to_json(),
     "enabled": s.enabled.to_json(),
     "next_execution": next_exec.to_json(),
     "message": message.to_json(),
+    "content": message.to_json(),
+    "scheduled": true.to_json(),
     "run_count": s.run_count.to_json(),
   })
 }
@@ -251,6 +257,8 @@ fn pad_int(n : Int, width : Int) -> String {
 
 ///|
 /// GET /api/schedules — List all scheduled tasks.
+/// Returns {cron_tasks: [...]} (orig-compatible wrapper; /api/cron-tasks
+/// routes to this same handler).
 pub fn handle_schedules_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
   ensure_schedules_loaded()
@@ -261,7 +269,9 @@ pub fn handle_schedules_list(request : HttpRequest) -> HttpResponse {
     schedules_json.push(schedule_to_api_json(s, msg))
   }
 
-  HttpResponse::ok(schedules_json.to_json().stringify())
+  HttpResponse::ok(
+    Json::object({ "cron_tasks": Json::array(schedules_json) }).stringify(),
+  )
 }
 
 ///|
