@@ -1,4 +1,4 @@
-///| White-box tests for the auth middleware (loopback bypass fix).
+///| White-box tests for the auth middleware (loopback bypass security).
 
 ///|
 fn make_req(
@@ -77,8 +77,10 @@ test "extract ip unknown when no headers" {
 ///|
 test "forged xff loopback is still parsed as loopback string" {
   // Documents the forgery vector: a remote client can send this header.
-  // Loopback bypass is ON by default; use MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0
-  // to disable when the server is exposed to untrusted networks.
+  // Loopback bypass is OFF by default; enable with
+  // MBOPENCLACKY_DEV_ALLOW_LOOPBACK=1 for local dev only.
+  // When bypass is disabled, a forged X-Forwarded-For header has no effect
+  // because the auth middleware requires a valid API key regardless of IP.
   let req = make_req(Get, "/api/info", { "X-Forwarded-For": "127.0.0.1" })
   assert_true(is_loopback_ip(extract_client_ip(req)))
 }
@@ -125,4 +127,82 @@ test "rate limiter success clears failures" {
   assert_true(limiter.is_limited(ip, 1000L))
   limiter.record_success(ip)
   assert_false(limiter.is_limited(ip, 2000L))
+}
+
+// ── auth_middleware behavior ─────────────────────────────────────
+// These tests verify the security-critical default: loopback bypass is OFF,
+// so a forged X-Forwarded-For: 127.0.0.1 header cannot bypass authentication.
+
+///|
+fn make_event(req : @core.HttpRequest) -> @crescent.Event {
+  {
+    req,
+    res: @core.HttpResponse(status_code=@core.StatusCode::OK),
+    params: Map([]),
+  }
+}
+
+///|
+fn make_next_ok() -> @crescent.MiddlewareNext {
+  () => @core.HttpResponse::ok().to_responder()
+}
+
+///|
+async test "auth middleware rejects forged loopback when bypass is off (default)" {
+  let mw = auth_middleware("secret-key")
+  let req = make_req(Get, "/api/info", { "X-Forwarded-For": "127.0.0.1" })
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::Unauthorized)
+}
+
+///|
+async test "auth middleware allows loopback when bypass is explicitly on" {
+  let mw = auth_middleware("secret-key", allow_loopback_bypass=true)
+  let req = make_req(Get, "/api/info", { "X-Forwarded-For": "127.0.0.1" })
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::OK)
+}
+
+///|
+async test "auth middleware accepts valid Bearer token" {
+  let mw = auth_middleware("secret-key")
+  let req = make_req(Get, "/api/info", { "Authorization": "Bearer secret-key" })
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::OK)
+}
+
+///|
+async test "auth middleware rejects invalid Bearer token" {
+  let mw = auth_middleware("secret-key")
+  let req = make_req(Get, "/api/info", { "Authorization": "Bearer wrong-key" })
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::Unauthorized)
+}
+
+///|
+async test "auth middleware rejects request with no key and no bypass" {
+  let mw = auth_middleware("secret-key")
+  let req = make_req(Get, "/api/info", Map([]))
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::Unauthorized)
+}
+
+///|
+async test "auth middleware allows public path without key" {
+  let mw = auth_middleware("secret-key")
+  let req = make_req(Get, "/health", Map([]))
+  let event = make_event(req)
+  let responder = mw(event, make_next_ok())
+  responder.options(event.res)
+  @debug.assert_eq(event.res.status_code, @core.StatusCode::OK)
 }

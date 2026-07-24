@@ -173,8 +173,16 @@ moon run cmd -- server
 MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
 ```
 
-启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。
----
+**绑定地址与安全闸门**：默认仅绑定 `127.0.0.1`（回环地址），仅本机可访问。需要局域网或公网访问时设置 `MBOPENCLACKY_WEB_HOST=0.0.0.0`，但此时**必须**同时设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务器拒绝启动：
+
+```bash
+# 公网/局域网部署（必须设 API key）
+export MBOPENCLACKY_WEB_API_KEY="$(openssl rand -hex 32)"
+export MBOPENCLACKY_WEB_HOST=0.0.0.0
+moon run cmd -- server
+```
+
+启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。---
 
 ## 配置参考
 

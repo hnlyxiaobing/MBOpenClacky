@@ -2,6 +2,10 @@
 
 MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071** 端口。
 
+> **安全提示**：自 v0.2 起，服务器默认仅绑定 `127.0.0.1`（回环地址）。
+> 需要公网或局域网访问时，设置 `MBOPENCLACKY_WEB_HOST=0.0.0.0` 并**必须**
+> 同时设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务器拒绝启动。
+
 > 前提：先构建原生二进制 `moon build --target native --release cmd`，产物位于
 > `_build/native/release/build/cmd/cmd.exe`（在 Linux/macOS 上为 `cmd`）。以下用
 > `mbopenclacky` 指代该二进制。
@@ -13,6 +17,8 @@ MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071**
 编排文件：`deploy/docker-compose.yml`（基于仓库根目录已有的多阶段 `Dockerfile`）。
 
 ```bash
+# 必须设置 API key（公网绑定的安全闸门）
+export MBOPENCLACKY_WEB_API_KEY="$(openssl rand -hex 32)"
 # 可选：覆盖端口与时区
 export MBOPENCLACKY_WEB_PORT=8080
 export TZ=Asia/Shanghai

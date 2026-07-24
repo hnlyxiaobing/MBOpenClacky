@@ -28,6 +28,13 @@ services:
       # all persistent data in one place.
       HOME: "/app"
       MBOPENCLACKY_WEB_PORT: "7071"
+      # Bind to all interfaces inside the container (required for port mapping).
+      # The security gate refuses to start without an API key on non-loopback hosts.
+      MBOPENCLACKY_WEB_HOST: "0.0.0.0"
+      # REQUIRED: API key for web authentication. The server will refuse to
+      # start without this when MBOPENCLACKY_WEB_HOST is 0.0.0.0.
+      # Generate one with: openssl rand -hex 32
+      MBOPENCLACKY_WEB_API_KEY: "${MBOPENCLACKY_WEB_API_KEY:?MBOPENCLACKY_WEB_API_KEY is required}"
       TZ: "${TZ:-UTC}"
     volumes:
       # Single named volume holds config, sessions, skills, logs and

@@ -5,3 +5,7 @@ import {
   "hnlyxiaobing/crescent/core",
   "moonbitlang/core/json",
 }
+
+import {
+  "moonbitlang/async",
+} for "wbtest"

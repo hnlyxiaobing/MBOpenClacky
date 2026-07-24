@@ -141,14 +141,14 @@ pub fn WebServer::build_app(
   // 3. Auth: API key verification (conditional)
   match self.api_key {
     Some(key) => {
-      let allow_loopback = !(match
-          @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
-          Some("0") | Some("false") => true
-          _ => false
-        })
+      let allow_loopback = match
+        @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
+        Some("1") | Some("true") => true
+        _ => false
+      }
       if allow_loopback {
         println(
-          "[WebServer] loopback auth bypass ENABLED by default — set MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0 to disable",
+          "[WebServer] loopback auth bypass ENABLED — insecure for public-facing deployments (set MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0 to disable)",
         )
       }
       app.use_middleware(
@@ -352,7 +352,8 @@ pub fn WebServer::build_app(
       mcp.post("/tools/:name/execute", event => {
         handle_mcp_execute_tool_bridge(server_ref, event)
       })
-      // List all registered servers
+      // List all registered servers (both /api/mcp and /api/mcp/)
+      mcp.get("", event => handle_mcp_list_servers_bridge(server_ref, event))
       mcp.get("/", event => handle_mcp_list_servers_bridge(server_ref, event))
       // Add new MCP server
       mcp.post("/", event => handle_mcp_add_server_bridge(server_ref, event))
@@ -837,18 +838,33 @@ pub fn WebServer::build_app(
 
 ///|
 /// Registers all routes, middleware, and starts serving.
-pub async fn WebServer::start(self : WebServer, port : Int) -> Unit {
+///
+/// `host` defaults to `127.0.0.1` (loopback only). Set to `0.0.0.0` or
+/// another non-loopback address to bind on a public interface; in that
+/// case an API key MUST be set or the server refuses to start (see
+/// cmd/main.mbt security gate).
+pub async fn WebServer::start(
+  self : WebServer,
+  port : Int,
+  host? : String = "127.0.0.1",
+) -> Unit {
   self.start_time = @env.now().reinterpret_as_int64()
   let (app, _) = self.build_app()
 
   // ── Start Server ──────────────────────────────────────────────
-  println("MBOpenClacky Web Server starting on port \{port}")
-  println("Health check: http://localhost:\{port}/health")
+  let bind_addr = "\{host}:\{port}"
+  println("MBOpenClacky Web Server starting on http://\{bind_addr}")
+  println("Health check: http://\{host}:\{port}/health")
+  // Construct the HTTP server with the custom bind address.
+  // crescent's App::serve hardcodes 0.0.0.0, so we use serve_on with
+  // an explicit @http.Server to honour the host parameter.
+  let addr = @socket.Addr::parse(bind_addr)
+  let http_server = @http.Server(addr, reuse_addr=true)
   // Run the server inside a long-lived task group so WS handlers can spawn
   // background agent runs (see handlers_ws.set_ws_task_group).
   @async.with_task_group(group => {
     set_ws_task_group(group)
-    app.serve(port~) catch {
+    app.serve_on(http_server) catch {
       err => println("Server error: \{err}")
     }
   })

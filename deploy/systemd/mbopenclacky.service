@@ -34,6 +34,12 @@ RestartSec=5
 # pin HOME to the install dir and keep all data writable there.
 Environment=HOME=/opt/mbopenclacky
 Environment=MBOPENCLACKY_WEB_PORT=7071
+# Bind to all interfaces for network access (default is 127.0.0.1 / loopback only).
+# A non-loopback host REQUIRES MBOPENCLACKY_WEB_API_KEY to be set.
+Environment=MBOPENCLACKY_WEB_HOST=0.0.0.0
+# REQUIRED: API key for authentication. Generate with: openssl rand -hex 32
+# The server refuses to start without this when MBOPENCLACKY_WEB_HOST is 0.0.0.0.
+Environment=MBOPENCLACKY_WEB_API_KEY=CHANGE_ME_TO_A_RANDOM_SECRET
 
 # Hardening: drop privileges, restrict filesystem writes.
 NoNewPrivileges=true

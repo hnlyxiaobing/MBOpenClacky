@@ -433,6 +433,54 @@ async fn handle_server() -> Unit {
   // Get API key for web auth from env or config
   let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
+  // Bind address: default 127.0.0.1 (loopback only) for security.
+  // Set MBOPENCLACKY_WEB_HOST=0.0.0.0 to expose on all interfaces.
+  let host = match @sys.get_env_var("MBOPENCLACKY_WEB_HOST") {
+    Some(h) => h.trim().to_owned()
+    None => "127.0.0.1"
+  }
+
+  // Security gate: refuse to start on a non-loopback address without an API key.
+  // This prevents accidental public exposure with zero authentication.
+  if !is_loopback_host(host) && api_key is None {
+    println("")
+    println(
+      "╔══════════════════════════════════════════════════════════════╗",
+    )
+    println(
+      "║  SECURITY ERROR: Public binding without API key              ║",
+    )
+    println(
+      "╠══════════════════════════════════════════════════════════════╣",
+    )
+    println(
+      "║  MBOPENCLACKY_WEB_HOST=\{host} is a non-loopback address.       ║",
+    )
+    println(
+      "║  No MBOPENCLACKY_WEB_API_KEY is set — the server would        ║",
+    )
+    println(
+      "║  start with ZERO authentication on a public interface.        ║",
+    )
+    println(
+      "║                                                              ║",
+    )
+    println(
+      "║  To fix:                                                     ║",
+    )
+    println(
+      "║    1. Set MBOPENCLACKY_WEB_API_KEY=<your-secret-key>         ║",
+    )
+    println(
+      "║    2. Or use MBOPENCLACKY_WEB_HOST=127.0.0.1 (loopback)      ║",
+    )
+    println(
+      "╚══════════════════════════════════════════════════════════════╝",
+    )
+    println("")
+    return
+  }
+
   // Create and start the web server.
   // Default port is 7071 (to differentiate from the original OpenClacky,
   // which uses 7070); override with the MBOPENCLACKY_WEB_PORT environment variable.
@@ -448,9 +496,20 @@ async fn handle_server() -> Unit {
     None => 7071
   }
   let server = @web.WebServer::new(config, api_key)
-  println("Starting MBOpenClacky web server on http://0.0.0.0:\{port}")
-  server.start(port)
+  server.start(port, host~)
   println("Server stopped.")
+}
+
+///|
+/// Check if a host string refers to a loopback address.
+/// Used by the public-binding security gate to decide whether
+/// an API key is mandatory.
+fn is_loopback_host(host : String) -> Bool {
+  host == "127.0.0.1" ||
+  host == "::1" ||
+  host == "localhost" ||
+  host == "[::1]" ||
+  host.has_prefix("127.")
 }
 
 ///|

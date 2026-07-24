@@ -2,8 +2,14 @@
 /// API Key authentication middleware with enhanced security.
 /// Supports Bearer header, query parameter, and cookie fallback.
 /// Implements IP-based rate limiting and a public-path allowlist.
-/// Loopback bypass is ON by default; disable via MBOPENCLACKY_DEV_ALLOW_LOOPBACK=0.
-/// When no proxy headers are present, the connection is assumed to be local.
+/// Loopback bypass is OFF by default; enable with MBOPENCLACKY_DEV_ALLOW_LOOPBACK=1.
+///
+/// SECURITY NOTE: `client_ip` is derived from X-Forwarded-For / X-Real-IP
+/// request headers, which are client-controlled and forgeable. crescent does
+/// not expose the real TCP peer address to middleware (ServerConnection::
+/// client_addr exists but is not passed through the Event). Therefore
+/// loopback bypass relies on forgeable headers and must NOT be enabled on
+/// public-facing deployments.
 
 ///|
 /// Constant-time string comparison to prevent timing attacks.
@@ -114,7 +120,13 @@ pub fn IpRateLimiter::retry_after(
 }
 
 ///|
-/// Extract client IP from request, checking X-Forwarded-For, X-Real-IP, then remote address.
+/// Extract client IP from request, checking X-Forwarded-For, X-Real-IP, then defaulting to 127.0.0.1.
+///
+/// WARNING: These headers are client-controlled and can be forged.
+/// crescent does not expose the real TCP peer address to middleware, so
+/// this function cannot use the actual connection source IP. The returned
+/// value is used only for rate limiting and logging - NOT as a security
+/// boundary (loopback bypass is disabled by default to mitigate forgery).
 fn extract_client_ip(req : @core.HttpRequest) -> String {
   match req.get_header("X-Forwarded-For") {
     Some(ip) => {

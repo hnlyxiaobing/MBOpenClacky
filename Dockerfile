@@ -57,6 +57,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # original OpenClacky, which uses 7070). Override at runtime with -e MBOPENCLACKY_WEB_PORT=...
 ENV MBOPENCLACKY_WEB_PORT=7071
 
+# Bind to all interfaces inside the container (required for Docker port mapping).
+# The security gate in cmd/main.mbt refuses to start without MBOPENCLACKY_WEB_API_KEY
+# when a non-loopback host is set, so you MUST also provide an API key.
+ENV MBOPENCLACKY_WEB_HOST=0.0.0.0
+
 # Install minimal runtime dependencies.
 # libssl3 ships libcrypto.so.3 required by the AES-256-GCM crypto stubs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
