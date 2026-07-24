@@ -32,7 +32,7 @@ pub fn MemoryStore::add(
   keywords : Array[String],
 ) -> MemoryEntry {
   let id = self.gen_id()
-  let ts = current_timestamp_ms()
+  let ts = current_timestamp_iso()
   let entry : MemoryEntry = {
     id,
     title,
@@ -54,7 +54,7 @@ pub fn MemoryStore::update(
   id : String,
   content : String,
 ) -> Bool {
-  let ts = current_timestamp_ms()
+  let ts = current_timestamp_iso()
   let mut found = false
   let new_entries : Array[MemoryEntry] = []
   for e in self.entries {

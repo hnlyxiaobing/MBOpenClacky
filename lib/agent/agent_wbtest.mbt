@@ -842,7 +842,8 @@ test "session_data_from_json_roundtrip" {
   @debug.assert_eq(parsed.stats.total_iterations, 3)
   @debug.assert_eq(parsed.stats.total_cost_usd, 0.75)
   @debug.assert_eq(parsed.working_dir, "/home/test")
-  @debug.assert_eq(parsed.created_at, "9876543210")
+  // Legacy epoch-ms created_at is normalized to ISO 8601 on load (fix-03).
+  @debug.assert_eq(parsed.created_at, ms_to_iso8601(9876543210L))
   @debug.assert_eq(parsed.source, "cli")
   @debug.assert_eq(parsed.reasoning_effort, Some("high"))
   @debug.assert_eq(parsed.model_name, Some("gpt-4"))
@@ -1019,14 +1020,17 @@ test "generate_session_id_format" {
 }
 
 ///|
-test "current_timestamp_ms_format" {
-  let ts = current_timestamp_ms()
-  // Only validate that it's a non-empty string of digits
-  assert_true(ts.length() > 0)
-  for i in 0..<ts.length() {
-    let c = ts[i]
-    assert_true(c >= '0' && c <= '9')
-  }
+test "current_timestamp_iso_format" {
+  let ts = current_timestamp_iso()
+  // ISO 8601 local format: "2026-07-24T12:22:34+08:00"
+  assert_true(ts.length() == 25)
+  assert_true(ts[4] == '-' && ts[7] == '-')
+  assert_true(ts[10] == 'T')
+  assert_true(ts[13] == ':' && ts[16] == ':')
+  // Trailing UTC offset like "+08:00" or "-05:00".
+  let sign = ts[19]
+  assert_true(sign == '+' || sign == '-')
+  assert_true(ts[22] == ':')
 }
 
 // ── Streaming pipeline tests (#4) ───────────────────────────────────────────
@@ -1055,4 +1059,14 @@ async test "call_llm_stream_async mock path with empty content emits no chunk" {
   let response = agent.call_llm_stream_async(fn(c) { chunks.push(c) })
   @debug.assert_eq(chunks.length(), 0)
   assert_true(response.content is None)
+}
+
+// ── Agent::rename ────────────────────────────────────────────────────────────
+
+///|
+test "agent_rename_updates_session_data_name" {
+  let agent = make_test_agent()
+  @debug.assert_eq(agent.to_session_data().name, "test-agent")
+  agent.rename("renamed-agent")
+  @debug.assert_eq(agent.to_session_data().name, "renamed-agent")
 }

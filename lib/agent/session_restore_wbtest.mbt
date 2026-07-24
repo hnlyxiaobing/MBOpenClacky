@@ -1,5 +1,113 @@
 ///| Tests for enhanced session serialization and restoration.
 
+// ── Timestamp & Option-field serialization fixes (web-ui fix-03) ─────────────
+
+///|
+/// Minimal valid SessionData JSON with configurable created_at and
+/// optional extra fields.
+fn fix03_session_json(created_at : String, extra : String) -> Json raise {
+  let src =
+    #| {
+    #|   "session_id": "s_fix03",
+    #|   "name": "fix03-session",
+    #|   "messages": [],
+    #|   "stats": {
+    #|     "total_iterations": 0,
+    #|     "total_cost_usd": 0.0,
+    #|     "total_tasks": 0,
+    #|     "cost_source": "estimated"
+    #|   },
+    #|   "working_dir": ".",
+    #|   "created_at": CREATED_AT
+    #|   EXTRA
+    #| }
+  @json.parse(
+    src
+    .replace(old="CREATED_AT", new=created_at)
+    .replace(old="EXTRA", new=extra),
+  )
+}
+
+///|
+test "current_time_ms is unix epoch magnitude" {
+  let now = current_time_ms()
+  // Unix epoch ms: 2023-11 .. 2033-11. A 1601-based value would be ~1.3e13.
+  assert_true(now > 1700000000000L)
+  assert_true(now < 2000000000000L)
+}
+
+///|
+test "created_at normalization keeps ISO strings" {
+  let parsed : SessionData = @json.from_json(
+    fix03_session_json("\"2026-07-24T12:22:34+08:00\"", ""),
+  )
+  @debug.assert_eq(parsed.created_at, "2026-07-24T12:22:34+08:00")
+}
+
+///|
+test "created_at normalization converts unix epoch ms" {
+  let parsed : SessionData = @json.from_json(
+    fix03_session_json("\"1784880000000\"", ""),
+  )
+  let ts = parsed.created_at
+  assert_true(ts.length() == 25)
+  assert_true(ts[10] == 'T')
+  @debug.assert_eq(ts, ms_to_iso8601(1784880000000L))
+}
+
+///|
+test "created_at normalization converts windows-epoch ms" {
+  // 1601-based dirty value = unix ms + 11644473600000 (> 1e13 threshold).
+  let parsed : SessionData = @json.from_json(
+    fix03_session_json("\"13429353600000\"", ""),
+  )
+  @debug.assert_eq(parsed.created_at, ms_to_iso8601(1784880000000L))
+}
+
+///|
+test "model_name parses both plain string and legacy array form" {
+  let plain : SessionData = @json.from_json(
+    fix03_session_json(
+      "\"2026-07-24T12:22:34+08:00\"", ", \"model_name\": \"kimi-k2\"",
+    ),
+  )
+  @debug.assert_eq(plain.model_name, Some("kimi-k2"))
+  let legacy : SessionData = @json.from_json(
+    fix03_session_json(
+      "\"2026-07-24T12:22:34+08:00\"", ", \"model_name\": [\"kimi-k2\"]",
+    ),
+  )
+  @debug.assert_eq(legacy.model_name, Some("kimi-k2"))
+}
+
+///|
+test "reasoning_effort and sub_model parse legacy array form" {
+  let parsed : SessionData = @json.from_json(
+    fix03_session_json(
+      "\"2026-07-24T12:22:34+08:00\"", ", \"reasoning_effort\": [\"high\"], \"sub_model\": [\"sub-m\"]",
+    ),
+  )
+  @debug.assert_eq(parsed.reasoning_effort, Some("high"))
+  @debug.assert_eq(parsed.sub_model, Some("sub-m"))
+}
+
+///|
+test "option string fields serialize as plain string or null" {
+  let data : SessionData = @json.from_json(
+    fix03_session_json(
+      "\"2026-07-24T12:22:34+08:00\"", ", \"model_name\": [\"kimi-k2\"]",
+    ),
+  )
+  match ToJson::to_json(data) {
+    Object(map) => {
+      @debug.assert_eq(map.get("model_name"), Some("kimi-k2".to_json()))
+      @debug.assert_eq(map.get("sub_model"), Some(Json::null()))
+      @debug.assert_eq(map.get("reasoning_effort"), Some(Json::null()))
+    }
+    _ => panic()
+  }
+}
+
 ///|
 test "ChannelInfo serialization roundtrip" {
   let ci : ChannelInfo = {

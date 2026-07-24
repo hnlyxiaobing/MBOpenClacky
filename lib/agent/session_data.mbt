@@ -369,15 +369,15 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "working_dir": ToJson::to_json(self.working_dir),
     "created_at": ToJson::to_json(self.created_at),
     "source": ToJson::to_json(self.source),
-    "reasoning_effort": ToJson::to_json(self.reasoning_effort),
-    "model_name": ToJson::to_json(self.model_name),
+    "reasoning_effort": opt_string_json(self.reasoning_effort),
+    "model_name": opt_string_json(self.model_name),
     "pending_error_rollback": ToJson::to_json(self.pending_error_rollback),
     "model_base_url": ToJson::to_json(self.model_base_url),
     "last_status": ToJson::to_json(self.last_status),
     "last_error": ToJson::to_json(self.last_error),
     "chunk_count": ToJson::to_json(self.chunk_count),
     "agent_profile": ToJson::to_json(self.agent_profile),
-    "sub_model": ToJson::to_json(self.sub_model),
+    "sub_model": opt_string_json(self.sub_model),
   }
   match self.forked_from {
     Some(f) => obj["forked_from"] = ToJson::to_json(f)
@@ -433,21 +433,15 @@ impl FromJson for SessionData with fn from_json(json, path) {
         _ => raise JsonDecodeError((path, "SessionData: missing 'working_dir'"))
       }
       let created_at = match map.get("created_at") {
-        Some(String(s)) => s
+        Some(String(s)) => normalize_created_at(s)
         _ => raise JsonDecodeError((path, "SessionData: missing 'created_at'"))
       }
       let source = match map.get("source") {
         Some(String(s)) => s
         _ => "manual"
       }
-      let reasoning_effort = match map.get("reasoning_effort") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let model_name = match map.get("model_name") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+      let reasoning_effort = opt_string_field(map, "reasoning_effort")
+      let model_name = opt_string_field(map, "model_name")
       // Enhanced fields — backward compatible (default if missing)
       let channel_info : ChannelInfo? = match map.get("channel_info") {
         Some(Object(_) as obj) =>
@@ -495,10 +489,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
         Some(String(s)) => s
         _ => "general"
       }
-      let sub_model = match map.get("sub_model") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+      let sub_model = opt_string_field(map, "sub_model")
       {
         session_id,
         name,
@@ -534,7 +525,58 @@ pub fn generate_session_id() -> String {
 }
 
 ///|
-/// Get the current timestamp as a millisecond string.
-pub fn current_timestamp_ms() -> String {
-  current_time_ms().to_string()
+/// Get the current timestamp as an ISO 8601 local-time string
+/// (e.g. "2026-07-24T12:22:34+08:00"), matching the reference
+/// implementation's serialized timestamp format.
+pub fn current_timestamp_iso() -> String {
+  current_iso8601()
+}
+
+///|
+/// Normalize a persisted `created_at` value to ISO 8601 local format.
+/// Handles two legacy dirty formats produced by earlier builds:
+/// - Windows-epoch ms strings (1601-based, > 1e13): subtract the
+///   1601→1970 offset, then convert to ISO.
+/// - Unix epoch ms strings (plain digits): convert to ISO directly.
+/// Non-numeric values are assumed to already be ISO and kept as-is.
+fn normalize_created_at(s : String) -> String {
+  if s.is_empty() {
+    return s
+  }
+  let mut ms = 0L
+  for i in 0..<s.length() {
+    let c = s[i]
+    if c < '0' || c > '9' {
+      return s
+    }
+    ms = ms * 10L + (c.to_int() - '0'.to_int()).to_int64()
+    // Bail out far below Int64 overflow; no real timestamp is this large.
+    if ms > 100000000000000L {
+      return s
+    }
+  }
+  if ms > 10000000000000L {
+    ms = ms - 11644473600000L
+  }
+  ms_to_iso8601(ms)
+}
+
+///|
+/// Parse an optional-string field that may have been persisted either as a
+/// plain string or (by a previous broken Option serializer) as `[string]`.
+fn opt_string_field(map : Map[String, Json], key : String) -> String? {
+  match map.get(key) {
+    Some(String(s)) => Some(s)
+    Some(Array([String(s)])) => Some(s)
+    _ => None
+  }
+}
+
+///|
+/// Serialize a `String?` field as a plain string or null (never an array).
+fn opt_string_json(value : String?) -> Json {
+  match value {
+    Some(s) => s.to_json()
+    None => Json::null()
+  }
 }

@@ -26,7 +26,7 @@ pub fn TodoManager::add(
   description : String,
 ) -> TodoItem {
   let id = self.gen_id()
-  let ts = current_timestamp_ms()
+  let ts = current_timestamp_iso()
   let item : TodoItem = {
     id,
     title,
@@ -48,7 +48,7 @@ pub fn TodoManager::update_status(
   id : String,
   status : TodoStatus,
 ) -> Bool {
-  let ts = current_timestamp_ms()
+  let ts = current_timestamp_iso()
   let mut found = false
   for item in self.items {
     if item.id == id {
@@ -69,7 +69,7 @@ pub fn TodoManager::set_blocked_by(
   id : String,
   deps : Array[String],
 ) -> Bool {
-  let ts = current_timestamp_ms()
+  let ts = current_timestamp_iso()
   let mut found = false
   let new_items : Array[TodoItem] = []
   for item in self.items {

@@ -22,7 +22,7 @@ pub fn export_session_zip(session_id : String) -> Result[Bytes, String] {
 
   // Create export metadata
   let metadata = Json::object({
-    "exported_at": current_timestamp_ms().to_json(),
+    "exported_at": current_timestamp_iso().to_json(),
     "format_version": (1).to_json(),
     "session_id": session_id.to_json(),
   })
@@ -103,7 +103,7 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
 
   // Add manifest
   let manifest = Json::object({
-    "exported_at": current_timestamp_ms().to_json(),
+    "exported_at": current_timestamp_iso().to_json(),
     "format_version": (1).to_json(),
     "session_count": sessions.length().to_json(),
   })

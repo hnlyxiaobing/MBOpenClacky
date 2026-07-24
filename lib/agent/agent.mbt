@@ -9,7 +9,7 @@
 pub(all) struct Agent {
   // ── Identity & Session ─────────────────────────────────────────────
   session_id : String
-  name : String
+  mut name : String
   mut working_dir : String
   created_at : String
   source : AgentSource
@@ -95,7 +95,7 @@ pub fn Agent::new(
     session_id,
     name,
     working_dir,
-    created_at: current_timestamp_ms(),
+    created_at: current_timestamp_iso(),
     source: Manual,
     // Core dependencies
     client,
@@ -140,6 +140,13 @@ pub fn Agent::new(
     // Test support
     mock_responses: [],
   }
+}
+
+///|
+/// Rename the agent (in-memory). Callers that need persistence should
+/// follow up with `save_session(agent.to_session_data())`.
+pub fn Agent::rename(self : Agent, new_name : String) -> Unit {
+  self.name = new_name
 }
 
 ///|

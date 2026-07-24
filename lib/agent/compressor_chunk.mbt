@@ -84,7 +84,7 @@ pub fn build_chunk_md(
   // Front matter
   lines.push("---")
   lines.push("chunk: \{chunk_index}")
-  lines.push("archived_at: \{current_timestamp_ms()}")
+  lines.push("archived_at: \{current_timestamp_iso()}")
   lines.push("message_count: \{messages.length()}")
   match topics {
     Some(t) if !t.is_empty() => lines.push("topics: \{t}")

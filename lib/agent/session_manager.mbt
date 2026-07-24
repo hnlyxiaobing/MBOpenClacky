@@ -157,7 +157,7 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
         messages: src.messages,
         stats: forked_stats,
         working_dir: src.working_dir,
-        created_at: current_timestamp_ms(),
+        created_at: current_timestamp_iso(),
         source: src.source,
         reasoning_effort: src.reasoning_effort,
         model_name: src.model_name,
