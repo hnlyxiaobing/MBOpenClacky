@@ -34,10 +34,11 @@ import {
   "moonbitlang/x/codec/base64",
   "moonbitlang/async",
   "moonbitlang/async/http",
+  "moonbitlang/async/process",
   "moonbitlang/async/socket",
 }
 
 options(
-  "native-stub": [ "git_exec.c", "multipart_upload.c" ],
+  "native-stub": [ "multipart_upload.c" ],
   link: { "native": { "cc-link-flags": "-lcurl" } },
 )

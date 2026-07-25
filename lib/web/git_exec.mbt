@@ -1,37 +1,31 @@
-///| Native FFI for executing system commands (used by git handlers).
+///| Git command execution via @async/process (no shell, no C FFI).
 
 ///|
-/// FFI to C's system() for synchronous command execution.
-#borrow(_cmd)
-extern "C" fn git_system_ffi(_cmd : Bytes) -> Int = "git_system"
-
-///|
-/// Run a system command and return the exit code.
-fn git_run_command(command : String) -> Int {
-  let cmd_bytes = @utf8.encode(command)
-  git_system_ffi(cmd_bytes)
+/// Run git with args (no shell), capture merged stdout+stderr.
+/// Returns (exit_code, output).
+async fn git_exec(args : Array[String], cwd? : StringView) -> (Int, String) {
+  let (code, output) = @process.collect_output_merged("git", args, cwd?)
+  (code, output.text())
 }
 
 ///|
-/// Run a command and capture its stdout (stderr merged). Returns the output string.
-fn git_capture_output(command : String) -> String {
-  let output_file = ".git_panel_output.tmp"
-  let is_win = @sys.get_env_var("OS") is Some(v) && v == "Windows_NT"
-  let cmd = if is_win {
-    "cmd.exe /c \"" + command + " > \"" + output_file + "\" 2>&1\""
-  } else {
-    "sh -c '" + command + " > \"" + output_file + "\" 2>&1'"
-  }
-  let _ = git_run_command(cmd)
-  @fs.read_file_to_string(output_file) catch {
-    _ => ""
-  }
+/// Run a git command in a directory. Returns merged stdout+stderr.
+pub async fn git_run_in_dir(dir : String, args : Array[String]) -> String {
+  let (_, output) = git_exec(args, cwd=dir)
+  output
 }
 
 ///|
-/// Run a git command and capture output. Returns the output string.
-fn git_run(args : String) -> String {
-  git_capture_output("git " + args)
+/// Run a git command in the current working directory. Returns merged stdout+stderr.
+pub async fn git_run(args : Array[String]) -> String {
+  let (_, output) = git_exec(args)
+  output
+}
+
+///|
+/// Run a git command and return (exit_code, merged output).
+pub async fn git_run_with_code(args : Array[String]) -> (Int, String) {
+  git_exec(args)
 }
 
 ///|
