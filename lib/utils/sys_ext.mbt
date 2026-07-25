@@ -1,6 +1,6 @@
 ///|
-/// System extension FFI: chdir / getcwd
-/// Bridging MoonBit to platform-native directory operations.
+/// System extension FFI: chdir / osrelease
+/// Bridging MoonBit to platform-native directory and kernel info operations.
 
 ///|
 /// Change the current working directory.
@@ -8,12 +8,6 @@
 #cfg(target="native")
 #borrow(path)
 extern "C" fn chdir_ffi(path : String) -> Int = "mbopenclacky_chdir"
-
-///|
-/// Get the current working directory as a String.
-/// Returns empty string on error.
-#cfg(target="native")
-extern "C" fn getcwd_ffi() -> String = "mbopenclacky_getcwd"
 
 ///|
 /// Get the kernel release string (same content as
@@ -33,5 +27,8 @@ pub fn change_dir(path : String) -> Unit {
 ///|
 /// Public API: get current working directory
 pub fn current_dir() -> String {
-  getcwd_ffi()
+  match @env.current_dir() {
+    Some(d) => d
+    None => ""
+  }
 }

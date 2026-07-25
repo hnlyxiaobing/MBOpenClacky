@@ -69,19 +69,7 @@ pub fn BillingRecord::total_tokens(self : BillingRecord) -> Int {
 // ── Time Helper ─────────────────────────────────────────────────
 
 ///|
-#cfg(target="native")
-extern "C" fn billing_ms_since_epoch_ffi() -> Int64 = "mb_billing_ms_since_epoch"
-
-///|
 /// Get current time in milliseconds (Unix epoch).
-/// Uses native time stub for native target, returns 0 elsewhere.
-#cfg(target="native")
 fn current_time_ms() -> Int64 {
-  billing_ms_since_epoch_ffi()
-}
-
-///|
-#cfg(not(target="native"))
-fn current_time_ms() -> Int64 {
-  0L
+  @env.now().reinterpret_as_int64()
 }

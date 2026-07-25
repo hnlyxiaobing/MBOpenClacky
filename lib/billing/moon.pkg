@@ -1,11 +1,10 @@
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/env",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
   "moonbitlang/core/json",
 }
 
-options(
-  "native-stub": [ "time_stub.c" ],
-)
+warnings = "-29"

@@ -116,34 +116,6 @@ int32_t mbopenclacky_chdir(moonbit_string_t path) {
   return result;
 }
 
-// ── getcwd FFI ──────────────────────────────────────────────────────────────
-
-/// Get the current working directory as a moonbit_string_t.
-/// Returns an empty string on error.
-MOONBIT_FFI_EXPORT
-moonbit_string_t mbopenclacky_getcwd(void) {
-#ifdef _WIN32
-  DWORD needed = GetCurrentDirectoryA(0, NULL);
-  if (needed == 0) return moonbit_make_string_raw(0);
-  char *buf = (char *)malloc(needed);
-  if (!buf) return moonbit_make_string_raw(0);
-  DWORD actual = GetCurrentDirectoryA(needed, buf);
-  if (actual == 0 || actual > needed) {
-    free(buf);
-    return moonbit_make_string_raw(0);
-  }
-  moonbit_string_t result = mbstr_from_cstr(buf);
-  free(buf);
-  return result;
-#else
-  char *cwd = getcwd(NULL, 0);
-  if (!cwd) return moonbit_make_string_raw(0);
-  moonbit_string_t result = mbstr_from_cstr(cwd);
-  free(cwd);
-  return result;
-#endif
-}
-
 // ── osrelease FFI ───────────────────────────────────────────────────────────
 
 /// Get the kernel release string (same content as
