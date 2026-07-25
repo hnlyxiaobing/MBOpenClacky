@@ -469,3 +469,79 @@ pub fn format_iso8601(timestamp : Int) -> String {
   }
   "\{pad4(year)}-\{pad2(month)}-\{pad2(day)}T\{pad2(hour)}:\{pad2(min)}:\{pad2(sec)}Z"
 }
+
+// ── Skill upload metadata (fix-17 publish) ──────────────────────────
+
+///|
+/// One skill's upload record: which platform version it was published as and
+/// when. Mirrors orig's upload_meta.json entry shape:
+///   { "platform_version" => "1.2.0", "uploaded_at" => "2026-04-09T..." }
+pub(all) struct UploadMeta {
+  platform_version : String
+  uploaded_at : String
+} derive(Eq, Debug)
+
+///|
+/// Path to the upload_meta.json file that tracks which local skills have
+/// been published to the platform. Mirrors orig's
+/// ~/.clacky/skills/upload_meta.json (skills dir under the config home).
+pub fn upload_meta_path(skills_dir : String) -> String {
+  skills_dir + "/upload_meta.json"
+}
+
+///|
+/// Load upload metadata for all published local skills.
+/// Returns an empty map when the file is missing or malformed (orig's
+/// load_upload_meta rescues to {}).
+pub fn load_upload_meta(skills_dir : String) -> Map[String, UploadMeta] {
+  let result : Map[String, UploadMeta] = Map([])
+  let path = upload_meta_path(skills_dir)
+  if !@fs.path_exists(path) {
+    return result
+  }
+  let content = @fs.read_file_to_string(path) catch { _ => return result }
+  let json = @json.parse(content) catch { _ => return result }
+  guard json is Object(root) else { return result }
+  for name, entry in root {
+    guard entry is Object(fields) else { continue }
+    let version = match fields.get("platform_version") {
+      Some(String(v)) => v
+      _ => continue
+    }
+    let uploaded_at = match fields.get("uploaded_at") {
+      Some(String(v)) => v
+      _ => ""
+    }
+    result[name] = { platform_version: version, uploaded_at }
+  }
+  result
+}
+
+///|
+/// Persist a single skill's upload record (orig's record_upload! semantics:
+/// merge into the existing map and rewrite the file). `now` is unix seconds,
+/// formatted as ISO 8601 UTC. Write failures are non-fatal — metadata
+/// persistence must not break the upload flow (orig rescues StandardError).
+pub fn record_upload(
+  skills_dir : String,
+  skill_name : String,
+  platform_version : String,
+  now : Int,
+) -> Unit {
+  let meta = load_upload_meta(skills_dir)
+  meta[skill_name] = { platform_version, uploaded_at: format_iso8601(now) }
+  let root : Map[String, Json] = Map([])
+  for name, entry in meta {
+    root[name] = Json::object({
+      "platform_version": entry.platform_version.to_json(),
+      "uploaded_at": entry.uploaded_at.to_json(),
+    })
+  }
+  @utils.ensure_dir(skills_dir)
+  @fs.write_string_to_file(
+    upload_meta_path(skills_dir),
+    Json::object(root).stringify(),
+  ) catch {
+    _ => ()
+  }
+}

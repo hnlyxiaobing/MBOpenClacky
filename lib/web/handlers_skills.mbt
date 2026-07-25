@@ -61,18 +61,136 @@ fn find_skill_dir(name : String) -> (String, String)? {
 }
 
 ///|
-fn skill_description_of(content : String) -> String {
-  let (meta, _) = @skill.parse_frontmatter(content)
-  match meta.get("description") {
-    Some(d) => d
-    None => ""
+
+///|
+/// A skill found on disk by `scan_skills`.
+priv struct SkillScanEntry {
+  name : String
+  content : String
+  source : String
+  enabled : Bool
+}
+
+///|
+/// Extract the frontmatter description, defaulting to "" (orig's
+/// context_description is always a string in the API contract).
+fn fm_description(fields : Map[String, String]) -> String {
+  fields.get("description").unwrap_or("")
+}
+
+///|
+/// Render a frontmatter boolean key as JSON: true/false when present,
+/// null when absent or unparsable (matches orig's null default).
+fn fm_bool_json(fields : Map[String, String], key : String) -> Json {
+  match fields.get(key) {
+    Some(v) =>
+      if v.to_lower() == "true" {
+        true.to_json()
+      } else if v.to_lower() == "false" {
+        false.to_json()
+      } else {
+        Json::null()
+      }
+    None => Json::null()
   }
 }
 
 ///|
-/// Scan a skills directory, returning one JSON object per skill found.
-fn scan_skills(base_dir : String, source : String) -> Array[(String, Json)] {
-  let result : Array[(String, Json)] = []
+/// Render upload_meta (platform_version/uploaded_at) for a skill entry:
+/// real values when a publish record exists, null otherwise (orig's
+/// empty-value rule from fix-15/fix-16).
+fn upload_meta_fields(
+  meta : Map[String, @brand.UploadMeta],
+  name : String,
+) -> (Json, Json) {
+  match meta.get(name) {
+    Some(m) => (m.platform_version.to_json(), m.uploaded_at.to_json())
+    None => (Json::null(), Json::null())
+  }
+}
+
+///|
+/// Build one /api/skills entry aligned with the orig contract:
+/// { name, name_zh, description, description_zh, source, always_show,
+///   enabled, invalid, warnings, platform_version, uploaded_at,
+///   local_modified_at, shadowing_brand } (+ invalid_reason when invalid).
+/// Keys without a local data source follow the spec's empty-value rule:
+/// warnings is [], shadowing_brand is false, and local_modified_at is null
+/// (no file mtime API is available in this runtime). platform_version /
+/// uploaded_at come from the publish upload_meta store (fix-17).
+fn skill_list_entry_json(
+  entry : SkillScanEntry,
+  meta : Map[String, @brand.UploadMeta],
+) -> Json {
+  let (fields, _) = @skill.parse_frontmatter(entry.content)
+  let invalid = !fields.contains("name")
+  let (platform_version, uploaded_at) = upload_meta_fields(meta, entry.name)
+  let obj : Map[String, Json] = {
+    "name": entry.name.to_json(),
+    "name_zh": opt_str_json(fields.get("name_zh")),
+    "description": fm_description(fields).to_json(),
+    "description_zh": opt_str_json(fields.get("description_zh")),
+    "source": entry.source.to_json(),
+    "always_show": fm_bool_json(fields, "always_show"),
+    "enabled": entry.enabled.to_json(),
+    "invalid": invalid.to_json(),
+    "warnings": Json::array([]),
+    "platform_version": platform_version,
+    "uploaded_at": uploaded_at,
+    "local_modified_at": Json::null(),
+    "shadowing_brand": false.to_json(),
+  }
+  if invalid {
+    obj["invalid_reason"] = "missing 'name' in SKILL.md frontmatter".to_json()
+  }
+  Json::object(obj)
+}
+
+///|
+/// Build one local_skills entry for /api/creator/skills (orig contract:
+/// { name, description, source, enabled, platform_version, uploaded_at,
+///   local_modified_at, shadowing_brand }). platform_version / uploaded_at
+/// come from the publish upload_meta store (fix-17).
+fn creator_local_entry_json(
+  entry : SkillScanEntry,
+  meta : Map[String, @brand.UploadMeta],
+) -> Json {
+  let (fields, _) = @skill.parse_frontmatter(entry.content)
+  let (platform_version, uploaded_at) = upload_meta_fields(meta, entry.name)
+  Json::object({
+    "name": entry.name.to_json(),
+    "description": fm_description(fields).to_json(),
+    "source": entry.source.to_json(),
+    "enabled": entry.enabled.to_json(),
+    "platform_version": platform_version,
+    "uploaded_at": uploaded_at,
+    "local_modified_at": Json::null(),
+    "shadowing_brand": false.to_json(),
+  })
+}
+
+///|
+/// Build one /api/sessions/:id/skills entry (orig contract:
+/// { name, name_zh, description, description_zh, encrypted, source_type,
+///   always_show }). `encrypted` is always false: encrypted skills are not
+/// supported in this runtime.
+fn session_skill_entry_json(entry : SkillScanEntry) -> Json {
+  let (fields, _) = @skill.parse_frontmatter(entry.content)
+  Json::object({
+    "name": entry.name.to_json(),
+    "name_zh": opt_str_json(fields.get("name_zh")),
+    "description": fm_description(fields).to_json(),
+    "description_zh": opt_str_json(fields.get("description_zh")),
+    "encrypted": false.to_json(),
+    "source_type": entry.source.to_json(),
+    "always_show": fm_bool_json(fields, "always_show"),
+  })
+}
+
+///|
+/// Scan a skills directory, returning one entry per skill found.
+fn scan_skills(base_dir : String, source : String) -> Array[SkillScanEntry] {
+  let result : Array[SkillScanEntry] = []
   if !@fs.path_exists(base_dir) {
     return result
   }
@@ -84,17 +202,41 @@ fn scan_skills(base_dir : String, source : String) -> Array[(String, Json)] {
     }
     let content = @fs.read_file_to_string(md) catch { _ => continue }
     let enabled = !@fs.path_exists(base_dir + "/" + entry + "/.disabled")
-    result.push(
-      (
-        entry,
-        Json::object({
-          "name": entry.to_json(),
-          "description": skill_description_of(content).to_json(),
-          "source": source.to_json(),
-          "enabled": enabled.to_json(),
-        }),
-      ),
-    )
+    result.push({ name: entry, content, source, enabled })
+  }
+  result
+}
+
+///|
+/// Merged scan of builtin + user skills (user overrides builtin by name).
+fn merged_skill_scan() -> Array[SkillScanEntry] {
+  let merged : Map[String, SkillScanEntry] = Map([])
+  for entry in scan_skills(BUILTIN_SKILLS_DIR, "builtin") {
+    merged.set(entry.name, entry)
+  }
+  for entry in scan_skills(user_skills_dir(), "user") {
+    merged.set(entry.name, entry)
+  }
+  let result : Array[SkillScanEntry] = []
+  for _, v in merged {
+    result.push(v)
+  }
+  result
+}
+
+///|
+/// Session-scoped skills: the merged skill list filtered to user-invocable
+/// skills (frontmatter `user_invocable: false` excluded), each rendered in
+/// the orig session-skills shape.
+fn session_skills_json() -> Array[Json] {
+  let result : Array[Json] = []
+  for entry in merged_skill_scan() {
+    let (fields, _) = @skill.parse_frontmatter(entry.content)
+    match fields.get("user_invocable") {
+      Some(v) => if v.to_lower() == "false" { continue }
+      None => ()
+    }
+    result.push(session_skill_entry_json(entry))
   }
   result
 }
@@ -168,16 +310,11 @@ fn validated_name(request : HttpRequest) -> Result[String, HttpResponse] {
 /// GET /api/skills — List all available skills (user overrides builtin).
 pub fn handle_skills_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
-  let merged : Map[String, Json] = Map([])
-  for pair in scan_skills(BUILTIN_SKILLS_DIR, "builtin") {
-    merged.set(pair.0, pair.1)
-  }
-  for pair in scan_skills(user_skills_dir(), "user") {
-    merged.set(pair.0, pair.1)
-  }
+  let merged = merged_skill_scan()
+  let meta = @brand.load_upload_meta(user_skills_dir())
   let skills : Array[Json] = []
-  for _, v in merged {
-    skills.push(v)
+  for entry in merged {
+    skills.push(skill_list_entry_json(entry, meta))
   }
   HttpResponse::ok(
     Json::object({
@@ -458,17 +595,31 @@ pub fn handle_store_skills(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
-/// GET /api/creator/skills — List user-created skills.
+/// GET /api/creator/skills — Creator Studio skill listing.
+/// Response shape aligned with orig:
+///   { ok, licensed, cloud_skills, local_skills, platform_fetch_error }
+/// Without a platform backend, cloud_skills degrades to [] (identical to
+/// orig's unlicensed path) and platform_fetch_error is null. local_skills
+/// lists real user skills sorted by name; platform_version/uploaded_at are
+/// read from the publish upload_meta store (fix-17), and local_modified_at
+/// is null because no file mtime API exists in this runtime.
 pub fn handle_creator_skills(request : HttpRequest) -> HttpResponse {
   ignore(request)
-  let skills : Array[Json] = []
-  for pair in scan_skills(user_skills_dir(), "user") {
-    skills.push(pair.1)
+  let licensed = @brand.BrandConfig::load(brand_config_dir()).user_licensed()
+  let entries = scan_skills(user_skills_dir(), "user")
+  entries.sort_by(fn(a, b) { a.name.compare(b.name) })
+  let meta = @brand.load_upload_meta(user_skills_dir())
+  let local_skills : Array[Json] = []
+  for entry in entries {
+    local_skills.push(creator_local_entry_json(entry, meta))
   }
   HttpResponse::ok(
     Json::object({
-      "skills": Json::array(skills),
-      "total": skills.length().to_json(),
+      "ok": true.to_json(),
+      "licensed": licensed.to_json(),
+      "cloud_skills": Json::array([]),
+      "local_skills": Json::array(local_skills),
+      "platform_fetch_error": Json::null(),
     }).stringify(),
   )
 }

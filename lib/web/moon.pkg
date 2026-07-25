@@ -18,6 +18,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/media",
   "hnlyxiaobing/MBOpenClacky/lib/vision",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
+  "hnlyxiaobing/MBOpenClacky/lib/zip",
   "hnlyxiaobing/MBOpenClacky/lib/web/middleware" @mid,
   "hnlyxiaobing/MBOpenClacky/lib/web/broadcast",
   "hnlyxiaobing/MBOpenClacky/lib/web/protocol",
@@ -37,6 +38,6 @@ import {
 }
 
 options(
-  "native-stub": [ "git_exec.c" ],
+  "native-stub": [ "git_exec.c", "multipart_upload.c" ],
   link: { "native": { "cc-link-flags": "-lcurl" } },
 )

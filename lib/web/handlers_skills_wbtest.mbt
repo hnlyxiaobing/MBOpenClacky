@@ -77,10 +77,10 @@ test "json_bool_field extracts bool" {
   )
 }
 
-// ── Frontmatter description extraction ────────────────────────────
+// ── Frontmatter field extraction ────────────────────────────────────
 
 ///|
-test "skill_description_of parses frontmatter" {
+test "fm_description extracts frontmatter description" {
   let content =
     #|---
     #|name: demo
@@ -88,8 +88,87 @@ test "skill_description_of parses frontmatter" {
     #|---
     #|
     #|# Demo
-  @debug.assert_eq(skill_description_of(content), "A demo skill")
-  @debug.assert_eq(skill_description_of("no frontmatter here"), "")
+  let (fields, _) = @skill.parse_frontmatter(content)
+  @debug.assert_eq(fm_description(fields), "A demo skill")
+  let (empty_fields, _) = @skill.parse_frontmatter("no frontmatter here")
+  @debug.assert_eq(fm_description(empty_fields), "")
+}
+
+///|
+test "fm_bool_json renders true/false/null" {
+  let (fields, _) = @skill.parse_frontmatter(
+    (
+      #|---
+      #|name: demo
+      #|always_show: true
+      #|other_flag: nope
+      #|---
+    ),
+  )
+  @debug.assert_eq(fm_bool_json(fields, "always_show"), true.to_json())
+  @debug.assert_eq(fm_bool_json(fields, "missing"), Json::null())
+  @debug.assert_eq(fm_bool_json(fields, "other_flag"), Json::null())
+}
+
+///|
+test "skill_list_entry_json aligns with orig contract keys" {
+  let entry : SkillScanEntry = {
+    name: "demo",
+    content: (
+      #|---
+      #|name: demo
+      #|description: A demo skill
+      #|name_zh: 演示
+      #|description_zh: 演示技能
+      #|always_show: true
+      #|---
+      #|
+      #|# Demo
+    ),
+    source: "user",
+    enabled: true,
+  }
+  let j = skill_list_entry_json(entry, Map([]))
+  guard j is Object(obj)
+  // Orig contract keys (fix-15): all 13 must be present.
+  for
+    key in [
+      "name", "name_zh", "description", "description_zh", "source", "always_show",
+      "enabled", "invalid", "warnings", "platform_version", "uploaded_at", "local_modified_at",
+      "shadowing_brand",
+    ] {
+    assert_true(obj.contains(key))
+  }
+  @debug.assert_eq(obj.get("name"), Some("demo".to_json()))
+  @debug.assert_eq(obj.get("name_zh"), Some("演示".to_json()))
+  @debug.assert_eq(obj.get("description_zh"), Some("演示技能".to_json()))
+  @debug.assert_eq(obj.get("always_show"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("invalid"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("warnings"), Some(Json::array([])))
+  @debug.assert_eq(obj.get("platform_version"), Some(Json::null()))
+  @debug.assert_eq(obj.get("uploaded_at"), Some(Json::null()))
+  @debug.assert_eq(obj.get("shadowing_brand"), Some(false.to_json()))
+  // invalid_reason only present when invalid.
+  assert_false(obj.contains("invalid_reason"))
+}
+
+///|
+test "skill_list_entry_json marks entries without frontmatter name invalid" {
+  let entry : SkillScanEntry = {
+    name: "broken",
+    content: (
+      #|---
+      #|description: no name key
+      #|---
+    ),
+    source: "user",
+    enabled: true,
+  }
+  let j = skill_list_entry_json(entry, Map([]))
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("invalid"), Some(true.to_json()))
+  assert_true(obj.contains("invalid_reason"))
+  @debug.assert_eq(obj.get("name_zh"), Some(Json::null()))
 }
 
 // ── Handler behavior (uses real assets/skills, read-only cases) ───
@@ -102,6 +181,16 @@ test "handler: skills list returns real builtin skills" {
   assert_true(resp.body.contains("code-explorer"))
   assert_true(resp.body.contains("\"source\""))
   assert_false(resp.body.contains("\"total\":0"))
+  // fix-15: entries must carry the orig contract keys.
+  assert_true(resp.body.contains("\"name_zh\""))
+  assert_true(resp.body.contains("\"description_zh\""))
+  assert_true(resp.body.contains("\"always_show\""))
+  assert_true(resp.body.contains("\"warnings\""))
+  assert_true(resp.body.contains("\"invalid\""))
+  assert_true(resp.body.contains("\"platform_version\""))
+  assert_true(resp.body.contains("\"uploaded_at\""))
+  assert_true(resp.body.contains("\"local_modified_at\""))
+  assert_true(resp.body.contains("\"shadowing_brand\""))
 }
 
 ///|
@@ -196,11 +285,32 @@ test "handler: store skills returns metadata with installed flag" {
 }
 
 ///|
-test "handler: creator skills returns 200" {
+test "handler: creator skills matches orig five-key contract" {
   let req = HttpRequest::new(GET, "/api/creator/skills")
   let resp = handle_creator_skills(req)
   @debug.assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("\"skills\""))
+  let j : Json = @json.parse(resp.body) catch { _ => panic() }
+  guard j is Object(obj)
+  // fix-16: exactly the orig top-level keys.
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  assert_true(obj.contains("licensed"))
+  @debug.assert_eq(obj.get("cloud_skills"), Some(Json::array([])))
+  assert_true(obj.contains("local_skills"))
+  @debug.assert_eq(obj.get("platform_fetch_error"), Some(Json::null()))
+  // Old incompatible shape must be gone.
+  assert_false(obj.contains("skills"))
+  assert_false(obj.contains("total"))
+  guard obj.get("local_skills") is Some(Array(local_entries))
+  for entry in local_entries {
+    guard entry is Object(e)
+    for
+      key in [
+        "name", "description", "source", "enabled", "platform_version", "uploaded_at",
+        "local_modified_at", "shadowing_brand",
+      ] {
+      assert_true(e.contains(key))
+    }
+  }
 }
 
 // ── User skill lifecycle (create → content → toggle → delete) ────

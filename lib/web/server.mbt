@@ -543,14 +543,10 @@ pub fn WebServer::build_app(
       })
     })
 
-    // My-skills publish (spec-10: 501 not yet supported)
+    // My-skills publish (fix-17: full publish pipeline)
     api.group("/my-skills", (ms : @crescent.App) => {
-      ms.post("/:name/publish", _event => {
-        @core.HttpResponse::HttpResponse(
-          status_code=@core.StatusCode::NotImplemented,
-        ).json_value(
-          Json::object({ "error": "publish not yet supported".to_json() }),
-        )
+      ms.post("/:name/publish", event => {
+        handle_my_skill_publish_bridge(server_ref, event)
       })
     })
 

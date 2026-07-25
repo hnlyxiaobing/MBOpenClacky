@@ -657,7 +657,11 @@ fn handle_session_patch(
 
 ///|
 /// GET /api/sessions/:id/skills — List skills available in the session context.
-/// Returns the session's enabled skills and any workspace-local skills.
+/// Returns the merged builtin+user skill list filtered to user-invocable
+/// skills, each entry in the orig session-skills shape
+/// ({ name, name_zh, description, description_zh, encrypted, source_type,
+///    always_show }). Agent-profile based filtering from orig is not
+/// replicated: session agent profiles are not resolved here.
 fn handle_session_skills(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
@@ -669,12 +673,12 @@ fn handle_session_skills(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
-  // Return available skills from the skill registry.
-  // For now, session skills are the same as global skills (empty list).
-  // TODO(P3): integrate with skill registry for session-scoped skills.
   let _ = server_ref
   @core.HttpResponse::ok().json_value(
-    Json::object({ "session_id": id.to_json(), "skills": Json::array([]) }),
+    Json::object({
+      "session_id": id.to_json(),
+      "skills": Json::array(session_skills_json()),
+    }),
   )
 }
 
