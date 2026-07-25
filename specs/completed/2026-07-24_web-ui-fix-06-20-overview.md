@@ -64,8 +64,9 @@ fix-14、fix-18（I-023/I-024）、fix-17（任务包 0）含人工确认 gate
 ## 下一步
 
 1. ✅ 16 份文档对抗性审查已完成（全部通过，无否决项）。
-2. 三个人工确认 gate 待用户确认（fix-14/fix-17/fix-18），结论记入对应 spec 变更记录。
-3. 审查通过，移入 `specs/active/`，从 fix-06 开始开发。
+2. ✅ 三个人工确认 gate 已批准（fix-14/fix-17/fix-18），结论记入对应 spec 变更记录。
+3. ✅ 全部开发完成（2026-07-25）：fix-06 ~ fix-20 共 16 份 spec 全部实施完毕。`moon check` 0 errors；`moon test` 全量 3051/3051 通过；`docs/web-ui-issues.md` 39 项全部 Fixed、`docs/web-ui-gaps.md` 5 项全部 Done。批次遗留与新发现 10 项已记入 issues 文档"fix-10 ~ fix-20 批次遗留与新发现"节，建议另立 spec。
+4. ✅ 已归档至 `specs/completed/`。
 
 ## 变更记录
 
@@ -73,3 +74,4 @@ fix-14、fix-18（I-023/I-024）、fix-17（任务包 0）含人工确认 gate
 |------|---------|------|
 | 2026-07-24 | 初始版本 | fix-06 ~ fix-20 起草完成，建立批次索引 |
 | 2026-07-24 | 审核修正：对抗性审核完成（16 份文档全部验证）。发现并修正的关键问题：fix-06 品牌资产状态描述错误；fix-09 文件名引用错误（handlers_config.mbt 应为 handlers_extra.mbt）；fix-11 行号漂移（:1817->:1821）；fix-16 行号漂移（:461->:462）；fix-17 行号漂移（:546->:548）；fix-18 行号漂移（:206->:207）；fix-19 行号引用偏差（:129 为 save_schedule_state，GET handler 实际在 :262）；**fix-20 I-036 事实性错误**--BrowserStatus@browser_types.mbt:13-24 已含 chrome_version:String?@:16 且 derive(ToJson)，status 响应不缺此字段，标记为 false positive。安全发现：fix-18 license_key 通过 derive(ToJson) 明文泄露到 GET /api/brand。orig Ruby 逐行验证：fix-12/14/16/17/18/19 均对照 http_server.rb/scheduler.rb/browser_manager.rb 源码确认。3 个人工确认 gate（fix-14/fix-17/fix-18）已标注待确认。全部 spec 通过对抗性审核，无否决项。 | 对抗性审核 + 第一性原理校验（全量） |
+| 2026-07-25 | 批次开发完成：fix-10 ~ fix-20 全部实施（fix-06~09 已于 2026-07-24 完成）。moon check 0 errors、moon test 全量 3051/3051 通过。三个人工确认 gate 按 spec 决策节推荐方案批准实施。issues 39 项全 Fixed、gaps 5 项全 Done；10 项批次遗留/新发现记入 docs/web-ui-issues.md 另案处理。归档至 specs/completed/。 | 批次验收 + 归档 |

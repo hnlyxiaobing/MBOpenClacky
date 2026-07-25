@@ -7,13 +7,13 @@
 
 | Gap ID | 标题 | 严重度 | 状态 | 实施 Spec |
 |--------|------|--------|------|-----------|
-| G-001 | 前端基线落后原项目一个大版本（v1.4.0 vs v1.5.0） | P1 | ✅ Done | `specs/active/2026-07-24_web-ui-fix-06-frontend-v15-sync.md` |
-| G-002 | 技能发布到市场未实现（POST /api/my-skills/:name/publish 固定 501） | P2 | Open | — |
+| G-001 | 前端基线落后原项目一个大版本（v1.4.0 vs v1.5.0） | P1 | ✅ Done | `specs/completed/2026-07-24_web-ui-fix-06-frontend-v15-sync.md` |
+| G-002 | 技能发布到市场未实现（POST /api/my-skills/:name/publish 固定 501） | P2 | ✅ Done | `specs/completed/2026-07-24_web-ui-fix-17-skill-publish.md` |
 | ~~G-003~~ | ~~缺"公网绑定必须设访问密钥"的安全闸门~~ | ~~P1~~ | ✅ Done | `specs/completed/2026-07-24_web-ui-fix-05-public-binding-security.md` |
-| G-004 | 运行期间缺少 cost / latency 增量 session_update（WS） | P3 | ✅ Done | `specs/active/2026-07-24_web-ui-fix-08-ws-cost-latency-update.md` |
-| G-005 | 手动任务文件概念缺失（cron 列表只含调度条目） | P2 | Open | — |
+| G-004 | 运行期间缺少 cost / latency 增量 session_update（WS） | P3 | ✅ Done | `specs/completed/2026-07-24_web-ui-fix-08-ws-cost-latency-update.md` |
+| G-005 | 手动任务文件概念缺失（cron 列表只含调度条目） | P2 | ✅ Done | `specs/completed/2026-07-24_web-ui-fix-19-cron-manual-task-files.md` |
 
-**汇总**：5 项差距 — ✅ 已解决 3 项 / ❌ 待解决 2 项
+**汇总**：5 项差距 — ✅ 已解决 5 项 / ❌ 待解决 0 项
 
 ---
 
@@ -25,13 +25,13 @@
 - 影响：v1.5.0 前端新面板/新交互（reload-header、Advanced options、Extensions Brand 过滤、Background 主题等）已随升级到位。
 - 状态：✅ Done（2026-07-24，fix-06）
 
-## ❌ G-002 技能发布到市场未实现（POST /api/my-skills/:name/publish 固定 501）
+## ✅ G-002 技能发布到市场未实现（POST /api/my-skills/:name/publish 固定 501）
 
 - 严重度：P2
 - 端点：`POST /api/my-skills/:name/publish`
 - 原项目行为：发布我的技能到市场（`openclacky/lib/clacky/server/http_server.rb:745`，handler :5295）。
-- 当前项目行为：路由存在但固定返回 501（`lib/web/server.mbt:546-554`），前端 Skills 面板的"发布"操作无法走通。
-- 状态：Open
+- 修复内容（2026-07-25，fix-17）：501 stub 替换为真实五步流程（licensed 门卫 → 技能存在性 → builtin/source 校验 → ZIP 构建（排除清单对齐 orig）→ HMAC-SHA256 签名 + multipart 上传）；新增 `lib/web/handlers_publish.mbt`、二进制安全 multipart FFI（`multipart_upload.c`）、`lib/brand/config.mbt` 的 upload_meta 读写；skills/creator 条目的 platform_version/uploaded_at 接入 upload_meta。平台 base URL 默认 orig PRIMARY_HOST，`MBOPENCLACKY_PLATFORM_URL` 可覆盖。残留：真实平台联通性需有效 license 环境端到端实测。
+- 状态：✅ Done（2026-07-25，fix-17，人工确认 gate 已批准）
 
 ## ✅ G-003 缺"公网绑定必须设访问密钥"的安全闸门
 
@@ -49,16 +49,15 @@
 - 原项目行为：LLM 调用完成前后推送两个 partial `session_update`：`{"cost":..,"cost_source":..}` 与 `{"latency":{ttft_ms,duration_ms,output_tokens,tps,...}}`。
 - 当前项目行为：只有 `{"status":...}` 两类 partial 帧，无 cost/latency 增量。前端 shape-2 分支（ws-dispatcher.js:249-255）原生支持这四个字段，补发即可生效。
 - 证据：`logs/web-compare/2026-07-24/ws-events.json` orig step 9 第 6-7 帧 vs current step 9；findings-ws.md WS-008
-- 状态：✅ Done（2026-07-24，fix-08）。在 UsageUpdated hook 处补发 cost `{cost, cost_source}` 与 latency `{latency: {ttft_ms, duration_ms, output_tokens, tps}}` 两帧 partial session_update；delta_tokens=0 时与 token_usage 一并抑制。Spec：`specs/active/2026-07-24_web-ui-fix-08-ws-cost-latency-update.md`
+- 状态：✅ Done（2026-07-24，fix-08）。在 UsageUpdated hook 处补发 cost `{cost, cost_source}` 与 latency `{latency: {ttft_ms, duration_ms, output_tokens, tps}}` 两帧 partial session_update；delta_tokens=0 时与 token_usage 一并抑制。Spec：`specs/completed/2026-07-24_web-ui-fix-08-ws-cost-latency-update.md`
 
-## ❌ G-005 手动任务文件概念缺失（cron 列表只含调度条目）
+## ✅ G-005 手动任务文件概念缺失（cron 列表只含调度条目）
 
 - 严重度：P2
 - 范围：`GET /api/cron-tasks` / 定时任务面板
 - 原项目行为：cron 列表合并"手动任务文件"（无调度的 prompt 任务文件，`scheduled=false`），与调度条目一起展示（`openclacky/lib/clacky/server/scheduler.rb:129-145`，任务文件可读、可在会话中运行）。
-- 当前项目行为：仅列出调度器条目（`schedule_state.val.scheduler.list_schedules()`），无任务文件概念。
-- 证据：fix-04 spec 审核验证记录（2026-07-24）
-- 状态：Open
+- 修复内容（2026-07-25，fix-19）：`tasks_dir` 默认值落实为 `~/.mbopenclacky/tasks/`；`handle_schedules_list` 末尾合并 `scheduled=false` 手动任务文件条目（按文件名排序，对齐 orig）；调度条目内容改为"任务文件优先、messages 缓存兜底"。残留：手动条目的创建/更新/删除无 web 入口（DELETE 404），另案。
+- 状态：✅ Done（2026-07-25，fix-19）
 
 ---
 
