@@ -421,20 +421,103 @@ fn handle_list_tools(
 // ── Config Handlers ─────────────────────────────────────────────
 
 ///|
+/// Kinds managed via the dedicated media/OCR config UI. The original
+/// `api_get_config` rejects these from the chat-model card list.
+let config_media_managed_kinds : Array[String] = [
+  "image", "video", "audio", "stt", "video_understanding", "ocr",
+]
+
+///|
+/// Whether a model entry is managed via the media/OCR config UI rather
+/// than the chat-model card list (orig `api_get_config` parity).
+fn config_model_is_media_managed(m : @config.ModelConfig) -> Bool {
+  fn tagged(t : String?) -> Bool {
+    match t {
+      Some(v) => config_media_managed_kinds.contains(v)
+      None => false
+    }
+  }
+
+  tagged(m.media_type) || tagged(m.type_)
+}
+
+///|
+/// Capability summary for the model dropdown's footer, mirroring Ruby
+/// `media_capabilities_payload`: `vision` follows the OCR sidecar state
+/// (`primary` needs vision-capability detection MoonBit lacks -> false),
+/// the media kinds report configured + model.
+fn media_capabilities_json(cfg : @config.AgentConfig) -> Json {
+  let caps : Map[String, Json] = Map([])
+  let ocr = cfg.find_model_by_type("ocr")
+  caps["vision"] = Json::object({
+    "configured": (ocr is Some(_)).to_json(),
+    "primary": false.to_json(),
+    "model": config_media_opt_str(ocr.map(fn(m) { m.model })),
+  })
+  for kind in ["image", "video", "audio", "stt", "video_understanding"] {
+    let entry = cfg.find_model_by_type(kind)
+    caps[kind] = Json::object({
+      "configured": (entry is Some(_)).to_json(),
+      "model": config_media_opt_str(entry.map(fn(m) { m.model })),
+    })
+  }
+  Json::object(caps)
+}
+
+///|
 /// GET /api/config
+/// Mirrors Ruby `api_get_config`: models carry their raw-list `index` and
+/// the response adds `current_id` / `current_index` / `media_capabilities`.
+/// Pre-existing keys (permission_mode, max_tokens, verbose,
+/// current_model_id) are kept for the PUT round-trip and other clients.
 fn handle_get_config(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let cfg = server_ref.val.config
-  let response = ConfigResponse::{
-    permission_mode: permission_mode_str(cfg.permission_mode),
-    max_tokens: cfg.max_tokens,
-    verbose: cfg.verbose,
-    current_model_id: cfg.current_model_id,
-    models: cfg.models,
+  let models_json : Array[Json] = []
+  for i = 0; i < cfg.models.length(); i = i + 1 {
+    let m = cfg.models[i]
+    // Media/OCR entries are managed via the dedicated media-config UI,
+    // not the chat-model card list (orig `api_get_config` parity). The
+    // index still refers to the position in the raw models array.
+    if config_model_is_media_managed(m) {
+      continue
+    }
+    match model_to_web_json(m) {
+      Object(o) => {
+        o["index"] = i.to_json()
+        models_json.push(Json::object(o))
+      }
+      _ => ()
+    }
   }
-  @core.HttpResponse::ok().json_value(ToJson::to_json(response))
+  let mut current_index = 0
+  let mut current_id : Json = Json::null()
+  match cfg.current_model() {
+    Some(cur) => {
+      current_id = cur.id.to_json()
+      for i = 0; i < cfg.models.length(); i = i + 1 {
+        if cfg.models[i].id == cur.id {
+          current_index = i
+          break
+        }
+      }
+    }
+    None => ()
+  }
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "models": models_json.to_json(),
+      "current_index": current_index.to_json(),
+      "current_id": current_id,
+      "media_capabilities": media_capabilities_json(cfg),
+      "permission_mode": permission_mode_str(cfg.permission_mode).to_json(),
+      "max_tokens": cfg.max_tokens.to_json(),
+      "verbose": cfg.verbose.to_json(),
+      "current_model_id": cfg.current_model_id.to_json(),
+    }),
+  )
 }
 
 ///|

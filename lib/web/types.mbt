@@ -394,21 +394,6 @@ impl ToJson for InfoResponse with fn to_json(self) {
 }
 
 ///|
-impl ToJson for ConfigResponse with fn to_json(self) {
-  let models_json : Array[Json] = []
-  for m in self.models {
-    models_json.push(model_to_web_json(m))
-  }
-  Json::object({
-    "permission_mode": self.permission_mode.to_json(),
-    "max_tokens": self.max_tokens.to_json(),
-    "verbose": self.verbose.to_json(),
-    "current_model_id": self.current_model_id.to_json(),
-    "models": models_json.to_json(),
-  })
-}
-
-///|
 impl ToJson for ModelListResponse with fn to_json(self) {
   let models_json : Array[Json] = []
   for m in self.models {

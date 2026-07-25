@@ -625,102 +625,178 @@ fn media_remove_model(config : @config.AgentConfig, kind : String) -> Unit {
 }
 
 ///|
-/// GET /api/config/ocr — Get current OCR configuration.
-fn handle_config_ocr_get(
-  server_ref : Ref[WebServer],
-  _event : @crescent.Event,
-) -> @core.HttpResponse {
-  let config = server_ref.val.config
-  match config.find_model_by_type("ocr") {
-    Some(mc) =>
-      @core.HttpResponse::ok().json_value(
-        Json::object({
-          "ok": true.to_json(),
-          "source": "custom".to_json(),
-          "model": mc.model.to_json(),
-          "base_url": mc.base_url.to_json(),
-        }),
-      )
+/// Find an explicitly user-configured media/OCR model entry.
+/// Unlike `AgentConfig::find_model_by_type` this does NOT fall back to
+/// provider-derived virtual entries, so callers can distinguish "custom"
+/// from "auto" per the original Ruby `media_state` semantics.
+fn config_media_find_explicit(
+  config : @config.AgentConfig,
+  kind : String,
+) -> @config.ModelConfig? {
+  for m in config.models {
+    match m.media_type {
+      Some(mt) if mt == kind => return Some(m)
+      _ => ()
+    }
+    // Also check type_ field for backward compat (same as find_model_by_type).
+    match m.type_ {
+      Some(t) if t == kind => return Some(m)
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
+/// Resolve the tri-state (source, entry) for a media kind or "ocr",
+/// mirroring Ruby `AgentConfig#media_state`: custom -> auto -> off.
+fn config_media_source_entry(
+  config : @config.AgentConfig,
+  kind : String,
+) -> (String, @config.ModelConfig?) {
+  match config_media_find_explicit(config, kind) {
+    Some(mc) => ("custom", Some(mc))
     None =>
-      match config.derive_media_model("ocr") {
-        Some(mc) =>
-          @core.HttpResponse::ok().json_value(
-            Json::object({
-              "ok": true.to_json(),
-              "source": "auto".to_json(),
-              "model": mc.model.to_json(),
-              "base_url": mc.base_url.to_json(),
-            }),
-          )
-        None =>
-          @core.HttpResponse::ok().json_value(
-            Json::object({
-              "ok": true.to_json(),
-              "source": "off".to_json(),
-              "model": "".to_json(),
-              "base_url": "".to_json(),
-            }),
-          )
+      match config.derive_media_model(kind) {
+        Some(mc) => ("auto", Some(mc))
+        None => ("off", None)
       }
   }
 }
 
 ///|
+/// Resolve the provider id for a base_url via the preset table, or None
+/// when the URL is not a known provider. Mirrors Ruby `Providers.resolve_provider`.
+fn config_media_provider_id(base_url : String) -> String? {
+  match @config.Providers::resolve(base_url) {
+    Some(p) => Some(p.id)
+    None => None
+  }
+}
+
+///|
+/// Serialize an optional string as a plain JSON string or null.
+fn config_media_opt_str(s : String?) -> Json {
+  match s {
+    Some(v) => v.to_json()
+    None => Json::null()
+  }
+}
+
+///|
+/// Build the per-kind media state object, mirroring Ruby `api_get_media_config`'s
+/// per-kind payload (`AgentConfig#media_state`). Keys without a MoonBit data
+/// source follow the spec convention: available/aliases are empty and
+/// stale/requested_model are false/null (provider media-model catalogs and
+/// alias tables are not ported yet).
+fn media_state_json(config : @config.AgentConfig, kind : String) -> Json {
+  let (source, entry) = config_media_source_entry(config, kind)
+  let provider = match entry {
+    Some(e) => config_media_provider_id(e.base_url)
+    None => None
+  }
+  Json::object({
+    "source": source.to_json(),
+    "model": config_media_opt_str(entry.map(fn(e) { e.model })),
+    "base_url": config_media_opt_str(entry.map(fn(e) { e.base_url })),
+    "api_key_masked": config_media_opt_str(
+      entry.map(fn(e) { web_mask_api_key(e.api_key) }),
+    ),
+    "provider": config_media_opt_str(provider),
+    "available": ([] : Array[Json]).to_json(),
+    "aliases": Json::object(Map([])),
+    "stale": false.to_json(),
+    "requested_model": Json::null(),
+    "configured": (entry is Some(_)).to_json(),
+  })
+}
+
+///|
+/// Auto-mode preview for a media kind: what "auto" would resolve to via
+/// MoonBit's derivation path (anchored on the current model). The frontend
+/// enables the "auto" button only when `model` is non-null. available/aliases
+/// have no preset data source -> empty. `with_aliases` distinguishes the
+/// media payload (has `aliases`) from the OCR one (does not).
+fn media_default_provider_json(
+  config : @config.AgentConfig,
+  kind : String,
+  with_aliases~ : Bool,
+) -> Json {
+  let preview = config.derive_media_model(kind)
+  let provider = match preview {
+    Some(e) => config_media_provider_id(e.base_url)
+    None => None
+  }
+  let obj : Map[String, Json] = Map([])
+  obj["provider"] = config_media_opt_str(provider)
+  obj["model"] = config_media_opt_str(preview.map(fn(e) { e.model }))
+  obj["available"] = ([] : Array[Json]).to_json()
+  if with_aliases {
+    obj["aliases"] = Json::object(Map([]))
+  }
+  Json::object(obj)
+}
+
+///|
+/// GET /api/config/ocr — Get current OCR configuration.
+/// Mirrors Ruby `api_get_ocr_config`: `{ ocr: {...}, default_provider: {...} }`
+/// (no top-level `ok` in the original contract).
+fn handle_config_ocr_get(
+  server_ref : Ref[WebServer],
+  _event : @crescent.Event,
+) -> @core.HttpResponse {
+  let config = server_ref.val.config
+  let (source, entry) = config_media_source_entry(config, "ocr")
+  let provider = match entry {
+    Some(e) => config_media_provider_id(e.base_url)
+    None => None
+  }
+  let ocr = Json::object({
+    "source": source.to_json(),
+    "model": config_media_opt_str(entry.map(fn(e) { e.model })),
+    "base_url": config_media_opt_str(entry.map(fn(e) { e.base_url })),
+    "api_key_masked": config_media_opt_str(
+      entry.map(fn(e) { web_mask_api_key(e.api_key) }),
+    ),
+    "provider": config_media_opt_str(provider),
+    "available": ([] : Array[Json]).to_json(),
+    "stale": false.to_json(),
+    "requested_model": Json::null(),
+    "configured": (entry is Some(_)).to_json(),
+    // `primary` marks "the chat model itself handles vision"; MoonBit has no
+    // vision-capability detection for that path, so it is always false.
+    "primary": false.to_json(),
+  })
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "ocr": ocr,
+      "default_provider": media_default_provider_json(
+        config,
+        "ocr",
+        with_aliases=false,
+      ),
+    }),
+  )
+}
+
+///|
 /// GET /api/config/media - Get all media configurations at once.
-/// Returns { media: { image: {...}, video: {...}, ... }, default_provider: {...} }
+/// Mirrors Ruby `api_get_media_config`:
+/// `{ media: { kind: {...} }, default_provider: { kind: {...} } }`.
 fn handle_config_media_all(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let config = server_ref.val.config
   let media : Map[String, Json] = Map([])
-  for kind in ["image", "video", "audio", "stt", "video_understanding"] {
-    let entry = match config.find_model_by_type(kind) {
-      Some(mc) =>
-        Json::object({
-          "source": "custom".to_json(),
-          "model": mc.model.to_json(),
-          "base_url": mc.base_url.to_json(),
-          "configured": true.to_json(),
-        })
-      None =>
-        match config.derive_media_model(kind) {
-          Some(mc) =>
-            Json::object({
-              "source": "auto".to_json(),
-              "model": mc.model.to_json(),
-              "base_url": mc.base_url.to_json(),
-              "configured": false.to_json(),
-            })
-          None =>
-            Json::object({
-              "source": "off".to_json(),
-              "model": "".to_json(),
-              "base_url": "".to_json(),
-              "configured": false.to_json(),
-            })
-        }
-    }
-    media[kind] = entry
-  }
-  // default_provider: derive from first model with media_type
   let default_provider : Map[String, Json] = Map([])
-  let mut found_default = false
-  for m in config.models {
-    match m.media_type {
-      Some(mt) => {
-        default_provider["model"] = m.model.to_json()
-        default_provider["base_url"] = m.base_url.to_json()
-        default_provider["kind"] = mt.to_json()
-        found_default = true
-        break
-      }
-      _ => ()
-    }
-  }
-  if !found_default {
-    default_provider["model"] = "".to_json()
-    default_provider["base_url"] = "".to_json()
+  for kind in ["image", "video", "audio", "stt", "video_understanding"] {
+    media[kind] = media_state_json(config, kind)
+    default_provider[kind] = media_default_provider_json(
+      config,
+      kind,
+      with_aliases=true,
+    )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({

@@ -1831,77 +1831,74 @@ fn save_pinned_map(m : Map[String, Bool]) -> Result[Unit, String] {
 // ── Settings alias (/api/config/settings) ─────────────────
 
 ///|
-/// GET /api/config/settings — settings with contract defaults overlaid.
-/// Returns the same shape as the PATCH response ({ok, settings}), with the
-/// original contract fields (enable_compression, enable_prompt_caching,
-/// memory_update_enabled, proxy_url) defaulted when absent from storage.
+/// GET /api/config/settings — advanced settings, flat shape.
+/// Mirrors Ruby `api_get_settings`: `{ ok, enable_compression,
+/// enable_prompt_caching, memory_update_enabled, proxy_url }`, read directly
+/// from the live `@config.AgentConfig` (the four switches are real config
+/// fields, not a storage-JSON side channel).
 fn handle_config_settings_get(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  match extra_path("settings.json") {
-    Some(p) => {
-      // Contract field defaults (aligned with @config.AgentConfig defaults).
-      let defaults = Json::object({
-        "enable_compression": true.to_json(),
-        "enable_prompt_caching": true.to_json(),
-        "memory_update_enabled": false.to_json(),
-        "proxy_url": "".to_json(),
-      })
-      let mut stored : Json = Json::object(Map([]))
-      let arr = load_array(p)
-      for e in arr {
-        match e {
-          Object(_) => stored = e
-          _ => ()
-        }
-      }
-      let merged = merge_objects(defaults, stored)
-      @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "settings": merged }),
-      )
-    }
-    None => err_no_config()
-  }
+  let cfg = server_ref.val.config
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "ok": true.to_json(),
+      "enable_compression": cfg.enable_compression.to_json(),
+      "enable_prompt_caching": cfg.enable_prompt_caching.to_json(),
+      "memory_update_enabled": cfg.memory_update_enabled.to_json(),
+      "proxy_url": cfg.proxy_url.to_json(),
+    }),
+  )
 }
 
 ///|
-/// PATCH /api/config/settings — merge partial settings (PATCH semantics).
-/// Same as PUT but semantically partial update.
+/// PATCH /api/config/settings — update advanced settings (partial update).
+/// Mirrors Ruby `api_update_settings`: only the four known switches are
+/// applied, the config is persisted, and the response is `{ ok: true }`.
 fn handle_config_settings_patch(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let body : Json = event.req.body() catch { _ => return bad_json() }
-  match body {
-    Object(_) => ()
+  let obj = match body {
+    Object(o) => o
     _ =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": "settings object required".to_json() }),
       )
   }
-  match extra_path("settings.json") {
-    Some(p) => {
-      // Load existing settings.
-      let mut existing : Json = Json::object(Map([]))
-      let arr = load_array(p)
-      for e in arr {
-        match e {
-          Object(_) => existing = e
-          _ => ()
-        }
-      }
-      // Deep merge: body overrides existing.
-      let merged = merge_objects(existing, body)
-      match save_array(p, [merged]) {
-        Ok(_) =>
-          @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "settings": merged }),
-          )
-        Err(e) => err_msg(e)
-      }
+  let cfg = server_ref.val.config
+  fn bool_field(key : String) -> Bool? {
+    match obj.get(key) {
+      Some(True) => Some(true)
+      Some(False) => Some(false)
+      _ => None
     }
-    None => err_no_config()
+  }
+
+  match bool_field("enable_compression") {
+    Some(v) => cfg.enable_compression = v
+    None => ()
+  }
+  match bool_field("enable_prompt_caching") {
+    Some(v) => cfg.enable_prompt_caching = v
+    None => ()
+  }
+  match bool_field("memory_update_enabled") {
+    Some(v) => cfg.memory_update_enabled = v
+    None => ()
+  }
+  match obj.get("proxy_url") {
+    Some(String(s)) => cfg.proxy_url = s.trim().to_owned()
+    _ => ()
+  }
+  match persist_agent_config(cfg) {
+    Ok(_) =>
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "ok": true.to_json() }),
+      )
+    Err(msg) => return err_config_persist(msg)
   }
 }
 
