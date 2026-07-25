@@ -37,3 +37,12 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/async/socket",
 }
+
+options(
+  // lib/web white-box tests link lib/brand's libbrand.a, whose crypto_native.c
+  // calls OpenSSL (RAND_bytes/EVP_*). moon does NOT propagate a dependency
+  // package's cc-link-flags to a dependent's test-executable link, so lib/web
+  // must declare -lcrypto itself (cmd and lib/brand/moon.pkg do the same).
+  // Windows: BCrypt is auto-linked via #pragma comment in crypto_native.c.
+  link: { "native": { "cc-link-flags": "-lcrypto" } },
+)
