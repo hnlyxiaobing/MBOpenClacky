@@ -55,13 +55,31 @@ fn license_status_json(status : @brand.LicenseStatus) -> Json {
 
 ///|
 /// GET /api/brand/config — Return the current brand configuration.
+/// Returns exactly the orig 13-key shape (null for unset strings, false for
+/// unset booleans). Internal fields such as license_key are never exposed.
 fn handle_brand_config(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let dir = brand_config_dir()
   let cfg = @brand.BrandConfig::load(dir)
-  @core.HttpResponse::ok().json_value(cfg.to_json())
+  @core.HttpResponse::ok().json_value(
+    Json::object({
+      "product_name": opt_str_json(cfg.product_name),
+      "package_name": opt_str_json(cfg.package_name),
+      "logo_url": opt_str_json(cfg.logo_url),
+      "support_contact": opt_str_json(cfg.support_contact),
+      "support_qr_url": opt_str_json(cfg.support_qr_url),
+      "theme_color": opt_str_json(cfg.theme_color),
+      "homepage_url": opt_str_json(cfg.homepage_url),
+      "branded": cfg.is_branded().to_json(),
+      "activated": cfg.activated().to_json(),
+      "expired": cfg.expired(now_seconds()).to_json(),
+      "license_expires_at": opt_str_json(cfg.license_expires_at),
+      "user_licensed": cfg.user_licensed().to_json(),
+      "license_user_id": opt_str_json(cfg.license_user_id),
+    }),
+  )
 }
 
 ///|

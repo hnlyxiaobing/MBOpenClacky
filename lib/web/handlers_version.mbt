@@ -10,6 +10,11 @@ const VERSION : String = "0.1.0"
 /// GitHub API URL for the latest openclacky release.
 const GITHUB_LATEST_URL : String = "https://api.github.com/repos/moonbit-community/MBOpenClacky/releases/latest"
 
+///|
+/// TTL (seconds) for the in-process latest-version cache; mirrors orig's
+/// fetch_latest_version_cached (1 hour).
+const LATEST_VERSION_CACHE_TTL : Int = 3600
+
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
@@ -117,17 +122,61 @@ fn fetch_latest_version() -> Result[String, String] {
   }
 }
 
+///|
+/// In-process cache for the latest release version: (latest, checked_at).
+/// Failures are cached too (latest=None) to avoid hammering the remote.
+let latest_version_cache : Ref[(String?, Int)] = Ref((None, 0))
+
+///|
+/// Fetch the latest released version with a 1-hour in-process TTL cache
+/// (mirrors orig's fetch_latest_version_cached). Returns None on remote
+/// failure. Only GET /api/version uses this; POST /api/version/check and
+/// /upgrade always hit the remote directly for a real-time answer.
+fn fetch_latest_version_cached(now : Int) -> String? {
+  let (cached, checked_at) = latest_version_cache.val
+  if checked_at > 0 && now - checked_at < LATEST_VERSION_CACHE_TTL {
+    return cached
+  }
+  let latest = match fetch_latest_version() {
+    Ok(v) => Some(v)
+    Err(_) => None
+  }
+  latest_version_cache.val = (latest, now)
+  latest
+}
+
 // ── Handlers ──────────────────────────────────────────────────────
 
 ///|
 /// GET /api/version
-/// Returns current version info without performing a remote check.
+/// Returns the orig five keys (current/latest/needs_update/launcher/
+/// cli_command) alongside the legacy current_version/version/
+/// available_update/changelog keys. `latest` comes from a 1-hour TTL cache.
 fn handle_version_info(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
+  let latest = fetch_latest_version_cached(now_seconds())
+  let needs_update = match latest {
+    Some(v) => version_is_newer(VERSION, v)
+    None => false
+  }
+  let cfg = @brand.BrandConfig::load(brand_config_dir())
+  let cli_command = match cfg.package_name {
+    Some(p) if cfg.is_branded() && !p.is_empty() => p
+    _ => "mbopenclacky"
+  }
+  let launcher = match @sys.get_env_var("CLACKY_LAUNCHER") {
+    Some(v) if !v.is_empty() => v
+    _ => "cli"
+  }
   @core.HttpResponse::ok().json_value(
     Json::object({
+      "current": VERSION.to_json(),
+      "latest": opt_str_json(latest),
+      "needs_update": needs_update.to_json(),
+      "launcher": launcher.to_json(),
+      "cli_command": cli_command.to_json(),
       "current_version": VERSION.to_json(),
       "version": VERSION.to_json(),
       "available_update": Json::null(),

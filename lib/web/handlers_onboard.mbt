@@ -204,12 +204,32 @@ fn save_onboard_state(j : Json) -> Unit {
 
 ///|
 /// GET /api/onboard/status
+/// Returns the persisted onboard state plus the orig gate fields:
+/// needs_onboard / phase ("key_setup" only when needs_onboard) / branded.
 fn handle_onboard_status(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let state = load_onboard_state()
-  @core.HttpResponse::ok().json_value(state)
+  let config = server_ref.val.config
+  let models_configured = !config.models.is_empty() &&
+    config.current_model() is Some(_)
+  let needs_onboard = !models_configured
+  let cfg = @brand.BrandConfig::load(brand_config_dir())
+  let fields : Map[String, Json] = Map([])
+  match state {
+    Object(obj) =>
+      for k, v in obj {
+        fields[k] = v
+      }
+    _ => ()
+  }
+  fields["needs_onboard"] = needs_onboard.to_json()
+  if needs_onboard {
+    fields["phase"] = "key_setup".to_json()
+  }
+  fields["branded"] = cfg.is_branded().to_json()
+  @core.HttpResponse::ok().json_value(Json::object(fields))
 }
 
 ///|
