@@ -70,7 +70,7 @@ fn handle_media_transcription(
 
 ///|
 /// POST /api/media/video/understand
-fn handle_media_video_understand(
+async fn handle_media_video_understand(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

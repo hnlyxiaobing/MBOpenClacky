@@ -81,7 +81,7 @@ fn get_ws_state(session_id : String) -> WsSessionState {
 /// Handle WebSocket events for /ws (single-endpoint protocol).
 /// Unlike the legacy /ws/sessions/:id, this handler does NOT auto-subscribe
 /// on connect. The client must send a `subscribe` message to bind to a session.
-fn handle_ws_global(
+async fn handle_ws_global(
   server_ref : Ref[WebServer],
   event : @ws.WebSocketEvent,
 ) -> Unit {
@@ -375,7 +375,7 @@ fn handle_ws_interrupt(
 /// Handle message (chat) message.
 /// Format: {"type": "message", "session_id": "...", "content": "..."}
 /// Echoes the user message and starts an async agent run.
-fn handle_ws_message(
+async fn handle_ws_message(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
   conn_id : String,
@@ -399,7 +399,7 @@ fn handle_ws_message(
 /// Format: {"type": "edit_message", "session_id": "...", "content": "..."}
 /// Replaces the last user message in the agent history (dropping everything
 /// after it) and re-runs the agent.
-fn handle_ws_edit_message(
+async fn handle_ws_edit_message(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
   conn_id : String,
@@ -504,7 +504,7 @@ fn deliver_confirmation(
 /// (e.g. cron task run). The task content is already associated with the
 /// session on the server side; if a `task` field is present it is used
 /// directly as the message.
-fn handle_ws_run_task(
+async fn handle_ws_run_task(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
   conn_id : String,
@@ -895,7 +895,7 @@ fn handle_ws_feedback(
 /// Start an agent run for a session. Registers hooks/confirmation bridge,
 /// echoes the user message, clears the cancel flag, and dispatches the run
 /// to a background async task so the WS read loop returns immediately.
-fn start_ws_run(
+async fn start_ws_run(
   server_ref : Ref[WebServer],
   session_id : String,
   message : String,
@@ -995,9 +995,9 @@ async fn run_ws_agent(
 }
 
 ///|
-/// Synchronous fallback of run_ws_agent for contexts without a task group
+/// Fallback of run_ws_agent for contexts without a task group
 /// (unit tests dispatching events without a running server).
-fn run_ws_agent_blocking(
+async fn run_ws_agent_blocking(
   server_ref : Ref[WebServer],
   session_id : String,
   agent : @agent.Agent,

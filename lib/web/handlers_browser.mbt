@@ -16,7 +16,7 @@ pub fn handle_browser_status(
 
 ///|
 /// POST /api/browser/start — Start the browser daemon.
-pub fn handle_browser_start(
+pub async fn handle_browser_start(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -37,7 +37,7 @@ pub fn handle_browser_start(
 
 ///|
 /// POST /api/browser/stop — Stop the browser daemon.
-pub fn handle_browser_stop(
+pub async fn handle_browser_stop(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -58,7 +58,7 @@ pub fn handle_browser_stop(
 
 ///|
 /// POST /api/browser/navigate — Navigate browser to a URL via MCP.
-pub fn handle_browser_navigate(
+pub async fn handle_browser_navigate(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -79,7 +79,7 @@ pub fn handle_browser_navigate(
 
 ///|
 /// POST /api/browser/screenshot — Take a screenshot of the current page via MCP.
-pub fn handle_browser_screenshot(
+pub async fn handle_browser_screenshot(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -131,7 +131,7 @@ pub fn handle_browser_configure(
 
 ///|
 /// POST /api/browser/reload — Reload the browser daemon (stop + reload config + start).
-pub fn handle_browser_reload(
+pub async fn handle_browser_reload(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -165,7 +165,7 @@ pub fn handle_browser_toggle(
 ///|
 /// POST /api/tool/browser — Proxy an arbitrary MCP tool call to the browser daemon.
 /// Expected body: { "tool": "<tool_name>", "arguments": { ... } }
-pub fn handle_browser_tool_call(
+pub async fn handle_browser_tool_call(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

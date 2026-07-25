@@ -2,6 +2,11 @@
  * Time stub for MBOpenClacky: local UTC offset detection only.
  * Millisecond timestamps and ISO 8601 formatting are handled by
  * moonbitlang/core/env and moonbitlang/x/time respectively.
+ *
+ * RETAINED (S-FFI-08, specs/completed/2026-07-25_ffi-08-residual-ffi-pty.md):
+ * local timezone offset is the one remaining time API with no official
+ * MoonBit equivalent (docs/ffi-c-code-report.md "FFI 必要性总结": 系统时钟 —
+ * 仅"本地时区"成立; §2 lib/agent). Do not extend this file with new FFI.
  */
 
 #include <stdint.h>

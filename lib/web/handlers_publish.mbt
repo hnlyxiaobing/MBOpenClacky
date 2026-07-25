@@ -238,7 +238,7 @@ fn parse_upload_response(status : Int, body : String) -> SkillUploadOutcome {
 /// the license key itself never leaves the process — only its SHA-256 hash
 /// (key_hash field) and the HMAC signature are transmitted. force=true
 /// switches POST /api/v1/client/skills → PATCH /api/v1/client/skills/:name.
-fn upload_skill_zip(
+async fn upload_skill_zip(
   brand : @brand.BrandConfig,
   name : String,
   zip_data : Bytes,
@@ -336,7 +336,7 @@ fn find_publish_skill_dir(
 ///|
 /// Core publish flow, parameterized for white-box testing.
 /// Mirrors orig's api_publish_my_skill step order and response shapes.
-fn publish_skill(
+async fn publish_skill(
   name : String,
   force : Bool,
   brand : @brand.BrandConfig,
@@ -441,7 +441,7 @@ fn publish_skill(
 ///|
 /// POST /api/my-skills/:name/publish — publish a user skill to the market.
 /// Query: ?force=true to overwrite an existing platform skill (PATCH path).
-pub fn handle_my_skill_publish(request : HttpRequest) -> HttpResponse {
+pub async fn handle_my_skill_publish(request : HttpRequest) -> HttpResponse {
   let name = match validated_name(request) {
     Ok(n) => n
     Err(resp) => return resp
@@ -478,7 +478,7 @@ fn publish_response_to_core(resp : HttpResponse) -> @core.HttpResponse {
 ///|
 /// Bridge: crescent event → publish handler. Forwards the ?force query
 /// parameter alongside the :name path parameter.
-fn handle_my_skill_publish_bridge(
+async fn handle_my_skill_publish_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

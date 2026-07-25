@@ -2,8 +2,15 @@
 /// pty.mbt — PTY abstraction layer.
 ///
 /// Provides a high-level interface to the pseudo-terminal,
-/// including spawn, init, exec with marker, read, write, close, kill, resize.
+/// including spawn, init, exec with marker, read, write, close, kill.
 /// Uses the marker strategy for command completion detection.
+///
+/// S-FFI-08 (specs/completed/2026-07-25_ffi-08-residual-ffi-pty.md):
+/// the local forkpty-based C stubs (pty_stubs.c, POSIX-only, Windows
+/// unsupported) were replaced by moonbit-community/pty, which adds
+/// Windows ConPTY support and async event-loop integration. This file
+/// keeps the marker-based session logic; all process/TTY plumbing is
+/// now maintained upstream.
 
 // ---- Constants ----
 
@@ -30,10 +37,10 @@ let pty_test_timeout_ms : Int = 2000
 // ---- Types ----
 
 ///|
-/// Internal handle wrapping a PTY master fd and child PID.
+/// Internal handle wrapping a community-pty `Pty` and the session cwd.
 priv struct PtyHandle {
-  fd : Int
-  pid : Int
+  pty : @pty.Pty
+  cwd : String
 }
 
 ///|
@@ -54,44 +61,125 @@ pub(all) struct PtyExecResult {
   state : PtyReadState
 } derive(Debug)
 
+// ---- Helpers ----
+
+///|
+/// Wall-clock milliseconds (used only for duration/timeout measurement).
+fn pty_now_ms() -> Int {
+  @env.now().reinterpret_as_int64().to_int()
+}
+
+///|
+/// Get the default shell to run inside the PTY.
+///
+/// On Windows the community PTY spawns via CreateProcess, which cannot
+/// resolve MSYS paths like /usr/bin/bash — use "bash.exe" (resolved via
+/// PATH, e.g. Git for Windows). If no bash is on PATH, spawn fails and
+/// the caller falls back to @process-based execution.
+fn pty_get_default_shell() -> String {
+  if is_windows_platform() {
+    "bash.exe"
+  } else {
+    match @sys.get_env_var("SHELL") {
+      Some(shell) => shell
+      None => "/bin/bash"
+    }
+  }
+}
+
 // ---- PtyHandle methods ----
 
 ///|
-/// Spawn a new PTY with the given shell and working directory.
-fn PtyHandle::spawn(shell : String, cwd : String) -> Result[PtyHandle, String] {
-  match pty_ffi_spawn(shell, cwd, 80, 24) {
-    Err(msg) => Err(msg)
-    Ok((fd, pid)) => Ok(PtyHandle::{ fd, pid })
+/// Spawn a new PTY running the given shell.
+///
+/// The community PTY API has no cwd parameter; the working directory is
+/// applied by sending a `cd` line during `init` (the shell resolves it).
+async fn[X] PtyHandle::spawn(
+  group : @async.TaskGroup[X],
+  shell : String,
+  cwd : String,
+) -> Result[PtyHandle, String] {
+  // bash: --noediting disables readline line editing, whose bracketed-paste
+  // / cursor-addressing escape sequences would otherwise interleave with
+  // command output and break line-based marker/output parsing (observed
+  // with WSL bash on ConPTY). --noprofile/--norc skip noisy startup files.
+  // Other shells (sh/dash) get no flags — they have no readline anyway.
+  let argv = if shell.contains("bash") {
+    [shell, "--noprofile", "--norc", "--noediting", "-s"]
+  } else {
+    [shell]
   }
+  let pty = @pty.spawn(group, argv) catch {
+    err => return Err("failed to spawn PTY: \{err}")
+  }
+  Ok(PtyHandle::{ pty, cwd })
 }
 
 ///|
 /// Read raw bytes from the PTY with timeout.
-fn PtyHandle::read_raw(self : PtyHandle, timeout_ms : Int) -> (String, Int) {
-  pty_ffi_read(self.fd, pty_read_buffer_size, timeout_ms)
+/// Returns (data, n): n > 0 bytes read; n == 0 timeout; n < 0 EOF/error.
+async fn PtyHandle::read_raw(
+  self : PtyHandle,
+  timeout_ms : Int,
+) -> (String, Int) {
+  let buf : FixedArray[Byte] = FixedArray::make(pty_read_buffer_size, 0)
+  // Map read errors (e.g. EIO on Linux after the child exits) to Some(-1)
+  // so EOF surfaces promptly instead of burning the idle threshold.
+  let result = @async.with_timeout_opt(timeout_ms, () => {
+    self.pty.reader().read(buf)
+  }) catch {
+    _ => Some(-1)
+  }
+  match result {
+    Some(n) =>
+      if n > 0 {
+        (@utf8.decode_lossy(Bytes::from_array(buf[:n].iter().collect())), n)
+      } else {
+        // n <= 0: EOF on the master fd or read error
+        ("", -1)
+      }
+    // None: poll timeout, no data available
+    None => ("", 0)
+  }
 }
 
 ///|
-/// Write raw data to the PTY.
-fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int {
-  pty_ffi_write(self.fd, data)
+/// Write raw data to the PTY. Returns bytes written or -1 on error.
+async fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int {
+  let bytes = @utf8.encode(data[:])
+  self.pty.write(bytes) catch {
+    _ => return -1
+  }
+  bytes.length()
 }
 
 ///|
-/// Close the PTY master fd.
+/// Close the PTY, releasing OS resources. Also cancels the child if it
+/// is still running (upstream Pty::close cancels before closing).
 fn PtyHandle::close(self : PtyHandle) -> Unit {
-  pty_ffi_close(self.fd)
+  self.pty.close()
 }
 
 ///|
-/// Kill the child process.
+/// Kill the child process (request cancellation via the async runtime).
 fn PtyHandle::kill(self : PtyHandle) -> Int {
-  pty_ffi_kill(self.pid)
+  self.pty.cancel()
+  0
 }
 
 ///|
-/// Initialize the PTY: drain banner, send setup, verify with test marker.
-fn PtyHandle::init(self : PtyHandle) -> Result[Unit, String] {
+/// Initialize the PTY: apply cwd, drain banner, send setup, verify with
+/// a test marker.
+async fn PtyHandle::init(self : PtyHandle) -> Result[Unit, String] {
+  // Apply the working directory (the spawn API has no cwd parameter).
+  // On Windows, bash.exe needs forward slashes.
+  let cwd = if is_windows_platform() {
+    self.cwd.replace(old="\\", new="/")
+  } else {
+    self.cwd
+  }
+  let _ = self.write_raw("cd '" + shell_escape_single(cwd) + "'\n")
+
   // Drain initial banner (shell startup output)
   let _ = self.read_raw(pty_init_drain_ms)
 
@@ -115,18 +203,18 @@ fn PtyHandle::init(self : PtyHandle) -> Result[Unit, String] {
 
 ///|
 /// Execute a command and wait for the marker.
-fn PtyHandle::exec_with_marker(
+async fn PtyHandle::exec_with_marker(
   self : PtyHandle,
   command : String,
   timeout_ms : Int,
 ) -> PtyExecResult {
-  let start_time = pty_ffi_time_ms()
+  let start_time = pty_now_ms()
   let token = pty_generate_token()
   let _ = self.write_raw(pty_build_command_wrapper(command, token))
 
   let (output, exit_code, state) = self.read_until_marker(token, timeout_ms)
 
-  let end_time = pty_ffi_time_ms()
+  let end_time = pty_now_ms()
   PtyExecResult::{
     output,
     exit_code,
@@ -137,12 +225,12 @@ fn PtyHandle::exec_with_marker(
 
 ///|
 /// Poll the PTY for output until the marker is found or timeout/idle.
-fn PtyHandle::read_until_marker(
+async fn PtyHandle::read_until_marker(
   self : PtyHandle,
   token : String,
   timeout_ms : Int,
 ) -> (String, Int?, PtyReadState) {
-  let start_time = pty_ffi_time_ms()
+  let start_time = pty_now_ms()
   let mut accumulated = ""
   let mut last_output_time = start_time
   let mut result_output = ""
@@ -151,7 +239,7 @@ fn PtyHandle::read_until_marker(
   let mut done = false
 
   while !done {
-    let now = pty_ffi_time_ms()
+    let now = pty_now_ms()
 
     // Check overall timeout
     if now - start_time >= timeout_ms {
@@ -169,17 +257,21 @@ fn PtyHandle::read_until_marker(
 
       if n > 0 {
         accumulated = accumulated + data
-        last_output_time = pty_ffi_time_ms()
+        last_output_time = pty_now_ms()
 
-        // Check for marker
-        let marker_prefix = "__CLACKY_DONE_" + token + "_"
-        if accumulated.contains(marker_prefix) {
-          let exit_code = pty_parse_exit_code(accumulated, token)
-          let cleaned = pty_clean_output(accumulated, token)
-          result_output = cleaned
-          result_exit_code = exit_code
-          result_state = Matched
-          done = true
+        // Check for the marker. Detection is parse-based, not
+        // prefix-based: an echoed wrapper line contains the marker
+        // prefix with a `%s` placeholder instead of digits, and must
+        // not count as completion.
+        match pty_parse_exit_code(accumulated, token) {
+          Some(exit_code) => {
+            let cleaned = pty_clean_output(accumulated, token)
+            result_output = cleaned
+            result_exit_code = Some(exit_code)
+            result_state = Matched
+            done = true
+          }
+          None => ()
         }
       } else if n < 0 {
         // EOF or error — child likely exited
@@ -205,26 +297,19 @@ fn PtyHandle::read_until_marker(
   (result_output, result_exit_code, result_state)
 }
 
-// ---- Helper functions ----
+// ---- Output cleaning ----
 
 ///|
-/// Clean PTY output: remove marker, wrapper echo, ANSI codes, control chars.
+/// Clean PTY output: truncate at marker, remove wrapper echo, ANSI codes,
+/// control chars.
 fn pty_clean_output(output : String, token : String) -> String {
-  // 1. Remove marker line
-  let without_marker = pty_remove_marker(output, token)
+  // 1. Truncate at the real marker (cursor addressing can merge the
+  //    marker into the output's last line — see pty_truncate_at_marker)
+  let truncated = pty_truncate_at_marker(output, token)
   // 2. Remove echoed wrapper lines
-  let without_echo = pty_strip_wrapper_echo(without_marker)
+  let without_echo = pty_strip_wrapper_echo(truncated)
   // 3. Strip ANSI codes
   let without_ansi = clean_ansi_output(without_echo)
   // 4. Strip control characters
   strip_control_chars(without_ansi)
-}
-
-///|
-/// Get the default shell path from $SHELL environment variable.
-fn pty_get_default_shell() -> String {
-  match @sys.get_env_var("SHELL") {
-    Some(shell) => shell
-    None => "/bin/bash"
-  }
 }

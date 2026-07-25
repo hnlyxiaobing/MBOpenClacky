@@ -191,7 +191,7 @@ pub fn ChannelManager::reload(
 
 ///|
 /// Send a message to a specific channel.
-pub fn ChannelManager::send_to(
+pub async fn ChannelManager::send_to(
   self : ChannelManager,
   platform_name : String,
   chat_id : String,

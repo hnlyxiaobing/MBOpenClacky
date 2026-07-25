@@ -38,7 +38,7 @@ fn allow_rule(name : String, tool_pattern : String) -> PatchRule {
 // ── PatchChain behaviour ─────────────────────────────────────────────────────
 
 ///|
-test "patch_chain_empty_allows_everything" {
+async test "patch_chain_empty_allows_everything" {
   let chain = PatchChain::new()
   let args : Map[String, Json] = Map([])
   match chain.check_before("terminal", args) {
@@ -50,7 +50,7 @@ test "patch_chain_empty_allows_everything" {
 }
 
 ///|
-test "patch_chain_declarative_blocks_matching_args" {
+async test "patch_chain_declarative_blocks_matching_args" {
   let chain = PatchChain::new()
   chain.add_rule(
     block_rule("no-rm-rf", "terminal", "rm -rf", "destructive command"),
@@ -68,7 +68,7 @@ test "patch_chain_declarative_blocks_matching_args" {
 }
 
 ///|
-test "patch_chain_declarative_allows_non_matching_args" {
+async test "patch_chain_declarative_allows_non_matching_args" {
   let chain = PatchChain::new()
   chain.add_rule(
     block_rule("no-rm-rf", "terminal", "rm -rf", "destructive command"),
@@ -83,7 +83,7 @@ test "patch_chain_declarative_allows_non_matching_args" {
 }
 
 ///|
-test "patch_chain_glob_tool_pattern" {
+async test "patch_chain_glob_tool_pattern" {
   let chain = PatchChain::new()
   chain.add_rule(block_rule("file-blocker", "file_*", "secret", "no secrets"))
   // file_reader should match file_*
@@ -100,7 +100,7 @@ test "patch_chain_glob_tool_pattern" {
 }
 
 ///|
-test "patch_chain_short_circuits_on_first_block" {
+async test "patch_chain_short_circuits_on_first_block" {
   let chain = PatchChain::new()
   chain.add_rule(block_rule("first", "terminal", "rm -rf", "rule one reason"))
   chain.add_rule(block_rule("second", "terminal", "rm -rf", "rule two reason"))
@@ -115,7 +115,7 @@ test "patch_chain_short_circuits_on_first_block" {
 }
 
 ///|
-test "patch_chain_allow_rule_records_but_passes" {
+async test "patch_chain_allow_rule_records_but_passes" {
   let chain = PatchChain::new()
   chain.add_rule(allow_rule("audit-only", "terminal"))
   let args : Map[String, Json] = { "command": Json::string("echo hi") }
@@ -157,7 +157,7 @@ test "patch_chain_check_after_records_error_action" {
 // ── Agent integration ────────────────────────────────────────────────────────
 
 ///|
-test "agent_block_short_circuits_execute_single_tool" {
+async test "agent_block_short_circuits_execute_single_tool" {
   let agent = make_test_agent()
   agent.register_patch_rule(
     block_rule("no-rm-rf", "terminal", "rm -rf", "destructive"),
@@ -181,7 +181,7 @@ test "agent_block_short_circuits_execute_single_tool" {
 }
 
 ///|
-test "agent_no_patch_preserves_legacy_behaviour" {
+async test "agent_no_patch_preserves_legacy_behaviour" {
   // Without any patch, the chain is empty and behaviour is unchanged
   // for tool resolution (e.g. unknown tool still returns error).
   let agent = make_test_agent()

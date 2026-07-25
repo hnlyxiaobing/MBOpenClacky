@@ -1,5 +1,10 @@
 // MoonBit fallback stubs for OpenSSL crypto.
 //
+// RETENTION NOTE (S-FFI-08, specs/completed/2026-07-25_ffi-08-residual-ffi-pty.md):
+// this file is an opt-out-only fallback for minimal builds without OpenSSL
+// (docs/ffi-c-code-report.md §9 lib/brand); it must never ship in release
+// artifacts (guards below). See also the root-cause note.
+//
 // IMPORTANT (root-cause fix 2026-06-30):
 //   These weak stubs were unconditionally compiled into libbrand.a and, because
 //   GNU ld resolves a static archive's undefined symbols against object files

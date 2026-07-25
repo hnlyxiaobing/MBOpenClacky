@@ -3,7 +3,7 @@
 // ── RequestUserFeedback Tests ────────────────────────────────────────────────
 
 ///|
-test "request_user_feedback_question_only" {
+async test "request_user_feedback_question_only" {
   let tool = RequestUserFeedback::{  }
   let args : Map[String, Json] = {
     "question": "What framework should we use?".to_json(),
@@ -15,7 +15,7 @@ test "request_user_feedback_question_only" {
 }
 
 ///|
-test "request_user_feedback_with_context" {
+async test "request_user_feedback_with_context" {
   let tool = RequestUserFeedback::{  }
   let args : Map[String, Json] = {
     "question": "Which option?".to_json(),
@@ -29,7 +29,7 @@ test "request_user_feedback_with_context" {
 }
 
 ///|
-test "request_user_feedback_with_options" {
+async test "request_user_feedback_with_options" {
   let tool = RequestUserFeedback::{  }
   let args : Map[String, Json] = {
     "question": "Pick one".to_json(),
@@ -48,7 +48,7 @@ test "request_user_feedback_with_options" {
 }
 
 ///|
-test "request_user_feedback_missing_question" {
+async test "request_user_feedback_missing_question" {
   let tool = RequestUserFeedback::{  }
   let args : Map[String, Json] = Map([])
   let result = tool.execute(args)
@@ -85,7 +85,7 @@ test "request_user_feedback_name_and_category" {
 // ── TrashManager Tests ───────────────────────────────────────────────────────
 
 ///|
-test "trash_manager_help_action" {
+async test "trash_manager_help_action" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "help".to_json() }
   let result = tool.execute(args)
@@ -98,7 +98,7 @@ test "trash_manager_help_action" {
 }
 
 ///|
-test "trash_manager_list_action" {
+async test "trash_manager_list_action" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "list".to_json() }
   let result = tool.execute(args)
@@ -107,7 +107,7 @@ test "trash_manager_list_action" {
 }
 
 ///|
-test "trash_manager_status_action" {
+async test "trash_manager_status_action" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "status".to_json() }
   let result = tool.execute(args)
@@ -116,7 +116,7 @@ test "trash_manager_status_action" {
 }
 
 ///|
-test "trash_manager_restore_missing_path" {
+async test "trash_manager_restore_missing_path" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "restore".to_json() }
   let result = tool.execute(args)
@@ -125,7 +125,7 @@ test "trash_manager_restore_missing_path" {
 }
 
 ///|
-test "trash_manager_restore_not_found" {
+async test "trash_manager_restore_not_found" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = {
     "action": "restore".to_json(),
@@ -137,7 +137,7 @@ test "trash_manager_restore_not_found" {
 }
 
 ///|
-test "trash_manager_empty_action" {
+async test "trash_manager_empty_action" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = {
     "action": "empty".to_json(),
@@ -149,7 +149,7 @@ test "trash_manager_empty_action" {
 }
 
 ///|
-test "trash_manager_unknown_action" {
+async test "trash_manager_unknown_action" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "unknown".to_json() }
   let result = tool.execute(args)
@@ -204,7 +204,7 @@ test "browser_name_and_category" {
 }
 
 ///|
-test "browser_status_action" {
+async test "browser_status_action" {
   let tool = Browser::new()
   let args : Map[String, Json] = { "action": "status".to_json() }
   let result = tool.execute(args)
@@ -213,7 +213,7 @@ test "browser_status_action" {
 }
 
 ///|
-test "browser_not_configured_error" {
+async test "browser_not_configured_error" {
   let tool = Browser::new()
   let args : Map[String, Json] = { "action": "snapshot".to_json() }
   let result = tool.execute(args)
@@ -222,7 +222,7 @@ test "browser_not_configured_error" {
 }
 
 ///|
-test "browser_open_missing_url" {
+async test "browser_open_missing_url" {
   let tool = Browser::new()
   let args : Map[String, Json] = { "action": "open".to_json() }
   let result = tool.execute(args)
@@ -396,7 +396,7 @@ test "registry_by_category_web_has_browser" {
 }
 
 ///|
-test "anytool_request_user_feedback_via_anytool" {
+async test "anytool_request_user_feedback_via_anytool" {
   let tool = AnyTool::RequestUserFeedback(RequestUserFeedback::{  })
   @debug.assert_eq(tool.name(), "request_user_feedback")
   assert_true(tool.category() == General)
@@ -407,7 +407,7 @@ test "anytool_request_user_feedback_via_anytool" {
 }
 
 ///|
-test "anytool_trash_manager_via_anytool" {
+async test "anytool_trash_manager_via_anytool" {
   let tool = AnyTool::TrashManager(TrashManager::{  })
   @debug.assert_eq(tool.name(), "trash_manager")
   let args : Map[String, Json] = { "action": "help".to_json() }
@@ -417,7 +417,7 @@ test "anytool_trash_manager_via_anytool" {
 }
 
 ///|
-test "anytool_browser_via_anytool" {
+async test "anytool_browser_via_anytool" {
   let tool = AnyTool::Browser(Browser::new())
   @debug.assert_eq(tool.name(), "browser")
   let args : Map[String, Json] = { "action": "status".to_json() }

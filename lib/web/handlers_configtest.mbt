@@ -78,7 +78,7 @@ fn strip_trailing_slash(url : String) -> String {
 ///
 /// The first 2xx is treated as success. If both probes fail we return
 /// the more informative of the two errors (network > 4xx > 5xx).
-fn probe_openai_compatible(
+async fn probe_openai_compatible(
   base_url : String,
   api_key : String,
   model : String,
@@ -131,7 +131,7 @@ fn probe_openai_compatible(
 ///
 /// Response shape (matches ModelTester.testConnection expectations):
 ///   { ok: bool, message: string, effective_base_url?: string }
-fn handle_config_test(
+async fn handle_config_test(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -309,7 +309,7 @@ fn classify_http_error(e : @client.HttpError) -> String {
 /// POST /api/config/media/test
 /// Tests connectivity to a media model (image/video/audio).
 /// Expected body: {"kind": "image" | "video" | "audio"}
-fn handle_config_media_test(
+async fn handle_config_media_test(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

@@ -407,7 +407,7 @@ test "agent_restore_from_session" {
 // ── ReAct Loop Tests ──────────────────────────────────────────────────────────
 
 ///|
-test "run_empty_history_adds_system_prompt" {
+async test "run_empty_history_adds_system_prompt" {
   let agent = make_test_agent()
   // Mock: LLM returns no tool calls → loop exits immediately
   agent.mock_responses.push(make_mock_response("Hello!", None))
@@ -419,7 +419,7 @@ test "run_empty_history_adds_system_prompt" {
 }
 
 ///|
-test "run_increments_iterations" {
+async test "run_increments_iterations" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("Done", None))
   let _ = agent.run("test") catch { _ => abort("unexpected error") }
@@ -427,7 +427,7 @@ test "run_increments_iterations" {
 }
 
 ///|
-test "run_no_tool_calls_breaks" {
+async test "run_no_tool_calls_breaks" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("Final answer", None))
   let result = agent.run("question") catch { _ => abort("unexpected error") }
@@ -436,7 +436,7 @@ test "run_no_tool_calls_breaks" {
 }
 
 ///|
-test "run_with_tool_calls_executes" {
+async test "run_with_tool_calls_executes" {
   let agent = make_test_agent()
   // First response: tool call to file_reader (safe operation)
   let tool_call = make_tool_call(
@@ -453,7 +453,7 @@ test "run_with_tool_calls_executes" {
 }
 
 ///|
-test "run_auto_approve_executes_tools" {
+async test "run_auto_approve_executes_tools" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.AutoApprove
   let tool_call = make_tool_call(
@@ -466,7 +466,7 @@ test "run_auto_approve_executes_tools" {
 }
 
 ///|
-test "run_confirm_safes_denies_unsafe" {
+async test "run_confirm_safes_denies_unsafe" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmSafes
   // write is not safe → should be denied
@@ -592,18 +592,18 @@ test "estimate_history_tokens" {
 // ── LLM Caller Tests ──────────────────────────────────────────────────────────
 
 ///|
-test "call_llm_mock_response" {
+async test "call_llm_mock_response" {
   let agent = make_test_agent()
   let mock_resp = make_mock_response("mock response", None)
   agent.mock_responses.push(mock_resp)
-  let resp = agent.call_llm() catch { _ => abort("unexpected error") }
+  let resp = agent.call_llm_async() catch { _ => abort("unexpected error") }
   @debug.assert_eq(resp.content, Some("mock response"))
 }
 
 ///|
-test "call_llm_no_mock_raises" {
+async test "call_llm_no_mock_raises" {
   let agent = make_test_agent()
-  let result = Ok(agent.call_llm()) catch { e => Err(e) }
+  let result = Ok(agent.call_llm_async()) catch { e => Err(e) }
   assert_true(result is Err(_))
 }
 

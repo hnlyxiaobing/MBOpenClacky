@@ -41,7 +41,7 @@ pub fn BrowserManager::load_config(
 
 ///|
 /// Start the browser daemon (async, non-blocking)
-pub fn BrowserManager::start(
+pub async fn BrowserManager::start(
   self : BrowserManager,
 ) -> Result[Unit, BrowserError] {
   // 1. Check if already running
@@ -85,7 +85,7 @@ pub fn BrowserManager::start(
 
 ///|
 /// Stop the daemon
-pub fn BrowserManager::stop(
+pub async fn BrowserManager::stop(
   self : BrowserManager,
 ) -> Result[Unit, BrowserError] {
   if !self.is_running {
@@ -108,7 +108,7 @@ pub fn BrowserManager::stop(
 
 ///|
 /// Reload (stop + reload config + start)
-pub fn BrowserManager::reload(
+pub async fn BrowserManager::reload(
   self : BrowserManager,
 ) -> Result[Unit, BrowserError] {
   if self.is_running {
@@ -165,7 +165,7 @@ pub fn BrowserManager::toggle(self : BrowserManager) -> Bool {
 
 ///|
 /// Execute an MCP tool call through the daemon
-pub fn BrowserManager::mcp_call(
+pub async fn BrowserManager::mcp_call(
   self : BrowserManager,
   tool_name : String,
   arguments : Json,
@@ -191,7 +191,7 @@ pub fn BrowserManager::mcp_call(
 
 ///|
 /// Check if daemon process is alive
-pub fn BrowserManager::check_process_alive(self : BrowserManager) -> Bool {
+pub async fn BrowserManager::check_process_alive(self : BrowserManager) -> Bool {
   match self.client {
     Some(client) => client.get_process().is_alive()
     None => false

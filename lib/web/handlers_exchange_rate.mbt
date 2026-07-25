@@ -95,7 +95,7 @@ fn parse_frankfurter_rate(
 
 ///|
 /// Fetch the exchange rate from a URL and parse it with the given parser.
-fn fetch_rate(
+async fn fetch_rate(
   url : String,
   parser : (String, String, String) -> Result[Double, String],
   from : String,
@@ -150,7 +150,7 @@ fn format_iso8601_date(ts : Int64) -> String {
 
 ///|
 /// Resolve the exchange rate, trying the primary source first and falling back.
-fn resolve_exchange_rate(
+async fn resolve_exchange_rate(
   from : String,
   to : String,
 ) -> Result[ExchangeRateResponse, String] {
@@ -173,7 +173,7 @@ fn resolve_exchange_rate(
 ///|
 /// GET /api/exchange-rate?from=USD&to=CNY
 /// Returns the current exchange rate with source attribution and caching.
-fn handle_exchange_rate(
+async fn handle_exchange_rate(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

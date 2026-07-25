@@ -37,8 +37,3 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/async/socket",
 }
-
-options(
-  "native-stub": [ "multipart_upload.c" ],
-  link: { "native": { "cc-link-flags": "-lcurl" } },
-)

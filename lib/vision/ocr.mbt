@@ -68,7 +68,7 @@ pub fn VisionOCR::is_available(self : VisionOCR) -> Bool {
 
 ///|
 /// Process an image and extract text using the vision LLM.
-pub fn VisionOCR::ocr(
+pub async fn VisionOCR::ocr(
   self : VisionOCR,
   input : VisionInput,
 ) -> Result[OCRResult, String] {

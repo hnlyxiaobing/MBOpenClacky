@@ -63,37 +63,58 @@ fn pty_parse_int_simple(s : String) -> Int? {
 /// Parse the exit code from a marker found in output.
 ///
 /// Searches for __CLACKY_DONE_<token>_<digits>__ and extracts the digits.
+/// Every occurrence is scanned: when the shell echoes the wrapper command
+/// before `stty -echo` takes effect (slow shells, e.g. WSL bash on ConPTY),
+/// the echoed text contains the marker prefix followed by the non-numeric
+/// `%s` printf placeholder — only the real marker has digits.
 /// Returns Some(exit_code) if found, None otherwise.
 fn pty_parse_exit_code(output : String, token : String) -> Int? {
   let marker_prefix = "__CLACKY_DONE_" + token + "_"
-  // Split at the marker prefix; the second part starts with the exit code
+  // Split at the marker prefix; each following part starts with a
+  // candidate exit-code field terminated by "__".
   let parts = output.split(marker_prefix).collect()
-  if parts.length() < 2 {
-    return None
+  for i in 1..<parts.length() {
+    let after_prefix = parts[i].to_owned()
+    let sub_parts = after_prefix.split("__").collect()
+    if sub_parts.length() > 0 {
+      match pty_parse_int_simple(sub_parts[0].to_owned()) {
+        Some(code) => return Some(code)
+        None => ()
+      }
+    }
   }
-  // After the prefix, the format is: <exit_code>__...
-  // Split at "__" to isolate the exit code digits
-  let after_prefix = parts[1].to_owned()
-  let sub_parts = after_prefix.split("__").collect()
-  if sub_parts.length() == 0 {
-    return None
-  }
-  pty_parse_int_simple(sub_parts[0].to_owned())
+  None
 }
 
 ///|
-/// Remove the marker line from output. Removes any line containing the marker.
-fn pty_remove_marker(output : String, token : String) -> String {
-  let marker_substr = "__CLACKY_DONE_" + token
-  let lines = output.split("\n").collect()
-  let filtered : Array[String] = []
-  for line in lines {
-    let line_str = line.to_owned()
-    if !line_str.contains(marker_substr) {
-      filtered.push(line_str)
+/// Truncate output at the REAL completion marker.
+///
+/// The marker is printed after all command output, so everything before
+/// it is the command's output and everything from the marker on is noise.
+/// Truncation (instead of line-based removal) is required because terminal
+/// cursor addressing (e.g. bash readline `[9;1H` on ConPTY) can merge the
+/// marker into the output's last line — removing the whole "line" would
+/// delete real output along with the marker.
+///
+/// Occurrences of the marker prefix followed by a non-numeric field (the
+/// echoed wrapper's `%s` printf placeholder) are skipped; only a prefix
+/// followed by digits and "__" counts as the real marker.
+fn pty_truncate_at_marker(output : String, token : String) -> String {
+  let marker_prefix = "__CLACKY_DONE_" + token + "_"
+  let parts = output.split(marker_prefix).collect()
+  let mut idx = 0
+  for i in 1..<parts.length() {
+    idx = idx + parts[i - 1].length()
+    let after_prefix = parts[i].to_owned()
+    let sub_parts = after_prefix.split("__").collect()
+    if sub_parts.length() > 0 &&
+      pty_parse_int_simple(sub_parts[0].to_owned()) is Some(_) {
+      // The i-th separator is the real marker; it starts at idx.
+      return output[:idx].to_owned()
     }
+    idx = idx + marker_prefix.length()
   }
-  filtered.join("\n")
+  output
 }
 
 ///|

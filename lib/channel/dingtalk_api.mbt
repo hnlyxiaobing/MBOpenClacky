@@ -120,7 +120,7 @@ pub fn DingTalkApiClient::parse_token_response(
 
 ///|
 /// Request a new API access_token and cache it.
-pub fn DingTalkApiClient::request_access_token(
+pub async fn DingTalkApiClient::request_access_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   let url = self.access_token_url()
@@ -140,7 +140,7 @@ pub fn DingTalkApiClient::request_access_token(
 
 ///|
 /// Request a new OAPI access_token and cache it.
-pub fn DingTalkApiClient::request_oapi_token(
+pub async fn DingTalkApiClient::request_oapi_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   let url = self.build_oapi_token_request()
@@ -159,7 +159,7 @@ pub fn DingTalkApiClient::request_oapi_token(
 
 ///|
 /// Get the cached API access_token, refreshing if needed.
-pub fn DingTalkApiClient::get_access_token(
+pub async fn DingTalkApiClient::get_access_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   if self.access_token.is_valid() {
@@ -171,7 +171,7 @@ pub fn DingTalkApiClient::get_access_token(
 
 ///|
 /// Get the cached OAPI access_token, refreshing if needed.
-pub fn DingTalkApiClient::get_oapi_token(
+pub async fn DingTalkApiClient::get_oapi_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   if self.oapi_token.is_valid() {
@@ -186,7 +186,7 @@ pub fn DingTalkApiClient::get_oapi_token(
 ///|
 /// Build HTTP headers with DingTalk new API auth token.
 /// Uses `x-acs-dingtalk-access-token` header.
-pub fn DingTalkApiClient::auth_headers(
+pub async fn DingTalkApiClient::auth_headers(
   self : DingTalkApiClient,
 ) -> Result[HttpHeaders, ChannelError] {
   let token = match self.get_access_token() {
@@ -225,7 +225,7 @@ pub fn DingTalkApiClient::build_webhook_payload(
 ///|
 /// Send a message via DingTalk webhook URL.
 /// POST {webhook_url} with JSON body.
-pub fn DingTalkApiClient::send_via_webhook(
+pub async fn DingTalkApiClient::send_via_webhook(
   self : DingTalkApiClient,
   webhook_url : String,
   text : String,
@@ -267,7 +267,7 @@ pub fn DingTalkApiClient::build_send_msg_param(
 ///|
 /// Send a message to a specific user via robot API.
 /// POST /v1.0/robot/oToMessages/batchSend
-pub fn DingTalkApiClient::send_to_user(
+pub async fn DingTalkApiClient::send_to_user(
   self : DingTalkApiClient,
   user_id : String,
   robot_code : String,
@@ -295,7 +295,7 @@ pub fn DingTalkApiClient::send_to_user(
 ///|
 /// Send a message to a group chat via robot API.
 /// POST /v1.0/robot/groupMessages/send
-pub fn DingTalkApiClient::send_to_group(
+pub async fn DingTalkApiClient::send_to_group(
   self : DingTalkApiClient,
   open_conversation_id : String,
   robot_code : String,
@@ -324,7 +324,7 @@ pub fn DingTalkApiClient::send_to_group(
 ///|
 /// Build the full URL for media upload via OAPI.
 /// Uses oapi_access_token as query parameter.
-pub fn DingTalkApiClient::upload_media_url(
+pub async fn DingTalkApiClient::upload_media_url(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   let token = match self.get_oapi_token() {
@@ -400,7 +400,7 @@ pub fn DingTalkApiClient::open_stream_connection(
 /// 1. POST /v1.0/robot/messageFiles/download to get the download URL
 /// 2. GET the download URL to fetch file content
 /// Returns the download URL on success (caller performs GET).
-pub fn DingTalkApiClient::download_file_url(
+pub async fn DingTalkApiClient::download_file_url(
   self : DingTalkApiClient,
   download_code : String,
   robot_code : String,

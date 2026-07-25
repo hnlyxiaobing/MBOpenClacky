@@ -73,7 +73,7 @@ test "media transcription returns 501 stub" {
 // ── Video Understanding ───────────────────────────────────────────
 
 ///|
-test "video understand with empty body returns 400" {
+async test "video understand with empty body returns 400" {
   let resp = handle_media_video_understand(
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video/understand"),
@@ -85,7 +85,7 @@ test "video understand with empty body returns 400" {
 }
 
 ///|
-test "video understand with non-object JSON returns 400" {
+async test "video understand with non-object JSON returns 400" {
   let resp = handle_media_video_understand(
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video/understand", body="42"),
@@ -97,7 +97,7 @@ test "video understand with non-object JSON returns 400" {
 }
 
 ///|
-test "video understand with invalid JSON returns 400" {
+async test "video understand with invalid JSON returns 400" {
   let resp = handle_media_video_understand(
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video/understand", body="not-json"),
@@ -109,7 +109,7 @@ test "video understand with invalid JSON returns 400" {
 }
 
 ///|
-test "video understand with no model configured returns 500" {
+async test "video understand with no model configured returns 500" {
   let resp = handle_media_video_understand(
     make_media_server_ref(),
     make_media_event(Post, "/api/media/video/understand", body="{}"),
@@ -126,7 +126,7 @@ test "video understand with no model configured returns 500" {
 }
 
 ///|
-test "video understand with video_path but no model returns 500" {
+async test "video understand with video_path but no model returns 500" {
   let resp = handle_media_video_understand(
     make_media_server_ref(),
     make_media_event(

@@ -99,7 +99,7 @@ fn parse_response(text : String) -> Result[(Int, Json), String] {
 /// Send a JSON-RPC request and wait for the response.
 /// Returns the result Json on success, or an error string.
 #cfg(target="native")
-pub fn JsonRpcClient::call(
+pub async fn JsonRpcClient::call(
   self : JsonRpcClient,
   http_method : String,
   params : Json,
@@ -131,7 +131,7 @@ pub fn JsonRpcClient::call(
 ///|
 /// Send a JSON-RPC notification (no response expected).
 #cfg(target="native")
-pub fn JsonRpcClient::notify(
+pub async fn JsonRpcClient::notify(
   self : JsonRpcClient,
   http_method : String,
   params : Json,
@@ -150,7 +150,9 @@ pub fn JsonRpcClient::notify(
 /// Then: notifications/initialized notification.
 /// Returns the server capabilities from the response.
 #cfg(target="native")
-pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
+pub async fn JsonRpcClient::initialize(
+  self : JsonRpcClient,
+) -> Result[Json, String] {
   let params : Json = Json::object({
     "protocolVersion": mcp_protocol_version.to_json(),
     "capabilities": Json::object(Map([])),
@@ -176,7 +178,7 @@ pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
 ///|
 /// Send a JSON-RPC request (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn JsonRpcClient::call(
+pub async fn JsonRpcClient::call(
   self : JsonRpcClient,
   http_method : String,
   params : Json,
@@ -189,7 +191,7 @@ pub fn JsonRpcClient::call(
 ///|
 /// Send a JSON-RPC notification (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn JsonRpcClient::notify(
+pub async fn JsonRpcClient::notify(
   self : JsonRpcClient,
   http_method : String,
   params : Json,
@@ -202,6 +204,8 @@ pub fn JsonRpcClient::notify(
 ///|
 /// Perform MCP initialize handshake (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn JsonRpcClient::initialize(self : JsonRpcClient) -> Result[Json, String] {
+pub async fn JsonRpcClient::initialize(
+  self : JsonRpcClient,
+) -> Result[Json, String] {
   Err("JSON-RPC not supported on wasm target")
 }

@@ -193,7 +193,7 @@ test "upload_meta: record_upload then load round trip in orig file shape" {
 // ── upload_skill_zip (mocked platform) ──────────────────────────────
 
 ///|
-test "upload: success sends HMAC-signed multipart POST to orig path" {
+async test "upload: success sends HMAC-signed multipart POST to orig path" {
   let captured = install_mock_transport(
     Ok((200, "{\"skill\":{\"version\":\"1.2.0\"}}")),
   )
@@ -247,7 +247,7 @@ test "upload: success sends HMAC-signed multipart POST to orig path" {
 }
 
 ///|
-test "upload: force=true switches to PATCH on the :name path" {
+async test "upload: force=true switches to PATCH on the :name path" {
   let captured = install_mock_transport(
     Ok((200, "{\"skill\":{\"version\":\"2.0.0\"}}")),
   )
@@ -265,7 +265,7 @@ test "upload: force=true switches to PATCH on the :name path" {
 }
 
 ///|
-test "upload: HTTP 409 name_taken maps to already_exists" {
+async test "upload: HTTP 409 name_taken maps to already_exists" {
   let _ = install_mock_transport(
     Ok(
       (
@@ -287,7 +287,7 @@ test "upload: HTTP 409 name_taken maps to already_exists" {
 }
 
 ///|
-test "upload: generic HTTP error composes orig message and is not already_exists" {
+async test "upload: generic HTTP error composes orig message and is not already_exists" {
   let _ = install_mock_transport(Ok((500, "{\"error\":\"internal\"}")))
   let outcome = upload_skill_zip(
     licensed_test_brand(),
@@ -302,7 +302,7 @@ test "upload: generic HTTP error composes orig message and is not already_exists
 }
 
 ///|
-test "upload: transport failure surfaces as Network error" {
+async test "upload: transport failure surfaces as Network error" {
   let _ = install_mock_transport(Err("connection refused"))
   let outcome = upload_skill_zip(
     licensed_test_brand(),
@@ -317,7 +317,7 @@ test "upload: transport failure surfaces as Network error" {
 }
 
 ///|
-test "upload: license guards mirror orig" {
+async test "upload: license guards mirror orig" {
   let not_activated = @brand.BrandConfig::default_config()
   let o1 = upload_skill_zip(
     not_activated,
@@ -342,7 +342,7 @@ test "upload: license guards mirror orig" {
 // ── publish_skill five-step flow ────────────────────────────────────
 
 ///|
-test "publish: step 1 unlicensed returns 403 in orig shape" {
+async test "publish: step 1 unlicensed returns 403 in orig shape" {
   let resp = publish_skill(
     "demo",
     false,
@@ -361,7 +361,7 @@ test "publish: step 1 unlicensed returns 403 in orig shape" {
 }
 
 ///|
-test "publish: step 2 unknown skill returns 404 in orig shape" {
+async test "publish: step 2 unknown skill returns 404 in orig shape" {
   let base = ".wbtest_pub404_" + @env.now().to_string()
   @utils.ensure_dir(base + "/user")
   @utils.ensure_dir(base + "/builtin")
@@ -381,7 +381,7 @@ test "publish: step 2 unknown skill returns 404 in orig shape" {
 }
 
 ///|
-test "publish: step 3 builtin skill returns 422 in orig shape" {
+async test "publish: step 3 builtin skill returns 422 in orig shape" {
   let base = ".wbtest_pub422_" + @env.now().to_string()
   @utils.ensure_dir(base + "/user")
   @utils.ensure_dir(base + "/builtin/demo")
@@ -409,7 +409,7 @@ test "publish: step 3 builtin skill returns 422 in orig shape" {
 }
 
 ///|
-test "publish: success returns {ok,name,platform_version} and records upload_meta" {
+async test "publish: success returns {ok,name,platform_version} and records upload_meta" {
   let base = ".wbtest_pubok_" + @env.now().to_string()
   let user_dir = base + "/user"
   @utils.ensure_dir(user_dir + "/demo")
@@ -444,7 +444,7 @@ test "publish: success returns {ok,name,platform_version} and records upload_met
 }
 
 ///|
-test "publish: already_exists upload failure returns 422 with flag" {
+async test "publish: already_exists upload failure returns 422 with flag" {
   let base = ".wbtest_pubdup_" + @env.now().to_string()
   let user_dir = base + "/user"
   @utils.ensure_dir(user_dir + "/demo")
@@ -472,7 +472,7 @@ test "publish: already_exists upload failure returns 422 with flag" {
 }
 
 ///|
-test "publish: platform 500 upload failure returns 422 already_exists false" {
+async test "publish: platform 500 upload failure returns 422 already_exists false" {
   let base = ".wbtest_pubfail_" + @env.now().to_string()
   let user_dir = base + "/user"
   @utils.ensure_dir(user_dir + "/demo")
@@ -502,7 +502,7 @@ test "publish: platform 500 upload failure returns 422 already_exists false" {
 // ── handler-level checks ────────────────────────────────────────────
 
 ///|
-test "handler: publish rejects invalid skill name" {
+async test "handler: publish rejects invalid skill name" {
   let req = {
     ..HttpRequest::new(POST, "/api/my-skills/x/publish"),
     params: [("name", "../evil")],

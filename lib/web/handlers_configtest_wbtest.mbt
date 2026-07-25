@@ -7,7 +7,7 @@
 
 ///|
 /// POST /api/config/test with an empty body must return 400.
-test "config test rejects empty body" {
+async test "config test rejects empty body" {
   let resp = handle_config_test(
     ex_make_server_ref(),
     ex_make_event(Post, "/api/config/test", body="{}"),
@@ -18,7 +18,7 @@ test "config test rejects empty body" {
 ///|
 /// When api_key is missing the response must name it, not lump it with
 /// base_url. The frontend uses this message to highlight the bad field.
-test "config test reports missing api_key by name" {
+async test "config test reports missing api_key by name" {
   let resp = handle_config_test(
     ex_make_server_ref(),
     ex_make_event(
@@ -36,7 +36,7 @@ test "config test reports missing api_key by name" {
 
 ///|
 /// When base_url is missing the response must name only base_url.
-test "config test reports missing base_url by name" {
+async test "config test reports missing base_url by name" {
   let resp = handle_config_test(
     ex_make_server_ref(),
     ex_make_event(
@@ -53,7 +53,7 @@ test "config test reports missing base_url by name" {
 
 ///|
 /// When both are missing, both should appear in the message.
-test "config test lists all missing fields" {
+async test "config test lists all missing fields" {
   let resp = handle_config_test(
     ex_make_server_ref(),
     ex_make_event(Post, "/api/config/test", body="{\"model\":\"m\"}"),
@@ -66,7 +66,7 @@ test "config test lists all missing fields" {
 
 ///|
 /// Malformed JSON must still surface as a 400, not bypass the validator.
-test "config test rejects malformed JSON" {
+async test "config test rejects malformed JSON" {
   let resp = handle_config_test(
     ex_make_server_ref(),
     ex_make_event(Post, "/api/config/test", body="not json"),

@@ -57,7 +57,7 @@ pub fn load_shell_hooks(config_dir? : String? = None) -> Array[HookConfig] {
 /// Execute a hook by spawning its shell command.
 /// Context is passed via CLACKY_* environment variables.
 /// Non-zero exit codes are reported as Err.
-pub fn execute_hook(
+pub async fn execute_hook(
   hook : HookConfig,
   context : HookContext,
 ) -> Result[Unit, String] {

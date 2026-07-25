@@ -132,6 +132,22 @@ fn handle_create_session(
       }
     _ => "general"
   }
+  let working_dir : String = match j {
+    Object(obj) =>
+      match obj.get("working_dir") {
+        Some(String(wd)) if !wd.is_empty() => wd
+        _ =>
+          match server_ref.val.config.default_working_dir {
+            Some(d) => d
+            None => "."
+          }
+      }
+    _ =>
+      match server_ref.val.config.default_working_dir {
+        Some(d) => d
+        None => "."
+      }
+  }
   let session_id = @agent.generate_session_id()
   let model_config = match server_ref.val.config.current_model() {
     Some(mc) => mc
@@ -154,7 +170,7 @@ fn handle_create_session(
   let agent = @agent.Agent::new(
     session_id,
     name,
-    ".",
+    working_dir,
     client,
     server_ref.val.config,
   )
@@ -168,13 +184,19 @@ fn handle_create_session(
   }
   // Include agent_profile and updated_at in the response
   // (web-replication-05; updated_at mirrors created_at for now).
+  // Frontend expects { session: {...} } (web/sessions.js, new-session/store.js).
   match ToJson::to_json(data) {
     Object(o) => {
       o["agent_profile"] = ToJson::to_json(agent_profile)
       o["updated_at"] = data.created_at.to_json()
-      @core.HttpResponse::created().json_value(Json::object(o))
+      @core.HttpResponse::created().json_value(
+        Json::object({ "session": Json::object(o) }),
+      )
     }
-    other => @core.HttpResponse::created().json_value(other)
+    other =>
+      @core.HttpResponse::created().json_value(
+        Json::object({ "session": other }),
+      )
   }
 }
 

@@ -65,7 +65,7 @@ pub fn FeishuApiClient::build_auth_body(self : FeishuApiClient) -> Json {
 ///|
 /// Request a new tenant_access_token from the auth endpoint.
 /// Returns the token string on success.
-pub fn FeishuApiClient::request_token(
+pub async fn FeishuApiClient::request_token(
   self : FeishuApiClient,
 ) -> Result[String, ChannelError] {
   let url = self.auth_url()
@@ -99,7 +99,7 @@ pub fn FeishuApiClient::request_token(
 
 ///|
 /// Get a cached token, or request a new one if expired.
-pub fn FeishuApiClient::get_token(
+pub async fn FeishuApiClient::get_token(
   self : FeishuApiClient,
 ) -> Result[String, ChannelError] {
   if self.token_cache.is_valid() {
@@ -111,7 +111,7 @@ pub fn FeishuApiClient::get_token(
 
 ///|
 /// Build HTTP headers with Bearer authorization using the current token.
-pub fn FeishuApiClient::auth_headers(
+pub async fn FeishuApiClient::auth_headers(
   self : FeishuApiClient,
 ) -> Result[HttpHeaders, ChannelError] {
   let token = match self.get_token() {
@@ -129,7 +129,7 @@ pub fn FeishuApiClient::auth_headers(
 ///|
 /// Build the request for sending a message to a chat.
 /// Returns (url, headers_array, body_string) ready for HTTP POST.
-pub fn FeishuApiClient::build_send_request(
+pub async fn FeishuApiClient::build_send_request(
   self : FeishuApiClient,
   chat_id : String,
   text : String,
@@ -165,7 +165,7 @@ pub fn FeishuApiClient::build_send_request(
 ///|
 /// Send a text message to a chat.
 /// Uses automatic format selection (text / card).
-pub fn FeishuApiClient::send_message(
+pub async fn FeishuApiClient::send_message(
   self : FeishuApiClient,
   chat_id : String,
   text : String,
@@ -193,7 +193,7 @@ pub fn FeishuApiClient::send_message(
 ///|
 /// Build the request for updating (editing) an existing message.
 /// Returns (url, headers_array, body_string) ready for HTTP PATCH.
-pub fn FeishuApiClient::build_update_request(
+pub async fn FeishuApiClient::build_update_request(
   self : FeishuApiClient,
   message_id : String,
   text : String,
@@ -215,7 +215,7 @@ pub fn FeishuApiClient::build_update_request(
 
 ///|
 /// Update (edit) an existing message by message_id.
-pub fn FeishuApiClient::update_message(
+pub async fn FeishuApiClient::update_message(
   self : FeishuApiClient,
   message_id : String,
   text : String,
@@ -236,7 +236,7 @@ pub fn FeishuApiClient::update_message(
 
 ///|
 /// Upload an image to Feishu and return the image_key.
-pub fn FeishuApiClient::upload_image(
+pub async fn FeishuApiClient::upload_image(
   self : FeishuApiClient,
   image_type : String,
   _image_data : String,
@@ -258,7 +258,7 @@ pub fn FeishuApiClient::upload_image(
 
 ///|
 /// Upload a file to Feishu and return the file_key.
-pub fn FeishuApiClient::upload_file(
+pub async fn FeishuApiClient::upload_file(
   self : FeishuApiClient,
   file_type : String,
   file_name : String,
@@ -280,7 +280,7 @@ pub fn FeishuApiClient::upload_file(
 ///|
 /// Download a resource (image/file) attached to a message.
 /// Returns the raw content as a string (base64 for binary).
-pub fn FeishuApiClient::download_resource(
+pub async fn FeishuApiClient::download_resource(
   self : FeishuApiClient,
   message_id : String,
   file_key : String,
@@ -309,7 +309,7 @@ pub fn FeishuApiClient::download_resource(
 
 ///|
 /// Fetch recent chat history messages.
-pub fn FeishuApiClient::fetch_chat_history(
+pub async fn FeishuApiClient::fetch_chat_history(
   self : FeishuApiClient,
   chat_id : String,
   limit : Int,

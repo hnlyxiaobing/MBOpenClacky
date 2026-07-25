@@ -755,7 +755,7 @@ fn apply_model_override(
 }
 
 ///|
-fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
+async fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
   if agent.config.verbose {
     println("Running agent with message: \{message}")
     println("Model: \{agent.current_model()}")

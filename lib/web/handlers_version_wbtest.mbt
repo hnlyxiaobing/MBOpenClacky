@@ -80,7 +80,7 @@ test "version is not newer when older" {
 // ── Handlers ──────────────────────────────────────────────────────
 
 ///|
-test "version upgrade returns current version" {
+async test "version upgrade returns current version" {
   let server_ref = make_version_server_ref()
   let resp = handle_version_upgrade(
     server_ref,

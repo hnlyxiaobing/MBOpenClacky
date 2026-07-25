@@ -1,13 +1,11 @@
 warnings = "-6"
 
 import {
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/buffer",
   "moonbitlang/x/sys",
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/async/process",
 }
-
-options(
-  "native-stub": [ "browser_process.c" ],
-)

@@ -7,12 +7,15 @@ import {
   "moonbitlang/x/crypto",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async",
+  "moonbitlang/async/http",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
 
 options(
   "native-stub": [ "crypto_native.c", "brand_stubs.c" ],
-  // Windows: BCrypt + WinHTTP auto-linked via #pragma comment in crypto_native.c
-  // Linux/macOS: -lcrypto (OpenSSL AES-256-GCM/RAND_bytes) + -lcurl (HTTP GET)
-  link: { "native": { "cc-link-flags": "-lcrypto -lcurl" } },
+  // Windows: BCrypt auto-linked via #pragma comment in crypto_native.c
+  // Linux/macOS: -lcrypto (OpenSSL AES-256-GCM/RAND_bytes)
+  // HTTP GET migrated to @async/http — no libcurl needed anymore.
+  link: { "native": { "cc-link-flags": "-lcrypto" } },
 )

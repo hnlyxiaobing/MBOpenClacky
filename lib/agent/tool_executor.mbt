@@ -67,7 +67,7 @@ pub fn Agent::is_safe_operation(
 /// call so the trail is complete.
 ///
 /// Returns a ToolResultEntry with the execution result.
-pub fn Agent::execute_single_tool(
+pub async fn Agent::execute_single_tool(
   self : Agent,
   call : @message.ToolCall,
 ) -> ToolResultEntry {

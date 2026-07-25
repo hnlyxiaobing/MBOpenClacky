@@ -99,7 +99,7 @@ pub fn PatchChain::audit_entries(self : PatchChain) -> Array[PatchAuditEntry] {
 /// Returns `Allow` when no rule blocks, or the first `Block` decision
 /// encountered. Every rule that matches (Allow or Block) appends an
 /// audit-log entry; the first Block is the one returned.
-pub fn PatchChain::check_before(
+pub async fn PatchChain::check_before(
   self : PatchChain,
   tool_name : String,
   tool_args : Map[String, Json],
@@ -265,7 +265,7 @@ fn index_of_from(haystack : String, needle : String, from : Int) -> Int? {
 /// Returns `Some(decision)` when the command was run, `None` when the
 /// rule has no `command`. A non-zero exit code is treated as `Allow`
 /// (fail-open) so a misbehaving hook cannot lock the agent out.
-fn execute_hook(
+async fn execute_hook(
   rule : PatchRule,
   tool_name : String,
   args_str : String,

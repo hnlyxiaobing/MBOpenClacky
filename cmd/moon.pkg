@@ -39,6 +39,8 @@ options(
   // at runtime. brand/moon.pkg also lists -lcrypto so its test .so resolves.
   // Windows uses BCrypt (auto-linked via #pragma comment in crypto_native.c),
   // so this flag must not be applied there.
+  // Note: libcurl flag removed — brand HTTP GET migrated to @async/http
+  // (S-FFI-07); -lcrypto is the only library kept alive here.
   // Note: Yoga link flags removed — TUI migrated to moonbit-community/tty inline mode.
-  link: { "native": { "cc-link-flags": "-lcrypto -lcurl" } },
+  link: { "native": { "cc-link-flags": "-lcrypto" } },
 )

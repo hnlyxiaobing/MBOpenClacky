@@ -2,6 +2,11 @@
 // Windows: saves the current console input/output code pages and switches them to
 // UTF-8 (CP 65001) so box-drawing / Braille / symbol glyphs render correctly.
 // POSIX: no-op (terminals are already UTF-8 in practice).
+//
+// RETAINED (S-FFI-08, specs/completed/2026-07-25_ffi-08-residual-ffi-pty.md):
+// GetConsoleCP/SetConsoleCP are Win32-only with no official MoonBit API
+// (docs/ffi-c-code-report.md "FFI 必要性总结": 操作系统 API — 成立; §8
+// lib/tui). Windows-specific and tightly coupled to the TUI lifecycle.
 
 #include <moonbit.h>
 

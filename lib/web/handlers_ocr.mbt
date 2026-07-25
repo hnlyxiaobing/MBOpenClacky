@@ -232,7 +232,7 @@ fn handle_config_ocr_update(
 ///|
 /// POST /api/config/ocr/test
 /// Validates the OCR configuration by running a minimal vision call.
-fn handle_config_ocr_test(
+async fn handle_config_ocr_test(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -271,7 +271,7 @@ fn handle_config_ocr_test(
 ///|
 /// POST /api/internal/ocr-image
 /// Internal endpoint used by document parsers to OCR an image.
-fn handle_internal_ocr_image(
+async fn handle_internal_ocr_image(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {

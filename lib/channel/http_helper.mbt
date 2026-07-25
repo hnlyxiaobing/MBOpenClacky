@@ -256,7 +256,7 @@ pub const CHANNEL_HTTP_TIMEOUT_MS : Int = 30_000
 ///|
 /// Execute an HTTP POST request with JSON body and parse the JSON response.
 /// Returns Err on network failure, non-2xx status, or JSON parse failure.
-pub fn http_post_json(
+pub async fn http_post_json(
   url : String,
   headers : Array[(String, String)],
   body : String,
@@ -275,7 +275,7 @@ pub fn http_post_json(
 
 ///|
 /// Execute an HTTP GET request and parse the JSON response.
-pub fn http_get_json(
+pub async fn http_get_json(
   url : String,
   headers : Array[(String, String)],
 ) -> Result[Json, ChannelError] {

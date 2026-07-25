@@ -11,6 +11,7 @@ import {
   "TheWaWaR/clap@0.2.6",
   "hnlyxiaobing/crescent@0.10.1",
   "moonbit-community/tty@0.3.0",
+  "moonbit-community/pty@0.2.2",
 }
 
 repository = "https://github.com/hnlyxiaobing/MBOpenClacky"

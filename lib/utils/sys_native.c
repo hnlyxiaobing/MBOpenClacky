@@ -1,6 +1,12 @@
-// sys_native.c — Platform-native chdir / getcwd for MBOpenClacky
+// sys_native.c — Platform-native chdir / osrelease for MBOpenClacky
 // Windows: SetCurrentDirectoryA / GetCurrentDirectoryA (kernel32)
 // POSIX:   chdir / getcwd (unistd.h)
+//
+// RETAINED (S-FFI-08, specs/completed/2026-07-25_ffi-08-residual-ffi-pty.md):
+// chdir and uname/osrelease have no official MoonBit API
+// (docs/ffi-c-code-report.md "FFI 必要性总结": 操作系统 API — 成立; §7
+// lib/utils). getcwd moved to moonbitlang/core in S-01; this file is the
+// project's single remaining sys-level FFI surface — do not extend it.
 
 #include <moonbit.h>
 #include <stdlib.h>

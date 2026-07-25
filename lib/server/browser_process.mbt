@@ -1,107 +1,81 @@
 ///|
 /// Wraps a chrome-devtools-mcp child process with stdin/stdout pipes.
-/// Uses native FFI for process management; falls back to stubs on wasm targets.
-
-// ── Native FFI declarations ──────────────────────────────────────────────────
-
-///|
-/// Spawn a child process, returns handle index (>= 0) or -1 on error.
-#cfg(target="native")
-#borrow(command, args)
-extern "C" fn spawn_browser_process_ffi(
-  command : String,
-  args : Array[String],
-  arg_count : Int,
-) -> Int = "mbopenclacky_spawn_process"
-
-///|
-/// Check if a process handle is still alive.
-#cfg(target="native")
-extern "C" fn is_process_alive_ffi(handle : Int) -> Bool = "mbopenclacky_is_process_alive"
-
-///|
-/// Terminate a process by handle. Returns 0 on success, -1 on error.
-#cfg(target="native")
-extern "C" fn terminate_process_ffi(handle : Int) -> Int = "mbopenclacky_terminate_process"
-
-///|
-/// Write bytes to process stdin. Returns 0 on success, -1 on error.
-#cfg(target="native")
-#borrow(data)
-extern "C" fn write_process_stdin_ffi(
-  handle : Int,
-  data : Bytes,
-  length : Int,
-) -> Int = "mbopenclacky_write_process_stdin"
-
-///|
-/// Read a line from process stdout into buffer.
-/// Returns number of bytes read (excluding newline), or -1 on error.
-#cfg(target="native")
-#borrow(buffer)
-extern "C" fn read_process_stdout_line_ffi(
-  handle : Int,
-  buffer : Bytes,
-  buffer_size : Int,
-) -> Int = "mbopenclacky_read_process_stdout_line"
-
-///|
-/// Get the PID of a spawned process by handle.
-#cfg(target="native")
-extern "C" fn get_process_pid_ffi(handle : Int) -> Int = "mbopenclacky_get_process_pid"
-
-///|
-/// Close a process handle and release resources.
-#cfg(target="native")
-extern "C" fn close_process_handle_ffi(handle : Int) -> Int = "mbopenclacky_close_process_handle"
+/// Uses `@async/process` for process management; falls back to stubs on wasm targets.
 
 // ── BrowserProcess struct ───────────────────────────────────────────────────
 
 ///|
 /// Wraps a chrome-devtools-mcp child process with stdin/stdout pipes.
-/// Provides synchronous line-based I/O for JSON-RPC communication.
-pub(all) struct BrowserProcess {
-  mut handle : Int
-  mut pid : Int
-  mut alive : Bool
+/// Provides line-based I/O for JSON-RPC communication.
+#cfg(target="native")
+pub struct BrowserProcess {
+  pid : Int
+  priv mut alive : Bool
+  priv stdin_writer : @process.WriteToProcess
+  priv stdout_reader : @process.ReadFromProcess
+}
+
+///|
+/// Wraps a chrome-devtools-mcp child process (WASM stub — not supported).
+#cfg(any(target="wasm", target="wasm-gc", target="js"))
+pub struct BrowserProcess {
+  pid : Int
+  priv mut alive : Bool
 }
 
 // ── Native implementation ───────────────────────────────────────────────────
 
 ///|
-/// Maximum line buffer size for reading process stdout (8 KB).
-let process_read_buffer_size : Int = 8192
-
-///|
 /// Spawn the MCP daemon process with the given command and arguments.
+///
+/// The child process is spawned as an orphan (`@process.spawn_orphan`), so it
+/// is not tied to any task group and can outlive the spawning request. Its
+/// stdin/stdout are redirected to pipes owned by this `BrowserProcess`.
 #cfg(target="native")
-pub fn BrowserProcess::spawn(
+pub async fn BrowserProcess::spawn(
   command : String,
   args : Array[String],
 ) -> Result[BrowserProcess, String] {
-  let handle = spawn_browser_process_ffi(command, args, args.length())
-  if handle < 0 {
-    return Err("Failed to spawn process: \{command}")
+  let (stdout_reader, child_stdout) = @process.read_from_process() catch {
+    _ => return Err("Failed to create stdout pipe for: \{command}")
   }
-  let pid = get_process_pid_ffi(handle)
-  Ok({ handle, pid, alive: true })
+  let (child_stdin, stdin_writer) = @process.write_to_process() catch {
+    _ => {
+      stdout_reader.close()
+      return Err("Failed to create stdin pipe for: \{command}")
+    }
+  }
+  let pid = @process.spawn_orphan(
+    command,
+    args,
+    stdin=child_stdin,
+    stdout=child_stdout,
+    no_console_window=true,
+  ) catch {
+    _ => {
+      stdin_writer.close()
+      stdout_reader.close()
+      return Err("Failed to spawn process: \{command}")
+    }
+  }
+  Ok({ pid, alive: true, stdin_writer, stdout_reader })
 }
 
 ///|
 /// Write a line to the process stdin (appends newline).
 #cfg(target="native")
-pub fn BrowserProcess::write_line(
+pub async fn BrowserProcess::write_line(
   self : BrowserProcess,
   line : String,
 ) -> Result[Unit, String] {
   if !self.alive {
     return Err("Process is not alive")
   }
-  let data = @utf8.encode(line + "\n")
-  let result = write_process_stdin_ffi(self.handle, data, data.length())
-  if result < 0 {
-    self.alive = false
-    return Err("Failed to write to process stdin")
+  self.stdin_writer.write(line + "\n") catch {
+    _ => {
+      self.alive = false
+      return Err("Failed to write to process stdin")
+    }
   }
   Ok(())
 }
@@ -109,53 +83,72 @@ pub fn BrowserProcess::write_line(
 ///|
 /// Read a line from the process stdout (blocking).
 #cfg(target="native")
-pub fn BrowserProcess::read_line(
+pub async fn BrowserProcess::read_line(
   self : BrowserProcess,
 ) -> Result[String, String] {
   if !self.alive {
     return Err("Process is not alive")
   }
-  let buffer = Bytes::make(process_read_buffer_size, 0)
-  let bytes_read = read_process_stdout_line_ffi(
-    self.handle,
-    buffer,
-    process_read_buffer_size,
-  )
-  if bytes_read < 0 {
-    self.alive = false
-    return Err("Failed to read from process stdout")
+  let line : String? = self.stdout_reader.read_until("\n") catch {
+    _ => {
+      self.alive = false
+      return Err("Failed to read from process stdout")
+    }
   }
-  if bytes_read == 0 {
-    return Err("Process stdout returned empty line")
+  match line {
+    Some(text) => Ok(text)
+    None => {
+      self.alive = false
+      Err("Process stdout closed")
+    }
   }
-  Ok(buffer[:bytes_read].to_string())
 }
 
 ///|
 /// Check if the process is still alive.
+///
+/// Probes with a bounded `wait_pid`: if the child already exited, its exit
+/// code comes back immediately (and the child is reaped); if it is still
+/// running, the probe times out and is cancelled without affecting the child.
 #cfg(target="native")
-pub fn BrowserProcess::is_alive(self : BrowserProcess) -> Bool {
+pub async fn BrowserProcess::is_alive(self : BrowserProcess) -> Bool {
   if !self.alive {
     return false
   }
-  let alive = is_process_alive_ffi(self.handle)
-  self.alive = alive
-  alive
+  let exited : Int? = Some(
+    @async.with_timeout(10, () => @process.wait_pid(self.pid)),
+  ) catch {
+    @async.TimeoutError => None
+    _ => Some(-1)
+  }
+  match exited {
+    Some(_) => {
+      self.alive = false
+      false
+    }
+    None => true
+  }
 }
 
 ///|
 /// Kill the process and release resources.
 #cfg(target="native")
-pub fn BrowserProcess::kill(self : BrowserProcess) -> Result[Unit, String] {
+pub async fn BrowserProcess::kill(
+  self : BrowserProcess,
+) -> Result[Unit, String] {
   if !self.alive {
     return Ok(())
   }
-  let result = terminate_process_ffi(self.handle)
   self.alive = false
-  let _ = close_process_handle_ffi(self.handle)
-  if result < 0 {
-    return Err("Failed to terminate process")
+  // Forceful termination, matching the old TerminateProcess/kill semantics.
+  let terminate = @process.hard_cancel()
+  (terminate.0)(self.pid) catch {
+    _ => ()
   }
+  // Reap the child so it does not linger as a zombie.
+  let _ = @process.wait_pid(self.pid) catch { _ => -1 }
+  self.stdin_writer.close()
+  self.stdout_reader.close()
   Ok(())
 }
 
@@ -164,7 +157,7 @@ pub fn BrowserProcess::kill(self : BrowserProcess) -> Result[Unit, String] {
 ///|
 /// Spawn the MCP daemon process (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn BrowserProcess::spawn(
+pub async fn BrowserProcess::spawn(
   command : String,
   args : Array[String],
 ) -> Result[BrowserProcess, String] {
@@ -176,7 +169,7 @@ pub fn BrowserProcess::spawn(
 ///|
 /// Write a line to process stdin (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn BrowserProcess::write_line(
+pub async fn BrowserProcess::write_line(
   self : BrowserProcess,
   line : String,
 ) -> Result[Unit, String] {
@@ -187,7 +180,7 @@ pub fn BrowserProcess::write_line(
 ///|
 /// Read a line from process stdout (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn BrowserProcess::read_line(
+pub async fn BrowserProcess::read_line(
   self : BrowserProcess,
 ) -> Result[String, String] {
   Err("Process I/O not supported on wasm target")
@@ -196,14 +189,16 @@ pub fn BrowserProcess::read_line(
 ///|
 /// Check if process is alive (WASM stub — always false).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn BrowserProcess::is_alive(self : BrowserProcess) -> Bool {
+pub async fn BrowserProcess::is_alive(self : BrowserProcess) -> Bool {
   false
 }
 
 ///|
 /// Kill the process (WASM stub — no-op).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
-pub fn BrowserProcess::kill(self : BrowserProcess) -> Result[Unit, String] {
+pub async fn BrowserProcess::kill(
+  self : BrowserProcess,
+) -> Result[Unit, String] {
   self.alive = false
   Ok(())
 }

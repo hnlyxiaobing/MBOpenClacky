@@ -138,7 +138,7 @@ test "patch_rules_from_extension_preserves_manifest_order" {
 }
 
 ///|
-test "build_patch_chain_skips_disabled_extensions" {
+async test "build_patch_chain_skips_disabled_extensions" {
   let c1 = patch_contrib("p1", "r1", "first", { "block_pattern": "x" }, "")
   let c2 = patch_contrib("p2", "r2", "second", { "block_pattern": "y" }, "")
   let enabled_ext = make_extension_with_patches("ext-on", true, [c1])

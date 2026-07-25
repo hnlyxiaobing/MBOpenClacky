@@ -91,7 +91,7 @@ test "ocr config update custom stores model" {
 // ── Config Test ───────────────────────────────────────────────────
 
 ///|
-test "ocr config test fails without model" {
+async test "ocr config test fails without model" {
   let server_ref = make_ocr_server_ref()
   let event = make_ocr_event(Post, "/api/config/ocr/test")
   let resp = handle_config_ocr_test(server_ref, event)
@@ -104,7 +104,7 @@ test "ocr config test fails without model" {
 // ── Internal OCR ──────────────────────────────────────────────────
 
 ///|
-test "internal ocr requires data_url or path" {
+async test "internal ocr requires data_url or path" {
   let server_ref = make_ocr_server_ref()
   let event = make_ocr_event(Post, "/api/internal/ocr-image", body="{}")
   let resp = handle_internal_ocr_image(server_ref, event)
@@ -112,7 +112,7 @@ test "internal ocr requires data_url or path" {
 }
 
 ///|
-test "internal ocr fails without configured model" {
+async test "internal ocr fails without configured model" {
   let server_ref = make_ocr_server_ref()
   let event = make_ocr_event(
     Post,

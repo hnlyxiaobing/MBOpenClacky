@@ -821,7 +821,16 @@ pub fn WebServer::build_app(
   app.ws(
     "/ws",
     @ws.WebSocketHandler((event : @ws.WebSocketEvent) => {
-      handle_ws_global(server_ref, event)
+      // The handler type is a sync closure, but the dispatch is async
+      // (agent runs are async end-to-end). Spawn it into the server's
+      // task group; it lives as long as the server does.
+      match ws_task_group.val {
+        Some(group) =>
+          group.spawn_bg(no_wait=true, allow_failure=true, () => {
+            handle_ws_global(server_ref, event)
+          })
+        None => ()
+      }
     }),
   )
   // Legacy /ws/sessions/:id removed (web-parity-05).

@@ -997,7 +997,7 @@ pub fn handle_benchmark_model_post(
 /// POST /api/sessions/:id/benchmark.
 /// Sends a minimal "Hi" prompt to every configured model and returns
 /// per-model latency results so the frontend can display TTFT badges.
-pub fn handle_session_benchmark(
+pub async fn handle_session_benchmark(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {

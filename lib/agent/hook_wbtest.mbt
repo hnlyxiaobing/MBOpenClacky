@@ -133,7 +133,7 @@ test "hook_emit_all_event_types" {
 }
 
 ///|
-test "hook_integration_agent_status_changes" {
+async test "hook_integration_agent_status_changes" {
   let client = @client.Client::new(
     "test-key",
     "https://api.test.com",
@@ -174,7 +174,7 @@ test "hook_integration_agent_status_changes" {
 }
 
 ///|
-test "hook_integration_iteration_events" {
+async test "hook_integration_iteration_events" {
   let client = @client.Client::new(
     "test-key",
     "https://api.test.com",
@@ -221,7 +221,7 @@ test "hook_integration_iteration_events" {
 }
 
 ///|
-test "hook_integration_message_events" {
+async test "hook_integration_message_events" {
   let client = @client.Client::new(
     "test-key",
     "https://api.test.com",
@@ -263,7 +263,7 @@ test "hook_integration_message_events" {
 }
 
 ///|
-test "hook_integration_run_completed" {
+async test "hook_integration_run_completed" {
   let client = @client.Client::new(
     "test-key",
     "https://api.test.com",
@@ -295,7 +295,7 @@ test "hook_integration_run_completed" {
 }
 
 ///|
-test "hook_multiple_events_in_order" {
+async test "hook_multiple_events_in_order" {
   // Verify that events are emitted in the expected order
   let client = @client.Client::new(
     "test-key",

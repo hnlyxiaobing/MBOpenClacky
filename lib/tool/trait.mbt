@@ -16,7 +16,7 @@ pub(open) trait Tool {
   fn category(Self) -> ToolCategory
 
   ///| Execute the tool with the given arguments and return a result.
-  fn execute(Self, Map[String, Json]) -> ToolResult
+  async fn execute(Self, Map[String, Json]) -> ToolResult
 
   ///| Format a tool call for display in the UI.
   fn format_call(Self, Map[String, Json]) -> String

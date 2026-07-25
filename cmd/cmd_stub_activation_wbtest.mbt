@@ -1,18 +1,18 @@
 ///|
-test "run_shell_command captures output and exit code" {
+async test "run_shell_command captures output and exit code" {
   let r = @tool.run_shell_command("echo hello")
   @debug.assert_eq(r.exit_code, 0)
   assert_true(r.output.contains("hello"))
 }
 
 ///|
-test "run_shell_command reports non-zero exit code" {
+async test "run_shell_command reports non-zero exit code" {
   let r = @tool.run_shell_command("exit 3")
   @debug.assert_eq(r.exit_code, 3)
 }
 
 ///|
-test "run_shell_command passes env vars to child process" {
+async test "run_shell_command passes env vars to child process" {
   // Windows: !VAR! delayed expansion (cmd /v:on) — %VAR% would be expanded
   // at parse time, before the inlined `set` prefix executes.
   let cmd = if @tool.shell_is_windows() {
@@ -26,7 +26,7 @@ test "run_shell_command passes env vars to child process" {
 }
 
 ///|
-test "execute_hook runs command and succeeds" {
+async test "execute_hook runs command and succeeds" {
   // Windows has no `test` builtin; use an `if` comparison instead.
   let command = if @tool.shell_is_windows() {
     "if not \"!CLACKY_SESSION_ID!\"==\"sess-1\" exit 1"
@@ -51,7 +51,7 @@ test "execute_hook runs command and succeeds" {
 }
 
 ///|
-test "execute_hook returns Err on non-zero exit" {
+async test "execute_hook returns Err on non-zero exit" {
   let hook : HookConfig = {
     name: "failing-hook",
     event: "on_start",
@@ -66,7 +66,7 @@ test "execute_hook returns Err on non-zero exit" {
 }
 
 ///|
-test "execute_hook skips disabled hooks" {
+async test "execute_hook skips disabled hooks" {
   let hook : HookConfig = {
     name: "disabled",
     event: "on_start",
@@ -78,7 +78,7 @@ test "execute_hook skips disabled hooks" {
 }
 
 ///|
-test "execute_hook rejects empty command" {
+async test "execute_hook rejects empty command" {
   let hook : HookConfig = {
     name: "empty",
     event: "on_start",
@@ -90,7 +90,7 @@ test "execute_hook rejects empty command" {
 }
 
 ///|
-test "apply_patches executes commands and skips metadata-only patches" {
+async test "apply_patches executes commands and skips metadata-only patches" {
   let loader = PatchLoader::new("/nonexistent")
   let patches : Array[PatchInfo] = [
     {
@@ -122,7 +122,7 @@ test "apply_patches executes commands and skips metadata-only patches" {
 }
 
 ///|
-test "apply_patches reports failing patch" {
+async test "apply_patches reports failing patch" {
   let loader = PatchLoader::new("/nonexistent")
   let patches : Array[PatchInfo] = [
     {

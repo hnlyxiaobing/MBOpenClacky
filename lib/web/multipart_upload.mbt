@@ -1,7 +1,9 @@
 ///| Single-purpose multipart/form-data upload client (fix-17 skill publish).
 /// Builds a binary-safe multipart body (ZIP payloads contain NUL bytes, so
-/// the body is assembled as raw Bytes, never as String) and sends it via a
-/// dedicated FFI transport. The transport is injectable for white-box tests.
+/// the body is assembled as raw Bytes, never as String) and sends it via
+/// @async/http (TLS trust defaults to SystemRoot: Windows Schannel system
+/// store, POSIX OpenSSL system CA). The transport is injectable for
+/// white-box tests.
 
 // ── Multipart body builder ──────────────────────────────────────────
 
@@ -57,15 +59,15 @@ fn build_multipart_body(
   Bytes::from_array(buf)
 }
 
-// ── Transport (FFI + test override) ─────────────────────────────────
+// ── Transport (@async/http + test override) ─────────────────────────
 
 ///|
 /// Transport function signature: (method, url, headers, body, timeout_ms)
 /// → Ok((status_code, response_body)) or Err(transport_error).
 /// Test hook: when set, multipart_send delegates to this function instead of
-/// the real FFI transport. Production code leaves it None.
+/// the real @async/http transport. Production code leaves it None.
 let multipart_transport_override : Ref[
-  ((String, String, Array[(String, String)], Bytes, Int) -> Result[
+  (async (String, String, Array[(String, String)], Bytes, Int) -> Result[
     (Int, String),
     String,
   ])?,
@@ -75,9 +77,9 @@ let multipart_transport_override : Ref[
 /// Install (or clear, with None) the transport override. Returns nothing;
 /// tests must restore None afterwards to avoid cross-test leakage.
 /// Public so the compiler does not flag it as unused outside test builds;
-/// production code never calls it (multipart_send falls back to the FFI).
+/// production code never calls it (multipart_send falls back to @async/http).
 pub fn set_multipart_transport_override(
-  override_ : ((String, String, Array[(String, String)], Bytes, Int) -> Result[
+  override_ : (async (String, String, Array[(String, String)], Bytes, Int) -> Result[
     (Int, String),
     String,
   ])?,
@@ -86,89 +88,78 @@ pub fn set_multipart_transport_override(
 }
 
 ///|
-/// Maximum upload response body buffer size (4 MB, matches lib/client).
-let multipart_resp_buf_size : Int = 4 * 1024 * 1024
-
-///|
-/// C FFI: synchronous binary-safe HTTP request via WinHTTP (Windows) or
-/// libcurl (Linux/macOS). meta_buf layout matches lib/client:
-/// [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
-#borrow(http_method, url, headers, body, resp_buf, meta_buf, err_buf)
-extern "C" fn multipart_upload_ffi(
-  http_method : String,
-  url : String,
-  headers : String,
-  body : Bytes,
-  timeout_ms : Int,
-  resp_buf : Bytes,
-  meta_buf : Bytes,
-  err_buf : Bytes,
-) -> Int = "mbopenclacky_web_multipart_upload"
-
-///|
-/// Format request headers as "Key: Value\r\n" pairs for the C FFI.
-fn multipart_format_headers(headers : Array[(String, String)]) -> String {
-  let mut result = ""
-  for pair in headers {
-    let (k, v) = pair
-    result = result + k + ": " + v + "\r\n"
+/// Split "scheme://host[:port][/path...]" into (base, path). The base keeps
+/// scheme and authority only, because @http.Client::Client requires the URI
+/// path to be "/".
+fn multipart_split_url(url : String) -> Result[(String, String), String] {
+  match url.find("://") {
+    None => Err("invalid URL: " + url)
+    Some(i) => {
+      let authority_start = i + 3
+      let rest = url[authority_start:].to_owned()
+      match rest.find("/") {
+        None => Ok((url, "/"))
+        Some(j) =>
+          Ok((url[:authority_start + j].to_owned(), rest[j:].to_owned()))
+      }
+    }
   }
-  result
 }
 
 ///|
-/// Read a little-endian Int32 from a Bytes buffer at the given offset.
-fn multipart_read_le_int32(buf : Bytes, offset : Int) -> Int {
-  let b0 = buf[offset].to_int()
-  let b1 = buf[offset + 1].to_int()
-  let b2 = buf[offset + 2].to_int()
-  let b3 = buf[offset + 3].to_int()
-  b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+/// Perform the request and read the whole response body. Raises on
+/// transport/TLS errors; the caller maps failures to Err.
+async fn multipart_do_request(
+  http_method : String,
+  base : String,
+  path : String,
+  headers : Map[String, String],
+  body : Bytes,
+) -> (Int, String) {
+  let meth = match http_method {
+    "PATCH" => @http.Patch
+    "PUT" => @http.Put
+    _ => @http.Post
+  }
+  let client = @http.Client::Client(base, headers~)
+  defer client.close()
+  let response = client..request(meth, path)..write(body).end_request()
+  (response.code, client.read_all().text())
 }
 
 ///|
-/// Real transport via the FFI stub.
-fn multipart_send_ffi(
+/// Real transport via @async/http. trust defaults to SystemRoot, so HTTPS
+/// certificate validation uses the system store (Windows Schannel, POSIX
+/// OpenSSL), matching the old WinHTTP/libcurl behavior.
+async fn multipart_send_http(
   http_method : String,
   url : String,
   headers : Array[(String, String)],
   body : Bytes,
   timeout_ms : Int,
 ) -> Result[(Int, String), String] {
-  let resp_buf = Bytes::make(multipart_resp_buf_size, 0)
-  let meta_buf = Bytes::make(8, 0)
-  let err_buf = Bytes::make(1024, 0)
-  let ffi_result = multipart_upload_ffi(
-    http_method,
-    url,
-    multipart_format_headers(headers),
-    body,
-    timeout_ms,
-    resp_buf,
-    meta_buf,
-    err_buf,
-  )
-  if ffi_result != 0 {
-    let mut err_len = 0
-    while err_len < err_buf.length() && err_buf[err_len].to_int() != 0 {
-      err_len = err_len + 1
-    }
-    let err_msg = @utf8.decode_lossy(err_buf[:err_len])
-    return Err(err_msg)
+  let (base, path) = match multipart_split_url(url) {
+    Ok(pair) => pair
+    Err(e) => return Err(e)
   }
-  let status = multipart_read_le_int32(meta_buf, 0)
-  let body_size = multipart_read_le_int32(meta_buf, 4)
-  let resp_body = if body_size > 0 {
-    @utf8.decode_lossy(resp_buf[:body_size])
-  } else {
-    ""
+  let header_map : Map[String, String] = Map([])
+  for pair in headers {
+    header_map[pair.0] = pair.1
   }
-  Ok((status, resp_body))
+  let result = @async.with_timeout_opt(timeout_ms, () => {
+    multipart_do_request(http_method, base, path, header_map, body)
+  }) catch {
+    e => return Err(@debug.to_string(e))
+  }
+  match result {
+    Some(pair) => Ok(pair)
+    None => Err("request timed out after " + timeout_ms.to_string() + " ms")
+  }
 }
 
 ///|
 /// Send a multipart request, honoring the test override when installed.
-fn multipart_send(
+async fn multipart_send(
   http_method : String,
   url : String,
   headers : Array[(String, String)],
@@ -177,6 +168,6 @@ fn multipart_send(
 ) -> Result[(Int, String), String] {
   match multipart_transport_override.val {
     Some(f) => f(http_method, url, headers, body, timeout_ms)
-    None => multipart_send_ffi(http_method, url, headers, body, timeout_ms)
+    None => multipart_send_http(http_method, url, headers, body, timeout_ms)
   }
 }

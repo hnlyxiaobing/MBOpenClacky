@@ -56,7 +56,7 @@ pub fn DiscordApiClient::auth_headers(self : DiscordApiClient) -> HttpHeaders {
 ///
 /// POST /channels/{channel_id}/messages
 /// Returns the JSON response containing at least `id` field.
-pub fn DiscordApiClient::send_message(
+pub async fn DiscordApiClient::send_message(
   self : DiscordApiClient,
   channel_id : String,
   content : String,

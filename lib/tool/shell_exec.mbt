@@ -1,38 +1,13 @@
 ///|
 /// Shared shell execution for hooks, patches, and extension handlers.
-/// Uses the same mb_system FFI provided by lib/tool/tool_stubs.c and the
+/// Spawns the platform shell via @process.run (see terminal_exec.mbt;
+/// the C system() FFI was removed in S-FFI-08) and uses the
 /// output-file + completion-marker pattern from lib/tool/terminal.mbt.
 ///
 /// Concurrency safety: env vars are INLINED into the command prefix
 /// (export VAR='val' on Unix, set "VAR=val" on Windows) rather than
 /// modifying the parent process environment. This is safe for concurrent
 /// web server requests.
-
-///|
-/// String::to_bytes() is UTF-16LE; system() needs a NUL-terminated UTF-8 C string.
-fn to_c_string(s : String) -> Bytes {
-  let buf : Array[Byte] = []
-  for c in s {
-    let code = c.to_int()
-    if code < 0x80 {
-      buf.push(code.to_byte())
-    } else if code < 0x800 {
-      buf.push((0xC0 | (code >> 6)).to_byte())
-      buf.push((0x80 | (code & 0x3F)).to_byte())
-    } else if code < 0x10000 {
-      buf.push((0xE0 | (code >> 12)).to_byte())
-      buf.push((0x80 | ((code >> 6) & 0x3F)).to_byte())
-      buf.push((0x80 | (code & 0x3F)).to_byte())
-    } else {
-      buf.push((0xF0 | (code >> 18)).to_byte())
-      buf.push((0x80 | ((code >> 12) & 0x3F)).to_byte())
-      buf.push((0x80 | ((code >> 6) & 0x3F)).to_byte())
-      buf.push((0x80 | (code & 0x3F)).to_byte())
-    }
-  }
-  buf.push(b'\x00')
-  Bytes::from_array(buf)
-}
 
 ///|
 priv struct ShellExecCounter {
@@ -117,7 +92,7 @@ fn build_env_prefix(
 /// Execute a shell command, capturing combined stdout/stderr and the real
 /// exit code via a completion marker. Environment variables are inlined
 /// into the command prefix (concurrency-safe — no parent env mutation).
-pub fn run_shell_command(
+pub async fn run_shell_command(
   command : String,
   env_vars? : Array[(String, String)] = [],
   working_dir? : String? = None,
@@ -173,23 +148,19 @@ pub fn run_shell_command(
     output_file +
     "'"
   }
-  // system() already runs the command via `sh -c` on Unix; only Windows
-  // needs the explicit cmd.exe wrapper. /v:on enables delayed expansion so
-  // that !ERRORLEVEL! above is evaluated AFTER the command completes.
-  let full_cmd = if is_win {
-    "cmd.exe /v:on /c \"" + shell_cmd + "\""
-  } else {
-    shell_cmd
-  }
-  let sys_exit = c_system(to_c_string(full_cmd))
+  // Spawn the platform shell directly via @process.run (no C system()).
+  // On Windows the command runs from a temp .bat under cmd.exe /v:on so
+  // that !ERRORLEVEL! above is expanded AFTER the command completes
+  // (see terminal_exec.mbt for why a batch file is needed).
+  let sys_exit = run_system_command(shell_cmd)
   let raw = @fs.read_file_to_string(output_file) catch { _ => "" }
   @fs.remove_file(output_file) catch {
     _ => ()
   }
   let exit_code = match parse_shell_marker(raw, token) {
     Some(code) => code
-    // system() returns a wait status on Unix; the real code is in bits 8-15
-    None => if is_win { sys_exit } else { (sys_exit >> 8) & 0xFF }
+    // @process.run returns the child's real exit code on both platforms.
+    None => sys_exit
   }
   { output: strip_shell_marker(raw, token), exit_code }
 }

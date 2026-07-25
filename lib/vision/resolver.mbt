@@ -19,7 +19,7 @@ pub fn VisionResolver::with_config(config : VisionConfig) -> VisionResolver {
 
 ///|
 /// Describe an image using a vision-capable LLM
-pub fn VisionResolver::describe(
+pub async fn VisionResolver::describe(
   self : VisionResolver,
   input : VisionInput,
   prompt : String?,

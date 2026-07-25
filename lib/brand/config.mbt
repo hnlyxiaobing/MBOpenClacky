@@ -205,7 +205,7 @@ pub fn BrandConfig::distribution_refresh_due(
 ///|
 /// Refresh distribution from public endpoint via HTTP GET.
 /// Falls back gracefully: on network error returns Err without blocking startup.
-pub fn BrandConfig::refresh_distribution(
+pub async fn BrandConfig::refresh_distribution(
   self : BrandConfig,
   current_time : Int,
 ) -> Result[Unit, String] {

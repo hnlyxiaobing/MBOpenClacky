@@ -247,7 +247,7 @@ test "vision_input_bytes" {
 // ============================================================
 
 ///|
-test "describe_uses_cache" {
+async test "describe_uses_cache" {
   let resolver = VisionResolver::new()
   // First call - will be a "miss" (FFI not available)
   let input = FilePath("/test/image.png")
@@ -263,7 +263,7 @@ test "describe_uses_cache" {
 }
 
 ///|
-test "describe_invalid_input" {
+async test "describe_invalid_input" {
   let resolver = VisionResolver::new()
   let input = VisionBytes(Bytes::make(0, 0))
   let result = resolver.describe(input, Some("test"))
@@ -272,7 +272,7 @@ test "describe_invalid_input" {
 }
 
 ///|
-test "describe_invalid_data_url" {
+async test "describe_invalid_data_url" {
   let resolver = VisionResolver::new()
   let input = DataUrl("not-a-valid-url")
   let result = resolver.describe(input, Some("test"))
@@ -280,7 +280,7 @@ test "describe_invalid_data_url" {
 }
 
 ///|
-test "describe_unsupported_format" {
+async test "describe_unsupported_format" {
   let resolver = VisionResolver::new()
   let input = FilePath("/test/file.txt")
   let result = resolver.describe(input, Some("test"))

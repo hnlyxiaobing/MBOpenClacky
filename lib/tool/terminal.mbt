@@ -177,10 +177,10 @@ fn build_output_file_path(session_id : Int) -> String {
 
 ///|
 
-///| FFI to C's system() for synchronous command execution.
+///| Process execution via @process.run (no C system() FFI since S-FFI-08).
 
 ///| Defined in terminal_exec.mbt (native) or terminal_exec_wasm.mbt (wasm).
-// fn run_system_command(command : String) -> Int
+// async fn run_system_command(command : String) -> Int
 
 ///|
 /// Check if the current platform is Windows.
@@ -189,9 +189,9 @@ fn is_windows_platform() -> Bool {
 }
 
 ///|
-/// Execute a command synchronously by spawning a shell process.
+/// Execute a command by spawning a shell process via @process.run.
 /// Returns (output, exit_code, output_file_path).
-fn execute_command_sync(
+async fn execute_command_sync(
   user_command : String,
   cwd : String,
   _timeout_ms : Int,
@@ -216,7 +216,11 @@ fn execute_command_sync(
     "\" 2>&1 & " +
     "echo __CLACKY_DONE_" +
     token +
-    "_%ERRORLEVEL%__ >> \"" +
+    // !ERRORLEVEL! (delayed expansion) is evaluated AFTER the command
+    // runs; %ERRORLEVEL% would be expanded when the line is parsed —
+    // before execution. run_system_command always runs the command from
+    // a .bat under cmd.exe /v:on, so delayed expansion is guaranteed.
+    "_!ERRORLEVEL!__ >> \"" +
     output_file +
     "\""
   } else {
@@ -238,13 +242,10 @@ fn execute_command_sync(
     "'"
   }
 
-  // Execute via system()
-  let full_cmd = if is_win {
-    "cmd.exe /c \"" + shell_cmd + "\""
-  } else {
-    "sh -c '" + shell_cmd + "'"
-  }
-  let sys_exit_code = run_system_command(full_cmd)
+  // Execute via the platform shell spawned by @process.run. Passing the
+  // command as a single argv element avoids the double-shell quoting the
+  // old system()-based path needed ("sh -c '...'" / cmd.exe wrapper).
+  let sys_exit_code = run_system_command(shell_cmd)
 
   // Read the output file
   let raw_output = @fs.read_file_to_string(output_file) catch { _ => "" }

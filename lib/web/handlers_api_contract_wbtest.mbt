@@ -167,7 +167,7 @@ test "brand skills install requires name" {
 // ── Config / media / test ─────────────────────────────────────────────
 
 ///|
-test "config media test requires kind" {
+async test "config media test requires kind" {
   let server_ref = cc_make_server_ref()
   let resp = handle_config_media_test(
     server_ref,
@@ -177,7 +177,7 @@ test "config media test requires kind" {
 }
 
 ///|
-test "config media test reports no model for unknown kind" {
+async test "config media test reports no model for unknown kind" {
   let server_ref = cc_make_server_ref()
   let resp = handle_config_media_test(
     server_ref,

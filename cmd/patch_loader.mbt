@@ -64,7 +64,7 @@ pub fn PatchLoader::load_patches(self : PatchLoader) -> Array[PatchInfo] {
 /// A patch with a `command` executes it (CLACKY_PATCH_* env vars set);
 /// a patch without a command is a metadata-only declaration and is skipped.
 /// Returns Err listing all failed patches, if any.
-pub fn PatchLoader::apply_patches(
+pub async fn PatchLoader::apply_patches(
   self : PatchLoader,
   patches : Array[PatchInfo],
 ) -> Result[Unit, String] {
@@ -83,7 +83,7 @@ pub fn PatchLoader::apply_patches(
       }
     }
   }
-  groups.each(fn(module_name, module_patches) {
+  for module_name, module_patches in groups {
     println(
       "[PatchLoader] Applying \{module_patches.length()} patch(es) to module_name: \{module_name}",
     )
@@ -108,7 +108,7 @@ pub fn PatchLoader::apply_patches(
         failures.push("\{p.name} (exit code \{result.exit_code})")
       }
     }
-  })
+  }
   if failures.is_empty() {
     Ok(())
   } else {

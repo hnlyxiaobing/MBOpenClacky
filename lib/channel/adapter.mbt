@@ -14,14 +14,17 @@ pub(open) trait Adapter {
 
   ///| Send a text message to a chat.
   /// params: chat_id, text, reply_to
-  fn send_text(Self, String, String, String?) -> Result[
+  async fn send_text(Self, String, String, String?) -> Result[
     SendResult,
     ChannelError,
   ]
 
   ///| Update an existing message (for streaming progress).
   /// params: chat_id, message_id, new_text
-  fn update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+  async fn update_message(Self, String, String, String) -> Result[
+    Unit,
+    ChannelError,
+  ]
 
   ///| Whether this platform supports message updates.
   fn supports_message_updates(Self) -> Bool

@@ -126,7 +126,7 @@ pub fn split_by_pages(text : String) -> Array[String] {
 /// Parse a PDF with OCR fallback for scanned documents.
 /// If text extraction yields empty or minimal content (< 50 words),
 /// attempts OCR via VisionOCR on the PDF file.
-pub fn PdfParser::parse_with_ocr(
+pub async fn PdfParser::parse_with_ocr(
   self : PdfParser,
   path : String,
   ocr : @vision.VisionOCR,

@@ -186,7 +186,7 @@ test "ExtensionRoute: JSON descriptor with ~ in command expands" {
 // ── Shell execution integration test ────────────────────────────
 
 ///|
-test "ext handler: shell command execution via run_shell_command" {
+async test "ext handler: shell command execution via run_shell_command" {
   // Test that a simple echo command works through shell_exec
   let result = @tool.run_shell_command("echo '{\"status\":\"ok\"}'")
   @debug.assert_eq(result.exit_code, 0)
@@ -195,7 +195,7 @@ test "ext handler: shell command execution via run_shell_command" {
 }
 
 ///|
-test "ext handler: env vars passed to command" {
+async test "ext handler: env vars passed to command" {
   // Verify that env vars are correctly inlined into the command environment.
   // Unix expands $VAR via sh; Windows cannot expand inline-set vars with %VAR%
   // (cmd parses the whole line before set runs), so on Windows we list the var

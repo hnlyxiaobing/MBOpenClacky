@@ -240,71 +240,22 @@ fn crypto_random_bytes(_out : Bytes) -> Int {
   -1
 }
 
-// ---- Brand HTTP FFI (native target) ----
+// ---- Brand HTTP (via @async/http) ----
 
 ///|
-/// HTTP GET response buffer size (64 KB — distribution payloads are small).
-let brand_http_resp_buf_size : Int = 65536
-
-///|
-/// C FFI: synchronous HTTP GET for brand distribution refresh.
-/// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
-#cfg(not(target_arch="wasm32"))
-#borrow(url, resp_buf, meta_buf, err_buf)
-extern "C" fn brand_http_get_ffi(
-  url : String,
-  timeout_ms : Int,
-  resp_buf : Bytes,
-  meta_buf : Bytes,
-  err_buf : Bytes,
-) -> Int = "mbopenclacky_brand_http_get"
-
-///|
-/// WASM stub for brand HTTP GET.
-#cfg(target_arch="wasm32")
-fn brand_http_get_ffi(
-  _url : String,
-  _timeout_ms : Int,
-  _resp_buf : Bytes,
-  _meta_buf : Bytes,
-  _err_buf : Bytes,
-) -> Int {
-  -1
-}
-
-///|
-/// Read a little-endian Int32 from a Bytes buffer at the given offset.
-fn brand_read_le_int32(buf : Bytes, offset : Int) -> Int {
-  let b0 = buf[offset].to_int()
-  let b1 = buf[offset + 1].to_int()
-  let b2 = buf[offset + 2].to_int()
-  let b3 = buf[offset + 3].to_int()
-  b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
-}
-
-///|
-/// Perform an HTTP GET request and return (status_code, body).
-/// Returns Err on transport failure.
-pub fn brand_http_get(
+/// Perform an HTTP GET request via `@async/http` and return (status_code, body).
+/// TLS uses the system root store (Schannel on Windows, OpenSSL system CA on
+/// POSIX). `timeout_ms` bounds the whole request. Returns Err on transport
+/// failure or timeout.
+pub async fn brand_http_get(
   url : String,
   timeout_ms : Int,
 ) -> Result[(Int, String), String] {
-  let resp_buf = Bytes::make(brand_http_resp_buf_size, 0)
-  let meta_buf = Bytes::make(8, 0)
-  let err_buf = Bytes::make(512, 0)
-  let ffi_result = brand_http_get_ffi(
-    url, timeout_ms, resp_buf, meta_buf, err_buf,
-  )
-  guard ffi_result == 0 else {
-    let err_msg = @utf8.decode_lossy(err_buf[:512])
-    return Err("HTTP GET failed: \{err_msg}")
+  let result = @async.with_timeout_opt(timeout_ms, () => @http.get(url)) catch {
+    err => return Err("HTTP GET failed: \{err}")
   }
-  let status = brand_read_le_int32(meta_buf, 0)
-  let body_size = brand_read_le_int32(meta_buf, 4)
-  let body = if body_size > 0 {
-    @utf8.decode_lossy(resp_buf[:body_size])
-  } else {
-    ""
+  match result {
+    None => Err("HTTP GET timed out after \{timeout_ms} ms")
+    Some((resp, data)) => Ok((resp.code, data.text()))
   }
-  Ok((status, body))
 }

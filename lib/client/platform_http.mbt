@@ -91,7 +91,7 @@ pub fn PlatformHttpClient::new(
 
 ///|
 /// Send a GET request.
-pub fn PlatformHttpClient::get(
+pub async fn PlatformHttpClient::get(
   self : PlatformHttpClient,
   path : String,
   headers? : Array[(String, String)] = [],
@@ -101,7 +101,7 @@ pub fn PlatformHttpClient::get(
 
 ///|
 /// Send a POST request.
-pub fn PlatformHttpClient::post(
+pub async fn PlatformHttpClient::post(
   self : PlatformHttpClient,
   path : String,
   body : String,
@@ -112,7 +112,7 @@ pub fn PlatformHttpClient::post(
 
 ///|
 /// Send a PUT request.
-pub fn PlatformHttpClient::put(
+pub async fn PlatformHttpClient::put(
   self : PlatformHttpClient,
   path : String,
   body : String,
@@ -123,7 +123,7 @@ pub fn PlatformHttpClient::put(
 
 ///|
 /// Send a DELETE request.
-pub fn PlatformHttpClient::delete(
+pub async fn PlatformHttpClient::delete(
   self : PlatformHttpClient,
   path : String,
   headers? : Array[(String, String)] = [],
@@ -133,7 +133,7 @@ pub fn PlatformHttpClient::delete(
 
 ///|
 /// Execute request with retry and failover logic.
-fn PlatformHttpClient::execute_with_retry(
+async fn PlatformHttpClient::execute_with_retry(
   self : PlatformHttpClient,
   http_method : HttpMethod,
   path : String,
@@ -257,35 +257,7 @@ fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
   self.consecutive_failures = 0
 }
 
-///|
-/// Maximum response body buffer size (4 MB).
-let http_response_buf_size : Int = 4 * 1024 * 1024
-
-///|
-/// C FFI: synchronous HTTP request via WinHTTP (Windows) or libcurl (Linux).
-/// meta_buf layout: [0..3] = HTTP status (LE int32), [4..7] = body size (LE int32).
-#cfg(target="native")
-#borrow(http_method, url, headers, body, resp_buf, meta_buf, err_buf)
-extern "C" fn http_post_ffi(
-  http_method : String,
-  url : String,
-  headers : String,
-  body : String,
-  timeout_ms : Int,
-  resp_buf : Bytes,
-  meta_buf : Bytes,
-  err_buf : Bytes,
-) -> Int = "mbopenclacky_http_post"
-
-///|
-/// Read a little-endian Int32 from a Bytes buffer at the given offset.
-fn read_le_int32(buf : Bytes, offset : Int) -> Int {
-  let b0 = buf[offset].to_int()
-  let b1 = buf[offset + 1].to_int()
-  let b2 = buf[offset + 2].to_int()
-  let b3 = buf[offset + 3].to_int()
-  b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
-}
+// ── HTTP Transport (@async/http) ─────────────────────────────────────────────
 
 ///|
 /// Convert an HttpMethod enum to its HTTP method string.
@@ -299,67 +271,115 @@ fn http_method_str(m : HttpMethod) -> String {
 }
 
 ///|
-/// Format request headers as "Key: Value\r\n" pairs for the C FFI.
-fn format_headers(headers : Array[(String, String)]) -> String {
-  let mut result = ""
+/// Convert header pairs to the map shape expected by `@async/http`.
+fn headers_to_map(headers : Array[(String, String)]) -> Map[String, String] {
+  let m : Map[String, String] = Map([])
   for pair in headers {
     let (k, v) = pair
-    result = result + k + ": " + v + "\r\n"
+    m[k] = v
   }
-  result
+  m
 }
 
 ///|
-/// Actual HTTP transport via C FFI (WinHTTP on Windows, libcurl on Linux/macOS).
-/// The C side handles UTF-16→UTF-8 conversion for MoonBit String parameters.
-pub fn send_request(
+/// Split a full URL into (base, path): `base` is `protocol://host[:port]`
+/// (path `/`, as required by `@http.Client::Client`), `path` keeps any
+/// query string.
+fn split_base_path(url : String) -> (String, String) {
+  // Find the first "/" after the "://" scheme separator.
+  let scheme_end = match url.find("://") {
+    Some(i) => i + 3
+    None => 0
+  }
+  let mut slash = -1
+  for i = scheme_end; i < url.length(); i = i + 1 {
+    if url[i] == '/' {
+      slash = i
+      break
+    }
+  }
+  if slash < 0 {
+    (url, "/")
+  } else {
+    (url[:slash].to_owned(), url[slash:].to_owned())
+  }
+}
+
+///|
+/// Perform the HTTP request via `@async/http` (TLS via SystemRoot:
+/// Schannel on Windows, OpenSSL system CA on POSIX). Raises on transport
+/// errors; HTTP error statuses are returned as normal responses.
+async fn perform_request(
+  http_method : HttpMethod,
+  url : String,
+  body : String,
+  headers : Map[String, String],
+) -> HttpResponse {
+  match http_method {
+    Get => {
+      let (resp, data) = @http.get(url, headers~)
+      HttpResponse::{ status_code: resp.code, body: data.text(), headers: [] }
+    }
+    Post => {
+      let (resp, data) = @http.post(url, @utf8.encode(body), headers~)
+      HttpResponse::{ status_code: resp.code, body: data.text(), headers: [] }
+    }
+    Put => {
+      let (resp, data) = @http.put(url, @utf8.encode(body), headers~)
+      HttpResponse::{ status_code: resp.code, body: data.text(), headers: [] }
+    }
+    Delete => {
+      // No top-level DELETE helper; go through an explicit client.
+      let (base, path) = split_base_path(url)
+      let client = @http.Client::Client(base, headers~)
+      try {
+        let resp = client..request(@http.Delete, path).end_request()
+        let data = client.read_all()
+        HttpResponse::{ status_code: resp.code, body: data.text(), headers: [] }
+      } catch {
+        err => {
+          client.close()
+          raise err
+        }
+      } noraise {
+        result => {
+          client.close()
+          result
+        }
+      }
+    }
+  }
+}
+
+///|
+/// Actual HTTP transport via `@async/http`. `timeout_ms` bounds the whole
+/// request (same total-timeout semantics as the previous C transport).
+pub async fn send_request(
   http_method : HttpMethod,
   url : String,
   body : String,
   headers : Array[(String, String)],
   timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
-  let method_str = http_method_str(http_method)
-  let headers_str = format_headers(headers)
-  // Allocate output buffers
-  let resp_buf = Bytes::make(http_response_buf_size, 0)
-  let meta_buf = Bytes::make(8, 0)
-  let err_buf = Bytes::make(1024, 0)
-  // Call C FFI (C handles String→UTF-8 conversion internally)
-  let ffi_result = http_post_ffi(
-    method_str, url, headers_str, body, timeout_ms, resp_buf, meta_buf, err_buf,
-  )
-  // Parse metadata from meta_buf
-  let http_status = read_le_int32(meta_buf, 0)
-  let body_size = read_le_int32(meta_buf, 4)
-  if ffi_result != 0 {
-    // The C side writes a null-terminated message; decode only up to the
-    // first NUL byte instead of the whole padded buffer.
-    let mut err_len = 0
-    while err_len < err_buf.length() && err_buf[err_len].to_int() != 0 {
-      err_len = err_len + 1
-    }
-    let err_msg = @utf8.decode_lossy(err_buf[:err_len])
-    return Err(ConnectionFailed(err_msg))
+  let headers_map = headers_to_map(headers)
+  let result = @async.with_timeout_opt(timeout_ms, () => {
+    perform_request(http_method, url, body, headers_map)
+  }) catch {
+    err =>
+      return Err(
+        ConnectionFailed("\{http_method_str(http_method)} \{url}: \{err}"),
+      )
   }
-  let resp_body = if body_size > 0 {
-    @utf8.decode_lossy(resp_buf[:body_size])
-  } else {
-    ""
+  match result {
+    None => Err(Timeout("\{http_method_str(http_method)} \{url} timed out"))
+    Some(resp) => Ok(resp)
   }
-  // Build response headers array (empty for now; not parsed from C response)
-  let resp_headers : Array[(String, String)] = []
-  Ok(HttpResponse::{
-    status_code: http_status,
-    body: resp_body,
-    headers: resp_headers,
-  })
 }
 
 ///|
 /// Convenience wrapper: send an HTTP POST request with the given URL, body, and headers.
 /// Designed for external callers (e.g. agent package) who don't have direct access to HttpMethod.
-pub fn http_post(
+pub async fn http_post(
   url : String,
   body : String,
   headers : Array[(String, String)],
@@ -371,7 +391,7 @@ pub fn http_post(
 ///|
 /// Convenience wrapper: send an HTTP GET request with the given URL and headers.
 /// Designed for external callers (e.g. web_fetch, web_search tools) who need simple GET requests.
-pub fn http_get(
+pub async fn http_get(
   url : String,
   headers : Array[(String, String)],
   timeout_ms : Int,

@@ -1,3 +1,5 @@
+warnings = "-29"
+
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
@@ -11,18 +13,20 @@ import {
   "moonbitlang/x/codec/base64",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/client",
+  "moonbitlang/async",
+  "moonbitlang/async/process",
+  "moonbit-community/pty",
 }
 
 options(
-  "native-stub": [ "tool_stubs.c", "pty_stubs.c" ],
   targets: {
     "terminal_exec.mbt": [ "native" ],
     "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],
-    "pty_ffi.mbt": [ "native" ],
-    "pty_ffi_wasm.mbt": [ "wasm", "wasm-gc" ],
+    "pty.mbt": [ "native" ],
+    "pty_marker.mbt": [ "native" ],
+    "pty_session.mbt": [ "native" ],
+    "pty_session_wasm.mbt": [ "wasm", "wasm-gc" ],
     "shell_exec.mbt": [ "native" ],
     "shell_exec_wbtest.mbt": [ "native" ],
   },
-  // lib.client/http_native.c requires libcurl on Linux/macOS.
-  link: { "native": { "cc-link-flags": "-lcurl" } },
 )

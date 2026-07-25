@@ -108,7 +108,7 @@ fn parse_int_safe(s : String) -> Int? {
 
 ///|
 /// Fetch the latest released version from GitHub.
-fn fetch_latest_version() -> Result[String, String] {
+async fn fetch_latest_version() -> Result[String, String] {
   let headers = [("Accept", "application/vnd.github+json")]
   let result = @client.http_get(GITHUB_LATEST_URL, headers, 10000)
   match result {
@@ -132,7 +132,7 @@ let latest_version_cache : Ref[(String?, Int)] = Ref((None, 0))
 /// (mirrors orig's fetch_latest_version_cached). Returns None on remote
 /// failure. Only GET /api/version uses this; POST /api/version/check and
 /// /upgrade always hit the remote directly for a real-time answer.
-fn fetch_latest_version_cached(now : Int) -> String? {
+async fn fetch_latest_version_cached(now : Int) -> String? {
   let (cached, checked_at) = latest_version_cache.val
   if checked_at > 0 && now - checked_at < LATEST_VERSION_CACHE_TTL {
     return cached
@@ -152,7 +152,7 @@ fn fetch_latest_version_cached(now : Int) -> String? {
 /// Returns the orig five keys (current/latest/needs_update/launcher/
 /// cli_command) alongside the legacy current_version/version/
 /// available_update/changelog keys. `latest` comes from a 1-hour TTL cache.
-fn handle_version_info(
+async fn handle_version_info(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -188,7 +188,7 @@ fn handle_version_info(
 ///|
 /// POST /api/version/check
 /// Fetches the latest release from GitHub and compares versions.
-fn handle_version_check(
+async fn handle_version_check(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -229,7 +229,7 @@ fn handle_version_check(
 /// Checks for a newer release and reports whether an upgrade is available.
 /// The actual binary download/replacement is intentionally deferred to the
 /// deployment tooling; this endpoint performs the version check only.
-fn handle_version_upgrade(
+async fn handle_version_upgrade(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {

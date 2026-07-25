@@ -231,7 +231,7 @@ test "reset_failover returns to primary" {
 }
 
 ///|
-test "execute_with_retry exhausts retries" {
+async test "execute_with_retry exhausts retries" {
   let cfg = PlatformHttpConfig::new(
     primary_host="https://primary.example.com",
     fallback_host="https://fallback.example.com",

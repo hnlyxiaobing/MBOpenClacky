@@ -24,7 +24,7 @@ fn rate_response_json(resp : @core.HttpResponse) -> Json {
 // ── Validation ────────────────────────────────────────────────────
 
 ///|
-test "exchange rate rejects invalid from code" {
+async test "exchange rate rejects invalid from code" {
   let server_ref = make_rate_server_ref()
   let event = make_rate_event("/api/exchange-rate?from=US&to=CNY")
   let resp = handle_exchange_rate(server_ref, event)
@@ -32,7 +32,7 @@ test "exchange rate rejects invalid from code" {
 }
 
 ///|
-test "exchange rate rejects invalid to code" {
+async test "exchange rate rejects invalid to code" {
   let server_ref = make_rate_server_ref()
   let event = make_rate_event("/api/exchange-rate?from=USD&to=CN")
   let resp = handle_exchange_rate(server_ref, event)
@@ -40,7 +40,7 @@ test "exchange rate rejects invalid to code" {
 }
 
 ///|
-test "exchange rate normalizes currency codes to uppercase" {
+async test "exchange rate normalizes currency codes to uppercase" {
   // We can't assert the response body without network, but we can verify
   // invalid codes are rejected and valid mixed-case codes are accepted.
   let server_ref = make_rate_server_ref()
@@ -76,7 +76,7 @@ test "parse open.er-api rate returns error for missing currency" {
 // ── Caching ───────────────────────────────────────────────────────
 
 ///|
-test "exchange rate returns cached value when available" {
+async test "exchange rate returns cached value when available" {
   let cached = ExchangeRateResponse::{
     from: "USD",
     to: "CNY",

@@ -446,7 +446,7 @@ fn make_ext_handler(
       "[ExtensionDispatcher]   WARNING: route \{name}\{route_path} (\{handler_name}) has no command — returning stub",
     )
   }
-  fn(event : @crescent.Event) -> &@core.Responder {
+  async fn(event : @crescent.Event) -> &@core.Responder {
     // Throttled hot-reload check
     dispatcher.ensure_fresh()
     // Look up the (possibly hot-reloaded) route. Fall back to the

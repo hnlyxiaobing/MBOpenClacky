@@ -35,7 +35,7 @@ fn bw_json(resp : @core.HttpResponse) -> Json {
 /// Run f with USERPROFILE pointing at an isolated (non-existent) home so
 /// brand.toml / onboard.json lookups resolve to defaults; restores the
 /// original value afterwards.
-fn bw_with_isolated_home(home : String, f : () -> Unit raise) -> Unit raise {
+async fn bw_with_isolated_home(home : String, f : async () -> Unit) -> Unit {
   let old = @sys.get_env_var("USERPROFILE")
   @sys.set_env_var("USERPROFILE", home)
   f()
@@ -70,7 +70,7 @@ fn bw_cleanup_home(home : String) -> Unit {
 // ── GET /api/brand (I-022) ────────────────────────────────────────
 
 ///|
-test "fix18 brand config returns orig 13 keys under empty config" {
+async test "fix18 brand config returns orig 13 keys under empty config" {
   bw_with_isolated_home("_build/wbtest18_empty", fn() raise {
     let resp = handle_brand_config(
       bw_server_ref(@config.AgentConfig::default()),
@@ -102,7 +102,7 @@ test "fix18 brand config returns orig 13 keys under empty config" {
 }
 
 ///|
-test "fix18 brand config does not leak license_key and derives booleans" {
+async test "fix18 brand config does not leak license_key and derives booleans" {
   let home = "_build/wbtest18_leak"
   bw_write_brand_toml(
     home,
@@ -148,7 +148,7 @@ test "fix18 brand config does not leak license_key and derives booleans" {
 // ── GET /api/onboard/status (I-023) ───────────────────────────────
 
 ///|
-test "fix18 onboard status needs_onboard true without models" {
+async test "fix18 onboard status needs_onboard true without models" {
   bw_with_isolated_home("_build/wbtest18_ob1", fn() raise {
     let resp = handle_onboard_status(
       bw_server_ref(@config.AgentConfig::default()),
@@ -168,7 +168,7 @@ test "fix18 onboard status needs_onboard true without models" {
 }
 
 ///|
-test "fix18 onboard status needs_onboard false with configured model" {
+async test "fix18 onboard status needs_onboard false with configured model" {
   let config = @config.AgentConfig::default()
   config.models.push(
     @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
@@ -194,10 +194,10 @@ test "fix18 onboard status needs_onboard false with configured model" {
 // ── GET /api/version (I-024) ──────────────────────────────────────
 
 ///|
-test "fix18 version info returns orig five keys plus legacy keys" {
+async test "fix18 version info returns orig five keys plus legacy keys" {
   let old_launcher = @sys.get_env_var("CLACKY_LAUNCHER")
   @sys.set_env_var("CLACKY_LAUNCHER", "")
-  bw_with_isolated_home("_build/wbtest18_ver", fn() raise {
+  bw_with_isolated_home("_build/wbtest18_ver", async fn() {
     // Prime the cache so the handler never touches the network.
     latest_version_cache.val = (Some("9.9.9"), now_seconds())
     let resp = handle_version_info(
@@ -227,10 +227,10 @@ test "fix18 version info returns orig five keys plus legacy keys" {
 }
 
 ///|
-test "fix18 version info launcher honors CLACKY_LAUNCHER" {
+async test "fix18 version info launcher honors CLACKY_LAUNCHER" {
   let old_launcher = @sys.get_env_var("CLACKY_LAUNCHER")
   @sys.set_env_var("CLACKY_LAUNCHER", "desktop")
-  bw_with_isolated_home("_build/wbtest18_ver2", fn() raise {
+  bw_with_isolated_home("_build/wbtest18_ver2", async fn() {
     latest_version_cache.val = (Some("0.1.0"), now_seconds())
     let resp = handle_version_info(
       bw_server_ref(@config.AgentConfig::default()),
@@ -249,7 +249,7 @@ test "fix18 version info launcher honors CLACKY_LAUNCHER" {
 }
 
 ///|
-test "fix18 version info cli_command uses brand package_name" {
+async test "fix18 version info cli_command uses brand package_name" {
   let home = "_build/wbtest18_ver3"
   bw_write_brand_toml(
     home,
@@ -259,7 +259,7 @@ test "fix18 version info cli_command uses brand package_name" {
       #|
     ),
   )
-  bw_with_isolated_home(home, fn() raise {
+  bw_with_isolated_home(home, async fn() {
     latest_version_cache.val = (None, now_seconds())
     let resp = handle_version_info(
       bw_server_ref(@config.AgentConfig::default()),
@@ -276,7 +276,7 @@ test "fix18 version info cli_command uses brand package_name" {
 }
 
 ///|
-test "fix18 latest version cache returns cached value within TTL" {
+async test "fix18 latest version cache returns cached value within TTL" {
   latest_version_cache.val = (Some("1.2.3"), 1000)
   // One second before expiry → cache hit, no remote fetch, entry untouched.
   let got = fetch_latest_version_cached(1000 + LATEST_VERSION_CACHE_TTL - 1)
