@@ -1,6 +1,6 @@
 # mcp — MCP 协议 · Stdio/HTTP 传输 · JSON-RPC 2.0 · 虚拟技能
 
-> 路径: `lib/mcp/` · 16 mbt（9 源 + 7 测试）+ moon.pkg/.mbti · Model Context Protocol 实现
+> 路径: `lib/mcp/` · 15 mbt（8 源 + 7 测试）+ moon.pkg/.mbti · Model Context Protocol 实现
 
 ## 入口函数
 
@@ -77,7 +77,8 @@ McpRegistry::virtual_skills()
 ## 外部依赖
 
 - `moonbitlang/core/json` — JSON-RPC 序列化
-- **C FFI** — Stdio 传输的进程间通信
+- `moonbitlang/core/debug` — 调试断言（derive `@debug.Debug`）
+- 无 C FFI / native-stub — Stdio/HTTP 传输当前为纯 MoonBit 占位实现（`start()`/`send_message()` 仅置位 `is_alive`，未实际发起进程或网络 I/O）
 
 ## 风险点
 

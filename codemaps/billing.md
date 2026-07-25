@@ -1,6 +1,6 @@
 # billing - 计费记录 · 用量统计 · 持久化
 
-> 路径: `lib/billing/` · 3 mbt（2 源 + 1 测试）+ 1 C · Token 用量与成本记录
+> 路径: `lib/billing/` · 3 mbt（2 源 + 1 测试）· Token 用量与成本记录
 
 ## 入口函数
 
@@ -44,10 +44,8 @@ Web API /api/billing/*
 
 | 文件 | 职责 |
 |------|------|
-| `billing_record.mbt` | BillingRecord 结构、generate_id、total_tokens |
+| `billing_record.mbt` | BillingRecord 结构、generate_id、total_tokens、current_time_ms（毫秒时间戳来自 `core/env::now()`） |
 | `billing_store.mbt` | BillingStore、CRUD、查询/汇总/清理、filter_records、aggregate_summary |
-| `time_stub.c` | 时间函数 C FFI stub（测试用） |
-
 ## 外部依赖
 
 - `lib/pricing` - calculate_cost 计算
@@ -59,4 +57,4 @@ Web API /api/billing/*
 1. **内存持久化** - BillingStore 数据存储在文件中，并发写入可能冲突
 2. **NDJSON 追加** - 追加模式不保证原子性，崩溃可能产生不完整行
 3. **无索引** - 查询需全量扫描，大量记录时性能下降
-4. **时间戳精度** - 依赖 `time_stub.c` 的 C FFI 时间获取
+4. **时间戳精度** - 毫秒时间戳来自 `core/env::now()`（原 `time_stub.c` 已于 S-FFI-01 移除）

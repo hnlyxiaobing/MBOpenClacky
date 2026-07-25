@@ -1,6 +1,6 @@
 # server — Cron 调度 · 浏览器管理 · Git 面板 · 进程池
 
-> 路径: `lib/server/` · 21 mbt（16 源 + 5 测试）+ 2 C · 后台服务管理
+> 路径: `lib/server/` · 21 mbt（16 源 + 5 测试）· 后台服务管理
 
 ## 入口函数
 
@@ -27,7 +27,7 @@
 - **`BrowserManager`** — 浏览器管理器（config, daemon_pid, client: JsonRpcClient?）
 - **`BrowserConfig`** — 浏览器配置（enabled, chrome_version, mcp_command, features）
 - **`BrowserStatus`** — 运行状态（enabled, daemon_running, chrome_version, pid, uptime...）
-- **`BrowserProcess`** — 浏览器进程封装（handle, pid, alive）— C FFI
+- **`BrowserProcess`** — 浏览器进程封装（handle, pid, alive），基于 `@async/process`（`spawn_orphan` + 双向管道 JSON-RPC）
 - **`JsonRpcClient`** — JSON-RPC 客户端（process, id_counter）— 与浏览器守护进程通信
 
 ### 进程池
@@ -64,7 +64,7 @@ Scheduler::tick(now)
 
 # 浏览器管理
 BrowserManager::start()
-  ├─ BrowserProcess::spawn(command, args)  # C FFI
+  ├─ BrowserProcess::spawn(command, args)  # @async/process（spawn_orphan + 双向管道）
   ├─ JsonRpcClient::new(process)
   └─ JsonRpcClient::initialize()  # MCP 握手
 
@@ -80,23 +80,23 @@ build_git_status(dir)
 | 文件组 | 文件 | 职责 |
 |--------|------|------|
 | Cron 调度 | `scheduler.mbt`, `scheduler_types.mbt`, `cron.mbt` | 定时任务调度 |
-| 浏览器 | `browser_manager.mbt`, `browser_process.mbt`, `browser_jsonrpc.mbt`, `browser_types.mbt`, `browser_process.c` | 浏览器守护进程管理 |
+| 浏览器 | `browser_manager.mbt`, `browser_process.mbt`, `browser_jsonrpc.mbt`, `browser_types.mbt` | 浏览器守护进程管理（`@async/process`） |
 | 进程池 | `master.mbt`, `worker.mbt` | Worker 池管理 |
 | 会话注册 | `session_registry.mbt` | 会话→Worker 映射 |
 | 备份 | `backup_manager.mbt`, `backup_types.mbt` | 项目备份 |
-| Git | `git_panel.mbt`, `git_exec.mbt`, `git_exec.c` | Git 仓库状态、Git 命令执行（C FFI） |
+| Git | `git_panel.mbt`, `git_staging.mbt` | Git 仓库状态、暂存、命令执行（`@async/process`） |
 | 服务发现 | `discover.mbt` | 本地服务实例发现（PID 文件） |
 
 ## 外部依赖
 
 - `lib/agent` — Cron 任务触发 Agent::run()
-- **C FFI** — BrowserProcess 进程管理（`browser_process.c`）
+- `moonbitlang/async`（`@async/process`）— 浏览器/子进程管理（替代原 `browser_process.c`，S-FFI-04）
 - `moonbitlang/core/json` — 配置序列化
 
 ## 风险点
 
 1. **Cron 精度** — 分钟级调度，无法支持秒级任务
-2. **BrowserProcess FFI** — C FFI 进程管理，子进程异常退出可能导致资源泄漏
+2. **子进程生命周期** — 浏览器/Worker 子进程经 `@async/process` 管理，异常退出需确保 `wait`/`cancel` 被调用以防泄漏
 3. **Worker 心跳超时** — `is_heartbeat_expired()` 依赖时间字符串比较，时区问题可能导致误判
 4. **备份大项目** — `BackupManager::run()` 同步复制，大项目可能阻塞
 5. **Git 命令依赖** — `build_git_status()` 依赖系统 git 命令，无 git 环境会失败

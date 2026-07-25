@@ -12,7 +12,7 @@ moon build --target native --release cmd            # Build native binary (alway
 moon run cmd                                        # Run CLI
 moon run cmd --message "Hello"                   # Non-interactive mode
 moon run cmd -- server                              # Web server (port 7071)
-moon test                                           # White-box tests (native only, needs -lcurl)
+moon test                                           # White-box tests (native only)
 moon update && moon install                         # Sync dependencies
 ```
 

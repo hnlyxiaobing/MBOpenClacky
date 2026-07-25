@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 43 个 .mbt（33 源 + 10 测试）+ 1 .c · 项目核心调度包
+> 路径: `lib/agent/` · 43 个 .mbt（32 源 + 11 测试）+ 1 .c · 项目核心调度包
 
 ## 入口函数
 
@@ -72,7 +72,7 @@ Agent::run(user_input)
 | 技能管理 | `skill_manager.mbt` | Agent 技能加载/查询/摘要方法 |
 | 系统提示 | `system_prompt.mbt` | 系统提示词组装 |
 | 空闲压缩 | `idle_timer.mbt` | 空闲压缩定时器 |
-| 时间 | `time.mbt`, `time_stub.c` | 时间工具（C FFI） |
+| 时间 | `time.mbt`, `time_stub.c` | 毫秒时间戳/ISO 8601 格式化（`core/env::now()`、`x/time`）；`time_stub.c` 仅保留本地时区偏移检测（S-FFI-01/08） |
 
 ## 外部依赖
 

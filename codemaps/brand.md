@@ -10,7 +10,7 @@
 | `BrandConfig::default_config()` | `config.mbt` | 默认（未品牌化）配置 |
 | `BrandConfig::is_branded()` | `config.mbt` | 判断是否已品牌化 |
 | `LicenseValidator::new(config)` | `license.mbt` | 创建许可证验证器 |
-| `LicenseValidator::validate(key)` | `license.mbt` | 验证许可证密钥格式 |
+| `LicenseValidator::validate(now)` | `license.mbt` | 校验许可证状态（有效期/宽限期） |
 | `LicenseValidator::activate(key)` | `license.mbt` | 激活许可证 |
 | `LicenseValidator::heartbeat()` | `license.mbt` | 心跳上报（保持激活状态） |
 | `generate_device_id()` | `device.mbt` | 生成设备唯一标识 |
@@ -72,14 +72,13 @@ cmd/main.mbt
 | 设备授权 | `device_auth.mbt`, `device_auth_wbtest.mbt` | RFC 8628 设备授权流、会话存储与轮询 |
 | 身份绑定 | `identity.mbt`, `identity_wbtest.mbt` | Identity 持久化、加载、解析 |
 | 技能 | `skill_manager.mbt` | BrandSkillManager、品牌技能管理 |
-| Stubs | `brand_stubs.c` | C FFI stubs（wasm 兼容） |
+| Stubs | `brand_stubs.c` | 无 OpenSSL 的 insecure fallback 桩（编译期 `#error` + CI `check-crypto-build` 双重拦截，仅 `-DMBOPENCLACKY_NO_OPENSSL` 极简构建；S-FFI-08） |
 
 ## 外部依赖
 
 - `lib/skill` - 品牌技能加载
-- **C FFI** - 加密原语（`crypto_native.c`）
-- HTTP - 远程许可证激活/心跳（`brand_http_get`）
-
+- **C FFI** - 加密原语（`crypto_native.c`：AES-256-GCM、CSPRNG）
+- HTTP - 远程许可证激活/心跳（`brand_http_get`，MoonBit `@async/http`；原 C `http_get` 已于 S-FFI-07 移除）
 ## 风险点
 
 1. **密钥安全** - `license_key` 明文存储在配置文件中

@@ -1,6 +1,6 @@
 # tui — Inline TUI 控制器 · 多行编辑器 · Markdown 渲染 · CJK 宽度 · Node 渲染 · 对话框系统 · Agent Shell
 
-> 路径: `lib/tui/` · 51 mbt（33 源 + 18 测试）+ moon.pkg/.mbti · 终端交互界面
+> 路径: `lib/tui/` · 51 mbt（33 源 + 18 测试）+ `console_cp_native.c` + moon.pkg/.mbti · 终端交互界面
 > 架构: 异步事件循环（`Queue[TuiEvent]`）+ Msg 驱动状态转移（Elm 风格 `TuiMsg`/`update`）+ Node 树渲染
 
 ## 入口函数
@@ -102,6 +102,7 @@ TuiController::run()
 | 渲染 | `banner.mbt`, `block_font.mbt`, `block_font_wbtest.mbt`, `markdown.mbt`, `markdown_wbtest.mbt`, `progress_stack.mbt`, `thinking_verbs.mbt`, `thinking_verbs_wbtest.mbt`, `thinking_view.mbt`, `thinking_view_wbtest.mbt` | 横幅、块字体、Markdown、进度堆栈、思考动画、思考实时视图 |
 | 主题 | `theme.mbt` | 主题系统（default/hacker/minimal/light） |
 | 字符工具 | `cjk_width.mbt` | CJK 字符宽度计算、换行、光标定位 |
+| 控制台代码页 | `console_cp_ext.mbt`, `console_cp_native.c` | Windows UTF-8 代码页切换/恢复（`GetConsoleCP`/`SetConsoleCP`，POSIX 为 no-op；S-FFI-08） |
 
 ## 外部依赖
 

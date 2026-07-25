@@ -1,6 +1,6 @@
 # web — REST 服务器 · 162 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 72 mbt（src=51, test=21）+ `git_exec.c` + 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
+> 路径: `lib/web/` · 72 mbt（src=51, test=21）+ 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
 > 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 15 个功能模块），模板占位符由 `template_processor.mbt` 替换
 
 ## 入口函数
@@ -89,7 +89,7 @@ WebServer::start(port)
 | 频道 | `handlers_channels.mbt` | 6 平台 IM 适配器 CRUD、连通性测试 |
 | 调度 | `handlers_schedules.mbt` | Cron 定时任务 CRUD、手动触发、执行历史 |
 | 浏览器 | `handlers_browser.mbt` | 浏览器控制（BrowserManager 集成） |
-| Git | `handlers_git.mbt`, `git_exec.mbt`, `git_exec.c` | Git 仓库操作（status/diff/stage/commit/push/pull/branches/checkout） |
+| Git | `handlers_git.mbt`, `git_exec.mbt` | Git 仓库操作（status/diff/stage/commit/push/pull/branches/checkout；`@async/process`） |
 | 备份 | `handlers_backup.mbt` | 文件快照创建/恢复/删除 |
 | 计费 | `handlers_billing.mbt` | BillingStore 集成、套餐激活、用量导出 |
 | 品牌 | `handlers_brand.mbt` | 品牌定制、许可证、心跳、技能管理 |
@@ -120,7 +120,7 @@ WebServer::start(port)
 3. **路由分散** — 路由分布在 server.mbt（159 个端点）和 router.mbt（已废弃）两处，维护成本高
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
-6. **Git C FFI 平台兼容** — `git_exec.c` 使用 `popen()`，Windows MSVC 下需验证 `_popen` 兼容性
+6. **Git 子进程** — `git_exec.mbt` 经 `@async/process` 调用系统 git（原 `git_exec.c` 的 `popen()` 已移除，S-FFI-03），无 git 环境会失败
 7. **Backup 路径安全** — 备份路径拼接需防路径遍历攻击
 8. **Billing 内存持久化** — BillingStore 为内存实现，重启丢失数据
 9. **技能路径遍历** — `is_valid_skill_name()` 校验技能名，但需确保所有路径拼接均经过校验

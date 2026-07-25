@@ -10,8 +10,7 @@ MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持�
 |--------|----------|------|
 | MoonBit 工具链 | moon 0.1.20260629+ | 编译器与构建系统 |
 | C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
-| OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM C FFI 所需（仅 Linux/macOS） |
-| libcurl 开发库 | libcurl-dev / libcurl4-openssl-dev (Debian/Ubuntu) / curl 自带 (macOS) | client HTTP 请求 C FFI 所需；`lib/client/moon.pkg` 已默认启用 `-lcurl`，只需安装开发库即可运行 `moon test` |
+| OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM + CSPRNG C FFI 所需（仅 POSIX；Windows 走 BCrypt/CNG 自动链接） |
 | API 密钥 | 任意支持的提供商 | 至少配置一个 |
 ---
 
@@ -297,9 +296,8 @@ chmod +x scripts/install.sh
 
 | 平台 | 依赖 | 安装命令 |
 |------|------|---------|
-| Linux (Debian/Ubuntu) | gcc, make, libssl-dev, libcurl-dev | `sudo apt-get install build-essential libssl-dev libcurl-dev` |
-| Linux (Fedora) | gcc, make, openssl-devel, libcurl-devel | `sudo dnf install gcc make openssl-devel libcurl-devel` |
-| macOS | Xcode CLT (含 clang) | `xcode-select --install` |
+| Linux (Debian/Ubuntu) | gcc, make, libssl-dev | `sudo apt-get install build-essential libssl-dev` |
+| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` || macOS | Xcode CLT (含 clang) | `xcode-select --install` |
 | Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
 | 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
 
@@ -402,13 +400,6 @@ moon build --target native --release cmd
 
 Warnings 为已知的代码风格提示（如 deprecated Show trait），不影响编译和运行。当前 `moon check` 结果约为 ~500 warnings、0 errors。
 
-### `moon test` 链接阶段报 curl 符号未解析
-
-`lib/client/moon.pkg` 已默认启用 `-lcurl` 链接标志。若仍报 curl 符号未解析：
-1. 确认已安装 libcurl 开发库（Debian/Ubuntu：`sudo apt-get install libcurl-dev` 或 `libcurl4-openssl-dev`；macOS：Xcode CLT 通常已包含）。
-2. 确认本地 `lib/client/moon.pkg` 未被修改去掉 `link: { "native": { "cc-link-flags": "-lcurl" } }`。
-3. 重新运行 `moon test`。
-
 ### Web 工具（web_fetch / web_search）
 
-`web_search` 已实现 DuckDuckGo HTML 搜索并解析结果；`web_fetch` 已实现同步 HTTP GET 获取页面内容。二者均通过 `lib/client` 的同步 HTTP 接口工作，不再需要单独的异步客户端支持。
+`web_search` 已实现 DuckDuckGo HTML 搜索并解析结果；`web_fetch` 已实现 HTTP GET 获取页面内容。二者均通过 `lib/client` 的 HTTP 接口工作，该接口现基于 `@async/http`（TLS 走系统根证书存储：Windows 为 Schannel、POSIX 为 OpenSSL 系统 CA），不再依赖 libcurl/WinHTTP 的 C FFI。

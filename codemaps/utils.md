@@ -94,13 +94,13 @@ Agent 系统提示组装
 | 回收站 | `trash_directory.mbt` | TrashEntry、回收站目录管理 |
 | 字体 | `block_font.mbt`, `block_font_wbtest.mbt` | BlockFont、BlockStyle、5x5 ASCII 艺术字体 |
 | Shell | `login_shell.mbt` | ShellType、shell 配置路径检测 |
-| 系统 FFI | `sys_ext.mbt`, `sys_native.c` | chdir/getcwd C FFI |
+| 系统 FFI | `sys_ext.mbt`, `sys_native.c` | `chdir` 与 `osrelease`(uname) C FFI；getcwd 已迁往 `core/env::current_dir()`（S-FFI-01） |
 
 ## 外部依赖
 
 - `moonbitlang/x/fs` - 文件 I/O
 - `moonbitlang/core` - 基础类型
-- **C FFI** - `sys_native.c`（chdir/getcwd）
+- **C FFI** - `sys_native.c`（`chdir`、`osrelease`(uname)；getcwd 已迁往 `core/env::current_dir()`，S-FFI-01）
 
 ## 风险点
 

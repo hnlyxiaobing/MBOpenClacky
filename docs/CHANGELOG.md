@@ -25,6 +25,19 @@
 
 ## 变更记录
 
+### 2026-07-25  refactor: FFI C 依赖消减（S-FFI-01~08）完成
+
+- `[refactor]` **自写 C 代码从 16 文件 / 4,781 行消减至 5 文件 / 610 行；`-lcurl` 全项目清零**
+  - HTTP 传输：`lib/client` 的 `http_native.c`/`http_thread.c`/`mb_stubs.c` 迁往 `@async/http`（S-FFI-06）
+  - 进程管理：`lib/server` 的 `browser_process.c`、`lib/web`/`lib/server` 的 `git_exec.c` 迁往 `@async/process`（S-FFI-03/04）
+  - PTY：`lib/tool` 的 `pty_stubs.c`/`tool_stubs.c` 迁往 `moonbit-community/pty@0.2.2`（S-FFI-08）
+  - ZIP/multipart：`miniz_zip.c`、`multipart_upload.c` 改为纯 MoonBit（S-FFI-02/05）
+  - 时间/getcwd：迁往 `core/env::now()`、`core/env::current_dir()`、`x/time`（S-FFI-01）
+  - brand HTTP：`crypto_native.c` 的 `http_get` 部分迁往 `@async/http`（S-FFI-07）
+  - 保留 5 个 C 文件（agent/time_stub、utils/sys_native、tui/console_cp_native、brand/crypto_native、brand/brand_stubs），均有「OS 生态空白」或「安全审计」保留理由
+  - 现状详见 [docs/ffi-c-code-report.md](ffi-c-code-report.md)；CI 与 Dockerfile 已移除 `libcurl4-openssl-dev` 依赖
+- `[docs]` 同步更新 11 个 codemaps、`getting-started.md`、CI 的 FFI/C 描述
+
 ### 2026-07-16  chore: Web 服务默认端口统一为 7071
 
 - `[chore]` **默认端口 7070 -> 7071（与原版 OpenClacky 区分，避免本地端口冲突）**

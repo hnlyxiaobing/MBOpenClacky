@@ -1,6 +1,6 @@
 # client — LLM API 客户端 · SSE 流式 · 多 Provider 适配
 
-> 路径: `lib/client/` · 12 mbt（9 源 + 3 测试）+ 3 C · LLM 通信层
+> 路径: `lib/client/` · 12 mbt（9 源 + 3 测试）· LLM 通信层（HTTP 传输基于 `@async/http`，无 C FFI）
 
 ## 入口函数
 
@@ -10,8 +10,8 @@
 | `Client::build_request_body(SendRequest)` | `client.mbt` | 根据 ApiType 路由到对应 format 模块 |
 | `Client::parse_response(Json)` | `client.mbt` | 解析 LLM 响应（路由到 OpenAI/Anthropic/Bedrock） |
 | `Client::format_tool_results(response, results)` | `client.mbt` | 将工具结果格式化为对应 API 格式的消息 |
-| `http_post(url, body, headers, timeout)` | `client.mbt` | 底层同步 HTTP POST（C FFI 实现） |
-| `http_post_async(url, body, headers, timeout_ms)` | `http_async.mbt` | 异步 HTTP POST — C 线程执行；Unix 默认经 OS 管道回读，**WSL1 运行时检测（`@utils.is_wsl1()`）走 slot 轮询路径**（与 Windows 相同，规避 `IoHandle::from_fd` fd 冲突 panic），不阻塞 async 事件循环 |
+| `http_post(url, body, headers, timeout)` / `http_get(url, headers, timeout)` | `platform_http.mbt` | 异步 HTTP POST/GET（`pub async fn`，基于 `@async/http`，TLS 走系统根证书） |
+| `http_post_async(url, body, headers, timeout_ms)` / `http_post_stream_async(...)` | `http_async.mbt` | 异步 HTTP POST / 流式 POST（`@async/http`，供 SSE 流式响应使用） |
 | `parse_sse_frames(buffer)` | `stream.mbt` | 解析 SSE 帧流 |
 
 ## 关键类型
@@ -46,7 +46,7 @@ Agent::call_llm()
       ├─ build_openai_request()      # format_openai.mbt
       ├─ build_anthropic_request()   # format_anthropic.mbt
       └─ build_bedrock_request()     # format_bedrock.mbt
-  └─ http_post(url, body, headers)   # C FFI → libcurl
+  └─ http_post(url, body, headers)   # @async/http（platform_http.mbt）
   └─ Client.parse_response(json)
       ├─ parse_openai_response()
       ├─ parse_anthropic_response()
@@ -63,21 +63,20 @@ Agent::call_llm()
 | `format_bedrock.mbt` | AWS Bedrock Converse API 请求/响应格式 |
 | `stream.mbt` | SSE 帧解析、三种 StreamAggregator |
 | `types.mbt` | LlmResponse、Usage、Latency、SendRequest 等类型 |
-| `platform_http.mbt` | 带 failover 的 HTTP 客户端 |
-| `http_async.mbt` | 异步 HTTP（C 线程；Unix 默认 OS 管道回读，WSL1 走 slot 轮询） |
-| `http_native.c` / `http_thread.c` / `mb_stubs.c` | C FFI HTTP 实现（同步 libcurl/WinHTTP + 后台线程；`http_thread.c` 的 slot 实现已扩展 Unix——pthread+libcurl，供 WSL1 fallback 使用） |
+| `platform_http.mbt` | 带 failover 的 HTTP 客户端、`http_post`/`http_get`（`@async/http` 传输） |
+| `http_async.mbt` | `http_post_async` / `http_post_stream_async`（`@async/http`，流式 SSE） |
 
 ## 外部依赖
 
 - `lib/config` — ApiType 枚举
 - `lib/message` — Message、ToolCall 消息类型
 - `moonbitlang/core/json` — JSON 序列化
-- **C FFI** — libcurl（HTTP 传输层）
+- `moonbitlang/async`（`@async/http`）— HTTP 传输（替代原 libcurl/WinHTTP C FFI，S-FFI-06）
 
 ## 风险点
 
-1. **同步/异步双路径** — `http_post` 为同步阻塞实现；`http_post_async` 通过 C 线程 + OS 管道提供非阻塞版本（仅 native 非 windows），两套需保持行为一致
-2. **C FFI 内存安全** — `http_native.c` / `mb_stubs.c` 手动管理 curl 句柄，需确保资源释放
+1. **POSIX 代理环境变量回归** — `@async/http` 在 POSIX 下不读取 `HTTPS_PROXY`/`NO_PROXY`（libcurl 时代隐式 honor，属行为回归）；`PlatformHttpConfig.proxy_url` 字段保留但尚未接线
+2. **超时粒度** — 现为整请求总超时；原 WinHTTP 的 open/read 分别超时不再支持（`open_timeout_ms` 仅作兼容）
 3. **SSE 解析边界** — `parse_sse_frames()` 按 `\n\n` 分帧，异常帧可能导致数据丢失
 4. **错误重试** — `is_retryable()` 判断逻辑需覆盖 429/500/503 等场景
 5. **Provider 格式差异** — 三种 API 格式的 tool_results 格式化逻辑不同，易出错

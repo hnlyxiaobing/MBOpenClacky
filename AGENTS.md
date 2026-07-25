@@ -11,7 +11,7 @@ moon run cmd                                # Run CLI
 moon run cmd -- server                    # Web server (port 7071)
 moon run cmd --message "Hello"           # Non-interactive mode
 ./_build/native/debug/build/cmd/cmd.exe     # TUI mode (recommended over moon run)
-moon test                                   # Native only; needs -lcurl in lib/client/moon.pkg
+moon test                                   # Native only
 moon test lib/agent --filter "session*"     # Targeted test run
 moon update && moon install                 # Sync dependencies
 moon fmt                                    # Format source
@@ -45,6 +45,14 @@ Follow lowercase type prefixes: `feat:`, `fix:`, `docs:`, `chore:`, plus scoped 
 ## Agent Instructions
 
 Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/`. Follow Harness methodology: create specs in `specs/draft/` first, pass adversarial review (see `specs/decisions/harness-methodology-v2-upgrade.md`), then move to `specs/active/` for development, finally archive to `specs/completed/` after acceptance.
+
+**Codebase-memory MCP 优先**: 查询代码时优先使用 codebase-memory-mcp 工具（项目名 `D-MoonBit-MBOpenClacky`）以提高效率、节省 token：
+- 查找定义/实现/关系 → `search_graph`（BM25 全文）、`search_code`（grep + 图增强）
+- 找调用方/依赖/影响分析/数据流 → `trace_path`
+- 读函数/类源码 → `get_code_snippet`（先 `search_graph` 拿 qualified_name）
+- 架构概览 → `get_architecture`；复杂多跳查询 → `query_graph`
+- 大量代码改动后运行 `index_repository` 更新索引
+仅当 MCP 无法覆盖时（如精确字符串匹配、非代码文件）再退回 Grep/Glob/Read。
 
 **Harness v2 key rules**:
 - Gap document is a hypothesis, not ground truth - verify every "missing" claim with `grep`/`glob` before writing spec

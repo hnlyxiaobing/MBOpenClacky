@@ -1,6 +1,6 @@
 # tool — Tool trait · 14 个内置工具 · ToolRegistry · PTY/终端 · 安全检查
 
-> 路径: `lib/tool/` · 44 mbt（36 源 + 8 测试）+ 2 C · 含 browser 子系统 7 文件（详见 `browser.md`）
+> 路径: `lib/tool/` · 43 mbt（34 源 + 9 测试）· 无 C 代码 · 含 browser 子系统 7 文件（详见 `browser.md`）
 
 ## 入口函数
 
@@ -74,11 +74,11 @@ Agent::execute_single_tool(tool_name, args)
 | 核心框架 | `trait.mbt`, `types.mbt`, `any_tool.mbt`, `registry.mbt`, `security.mbt` | Tool trait、类型定义、AnyTool 分发、ToolRegistry、安全检查 |
 | 文件系统工具 | `file_reader.mbt`, `write.mbt`, `edit.mbt`, `glob.mbt`, `grep.mbt`, `trash_manager.mbt` | 文件读取/写入/编辑/搜索/回收站 |
 | 终端工具 | `terminal.mbt`, `terminal_exec.mbt`, `terminal_exec_wasm.mbt`, `terminal_session.mbt` | 终端命令执行、会话管理 |
-| PTY 系统 | `pty.mbt`, `pty_ffi.mbt`, `pty_ffi_wasm.mbt`, `pty_session.mbt`, `pty_marker.mbt`, `pty_stubs.c` | PTY 底层 FFI、会话、标记 |
+| PTY 系统 | `pty.mbt`, `pty_session.mbt`, `pty_session_wasm.mbt`, `pty_marker.mbt` | PTY 会话与标记（底层 `moonbit-community/pty@0.2.2`，含 Windows ConPTY；S-FFI-08） |
 | 浏览器工具 | `browser.mbt`, `browser_action.mbt`, `browser_mcp_args.mbt`, `browser_page.mbt`, `browser_screenshot.mbt`, `browser_snapshot.mbt`, `browser_wbtest.mbt` | 浏览器自动化（详见 `browser.md`） |
 | Web 工具 | `web_search.mbt`, `web_fetch.mbt` | 网页搜索、网页抓取 |
 | Agent 工具 | `invoke_skill.mbt`, `memory_tool.mbt`, `todo_tool.mbt`, `request_user_feedback.mbt` | 技能调用、记忆管理、任务管理、用户反馈 |
-| 其他 | `output_cleaner.mbt`, `shell_exec.mbt`, `tool_stubs.c` | 输出清理、Shell 执行抽象层、C FFI stubs |
+| 其他 | `output_cleaner.mbt`, `shell_exec.mbt` | 输出清理、Shell 执行抽象层 |
 | 测试 | `shell_exec_wbtest.mbt`, `terminal_wbtest.mbt`, `tool_wbtest.mbt` | Shell 执行/终端/工具注册测试 |
 
 ## 14 个内置工具清单
@@ -108,7 +108,7 @@ Agent::execute_single_tool(tool_name, args)
 - `lib/message` — 消息类型
 - `moonbitlang/x/fs` — 文件系统操作
 - `moonbitlang/core/json` — JSON 序列化
-- **C FFI** — PTY 进程管理（`pty_stubs.c`, `tool_stubs.c`）
+- `moonbit-community/pty`（`@pty`）— 跨平台 PTY（含 Windows ConPTY，集成 `@async`；替代原 `pty_stubs.c`/`tool_stubs.c`，S-FFI-08）
 
 ## 风险点
 
@@ -117,4 +117,4 @@ Agent::execute_single_tool(tool_name, args)
 3. **工具别名冲突** — `tool_aliases` 中多个别名可能映射到同一工具，名称解析顺序敏感
 4. **大文件读取** — `FileReader` 读取大文件可能超出上下文限制，需分页
 5. **Edit 精确匹配** — `old_string` 必须精确匹配（含空白），用户提供的字符串可能不一致
-6. **Wasm 与 Native 双路径** — `pty_ffi.mbt` / `pty_ffi_wasm.mbt` 和 `terminal_exec.mbt` / `terminal_exec_wasm.mbt` 维护两套实现，需保持同步
+6. **Wasm 与 Native 双路径** — `pty_session.mbt` / `pty_session_wasm.mbt` 和 `terminal_exec.mbt` / `terminal_exec_wasm.mbt` 维护两套实现，需保持同步

@@ -67,8 +67,6 @@
 - **部署基础设施**：已提供 systemd/docker-compose 模板和日志轮转配置（见 `deploy/`）
 - **Extension 框架**：MVP 已实现（Loader/Verifier/Packager/Scaffold/Marketplace），API 扩展路由分发/热重载、PatchLoader/HookLoader、CLI 命令与 Session ZIP 导出/导入均已接入；剩余高级沙箱
 - **Media 端点**：`lib/web/handlers_media.mbt` 中 image/video/audio/transcription/understand 均返回 501，需接入 `@media` 生成器（含 `POST /api/media/video/understand`）
-### 测试相关
-- `moon test` 需启用 `lib/client/moon.pkg` 中的 `-lcurl` 并安装 libcurl-dev
 
 ---
 
