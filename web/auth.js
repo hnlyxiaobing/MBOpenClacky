@@ -41,6 +41,10 @@ const Auth = (() => {
   async function _probe() {
     try {
       const r = await fetch(PROBE_ENDPOINT);
+      // Fork patch (I-039): drain the response body. Against this server's
+      // chunked keep-alive responses Chromium never marks an unconsumed
+      // request as finished, which blocks networkidle on page load.
+      try { await r.arrayBuffer(); } catch { /* body irrelevant */ }
       if (r.ok)             return PROBE.OK;
       if (r.status === 401) return PROBE.UNAUTHORIZED;
       return PROBE.SERVER_ERR;

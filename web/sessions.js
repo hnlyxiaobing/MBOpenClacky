@@ -2792,6 +2792,9 @@ const Sessions = (() => {
 
       try {
         const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+        // Fork patch (I-038): drain the 204 body — an unconsumed response
+        // makes Chromium report net::ERR_ABORTED for this request.
+        try { await res.text(); } catch (_) {}
         if (res.ok) {
           // Optimistically remove from local list immediately without waiting for
           // the WS session_deleted broadcast (handles WS lag or disconnected state).
@@ -3187,6 +3190,9 @@ const Sessions = (() => {
 
       try {
         const res = await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
+        // Fork patch (I-038): drain the 204 body — an unconsumed response
+        // makes Chromium report net::ERR_ABORTED for this request.
+        try { await res.text(); } catch (_) {}
         if (res.ok) {
           Sessions.remove(sessionId);
           Sessions.renderList();

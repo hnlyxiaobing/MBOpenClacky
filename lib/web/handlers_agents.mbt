@@ -137,6 +137,13 @@ fn load_agents_from_assets() -> Array[Json] {
     // Extract description from system_prompt.md (first line after title).
     let prompt_path = agent_dir + "/system_prompt.md"
     let description = agents_extract_first_description(prompt_path)
+    // fix-20 (I-034): avatar follows orig semantics — "/agent_avatar/<id>"
+    // when the agent dir ships an avatar.png, null otherwise.
+    let avatar : Json = if @fs.path_exists(agent_dir + "/avatar.png") {
+      ("/agent_avatar/" + id).to_json()
+    } else {
+      Json::null()
+    }
     let agent = Json::object({
       "id": id.to_json(),
       "title": title.to_json(),
@@ -147,6 +154,7 @@ fn load_agents_from_assets() -> Array[Json] {
       "order": order.to_json(),
       "layer": "core".to_json(),
       "author": "openclacky".to_json(),
+      "avatar": avatar,
     })
     result.push(agent)
     order = order + 1

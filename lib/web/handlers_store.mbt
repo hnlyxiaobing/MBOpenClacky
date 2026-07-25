@@ -131,7 +131,11 @@ pub fn handle_store_list(request : HttpRequest) -> HttpResponse {
     })
     result
   }
-  let resp = Json::object({ "extensions": Json::array(filtered) }).stringify()
+  // fix-20 (I-033): read endpoints carry ok:true like the write endpoints.
+  let resp = Json::object({
+    "ok": true.to_json(),
+    "extensions": Json::array(filtered),
+  }).stringify()
   HttpResponse::ok(resp)
 }
 
@@ -141,7 +145,10 @@ pub fn handle_store_installed(_request : HttpRequest) -> HttpResponse {
   let installed = @extension.list_installed_extensions()
   let arr : Array[Json] = []
   installed.each(fn(e) { arr.push(extension_to_store_json(e)) })
-  let resp = Json::object({ "extensions": Json::array(arr) }).stringify()
+  let resp = Json::object({
+    "ok": true.to_json(),
+    "extensions": Json::array(arr),
+  }).stringify()
   HttpResponse::ok(resp)
 }
 

@@ -398,7 +398,18 @@ pub fn handle_skills_get_content(request : HttpRequest) -> HttpResponse {
         }).stringify(),
       )
     }
-    None => HttpResponse::not_found("Skill not found: " + name)
+    // fix-20 (I-032): orig 404 body carries ok:false alongside error.
+    None =>
+      HttpResponse::{
+        status: 404,
+        body: Json::object({
+          "ok": false.to_json(),
+          "error": ("Skill not found: " + name).to_json(),
+        }).stringify(),
+        body_bytes: None,
+        content_type: "application/json",
+        headers: [],
+      }
   }
 }
 

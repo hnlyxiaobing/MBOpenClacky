@@ -466,6 +466,8 @@ fn remove_backup_data(id : String) -> Unit {
 
 ///|
 /// GET /api/backups — List all available backups.
+/// fix-20 (I-035): this handler also backs the /api/backup/status alias, whose
+/// orig contract includes config/dest_dir/is_wsl next to backups.
 pub fn handle_backups_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
   let records = load_all_backups()
@@ -476,6 +478,21 @@ pub fn handle_backups_list(request : HttpRequest) -> HttpResponse {
   let body = Json::object({
     "backups": Json::array(items),
     "total": records.length().to_json(),
+    // Orig BackupManager::DEFAULT_CONFIG shape; no scheduler/config file exists
+    // in this runtime yet, so defaults are emitted verbatim.
+    "config": Json::object({
+      "enabled": false.to_json(),
+      "cron": "0 3 * * *".to_json(),
+      "dest_dir": Json::null(),
+      "keep": (7).to_json(),
+      "include_sessions": true.to_json(),
+      "last_run_at": Json::null(),
+      "last_status": Json::null(),
+      "last_error": Json::null(),
+      "last_archive": Json::null(),
+    }),
+    "dest_dir": backups_dir().to_json(),
+    "is_wsl": @utils.is_wsl().to_json(),
   }).stringify()
   HttpResponse::ok(body)
 }

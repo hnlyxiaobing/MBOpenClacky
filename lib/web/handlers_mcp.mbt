@@ -365,7 +365,18 @@ pub fn handle_mcp_list_server_tools(
       }).stringify()
       HttpResponse::ok(body)
     }
-    None => HttpResponse::not_found("MCP server not found: " + name)
+    // fix-20 (I-032): orig 404 body carries ok:false alongside error.
+    None =>
+      HttpResponse::{
+        status: 404,
+        body: Json::object({
+          "ok": false.to_json(),
+          "error": ("MCP server not found: " + name).to_json(),
+        }).stringify(),
+        body_bytes: None,
+        content_type: "application/json",
+        headers: [],
+      }
   }
 }
 
