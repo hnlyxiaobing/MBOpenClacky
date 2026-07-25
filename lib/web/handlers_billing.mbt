@@ -353,106 +353,243 @@ pub fn handle_billing_export(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
-/// GET /api/billing/summary — Monthly summary (alias for status shape).
+/// GET /api/billing/summary — Billing summary for a time period.
+/// Aligned with orig openclacky api_billing_summary: period/from/to,
+/// token splits, by_model and by_day breakdowns, record_count.
+/// Query params: period (day|week|month|year|all, default: month).
 pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
-  ignore(request)
+  let (period, period_name) = billing_parse_period(request)
   let store = @billing.BillingStore::default()
-  let summary = store.summary(@billing.Month)
-  let (active, plan, expires_at) = load_billing_state()
-  let expires_json : Json = match expires_at {
-    Some(s) => s.to_json()
-    None => Json::null()
+  let summary = store.summary(period)
+  let now_ms = @env.now().reinterpret_as_int64()
+  let from_ms = billing_period_start_ms(period, now_ms)
+  // by_model: { model: { cost, prompt_tokens, completion_tokens, requests } }
+  let by_model_map : Map[String, Json] = Map([])
+  summary.by_model.each(fn(model, ms) {
+    by_model_map.set(
+      model,
+      Json::object({
+        "cost": ms.cost.to_json(),
+        "prompt_tokens": ms.prompt_tokens.to_json(),
+        "completion_tokens": ms.completion_tokens.to_json(),
+        "requests": ms.requests.to_json(),
+      }),
+    )
+  })
+  // by_day: { "YYYY-MM-DD": cost } — only days with activity (orig semantics)
+  let day_costs : Map[String, Double] = Map([])
+  for r in store.query(from_ms~) {
+    let date = billing_date_of_ms(r.timestamp)
+    let cost = match day_costs.get(date) {
+      Some(c) => c
+      None => 0.0
+    }
+    day_costs.set(date, cost + r.cost_usd)
+  }
+  let by_day_map : Map[String, Json] = Map([])
+  day_costs.each(fn(date, cost) { by_day_map.set(date, cost.to_json()) })
+  // "all" period has no lower bound in orig (from: null)
+  let from_json : Json = match period {
+    @billing.All => Json::null()
+    _ => billing_ms_to_datetime(from_ms).to_json()
   }
   let body : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("active", active.to_json())
-    m.set("plan", plan.to_json())
-    m.set("expires_at", expires_json)
+    m.set("period", period_name.to_json())
+    m.set("from", from_json)
+    m.set("to", billing_ms_to_datetime(now_ms).to_json())
     m.set("total_cost", summary.total_cost.to_json())
-    m.set("total_requests", summary.record_count.to_json())
     m.set(
       "total_tokens",
       (summary.total_prompt_tokens + summary.total_completion_tokens).to_json(),
     )
+    m.set("prompt_tokens", summary.total_prompt_tokens.to_json())
+    m.set("completion_tokens", summary.total_completion_tokens.to_json())
+    m.set("cache_read_tokens", summary.total_cache_read_tokens.to_json())
+    m.set("cache_write_tokens", summary.total_cache_write_tokens.to_json())
+    m.set("by_model", Json::object(by_model_map))
+    m.set("by_day", Json::object(by_day_map))
+    m.set("record_count", summary.record_count.to_json())
     m
   }
   HttpResponse::ok(Json::object(body).stringify())
 }
 
 ///|
-/// GET /api/billing/daily — Daily breakdown for the last 30 days.
+/// GET /api/billing/daily — Daily cost breakdown.
+/// Aligned with orig openclacky api_billing_daily: top-level key is `days`,
+/// each entry carries full token splits; the full day range is emitted
+/// (zero-fill for days without records), oldest first.
+/// Query params: days (default: 30, max: 90).
 pub fn handle_billing_daily(request : HttpRequest) -> HttpResponse {
-  ignore(request)
   let store = @billing.BillingStore::default()
-  let daily = store.daily_breakdown(days=30)
+  let days = billing_parse_int_param(request, "days", 30, 90)
+  let now_ms = @env.now().reinterpret_as_int64()
+  let ms_per_day = 86_400_000L
+  let from_ms = now_ms - days.to_int64() * ms_per_day
+  // Accumulate per calendar date: (cost, tokens, prompt, completion,
+  // cache_read, cache_write, requests)
+  let day_map : Map[String, (Double, Int, Int, Int, Int, Int, Int)] = Map([])
+  for r in store.query(from_ms~) {
+    let date = billing_date_of_ms(r.timestamp)
+    let (cost, tokens, prompt, completion, cache_read, cache_write, requests) = match
+      day_map.get(date) {
+      Some(v) => v
+      None => (0.0, 0, 0, 0, 0, 0, 0)
+    }
+    day_map.set(
+      date,
+      (
+        cost + r.cost_usd,
+        tokens + r.prompt_tokens + r.completion_tokens,
+        prompt + r.prompt_tokens,
+        completion + r.completion_tokens,
+        cache_read + r.cache_read_tokens,
+        cache_write + r.cache_write_tokens,
+        requests + 1,
+      ),
+    )
+  }
   let items : Array[Json] = []
-  daily.each(fn(ds) {
+  for i = 0; i < days; i = i + 1 {
+    let day_ms = now_ms - (days - 1 - i).to_int64() * ms_per_day
+    let date = billing_date_of_ms(day_ms)
+    let (cost, tokens, prompt, completion, cache_read, cache_write, requests) = match
+      day_map.get(date) {
+      Some(v) => v
+      None => (0.0, 0, 0, 0, 0, 0, 0)
+    }
     items.push(
       Json::object({
-        "date": ds.date.to_json(),
-        "tokens": ds.total_tokens.to_json(),
-        "cost": ds.total_cost.to_json(),
-        "requests": ds.request_count.to_json(),
+        "date": date.to_json(),
+        "cost": cost.to_json(),
+        "tokens": tokens.to_json(),
+        "prompt_tokens": prompt.to_json(),
+        "completion_tokens": completion.to_json(),
+        "cache_read_tokens": cache_read.to_json(),
+        "cache_write_tokens": cache_write.to_json(),
+        "requests": requests.to_json(),
       }),
     )
-  })
+  }
   HttpResponse::ok(
-    Json::object({ "daily": Json::array(items).to_json() }).stringify(),
+    Json::object({ "days": Json::array(items).to_json() }).stringify(),
   )
 }
 
 ///|
-/// GET /api/billing/records — Raw usage records (paginated, max 500).
+/// GET /api/billing/records — Raw usage records.
+/// Aligned with orig openclacky api_billing_records: full record fields
+/// (incl. cache splits and cost_source), ISO timestamp, top-level count.
+/// Query params: limit (default: 100, max: 500).
 pub fn handle_billing_records(request : HttpRequest) -> HttpResponse {
-  ignore(request)
   let store = @billing.BillingStore::default()
-  let records = store.query(limit=500)
+  let limit = billing_parse_int_param(request, "limit", 100, 500)
+  let records = store.query(limit~)
   let items : Array[Json] = []
   for r in records {
     items.push(
       Json::object({
         "id": r.id.to_json(),
         "session_id": r.session_id.to_json(),
-        "timestamp": r.timestamp.to_string().to_json(),
+        "timestamp": billing_ms_to_datetime(r.timestamp).to_json(),
         "model": r.model.to_json(),
         "prompt_tokens": r.prompt_tokens.to_json(),
         "completion_tokens": r.completion_tokens.to_json(),
+        "cache_read_tokens": r.cache_read_tokens.to_json(),
+        "cache_write_tokens": r.cache_write_tokens.to_json(),
         "cost_usd": r.cost_usd.to_json(),
+        "cost_source": r.cost_source.to_json(),
       }),
     )
   }
   HttpResponse::ok(
-    Json::object({ "records": Json::array(items).to_json() }).stringify(),
+    Json::object({
+      "records": Json::array(items).to_json(),
+      "count": items.length().to_json(),
+    }).stringify(),
   )
 }
 
 ///|
 /// GET /api/billing/sessions — Per-session cost aggregation.
+/// Aligned with orig openclacky api_billing_sessions: full token splits,
+/// first/last request timestamps, distinct model list, top-level count,
+/// sorted by total cost descending.
+/// Query params: period (day|week|month|year|all, default: month),
+/// limit (default: 50, max: 200).
 pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
-  ignore(request)
+  let (period, _) = billing_parse_period(request)
+  let limit = billing_parse_int_param(request, "limit", 50, 200)
   let store = @billing.BillingStore::default()
-  let records = store.query(limit=2000)
+  let now_ms = @env.now().reinterpret_as_int64()
+  let from_ms = billing_period_start_ms(period, now_ms)
   // Aggregate by session_id
-  let session_map : Map[String, (Int, Double)] = Map([])
-  for r in records {
+  let session_map : Map[String, BillingSessionAgg] = Map([])
+  for r in store.query(from_ms~) {
     match session_map.get(r.session_id) {
-      Some((count, cost)) =>
-        session_map[r.session_id] = (count + 1, cost + r.cost_usd)
-      None => session_map[r.session_id] = (1, r.cost_usd)
+      Some(agg) => {
+        agg.total_cost = agg.total_cost + r.cost_usd
+        agg.prompt_tokens = agg.prompt_tokens + r.prompt_tokens
+        agg.completion_tokens = agg.completion_tokens + r.completion_tokens
+        agg.cache_read_tokens = agg.cache_read_tokens + r.cache_read_tokens
+        agg.cache_write_tokens = agg.cache_write_tokens + r.cache_write_tokens
+        agg.requests = agg.requests + 1
+        if r.timestamp < agg.first_ms {
+          agg.first_ms = r.timestamp
+        }
+        if r.timestamp > agg.last_ms {
+          agg.last_ms = r.timestamp
+        }
+        if !agg.models.contains(r.model) {
+          agg.models.push(r.model)
+        }
+      }
+      None =>
+        session_map[r.session_id] = {
+          total_cost: r.cost_usd,
+          prompt_tokens: r.prompt_tokens,
+          completion_tokens: r.completion_tokens,
+          cache_read_tokens: r.cache_read_tokens,
+          cache_write_tokens: r.cache_write_tokens,
+          requests: 1,
+          first_ms: r.timestamp,
+          last_ms: r.timestamp,
+          models: [r.model],
+        }
     }
   }
+  // Sort by total cost descending (orig semantics), then apply limit
+  let pairs : Array[(String, BillingSessionAgg)] = []
+  session_map.each(fn(sid, agg) { pairs.push((sid, agg)) })
+  pairs.sort_by(fn(a, b) { b.1.total_cost.compare(a.1.total_cost) })
   let items : Array[Json] = []
-  session_map.each(fn(sid, pair) {
+  for i = 0; i < pairs.length() && i < limit; i = i + 1 {
+    let (sid, agg) = pairs[i]
     items.push(
       Json::object({
         "session_id": sid.to_json(),
-        "requests": pair.0.to_json(),
-        "total_cost": pair.1.to_json(),
+        // NOTE: no session-name data source yet (orig reads SessionManager);
+        // emit empty string per spec risk convention.
+        "session_name": "".to_json(),
+        "total_cost": agg.total_cost.to_json(),
+        "total_tokens": (agg.prompt_tokens + agg.completion_tokens).to_json(),
+        "prompt_tokens": agg.prompt_tokens.to_json(),
+        "completion_tokens": agg.completion_tokens.to_json(),
+        "cache_read_tokens": agg.cache_read_tokens.to_json(),
+        "cache_write_tokens": agg.cache_write_tokens.to_json(),
+        "requests": agg.requests.to_json(),
+        "first_request": billing_ms_to_datetime(agg.first_ms).to_json(),
+        "last_request": billing_ms_to_datetime(agg.last_ms).to_json(),
+        "models": agg.models.map(fn(m) { m.to_json() }).to_json(),
       }),
     )
-  })
+  }
   HttpResponse::ok(
-    Json::object({ "sessions": Json::array(items).to_json() }).stringify(),
+    Json::object({
+      "sessions": Json::array(items).to_json(),
+      "count": items.length().to_json(),
+    }).stringify(),
   )
 }
 
@@ -491,4 +628,107 @@ fn billing_pad(n : Int, width : Int) -> String {
     }
     result + s
   }
+}
+
+// ── Contract Alignment Helpers (web-ui-fix-10) ──────────────────────
+
+///|
+/// Mutable per-session aggregation accumulator for handle_billing_sessions.
+priv struct BillingSessionAgg {
+  mut total_cost : Double
+  mut prompt_tokens : Int
+  mut completion_tokens : Int
+  mut cache_read_tokens : Int
+  mut cache_write_tokens : Int
+  mut requests : Int
+  mut first_ms : Int64
+  mut last_ms : Int64
+  models : Array[String]
+}
+
+///|
+/// Extract a query parameter value from the request path (after "?").
+/// NOTE: the crescent bridge strips the query string before constructing
+/// HttpRequest, so this only sees params when the path still carries them
+/// (unit tests); live requests fall back to the orig defaults.
+fn billing_query_param(request : HttpRequest, key : String) -> String? {
+  let target = "\{key}="
+  match request.path.find(target) {
+    Some(idx) => {
+      let start = idx + target.length()
+      let chars = request.path.to_array()
+      let buf = StringBuilder::new()
+      let mut i = start
+      while i < chars.length() {
+        let c = chars[i]
+        if c == '&' {
+          break
+        }
+        buf.write_char(c)
+        i = i + 1
+      }
+      let val = buf.to_string()
+      if val.is_empty() {
+        None
+      } else {
+        Some(val)
+      }
+    }
+    None => None
+  }
+}
+
+///|
+/// Parse the `period` query param into a TimePeriod plus its orig string
+/// form (day|week|month|year|all, default: month).
+fn billing_parse_period(request : HttpRequest) -> (@billing.TimePeriod, String) {
+  match billing_query_param(request, "period") {
+    Some("day") => (@billing.Day, "day")
+    Some("week") => (@billing.Week, "week")
+    Some("year") => (@billing.Year, "year")
+    Some("all") => (@billing.All, "all")
+    _ => (@billing.Month, "month")
+  }
+}
+
+///|
+/// Parse an integer query param with default and upper cap (orig clamps).
+fn billing_parse_int_param(
+  request : HttpRequest,
+  key : String,
+  default : Int,
+  cap : Int,
+) -> Int {
+  let raw = match billing_query_param(request, key) {
+    Some(s) => @string.parse_int(s) catch { _ => default }
+    None => default
+  }
+  if raw < 1 {
+    default
+  } else if raw > cap {
+    cap
+  } else {
+    raw
+  }
+}
+
+///|
+/// Period start in milliseconds, mirroring BillingStore's period windows.
+fn billing_period_start_ms(
+  period : @billing.TimePeriod,
+  now_ms : Int64,
+) -> Int64 {
+  match period {
+    @billing.Day => now_ms - 86_400_000L
+    @billing.Week => now_ms - 604_800_000L
+    @billing.Month => now_ms - 2_592_000_000L // ~30 days
+    @billing.Year => now_ms - 31_536_000_000L // ~365 days
+    @billing.All => 0L
+  }
+}
+
+///|
+/// Calendar date "YYYY-MM-DD" for an epoch-millisecond timestamp.
+fn billing_date_of_ms(ms : Int64) -> String {
+  billing_ms_to_datetime(ms)[:10].to_owned()
 }
