@@ -19,11 +19,14 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+          # libssl-dev provides libcrypto for lib/brand's AES-256-GCM / RAND_bytes
+          # C stubs (linked via -lcrypto). libcurl is no longer required: the
+          # FFI C reduction (S-FFI-06) migrated lib/client HTTP transport to
+          # @async/http, and -lcurl has been removed project-wide.
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             curl \
-            libssl-dev \
-            libcurl4-openssl-dev
+            libssl-dev
           sudo rm -rf /var/lib/apt/lists/*
 
       - name: Cache MoonBit toolchain

@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git \
     libssl-dev \
-    libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MoonBit toolchain (use latest stable; pinned versions are not retained on CDN)
@@ -63,12 +62,12 @@ ENV MBOPENCLACKY_WEB_PORT=7071
 ENV MBOPENCLACKY_WEB_HOST=0.0.0.0
 
 # Install minimal runtime dependencies.
-# libssl3 ships libcrypto.so.3 required by the AES-256-GCM crypto stubs.
+# libssl3 ships libcrypto.so.3 required by the AES-256-GCM crypto stubs
+# and by @async/tls (OpenSSL backend on POSIX).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     libssl3 \
-    libcurl4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
