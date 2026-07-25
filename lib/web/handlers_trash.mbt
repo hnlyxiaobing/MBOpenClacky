@@ -159,24 +159,103 @@ fn remove_trash_item(target_id : String) -> Bool {
 // ── Trash Handlers ────────────────────────────────────────────────
 
 ///|
-/// GET /api/trash — List all items in the recycle bin.
-/// Supports ?type= query parameter to filter by item type.
-pub fn handle_trash_list(request : HttpRequest) -> HttpResponse {
-  ensure_trash_loaded()
-  let type_filter = request.get_param("type").unwrap_or("")
+/// Render a non-session trash item with the orig file-entry key set.
+/// The current trash model carries no project/size metadata, so those
+/// fields are emitted as empty/0 (see fix-13 spec risk notes).
+fn trash_file_entry_json(item : TrashItem) -> Json {
+  Json::object({
+    "original_path": item.name.to_json(),
+    "deleted_at": item.deleted_at.to_json(),
+    "deleted_by": "".to_json(),
+    "file_mode": "".to_json(),
+    "file_size": (0).to_json(),
+    "file_type": item.item_type.to_json(),
+    "project_name": "".to_json(),
+    "project_root": "".to_json(),
+    "trash_file": item.id.to_json(),
+  })
+}
 
-  let filtered : Array[Json] = []
+///|
+/// Render a session trash item with the orig session-entry key set.
+/// Fields without a data source in TrashItem are emitted as empty/0/null.
+fn trash_session_entry_json(item : TrashItem) -> Json {
+  Json::object({
+    "session_id": item.id.to_json(),
+    "name": item.name.to_json(),
+    "created_at": "".to_json(),
+    "updated_at": "".to_json(),
+    "deleted_at": item.deleted_at.to_json(),
+    "total_tasks": (0).to_json(),
+    "file_size": (0).to_json(),
+    "model": Json::null(),
+    "working_dir": "".to_json(),
+    "source": "".to_json(),
+  })
+}
+
+///|
+/// GET /api/trash — List recently deleted (non-session) files in the trash.
+/// Orig contract: { ok, files, projects, total_count, total_size }.
+/// projects has no data source in the current model and stays empty.
+pub fn handle_trash_list(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  ensure_trash_loaded()
+
+  let files : Array[Json] = []
   for item in trash_state.val.items {
-    if type_filter.is_empty() || item.item_type == type_filter {
-      filtered.push(trash_item_to_json(item))
+    if item.item_type != "session" {
+      files.push(trash_file_entry_json(item))
     }
   }
 
   let body = Json::object({
-    "items": filtered.to_json(),
-    "total": filtered.length().to_json(),
+    "ok": true.to_json(),
+    "files": files.to_json(),
+    "projects": Json::array([]),
+    "total_count": files.length().to_json(),
+    "total_size": (0).to_json(),
   }).stringify()
   HttpResponse::ok(body)
+}
+
+///|
+/// GET /api/trash/sessions — List soft-deleted sessions in the trash.
+/// Orig contract: { ok, sessions, count, total_size }.
+pub fn handle_trash_sessions_list(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  ensure_trash_loaded()
+
+  let sessions : Array[Json] = []
+  for item in trash_state.val.items {
+    if item.item_type == "session" {
+      sessions.push(trash_session_entry_json(item))
+    }
+  }
+
+  let body = Json::object({
+    "ok": true.to_json(),
+    "sessions": sessions.to_json(),
+    "count": sessions.length().to_json(),
+    "total_size": (0).to_json(),
+  }).stringify()
+  HttpResponse::ok(body)
+}
+
+///|
+/// Record a session in the trash bin. Called from the session delete flow
+/// (fix-13) so soft-deleted sessions surface under GET /api/trash/sessions,
+/// mirroring the orig SessionManager#soft_delete behavior.
+pub fn trash_add_session(id : String, name : String) -> Unit {
+  ensure_trash_loaded()
+  trash_state.val.items.push({
+    id,
+    item_type: "session",
+    name,
+    deleted_at: current_epoch_secs(),
+    expires_at: compute_expiry_secs(),
+  })
+  save_trash_state()
 }
 
 ///|

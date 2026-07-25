@@ -472,14 +472,7 @@ fn handle_trash_list_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  // Extract query parameter ?type= for filtering
-  let url = event.req.url
-  let params : Array[(String, String)] = []
-  match find_query_param(url, "type") {
-    Some(v) => params.push(("type", v))
-    None => ()
-  }
-  let req = event_to_request(event, params)
+  let req = event_to_request(event, [])
   response_to_core(handle_trash_list(req))
 }
 
@@ -822,18 +815,74 @@ fn handle_media_video_status_bridge(
 }
 
 ///|
-/// GET /api/media/types — supported media types.
+/// Find an explicitly configured model for the given media type, without
+/// provider derivation — the "custom" source in orig api_media_types
+/// semantics. (find_model_by_type already falls back to derivation, so the
+/// explicit-only scan lives here to keep custom/auto distinguishable.)
+fn find_explicit_media_model(
+  config : @config.AgentConfig,
+  kind : String,
+) -> @config.ModelConfig? {
+  for m in config.models {
+    match m.media_type {
+      Some(mt) if mt == kind => return Some(m)
+      _ => ()
+    }
+    // Also check type_ field for backward compat (mirrors find_model_by_type)
+    match m.type_ {
+      Some(t) if t == kind => return Some(m)
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
+/// Compute the orig-compatible state object for one media modality:
+/// {configured, model, base_url, source} with source "custom"/"auto", or
+/// {configured:false, source:"off"} when no explicit or derivable model.
+fn media_type_state_json(config : @config.AgentConfig, kind : String) -> Json {
+  match find_explicit_media_model(config, kind) {
+    Some(mc) =>
+      Json::object({
+        "configured": true.to_json(),
+        "model": mc.model.to_json(),
+        "base_url": mc.base_url.to_json(),
+        "source": "custom".to_json(),
+      })
+    None =>
+      match config.derive_media_model(kind) {
+        Some(mc) =>
+          Json::object({
+            "configured": true.to_json(),
+            "model": mc.model.to_json(),
+            "base_url": mc.base_url.to_json(),
+            "source": "auto".to_json(),
+          })
+        None =>
+          Json::object({
+            "configured": false.to_json(),
+            "source": "off".to_json(),
+          })
+      }
+  }
+}
+
+///|
+/// GET /api/media/types — per-modality media configuration state.
+/// Mirrors orig api_media_types: five modalities (image/video/audio/stt/
+/// video_understanding), each {configured, model, base_url, source} or
+/// {configured:false, source:"off"}.
 fn handle_media_types_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::ok().json_value(
-    Json::object({
-      "image": Json::array(["png".to_json(), "jpg".to_json(), "webp".to_json()]),
-      "video": Json::array(["mp4".to_json(), "webm".to_json()]),
-      "audio": Json::array(["mp3".to_json(), "wav".to_json(), "ogg".to_json()]),
-    }),
-  )
+  let config = server_ref.val.config
+  let types : Map[String, Json] = Map([])
+  for kind in ["image", "video", "audio", "stt", "video_understanding"] {
+    types[kind] = media_type_state_json(config, kind)
+  }
+  @core.HttpResponse::ok().json_value(Json::object(types))
 }
 
 // ── File Action Bridge (web-parity-04) ────────────────────────────
@@ -924,9 +973,8 @@ fn handle_trash_sessions_list_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  // Reuse trash list with type=sessions filter
-  let req = event_to_request(event, [("type", "sessions")])
-  response_to_core(handle_trash_list(req))
+  let req = event_to_request(event, [])
+  response_to_core(handle_trash_sessions_list(req))
 }
 
 ///|

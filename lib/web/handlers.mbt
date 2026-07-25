@@ -227,6 +227,13 @@ fn handle_delete_session(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
+  // Soft-delete parity with orig (fix-13): sessions that exist on disk are
+  // recorded in the trash bin so GET /api/trash/sessions can surface them.
+  // In-memory-only sessions have no on-disk payload and are not trashed.
+  match @agent.load_session(id) {
+    Some(data) => trash_add_session(id, data.name)
+    None => ()
+  }
   @agent.delete_session(id)
   let _ = server_ref.val.active_agents.remove(id)
   // Broadcast session_deleted via WS so the sidebar updates in real time.
