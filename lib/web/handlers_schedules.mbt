@@ -31,7 +31,7 @@ fn init_schedule_state() -> ScheduleState {
   {
     scheduler: @server.Scheduler::new({
       schedules: [],
-      tasks_dir: "",
+      tasks_dir: default_tasks_dir(),
       config_path: "",
     }),
     messages: Map([("_", "")]),
@@ -142,6 +142,95 @@ fn save_schedule_state() -> Unit {
   @fs.write_string_to_file(path, data.stringify()) catch {
     _ => ()
   }
+}
+
+// ── Task Files (manual cron tasks) ───────────────────────────────
+
+///|
+/// Default cron task files directory: `~/.mbopenclacky/tasks/`
+/// (orig: `~/.clacky/tasks/`).
+fn default_tasks_dir() -> String {
+  match @utils.config_dir() {
+    Some(dir) => @path.Path::join(dir, @path.Path("tasks")).to_string()
+    None => ".mbopenclacky/tasks"
+  }
+}
+
+///|
+/// Resolve the cron task files directory: the scheduler-configured
+/// tasks_dir, falling back to the default under the config dir.
+fn tasks_dir() -> String {
+  let configured = schedule_state.val.scheduler.config.tasks_dir
+  if configured != "" {
+    configured
+  } else {
+    default_tasks_dir()
+  }
+}
+
+///|
+/// Read a cron task file's content; None if missing or unreadable.
+fn read_task_file(dir : String, name : String) -> String? {
+  let path = dir + "/" + name + ".md"
+  if !@fs.path_exists(path) {
+    return None
+  }
+  let content = @fs.read_file_to_string(path) catch { _ => return None }
+  Some(content)
+}
+
+///|
+/// Convert a manual task file (no schedule) to the same JSON shape as
+/// scheduled entries, with scheduled=false and empty cron/run fields
+/// (orig list_cron_tasks: cron=nil, enabled=true, scheduled=false).
+fn task_file_to_api_json(name : String, content : String) -> Json {
+  let run_count : Int = 0
+  Json::object({
+    "id": name.to_json(),
+    "schedule_id": name.to_json(),
+    "name": name.to_json(),
+    "cron_expression": "".to_json(),
+    "cron": "".to_json(),
+    "enabled": true.to_json(),
+    "next_execution": "".to_json(),
+    "message": content.to_json(),
+    "content": content.to_json(),
+    "scheduled": false.to_json(),
+    "run_count": run_count.to_json(),
+  })
+}
+
+///|
+/// List manual task files under `dir` that have no matching schedule,
+/// as API JSON entries with scheduled=false (orig: task files are the
+/// primary table of list_cron_tasks). Names are sorted like orig.
+fn manual_task_entries(dir : String) -> Array[Json] {
+  let result : Array[Json] = []
+  if dir == "" || !@fs.path_exists(dir) {
+    return result
+  }
+  let entries = @fs.read_dir(dir) catch { _ => return result }
+  let names : Array[String] = []
+  for entry in entries {
+    if entry.length() > 3 && entry.has_suffix(".md") {
+      let is_dir = @fs.is_dir(dir + "/" + entry) catch { _ => false }
+      if !is_dir {
+        names.push(entry[:entry.length() - 3].to_owned())
+      }
+    }
+  }
+  names.sort()
+  for name in names {
+    // A task file that also has a schedule is already listed as a
+    // scheduled entry (scheduled=true); skip it here.
+    match schedule_state.val.scheduler.get_schedule(name) {
+      Some(_) => continue
+      None => ()
+    }
+    let content = read_task_file(dir, name).unwrap_or("")
+    result.push(task_file_to_api_json(name, content))
+  }
+  result
 }
 
 // ── JSON Helpers ──────────────────────────────────────────────────
@@ -263,10 +352,20 @@ pub fn handle_schedules_list(request : HttpRequest) -> HttpResponse {
   ignore(request)
   ensure_schedules_loaded()
 
+  let tdir = tasks_dir()
   let schedules_json : Array[Json] = []
   for s in schedule_state.val.scheduler.list_schedules() {
-    let msg = schedule_state.val.messages.get(s.name).unwrap_or("")
+    // Task file is the content source of truth (orig list_cron_tasks);
+    // the in-memory messages map is only a scheduler-side cache.
+    let msg = match read_task_file(tdir, s.name) {
+      Some(content) => content
+      None => schedule_state.val.messages.get(s.name).unwrap_or("")
+    }
     schedules_json.push(schedule_to_api_json(s, msg))
+  }
+  // Merge manual task files (no schedule) as scheduled=false entries.
+  for entry in manual_task_entries(tdir) {
+    schedules_json.push(entry)
   }
 
   HttpResponse::ok(
