@@ -1,7 +1,7 @@
 # DELETE 会话与回收站契约对齐 · 增量 Spec
 
 > **创建日期**: 2026-07-26  
-> **状态**: 进行中  
+> **状态**: 已完成  
 > **关联总览**: `web-ui-comparison-test-report.md`  
 > **关联历史 spec**: `specs/completed/2026-07-24_web-ui-fix-13-trash-api-contract.md`（fix-13 已对齐 trash 列表形状并接通软删除）  
 > **来源差距**: BUG-008（P1）、BUG-021（P1）、BUG-022（P1）  
@@ -101,3 +101,4 @@
 |------|---------|------|
 | 2026-07-26 | 初始版本 | BUG-008/021/022 起草，已 curl + 代码逐条验证（含路由顺序根因定位） |
 | 2026-07-26 | 审核修正：`handle_delete_session` :248-274 -> :241-266（no_content 在 :264） | 对抗性审核 + 第一性原理校验 |
+| 2026-07-26 | 实现完成：三处修复（DELETE session/trash 返回 200 `{"ok":true}`；新增 `DELETE /api/trash/sessions` 清空会话端点 + bridge + 路由前置注册）；+3 白盒测试，moon test 394 通过 | BUG-008/021/022 验收 |
