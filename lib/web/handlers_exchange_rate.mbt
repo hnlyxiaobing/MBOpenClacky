@@ -131,21 +131,99 @@ fn build_exchange_rate_response(
 }
 
 ///|
-/// Format a millisecond timestamp as an ISO-8601 UTC string.
-fn format_iso8601_ms(ts : Int64) -> String {
-  // Minimal formatting: seconds since epoch is sufficient for this endpoint.
-  let secs = ts / 1000L
-  secs.to_string()
+/// Check if a year is a leap year (Gregorian calendar).
+fn is_leap_year(year : Int) -> Bool {
+  (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
 ///|
-/// Format a millisecond timestamp as a date string (YYYY-MM-DD approximation).
+/// Number of days in a given month (1-12) for a specific year.
+fn days_in_month(year : Int, month : Int) -> Int {
+  match month {
+    1 | 3 | 5 | 7 | 8 | 10 | 12 => 31
+    4 | 6 | 9 | 11 => 30
+    2 => if is_leap_year(year) { 29 } else { 28 }
+    _ => 30
+  }
+}
+
+///|
+/// Convert epoch days (since 1970-01-01) to (year, month, day) in UTC.
+fn epoch_days_to_ymd(days_in : Int) -> (Int, Int, Int) {
+  let mut days = days_in
+  let mut year = 1970
+  while true {
+    let diy = if is_leap_year(year) { 366 } else { 365 }
+    if days < diy {
+      break
+    }
+    days = days - diy
+    year = year + 1
+  }
+  let mut month = 1
+  while month <= 12 {
+    let dim = days_in_month(year, month)
+    if days < dim {
+      break
+    }
+    days = days - dim
+    month = month + 1
+  }
+  (year, month, days + 1)
+}
+
+///|
+/// Left-pad a number to 4 digits with leading zeros.
+fn pad4(n : Int) -> String {
+  let s = n.to_string()
+  let mut result = s
+  while result.length() < 4 {
+    result = "0" + result
+  }
+  result
+}
+
+///|
+/// Format a millisecond timestamp as an RFC2822 UTC string.
+/// Example: "Sun, 26 Jul 2026 00:02:32 +0000"
+fn format_iso8601_ms(ts : Int64) -> String {
+  let secs = ts / 1000L
+  let days = (secs / 86_400L).to_int()
+  let remainder = (secs % 86_400L).to_int()
+  let hour = remainder / 3600
+  let min = remainder % 3600 / 60
+  let sec = remainder % 60
+  let (year, month, day) = epoch_days_to_ymd(days)
+  // 1970-01-01 was a Thursday; 0=Sun in the weekday name table.
+  let weekday = ((days + 4) % 7 + 7) % 7
+  let weekday_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  let month_names = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
+    "Dec",
+  ]
+  weekday_names[weekday] +
+  ", " +
+  pad2(day) +
+  " " +
+  month_names[month - 1] +
+  " " +
+  pad4(year) +
+  " " +
+  pad2(hour) +
+  ":" +
+  pad2(min) +
+  ":" +
+  pad2(sec) +
+  " +0000"
+}
+
+///|
+/// Format a millisecond timestamp as a YYYY-MM-DD UTC date string.
 fn format_iso8601_date(ts : Int64) -> String {
   let secs = ts / 1000L
-  let days = secs / 86_400L
-  // Approximate epoch day to YYYY-MM-DD is not needed for the API contract;
-  // return a placeholder derived from the timestamp.
-  "day-" + days.to_string()
+  let days = (secs / 86_400L).to_int()
+  let (year, month, day) = epoch_days_to_ymd(days)
+  pad4(year) + "-" + pad2(month) + "-" + pad2(day)
 }
 
 ///|

@@ -149,15 +149,24 @@ fn handle_create_session(
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let j : Json = event.req.body() catch {
-    _ => Json::object({ "name": "Web Session".to_json() })
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "name is required".to_json() }),
+      )
   }
   let name : String = match j {
     Object(obj) =>
       match obj.get("name") {
-        Some(String(n)) => n
-        _ => "Web Session"
+        Some(String(n)) if !n.is_empty() => n
+        _ =>
+          return @core.HttpResponse::bad_request().json_value(
+            Json::object({ "error": "name is required".to_json() }),
+          )
       }
-    _ => "Web Session"
+    _ =>
+      return @core.HttpResponse::bad_request().json_value(
+        Json::object({ "error": "name is required".to_json() }),
+      )
   }
   // Parse agent_profile from request (web-replication-05).
   let agent_profile : String = match j {

@@ -463,3 +463,66 @@ test "build_skills_summary: multiple skills" {
   assert_true(summary.find("skill-two") is Some(_))
   assert_true(summary.find("Second skill") is Some(_))
 }
+
+///|
+test "parse_frontmatter: literal block scalar (|) collects multiline value" {
+  let content =
+    #|---
+    #|name: browser-setup
+    #|description: |
+    #|  Configure the browser tool. Guides setup,
+    #|  verifies the connection, and writes config.
+    #|  Subcommands: setup, doctor.
+    #|argument_hint: "[setup | doctor]"
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.assert_eq(fields.get("name"), Some("browser-setup"))
+  let desc = match fields.get("description") {
+    Some(d) => d
+    None => panic()
+  }
+  assert_false(desc == "|")
+  @debug.assert_eq(
+    desc, "Configure the browser tool. Guides setup,\nverifies the connection, and writes config.\nSubcommands: setup, doctor.",
+  )
+  // The key following the block must still parse normally.
+  @debug.assert_eq(fields.get("argument_hint"), Some("[setup | doctor]"))
+}
+
+///|
+test "parse_frontmatter: folded block scalar (>) folds newlines" {
+  let content =
+    #|---
+    #|name: folded
+    #|description: >
+    #|  First line of description.
+    #|  Second line continues here.
+    #|enabled: true
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  let desc = match fields.get("description") {
+    Some(d) => d
+    None => panic()
+  }
+  @debug.assert_eq(
+    desc, "First line of description. Second line continues here.",
+  )
+  @debug.assert_eq(fields.get("enabled"), Some("true"))
+}
+
+///|
+test "parse_frontmatter: inline description unaffected by block scalar support" {
+  let content =
+    #|---
+    #|name: code-explorer
+    #|description: Use this skill when exploring code.
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.assert_eq(
+    fields.get("description"),
+    Some("Use this skill when exploring code."),
+  )
+}

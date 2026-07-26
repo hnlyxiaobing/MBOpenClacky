@@ -241,12 +241,9 @@ pub fn build_error_event(session_id : String, message : String) -> String {
 }
 
 ///|
-/// Build a pong response.
+/// Build a pong response (orig: {"type":"pong"}).
 pub fn build_pong() -> String {
-  build_global_event(
-    event_pong,
-    Json::object({ "timestamp": @agent.current_time_ms().to_json() }),
-  )
+  build_global_event(event_pong, Json::object(Map([])))
 }
 
 ///|

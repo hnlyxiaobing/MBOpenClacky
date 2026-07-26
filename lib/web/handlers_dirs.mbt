@@ -10,10 +10,24 @@ let dirs_ignored_entries : Array[String] = [
 ]
 
 ///|
-/// Normalize Windows path separators to `/` for API responses; the frontend
-/// picker joins paths with `/` (see spec 2026-07-24_web-ui-fix-12 risk table).
+/// Normalize path separators to `/` for API responses.
+/// Replaces backslashes with forward slashes, then collapses consecutive
+/// `/` into a single `/`. Leading `//` (UNC paths like `//server/share`)
+/// is preserved.
 fn dirs_fwd_slashes(path : String) -> String {
-  path.replace(old="\\", new="/")
+  let normalized = path.replace(old="\\", new="/")
+  // Preserve leading "//" for UNC paths (e.g. //server/share).
+  let is_unc = normalized.has_prefix("//")
+  // Collapse consecutive "/" to a single "/".
+  let mut result = normalized
+  while result.contains("//") {
+    result = result.replace(old="//", new="/")
+  }
+  if is_unc && !result.has_prefix("//") {
+    "/" + result
+  } else {
+    result
+  }
 }
 
 ///|

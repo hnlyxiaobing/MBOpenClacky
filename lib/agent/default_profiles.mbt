@@ -21,7 +21,7 @@ pub(all) struct ProfileSpec {
 ///|
 /// Get all built-in profile specifications.
 pub fn get_default_profiles() -> Array[ProfileSpec] {
-  [coding_profile(), general_profile()]
+  [coding_profile(), general_profile(), ext_developer_profile()]
 }
 
 ///|
@@ -76,6 +76,23 @@ fn general_profile() -> ProfileSpec {
     ],
     hooks: ["on_idle_suggest", "on_error_explain"],
     is_default: true,
+  }
+}
+
+///|
+/// Ext-developer profile specification - for skill/extension development.
+fn ext_developer_profile() -> ProfileSpec {
+  {
+    name: "ext-developer",
+    display_name: "Extension Developer",
+    description: "Specialized for creating and publishing skills and extensions",
+    system_prompt_path: "assets/agents/ext-developer/system_prompt.md",
+    config_path: "assets/agents/ext-developer/config.toml",
+    allowed_tools: [
+      "FileReader", "Write", "Edit", "Grep", "Glob", "Terminal", "WebSearch", "WebFetch",
+    ],
+    hooks: ["on_error_retry", "on_test_fail_analyze"],
+    is_default: false,
   }
 }
 

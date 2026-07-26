@@ -89,8 +89,8 @@ async fn handle_ws_global(
     Open(peer) => {
       let hub = server_ref.val.hub
       hub.register(peer)
-      // Send connected event (no session binding yet).
-      peer.text(@protocol.build_connected_event(""))
+      // orig does not push a "connected" event on Open; the client must
+      // send subscribe/message to initiate interaction.
     }
     Message(peer, msg) =>
       match msg {

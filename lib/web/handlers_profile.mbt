@@ -153,7 +153,6 @@ fn handle_profile_get(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let profile = load_profile()
   // Read user/soul content.
   let (user_content, user_is_default) = read_profile_md(
     profile_user_md_path(),
@@ -174,10 +173,6 @@ fn handle_profile_get(
   @core.HttpResponse::ok().json_value(
     Json::object({
       "ok": true.to_json(),
-      "name": json_get_str(profile, "name").to_json(),
-      "email": json_get_str(profile, "email").to_json(),
-      "preferences": json_get_obj(profile, "preferences"),
-      "theme": json_get_str(profile, "theme").to_json(),
       "user": Json::object({
         "path": user_path.to_json(),
         "content": user_content.to_json(),

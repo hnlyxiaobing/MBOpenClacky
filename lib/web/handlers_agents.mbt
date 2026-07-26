@@ -132,6 +132,8 @@ fn load_agents_from_assets() -> Array[Json] {
     let config_content = @fs.read_file_to_string(config_path) catch { _ => "" }
     let name = agents_toml_str(config_content, "name")
     let display_name = agents_toml_str(config_content, "display_name")
+    let title_zh = agents_toml_str(config_content, "title_zh")
+    let description_zh = agents_toml_str(config_content, "description_zh")
     let id = if name.is_empty() { entry } else { name }
     let title = if display_name.is_empty() { entry } else { display_name }
     // Extract description from system_prompt.md (first line after title).
@@ -147,9 +149,9 @@ fn load_agents_from_assets() -> Array[Json] {
     let agent = Json::object({
       "id": id.to_json(),
       "title": title.to_json(),
-      "title_zh": "".to_json(),
+      "title_zh": title_zh.to_json(),
       "description": description.to_json(),
-      "description_zh": "".to_json(),
+      "description_zh": description_zh.to_json(),
       "source": "builtin".to_json(),
       "order": order.to_json(),
       "layer": "core".to_json(),

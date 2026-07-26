@@ -249,7 +249,7 @@ async fn handle_config_test(
               "Authentication failed (HTTP " +
               resp.status_code.to_string() +
               "): check API key",
-              "auth_failed",
+              "AuthenticationError",
             )
           404 =>
             (
@@ -276,7 +276,6 @@ async fn handle_config_test(
             "ok": false.to_json(),
             "message": msg.to_json(),
             "error_code": code.to_json(),
-            "status_code": resp.status_code.to_json(),
           }),
         )
       }

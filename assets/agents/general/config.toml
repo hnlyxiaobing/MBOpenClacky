@@ -1,9 +1,10 @@
 [profile]
 name = "general"
 display_name = "General Assistant"
+title_zh = "日常工作"
+description_zh = "通用助手，处理各类日常任务"
 max_turns = 100
 temperature = 0.7
-
 [behavior]
 proactive_suggestions = true
 use_memory = true

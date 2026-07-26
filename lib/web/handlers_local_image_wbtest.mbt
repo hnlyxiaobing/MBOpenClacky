@@ -46,6 +46,13 @@ test "local image proxy returns 404 for missing file" {
   )
   let resp = handle_local_image(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 404)
+  // web-ui2-10 BUG-015: lowercase error, no path leakage.
+  let j = @json.parse(@utf8.decode(resp.raw_body)) catch {
+    _ => fail("expected JSON error body")
+  }
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("error"), Some("file not found".to_json()))
+  assert_false(obj.contains("path"))
 }
 
 ///|

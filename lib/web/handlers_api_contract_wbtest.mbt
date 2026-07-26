@@ -47,10 +47,14 @@ test "profile get returns default profile structure" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard j is Object(obj)
-  assert_true(obj.contains("name"))
-  assert_true(obj.contains("email"))
-  assert_true(obj.contains("theme"))
-  assert_true(obj.contains("preferences"))
+  assert_true(obj.contains("ok"))
+  assert_true(obj.contains("user"))
+  assert_true(obj.contains("soul"))
+  // web-ui2-10 BUG-019: top-level name/email/preferences/theme removed.
+  assert_true(!obj.contains("name"))
+  assert_true(!obj.contains("email"))
+  assert_true(!obj.contains("preferences"))
+  assert_true(!obj.contains("theme"))
 }
 
 ///|

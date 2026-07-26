@@ -182,11 +182,7 @@ fn handle_session_rename(
         @protocol.build_session_renamed_event(id, new_name),
       )
       @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": id.to_json(),
-          "old_name": old_name.to_json(),
-          "new_name": new_name.to_json(),
-        }),
+        Json::object({ "ok": true.to_json(), "name": new_name.to_json() }),
       )
     }
     None =>
@@ -647,13 +643,17 @@ fn handle_session_patch(
         )
       }
       let effective_pinned = load_pinned_map().get(id).unwrap_or(false)
-      @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": id.to_json(),
-          "name": updated.name.to_json(),
-          "pinned": effective_pinned.to_json(),
-        }),
-      )
+      let resp_obj : Map[String, Json] = Map([])
+      resp_obj["ok"] = true.to_json()
+      match obj.get("name") {
+        Some(_) => resp_obj["name"] = updated.name.to_json()
+        _ => ()
+      }
+      match obj.get("pinned") {
+        Some(_) => resp_obj["pinned"] = effective_pinned.to_json()
+        _ => ()
+      }
+      @core.HttpResponse::ok().json_value(Json::object(resp_obj))
     }
     None =>
       @core.HttpResponse::not_found().json_value(

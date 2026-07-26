@@ -94,13 +94,13 @@ test "i-034: agent entries carry avatar key" {
   assert_true(agents.length() > 0)
   for agent in agents {
     assert_true(p3_has_key(agent, "avatar"))
-    // No avatar.png ships in the repo assets, so orig semantics yield null.
+    // avatar.png ships in the repo assets, so orig semantics yield a URL.
     match agent {
       Object(m) =>
         match m.get("avatar") {
-          Some(Null) => ()
+          Some(String(_)) => ()
           other =>
-            abort("expected null avatar, got: " + @debug.to_string(other))
+            abort("expected string avatar URL, got: " + @debug.to_string(other))
         }
       _ => abort("expected object agent entry")
     }

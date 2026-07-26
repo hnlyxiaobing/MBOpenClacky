@@ -104,3 +104,43 @@ async test "exchange rate returns cached value when available" {
   // Reset cache so subsequent tests are not affected.
   exchange_rate_cache.val = None
 }
+
+// ── Date formatting (web-ui2-07) ───────────────────────────────────
+
+///|
+test "format_iso8601_date: fixed timestamp -> YYYY-MM-DD" {
+  // 1785024152000 ms = 2026-07-26 00:02:32 UTC
+  @debug.assert_eq(format_iso8601_date(1785024152000L), "2026-07-26")
+}
+
+///|
+test "format_iso8601_ms: fixed timestamp -> RFC2822" {
+  // 1785024152000 ms = 2026-07-26 00:02:32 UTC (Sunday)
+  @debug.assert_eq(
+    format_iso8601_ms(1785024152000L),
+    "Sun, 26 Jul 2026 00:02:32 +0000",
+  )
+}
+
+///|
+test "format_iso8601_date: leap day Feb 29" {
+  // 1709164800000 ms = 2024-02-29 00:00:00 UTC
+  @debug.assert_eq(format_iso8601_date(1709164800000L), "2024-02-29")
+}
+
+///|
+test "format_iso8601_date: year boundary Dec 31 -> Jan 1" {
+  // 1767139200000 ms = 2025-12-31 00:00:00 UTC
+  @debug.assert_eq(format_iso8601_date(1767139200000L), "2025-12-31")
+  // 1767225600000 ms = 2026-01-01 00:00:00 UTC
+  @debug.assert_eq(format_iso8601_date(1767225600000L), "2026-01-01")
+}
+
+///|
+test "format_iso8601_ms: RFC2822 weekday for leap day" {
+  // 1709164800000 ms = 2024-02-29 00:00:00 UTC (Thursday)
+  @debug.assert_eq(
+    format_iso8601_ms(1709164800000L),
+    "Thu, 29 Feb 2024 00:00:00 +0000",
+  )
+}

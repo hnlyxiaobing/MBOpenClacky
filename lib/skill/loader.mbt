@@ -56,10 +56,78 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
       Some(colon_pos) => {
         let key_raw = line[0:colon_pos].trim().to_owned()
         let value_raw = line[colon_pos + 1:].trim().to_owned()
-        // Remove surrounding quotes if present
-        let clean_value = strip_quotes(value_raw)
         if !key_raw.is_empty() {
-          fields[key_raw] = clean_value
+          match block_scalar_indicator(value_raw) {
+            Some(indicator) => {
+              // YAML block scalar: collect subsequent indented lines as the
+              // value. `|` keeps newlines, `>` folds them into spaces.
+              let block_lines : Array[String] = []
+              let mut indent = -1
+              while i < len {
+                // Stop at the closing frontmatter delimiter without consuming.
+                if i + 3 <= len &&
+                  chars[i] == '-' &&
+                  chars[i + 1] == '-' &&
+                  chars[i + 2] == '-' {
+                  break
+                }
+                let ls = i
+                while i < len && chars[i] != '\n' {
+                  i = i + 1
+                }
+                let le = i
+                let lc : Array[Char] = []
+                let mut j = ls
+                while j < le {
+                  lc.push(chars[j])
+                  j = j + 1
+                }
+                let raw = String::from_array(lc)
+                let is_blank = raw.trim().length() == 0
+                let is_indented = lc.length() > 0 &&
+                  (lc[0] == ' ' || lc[0] == '\t')
+                if is_indented {
+                  if indent < 0 {
+                    indent = 0
+                    while indent < lc.length() &&
+                          (lc[indent] == ' ' || lc[indent] == '\t') {
+                      indent = indent + 1
+                    }
+                  }
+                  let stripped_chars : Array[Char] = []
+                  let mut j = indent
+                  while j < lc.length() {
+                    stripped_chars.push(lc[j])
+                    j = j + 1
+                  }
+                  block_lines.push(String::from_array(stripped_chars))
+                  if i < len {
+                    i = i + 1
+                  }
+                } else if is_blank {
+                  // Blank lines stay part of the block content.
+                  block_lines.push("")
+                  if i < len {
+                    i = i + 1
+                  }
+                } else {
+                  // A non-indented real line ends the block; rewind so the
+                  // outer loop parses it.
+                  i = ls
+                  break
+                }
+              }
+              let joined = match indicator {
+                '|' => block_lines.join("\n")
+                _ => block_lines.join(" ")
+              }
+              fields[key_raw] = joined.trim().to_owned()
+            }
+            None => {
+              let clean_value = strip_quotes(value_raw)
+              fields[key_raw] = clean_value
+            }
+          }
         }
       }
       None => ()
@@ -85,6 +153,20 @@ fn strip_quotes(s : String) -> String {
     s[1:s.length() - 1].to_owned()
   } else {
     s
+  }
+}
+
+///|
+/// Return the block-scalar indicator char (`|` literal or `>` folded) when the
+/// raw value signals a YAML block scalar, otherwise None. Recognises plain
+/// `|`/`>` as well as chomping/indent modifiers such as `|-`, `>+`, `|2`.
+fn block_scalar_indicator(v : String) -> Char? {
+  if v.has_prefix("|") {
+    Some('|')
+  } else if v.has_prefix(">") {
+    Some('>')
+  } else {
+    None
   }
 }
 

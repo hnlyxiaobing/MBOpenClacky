@@ -158,12 +158,12 @@ async test "fix18 onboard status needs_onboard true without models" {
     let j = bw_json(resp)
     guard j is Object(obj)
     @debug.assert_eq(obj.get("needs_onboard"), Some(true.to_json()))
-    @debug.assert_eq(obj.get("phase"), Some("key_setup".to_json()))
     @debug.assert_eq(obj.get("branded"), Some(false.to_json()))
-    // Legacy state keys are preserved.
-    assert_true(obj.contains("completed"))
-    assert_true(obj.contains("step"))
-    assert_true(obj.contains("skipped"))
+    // web-ui2-10 BUG-018: only needs_onboard + branded.
+    assert_true(!obj.contains("phase"))
+    assert_true(!obj.contains("completed"))
+    assert_true(!obj.contains("step"))
+    assert_true(!obj.contains("skipped"))
   })
 }
 
@@ -185,9 +185,10 @@ async test "fix18 onboard status needs_onboard false with configured model" {
     // phase is only emitted when needs_onboard=true (orig shape).
     assert_true(!obj.contains("phase"))
     assert_true(obj.contains("branded"))
-    assert_true(obj.contains("completed"))
-    assert_true(obj.contains("step"))
-    assert_true(obj.contains("skipped"))
+    // web-ui2-10 BUG-018: legacy state keys removed.
+    assert_true(!obj.contains("completed"))
+    assert_true(!obj.contains("step"))
+    assert_true(!obj.contains("skipped"))
   })
 }
 
@@ -213,11 +214,11 @@ async test "fix18 version info returns orig five keys plus legacy keys" {
     @debug.assert_eq(obj.get("launcher"), Some("cli".to_json()))
     // Unbranded fallback uses this project's binary name.
     @debug.assert_eq(obj.get("cli_command"), Some("mbopenclacky".to_json()))
-    // Legacy keys remain for existing consumers.
-    @debug.assert_eq(obj.get("current_version"), Some(VERSION.to_json()))
-    assert_true(obj.contains("version"))
-    assert_true(obj.contains("available_update"))
-    assert_true(obj.contains("changelog"))
+    // web-ui2-10 BUG-012: legacy keys removed.
+    assert_true(!obj.contains("current_version"))
+    assert_true(!obj.contains("version"))
+    assert_true(!obj.contains("available_update"))
+    assert_true(!obj.contains("changelog"))
   })
   latest_version_cache.val = (None, 0)
   match old_launcher {
@@ -268,7 +269,8 @@ async test "fix18 version info cli_command uses brand package_name" {
     let j = bw_json(resp)
     guard j is Object(obj)
     @debug.assert_eq(obj.get("cli_command"), Some("acme-cli".to_json()))
-    @debug.assert_eq(obj.get("latest"), Some(Json::null()))
+    // web-ui2-10 BUG-012: latest falls back to current (not null).
+    @debug.assert_eq(obj.get("latest"), Some(VERSION.to_json()))
     @debug.assert_eq(obj.get("needs_update"), Some(false.to_json()))
   })
   latest_version_cache.val = (None, 0)

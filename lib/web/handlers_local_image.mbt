@@ -102,10 +102,7 @@ fn handle_local_image(
   }
   if !@fs.path_exists(safe_path) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({
-        "error": "File not found".to_json(),
-        "path": safe_path.to_json(),
-      }),
+      Json::object({ "error": "file not found".to_json() }),
     )
   }
   let bytes = @fs.read_file_to_bytes(safe_path) catch {

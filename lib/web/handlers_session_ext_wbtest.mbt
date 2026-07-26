@@ -606,3 +606,100 @@ test "delete session returns 200 ok json (web-ui2-03 BUG-008)" {
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
+
+///|
+/// web-ui2-09 BUG-010: POST /api/sessions without name must return 400.
+test "create session without name returns 400 name is required" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(Post, "/api/sessions", body="{\"agent_profile\":\"general\"}"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("error"), Some("name is required".to_json()))
+  wd_pop_profile(old)
+}
+
+///|
+/// web-ui2-09 BUG-010: POST /api/sessions with empty name must return 400.
+test "create session with empty name returns 400 name is required" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(Post, "/api/sessions", body="{\"name\":\"\"}"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("error"), Some("name is required".to_json()))
+  wd_pop_profile(old)
+}
+
+///|
+/// web-ui2-09 BUG-011: PATCH /api/sessions/:id/rename returns {ok,name}.
+test "rename session returns ok and name (web-ui2-09 BUG-011)" {
+  let old = wd_push_profile()
+  let id = "rn_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let resp = handle_session_rename(
+    wd_make_server_ref(),
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id + "/rename",
+      body="{\"name\":\"renamed-x\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("name"), Some("renamed-x".to_json()))
+  assert_false(obj.contains("session_id"))
+  assert_false(obj.contains("old_name"))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// web-ui2-09 BUG-011: PATCH /api/sessions/:id (pin) returns {ok,pinned}.
+test "pin session returns ok and pinned (web-ui2-09 BUG-011)" {
+  let old = wd_push_profile()
+  let id = "pin_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let resp = handle_session_patch(
+    wd_make_server_ref(),
+    wd_make_event(Patch, "/api/sessions/" + id, body="{\"pinned\":true}", params=[
+      ("id", id),
+    ]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("pinned"), Some(true.to_json()))
+  assert_false(obj.contains("session_id"))
+  assert_false(obj.contains("name"))
+  // cleanup pinned entry so the test is hermetic
+  let pm = load_pinned_map()
+  ignore(pm.remove(id))
+  ignore(save_pinned_map(pm))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}

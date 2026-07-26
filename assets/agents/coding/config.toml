@@ -1,9 +1,10 @@
 [profile]
 name = "coding"
 display_name = "Coding Assistant"
+title_zh = "编程开发"
+description_zh = "专注代码编写、调试与重构"
 max_turns = 50
 temperature = 0.3
-
 [behavior]
 auto_test = true
 auto_format = true

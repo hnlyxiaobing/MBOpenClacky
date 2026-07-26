@@ -308,3 +308,12 @@ test "build_messages_history: filters out system and tool roles" {
     }
   }
 }
+
+// ── build_pong (web-ui2-10 BUG-014) ───────────────────────────────
+
+///|
+test "build_pong: returns type pong without timestamp" {
+  let j = parse_json(build_pong())
+  @debug.assert_eq(get_str(j, "type"), "pong")
+  assert_false(has_key(j, "timestamp"))
+}

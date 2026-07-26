@@ -55,7 +55,7 @@ fn find_skill_dir(name : String) -> (String, String)? {
   }
   let builtin_path = BUILTIN_SKILLS_DIR + "/" + name
   if @fs.path_exists(builtin_path + "/SKILL.md") {
-    return Some((builtin_path, "builtin"))
+    return Some((builtin_path, "default"))
   }
   None
 }
@@ -211,7 +211,7 @@ fn scan_skills(base_dir : String, source : String) -> Array[SkillScanEntry] {
 /// Merged scan of builtin + user skills (user overrides builtin by name).
 fn merged_skill_scan() -> Array[SkillScanEntry] {
   let merged : Map[String, SkillScanEntry] = Map([])
-  for entry in scan_skills(BUILTIN_SKILLS_DIR, "builtin") {
+  for entry in scan_skills(BUILTIN_SKILLS_DIR, "default") {
     merged.set(entry.name, entry)
   }
   for entry in scan_skills(user_skills_dir(), "user") {

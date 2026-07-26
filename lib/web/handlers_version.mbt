@@ -170,17 +170,19 @@ async fn handle_version_info(
     Some(v) if !v.is_empty() => v
     _ => "cli"
   }
+  // latest falls back to current when no update-check result is available,
+  // so the frontend's "already up to date" check never sees null.
+  let latest_str = match latest {
+    Some(v) => v
+    None => VERSION
+  }
   @core.HttpResponse::ok().json_value(
     Json::object({
       "current": VERSION.to_json(),
-      "latest": opt_str_json(latest),
+      "latest": latest_str.to_json(),
       "needs_update": needs_update.to_json(),
       "launcher": launcher.to_json(),
       "cli_command": cli_command.to_json(),
-      "current_version": VERSION.to_json(),
-      "version": VERSION.to_json(),
-      "available_update": Json::null(),
-      "changelog": "".to_json(),
     }),
   )
 }

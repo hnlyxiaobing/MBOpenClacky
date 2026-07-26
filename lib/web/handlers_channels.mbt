@@ -51,28 +51,75 @@ fn find_channel_index(id_or_platform : String) -> Int? {
 }
 
 ///|
+/// Platform-specific configuration field placeholders, mirroring the orig
+/// Ruby channel handler so the frontend can render per-platform config forms.
+/// Secret values (token) are exposed only as booleans (has_token) or
+/// metadata (token_updated_at), never in plaintext.
+fn platform_extra_fields(platform : String) -> Array[(String, Json)] {
+  match platform {
+    "feishu" =>
+      [
+        ("app_id", "".to_json()),
+        ("domain", "".to_json()),
+        ("allowed_users", Json::array([])),
+      ]
+    "wecom" => [("bot_id", "".to_json())]
+    "weixin" =>
+      [
+        ("base_url", "".to_json()),
+        ("has_token", false.to_json()),
+        ("token_updated_at", Json::null()),
+      ]
+    "discord" =>
+      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
+    "telegram" =>
+      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
+    "dingtalk" =>
+      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
+    _ => []
+  }
+}
+
+///|
+/// Merge platform-specific extra fields into a JSON object.
+fn merge_platform_fields(obj : Json, platform : String) -> Json {
+  match obj {
+    Object(o) => {
+      for kv in platform_extra_fields(platform) {
+        o[kv.0] = kv.1
+      }
+      Json::object(o)
+    }
+    other => other
+  }
+}
+
+///|
 /// Convert a ChannelEntry to a JSON object for API responses.
 /// Secrets are never serialized in plaintext: api_key/secret are exposed
 /// as has_api_key/has_secret booleans only (aligns with orig safe fields).
 fn channel_entry_to_json(ch : ChannelEntry) -> Json {
-  Json::object({
-    "id": ch.id.to_json(),
-    "platform": ch.platform.to_json(),
-    "name": ch.name.to_json(),
-    "status": ch.status.to_json(),
-    "enabled": ch.enabled.to_json(),
-    "running": (ch.status == "connected").to_json(),
-    "has_config": true.to_json(),
-    "has_api_key": (ch.api_key != "").to_json(),
-    "has_secret": (ch.secret != "").to_json(),
-    "config": Json::object({
-      "webhook_url": ch.webhook_url.to_json(),
+  merge_platform_fields(
+    Json::object({
+      "id": ch.id.to_json(),
+      "platform": ch.platform.to_json(),
+      "name": ch.name.to_json(),
+      "status": ch.status.to_json(),
+      "enabled": ch.enabled.to_json(),
+      "running": (ch.status == "connected").to_json(),
+      "has_config": true.to_json(),
       "has_api_key": (ch.api_key != "").to_json(),
       "has_secret": (ch.secret != "").to_json(),
+      "config": Json::object({
+        "webhook_url": ch.webhook_url.to_json(),
+        "has_api_key": (ch.api_key != "").to_json(),
+        "has_secret": (ch.secret != "").to_json(),
+      }),
+      "created_at": ch.created_at.to_string().to_json(),
+      "updated_at": ch.updated_at.to_string().to_json(),
     }),
-    "created_at": ch.created_at.to_string().to_json(),
-    "updated_at": ch.updated_at.to_string().to_json(),
-  })
+    ch.platform,
+  )
 }
 
 ///|
@@ -127,12 +174,15 @@ pub fn handle_channels_list(request : HttpRequest) -> HttpResponse {
       Some(idx) => items.push(channel_entry_to_json(channels_store.val[idx]))
       None =>
         items.push(
-          Json::object({
-            "platform": platform.to_json(),
-            "enabled": false.to_json(),
-            "running": false.to_json(),
-            "has_config": false.to_json(),
-          }),
+          merge_platform_fields(
+            Json::object({
+              "platform": platform.to_json(),
+              "enabled": false.to_json(),
+              "running": false.to_json(),
+              "has_config": false.to_json(),
+            }),
+            platform,
+          ),
         )
     }
   }

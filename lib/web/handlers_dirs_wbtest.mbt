@@ -247,3 +247,25 @@ test "dirs list rejects path traversal" {
   guard j is Object(obj)
   assert_true(obj.contains("error"))
 }
+
+// ── dirs_fwd_slashes normalization (web-ui2-08) ────────────────────
+
+///|
+test "dirs_fwd_slashes: collapse double slash after drive letter" {
+  @debug.assert_eq(dirs_fwd_slashes("C://$Recycle.Bin"), "C:/$Recycle.Bin")
+}
+
+///|
+test "dirs_fwd_slashes: replace backslash with forward slash" {
+  @debug.assert_eq(dirs_fwd_slashes("C:/Users\\hnlyh"), "C:/Users/hnlyh")
+}
+
+///|
+test "dirs_fwd_slashes: collapse mid-path double slash" {
+  @debug.assert_eq(dirs_fwd_slashes("/tmp//x"), "/tmp/x")
+}
+
+///|
+test "dirs_fwd_slashes: preserve UNC leading double slash" {
+  @debug.assert_eq(dirs_fwd_slashes("//host//share"), "//host/share")
+}

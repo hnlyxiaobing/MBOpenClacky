@@ -70,7 +70,7 @@ test "session skills: returns real non-empty list in orig entry shape" {
     @debug.assert_eq(entry.get("encrypted"), Some(false.to_json()))
     if entry.get("name") == Some("code-explorer".to_json()) {
       saw_code_explorer = true
-      @debug.assert_eq(entry.get("source_type"), Some("builtin".to_json()))
+      @debug.assert_eq(entry.get("source_type"), Some("default".to_json()))
     }
   }
   assert_true(saw_code_explorer)
