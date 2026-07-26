@@ -24,7 +24,7 @@ Use this template for each quarterly upstream sync:
 ### 1. Fetch Upstream
 
 ```bash
-git clone --depth 1 --branch v1.4.0 https://github.com/clacky-ai/openclacky.git /tmp/openclacky
+git clone --depth 1 --branch v1.5.0 https://github.com/clacky-ai/openclacky.git /tmp/openclacky
 ```
 
 ### 2. Diff Verification

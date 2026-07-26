@@ -11,7 +11,7 @@
 | 版本 | v1.5.0（`lib/clacky/version.rb:4`） | 复刻中 |
 | 访问地址 | http://127.0.0.1:7070/ | http://127.0.0.1:7071/ |
 | 服务端 | WEBrick 单体 `http_server.rb`（7072 行） | crescent，`lib/web/server.mbt` 内联路由（~160 端点） |
-| 前端 | `lib/clacky/web/`（v1.5.0） | `web/`（上游 **v1.4.0** 托管 fork，见 `web/UPSTREAM_SYNC.md`） |
+| 前端 | `lib/clacky/web/`（v1.5.0） | `web/`（上游 **v1.5.0** 托管 fork，见 `web/UPSTREAM_SYNC.md`） |
 | 实时通道 | 仅 WebSocket `/ws` | 仅 WebSocket `/ws`（SSE 已删除） |
 | 认证 | `CLACKY_ACCESS_KEY`，回环免认证 | `MBOPENCLACKY_WEB_API_KEY`，回环默认免认证 |
 
@@ -21,7 +21,7 @@
 
 | 手段 | 覆盖层 | 工具 | 产出 |
 |---|---|---|---|
-| 一、静态契约对比 | 端点/前端文件 | grep + diff（已完成） | 差距候选清单 → `web-ui-gaps.md` |
+| 一、静态契约对比 | 端点/前端文件 | grep + diff（已完成） | 差距候选清单 → `web-ui-parity.md` |
 | 二、API 对比测试 | HTTP 契约 | curl / Node 脚本，双 server 同请求 diff | 问题 + 差距 |
 | 三、UI 流程对比 | 真实用户行为 | Playwright 1.61.1（本机已装）双开浏览器 | 问题为主 |
 | 四、WS 协议对比 | 实时事件流 | Node `ws` 脚本 | 问题 + 差距 |
@@ -29,7 +29,7 @@
 
 ### 手段一：静态契约对比（已完成）
 
-通过阅读两端路由注册代码与 `diff -rq web/ lib/clacky/web/` 完成端点矩阵与前端文件级对比。结论已沉淀为 `web-ui-gaps.md` 的 G-001~G-003 及本文档 §6 的端点核对清单。前端 87 个上游文件全部在位，无缺文件。
+通过阅读两端路由注册代码与 `diff -rq web/ lib/clacky/web/` 完成端点矩阵与前端文件级对比。结论已沉淀为 `web-ui-parity.md` 的 G-001~G-003 及本文档 §6 的端点核对清单。前端 87 个上游文件全部在位，无缺文件。
 
 ### 手段二：API 对比测试
 
@@ -111,8 +111,8 @@ Node 脚本用 `ws` 库分别连两端 `/ws`，发送相同帧序列（`subscrib
 
 ## 3. 问题 vs 差距判定规则
 
-- **问题（bug）** → `docs/web-ui-issues.md`：当前项目**已有该功能**，但流程跑不通或行为错误（报错、无响应、渲染错误、与原项目行为矛盾）。
-- **差距（gap）** → `docs/web-ui-gaps.md`：当前项目**尚未实现**原项目已有的功能/端点/事件/非功能能力。
+- **问题（bug）** → `docs/web-ui-parity.md`：当前项目**已有该功能**，但流程跑不通或行为错误（报错、无响应、渲染错误、与原项目行为矛盾）。
+- **差距（gap）** → `docs/web-ui-parity.md`：当前项目**尚未实现**原项目已有的功能/端点/事件/非功能能力。
 - 同一事项优先记为问题，不重复记入差距。有意差异（§1）两者都不记。
 
 ## 4. 记录字段模板

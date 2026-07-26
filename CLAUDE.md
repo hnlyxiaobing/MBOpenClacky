@@ -90,11 +90,11 @@ lib/
 | Indicator | Value |
 |-----------|-------|
 | `.mbt` source files (lib + cmd) | 316 |
-| Test files (`_wbtest.mbt`) | 140 |
+| Test files (`_wbtest.mbt`) | 155+ |
 | Source lines | ~74,200 |
 | Test lines | ~31,700 |
 | Total lines (incl. test/) | ~105,900 |
-| Test cases | 2,880+ |
+| Test cases | 3,060+ |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
