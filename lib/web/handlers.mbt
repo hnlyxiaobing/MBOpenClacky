@@ -308,7 +308,7 @@ fn handle_delete_session(
   // Broadcast session_deleted via WS so the sidebar updates in real time.
   let hub = server_ref.val.hub
   hub.broadcast_session(id, @protocol.build_session_deleted_event(id))
-  @core.HttpResponse::no_content()
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
 }
 
 ///|

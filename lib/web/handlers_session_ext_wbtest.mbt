@@ -584,3 +584,25 @@ test "detail response aligns orig field names and omits messages" {
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
+
+///|
+test "delete session returns 200 ok json (web-ui2-03 BUG-008)" {
+  let old = wd_push_profile()
+  let id = "del_ok_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  // reset global trash state so trash_add_session's disk write is hermetic
+  trash_state.val.items = []
+  trash_state.val.loaded = true
+  let resp = handle_delete_session(
+    wd_make_server_ref(),
+    wd_make_event(Delete, "/api/sessions/" + id, params=[("id", id)]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}

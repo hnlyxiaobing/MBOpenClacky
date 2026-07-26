@@ -603,6 +603,9 @@ pub fn WebServer::build_app(
       tr.post("/:id/restore", event => {
         handle_trash_restore_bridge(server_ref, event)
       })
+      tr.delete("/sessions", event => {
+        handle_trash_clear_sessions_bridge(server_ref, event)
+      })
       tr.delete("/:id", event => handle_trash_delete_bridge(server_ref, event))
       tr.delete("", event => handle_trash_empty_bridge(server_ref, event))
       // Trash sessions sub-cluster (web-parity-04)

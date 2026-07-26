@@ -148,3 +148,79 @@ test "trash_add_session: deleted session appears in sessions list" {
   }
   tw_reset_trash([])
 }
+
+///|
+test "trash delete returns 200 ok json (web-ui2-03 BUG-021)" {
+  let path = trash_file_path()
+  let existed = @fs.path_exists(path)
+  let backup : String = if existed {
+    @fs.read_file_to_string(path) catch {
+      _ => ""
+    }
+  } else {
+    ""
+  }
+  tw_reset_trash([tw_session_item("s1", "A Session")])
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/trash/s1",
+    params: [("id", "s1")],
+    body: "",
+    headers: [],
+  }
+  let resp = handle_trash_delete(req)
+  @debug.assert_eq(resp.status, 200)
+  guard tw_body_json(resp) is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  // item was removed from trash state
+  @debug.assert_eq(trash_state.val.items.length(), 0)
+  if existed {
+    @fs.write_string_to_file(path, backup) catch {
+      _ => ()
+    }
+  } else {
+    @fs.remove_file(path) catch {
+      _ => ()
+    }
+  }
+  tw_reset_trash([])
+}
+
+///|
+test "trash clear sessions: deletes only session items (web-ui2-03 BUG-022)" {
+  let path = trash_file_path()
+  let existed = @fs.path_exists(path)
+  let backup : String = if existed {
+    @fs.read_file_to_string(path) catch {
+      _ => ""
+    }
+  } else {
+    ""
+  }
+  tw_reset_trash([
+    tw_session_item("s1", "First"),
+    tw_session_item("s2", "Second"),
+    tw_file_item("f1", "/tmp/a.txt"),
+  ])
+  let resp = handle_trash_clear_sessions(
+    HttpRequest::new(DELETE, "/api/trash/sessions"),
+  )
+  @debug.assert_eq(resp.status, 200)
+  guard tw_body_json(resp) is Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("deleted_count"), Some((2).to_json()))
+  @debug.assert_eq(obj.get("days_old"), Some((7).to_json()))
+  // non-session items are retained
+  @debug.assert_eq(trash_state.val.items.length(), 1)
+  @debug.assert_eq(trash_state.val.items[0].item_type, "file")
+  if existed {
+    @fs.write_string_to_file(path, backup) catch {
+      _ => ()
+    }
+  } else {
+    @fs.remove_file(path) catch {
+      _ => ()
+    }
+  }
+  tw_reset_trash([])
+}

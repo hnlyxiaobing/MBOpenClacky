@@ -350,7 +350,8 @@ pub fn handle_trash_delete(request : HttpRequest) -> HttpResponse {
 
   if remove_trash_item(id) {
     save_trash_state()
-    HttpResponse::no_content()
+    let body = Json::object({ "ok": true.to_json() }).stringify()
+    HttpResponse::ok(body)
   } else {
     HttpResponse::not_found("Item not found in trash")
   }
@@ -370,6 +371,35 @@ pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
     "status": "emptied".to_json(),
     "message": "Trash emptied successfully".to_json(),
     "items_deleted": count.to_json(),
+  }).stringify()
+  HttpResponse::ok(body)
+}
+
+///|
+/// DELETE /api/trash/sessions - Permanently delete all soft-deleted sessions.
+/// Orig contract: { ok, deleted_count, days_old }. Only clears item_type=="session"
+/// entries; non-session items (configs, schedules) are retained, unlike
+/// DELETE /api/trash which empties the entire bin.
+pub fn handle_trash_clear_sessions(request : HttpRequest) -> HttpResponse {
+  ignore(request)
+  ensure_trash_loaded()
+
+  let mut deleted_count = 0
+  let remaining : Array[TrashItem] = []
+  for item in trash_state.val.items {
+    if item.item_type == "session" {
+      deleted_count = deleted_count + 1
+    } else {
+      remaining.push(item)
+    }
+  }
+  trash_state.val.items = remaining
+  save_trash_state()
+
+  let body = Json::object({
+    "ok": true.to_json(),
+    "deleted_count": deleted_count.to_json(),
+    "days_old": (7).to_json(),
   }).stringify()
   HttpResponse::ok(body)
 }

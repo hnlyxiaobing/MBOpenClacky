@@ -513,6 +513,15 @@ fn handle_trash_empty_bridge(
 }
 
 ///|
+fn handle_trash_clear_sessions_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_trash_clear_sessions(req))
+}
+
+///|
 fn handle_trash_stats_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
