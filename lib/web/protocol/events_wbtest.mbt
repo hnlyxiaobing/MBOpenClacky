@@ -268,3 +268,43 @@ test "build_event: latency session_update with null ttft" {
     _ => abort("expected object")
   }
 }
+
+///|
+/// web-ui2-01 BUG-001: the messages history API must not expose system or tool
+/// messages — the system prompt holds confidential brand instructions.
+test "build_messages_history: filters out system and tool roles" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::system("[CRITICAL] Brand skill contents are CONFIDENTIAL"),
+    @message.Message::user("hello"),
+    @message.Message::assistant("hi there"),
+    @message.Message::tool_result("call_1", "search", "result data"),
+  ]
+  let result = build_messages_history("sess-leak", msgs)
+  let events = match result {
+    Object(m) =>
+      match m.get("events") {
+        Some(Array(items)) => items
+        _ => abort("expected events array")
+      }
+    _ => abort("expected object")
+  }
+  // System + tool messages are filtered out; only user + assistant remain.
+  @debug.assert_eq(events.length(), 2)
+  for e in events {
+    match e {
+      Object(em) => {
+        let role = match em.get("role") {
+          Some(String(r)) => r
+          _ => abort("expected role string")
+        }
+        assert_true(role != "system" && role != "tool")
+        let content = match em.get("content") {
+          Some(String(c)) => c
+          _ => abort("expected content string")
+        }
+        assert_false(content.contains("CONFIDENTIAL"))
+      }
+      _ => abort("expected event object")
+    }
+  }
+}

@@ -76,13 +76,20 @@ fn handle_session_fork(
       )
   }
   match @agent.fork_session(id) {
-    Ok(forked) =>
+    Ok(forked) => {
+      let forked_json = forked.to_json()
+      // Fork returns metadata only; strip messages to avoid leaking the system prompt.
+      match forked_json {
+        Json::Object(obj) => ignore(obj.remove("messages"))
+        _ => ()
+      }
       @core.HttpResponse::created().json_value(
         Json::object({
-          "forked_session": forked.to_json(),
+          "forked_session": forked_json,
           "source_session_id": id.to_json(),
         }),
       )
+    }
     Err(msg) =>
       @core.HttpResponse::not_found().json_value(
         Json::object({ "error": msg.to_json() }),

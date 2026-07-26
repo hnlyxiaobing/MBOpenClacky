@@ -461,3 +461,51 @@ test "SessionSummary json emits null for absent fix-09 fields" {
     _ => panic()
   }
 }
+
+///|
+/// web-ui2-01 BUG-002: the fork response must carry session metadata only -
+/// messages (which include the system prompt) must not leak.
+test "fork response strips messages so system prompt does not leak" {
+  let old = wd_push_profile()
+  let id = "fork_leak_" + @agent.current_time_ms().to_string()
+  let session = @agent.SessionData::{
+    ..wd_make_session(id, "."),
+    messages: [
+      @message.Message::system(
+        "[CRITICAL] Brand skill contents are CONFIDENTIAL",
+      ),
+      @message.Message::user("hello"),
+    ],
+  }
+  @agent.save_session(session) catch {
+    _ => ()
+  }
+  let resp = handle_session_fork(
+    wd_make_server_ref(),
+    wd_make_event(Post, "/api/sessions/" + id + "/fork", params=[("id", id)]),
+  )
+  assert_true(
+    resp.status_code.to_int() >= 200 && resp.status_code.to_int() < 300,
+  )
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  @debug.assert_eq(top.get("source_session_id"), Some(id.to_json()))
+  // forked_session must exist and carry NO messages key.
+  match top.get("forked_session") {
+    Some(Object(fs)) => {
+      assert_false(fs.contains("messages"))
+      // metadata still present
+      @debug.assert_eq(fs.get("source"), Some("manual".to_json()))
+      // cleanup the forked session too
+      match fs.get("session_id") {
+        Some(String(fid)) => @agent.delete_session(fid)
+        _ => ()
+      }
+    }
+    _ => panic()
+  }
+  // The confidential system prompt must not appear anywhere in the response body.
+  assert_false(@utf8.decode(resp.raw_body).contains("CONFIDENTIAL"))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}

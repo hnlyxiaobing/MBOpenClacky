@@ -1,7 +1,7 @@
 # 系统提示词 API 泄露 · 增量 Spec
 
 > **创建日期**: 2026-07-26  
-> **状态**: 进行中  
+> **状态**: 已完成  
 > **关联总览**: `web-ui-comparison-test-report.md`（2026-07-26 对比测试，23 项 bug）  
 > **关联历史 spec**: `specs/completed/2026-07-24_web-ui-fix-06-20-overview.md`（fix-06~20 已完成批次）  
 > **来源差距**: BUG-001（P0）、BUG-002（P0）  
@@ -100,3 +100,4 @@ Web API 将完整的系统提示词（system prompt）泄露给前端/任何 API
 |------|---------|------|
 | 2026-07-26 | 初始版本 | BUG-001/002 起草，已逐条代码+curl 验证（含磁盘 session 文件确认 system 消息存在） |
 | 2026-07-26 | 审核修正：`handle_session_fork` 行号 :88 -> :67（验证记录与详细分析两处） | 对抗性审核 + 第一性原理校验 |
+| 2026-07-26 | 实现完成。任务包1：`build_messages_history`（events.mbt:333）循环内 `role=="system"\|\|"tool"` 时 `continue` 跳过；任务包2：`handle_session_fork`（handlers_session_ext.mbt:78）改 `forked.to_json()` 后 `Json::Object(obj) => ignore(obj.remove("messages"))` 裁剪 messages。新增 2 个白盒测试：`build_messages_history: filters out system and tool roles`（events_wbtest.mbt）、`fork response strips messages so system prompt does not leak`（handlers_session_ext_wbtest.mbt，端到端走真实 fork_session + 断言响应无 messages 键且不含 "CONFIDENTIAL"）。`moon check` 0 errors；`moon test lib/web` 389 通过、`lib/web/protocol` 24 通过 | 验收对照：messages 不再返回 system/tool 事件、fork 响应不含 messages 键、响应体不含系统提示词 |

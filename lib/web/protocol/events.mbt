@@ -330,6 +330,11 @@ pub fn build_messages_history(
       }
     }
     let role = message_role_str(msg)
+    // System prompts contain confidential brand instructions; never expose via history API.
+    if role == "system" || role == "tool" {
+      i = i - 1
+      continue
+    }
     let content = message_content(msg)
     collected.push(
       Json::object({
