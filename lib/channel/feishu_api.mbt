@@ -69,7 +69,7 @@ pub async fn FeishuApiClient::request_token(
   self : FeishuApiClient,
 ) -> Result[String, ChannelError] {
   let url = self.auth_url()
-  let body = self.build_auth_body().to_json().stringify()
+  let body = self.build_auth_body().stringify()
   let headers = HttpHeaders::new().content_type("application/json").to_array()
   let json = match http_post_json(url, headers, body) {
     Ok(j) => j
@@ -150,7 +150,7 @@ pub async fn FeishuApiClient::build_send_request(
   let payload : Map[String, Json] = Map([])
   payload.set("receive_id", chat_id.to_json())
   payload.set("msg_type", msg_type_str.to_json())
-  payload.set("content", content.to_json())
+  payload.set("content", content)
   match reply_to {
     Some(id) => {
       let reply_obj : Map[String, Json] = Map([])
@@ -209,7 +209,7 @@ pub async fn FeishuApiClient::build_update_request(
     build_feishu_text_content(text)
   }
   let payload : Map[String, Json] = Map([])
-  payload.set("content", content.to_json())
+  payload.set("content", content)
   Ok((url, headers.to_array(), build_json_body(payload)))
 }
 

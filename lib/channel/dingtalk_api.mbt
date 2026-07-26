@@ -124,7 +124,7 @@ pub async fn DingTalkApiClient::request_access_token(
   self : DingTalkApiClient,
 ) -> Result[String, ChannelError] {
   let url = self.access_token_url()
-  let body = self.build_access_token_request().to_json().stringify()
+  let body = self.build_access_token_request().stringify()
   let headers = HttpHeaders::new().content_type("application/json").to_array()
   let json = match http_post_json(url, headers, body) {
     Ok(j) => j
@@ -234,7 +234,7 @@ pub async fn DingTalkApiClient::send_via_webhook(
   let _ = self
   let payload = DingTalkApiClient::build_webhook_payload(text, msg_type)
   let headers = HttpHeaders::new().content_type("application/json").to_array()
-  http_post_json(webhook_url, headers, payload.to_json().stringify())
+  http_post_json(webhook_url, headers, payload.stringify())
 }
 
 // ── Robot message API (new API) ─────────────────────────────────────────────
@@ -285,11 +285,7 @@ pub async fn DingTalkApiClient::send_to_user(
   body.set("userIds", Json::array(user_ids))
   body.set("msgKey", msg_key.to_json())
   body.set("msgParam", msg_param.to_json())
-  http_post_json(
-    url,
-    headers.to_array(),
-    Json::object(body).to_json().stringify(),
-  )
+  http_post_json(url, headers.to_array(), Json::object(body).stringify())
 }
 
 ///|
@@ -312,11 +308,7 @@ pub async fn DingTalkApiClient::send_to_group(
   body.set("openConversationId", open_conversation_id.to_json())
   body.set("msgKey", msg_key.to_json())
   body.set("msgParam", msg_param.to_json())
-  http_post_json(
-    url,
-    headers.to_array(),
-    Json::object(body).to_json().stringify(),
-  )
+  http_post_json(url, headers.to_array(), Json::object(body).stringify())
 }
 
 // ── Media upload API (OAPI) ─────────────────────────────────────────────────

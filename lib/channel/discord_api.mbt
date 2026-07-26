@@ -64,7 +64,7 @@ pub async fn DiscordApiClient::send_message(
 ) -> Result[Json, ChannelError] {
   let url = self.api_url("channels/" + channel_id + "/messages")
   let headers = self.auth_headers().to_array()
-  let body = build_discord_send_payload(content, reply_to).to_json().stringify()
+  let body = build_discord_send_payload(content, reply_to).stringify()
   http_post_json(url, headers, body)
 }
 

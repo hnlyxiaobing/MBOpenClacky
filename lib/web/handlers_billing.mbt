@@ -472,9 +472,7 @@ pub fn handle_billing_daily(request : HttpRequest) -> HttpResponse {
       }),
     )
   }
-  HttpResponse::ok(
-    Json::object({ "days": Json::array(items).to_json() }).stringify(),
-  )
+  HttpResponse::ok(Json::object({ "days": Json::array(items) }).stringify())
 }
 
 ///|
@@ -505,7 +503,7 @@ pub fn handle_billing_records(request : HttpRequest) -> HttpResponse {
   }
   HttpResponse::ok(
     Json::object({
-      "records": Json::array(items).to_json(),
+      "records": Json::array(items),
       "count": items.length().to_json(),
     }).stringify(),
   )
@@ -587,7 +585,7 @@ pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
   }
   HttpResponse::ok(
     Json::object({
-      "sessions": Json::array(items).to_json(),
+      "sessions": Json::array(items),
       "count": items.length().to_json(),
     }).stringify(),
   )

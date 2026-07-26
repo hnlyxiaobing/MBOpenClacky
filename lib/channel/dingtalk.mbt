@@ -135,7 +135,7 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
           let headers = HttpHeaders::new()
             .content_type("application/json")
             .to_array()
-          match http_post_json(url, headers, payload.to_json().stringify()) {
+          match http_post_json(url, headers, payload.stringify()) {
             Ok(_) => ()
             Err(e) => return Err(e)
           }
@@ -184,8 +184,7 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
           let headers = HttpHeaders::new()
             .content_type("application/json")
             .to_array()
-          let resp = match
-            http_post_json(url, headers, payload.to_json().stringify()) {
+          let resp = match http_post_json(url, headers, payload.stringify()) {
             Ok(j) => j
             Err(e) => return Err(e)
           }
