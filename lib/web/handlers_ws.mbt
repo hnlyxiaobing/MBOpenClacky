@@ -972,6 +972,29 @@ async fn run_ws_agent(
           @protocol.build_error_event(session_id, err_msg),
         )
       }
+      // B-2026-07-26-03: After error / interrupt, send the same closing
+      // frames as a normal run end so the frontend status bar transitions
+      // to idle and the progress indicator clears. Without these, the
+      // frontend stays stuck on "running" with the stop button visible
+      // until the page is reloaded. On the interrupt path, the cancel
+      // handler has already sent an `interrupted` event; the closing
+      // frames are still required so the status bar follows up.
+      hub.broadcast_session(
+        session_id,
+        @protocol.build_event(
+          @protocol.event_session_update,
+          session_id,
+          Json::object({ "status": "idle".to_json() }),
+        ),
+      )
+      hub.broadcast_session(
+        session_id,
+        @protocol.build_event(
+          @protocol.event_progress,
+          session_id,
+          Json::object({ "phase": "done".to_json() }),
+        ),
+      )
       return
     }
   }
@@ -1023,6 +1046,25 @@ async fn run_ws_agent_blocking(
           @protocol.build_error_event(session_id, err_msg),
         )
       }
+      // B-2026-07-26-03: Same closing frames as the async path so the
+      // frontend status bar transitions to idle in fallback contexts
+      // (unit tests, environments without a task group) too.
+      hub.broadcast_session(
+        session_id,
+        @protocol.build_event(
+          @protocol.event_session_update,
+          session_id,
+          Json::object({ "status": "idle".to_json() }),
+        ),
+      )
+      hub.broadcast_session(
+        session_id,
+        @protocol.build_event(
+          @protocol.event_progress,
+          session_id,
+          Json::object({ "phase": "done".to_json() }),
+        ),
+      )
       return
     }
   }
