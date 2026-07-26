@@ -1,7 +1,7 @@
 # 会话变更操作契约对齐（名称校验 + ok 字段）· 增量 Spec
 
 > **创建日期**: 2026-07-26  
-> **状态**: 进行中  
+> **状态**: 已完成  
 > **关联总览**: `web-ui-comparison-test-report.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: BUG-010（P1）、BUG-011（P2）  
@@ -66,12 +66,12 @@
 
 ## 验收标准 [必填]
 
-- [ ] `POST /api/sessions` 无 name 或空 name 返回 `400 {"error":"name is required"}`
-- [ ] `PATCH /api/sessions/:id/rename` 返回 `{"ok":true,"name":...}`
-- [ ] `PATCH` pin 返回 `{"ok":true,"pinned":<bool>}`
-- [ ] 正常带 name 创建不受影响
-- [ ] `moon check` 0 errors（lib/web）
-- [ ] `moon test lib/web` 通过
+- [x] `POST /api/sessions` 无 name 或空 name 返回 `400 {"error":"name is required"}`
+- [x] `PATCH /api/sessions/:id/rename` 返回 `{"ok":true,"name":...}`
+- [x] `PATCH` pin 返回 `{"ok":true,"pinned":<bool>}`
+- [x] 正常带 name 创建不受影响
+- [x] `moon check` 0 errors（lib/web）
+- [x] `moon test lib/web` 通过
 
 ## 风险评估 [必填]
 
@@ -91,3 +91,4 @@
 |------|---------|------|
 | 2026-07-26 | 初始版本 | BUG-010/011 起草，已 curl + 读 handlers.mbt:111 / handlers_session_ext.mbt:97,:643 验证 |
 | 2026-07-26 | 审核修正：`handle_create_session` :113 -> :111；`handle_session_rename` :143 -> :97（响应 :179-181）；pin 响应 :643-652 -> :643-649 | 对抗性审核 + 第一性原理校验 |
+| 2026-07-26 | 实施完成：handlers.mbt 创建缺 name/空 name 返回 400；handlers_session_ext.mbt rename 响应 {ok,name}、patch 响应按请求字段上下文返回 {ok,name}/{ok,pinned}；新增 4 项白盒（400 缺 name、400 空 name、rename ok、pin ok）；moon check 0 errors、moon test lib/web 398 全过 | BUG-010/011 修复对齐 orig 契约 |
