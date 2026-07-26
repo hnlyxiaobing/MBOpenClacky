@@ -54,7 +54,7 @@
 
   function _beginPhase(ev) {
     if (_phaseStack.length > 0) return; // single-level for now
-
+    if (ev.kind === "llm_call") return; // Don't wrap LLM responses in collapsed phase
     const outer = RenderTarget.outer();
     if (!outer) return;
 
@@ -274,8 +274,29 @@ WS.onEvent(ev => {
       break;
     }
 
-    // Transient global signal emitted the moment any agent task finishes
-    // (broadcast to every client, not just session subscribers). Used only
+    // Property-change notification (model switch, working dir change, etc.)
+    // from handle_session_model_patch / handle_session_patch.
+    // Broadcast shape: { type, session_id, data: { session_id, model?, name?, ... } }
+    case "session_updated": {
+      const d = ev.data || {};
+      const sid = d.session_id || ev.session_id;
+      if (!sid) break;
+      const patch = {};
+      if (d.model !== undefined) patch.model = d.model;
+      if (d.name !== undefined) patch.name = d.name;
+      if (d.working_dir !== undefined) patch.working_dir = d.working_dir;
+      if (d.pinned !== undefined) patch.pinned = d.pinned;
+      Sessions.patch(sid, patch);
+      Sessions.renderList();
+      if (sid === Sessions.activeId) {
+        const current = Sessions.find(sid);
+        Sessions.updateInfoBar(current);
+        Sessions.updateChatHeader(current);
+      }
+      break;
+    }
+
+    // Transient global signal emitted the moment any agent task finishes    // (broadcast to every client, not just session subscribers). Used only
     // to play the optional completion chime; the toggle gates it and the
     // module decides whether the user is looking at that session.
     case "task_finished":

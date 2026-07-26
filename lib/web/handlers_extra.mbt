@@ -1372,6 +1372,17 @@ pub fn handle_config_models_post(
   // adding a Claude model silently saves as an OpenAI one.
   mc.anthropic_format = extra_json_bool(body, "anthropic_format")
   mc.type_ = extra_json_str_opt(body, "type")
+  // If new model is set as default, clear others
+  match mc.type_ {
+    Some(t) if t == "default" =>
+      for m in cfg.models {
+        match m.type_ {
+          Some(t2) if t2 == "default" => m.type_ = None
+          _ => ()
+        }
+      }
+    _ => ()
+  }
   cfg.models.push(mc)
   match persist_agent_config(cfg) {
     Ok(_) => ()
@@ -1437,6 +1448,19 @@ pub fn handle_config_models_patch(
       updated.anthropic_format = anthropic_format
       updated.type_ = type_
       cfg.models[i] = updated
+      // If this model is set as default, clear others
+      match type_ {
+        Some(t) if t == "default" =>
+          for m in cfg.models {
+            if m.id != id {
+              match m.type_ {
+                Some(t2) if t2 == "default" => m.type_ = None
+                _ => ()
+              }
+            }
+          }
+        _ => ()
+      }
       found = true
       break
     }
@@ -1517,6 +1541,17 @@ pub fn handle_config_models_set_default(
     )
   }
   cfg.current_model_id = Some(id)
+  // Sync model.type: set new default, clear others
+  for m in cfg.models {
+    if m.id == id {
+      m.type_ = Some("default")
+    } else {
+      match m.type_ {
+        Some(t) if t == "default" => m.type_ = None
+        _ => ()
+      }
+    }
+  }
   match persist_agent_config(cfg) {
     Ok(_) => ()
     Err(msg) => return err_config_persist(msg)

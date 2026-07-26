@@ -177,21 +177,24 @@ fn handle_create_session(
       }
     _ => "general"
   }
+  // Compute default working dir: config > home/clacky_workspace > "."
+  // Mirrors the logic in handle_dirs_list so /api/dirs.default and the
+  // actual session working_dir agree.
+  let default_dir : String = match server_ref.val.config.default_working_dir {
+    Some(d) => d
+    None =>
+      match @utils.home_dir() {
+        Some(h) => h + "/clacky_workspace"
+        None => "."
+      }
+  }
   let working_dir : String = match j {
     Object(obj) =>
       match obj.get("working_dir") {
         Some(String(wd)) if !wd.is_empty() => wd
-        _ =>
-          match server_ref.val.config.default_working_dir {
-            Some(d) => d
-            None => "."
-          }
+        _ => default_dir
       }
-    _ =>
-      match server_ref.val.config.default_working_dir {
-        Some(d) => d
-        None => "."
-      }
+    _ => default_dir
   }
   let session_id = @agent.generate_session_id()
   let model_config = match server_ref.val.config.current_model() {

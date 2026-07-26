@@ -34,10 +34,10 @@
 | 严重度 | 数量 |
 |--------|------|
 | P0（阻断/安全） | 2 |
-| P1（功能受损） | 11 |
-| P2（体验问题） | 7 |
+| P1（功能受损） | 14 |
+| P2（体验问题） | 8 |
 | P3（轻微） | 3 |
-| **合计** | **23** |
+| **合计** | **27** |
 
 ---
 
@@ -170,6 +170,37 @@
 
 ---
 
+### BUG-024：新会话默认目录不可选，手输绝对路径报错
+
+- **端点**：`GET /api/sessions/:id/files?path=.`（目录选择器）、`PATCH /api/sessions/:id`（working_dir 更新）
+- **复现**：Web UI 新建会话后，状态栏显示默认目录为 `.`；点击 `.` 弹出目录选择框显示 "Empty directory"；手动输入绝对路径 `/mnt/d/MoonBit/MBOpenClacky` 点 Confirm，弹出 alert："Failed to change directory: Absolute working_dir is not allowed without a configured working directory"
+- **期望行为（原项目）**：目录选择框列出当前目录下的子目录；输入绝对路径可正常切换工作目录。
+- **实际行为（当前项目）**：目录选择框永远为空（"Empty directory"）；手动输入任何绝对路径均被 400 拒绝。
+- **影响**：用户无法为新会话选择或输入工作目录，直接影响文件操作类会话功能。
+- **根因**（双重）：① 前端 `web/sessions.js` 行 4697-4710 `fetchDirs` 会话级分支用 `data.entries` 和 `e.type === "dir"` 解析响应，但会话级 files API（`GET /api/sessions/:id/files`）返回 `{files:[{name, is_dir}]}` 格式（无 `entries` 字段、无 `type` 字段），导致 `data.entries` 为 undefined、目录列表永远为空。而 sessionLess 分支调用 `/api/dirs` 返回 `{entries:[{name, path, type:"dir"}]}` 格式正确。② 后端 `lib/web/handlers_session_ext.mbt` 行 270-285 working_dir patch 校验中，若 `wd_is_absolute(new_dir)` 为 true 且 `config.default_working_dir` 为 None（默认未配置），直接返回 400 拒绝。
+- **状态**：Open
+
+### BUG-026：回复消息自动折叠，顶部显示 "🧬 LLM call" 固定标志
+
+- **位置**：Web UI 聊天消息区域
+- **复现**：Web UI 发送任意消息后，AI 回复被包裹在折叠的 `<details>` 元素中，顶部显示 `▸ 🧬 LLM call ✓`，需手动点击展开才能看到回复内容。
+- **期望行为（原项目）**：回复消息直接展开显示，无 "LLM call" 折叠标志包裹。
+- **实际行为（当前项目）**：每条回复都被折叠在 `<details class="msg-phase">` 元素内，summary 显示 "🧬 LLM call ✓"，body 内含 token 统计行和回复文本。`<details>` 元素默认 collapsed，用户必须点击展开。
+- **影响**：每次发消息后都看不到回复内容，严重影响聊天核心体验。
+- **根因**：后端 `lib/web/protocol/events.mbt` 行 59-67，`BeforeLlmCall` hook 发送 `phase_start` 事件（`label: "LLM call"`），`AfterLlmCall` 发送 `phase_end`。前端 `web/ws-dispatcher.js` 行 54-85 `_beginPhase` 收到 `phase_start` 后创建 `<details>` 元素（class="msg-phase"，HTML 默认折叠），`<summary>` innerHTML 含 `🧬` 图标 + labelText("LLM call")。行 100-115 `_finalizePhase` 将 status 更新为 "✓ {summary}"。
+- **状态**：Open
+
+### BUG-027：设置默认模型时可产生多个 "default" 模型
+
+- **端点**：`POST /api/config/models/:id/default`（设置默认模型）、`POST /api/config/models`（添加模型）、`PATCH /api/config/models/:id`（编辑模型）
+- **复现**：Web UI Settings -> Models 页面，当前 or-gemini-3-1-pro 是默认（type="default"）；点击 kimi 的 "Default" 按钮后状态未变化（or-gemini 仍是默认）。通过 Edit/Add 勾选 "set as default" 则会导致多个模型同时拥有 type="default"。
+- **期望行为（原项目）**：同时只有一个模型为 default；设置新默认时自动取消旧默认。
+- **实际行为（当前项目）**：`POST /models/:id/default` 只设 `cfg.current_model_id`，不更新任何 model.type 字段，导致 type 与 current_model_id 不同步（前端按 type 判断默认，显示不更新）。`POST/PATCH /models` 设单模型 type_="default" 时不遍历取消其他模型的 default type，持久化后多个 default 复现。
+- **影响**：用户无法正确切换默认模型，设置面板显示与实际不一致。
+- **根因**：`lib/web/handlers_extra.mbt` 行 1496-1526 `handle_config_models_set_default` 仅设 `cfg.current_model_id = Some(id)`，不更新 model.type。行 1337 `handle_config_models_post` 和行 1391 `handle_config_models_patch` 设 `mc.type_ = "default"` 时不遍历取消其他模型。前端 `web/settings.js` 行 88 用 `model.type === "default"` 判断默认（独立存储字段），行 402-406 仅在内存中取消其他 default，不持久化。
+- **状态**：Open
+
+
 ## P2 — 体验问题
 
 ### BUG-011：会话操作响应缺少 "ok" 字段
@@ -229,6 +260,17 @@
 - **状态**：Open
 
 ---
+
+### BUG-025：新建会话不能根据首条消息自动命名
+
+- **位置**：Web UI 侧边栏会话列表
+- **复现**：Web UI 新建会话发送消息"你好，请简单回复一句话介绍你自己"后，侧边栏仍显示 "Session 2"（默认名），未根据消息内容自动生成会话名。
+- **期望行为（原项目）**：发送首条消息后，根据消息内容自动生成会话名（如截取消息前 N 个字符或用 LLM 摘要）。
+- **实际行为（当前项目）**：会话名保持默认（"Session N"），需手动 rename 才能更改。
+- **影响**：侧边栏会话列表全部显示 "Session 1/2/3..."，无法区分会话内容，体验下降。
+- **根因**：代码库中仅有手动 rename 功能（`handle_session_rename`，`lib/web/handlers_session_ext.mbt` 行 127；`Agent::rename`，`lib/agent/agent.mbt` 行 154），缺少发送首条消息后自动生成/更新 session name 的逻辑。搜索 auto title / generate title / summarize name 均无结果。
+- **状态**：Open
+
 
 ## P3 — 轻微
 

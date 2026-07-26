@@ -703,3 +703,82 @@ test "pin session returns ok and pinned (web-ui2-09 BUG-011)" {
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
+
+///|
+/// Regression: PATCH /api/sessions/:id/model returned 404 "Session not
+/// found" when the session lived only in active_agents (initial save_session
+/// silently failed, or enforce_session_cap pruned the disk file). The handler
+/// now falls back to the in-memory agent (mirroring handle_ws_subscribe) and
+/// re-persists the session so subsequent reads hit disk.
+test "model patch falls back to in-memory agent when disk file is missing" {
+  let old = wd_push_profile()
+  let mem_id = "modmem_" + @agent.current_time_ms().to_string()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(mem_id, "mem-session", ".", client, config)
+  server_ref.val.active_agents[mem_id] = agent
+  // Sanity: nothing on disk yet - this is the bug's precondition.
+  match @agent.load_session(mem_id) {
+    Some(_) => panic()
+    None => ()
+  }
+  let resp = handle_session_model_patch(
+    server_ref,
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + mem_id + "/model",
+      body="{\"model_id\":\"m1\"}",
+      params=[("id", mem_id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  // The patch must re-persist the session so future reads hit disk.
+  match @agent.load_session(mem_id) {
+    Some(d) => @debug.assert_eq(d.model_name, Some("model-x"))
+    None => panic()
+  }
+  @agent.delete_session(mem_id)
+  wd_pop_profile(old)
+}
+
+///|
+/// Same fallback for PATCH /:id/reasoning_effort.
+test "reasoning_effort patch falls back to in-memory agent when disk file is missing" {
+  let old = wd_push_profile()
+  let mem_id = "rsmem_" + @agent.current_time_ms().to_string()
+  let config = @config.AgentConfig::default()
+  let server_ref = Ref(WebServer::new(config, None))
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(mem_id, "mem-session", ".", client, config)
+  server_ref.val.active_agents[mem_id] = agent
+  let resp = handle_session_reasoning_effort_patch(
+    server_ref,
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + mem_id + "/reasoning_effort",
+      body="{\"reasoning_effort\":\"high\"}",
+      params=[("id", mem_id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match @agent.load_session(mem_id) {
+    Some(d) => @debug.assert_eq(d.reasoning_effort, Some("high"))
+    None => panic()
+  }
+  @agent.delete_session(mem_id)
+  wd_pop_profile(old)
+}

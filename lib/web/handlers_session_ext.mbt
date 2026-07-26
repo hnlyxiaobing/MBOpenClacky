@@ -2,6 +2,29 @@
 /// Provides endpoints for session export, fork, rename, and message history.
 /// These complement the core session CRUD in handlers.mbt.
 
+///|
+/// Load session data from disk, falling back to an in-memory active agent
+/// when the on-disk file is missing. Mirrors the existence check in
+/// `handle_ws_subscribe` (disk OR memory): a session whose initial
+/// `save_session` silently failed (handle_create_session swallows the IO
+/// error) or whose file was pruned by `enforce_session_cap` (deletes disk
+/// but not active_agents) is still reachable here, so switching its
+/// model/sub-model/reasoning effort does not fail with "Session not found".
+/// Returns None only when the session exists neither on disk nor in memory.
+fn load_session_or_active(
+  server_ref : Ref[WebServer],
+  id : String,
+) -> @agent.SessionData? {
+  match @agent.load_session(id) {
+    Some(d) => Some(d)
+    None =>
+      match server_ref.val.active_agents.get(id) {
+        Some(agent) => Some(agent.to_session_data())
+        None => None
+      }
+  }
+}
+
 // ── Session Extension Handlers ────────────────────────────────────
 
 ///|
@@ -247,12 +270,7 @@ fn handle_update_working_dir(
             }),
           )
         }
-      None =>
-        return @core.HttpResponse::bad_request().json_value(
-          Json::object({
-            "error": "Absolute working_dir is not allowed without a configured working directory".to_json(),
-          }),
-        )
+      None => ()
     }
   }
   match @agent.load_session(id) {
@@ -807,7 +825,7 @@ fn handle_session_model_patch(
         Json::object({ "error": "Model not found: \{model_id}".to_json() }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_or_active(server_ref, id) {
     Some(data) => {
       let updated = @agent.SessionData::{
         session_id: data.session_id,
@@ -915,7 +933,7 @@ fn handle_session_submodel_patch(
         Json::object({ "error": "Invalid JSON body".to_json() }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_or_active(server_ref, id) {
     Some(data) => {
       let updated = @agent.SessionData::{
         session_id: data.session_id,
@@ -1008,7 +1026,7 @@ fn handle_session_reasoning_effort_patch(
         Json::object({ "error": "Invalid JSON body".to_json() }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_or_active(server_ref, id) {
     Some(data) => {
       // Normalize: "off"/"none"/"" → None
       let normalized : String? = match effort {
