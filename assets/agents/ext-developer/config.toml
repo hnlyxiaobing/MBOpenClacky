@@ -1,0 +1,16 @@
+[profile]
+name = "ext-developer"
+display_name = "Extension Developer"
+title_zh = "扩展开发"
+description_zh = "扩展与技能开发专家"
+max_turns = 50
+temperature = 0.3
+
+[behavior]
+auto_test = true
+auto_format = true
+prefer_minimal_changes = true
+
+[limits]
+max_file_edit_lines = 500
+max_concurrent_edits = 3
