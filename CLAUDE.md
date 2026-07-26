@@ -94,12 +94,12 @@ lib/
 | Source lines | ~74,200 |
 | Test lines | ~31,700 |
 | Total lines (incl. test/) | ~105,900 |
-| Test cases | 3,060+ |
+| Test cases | 3,093 |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 12 |
 | Default skills | 17 |
 | REST API endpoints | ~162 |
-| `moon check` | 0 errors, ~500 warnings |
+| `moon check` | 0 errors, 0 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |

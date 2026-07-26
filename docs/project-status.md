@@ -14,13 +14,13 @@
 | 源代码行数 | ~74,200 行 |
 | 测试代码行数 | ~31,700 行 |
 | 总代码行数 | ~105,900 行 |
-| 测试用例 | 3,060+ |
+| 测试用例 | 3,093 |
 | 包数 | 24 个 lib 顶级包 + 1 个 cmd 入口包（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | ~162 个 |
 | 默认 Skill | 17 个（16 个代码注册 + 1 个仅资源） |
-| `moon check` | 0 errors（项目自身代码），~500 warnings |
+| `moon check` | 0 errors, 0 warnings |
 | 构建 | `moon build --target native --release cmd` 成功（~3.6 MB） |
 | CI/CD | ✅ GitHub Actions（ci.yml + docker.yml） |
 | 整体完成度 | ~95%（后端 ~98%，Web 前端 ~95%，TUI ~95%，部署 ~95%） |

@@ -17,13 +17,13 @@
 | 源代码文件 | 316 个 `.mbt`（lib + cmd） |
 | 测试文件 | 155+ 个 `_wbtest.mbt`（lib + cmd + test） |
 | 代码行数 | ~105,900 行（源码 ~74,200 + 测试 ~31,700） |
-| 测试用例 | 3,060+ |
+| 测试用例 | 3,093 |
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
 | REST API 端点 | ~162 个 |
 | 默认 Skill | 17 个 |
-| `moon check` | 0 errors（项目自身代码），~500 warnings |
+| `moon check` | 0 errors, 0 warnings |
 | 原生二进制 | ~3.6 MB |
 
 ### 功能亮点

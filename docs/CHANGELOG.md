@@ -25,8 +25,40 @@
 
 ## 变更记录
 
-### 2026-07-25  refactor: FFI C 依赖消减（S-FFI-01~08）完成
+### 2026-07-26  feat: web-ui2 规格实施 + 告警清零 + 文档同步
 
+- `[feat]` **web-ui2 规格实施完成（04~10）**（7 个规格全部归档至 `specs/completed/`）
+  - **web-ui2-04**：Skills YAML block scalar 解析（`lib/skill/loader.mbt`）
+  - **web-ui2-05**：Channels 平台专属字段（`lib/web/handlers_channels.mbt` + 测试）
+  - **web-ui2-06**：Agents 本地化（`lib/web/handlers_agents.mbt` + ext-developer agent + 3 个 avatar.png）
+  - **web-ui2-07**：Exchange rate 日期格式化（`lib/web/handlers_exchange_rate.mbt`）
+  - **web-ui2-08**：Dirs 路径规范化（`lib/web/handlers_dirs.mbt`）
+  - **web-ui2-09**：Session mutation 契约对齐（handlers + wbtest）
+  - **web-ui2-10**：Response field 清理（handlers + protocol/types.mbt）
+  - 合计：30 个文件修改，+828/-128 行代码
+- `[feat]` **ext-developer agent 新增**
+  - 新增 `assets/agents/ext-developer/`（config.toml + system_prompt.md + avatar.png）
+  - 新增 `assets/agents/coding/avatar.png` 和 `assets/agents/general/avatar.png`
+- `[fix]` **moon check 告警清零**（`moon check` 从 ~500 warnings → 0 warnings）
+  - **supported_targets 级联修复**：为 5 个 native-only 包添加 `supported_targets = "native"` 声明
+    - `lib/tool/moon.pkg`（新增）
+    - `lib/extension/moon.pkg`（新增）
+    - `lib/agent/moon.pkg`（新增）
+    - `lib/web/handler/moon.pkg`（新增）
+    - `lib/web/protocol/moon.pkg`（新增）
+  - **E0020 弃用告警清零**：移除 13 个 `Json` 值上的冗余 `.to_json()` 调用
+    - `lib/channel/dingtalk_api.mbt`（4 处）
+    - `lib/channel/dingtalk.mbt`（2 处）
+    - `lib/channel/discord_api.mbt`（1 处）
+    - `lib/channel/feishu_api.mbt`（3 处）
+    - `lib/web/handlers_billing.mbt`（3 处）
+- `[docs]` **文档指标同步**
+  - 更新 CLAUDE.md、README.md、docs/project-status.md 中的指标：
+    - 测试用例：3,060+ → 3,093
+    - `moon check` 状态：0 errors, ~500 warnings → 0 errors, 0 warnings
+- `[verify]` 最终验证：`moon check` 0 errors/0 warnings，`moon test --target native` 3093/3093 pass
+
+### 2026-07-25  refactor: FFI C 依赖消减（S-FFI-01~08）完成
 - `[refactor]` **自写 C 代码从 16 文件 / 4,781 行消减至 5 文件 / 610 行；`-lcurl` 全项目清零**
   - HTTP 传输：`lib/client` 的 `http_native.c`/`http_thread.c`/`mb_stubs.c` 迁往 `@async/http`（S-FFI-06）
   - 进程管理：`lib/server` 的 `browser_process.c`、`lib/web`/`lib/server` 的 `git_exec.c` 迁往 `@async/process`（S-FFI-03/04）

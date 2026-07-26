@@ -1,7 +1,7 @@
 # Web UI 第二轮修复批次总览（web-ui2-01 ~ web-ui2-10）
 
 > **创建日期**: 2026-07-26  
-> **状态**: 进行中  
+> **状态**: 已完成  
 > **关联总览**: `web-ui-comparison-test-report.md`（2026-07-26 对比测试，23 项 bug）  
 > **前置批次**: fix-06 ~ fix-20（`specs/completed/`，2026-07-25 全部完成）  
 > **方法论**: `specs/decisions/harness-methodology-v2-upgrade.md`（Gap 验证 + Spec 审核）
