@@ -10,3 +10,5 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/brand",
 }
+
+supported_targets = "native"

@@ -22,6 +22,8 @@ import {
   "moonbitlang/async/aqueue",
 }
 
+supported_targets = "native"
+
 options(
   "native-stub": [ "time_stub.c" ],
 )

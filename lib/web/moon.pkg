@@ -38,6 +38,8 @@ import {
   "moonbitlang/async/socket",
 }
 
+supported_targets = "native"
+
 options(
   // lib/web white-box tests link lib/brand's libbrand.a, whose crypto_native.c
   // calls OpenSSL (RAND_bytes/EVP_*). moon does NOT propagate a dependency

@@ -3,3 +3,5 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "moonbitlang/core/debug",
 }
+
+supported_targets = "native"

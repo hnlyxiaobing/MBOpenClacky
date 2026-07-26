@@ -18,6 +18,8 @@ import {
   "moonbit-community/pty",
 }
 
+supported_targets = "native"
+
 options(
   targets: {
     "terminal_exec.mbt": [ "native" ],
