@@ -316,8 +316,11 @@ test "get session wraps response in session key" {
   match wd_response_json(resp) {
     Object(top) =>
       match top.get("session") {
-        Some(Object(s)) =>
-          @debug.assert_eq(s.get("session_id"), Some(id.to_json()))
+        Some(Object(s)) => {
+          @debug.assert_eq(s.get("id"), Some(id.to_json()))
+          assert_false(s.contains("session_id"))
+          assert_false(s.contains("messages"))
+        }
         _ => panic()
       }
     _ => panic()
@@ -348,8 +351,11 @@ test "get session wraps response in session key" {
   match wd_response_json(resp2) {
     Object(top) =>
       match top.get("session") {
-        Some(Object(s)) =>
-          @debug.assert_eq(s.get("session_id"), Some(mem_id.to_json()))
+        Some(Object(s)) => {
+          @debug.assert_eq(s.get("id"), Some(mem_id.to_json()))
+          assert_false(s.contains("session_id"))
+          assert_false(s.contains("messages"))
+        }
         _ => panic()
       }
     _ => panic()
@@ -506,6 +512,75 @@ test "fork response strips messages so system prompt does not leak" {
   }
   // The confidential system prompt must not appear anywhere in the response body.
   assert_false(@utf8.decode(resp.raw_body).contains("CONFIDENTIAL"))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// web-ui2-02 BUG-023: POST /api/sessions must return an orig-shaped session
+/// object with `id` (so the frontend can subscribe + send the first message)
+/// and must NOT include `messages`.
+test "create session response has orig shape with id and no messages" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(Post, "/api/sessions", body="{\"name\":\"ct-test\"}"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 201)
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  guard top.get("session") is Some(Object(s))
+  guard s.get("id") is Some(String(id))
+  assert_true(id.length() > 0)
+  assert_false(s.contains("session_id"))
+  assert_false(s.contains("messages"))
+  assert_true(s.contains("status"))
+  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("error"), Some(Json::null()))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// web-ui2-02: GET /api/sessions/:id must align to orig field names
+/// (id/status/model/model_id/card_model/error(null)/...) and omit messages.
+test "detail response aligns orig field names and omits messages" {
+  let old = wd_push_profile()
+  let id = "orig_" + @agent.current_time_ms().to_string()
+  let data = @agent.SessionData::{
+    ..wd_make_session(id, "."),
+    model_name: Some("model-x"),
+    last_status: "idle",
+  }
+  @agent.save_session(data) catch {
+    _ => ()
+  }
+  let resp = handle_get_session(
+    wd_make_server_ref(),
+    wd_make_event(Get, "/api/sessions/" + id, params=[("id", id)]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  guard top.get("session") is Some(Object(s))
+  @debug.assert_eq(s.get("id"), Some(id.to_json()))
+  @debug.assert_eq(s.get("status"), Some("idle".to_json()))
+  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("error"), Some(Json::null()))
+  @debug.assert_eq(s.get("error_code"), Some(Json::null()))
+  @debug.assert_eq(s.get("top_up_url"), Some(Json::null()))
+  @debug.assert_eq(s.get("raw_message"), Some(Json::null()))
+  assert_false(s.contains("session_id"))
+  assert_false(s.contains("messages"))
   @agent.delete_session(id)
   wd_pop_profile(old)
 }

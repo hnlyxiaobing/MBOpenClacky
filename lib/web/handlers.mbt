@@ -3,6 +3,63 @@
 // ── Session Handlers ────────────────────────────────────────────
 
 ///|
+/// Build a SessionSummary from persisted session data. Shared by the list,
+/// create, and detail endpoints so every session response is shape-isomorphic
+/// with orig.
+fn build_session_summary(
+  sd : @agent.SessionData,
+  pinned : Bool,
+  default_model : String?,
+  model_options : Array[String],
+) -> SessionSummary {
+  SessionSummary::{
+    id: sd.session_id,
+    name: sd.name,
+    working_dir: sd.working_dir,
+    status: sd.last_status,
+    created_at: sd.created_at,
+    updated_at: sd.created_at,
+    total_tasks: sd.stats.total_tasks,
+    total_cost: sd.stats.total_cost_usd,
+    cost_source: sd.stats.cost_source,
+    error: sd.last_error,
+    model: match sd.model_name {
+      Some(m) => Some(m)
+      None => default_model
+    },
+    source: sd.source,
+    latest_latency: SessionLatency::from_session_data(sd),
+    pinned,
+    agent_profile: sd.agent_profile,
+    sub_model: sd.sub_model,
+    sub_model_options: model_options,
+    reasoning_effort: sd.reasoning_effort,
+    model_id: sd.model_name,
+    card_model: sd.model_name,
+    channel_info: sd.channel_info,
+    error_code: sd.error_code,
+    top_up_url: sd.top_up_url,
+    raw_message: sd.raw_message,
+  }
+}
+
+///|
+/// Serialize a SessionSummary for a single-session response (create/detail),
+/// mapping an empty error to null to match orig's contract.
+fn session_response_json(summary : SessionSummary) -> Json {
+  match ToJson::to_json(summary) {
+    Object(o) => {
+      match o.get("error") {
+        Some(String("")) => o["error"] = Json::null()
+        _ => ()
+      }
+      Json::object(o)
+    }
+    other => other
+  }
+}
+
+///|
 /// GET /api/sessions
 fn handle_list_sessions(
   server_ref : Ref[WebServer],
@@ -50,35 +107,14 @@ fn handle_list_sessions(
       Some(t) => if !t.is_empty() && sd.source == t { continue }
       None => ()
     }
-    summaries.push(SessionSummary::{
-      id: sd.session_id,
-      name: sd.name,
-      working_dir: sd.working_dir,
-      status: sd.last_status,
-      created_at: sd.created_at,
-      updated_at: sd.created_at,
-      total_tasks: sd.stats.total_tasks,
-      total_cost: sd.stats.total_cost_usd,
-      cost_source: sd.stats.cost_source,
-      error: sd.last_error,
-      model: match sd.model_name {
-        Some(m) => Some(m)
-        None => default_model
-      },
-      source: sd.source,
-      latest_latency: SessionLatency::from_session_data(sd),
-      pinned: pinned_map.get(sd.session_id).unwrap_or(false),
-      agent_profile: sd.agent_profile,
-      sub_model: sd.sub_model,
-      sub_model_options: model_options,
-      reasoning_effort: sd.reasoning_effort,
-      model_id: sd.model_name,
-      card_model: sd.model_name,
-      channel_info: sd.channel_info,
-      error_code: sd.error_code,
-      top_up_url: sd.top_up_url,
-      raw_message: sd.raw_message,
-    })
+    summaries.push(
+      build_session_summary(
+        sd,
+        pinned_map.get(sd.session_id).unwrap_or(false),
+        default_model,
+        model_options,
+      ),
+    )
   }
   let total = summaries.length()
   let has_more = total > limit
@@ -182,22 +218,20 @@ fn handle_create_session(
   @agent.save_session(data) catch {
     _ => ()
   }
-  // Include agent_profile and updated_at in the response
-  // (web-replication-05; updated_at mirrors created_at for now).
-  // Frontend expects { session: {...} } (web/sessions.js, new-session/store.js).
-  match ToJson::to_json(data) {
-    Object(o) => {
-      o["agent_profile"] = ToJson::to_json(agent_profile)
-      o["updated_at"] = data.created_at.to_json()
-      @core.HttpResponse::created().json_value(
-        Json::object({ "session": Json::object(o) }),
-      )
-    }
-    other =>
-      @core.HttpResponse::created().json_value(
-        Json::object({ "session": other }),
-      )
-  }
+  let model_options : Array[String] = server_ref.val.config.models.map(m => {
+    m.model
+  })
+  let summary = build_session_summary(
+    data,
+    false,
+    Some(model_config.model),
+    model_options,
+  )
+  // to_session_data hardcodes agent_profile to "general"; apply the requested one.
+  let summary = SessionSummary::{ ..summary, agent_profile, }
+  @core.HttpResponse::created().json_value(
+    Json::object({ "session": session_response_json(summary) }),
+  )
 }
 
 ///|
@@ -213,26 +247,39 @@ fn handle_get_session(
         Json::object({ "error": "Missing parameter: id".to_json() }),
       )
   }
-  let session_opt = @agent.load_session(id)
-  match session_opt {
-    Some(data) =>
-      @core.HttpResponse::ok().json_value(
-        Json::object({ "session": ToJson::to_json(data) }),
-      )
+  let pinned_map = load_pinned_map()
+  let model_options : Array[String] = server_ref.val.config.models.map(m => {
+    m.model
+  })
+  let default_model : String? = match server_ref.val.config.current_model() {
+    Some(mc) => Some(mc.model)
+    None => None
+  }
+  // Fall back to an in-memory agent for a freshly created session not yet persisted.
+  let session_data = match @agent.load_session(id) {
+    Some(data) => Some(data)
     None =>
-      // A freshly created session lives only in memory until its first
-      // run persists it; serve that instead of a 404 so the frontend
-      // history load does not error right after session creation.
       match server_ref.val.active_agents.get(id) {
-        Some(agent) =>
-          @core.HttpResponse::ok().json_value(
-            Json::object({ "session": agent.to_session_data().to_json() }),
-          )
-        None =>
-          @core.HttpResponse::not_found().json_value(
-            Json::object({ "error": "Session not found".to_json() }),
-          )
+        Some(agent) => Some(agent.to_session_data())
+        None => None
       }
+  }
+  match session_data {
+    Some(data) => {
+      let summary = build_session_summary(
+        data,
+        pinned_map.get(id).unwrap_or(false),
+        default_model,
+        model_options,
+      )
+      @core.HttpResponse::ok().json_value(
+        Json::object({ "session": session_response_json(summary) }),
+      )
+    }
+    None =>
+      @core.HttpResponse::not_found().json_value(
+        Json::object({ "error": "Session not found".to_json() }),
+      )
   }
 }
 

@@ -1,7 +1,7 @@
 # 会话创建/详情 API 契约对齐 · 增量 Spec
 
 > **创建日期**: 2026-07-26  
-> **状态**: 进行中  
+> **状态**: 已完成  
 > **关联总览**: `web-ui-comparison-test-report.md`  
 > **关联历史 spec**: `specs/completed/2026-07-24_web-ui-fix-09-session-summary-fields.md`（fix-09 已修复 LIST 端点）  
 > **来源差距**: BUG-007（P1，部分）、BUG-023（P1）  
@@ -103,3 +103,4 @@
 |------|---------|------|
 | 2026-07-26 | 初始版本 | BUG-007(部分)/023 起草。关键修正：BUG-007 的 LIST 声称经 curl 验证已过时（fix-09 已修复），本 spec 仅处理 CREATE/DETAIL 端点 |
 | 2026-07-26 | 审核修正：`handle_get_session` :228-248 -> :205-240（响应 :218-221）；`handle_create_session` 响应 :175-198 -> :185-200；`SessionSummary` types.mbt:84 经 file_reader 确认（`pub(all) struct`，grep "struct SessionSummary" 因 `pub(all)` 前缀未命中但定义确在 :84） | 对抗性审核 + 第一性原理校验 |
+| 2026-07-26 | 实现完成。抽取 `build_session_summary(sd, pinned, default_model, model_options)`（handlers.mbt），LIST 改用它去重；新增 `session_response_json(summary)` 将空 error 映射为 null（仅 CREATE/DETAIL，LIST/WS 不动以严守范围）。CREATE 改用 summary + 保留请求 agent_profile 覆盖（`to_session_data` 硬编码 "general"，session_data.mbt:249 经确认）；DETAIL 改用 summary（含内存回退分支）。新增 2 白盒测试：`create session response has orig shape with id and no messages`、`detail response aligns orig field names and omits messages`；更新既有 `get session wraps response` 测试 session_id→id。`moon check` 0 errors；`moon test lib/web` 391 通过；`moon info` 无公共 API 变更 | 验收：CREATE 含 id/无 messages/error=null；DETAIL 字段逐键对齐 orig（id/status/model/model_id/card_model/error(null)/error_code/top_up_url/raw_message）、无 messages。BUG-023 前端流程由 id 字段存在性启用，UI 手测未在白盒覆盖 |
