@@ -37,7 +37,26 @@ specs/
 
 ## Active Spec 索引
 
-当前无活跃 spec。所有历史 spec 已归档至 `completed/`（86 份）或 `deprecated/`（5 份）。
+| 优先级 | ID | 任务名称 | Spec 文件 | 类型 | 预估天数 | 依赖 |
+|--------|-----|---------|-----------|------|---------|------|
+| P0 | T01 | LLM 重试循环 + Fallback 激活 | `2026-07-27_llm-retry-fallback.md` | 增量 | 2 | 无 |
+| P0 | T02 | 压缩阈值 + 截断计数修复 | `2026-07-27_compression-threshold-truncation.md` | 增量 | 1 | 无 |
+| P0 | T03 | 错误响应格式统一 | `2026-07-27_error-response-format.md` | 增量 | 1 | 无 |
+| P0 | T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | 2 | 无 |
+| P1 | T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | 1 | 无 |
+| P1 | T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | 1 | 无 |
+| P1 | T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | 1 | 无 |
+| P1 | T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | 1 | 无 |
+| P1 | T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | 1 | 无 |
+| P1 | T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | 2 | 无 |
+| P1 | T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | 2 | 无 |
+| P1 | T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | 1 | 无 |
+| P2 | T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | 2 | 无 |
+| P2 | T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | 2 | 无 |
+| P2 | T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | 1 | T08 |
+| P2 | T16 | Web UI 次要功能补全 | `2026-07-27_web-ui-minor-features.md` | 增量 | 2 | 无 |
+| P2 | T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | 2 | 无 |
+| P2 | T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | 1 | 无 |
 \r
 ## 模板说明
 
