@@ -18,7 +18,7 @@
 | T03 | 错误响应格式统一 | `2026-07-27_error-response-format.md` | 增量 | P0 | 1 | 无 | ✅ 已完成 |
 | T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | P0 | 2 | 无 | ✅ 已完成 |
 | T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | P1 | 1 | 无 | ✅ 已完成 |
-| T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | P1 | 1 | 无 | ⚠️ 截断已完成，压缩回滚待实现 |
+| T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
 | T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | P1 | 1 | 无 | 待开发 |
 | T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
 | T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
@@ -111,3 +111,4 @@ T15 (补充 Provider 预设) ◄── 依赖 T08
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档拆分 |
 | 2026-07-27 | T01-T05, T08, T09 归档至 completed/ | 对抗性审查通过，7 个 spec 开发完成并验证 |
 | 2026-07-27 | 修复 working_dir 绝对路径校验 Bug（pre-existing） | `handle_update_working_dir` 在无 `default_working_dir` 时放行绝对路径 |
+| 2026-07-27 | T06 归档至 completed/ | 压缩回滚机制实现完成（compressor_rollback.mbt + 11 个白盒测试），全部验收标准通过 |

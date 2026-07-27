@@ -104,9 +104,16 @@ fn Agent::observe(
 /// THINK phase (async): call the LLM via non-blocking HTTP, streaming
 /// content deltas to the UI as StreamChunk hook events.
 async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
-  match self.compress_messages_if_needed(false) {
-    Some(_) => ()
-    None => ()
+  // Check if compression is needed; if so, insert the compression
+  // instruction message so the upcoming LLM call produces a summary.
+  let compression_ctx = self.compress_messages_if_needed(false)
+  let did_insert_compression = match compression_ctx {
+    Some(_) => {
+      self.history.push(build_compression_message())
+      self.hook_manager.emit(MessageAdded)
+      true
+    }
+    None => false
   }
   self.hook_manager.emit(BeforeLlmCall)
   let response = self.call_stream_with_retry_async(fn(chunk) {
@@ -115,6 +122,44 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   match response.latency {
     Some(lat) => self.latest_latency = Some(lat)
     None => ()
+  }
+  // If we inserted a compression instruction, the LLM response is a
+  // compression summary — process it instead of treating it as a normal
+  // assistant turn.
+  if did_insert_compression {
+    // Remove the compression instruction message we inserted (last msg).
+    self.history.pop() |> ignore
+    let content = match response.content {
+      Some(c) => c
+      None => ""
+    }
+    match compression_ctx {
+      Some(ctx) =>
+        match compress_with_level_fallback(self.history, content, ctx) {
+          Success(_) => {
+            // Save archived chunk to disk for future recall.
+            let to_archive : Array[@message.Message] = []
+            for m in self.history {
+              to_archive.push(m)
+            }
+            match save_compressed_chunk(
+              to_archive,
+              self.session_id,
+              self.compression_level,
+            ) {
+              Ok(_) => ()
+              Err(_) => () // chunk save failure is non-fatal
+            }
+            self.compression_level = self.compression_level + 1
+          }
+          Failed(_) => () // rollback already restored history
+        }
+      None => ()
+    }
+    self.hook_manager.emit(AfterLlmCall)
+    // Return None so the react loop skips tool execution for this pass
+    // and starts a fresh think cycle with the compressed history.
+    return None
   }
   let content = match response.content {
     Some(c) => c

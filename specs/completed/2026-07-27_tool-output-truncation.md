@@ -1,7 +1,8 @@
 # 工具输出截断 + 压缩回滚 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: completed (verified)  
+> **验证日期**: 2026-07-27（压缩回滚实现完成 + moon test 全绿）
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G09 - 无工具输出截断；G10 - 压缩失败无回滚  
@@ -158,15 +159,15 @@ end
 
 ## 验收标准 [必填]
 
-- [ ] 工具输出超过 80K 字符时自动截断
-- [ ] 截断时附加 `[Output truncated at 80000 characters]` 提示
-- [ ] 压缩前备份对话历史
-- [ ] 压缩失败时回滚到备份历史
-- [ ] 压缩失败时回退到更低压缩级别
-- [ ] `moon check lib/tool` 0 errors
-- [ ] `moon check lib/agent` 0 errors
-- [ ] `moon test lib/tool` 全部通过
-- [ ] `moon test lib/agent` 全部通过
+- [x] 工具输出超过 80K 字符时自动截断
+- [x] 截断时附加 `[Output truncated at 80000 characters]` 提示
+- [x] 压缩前备份对话历史
+- [x] 压缩失败时回滚到备份历史
+- [x] 压缩失败时回退到更低压缩级别
+- [x] `moon check lib/tool` 0 errors
+- [x] `moon check lib/agent` 0 errors
+- [x] `moon test lib/tool` 全部通过（213 tests passed）
+- [x] `moon test lib/agent` 全部通过（273 tests passed）
 
 ## 风险评估 [必填]
 
@@ -185,4 +186,8 @@ end
 
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
+| 2026-07-27 | 初始创建 | G09/G10 差距分析 |
+| 2026-07-27 | 实现工具输出截断（80K 上限 + 提示信息） | G09 |
+| 2026-07-27 | 实现压缩回滚机制（compress_with_rollback + compress_with_level_fallback + compress_with_safety），新增 11 个白盒测试 | G10 |
+| 2026-07-27 | 状态更新为 completed (verified) | 全部验收标准通过 |
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
