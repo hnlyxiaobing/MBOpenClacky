@@ -109,7 +109,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
     None => ()
   }
   self.hook_manager.emit(BeforeLlmCall)
-  let response = self.call_llm_stream_async(fn(chunk) {
+  let response = self.call_stream_with_retry_async(fn(chunk) {
     self.hook_manager.emit(StreamChunk(chunk))
   })
   match response.latency {
@@ -190,6 +190,7 @@ async fn Agent::act_async(
 /// Internal async ReAct loop.
 async fn Agent::react_loop_async(self : Agent) -> RunResult {
   let mut truncation_count = 0
+  let mut fake_tool_call_retries = 0
   let mut done : RunResult? = None
   while done is None {
     self.iterations = self.iterations + 1
@@ -224,17 +225,30 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
             }
           }
           _ => {
-            truncation_count = 0
             let has_tool_calls = match resp.tool_calls {
               Some(calls) => calls.length() > 0
               None => false
             }
             if !has_tool_calls {
-              match resp.usage {
-                Some(usage) => self.track_cost(usage) |> ignore
-                None => ()
+              // Check for fake tool calls in content
+              let content = match resp.content {
+                Some(c) => c
+                None => ""
               }
-              done = Some(self.build_result(Success))
+              if fake_tool_call_retries < max_fake_tool_call_retries &&
+                detect_fake_tool_call(content) {
+                fake_tool_call_retries = fake_tool_call_retries + 1
+                self.history.push(
+                  @message.Message::user(fake_tool_call_correction_prompt),
+                )
+                self.hook_manager.emit(MessageAdded)
+              } else {
+                match resp.usage {
+                  Some(usage) => self.track_cost(usage) |> ignore
+                  None => ()
+                }
+                done = Some(self.build_result(Success))
+              }
             } else {
               let tool_calls = resp.tool_calls.unwrap()
               let action_result = self.act_async(tool_calls)

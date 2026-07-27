@@ -14,7 +14,7 @@ test "ext_agent_config_default_fields" {
   assert_false(cfg.memory_update_enabled)
   assert_eq(cfg.max_running_agents, 10)
   assert_eq(cfg.max_idle_agents, 10)
-  assert_eq(cfg.compression_threshold, 10000)
+  assert_eq(cfg.compression_threshold, 150000)
   assert_eq(cfg.env_source, "toml")
 }
 
@@ -172,7 +172,7 @@ test "ext_capabilities_to_json" {
 ///|
 test "ext_agent_config_compression_threshold" {
   let cfg = AgentConfig::default()
-  assert_eq(cfg.compression_threshold, 10000)
+  assert_eq(cfg.compression_threshold, 150000)
   cfg.compression_threshold = 5000
   assert_eq(cfg.compression_threshold, 5000)
 }

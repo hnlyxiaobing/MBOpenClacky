@@ -270,7 +270,12 @@ fn handle_update_working_dir(
             }),
           )
         }
-      None => ()
+      None =>
+        return @core.HttpResponse::bad_request().json_value(
+          Json::object({
+            "error": "Absolute working_dir is not allowed without a configured working directory".to_json(),
+          }),
+        )
     }
   }
   match @agent.load_session(id) {

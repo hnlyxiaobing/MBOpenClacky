@@ -11,23 +11,23 @@
 
 ## 任务拆分表
 
-| ID | 任务名称 | Spec 文件 | 类型 | 优先级 | 预估天数 | 依赖 |
-|----|---------|-----------|------|--------|---------|------|
-| T01 | LLM 重试循环 + Fallback 激活 | `2026-07-27_llm-retry-fallback.md` | 增量 | P0 | 2 | 无 |
-| T02 | 压缩阈值 + 截断计数修复 | `2026-07-27_compression-threshold-truncation.md` | 增量 | P0 | 1 | 无 |
-| T03 | 错误响应格式统一 | `2026-07-27_error-response-format.md` | 增量 | P0 | 1 | 无 |
-| T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | P0 | 2 | 无 |
-| T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | P1 | 1 | 无 |
-| T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | P1 | 1 | 无 |
-| T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | P1 | 1 | 无 |
-| T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | P1 | 1 | 无 |
-| T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | P1 | 1 | 无 |
-| T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | P1 | 2 | 无 |
-| T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | P1 | 2 | 无 |
-| T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | P1 | 1 | 无 |
-| T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | P2 | 2 | 无 |
-| T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | P2 | 2 | 无 |
-| T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | P2 | 1 | T08 |
+| ID | 任务名称 | Spec 文件 | 类型 | 优先级 | 预估天数 | 依赖 | 状态 |
+|----|---------|-----------|------|--------|---------|------|------|
+| T01 | LLM 重试循环 + Fallback 激活 | `2026-07-27_llm-retry-fallback.md` | 增量 | P0 | 2 | 无 | ✅ 已完成 |
+| T02 | 压缩阈值 + 截断计数修复 | `2026-07-27_compression-threshold-truncation.md` | 增量 | P0 | 1 | 无 | ✅ 已完成 |
+| T03 | 错误响应格式统一 | `2026-07-27_error-response-format.md` | 增量 | P0 | 1 | 无 | ✅ 已完成 |
+| T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | P0 | 2 | 无 | ✅ 已完成 |
+| T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | P1 | 1 | 无 | ✅ 已完成 |
+| T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | P1 | 1 | 无 | ⚠️ 截断已完成，压缩回滚待实现 |
+| T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | P1 | 1 | 无 | 待开发 |
+| T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
+| T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
+| T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | P1 | 2 | 无 | 待开发 |
+| T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | P1 | 2 | 无 | 待开发 |
+| T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | P1 | 1 | 无 | 待开发 |
+| T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | P2 | 2 | 无 | 待开发 |
+| T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | P2 | 2 | 无 | 待开发 |
+| T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | P2 | 1 | T08 | 待开发 |
 | T16 | Web UI 次要功能补全 | `2026-07-27_web-ui-minor-features.md` | 增量 | P2 | 2 | 无 |
 | T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | P2 | 2 | 无 |
 | T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | P2 | 1 | 无 |
@@ -109,3 +109,5 @@ T15 (补充 Provider 预设) ◄── 依赖 T08
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档拆分 |
+| 2026-07-27 | T01-T05, T08, T09 归档至 completed/ | 对抗性审查通过，7 个 spec 开发完成并验证 |
+| 2026-07-27 | 修复 working_dir 绝对路径校验 Bug（pre-existing） | `handle_update_working_dir` 在无 `default_working_dir` 时放行绝对路径 |

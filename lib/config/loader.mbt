@@ -226,7 +226,7 @@ fn AgentConfig::to_toml(self : AgentConfig) -> TomlValue {
   if !self.fallback_model.is_empty() {
     settings["fallback_model"] = TomlString(self.fallback_model)
   }
-  if self.compression_threshold != 10000 {
+  if self.compression_threshold != 150000 {
     settings["compression_threshold"] = TomlInteger(
       Int64::from_int(self.compression_threshold),
     )

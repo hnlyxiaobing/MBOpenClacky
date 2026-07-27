@@ -23,6 +23,164 @@ pub let max_retries_on_fallback : Int = 5
 pub let fallback_cooldown_seconds : Int = 1800
 
 ///|
+/// Maximum number of retry attempts for a single LLM call.
+pub let max_retries : Int = 10
+
+///|
+/// Base delay in milliseconds for exponential backoff between retries.
+pub let retry_base_delay_ms : Int = 5000
+
+///|
+/// Maximum delay in milliseconds (cap for exponential backoff).
+pub let retry_max_delay_ms : Int = 60000
+
+///|
+/// Compute the delay before the next retry using exponential backoff.
+/// delay = min(base_delay * 2^(attempt-1), max_delay)
+fn retry_delay_ms(attempt : Int) -> Int {
+  let mut delay = retry_base_delay_ms
+  let mut i = 1
+  while i < attempt {
+    delay = delay * 2
+    if delay >= retry_max_delay_ms {
+      return retry_max_delay_ms
+    }
+    i = i + 1
+  }
+  delay
+}
+
+///|
+/// Record a retryable failure and transition the fallback state machine.
+///
+/// - In PrimaryOk: increments consecutive failure counter; if it reaches
+///   `retries_before_fallback`, activates fallback.
+/// - In FallbackActive: increments the embedded retry counter.
+/// - In Probing: a failure sends us back to FallbackActive with fresh cooldown.
+fn Agent::record_retryable_failure(self : Agent) -> Unit {
+  self.consecutive_retryable_failures = self.consecutive_retryable_failures + 1
+  match self.fallback_state {
+    PrimaryOk =>
+      if self.consecutive_retryable_failures >= retries_before_fallback {
+        if self.try_activate_fallback(self.client.model) {
+          self.fallback_activated_at_ms = current_time_ms()
+        }
+      }
+    FallbackActive(n) => self.fallback_state = FallbackActive(n + 1)
+    Probing => {
+      self.fallback_state = FallbackActive(0)
+      self.fallback_activated_at_ms = current_time_ms()
+    }
+  }
+}
+
+///|
+/// Record a successful LLM call: reset consecutive failure counter and
+/// transition the fallback state machine forward.
+fn Agent::record_llm_success(self : Agent) -> Unit {
+  self.consecutive_retryable_failures = 0
+  match self.fallback_state {
+    Probing => self.handle_probe_success()
+    _ => ()
+  }
+}
+
+///|
+/// Check whether the fallback cooldown has expired and we should probe
+/// the primary model. Transitions FallbackActive → Probing if so.
+fn Agent::check_fallback_cooldown(self : Agent) -> Unit {
+  match self.fallback_state {
+    FallbackActive(_) => {
+      let elapsed_ms = current_time_ms() - self.fallback_activated_at_ms
+      let cooldown_ms = Int64::from_int(fallback_cooldown_seconds) * 1000L
+      if elapsed_ms >= cooldown_ms {
+        self.fallback_state = Probing
+      }
+    }
+    _ => ()
+  }
+}
+
+///|
+/// Async LLM call with retry and fallback logic.
+///
+/// Wraps `call_llm_async` with exponential backoff retry on RetryableError.
+/// After `retries_before_fallback` consecutive failures, activates the
+/// fallback model. Respects cooldown probing.
+pub async fn Agent::call_with_retry_async(
+  self : Agent,
+) -> @client.LlmResponse {
+  self.check_fallback_cooldown()
+  let mut attempt = 0
+  while true {
+    attempt = attempt + 1
+    let result = Ok(self.call_llm_async()) catch {
+      e => Err(e)
+    }
+    match result {
+      Ok(response) => {
+        self.record_llm_success()
+        return response
+      }
+      Err(e) => {
+        match e {
+          @errors.RetryableError(_) => {
+            self.record_retryable_failure()
+            if attempt >= max_retries {
+              raise e
+            }
+            let delay = retry_delay_ms(attempt)
+            @async.sleep(delay)
+          }
+          _ => raise e
+        }
+      }
+    }
+  }
+  // unreachable, but MoonBit requires a trailing expression
+  raise @errors.AgentError("retry loop exited unexpectedly")
+}
+
+///|
+/// Async streaming LLM call with retry and fallback logic.
+///
+/// Wraps `call_llm_stream_async` with the same retry/fallback semantics
+/// as `call_with_retry_async`.
+pub async fn Agent::call_stream_with_retry_async(
+  self : Agent,
+  on_chunk : (String) -> Unit,
+) -> @client.LlmResponse {
+  self.check_fallback_cooldown()
+  let mut attempt = 0
+  while true {
+    attempt = attempt + 1
+    let result = Ok(self.call_llm_stream_async(on_chunk)) catch {
+      e => Err(e)
+    }
+    match result {
+      Ok(response) => {
+        self.record_llm_success()
+        return response
+      }
+      Err(e) => {
+        match e {
+          @errors.RetryableError(_) => {
+            self.record_retryable_failure()
+            if attempt >= max_retries {
+              raise e
+            }
+            let delay = retry_delay_ms(attempt)
+            @async.sleep(delay)
+          }
+          _ => raise e
+        }
+      }
+    }
+  }
+  raise @errors.AgentError("retry loop exited unexpectedly")
+}
+
+///|
 /// Mode for context overflow recovery.
 pub(all) enum OverflowMode {
   /// Remove 1 message from tail (preserves prompt cache hits).
@@ -266,9 +424,19 @@ pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
   for def in defs {
     tools_json.push(def.to_json())
   }
+  // When fallback is active, use the fallback model instead of the primary.
+  // In Probing state we intentionally use the primary model to test recovery.
+  let model = match self.fallback_state {
+    FallbackActive(_) =>
+      match self.fallback_model {
+        Some(m) if m.length() > 0 => m
+        _ => self.client.model
+      }
+    _ => self.client.model
+  }
   {
     messages,
-    model: self.client.model,
+    model,
     tools: tools_json,
     max_tokens: self.config.max_tokens,
     enable_caching: self.config.enable_prompt_caching,

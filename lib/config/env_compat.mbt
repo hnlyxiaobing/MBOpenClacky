@@ -173,7 +173,7 @@ pub fn merge_config(base : AgentConfig, overlay : AgentConfig) -> AgentConfig {
   if !overlay.fallback_model.is_empty() {
     result.fallback_model = overlay.fallback_model
   }
-  if overlay.compression_threshold != 10000 && overlay.compression_threshold > 0 {
+  if overlay.compression_threshold != 150000 && overlay.compression_threshold > 0 {
     result.compression_threshold = overlay.compression_threshold
   }
   // env_source: overlay wins if not "toml" (i.e. came from env)

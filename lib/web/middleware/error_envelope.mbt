@@ -1,10 +1,12 @@
 ///|
 /// Standardized error envelope middleware and helpers.
 /// Wraps all error responses in a consistent JSON format:
-/// { "error": { "status": N, "message": "...", "code": "...", "hint": "..." } }
+/// { "error": "message", "status": N, "code": "...", "hint": "..." }
 
 ///|
 /// Build a standardized error JSON response body.
+/// The "error" field is a flat string (compatible with Ruby and Web UI frontend).
+/// Optional fields (status, code, hint) are included as top-level keys when provided.
 pub fn error_response(
   status : Int,
   message : String,
@@ -12,8 +14,8 @@ pub fn error_response(
   hint? : String = "",
 ) -> Json {
   let fields : Map[String, Json] = Map([
+    ("error", message.to_json()),
     ("status", status.to_json()),
-    ("message", message.to_json()),
   ])
   if code.length() > 0 {
     fields["code"] = code.to_json()
@@ -21,7 +23,7 @@ pub fn error_response(
   if hint.length() > 0 {
     fields["hint"] = hint.to_json()
   }
-  Json::object({ "error": Json::object(fields) })
+  Json::object(fields)
 }
 
 ///|

@@ -1,7 +1,8 @@
 # SKILL.md frontmatter 兼容性 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: completed (verified)  
+> **验证日期**: 2026-07-27（对抗性审查通过 + moon test 全绿）
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G14 - SKILL.md frontmatter 连字符不兼容  

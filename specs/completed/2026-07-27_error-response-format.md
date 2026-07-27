@@ -1,7 +1,8 @@
 # 错误响应格式统一 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: completed (verified)  
+> **验证日期**: 2026-07-27（对抗性审查通过 + moon test 全绿）
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G05 - 错误响应格式为嵌套对象，与 Ruby 扁平字符串不兼容  
@@ -125,17 +126,17 @@ if (response.error) {
      code? : String = "",
      hint? : String = "",
    ) -> Json {
-     let obj = Map([("error", message.to_json())])
-     if status != 400 {
-       obj["status"] = status.to_json()
-     }
+     let fields : Map[String, Json] = Map([
+       ("error", message.to_json()),
+       ("status", status.to_json()),
+     ])
      if code.length() > 0 {
-       obj["code"] = code.to_json()
+       fields["code"] = code.to_json()
      }
      if hint.length() > 0 {
-       obj["hint"] = hint.to_json()
+       fields["hint"] = hint.to_json()
      }
-     Json::object(obj)
+     Json::object(fields)
    }
    ```
 
@@ -187,3 +188,4 @@ if (response.error) {
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
+| 2026-07-27 | 修正实施计划代码片段：始终包含 `status` 字段，移除 `if status != 400` 条件 | 与决策 2 和验收标准保持一致 |

@@ -431,12 +431,44 @@ pub fn parse_tool_arguments(call : @message.ToolCall) -> Map[String, Json] {
 // ── Result Builders ───────────────────────────────────────────────────────────
 
 ///|
+/// Maximum tool output length in characters before truncation.
+/// Matches Ruby's 80K limit to prevent context window overflow.
+pub let max_tool_output_chars : Int = 80000
+
+///|
+/// Truncate tool output if it exceeds the maximum length.
+/// Appends a notice so the model knows output was cut.
+/// Uses byte length for the fast initial check, then iterates by
+/// character to ensure valid UTF-8 in the truncated output.
+fn truncate_tool_output(output : String) -> String {
+  if output.length() <= max_tool_output_chars {
+    return output
+  }
+  let buf = StringBuilder::new()
+  let mut count = 0
+  let mut did_truncate = false
+  for c in output {
+    if count >= max_tool_output_chars {
+      did_truncate = true
+      break
+    }
+    buf.write_char(c)
+    count = count + 1
+  }
+  if did_truncate {
+    buf.write_string("\n\n[Output truncated at \{max_tool_output_chars} characters]")
+  }
+  buf.to_string()
+}
+
+///|
 /// Build a success result entry from a tool call and its result.
+/// Applies output truncation to prevent context window overflow.
 pub fn build_success_result(
   call : @message.ToolCall,
   result : @tool.ToolResult,
 ) -> ToolResultEntry {
-  { id: call.id, content: result.content, is_error: false }
+  { id: call.id, content: truncate_tool_output(result.content), is_error: false }
 }
 
 ///|

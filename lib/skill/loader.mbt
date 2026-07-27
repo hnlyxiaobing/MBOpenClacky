@@ -55,6 +55,8 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
     match line.find(":") {
       Some(colon_pos) => {
         let key_raw = line[0:colon_pos].trim().to_owned()
+        // Normalize hyphens to underscores for Ruby ecosystem compatibility
+        let key_norm = key_raw.replace(old="-", new="_")
         let value_raw = line[colon_pos + 1:].trim().to_owned()
         if !key_raw.is_empty() {
           match block_scalar_indicator(value_raw) {
@@ -121,11 +123,11 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
                 '|' => block_lines.join("\n")
                 _ => block_lines.join(" ")
               }
-              fields[key_raw] = joined.trim().to_owned()
+              fields[key_norm] = joined.trim().to_owned()
             }
             None => {
               let clean_value = strip_quotes(value_raw)
-              fields[key_raw] = clean_value
+              fields[key_norm] = clean_value
             }
           }
         }

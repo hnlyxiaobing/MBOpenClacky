@@ -42,6 +42,8 @@ pub(all) struct Agent {
   mut latest_latency : @client.Latency?
   mut fallback_state : FallbackState
   mut fallback_model : String?
+  mut consecutive_retryable_failures : Int
+  mut fallback_activated_at_ms : Int64
   // ── Compression State ──────────────────────────────────────────────
   mut compression_level : Int
   // ── Hook System ─────────────────────────────────────────────────
@@ -129,6 +131,8 @@ pub fn Agent::new(
     latest_latency: None,
     fallback_state: PrimaryOk,
     fallback_model: None,
+    consecutive_retryable_failures: 0,
+    fallback_activated_at_ms: 0L,
     // Compression
     compression_level: 0,
     // Clear any hook callbacks from prior runs

@@ -1,7 +1,8 @@
 # LLM 重试循环 + Fallback 激活 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: completed (verified)  
+> **验证日期**: 2026-07-27（对抗性审查通过 + moon test 全绿）
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G01 - LLM 调用无重试，Fallback 状态机为死代码  
@@ -94,13 +95,16 @@ end
 4. **决策 4**：在 `llm_caller.mbt` 中实现重试循环，在 `react_loop_async` 中集成 Fallback 状态机
    - **为什么**：职责分离，重试逻辑在 LLM 调用层，Fallback 状态管理在 Agent 层
 
+5. **决策 5**：在 `build_send_request` 中根据 `fallback_state` 选择模型
+   - **为什么**：`FallbackActive` 状态下应使用 `fallback_model`；`Probing` 状态下应使用主模型（探测恢复）；`PrimaryOk` 状态下使用主模型。`client.model` 是不可变字段，因此必须在请求构建层做模型选择
+
 ## 改动范围 [必填]
 
 ### 涉及文件
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `lib/agent/llm_caller.mbt` | 修改 | 添加重试循环逻辑 |
+| `lib/agent/llm_caller.mbt` | 修改 | 添加重试循环逻辑 + `build_send_request` 中根据 fallback_state 选择模型 |
 | `lib/agent/react.mbt` | 修改 | 集成 Fallback 状态机转换 |
 | `lib/agent/agent.mbt` | 修改 | 添加 Fallback 相关辅助方法 |
 | `lib/agent/llm_caller_wbtest.mbt` | 新建 | 重试和 Fallback 的白盒测试 |
@@ -147,6 +151,8 @@ end
 - [ ] 重试成功后清除错误记录，继续正常运行
 - [ ] 连续 3 次 RetryableError 后激活 Fallback 模型
 - [ ] Fallback 模型从 `config.fallback_model` 读取
+- [ ] `build_send_request` 在 `FallbackActive` 状态下使用 `fallback_model`
+- [ ] `build_send_request` 在 `Probing` 状态下使用主模型（探测恢复）
 - [ ] Fallback 激活后 30 分钟冷却期
 - [ ] 冷却期到期后探测主模型恢复
 - [ ] 探测成功 → 切回主模型

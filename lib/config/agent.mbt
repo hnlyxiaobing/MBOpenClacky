@@ -37,7 +37,7 @@ pub fn AgentConfig::default() -> AgentConfig {
     max_idle_agents: 10,
     proxy_url: "",
     fallback_model: "",
-    compression_threshold: 10000,
+    compression_threshold: 150000,
     env_source: "toml",
     default_working_dir: None,
   }

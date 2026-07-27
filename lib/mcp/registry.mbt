@@ -28,15 +28,24 @@ pub fn McpRegistry::new() -> McpRegistry {
 
 ///|
 /// Load registry from an mcp.json config file.
+/// Reads the file, parses the JSON, and populates the registry.
+/// Returns an empty registry (with path stored) if the file cannot be read.
 pub fn McpRegistry::load_from_file(path : String) -> McpRegistry {
-  // TODO: FFI implementation needed for file reading
-  // In production, this would:
-  // 1. Read file contents from `path`
-  // 2. Parse JSON
-  // 3. Extract mcpServers section
-  // For now, return an empty registry with the path stored
-  let specs : Map[String, McpServerSpec] = Map([])
+  let content = @fs.read_file_to_string(path) catch {
+    _ =>
+      return {
+        clients: Map([]),
+        config_path: Some(path),
+        specs: Map([]),
+        enabled: Map([]),
+        idle_timeout: DEFAULT_IDLE_TIMEOUT,
+      }
+  }
+  let specs = parse_mcp_config(content) catch {
+    _ => Map([])
+  }
   let enabled : Map[String, Bool] = Map([])
+  specs.each(fn(name, _spec) { enabled[name] = true })
   {
     clients: Map([]),
     config_path: Some(path),
@@ -66,9 +75,39 @@ pub fn McpRegistry::load_from_json(
 
 ///|
 /// Load registry from the default config path.
+/// Searches in order:
+///   1. ~/.mbopenclacky/mcp.json
+///   2. .qoder/mcp.json (relative to cwd)
+///   3. mcp.json (relative to cwd)
+/// Returns the first successfully loaded registry, or empty if none found.
 pub fn McpRegistry::load_default() -> McpRegistry {
-  // Default paths to search: .qoder/mcp.json, mcp.json
-  // Since we can't do file I/O without FFI, return empty registry
+  // 1. ~/.mbopenclacky/mcp.json
+  match @utils.config_dir() {
+    Some(dir) => {
+      let path = dir + "/mcp.json"
+      if @fs.path_exists(path) {
+        let reg = McpRegistry::load_from_file(path)
+        if reg.spec_count() > 0 {
+          return reg
+        }
+      }
+    }
+    None => ()
+  }
+  // 2. .qoder/mcp.json
+  if @fs.path_exists(".qoder/mcp.json") {
+    let reg = McpRegistry::load_from_file(".qoder/mcp.json")
+    if reg.spec_count() > 0 {
+      return reg
+    }
+  }
+  // 3. mcp.json
+  if @fs.path_exists("mcp.json") {
+    let reg = McpRegistry::load_from_file("mcp.json")
+    if reg.spec_count() > 0 {
+      return reg
+    }
+  }
   McpRegistry::new()
 }
 
