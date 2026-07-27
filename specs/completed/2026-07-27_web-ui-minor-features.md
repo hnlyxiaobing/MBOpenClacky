@@ -1,7 +1,7 @@
 # Web UI 次要功能补全 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G21 - Session 列表缺少 pinned 优先排序；G22 - Session 列表缺少 q_scope 和 date 过滤参数；G23 - timeout schema 描述错误；G24 - latest_cron_updated_at 始终返回 null  
@@ -25,9 +25,9 @@
 
 | 声称 | 验证命令 | 结果 | 结论 |
 |------|---------|------|------|
-| "Session 列表无 pinned 排序" | `grep "pinned" lib/web/` | 0 命中 | 确认缺失 |
+| "Session 列表无 pinned 排序" | `grep "pinned" lib/web/` | **44 命中**（pinned 字段存在、load_pinned_map() 已调用），但 handle_list_sessions 未按 pinned 排序 | **PARTIAL**：pinned 状态已存在，仅缺排序逻辑 |
 | "Session 列表无 q_scope 过滤" | `grep "q_scope" lib/web/` | 0 命中 | 确认缺失 |
-| "timeout schema 描述错误" | 读取 terminal.mbt | 描述为 "default: 30000" | 确认错误 |
+| "timeout schema 描述错误" | `grep "30000" lib/tool/terminal.mbt` | **0 命中**（30000 仅出现在 channel 代码中，与 terminal 无关） | **FALSE**：实际 `default_timeout_seconds = 60`（秒），schema 描述 "default 60" 正确 |
 | "latest_cron_updated_at 返回 null" | `grep "latest_cron_updated_at" lib/web/` | 找到函数，返回 null | 确认问题 |
 
 ### 详细分析
@@ -109,8 +109,10 @@ end
 3. **决策 3**：修复 timeout schema 描述
    - **为什么**：避免用户困惑
 
-4. **决策 4**：实现 latest_cron_updated_at 功能
+4. **决策 4**：~~实现 latest_cron_updated_at 功能~~（保留，确认问题存在）
    - **为什么**：与 Ruby 行为对齐，支持 cron 功能
+
+**审核修正**：timeout schema 描述声称为 FALSE（`default_timeout_seconds = 60` 秒，schema "default 60" 正确），移除 timeout 修复任务。
 
 ## 改动范围 [必填]
 
@@ -214,3 +216,4 @@ end
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
+| 2026-07-27 | 审核修正：1) pinned 非"0命中"（44命中，pinned状态已存在，仅缺排序）；2) timeout "30000" 为 FALSE（实际 default_timeout_seconds=60秒，schema正确），移除timeout修复任务 | 对抗性审核 + 第一性原理校验 |

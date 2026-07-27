@@ -1,11 +1,19 @@
 ///| Compression rollback and level-fallback mechanism.
+
 ///|
+
 ///| Wraps the Insert-then-Compress flow with safety guarantees:
+
 ///| 1. Backs up conversation history before compression
+
 ///| 2. If parsing or rebuild fails, restores the backup (rollback)
+
 ///| 3. If compression at the current level fails, retries with a less
+
 ///|    aggressive level (more recent messages kept) before giving up
+
 ///|
+
 ///| Reference: openclacky/lib/clacky/agent/message_compressor.rb (compress_with_rollback)
 
 // ── Compression Result ───────────────────────────────────────────────────────
@@ -17,8 +25,7 @@ pub enum CompressionResult {
   Success(CompressionStats)
   /// Compression failed; carries error message. History is restored to backup.
   Failed(String)
-}
- derive(Eq, Debug)
+} derive(Eq, Debug)
 
 // ── Clone Helpers ────────────────────────────────────────────────────────────
 
@@ -50,12 +57,14 @@ fn replace_history(
 
 ///|
 /// Attempt a single compression pass with rollback safety.
+
 ///|
 /// **Preconditions**: The caller has already inserted the compression
 /// instruction message and obtained the LLM's text response.
 /// The compression instruction message and the LLM response should be
 /// removed from `history` before calling this function; this function
 /// works on the *original* (pre-instruction) history.
+
 ///|
 /// **Steps**:
 /// 1. Back up current history
@@ -63,6 +72,7 @@ fn replace_history(
 /// 3. Rebuild history with the compressed summary + recent messages
 /// 4. Validate: the rebuilt history must be shorter than the original
 /// 5. On any failure, restore the backup history
+
 ///|
 /// Returns `Success(stats)` on success, `Failed(msg)` on failure.
 pub fn compress_with_rollback(
@@ -108,10 +118,7 @@ pub fn compress_with_rollback(
       // 5. Success – apply the new history
       replace_history(history, new_history)
       let stats = calculate_compression_savings(
-        before_tokens,
-        after_tokens,
-        before_count,
-        after_count,
+        before_tokens, after_tokens, before_count, after_count,
       )
       Success(stats)
     }
@@ -122,6 +129,7 @@ pub fn compress_with_rollback(
 
 ///|
 /// Fallback recent-message counts tried when the initial level fails.
+
 ///|
 /// Each entry is a `recent_count` that increases (less aggressive
 /// compression). The first successful pass wins.
@@ -129,11 +137,13 @@ let fallback_recent_counts : Array[Int] = [25, 30, 40, 50]
 
 ///|
 /// Attempt compression with automatic level fallback.
+
 ///|
 /// Tries `compress_with_rollback` with the initial `recent_count` from
 /// the context. If that fails, retries with progressively larger
 /// `recent_count` values (less aggressive compression) until one succeeds
 /// or all fallback levels are exhausted.
+
 ///|
 /// On success, `history` is updated and `Success(stats)` is returned.
 /// On total failure, `history` is restored to its original state and
@@ -169,12 +179,14 @@ pub fn compress_with_level_fallback(
 
 ///|
 /// Agent-level wrapper that orchestrates the full compression flow.
+
 ///|
 /// 1. Checks if compression is needed
 /// 2. Backs up current history
 /// 3. Calls `compress_with_level_fallback` with the LLM response
 /// 4. On success, saves the archived chunk to disk and increments level
 /// 5. On failure, restores the backup (already done by rollback)
+
 ///|
 /// Returns `Some(stats)` on success, `None` if compression was skipped
 /// or failed (history is preserved).
@@ -186,20 +198,17 @@ pub fn Agent::compress_with_safety(
   match ctx_opt {
     None => Failed("Compression not needed")
     Some(ctx) => {
-      let result = compress_with_level_fallback(
-        self.history,
-        llm_response,
-        ctx,
-      )
+      let result = compress_with_level_fallback(self.history, llm_response, ctx)
       match result {
         Success(_) => {
           // Save archived chunk to disk for future recall
           let to_archive = clone_messages(self.history)
-          match save_compressed_chunk(
-            to_archive,
-            self.session_id,
-            self.compression_level,
-          ) {
+          match
+            save_compressed_chunk(
+              to_archive,
+              self.session_id,
+              self.compression_level,
+            ) {
             Ok(_) => ()
             Err(_) => () // chunk save failure is non-fatal
           }

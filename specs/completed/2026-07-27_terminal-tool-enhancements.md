@@ -1,7 +1,7 @@
 # Terminal 工具增强 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: G10 - Terminal PTY 持久会话；G11 - Terminal 交互输入；G16 - is_multiline_command 错误  
@@ -26,7 +26,7 @@
 |------|---------|------|------|
 | "无持久会话" | 读取 `lib/tool/terminal.mbt` | 每次调用启动新进程 | 确认缺失 |
 | "交互输入是 stub" | `grep "not yet supported" lib/tool/terminal.mbt` | 找到 stub 提示 | 确认缺失 |
-| "is_multiline_command 检查 `<<`" | 读取 `lib/tool/terminal.mbt` 第 62 行 | `if command.find("<<") is Some(_)` | 确认错误 |
+| "is_multiline_command 检查 `<<`" | 读取 `lib/tool/terminal.mbt` 第 54 行 | `if command.find("<<") is Some(_)` | 确认错误 |
 
 ### 详细分析
 
@@ -168,3 +168,4 @@ fn handle_interactive_input(session_id, input) -> Result[String, String] {
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
+| 2026-07-27 | 审核修正：is_multiline_command 行号从 62 修正为 54（实际位置）；确认 `<<` 检查问题属实 | 对抗性审核 + 第一性原理校验 |

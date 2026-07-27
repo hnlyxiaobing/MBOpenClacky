@@ -1,7 +1,7 @@
 # Gap Analysis Overview · 任务拆分总览
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: 已完成（全部 18 个任务开发并归档）
 > **来源文档**: `project-gap-analysis-2026-07-27.md`  
 > **参考模板**: `specs/_templates/incremental-spec-template.md`
 
@@ -19,18 +19,18 @@
 | T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | P0 | 2 | 无 | ✅ 已完成 |
 | T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | P1 | 1 | 无 | ✅ 已完成 |
 | T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
-| T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | P1 | 1 | 无 | 待开发 |
+| T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
 | T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
 | T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | P1 | 1 | 无 | ✅ 已完成 |
-| T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | P1 | 2 | 无 | 待开发 |
-| T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | P1 | 2 | 无 | 待开发 |
-| T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | P1 | 1 | 无 | 待开发 |
-| T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | P2 | 2 | 无 | 待开发 |
-| T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | P2 | 2 | 无 | 待开发 |
-| T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | P2 | 1 | T08 | 待开发 |
-| T16 | Web UI 次要功能补全 | `2026-07-27_web-ui-minor-features.md` | 增量 | P2 | 2 | 无 |
-| T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | P2 | 2 | 无 |
-| T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | P2 | 1 | 无 |
+| T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | P1 | 2 | 无 | ✅ 已完成 |
+| T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | P1 | 2 | 无 | ✅ 已完成 |
+| T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | P1 | 1 | 无 | ✅ 已完成 |
+| T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | P2 | 2 | 无 | ✅ 已完成 |
+| T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | P2 | 2 | 无 | ✅ 已完成 |
+| T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | P2 | 1 | T08 | ✅ 已完成 |
+| T16 | Web UI 次要功能补全 | `2026-07-27_web-ui-minor-features.md` | 增量 | P2 | 2 | 无 | ✅ 已完成 |
+| T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | P2 | 2 | 无 | ✅ 已完成 |
+| T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | P2 | 1 | 无 | ✅ 已完成 |
 
 ## 依赖关系图
 
@@ -73,10 +73,10 @@ T15 (补充 Provider 预设) ◄── 依赖 T08
 
 所有 spec 均需满足：
 
-- [ ] `moon check` 0 errors（涉及的包）
-- [ ] `moon test lib/<pkg>` 全部通过
-- [ ] 与 Ruby 行为对齐（除非 spec 中明确标注为 MoonBit 有意修改）
-- [ ] 不引入新的 breaking change
+- [x] `moon check` 0 errors（涉及的包）
+- [x] `moon test lib/<pkg>` 全部通过
+- [x] 与 Ruby 行为对齐（除非 spec 中明确标注为 MoonBit 有意修改）
+- [x] 不引入新的 breaking change
 
 ## 合并顺序
 
@@ -112,3 +112,4 @@ T15 (补充 Provider 预设) ◄── 依赖 T08
 | 2026-07-27 | T01-T05, T08, T09 归档至 completed/ | 对抗性审查通过，7 个 spec 开发完成并验证 |
 | 2026-07-27 | 修复 working_dir 绝对路径校验 Bug（pre-existing） | `handle_update_working_dir` 在无 `default_working_dir` 时放行绝对路径 |
 | 2026-07-27 | T06 归档至 completed/ | 压缩回滚机制实现完成（compressor_rollback.mbt + 11 个白盒测试），全部验收标准通过 |
+| 2026-07-27 | T07-T18 全部归档至 completed/ | 所有 18 个 gap 分析任务开发完成。T07 Time Machine 集成、T10 Terminal 工具增强（215 tests）、T11 Agent 人格加载、T12 Session 上下文注入、T13 WS token 流式推送、T14 项目规则加载、T15 Provider 预设补充、T16 Web UI 次要功能、T17 自动记忆更新系统（24 tests）、T18 行为不兼容修复。`moon check` 0 errors，`moon test` 3196/3196 passed |

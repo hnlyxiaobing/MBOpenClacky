@@ -58,9 +58,6 @@ pub fn is_multiline_command(command : String) -> Bool {
   if command.find("\r") is Some(_) {
     return true
   }
-  if command.find("<<") is Some(_) {
-    return true
-  }
   false
 }
 

@@ -1,6 +1,6 @@
 ///| System prompt builder for Agent sessions.
 
-///| Builds a layered system prompt with 6 sections.
+///| Builds a layered system prompt with 10 sections.
 
 ///| Reference: openclacky/lib/clacky/agent/system_prompt_builder.rb
 
@@ -39,32 +39,63 @@ let base_agent_rules : String =
   #|
 
 ///|
-/// Build the complete system prompt from 6 layers.
+/// Detect the operating system from environment variables.
+/// Returns "Windows_NT" on Windows, or OSTYPE on Unix-like systems.
+fn detect_os() -> String {
+  match @utils.env_var("OS") {
+    Some(os) => os
+    None =>
+      match @utils.env_var("OSTYPE") {
+        Some(ostype) => ostype
+        None => "unknown"
+      }
+  }
+}
+
+///|
+/// Build the complete system prompt from multiple layers.
 ///
 /// Layer order (matches Ruby source project):
 /// 1. Brand confidentiality notice
-/// 2. Agent role definition
+/// 2. Agent persona (from AgentProfile) or default role
 /// 3. Base behavior rules
-/// 4. Project rules placeholder (Phase 5+)
+/// 4. Project rules (workspace rules from working directory)
 /// 5. Working directory context
-/// 6. Current model information
+/// 6. Environment context (date, OS)
+/// 7. Current model information
+/// 8. Available skills summary
+/// 9. Memory summary
+/// 10. Task summary
 pub fn Agent::build_system_prompt(self : Agent) -> String {
   let sections = StringBuilder::new()
 
   // Layer 1: Brand confidentiality notice
   sections.write_string(brand_confidentiality_notice)
 
-  // Layer 2: Agent role definition
-  sections.write_string(
-    format_prompt_section(
-      "Role", "You are an AI coding assistant. You help users with software engineering tasks including writing code, debugging, refactoring, and answering technical questions.",
-    ),
-  )
+  // Layer 2: Agent persona (from profile) or default role
+  let profile = AgentProfile::load_for_name(self.name)
+  let persona = profile.build_system_prompt_section()
+  if persona.length() > 0 {
+    sections.write_string(format_prompt_section("Agent Identity", persona))
+  } else {
+    sections.write_string(
+      format_prompt_section(
+        "Role", "You are an AI coding assistant. You help users with software engineering tasks including writing code, debugging, refactoring, and answering technical questions.",
+      ),
+    )
+  }
 
   // Layer 3: Base behavior rules
   sections.write_string(base_agent_rules)
 
-  // Layer 4: Project rules (placeholder for Phase 5+ file loading)
+  // Layer 4: Project rules (workspace rules from working directory)
+  if self.working_dir.length() > 0 {
+    let rules = @utils.WorkspaceRules::find_main(self.working_dir)
+    match rules.to_prompt_section() {
+      Some(rule_text) => sections.write_string(rule_text)
+      None => ()
+    }
+  }
 
   // Layer 5: Working directory context
   if self.working_dir.length() > 0 {
@@ -77,17 +108,28 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
     )
   }
 
-  // Layer 6: Current model information
+  // Layer 6: Environment context (date + OS)
+  sections.write_string(
+    format_prompt_section(
+      "Environment",
+      "Current date: " +
+      current_iso8601() +
+      "\nOperating System: " +
+      detect_os(),
+    ),
+  )
+
+  // Layer 7: Current model information
   let model = self.client.model
   sections.write_string(format_prompt_section("Model", "Using model: \{model}"))
 
-  // Layer 7: Available skills summary
+  // Layer 8: Available skills summary
   let skills_summary = self.available_skills_summary()
   if skills_summary.length() > 0 {
     sections.write_string(format_prompt_section("Skills", skills_summary))
   }
 
-  // Layer 8: Memory summary
+  // Layer 9: Memory summary
   match self.memory_store {
     Some(store) => {
       let mem_summary = store.summary()
@@ -98,7 +140,7 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
     None => ()
   }
 
-  // Layer 9: Task summary
+  // Layer 10: Task summary
   let task_summary = self.todo_manager.summary()
   if task_summary != "No tasks." {
     sections.write_string(format_prompt_section("Tasks", task_summary))

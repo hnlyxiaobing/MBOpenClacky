@@ -31,7 +31,7 @@ pub fn AgentConfig::default() -> AgentConfig {
     enable_prompt_caching: true,
     models: [],
     current_model_id: None,
-    memory_update_enabled: false,
+    memory_update_enabled: true,
     skill_evolution: None,
     max_running_agents: 10,
     max_idle_agents: 10,

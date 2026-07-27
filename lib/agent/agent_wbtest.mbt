@@ -195,6 +195,31 @@ test "build_system_prompt_has_model" {
 }
 
 ///|
+test "build_system_prompt_has_environment" {
+  let agent = make_test_agent()
+  let prompt = agent.build_system_prompt()
+  assert_true(prompt.find("Environment") is Some(_))
+  assert_true(prompt.find("Current date:") is Some(_))
+  assert_true(prompt.find("Operating System:") is Some(_))
+}
+
+///|
+test "build_system_prompt_has_role_fallback" {
+  // Agent named "test-agent" has no profile files on disk,
+  // so build_system_prompt should fall back to the hardcoded Role.
+  let agent = make_test_agent()
+  let prompt = agent.build_system_prompt()
+  assert_true(prompt.find("## Role") is Some(_))
+  assert_true(prompt.find("AI coding assistant") is Some(_))
+}
+
+///|
+test "detect_os_returns_nonempty" {
+  let os = detect_os()
+  assert_true(os.length() > 0)
+}
+
+///|
 test "format_prompt_section" {
   let section = format_prompt_section("Title", "Content here")
   assert_true(section.find("## Title") is Some(_))

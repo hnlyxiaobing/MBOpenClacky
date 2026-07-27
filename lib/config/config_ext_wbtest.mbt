@@ -11,7 +11,7 @@ test "ext_agent_config_default_fields" {
   assert_true(cfg.enable_prompt_caching)
   assert_eq(cfg.models.length(), 0)
   assert_true(cfg.current_model_id is None)
-  assert_false(cfg.memory_update_enabled)
+  assert_true(cfg.memory_update_enabled)
   assert_eq(cfg.max_running_agents, 10)
   assert_eq(cfg.max_idle_agents, 10)
   assert_eq(cfg.compression_threshold, 150000)

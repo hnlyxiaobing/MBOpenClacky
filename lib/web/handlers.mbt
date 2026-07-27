@@ -60,6 +60,22 @@ fn session_response_json(summary : SessionSummary) -> Json {
 }
 
 ///|
+/// Compute the latest cron execution timestamp from execution history.
+fn compute_latest_cron_updated_at() -> Json {
+  let mut latest = ""
+  for e in schedule_state.val.executions {
+    if e.executed_at > latest {
+      latest = e.executed_at
+    }
+  }
+  if latest.is_empty() {
+    Json::null()
+  } else {
+    ToJson::to_json(latest)
+  }
+}
+
+///|
 /// GET /api/sessions
 fn handle_list_sessions(
   server_ref : Ref[WebServer],
@@ -74,6 +90,8 @@ fn handle_list_sessions(
   let before = event.req.get_query("before")
   let type_filter = event.req.get_query("type")
   let exclude_type = event.req.get_query("exclude_type")
+  let q_scope = event.req.get_query("q_scope")
+  let date_filter = event.req.get_query("date")
   // Fetch all sessions and map to summaries
   let all_sessions = @agent.list_sessions()
   let pinned_map = load_pinned_map()
@@ -107,6 +125,16 @@ fn handle_list_sessions(
       Some(t) => if !t.is_empty() && sd.source == t { continue }
       None => ()
     }
+    // Apply q_scope filter (by agent_profile)
+    match q_scope {
+      Some(s) => if !s.is_empty() && sd.agent_profile != s { continue }
+      None => ()
+    }
+    // Apply date filter (by created_at date prefix, e.g. "2026-07-27")
+    match date_filter {
+      Some(d) => if !d.is_empty() && !sd.created_at.has_prefix(d) { continue }
+      None => ()
+    }
     summaries.push(
       build_session_summary(
         sd,
@@ -116,6 +144,17 @@ fn handle_list_sessions(
       ),
     )
   }
+  // Sort: pinned sessions first, then by updated_at descending
+  summaries.sort_by(fn(a, b) {
+    let a_pin = if a.pinned { 0 } else { 1 }
+    let b_pin = if b.pinned { 0 } else { 1 }
+    let pin_cmp = a_pin.compare(b_pin)
+    if pin_cmp != 0 {
+      pin_cmp
+    } else {
+      b.updated_at.compare(a.updated_at)
+    }
+  })
   let total = summaries.length()
   let has_more = total > limit
   // Apply limit (take first `limit` items)
@@ -124,10 +163,10 @@ fn handle_list_sessions(
   } else {
     summaries
   }
-  // Real cron task count from the schedule store (no updated_at is tracked
-  // per schedule, so latest_cron_updated_at stays None).
+  // Real cron task count from the schedule store.
   ensure_schedules_loaded()
   let cron_count = schedule_state.val.scheduler.list_schedules().length()
+  let latest_cron = compute_latest_cron_updated_at()
   let paged_json : Array[Json] = []
   for s in paged {
     paged_json.push(ToJson::to_json(s))
@@ -137,7 +176,7 @@ fn handle_list_sessions(
       "sessions": ToJson::to_json(paged_json),
       "has_more": ToJson::to_json(has_more),
       "cron_count": ToJson::to_json(cron_count),
-      "latest_cron_updated_at": Json::null(),
+      "latest_cron_updated_at": latest_cron,
     }),
   )
 }

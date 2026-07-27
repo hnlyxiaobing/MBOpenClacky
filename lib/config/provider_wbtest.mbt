@@ -40,7 +40,7 @@ test "api_type: from_string rejects unknown" {
 
 ///|
 test "providers: all returns the full preset list" {
-  @debug.assert_eq(Providers::all().length(), 12)
+  @debug.assert_eq(Providers::all().length(), 13)
 }
 
 ///|
@@ -267,5 +267,103 @@ test "providers: minimax and kimi declare regional variants" {
       assert_true(urls.contains("https://api.moonshot.ai/v1"))
     }
     None => fail("expected kimi preset")
+  }
+}
+
+///|
+test "providers: volcengine-ark preset exists" {
+  match Providers::find("volcengine-ark") {
+    Some(p) => {
+      @debug.assert_eq(p.id, "volcengine-ark")
+      @debug.assert_eq(p.name, "Volcengine Ark")
+      @debug.assert_eq(p.base_url, "https://ark.cn-beijing.volces.com/api/v3")
+      assert_true(p.api_type == OpenAICompletions)
+      @debug.assert_eq(p.default_model, "doubao-1.5-pro-256k")
+      assert_true(p.models.contains("doubao-1.5-pro-256k"))
+      assert_true(p.models.contains("deepseek-r1-250120"))
+    }
+    None => fail("expected volcengine-ark preset")
+  }
+}
+
+///|
+test "providers: volcengine-ark has three regional variants" {
+  match Providers::find("volcengine-ark") {
+    Some(p) => {
+      @debug.assert_eq(p.endpoint_variants.length(), 3)
+      let urls = p.endpoint_variants.map(fn(v) { v.base_url })
+      assert_true(urls.contains("https://ark.cn-beijing.volces.com/api/v3"))
+      assert_true(urls.contains("https://ark.cn-shanghai.volces.com/api/v3"))
+      assert_true(urls.contains("https://ark.cn-guangzhou.volces.com/api/v3"))
+    }
+    None => fail("expected volcengine-ark preset")
+  }
+}
+
+///|
+test "providers: volcengine-ark endpoint resolves" {
+  match Providers::resolve("https://ark.cn-shanghai.volces.com/api/v3") {
+    Some(p) => @debug.assert_eq(p.id, "volcengine-ark")
+    None => fail("expected Shanghai endpoint to resolve to volcengine-ark")
+  }
+}
+
+///|
+test "providers: kimi models include latest" {
+  match Providers::find("kimi") {
+    Some(p) => {
+      assert_true(p.models.contains("kimi-k3"))
+      assert_true(p.models.contains("kimi-k2.7-code"))
+      assert_true(p.models.contains("kimi-k2.7-code-highspeed"))
+      assert_true(p.models.contains("kimi-k2.6"))
+      assert_true(p.models.contains("kimi-k2.5"))
+    }
+    None => fail("expected kimi preset")
+  }
+}
+
+///|
+test "providers: kimi lite model for kimi-k3" {
+  let lite = Providers::lite_model("https://api.moonshot.cn/v1", "kimi-k3")
+  assert_true(lite == Some("kimi-k2.5"))
+}
+
+///|
+test "providers: qwen has three regional endpoint variants" {
+  match Providers::find("qwen") {
+    Some(p) => {
+      @debug.assert_eq(p.endpoint_variants.length(), 3)
+      let regions = p.endpoint_variants.map(fn(v) {
+        match v.region {
+          Some(r) => r
+          None => ""
+        }
+      })
+      assert_true(regions.contains("cn"))
+      assert_true(regions.contains("intl"))
+      assert_true(regions.contains("us"))
+    }
+    None => fail("expected qwen preset")
+  }
+}
+
+///|
+test "providers: qwen international endpoint resolves" {
+  match
+    Providers::resolve("https://dashscope-intl.aliyuncs.com/compatible-mode/v1") {
+    Some(p) => @debug.assert_eq(p.id, "qwen")
+    None => fail("expected intl endpoint to resolve to qwen")
+  }
+}
+
+///|
+test "providers: openclacky has image and audio models" {
+  match Providers::find("openclacky") {
+    Some(p) => {
+      assert_true(p.image_models.contains("gpt-4o"))
+      assert_true(p.audio_models.contains("tts-1"))
+      assert_true(p.video_models.length() == 0)
+    }
+    None => fail("expected openclacky preset")
   }
 }

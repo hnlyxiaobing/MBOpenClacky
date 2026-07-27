@@ -8,7 +8,7 @@ test "agent_config_default_values" {
   assert_true(config.enable_prompt_caching)
   assert_true(config.models.is_empty())
   assert_true(config.current_model_id is None)
-  assert_false(config.memory_update_enabled)
+  assert_true(config.memory_update_enabled)
   @debug.assert_eq(config.max_running_agents, 10)
   @debug.assert_eq(config.max_idle_agents, 10)
 }
@@ -52,16 +52,16 @@ test "api_type_from_string_invalid" {
 }
 
 ///|
-test "providers_all_has_twelve_providers" {
+test "providers_all_has_thirteen_providers" {
   let all = Providers::all()
-  @debug.assert_eq(all.length(), 12)
+  @debug.assert_eq(all.length(), 13)
 }
 
 ///|
 test "providers_find_known" {
   let ids = [
     "openclacky", "openrouter", "deepseekv4", "minimax", "kimi", "kimi-coding", "anthropic",
-    "mimo", "glm", "openai", "deepseek", "qwen",
+    "mimo", "glm", "openai", "deepseek", "qwen", "volcengine-ark",
   ]
   for id in ids {
     let found = Providers::find(id)

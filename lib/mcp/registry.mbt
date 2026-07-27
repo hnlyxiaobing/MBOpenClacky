@@ -41,9 +41,7 @@ pub fn McpRegistry::load_from_file(path : String) -> McpRegistry {
         idle_timeout: DEFAULT_IDLE_TIMEOUT,
       }
   }
-  let specs = parse_mcp_config(content) catch {
-    _ => Map([])
-  }
+  let specs = parse_mcp_config(content) catch { _ => Map([]) }
   let enabled : Map[String, Bool] = Map([])
   specs.each(fn(name, _spec) { enabled[name] = true })
   {

@@ -42,7 +42,11 @@ test "detect_fake_tool_call empty content" {
 
 ///|
 test "detect_fake_tool_call code discussion" {
-  assert_true(!detect_fake_tool_call("You can use the map function to transform elements."))
+  assert_true(
+    !detect_fake_tool_call(
+      "You can use the map function to transform elements.",
+    ),
+  )
 }
 
 ///|

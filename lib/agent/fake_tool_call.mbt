@@ -18,11 +18,7 @@ pub let max_fake_tool_call_retries : Int = 2
 /// XML patterns that indicate a fake tool call in content.
 /// Each pattern is a substring prefix that we check via `contains`.
 let fake_tool_call_patterns : Array[String] = [
-  "<invoke name=",
-  "<function_calls>",
-  "<tool_call>",
-  "<antml:function_calls>",
-  "<functions>",
+  "<invoke name=", "<function_calls>", "<tool_call>", "<antml:function_calls>", "<functions>",
 ]
 
 ///|
@@ -42,8 +38,7 @@ pub fn detect_fake_tool_call(content : String) -> Bool {
 ///|
 /// The correction prompt injected when a fake tool call is detected.
 /// Instructs the model to use the proper tool_calls API instead of XML.
-pub let fake_tool_call_correction_prompt : String =
-  "Your previous response contained XML-formatted tool calls in the text content. " +
+pub let fake_tool_call_correction_prompt : String = "Your previous response contained XML-formatted tool calls in the text content. " +
   "This is not supported. You MUST use the proper tool_calls API to invoke tools. " +
   "Do NOT write tool calls as XML in your text response. " +
   "Please retry your response using the correct tool_calls format."

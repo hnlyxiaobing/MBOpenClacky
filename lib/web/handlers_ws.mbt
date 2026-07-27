@@ -25,7 +25,7 @@ priv struct WsSessionState {
   /// interrupt. None when running synchronously (test fallback).
   mut running_task : @async.Task[Unit]?
   /// Aggregates StreamChunk deltas into one complete assistant_message
-  /// (spec decision 3: no token-level streaming on the WS path).
+  /// (T13: token-level streaming now forwarded via token_delta events).
   mut chunk_buf : String
   /// Sequence counter for confirmation request ids.
   mut confirm_seq : Int
@@ -37,6 +37,8 @@ priv struct WsSessionState {
   /// upstream message resolves the queue; the feedback bridge task awaits
   /// it with a timeout.
   pending_feedback : Map[String, @async.Queue[String]]
+  /// Time Machine state for file-change snapshots (undo/restore).
+  time_machine : @agent.TimeMachineState
 }
 
 ///|
@@ -70,6 +72,7 @@ fn get_ws_state(session_id : String) -> WsSessionState {
         confirm_seq: 0,
         pending_confirmations: Map([]),
         pending_feedback: Map([]),
+        time_machine: @agent.TimeMachineState::new(session_id),
       }
       ws_states[session_id] = s
       s
@@ -572,6 +575,7 @@ fn broadcast_latency_frame(
 /// Register the WS broadcast hook on the agent (exactly once per agent
 /// instance). The hook:
 ///   - aggregates StreamChunk deltas into one complete assistant_message
+///   - forwards token_delta events for real-time typing animation (T13)
 ///   - suppresses the complete/error events when the run was interrupted
 ///   - forwards every other event through the protocol event mapper
 /// (Cancellation itself is delivered via Task::cancel on the run task;
@@ -591,9 +595,15 @@ fn register_ws_hooks(
   let state = get_ws_state(sid)
   agent.hook_manager.register(fn(evt : @agent.HookEvent) {
     match evt {
-      @agent.StreamChunk(chunk) =>
+      @agent.StreamChunk(chunk) => {
         // Aggregate; pushed as one complete assistant_message on MessageAdded.
         state.chunk_buf = state.chunk_buf + chunk
+        // T13: Also forward token-level delta for real-time typing animation.
+        hub.broadcast_session_raw(
+          sid,
+          @protocol.build_token_delta_event(sid, chunk),
+        )
+      }
       @agent.MessageAdded =>
         if state.chunk_buf.length() > 0 {
           let content = state.chunk_buf
@@ -663,9 +673,53 @@ fn register_ws_hooks(
           )
           broadcast_latency_frame(hub, sid, agent, usage_data)
         }
+      @agent.ToolExecuting(name, args) => {
+        // Time machine: snapshot file content before a write-type tool
+        // modifies it (mirrors TUI agent_hooks.mbt pattern).
+        if is_file_write_tool(name) {
+          match json_string_field(args, "path") {
+            Some(path) => {
+              let content : String? = if @fs.path_exists(path) {
+                Some(@fs.read_file_to_string(path) catch { _ => "" })
+              } else {
+                None
+              }
+              state.time_machine.record_file_before_change(path, content)
+            }
+            None => ()
+          }
+        }
+        // Forward event to web UI
+        hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+      }
       _ => hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
     }
   })
+}
+
+///|
+/// Whether the tool modifies file contents (for time-machine snapshots).
+fn is_file_write_tool(name : String) -> Bool {
+  name == "write" ||
+  name == "edit" ||
+  name == "write_file" ||
+  name == "file_edit" ||
+  name == "create_file" ||
+  name == "patch"
+}
+
+///|
+/// Extract a string field from a JSON object text; None on any mismatch.
+fn json_string_field(json_text : String, key : String) -> String? {
+  let parsed = @json.parse(json_text) catch { _ => return None }
+  match parsed {
+    Object(obj) =>
+      match obj.get(key) {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+    _ => None
+  }
 }
 
 ///|
@@ -915,6 +969,9 @@ async fn start_ws_run(
   register_ws_hooks(server_ref, agent, session_id)
   setup_confirmation_bridge(server_ref, agent, session_id)
   setup_feedback_bridge(server_ref, agent, session_id)
+
+  // Time machine: open a new task so file writes in this run can be undone
+  ignore(state.time_machine.start_new_task(Some(message)))
 
   // Echo the user message back as history_user_message.
   hub.broadcast_session(

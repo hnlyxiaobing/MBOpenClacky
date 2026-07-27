@@ -262,6 +262,18 @@ pub fn format_hook_event(
 }
 
 ///|
+/// Build a token_delta event for real-time streaming (typing animation).
+/// T13: Forwarded alongside chunk aggregation so the frontend can animate
+/// token-by-token while the complete message is still sent on MessageAdded.
+pub fn build_token_delta_event(session_id : String, chunk : String) -> String {
+  build_event(
+    event_token_delta,
+    session_id,
+    Json::object({ "content": chunk.to_json() }),
+  )
+}
+
+///|
 /// Build a session_update snapshot event from a SessionData.
 /// Sent on initial subscribe; uses the `session` object shape the frontend
 /// session_update handler expects (ws-dispatcher.js shape 1).

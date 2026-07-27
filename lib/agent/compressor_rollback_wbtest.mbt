@@ -52,11 +52,7 @@ test "compress_with_rollback succeeds with valid response" {
     previous_chunks: [],
     compression_history: [],
   }
-  let result = compress_with_rollback(
-    history,
-    valid_compression_response,
-    ctx,
-  )
+  let result = compress_with_rollback(history, valid_compression_response, ctx)
   match result {
     Success(stats) => {
       // History must be shorter than before
@@ -88,9 +84,7 @@ test "compress_with_rollback restores history on parse failure" {
     compression_history: [],
   }
   let result = compress_with_rollback(
-    history,
-    invalid_compression_response,
-    ctx,
+    history, invalid_compression_response, ctx,
   )
   match result {
     Success(_) => fail("Expected Failed for invalid response")
@@ -123,11 +117,7 @@ test "compress_with_rollback restores history when no size reduction" {
     previous_chunks: [],
     compression_history: [],
   }
-  let result = compress_with_rollback(
-    history,
-    valid_compression_response,
-    ctx,
-  )
+  let result = compress_with_rollback(history, valid_compression_response, ctx)
   match result {
     Success(_) => fail("Expected Failed when no size reduction")
     Failed(e) => {
@@ -157,7 +147,8 @@ test "compress_with_rollback preserves system message in rebuilt history" {
   assert_true(history[0].role == @message.System)
   // Second message should be the compressed summary
   match history[1].content {
-    @message.Text(s) => assert_true(s.contains("Compressed conversation summary"))
+    @message.Text(s) =>
+      assert_true(s.contains("Compressed conversation summary"))
     _ => fail("Expected Text content for summary")
   }
 }
@@ -178,9 +169,7 @@ test "compress_with_level_fallback succeeds on first attempt" {
     compression_history: [],
   }
   let result = compress_with_level_fallback(
-    history,
-    valid_compression_response,
-    ctx,
+    history, valid_compression_response, ctx,
   )
   match result {
     Success(_) => assert_true(history.length() < before_count)
@@ -205,9 +194,7 @@ test "compress_with_level_fallback preserves history when all levels fail" {
   }
   // Invalid response -> all levels will fail to parse
   let result = compress_with_level_fallback(
-    history,
-    invalid_compression_response,
-    ctx,
+    history, invalid_compression_response, ctx,
   )
   match result {
     Success(_) => fail("Expected Failed for invalid response")
@@ -246,9 +233,7 @@ test "compress_with_level_fallback uses fallback when initial count too small" {
     compression_history: [],
   }
   let result = compress_with_level_fallback(
-    history,
-    valid_compression_response,
-    ctx,
+    history, valid_compression_response, ctx,
   )
   match result {
     Success(stats) => {

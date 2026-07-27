@@ -100,3 +100,19 @@ test "process_terminal_output with control chars and ANSI" {
   let (result, _) = process_terminal_output(input)
   @debug.assert_eq(result, "helloworld\nend")
 }
+
+///|
+test "is_multiline_command detects newlines" {
+  assert_true(is_multiline_command("echo hello\necho world"))
+  assert_true(is_multiline_command("echo hello\recho world"))
+}
+
+///|
+test "is_multiline_command does not reject heredoc operator in quotes" {
+  // echo "a << b" contains << inside quotes - should NOT be multiline
+  assert_false(is_multiline_command("echo \"a << b\""))
+  assert_false(is_multiline_command("grep << pattern file"))
+  // Single-line commands are not multiline
+  assert_false(is_multiline_command("echo hello"))
+  assert_false(is_multiline_command("ls -la"))
+}

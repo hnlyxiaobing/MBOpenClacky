@@ -89,6 +89,12 @@ pub(all) struct ProviderPreset {
   /// Optional i18n key for the display name; the frontend falls back to
   /// `name` when absent or untranslated (upstream `name_key`).
   name_key : String?
+  /// Models that support image generation (e.g. DALL-E, GPT-4o)
+  image_models : Array[String]
+  /// Models that support video generation (e.g. Sora)
+  video_models : Array[String]
+  /// Models that support audio generation / TTS
+  audio_models : Array[String]
   /// Alternative endpoints that must resolve to this same preset.
   endpoint_variants : Array[EndpointVariant]
 } derive(Debug)
@@ -134,6 +140,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://www.openclacky.com/ai-keys"),
       name_key: None,
+      image_models: ["gpt-4o"],
+      video_models: [],
+      audio_models: ["tts-1"],
       endpoint_variants: [],
     },
     {
@@ -172,6 +181,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       },
       website_url: Some("https://openrouter.ai/keys"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -188,6 +200,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://platform.deepseek.com/api_keys"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -208,6 +223,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       name_key: None,
       // MiniMax runs two regional endpoints with identical APIs & model
       // lineup: mainland China (.com) and international (.io).
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [
         {
           label: "Mainland China",
@@ -229,8 +247,14 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       base_url: "https://api.moonshot.cn/v1",
       api_type: OpenAICompletions,
       default_model: "kimi-k2.6",
-      models: ["kimi-k2.6", "kimi-k2.5"],
-      lite_models: { "kimi-k2.6": "kimi-k2.5" },
+      models: [
+        "kimi-k3", "kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2.6", "kimi-k2.5",
+      ],
+      lite_models: {
+        "kimi-k3": "kimi-k2.5",
+        "kimi-k2.7-code": "kimi-k2.7-code-highspeed",
+        "kimi-k2.6": "kimi-k2.5",
+      },
       fallback_models: Map([]),
       capabilities: ModelCapabilities::with_vision(),
       model_capabilities: Map([]),
@@ -238,6 +262,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       website_url: Some("https://platform.moonshot.cn/console/api-keys"),
       name_key: None,
       // Moonshot PAYG endpoints: mainland China (.cn) and international (.ai).
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [
         {
           label: "Mainland China",
@@ -267,6 +294,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://www.kimi.com/code"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -291,6 +321,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://console.anthropic.com/settings/keys"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -307,6 +340,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://platform.xiaomimimo.com/"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -328,6 +364,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       // They share the same model lineup & capability profile, so a single
       // preset with variants is the right shape; otherwise users pointing at
       // api.z.ai or the /coding/ path fell through to conservative defaults.
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [
         {
           label: "Mainland · Pay-as-you-go",
@@ -376,6 +415,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://platform.openai.com/api-keys"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -394,6 +436,9 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://platform.deepseek.com/api_keys"),
       name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
       endpoint_variants: [],
     },
     {
@@ -419,7 +464,83 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_api_overrides: Map([]),
       website_url: Some("https://bailian.console.aliyun.com/?apiKey=1"),
       name_key: None,
-      endpoint_variants: [],
+      image_models: [],
+      video_models: [],
+      audio_models: [],
+      // Alibaba Cloud DashScope exposes three regional endpoints:
+      // mainland China, international, and US. They share the same model
+      // lineup & API shape, so a single preset with variants covers all.
+      endpoint_variants: [
+        {
+          label: "China",
+          label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          region: Some("cn"),
+        },
+        {
+          label: "International",
+          label_key: Some("settings.models.baseurl.variant.international"),
+          base_url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+          region: Some("intl"),
+        },
+        {
+          label: "US",
+          label_key: None,
+          base_url: "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+          region: Some("us"),
+        },
+      ],
+    },
+    {
+      id: "volcengine-ark",
+      name: "Volcengine Ark",
+      base_url: "https://ark.cn-beijing.volces.com/api/v3",
+      api_type: OpenAICompletions,
+      default_model: "doubao-1.5-pro-256k",
+      models: [
+        "doubao-1.5-pro-256k", "doubao-1.5-pro-32k", "doubao-1.5-lite-32k", "doubao-1.5-lite-4k",
+        "doubao-pro-256k", "doubao-pro-32k", "doubao-pro-4k", "doubao-lite-128k",
+        "doubao-lite-32k", "doubao-lite-4k", "deepseek-r1-250120", "deepseek-v3-241226",
+      ],
+      lite_models: {
+        "doubao-1.5-pro-256k": "doubao-1.5-lite-32k",
+        "doubao-1.5-pro-32k": "doubao-1.5-lite-32k",
+        "doubao-pro-256k": "doubao-lite-32k",
+        "doubao-pro-32k": "doubao-lite-32k",
+      },
+      fallback_models: Map([]),
+      capabilities: ModelCapabilities::text_only(),
+      model_capabilities: Map([]),
+      model_api_overrides: Map([]),
+      website_url: Some(
+        "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey",
+      ),
+      name_key: None,
+      image_models: [],
+      video_models: [],
+      audio_models: [],
+      // Volcengine Ark exposes three regional endpoints in China.
+      // They share the same model lineup & API shape.
+      endpoint_variants: [
+        {
+          label: "Beijing",
+          label_key: None,
+          base_url: "https://ark.cn-beijing.volces.com/api/v3",
+          region: Some("cn"),
+        },
+        {
+          label: "Shanghai",
+          label_key: None,
+          base_url: "https://ark.cn-shanghai.volces.com/api/v3",
+          region: Some("cn"),
+        },
+        {
+          label: "Guangzhou",
+          label_key: None,
+          base_url: "https://ark.cn-guangzhou.volces.com/api/v3",
+          region: Some("cn"),
+        },
+      ],
     },
   ]
 }

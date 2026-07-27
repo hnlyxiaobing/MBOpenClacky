@@ -1,7 +1,7 @@
 # 行为不兼容修复 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: 无  
 > **来源差距**: 行为不兼容项（7 个）  
@@ -177,3 +177,4 @@ get "/restore_preview"
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
+| 2026-07-27 | 审核修正：确认全部 7 项行为差异属实。Channel 路由 PUT /:id、Skill toggle POST /:name/toggle、restore_preview POST 均已通过 server.mbt 代码验证 | 对抗性审核 + 第一性原理校验 |

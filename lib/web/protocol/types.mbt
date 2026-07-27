@@ -151,6 +151,10 @@ pub let event_phase_end : String = "phase_end"
 pub let event_token_usage : String = "token_usage"
 
 ///|
+/// Token-level delta (real-time streaming for typing animation).
+pub let event_token_delta : String = "token_delta"
+
+///|
 /// Diff preview.
 pub let event_diff : String = "diff"
 

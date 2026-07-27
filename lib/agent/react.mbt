@@ -54,6 +54,10 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   self.status = Completed
   self.hook_manager.emit(StatusChanged(completed_status, Completed))
   self.hook_manager.emit(RunCompleted(result))
+  // T17: Auto memory update - extract memorable info from conversation
+  self.auto_update_memory() catch {
+    _ => ()
+  }
   result
 }
 
@@ -142,11 +146,12 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
             for m in self.history {
               to_archive.push(m)
             }
-            match save_compressed_chunk(
-              to_archive,
-              self.session_id,
-              self.compression_level,
-            ) {
+            match
+              save_compressed_chunk(
+                to_archive,
+                self.session_id,
+                self.compression_level,
+              ) {
               Ok(_) => ()
               Err(_) => () // chunk save failure is non-fatal
             }

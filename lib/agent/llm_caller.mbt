@@ -107,22 +107,18 @@ fn Agent::check_fallback_cooldown(self : Agent) -> Unit {
 /// Wraps `call_llm_async` with exponential backoff retry on RetryableError.
 /// After `retries_before_fallback` consecutive failures, activates the
 /// fallback model. Respects cooldown probing.
-pub async fn Agent::call_with_retry_async(
-  self : Agent,
-) -> @client.LlmResponse {
+pub async fn Agent::call_with_retry_async(self : Agent) -> @client.LlmResponse {
   self.check_fallback_cooldown()
   let mut attempt = 0
   while true {
     attempt = attempt + 1
-    let result = Ok(self.call_llm_async()) catch {
-      e => Err(e)
-    }
+    let result = Ok(self.call_llm_async()) catch { e => Err(e) }
     match result {
       Ok(response) => {
         self.record_llm_success()
         return response
       }
-      Err(e) => {
+      Err(e) =>
         match e {
           @errors.RetryableError(_) => {
             self.record_retryable_failure()
@@ -134,7 +130,6 @@ pub async fn Agent::call_with_retry_async(
           }
           _ => raise e
         }
-      }
     }
   }
   // unreachable, but MoonBit requires a trailing expression
@@ -154,15 +149,13 @@ pub async fn Agent::call_stream_with_retry_async(
   let mut attempt = 0
   while true {
     attempt = attempt + 1
-    let result = Ok(self.call_llm_stream_async(on_chunk)) catch {
-      e => Err(e)
-    }
+    let result = Ok(self.call_llm_stream_async(on_chunk)) catch { e => Err(e) }
     match result {
       Ok(response) => {
         self.record_llm_success()
         return response
       }
-      Err(e) => {
+      Err(e) =>
         match e {
           @errors.RetryableError(_) => {
             self.record_retryable_failure()
@@ -174,7 +167,6 @@ pub async fn Agent::call_stream_with_retry_async(
           }
           _ => raise e
         }
-      }
     }
   }
   raise @errors.AgentError("retry loop exited unexpectedly")

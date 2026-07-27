@@ -218,7 +218,7 @@ test "config settings get: flat orig shape from agent config" {
   @debug.assert_eq(ccfg_bool_field(body, "enable_compression"), false)
   // Untouched switches keep their AgentConfig defaults.
   @debug.assert_eq(ccfg_bool_field(body, "enable_prompt_caching"), true)
-  @debug.assert_eq(ccfg_bool_field(body, "memory_update_enabled"), false)
+  @debug.assert_eq(ccfg_bool_field(body, "memory_update_enabled"), true)
   @debug.assert_eq(ex_str_field(body, "proxy_url"), "http://127.0.0.1:7890")
 }
 

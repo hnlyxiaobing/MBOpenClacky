@@ -1,7 +1,7 @@
 # 补充 Provider 预设 · 增量 Spec
 
 > **创建日期**: 2026-07-27  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: `2026-07-27_gap-analysis-overview.md`  
 > **关联历史 spec**: `2026-07-27_provider-vision-capabilities.md`  
 > **来源差距**: G13 - volcengine-ark 预设完全缺失；G18 - Kimi 模型列表过时；G19 - Qwen 缺少区域端点变体；G20 - OpenClacky 预设缺少 image/video/audio models 声明  
@@ -188,3 +188,4 @@ endpoint_variants: [
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-07-27 | 初始版本 | 基于 gap-analysis 文档创建 |
+| 2026-07-27 | 审核修正：确认 volcengine-ark 缺失、Kimi 模型过时、Qwen 无 endpoint_variants 均属实。补充发现：Kimi 已有 endpoint_variants(cn/intl) 可作为模式参考 | 对抗性审核 + 第一性原理校验 |

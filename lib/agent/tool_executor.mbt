@@ -456,7 +456,9 @@ fn truncate_tool_output(output : String) -> String {
     count = count + 1
   }
   if did_truncate {
-    buf.write_string("\n\n[Output truncated at \{max_tool_output_chars} characters]")
+    buf.write_string(
+      "\n\n[Output truncated at \{max_tool_output_chars} characters]",
+    )
   }
   buf.to_string()
 }
@@ -468,7 +470,11 @@ pub fn build_success_result(
   call : @message.ToolCall,
   result : @tool.ToolResult,
 ) -> ToolResultEntry {
-  { id: call.id, content: truncate_tool_output(result.content), is_error: false }
+  {
+    id: call.id,
+    content: truncate_tool_output(result.content),
+    is_error: false,
+  }
 }
 
 ///|
