@@ -5,15 +5,15 @@ fn make_test_state_with_thinking(buffer : String, active : Bool) -> TuiState {
     session_id: "test",
     model_name: "test-model",
     mode: Idle,
-    agent_status: "thinking",
+    agent_status: @mizchi/signals.signal("thinking"),
     iterations: 1,
     working_dir: "/tmp",
     permission_mode: "confirm_safes",
     active_tasks: 0,
     messages: [],
-    streaming_buffer: "",
-    streaming_active: false,
-    tool_output: "",
+    streaming_buffer: @mizchi/signals.signal(""),
+    streaming_active: @mizchi/signals.signal(false),
+    tool_output: @mizchi/signals.signal(""),
     current_tool_name: "",
     current_tool_args: "",
     tool_history: [],
@@ -37,7 +37,7 @@ fn make_test_state_with_thinking(buffer : String, active : Bool) -> TuiState {
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
     shell_mode: ShellMode::Chat,
-    thinking_buffer: buffer,
+    thinking_buffer: @mizchi/signals.signal(buffer),
     tick_count: 0,
     run_start_ts: 0L,
     total_iterations: 0,
@@ -109,7 +109,7 @@ test "thinking: truncate_thinking_buffer caps size" {
   let long_text = "x".repeat(20000)
   let state = make_test_state_with_thinking(long_text, true)
   truncate_thinking_buffer(state)
-  assert_true(state.thinking_buffer.length() <= thinking_max_buffer_size)
+  assert_true(state.thinking_buffer.get().length() <= thinking_max_buffer_size)
 }
 
 ///|

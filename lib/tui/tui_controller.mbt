@@ -68,7 +68,7 @@ pub fn TuiController::new(
   let hooks = AgentHookHandler::new(state, agent=Some(agent))
   hooks.set_output(output)
   let (tw, th) = query_size_safe(tty)
-  {
+  let controller = {
     tty,
     output,
     vnode_renderer: VNodeRenderer::new(tty),
@@ -98,6 +98,16 @@ pub fn TuiController::new(
     scroll_offset: 0,
     brand_layout: GeminiLike,
   }
+  // Register render_effect to auto-set dirty when Signal fields change
+  let _ = @mizchi/signals.render_effect(fn() {
+    let _ = controller.state.val.streaming_buffer.get()
+    let _ = controller.state.val.tool_output.get()
+    let _ = controller.state.val.thinking_buffer.get()
+    let _ = controller.state.val.agent_status.get()
+    let _ = controller.state.val.streaming_active.get()
+    controller.dirty = true
+  })
+  controller
 }
 
 // ── Command suggestions / progress helpers ───────────────────────
@@ -424,24 +434,21 @@ async fn TuiController::main_loop(
         self.state.val.tick_count = self.state.val.tick_count + 1
         // Poll the streaming buffer — hooks update it via Ref, bypassing
         // the event queue, so the Tick timer drives live reply rendering.
-        if self.agent_output_sync.sync_streaming(
-            self.state.val.streaming_buffer,
+        // Note: dirty flag is auto-set by render_effect when Signal fields change
+        ignore(self.agent_output_sync.sync_streaming(
+            self.state.val.streaming_buffer.get(),
             self.state.val.messages,
             self.output,
-          ) {
-          self.dirty = true
-        }
+          ))
         if self.agent_running ||
-          self.state.val.streaming_active ||
           self.state.val.progress_stack.has_open() {
           // Keep redrawing while the agent runs so the progress band's
           // spinner animates on every Tick.
           self.dirty = true
         }
-        if self.state.val.thinking_buffer.length() != self.last_thinking_len {
-          self.last_thinking_len = self.state.val.thinking_buffer.length()
+        if self.state.val.thinking_buffer.get().length() != self.last_thinking_len {
+          self.last_thinking_len = self.state.val.thinking_buffer.get().length()
           truncate_thinking_buffer(self.state.val)
-          self.dirty = true
         }
       }
       TerminalClosed => self.quit = true
@@ -899,6 +906,17 @@ async fn TuiController::handle_key(
       self.input.cursor_right()
       self.dirty = true
     }
+    Up if key.modifiers.ctrl() => {
+      // Ctrl+Up: scroll up one line
+      let msg_height = self.term_height - 5
+      let total = self.output.total_lines()
+      let max_offset = if total > msg_height { total - msg_height } else { 0 }
+      if self.scroll_offset < max_offset {
+        self.scroll_offset = self.scroll_offset + 1
+        self.dirty = true
+        self.redraw()
+      }
+    }
     Up => {
       match arrow_key_action(self.suggestions_active, self.input.line_count()) {
         NavigateSuggestions => self.suggestions.select_prev()
@@ -906,6 +924,14 @@ async fn TuiController::handle_key(
         MoveCursor => self.input.cursor_up()
       }
       self.dirty = true
+    }
+    Down if key.modifiers.ctrl() => {
+      // Ctrl+Down: scroll down one line
+      if self.scroll_offset > 0 {
+        self.scroll_offset = self.scroll_offset - 1
+        self.dirty = true
+        self.redraw()
+      }
     }
     Down => {
       match arrow_key_action(self.suggestions_active, self.input.line_count()) {
@@ -922,6 +948,31 @@ async fn TuiController::handle_key(
     End => {
       self.input.cursor_end()
       self.dirty = true
+    }
+    PageUp => {
+      // Page Up: scroll up by one page (term_height - 2 lines overlap)
+      let msg_height = self.term_height - 5
+      let total = self.output.total_lines()
+      let max_offset = if total > msg_height { total - msg_height } else { 0 }
+      if self.scroll_offset < max_offset {
+        self.scroll_offset = self.scroll_offset + (msg_height - 2)
+        if self.scroll_offset > max_offset {
+          self.scroll_offset = max_offset
+        }
+        self.dirty = true
+        self.redraw()
+      }
+    }
+    PageDown => {
+      // Page Down: scroll down by one page (term_height - 2 lines overlap)
+      if self.scroll_offset > 0 {
+        self.scroll_offset = self.scroll_offset - (self.term_height - 5 - 2)
+        if self.scroll_offset < 0 {
+          self.scroll_offset = 0
+        }
+        self.dirty = true
+        self.redraw()
+      }
     }
     Backspace => {
       self.input.backspace()

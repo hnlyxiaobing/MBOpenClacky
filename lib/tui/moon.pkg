@@ -20,10 +20,10 @@ import {
   "mizchi/tui/vnode" @tui,
   "mizchi/tui/core" @tui_core,
   "mizchi/tui/events" @tui_events,
+  "mizchi/signals",
   "hustcer/tabular",
   "mizchi/tui/components" @tui_components,
 }
-
 warnings = "-6"
 
 supported_targets = "native"

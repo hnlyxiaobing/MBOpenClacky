@@ -42,7 +42,7 @@ test "TuiState::from_agent creates correct initial state" {
   @debug.debug_inspect(state.iterations, content="0")
   @debug.debug_inspect(state.messages.length(), content="0")
   @debug.debug_inspect(
-    state.tool_output,
+    state.tool_output.get(),
     content=(
       #|""
     ),
@@ -71,9 +71,9 @@ test "TuiState fields are mutable via Ref" {
   state_ref.val.mode = Running
   @debug.debug_inspect(state_ref.val.mode, content="Running")
 
-  state_ref.val.agent_status = "running"
+  state_ref.val.agent_status.set("running")
   @debug.debug_inspect(
-    state_ref.val.agent_status,
+    state_ref.val.agent_status.get(),
     content=(
       #|"running"
     ),
@@ -82,9 +82,9 @@ test "TuiState fields are mutable via Ref" {
   state_ref.val.iterations = 5
   @debug.debug_inspect(state_ref.val.iterations, content="5")
 
-  state_ref.val.tool_output = "test output"
+  state_ref.val.tool_output.set("test output")
   @debug.debug_inspect(
-    state_ref.val.tool_output,
+    state_ref.val.tool_output.get(),
     content=(
       #|"test output"
     ),
@@ -168,7 +168,7 @@ test "handle_hook_event updates state correctly" {
     ),
   )
   @debug.debug_inspect(
-    state_ref.val.agent_status,
+    state_ref.val.agent_status.get(),
     content=(
       #|"running"
     ),
@@ -191,7 +191,7 @@ test "handle_hook_event updates state correctly" {
     @agent.HookEvent::ToolExecuting("read_file", "test.txt"),
   )
   @debug.debug_inspect(
-    state_ref.val.tool_output,
+    state_ref.val.tool_output.get(),
     content=(
       #|"Running: read_file(test.txt)"
     ),
@@ -211,7 +211,7 @@ test "handle_hook_event updates state correctly" {
     ),
   )
   @debug.debug_inspect(
-    state_ref.val.agent_status,
+    state_ref.val.agent_status.get(),
     content=(
       #|"error"
     ),
@@ -272,7 +272,7 @@ test "handle_hook_event_ToolExecuted" {
     @agent.HookEvent::ToolExecuted("read_file", entry),
   )
   @debug.debug_inspect(
-    state_ref.val.tool_output,
+    state_ref.val.tool_output.get(),
     content=(
       #|"Completed: read_file"
     ),
@@ -284,7 +284,7 @@ test "TuiState::from_agent maps agent status correctly" {
   let agent = make_test_agent()
   let state = TuiState::from_agent(agent)
   @debug.debug_inspect(
-    state.agent_status,
+    state.agent_status.get(),
     content=(
       #|"idle"
     ),

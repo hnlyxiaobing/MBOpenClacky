@@ -1,4 +1,5 @@
 import {
+  "mizchi/signals",
   "moonbitlang/core/debug",
   "hnlyxiaobing/MBOpenClacky/test/eval",
   "hnlyxiaobing/MBOpenClacky/lib/tui" @libtui,

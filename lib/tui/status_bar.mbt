@@ -66,12 +66,12 @@ let spinner_frames : Array[String] = [
 pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit {
   self.segments.clear()
   // Status indicator: idle = ●, working = spinner frame
-  let is_idle = state.agent_status == "idle" || state.mode is TuiMode::Idle
+  let is_idle = state.agent_status.get() == "idle" || state.mode is TuiMode::Idle
   let indicator = if is_idle {
-    "● \{state.agent_status}"
+    "● \{state.agent_status.get()}"
   } else {
     let frame_idx = state.tick_count % spinner_frames.length()
-    "\{spinner_frames[frame_idx]} \{state.agent_status}"
+    "\{spinner_frames[frame_idx]} \{state.agent_status.get()}"
   }
   self.segments.push(StatusSegment::{
     text: indicator,
@@ -275,5 +275,28 @@ pub fn format_cost(cost : Double) -> String {
     }
   } else {
     s + ".0000"
+  }
+}
+
+///|
+/// Add a scroll position indicator segment to the status bar.
+///
+/// When `scroll_offset > 0`, appends a segment showing `↑ {offset}/{total}`.
+/// When `scroll_offset == 0`, does nothing (no visual noise at bottom).
+///
+/// Parameters:
+/// - `scroll_offset`: current scroll offset (0 = at bottom)
+/// - `total_lines`: total number of output lines
+/// - `viewport_height`: height of the viewport (unused for now, reserved for percentage)
+pub fn StatusBar::add_scroll_segment(
+  self : StatusBar,
+  scroll_offset : Int,
+  total_lines : Int,
+  _viewport_height : Int,
+) -> Unit {
+  if scroll_offset > 0 {
+    self.segments.push(StatusSegment::{ text: " | ", color: Dim })
+    let text = "↑ \{scroll_offset}/\{total_lines}"
+    self.segments.push(StatusSegment::{ text: text, color: SegmentColor::Default })
   }
 }

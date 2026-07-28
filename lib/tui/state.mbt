@@ -169,7 +169,7 @@ pub(all) struct TuiState {
 
   // ── Status ──────────────────────────────────────────────────
   /// Current agent status as a display string.
-  mut agent_status : String
+  agent_status : @mizchi/signals.Signal[String]
   /// Number of completed iterations.
   mut iterations : Int
   /// Current working directory.
@@ -185,13 +185,13 @@ pub(all) struct TuiState {
 
   // ── Streaming ─────────────────────────────────────────────────
   /// Buffer for accumulating streaming LLM output.
-  mut streaming_buffer : String
+  streaming_buffer : @mizchi/signals.Signal[String]
   /// Whether streaming is currently active.
-  mut streaming_active : Bool
+  streaming_active : @mizchi/signals.Signal[Bool]
 
   // ── Tool Output ─────────────────────────────────────────────
   /// Latest tool execution summary text.
-  mut tool_output : String
+  tool_output : @mizchi/signals.Signal[String]
   /// Name of the currently executing tool (empty if none).
   mut current_tool_name : String
   /// Arguments of the currently executing tool.
@@ -261,7 +261,7 @@ pub(all) struct TuiState {
 
   // ── Thinking Buffer (TUI-04) ─────────────────────────────────
   /// Buffer for live thinking/reasoning stream display.
-  mut thinking_buffer : String
+  thinking_buffer : @mizchi/signals.Signal[String]
   // ── Tick Counter (for spinner animation) ────────────────────────
   /// Increments on every Tick event; used by StatusBar spinner.
   mut tick_count : Int
@@ -282,7 +282,7 @@ pub(all) struct TuiState {
   mut paste_placeholder_count : Int
   /// Stored paste texts keyed by placeholder number for expansion on submit.
   mut paste_placeholders : Array[(Int, String)]
-} derive(Debug)
+}
 
 ///|
 /// Create a new TuiState from an Agent's current state.
@@ -291,15 +291,15 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     session_id: agent.session_id,
     model_name: agent.client.model,
     mode: Idle,
-    agent_status: agent.status.to_string_value(),
+    agent_status: @mizchi/signals.signal(agent.status.to_string_value()),
     iterations: agent.iterations,
     working_dir: agent.working_dir,
     permission_mode: agent.config.permission_mode.to_string_value(),
     active_tasks: agent.todo_manager.size(),
     messages: [],
-    streaming_buffer: "",
-    streaming_active: false,
-    tool_output: "",
+    streaming_buffer: @mizchi/signals.signal(""),
+    streaming_active: @mizchi/signals.signal(false),
+    tool_output: @mizchi/signals.signal(""),
     current_tool_name: "",
     current_tool_args: "",
     tool_history: [],
@@ -319,7 +319,7 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
     shell_mode: ShellMode::Chat,
-    thinking_buffer: "",
+    thinking_buffer: @mizchi/signals.signal(""),
     tick_count: 0,
     run_start_ts: 0L,
     total_iterations: 0,

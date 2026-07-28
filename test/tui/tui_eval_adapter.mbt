@@ -821,7 +821,7 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     }
     // Reset state
     self.state.val.mode = @libtui.TuiMode::Idle
-    self.state.val.agent_status = "idle"
+    self.state.val.agent_status.set("idle")
     // Full redraw
     self.full_redraw()
   }

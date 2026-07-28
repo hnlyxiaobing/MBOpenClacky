@@ -29,6 +29,10 @@ async fn TuiController::full_redraw_vnode(self : TuiController) -> Unit {
 
   // Build status text
   self.status_bar.format_from_state(self.state.val)
+  // Add scroll position indicator
+  let msg_height = self.term_height - 5
+  let total_lines = self.output.total_lines()
+  self.status_bar.add_scroll_segment(self.scroll_offset, total_lines, msg_height)
   let status_text = self.status_bar.colored_text()
 
   // Get output lines (tail to fit message area)
@@ -80,7 +84,7 @@ fn TuiController::build_complete_vnode(
   }
 
   // Add thinking view if active (VNode direct, with spinner animation)
-  if self.state.val.thinking_buffer.length() > 0 {
+  if self.state.val.thinking_buffer.get().length() > 0 {
     output_children.push(
       render_thinking_live_vnode(self.state.val, self.thinking_animator, self.state.val.tick_count)
     )

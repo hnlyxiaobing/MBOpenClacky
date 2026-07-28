@@ -110,11 +110,11 @@ fn dispatch_hook_event(
   let s = state.val
   let theme = s.theme
   match event {
-    StatusChanged(_old, new) => s.agent_status = new.to_string_value()
+    StatusChanged(_old, new) => s.agent_status.set(new.to_string_value())
     BeforeIteration(n) => {
       s.iterations = n
       s.total_iterations = n
-      s.agent_status = "iterating"
+      s.agent_status.set("iterating")
       if config.track_phases {
         push_phase(s, output, theme, "iteration_\{n}")
       }
@@ -124,7 +124,7 @@ fn dispatch_hook_event(
     AfterIteration(n) => {
       s.iterations = n
       s.total_iterations = n
-      s.agent_status = "iteration_done"
+      s.agent_status.set("iteration_done")
       if config.track_phases {
         pop_phase(s, output, theme, "iteration_\{n}")
       }
@@ -161,7 +161,7 @@ fn dispatch_hook_event(
         s.llm_call_count = s.llm_call_count + 1
       }
       s.llm_calling = true
-      s.agent_status = "thinking"
+      s.agent_status.set("thinking")
       if config.track_phases {
         push_phase(s, output, theme, "llm_call")
       }
@@ -170,25 +170,25 @@ fn dispatch_hook_event(
     }
     AfterLlmCall => {
       s.llm_calling = false
-      s.agent_status = "llm_done"
+      s.agent_status.set("llm_done")
       if config.track_phases {
         pop_phase(s, output, theme, "llm_call")
       }
       // Close the LLM spinner
       s.progress_stack.close_last()
       // Finalize streaming buffer
-      if s.streaming_buffer.length() > 0 {
-        s.messages.push("[assistant] \{s.streaming_buffer}")
-        s.streaming_buffer = ""
+      if s.streaming_buffer.get().length() > 0 {
+        s.messages.push("[assistant] \\{s.streaming_buffer.get()}")
+        s.streaming_buffer.set("")
       }
-      s.streaming_active = false
+      s.streaming_active.set(false)
     }
-    MessageAdded => s.agent_status = "message_added"
+    MessageAdded => s.agent_status.set("message_added")
     ToolExecuting(name, args) => {
       s.current_tool_name = name
       s.current_tool_args = args
-      s.tool_output = "Running: \{name}(\{args})"
-      s.agent_status = "tool_call"
+      s.tool_output.set("Running: \{name}(\{args})")
+      s.agent_status.set("tool_call")
       if config.track_phases {
         s.phase_stack.push("tool_\{name}")
       }
@@ -220,10 +220,10 @@ fn dispatch_hook_event(
       append_tool_call_entry(output, theme, name, args)
     }
     ToolExecuted(name, result) => {
-      s.tool_output = "Completed: \{name}"
+      s.tool_output.set("Completed: \{name}")
       s.current_tool_name = ""
       s.current_tool_args = ""
-      s.agent_status = "tool_done"
+      s.agent_status.set("tool_done")
       if config.track_phases && s.phase_stack.length() > 0 {
         ignore(s.phase_stack.pop())
       }
@@ -251,7 +251,7 @@ fn dispatch_hook_event(
     }
     ErrorOccurred(msg) => {
       s.last_error = Some(msg)
-      s.agent_status = "error"
+      s.agent_status.set("error")
       if config.track_phases {
         while s.phase_stack.length() > 0 {
           ignore(s.phase_stack.pop())
@@ -259,13 +259,13 @@ fn dispatch_hook_event(
       }
       // Close all spinners on error
       s.progress_stack.close_all()
-      s.streaming_buffer = ""
-      s.streaming_active = false
+      s.streaming_buffer.set("")
+      s.streaming_active.set(false)
       s.current_tool_name = ""
       s.current_tool_args = ""
     }
     ToolDenied(name) => {
-      s.agent_status = "tool_denied"
+      s.agent_status.set("tool_denied")
       s.current_tool_name = ""
       s.current_tool_args = ""
       // Append [!!] tool denied entry to output buffer
@@ -279,7 +279,7 @@ fn dispatch_hook_event(
       append_token_stats(output, theme, data)
     }
     RunCompleted(result) => {
-      s.agent_status = "completed"
+      s.agent_status.set("completed")
       s.total_cost = result.total_cost_usd
       s.iterations = result.iterations
       s.total_iterations = result.iterations
@@ -293,41 +293,41 @@ fn dispatch_hook_event(
       }
       // Close all spinners on completion
       s.progress_stack.close_all()
-      s.streaming_buffer = ""
-      s.streaming_active = false
+      s.streaming_buffer.set("")
+      s.streaming_active.set(false)
       // Append completion summary if >5 iterations
       append_run_summary(output, theme, s, result)
     }
     StreamChunk(chunk) => {
-      s.streaming_buffer = s.streaming_buffer + chunk
-      s.streaming_active = true
-      s.agent_status = "streaming"
+      s.streaming_buffer.set(s.streaming_buffer.get() + chunk)
+      s.streaming_active.set(true)
+      s.agent_status.set("streaming")
       // Update the LLM progress frame with the streamed char count
-      s.progress_stack.update_last_char_count(s.streaming_buffer.length())
+      s.progress_stack.update_last_char_count(s.streaming_buffer.get().length())
       if is_thinking_active(s) {
-        s.thinking_buffer = s.thinking_buffer + chunk
+        s.thinking_buffer.set(s.thinking_buffer.get() + chunk)
       }
     }
     SessionStarted(id) => {
       s.session_id = id
-      s.agent_status = "session_started"
+      s.agent_status.set("session_started")
     }
-    SessionEnded(_id) => s.agent_status = "session_ended"
+    SessionEnded(_id) => s.agent_status.set("session_ended")
     CostUpdated(cost) => s.total_cost = cost
     WarningOccurred(msg) => {
       match s.last_error {
         None => s.last_error = Some(msg)
         _ => ()
       }
-      s.agent_status = "warning"
+      s.agent_status.set("warning")
     }
     FileAccessed(path, op) => {
-      s.tool_output = "File: \{op} \{path}"
+      s.tool_output.set("File: \\{op} \\{path}")
       // Append [F] file preview entry to output buffer
       append_file_entry(output, theme, path, op)
     }
     ThinkingStarted => {
-      s.thinking_buffer = ""
+      s.thinking_buffer.set("")
       if config.track_phases {
         push_phase(s, output, theme, "thinking")
       }
@@ -352,7 +352,7 @@ fn dispatch_hook_event(
       s.progress_stack.close_last()
     }
     RetryAttempt(n, reason) => {
-      s.agent_status = "retry_\{n}"
+      s.agent_status.set("retry_\\{n}")
       // Close previous retry spinner if any
       if n > 1 {
         s.progress_stack.close_last()

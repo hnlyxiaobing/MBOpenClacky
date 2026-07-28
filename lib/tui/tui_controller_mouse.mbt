@@ -23,7 +23,12 @@ async fn TuiController::handle_mouse(
             0
           }
           if self.scroll_offset < max_offset {
-            self.scroll_offset = self.scroll_offset + 3
+            let step = if ev.modifiers.shift() {
+              self.term_height / 2
+            } else {
+              3
+            }
+            self.scroll_offset = self.scroll_offset + step
             if self.scroll_offset > max_offset {
               self.scroll_offset = max_offset
             }
@@ -31,15 +36,21 @@ async fn TuiController::handle_mouse(
             self.redraw()
           }
         }
-        Down =>
+        Down => {
           if self.scroll_offset > 0 {
-            self.scroll_offset = self.scroll_offset - 3
+            let step = if ev.modifiers.shift() {
+              self.term_height / 2
+            } else {
+              3
+            }
+            self.scroll_offset = self.scroll_offset - step
             if self.scroll_offset < 0 {
               self.scroll_offset = 0
             }
             self.dirty = true
             self.redraw()
           }
+        }
         _ => ()
       }
     }

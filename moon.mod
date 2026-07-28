@@ -13,6 +13,7 @@ import {
   "moonbit-community/tty@0.3.0",
   "moonbit-community/pty@0.2.2",
   "mizchi/tui@0.10.0",
+  "mizchi/signals@0.6.4",
   "hustcer/tabular@0.5.2",
 }
 

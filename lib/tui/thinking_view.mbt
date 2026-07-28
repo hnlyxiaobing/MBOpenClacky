@@ -21,7 +21,7 @@ pub fn render_thinking_live_view(
   state : TuiState,
   animator : ThinkingVerbAnimator,
 ) -> Node {
-  if state.thinking_buffer.length() == 0 {
+  if state.thinking_buffer.get().length() == 0 {
     return Node::Empty
   }
 
@@ -29,7 +29,7 @@ pub fn render_thinking_live_view(
   let verb = if is_active { animator.next() } else { "💭 Thought" }
 
   let lines = get_last_n_lines(
-    state.thinking_buffer,
+    state.thinking_buffer.get(),
     thinking_max_display_lines,
   )
 
@@ -52,12 +52,12 @@ pub fn render_thinking_live_view(
 ///|
 /// Render a one-line summary of completed thinking.
 pub fn render_thinking_summary(state : TuiState) -> Node {
-  if state.thinking_buffer.length() == 0 {
+  if state.thinking_buffer.get().length() == 0 {
     return Node::Empty
   }
 
-  let char_count = state.thinking_buffer.length()
-  let line_count = state.thinking_buffer.split("\n").to_array().length()
+  let char_count = state.thinking_buffer.get().length()
+  let line_count = state.thinking_buffer.get().split("\n").to_array().length()
   let summary = "💭 Thought for \{char_count} chars (\{line_count} lines)"
 
   Node::Text(summary, Style::new(dim=true))
@@ -99,9 +99,9 @@ fn get_last_n_lines(text : String, n : Int) -> Array[String] {
 ///|
 /// Truncate thinking buffer if it exceeds the maximum size.
 pub fn truncate_thinking_buffer(state : TuiState) -> Unit {
-  if state.thinking_buffer.length() > thinking_max_buffer_size {
-    let excess = state.thinking_buffer.length() - thinking_max_buffer_size
-    state.thinking_buffer = state.thinking_buffer[excess:].to_owned()
+  if state.thinking_buffer.get().length() > thinking_max_buffer_size {
+    let excess = state.thinking_buffer.get().length() - thinking_max_buffer_size
+    state.thinking_buffer.set(state.thinking_buffer.get()[excess:].to_owned())
   }
 }
 
@@ -116,7 +116,7 @@ pub fn render_thinking_live_vnode(
   animator : ThinkingVerbAnimator,
   tick : Int,
 ) -> @tui.TuiNode {
-  if state.thinking_buffer.length() == 0 {
+  if state.thinking_buffer.get().length() == 0 {
     return @tui.text("")
   }
 
@@ -124,7 +124,7 @@ pub fn render_thinking_live_vnode(
   let verb = if is_active { animator.next() } else { "Thought" }
 
   let lines = get_last_n_lines(
-    state.thinking_buffer,
+    state.thinking_buffer.get(),
     thinking_max_display_lines,
   )
 
@@ -156,12 +156,12 @@ pub fn render_thinking_live_vnode(
 ///|
 /// Render a one-line summary of completed thinking as a VNode.
 pub fn render_thinking_summary_vnode(state : TuiState) -> @tui.TuiNode {
-  if state.thinking_buffer.length() == 0 {
+  if state.thinking_buffer.get().length() == 0 {
     return @tui.text("")
   }
 
-  let char_count = state.thinking_buffer.length()
-  let line_count = state.thinking_buffer.split("\n").to_array().length()
+  let char_count = state.thinking_buffer.get().length()
+  let line_count = state.thinking_buffer.get().split("\n").to_array().length()
   let summary = "  Thought for \{char_count} chars (\{line_count} lines)"
   @tui.text(summary, fg="rgb(128,128,128)")
 }
