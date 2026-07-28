@@ -34,7 +34,7 @@ test "append_text wraps CJK text by display width" {
 test "append_text does not wrap lines with ANSI escape sequences" {
   let output = OutputBuffer::new()
   output.width = 5
-  let styled = "\u{1b}[36mabcdefghij\u{1b}[0m"
+  let styled = "\u{1b}[38;2;0;200;255mabcdefghij\u{1b}[0m"
   ignore(output.append_text(styled, OutputKind::Text))
   // Stored as-is: wrapping would corrupt the escape sequences
   assert_eq(output.tail_lines(10), [styled])

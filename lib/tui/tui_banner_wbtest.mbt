@@ -120,6 +120,6 @@ test "Banner::render dispatches by style" {
 test "Banner::render_separator with color" {
   let banner = { style: Minimal, width: 20, use_color: true }
   let sep = banner.render_separator()
-  assert_true(sep.contains("\u{1b}[36m"))
+  assert_true(sep.contains("\u{1b}[38;2;0;200;255m"))
   assert_true(sep.contains("\u{1b}[0m"))
 }

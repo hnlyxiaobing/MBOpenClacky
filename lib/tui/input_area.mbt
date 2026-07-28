@@ -85,7 +85,7 @@ pub fn InputArea::cursor_display_pos(self : InputArea) -> (Int, Int) {
   let (line, _col) = self.editor.cursor_pos()
   let display_col = self.editor.display_col()
   // Add prompt length to the display column
-  let prompt_len = string_display_width(self.prompt)
+  let prompt_len = @tui_core.string_display_width(self.prompt)
   (line, display_col + prompt_len)
 }
 

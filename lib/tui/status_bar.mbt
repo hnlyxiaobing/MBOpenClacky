@@ -199,19 +199,19 @@ pub fn StatusBar::colored_text(self : StatusBar) -> String {
 fn segment_color_code(color : SegmentColor) -> String {
   match color {
     // Status: green for idle, yellow for working
-    Status => "\u{1b}[1m\u{1b}[32m"
+    Status => "\u{1b}[1m\u{1b}[38;2;0;255;100m"
     // Session ID: cyan
-    Session => "\u{1b}[36m"
+    Session => "\u{1b}[38;2;0;200;255m"
     // Working directory: white (bright)
-    Dir => "\u{1b}[37m"
+    Dir => "\u{1b}[38;2;220;220;220m"
     // Permission mode: yellow
-    Permission => "\u{1b}[33m"
+    Permission => "\u{1b}[38;2;255;255;85m"
     // Model name: magenta
-    Model => "\u{1b}[35m"
+    Model => "\u{1b}[38;2;200;100;255m"
     // Task count: white
-    Tasks => "\u{1b}[37m"
+    Tasks => "\u{1b}[38;2;220;220;220m"
     // Cost: green
-    Cost => "\u{1b}[32m"
+    Cost => "\u{1b}[38;2;0;255;100m"
     // Dim separators
     Dim => "\u{1b}[2m"
     // Default foreground

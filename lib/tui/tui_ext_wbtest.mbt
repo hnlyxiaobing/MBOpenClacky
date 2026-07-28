@@ -4,51 +4,51 @@
 
 ///|
 test "ext_char_width_ascii" {
-  assert_eq(char_display_width('a'), 1)
-  assert_eq(char_display_width('A'), 1)
-  assert_eq(char_display_width('1'), 1)
-  assert_eq(char_display_width(' '), 1)
-  assert_eq(char_display_width('!'), 1)
-  assert_eq(char_display_width('\n'), 1)
+  assert_eq(@tui_core.char_display_width('a'), 1)
+  assert_eq(@tui_core.char_display_width('A'), 1)
+  assert_eq(@tui_core.char_display_width('1'), 1)
+  assert_eq(@tui_core.char_display_width(' '), 1)
+  assert_eq(@tui_core.char_display_width('!'), 1)
+  assert_eq(@tui_core.char_display_width('\n'), 1)
 }
 
 ///|
 test "ext_char_width_cjk" {
-  assert_eq(char_display_width('中'), 2)
-  assert_eq(char_display_width('文'), 2)
-  assert_eq(char_display_width('あ'), 2)
-  assert_eq(char_display_width('한'), 2)
+  assert_eq(@tui_core.char_display_width('中'), 2)
+  assert_eq(@tui_core.char_display_width('文'), 2)
+  assert_eq(@tui_core.char_display_width('あ'), 2)
+  assert_eq(@tui_core.char_display_width('한'), 2)
 }
 
 ///|
 test "ext_char_width_fullwidth" {
-  assert_eq(char_display_width('Ａ'), 2)
-  assert_eq(char_display_width('１'), 2)
+  assert_eq(@tui_core.char_display_width('Ａ'), 2)
+  assert_eq(@tui_core.char_display_width('１'), 2)
 }
 
 // ── string_display_width Tests ───────────────────────────────────────────────
 
 ///|
 test "ext_string_width_empty" {
-  assert_eq(string_display_width(""), 0)
+  assert_eq(@tui_core.string_display_width(""), 0)
 }
 
 ///|
 test "ext_string_width_ascii" {
-  assert_eq(string_display_width("hello"), 5)
-  assert_eq(string_display_width("hello world"), 11)
+  assert_eq(@tui_core.string_display_width("hello"), 5)
+  assert_eq(@tui_core.string_display_width("hello world"), 11)
 }
 
 ///|
 test "ext_string_width_cjk" {
-  assert_eq(string_display_width("中文"), 4)
-  assert_eq(string_display_width("你好"), 4)
+  assert_eq(@tui_core.string_display_width("中文"), 4)
+  assert_eq(@tui_core.string_display_width("你好"), 4)
 }
 
 ///|
 test "ext_string_width_mixed" {
-  assert_eq(string_display_width("hello中文"), 9)
-  assert_eq(string_display_width("a中b文c"), 7)
+  assert_eq(@tui_core.string_display_width("hello中文"), 9)
+  assert_eq(@tui_core.string_display_width("a中b文c"), 7)
 }
 
 // ── wrap_line_at_width Tests ────────────────────────────────────────────────
@@ -160,47 +160,47 @@ test "ext_display_col_round_trip" {
 
 ///|
 test "ext_char_width_digits" {
-  assert_eq(char_display_width('0'), 1)
-  assert_eq(char_display_width('9'), 1)
+  assert_eq(@tui_core.char_display_width('0'), 1)
+  assert_eq(@tui_core.char_display_width('9'), 1)
 }
 
 ///|
 test "ext_char_width_special_chars" {
-  assert_eq(char_display_width('!'), 1)
-  assert_eq(char_display_width('@'), 1)
-  assert_eq(char_display_width('#'), 1)
+  assert_eq(@tui_core.char_display_width('!'), 1)
+  assert_eq(@tui_core.char_display_width('@'), 1)
+  assert_eq(@tui_core.char_display_width('#'), 1)
 }
 
 ///|
 test "ext_char_width_japanese" {
-  assert_eq(char_display_width('あ'), 2)
-  assert_eq(char_display_width('ア'), 2)
-  assert_eq(char_display_width('日'), 2)
+  assert_eq(@tui_core.char_display_width('あ'), 2)
+  assert_eq(@tui_core.char_display_width('ア'), 2)
+  assert_eq(@tui_core.char_display_width('日'), 2)
 }
 
 ///|
 test "ext_char_width_korean" {
-  assert_eq(char_display_width('한'), 2)
-  assert_eq(char_display_width('국'), 2)
+  assert_eq(@tui_core.char_display_width('한'), 2)
+  assert_eq(@tui_core.char_display_width('국'), 2)
 }
 
 // ── Additional string_display_width Tests ────────────────────────────────────
 
 ///|
 test "ext_string_width_single_char" {
-  assert_eq(string_display_width("a"), 1)
-  assert_eq(string_display_width("中"), 2)
+  assert_eq(@tui_core.string_display_width("a"), 1)
+  assert_eq(@tui_core.string_display_width("中"), 2)
 }
 
 ///|
 test "ext_string_width_long_mixed" {
   let s = "Hello世界This is test"
-  let width = string_display_width(s)
+  let width = @tui_core.string_display_width(s)
   assert_eq(
     width,
-    string_display_width("Hello") +
-    string_display_width("世界") +
-    string_display_width("This is test"),
+    @tui_core.string_display_width("Hello") +
+    @tui_core.string_display_width("世界") +
+    @tui_core.string_display_width("This is test"),
   )
 }
 

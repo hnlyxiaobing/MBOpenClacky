@@ -100,7 +100,7 @@ pub fn LineEditor::display_col(self : LineEditor) -> Int {
 ///|
 /// Display width of the current line.
 pub fn LineEditor::line_display_width(self : LineEditor) -> Int {
-  string_display_width(self.lines[self.cursor_line])
+  @tui_core.string_display_width(self.lines[self.cursor_line])
 }
 
 ///|

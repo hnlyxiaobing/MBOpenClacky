@@ -92,7 +92,7 @@ test "sync_messages renders markdown headings with ANSI styles" {
   ignore(sync.sync_messages(messages, output))
   // Heading: yellow + bold, "[assistant] " prefix stays plain
   assert_eq(output.tail_lines(1), [
-    "[assistant] \u{1b}[33m\u{1b}[1mHello\u{1b}[0m",
+    "[assistant] \u{1b}[38;2;255;255;85m\u{1b}[1mHello\u{1b}[0m",
   ])
 }
 
@@ -115,7 +115,9 @@ test "sync_messages renders fenced code blocks with ANSI styles" {
   let messages : Array[String] = ["[assistant] ```mbt\nlet x = 1\n```"]
   ignore(sync.sync_messages(messages, output))
   // Code block: cyan
-  assert_eq(output.tail_lines(1), ["[assistant] \u{1b}[36mlet x = 1\u{1b}[0m"])
+  assert_eq(output.tail_lines(1), [
+    "[assistant] \u{1b}[38;2;0;200;255mlet x = 1\u{1b}[0m",
+  ])
 }
 
 ///|
@@ -125,7 +127,9 @@ test "sync_messages renders list items using the theme dim color" {
   let messages : Array[String] = ["[assistant] - foo"]
   ignore(sync.sync_messages(messages, output))
   // Default theme dim color (gray) bullet
-  assert_eq(output.tail_lines(1), ["[assistant] \u{1b}[90m• \u{1b}[0mfoo"])
+  assert_eq(output.tail_lines(1), [
+    "[assistant] \u{1b}[38;2;128;128;128m• \u{1b}[0mfoo",
+  ])
 }
 
 ///|

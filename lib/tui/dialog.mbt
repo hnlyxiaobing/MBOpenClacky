@@ -24,10 +24,10 @@ pub fn render_confirmation_lines(state : TuiState) -> Array[String] {
   }
   // Build the y/n indicator
   let yn = if pending.default_yes { "[Y/n]" } else { "[y/N]" }
-  let warning = "\u{1b}[33m⚠\u{1b}[0m" // Yellow warning symbol
+  let warning = "\u{1b}[38;2;255;255;85m⚠\u{1b}[0m" // Yellow warning symbol
   let tool = "\u{1b}[1m\{pending.tool_name}\u{1b}[0m" // Bold tool name
   let prompt = pending.prompt_text
-  let yn_styled = "\u{1b}[33m\{yn}\u{1b}[0m" // Yellow y/n indicator
+  let yn_styled = "\u{1b}[38;2;255;255;85m\{yn}\u{1b}[0m" // Yellow y/n indicator
   let line = "\{warning} [\{tool}] \{prompt}  \{yn_styled}"
   [line]
 }

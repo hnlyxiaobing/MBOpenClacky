@@ -18,6 +18,7 @@ pub(all) enum MarkdownToken {
   HorizontalRule
   TaskItem(checked~ : Bool, text~ : String)
   Link(text~ : String, url~ : String)
+  Table(headers~ : Array[String], rows~ : Array[Array[String]])
 } derive(Eq, Debug)
 
 ///|
@@ -43,16 +44,16 @@ let ansi_bold : String = "\u001b[1m"
 let ansi_italic : String = "\u001b[3m"
 
 ///|
-let ansi_cyan : String = "\u001b[36m"
+let ansi_cyan : String = "\u001b[38;2;0;200;255m"
 
 ///|
-let ansi_yellow : String = "\u001b[33m"
+let ansi_yellow : String = "\u001b[38;2;255;255;85m"
 
 ///|
-let ansi_gray : String = "\u001b[90m"
+let ansi_gray : String = "\u001b[38;2;128;128;128m"
 
 ///|
-let ansi_green : String = "\u001b[32m"
+let ansi_green : String = "\u001b[38;2;0;255;100m"
 
 ///|
 let ansi_underline : String = "\u001b[4m"
@@ -121,6 +122,21 @@ pub fn tokenize(input : String) -> Array[MarkdownToken] {
         tokens.push(ListItem(indent~, text=text2))
       }
       i.val = i.val + 1
+    } else if is_table_start(lines, i.val) {
+      // GFM Table: | header | header |\n|--------|--------|\n| cell   | cell   |
+      let header_cells = parse_table_row(lines[i.val])
+      i.val = i.val + 1
+      // Skip separator line (|---|---|)
+      if i.val < lines.length() && is_table_separator(lines[i.val]) {
+        i.val = i.val + 1
+      }
+      // Parse data rows
+      let table_rows : Array[Array[String]] = []
+      while i.val < lines.length() && is_table_row(lines[i.val]) {
+        table_rows.push(parse_table_row(lines[i.val]))
+        i.val = i.val + 1
+      }
+      tokens.push(Table(headers=header_cells, rows=table_rows))
     } else {
       // Parse inline elements within a paragraph line
       let trimmed = line.trim().to_owned()
@@ -368,6 +384,16 @@ pub fn MarkdownRenderer::render(
         out.write_string(url)
         out.write_string(")")
       }
+      Table(headers~, rows~) => {
+        let all_rows : Array[Array[String]] = [headers]
+        for row in rows {
+          all_rows.push(row)
+        }
+        let builder = @tabular.Builder::from_rows(all_rows)
+        let table = builder.build().apply(@tabular.Style::rounded())
+        out.write_string(table.to_string())
+        out.write_string("\n")
+      }
     }
   }
   out.to_string()
@@ -408,4 +434,60 @@ fn count_leading_spaces_impl(s : String) -> Int {
     }
   }
   count
+}
+
+// GFM Table Parsing helpers
+
+///|
+fn is_table_row(line : String) -> Bool {
+  line.contains("|")
+}
+
+///|
+fn is_table_start(lines : Array[String], idx : Int) -> Bool {
+  if idx >= lines.length() || idx + 1 >= lines.length() {
+    return false
+  }
+  let line = lines[idx]
+  let next = lines[idx + 1]
+  is_table_row(line) && is_table_separator(next)
+}
+
+///|
+fn is_table_separator(line : String) -> Bool {
+  let trimmed = line.trim().to_owned()
+  if !trimmed.contains("|") {
+    return false
+  }
+  let parts = trimmed.split("|").collect()
+  let mut has_dash = false
+  for part in parts {
+    let p = part.trim().to_owned()
+    if p.length() == 0 {
+      continue
+    }
+    if p.contains("-") {
+      has_dash = true
+    } else {
+      return false
+    }
+  }
+  has_dash
+}
+
+///|
+fn parse_table_row(line : String) -> Array[String] {
+  let trimmed = line.trim().to_owned()
+  let mut s = trimmed
+  if s.has_prefix("|") {
+    s = s[1:].to_owned()
+  }
+  if s.has_suffix("|") {
+    s = s[:s.length() - 1].to_owned()
+  }
+  let cells : Array[String] = []
+  for cell in s.split("|") {
+    cells.push(cell.trim().to_owned())
+  }
+  cells
 }

@@ -35,6 +35,8 @@ pub(all) struct OutputEntry {
   /// 0 = not committed at all; lines.length() = fully committed.
   /// Values in between indicate partial commit (line-level granularity).
   mut committed_line_offset : Int
+  /// Whether this entry is collapsed (showing only first N lines).
+  mut collapsed : Bool
 } derive(Debug)
 
 ///|
@@ -98,6 +100,13 @@ pub(all) struct OutputBuffer {
   /// Terminal width used to wrap lines in `append_text`.
   /// Updated by the controller on startup and terminal resize.
   mut width : Int
+  /// Cached flat line array for viewport virtualization.
+  /// Rebuilt lazily when cache_version != version.
+  mut cached_flat_lines : Array[String]
+  /// Version of the cached flat lines (stale when != version).
+  mut cache_version : Int
+  /// Line count threshold for auto-collapsing System entries.
+  collapse_threshold : Int
 }
 
 ///|
@@ -106,7 +115,7 @@ pub(all) struct OutputBuffer {
 /// `max_entries` defaults to 2000. When the entry count exceeds this,
 /// the oldest fully-committed entries are trimmed.
 pub fn OutputBuffer::new(max_entries? : Int = 2000) -> OutputBuffer {
-  { entries: [], next_id: 1, max_entries, version: 0, width: 80 }
+  { entries: [], next_id: 1, max_entries, version: 0, width: 80, cached_flat_lines: [], cache_version: -1, collapse_threshold: 15 }
 }
 
 // ── Append ────────────────────────────────────────────────────────────
@@ -122,9 +131,14 @@ pub fn OutputBuffer::append(
 ) -> Int {
   let id = self.next_id
   self.next_id = self.next_id + 1
-  let entry = { id, lines: lines.copy(), kind, committed_line_offset: 0 }
+  let entry = { id, lines: lines.copy(), kind, committed_line_offset: 0, collapsed: false }
   self.entries.push(entry)
   self.trim_if_needed()
+  // Auto-collapse long System entries
+  if kind == OutputKind::System && lines.length() > self.collapse_threshold {
+    let last = self.entries[self.entries.length() - 1]
+    last.collapsed = true
+  }
   self.version = self.version + 1
   id
 }
@@ -493,3 +507,104 @@ fn OutputBuffer::trim_if_needed(self : OutputBuffer) -> Unit {
     }
   }
 }
+
+
+///|
+/// Rebuild the cached flat line index from entries.
+/// Called lazily when the buffer version changes.
+fn OutputBuffer::rebuild_flat_cache(self : OutputBuffer) -> Unit {
+  let lines : Array[String] = []
+  for entry in self.entries {
+    if entry.collapsed && entry.lines.length() > 5 {
+      // Collapsed: show first 3 lines + indicator + last line
+      for idx in 0..<3 {
+        lines.push(entry.lines[idx])
+      }
+      let hidden = entry.lines.length() - 4
+      lines.push("  \u{25b8} " + hidden.to_string() + " more lines (collapsed)")
+      lines.push(entry.lines[entry.lines.length() - 1])
+    } else {
+      for line in entry.lines {
+        lines.push(line)
+      }
+    }
+  }
+  self.cached_flat_lines = lines
+  self.cache_version = self.version
+}
+
+///|
+/// Get the last N lines, with a scroll offset from the bottom.
+///
+/// scroll_offset=0 shows the newest lines (same as tail_lines).
+/// scroll_offset>0 shows older lines (for mouse wheel scrolling).
+///
+/// Uses a cached flat-line index rebuilt only on mutation, making
+/// repeated scroll reads O(viewport) instead of O(total_lines).
+pub fn OutputBuffer::tail_lines_with_scroll(
+  self : OutputBuffer,
+  n : Int,
+  scroll_offset : Int,
+) -> Array[String] {
+  if n <= 0 {
+    return []
+  }
+  if self.cache_version != self.version {
+    self.rebuild_flat_cache()
+  }
+  let total = self.cached_flat_lines.length()
+  let effective_end = total - scroll_offset
+  if effective_end <= 0 {
+    return []
+  }
+  let effective_n = if effective_end < n { effective_end } else { n }
+  let start = effective_end - effective_n
+  let result : Array[String] = []
+  let mut i = start
+  while i < effective_end {
+    result.push(self.cached_flat_lines[i])
+    i = i + 1
+  }
+  result
+}
+
+///|
+/// Toggle collapsed state of an entry by id.
+pub fn OutputBuffer::toggle_collapse(self : OutputBuffer, id : Int) -> Unit {
+  for entry in self.entries {
+    if entry.id == id {
+      entry.collapsed = !entry.collapsed
+      self.version = self.version + 1
+      return
+    }
+  }
+}
+
+///|
+/// Expand all collapsed entries.
+pub fn OutputBuffer::expand_all(self : OutputBuffer) -> Unit {
+  for entry in self.entries {
+    if entry.collapsed {
+      entry.collapsed = false
+    }
+  }
+  self.version = self.version + 1
+}
+
+///|
+/// Collapse all System entries that exceed the threshold.
+pub fn OutputBuffer::collapse_long_system(self : OutputBuffer) -> Unit {
+  for entry in self.entries {
+    if entry.kind == OutputKind::System && entry.lines.length() > self.collapse_threshold {
+      entry.collapsed = true
+    }
+  }
+  self.version = self.version + 1
+}
+
+///|
+/// Check if an entry is collapsed.
+pub fn OutputEntry::is_collapsed(self : OutputEntry) -> Bool {
+  self.collapsed
+}
+

@@ -120,7 +120,7 @@ pub fn Banner::render_separator(self : Banner) -> String {
       let inner_width = self.width - 2
       let line = "═".repeat(inner_width)
       if self.use_color {
-        "\u{1b}[36m\{line}\u{1b}[0m"
+        "\u{1b}[38;2;0;200;255m\{line}\u{1b}[0m"
       } else {
         line
       }
@@ -128,7 +128,7 @@ pub fn Banner::render_separator(self : Banner) -> String {
     _ => {
       let line = "─".repeat(self.width)
       if self.use_color {
-        "\u{1b}[36m\{line}\u{1b}[0m"
+        "\u{1b}[38;2;0;200;255m\{line}\u{1b}[0m"
       } else {
         line
       }
@@ -177,7 +177,7 @@ fn Banner::box_corner(
 ) -> String {
   let line = "\{left}\{fill.repeat(width)}\{right}"
   if self.use_color {
-    "\u{1b}[36m\{line}\u{1b}[0m"
+    "\u{1b}[38;2;0;200;255m\{line}\u{1b}[0m"
   } else {
     line
   }
@@ -195,7 +195,7 @@ fn Banner::box_row(
   let right_pad = padding - left_pad
   let line = "║\{" ".repeat(left_pad)}\{content}\{" ".repeat(right_pad)}║"
   if self.use_color {
-    let border = "\u{1b}[36m"
+    let border = "\u{1b}[38;2;0;200;255m"
     let reset = "\u{1b}[0m"
     "\{border}║\{reset}\{" ".repeat(left_pad)}\{content}\{" ".repeat(right_pad)}\{border}║\{reset}"
   } else {
@@ -220,7 +220,7 @@ fn Banner::center_text(self : Banner, text : String, width : Int) -> String {
 /// Apply ANSI color codes if use_color is enabled.
 fn Banner::colorize(self : Banner, text : String) -> String {
   if self.use_color {
-    "\u{1b}[1m\u{1b}[36m\{text}\u{1b}[0m"
+    "\u{1b}[1m\u{1b}[38;2;0;200;255m\{text}\u{1b}[0m"
   } else {
     text
   }
@@ -313,7 +313,7 @@ fn Banner::render_logo_section(self : Banner, effective_width : Int) -> String {
 fn Banner::render_tagline_section(self : Banner, version : String) -> String {
   let line = "  \{banner_tagline}  ·  v\{version}"
   if self.use_color {
-    "\u{1b}[36m\{line}\u{1b}[0m"
+    "\u{1b}[38;2;0;200;255m\{line}\u{1b}[0m"
   } else {
     line
   }
@@ -351,7 +351,7 @@ fn Banner::render_agent_mode_section(self : Banner) -> String {
     "  AGENT MODE  " +
     "─".repeat(right_pad)
   if self.use_color {
-    "\u{1b}[1m\u{1b}[33m\{sep_line}\u{1b}[0m"
+    "\u{1b}[1m\u{1b}[38;2;255;255;85m\{sep_line}\u{1b}[0m"
   } else {
     sep_line
   }
@@ -374,7 +374,7 @@ fn Banner::render_info_section(
   if self.use_color {
     let colored : Array[String] = []
     for line in parts {
-      colored.push("\u{1b}[37m\{line}\u{1b}[0m")
+      colored.push("\u{1b}[38;2;220;220;220m\{line}\u{1b}[0m")
     }
     colored.join("\n")
   } else {
@@ -387,7 +387,7 @@ fn Banner::render_info_section(
 fn Banner::render_api_key_warning(self : Banner) -> String {
   let line = "  ⚠ [warning] No API key configured. Set OPENAI_API_KEY or use /config."
   if self.use_color {
-    "\u{1b}[1m\u{1b}[33m\{line}\u{1b}[0m"
+    "\u{1b}[1m\u{1b}[38;2;255;255;85m\{line}\u{1b}[0m"
   } else {
     line
   }

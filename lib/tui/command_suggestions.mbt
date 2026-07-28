@@ -321,7 +321,7 @@ fn default_system_commands() -> Array[SuggestionItem] {
 ///|
 /// Pad a string to a minimum width with spaces.
 fn sugg_pad_right(s : String, min_width : Int) -> String {
-  let current = string_display_width(s)
+  let current = @tui_core.string_display_width(s)
   if current >= min_width {
     s
   } else {
@@ -338,7 +338,7 @@ fn sugg_pad_right(s : String, min_width : Int) -> String {
 ///|
 /// Truncate a string to a maximum display width, adding "..." if truncated.
 fn sugg_truncate(s : String, max_width : Int) -> String {
-  let width = string_display_width(s)
+  let width = @tui_core.string_display_width(s)
   if width <= max_width {
     s
   } else {
@@ -346,7 +346,7 @@ fn sugg_truncate(s : String, max_width : Int) -> String {
     let mut current_width = 0
     let target = max_width - 3 // room for "..."
     for c in s.iter() {
-      let cw = char_display_width(c)
+      let cw = @tui_core.char_display_width(c)
       if current_width + cw > target {
         break
       }
@@ -362,7 +362,7 @@ fn sugg_truncate(s : String, max_width : Int) -> String {
 /// Pad a box line to the standard width (39 columns between borders).
 fn sugg_pad_box_line(line : String) -> String {
   let target_width = 39 // total box width including borders
-  let current = string_display_width(line)
+  let current = @tui_core.string_display_width(line)
   if current >= target_width {
     line
   } else {

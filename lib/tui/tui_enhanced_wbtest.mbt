@@ -201,7 +201,7 @@ test "markdown_tokenize_code_block" {
 test "markdown_render_heading" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let output = renderer.render("# Title")
-  assert_true(output.contains("\u001b[33m"))
+  assert_true(output.contains("\u001b[38;2;255;255;85m"))
   assert_true(output.contains("Title"))
   assert_true(output.contains("\u001b[0m"))
 }
@@ -210,7 +210,7 @@ test "markdown_render_heading" {
 test "markdown_render_code" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let output = renderer.render("`hello`")
-  assert_true(output.contains("\u001b[36m"))
+  assert_true(output.contains("\u001b[38;2;0;200;255m"))
   assert_true(output.contains("hello"))
   assert_true(output.contains("\u001b[0m"))
 }
@@ -240,7 +240,7 @@ test "theme_default" {
     ),
   )
   assert_true(theme.primary_color.length() > 0)
-  assert_true(theme.error_color == "\u001b[31m")
+  assert_true(theme.error_color == "\u001b[38;2;255;85;85m")
 }
 
 ///|
@@ -252,7 +252,10 @@ test "theme_hacker_colors" {
       #|Hacker
     ),
   )
-  @debug.debug_inspect(theme.primary_color, content="\"\\u{1b}[32m\"")
+  @debug.debug_inspect(
+    theme.primary_color,
+    content="\"\\u{1b}[38;2;0;255;100m\"",
+  )
 }
 
 ///|

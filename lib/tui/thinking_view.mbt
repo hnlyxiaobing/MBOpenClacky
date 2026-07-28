@@ -104,3 +104,64 @@ pub fn truncate_thinking_buffer(state : TuiState) -> Unit {
     state.thinking_buffer = state.thinking_buffer[excess:].to_owned()
   }
 }
+
+///|
+/// Render the thinking live view as a VNode tree directly.
+///
+/// Uses mizchi/tui's spinner component for animated status and returns
+/// a bordered panel with the last N lines of thinking content.
+/// Returns a text VNode with empty content when there is nothing to display.
+pub fn render_thinking_live_vnode(
+  state : TuiState,
+  animator : ThinkingVerbAnimator,
+  tick : Int,
+) -> @tui.TuiNode {
+  if state.thinking_buffer.length() == 0 {
+    return @tui.text("")
+  }
+
+  let is_active = is_thinking_phase_active(state)
+  let verb = if is_active { animator.next() } else { "Thought" }
+
+  let lines = get_last_n_lines(
+    state.thinking_buffer,
+    thinking_max_display_lines,
+  )
+
+  let children : Array[@tui.TuiNode] = []
+  // Animated header: spinner + verb
+  if is_active {
+    children.push(@tui_components.spinner(tick, label=verb))
+  } else {
+    children.push(@tui.text("  " + verb, fg="magenta", bold=true))
+  }
+
+  // Separator
+  children.push(@tui.text(" "))
+
+  // Thinking content lines (dimmed)
+  for line in lines {
+    children.push(@tui.text(line, fg="rgb(128,128,128)"))
+  }
+
+  @tui.view(
+    direction="column",
+    border="rounded",
+    border_color="magenta",
+    padding_x=1.0,
+    children,
+  )
+}
+
+///|
+/// Render a one-line summary of completed thinking as a VNode.
+pub fn render_thinking_summary_vnode(state : TuiState) -> @tui.TuiNode {
+  if state.thinking_buffer.length() == 0 {
+    return @tui.text("")
+  }
+
+  let char_count = state.thinking_buffer.length()
+  let line_count = state.thinking_buffer.split("\n").to_array().length()
+  let summary = "  Thought for \{char_count} chars (\{line_count} lines)"
+  @tui.text(summary, fg="rgb(128,128,128)")
+}

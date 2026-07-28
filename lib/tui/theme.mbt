@@ -1,8 +1,8 @@
 ///|
 /// Theme system for TUI color customization.
 ///
-/// Provides predefined color themes (Default, Hacker, Minimal, Light) using ANSI
-/// escape codes. Components use the active theme to render consistent colors.
+/// Provides predefined color themes (Default, Hacker, Minimal, Light) using
+/// 24-bit truecolor ANSI escape codes for vibrant rendering.
 
 ///|
 /// Available theme presets.
@@ -48,11 +48,11 @@ pub(all) struct Theme {
 pub fn Theme::default_() -> Theme {
   {
     name: Default,
-    primary_color: "\u001b[34m",
-    secondary_color: "\u001b[36m",
-    accent_color: "\u001b[35m",
-    error_color: "\u001b[31m",
-    dim_color: "\u001b[90m",
+    primary_color: "\u001b[38;2;100;149;237m",
+    secondary_color: "\u001b[38;2;0;200;255m",
+    accent_color: "\u001b[38;2;200;100;255m",
+    error_color: "\u001b[38;2;255;85;85m",
+    dim_color: "\u001b[38;2;128;128;128m",
     tool_call_symbol: "[=>]",
     tool_result_symbol: "[<=]",
     tool_denied_symbol: "[!!]",
@@ -68,11 +68,11 @@ pub fn Theme::default_() -> Theme {
 pub fn Theme::hacker() -> Theme {
   {
     name: Hacker,
-    primary_color: "\u001b[32m",
-    secondary_color: "\u001b[92m",
-    accent_color: "\u001b[32m",
-    error_color: "\u001b[31m",
-    dim_color: "\u001b[90m",
+    primary_color: "\u001b[38;2;0;255;100m",
+    secondary_color: "\u001b[38;2;100;255;150m",
+    accent_color: "\u001b[38;2;0;200;80m",
+    error_color: "\u001b[38;2;255;85;85m",
+    dim_color: "\u001b[38;2;128;128;128m",
     tool_call_symbol: "[=>]",
     tool_result_symbol: "[<=]",
     tool_denied_symbol: "[!!]",
@@ -88,11 +88,11 @@ pub fn Theme::hacker() -> Theme {
 pub fn Theme::minimal() -> Theme {
   {
     name: Minimal,
-    primary_color: "\u001b[37m",
-    secondary_color: "\u001b[97m",
-    accent_color: "\u001b[37m",
-    error_color: "\u001b[31m",
-    dim_color: "\u001b[90m",
+    primary_color: "\u001b[38;2;220;220;220m",
+    secondary_color: "\u001b[38;2;255;255;255m",
+    accent_color: "\u001b[38;2;200;200;200m",
+    error_color: "\u001b[38;2;255;85;85m",
+    dim_color: "\u001b[38;2;128;128;128m",
     tool_call_symbol: ">",
     tool_result_symbol: "<",
     tool_denied_symbol: "*",
@@ -111,11 +111,11 @@ pub fn Theme::minimal() -> Theme {
 pub fn Theme::light() -> Theme {
   {
     name: Light,
-    primary_color: "\u001b[30m",
-    secondary_color: "\u001b[34m",
-    accent_color: "\u001b[35m",
-    error_color: "\u001b[31m",
-    dim_color: "\u001b[90m",
+    primary_color: "\u001b[38;2;30;30;30m",
+    secondary_color: "\u001b[38;2;30;100;200m",
+    accent_color: "\u001b[38;2;180;50;180m",
+    error_color: "\u001b[38;2;200;50;50m",
+    dim_color: "\u001b[38;2;128;128;128m",
     tool_call_symbol: "[=>]",
     tool_result_symbol: "[<=]",
     tool_denied_symbol: "[!!]",

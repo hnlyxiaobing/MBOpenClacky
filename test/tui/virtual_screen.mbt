@@ -78,14 +78,44 @@ pub fn VirtualScreen::write_string(self : VirtualScreen, text : String) -> Unit 
     return
   }
   let mut col = self.cursor_col - 1
+  // State machine to strip ANSI escape codes:
+  // 0=normal, 1=after_esc, 2=in_csi, 3=in_osc, 4=osc_after_esc
+  let mut ansi_state = 0
   for ch in text.iter() {
-    if col >= self.width {
-      break
+    match ansi_state {
+      0 =>
+        if ch == '\u{1b}' {
+          ansi_state = 1
+        } else {
+          if col < self.width && col >= 0 {
+            self.grid[row][col] = ch
+          }
+          col = col + 1
+        }
+      1 =>
+        if ch == '[' {
+          ansi_state = 2
+        } else if ch == ']' {
+          ansi_state = 3
+        } else {
+          ansi_state = 0
+        }
+      2 =>
+        // CSI: skip until terminator byte 0x40-0x7E
+        if ch.to_int() >= 0x40 && ch.to_int() <= 0x7E {
+          ansi_state = 0
+        }
+      3 =>
+        // OSC: skip until BEL or ESC (for ST)
+        if ch == '\u{07}' {
+          ansi_state = 0
+        } else if ch == '\u{1b}' {
+          ansi_state = 4
+        }
+      _ =>
+        // After ESC in OSC: end either way
+        ansi_state = 0
     }
-    if col >= 0 {
-      self.grid[row][col] = ch
-    }
-    col = col + 1
   }
   self.cursor_col = col + 1
 }

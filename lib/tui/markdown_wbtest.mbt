@@ -183,7 +183,7 @@ test "render: empty input renders empty string" {
 test "render: heading carries yellow + bold + reset" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("# Title")
-  assert_true(out.contains("\u001b[33m"))
+  assert_true(out.contains("\u001b[38;2;255;255;85m"))
   assert_true(out.contains("\u001b[1m"))
   assert_true(out.contains("Title"))
   assert_true(out.contains("\u001b[0m"))
@@ -211,7 +211,7 @@ test "render: italic text" {
 test "render: inline code" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("`code`")
-  assert_true(out.contains("\u001b[36m"))
+  assert_true(out.contains("\u001b[38;2;0;200;255m"))
   assert_true(out.contains("code"))
   assert_true(out.contains("\u001b[0m"))
 }
@@ -220,7 +220,7 @@ test "render: inline code" {
 test "render: code block" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("```\nhello\n```")
-  assert_true(out.contains("\u001b[36m"))
+  assert_true(out.contains("\u001b[38;2;0;200;255m"))
   assert_true(out.contains("hello"))
   assert_true(out.contains("\u001b[0m"))
 }
@@ -229,7 +229,7 @@ test "render: code block" {
 test "render: list item with bullet" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("- item")
-  assert_true(out.contains("\u001b[90m"))
+  assert_true(out.contains("\u001b[38;2;128;128;128m"))
   assert_true(out.contains("\u2022"))
   assert_true(out.contains("item"))
 }
@@ -238,7 +238,7 @@ test "render: list item with bullet" {
 test "render: checked task item" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("- [x] done")
-  assert_true(out.contains("\u001b[32m"))
+  assert_true(out.contains("\u001b[38;2;0;255;100m"))
   assert_true(out.contains("\u2611"))
   assert_true(out.contains("done"))
 }
@@ -247,7 +247,7 @@ test "render: checked task item" {
 test "render: unchecked task item" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("- [ ] todo")
-  assert_true(out.contains("\u001b[90m"))
+  assert_true(out.contains("\u001b[38;2;128;128;128m"))
   assert_true(out.contains("\u2610"))
   assert_true(out.contains("todo"))
 }
@@ -256,7 +256,7 @@ test "render: unchecked task item" {
 test "render: block quote" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("> quote")
-  assert_true(out.contains("\u001b[90m"))
+  assert_true(out.contains("\u001b[38;2;128;128;128m"))
   assert_true(out.contains("\u2502"))
   assert_true(out.contains("quote"))
 }
@@ -265,7 +265,7 @@ test "render: block quote" {
 test "render: horizontal rule" {
   let renderer = MarkdownRenderer::new(theme=Theme::default_())
   let out = renderer.render("---")
-  assert_true(out.contains("\u001b[90m"))
+  assert_true(out.contains("\u001b[38;2;128;128;128m"))
   assert_true(out.contains("\u2500"))
 }
 

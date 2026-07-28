@@ -26,9 +26,10 @@ let app_version : String = "0.1.0"
 /// Controller for the inline TUI application.
 pub(all) struct TuiController {
   tty : @tty.Tty
-  screen : ScreenBuffer
+  mut term_width : Int
   output : OutputBuffer
-  layout : LayoutManager
+  mut term_height : Int
+  vnode_renderer : VNodeRenderer
   status_bar : StatusBar
   input : InputArea
   state : Ref[TuiState]
@@ -52,6 +53,8 @@ pub(all) struct TuiController {
   mut suggestions_rows_drawn : Array[Int]
   /// Terminal rows currently occupied by progress indicator lines.
   mut progress_rows_drawn : Array[Int]
+  mut scroll_offset : Int
+  mut brand_layout : BrandLayout
 }
 
 ///|
@@ -60,17 +63,17 @@ pub fn TuiController::new(
   tty : @tty.Tty,
   agent : @agent.Agent,
 ) -> TuiController {
-  let screen = ScreenBuffer::new(tty)
   let output = OutputBuffer::new()
-  let layout = LayoutManager::new(screen, output, status_h=1, input_h=4)
   let state = Ref(TuiState::from_agent(agent))
   let hooks = AgentHookHandler::new(state, agent=Some(agent))
   hooks.set_output(output)
+  let (tw, th) = query_size_safe(tty)
   {
     tty,
-    screen,
     output,
-    layout,
+    vnode_renderer: VNodeRenderer::new(tty),
+    term_width: tw,
+    term_height: th,
     status_bar: StatusBar::new(),
     input: InputArea::multiline_new(),
     state,
@@ -92,6 +95,8 @@ pub fn TuiController::new(
     suggestions_active: false,
     suggestions_rows_drawn: [],
     progress_rows_drawn: [],
+    scroll_offset: 0,
+    brand_layout: GeminiLike,
   }
 }
 
@@ -156,7 +161,7 @@ fn build_command_suggestions() -> CommandSuggestions {
 /// (suggestion dropdown); gap = 1 + todo_lines places it above the todo
 /// area (progress indicators). Rows may fall outside the drawable area on
 /// tiny terminals — callers must skip rows <= 1 (the status bar).
-fn band_rows(
+fn _band_rows(
   screen_h : Int,
   input_h : Int,
   gap : Int,
@@ -174,242 +179,39 @@ fn band_rows(
 ///|
 /// Full screen redraw: status bar, output area, input area.
 pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
-  self.layout.compute_layout()
-  // The display is fully cleared below — forget overlay row tracking.
-  self.suggestions_rows_drawn = []
-  self.progress_rows_drawn = []
-  if self.state.val.shell_mode is ShellMode::FileBrowser {
-    self.screen.clear_display()
-    self.redraw_status()
-    self.redraw_file_browser()
-    self.redraw_input()
-    self.place_cursor()
-    return
-  }
-  // Build status text from state
-  self.status_bar.format_from_state(self.state.val)
-  let status_text = self.status_bar.colored_text()
-  // Get input render lines
-  let input_lines = self.input.render_lines()
-  // Render
-  self.layout.full_redraw(status_text, input_lines)
-  // Re-draw the input box with the active theme color (the layout
-  // renderer uses a hardcoded border color).
-  self.redraw_input()
-  // Re-draw the overlay bands cleared by the full redraw
-  self.redraw_progress()
-  self.redraw_suggestions()
-  // Place cursor
-  self.place_cursor()
+  // VNode-based rendering: builds complete VNode tree and renders
+  // with mizchi/tui's diff engine. Replaces ScreenBuffer + LayoutManager.
+  self.full_redraw_vnode()
 }
+
+///|
+/// Incremental redraw: delegates to full_redraw_vnode.
+/// The VNodeApp diff engine ensures only changed cells are written.
 
 ///|
 /// Incremental redraw: only update what changed.
 pub async fn TuiController::redraw(self : TuiController) -> Unit {
-  if self.state.val.shell_mode is ShellMode::FileBrowser {
-    self.redraw_status()
-    self.redraw_file_browser()
-    self.redraw_input()
-    self.place_cursor()
-    return
-  }
-  // Check if output buffer changed
+  // With VNode diff-based rendering, every render is incremental.
+  // The diff engine writes only changed cells to the terminal.
   let ov = self.output.version
   if ov != self.last_output_version {
     self.last_output_version = ov
-    self.redraw_output()
-    self.redraw_status()
+    self.scroll_offset = 0 // Reset scroll on new output
   }
-  // The input box is cheap — always redraw it, then the overlay bands
-  // (progress indicators animate on every Tick; the suggestion dropdown
-  // tracks input content).
-  self.redraw_input()
-  self.redraw_progress()
-  self.redraw_suggestions()
-  self.place_cursor()
+  self.full_redraw_vnode()
 }
 
 ///|
-/// Redraw just the status bar with per-segment ANSI colors.
-async fn TuiController::redraw_status(self : TuiController) -> Unit {
-  self.status_bar.format_from_state(self.state.val)
-  let colored = self.status_bar.colored_text()
-  self.screen.move_cursor(1, 1)
-  self.screen.clear_to_eol()
-  self.screen.write_string(colored)
-  self.screen.reset_style()
-}
-
-///|
-/// Redraw the output/message area.
-async fn TuiController::redraw_output(self : TuiController) -> Unit {
-  self.layout.redraw_live()
-  // Render todo area below output if visible
-  self.redraw_todo()
-  // Render active dialog if present
-  self.redraw_dialog()
-}
-
-///|
-/// Render the active dialog (if any) using the Node system.
-async fn TuiController::redraw_dialog(self : TuiController) -> Unit {
-  match self.state.val.dialog {
-    NoDialog => ()
-    Approval(dialog) => {
-      let (w, h) = self.layout.screen_size()
-      let input_h = 4
-      let node = render_approval_dialog(dialog)
-      let _ = render_node(self.screen, node, h - input_h - 8, 2, w - 4)
-    }
-    ConfigMenu(dialog) => {
-      let (w, h) = self.layout.screen_size()
-      let input_h = 4
-      let node = render_config_menu(dialog)
-      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
-    }
-    Form(dialog) => {
-      let (w, h) = self.layout.screen_size()
-      let input_h = 4
-      let node = render_form_dialog(dialog)
-      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
-    }
-    ConfigForm(form~, ..) => {
-      let (w, h) = self.layout.screen_size()
-      let input_h = 4
-      let node = render_form_dialog(form)
-      let _ = render_node(self.screen, node, h - input_h - 12, 4, w - 8)
-    }
-  }
-  self.redraw_thinking_view()
-}
-
-///|
-/// Render the thinking live view above the input area.
-async fn TuiController::redraw_thinking_view(self : TuiController) -> Unit {
-  let node = render_thinking_live_view(self.state.val, self.thinking_animator)
-  if node is Node::Empty {
-    return
-  }
-  let (w, h) = self.layout.screen_size()
-  let input_h = 4
-  let _ = render_node(self.screen, node, h - input_h - 10, 2, w - 4)
-}
-
-///|
-/// Render the file browser panel when in FileBrowser mode.
-async fn TuiController::redraw_file_browser(self : TuiController) -> Unit {
-  let (w, h) = self.layout.screen_size()
-  let node = render_file_browser(self.file_browser)
-  let input_h = 4
-  let available_h = h - input_h - 2
-  for i = 0; i < available_h; i = i + 1 {
-    self.screen.move_cursor(2 + i, 1)
-    self.screen.clear_to_eol()
-  }
-  let _ = render_node(self.screen, node, 2, 1, w - 2)
-}
-
-///|
-/// Redraw the todo area above the input box.
-///
-/// Renders the todo_area lines between the output area and the input box.
-/// Only renders when todo_area is visible.
-async fn TuiController::redraw_todo(self : TuiController) -> Unit {
-  let todo_lines = self.state.val.todo_area.render_lines()
-  if todo_lines.length() == 0 {
-    return
-  }
-  let (_, h) = self.layout.screen_size()
-  let input_h = 4
-  // Render todo lines just above the input area
-  let todo_bottom = h - input_h
-  for i = 0; i < todo_lines.length(); i = i + 1 {
-    let row = todo_bottom - todo_lines.length() + i
-    if row > 1 {
-      self.screen.move_cursor(row, 1)
-      self.screen.clear_to_eol()
-      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Cyan))
-      self.screen.write_string(todo_lines[i])
-      self.screen.reset_style()
-    }
+/// Commit all live output entries (make them permanent).
+fn TuiController::commit_output(self : TuiController) -> Unit {
+  match self.output.last_entry_id() {
+    Some(id) => self.output.commit_through(id)
+    None => ()
   }
 }
 
 ///|
-/// Redraw the progress indicator band above the todo area.
-///
-/// Progress lines are written to fixed rows (directly above the todo block)
-/// via ScreenBuffer and never scroll with the OutputBuffer. Previously
-/// drawn rows are erased first, so the band disappears once the agent
-/// closes its progress entries.
-async fn TuiController::redraw_progress(self : TuiController) -> Unit {
-  let (_, h) = self.layout.screen_size()
-  let input_h = 4
-  // Erase previously drawn progress lines
-  for row in self.progress_rows_drawn {
-    if row > 1 {
-      self.screen.move_cursor(row, 1)
-      self.screen.clear_to_eol()
-    }
-  }
-  let progress_lines = self.state.val.progress_stack.render()
-  let todo_len = self.state.val.todo_area.render_lines().length()
-  let rows = band_rows(h, input_h, 1 + todo_len, progress_lines.length())
-  for i = 0; i < progress_lines.length(); i = i + 1 {
-    let row = rows[i]
-    if row > 1 {
-      self.screen.move_cursor(row, 1)
-      self.screen.clear_to_eol()
-      self.screen.set_foreground(@color.Color::Basic(@color.BasicColor::Yellow))
-      self.screen.write_string(progress_lines[i])
-      self.screen.reset_style()
-    }
-  }
-  self.progress_rows_drawn = rows
-}
-
-///|
-/// Redraw the command suggestion dropdown above the input box.
-///
-/// The dropdown overlays the bottom of the output area. When it closes,
-/// its rows are erased and the todo/progress bands underneath are
-/// restored.
-async fn TuiController::redraw_suggestions(self : TuiController) -> Unit {
-  let (_, h) = self.layout.screen_size()
-  let input_h = 4
-  // Erase the previously drawn dropdown and restore what was underneath
-  if self.suggestions_rows_drawn.length() > 0 {
-    for row in self.suggestions_rows_drawn {
-      if row > 1 {
-        self.screen.move_cursor(row, 1)
-        self.screen.clear_to_eol()
-      }
-    }
-    self.suggestions_rows_drawn = []
-    self.redraw_todo()
-    self.redraw_progress()
-  }
-  if !self.suggestions_active {
-    return
-  }
-  let lines = self.suggestions.render()
-  let rows = band_rows(h, input_h, 0, lines.length())
-  for i = 0; i < lines.length(); i = i + 1 {
-    let row = rows[i]
-    if row > 1 {
-      self.screen.move_cursor(row, 1)
-      self.screen.clear_to_eol()
-      self.screen.write_string(lines[i])
-    }
-  }
-  self.suggestions_rows_drawn = rows
-}
-
-///|
-/// Refresh the suggestion dropdown filter from the current input content.
-///
-/// Shows the dropdown when the single-line input starts with "/", hides it
-/// otherwise (including when the filter yields no matches).
+/// Update the suggestion dropdown based on current input.
 fn TuiController::update_suggestions(self : TuiController) -> Unit {
   let text = self.input.text()
   if should_show_suggestions(text, self.input.line_count()) {
@@ -428,69 +230,12 @@ fn TuiController::close_suggestions(self : TuiController) -> Unit {
 }
 
 ///|
-/// Redraw the input area.
-///
-/// The border uses the active theme's primary color (an ANSI escape
-/// string written directly) instead of a hardcoded color.
-async fn TuiController::redraw_input(self : TuiController) -> Unit {
-  let input_lines = self.input.render_lines()
-  let (w, h) = self.layout.screen_size()
-  let input_h = 4
-  let top = h - input_h
-  let border_color = self.theme.primary_color
-  for i = 0; i < input_h; i = i + 1 {
-    self.screen.move_cursor(top + i + 1, 1)
-    self.screen.clear_to_eol()
-    if i == 0 {
-      self.screen.write_string(border_color)
-      self.screen.write_string("┌─ Input ")
-      let border_w = w - 10
-      for j = 0; j < border_w; j = j + 1 {
-        self.screen.write_string("─")
-      }
-      self.screen.reset_style()
-    } else if i == input_h - 1 {
-      self.screen.write_string(border_color)
-      self.screen.write_string("└")
-      let border_w = w - 2
-      for j = 0; j < border_w; j = j + 1 {
-        self.screen.write_string("─")
-      }
-      self.screen.write_string("┘")
-      self.screen.reset_style()
-    } else if i - 1 < input_lines.length() {
-      self.screen.write_string(border_color)
-      self.screen.write_string("│ ")
-      self.screen.reset_style()
-      self.screen.write_string(input_lines[i - 1])
-    } else {
-      self.screen.write_string(border_color)
-      self.screen.write_string("│")
-      self.screen.reset_style()
-    }
-  }
-}
-
-///|
-/// Place the terminal cursor at the input editor position.
-async fn TuiController::place_cursor(self : TuiController) -> Unit {
-  let (_, h) = self.layout.screen_size()
-  let input_h = 4
-  let top = h - input_h
-  let (cursor_line, cursor_col) = self.input.cursor_display_pos()
-  let row = top + 1 + cursor_line
-  let col = 3 + cursor_col // +3 for "│ " prefix
-  self.screen.move_cursor(row, col)
-  self.screen.show_cursor()
-}
-
-///|
 /// Restore terminal to normal state on exit.
 async fn TuiController::restore_terminal(self : TuiController) -> Unit {
-  self.screen.reset_style()
-  self.screen.show_cursor()
-  self.screen.move_cursor(self.layout.height, 1)
-  self.screen.write_string("\r\n")
+  // Reset styles, show cursor, move to bottom of screen
+  self.tty.write_string(
+    "\u{1b}[0m\u{1b}[?25h\u{1b}[" + self.term_height.to_string() + ";1H\r\n",
+  )
 }
 
 // ── Event Loop ───────────────────────────────────────────────────
@@ -508,8 +253,8 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
   self.hooks.register_all(self.agent.hook_manager)
   // Wrap output lines at the real terminal width and show the startup
   // banner as the first output entry (it scrolls away naturally).
-  self.output.width = self.layout.width
-  let banner_width = Banner::adaptive_width(self.layout.width)
+  self.output.width = self.term_width
+  let banner_width = Banner::adaptive_width(self.term_width)
   let banner = {
     style: BannerStyle::Block,
     width: banner_width,
@@ -526,10 +271,14 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
     self.state.val.permission_mode,
     has_rules,
     api_key_missing,
-    terminal_width=self.layout.width,
+    terminal_width=self.term_width,
   )
   ignore(self.output.append_text(startup_banner, OutputKind::Text))
-  self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q))
+  self.tty.with_raw_mode(() => {
+    self.tty.with_mouse(@tty.MouseTrackingMode::Drag, () => {
+      self.async_event_loop(req_q, resp_q)
+    })
+  })
 }
 
 ///|
@@ -612,8 +361,10 @@ async fn TuiController::main_loop(
         match ev {
           Input(input) => self.handle_input(input)
           Resize(_) => {
-            self.layout.compute_layout()
-            self.output.width = self.layout.width
+            let (tw, th) = query_size_safe(self.tty)
+            self.term_width = tw
+            self.term_height = th
+            self.output.width = self.term_width
             self.full_redraw()
           }
         }
@@ -649,7 +400,7 @@ async fn TuiController::main_loop(
         // Draw the new entries while still live, then mark them committed —
         // committed lines are never re-rendered by redraw_live.
         self.redraw()
-        self.layout.commit_all()
+        self.commit_output()
         self.dirty = true
       }
       AgentError(msg) => {
@@ -664,7 +415,7 @@ async fn TuiController::main_loop(
         )
         ignore(self.output.append_text("[error] \{msg}", OutputKind::Text))
         self.redraw()
-        self.layout.commit_all()
+        self.commit_output()
         self.dirty = true
       }
       SubmitInput(text) => self.start_agent(group, text)
@@ -731,7 +482,7 @@ async fn TuiController::handle_input(
       self.update_suggestions()
       self.dirty = true
     }
-    Mouse(_) => ()
+    Mouse(ev) => self.handle_mouse(ev)
     FocusIn => ()
     FocusOut => ()
     Unknown(_) => ()
@@ -1117,6 +868,14 @@ async fn TuiController::handle_key(
       self.dirty = true
     }
     Char('l') if key.modifiers.ctrl() => self.full_redraw()
+    Char('y') if key.modifiers.ctrl() => {
+      // Copy visible output to clipboard via OSC 52
+      let msg_height = self.term_height - 5
+      let lines = self.output.tail_lines(msg_height)
+      let text = lines.join("\n")
+      copy_to_clipboard(self.tty, text)
+      self.dirty = true
+    }
     Char('k') if key.modifiers.ctrl() => {
       self.input.kill_to_end()
       self.update_suggestions()
@@ -1266,7 +1025,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                   ),
                 )
                 self.redraw()
-                self.layout.commit_all()
+                self.commit_output()
                 self.dirty = true
                 return
               }
@@ -1285,7 +1044,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                   ),
                 )
                 self.redraw()
-                self.layout.commit_all()
+                self.commit_output()
                 self.dirty = true
                 return
               }
@@ -1306,7 +1065,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 ),
               )
               self.full_redraw()
-              self.layout.commit_all()
+              self.commit_output()
               self.dirty = false
               return
             }
@@ -1331,7 +1090,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 ),
               )
               self.full_redraw()
-              self.layout.commit_all()
+              self.commit_output()
               self.dirty = false
               return
             }
@@ -1374,7 +1133,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 )
               }
               self.redraw()
-              self.layout.commit_all()
+              self.commit_output()
               self.dirty = true
               return
             }
@@ -1388,7 +1147,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 self.output.append_text("[system] \{msg}", OutputKind::Text),
               )
               self.redraw()
-              self.layout.commit_all()
+              self.commit_output()
               self.dirty = true
             }
             Err(err) => {
@@ -1396,7 +1155,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 self.output.append_text("[error] \{err}", OutputKind::Text),
               )
               self.redraw()
-              self.layout.commit_all()
+              self.commit_output()
               self.dirty = true
             }
           }
@@ -1420,7 +1179,7 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
     self.dirty = true
     // Draw the user message while still live, then commit it
     self.redraw()
-    self.layout.commit_all()
+    self.commit_output()
     self.events.put(SubmitInput(expanded_text))
   }
 }

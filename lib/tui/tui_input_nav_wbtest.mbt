@@ -97,20 +97,20 @@ test "submitted input lands in history and is recalled by prev_history" {
 ///|
 test "band_rows stacks the dropdown directly above the input box" {
   // 24-row screen, 4-row input box whose top border sits on row 21
-  assert_eq(band_rows(24, 4, 0, 3), [18, 19, 20])
+  assert_eq(_band_rows(24, 4, 0, 3), [18, 19, 20])
   // A single-line dropdown touches the input top border
-  assert_eq(band_rows(24, 4, 0, 1), [20])
+  assert_eq(_band_rows(24, 4, 0, 1), [20])
   // Empty band produces no rows
-  assert_eq(band_rows(24, 4, 0, 0), [])
+  assert_eq(_band_rows(24, 4, 0, 0), [])
 }
 
 ///|
 test "band_rows places progress lines above the todo area" {
   // Todo area occupies rows [18, 19] (gap 1 keeps row 20 free above input)
   // so a single progress line goes to row 17
-  assert_eq(band_rows(24, 4, 1 + 2, 1), [17])
+  assert_eq(_band_rows(24, 4, 1 + 2, 1), [17])
   // Without a todo area the progress line sits just above the free row
-  assert_eq(band_rows(24, 4, 1, 1), [19])
+  assert_eq(_band_rows(24, 4, 1, 1), [19])
 }
 
 ///|
