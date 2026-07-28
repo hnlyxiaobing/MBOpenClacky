@@ -205,23 +205,171 @@ OpenClacky `input_area.rb` 中出现的按键处理：`kill`（多处，含 Ctrl
 
 ---
 
-## 6. 尚未逐项深度对比的组件（后续工作）
+## 6. 逐项深度对比（组件级）
 
-以下组件两边均存在对应实现，本次受时间所限未做像素级/行为级逐一对比，建议后续补充：
+### 6.1 思考动画组件
 
-| 组件 | OpenClacky | MBOpenClacky |
-|------|-----------|--------------|
-| 思考动画 | `ui2/thinking_verbs.rb` / `rich_ui/thinking_live_view.rb` | `thinking_view.mbt` / `thinking_verbs.mbt` |
-| 工具调用渲染 | `ui2/components/tool_component.rb` | `node_adapter.mbt`（tool 节点） |
-| Markdown 渲染 | `ui2/markdown_renderer.rb` | `markdown.mbt` |
-| Diff 渲染 | （`ui2` 内） | `diff_renderer.mbt` |
-| 文件浏览器 | （`rich_ui`） | `file_browser.mbt` |
-| 审批对话框 | `ui2/components/modal_component.rb` / `rich_ui/components/dialogs/` | `dialog_approval.mbt` / `dialog_form.mbt` / `dialog_config_menu.mbt` |
-| Todo 区 | `ui2/components/todo_area.rb` | `todo_area.mbt` |
-| 消息组件 | `ui2/components/message_component.rb` | `output_buffer.mbt` |
-| 进度栈 | `ui2/progress_indicator.rb` / `progress_handle.rb` | `progress_stack.mbt` |
-| 侧边栏布局 | `rich_ui/components/sidebar.rb` | `brand_layout.mbt`（ClaudeCodeLike） |
-| 滚动行为 | `screen_buffer.rb` | `output_buffer.mbt` + 状态栏 `↑ offset/total` 段 |
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/thinking_verbs.rb` + `rich_ui/thinking_live_view.rb` | `thinking_verbs.mbt` + `thinking_view.mbt` |
+| **动词列表** | 20 个思考动词（`THINKING_VERBS` 常量） | 20 个相同动词（`default_thinking_verbs`） |
+| **动画实现** | `SPINNER = ['|', '/', '-', '\\']` 字符旋转器 | `@tui_components.spinner(tick, label=verb)` Braille spinner |
+| **旋转模式** | 仅顺序旋转 | 两种模式：`Sequential`（顺序）和 `Random`（随机） |
+| **时间跟踪** | 显示已用时间（如 "3.2s"） | 不显示时间 |
+| **状态管理** | 三状态：`:idle`, `:thinking`, `:done` | 通过 `phase_stack` 检查 "thinking" 阶段 |
+| **渲染路径** | 直接操作终端光标 | 双路径：Node 树 + VNode 树 |
+| **缓冲区管理** | 无 | 支持 10KB 缓冲区截断 |
+| **API 设计** | 简单数组 + 状态变量 | 完整的 `ThinkingVerbAnimator` 结构体，支持 `new()`, `new_random()`, `with_verbs()`, `next()`, `reset()`, `all_verbs()` |
+
+**差异总结**：MBOpenClacky 的实现更灵活，支持随机模式和自定义动词列表，但缺少时间显示功能。OpenClacky 的实现更简单直接。
+
+### 6.2 工具调用渲染组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/components/tool_component.rb` | `agent_hooks.mbt`（集成） + `theme.mbt`（符号） |
+| **架构** | 独立的 `ToolComponent` 类，继承自 `BaseComponent` | 集成在 `agent_hooks.mbt` 的事件分发中 |
+| **事件类型** | 5 种：`:call`, `:result`, `:error`, `:denied`, `:planned` | 更多事件：工具调用、工具结果、shell 命令、文件访问、token 统计等 |
+| **渲染方式** | 返回格式化字符串 | 通过 `OutputBuffer` 写入条目 |
+| **符号系统** | `format_symbol` 方法 | 主题符号常量（`tool_call_symbol`, `tool_result_symbol` 等） |
+| **进度集成** | 无 | 与进度栈集成，显示工具执行进度 |
+| **结果截断** | 200 字符 | 200 字符（`truncate_preview`） |
+| **shell 支持** | 无特殊处理 | 专门的 shell 命令预览（`[C]` 符号） |
+| **文件预览** | 无 | 专门的文件访问预览（`[F]` 符号） |
+
+**差异总结**：MBOpenClacky 的实现更全面，集成了进度跟踪、文件预览、token 统计等功能。OpenClacky 的实现更模块化，但功能较简单。
+
+### 6.3 Markdown 渲染组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/markdown_renderer.rb` | `markdown.mbt` |
+| **实现方式** | 使用外部库 `tty-markdown` | 自实现的解析器和渲染器 |
+| **依赖** | 依赖 `TTY::Markdown` | 无外部依赖 |
+| **支持语法** | 基础 Markdown（标题、粗体、斜体、代码、列表、链接、引用） | 完整 Markdown + GFM 表格、任务列表 |
+| **颜色配置** | 主题颜色系统 | 硬编码 ANSI 颜色 |
+| **错误处理** | 异常捕获，失败时返回原文 | 无异常处理 |
+| **自动检测** | `markdown?` 方法检测内容是否为 Markdown | 无自动检测 |
+| **表格支持** | 未知 | 支持 GFM 表格（使用 `@tabular` 库） |
+| **任务列表** | 未知 | 支持 `- [x]` 和 `- [ ]` 语法 |
+
+**差异总结**：MBOpenClacky 的实现更完整，支持更多语法且无外部依赖，但颜色配置硬编码。OpenClacky 依赖外部库，功能可能更丰富但需要额外依赖。
+
+### 6.4 Diff 渲染组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | 无专门组件 | `diff_renderer.mbt` |
+| **功能** | 无专门 diff 渲染 | 支持统一 diff 和并排 diff 渲染 |
+| **颜色编码** | 无 | 绿色（添加）、红色（删除）、青色（hunk）、黄色（文件头） |
+| **格式检测** | 无 | `is_diff` 方法检测统一 diff 格式 |
+| **渲染方式** | 无 | VNode 树渲染 |
+
+**差异总结**：MBOpenClacky 有专门的 diff 渲染组件，OpenClacky 没有对应实现。
+
+### 6.5 文件浏览器组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | 无专门组件 | `file_browser.mbt` |
+| **功能** | 无文件浏览器 | 完整的文件树导航、目录浏览、文件预览 |
+| **交互** | 无 | 键盘导航（上下箭头、Enter、Backspace、Esc） |
+| **预览** | 无 | 支持文件内容预览（最大 2000 字符） |
+| **排序** | 无 | 目录优先，字母排序 |
+| **大小显示** | 无 | 人类可读的文件大小（B/KB/MB） |
+
+**差异总结**：MBOpenClacky 有完整的文件浏览器，OpenClacky 没有对应实现。
+
+### 6.6 审批对话框组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `rich_ui/components/dialogs/approval_dialog.rb` | `dialog_approval.mbt` |
+| **风险级别** | 4 级：low, medium, high, critical | 无风险级别 |
+| **类别系统** | 4 类：file, shell, network, paid | 无类别系统 |
+| **选项** | 3 个：Approve, Deny, Always allow | 3 个：Allow, Deny, Details |
+| **交互方式** | 键盘导航（左右箭头、h/l 键） | 按键选择（y/n/d） |
+| **渲染库** | RubyRich 库 | Node 树 |
+| **同步机制** | 互斥锁 + 条件变量 | 无同步机制 |
+| **详情展开** | 无 | 支持详情展开/折叠 |
+| **风险指示** | 风险条（●○○○） | 无风险指示 |
+
+**差异总结**：OpenClacky 的实现更复杂，支持风险评估和类别系统。MBOpenClacky 的实现更简化，但支持详情展开功能。
+
+### 6.7 Todo 区组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/components/todo_area.rb` | `todo_area.mbt` |
+| **显示任务数** | 最多 3 个（当前 + 下 2 个） | 最多 3 个（前 3 个） |
+| **隐藏/显示** | 支持 `hide`/`show` 方法 | 支持 `hide`/`show` 方法 |
+| **颜色渲染** | 使用 Pastel 库 | 无颜色（纯文本符号） |
+| **状态表示** | 文本状态（pending, completed） | 符号表示（✓, ●, ✗, ○） |
+| **渲染方式** | 直接操作终端光标 | 返回 ANSI 字符串数组 |
+| **动态高度** | 支持动态高度调整 | 固定高度 |
+
+**差异总结**：OpenClacky 的实现支持颜色和动态高度，MBOpenClacky 的实现更简单但符号表示更直观。
+
+### 6.8 消息组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/components/message_component.rb` | `output_buffer.mbt` |
+| **架构** | 消息渲染组件 | 输出缓冲区管理器 |
+| **消息类型** | 3 种：user, assistant, system | 3 种：Text, Progress, System |
+| **时间戳** | 支持时间戳显示 | 无时间戳 |
+| **文件附件** | 支持文件附件信息 | 无文件附件 |
+| **颜色渲染** | 使用 Pastel 库 | 使用 ANSI 转义码 |
+| **状态管理** | 无 | 支持提交状态跟踪（已提交/未提交） |
+| **版本控制** | 无 | 支持版本控制（用于检测重绘需求） |
+| **折叠功能** | 无 | 支持条目折叠 |
+
+**差异总结**：MBOpenClacky 的实现更高级，支持提交状态跟踪和版本控制。OpenClacky 的实现更专注于消息渲染。
+
+### 6.9 进度栈组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `ui2/progress_indicator.rb` | `progress_stack.mbt` |
+| **并发模型** | 后台线程 | 单线程事件循环 |
+| **进度条数量** | 单个进度条 | 多个并发进度条（栈式管理） |
+| **安静模式** | 无 | 支持安静模式（quiet mode） |
+| **字符计数** | 无 | 支持字符计数（用于流式传输） |
+| **动画实现** | 思考动词（`THINKING_VERBS.sample`） | Braille spinner（⠋⠙⠹...） |
+| **时间显示** | 显示已用时间 | 显示已用时间 |
+| **自动清理** | 无 | 自动清理短暂运行的安静条目（<2 秒） |
+| **资源管理** | 手动管理线程 | 自动管理 |
+
+**差异总结**：MBOpenClacky 的实现更先进，支持多个并发进度条和自动资源管理。OpenClacky 的实现更简单但依赖后台线程。
+
+### 6.10 侧边栏布局组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `rich_ui/components/sidebar.rb` | `brand_layout.mbt` |
+| **架构** | 侧边栏组件 | 布局模板系统 |
+| **模式** | 5 种：work, tasks, context, auto, hidden | 3 种布局：GeminiLike, ClaudeCodeLike, Compact |
+| **面板** | 3 个：Work, Tasks, Context | 无面板概念 |
+| **渲染库** | RubyRich 库 | mizchi/tui VNode 树 |
+| **自动显示** | 支持自动显示/隐藏面板 | 无自动显示 |
+| **布局选项** | 仅侧边栏布局 | 多种布局风格 |
+
+**差异总结**：OpenClacky 专注于侧边栏组件，MBOpenClacky 提供多种布局模板。两者设计理念不同。
+
+### 6.11 滚动行为组件
+
+| 维度 | OpenClacky（基准） | MBOpenClacky |
+|------|------------------|--------------|
+| **文件** | `screen_buffer.rb` | `output_buffer.mbt` |
+| **抽象级别** | 低级终端控制 | 高级输出管理 |
+| **功能** | 终端原语：光标移动、清屏、滚动区域 | 输出条目管理：追加、替换、移除 |
+| **渲染方式** | 直接操作终端 | VNode 树渲染 |
+| **状态管理** | 终端状态 | 提交状态跟踪、版本控制 |
+| **编码支持** | UTF-8 编码 | 无特殊编码处理 |
+| **替代屏幕** | 支持替代屏幕缓冲区 | 无替代屏幕 |
+| **快速输入检测** | 支持粘贴检测 | 无粘贴检测 |
+
+**差异总结**：两者抽象级别不同，OpenClacky 提供终端原语，MBOpenClacky 提供高级输出管理。MBOpenClacky 的实现更适合现代化的 TUI 架构。
 
 ---
 
