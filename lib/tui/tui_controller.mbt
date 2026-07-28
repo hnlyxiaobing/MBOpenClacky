@@ -146,6 +146,17 @@ fn should_show_suggestions(text : String, line_count : Int) -> Bool {
 }
 
 ///|
+/// Whether accepting a suggestion should immediately submit it (single Enter).
+///
+/// A completed slash command (starts with "/") is executable as-is, so it is
+/// submitted in the same keystroke to match the reference TUI (SPEC-03).
+/// Future non-command completions (argument values, paths) would not start
+/// with "/" and remain complete-only, leaving the user to keep editing.
+fn should_submit_accepted_suggestion(cmd : String) -> Bool {
+  cmd.has_prefix("/")
+}
+
+///|
 /// Build the suggestion dropdown from the registered slash commands so the
 /// two never drift apart (includes /theme, /todo, /meeting, ...).
 fn build_command_suggestions() -> CommandSuggestions {
@@ -859,13 +870,24 @@ async fn TuiController::handle_key(
       self.quit = true
     Enter =>
       if self.suggestions_active {
-        // Accept the highlighted suggestion — complete the input, don't submit
+        // Accept the highlighted suggestion.
         match self.suggestions.accept() {
-          Some(cmd) => self.input.set_text(cmd)
-          None => ()
+          Some(cmd) => {
+            self.input.set_text(cmd)
+            self.close_suggestions()
+            self.dirty = true
+            // A completed slash command is immediately executable — submit it
+            // in the same keystroke to match the reference TUI's single-Enter
+            // flow (BUG-003 / SPEC-03).
+            if should_submit_accepted_suggestion(cmd) {
+              self.handle_enter_key()
+            }
+          }
+          None => {
+            self.close_suggestions()
+            self.dirty = true
+          }
         }
-        self.close_suggestions()
-        self.dirty = true
       } else {
         self.handle_enter_key()
       }

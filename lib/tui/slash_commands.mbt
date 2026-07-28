@@ -42,7 +42,7 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
   let commands : Array[SlashCommandDef] = [
     {
       name: "config",
-      description: "Open config menu or set a value",
+      description: "Open configuration (models, API keys, settings)",
       usage: "/config [key value]",
     },
     {
@@ -55,7 +55,7 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
     { name: "todo", description: "Toggle todo area visibility", usage: "/todo" },
     {
       name: "skills",
-      description: "Manage skills",
+      description: "Manage skills (list, enable, disable)",
       usage: "/skills <list|enable|disable>",
     },
     { name: "help", description: "Show available commands", usage: "/help" },
@@ -291,25 +291,39 @@ pub fn execute(
           Err("Unknown skills action: \{action}. Use list, enable, or disable.")
       }
     Help => {
+      let name_col = 12
       let lines : Array[String] = ["Available commands:"]
       let parser = SlashCommandParser::new()
       for cmd_def in parser.commands {
-        lines.push("  /\{cmd_def.name} - \{cmd_def.description}")
+        let padded_name = "/\{cmd_def.name}"
+        let pad_count = name_col - padded_name.length()
+        let pad = if pad_count > 0 { " ".repeat(pad_count) } else { "" }
+        lines.push("  \{padded_name}\{pad}\{cmd_def.description}")
       }
       lines.push("")
       lines.push("Keyboard shortcuts:")
-      lines.push("  Enter        - Send message")
-      lines.push("  Ctrl+J       - Insert newline")
-      lines.push("  Ctrl+C       - Cancel / Quit")
-      lines.push("  Ctrl+D       - Quit (when input empty)")
-      lines.push("  Ctrl+L       - Redraw screen")
-      lines.push("  Ctrl+K       - Kill to end of line")
-      lines.push("  Ctrl+U       - Kill to start of line")
-      lines.push("  Ctrl+W       - Kill previous word")
-      lines.push("  Tab          - Cycle shell mode / Complete")
-      lines.push("  Up/Down      - Browse history / Navigate")
-      lines.push("  Escape       - Dismiss suggestions")
-      lines.push("  Shift+Tab    - Cycle permission mode")
+      let key_col = 12
+      let shortcuts : Array[(String, String)] = [
+        ("Enter", "Send message"),
+        ("Ctrl+J", "Insert newline"),
+        ("Ctrl+V", "Paste text (folds to [#N Paste Text])"),
+        ("Ctrl+C", "Cancel / Quit"),
+        ("Ctrl+D", "Quit (when input empty)"),
+        ("Ctrl+L", "Redraw screen"),
+        ("Ctrl+K", "Kill to end of line"),
+        ("Ctrl+U", "Kill to start of line"),
+        ("Ctrl+W", "Kill previous word"),
+        ("Tab", "Cycle shell mode / Complete"),
+        ("Up/Down", "Browse history / Navigate"),
+        ("Escape", "Dismiss suggestions"),
+        ("Shift+Tab", "Cycle permission mode"),
+      ]
+      for i = 0; i < shortcuts.length(); i = i + 1 {
+        let (key, desc) = shortcuts[i]
+        let pad_count = key_col - key.length()
+        let pad = if pad_count > 0 { " ".repeat(pad_count) } else { "" }
+        lines.push("  \{key}\{pad}\{desc}")
+      }
       Ok(lines.join("\n"))
     }
     Exit => Ok("Exiting application")

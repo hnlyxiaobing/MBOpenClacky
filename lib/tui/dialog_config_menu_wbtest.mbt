@@ -163,3 +163,53 @@ test "config_menu: as_model_selector creates dialog" {
   // First model should have (active) marker only if selected
   assert_false(dialog.items[0].label.contains("(active)"))
 }
+
+///|
+/// SPEC-07 regression: config menu labels are truncated at narrow widths.
+test "config_menu: truncates long labels at narrow width (SPEC-07)" {
+  let items = [
+    { label: "Very Long Model Name That Should Be Truncated", value: "v1", multi_select: false, checked: false },
+  ]
+  let m = ConfigMenuDialog::new("Menu", items)
+  let node = render_config_menu(m, term_width=40)
+  let text = node_to_text(node)
+  // The label should be truncated with ellipsis.
+  assert_true(text.contains("…"))
+  // The label portion itself should be shorter than the original.
+  assert_false(text.contains("Very Long Model Name That Should Be Truncated"))
+}
+
+///|
+/// SPEC-07 regression: config menu uses abbreviated hints at narrow width.
+test "config_menu: abbreviated hints at narrow width (SPEC-07)" {
+  let m = make_test_menu()
+  let node = render_config_menu(m, term_width=60)
+  let text = node_to_text(node)
+  // Narrow hints should NOT contain "Delete" (full hint has it).
+  assert_false(text.contains("Delete"))
+  // But should still have "Navigate".
+  assert_true(text.contains("Navigate"))
+}
+
+///|
+/// SPEC-07 regression: config menu shows full hints at wide width.
+test "config_menu: full hints at wide width (SPEC-07)" {
+  let m = make_test_menu()
+  let node = render_config_menu(m, term_width=120)
+  let text = node_to_text(node)
+  assert_true(text.contains("Delete"))
+}
+
+///|
+/// SPEC-07 regression: config menu with default term_width has no limit.
+test "config_menu: no truncation with default term_width (SPEC-07)" {
+  let items = [
+    { label: "A Very Long Label That Would Normally Be Truncated", value: "long-value", multi_select: false, checked: false },
+  ]
+  let m = ConfigMenuDialog::new("Menu", items)
+  let node = render_config_menu(m)
+  let text = node_to_text(node)
+  // Full label should be present (no truncation).
+  assert_true(text.contains("A Very Long Label"))
+  assert_false(text.contains("…"))
+}

@@ -234,13 +234,20 @@ fn Banner::colorize(self : Banner, text : String) -> String {
 pub let min_width_for_logo : Int = 90
 
 ///|
-/// Tagline shown below the logo.
-let banner_tagline : String = "Your AI-powered coding companion"
+/// Tagline shown below the logo (aligned with the OpenClacky baseline
+/// `[>]` prefix; wording matches this project's assistant identity).
+let banner_tagline : String =
+  "[>] Your personal Assistant & Technical Co-founder"
 
 ///|
-/// Usage tips shown at startup.
+/// Usage tips shown at startup (aligned with the OpenClacky baseline:
+/// four `[*]`-prefixed entries, including the `.clackyrules / AGENTS.md`
+/// customization hint that MB previously lacked).
 let banner_tips : Array[String] = [
-  "Press Tab for completions, /help for commands", "Type your message and press Enter to chat",
+  "Press Tab for completions, /help for commands",
+  "Type your message and press Enter to chat",
+  "Create .clackyrules or AGENTS.md to customize behavior",
+  "Use Ctrl+J for newlines, Ctrl+V to paste text",
 ]
 
 ///|
@@ -283,7 +290,9 @@ pub fn Banner::render_startup(
   sections.push(
     self.render_info_section(working_dir, permission_mode, has_rules),
   )
-  // Section 6: Optional API key warning
+  // Section 6: Exit hint (aligned with the OpenClacky baseline)
+  sections.push(self.render_exit_hint())
+  // Section 7: Optional API key warning
   if api_key_missing {
     sections.push(self.render_api_key_warning())
   }
@@ -310,12 +319,17 @@ fn Banner::render_logo_section(self : Banner, effective_width : Int) -> String {
 
 ///|
 /// Render the tagline + version section.
+///
+/// Aligned with the OpenClacky baseline: the tagline stands on its own
+/// line and the version is rendered as a separate dim line (`Version x.y.z`)
+/// rather than being appended to the tagline.
 fn Banner::render_tagline_section(self : Banner, version : String) -> String {
-  let line = "  \{banner_tagline}  ·  v\{version}"
+  let tagline = "  \{banner_tagline}"
+  let version_line = "  Version \{version}"
   if self.use_color {
-    "\u{1b}[38;2;0;200;255m\{line}\u{1b}[0m"
+    "\u{1b}[38;2;0;200;255m\{tagline}\u{1b}[0m\n\u{1b}[2m\{version_line}\u{1b}[0m"
   } else {
-    line
+    "\{tagline}\n\{version_line}"
   }
 }
 
@@ -324,7 +338,7 @@ fn Banner::render_tagline_section(self : Banner, version : String) -> String {
 fn Banner::render_tips_section(self : Banner) -> String {
   let parts : Array[String] = []
   for tip in banner_tips {
-    let line = "  💡 \{tip}"
+    let line = "  [*] \{tip}"
     if self.use_color {
       parts.push("\u{1b}[2m\{line}\u{1b}[0m")
     } else {
@@ -336,24 +350,17 @@ fn Banner::render_tips_section(self : Banner) -> String {
 
 ///|
 /// Render the AGENT MODE separator section.
+///
+/// Aligned with the OpenClacky baseline: a `[+] AGENT MODE INITIALIZED`
+/// header followed by a line of `=` (instead of a centered `─ AGENT MODE ─`).
 fn Banner::render_agent_mode_section(self : Banner) -> String {
-  let sep_width = if self.width > 40 { 40 } else { self.width }
-  // "  AGENT MODE  " is 14 display columns
-  let label_width = 14
-  let half = (sep_width - label_width) / 2
-  let left_pad = if half > 0 { half } else { 0 }
-  let right_pad = if sep_width - left_pad - label_width > 0 {
-    sep_width - left_pad - label_width
-  } else {
-    0
-  }
-  let sep_line = "─".repeat(left_pad) +
-    "  AGENT MODE  " +
-    "─".repeat(right_pad)
+  let bar_width = if self.width > 40 { 40 } else { self.width }
+  let header = "  [+] AGENT MODE INITIALIZED"
+  let bar = "  \{"=".repeat(bar_width)}"
   if self.use_color {
-    "\u{1b}[1m\u{1b}[38;2;255;255;85m\{sep_line}\u{1b}[0m"
+    "\u{1b}[1m\u{1b}[38;2;255;255;85m\{header}\u{1b}[0m\n\u{1b}[38;2;255;255;85m\{bar}\u{1b}[0m"
   } else {
-    sep_line
+    "\{header}\n\{bar}"
   }
 }
 
@@ -366,10 +373,13 @@ fn Banner::render_info_section(
   has_rules : Bool,
 ) -> String {
   let rules_str = if has_rules { "✓" } else { "—" }
+  // Field labels aligned with the OpenClacky baseline (`[Working Directory]`,
+  // `[Permission Mode]`). The `[Project Rules]` line is an MB value-add kept
+  // in the same label style (no emoji) per the SPEC-04 decision.
   let parts : Array[String] = [
-    "  📁 \{working_dir}",
-    "  🔒 Mode: \{permission_mode}",
-    "  📋 Project Rules: \{rules_str}",
+    "  [Working Directory] \{working_dir}",
+    "  [Permission Mode] \{permission_mode}",
+    "  [Project Rules] \{rules_str}",
   ]
   if self.use_color {
     let colored : Array[String] = []
@@ -379,6 +389,18 @@ fn Banner::render_info_section(
     colored.join("\n")
   } else {
     parts.join("\n")
+  }
+}
+
+///|
+/// Render the exit hint line (aligned with the OpenClacky baseline
+/// `[!] Type 'exit' or 'quit' to terminate session`).
+fn Banner::render_exit_hint(self : Banner) -> String {
+  let line = "  [!] Type 'exit' or 'quit' to terminate session"
+  if self.use_color {
+    "\u{1b}[2m\{line}\u{1b}[0m"
+  } else {
+    line
   }
 }
 

@@ -37,16 +37,21 @@ pub fn build_gemini_layout(
   input_children : Array[@tui.TuiNode],
   border_color : String,
   input_h : Int,
+  term_width : Double,
 ) -> @tui.TuiNode {
   if output_children.is_empty() {
     output_children.push(@tui.text(" "))
   }
-  @tui.column(width=100.0, height=100.0, [
+  // NOTE: width is the real terminal width in columns. The DSL interprets a
+  // numeric width as DimensionValue::Length (absolute columns), NOT percent —
+  // the old hardcoded 100.0 clipped the ~118-column status bar to 100 cols and
+  // flex-shrunk its space-containing segments (see SPEC-01).
+  @tui.column(width=term_width, height=100.0, [
     status_node,
-    @tui.column(flex_grow=1.0, width=100.0, output_children),
+    @tui.column(flex_grow=1.0, width=term_width, output_children),
     @tui.view(
       direction="column",
-      width=100.0,
+      width=term_width,
       height=input_h.to_double(),
       border="rounded",
       border_color~,
@@ -133,14 +138,15 @@ pub fn build_compact_layout(
   output_children : Array[@tui.TuiNode],
   input_children : Array[@tui.TuiNode],
   input_h : Int,
+  term_width : Double,
 ) -> @tui.TuiNode {
   if output_children.is_empty() {
     output_children.push(@tui.text(" "))
   }
-  @tui.column(width=100.0, height=100.0, [
+  @tui.column(width=term_width, height=100.0, [
     status_node,
-    @tui.column(flex_grow=1.0, width=100.0, output_children),
-    @tui.column(width=100.0, height=input_h.to_double(), input_children),
+    @tui.column(flex_grow=1.0, width=term_width, output_children),
+    @tui.column(width=term_width, height=input_h.to_double(), input_children),
   ])
 }
 

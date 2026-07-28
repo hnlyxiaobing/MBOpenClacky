@@ -23,7 +23,7 @@ pub(all) struct InputArea {
 pub fn InputArea::new() -> InputArea {
   {
     editor: LineEditor::new(),
-    prompt: "» ",
+    prompt: "[>>] ",
     placeholder: "Type a message and press Enter to send...",
     border_color: @color.Color::Basic(@color.BasicColor::Blue),
   }
@@ -34,7 +34,7 @@ pub fn InputArea::new() -> InputArea {
 pub fn InputArea::multiline_new() -> InputArea {
   {
     editor: LineEditor::multiline_new(),
-    prompt: "» ",
+    prompt: "[>>] ",
     placeholder: "Type a message (Enter to send, Ctrl+J for newline)...",
     border_color: @color.Color::Basic(@color.BasicColor::Blue),
   }

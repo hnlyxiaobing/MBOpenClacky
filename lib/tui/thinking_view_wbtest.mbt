@@ -113,13 +113,23 @@ test "thinking: truncate_thinking_buffer caps size" {
 }
 
 ///|
-test "thinking: status bar includes llm_call_count and iterations" {
+test "thinking: format_full includes llm_call_count and iterations" {
+  let state = make_test_state_with_thinking("", true)
+  let bar = StatusBar::new()
+  bar.format_full(state)
+  let text = bar.plain_text()
+  assert_true(text.contains("1 calls"))
+  assert_true(text.contains("1 iters"))
+}
+
+///|
+test "thinking: format_from_state excludes calls/iters (SPEC-02)" {
   let state = make_test_state_with_thinking("", true)
   let bar = StatusBar::new()
   bar.format_from_state(state)
   let text = bar.plain_text()
-  assert_true(text.contains("1 calls"))
-  assert_true(text.contains("1 iters"))
+  assert_false(text.contains("calls"))
+  assert_false(text.contains("iters"))
 }
 
 ///|

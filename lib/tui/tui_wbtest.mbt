@@ -109,17 +109,17 @@ test "TuiState fields are mutable via Ref" {
 }
 
 ///|
-test "format_cost pads to 4 decimal places" {
+test "format_cost strips trailing zeros" {
   @debug.debug_inspect(
     format_cost(0.0),
     content=(
-      #|"0.0000"
+      #|"0.0"
     ),
   )
   @debug.debug_inspect(
     format_cost(1.5),
     content=(
-      #|"1.5000"
+      #|"1.5"
     ),
   )
   @debug.debug_inspect(
@@ -141,13 +141,13 @@ test "format_cost handles various cases" {
   @debug.debug_inspect(
     format_cost(42.0),
     content=(
-      #|"42.0000"
+      #|"42.0"
     ),
   )
   @debug.debug_inspect(
     format_cost(100.0),
     content=(
-      #|"100.0000"
+      #|"100.0"
     ),
   )
 }

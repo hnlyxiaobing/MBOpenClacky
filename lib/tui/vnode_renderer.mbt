@@ -299,6 +299,35 @@ fn ansi_line_to_vnode(s : String) -> @tui.TuiNode {
 }
 
 ///|
+/// Convert an ANSI-coded string to a single flat VNode row with explicit
+/// size constraints applied directly to the row that holds the text segments.
+///
+/// Unlike `ansi_line_to_vnode` (which returns a bare `@tui.row(children)`),
+/// this avoids wrapping that row in a second sized row. The nested
+/// row-in-row structure was found to trigger per-segment width mismeasurement
+/// in the mizchi/tui flexbox layout, truncating the last characters of each
+/// colored segment (see SPEC-01 / BUG-001). The status bar uses this sized
+/// variant so the width/height constraints live on the same row that owns the
+/// text children.
+fn ansi_line_to_vnode_sized(
+  s : String,
+  width : Double,
+  height : Double,
+) -> @tui.TuiNode {
+  let segments = parse_ansi_segments(s)
+  let children : Array[@tui.TuiNode] = []
+  for seg in segments {
+    if seg.text.length() > 0 {
+      children.push(make_text_vnode(seg))
+    }
+  }
+  if children.is_empty() {
+    children.push(@tui.text(" "))
+  }
+  @tui.row(width~, height~, children)
+}
+
+///|
 /// Create a VNode text node from an AnsiSegment.
 fn make_text_vnode(seg : AnsiSegment) -> @tui.TuiNode {
   let fg = match seg.fg {

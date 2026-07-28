@@ -27,8 +27,8 @@ async fn TuiController::full_redraw_vnode(self : TuiController) -> Unit {
     return
   }
 
-  // Build status text
-  self.status_bar.format_from_state(self.state.val)
+  // Build status text (adaptive to terminal width)
+  self.status_bar.format_from_state_adaptive(self.state.val, self.term_width)
   // Add scroll position indicator
   let msg_height = self.term_height - 5
   let total_lines = self.output.total_lines()
@@ -69,7 +69,6 @@ fn TuiController::build_complete_vnode(
   input_lines : Array[String],
   border_color : String,
 ) -> @tui.TuiNode {
-  let _ = (self.term_width, self.term_height)
   let input_h = 4
 
   // Build output area children (preserve ANSI colors via parser)
@@ -121,8 +120,12 @@ fn TuiController::build_complete_vnode(
     input_children.push(@tui.text(" "))
   }
 
-  // Build status node
-  let status_node = @tui.row(width=100.0, height=1.0, [ansi_line_to_vnode(status_text)])
+  // Build status node — flat sized row spanning the full terminal width.
+  // The DSL treats a numeric width as absolute columns (Length), so we must
+  // pass the real terminal width; the old hardcoded 100.0 truncated the
+  // ~118-column status bar (see SPEC-01).
+  let term_width = self.term_width.to_double()
+  let status_node = ansi_line_to_vnode_sized(status_text, term_width, 1.0)
 
   // Add overlay children to output if present
   if !overlay_children.is_empty() {
@@ -134,11 +137,11 @@ fn TuiController::build_complete_vnode(
   // Dispatch to brand layout builder
   match self.brand_layout {
     GeminiLike =>
-      build_gemini_layout(status_node, output_children, input_children, border_color, input_h)
+      build_gemini_layout(status_node, output_children, input_children, border_color, input_h, term_width)
     ClaudeCodeLike =>
       build_claude_code_layout(status_node, output_children, input_children, [], border_color, input_h)
     Compact =>
-      build_compact_layout(status_node, output_children, input_children, input_h)
+      build_compact_layout(status_node, output_children, input_children, input_h, term_width)
   }
 }
 
@@ -147,8 +150,8 @@ fn TuiController::build_complete_vnode(
 fn TuiController::build_file_browser_vnode(
   self : TuiController,
 ) -> @tui.TuiNode {
-  let _ = (self.term_width, self.term_height)
   let input_h = 4
+  let term_width = self.term_width.to_double()
   let status_text = self.status_bar.colored_text()
   let node = render_file_browser(self.file_browser)
   let input_lines = self.input.render_lines()
@@ -163,12 +166,13 @@ fn TuiController::build_file_browser_vnode(
     input_children.push(@tui.text(" "))
   }
 
-  @tui.column(width=100.0, height=100.0, [
-    @tui.row(width=100.0, height=1.0, [ansi_line_to_vnode(status_text)]),
+  @tui.column(width=term_width, height=100.0, [
+    // Flat sized status row spanning the full terminal width (see SPEC-01).
+    ansi_line_to_vnode_sized(status_text, term_width, 1.0),
     @tui.view(
       direction="column",
       flex_grow=1.0,
-      width=100.0,
+      width=term_width,
       border="rounded",
       border_color~,
       padding_x=1.0,
@@ -176,7 +180,7 @@ fn TuiController::build_file_browser_vnode(
     ),
     @tui.view(
       direction="column",
-      width=100.0,
+      width=term_width,
       height=input_h.to_double(),
       border="rounded",
       border_color~,
@@ -192,7 +196,7 @@ fn TuiController::get_dialog_node(self : TuiController) -> Node? {
   match self.state.val.dialog {
     NoDialog => None
     Approval(dialog) => Some(render_approval_dialog(dialog))
-    ConfigMenu(dialog) => Some(render_config_menu(dialog))
+    ConfigMenu(dialog) => Some(render_config_menu(dialog, term_width=self.term_width))
     Form(dialog) => Some(render_form_dialog(dialog))
     ConfigForm(form~, ..) => Some(render_form_dialog(form))
   }

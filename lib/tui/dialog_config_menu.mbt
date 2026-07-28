@@ -90,8 +90,34 @@ pub fn ConfigMenuDialog::as_model_selector(
 }
 
 ///|
+/// Truncate a string to fit within max display columns, appending "…" if truncated.
+fn truncate_to_display_width(s : String, max_w : Int) -> String {
+  if max_w <= 0 { return "" }
+  let w = display_width(s)
+  if w <= max_w { return s }
+  // Reserve 1 column for the ellipsis character.
+  let target = max_w - 1
+  let mut acc = ""
+  let mut acc_w = 0
+  let chars = s.to_array()
+  let mut i = 0
+  while i < chars.length() {
+    let cw = @tui_core.char_display_width(chars[i])
+    if acc_w + cw > target {
+      break
+    }
+    acc = acc + chars[i].to_string()
+    acc_w = acc_w + cw
+    i = i + 1
+  }
+  acc + "…"
+}
+
+///|
 /// Render a ConfigMenuDialog as a Node tree.
-pub fn render_config_menu(dialog : ConfigMenuDialog) -> Node {
+/// When `term_width` > 0, labels are truncated to fit within the terminal
+/// width (minus border overhead) so the dialog never overflows horizontally.
+pub fn render_config_menu(dialog : ConfigMenuDialog, term_width~ : Int = 0) -> Node {
   let children : Array[Node] = []
 
   let visible_start = if dialog.selected_idx >= config_menu_max_visible {
@@ -142,16 +168,40 @@ pub fn render_config_menu(dialog : ConfigMenuDialog) -> Node {
       ""
     }
 
-    children.push(Node::Text("\{marker} \{label}\{value_display}", style))
+    let raw_label = "\{marker} \{label}\{value_display}"
+    // Truncate to fit terminal width when term_width is specified.
+    let max_content = if term_width > 0 {
+      // Border adds 2 chars (left + right), plus 2 for margin safety.
+      term_width - 4
+    } else {
+      0 // 0 = no limit
+    }
+    let final_label = if max_content > 0 {
+      truncate_to_display_width(raw_label, max_content)
+    } else {
+      raw_label
+    }
+    children.push(Node::Text(final_label, style))
 
     i = i + 1
   }
 
-  // Navigation hints
+  // Navigation hints — abbreviate for narrow terminals.
+  let hints = if term_width > 0 && term_width < 70 {
+    "↑↓ Navigate  Enter Select  Esc Close"
+  } else {
+    "↑↓/jk Navigate  Enter Select  a Add  e Edit  d Delete  Esc Close"
+  }
+  let max_content = if term_width > 0 { term_width - 4 } else { 0 }
+  let final_hints = if max_content > 0 {
+    truncate_to_display_width(hints, max_content)
+  } else {
+    hints
+  }
   children.push(Node::Text("", Style::default_()))
   children.push(
     Node::Text(
-      "↑↓/jk Navigate  Enter Select  a Add  e Edit  d Delete  Esc Close",
+      final_hints,
       Style::new(dim=true),
     ),
   )

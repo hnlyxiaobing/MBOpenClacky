@@ -125,3 +125,37 @@ test "progress stack render feeds the band and empties after close" {
   // After close_last()/close() the band must be empty so it gets erased
   assert_eq(stack.render(), [])
 }
+
+///|
+/// SPEC-03 regression: accepting a slash-command suggestion must submit it in
+/// the same Enter keystroke (single-Enter execution). Every registered command
+/// suggestion is a complete "/name", so each one is immediately executable.
+test "accepted slash-command suggestion submits immediately (SPEC-03)" {
+  // Complete slash commands → submit.
+  assert_true(should_submit_accepted_suggestion("/help"))
+  assert_true(should_submit_accepted_suggestion("/config"))
+  assert_true(should_submit_accepted_suggestion("/theme"))
+  assert_true(should_submit_accepted_suggestion("/clear"))
+  // Future non-command completions (argument values) stay complete-only.
+  assert_false(should_submit_accepted_suggestion("hacker"))
+  assert_false(should_submit_accepted_suggestion("default"))
+  assert_false(should_submit_accepted_suggestion(""))
+}
+
+///|
+/// SPEC-03 end-to-end glue: the dropdown's accepted value for any registered
+/// command is a complete slash command that the Enter handler will submit.
+test "every dropdown acceptance yields a submittable command (SPEC-03)" {
+  let suggestions = build_command_suggestions()
+  let parser = SlashCommandParser::new()
+  for cmd in parser.commands {
+    suggestions.update_filter("/\{cmd.name}")
+    match suggestions.accept() {
+      Some(accepted) => {
+        assert_eq(accepted, "/\{cmd.name}")
+        assert_true(should_submit_accepted_suggestion(accepted))
+      }
+      None => fail("expected a suggestion for /\{cmd.name}")
+    }
+  }
+}
