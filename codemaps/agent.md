@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 43 个 .mbt（32 源 + 11 测试）+ 1 .c · 项目核心调度包
+> 路径: `lib/agent/` · 50 个 .mbt（36 源 + 14 测试）+ 1 .c · 项目核心调度包
 
 ## 入口函数
 
@@ -61,7 +61,7 @@ Agent::run(user_input)
 | 核心循环 | `agent.mbt`, `react.mbt`, `llm_caller.mbt`, `tool_executor.mbt` | ReAct 循环、LLM 调用、工具执行 |
 | 会话管理 | `session_data.mbt`, `session_manager.mbt`, `session_store.mbt`, `session_restore.mbt`, `session_serializer.mbt` | 会话 CRUD、恢复、fork、ZIP 导出/导入（依赖 `lib/zip`） |
 | 补丁系统 | `patch_chain.mbt` | PatchChain/PatchRule/PatchAction、工具调用前后拦截（Allow/Block） |
-| 压缩体系 | `compressor.mbt`, `compressor_chunk.mbt`, `compressor_helper.mbt` | 上下文压缩、分块摘要 |
+| 压缩体系 | `compressor.mbt`, `compressor_chunk.mbt`, `compressor_helper.mbt` | 上下文压缩、分块摘要（阈值读 `config.compression_threshold`，失败回滚 compression_level） |
 | 成本追踪 | `cost_tracker.mbt`, `status.mbt` | 费用计算、状态管理 |
 | 记忆系统 | `memory.mbt`, `memory_types.mbt` | 持久化记忆存储 |
 | 任务管理 | `todo.mbt`, `todo_types.mbt` | 任务依赖图 |
@@ -70,9 +70,20 @@ Agent::run(user_input)
 | 子 Agent | `subagent.mbt`, `agent_pool.mbt`, `agent_result.mbt` | 子 Agent 编排 |
 | Profile | `profile.mbt`, `profile_types.mbt`, `default_profiles.mbt` | Agent 配置文件 |
 | 技能管理 | `skill_manager.mbt` | Agent 技能加载/查询/摘要方法 |
-| 系统提示 | `system_prompt.mbt` | 系统提示词组装 |
+| 系统提示 | `system_prompt.mbt` | 系统提示词组装（加载 SOUL.md / USER.md） |
 | 空闲压缩 | `idle_timer.mbt` | 空闲压缩定时器 |
 | 时间 | `time.mbt`, `time_stub.c` | 毫秒时间戳/ISO 8601 格式化（`core/env::now()`、`x/time`）；`time_stub.c` 仅保留本地时区偏移检测（S-FFI-01/08） |
+
+### 近期新增能力（agent-01~08，2026-07-29）
+
+- **会话上下文注入**（react.mbt）— 每轮向 system 注入日期/OS/工作目录等 session context 消息
+- **reasoning 透传** — `LlmResponse.reasoning_content` 经 client 透传并在 TUI 思考流中渲染
+- **空响应检测重试**（llm_caller.mbt）— content 为空且无 tool_calls 时触发自动重试
+- **压缩阈值配置化**（compressor.mbt）— 阈值读取 `config.compression_threshold`（原模块常量）
+- **压缩失败回滚**（think_async）— 压缩异常时回滚 compression_level，避免丢失上下文
+- **URL fallback**（config + client）— 主 base_url 失败时切换备用 URL，配合 FallbackState 探测
+- **空闲压缩定时器**（idle_timer.mbt）— 空闲触发压缩，已并入调度循环
+- **技能演化 hooks**（agent-05）— react_loop_async 完成后调用 skill evolution hooks
 
 ## 外部依赖
 

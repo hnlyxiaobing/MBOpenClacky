@@ -1,4 +1,4 @@
-# config — TOML 配置加载 · 12 Provider 预设 · 权限控制
+# config — TOML 配置加载 · 13 Provider 预设 · 权限控制
 
 > 路径: `lib/config/` · 14 mbt（src=8, test=6）+ moon.pkg/.mbti · 配置管理
 
@@ -56,14 +56,14 @@ Providers::resolve(provider_id)
 | `loader.mbt` | TOML 解析、AgentConfig 加载/保存 |
 | `agent.mbt` | AgentConfig 方法（模型切换、deep_copy、session overlay） |
 | `model.mbt` | ModelConfig、ModelCapabilities |
-| `provider.mbt` | ProviderPreset、Providers（12 个 Provider 预设） |
+| `provider.mbt` | ProviderPreset、Providers（13 个 Provider 预设） |
 | `permission.mbt` | PermissionMode 定义与检查 |
 | `capabilities.mbt` | ModelCapabilities 预设（full, text_only, reasoning_model） |
 | `env_compat.mbt` | 环境变量兼容层 |
 
-## Provider 预设清单（12 个）
+## Provider 预设清单（13 个）
 
-包括 OpenClacky、OpenRouter、DeepSeek V4、Minimax、Kimi、Kimi Code、Anthropic、MiMo、GLM、OpenAI、DeepSeek (Legacy)、Qwen 等 12 个。
+包括 OpenClacky、OpenRouter、DeepSeek V4、Minimax、Kimi、Kimi Code、Anthropic、MiMo、GLM、OpenAI、DeepSeek (Legacy)、Qwen、Volcengine Ark 等 13 个。
 
 ## 外部依赖
 

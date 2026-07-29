@@ -19,7 +19,7 @@
 ### 核心 Struct
 - **`Client`** — LLM 客户端（api_key, base_url, model, api_type, provider_id, vision_supported）
 - **`SendRequest`** — 请求参数（messages, model, tools, max_tokens, enable_caching, reasoning_effort）
-- **`LlmResponse`** — 统一响应（content, tool_calls, finish_reason, usage, latency）
+- **`LlmResponse`** — 统一响应（content, reasoning_content, tool_calls, finish_reason, usage, latency）
 - **`Usage`** — Token 用量（input_tokens, output_tokens, cache_creation, cache_read）
 - **`Latency`** — 延迟指标（duration_ms, ttft_ms）
 

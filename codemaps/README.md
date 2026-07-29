@@ -20,18 +20,18 @@
 | 包 | 文件 | 职责 |
 |----|------|------|
 | agent | `agent.md` | ReAct 循环、LLM 调用、会话管理 |
-| client | `client.md` | LLM API 客户端、SSE 流式 |
+| client | `client.md` | LLM API 客户端、流式聚合（WebSocket token 级） |
 | tool | `tool.md` | Tool trait + 14 个内置工具 |
 | browser | `browser.md` | 浏览器自动化（tool 包子系统） |
 | skill | `skill.md` | SKILL.md 解析、注册、进化引擎 |
 | mcp | `mcp.md` | MCP 协议（Stdio/HTTP） |
 | channel | `channel.md` | 6 个 IM 适配器 |
 | server | `server.md` | Cron 调度、浏览器管理、Git 面板 |
-| web | `web.md` | REST 服务器、162 个端点、前端 SPA |
-| tui | `tui.md` | TUI 控制器、组件 |
+| web | `web.md` | REST 服务器、160+ 个端点、WebSocket 流式、前端 SPA |
+| tui | `tui.md` | TUI（mizchi/tui VNode 渲染 + mizchi/signals 响应式状态） |
 | config | `config.md` | TOML 配置加载 |
 | message | `message.md` | 消息模型、历史管理、工具调用 |
-| parser | `parser.md` | 文档解析（PDF/DOCX/XLSX/PPTX/WPS） |
+| parser | `parser.md` | 文档解析（PDF/DOCX/XLSX/PPTX/WPS 及永中 ET/DPS 等） |
 | media | `media.md` | 多媒体生成（图像/视频/语音） |
 | vision | `vision.md` | 视觉理解、OCR、图像描述 |
 | extension | `extension.md` | 扩展系统、脚手架、打包、市场 |

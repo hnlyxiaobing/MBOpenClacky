@@ -1,7 +1,7 @@
-# web — REST 服务器 · 162 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 160+ 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
 
 > 路径: `lib/web/` · 72 mbt（src=51, test=21）+ 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
-> 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 15 个功能模块），模板占位符由 `template_processor.mbt` 替换
+> 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 模块化 JS：core/ + components/ + features/ + ext_ui/ + vendor/），模板占位符由 `template_processor.mbt` 替换
 
 ## 入口函数
 
@@ -42,13 +42,13 @@
 - **`broadcast/`** — WebSocket 广播 Hub（`hub.mbt`，多客户端 fan-out）
 - **`handler/`** — 处理器子模块（`handler_tests.mbt`）
 - **`middleware/`** — 中间件（`auth.mbt` 认证、`logging.mbt` 日志、`timeout.mbt` 超时、`error_envelope.mbt` 错误封装、`auth_wbtest.mbt` 认证测试）
-- **`sse/`** — SSE 流式响应（`sse.mbt`）
+- **`sse/`** — 空占位子包（仅 `pkg.generated.mbti`，无 `sse.mbt`；SSE 内联于 handlers）
 
 ## 核心调用链
 
 ```
 WebServer::start(port)
-  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（159 个端点）
+  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（215 条路由，含别名）
   │   ├─ /health                          # 健康检查
   │   ├─ /api/info                        # 系统信息
   │   ├─ /api/sessions/*                  # 会话管理（15 端点）
@@ -97,7 +97,7 @@ WebServer::start(port)
 | 配置测试 | `handlers_configtest.mbt` | 配置连通性测试（OCR/Media/通用） |
 | 目录 | `handlers_dirs.mbt` | 目录列表、创建 |
 | 用户配置 | `handlers_profile.mbt` | 用户配置读写 |
-| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_version_wbtest.mbt`, `handlers_onboard.mbt`, `handlers_onboard_wbtest.mbt`, `handlers_exchange_rate.mbt`, `handlers_exchange_rate_wbtest.mbt`, `handlers_bridge.mbt`, `handlers_extra.mbt`, `handlers_extra_wbtest.mbt`, `handlers_api_contract_wbtest.mbt`, `web_handlers_wbtest.mbt` | 文件/回收站/版本/引导/汇率/桥接层/补充 API（记忆/Profile 等） |
+| 其他 | `handlers_files.mbt`, `handlers_trash.mbt`, `handlers_version.mbt`, `handlers_version_wbtest.mbt`, `handlers_onboard.mbt`, `handlers_onboard_wbtest.mbt`, `handlers_exchange_rate.mbt`, `handlers_exchange_rate_wbtest.mbt`, `handlers_bridge.mbt`, `handlers_extra.mbt`, `handlers_extra_wbtest.mbt`, `handlers_ws.mbt`, `handlers_store.mbt`, `handlers_publish.mbt`, `handlers_agents.mbt`, `multipart_upload.mbt`, `handlers_api_contract_wbtest.mbt`, `web_handlers_wbtest.mbt` | 文件/回收站/版本/引导/汇率/桥接层/WebSocket/技能仓库/发布/智能体清单/多部件上传/补充 API（记忆/Profile 等） |
 | 会议 | `handlers_meeting.mbt`, `handlers_meeting_wbtest.mbt`, `handlers_meetings.mbt`, `handlers_meetings_wbtest.mbt`, `meeting.mbt` | 会议管理（创建/列表/结束/摘要）、会议数据模型与持久化 |
 | 扩展 | `ext_dispatcher.mbt`, `ext_dispatcher_wbtest.mbt`, `ext_loader.mbt`, `ext_loader_wbtest.mbt` | API 扩展加载与分发 |
 | 静态资源 | `static_server.mbt`, `static_server_wbtest.mbt`, `template_processor.mbt` | 静态文件服务、HTML 模板 |
@@ -117,7 +117,7 @@ WebServer::start(port)
 
 1. **Agent 实例管理** — `active_agents: Map[String, Agent]` 无上限控制，大量会话可能耗尽内存
 2. **API 认证** — `api_key` 为 None 时禁用认证，生产环境风险
-3. **路由分散** — 路由分布在 server.mbt（159 个端点）和 router.mbt（已废弃）两处，维护成本高
+3. **路由分散** — 路由集中在 server.mbt（215 条路由，含别名），router.mbt 已废弃不再使用，维护成本已降低
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
 6. **Git 子进程** — `git_exec.mbt` 经 `@async/process` 调用系统 git（原 `git_exec.c` 的 `popen()` 已移除，S-FFI-03），无 git 环境会失败

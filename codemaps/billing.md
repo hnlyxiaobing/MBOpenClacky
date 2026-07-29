@@ -1,6 +1,6 @@
 # billing - 计费记录 · 用量统计 · 持久化
 
-> 路径: `lib/billing/` · 3 mbt（2 源 + 1 测试）· Token 用量与成本记录
+> 路径: `lib/billing/` · 4 mbt（3 源 + 1 测试）· Token 用量与成本记录
 
 ## 入口函数
 
