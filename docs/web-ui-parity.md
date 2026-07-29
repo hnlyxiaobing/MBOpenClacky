@@ -1,48 +1,50 @@
-# Web UI Parity Report
+# Web UI 对齐状态
 
-最后更新: 2026-07-26 | 上游基线: [OpenClacky v1.5.0](https://github.com/clacky-ai/openclacky)
+> 更新日期：2026-07-29
+> 本文档合并了原 `web-ui-comparison-test-report.md` 的结论。回归测试步骤见 [web-ui-test-plan.md](web-ui-test-plan.md)。
 
-All 44 web UI issues (5 gap items + 39 issue items) have been resolved.
+## 总体结论
 
-## Summary
+Web UI（`lib/web` 后端 + `web/` 前端）与基准 OpenClacky 的对齐经过两轮系统性修复：
 
-| 类别 | 数量 | 状态 |
-|---|---|---|
-| Gaps (features not yet implemented) | 5 | All resolved |
-| Issues (bugs in existing features) | 39 | All resolved |
-| **Total** | **44** | **100% resolved** |
+| 轮次 | 范围 | 结果 |
+|------|------|------|
+| 第一轮（~2026-07-26） | 44 项（5 项功能差距 + 39 项 issue） | 全部解决 |
+| 第二轮（2026-07-26 对比测试，27 项 BUG-001~027） | 经 `web-ui2-00~10` specs 及后续修复批次处理 | 25 项已修复，2 项未解决（见下） |
 
-## Gap Resolution
+第二轮修复对应的已归档 specs（`specs/completed/2026-07-26_web-ui2-*.md`）：
 
-| ID | Description | Resolution |
-|---|---|---|
-| G-001 | Web UI 前端资源未同步 | 上游 v1.5.0 完整同步 (87 files, 2026-07-24) |
-| G-002 | Markdown 渲染 + 代码高亮 | `lib/web/markdown_renderer.mbt` 集成 highlight.js + KaTeX |
-| G-003 | 对话搜索面板 | `lib/web/search_engine.mbt` 实现 |
-| G-004 | Web eval 测试框架 | `lib/web/eval/` 模块 + `test/scenarios/web/` |
-| G-005 | Git 扩展面板 | `web/ext_ui/git_panel.js` |
+| Spec | 覆盖问题 |
+|------|---------|
+| web-ui2-01 system-prompt-leak | 会话消息 / fork 响应泄露 system prompt |
+| web-ui2-02 session-create-detail-contract | 会话创建/详情响应缺 `id`、`status` 字段 |
+| web-ui2-03 delete-trash-contract | DELETE 返回 `{"ok":true}`；补充 `DELETE /api/trash/sessions` 清空端点 |
+| web-ui2-04 skills-yaml-block-scalar | YAML block scalar（`\|`、`>`）解析（`lib/skill/loader.mbt`） |
+| web-ui2-05 channels-platform-fields | channels 平台字段 |
+| web-ui2-06 agents-localization | 3 个内置 agent 及 `title_zh`/`description_zh`/`avatar` |
+| web-ui2-07 exchange-rate-date-format | 汇率接口日期格式 YYYY-MM-DD |
+| web-ui2-08 dirs-path-normalization | Windows 路径规范化 |
+| web-ui2-09 session-mutation-contract | 会话变更接口契约 |
+| web-ui2-10 response-field-cleanup | 响应字段清理 |
 
-## Issue Resolution Summary
+另有独立修复批次处理了会话创建、模型配置（默认模型 `type` 字段同步）、dispatcher 相关的 6 项 UI bug。
 
-Fixed across 8 fix iterations (fix-01 through fix-08):
+## 未解决问题
 
-- **Template processing**: `{{BRAND_NAME}}` / `{{EXT_SCRIPTS}}` 运行时替换
-- **Server routing**: crescent 路由配置 (404 处理、静态文件、WebSocket)
-- **Model config**: provider/model/key 绑定、settings 面板数据流
-- **Session management**: 创建/恢复/删除 conversation、中断响应
-- **Streaming**: SSE 事件解析、渐进式渲染
-- **Cross-platform**: Windows 路径规范化、CRLF 处理
-- **Extension panels**: `ext_ui/` 模块加载机制
-- **Dynamic features**: model aliases、background theme、reload-header
+| 编号 | 问题 | 现状 |
+|------|------|------|
+| BUG-025 | 会话自动命名：首条消息后未根据内容自动生成会话名 | 未实现 |
+| BUG-026 | `BeforeLlmCall` 仍发送 `phase_start` 事件（`lib/web/protocol/events.mbt`），前端可能将正文并入折叠段 | 未修复 |
 
-## Verification
+## 已知限制（按设计）
 
-- **Manual**: 所有 web eval 场景通过 (`test/scenarios/web/`)
-- **Automated**: `moon test lib/web` 通过
-- **Regression**: `web-ui-test-plan.md` 定义 50+ 检查点
+- 媒体生成端点（`POST /api/media/image` / `video` / `audio/speech` / `audio/transcription`）返回 501 stub；视频理解已通过 FFmpeg 抽帧 + LLM vision 实现（`lib/web/handlers_media.mbt`）。
+- 前端第三方依赖已全部本地 vendor 化（`web/vendor/`：codemirror、hljs、katex、marked、qrcode），无 CDN 运行时依赖。
 
-## Related Docs
+## 回归方式
 
-- `web-ui-test-plan.md` — 详细的回归测试计划
-- `web/UPSTREAM_SYNC.md` — 上游同步基线与流程
-- `web/PATCHES.md` — 活跃补丁清单
+```bash
+moon run cmd -- server        # 启动 Web 服务（端口 7071）
+```
+
+按 [web-ui-test-plan.md](web-ui-test-plan.md) 中的用例执行回归；REST 契约相关断言可参考 `lib/web/*_wbtest.mbt`。

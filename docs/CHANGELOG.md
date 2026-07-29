@@ -25,6 +25,29 @@
 
 ## 变更记录
 
+### 2026-07-29  feat: Agent 增量规格 + 文档整理
+
+- `[feat]` **agent-01~08 规格全部实现**（specs 归档至 `specs/completed/2026-07-29_agent-*.md`）
+  - session context 注入（日期/OS/工作目录）、reasoning_content 透传、空响应检测重试
+  - 压缩阈值配置化、压缩失败回滚、URL fallback、空闲压缩定时器、skill evolution hooks
+- `[docs]` **docs/ 目录删减合并**
+  - 删除 7 份过时文档（两份 gap 分析、两份 UI 对比报告、两份 TUI 重设计文档、ffi-c-migration）
+  - 新增 `tui-architecture.md`；重写 `project-status.md`、`web-ui-parity.md`；同步根目录 README/CLAUDE
+
+### 2026-07-28  feat: TUI mizchi 基础迁移 + parity 修复
+
+- `[refactor]` **TUI 渲染层迁移至 mizchi/tui VNode 基础**（Phase 1-4 完成，`lib/tui/vnode_renderer.mbt`，状态管理采用 mizchi/signals）
+- `[feat]` **tui-parity-01~08 规格实施完成**（specs 归档）
+  - 状态栏渲染截断修复与内容对齐、斜杠命令单次 Enter 执行
+  - 欢迎 banner / 输入区 / 帮助与命令集对齐、窄屏自适应
+  - tui-parity-08 渲染架构决策：维持 inline scrolling（不迁全屏分屏）
+
+### 2026-07-27  feat: gap 分析 18 项差距全部实现
+
+- `[feat]` **2026-07-27 gap 分析规格全部实现并归档**（`specs/completed/2026-07-27_gap-analysis-overview.md`）
+  - MCP 配置文件加载与 HTTP transport、Time Machine 接入 tool_executor
+  - WebSocket token 级流式推送、LLM 调用重试 / fallback 统一化等
+
 ### 2026-07-26  feat: web-ui2 规格实施 + 告警清零 + 文档同步
 
 - `[feat]` **web-ui2 规格实施完成（04~10）**（7 个规格全部归档至 `specs/completed/`）
@@ -88,7 +111,7 @@
 - `[chore]` **默认端口 7070 -> 7071（与原版 OpenClacky 区分，避免本地端口冲突）**
   - 源码 `cmd/main.mbt` 默认端口已为 7071；本次补齐遗留 7070 的文档与部署配置
   - `Dockerfile`（`ENV`/`EXPOSE`/`HEALTHCHECK`）、`deploy/docker-compose.yml`、`deploy/systemd/mbopenclacky.service`、`deploy/README.md`、`README.md`、`AGENTS.md`、`CLAUDE.md`、`docs/getting-started.md`、`assets/skills/product-help/SKILL.md` 全部同步
-  - 注释中“兼容原版 OpenClacky”措辞更正为“与原版区分”（原版仍为 7070）
+  - 注释中"兼容原版 OpenClacky"措辞更正为"与原版区分"（原版仍为 7070）
   - 历史条目（2026-06-30 CHANGELOG 记录、已完成 spec）保留原值 7070 不变
 
 ### 2026-07-16  docs: 项目文档全量校准（指标同步与过时内容清理）
@@ -131,9 +154,9 @@
   - 源码行: ~55,700 → ~54,400，测试行: ~18,600 → ~17,400，总行: ~75,700 → ~73,200
   - 默认技能: 17 → 16（代码实际注册数）
   - `moon check` warnings: ~488 → ~522
-  - 统一 REST API 端点描述为“90+”（消除“127”不一致）
+  - 统一 REST API 端点描述为"90+"（消除"127"不一致）
 - `[docs]` **受影响文件**：CLAUDE.md、README.md、docs/project-status.md、docs/getting-started.md、codemaps/README.md、codemaps/web.md、codemaps/skill.md
-- `[docs]` **codemaps/skill.md 修正**：默认技能清单从 15 个更正为 16 个，补充完整技能名列表，修正“仅资源目录”为 `extend-openclacky` + `meeting-summarizer`
+- `[docs]` **codemaps/skill.md 修正**：默认技能清单从 15 个更正为 16 个，补充完整技能名列表，修正"仅资源目录"为 `extend-openclacky` + `meeting-summarizer`
 
 ### 2026-07-13  docs: 合并废弃文档并同步实际状态
 
@@ -157,7 +180,7 @@
 - `[docs]` **project-status.md 同步更新**
   - 移除已过时的已知问题：`derive_key` PBKDF2（已实现）、Windows BCrypt（已实现）、TUI Phase 6（已完成）
   - 更新 brand 模块完成度 80% → 90%、web 模块完成度 70% → 75%
-  - 更新 wasm-gc 状态为“已评估，建议暂缓”
+  - 更新 wasm-gc 状态为"已评估，建议暂缓"
   - 更新短期目标对齐当前 gap-driven 任务划分
 - `[docs]` **CHANGELOG.md**：补充本次归档记录
 

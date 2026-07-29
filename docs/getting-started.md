@@ -12,6 +12,7 @@ MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持�
 | C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
 | OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM + CSPRNG C FFI 所需（仅 POSIX；Windows 走 BCrypt/CNG 自动链接） |
 | API 密钥 | 任意支持的提供商 | 至少配置一个 |
+
 ---
 
 ## 安装步骤
@@ -181,7 +182,9 @@ export MBOPENCLACKY_WEB_HOST=0.0.0.0
 moon run cmd -- server
 ```
 
-启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。---
+启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。
+
+---
 
 ## 配置参考
 
@@ -297,7 +300,8 @@ chmod +x scripts/install.sh
 | 平台 | 依赖 | 安装命令 |
 |------|------|---------|
 | Linux (Debian/Ubuntu) | gcc, make, libssl-dev | `sudo apt-get install build-essential libssl-dev` |
-| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` || macOS | Xcode CLT (含 clang) | `xcode-select --install` |
+| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` |
+| macOS | Xcode CLT (含 clang) | `xcode-select --install` |
 | Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
 | 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
 

@@ -14,10 +14,10 @@
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件 | 316 个 `.mbt`（lib + cmd） |
-| 测试文件 | 155+ 个 `_wbtest.mbt`（lib + cmd + test） |
-| 代码行数 | ~105,900 行（源码 ~74,200 + 测试 ~31,700） |
-| 测试用例 | 3,093 |
+| 源代码文件 | 326 个 `.mbt`（lib + cmd） |
+| 测试文件 | 165 个 `_wbtest.mbt`（lib + cmd + test） |
+| 代码行数 | ~119,000 行（源码 ~78,600 + 测试 ~40,400） |
+| 测试用例 | 3,000+ |
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 12 个 |
 | 内置工具 | 14 个 |
@@ -31,12 +31,12 @@
 - **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
 - **MCP 协议**：Stdio/HTTP 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射
 - **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
-- **Web 前端 SPA + REST API**：暗色主题 + SSE 流式 + WebSocket 实时通信，默认端口 7071
-- **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + Media 生成
+- **Web 前端 SPA + REST API**：暗色主题 + WebSocket 实时通信（token 级流式），默认端口 7071
+- **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + 视频理解（FFmpeg 抽帧 + LLM Vision）
 - **GEP 技能自进化**：EvolutionEngine + SkillReflector + AutoCreator
 - **Time Machine**：文件快照与回滚
 - **PTY 终端执行**：真实交互式命令会话
-- **TUI**：基于 moonbit-community/tty 的 Inline Scrolling 架构
+- **TUI**：Inline Scrolling 架构，mizchi/tui VNode 渲染 + mizchi/signals 响应式状态（底层 moonbit-community/tty）
 
 ---
 
@@ -109,9 +109,9 @@ MBOpenClacky/
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
 │   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
 │   ├── channel/        # 6 平台 IM 适配器
-│   ├── web/            # Web 服务器（~162 REST 端点、SSE、WebSocket）
+│   ├── web/            # Web 服务器（160+ REST 端点、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）
-│   ├── tui/            # TUI 界面（moonbit-community/tty）
+│   ├── tui/            # TUI 界面（mizchi/tui VNode + moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
 │   ├── config/         # 配置系统（TOML、12 Provider）
 │   ├── billing/        # 计费系统
