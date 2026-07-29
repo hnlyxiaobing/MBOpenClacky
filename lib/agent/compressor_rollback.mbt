@@ -198,6 +198,7 @@ pub fn Agent::compress_with_safety(
   match ctx_opt {
     None => Failed("Compression not needed")
     Some(ctx) => {
+      self.compression_level = self.compression_level + 1
       let result = compress_with_level_fallback(self.history, llm_response, ctx)
       match result {
         Success(_) => {
@@ -212,10 +213,12 @@ pub fn Agent::compress_with_safety(
             Ok(_) => ()
             Err(_) => () // chunk save failure is non-fatal
           }
-          self.compression_level = self.compression_level + 1
           result
         }
-        Failed(_) => result
+        Failed(_) => {
+          self.compression_level = self.compression_level - 1
+          result
+        }
       }
     }
   }

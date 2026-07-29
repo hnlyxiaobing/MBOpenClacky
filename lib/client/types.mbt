@@ -18,6 +18,7 @@ pub(all) struct Latency {
 /// Response from an LLM API call.
 pub(all) struct LlmResponse {
   content : String?
+  reasoning_content : String?
   tool_calls : Array[@message.ToolCall]?
   finish_reason : String?
   usage : Usage?
@@ -29,6 +30,7 @@ pub(all) struct LlmResponse {
 pub fn LlmResponse::text_only(content : String) -> LlmResponse {
   {
     content: Some(content),
+    reasoning_content: None,
     tool_calls: None,
     finish_reason: Some("stop"),
     usage: None,

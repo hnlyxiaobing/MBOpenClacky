@@ -294,3 +294,23 @@ test "CompressionResult Failed equality" {
   let r2 = CompressionResult::Failed("error A")
   @debug.assert_eq(r1, r2)
 }
+
+// ── compress_with_safety: level rollback on failure ─────────────────────────
+
+///|
+test "compress_with_safety rolls back level on failure" {
+  let client = @client.Client::new(
+    "key", "https://api.test.com", "model", @config.OpenAICompletions,
+  )
+  let agent = Agent::new("s", "a", "/tmp", client, @config.AgentConfig::default())
+  agent.config.compression_threshold = 5
+  for i in 0..<10 {
+    agent.history.push(@message.Message::user("Message \{i} with some content"))
+  }
+  let level_before = agent.compression_level
+  let result = agent.compress_with_safety(invalid_compression_response)
+  match result {
+    Success(_) => fail("Expected Failed for invalid response")
+    Failed(_) => @debug.assert_eq(agent.compression_level, level_before)
+  }
+}

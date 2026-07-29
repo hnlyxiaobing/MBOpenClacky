@@ -135,11 +135,21 @@ pub fn parse_bedrock_response(data : Json) -> LlmResponse {
 
   // Collect text content and tool calls
   let text_parts : Array[String] = []
+  let reasoning_parts : Array[String] = []
   let tool_calls : Array[@message.ToolCall] = []
 
   for block in blocks {
     match (if block is Object(obj) { obj.get("text") } else { None }) {
       Some(String(text)) => text_parts.push(text)
+      _ => ()
+    }
+    match
+      (if block is Object(obj) { obj.get("reasoningContent") } else { None }) {
+      Some(Object(rc)) =>
+        match rc.get("text") {
+          Some(String(text)) => reasoning_parts.push(text)
+          _ => ()
+        }
       _ => ()
     }
     match (if block is Object(obj) { obj.get("toolUse") } else { None }) {
@@ -167,6 +177,12 @@ pub fn parse_bedrock_response(data : Json) -> LlmResponse {
   let content = join_strings(text_parts, "")
   let content_val : String? = if content.length() > 0 {
     Some(content)
+  } else {
+    None
+  }
+  let reasoning = join_strings(reasoning_parts, "")
+  let reasoning_val : String? = if reasoning.length() > 0 {
+    Some(reasoning)
   } else {
     None
   }
@@ -212,6 +228,7 @@ pub fn parse_bedrock_response(data : Json) -> LlmResponse {
 
   {
     content: content_val,
+    reasoning_content: reasoning_val,
     tool_calls: tool_calls_val,
     finish_reason,
     usage,

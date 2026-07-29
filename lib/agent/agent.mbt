@@ -42,10 +42,12 @@ pub(all) struct Agent {
   mut latest_latency : @client.Latency?
   mut fallback_state : FallbackState
   mut fallback_model : String?
+  mut url_fallback_active : Bool
   mut consecutive_retryable_failures : Int
   mut fallback_activated_at_ms : Int64
   // ── Compression State ──────────────────────────────────────────────
   mut compression_level : Int
+  mut idle_timer : IdleCompressionTimer
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
@@ -131,10 +133,12 @@ pub fn Agent::new(
     latest_latency: None,
     fallback_state: PrimaryOk,
     fallback_model: None,
+    url_fallback_active: false,
     consecutive_retryable_failures: 0,
     fallback_activated_at_ms: 0L,
     // Compression
     compression_level: 0,
+    idle_timer: IdleCompressionTimer::new(),
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
     // Empty patch chain — extension patches are added via

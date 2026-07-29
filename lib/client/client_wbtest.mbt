@@ -117,6 +117,7 @@ test "build_openai_request_strips_image_for_non_vision" {
     tool_calls: None,
     tool_call_id: None,
     name: None,
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -321,6 +322,7 @@ test "format_openai_tool_results" {
     finish_reason: Some("tool_calls"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   }
   let results : Map[String, String] = { "tc_1": "file list output" }
   let msgs = format_openai_tool_results(resp, results)
@@ -343,6 +345,7 @@ test "format_anthropic_tool_results" {
     finish_reason: Some("tool_calls"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   }
   let results : Map[String, String] = {
     "tu_1": "file contents",
@@ -362,6 +365,7 @@ test "format_tool_results_missing_result" {
     finish_reason: Some("tool_calls"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   }
   let results : Map[String, String] = Map([])
   let msgs = format_openai_tool_results(resp, results)
@@ -867,6 +871,7 @@ test "format_bedrock_tool_results" {
     finish_reason: Some("tool_calls"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   }
   let results : Map[String, String] = { "tu_1": "command output" }
   let msgs = format_bedrock_tool_results(resp, results)

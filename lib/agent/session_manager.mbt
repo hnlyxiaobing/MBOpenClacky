@@ -51,6 +51,7 @@ fn truncate_session(session : SessionData) -> Unit {
     tool_calls: first_msg.tool_calls,
     tool_call_id: first_msg.tool_call_id,
     name: first_msg.name,
+    reasoning_content: first_msg.reasoning_content,
     task_id: first_msg.task_id,
     created_at: first_msg.created_at,
     system_injected: first_msg.system_injected,

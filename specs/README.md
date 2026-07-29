@@ -58,6 +58,21 @@ specs/
 | P2 | T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | 2 | 无 |
 | P2 | T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | 1 | 无 |
 \r
+## 最近归档 Spec
+
+### 2026-07-29 — Agent 增量 Spec（8 项完成）
+
+| Spec | 名称 | 关键实现 | 测试 |
+|------|------|---------|------|
+| 01 | Session Context 注入 | `react.mbt:build_session_context()` — per-run 动态注入日期/星期/OS/工作目录 | 318/318 ✅ |
+| 02 | reasoning_content 字段 | `LlmResponse.reasoning_content` + OpenAI/Anthropic/Bedrock 流式聚合 | 318/318 ✅ |
+| 03 | 空响应检测 | `react_loop_async` 空 content 重试机制（含 thinking-mode 静响应） | 318/318 ✅ |
+| 04 | compression_threshold 配置 | `AgentConfig.compression_threshold` → `needs_compression()` 使用配置值 | 318/318 ✅ |
+| 05 | 压缩失败回滚 | `compress_with_safety` 失败时 `compression_level - 1` | 318/318 ✅ |
+| 06 | URL Fallback | `try_url_fallback()` — 重试耗尽后切换备用 Base URL | 318/318 ✅ |
+| 07 | Idle 压缩定时器 | `IdleCompressionTimer` — run 完成后启动，新输入取消，266s 触发 | 318/318 ✅ |
+| 08 | Skill Evolution 集成 | `run_skill_evolution_hooks()` — 成功 run 后自动检测模式 | 318/318 ✅ |
+
 ## 模板说明
 
 | 模板 | 用途 | 适用场景 |

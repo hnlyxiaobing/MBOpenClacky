@@ -54,3 +54,44 @@ pub fn current_iso8601() -> String {
 pub fn ms_to_iso8601(ms : Int64) -> String {
   format_iso8601_local(ms)
 }
+
+///|
+/// Current weekday name (e.g. "Monday", "Tuesday").
+pub fn current_weekday() -> String {
+  let iso = current_iso8601()
+  if iso.length() < 10 {
+    return "unknown"
+  }
+  let year = parse_date_digits(iso, 0, 4)
+  let month = parse_date_digits(iso, 5, 7)
+  let day = parse_date_digits(iso, 8, 10)
+  weekday_name(year, month, day)
+}
+
+///|
+/// Parse decimal digits from a string slice [start, end).
+fn parse_date_digits(s : String, start : Int, end : Int) -> Int {
+  let mut result = 0
+  for i = start; i < end; i = i + 1 {
+    result = result * 10 + (s[i].to_int() - '0'.to_int())
+  }
+  result
+}
+
+///|
+/// Compute weekday name from a date using Tomohiko Sakamoto's algorithm.
+fn weekday_name(year : Int, month : Int, day : Int) -> String {
+  let t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+  let y = if month < 3 { year - 1 } else { year }
+  let dow = (y + y / 4 - y / 100 + y / 400 + t[month - 1] + day) % 7
+  match dow {
+    0 => "Sunday"
+    1 => "Monday"
+    2 => "Tuesday"
+    3 => "Wednesday"
+    4 => "Thursday"
+    5 => "Friday"
+    6 => "Saturday"
+    _ => "unknown"
+  }
+}

@@ -128,7 +128,7 @@ pub(all) struct ParsedCompression {
 pub fn Agent::needs_compression(self : Agent) -> Bool {
   let token_count = estimate_history_tokens(self.history)
   let msg_count = self.history.length()
-  token_count >= compression_threshold || msg_count >= message_count_threshold
+  token_count >= self.config.compression_threshold || msg_count >= message_count_threshold
 }
 
 ///|
@@ -174,6 +174,7 @@ pub fn build_compression_message() -> @message.Message {
     tool_calls: None,
     tool_call_id: None,
     name: None,
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),

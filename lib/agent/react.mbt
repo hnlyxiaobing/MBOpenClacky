@@ -9,6 +9,18 @@
 ///|
 
 ///|
+/// Build a session context message for the current run.
+fn Agent::build_session_context(self : Agent) -> String {
+  let now = current_iso8601()
+  let date_part = if now.length() >= 10 { now[:10].to_owned() } else { now }
+  let weekday = current_weekday()
+  let os = detect_os()
+  let wd = self.working_dir
+  let model = self.client.model
+  "[Session context: Today is \{date_part}, \{weekday}. Current model: \{model}. OS: \{os}. Working directory: \{wd}]"
+}
+
+///|
 /// Run the Agent's ReAct conversation loop.
 ///
 /// This is the main entry point for autonomous task execution:
@@ -23,6 +35,7 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   let old_status = self.status
   self.status = Running
   self.hook_manager.emit(StatusChanged(old_status, Running))
+  self.idle_timer.cancel()
   self.error = None
   self.error_code = None
   self.top_up_url = None
@@ -33,6 +46,26 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     self.history.push(@message.Message::system(system_prompt))
     self.hook_manager.emit(MessageAdded)
   }
+  // Inject per-run session context
+  let ctx_msg : @message.Message = {
+    role: @message.User,
+    content: @message.Text(self.build_session_context()),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  self.history.push(ctx_msg)
+  self.hook_manager.emit(MessageAdded)
   // Add user message
   self.history.push(@message.Message::user(user_input))
   self.hook_manager.emit(MessageAdded)
@@ -57,6 +90,12 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   // T17: Auto memory update - extract memorable info from conversation
   self.auto_update_memory() catch {
     _ => ()
+  }
+  // Start idle timer for automatic compression
+  self.idle_timer.start(current_time_ms().to_int())
+  // Skill evolution: detect patterns and create/improve skills
+  if result.status == Success {
+    self.run_skill_evolution_hooks()
   }
   result
 }
@@ -138,7 +177,8 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
       None => ""
     }
     match compression_ctx {
-      Some(ctx) =>
+      Some(ctx) => {
+        self.compression_level = self.compression_level + 1
         match compress_with_level_fallback(self.history, content, ctx) {
           Success(_) => {
             // Save archived chunk to disk for future recall.
@@ -155,10 +195,10 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
               Ok(_) => ()
               Err(_) => () // chunk save failure is non-fatal
             }
-            self.compression_level = self.compression_level + 1
           }
-          Failed(_) => () // rollback already restored history
+          Failed(_) => self.compression_level = self.compression_level - 1
         }
+      }
       None => ()
     }
     self.hook_manager.emit(AfterLlmCall)
@@ -172,6 +212,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   }
   let msg = @message.Message::assistant(content)
   msg.tool_calls = response.tool_calls
+  msg.reasoning_content = response.reasoning_content
   self.history.push(msg)
   self.hook_manager.emit(MessageAdded)
   self.hook_manager.emit(AfterLlmCall)
@@ -241,6 +282,7 @@ async fn Agent::act_async(
 async fn Agent::react_loop_async(self : Agent) -> RunResult {
   let mut truncation_count = 0
   let mut fake_tool_call_retries = 0
+  let mut empty_response_retries = 0
   let mut done : RunResult? = None
   while done is None {
     self.iterations = self.iterations + 1
@@ -280,12 +322,28 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               None => false
             }
             if !has_tool_calls {
-              // Check for fake tool calls in content
               let content = match resp.content {
                 Some(c) => c
                 None => ""
               }
-              if fake_tool_call_retries < max_fake_tool_call_retries &&
+              if content.is_empty() {
+                empty_response_retries = empty_response_retries + 1
+                if empty_response_retries >= 3 {
+                  done = Some(
+                    self.build_result(
+                      Error,
+                      error=Some("Empty response after 3 retries"),
+                    ),
+                  )
+                } else {
+                  self.history.push(
+                    @message.Message::user(
+                      "Your response was empty. Please continue with the task.",
+                    ),
+                  )
+                  self.hook_manager.emit(MessageAdded)
+                }
+              } else if fake_tool_call_retries < max_fake_tool_call_retries &&
                 detect_fake_tool_call(content) {
                 fake_tool_call_retries = fake_tool_call_retries + 1
                 self.history.push(
@@ -323,5 +381,29 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
   match done {
     Some(r) => r
     None => self.build_result(Success)
+  }
+}
+
+///|
+/// Run skill evolution hooks after a successful run.
+/// Detects repeated patterns and creates/improves skills automatically.
+fn Agent::run_skill_evolution_hooks(self : Agent) -> Unit {
+  match self.config.skill_evolution {
+    None => ()
+    Some(_) => {
+      let engine = @skill.EvolutionEngine::new()
+      let history : Array[String] = []
+      for msg in self.history {
+        match msg.content {
+          @message.Text(text) => history.push(text)
+          _ => ()
+        }
+      }
+      let scenario = @skill.AutoDetect(
+        conversation_history=history,
+        iteration_count=self.iterations,
+      )
+      engine.evolve(scenario) |> ignore
+    }
   }
 }

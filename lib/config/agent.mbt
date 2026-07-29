@@ -14,6 +14,7 @@ pub(all) struct AgentConfig {
   mut max_idle_agents : Int
   mut proxy_url : String
   mut fallback_model : String
+  mut fallback_base_url : String?
   mut compression_threshold : Int
   mut env_source : String
   /// Default working directory for spawned processes.
@@ -37,6 +38,7 @@ pub fn AgentConfig::default() -> AgentConfig {
     max_idle_agents: 10,
     proxy_url: "",
     fallback_model: "",
+    fallback_base_url: None,
     compression_threshold: 150000,
     env_source: "toml",
     default_working_dir: None,
@@ -175,6 +177,7 @@ pub fn AgentConfig::deep_copy(self : AgentConfig) -> AgentConfig {
     max_idle_agents: self.max_idle_agents,
     proxy_url: self.proxy_url,
     fallback_model: self.fallback_model,
+    fallback_base_url: self.fallback_base_url,
     compression_threshold: self.compression_threshold,
     env_source: self.env_source,
     default_working_dir: self.default_working_dir,
@@ -202,6 +205,7 @@ fn AgentConfig::shallow_copy(self : AgentConfig) -> AgentConfig {
     max_idle_agents: self.max_idle_agents,
     proxy_url: self.proxy_url,
     fallback_model: self.fallback_model,
+    fallback_base_url: self.fallback_base_url,
     compression_threshold: self.compression_threshold,
     env_source: self.env_source,
     default_working_dir: self.default_working_dir,

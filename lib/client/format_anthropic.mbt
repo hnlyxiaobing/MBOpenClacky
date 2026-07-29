@@ -372,6 +372,7 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
 
   // Collect text content
   let text_parts : Array[String] = []
+  let thinking_parts : Array[String] = []
   let tool_calls : Array[@message.ToolCall] = []
 
   for block in blocks {
@@ -379,6 +380,11 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
       Some(String("text")) =>
         match (if block is Object(obj) { obj.get("text") } else { None }) {
           Some(String(text)) => text_parts.push(text)
+          _ => ()
+        }
+      Some(String("thinking")) =>
+        match (if block is Object(obj) { obj.get("thinking") } else { None }) {
+          Some(String(thinking)) => thinking_parts.push(thinking)
           _ => ()
         }
       Some(String("tool_use")) => {
@@ -408,6 +414,12 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
   let content = join_strings(text_parts, "")
   let content_val : String? = if content.length() > 0 {
     Some(content)
+  } else {
+    None
+  }
+  let reasoning = join_strings(thinking_parts, "")
+  let reasoning_val : String? = if reasoning.length() > 0 {
+    Some(reasoning)
   } else {
     None
   }
@@ -448,6 +460,7 @@ pub fn parse_anthropic_response(data : Json) -> LlmResponse {
 
   {
     content: content_val,
+    reasoning_content: reasoning_val,
     tool_calls: tool_calls_val,
     finish_reason,
     usage,

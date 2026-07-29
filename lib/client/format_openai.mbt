@@ -237,6 +237,13 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
     _ => None
   }
 
+  // Extract reasoning_content (thinking-mode models)
+  let reasoning_content : String? = match
+    (if message is Object(obj) { obj.get("reasoning_content") } else { None }) {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+
   // Extract tool calls
   let tool_calls : Array[@message.ToolCall]? = parse_openai_tool_calls(message)
 
@@ -290,7 +297,7 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
     _ => None
   }
 
-  { content, tool_calls, finish_reason, usage, latency: None }
+  { content, reasoning_content, tool_calls, finish_reason, usage, latency: None }
 }
 
 ///|

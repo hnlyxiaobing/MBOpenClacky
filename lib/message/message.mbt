@@ -40,6 +40,7 @@ pub(all) struct Message {
   mut tool_calls : Array[ToolCall]?
   tool_call_id : String?
   name : String?
+  mut reasoning_content : String?
   // Internal fields (stripped before API calls)
   task_id : String?
   created_at : String?
@@ -67,6 +68,9 @@ pub impl ToJson for Message with fn to_json(self) {
   if self.name is Some(_) {
     obj["name"] = ToJson::to_json(self.name)
   }
+  if self.reasoning_content is Some(_) {
+    obj["reasoning_content"] = ToJson::to_json(self.reasoning_content)
+  }
   Json::object(obj)
 }
 
@@ -79,6 +83,7 @@ pub fn Message::user(content : String) -> Message {
     tool_calls: None,
     tool_call_id: None,
     name: None,
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -100,6 +105,7 @@ pub fn Message::assistant(content : String) -> Message {
     tool_calls: None,
     tool_call_id: None,
     name: None,
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -121,6 +127,7 @@ pub fn Message::system(content : String) -> Message {
     tool_calls: None,
     tool_call_id: None,
     name: None,
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -146,6 +153,7 @@ pub fn Message::tool_result(
     tool_calls: None,
     tool_call_id: Some(tool_call_id),
     name: Some(name),
+    reasoning_content: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -167,6 +175,7 @@ pub fn Message::to_api_message(self : Message) -> Message {
     tool_calls: self.tool_calls,
     tool_call_id: self.tool_call_id,
     name: self.name,
+    reasoning_content: self.reasoning_content,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -206,6 +215,10 @@ pub impl FromJson for Message with fn from_json(json, path) {
         _ => None
       }
       let name = match map.get("name") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+      let reasoning_content = match map.get("reasoning_content") {
         Some(String(s)) => Some(s)
         _ => None
       }
@@ -253,6 +266,7 @@ pub impl FromJson for Message with fn from_json(json, path) {
         tool_calls,
         tool_call_id,
         name,
+        reasoning_content,
         task_id,
         created_at,
         system_injected,

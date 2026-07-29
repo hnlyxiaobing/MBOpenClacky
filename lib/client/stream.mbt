@@ -208,6 +208,8 @@ struct OpenAiToolCallAcc {
 pub(all) struct OpenAiStreamAggregator {
   mut content_parts : Array[String]
   mut content_len : Int
+  mut reasoning_parts : Array[String]
+  mut reasoning_len : Int
   mut tool_calls : Array[OpenAiToolCallAcc]
   mut finish_reason : String?
   mut usage : Usage?
@@ -220,6 +222,8 @@ pub fn OpenAiStreamAggregator::new() -> OpenAiStreamAggregator {
   {
     content_parts: [],
     content_len: 0,
+    reasoning_parts: [],
+    reasoning_len: 0,
     tool_calls: [],
     finish_reason: None,
     usage: None,
@@ -262,6 +266,20 @@ pub fn OpenAiStreamAggregator::handle_delta(
               self.content_parts.push(text)
               self.content_len = self.content_len + text.length()
               delta = text
+            }
+            _ => ()
+          }
+
+          // Accumulate reasoning_content (thinking-mode models)
+          match
+            (if delta_json is Object(obj) {
+              obj.get("reasoning_content")
+            } else {
+              None
+            }) {
+            Some(String(text)) => {
+              self.reasoning_parts.push(text)
+              self.reasoning_len = self.reasoning_len + text.length()
             }
             _ => ()
           }
@@ -351,8 +369,16 @@ pub fn OpenAiStreamAggregator::to_response(
     None
   }
 
+  let reasoning = join_str_array(self.reasoning_parts, "")
+  let reasoning_val : String? = if reasoning.length() > 0 {
+    Some(reasoning)
+  } else {
+    None
+  }
+
   {
     content: content_val,
+    reasoning_content: reasoning_val,
     tool_calls,
     finish_reason: self.finish_reason,
     usage: self.usage,
@@ -406,6 +432,7 @@ fn OpenAiStreamAggregator::merge_tool_call(
 priv enum AnthropicBlockKind {
   Text
   ToolUse
+  Thinking
 }
 
 ///|
@@ -510,6 +537,14 @@ pub fn AnthropicStreamAggregator::handle_delta(
                 input_str: "",
               })
             }
+            Some(String("thinking")) =>
+              self.blocks.push({
+                kind: Thinking,
+                text: "",
+                tool_id: None,
+                tool_name: None,
+                input_str: "",
+              })
             _ =>
               self.blocks.push({
                 kind: Text,
@@ -617,11 +652,13 @@ pub fn AnthropicStreamAggregator::to_response(
   self : AnthropicStreamAggregator,
 ) -> LlmResponse {
   let text_parts : Array[String] = []
+  let thinking_parts : Array[String] = []
   let tool_calls_arr : Array[@message.ToolCall] = []
 
   for block in self.blocks {
     match block.kind {
       Text => text_parts.push(block.text)
+      Thinking => thinking_parts.push(block.text)
       ToolUse => {
         let id = match block.tool_id {
           Some(id) => id
@@ -639,6 +676,12 @@ pub fn AnthropicStreamAggregator::to_response(
   let content = join_str_array(text_parts, "")
   let content_val : String? = if content.length() > 0 {
     Some(content)
+  } else {
+    None
+  }
+  let reasoning = join_str_array(thinking_parts, "")
+  let reasoning_val : String? = if reasoning.length() > 0 {
+    Some(reasoning)
   } else {
     None
   }
@@ -672,6 +715,7 @@ pub fn AnthropicStreamAggregator::to_response(
 
   {
     content: content_val,
+    reasoning_content: reasoning_val,
     tool_calls: tool_calls_val,
     finish_reason,
     usage,
@@ -959,8 +1003,16 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
               }),
             )
           }
-          BedrockText | BedrockReasoning =>
+          BedrockText =>
             content_blocks.push(Json::object({ "text": block.text.to_json() }))
+          BedrockReasoning =>
+            content_blocks.push(
+              Json::object({
+                "reasoningContent": Json::object({
+                  "text": block.text.to_json(),
+                }),
+              }),
+            )
         }
       None => ()
     }

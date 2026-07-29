@@ -123,6 +123,10 @@ pub async fn Agent::call_with_retry_async(self : Agent) -> @client.LlmResponse {
           @errors.RetryableError(_) => {
             self.record_retryable_failure()
             if attempt >= max_retries {
+              if self.try_url_fallback() {
+                attempt = 0
+                continue
+              }
               raise e
             }
             let delay = retry_delay_ms(attempt)
@@ -160,6 +164,10 @@ pub async fn Agent::call_stream_with_retry_async(
           @errors.RetryableError(_) => {
             self.record_retryable_failure()
             if attempt >= max_retries {
+              if self.try_url_fallback() {
+                attempt = 0
+                continue
+              }
               raise e
             }
             let delay = retry_delay_ms(attempt)
@@ -449,8 +457,29 @@ pub fn Agent::messages_for_api(self : Agent) -> Array[@message.Message] {
 // ── Fallback State Machine ────────────────────────────────────────────────────
 
 ///|
+/// Attempt to switch to the fallback base URL.
+/// Returns true if switched, false if no fallback URL or already active.
+pub fn Agent::try_url_fallback(self : Agent) -> Bool {
+  if self.url_fallback_active {
+    return false
+  }
+  match self.config.fallback_base_url {
+    None => false
+    Some(url) => {
+      self.client = @client.Client::new(
+        self.client.api_key,
+        url,
+        self.client.model,
+        self.client.api_type,
+      )
+      self.url_fallback_active = true
+      true
+    }
+  }
+}
+
+///|
 /// Attempt to activate the fallback model after repeated failures.
-///
 /// Returns true if fallback was activated, false if no fallback configured.
 pub fn Agent::try_activate_fallback(
   self : Agent,

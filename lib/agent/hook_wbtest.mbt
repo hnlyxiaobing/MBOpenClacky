@@ -159,6 +159,7 @@ async test "hook_integration_agent_status_changes" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
 
   // Run the agent
@@ -202,6 +203,7 @@ async test "hook_integration_iteration_events" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
 
   let result = agent.run("Hi")
@@ -247,6 +249,7 @@ async test "hook_integration_message_events" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
 
   let result = agent.run("Test messages")
@@ -288,6 +291,7 @@ async test "hook_integration_run_completed" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
 
   let _ = agent.run("Test completed")
@@ -327,6 +331,7 @@ async test "hook_multiple_events_in_order" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
 
   let result = agent.run("Hello")

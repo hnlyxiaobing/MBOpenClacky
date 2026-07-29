@@ -58,6 +58,19 @@
     - `moon check` 状态：0 errors, ~500 warnings → 0 errors, 0 warnings
 - `[verify]` 最终验证：`moon check` 0 errors/0 warnings，`moon test --target native` 3093/3093 pass
 
+### 2026-07-29  feat: 8 个 Agent 增量 Spec 全部实现（session context → skill evolution）
+
+- `[feat]` **Spec-01: Session Context 注入** — `run()` 入口注入 per-run 动态消息（日期/星期/OS/工作目录/模型），`system_injected: true` 标记
+- `[feat]` **Spec-02: reasoning_content 字段** — `LlmResponse` + `Message` + 三方协议（OpenAI/Anthropic/Bedrock）流式聚合
+- `[feat]` **Spec-03: 空响应检测** — `react_loop_async` 空 content 重试机制，含 thinking-mode 静响应检测
+- `[feat]` **Spec-04: compression_threshold 配置** — `AgentConfig.compression_threshold` → `needs_compression()` 使用配置值
+- `[feat]` **Spec-05: 压缩失败回滚** — `compress_with_safety` 失败时 `compression_level - 1`，成功时 +1
+- `[feat]` **Spec-06: URL Fallback** — `try_url_fallback()` 重试耗尽后切换备用 Base URL，仅触发一次
+- `[feat]` **Spec-07: Idle 压缩定时器** — `IdleCompressionTimer` run 完成后启动，新输入取消，266s 触发
+- `[feat]` **Spec-08: Skill Evolution 集成** — 成功 run 后自动调用 `run_skill_evolution_hooks()`
+- `[chore]` 8 个 spec 从 `draft/` 归档至 `completed/`
+- `[test]` 318 agent + 89 skill + 107 client + 59 message = 573 tests 全部通过
+
 ### 2026-07-25  refactor: FFI C 依赖消减（S-FFI-01~08）完成
 - `[refactor]` **自写 C 代码从 16 文件 / 4,781 行消减至 5 文件 / 610 行；`-lcurl` 全项目清零**
   - HTTP 传输：`lib/client` 的 `http_native.c`/`http_thread.c`/`mb_stubs.c` 迁往 `@async/http`（S-FFI-06）

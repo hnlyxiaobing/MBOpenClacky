@@ -41,6 +41,7 @@ fn make_mock_response(
     finish_reason: Some("stop"),
     usage: Some(@client.Usage::from_openai(100, 50)),
     latency: Some(@client.Latency::new(200, ttft_ms=50)),
+    reasoning_content: None,
   }
 }
 
@@ -571,6 +572,103 @@ test "handle_probe_failure" {
   }
 }
 
+// ── URL Fallback Tests ───────────────────────────────────────────────────────
+
+///|
+test "try_url_fallback_no_fallback_url" {
+  let agent = make_test_agent()
+  agent.config.fallback_base_url = None
+  let switched = agent.try_url_fallback()
+  assert_false(switched)
+  assert_false(agent.url_fallback_active)
+}
+
+///|
+test "try_url_fallback_with_fallback_url" {
+  let agent = make_test_agent()
+  agent.config.fallback_base_url = Some("https://fallback.example.com")
+  let switched = agent.try_url_fallback()
+  assert_true(switched)
+  assert_true(agent.url_fallback_active)
+  assert_eq(agent.client.base_url, "https://fallback.example.com")
+}
+
+///|
+test "try_url_fallback_only_once" {
+  let agent = make_test_agent()
+  agent.config.fallback_base_url = Some("https://fallback.example.com")
+  let first = agent.try_url_fallback()
+  let second = agent.try_url_fallback()
+  assert_true(first)
+  assert_false(second)
+  assert_true(agent.url_fallback_active)
+}
+
+// ── Idle Timer Tests ─────────────────────────────────────────────────────────
+
+///|
+async test "idle_timer_starts_after_run" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(make_mock_response("Hello!", None))
+  let _ = agent.run("Hi")
+  assert_true(agent.idle_timer.active())
+}
+
+///|
+async test "idle_timer_cancelled_on_new_input" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(make_mock_response("Hello!", None))
+  let _ = agent.run("Hi")
+  assert_true(agent.idle_timer.active())
+  // New run should cancel the timer
+  agent.mock_responses.push(make_mock_response("Again!", None))
+  let _ = agent.run("Another question")
+  // After run completes, timer is started again
+  assert_true(agent.idle_timer.active())
+}
+
+///|
+test "idle_timer_initial_state" {
+  let agent = make_test_agent()
+  assert_false(agent.idle_timer.active())
+  match agent.idle_timer.state {
+    Idle => ()
+    _ => fail("Expected Idle state")
+  }
+}
+
+// ── Skill Evolution Tests ────────────────────────────────────────────────────
+
+///|
+async test "skill_evolution_not_called_when_disabled" {
+  let agent = make_test_agent()
+  agent.config.skill_evolution = None
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("Do something")
+  assert_eq(result.status, Success)
+}
+
+///|
+async test "skill_evolution_called_when_enabled" {
+  let agent = make_test_agent()
+  agent.config.skill_evolution = Some(Json::null())
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("Do something")
+  assert_eq(result.status, Success)
+}
+
+///|
+async test "skill_evolution_not_called_on_error" {
+  let agent = make_test_agent()
+  agent.config.skill_evolution = Some(Json::null())
+  // Empty response triggers error after 3 retries
+  agent.mock_responses.push(make_mock_response("", None))
+  agent.mock_responses.push(make_mock_response("", None))
+  agent.mock_responses.push(make_mock_response("", None))
+  let result = agent.run("Do something")
+  assert_eq(result.status, Error)
+}
+
 // ── Compression Tests ─────────────────────────────────────────────────────────
 
 ///|
@@ -1094,6 +1192,7 @@ async test "call_llm_stream_async mock path with empty content emits no chunk" {
     finish_reason: Some("stop"),
     usage: None,
     latency: None,
+    reasoning_content: None,
   })
   let chunks : Array[String] = []
   let response = agent.call_llm_stream_async(fn(c) { chunks.push(c) })
@@ -1109,4 +1208,43 @@ test "agent_rename_updates_session_data_name" {
   @debug.assert_eq(agent.to_session_data().name, "test-agent")
   agent.rename("renamed-agent")
   @debug.assert_eq(agent.to_session_data().name, "renamed-agent")
+}
+
+// ── Empty Response Detection ────────────────────────────────────────────────
+
+///|
+async test "empty_response_retries_then_succeeds" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(make_mock_response("", None))
+  agent.mock_responses.push(make_mock_response("Here is the answer", None))
+  let result = agent.run("question") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success)
+  @debug.assert_eq(agent.iterations, 2)
+}
+
+///|
+async test "empty_response_exhausts_retries" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(make_mock_response("", None))
+  agent.mock_responses.push(make_mock_response("", None))
+  agent.mock_responses.push(make_mock_response("", None))
+  let result = agent.run("question") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Error)
+}
+
+///|
+async test "thinking_silent_response_retries" {
+  let agent = make_test_agent()
+  agent.mock_responses.push({
+    content: Some(""),
+    tool_calls: None,
+    finish_reason: Some("stop"),
+    usage: Some(@client.Usage::from_openai(100, 50)),
+    latency: Some(@client.Latency::new(200, ttft_ms=50)),
+    reasoning_content: Some("thinking hard..."),
+  })
+  agent.mock_responses.push(make_mock_response("Done thinking", None))
+  let result = agent.run("question") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success)
+  @debug.assert_eq(agent.iterations, 2)
 }

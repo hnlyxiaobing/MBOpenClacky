@@ -113,6 +113,7 @@ test "get_recent_with_tool_pairs keeps pairs together" {
       tool_calls: Some([tc]),
       tool_call_id: None,
       name: None,
+      reasoning_content: None,
       task_id: None,
       created_at: None,
       system_injected: None,
@@ -242,4 +243,18 @@ test "count_messages_to_compress" {
   // Keep more than available => 0 to compress
   let count2 = count_messages_to_compress(messages, 10)
   @debug.assert_eq(count2, 0)
+}
+
+///|
+test "needs_compression_uses_config_threshold" {
+  let client = @client.Client::new(
+    "key", "https://api.test.com", "model", @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new("s", "a", "/tmp", client, config)
+  agent.config.compression_threshold = 5
+  agent.history.push(@message.Message::user("Hello world, this is a test message"))
+  assert_true(agent.needs_compression())
+  agent.config.compression_threshold = 999_999
+  assert_false(agent.needs_compression())
 }
