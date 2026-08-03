@@ -41,7 +41,7 @@ test "onboard device start returns device and user codes" {
   let resp = handle_onboard_device_start(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("device_code"))
   assert_true(obj.contains("user_code"))
@@ -66,7 +66,7 @@ test "onboard device poll returns pending for a registered code" {
   let resp = handle_onboard_device_poll(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("status"), Some("pending".to_json()))
 }
@@ -81,7 +81,7 @@ test "onboard device poll returns approved for approved prefix" {
   let resp = handle_onboard_device_poll(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("status"), Some("approved".to_json()))
   // Note: the approved response returns ok/status/device_token; default_model is
@@ -105,7 +105,7 @@ test "onboard complete fails without configured model" {
   let resp = handle_onboard_complete(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("error"), Some("No model configured".to_json()))
 }
 
@@ -131,7 +131,7 @@ test "onboard skip soul returns ok" {
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("path"))
   // Cleanup created config dir.

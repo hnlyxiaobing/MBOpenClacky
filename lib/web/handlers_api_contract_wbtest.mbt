@@ -46,7 +46,7 @@ test "profile get returns default profile structure" {
   let resp = handle_profile_get(server_ref, cc_make_event(Get, "/api/profile"))
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   assert_true(obj.contains("ok"))
   assert_true(obj.contains("user"))
   assert_true(obj.contains("soul"))
@@ -76,7 +76,7 @@ test "profile put merges fields and persists" {
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @fs.remove_file("_build/.mbopenclacky/profile.json") catch {
     _ => ()
@@ -98,7 +98,7 @@ test "dirs mkdir rejects path traversal in parent" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   assert_true(obj.contains("error"))
 }
 
@@ -135,7 +135,7 @@ test "dirs mkdir creates directory under cwd" {
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("path"))
   @fs.remove_dir("cc_test_dir") catch {
@@ -154,7 +154,7 @@ test "brand skills list returns skills array" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   assert_true(obj.contains("skills"))
 }
 
@@ -189,7 +189,7 @@ async test "config media test reports no model for unknown kind" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   assert_true(obj.contains("error"))
 }

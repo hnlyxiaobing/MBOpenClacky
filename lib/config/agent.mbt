@@ -219,34 +219,6 @@ pub fn AgentConfig::deep_copy(self : AgentConfig) -> AgentConfig {
 }
 
 ///|
-/// Shallow copy of this config. Models array is shared (same reference).
-fn AgentConfig::shallow_copy(self : AgentConfig) -> AgentConfig {
-  let new_models : Array[ModelConfig] = []
-  for m in self.models {
-    new_models.push(m)
-  }
-  {
-    permission_mode: self.permission_mode,
-    max_tokens: self.max_tokens,
-    verbose: self.verbose,
-    enable_compression: self.enable_compression,
-    enable_prompt_caching: self.enable_prompt_caching,
-    models: new_models,
-    current_model_id: self.current_model_id,
-    memory_update_enabled: self.memory_update_enabled,
-    skill_evolution: self.skill_evolution,
-    max_running_agents: self.max_running_agents,
-    max_idle_agents: self.max_idle_agents,
-    proxy_url: self.proxy_url,
-    fallback_model: self.fallback_model,
-    fallback_base_url: self.fallback_base_url,
-    compression_threshold: self.compression_threshold,
-    env_source: self.env_source,
-    default_working_dir: self.default_working_dir,
-  }
-}
-
-///|
 /// Derive a media model from the current provider for the given media_type.
 /// For example: OpenAI → gpt-4o (image), tts-1 (audio).
 /// Returns None if no current model or provider cannot be resolved.

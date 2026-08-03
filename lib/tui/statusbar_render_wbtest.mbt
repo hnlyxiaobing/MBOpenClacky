@@ -71,13 +71,13 @@ fn render_status_line(term_width : Int) -> String {
   let status_node = ansi_line_to_vnode_sized(sample_status_text(), w, 1.0)
   let layout = build_gemini_layout(
     status_node,
-    [@tui.text("body")],
-    [@tui.text("> ")],
+    [@vnode.text("body")],
+    [@vnode.text("> ")],
     "cyan",
     4,
     w,
   )
-  let app = @tui.VNodeApp::new(term_width, 45)
+  let app = @vnode.VNodeApp::new(term_width, 45)
   let plain = strip_ansi(app.render_frame(layout))
   first_line(plain)
 }

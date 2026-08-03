@@ -72,17 +72,17 @@ fn TuiController::build_complete_vnode(
   output_lines : Array[String],
   input_lines : Array[String],
   border_color : String,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   let input_h = 4
 
   // Build output area children (preserve ANSI colors via parser)
-  let output_children : Array[@tui.TuiNode] = []
+  let output_children : Array[@vnode.TuiNode] = []
   for line in output_lines {
     let plain = strip_ansi(line)
     if plain.length() > 0 {
       output_children.push(ansi_line_to_vnode(line))
     } else {
-      output_children.push(@tui.text(" "))
+      output_children.push(@vnode.text(" "))
     }
   }
 
@@ -105,7 +105,7 @@ fn TuiController::build_complete_vnode(
   }
 
   // Build overlay children (progress + suggestions above input)
-  let overlay_children : Array[@tui.TuiNode] = []
+  let overlay_children : Array[@vnode.TuiNode] = []
   // Progress indicators
   let progress_lines = self.get_progress_lines()
   for line in progress_lines {
@@ -120,12 +120,12 @@ fn TuiController::build_complete_vnode(
   }
 
   // Build input area children (preserve ANSI colors)
-  let input_children : Array[@tui.TuiNode] = []
+  let input_children : Array[@vnode.TuiNode] = []
   for line in input_lines {
     input_children.push(ansi_line_to_vnode(line))
   }
   while input_children.length() < input_h - 2 {
-    input_children.push(@tui.text(" "))
+    input_children.push(@vnode.text(" "))
   }
 
   // Build status node — flat sized row spanning the full terminal width.
@@ -168,7 +168,7 @@ fn TuiController::build_complete_vnode(
 /// Build VNode for file browser mode.
 fn TuiController::build_file_browser_vnode(
   self : TuiController,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   let input_h = 4
   let term_width = self.term_width.to_double()
   let status_text = self.status_bar.colored_text()
@@ -177,18 +177,18 @@ fn TuiController::build_file_browser_vnode(
   let border_color = self.theme_border_color()
 
   // Build input area children
-  let input_children : Array[@tui.TuiNode] = []
+  let input_children : Array[@vnode.TuiNode] = []
   for line in input_lines {
     input_children.push(ansi_line_to_vnode(line))
   }
   while input_children.length() < input_h - 2 {
-    input_children.push(@tui.text(" "))
+    input_children.push(@vnode.text(" "))
   }
 
-  @tui.column(width=term_width, height=100.0, [
+  @vnode.column(width=term_width, height=100.0, [
     // Flat sized status row spanning the full terminal width (see SPEC-01).
     ansi_line_to_vnode_sized(status_text, term_width, 1.0),
-    @tui.view(
+    @vnode.view(
       direction="column",
       flex_grow=1.0,
       width=term_width,
@@ -197,7 +197,7 @@ fn TuiController::build_file_browser_vnode(
       padding_x=1.0,
       [node_to_vnode(node)],
     ),
-    @tui.view(
+    @vnode.view(
       direction="column",
       width=term_width,
       height=input_h.to_double(),

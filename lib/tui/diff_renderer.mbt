@@ -9,31 +9,31 @@
 
 ///|
 /// Render a unified diff as a VNode tree with color coding.
-pub fn render_diff_unified(diff : String) -> @tui.TuiNode {
-  let children : Array[@tui.TuiNode] = []
+pub fn render_diff_unified(diff : String) -> @vnode.TuiNode {
+  let children : Array[@vnode.TuiNode] = []
   for line_view in diff.split("\n") {
     let line = line_view.to_owned()
     let vnode = if line.has_prefix("+++") {
-      @tui.text(line, fg="rgb(85,255,85)", bold=true)
+      @vnode.text(line, fg="rgb(85,255,85)", bold=true)
     } else if line.has_prefix("---") {
-      @tui.text(line, fg="rgb(255,85,85)", bold=true)
+      @vnode.text(line, fg="rgb(255,85,85)", bold=true)
     } else if line.has_prefix("+") {
-      @tui.text(line, fg="rgb(85,255,85)")
+      @vnode.text(line, fg="rgb(85,255,85)")
     } else if line.has_prefix("-") {
-      @tui.text(line, fg="rgb(255,85,85)")
+      @vnode.text(line, fg="rgb(255,85,85)")
     } else if line.has_prefix("@@") {
-      @tui.text(line, fg="rgb(85,255,255)")
+      @vnode.text(line, fg="rgb(85,255,255)")
     } else if line.has_prefix("diff ") || line.has_prefix("index ") {
-      @tui.text(line, fg="rgb(255,255,85)", bold=true)
+      @vnode.text(line, fg="rgb(255,255,85)", bold=true)
     } else {
-      @tui.text(line, fg="rgb(128,128,128)")
+      @vnode.text(line, fg="rgb(128,128,128)")
     }
     children.push(vnode)
   }
   if children.is_empty() {
-    children.push(@tui.text(" "))
+    children.push(@vnode.text(" "))
   }
-  @tui.column(children)
+  @vnode.column(children)
 }
 
 ///|
@@ -41,7 +41,7 @@ pub fn render_diff_unified(diff : String) -> @tui.TuiNode {
 pub fn render_diff_side_by_side(
   before : String,
   after : String,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   let before_lines : Array[String] = []
   for line_view in before.split("\n") {
     before_lines.push(line_view.to_owned())
@@ -55,22 +55,22 @@ pub fn render_diff_side_by_side(
   } else {
     after_lines.length()
   }
-  let left_children : Array[@tui.TuiNode] = []
-  let right_children : Array[@tui.TuiNode] = []
+  let left_children : Array[@vnode.TuiNode] = []
+  let right_children : Array[@vnode.TuiNode] = []
   for i = 0; i < max_lines; i = i + 1 {
     let left_line = if i < before_lines.length() { before_lines[i] } else { "" }
     let right_line = if i < after_lines.length() { after_lines[i] } else { "" }
     if left_line != right_line {
-      left_children.push(@tui.text("- " + left_line, fg="rgb(255,85,85)"))
-      right_children.push(@tui.text("+ " + right_line, fg="rgb(85,255,85)"))
+      left_children.push(@vnode.text("- " + left_line, fg="rgb(255,85,85)"))
+      right_children.push(@vnode.text("+ " + right_line, fg="rgb(85,255,85)"))
     } else {
-      left_children.push(@tui.text("  " + left_line, fg="rgb(128,128,128)"))
-      right_children.push(@tui.text("  " + right_line, fg="rgb(128,128,128)"))
+      left_children.push(@vnode.text("  " + left_line, fg="rgb(128,128,128)"))
+      right_children.push(@vnode.text("  " + right_line, fg="rgb(128,128,128)"))
     }
   }
-  @tui.row(gap=2.0, [
-    @tui.column(flex_grow=1.0, left_children),
-    @tui.column(flex_grow=1.0, right_children),
+  @vnode.row(gap=2.0, [
+    @vnode.column(flex_grow=1.0, left_children),
+    @vnode.column(flex_grow=1.0, right_children),
   ])
 }
 

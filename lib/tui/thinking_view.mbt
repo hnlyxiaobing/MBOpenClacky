@@ -115,9 +115,9 @@ pub fn render_thinking_live_vnode(
   state : TuiState,
   animator : ThinkingVerbAnimator,
   tick : Int,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   if state.thinking_buffer.get().length() == 0 {
-    return @tui.text("")
+    return @vnode.text("")
   }
 
   let is_active = is_thinking_phase_active(state)
@@ -128,23 +128,23 @@ pub fn render_thinking_live_vnode(
     thinking_max_display_lines,
   )
 
-  let children : Array[@tui.TuiNode] = []
+  let children : Array[@vnode.TuiNode] = []
   // Animated header: spinner + verb
   if is_active {
     children.push(@tui_components.spinner(tick, label=verb))
   } else {
-    children.push(@tui.text("  " + verb, fg="magenta", bold=true))
+    children.push(@vnode.text("  " + verb, fg="magenta", bold=true))
   }
 
   // Separator
-  children.push(@tui.text(" "))
+  children.push(@vnode.text(" "))
 
   // Thinking content lines (dimmed)
   for line in lines {
-    children.push(@tui.text(line, fg="rgb(128,128,128)"))
+    children.push(@vnode.text(line, fg="rgb(128,128,128)"))
   }
 
-  @tui.view(
+  @vnode.view(
     direction="column",
     border="rounded",
     border_color="magenta",
@@ -155,13 +155,13 @@ pub fn render_thinking_live_vnode(
 
 ///|
 /// Render a one-line summary of completed thinking as a VNode.
-pub fn render_thinking_summary_vnode(state : TuiState) -> @tui.TuiNode {
+pub fn render_thinking_summary_vnode(state : TuiState) -> @vnode.TuiNode {
   if state.thinking_buffer.get().length() == 0 {
-    return @tui.text("")
+    return @vnode.text("")
   }
 
   let char_count = state.thinking_buffer.get().length()
   let line_count = state.thinking_buffer.get().split("\n").to_array().length()
   let summary = "  Thought for \{char_count} chars (\{line_count} lines)"
-  @tui.text(summary, fg="rgb(128,128,128)")
+  @vnode.text(summary, fg="rgb(128,128,128)")
 }

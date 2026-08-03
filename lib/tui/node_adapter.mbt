@@ -10,41 +10,41 @@
 
 ///|
 /// Convert a Node tree to a VNode tree.
-pub fn node_to_vnode(node : Node) -> @tui.TuiNode {
+pub fn node_to_vnode(node : Node) -> @vnode.TuiNode {
   match node {
     Text(content, style) => text_to_vnode(content, style)
-    Column(children) => @tui.column(children.map(fn(c) { node_to_vnode(c) }))
-    Row(children) => @tui.row(children.map(fn(c) { node_to_vnode(c) }))
+    Column(children) => @vnode.column(children.map(fn(c) { node_to_vnode(c) }))
+    Row(children) => @vnode.row(children.map(fn(c) { node_to_vnode(c) }))
     Border(title, children) => border_to_vnode(title, children)
     Padding(v, h, child) =>
-      @tui.view(
+      @vnode.view(
         direction="column",
         padding_x=h.to_double(),
         padding_y=v.to_double(),
         [node_to_vnode(child)],
       )
     Styled(style, child) => styled_to_vnode(style, child)
-    Empty => @tui.text("")
+    Empty => @vnode.text("")
   }
 }
 
 ///|
 /// Convert a Text node to a VNode text element.
-fn text_to_vnode(content : String, style : Style) -> @tui.TuiNode {
+fn text_to_vnode(content : String, style : Style) -> @vnode.TuiNode {
   let plain = strip_ansi(content)
   // Dim overrides fg with gray
   if style.dim {
-    return @tui.text(plain, fg="rgb(128,128,128)", bold=style.bold)
+    return @vnode.text(plain, fg="rgb(128,128,128)", bold=style.bold)
   }
   match style.fg {
-    Some(c) => @tui.text(plain, fg=color_to_string(c), bold=style.bold)
-    None => @tui.text(plain, bold=style.bold)
+    Some(c) => @vnode.text(plain, fg=color_to_string(c), bold=style.bold)
+    None => @vnode.text(plain, bold=style.bold)
   }
 }
 
 ///|
 /// Convert a Styled wrapper to a VNode.
-fn styled_to_vnode(style : Style, child : Node) -> @tui.TuiNode {
+fn styled_to_vnode(style : Style, child : Node) -> @vnode.TuiNode {
   match child {
     Text(content, _) => text_to_vnode(content, style)
     _ => node_to_vnode(child)
@@ -53,17 +53,17 @@ fn styled_to_vnode(style : Style, child : Node) -> @tui.TuiNode {
 
 ///|
 /// Convert a Border node to a VNode bordered view.
-fn border_to_vnode(title : String?, children : Array[Node]) -> @tui.TuiNode {
-  let child_nodes : Array[@tui.TuiNode] = []
+fn border_to_vnode(title : String?, children : Array[Node]) -> @vnode.TuiNode {
+  let child_nodes : Array[@vnode.TuiNode] = []
   // If there's a title, add it as the first text element
   match title {
-    Some(t) => child_nodes.push(@tui.text(strip_ansi(t), bold=true))
+    Some(t) => child_nodes.push(@vnode.text(strip_ansi(t), bold=true))
     None => ()
   }
   for child in children {
     child_nodes.push(node_to_vnode(child))
   }
-  @tui.view(
+  @vnode.view(
     direction="column",
     border="rounded",
     border_color="blue",

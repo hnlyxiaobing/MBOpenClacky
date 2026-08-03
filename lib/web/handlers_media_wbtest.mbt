@@ -80,7 +80,7 @@ async test "video understand with empty body returns 400" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
@@ -92,7 +92,7 @@ async test "video understand with non-object JSON returns 400" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
@@ -104,7 +104,7 @@ async test "video understand with invalid JSON returns 400" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
@@ -116,7 +116,7 @@ async test "video understand with no model configured returns 500" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = media_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   let err = match obj.get("error") {
     Some(s) => @debug.to_string(s)
@@ -137,6 +137,6 @@ async test "video understand with video_path but no model returns 500" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = media_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }

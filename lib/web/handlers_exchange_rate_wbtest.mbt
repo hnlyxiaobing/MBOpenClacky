@@ -98,7 +98,7 @@ async test "exchange rate returns cached value when available" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = rate_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("rate"), Some(7.77.to_json()))
   @debug.assert_eq(obj.get("source"), Some("test-cache".to_json()))
   // Reset cache so subsequent tests are not affected.

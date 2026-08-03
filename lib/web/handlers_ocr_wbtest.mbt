@@ -51,7 +51,7 @@ test "ocr config update switches source off" {
   let resp = handle_config_ocr_update(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = ocr_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("source"), Some("off".to_json()))
 }
@@ -67,7 +67,7 @@ test "ocr config update custom requires fields" {
   let resp = handle_config_ocr_update(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = ocr_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
@@ -79,7 +79,7 @@ test "ocr config update custom stores model" {
   let resp = handle_config_ocr_update(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = ocr_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("source"), Some("custom".to_json()))
   @debug.assert_eq(obj.get("model"), Some("gpt-4o".to_json()))
@@ -97,7 +97,7 @@ async test "ocr config test fails without model" {
   let resp = handle_config_ocr_test(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = ocr_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
@@ -122,6 +122,6 @@ async test "internal ocr fails without configured model" {
   let resp = handle_internal_ocr_image(server_ref, event)
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = ocr_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }

@@ -32,24 +32,24 @@ pub(all) enum BrandLayout {
 /// └─────────────────────────┘
 /// ```
 pub fn build_gemini_layout(
-  status_node : @tui.TuiNode,
-  output_children : Array[@tui.TuiNode],
-  input_children : Array[@tui.TuiNode],
+  status_node : @vnode.TuiNode,
+  output_children : Array[@vnode.TuiNode],
+  input_children : Array[@vnode.TuiNode],
   border_color : String,
   input_h : Int,
   term_width : Double,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   if output_children.is_empty() {
-    output_children.push(@tui.text(" "))
+    output_children.push(@vnode.text(" "))
   }
   // NOTE: width is the real terminal width in columns. The DSL interprets a
   // numeric width as DimensionValue::Length (absolute columns), NOT percent —
   // the old hardcoded 100.0 clipped the ~118-column status bar to 100 cols and
   // flex-shrunk its space-containing segments (see SPEC-01).
-  @tui.column(width=term_width, height=100.0, [
+  @vnode.column(width=term_width, height=100.0, [
     status_node,
-    @tui.column(flex_grow=1.0, width=term_width, output_children),
-    @tui.view(
+    @vnode.column(flex_grow=1.0, width=term_width, output_children),
+    @vnode.view(
       direction="column",
       width=term_width,
       height=input_h.to_double(),
@@ -76,27 +76,27 @@ pub fn build_gemini_layout(
 /// └──────────┴─────────────────┘
 /// ```
 pub fn build_claude_code_layout(
-  status_node : @tui.TuiNode,
-  output_children : Array[@tui.TuiNode],
-  input_children : Array[@tui.TuiNode],
-  sidebar_children : Array[@tui.TuiNode],
+  status_node : @vnode.TuiNode,
+  output_children : Array[@vnode.TuiNode],
+  input_children : Array[@vnode.TuiNode],
+  sidebar_children : Array[@vnode.TuiNode],
   border_color : String,
   input_h : Int,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   if output_children.is_empty() {
-    output_children.push(@tui.text(" "))
+    output_children.push(@vnode.text(" "))
   }
   if sidebar_children.is_empty() {
-    sidebar_children.push(@tui.text(" "))
+    sidebar_children.push(@vnode.text(" "))
   }
-  @tui.grid(
+  @vnode.grid(
     areas=["sidebar main", "sidebar main", "sidebar input"],
     rows=[1.0, 0.0, input_h.to_double()],
     columns=[20.0, 0.0],
     [
-      @tui.grid_area(
+      @vnode.grid_area(
         "sidebar",
-        @tui.view(
+        @vnode.view(
           direction="column",
           border="rounded",
           border_color~,
@@ -104,13 +104,16 @@ pub fn build_claude_code_layout(
           sidebar_children,
         ),
       ),
-      @tui.grid_area(
+      @vnode.grid_area(
         "main",
-        @tui.column([status_node, @tui.column(flex_grow=1.0, output_children)]),
+        @vnode.column([
+          status_node,
+          @vnode.column(flex_grow=1.0, output_children),
+        ]),
       ),
-      @tui.grid_area(
+      @vnode.grid_area(
         "input",
-        @tui.view(
+        @vnode.view(
           direction="column",
           border="rounded",
           border_color~,
@@ -134,19 +137,19 @@ pub fn build_claude_code_layout(
 ///  > input cursor
 /// ```
 pub fn build_compact_layout(
-  status_node : @tui.TuiNode,
-  output_children : Array[@tui.TuiNode],
-  input_children : Array[@tui.TuiNode],
+  status_node : @vnode.TuiNode,
+  output_children : Array[@vnode.TuiNode],
+  input_children : Array[@vnode.TuiNode],
   input_h : Int,
   term_width : Double,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   if output_children.is_empty() {
-    output_children.push(@tui.text(" "))
+    output_children.push(@vnode.text(" "))
   }
-  @tui.column(width=term_width, height=100.0, [
+  @vnode.column(width=term_width, height=100.0, [
     status_node,
-    @tui.column(flex_grow=1.0, width=term_width, output_children),
-    @tui.column(width=term_width, height=input_h.to_double(), input_children),
+    @vnode.column(flex_grow=1.0, width=term_width, output_children),
+    @vnode.column(width=term_width, height=input_h.to_double(), input_children),
   ])
 }
 

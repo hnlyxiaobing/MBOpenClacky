@@ -17,7 +17,7 @@ import {
   "moonbitlang/async/io" @async/io,
   "moonbitlang/async/aqueue",
   "moonbitlang/x/fs",
-  "mizchi/tui/vnode" @tui,
+  "mizchi/tui/vnode",
   "mizchi/tui/core" @tui_core,
   "mizchi/tui/events" @tui_events,
   "mizchi/signals",

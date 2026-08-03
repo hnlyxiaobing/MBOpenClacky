@@ -32,14 +32,14 @@ fn query_size_safe(tty : @tty.Tty) -> (Int, Int) {
 /// Renderer that wraps a VNodeApp and tty handle for screen rendering.
 struct VNodeRenderer {
   tty : @tty.Tty
-  app : @tui.VNodeApp
+  app : @vnode.VNodeApp
 }
 
 ///|
 /// Create a new VNodeRenderer from a Tty handle.
 fn VNodeRenderer::new(tty : @tty.Tty) -> VNodeRenderer {
   let (width, height) = query_size_safe(tty)
-  { tty, app: @tui.VNodeApp::new(width, height) }
+  { tty, app: @vnode.VNodeApp::new(width, height) }
 }
 
 ///|
@@ -59,7 +59,7 @@ fn VNodeRenderer::resize(
 /// VNodeApp's diff engine to write only changed cells.
 async fn VNodeRenderer::render(
   self : VNodeRenderer,
-  node : @tui.TuiNode,
+  node : @vnode.TuiNode,
 ) -> Unit {
   let output = self.app.render_frame(node)
   self.tty.write_string(output)
@@ -275,10 +275,10 @@ fn ansi_256_to_rgb(idx : Int) -> String {
 ///
 /// Parses SGR color codes and creates VNode text nodes with appropriate
 /// fg colors. Multiple colored segments are placed in a row.
-fn ansi_line_to_vnode(s : String) -> @tui.TuiNode {
+fn ansi_line_to_vnode(s : String) -> @vnode.TuiNode {
   let segments = parse_ansi_segments(s)
   if segments.is_empty() {
-    return @tui.text(" ")
+    return @vnode.text(" ")
   }
   // Check if all segments have the same style (optimization)
   if segments.length() == 1 {
@@ -286,23 +286,23 @@ fn ansi_line_to_vnode(s : String) -> @tui.TuiNode {
     return make_text_vnode(seg)
   }
   // Multiple segments: create a row of text nodes
-  let children : Array[@tui.TuiNode] = []
+  let children : Array[@vnode.TuiNode] = []
   for seg in segments {
     if seg.text.length() > 0 {
       children.push(make_text_vnode(seg))
     }
   }
   if children.is_empty() {
-    return @tui.text(" ")
+    return @vnode.text(" ")
   }
-  @tui.row(children)
+  @vnode.row(children)
 }
 
 ///|
 /// Convert an ANSI-coded string to a single flat VNode row with explicit
 /// size constraints applied directly to the row that holds the text segments.
 ///
-/// Unlike `ansi_line_to_vnode` (which returns a bare `@tui.row(children)`),
+/// Unlike `ansi_line_to_vnode` (which returns a bare `@vnode.row(children)`),
 /// this avoids wrapping that row in a second sized row. The nested
 /// row-in-row structure was found to trigger per-segment width mismeasurement
 /// in the mizchi/tui flexbox layout, truncating the last characters of each
@@ -313,31 +313,31 @@ fn ansi_line_to_vnode_sized(
   s : String,
   width : Double,
   height : Double,
-) -> @tui.TuiNode {
+) -> @vnode.TuiNode {
   let segments = parse_ansi_segments(s)
-  let children : Array[@tui.TuiNode] = []
+  let children : Array[@vnode.TuiNode] = []
   for seg in segments {
     if seg.text.length() > 0 {
       children.push(make_text_vnode(seg))
     }
   }
   if children.is_empty() {
-    children.push(@tui.text(" "))
+    children.push(@vnode.text(" "))
   }
-  @tui.row(width~, height~, children)
+  @vnode.row(width~, height~, children)
 }
 
 ///|
 /// Create a VNode text node from an AnsiSegment.
-fn make_text_vnode(seg : AnsiSegment) -> @tui.TuiNode {
+fn make_text_vnode(seg : AnsiSegment) -> @vnode.TuiNode {
   let fg = match seg.fg {
     Some(c) => c
     None => "white"
   }
   if seg.dim {
-    @tui.text(seg.text, fg="rgb(128,128,128)", bold=seg.bold)
+    @vnode.text(seg.text, fg="rgb(128,128,128)", bold=seg.bold)
   } else {
-    @tui.text(seg.text, fg~, bold=seg.bold)
+    @vnode.text(seg.text, fg~, bold=seg.bold)
   }
 }
 

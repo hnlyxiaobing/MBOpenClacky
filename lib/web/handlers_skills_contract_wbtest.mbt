@@ -51,14 +51,14 @@ test "session skills: returns real non-empty list in orig entry shape" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = sc_response_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("session_id"), Some("sess-1".to_json()))
-  guard obj.get("skills") is Some(Array(skills))
+  guard! obj.get("skills") is Some(Array(skills))
   // Real scan must find the builtin skills (was an empty stub before).
   assert_true(skills.length() > 0)
   let mut saw_code_explorer = false
   for skill in skills {
-    guard skill is Object(entry)
+    guard! skill is Object(entry)
     // Orig session-skills entry shape.
     for
       key in [
@@ -101,10 +101,10 @@ test "session skills: user_invocable false skills are excluded" {
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = sc_response_json(resp)
-  guard j is Object(obj)
-  guard obj.get("skills") is Some(Array(skills))
+  guard! j is Object(obj)
+  guard! obj.get("skills") is Some(Array(skills))
   for skill in skills {
-    guard skill is Object(entry)
+    guard! skill is Object(entry)
     assert_false(entry.get("name") == Some(name.to_json()))
   }
   // ...while the global /api/skills listing still shows the skill shape
@@ -133,12 +133,12 @@ test "creator skills: local_skills contains real user skill with orig keys" {
   }
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  guard obj.get("local_skills") is Some(Array(local_entries))
+  guard! obj.get("local_skills") is Some(Array(local_entries))
   let mut found = false
   for entry in local_entries {
-    guard entry is Object(e)
+    guard! entry is Object(e)
     if e.get("name") == Some(name.to_json()) {
       found = true
       @debug.assert_eq(
@@ -163,11 +163,11 @@ test "creator skills: local_skills sorted by name" {
   let resp = handle_creator_skills(req)
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard j is Object(obj)
-  guard obj.get("local_skills") is Some(Array(local_entries))
+  guard! j is Object(obj)
+  guard! obj.get("local_skills") is Some(Array(local_entries))
   let names : Array[String] = []
   for entry in local_entries {
-    guard entry is Object(e)
+    guard! entry is Object(e)
     match e.get("name") {
       Some(String(n)) => names.push(n)
       _ => ()

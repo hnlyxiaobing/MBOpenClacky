@@ -36,8 +36,8 @@ test "create meeting with title only" {
   let resp = handle_meetings_create(req)
   @debug.assert_eq(resp.status, 201)
   let j = resp_json(resp)
-  guard j is Object(obj)
-  guard obj.get("id") is Some(String(id))
+  guard! j is Object(obj)
+  guard! obj.get("id") is Some(String(id))
   assert_true(id.contains("meeting-"))
   @debug.assert_eq(obj.get("title"), Some("Standup".to_json()))
   @debug.assert_eq(obj.get("status"), Some("active".to_json()))
@@ -72,9 +72,9 @@ test "create meeting with full fields" {
   let resp = handle_meetings_create(req)
   @debug.assert_eq(resp.status, 201)
   let j = resp_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("title"), Some("Q2 Review".to_json()))
-  guard obj.get("participants") is Some(Array(arr))
+  guard! obj.get("participants") is Some(Array(arr))
   @debug.assert_eq(arr.length(), 2)
 }
 
@@ -92,8 +92,8 @@ test "list meetings returns all" {
   let resp = handle_meetings_list(make_meeting_request(GET, "/api/meetings"))
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
-  guard j is Object(obj)
-  guard obj.get("meetings") is Some(Array(arr))
+  guard! j is Object(obj)
+  guard! obj.get("meetings") is Some(Array(arr))
   @debug.assert_eq(arr.length(), 2)
 }
 
@@ -103,8 +103,8 @@ test "list meetings empty when none created" {
   let resp = handle_meetings_list(make_meeting_request(GET, "/api/meetings"))
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
-  guard j is Object(obj)
-  guard obj.get("meetings") is Some(Array(arr))
+  guard! j is Object(obj)
+  guard! obj.get("meetings") is Some(Array(arr))
   @debug.assert_eq(arr.length(), 0)
 }
 
@@ -121,14 +121,14 @@ test "get meeting by id" {
     ),
   )
   let cj = resp_json(create_resp)
-  guard cj is Object(cobj)
-  guard cobj.get("id") is Some(String(id))
+  guard! cj is Object(cobj)
+  guard! cobj.get("id") is Some(String(id))
   let resp = handle_meetings_get(
     make_meeting_request(GET, "/api/meetings/\{id}", params=[("id", id)]),
   )
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("title"), Some("Sprint Planning".to_json()))
 }
 
@@ -150,8 +150,8 @@ test "update meeting title and status" {
     make_meeting_request(POST, "/api/meetings", body="{\"title\":\"Original\"}"),
   )
   let cj = resp_json(create_resp)
-  guard cj is Object(cobj)
-  guard cobj.get("id") is Some(String(id))
+  guard! cj is Object(cobj)
+  guard! cobj.get("id") is Some(String(id))
   let update_body = "{\"title\":\"Updated Title\",\"status\":\"completed\"}"
   let resp = handle_meetings_update(
     make_meeting_request(PUT, "/api/meetings/\{id}", body=update_body, params=[
@@ -160,7 +160,7 @@ test "update meeting title and status" {
   )
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("title"), Some("Updated Title".to_json()))
   @debug.assert_eq(obj.get("status"), Some("completed".to_json()))
 }
@@ -189,8 +189,8 @@ test "delete meeting removes it" {
     ),
   )
   let cj = resp_json(create_resp)
-  guard cj is Object(cobj)
-  guard cobj.get("id") is Some(String(id))
+  guard! cj is Object(cobj)
+  guard! cobj.get("id") is Some(String(id))
   let del_resp = handle_meetings_delete(
     make_meeting_request(DELETE, "/api/meetings/\{id}", params=[("id", id)]),
   )
@@ -223,8 +223,8 @@ test "summarize sets status and summary placeholder" {
     ),
   )
   let cj = resp_json(create_resp)
-  guard cj is Object(cobj)
-  guard cobj.get("id") is Some(String(id))
+  guard! cj is Object(cobj)
+  guard! cobj.get("id") is Some(String(id))
   let resp = handle_meetings_summarize(
     make_meeting_request(POST, "/api/meetings/\{id}/summarize", params=[
       ("id", id),
@@ -232,9 +232,9 @@ test "summarize sets status and summary placeholder" {
   )
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
-  guard j is Object(obj)
+  guard! j is Object(obj)
   @debug.assert_eq(obj.get("status"), Some("summarized".to_json()))
-  guard obj.get("meeting") is Some(Object(mobj))
+  guard! obj.get("meeting") is Some(Object(mobj))
   assert_true(mobj.get("summary") is Some(_))
   @debug.assert_eq(mobj.get("status"), Some("summarized".to_json()))
 }
@@ -267,7 +267,7 @@ test "meeting_to_json and parse_meeting round-trip" {
   let j = meeting_to_json(m)
   let parsed = parse_meeting(j)
   assert_true(parsed is Some(_))
-  guard parsed is Some(pm)
+  guard! parsed is Some(pm)
   @debug.assert_eq(pm.id, "test-1")
   @debug.assert_eq(pm.title, "Round Trip")
   @debug.assert_eq(pm.transcript, "Hello world")
@@ -292,10 +292,10 @@ test "list meetings filters by status" {
     make_meeting_request(GET, "/api/meetings"),
   )
   let lj = resp_json(list_resp)
-  guard lj is Object(lobj)
-  guard lobj.get("meetings") is Some(Array(larr))
-  guard larr[0] is Object(m0)
-  guard m0.get("id") is Some(String(id0))
+  guard! lj is Object(lobj)
+  guard! lobj.get("meetings") is Some(Array(larr))
+  guard! larr[0] is Object(m0)
+  guard! m0.get("id") is Some(String(id0))
   let _ = handle_meetings_update(
     make_meeting_request(
       PUT,
@@ -310,7 +310,7 @@ test "list meetings filters by status" {
   )
   @debug.assert_eq(filtered.status, 200)
   let fj = resp_json(filtered)
-  guard fj is Object(fobj)
-  guard fobj.get("meetings") is Some(Array(farr))
+  guard! fj is Object(fobj)
+  guard! fobj.get("meetings") is Some(Array(farr))
   @debug.assert_eq(farr.length(), 1)
 }
