@@ -36,7 +36,7 @@ async fn TuiController::handle_mouse(
             self.redraw()
           }
         }
-        Down => {
+        Down =>
           if self.scroll_offset > 0 {
             let step = if ev.modifiers.shift() {
               self.term_height / 2
@@ -50,7 +50,6 @@ async fn TuiController::handle_mouse(
             self.dirty = true
             self.redraw()
           }
-        }
         _ => ()
       }
     }
@@ -72,13 +71,12 @@ async fn TuiController::handle_mouse(
               self.dirty = true
               self.redraw()
             }
-            None => {
+            None =>
               if self.scroll_offset > 0 {
                 self.scroll_offset = 0
                 self.dirty = true
                 self.redraw()
               }
-            }
           }
         }
         _ => ()

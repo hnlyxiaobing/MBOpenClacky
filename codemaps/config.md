@@ -39,9 +39,15 @@ cmd/main.mbt
       └─ apply_env_overlay()           # 环境变量覆盖
           └─ env_key_mappings()        # 环境变量→配置字段映射
 
-# 模型选择
+# 模型选择（"默认模型"单一概念，徽标权威 — 2026-08-03 统一）
 AgentConfig::current_model()
-  └─ models.find(|m| m.id == current_model_id)
+  ├─ models.find(|m| m.type_ == "default")   # Settings 徽标优先
+  ├─ models.find(|m| m.id == current_model_id) # 无徽标时回退
+  └─ 仅 1 个模型时返回它，否则 None
+# 写入路径全部双向同步，防止两套"默认"漂移：
+#   Settings POST/PATCH 打徽标 → 同步 current_model_id（handlers_extra.mbt）
+#   switch_model_by_id/name   → 同步移动徽标（agent.mbt set_default_badge）
+#   session/virtual_model_overlay → 深拷贝 + 移徽标（session 级选择不被全局徽标劫持）
 
 # Provider 解析
 Providers::resolve(provider_id)

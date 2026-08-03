@@ -243,3 +243,29 @@ test "ext_get_capabilities_known_provider" {
   assert_true(cap.function_calling)
   assert_true(cap.streaming)
 }
+
+// ── session_model_overlay (Issue 6) ─────────────────────────────────────────
+
+///|
+test "ext_session_model_overlay_matches_model_string" {
+  let cfg = AgentConfig::default()
+  cfg.add_model(
+    ModelConfig::new(
+      "claude-main", "key", "https://api.example.com", "claude-sonnet-4-5",
+    ),
+  )
+  // The restore path passes the persisted API model string, not the id.
+  match cfg.session_model_overlay("claude-sonnet-4-5") {
+    Ok(overlay) => {
+      // current_model_id is normalized to the model id so current_model()
+      // lookups succeed.
+      assert_eq(overlay.current_model_id, Some("claude-main"))
+      assert_true(overlay.current_model() is Some(_))
+    }
+    Err(_) => assert_true(false)
+  }
+  // Matching by id and runtime_id keeps working.
+  assert_true(cfg.session_model_overlay("claude-main") is Ok(_))
+  // Unknown model strings still fail.
+  assert_true(cfg.session_model_overlay("no-such-model") is Err(_))
+}

@@ -311,15 +311,21 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
 ///|
 /// Build session messages history response.
 /// Returns events array in the same shape as WS events for isomorphism.
+///
+/// Pagination: `offset` is a positional cursor over the filtered event
+/// stream (newest end) — skip `offset` events, then collect `limit`.
+/// `before` (timestamp string) is the legacy cursor, kept for compatibility.
 pub fn build_messages_history(
   session_id : String,
   messages : Array[@message.Message],
   limit? : Int = 100,
   before? : String? = None,
+  offset? : Int = 0,
 ) -> Json {
   // Build event-shaped entries for each message (same as WS would emit).
   let events : Array[Json] = []
   let mut count = 0
+  let mut skipped = 0
   let mut i = messages.length() - 1
   // Iterate in reverse to apply before/limit efficiently.
   // Collect in reverse then flip.
@@ -329,14 +335,17 @@ pub fn build_messages_history(
     Some(t) => t
     None => ""
   }
+  // True when iteration stopped because of the limit rather than exhaustion.
+  let mut truncated = false
   while i >= 0 {
     let msg = messages[i]
-    // Simple before filter: compare message timestamp if available.
-    // For now, we include all messages (before is optional pagination).
+    // Skip messages strictly newer than the before cursor (best-effort
+    // string compare on epoch-ms). Messages without a timestamp (legacy
+    // session files) are never filtered out. The boundary message itself
+    // is kept; the frontend dedups the overlap by created_at.
     if !before_ts.is_empty() {
-      // Skip messages at or after the before timestamp (best-effort string compare).
       let msg_ts = message_timestamp(msg)
-      if !msg_ts.is_empty() && msg_ts >= before_ts {
+      if !msg_ts.is_empty() && msg_ts > before_ts {
         i = i - 1
         continue
       }
@@ -347,24 +356,57 @@ pub fn build_messages_history(
       i = i - 1
       continue
     }
+    // Positional cursor: skip the first `offset` matching events.
+    if skipped < offset {
+      skipped = skipped + 1
+      i = i - 1
+      continue
+    }
     let content = message_content(msg)
-    collected.push(
-      Json::object({
-        "type": (if role == "user" {
-          "history_user_message"
-        } else {
-          "assistant_message"
-        }).to_json(),
-        "session_id": session_id.to_json(),
-        "role": role.to_json(),
-        "content": content.to_json(),
-      }),
-    )
+    let ts = message_timestamp(msg)
+    let obj : Map[String, Json] = {
+      "type": (if role == "user" {
+        "history_user_message"
+      } else {
+        "assistant_message"
+      }).to_json(),
+      "session_id": session_id.to_json(),
+      "role": role.to_json(),
+      "content": content.to_json(),
+    }
+    if !ts.is_empty() {
+      obj["created_at"] = ts.to_json()
+    }
+    collected.push(Json::object(obj))
     count = count + 1
     if count >= limit {
+      truncated = true
       break
     }
     i = i - 1
+  }
+  // has_more is true only when we stopped due to the limit AND at least one
+  // older message would still pass the before/role filters. Filtered-out
+  // system/tool messages must not count towards has_more.
+  let mut has_more = false
+  if truncated {
+    let mut k = i - 1
+    while k >= 0 {
+      let m = messages[k]
+      let r = message_role_str(m)
+      if r != "system" && r != "tool" {
+        if before_ts.is_empty() {
+          has_more = true
+          break
+        }
+        let ts = message_timestamp(m)
+        if ts.is_empty() || ts <= before_ts {
+          has_more = true
+          break
+        }
+      }
+      k = k - 1
+    }
   }
   // Reverse collected to get chronological order.
   let mut j = collected.length() - 1
@@ -372,7 +414,6 @@ pub fn build_messages_history(
     events.push(collected[j])
     j = j - 1
   }
-  let has_more = messages.length() > events.length()
   Json::object({ "events": events.to_json(), "has_more": has_more.to_json() })
 }
 
@@ -407,8 +448,6 @@ fn message_content(msg : @message.Message) -> String {
 
 ///|
 /// Best-effort timestamp extraction from a message (empty string if unavailable).
-fn message_timestamp(_msg : @message.Message) -> String {
-  // Messages don't carry per-message timestamps in the current schema.
-  // Return empty to disable before-filtering by timestamp.
-  ""
+fn message_timestamp(msg : @message.Message) -> String {
+  msg.created_at.unwrap_or("")
 }

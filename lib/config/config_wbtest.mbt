@@ -401,3 +401,88 @@ test "apply_env_overlay_skips_when_models_exist" {
   @debug.assert_eq(result.models[0].id, "existing")
   @sys.set_env_var("MBOPENCLACKY_API_KEY", "")
 }
+
+///|
+test "current_model falls back to default-badged model when current_model_id is stale" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m2.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  config.current_model_id = Some("deleted-id")
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+}
+
+///|
+test "current_model uses default-badged model when current_model_id is unset" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m2.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+}
+
+///|
+test "current_model without badge keeps prior semantics" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  config.models.push(m1)
+  config.models.push(m2)
+  // No badge, no current_model_id, multiple models -> None (unchanged).
+  assert_true(config.current_model() is None)
+  // Unmatched id with no badge -> None (unchanged).
+  config.current_model_id = Some("deleted-id")
+  assert_true(config.current_model() is None)
+  // Single model fallback (unchanged).
+  let solo = AgentConfig::default()
+  solo.models.push(m1)
+  @debug.assert_eq(solo.current_model().map(m => m.id), Some("m1"))
+}
+
+///|
+test "current_model prefers badge over a valid current_model_id (legacy drift)" {
+  // Legacy drift: current_model_id set by an older code path, badge set later
+  // via Settings — the badge is the most recent explicit user choice.
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m2.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  config.current_model_id = Some("m1")
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+}
+
+///|
+test "switch_model_by_id moves the default badge" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m1.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  @debug.assert_eq(config.switch_model_by_id("m2"), Ok(()))
+  @debug.assert_eq(config.current_model_id, Some("m2"))
+  @debug.assert_eq(config.models[1].type_, Some("default"))
+  @debug.assert_eq(config.models[0].type_, None)
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+}
+
+///|
+test "session_model_overlay honors session model despite different global badge" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m1.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  let overlay = config.session_model_overlay("m2").unwrap()
+  @debug.assert_eq(overlay.current_model().map(m => m.id), Some("m2"))
+  // The global config's badge must not be polluted by the overlay.
+  @debug.assert_eq(config.models[0].type_, Some("default"))
+  @debug.assert_eq(config.models[1].type_, None)
+}

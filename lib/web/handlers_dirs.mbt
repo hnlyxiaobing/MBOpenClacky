@@ -10,12 +10,25 @@ let dirs_ignored_entries : Array[String] = [
 ]
 
 ///|
+/// Strip a trailing "/" from a path, keeping filesystem roots ("/", "C:/").
+fn dirs_strip_trailing_slash(p : String) -> String {
+  let n = p.length()
+  if n > 1 && p.has_suffix("/") && !(n == 3 && p[1] == ':') {
+    p[:n - 1].to_owned()
+  } else {
+    p
+  }
+}
+
+///|
 /// Normalize path separators to `/` for API responses.
 /// Replaces backslashes with forward slashes, then collapses consecutive
 /// `/` into a single `/`. Leading `//` (UNC paths like `//server/share`)
 /// is preserved.
 fn dirs_fwd_slashes(path : String) -> String {
-  let normalized = path.replace(old="\\", new="/")
+  // NOTE: String::replace replaces only the FIRST occurrence — must use
+  // replace_all here, or multi-backslash Windows paths stay mixed.
+  let normalized = path.replace_all(old="\\", new="/")
   // Preserve leading "//" for UNC paths (e.g. //server/share).
   let is_unc = normalized.has_prefix("//")
   // Collapse consecutive "/" to a single "/".

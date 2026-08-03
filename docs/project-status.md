@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新日期：2026-07-29
+> 更新日期：2026-08-03
 
 MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native 目标构建，提供 TUI、非交互 CLI 与 Web 三种使用形态。
 
@@ -11,7 +11,7 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 | lib 包数量 | 24 |
 | 源码文件（.mbt，不含测试） | 326 个 / 约 78,600 行 |
 | 测试文件（wbtest + test/） | 165 个 / 约 40,400 行 |
-| REST 端点 | 160+ |
+| REST 端点 | 216（含别名） |
 | Web 服务端口 | 7071 |
 
 ## 模块一览（lib/）
@@ -46,6 +46,7 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 
 ## 近期完成（原独立 gap 文档已合并至此）
 
+- **2026-08-03 Web UI 修复批次**：7 项修复的对抗性审查补漏（历史重复、头像路由、模型选择持久化）+ 4 项 spec（Windows 构建断链、模型标识统一、offset 分页、目录规范化）+ 复测 4 项根因修复（`String::replace` 只换首个导致的斜杠混用、默认模型双概念统一为徽标权威、目录切换放宽、占位会话名按内容自动重命名）。详见 [2026-08-03-web-ui-fix-adversarial-review.md](2026-08-03-web-ui-fix-adversarial-review.md) 与 [CHANGELOG.md](CHANGELOG.md)。
 - **2026-07-26 web-ui2 批次**：第二轮 Web UI 对比测试 27 项 bug，25 项已修复（详见 [web-ui-parity.md](web-ui-parity.md)）。
 - **2026-07-27 gap 分析**：18 项差距（MCP 配置加载、HTTP transport、Time Machine 接入 tool_executor、WS token 级流式推送、LLM 重试/fallback 等）全部实现，specs 已归档。
 - **2026-07-28 TUI parity**：状态栏、斜杠命令、窄屏适配等 8 项 spec 完成；渲染层迁移至 mizchi/tui VNode 基础（详见 [tui-architecture.md](tui-architecture.md)）。
@@ -55,7 +56,6 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 
 | 问题 | 说明 |
 |------|------|
-| Web 会话自动命名缺失（BUG-025） | 首条消息后不会自动生成会话名 |
 | `phase_start` 折叠（BUG-026） | `BeforeLlmCall` 仍发 `phase_start`，前端可能折叠正文 |
 | 媒体生成端点 501 | image / video / speech / transcription 为 stub；视频理解已实现 |
 | moon#1488 | `moon build --target native` 须显式指定 `cmd` 包 |

@@ -681,3 +681,62 @@ test "providers list serves the full preset registry" {
   assert_true(saw_openclacky)
   assert_true(saw_glm_variants)
 }
+
+///|
+test "config models post with type=default syncs current_model_id" {
+  let old = ex_push_profile()
+  let sref = ex_make_server_ref()
+  let resp = handle_config_models_post(
+    sref,
+    ex_make_event(
+      Post,
+      "/api/config/models",
+      body="{\"model\":\"m\",\"base_url\":\"https://api.test.com\",\"api_key\":\"k\",\"type\":\"default\"}",
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 201)
+  let id = ex_nested_str_field(ex_response_json(resp), "model.id")
+  @debug.assert_eq(id.is_empty(), false)
+  // The Settings "default" badge must also drive the current model used for
+  // new sessions — otherwise quick-create picks a stale current_model_id.
+  @debug.assert_eq(sref.val.config.current_model_id, Some(id))
+  ex_pop_profile(old)
+}
+
+///|
+test "config models patch setting type=default syncs current_model_id" {
+  let old = ex_push_profile()
+  let sref = ex_make_server_ref()
+  let p1 = handle_config_models_post(
+    sref,
+    ex_make_event(
+      Post,
+      "/api/config/models",
+      body="{\"model\":\"m1\",\"base_url\":\"https://a\",\"api_key\":\"k\",\"type\":\"default\"}",
+    ),
+  )
+  let id1 = ex_nested_str_field(ex_response_json(p1), "model.id")
+  let p2 = handle_config_models_post(
+    sref,
+    ex_make_event(
+      Post,
+      "/api/config/models",
+      body="{\"model\":\"m2\",\"base_url\":\"https://b\",\"api_key\":\"k\"}",
+    ),
+  )
+  let id2 = ex_nested_str_field(ex_response_json(p2), "model.id")
+  @debug.assert_eq(sref.val.config.current_model_id, Some(id1))
+  // Re-badge m2 as default: badge moves and current_model_id follows.
+  let patch = handle_config_models_patch(
+    sref,
+    ex_make_event(
+      Patch,
+      "/api/config/models/" + id2,
+      body="{\"type\":\"default\"}",
+      params=[("id", id2)],
+    ),
+  )
+  @debug.assert_eq(patch.status_code.to_int(), 200)
+  @debug.assert_eq(sref.val.config.current_model_id, Some(id2))
+  ex_pop_profile(old)
+}

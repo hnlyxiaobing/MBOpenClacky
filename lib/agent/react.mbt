@@ -43,7 +43,7 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   // Inject system prompt on first run
   if self.history.length() == 0 {
     let system_prompt = self.build_system_prompt()
-    self.history.push(@message.Message::system(system_prompt))
+    self.history.push(stamp_created_at(@message.Message::system(system_prompt)))
     self.hook_manager.emit(MessageAdded)
   }
   // Inject per-run session context
@@ -55,7 +55,7 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     name: None,
     reasoning_content: None,
     task_id: None,
-    created_at: None,
+    created_at: Some(current_time_ms().to_string()),
     system_injected: Some(true),
     memory_update: None,
     subagent_instructions: None,
@@ -67,7 +67,7 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   self.history.push(ctx_msg)
   self.hook_manager.emit(MessageAdded)
   // Add user message
-  self.history.push(@message.Message::user(user_input))
+  self.history.push(stamp_created_at(@message.Message::user(user_input)))
   self.hook_manager.emit(MessageAdded)
   self.total_tasks = self.total_tasks + 1
 
@@ -134,7 +134,7 @@ fn Agent::observe(
   // Format into protocol-specific messages
   let formatted = self.client.format_tool_results(response, results_map)
   for msg in formatted {
-    self.history.push(msg)
+    self.history.push(stamp_created_at(msg))
     self.hook_manager.emit(MessageAdded)
   }
 }
@@ -213,7 +213,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   let msg = @message.Message::assistant(content)
   msg.tool_calls = response.tool_calls
   msg.reasoning_content = response.reasoning_content
-  self.history.push(msg)
+  self.history.push(stamp_created_at(msg))
   self.hook_manager.emit(MessageAdded)
   self.hook_manager.emit(AfterLlmCall)
   Some(response)
@@ -296,8 +296,10 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
             truncation_count = truncation_count + 1
             if truncation_count >= 3 {
               self.history.push(
-                @message.Message::assistant(
-                  "Response was truncated multiple times. Please break your task into smaller steps.",
+                stamp_created_at(
+                  @message.Message::assistant(
+                    "Response was truncated multiple times. Please break your task into smaller steps.",
+                  ),
                 ),
               )
               self.hook_manager.emit(MessageAdded)
@@ -309,8 +311,10 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               )
             } else {
               self.history.push(
-                @message.Message::user(
-                  "Your previous response was truncated. Please continue from where you left off.",
+                stamp_created_at(
+                  @message.Message::user(
+                    "Your previous response was truncated. Please continue from where you left off.",
+                  ),
                 ),
               )
               self.hook_manager.emit(MessageAdded)
@@ -337,8 +341,10 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                   )
                 } else {
                   self.history.push(
-                    @message.Message::user(
-                      "Your response was empty. Please continue with the task.",
+                    stamp_created_at(
+                      @message.Message::user(
+                        "Your response was empty. Please continue with the task.",
+                      ),
                     ),
                   )
                   self.hook_manager.emit(MessageAdded)
@@ -347,7 +353,9 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                 detect_fake_tool_call(content) {
                 fake_tool_call_retries = fake_tool_call_retries + 1
                 self.history.push(
-                  @message.Message::user(fake_tool_call_correction_prompt),
+                  stamp_created_at(
+                    @message.Message::user(fake_tool_call_correction_prompt),
+                  ),
                 )
                 self.hook_manager.emit(MessageAdded)
               } else {
@@ -366,7 +374,9 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               } else if action_result.denied {
                 match action_result.feedback {
                   Some(fb) if fb.length() > 0 => {
-                    self.history.push(@message.Message::user(fb))
+                    self.history.push(
+                      stamp_created_at(@message.Message::user(fb)),
+                    )
                     self.hook_manager.emit(MessageAdded)
                   }
                   _ => done = Some(self.build_result(Success))

@@ -66,7 +66,8 @@ let spinner_frames : Array[String] = [
 pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit {
   self.segments.clear()
   // Status indicator: idle = ●, working = spinner frame
-  let is_idle = state.agent_status.get() == "idle" || state.mode is TuiMode::Idle
+  let is_idle = state.agent_status.get() == "idle" ||
+    state.mode is TuiMode::Idle
   let indicator = if is_idle {
     "● \{state.agent_status.get()}"
   } else {
@@ -330,8 +331,9 @@ pub fn StatusBar::format_from_state_adaptive(
   width : Int,
 ) -> Unit {
   self.segments.clear()
-  let sep_w = 3  // " │ "
-  let is_idle = state.agent_status.get() == "idle" || state.mode is TuiMode::Idle
+  let sep_w = 3 // " │ "
+  let is_idle = state.agent_status.get() == "idle" ||
+    state.mode is TuiMode::Idle
   let indicator = if is_idle {
     "● \{state.agent_status.get()}"
   } else {
@@ -354,23 +356,33 @@ pub fn StatusBar::format_from_state_adaptive(
 
   let model_w = display_width(model_name)
   let has_model = budget >= sep_w + model_w
-  if has_model { budget = budget - sep_w - model_w }
+  if has_model {
+    budget = budget - sep_w - model_w
+  }
 
   let cost_w = display_width(cost_str)
   let has_cost = budget >= sep_w + cost_w
-  if has_cost { budget = budget - sep_w - cost_w }
+  if has_cost {
+    budget = budget - sep_w - cost_w
+  }
 
   let perm_w = display_width(state.permission_mode)
   let has_perm = budget >= sep_w + perm_w
-  if has_perm { budget = budget - sep_w - perm_w }
+  if has_perm {
+    budget = budget - sep_w - perm_w
+  }
 
   let tasks_w = display_width(tasks_str)
   let has_tasks = budget >= sep_w + tasks_w
-  if has_tasks { budget = budget - sep_w - tasks_w }
+  if has_tasks {
+    budget = budget - sep_w - tasks_w
+  }
 
   let sid_w = display_width(sid)
   let has_session = budget >= sep_w + sid_w
-  if has_session { budget = budget - sep_w - sid_w }
+  if has_session {
+    budget = budget - sep_w - sid_w
+  }
 
   // Directory uses whatever budget remains (compressed if needed).
   let dir_budget = budget - sep_w
@@ -379,7 +391,10 @@ pub fn StatusBar::format_from_state_adaptive(
   let has_dir = dir_budget > 3 && budget >= sep_w + dir_actual_w
 
   // Phase 2: build segments in canonical display order.
-  self.segments.push(StatusSegment::{ text: indicator, color: SegmentColor::Status })
+  self.segments.push(StatusSegment::{
+    text: indicator,
+    color: SegmentColor::Status,
+  })
   if has_session {
     self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
     self.segments.push(StatusSegment::{ text: sid, color: Session })
@@ -390,7 +405,10 @@ pub fn StatusBar::format_from_state_adaptive(
   }
   if has_perm {
     self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: state.permission_mode, color: Permission })
+    self.segments.push(StatusSegment::{
+      text: state.permission_mode,
+      color: Permission,
+    })
   }
   if has_model {
     self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
@@ -425,6 +443,6 @@ pub fn StatusBar::add_scroll_segment(
   if scroll_offset > 0 {
     self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
     let text = "↑ \{scroll_offset}/\{total_lines}"
-    self.segments.push(StatusSegment::{ text: text, color: SegmentColor::Default })
+    self.segments.push(StatusSegment::{ text, color: SegmentColor::Default })
   }
 }

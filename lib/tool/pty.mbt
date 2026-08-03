@@ -174,7 +174,7 @@ async fn PtyHandle::init(self : PtyHandle) -> Result[Unit, String] {
   // Apply the working directory (the spawn API has no cwd parameter).
   // On Windows, bash.exe needs forward slashes.
   let cwd = if is_windows_platform() {
-    self.cwd.replace(old="\\", new="/")
+    self.cwd.replace_all(old="\\", new="/")
   } else {
     self.cwd
   }

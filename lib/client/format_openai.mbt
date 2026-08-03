@@ -297,7 +297,14 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
     _ => None
   }
 
-  { content, reasoning_content, tool_calls, finish_reason, usage, latency: None }
+  {
+    content,
+    reasoning_content,
+    tool_calls,
+    finish_reason,
+    usage,
+    latency: None,
+  }
 }
 
 ///|

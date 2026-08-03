@@ -48,7 +48,7 @@
 
 ```
 WebServer::start(port)
-  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（215 条路由，含别名）
+  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（216 条路由，含别名）
   │   ├─ /health                          # 健康检查
   │   ├─ /api/info                        # 系统信息
   │   ├─ /api/sessions/*                  # 会话管理（15 端点）
@@ -68,6 +68,7 @@ WebServer::start(port)
   │   ├─ /api/brand/*                     # 品牌定制（9 端点）
   │   ├─ /api/files/*                     # 文件操作（5 端点）
   │   ├─ /api/dirs/*                      # 目录操作（2 端点）
+  │   ├─ /agent_avatar/:id                # Agent 头像（assets/agents/<id>/avatar.png，id 白名单，静态中间件已豁免）
   │   ├─ /api/profile                     # 用户配置（2 端点）
   │   ├─ /api/onboard/*                   # 引导流程（7 端点）
   │   ├─ /api/media/*, /api/internal/*   # 多媒体/OCR（6 端点）
@@ -117,7 +118,7 @@ WebServer::start(port)
 
 1. **Agent 实例管理** — `active_agents: Map[String, Agent]` 无上限控制，大量会话可能耗尽内存
 2. **API 认证** — `api_key` 为 None 时禁用认证，生产环境风险
-3. **路由分散** — 路由集中在 server.mbt（215 条路由，含别名），router.mbt 已废弃不再使用，维护成本已降低
+3. **路由分散** — 路由集中在 server.mbt（216 条路由，含别名），router.mbt 已废弃不再使用，维护成本已降低
 4. **模板注入** — `TemplateConfig` 直接拼接 HTML，需防 XSS
 5. **WebSocket 连接泄漏** — `broadcast.Hub` 未连接客户端清理可能导致内存增长
 6. **Git 子进程** — `git_exec.mbt` 经 `@async/process` 调用系统 git（原 `git_exec.c` 的 `popen()` 已移除，S-FFI-03），无 git 环境会失败
@@ -234,3 +235,9 @@ moon run cmd -- --web-eval test/scenarios/web/
 | `handlers_dirs.mbt` + `handlers_files.mbt` | `/api/dirs/*`、`/api/files/*` |
 | `handlers.mbt` | `/api/stats/*` |
 | `broadcast/hub.mbt` | `/ws`（WebSocket） |
+
+## 关键行为约定（2026-08-03 起）
+
+- **路径展示**：API 出参的工作目录统一正斜杠（`dirs_fwd_slashes`——必须用 `replace_all`，`String::replace` 只换首个）；POST/PATCH 用户输入在入口处规范化并去尾斜杠；绝对路径沙盒仅在配置了 `default_working_dir` 时启用。
+- **历史分页**：`GET /api/sessions/:id/messages` 用 `offset` 位置游标（定义在过滤后事件流上），`before` 时间戳游标保留为 legacy；`created_at` 只承担 WS 实时/历史竞争去重，不当游标。
+- **会话命名**：占位名（`Session N`）在首条真实用户消息后按内容自动重命名（折叠空白，≤30 字 + …），持久化并 WS 广播 `session_renamed`；用户命名过的会话不受影响。

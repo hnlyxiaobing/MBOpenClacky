@@ -128,12 +128,17 @@ const NewSessionStore = (() => {
     _emit("newSession:creating", { creating: true });
 
     try {
+      // REST fallback: ensure sessions list is loaded before auto-naming.
+      if (!existingSessions || existingSessions.length === 0) {
+        await Sessions.fetchSessions();
+        existingSessions = Sessions.all;
+      }
+
       // useDefaults=true: quick-create from sidebar — use the default agent and
       // skip advanced options (model / dir) so the session always starts clean.
       const agentId = useDefaults ? "general" : (_state.selectedAgentId || "general");
       const adv = _state.advanced;
       const name = adv.name.trim() || _autoName(existingSessions);
-
       const payload = { name, agent_profile: agentId, source: "manual" };
       if (!useDefaults) {
         if (adv.workingDir.trim()) payload.working_dir = adv.workingDir.trim();
@@ -154,6 +159,12 @@ const NewSessionStore = (() => {
           : I18n.t("sessions.createError") + msg;
         alert(friendly);
         return null;
+      }
+
+      // The server fell back to the default model because the requested
+      // model_id no longer exists - warn instead of silently swapping.
+      if (data.model_fallback === true && typeof Modal !== "undefined" && Modal.toast) {
+        Modal.toast(I18n.t("sessions.modelFallback"), "warning");
       }
 
       return data.session || null;

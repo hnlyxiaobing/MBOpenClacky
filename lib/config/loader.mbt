@@ -325,23 +325,45 @@ pub fn AgentConfig::apply_env_overlay(self : AgentConfig) -> AgentConfig {
 // ---- Config helpers ----
 
 ///|
-/// Get the currently active model config, or None if no model is selected.
-pub fn AgentConfig::current_model(self : AgentConfig) -> ModelConfig? {
-  match self.current_model_id {
-    Some(id) => {
-      for m in self.models {
-        if m.id == id {
-          return Some(m)
-        }
-      }
-      None
+/// Find the model badged as "default" in the Settings UI, if any.
+fn AgentConfig::default_badged_model(self : AgentConfig) -> ModelConfig? {
+  for m in self.models {
+    match m.type_ {
+      Some(t) if t == "default" => return Some(m)
+      _ => ()
     }
+  }
+  None
+}
+
+///|
+/// Get the currently active model config, or None if no model is selected.
+/// Preference order: the model badged "default" (the user-facing default in
+/// Settings) > current_model_id (legacy/TUI selection when no badge exists)
+/// > single configured model > None. All write paths (Settings badge,
+/// switch_model_by_id/name, session_model_overlay) keep the two notions in
+/// sync; where a legacy config still disagrees, the badge is the most recent
+/// explicit user choice and wins.
+pub fn AgentConfig::current_model(self : AgentConfig) -> ModelConfig? {
+  match self.default_badged_model() {
+    Some(m) => Some(m)
     None =>
-      // If only one model, return it
-      if self.models.length() == 1 {
-        Some(self.models[0])
-      } else {
-        None
+      match self.current_model_id {
+        Some(id) => {
+          for m in self.models {
+            if m.id == id {
+              return Some(m)
+            }
+          }
+          None
+        }
+        None =>
+          // If only one model, return it
+          if self.models.length() == 1 {
+            Some(self.models[0])
+          } else {
+            None
+          }
       }
   }
 }

@@ -34,7 +34,7 @@ fn build_session_summary(
     sub_model: sd.sub_model,
     sub_model_options: model_options,
     reasoning_effort: sd.reasoning_effort,
-    model_id: sd.model_name,
+    model_id: sd.model_config_id,
     card_model: sd.model_name,
     channel_info: sd.channel_info,
     error_code: sd.error_code,
@@ -220,23 +220,48 @@ fn handle_create_session(
   // Mirrors the logic in handle_dirs_list so /api/dirs.default and the
   // actual session working_dir agree.
   let default_dir : String = match server_ref.val.config.default_working_dir {
-    Some(d) => d
+    Some(d) => dirs_fwd_slashes(d)
     None =>
       match @utils.home_dir() {
-        Some(h) => h + "/clacky_workspace"
+        Some(h) => dirs_fwd_slashes(h + "/clacky_workspace")
         None => "."
       }
   }
   let working_dir : String = match j {
     Object(obj) =>
       match obj.get("working_dir") {
-        Some(String(wd)) if !wd.is_empty() => wd
+        Some(String(wd)) if !wd.is_empty() =>
+          dirs_strip_trailing_slash(dirs_fwd_slashes(wd))
         _ => default_dir
       }
     _ => default_dir
   }
   let session_id = @agent.generate_session_id()
-  let model_config = match server_ref.val.config.current_model() {
+  // Parse optional model_id for session-level model selection.
+  let model_id : String? = match j {
+    Object(obj) =>
+      match obj.get("model_id") {
+        Some(String(mid)) if !mid.is_empty() => Some(mid)
+        _ => None
+      }
+    _ => None
+  }
+  // Use session-specific config if model_id is provided, otherwise global default.
+  // A failed lookup falls back to the default and is surfaced to the client
+  // via the top-level "model_fallback" flag (no silent model swap).
+  let mut model_fallback = false
+  let session_config = match model_id {
+    Some(mid) =>
+      match server_ref.val.config.session_model_overlay(mid) {
+        Ok(cfg) => cfg
+        Err(_) => {
+          model_fallback = true
+          server_ref.val.config
+        }
+      }
+    None => server_ref.val.config
+  }
+  let model_config = match session_config.current_model() {
     Some(mc) => mc
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
@@ -255,14 +280,16 @@ fn handle_create_session(
     api_type,
   )
   let agent = @agent.Agent::new(
-    session_id,
-    name,
-    working_dir,
-    client,
-    server_ref.val.config,
+    session_id, name, working_dir, client, session_config,
   )
   server_ref.val.active_agents[session_id] = agent
-  let data = agent.to_session_data()
+  // to_session_data only carries config.current_model_id, which is None
+  // when the global config never selected a model explicitly; the create
+  // path knows the resolved config, so pin the id here.
+  let data = @agent.SessionData::{
+    ..agent.to_session_data(),
+    model_config_id: Some(model_config.id),
+  }
   // Persist an initial snapshot so the session is immediately visible in
   // GET /api/sessions and WS session_list (both read from disk).
   // IO failure only degrades to the previous in-memory-only behavior.
@@ -280,9 +307,11 @@ fn handle_create_session(
   )
   // to_session_data hardcodes agent_profile to "general"; apply the requested one.
   let summary = SessionSummary::{ ..summary, agent_profile, }
-  @core.HttpResponse::created().json_value(
-    Json::object({ "session": session_response_json(summary) }),
-  )
+  let resp : Map[String, Json] = { "session": session_response_json(summary) }
+  if model_fallback {
+    resp["model_fallback"] = true.to_json()
+  }
+  @core.HttpResponse::created().json_value(Json::object(resp))
 }
 
 ///|

@@ -27,13 +27,12 @@ Web UI（`lib/web` 后端 + `web/` 前端）与基准 OpenClacky 的对齐经过
 | web-ui2-09 session-mutation-contract | 会话变更接口契约 |
 | web-ui2-10 response-field-cleanup | 响应字段清理 |
 
-另有独立修复批次处理了会话创建、模型配置（默认模型 `type` 字段同步）、dispatcher 相关的 6 项 UI bug。
+另有独立修复批次处理了会话创建、模型配置（默认模型 `type` 字段同步）、dispatcher 相关的 6 项 UI bug。2026-08-03 批次补齐了会话内容自动命名（BUG-025，占位名 `Session N` 在首条消息后按内容自动重命名）。
 
 ## 未解决问题
 
 | 编号 | 问题 | 现状 |
 |------|------|------|
-| BUG-025 | 会话自动命名：首条消息后未根据内容自动生成会话名 | 未实现 |
 | BUG-026 | `BeforeLlmCall` 仍发送 `phase_start` 事件（`lib/web/protocol/events.mbt`），前端可能将正文并入折叠段 | 未修复 |
 
 ## 已知限制（按设计）

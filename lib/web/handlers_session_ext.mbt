@@ -168,6 +168,7 @@ fn handle_session_rename(
         source: data.source,
         reasoning_effort: data.reasoning_effort,
         model_name: data.model_name,
+        model_config_id: data.model_config_id,
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,
@@ -237,7 +238,7 @@ fn handle_update_working_dir(
         Json::object({ "error": "Invalid JSON body".to_json() }),
       )
   }
-  let new_dir : String = match j {
+  let raw_dir : String = match j {
     Object(obj) =>
       match obj.get("working_dir") {
         Some(String(d)) => d
@@ -251,6 +252,9 @@ fn handle_update_working_dir(
         Json::object({ "error": "Invalid JSON body".to_json() }),
       )
   }
+  // Normalize separators once at the trust boundary so validation and
+  // persistence operate on the same canonical form.
+  let new_dir = dirs_strip_trailing_slash(dirs_fwd_slashes(raw_dir))
   // Path safety: reject traversal and empty paths (reuses files API validator).
   match validate_path(new_dir) {
     Err(msg) =>
@@ -259,7 +263,9 @@ fn handle_update_working_dir(
       )
     Ok(_) => ()
   }
-  // Reject absolute paths outside the configured working directory.
+  // Absolute paths are sandboxed only when a working directory is configured;
+  // without one they are allowed (mirrors POST /api/sessions, which never
+  // restricted them). validate_path above already rejected traversal.
   if wd_is_absolute(new_dir) {
     match server_ref.val.config.default_working_dir {
       Some(cfg_dir) =>
@@ -270,12 +276,7 @@ fn handle_update_working_dir(
             }),
           )
         }
-      None =>
-        return @core.HttpResponse::bad_request().json_value(
-          Json::object({
-            "error": "Absolute working_dir is not allowed without a configured working directory".to_json(),
-          }),
-        )
+      None => ()
     }
   }
   match @agent.load_session(id) {
@@ -290,6 +291,7 @@ fn handle_update_working_dir(
         source: data.source,
         reasoning_effort: data.reasoning_effort,
         model_name: data.model_name,
+        model_config_id: data.model_config_id,
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,
@@ -397,6 +399,18 @@ fn handle_session_messages(
     None => 100
   }
   let before = event.req.get_query("before")
+  // Positional cursor over the filtered event stream (newest end).
+  let offset = match event.req.get_query("offset") {
+    Some(s) => {
+      let n = @string.parse_int(s) catch { _ => 0 }
+      if n > 0 {
+        n
+      } else {
+        0
+      }
+    }
+    None => 0
+  }
   let messages = match @agent.load_session(id) {
     Some(data) => Some(data.messages)
     None =>
@@ -408,7 +422,13 @@ fn handle_session_messages(
   }
   match messages {
     Some(msgs) => {
-      let history = @protocol.build_messages_history(id, msgs, limit~, before~)
+      let history = @protocol.build_messages_history(
+        id,
+        msgs,
+        limit~,
+        before~,
+        offset~,
+      )
       @core.HttpResponse::ok().json_value(history)
     }
     None =>
@@ -610,6 +630,7 @@ fn handle_session_patch(
         source: data.source,
         reasoning_effort: data.reasoning_effort,
         model_name: data.model_name,
+        model_config_id: data.model_config_id,
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,
@@ -842,6 +863,9 @@ fn handle_session_model_patch(
         source: data.source,
         reasoning_effort: data.reasoning_effort,
         model_name: Some(mc.model),
+        // Persist the config id alongside the model string so restore and
+        // summary paths can match by id instead of the ambiguous string.
+        model_config_id: Some(mc.id),
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,
@@ -881,12 +905,17 @@ fn handle_session_model_patch(
         }
         None => ()
       }
-      // Broadcast session_updated.
+      // Broadcast session_updated. Include the config id so clients do not
+      // have to wait for the next full summary to refresh dataset.modelId.
       let hub = server_ref.val.hub
       hub.broadcast_session_json(
         id,
         "session_updated",
-        Json::object({ "session_id": id.to_json(), "model": mc.model.to_json() }),
+        Json::object({
+          "session_id": id.to_json(),
+          "model": mc.model.to_json(),
+          "model_id": mc.id.to_json(),
+        }),
       )
       @core.HttpResponse::ok().json_value(
         Json::object({
@@ -950,6 +979,7 @@ fn handle_session_submodel_patch(
         source: data.source,
         reasoning_effort: data.reasoning_effort,
         model_name: data.model_name,
+        model_config_id: data.model_config_id,
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,
@@ -1055,6 +1085,7 @@ fn handle_session_reasoning_effort_patch(
         source: data.source,
         reasoning_effort: normalized,
         model_name: data.model_name,
+        model_config_id: data.model_config_id,
         channel_info: data.channel_info,
         latest_latency_ms: data.latest_latency_ms,
         latest_ttft_ms: data.latest_ttft_ms,

@@ -26,15 +26,41 @@ fn sample_status_text() -> String {
   let magenta = "\u{1b}[38;2;200;100;255m"
   let reset = "\u{1b}[0m"
   let sep = " │ "
-  green + "● idle" + reset + sep +
-    cyan + "s_178524" + reset + sep +
-    white + "/mnt/d/MoonBit/MBOpenClacky" + reset + sep +
-    yellow + "confirm_safes" + reset + sep +
-    magenta + "qwen3.7-plus" + reset + sep +
-    white + "0 tasks" + reset + sep +
-    white + "0 calls" + reset + sep +
-    white + "0 iters" + reset + sep +
-    green + "$0.0000" + reset
+  green +
+  "● idle" +
+  reset +
+  sep +
+  cyan +
+  "s_178524" +
+  reset +
+  sep +
+  white +
+  "/mnt/d/MoonBit/MBOpenClacky" +
+  reset +
+  sep +
+  yellow +
+  "confirm_safes" +
+  reset +
+  sep +
+  magenta +
+  "qwen3.7-plus" +
+  reset +
+  sep +
+  white +
+  "0 tasks" +
+  reset +
+  sep +
+  white +
+  "0 calls" +
+  reset +
+  sep +
+  white +
+  "0 iters" +
+  reset +
+  sep +
+  green +
+  "$0.0000" +
+  reset
 }
 
 ///|
@@ -145,7 +171,7 @@ test "adaptive status bar shows all fields at 150 cols (SPEC-07)" {
   assert_true(text.contains("0 tasks"))
   assert_true(text.contains("$0.0"))
   // All 6 separators present.
-  assert_eq(bar.segment_count(), 13)  // 7 fields + 6 separators
+  assert_eq(bar.segment_count(), 13) // 7 fields + 6 separators
 }
 
 ///|

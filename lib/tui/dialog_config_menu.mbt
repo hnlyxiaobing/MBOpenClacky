@@ -92,9 +92,13 @@ pub fn ConfigMenuDialog::as_model_selector(
 ///|
 /// Truncate a string to fit within max display columns, appending "…" if truncated.
 fn truncate_to_display_width(s : String, max_w : Int) -> String {
-  if max_w <= 0 { return "" }
+  if max_w <= 0 {
+    return ""
+  }
   let w = display_width(s)
-  if w <= max_w { return s }
+  if w <= max_w {
+    return s
+  }
   // Reserve 1 column for the ellipsis character.
   let target = max_w - 1
   let mut acc = ""
@@ -117,7 +121,10 @@ fn truncate_to_display_width(s : String, max_w : Int) -> String {
 /// Render a ConfigMenuDialog as a Node tree.
 /// When `term_width` > 0, labels are truncated to fit within the terminal
 /// width (minus border overhead) so the dialog never overflows horizontally.
-pub fn render_config_menu(dialog : ConfigMenuDialog, term_width~ : Int = 0) -> Node {
+pub fn render_config_menu(
+  dialog : ConfigMenuDialog,
+  term_width? : Int = 0,
+) -> Node {
   let children : Array[Node] = []
 
   let visible_start = if dialog.selected_idx >= config_menu_max_visible {
@@ -199,12 +206,7 @@ pub fn render_config_menu(dialog : ConfigMenuDialog, term_width~ : Int = 0) -> N
     hints
   }
   children.push(Node::Text("", Style::default_()))
-  children.push(
-    Node::Text(
-      final_hints,
-      Style::new(dim=true),
-    ),
-  )
+  children.push(Node::Text(final_hints, Style::new(dim=true)))
 
   Node::Border(Some(dialog.title), children)
 }

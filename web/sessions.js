@@ -306,6 +306,7 @@ const Sessions = (() => {
       _historyState[id].oldestCreatedAt = null;
       _historyState[id].hasMore         = true;
       _historyState[id].loading         = false;  // reset so next fetch is not skipped
+      _historyState[id].loadedCount     = 0;
     }
     // Reset scroll tracking when switching sessions
     _userScrolledUp = false;
@@ -1548,15 +1549,17 @@ const Sessions = (() => {
   }
 
   // Fetch one page of history and insert into #messages or cache.
-  // before=null means most recent page; prepend=true for scroll-up load.
-  async function _fetchHistory(id, before = null, prepend = false) {
-    const state = _historyState[id] || (_historyState[id] = { hasMore: true, oldestCreatedAt: null, loading: false });
+  // offset=0 means most recent page; prepend=true for scroll-up load.
+  // The cursor is positional (count of already-loaded events) so legacy
+  // sessions without created_at paginate correctly.
+  async function _fetchHistory(id, offset = 0, prepend = false) {
+    const state = _historyState[id] || (_historyState[id] = { hasMore: true, oldestCreatedAt: null, loading: false, loadedCount: 0 });
     if (state.loading) return;
     state.loading = true;
 
     try {
       const params = new URLSearchParams({ limit: 30 });
-      if (before) params.set("before", before);
+      if (offset > 0) params.set("offset", String(offset));
 
       const res = await fetch(`/api/sessions/${id}/messages?${params}`);
       if (!res.ok) {
@@ -1573,6 +1576,7 @@ const Sessions = (() => {
       state.hasMore = !!data.has_more;
 
       const events = data.events || [];
+      state.loadedCount += events.length;
       if (events.length === 0) return;
 
       // Track oldest created_at for next cursor (scroll-up pagination)
@@ -1612,6 +1616,11 @@ const Sessions = (() => {
           currentCreatedAt = ev.created_at;
           skipRound        = currentCreatedAt && dedup.has(currentCreatedAt);
           if (!skipRound && currentCreatedAt) dedup.add(currentCreatedAt);
+        } else if (ev.created_at) {
+          // Stamped non-user events are registered too: a page cut
+          // mid-round must not re-render an orphan assistant event.
+          if (dedup.has(ev.created_at)) return;
+          dedup.add(ev.created_at);
         }
         if (!skipRound) _renderHistoryEvent(ev, frag, historyCtx);
       });
@@ -2347,6 +2356,23 @@ const Sessions = (() => {
       }
     },
 
+    // REST fallback: fetch sessions list when WS session_list hasn't arrived yet.
+    // Idempotent — skips if _sessions already populated.
+    async fetchSessions() {
+      if (_sessions.length > 0) return;
+      try {
+        // Server caps limit at 50 (handle_list_sessions) — request the max so
+        // auto-naming sees as many existing "Session N" names as possible.
+        const res = await fetch("/api/sessions?limit=50");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && Array.isArray(data.sessions)) {
+          _sessions.length = 0;
+          _sessions.push(...data.sessions);
+        }
+      } catch (_) {}
+    },
+
     // Composer entry point — called by Skill autocomplete keydown handler
     // (in app.js) when the user presses Enter without an active completion.
     // Will be internalised once the Skill autocomplete moves into skills.js.
@@ -2438,6 +2464,10 @@ const Sessions = (() => {
     // Returns the created session.
     async startWith(command, { name, source = "setup", display = null } = {}) {
       if (!name) {
+        // Same REST fallback as NewSessionStore.createSession: the WS
+        // session_list may not have arrived yet — without it auto-naming
+        // always yields "Session 1".
+        if (_sessions.length === 0) await Sessions.fetchSessions();
         const maxN = _sessions.reduce((max, s) => {
           const m = s.name && s.name.match(/^Session (\d+)$/);
           return m ? Math.max(max, parseInt(m[1], 10)) : max;
@@ -3318,6 +3348,9 @@ const Sessions = (() => {
         } else {
           delete sibModel.dataset.modelId;
         }
+        // Stash the raw model string too: legacy sessions have no config
+        // id; the dropdown pre-match falls back to it (first config wins).
+        if (s.model) sibModel.dataset.model = s.model; else delete sibModel.dataset.model;
         if (cardModel) sibModel.dataset.cardModel = cardModel; else delete sibModel.dataset.cardModel;
         if (subModel) sibModel.dataset.subModel = subModel; else delete sibModel.dataset.subModel;
         sibModel.dataset.subModelOptions = JSON.stringify(s.sub_model_options || []);
@@ -4057,14 +4090,15 @@ const Sessions = (() => {
 
     /** Load the most recent page of history for a session (called on first visit). */
     loadHistory(id) {
-      return _fetchHistory(id, null, false);
+      return _fetchHistory(id, 0, false);
     },
 
     /** Load older history (called when user scrolls to top). */
     loadMoreHistory(id) {
       const state = _historyState[id];
       if (!state || !state.hasMore) return;
-      return _fetchHistory(id, state.oldestCreatedAt, true);
+      // Positional cursor: skip exactly the events already loaded.
+      return _fetchHistory(id, state.loadedCount, true);
     },
 
     /** Check if there is more history to load for a session. */
@@ -4149,7 +4183,7 @@ const Sessions = (() => {
           current: modelEl.dataset.subModel || null,
           cardModel: modelEl.dataset.cardModel || null
         };
-        await _populateModelDropdown(modelEl.dataset.sessionId, modelEl.dataset.modelId || null, subInfo);
+        await _populateModelDropdown(modelEl.dataset.sessionId, modelEl.dataset.modelId || null, subInfo, modelEl.dataset.model || null);
         
         // Calculate position relative to the model element (fixed positioning)
         const rect = modelEl.getBoundingClientRect();
@@ -4173,7 +4207,7 @@ const Sessions = (() => {
   });
 
   // Populate dropdown with available models
-  async function _populateModelDropdown(sessionId, currentModelId, subInfo) {
+  async function _populateModelDropdown(sessionId, currentModelId, subInfo, currentModel) {
     subInfo = subInfo || { options: [], current: null, cardModel: null };
     const dropdown = $("sib-model-dropdown");
     if (!dropdown) return;
@@ -4184,6 +4218,14 @@ const Sessions = (() => {
       const data = await res.json();
       console.log("[Model Switcher] Received data:", data);
       const models = data.models || [];
+      // Pre-match: currentModelId is the config id (null for legacy
+      // sessions). When it is missing or no longer configured, fall back
+      // to the first config sharing the persisted model string.
+      let effectiveModelId = currentModelId;
+      if (!effectiveModelId || !models.some(m => m.id === effectiveModelId)) {
+        const byModel = currentModel ? models.find(m => m.model === currentModel) : null;
+        if (byModel) effectiveModelId = byModel.id;
+      }
       const mediaCaps = data.media_capabilities || {};
       console.log("[Model Switcher] Models count:", models.length);
 
@@ -4229,7 +4271,7 @@ const Sessions = (() => {
         const opt = document.createElement("div");
         opt.className = "sib-model-option";
         opt.dataset.modelId = m.id;
-        if (m.id === currentModelId) opt.classList.add("current");
+        if (m.id === effectiveModelId) opt.classList.add("current");
 
         const left = document.createElement("span");
         left.className = "sib-model-name";
@@ -4240,7 +4282,7 @@ const Sessions = (() => {
         // show only that model's name (avoid the long "main → quick-switch"
         // string that gets truncated).
         const hasActiveOverride =
-          m.id === currentModelId &&
+          m.id === effectiveModelId &&
           subInfo.current &&
           subInfo.current !== subInfo.cardModel;
         nameLine.textContent = hasActiveOverride ? subInfo.current : m.model;
@@ -4248,7 +4290,7 @@ const Sessions = (() => {
 
         // Vision status for the active model only — follows whichever model is
         // currently in effect (mediaCaps is computed for that same model).
-        if (m.id === currentModelId && mediaCaps.vision) {
+        if (m.id === effectiveModelId && mediaCaps.vision) {
           const ok = !!mediaCaps.vision.configured;
           const vis = document.createElement("span");
           vis.className = "sib-model-vision " + (ok ? "is-ok" : "is-missing");
@@ -4290,7 +4332,7 @@ const Sessions = (() => {
         right.appendChild(lat);
 
         const hasSubModels =
-          m.id === currentModelId &&
+          m.id === effectiveModelId &&
           subInfo.options &&
           subInfo.options.length > 1;
 
@@ -4674,40 +4716,56 @@ const Sessions = (() => {
       let defaultDir = ""; // default workspace from agent_config (or fallback)
       let showHidden = false;
 
-      // Fetch directory entries from API, returns dirs with absolute paths
-      async function fetchDirs(relPath, absolute = false) {
-        if (sessionLess) {
-          // /api/dirs already returns absolute paths and operates in absolute mode.
-          let url = `/api/dirs${relPath ? `?path=${encodeURIComponent(relPath)}` : ""}`;
-          if (showHidden) url += `${url.includes("?") ? "&" : "?"}show_hidden=true`;
-          const resp = await fetch(url);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const data = await resp.json();
-          rootDir = data.root || rootDir;
-          homeDir = data.home || homeDir;
-          defaultDir = data.default || defaultDir;
-          const dirs = (data.entries || []).filter(e => e.type === "dir");
-          dirs.forEach(d => { d.absPath = d.path; d.absolute = true; });
-          return dirs;
-        }
-        let url = `/api/sessions/${encodeURIComponent(sessionId)}/files?path=${encodeURIComponent(relPath || "")}`;
-        if (absolute) url += "&absolute=true";
-        if (showHidden) url += "&show_hidden=true";
+      // Browse the real filesystem via /api/dirs (absolute mode). Used for
+      // the session-less picker and as fallback when the session-scoped
+      // files API fails (e.g. the session working dir does not exist yet).
+      async function fetchDirsRealFs(relPath) {
+        // /api/dirs already returns absolute paths and operates in absolute mode.
+        let url = `/api/dirs${relPath ? `?path=${encodeURIComponent(relPath)}` : ""}`;
+        if (showHidden) url += `${url.includes("?") ? "&" : "?"}show_hidden=true`;
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
-        // Only update rootDir in relative mode; absolute mode would overwrite it with "/"
-        if (!absolute) rootDir = data.root || rootDir;
+        rootDir = data.root || rootDir;
         homeDir = data.home || homeDir;
         defaultDir = data.default || defaultDir;
         const dirs = (data.entries || []).filter(e => e.type === "dir");
-        // Convert relative paths to absolute
-        dirs.forEach(d => {
-          // Strip leading slashes from path to avoid double slashes
-          const cleanPath = d.path.replace(/^\/+/, "");
-          d.absPath = absolute ? ("/" + cleanPath) : (rootDir.replace(/\/+$/, "") + "/" + cleanPath);
-          d.absolute = absolute; // Store absolute flag for child expansion
-        });        return dirs;
+        dirs.forEach(d => { d.absPath = d.path; d.absolute = true; });
+        return dirs;
+      }
+
+      // Fetch directory entries from API, returns dirs with absolute paths
+      async function fetchDirs(relPath, absolute = false) {
+        if (sessionLess) {
+          return fetchDirsRealFs(relPath);
+        }
+        try {
+          let url = `/api/sessions/${encodeURIComponent(sessionId)}/files?path=${encodeURIComponent(relPath || "")}`;
+          if (absolute) url += "&absolute=true";
+          if (showHidden) url += "&show_hidden=true";
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const data = await resp.json();
+          // Only update rootDir in relative mode; absolute mode would overwrite it with "/"
+          if (!absolute) rootDir = data.root || rootDir;
+          homeDir = data.home || homeDir;
+          defaultDir = data.default || defaultDir;
+          const dirs = (data.entries || []).filter(e => e.type === "dir");
+          // Convert relative paths to absolute
+          dirs.forEach(d => {
+            // Strip leading slashes from path to avoid double slashes
+            const cleanPath = d.path.replace(/^\/+/, "");
+            d.absPath = absolute ? ("/" + cleanPath) : (rootDir.replace(/\/+$/, "") + "/" + cleanPath);
+            d.absolute = absolute; // Store absolute flag for child expansion
+          });
+          return dirs;
+        } catch (err) {
+          // The session working dir may not exist on disk (e.g. the default
+          // workspace was never created) — fall back to the real-filesystem
+          // browser, which walks up to the nearest existing ancestor instead
+          // of showing a dead "empty directory" list.
+          return fetchDirsRealFs(relPath);
+        }
       }
 
       // Build a tree node for a directory entry

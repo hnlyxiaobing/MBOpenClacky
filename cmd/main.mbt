@@ -151,7 +151,11 @@ async fn main {
     },
   )
 
-  let all_args = @sys.get_cli_args()
+  // Use core @env.args() instead of @sys.get_cli_args(): the latter relies on
+  // the legacy "$moonbit.get_cli_args" intrinsic, which is absent from the
+  // runtime layout shipped with moon >= 0.1.20260731 on Windows (LNK2019).
+  // Core env is co-released with the toolchain and always self-consistent.
+  let all_args = @env.args()
   let cli_view = if all_args.length() > 1 {
     all_args[1:]
   } else {

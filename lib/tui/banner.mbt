@@ -236,18 +236,15 @@ pub let min_width_for_logo : Int = 90
 ///|
 /// Tagline shown below the logo (aligned with the OpenClacky baseline
 /// `[>]` prefix; wording matches this project's assistant identity).
-let banner_tagline : String =
-  "[>] Your personal Assistant & Technical Co-founder"
+let banner_tagline : String = "[>] Your personal Assistant & Technical Co-founder"
 
 ///|
 /// Usage tips shown at startup (aligned with the OpenClacky baseline:
 /// four `[*]`-prefixed entries, including the `.clackyrules / AGENTS.md`
 /// customization hint that MB previously lacked).
 let banner_tips : Array[String] = [
-  "Press Tab for completions, /help for commands",
-  "Type your message and press Enter to chat",
-  "Create .clackyrules or AGENTS.md to customize behavior",
-  "Use Ctrl+J for newlines, Ctrl+V to paste text",
+  "Press Tab for completions, /help for commands", "Type your message and press Enter to chat",
+  "Create .clackyrules or AGENTS.md to customize behavior", "Use Ctrl+J for newlines, Ctrl+V to paste text",
 ]
 
 ///|

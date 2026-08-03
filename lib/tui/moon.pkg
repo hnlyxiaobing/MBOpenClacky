@@ -24,6 +24,7 @@ import {
   "hustcer/tabular",
   "mizchi/tui/components" @tui_components,
 }
+
 warnings = "-6"
 
 supported_targets = "native"

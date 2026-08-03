@@ -115,7 +115,16 @@ pub(all) struct OutputBuffer {
 /// `max_entries` defaults to 2000. When the entry count exceeds this,
 /// the oldest fully-committed entries are trimmed.
 pub fn OutputBuffer::new(max_entries? : Int = 2000) -> OutputBuffer {
-  { entries: [], next_id: 1, max_entries, version: 0, width: 80, cached_flat_lines: [], cache_version: -1, collapse_threshold: 15 }
+  {
+    entries: [],
+    next_id: 1,
+    max_entries,
+    version: 0,
+    width: 80,
+    cached_flat_lines: [],
+    cache_version: -1,
+    collapse_threshold: 15,
+  }
 }
 
 // ── Append ────────────────────────────────────────────────────────────
@@ -131,7 +140,13 @@ pub fn OutputBuffer::append(
 ) -> Int {
   let id = self.next_id
   self.next_id = self.next_id + 1
-  let entry = { id, lines: lines.copy(), kind, committed_line_offset: 0, collapsed: false }
+  let entry = {
+    id,
+    lines: lines.copy(),
+    kind,
+    committed_line_offset: 0,
+    collapsed: false,
+  }
   self.entries.push(entry)
   self.trim_if_needed()
   // Auto-collapse long System entries
@@ -508,7 +523,6 @@ fn OutputBuffer::trim_if_needed(self : OutputBuffer) -> Unit {
   }
 }
 
-
 ///|
 /// Rebuild the cached flat line index from entries.
 /// Called lazily when the buffer version changes.
@@ -595,7 +609,8 @@ pub fn OutputBuffer::expand_all(self : OutputBuffer) -> Unit {
 /// Collapse all System entries that exceed the threshold.
 pub fn OutputBuffer::collapse_long_system(self : OutputBuffer) -> Unit {
   for entry in self.entries {
-    if entry.kind == OutputKind::System && entry.lines.length() > self.collapse_threshold {
+    if entry.kind == OutputKind::System &&
+      entry.lines.length() > self.collapse_threshold {
       entry.collapsed = true
     }
   }
@@ -607,4 +622,3 @@ pub fn OutputBuffer::collapse_long_system(self : OutputBuffer) -> Unit {
 pub fn OutputEntry::is_collapsed(self : OutputEntry) -> Bool {
   self.collapsed
 }
-

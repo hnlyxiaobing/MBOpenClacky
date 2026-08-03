@@ -81,6 +81,24 @@ test "model_name parses both plain string and legacy array form" {
 }
 
 ///|
+test "model_config_id absent in legacy files parses to None" {
+  // Legacy session files predate the field; loading must not fail.
+  let legacy : SessionData = @json.from_json(
+    fix03_session_json("\"2026-07-24T12:22:34+08:00\"", ""),
+  )
+  @debug.assert_eq(legacy.model_config_id, None)
+  let with_id : SessionData = @json.from_json(
+    fix03_session_json(
+      "\"2026-07-24T12:22:34+08:00\"", ", \"model_config_id\": \"s_1784773902\"",
+    ),
+  )
+  @debug.assert_eq(with_id.model_config_id, Some("s_1784773902"))
+  // Roundtrip: the id survives to_json -> from_json.
+  let reparsed : SessionData = @json.from_json(ToJson::to_json(with_id))
+  @debug.assert_eq(reparsed.model_config_id, Some("s_1784773902"))
+}
+
+///|
 test "reasoning_effort and sub_model parse legacy array form" {
   let parsed : SessionData = @json.from_json(
     fix03_session_json(
@@ -185,6 +203,7 @@ test "SessionData with new fields serialization" {
     source: "manual",
     reasoning_effort: None,
     model_name: Some("gpt-4"),
+    model_config_id: None,
     channel_info: Some({
       platform: "telegram",
       channel_id: "tg-123",
@@ -271,6 +290,7 @@ test "restore_session_enhanced basic" {
     source: "manual",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -324,6 +344,7 @@ test "restore_session_enhanced with channel_info" {
     source: "channel",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: Some(ci),
     latest_latency_ms: Some(200),
     latest_ttft_ms: Some(40),
@@ -369,6 +390,7 @@ test "restore_session_enhanced error rollback detection" {
     source: "manual",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,

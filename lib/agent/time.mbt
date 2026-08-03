@@ -5,6 +5,14 @@ pub fn current_time_ms() -> Int64 {
 }
 
 ///|
+/// Return a copy of the message stamped with the current epoch-ms timestamp.
+/// Applied to every message that enters conversation history so history
+/// pagination/dedup can rely on `created_at`.
+fn stamp_created_at(msg : @message.Message) -> @message.Message {
+  { ..msg, created_at: Some(current_time_ms().to_string()) }
+}
+
+///|
 /// Current local UTC offset in minutes (e.g. +480 for UTC+8).
 /// Detected via OS APIs (GetTimeZoneInformation / localtime_r).
 #cfg(target="native")

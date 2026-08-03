@@ -419,6 +419,17 @@ test "agent_to_session_data" {
 }
 
 ///|
+test "to_session_data carries current_model_id as model_config_id" {
+  let agent = make_test_agent()
+  agent.config.current_model_id = Some("m_cfg_1")
+  let data = agent.to_session_data()
+  @debug.assert_eq(data.model_config_id, Some("m_cfg_1"))
+  // Without an explicit selection the field stays None (legacy-compatible).
+  let plain = make_test_agent()
+  @debug.assert_eq(plain.to_session_data().model_config_id, None)
+}
+
+///|
 test "agent_restore_from_session" {
   let agent = make_test_agent()
   let data = agent.to_session_data()
@@ -804,6 +815,22 @@ test "session_data_roundtrip" {
 }
 
 ///|
+test "session_data_created_at_json_roundtrip" {
+  // created_at must survive to_session_data -> to_json -> from_json so
+  // history pagination keeps working after a save/load round trip.
+  let agent = make_test_agent()
+  agent.history.push({
+    ..@message.Message::user("stamped"),
+    created_at: Some("1700000000001"),
+  })
+  let data = agent.to_session_data()
+  @debug.assert_eq(data.messages[0].created_at, Some("1700000000001"))
+  let json = @json.parse(ToJson::to_json(data).stringify())
+  let parsed : SessionData = @json.from_json(json)
+  @debug.assert_eq(parsed.messages[0].created_at, Some("1700000000001"))
+}
+
+///|
 test "session_stats_fields" {
   let agent = make_test_agent()
   agent.iterations = 10
@@ -885,6 +912,7 @@ test "session_data_to_json_basic" {
     source: "manual",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -932,6 +960,7 @@ test "session_data_from_json_roundtrip" {
     source: "cli",
     reasoning_effort: Some("high"),
     model_name: Some("gpt-4"),
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -1035,6 +1064,7 @@ test "session_data_with_multiple_messages_json" {
     source: "test",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -1084,6 +1114,7 @@ test "format_session_summary_with_model" {
     source: "test",
     reasoning_effort: None,
     model_name: Some("gpt-4"),
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -1129,6 +1160,7 @@ test "format_session_summary_no_model" {
     source: "test",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,

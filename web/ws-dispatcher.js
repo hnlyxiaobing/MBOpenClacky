@@ -283,6 +283,7 @@ WS.onEvent(ev => {
       if (!sid) break;
       const patch = {};
       if (d.model !== undefined) patch.model = d.model;
+      if (d.model_id !== undefined) patch.model_id = d.model_id;
       if (d.name !== undefined) patch.name = d.name;
       if (d.working_dir !== undefined) patch.working_dir = d.working_dir;
       if (d.pinned !== undefined) patch.pinned = d.pinned;

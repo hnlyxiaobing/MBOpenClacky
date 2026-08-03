@@ -283,10 +283,13 @@ test "config get: current id/index, model index and media_capabilities" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let body = ex_response_json(resp)
   // Orig top-level keys present (pre-existing extra keys are kept).
+  // Unified semantics: the "default" badge is authoritative — with a
+  // (legacy-style) drifted config where the badge and current_model_id
+  // disagree, current_id follows the badge.
   assert_true(ccfg_obj_field(body, "current_id") is String(_))
-  @debug.assert_eq(ex_str_field(body, "current_id"), "m2")
+  @debug.assert_eq(ex_str_field(body, "current_id"), "m1")
   match ccfg_obj_field(body, "current_index") {
-    Number(n, ..) => @debug.assert_eq(n.to_int(), 1)
+    Number(n, ..) => @debug.assert_eq(n.to_int(), 0)
     _ => assert_true(false)
   }
   // Models: media-managed entry excluded; remaining keep raw indexes 0/1.

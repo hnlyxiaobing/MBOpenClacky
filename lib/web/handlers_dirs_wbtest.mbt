@@ -269,3 +269,29 @@ test "dirs_fwd_slashes: collapse mid-path double slash" {
 test "dirs_fwd_slashes: preserve UNC leading double slash" {
   @debug.assert_eq(dirs_fwd_slashes("//host//share"), "//host/share")
 }
+
+///|
+test "dirs_fwd_slashes: replaces ALL backslashes, not just the first" {
+  // Regression: String::replace only replaces the FIRST occurrence, so
+  // multi-backslash Windows paths stayed mixed (e.g. "C:/Users\hnlyh").
+  @debug.assert_eq(
+    dirs_fwd_slashes("C:\\Users\\hnlyh\\clacky_workspace"),
+    "C:/Users/hnlyh/clacky_workspace",
+  )
+  @debug.assert_eq(dirs_fwd_slashes("D:\\a\\b\\c"), "D:/a/b/c")
+  @debug.assert_eq(
+    dirs_fwd_slashes("C:\\Users\\hnlyh/clacky_workspace"),
+    "C:/Users/hnlyh/clacky_workspace",
+  )
+}
+
+///|
+test "dirs_strip_trailing_slash: strips trailing slash, keeps roots" {
+  @debug.assert_eq(
+    dirs_strip_trailing_slash("D:/MoonBit/MBOpenClacky/"),
+    "D:/MoonBit/MBOpenClacky",
+  )
+  @debug.assert_eq(dirs_strip_trailing_slash("C:/"), "C:/")
+  @debug.assert_eq(dirs_strip_trailing_slash("/"), "/")
+  @debug.assert_eq(dirs_strip_trailing_slash("a/b"), "a/b")
+}

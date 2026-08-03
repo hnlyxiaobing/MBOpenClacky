@@ -15,7 +15,7 @@
 
 ### 核心 Struct
 - **`Agent`** — 中央调度器，持有 client、config、tool_registry、skill_registry、memory_store、todo_manager、agent_pool、history、hook_manager
-- **`SessionData`** — 会话持久化 DTO（session_id, messages, stats, time_machine, channel_info...）
+- **`SessionData`** — 会话持久化 DTO（session_id, messages, stats, time_machine, channel_info, model_name, model_config_id...；`model_config_id` 为 config 模型 id，恢复时优先按它精确恢复模型）
 - **`RunResult`** — run() 返回值（status, session_id, iterations, total_cost_usd, cache_stats）
 
 ### 状态枚举

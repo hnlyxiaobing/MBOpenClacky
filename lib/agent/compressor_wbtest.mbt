@@ -248,12 +248,17 @@ test "count_messages_to_compress" {
 ///|
 test "needs_compression_uses_config_threshold" {
   let client = @client.Client::new(
-    "key", "https://api.test.com", "model", @config.OpenAICompletions,
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
   )
   let config = @config.AgentConfig::default()
   let agent = Agent::new("s", "a", "/tmp", client, config)
   agent.config.compression_threshold = 5
-  agent.history.push(@message.Message::user("Hello world, this is a test message"))
+  agent.history.push(
+    @message.Message::user("Hello world, this is a test message"),
+  )
   assert_true(agent.needs_compression())
   agent.config.compression_threshold = 999_999
   assert_false(agent.needs_compression())

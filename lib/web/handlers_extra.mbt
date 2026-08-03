@@ -1374,13 +1374,17 @@ pub fn handle_config_models_post(
   mc.type_ = extra_json_str_opt(body, "type")
   // If new model is set as default, clear others
   match mc.type_ {
-    Some(t) if t == "default" =>
+    Some(t) if t == "default" => {
       for m in cfg.models {
         match m.type_ {
           Some(t2) if t2 == "default" => m.type_ = None
           _ => ()
         }
       }
+      // Keep the two "default" notions in sync: badging a model as default
+      // in Settings must also make it the current model used for new sessions.
+      cfg.current_model_id = Some(new_id)
+    }
     _ => ()
   }
   cfg.models.push(mc)
@@ -1450,7 +1454,7 @@ pub fn handle_config_models_patch(
       cfg.models[i] = updated
       // If this model is set as default, clear others
       match type_ {
-        Some(t) if t == "default" =>
+        Some(t) if t == "default" => {
           for m in cfg.models {
             if m.id != id {
               match m.type_ {
@@ -1459,6 +1463,10 @@ pub fn handle_config_models_patch(
               }
             }
           }
+          // Keep the two "default" notions in sync: badging a model as
+          // default in Settings must also make it the current model.
+          cfg.current_model_id = Some(id)
+        }
         _ => ()
       }
       found = true

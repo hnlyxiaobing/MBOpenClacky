@@ -58,6 +58,9 @@ pub fn AgentConfig::switch_model_by_id(
   for m in self.models {
     if m.runtime_id == id || m.id == id {
       self.current_model_id = Some(m.id)
+      // Keep the Settings "default" badge in sync so the two notions of
+      // "default model" can never drift apart.
+      self.set_default_badge(m.id)
       return Ok(())
     }
   }
@@ -80,10 +83,29 @@ pub fn AgentConfig::switch_model_by_name(
     let ml : String = "\{m.model.to_lower()}"
     if ml == lower {
       self.current_model_id = Some(m.id)
+      // Keep the Settings "default" badge in sync (see switch_model_by_id).
+      self.set_default_badge(m.id)
       return Ok(())
     }
   }
   Err("model not found with name: \{trimmed}")
+}
+
+///|
+/// Move the Settings "default" badge onto the given model id, clearing it
+/// from every other model. The badge and current_model_id are two views of
+/// the same "default model" notion and must never disagree.
+fn AgentConfig::set_default_badge(self : AgentConfig, id : String) -> Unit {
+  for m in self.models {
+    if m.id == id {
+      m.type_ = Some("default")
+    } else {
+      match m.type_ {
+        Some(t) if t == "default" => m.type_ = None
+        _ => ()
+      }
+    }
+  }
 }
 
 ///|
@@ -112,7 +134,9 @@ pub fn AgentConfig::virtual_model_overlay(
   self : AgentConfig,
   overlay : ModelConfig,
 ) -> AgentConfig {
-  let copy = self.shallow_copy()
+  // Deep-copy so moving the "default" badge does not pollute the parent's
+  // shared model list (current_model() is badge-first).
+  let copy = self.deep_copy()
   // Replace current_model_id to point to the overlay
   copy.current_model_id = Some(overlay.id)
   // Add overlay to the copy's models if not already present
@@ -124,8 +148,9 @@ pub fn AgentConfig::virtual_model_overlay(
     }
   }
   if !found {
-    copy.models.push(overlay)
+    copy.models.push(overlay.deep_copy())
   }
+  copy.set_default_badge(overlay.id)
   copy
 }
 
@@ -140,18 +165,27 @@ pub fn AgentConfig::session_model_overlay(
   if model_id.is_empty() {
     return Err("model_id must not be empty")
   }
-  let mut found = false
+  let mut matched_id : String? = None
   for m in self.models {
-    if m.id == model_id || m.runtime_id == model_id {
-      found = true
+    // The restore path passes the persisted API model string (model_name),
+    // which may differ from both id and runtime_id.
+    if m.id == model_id || m.runtime_id == model_id || m.model == model_id {
+      matched_id = Some(m.id)
       break
     }
   }
-  if !found {
-    return Err("model not found: \{model_id}")
+  let matched = match matched_id {
+    Some(id) => id
+    None => return Err("model not found: \{model_id}")
   }
-  let copy = self.shallow_copy()
-  copy.current_model_id = Some(model_id)
+  // Deep-copy so moving the "default" badge on the copy does not mutate the
+  // shared global config's models.
+  let copy = self.deep_copy()
+  // Normalize to the model id so current_model() lookups always succeed,
+  // and move the badge so current_model() (badge-first) honors the session's
+  // model selection on this copy.
+  copy.current_model_id = Some(matched)
+  copy.set_default_badge(matched)
   Ok(copy)
 }
 

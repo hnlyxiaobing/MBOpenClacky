@@ -81,12 +81,32 @@ pub fn WebServer::new(
   }
 }
 
+///|
+/// Agent avatar ids are restricted to [a-zA-Z0-9_-] so the id cannot be
+/// used for path traversal (".." segments or Windows "\" separators).
+fn is_valid_agent_avatar_id(id : String) -> Bool {
+  if id.is_empty() {
+    return false
+  }
+  for c in id {
+    let ok = (c >= 'a' && c <= 'z') ||
+      (c >= 'A' && c <= 'Z') ||
+      (c >= '0' && c <= '9') ||
+      c == '_' ||
+      c == '-'
+    if !ok {
+      return false
+    }
+  }
+  true
+}
+
 ///| Get or create an Agent for the given session_id.
 
 ///| Returns existing agent if one is cached, or creates a new one
 
 ///|
-/// using the server's configuration.
+/// using the server's configuration. Restores session-level model if saved.
 pub fn WebServer::get_or_create_agent(
   self : WebServer,
   session_id : String,
@@ -94,7 +114,29 @@ pub fn WebServer::get_or_create_agent(
   match self.active_agents.get(session_id) {
     Some(agent) => agent
     None => {
-      let model_config = match self.config.current_model() {
+      // Load session data to restore model selection and working dir.
+      let session_data = @agent.load_session(session_id)
+      // Prefer the persisted config id (exact match); fall back to the
+      // legacy model-name string for sessions saved before model_config_id
+      // existed.
+      let saved_model_key = match session_data {
+        Some(sd) =>
+          match sd.model_config_id {
+            Some(id) => Some(id)
+            None => sd.model_name
+          }
+        None => None
+      }
+      // Use session-specific config if model was saved, otherwise global default.
+      let session_config = match saved_model_key {
+        Some(model_key) =>
+          match self.config.session_model_overlay(model_key) {
+            Ok(cfg) => cfg
+            Err(_) => self.config
+          }
+        None => self.config
+      }
+      let model_config = match session_config.current_model() {
         Some(mc) => mc
         None => panic()
       }
@@ -109,13 +151,22 @@ pub fn WebServer::get_or_create_agent(
         model_config.model,
         api_type,
       )
+      // Restore working dir from session data if available.
+      let working_dir = match session_data {
+        Some(sd) => sd.working_dir
+        None => "."
+      }
       let agent = @agent.Agent::new(
-        session_id,
-        "Web Agent",
-        ".",
-        client,
-        self.config,
+        session_id, "Web Agent", working_dir, client, session_config,
       )
+      // Restore persisted history so the first run after a server restart
+      // does not overwrite the on-disk snapshot with only the new turn.
+      // restore_from_session re-applies sd.working_dir (same value used
+      // above) and does not touch the client/model configuration.
+      match session_data {
+        Some(sd) => agent.restore_from_session(sd)
+        None => ()
+      }
       self.active_agents[session_id] = agent
       agent
     }
@@ -777,13 +828,39 @@ pub fn WebServer::build_app(
     dispatcher.register_routes(api)
   })
 
+  // ── Agent Avatar ──────────────────────────────────────────────
+  // Serve agent avatar images from assets/agents/<id>/avatar.png.
+  app.get("/agent_avatar/:id", event => {
+    let id = event.param("id").unwrap_or("")
+    if !is_valid_agent_avatar_id(id.to_owned()) {
+      return HttpResponse::not_found("Not Found").to_crescent()
+    }
+    let avatar_path = "assets/agents/" + id.to_owned() + "/avatar.png"
+    if !@fs.path_exists(avatar_path) {
+      return HttpResponse::not_found("Not Found").to_crescent()
+    }
+    let bytes = @fs.read_file_to_bytes(avatar_path) catch {
+      _ => return HttpResponse::not_found("Not Found").to_crescent()
+    }
+    HttpResponse::{
+      status: 200,
+      body: "",
+      body_bytes: Some(bytes),
+      content_type: "image/png",
+      headers: [],
+    }.to_crescent()
+  })
+
   // ── Static Files & SPA Fallback ───────────────────────────────
   // Serve files from the web/ directory at the root path. For non-asset
   // routes (client-side routing) fall back to index.html.
   let static_server = StaticServer::new("web")
   app.use_middleware((event, next) => {
     let path = event.req.path()
+    // /agent_avatar is served by its own route — the static server's SPA
+    // fallback would otherwise swallow extensionless ids with a 200 HTML.
     if path.has_prefix("/api/") ||
+      path.has_prefix("/agent_avatar/") ||
       path == "/ws" ||
       path.has_prefix("/ws/") ||
       path == "/health" {

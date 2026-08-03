@@ -274,7 +274,7 @@ fn send_session_list(
         sub_model: sd.sub_model,
         sub_model_options: model_options,
         reasoning_effort: sd.reasoning_effort,
-        model_id: sd.model_name,
+        model_id: sd.model_config_id,
         card_model: sd.model_name,
         channel_info: sd.channel_info,
         error_code: sd.error_code,
@@ -1052,6 +1052,11 @@ async fn run_ws_agent(
           Json::object({ "phase": "done".to_json() }),
         ),
       )
+      // Persist even on error so the user's input is not lost.
+      let err_data = agent.to_session_data()
+      @agent.save_session(err_data) catch {
+        _ => ()
+      }
       return
     }
   }
@@ -1064,6 +1069,8 @@ async fn run_ws_agent(
   @agent.save_session(data) catch {
     _ => ()
   }
+  // Content-based auto-rename for placeholder ("Session N") sessions.
+  maybe_auto_rename_session(hub, agent, session_id)
   @agent.enforce_session_cap()
   // I-029: Broadcast task_finished to session subscribers (not global).
   // The frontend subscribes per-session; global_subs is empty during normal
@@ -1122,6 +1129,11 @@ async fn run_ws_agent_blocking(
           Json::object({ "phase": "done".to_json() }),
         ),
       )
+      // Persist even on error so the user's input is not lost.
+      let err_data = agent.to_session_data()
+      @agent.save_session(err_data) catch {
+        _ => ()
+      }
       return
     }
   }
@@ -1132,10 +1144,118 @@ async fn run_ws_agent_blocking(
   @agent.save_session(data) catch {
     _ => ()
   }
+  // Content-based auto-rename for placeholder ("Session N") sessions.
+  maybe_auto_rename_session(hub, agent, session_id)
   @agent.enforce_session_cap()
   // I-029: Broadcast task_finished to session subscribers (same as async path).
   hub.broadcast_session(
     session_id,
     @protocol.build_task_finished_event(session_id),
   )
+}
+
+///|
+/// Placeholder names assigned at creation time ("Session N") are eligible
+/// for content-based auto-renaming; user-chosen names are never touched.
+fn is_placeholder_session_name(name : String) -> Bool {
+  if !name.has_prefix("Session ") {
+    return false
+  }
+  let digits = name[8:].to_owned()
+  if digits.is_empty() {
+    return false
+  }
+  for c in digits {
+    if !(c >= '0' && c <= '9') {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Extract plain text from a message (local mirror of the protocol helper).
+fn ws_message_text(msg : @message.Message) -> String {
+  match msg.content {
+    Text(t) => t
+    Blocks(parts) => {
+      let buf : Array[String] = []
+      for p in parts {
+        match p {
+          @message.Text(tb) => buf.push(tb.text)
+          _ => ()
+        }
+      }
+      buf.join(" ")
+    }
+  }
+}
+
+///|
+/// Derive a session title from the first user message: collapse all
+/// whitespace runs to single spaces and cap at 30 chars with an ellipsis.
+fn derive_session_title(text : String) -> String {
+  let buf = StringBuilder::new()
+  let mut last_was_space = true // also trims leading whitespace
+  let mut count = 0
+  let mut truncated = false
+  for c in text {
+    if c.is_whitespace() {
+      if !last_was_space {
+        if count >= 30 {
+          truncated = true
+          break
+        }
+        buf.write_char(' ')
+        last_was_space = true
+        count = count + 1
+      }
+    } else {
+      if count >= 30 {
+        truncated = true
+        break
+      }
+      buf.write_char(c)
+      last_was_space = false
+      count = count + 1
+    }
+  }
+  let mut title = buf.to_string()
+  while title.has_suffix(" ") {
+    title = title[:title.length() - 1].to_owned()
+  }
+  if truncated {
+    title = title + "…"
+  }
+  title
+}
+
+///|
+/// Auto-rename a placeholder session ("Session N") from its first real user
+/// message (skipping injected context), persisting and broadcasting so the
+/// sidebar updates live.
+fn maybe_auto_rename_session(
+  hub : @broadcast.Hub,
+  agent : @agent.Agent,
+  session_id : String,
+) -> Unit {
+  if !is_placeholder_session_name(agent.name) {
+    return
+  }
+  for m in agent.history {
+    if m.role is @message.User && !(m.system_injected is Some(true)) {
+      let title = derive_session_title(ws_message_text(m))
+      if !title.is_empty() && title != agent.name {
+        agent.rename(title)
+        @agent.save_session(agent.to_session_data()) catch {
+          _ => ()
+        }
+        hub.broadcast_session(
+          session_id,
+          @protocol.build_session_renamed_event(session_id, title),
+        )
+      }
+      return
+    }
+  }
 }

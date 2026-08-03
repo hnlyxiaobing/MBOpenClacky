@@ -25,6 +25,21 @@
 
 ## 变更记录
 
+### 2026-08-03  fix: Web UI 7 项修复对抗性审查补漏 + 4 项 spec + 复测 4 项修复
+
+- `[fix]` **前一轮 7 项 Web UI 修复的对抗性审查与补漏**（报告 `docs/2026-08-03-web-ui-fix-adversarial-review.md`）
+  - 历史消息重复（created_at 打点/序列化 + has_more 游标化）、头像路由被 SPA fallback 短路（中间件豁免）、模型选择重启后丢失、错误路径持久化等
+- `[feat]` **4 项 spec 实施归档**（`specs/completed/2026-08-03_*.md`）
+  - Windows 原生构建断链修复（`@sys.get_cli_args` → core `@env.args()`，根因：工具链运行时布局变更）
+  - 模型标识统一（`SessionData.model_config_id`，读写路径同名同义）
+  - 历史分页改 offset 位置游标；working_dir 用户输入规范化
+- `[fix]` **晚间复测 4 项根因修复**
+  - 路径斜杠混用真凶：MoonBit `String::replace` 只换首个匹配 → `replace_all`（含回归测试）
+  - "默认模型"双概念（Settings 徽标 vs current_model_id）统一为徽标权威，全部写入路径双向同步
+  - 目录切换：绝对路径沙盒改 opt-in、目录选择器失败时回退真实文件系统浏览
+  - 占位会话名（`Session N`）首条消息后按内容自动重命名并 WS 广播
+- `[test]` 全量 `moon test` 3256/3256；两阶段 E2E（含重启恢复、分页、头像、模型选择）全过
+
 ### 2026-07-29  feat: Agent 增量规格 + 文档整理
 
 - `[feat]` **agent-01~08 规格全部实现**（specs 归档至 `specs/completed/2026-07-29_agent-*.md`）

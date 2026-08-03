@@ -192,7 +192,7 @@ pub fn get_bool_arg(
 ///|
 /// Extract basename from a path string.
 pub fn get_basename(path : String) -> String {
-  let s = path.replace(old="\\", new="/")
+  let s = path.replace_all(old="\\", new="/")
   let mut last = s
   let mut pos = 0
   while pos < s.length() {

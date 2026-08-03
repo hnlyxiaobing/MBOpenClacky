@@ -43,7 +43,7 @@ pub(all) struct Message {
   mut reasoning_content : String?
   // Internal fields (stripped before API calls)
   task_id : String?
-  created_at : String?
+  mut created_at : String?
   system_injected : Bool?
   memory_update : Json?
   subagent_instructions : String?
@@ -70,6 +70,12 @@ pub impl ToJson for Message with fn to_json(self) {
   }
   if self.reasoning_content is Some(_) {
     obj["reasoning_content"] = ToJson::to_json(self.reasoning_content)
+  }
+  // Serialize as a plain string (not the Option-as-[x] form) so
+  // Message::from_json can read it back.
+  match self.created_at {
+    Some(ts) => obj["created_at"] = ts.to_json()
+    None => ()
   }
   Json::object(obj)
 }

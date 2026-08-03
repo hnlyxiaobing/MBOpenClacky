@@ -168,7 +168,12 @@ test "config_menu: as_model_selector creates dialog" {
 /// SPEC-07 regression: config menu labels are truncated at narrow widths.
 test "config_menu: truncates long labels at narrow width (SPEC-07)" {
   let items = [
-    { label: "Very Long Model Name That Should Be Truncated", value: "v1", multi_select: false, checked: false },
+    {
+      label: "Very Long Model Name That Should Be Truncated",
+      value: "v1",
+      multi_select: false,
+      checked: false,
+    },
   ]
   let m = ConfigMenuDialog::new("Menu", items)
   let node = render_config_menu(m, term_width=40)
@@ -204,7 +209,12 @@ test "config_menu: full hints at wide width (SPEC-07)" {
 /// SPEC-07 regression: config menu with default term_width has no limit.
 test "config_menu: no truncation with default term_width (SPEC-07)" {
   let items = [
-    { label: "A Very Long Label That Would Normally Be Truncated", value: "long-value", multi_select: false, checked: false },
+    {
+      label: "A Very Long Label That Would Normally Be Truncated",
+      value: "long-value",
+      multi_select: false,
+      checked: false,
+    },
   ]
   let m = ConfigMenuDialog::new("Menu", items)
   let node = render_config_menu(m)

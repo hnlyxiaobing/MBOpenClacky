@@ -181,6 +181,8 @@ pub(all) struct SessionData {
   source : String
   reasoning_effort : String?
   model_name : String?
+  // Config id of the selected model (ModelConfig.id); None for legacy files.
+  model_config_id : String?
   // Enhanced fields for channel/latency/TimeMachine/error recovery
   channel_info : ChannelInfo?
   latest_latency_ms : Int?
@@ -215,7 +217,12 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
   {
     session_id: self.session_id,
     name: self.name,
-    messages: self.history.map(m => m.to_api_message()),
+    // Strip API-internal fields but keep created_at so history pagination
+    // survives a save/load round trip.
+    messages: self.history.map(m => {
+      ..m.to_api_message(),
+      created_at: m.created_at,
+    }),
     stats: {
       total_iterations: self.iterations,
       total_cost_usd: self.total_cost,
@@ -231,6 +238,8 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     source: self.source.to_string_value(),
     reasoning_effort: self.reasoning_effort,
     model_name: Some(self.client.model),
+    // session_model_overlay normalizes current_model_id to the config id.
+    model_config_id: self.config.current_model_id,
     channel_info: None,
     latest_latency_ms: latency_ms,
     latest_ttft_ms: ttft_ms,
@@ -377,6 +386,7 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "source": ToJson::to_json(self.source),
     "reasoning_effort": opt_string_json(self.reasoning_effort),
     "model_name": opt_string_json(self.model_name),
+    "model_config_id": opt_string_json(self.model_config_id),
     "pending_error_rollback": ToJson::to_json(self.pending_error_rollback),
     "model_base_url": ToJson::to_json(self.model_base_url),
     "last_status": ToJson::to_json(self.last_status),
@@ -451,6 +461,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
       }
       let reasoning_effort = opt_string_field(map, "reasoning_effort")
       let model_name = opt_string_field(map, "model_name")
+      let model_config_id = opt_string_field(map, "model_config_id")
       // Enhanced fields — backward compatible (default if missing)
       let channel_info : ChannelInfo? = match map.get("channel_info") {
         Some(Object(_) as obj) =>
@@ -512,6 +523,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
         source,
         reasoning_effort,
         model_name,
+        model_config_id,
         channel_info,
         latest_latency_ms,
         latest_ttft_ms,

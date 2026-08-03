@@ -195,17 +195,26 @@ const NewSessionView = (() => {
       return;
     }
 
+    // Preserve the user's previous selection if it still exists in the
+    // fresh list; otherwise fall back to the default model (or the first
+    // entry). Also clears a stale modelId when the model was deleted.
+    const prevId = ((NewSessionStore.state.advanced || {}).modelId || "").trim();
+    let defaultOpt = null;
+    let prevOpt = null;
     models.forEach((m) => {
       const opt = document.createElement("option");
       opt.value = m.id || "";
       const typeBadge = m.type === "default" ? "[default] " : "";
       opt.textContent = `${typeBadge}${m.model} (${m.api_key_masked})`;
-      if (m.type === "default") {
-        opt.selected = true;
-        NewSessionStore.updateAdvanced({ modelId: opt.value });
-      }
+      if (m.type === "default" && !defaultOpt) defaultOpt = opt;
+      if (prevId && opt.value === prevId) prevOpt = opt;
       select.appendChild(opt);
     });
+    const chosen = prevOpt || defaultOpt || select.options[0] || null;
+    if (chosen) {
+      chosen.selected = true;
+      NewSessionStore.updateAdvanced({ modelId: chosen.value });
+    }
     _modelsLoaded = true;
   }
 
@@ -549,6 +558,7 @@ const NewSessionView = (() => {
         advanced.hidden = !open;
         toggle.classList.toggle("is-open", open);
         if (open) {
+          _modelsLoaded = false;
           await _populateModels();
           await _prefillDefaultDir();
           requestAnimationFrame(() =>
@@ -609,6 +619,14 @@ const NewSessionView = (() => {
     }
     _updateInitProjectVisibility();
     _updateSendButton();
+    // If the advanced panel was left expanded across a navigation (e.g.
+    // the user went to Settings and came back), refresh the model list
+    // so models added/removed in Settings are reflected immediately.
+    const advanced = $("new-session-advanced");
+    if (advanced && !advanced.hidden) {
+      _modelsLoaded = false;
+      _populateModels();
+    }
     const input = $("new-session-input");
     if (input) input.focus();
   }

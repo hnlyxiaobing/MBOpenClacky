@@ -32,7 +32,11 @@ async fn TuiController::full_redraw_vnode(self : TuiController) -> Unit {
   // Add scroll position indicator
   let msg_height = self.term_height - 5
   let total_lines = self.output.total_lines()
-  self.status_bar.add_scroll_segment(self.scroll_offset, total_lines, msg_height)
+  self.status_bar.add_scroll_segment(
+    self.scroll_offset,
+    total_lines,
+    msg_height,
+  )
   let status_text = self.status_bar.colored_text()
 
   // Get output lines (tail to fit message area)
@@ -85,7 +89,11 @@ fn TuiController::build_complete_vnode(
   // Add thinking view if active (VNode direct, with spinner animation)
   if self.state.val.thinking_buffer.get().length() > 0 {
     output_children.push(
-      render_thinking_live_vnode(self.state.val, self.thinking_animator, self.state.val.tick_count)
+      render_thinking_live_vnode(
+        self.state.val,
+        self.thinking_animator,
+        self.state.val.tick_count,
+      ),
     )
   }
 
@@ -137,11 +145,22 @@ fn TuiController::build_complete_vnode(
   // Dispatch to brand layout builder
   match self.brand_layout {
     GeminiLike =>
-      build_gemini_layout(status_node, output_children, input_children, border_color, input_h, term_width)
+      build_gemini_layout(
+        status_node, output_children, input_children, border_color, input_h, term_width,
+      )
     ClaudeCodeLike =>
-      build_claude_code_layout(status_node, output_children, input_children, [], border_color, input_h)
+      build_claude_code_layout(
+        status_node,
+        output_children,
+        input_children,
+        [],
+        border_color,
+        input_h,
+      )
     Compact =>
-      build_compact_layout(status_node, output_children, input_children, input_h, term_width)
+      build_compact_layout(
+        status_node, output_children, input_children, input_h, term_width,
+      )
   }
 }
 
@@ -196,7 +215,8 @@ fn TuiController::get_dialog_node(self : TuiController) -> Node? {
   match self.state.val.dialog {
     NoDialog => None
     Approval(dialog) => Some(render_approval_dialog(dialog))
-    ConfigMenu(dialog) => Some(render_config_menu(dialog, term_width=self.term_width))
+    ConfigMenu(dialog) =>
+      Some(render_config_menu(dialog, term_width=self.term_width))
     Form(dialog) => Some(render_form_dialog(dialog))
     ConfigForm(form~, ..) => Some(render_form_dialog(form))
   }

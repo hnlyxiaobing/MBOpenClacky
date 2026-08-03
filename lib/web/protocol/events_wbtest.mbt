@@ -317,3 +317,183 @@ test "build_pong: returns type pong without timestamp" {
   @debug.assert_eq(get_str(j, "type"), "pong")
   assert_false(has_key(j, "timestamp"))
 }
+
+// ── build_messages_history: created_at & pagination (Issue 7) ───────────────
+
+///|
+fn history_events(j : Json) -> Array[Json] {
+  match j {
+    Object(m) =>
+      match m.get("events") {
+        Some(Array(items)) => items
+        _ => abort("expected events array")
+      }
+    _ => abort("expected object")
+  }
+}
+
+///|
+test "build_messages_history: carries created_at, omits when absent" {
+  let stamped = {
+    ..@message.Message::user("stamped"),
+    created_at: Some("1700000000001"),
+  }
+  let legacy = @message.Message::assistant("legacy")
+  let result = build_messages_history("sess-ts", [stamped, legacy])
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 2)
+  @debug.assert_eq(get_str(events[0], "created_at"), "1700000000001")
+  assert_false(has_key(events[1], "created_at"))
+}
+
+///|
+test "build_messages_history: has_more false when exactly one page" {
+  // Interleaved system messages must not count towards has_more.
+  let msgs : Array[@message.Message] = [
+    @message.Message::system("sys"),
+    @message.Message::user("m1"),
+    @message.Message::assistant("m2"),
+    @message.Message::user("m3"),
+  ]
+  let result = build_messages_history("sess-page", msgs, limit=3)
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 3)
+  assert_false(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: has_more true when more than one page" {
+  let msgs : Array[@message.Message] = []
+  for i in 0..<5 {
+    msgs.push(@message.Message::user("msg \{i}"))
+  }
+  let result = build_messages_history("sess-more", msgs, limit=3)
+  @debug.assert_eq(history_events(result).length(), 3)
+  assert_true(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: has_more false when less than one page" {
+  let msgs : Array[@message.Message] = [@message.Message::user("only")]
+  let result = build_messages_history("sess-less", msgs, limit=100)
+  @debug.assert_eq(history_events(result).length(), 1)
+  assert_false(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: has_more false when only filtered roles remain" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::user("u1"),
+    @message.Message::user("u2"),
+    @message.Message::system("sys"),
+    @message.Message::tool_result("c1", "search", "res"),
+  ]
+  let result = build_messages_history("sess-filt", msgs, limit=2)
+  @debug.assert_eq(history_events(result).length(), 2)
+  assert_false(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: before keeps boundary message" {
+  let m1 = { ..@message.Message::user("old"), created_at: Some("1000") }
+  let m2 = { ..@message.Message::user("boundary"), created_at: Some("2000") }
+  let m3 = { ..@message.Message::user("new"), created_at: Some("3000") }
+  let result = build_messages_history(
+    "sess-before",
+    [m1, m2, m3],
+    before=Some("2000"),
+  )
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 2)
+  @debug.assert_eq(get_str(events[0], "content"), "old")
+  @debug.assert_eq(get_str(events[1], "content"), "boundary")
+}
+
+///|
+test "build_messages_history: legacy messages without created_at survive before filter" {
+  let legacy = @message.Message::user("legacy")
+  let stamped = {
+    ..@message.Message::user("stamped"),
+    created_at: Some("3000"),
+  }
+  let result = build_messages_history(
+    "sess-legacy",
+    [legacy, stamped],
+    before=Some("2000"),
+  )
+  // "stamped" (3000 > 2000) is skipped; legacy (no timestamp) is kept.
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 1)
+  @debug.assert_eq(get_str(events[0], "content"), "legacy")
+}
+
+///|
+test "build_messages_history: offset skips newest events page by page" {
+  let msgs : Array[@message.Message] = []
+  for i in 0..<5 {
+    msgs.push(@message.Message::user("m\{i}"))
+  }
+  let p1 = build_messages_history("sess-off", msgs, limit=2)
+  let e1 = history_events(p1)
+  @debug.assert_eq(e1.length(), 2)
+  @debug.assert_eq(get_str(e1[0], "content"), "m3")
+  @debug.assert_eq(get_str(e1[1], "content"), "m4")
+  assert_true(get_bool(p1, "has_more"))
+  let p2 = build_messages_history("sess-off", msgs, limit=2, offset=2)
+  let e2 = history_events(p2)
+  @debug.assert_eq(e2.length(), 2)
+  @debug.assert_eq(get_str(e2[0], "content"), "m1")
+  @debug.assert_eq(get_str(e2[1], "content"), "m2")
+  assert_true(get_bool(p2, "has_more"))
+  let p3 = build_messages_history("sess-off", msgs, limit=2, offset=4)
+  let e3 = history_events(p3)
+  @debug.assert_eq(e3.length(), 1)
+  @debug.assert_eq(get_str(e3[0], "content"), "m0")
+  assert_false(get_bool(p3, "has_more"))
+}
+
+///|
+test "build_messages_history: offset beyond stream returns empty page" {
+  let msgs = [@message.Message::user("only")]
+  let result = build_messages_history("sess-off2", msgs, limit=30, offset=30)
+  @debug.assert_eq(history_events(result).length(), 0)
+  assert_false(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: offset counts filtered events only" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::user("u1"),
+    @message.Message::system("sys"),
+    @message.Message::user("u2"),
+    @message.Message::tool_result("c1", "t", "r"),
+    @message.Message::user("u3"),
+  ]
+  let result = build_messages_history("sess-off3", msgs, limit=2, offset=1)
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 2)
+  @debug.assert_eq(get_str(events[0], "content"), "u1")
+  @debug.assert_eq(get_str(events[1], "content"), "u2")
+  assert_false(get_bool(result, "has_more"))
+}
+
+///|
+test "build_messages_history: legacy messages without created_at paginate by offset" {
+  let msgs : Array[@message.Message] = []
+  for i in 0..<70 {
+    msgs.push(@message.Message::user("legacy \{i}"))
+  }
+  let p1 = build_messages_history("sess-off4", msgs, limit=30)
+  let p2 = build_messages_history("sess-off4", msgs, limit=30, offset=30)
+  let p3 = build_messages_history("sess-off4", msgs, limit=30, offset=60)
+  @debug.assert_eq(history_events(p1).length(), 30)
+  @debug.assert_eq(history_events(p2).length(), 30)
+  @debug.assert_eq(history_events(p3).length(), 10)
+  assert_true(get_bool(p1, "has_more"))
+  assert_true(get_bool(p2, "has_more"))
+  assert_false(get_bool(p3, "has_more"))
+  // Pages are disjoint.
+  let e1 = history_events(p1)
+  let e2 = history_events(p2)
+  assert_false(get_str(e1[29], "content") == get_str(e2[0], "content"))
+}

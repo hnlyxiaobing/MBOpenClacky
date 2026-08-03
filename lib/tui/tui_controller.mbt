@@ -446,18 +446,20 @@ async fn TuiController::main_loop(
         // Poll the streaming buffer — hooks update it via Ref, bypassing
         // the event queue, so the Tick timer drives live reply rendering.
         // Note: dirty flag is auto-set by render_effect when Signal fields change
-        ignore(self.agent_output_sync.sync_streaming(
+        ignore(
+          self.agent_output_sync.sync_streaming(
             self.state.val.streaming_buffer.get(),
             self.state.val.messages,
             self.output,
-          ))
-        if self.agent_running ||
-          self.state.val.progress_stack.has_open() {
+          ),
+        )
+        if self.agent_running || self.state.val.progress_stack.has_open() {
           // Keep redrawing while the agent runs so the progress band's
           // spinner animates on every Tick.
           self.dirty = true
         }
-        if self.state.val.thinking_buffer.get().length() != self.last_thinking_len {
+        if self.state.val.thinking_buffer.get().length() !=
+          self.last_thinking_len {
           self.last_thinking_len = self.state.val.thinking_buffer.get().length()
           truncate_thinking_buffer(self.state.val)
         }
@@ -947,14 +949,13 @@ async fn TuiController::handle_key(
       }
       self.dirty = true
     }
-    Down if key.modifiers.ctrl() => {
+    Down if key.modifiers.ctrl() =>
       // Ctrl+Down: scroll down one line
       if self.scroll_offset > 0 {
         self.scroll_offset = self.scroll_offset - 1
         self.dirty = true
         self.redraw()
       }
-    }
     Down => {
       match arrow_key_action(self.suggestions_active, self.input.line_count()) {
         NavigateSuggestions => self.suggestions.select_next()
@@ -985,7 +986,7 @@ async fn TuiController::handle_key(
         self.redraw()
       }
     }
-    PageDown => {
+    PageDown =>
       // Page Down: scroll down by one page (term_height - 2 lines overlap)
       if self.scroll_offset > 0 {
         self.scroll_offset = self.scroll_offset - (self.term_height - 5 - 2)
@@ -995,7 +996,6 @@ async fn TuiController::handle_key(
         self.dirty = true
         self.redraw()
       }
-    }
     Backspace => {
       self.input.backspace()
       self.update_suggestions()

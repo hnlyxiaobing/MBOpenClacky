@@ -76,6 +76,7 @@ fn wd_make_session(id : String, wd : String) -> @agent.SessionData {
     source: "manual",
     reasoning_effort: None,
     model_name: None,
+    model_config_id: None,
     channel_info: None,
     latest_latency_ms: None,
     latest_ttft_ms: None,
@@ -123,6 +124,92 @@ test "working_dir update accepts relative path and persists" {
 }
 
 ///|
+test "working_dir update normalizes mixed separators" {
+  let old = wd_push_profile()
+  let id = "wd_norm_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let resp = handle_update_working_dir(
+    wd_make_server_ref(),
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id + "/working_dir",
+      body="{\"working_dir\":\"sub\\\\dir\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("working_dir"), Some("sub/dir".to_json()))
+  match @agent.load_session(id) {
+    Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+test "working_dir update normalizes absolute mixed separators within configured dir" {
+  let old = wd_push_profile()
+  let id = "wd_absnorm_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let cfg = @config.AgentConfig::default()
+  cfg.default_working_dir = Some("C:\\base")
+  let server_ref = Ref(WebServer::new(cfg, None))
+  let resp = handle_update_working_dir(
+    server_ref,
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id + "/working_dir",
+      body="{\"working_dir\":\"C:\\\\base/sub\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match @agent.load_session(id) {
+    Some(d) => @debug.assert_eq(d.working_dir, "C:/base/sub")
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+test "create session normalizes mixed separators in working_dir" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new("m1", "sk-test", "https://api.test.com", "model-x"),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(
+      Post,
+      "/api/sessions",
+      body="{\"name\":\"wd-create\",\"working_dir\":\"sub\\\\dir\"}",
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 201)
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  guard top.get("session") is Some(Object(s))
+  guard s.get("id") is Some(String(id))
+  @debug.assert_eq(s.get("working_dir"), Some("sub/dir".to_json()))
+  match @agent.load_session(id) {
+    Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
 test "working_dir update rejects path traversal" {
   let old = wd_push_profile()
   let id = "wd_trav_" + @agent.current_time_ms().to_string()
@@ -144,25 +231,82 @@ test "working_dir update rejects path traversal" {
 }
 
 ///|
-test "working_dir update rejects absolute path without configured dir" {
+test "working_dir update allows absolute path when no configured dir" {
   let old = wd_push_profile()
-  let id = "wd_absnone_" + @agent.current_time_ms().to_string()
+  let id = "wd_absok2_" + @agent.current_time_ms().to_string()
   @agent.save_session(wd_make_session(id, ".")) catch {
     _ => ()
   }
-  // default config has default_working_dir = None
+  // default config has default_working_dir = None — the sandbox is opt-in,
+  // so absolute paths are allowed (mirrors POST /api/sessions).
   let resp = handle_update_working_dir(
     wd_make_server_ref(),
     wd_make_event(
       Patch,
       "/api/sessions/" + id + "/working_dir",
-      body="{\"working_dir\":\"/etc/passwd\"}",
+      body="{\"working_dir\":\"/tmp/anywhere\"}",
       params=[("id", id)],
     ),
   )
-  @debug.assert_eq(resp.status_code.to_int(), 400)
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match @agent.load_session(id) {
+    Some(d) => @debug.assert_eq(d.working_dir, "/tmp/anywhere")
+    None => panic()
+  }
   @agent.delete_session(id)
   wd_pop_profile(old)
+}
+
+///|
+test "working_dir update strips trailing slash" {
+  let old = wd_push_profile()
+  let id = "wd_trail_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let resp = handle_update_working_dir(
+    wd_make_server_ref(),
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id + "/working_dir",
+      body="{\"working_dir\":\"sub/dir/\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match @agent.load_session(id) {
+    Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+test "is_placeholder_session_name matches only auto-assigned names" {
+  assert_true(is_placeholder_session_name("Session 1"))
+  assert_true(is_placeholder_session_name("Session 42"))
+  assert_false(is_placeholder_session_name("Session"))
+  assert_false(is_placeholder_session_name("Session x"))
+  assert_false(is_placeholder_session_name("My Session"))
+  assert_false(is_placeholder_session_name("Session 1 beta"))
+  assert_false(is_placeholder_session_name("session 1"))
+}
+
+///|
+test "derive_session_title collapses whitespace and truncates at 30 chars" {
+  @debug.assert_eq(derive_session_title("hello world"), "hello world")
+  @debug.assert_eq(
+    derive_session_title("  帮我\n  总结一下\t这个仓库  "),
+    "帮我 总结一下 这个仓库",
+  )
+  @debug.assert_eq(derive_session_title(""), "")
+  @debug.assert_eq(derive_session_title("   \n  "), "")
+  let long = "0123456789012345678901234567890123456789"
+  @debug.assert_eq(
+    derive_session_title(long),
+    "012345678901234567890123456789…",
+  )
 }
 
 ///|
@@ -541,7 +685,8 @@ test "create session response has orig shape with id and no messages" {
   assert_false(s.contains("messages"))
   assert_true(s.contains("status"))
   @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
-  @debug.assert_eq(s.get("model_id"), Some("model-x".to_json()))
+  // model_id carries the ModelConfig id, not the API model string.
+  @debug.assert_eq(s.get("model_id"), Some("m1".to_json()))
   @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
   @debug.assert_eq(s.get("error"), Some(Json::null()))
   @agent.delete_session(id)
@@ -557,6 +702,7 @@ test "detail response aligns orig field names and omits messages" {
   let data = @agent.SessionData::{
     ..wd_make_session(id, "."),
     model_name: Some("model-x"),
+    model_config_id: Some("m1"),
     last_status: "idle",
   }
   @agent.save_session(data) catch {
@@ -573,7 +719,7 @@ test "detail response aligns orig field names and omits messages" {
   @debug.assert_eq(s.get("id"), Some(id.to_json()))
   @debug.assert_eq(s.get("status"), Some("idle".to_json()))
   @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
-  @debug.assert_eq(s.get("model_id"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some("m1".to_json()))
   @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
   @debug.assert_eq(s.get("error"), Some(Json::null()))
   @debug.assert_eq(s.get("error_code"), Some(Json::null()))
@@ -743,7 +889,10 @@ test "model patch falls back to in-memory agent when disk file is missing" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   // The patch must re-persist the session so future reads hit disk.
   match @agent.load_session(mem_id) {
-    Some(d) => @debug.assert_eq(d.model_name, Some("model-x"))
+    Some(d) => {
+      @debug.assert_eq(d.model_name, Some("model-x"))
+      @debug.assert_eq(d.model_config_id, Some("m1"))
+    }
     None => panic()
   }
   @agent.delete_session(mem_id)
@@ -780,5 +929,130 @@ test "reasoning_effort patch falls back to in-memory agent when disk file is mis
     None => panic()
   }
   @agent.delete_session(mem_id)
+  wd_pop_profile(old)
+}
+
+// ── Model identity unification (2026-08-03 spec) ─────────────────────────────
+
+///|
+/// Create with a config whose id differs from its model string must persist
+/// and report the config id (summary.model_id), not the model string.
+test "create with id!=model persists and reports config id" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new(
+      "cfg_1", "sk-test", "https://api.test.com", "model-x",
+    ),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(
+      Post,
+      "/api/sessions",
+      body="{\"name\":\"mi-e2e\",\"model_id\":\"cfg_1\"}",
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 201)
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  // Successful lookup must not flag a fallback.
+  assert_false(top.contains("model_fallback"))
+  guard top.get("session") is Some(Object(s))
+  guard s.get("id") is Some(String(id))
+  @debug.assert_eq(s.get("model_id"), Some("cfg_1".to_json()))
+  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  // The persisted snapshot carries the config id.
+  match @agent.load_session(id) {
+    Some(d) => {
+      @debug.assert_eq(d.model_config_id, Some("cfg_1"))
+      @debug.assert_eq(d.model_name, Some("model-x"))
+    }
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// Create with an unknown model_id still succeeds (201) on the default model
+/// but flags the fallback at the response top level so the UI can warn.
+test "create with unknown model_id falls back and flags model_fallback" {
+  let old = wd_push_profile()
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new(
+      "cfg_1", "sk-test", "https://api.test.com", "model-x",
+    ),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_create_session(
+    server_ref,
+    wd_make_event(
+      Post,
+      "/api/sessions",
+      body="{\"name\":\"mi-fb\",\"model_id\":\"nope\"}",
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 201)
+  let j = wd_response_json(resp)
+  guard j is Object(top)
+  @debug.assert_eq(top.get("model_fallback"), Some(true.to_json()))
+  guard top.get("session") is Some(Object(s))
+  guard s.get("id") is Some(String(id))
+  // The session runs on the default model and reports that model's id.
+  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some("cfg_1".to_json()))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// PATCH /:id/model on a disk-backed session persists the config id and the
+/// detail summary reports it afterwards.
+test "model patch persists config id for disk-backed session" {
+  let old = wd_push_profile()
+  let id = "moddisk_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let config = @config.AgentConfig::default()
+  config.models.push(
+    @config.ModelConfig::new(
+      "cfg_9", "sk-test", "https://api.test.com", "model-y",
+    ),
+  )
+  let server_ref = Ref(WebServer::new(config, None))
+  let resp = handle_session_model_patch(
+    server_ref,
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id + "/model",
+      body="{\"model_id\":\"cfg_9\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = wd_response_json(resp)
+  guard j is Object(obj)
+  @debug.assert_eq(obj.get("model_id"), Some("cfg_9".to_json()))
+  match @agent.load_session(id) {
+    Some(d) => {
+      @debug.assert_eq(d.model_config_id, Some("cfg_9"))
+      @debug.assert_eq(d.model_name, Some("model-y"))
+    }
+    None => panic()
+  }
+  // The detail summary reports the config id after the switch.
+  let resp2 = handle_get_session(
+    server_ref,
+    wd_make_event(Get, "/api/sessions/" + id, params=[("id", id)]),
+  )
+  let j2 = wd_response_json(resp2)
+  guard j2 is Object(top2)
+  guard top2.get("session") is Some(Object(s2))
+  @debug.assert_eq(s2.get("model_id"), Some("cfg_9".to_json()))
+  @agent.delete_session(id)
   wd_pop_profile(old)
 }
