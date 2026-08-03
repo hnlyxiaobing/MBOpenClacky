@@ -50,7 +50,7 @@ test "local image proxy returns 404 for missing file" {
   let j = @json.parse(@utf8.decode(resp.raw_body)) catch {
     _ => fail("expected JSON error body")
   }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("error"), Some("file not found".to_json()))
   assert_false(obj.contains("path"))
 }

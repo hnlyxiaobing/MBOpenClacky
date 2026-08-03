@@ -126,7 +126,7 @@ test "dirs list returns six-key contract with home default" {
   dc_restore_home(old)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = dc_response_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   for key in ["root", "path", "parent", "home", "default", "entries"] {
     assert_true(obj.contains(key))
   }
@@ -156,12 +156,12 @@ test "dirs list entries carry absolute-joined path and type dir" {
   dc_restore_home(old)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = dc_response_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   let home_norm = dirs_fwd_slashes(dc_home)
   guard! obj.get("entries") is Some(Array(items))
   assert_true(items.length() > 0)
   for it in items {
-    guard! it is Object(entry)
+    guard! it is Json::Object(entry)
     @debug.assert_eq(entry.get("type"), Some("dir".to_json()))
     match entry.get("path") {
       Some(String(p)) => {
@@ -208,7 +208,7 @@ test "dirs list falls back to nearest existing ancestor" {
   dc_restore_home(old)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = dc_response_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   let home_norm = dirs_fwd_slashes(dc_home)
   @debug.assert_eq(obj.get("root"), Some(home_norm.to_json()))
   @debug.assert_eq(obj.get("path"), Some(home_norm.to_json()))
@@ -228,7 +228,7 @@ test "dirs list expands tilde to home" {
   dc_restore_home(old)
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = dc_response_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   let alpha_norm = dirs_fwd_slashes(dc_home + "/alpha")
   @debug.assert_eq(obj.get("root"), Some(alpha_norm.to_json()))
   @debug.assert_eq(obj.get("path"), Some(alpha_norm.to_json()))
@@ -244,7 +244,7 @@ test "dirs list rejects path traversal" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = dc_response_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   assert_true(obj.contains("error"))
 }
 

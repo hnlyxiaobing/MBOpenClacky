@@ -129,7 +129,7 @@ test "skill_list_entry_json aligns with orig contract keys" {
     enabled: true,
   }
   let j = skill_list_entry_json(entry, Map([]))
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   // Orig contract keys (fix-15): all 13 must be present.
   for
     key in [
@@ -165,7 +165,7 @@ test "skill_list_entry_json marks entries without frontmatter name invalid" {
     enabled: true,
   }
   let j = skill_list_entry_json(entry, Map([]))
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("invalid"), Some(true.to_json()))
   assert_true(obj.contains("invalid_reason"))
   @debug.assert_eq(obj.get("name_zh"), Some(Json::null()))
@@ -290,7 +290,7 @@ test "handler: creator skills matches orig five-key contract" {
   let resp = handle_creator_skills(req)
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   // fix-16: exactly the orig top-level keys.
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   assert_true(obj.contains("licensed"))
@@ -302,7 +302,7 @@ test "handler: creator skills matches orig five-key contract" {
   assert_false(obj.contains("total"))
   guard! obj.get("local_skills") is Some(Array(local_entries))
   for entry in local_entries {
-    guard! entry is Object(e)
+    guard! entry is Json::Object(e)
     for
       key in [
         "name", "description", "source", "enabled", "platform_version", "uploaded_at",

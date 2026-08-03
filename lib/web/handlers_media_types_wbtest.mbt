@@ -32,7 +32,7 @@ fn mt_json(resp : @core.HttpResponse) -> Json {
 ///|
 /// Assert one modality entry is exactly {configured:false, source:"off"}.
 fn mt_assert_off(entry : Json) -> Unit raise {
-  guard! entry is Object(obj)
+  guard! entry is Json::Object(obj)
   @debug.assert_eq(obj.length(), 2)
   @debug.assert_eq(obj.get("configured"), Some(false.to_json()))
   @debug.assert_eq(obj.get("source"), Some("off".to_json()))
@@ -45,7 +45,7 @@ test "media types: default config returns five modalities, all off" {
     mt_make_event(),
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
-  guard! mt_json(resp) is Object(obj)
+  guard! mt_json(resp) is Json::Object(obj)
   for kind in ["image", "video", "audio", "stt", "video_understanding"] {
     guard! obj.get(kind) is Some(entry)
     mt_assert_off(entry)
@@ -62,7 +62,7 @@ test "media types: explicit image model reports source custom" {
   config.models = [img]
   let resp = handle_media_types_bridge(mt_server_ref(config), mt_make_event())
   @debug.assert_eq(resp.status_code.to_int(), 200)
-  guard! mt_json(resp) is Object(obj)
+  guard! mt_json(resp) is Json::Object(obj)
   guard! obj.get("image") is Some(Object(image))
   @debug.assert_eq(image.get("configured"), Some(true.to_json()))
   @debug.assert_eq(image.get("model"), Some("gpt-image-1".to_json()))
@@ -91,7 +91,7 @@ test "media types: derivable provider reports source auto" {
   config.current_model_id = Some("main")
   let resp = handle_media_types_bridge(mt_server_ref(config), mt_make_event())
   @debug.assert_eq(resp.status_code.to_int(), 200)
-  guard! mt_json(resp) is Object(obj)
+  guard! mt_json(resp) is Json::Object(obj)
   // openai preset derives image (gpt-4o) and audio (tts-1)
   guard! obj.get("image") is Some(Object(image))
   @debug.assert_eq(image.get("configured"), Some(true.to_json()))

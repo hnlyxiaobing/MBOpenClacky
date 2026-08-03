@@ -645,7 +645,7 @@ test "providers list serves the full preset registry" {
     ex_make_event(Get, "/api/providers"),
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
-  guard! ex_response_json(resp) is Object(top)
+  guard! ex_response_json(resp) is Json::Object(top)
   guard! top.get("providers") is Some(Array(arr))
   @debug.assert_eq(arr.length(), @config.Providers::all().length())
   // Every entry must expose the fields the frontend needs.

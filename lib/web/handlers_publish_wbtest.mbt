@@ -184,7 +184,7 @@ test "upload_meta: record_upload then load round trip in orig file shape" {
   @debug.assert_eq(m.uploaded_at, @brand.format_iso8601(1712345678))
   // On-disk shape matches orig: {name: {platform_version, uploaded_at}}.
   let j : Json = @json.parse(raw) catch { _ => panic() }
-  guard! j is Object(root)
+  guard! j is Json::Object(root)
   guard! root.get("skill-a") is Some(Object(entry))
   @debug.assert_eq(entry.get("platform_version"), Some("1.2.0".to_json()))
   assert_true(entry.get("uploaded_at") is Some(String(_)))
@@ -352,7 +352,7 @@ async test "publish: step 1 unlicensed returns 403 in orig shape" {
   )
   @debug.assert_eq(resp.status, 403)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   @debug.assert_eq(
     obj.get("error"),
@@ -375,7 +375,7 @@ async test "publish: step 2 unknown skill returns 404 in orig shape" {
   cleanup_dir(base)
   @debug.assert_eq(resp.status, 404)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   @debug.assert_eq(obj.get("error"), Some("Skill 'demo' not found".to_json()))
 }
@@ -400,7 +400,7 @@ async test "publish: step 3 builtin skill returns 422 in orig shape" {
   cleanup_dir(base)
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   @debug.assert_eq(
     obj.get("error"),
@@ -433,7 +433,7 @@ async test "publish: success returns {ok,name,platform_version} and records uplo
   cleanup_dir(base)
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
   @debug.assert_eq(obj.get("name"), Some("demo".to_json()))
   @debug.assert_eq(obj.get("platform_version"), Some("9.9.9".to_json()))
@@ -465,7 +465,7 @@ async test "publish: already_exists upload failure returns 422 with flag" {
   cleanup_dir(base)
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   @debug.assert_eq(obj.get("already_exists"), Some(true.to_json()))
   @debug.assert_eq(obj.get("error"), Some("name_taken".to_json()))
@@ -493,7 +493,7 @@ async test "publish: platform 500 upload failure returns 422 already_exists fals
   cleanup_dir(base)
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
   @debug.assert_eq(obj.get("already_exists"), Some(false.to_json()))
   @debug.assert_eq(obj.get("error"), Some("boom".to_json()))
@@ -527,11 +527,11 @@ test "entries: upload_meta wires platform_version/uploaded_at, absent record sta
     uploaded_at: "2026-07-25T00:00:00Z",
   }
   let listed = skill_list_entry_json(entry, meta)
-  guard! listed is Object(l)
+  guard! listed is Json::Object(l)
   @debug.assert_eq(l.get("platform_version"), Some("3.1.4".to_json()))
   @debug.assert_eq(l.get("uploaded_at"), Some("2026-07-25T00:00:00Z".to_json()))
   let creator = creator_local_entry_json(entry, meta)
-  guard! creator is Object(c)
+  guard! creator is Json::Object(c)
   @debug.assert_eq(c.get("platform_version"), Some("3.1.4".to_json()))
   @debug.assert_eq(c.get("uploaded_at"), Some("2026-07-25T00:00:00Z".to_json()))
   // No record → orig empty-value rule (null).
@@ -542,7 +542,7 @@ test "entries: upload_meta wires platform_version/uploaded_at, absent record sta
     enabled: true,
   }
   let listed2 = skill_list_entry_json(other, meta)
-  guard! listed2 is Object(l2)
+  guard! listed2 is Json::Object(l2)
   @debug.assert_eq(l2.get("platform_version"), Some(Json::null()))
   @debug.assert_eq(l2.get("uploaded_at"), Some(Json::null()))
 }

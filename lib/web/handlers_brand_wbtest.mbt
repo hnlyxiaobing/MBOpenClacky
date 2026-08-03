@@ -78,7 +78,7 @@ async test "fix18 brand config returns orig 13 keys under empty config" {
     )
     @debug.assert_eq(resp.status_code.to_int(), 200)
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     let keys = [
       "product_name", "package_name", "logo_url", "support_contact", "support_qr_url",
       "theme_color", "homepage_url", "branded", "activated", "expired", "license_expires_at",
@@ -124,7 +124,7 @@ async test "fix18 brand config does not leak license_key and derives booleans" {
     )
     @debug.assert_eq(resp.status_code.to_int(), 200)
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("product_name"), Some("Acme".to_json()))
     @debug.assert_eq(obj.get("package_name"), Some("acme-cli".to_json()))
     @debug.assert_eq(obj.get("theme_color"), Some("#123456".to_json()))
@@ -156,7 +156,7 @@ async test "fix18 onboard status needs_onboard true without models" {
     )
     @debug.assert_eq(resp.status_code.to_int(), 200)
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("needs_onboard"), Some(true.to_json()))
     @debug.assert_eq(obj.get("branded"), Some(false.to_json()))
     // web-ui2-10 BUG-018: only needs_onboard + branded.
@@ -180,7 +180,7 @@ async test "fix18 onboard status needs_onboard false with configured model" {
     )
     @debug.assert_eq(resp.status_code.to_int(), 200)
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("needs_onboard"), Some(false.to_json()))
     // phase is only emitted when needs_onboard=true (orig shape).
     assert_true(!obj.contains("phase"))
@@ -207,7 +207,7 @@ async test "fix18 version info returns orig five keys plus legacy keys" {
     )
     @debug.assert_eq(resp.status_code.to_int(), 200)
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("current"), Some(VERSION.to_json()))
     @debug.assert_eq(obj.get("latest"), Some("9.9.9".to_json()))
     @debug.assert_eq(obj.get("needs_update"), Some(true.to_json()))
@@ -238,7 +238,7 @@ async test "fix18 version info launcher honors CLACKY_LAUNCHER" {
       bw_make_event(Get, "/api/version"),
     )
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("launcher"), Some("desktop".to_json()))
     @debug.assert_eq(obj.get("needs_update"), Some(false.to_json()))
   })
@@ -267,7 +267,7 @@ async test "fix18 version info cli_command uses brand package_name" {
       bw_make_event(Get, "/api/version"),
     )
     let j = bw_json(resp)
-    guard! j is Object(obj)
+    guard! j is Json::Object(obj)
     @debug.assert_eq(obj.get("cli_command"), Some("acme-cli".to_json()))
     // web-ui2-10 BUG-012: latest falls back to current (not null).
     @debug.assert_eq(obj.get("latest"), Some(VERSION.to_json()))

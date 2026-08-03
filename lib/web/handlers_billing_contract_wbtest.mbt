@@ -87,7 +87,7 @@ test "billing summary matches orig 12-field contract" {
   )
   @debug.assert_eq(resp.status, 200)
   let j = bc_body_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   // Exactly the orig 12 keys (I-009)
   let expected = [
     "period", "from", "to", "total_cost", "total_tokens", "prompt_tokens", "completion_tokens",
@@ -128,14 +128,14 @@ test "billing summary honors period query param" {
     HttpRequest::new(GET, "/api/billing/summary?period=week"),
   )
   let j = bc_body_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("period"), Some("week".to_json()))
   // "all" period emits from: null (orig semantics)
   let resp_all = handle_billing_summary(
     HttpRequest::new(GET, "/api/billing/summary?period=all"),
   )
   let j_all = bc_body_json(resp_all)
-  guard! j_all is Object(obj_all)
+  guard! j_all is Json::Object(obj_all)
   @debug.assert_eq(obj_all.get("period"), Some("all".to_json()))
   @debug.assert_eq(obj_all.get("from"), Some(Json::null()))
   bc_remove_dir(dir)
@@ -149,13 +149,13 @@ test "billing daily uses days key with full token splits" {
   let resp = handle_billing_daily(HttpRequest::new(GET, "/api/billing/daily"))
   @debug.assert_eq(resp.status, 200)
   let j = bc_body_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   // I-014: top-level key is days, not daily
   assert_true(obj.contains("days"))
   assert_true(!obj.contains("daily"))
   guard! obj.get("days") is Some(Array(days))
   @debug.assert_eq(days.length(), 30)
-  guard! days[0] is Object(first)
+  guard! days[0] is Json::Object(first)
   let expected = [
     "date", "cost", "tokens", "prompt_tokens", "completion_tokens", "cache_read_tokens",
     "cache_write_tokens", "requests",
@@ -164,7 +164,7 @@ test "billing daily uses days key with full token splits" {
     assert_true(first.contains(key))
   }
   // The seeded record lands in the most recent day bucket
-  guard! days[29] is Object(today)
+  guard! days[29] is Json::Object(today)
   @debug.assert_eq(today.get("requests"), Some((1).to_json()))
   @debug.assert_eq(today.get("tokens"), Some((150).to_json()))
   @debug.assert_eq(today.get("cache_read_tokens"), Some((10).to_json()))
@@ -172,13 +172,13 @@ test "billing daily uses days key with full token splits" {
   let resp7 = handle_billing_daily(
     HttpRequest::new(GET, "/api/billing/daily?days=7"),
   )
-  guard! bc_body_json(resp7) is Object(obj7)
+  guard! bc_body_json(resp7) is Json::Object(obj7)
   guard! obj7.get("days") is Some(Array(d7))
   @debug.assert_eq(d7.length(), 7)
   let resp_cap = handle_billing_daily(
     HttpRequest::new(GET, "/api/billing/daily?days=500"),
   )
-  guard! bc_body_json(resp_cap) is Object(obj_cap)
+  guard! bc_body_json(resp_cap) is Json::Object(obj_cap)
   guard! obj_cap.get("days") is Some(Array(d_cap))
   @debug.assert_eq(d_cap.length(), 90)
   bc_remove_dir(dir)
@@ -195,7 +195,7 @@ test "billing records include count, cache splits and cost_source" {
   )
   @debug.assert_eq(resp.status, 200)
   let j = bc_body_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   // I-015: top-level count plus full record fields
   @debug.assert_eq(obj.get("count"), Some((2).to_json()))
   guard! obj.get("records") is Some(Array(records))
@@ -208,7 +208,7 @@ test "billing records include count, cache splits and cost_source" {
   // locate the model-b entry explicitly.
   let mut rb : Map[String, Json]? = None
   for item in records {
-    guard! item is Object(r)
+    guard! item is Json::Object(r)
     for key in expected {
       assert_true(r.contains(key))
     }
@@ -227,7 +227,7 @@ test "billing records include count, cache splits and cost_source" {
   let resp1 = handle_billing_records(
     HttpRequest::new(GET, "/api/billing/records?limit=1"),
   )
-  guard! bc_body_json(resp1) is Object(obj1)
+  guard! bc_body_json(resp1) is Json::Object(obj1)
   @debug.assert_eq(obj1.get("count"), Some((1).to_json()))
   bc_remove_dir(dir)
 }
@@ -244,12 +244,12 @@ test "billing sessions aggregate per orig contract shape" {
   )
   @debug.assert_eq(resp.status, 200)
   let j = bc_body_json(resp)
-  guard! j is Object(obj)
+  guard! j is Json::Object(obj)
   @debug.assert_eq(obj.get("count"), Some((2).to_json()))
   guard! obj.get("sessions") is Some(Array(sessions))
   @debug.assert_eq(sessions.length(), 2)
   // Sorted by total cost descending: s1 (0.05) before s2 (0.01)
-  guard! sessions[0] is Object(first)
+  guard! sessions[0] is Json::Object(first)
   let expected = [
     "session_id", "session_name", "total_cost", "total_tokens", "prompt_tokens",
     "completion_tokens", "cache_read_tokens", "cache_write_tokens", "requests", "first_request",
@@ -269,13 +269,13 @@ test "billing sessions aggregate per orig contract shape" {
   @debug.assert_eq(models.length(), 2)
   guard! first.get("first_request") is Some(String(_))
   guard! first.get("last_request") is Some(String(_))
-  guard! sessions[1] is Object(second)
+  guard! sessions[1] is Json::Object(second)
   @debug.assert_eq(second.get("session_id"), Some("s2".to_json()))
   // limit query param is honored
   let resp1 = handle_billing_sessions(
     HttpRequest::new(GET, "/api/billing/sessions?limit=1"),
   )
-  guard! bc_body_json(resp1) is Object(obj1)
+  guard! bc_body_json(resp1) is Json::Object(obj1)
   @debug.assert_eq(obj1.get("count"), Some((1).to_json()))
   bc_remove_dir(dir)
 }
