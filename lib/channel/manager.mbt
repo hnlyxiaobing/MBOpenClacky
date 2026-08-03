@@ -72,7 +72,7 @@ pub fn ChannelManager::load_config(
       Some(cfg) => parsed.push(cfg)
       None =>
         return Err(
-          ChannelError("Invalid channel entry in config: \{Repr(entry)}"),
+          ChannelError("Invalid channel entry in config: \{entry.stringify()}"),
         )
     }
   }

@@ -41,7 +41,8 @@ RUN moon update
 # Build the CLI binary. We tee the build log so that if this step fails, the
 # real MoonBit error is visible in the Docker build output instead of being
 # swallowed by buildx.
-RUN cd /build \
+RUN set -o pipefail \
+    && cd /build \
     && (moon build --target native --release cmd 2>&1 | tee /tmp/moon-build.log) \
     && echo "moon build succeeded" \
     && rm /tmp/moon-build.log \
