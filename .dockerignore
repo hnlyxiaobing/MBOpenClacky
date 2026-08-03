@@ -10,6 +10,14 @@ _build/
 .qoder/
 .claude/
 
+# Local test/automation scratch dirs (contain node_modules etc.)
+.test_auto_creator/
+.test_web_compare/
+.omo/
+
+# Local trace/profiling artifacts
+trace.json
+
 # Runtime data (not needed in image)
 logs/
 memory/

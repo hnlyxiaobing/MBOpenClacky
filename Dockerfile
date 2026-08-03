@@ -38,15 +38,21 @@ COPY . .
 # cached independently of source edits.
 RUN moon update
 
-# Build the CLI binary. We tee the build log so that if this step fails, the
-# real MoonBit error is visible in the Docker build output instead of being
-# swallowed by buildx.
-RUN set -o pipefail \
-    && cd /build \
-    && (moon build --target native --release cmd 2>&1 | tee /tmp/moon-build.log) \
-    && echo "moon build succeeded" \
-    && rm /tmp/moon-build.log \
-    || (echo "moon build failed; see log below" && cat /tmp/moon-build.log && exit 1)
+# Build the CLI binary.
+#
+# NOTE: keep this step simple on purpose.
+# - /bin/sh on ubuntu:22.04 is dash, which does NOT support `set -o pipefail`
+#   (it exits with code 2 immediately: "Illegal option -o pipefail").
+# - Piping moon's output through `tee` masks the real exit code: the pipeline
+#   reports tee's status, so a failed build would look successful and only
+#   surface later as a missing binary in the COPY step.
+# buildx already prints the full RUN output on failure, so no log tee is
+# needed. The explicit `test -f` gives a clear error if the artifact path
+# ever changes with a future toolchain.
+RUN cd /build \
+    && moon build --target native --release cmd \
+    && test -f /build/_build/native/release/build/cmd/cmd.exe \
+    && echo "moon build succeeded"
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime

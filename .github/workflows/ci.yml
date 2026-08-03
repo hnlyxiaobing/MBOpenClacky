@@ -10,7 +10,7 @@ jobs:
   build:
     name: Check · Build · Test
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -29,23 +29,22 @@ jobs:
             libssl-dev
           sudo rm -rf /var/lib/apt/lists/*
 
-      - name: Cache MoonBit toolchain
-        id: cache-moon
-        uses: actions/cache@v6
-        with:
-          path: ~/.moon
-          key: moon-toolchain-${{ runner.os }}-v1
-
+      # Cache registry dependencies only. The key carries a `-v2-` generation
+      # marker so stale caches produced under an old toolchain are discarded.
       - name: Cache mooncakes dependencies
         uses: actions/cache@v6
         with:
           path: .mooncakes
-          key: mooncakes-${{ runner.os }}-${{ hashFiles('moon.mod.json', 'moon.mod') }}
+          key: mooncakes-${{ runner.os }}-v2-${{ hashFiles('moon.mod.json', 'moon.mod') }}
           restore-keys: |
-            mooncakes-${{ runner.os }}-
+            mooncakes-${{ runner.os }}-v2-
 
+      # IMPORTANT: do NOT cache ~/.moon. A long-lived toolchain cache pinned
+      # an old compiler + bundled core library; newer code then failed
+      # `moon check` (exit 255) because the stale core lacked current APIs.
+      # Installing the latest stable toolchain on every run (~30s) keeps CI
+      # consistent with local development environments.
       - name: Install MoonBit toolchain
-        if: steps.cache-moon.outputs.cache-hit != 'true'
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
