@@ -351,27 +351,56 @@ test "SkillRegistry: all returns all skills" {
 // ============================================================
 
 ///|
-test "default_discovery_paths: returns 3 paths" {
+test "default_discovery_paths: user-global first, .clacky last" {
   let paths = default_discovery_paths("/home/user/project")
-  @debug.debug_inspect(paths.length(), content="3")
-  @debug.debug_inspect(
-    paths[0],
-    content=(
-      #|"/home/user/project/.qoder/skills"
-    ),
+  // User-global dir (~/.mbopenclacky/skills) comes first when resolvable;
+  // project dirs follow, with .clacky/skills (highest priority) last.
+  let expected_tail = [
+    "/home/user/project/.qoder/skills", "/home/user/project/skills", "/home/user/project/.skills",
+    "/home/user/project/.clacky/skills",
+  ]
+  let tail : Array[String] = []
+  for i = paths.length() - 4; i < paths.length(); i = i + 1 {
+    tail.push(paths[i])
+  }
+  @debug.assert_eq(tail, expected_tail)
+  match @utils.skills_dir() {
+    Some(dir) => @debug.assert_eq(paths[0], dir)
+    None => @debug.assert_eq(paths.length(), 4)
+  }
+}
+
+///|
+test "read_skill_files: walks nested skill directories" {
+  let root = test_temp_dir("skill_discovery")
+  let skill_dir = root + "/.clacky/skills/my-skill"
+  @utils.ensure_dir(skill_dir)
+  @fs.write_string_to_file(
+    skill_dir + "/SKILL.md",
+    "---\nname: my-skill\ndescription: A project skill\nuser_invocable: true\n---\nDo the thing.\n",
   )
-  @debug.debug_inspect(
-    paths[1],
-    content=(
-      #|"/home/user/project/skills"
-    ),
-  )
-  @debug.debug_inspect(
-    paths[2],
-    content=(
-      #|"/home/user/project/.skills"
-    ),
-  )
+  |> ignore
+  // Non-skill files and deeper-than-limit nesting are ignored.
+  @fs.write_string_to_file(root + "/.clacky/skills/README.md", "not a skill")
+  |> ignore
+  let files = read_skill_files([root + "/.clacky/skills", root + "/nonexistent"])
+  @debug.assert_eq(files.length(), 1)
+  let skills = discover_skills(files)
+  @debug.assert_eq(skills.length(), 1)
+  @debug.assert_eq(skills[0].name, "my-skill")
+}
+
+///|
+fn test_temp_dir(name : String) -> String {
+  let dir = match @utils.env_var("TEMP") {
+    Some(d) => d
+    None =>
+      match @utils.env_var("TMPDIR") {
+        Some(d) => d
+        None => "/tmp"
+      }
+  }
+  dir + "/" + name
 }
 
 ///|
