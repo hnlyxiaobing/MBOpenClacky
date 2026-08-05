@@ -283,11 +283,12 @@ test "should_auto_execute_confirm_safes_terminal_safe" {
 test "should_auto_execute_confirm_all" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmAll
-  // ConfirmAll: all tools should require confirmation (returns false)
-  // This was changed in Phase 6.3 — ConfirmAll previously returned true
-  // (auto-execute all), which made the permission mode name misleading.
-  assert_false(agent.should_auto_execute("file_reader", Map([])))
-  assert_false(agent.should_auto_execute("terminal", Map([])))
+  // ConfirmAll (aligned with Ruby openclacky): all tools auto-execute.
+  // The difference from AutoApprove is only in request_user_feedback handling:
+  // AutoApprove injects auto_reply; ConfirmAll truly waits for user input.
+  assert_true(agent.should_auto_execute("file_reader", Map([])))
+  assert_true(agent.should_auto_execute("terminal", Map([])))
+  assert_true(agent.should_auto_execute("edit", Map([])))
 }
 
 ///|
@@ -305,7 +306,26 @@ test "is_safe_operation_grep" {
 ///|
 test "is_safe_operation_write" {
   let agent = make_test_agent()
+  // Blacklist: write is NOT safe
   assert_false(agent.is_safe_operation("write", Map([])))
+}
+
+///|
+test "is_safe_operation_edit" {
+  let agent = make_test_agent()
+  // Blacklist: edit is NOT safe
+  assert_false(agent.is_safe_operation("edit", Map([])))
+}
+
+///|
+test "is_safe_operation_other_tools" {
+  let agent = make_test_agent()
+  // Blacklist: everything except edit/write is safe
+  assert_true(agent.is_safe_operation("web_search", Map([])))
+  assert_true(agent.is_safe_operation("web_fetch", Map([])))
+  assert_true(agent.is_safe_operation("invoke_skill", Map([])))
+  assert_true(agent.is_safe_operation("todo_manager", Map([])))
+  assert_true(agent.is_safe_operation("request_user_feedback", Map([])))
 }
 
 ///|

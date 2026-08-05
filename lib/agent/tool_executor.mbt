@@ -19,9 +19,12 @@ pub(all) struct ToolResultEntry {
 /// Determine whether a tool should execute automatically based on
 /// the current permission mode.
 ///
-/// - AutoApprove: all tools auto-execute
-/// - ConfirmSafes: read-only tools + safe terminal commands auto-execute
-/// - ConfirmAll: no tools auto-execute (all require user confirmation)
+/// Aligned with Ruby openclacky agent.rb + tool_executor.rb:
+/// - AutoApprove: all tools auto-execute, no human present
+/// - ConfirmAll: all tools auto-execute, human present for
+///   request_user_feedback only
+/// - ConfirmSafes: blacklist model — only `edit` and `write` require
+///   confirmation; everything else auto-executes
 pub fn Agent::should_auto_execute(
   self : Agent,
   tool_name : String,
@@ -29,31 +32,32 @@ pub fn Agent::should_auto_execute(
 ) -> Bool {
   match self.config.permission_mode {
     @config.AutoApprove => true
+    @config.ConfirmAll => true
     @config.ConfirmSafes => self.is_safe_operation(tool_name, tool_params)
-    @config.ConfirmAll => false
   }
 }
 
 ///|
 /// Check if a tool operation is safe for automatic execution.
 ///
-/// Safe operations:
-/// - Read-only tools: file_reader, grep, glob
-/// - Terminal commands that pass command_safe_for_auto_execution
+/// Aligned with Ruby openclacky tool_executor.rb `is_safe_operation?`:
+/// - `edit` and `write` are NOT safe (require user confirmation)
+/// - `terminal` commands are checked via the security module
+/// - Everything else is safe (auto-execute)
 pub fn Agent::is_safe_operation(
   _self : Agent,
   tool_name : String,
   tool_params : Map[String, Json],
 ) -> Bool {
   match tool_name {
-    "file_reader" | "grep" | "glob" => true
+    "edit" | "write" => false
     "terminal" =>
       // Check the command via the security module
       match tool_params.get("command") {
         Some(String(cmd)) => @tool.command_safe_for_auto_execution(cmd)
-        _ => false
+        _ => true
       }
-    _ => false
+    _ => true
   }
 }
 
