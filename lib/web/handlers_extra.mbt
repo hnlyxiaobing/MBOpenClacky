@@ -1016,7 +1016,7 @@ pub async fn handle_session_benchmark(
     let api_type = if m.anthropic_format {
       @config.AnthropicMessages
     } else {
-      @config.Providers::api_type_for(m.base_url)
+      @config.Providers::api_type_for_model(m.base_url, m.model)
     }
     let client = @client.Client::new(m.api_key, m.base_url, m.model, api_type)
     // Build a minimal request: single "Hi" message, no tools, 1 token

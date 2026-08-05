@@ -137,7 +137,17 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       model_capabilities: {
         "dsk-deepseek-v4-flash": ModelCapabilities::text_only(),
       },
-      model_api_overrides: Map([]),
+      // OpenClacky's proxy routes by model family: Claude (abs-) models
+      // speak Bedrock Converse (/model/{id}/converse) while DeepSeek
+      // (dsk-) and Gemini (or-) models only exist on the OpenAI-compatible
+      // /chat/completions endpoint — converse returns 400 "unknown model"
+      // for them. Route non-Claude models through OpenAI format.
+      model_api_overrides: {
+        "dsk-deepseek-v4-pro": "openai-completions",
+        "dsk-deepseek-v4-flash": "openai-completions",
+        "or-gemini-3-1-pro": "openai-completions",
+        "or-gemini-3-5-flash": "openai-completions",
+      },
       website_url: Some("https://www.openclacky.com/ai-keys"),
       name_key: None,
       image_models: ["gpt-4o"],
@@ -621,6 +631,29 @@ pub fn Providers::fallback_model(base_url : String, model : String) -> String? {
 pub fn Providers::api_type_for(base_url : String) -> ApiType {
   match Providers::resolve(base_url) {
     Some(preset) => preset.api_type
+    None => OpenAICompletions
+  }
+}
+
+///|
+/// Determine the API type for a given base URL + model pair.
+/// Checks the provider's per-model overrides (model_api_overrides, with
+/// exact-then-longest-prefix matching) before falling back to the
+/// provider-level default. Some providers route different model families
+/// to different upstream protocols (e.g. OpenClacky serves Claude via
+/// Bedrock Converse but DeepSeek/Gemini via OpenAI-compatible
+/// /chat/completions), so callers that build a client for a specific
+/// model must use this instead of `api_type_for(base_url)`.
+pub fn Providers::api_type_for_model(
+  base_url : String,
+  model : String,
+) -> ApiType {
+  match Providers::resolve(base_url) {
+    Some(preset) =>
+      match ApiType::from_string(get_api_type_for_model(preset.id, model)) {
+        Some(t) => t
+        None => preset.api_type
+      }
     None => OpenAICompletions
   }
 }

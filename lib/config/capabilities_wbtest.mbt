@@ -129,6 +129,26 @@ test "get_api_type_for_model: openrouter prefix override" {
 }
 
 ///|
+test "get_api_type_for_model: openclacky dsk override" {
+  assert_eq(
+    get_api_type_for_model("openclacky", "dsk-deepseek-v4-flash"),
+    "openai-completions",
+  )
+  assert_eq(
+    get_api_type_for_model("openclacky", "or-gemini-3-5-flash"),
+    "openai-completions",
+  )
+}
+
+///|
+test "get_api_type_for_model: openclacky claude uses bedrock default" {
+  assert_eq(
+    get_api_type_for_model("openclacky", "abs-claude-sonnet-4-6"),
+    "bedrock",
+  )
+}
+
+///|
 test "ModelCapabilities: to_json from_json roundtrip" {
   let cap = ModelCapabilities::full()
   let json = cap.to_json()

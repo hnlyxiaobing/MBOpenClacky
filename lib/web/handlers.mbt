@@ -271,7 +271,10 @@ fn handle_create_session(
   let api_type = if model_config.anthropic_format {
     @config.AnthropicMessages
   } else {
-    @config.Providers::api_type_for(model_config.base_url)
+    @config.Providers::api_type_for_model(
+      model_config.base_url,
+      model_config.model,
+    )
   }
   let client = @client.Client::new(
     model_config.api_key,

@@ -1368,7 +1368,7 @@ fn TuiController::start_connection_test(
   let api_type = if pending.anthropic_format {
     @config.AnthropicMessages
   } else {
-    @config.Providers::api_type_for(pending.base_url)
+    @config.Providers::api_type_for_model(pending.base_url, pending.model)
   }
   let test_client = @client.Client::new(
     pending.api_key,

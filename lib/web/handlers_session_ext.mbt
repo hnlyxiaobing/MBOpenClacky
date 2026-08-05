@@ -894,7 +894,7 @@ fn handle_session_model_patch(
           let api_type = if mc.anthropic_format {
             @config.AnthropicMessages
           } else {
-            @config.Providers::api_type_for(mc.base_url)
+            @config.Providers::api_type_for_model(mc.base_url, mc.model)
           }
           agent.client = @client.Client::new(
             mc.api_key,

@@ -206,7 +206,7 @@ pub fn Agent::rebuild_client_from_config(self : Agent) -> Unit {
       let api_type = if m.anthropic_format {
         @config.AnthropicMessages
       } else {
-        @config.Providers::api_type_for(m.base_url)
+        @config.Providers::api_type_for_model(m.base_url, m.model)
       }
       self.client = @client.Client::new(
         m.api_key,

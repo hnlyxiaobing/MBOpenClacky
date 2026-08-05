@@ -114,6 +114,46 @@ test "providers: api_type_for unknown url defaults to openai" {
 }
 
 ///|
+test "providers: api_type_for_model routes openclacky non-claude to openai" {
+  let base = "https://api.openclacky.com"
+  assert_true(
+    Providers::api_type_for_model(base, "dsk-deepseek-v4-flash") ==
+    OpenAICompletions,
+  )
+  assert_true(
+    Providers::api_type_for_model(base, "dsk-deepseek-v4-pro") ==
+    OpenAICompletions,
+  )
+  assert_true(
+    Providers::api_type_for_model(base, "or-gemini-3-1-pro") ==
+    OpenAICompletions,
+  )
+  assert_true(
+    Providers::api_type_for_model(base, "or-gemini-3-5-flash") ==
+    OpenAICompletions,
+  )
+}
+
+///|
+test "providers: api_type_for_model keeps openclacky claude on bedrock" {
+  let base = "https://api.openclacky.com"
+  assert_true(
+    Providers::api_type_for_model(base, "abs-claude-sonnet-4-6") == Bedrock,
+  )
+  assert_true(
+    Providers::api_type_for_model(base, "abs-claude-haiku-4-5") == Bedrock,
+  )
+}
+
+///|
+test "providers: api_type_for_model unknown url defaults to openai" {
+  assert_true(
+    Providers::api_type_for_model("https://unknown.example.com", "some-model") ==
+    OpenAICompletions,
+  )
+}
+
+///|
 test "providers: openai preset exposes gpt models" {
   match Providers::find("openai") {
     Some(p) => assert_true(p.models.contains("gpt-5.5"))
