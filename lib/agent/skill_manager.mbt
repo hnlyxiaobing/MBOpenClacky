@@ -14,6 +14,20 @@ pub fn Agent::load_skills(
 }
 
 ///|
+/// Discover and load user-global and project-level skills into the
+/// registry (Ruby skill_loader discovery): `~/.mbopenclacky/skills/`,
+/// legacy project dirs, and `<working_dir>/.clacky/skills/`.
+///
+/// Call once after agent creation; skills become user-invocable as
+/// `/name` slash commands and appear in Tab completion.
+pub fn Agent::discover_workspace_skills(self : Agent) -> Unit {
+  let files = @skill.read_skill_files(
+    @skill.default_discovery_paths(self.working_dir),
+  )
+  self.load_skills(files)
+}
+
+///|
 /// Get a skill by name from the agent's skill registry.
 pub fn Agent::get_skill(self : Agent, name : String) -> @skill.Skill? {
   self.skill_registry.get(name)

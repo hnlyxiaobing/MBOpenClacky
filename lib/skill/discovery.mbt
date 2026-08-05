@@ -1,12 +1,73 @@
 ///|
 /// Get the default skill discovery paths for a given working directory.
-/// These are the standard locations where SKILL.md files are searched.
+///
+/// Order is lowest → highest priority (later registrations override
+/// same-named skills in the registry), aligned with the original
+/// skill_loader.rb: user-global skills (`~/.mbopenclacky/skills/`) first,
+/// then legacy project dirs, then the project-level `.clacky/skills/`.
 pub fn default_discovery_paths(working_dir : String) -> Array[String] {
-  [
-    working_dir + "/.qoder/skills",
-    working_dir + "/skills",
-    working_dir + "/.skills",
-  ]
+  let paths : Array[String] = []
+  match @utils.skills_dir() {
+    Some(dir) => paths.push(dir)
+    None => ()
+  }
+  paths.push(working_dir + "/.qoder/skills")
+  paths.push(working_dir + "/skills")
+  paths.push(working_dir + "/.skills")
+  paths.push(working_dir + "/.clacky/skills")
+  paths
+}
+
+///|
+/// Read all skill files under the given discovery directories into a
+/// path → content map (ready for `discover_skills`).
+///
+/// Each directory is walked recursively (up to 3 levels, covering
+/// `<dir>/<skill>/SKILL.md` and `<dir>/<category>/<skill>/SKILL.md`
+/// layouts); missing/unreadable directories are silently skipped.
+pub fn read_skill_files(paths : Array[String]) -> Map[String, String] {
+  let files : Map[String, String] = Map([])
+  for dir in paths {
+    collect_skill_files(dir, 3, files)
+  }
+  files
+}
+
+///|
+/// Recursively collect skill file contents from `dir` (see
+/// `read_skill_files`).
+fn collect_skill_files(
+  dir : String,
+  depth : Int,
+  out : Map[String, String],
+) -> Unit {
+  if depth <= 0 {
+    return
+  }
+  let is_directory = @fs.is_dir(dir) catch { _ => false }
+  if !is_directory {
+    return
+  }
+  let entries = @fs.read_dir(dir) catch { _ => return }
+  for name in entries {
+    let path = dir + "/" + name
+    let is_file = @fs.is_file(path) catch { _ => false }
+    if is_file {
+      let lower = name.to_lower()
+      if lower.has_suffix("skill.md") ||
+        lower.has_suffix("skills.md") ||
+        lower.has_suffix("skill.json") ||
+        lower.has_suffix("skills.json") {
+        let content = @fs.read_file_to_string(path) catch { _ => continue }
+        out[path] = content
+      }
+    } else {
+      let is_subdirectory = @fs.is_dir(path) catch { _ => false }
+      if is_subdirectory {
+        collect_skill_files(path, depth - 1, out)
+      }
+    }
+  }
 }
 
 ///|
