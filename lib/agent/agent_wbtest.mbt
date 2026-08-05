@@ -439,6 +439,18 @@ test "agent_to_session_data" {
 }
 
 ///|
+test "to_session_data keeps system_injected on context messages" {
+  let agent = make_test_agent()
+  let ctx = @message.Message::user("[Session context: test]")
+  agent.history.push({ ..ctx, system_injected: Some(true) })
+  agent.history.push(@message.Message::user("real question"))
+  let data = agent.to_session_data()
+  @debug.assert_eq(data.messages.length(), 2)
+  @debug.assert_eq(data.messages[0].system_injected, Some(true))
+  @debug.assert_eq(data.messages[1].system_injected, None)
+}
+
+///|
 test "to_session_data carries current_model_id as model_config_id" {
   let agent = make_test_agent()
   agent.config.current_model_id = Some("m_cfg_1")

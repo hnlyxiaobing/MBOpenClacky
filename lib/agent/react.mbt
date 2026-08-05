@@ -46,7 +46,13 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     self.history.push(stamp_created_at(@message.Message::system(system_prompt)))
     self.hook_manager.emit(MessageAdded)
   }
-  // Inject per-run session context
+  // Inject per-run session context.
+  // NOTE: `created_at` is intentionally left None. The context message is an
+  // injected artifact, not a real user message: stamping it with the current
+  // ms would collide with the user message pushed right after (same
+  // millisecond), and the Web UI's history dedup keys on created_at — two
+  // history_user_message events with an identical timestamp would cause the
+  // real user message to be skipped and its assistant reply hidden.
   let ctx_msg : @message.Message = {
     role: @message.User,
     content: @message.Text(self.build_session_context()),
@@ -55,7 +61,7 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     name: None,
     reasoning_content: None,
     task_id: None,
-    created_at: Some(current_time_ms().to_string()),
+    created_at: None,
     system_injected: Some(true),
     memory_update: None,
     subagent_instructions: None,

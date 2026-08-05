@@ -374,6 +374,13 @@ pub fn build_messages_history(
       "role": role.to_json(),
       "content": content.to_json(),
     }
+    // Expose injected (non-user-authored) messages so the frontend can skip
+    // them in its created_at-based dedup: injected context shares no real
+    // user intent and must never be treated as the round's user message.
+    match msg.system_injected {
+      Some(true) => obj["system_injected"] = true.to_json()
+      _ => ()
+    }
     if !ts.is_empty() {
       obj["created_at"] = ts.to_json()
     }

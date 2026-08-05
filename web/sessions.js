@@ -1602,6 +1602,26 @@ const Sessions = (() => {
         });
       }
 
+      // Pre-scan: legacy fallback for sessions saved before system_injected
+      // was persisted. Injected context messages were stamped with the SAME
+      // created_at as the real user message of the same run (both within the
+      // same millisecond) and the flag was lost on save. Injections are always
+      // pushed BEFORE the real user message, so among a run of consecutive
+      // history_user_message events with an identical created_at, every event
+      // except the last one is treated as injected (never participates in dedup).
+      {
+        for (let i = 0; i < events.length; i++) {
+          const ev = events[i];
+          if (ev.type !== "history_user_message" || ev.system_injected || !ev.created_at) continue;
+          let j = i + 1;
+          while (j < events.length && events[j].type === "history_user_message" && events[j].created_at === ev.created_at) j++;
+          if (j - i > 1) {
+            for (let k = i; k < j - 1; k++) events[k]._injectedLike = true;
+            i = j - 1;
+          }
+        }
+      }
+
       // Dedup by created_at: skip rounds already rendered (e.g. arrived via live WS)
       const dedup = _renderedCreatedAt[id] || (_renderedCreatedAt[id] = new Set());
       const frag  = document.createDocumentFragment();
@@ -1613,11 +1633,21 @@ const Sessions = (() => {
 
       events.forEach(ev => {
         if (ev.type === "history_user_message") {
-          currentCreatedAt = ev.created_at;
-          skipRound        = currentCreatedAt && dedup.has(currentCreatedAt);
-          if (!skipRound && currentCreatedAt) dedup.add(currentCreatedAt);
-        } else if (ev.created_at) {
-          // Stamped non-user events are registered too: a page cut
+          // Injected context (per-run session context) is NOT a real user
+          // message, so it never participates in created_at dedup. On legacy
+          // sessions its timestamp can equal the real user message of the
+          // same run (both stamped within the same millisecond), which would
+          // otherwise mark the user message as already-rendered and skip the
+          // whole round (user message + assistant reply).
+          if (ev.system_injected || ev._injectedLike) {
+            currentCreatedAt = null;
+            skipRound        = false;
+          } else {
+            currentCreatedAt = ev.created_at;
+            skipRound        = currentCreatedAt && dedup.has(currentCreatedAt);
+            if (!skipRound && currentCreatedAt) dedup.add(currentCreatedAt);
+          }
+        } else if (ev.created_at) {          // Stamped non-user events are registered too: a page cut
           // mid-round must not re-render an orphan assistant event.
           if (dedup.has(ev.created_at)) return;
           dedup.add(ev.created_at);

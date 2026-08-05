@@ -218,10 +218,13 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     session_id: self.session_id,
     name: self.name,
     // Strip API-internal fields but keep created_at so history pagination
-    // survives a save/load round trip.
+    // survives a save/load round trip. system_injected marks injected
+    // context messages and must survive persistence too, otherwise the
+    // web history dedup cannot distinguish them from real user messages.
     messages: self.history.map(m => {
       ..m.to_api_message(),
       created_at: m.created_at,
+      system_injected: m.system_injected,
     }),
     stats: {
       total_iterations: self.iterations,

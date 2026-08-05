@@ -347,6 +347,48 @@ test "build_messages_history: carries created_at, omits when absent" {
 }
 
 ///|
+/// Regression: injected per-run session context must be flagged so the Web UI
+/// can exclude it from created_at-based dedup (it shares the same millisecond
+/// timestamp as the real user message and previously caused that user message
+/// — and its assistant reply — to be skipped when re-rendering history).
+test "build_messages_history: flags system_injected user messages" {
+  let ctx = {
+    ..@message.Message::user("[Session context: ...]"),
+    created_at: Some("1700000000001"),
+    system_injected: Some(true),
+  }
+  let user = {
+    ..@message.Message::user("real question"),
+    created_at: Some("1700000000001"),
+  }
+  let result = build_messages_history("sess-inj", [ctx, user])
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 2)
+  assert_true(get_bool(events[0], "system_injected"))
+  assert_false(has_key(events[1], "system_injected"))
+}
+
+///|
+test "build_messages_history: system_injected context without created_at stays filterable" {
+  // New sessions persist the context message with created_at=None; it must
+  // still be exposed (so the user sees the context) but carry the injected flag.
+  let ctx = {
+    ..@message.Message::user("[Session context: ...]"),
+    system_injected: Some(true),
+  }
+  let user = {
+    ..@message.Message::user("real question"),
+    created_at: Some("1700000000001"),
+  }
+  let result = build_messages_history("sess-inj2", [ctx, user])
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 2)
+  assert_true(get_bool(events[0], "system_injected"))
+  assert_false(has_key(events[0], "created_at"))
+  @debug.assert_eq(get_str(events[1], "created_at"), "1700000000001")
+}
+
+///|
 test "build_messages_history: has_more false when exactly one page" {
   // Interleaved system messages must not count towards has_more.
   let msgs : Array[@message.Message] = [

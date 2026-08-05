@@ -77,6 +77,14 @@ pub impl ToJson for Message with fn to_json(self) {
     Some(ts) => obj["created_at"] = ts.to_json()
     None => ()
   }
+  // Persist the injected flag: restore_from_session must know a message is
+  // system-injected (per-run session context) so the Web UI history dedup can
+  // exclude it. Without this the flag was lost on save and the injected
+  // context message (same created_at as the real user message) broke rendering.
+  match self.system_injected {
+    Some(true) => obj["system_injected"] = true.to_json()
+    _ => ()
+  }
   Json::object(obj)
 }
 
