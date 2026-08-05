@@ -282,6 +282,8 @@ fn handle_create_session(
   let agent = @agent.Agent::new(
     session_id, name, working_dir, client, session_config,
   )
+  // User-global and project-level skills become available to invoke_skill.
+  agent.discover_workspace_skills()
   server_ref.val.active_agents[session_id] = agent
   // to_session_data only carries config.current_model_id, which is None
   // when the global config never selected a model explicitly; the create

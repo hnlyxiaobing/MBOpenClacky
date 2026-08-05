@@ -159,6 +159,9 @@ pub fn WebServer::get_or_create_agent(
       let agent = @agent.Agent::new(
         session_id, "Web Agent", working_dir, client, session_config,
       )
+      // User-global and project-level skills become available to the
+      // invoke_skill tool for sessions created by the server.
+      agent.discover_workspace_skills()
       // Restore persisted history so the first run after a server restart
       // does not overwrite the on-disk snapshot with only the new turn.
       // restore_from_session re-applies sd.working_dir (same value used

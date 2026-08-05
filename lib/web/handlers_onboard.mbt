@@ -316,6 +316,8 @@ fn handle_onboard_complete(
     client,
     server_ref.val.config,
   )
+  // User-global and project-level skills become available to invoke_skill.
+  agent.discover_workspace_skills()
   server_ref.val.active_agents[session_id] = agent
   @core.HttpResponse::ok().json_value(
     Json::object({
