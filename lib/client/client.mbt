@@ -151,6 +151,55 @@ pub fn Client::build_simple_request(
   }
 }
 
+///|
+/// Test the connection with the current credentials (Ruby client.rb
+/// test_connection): sends a minimal 16-token "hi" request through the
+/// protocol selected by api_type, with a short 10s timeout. Used by the
+/// config form validator before saving a model.
+pub async fn Client::test_connection(self : Client) -> TestResult {
+  let body_json = self.build_simple_request("hi", self.model, 16)
+  let url = self.request_url()
+  let headers_map = self.request_headers()
+  let headers_arr : Array[(String, String)] = []
+  for k, v in headers_map {
+    headers_arr.push((k, v))
+  }
+  let http_result = http_post_async(
+    url,
+    body_json.stringify(),
+    headers_arr,
+    10000,
+  ) catch {
+    e =>
+      return {
+        success: false,
+        error: Some("Connection error: \{@debug.to_string(e)}"),
+      }
+  }
+  match http_result {
+    Err(err) =>
+      { success: false, error: Some("Connection error: \{err.to_repr()}") }
+    Ok(resp) => {
+      match map_http_error(resp.status_code, resp.body) {
+        Some(err_msg) => return { success: false, error: Some(err_msg) }
+        None => ()
+      }
+      if is_html_response(resp.body) {
+        return {
+          success: false,
+          error: Some("Invalid endpoint (HTML response)"),
+        }
+      }
+      ignore(
+        @json.parse(resp.body) catch {
+          _ => return { success: false, error: Some("Invalid JSON response") }
+        },
+      )
+      { success: true, error: None }
+    }
+  }
+}
+
 // ── Response Parsing ────────────────────────────────────────────────────────
 
 ///|

@@ -36,7 +36,6 @@ fn make_test_state_with_thinking(buffer : String, active : Bool) -> TuiState {
     pending_confirmation: None,
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
-    shell_mode: ShellMode::Chat,
     thinking_buffer: @mizchi/signals.signal(buffer),
     tick_count: 0,
     run_start_ts: 0L,

@@ -231,6 +231,101 @@ pub fn InputArea::render_lines(self : InputArea) -> Array[String] {
 }
 
 ///|
+/// Render the input as auto-wrapped display lines for the borderless
+/// bottom fixed area (aligned with Ruby ui2 input_area render_input_lines).
+///
+/// The first segment of the first line gets the prompt prefix; every other
+/// segment (continuation lines and later logical lines) is indented by the
+/// prompt's display width. Each logical line wraps at
+/// `content_width - prefix_width` display columns (minimum 20).
+pub fn InputArea::render_wrapped_lines(
+  self : InputArea,
+  content_width : Int,
+) -> Array[String] {
+  let prompt_w = @tui_core.string_display_width(self.prompt)
+  let indent = " ".repeat(prompt_w)
+  if self.editor.is_empty() {
+    return [self.prompt + self.placeholder]
+  }
+  let result : Array[String] = []
+  let n = self.editor.line_count()
+  for i = 0; i < n; i = i + 1 {
+    let line = self.editor.get_line(i)
+    let prefix = if i == 0 { self.prompt } else { indent }
+    let avail = {
+      let a = content_width - prompt_w
+      if a < 20 {
+        20
+      } else {
+        a
+      }
+    }
+    let segments = wrap_line_segments(line, avail)
+    let chars = line.to_array()
+    for j = 0; j < segments.length(); j = j + 1 {
+      let (start, end) = segments[j]
+      let sb = StringBuilder::new()
+      if j == 0 {
+        sb.write_string(prefix)
+      } else {
+        sb.write_string(indent)
+      }
+      for k = start; k < end; k = k + 1 {
+        sb.write_char(chars[k])
+      }
+      result.push(sb.to_string())
+    }
+  }
+  result
+}
+
+///|
+/// Get the cursor position within the wrapped rendering as
+/// (wrapped_row, display_column), where display_column includes the
+/// prompt/indent prefix width. Mirrors Ruby input_area position_cursor.
+pub fn InputArea::cursor_display_pos_wrapped(
+  self : InputArea,
+  content_width : Int,
+) -> (Int, Int) {
+  let prompt_w = @tui_core.string_display_width(self.prompt)
+  let avail = {
+    let a = content_width - prompt_w
+    if a < 20 {
+      20
+    } else {
+      a
+    }
+  }
+  let (cursor_line, cursor_col) = self.editor.cursor_pos()
+  // Rows occupied by the logical lines before the cursor line.
+  let mut row = 0
+  for i = 0; i < cursor_line; i = i + 1 {
+    row = row + wrap_line_segments(self.editor.get_line(i), avail).length()
+  }
+  // Locate the wrapped segment of the cursor line containing the cursor.
+  let cur = self.editor.get_line(cursor_line)
+  let chars = cur.to_array()
+  let segments = wrap_line_segments(cur, avail)
+  let mut seg_idx = segments.length() - 1
+  let mut seg_start = 0
+  for j = 0; j < segments.length(); j = j + 1 {
+    let (start, end) = segments[j]
+    if cursor_col < end || j == segments.length() - 1 {
+      seg_idx = j
+      seg_start = start
+      break
+    }
+  }
+  // Display width of the text before the cursor within its segment.
+  let before = StringBuilder::new()
+  for k = seg_start; k < cursor_col; k = k + 1 {
+    before.write_char(chars[k])
+  }
+  let col = prompt_w + @tui_core.string_display_width(before.to_string())
+  (row + seg_idx, col)
+}
+
+///|
 /// Get the raw text lines without prompt prefix or placeholder.
 pub fn InputArea::raw_lines(self : InputArea) -> Array[String] {
   let lines : Array[String] = []

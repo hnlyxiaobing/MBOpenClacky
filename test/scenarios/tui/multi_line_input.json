@@ -7,17 +7,47 @@
     "mock_response": "Multi-line received"
   },
   "actions": [
-    { "type": "type", "text": "line one" },
-    { "type": "press", "key": "Enter" },
-    { "type": "type", "text": "line two" },
-    { "type": "press", "key": "Enter" },
-    { "type": "press", "key": "Enter" }
+    {
+      "type": "type",
+      "text": "line one"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    },
+    {
+      "type": "type",
+      "text": "line two"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    }
   ],
   "assertions": [
-    { "check": "output_contains", "text": "[user]" },
-    { "check": "output_contains", "text": "line one" },
-    { "check": "output_contains", "text": "line two" },
-    { "check": "output_contains", "text": "Multi-line received" },
-    { "check": "input_contains", "text": "Input" }
+    {
+      "check": "output_contains",
+      "text": "[user]"
+    },
+    {
+      "check": "output_contains",
+      "text": "line one"
+    },
+    {
+      "check": "output_contains",
+      "text": "line two"
+    },
+    {
+      "check": "output_contains",
+      "text": "Multi-line received"
+    },
+    {
+      "check": "input_contains",
+      "text": "[>>]"
+    }
   ]
 }

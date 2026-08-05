@@ -1,0 +1,16 @@
+{
+  "name": "model_switch_with_arg",
+  "description": "Verify /model <name> switches a configured model card and reports it",
+  "setup": {
+    "cols": 120,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "/model claude-sonnet-4-6" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "Model switched to: claude-sonnet-4-6" },
+    { "check": "status_contains", "text": "claude-sonnet-4-6" }
+  ]
+}

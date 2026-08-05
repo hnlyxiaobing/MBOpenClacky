@@ -7,15 +7,37 @@
     "mock_response": "Hello from eval mock!"
   },
   "actions": [
-    { "type": "type", "text": "hello world" },
-    { "type": "screenshot" },
-    { "type": "press", "key": "Enter" },
-    { "type": "screenshot" }
+    {
+      "type": "type",
+      "text": "hello world"
+    },
+    {
+      "type": "screenshot"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    },
+    {
+      "type": "screenshot"
+    }
   ],
   "assertions": [
-    { "check": "output_contains", "text": "[user]" },
-    { "check": "output_contains", "text": "hello world" },
-    { "check": "output_contains", "text": "eval mock" },
-    { "check": "input_contains", "text": "Input" }
+    {
+      "check": "output_contains",
+      "text": "[user]"
+    },
+    {
+      "check": "output_contains",
+      "text": "hello world"
+    },
+    {
+      "check": "output_contains",
+      "text": "eval mock"
+    },
+    {
+      "check": "input_contains",
+      "text": "[>>]"
+    }
   ]
 }

@@ -22,6 +22,18 @@ pub fn mask_api_key(key : String) -> String {
 }
 
 ///|
+/// Mask an API key for the post-update configuration summary (Ruby
+/// cli.rb:283-288): keys of 12+ chars show the first 8 and last 4 around
+/// 20 asterisks; shorter keys (including empty) render as "(not set)".
+pub fn mask_api_key_summary(key : String) -> String {
+  if key.length() >= 12 {
+    "\{key[0:8]}\{"*".repeat(20)}\{key[key.length() - 4:]}"
+  } else {
+    "(not set)"
+  }
+}
+
+///|
 /// Build config menu items from an array of model configs.
 /// Highlights the current model and shows masked API keys.
 pub fn build_config_menu_items(
@@ -90,6 +102,114 @@ pub fn ConfigMenuDialog::as_model_selector(
 }
 
 ///|
+/// Provider sub-model names for a model card ([] when its base_url has no
+/// provider preset — such cards have no sub-model drawer).
+pub fn provider_submodels(model : @config.ModelConfig) -> Array[String] {
+  match @config.Providers::resolve(model.base_url) {
+    Some(p) => p.models
+    None => []
+  }
+}
+
+///|
+/// Build level-1 card items for the /model drawer (Ruby ui2
+/// show_model_card_level): current card marked, expandable cards (with
+/// provider sub-models) carry a "›" hint.
+pub fn build_model_card_items(
+  models : Array[@config.ModelConfig],
+  current_model_id : String?,
+) -> Array[ConfigMenuItem] {
+  let items : Array[ConfigMenuItem] = []
+  for m in models {
+    let is_current = match current_model_id {
+      Some(id) => id == m.id
+      None => false
+    }
+    let current_marker = if is_current { " (active)" } else { "" }
+    let arrow = if provider_submodels(m).length() > 0 { "  ›" } else { "" }
+    items.push({
+      label: "\{m.model}\{current_marker}\{arrow}",
+      value: m.id,
+      multi_select: false,
+      checked: false,
+    })
+  }
+  items
+}
+
+///|
+/// Build level-2 sub-model items for one card (Ruby ui2
+/// show_model_submodel_level): "Default (<card model>)" first — choosing
+/// it clears the per-session sub-model overlay — then every provider
+/// sub-model. The active entry mirrors the current overlay.
+pub fn build_submodel_items(
+  card : @config.ModelConfig,
+  overlay : String?,
+) -> Array[ConfigMenuItem] {
+  let items : Array[ConfigMenuItem] = []
+  let default_marker = match overlay {
+    Some(_) => ""
+    None => " (active)"
+  }
+  items.push({
+    label: "Default (\{card.model})\{default_marker}",
+    value: "",
+    multi_select: false,
+    checked: false,
+  })
+  for name in provider_submodels(card) {
+    let marker = match overlay {
+      Some(o) if o == name => " (active)"
+      _ => ""
+    }
+    items.push({
+      label: name + marker,
+      value: name,
+      multi_select: false,
+      checked: false,
+    })
+  }
+  items
+}
+
+///|
+/// Create a Time Machine navigation dialog from enriched task entries
+/// (Ruby ui2 show_time_machine_menu). Markers: ● current, · on-path
+/// history, ✗ undone/abandoned branch, ⎇ has branches. The cursor lands
+/// on the current task.
+pub fn ConfigMenuDialog::as_time_machine(
+  entries : Array[@agent.TaskHistoryEntry],
+) -> ConfigMenuDialog {
+  let items : Array[ConfigMenuItem] = []
+  let mut current_idx = 0
+  for i = 0; i < entries.length(); i = i + 1 {
+    let e = entries[i]
+    let marker = match e.status {
+      Current => {
+        current_idx = i
+        "● "
+      }
+      Undone => "✗ "
+      Past => "· "
+    }
+    let branch = if e.has_branches { "⎇ " } else { "" }
+    let summary = truncate_to_display_width(e.summary, 60)
+    let suffix = if e.status is Undone { "  (undone)" } else { "" }
+    items.push({
+      label: "\{marker}\{branch}Task \{e.task_num}: \{summary}\{suffix}",
+      value: e.task_id,
+      multi_select: false,
+      checked: false,
+    })
+  }
+  let dialog = ConfigMenuDialog::new(
+    "Time Machine - Select Task to Navigate", items,
+  )
+  dialog.selected_idx = current_idx
+  dialog
+}
+
+///|
 /// Truncate a string to fit within max display columns, appending "…" if truncated.
 fn truncate_to_display_width(s : String, max_w : Int) -> String {
   if max_w <= 0 {
@@ -121,9 +241,11 @@ fn truncate_to_display_width(s : String, max_w : Int) -> String {
 /// Render a ConfigMenuDialog as a Node tree.
 /// When `term_width` > 0, labels are truncated to fit within the terminal
 /// width (minus border overhead) so the dialog never overflows horizontally.
+/// `hints` overrides the footer shortcut line (default: config menu hints).
 pub fn render_config_menu(
   dialog : ConfigMenuDialog,
   term_width? : Int = 0,
+  hints? : String? = None,
 ) -> Node {
   let children : Array[Node] = []
 
@@ -194,10 +316,14 @@ pub fn render_config_menu(
   }
 
   // Navigation hints — abbreviate for narrow terminals.
-  let hints = if term_width > 0 && term_width < 70 {
-    "↑↓ Navigate  Enter Select  Esc Close"
-  } else {
-    "↑↓/jk Navigate  Enter Select  a Add  e Edit  d Delete  Esc Close"
+  let hints = match hints {
+    Some(h) => h
+    None =>
+      if term_width > 0 && term_width < 70 {
+        "↑↓ Navigate  Enter Select  Esc Close"
+      } else {
+        "↑↓/jk Navigate  Enter Select  a Add  e Edit  d Delete  Esc Close"
+      }
   }
   let max_content = if term_width > 0 { term_width - 4 } else { 0 }
   let final_hints = if max_content > 0 {

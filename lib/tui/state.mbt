@@ -44,17 +44,6 @@ pub(all) struct PendingConfirmation {
 } derive(Debug)
 
 ///|
-/// Shell mode for TUI navigation (TUI-05).
-pub(all) enum ShellMode {
-  /// Default chat interface.
-  Chat
-  /// File browser mode.
-  FileBrowser
-  /// Configuration menu mode.
-  Config
-} derive(Eq, Debug)
-
-///|
 /// Approval dialog state (TUI-03).
 pub(all) struct ApprovalDialog {
   /// Tool name requesting approval.
@@ -129,10 +118,43 @@ pub(all) enum ConfigMode {
 } derive(Eq, Debug)
 
 ///|
+/// A config form submit waiting for its connection test to finish.
+///
+/// Values are already merged (empty Edit fields fell back to the existing
+/// model's values) — applying the pending change needs no form access.
+pub(all) struct PendingConfigTest {
+  /// Which menu to return to after success.
+  mode : ConfigMode
+  /// Add a new card or edit an existing one.
+  action : ConfigAction
+  /// Target model index for Edit (-1 for Add).
+  target_idx : Int
+  /// Card id (from the form for Add; existing id for Edit).
+  name : String
+  /// Model name sent to the API.
+  model : String
+  /// API key.
+  api_key : String
+  /// Base URL.
+  base_url : String
+  /// Protocol flag of the card (Anthropic Messages vs OpenAI).
+  anthropic_format : Bool
+} derive(Debug)
+
+///|
 /// Config form action type.
 pub(all) enum ConfigAction {
   Add
   Edit
+} derive(Eq, Debug)
+
+///|
+/// Level of the two-level /model drawer.
+pub(all) enum ModelDrawerLevel {
+  /// Level 1: model card list.
+  Cards
+  /// Level 2: sub-model drawer of one card.
+  SubModels
 } derive(Eq, Debug)
 
 ///|
@@ -152,6 +174,16 @@ pub(all) enum DialogState {
     form~ : FormDialog,
     action~ : ConfigAction,
     target_idx~ : Int
+  )
+  /// Time Machine navigation menu (task undo/redo).
+  TimeMachineMenu(ConfigMenuDialog)
+  /// Two-level /model drawer (Ruby ui2 show_model_switch_modal):
+  /// card list → per-card sub-model drawer.
+  ModelDrawer(
+    level~ : ModelDrawerLevel,
+    dialog~ : ConfigMenuDialog,
+    card_id~ : String,
+    card_model~ : String
   )
 } derive(Debug)
 
@@ -255,10 +287,6 @@ pub(all) struct TuiState {
   /// Active dialog state (NoDialog when none).
   mut dialog : DialogState
 
-  // ── Shell Mode (TUI-05) ─────────────────────────────────────
-  /// Current shell navigation mode.
-  mut shell_mode : ShellMode
-
   // ── Thinking Buffer (TUI-04) ─────────────────────────────────
   /// Buffer for live thinking/reasoning stream display.
   thinking_buffer : @mizchi/signals.Signal[String]
@@ -276,7 +304,8 @@ pub(all) struct TuiState {
   mut approved_all_tools : Bool
   // ── Time Machine (TUI-05) ────────────────────────────────────────
   /// Time machine state for undo/redo task history.
-  time_machine : @agent.TimeMachineState
+  /// Rebound on /clear (task history belongs to the old session).
+  mut time_machine : @agent.TimeMachineState
   // ── Paste Placeholders (TUI-05) ──────────────────────────────────
   /// Counter for paste placeholder numbering ([#1 Paste Text], ...).
   mut paste_placeholder_count : Int
@@ -318,7 +347,6 @@ pub fn TuiState::from_agent(agent : @agent.Agent) -> TuiState {
     pending_confirmation: None,
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
-    shell_mode: ShellMode::Chat,
     thinking_buffer: @mizchi/signals.signal(""),
     tick_count: 0,
     run_start_ts: 0L,
@@ -342,6 +370,29 @@ pub fn cycle_permission_mode(
     @config.ConfirmSafes => @config.AutoApprove
     @config.ConfirmAll => @config.ConfirmSafes
   }
+}
+
+///|
+/// Reset TUI-side session state after `Agent::reset_session` (Ruby
+/// cli.rb:1011-1026): status bar shows the new session id, zero tasks and
+/// $0.0; todo display cleared and hidden; the time machine is rebound to
+/// the new session (task history belongs to the old one); mirrored
+/// messages/streaming state dropped. Shared by the TUI controller and the
+/// eval adapter so both stay in lockstep.
+pub fn reset_tui_session_state(state : TuiState, agent : @agent.Agent) -> Unit {
+  state.session_id = agent.session_id
+  state.model_name = agent.client.model
+  state.iterations = 0
+  state.total_iterations = 0
+  state.active_tasks = 0
+  state.total_cost = 0.0
+  state.messages.clear()
+  state.streaming_buffer.set("")
+  state.streaming_active.set(false)
+  state.tool_output.set("")
+  state.todo_area.update([], 0, 0)
+  state.todo_area.hide()
+  state.time_machine = @agent.TimeMachineState::new(agent.session_id)
 }
 
 ///|

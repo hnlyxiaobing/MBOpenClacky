@@ -27,6 +27,10 @@ pub enum TuiEvent {
   SubmitInput(String)
   /// Periodic tick for spinner/animation (every ~200ms).
   Tick
+  /// Start an async connection test for a pending config form submit.
+  StartConnectionTest(PendingConfigTest)
+  /// Connection test finished: (success, error message).
+  ConnectionTestDone(Bool, String)
   /// Terminal reader closed (EOF).
   TerminalClosed
 }

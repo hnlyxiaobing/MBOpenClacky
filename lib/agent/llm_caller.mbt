@@ -426,13 +426,14 @@ pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
   }
   // When fallback is active, use the fallback model instead of the primary.
   // In Probing state we intentionally use the primary model to test recovery.
+  // The primary model itself honors the per-session sub-model overlay.
   let model = match self.fallback_state {
     FallbackActive(_) =>
       match self.fallback_model {
         Some(m) if m.length() > 0 => m
-        _ => self.client.model
+        _ => self.effective_primary_model()
       }
-    _ => self.client.model
+    _ => self.effective_primary_model()
   }
   {
     messages,

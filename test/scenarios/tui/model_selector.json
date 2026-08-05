@@ -1,6 +1,6 @@
 {
   "name": "model_selector",
-  "description": "Verify /model opens the model selector",
+  "description": "Verify /model opens the two-level drawer: card list, → opens the sub-model drawer, Default switches to the card default model",
   "setup": {
     "cols": 120,
     "rows": 40
@@ -8,8 +8,15 @@
   "actions": [
     { "type": "type", "text": "/model" },
     { "type": "press", "key": "Enter" },
-    { "type": "screenshot" },
-    { "type": "assert", "check": "dialog_contains", "text": "Select Model" }
+    { "type": "assert", "check": "dialog_contains", "text": "Switch Model" },
+    { "type": "assert", "check": "dialog_contains", "text": "›" },
+    { "type": "press", "key": "j" },
+    { "type": "press", "key": "Right" },
+    { "type": "assert", "check": "dialog_contains", "text": "Default (claude-sonnet-4-6)" },
+    { "type": "assert", "check": "dialog_contains", "text": "claude-haiku-4-5" },
+    { "type": "press", "key": "Enter" }
   ],
-  "assertions": []
+  "assertions": [
+    { "check": "output_contains", "text": "Model switched to: claude-sonnet-4-6" }
+  ]
 }

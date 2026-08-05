@@ -139,9 +139,10 @@ test "todo_area: update with empty items keeps hidden state" {
 }
 
 ///|
-test "todo_area: slash command Todo variant exists" {
-  // Verify the Todo variant is in the SlashCommand enum
-  let cmd : SlashCommand = Todo
-  let s = @debug.to_string(cmd)
-  assert_true(s.contains("Todo"))
+test "todo_area: /todo is no longer a slash command" {
+  // /todo was removed (SPEC-03): the todo area is auto-managed by the
+  // controller, so /todo must not parse as a command anymore.
+  let parser = SlashCommandParser::new()
+  let result = parser.parse("/todo")
+  assert_true(result is Err(_))
 }

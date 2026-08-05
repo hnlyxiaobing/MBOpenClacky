@@ -8,12 +8,14 @@
 
 ///|
 test "slash_parse_config" {
+  // /config takes no arguments (SPEC-03): key/value editing was removed,
+  // the config menu is the only entry point.
   let parser = SlashCommandParser::new()
   let result = parser.parse("/config theme dark")
   @debug.debug_inspect(
     result,
     content=(
-      #|Ok(Config(key="theme", value="dark"))
+      #|Err("Usage: /config (opens the configuration menu)")
     ),
   )
 }
@@ -100,27 +102,21 @@ test "slash_parse_exit" {
 }
 
 ///|
-test "slash_parse_new_with_title" {
+test "slash_parse_new_no_longer_a_command" {
+  // /new was removed (SPEC-03): /clear carries the new-session semantics,
+  // so /new must NOT parse as a command anymore.
   let parser = SlashCommandParser::new()
   let result = parser.parse("/new My Session")
-  @debug.debug_inspect(
-    result,
-    content=(
-      #|Ok(New(title="My Session"))
-    ),
-  )
+  assert_true(result is Err(_))
 }
 
 ///|
-test "slash_parse_skills_default" {
+test "slash_parse_skills_no_longer_a_command" {
+  // /skills was removed (SPEC-03): user-invocable skills are callable
+  // directly as /<name>, so the static management command is gone.
   let parser = SlashCommandParser::new()
   let result = parser.parse("/skills")
-  @debug.debug_inspect(
-    result,
-    content=(
-      #|Ok(Skills(action="list"))
-    ),
-  )
+  assert_true(result is Err(_))
 }
 
 ///|
@@ -136,13 +132,15 @@ fn _make_test_agent() -> @agent.Agent {
 }
 
 ///|
-test "slash_execute_config" {
+test "slash_execute_config_opens_menu" {
+  // /config no longer takes key/value arguments (SPEC-03); the config
+  // menu handles editing. execute() returns the menu pointer text.
   let agent = _make_test_agent()
-  let result = execute(Config(key="theme", value="dark"), agent)
+  let result = execute(Config, agent)
   @debug.debug_inspect(
     result,
     content=(
-      #|Ok("Configuration set: theme = dark")
+      #|Ok("Use /config to open the configuration menu")
     ),
   )
 }

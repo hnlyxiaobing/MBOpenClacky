@@ -7,9 +7,21 @@
   },
   "actions": [],
   "assertions": [
-    { "check": "status_contains", "text": "idle" },
-    { "check": "status_contains", "text": "|" },
-    { "check": "status_contains", "text": "eval-model" },
-    { "check": "status_contains", "text": "$0.0000" }
+    {
+      "check": "status_contains",
+      "text": "idle"
+    },
+    {
+      "check": "status_contains",
+      "text": "│"
+    },
+    {
+      "check": "status_contains",
+      "text": "eval-model"
+    },
+    {
+      "check": "status_contains",
+      "text": "$0.0"
+    }
   ]
 }

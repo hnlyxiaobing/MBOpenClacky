@@ -2,8 +2,7 @@
 /// Node-to-VNode adapter.
 ///
 /// Converts the existing Node tree (used by dialog_*, thinking_view,
-/// file_browser, etc.) to mizchi/tui's VNode tree for rendering through
-/// the VNodeRenderer.
+/// etc.) to mizchi/tui's VNode tree for rendering through the VNodeRenderer.
 ///
 /// This allows existing components to work with the new VNode-based
 /// rendering pipeline without changing their return types.

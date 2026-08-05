@@ -7,16 +7,14 @@
 ///|
 /// Parsed slash command variants.
 pub(all) enum SlashCommand {
-  Config(key~ : String, value~ : String)
+  /// No-arg `/config`: open the config menu (with-arg form was removed —
+  /// the catch-all silently accepted unknown keys without effect).
+  Config
   Model(name~ : String)
   Clear
-  New(title~ : String)
-  Skills(action~ : String)
-  Todo
   Help
   Exit
   Quit
-  Meeting
   Theme(name~ : String)
   /// Open the time-machine undo menu.
   Undo
@@ -43,29 +41,21 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
     {
       name: "config",
       description: "Open configuration (models, API keys, settings)",
-      usage: "/config [key value]",
+      usage: "/config",
     },
     {
       name: "model",
-      description: "Open model selector or switch model",
+      description: "Open model selector or switch model (persisted)",
       usage: "/model [name]",
     },
-    { name: "clear", description: "Clear message history", usage: "/clear" },
-    { name: "new", description: "Start a new session", usage: "/new [title]" },
-    { name: "todo", description: "Toggle todo area visibility", usage: "/todo" },
     {
-      name: "skills",
-      description: "Manage skills (list, enable, disable)",
-      usage: "/skills <list|enable|disable>",
+      name: "clear",
+      description: "Start a fresh session (new session id)",
+      usage: "/clear",
     },
     { name: "help", description: "Show available commands", usage: "/help" },
     { name: "exit", description: "Exit the application", usage: "/exit" },
     { name: "quit", description: "Quit (alias for exit)", usage: "/quit" },
-    {
-      name: "meeting",
-      description: "Meeting summaries (managed in Web UI)",
-      usage: "/meeting",
-    },
     {
       name: "theme",
       description: "Switch the color theme",
@@ -104,21 +94,13 @@ pub fn SlashCommandParser::parse(
   let cmd_name = parts[0]
   match cmd_name {
     "config" => {
+      // /config with arguments was removed (SPEC-03): configuration is
+      // edited through the /config menu only, so any args are a usage
+      // error rather than a silent no-op success.
       if parts.length() < 2 {
-        // No args: signal controller to open config menu
-        return Ok(Config(key="", value=""))
+        return Ok(Config)
       }
-      if parts.length() < 3 {
-        return Err("Usage: /config <key> <value>")
-      }
-      let key = parts[1]
-      // Join remaining parts as value
-      let value_parts : Array[String] = []
-      for i = 2; i < parts.length(); i = i + 1 {
-        value_parts.push(parts[i])
-      }
-      let value = value_parts.join(" ")
-      Ok(Config(key~, value~))
+      return Err("Usage: /config (opens the configuration menu)")
     }
     "model" => {
       if parts.length() < 2 {
@@ -129,27 +111,9 @@ pub fn SlashCommandParser::parse(
       Ok(Model(name~))
     }
     "clear" => Ok(Clear)
-    "todo" => Ok(Todo)
-    "new" => {
-      let title = if parts.length() >= 2 {
-        let title_parts : Array[String] = []
-        for i = 1; i < parts.length(); i = i + 1 {
-          title_parts.push(parts[i])
-        }
-        title_parts.join(" ")
-      } else {
-        "Untitled"
-      }
-      Ok(New(title~))
-    }
-    "skills" => {
-      let action = if parts.length() >= 2 { parts[1] } else { "list" }
-      Ok(Skills(action~))
-    }
     "help" => Ok(Help)
     "exit" => Ok(Exit)
     "quit" => Ok(Quit)
-    "meeting" => Ok(Meeting)
     "undo" => Ok(Undo)
     "theme" => {
       if parts.length() < 2 {
@@ -218,78 +182,45 @@ pub fn execute(
   agent : @agent.Agent,
 ) -> Result[String, String] {
   match cmd {
-    Config(key~, value~) =>
-      // Try to update agent config dynamically
-      try {
-        match key {
-          "max_tokens" => {
-            let n = @string.parse_int(value.to_string_view())
-            agent.config.max_tokens = n
-            Ok("Configuration set: max_tokens = \{value}")
-          }
-          "verbose" => {
-            agent.config.verbose = value == "true" || value == "1"
-            Ok("Configuration set: verbose = \{value}")
-          }
-          "fallback_model" => {
-            agent.config.fallback_model = value
-            Ok("Configuration set: fallback_model = \{value}")
-          }
-          _ => Ok("Configuration set: \{key} = \{value}")
-        }
-      } catch {
-        _ => Ok("Configuration set: \{key} = \{value}")
-      }
+    Config =>
+      // /config is handled by the controller (opens the config menu);
+      // this fallback keeps `execute` total.
+      Ok("Use /config to open the configuration menu")
     Model(name~) => {
-      // Actually switch the model on the agent's client
-      let old_client = agent.client
-      let new_client = @client.Client::new(
-        old_client.api_key,
-        old_client.base_url,
-        name,
-        old_client.api_type,
-        provider_id=old_client.provider_id,
-        vision_supported=old_client.vision_supported,
-      )
-      agent.client = new_client
-      Ok("Model switched to: \{name}")
+      // Match a configured model card by card id or model name, then take
+      // the same path as the menu selector: switch_model_by_id (sets the
+      // current model AND the default badge) + client rebuild. Persistence
+      // is layered on top by the controller (it owns the config path).
+      let mut matched : @config.ModelConfig? = None
+      for m in agent.config.models {
+        if m.id == name || m.model == name {
+          matched = Some(m)
+          break
+        }
+      }
+      match matched {
+        Some(m) =>
+          match agent.config.switch_model_by_id(m.id) {
+            Ok(_) => {
+              agent.rebuild_client_from_config()
+              // Switching cards invalidates the per-session sub-model
+              // overlay (it was pinned for the previous card).
+              agent.set_session_sub_model(None)
+              Ok("Model switched to: \{m.model}")
+            }
+            Err(msg) => Err(msg)
+          }
+        None =>
+          Err("Unknown model: \{name}. Run /model to pick a configured model.")
+      }
     }
     Clear => {
-      // Clear agent conversation history
-      agent.history.clear()
-      agent.iterations = 0
-      Ok("Message history cleared")
+      // New-session semantics (Ruby cli.rb:998-1026): the agent resets in
+      // place — cancel idle timer, new session_id, client rebuilt from the
+      // current config, history/todo/cost cleared, idle timer rebound.
+      agent.reset_session()
+      Ok("Session cleared. Starting fresh.")
     }
-    New(title~) => {
-      // Start a fresh session: clear history and reset counters
-      agent.history.clear()
-      agent.iterations = 0
-      agent.total_cost = 0.0
-      Ok("New session created: \{title}")
-    }
-    Skills(action~) =>
-      match action {
-        "list" => {
-          let skills = agent.skill_registry.all()
-          if skills.length() == 0 {
-            Ok("Skills: (none loaded)")
-          } else {
-            let lines : Array[String] = ["Loaded skills:"]
-            for skill in skills {
-              let desc = match skill.description {
-                Some(d) => d
-                None => "(no description)"
-              }
-              lines.push("  \{skill.name} - \{desc}")
-            }
-            Ok(lines.join("\n"))
-          }
-        }
-        "enable" => Ok("Skill enabled")
-        "disable" => Ok("Skill disabled")
-        _ =>
-          Err("Unknown skills action: \{action}. Use list, enable, or disable.")
-      }
     Help => {
       let name_col = 12
       let lines : Array[String] = ["Available commands:"]
@@ -313,9 +244,9 @@ pub fn execute(
         ("Ctrl+K", "Kill to end of line"),
         ("Ctrl+U", "Kill to start of line"),
         ("Ctrl+W", "Kill previous word"),
-        ("Tab", "Cycle shell mode / Complete"),
+        ("Tab", "Complete command / Insert newline"),
         ("Up/Down", "Browse history / Navigate"),
-        ("Escape", "Dismiss suggestions"),
+        ("Escape", "Dismiss suggestions / Time Machine menu"),
         ("Shift+Tab", "Cycle permission mode"),
       ]
       for i = 0; i < shortcuts.length(); i = i + 1 {
@@ -323,6 +254,23 @@ pub fn execute(
         let pad_count = key_col - key.length()
         let pad = if pad_count > 0 { " ".repeat(pad_count) } else { "" }
         lines.push("  \{key}\{pad}\{desc}")
+      }
+      // User-invocable skills are callable as slash commands (Ruby
+      // skills_by_command) — list them so /help stays truthful.
+      let skills = agent.skill_registry.list_user_invocable()
+      if skills.length() > 0 {
+        lines.push("")
+        lines.push("Skill commands:")
+        for skill in skills {
+          let padded_name = "/\{skill.name}"
+          let pad_count = name_col - padded_name.length()
+          let pad = if pad_count > 0 { " ".repeat(pad_count) } else { "" }
+          let desc = match skill.description {
+            Some(d) => d
+            None => "(skill)"
+          }
+          lines.push("  \{padded_name}\{pad}\{desc}")
+        }
       }
       Ok(lines.join("\n"))
     }
@@ -332,16 +280,9 @@ pub fn execute(
       // Theme switching is handled by the controller (it owns the Theme
       // instance); this fallback keeps `execute` total.
       Ok("Theme switched to: \{name}")
-    Meeting =>
-      Ok(
-        "Meeting management is available in the Web UI dashboard (start / summarize meetings there). The TUI shows this summary entry only.",
-      )
     Undo =>
       // /undo is handled by the controller (opens a menu); fallback text.
       Ok("Time machine: use the controller to open the undo menu")
-    Todo =>
-      // Toggle todo area visibility (controller will handle the toggle)
-      Ok("Todo area toggled")
   }
 }
 
@@ -365,15 +306,12 @@ pub fn context_aware_suggestions(state : TuiState) -> Array[String] {
     suggestions.push("/help")
   } else if last_tool_was_write {
     suggestions.push("/help")
-    suggestions.push("/todo")
     suggestions.push("/clear")
   } else if is_git_repo {
     suggestions.push("/help")
-    suggestions.push("/todo")
     suggestions.push("/clear")
   } else {
     suggestions.push("/help")
-    suggestions.push("/todo")
     suggestions.push("/clear")
   }
   suggestions

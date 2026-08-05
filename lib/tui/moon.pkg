@@ -19,7 +19,6 @@ import {
   "moonbitlang/x/fs",
   "mizchi/tui/vnode",
   "mizchi/tui/core" @tui_core,
-  "mizchi/tui/events" @tui_events,
   "mizchi/signals",
   "hustcer/tabular",
   "mizchi/tui/components" @tui_components,

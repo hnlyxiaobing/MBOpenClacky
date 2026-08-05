@@ -65,30 +65,19 @@ fn sample_status_text() -> String {
 
 ///|
 /// Render the status bar through the real layout + vnode render pipeline and
-/// return the first (status) line with ANSI codes stripped.
-fn render_status_line(term_width : Int) -> String {
+/// return the rendered frame with ANSI codes stripped.
+fn render_status_frame(term_width : Int) -> String {
   let w = term_width.to_double()
   let status_node = ansi_line_to_vnode_sized(sample_status_text(), w, 1.0)
-  let layout = build_gemini_layout(
+  let layout = build_main_layout(
     status_node,
     [@vnode.text("body")],
-    [@vnode.text("> ")],
-    "cyan",
-    4,
+    [],
+    [separator_node(term_width), @vnode.text("> ")],
     w,
   )
   let app = @vnode.VNodeApp::new(term_width, 45)
-  let plain = strip_ansi(app.render_frame(layout))
-  first_line(plain)
-}
-
-///|
-/// Return the first line of a string (the status bar is always line 0).
-fn first_line(s : String) -> String {
-  match s.split("\n").next() {
-    Some(sv) => sv.to_owned()
-    None => ""
-  }
+  strip_ansi(app.render_frame(layout))
 }
 
 ///|
@@ -97,18 +86,18 @@ fn first_line(s : String) -> String {
 /// separators intact. With the old hardcoded 100-col row this failed: the line
 /// came back as "● id … 0 tas | 0 cal 0 ite …".
 test "status bar renders fully at terminal width (SPEC-01)" {
-  let line = render_status_line(150)
+  let frame = render_status_frame(150)
   // Space-containing segments were previously truncated to their longest word.
-  @debug.assert_eq(line.contains("● idle"), true)
-  @debug.assert_eq(line.contains("0 tasks"), true)
-  @debug.assert_eq(line.contains("0 calls"), true)
-  @debug.assert_eq(line.contains("0 iters"), true)
+  @debug.assert_eq(frame.contains("● idle"), true)
+  @debug.assert_eq(frame.contains("0 tasks"), true)
+  @debug.assert_eq(frame.contains("0 calls"), true)
+  @debug.assert_eq(frame.contains("0 iters"), true)
   // Space-free segments and the tail must also be intact.
-  @debug.assert_eq(line.contains("s_178524"), true)
-  @debug.assert_eq(line.contains("qwen3.7-plus"), true)
-  @debug.assert_eq(line.contains("$0.0000"), true)
+  @debug.assert_eq(frame.contains("s_178524"), true)
+  @debug.assert_eq(frame.contains("qwen3.7-plus"), true)
+  @debug.assert_eq(frame.contains("$0.0000"), true)
   // Separators must survive (some were dropped entirely before the fix).
-  @debug.assert_eq(line.contains(" │ "), true)
+  @debug.assert_eq(frame.contains(" │ "), true)
 }
 
 ///|
@@ -145,7 +134,6 @@ fn make_test_state_for_adaptive() -> TuiState {
     pending_confirmation: None,
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
-    shell_mode: ShellMode::Chat,
     thinking_buffer: @mizchi/signals.signal(""),
     tick_count: 0,
     run_start_ts: 0L,

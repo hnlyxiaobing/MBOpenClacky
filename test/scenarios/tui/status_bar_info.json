@@ -1,1 +1,27 @@
-{"name": "status_bar_info", "description": "Verify status bar shows session, model, and cost info", "setup": {"cols": 120, "rows": 30}, "actions": [], "assertions": [{"check": "status_contains", "text": "idle"}, {"check": "status_contains", "text": "eval-model"}, {"check": "status_contains", "text": "$0.0000"}, {"check": "status_contains", "text": "tasks"}]}
+{
+  "name": "status_bar_info",
+  "description": "Verify status bar shows session, model, and cost info",
+  "setup": {
+    "cols": 120,
+    "rows": 30
+  },
+  "actions": [],
+  "assertions": [
+    {
+      "check": "status_contains",
+      "text": "idle"
+    },
+    {
+      "check": "status_contains",
+      "text": "eval-model"
+    },
+    {
+      "check": "status_contains",
+      "text": "$0.0"
+    },
+    {
+      "check": "status_contains",
+      "text": "tasks"
+    }
+  ]
+}

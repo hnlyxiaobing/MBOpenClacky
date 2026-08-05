@@ -6,15 +6,52 @@
     "rows": 40
   },
   "actions": [
-    { "type": "type", "text": "/config" },
-    { "type": "press", "key": "Enter" },
-    { "type": "press", "key": "e" },
-    { "type": "screenshot" },
-    { "type": "assert", "check": "dialog_contains", "text": "Edit Model" },
-    { "type": "assert", "check": "dialog_contains", "text": "gpt-4o" },
-    { "type": "press", "key": "Enter" }
+    {
+      "type": "type",
+      "text": "/config"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    },
+    {
+      "type": "press",
+      "key": "e"
+    },
+    {
+      "type": "screenshot"
+    },
+    {
+      "type": "assert",
+      "check": "dialog_contains",
+      "text": "Edit Model"
+    },
+    {
+      "type": "assert",
+      "check": "dialog_contains",
+      "text": "gpt-4o"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    }
   ],
   "assertions": [
-    { "check": "output_contains", "text": "updated" }
+    {
+      "check": "output_contains",
+      "text": "updated"
+    },
+    {
+      "check": "output_contains",
+      "text": "Configuration updated!"
+    },
+    {
+      "check": "output_contains",
+      "text": "Current Model: gpt-4o"
+    },
+    {
+      "check": "output_contains",
+      "text": "Format: OpenAI"
+    }
   ]
 }

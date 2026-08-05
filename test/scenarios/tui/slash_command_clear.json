@@ -1,1 +1,42 @@
-{"name": "slash_command_clear", "description": "Submit a message then use /clear to clear output", "setup": {"cols": 80, "rows": 24, "mock_response": "response text"}, "actions": [{"type": "type", "text": "hello"}, {"type": "press", "key": "Enter"}, {"type": "assert", "check": "output_contains", "text": "hello"}, {"type": "type", "text": "/clear"}, {"type": "press", "key": "Enter"}], "assertions": [{"check": "not_contains", "text": "[user] hello"}]}
+{
+  "name": "slash_command_clear",
+  "description": "Submit a message then /clear starts a fresh session",
+  "setup": {
+    "cols": 80,
+    "rows": 24,
+    "mock_response": "response text"
+  },
+  "actions": [
+    {
+      "type": "type",
+      "text": "hello"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    },
+    {
+      "type": "assert",
+      "check": "output_contains",
+      "text": "hello"
+    },
+    {
+      "type": "type",
+      "text": "/clear"
+    },
+    {
+      "type": "press",
+      "key": "Enter"
+    }
+  ],
+  "assertions": [
+    {
+      "check": "not_contains",
+      "text": "[user] hello"
+    },
+    {
+      "check": "output_contains",
+      "text": "Starting fresh"
+    }
+  ]
+}

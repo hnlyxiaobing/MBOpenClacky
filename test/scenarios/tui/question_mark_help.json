@@ -1,0 +1,17 @@
+{
+  "name": "question_mark_help",
+  "description": "Submitting exactly '?' shows the help output (alias for /help), including the skills section",
+  "setup": {
+    "cols": 80,
+    "rows": 40
+  },
+  "actions": [
+    { "type": "type", "text": "?" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "Keyboard shortcuts" },
+    { "check": "output_contains", "text": "Skill commands" },
+    { "check": "output_contains", "text": "/test-skill" }
+  ]
+}

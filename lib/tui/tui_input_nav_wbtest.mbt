@@ -52,8 +52,8 @@ test "suggestions only track single-line slash-prefixed input" {
 ///|
 test "suggestion list is built from the registered slash commands" {
   let suggestions = build_command_suggestions()
-  // Every parser command (including the newer /theme, /todo, /meeting)
-  // must be present in the dropdown
+  // Every parser command (including the newer /theme) must be present
+  // in the dropdown
   let parser = SlashCommandParser::new()
   for cmd in parser.commands {
     suggestions.update_filter("/\{cmd.name}")

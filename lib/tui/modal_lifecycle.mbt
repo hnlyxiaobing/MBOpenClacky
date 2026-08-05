@@ -129,13 +129,47 @@ pub fn open_config_menu(state : TuiState, agent : @agent.Agent) -> Unit {
 }
 
 ///|
-/// Open the model selector dialog from the agent's current model configuration.
+/// Open the model selector: level 1 (card list) of the two-level /model
+/// drawer (Ruby ui2 show_model_switch_modal). The cursor lands on the
+/// current card.
 pub fn open_model_selector(state : TuiState, agent : @agent.Agent) -> Unit {
-  let dialog = ConfigMenuDialog::as_model_selector(
+  let items = build_model_card_items(
     agent.config.models,
     agent.config.current_model_id,
   )
-  state.dialog = DialogState::ConfigMenu(dialog)
+  let dialog = ConfigMenuDialog::new("Switch Model", items)
+  match agent.config.current_model_id {
+    Some(cur) =>
+      for i = 0; i < agent.config.models.length(); i = i + 1 {
+        if agent.config.models[i].id == cur {
+          dialog.selected_idx = i
+          break
+        }
+      }
+    None => ()
+  }
+  state.dialog = DialogState::ModelDrawer(
+    level=ModelDrawerLevel::Cards,
+    dialog~,
+    card_id="",
+    card_model="",
+  )
+}
+
+///|
+/// Open level 2 (sub-model drawer) for the given card.
+pub fn open_submodel_drawer(
+  state : TuiState,
+  agent : @agent.Agent,
+  card : @config.ModelConfig,
+) -> Unit {
+  let items = build_submodel_items(card, agent.session_sub_model)
+  state.dialog = DialogState::ModelDrawer(
+    level=ModelDrawerLevel::SubModels,
+    dialog=ConfigMenuDialog::new(card.model, items),
+    card_id=card.id,
+    card_model=card.model,
+  )
 }
 
 ///|
@@ -193,6 +227,106 @@ pub fn return_to_config_menu(
 /// Close any config-related dialog and return to normal state.
 pub fn close_config_dialog(state : TuiState) -> Unit {
   state.dialog = DialogState::NoDialog
+}
+
+///|
+/// Open the Time Machine navigation menu (Ruby ui2 show_time_machine_menu).
+///
+/// Builds the menu from the session's task history with ●/·/✗/⎇ markers
+/// and lands the cursor on the current task. Returns false when there is
+/// no task history yet (caller shows an info message instead).
+pub fn open_time_machine_menu(state : TuiState) -> Bool {
+  let entries = state.time_machine.history_with_status()
+  if entries.length() == 0 {
+    return false
+  }
+  state.dialog = DialogState::TimeMachineMenu(
+    ConfigMenuDialog::as_time_machine(entries),
+  )
+  true
+}
+
+///|
+/// Merge config form values into a pending change (Ruby ui_controller.rb
+/// model-form validator rules):
+/// - Edit: an empty field falls back to the existing model's value.
+/// - Add: api_key / model / base_url are required (MB additionally
+///   requires the card id since it is the stable identity).
+///
+/// `values` is the ordered `collect_values()` output of the form
+/// (Add: name/model/api_key/base_url; Edit: model/api_key/base_url).
+pub fn merge_config_form_values(
+  action : ConfigAction,
+  values : Array[(String, String)],
+  existing : @config.ModelConfig?,
+) -> Result[PendingConfigTest, String] {
+  match action {
+    Add => {
+      if values.length() < 4 {
+        return Err("Malformed form values")
+      }
+      let name = values[0].1
+      let model = values[1].1
+      let api_key = values[2].1
+      let base_url = values[3].1
+      if name.length() == 0 {
+        return Err("Model id (name) is required")
+      }
+      if api_key.length() == 0 {
+        return Err("API Key is required for new model")
+      }
+      if model.length() == 0 {
+        return Err("Model name is required")
+      }
+      if base_url.length() == 0 {
+        return Err("Base URL is required")
+      }
+      Ok({
+        mode: ConfigMode::ConfigMenu,
+        action: ConfigAction::Add,
+        target_idx: -1,
+        name,
+        model,
+        api_key,
+        base_url,
+        anthropic_format: false,
+      })
+    }
+    Edit =>
+      match existing {
+        None => Err("No model selected for editing")
+        Some(m) => {
+          if values.length() < 3 {
+            return Err("Malformed form values")
+          }
+          let model = if values[0].1.length() > 0 {
+            values[0].1
+          } else {
+            m.model
+          }
+          let api_key = if values[1].1.length() > 0 {
+            values[1].1
+          } else {
+            m.api_key
+          }
+          let base_url = if values[2].1.length() > 0 {
+            values[2].1
+          } else {
+            m.base_url
+          }
+          Ok({
+            mode: ConfigMode::ConfigMenu,
+            action: ConfigAction::Edit,
+            target_idx: -1,
+            name: m.id,
+            model,
+            api_key,
+            base_url,
+            anthropic_format: m.anthropic_format,
+          })
+        }
+      }
+  }
 }
 
 ///|

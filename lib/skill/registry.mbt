@@ -68,6 +68,36 @@ pub fn SkillRegistry::has(self : SkillRegistry, name : String) -> Bool {
 }
 
 ///|
+/// Resolve a slash-command text ("/name optional arguments") to a
+/// user-invocable skill and its argument string (Ruby skills_by_command).
+///
+/// Returns None when the text is not a single "/word" command or no
+/// user-invocable skill matches the name. Callers decide the fallback
+/// (regular input) — static slash commands must be checked BEFORE this
+/// (priority: static commands > skill registry > regular input).
+pub fn SkillRegistry::find_skill_command(
+  self : SkillRegistry,
+  text : String,
+) -> (Skill, String)? {
+  let trimmed = text.trim().to_owned()
+  if !trimmed.has_prefix("/") {
+    return None
+  }
+  let body = trimmed[1:].to_owned()
+  if body.length() == 0 || body.contains("/") {
+    return None
+  }
+  let (name, args) = match body.find(" ") {
+    Some(i) => (body[0:i].to_owned(), body[i + 1:].trim().to_owned())
+    None => (body, "")
+  }
+  match self.skills.get(name) {
+    Some(skill) => if skill.user_invocable { Some((skill, args)) } else { None }
+    None => None
+  }
+}
+
+///|
 /// Return the number of registered skills.
 pub fn SkillRegistry::size(self : SkillRegistry) -> Int {
   self.skills.length()

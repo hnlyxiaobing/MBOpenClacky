@@ -87,3 +87,75 @@ test "commit_oldest_lines caps at available uncommitted lines" {
   assert_eq(committed, 2)
   assert_eq(buf.total_live_lines(), 0)
 }
+
+///|
+test "replace_live keeps committed prefix and replaces live suffix" {
+  let buf = OutputBuffer::new()
+  let id = buf.append(["l1", "l2", "l3", "l4"], OutputKind::Text)
+  // Commit the first two lines (they scrolled into the terminal scrollback).
+  ignore(buf.commit_oldest_lines(2))
+  // Full replace is rejected for partially committed entries...
+  assert_eq(buf.replace(id, ["l1", "l2", "l3-x", "l4", "l5"]), None)
+  // ...but the live suffix can still be replaced (streaming growth).
+  assert_true(buf.replace_live(id, ["l1", "l2", "l3-x", "l4", "l5"]))
+  let entry = buf.get_entry(id).unwrap()
+  assert_eq(entry.live_lines(), ["l3-x", "l4", "l5"])
+  // Committed prefix kept verbatim.
+  assert_eq(entry.committed_line_offset, 2)
+  assert_eq(entry.line_count(), 5)
+}
+
+///|
+test "replace_live fails when new content is shorter than the committed prefix" {
+  let buf = OutputBuffer::new()
+  let id = buf.append(["l1", "l2", "l3"], OutputKind::Text)
+  ignore(buf.commit_oldest_lines(2))
+  assert_true(!buf.replace_live(id, ["only"]))
+  // Unknown id also fails.
+  assert_true(!buf.replace_live(9999, ["a", "b", "c"]))
+  // Entry untouched on failure.
+  assert_eq(buf.get_entry(id).unwrap().live_lines(), ["l3"])
+}
+
+///|
+test "live_display_lines excludes committed lines" {
+  let buf = OutputBuffer::new()
+  ignore(buf.append(["a1", "a2"], OutputKind::Text))
+  ignore(buf.append(["b1", "b2"], OutputKind::Text))
+  ignore(buf.commit_oldest_lines(3))
+  assert_eq(buf.live_display_lines(), ["b2"])
+}
+
+///|
+test "live_display_lines projects collapsed entries to 5 rows" {
+  let buf = OutputBuffer::new()
+  let lines : Array[String] = []
+  for i in 1..<=20 {
+    lines.push("sys\{i}")
+  }
+  // System entries above the collapse threshold auto-collapse on append.
+  ignore(buf.append(lines, OutputKind::System))
+  let display = buf.live_display_lines()
+  assert_eq(display.length(), 5)
+  assert_eq(display[0], "sys1")
+  assert_eq(display[2], "sys3")
+  assert_eq(display[4], "sys20")
+}
+
+///|
+test "commit_oldest_display_lines commits collapsed entries whole" {
+  let buf = OutputBuffer::new()
+  ignore(buf.append(["a1", "a2"], OutputKind::Text))
+  let lines : Array[String] = []
+  for i in 1..<=20 {
+    lines.push("sys\{i}")
+  }
+  let sys_id = buf.append(lines, OutputKind::System)
+  ignore(buf.append(["z1"], OutputKind::Text))
+  // Commit 4 display rows: a1, a2 (2 raw rows) + the collapsed entry's
+  // 5-row projection, committed whole → returns 7, not 4.
+  let committed = buf.commit_oldest_display_lines(4)
+  assert_eq(committed, 7)
+  assert_true(buf.get_entry(sys_id).unwrap().is_committed())
+  assert_eq(buf.live_display_lines(), ["z1"])
+}

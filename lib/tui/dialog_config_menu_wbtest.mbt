@@ -223,3 +223,83 @@ test "config_menu: no truncation with default term_width (SPEC-07)" {
   assert_true(text.contains("A Very Long Label"))
   assert_false(text.contains("…"))
 }
+
+///|
+test "time_machine_menu: markers and cursor on current task" {
+  let tm = @agent.TimeMachineState::new("sess-menu")
+  ignore(tm.start_new_task(Some("first task")))
+  ignore(tm.start_new_task(Some("second task")))
+  ignore(tm.undo_last_task()) // current = task-001, task-002 undone
+  ignore(tm.start_new_task(Some("branch task")))
+  let dialog = ConfigMenuDialog::as_time_machine(tm.history_with_status())
+  assert_eq(dialog.title, "Time Machine - Select Task to Navigate")
+  assert_eq(dialog.items.length(), 3)
+  // ● current (task-003 branch), · on-path (task-001), ✗ undone (task-002)
+  assert_true(dialog.items[0].label.has_prefix("· "))
+  assert_true(dialog.items[1].label.has_prefix("✗ "))
+  assert_true(dialog.items[2].label.has_prefix("● "))
+  // Cursor lands on the current task (Ruby initial_index = active).
+  assert_eq(dialog.selected_idx, 2)
+  // Branch marker on task-001 (two children), undone suffix on task-002.
+  assert_true(dialog.items[0].label.contains("⎇"))
+  assert_true(dialog.items[1].label.contains("(undone)"))
+  // Summary text is shown.
+  assert_true(dialog.items[2].label.contains("branch task"))
+}
+
+///|
+test "mask_api_key_summary: 12+ char keys show first 8 and last 4" {
+  // "sk-ant-api03-abcdefghij" (23 chars)
+  let masked = mask_api_key_summary("sk-ant-api03-abcdefghij")
+  assert_eq(masked, "sk-ant-a" + "*".repeat(20) + "ghij")
+}
+
+///|
+test "mask_api_key_summary: short or empty keys render as (not set)" {
+  assert_eq(mask_api_key_summary(""), "(not set)")
+  assert_eq(mask_api_key_summary("short"), "(not set)")
+  assert_eq(mask_api_key_summary("12345678901"), "(not set)")
+}
+
+///|
+test "model drawer: card items mark active and expandable" {
+  let models = [
+    @config.ModelConfig::new("m1", "k1", "https://api.openai.com/v1", "gpt-4o"),
+    @config.ModelConfig::new(
+      "m2", "k2", "https://custom.example.com", "custom-x",
+    ),
+  ]
+  let items = build_model_card_items(models, Some("m1"))
+  assert_eq(items.length(), 2)
+  // OpenAI card has provider sub-models → expandable "›" marker.
+  assert_true(items[0].label.contains("(active)"))
+  assert_true(items[0].label.contains("›"))
+  assert_eq(items[0].value, "m1")
+  // Custom base_url has no provider preset → no drawer, no marker.
+  assert_true(!items[1].label.contains("›"))
+  assert_true(provider_submodels(models[1]).is_empty())
+}
+
+///|
+test "model drawer: sub-model items put Default first and mark overlay" {
+  let card = @config.ModelConfig::new(
+    "m1", "k1", "https://api.anthropic.com", "claude-sonnet-4-6",
+  )
+  // No overlay: Default is the active entry.
+  let items = build_submodel_items(card, None)
+  assert_true(items[0].label.has_prefix("Default (claude-sonnet-4-6)"))
+  assert_true(items[0].label.contains("(active)"))
+  assert_eq(items[0].value, "")
+  assert_true(items.length() > 2) // Default + provider sub-models
+  // Overlay pinned: the matching sub-model is active, Default is not.
+  let items2 = build_submodel_items(card, Some("claude-haiku-4-5"))
+  assert_true(!items2[0].label.contains("(active)"))
+  let mut found = false
+  for item in items2 {
+    if item.value == "claude-haiku-4-5" {
+      found = true
+      assert_true(item.label.contains("(active)"))
+    }
+  }
+  assert_true(found)
+}

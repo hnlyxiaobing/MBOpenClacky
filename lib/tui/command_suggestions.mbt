@@ -278,33 +278,17 @@ fn default_system_commands() -> Array[SuggestionItem] {
     { name: "/clear", description: "Clear message history", usage: "/clear" },
     {
       name: "/config",
-      description: "Open config menu or set a value",
-      usage: "/config [key value]",
+      description: "Open the configuration menu",
+      usage: "/config",
     },
     {
       name: "/model",
       description: "Open model selector or switch model",
       usage: "/model [name]",
     },
-    { name: "/new", description: "Start a new session", usage: "/new [title]" },
-    {
-      name: "/todo",
-      description: "Toggle todo area visibility",
-      usage: "/todo",
-    },
-    {
-      name: "/skills",
-      description: "Manage skills",
-      usage: "/skills <list|enable|disable>",
-    },
     { name: "/help", description: "Show available commands", usage: "/help" },
     { name: "/exit", description: "Exit the application", usage: "/exit" },
     { name: "/quit", description: "Quit (alias for exit)", usage: "/quit" },
-    {
-      name: "/meeting",
-      description: "Meeting summaries (managed in Web UI)",
-      usage: "/meeting",
-    },
     {
       name: "/theme",
       description: "Switch the color theme",

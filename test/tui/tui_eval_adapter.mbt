@@ -306,10 +306,6 @@ pub(all) struct TuiEvalSimulator {
   mut quit : Bool
   /// Screenshot history.
   mut screenshots : Array[String]
-  /// Status bar height.
-  status_h : Int
-  /// Input area height.
-  input_h : Int
   /// Pending confirmation result (Some(true)=approved, Some(false)=denied, None=pending).
   mut confirmation_result : Bool?
   /// Mock LLM response text for eval scenarios.
@@ -355,8 +351,6 @@ pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
     state,
     quit: false,
     screenshots: [],
-    status_h: 1,
-    input_h: 4,
     confirmation_result: None,
     mock_response: "",
     agent,
@@ -385,62 +379,159 @@ fn make_eval_agent() -> @agent.Agent {
     ),
   ]
   config.current_model_id = Some("eval-openai")
-  @agent.Agent::new("eval-session", "Eval Agent", "/tmp/eval", client, config)
+  let agent = @agent.Agent::new(
+    "eval-session", "Eval Agent", "/tmp/eval", client, config,
+  )
+  // Register a user-invocable test skill for skill slash-command scenarios.
+  agent.skill_registry.register({
+    ..@skill.Skill::default("test-skill", "builtin"),
+    description: Some("A test skill for eval"),
+    argument_hint: Some("<topic>"),
+  })
+  agent
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────
 
 ///|
+/// Number of todo-area rows rendered above the status bar (0 when hidden
+/// or empty), mirroring the production layout.
+fn TuiEvalSimulator::todo_row_count(self : TuiEvalSimulator) -> Int {
+  if self.state.val.todo_area.visible() {
+    self.state.val.todo_area.render_lines().length()
+  } else {
+    0
+  }
+}
+
+///|
+/// Height in rows of the bottom fixed area, mirroring the production
+/// layout (TuiController::fixed_area_height): todo (0-N) + status bar (1)
+/// + separator (1) + attachments (0-N) + input lines (1-N wrapped at 90%
+/// width) + separator (1). The simulator has no suggestions dropdown or
+/// tips row.
+fn TuiEvalSimulator::fixed_area_height(self : TuiEvalSimulator) -> Int {
+  let content_width = @libtui.effective_content_width(self.screen.width)
+  let input_rows = self.input.render_wrapped_lines(content_width).length()
+  let attach_rows = self.state.val.paste_placeholders.length()
+  self.todo_row_count() + 1 + 1 + attach_rows + input_rows + 1
+}
+
+///|
+/// 1-based row of the status bar (after the todo rows in the fixed area).
+fn TuiEvalSimulator::status_row(self : TuiEvalSimulator) -> Int {
+  self.screen.height - self.fixed_area_height() + 1 + self.todo_row_count()
+}
+
+///|
+/// 1-based row where the bottom fixed area starts (todo rows or status bar).
+fn TuiEvalSimulator::first_fixed_row(self : TuiEvalSimulator) -> Int {
+  self.status_row() - self.todo_row_count()
+}
+
+///|
+/// 1-based row where the (wrapped) input lines start.
+fn TuiEvalSimulator::input_top_row(self : TuiEvalSimulator) -> Int {
+  // status row + separator + attachment rows
+  self.status_row() + 2 + self.state.val.paste_placeholders.length()
+}
+
+///|
 /// Full screen redraw using VirtualScreen (synchronous).
 pub fn TuiEvalSimulator::full_redraw(self : TuiEvalSimulator) -> Unit {
   self.screen.clear_display()
-  self.render_status()
   self.render_output()
+  self.render_fixed_area()
   self.render_confirmation()
   self.render_config_dialog()
-  self.render_input()
 }
 
 ///|
-/// Render status bar at row 1.
-fn TuiEvalSimulator::render_status(self : TuiEvalSimulator) -> Unit {
+/// Render the bottom fixed area: todo rows, status bar, separator,
+/// attachments, input lines, separator (aligned with the production layout).
+fn TuiEvalSimulator::render_fixed_area(self : TuiEvalSimulator) -> Unit {
+  let status_row = self.status_row()
+  if status_row < 1 {
+    return
+  }
+  // Todo rows directly above the status bar
+  if self.state.val.todo_area.visible() {
+    let mut trow = status_row - self.todo_row_count()
+    for line in self.state.val.todo_area.render_lines() {
+      if trow < 1 {
+        break
+      }
+      self.screen.move_cursor(trow, 1)
+      self.screen.clear_to_eol()
+      self.screen.write_string(line)
+      trow = trow + 1
+    }
+  }
+  // Status bar
   self.status_bar.format_from_state(self.state.val)
-  let text = self.status_bar.plain_text()
-  self.screen.render_status_text(text)
+  self.screen.move_cursor(status_row, 1)
+  self.screen.clear_to_eol()
+  self.screen.write_string(self.status_bar.plain_text())
+  // Separator
+  self.screen.move_cursor(status_row + 1, 1)
+  self.screen.clear_to_eol()
+  self.screen.write_string("─".repeat(self.screen.width))
+  // Attachment rows: one dim row per stored paste placeholder
+  let mut row = status_row + 2
+  for pair in self.state.val.paste_placeholders {
+    let (num, text) = pair
+    if row > self.screen.height {
+      break
+    }
+    self.screen.move_cursor(row, 1)
+    self.screen.clear_to_eol()
+    self.screen.write_string(
+      "  [#\{num} Paste Text] \{@libtui.paste_line_count(text)} lines",
+    )
+    row = row + 1
+  }
+  // Input lines (auto-wrapped at 90% width, borderless)
+  let content_width = @libtui.effective_content_width(self.screen.width)
+  for line in self.input.render_wrapped_lines(content_width) {
+    if row > self.screen.height {
+      break
+    }
+    self.screen.move_cursor(row, 1)
+    self.screen.clear_to_eol()
+    self.screen.write_string(line)
+    row = row + 1
+  }
+  // Bottom separator
+  if row <= self.screen.height {
+    self.screen.move_cursor(row, 1)
+    self.screen.clear_to_eol()
+    self.screen.write_string("─".repeat(self.screen.width))
+  }
 }
 
 ///|
-/// Render output/message area between status bar and input area.
+/// Render output/message area above the bottom fixed area.
 fn TuiEvalSimulator::render_output(self : TuiEvalSimulator) -> Unit {
-  let msg_top = self.status_h + 1
-  let msg_bottom = self.screen.height - self.input_h
-  let msg_height = msg_bottom - msg_top + 1
+  let msg_height = self.first_fixed_row() - 1
   if msg_height < 1 {
     return
   }
   let tail = self.output.tail_lines(msg_height)
-  self.screen.render_output_lines(tail, msg_top, msg_height)
+  self.screen.render_output_lines(tail, 1, msg_height)
 }
 
 ///|
-/// Render pending confirmation dialog above the input area.
+/// Render pending confirmation dialog above the fixed area.
 fn TuiEvalSimulator::render_confirmation(self : TuiEvalSimulator) -> Unit {
   if @libtui.has_pending_confirmation(self.state.val) {
     let line = @libtui.render_confirmation_line(self.state.val)
-    let row = self.screen.height - self.input_h
-    if row >= self.status_h + 1 {
+    let row = self.first_fixed_row() - 1
+    if row >= 1 {
       self.screen.move_cursor(row, 1)
       self.screen.clear_to_eol()
       self.screen.write_string(line)
     }
   }
-}
-
-///|
-/// Render input area with border at the bottom.
-fn TuiEvalSimulator::render_input(self : TuiEvalSimulator) -> Unit {
-  let input_lines = self.input.render_lines()
-  self.screen.render_input_area(input_lines)
 }
 
 ///|
@@ -462,7 +553,8 @@ pub fn TuiEvalSimulator::type_text(
   for ch in text.iter() {
     self.input.insert_char(ch)
   }
-  self.render_input()
+  // Input height can grow/shrink with wrapping, so redraw the whole screen.
+  self.full_redraw()
 }
 
 ///|
@@ -473,6 +565,134 @@ pub fn TuiEvalSimulator::press_key(
 ) -> Unit {
   // If a config/model dialog is active, route dialog keys first
   match self.state.val.dialog {
+    @libtui.DialogState::ModelDrawer(level~, dialog~, card_id~, ..) =>
+      match key {
+        "j" | "Down" => {
+          dialog.move_down()
+          self.full_redraw()
+          return
+        }
+        "k" | "Up" => {
+          dialog.move_up()
+          self.full_redraw()
+          return
+        }
+        "Right" | "l" =>
+          if level is Cards {
+            self.try_open_submodel_drawer(dialog)
+            self.full_redraw()
+            return
+          }
+        "Enter" => {
+          match level {
+            @libtui.ModelDrawerLevel::Cards =>
+              match dialog.get_selected() {
+                Some(item) => {
+                  let mut expandable = false
+                  for m in self.agent.config.models {
+                    if m.id == item.value &&
+                      @libtui.provider_submodels(m).length() > 0 {
+                      expandable = true
+                    }
+                  }
+                  if expandable {
+                    self.try_open_submodel_drawer(dialog)
+                  } else {
+                    self.apply_model_card_switch(item.value, None)
+                  }
+                }
+                None => ()
+              }
+            @libtui.ModelDrawerLevel::SubModels =>
+              match dialog.get_selected() {
+                Some(item) => {
+                  let sub_model = if item.value.length() == 0 {
+                    None
+                  } else {
+                    Some(item.value)
+                  }
+                  self.apply_model_card_switch(card_id, sub_model)
+                }
+                None => ()
+              }
+          }
+          self.full_redraw()
+          return
+        }
+        "Left" | "Escape" => {
+          if level is SubModels {
+            @libtui.open_model_selector(self.state.val, self.agent)
+          } else {
+            @libtui.close_config_dialog(self.state.val)
+          }
+          self.full_redraw()
+          return
+        }
+        _ => ()
+      }
+    @libtui.DialogState::TimeMachineMenu(dialog) =>
+      match key {
+        "Escape" => {
+          @libtui.close_config_dialog(self.state.val)
+          self.full_redraw()
+          return
+        }
+        "j" | "Down" => {
+          dialog.move_down()
+          self.full_redraw()
+          return
+        }
+        "k" | "Up" => {
+          dialog.move_up()
+          self.full_redraw()
+          return
+        }
+        "Enter" => {
+          // Mirror the controller's time machine switch (no disk apply,
+          // no session save in eval).
+          match dialog.get_selected() {
+            Some(item) => {
+              let target_num = @agent.task_num_of(item.value)
+              let cur_num = match self.state.val.time_machine.current_task_id {
+                Some(id) => @agent.task_num_of(id)
+                None => 0
+              }
+              let direction = if target_num < cur_num {
+                "Undoing"
+              } else {
+                "Redoing"
+              }
+              ignore(
+                self.output.append_text(
+                  "[system] \{direction} to Task \{target_num}...",
+                  @libtui.OutputKind::Text,
+                ),
+              )
+              match self.state.val.time_machine.switch_to_task(item.value) {
+                Ok(entries) =>
+                  ignore(
+                    self.output.append_text(
+                      "[system] ✓ Switched to \{item.value}: restored \{entries.length()} file(s)",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+                Err(msg) =>
+                  ignore(
+                    self.output.append_text(
+                      "[error] \{msg}",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+              }
+            }
+            None => ()
+          }
+          @libtui.close_config_dialog(self.state.val)
+          self.full_redraw()
+          return
+        }
+        _ => ()
+      }
     @libtui.DialogState::ConfigMenu(dialog) =>
       match key {
         "Escape" => {
@@ -590,29 +810,46 @@ pub fn TuiEvalSimulator::press_key(
           return
         }
         "Enter" => {
-          // Mirror the real controller's form submit (no disk save in eval)
-          match form.validate() {
-            Some(err) =>
+          // Mirror the controller: merge form values (Edit falls back to
+          // existing values), then apply directly — the connection test is
+          // mocked as successful in eval (no network).
+          let existing = match action {
+            @libtui.ConfigAction::Edit =>
+              if target_idx >= 0 &&
+                target_idx < self.agent.config.models.length() {
+                Some(self.agent.config.models[target_idx])
+              } else {
+                None
+              }
+            @libtui.ConfigAction::Add => None
+          }
+          match
+            @libtui.merge_config_form_values(
+              action,
+              form.collect_values(),
+              existing,
+            ) {
+            Err(err) =>
               ignore(
                 self.output.append_text(
                   "[error] \{err}",
                   @libtui.OutputKind::Text,
                 ),
               )
-            None => {
-              let values = form.collect_values()
+            Ok(pending) => {
               match action {
                 @libtui.ConfigAction::Add => {
                   let new_model = @config.ModelConfig::new(
-                    values[0].1,
-                    values[2].1,
-                    values[3].1,
-                    values[1].1,
+                    pending.name,
+                    pending.api_key,
+                    pending.base_url,
+                    pending.model,
                   )
+                  new_model.anthropic_format = pending.anthropic_format
                   self.agent.config.add_model(new_model)
                   ignore(
                     self.output.append_text(
-                      "[system] Model '\{values[0].1}' added",
+                      "[system] Model '\{pending.name}' added",
                       @libtui.OutputKind::Text,
                     ),
                   )
@@ -624,9 +861,9 @@ pub fn TuiEvalSimulator::press_key(
                     let updated : @config.ModelConfig = {
                       id: existing.id,
                       type_: existing.type_,
-                      api_key: values[1].1,
-                      base_url: values[2].1,
-                      model: values[0].1,
+                      api_key: pending.api_key,
+                      base_url: pending.base_url,
+                      model: pending.model,
                       anthropic_format: existing.anthropic_format,
                       runtime_id: existing.runtime_id,
                       media_type: existing.media_type,
@@ -644,6 +881,23 @@ pub fn TuiEvalSimulator::press_key(
                       ),
                     )
                   }
+              }
+              // Configuration summary (mirrors print_config_summary)
+              match self.agent.config.current_model() {
+                Some(m) => {
+                  let format = if m.anthropic_format {
+                    "Anthropic"
+                  } else {
+                    "OpenAI"
+                  }
+                  ignore(
+                    self.output.append_text(
+                      "[system] Configuration updated!\n  Current Model: \{m.model}\n  API Key: \{@libtui.mask_api_key_summary(m.api_key)}\n  Base URL: \{m.base_url}\n  Format: \{format}",
+                      @libtui.OutputKind::Text,
+                    ),
+                  )
+                }
+                None => ()
               }
               @libtui.return_to_config_menu(self.state.val, self.agent, mode)
             }
@@ -758,10 +1012,17 @@ pub fn TuiEvalSimulator::press_key(
     "Down" => self.input.cursor_down()
     "Home" => self.input.cursor_home()
     "End" => self.input.cursor_end()
+    "Escape" =>
+      // ESC with nothing to dismiss: open the Time Machine menu
+      // (mirrors the controller; Ruby ui2 input_area.rb:255-262).
+      if @libtui.open_time_machine_menu(self.state.val) {
+        self.full_redraw()
+        return
+      }
     _ => ()
   }
   if key != "Enter" {
-    self.render_input()
+    self.full_redraw()
   }
 }
 
@@ -780,6 +1041,20 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
       self.quit = true
       return
     }
+    // "?" is an alias for /help (mirrors the controller; Ruby
+    // input_area.rb:824-827).
+    if trimmed == "?" {
+      match @libtui.execute(@libtui.SlashCommand::Help, self.agent) {
+        Ok(msg) =>
+          ignore(self.output.append_text(msg, @libtui.OutputKind::Text))
+        Err(err) =>
+          ignore(
+            self.output.append_text("[error] \{err}", @libtui.OutputKind::Text),
+          )
+      }
+      self.full_redraw()
+      return
+    }
     // Route slash commands through the shared parser, mirroring the real
     // controller's behavior (TuiController::handle_enter_key).
     if text[0:1] == "/" {
@@ -788,8 +1063,40 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
           self.handle_slash_command(cmd)
           return
         }
-        // Not a valid slash command — fall through as regular input.
-        Err(_) => ()
+        // Not a static command — try the skill registry (priority:
+        // static command > skill > regular input).
+        Err(_) =>
+          match self.agent.skill_registry.find_skill_command(text) {
+            Some((skill, args)) => {
+              // Mirror the controller's skill invocation display (no real
+              // agent run in eval): show the command, then a mock reply.
+              ignore(
+                self.output.append_text(
+                  "[user] \{text}",
+                  @libtui.OutputKind::Text,
+                ),
+              )
+              ignore(self.state.val.time_machine.start_new_task(Some(text)))
+              let arg_note = if args.length() > 0 {
+                " with arguments: \{args}"
+              } else {
+                ""
+              }
+              ignore(
+                self.output.append_text(
+                  "[system] Invoked skill: /\{skill.name}\{arg_note}",
+                  @libtui.OutputKind::Text,
+                ),
+              )
+              match self.output.last_entry_id() {
+                Some(id) => self.output.commit_through(id)
+                None => ()
+              }
+              self.full_redraw()
+              return
+            }
+            None => ()
+          }
       }
     }
     // Add user message to output
@@ -803,6 +1110,8 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     }
     // Update state
     self.state.val.mode = @libtui.TuiMode::Running
+    // Auto-show the todo area while the agent works (mirrors the controller)
+    self.state.val.todo_area.show()
     // Simulate agent response (append mock response)
     let response_text = if self.mock_response.length() > 0 {
       self.mock_response
@@ -821,9 +1130,61 @@ fn TuiEvalSimulator::handle_enter(self : TuiEvalSimulator) -> Unit {
     }
     // Reset state
     self.state.val.mode = @libtui.TuiMode::Idle
+    // Auto-hide the todo area on idle (mirrors the controller)
+    self.state.val.todo_area.hide()
     self.state.val.agent_status.set("idle")
     // Full redraw
     self.full_redraw()
+  }
+}
+
+///|
+/// Open the sub-model drawer for the selected card when expandable (eval
+/// mirror of the controller's try_open_submodel_drawer).
+fn TuiEvalSimulator::try_open_submodel_drawer(
+  self : TuiEvalSimulator,
+  dialog : @libtui.ConfigMenuDialog,
+) -> Unit {
+  match dialog.get_selected() {
+    Some(item) =>
+      for m in self.agent.config.models {
+        if m.id == item.value && @libtui.provider_submodels(m).length() > 0 {
+          @libtui.open_submodel_drawer(self.state.val, self.agent, m)
+        }
+      }
+    None => ()
+  }
+}
+
+///|
+/// Apply a card switch (+ optional sub-model overlay) in eval: no disk
+/// persistence, everything else mirrors the controller.
+fn TuiEvalSimulator::apply_model_card_switch(
+  self : TuiEvalSimulator,
+  card_id : String,
+  sub_model : String?,
+) -> Unit {
+  match self.agent.config.switch_model_by_id(card_id) {
+    Ok(_) => {
+      self.agent.rebuild_client_from_config()
+      self.agent.set_session_sub_model(sub_model)
+      self.state.val.model_name = self.agent.client.model
+      let sub_note = match sub_model {
+        Some(s) => " (sub-model: \{s})"
+        None => ""
+      }
+      ignore(
+        self.output.append_text(
+          "[system] Model switched to: \{self.agent.client.model}\{sub_note}",
+          @libtui.OutputKind::Text,
+        ),
+      )
+      @libtui.close_config_dialog(self.state.val)
+    }
+    Err(msg) =>
+      ignore(
+        self.output.append_text("[error] \{msg}", @libtui.OutputKind::Text),
+      )
   }
 }
 
@@ -839,16 +1200,7 @@ fn TuiEvalSimulator::handle_slash_command(
       self.on_exit_save()
       self.quit = true
     }
-    Todo => {
-      // Toggle todo area visibility
-      if self.state.val.todo_area.hidden {
-        self.state.val.todo_area.show()
-      } else {
-        self.state.val.todo_area.hide()
-      }
-      self.full_redraw()
-    }
-    Theme(name~) => {
+    @libtui.SlashCommand::Theme(name~) => {
       ignore(
         self.output.append_text(
           "[system] Theme switched to: \{name}",
@@ -861,51 +1213,41 @@ fn TuiEvalSimulator::handle_slash_command(
       }
       self.full_redraw()
     }
-    @libtui.SlashCommand::Undo => {
-      // Show task history from the time machine
-      let tasks = self.state.val.time_machine.get_task_history()
-      if tasks.length() == 0 {
+    @libtui.SlashCommand::Undo =>
+      // Open the interactive Time Machine menu (mirrors the controller);
+      // info line when there is no history.
+      if @libtui.open_time_machine_menu(self.state.val) {
+        self.full_redraw()
+      } else {
         ignore(
           self.output.append_text(
             "[system] No tasks in history to undo",
             @libtui.OutputKind::Text,
           ),
         )
-      } else {
-        let lines : Array[String] = ["[system] Task history (time machine):"]
-        for t in tasks {
-          let desc = match t.description {
-            Some(d) => d
-            None => "(no description)"
-          }
-          lines.push("  \{t.task_id}: \{desc}")
-        }
-        match self.state.val.time_machine.undo_last_task() {
-          Ok(entries) =>
-            lines.push(
-              "[system] Undo complete: restored \{entries.length()} file(s)",
-            )
-          Err(msg) => lines.push("[system] Undo failed: \{msg}")
-        }
-        ignore(
-          self.output.append_text(lines.join("\n"), @libtui.OutputKind::Text),
-        )
+        self.full_redraw()
       }
-      self.full_redraw()
-    }
     Clear => {
-      // Clear the agent history (like the real controller) and the visible
-      // output buffer so the message area is empty afterwards.
+      // New-session semantics (mirrors the controller): agent resets in
+      // place via execute, TUI-side session state resets alongside, and
+      // the output buffer shows only the fresh-start notice.
       ignore(@libtui.execute(cmd, self.agent))
+      @libtui.reset_tui_session_state(self.state.val, self.agent)
       self.output.clear()
+      ignore(
+        self.output.append_text(
+          "[system] Session cleared. Starting fresh.",
+          @libtui.OutputKind::Text,
+        ),
+      )
       self.full_redraw()
     }
-    @libtui.SlashCommand::Config(key~, ..) if key == "" => {
+    @libtui.SlashCommand::Config => {
       // No-arg /config: open config menu dialog
       if self.agent.config.models.length() == 0 {
         ignore(
           self.output.append_text(
-            "[system] No models configured. Use /config <key> <value> to set options.",
+            "[system] No models configured. Use /config to open the configuration menu.",
             @libtui.OutputKind::Text,
           ),
         )
@@ -929,6 +1271,24 @@ fn TuiEvalSimulator::handle_slash_command(
       }
       @libtui.open_model_selector(self.state.val, self.agent)
       self.render_config_dialog()
+    }
+    @libtui.SlashCommand::Model(_) => {
+      // With-arg /model: execute the shared switch path, then mirror the
+      // controller's status-bar sync (disk persistence is skipped in eval).
+      let result = @libtui.execute(cmd, self.agent)
+      match result {
+        Ok(msg) => {
+          self.state.val.model_name = self.agent.client.model
+          ignore(
+            self.output.append_text("[system] \{msg}", @libtui.OutputKind::Text),
+          )
+        }
+        Err(err) =>
+          ignore(
+            self.output.append_text("[error] \{err}", @libtui.OutputKind::Text),
+          )
+      }
+      self.full_redraw()
     }
     _ => {
       let result = @libtui.execute(cmd, self.agent)
@@ -1134,7 +1494,7 @@ pub fn TuiEvalSimulator::check_assertion(
       let detail = if passed {
         ""
       } else {
-        "Status: '\{self.screen.get_row_trimmed(1)}'"
+        "Status: '\{self.screen.get_row_trimmed(self.status_row())}'"
       }
       { description: desc, passed, detail }
     }
@@ -1160,22 +1520,25 @@ pub fn TuiEvalSimulator::check_assertion(
 }
 
 ///|
-/// Check if the status region (row 1) contains text.
+/// Check if the status bar row (first row of the bottom fixed area)
+/// contains text.
 fn TuiEvalSimulator::check_status_region(
   self : TuiEvalSimulator,
   text : String,
 ) -> Bool {
-  self.screen.row_contains(1, text)
+  self.screen.row_contains(self.status_row(), text)
 }
 
 ///|
-/// Check if the input region (bottom 4 rows) contains text.
+/// Check if the input region (the wrapped input lines) contains text.
 fn TuiEvalSimulator::check_input_region(
   self : TuiEvalSimulator,
   text : String,
 ) -> Bool {
-  let top = self.screen.height - self.input_h + 1
-  for row = top; row <= self.screen.height; row = row + 1 {
+  let content_width = @libtui.effective_content_width(self.screen.width)
+  let input_rows = self.input.render_wrapped_lines(content_width).length()
+  let top = self.input_top_row()
+  for row = top; row < top + input_rows; row = row + 1 {
     if self.screen.row_contains(row, text) {
       return true
     }
@@ -1184,14 +1547,13 @@ fn TuiEvalSimulator::check_input_region(
 }
 
 ///|
-/// Check if the output region (between status and input) contains text.
+/// Check if the output region (above the bottom fixed area) contains text.
 fn TuiEvalSimulator::check_output_region(
   self : TuiEvalSimulator,
   text : String,
 ) -> Bool {
-  let top = self.status_h + 1
-  let bottom = self.screen.height - self.input_h
-  for row = top; row <= bottom; row = row + 1 {
+  let bottom = self.first_fixed_row() - 1
+  for row = 1; row <= bottom; row = row + 1 {
     if self.screen.row_contains(row, text) {
       return true
     }
@@ -1203,7 +1565,9 @@ fn TuiEvalSimulator::check_output_region(
 /// Render active config/model dialog as text lines on the VirtualScreen.
 fn TuiEvalSimulator::render_config_dialog(self : TuiEvalSimulator) -> Unit {
   match self.state.val.dialog {
-    @libtui.DialogState::ConfigMenu(dialog) => {
+    @libtui.DialogState::ConfigMenu(dialog)
+    | @libtui.DialogState::TimeMachineMenu(dialog)
+    | @libtui.DialogState::ModelDrawer(dialog~, ..) => {
       let lines : Array[String] = []
       lines.push("┌── \{dialog.title} ──┐")
       for i in 0..<dialog.items.length() {
@@ -1240,16 +1604,17 @@ fn form_lines(form : @libtui.FormDialog) -> Array[String] {
 }
 
 ///|
-/// Write dialog lines above the input area (rows are clamped to the
+/// Write dialog lines above the bottom fixed area (rows are clamped to the
 /// drawable area, protecting against a negative base row).
 fn TuiEvalSimulator::write_dialog_lines(
   self : TuiEvalSimulator,
   lines : Array[String],
 ) -> Unit {
-  let base_row = self.screen.height - self.input_h - lines.length()
+  let bottom = self.first_fixed_row() - 1
+  let base_row = bottom - lines.length() + 1
   for i in 0..<lines.length() {
     let row = base_row + i
-    if row >= 2 && row <= self.screen.height - self.input_h {
+    if row >= 1 && row <= bottom {
       self.screen.move_cursor(row, 1)
       self.screen.clear_to_eol()
       self.screen.write_string(lines[i])
@@ -1258,14 +1623,13 @@ fn TuiEvalSimulator::write_dialog_lines(
 }
 
 ///|
-/// Check if the dialog region (rows above input area) contains text.
+/// Check if the dialog region (rows above the bottom fixed area) contains text.
 fn TuiEvalSimulator::check_dialog_region(
   self : TuiEvalSimulator,
   text : String,
 ) -> Bool {
-  let top = self.status_h + 1
-  let bottom = self.screen.height - self.input_h
-  for row = top; row <= bottom; row = row + 1 {
+  let bottom = self.first_fixed_row() - 1
+  for row = 1; row <= bottom; row = row + 1 {
     if self.screen.row_contains(row, text) {
       return true
     }

@@ -1,1 +1,24 @@
-{"name": "undo_command", "description": "After submitting a message (starts a time-machine task), /undo shows task history and performs undo", "setup": {"cols": 80, "rows": 24}, "actions": [{"type": "type", "text": "hello"}, {"type": "press", "key": "Enter"}, {"type": "type", "text": "/undo"}, {"type": "press", "key": "Enter"}], "assertions": [{"check": "output_contains", "text": "Task history"}, {"check": "output_contains", "text": "Undo complete"}]}
+{
+  "name": "undo_command",
+  "description": "/undo opens the Time Machine menu; selecting an earlier task performs the switch (undo direction)",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "first task" },
+    { "type": "press", "key": "Enter" },
+    { "type": "type", "text": "second task" },
+    { "type": "press", "key": "Enter" },
+    { "type": "type", "text": "/undo" },
+    { "type": "press", "key": "Enter" },
+    { "type": "assert", "check": "dialog_contains", "text": "Time Machine" },
+    { "type": "assert", "check": "dialog_contains", "text": "●" },
+    { "type": "press", "key": "k" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "Undoing to Task 1" },
+    { "check": "output_contains", "text": "Switched to task-001" }
+  ]
+}

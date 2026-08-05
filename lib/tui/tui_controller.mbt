@@ -44,7 +44,6 @@ pub(all) struct TuiController {
   mut agent_task : @async.Task[@agent.RunResult]?
   thinking_animator : ThinkingVerbAnimator
   mut last_thinking_len : Int
-  file_browser : FileBrowser
   agent_output_sync : AgentOutputSync
   mut theme : Theme
   suggestions : CommandSuggestions
@@ -53,8 +52,10 @@ pub(all) struct TuiController {
   mut suggestions_rows_drawn : Array[Int]
   /// Terminal rows currently occupied by progress indicator lines.
   mut progress_rows_drawn : Array[Int]
-  mut scroll_offset : Int
-  mut brand_layout : BrandLayout
+  /// System tips row state (2s auto-clear via Tick).
+  tips : TipsState
+  /// Config form submit awaiting its connection test result.
+  mut pending_config_test : PendingConfigTest?
 }
 
 ///|
@@ -88,15 +89,30 @@ pub fn TuiController::new(
     agent_task: None,
     thinking_animator: ThinkingVerbAnimator::new(),
     last_thinking_len: 0,
-    file_browser: FileBrowser::new(state.val.working_dir),
     agent_output_sync: AgentOutputSync::new(),
     theme: Theme::default_(),
     suggestions: build_command_suggestions(),
     suggestions_active: false,
     suggestions_rows_drawn: [],
     progress_rows_drawn: [],
-    scroll_offset: 0,
-    brand_layout: GeminiLike,
+    tips: TipsState::new(),
+    pending_config_test: None,
+  }
+  // Merge user-invocable skills into the Tab-completion view (Ruby
+  // skills_by_command): they appear alongside the static slash commands
+  // with their description and argument hint.
+  for skill in agent.skill_registry.list_user_invocable() {
+    controller.suggestions.add_command(SuggestionItem::{
+      name: "/\{skill.name}",
+      description: match skill.description {
+        Some(d) => d
+        None => "Skill"
+      },
+      usage: match skill.argument_hint {
+        Some(h) => h
+        None => ""
+      },
+    })
   }
   // Register render_effect to auto-set dirty when Signal fields change
   let _ = @mizchi/signals.render_effect(fn() {
@@ -214,11 +230,7 @@ pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
 pub async fn TuiController::redraw(self : TuiController) -> Unit {
   // With VNode diff-based rendering, every render is incremental.
   // The diff engine writes only changed cells to the terminal.
-  let ov = self.output.version
-  if ov != self.last_output_version {
-    self.last_output_version = ov
-    self.scroll_offset = 0 // Reset scroll on new output
-  }
+  self.last_output_version = self.output.version
   self.full_redraw_vnode()
 }
 
@@ -295,11 +307,7 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
     terminal_width=self.term_width,
   )
   ignore(self.output.append_text(startup_banner, OutputKind::Text))
-  self.tty.with_raw_mode(() => {
-    self.tty.with_mouse(@tty.MouseTrackingMode::Drag, () => {
-      self.async_event_loop(req_q, resp_q)
-    })
-  })
+  self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q))
 }
 
 ///|
@@ -409,6 +417,9 @@ async fn TuiController::main_loop(
         self.agent_running = false
         self.agent_task = None
         self.state.val.mode = TuiMode::Idle
+        // Auto-hide the todo area on idle (data preserved; Ruby ui2
+        // set_idle_status → hide_todos).
+        self.state.val.todo_area.hide()
         self.state.val.total_cost = result.total_cost_usd
         self.state.val.iterations = result.iterations
         // Mirror finalized "[assistant]" replies into the output buffer
@@ -428,6 +439,8 @@ async fn TuiController::main_loop(
         self.agent_running = false
         self.agent_task = None
         self.state.val.mode = TuiMode::Idle
+        // Auto-hide the todo area on idle (same as AgentDone).
+        self.state.val.todo_area.hide()
         ignore(
           self.agent_output_sync.sync_messages(
             self.state.val.messages,
@@ -440,9 +453,17 @@ async fn TuiController::main_loop(
         self.dirty = true
       }
       SubmitInput(text) => self.start_agent(group, text)
+      StartConnectionTest(pending) => self.start_connection_test(group, pending)
+      ConnectionTestDone(success, message) =>
+        self.finish_connection_test(success, message)
       Tick => {
         // Increment tick counter for spinner animation
         self.state.val.tick_count = self.state.val.tick_count + 1
+        // System tips auto-clear 2s (10 ticks) after being set
+        if self.tips.is_expired(self.state.val.tick_count) {
+          self.tips.clear()
+          self.dirty = true
+        }
         // Poll the streaming buffer — hooks update it via Ref, bypassing
         // the event queue, so the Tick timer drives live reply rendering.
         // Note: dirty flag is auto-set by render_effect when Signal fields change
@@ -502,7 +523,7 @@ async fn TuiController::handle_input(
       self.update_suggestions()
       self.dirty = true
     }
-    Mouse(ev) => self.handle_mouse(ev)
+    Mouse(_) => ()
     FocusIn => ()
     FocusOut => ()
     Unknown(_) => ()
@@ -532,6 +553,7 @@ async fn TuiController::handle_key(
         self.agent_task = None
         self.agent_running = false
         self.state.val.mode = TuiMode::Idle
+        self.state.val.todo_area.hide()
         self.dirty = true
       }
       Char('y') | Char('Y') => {
@@ -631,55 +653,91 @@ async fn TuiController::handle_key(
     }
     return
   }
-  // File browser mode: intercept navigation keys
-  if self.state.val.shell_mode is FileBrowser {
-    match key.code {
-      Char('c') if key.modifiers.ctrl() =>
-        match self.agent_task {
-          Some(t) => {
-            t.cancel()
-            self.agent_task = None
-            self.agent_running = false
-            self.state.val.mode = TuiMode::Idle
-            self.dirty = true
-          }
-          None => self.quit = true
-        }
-      Up => {
-        self.file_browser.move_up()
-        self.dirty = true
-      }
-      Down => {
-        self.file_browser.move_down()
-        self.dirty = true
-      }
-      Enter => {
-        self.file_browser.enter_selected()
-        self.dirty = true
-      }
-      Backspace => {
-        self.file_browser.go_parent()
-        self.dirty = true
-      }
-      Escape => {
-        self.state.val.shell_mode = ShellMode::Chat
-        self.full_redraw()
-      }
-      Tab => {
-        let new_mode = cycle_shell_mode(self.state.val.shell_mode)
-        self.state.val.shell_mode = new_mode
-        if new_mode is ShellMode::FileBrowser {
-          self.file_browser.current_path = self.state.val.working_dir
-          self.file_browser.load_dir()
-        }
-        self.full_redraw()
-      }
-      _ => ()
-    }
-    return
-  }
   // Config menu dialog: intercept all keys
   match self.state.val.dialog {
+    ModelDrawer(level~, dialog~, card_id~, ..) => {
+      match key.code {
+        Char('j') | Down => {
+          dialog.move_down()
+          self.dirty = true
+        }
+        Char('k') | Up => {
+          dialog.move_up()
+          self.dirty = true
+        }
+        Right | Char('l') =>
+          // → opens the sub-model drawer for expandable cards only.
+          if level is Cards {
+            match dialog.get_selected() {
+              Some(item) => self.try_open_submodel_drawer(item.value)
+              None => ()
+            }
+          }
+        Enter =>
+          match level {
+            Cards =>
+              match dialog.get_selected() {
+                Some(item) =>
+                  if self.card_is_expandable(item.value) {
+                    self.try_open_submodel_drawer(item.value)
+                  } else {
+                    // No provider sub-models: plain card switch (clear
+                    // any sub-model overlay), same as before.
+                    self.apply_model_card_switch(item.value, None)
+                  }
+                None => ()
+              }
+            SubModels =>
+              match dialog.get_selected() {
+                Some(item) => {
+                  // "Default (<card model>)" has an empty value: clear the
+                  // overlay; a named entry pins it as the session overlay.
+                  let sub_model = if item.value.length() == 0 {
+                    None
+                  } else {
+                    Some(item.value)
+                  }
+                  self.apply_model_card_switch(card_id, sub_model)
+                }
+                None => ()
+              }
+          }
+        Left | Escape =>
+          if level is SubModels {
+            // ← / Esc in the drawer: back to the card list.
+            open_model_selector(self.state.val, self.agent)
+            self.dirty = true
+          } else {
+            close_config_dialog(self.state.val)
+            self.dirty = true
+          }
+        _ => ()
+      }
+      return
+    }
+    TimeMachineMenu(dialog) => {
+      match key.code {
+        Char('j') | Down => {
+          dialog.move_down()
+          self.dirty = true
+        }
+        Char('k') | Up => {
+          dialog.move_up()
+          self.dirty = true
+        }
+        Enter => {
+          self.perform_time_machine_switch(dialog)
+          self.dirty = true
+          self.redraw()
+        }
+        Escape => {
+          close_config_dialog(self.state.val)
+          self.dirty = true
+        }
+        _ => ()
+      }
+      return
+    }
     ConfigMenu(dialog) => {
       match key.code {
         Char('j') | Down => {
@@ -713,6 +771,7 @@ async fn TuiController::handle_key(
                       OutputKind::Text,
                     ),
                   )
+                  self.print_config_summary()
                 }
                 Err(msg) =>
                   ignore(
@@ -768,76 +827,52 @@ async fn TuiController::handle_key(
       return
     }
     ConfigForm(mode~, form~, action~, target_idx~) => {
+      // While a connection test is in flight the form is read-only.
+      if self.pending_config_test is Some(_) {
+        return
+      }
       match key.code {
         Tab => {
           form.next_field()
           self.dirty = true
         }
-        Enter =>
-          match form.validate() {
-            Some(err) => {
+        Enter => {
+          // Merge values per the Ruby validator rules (Edit falls back to
+          // existing values for empty fields; Add requires all fields),
+          // then validate the credentials with a live connection test
+          // before saving anything.
+          let existing = match action {
+            Edit =>
+              if target_idx >= 0 &&
+                target_idx < self.agent.config.models.length() {
+                Some(self.agent.config.models[target_idx])
+              } else {
+                None
+              }
+            Add => None
+          }
+          match
+            merge_config_form_values(action, form.collect_values(), existing) {
+            Err(err) => {
               ignore(
                 self.output.append_text("[error] \{err}", OutputKind::Text),
               )
               self.dirty = true
             }
-            None => {
-              let values = form.collect_values()
-              match action {
-                Add => {
-                  let name = values[0].1
-                  let model_name = values[1].1
-                  let api_key = values[2].1
-                  let base_url = values[3].1
-                  let new_model = @config.ModelConfig::new(
-                    name, api_key, base_url, model_name,
-                  )
-                  self.agent.config.add_model(new_model)
-                  ignore(
-                    self.output.append_text(
-                      "[system] Model '\{name}' added",
-                      OutputKind::Text,
-                    ),
-                  )
-                }
-                Edit =>
-                  // The edit form has no "name" field (id is immutable);
-                  // values are [model, api_key, base_url].
-                  if target_idx >= 0 &&
-                    target_idx < self.agent.config.models.length() {
-                    let existing = self.agent.config.models[target_idx]
-                    let updated : @config.ModelConfig = {
-                      id: existing.id,
-                      type_: existing.type_,
-                      api_key: values[1].1,
-                      base_url: values[2].1,
-                      model: values[0].1,
-                      anthropic_format: existing.anthropic_format,
-                      runtime_id: existing.runtime_id,
-                      media_type: existing.media_type,
-                    }
-                    self.agent.config.models[target_idx] = updated
-                    // Hot-swap when the edited model is the active one
-                    match self.agent.config.current_model_id {
-                      Some(id) if id == updated.id => {
-                        self.apply_model_switch()
-                        self.state.val.model_name = updated.model
-                      }
-                      _ => ()
-                    }
-                    ignore(
-                      self.output.append_text(
-                        "[system] Model '\{updated.id}' updated",
-                        OutputKind::Text,
-                      ),
-                    )
-                  }
-              }
-              self.save_config()
-              return_to_config_menu(self.state.val, self.agent, mode)
+            Ok(merged) => {
+              let pending : PendingConfigTest = { ..merged, mode, target_idx }
+              self.pending_config_test = Some(pending)
+              ignore(
+                self.output.append_text(
+                  "[system] ⏳ Testing connection to \{pending.base_url}...",
+                  OutputKind::Text,
+                ),
+              )
+              self.events.put(StartConnectionTest(pending))
               self.dirty = true
             }
           }
+        }
         Escape => {
           return_to_config_menu(self.state.val, self.agent, mode)
           self.dirty = true
@@ -864,6 +899,7 @@ async fn TuiController::handle_key(
           self.agent_task = None
           self.agent_running = false
           self.state.val.mode = TuiMode::Idle
+          self.state.val.todo_area.hide()
           self.dirty = true
         }
         None => self.quit = true
@@ -873,11 +909,21 @@ async fn TuiController::handle_key(
     Enter =>
       if self.suggestions_active {
         // Accept the highlighted suggestion.
-        match self.suggestions.accept() {
-          Some(cmd) => {
+        match self.suggestions.accept_item() {
+          Some(item) => {
+            let cmd = item.name
             self.input.set_text(cmd)
             self.close_suggestions()
             self.dirty = true
+            // Show the command's usage hint as a system tip (Ruby ui2
+            // input_area.rb:210); it auto-clears after 2 seconds.
+            if item.usage.length() > 0 {
+              self.tips.set(
+                "Usage: \{item.name} \{item.usage}",
+                TipsType::Info,
+                self.state.val.tick_count,
+              )
+            }
             // A completed slash command is immediately executable — submit it
             // in the same keystroke to match the reference TUI's single-Enter
             // flow (BUG-003 / SPEC-03).
@@ -930,17 +976,6 @@ async fn TuiController::handle_key(
       self.input.cursor_right()
       self.dirty = true
     }
-    Up if key.modifiers.ctrl() => {
-      // Ctrl+Up: scroll up one line
-      let msg_height = self.term_height - 5
-      let total = self.output.total_lines()
-      let max_offset = if total > msg_height { total - msg_height } else { 0 }
-      if self.scroll_offset < max_offset {
-        self.scroll_offset = self.scroll_offset + 1
-        self.dirty = true
-        self.redraw()
-      }
-    }
     Up => {
       match arrow_key_action(self.suggestions_active, self.input.line_count()) {
         NavigateSuggestions => self.suggestions.select_prev()
@@ -949,13 +984,6 @@ async fn TuiController::handle_key(
       }
       self.dirty = true
     }
-    Down if key.modifiers.ctrl() =>
-      // Ctrl+Down: scroll down one line
-      if self.scroll_offset > 0 {
-        self.scroll_offset = self.scroll_offset - 1
-        self.dirty = true
-        self.redraw()
-      }
     Down => {
       match arrow_key_action(self.suggestions_active, self.input.line_count()) {
         NavigateSuggestions => self.suggestions.select_next()
@@ -972,30 +1000,6 @@ async fn TuiController::handle_key(
       self.input.cursor_end()
       self.dirty = true
     }
-    PageUp => {
-      // Page Up: scroll up by one page (term_height - 2 lines overlap)
-      let msg_height = self.term_height - 5
-      let total = self.output.total_lines()
-      let max_offset = if total > msg_height { total - msg_height } else { 0 }
-      if self.scroll_offset < max_offset {
-        self.scroll_offset = self.scroll_offset + (msg_height - 2)
-        if self.scroll_offset > max_offset {
-          self.scroll_offset = max_offset
-        }
-        self.dirty = true
-        self.redraw()
-      }
-    }
-    PageDown =>
-      // Page Down: scroll down by one page (term_height - 2 lines overlap)
-      if self.scroll_offset > 0 {
-        self.scroll_offset = self.scroll_offset - (self.term_height - 5 - 2)
-        if self.scroll_offset < 0 {
-          self.scroll_offset = 0
-        }
-        self.dirty = true
-        self.redraw()
-      }
     Backspace => {
       self.input.backspace()
       self.update_suggestions()
@@ -1010,6 +1014,11 @@ async fn TuiController::handle_key(
       if self.suggestions_active {
         self.close_suggestions()
         self.dirty = true
+        // ESC with no suggestions open: open the Time Machine menu
+        // (Ruby ui2 input_area.rb:255-262).
+      } else if open_time_machine_menu(self.state.val) {
+        self.dirty = true
+        self.redraw()
       }
     Tab if key.modifiers.shift() => {
       // Shift+Tab (non-dialog): cycle permission mode
@@ -1039,14 +1048,11 @@ async fn TuiController::handle_key(
         self.suggestions.update_filter("/")
         self.suggestions_active = self.suggestions.is_visible()
         self.dirty = true
-      } else {
-        let new_mode = cycle_shell_mode(self.state.val.shell_mode)
-        self.state.val.shell_mode = new_mode
-        if new_mode is ShellMode::FileBrowser {
-          self.file_browser.current_path = self.state.val.working_dir
-          self.file_browser.load_dir()
-        }
-        self.full_redraw()
+      } else if self.suggestions_active {
+        // Suggestions open: Tab cycles to the next candidate
+        // (Ruby ui2 command_suggestions: Tab/↓ move the highlight).
+        self.suggestions.select_next()
+        self.dirty = true
       }
     Char(ch) if !key.modifiers.ctrl() && !key.modifiers.alt() => {
       self.input.insert_char(ch)
@@ -1079,6 +1085,19 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
       self.quit = true
       return
     }
+    // "?" is an alias for /help (Ruby ui2 input_area.rb:824-827); it is
+    // intercepted here at the dispatch layer, never reaching the parser.
+    if trimmed == "?" {
+      match execute(SlashCommand::Help, self.agent) {
+        Ok(msg) => ignore(self.output.append_text(msg, OutputKind::Text))
+        Err(err) =>
+          ignore(self.output.append_text("[error] \{err}", OutputKind::Text))
+      }
+      self.redraw()
+      self.commit_output()
+      self.dirty = true
+      return
+    }
     // Check for slash commands
     if expanded_text[0:1] == "/" {
       match parse_slash_command(expanded_text) {
@@ -1088,12 +1107,12 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               self.quit = true
               return
             }
-            Config(key~, ..) if key == "" => {
-              // No-arg /config: open config menu
+            Config => {
+              // No-arg /config: open config menu (with-arg form removed).
               if self.agent.config.models.length() == 0 {
                 ignore(
                   self.output.append_text(
-                    "[system] No models configured. Use /config <key> <value> to set options.",
+                    "[system] No models configured. Use /config to open the configuration menu.",
                     OutputKind::Text,
                   ),
                 )
@@ -1126,31 +1145,55 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               self.redraw()
               return
             }
+            Model(_) => {
+              // With-arg /model: same semantics as the menu selector —
+              // match a configured card by id or model name, switch
+              // (current + default badge), rebuild the client, persist.
+              // execute() clears the session sub-model overlay (the card
+              // changed), so the session file must be saved right away —
+              // otherwise a restart would restore the stale overlay on top
+              // of the new card (mismatched model name for the new base_url).
+              let result = execute(cmd, self.agent)
+              match result {
+                Ok(msg) => {
+                  self.save_config()
+                  let session_data = self.agent.to_session_data()
+                  @agent.save_session(session_data) catch {
+                    _ => ()
+                  }
+                  self.state.val.model_name = self.agent.client.model
+                  ignore(
+                    self.output.append_text("[system] \{msg}", OutputKind::Text),
+                  )
+                }
+                Err(err) =>
+                  ignore(
+                    self.output.append_text("[error] \{err}", OutputKind::Text),
+                  )
+              }
+              self.redraw()
+              self.commit_output()
+              self.dirty = true
+              return
+            }
             Clear => {
-              // Clear agent history + output buffer + reset cost, then redraw
+              // New-session semantics (Ruby cli.rb:998-1026): agent resets
+              // in place (idle timer cancelled + rebound, new session_id,
+              // client rebuilt from current config); TUI-side state resets
+              // alongside; output area cleared with the fresh-start notice.
               ignore(execute(cmd, self.agent))
-              self.state.val.total_cost = 0.0
+              reset_tui_session_state(self.state.val, self.agent)
+              self.agent_output_sync.reset()
               self.output.clear()
               ignore(
                 self.output.append_text(
-                  "[system] Session cleared",
+                  "[system] Session cleared. Starting fresh.",
                   OutputKind::Text,
                 ),
               )
               self.full_redraw()
               self.commit_output()
               self.dirty = false
-              return
-            }
-            Todo => {
-              // Toggle todo area visibility
-              if self.state.val.todo_area.hidden {
-                self.state.val.todo_area.show()
-              } else {
-                self.state.val.todo_area.hide()
-              }
-              self.dirty = true
-              self.redraw()
               return
             }
             Theme(name~) => {
@@ -1168,46 +1211,23 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               return
             }
             Undo => {
-              // Show task history from the time machine
-              let tasks = self.state.val.time_machine.get_task_history()
-              if tasks.length() == 0 {
+              // Open the interactive Time Machine menu (Ruby ui2
+              // show_time_machine_menu); falls back to an info line when
+              // there is no task history yet.
+              if open_time_machine_menu(self.state.val) {
+                self.dirty = true
+                self.redraw()
+              } else {
                 ignore(
                   self.output.append_text(
                     "[system] No tasks in history to undo",
                     OutputKind::Text,
                   ),
                 )
-              } else {
-                let lines : Array[String] = [
-                  "[system] Task history (time machine):",
-                ]
-                for t in tasks {
-                  let desc = match t.description {
-                    Some(d) => d
-                    None => "(no description)"
-                  }
-                  let active = match
-                    self.state.val.time_machine.current_task_id {
-                    Some(id) if id == t.task_id => " \u{25c0} current"
-                    _ => ""
-                  }
-                  lines.push("  \{t.task_id}: \{desc}\{active}")
-                }
-                // Perform undo of the last task
-                match self.state.val.time_machine.undo_last_task() {
-                  Ok(entries) =>
-                    lines.push(
-                      "[system] Undo complete: restored \{entries.length()} file(s)",
-                    )
-                  Err(msg) => lines.push("[system] Undo failed: \{msg}")
-                }
-                ignore(
-                  self.output.append_text(lines.join("\n"), OutputKind::Text),
-                )
+                self.redraw()
+                self.commit_output()
+                self.dirty = true
               }
-              self.redraw()
-              self.commit_output()
-              self.dirty = true
               return
             }
             _ => ()
@@ -1235,26 +1255,60 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
           return
         }
         Err(_) =>
-          // Not a valid slash command — send as regular input
-          ()
+          // Not a static slash command — try the skill registry (Ruby
+          // skills_by_command; priority: static command > skill > input).
+          match self.agent.skill_registry.find_skill_command(expanded_text) {
+            Some((skill, args)) => {
+              // Inject the skill instructions, then run a normal task
+              // asking the model to proceed with them.
+              self.agent.inject_skill_command(skill, args)
+              let arg_note = if args.length() > 0 {
+                " with arguments: \{args}"
+              } else {
+                ""
+              }
+              self.begin_agent_run(
+                expanded_text,
+                "[SYSTEM] The user invoked the /\{skill.name} skill\{arg_note}. Follow the skill instructions in the previous message.",
+              )
+              return
+            }
+            // No skill either — send as regular input
+            None => ()
+          }
       }
     }
     // Add user message to output buffer
-    ignore(self.output.append_text("[user] \{expanded_text}", OutputKind::Text))
-    // Time machine: open a new task so file writes in this run can be undone
-    ignore(self.state.val.time_machine.start_new_task(Some(expanded_text)))
-    // Run agent
-    self.state.val.mode = TuiMode::Running
-    self.state.val.run_start_ts = @env.now().reinterpret_as_int64()
-    self.state.val.total_iterations = 0
-    self.agent_running = true
-    self.hooks.reset_for_run()
-    self.dirty = true
-    // Draw the user message while still live, then commit it
-    self.redraw()
-    self.commit_output()
-    self.events.put(SubmitInput(expanded_text))
+    self.begin_agent_run(expanded_text, expanded_text)
   }
+}
+
+///|
+/// Shared submit tail: show the user message, open a time-machine task,
+/// switch to Running, and queue the agent run (used by both regular input
+/// and skill-command submissions).
+async fn TuiController::begin_agent_run(
+  self : TuiController,
+  display : String,
+  run_input : String,
+) -> Unit {
+  ignore(self.output.append_text("[user] \{display}", OutputKind::Text))
+  // Time machine: open a new task so file writes in this run can be undone
+  ignore(self.state.val.time_machine.start_new_task(Some(display)))
+  // Run agent
+  self.state.val.mode = TuiMode::Running
+  // Auto-show the todo area while the agent works (Ruby ui2
+  // set_working_status → show_todos); empty lists render nothing.
+  self.state.val.todo_area.show()
+  self.state.val.run_start_ts = @env.now().reinterpret_as_int64()
+  self.state.val.total_iterations = 0
+  self.agent_running = true
+  self.hooks.reset_for_run()
+  self.dirty = true
+  // Draw the user message while still live, then commit it
+  self.redraw()
+  self.commit_output()
+  self.events.put(SubmitInput(run_input))
 }
 
 ///|
@@ -1280,6 +1334,212 @@ fn TuiController::start_agent(
 }
 
 ///|
+/// Run the connection test for a pending config form submit in a
+/// background task (throwaway client built from the merged, not-yet-saved
+/// values — Ruby cli.rb:223-233).
+fn TuiController::start_connection_test(
+  self : TuiController,
+  group : @async.TaskGroup[Unit],
+  pending : PendingConfigTest,
+) -> Unit {
+  let events = self.events
+  let api_type = if pending.anthropic_format {
+    @config.AnthropicMessages
+  } else {
+    @config.Providers::api_type_for(pending.base_url)
+  }
+  let test_client = @client.Client::new(
+    pending.api_key,
+    pending.base_url,
+    pending.model,
+    api_type,
+  )
+  group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+    let result = test_client.test_connection()
+    events.put(
+      ConnectionTestDone(
+        result.success,
+        match result.error {
+          Some(e) => e
+          None => ""
+        },
+      ),
+    )
+  }
+}
+
+///|
+/// Apply the result of a config form connection test: on success apply the
+/// pending add/edit, persist, and print the configuration summary; on
+/// failure show the error and keep the form open (Ruby ui_controller.rb
+/// validator interaction).
+async fn TuiController::finish_connection_test(
+  self : TuiController,
+  success : Bool,
+  message : String,
+) -> Unit {
+  let pending = match self.pending_config_test {
+    Some(p) => p
+    None => return
+  }
+  self.pending_config_test = None
+  if !success {
+    // Stay in the form; the user can fix the values and retry.
+    ignore(
+      self.output.append_text(
+        "[error] ⚠ Connection test failed: \{message}",
+        OutputKind::Text,
+      ),
+    )
+    self.dirty = true
+    self.redraw()
+    return
+  }
+  match pending.action {
+    Add => {
+      let new_model = @config.ModelConfig::new(
+        pending.name,
+        pending.api_key,
+        pending.base_url,
+        pending.model,
+      )
+      new_model.anthropic_format = pending.anthropic_format
+      self.agent.config.add_model(new_model)
+      ignore(
+        self.output.append_text(
+          "[system] Model '\{pending.name}' added",
+          OutputKind::Text,
+        ),
+      )
+    }
+    Edit =>
+      if pending.target_idx >= 0 &&
+        pending.target_idx < self.agent.config.models.length() {
+        let existing = self.agent.config.models[pending.target_idx]
+        let updated : @config.ModelConfig = {
+          id: existing.id,
+          type_: existing.type_,
+          api_key: pending.api_key,
+          base_url: pending.base_url,
+          model: pending.model,
+          anthropic_format: existing.anthropic_format,
+          runtime_id: existing.runtime_id,
+          media_type: existing.media_type,
+        }
+        self.agent.config.models[pending.target_idx] = updated
+        // Hot-swap when the edited model is the active one
+        match self.agent.config.current_model_id {
+          Some(id) if id == updated.id => {
+            self.apply_model_switch()
+            self.state.val.model_name = updated.model
+          }
+          _ => ()
+        }
+        ignore(
+          self.output.append_text(
+            "[system] Model '\{updated.id}' updated",
+            OutputKind::Text,
+          ),
+        )
+      }
+  }
+  self.save_config()
+  self.print_config_summary()
+  return_to_config_menu(self.state.val, self.agent, pending.mode)
+  self.dirty = true
+  self.redraw()
+}
+
+///|
+/// Print the 4-line configuration summary after a successful config
+/// change (Ruby cli.rb:280-292): current model, masked API key, base URL,
+/// protocol format.
+fn TuiController::print_config_summary(self : TuiController) -> Unit {
+  match self.agent.config.current_model() {
+    Some(m) => {
+      let format = if m.anthropic_format { "Anthropic" } else { "OpenAI" }
+      ignore(
+        self.output.append_text(
+          "[system] Configuration updated!\n  Current Model: \{m.model}\n  API Key: \{mask_api_key_summary(m.api_key)}\n  Base URL: \{m.base_url}\n  Format: \{format}",
+          OutputKind::Text,
+        ),
+      )
+    }
+    None => ()
+  }
+}
+
+///|
+/// Whether a model card has a provider sub-model drawer.
+fn TuiController::card_is_expandable(
+  self : TuiController,
+  card_id : String,
+) -> Bool {
+  for m in self.agent.config.models {
+    if m.id == card_id {
+      return provider_submodels(m).length() > 0
+    }
+  }
+  false
+}
+
+///|
+/// Open the sub-model drawer for a card (no-op when it has none).
+fn TuiController::try_open_submodel_drawer(
+  self : TuiController,
+  card_id : String,
+) -> Unit {
+  for m in self.agent.config.models {
+    if m.id == card_id {
+      if provider_submodels(m).length() > 0 {
+        open_submodel_drawer(self.state.val, self.agent, m)
+        self.dirty = true
+      }
+      return
+    }
+  }
+}
+
+///|
+/// Switch to a model card and optionally pin a session sub-model overlay
+/// (Ruby cli.rb handle_model_command): switch + persist as the global
+/// default, then write/clear the overlay and save the session immediately
+/// so it survives a quit before the next task.
+fn TuiController::apply_model_card_switch(
+  self : TuiController,
+  card_id : String,
+  sub_model : String?,
+) -> Unit {
+  match self.agent.config.switch_model_by_id(card_id) {
+    Ok(_) => {
+      self.apply_model_switch()
+      self.save_config()
+      self.agent.set_session_sub_model(sub_model)
+      let session_data = self.agent.to_session_data()
+      @agent.save_session(session_data) catch {
+        _ => ()
+      }
+      self.state.val.model_name = self.agent.client.model
+      let sub_note = match sub_model {
+        Some(s) => " (sub-model: \{s})"
+        None => ""
+      }
+      ignore(
+        self.output.append_text(
+          "[system] Model switched to: \{self.agent.client.model}\{sub_note}",
+          OutputKind::Text,
+        ),
+      )
+      self.print_config_summary()
+      close_config_dialog(self.state.val)
+      self.dirty = true
+    }
+    Err(msg) =>
+      ignore(self.output.append_text("[error] \{msg}", OutputKind::Text))
+  }
+}
+
+///|
 /// Switch the active theme by name and rebuild dependent renderers.
 ///
 /// Falls back to the default theme for unrecognized names (the slash
@@ -1298,21 +1558,7 @@ fn TuiController::apply_theme(self : TuiController, name : String) -> Unit {
 ///|
 /// Apply a model switch to the agent's client (hot-swap).
 fn TuiController::apply_model_switch(self : TuiController) -> Unit {
-  match self.agent.config.current_model() {
-    Some(m) => {
-      let old_client = self.agent.client
-      let new_client = @client.Client::new(
-        m.api_key,
-        m.base_url,
-        m.model,
-        old_client.api_type,
-        provider_id=old_client.provider_id,
-        vision_supported=old_client.vision_supported,
-      )
-      self.agent.client = new_client
-    }
-    None => ()
-  }
+  self.agent.rebuild_client_from_config()
 }
 
 ///|
@@ -1337,6 +1583,60 @@ fn TuiController::save_config(self : TuiController) -> Unit {
         ),
       )
   }
+}
+
+///|
+/// Execute the Time Machine switch selected in the menu (Ruby cli.rb
+/// handle_time_machine_command): target before the current task is an
+/// undo, after it a redo; the workspace is restored from the computed
+/// snapshot entries and the session is saved afterwards.
+fn TuiController::perform_time_machine_switch(
+  self : TuiController,
+  dialog : ConfigMenuDialog,
+) -> Unit {
+  match dialog.get_selected() {
+    Some(item) => {
+      let target_num = @agent.task_num_of(item.value)
+      let cur_num = match self.state.val.time_machine.current_task_id {
+        Some(id) => @agent.task_num_of(id)
+        None => 0
+      }
+      let direction = if target_num < cur_num { "Undoing" } else { "Redoing" }
+      ignore(
+        self.output.append_text(
+          "[system] \{direction} to Task \{target_num}...",
+          OutputKind::Text,
+        ),
+      )
+      match self.state.val.time_machine.switch_to_task(item.value) {
+        Ok(entries) => {
+          match @agent.apply_snapshot_entries(entries) {
+            Ok(n) =>
+              ignore(
+                self.output.append_text(
+                  "[system] ✓ Switched to \{item.value}: restored \{n} file(s)",
+                  OutputKind::Text,
+                ),
+              )
+            Err(msg) =>
+              ignore(
+                self.output.append_text("[error] \{msg}", OutputKind::Text),
+              )
+          }
+          // Save the session after the switch (Ruby: session_manager.save)
+          let session_data = self.agent.to_session_data()
+          @agent.save_session(session_data) catch {
+            _ => ()
+          }
+        }
+        Err(msg) =>
+          ignore(self.output.append_text("[error] \{msg}", OutputKind::Text))
+      }
+    }
+    None => ()
+  }
+  close_config_dialog(self.state.val)
+  self.commit_output()
 }
 
 ///|
@@ -1373,6 +1673,7 @@ fn TuiController::perform_model_delete(self : TuiController, idx : Int) -> Unit 
         OutputKind::Text,
       ),
     )
+    self.print_config_summary()
     // Reopen config menu
     open_config_menu(self.state.val, self.agent)
   }

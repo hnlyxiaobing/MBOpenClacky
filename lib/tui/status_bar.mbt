@@ -423,26 +423,3 @@ pub fn StatusBar::format_from_state_adaptive(
     self.segments.push(StatusSegment::{ text: cost_str, color: Cost })
   }
 }
-
-///|
-/// Add a scroll position indicator segment to the status bar.
-///
-/// When `scroll_offset > 0`, appends a segment showing `↑ {offset}/{total}`.
-/// When `scroll_offset == 0`, does nothing (no visual noise at bottom).
-///
-/// Parameters:
-/// - `scroll_offset`: current scroll offset (0 = at bottom)
-/// - `total_lines`: total number of output lines
-/// - `viewport_height`: height of the viewport (unused for now, reserved for percentage)
-pub fn StatusBar::add_scroll_segment(
-  self : StatusBar,
-  scroll_offset : Int,
-  total_lines : Int,
-  _viewport_height : Int,
-) -> Unit {
-  if scroll_offset > 0 {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    let text = "↑ \{scroll_offset}/\{total_lines}"
-    self.segments.push(StatusSegment::{ text, color: SegmentColor::Default })
-  }
-}

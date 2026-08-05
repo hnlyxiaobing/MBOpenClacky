@@ -526,6 +526,18 @@ pub fn LineEditor::submit(self : LineEditor) -> String {
 // ── Paste helpers ──────────────────────────────────────────────
 
 ///|
+/// Maximum ratio of the terminal width usable for input content
+/// (aligned with Ruby ui2/line_editor.rb MAX_CONTENT_WIDTH_RATIO = 0.9).
+pub fn effective_content_width(screen_width : Int) -> Int {
+  let w = screen_width * 9 / 10
+  if w < 1 {
+    1
+  } else {
+    w
+  }
+}
+
+///|
 /// Count the number of newline-separated lines in a paste text.
 pub fn paste_line_count(text : String) -> Int {
   let mut count = 1

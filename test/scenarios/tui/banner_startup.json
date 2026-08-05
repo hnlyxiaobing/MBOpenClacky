@@ -7,10 +7,25 @@
   },
   "actions": [],
   "assertions": [
-    { "check": "output_contains", "text": "Your AI-powered coding companion" },
-    { "check": "output_contains", "text": "Tab" },
-    { "check": "output_contains", "text": "AGENT MODE" },
-    { "check": "output_contains", "text": "Mode:" },
-    { "check": "status_contains", "text": "idle" }
+    {
+      "check": "output_contains",
+      "text": "Your personal Assistant & Technical Co-founder"
+    },
+    {
+      "check": "output_contains",
+      "text": "Tab"
+    },
+    {
+      "check": "output_contains",
+      "text": "AGENT MODE"
+    },
+    {
+      "check": "output_contains",
+      "text": "[Permission Mode]"
+    },
+    {
+      "check": "status_contains",
+      "text": "idle"
+    }
   ]
 }

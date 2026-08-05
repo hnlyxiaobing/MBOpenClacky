@@ -26,3 +26,60 @@ pub fn Agent::available_skills_summary(self : Agent) -> String {
   let skills = self.skill_registry.all()
   @skill.build_skills_summary(skills)
 }
+
+///|
+/// Inject a skill invocation into the conversation as a system-injected
+/// assistant message (Ruby skill_manager.rb inject_skill_as_assistant_message).
+///
+/// The caller follows with a normal agent run whose user message asks the
+/// model to proceed, so the skill flow matches a regular task. When the
+/// registry entry is metadata-only (no body), the skill body is lazily
+/// loaded from the skill's directory (assets/skills/<name>/SKILL.md).
+pub fn Agent::inject_skill_command(
+  self : Agent,
+  skill : @skill.Skill,
+  arguments : String,
+) -> Unit {
+  let full_skill = load_skill_body(skill)
+  let ctx = @skill.build_skill_context(full_skill, arguments)
+  let msg : @message.Message = {
+    role: @message.Assistant,
+    content: @message.Text(ctx),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: Some(current_time_ms().to_string()),
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  self.history.push(msg)
+  self.hook_manager.emit(MessageAdded)
+}
+
+///|
+/// Load the full skill body from the skill's directory when the registry
+/// entry carries no body (context is None). Returns the entry unchanged
+/// when no readable SKILL.md exists.
+fn load_skill_body(skill : @skill.Skill) -> @skill.Skill {
+  if skill.context is Some(_) {
+    return skill
+  }
+  match skill.directory {
+    Some(dir) => {
+      let path = dir + "/SKILL.md"
+      let content = @fs.read_file_to_string(path) catch { _ => return skill }
+      match @skill.load_skill_from_content(content, path, Some(dir)) {
+        Some(full) => full
+        None => skill
+      }
+    }
+    None => skill
+  }
+}

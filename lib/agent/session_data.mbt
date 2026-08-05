@@ -257,7 +257,7 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     forked_from: None,
     chunk_count: 0,
     agent_profile: "general",
-    sub_model: None,
+    sub_model: self.session_sub_model,
   }
 }
 
@@ -289,6 +289,9 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
 
   // Restore reasoning effort
   self.reasoning_effort = data.reasoning_effort
+
+  // Restore the per-session sub-model overlay
+  self.session_sub_model = data.sub_model
 
   // Reset transient state
   self.status = Idle

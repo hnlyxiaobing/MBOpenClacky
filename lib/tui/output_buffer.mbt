@@ -100,11 +100,6 @@ pub(all) struct OutputBuffer {
   /// Terminal width used to wrap lines in `append_text`.
   /// Updated by the controller on startup and terminal resize.
   mut width : Int
-  /// Cached flat line array for viewport virtualization.
-  /// Rebuilt lazily when cache_version != version.
-  mut cached_flat_lines : Array[String]
-  /// Version of the cached flat lines (stale when != version).
-  mut cache_version : Int
   /// Line count threshold for auto-collapsing System entries.
   collapse_threshold : Int
 }
@@ -121,8 +116,6 @@ pub fn OutputBuffer::new(max_entries? : Int = 2000) -> OutputBuffer {
     max_entries,
     version: 0,
     width: 80,
-    cached_flat_lines: [],
-    cache_version: -1,
     collapse_threshold: 15,
   }
 }
@@ -523,63 +516,146 @@ fn OutputBuffer::trim_if_needed(self : OutputBuffer) -> Unit {
   }
 }
 
+// ── Display-line view (collapse-aware) ────────────────────────────────
+
 ///|
-/// Rebuild the cached flat line index from entries.
-/// Called lazily when the buffer version changes.
-fn OutputBuffer::rebuild_flat_cache(self : OutputBuffer) -> Unit {
-  let lines : Array[String] = []
-  for entry in self.entries {
-    if entry.collapsed && entry.lines.length() > 5 {
-      // Collapsed: show first 3 lines + indicator + last line
-      for idx in 0..<3 {
-        lines.push(entry.lines[idx])
-      }
-      let hidden = entry.lines.length() - 4
-      lines.push("  \u{25b8} " + hidden.to_string() + " more lines (collapsed)")
-      lines.push(entry.lines[entry.lines.length() - 1])
-    } else {
-      for line in entry.lines {
-        lines.push(line)
-      }
+/// Get the display lines of this entry as the renderer should show them.
+///
+/// A collapsed entry with more than 5 lines is projected to 5 display rows
+/// (first 3 + indicator + last). Collapsed entries are never partially
+/// committed (see `commit_oldest_display_lines`), so the projection only
+/// applies while the entry has no committed lines; otherwise the plain
+/// live suffix is returned.
+pub fn OutputEntry::display_lines(self : OutputEntry) -> Array[String] {
+  if self.collapsed &&
+    self.lines.length() > 5 &&
+    self.committed_line_offset == 0 {
+    let result : Array[String] = []
+    for idx in 0..<3 {
+      result.push(self.lines[idx])
     }
+    let hidden = self.lines.length() - 4
+    result.push("  \u{25b8} " + hidden.to_string() + " more lines (collapsed)")
+    result.push(self.lines[self.lines.length() - 1])
+    result
+  } else {
+    self.live_lines()
   }
-  self.cached_flat_lines = lines
-  self.cache_version = self.version
 }
 
 ///|
-/// Get the last N lines, with a scroll offset from the bottom.
-///
-/// scroll_offset=0 shows the newest lines (same as tail_lines).
-/// scroll_offset>0 shows older lines (for mouse wheel scrolling).
-///
-/// Uses a cached flat-line index rebuilt only on mutation, making
-/// repeated scroll reads O(viewport) instead of O(total_lines).
-pub fn OutputBuffer::tail_lines_with_scroll(
-  self : OutputBuffer,
-  n : Int,
-  scroll_offset : Int,
-) -> Array[String] {
-  if n <= 0 {
-    return []
-  }
-  if self.cache_version != self.version {
-    self.rebuild_flat_cache()
-  }
-  let total = self.cached_flat_lines.length()
-  let effective_end = total - scroll_offset
-  if effective_end <= 0 {
-    return []
-  }
-  let effective_n = if effective_end < n { effective_end } else { n }
-  let start = effective_end - effective_n
+/// Get the flat display lines of all live (uncommitted) entries, oldest
+/// first. This is exactly what the renderer paints in the output area:
+/// committed lines never appear here and are never re-rendered.
+pub fn OutputBuffer::live_display_lines(self : OutputBuffer) -> Array[String] {
   let result : Array[String] = []
-  let mut i = start
-  while i < effective_end {
-    result.push(self.cached_flat_lines[i])
-    i = i + 1
+  for entry in self.entries {
+    if entry.is_live() {
+      for line in entry.display_lines() {
+        result.push(line)
+      }
+    }
   }
   result
+}
+
+///|
+/// Commit the oldest N display rows, with display-row granularity.
+///
+/// Like `commit_oldest_lines`, but counts what the renderer actually shows:
+/// a collapsed entry displays as 5 rows and is committed whole (never
+/// partially), so the returned count may exceed `row_count` when the
+/// boundary falls inside a collapsed entry. The caller must scroll the
+/// terminal by the RETURNED number of rows so that exactly the committed
+/// display rows leave the screen into the scrollback.
+pub fn OutputBuffer::commit_oldest_display_lines(
+  self : OutputBuffer,
+  row_count : Int,
+) -> Int {
+  if row_count <= 0 {
+    return 0
+  }
+  let mut remaining = row_count
+  let mut committed = 0
+  for i = 0; i < self.entries.length(); i = i + 1 {
+    if remaining <= 0 {
+      break
+    }
+    let entry = self.entries[i]
+    if !entry.is_live() {
+      continue
+    }
+    if entry.collapsed &&
+      entry.lines.length() > 5 &&
+      entry.committed_line_offset == 0 {
+      // Collapsed projection is 5 display rows; commit the whole entry.
+      entry.committed_line_offset = entry.lines.length()
+      committed = committed + 5
+      remaining = remaining - 5
+    } else {
+      let available = entry.lines.length() - entry.committed_line_offset
+      let to_commit = if remaining < available { remaining } else { available }
+      entry.committed_line_offset = entry.committed_line_offset + to_commit
+      committed = committed + to_commit
+      remaining = remaining - to_commit
+    }
+  }
+  if committed > 0 {
+    self.version = self.version + 1
+  }
+  committed
+}
+
+///|
+/// Replace the live (uncommitted) suffix of an entry, keeping its committed
+/// prefix immutable.
+///
+/// Used by streaming/finalize paths when an entry was partially committed
+/// because its head scrolled into the terminal scrollback: the full new
+/// content is `new_lines`, of which the first `committed_line_offset` lines
+/// correspond to the already-committed prefix (append-only growth). Those
+/// are kept verbatim; the live suffix becomes `new_lines[committed..]`.
+///
+/// Returns false (caller should fall back to appending a fresh entry) if
+/// the entry does not exist or `new_lines` is shorter than the committed
+/// prefix, which would lose committed content.
+pub fn OutputBuffer::replace_live(
+  self : OutputBuffer,
+  id : Int,
+  new_lines : Array[String],
+) -> Bool {
+  let mut found_index = -1
+  for i = 0; i < self.entries.length(); i = i + 1 {
+    if self.entries[i].id == id {
+      found_index = i
+      break
+    }
+  }
+  if found_index < 0 {
+    return false
+  }
+  let entry = self.entries[found_index]
+  let offset = entry.committed_line_offset
+  if new_lines.length() < offset {
+    return false
+  }
+  let kept : Array[String] = []
+  let mut i = 0
+  while i < offset {
+    kept.push(entry.lines[i])
+    i = i + 1
+  }
+  entry.lines.clear()
+  for line in kept {
+    entry.lines.push(line)
+  }
+  let mut j = offset
+  while j < new_lines.length() {
+    entry.lines.push(new_lines[j])
+    j = j + 1
+  }
+  self.version = self.version + 1
+  true
 }
 
 ///|

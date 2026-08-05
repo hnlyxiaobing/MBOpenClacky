@@ -1,0 +1,16 @@
+{
+  "name": "skill_slash_command",
+  "description": "A user-invocable skill is callable as /name with arguments (skill registry route)",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "/test-skill moonbit enums" },
+    { "type": "press", "key": "Enter" }
+  ],
+  "assertions": [
+    { "check": "output_contains", "text": "[user] /test-skill moonbit enums" },
+    { "check": "output_contains", "text": "Invoked skill: /test-skill with arguments: moonbit enums" }
+  ]
+}

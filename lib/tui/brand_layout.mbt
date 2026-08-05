@@ -1,42 +1,40 @@
 ///|
-/// Brand layout templates for customizable TUI presentation.
+/// TUI layout: output area + bottom fixed area, aligned with Ruby ui2.
 ///
-/// Provides three visual layout styles that can be switched at runtime:
-/// - GeminiLike: top status bar + main content + bottom input (default)
-/// - ClaudeCodeLike: sidebar + main chat + bottom composer
-/// - Compact: single-column with inline status, minimal chrome
-
-///|
-/// Available brand layout styles.
-pub(all) enum BrandLayout {
-  /// Top status + content + bottom input (current default style).
-  GeminiLike
-  /// Left sidebar (tools/todo) + main chat + bottom composer.
-  ClaudeCodeLike
-  /// Minimal: no borders, inline status, maximum content space.
-  Compact
-} derive(Eq, Debug)
-
-///|
-/// Build a Gemini-like layout VNode (status bar + output + input).
-///
-/// This is the default layout with a single column:
+/// Single layout (the old GeminiLike/ClaudeCodeLike/Compact brand templates
+/// were removed — only the Ruby-aligned structure remains):
 /// ```text
 /// ┌─────────────────────────┐
-/// │ Status Bar (1 row)      │
-/// ├─────────────────────────┤
 /// │ Output Area (flex)      │
 /// │ ...                     │
-/// ├─────────────────────────┤
-/// │ Input Area (fixed)      │
+/// ├─────────────────────────┤  fixed area:
+/// │ Session/Status Bar (1)  │
+/// │ Separator (1)           │
+/// │ Attachments (0-N)       │
+/// │ Input Lines (1-N wrap)  │
+/// │ Separator (1)           │
+/// │ Suggestions (0-N)       │
+/// │ Tips (0-1)              │
 /// └─────────────────────────┘
 /// ```
-pub fn build_gemini_layout(
+/// The top of the screen must belong to the output area: only rows scrolled
+/// off the top enter the terminal scrollback (commit-scrollback model).
+
+///|
+/// Build the main layout VNode: flex output area above the bottom fixed area.
+///
+/// `todo_children` are the todo-area rows rendered directly above the status
+/// bar (Ruby ui2 layout order: output / gap / todo / input). `fixed_children`
+/// are the rows below the status bar (separators, attachments, input lines,
+/// suggestions, tips) in top-to-bottom order; each child must render exactly
+/// one terminal row so the fixed-area height stays
+/// `todo_children.length() + 1 + fixed_children.length()` — the
+/// commit-scrollback overflow math depends on it.
+pub fn build_main_layout(
   status_node : @vnode.TuiNode,
   output_children : Array[@vnode.TuiNode],
-  input_children : Array[@vnode.TuiNode],
-  border_color : String,
-  input_h : Int,
+  todo_children : Array[@vnode.TuiNode],
+  fixed_children : Array[@vnode.TuiNode],
   term_width : Double,
 ) -> @vnode.TuiNode {
   if output_children.is_empty() {
@@ -46,125 +44,22 @@ pub fn build_gemini_layout(
   // numeric width as DimensionValue::Length (absolute columns), NOT percent —
   // the old hardcoded 100.0 clipped the ~118-column status bar to 100 cols and
   // flex-shrunk its space-containing segments (see SPEC-01).
-  @vnode.column(width=term_width, height=100.0, [
-    status_node,
+  let children : Array[@vnode.TuiNode] = [
     @vnode.column(flex_grow=1.0, width=term_width, output_children),
-    @vnode.view(
-      direction="column",
-      width=term_width,
-      height=input_h.to_double(),
-      border="rounded",
-      border_color~,
-      padding_x=1.0,
-      input_children,
-    ),
-  ])
+  ]
+  for child in todo_children {
+    children.push(child)
+  }
+  children.push(status_node)
+  for child in fixed_children {
+    children.push(child)
+  }
+  @vnode.column(width=term_width, height=100.0, children)
 }
 
 ///|
-/// Build a Claude Code-like layout VNode (sidebar + chat + composer).
-///
-/// Uses a two-column grid layout:
-/// ```text
-/// ┌──────────┬─────────────────┐
-/// │ Sidebar  │ Status Bar      │
-/// │ (tools,  ├─────────────────┤
-/// │  todo)   │ Output Area     │
-/// │          │ ...             │
-/// │          ├─────────────────┤
-/// │          │ Input Area      │
-/// └──────────┴─────────────────┘
-/// ```
-pub fn build_claude_code_layout(
-  status_node : @vnode.TuiNode,
-  output_children : Array[@vnode.TuiNode],
-  input_children : Array[@vnode.TuiNode],
-  sidebar_children : Array[@vnode.TuiNode],
-  border_color : String,
-  input_h : Int,
-) -> @vnode.TuiNode {
-  if output_children.is_empty() {
-    output_children.push(@vnode.text(" "))
-  }
-  if sidebar_children.is_empty() {
-    sidebar_children.push(@vnode.text(" "))
-  }
-  @vnode.grid(
-    areas=["sidebar main", "sidebar main", "sidebar input"],
-    rows=[1.0, 0.0, input_h.to_double()],
-    columns=[20.0, 0.0],
-    [
-      @vnode.grid_area(
-        "sidebar",
-        @vnode.view(
-          direction="column",
-          border="rounded",
-          border_color~,
-          padding_x=1.0,
-          sidebar_children,
-        ),
-      ),
-      @vnode.grid_area(
-        "main",
-        @vnode.column([
-          status_node,
-          @vnode.column(flex_grow=1.0, output_children),
-        ]),
-      ),
-      @vnode.grid_area(
-        "input",
-        @vnode.view(
-          direction="column",
-          border="rounded",
-          border_color~,
-          padding_x=1.0,
-          input_children,
-        ),
-      ),
-    ],
-  )
-}
-
-///|
-/// Build a compact layout VNode (minimal chrome, no borders).
-///
-/// Single column with inline status, no input border:
-/// ```text
-///  Status info
-///  Output line 1
-///  Output line 2
-///  ...
-///  > input cursor
-/// ```
-pub fn build_compact_layout(
-  status_node : @vnode.TuiNode,
-  output_children : Array[@vnode.TuiNode],
-  input_children : Array[@vnode.TuiNode],
-  input_h : Int,
-  term_width : Double,
-) -> @vnode.TuiNode {
-  if output_children.is_empty() {
-    output_children.push(@vnode.text(" "))
-  }
-  @vnode.column(width=term_width, height=100.0, [
-    status_node,
-    @vnode.column(flex_grow=1.0, width=term_width, output_children),
-    @vnode.column(width=term_width, height=input_h.to_double(), input_children),
-  ])
-}
-
-///|
-/// Get the name of a brand layout for display.
-pub fn BrandLayout::to_string(self : BrandLayout) -> String {
-  match self {
-    GeminiLike => "Gemini"
-    ClaudeCodeLike => "Claude Code"
-    Compact => "Compact"
-  }
-}
-
-///|
-/// All available brand layouts.
-pub fn all_brand_layouts() -> Array[BrandLayout] {
-  [GeminiLike, ClaudeCodeLike, Compact]
+/// Build a dim horizontal separator row spanning the terminal width
+/// (Ruby ui2 render_separator).
+pub fn separator_node(term_width : Int) -> @vnode.TuiNode {
+  @vnode.text("─".repeat(term_width), fg="rgb(128,128,128)")
 }

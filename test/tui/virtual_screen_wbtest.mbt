@@ -112,28 +112,6 @@ test "VirtualScreen::find_row returns correct row" {
 }
 
 ///|
-test "VirtualScreen::render_status_text renders at row 1" {
-  let screen = VirtualScreen::new(40, 10)
-  screen.render_status_text("Status: OK")
-  @debug.debug_inspect(
-    screen.get_row_trimmed(1),
-    content=(
-      #|"Status: OK"
-    ),
-  )
-}
-
-///|
-test "VirtualScreen::render_input_area renders border and content" {
-  let screen = VirtualScreen::new(40, 10)
-  screen.render_input_area(["hello world"])
-  // Input area is at bottom 4 rows (rows 7-10)
-  @debug.debug_inspect(screen.row_contains(7, "Input"), content="true")
-  @debug.debug_inspect(screen.row_contains(8, "hello world"), content="true")
-  @debug.debug_inspect(screen.row_contains(10, "└"), content="true")
-}
-
-///|
 test "VirtualScreen::render_output_lines renders messages" {
   let screen = VirtualScreen::new(40, 10)
   screen.render_output_lines(["Message 1", "Message 2"], 2, 4)

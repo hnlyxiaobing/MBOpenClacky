@@ -1,0 +1,18 @@
+{
+  "name": "esc_opens_time_machine",
+  "description": "ESC with no suggestions open shows the Time Machine menu; ESC again cancels it",
+  "setup": {
+    "cols": 80,
+    "rows": 24
+  },
+  "actions": [
+    { "type": "type", "text": "some task" },
+    { "type": "press", "key": "Enter" },
+    { "type": "press", "key": "Escape" },
+    { "type": "assert", "check": "dialog_contains", "text": "Time Machine" },
+    { "type": "press", "key": "Escape" }
+  ],
+  "assertions": [
+    { "check": "not_contains", "text": "Time Machine - Select Task" }
+  ]
+}

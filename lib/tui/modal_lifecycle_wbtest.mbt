@@ -35,7 +35,6 @@ fn test_state() -> TuiState {
     pending_confirmation: None,
     theme: Theme::default_(),
     dialog: DialogState::NoDialog,
-    shell_mode: ShellMode::Chat,
     thinking_buffer: @mizchi/signals.signal(""),
     tick_count: 0,
     run_start_ts: 0L,
@@ -269,7 +268,11 @@ test "modal: open_model_selector sets dialog state" {
   let agent = make_config_test_agent()
   open_model_selector(state, agent)
   match state.dialog {
-    ConfigMenu(dialog) => @debug.assert_eq(dialog.title, "Select Model")
+    ModelDrawer(level~, dialog~, ..) => {
+      assert_true(level is Cards)
+      @debug.assert_eq(dialog.title, "Switch Model")
+      assert_true(dialog.items.length() > 0)
+    }
     _ => assert_true(false)
   }
 }

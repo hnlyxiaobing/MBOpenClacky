@@ -667,6 +667,9 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   let agent = @agent.Agent::new(
     session_id, "CLI Agent", working_dir, client, config,
   )
+  // Built-in skills are user-invocable as slash commands (/name) and show
+  // up in the system prompt summary (Ruby skills_by_command).
+  @skill.register_default_skills(agent.skill_registry)
   logger.info("Agent created: session=\{session_id}")
 
   // 14. Restore session state if continuing or attaching

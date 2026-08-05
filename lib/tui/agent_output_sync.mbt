@@ -115,6 +115,14 @@ fn trim_trailing_newline(s : String) -> String {
 }
 
 ///|
+/// Reset the tracker to a pristine state (used by `/clear`'s session reset).
+fn AgentOutputSync::reset(self : AgentOutputSync) -> Unit {
+  self.last_synced_index = 0
+  self.last_displayed_length = 0
+  self.stream_entry_id = None
+}
+
+///|
 /// Mirror newly finalized messages into the output buffer.
 ///
 /// Returns true if the output buffer was modified.
@@ -132,7 +140,12 @@ fn AgentOutputSync::sync_messages(
         // in place instead of appending a duplicate.
         match output.replace(id, split_display_lines(display)) {
           Some(_) => ()
-          None => ignore(output.append_text(display, OutputKind::Text))
+          None =>
+            // Entry partially committed (its head scrolled into the terminal
+            // scrollback): keep the committed prefix, replace the live suffix.
+            if !output.replace_live(id, split_display_lines(display)) {
+              ignore(output.append_text(display, OutputKind::Text))
+            }
         }
         self.stream_entry_id = None
         self.last_displayed_length = 0
@@ -176,11 +189,15 @@ fn AgentOutputSync::sync_streaming(
       Some(id) =>
         match output.replace(id, split_display_lines(text)) {
           Some(_) => ()
-          None => {
-            // Entry was committed externally — open a fresh live entry.
-            let new_id = output.append_text(text, OutputKind::Text)
-            self.stream_entry_id = Some(new_id)
-          }
+          None =>
+            // Entry partially committed (long stream scrolled into the
+            // terminal scrollback): keep the committed prefix and continue
+            // with a live-suffix replacement instead of a duplicate entry.
+            if !output.replace_live(id, split_display_lines(text)) {
+              // Entry is gone entirely — open a fresh live entry.
+              let new_id = output.append_text(text, OutputKind::Text)
+              self.stream_entry_id = Some(new_id)
+            }
         }
       None => {
         let id = output.append_text(text, OutputKind::Text)
