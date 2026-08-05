@@ -118,3 +118,5 @@ MBOpenClacky 与基准 OpenClacky 的 TUI 采用**两种根本不同的渲染架
 |------|---------|------|
 | 2026-07-28 | 初始版本（探索型） | 由对比报告"根本架构差异"转化；按用户要求仅呈现选项与权衡，不预设结论 |
 | 2026-07-28 | 决策落地：选项 A 获采纳 | 基于已有迁移历史（`2026-07-01_tui-inline-migration.md`）、inline 架构优势、重构成本评估；DIFF-01/15 标注为合理架构差异 |
+| 2026-08-04 | **决策被推翻**：选项 A 中"保留可见差异（状态栏置顶/圆角输入框/视口回滚）"的结论作废；inline 大方向保留（原版 v1.5.4 默认 ui2 经复核同为 inline + 原生 scrollback，`ui2/layout_manager.rb:238-267`，本 spec 当年"原版全屏分屏"的前提不成立） | 用户要求布局与原版完全对齐；由 `specs/completed/2026-08-04_tui-full-align-00-overview.md` 及 01/02/03 取代，`docs/tui-architecture.md` 已同步修订 |
+| 2026-08-05 | 取代批次实施完成并归档（`specs/completed/2026-08-04_tui-full-align-00~03`），本 spec 仅余决策历史参考价值 | 对齐批次验收通过（moon check 0 errors、moon test 3280/3280、tui-eval 46/46） |

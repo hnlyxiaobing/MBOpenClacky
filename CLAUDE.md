@@ -3,6 +3,7 @@
 MBOpenClacky is a MoonBit rewrite of the openclacky AI Agent CLI — an LLM-powered autonomous agent with tool calling, skill plugins, session management, TUI, and a web server.
 
 > 开发规范（编码风格、测试指南、提交规范）请参阅 [AGENTS.md](AGENTS.md)。
+> **开发效率协议**（模型分层、文件读取、构建确认、失败诊断、会话管理）见 AGENTS.md 的 `Development Efficiency Protocol` 章节，完整数据与案例见 [docs/development-efficiency.md](docs/development-efficiency.md)。
 
 ## Build & Test
 
@@ -85,6 +86,17 @@ lib/
 - **Tool aliases**: 70+ name mappings bridge LLM-invented tool names to canonical registrations.
 - **AnyAdapter enum**: Channel adapters use enum-based type erasure (not trait objects) for 6 IM platforms.
 - **AnyTool enum**: Zero-cost dispatch for 14 tool implementations.
+
+## Development Workflow (spec-driven)
+
+Follow the Harness v2 loop — see [specs/decisions/harness-methodology-v2-upgrade.md](specs/decisions/harness-methodology-v2-upgrade.md):
+
+1. **Read all relevant specs in one batch** (single message, parallel `file_reader` calls).
+2. **Verify gap claims against real code** (`grep`/`glob`) before writing anything.
+3. **Split work with todo_manager**, implement one small unit at a time.
+4. **Validate in a tight loop**: `moon check` → targeted `moon test` → `moon fmt` → `moon info`.
+5. **Commit small and often** (`feat:`/`fix:` prefixes), archive specs to `specs/completed/` after acceptance.
+6. Respect the **Efficiency Protocol** in AGENTS.md — especially model tiering and "read full errors before retrying".
 
 ## Current Metrics
 

@@ -60,3 +60,19 @@ Keep edits minimal and package-local. Run `moon check` in a tight loop after edi
 - All template sections marked [必填] must be filled - incomplete specs are rejected
 - MoonBit AOT constraint: runtime-loaded extensions cannot implement traits - use shell commands instead
 - Verify crescent API capabilities (PATCH/PUT/DELETE) with `grep` before claiming "not supported"
+
+## Development Efficiency Protocol
+
+Empirically derived from 113 recorded development sessions (2026-06 → 2026-08). These rules prevent the top token/cost wasters. Detailed data and case studies: `docs/development-efficiency.md`.
+
+1. **Model tiering (biggest cost lever — up to 3000×)**. Execution-type work (implementing specs, fixing compile errors, writing tests, refactoring) must run on cheap models. Reserve expensive models for genuinely complex reasoning (architecture design, FFI memory layout, adversarial spec review). Never run a whole harness/spec batch on a premium model.
+
+2. **Read whole files, never grep-bite**. When exploring a file, use `file_reader` once to read it fully instead of 5-9 small `grep` probes against the same file. Grep only when you need precise matches across many files. For API discovery prefer `moon ide doc`; for codebase queries prefer the codebase-memory MCP (above).
+
+3. **Confirm build commands before guessing**. At the start of any session touching code: `moon version`, then confirm the build command from this file's Build section or README. Never try `warren build`, `moon build` bare, etc. in a trial-and-error loop — it wastes 5-10 iterations.
+
+4. **Read the full error before retrying**. On `moon check`/`moon build`/`moon test` failure, capture the complete error (`2>&1 | tail -50`, or `moon check --output-json 2>&1 | jq`), diagnose the root cause, then fix. Do not blindly retry or tweak random code — this is the #2 token waster.
+
+5. **Keep sessions short; offload knowledge**. Tasks that exceed ~50 messages should be split: commit progress to git, then start a new session that loads only the spec + git state. After reading a large document, immediately write its key points into the todo list or a notes file — long-session compression makes the agent forget what it read, causing 3-4× re-reads.
+
+6. **Batch independent tool calls**. Combine independent reads/checks into a single assistant message (e.g. read all related spec files at once). Reduces round-trips and overhead tokens.

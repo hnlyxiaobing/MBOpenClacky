@@ -60,6 +60,17 @@ specs/
 \r
 ## 最近归档 Spec
 
+### 2026-08-05 — TUI 全面对齐原版（4 项完成）
+
+| Spec | 名称 | 关键实现 | 测试 |
+|------|------|---------|------|
+| 00 | 总览（决策反转） | 推翻 tui-parity-08"刻意差异"定位：布局/命令语义完全对齐 openclacky ui2 v1.5.4 | — |
+| 01 | 布局对齐 | `brand_layout.mbt` 单一布局（状态栏置底/无框输入区）；`output_buffer.mbt` live_display_lines/commit_oldest_display_lines；commit-scrollback 滚动模型；todo 自动显隐；tips 2s 自动消失；鼠标捕获退役 | 3280/3280 ✅ |
+| 02 | 命令语义对齐 | `/clear` 新会话语境（reset_session + idle_timer rebind）；`/undo` 交互菜单 + redo（switch_to_task）；`/model` 两级抽屉 + 持久化；`/config` 连接测试 + 摘要；`?` = `/help`；技能动态斜杠命令 | 3280/3280 ✅ |
+| 03 | 扩展功能取舍 | 删除 `/new` `/todo` `/meeting` `/skills`、`/config key value`、文件浏览 + shell 模式、ClaudeCodeLike/Compact 模板、鼠标捕获；保留 `/theme`、Ctrl+Y、GFM 表格、输出折叠、上下文建议、Ctrl+L、`--tui-eval` | tui-eval 46/46 ✅ |
+
+人工确认项：SPEC-01 并排运行原版对比；SPEC-02 C4 连接测试真实网络、C6 真实 LLM 技能调用。
+
 ### 2026-07-29 — Agent 增量 Spec（8 项完成）
 
 | Spec | 名称 | 关键实现 | 测试 |
