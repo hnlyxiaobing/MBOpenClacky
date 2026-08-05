@@ -2473,13 +2473,23 @@ const Sessions = (() => {
 
     /** Populate list from initial session_list WS event (connect only). */
     setAll(list, hasMore = false, cronCount = 0, latestCronUpdatedAt = null) {
+      // Merge, never blind-replace. session_list is re-sent on every session
+      // subscribe (server-side), and it is built from DISK: sessions whose
+      // file is temporarily unreadable (corrupt / mid-write / not yet
+      // persisted, e.g. a just-created session whose save failed) are missing
+      // from it. Replacing the local array with that snapshot makes sidebar
+      // entries the client already knows about (and that may even be the
+      // active session) vanish on a mere panel switch. Keep locally-known
+      // sessions the server can't see; genuinely deleted ones are already
+      // removed locally via the session_deleted event, so they stay gone.
+      const serverIds = new Set(list.map(s => s.id));
+      const orphans  = _sessions.filter(s => !serverIds.has(s.id));
       _sessions.length = 0;
-      _sessions.push(...list);
+      _sessions.push(...list, ...orphans);
       _hasMore              = !!hasMore;
       _cronCount            = cronCount;
       _latestCronUpdatedAt  = latestCronUpdatedAt || null;
     },
-
     /** Insert a newly created session into the local list. */
     add(session) {
       if (!_sessions.find(s => s.id === session.id)) {
