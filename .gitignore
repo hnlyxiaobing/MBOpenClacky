@@ -39,4 +39,5 @@ _bak_tui_v1/
 .test_auto_creator/
 .test_web_compare/
 .git_panel_output.tmp
+trace.json
 
