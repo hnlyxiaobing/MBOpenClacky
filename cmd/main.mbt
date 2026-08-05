@@ -592,25 +592,14 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
 
   // 8. Determine working directory
   let working_dir = match get_named_arg(value, "path") {
-    Some(p) => p
-    None => {
-      // Windows uses CD for the current directory; Unix uses PWD.
-      // Try CD first, then PWD, then fall back to "."
-      let pwd_opt : String? = match @sys.get_env_var("CD") {
-        Some(p) if !p.is_empty() => Some(p)
-        _ =>
-          match @sys.get_env_var("PWD") {
-            Some(p) if !p.is_empty() => Some(p)
-            _ => None
-          }
-      }
-      pwd_opt.unwrap_or(".")
+    Some(p) => {
+      // If a path is provided, change to it and get the absolute path
+      @utils.change_dir(p)
+      @utils.current_dir()
     }
-  }
-
-  // 8b. Switch to working directory if different from current
-  if working_dir != original_dir && working_dir != "." {
-    @utils.change_dir(working_dir)
+    None =>
+      // No path specified — use current directory (absolute path)
+      @utils.current_dir()
   }
 
   // 9. Resolve session ID and optional restore data
@@ -670,6 +659,9 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // Built-in skills are user-invocable as slash commands (/name) and show
   // up in the system prompt summary (Ruby skills_by_command).
   @skill.register_default_skills(agent.skill_registry)
+  // User-global and project-level skills (.clacky/skills etc.) are
+  // discovered from disk and override same-named built-ins.
+  agent.discover_workspace_skills()
   logger.info("Agent created: session=\{session_id}")
 
   // 14. Restore session state if continuing or attaching
