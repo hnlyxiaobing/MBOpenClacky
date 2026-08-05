@@ -168,7 +168,9 @@ pub fn OutputBuffer::append_text(
   for sv in text.split("\n") {
     let line = sv.to_owned()
     if has_ansi_escape(line) {
-      lines.push(line)
+      for seg in wrap_ansi_line(line, self.width) {
+        lines.push(seg)
+      }
     } else {
       for seg in wrap_line_at_width(line, self.width) {
         lines.push(seg)

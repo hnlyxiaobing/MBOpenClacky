@@ -587,20 +587,10 @@ pub fn TuiEvalSimulator::press_key(
           match level {
             @libtui.ModelDrawerLevel::Cards =>
               match dialog.get_selected() {
-                Some(item) => {
-                  let mut expandable = false
-                  for m in self.agent.config.models {
-                    if m.id == item.value &&
-                      @libtui.provider_submodels(m).length() > 0 {
-                      expandable = true
-                    }
-                  }
-                  if expandable {
-                    self.try_open_submodel_drawer(dialog)
-                  } else {
-                    self.apply_model_card_switch(item.value, None)
-                  }
-                }
+                // Enter always selects the card with its default model
+                // (clears overlay); only → opens the drawer (mirrors the
+                // controller).
+                Some(item) => self.apply_model_card_switch(item.value, None)
                 None => ()
               }
             @libtui.ModelDrawerLevel::SubModels =>
@@ -1148,7 +1138,7 @@ fn TuiEvalSimulator::try_open_submodel_drawer(
   match dialog.get_selected() {
     Some(item) =>
       for m in self.agent.config.models {
-        if m.id == item.value && @libtui.provider_submodels(m).length() > 0 {
+        if m.id == item.value && @libtui.provider_submodels(m).length() >= 2 {
           @libtui.open_submodel_drawer(self.state.val, self.agent, m)
         }
       }

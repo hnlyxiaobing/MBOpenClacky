@@ -292,29 +292,21 @@ pub fn execute(
 /// Returns an array of command suggestion strings (with "/" prefix)
 /// prioritized by relevance to the current context.
 pub fn context_aware_suggestions(state : TuiState) -> Array[String] {
-  let suggestions : Array[String] = []
   let has_error = match state.last_error {
     Some(_) => true
     None => false
   }
   let last_tool_was_write = state.tool_history.length() > 0 &&
     state.tool_history[state.tool_history.length() - 1].name == "write_file"
-  let is_git_repo = @fs.path_exists(state.working_dir + "/.git") ||
-    @fs.path_exists(state.working_dir + "/.gitignore")
   if has_error {
-    suggestions.push("/clear")
-    suggestions.push("/help")
+    // After an error: start fresh, undo file changes, or read help.
+    ["/clear", "/undo", "/help"]
   } else if last_tool_was_write {
-    suggestions.push("/help")
-    suggestions.push("/clear")
-  } else if is_git_repo {
-    suggestions.push("/help")
-    suggestions.push("/clear")
+    // After a file write: undo is the most relevant follow-up.
+    ["/undo", "/help"]
   } else {
-    suggestions.push("/help")
-    suggestions.push("/clear")
+    ["/help", "/model", "/clear"]
   }
-  suggestions
 }
 
 ///|

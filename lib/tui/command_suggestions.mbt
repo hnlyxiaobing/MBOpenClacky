@@ -87,21 +87,36 @@ pub fn CommandSuggestions::update_filter(
 ///|
 /// Update the filtered list using context-aware suggestions based on TUI state.
 ///
-/// When the user types just "/" with no additional characters, this method
-/// provides prioritized suggestions based on the current session context
-/// (e.g. after an error, after a file write, in a git repo).
+/// When the user types just "/" with no additional characters, commands
+/// relevant to the current session context (e.g. after an error, after a
+/// file write) are promoted to the top of the dropdown. ALL commands stay
+/// visible — context only reorders, it never hides completions.
 pub fn CommandSuggestions::update_context_filter(
   self : CommandSuggestions,
   state : TuiState,
 ) -> Unit {
   let suggested_names = context_aware_suggestions(state)
   let results : Array[SuggestionItem] = []
+  // Context-prioritized commands first, in context order.
   for name in suggested_names {
     for cmd in self.commands {
       if cmd.name == name {
         results.push(cmd)
         break
       }
+    }
+  }
+  // Every remaining command follows in its original order.
+  for cmd in self.commands {
+    let mut already = false
+    for item in results {
+      if item.name == cmd.name {
+        already = true
+        break
+      }
+    }
+    if !already {
+      results.push(cmd)
     }
   }
   self.filtered = results

@@ -40,11 +40,18 @@ fn AgentOutputSync::set_theme(self : AgentOutputSync, theme : Theme) -> Unit {
 }
 
 ///|
-/// Split text into display lines (same convention as OutputBuffer::append_text).
-fn split_display_lines(text : String) -> Array[String] {
+/// Split text into display lines, wrapping long lines to fit `max_width`.
+/// ANSI-escape-aware: CSI SGR sequences are preserved across line breaks.
+fn split_display_lines(text : String, max_width? : Int = 0) -> Array[String] {
   let lines : Array[String] = []
   for sv in text.split("\n") {
-    lines.push(sv.to_owned())
+    if max_width > 0 {
+      for wrapped in wrap_ansi_line(sv.to_owned(), max_width) {
+        lines.push(wrapped)
+      }
+    } else {
+      lines.push(sv.to_owned())
+    }
   }
   lines
 }
@@ -138,12 +145,19 @@ fn AgentOutputSync::sync_messages(
       Some(id) => {
         // The live streaming entry already shows this reply — finalize it
         // in place instead of appending a duplicate.
-        match output.replace(id, split_display_lines(display)) {
+        match
+          output.replace(
+            id,
+            split_display_lines(display, max_width=output.width),
+          ) {
           Some(_) => ()
           None =>
             // Entry partially committed (its head scrolled into the terminal
             // scrollback): keep the committed prefix, replace the live suffix.
-            if !output.replace_live(id, split_display_lines(display)) {
+            if !output.replace_live(
+                id,
+                split_display_lines(display, max_width=output.width),
+              ) {
               ignore(output.append_text(display, OutputKind::Text))
             }
         }
@@ -187,13 +201,17 @@ fn AgentOutputSync::sync_streaming(
     let text = "[assistant] \{streaming_buffer}"
     match self.stream_entry_id {
       Some(id) =>
-        match output.replace(id, split_display_lines(text)) {
+        match
+          output.replace(id, split_display_lines(text, max_width=output.width)) {
           Some(_) => ()
           None =>
             // Entry partially committed (long stream scrolled into the
             // terminal scrollback): keep the committed prefix and continue
             // with a live-suffix replacement instead of a duplicate entry.
-            if !output.replace_live(id, split_display_lines(text)) {
+            if !output.replace_live(
+                id,
+                split_display_lines(text, max_width=output.width),
+              ) {
               // Entry is gone entirely — open a fresh live entry.
               let new_id = output.append_text(text, OutputKind::Text)
               self.stream_entry_id = Some(new_id)

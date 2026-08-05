@@ -126,13 +126,20 @@ test "config_menu: build_config_menu_items from models" {
     ),
   ]
   let items = build_config_menu_items(models, Some("m1"))
-  @debug.assert_eq(items.length(), 2)
+  // 2 models + separator + add + edit + delete + close = 7
+  @debug.assert_eq(items.length(), 7)
   // First item should have current marker
   assert_true(items[0].label.contains("●"))
   // Second item should not
   assert_false(items[1].label.contains("●"))
   // Both should have masked keys
   assert_true(items[0].label.contains("..."))
+  // Action items present
+  assert_true(items[2].label.contains("────"))
+  assert_true(items[3].label.contains("[+]"))
+  assert_true(items[4].label.contains("[*]"))
+  assert_true(items[5].label.contains("[-]"))
+  assert_true(items[6].label.contains("[X]"))
 }
 
 ///|
@@ -144,7 +151,8 @@ test "config_menu: from_models creates dialog" {
   ]
   let dialog = ConfigMenuDialog::from_models(models, Some("m1"))
   @debug.assert_eq(dialog.title, "Configuration Menu")
-  @debug.assert_eq(dialog.items.length(), 1)
+  // 1 model + separator + add + edit + close = 5
+  @debug.assert_eq(dialog.items.length(), 5)
 }
 
 ///|

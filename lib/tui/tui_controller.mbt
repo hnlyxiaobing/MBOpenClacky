@@ -29,7 +29,6 @@ pub(all) struct TuiController {
   mut term_width : Int
   output : OutputBuffer
   mut term_height : Int
-  vnode_renderer : VNodeRenderer
   status_bar : StatusBar
   input : InputArea
   state : Ref[TuiState]
@@ -38,7 +37,14 @@ pub(all) struct TuiController {
   mut quit : Bool
   mut dirty : Bool
   mut agent_running : Bool
-  mut last_output_version : Int
+  /// Body lines currently on screen (incremental renderer state).
+  /// Row i = painted_body[i]. Entries stay live until they physically
+  /// scroll into the terminal's native scrollback.
+  mut painted_body : Array[String]
+  /// Fixed-area height at the last paint (0 = unpainted).
+  mut last_fixed_height : Int
+  /// Whether the screen has been cleared and initialized.
+  mut screen_inited : Bool
   events : @aqueue.Queue[TuiEvent]
   mut confirmation_response : @aqueue.Queue[Bool]?
   mut agent_task : @async.Task[@agent.RunResult]?
@@ -72,7 +78,6 @@ pub fn TuiController::new(
   let controller = {
     tty,
     output,
-    vnode_renderer: VNodeRenderer::new(tty),
     term_width: tw,
     term_height: th,
     status_bar: StatusBar::new(),
@@ -83,7 +88,9 @@ pub fn TuiController::new(
     quit: false,
     dirty: true,
     agent_running: false,
-    last_output_version: -1,
+    painted_body: [],
+    last_fixed_height: 0,
+    screen_inited: false,
     events: @aqueue.Queue::Queue(kind=Unbounded),
     confirmation_response: None,
     agent_task: None,
@@ -214,41 +221,44 @@ fn _band_rows(
 // ── Rendering ─────────────────────────────────────────────────────
 
 ///|
-/// Full screen redraw: status bar, output area, input area.
+/// Full screen redraw: clear screen, reset painted state, repaint
+/// everything from scratch. Used on resize, Ctrl+L, /clear, theme switch.
 pub async fn TuiController::full_redraw(self : TuiController) -> Unit {
-  // VNode-based rendering: builds complete VNode tree and renders
-  // with mizchi/tui's diff engine. Replaces ScreenBuffer + LayoutManager.
-  self.full_redraw_vnode()
+  self.full_redraw_screen()
 }
 
 ///|
-/// Incremental redraw: delegates to full_redraw_vnode.
-/// The VNodeApp diff engine ensures only changed cells are written.
-
-///|
-/// Incremental redraw: only update what changed.
+/// Incremental redraw: paint only the changed rows (body diff + fixed
+/// area repaint). Called on every dirty tick and key press.
+///
+/// Entries stay live while they're on screen and commit only when they
+/// physically scroll into the terminal's native scrollback — this is
+/// what prevents the "reply flashes then disappears" bug.
 pub async fn TuiController::redraw(self : TuiController) -> Unit {
-  // With VNode diff-based rendering, every render is incremental.
-  // The diff engine writes only changed cells to the terminal.
-  self.last_output_version = self.output.version
-  self.full_redraw_vnode()
+  self.frame_incremental()
 }
 
 ///|
-/// Commit all live output entries (make them permanent).
-fn TuiController::commit_output(self : TuiController) -> Unit {
-  match self.output.last_entry_id() {
-    Some(id) => self.output.commit_through(id)
-    None => ()
-  }
-}
+/// Note: `commit_output()` was removed in the incremental renderer.
+/// Entries now commit only when they physically scroll into the
+/// terminal's native scrollback via `scroll_phys()`. This is the
+/// key fix for the "reply flashes then disappears" bug: in the old
+/// full-redraw model, commit_output after AgentDone marked entries
+/// committed, then the next redraw painted an empty body.
 
 ///|
 /// Update the suggestion dropdown based on current input.
 fn TuiController::update_suggestions(self : TuiController) -> Unit {
   let text = self.input.text()
   if should_show_suggestions(text, self.input.line_count()) {
-    self.suggestions.update_filter(text)
+    if text == "/" {
+      // Bare "/": promote context-relevant commands to the top of the
+      // dropdown (all commands stay visible); prefix filtering kicks in
+      // as soon as the user types more.
+      self.suggestions.update_context_filter(self.state.val)
+    } else {
+      self.suggestions.update_filter(text)
+    }
     self.suggestions_active = self.suggestions.is_visible()
   } else {
     self.close_suggestions()
@@ -432,7 +442,6 @@ async fn TuiController::main_loop(
         // Draw the new entries while still live, then mark them committed —
         // committed lines are never re-rendered by redraw_live.
         self.redraw()
-        self.commit_output()
         self.dirty = true
       }
       AgentError(msg) => {
@@ -449,7 +458,6 @@ async fn TuiController::main_loop(
         )
         ignore(self.output.append_text("[error] \{msg}", OutputKind::Text))
         self.redraw()
-        self.commit_output()
         self.dirty = true
       }
       SubmitInput(text) => self.start_agent(group, text)
@@ -677,14 +685,10 @@ async fn TuiController::handle_key(
           match level {
             Cards =>
               match dialog.get_selected() {
-                Some(item) =>
-                  if self.card_is_expandable(item.value) {
-                    self.try_open_submodel_drawer(item.value)
-                  } else {
-                    // No provider sub-models: plain card switch (clear
-                    // any sub-model overlay), same as before.
-                    self.apply_model_card_switch(item.value, None)
-                  }
+                // Enter always selects the card with its default model
+                // (clearing any overlay, Ruby ui_controller.rb:1641-1674);
+                // only → opens the sub-model drawer.
+                Some(item) => self.apply_model_card_switch(item.value, None)
                 None => ()
               }
             SubModels =>
@@ -749,65 +753,91 @@ async fn TuiController::handle_key(
           self.dirty = true
         }
         Enter =>
-          // Switch to selected model
+          // Check if selected item is an action item
           match dialog.get_selected() {
-            Some(item) => {
-              let result = self.agent.config.switch_model_by_id(item.value)
-              match result {
-                Ok(_) => {
-                  // Hot-swap the client
-                  self.apply_model_switch()
-                  // Persist
-                  self.save_config()
-                  // Update state model name
-                  self.state.val.model_name = match
-                    self.agent.config.current_model() {
-                    Some(m) => m.model
-                    None => self.state.val.model_name
-                  }
-                  ignore(
-                    self.output.append_text(
-                      "[system] Model switched to: \{item.label}",
-                      OutputKind::Text,
-                    ),
-                  )
-                  self.print_config_summary()
+            Some(item) =>
+              if item.value == ACTION_ADD {
+                let mode : ConfigMode = ConfigMenu
+                open_add_form(self.state.val, mode)
+                self.dirty = true
+              } else if item.value == ACTION_EDIT {
+                let idx = dialog.selected_idx
+                if idx >= 0 && idx < self.agent.config.models.length() {
+                  let model = self.agent.config.models[idx]
+                  let mode : ConfigMode = ConfigMenu
+                  open_edit_form(self.state.val, mode, model, idx)
+                  self.dirty = true
                 }
-                Err(msg) =>
-                  ignore(
-                    self.output.append_text("[error] \{msg}", OutputKind::Text),
+              } else if item.value == ACTION_DELETE {
+                let idx = dialog.selected_idx
+                if idx >= 0 && idx < self.agent.config.models.length() {
+                  let model = self.agent.config.models[idx]
+                  request_confirmation(
+                    self.state.val,
+                    "delete_model",
+                    model.model,
+                    "Delete model '\{model.model}'? This cannot be undone.",
                   )
+                  self.dirty = true
+                }
+              } else if item.value == ACTION_CLOSE {
+                close_config_dialog(self.state.val)
+                self.dirty = true
+              } else {
+                // Model entry: switch to selected model
+                let result = self.agent.config.switch_model_by_id(item.value)
+                match result {
+                  Ok(_) => {
+                    self.apply_model_switch()
+                    self.save_config()
+                    self.state.val.model_name = match
+                      self.agent.config.current_model() {
+                      Some(m) => m.model
+                      None => self.state.val.model_name
+                    }
+                    ignore(
+                      self.output.append_text(
+                        "[system] Model switched to: \{item.label}",
+                        OutputKind::Text,
+                      ),
+                    )
+                    self.print_config_summary()
+                  }
+                  Err(msg) =>
+                    ignore(
+                      self.output.append_text(
+                        "[error] \{msg}",
+                        OutputKind::Text,
+                      ),
+                    )
+                }
+                close_config_dialog(self.state.val)
+                self.dirty = true
               }
-              close_config_dialog(self.state.val)
-              self.dirty = true
-            }
             None => ()
           }
         Char('a') => {
-          let mode : ConfigMode = if dialog.title == "Select Model" {
-            ModelSelector
-          } else {
-            ConfigMenu
-          }
+          let mode : ConfigMode = ConfigMenu
           open_add_form(self.state.val, mode)
           self.dirty = true
         }
         Char('e') => {
           let idx = dialog.selected_idx
-          if idx >= 0 && idx < self.agent.config.models.length() {
+          if idx >= 0 &&
+            idx < self.agent.config.models.length() &&
+            is_separator(dialog.items[idx]) == false {
             let model = self.agent.config.models[idx]
-            let mode : ConfigMode = if dialog.title == "Select Model" {
-              ModelSelector
-            } else {
-              ConfigMenu
-            }
+            let mode : ConfigMode = ConfigMenu
             open_edit_form(self.state.val, mode, model, idx)
             self.dirty = true
           }
         }
-        Char('d') => {
+        Char('d') | Char('D') => {
+          // Only delete when cursor is on a model entry
           let idx = dialog.selected_idx
-          if idx >= 0 && idx < self.agent.config.models.length() {
+          if idx >= 0 &&
+            idx < self.agent.config.models.length() &&
+            is_separator(dialog.items[idx]) == false {
             let model = self.agent.config.models[idx]
             request_confirmation(
               self.state.val,
@@ -1094,7 +1124,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
           ignore(self.output.append_text("[error] \{err}", OutputKind::Text))
       }
       self.redraw()
-      self.commit_output()
       self.dirty = true
       return
     }
@@ -1117,7 +1146,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                   ),
                 )
                 self.redraw()
-                self.commit_output()
                 self.dirty = true
                 return
               }
@@ -1127,16 +1155,17 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
               return
             }
             Model(name~) if name == "" => {
-              // No-arg /model: open model selector
-              if self.agent.config.models.length() <= 1 {
+              // No-arg /model: open the two-level drawer. The original only
+              // blocks when NO model is configured (cli.rb:302-304) — a
+              // single-card user can still open the sub-model drawer.
+              if self.agent.config.models.length() == 0 {
                 ignore(
                   self.output.append_text(
-                    "[system] Only one model configured. Use /model <name> to switch.",
+                    "[system] No models configured. Run /config to add one.",
                     OutputKind::Text,
                   ),
                 )
                 self.redraw()
-                self.commit_output()
                 self.dirty = true
                 return
               }
@@ -1172,7 +1201,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                   )
               }
               self.redraw()
-              self.commit_output()
               self.dirty = true
               return
             }
@@ -1192,7 +1220,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 ),
               )
               self.full_redraw()
-              self.commit_output()
               self.dirty = false
               return
             }
@@ -1206,7 +1233,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 ),
               )
               self.full_redraw()
-              self.commit_output()
               self.dirty = false
               return
             }
@@ -1225,7 +1251,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                   ),
                 )
                 self.redraw()
-                self.commit_output()
                 self.dirty = true
               }
               return
@@ -1240,7 +1265,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 self.output.append_text("[system] \{msg}", OutputKind::Text),
               )
               self.redraw()
-              self.commit_output()
               self.dirty = true
             }
             Err(err) => {
@@ -1248,7 +1272,6 @@ async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
                 self.output.append_text("[error] \{err}", OutputKind::Text),
               )
               self.redraw()
-              self.commit_output()
               self.dirty = true
             }
           }
@@ -1307,7 +1330,6 @@ async fn TuiController::begin_agent_run(
   self.dirty = true
   // Draw the user message while still live, then commit it
   self.redraw()
-  self.commit_output()
   self.events.put(SubmitInput(run_input))
 }
 
@@ -1470,28 +1492,15 @@ fn TuiController::print_config_summary(self : TuiController) -> Unit {
 }
 
 ///|
-/// Whether a model card has a provider sub-model drawer.
-fn TuiController::card_is_expandable(
-  self : TuiController,
-  card_id : String,
-) -> Bool {
-  for m in self.agent.config.models {
-    if m.id == card_id {
-      return provider_submodels(m).length() > 0
-    }
-  }
-  false
-}
-
-///|
-/// Open the sub-model drawer for a card (no-op when it has none).
+/// Open the sub-model drawer for a card (no-op when it has fewer than 2
+/// provider sub-models — same threshold as the "›" marker).
 fn TuiController::try_open_submodel_drawer(
   self : TuiController,
   card_id : String,
 ) -> Unit {
   for m in self.agent.config.models {
     if m.id == card_id {
-      if provider_submodels(m).length() > 0 {
+      if provider_submodels(m).length() >= 2 {
         open_submodel_drawer(self.state.val, self.agent, m)
         self.dirty = true
       }
@@ -1530,7 +1539,8 @@ fn TuiController::apply_model_card_switch(
           OutputKind::Text,
         ),
       )
-      self.print_config_summary()
+      // No 4-line summary here: /model prints a single line (cli.rb:340);
+      // the summary belongs to /config changes only (C4).
       close_config_dialog(self.state.val)
       self.dirty = true
     }
@@ -1636,7 +1646,6 @@ fn TuiController::perform_time_machine_switch(
     None => ()
   }
   close_config_dialog(self.state.val)
-  self.commit_output()
 }
 
 ///|

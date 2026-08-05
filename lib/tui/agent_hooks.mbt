@@ -178,7 +178,7 @@ fn dispatch_hook_event(
       s.progress_stack.close_last()
       // Finalize streaming buffer
       if s.streaming_buffer.get().length() > 0 {
-        s.messages.push("[assistant] \\{s.streaming_buffer.get()}")
+        s.messages.push("[assistant] \{s.streaming_buffer.get()}")
         s.streaming_buffer.set("")
       }
       s.streaming_active.set(false)
@@ -322,7 +322,7 @@ fn dispatch_hook_event(
       s.agent_status.set("warning")
     }
     FileAccessed(path, op) => {
-      s.tool_output.set("File: \\{op} \\{path}")
+      s.tool_output.set("File: \{op} \{path}")
       // Append [F] file preview entry to output buffer
       append_file_entry(output, theme, path, op)
     }

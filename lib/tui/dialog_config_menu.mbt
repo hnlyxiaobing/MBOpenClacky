@@ -34,8 +34,40 @@ pub fn mask_api_key_summary(key : String) -> String {
 }
 
 ///|
+/// Special action item values for the config menu.
+const ACTION_ADD : String = "__action_add"
+
+///|
+const ACTION_EDIT : String = "__action_edit"
+
+///|
+const ACTION_DELETE : String = "__action_delete"
+
+///|
+const ACTION_CLOSE : String = "__action_close"
+
+///|
+const SEPARATOR_VALUE : String = "__separator"
+
+///|
+/// Check if a ConfigMenuItem is a separator (non-selectable).
+pub fn is_separator(item : ConfigMenuItem) -> Bool {
+  item.value == SEPARATOR_VALUE
+}
+
+///|
+/// Check if a ConfigMenuItem is an action item.
+pub fn is_action(item : ConfigMenuItem) -> Bool {
+  item.value == ACTION_ADD ||
+  item.value == ACTION_EDIT ||
+  item.value == ACTION_DELETE ||
+  item.value == ACTION_CLOSE
+}
+
+///|
 /// Build config menu items from an array of model configs.
 /// Highlights the current model and shows masked API keys.
+/// Appends action items: separator, Add, Edit, Delete (when >1 model), Close.
 pub fn build_config_menu_items(
   models : Array[@config.ModelConfig],
   current_model_id : String?,
@@ -55,6 +87,40 @@ pub fn build_config_menu_items(
     let label = "\{m.model} \{type_badge} \{masked}\{current_marker}"
     items.push({ label, value: m.id, multi_select: false, checked: false })
   }
+  // Separator (non-selectable)
+  items.push({
+    label: "──────────",
+    value: SEPARATOR_VALUE,
+    multi_select: false,
+    checked: false,
+  })
+  // Action items
+  items.push({
+    label: "[+] Add New Model",
+    value: ACTION_ADD,
+    multi_select: false,
+    checked: false,
+  })
+  items.push({
+    label: "[*] Edit Current Model",
+    value: ACTION_EDIT,
+    multi_select: false,
+    checked: false,
+  })
+  if models.length() > 1 {
+    items.push({
+      label: "[-] Delete Model",
+      value: ACTION_DELETE,
+      multi_select: false,
+      checked: false,
+    })
+  }
+  items.push({
+    label: "[X] Close",
+    value: ACTION_CLOSE,
+    multi_select: false,
+    checked: false,
+  })
   items
 }
 
@@ -126,7 +192,9 @@ pub fn build_model_card_items(
       None => false
     }
     let current_marker = if is_current { " (active)" } else { "" }
-    let arrow = if provider_submodels(m).length() > 0 { "  ›" } else { "" }
+    // "›" hint only for cards whose provider exposes >= 2 sub-models
+    // (Ruby ui_controller.rb:1690) — same threshold as the drawer.
+    let arrow = if provider_submodels(m).length() >= 2 { "  ›" } else { "" }
     items.push({
       label: "\{m.model}\{current_marker}\{arrow}",
       value: m.id,
@@ -285,19 +353,27 @@ pub fn render_config_menu(
       "  \{item.label}"
     }
 
-    let style = if is_selected {
+    let style = if is_separator(item) {
+      Style::new(dim=true)
+    } else if is_selected {
       Style::new(fg=@color.Color::Basic(@color.BasicColor::Cyan), bold=true)
     } else {
       Style::default_()
     }
 
-    let value_display = if item.value.length() > 0 {
+    let value_display = if item.value.length() > 0 &&
+      is_separator(item) == false &&
+      is_action(item) == false {
       " (\{item.value})"
     } else {
       ""
     }
 
-    let raw_label = "\{marker} \{label}\{value_display}"
+    let raw_label = if is_separator(item) {
+      item.label
+    } else {
+      "\{marker} \{label}\{value_display}"
+    }
     // Truncate to fit terminal width when term_width is specified.
     let max_content = if term_width > 0 {
       // Border adds 2 chars (left + right), plus 2 for margin safety.
@@ -348,18 +424,28 @@ pub fn ConfigMenuDialog::new(
 }
 
 ///|
-/// Move selection up.
+/// Move selection up, skipping separator items.
 pub fn ConfigMenuDialog::move_up(self : ConfigMenuDialog) -> Unit {
-  if self.selected_idx > 0 {
-    self.selected_idx = self.selected_idx - 1
+  let mut idx = self.selected_idx
+  while idx > 0 {
+    idx = idx - 1
+    if !is_separator(self.items[idx]) {
+      self.selected_idx = idx
+      return
+    }
   }
 }
 
 ///|
-/// Move selection down.
+/// Move selection down, skipping separator items.
 pub fn ConfigMenuDialog::move_down(self : ConfigMenuDialog) -> Unit {
-  if self.selected_idx < self.items.length() - 1 {
-    self.selected_idx = self.selected_idx + 1
+  let mut idx = self.selected_idx
+  while idx < self.items.length() - 1 {
+    idx = idx + 1
+    if !is_separator(self.items[idx]) {
+      self.selected_idx = idx
+      return
+    }
   }
 }
 

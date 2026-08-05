@@ -1,18 +1,12 @@
 ///|
-/// Regression tests for SPEC-01: the top status bar must render fully.
+/// Regression tests for SPEC-01: the status bar must render fully.
 ///
-/// Root cause (verified empirically): the layout hardcoded `width=100.0`,
-/// which the mizchi/tui DSL interprets as `DimensionValue::Length(100)` —
-/// i.e. 100 *absolute columns*, NOT 100%. The ~118-column status bar overflowed
-/// the 100-column row, and the flexbox engine shrank each text node toward its
-/// min-content width (the longest word, computed by splitting on spaces in
-/// `text_measure_func`). Space-containing segments ("● idle", "0 tasks",
-/// "0 calls", "0 iters") therefore shrank and were truncated to their longest
-/// word, while space-free segments ("s_178524", "$0.0000", …) have
-/// min_width == max_width and could not shrink, so they stayed full.
-///
-/// The fix threads the real terminal width through the layout builders so the
-/// status bar row is as wide as the terminal and never overflows/shrinks.
+/// Root cause (verified empirically): the old VNode layout hardcoded
+/// `width=100.0`, clipping the ~118-column status bar and flex-shrinking
+/// its space-containing segments ("● idle", "0 tasks", …) to their longest
+/// word. The line-model renderer has no such layout engine: the status
+/// line passes through `truncate_ansi_line`, which preserves everything
+/// that fits the real terminal width.
 
 ///|
 /// Build a representative multi-segment ANSI status string matching the format
@@ -65,39 +59,26 @@ fn sample_status_text() -> String {
 
 ///|
 /// Render the status bar through the real layout + vnode render pipeline and
-/// return the rendered frame with ANSI codes stripped.
-fn render_status_frame(term_width : Int) -> String {
-  let w = term_width.to_double()
-  let status_node = ansi_line_to_vnode_sized(sample_status_text(), w, 1.0)
-  let layout = build_main_layout(
-    status_node,
-    [@vnode.text("body")],
-    [],
-    [separator_node(term_width), @vnode.text("> ")],
-    w,
-  )
-  let app = @vnode.VNodeApp::new(term_width, 45)
-  strip_ansi(app.render_frame(layout))
-}
 
 ///|
 /// SPEC-01 regression: at a wide terminal (150 cols) every status field must
-/// render in full — no tail truncation of the space-containing segments and
-/// separators intact. With the old hardcoded 100-col row this failed: the line
-/// came back as "● id … 0 tas | 0 cal 0 ite …".
+/// survive the frame path's width truncation intact — the old VNode layout
+/// shrank space-containing segments to their longest word.
 test "status bar renders fully at terminal width (SPEC-01)" {
-  let frame = render_status_frame(150)
+  let line = truncate_ansi_line(sample_status_text(), 150)
   // Space-containing segments were previously truncated to their longest word.
-  @debug.assert_eq(frame.contains("● idle"), true)
-  @debug.assert_eq(frame.contains("0 tasks"), true)
-  @debug.assert_eq(frame.contains("0 calls"), true)
-  @debug.assert_eq(frame.contains("0 iters"), true)
+  @debug.assert_eq(line.contains("● idle"), true)
+  @debug.assert_eq(line.contains("0 tasks"), true)
+  @debug.assert_eq(line.contains("0 calls"), true)
+  @debug.assert_eq(line.contains("0 iters"), true)
   // Space-free segments and the tail must also be intact.
-  @debug.assert_eq(frame.contains("s_178524"), true)
-  @debug.assert_eq(frame.contains("qwen3.7-plus"), true)
-  @debug.assert_eq(frame.contains("$0.0000"), true)
+  @debug.assert_eq(line.contains("s_178524"), true)
+  @debug.assert_eq(line.contains("qwen3.7-plus"), true)
+  @debug.assert_eq(line.contains("$0.0000"), true)
   // Separators must survive (some were dropped entirely before the fix).
-  @debug.assert_eq(frame.contains(" │ "), true)
+  @debug.assert_eq(line.contains(" │ "), true)
+  // The full status fits in 150 columns — nothing was cut.
+  @debug.assert_eq(ansi_display_width(line) > 100, true)
 }
 
 ///|

@@ -17,11 +17,9 @@ import {
   "moonbitlang/async/io" @async/io,
   "moonbitlang/async/aqueue",
   "moonbitlang/x/fs",
-  "mizchi/tui/vnode",
   "mizchi/tui/core" @tui_core,
   "mizchi/signals",
   "hustcer/tabular",
-  "mizchi/tui/components" @tui_components,
 }
 
 warnings = "-6"
