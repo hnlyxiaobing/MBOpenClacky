@@ -257,18 +257,21 @@ fn truncate_model(name : String, max_len : Int) -> String {
 }
 
 ///|
-/// Format cost for display — dynamic decimals, no trailing zeros.
+/// Format cost for display — up to 4 decimal places, no trailing zeros.
 ///
-/// Strips trailing zeros but keeps at least one decimal digit.
-/// Example: 0.0 → "0.0", 1.5 → "1.5", 0.123456 → "0.123456"
+/// Rounds to 4 decimal places, strips trailing zeros, keeps at least one.
+/// Example: 0.0 → "0.0", 1.5 → "1.5", 0.123456 → "0.1235"
 pub fn format_cost(cost : Double) -> String {
-  let s = cost.to_string()
+  // Round to 4 decimal places by multiplying, rounding, then dividing
+  let rounded = (cost * 10000.0).round() / 10000.0
+  let s = rounded.to_string()
   if !s.contains(".") {
     return s + ".0"
   }
   let parts = s.split(".").to_array()
   let int_part = parts[0].to_owned()
   let mut dec = parts[1].to_owned()
+  // Strip trailing zeros (but keep at least 1 digit)
   while dec.length() > 1 && dec.has_suffix("0") {
     dec = dec[0:dec.length() - 1].to_owned()
   }

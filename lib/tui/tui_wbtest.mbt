@@ -135,7 +135,7 @@ test "format_cost handles various cases" {
   @debug.debug_inspect(
     format_cost(0.123456),
     content=(
-      #|"0.123456"
+      #|"0.1235"
     ),
   )
   @debug.debug_inspect(
