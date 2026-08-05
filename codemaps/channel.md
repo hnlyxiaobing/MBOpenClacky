@@ -1,6 +1,6 @@
 # channel — 6 个 IM 适配器 · 消息收发 · WebSocket 网关
 
-> 路径: `lib/channel/` · 29 mbt（19 源 + 10 测试）+ moon.pkg/.mbti · 即时通讯平台接入层
+> 路径: `lib/channel/` · 28 mbt（18 源 + 10 测试）+ moon.pkg/.mbti · 即时通讯平台接入层
 
 ## 入口函数
 

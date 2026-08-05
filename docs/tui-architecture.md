@@ -8,10 +8,10 @@
 | 维度 | 实现 |
 |------|------|
 | 渲染模式 | Inline Scrolling + **commit-scrollback**（内容随终端原生滚动向上推，非全屏 alternate-screen；输出溢出时旧行打印真实换行推入终端 scrollback，用户用终端原生滚动回看） |
-| 渲染引擎 | `mizchi/tui` VNode 渲染（`lib/tui/vnode_renderer.mbt`，经 `app.render_frame(node)` 输出） |
+| 渲染引擎 | 自研行级重绘（`lib/tui/tui_controller_render.mbt`）：输出区组装为行数组后与 `painted_body` 做公共前缀 diff，仅重写变化行（`ESC[row;1H` + `ESC[2K` 清行直写 tty）；`mizchi/tui` 仅保留 `core` 宽度测量，VNode 渲染引擎已废弃（BUG-004：坐标 diff 与物理滚动本质冲突） |
 | 终端底层 | `moonbit-community/tty`（raw mode、按键事件、终端能力探测） |
 | 状态管理 | `mizchi/signals` 响应式 Signal |
-| 布局 | `lib/tui/brand_layout.mbt`：单一布局，输出区 flex + 底部固定区（状态栏置底=输入区上方、分隔线形态无框输入区、附件行、建议、tips 行）；对齐 openclacky ui2 v1.5.4 |
+| 布局 | `lib/tui/tui_controller_render.mbt`（`build_body_lines` / `build_fixed_area_lines`）：输出区 + 底部固定区（状态栏置底=输入区上方、分隔线形态无框输入区、附件行、建议、tips 行）；对齐 openclacky ui2 v1.5.4 |
 | 编码处理 | Windows 控制台 codepage 由 `lib/tui/console_cp_native.c` stub 处理 |
 
 ### 关键决策：布局向原版完全对齐（2026-08-04 修订，2026-08-05 实施完成）
@@ -32,6 +32,7 @@
    - 布局对齐：状态栏置底（输入区上方）、无框输入区、commit-scrollback 滚动模型、todo 自动显隐、tips 行；废弃 `scroll_offset` 视口回滚、退役鼠标捕获。
    - 命令语义对齐：`/clear` 新会话语境、`/undo` 交互菜单 + redo、`/model` 两级抽屉 + 持久化、`/config` 连接测试 + 摘要、`?` = `/help`、技能动态斜杠命令。
    - 扩展取舍：删除 `/new` `/todo` `/meeting` `/skills`、`/config key value`、文件浏览 + shell 模式、ClaudeCodeLike/Compact 模板；保留 `/theme`、Ctrl+Y、GFM 表格、输出折叠、上下文建议、Ctrl+L、`--tui-eval`。
+5. **2026-08-05 渲染层再重构**：废弃 mizchi/tui VNode 渲染（坐标 diff 与 commit-scrollback 的物理滚动本质冲突，BUG-004），改为自研行级重绘（`tui_controller_render.mbt`：`frame_incremental` 前缀 diff 只重写变化行、`full_redraw_screen` 全量重建）；新增 `screen_lines.mbt` 行模型原语；删除 `vnode_renderer.mbt`、`tui_controller_vnode.mbt`、`node_adapter.mbt`、`diff_renderer.mbt`、`brand_layout.mbt`；`mizchi/tui` 依赖收敛为仅 `core` 宽度测量。
 
 原对比测试报告中的 5 项 bug（状态栏截断、窄屏不响应、斜杠命令需两次 Enter、配置菜单窄屏裁剪、颜色不一致）均已在 2026-07-28 批次修复。
 
@@ -40,7 +41,7 @@
 ```bash
 moon build --target native --release cmd          # 构建（须显式指定 cmd，规避 moon#1488）
 ./_build/native/debug/build/cmd/cmd.exe            # 推荐直接运行 exe 进入 TUI
-cmd.exe --tui-eval test/scenarios/tui/             # TUI eval 场景回归（当前 46/46）
+cmd.exe --tui-eval test/scenarios/tui/             # TUI eval 场景回归（当前 47/47）
 ```
 
 注意：`moon test --target wasm-gc` 会因 `tty`/`crescent` 的 FFI 失败，用 `moon check` 验证类型即可。

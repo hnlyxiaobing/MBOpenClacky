@@ -1,6 +1,6 @@
 # client — LLM API 客户端 · SSE 流式 · 多 Provider 适配
 
-> 路径: `lib/client/` · 12 mbt（9 源 + 3 测试）· LLM 通信层（HTTP 传输基于 `@async/http`，无 C FFI）
+> 路径: `lib/client/` · 11 mbt（8 源 + 3 测试）· LLM 通信层（HTTP 传输基于 `@async/http`，无 C FFI）
 
 ## 入口函数
 

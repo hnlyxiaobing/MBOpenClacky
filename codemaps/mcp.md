@@ -1,6 +1,6 @@
 # mcp — MCP 协议 · Stdio/HTTP 传输 · JSON-RPC 2.0 · 虚拟技能
 
-> 路径: `lib/mcp/` · 16 mbt（9 源 + 7 测试）+ moon.pkg/.mbti · Model Context Protocol 实现
+> 路径: `lib/mcp/` · 15 mbt（8 源 + 7 测试）+ moon.pkg/.mbti · Model Context Protocol 实现
 
 ## 入口函数
 

@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新日期：2026-08-03
+> 更新日期：2026-08-05
 
 MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native 目标构建，提供 TUI、非交互 CLI 与 Web 三种使用形态。
 
@@ -9,8 +9,9 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 | 指标 | 数值 |
 |------|------|
 | lib 包数量 | 24 |
-| 源码文件（.mbt，不含测试） | 326 个 / 约 78,600 行 |
-| 测试文件（wbtest + test/） | 165 个 / 约 40,400 行 |
+| 源码文件（.mbt，不含测试） | 290 个 / 约 75,100 行 |
+| 测试文件（wbtest + test/） | 173 个 / 约 39,400 行 |
+| 测试用例 | 3,200+ |
 | REST 端点 | 216（含别名） |
 | Web 服务端口 | 7071 |
 
@@ -46,6 +47,9 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 
 ## 近期完成（原独立 gap 文档已合并至此）
 
+- **2026-08-05 TUI 渲染层再重构**：废弃 mizchi/tui VNode 渲染（坐标 diff 与 commit-scrollback 物理滚动本质冲突，BUG-004），改为自研行级重绘（`tui_controller_render.mbt` 前缀 diff 只重写变化行）+ `screen_lines.mbt` 行模型原语；`mizchi/tui` 依赖收敛为仅 `core` 宽度测量。详见 [tui-architecture.md](tui-architecture.md)。
+- **2026-08-05 TUI 全面对齐原版（SPEC-01/02/03）**：布局对齐（状态栏置底、无框输入区、commit-scrollback、todo 自动显隐）+ 命令语义对齐（`/clear` `/undo` `/model` `/config`、技能动态斜杠命令）；tui-eval 场景 47/47 通过。
+- **2026-08-05 技能发现对齐原版**：新增 `Agent::discover_workspace_skills`（`lib/agent/skill_manager.mbt`）与 `@skill.read_skill_files`（`lib/skill/discovery.mbt`），发现路径扩为 5 条（用户全局 `~/.mbopenclacky/skills/` 优先，项目级 `.clacky/skills/` 最后，同名后者覆盖前者）；CLI/Web/onboard 启动时自动发现。同步修复 CI/Docker 因方法定义未提交导致的 `[4015]` 构建失败。
 - **2026-08-03 Web UI 修复批次**：7 项修复的对抗性审查补漏（历史重复、头像路由、模型选择持久化）+ 4 项 spec（Windows 构建断链、模型标识统一、offset 分页、目录规范化）+ 复测 4 项根因修复（`String::replace` 只换首个导致的斜杠混用、默认模型双概念统一为徽标权威、目录切换放宽、占位会话名按内容自动重命名）。详见 [2026-08-03-web-ui-fix-adversarial-review.md](2026-08-03-web-ui-fix-adversarial-review.md) 与 [CHANGELOG.md](CHANGELOG.md)。
 - **2026-07-26 web-ui2 批次**：第二轮 Web UI 对比测试 27 项 bug，25 项已修复（详见 [web-ui-parity.md](web-ui-parity.md)）。
 - **2026-07-27 gap 分析**：18 项差距（MCP 配置加载、HTTP transport、Time Machine 接入 tool_executor、WS token 级流式推送、LLM 重试/fallback 等）全部实现，specs 已归档。

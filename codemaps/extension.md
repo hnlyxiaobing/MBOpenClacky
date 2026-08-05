@@ -1,6 +1,6 @@
 # extension - 扩展系统 · 脚手架 · 打包 · 验证 · 市场
 
-> 路径: `lib/extension/` · 17 mbt（9 源 + 8 测试）+ README.md + moon.pkg/.mbti · OpenClacky 扩展生命周期管理
+> 路径: `lib/extension/` · 16 mbt（8 源 + 8 测试）+ README.md + moon.pkg/.mbti · OpenClacky 扩展生命周期管理
 
 ## 入口函数
 

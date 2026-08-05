@@ -1,6 +1,6 @@
 # pricing - 模型定价表 · 成本计算
 
-> 路径: `lib/pricing/` · 5 mbt（3 源 + 2 测试）+ moon.pkg/.mbti · LLM 调用费用计算
+> 路径: `lib/pricing/` · 4 mbt（2 源 + 2 测试）+ moon.pkg/.mbti · LLM 调用费用计算
 
 ## 入口函数
 

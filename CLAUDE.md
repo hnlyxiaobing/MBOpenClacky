@@ -41,14 +41,15 @@ lib/
   mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
                 registry, virtual skill mapping, skill provider
   channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
-  web/        — crescent HTTP server: 160+ REST endpoints, WebSocket (token-level
+  web/        — crescent HTTP server: 216 REST routes (incl. aliases), WebSocket (token-level
                 streaming), auth/logging middleware, timeout/error-envelope, broadcast
                 hub, template processor, static server with SPA fallback
                 (native JS frontend in web/)
-  tui/        — Inline scrolling TUI: mizchi/tui VNode rendering + mizchi/signals
-                reactive state on moonbit-community/tty; async event loop
-                (Queue[TuiEvent]), dialog system (approval/config/form), Agent Shell
-                (file browser), thinking live view, LineEditor (CJK-aware), StatusBar,
+  tui/        — Inline scrolling TUI: line-level repaint + commit-scrollback
+                (tui_controller_render.mbt) + mizchi/signals reactive state on
+                moonbit-community/tty; async event loop
+                (Queue[TuiEvent]), dialog system (approval/config/form),
+                thinking live view, LineEditor (CJK-aware), StatusBar,
                 InputArea, TodoArea, markdown rendering, slash commands, themes,
                 progress stack, block-font (see docs/tui-architecture.md)
   server/     — Cron parser, scheduler, browser manager, backup manager, discover,
@@ -102,17 +103,17 @@ Follow the Harness v2 loop — see [specs/decisions/harness-methodology-v2-upgra
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 326 |
-| Test files (`_wbtest.mbt`) | 165 |
-| Source lines | ~78,600 |
-| Test lines | ~40,400 |
-| Total lines (incl. test/) | ~119,000 |
-| Test cases | 3,000+ |
+| `.mbt` source files (lib + cmd) | 290 |
+| Test files (`_wbtest.mbt`) | 173 |
+| Source lines | ~75,100 |
+| Test lines | ~39,400 |
+| Total lines (incl. test/) | ~114,500 |
+| Test cases | 3,200+ |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
-| Provider presets | 12 |
+| Provider presets | 13 |
 | Default skills | 17 |
-| REST API endpoints | ~162 |
+| REST API endpoints | 216 routes (incl. aliases) |
 | `moon check` | 0 errors, 0 warnings |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |

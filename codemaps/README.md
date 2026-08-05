@@ -1,4 +1,4 @@
-# Codemaps 目录
+  # Codemaps 目录
 
 本目录存放 MBOpenClacky 各核心包的 **代码地形索引**（CODEMAP）。
 
@@ -27,8 +27,8 @@
 | mcp | `mcp.md` | MCP 协议（Stdio/HTTP） |
 | channel | `channel.md` | 6 个 IM 适配器 |
 | server | `server.md` | Cron 调度、浏览器管理、Git 面板 |
-| web | `web.md` | REST 服务器、160+ 个端点、WebSocket 流式、前端 SPA |
-| tui | `tui.md` | TUI（mizchi/tui VNode 渲染 + mizchi/signals 响应式状态） |
+| web | `web.md` | REST 服务器、216 条路由（含别名）、WebSocket 流式、前端 SPA |
+| tui | `tui.md` | TUI（行级重绘 + commit-scrollback + mizchi/signals 响应式状态） |
 | config | `config.md` | TOML 配置加载 |
 | message | `message.md` | 消息模型、历史管理、工具调用 |
 | parser | `parser.md` | 文档解析（PDF/DOCX/XLSX/PPTX/WPS 及永中 ET/DPS 等） |

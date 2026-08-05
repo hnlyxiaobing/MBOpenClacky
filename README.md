@@ -14,21 +14,21 @@
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件 | 326 个 `.mbt`（lib + cmd） |
-| 测试文件 | 165 个 `_wbtest.mbt`（lib + cmd + test） |
-| 代码行数 | ~119,000 行（源码 ~78,600 + 测试 ~40,400） |
-| 测试用例 | 3,000+ |
+| 源代码文件 | 290 个 `.mbt`（lib + cmd） |
+| 测试文件 | 173 个 `_wbtest.mbt`（lib + cmd + test） |
+| 代码行数 | ~114,500 行（源码 ~75,100 + 测试 ~39,400） |
+| 测试用例 | 3,200+ |
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
-| Provider 预设 | 12 个 |
+| Provider 预设 | 13 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | ~162 个 |
+| REST API 端点 | 216 条路由（含别名） |
 | 默认 Skill | 17 个 |
 | `moon check` | 0 errors, 0 warnings |
 | 原生二进制 | ~3.6 MB |
 
 ### 功能亮点
 
-- **多 LLM 后端**：OpenAI / Anthropic / Bedrock / DeepSeek 等 12 种 Provider
+- **多 LLM 后端**：OpenAI / Anthropic / DeepSeek / GLM 等 13 种 Provider 预设
 - **MCP 协议**：Stdio/HTTP 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射
 - **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
 - **Web 前端 SPA + REST API**：暗色主题 + WebSocket 实时通信（token 级流式），默认端口 7071
@@ -36,7 +36,7 @@
 - **GEP 技能自进化**：EvolutionEngine + SkillReflector + AutoCreator
 - **Time Machine**：文件快照与回滚
 - **PTY 终端执行**：真实交互式命令会话
-- **TUI**：Inline Scrolling 架构，mizchi/tui VNode 渲染 + mizchi/signals 响应式状态（底层 moonbit-community/tty）
+- **TUI**：Inline Scrolling 架构，行级重绘 + commit-scrollback（终端原生滚动）+ mizchi/signals 响应式状态（底层 moonbit-community/tty）
 
 ---
 
@@ -103,17 +103,17 @@ MBOpenClacky/
 ├── cmd/                # CLI 入口
 ├── lib/                # 24 个库包
 │   ├── agent/          # Agent 核心（ReAct 循环、会话、压缩、Time Machine）
-│   ├── client/         # LLM API 客户端（3 协议、12 Provider）
+│   ├── client/         # LLM API 客户端（3 协议、13 Provider）
 │   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）
 │   ├── skill/          # 技能系统 + GEP 进化引擎
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
 │   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
 │   ├── channel/        # 6 平台 IM 适配器
-│   ├── web/            # Web 服务器（160+ REST 端点、WebSocket）
+│   ├── web/            # Web 服务器（216 条路由、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）
-│   ├── tui/            # TUI 界面（mizchi/tui VNode + moonbit-community/tty）
+│   ├── tui/            # TUI 界面（行级重绘 + commit-scrollback + moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
-│   ├── config/         # 配置系统（TOML、12 Provider）
+│   ├── config/         # 配置系统（TOML、13 Provider）
 │   ├── billing/        # 计费系统
 │   ├── brand/          # 品牌配置 + AES-256-GCM 加密
 │   ├── media/          # 媒体生成

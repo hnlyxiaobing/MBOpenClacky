@@ -1,6 +1,6 @@
-# web — REST 服务器 · 160+ 个端点 · WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 216 条路由（含别名）· WebSocket 广播 · 静态资源 · 前端 SPA
 
-> 路径: `lib/web/` · 72 mbt（src=51, test=21）+ 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
+> 路径: `lib/web/` · 74 mbt（src=39, test=35）+ 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
 > 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 模块化 JS：core/ + components/ + features/ + ext_ui/ + vendor/），模板占位符由 `template_processor.mbt` 替换
 
 ## 入口函数

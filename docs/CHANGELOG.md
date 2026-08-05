@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-08-05  TUI 渲染层再重构 + 全面对齐原版 + 技能发现对齐 + CI 修复
+
+- `[refactor]` **TUI 渲染层再重构**：废弃 mizchi/tui VNode 渲染（坐标 diff 与 commit-scrollback 物理滚动本质冲突，BUG-004），改为自研行级重绘（`tui_controller_render.mbt` 前缀 diff 只重写变化行）+ `screen_lines.mbt` 行模型原语；删除 `vnode_renderer.mbt`、`tui_controller_vnode.mbt`、`node_adapter.mbt`、`diff_renderer.mbt`、`brand_layout.mbt`；`mizchi/tui` 依赖收敛为仅 `core` 宽度测量
+- `[feat]` **TUI 全面对齐原版布局与命令语义（SPEC-01/02/03）**：状态栏置底、无框输入区、todo 自动显隐；`/clear` `/undo` `/model` `/config` 语义对齐、技能动态斜杠命令；tui-eval 场景 47/47 通过
+- `[feat]` **技能发现对齐原版**：新增 `Agent::discover_workspace_skills`（`lib/agent/skill_manager.mbt`）与 `@skill.read_skill_files`（`lib/skill/discovery.mbt`）；发现路径扩为 5 条（用户全局 `~/.mbopenclacky/skills/` 优先，项目级 `.clacky/skills/` 最后，同名后者覆盖）；CLI/Web/onboard 启动时自动发现
+- `[fix]` **CI/Docker 构建失败修复**：`discover_workspace_skills` 方法定义及配套测试此前未提交，导致 `moon check` 报 `[4015]`（Agent 无该方法）与 `moon test` 旧断言（3 路径 vs 实际 5 路径）失败；已补提交（`7d96dbd`、`7b3f9f8`）
+- `[docs]` **文档指标校准**：旧统计误将 `.mbti` 计为 `.mbt`，全部文档改为排除 `.mbti` 的口径（源文件 290、测试文件 173、~114,500 行）；Provider 预设 12 → 13（补 `volcengine-ark`）；REST 端点统一为 216 条路由（含别名）
+
 ### 2026-08-03  fix: Web UI 7 项修复对抗性审查补漏 + 4 项 spec + 复测 4 项修复
 
 - `[fix]` **前一轮 7 项 Web UI 修复的对抗性审查与补漏**（报告 `docs/2026-08-03-web-ui-fix-adversarial-review.md`）

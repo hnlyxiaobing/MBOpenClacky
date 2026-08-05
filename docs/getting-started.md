@@ -234,7 +234,7 @@ moon run cmd -- server
 
 ## 支持的 Provider
 
-MBOpenClacky 内置 12 个 Provider 预设：
+MBOpenClacky 内置 13 个 Provider 预设：
 
 | # | Provider ID | 名称 | API 协议 | 默认模型 |
 |---|-------------|------|----------|----------|
@@ -250,6 +250,7 @@ MBOpenClacky 内置 12 个 Provider 预设：
 | 10 | `kimi-coding` | Kimi Code | Anthropic Messages | `kimi-for-coding` |
 | 11 | `minimax` | Minimax | OpenAI Completions | `MiniMax-M3` |
 | 12 | `mimo` | MiMo (Xiaomi) | OpenAI Completions | `mimo-v2.5-pro` |
+| 13 | `volcengine-ark` | Volcengine Ark | OpenAI Completions | `doubao-1.5-pro-256k` |
 
 ---
 

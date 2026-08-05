@@ -1,6 +1,6 @@
 # telemetry - 匿名遥测 · 事件上报
 
-> 路径: `lib/telemetry/` · 5 mbt（3 源 + 2 测试）+ moon.pkg/.mbti · 使用统计与事件追踪
+> 路径: `lib/telemetry/` · 4 mbt（2 源 + 2 测试）+ moon.pkg/.mbti · 使用统计与事件追踪
 
 ## 入口函数
 

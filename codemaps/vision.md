@@ -1,6 +1,6 @@
 # vision - 视觉理解 · OCR · 图像描述 · 缓存
 
-> 路径: `lib/vision/` · 6 mbt（src=4, test=2）+ moon.pkg/.mbti · 图像/视觉理解能力抽象层
+> 路径: `lib/vision/` · 5 mbt（src=3, test=2）+ moon.pkg/.mbti · 图像/视觉理解能力抽象层
 
 ## 入口函数
 

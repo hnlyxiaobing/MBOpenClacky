@@ -1,6 +1,6 @@
 # agent — ReAct 循环 · 会话管理 · 成本追踪
 
-> 路径: `lib/agent/` · 50 个 .mbt（36 源 + 14 测试）+ 1 .c · 项目核心调度包
+> 路径: `lib/agent/` · 51 个 .mbt（35 源 + 16 测试）+ 1 .c · 项目核心调度包
 
 ## 入口函数
 
@@ -69,7 +69,7 @@ Agent::run(user_input)
 | Hook 系统 | `hook.mbt` | 生命周期事件总线 |
 | 子 Agent | `subagent.mbt`, `agent_pool.mbt`, `agent_result.mbt` | 子 Agent 编排 |
 | Profile | `profile.mbt`, `profile_types.mbt`, `default_profiles.mbt` | Agent 配置文件 |
-| 技能管理 | `skill_manager.mbt` | Agent 技能加载/查询/摘要方法 |
+| 技能管理 | `skill_manager.mbt` | Agent 技能发现（discover_workspace_skills）/加载/查询/摘要/注入方法 |
 | 系统提示 | `system_prompt.mbt` | 系统提示词组装（加载 SOUL.md / USER.md） |
 | 空闲压缩 | `idle_timer.mbt` | 空闲压缩定时器 |
 | 时间 | `time.mbt`, `time_stub.c` | 毫秒时间戳/ISO 8601 格式化（`core/env::now()`、`x/time`）；`time_stub.c` 仅保留本地时区偏移检测（S-FFI-01/08） |
