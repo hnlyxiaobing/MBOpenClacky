@@ -1,5 +1,25 @@
 ///| WebSearch tool: search the web for information.
 
+///| Tries multiple providers in a fallback chain (DuckDuckGo → Bing) so
+
+///| searches keep working in network environments where a single provider
+
+///| is blocked or unreachable (e.g. mainland China cannot reach DuckDuckGo).
+
+///| Mirrors the original openclacky implementation:
+
+///|   - DuckDuckGo HTML endpoint, decoding the real URL from its `uddg` param
+
+///|   - Bing dual endpoints (cn.bing.com then www.bing.com), `form=QBLH`,
+
+///|     relevance filtering to reject anti-scrape filler, and `/ck/a`
+
+///|     redirect-URL decoding
+
+///|   - DuckDuckGo is suppressed for 10 minutes after a failure so later
+
+///|     searches don't burn a full timeout on every call.
+
 ///|
 
 ///|
@@ -7,6 +27,116 @@
 pub(all) struct WebSearch {
   max_results : Int
 } derive(Eq, Debug)
+
+///|
+/// Process-level memory: epoch-ms until which DuckDuckGo is skipped after a
+/// failure (mirrors the original `@ddg_unavailable_until = Time.now + 600`).
+let ddg_unavailable_until_ms : Ref[Int64] = Ref(0L)
+
+///|
+/// A single search result.
+priv struct SearchResult {
+  title : String
+  url : String
+  snippet : String
+}
+
+///|
+/// How long to suppress DuckDuckGo after a failed search (10 minutes).
+let ddg_cooldown_ms : Int64 = 600_000L
+
+///|
+/// Search providers in fallback order (matches the original PROVIDERS).
+priv enum SearchProvider {
+  DuckDuckGo
+  Bing
+} derive(Eq)
+
+///|
+/// Build the provider chain to try for this search. DuckDuckGo is skipped
+/// for 10 minutes after it has failed once (original `active_providers`).
+fn build_provider_chain() -> Array[SearchProvider] {
+  let now_ms = @env.now().reinterpret_as_int64()
+  if now_ms < ddg_unavailable_until_ms.val {
+    [Bing]
+  } else {
+    [DuckDuckGo, Bing]
+  }
+}
+
+///|
+fn provider_name(p : SearchProvider) -> String {
+  match p {
+    DuckDuckGo => "DuckDuckGo"
+    Bing => "Bing"
+  }
+}
+
+///|
+/// Browser User-Agents, sampled per request (original USER_AGENTS list plus
+/// Edge/Firefox/Safari — Bing and DDG sometimes blanket-ban Chrome UAs from
+/// datacenter IPs, returning 307/captcha instead of results).
+let user_agents : Array[String] = [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+]
+
+///|
+/// Pick a pseudo-random User-Agent (clock-seeded; good enough for scraping).
+fn random_ua() -> String {
+  let now = @env.now().reinterpret_as_int64()
+  let idx = (now % user_agents.length().to_int64()).to_int()
+  user_agents[idx]
+}
+
+///|
+/// Bing endpoints, cn.bing.com first (accessible from mainland China), then
+/// www.bing.com (original BING_ENDPOINTS). Each carries its own language.
+let bing_endpoints : Array[(String, String)] = [
+  ("cn.bing.com", "zh-CN,zh;q=0.9,en;q=0.8"),
+  ("www.bing.com", "en-US,en;q=0.9"),
+]
+
+///|
+/// Browser-like request headers for DuckDuckGo (original shared `http_get`).
+fn ddg_headers() -> Array[(String, String)] {
+  [
+    ("User-Agent", random_ua()),
+    (
+      "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    ),
+    ("Accept-Language", "en-US,en;q=0.9"),
+    ("Sec-Fetch-Dest", "document"),
+    ("Sec-Fetch-Mode", "navigate"),
+    ("Sec-Fetch-Site", "none"),
+    ("Upgrade-Insecure-Requests", "1"),
+    // Accept-Encoding is deliberately omitted: sending gzip makes Bing return
+    // a JS-only skeleton instead of real HTML results (original comment).
+  ]
+}
+
+///|
+/// Browser-like request headers for Bing, with Referer (original `http_get`).
+fn bing_headers(lang : String, host : String) -> Array[(String, String)] {
+  [
+    ("User-Agent", random_ua()),
+    (
+      "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    ),
+    ("Accept-Language", lang),
+    ("Sec-Fetch-Dest", "document"),
+    ("Sec-Fetch-Mode", "navigate"),
+    ("Sec-Fetch-Site", "same-origin"),
+    ("Upgrade-Insecure-Requests", "1"),
+    ("Referer", "https://\{host}/"),
+  ]
+}
 
 ///|
 pub fn WebSearch::new() -> WebSearch {
@@ -60,30 +190,40 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
   let max = get_int_arg(args, "max_results", self.max_results)
   let capped = if max > 20 { 20 } else if max < 1 { 10 } else { max }
 
-  // Use DuckDuckGo HTML search (no API key required)
+  // Percent-encode the query as UTF-8 (original CGI.escape). Un-encoded CJK
+  // bytes in the request line make Bing answer HTTP 400.
   let encoded_query = url_encode(query)
-  let search_url = "https://html.duckduckgo.com/html/?q=\{encoded_query}"
-  let headers : Array[(String, String)] = [
-    ("User-Agent", "Mozilla/5.0 (compatible; MBOpenClacky/1.0)"),
-    ("Accept", "text/html"),
-  ]
-  let result = @client.http_get(search_url, headers, 15000)
-  match result {
-    Ok(response) =>
-      if response.status_code >= 200 && response.status_code < 300 {
-        let results = parse_search_results(response.body, capped)
-        if results.length() == 0 {
-          ToolResult::success("No search results found for: \{query}")
-        } else {
-          ToolResult::success(format_results(results))
-        }
-      } else {
-        ToolResult::error(
-          "HTTP error \{response.status_code} searching for: \{query}",
-        )
+  let providers = build_provider_chain()
+  let failures : Array[String] = []
+  for provider in providers {
+    let results = match provider {
+      DuckDuckGo => search_ddg(encoded_query, capped)
+      Bing => search_bing(query, encoded_query, capped)
+    }
+    if results.length() > 0 {
+      if provider == DuckDuckGo {
+        // DuckDuckGo works again: clear the suppression window.
+        ddg_unavailable_until_ms.val = 0L
+        return ToolResult::success(format_results(results))
       }
-    Err(err) => ToolResult::error("Failed to search: \{err.to_repr()}")
+      // Bing: accept only relevant results; anti-scrape filler shares no
+      // token with the query (original `bing_results_relevant?`).
+      if bing_results_relevant(results, query) {
+        return ToolResult::success(format_results(results))
+      } else {
+        failures.push("\{provider_name(provider)} returned no relevant results")
+      }
+    } else {
+      failures.push("\{provider_name(provider)} returned no results")
+      if provider == DuckDuckGo {
+        // Suppress DuckDuckGo for 10 minutes (original 600s cooldown).
+        ddg_unavailable_until_ms.val = @env.now().reinterpret_as_int64() +
+          ddg_cooldown_ms
+      }
+    }
   }
+  let detail = failures.join(" | ")
+  ToolResult::error("All search providers failed for: \{query} \{detail}")
 }
 
 ///|
@@ -102,7 +242,7 @@ impl Tool for WebSearch with fn format_result(_, result : ToolResult) -> String 
   if result.is_error {
     result.content
   } else {
-    "[OK] WebSearch completed"
+    "[OK] Found search results"
   }
 }
 
@@ -111,88 +251,118 @@ impl Tool for WebSearch with fn to_function_definition(self) -> FunctionDefiniti
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Providers ────────────────────────────────────────────────────────────────
 
 ///|
-/// A single search result.
-priv struct SearchResult {
-  title : String
-  url : String
-  snippet : String
-}
-
-///|
-/// Simple URL encoder for query strings.
-fn url_encode(s : String) -> String {
-  let mut result = ""
-  let chars = s.iter()
-  for ch in chars {
-    let c = ch.to_string()
-    if c == " " {
-      result = result + "+"
-    } else if c == "&" {
-      result = result + "%26"
-    } else if c == "=" {
-      result = result + "%3D"
-    } else if c == "?" {
-      result = result + "%3F"
-    } else if c == "#" {
-      result = result + "%23"
-    } else if c == "+" {
-      result = result + "%2B"
-    } else {
-      result = result + c
-    }
-  }
-  result
-}
-
-///|
-/// Parse search results from DuckDuckGo HTML response.
-fn parse_search_results(
-  html : String,
+/// Query DuckDuckGo's HTML endpoint. The real target URL is hidden in the
+/// `uddg` parameter of a `//duckduckgo.com/l/?uddg=...` redirect link.
+async fn search_ddg(
+  encoded_query : String,
   max_results : Int,
 ) -> Array[SearchResult] {
+  let url = "https://html.duckduckgo.com/html/?q=\{encoded_query}"
+  let resp = http_get_follow_redirects(url, ddg_headers(), 8000, 5)
+  match resp {
+    Ok(r) if r.status_code >= 200 && r.status_code < 300 =>
+      parse_ddg_results(r.body, max_results)
+    _ => []
+  }
+}
+
+///|
+/// Query Bing's two endpoints in order and return the first relevant batch
+/// (original: race both in parallel; serial here since we have no threads).
+/// If neither batch is relevant, fall back to the first non-empty one.
+async fn search_bing(
+  query : String,
+  encoded_query : String,
+  max_results : Int,
+) -> Array[SearchResult] {
+  let mut best : Array[SearchResult] = []
+  for endpoint in bing_endpoints {
+    let results = bing_fetch(endpoint.0, endpoint.1, encoded_query, max_results)
+    if results.length() > 0 {
+      if bing_results_relevant(results, query) {
+        return results
+      }
+      if best.length() == 0 {
+        best = results
+      }
+    }
+  }
+  best
+}
+
+///|
+/// Single Bing endpoint request with redirect following (original
+/// `bing_fetch`, follow_redirects: 2).
+async fn bing_fetch(
+  host : String,
+  lang : String,
+  encoded_query : String,
+  max_results : Int,
+) -> Array[SearchResult] {
+  let url = "https://\{host}/search?q=\{encoded_query}&count=\{max_results}&form=QBLH"
+  let resp = http_get_follow_redirects(url, bing_headers(lang, host), 8000, 2)
+  match resp {
+    Ok(r) if r.status_code >= 200 && r.status_code < 300 =>
+      parse_bing_results(r.body, max_results)
+    _ => []
+  }
+}
+
+// ── Parsing ──────────────────────────────────────────────────────────────────
+
+///|
+/// Parse DuckDuckGo HTML. The original regex pulls the `uddg` param from
+/// `//duckduckgo.com/l/?uddg=URL` and unescapes it to get the real URL.
+/// Results that are themselves duckduckgo filler pages ("Web search results")
+/// are dropped, matching the original success check.
+fn parse_ddg_results(html : String, max_results : Int) -> Array[SearchResult] {
   let results : Array[SearchResult] = []
-  // Simple extraction: look for result links and snippets in DuckDuckGo HTML
-  // DuckDuckGo HTML has results in <a> tags with class "result__a" and snippets in "result__snippet"
   let mut pos = 0
   let html_len = html.length()
   while pos < html_len && results.length() < max_results {
-    // Find result link: <a rel="nofollow" class="result__a" href="URL">TITLE</a>
-    let link_marker = "class=\"result__a\""
-    let link_pos = html[find_substring(html, link_marker, pos):].to_owned()
-    if link_pos.length() == 0 {
+    let marker_pos = find_substring(html, "class=\"result__a\"", pos)
+    if marker_pos < 0 {
       break
     }
-    let abs_link_pos = html_len - link_pos.length()
-    // Find href
-    let href_start = find_substring(html, "href=\"", abs_link_pos)
+    // <a ... class="result__a" href="//duckduckgo.com/l/?uddg=...">
+    let href_start = find_substring(html, "href=\"", marker_pos)
     if href_start < 0 {
-      pos = abs_link_pos + 1
+      pos = marker_pos + 1
       continue
     }
     let href_value_start = href_start + 6
     let href_end = find_substring(html, "\"", href_value_start)
     if href_end < 0 {
-      pos = abs_link_pos + 1
+      pos = marker_pos + 1
       continue
     }
-    let url = html[href_value_start:href_end].to_owned()
-    // Find title (between > and </a>)
+    let href = html[href_value_start:href_end].to_owned()
+    let uddg_pos = find_substring(href, "uddg=", 0)
+    let url = if uddg_pos >= 0 {
+      let uddg_value_start = uddg_pos + 5
+      let uddg_end = find_substring(href, "&", uddg_value_start)
+      let cut = if uddg_end < 0 { href.length() } else { uddg_end }
+      url_decode(href[uddg_value_start:cut].to_owned())
+    } else {
+      ""
+    }
+    // Title between > and </a>
     let title_start = find_substring(html, ">", href_end)
     if title_start < 0 {
-      pos = abs_link_pos + 1
+      pos = marker_pos + 1
       continue
     }
     let title_value_start = title_start + 1
     let title_end = find_substring(html, "</a>", title_value_start)
     if title_end < 0 {
-      pos = abs_link_pos + 1
+      pos = marker_pos + 1
       continue
     }
     let title = strip_simple_html(html[title_value_start:title_end].to_owned())
-    // Find snippet
+    // Snippet in class="result__snippet"
     let snippet_marker = "class=\"result__snippet\""
     let snippet_pos = find_substring(html, snippet_marker, title_end)
     let snippet = if snippet_pos >= 0 {
@@ -211,7 +381,10 @@ fn parse_search_results(
     } else {
       ""
     }
-    if url.length() > 0 && title.length() > 0 {
+    // Drop DDG filler results (its "no results" page links back to itself).
+    let is_filler = url.contains("duckduckgo.com") &&
+      title == "Web search results"
+    if url.length() > 0 && title.length() > 0 && !is_filler {
       results.push({ title, url, snippet })
     }
     pos = if snippet_pos >= 0 { snippet_pos + 1 } else { title_end + 1 }
@@ -220,19 +393,217 @@ fn parse_search_results(
 }
 
 ///|
-/// Find substring position in string starting from offset.
-fn find_substring(haystack : String, needle : String, start : Int) -> Int {
-  let h_len = haystack.length()
-  let n_len = needle.length()
-  if start < 0 || start + n_len > h_len {
-    return -1
+/// Parse Bing HTML. Each result is an `<li class="b_algo">` block with an
+/// `<h2><a href="URL">TITLE</a></h2>` and a snippet in a `b_lineclamp` `<p>`
+/// (or a `.b_caption` block), matching the original regexes.
+fn parse_bing_results(html : String, max_results : Int) -> Array[SearchResult] {
+  let results : Array[SearchResult] = []
+  let mut pos = 0
+  let html_len = html.length()
+  while pos < html_len && results.length() < max_results {
+    let li_pos = find_substring(html, "class=\"b_algo\"", pos)
+    if li_pos < 0 {
+      break
+    }
+    let block_end = find_substring(html, "</li>", li_pos)
+    let limit = if block_end < 0 { html_len } else { block_end }
+    // Title link lives inside <h2>...</h2>. Real Bing output is
+    // `<a target="_blank" href="...">` — attributes may precede href, so
+    // search for the bare `href="` inside the h2 block, not `<a href="`.
+    let h2_pos = find_substring(html, "<h2", li_pos)
+    if h2_pos < 0 || h2_pos >= limit {
+      pos = li_pos + 1
+      continue
+    }
+    let href_start = find_substring(html, "href=\"", h2_pos)
+    if href_start < 0 || href_start >= limit {
+      pos = li_pos + 1
+      continue
+    }
+    let url_start = href_start + 6
+    let url_end = find_substring(html, "\"", url_start)
+    if url_end < 0 || url_end >= limit {
+      pos = li_pos + 1
+      continue
+    }
+    let raw_url = html[url_start:url_end].to_owned()
+    // Only http(s) links are real results; decode /ck/a redirect URLs.
+    if !raw_url.has_prefix("http://") && !raw_url.has_prefix("https://") {
+      pos = li_pos + 1
+      continue
+    }
+    let url = decode_bing_url(raw_url)
+    // Title between > and </a>
+    let title_start = find_substring(html, ">", url_end)
+    if title_start < 0 || title_start >= limit {
+      pos = li_pos + 1
+      continue
+    }
+    let title_end = find_substring(html, "</a>", title_start + 1)
+    if title_end < 0 || title_end >= limit {
+      pos = li_pos + 1
+      continue
+    }
+    let title = strip_simple_html(html[title_start + 1:title_end].to_owned())
+    // Snippet: <p class="b_lineclamp...">...</p> first, .b_caption <p> fallback
+    let snippet = bing_snippet(html, title_end, limit)
+    if url.length() > 0 && title.length() > 0 {
+      results.push({ title, url, snippet })
+    }
+    pos = if block_end < 0 { html_len } else { block_end + 1 }
   }
-  for i = start; i <= h_len - n_len; i = i + 1 {
-    if haystack[i:i + n_len].to_owned() == needle {
-      return i
+  results
+}
+
+///|
+/// Extract the snippet from a Bing result block, bounded by `limit`.
+fn bing_snippet(html : String, start : Int, limit : Int) -> String {
+  let lc_pos = find_substring(html, "class=\"b_lineclamp", start)
+  if lc_pos >= 0 && lc_pos < limit {
+    let p_start = find_substring(html, ">", lc_pos)
+    if p_start >= 0 && p_start < limit {
+      let s_end = find_substring(html, "</p>", p_start + 1)
+      if s_end >= 0 && s_end < limit {
+        return strip_simple_html(html[p_start + 1:s_end].to_owned())
+      }
     }
   }
-  -1
+  let cap_pos = find_substring(html, "class=\"b_caption\"", start)
+  if cap_pos >= 0 && cap_pos < limit {
+    let p_start = find_substring(html, "<p", cap_pos)
+    if p_start >= 0 && p_start < limit {
+      let s_start = find_substring(html, ">", p_start)
+      if s_start >= 0 && s_start < limit {
+        let s_end = find_substring(html, "</p>", s_start + 1)
+        if s_end >= 0 && s_end < limit {
+          return strip_simple_html(html[s_start + 1:s_end].to_owned())
+        }
+      }
+    }
+  }
+  ""
+}
+
+///|
+/// Decode Bing's redirect URL: bing.com/ck/a?...&u=a1BASE64URL&ntb=1
+/// The `u` param is an "a1" prefix followed by URL-safe base64 of the real URL.
+fn decode_bing_url(url : String) -> String {
+  if !url.contains("bing.com/ck/") {
+    return url
+  }
+  let q_pos = find_substring(url, "?u=", 0)
+  let a_pos = find_substring(url, "&u=", 0)
+  let u_pos = if q_pos >= 0 && (a_pos < 0 || q_pos < a_pos) {
+    q_pos
+  } else {
+    a_pos
+  }
+  if u_pos < 0 {
+    return url
+  }
+  let enc_start = u_pos + 3
+  let enc_end = find_substring(url, "&", enc_start)
+  let cut = if enc_end < 0 { url.length() } else { enc_end }
+  let encoded = url[enc_start:cut].to_owned()
+  // Bing prefixes the base64 payload with "a1"
+  if !encoded.has_prefix("a1") {
+    return url
+  }
+  let base64_part = encoded[2:]
+  // URL-safe base64 without padding: re-add '=' padding before decoding.
+  let pad = (4 - base64_part.length() % 4) % 4
+  let mut padded = base64_part
+  for _i = 0; _i < pad; _i = _i + 1 {
+    padded = padded + "="
+  }
+  let decoded = @base64.decode(padded, url_safe=true) catch { _ => return url }
+  let out = @utf8.decode_lossy(decoded)
+  // If the result isn't valid UTF-8, keep the original redirect URL.
+  if out.contains("\u{FFFD}") {
+    url
+  } else {
+    out
+  }
+}
+
+///|
+/// A real Bing answer mentions at least one query token in its titles or
+/// snippets. The anti-scrape fallback returns top-domain filler sharing
+/// nothing with the query (original `bing_results_relevant?`).
+fn bing_results_relevant(results : Array[SearchResult], query : String) -> Bool {
+  if results.length() == 0 {
+    return false
+  }
+  let tokens = query_tokens(query)
+  if tokens.length() == 0 {
+    return true
+  }
+  for r in results {
+    let haystack = (r.title + " " + r.snippet).to_lower()
+    for t in tokens {
+      if haystack.contains(t) {
+        return true
+      }
+    }
+  }
+  false
+}
+
+///|
+/// Extract alphanumeric/CJK tokens from a query (original
+/// `/[\p{L}\p{N}]+/`), dropping tokens shorter than 2 characters.
+fn query_tokens(query : String) -> Array[String] {
+  let tokens : Array[String] = []
+  let mut cur = ""
+  for ch in query.to_lower().iter() {
+    let code = ch.to_int()
+    let is_token = (code >= 0x30 && code <= 0x39) ||
+      (code >= 0x41 && code <= 0x5A) ||
+      (code >= 0x61 && code <= 0x7A) ||
+      code >= 0x80
+    if is_token {
+      cur = cur + ch.to_string()
+    } else {
+      if cur.length() >= 2 {
+        tokens.push(cur)
+      }
+      cur = ""
+    }
+  }
+  if cur.length() >= 2 {
+    tokens.push(cur)
+  }
+  tokens
+}
+
+// ── Encoding ─────────────────────────────────────────────────────────────────
+
+///|
+/// Percent-encode a query string as UTF-8 (matches Ruby `CGI.escape`):
+/// unreserved chars pass through, space becomes '+', everything else %XX.
+fn url_encode(s : String) -> String {
+  let bytes = @utf8.encode(s)
+  let hex = "0123456789ABCDEF"
+  let out : Array[Byte] = []
+  for i = 0; i < bytes.length(); i = i + 1 {
+    let b = bytes[i].to_int()
+    if (b >= 0x30 && b <= 0x39) ||
+      (b >= 0x41 && b <= 0x5A) ||
+      (b >= 0x61 && b <= 0x7A) ||
+      b == 0x2D ||
+      b == 0x2E ||
+      b == 0x5F ||
+      b == 0x7E {
+      out.push(bytes[i])
+    } else if b == 0x20 {
+      out.push(b'+')
+    } else {
+      out.push(b'%')
+      out.push(hex[b / 16].to_int().to_byte())
+      out.push(hex[b % 16].to_int().to_byte())
+    }
+  }
+  @utf8.decode_lossy(Bytes::from_array(out))
 }
 
 ///|

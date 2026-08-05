@@ -67,18 +67,31 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
 
   let max_len = get_int_arg(args, "max_length", self.max_length)
 
-  // Send HTTP GET request
+  // Send HTTP GET request, following redirects (sites like cn.bing.com 302
+  // to a local endpoint; treating 3xx as a hard error made many fetches fail
+  // for no reason). Transient connection failures get one retry.
   let headers : Array[(String, String)] = [
-    ("User-Agent", "Mozilla/5.0 (compatible; MBOpenClacky/1.0)"),
-    ("Accept", "text/html,application/xhtml+xml,text/plain"),
+    (
+      "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    ),
+    (
+      "Accept", "text/html,application/xhtml+xml,text/plain,application/json;q=0.9,*/*;q=0.8",
+    ),
   ]
-  let result = @client.http_get(normalized, headers, 15000)
+  let first = http_get_follow_redirects(normalized, headers, 15000, 5)
+  let result = match first {
+    Err(err) if @client.is_retryable(err) =>
+      // One retry: ReaderClosed / connection reset / timeout are often
+      // transient, and the retry frequently succeeds.
+      http_get_follow_redirects(normalized, headers, 15000, 5)
+    other => other
+  }
   match result {
     Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         let text = strip_html_tags(response.body)
         let truncated = if text.length() > max_len {
-          text[:max_len].to_owned() + "\n[truncated]"
+          safe_truncate(text, max_len) + "\n[truncated]"
         } else {
           text
         }
