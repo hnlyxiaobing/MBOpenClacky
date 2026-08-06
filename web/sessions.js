@@ -1640,8 +1640,12 @@ const Sessions = (() => {
           // otherwise mark the user message as already-rendered and skip the
           // whole round (user message + assistant reply).
           if (ev.system_injected || ev._injectedLike) {
+            // Bookkeeping only: injected per-run session context is internal
+            // noise, never rendered as a chat bubble, and never participates
+            // in created_at dedup.
             currentCreatedAt = null;
             skipRound        = false;
+            return;
           } else {
             currentCreatedAt = ev.created_at;
             skipRound        = currentCreatedAt && dedup.has(currentCreatedAt);

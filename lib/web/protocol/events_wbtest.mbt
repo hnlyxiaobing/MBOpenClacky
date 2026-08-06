@@ -270,9 +270,11 @@ test "build_event: latency session_update with null ttft" {
 }
 
 ///|
-/// web-ui2-01 BUG-001: the messages history API must not expose system or tool
+/// web-ui2-01 BUG-001: the messages history API must not expose system
 /// messages — the system prompt holds confidential brand instructions.
-test "build_messages_history: filters out system and tool roles" {
+/// Tool messages are surfaced as tool_result events (no role/content keys)
+/// so the Web UI can reconstruct tool activity after a session switch.
+test "build_messages_history: filters system role, maps tool role to tool_result" {
   let msgs : Array[@message.Message] = [
     @message.Message::system("[CRITICAL] Brand skill contents are CONFIDENTIAL"),
     @message.Message::user("hello"),
@@ -280,33 +282,77 @@ test "build_messages_history: filters out system and tool roles" {
     @message.Message::tool_result("call_1", "search", "result data"),
   ]
   let result = build_messages_history("sess-leak", msgs)
-  let events = match result {
-    Object(m) =>
-      match m.get("events") {
-        Some(Array(items)) => items
-        _ => abort("expected events array")
-      }
-    _ => abort("expected object")
-  }
-  // System + tool messages are filtered out; only user + assistant remain.
-  @debug.assert_eq(events.length(), 2)
+  let events = history_events(result)
+  // System filtered; user + assistant + tool_result remain.
+  @debug.assert_eq(events.length(), 3)
+  @debug.assert_eq(get_str(events[0], "type"), "history_user_message")
+  @debug.assert_eq(get_str(events[1], "type"), "assistant_message")
+  @debug.assert_eq(get_str(events[2], "type"), "tool_result")
+  @debug.assert_eq(get_str(events[2], "result"), "result data")
   for e in events {
     match e {
       Object(em) => {
-        let role = match em.get("role") {
-          Some(String(r)) => r
-          _ => abort("expected role string")
+        match em.get("role") {
+          Some(String(r)) => assert_true(r != "system" && r != "tool")
+          _ => ()
         }
-        assert_true(role != "system" && role != "tool")
-        let content = match em.get("content") {
-          Some(String(c)) => c
-          _ => abort("expected content string")
+        match em.get("content") {
+          Some(String(c)) => assert_false(c.contains("CONFIDENTIAL"))
+          _ => ()
         }
-        assert_false(content.contains("CONFIDENTIAL"))
       }
       _ => abort("expected event object")
     }
   }
+}
+
+///|
+/// History must reconstruct tool activity for the Web UI: assistant
+/// tool_calls expand to tool_call events (args parsed from the stored JSON
+/// string), tool messages to tool_result events, and tool-call-only
+/// assistant turns emit no empty assistant bubble (the old placeholder).
+test "build_messages_history: expands tool calls and results into events" {
+  let user = {
+    ..@message.Message::user("search for MoonBit"),
+    created_at: Some("1000"),
+  }
+  let thinking = @message.Message::assistant("")
+  thinking.tool_calls = Some([
+    @message.ToolCall::new("call_1", "web_search", "{\"query\":\"MoonBit\"}"),
+  ])
+  let tool = {
+    ..@message.Message::tool_result("call_1", "web_search", "search output"),
+    created_at: Some("1100"),
+  }
+  let final_msg = {
+    ..@message.Message::assistant("done"),
+    created_at: Some("1200"),
+  }
+  let result = build_messages_history("sess-tools", [
+    user, thinking, tool, final_msg,
+  ])
+  let events = history_events(result)
+  @debug.assert_eq(events.length(), 4)
+  @debug.assert_eq(get_str(events[0], "type"), "history_user_message")
+  // Empty-text assistant turn: no assistant_message bubble, only tool_call.
+  @debug.assert_eq(get_str(events[1], "type"), "tool_call")
+  @debug.assert_eq(get_str(events[1], "name"), "web_search")
+  match events[1] {
+    Object(m) =>
+      match m.get("args") {
+        Some(Object(am)) =>
+          match am.get("query") {
+            Some(String(q)) => @debug.assert_eq(q, "MoonBit")
+            _ => abort("expected args.query string")
+          }
+        _ => abort("expected args object")
+      }
+    _ => abort("expected object")
+  }
+  @debug.assert_eq(get_str(events[2], "type"), "tool_result")
+  @debug.assert_eq(get_str(events[2], "result"), "search output")
+  @debug.assert_eq(get_str(events[3], "type"), "assistant_message")
+  @debug.assert_eq(get_str(events[3], "content"), "done")
 }
 
 // ── build_pong (web-ui2-10 BUG-014) ───────────────────────────────
@@ -371,7 +417,8 @@ test "build_messages_history: flags system_injected user messages" {
 ///|
 test "build_messages_history: system_injected context without created_at stays filterable" {
   // New sessions persist the context message with created_at=None; it must
-  // still be exposed (so the user sees the context) but carry the injected flag.
+  // still be exposed (the frontend uses the flag for dedup bookkeeping and
+  // never renders it) and carry the injected flag.
   let ctx = {
     ..@message.Message::user("[Session context: ...]"),
     system_injected: Some(true),
@@ -430,8 +477,10 @@ test "build_messages_history: has_more false when only filtered roles remain" {
     @message.Message::system("sys"),
     @message.Message::tool_result("c1", "search", "res"),
   ]
-  let result = build_messages_history("sess-filt", msgs, limit=2)
-  @debug.assert_eq(history_events(result).length(), 2)
+  let result = build_messages_history("sess-filt", msgs, limit=3)
+  // tool messages now expand to tool_result events; the page holds all
+  // three non-system events.
+  @debug.assert_eq(history_events(result).length(), 3)
   assert_false(get_bool(result, "has_more"))
 }
 
@@ -511,12 +560,14 @@ test "build_messages_history: offset counts filtered events only" {
     @message.Message::tool_result("c1", "t", "r"),
     @message.Message::user("u3"),
   ]
+  // offset=1 skips u3 (newest); the page then holds the tool_result event
+  // and u2. System messages never count towards the positional cursor.
   let result = build_messages_history("sess-off3", msgs, limit=2, offset=1)
   let events = history_events(result)
   @debug.assert_eq(events.length(), 2)
-  @debug.assert_eq(get_str(events[0], "content"), "u1")
-  @debug.assert_eq(get_str(events[1], "content"), "u2")
-  assert_false(get_bool(result, "has_more"))
+  @debug.assert_eq(get_str(events[0], "content"), "u2")
+  @debug.assert_eq(get_str(events[1], "result"), "r")
+  assert_true(get_bool(result, "has_more"))
 }
 
 ///|

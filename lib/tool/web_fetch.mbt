@@ -70,13 +70,17 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
   // Send HTTP GET request, following redirects (sites like cn.bing.com 302
   // to a local endpoint; treating 3xx as a hard error made many fetches fail
   // for no reason). Transient connection failures get one retry.
+  // Accept-Language is critical: without it, many sites' anti-scraping
+  // mechanisms reject the request as non-browser traffic (HTTP 412).
+  // Reference: openclacky/lib/clacky/tools/web_fetch.rb fetch_url headers.
   let headers : Array[(String, String)] = [
     (
       "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     ),
     (
-      "Accept", "text/html,application/xhtml+xml,text/plain,application/json;q=0.9,*/*;q=0.8",
+      "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     ),
+    ("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8"),
   ]
   let first = http_get_follow_redirects(normalized, headers, 15000, 5)
   let result = match first {

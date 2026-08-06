@@ -329,15 +329,27 @@ async fn perform_request(
   match http_method {
     Get => {
       let (resp, data) = @http.get(url, headers~)
-      HttpResponse::{ status_code: resp.code, body: data.text(), headers: map_to_headers(resp.headers) }
+      HttpResponse::{
+        status_code: resp.code,
+        body: data.text(),
+        headers: map_to_headers(resp.headers),
+      }
     }
     Post => {
       let (resp, data) = @http.post(url, @utf8.encode(body), headers~)
-      HttpResponse::{ status_code: resp.code, body: data.text(), headers: map_to_headers(resp.headers) }
+      HttpResponse::{
+        status_code: resp.code,
+        body: data.text(),
+        headers: map_to_headers(resp.headers),
+      }
     }
     Put => {
       let (resp, data) = @http.put(url, @utf8.encode(body), headers~)
-      HttpResponse::{ status_code: resp.code, body: data.text(), headers: map_to_headers(resp.headers) }
+      HttpResponse::{
+        status_code: resp.code,
+        body: data.text(),
+        headers: map_to_headers(resp.headers),
+      }
     }
     Delete => {
       // No top-level DELETE helper; go through an explicit client.
@@ -346,7 +358,11 @@ async fn perform_request(
       try {
         let resp = client..request(@http.Delete, path).end_request()
         let data = client.read_all()
-        HttpResponse::{ status_code: resp.code, body: data.text(), headers: map_to_headers(resp.headers) }
+        HttpResponse::{
+          status_code: resp.code,
+          body: data.text(),
+          headers: map_to_headers(resp.headers),
+        }
       } catch {
         err => {
           client.close()

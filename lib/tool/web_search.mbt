@@ -256,12 +256,20 @@ impl Tool for WebSearch with fn to_function_definition(self) -> FunctionDefiniti
 ///|
 /// Query DuckDuckGo's HTML endpoint. The real target URL is hidden in the
 /// `uddg` parameter of a `//duckduckgo.com/l/?uddg=...` redirect link.
+/// Timeout raised from 8s to 15s to reduce spurious failures on slow networks
+/// (mainland China accessing DDG often exceeds 8s due to TLS handshake latency).
+/// Retryable errors (ReaderClosed, timeout, connection reset) get one retry.
 async fn search_ddg(
   encoded_query : String,
   max_results : Int,
 ) -> Array[SearchResult] {
   let url = "https://html.duckduckgo.com/html/?q=\{encoded_query}"
-  let resp = http_get_follow_redirects(url, ddg_headers(), 8000, 5)
+  let first = http_get_follow_redirects(url, ddg_headers(), 15000, 5)
+  let resp = match first {
+    Err(err) if @client.is_retryable(err) =>
+      http_get_follow_redirects(url, ddg_headers(), 15000, 5)
+    other => other
+  }
   match resp {
     Ok(r) if r.status_code >= 200 && r.status_code < 300 =>
       parse_ddg_results(r.body, max_results)
@@ -296,6 +304,7 @@ async fn search_bing(
 ///|
 /// Single Bing endpoint request with redirect following (original
 /// `bing_fetch`, follow_redirects: 2).
+/// Timeout raised from 8s to 15s; retryable errors get one automatic retry.
 async fn bing_fetch(
   host : String,
   lang : String,
@@ -303,7 +312,13 @@ async fn bing_fetch(
   max_results : Int,
 ) -> Array[SearchResult] {
   let url = "https://\{host}/search?q=\{encoded_query}&count=\{max_results}&form=QBLH"
-  let resp = http_get_follow_redirects(url, bing_headers(lang, host), 8000, 2)
+  let first = http_get_follow_redirects(url, bing_headers(lang, host), 15000, 2)
+  let resp = match first {
+    Err(err) if @client.is_retryable(err) =>
+      // One retry for transient errors (ReaderClosed, timeout, connection reset).
+      http_get_follow_redirects(url, bing_headers(lang, host), 15000, 2)
+    other => other
+  }
   match resp {
     Ok(r) if r.status_code >= 200 && r.status_code < 300 =>
       parse_bing_results(r.body, max_results)

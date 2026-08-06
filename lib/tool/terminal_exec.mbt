@@ -14,10 +14,22 @@ let windows_bat_counter : Ref[Int] = Ref(0)
 /// Spawn `cmd` with `args` and wait for completion, returning the real
 /// exit code. Returns -1 when the process cannot be spawned, mirroring
 /// the old system() failure contract.
+///
+/// CI flakiness guard: transient spawn failures (thread-pool/posix_spawn
+/// races under runner load) surface as raised errors → -1. A child exit
+/// code can never be -1, so retrying on -1 is safe; up to 3 attempts with
+/// a short backoff before reporting failure.
 async fn spawn_and_wait(cmd : String, args : Array[String]) -> Int {
-  @process.run(cmd, args, no_console_window=true) catch {
-    _ => -1
+  let mut code = -1
+  let mut attempt = 0
+  while code == -1 && attempt <= 2 {
+    if attempt > 0 {
+      @async.sleep(20 * attempt)
+    }
+    code = @process.run(cmd, args, no_console_window=true) catch { _ => -1 }
+    attempt = attempt + 1
   }
+  code
 }
 
 ///|

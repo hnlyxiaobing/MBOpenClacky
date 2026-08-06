@@ -337,7 +337,11 @@ pub fn build_messages_history(
   }
   // True when iteration stopped because of the limit rather than exhaustion.
   let mut truncated = false
-  while i >= 0 {
+  let mut done = false
+  // Events of the limit-hit message that did not fit the page (they belong
+  // to the next, older page → has_more must be true).
+  let mut pending_in_message = 0
+  while i >= 0 && !done {
     let msg = messages[i]
     // Skip messages strictly newer than the before cursor (best-effort
     // string compare on epoch-ms). Messages without a timestamp (legacy
@@ -352,43 +356,29 @@ pub fn build_messages_history(
     }
     let role = message_role_str(msg)
     // System prompts contain confidential brand instructions; never expose via history API.
-    if role == "system" || role == "tool" {
+    if role == "system" {
       i = i - 1
       continue
     }
-    // Positional cursor: skip the first `offset` matching events.
-    if skipped < offset {
-      skipped = skipped + 1
-      i = i - 1
-      continue
-    }
-    let content = message_content(msg)
-    let ts = message_timestamp(msg)
-    let obj : Map[String, Json] = {
-      "type": (if role == "user" {
-        "history_user_message"
+    // Expand the message into wire events (history_user_message /
+    // assistant_message / tool_call / tool_result) so the Web UI can
+    // reconstruct tool activity when re-rendering history.
+    let evs = history_message_events(msg, role, session_id, i)
+    let mut k = 0
+    while k < evs.length() && !done {
+      // Positional cursor: skip the first `offset` events.
+      if skipped < offset {
+        skipped = skipped + 1
       } else {
-        "assistant_message"
-      }).to_json(),
-      "session_id": session_id.to_json(),
-      "role": role.to_json(),
-      "content": content.to_json(),
-    }
-    // Expose injected (non-user-authored) messages so the frontend can skip
-    // them in its created_at-based dedup: injected context shares no real
-    // user intent and must never be treated as the round's user message.
-    match msg.system_injected {
-      Some(true) => obj["system_injected"] = true.to_json()
-      _ => ()
-    }
-    if !ts.is_empty() {
-      obj["created_at"] = ts.to_json()
-    }
-    collected.push(Json::object(obj))
-    count = count + 1
-    if count >= limit {
-      truncated = true
-      break
+        collected.push(evs[k])
+        count = count + 1
+        if count >= limit {
+          truncated = true
+          done = true
+          pending_in_message = evs.length() - k - 1
+        }
+      }
+      k = k + 1
     }
     i = i - 1
   }
@@ -397,22 +387,27 @@ pub fn build_messages_history(
   // system/tool messages must not count towards has_more.
   let mut has_more = false
   if truncated {
-    let mut k = i - 1
-    while k >= 0 {
-      let m = messages[k]
-      let r = message_role_str(m)
-      if r != "system" && r != "tool" {
-        if before_ts.is_empty() {
-          has_more = true
-          break
+    if pending_in_message > 0 {
+      has_more = true
+    } else {
+      // `i` already points one below the last processed message.
+      let mut k = i
+      while k >= 0 {
+        let m = messages[k]
+        let r = message_role_str(m)
+        if r != "system" {
+          if before_ts.is_empty() {
+            has_more = true
+            break
+          }
+          let ts = message_timestamp(m)
+          if ts.is_empty() || ts <= before_ts {
+            has_more = true
+            break
+          }
         }
-        let ts = message_timestamp(m)
-        if ts.is_empty() || ts <= before_ts {
-          has_more = true
-          break
-        }
+        k = k - 1
       }
-      k = k - 1
     }
   }
   // Reverse collected to get chronological order.
@@ -422,6 +417,109 @@ pub fn build_messages_history(
     j = j - 1
   }
   Json::object({ "events": events.to_json(), "has_more": has_more.to_json() })
+}
+
+///|
+/// Expand one stored message into history wire events so the Web UI can
+/// reconstruct tool activity (tool_call / tool_result rows) after a session
+/// switch:
+/// - user      → history_user_message (carries the system_injected flag)
+/// - assistant → assistant_message for the text part (omitted when empty,
+///               e.g. tool-call-only turns — no placeholder bubble) plus one
+///               tool_call event per stored tool call
+/// - tool      → tool_result event with the stored result text
+/// Plain user/assistant events keep the plain created_at timestamp; tool
+/// events get a deterministic per-event stamp (`ts#msgIdx.evIdx`) so events
+/// sharing one millisecond never collide in the frontend dedup set while
+/// page-overlap dedup still works.
+fn history_message_events(
+  msg : @message.Message,
+  role : String,
+  session_id : String,
+  msg_index : Int,
+) -> Array[Json] {
+  let ts = message_timestamp(msg)
+  let out : Array[Json] = []
+  let mut ev_idx = 0
+  match role {
+    "user" => {
+      let obj : Map[String, Json] = {
+        "type": "history_user_message".to_json(),
+        "session_id": session_id.to_json(),
+        "role": role.to_json(),
+        "content": message_content(msg).to_json(),
+      }
+      // Expose injected (non-user-authored) messages so the frontend can skip
+      // them in its created_at-based dedup: injected context shares no real
+      // user intent and must never be treated as the round's user message.
+      match msg.system_injected {
+        Some(true) => obj["system_injected"] = true.to_json()
+        _ => ()
+      }
+      if !ts.is_empty() {
+        obj["created_at"] = ts.to_json()
+      }
+      out.push(Json::object(obj))
+    }
+    "assistant" => {
+      let content = message_content(msg)
+      if !content.is_empty() {
+        let obj : Map[String, Json] = {
+          "type": "assistant_message".to_json(),
+          "session_id": session_id.to_json(),
+          "role": role.to_json(),
+          "content": content.to_json(),
+        }
+        if !ts.is_empty() {
+          obj["created_at"] = ts.to_json()
+        }
+        out.push(Json::object(obj))
+      }
+      match msg.tool_calls {
+        Some(calls) =>
+          for call in calls {
+            let args_json : Json = @json.parse(call.function.arguments) catch {
+              _ => call.function.arguments.to_json()
+            }
+            let obj : Map[String, Json] = {
+              "type": "tool_call".to_json(),
+              "session_id": session_id.to_json(),
+              "name": call.function.name.to_json(),
+              "args": args_json,
+              "summary": Json::null(),
+            }
+            if !ts.is_empty() {
+              obj["created_at"] = (ts +
+              "#" +
+              msg_index.to_string() +
+              "." +
+              ev_idx.to_string()).to_json()
+              ev_idx = ev_idx + 1
+            }
+            out.push(Json::object(obj))
+          }
+        None => ()
+      }
+    }
+    _ => {
+      // role == "tool": surface the stored result so history shows each
+      // tool call's outcome.
+      let obj : Map[String, Json] = {
+        "type": "tool_result".to_json(),
+        "session_id": session_id.to_json(),
+        "result": message_content(msg).to_json(),
+      }
+      if !ts.is_empty() {
+        obj["created_at"] = (ts +
+        "#" +
+        msg_index.to_string() +
+        "." +
+        ev_idx.to_string()).to_json()
+      }
+      out.push(Json::object(obj))
+    }
+  }
+  out
 }
 
 ///|

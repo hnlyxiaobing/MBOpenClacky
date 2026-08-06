@@ -235,19 +235,36 @@ fn handle_ws_list_sessions(
 /// Build and send the session list event to a peer.
 /// Reuses SessionSummary so the WS payload is isomorphic to the REST
 /// GET /api/sessions response.
+///
+/// IMPORTANT: merges in-memory active_agents that have no on-disk file.
+/// This prevents sessions whose `save_session` failed silently from
+/// vanishing on browser refresh (the frontend's `_sessions` is cleared
+/// on full-page reload and repopulated solely from this event).
 fn send_session_list(
   server_ref : Ref[WebServer],
   peer : @ws.WebSocketPeer,
 ) -> Unit {
-  let all_sessions = @agent.list_sessions()
+  let disk_sessions = @agent.list_sessions()
   let pinned_map = load_pinned_map()
   let model_options : Array[String] = server_ref.val.config.models.map(m => {
     m.model
   })
-  // Fallback model for legacy session files missing model_name.
   let default_model : String? = match server_ref.val.config.current_model() {
     Some(mc) => Some(mc.model)
     None => None
+  }
+  // Collect on-disk session IDs so we can detect memory-only sessions.
+  let disk_ids : Map[String, Bool] = Map([])
+  let all_sessions : Array[@agent.SessionData] = []
+  for sd in disk_sessions {
+    disk_ids[sd.session_id] = true
+    all_sessions.push(sd)
+  }
+  // Merge active_agents that are NOT on disk (save_session may have failed).
+  for sid, agent in server_ref.val.active_agents {
+    if disk_ids.get(sid) is None {
+      all_sessions.push(agent.to_session_data())
+    }
   }
   let summaries : Array[Json] = []
   for sd in all_sessions {

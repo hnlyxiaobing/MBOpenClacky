@@ -59,6 +59,10 @@ pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
   let path = session_file_path(dir, data.session_id)
   let json_str = data.to_json().stringify()
   @fs.write_string_to_file(path, json_str)
+  // Verify the file was actually written (catch silent write failures).
+  if !@fs.path_exists(path) {
+    raise @fs.IOError("save_session: file not found after write: \{path}")
+  }
 }
 
 ///|

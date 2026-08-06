@@ -92,8 +92,21 @@ fn handle_list_sessions(
   let exclude_type = event.req.get_query("exclude_type")
   let q_scope = event.req.get_query("q_scope")
   let date_filter = event.req.get_query("date")
-  // Fetch all sessions and map to summaries
-  let all_sessions = @agent.list_sessions()
+  // Fetch all sessions from disk, then merge in-memory active_agents
+  // whose save_session may have failed silently. This prevents sessions
+  // from vanishing on browser refresh (same fix as send_session_list).
+  let disk_sessions = @agent.list_sessions()
+  let disk_ids : Map[String, Bool] = Map([])
+  let all_sessions : Array[@agent.SessionData] = []
+  for sd in disk_sessions {
+    disk_ids[sd.session_id] = true
+    all_sessions.push(sd)
+  }
+  for sid, agent in server_ref.val.active_agents {
+    if disk_ids.get(sid) is None {
+      all_sessions.push(agent.to_session_data())
+    }
+  }
   let pinned_map = load_pinned_map()
   // Build sub_model_options from configured models.
   let model_options : Array[String] = server_ref.val.config.models.map(m => {
@@ -299,7 +312,10 @@ fn handle_create_session(
   // GET /api/sessions and WS session_list (both read from disk).
   // IO failure only degrades to the previous in-memory-only behavior.
   @agent.save_session(data) catch {
-    _ => ()
+    _ =>
+      println(
+        "[handle_create_session] save_session FAILED for session \{session_id}",
+      )
   }
   let model_options : Array[String] = server_ref.val.config.models.map(m => {
     m.model
