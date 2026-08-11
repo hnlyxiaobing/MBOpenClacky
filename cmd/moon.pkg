@@ -23,6 +23,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/test/eval",
+  "hnlyxiaobing/MBOpenClacky/test/benchmark",
   "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
   "hnlyxiaobing/MBOpenClacky/test/web" @test_web,
 }

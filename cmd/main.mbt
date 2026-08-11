@@ -77,6 +77,35 @@ async fn main {
       "onboard": @clap.SubCommand::new(
         help="Device binding and identity management",
       ),
+      "benchmark": @clap.SubCommand::new(
+        args={
+          "scenario_dir": @clap.Arg::named(
+            nargs=@clap.Nargs::Fixed(1),
+            help="Directory containing benchmark scenario JSON files",
+          ),
+          "iterations": @clap.Arg::named(
+            short='i',
+            nargs=@clap.Nargs::AtMost(1),
+            help="Number of iterations per scenario (default: 10)",
+          ),
+          "warmup": @clap.Arg::named(
+            short='w',
+            nargs=@clap.Nargs::AtMost(1),
+            help="Number of warmup iterations (default: 3)",
+          ),
+          "threshold": @clap.Arg::named(
+            short='t',
+            nargs=@clap.Nargs::AtMost(1),
+            help="Regression threshold percentage (default: 10.0)",
+          ),
+          "output": @clap.Arg::named(
+            short='o',
+            nargs=@clap.Nargs::AtMost(1),
+            help="Output directory for results (default: benchmark/results)",
+          ),
+        },
+        help="Run performance benchmarks for scenarios",
+      ),
       "ext": @clap.SubCommand::new(
         help="Manage installed extensions (list/install/uninstall/enable/disable/info/search/create)",
         subcmds={
@@ -236,6 +265,9 @@ async fn main {
         return
       } else if sub.name == "ext" {
         handle_ext(sub)
+        return
+      } else if sub.name == "benchmark" {
+        handle_benchmark(sub)
         return
       }
     None => ()
@@ -853,4 +885,61 @@ fn print_run_result(result : @agent.RunResult) -> Unit {
     }
     @agent.RunStatus::Interrupted => println("⚠ Interrupted")
   }
+}
+
+///|
+fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
+  // 获取参数
+  let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or("benchmark/scenarios")
+  let threshold_str = get_named_arg(sub, "threshold").unwrap_or("10.0")
+  let output_dir = get_named_arg(sub, "output").unwrap_or("benchmark/results")
+  
+  // 转换参数
+  let threshold = @string.parse_double(threshold_str) catch { _ => 10.0 }
+  
+  println("Starting benchmark...")
+  println("Scenario directory: \{scenario_dir}")
+  println("Threshold: \{threshold}%")
+  println("Output directory: \{output_dir}")
+  println("")
+  
+  // 加载场景
+  let scenarios = @benchmark.load_benchmark_scenarios(scenario_dir)
+  if scenarios.is_empty() {
+    println("No scenario files found in \{scenario_dir}")
+    return
+  }
+  
+  println("Found \{scenarios.length()} scenario(s)")
+  
+  // 创建运行器
+  let runner = @benchmark.BenchmarkRunner::new(scenarios)
+  
+  // 运行所有场景
+  for scenario in scenarios {
+    println("\nRunning benchmark: \{scenario.name}")
+    
+    // 运行场景
+    let stats = runner.run_scenario(scenario)
+    
+    // 显示结果
+    println(stats.to_markdown(scenario.name))
+    
+    // 保存结果
+    let result = @benchmark.BenchmarkResult::new(scenario.name, stats)
+    let saved = @benchmark.save_result(result, output_dir)
+    match saved {
+      Ok(filepath) => println("Results saved to \{filepath}")
+      Err(err) => println("Failed to save: \{err}")
+    }
+    
+    // 加载历史结果进行比较
+    let history = @benchmark.load_history(scenario.name, output_dir)
+    if history.length() > 0 {
+      let report = @benchmark.compare_with_history(stats, history, threshold)
+      println(report.to_markdown())
+    }
+  }
+  
+  println("\nBenchmark completed!")
 }

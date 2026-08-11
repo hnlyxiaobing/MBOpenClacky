@@ -1,0 +1,10 @@
+import {
+  "hnlyxiaobing/MBOpenClacky/test/eval",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+}

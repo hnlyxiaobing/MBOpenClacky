@@ -1,0 +1,12 @@
+{
+  "name": "llm_latency",
+  "description": "Benchmark LLM response latency",
+  "tool": "agent",
+  "parameters": {
+    "model": "gpt-4",
+    "prompt": "Explain the concept of recursion in programming in 3 sentences.",
+    "max_tokens": 100
+  },
+  "iterations": 10,
+  "warmup": 3
+}

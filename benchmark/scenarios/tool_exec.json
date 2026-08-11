@@ -1,0 +1,10 @@
+{
+  "name": "tool_exec",
+  "description": "Benchmark tool execution time",
+  "tool": "file_reader",
+  "parameters": {
+    "path": "cmd/main.mbt"
+  },
+  "iterations": 10,
+  "warmup": 3
+}
