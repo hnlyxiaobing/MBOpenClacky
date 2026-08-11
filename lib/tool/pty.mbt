@@ -125,9 +125,7 @@ async fn PtyHandle::read_raw(
   let buf : FixedArray[Byte] = FixedArray::make(pty_read_buffer_size, 0)
   // Map read errors (e.g. EIO on Linux after the child exits) to Some(-1)
   // so EOF surfaces promptly instead of burning the idle threshold.
-  let result = @async.with_timeout_opt(timeout_ms, () => {
-    self.pty.reader().read(buf)
-  }) catch {
+  let result = @async.with_timeout_opt(timeout_ms, () => self.pty.read(buf)) catch {
     _ => Some(-1)
   }
   match result {
