@@ -9,6 +9,7 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
+  "moonbitlang/x/sys",
   "moonbitlang/x/codec/base64",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/client",

@@ -80,7 +80,7 @@ fn pty_get_default_shell() -> String {
   if is_windows_platform() {
     "bash.exe"
   } else {
-    match @sys.get_env_var("SHELL") {
+    match @env.get_env_var("SHELL") {
       Some(shell) => shell
       None => "/bin/bash"
     }
