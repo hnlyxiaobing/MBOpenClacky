@@ -203,7 +203,7 @@ fn Logger::log_filename(self : Logger) -> String {
 fn current_date_str() -> String {
   // In native backend, this would use FFI to get real system time.
   // For now, try environment variable override for testability.
-  match @sys.get_env_var("MBOPENCLACKY_LOG_DATE") {
+  match @env.get_env_var("MBOPENCLACKY_LOG_DATE") {
     Some(d) if !d.is_empty() => d
     _ => "0000-00-00"
   }
@@ -213,7 +213,7 @@ fn current_date_str() -> String {
 /// Get the current timestamp as "YYYY-MM-DDThh:mm:ss" string.
 /// Falls back to "0000-00-00T00:00:00" when system time is unavailable.
 fn current_timestamp_str() -> String {
-  match @sys.get_env_var("MBOPENCLACKY_LOG_TIMESTAMP") {
+  match @env.get_env_var("MBOPENCLACKY_LOG_TIMESTAMP") {
     Some(ts) if !ts.is_empty() => ts
     _ => "0000-00-00T00:00:00"
   }

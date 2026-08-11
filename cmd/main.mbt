@@ -435,11 +435,11 @@ async fn handle_server() -> Unit {
   }
 
   // Get API key for web auth from env or config
-  let api_key = @sys.get_env_var("MBOPENCLACKY_WEB_API_KEY")
+  let api_key = @env.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
   // Bind address: default 127.0.0.1 (loopback only) for security.
   // Set MBOPENCLACKY_WEB_HOST=0.0.0.0 to expose on all interfaces.
-  let host = match @sys.get_env_var("MBOPENCLACKY_WEB_HOST") {
+  let host = match @env.get_env_var("MBOPENCLACKY_WEB_HOST") {
     Some(h) => h.trim().to_owned()
     None => "127.0.0.1"
   }
@@ -488,7 +488,7 @@ async fn handle_server() -> Unit {
   // Create and start the web server.
   // Default port is 7071 (to differentiate from the original OpenClacky,
   // which uses 7070); override with the MBOPENCLACKY_WEB_PORT environment variable.
-  let port = match @sys.get_env_var("MBOPENCLACKY_WEB_PORT") {
+  let port = match @env.get_env_var("MBOPENCLACKY_WEB_PORT") {
     Some(p) => {
       let n = @string.parse_int(p.trim()) catch { _ => 7071 }
       if n > 0 && n < 65536 {

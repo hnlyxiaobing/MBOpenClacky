@@ -59,8 +59,8 @@ test "profile get returns default profile structure" {
 
 ///|
 test "profile put merges fields and persists" {
-  let old_userprofile = @sys.get_env_var("USERPROFILE")
-  @sys.set_env_var("USERPROFILE", "_build")
+  let old_userprofile = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", "_build")
   let server_ref = cc_make_server_ref()
   let resp = handle_profile_put(
     server_ref,
@@ -71,8 +71,8 @@ test "profile put merges fields and persists" {
     ),
   )
   match old_userprofile {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
@@ -118,8 +118,8 @@ test "dirs mkdir rejects path traversal in name" {
 
 ///|
 test "dirs mkdir creates directory under cwd" {
-  let old_userprofile = @sys.get_env_var("USERPROFILE")
-  @sys.set_env_var("USERPROFILE", "_build")
+  let old_userprofile = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", "_build")
   let server_ref = cc_make_server_ref()
   let resp = handle_dirs_mkdir(
     server_ref,
@@ -130,8 +130,8 @@ test "dirs mkdir creates directory under cwd" {
     ),
   )
   match old_userprofile {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)

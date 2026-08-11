@@ -12,10 +12,10 @@ let pid_file_prefix : String = "mbopenclacky-master-"
 
 ///|
 /// PID file directory
-let pid_file_dir : String = match @sys.get_env_var("TEMP") {
+let pid_file_dir : String = match @env.get_env_var("TEMP") {
   Some(d) if !d.is_empty() => d + "\\"
   _ =>
-    match @sys.get_env_var("TMPDIR") {
+    match @env.get_env_var("TMPDIR") {
       Some(d) if !d.is_empty() => d + "/"
       _ => "/tmp/"
     }

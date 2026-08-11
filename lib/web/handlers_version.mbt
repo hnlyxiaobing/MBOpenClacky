@@ -166,7 +166,7 @@ async fn handle_version_info(
     Some(p) if cfg.is_branded() && !p.is_empty() => p
     _ => "mbopenclacky"
   }
-  let launcher = match @sys.get_env_var("CLACKY_LAUNCHER") {
+  let launcher = match @env.get_env_var("CLACKY_LAUNCHER") {
     Some(v) if !v.is_empty() => v
     _ => "cli"
   }

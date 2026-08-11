@@ -7,10 +7,10 @@
 /// repository's built `./web` directory, which is absent on many checkouts
 /// (notably Windows). Uses the system TEMP dir rather than a hardcoded /tmp.
 fn wbtest_web_root() -> String {
-  let base = match @sys.get_env_var("TEMP") {
+  let base = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

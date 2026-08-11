@@ -363,18 +363,18 @@ test "model_config_from_toml_missing_model" {
 
 ///|
 test "apply_env_overlay_verbose" {
-  @sys.set_env_var("MBOPENCLACKY_VERBOSE", "1")
+  @env.set_env_var("MBOPENCLACKY_VERBOSE", "1")
   let config = AgentConfig::default()
   let result = config.apply_env_overlay()
   assert_true(result.verbose)
-  @sys.set_env_var("MBOPENCLACKY_VERBOSE", "")
+  @env.set_env_var("MBOPENCLACKY_VERBOSE", "")
 }
 
 ///|
 test "apply_env_overlay_creates_model_from_env" {
-  @sys.set_env_var("MBOPENCLACKY_API_KEY", "sk-env-key")
-  @sys.set_env_var("MBOPENCLACKY_BASE_URL", "https://api.custom.com")
-  @sys.set_env_var("MBOPENCLACKY_MODEL", "my-custom-model")
+  @env.set_env_var("MBOPENCLACKY_API_KEY", "sk-env-key")
+  @env.set_env_var("MBOPENCLACKY_BASE_URL", "https://api.custom.com")
+  @env.set_env_var("MBOPENCLACKY_MODEL", "my-custom-model")
   let config = AgentConfig::default()
   let result = config.apply_env_overlay()
   @debug.assert_eq(result.models.length(), 1)
@@ -382,14 +382,14 @@ test "apply_env_overlay_creates_model_from_env" {
   @debug.assert_eq(result.models[0].base_url, "https://api.custom.com")
   @debug.assert_eq(result.models[0].model, "my-custom-model")
   @debug.assert_eq(result.current_model_id, Some("default"))
-  @sys.set_env_var("MBOPENCLACKY_API_KEY", "")
-  @sys.set_env_var("MBOPENCLACKY_BASE_URL", "")
-  @sys.set_env_var("MBOPENCLACKY_MODEL", "")
+  @env.set_env_var("MBOPENCLACKY_API_KEY", "")
+  @env.set_env_var("MBOPENCLACKY_BASE_URL", "")
+  @env.set_env_var("MBOPENCLACKY_MODEL", "")
 }
 
 ///|
 test "apply_env_overlay_skips_when_models_exist" {
-  @sys.set_env_var("MBOPENCLACKY_API_KEY", "sk-env-key")
+  @env.set_env_var("MBOPENCLACKY_API_KEY", "sk-env-key")
   let config = AgentConfig::default()
   config.models.push(
     ModelConfig::new(
@@ -399,7 +399,7 @@ test "apply_env_overlay_skips_when_models_exist" {
   let result = config.apply_env_overlay()
   @debug.assert_eq(result.models.length(), 1)
   @debug.assert_eq(result.models[0].id, "existing")
-  @sys.set_env_var("MBOPENCLACKY_API_KEY", "")
+  @env.set_env_var("MBOPENCLACKY_API_KEY", "")
 }
 
 ///|
@@ -446,7 +446,7 @@ test "current_model without badge keeps prior semantics" {
 ///|
 test "current_model prefers badge over a valid current_model_id (legacy drift)" {
   // Legacy drift: current_model_id set by an older code path, badge set later
-  // via Settings — the badge is the most recent explicit user choice.
+  // via Settings - the badge is the most recent explicit user choice.
   let config = AgentConfig::default()
   let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
   let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")

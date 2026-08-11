@@ -197,10 +197,10 @@ let video_work_dir_counter : VideoWorkDirCounter = { value: 0 }
 
 ///|
 fn video_temp_base() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) if !d.is_empty() => d
     _ =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) if !d.is_empty() => d
         _ => "/tmp"
       }

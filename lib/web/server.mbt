@@ -199,7 +199,7 @@ pub fn WebServer::build_app(
   match self.api_key {
     Some(key) => {
       let allow_loopback = match
-        @sys.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
+        @env.get_env_var("MBOPENCLACKY_DEV_ALLOW_LOOPBACK") {
         Some("1") | Some("true") => true
         _ => false
       }

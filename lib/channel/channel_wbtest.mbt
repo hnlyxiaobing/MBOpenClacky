@@ -4,10 +4,10 @@
 /// Build a temp-file path that works on both Windows (%TEMP%) and Unix
 /// ($TMPDIR, fallback /tmp). Mirrors lib/tool's shell_temp_dir pattern.
 fn test_temp_path(name : String) -> String {
-  let dir = match @sys.get_env_var("TEMP") {
+  let dir = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

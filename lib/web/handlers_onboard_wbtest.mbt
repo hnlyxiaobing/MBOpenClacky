@@ -113,10 +113,10 @@ test "onboard complete fails without configured model" {
 
 ///|
 test "onboard skip soul returns ok" {
-  let old_userprofile = @sys.get_env_var("USERPROFILE")
+  let old_userprofile = @env.get_env_var("USERPROFILE")
   // Use an existing base directory so nested dir creation succeeds.
   let test_home = "_build"
-  @sys.set_env_var("USERPROFILE", test_home)
+  @env.set_env_var("USERPROFILE", test_home)
   let server_ref = make_server_ref()
   let event = make_event(
     Post,
@@ -126,8 +126,8 @@ test "onboard skip soul returns ok" {
   let resp = handle_onboard_skip_soul(server_ref, event)
   // Restore original USERPROFILE.
   match old_userprofile {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)

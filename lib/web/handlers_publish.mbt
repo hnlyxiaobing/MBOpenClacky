@@ -16,7 +16,7 @@
 /// for staging or self-hosted deployments (mirrors the
 /// MBOPENCLACKY_DISTRIBUTION_URL convention in lib/brand).
 fn platform_base_url() -> String {
-  match @sys.get_env_var("MBOPENCLACKY_PLATFORM_URL") {
+  match @env.get_env_var("MBOPENCLACKY_PLATFORM_URL") {
     Some(u) if u.length() > 0 => u
     _ => "https://www.openclacky.com"
   }

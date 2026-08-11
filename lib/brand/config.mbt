@@ -219,7 +219,7 @@ pub async fn BrandConfig::refresh_distribution(
   }
   // Construct distribution lookup URL.
   // Override via MBOPENCLACKY_DISTRIBUTION_URL env var for custom deployments.
-  let base_url = match @sys.get_env_var("MBOPENCLACKY_DISTRIBUTION_URL") {
+  let base_url = match @env.get_env_var("MBOPENCLACKY_DISTRIBUTION_URL") {
     Some(u) if u.length() > 0 => u
     _ => "https://api.mbopenclacky.com"
   }

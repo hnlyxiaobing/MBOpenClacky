@@ -110,7 +110,7 @@ pub fn shell_rc_files(shell : ShellType) -> Array[String] {
             home,
             @path.Path("Documents/PowerShell/Microsoft.PowerShell_profile.ps1"),
           ).to_string()
-          let allusers = match @sys.get_env_var("PSHOME") {
+          let allusers = match @env.get_env_var("PSHOME") {
             Some(pshome) =>
               @path.Path::join(pshome, @path.Path("profile.ps1")).to_string()
             _ => "/etc/powershell/profile.ps1"

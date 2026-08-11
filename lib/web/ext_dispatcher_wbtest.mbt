@@ -6,10 +6,10 @@
 /// OS-portable temp directory (uses TEMP/TMPDIR env, falls back to /tmp).
 /// Avoids hardcoded Unix /tmp paths that don't exist on Windows.
 fn wbtest_ext_tmp_root() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }
@@ -200,7 +200,7 @@ async test "ext handler: env vars passed to command" {
   // Unix expands $VAR via sh; Windows cannot expand inline-set vars with %VAR%
   // (cmd parses the whole line before set runs), so on Windows we list the var
   // with `set` instead of echoing it.
-  let is_win = match @sys.get_env_var("OS") {
+  let is_win = match @env.get_env_var("OS") {
     Some(v) => v == "Windows_NT"
     None => false
   }

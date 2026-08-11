@@ -219,15 +219,15 @@ pub fn detect_chrome_ws_endpoint() -> ChromeWsEndpoint? {
 ///|
 /// Get platform-specific Chrome user data directories.
 fn chrome_user_data_dirs() -> Array[String] {
-  let home = match @sys.get_env_var("HOME") {
+  let home = match @env.get_env_var("HOME") {
     Some(h) => h
     None =>
-      match @sys.get_env_var("USERPROFILE") {
+      match @env.get_env_var("USERPROFILE") {
         Some(h) => h
         None => return []
       }
   }
-  let os = match @sys.get_env_var("OS") {
+  let os = match @env.get_env_var("OS") {
     Some(v) => v.to_lower()
     None => ""
   }

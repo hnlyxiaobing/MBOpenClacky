@@ -2,8 +2,8 @@ warnings = "-29"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "moonbitlang/x/sys",
   "moonbitlang/x/fs",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "moonbitlang/async",

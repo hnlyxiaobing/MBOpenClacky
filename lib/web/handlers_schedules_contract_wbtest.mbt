@@ -4,10 +4,10 @@
 ///|
 /// OS-portable temp directory (uses TEMP/TMPDIR env, falls back to /tmp).
 fn sched_wbtest_tmp_root() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

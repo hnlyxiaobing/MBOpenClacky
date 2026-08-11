@@ -248,11 +248,11 @@ fn expand_path(path : String) -> String {
 ///|
 /// Get home directory from environment.
 fn home_dir() -> String? {
-  match @sys.get_env_var("USERPROFILE") {
+  match @env.get_env_var("USERPROFILE") {
     Some(p) if !p.is_empty() => return Some(p)
     _ => ()
   }
-  match @sys.get_env_var("HOME") {
+  match @env.get_env_var("HOME") {
     Some(p) if !p.is_empty() => return Some(p)
     _ => ()
   }

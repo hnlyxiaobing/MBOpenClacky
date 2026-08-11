@@ -14,16 +14,16 @@ fn st_make_request(body : String) -> HttpRequest {
 
 ///|
 fn st_push_profile() -> String? {
-  let old = @sys.get_env_var("USERPROFILE")
-  @sys.set_env_var("USERPROFILE", "_build")
+  let old = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", "_build")
   old
 }
 
 ///|
 fn st_pop_profile(old : String?) -> Unit {
   match old {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
 }
 

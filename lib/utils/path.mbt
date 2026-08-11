@@ -9,12 +9,12 @@ let config_dir_name : String = ".mbopenclacky"
 /// Returns USERPROFILE on Windows, HOME on Unix-like systems.
 pub fn home_dir() -> String? {
   // Try USERPROFILE first (Windows)
-  match @sys.get_env_var("USERPROFILE") {
+  match @env.get_env_var("USERPROFILE") {
     Some(p) if !p.is_empty() => return Some(p)
     _ => ()
   }
   // Fall back to HOME (Unix/macOS)
-  match @sys.get_env_var("HOME") {
+  match @env.get_env_var("HOME") {
     Some(p) if !p.is_empty() => return Some(p)
     _ => ()
   }
@@ -87,7 +87,7 @@ pub fn ensure_dir(dir : String) -> Unit {
 /// does not accept forward-slash paths, so convert `/` to `\`. On Unix paths are
 /// already forward-slash separated and are left unchanged.
 fn normalize_path_sep(p : String) -> String {
-  let is_win = match @sys.get_env_var("OS") {
+  let is_win = match @env.get_env_var("OS") {
     Some(v) => v == "Windows_NT"
     None => false
   }

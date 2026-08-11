@@ -63,11 +63,11 @@ pub fn BillingStore::new(billing_dir : String) -> BillingStore {
 ///|
 /// Create a BillingStore with default directory (~/.mbopenclacky/billing/).
 pub fn BillingStore::default() -> BillingStore {
-  let dir = match @sys.get_env_var("USERPROFILE") {
+  let dir = match @env.get_env_var("USERPROFILE") {
     Some(home) if !home.is_empty() =>
       @path.Path::join(home, @path.Path(".mbopenclacky/billing")).to_string()
     _ =>
-      match @sys.get_env_var("HOME") {
+      match @env.get_env_var("HOME") {
         Some(home) if !home.is_empty() =>
           @path.Path::join(home, @path.Path(".mbopenclacky/billing")).to_string()
         _ => ".mbopenclacky/billing"

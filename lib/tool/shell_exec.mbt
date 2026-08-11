@@ -25,10 +25,10 @@ pub(all) struct ShellExecResult {
 
 ///|
 fn shell_temp_dir() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }
@@ -39,7 +39,7 @@ fn shell_temp_dir() -> String {
 /// Detect whether the current process runs on Windows (cmd.exe semantics).
 /// Public so that cross-package tests can write platform-aware commands.
 pub fn shell_is_windows() -> Bool {
-  @sys.get_env_var("OS") is Some(v) && v == "Windows_NT"
+  @env.get_env_var("OS") is Some(v) && v == "Windows_NT"
 }
 
 ///|

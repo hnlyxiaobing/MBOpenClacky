@@ -1,17 +1,17 @@
 ///|
 test "env_var_returns_none_for_empty" {
-  @sys.set_env_var("MB_TEST_EMPTY", "")
+  @env.set_env_var("MB_TEST_EMPTY", "")
   assert_true(env_var("MB_TEST_EMPTY") is None)
 }
 
 ///|
 test "env_var_returns_value_when_set" {
-  @sys.set_env_var("MB_TEST_VALUE", "hello")
+  @env.set_env_var("MB_TEST_VALUE", "hello")
   match env_var("MB_TEST_VALUE") {
     Some(v) => @debug.assert_eq(v, "hello")
     None => fail("expected Some")
   }
-  @sys.set_env_var("MB_TEST_VALUE", "")
+  @env.set_env_var("MB_TEST_VALUE", "")
 }
 
 ///|
@@ -23,20 +23,20 @@ test "env_var_returns_none_for_unset" {
 test "env_bool_true_values" {
   let true_vals = ["true", "TRUE", "True", "1", "yes", "YES", "Yes"]
   for v in true_vals {
-    @sys.set_env_var("MB_TEST_BOOL", v)
+    @env.set_env_var("MB_TEST_BOOL", v)
     assert_true(env_bool("MB_TEST_BOOL"))
   }
-  @sys.set_env_var("MB_TEST_BOOL", "")
+  @env.set_env_var("MB_TEST_BOOL", "")
 }
 
 ///|
 test "env_bool_false_values" {
   let false_vals = ["false", "0", "no", "anything", ""]
   for v in false_vals {
-    @sys.set_env_var("MB_TEST_BOOL2", v)
+    @env.set_env_var("MB_TEST_BOOL2", v)
     assert_false(env_bool("MB_TEST_BOOL2"))
   }
-  @sys.set_env_var("MB_TEST_BOOL2", "")
+  @env.set_env_var("MB_TEST_BOOL2", "")
 }
 
 ///|
@@ -46,29 +46,29 @@ test "env_bool_unset_returns_false" {
 
 ///|
 test "env_int_valid_values" {
-  @sys.set_env_var("MB_TEST_INT", "42")
+  @env.set_env_var("MB_TEST_INT", "42")
   @debug.assert_eq(env_int("MB_TEST_INT"), Some(42))
 
-  @sys.set_env_var("MB_TEST_INT", "-7")
+  @env.set_env_var("MB_TEST_INT", "-7")
   @debug.assert_eq(env_int("MB_TEST_INT"), Some(-7))
 
-  @sys.set_env_var("MB_TEST_INT", "0")
+  @env.set_env_var("MB_TEST_INT", "0")
   @debug.assert_eq(env_int("MB_TEST_INT"), Some(0))
 
-  @sys.set_env_var("MB_TEST_INT", "+100")
+  @env.set_env_var("MB_TEST_INT", "+100")
   @debug.assert_eq(env_int("MB_TEST_INT"), Some(100))
 
-  @sys.set_env_var("MB_TEST_INT", "")
+  @env.set_env_var("MB_TEST_INT", "")
 }
 
 ///|
 test "env_int_invalid_values" {
   let invalids = ["abc", "12.5", "", "12x", "--3"]
   for v in invalids {
-    @sys.set_env_var("MB_TEST_INT2", v)
+    @env.set_env_var("MB_TEST_INT2", v)
     assert_true(env_int("MB_TEST_INT2") is None)
   }
-  @sys.set_env_var("MB_TEST_INT2", "")
+  @env.set_env_var("MB_TEST_INT2", "")
 }
 
 ///|

@@ -36,12 +36,12 @@ fn bw_json(resp : @core.HttpResponse) -> Json {
 /// brand.toml / onboard.json lookups resolve to defaults; restores the
 /// original value afterwards.
 async fn bw_with_isolated_home(home : String, f : async () -> Unit) -> Unit {
-  let old = @sys.get_env_var("USERPROFILE")
-  @sys.set_env_var("USERPROFILE", home)
+  let old = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", home)
   f()
   match old {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
 }
 
@@ -196,8 +196,8 @@ async test "fix18 onboard status needs_onboard false with configured model" {
 
 ///|
 async test "fix18 version info returns orig five keys plus legacy keys" {
-  let old_launcher = @sys.get_env_var("CLACKY_LAUNCHER")
-  @sys.set_env_var("CLACKY_LAUNCHER", "")
+  let old_launcher = @env.get_env_var("CLACKY_LAUNCHER")
+  @env.set_env_var("CLACKY_LAUNCHER", "")
   bw_with_isolated_home("_build/wbtest18_ver", async fn() {
     // Prime the cache so the handler never touches the network.
     latest_version_cache.val = (Some("9.9.9"), now_seconds())
@@ -222,15 +222,15 @@ async test "fix18 version info returns orig five keys plus legacy keys" {
   })
   latest_version_cache.val = (None, 0)
   match old_launcher {
-    Some(v) => @sys.set_env_var("CLACKY_LAUNCHER", v)
-    None => @sys.set_env_var("CLACKY_LAUNCHER", "")
+    Some(v) => @env.set_env_var("CLACKY_LAUNCHER", v)
+    None => @env.set_env_var("CLACKY_LAUNCHER", "")
   }
 }
 
 ///|
 async test "fix18 version info launcher honors CLACKY_LAUNCHER" {
-  let old_launcher = @sys.get_env_var("CLACKY_LAUNCHER")
-  @sys.set_env_var("CLACKY_LAUNCHER", "desktop")
+  let old_launcher = @env.get_env_var("CLACKY_LAUNCHER")
+  @env.set_env_var("CLACKY_LAUNCHER", "desktop")
   bw_with_isolated_home("_build/wbtest18_ver2", async fn() {
     latest_version_cache.val = (Some("0.1.0"), now_seconds())
     let resp = handle_version_info(
@@ -244,8 +244,8 @@ async test "fix18 version info launcher honors CLACKY_LAUNCHER" {
   })
   latest_version_cache.val = (None, 0)
   match old_launcher {
-    Some(v) => @sys.set_env_var("CLACKY_LAUNCHER", v)
-    None => @sys.set_env_var("CLACKY_LAUNCHER", "")
+    Some(v) => @env.set_env_var("CLACKY_LAUNCHER", v)
+    None => @env.set_env_var("CLACKY_LAUNCHER", "")
   }
 }
 

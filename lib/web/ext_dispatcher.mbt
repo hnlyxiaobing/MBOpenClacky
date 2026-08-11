@@ -246,16 +246,16 @@ fn register_route_entry(
 ///|
 /// Check if running on Windows.
 fn ext_is_windows() -> Bool {
-  @sys.get_env_var("OS") is Some(v) && v == "Windows_NT"
+  @env.get_env_var("OS") is Some(v) && v == "Windows_NT"
 }
 
 ///|
 /// Get the temp directory for body files.
 fn ext_temp_dir() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

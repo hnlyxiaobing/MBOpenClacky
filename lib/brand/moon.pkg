@@ -1,9 +1,9 @@
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/env",
   "hnlyxiaobing/toml",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "moonbitlang/x/sys",
   "moonbitlang/x/crypto",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",

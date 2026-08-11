@@ -23,10 +23,10 @@ pub fn generate_device_id() -> DeviceInfo {
 /// Get system hostname.
 /// TODO: Replace with FFI to GetComputerNameW / gethostname().
 fn get_hostname() -> String {
-  match @sys.get_env_var("COMPUTERNAME") {
+  match @env.get_env_var("COMPUTERNAME") {
     Some(h) if !h.is_empty() => h
     _ =>
-      match @sys.get_env_var("HOSTNAME") {
+      match @env.get_env_var("HOSTNAME") {
         Some(h) if !h.is_empty() => h
         _ => "unknown-host"
       }
@@ -37,10 +37,10 @@ fn get_hostname() -> String {
 /// Get current username.
 /// TODO: Replace with FFI to GetUserNameW / getpwuid().
 fn get_username() -> String {
-  match @sys.get_env_var("USERNAME") {
+  match @env.get_env_var("USERNAME") {
     Some(u) if !u.is_empty() => u
     _ =>
-      match @sys.get_env_var("USER") {
+      match @env.get_env_var("USER") {
         Some(u) if !u.is_empty() => u
         _ => "unknown-user"
       }

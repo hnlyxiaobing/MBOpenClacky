@@ -161,10 +161,10 @@ pub fn strip_command_echo(output : String, command : String) -> String {
 /// Spill overflow output to a sidecar file and return the file path.
 /// Returns None if the file could not be written.
 pub fn spill_overflow_file(content : String, session_id? : Int = 0) -> String? {
-  let tmp_dir = match @sys.get_env_var("TEMP") {
+  let tmp_dir = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

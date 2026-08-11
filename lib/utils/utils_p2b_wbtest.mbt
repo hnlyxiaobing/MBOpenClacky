@@ -106,39 +106,39 @@ test "format_trash_summary empty" {
 ///|
 test "is_ci checks env vars" {
   // Clear any CI env vars that might be set
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("GITHUB_ACTIONS", "")
-  @sys.set_env_var("GITLAB_CI", "")
-  @sys.set_env_var("JENKINS_URL", "")
-  @sys.set_env_var("TRAVIS", "")
-  @sys.set_env_var("CIRCLECI", "")
-  @sys.set_env_var("BUILDKITE", "")
-  @sys.set_env_var("AZURE_PIPELINES", "")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("GITHUB_ACTIONS", "")
+  @env.set_env_var("GITLAB_CI", "")
+  @env.set_env_var("JENKINS_URL", "")
+  @env.set_env_var("TRAVIS", "")
+  @env.set_env_var("CIRCLECI", "")
+  @env.set_env_var("BUILDKITE", "")
+  @env.set_env_var("AZURE_PIPELINES", "")
   assert_false(is_ci())
   // Set one
-  @sys.set_env_var("GITHUB_ACTIONS", "true")
+  @env.set_env_var("GITHUB_ACTIONS", "true")
   assert_true(is_ci())
-  @sys.set_env_var("GITHUB_ACTIONS", "")
+  @env.set_env_var("GITHUB_ACTIONS", "")
 }
 
 ///|
 test "is_docker checks env" {
-  @sys.set_env_var("DOCKER_CONTAINER", "")
-  @sys.set_env_var("container", "")
+  @env.set_env_var("DOCKER_CONTAINER", "")
+  @env.set_env_var("container", "")
   assert_false(is_docker())
-  @sys.set_env_var("DOCKER_CONTAINER", "1")
+  @env.set_env_var("DOCKER_CONTAINER", "1")
   assert_true(is_docker())
-  @sys.set_env_var("DOCKER_CONTAINER", "")
+  @env.set_env_var("DOCKER_CONTAINER", "")
 }
 
 ///|
 test "is_wsl checks env" {
-  @sys.set_env_var("WSL_DISTRO_NAME", "")
-  @sys.set_env_var("WSL_INTEROP", "")
+  @env.set_env_var("WSL_DISTRO_NAME", "")
+  @env.set_env_var("WSL_INTEROP", "")
   assert_false(is_wsl())
-  @sys.set_env_var("WSL_DISTRO_NAME", "Ubuntu")
+  @env.set_env_var("WSL_DISTRO_NAME", "Ubuntu")
   assert_true(is_wsl())
-  @sys.set_env_var("WSL_DISTRO_NAME", "")
+  @env.set_env_var("WSL_DISTRO_NAME", "")
 }
 
 ///|
@@ -151,33 +151,33 @@ test "parse_is_wsl1 kernel strings" {
 
 ///|
 test "is_ssh checks env" {
-  @sys.set_env_var("SSH_CLIENT", "")
-  @sys.set_env_var("SSH_TTY", "")
-  @sys.set_env_var("SSH_CONNECTION", "")
+  @env.set_env_var("SSH_CLIENT", "")
+  @env.set_env_var("SSH_TTY", "")
+  @env.set_env_var("SSH_CONNECTION", "")
   assert_false(is_ssh())
-  @sys.set_env_var("SSH_CLIENT", "192.168.1.1 1234 22")
+  @env.set_env_var("SSH_CLIENT", "192.168.1.1 1234 22")
   assert_true(is_ssh())
-  @sys.set_env_var("SSH_CLIENT", "")
+  @env.set_env_var("SSH_CLIENT", "")
 }
 
 ///|
 test "detect_environment local default" {
   // Clear all environment indicators
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("GITHUB_ACTIONS", "")
-  @sys.set_env_var("GITLAB_CI", "")
-  @sys.set_env_var("JENKINS_URL", "")
-  @sys.set_env_var("TRAVIS", "")
-  @sys.set_env_var("CIRCLECI", "")
-  @sys.set_env_var("BUILDKITE", "")
-  @sys.set_env_var("AZURE_PIPELINES", "")
-  @sys.set_env_var("DOCKER_CONTAINER", "")
-  @sys.set_env_var("container", "")
-  @sys.set_env_var("WSL_DISTRO_NAME", "")
-  @sys.set_env_var("WSL_INTEROP", "")
-  @sys.set_env_var("SSH_CLIENT", "")
-  @sys.set_env_var("SSH_TTY", "")
-  @sys.set_env_var("SSH_CONNECTION", "")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("GITHUB_ACTIONS", "")
+  @env.set_env_var("GITLAB_CI", "")
+  @env.set_env_var("JENKINS_URL", "")
+  @env.set_env_var("TRAVIS", "")
+  @env.set_env_var("CIRCLECI", "")
+  @env.set_env_var("BUILDKITE", "")
+  @env.set_env_var("AZURE_PIPELINES", "")
+  @env.set_env_var("DOCKER_CONTAINER", "")
+  @env.set_env_var("container", "")
+  @env.set_env_var("WSL_DISTRO_NAME", "")
+  @env.set_env_var("WSL_INTEROP", "")
+  @env.set_env_var("SSH_CLIENT", "")
+  @env.set_env_var("SSH_TTY", "")
+  @env.set_env_var("SSH_CONNECTION", "")
   assert_true(detect_environment() == Local)
 }
 

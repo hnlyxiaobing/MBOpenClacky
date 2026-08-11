@@ -7,7 +7,7 @@
 /// Get a non-empty environment variable value.
 /// Returns None if the variable is unset or empty.
 pub fn env_var(key : String) -> String? {
-  match @sys.get_env_var(key) {
+  match @env.get_env_var(key) {
     Some(v) if !v.is_empty() => Some(v)
     _ => None
   }

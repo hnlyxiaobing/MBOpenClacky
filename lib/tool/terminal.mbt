@@ -155,10 +155,10 @@ fn remove_marker_line(output : String, token : String) -> String {
 ///|
 /// Get the temp directory for overflow/session files.
 fn get_temp_dir() -> String {
-  match @sys.get_env_var("TEMP") {
+  match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }
@@ -182,7 +182,7 @@ fn build_output_file_path(session_id : Int) -> String {
 ///|
 /// Check if the current platform is Windows.
 fn is_windows_platform() -> Bool {
-  @sys.get_env_var("OS") is Some(v) && v == "Windows_NT"
+  @env.get_env_var("OS") is Some(v) && v == "Windows_NT"
 }
 
 ///|

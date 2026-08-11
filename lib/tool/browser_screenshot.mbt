@@ -12,10 +12,10 @@ let max_screenshot_bytes : Int = 150 * 1024 // 150 KB
 ///|
 /// Get the system temporary directory for saving screenshots.
 fn get_screenshot_temp_dir() -> String {
-  let dir = match @sys.get_env_var("TEMP") {
+  let dir = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
-      match @sys.get_env_var("TMPDIR") {
+      match @env.get_env_var("TMPDIR") {
         Some(d) => d
         None => "/tmp"
       }

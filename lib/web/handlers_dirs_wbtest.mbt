@@ -79,16 +79,16 @@ fn dc_setup_fixture() -> Unit {
 
 ///|
 fn dc_set_home() -> String? {
-  let old = @sys.get_env_var("USERPROFILE")
-  @sys.set_env_var("USERPROFILE", dc_home)
+  let old = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", dc_home)
   old
 }
 
 ///|
 fn dc_restore_home(old : String?) -> Unit {
   match old {
-    Some(v) => @sys.set_env_var("USERPROFILE", v)
-    None => @sys.set_env_var("USERPROFILE", "")
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.set_env_var("USERPROFILE", "")
   }
 }
 

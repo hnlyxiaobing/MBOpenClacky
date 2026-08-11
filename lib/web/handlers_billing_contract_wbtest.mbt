@@ -11,7 +11,7 @@
 /// Pre-creates the billing dir: BillingStore::ensure_billing_dir cannot create
 /// multi-level missing paths (Path::dirname quirk), so tests set it up first.
 fn bc_use_dir(dir : String) -> Unit {
-  @sys.set_env_var("USERPROFILE", dir)
+  @env.set_env_var("USERPROFILE", dir)
   // Drop leftovers from previous failed runs before re-creating the tree.
   @fs.remove_file(dir + "/.mbopenclacky/billing/current.jsonl") catch {
     _ => ()

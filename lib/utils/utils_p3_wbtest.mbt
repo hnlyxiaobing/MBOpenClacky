@@ -27,37 +27,37 @@ test "browser_type_show_unknown" {
 
 ///|
 test "detect_browser_with_browser_env" {
-  @sys.set_env_var("BROWSER", "google-chrome")
-  @sys.set_env_var("HEADLESS", "")
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("BROWSER", "google-chrome")
+  @env.set_env_var("HEADLESS", "")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   let info = detect_browser()
   assert_true(info.browser_type == Chrome)
-  @sys.set_env_var("BROWSER", "")
+  @env.set_env_var("BROWSER", "")
 }
 
 ///|
 test "detect_browser_with_chrome_path" {
-  @sys.set_env_var("BROWSER", "")
-  @sys.set_env_var("CHROME_PATH", "/usr/bin/chrome")
-  @sys.set_env_var("HEADLESS", "")
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("BROWSER", "")
+  @env.set_env_var("CHROME_PATH", "/usr/bin/chrome")
+  @env.set_env_var("HEADLESS", "")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   let info = detect_browser()
   assert_true(info.browser_type == Chrome)
   @debug.assert_eq(info.path, Some("/usr/bin/chrome"))
-  @sys.set_env_var("CHROME_PATH", "")
+  @env.set_env_var("CHROME_PATH", "")
 }
 
 ///|
 test "detect_browser_no_env" {
-  @sys.set_env_var("BROWSER", "")
-  @sys.set_env_var("CHROME_PATH", "")
-  @sys.set_env_var("FIREFOX_PATH", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
-  @sys.set_env_var("PLAYWRIGHT_BROWSERS_PATH", "")
-  @sys.set_env_var("HEADLESS", "")
-  @sys.set_env_var("CI", "")
+  @env.set_env_var("BROWSER", "")
+  @env.set_env_var("CHROME_PATH", "")
+  @env.set_env_var("FIREFOX_PATH", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("PLAYWRIGHT_BROWSERS_PATH", "")
+  @env.set_env_var("HEADLESS", "")
+  @env.set_env_var("CI", "")
   let info = detect_browser()
   assert_true(info.browser_type == BrowserType::Unknown("none"))
 }
@@ -66,27 +66,27 @@ test "detect_browser_no_env" {
 
 ///|
 test "is_headless_with_headless_env" {
-  @sys.set_env_var("HEADLESS", "true")
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("HEADLESS", "true")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   assert_true(is_headless())
-  @sys.set_env_var("HEADLESS", "")
+  @env.set_env_var("HEADLESS", "")
 }
 
 ///|
 test "is_headless_with_ci_env" {
-  @sys.set_env_var("HEADLESS", "")
-  @sys.set_env_var("CI", "true")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("HEADLESS", "")
+  @env.set_env_var("CI", "true")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   assert_true(is_headless())
-  @sys.set_env_var("CI", "")
+  @env.set_env_var("CI", "")
 }
 
 ///|
 test "is_headless_false_when_unset" {
-  @sys.set_env_var("HEADLESS", "")
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("HEADLESS", "")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   assert_false(is_headless())
 }
 
@@ -94,16 +94,16 @@ test "is_headless_false_when_unset" {
 
 ///|
 test "browser_summary_format" {
-  @sys.set_env_var("BROWSER", "firefox")
-  @sys.set_env_var("HEADLESS", "true")
-  @sys.set_env_var("CI", "")
-  @sys.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
+  @env.set_env_var("BROWSER", "firefox")
+  @env.set_env_var("HEADLESS", "true")
+  @env.set_env_var("CI", "")
+  @env.set_env_var("PUPPETEER_EXECUTABLE_PATH", "")
   let summary = browser_summary()
   assert_true(summary.contains("Browser:"))
   assert_true(summary.contains("Firefox"))
   assert_true(summary.contains("headless"))
-  @sys.set_env_var("BROWSER", "")
-  @sys.set_env_var("HEADLESS", "")
+  @env.set_env_var("BROWSER", "")
+  @env.set_env_var("HEADLESS", "")
 }
 
 // ── ScriptsManager tests ────────────────────────────────────────────────────
@@ -213,26 +213,26 @@ test "shell_type_show_unknown" {
 
 ///|
 test "detect_login_shell_bash" {
-  @sys.set_env_var("SHELL", "/bin/bash")
+  @env.set_env_var("SHELL", "/bin/bash")
   let shell = detect_login_shell()
   assert_true(shell == Bash)
-  @sys.set_env_var("SHELL", "")
+  @env.set_env_var("SHELL", "")
 }
 
 ///|
 test "detect_login_shell_zsh" {
-  @sys.set_env_var("SHELL", "/usr/bin/zsh")
+  @env.set_env_var("SHELL", "/usr/bin/zsh")
   let shell = detect_login_shell()
   assert_true(shell == Zsh)
-  @sys.set_env_var("SHELL", "")
+  @env.set_env_var("SHELL", "")
 }
 
 ///|
 test "detect_login_shell_fish" {
-  @sys.set_env_var("SHELL", "/usr/bin/fish")
+  @env.set_env_var("SHELL", "/usr/bin/fish")
   let shell = detect_login_shell()
   assert_true(shell == Fish)
-  @sys.set_env_var("SHELL", "")
+  @env.set_env_var("SHELL", "")
 }
 
 // ── shell_config_path tests ─────────────────────────────────────────────────
