@@ -103,17 +103,17 @@ Follow the Harness v2 loop — see [specs/decisions/harness-methodology-v2-upgra
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 290 |
-| Test files (`_wbtest.mbt`) | 173 |
-| Source lines | ~75,100 |
-| Test lines | ~39,400 |
-| Total lines (incl. test/) | ~114,500 |
-| Test cases | 3,200+ |
+| `.mbt` source files (lib + cmd) | 291 |
+| Test files (`_wbtest.mbt` + test/) | 178 |
+| Source lines | ~80,900 |
+| Test lines | ~46,500 |
+| Total lines (incl. test/) | ~127,500 |
+| Test cases | 3,100+ |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 13 |
-| Default skills | 17 |
+| Default skills | 18 |
 | REST API endpoints | 216 routes (incl. aliases) |
-| `moon check` | 0 errors, 0 warnings |
+| `moon check` | 0 errors |
 | CI/CD | ✅ GitHub Actions |
 | Phase coverage | ~95% |

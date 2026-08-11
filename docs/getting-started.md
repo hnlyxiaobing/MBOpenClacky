@@ -403,7 +403,7 @@ moon build --target native --release cmd
 
 ### `moon check` 报 Warning 但 0 errors
 
-Warnings 为已知的代码风格提示（如 deprecated Show trait），不影响编译和运行。当前 `moon check` 结果约为 ~500 warnings、0 errors。
+Warnings 为已知的代码风格提示（如 deprecated 语法），不影响编译和运行。当前 `moon check` 结果为 0 errors。
 
 ### Web 工具（web_fetch / web_search）
 

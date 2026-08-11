@@ -1,8 +1,8 @@
 # Web UI 对比测试方案（MBOpenClacky vs openclacky）
 
-> 创建日期：2026-07-24 · 更新：2026-07-29
-> 目的：以原 Ruby 项目 openclacky 的 Web UI 为参考实现，跑同样的操作流，全面对比当前 MoonBit 复刻版的行为差异，产出「问题」（bug）与「差距」（缺失功能）两份记录。
-> 状态：两轮对比测试已执行完毕（结论见 [web-ui-parity.md](web-ui-parity.md)），本文档作为回归测试方法论保留。
+> 创建日期：2026-07-24 · 更新：2026-08-11
+> 目的：以原 Ruby 项目 openclacky 的 Web UI 为参考实现，跑同样的操作流，全面对比当前 MoonBit 复刻版的行为差异。
+> 状态：三轮对比测试已执行完毕（结论见 [web-ui-parity.md](web-ui-parity.md)），本文档作为回归测试方法论保留。
 
 ## 1. 对照基线
 

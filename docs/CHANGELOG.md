@@ -35,7 +35,7 @@
 
 ### 2026-08-03  fix: Web UI 7 项修复对抗性审查补漏 + 4 项 spec + 复测 4 项修复
 
-- `[fix]` **前一轮 7 项 Web UI 修复的对抗性审查与补漏**（报告 `docs/2026-08-03-web-ui-fix-adversarial-review.md`）
+- `[fix]` **前一轮 7 项 Web UI 修复的对抗性审查与补漏**（详见 [web-ui-parity.md](web-ui-parity.md) 第三轮修复摘要）
   - 历史消息重复（created_at 打点/序列化 + has_more 游标化）、头像路由被 SPA fallback 短路（中间件豁免）、模型选择重启后丢失、错误路径持久化等
 - `[feat]` **4 项 spec 实施归档**（`specs/completed/2026-08-03_*.md`）
   - Windows 原生构建断链修复（`@sys.get_cli_args` → core `@env.args()`，根因：工具链运行时布局变更）
@@ -126,7 +126,7 @@
   - 时间/getcwd：迁往 `core/env::now()`、`core/env::current_dir()`、`x/time`（S-FFI-01）
   - brand HTTP：`crypto_native.c` 的 `http_get` 部分迁往 `@async/http`（S-FFI-07）
   - 保留 5 个 C 文件（agent/time_stub、utils/sys_native、tui/console_cp_native、brand/crypto_native、brand/brand_stubs），均有「OS 生态空白」或「安全审计」保留理由
-  - 现状详见 [docs/ffi-c-code-report.md](ffi-c-code-report.md)；CI 与 Dockerfile 已移除 `libcurl4-openssl-dev` 依赖
+  - 现状详见 [docs/project-status.md](project-status.md)「FFI / C stub 现状」章节；CI 与 Dockerfile 已移除 `libcurl4-openssl-dev` 依赖
 - `[docs]` 同步更新 11 个 codemaps、`getting-started.md`、CI 的 FFI/C 描述
 
 ### 2026-07-16  chore: Web 服务默认端口统一为 7071

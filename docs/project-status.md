@@ -1,6 +1,6 @@
 # 项目状态
 
-> 更新日期：2026-08-05
+> 更新日期：2026-08-11
 
 MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native 目标构建，提供 TUI、非交互 CLI 与 Web 三种使用形态。
 
@@ -9,11 +9,14 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 | 指标 | 数值 |
 |------|------|
 | lib 包数量 | 24 |
-| 源码文件（.mbt，不含测试） | 290 个 / 约 75,100 行 |
-| 测试文件（wbtest + test/） | 173 个 / 约 39,400 行 |
-| 测试用例 | 3,200+ |
+| 源码文件（.mbt，不含测试） | 291 个 / 约 80,900 行 |
+| 测试文件（wbtest + test/） | 178 个 / 约 46,500 行 |
+| 测试用例 | 3,100+ |
+| 默认技能 | 18 个 |
+| Provider 预设 | 13 个 |
 | REST 端点 | 216（含别名） |
 | Web 服务端口 | 7071 |
+| `moon check` | 0 errors |
 
 ## 模块一览（lib/）
 
@@ -22,22 +25,24 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 | agent | ReAct 循环、会话、压缩、记忆、Time Machine |
 | billing / pricing | 计费与模型价格 |
 | brand | 品牌、激活、加密（含 C stub） |
-| channel | 消息渠道接入 |
-| client | LLM API 客户端（重试、URL fallback、reasoning_content） |
+| channel | 消息渠道接入（6 平台 IM） |
+| client | LLM API 客户端（OpenAI/Anthropic/Bedrock 三协议、13 Provider） |
 | config | 配置加载与校验 |
 | errors / i18n / telemetry | 错误、国际化、遥测 |
-| extension / hook / skill | 扩展、钩子、技能（含 skill evolution） |
-| mcp | MCP 客户端（配置加载、transport） |
+| extension | 扩展生命周期（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由） |
+| hook | Shell Hook 系统（7 事件类型） |
+| mcp | MCP 客户端（Stdio/HTTP transport、JSON-RPC 2.0） |
 | media / vision | 媒体处理、FFmpeg 抽帧 + LLM 视觉 |
-| message / parser | 消息模型、解析 |
-| server / web | HTTP 服务（crescent）、Web UI 后端 |
-| tool | 工具执行器（read/write/edit/bash 等） |
+| message / parser | 消息模型、文档解析（PDF/DOCX/PPTX/XLSX） |
+| server / web | HTTP 服务（crescent）、Web UI 后端、Cron 调度 |
+| skill | 技能系统 + GEP 进化引擎 |
+| tool | 工具执行器（14 个内置工具） |
 | tui | 终端 UI（详见 [tui-architecture.md](tui-architecture.md)） |
 | utils / zip | 通用工具、压缩 |
 
 ## FFI / C stub 现状
 
-内联 C 已全部迁移至 native-stub `.c` 文件或替换为 MoonBit / 社区包实现（pty 等使用 moonbit-community 包）。当前仅保留 5 个 C stub：
+内联 C 已全部迁移至 native-stub `.c` 文件或替换为 MoonBit / 社区包实现。当前仅保留 5 个 C stub：
 
 - `lib/agent/time_stub.c`
 - `lib/brand/brand_stubs.c`
@@ -45,16 +50,16 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 - `lib/tui/console_cp_native.c`
 - `lib/utils/sys_native.c`
 
-## 近期完成（原独立 gap 文档已合并至此）
+详见 AGENTS.md 中的 FFI 描述。
 
-- **2026-08-05 TUI 渲染层再重构**：废弃 mizchi/tui VNode 渲染（坐标 diff 与 commit-scrollback 物理滚动本质冲突，BUG-004），改为自研行级重绘（`tui_controller_render.mbt` 前缀 diff 只重写变化行）+ `screen_lines.mbt` 行模型原语；`mizchi/tui` 依赖收敛为仅 `core` 宽度测量。详见 [tui-architecture.md](tui-architecture.md)。
-- **2026-08-05 TUI 全面对齐原版（SPEC-01/02/03）**：布局对齐（状态栏置底、无框输入区、commit-scrollback、todo 自动显隐）+ 命令语义对齐（`/clear` `/undo` `/model` `/config`、技能动态斜杠命令）；tui-eval 场景 47/47 通过。
-- **2026-08-05 技能发现对齐原版**：新增 `Agent::discover_workspace_skills`（`lib/agent/skill_manager.mbt`）与 `@skill.read_skill_files`（`lib/skill/discovery.mbt`），发现路径扩为 5 条（用户全局 `~/.mbopenclacky/skills/` 优先，项目级 `.clacky/skills/` 最后，同名后者覆盖前者）；CLI/Web/onboard 启动时自动发现。同步修复 CI/Docker 因方法定义未提交导致的 `[4015]` 构建失败。
-- **2026-08-03 Web UI 修复批次**：7 项修复的对抗性审查补漏（历史重复、头像路由、模型选择持久化）+ 4 项 spec（Windows 构建断链、模型标识统一、offset 分页、目录规范化）+ 复测 4 项根因修复（`String::replace` 只换首个导致的斜杠混用、默认模型双概念统一为徽标权威、目录切换放宽、占位会话名按内容自动重命名）。详见 [2026-08-03-web-ui-fix-adversarial-review.md](2026-08-03-web-ui-fix-adversarial-review.md) 与 [CHANGELOG.md](CHANGELOG.md)。
-- **2026-07-26 web-ui2 批次**：第二轮 Web UI 对比测试 27 项 bug，25 项已修复（详见 [web-ui-parity.md](web-ui-parity.md)）。
-- **2026-07-27 gap 分析**：18 项差距（MCP 配置加载、HTTP transport、Time Machine 接入 tool_executor、WS token 级流式推送、LLM 重试/fallback 等）全部实现，specs 已归档。
-- **2026-07-28 TUI parity**：状态栏、斜杠命令、窄屏适配等 8 项 spec 完成；渲染层迁移至 mizchi/tui VNode 基础（详见 [tui-architecture.md](tui-architecture.md)）。
-- **2026-07-29 Agent 增量**：agent-01~08 specs 全部实现——session context 注入、reasoning_content 透传、空响应检测重试、压缩阈值配置化、压缩失败回滚、URL fallback、空闲压缩定时器、skill evolution hooks。
+## 近期重要里程碑
+
+- **2026-08-05 TUI 全面对齐原版（SPEC-01/02/03）**：渲染层自研行级重绘（`tui_controller_render.mbt`）、布局对齐（状态栏置底、无框输入区、commit-scrollback）、命令语义对齐（`/clear` `/undo` `/model` `/config`、技能动态斜杠命令）；tui-eval 场景 47/47 通过。
+- **2026-08-05 技能发现对齐原版**：5 条发现路径（用户全局 → 项目级，同名后者覆盖）；CLI/Web/onboard 启动时自动发现。
+- **2026-08-03 Web UI 修复批次**：7 项修复的对抗性审查（历史消息重复根因是 `created_at` 缺失、头像路由被 SPA fallback 短路、模型选择持久化断环等）+ 4 项 spec + 晚间复测 4 项根因修复。
+- **2026-07-29 Agent 增量 specs**：session context 注入、reasoning_content 透传、空响应检测重试、压缩阈值配置化、URL fallback、空闲压缩定时器、skill evolution hooks。
+- **2026-07-27 gap 分析 18 项差距全部实现**：MCP 配置加载、HTTP transport、Time Machine 接入 tool_executor、WS token 级流式推送、LLM 重试/fallback 等。
+- **2026-07-25 FFI C 依赖消减**：自写 C 从 16 文件/4,781 行降至 5 文件/610 行，`-lcurl` 全项目清零。
 
 ## 已知问题
 
@@ -72,7 +77,8 @@ MBOpenClacky 是 openclacky AI Agent CLI 的 MoonBit 重写版，面向 native �
 | [getting-started.md](getting-started.md) | 安装、构建、配置、使用入门 |
 | [tui-architecture.md](tui-architecture.md) | TUI 架构、渲染决策、parity 状态 |
 | [web-ui-parity.md](web-ui-parity.md) | Web UI 对齐状态与未解决问题 |
-| [web-ui-test-plan.md](web-ui-test-plan.md) | Web UI 回归测试计划 |
+| [web-ui-test-plan.md](web-ui-test-plan.md) | Web UI 回归测试方案 |
+| [development-efficiency.md](development-efficiency.md) | 开发效率指南（成本数据、最佳实践） |
 | [CHANGELOG.md](CHANGELOG.md) | 变更历史 |
 
 开发流程（Harness 方法论）与编码规范见根目录 [AGENTS.md](../AGENTS.md) 与 [CLAUDE.md](../CLAUDE.md)；specs 生命周期：`specs/draft/` → 对抗性评审 → `specs/active/` → `specs/completed/`。
