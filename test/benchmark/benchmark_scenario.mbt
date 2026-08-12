@@ -17,9 +17,9 @@ pub struct BenchmarkScenario {
 
 ///|
 /// 从 JSON 字符串解析 BenchmarkScenario
-pub fn BenchmarkScenario::from_json(json_str : String) -> Option[BenchmarkScenario] {
+pub fn BenchmarkScenario::from_json(json_str : String) -> BenchmarkScenario? {
   let json = @json.parse(json_str) catch { _ => return None }
-  
+
   match json {
     Object(map) => {
       let name = match map.get("name") {
@@ -42,14 +42,14 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> Option[BenchmarkScenar
         Some(Number(n, ..)) => n.to_int()
         _ => 1
       }
-      
+
       Some({
         name,
         description,
         iterations,
         warmup,
         concurrency,
-        raw_json: json_str
+        raw_json: json_str,
       })
     }
     _ => None
@@ -61,13 +61,13 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> Option[BenchmarkScenar
 pub fn load_benchmark_scenarios(dir_path : String) -> Array[BenchmarkScenario] {
   let scenarios : Array[BenchmarkScenario] = []
   let json_texts = @eval.load_scenario_files(dir_path)
-  
+
   for json_text in json_texts {
     match BenchmarkScenario::from_json(json_text) {
       Some(scenario) => scenarios.push(scenario)
       None => continue
     }
   }
-  
+
   scenarios
 }

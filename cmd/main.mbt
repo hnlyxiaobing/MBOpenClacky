@@ -890,38 +890,40 @@ fn print_run_result(result : @agent.RunResult) -> Unit {
 ///|
 fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   // 获取参数
-  let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or("benchmark/scenarios")
+  let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or(
+    "benchmark/scenarios",
+  )
   let threshold_str = get_named_arg(sub, "threshold").unwrap_or("10.0")
   let output_dir = get_named_arg(sub, "output").unwrap_or("benchmark/results")
-  
+
   // 转换参数
   let threshold = @string.parse_double(threshold_str) catch { _ => 10.0 }
-  
+
   println("Starting benchmark...")
   println("Scenario directory: \{scenario_dir}")
   println("Threshold: \{threshold}%")
   println("Output directory: \{output_dir}")
   println("")
-  
+
   // 加载场景
   let scenarios = @benchmark.load_benchmark_scenarios(scenario_dir)
   if scenarios.is_empty() {
     println("No scenario files found in \{scenario_dir}")
     return
   }
-  
+
   println("Found \{scenarios.length()} scenario(s)")
-  
+
   // 运行所有场景
   for scenario in scenarios {
     println("\nRunning benchmark: \{scenario.name}")
-    
+
     // 运行场景
     let stats = @benchmark.BenchmarkRunner::run_scenario(scenario)
-    
+
     // 显示结果
     println(stats.to_markdown(scenario.name))
-    
+
     // 保存结果
     let result = @benchmark.BenchmarkResult::new(scenario.name, stats)
     let saved = @benchmark.save_result(result, output_dir)
@@ -929,7 +931,7 @@ fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
       Ok(filepath) => println("Results saved to \{filepath}")
       Err(err) => println("Failed to save: \{err}")
     }
-    
+
     // 加载历史结果进行比较
     let history = @benchmark.load_history(scenario.name, output_dir)
     if history.length() > 0 {
@@ -937,6 +939,6 @@ fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
       println(report.to_markdown())
     }
   }
-  
+
   println("\nBenchmark completed!")
 }
