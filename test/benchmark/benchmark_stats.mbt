@@ -75,7 +75,7 @@ pub fn BenchmarkStats::to_markdown(self : BenchmarkStats, scenario_name : String
 
 ///|
 /// 实现 Eq trait
-impl Eq for BenchmarkStats with equal(self : BenchmarkStats, other : BenchmarkStats) -> Bool {
+pub impl Eq for BenchmarkStats with equal(self : BenchmarkStats, other : BenchmarkStats) -> Bool {
   self.min_ms == other.min_ms &&
   self.max_ms == other.max_ms &&
   self.avg_ms == other.avg_ms &&
@@ -88,7 +88,7 @@ impl Eq for BenchmarkStats with equal(self : BenchmarkStats, other : BenchmarkSt
 
 ///|
 /// 实现 Debug trait
-impl Debug for BenchmarkStats with to_repr(self : BenchmarkStats) -> Repr {
+pub impl Debug for BenchmarkStats with to_repr(self : BenchmarkStats) -> Repr {
   Repr::string("BenchmarkStats(" +
     "min_ms=" + self.min_ms.to_string() +
     ", max_ms=" + self.max_ms.to_string() +

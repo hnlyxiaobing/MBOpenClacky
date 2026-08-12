@@ -5,6 +5,9 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/test",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
 }
+
+supported_targets = "native"

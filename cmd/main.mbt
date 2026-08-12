@@ -912,15 +912,12 @@ fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   
   println("Found \{scenarios.length()} scenario(s)")
   
-  // 创建运行器
-  let runner = @benchmark.BenchmarkRunner::new(scenarios)
-  
   // 运行所有场景
   for scenario in scenarios {
     println("\nRunning benchmark: \{scenario.name}")
     
     // 运行场景
-    let stats = runner.run_scenario(scenario)
+    let stats = @benchmark.BenchmarkRunner::run_scenario(scenario)
     
     // 显示结果
     println(stats.to_markdown(scenario.name))

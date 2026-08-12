@@ -53,7 +53,7 @@ fn run_single_iteration(scenario : BenchmarkScenario, iteration : Int) -> Benchm
 
 ///|
 /// 运行单个场景的所有迭代
-pub fn BenchmarkRunner::run_scenario(self : BenchmarkRunner, scenario : BenchmarkScenario) -> BenchmarkStats {
+pub fn BenchmarkRunner::run_scenario(scenario : BenchmarkScenario) -> BenchmarkStats {
   let samples : Array[Int64] = []
   
   // 预热阶段
@@ -78,7 +78,7 @@ pub fn BenchmarkRunner::run_all(self : BenchmarkRunner) -> Array[(String, Benchm
   let results : Array[(String, BenchmarkStats)] = []
   
   for scenario in self.scenarios {
-    let stats = self.run_scenario(scenario)
+    let stats = BenchmarkRunner::run_scenario(scenario)
     results.push((scenario.name, stats))
   }
   
@@ -87,7 +87,7 @@ pub fn BenchmarkRunner::run_all(self : BenchmarkRunner) -> Array[(String, Benchm
 
 ///|
 /// 生成汇总报告
-pub fn BenchmarkRunner::generate_report(self : BenchmarkRunner, results : Array[(String, BenchmarkStats)]) -> String {
+pub fn BenchmarkRunner::generate_report(results : Array[(String, BenchmarkStats)]) -> String {
   let lines : Array[String] = []
   lines.push("═══════════════════════════════════════════")
   lines.push("  Benchmark Report")
