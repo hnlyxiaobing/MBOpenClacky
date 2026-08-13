@@ -621,7 +621,7 @@ test "expand_path_tilde" {
     Some(h) => h
     None => "/nonexistent"
   }
-  assert_true(expand_path("~").starts_with(home))
+  assert_true(expand_path("~").has_prefix(home))
 }
 
 ///|
