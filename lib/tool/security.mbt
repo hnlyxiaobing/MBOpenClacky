@@ -240,6 +240,10 @@ fn expand_path(path : String) -> String {
         }
       None => path
     }
+  } else if !path.has_prefix("/") && !(path.length() >= 2 && path[1] == ':') {
+    // 相对路径，解析为绝对路径
+    let cwd = @utils.current_dir()
+    resolve_path(cwd, path)
   } else {
     path
   }
@@ -257,4 +261,32 @@ fn home_dir() -> String? {
     _ => ()
   }
   None
+}
+
+///|
+/// Resolve a relative path against a base directory.
+/// Handles ".", "..", and normal path components.
+fn resolve_path(base : String, relative : String) -> String {
+  let separator = "/"
+  let base_parts = base.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
+  let relative_parts = relative.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
+  
+  let mut result = base_parts.clone()
+  for part in relative_parts {
+    if part == "." {
+      continue
+    } else if part == ".." {
+      if result.length() > 0 {
+        let _ = result.pop()
+      }
+    } else {
+      result.push(part)
+    }
+  }
+  
+  if result.length() == 0 {
+    separator
+  } else {
+    separator + result.join(separator)
+  }
 }
