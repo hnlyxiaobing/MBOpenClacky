@@ -1,16 +1,14 @@
-///| P2 差分测试：Edit/Write 工具边界行为验证
+///|
+/// P2 差分测试：Edit/Write 工具边界行为验证
 /// 此文件为 diff-harness P2 阶段临时测试，跑完后删除。
-
 fn p2_tmpdir(suffix : String) -> String {
   let base = shell_temp_dir_pub()
-  let dir = @path.Path::join(
-    @path.Path(base),
-    @path.Path("p2_test_\{suffix}"),
-  ).to_string()
+  let dir = @path.Path::join(@path.Path(base), @path.Path("p2_test_\{suffix}")).to_string()
   let _ = @fs.create_dir(dir) catch { _ => () }
   dir
 }
 
+///|
 fn p2_cleanup(dir : String) -> Unit {
   let _ = @fs.remove_dir(dir) catch { _ => () }
 }
@@ -270,7 +268,9 @@ async test "edit_cjk_replacement" {
 async test "edit_first_line_matches_but_full_does_not" {
   let dir = p2_tmpdir("edit13")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
-  @fs.write_string_to_file(path, "def hello\n  puts 'world'\n  puts 'ruby'\nend")
+  @fs.write_string_to_file(
+    path, "def hello\n  puts 'world'\n  puts 'ruby'\nend",
+  )
   let tool = Edit::new()
   let args : Map[String, Json] = {
     "path": path.to_json(),

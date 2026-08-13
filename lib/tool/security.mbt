@@ -271,9 +271,15 @@ fn home_dir() -> String? {
 /// Handles ".", "..", and normal path components.
 fn resolve_path(base : String, relative : String) -> String {
   let separator = "/"
-  let base_parts = base.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
-  let relative_parts = relative.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
-  
+  let base_parts = base
+    .split(separator)
+    .filter(fn(part) { !part.is_empty() })
+    .to_array()
+  let relative_parts = relative
+    .split(separator)
+    .filter(fn(part) { !part.is_empty() })
+    .to_array()
+
   let result = base_parts.copy()
   for part in relative_parts {
     if part == "." {
@@ -286,7 +292,7 @@ fn resolve_path(base : String, relative : String) -> String {
       result.push(part)
     }
   }
-  
+
   if result.length() == 0 {
     separator
   } else {
