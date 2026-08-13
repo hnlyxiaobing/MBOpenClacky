@@ -559,3 +559,72 @@ async test "edit_directory_path" {
   assert_true(result.is_error)
   p2_cleanup(dir)
 }
+
+// ── BUG-0004 修复验证：resolve_path 相对路径解析 ─────────────────────
+// 对照 Ruby 原版 File.expand_path 行为（相对路径解析为绝对路径）
+
+///|
+test "resolve_path_simple_relative" {
+  assert_eq(resolve_path("/a/b", "foo.txt"), "/a/b/foo.txt")
+}
+
+///|
+test "resolve_path_dot" {
+  assert_eq(resolve_path("/a/b", "."), "/a/b")
+}
+
+///|
+test "resolve_path_dotdot" {
+  assert_eq(resolve_path("/a/b", ".."), "/a")
+}
+
+///|
+test "resolve_path_dotdot_at_root" {
+  // 超出根目录时钳制在根目录（Ruby File.expand_path 行为一致）
+  assert_eq(resolve_path("/", ".."), "/")
+}
+
+///|
+test "resolve_path_mixed" {
+  assert_eq(resolve_path("/a/b", "./x/../y"), "/a/b/y")
+}
+
+///|
+test "resolve_path_deep_relative" {
+  assert_eq(resolve_path("/a/b/c", "../../d"), "/a/d")
+}
+
+///|
+test "resolve_path_trailing_slash" {
+  assert_eq(resolve_path("/a/b/", "c/"), "/a/b/c")
+}
+
+// ── BUG-0004 修复验证：expand_path 相对路径 → 绝对路径 ───────────────
+
+///|
+test "expand_path_relative_to_absolute" {
+  let expanded = expand_path("some_relative.txt")
+  // 修复后相对路径必须解析为绝对路径（以 / 开头），且包含文件名
+  assert_true(expanded.has_prefix("/"))
+  assert_true(expanded.has_suffix("some_relative.txt"))
+  assert_true(!expanded.has_prefix("some_relative.txt"))
+}
+
+///|
+test "expand_path_absolute_stays" {
+  assert_eq(expand_path("/tmp/x.txt"), "/tmp/x.txt")
+}
+
+///|
+test "expand_path_tilde" {
+  let home = match home_dir() {
+    Some(h) => h
+    None => "/nonexistent"
+  }
+  assert_true(expand_path("~").starts_with(home))
+}
+
+///|
+test "expand_path_windows_drive_unchanged" {
+  assert_eq(expand_path("C:\\foo\\bar.txt"), "C:\\foo\\bar.txt")
+}
