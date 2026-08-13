@@ -242,8 +242,11 @@ fn expand_path(path : String) -> String {
     }
   } else if !path.has_prefix("/") && !(path.length() >= 2 && path[1] == ':') {
     // 相对路径，解析为绝对路径
-    let cwd = @utils.current_dir()
-    resolve_path(cwd, path)
+    let cwd = @env.current_dir()
+    match cwd {
+      Some(cwd_dir) => resolve_path(cwd_dir, path)
+      None => path
+    }
   } else {
     path
   }
@@ -271,7 +274,7 @@ fn resolve_path(base : String, relative : String) -> String {
   let base_parts = base.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
   let relative_parts = relative.split(separator).filter(fn(part) { !part.is_empty() }).to_array()
   
-  let mut result = base_parts.clone()
+  let result = base_parts.copy()
   for part in relative_parts {
     if part == "." {
       continue
