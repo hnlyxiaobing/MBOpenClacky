@@ -102,7 +102,7 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
   }
 
   let new_content = if replace_all {
-    content.replace(old=old_string, new=new_string)
+    content.replace_all(old=old_string, new=new_string)
   } else {
     match content.find(old_string) {
       Some(idx) =>
