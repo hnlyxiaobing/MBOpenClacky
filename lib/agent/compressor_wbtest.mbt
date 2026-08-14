@@ -255,11 +255,40 @@ test "needs_compression_uses_config_threshold" {
   )
   let config = @config.AgentConfig::default()
   let agent = Agent::new("s", "a", "/tmp", client, config)
+  // Build a large enough history so that reduction_needed >= 10%
+  // target_compressed_tokens = 10000, so we need > ~11111 tokens
+  let buf = StringBuilder::new()
+  for i = 0; i < 50000; i = i + 1 {
+    buf.write_char('a')
+    let _ = i
+  }
+  let large_text = buf.to_string()
+  agent.history.push(@message.Message::user(large_text))
   agent.config.compression_threshold = 5
+  assert_true(agent.needs_compression())
+  agent.config.compression_threshold = 999_999
+  assert_false(agent.needs_compression())
+}
+
+///|
+test "needs_compression_skips_when_reduction_below_10pct (BUG-0043)" {
+  // 回归用例：ruby 侧 message_compressor_helper.rb 在 token_threshold_exceeded 时
+  // 额外要求 reduction_needed >= 10% * total_tokens；否则不触发压缩。
+  // 场景：threshold=1（极低），但 history token_count << target_compressed_tokens(10000)，
+  // 此时压缩收益为负，应跳过。
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new("s", "a", "/tmp", client, config)
+  agent.config.compression_threshold = 1
+  // 小 history：约几十 tokens，远低于 target_compressed_tokens=10000
   agent.history.push(
     @message.Message::user("Hello world, this is a test message"),
   )
-  assert_true(agent.needs_compression())
-  agent.config.compression_threshold = 999_999
+  // Ruby: total=~13, reduction_needed = 13-10000 = -9987 < 13*0.1 → 不压缩
   assert_false(agent.needs_compression())
 }

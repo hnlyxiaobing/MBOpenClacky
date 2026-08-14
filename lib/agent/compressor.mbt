@@ -125,11 +125,27 @@ pub(all) struct ParsedCompression {
 ///
 /// Returns true if estimated tokens exceed compression_threshold
 /// or message count exceeds message_count_threshold.
+///
+/// Aligns with Ruby's `needs_compression` in `message_compressor_helper.rb`:
+/// when triggered by token threshold, additionally checks that the
+/// reduction needed is at least 10% of current size; otherwise skips.
 pub fn Agent::needs_compression(self : Agent) -> Bool {
   let token_count = estimate_history_tokens(self.history)
   let msg_count = self.history.length()
-  token_count >= self.config.compression_threshold ||
-  msg_count >= message_count_threshold
+  let token_threshold_exceeded = token_count >= self.config.compression_threshold
+  let message_count_exceeded = msg_count >= message_count_threshold
+  if !token_threshold_exceeded && !message_count_exceeded {
+    return false
+  }
+  // Ruby: skip compression if reduction is minimal (< 10% of current size)
+  // Only applies when triggered by token threshold (not force mode)
+  if token_threshold_exceeded {
+    let reduction_needed = token_count - target_compressed_tokens
+    if reduction_needed.to_double() < token_count.to_double() * 0.1 {
+      return false
+    }
+  }
+  true
 }
 
 ///|
