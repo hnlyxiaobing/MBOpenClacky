@@ -201,6 +201,10 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
               Ok(_) => ()
               Err(_) => () // chunk save failure is non-fatal
             }
+            // Reset previous_total_tokens to the compressed history's
+            // estimated size so the next think() does not immediately
+            // re-trigger compression (Ruby handle_compression_response).
+            self.previous_total_tokens = estimate_history_tokens(self.history)
           }
           Failed(_) => self.compression_level = self.compression_level - 1
         }

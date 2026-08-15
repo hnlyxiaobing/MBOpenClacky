@@ -741,8 +741,16 @@ test "compress_messages_if_needed_none" {
 test "compress_messages_if_needed_force" {
   let agent = make_test_agent()
   agent.history.push(@message.Message::user("test"))
+  // Force mode with insufficient messages: should return None (aligned with Ruby)
   let ctx = agent.compress_messages_if_needed(true)
-  assert_true(ctx is Some(_))
+  assert_true(ctx is None)
+  // Add enough messages to exceed max_recent_messages
+  for i = 0; i < 25; i = i + 1 {
+    agent.history.push(@message.Message::user("msg \{i}"))
+    let _ = i
+  }
+  let ctx2 = agent.compress_messages_if_needed(true)
+  assert_true(ctx2 is Some(_))
 }
 
 ///|

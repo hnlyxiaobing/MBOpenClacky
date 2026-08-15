@@ -39,10 +39,8 @@ import {
 
 supported_targets = "native"
 
-options(
-  // 该包无 fn main，不能声明 link 选项（新构建规划器会把带 link 的包当作
-  // 可执行目标链接，产生 undefined reference to main）。
-  // -lcrypto 由 moon.mod 的 pre-build 脚本（build-script.py）通过链接配置
-  // 机制提供（lib/brand 的 crypto_native.c 引用 OpenSSL EVP_*/RAND_bytes）。
-  // Windows: BCrypt auto-linked via #pragma comment in crypto_native.c.
-)
+// 该包无 fn main，不能声明 link 选项（新构建规划器会把带 link 的包当作
+// 可执行目标链接，产生 undefined reference to main）。
+// -lcrypto 由 moon.mod 的 pre-build 脚本（build-script.py）通过链接配置
+// 机制提供（lib/brand 的 crypto_native.c 引用 OpenSSL EVP_*/RAND_bytes）。
+// Windows: BCrypt auto-linked via #pragma comment in crypto_native.c.

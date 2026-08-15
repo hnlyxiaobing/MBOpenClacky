@@ -132,7 +132,8 @@ pub(all) struct ParsedCompression {
 pub fn Agent::needs_compression(self : Agent) -> Bool {
   let token_count = estimate_history_tokens(self.history)
   let msg_count = self.history.length()
-  let token_threshold_exceeded = token_count >= self.config.compression_threshold
+  let token_threshold_exceeded = token_count >=
+    self.config.compression_threshold
   let message_count_exceeded = msg_count >= message_count_threshold
   if !token_threshold_exceeded && !message_count_exceeded {
     return false
@@ -167,6 +168,21 @@ pub fn Agent::compress_messages_if_needed(
     msg_count
   } else {
     config.max_recent_messages
+  }
+  // Ruby: if nothing to compress (all non-system messages are recent), skip.
+  // build_compression_message returns nil when messages_to_compress is empty.
+  // In MB, this happens when recent >= msg_count - 1 (excluding system message).
+  let non_system_count = {
+    let mut n = 0
+    for msg in self.history {
+      if msg.role != @message.System {
+        n = n + 1
+      }
+    }
+    n
+  }
+  if recent >= non_system_count {
+    return None
   }
   Some({
     original_token_count: token_count,
@@ -241,12 +257,25 @@ pub fn rebuild_history_with_compression(
   // 2. Add compressed summary as a user message (system_injected)
   let summary_msg = build_compressed_summary_message(compressed_summary, topics)
   result.push(summary_msg)
-  // 3. Add recent messages (tool pairs preserved)
+  // 3. Add recent messages (tool pairs preserved, oversized tool results truncated)
   let recent = get_recent_with_tool_pairs(original_messages, recent_count)
   for msg in recent {
     // Skip system messages in recent (already added)
     if msg.role != @message.System {
-      result.push(msg)
+      // Truncate oversized tool result content to prevent token bloat
+      // (Ruby: get_recent_messages_with_tool_pairs → truncate_tool_result).
+      let truncated_msg = if msg.role == @message.Tool {
+        match msg.content {
+          @message.Text(content) if content.length() > 2000 => {
+            let truncated = truncate_tool_result(content)
+            { ..msg, content: @message.Text(truncated) }
+          }
+          _ => msg
+        }
+      } else {
+        msg
+      }
+      result.push(truncated_msg)
     }
   }
   result

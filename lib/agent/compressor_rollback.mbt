@@ -98,16 +98,11 @@ pub fn compress_with_rollback(
         parsed.topics,
         ctx.recent_message_count,
       )
-      // 4. Validate: rebuilt history must be shorter than original
       let after_count = new_history.length()
       let after_tokens = estimate_history_tokens(new_history)
-      if after_count >= before_count {
-        // Compression did not reduce message count – rollback
-        replace_history(history, backup)
-        return Failed(
-          "Compression did not reduce history size (before: \{before_count}, after: \{after_count})",
-        )
-      }
+      // 4. Validate: compression must reduce token count (Ruby does not
+      // check message-count reduction — short histories may grow by one
+      // summary message while still shrinking total tokens).
       if after_tokens >= before_tokens && before_tokens > 0 {
         // Compression did not reduce tokens – rollback
         replace_history(history, backup)
