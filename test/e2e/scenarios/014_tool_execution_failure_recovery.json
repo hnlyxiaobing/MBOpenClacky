@@ -1,0 +1,32 @@
+{
+  "name": "014_tool_execution_failure_recovery",
+  "description": "工具执行失败（read_file 读不存在的文件）后恢复：检验两侧 tool_result 错误回填格式与后续重试行为",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "read_file", "arguments": {"path": "nonexistent.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_2", "name": "read_file", "arguments": {"path": "note.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {
+        "type": "content",
+        "text": "第二个文件读取成功，内容是 hello。",
+        "chunk_size": 20
+      }
+    }
+  ]
+}

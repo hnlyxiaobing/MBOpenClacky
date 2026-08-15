@@ -1,0 +1,31 @@
+{
+  "name": "008_http_429_retry_after",
+  "description": "429 限流 + Retry-After 头：检验两侧是否消费 Retry-After、退避间隔与重试次数是否一致",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "error",
+        "status": 429,
+        "retry_after": 2,
+        "body": {"error": {"message": "Rate limit exceeded"}}
+      }
+    },
+    {
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "read_file", "arguments": {"path": "note.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {
+        "type": "content",
+        "text": "文件内容是 hello，共 5 个字符。",
+        "chunk_size": 20
+      }
+    }
+  ]
+}

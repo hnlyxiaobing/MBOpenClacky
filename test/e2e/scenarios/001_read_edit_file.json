@@ -1,0 +1,35 @@
+{
+  "name": "001_read_edit_file",
+  "description": "基础剧本：agent 读文件 -> 修改文件 -> 回复完成。两侧 agent 应产生相同的工具调用序列和文件副作用。",
+  "steps": [
+    {
+      "match": {"last_user_contains": "config.yaml"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_read_1", "name": "file_reader", "arguments": {"path": "config.yaml"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "file_reader"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_edit_1", "name": "edit", "arguments": {
+            "path": "config.yaml",
+            "old_string": "port: 8080",
+            "new_string": "port: 9090"
+          }}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "edit"},
+      "response": {
+        "type": "content",
+        "text": "已将 config.yaml 中的端口从 8080 改为 9090。"
+      }
+    }
+  ]
+}

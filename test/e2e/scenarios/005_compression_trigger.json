@@ -1,0 +1,30 @@
+{
+  "name": "005_compression_trigger",
+  "description": "正常链路：通过 usage 帧把上一轮 total_tokens 顶到 15000，并用 file_reader 读取 big.txt（约 60k chars 截断后 ≈15k tokens），触发上下文压缩。ruby 侧读 ~/.clacky/config.yml 的 compression_threshold=1；MB 侧通过 CLACKY_COMPRESSION_THRESHOLD=1 环境变量（env_compat.mbt 的 CLACKY_ 前缀路径）注入。tool_calls arguments 同时携带 max_lines（ruby 参数名）与 limit（MB 参数名），保证两侧读取相同行数。压缩发起后第二次请求会带 <topics>/<summary> 压缩指令，第三次请求为最终回答。",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_read_1", "name": "file_reader", "arguments": {"path": "big.txt", "max_lines": 20000, "limit": 20000}}
+        ],
+        "usage": {"prompt_tokens": 15000, "completion_tokens": 0, "total_tokens": 15000}
+      }
+    },
+    {
+      "match": {"tool_result_for": "file_reader"},
+      "response": {
+        "type": "content",
+        "text": "<topics>\n- 读取 big.txt 文件内容\n</topics>\n<summary>\n用户要求读取 big.txt 全部内容并告知行数。已通过 file_reader 读取，输出包含 15000 行重复内容。\n</summary>"
+      }
+    },
+    {
+      "match": {},
+      "response": {
+        "type": "content",
+        "text": "big.txt 共 15000 行。"
+      }
+    }
+  ]
+}

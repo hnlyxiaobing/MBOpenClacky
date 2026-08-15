@@ -1,0 +1,42 @@
+{
+  "name": "013_consecutive_failures_circuit_breaker",
+  "description": "连续 3 次 500 错误：检验两侧连续失败时的熔断/最大重试次数与最终退出码",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error 1"}}
+      }
+    },
+    {
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error 2"}}
+      }
+    },
+    {
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error 3"}}
+      }
+    },
+    {
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error 4"}}
+      }
+    },
+    {
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error 5"}}
+      }
+    }
+  ]
+}

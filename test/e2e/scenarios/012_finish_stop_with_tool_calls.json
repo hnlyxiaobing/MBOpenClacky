@@ -1,0 +1,23 @@
+{
+  "name": "012_finish_stop_with_tool_calls",
+  "description": "finish_reason=stop 但携带非空 tool_calls：ruby 的 suspicious 检测应触发重试；MB 侧待验证",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "read_file", "arguments": {"path": "note.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {
+        "type": "content",
+        "text": "文件内容是 hello。",
+        "chunk_size": 20
+      }
+    }
+  ]
+}

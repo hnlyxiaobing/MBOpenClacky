@@ -1,0 +1,14 @@
+{
+  "name": "011_malformed_sse_chunk",
+  "description": "畸形 SSE chunk（非 JSON 数据混入流中）：检验两侧解析器对非法 chunk 的容错与恢复能力",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "content",
+        "text": "文件内容是 hello。",
+        "chunk_size": 8
+      }
+    }
+  ]
+}

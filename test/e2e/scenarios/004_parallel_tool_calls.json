@@ -1,0 +1,23 @@
+{
+  "name": "004_parallel_tool_calls",
+  "description": "正常链路：单个响应内包含两个并行 tool_calls（同时读两个文件），检验 act 顺序与 tool_result 回填顺序。",
+  "steps": [
+    {
+      "match": {"last_user_contains": "对比"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_read_a", "name": "file_reader", "arguments": {"path": "a.txt"}},
+          {"id": "call_read_b", "name": "file_reader", "arguments": {"path": "b.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "file_reader"},
+      "response": {
+        "type": "content",
+        "text": "a.txt 与 b.txt 内容一致。"
+      }
+    }
+  ]
+}

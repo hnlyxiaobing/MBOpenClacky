@@ -1,0 +1,44 @@
+{
+  "name": "003_multi_turn_tool_sequence",
+  "description": "正常链路：read -> edit -> read 验证 -> content 完成。覆盖多轮 ReAct 循环，检验 tool_result 序列化一致性。",
+  "steps": [
+    {
+      "match": {"last_user_contains": "app.conf"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_read_1", "name": "file_reader", "arguments": {"path": "app.conf"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "file_reader"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_edit_1", "name": "edit", "arguments": {
+            "path": "app.conf",
+            "old_string": "debug=false",
+            "new_string": "debug=true"
+          }}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "edit"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_read_2", "name": "file_reader", "arguments": {"path": "app.conf"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "file_reader"},
+      "response": {
+        "type": "content",
+        "text": "已确认 debug 已设为 true。"
+      }
+    }
+  ]
+}

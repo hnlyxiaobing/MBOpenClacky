@@ -1,0 +1,25 @@
+{
+  "name": "002_stream_cut_retry",
+  "description": "异常剧本：第一次响应中途断流，观察 agent 的重试行为；随后正常完成。对比两侧的重试次数、间隔与恢复行为。",
+  "steps": [
+    {
+      "response": {"type": "stream_cut", "text": "好的，我先读"}
+    },
+    {
+      "response": {"type": "error", "status": 429, "retry_after": 1,
+                   "body": {"error": {"message": "rate limited (mock)"}}}
+    },
+    {
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "read_file", "arguments": {"path": "README.md"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {"type": "content", "text": "文件已读取，任务完成。"}
+    }
+  ]
+}

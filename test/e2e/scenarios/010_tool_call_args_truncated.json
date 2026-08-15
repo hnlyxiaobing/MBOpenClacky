@@ -1,0 +1,31 @@
+{
+  "name": "010_tool_call_args_truncated",
+  "description": "tool_call arguments 被截断（空字符串）：ruby 应触发 UpstreamTruncatedError 重试并注入 system hint；MB 侧 detect_upstream_truncation 无生产调用点，应表现为直接执行空参数或解析失败",
+  "steps": [
+    {
+      "match": {"last_user_contains": "写文件"},
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "write_file", "arguments": {}}
+        ]
+      }
+    },
+    {
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_2", "name": "write_file", "arguments": {"path": "out.txt", "content": "hello world"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "write_file"},
+      "response": {
+        "type": "content",
+        "text": "文件已写入。",
+        "chunk_size": 20
+      }
+    }
+  ]
+}

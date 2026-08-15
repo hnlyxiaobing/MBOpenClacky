@@ -1,0 +1,37 @@
+{
+  "name": "009_http_500_retry",
+  "description": "500 内部错误：检验两侧 5xx 重试次数、退避间隔是否一致",
+  "steps": [
+    {
+      "match": {"last_user_contains": "读一下"},
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error"}}
+      }
+    },
+    {
+      "response": {
+        "type": "error",
+        "status": 500,
+        "body": {"error": {"message": "Internal server error"}}
+      }
+    },
+    {
+      "response": {
+        "type": "tool_calls",
+        "tool_calls": [
+          {"id": "call_1", "name": "read_file", "arguments": {"path": "note.txt"}}
+        ]
+      }
+    },
+    {
+      "match": {"tool_result_for": "read_file"},
+      "response": {
+        "type": "content",
+        "text": "文件内容是 hello，共 5 个字符。",
+        "chunk_size": 20
+      }
+    }
+  ]
+}

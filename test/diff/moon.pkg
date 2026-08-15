@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "hnlyxiaobing/MBOpenClacky/lib/tool",
+  "hnlyxiaobing/MBOpenClacky/lib/message",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "moonbitlang/async",
+}
+
+supported_targets = "native"
