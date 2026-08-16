@@ -2,6 +2,9 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/env",
+}
+
+import {
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
@@ -9,8 +12,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
-  "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/async",
-}
+} for "wbtest"
 
 supported_targets = "native"

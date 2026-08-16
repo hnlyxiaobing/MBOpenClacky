@@ -12,7 +12,10 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
-  "hnlyxiaobing/MBOpenClacky/test/diff",
 }
+
+import {
+  "hnlyxiaobing/MBOpenClacky/test/diff",
+} for "wbtest"
 
 supported_targets = "native"
