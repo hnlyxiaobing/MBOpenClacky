@@ -11,6 +11,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install build dependencies.
 # libssl-dev provides libcrypto for the brand package's AES-256-GCM /
 # RAND_bytes C stubs (linked via -lcrypto in cmd/moon.pkg & lib/brand/moon.pkg).
+# nodejs is required because moon.mod declares
+# `"--moonbit-unstable-prebuild": "build-script.js"`, a Node.js script that
+# injects `-lcrypto` link config into lib/brand & lib/web at pre-build time.
+# Without node in PATH, `moon build` aborts with:
+#   "Running prebuild script for module hnlyxiaobing/MBOpenClacky needs `node` executable in PATH"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -19,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git \
     libssl-dev \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MoonBit toolchain (use latest stable; pinned versions are not retained on CDN)
