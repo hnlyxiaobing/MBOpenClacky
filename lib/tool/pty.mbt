@@ -53,6 +53,12 @@ pub(all) enum PtyReadState {
 } derive(Eq, Debug)
 
 ///|
+pub extend PtyReadState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PtyReadState with Eq::{not_equal, equal}
+
+///|
 /// Result of executing a command in the PTY.
 pub(all) struct PtyExecResult {
   output : String
@@ -60,6 +66,9 @@ pub(all) struct PtyExecResult {
   duration_ms : Int
   state : PtyReadState
 } derive(Debug)
+
+///|
+pub extend PtyExecResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 // ---- Helpers ----
 
@@ -92,8 +101,10 @@ fn pty_get_default_shell() -> String {
 ///|
 /// Spawn a new PTY running the given shell.
 ///
-/// The community PTY API has no cwd parameter; the working directory is
-/// applied by sending a `cd` line during `init` (the shell resolves it).
+/// The community PTY 0.4.x API takes a `StringView` file path and an
+/// `ArrayView[StringView]` argument list, plus an optional `cwd`. The
+/// working directory is applied directly at spawn time; `init` no longer
+/// needs to send a `cd` line, but does so anyway as a no-op fallback.
 async fn[X] PtyHandle::spawn(
   group : @async.TaskGroup[X],
   shell : String,
@@ -104,12 +115,12 @@ async fn[X] PtyHandle::spawn(
   // command output and break line-based marker/output parsing (observed
   // with WSL bash on ConPTY). --noprofile/--norc skip noisy startup files.
   // Other shells (sh/dash) get no flags — they have no readline anyway.
-  let argv = if shell.contains("bash") {
-    [shell, "--noprofile", "--norc", "--noediting", "-s"]
+  let argv : Array[StringView] = if shell.contains("bash") {
+    [shell[:], "--noprofile"[:], "--norc"[:], "--noediting"[:], "-s"[:]]
   } else {
-    [shell]
+    [shell[:]]
   }
-  let pty = @pty.spawn(group, argv) catch {
+  let pty = @pty.spawn(group, shell[:], argv[:], cwd=cwd[:]) catch {
     err => return Err("failed to spawn PTY: \{err}")
   }
   Ok(PtyHandle::{ pty, cwd })
@@ -153,15 +164,15 @@ async fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int {
 
 ///|
 /// Close the PTY, releasing OS resources. Also cancels the child if it
-/// is still running (upstream Pty::close cancels before closing).
-fn PtyHandle::close(self : PtyHandle) -> Unit {
-  self.pty.close()
+/// is still running (upstream Pty::drop cancels before closing).
+async fn PtyHandle::close(self : PtyHandle) -> Unit {
+  let _ = self.pty.drop(0)
 }
 
 ///|
 /// Kill the child process (request cancellation via the async runtime).
-fn PtyHandle::kill(self : PtyHandle) -> Int {
-  self.pty.cancel()
+async fn PtyHandle::kill(self : PtyHandle) -> Int {
+  let _ = self.pty.drop(1)
   0
 }
 
