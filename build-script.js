@@ -23,17 +23,24 @@
 'use strict';
 
 const MODULE_NAME = 'hnlyxiaobing/MBOpenClacky';
-const CRYPTO_PKGS = ['lib/brand', 'lib/web'];
+// cmd is the main executable; lib/brand & lib/web whitebox test executables
+// also link against libcrypto via their test artifacts.
+const CRYPTO_PKGS = ['cmd', 'lib/brand', 'lib/web'];
 
 let input = '';
 process.stdin.on('data', (chunk) => {
   input += chunk;
 });
 process.stdin.on('end', () => {
+  // Windows uses BCrypt/CNG (auto-linked via #pragma comment in
+  // crypto_native.c), so -lcrypto must NOT be injected there: MSVC would
+  // search for crypto.lib (unavailable without an OpenSSL install) and
+  // fail with LNK1181. Only Linux/macOS need the OpenSSL link.
+  const isWindows = process.platform === 'win32';
   const output = {
     rerun_if: [],
     vars: {},
-    link_configs: CRYPTO_PKGS.map((pkg) => ({
+    link_configs: isWindows ? [] : CRYPTO_PKGS.map((pkg) => ({
       package: `${MODULE_NAME}/${pkg}`,
       link_flags: null,
       link_libs: ['crypto'],
