@@ -12,6 +12,18 @@ pub(all) struct DefaultSkillMeta {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend DefaultSkillMeta with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DefaultSkillMeta with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend DefaultSkillMeta with Eq::{not_equal, equal}
+
+///|
+pub extend DefaultSkillMeta with ToJson::{to_json}
+
+///|
 /// Get all built-in skill metadata definitions.
 pub fn get_default_skill_metas() -> Array[DefaultSkillMeta] {
   [

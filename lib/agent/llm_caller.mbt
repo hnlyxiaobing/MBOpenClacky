@@ -190,6 +190,12 @@ pub(all) enum OverflowMode {
 } derive(Eq, Debug)
 
 ///|
+pub extend OverflowMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OverflowMode with Eq::{not_equal, equal}
+
+///|
 /// Record the details of a failed LLM call for the session summary (fix-09).
 ///
 /// error_code is extracted from the provider error body; per upstream

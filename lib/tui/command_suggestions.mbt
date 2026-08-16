@@ -17,6 +17,9 @@ pub(all) struct SuggestionItem {
 } derive(Debug)
 
 ///|
+pub extend SuggestionItem with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A dropdown list of command suggestions with keyboard navigation.
 ///
 /// Supports filtering by prefix, cycling through results with Tab/Up/Down,
@@ -34,6 +37,9 @@ pub(all) struct CommandSuggestions {
   /// Maximum number of items visible at once.
   max_visible : Int
 } derive(Debug)
+
+///|
+pub extend CommandSuggestions with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new CommandSuggestions with the default system commands.

@@ -15,6 +15,12 @@ pub(all) struct WorkspaceRules {
 } derive(Eq, Debug)
 
 ///|
+pub extend WorkspaceRules with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WorkspaceRules with Eq::{not_equal, equal}
+
+///|
 /// Find and load the main workspace rule file.
 pub fn WorkspaceRules::find_main(dir : String) -> WorkspaceRules {
   // Search for rule files in priority order

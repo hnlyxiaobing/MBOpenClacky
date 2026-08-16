@@ -16,6 +16,12 @@ pub(all) enum PatchAction {
 } derive(Eq, Debug)
 
 ///|
+pub extend PatchAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PatchAction with Eq::{not_equal, equal}
+
+///|
 /// A single patch rule. Two flavours are supported:
 ///
 /// 1. Declarative — `tool_pattern` and `args_pattern` are matched in-memory
@@ -40,6 +46,9 @@ pub(all) struct PatchRule {
 } derive(Debug)
 
 ///|
+pub extend PatchRule with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Single audit-log entry. One entry is appended for every
 /// `check_before` decision and every `check_after` post-execution summary.
 pub(all) struct PatchAuditEntry {
@@ -56,6 +65,9 @@ pub(all) struct PatchAuditEntry {
   /// Timestamp (ms since epoch).
   timestamp : Int64
 } derive(Debug)
+
+///|
+pub extend PatchAuditEntry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Ordered chain of patch rules plus the running audit log.

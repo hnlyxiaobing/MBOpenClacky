@@ -27,6 +27,12 @@ pub enum CompressionResult {
   Failed(String)
 } derive(Eq, Debug)
 
+///|
+pub extend CompressionResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressionResult with Eq::{not_equal, equal}
+
 // ── Clone Helpers ────────────────────────────────────────────────────────────
 
 ///|

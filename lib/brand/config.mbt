@@ -22,6 +22,15 @@ pub(all) struct BrandConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BrandConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrandConfig with Eq::{not_equal, equal}
+
+///|
+pub extend BrandConfig with ToJson::{to_json}
+
+///|
 let brand_dir_name = ".mbopenclacky"
 
 ///|
@@ -480,6 +489,12 @@ pub(all) struct UploadMeta {
   platform_version : String
   uploaded_at : String
 } derive(Eq, Debug)
+
+///|
+pub extend UploadMeta with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend UploadMeta with Eq::{not_equal, equal}
 
 ///|
 /// Path to the upload_meta.json file that tracks which local skills have

@@ -8,6 +8,15 @@ pub(all) enum TransportType {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend TransportType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransportType with Eq::{not_equal, equal}
+
+///|
+pub extend TransportType with ToJson::{to_json}
+
+///|
 /// Specification for an MCP server connection.
 pub(all) struct McpServerSpec {
   name : String
@@ -22,12 +31,30 @@ pub(all) struct McpServerSpec {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend McpServerSpec with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend McpServerSpec with Eq::{not_equal, equal}
+
+///|
+pub extend McpServerSpec with ToJson::{to_json}
+
+///|
 /// An MCP tool exposed by a server.
 pub(all) struct McpTool {
   name : String
   description : String
   input_schema : Json
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend McpTool with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend McpTool with Eq::{not_equal, equal}
+
+///|
+pub extend McpTool with ToJson::{to_json}
 
 ///|
 /// JSON-RPC 2.0 request structure.
@@ -37,6 +64,12 @@ pub(all) struct JsonRpcRequest {
   rpc_method : String
   params : Json?
 } derive(Eq, Debug)
+
+///|
+pub extend JsonRpcRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JsonRpcRequest with Eq::{not_equal, equal}
 
 ///|
 /// Serialize to a JSON-RPC 2.0 compliant object.
@@ -66,12 +99,30 @@ pub(all) struct JsonRpcResponse {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend JsonRpcResponse with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JsonRpcResponse with Eq::{not_equal, equal}
+
+///|
+pub extend JsonRpcResponse with ToJson::{to_json}
+
+///|
 /// JSON-RPC 2.0 error object.
 pub(all) struct JsonRpcError {
   code : Int
   message : String
   data : Json?
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend JsonRpcError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JsonRpcError with Eq::{not_equal, equal}
+
+///|
+pub extend JsonRpcError with ToJson::{to_json}
 
 ///|
 /// Capabilities advertised by an MCP server.
@@ -82,6 +133,15 @@ pub(all) struct McpCapabilities {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend McpCapabilities with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend McpCapabilities with Eq::{not_equal, equal}
+
+///|
+pub extend McpCapabilities with ToJson::{to_json}
+
+///|
 /// Information about a connected MCP server.
 pub(all) struct McpServerInfo {
   name : String
@@ -90,16 +150,37 @@ pub(all) struct McpServerInfo {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend McpServerInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend McpServerInfo with Eq::{not_equal, equal}
+
+///|
+pub extend McpServerInfo with ToJson::{to_json}
+
+///|
 /// Error during transport-level operations.
 pub(all) suberror TransportError {
   TransportError(String)
 } derive(ToJson, Debug)
 
 ///|
+pub extend TransportError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TransportError with ToJson::{to_json}
+
+///|
 /// Error during MCP protocol operations.
 pub(all) suberror McpError {
   McpError(String)
 } derive(ToJson, Debug)
+
+///|
+pub extend McpError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend McpError with ToJson::{to_json}
 
 ///|
 /// Create a default McpServerSpec for stdio transport.

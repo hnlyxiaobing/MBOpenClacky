@@ -18,6 +18,12 @@ pub(all) enum TimerState {
 } derive(Eq, Debug)
 
 ///|
+pub extend TimerState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TimerState with Eq::{not_equal, equal}
+
+///|
 /// Idle compression timer for automatic message compression.
 ///
 /// Tracks user activity and triggers compression when the conversation
@@ -32,6 +38,9 @@ pub(all) struct IdleCompressionTimer {
   idle_threshold_ms : Int // ms of inactivity before compression (default 300000)
   mut timer_id : String? // optional timer identifier
 } derive(Debug)
+
+///|
+pub extend IdleCompressionTimer with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new idle timer with default delay and threshold.

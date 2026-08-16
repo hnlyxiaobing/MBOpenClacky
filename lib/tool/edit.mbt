@@ -7,6 +7,12 @@ pub(all) struct Edit {
 } derive(Eq, Debug)
 
 ///|
+pub extend Edit with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Edit with Eq::{not_equal, equal}
+
+///|
 pub fn Edit::new() -> Edit {
   { encoding: "utf-8" }
 }

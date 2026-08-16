@@ -29,6 +29,12 @@ pub(all) struct WebSearch {
 } derive(Eq, Debug)
 
 ///|
+pub extend WebSearch with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WebSearch with Eq::{not_equal, equal}
+
+///|
 /// Process-level memory: epoch-ms until which DuckDuckGo is skipped after a
 /// failure (mirrors the original `@ddg_unavailable_until = Time.now + 600`).
 let ddg_unavailable_until_ms : Ref[Int64] = Ref(0L)

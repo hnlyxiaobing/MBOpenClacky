@@ -5,6 +5,12 @@ pub(all) struct DocParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend DocParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DocParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new DocParser with default settings
 pub fn DocParser::new() -> DocParser {
   { preserve_formatting: true }

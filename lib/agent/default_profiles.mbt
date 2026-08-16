@@ -19,6 +19,18 @@ pub(all) struct ProfileSpec {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend ProfileSpec with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ProfileSpec with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend ProfileSpec with Eq::{not_equal, equal}
+
+///|
+pub extend ProfileSpec with ToJson::{to_json}
+
+///|
 /// Get all built-in profile specifications.
 pub fn get_default_profiles() -> Array[ProfileSpec] {
   [coding_profile(), general_profile(), ext_developer_profile()]

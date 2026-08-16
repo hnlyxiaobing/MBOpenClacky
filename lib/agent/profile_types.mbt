@@ -11,6 +11,15 @@ pub(all) struct ProfileConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ProfileConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ProfileConfig with Eq::{not_equal, equal}
+
+///|
+pub extend ProfileConfig with ToJson::{to_json}
+
+///|
 /// Loaded agent profile with resolved content.
 pub(all) struct AgentProfile {
   config : ProfileConfig
@@ -19,3 +28,9 @@ pub(all) struct AgentProfile {
   user_content : String? // content of USER.md
   base_prompt : String? // content of base_prompt.md
 } derive(Eq, Debug)
+
+///|
+pub extend AgentProfile with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AgentProfile with Eq::{not_equal, equal}

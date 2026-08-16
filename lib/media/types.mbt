@@ -7,12 +7,30 @@ pub(all) enum MediaProvider {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MediaProvider with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaProvider with Eq::{not_equal, equal}
+
+///|
+pub extend MediaProvider with ToJson::{to_json}
+
+///|
 /// Media type
 pub(all) enum MediaType {
   Image
   Video
   Audio
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend MediaType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaType with Eq::{not_equal, equal}
+
+///|
+pub extend MediaType with ToJson::{to_json}
 
 ///|
 /// Media generation request
@@ -27,6 +45,15 @@ pub(all) struct MediaRequest {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MediaRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaRequest with Eq::{not_equal, equal}
+
+///|
+pub extend MediaRequest with ToJson::{to_json}
+
+///|
 /// Media generation result
 pub(all) struct MediaResult {
   success : Bool
@@ -39,6 +66,15 @@ pub(all) struct MediaResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MediaResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaResult with Eq::{not_equal, equal}
+
+///|
+pub extend MediaResult with ToJson::{to_json}
+
+///|
 /// Media error types
 pub(all) enum MediaErrorType {
   NotConfigured
@@ -49,10 +85,25 @@ pub(all) enum MediaErrorType {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MediaErrorType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaErrorType with Eq::{not_equal, equal}
+
+///|
+pub extend MediaErrorType with ToJson::{to_json}
+
+///|
 /// Media generation error
 pub(all) suberror MediaError {
   MediaError(String)
 } derive(ToJson, Debug)
+
+///|
+pub extend MediaError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaError with ToJson::{to_json}
 
 ///|
 /// Create a MediaRequest for image generation

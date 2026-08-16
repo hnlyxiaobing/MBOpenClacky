@@ -9,6 +9,18 @@ pub(all) enum TodoStatus {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend TodoStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TodoStatus with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend TodoStatus with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend TodoStatus with Eq::{not_equal, equal}
+
+///|
 pub fn TodoStatus::to_string_value(self : TodoStatus) -> String {
   match self {
     Pending => "pending"
@@ -60,6 +72,12 @@ pub(all) struct TodoItem {
   created_at : String
   mut updated_at : String
 } derive(Eq, Debug)
+
+///|
+pub extend TodoItem with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TodoItem with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for TodoItem with fn to_json(self) {

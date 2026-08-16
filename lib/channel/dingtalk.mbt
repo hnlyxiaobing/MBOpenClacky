@@ -65,6 +65,17 @@ pub fn DingTalkAdapter::new(
 }
 
 ///|
+pub extend DingTalkAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for DingTalkAdapter with fn platform_id(_self) -> Platform {
   Platform::DingTalk
 }

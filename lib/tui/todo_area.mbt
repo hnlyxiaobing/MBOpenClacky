@@ -18,6 +18,9 @@ pub(all) struct TodoDisplayItem {
 } derive(Debug)
 
 ///|
+pub extend TodoDisplayItem with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Todo area widget for displaying active task list.
 pub(all) struct TodoArea {
   /// Display items to render.
@@ -31,6 +34,9 @@ pub(all) struct TodoArea {
   /// Maximum number of items to display.
   max_display : Int
 } derive(Debug)
+
+///|
+pub extend TodoArea with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new empty TodoArea.

@@ -24,6 +24,9 @@ pub(all) struct ShellExecResult {
 } derive(Debug)
 
 ///|
+pub extend ShellExecResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 fn shell_temp_dir() -> String {
   match @env.get_env_var("TEMP") {
     Some(d) => d

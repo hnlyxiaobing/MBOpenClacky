@@ -11,6 +11,12 @@ pub enum BlockStyle {
 } derive(Debug, Eq)
 
 ///|
+pub extend BlockStyle with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BlockStyle with Eq::{not_equal, equal}
+
+///|
 /// Character bitmap: 5 rows of 5 columns.
 /// Each row is a 5-character string of '1' (filled) and '0' (empty).
 priv struct CharBitmap {
@@ -23,6 +29,12 @@ pub(all) struct BlockFont {
   style : BlockStyle
   letter_spacing : Int
 } derive(Eq, Debug)
+
+///|
+pub extend BlockFont with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BlockFont with Eq::{not_equal, equal}
 
 ///|
 /// Create a new BlockFont with default style (Full, spacing 1).

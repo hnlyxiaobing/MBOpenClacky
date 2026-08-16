@@ -13,6 +13,15 @@ pub enum ShellType {
 } derive(Debug, Eq)
 
 ///|
+pub extend ShellType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ShellType with Eq::{not_equal, equal}
+
+///|
+pub extend ShellType with Show::{to_string, output}
+
+///|
 pub impl Show for ShellType with fn output(self, logger) {
   match self {
     Bash => logger.write_string("Bash")

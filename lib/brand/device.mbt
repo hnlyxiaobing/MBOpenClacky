@@ -8,6 +8,15 @@ pub(all) struct DeviceInfo {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend DeviceInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeviceInfo with Eq::{not_equal, equal}
+
+///|
+pub extend DeviceInfo with ToJson::{to_json}
+
+///|
 /// Generate a stable device identifier based on system properties.
 /// Uses hostname + username + platform to create a deterministic hash.
 pub fn generate_device_id() -> DeviceInfo {

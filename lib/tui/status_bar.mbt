@@ -31,6 +31,9 @@ pub(all) enum SegmentColor {
 } derive(Debug)
 
 ///|
+pub extend SegmentColor with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A single colored text segment.
 pub(all) struct StatusSegment {
   text : String
@@ -38,10 +41,16 @@ pub(all) struct StatusSegment {
 } derive(Debug)
 
 ///|
+pub extend StatusSegment with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Status bar component that formats status data into colored segments.
 pub(all) struct StatusBar {
   mut segments : Array[StatusSegment]
 } derive(Debug)
+
+///|
+pub extend StatusBar with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new empty StatusBar.

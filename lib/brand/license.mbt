@@ -15,6 +15,15 @@ pub(all) enum LicenseStatus {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend LicenseStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LicenseStatus with Eq::{not_equal, equal}
+
+///|
+pub extend LicenseStatus with ToJson::{to_json}
+
+///|
 pub(all) struct LicenseValidator {
   config : BrandConfig
   mut last_check_at : Int?

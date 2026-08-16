@@ -49,6 +49,9 @@ pub(all) struct TestResult {
   error : String?
 } derive(Debug)
 
+///|
+pub extend TestResult with @moonbitlang/core/debug.Debug::{to_repr}
+
 // ── Client Construction ─────────────────────────────────────────────────────
 
 ///|

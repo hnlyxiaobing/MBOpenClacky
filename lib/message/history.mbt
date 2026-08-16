@@ -9,6 +9,9 @@ pub(all) struct MessageHistory {
   mut messages : Array[Message]
 } derive(Eq)
 
+///|
+pub extend MessageHistory with Eq::{not_equal, equal}
+
 // ── Constructor ──────────────────────────────────────────────────────────────
 
 ///|

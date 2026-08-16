@@ -7,6 +7,15 @@ pub(all) struct SkillResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend SkillResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SkillResult with Eq::{not_equal, equal}
+
+///|
+pub extend SkillResult with ToJson::{to_json}
+
+///|
 /// Build the skill execution context string (system prompt fragment).
 /// This is injected into the LLM system prompt when a skill is active.
 pub fn build_skill_context(skill : Skill, args : String) -> String {

@@ -15,6 +15,12 @@ pub(all) enum HttpMethod {
 } derive(Eq, Debug)
 
 ///|
+pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend HttpMethod with Eq::{not_equal, equal}
+
+///|
 pub(all) struct HttpRequest {
   http_method : HttpMethod
   path : String

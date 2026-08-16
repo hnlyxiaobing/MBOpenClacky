@@ -275,6 +275,12 @@ pub(all) enum WeixinAesMode {
 } derive(Eq, Debug)
 
 ///|
+pub extend WeixinAesMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WeixinAesMode with Eq::{not_equal, equal}
+
+///|
 /// Detect AES mode from data header magic bytes.
 ///
 /// Weixin media may use AES-128-ECB encryption with mode determined

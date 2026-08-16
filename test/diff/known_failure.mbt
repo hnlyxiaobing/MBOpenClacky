@@ -57,8 +57,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0040", // 工具错误 tool_result 非标准 JSON
    "BUG-0041", // MBOPENCLACKY_COMPRESSION_THRESHOLD 不被 env overlay 读取
    "BUG-0042", // needs_compression 语义/recent 守卫未对齐
-   // BUG-0043 已修复（基线 commit 8f4381e，compressor.mbt:141-148 已有 10% 检查，
-   // lib/agent 339/339 绿），移出注册表
+  // BUG-0043 已修复（基线 commit 8f4381e，compressor.mbt:141-148 已有 10% 检查，
+  // lib/agent 339/339 绿），移出注册表
   // P5 新登记（详见 diff-harness reports/BUGS.md BUG-0044 起）
    "BUG-0044", // edit 缺 Ruby 分层匹配回退（edit-008/009/010）
    "BUG-0045", // edit 缺 new_string 静默删除（edit-018）

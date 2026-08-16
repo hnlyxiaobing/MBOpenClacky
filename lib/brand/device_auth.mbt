@@ -34,6 +34,12 @@ pub(all) struct DeviceAuthSession {
 } derive(Eq, Debug)
 
 ///|
+pub extend DeviceAuthSession with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DeviceAuthSession with Eq::{not_equal, equal}
+
+///|
 /// Result of a poll operation.
 pub(all) enum PollResult {
   Pending
@@ -43,10 +49,19 @@ pub(all) enum PollResult {
 } derive(Eq, Debug)
 
 ///|
+pub extend PollResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PollResult with Eq::{not_equal, equal}
+
+///|
 /// Thread-safe store of in-flight device authorization sessions.
 pub(all) struct DeviceAuthStore {
   mut sessions : Map[String, DeviceAuthSession]
 } derive(Debug)
+
+///|
+pub extend DeviceAuthStore with @moonbitlang/core/debug.Debug::{to_repr}
 
 // ── Store lifecycle ────────────────────────────────────────────────
 

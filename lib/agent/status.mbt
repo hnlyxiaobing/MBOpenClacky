@@ -9,12 +9,36 @@ pub(all) enum AgentStatus {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend AgentStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AgentStatus with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend AgentStatus with Eq::{not_equal, equal}
+
+///|
+pub extend AgentStatus with ToJson::{to_json}
+
+///|
 /// How the agent session was initiated.
 pub(all) enum AgentSource {
   Manual
   Cron
   Channel
 } derive(Eq, Compare, Debug)
+
+///|
+pub extend AgentSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AgentSource with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend AgentSource with Eq::{not_equal, equal}
+
+///|
+pub extend AgentSource with ToJson::{to_json}
 
 ///|
 /// Convert AgentStatus to a string for JSON serialization.

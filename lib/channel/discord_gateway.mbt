@@ -40,6 +40,12 @@ pub(all) enum GatewayOpcode {
 } derive(Eq, Debug)
 
 ///|
+pub extend GatewayOpcode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend GatewayOpcode with Eq::{not_equal, equal}
+
+///|
 /// Convert an integer opcode to GatewayOpcode.
 pub fn gateway_opcode_from_int(op : Int) -> GatewayOpcode? {
   match op {

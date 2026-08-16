@@ -14,6 +14,15 @@ pub(all) struct ModelConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ModelConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ModelConfig with Eq::{not_equal, equal}
+
+///|
+pub extend ModelConfig with ToJson::{to_json}
+
+///|
 /// Create a ModelConfig with sensible defaults.
 pub fn ModelConfig::new(
   id : String,

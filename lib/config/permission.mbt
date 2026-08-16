@@ -9,6 +9,18 @@ pub(all) enum PermissionMode {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend PermissionMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PermissionMode with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend PermissionMode with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend PermissionMode with Eq::{not_equal, equal}
+
+///|
 /// Convert PermissionMode to a string for JSON/TOML serialization.
 pub fn PermissionMode::to_string_value(self : PermissionMode) -> String {
   match self {

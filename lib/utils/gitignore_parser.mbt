@@ -11,6 +11,12 @@ pub struct IgnoreRule {
 } derive(Debug, Eq)
 
 ///|
+pub extend IgnoreRule with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend IgnoreRule with Eq::{not_equal, equal}
+
+///|
 /// Parse .gitignore file content into a list of rules.
 pub fn parse_gitignore(content : String) -> Array[IgnoreRule] {
   let rules : Array[IgnoreRule] = []

@@ -14,6 +14,12 @@ pub(all) enum ExtensionSource {
 } derive(Debug, Eq)
 
 ///|
+pub extend ExtensionSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ExtensionSource with Eq::{not_equal, equal}
+
+///|
 /// Extension contribution type.
 pub(all) enum ExtensionContributionType {
   Panel
@@ -23,6 +29,14 @@ pub(all) enum ExtensionContributionType {
   Hook
   Patch
 } derive(Debug, Eq)
+
+///|
+pub extend ExtensionContributionType with @moonbitlang/core/debug.Debug::{
+  to_repr,
+}
+
+///|
+pub extend ExtensionContributionType with Eq::{not_equal, equal}
 
 ///|
 /// Extension manifest structure (ext.yml).

@@ -15,6 +15,14 @@ pub(all) struct VideoUnderstandRequest {
 } derive(FromJson, ToJson)
 
 ///|
+pub extend VideoUnderstandRequest with @moonbitlang/core/json.FromJson::{
+  from_json,
+}
+
+///|
+pub extend VideoUnderstandRequest with ToJson::{to_json}
+
+///|
 /// Analysis result for a single extracted frame.
 pub(all) struct FrameAnalysis {
   frame_index : Int
@@ -22,6 +30,9 @@ pub(all) struct FrameAnalysis {
   timestamp_label : String
   description : String
 } derive(ToJson)
+
+///|
+pub extend FrameAnalysis with ToJson::{to_json}
 
 ///|
 /// Full video understanding response.
@@ -33,6 +44,9 @@ pub(all) struct VideoUnderstandResult {
   model : String?
   error : String?
 } derive(ToJson)
+
+///|
+pub extend VideoUnderstandResult with ToJson::{to_json}
 
 ///|
 pub let default_max_frames : Int = 20

@@ -14,6 +14,12 @@ pub(all) enum MeetingStatus {
 } derive(Eq, Debug)
 
 ///|
+pub extend MeetingStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MeetingStatus with Eq::{not_equal, equal}
+
+///|
 pub fn MeetingStatus::to_string_value(self : MeetingStatus) -> String {
   match self {
     Active => "active"
@@ -39,6 +45,12 @@ pub(all) struct TranscriptEntry {
   /// Timestamp in milliseconds since epoch.
   timestamp : Int64
 } derive(Eq, Debug)
+
+///|
+pub extend TranscriptEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TranscriptEntry with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for TranscriptEntry with fn to_json(self) {
@@ -92,6 +104,12 @@ pub(all) struct MeetingSummary {
   /// When the summary was generated (ms since epoch).
   generated_at : Int64
 } derive(Eq, Debug)
+
+///|
+pub extend MeetingSummary with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MeetingSummary with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for MeetingSummary with fn to_json(self) {
@@ -205,6 +223,12 @@ pub(all) struct Meeting {
   /// End timestamp (ms since epoch, 0 if still active).
   mut ended_at : Int64
 } derive(Eq, Debug)
+
+///|
+pub extend Meeting with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Meeting with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for Meeting with fn to_json(self) {

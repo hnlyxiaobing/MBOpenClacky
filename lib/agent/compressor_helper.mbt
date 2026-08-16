@@ -148,6 +148,12 @@ pub(all) struct CompressionStats {
 } derive(Eq, Debug)
 
 ///|
+pub extend CompressionStats with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressionStats with Eq::{not_equal, equal}
+
+///|
 /// Calculate compression savings statistics.
 pub fn calculate_compression_savings(
   before_tokens : Int,
@@ -180,6 +186,12 @@ pub(all) struct KeyInformation {
   tasks_pending : Array[String]
   errors_encountered : Array[String]
 } derive(Eq, Debug)
+
+///|
+pub extend KeyInformation with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend KeyInformation with Eq::{not_equal, equal}
 
 // 鈹€鈹€ Keyword Matching Helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
@@ -455,6 +467,12 @@ pub(all) struct ChunkInfo {
   path : String
   topics : String?
 } derive(Eq, Debug)
+
+///|
+pub extend ChunkInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ChunkInfo with Eq::{not_equal, equal}
 
 ///|
 /// Build a previous-chunks index section for embedding in compressed summaries.

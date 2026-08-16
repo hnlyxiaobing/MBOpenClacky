@@ -22,6 +22,15 @@ pub(all) struct AgentConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend AgentConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AgentConfig with Eq::{not_equal, equal}
+
+///|
+pub extend AgentConfig with ToJson::{to_json}
+
+///|
 /// Create an AgentConfig with sensible defaults.
 pub fn AgentConfig::default() -> AgentConfig {
   {

@@ -11,12 +11,24 @@ pub enum BannerStyle {
 } derive(Debug, Eq)
 
 ///|
+pub extend BannerStyle with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BannerStyle with Eq::{not_equal, equal}
+
+///|
 /// Banner renderer
 pub(all) struct Banner {
   style : BannerStyle
   width : Int
   use_color : Bool
 } derive(Eq, Debug)
+
+///|
+pub extend Banner with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Banner with Eq::{not_equal, equal}
 
 ///|
 /// Create a new Banner with default style (Boxed, width 60, no color).

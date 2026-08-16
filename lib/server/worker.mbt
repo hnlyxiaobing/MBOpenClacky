@@ -9,11 +9,29 @@ pub enum WorkerStatus {
 } derive(Debug, Eq)
 
 ///|
+pub extend WorkerStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WorkerStatus with Eq::{not_equal, equal}
+
+///|
 /// Worker identifier
 pub(all) struct WorkerId {
   id : Int
   name : String
 } derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub extend WorkerId with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WorkerId with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend WorkerId with Eq::{not_equal, equal}
+
+///|
+pub extend WorkerId with ToJson::{to_json}
 
 ///|
 /// Worker configuration
@@ -25,6 +43,9 @@ pub(all) struct WorkerConfig {
 } derive(Debug)
 
 ///|
+pub extend WorkerConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Worker instance in the pool
 pub(all) struct Worker {
   config : WorkerConfig
@@ -34,6 +55,9 @@ pub(all) struct Worker {
   mut last_heartbeat : String
   mut started_at : String
 } derive(Debug)
+
+///|
+pub extend Worker with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new Worker with default Idle status

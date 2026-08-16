@@ -8,6 +8,15 @@ pub(all) enum MediaCapability {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MediaCapability with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaCapability with Eq::{not_equal, equal}
+
+///|
+pub extend MediaCapability with ToJson::{to_json}
+
+///|
 /// Media generator configuration
 pub(all) struct MediaGeneratorConfig {
   base_url : String
@@ -18,6 +27,12 @@ pub(all) struct MediaGeneratorConfig {
   retry_count : Int
   max_file_size_mb : Int
 } derive(Eq, Debug)
+
+///|
+pub extend MediaGeneratorConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MediaGeneratorConfig with Eq::{not_equal, equal}
 
 ///|
 /// Create a default configuration

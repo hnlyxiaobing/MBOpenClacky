@@ -9,6 +9,15 @@ pub(all) struct BrowserConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BrowserConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrowserConfig with Eq::{not_equal, equal}
+
+///|
+pub extend BrowserConfig with ToJson::{to_json}
+
+///|
 /// Browser daemon status
 pub(all) struct BrowserStatus {
   enabled : Bool
@@ -22,10 +31,25 @@ pub(all) struct BrowserStatus {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BrowserStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrowserStatus with Eq::{not_equal, equal}
+
+///|
+pub extend BrowserStatus with ToJson::{to_json}
+
+///|
 /// Browser manager error
 pub(all) suberror BrowserError {
   BrowserError(String)
 } derive(ToJson, Debug)
+
+///|
+pub extend BrowserError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrowserError with ToJson::{to_json}
 
 ///|
 /// Create default browser configuration

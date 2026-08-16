@@ -7,6 +7,9 @@ pub(all) struct MediaGenerator {
 } derive(Debug)
 
 ///|
+pub extend MediaGenerator with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a new MediaGenerator
 pub fn MediaGenerator::new(
   base_url : String,

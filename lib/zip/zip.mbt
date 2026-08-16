@@ -10,6 +10,12 @@ pub(all) struct ZipEntry {
   data : Bytes
 } derive(Eq, Debug)
 
+///|
+pub extend ZipEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ZipEntry with Eq::{not_equal, equal}
+
 // ── CRC-32 (IEEE 802.3 polynomial, table-driven) ─────────────────────
 
 ///|

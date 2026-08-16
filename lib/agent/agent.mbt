@@ -95,6 +95,12 @@ pub(all) enum FallbackState {
 } derive(Eq, Debug)
 
 ///|
+pub extend FallbackState with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FallbackState with Eq::{not_equal, equal}
+
+///|
 /// Create a new agent with the given client and configuration.
 pub fn Agent::new(
   session_id : String,

@@ -5,6 +5,15 @@ pub(all) struct FunctionCall {
   arguments : String
 } derive(Eq, Debug, ToJson)
 
+///|
+pub extend FunctionCall with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FunctionCall with Eq::{not_equal, equal}
+
+///|
+pub extend FunctionCall with ToJson::{to_json}
+
 ///| A tool call from the assistant.
 
 ///|
@@ -14,6 +23,15 @@ pub(all) struct ToolCall {
   type_ : String
   function : FunctionCall
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend ToolCall with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ToolCall with Eq::{not_equal, equal}
+
+///|
+pub extend ToolCall with ToJson::{to_json}
 
 ///|
 /// Create a ToolCall with the default type "function".

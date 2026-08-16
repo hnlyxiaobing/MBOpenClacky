@@ -48,6 +48,17 @@ pub(all) enum AnyAdapter {
 }
 
 ///|
+pub extend AnyAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for AnyAdapter with fn platform_id(self) -> Platform {
   match self {
     Feishu(a) => a.platform_id()

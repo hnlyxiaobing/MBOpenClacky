@@ -11,6 +11,18 @@ pub(all) enum DocumentFormat {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend DocumentFormat with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DocumentFormat with Eq::{not_equal, equal}
+
+///|
+pub extend DocumentFormat with ToJson::{to_json}
+
+///|
+pub extend DocumentFormat with Show::{to_string, output}
+
+///|
 /// Show implementation for DocumentFormat
 pub impl Show for DocumentFormat with fn output(self, logger) {
   match self {
@@ -40,6 +52,15 @@ pub(all) struct DocumentMetadata {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend DocumentMetadata with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DocumentMetadata with Eq::{not_equal, equal}
+
+///|
+pub extend DocumentMetadata with ToJson::{to_json}
+
+///|
 /// Result of parsing a document
 pub(all) struct ParseResult {
   content : String
@@ -50,10 +71,25 @@ pub(all) struct ParseResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ParseResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParseResult with Eq::{not_equal, equal}
+
+///|
+pub extend ParseResult with ToJson::{to_json}
+
+///|
 /// Parser error
 pub(all) suberror ParseError {
   ParseError(String)
 } derive(ToJson, Debug)
+
+///|
+pub extend ParseError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParseError with ToJson::{to_json}
 
 ///|
 /// Detect format from file extension

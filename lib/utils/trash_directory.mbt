@@ -11,6 +11,18 @@ pub struct TrashEntry {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend TrashEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TrashEntry with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend TrashEntry with Eq::{not_equal, equal}
+
+///|
+pub extend TrashEntry with ToJson::{to_json}
+
+///|
 /// Get the trash directory path: `~/.mbopenclacky/trash/`.
 pub fn get_trash_dir() -> String {
   match config_dir() {

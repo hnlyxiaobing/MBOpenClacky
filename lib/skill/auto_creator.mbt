@@ -17,6 +17,12 @@ pub(all) struct CreationCandidate {
 } derive(Eq, Debug)
 
 ///|
+pub extend CreationCandidate with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CreationCandidate with Eq::{not_equal, equal}
+
+///|
 /// Create an AutoCreator with default settings.
 pub fn AutoCreator::new() -> AutoCreator {
   { iteration_threshold: 12, confidence_threshold: 80 }

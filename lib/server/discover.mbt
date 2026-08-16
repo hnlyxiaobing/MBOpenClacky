@@ -7,6 +7,15 @@ pub(all) struct ServerInstance {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ServerInstance with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ServerInstance with Eq::{not_equal, equal}
+
+///|
+pub extend ServerInstance with ToJson::{to_json}
+
+///|
 /// PID file prefix
 let pid_file_prefix : String = "mbopenclacky-master-"
 

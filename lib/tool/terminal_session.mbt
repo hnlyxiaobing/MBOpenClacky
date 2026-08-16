@@ -14,6 +14,12 @@ pub(all) enum SessionStatus {
 } derive(Eq, Debug)
 
 ///|
+pub extend SessionStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionStatus with Eq::{not_equal, equal}
+
+///|
 pub fn SessionStatus::to_string(self : SessionStatus) -> String {
   match self {
     Starting => "starting"
@@ -36,6 +42,9 @@ pub(all) struct TerminalSession {
   mut cwd : String
   mut overflow_file : String?
 } derive(Debug)
+
+///|
+pub extend TerminalSession with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub fn TerminalSession::new(

@@ -15,6 +15,12 @@ pub(all) enum TipsType {
 } derive(Eq, Debug)
 
 ///|
+pub extend TipsType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TipsType with Eq::{not_equal, equal}
+
+///|
 /// Number of Tick events (200ms each) after which a tips message expires.
 let tips_ttl_ticks : Int = 10
 

@@ -8,12 +8,18 @@ pub(all) struct HookConfig {
 } derive(Debug)
 
 ///|
+pub extend HookConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Context passed to hooks when they execute.
 pub(all) struct HookContext {
   session_id : String
   message : String?
   working_dir : String
 } derive(Debug)
+
+///|
+pub extend HookContext with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Load hook configurations from a directory.

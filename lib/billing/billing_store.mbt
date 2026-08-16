@@ -15,6 +15,18 @@ pub(all) enum TimePeriod {
 } derive(Eq, Debug, ToJson, FromJson)
 
 ///|
+pub extend TimePeriod with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TimePeriod with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend TimePeriod with Eq::{not_equal, equal}
+
+///|
+pub extend TimePeriod with ToJson::{to_json}
+
+///|
 /// Aggregated billing summary for a time period.
 pub(all) struct Summary {
   period : TimePeriod
@@ -28,6 +40,12 @@ pub(all) struct Summary {
 } derive(Eq, Debug)
 
 ///|
+pub extend Summary with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Summary with Eq::{not_equal, equal}
+
+///|
 /// Per-model billing summary.
 pub(all) struct ModelSummary {
   cost : Double
@@ -35,6 +53,12 @@ pub(all) struct ModelSummary {
   completion_tokens : Int
   requests : Int
 } derive(Eq, Debug)
+
+///|
+pub extend ModelSummary with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ModelSummary with Eq::{not_equal, equal}
 
 ///|
 /// Per-day billing summary.
@@ -45,6 +69,12 @@ pub(all) struct DaySummary {
   request_count : Int
 } derive(Eq, Debug)
 
+///|
+pub extend DaySummary with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend DaySummary with Eq::{not_equal, equal}
+
 // ── BillingStore ────────────────────────────────────────────────
 
 ///|
@@ -53,6 +83,12 @@ pub(all) struct DaySummary {
 pub(all) struct BillingStore {
   billing_dir : String
 } derive(Eq, Debug)
+
+///|
+pub extend BillingStore with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BillingStore with Eq::{not_equal, equal}
 
 ///|
 /// Create a new BillingStore with given directory.

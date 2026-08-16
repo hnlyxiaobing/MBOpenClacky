@@ -44,6 +44,16 @@ pub fn StdioTransport::new(spec : McpServerSpec) -> StdioTransport {
 }
 
 ///|
+pub extend StdioTransport with Transport::{
+  start,
+  stop,
+  alive,
+  send_message,
+  on_message,
+  stderr_tail,
+}
+
+///|
 /// Start the child process.
 /// TODO: FFI implementation needed - requires native process spawn capability.
 pub impl Transport for StdioTransport with fn start(self) {

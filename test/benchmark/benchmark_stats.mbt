@@ -12,6 +12,12 @@ pub struct BenchmarkStats {
 }
 
 ///|
+pub extend BenchmarkStats with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BenchmarkStats with Eq::{not_equal, equal}
+
+///|
 /// 创建新的 BenchmarkStats
 pub fn BenchmarkStats::new(
   min_ms : Int64,

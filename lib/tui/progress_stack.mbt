@@ -49,6 +49,9 @@ struct ProgressEntry {
 } derive(Debug)
 
 ///|
+pub extend ProgressEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Internal mutable data for the progress stack.
 pub(all) struct ProgressStackData {
   /// All progress entries (open and closed).
@@ -56,6 +59,9 @@ pub(all) struct ProgressStackData {
   /// Counter for generating unique IDs.
   mut next_id : Int
 } derive(Debug)
+
+///|
+pub extend ProgressStackData with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A stack of progress indicators for the TUI.
@@ -66,6 +72,9 @@ pub(all) struct ProgressStackData {
 pub(all) struct ProgressStack {
   data : Ref[ProgressStackData]
 } derive(Debug)
+
+///|
+pub extend ProgressStack with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new empty progress stack.

@@ -8,6 +8,12 @@ pub(all) struct FileReader {
 } derive(Eq, Debug)
 
 ///|
+pub extend FileReader with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FileReader with Eq::{not_equal, equal}
+
+///|
 pub fn FileReader::new() -> FileReader {
   { max_lines: 1000, max_line_chars: 1000 }
 }

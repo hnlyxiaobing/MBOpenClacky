@@ -43,10 +43,18 @@ pub(all) struct ChatRequest {
 } derive(FromJson)
 
 ///|
+pub extend ChatRequest with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
 /// Request body for POST /api/sessions
 pub(all) struct CreateSessionRequest {
   name : String?
 } derive(FromJson)
+
+///|
+pub extend CreateSessionRequest with @moonbitlang/core/json.FromJson::{
+  from_json,
+}
 
 ///|
 /// Request body for PUT /api/config
@@ -58,6 +66,9 @@ pub(all) struct UpdateConfigRequest {
 } derive(FromJson)
 
 ///|
+pub extend UpdateConfigRequest with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
 /// Latency summary embedded in SessionSummary as `latest_latency`.
 /// The frontend reads `lat.ttft_ms` as the visibility condition for the
 /// latency signal, so the object shape (not a bare ms number) is required.
@@ -65,6 +76,12 @@ pub(all) struct SessionLatency {
   ttft_ms : Int?
   duration_ms : Int?
 } derive(Eq, Debug)
+
+///|
+pub extend SessionLatency with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionLatency with Eq::{not_equal, equal}
 
 ///|
 /// Build the latency summary from a SessionData snapshot.
@@ -215,6 +232,9 @@ pub(all) struct PermissionResponse {
   safe_tools : Array[String]
 }
 
+///|
+pub extend SessionSummary with ToJson::{to_json}
+
 // ── JSON serialization for response types ────────────────────────
 
 ///|
@@ -298,6 +318,9 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
 }
 
 ///|
+pub extend SessionListResponse with ToJson::{to_json}
+
+///|
 pub impl ToJson for SessionListResponse with fn to_json(self) {
   let cron_updated = match self.latest_cron_updated_at {
     Some(v) => v.to_json()
@@ -374,6 +397,9 @@ impl ToJson for AggregateStatsResponse with fn to_json(self) {
     "total_messages": self.total_messages.to_json(),
   })
 }
+
+///|
+pub extend HealthResponse with ToJson::{to_json}
 
 ///|
 pub impl ToJson for HealthResponse with fn to_json(self) {

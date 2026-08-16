@@ -31,6 +31,12 @@ pub(all) struct RestoreResult {
 } derive(Eq, Debug)
 
 ///|
+pub extend RestoreResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RestoreResult with Eq::{not_equal, equal}
+
+///|
 /// Enhanced session restoration with full state recovery.
 ///
 /// Restores: channel_info, latency, Time Machine, error state, model.

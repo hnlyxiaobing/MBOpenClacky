@@ -14,12 +14,24 @@ pub(all) struct CostResult {
 } derive(Eq, Debug)
 
 ///|
+pub extend CostResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CostResult with Eq::{not_equal, equal}
+
+///|
 /// Source of cost data.
 pub(all) enum CostSource {
   Price
   Estimated
   Api
 } derive(Eq, Debug)
+
+///|
+pub extend CostSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CostSource with Eq::{not_equal, equal}
 
 ///| Calculate cost for a given model and token usage.
 

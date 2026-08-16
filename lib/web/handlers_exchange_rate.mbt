@@ -15,6 +15,9 @@ struct ExchangeRateResponse {
 } derive(ToJson)
 
 ///|
+pub extend ExchangeRateResponse with ToJson::{to_json}
+
+///|
 priv struct ExchangeRateCacheEntry {
   from : String
   to : String

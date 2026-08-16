@@ -11,6 +11,12 @@ struct ProxyConfig {
 } derive(Debug, Eq)
 
 ///|
+pub extend ProxyConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ProxyConfig with Eq::{not_equal, equal}
+
+///|
 /// Create an empty proxy configuration (no proxy, epoch 0).
 pub fn ProxyConfig::new() -> ProxyConfig {
   { proxy_url: "", epoch: 0, no_proxy: "" }

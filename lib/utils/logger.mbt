@@ -14,6 +14,15 @@ pub enum LogLevel {
 } derive(Debug, Eq, Compare)
 
 ///|
+pub extend LogLevel with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LogLevel with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend LogLevel with Eq::{not_equal, equal}
+
+///|
 /// Context key-value pairs attached to a log entry.
 pub type LogContext = Array[(String, String)]
 

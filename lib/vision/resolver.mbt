@@ -6,6 +6,9 @@ pub(all) struct VisionResolver {
 } derive(Debug)
 
 ///|
+pub extend VisionResolver with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a new VisionResolver with default config
 pub fn VisionResolver::new() -> VisionResolver {
   { config: VisionConfig::default(), cache: Map([]) }

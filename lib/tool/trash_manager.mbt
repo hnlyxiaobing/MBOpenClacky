@@ -11,6 +11,12 @@
 pub(all) struct TrashManager {} derive(Eq, Debug)
 
 ///|
+pub extend TrashManager with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TrashManager with Eq::{not_equal, equal}
+
+///|
 impl Tool for TrashManager with fn name(_) -> String {
   "trash_manager"
 }

@@ -5,6 +5,12 @@ pub(all) struct PptxParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend PptxParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PptxParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new PptxParser with default settings
 pub fn PptxParser::new() -> PptxParser {
   { include_notes: true }

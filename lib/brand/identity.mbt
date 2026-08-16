@@ -14,6 +14,15 @@ pub(all) struct Identity {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend Identity with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Identity with Eq::{not_equal, equal}
+
+///|
+pub extend Identity with ToJson::{to_json}
+
+///|
 /// Construct an Identity from device-authorization result.
 pub fn create_identity(
   device_token : String,

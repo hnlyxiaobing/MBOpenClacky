@@ -22,10 +22,19 @@ pub(all) enum MarkdownToken {
 } derive(Eq, Debug)
 
 ///|
+pub extend MarkdownToken with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MarkdownToken with Eq::{not_equal, equal}
+
+///|
 /// Renderer that converts Markdown to ANSI-colored strings.
 pub(all) struct MarkdownRenderer {
   theme : Theme
 } derive(Debug)
+
+///|
+pub extend MarkdownRenderer with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new MarkdownRenderer with a given theme.

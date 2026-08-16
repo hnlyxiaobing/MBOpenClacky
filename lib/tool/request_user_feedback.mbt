@@ -7,6 +7,12 @@
 pub(all) struct RequestUserFeedback {} derive(Eq, Debug)
 
 ///|
+pub extend RequestUserFeedback with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RequestUserFeedback with Eq::{not_equal, equal}
+
+///|
 impl Tool for RequestUserFeedback with fn name(_) -> String {
   "request_user_feedback"
 }

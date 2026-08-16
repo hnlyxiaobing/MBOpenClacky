@@ -83,6 +83,9 @@ pub(all) struct ToolRegistry {
 } derive(Debug)
 
 ///|
+pub extend ToolRegistry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a new empty ToolRegistry.
 pub fn ToolRegistry::new() -> ToolRegistry {
   { tools: Map([]), downcased_index: Map([]) }

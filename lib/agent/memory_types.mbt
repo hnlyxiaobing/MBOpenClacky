@@ -9,6 +9,18 @@ pub(all) enum MemoryCategory {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend MemoryCategory with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MemoryCategory with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend MemoryCategory with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend MemoryCategory with Eq::{not_equal, equal}
+
+///|
 pub fn MemoryCategory::to_string_value(self : MemoryCategory) -> String {
   match self {
     UserPreference => "user_preference"
@@ -60,6 +72,12 @@ pub(all) struct MemoryEntry {
   created_at : String
   updated_at : String
 } derive(Eq, Debug)
+
+///|
+pub extend MemoryEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MemoryEntry with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for MemoryEntry with fn to_json(self) {

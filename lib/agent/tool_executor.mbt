@@ -16,6 +16,12 @@ pub(all) struct ToolResultEntry {
 } derive(Eq, Debug)
 
 ///|
+pub extend ToolResultEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ToolResultEntry with Eq::{not_equal, equal}
+
+///|
 /// Determine whether a tool should execute automatically based on
 /// the current permission mode.
 ///

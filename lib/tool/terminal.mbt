@@ -267,6 +267,12 @@ pub(all) struct Terminal {
 } derive(Eq, Debug)
 
 ///|
+pub extend Terminal with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Terminal with Eq::{not_equal, equal}
+
+///|
 pub fn Terminal::new() -> Terminal {
   {
     timeout: default_timeout_seconds * 1000,

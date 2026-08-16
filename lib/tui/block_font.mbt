@@ -25,6 +25,9 @@ pub enum BlockFontStyle {
 } derive(Eq)
 
 ///|
+pub extend BlockFontStyle with Eq::{not_equal, equal}
+
+///|
 /// Height in rows of a single Standard-style glyph.
 pub let block_font_height : Int = 5
 

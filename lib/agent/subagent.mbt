@@ -9,6 +9,15 @@ pub(all) struct SubAgentConfig {
 } derive(Eq, Debug)
 
 ///|
+pub extend SubAgentConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SubAgentConfig with Eq::{not_equal, equal}
+
+///|
+pub extend SubAgentConfig with ToJson::{to_json}
+
+///|
 pub impl ToJson for SubAgentConfig with fn to_json(self) {
   Json::object({
     "name": self.name.to_json(),
@@ -27,6 +36,18 @@ pub(all) enum SubAgentStatus {
   Completed
   Failed
 } derive(Eq, Compare, Debug)
+
+///|
+pub extend SubAgentStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SubAgentStatus with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend SubAgentStatus with Eq::{not_equal, equal}
+
+///|
+pub extend SubAgentStatus with ToJson::{to_json}
 
 ///|
 pub fn SubAgentStatus::to_string_value(self : SubAgentStatus) -> String {
@@ -53,6 +74,12 @@ pub(all) struct SubAgentHandle {
   mut error : String?
   mut iterations : Int
 } derive(Eq, Debug)
+
+///|
+pub extend SubAgentHandle with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SubAgentHandle with Eq::{not_equal, equal}
 
 ///|
 pub fn SubAgentHandle::new(

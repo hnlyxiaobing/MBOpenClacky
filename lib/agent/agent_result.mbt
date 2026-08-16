@@ -13,6 +13,12 @@ pub(all) enum RunStatus {
 } derive(Eq, Debug)
 
 ///|
+pub extend RunStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RunStatus with Eq::{not_equal, equal}
+
+///|
 pub fn RunStatus::to_string_value(self : RunStatus) -> String {
   match self {
     Success => "Success"
@@ -32,6 +38,12 @@ pub(all) struct RunResult {
   cache_stats : CacheStats
   error : String?
 } derive(Eq, Debug)
+
+///|
+pub extend RunResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RunResult with Eq::{not_equal, equal}
 
 ///|
 /// Build a RunResult from the current agent state.

@@ -15,6 +15,12 @@ pub struct PlatformHttpConfig {
 } derive(Debug, Eq)
 
 ///|
+pub extend PlatformHttpConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PlatformHttpConfig with Eq::{not_equal, equal}
+
+///|
 /// Create a new platform HTTP config with sensible defaults.
 pub fn PlatformHttpConfig::new(
   primary_host~ : String,
@@ -47,6 +53,9 @@ pub(all) struct HttpResponse {
 } derive(Debug)
 
 ///|
+pub extend HttpResponse with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// HTTP request method.
 pub enum HttpMethod {
   Get
@@ -54,6 +63,9 @@ pub enum HttpMethod {
   Put
   Delete
 } derive(Debug)
+
+///|
+pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// HTTP request error types.
@@ -64,6 +76,9 @@ pub enum HttpError {
   ClientError(Int, String)
   AllHostsFailed(String)
 } derive(Debug)
+
+///|
+pub extend HttpError with @moonbitlang/core/debug.Debug::{to_repr}
 
 // ── Platform HTTP Client ─────────────────────────────────────────────────────
 

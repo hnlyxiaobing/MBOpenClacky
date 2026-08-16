@@ -8,6 +8,12 @@ pub(all) struct JsonArgParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend JsonArgParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend JsonArgParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new JsonArgParser (non-strict by default).
 pub fn JsonArgParser::new() -> JsonArgParser {
   JsonArgParser::{ strict: false }

@@ -7,6 +7,12 @@ pub(all) struct Glob {
 } derive(Eq, Debug)
 
 ///|
+pub extend Glob with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Glob with Eq::{not_equal, equal}
+
+///|
 pub fn Glob::new() -> Glob {
   { limit: 10 }
 }

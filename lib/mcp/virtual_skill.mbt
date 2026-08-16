@@ -13,6 +13,15 @@ pub(all) struct VirtualSkill {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend VirtualSkill with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend VirtualSkill with Eq::{not_equal, equal}
+
+///|
+pub extend VirtualSkill with ToJson::{to_json}
+
+///|
 /// Create a VirtualSkill from an MCP server's tools.
 pub fn VirtualSkill::from_mcp_server(
   server_name : String,

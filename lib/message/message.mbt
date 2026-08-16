@@ -6,6 +6,12 @@ pub(all) enum MessageContent {
 } derive(Eq, Debug)
 
 ///|
+pub extend MessageContent with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MessageContent with Eq::{not_equal, equal}
+
+///|
 impl ToJson for MessageContent with fn to_json(self) {
   match self {
     Text(s) => ToJson::to_json(s)
@@ -52,6 +58,18 @@ pub(all) struct Message {
   compressed_summary : String?
   transient : Bool?
 } derive(Eq, Debug)
+
+///|
+pub extend Message with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Message with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend Message with Eq::{not_equal, equal}
+
+///|
+pub extend Message with ToJson::{to_json}
 
 ///|
 pub impl ToJson for Message with fn to_json(self) {

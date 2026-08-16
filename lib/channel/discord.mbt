@@ -36,6 +36,17 @@ pub fn DiscordAdapter::new(
 }
 
 ///|
+pub extend DiscordAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for DiscordAdapter with fn platform_id(_self) -> Platform {
   Platform::Discord
 }

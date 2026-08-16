@@ -18,6 +18,15 @@ pub(all) struct ChannelInfo {
 } derive(Eq, Debug)
 
 ///|
+pub extend ChannelInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ChannelInfo with Eq::{not_equal, equal}
+
+///|
+pub extend ChannelInfo with ToJson::{to_json}
+
+///|
 pub impl ToJson for ChannelInfo with fn to_json(self) {
   Json::object({
     "platform": ToJson::to_json(self.platform),
@@ -62,6 +71,12 @@ pub(all) struct SessionTaskMeta {
 } derive(Eq, Debug)
 
 ///|
+pub extend SessionTaskMeta with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionTaskMeta with Eq::{not_equal, equal}
+
+///|
 impl ToJson for SessionTaskMeta with fn to_json(self) {
   Json::object({
     "title": ToJson::to_json(self.title),
@@ -100,6 +115,12 @@ pub(all) struct SessionTimeMachine {
   current_task_id : Int // Current active task ID
   active_task_id : Int // Active branch task ID
 } derive(Eq, Debug)
+
+///|
+pub extend SessionTimeMachine with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionTimeMachine with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for SessionTimeMachine with fn to_json(self) {
@@ -170,6 +191,12 @@ pub(all) struct SessionStats {
 } derive(Eq, Debug)
 
 ///|
+pub extend SessionStats with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionStats with Eq::{not_equal, equal}
+
+///|
 /// Complete serializable snapshot of an Agent session.
 pub(all) struct SessionData {
   session_id : String
@@ -202,6 +229,15 @@ pub(all) struct SessionData {
   agent_profile : String
   sub_model : String?
 } derive(Eq, Debug)
+
+///|
+pub extend SessionData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SessionData with Eq::{not_equal, equal}
+
+///|
+pub extend SessionData with ToJson::{to_json}
 
 ///|
 /// Export the current agent state as a SessionData snapshot.

@@ -14,6 +14,9 @@ pub(all) struct ExtensionTemplate {
 } derive(Eq)
 
 ///|
+pub extend ExtensionTemplate with Eq::{not_equal, equal}
+
+///|
 /// Create a new extension scaffold from a template.
 pub fn create_extension_scaffold(
   template : ExtensionTemplate,

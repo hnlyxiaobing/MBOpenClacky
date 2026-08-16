@@ -20,11 +20,23 @@ pub(all) struct Browser {
 } derive(Eq, Debug)
 
 ///|
+pub extend Browser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Browser with Eq::{not_equal, equal}
+
+///|
 /// Cache for the currently selected page to avoid redundant list_pages calls.
 struct PageCache {
   mut current : String?
   mut invalidated : Bool
 } derive(Eq, Debug)
+
+///|
+pub extend PageCache with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PageCache with Eq::{not_equal, equal}
 
 // ── MCP Server Configuration ─────────────────────────────────────────────────
 

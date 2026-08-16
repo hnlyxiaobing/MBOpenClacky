@@ -18,6 +18,18 @@ pub(all) enum ApiType {
 } derive(Eq, Debug)
 
 ///|
+pub extend ApiType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ApiType with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend ApiType with Eq::{not_equal, equal}
+
+///|
+pub extend ApiType with ToJson::{to_json}
+
+///|
 /// Convert ApiType to its string identifier used in config files.
 pub fn ApiType::to_string_value(self : ApiType) -> String {
   match self {
@@ -61,6 +73,9 @@ pub(all) struct EndpointVariant {
 } derive(Debug)
 
 ///|
+pub extend EndpointVariant with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 pub(all) struct ProviderPreset {
   /// Provider identifier (e.g. "openclacky", "openrouter")
   id : String
@@ -98,6 +113,9 @@ pub(all) struct ProviderPreset {
   /// Alternative endpoints that must resolve to this same preset.
   endpoint_variants : Array[EndpointVariant]
 } derive(Debug)
+
+///|
+pub extend ProviderPreset with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Built-in provider presets.

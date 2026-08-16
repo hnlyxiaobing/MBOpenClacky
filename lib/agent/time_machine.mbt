@@ -400,6 +400,12 @@ pub(all) enum TaskNavStatus {
 } derive(Eq, Debug)
 
 ///|
+pub extend TaskNavStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TaskNavStatus with Eq::{not_equal, equal}
+
+///|
 /// A task entry enriched for the Time Machine navigation menu.
 pub(all) struct TaskHistoryEntry {
   /// Task identifier ("task-001").
@@ -413,6 +419,9 @@ pub(all) struct TaskHistoryEntry {
   /// Whether more than one child branches off this task.
   has_branches : Bool
 } derive(Debug)
+
+///|
+pub extend TaskHistoryEntry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Parse the numeric counter out of a "task-NNN" identifier (0 if unknown).

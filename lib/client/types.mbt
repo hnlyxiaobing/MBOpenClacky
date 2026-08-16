@@ -8,11 +8,35 @@ pub(all) struct Usage {
 } derive(Eq, Debug, ToJson, FromJson)
 
 ///|
+pub extend Usage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Usage with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend Usage with Eq::{not_equal, equal}
+
+///|
+pub extend Usage with ToJson::{to_json}
+
+///|
 /// Latency metrics from an LLM API response.
 pub(all) struct Latency {
   duration_ms : Int
   ttft_ms : Int?
 } derive(Eq, Debug, ToJson, FromJson)
+
+///|
+pub extend Latency with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Latency with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend Latency with Eq::{not_equal, equal}
+
+///|
+pub extend Latency with ToJson::{to_json}
 
 ///|
 /// Response from an LLM API call.
@@ -24,6 +48,15 @@ pub(all) struct LlmResponse {
   usage : Usage?
   latency : Latency?
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend LlmResponse with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LlmResponse with Eq::{not_equal, equal}
+
+///|
+pub extend LlmResponse with ToJson::{to_json}
 
 ///|
 /// Create a simple text-only LLM response.

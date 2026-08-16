@@ -17,6 +17,9 @@ pub(all) struct EvalAssertionResult {
 } derive(Debug)
 
 ///|
+pub extend EvalAssertionResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Result of running a single eval scenario.
 pub(all) struct EvalScenarioResult {
   /// Scenario name.
@@ -32,6 +35,9 @@ pub(all) struct EvalScenarioResult {
 } derive(Debug)
 
 ///|
+pub extend EvalScenarioResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Result of running a batch of eval scenarios.
 pub(all) struct EvalBatchResult {
   /// Results for each scenario.
@@ -43,6 +49,9 @@ pub(all) struct EvalBatchResult {
   /// Total number of scenarios.
   total_count : Int
 } derive(Debug)
+
+///|
+pub extend EvalBatchResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Load scenario JSON files from a directory.

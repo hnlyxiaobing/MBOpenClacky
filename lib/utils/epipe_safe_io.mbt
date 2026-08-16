@@ -11,6 +11,12 @@ pub enum WriteResult {
 } derive(Debug, Eq)
 
 ///|
+pub extend WriteResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WriteResult with Eq::{not_equal, equal}
+
+///|
 /// Safe write to stdout. In wasm-gc target this is a stub that always succeeds.
 pub fn safe_stdout_write(content : String) -> WriteResult {
   if content.is_empty() {

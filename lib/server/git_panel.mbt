@@ -17,6 +17,18 @@ pub(all) struct GitStatus {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend GitStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend GitStatus with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend GitStatus with Eq::{not_equal, equal}
+
+///|
+pub extend GitStatus with ToJson::{to_json}
+
+///|
 /// 创建默认（空）状态
 pub fn GitStatus::empty() -> GitStatus {
   {

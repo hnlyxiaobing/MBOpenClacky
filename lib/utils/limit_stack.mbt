@@ -11,6 +11,9 @@ pub struct LimitStack {
 } derive(Debug)
 
 ///|
+pub extend LimitStack with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a new LimitStack with the given maximum depth.
 pub fn LimitStack::new(max_depth? : Int = 50) -> LimitStack {
   { max_depth, current_depth: 0, labels: [] }

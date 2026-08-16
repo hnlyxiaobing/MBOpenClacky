@@ -15,6 +15,9 @@ pub suberror SecurityError {
 } derive(Debug)
 
 ///|
+pub extend SecurityError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Commands considered safe for auto-execution in `:confirm_safes` mode.
 /// Only the base command name is checked (first word of the command line).
 let safe_readonly_commands : Array[String] = [

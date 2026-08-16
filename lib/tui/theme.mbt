@@ -14,6 +14,12 @@ pub(all) enum ThemeName {
 } derive(Eq, Debug)
 
 ///|
+pub extend ThemeName with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ThemeName with Eq::{not_equal, equal}
+
+///|
 /// A color theme defined by ANSI escape code strings.
 pub(all) struct Theme {
   name : ThemeName
@@ -42,6 +48,12 @@ pub(all) struct Theme {
   /// Symbol for phase exit banner (e.g. "▲").
   phase_exit_symbol : String
 } derive(Eq, Debug)
+
+///|
+pub extend Theme with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Theme with Eq::{not_equal, equal}
 
 ///|
 /// Create the default theme (blue/cyan tones).

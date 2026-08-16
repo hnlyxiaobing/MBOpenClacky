@@ -14,6 +14,12 @@ pub(all) struct SseFrame {
 } derive(Eq, Debug)
 
 ///|
+pub extend SseFrame with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SseFrame with Eq::{not_equal, equal}
+
+///|
 /// Callback trait for streaming progress notifications.
 pub(open) trait StreamCallback {
   ///| Called when new token usage information is available.

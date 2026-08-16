@@ -6,6 +6,12 @@ pub(all) struct XlsxParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend XlsxParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend XlsxParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new XlsxParser with default settings
 pub fn XlsxParser::new() -> XlsxParser {
   { max_rows: None, include_headers: true }

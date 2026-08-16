@@ -8,6 +8,15 @@ pub(all) enum VisionStatus {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend VisionStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend VisionStatus with Eq::{not_equal, equal}
+
+///|
+pub extend VisionStatus with ToJson::{to_json}
+
+///|
 /// Vision processing result
 pub(all) struct VisionResult {
   status : VisionStatus
@@ -17,12 +26,24 @@ pub(all) struct VisionResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend VisionResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend VisionResult with Eq::{not_equal, equal}
+
+///|
+pub extend VisionResult with ToJson::{to_json}
+
+///|
 /// Image input types
 pub(all) enum VisionInput {
   VisionBytes(Bytes)
   DataUrl(String)
   FilePath(String)
 } derive(Debug)
+
+///|
+pub extend VisionInput with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Vision resolver configuration
@@ -34,6 +55,12 @@ pub(all) struct VisionConfig {
   cache_dir : String
   default_prompt : String
 } derive(Eq, Debug)
+
+///|
+pub extend VisionConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend VisionConfig with Eq::{not_equal, equal}
 
 ///|
 /// Default max tokens for vision requests

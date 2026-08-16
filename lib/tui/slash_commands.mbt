@@ -21,6 +21,12 @@ pub(all) enum SlashCommand {
 } derive(Eq, Debug)
 
 ///|
+pub extend SlashCommand with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SlashCommand with Eq::{not_equal, equal}
+
+///|
 /// Definition of a registered slash command.
 pub(all) struct SlashCommandDef {
   name : String
@@ -29,10 +35,19 @@ pub(all) struct SlashCommandDef {
 } derive(Eq, Debug)
 
 ///|
+pub extend SlashCommandDef with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SlashCommandDef with Eq::{not_equal, equal}
+
+///|
 /// Parser for slash commands with registered command definitions.
 pub(all) struct SlashCommandParser {
   commands : Array[SlashCommandDef]
 } derive(Debug)
+
+///|
+pub extend SlashCommandParser with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new SlashCommandParser with the default set of commands.

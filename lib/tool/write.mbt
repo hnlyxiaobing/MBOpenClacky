@@ -7,6 +7,12 @@ pub(all) struct Write {
 } derive(Eq, Debug)
 
 ///|
+pub extend Write with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Write with Eq::{not_equal, equal}
+
+///|
 pub fn Write::new() -> Write {
   { encoding: "utf-8" }
 }

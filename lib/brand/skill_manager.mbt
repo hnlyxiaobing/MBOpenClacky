@@ -9,6 +9,15 @@ pub struct BrandSkillInfo {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BrandSkillInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrandSkillInfo with Eq::{not_equal, equal}
+
+///|
+pub extend BrandSkillInfo with ToJson::{to_json}
+
+///|
 /// Manages brand skills: fetch, install, delete, and sync operations.
 pub struct BrandSkillManager {
   config : BrandConfig

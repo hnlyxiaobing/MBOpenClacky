@@ -23,6 +23,15 @@ pub(all) struct Skill {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend Skill with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Skill with Eq::{not_equal, equal}
+
+///|
+pub extend Skill with ToJson::{to_json}
+
+///|
 /// Create a Skill with sensible defaults.
 pub fn Skill::default(name : String, source : String) -> Skill {
   {

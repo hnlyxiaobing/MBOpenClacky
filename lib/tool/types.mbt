@@ -9,6 +9,18 @@ pub(all) enum ToolCategory {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend ToolCategory with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ToolCategory with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend ToolCategory with Eq::{not_equal, equal}
+
+///|
+pub extend ToolCategory with ToJson::{to_json}
+
+///|
 /// Convert ToolCategory to a string for JSON serialization.
 pub fn ToolCategory::to_string_value(self : ToolCategory) -> String {
   match self {
@@ -46,6 +58,15 @@ pub(all) struct ToolResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ToolResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ToolResult with Eq::{not_equal, equal}
+
+///|
+pub extend ToolResult with ToJson::{to_json}
+
+///|
 /// Create a successful tool result.
 pub fn ToolResult::success(content : String) -> ToolResult {
   { content, is_error: false }
@@ -66,6 +87,15 @@ pub(all) struct FunctionDef {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend FunctionDef with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FunctionDef with Eq::{not_equal, equal}
+
+///|
+pub extend FunctionDef with ToJson::{to_json}
+
+///|
 /// OpenAI-compatible function definition for tool registration.
 /// Note: `type_` field (with trailing underscore because `type` is a
 /// MoonBit keyword) is manually serialized as `"type"` in JSON via
@@ -74,6 +104,15 @@ pub(all) struct FunctionDefinition {
   type_ : String
   function : FunctionDef
 } derive(Eq, Debug)
+
+///|
+pub extend FunctionDefinition with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FunctionDefinition with Eq::{not_equal, equal}
+
+///|
+pub extend FunctionDefinition with ToJson::{to_json}
 
 ///|
 /// Manually implement ToJson so `type_` serializes as `"type"` (not `"type_"`)
@@ -118,3 +157,9 @@ pub(all) enum AnyTool {
   TrashManager(TrashManager)
   Browser(Browser)
 } derive(Eq, Debug)
+
+///|
+pub extend AnyTool with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AnyTool with Eq::{not_equal, equal}

@@ -204,6 +204,17 @@ pub fn TelegramAdapter::new(
 }
 
 ///|
+pub extend TelegramAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for TelegramAdapter with fn platform_id(_self) -> Platform {
   Platform::Telegram
 }

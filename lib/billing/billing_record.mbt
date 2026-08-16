@@ -35,6 +35,18 @@ pub(all) struct BillingRecord {
 } derive(Eq, Debug, ToJson, FromJson)
 
 ///|
+pub extend BillingRecord with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BillingRecord with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend BillingRecord with Eq::{not_equal, equal}
+
+///|
+pub extend BillingRecord with ToJson::{to_json}
+
+///|
 /// Create a new BillingRecord with auto-generated ID and timestamp.
 pub fn BillingRecord::new(
   session_id~ : String,

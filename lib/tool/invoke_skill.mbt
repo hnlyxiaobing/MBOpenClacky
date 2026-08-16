@@ -6,6 +6,12 @@
 pub(all) struct InvokeSkill {} derive(Eq, Debug)
 
 ///|
+pub extend InvokeSkill with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend InvokeSkill with Eq::{not_equal, equal}
+
+///|
 impl Tool for InvokeSkill with fn name(_) -> String {
   "invoke_skill"
 }

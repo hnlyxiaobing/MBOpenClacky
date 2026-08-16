@@ -10,6 +10,15 @@ pub(all) enum CronField {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend CronField with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CronField with Eq::{not_equal, equal}
+
+///|
+pub extend CronField with ToJson::{to_json}
+
+///|
 /// Cron expression (5 fields: minute hour day month weekday)
 pub(all) struct CronExpression {
   minute : CronField
@@ -19,6 +28,15 @@ pub(all) struct CronExpression {
   day_of_week : CronField
   raw : String
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend CronExpression with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CronExpression with Eq::{not_equal, equal}
+
+///|
+pub extend CronExpression with ToJson::{to_json}
 
 ///|
 /// Parse a cron expression string (5 fields separated by whitespace)

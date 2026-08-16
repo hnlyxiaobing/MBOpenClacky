@@ -20,6 +20,9 @@ pub(all) struct ExtensionRoute {
 } derive(Debug)
 
 ///|
+pub extend ExtensionRoute with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// API extension loaded from an extension descriptor file.
 pub(all) struct ApiExtension {
   /// Unique extension name
@@ -31,6 +34,9 @@ pub(all) struct ApiExtension {
   /// Whether this extension is active
   enabled : Bool
 } derive(Debug)
+
+///|
+pub extend ApiExtension with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Default extension execution timeout in milliseconds (30 seconds).

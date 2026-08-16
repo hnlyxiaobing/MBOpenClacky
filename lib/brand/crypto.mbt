@@ -8,6 +8,12 @@ pub(all) struct EncryptedData {
 } derive(Eq, Debug)
 
 ///|
+pub extend EncryptedData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EncryptedData with Eq::{not_equal, equal}
+
+///|
 /// Compute HMAC-SHA256 signature using real cryptographic primitives.
 /// Uses @x/crypto for pure-MoonBit HMAC-SHA256 implementation.
 pub fn hmac_sha256(key : String, data : String) -> String {

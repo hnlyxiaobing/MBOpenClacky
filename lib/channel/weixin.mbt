@@ -161,6 +161,17 @@ pub fn WeixinAdapter::new(
 }
 
 ///|
+pub extend WeixinAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for WeixinAdapter with fn platform_id(_self) -> Platform {
   Platform::Weixin
 }

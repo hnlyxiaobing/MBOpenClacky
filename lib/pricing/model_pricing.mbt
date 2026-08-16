@@ -18,6 +18,12 @@ pub(all) struct ModelPricing {
   context_threshold : Int
 } derive(Eq, Debug)
 
+///|
+pub extend ModelPricing with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ModelPricing with Eq::{not_equal, equal}
+
 ///| Default context threshold for tiered pricing (200K tokens).
 
 ///|

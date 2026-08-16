@@ -32,6 +32,12 @@ pub enum ThinkingVerbMode {
 } derive(Eq, Debug)
 
 ///|
+pub extend ThinkingVerbMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ThinkingVerbMode with Eq::{not_equal, equal}
+
+///|
 /// Mutable state for a thinking verb animator. Construct with
 /// `ThinkingVerbAnimator::new`, `ThinkingVerbAnimator::new_random`, or
 /// `ThinkingVerbAnimator::with_verbs`.

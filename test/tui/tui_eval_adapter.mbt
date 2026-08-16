@@ -32,6 +32,9 @@ pub(all) struct EvalSetup {
 } derive(Debug)
 
 ///|
+pub extend EvalSetup with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A single action in a TUI eval scenario.
 pub(all) enum EvalAction {
   /// Type a string of text character by character.
@@ -59,6 +62,9 @@ pub(all) enum EvalAction {
 } derive(Debug)
 
 ///|
+pub extend EvalAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// An assertion to verify the screen state after actions.
 pub(all) enum EvalAssertion {
   /// Screen (or region) contains the given text.
@@ -80,6 +86,9 @@ pub(all) enum EvalAssertion {
 } derive(Debug)
 
 ///|
+pub extend EvalAssertion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A complete TUI eval scenario.
 pub(all) struct EvalScenario {
   /// Scenario name.
@@ -93,6 +102,9 @@ pub(all) struct EvalScenario {
   /// Assertions to check after all actions complete.
   assertions : Array[EvalAssertion]
 } derive(Debug)
+
+///|
+pub extend EvalScenario with @moonbitlang/core/debug.Debug::{to_repr}
 
 // ── JSON Parsing ──────────────────────────────────────────────────────
 

@@ -9,6 +9,9 @@ pub struct IgnoreConfig {
 } derive(Debug)
 
 ///|
+pub extend IgnoreConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Create a new IgnoreConfig with default builtin rules.
 pub fn IgnoreConfig::new() -> IgnoreConfig {
   let patterns = builtin_ignore_patterns()

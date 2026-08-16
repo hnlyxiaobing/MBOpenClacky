@@ -6,6 +6,12 @@
 pub(all) struct TodoTool {} derive(Eq, Debug)
 
 ///|
+pub extend TodoTool with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TodoTool with Eq::{not_equal, equal}
+
+///|
 impl Tool for TodoTool with fn name(_) -> String {
   "todo_manager"
 }

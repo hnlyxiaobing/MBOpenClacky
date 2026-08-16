@@ -22,6 +22,15 @@ pub(all) enum CostSource {
 } derive(Eq, Debug)
 
 ///|
+pub extend CostSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CostSource with Eq::{not_equal, equal}
+
+///|
+pub extend CostSource with ToJson::{to_json}
+
+///|
 pub fn CostSource::to_string_value(self : CostSource) -> String {
   match self {
     Api => "api"
@@ -46,6 +55,12 @@ pub(all) struct CacheStats {
 } derive(Eq, Debug)
 
 ///|
+pub extend CacheStats with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CacheStats with Eq::{not_equal, equal}
+
+///|
 /// Create a new CacheStats with all counters at zero.
 pub fn CacheStats::new() -> CacheStats {
   {
@@ -68,6 +83,12 @@ pub(all) struct IterationTokenData {
   cost : Double
   cost_source : CostSource
 } derive(Eq, Debug)
+
+///|
+pub extend IterationTokenData with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend IterationTokenData with Eq::{not_equal, equal}
 
 ///|
 /// Estimate token count from character count (rough: chars / 4).

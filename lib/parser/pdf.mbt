@@ -6,6 +6,12 @@ pub(all) struct PdfParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend PdfParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PdfParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new PdfParser with default settings
 pub fn PdfParser::new() -> PdfParser {
   { command: "pdftotext", max_pages: None }

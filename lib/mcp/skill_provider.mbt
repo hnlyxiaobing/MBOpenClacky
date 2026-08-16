@@ -14,6 +14,15 @@ pub(all) struct SkillInfo {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend SkillInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend SkillInfo with Eq::{not_equal, equal}
+
+///|
+pub extend SkillInfo with ToJson::{to_json}
+
+///|
 /// Discovers SKILL.md files from directories and manages skill registration.
 pub(all) struct SkillProvider {
   skill_dirs : Array[String]

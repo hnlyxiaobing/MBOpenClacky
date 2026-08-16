@@ -11,6 +11,15 @@ pub(all) enum ShellHookEvent {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend ShellHookEvent with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ShellHookEvent with Eq::{not_equal, equal}
+
+///|
+pub extend ShellHookEvent with ToJson::{to_json}
+
+///|
 /// A single shell hook definition
 pub(all) struct ShellHook {
   name : String?
@@ -18,6 +27,15 @@ pub(all) struct ShellHook {
   timeout : Int
   event : ShellHookEvent
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend ShellHook with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ShellHook with Eq::{not_equal, equal}
+
+///|
+pub extend ShellHook with ToJson::{to_json}
 
 ///|
 /// Hook execution result
@@ -28,10 +46,28 @@ pub(all) enum HookExecResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend HookExecResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend HookExecResult with Eq::{not_equal, equal}
+
+///|
+pub extend HookExecResult with ToJson::{to_json}
+
+///|
 /// Shell hook configuration (from hooks.yml)
 pub(all) struct ShellHookConfig {
   hooks : Map[String, Array[ShellHook]]
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend ShellHookConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ShellHookConfig with Eq::{not_equal, equal}
+
+///|
+pub extend ShellHookConfig with ToJson::{to_json}
 
 ///|
 /// Parse event name string to ShellHookEvent

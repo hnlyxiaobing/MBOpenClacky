@@ -6,6 +6,12 @@
 pub(all) struct MemoryTool {} derive(Eq, Debug)
 
 ///|
+pub extend MemoryTool with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MemoryTool with Eq::{not_equal, equal}
+
+///|
 impl Tool for MemoryTool with fn name(_) -> String {
   "memory"
 }

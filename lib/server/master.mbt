@@ -9,6 +9,9 @@ pub(all) struct MasterConfig {
 } derive(Debug)
 
 ///|
+pub extend MasterConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// ServerMaster running state
 pub enum MasterStatus {
   Starting
@@ -16,6 +19,12 @@ pub enum MasterStatus {
   ShuttingDown
   MasterStopped
 } derive(Debug, Eq)
+
+///|
+pub extend MasterStatus with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend MasterStatus with Eq::{not_equal, equal}
 
 ///|
 /// Worker pool statistics
@@ -30,6 +39,18 @@ pub(all) struct PoolStats {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend PoolStats with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend PoolStats with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend PoolStats with Eq::{not_equal, equal}
+
+///|
+pub extend PoolStats with ToJson::{to_json}
+
+///|
 /// ServerMaster — manages a pool of Workers
 pub(all) struct ServerMaster {
   config : MasterConfig
@@ -38,6 +59,9 @@ pub(all) struct ServerMaster {
   mut next_worker_id : Int
   mut started_at : String
 } derive(Debug)
+
+///|
+pub extend ServerMaster with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create default MasterConfig

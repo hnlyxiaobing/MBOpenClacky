@@ -16,6 +16,12 @@ pub(all) struct ReflectionReport {
 } derive(Eq, Debug)
 
 ///|
+pub extend ReflectionReport with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ReflectionReport with Eq::{not_equal, equal}
+
+///|
 /// Create a SkillReflector with default settings.
 pub fn SkillReflector::new() -> SkillReflector {
   { min_improvement_score: 70 }

@@ -46,6 +46,12 @@ pub(all) enum WeComFrameType {
 } derive(Eq, Debug)
 
 ///|
+pub extend WeComFrameType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WeComFrameType with Eq::{not_equal, equal}
+
+///|
 /// WeCom WebSocket connection state.
 pub(all) struct WeComWsState {
   bot_id : String

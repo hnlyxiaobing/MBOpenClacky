@@ -11,6 +11,12 @@ pub(all) struct WebFetch {
 } derive(Eq, Debug)
 
 ///|
+pub extend WebFetch with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WebFetch with Eq::{not_equal, equal}
+
+///|
 pub fn WebFetch::new() -> WebFetch {
   { max_length: 3000 }
 }

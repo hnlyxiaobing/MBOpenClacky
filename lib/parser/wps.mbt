@@ -6,6 +6,12 @@ pub(all) struct WpsParser {
 } derive(Eq, Debug)
 
 ///|
+pub extend WpsParser with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WpsParser with Eq::{not_equal, equal}
+
+///|
 /// Create a new WpsParser with default settings
 pub fn WpsParser::new() -> WpsParser {
   { preserve_formatting: true }

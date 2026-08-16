@@ -15,6 +15,12 @@ pub(all) enum TuiMode {
 } derive(Eq, Debug)
 
 ///|
+pub extend TuiMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TuiMode with Eq::{not_equal, equal}
+
+///|
 /// A record of a tool execution for display in the tool panel.
 pub(all) struct ToolExecution {
   /// Tool name.
@@ -26,6 +32,9 @@ pub(all) struct ToolExecution {
   /// Result summary (set after completion).
   mut result_summary : String
 } derive(Debug)
+
+///|
+pub extend ToolExecution with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Pending confirmation data for tool approval prompts.
@@ -44,6 +53,9 @@ pub(all) struct PendingConfirmation {
 } derive(Debug)
 
 ///|
+pub extend PendingConfirmation with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Approval dialog state (TUI-03).
 pub(all) struct ApprovalDialog {
   /// Tool name requesting approval.
@@ -55,6 +67,9 @@ pub(all) struct ApprovalDialog {
   /// Full detailed arguments for the details section.
   mut detailed_args : String
 } derive(Debug)
+
+///|
+pub extend ApprovalDialog with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Configuration menu dialog item (TUI-03).
@@ -70,6 +85,9 @@ pub(all) struct ConfigMenuItem {
 } derive(Debug)
 
 ///|
+pub extend ConfigMenuItem with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Configuration menu dialog state (TUI-03).
 pub(all) struct ConfigMenuDialog {
   /// Dialog title.
@@ -81,6 +99,9 @@ pub(all) struct ConfigMenuDialog {
   /// Checked state array (parallel to items, for multi-select).
   mut checked : Array[Bool]
 } derive(Debug)
+
+///|
+pub extend ConfigMenuDialog with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Form field for multi-field form dialogs (TUI-03).
@@ -98,6 +119,9 @@ pub(all) struct FormField {
 } derive(Debug)
 
 ///|
+pub extend FormField with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Form dialog state (TUI-03).
 pub(all) struct FormDialog {
   /// Dialog title.
@@ -109,6 +133,9 @@ pub(all) struct FormDialog {
 } derive(Debug)
 
 ///|
+pub extend FormDialog with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Configuration menu mode discriminator.
 pub(all) enum ConfigMode {
   /// Full config menu (add/edit/delete/switch models).
@@ -116,6 +143,12 @@ pub(all) enum ConfigMode {
   /// Model-only selector (switch only).
   ModelSelector
 } derive(Eq, Debug)
+
+///|
+pub extend ConfigMode with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigMode with Eq::{not_equal, equal}
 
 ///|
 /// A config form submit waiting for its connection test to finish.
@@ -142,11 +175,20 @@ pub(all) struct PendingConfigTest {
 } derive(Debug)
 
 ///|
+pub extend PendingConfigTest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Config form action type.
 pub(all) enum ConfigAction {
   Add
   Edit
 } derive(Eq, Debug)
+
+///|
+pub extend ConfigAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ConfigAction with Eq::{not_equal, equal}
 
 ///|
 /// Level of the two-level /model drawer.
@@ -156,6 +198,12 @@ pub(all) enum ModelDrawerLevel {
   /// Level 2: sub-model drawer of one card.
   SubModels
 } derive(Eq, Debug)
+
+///|
+pub extend ModelDrawerLevel with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ModelDrawerLevel with Eq::{not_equal, equal}
 
 ///|
 /// Unified dialog state for the TUI (TUI-03).
@@ -186,6 +234,9 @@ pub(all) enum DialogState {
     card_model~ : String
   )
 } derive(Debug)
+
+///|
+pub extend DialogState with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Shared state between TUI rendering and Agent hooks.

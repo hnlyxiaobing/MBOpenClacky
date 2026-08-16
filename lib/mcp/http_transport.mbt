@@ -36,6 +36,16 @@ pub fn HttpTransport::new(spec : McpServerSpec) -> HttpTransport {
 }
 
 ///|
+pub extend HttpTransport with Transport::{
+  start,
+  stop,
+  alive,
+  send_message,
+  on_message,
+  stderr_tail,
+}
+
+///|
 /// Start the HTTP transport (establish connection).
 /// TODO: FFI implementation needed - requires HTTP client capability.
 pub impl Transport for HttpTransport with fn start(self) {

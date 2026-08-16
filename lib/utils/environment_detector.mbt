@@ -12,6 +12,12 @@ pub enum EnvironmentType {
 } derive(Debug, Eq)
 
 ///|
+pub extend EnvironmentType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EnvironmentType with Eq::{not_equal, equal}
+
+///|
 /// Detect the current environment type.
 /// Checks in priority order: CI > Docker > WSL > SSH > Local.
 pub fn detect_environment() -> EnvironmentType {

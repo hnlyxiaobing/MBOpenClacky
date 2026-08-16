@@ -13,6 +13,9 @@ pub(all) struct PatchInfo {
 } derive(Debug)
 
 ///|
+pub extend PatchInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// PatchLoader scans a directory for patch description files and applies them.
 pub(all) struct PatchLoader {
   patch_dir : String

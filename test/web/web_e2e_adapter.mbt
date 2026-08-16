@@ -18,6 +18,9 @@ pub(all) struct WebEvalSetup {
 } derive(Debug)
 
 ///|
+pub extend WebEvalSetup with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A single HTTP request step in a web eval scenario.
 pub(all) struct WebEvalStep {
   /// HTTP method (GET, POST, PUT, DELETE).
@@ -31,6 +34,9 @@ pub(all) struct WebEvalStep {
   /// Optional per-step assertions (checked immediately after this step).
   step_assertions : Array[WebEvalAssertion]
 } derive(Debug)
+
+///|
+pub extend WebEvalStep with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// An assertion to verify the response of the last HTTP step.
@@ -54,6 +60,9 @@ pub(all) enum WebEvalAssertion {
 } derive(Debug)
 
 ///|
+pub extend WebEvalAssertion with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// A complete web API eval scenario.
 pub(all) struct WebEvalScenario {
   /// Scenario name.
@@ -67,6 +76,9 @@ pub(all) struct WebEvalScenario {
   /// Assertions to check against the last response.
   assertions : Array[WebEvalAssertion]
 } derive(Debug)
+
+///|
+pub extend WebEvalScenario with @moonbitlang/core/debug.Debug::{to_repr}
 
 // ── JSON Parsing ──────────────────────────────────────────────────────
 

@@ -10,6 +10,15 @@ pub(all) enum Role {
 } derive(Eq, Compare, Debug)
 
 ///|
+pub extend Role with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Role with Compare::{op_lt, op_le, op_ge, compare, op_gt}
+
+///|
+pub extend Role with Eq::{not_equal, equal}
+
+///|
 /// Convert Role to OpenAI-compatible lowercase string.
 pub fn Role::to_string_value(self : Role) -> String {
   match self {

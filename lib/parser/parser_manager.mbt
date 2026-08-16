@@ -5,6 +5,12 @@ pub(all) struct ParserManager {
 } derive(Eq, Debug)
 
 ///|
+pub extend ParserManager with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParserManager with Eq::{not_equal, equal}
+
+///|
 /// Create a new ParserManager with default settings
 pub fn ParserManager::new() -> ParserManager {
   { preserve_formatting: true }

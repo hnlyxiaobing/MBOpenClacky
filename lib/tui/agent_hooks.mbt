@@ -17,6 +17,9 @@ pub(all) struct HookHandlerConfig {
 } derive(Debug)
 
 ///|
+pub extend HookHandlerConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// Default configuration: all tracking enabled.
 pub fn default_hook_config() -> HookHandlerConfig {
   { track_tool_history: true, track_llm_calls: true, track_phases: true }

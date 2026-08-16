@@ -27,10 +27,16 @@ struct UpgradeResponse {
 } derive(ToJson)
 
 ///|
+pub extend UpgradeResponse with ToJson::{to_json}
+
+///|
 struct RestartResponse {
   ok : Bool
   message : String
 } derive(ToJson)
+
+///|
+pub extend RestartResponse with ToJson::{to_json}
 
 // ── Helpers ───────────────────────────────────────────────────────
 

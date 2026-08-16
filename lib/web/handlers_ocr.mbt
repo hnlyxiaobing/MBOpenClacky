@@ -12,12 +12,20 @@ struct OCRConfigUpdateRequest {
 } derive(FromJson)
 
 ///|
+pub extend OCRConfigUpdateRequest with @moonbitlang/core/json.FromJson::{
+  from_json,
+}
+
+///|
 struct OCRConfigResponse {
   ok : Bool
   source : String
   model : String?
   message : String?
 } derive(ToJson)
+
+///|
+pub extend OCRConfigResponse with ToJson::{to_json}
 
 ///|
 struct OCRTestResponse {
@@ -27,11 +35,17 @@ struct OCRTestResponse {
 } derive(ToJson)
 
 ///|
+pub extend OCRTestResponse with ToJson::{to_json}
+
+///|
 struct OCRImageRequest {
   data_url : String?
   path : String?
   prompt : String?
 } derive(FromJson)
+
+///|
+pub extend OCRImageRequest with @moonbitlang/core/json.FromJson::{from_json}
 
 // ── Helpers ───────────────────────────────────────────────────────
 

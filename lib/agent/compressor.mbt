@@ -75,6 +75,12 @@ pub(all) struct CompressionConfig {
 } derive(Eq, Debug)
 
 ///|
+pub extend CompressionConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressionConfig with Eq::{not_equal, equal}
+
+///|
 /// Create a default compression configuration.
 pub fn CompressionConfig::default() -> CompressionConfig {
   {
@@ -95,6 +101,12 @@ pub(all) struct CompressedSummary {
   token_savings : Double
 } derive(Eq, Debug)
 
+///|
+pub extend CompressedSummary with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressedSummary with Eq::{not_equal, equal}
+
 // ── CompressionContext ────────────────────────────────────────────────────────
 
 ///|
@@ -109,6 +121,12 @@ pub(all) struct CompressionContext {
   compression_history : Array[CompressedSummary]
 } derive(Eq, Debug)
 
+///|
+pub extend CompressionContext with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend CompressionContext with Eq::{not_equal, equal}
+
 // ── ParsedCompression ─────────────────────────────────────────────────────────
 
 ///|
@@ -117,6 +135,12 @@ pub(all) struct ParsedCompression {
   topics : String
   summary : String
 } derive(Eq, Debug)
+
+///|
+pub extend ParsedCompression with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParsedCompression with Eq::{not_equal, equal}
 
 // ── Core Detection Functions ──────────────────────────────────────────────────
 

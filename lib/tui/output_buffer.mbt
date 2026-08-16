@@ -23,6 +23,12 @@ pub(all) enum OutputKind {
 } derive(Eq, Debug)
 
 ///|
+pub extend OutputKind with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OutputKind with Eq::{not_equal, equal}
+
+///|
 /// A single output entry in the buffer.
 pub(all) struct OutputEntry {
   /// Unique monotonic identifier.
@@ -38,6 +44,9 @@ pub(all) struct OutputEntry {
   /// Whether this entry is collapsed (showing only first N lines).
   mut collapsed : Bool
 } derive(Debug)
+
+///|
+pub extend OutputEntry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Check if entry is fully committed (all lines in scrollback).

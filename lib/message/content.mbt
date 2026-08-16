@@ -5,11 +5,23 @@ pub(all) struct TextBlock {
 } derive(Eq, Debug)
 
 ///|
+pub extend TextBlock with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TextBlock with Eq::{not_equal, equal}
+
+///|
 /// An image content block in a message.
 pub(all) struct ImageBlock {
   url : String
   detail : String?
 } derive(Eq, Debug)
+
+///|
+pub extend ImageBlock with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ImageBlock with Eq::{not_equal, equal}
 
 ///| A content block that can be text or an image.
 
@@ -19,6 +31,12 @@ pub(all) enum ContentBlock {
   Text(TextBlock)
   Image(ImageBlock)
 } derive(Eq, Debug)
+
+///|
+pub extend ContentBlock with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ContentBlock with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for TextBlock with fn to_json(self) {

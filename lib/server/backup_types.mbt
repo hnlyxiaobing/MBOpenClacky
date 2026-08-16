@@ -9,6 +9,15 @@ pub(all) struct BackupConfig {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BackupConfig with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BackupConfig with Eq::{not_equal, equal}
+
+///|
+pub extend BackupConfig with ToJson::{to_json}
+
+///|
 /// Backup result
 pub(all) struct BackupResult {
   archive_path : String
@@ -17,6 +26,15 @@ pub(all) struct BackupResult {
   timestamp : String
   files_count : Int
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend BackupResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BackupResult with Eq::{not_equal, equal}
+
+///|
+pub extend BackupResult with ToJson::{to_json}
 
 ///|
 /// Backup entry in list
@@ -28,10 +46,25 @@ pub(all) struct BackupEntry {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend BackupEntry with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BackupEntry with Eq::{not_equal, equal}
+
+///|
+pub extend BackupEntry with ToJson::{to_json}
+
+///|
 /// Backup error
 pub(all) suberror BackupError {
   BackupError(String)
 } derive(ToJson, Debug)
+
+///|
+pub extend BackupError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BackupError with ToJson::{to_json}
 
 ///|
 /// Create default backup configuration

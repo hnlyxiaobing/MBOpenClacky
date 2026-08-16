@@ -23,6 +23,18 @@ pub(all) struct ModelCapabilities {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub extend ModelCapabilities with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ModelCapabilities with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
+pub extend ModelCapabilities with Eq::{not_equal, equal}
+
+///|
+pub extend ModelCapabilities with ToJson::{to_json}
+
+///|
 /// Full-capability model (e.g. Claude Sonnet/Opus, GPT-5.x).
 /// Vision + reasoning + function calling + streaming + JSON mode.
 pub fn ModelCapabilities::full() -> ModelCapabilities {

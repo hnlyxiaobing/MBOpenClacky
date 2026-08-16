@@ -15,6 +15,12 @@ pub enum BrowserType {
 } derive(Debug, Eq)
 
 ///|
+pub extend BrowserType with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrowserType with Eq::{not_equal, equal}
+
+///|
 impl Show for BrowserType with fn output(self, logger) {
   match self {
     Chrome => logger.write_string("Chrome")
@@ -40,6 +46,12 @@ pub(all) struct BrowserInfo {
   path : String?
   is_headless : Bool
 } derive(Debug, Eq)
+
+///|
+pub extend BrowserInfo with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend BrowserInfo with Eq::{not_equal, equal}
 
 ///|
 /// Detect current browser from environment variables.

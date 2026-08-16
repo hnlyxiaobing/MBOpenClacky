@@ -12,6 +12,15 @@ pub(all) struct OCRResult {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend OCRResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OCRResult with Eq::{not_equal, equal}
+
+///|
+pub extend OCRResult with ToJson::{to_json}
+
+///|
 /// Trait for OCR providers. Open for multiple implementations.
 /// Reserved as extension point — currently `VisionOCR` provides a concrete
 /// implementation without implementing this trait directly.
@@ -34,6 +43,9 @@ let default_ocr_prompt : String = "Extract all text from this image exactly as i
 pub(all) struct VisionOCR {
   resolver : VisionResolver
 } derive(Debug)
+
+///|
+pub extend VisionOCR with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a VisionOCR with default configuration.

@@ -9,6 +9,18 @@
 ///| ToolRegistry.
 
 ///|
+pub extend AnyTool with Tool::{
+  name,
+  execute,
+  to_function_definition,
+  format_result,
+  description,
+  parameters,
+  category,
+  format_call,
+}
+
+///|
 pub impl Tool for AnyTool with fn name(self) -> String {
   match self {
     FileReader(t) => t.name()

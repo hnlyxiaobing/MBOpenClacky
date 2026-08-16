@@ -46,6 +46,17 @@ pub fn FeishuAdapter::new(
 }
 
 ///|
+pub extend FeishuAdapter with Adapter::{
+  platform_id,
+  start,
+  stop,
+  send_text,
+  update_message,
+  supports_message_updates,
+  validate_config,
+}
+
+///|
 pub impl Adapter for FeishuAdapter with fn platform_id(_self) -> Platform {
   Platform::Feishu
 }

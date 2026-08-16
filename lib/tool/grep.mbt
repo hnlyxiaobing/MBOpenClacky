@@ -10,6 +10,12 @@ pub(all) struct Grep {
 } derive(Eq, Debug)
 
 ///|
+pub extend Grep with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Grep with Eq::{not_equal, equal}
+
+///|
 pub fn Grep::new() -> Grep {
   {
     max_files: 50,
