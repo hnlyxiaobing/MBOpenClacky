@@ -173,4 +173,5 @@ Ruby 参照（openclacky，只读）：`lib/clacky/tools/security.rb`、`lib/cla
   - **审计日志范围（MB 为超集）**：Ruby block 时不记录（直接 raise），仅记录 sudo warning / curl replacement / chmod replacement；MB 保留 block 全记录（sudo/curl|sh/pkill/server/危险模式），便于无人值守追溯；时间戳从 unix ms 改为 ISO 8601（对齐 Ruby `Time.now.iso8601`；MB 发 UTC `Z`——S-FFI-08 约束不再新增本地偏移 FFI）。
   - **Windows 白名单（剔除完成）**：`set`（可赋值）与 `wmic`（`process call create` 等写语义）均剔除，注释注明理由。
   - **默认注册集 MemoryTool/TrashManager（MB 超集保留）**：Ruby 无二者；按 BUG-0016~0019 裁决原则（超集不删除、文档注明），`make_default_registry` 注释 + 本记录双重注明。
+- 2026-08-18：**验收完成并归档**：全部 10 项验收标准勾选通过；`moon check` 0 errors 0 warnings；全量 `moon test` 3633/3633（lib/agent 377/377）；代码提交 `f8a96d6`（feat(agent): P6 security/registry/executor 对齐任务包 1-4 完成，13 文件 +1519/-115）；spec 移入 `specs/completed/`。
 
