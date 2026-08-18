@@ -49,26 +49,27 @@ pub fn MockLlmServer::port(self : MockLlmServer) -> Int {
 }
 
 ///|
-/// 停止服务器。注意：在本事件循环（Windows 完成端口）里，直接 close 监听
+/// 停止服务器。注意：在本事件循环里，直接 close 监听
 /// socket 不会唤醒正在阻塞的 accept，会导致 task group 永不退出。
 /// 因此先置 stopped 标志，再建立一个自连接触发 accept 返回，让 serve 循环
-/// 检查标志后退出；最后关闭监听 socket 兜底。
+/// 检查标志后退出。关键：自连接必须保持打开（不能在 serve accept 之前关闭）——
+/// 若客户端在服务端 accept 之前 close，TCP RST 会让连接从 accept 队列消失，
+/// accept 永不返回（实测竞态）。自连接的服务端一侧由 serve 的 stopped 分支关闭。
 pub async fn MockLlmServer::shutdown(self : MockLlmServer) -> Unit {
   self.stopped = true
-  let conn = @socket.Tcp::connect(self.listener.addr) catch {
-    _ => {
-      self.listener.close()
-      return
-    }
+  // 建立自连接但保持打开（serve 取走后会关闭服务端一侧）。
+  // 仅当 connect 失败（罕见）才 close listener 兜底。
+  let conn = Some(@socket.Tcp::connect(self.listener.addr)) catch { _ => None }
+  match conn {
+    Some(_) => () // 保持打开：serve 的 stopped 分支会关闭服务端一侧
+    None => self.listener.close()
   }
-  conn.close()
-  self.listener.close()
 }
 
 ///|
 /// accept 主循环（在 task group 里 spawn_bg 运行）。
 /// 串行处理连接：ReAct 循环的请求本来就是严格串行的。
-/// shutdown 后循环退出。
+/// shutdown 后循环退出（shutdown 置 stopped 并建立自连接唤醒 accept）。
 pub async fn MockLlmServer::serve(self : MockLlmServer) -> Unit {
   for ;; {
     let (conn, _) = self.listener.accept() catch { _ => break }
@@ -82,6 +83,8 @@ pub async fn MockLlmServer::serve(self : MockLlmServer) -> Unit {
     }
     conn.close()
   }
+  // 兜底：accept 抛异常 break 时监听 socket 可能未关闭
+  self.listener.close()
 }
 
 ///|
