@@ -129,6 +129,33 @@ pub fn Message::user(content : String) -> Message {
 }
 
 ///|
+/// Create a user message with structured content blocks (text/image).
+/// Used by the image_inject path to deliver base64 screenshots as
+/// image_url blocks — OpenAI-compatible APIs only accept images in
+/// `role:"user"` messages, not in tool messages. Marks the message as
+/// system-injected so the Web UI history dedup can exclude it (Ruby
+/// `observe` appends it with `system_injected: true`).
+pub fn Message::user_blocks(blocks : Array[ContentBlock]) -> Message {
+  {
+    role: User,
+    content: Blocks(blocks),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+}
+
+///|
 /// Create an assistant message with plain text content.
 pub fn Message::assistant(content : String) -> Message {
   {

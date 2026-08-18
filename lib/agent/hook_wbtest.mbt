@@ -99,7 +99,12 @@ test "hook_emit_all_event_types" {
   hm.emit(MessageAdded)
   hm.emit(ToolExecuting("test_tool", "{}"))
   hm.emit(
-    ToolExecuted("test_tool", { id: "call_1", content: "ok", is_error: false }),
+    ToolExecuted("test_tool", {
+      id: "call_1",
+      content: "ok",
+      is_error: false,
+      image_inject: None,
+    }),
   )
   hm.emit(ErrorOccurred("test error"))
   hm.emit(

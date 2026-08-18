@@ -94,7 +94,8 @@ Ruby 参照（openclacky，只读）：`lib/clacky/tools/security.rb`、`lib/cla
 | `lib/tool/registry.mbt` | 修改 | sanitize_name、悬空别名处置、"all" 语义、注册序输出 |
 | `lib/tool/registry_wbtest.mbt`（若不存在则新建） | 新建/修改 | resolve 链、allowed_definitions、顺序稳定性用例 |
 | `lib/agent/react.mbt` | 修改 | 先解析后判定、denied 继续配对、TODO reminder 注入、image_inject 挂载点 |
-| `lib/agent/tool_executor.mbt` | 修改 | JSON 结果构造、参数解析修复层、is_safe_operation 判 canonical |
+| `lib/agent/tool_executor.mbt` | 修改 | JSON 结果构造、参数解析修复层、is_safe_operation 判 canonical、image_inject 解析挂载 |
+| `lib/message/message.mbt` | 修改 | 新增 `Message::user_blocks`（带 Blocks 的 user 消息构造，`system_injected: Some(true)`） |
 | `lib/agent/agent_wbtest.mbt`（或对应 wbtest） | 修改/新建 | 别名权限、denied 配对、伪 JSON、reminder 用例 |
 
 ### 不涉及文件
@@ -130,15 +131,16 @@ Ruby 参照（openclacky，只读）：`lib/clacky/tools/security.rb`、`lib/cla
 
 ## 验收标准 [必填]
 
-- [ ] `make_safe` 对 sudo / pkill clacky / curl|sh / eval() / 反引号等矩阵所列模式全部真实拦截，wbtest 双向覆盖
-- [ ] ConfirmSafes 探针：`rm -rf x` 类非白名单命令要求确认（不再自动执行）
-- [ ] 别名与大小写变体（`Write`/`rm`→trash_manager）在 ConfirmSafes 下不绕过确认
-- [ ] 含拒绝的多工具轮次：下一轮请求通过 Anthropic/OpenAI 协议校验（每个 tool_use 有配对 tool_result）
-- [ ] 错误/拒绝结果为合法 JSON（`@json.parse` 往返用例）
-- [ ] 非法 JSON arguments 产出 parse-error 结果而非"缺少参数"
-- [ ] 悬空别名处置完成（删除或补齐，二选一有记录）；`allowed_definitions` 任意位置 all 放行；工具定义顺序稳定
-- [ ] TODO reminder 按 Ruby 语义注入；`validate_secret_write` 接入点就绪（write/edit 接入随 S10/S16）
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] `make_safe` 对 sudo / pkill clacky / curl|sh / eval() / 反引号等矩阵所列模式全部真实拦截，wbtest 双向覆盖（`security_wbtest.mbt`：每条模式正/反用例）
+- [x] ConfirmSafes 探针：`rm -rf x` 类非白名单命令要求确认（不再自动执行）——`should_auto_execute_confirm_safes_*` 系列 + `run_confirm_safes_denies_unsafe` 运行级用例
+- [x] 别名与大小写变体（`Write`/`rm`→trash_manager）在 ConfirmSafes 下不绕过确认（resolve canonical 后判定）
+- [x] 含拒绝的多工具轮次：下一轮请求通过 Anthropic/OpenAI 协议校验（每个 tool_use 有配对 tool_result，denied 不再 break 悬空）
+- [x] 错误/拒绝结果为合法 JSON（`@json.parse` 往返用例）
+- [x] 非法 JSON arguments 产出 parse-error 结果而非"缺少参数"（`repair_json` 修复层 + 显式 parse-error）
+- [x] 悬空别名处置完成（删除并记录）；`allowed_definitions` 任意位置 all 放行；工具定义顺序稳定（注册序）
+- [x] TODO reminder 按 Ruby 语义注入（频控 30s + 去重）；`validate_secret_write` 接入点就绪（chmod 分支已接入，write/edit 本体接入随 S10/S16）
+- [x] image_inject 链路：`[image_inject]` 占位符被 executor 消费、注入 user 图片消息（vision / 无 vision 双路径 + 占位无数据保留原文）
+- [x] `moon check` 0 errors 0 warnings；全量 `moon test` 无回归（lib/agent 377/377，全量 3633/3633，见提交记录）
 
 ## 风险评估 [必填]
 
@@ -159,3 +161,16 @@ Ruby 参照（openclacky，只读）：`lib/clacky/tools/security.rb`、`lib/cla
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§2 security/registry/executor 残留条目核实落 spec；全部 17 项验证记录完成）。
+- 2026-08-18：**任务包 1（security 拦截面）完成**：`is_pattern_match` 接入 `@string.Regex`（失败回退字面匹配，防降级静默失效）；正则拦截全部生效；`is_secret_path` 改路径段级匹配（消除 `.env` 全路径子串误伤）；`validate_secret_write` 接入 chmod 校验路径；审计日志落地（`~/.clacky/safety_logs/{cwd-hash}/safety.log`，JSON line）；`safe_readonly_commands` 剔除 `set`/`wmic`；chmod +x 分支落地（allow + secret 校验 + 审计）。
+- 2026-08-18：**任务包 2（registry + 权限链）完成**：`sanitize_name` 落地（剥离引号/空白/多余前缀，含 `Bundle: ` 前缀剥离与 JSON 包裹识别）；4 条悬空别名（undo/redo/tasks/task_history）删除；`allowed_definitions` 任意位置 `all` 全放行；`all_definitions`/`allowed_definitions`/`tool_names`/`by_category` 全部改注册序输出（`order` 数组，Map 仅索引）；`act_async` 先 resolve 后判定（canonical 名进 `is_safe_operation`）。
+- 2026-08-18：**任务包 3（executor 结果面 + reminder）完成**：`build_success_result`/`build_error_result`/`build_denied_result` 全改 `@json` 构造合法 JSON；`repair_json` 修复层（截断补全/单引号/尾逗号/未引号键值，失败返回显式 parse-error）；denied 配对语义（剩余 tool_calls 逐个产生 denied 结果，不再 break 悬空）；TODO reminder 注入（频控 30s + 去重哈希）。
+- 2026-08-18：**任务包 4（image_inject 链路）完成**：`ToolResultEntry.image_inject` 字段 + `extract_image_inject` 解析（`[image_inject]` marker → `mime_type:`/`base64_data:`/`path:`；`(N chars)` 占位视为无数据保留原文）；`Agent::observe` 消费注入：vision 支持 → `[Text("[Image: label]"), Image(data: url)]` blocks user 消息，无 vision → 文本占位；`system_injected: true` 标记（Web UI history dedup 依赖）；产出侧 base64 由 B3 负责。涉及 `lib/message/message.mbt`（新增 `Message::user_blocks`）。
+- 2026-08-18：**决策 11 裁决记录**（逐条对照 Ruby `security.rb` 330 行全量精读）：
+  - **sudo（MB 保留硬拦截+审计）**：Ruby 允许并 `log_warning("sudo command executed: ...")`；MB 含 server/无人值守部署面，`sudo` 无人在环可确认，保留硬拦截为 MB 超集（注释已声明）。
+  - **curl|sh（MB 保留硬拦截+审计）**：Ruby 重写为 `curl {url} -o {backup_dir}/downloaded_script_{ts}.sh && echo '🔒 ...'` 供人工审阅；MB 无强制审查 UI 流，拒绝+提示手动下载审阅更符合场景（注释已声明）。
+  - **`$(...)`（MB 保留超集拦截）**：Ruby dangerous_patterns 不拦截 `$()`（仅 eval(/exec(/system(/反引号/`| sh$`/`| bash$`/重定向系统目录）；MB 保留拦截（命令替换为高危模式，且 MB 拦截面已收敛误报——先 strip 引号再匹配）。
+  - **chmod +x（按 Ruby 补齐，正则比 Ruby 更正确）**：Ruby `replace_chmod_command`（`/^chmod\s+x/`）实际匹配不到真实 `chmod +x` 用法（空格后 `+x`），MB 用 `^chmod[[:space:]]*\+x` 真实命中；语义对齐：allow + 目标路径 `validate_secret_write`（= Ruby validate_file_path）+ `audit_log("allow", ...)`。
+  - **审计日志范围（MB 为超集）**：Ruby block 时不记录（直接 raise），仅记录 sudo warning / curl replacement / chmod replacement；MB 保留 block 全记录（sudo/curl|sh/pkill/server/危险模式），便于无人值守追溯；时间戳从 unix ms 改为 ISO 8601（对齐 Ruby `Time.now.iso8601`；MB 发 UTC `Z`——S-FFI-08 约束不再新增本地偏移 FFI）。
+  - **Windows 白名单（剔除完成）**：`set`（可赋值）与 `wmic`（`process call create` 等写语义）均剔除，注释注明理由。
+  - **默认注册集 MemoryTool/TrashManager（MB 超集保留）**：Ruby 无二者；按 BUG-0016~0019 裁决原则（超集不删除、文档注明），`make_default_registry` 注释 + 本记录双重注明。
+

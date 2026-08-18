@@ -1413,6 +1413,7 @@ fn TuiEvalSimulator::emit_hook(
           id: "eval_call",
           content: get_s("content"),
           is_error: get_b("is_error"),
+          image_inject: None,
         }),
       )
     "tool_denied" =>

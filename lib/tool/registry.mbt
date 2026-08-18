@@ -64,10 +64,9 @@ let tool_aliases : Map[String, String] = {
   "ask_user": "request_user_feedback",
   "user_feedback": "request_user_feedback",
   "ask": "request_user_feedback",
-  "undo": "undo_task",
-  "redo": "redo_task",
-  "tasks": "list_tasks",
-  "task_history": "list_tasks",
+  // NOTE: undo/redo/tasks/task_history aliases were removed — their targets
+  // (undo_task/redo_task/list_tasks) are not registered tools; resolving to
+  // a nonexistent tool only produces confusing errors (Ruby has no such aliases).
   "trash": "trash_manager",
   "delete": "trash_manager",
   "rm": "trash_manager",
@@ -76,10 +75,12 @@ let tool_aliases : Map[String, String] = {
 
 ///|
 /// ToolRegistry stores registered tools and provides name resolution
-/// with alias support.
+/// with alias support. Registration order is preserved (Ruby Hash semantics:
+/// `@tools.values` iterates in insertion order).
 pub(all) struct ToolRegistry {
   tools : Map[String, AnyTool]
   downcased_index : Map[String, String]
+  order : Array[String]
 } derive(Debug)
 
 ///|
@@ -88,36 +89,42 @@ pub extend ToolRegistry with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a new empty ToolRegistry.
 pub fn ToolRegistry::new() -> ToolRegistry {
-  { tools: Map([]), downcased_index: Map([]) }
+  { tools: Map([]), downcased_index: Map([]), order: [] }
 }
 
 ///|
 /// Register a tool in the registry.
 /// The tool is indexed by its canonical name and also added to a
-/// case-insensitive index.
+/// case-insensitive index. Registration order is recorded for
+/// deterministic iteration.
 pub fn ToolRegistry::register(self : ToolRegistry, tool : AnyTool) -> Unit {
   let name = tool.name()
-  self.tools[name] = tool
-  self.downcased_index[name.to_lower()] = name
+  if !self.tools.contains(name) {
+    self.tools[name] = tool
+    self.downcased_index[name.to_lower()] = name
+    self.order.push(name)
+  }
 }
 
 ///|
 /// Resolve a tool name (possibly alias, case variation) to its canonical name.
 ///
-/// Resolution order:
-/// 1. Exact match in tools map
-/// 2. Case-insensitive match via downcased_index
-/// 3. tool_aliases lookup
-/// 4. Hyphen-to-underscore normalization then retry steps 2-3
+/// Resolution order (Ruby tool_registry.rb):
+/// 1. sanitize_name (cut at "<|" and first whitespace/comma/semicolon/pipe)
+/// 2. Exact match in tools map
+/// 3. Case-insensitive match via downcased_index
+/// 4. tool_aliases lookup
+/// 5. Hyphen-to-underscore normalization then retry steps 3-4
 ///
 /// Returns the canonical name if found, None otherwise.
 pub fn ToolRegistry::resolve(self : ToolRegistry, name : String) -> String? {
-  // 1. Exact match
-  if self.tools.contains(name) {
-    return Some(name)
+  // 1. Sanitize: strip LLM-format artifacts ("file_reader<|...", "file_reader, args")
+  let sanitized = sanitize_name(name)
+  if self.tools.contains(sanitized) {
+    return Some(sanitized)
   }
 
-  let downcased = name.to_lower()
+  let downcased = sanitized.to_lower()
 
   // 2. Case-insensitive match
   match self.downcased_index.get(downcased) {
@@ -148,6 +155,61 @@ pub fn ToolRegistry::resolve(self : ToolRegistry, name : String) -> String? {
 }
 
 ///|
+/// Sanitize a raw tool name coming from the LLM before resolution.
+/// Ruby semantics (tool_registry.rb#sanitize_name):
+/// 1. Cut at the first "<|" (LLM-format artifact)
+/// 2. Cut at the first whitespace / comma / semicolon / pipe
+/// 3. Strip surrounding whitespace
+pub fn sanitize_name(name : String) -> String {
+  let mut result = name
+  // 1. Cut at "<|"
+  let lt = index_of(result, "<|")
+  if lt >= 0 {
+    result = result[:lt].to_owned()
+  }
+  // 2. Cut at first delimiter: space, tab, \n, \r, comma, semicolon, pipe
+  //    (char-index scan so it stays consistent with substring semantics)
+  let mut cut = -1
+  let mut pos = 0
+  for ch in result.iter() {
+    if ch == ' ' ||
+      ch == '\t' ||
+      ch == '\n' ||
+      ch == '\r' ||
+      ch == ',' ||
+      ch == ';' ||
+      ch == '|' {
+      cut = pos
+      break
+    }
+    pos = pos + 1
+  }
+  if cut >= 0 {
+    result = result[:cut].to_owned()
+  }
+  // 3. Strip
+  result.trim().to_owned()
+}
+
+///|
+/// Byte index of `needle` in `haystack`, or -1.
+fn index_of(haystack : String, needle : String) -> Int {
+  if needle == "" {
+    return 0
+  }
+  let h_len = haystack.length()
+  let n_len = needle.length()
+  let mut i = 0
+  while i <= h_len - n_len {
+    if haystack[i:i + n_len] == needle {
+      return i
+    }
+    i = i + 1
+  }
+  -1
+}
+
+///|
 /// Get a tool by its canonical name.
 /// Returns the tool object, or None if not registered.
 pub fn ToolRegistry::get(self : ToolRegistry, name : String) -> AnyTool? {
@@ -169,30 +231,38 @@ pub fn ToolRegistry::get_resolved(
 }
 
 ///|
-/// Get all registered tool objects.
+/// Get all registered tool objects in registration order.
 pub fn ToolRegistry::all(self : ToolRegistry) -> Array[AnyTool] {
   let result : Array[AnyTool] = []
-  for _name, tool in self.tools {
-    result.push(tool)
+  for name in self.order {
+    match self.tools.get(name) {
+      Some(tool) => result.push(tool)
+      None => ()
+    }
   }
   result
 }
 
 ///|
-/// Get function definitions for all registered tools (for LLM API).
+/// Get function definitions for all registered tools (for LLM API),
+/// in registration order.
 pub fn ToolRegistry::all_definitions(
   self : ToolRegistry,
 ) -> Array[FunctionDefinition] {
   let result : Array[FunctionDefinition] = []
-  for _name, tool in self.tools {
-    result.push(tool.to_function_definition())
+  for name in self.order {
+    match self.tools.get(name) {
+      Some(tool) => result.push(tool.to_function_definition())
+      None => ()
+    }
   }
   result
 }
 
 ///|
 /// Get function definitions filtered by an allowed tools whitelist.
-/// If allowed_tools is None or contains "all", returns all definitions.
+/// If allowed_tools is None or contains "all" anywhere, returns all definitions
+/// (Ruby: `allowed_tools.nil? || allowed_tools.include?("all")`).
 pub fn ToolRegistry::allowed_definitions(
   self : ToolRegistry,
   allowed_tools : Array[String]?,
@@ -200,13 +270,16 @@ pub fn ToolRegistry::allowed_definitions(
   match allowed_tools {
     None => self.all_definitions()
     Some(tools) =>
-      if tools.length() == 1 && tools[0] == "all" {
+      if tools.contains("all") {
         self.all_definitions()
       } else {
         let result : Array[FunctionDefinition] = []
-        for name, tool in self.tools {
+        for name in self.order {
           if tools.contains(name) {
-            result.push(tool.to_function_definition())
+            match self.tools.get(name) {
+              Some(tool) => result.push(tool.to_function_definition())
+              None => ()
+            }
           }
         }
         result
@@ -215,25 +288,28 @@ pub fn ToolRegistry::allowed_definitions(
 }
 
 ///|
-/// Get all registered canonical tool names.
+/// Get all registered canonical tool names in registration order.
 pub fn ToolRegistry::tool_names(self : ToolRegistry) -> Array[String] {
   let result : Array[String] = []
-  for name, _tool in self.tools {
-    result.push(name)
+  for name in self.order {
+    if self.tools.contains(name) {
+      result.push(name)
+    }
   }
   result
 }
 
 ///|
-/// Get tools filtered by category.
+/// Get tools filtered by category, in registration order.
 pub fn ToolRegistry::by_category(
   self : ToolRegistry,
   category : ToolCategory,
 ) -> Array[AnyTool] {
   let result : Array[AnyTool] = []
-  for _name, tool in self.tools {
-    if tool.category() == category {
-      result.push(tool)
+  for name in self.order {
+    match self.tools.get(name) {
+      Some(tool) => if tool.category() == category { result.push(tool) }
+      None => ()
     }
   }
   result
@@ -253,6 +329,9 @@ pub fn ToolRegistry::size(self : ToolRegistry) -> Int {
 
 ///|
 /// Build a default ToolRegistry with all built-in tools registered.
+/// MB 超集（决策 11 裁决，2026-08-18）: MemoryTool/TrashManager 为 MB 扩展，
+/// Ruby 原版默认注册集无二者 —— 超集功能保留（BUG-0016~0019 裁决原则），
+/// 差异记录见 spec 变更记录。
 pub fn make_default_registry() -> ToolRegistry {
   let registry = ToolRegistry::new()
   registry.register(AnyTool::FileReader(FileReader::new()))

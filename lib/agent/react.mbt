@@ -129,7 +129,16 @@ priv struct ActionResult {
 /// OBSERVE phase: inject tool results into conversation history.
 ///
 /// Uses client.format_tool_results to produce protocol-correct
-/// tool result messages (Anthropic vs OpenAI format).
+/// tool result messages (Anthropic vs OpenAI format), then appends a
+/// follow-up `role:"user"` message for any image payloads that could not
+/// be delivered inside the tool message.
+///
+/// Background (Ruby `Agent#observe`): OpenAI-compatible APIs only accept
+/// image_url content blocks in `role:"user"` messages. Putting base64
+/// data in a `role:"tool"` message causes it to be JSON-encoded as plain
+/// text, inflating token counts by 20-40x. The tool result carries a
+/// plain-text description for the LLM; the actual image is delivered
+/// here as a data URL.
 fn Agent::observe(
   self : Agent,
   response : @client.LlmResponse,
@@ -145,6 +154,45 @@ fn Agent::observe(
   for msg in formatted {
     self.history.push(stamp_created_at(msg))
     self.hook_manager.emit(MessageAdded)
+  }
+  // Append a follow-up `role:"user"` message for image payloads.
+  let vision_supported = self.client.vision_supported
+  for entry in tool_results {
+    match entry.image_inject {
+      None => ()
+      Some(inject) => {
+        let data_url = "data:\{inject.mime_type};base64,\{inject.base64_data}"
+        let label = match inject.path {
+          Some(p) => {
+            let segs = p.split("/").collect()
+            if segs.length() > 0 {
+              segs[segs.length() - 1]
+            } else {
+              "image"
+            }
+          }
+          None => "image"
+        }
+        let blocks : Array[@message.ContentBlock] = if vision_supported {
+          [
+            @message.ContentBlock::Text({ text: "[Image: \{label}]" }),
+            @message.ContentBlock::Image({ url: data_url, detail: None }),
+          ]
+        } else {
+          // No vision support: keep a plain-text placeholder so the model
+          // still knows an image was captured. (Ruby falls back to OCR
+          // here — not yet ported.)
+          let suffix = match inject.path {
+            Some(p) => " (saved at \{p})"
+            None => ""
+          }
+          [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}" })]
+        }
+        let msg = @message.Message::user_blocks(blocks)
+        self.history.push(stamp_created_at(msg))
+        self.hook_manager.emit(MessageAdded)
+      }
+    }
   }
 }
 
@@ -245,9 +293,23 @@ async fn Agent::act_async(
 
   for call in tool_calls {
     if denied {
-      break
+      // Ruby semantics: once a call is denied, auto-deny every remaining
+      // tool_use in this assistant message so each one has a paired
+      // tool_result (protocol invariant for Anthropic/OpenAI).
+      let entry = build_denied_result(
+        call,
+        Some("Auto-denied due to user rejection of previous tool"),
+      )
+      self.hook_manager.emit(ToolDenied(call.function.name))
+      results.push(entry)
+      continue
     }
-    let tool_name = call.function.name
+    // Resolve the canonical name BEFORE permission checks so aliases and
+    // case variants (e.g. "Write", "EDIT") cannot bypass confirmation.
+    let tool_name = match self.tool_registry.resolve(call.function.name) {
+      Some(name) => name
+      None => call.function.name
+    }
     let args = parse_tool_arguments(call)
     if !self.should_auto_execute(tool_name, args) {
       // Tool needs confirmation - use async queue if available

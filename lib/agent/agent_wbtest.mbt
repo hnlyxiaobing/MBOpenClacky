@@ -1322,3 +1322,451 @@ async test "thinking_silent_response_retries" {
   assert_true(result.status == Success)
   @debug.assert_eq(agent.iterations, 2)
 }
+
+// ── P6: JSON result builders ─────────────────────────────────────────────────
+
+///|
+test "build_error_result_valid_json" {
+  let call = make_tool_call("call_1", "file_reader", "{}")
+  let entry = build_error_result(call, "boom \"quoted\"\nline2")
+  assert_true(entry.is_error)
+  // Content must round-trip through a JSON parser (keys quoted, escaped)
+  let parsed = @json.parse(entry.content) catch { _ => abort("invalid json") }
+  match parsed {
+    Object(obj) =>
+      match obj.get("error") {
+        Some(String(s)) => @debug.assert_eq(s, "boom \"quoted\"\nline2")
+        _ => abort("missing error key")
+      }
+    _ => abort("not an object")
+  }
+}
+
+///|
+test "build_denied_result_valid_json" {
+  let call = make_tool_call("call_1", "write", "{}")
+  let entry = build_denied_result(call, None)
+  assert_true(entry.is_error)
+  let parsed = @json.parse(entry.content) catch { _ => abort("invalid json") }
+  match parsed {
+    Object(obj) => {
+      match obj.get("error") {
+        Some(String(s)) =>
+          @debug.assert_eq(
+            s, "Tool use denied by user. This action was NOT performed.",
+          )
+        _ => abort("missing error key")
+      }
+      match obj.get("action_performed") {
+        Some(False) => ()
+        _ => abort("action_performed must be false")
+      }
+      match obj.get("user_feedback") {
+        Some(Null) => ()
+        _ => abort("user_feedback must be null")
+      }
+    }
+    _ => abort("not an object")
+  }
+}
+
+///|
+test "build_denied_result_with_feedback_content" {
+  let call = make_tool_call("call_1", "write", "{}")
+  let entry = build_denied_result(call, Some("Do it differently"))
+  let parsed = @json.parse(entry.content) catch { _ => abort("invalid json") }
+  match parsed {
+    Object(obj) => {
+      match obj.get("error") {
+        Some(String(s)) =>
+          @debug.assert_eq(
+            s, "Tool use denied by user. This action was NOT performed. User feedback: Do it differently",
+          )
+        _ => abort("missing error key")
+      }
+      match obj.get("user_feedback") {
+        Some(String(fb)) => @debug.assert_eq(fb, "Do it differently")
+        _ => abort("user_feedback must carry the feedback")
+      }
+    }
+    _ => abort("not an object")
+  }
+}
+
+// ── P6: argument parsing with JSON repair ────────────────────────────────────
+
+///|
+test "parse_repairs_trailing_comma" {
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"a.txt\",\"max_lines\":10,}",
+  )
+  let (args, err) = parse_tool_arguments_checked(call)
+  assert_true(err is None)
+  match args.get("max_lines") {
+    Some(Number(n, ..)) => @debug.assert_eq(n.to_int(), 10)
+    _ => abort("max_lines missing after repair")
+  }
+}
+
+///|
+test "parse_repairs_xml_contamination" {
+  let call = make_tool_call(
+    "c1", "file_reader", "{<parameter name=\"path\">\"a.txt\"</parameter><parameter name=\"max_lines\">10</parameter>}",
+  )
+  let (args, err) = parse_tool_arguments_checked(call)
+  assert_true(err is None)
+  match args.get("path") {
+    Some(String(p)) => @debug.assert_eq(p, "a.txt")
+    _ => abort("path missing after repair")
+  }
+  match args.get("max_lines") {
+    Some(Number(n, ..)) => @debug.assert_eq(n.to_int(), 10)
+    _ => abort("max_lines missing after repair")
+  }
+}
+
+///|
+test "parse_repairs_truncated_object" {
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"a.txt\",\"max_lines\":10",
+  )
+  let (args, err) = parse_tool_arguments_checked(call)
+  assert_true(err is None)
+  match args.get("path") {
+    Some(String(p)) => @debug.assert_eq(p, "a.txt")
+    _ => abort("path missing after repair")
+  }
+}
+
+///|
+test "parse_repairs_escaped_quotes" {
+  // Literal backslash-quote artifacts: {"path":\"a.txt\"}
+  let call = make_tool_call("c1", "file_reader", "{\\\"path\\\":\\\"a.txt\\\"}")
+  let (args, err) = parse_tool_arguments_checked(call)
+  assert_true(err is None)
+  match args.get("path") {
+    Some(String(p)) => @debug.assert_eq(p, "a.txt")
+    _ => abort("path missing after repair")
+  }
+}
+
+///|
+test "parse_unparseable_returns_error" {
+  let call = make_tool_call("c1", "file_reader", "{{{ not json")
+  let (_, err) = parse_tool_arguments_checked(call)
+  match err {
+    Some(msg) => assert_true(msg.contains("could not be parsed"))
+    None => abort("expected parse error")
+  }
+}
+
+///|
+test "parse_empty_arguments_ok" {
+  let call = make_tool_call("c1", "file_reader", "")
+  let (args, err) = parse_tool_arguments_checked(call)
+  assert_true(err is None)
+  @debug.assert_eq(args.length(), 0)
+}
+
+///|
+test "parse_tool_arguments_backwards_compat" {
+  let call = make_tool_call("c1", "file_reader", "not json")
+  let args = parse_tool_arguments(call)
+  @debug.assert_eq(args.length(), 0)
+}
+
+// ── P6: TODO reminder injection ──────────────────────────────────────────────
+
+///|
+test "inject_todo_reminder_appends" {
+  let agent = make_test_agent()
+  let _ = agent.todo_manager.add("Write docs", "")
+  let call = make_tool_call("c1", "file_reader", "{}")
+  let entry : ToolResultEntry = {
+    id: "c1",
+    content: "ok",
+    is_error: false,
+    image_inject: None,
+  }
+  let injected = agent.inject_todo_reminder(call, entry)
+  assert_true(injected.content.contains("ok"))
+  assert_true(
+    injected.content.contains("📋 REMINDER: You have 1 pending TODO(s)"),
+  )
+  assert_true(injected.content.contains("todo_manager with action 'complete'"))
+}
+
+///|
+test "inject_todo_reminder_skips_todo_manager" {
+  let agent = make_test_agent()
+  let _ = agent.todo_manager.add("Write docs", "")
+  let call = make_tool_call("c1", "todo_manager", "{}")
+  let entry : ToolResultEntry = {
+    id: "c1",
+    content: "ok",
+    is_error: false,
+    image_inject: None,
+  }
+  let injected = agent.inject_todo_reminder(call, entry)
+  @debug.assert_eq(injected.content, "ok")
+}
+
+///|
+test "inject_todo_reminder_no_pending" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "file_reader", "{}")
+  let entry : ToolResultEntry = {
+    id: "c1",
+    content: "ok",
+    is_error: false,
+    image_inject: None,
+  }
+  let injected = agent.inject_todo_reminder(call, entry)
+  @debug.assert_eq(injected.content, "ok")
+}
+
+// ── P6: execute_single_tool integration ──────────────────────────────────────
+
+///|
+async test "execute_single_tool_unparseable_returns_error" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "file_reader", "{{{ not json")
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(entry.content.contains("could not be parsed as JSON"))
+}
+
+///|
+async test "execute_single_tool_injects_todo_reminder" {
+  let agent = make_test_agent()
+  let _ = agent.todo_manager.add("Write docs", "")
+  let call = make_tool_call("c1", "memory", "{\"action\":\"list\"}")
+  let entry = agent.execute_single_tool(call)
+  assert_false(entry.is_error)
+  assert_true(entry.content.contains("REMINDER"))
+  assert_true(entry.content.contains("1 pending TODO"))
+}
+
+// ── P6: denied pairing + canonical-name permission checks ────────────────────
+
+///|
+async test "act_async_denied_pairs_all_tool_calls" {
+  let agent = make_test_agent()
+  agent.config.permission_mode = @config.ConfirmSafes
+  // write requires confirmation; deny it
+  agent.confirmation_callback = Some(fn(_name, _args) { false })
+  let calls = [
+    make_tool_call(
+      "c1", "write", "{\"path\":\"/tmp/p6_deny.txt\",\"content\":\"x\"}",
+    ),
+    make_tool_call("c2", "file_reader", "{\"path\":\"/tmp/p6_deny.txt\"}"),
+    make_tool_call("c3", "glob", "{\"pattern\":\"*\"}"),
+  ]
+  let result = agent.act_async(calls)
+  assert_true(result.denied)
+  // Every tool_use must have a paired result (protocol invariant)
+  @debug.assert_eq(result.tool_results.length(), 3)
+  for i in 0..<3 {
+    @debug.assert_eq(result.tool_results[i].id, "c\{i + 1}")
+    assert_true(result.tool_results[i].is_error)
+  }
+  // Remaining calls are auto-denied with an explanatory reason
+  assert_true(result.tool_results[1].content.contains("Auto-denied"))
+  assert_true(result.tool_results[2].content.contains("Auto-denied"))
+  // The first denial uses the standard user-denial wording
+  assert_true(
+    result.tool_results[0].content.contains("Tool use denied by user"),
+  )
+}
+
+///|
+async test "act_async_uppercase_write_not_auto_executed" {
+  let agent = make_test_agent()
+  agent.config.permission_mode = @config.ConfirmSafes
+  agent.confirmation_callback = Some(fn(_name, _args) { false })
+  // "Write" (uppercase) must be resolved to write before permission checks,
+  // so it requires confirmation instead of auto-executing.
+  let call = make_tool_call(
+    "c1", "Write", "{\"path\":\"/tmp/p6_upper.txt\",\"content\":\"x\"}",
+  )
+  let result = agent.act_async([call])
+  @debug.assert_eq(result.tool_results.length(), 1)
+  assert_true(result.denied)
+  assert_true(result.tool_results[0].content.contains("denied"))
+}
+
+// ── P6: image_inject extraction + observe consumption ────────────────────────
+
+///|
+test "extract_image_inject_no_marker" {
+  let (content, inject) = extract_image_inject("plain tool output")
+  @debug.assert_eq(content, "plain tool output")
+  @debug.assert_eq(inject, None)
+}
+
+///|
+test "extract_image_inject_real_base64" {
+  let raw = "Screenshot saved to /tmp/shot.png\n" +
+    "[image_inject]\n" +
+    "mime_type: image/png\n" +
+    "base64_data: iVBORw0KGgoAAAANSUhEUg==\n" +
+    "path: /tmp/shot.png\n"
+  let (content, inject) = extract_image_inject(raw)
+  // Marker block stripped from content
+  @debug.assert_eq(content, "Screenshot saved to /tmp/shot.png")
+  let expected : ImageInject? = Some({
+    mime_type: "image/png",
+    base64_data: "iVBORw0KGgoAAAANSUhEUg==",
+    path: Some("/tmp/shot.png"),
+  })
+  @debug.assert_eq(inject, expected)
+}
+
+///|
+test "extract_image_inject_placeholder_keeps_content" {
+  // B3 producer currently ships a length placeholder, not real base64.
+  // The parser must keep the whole content (with path/size info) and
+  // return no inject so the LLM still sees the description.
+  let raw = "Screenshot saved to /tmp/shot.png\n" +
+    "[image_inject]\n" +
+    "mime_type: image/png\n" +
+    "base64_data: (12345 chars)\n" +
+    "path: /tmp/shot.png\n"
+  let (content, inject) = extract_image_inject(raw)
+  @debug.assert_eq(content, raw)
+  @debug.assert_eq(inject, None)
+}
+
+///|
+test "extract_image_inject_missing_base64_no_inject" {
+  let raw = "Screenshot saved to /tmp/shot.png\n" +
+    "[image_inject]\n" +
+    "mime_type: image/png\n" +
+    "path: /tmp/shot.png\n"
+  let (content, inject) = extract_image_inject(raw)
+  @debug.assert_eq(content, raw)
+  @debug.assert_eq(inject, None)
+}
+
+///|
+async test "observe_injects_image_user_message" {
+  let agent = make_test_agent()
+  let inject = ImageInject::{
+    mime_type: "image/png",
+    base64_data: "iVBORw0KGgoAAAANSUhEUg==",
+    path: Some("/tmp/shot.png"),
+  }
+  let entries : Array[ToolResultEntry] = [
+    {
+      id: "c1",
+      content: "Screenshot saved to /tmp/shot.png",
+      is_error: false,
+      image_inject: Some(inject),
+    },
+  ]
+  let response = make_mock_response("I'll take a screenshot", Some([]))
+  agent.observe(response, entries)
+  // The last history message is the follow-up user message with the image.
+  let last = agent.history[agent.history.length() - 1]
+  @debug.assert_eq(last.role, @message.User)
+  @debug.assert_eq(last.system_injected, Some(true))
+  match last.content {
+    @message.Blocks(blocks) => {
+      @debug.assert_eq(blocks.length(), 2)
+      // Text label block
+      match blocks[0] {
+        @message.Text(tb) => @debug.assert_eq(tb.text, "[Image: shot.png]")
+        _ => assert_true(false)
+      }
+      // Image block with data URL
+      match blocks[1] {
+        @message.Image(ib) =>
+          @debug.assert_eq(
+            ib.url,
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
+          )
+        _ => assert_true(false)
+      }
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+async test "observe_no_vision_uses_text_placeholder" {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "test-model",
+    @config.OpenAICompletions,
+    vision_supported=false,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new(
+    "test-session", "test-agent", "/tmp/test", client, config,
+  )
+  let inject = ImageInject::{
+    mime_type: "image/png",
+    base64_data: "iVBORw0KGgoAAAANSUhEUg==",
+    path: None,
+  }
+  let entries : Array[ToolResultEntry] = [
+    {
+      id: "c1",
+      content: "screenshot",
+      is_error: false,
+      image_inject: Some(inject),
+    },
+  ]
+  let response = make_mock_response("I'll take a screenshot", Some([]))
+  agent.observe(response, entries)
+  let last = agent.history[agent.history.length() - 1]
+  match last.content {
+    @message.Blocks(blocks) => {
+      @debug.assert_eq(blocks.length(), 1)
+      match blocks[0] {
+        @message.Text(tb) => @debug.assert_eq(tb.text, "[Image: image]")
+        _ => assert_true(false)
+      }
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+async test "observe_no_image_inject_no_extra_message" {
+  let agent = make_test_agent()
+  let entries : Array[ToolResultEntry] = [
+    { id: "c1", content: "plain result", is_error: false, image_inject: None },
+  ]
+  let response = make_mock_response(
+    "I'll take a screenshot",
+    Some([make_tool_call("c1", "browser_screenshot", "{}")]),
+  )
+  let before = agent.history.length()
+  agent.observe(response, entries)
+  // Only the tool-result message was appended (no image follow-up).
+  @debug.assert_eq(agent.history.length(), before + 1)
+}
+
+///|
+test "build_success_result_extracts_image_inject" {
+  let call = make_tool_call("c1", "browser_screenshot", "{}")
+  let result = @tool.ToolResult::{
+    content: "Screenshot saved to /tmp/shot.png\n" +
+    "[image_inject]\n" +
+    "mime_type: image/png\n" +
+    "base64_data: iVBORw0KGgoAAAANSUhEUg==\n" +
+    "path: /tmp/shot.png\n",
+    is_error: false,
+  }
+  let entry = build_success_result(call, result)
+  @debug.assert_eq(entry.content, "Screenshot saved to /tmp/shot.png")
+  let expected : ImageInject? = Some({
+    mime_type: "image/png",
+    base64_data: "iVBORw0KGgoAAAANSUhEUg==",
+    path: Some("/tmp/shot.png"),
+  })
+  @debug.assert_eq(entry.image_inject, expected)
+  @debug.assert_eq(entry.is_error, false)
+}

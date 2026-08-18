@@ -204,3 +204,113 @@ test "registry_get_resolved_via_alias" {
   let tool2 = reg.get_resolved("nonexistent")
   assert_true(tool2 is None)
 }
+
+///|
+test "sanitize_name_cuts_llm_artifact" {
+  assert_eq(sanitize_name("file_reader<|tool_call_id_123"), "file_reader")
+  assert_eq(sanitize_name("file_reader<|"), "file_reader")
+  assert_eq(sanitize_name("write<|anything_after"), "write")
+}
+
+///|
+test "sanitize_name_cuts_delimiters" {
+  assert_eq(sanitize_name("read_file, args"), "read_file")
+  assert_eq(sanitize_name("read_file; args"), "read_file")
+  assert_eq(sanitize_name("read_file|pipe"), "read_file")
+  assert_eq(sanitize_name("read_file  spaced"), "read_file")
+  assert_eq(sanitize_name("read_file\t tabbed"), "read_file")
+}
+
+///|
+test "sanitize_name_strips_whitespace" {
+  // Ruby: leading delimiter cuts the name to "" (split semantics),
+  // trailing whitespace is stripped away.
+  assert_eq(sanitize_name("  file_reader  "), "")
+  assert_eq(sanitize_name("\tfile_reader\n"), "")
+  assert_eq(sanitize_name("file_reader "), "file_reader")
+}
+
+///|
+test "sanitize_name_passthrough_clean" {
+  assert_eq(sanitize_name("file_reader"), "file_reader")
+  assert_eq(sanitize_name("request_user_feedback"), "request_user_feedback")
+  assert_eq(sanitize_name(""), "")
+}
+
+///|
+test "resolve_sanitizes_before_lookup" {
+  let reg = make_default_registry()
+  assert_eq(reg.resolve("file_reader<|tool_call_1"), Some("file_reader"))
+  assert_eq(reg.resolve("write, mode=overwrite"), Some("write"))
+  assert_eq(reg.resolve("terminal "), Some("terminal"))
+  // leading whitespace is a delimiter per Ruby split semantics -> ""
+  assert_true(reg.resolve("  terminal  ") is None)
+  assert_eq(reg.resolve("WEB_SEARCH<|ctx"), Some("web_search"))
+  assert_eq(reg.resolve("find_files, pattern"), Some("glob"))
+}
+
+///|
+test "allowed_definitions_all_anywhere" {
+  let reg = make_default_registry()
+  let all = reg.all_definitions()
+  assert_true(all.length() == reg.size())
+  // "all" at any position passes everything through (Ruby: include?("all"))
+  assert_true(reg.allowed_definitions(Some(["all"])).length() == all.length())
+  assert_true(
+    reg.allowed_definitions(Some(["all", "file_reader"])).length() ==
+    all.length(),
+  )
+  assert_true(
+    reg.allowed_definitions(Some(["file_reader", "all"])).length() ==
+    all.length(),
+  )
+  assert_true(reg.allowed_definitions(None).length() == all.length())
+}
+
+///|
+test "allowed_definitions_filters" {
+  let reg = make_default_registry()
+  let subset = reg.allowed_definitions(Some(["file_reader", "write"]))
+  assert_true(subset.length() == 2)
+  let names = subset.map(fn(f) { f.function.name })
+  assert_true(names.contains("file_reader"))
+  assert_true(names.contains("write"))
+}
+
+///|
+test "registration_order_preserved" {
+  let reg = ToolRegistry::new()
+  reg.register(AnyTool::WebSearch(WebSearch::new()))
+  reg.register(AnyTool::FileReader(FileReader::new()))
+  reg.register(AnyTool::Terminal(Terminal::new()))
+  assert_eq(reg.tool_names(), ["web_search", "file_reader", "terminal"])
+  let all = reg.all()
+  assert_eq(all.length(), 3)
+  assert_eq(all[0].name(), "web_search")
+  assert_eq(all[1].name(), "file_reader")
+  assert_eq(all[2].name(), "terminal")
+  // definitions keep the same order
+  let defs = reg.all_definitions()
+  assert_eq(defs[0].function.name, "web_search")
+  assert_eq(defs[2].function.name, "terminal")
+}
+
+///|
+test "registry_register_duplicate_keeps_original_order" {
+  let reg = ToolRegistry::new()
+  reg.register(AnyTool::FileReader(FileReader::new()))
+  reg.register(AnyTool::Write(Write::new()))
+  reg.register(AnyTool::FileReader(FileReader::new()))
+  assert_true(reg.size() == 2)
+  assert_eq(reg.tool_names(), ["file_reader", "write"])
+}
+
+///|
+test "dangling_aliases_removed" {
+  // Ruby has no undo/redo/tasks/task_history aliases; targets don't exist.
+  let reg = make_default_registry()
+  assert_true(reg.resolve("undo") is None)
+  assert_true(reg.resolve("redo") is None)
+  assert_true(reg.resolve("tasks") is None)
+  assert_true(reg.resolve("task_history") is None)
+}

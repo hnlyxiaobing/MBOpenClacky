@@ -263,6 +263,7 @@ test "handle_hook_event_ToolExecuted" {
     id: "call_1",
     content: "file contents",
     is_error: false,
+    image_inject: None,
   }
   dispatch_hook_event(
     state_ref,

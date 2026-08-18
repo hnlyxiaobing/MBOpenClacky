@@ -5,6 +5,26 @@
 ///|
 
 ///|
+/// Sidecar image payload delivered out-of-band from tool content.
+///
+/// Aligned with Ruby `image_inject` (openclacky tools/browser.rb +
+/// agent/tool_executor.rb): the tool content carries a plain-text
+/// description for the LLM, while the base64 image rides here and is
+/// attached to the next `role:"user"` message (OpenAI-compatible APIs
+/// reject image_url blocks in tool messages).
+pub(all) struct ImageInject {
+  mime_type : String
+  base64_data : String
+  path : String?
+} derive(Eq, Debug)
+
+///|
+pub extend ImageInject with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ImageInject with Eq::{not_equal, equal}
+
+///|
 /// Internal result entry for a single tool execution.
 pub(all) struct ToolResultEntry {
   /// The tool_call_id this result corresponds to.
@@ -13,6 +33,8 @@ pub(all) struct ToolResultEntry {
   content : String
   /// Whether this result represents an error.
   is_error : Bool
+  /// Out-of-band image payload (screenshot base64), if any.
+  image_inject : ImageInject?
 } derive(Eq, Debug)
 
 ///|
@@ -82,7 +104,17 @@ pub async fn Agent::execute_single_tool(
   call : @message.ToolCall,
 ) -> ToolResultEntry {
   let tool_name = call.function.name
-  let args = parse_tool_arguments(call)
+  let (args, parse_error) = parse_tool_arguments_checked(call)
+  // ── Parse error: report explicitly so the model knows the arguments
+  // itself were unparseable (distinct from "missing parameter").
+  match parse_error {
+    Some(err) => {
+      let result = build_error_result(call, err)
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
+    }
+    None => ()
+  }
   // ── Patch chain: before-hook ────────────────────────────────
   // Short-circuit on Block so a misbehaving patch can deny the call
   // before we even resolve the tool.
@@ -122,33 +154,48 @@ pub async fn Agent::execute_single_tool(
   match canonical {
     "invoke_skill" => {
       let result = self.execute_invoke_skill(call, args)
+      let final_result = if result.is_error {
+        result
+      } else {
+        self.inject_todo_reminder(call, result)
+      }
       self.patch_chain.check_after(
         tool_name,
         args,
-        result.content,
-        result.is_error,
+        final_result.content,
+        final_result.is_error,
       )
-      return result
+      return final_result
     }
     "memory" => {
       let result = self.execute_memory_tool(call, args)
+      let final_result = if result.is_error {
+        result
+      } else {
+        self.inject_todo_reminder(call, result)
+      }
       self.patch_chain.check_after(
         tool_name,
         args,
-        result.content,
-        result.is_error,
+        final_result.content,
+        final_result.is_error,
       )
-      return result
+      return final_result
     }
     "todo_manager" => {
       let result = self.execute_todo_tool(call, args)
+      let final_result = if result.is_error {
+        result
+      } else {
+        self.inject_todo_reminder(call, result)
+      }
       self.patch_chain.check_after(
         tool_name,
         args,
-        result.content,
-        result.is_error,
+        final_result.content,
+        final_result.is_error,
       )
-      return result
+      return final_result
     }
     _ => ()
   }
@@ -157,7 +204,9 @@ pub async fn Agent::execute_single_tool(
   let final_result = if result.is_error {
     build_error_result(call, result.content)
   } else {
-    build_success_result(call, result)
+    // Inject the TODO reminder on successful results (Ruby semantics)
+    let entry = build_success_result(call, result)
+    self.inject_todo_reminder(call, entry)
   }
   // ── Patch chain: after-hook (audit only, never blocks) ────────
   self.patch_chain.check_after(
@@ -415,26 +464,225 @@ fn Agent::execute_todo_tool(
 ///|
 /// Parse tool arguments from the JSON string in a ToolCall.
 ///
-/// Returns an empty map if arguments are empty or invalid JSON.
-pub fn parse_tool_arguments(call : @message.ToolCall) -> Map[String, Json] {
-  let args_str = call.function.arguments.trim()
+/// Tries a strict parse first; on failure attempts a bounded JSON repair
+/// (unescape, XML tag removal, comma/quote/bracket fixes — aligned with
+/// Ruby `Utils::ArgumentsParser.repair_json`) before giving up.
+///
+/// Returns `(args, error)`: `error` is None on success (including empty
+/// arguments); Some(message) when the arguments could not be parsed as
+/// JSON — distinct from "missing required parameter" so the model gets
+/// the right repair direction.
+pub fn parse_tool_arguments_checked(
+  call : @message.ToolCall,
+) -> (Map[String, Json], String?) {
+  let args_str = call.function.arguments.trim().to_owned()
   if args_str.length() == 0 {
-    return Map([])
+    return (Map([]), None)
   }
+  // Attempt 1: strict parse
+  match parse_json_object(args_str) {
+    Some(m) => (m, None)
+    None =>
+      // Attempt 2: repair then parse
+      match parse_json_object(repair_json(args_str)) {
+        Some(m) => (m, None)
+        None =>
+          (
+            Map([]),
+            Some(
+              "Tool arguments could not be parsed as JSON. Raw arguments: \{call.function.arguments}",
+            ),
+          )
+      }
+  }
+}
+
+///|
+/// Parse a JSON string into a Map, returning None on any failure
+/// (invalid JSON or a non-object root).
+fn parse_json_object(s : String) -> Map[String, Json]? {
   try {
-    let parsed = @json.parse(args_str)
+    let parsed = @json.parse(s)
     match parsed {
       Object(obj) => {
         let result : Map[String, Json] = Map([])
         for k, v in obj {
           result[k] = v
         }
-        result
+        Some(result)
       }
-      _ => Map([])
+      _ => None
     }
   } catch {
-    _ => Map([])
+    _ => None
+  }
+}
+
+///|
+/// Backwards-compatible simple parse: empty map on any failure.
+/// Used where only the argument values matter (e.g. permission checks).
+pub fn parse_tool_arguments(call : @message.ToolCall) -> Map[String, Json] {
+  let (args, _err) = parse_tool_arguments_checked(call)
+  args
+}
+
+///|
+/// Bounded JSON repair for common LLM output defects.
+///
+/// Aligned with Ruby `Utils::ArgumentsParser.repair_json`:
+/// - unescape literal `\n` / `\"` (backslash followed by n / quote)
+/// - convert `<parameter name="key">` / `<parameter name="key":` to
+///   `, "key": `
+/// - strip stray angle-bracket tags
+/// - normalize comma/newline sequences; drop duplicate, trailing and
+///   leading commas
+/// - close unclosed quotes and brackets
+///
+/// This is a best-effort repair — if the result still fails to parse,
+/// the caller returns an explicit parse-error result.
+fn repair_json(json_str : String) -> String {
+  let mut result = json_str.trim().to_owned()
+  // Literal backslash-n → real newline
+  result = replace_all(result, "\\n", "\n")
+  // Literal backslash-quote → real quote
+  result = replace_all(result, "\\\"", "\"")
+  // Remove closing parameter tags
+  result = replace_all(result, "</parameter>", "")
+  // Convert `<parameter name="key">` / `<parameter name="key":` to `, "key": `
+  let marker = "<parameter name=\""
+  while true {
+    match index_of_from(result, marker, 0) {
+      None => break
+      Some(pos) => {
+        let key_start = pos + marker.length()
+        match index_of_from(result, "\"", key_start) {
+          None => break
+          Some(qpos) => {
+            let key = result[key_start:qpos].to_owned()
+            let after_quote = result[qpos + 1:].to_owned()
+            let tail = if after_quote.length() > 0 &&
+              (after_quote[0] == '>' || after_quote[0] == ':') {
+              after_quote[1:].to_owned()
+            } else {
+              after_quote
+            }
+            let head = result[:pos].to_owned()
+            result = head + ", \"\{key}\": " + tail
+          }
+        }
+      }
+    }
+  }
+  // Strip remaining angle-bracket tags
+  result = strip_angle_tags(result)
+  // Comma / newline normalization (JSON treats newlines as whitespace)
+  result = replace_all(result, "\n,", ",")
+  result = replace_all(result, ",\n", ",")
+  // Collapse duplicate commas
+  while result.contains(",,") {
+    result = replace_all(result, ",,", ",")
+  }
+  // Trailing commas (with optional single space)
+  result = replace_all(result, ",}", "}")
+  result = replace_all(result, ",]", "]")
+  result = replace_all(result, ", }", "}")
+  result = replace_all(result, ", ]", "]")
+  // Leading commas (with optional single space)
+  result = replace_all(result, "{,", "{")
+  result = replace_all(result, "[,", "[")
+  result = replace_all(result, "{ ,", "{")
+  result = replace_all(result, "[ ,", "[")
+  result = replace_all(result, "{,\"", "{\"")
+  result = replace_all(result, "[,\"", "[\"")
+  result = replace_all(result, "{ ,\"", "{\"")
+  result = replace_all(result, "[ ,\"", "[\"")
+  // Balance quotes: odd count → append one
+  let mut quote_count = 0
+  for c in result {
+    if c == '"' {
+      quote_count = quote_count + 1
+    }
+  }
+  if quote_count % 2 == 1 {
+    result = result + "\""
+  }
+  // Balance brackets: close any unclosed
+  let mut depth = 0
+  for c in result {
+    match c {
+      '{' | '[' => depth = depth + 1
+      '}' | ']' => depth = depth - 1
+      _ => ()
+    }
+  }
+  while depth > 0 {
+    result = result + "}"
+    depth = depth - 1
+  }
+  result
+}
+
+///|
+/// Replace ALL occurrences of `old` with `new`.
+///
+/// MoonBit's `String::replace` only replaces the first match; Ruby's
+/// `gsub` (which `repair_json` mirrors) replaces all, so loop until done.
+fn replace_all(s : String, old : String, new : String) -> String {
+  let mut result = s
+  while result.contains(old) {
+    result = result.replace(old~, new~)
+  }
+  result
+}
+
+///|
+/// Remove closed `<...>` angle-bracket tags from a string.
+fn strip_angle_tags(s : String) -> String {
+  let mut result = s
+  while true {
+    match index_of_from(result, "<", 0) {
+      None => break
+      Some(pos) =>
+        match index_of_from(result, ">", pos + 1) {
+          None => break
+          Some(gpos) => {
+            let head = result[:pos].to_owned()
+            let tail = result[gpos + 1:].to_owned()
+            result = head + tail
+          }
+        }
+    }
+  }
+  result
+}
+
+///|
+/// Inject a TODO reminder into a successful tool result when there are
+/// pending tasks. Skips the todo_manager tool itself to avoid
+/// redundancy. Aligned with Ruby `ToolExecutor#inject_todo_reminder`.
+fn Agent::inject_todo_reminder(
+  self : Agent,
+  call : @message.ToolCall,
+  entry : ToolResultEntry,
+) -> ToolResultEntry {
+  if call.function.name == "todo_manager" {
+    return entry
+  }
+  let mut pending = 0
+  for item in self.todo_manager.list_all() {
+    if item.status == Pending {
+      pending = pending + 1
+    }
+  }
+  if pending == 0 {
+    return entry
+  }
+  let reminder = "\n\n📋 REMINDER: You have \{pending} pending TODO(s). After completing each task, remember to mark it as complete using todo_manager with action 'complete' and the task id."
+  {
+    id: entry.id,
+    content: entry.content + reminder,
+    is_error: entry.is_error,
+    image_inject: entry.image_inject,
   }
 }
 
@@ -475,36 +723,106 @@ fn truncate_tool_output(output : String) -> String {
 
 ///|
 /// Build a success result entry from a tool call and its result.
-/// Applies output truncation to prevent context window overflow.
+/// Applies output truncation to prevent context window overflow, then
+/// extracts any `[image_inject]` sidecar marker into the out-of-band
+/// `image_inject` field (aligned with Ruby build_success_result).
 pub fn build_success_result(
   call : @message.ToolCall,
   result : @tool.ToolResult,
 ) -> ToolResultEntry {
-  {
-    id: call.id,
-    content: truncate_tool_output(result.content),
-    is_error: false,
+  let (content, inject) = extract_image_inject(
+    truncate_tool_output(result.content),
+  )
+  { id: call.id, content, is_error: false, image_inject: inject }
+}
+
+///|
+/// Extract an `[image_inject]` sidecar marker from tool output.
+///
+/// Contract with the browser screenshot producer (B3 spec): the marker
+/// block looks like
+///
+/// ```text
+/// [image_inject]
+/// mime_type: image/png
+/// base64_data: <base64>
+/// path: /tmp/xxx.png          (optional)
+/// ```
+///
+/// When present with a real base64 payload, the marker block is stripped
+/// from the content (so it is not tokenised as text) and returned as an
+/// `ImageInject`. If the marker carries only a placeholder (e.g. the
+/// current `base64_data: (12345 chars)` length summary with no payload)
+/// the content is returned unchanged with no inject, preserving the
+/// path/size info for the LLM until the producer ships real data.
+pub fn extract_image_inject(content : String) -> (String, ImageInject?) {
+  match content.find("[image_inject]") {
+    None => (content, None)
+    Some(marker_pos) => {
+      let tail = content[marker_pos + "[image_inject]".length():].to_owned()
+      let mut mime_type : String? = None
+      let mut base64_data : String? = None
+      let mut path : String? = None
+      for line in tail.split("\n") {
+        if line.has_prefix("mime_type:") {
+          mime_type = Some(line["mime_type:".length():].trim().to_owned())
+        } else if line.has_prefix("base64_data:") {
+          let value = line["base64_data:".length():].trim().to_owned()
+          // Skip placeholder length summaries: `(12345 chars)`
+          if value.length() > 0 && value[0] != '(' {
+            base64_data = Some(value)
+          }
+        } else if line.has_prefix("path:") {
+          path = Some(line["path:".length():].trim().to_owned())
+        }
+      }
+      match (mime_type, base64_data) {
+        (Some(mime), Some(b64)) =>
+          (
+            content[:marker_pos].to_owned().trim().to_owned(),
+            Some({ mime_type: mime, base64_data: b64, path }),
+          )
+        _ => (content, None)
+      }
+    }
   }
 }
 
 ///|
 /// Build an error result entry from a tool call and error message.
+/// Content is a valid JSON object `{"error": "..."}` — keys are quoted
+/// and the message is escaped by the JSON serializer.
 pub fn build_error_result(
   call : @message.ToolCall,
   error_message : String,
 ) -> ToolResultEntry {
-  { id: call.id, content: "{error: \{error_message}}", is_error: true }
+  let content = Json::object({ "error": ToJson::to_json(error_message) }).stringify()
+  { id: call.id, content, is_error: true, image_inject: None }
 }
 
 ///|
 /// Build a denied result entry when user rejects tool execution.
+///
+/// Aligned with Ruby `ToolExecutor#build_denied_result` (non
+/// system-injected path): the message clearly states the action was NOT
+/// performed, `action_performed` is false and `user_feedback` carries
+/// the user's feedback (JSON null when absent).
 pub fn build_denied_result(
   call : @message.ToolCall,
   feedback : String?,
 ) -> ToolResultEntry {
   let msg = match feedback {
-    Some(fb) => "{error: \"User denied: \{fb}\", action_performed: false}"
-    None => "{error: \"User denied execution\", action_performed: false}"
+    Some(fb) =>
+      "Tool use denied by user. This action was NOT performed. User feedback: \{fb}"
+    None => "Tool use denied by user. This action was NOT performed."
   }
-  { id: call.id, content: msg, is_error: true }
+  let content = Json::object({
+    "error": ToJson::to_json(msg),
+    "action_performed": ToJson::to_json(false),
+    "user_feedback": match feedback {
+      Some(fb) => ToJson::to_json(fb)
+      None => Json::null()
+    },
+  }).stringify()
+  { id: call.id, content, is_error: true, image_inject: None }
 }
