@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0041、BUG-0015、BUG-0052；`reports/p5_fix_unit_clustering.md` FU-08  
-> **关联历史 spec**: 无（配置簇首份；同簇 FU-12 见 `2026-08-18_20_p5-config-loading-alignment.md`）  
+> **关联历史 spec**: 无（配置簇首份；同簇 FU-12 见 `2026-08-18_12_p5-config-loading-alignment.md`）  
 > **来源差距**: P3 链路层（剧本 005）+ P2 单元层（config-003、config-019）  
 > **依赖**: 无（批次 3 配置簇，建议与 FU-12 同批连续改，本 spec 先行）  
 > **灰度 key**: 无

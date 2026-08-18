@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §10  
-> **关联历史 spec**: 边界——P2 用例面已归两份 p5 spec：`2026-08-18_20_p5-config-loading-alignment.md`（BUG-0012/0013/0014/0020/0022：max_tokens 加载、anthropic_format nil、current_model_id 自动设置、switch 失败文案）、`2026-08-18_19_p5-env-overlay-config-channel.md`（FU-08 env overlay）；本 spec 管矩阵 §10 的**深度面**（优先级方向、解析顺序、徽章语义、模型管理 API、identity、代理策略等），重叠处以 p5 spec 为准；Providers::resolve key/localhost 回退归 B4（BUG-0073）；search.yml 归 B1（BUG-0063）；文件权限 0600 随既有 BUG-0111 条目；矩阵旧台账编号已被覆盖，一律使用 `矩阵§10/条目名` 锚点  
+> **关联历史 spec**: 边界——P2 用例面已归两份 p5 spec：`2026-08-18_12_p5-config-loading-alignment.md`（BUG-0012/0013/0014/0020/0022：max_tokens 加载、anthropic_format nil、current_model_id 自动设置、switch 失败文案）、`2026-08-18_07_p5-env-overlay-config-channel.md`（FU-08 env overlay）；本 spec 管矩阵 §10 的**深度面**（优先级方向、解析顺序、徽章语义、模型管理 API、identity、代理策略等），重叠处以 p5 spec 为准；Providers::resolve key/localhost 回退归 B4（BUG-0073）；search.yml 归 B1（BUG-0063）；文件权限 0600 随既有 BUG-0111 条目；矩阵旧台账编号已被覆盖，一律使用 `矩阵§10/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§10 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 两份 p5 配置 spec 先行（同改 loader.mbt/env_compat.mbt）  
 > **灰度 key**: 无

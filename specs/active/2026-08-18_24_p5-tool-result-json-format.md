@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0040；`reports/p5_fix_unit_clustering.md` FU-15  
-> **关联历史 spec**: `specs/active/2026-08-18_14_p5-stream-truncation-retry-pipeline.md`（FU-01，剧本 010 上有断言交叠）  
+> **关联历史 spec**: `specs/active/2026-08-18_02_p5-stream-truncation-retry-pipeline.md`（FU-01，剧本 010 上有断言交叠）  
 > **来源差距**: P3 链路层差分（剧本 010/014）  
 > **依赖**: 无（与 FU-01 在剧本 010 上共存，但改动面不重叠：FU-01 改截断检测/重试，本 spec 改错误结果序列化）  
 > **灰度 key**: 无

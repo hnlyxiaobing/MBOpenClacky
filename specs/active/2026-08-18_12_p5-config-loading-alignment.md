@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0012、BUG-0022、BUG-0013、BUG-0014、BUG-0020；`reports/p5_fix_unit_clustering.md` FU-12  
-> **关联历史 spec**: 无（配置簇第二份；同簇 FU-08 见 `2026-08-18_19_p5-env-overlay-config-channel.md`）  
+> **关联历史 spec**: 无（配置簇第二份；同簇 FU-08 见 `2026-08-18_07_p5-env-overlay-config-channel.md`）  
 > **来源差距**: P2 单元层（config-002/004/009/011/012/014）  
 > **依赖**: 建议与 FU-08 同批连续改（同文件 loader.mbt），FU-08 先行  
 > **灰度 key**: 无

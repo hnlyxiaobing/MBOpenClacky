@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0024、BUG-0053（BUG-0025/0026 已于 2026-08-14 P5 核实关闭，仅作背景引用）；`reports/p5_fix_unit_clustering.md` FU-04  
-> **关联历史 spec**: `specs/active/2026-08-18_14_p5-stream-truncation-retry-pipeline.md`（FU-01，重试管道接线）；`specs/completed/2026-07-29_agent-03-empty-response-detection.md`（react 层空响应检测）  
+> **关联历史 spec**: `specs/active/2026-08-18_02_p5-stream-truncation-retry-pipeline.md`（FU-01，重试管道接线）；`specs/completed/2026-07-29_agent-03-empty-response-detection.md`（react 层空响应检测）  
 > **来源差距**: P2 单元层差分（cases/error_retry retry-004/015）  
 > **依赖**: FU-01（`is_retryable_error` 管道接通）。本 spec 的分类改动落在重试循环上游的 raise 点，逻辑上独立；但若评审决定对 BUG-0025/0026 做"react 层 → RetryableError 层"机制搬迁（见决策 4），则硬性依赖 FU-01 的管道接通先行  
 > **灰度 key**: 无
@@ -132,7 +132,7 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 依赖关系 [必填]
 
-- **前置依赖**：FU-01（`2026-08-18_14_p5-stream-truncation-retry-pipeline.md`）——仅当评审决定做决策 4 的机制搬迁时为硬依赖；按当前建议（不搬迁），本 spec 与 FU-01 可并行，落地顺序不限
+- **前置依赖**：FU-01（`2026-08-18_02_p5-stream-truncation-retry-pipeline.md`）——仅当评审决定做决策 4 的机制搬迁时为硬依赖；按当前建议（不搬迁），本 spec 与 FU-01 可并行，落地顺序不限
 - **后置依赖**：无（FU-02 退避/熔断共享 `call_*_with_retry_async` 但不与本 spec 的 raise 点冲突）
 
 ## 变更记录 [必填]

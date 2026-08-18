@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §11  
-> **关联历史 spec**: 边界——错误分类细分（BUG-0086 429/400/402）归 `2026-08-18_21_p5-error-classification-alignment.md`；重试间隔/退避/熔断（BUG-0088/0089）归 `2026-08-18_15_p5-retry-backoff-circuit-breaker.md`；断流检测管线（BUG-0079）归 `2026-08-18_14_p5-stream-truncation-retry-pipeline.md` 与 B4 接线决策；Usage 字段补齐（api_cost 载体）归 B4；本 spec 管矩阵 §11 的**计费/遥测/重试残留**；矩阵旧台账编号已被覆盖，一律使用 `矩阵§11/条目名` 锚点  
+> **关联历史 spec**: 边界——错误分类细分（BUG-0086 429/400/402）归 `2026-08-18_18_p5-error-classification-alignment.md`；重试间隔/退避/熔断（BUG-0088/0089）归 `2026-08-18_08_p5-retry-backoff-circuit-breaker.md`；断流检测管线（BUG-0079）归 `2026-08-18_02_p5-stream-truncation-retry-pipeline.md` 与 B4 接线决策；Usage 字段补齐（api_cost 载体）归 B4；本 spec 管矩阵 §11 的**计费/遥测/重试残留**；矩阵旧台账编号已被覆盖，一律使用 `矩阵§11/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§11 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: B4（Usage api_cost 字段是 CostSource::Api 的数据载体）；B7（子代理记账判定依赖 subagent 建成）  
 > **灰度 key**: 无
