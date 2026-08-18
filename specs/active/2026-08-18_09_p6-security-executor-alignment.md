@@ -1,8 +1,8 @@
-# 安全/注册表/执行器对齐（security + registry + executor，矩阵§2）· 增量 Spec
+﻿# 安全/注册表/执行器对齐（security + registry + executor，矩阵§2）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §2（security/registry/executor 部分）  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §2（security/registry/executor 部分）  
 > **关联历史 spec**: 无（矩阵旧台账编号已被 BUGS.md 覆盖，本 spec 一律使用 `矩阵§2/条目名` 锚点）；与 B3（terminal/misc 工具对齐）同属矩阵§2，边界：terminal/todo/trash/browser/web 工具本体归 B3，本 spec 只覆盖 security.mbt / registry.mbt / react.mbt / tool_executor.mbt  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§2 中 security/registry/executor 的 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 无硬依赖；与 S05（terminal 工具安全面既有 p5 spec）存在交叉，实施时若 S05 先合入需复核本 spec 决策 1 的落点  

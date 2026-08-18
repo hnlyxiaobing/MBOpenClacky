@@ -1,8 +1,8 @@
-# 技能系统与系统提示词对齐（矩阵§6）· 增量 Spec
+﻿# 技能系统与系统提示词对齐（矩阵§6）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §6  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §6  
 > **关联历史 spec**: 边界——`p5-session-context-alignment` 覆盖矩阵§7 的 session context 注入（与本 spec 层 "环境/模型/工作目录信息位置" 条目交叉，实施时以该 spec 为准）；invoke_skill 工具参数/注入机制归 B3 决策 12，本 spec 管技能加载与提示词侧；矩阵旧台账编号已被覆盖，一律使用 `矩阵§6/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§6 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 无硬依赖  

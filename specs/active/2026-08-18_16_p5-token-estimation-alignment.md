@@ -1,9 +1,9 @@
-# Token 估算与压缩摘要辅助对齐（BUG-0009/0010/0048/0049/0050）· 增量 Spec
+﻿# Token 估算与压缩摘要辅助对齐（BUG-0009/0010/0048/0049/0050）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0009、BUG-0010（B 类冻结）、BUG-0048/0049/0050（P5 新登记）；`reports/p5_fix_unit_clustering.md` FU-06  
-> **关联历史 spec**: 无（同簇触发语义见 `17_p5-compression-trigger-semantics.md`）  
+> **关联历史 spec**: 无（同簇触发语义见 `2026-08-18_17_p5-compression-trigger-semantics.md`）  
 > **来源差距**: P2 单元级差分（cases/context_compression token-003/004/006/007/008/009/027/028）  
 > **依赖**: 无（压缩簇批次 2 最前置；token 估算值是 FU-07 压缩判定的输入，必须先修）  
 > **灰度 key**: 无

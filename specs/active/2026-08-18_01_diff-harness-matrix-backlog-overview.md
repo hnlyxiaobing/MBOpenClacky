@@ -1,4 +1,4 @@
-# diff-harness 沉淀全量利用：矩阵残留 Backlog 总览
+﻿# diff-harness 沉淀全量利用：矩阵残留 Backlog 总览
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 全部 13 份文档已移入 `specs/active/`
@@ -11,10 +11,10 @@
 |---|---|---|
 | `cases/` 6 模块 + `ruby_results.json` | **已利用**（P2 阶段） | `test/diff` 145 用例 + `test/diff/known_failure.mbt` 闸门 |
 | `scenarios/` 12 剧本 + `runs/` + `logs/` | **已利用**（P3 阶段） | `test/e2e`（011 留空、012 刺激未下发、005 整剧本闸门——残留缺口归 B12） |
-| `reports/BUGS.md` BUG-0001~0057 | **已利用**（P5 阶段） | 16 份 `specs/active/14_p5-*~29_p5-*` 一一对应（见 §3 名单） |
+| `reports/BUGS.md` BUG-0001~0057 | **已利用**（P5 阶段） | 16 份 `specs/active/2026-08-18_14_p5-*~2026-08-18_29_p5-*` 一一对应（见 §3 名单） |
 | `reports/BUG-0042_ANALYSIS.md`、fuzz 结果、`mock_llm_server.py` | **已利用** | 被 S07 spec、known-failure 台账、`test/e2e/mock_llm_server.mbt` 吸收 |
-| `docs/FEATURE_MATRIX.md` §1-§11 残留（约 200+ 条 partial/missing/unclear） | **本次利用** | 本文档 §2 映射表 + 12 份 `specs/active/02_p6-*~13_p6-*` spec |
-| P3 mock 能力缺口（畸形 SSE / 自定义 finish_reason / 005 大 fixture） | **本次利用** | `specs/active/13_p6-e2e-link-layer-completion.md`（B12） |
+| `docs/FEATURE_MATRIX.md` §1-§11 残留（约 200+ 条 partial/missing/unclear） | **本次利用** | 本文档 §2 映射表 + 12 份 `specs/active/2026-08-18_02_p6-*~2026-08-18_13_p6-*` spec |
+| P3 mock 能力缺口（畸形 SSE / 自定义 finish_reason / 005 大 fixture） | **本次利用** | `specs/active/2026-08-18_13_p6-e2e-link-layer-completion.md`（B12） |
 | P4 真模型基准（从未执行，仅 fix_plan 目标口径） | **本次衔接** | 本文档 §5 方法学专节（待批次 1-4 修复合入后启动） |
 | `reports/fix_plan.md` §6 diff-harness 侧配套 | **以 MBOpenClacky 仓库内等价物落实** | B12（不修改 diff-harness 仓库） |
 

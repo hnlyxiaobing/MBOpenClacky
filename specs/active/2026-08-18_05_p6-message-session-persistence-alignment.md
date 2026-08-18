@@ -1,8 +1,8 @@
-# 消息格式与会话持久化对齐（矩阵§4）· 增量 Spec
+﻿# 消息格式与会话持久化对齐（矩阵§4）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §4  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §4  
 > **关联历史 spec**: 边界——token 估算（CJK 加权）归既有 `p5-token-estimation-alignment`；压缩簇（矩阵§5）归 p5-compression-trigger-semantics 等既有 spec；attach/continue CLI 语义与 B8 cli spec 交接（数据层在本 spec，CLI 入口在 B8）；矩阵旧台账编号已被覆盖，一律使用 `矩阵§4/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§4 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 与 B2 决策 3（denied 配对）在悬空 tool_calls 上互补——B2 保证新产生时配对，本 spec 保证存量历史清理  

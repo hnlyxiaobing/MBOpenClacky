@@ -1,8 +1,8 @@
-# 只读文件工具对齐（file_reader / glob / grep，矩阵§1）· 增量 Spec
+﻿# 只读文件工具对齐（file_reader / glob / grep，矩阵§1）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §1  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §1  
 > **关联历史 spec**: 无（矩阵旧台账编号已被 BUGS.md 覆盖，本 spec 一律使用 `矩阵§1/条目名` 锚点）  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§1 中 file_reader/glob/grep 的 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 无（与 S11 路径处理 spec 有弱关联：`~` 展开共享 helper）  

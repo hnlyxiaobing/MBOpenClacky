@@ -1,8 +1,8 @@
-# Server / Web API 对齐（矩阵§9）· 增量 Spec
+﻿# Server / Web API 对齐（矩阵§9）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §9  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §9  
 > **关联历史 spec**: 边界——server `--host/--port` CLI 参数与默认端口 7071 裁决归 B8 决策 8；trash 实体化（真实删除/恢复语义）归 B3 决策组（trash_manager 去桩化），本 spec 只负责 HTTP 路由契约；会话持久化差异归 B5；矩阵旧台账编号已被覆盖，一律使用 `矩阵§9/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§9 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: B3（trash 实体化先行，server 路由才有真实数据面）  

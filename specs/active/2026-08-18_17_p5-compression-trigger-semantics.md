@@ -1,9 +1,9 @@
-# 压缩触发语义对齐与 005 超时隔离（BUG-0042/0043）· 增量 Spec
+﻿# 压缩触发语义对齐与 005 超时隔离（BUG-0042/0043）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0042、BUG-0043；`reports/p5_fix_unit_clustering.md` FU-07；`reports/BUG-0042_ANALYSIS.md`（完整根因链）  
-> **关联历史 spec**: 无（同簇估算输入见 `16_p5-token-estimation-alignment.md`）  
+> **关联历史 spec**: 无（同簇估算输入见 `2026-08-18_16_p5-token-estimation-alignment.md`）  
 > **来源差距**: P3 链路层差分（剧本 005_compression_trigger）  
 > **依赖**: FU-06（token 估算值是压缩判定输入，必须先修）；与 FU-08（env overlay，BUG-0041）协同——005 剧本转绿需要两者都修  
 > **灰度 key**: 无

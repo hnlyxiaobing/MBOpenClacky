@@ -1,9 +1,9 @@
-# 终端与杂项工具对齐（terminal / todo / trash / browser / feedback / skill / web，矩阵§2）· 增量 Spec
+﻿# 终端与杂项工具对齐（terminal / todo / trash / browser / feedback / skill / web，矩阵§2）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §2（terminal/todo/trash/browser/feedback/skill/web 部分）  
-> **关联历史 spec**: 无同簇既有 spec（16 份 p5 spec 中无 terminal/misc 工具专簇；`25_p5-tool-result-json-format.md` 与本 spec 的"结构化结果"条目有交叉，实施时以该 spec 的 JSON 结论为统一格式基准）；矩阵旧台账编号已被覆盖，本 spec 一律使用 `矩阵§2/条目名` 锚点  
+> **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §2（terminal/todo/trash/browser/feedback/skill/web 部分）  
+> **关联历史 spec**: 无同簇既有 spec（16 份 p5 spec 中无 terminal/misc 工具专簇；`2026-08-18_25_p5-tool-result-json-format.md` 与本 spec 的"结构化结果"条目有交叉，实施时以该 spec 的 JSON 结论为统一格式基准）；矩阵旧台账编号已被覆盖，本 spec 一律使用 `矩阵§2/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§2 中 terminal/todo/trash/browser/feedback/invoke_skill/web_search/web_fetch 的 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: B2（security 正则拦截修复后 terminal 的拦截文案/语义联动）；B2 image_inject 链路的产出侧在本 spec  
 > **灰度 key**: 无

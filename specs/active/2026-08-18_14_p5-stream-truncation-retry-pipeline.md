@@ -1,4 +1,4 @@
-# 流式截断检测接入重试管道（BUG-0032）· 增量 Spec
+﻿# 流式截断检测接入重试管道（BUG-0032）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
@@ -66,7 +66,7 @@ call_stream_with_retry_async          # 只 catch RetryableError 构造器
    - **为什么**：剧本 010 证明 `{}` 占位是真实发生的截断形态；hint 机制是 Ruby 防止"大 arguments 场景重试必败"的关键设计。
 4. **决策 4**：非流式路径 `call_llm_async` 同样接 `detect_upstream_truncation`（Ruby 的检测对两条路径生效）。
    - **为什么**：非流式响应同样可能携带半截 arguments。
-5. **决策 5（不做）**：本 spec 不改退避算法（指数→固定 5s 属 FU-02/`15_p5-retry-backoff-circuit-breaker.md`）。
+5. **决策 5（不做）**：本 spec 不改退避算法（指数→固定 5s 属 FU-02/`2026-08-18_15_p5-retry-backoff-circuit-breaker.md`）。
    - **为什么**：两个根因独立可验，合在一起会扩大回归面；截断重试用现有指数退避也能先恢复正确性。
 
 MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增依赖。

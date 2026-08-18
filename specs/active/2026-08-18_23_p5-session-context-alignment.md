@@ -1,4 +1,4 @@
-# Session Context 对齐（OS 探测 / Desktop / session_date 按日去重）· 增量 Spec
+﻿# Session Context 对齐（OS 探测 / Desktop / session_date 按日去重）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
@@ -140,7 +140,7 @@ MoonBit 约束检查：不涉及动态加载 trait、不新增 FFI（`is_wsl()` 
 ## 依赖关系 [必填]
 
 - **前置依赖**：无
-- **后置依赖**：无强依赖；修复后 diff-harness compare 的 req_0001 噪音降低，利于后续剧本对比定位真实差异。与 FU-14（`24_p5-observability-stats-fields.md`）在 `message.mbt`/`to_api_message` 上有文件交叠，建议同批评审时统一序列化字段口径
+- **后置依赖**：无强依赖；修复后 diff-harness compare 的 req_0001 噪音降低，利于后续剧本对比定位真实差异。与 FU-14（`2026-08-18_24_p5-observability-stats-fields.md`）在 `message.mbt`/`to_api_message` 上有文件交叠，建议同批评审时统一序列化字段口径
 
 ## 变更记录 [必填]
 
