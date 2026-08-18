@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/draft/2026-08-18_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §7  
+> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §7  
 > **关联历史 spec**: 边界——denied 处理与配对归 B2 决策 3、denied+feedback 文案随 B2；request_user_feedback 挂起归 B3 决策 11；上游截断/context overflow/thinking 补齐的"实现已存在无调用点"问题，接线落点分别在 B4（断流检测）与 p5-compression/overflow 系列（压缩面），本 spec 只保留主循环触发点接线；session context 注入归 p5-session-context-alignment；矩阵旧台账编号已被覆盖，一律使用 `矩阵§7/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§7 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: B2（denied/配对先行，同改 react.mbt）；B5（400→error_rollback 的数据层）  

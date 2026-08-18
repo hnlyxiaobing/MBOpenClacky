@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/draft/2026-08-18_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §8  
+> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §8  
 > **关联历史 spec**: 边界——`--fork` 的执行语义归 B7（fork_subagent 移植），本 spec 只负责 CLI 入口接线；server 路由/认证面对齐归 B9；配置加载差异归 B10；会话命名/恢复差异归 B5；矩阵旧台账编号已被覆盖，一律使用 `矩阵§8/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§8 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: B7（`--fork` 入口消费方）；B5（会话自动命名语义）  

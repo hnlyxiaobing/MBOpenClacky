@@ -2,7 +2,7 @@
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/draft/2026-08-18_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §3  
+> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §3  
 > **关联历史 spec**: 与既有 p5 spec 边界——`p5-error-classification-alignment`/`p5-retry-backoff-circuit-breaker`/`p5-circuit-breaker-prompt-switch-investigation`/`p5-platform-failover-domains` 覆盖错误分类、重试节奏、熔断、failover 域名面；本 spec 只收矩阵§3 中**请求构造、协议格式、流式解析、能力接线**的残留条目（含 S 系列未覆盖的传输细节）。矩阵旧台账编号已被覆盖，一律使用 `矩阵§3/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§3 中 S01/S02 未覆盖的 partial/missing 条目，2026-08-18 逐条对当前代码复核  
 > **依赖**: 无硬依赖；与 B5（悬空 tool_calls 清理）在"tool_result 配对"上互补——B5 管历史清理，本 spec 管 wire 层合并  

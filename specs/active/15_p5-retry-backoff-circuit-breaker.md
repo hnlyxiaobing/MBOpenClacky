@@ -5,7 +5,7 @@
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0023/0037/0039；`reports/p5_fix_unit_clustering.md` FU-02  
 > **关联历史 spec**: `specs/completed/2026-07-29_agent-06-url-fallback.md`  
 > **来源差距**: P2 单元层（retry-005~009）+ P3 链路层（剧本 002/008/009/013）  
-> **依赖**: FU-01（`2026-08-14_p5-stream-truncation-retry-pipeline.md`，共享重试循环代码，建议同批次先后修）  
+> **依赖**: FU-01（`14_p5-stream-truncation-retry-pipeline.md`，共享重试循环代码，建议同批次先后修）  
 > **灰度 key**: 无
 
 ## 问题描述 [必填]

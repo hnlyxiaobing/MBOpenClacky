@@ -2,8 +2,8 @@
 
 > **创建日期**: 2026-08-18  
 > **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
-> **关联总览**: `specs/draft/2026-08-18_diff-harness-matrix-backlog-overview.md`；diff-harness P3 总结 §6（mock 能力缺口）+ `reports/p5_regression_mapping.md` §4  
-> **关联历史 spec**: 边界——005 闸门背后的压缩语义归 `2026-08-14_p5-compression-trigger-semantics.md`（BUG-0042 修复后本 spec 激活 005）；013 闸门归 p5-retry-backoff-circuit-breaker（BUG-0039）；014 的 BUG-0040 断言归 B2 决策 2（伪 JSON 修复）；12 剧本的差分断言维护归既有 test/e2e 纪律（AGENTS.md 第 4 节诚实标注）  
+> **关联总览**: `specs/active/01_diff-harness-matrix-backlog-overview.md`；diff-harness P3 总结 §6（mock 能力缺口）+ `reports/p5_regression_mapping.md` §4  
+> **关联历史 spec**: 边界——005 闸门背后的压缩语义归 `17_p5-compression-trigger-semantics.md`（BUG-0042 修复后本 spec 激活 005）；013 闸门归 p5-retry-backoff-circuit-breaker（BUG-0039）；014 的 BUG-0040 断言归 B2 决策 2（伪 JSON 修复）；12 剧本的差分断言维护归既有 test/e2e 纪律（AGENTS.md 第 4 节诚实标注）  
 > **来源差距**: diff-harness P3 mock 能力缺口（畸形 SSE 注入 / 自定义 finish_reason / 005 大 fixture）从未利用；011 期望值无基线、012 刺激未真实下发  
 > **依赖**: 无硬前置；011/012 断言激活软依赖 B4（流式解析容错）落地后的行为稳定  
 > **灰度 key**: 无

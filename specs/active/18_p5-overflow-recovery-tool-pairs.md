@@ -3,7 +3,7 @@
 > **创建日期**: 2026-08-14  
 > **状态**: 讨论中  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0011（B 类冻结）、BUG-0028、BUG-0029；`reports/p5_fix_unit_clustering.md` FU-09  
-> **关联历史 spec**: 无（压缩判定语义见 `2026-08-14_p5-compression-trigger-semantics.md`）  
+> **关联历史 spec**: 无（压缩判定语义见 `17_p5-compression-trigger-semantics.md`）  
 > **来源差距**: P2 单元级差分（token-029、retry-017/018）  
 > **依赖**: FU-06（token-029 转绿的直接前置：BUG-0010 的 +50 是 MB kept_count=1 的根因）；FU-07（恢复后调用的 `compress_messages_if_needed` 语义由其维护）  
 > **灰度 key**: 无
