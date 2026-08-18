@@ -16,11 +16,13 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/process",
   "moonbit-community/pty",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
 
 supported_targets = "native"
 
 options(
+  "native-stub": [ "stat_native.c" ],
   targets: {
     "terminal_exec.mbt": [ "native" ],
     "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],

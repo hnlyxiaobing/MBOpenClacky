@@ -1,7 +1,10 @@
-///| FileReader tool: reads text files, lists directories.
-
 ///|
+/// FileReader tool: reads text files, lists directories.
+///
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/file_reader.rb
+/// 对齐（spec 2026-08-18_03 决策 3/4）：双轨参数（start_line/end_line/max_lines
+/// + offset/limit 别名）、越界/逆序显式报错、输出无行号、空文件返回空 content、
+/// 60000 字符总量截断、1MB 大文件护栏、目录列清单、UTF-8 scrub。
 pub(all) struct FileReader {
   max_lines : Int
   max_line_chars : Int
@@ -26,7 +29,9 @@ impl Tool for FileReader with fn name(_) -> String {
 ///|
 impl Tool for FileReader with fn description(_) -> String {
   "Reads a file from the local filesystem. You can access any file directly by using this tool.\n" +
-  "- You can optionally specify an offset and limit for long files.\n" +
+  "- You can optionally specify max_lines (lines from start), or start_line/end_line (1-indexed range).\n" +
+  "- Directories are listed (first-level contents).\n" +
+  "- Files larger than 1MB are rejected — use grep to search within them instead.\n" +
   "- FilePath must be an absolute path."
 }
 
@@ -39,13 +44,17 @@ impl Tool for FileReader with fn parameters(_) -> Json {
         "type": "string".to_json(),
         "description": "The absolute path to the file to read".to_json(),
       }),
-      "offset": Json::object({
+      "max_lines": Json::object({
         "type": "integer".to_json(),
-        "description": "The line number to start reading from".to_json(),
+        "description": "Maximum number of lines to read from start (default: 1000)".to_json(),
       }),
-      "limit": Json::object({
+      "start_line": Json::object({
         "type": "integer".to_json(),
-        "description": "The number of lines to read".to_json(),
+        "description": "Start line number (1-indexed, e.g., 100 reads from line 100)".to_json(),
+      }),
+      "end_line": Json::object({
+        "type": "integer".to_json(),
+        "description": "End line number (1-indexed, e.g., 200 reads up to line 200)".to_json(),
       }),
     }),
     "required": ["path".to_json()],
@@ -56,6 +65,16 @@ impl Tool for FileReader with fn parameters(_) -> Json {
 impl Tool for FileReader with fn category(_) -> ToolCategory {
   FileSystem
 }
+
+// ── 常量（对齐 Ruby file_reader.rb） ────────────────────────────────────────
+
+///|
+let max_text_file_size : Int64 = 1_048_576
+
+///|
+let max_content_chars : Int = 60_000
+
+// ────────────────────────────────────────────────────────────────────────────
 
 ///|
 impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> ToolResult {
@@ -68,18 +87,62 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
     return ToolResult::error("File not found: \{path}")
   }
 
-  let content = @fs.read_file_to_string(path) catch {
-    _ => return ToolResult::error("Failed to read file: \{path}")
+  // 目录 → 第一层列清单（对齐 Ruby list_directory_contents）
+  let is_dir_val = @fs.is_dir(path) catch { _ => false }
+  if is_dir_val {
+    return list_directory_contents(path)
   }
 
+  let is_file_val = @fs.is_file(path) catch { _ => false }
+  if !is_file_val {
+    return ToolResult::error("Path is not a file: \{path}")
+  }
+
+  // 图片/文档等二进制扩展名 → 清晰报错（决策 9 降级落地；
+  // Ruby 原版有文档解析管线，MB 无解析能力，报错引导 grep/其他工具）
+  if is_binary_extension(path) {
+    return ToolResult::error(
+      "Binary or document file detected: \{get_basename(path)}. " +
+      "File parsing is not supported — use grep tool to search within it, " +
+      "or an external tool for document content.",
+    )
+  }
+
+  // 1MB 大文件护栏（对齐 Ruby MAX_TEXT_FILE_SIZE）
+  match file_size_or_none(path) {
+    Some(sz) if sz > max_text_file_size =>
+      return ToolResult::error(
+        "Text file too large: \{format_file_size(sz)} (max: 1.0 MB). Please use grep tool to search within this file instead.",
+      )
+    _ => ()
+  }
+
+  // 读文件 + UTF-8 scrub（GBK 等非法字节 → U+FFFD）
+  let content = match read_file_scrubbed(path) {
+    Some(c) => c
+    None => return ToolResult::error("Failed to read file: \{path}")
+  }
+
+  // 空文件 → 空 content 成功（对齐 Ruby content: ""）
   if content.is_empty() {
-    return ToolResult::success("File is empty.")
+    return ToolResult::success("")
   }
 
-  let offset = get_int_arg(args, "offset", 0)
-  let limit_val = get_int_arg(args, "limit", self.max_lines)
+  // 双轨参数解析：start_line/end_line/max_lines（1-indexed），
+  // offset/limit 作为别名保留（决策 3：MB 既有调用与 wbtest 兼容）
+  let start_line = get_int_arg(
+    args,
+    "start_line",
+    get_int_arg(args, "offset", 0),
+  )
+  let end_line = get_int_arg(args, "end_line", 0)
+  let max_lines = get_int_arg(
+    args,
+    "max_lines",
+    get_int_arg(args, "limit", self.max_lines),
+  )
 
-  // Process lines using find-based parsing (matching existing codebase patterns)
+  // Process lines using find-based parsing
   let lines : Array[String] = []
   let mut pos = 0
   let content_len = content.length()
@@ -97,33 +160,77 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
   }
 
   let total_lines = lines.length()
-  let start_idx = if offset >= 1 && offset - 1 < total_lines {
-    offset - 1
+  let start_idx = if start_line >= 1 { start_line - 1 } else { 0 }
+  let end_idx = if end_line >= 1 {
+    let e = end_line - 1
+    if e < total_lines {
+      e
+    } else {
+      total_lines - 1
+    }
+  } else if start_line >= 1 {
+    // Ruby: calculated_end_line = start_line + max_lines - 1; end_idx = min(calculated-1, total-1)
+    let calculated = start_line + max_lines - 1
+    let e = calculated - 1
+    if e < total_lines {
+      e
+    } else {
+      total_lines - 1
+    }
   } else {
-    0
+    let e = max_lines - 1
+    if e < total_lines {
+      e
+    } else {
+      total_lines - 1
+    }
   }
-  let max_end = start_idx +
-    (if limit_val > 0 { limit_val } else { self.max_lines })
-  let actual_end = if max_end < total_lines { max_end } else { total_lines }
+
+  // start_line 越界显式报错（对齐 Ruby）
+  if start_idx >= total_lines {
+    return ToolResult::error(
+      "Invalid line range: start_line \{start_line} exceeds total lines (\{total_lines})",
+    )
+  }
+
+  // start > end 显式报错（对齐 Ruby）
+  if start_idx > end_idx {
+    return ToolResult::error(
+      "Invalid line range: start_line \{start_line} > end_line \{end_line}",
+    )
+  }
 
   let sb = StringBuilder::new()
   let mut i = start_idx
-  while i < actual_end {
+  while i <= end_idx {
     let line = lines[i]
     let display = if line.length() > self.max_line_chars {
-      line[:self.max_line_chars].to_owned() + "...(truncated)"
+      line[:self.max_line_chars].to_owned() +
+      "... [Line truncated - \{line.length()} chars]"
     } else {
       line
     }
-    sb.write_string("\{i + 1}\t\{display}\n")
+    // 无行号前缀（对齐 Ruby：content = lines.join）
+    sb.write_string(display)
+    sb.write_string("\n")
     i = i + 1
   }
-  if actual_end < total_lines {
-    sb.write_string(
-      "...(truncated: lines \{start_idx + 1}-\{actual_end} of \{total_lines})",
-    )
+
+  let mut out = sb.to_string()
+  // 60000 字符总量截断（对齐 Ruby MAX_CONTENT_CHARS）
+  if out.length() > max_content_chars {
+    out = out[:max_content_chars].to_owned() +
+      "\n\n[Content truncated - exceeded \{max_content_chars} characters (~10,000 tokens)]" +
+      "\nUse start_line/end_line parameters to read specific sections, or grep tool to search for keywords."
   }
-  ToolResult::success(sb.to_string())
+
+  // 行数说明尾部（MB 既有风格保留）
+  if end_idx < total_lines - 1 {
+    out = out +
+      "...(truncated: lines \{start_idx + 1}-\{end_idx + 1} of \{total_lines})"
+  }
+
+  ToolResult::success(out)
 }
 
 ///|
@@ -148,7 +255,59 @@ impl Tool for FileReader with fn to_function_definition(self) -> FunctionDefinit
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
 }
 
+// ── 目录列清单（对齐 Ruby list_directory_contents） ────────────────────────
+
+///|
+fn list_directory_contents(path : String) -> ToolResult {
+  let entries = @fs.read_dir(path) catch {
+    _ => return ToolResult::error("Error reading directory: \{path}")
+  }
+
+  let dirs : Array[String] = []
+  let files : Array[String] = []
+  for entry in entries {
+    if entry == "." || entry == ".." {
+      continue
+    }
+    let full = join_path(path, entry)
+    let is_dir_val = @fs.is_dir(full) catch { _ => false }
+    if is_dir_val {
+      dirs.push(entry + "/")
+    } else {
+      files.push(entry)
+    }
+  }
+
+  dirs.sort()
+  files.sort()
+  let all_entries = dirs + files
+
+  let sb = StringBuilder::new()
+  sb.write_string("Directory listing:\n")
+  for entry in all_entries {
+    sb.write_string("  \{entry}\n")
+  }
+  ToolResult::success(sb.to_string())
+}
+
 // ── Shared Helpers ──────────────────────────────────────────────────────────
+
+///|
+/// 人类可读文件大小（对齐 Ruby format_file_size）。
+pub fn format_file_size(bytes : Int64) -> String {
+  if bytes < 1024 {
+    "\{bytes} bytes"
+  } else if bytes < 1024 * 1024 {
+    "\{bytes.to_double() / 1024.0 |> double_round_2} KB"
+  } else {
+    "\{bytes.to_double() / (1024.0 * 1024.0) |> double_round_2} MB"
+  }
+}
+
+///|
+fn double_round_2(v : Double) -> Double {
+  (v * 100.0).round() / 100.0
+}
 
 ///|
 /// Get string value from JSON args map.
