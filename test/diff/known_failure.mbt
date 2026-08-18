@@ -50,7 +50,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0029", // context overflow 激进模式无 pop 上限
    "BUG-0031", // 平台 HTTP failover 域名数不一致
   // link 层（P3，test/e2e 剧本用）
-   "BUG-0032", // stream_cut 断流不重试，截断响应当最终答案
+  // BUG-0032 已修复（spec 2026-08-18_02_p5-stream-truncation-retry-pipeline.md：
+  // 流式缺 finish_reason / 空参数 tool_call 判截断并走重试管道），移出注册表
    "BUG-0037", // HTTP 5xx/429 退避策略不一致（指数退避 vs 固定 5s）
    "BUG-0038", // 连续失败时 system prompt 中途切换
    "BUG-0039", // 熔断行为不一致（15 请求 exit=-1 vs 11 请求 exit=1）

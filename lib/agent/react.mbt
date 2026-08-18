@@ -38,6 +38,9 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   self.idle_timer.cancel()
   self.error = None
   self.error_code = None
+  // Per-task one-shot state: the [SYSTEM] truncation hint may be injected
+  // at most once per task (mirrors Ruby's @task_upstream_truncation_hint_injected).
+  self.upstream_truncation_hint_injected = false
   self.top_up_url = None
   self.raw_message = None
   // Inject system prompt on first run

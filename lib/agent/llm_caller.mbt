@@ -119,20 +119,19 @@ pub async fn Agent::call_with_retry_async(self : Agent) -> @client.LlmResponse {
         return response
       }
       Err(e) =>
-        match e {
-          @errors.RetryableError(_) => {
-            self.record_retryable_failure()
-            if attempt >= max_retries {
-              if self.try_url_fallback() {
-                attempt = 0
-                continue
-              }
-              raise e
+        if @errors.is_retryable_error(e) {
+          self.record_retryable_failure()
+          if attempt >= max_retries {
+            if self.try_url_fallback() {
+              attempt = 0
+              continue
             }
-            let delay = retry_delay_ms(attempt)
-            @async.sleep(delay)
+            raise e
           }
-          _ => raise e
+          let delay = retry_delay_ms(attempt)
+          @async.sleep(delay)
+        } else {
+          raise e
         }
     }
   }
@@ -160,20 +159,19 @@ pub async fn Agent::call_stream_with_retry_async(
         return response
       }
       Err(e) =>
-        match e {
-          @errors.RetryableError(_) => {
-            self.record_retryable_failure()
-            if attempt >= max_retries {
-              if self.try_url_fallback() {
-                attempt = 0
-                continue
-              }
-              raise e
+        if @errors.is_retryable_error(e) {
+          self.record_retryable_failure()
+          if attempt >= max_retries {
+            if self.try_url_fallback() {
+              attempt = 0
+              continue
             }
-            let delay = retry_delay_ms(attempt)
-            @async.sleep(delay)
+            raise e
           }
-          _ => raise e
+          let delay = retry_delay_ms(attempt)
+          @async.sleep(delay)
+        } else {
+          raise e
         }
     }
   }
@@ -255,6 +253,9 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
   // ── Mock path (testing) ────────────────────────────────────────────
   if self.mock_responses.length() > 0 {
     let response = self.mock_responses.remove(0)
+    // Detect upstream truncation on mock responses too, so retry-pipeline
+    // tests can inject truncated responses via the mock queue.
+    self.detect_upstream_truncation(response)
     match response.usage {
       Some(usage) => self.track_cost(usage) |> ignore
       None => ()
@@ -303,6 +304,13 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
           )
       }
       let response = self.client.parse_response(json_data)
+      // ── Upstream truncation detector ───────────────────────────────
+      // Mirrors Ruby llm_caller.rb:128 — a syntactically valid tool_call
+      // whose arguments are empty/"{}"/unparseable means the upstream cut
+      // the stream mid-tool_use. Raise UpstreamTruncatedError (retryable)
+      // instead of executing a tool with empty args or accepting a
+      // silently-truncated answer.
+      self.detect_upstream_truncation(response)
       match response.usage {
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
@@ -334,6 +342,9 @@ pub async fn Agent::call_llm_stream_async(
   // ── Mock path (testing) ────────────────────────────────────────────
   if self.mock_responses.length() > 0 {
     let response = self.mock_responses.remove(0)
+    // Mirror the real-path truncation checks so retry-pipeline tests can
+    // inject stream-cut / truncated responses via the mock queue.
+    self.check_stream_truncation(response)
     match response.content {
       Some(c) => if c.length() > 0 { on_chunk(c) }
       None => ()
@@ -411,6 +422,14 @@ pub async fn Agent::call_llm_stream_async(
       } else {
         openai_agg.to_response()
       }
+      // ── Stream truncation detectors ────────────────────────────────
+      // ① Missing finish_reason: the SSE stream ended without the terminal
+      //    finish chunk (upstream cut the stream) — mirrors Ruby
+      //    client.rb:396-404 ("Streaming response ended without finish_reason").
+      // ② tool_call arguments truncated — mirrors Ruby llm_caller.rb:128.
+      //    Both raise UpstreamTruncatedError so the retry pipeline treats
+      //    them identically to 5xx/429.
+      self.check_stream_truncation(response)
       match response.usage {
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
@@ -419,6 +438,25 @@ pub async fn Agent::call_llm_stream_async(
       response
     }
   }
+}
+
+///|
+/// Apply both stream-truncation checks to a (streamed or mock) response:
+/// missing finish_reason → UpstreamTruncatedError, then tool_call argument
+/// truncation → UpstreamTruncatedError. Shared by the real HTTP path and the
+/// mock path so tests can exercise the retry pipeline end-to-end.
+fn Agent::check_stream_truncation(
+  self : Agent,
+  response : @client.LlmResponse,
+) -> Unit raise {
+  // ① Missing finish_reason — stream ended without the terminal chunk.
+  if response.finish_reason is None {
+    raise @errors.UpstreamTruncatedError(
+      "Streaming response ended without finish_reason (upstream cut the stream)",
+    )
+  }
+  // ② tool_call arguments truncation.
+  self.detect_upstream_truncation(response)
 }
 
 ///|
@@ -525,8 +563,11 @@ pub fn Agent::handle_probe_failure(self : Agent) -> Unit {
 /// Detect upstream truncation in the response.
 ///
 /// Raises UpstreamTruncatedError if the response contains truncated
-/// tool call arguments (incomplete JSON).
+/// tool call arguments (incomplete JSON, empty string, or "{}" placeholder).
+/// On first detection within a task, injects a one-shot [SYSTEM] hint
+/// (mirrors Ruby's `inject_upstream_truncation_hint_if_first`).
 pub fn Agent::detect_upstream_truncation(
+  self : Agent,
   response : @client.LlmResponse,
 ) -> Unit raise {
   match response.tool_calls {
@@ -535,6 +576,7 @@ pub fn Agent::detect_upstream_truncation(
         let args_str = call.function.arguments
         if !is_valid_json(args_str) {
           let name = call.function.name
+          self.inject_upstream_truncation_hint_if_first(name)
           raise @errors.UpstreamTruncatedError(
             "Tool call '\{name}' has truncated arguments",
           )
@@ -542,6 +584,52 @@ pub fn Agent::detect_upstream_truncation(
       }
     None => ()
   }
+}
+
+///|
+/// Inject a one-shot [SYSTEM] user hint on the FIRST upstream-truncation
+/// detection within a task (mirrors Ruby's `inject_upstream_truncation_hint_if_first`).
+///
+/// The hint nudges the model toward smaller tool_call args so a retry isn't
+/// doomed to the same fate when the truncation correlates with large
+/// payloads. For pure infrastructure blips it is harmless — the retry
+/// usually succeeds and the hint just sits unused in history.
+fn Agent::inject_upstream_truncation_hint_if_first(
+  self : Agent,
+  tool_name : String,
+) -> Unit {
+  if self.upstream_truncation_hint_injected {
+    return
+  }
+  self.upstream_truncation_hint_injected = true
+  let hint = "[SYSTEM] The previous response was cut short by the upstream provider " +
+    "before the `\{tool_name}` tool_call finished streaming. " +
+    "The partial tool_call has been discarded. To avoid the same problem on retry, " +
+    "please adapt your approach:\n" +
+    "- Prefer smaller tool_call arguments — large single-shot payloads are more likely to be truncated.\n" +
+    "- For long file content: create the file first with a minimal skeleton via `write`, " +
+    "then append sections one at a time with `edit`.\n" +
+    "- Break large tasks into multiple smaller tool calls instead of one big one.\n" +
+    "- Keep each tool-call argument comfortably under ~2000 characters when possible."
+  let msg : @message.Message = {
+    role: @message.User,
+    content: @message.Text(hint),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  self.history.push(msg)
+  self.hook_manager.emit(MessageAdded)
 }
 
 ///|
@@ -616,7 +704,11 @@ fn body_snippet(body : String, max_chars : Int) -> String {
 }
 
 ///|
-/// Check if a string is valid JSON (simple heuristic for truncation detection).
+/// Check if a string is valid tool-call arguments JSON.
+///
+/// Mirrors Ruby's `tool_call_args_truncated?` rules: empty string, invalid
+/// JSON, and the "{}" empty-object placeholder (streamed before any key
+/// arrived) all count as truncated.
 fn is_valid_json(s : String) -> Bool {
   let trimmed = s.trim()
   if trimmed.length() == 0 {
@@ -624,7 +716,11 @@ fn is_valid_json(s : String) -> Bool {
   }
   // Try parsing
   try {
-    @json.parse(trimmed) |> ignore
+    let parsed = @json.parse(trimmed)
+    // Ruby rule: parses to {} (empty object) → truncated (placeholder only)
+    if parsed is Json::Object(obj) {
+      return obj.length() != 0
+    }
     true
   } catch {
     _ => false

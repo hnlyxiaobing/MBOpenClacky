@@ -225,3 +225,172 @@ test "build_send_request uses primary when fallback_model empty" {
   let req = agent.build_send_request()
   @debug.assert_eq(req.model, agent.client.model)
 }
+
+// ── Upstream Truncation Detection & Retry Pipeline (BUG-0032) ─────────────────
+
+///|
+fn lc_mock_response(
+  content : String,
+  tool_calls : Array[@message.ToolCall]?,
+  finish_reason? : String? = Some("stop"),
+) -> @client.LlmResponse {
+  {
+    content: Some(content),
+    reasoning_content: None,
+    tool_calls,
+    finish_reason,
+    usage: None,
+    latency: None,
+  }
+}
+
+///|
+fn lc_tool_call(
+  id : String,
+  name : String,
+  arguments : String,
+) -> @message.ToolCall {
+  { id, type_: "function", function: { name, arguments } }
+}
+
+///|
+test "is_valid_json rejects empty string" {
+  assert_false(is_valid_json(""))
+  assert_false(is_valid_json("   "))
+}
+
+///|
+test "is_valid_json rejects empty object placeholder" {
+  // Ruby tool_call_args_truncated? rule: "{}" is a streamed placeholder
+  // (truncated before any key arrived) — counts as truncated.
+  assert_false(is_valid_json("{}"))
+}
+
+///|
+test "is_valid_json accepts non-empty object" {
+  assert_true(is_valid_json("{\"path\": \"/tmp/test.txt\"}"))
+}
+
+///|
+test "is_valid_json rejects partial JSON" {
+  assert_false(is_valid_json("{\"path\": "))
+}
+
+///|
+test "detect_upstream_truncation raises on empty string args" {
+  let agent = lc_make_agent("https://api.example.com")
+  let tc = lc_tool_call("call_1", "write_file", "")
+  let resp = lc_mock_response("ok", Some([tc]))
+  let result = Ok(agent.detect_upstream_truncation(resp)) catch { e => Err(e) }
+  assert_true(result is Err(_))
+}
+
+///|
+test "detect_upstream_truncation raises on empty object args" {
+  let agent = lc_make_agent("https://api.example.com")
+  let tc = lc_tool_call("call_1", "write_file", "{}")
+  let resp = lc_mock_response("ok", Some([tc]))
+  let result = Ok(agent.detect_upstream_truncation(resp)) catch { e => Err(e) }
+  assert_true(result is Err(_))
+}
+
+///|
+test "detect_upstream_truncation raises on invalid JSON args" {
+  let agent = lc_make_agent("https://api.example.com")
+  let tc = lc_tool_call("call_1", "write_file", "{invalid json")
+  let resp = lc_mock_response("ok", Some([tc]))
+  let result = Ok(agent.detect_upstream_truncation(resp)) catch { e => Err(e) }
+  assert_true(result is Err(_))
+}
+
+///|
+test "detect_upstream_truncation ok on valid args" {
+  let agent = lc_make_agent("https://api.example.com")
+  let tc = lc_tool_call("call_1", "file_reader", "{\"path\": \"/tmp/t\"}")
+  let resp = lc_mock_response("ok", Some([tc]))
+  agent.detect_upstream_truncation(resp) catch {
+    _ => fail("unexpected error")
+  }
+}
+
+///|
+test "detect_upstream_truncation ok without tool calls" {
+  let agent = lc_make_agent("https://api.example.com")
+  let resp = lc_mock_response("plain answer", None)
+  agent.detect_upstream_truncation(resp) catch {
+    _ => fail("unexpected error")
+  }
+}
+
+///|
+test "inject_upstream_truncation_hint_if_first injects once per task" {
+  let agent = lc_make_agent("https://api.example.com")
+  agent.inject_upstream_truncation_hint_if_first("write_file")
+  @debug.assert_eq(agent.history.length(), 1)
+  // system_injected flag set (hidden from UI replay / compression logic)
+  @debug.assert_eq(agent.history[0].system_injected, Some(true))
+  // hint text mentions the truncated tool name
+  let text = match agent.history[0].content {
+    @message.Text(s) => s
+    _ => ""
+  }
+  assert_true(text.contains("write_file"))
+  // Second call within the same task is a no-op
+  agent.inject_upstream_truncation_hint_if_first("write_file")
+  @debug.assert_eq(agent.history.length(), 1)
+}
+
+///|
+async test "call_with_retry_async retries UpstreamTruncatedError" {
+  let agent = lc_make_agent("https://api.example.com")
+  // First response: truncated tool args ("{}" placeholder) → UpstreamTruncatedError
+  let tc = lc_tool_call("call_1", "write_file", "{}")
+  agent.mock_responses.push(lc_mock_response("partial", Some([tc])))
+  // Second response: valid → success
+  agent.mock_responses.push(lc_mock_response("ok", None))
+  let resp = agent.call_with_retry_async() catch {
+    _ => abort("unexpected error")
+  }
+  @debug.assert_eq(resp.content, Some("ok"))
+  // Both mock responses were consumed → the truncated first attempt was
+  // retried (record_llm_success resets the counter after the 2nd success)
+  @debug.assert_eq(agent.mock_responses.length(), 0)
+  // One-shot hint injected into history
+  @debug.assert_eq(agent.history.length(), 1)
+}
+
+///|
+async test "call_stream_with_retry_async retries missing finish_reason" {
+  let agent = lc_make_agent("https://api.example.com")
+  // First response: finish_reason None (SSE stream cut) → UpstreamTruncatedError
+  agent.mock_responses.push(
+    lc_mock_response("partial", None, finish_reason=None),
+  )
+  // Second response: complete → success
+  agent.mock_responses.push(lc_mock_response("ok", None))
+  let chunks : Array[String] = []
+  let resp = agent.call_stream_with_retry_async(fn(c) { chunks.push(c) }) catch {
+    _ => abort("unexpected error")
+  }
+  @debug.assert_eq(resp.content, Some("ok"))
+  // Both mock responses consumed → first (cut) attempt was retried
+  @debug.assert_eq(agent.mock_responses.length(), 0)
+  // Only the successful response's content is emitted to the consumer
+  @debug.assert_eq(chunks, ["ok"])
+}
+
+///|
+async test "call_stream_with_retry_async retries truncated tool args" {
+  let agent = lc_make_agent("https://api.example.com")
+  // First response: tool_call with empty args → UpstreamTruncatedError
+  let tc = lc_tool_call("call_1", "write_file", "")
+  agent.mock_responses.push(lc_mock_response("partial", Some([tc])))
+  // Second response: valid → success
+  agent.mock_responses.push(lc_mock_response("ok", None))
+  let resp = agent.call_stream_with_retry_async(fn(_) { () }) catch {
+    _ => abort("unexpected error")
+  }
+  @debug.assert_eq(resp.content, Some("ok"))
+  // Both mock responses consumed → truncated first attempt was retried
+  @debug.assert_eq(agent.mock_responses.length(), 0)
+}

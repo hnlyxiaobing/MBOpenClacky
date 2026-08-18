@@ -820,21 +820,23 @@ test "handle_context_overflow_aggressive" {
 
 ///|
 test "detect_upstream_truncation_valid" {
+  let agent = make_test_agent()
   let tool_call = make_tool_call(
     "call_1", "file_reader", "{\"path\": \"/tmp/test.txt\"}",
   )
   let resp = make_mock_response("ok", Some([tool_call]))
   // Should not raise
-  Agent::detect_upstream_truncation(resp) catch {
+  agent.detect_upstream_truncation(resp) catch {
     _ => fail("unexpected error")
   }
 }
 
 ///|
 test "detect_upstream_truncation_invalid" {
+  let agent = make_test_agent()
   let tool_call = make_tool_call("call_1", "file_reader", "{invalid json")
   let resp = make_mock_response("ok", Some([tool_call]))
-  let result = Ok(Agent::detect_upstream_truncation(resp)) catch { e => Err(e) }
+  let result = Ok(agent.detect_upstream_truncation(resp)) catch { e => Err(e) }
   assert_true(result is Err(_))
 }
 

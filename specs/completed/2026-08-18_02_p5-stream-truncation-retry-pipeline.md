@@ -1,7 +1,8 @@
 ﻿# 流式截断检测接入重试管道（BUG-0032）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **完成日期**: 2026-08-18  
+> **状态**: ✅ 已完成（归档）  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0032；`reports/p5_fix_unit_clustering.md` FU-01  
 > **关联历史 spec**: `specs/completed/2026-07-29_agent-03-empty-response-detection.md`（同属响应完整性检测族）  
 > **来源差距**: P3 链路层差分（剧本 002/010）  
@@ -109,13 +110,17 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] 流式缺 finish_reason → 抛 UpstreamTruncatedError 并触发重试（单测 + 002 剧本链路验证）
-- [ ] tool_call arguments 为空串 / `{}` / 非法 JSON → 判截断并重试，首次注入一次性 `[SYSTEM]` hint（单测 + 010 剧本）
-- [ ] 重试循环对 UpstreamTruncatedError 按可重试处理（固定语义与 5xx/429 一致）
-- [ ] `test/e2e` 002 剧本 BUG-0032 known-failure 闸门移除并转绿
-- [ ] `moon check` 0 errors（lib/agent、test/e2e）
-- [ ] `moon test lib/agent`、`moon test test/e2e` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] 流式缺 finish_reason → 抛 UpstreamTruncatedError 并触发重试（单测 + 002 剧本链路验证）
+- [x] tool_call arguments 为空串 / `{}` / 非法 JSON → 判截断并重试，首次注入一次性 `[SYSTEM]` hint（单测 + 010 剧本）
+- [x] 重试循环对 UpstreamTruncatedError 按可重试处理（固定语义与 5xx/429 一致）
+- [x] `test/e2e` 002 剧本 BUG-0032 known-failure 闸门移除并转绿
+- [x] `moon check` 0 errors（lib/agent、test/e2e）
+- [x] `moon test lib/agent`、`moon test test/e2e` 全部通过
+- [x] 全量 `moon test` 无回归（3539/3539 通过）
+
+### 实施备注（归档时补充）
+
+- `test/e2e` 场景此前在 001/003 剧本偶发挂起（`run_scenario` 的 `with_task_group` 等待 `server.serve()` 退出），根因是 `MockLlmServer::shutdown` 的自连接在 serve `accept` 取走之前被关闭，TCP RST 使连接从 accept 队列消失、`accept` 永不返回。修复：自连接保持打开直至 serve 的 stopped 分支取走并关闭；serve 退出时兜底 `listener.close()`。修复后 `test/e2e` 全量 12/12 稳定通过，全量 `moon test` 3539/3539 通过。
 
 ## 风险评估 [必填]
 
@@ -136,3 +141,6 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-01（BUG-0032） |
+| 2026-08-18 | 开发完成（commit 待记录）：llm_caller.mbt 接通截断检测与重试管道；llm_caller_wbtest.mbt 新增 14 单测；known_failure.mbt 移除 BUG-0032；scenarios_wbtest.mbt 002 转绿 | 实现本 spec 全部决策 |
+| 2026-08-18 | 修复 test/e2e 场景挂起（MockLlmServer shutdown 自连接 RST 竞态）；全量 moon test 3539/3539 通过 | 链路回归阻塞解除 |
+| 2026-08-18 | 归档至 specs/completed/ | 验收标准全部达成 |

@@ -53,6 +53,11 @@ pub(all) struct Agent {
   // ── Compression State ──────────────────────────────────────────────
   mut compression_level : Int
   mut idle_timer : IdleCompressionTimer
+  // ── Upstream Truncation Retry ─────────────────────────────────────
+  /// One-shot [SYSTEM] truncation hint injected per task (mirrors Ruby's
+  /// @task_upstream_truncation_hint_injected): reset at the start of
+  /// `Agent::run`, set on the first UpstreamTruncatedError within a task.
+  mut upstream_truncation_hint_injected : Bool
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
@@ -151,6 +156,8 @@ pub fn Agent::new(
     // Compression
     compression_level: 0,
     idle_timer: IdleCompressionTimer::new(),
+    // Upstream truncation retry
+    upstream_truncation_hint_injected: false,
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
     // Empty patch chain — extension patches are added via

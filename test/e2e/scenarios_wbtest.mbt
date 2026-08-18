@@ -102,19 +102,11 @@ async test "002 stream_cut_retry：断流后重试并恢复" {
     "读一下 README.md 然后告诉我完成了",
   )
   let g = golden("002_stream_cut_retry")
-  // 绿（当前行为即符合）：正常完成语义（ruby exit=0；MB 也"成功"——但它把
-  // 截断响应当成了最终答案，这正是 BUG-0032）、文件无副作用。
-  @debug.assert_eq(outcome.status, "success")
-  @debug.assert_eq(outcome.file("README.md"), Some("# demo\n"))
-  // BUG-0032: stream_cut 断流不重试，截断响应当最终答案（MB 当前仅 1 请求）。
+  // BUG-0032 已修复：stream_cut 断流 → UpstreamTruncatedError → 重试管道
+  // （ruby 4 请求；MB 现为 4 请求：断流→429→tool_calls→完成）。
   // 证据: diff-harness reports/BUGS.md BUG-0032；
-  //       runs/002_stream_cut_retry/{ruby,moonbit}/requests/（ruby 4 请求 vs MB 1 请求）
-  if @diff.known_failure("BUG-0032") {
-    return
-  }
-  @debug.assert_eq(outcome.requests.length(), g.request_count)
-  @debug.assert_eq(tool_sequence_of(outcome.requests), g.tool_sequence)
-  @debug.assert_eq(outcome.final_text, g.final_text)
+  //       runs/002_stream_cut_retry/{ruby,moonbit}/requests/（ruby 4 请求 vs MB 修复前 1 请求）
+  assert_golden(outcome, g)
   // BUG-0023: ruby 退避固定 5s（req1→req2、req2→req3 各 ~5s），MB 指数退避。
   // 证据: reports/p3/002_stream_cut_retry_diff.md（ruby 间隔 5.0s, 5.0s）
   if @diff.known_failure("BUG-0023") {
