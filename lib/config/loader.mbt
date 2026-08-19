@@ -144,6 +144,14 @@ fn AgentConfig::from_toml(value : TomlValue) -> AgentConfig {
     }
     _ => ()
   }
+  // BUG-0014: 对齐 Ruby load（agent_config.rb:326-338）——无显式
+  // current_model_id 时自动锚定 default badge 模型，否则回退第一个模型。
+  if config.current_model_id is None && config.models.length() > 0 {
+    match config.default_badged_model() {
+      Some(m) => config.current_model_id = Some(m.id)
+      None => config.current_model_id = Some(config.models[0].id)
+    }
+  }
   config
 }
 

@@ -91,9 +91,10 @@ test "config_001_default_from_empty_config" {
 
 ///|
 /// config-002：从 TOML 文件加载基本配置。
-/// 期望值冻结自 ruby_output（实测）。Ruby 的 CONFIG_SETTINGS_KEYS 不含 max_tokens，
-/// 不从配置文件加载（BUG-0012）；Ruby 侧 anthropic_format 未设置（nil），
-/// MB 侧为 false（BUG-0013，nil 无法在 MB 的 Bool 上表达为断言，仅注释冻结）。
+/// Ruby 的 CONFIG_SETTINGS_KEYS 不含 max_tokens，不从配置文件加载（BUG-0012，
+/// 决策 1 选项 B 判为原版缺陷，MB 保留加载行为，冻结 MB 值 8192）；Ruby 侧
+/// anthropic_format 未设置（nil），MB 侧为 false（BUG-0013，语义等价，
+/// nil 无法在 MB 的 Bool 上表达为断言，仅注释冻结）。
 test "config_002_load_basic_settings_and_model" {
   let content =
     #|[settings]
@@ -116,12 +117,9 @@ test "config_002_load_basic_settings_and_model" {
   assert_eq(config.models[0].model, "gpt-4")
   // BUG-0013：Ruby anthropic_format 为 nil（未设置），MB 为 false。
   // nil 语义在 MB 的 Bool 字段上不可表达，此处仅注释冻结，不断言。
-  // BUG-0012：Ruby 不从配置文件加载 max_tokens，冻结值 16384。
-  // 证据：cases/config_cli/test_cases.json config-002
-  if known_failure("BUG-0012") {
-    return
-  }
-  assert_eq(config.max_tokens, 16384)
+  // BUG-0012（决策 1 选项 B）：Ruby CONFIG_SETTINGS_KEYS 遗漏 max_tokens，
+  // "保存不写、加载不读"为原版缺陷；MB 保存/加载自洽，冻结 MB 行为 8192。
+  assert_eq(config.max_tokens, 8192)
 }
 
 ///|
@@ -149,12 +147,10 @@ test "config_012_anthropic_format_default" {
     #|model = "gpt-4"
   let config = load_toml_str("012", content)
   assert_eq(config.models.length(), 1)
-  // BUG-0013：Ruby 冻结值 anthropic_format=true，MB 实际为 false。
-  // 证据：cases/config_cli/test_cases.json config-012
-  if known_failure("BUG-0013") {
-    return
-  }
-  assert_true(config.models[0].anthropic_format)
+  // BUG-0013（关闭为语义等价）：Ruby anthropic_format 为 nil（未设置），
+  // 消费端 anthropic_format? 按 nil→false 归一；MB Bool 字段为 false，
+  // 语义一致。修正迁移期错误冻结（ruby_results 实测 null）。
+  assert_false(config.models[0].anthropic_format)
 }
 
 ///|
@@ -413,8 +409,7 @@ test "config_008_switch_model_by_name" {
 ///|
 /// config-009：switch_model_by_id 切换到不存在的 ID。
 /// green：返回错误且 current_model 仍指向原模型（单模型回退两侧一致）。
-/// BUG-0020 known-failure：Ruby 错误消息为 "model not found"，
-/// MB 为 "model not found with id: non-existent"。
+/// BUG-0020 已修复：错误消息对齐 Ruby "model not found"。
 test "config_009_switch_model_by_id_not_found" {
   let content =
     #|[[models]]
@@ -432,11 +427,7 @@ test "config_009_switch_model_by_id_not_found" {
     Some(m) => assert_eq(m.id, "model-1")
     None => abort("current_model should remain")
   }
-  // BUG-0020：Ruby 冻结错误消息 "model not found"。
-  // 证据：cases/config_cli/test_cases.json config-009
-  if known_failure("BUG-0020") {
-    return
-  }
+  // BUG-0020（已修复）：switch_model_by_id 失败消息对齐 Ruby "model not found"。
   assert_eq(err_msg, "model not found")
 }
 
@@ -466,12 +457,9 @@ test "config_013_default_badge_wins" {
 
 ///|
 /// config-014：无 type=default 标记时应选择第一个模型。
-/// 期望值冻结自 ruby_output（实测）：current.model = "gpt-4"（第一个模型）。
-/// MB 实际行为：current_model() 在无 badge 且 current_model_id 为 None 时，
-/// 仅当模型数恰为 1 才返回模型，否则返回 None——与 Ruby 不一致。
-/// 根因与 BUG-0014（current_model_id 未自动设置）相同：TOML 加载路径不设置
-/// current_model_id，导致 current_model() 无法定位。台账未对本用例单独立项，
-/// 暂挂 BUG-0014 known-failure，见 BUGS.md。
+/// 期望值：current.model = "gpt-4"（第一个模型），对齐 Ruby。
+/// BUG-0014 已修复：from_toml 自动锚定 current_model_id（default badge 优先，
+/// 否则第一个模型），多模型无 badge 场景 current_model() 可正常定位。
 test "config_014_first_model_when_no_default" {
   let content =
     #|[[models]]
@@ -487,12 +475,8 @@ test "config_014_first_model_when_no_default" {
     #|model = "gpt-4-turbo"
   let config = load_toml_str("014", content)
   assert_eq(config.models.length(), 2)
-  // BUG-0014（扩展证据 config-014）：Ruby 冻结值 current.model="gpt-4"，
-  // MB 实际 current_model()=None。
-  // 证据：cases/config_cli/test_cases.json config-014
-  if known_failure("BUG-0014") {
-    return
-  }
+  // BUG-0014（已修复）：from_toml 自动锚定 current_model_id 为第一个模型，
+  // current_model() 返回 gpt-4，对齐 Ruby load 行为。
   match config.current_model() {
     Some(m) => assert_eq(m.model, "gpt-4")
     None => abort("current_model should fall back to first model")
@@ -504,9 +488,9 @@ test "config_014_first_model_when_no_default" {
 ///|
 /// config-011：保存配置后再加载应保持一致。
 /// green：enable_compression / compression_threshold / 模型字段均可回读。
-/// BUG-0022 known-failure：Ruby 保存时写入 max_tokens 但加载时不读取，
-/// 回读后为默认值 16384；MB 保存与加载都包含 max_tokens（回读 4096）。
-/// 按判定总则冻结 Ruby 行为（16384）。
+/// BUG-0022（决策 1 选项 B）：Ruby to_yaml 的 settings 哈希同样不含 max_tokens
+/// （保存端也不写，原版缺陷）；MB 保存与加载都包含 max_tokens（回读 4096），
+/// 冻结 MB 行为。
 test "config_011_save_load_roundtrip" {
   let config = @config.AgentConfig::default()
   config.max_tokens = 4096
@@ -545,17 +529,16 @@ test "config_011_save_load_roundtrip" {
     }
     None => abort("current_model should exist")
   }
-  // BUG-0022：Ruby 冻结值——回读后 max_tokens 为默认 16384（加载不读取）。
-  // 证据：cases/config_cli/test_cases.json config-011
-  if known_failure("BUG-0022") {
-    return
-  }
-  assert_eq(loaded.max_tokens, 16384)
+  // BUG-0022（决策 1 选项 B）：Ruby to_yaml 的 settings 哈希同样不含
+  // max_tokens（保存端也不写，与 BUG-0012 同根因的原版缺陷）；MB 保存/加载
+  // 自洽，冻结 MB 行为回读 4096。
+  assert_eq(loaded.max_tokens, 4096)
 }
 
 ///|
 /// config-016：deep_copy 后修改副本不影响原配置。
-/// 期望值冻结自 ruby_output（实测）。应绿。
+/// BUG-0014 修复后加载即锚定 current_model_id=Some("model-1")（default badge），
+/// 断言锚定后的 id。应绿。
 test "config_016_deep_copy_independence" {
   let content =
     #|[[models]]
@@ -568,8 +551,8 @@ test "config_016_deep_copy_independence" {
   let copy = config.deep_copy()
   copy.current_model_id = Some("model-x")
   copy.models[0].anthropic_format = true
-  // 原配置不受影响
-  assert_eq(config.current_model_id, None)
+  // 原配置不受影响（BUG-0014 修复后加载即锚定 default 模型 model-1）
+  assert_eq(config.current_model_id, Some("model-1"))
   assert_true(!config.models[0].anthropic_format)
   assert_eq(config.models[0].model, "gpt-4")
 }

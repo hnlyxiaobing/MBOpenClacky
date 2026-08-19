@@ -73,7 +73,7 @@ pub fn AgentConfig::switch_model_by_id(
       return Ok(())
     }
   }
-  Err("model not found with id: \{id}")
+  Err("model not found")
 }
 
 ///|

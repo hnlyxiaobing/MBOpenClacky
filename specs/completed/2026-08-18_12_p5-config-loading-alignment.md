@@ -1,7 +1,8 @@
 ﻿# 配置加载对齐（BUG-0012/0022/0013/0014/0020）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
+> **归档日期**: 2026-08-19  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0012、BUG-0022、BUG-0013、BUG-0014、BUG-0020；`reports/p5_fix_unit_clustering.md` FU-12  
 > **关联历史 spec**: 无（配置簇第二份；同簇 FU-08 见 `2026-08-18_07_p5-env-overlay-config-channel.md`）  
 > **来源差距**: P2 单元层（config-002/004/009/011/012/014）  
@@ -106,14 +107,14 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] BUG-0012/0022 裁决落地：选项 A 则 max_tokens 不加载且 config-002/011 按 16384 转绿；选项 B 则 config-002/011 按 MB 行为（8192/4096）转绿且 BUGS.md 标"原版缺陷"
-- [ ] config-014：无 default badge 多模型时 current_model 返回第一个模型（BUG-0014 闸门移除转绿）；config-004 文件路径同步验证
-- [ ] config-009：错误消息 "model not found"（BUG-0020 闸门移除转绿）
-- [ ] config-012：断言修正为 false 并转绿，BUG-0013 关闭为语义等价（BUGS.md 回写）
-- [ ] `test/diff/known_failure.mbt` 在册数组移除 BUG-0012、0013、0014、0020、0022
-- [ ] `moon check` 0 errors（lib/config、test/diff）
-- [ ] `moon test lib/config`、`moon test test/diff` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] BUG-0012/0022 裁决落地：选项 A 则 max_tokens 不加载且 config-002/011 按 16384 转绿；选项 B 则 config-002/011 按 MB 行为（8192/4096）转绿且 BUGS.md 标"原版缺陷"
+- [x] config-014：无 default badge 多模型时 current_model 返回第一个模型（BUG-0014 闸门移除转绿）；config-004 文件路径同步验证
+- [x] config-009：错误消息 "model not found"（BUG-0020 闸门移除转绿）
+- [x] config-012：断言修正为 false 并转绿，BUG-0013 关闭为语义等价（BUGS.md 回写）
+- [x] `test/diff/known_failure.mbt` 在册数组移除 BUG-0012、0013、0014、0020、0022
+- [x] `moon check` 0 errors（lib/config、test/diff）
+- [x] `moon test lib/config`、`moon test test/diff` 全部通过
+- [x] 全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -136,3 +137,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-12 |
 | 2026-08-14 | BUG-0012/0022 显式双选项裁决（建议选项 B 标原版缺陷）；BUG-0020 范围修正为消息文案；config-019 划归 BUG-0052/FU-08 | 当前基线代码验证结论 |
+| 2026-08-19 | 决策 1 用户裁决选项 B；from_toml 自动锚定 current_model_id；switch_model_by_id 消息改 "model not found"；config-002/011/012/014/009/016 断言修正；known_failure 移除 5 编号；BUGS.md 回写；全量测试通过后归档 | 用户裁决 + 落地实现 |

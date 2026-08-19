@@ -600,3 +600,59 @@ test "merge_config_badges_first_model_when_no_default" {
   @debug.assert_eq(merged.models[0].type_, Some("default"))
   @debug.assert_eq(merged.models[1].type_, None)
 }
+
+///|
+/// BUG-0014：from_toml 自动锚定 current_model_id——无 default badge 时回退
+/// 第一个模型；有 default badge 时锚定 badge 模型；显式 current_model_id 优先。
+test "from_toml_auto_anchors_current_model_id" {
+  let no_badge_toml =
+    #|[[models]]
+    #|id = "m1"
+    #|api_key = "sk-1"
+    #|base_url = "https://api.1.com"
+    #|model = "gpt-4"
+    #|
+    #|[[models]]
+    #|id = "m2"
+    #|api_key = "sk-2"
+    #|base_url = "https://api.2.com"
+    #|model = "gpt-4-turbo"
+  let c1 = AgentConfig::from_toml(@toml.parse(no_badge_toml))
+  @debug.assert_eq(c1.current_model_id, Some("m1"))
+
+  let with_badge_toml =
+    #|[[models]]
+    #|id = "m1"
+    #|api_key = "sk-1"
+    #|base_url = "https://api.1.com"
+    #|model = "gpt-4"
+    #|
+    #|[[models]]
+    #|id = "m2"
+    #|api_key = "sk-2"
+    #|base_url = "https://api.2.com"
+    #|model = "gpt-4-turbo"
+    #|type = "default"
+  let c2 = AgentConfig::from_toml(@toml.parse(with_badge_toml))
+  @debug.assert_eq(c2.current_model_id, Some("m2"))
+
+  // 显式 current_model_id 不被自动锚定覆盖
+  let explicit_toml =
+    #|[settings]
+    #|current_model_id = "m1"
+    #|
+    #|[[models]]
+    #|id = "m1"
+    #|api_key = "sk-1"
+    #|base_url = "https://api.1.com"
+    #|model = "gpt-4"
+    #|
+    #|[[models]]
+    #|id = "m2"
+    #|api_key = "sk-2"
+    #|base_url = "https://api.2.com"
+    #|model = "gpt-4-turbo"
+    #|type = "default"
+  let c3 = AgentConfig::from_toml(@toml.parse(explicit_toml))
+  @debug.assert_eq(c3.current_model_id, Some("m1"))
+}

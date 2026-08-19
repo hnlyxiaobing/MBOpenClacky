@@ -35,13 +35,17 @@ let known_failure_bug_ids : Array[String] = [
   // token 估算分桶公式 + tool_calls 去 +50），移出注册表
    "BUG-0011", // 溢出恢复拆散 tool pair（+50 根因已随 BUG-0010 修复，本体属 FU-09）
   // config_cli 模块（P2）
-   "BUG-0012", // max_tokens 不从配置文件加载
-   "BUG-0013", // anthropic_format 默认值不一致
-   "BUG-0014", // current_model_id 未自动设置
+  // BUG-0012/0022 已裁决（spec 2026-08-18_12_p5-config-loading-alignment.md：
+  // 决策 1 选项 B——Ruby CONFIG_SETTINGS_KEYS 与 to_yaml 双双遗漏 max_tokens，
+  // 判为原版缺陷；MB 保留加载/保存，config-002/011 冻结 MB 行为），移出注册表
+  // BUG-0013 已关闭（spec 2026-08-18_12：nil/false 语义等价，config-012 断言
+  // 修正为 false），移出注册表
+  // BUG-0014 已修复（spec 2026-08-18_12：from_toml 自动锚定 current_model_id），
+  // 移出注册表
   // BUG-0015 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
   // merge_config 改按 type 去重追加 env 模型），移出注册表
-   "BUG-0020", // switch_model_by_id 失败时 current_model 行为不一致
-   "BUG-0022", // 保存后加载 max_tokens 不一致（同根因 BUG-0012）
+  // BUG-0020 已修复（spec 2026-08-18_12：switch_model_by_id 失败消息改
+  // "model not found"），移出注册表
   // error_retry 模块（P2）
   // BUG-0023 已修复（spec 2026-08-18_08_p5-retry-backoff-circuit-breaker.md：
   // retry_delay_ms 固定 5000ms 对齐 Ruby sleep retry_delay），移出注册表
