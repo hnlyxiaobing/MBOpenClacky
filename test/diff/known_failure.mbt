@@ -63,7 +63,9 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0040", // 工具错误 tool_result 非标准 JSON
   // BUG-0041 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
   // apply_env_overlay 读取 MBOPENCLACKY_COMPRESSION_THRESHOLD），移出注册表
-   "BUG-0042", // needs_compression 语义/recent 守卫未对齐
+  // BUG-0042 已修复（spec 2026-08-18_09_p5-compression-trigger-semantics.md：
+  // needs_compression 取 max(previous_total_tokens, estimate) + recent 守卫对
+  // >2000 字符 tool_result 放行；005 e2e 转绿），移出注册表
   // BUG-0043 已修复（基线 commit 8f4381e，compressor.mbt:141-148 已有 10% 检查，
   // lib/agent 339/339 绿），移出注册表
   // P5 新登记（详见 diff-harness reports/BUGS.md BUG-0044 起）

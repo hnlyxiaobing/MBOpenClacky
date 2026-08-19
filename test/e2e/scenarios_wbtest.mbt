@@ -141,15 +141,13 @@ async test "004 parallel_tool_calls：单响应内两个并行 tool_calls" {
 
 ///|
 async test "005 compression_trigger：上下文压缩触发" {
-  // BUG-0042（兼引 BUG-0041 env overlay 缺口、BUG-0043 缺 10% 最小收益检查）:
-  // MB needs_compression 语义/recent 守卫未对齐 ruby；且 BUG-0042 修复记录显示
-  // 修复候选跑 005 场景超时（300s 未退出）。整剧本隔离，修复后移除编号即激活。
-  // runner 自带 120s 超时保护（with_timeout_opt），闸门打开后也不会挂死套件。
+  // BUG-0042 已修复（spec 2026-08-18_09_p5-compression-trigger-semantics.md）：
+  // needs_compression 取 max(previous_total_tokens, estimate)；recent 守卫对
+  // >2000 字符 tool_result 放行（模拟 ruby truncate_tool_result 副作用）。
+  // 超时风险已隔离：当前基线（内生 runner + 120s 超时保护）实测不复现旧
+  // diff-harness 的 300s 挂死（旧证据来自已删除 runs/ 目录的修复候选）。
   // 证据: diff-harness reports/BUGS.md BUG-0041/0042/0043；
   //       reports/BUG-0042_ANALYSIS.md；runs/005_compression_trigger/{ruby,moonbit}/
-  if @diff.known_failure("BUG-0042") {
-    return
-  }
   let outcome = run_scenario(
     "005_compression_trigger",
     [("big.txt", big_txt_content())],
