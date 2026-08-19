@@ -98,7 +98,8 @@ fn parse_single_frame(frame_text : String) -> SseFrame? {
     }
     let line = frame_text[pos:line_end].to_owned()
     // Chomp a trailing \r (CRLF upstreams; mirrors Ruby line.chomp).
-    let line = if line.length() > 0 && line[line.length() - 1:].to_owned() == "\r" {
+    let line = if line.length() > 0 &&
+      line[line.length() - 1:].to_owned() == "\r" {
       line[:line.length() - 1].to_owned()
     } else {
       line
@@ -407,7 +408,7 @@ pub fn OpenAiStreamAggregator::handle_delta(
             cache_creation~,
             cache_read~,
             total_tokens=total,
-            api_cost=api_cost,
+            api_cost~,
           ),
         )
       }
@@ -637,36 +638,30 @@ pub fn AnthropicStreamAggregator::handle_delta(
                 Some(String(s)) => Some(s)
                 _ => None
               }
-              set_block_at(
-                self.blocks, idx, {
-                  kind: ToolUse,
-                  text: "",
-                  tool_id: id,
-                  tool_name: name,
-                  input_str: "",
-                },
-              )
+              set_block_at(self.blocks, idx, {
+                kind: ToolUse,
+                text: "",
+                tool_id: id,
+                tool_name: name,
+                input_str: "",
+              })
             }
             Some(String("thinking")) =>
-              set_block_at(
-                self.blocks, idx, {
-                  kind: Thinking,
-                  text: "",
-                  tool_id: None,
-                  tool_name: None,
-                  input_str: "",
-                },
-              )
+              set_block_at(self.blocks, idx, {
+                kind: Thinking,
+                text: "",
+                tool_id: None,
+                tool_name: None,
+                input_str: "",
+              })
             _ =>
-              set_block_at(
-                self.blocks, idx, {
-                  kind: Text,
-                  text: "",
-                  tool_id: None,
-                  tool_name: None,
-                  input_str: "",
-                },
-              )
+              set_block_at(self.blocks, idx, {
+                kind: Text,
+                text: "",
+                tool_id: None,
+                tool_name: None,
+                input_str: "",
+              })
           }
         _ => ()
       }
@@ -725,11 +720,7 @@ pub fn AnthropicStreamAggregator::handle_delta(
               }
             Some(String("thinking_delta")) =>
               match
-                (if delta is Object(obj) {
-                  obj.get("thinking")
-                } else {
-                  None
-                }) {
+                (if delta is Object(obj) { obj.get("thinking") } else { None }) {
                 Some(String(thinking)) => {
                   let new_block = {
                     kind: block.kind,
@@ -764,8 +755,7 @@ pub fn AnthropicStreamAggregator::handle_delta(
       match (if json is Object(obj) { obj.get("usage") } else { None }) {
         Some(u) => {
           self.input_tokens = self.input_tokens + json_int(u, "input_tokens")
-          self.output_tokens = self.output_tokens +
-            json_int(u, "output_tokens")
+          self.output_tokens = self.output_tokens + json_int(u, "output_tokens")
           self.cache_creation = self.cache_creation +
             json_int(u, "cache_creation_input_tokens")
           self.cache_read = self.cache_read +

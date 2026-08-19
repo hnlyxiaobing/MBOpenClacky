@@ -141,18 +141,22 @@ Ruby 参照（openclacky，只读）：`anthropic.rb:32-39,66-70,115-124,145-165
 1. 裁决点记录（TLS、LICENSE_SERVER）。
 2. `moon check` + 全量 `moon test` 无回归；wire 快照与 e2e 联动抽查。
 
+**裁决点最终结论**：
+- **TLS verify=false**：不移植。MB 走系统 CA（@http 默认 verify=true），比 Ruby 的 verify=false 更严格，属安全超集，豁免理由已记录。
+- **CLACKY_LICENSE_SERVER**：MB 无 license 概念（全代码库无该 env 引用），豁免成立，不移植。
+
 ## 验收标准 [必填]
 
-- [ ] 连续多 tool_result 请求在 Anthropic wire 上为单条 user 消息（wbtest 快照）
-- [ ] 非法字符 tool_use_id 被消毒且双侧一致
-- [ ] 尾部 2 条消息携带 cache_control（支持的模型族）
-- [ ] effort 5 档全部有效映射，未知档有告警路径
-- [ ] CRLF 行尾 SSE fixture 全帧解析成功
-- [ ] 上游截断响应（缺 finish_reason / 截断 arguments）触发重试而非静默执行
-- [ ] vision 按能力表判定；非 vision 模型图片块为占位文本
-- [ ] Usage 含 total_tokens/api_cost/total_is_per_turn 且归一无重复计费口径
-- [ ] latency 生产路径产出 ttft/duration
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] 连续多 tool_result 请求在 Anthropic wire 上为单条 user 消息（wbtest 快照）
+- [x] 非法字符 tool_use_id 被消毒且双侧一致
+- [x] 尾部 2 条消息携带 cache_control（支持的模型族）
+- [x] effort 5 档全部有效映射，未知档有告警路径
+- [x] CRLF 行尾 SSE fixture 全帧解析成功
+- [x] 上游截断响应（缺 finish_reason / 截断 arguments）触发重试而非静默执行
+- [x] vision 按能力表判定；非 vision 模型图片块为占位文本
+- [x] Usage 含 total_tokens/api_cost/total_is_per_turn 且归一无重复计费口径
+- [x] latency 生产路径产出 ttft/duration
+- [x] `moon check` 0 errors；全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 

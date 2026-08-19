@@ -394,3 +394,83 @@ async test "call_stream_with_retry_async retries truncated tool args" {
   // Both mock responses consumed → truncated first attempt was retried
   @debug.assert_eq(agent.mock_responses.length(), 0)
 }
+
+///|
+/// The real-HTTP non-streaming path must populate `latency` with
+/// duration/ttft/tps (Ruby client.rb: non-streaming ttft aliases duration).
+async test "call_llm_async populates latency on real HTTP path" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  let port = @socket.Addr::port(server.addr)
+  let url = "http://127.0.0.1:\{port}"
+  let body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hello!\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":25}}"
+  let agent = lc_make_agent(url)
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      server.run_forever(async fn(_req, _body, conn) {
+        conn.send_response(200, "OK")
+        conn.write_string(body)
+      })
+    }
+    let resp = agent.call_llm_async() catch { _ => abort("unexpected error") }
+    match resp.latency {
+      Some(lat) => {
+        assert_true(lat.duration_ms >= 0)
+        // Non-streaming: ttft aliases duration (Ruby semantics), so it
+        // must be within a few ms of duration_ms.
+        match lat.ttft_ms {
+          Some(ttft) => {
+            assert_true(ttft <= lat.duration_ms)
+            assert_true(lat.duration_ms - ttft < 100)
+          }
+          None => fail("ttft_ms should be Some for non-streaming calls")
+        }
+        // 25 output tokens >= 10 → tps computed.
+        match lat.tps {
+          Some(tps) => assert_true(tps > 0.0)
+          None => fail("tps should be computed for >= 10 output tokens")
+        }
+      }
+      None => fail("latency should be populated on real HTTP path")
+    }
+  })
+  server.close()
+}
+
+///|
+/// The real-HTTP streaming path must populate `latency` with a real
+/// first-token ttft (stamped at the first visible content delta) and tps.
+async test "call_llm_stream_async populates latency with first-token ttft" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  let port = @socket.Addr::port(server.addr)
+  let url = "http://127.0.0.1:\{port}"
+  let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"He\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"llo\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: {\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":25}}\n\ndata: [DONE]\n\n"
+  let agent = lc_make_agent(url)
+  let chunks : Array[String] = []
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      server.run_forever(async fn(_req, _body, conn) {
+        conn.send_response(200, "OK")
+        conn.write_string(sse)
+      })
+    }
+    let resp = agent.call_llm_stream_async(fn(c) { chunks.push(c) }) catch {
+      _ => abort("unexpected error")
+    }
+    match resp.latency {
+      Some(lat) => {
+        assert_true(lat.duration_ms >= 0)
+        match lat.ttft_ms {
+          Some(ttft) => assert_true(ttft <= lat.duration_ms)
+          None => fail("ttft_ms should be Some for streaming calls")
+        }
+        match lat.tps {
+          Some(tps) => assert_true(tps > 0.0)
+          None => fail("tps should be computed for >= 10 output tokens")
+        }
+      }
+      None => fail("latency should be populated on real streaming path")
+    }
+    @debug.assert_eq(chunks, ["He", "llo"])
+  })
+  server.close()
+}

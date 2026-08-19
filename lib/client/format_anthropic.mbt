@@ -60,7 +60,9 @@ pub fn build_anthropic_request(
   // Compute cache-candidate indices (tail 2 regular messages, skipping
   // injected compression hints) BEFORE conversion so the marker survives
   // the tool_result merge pass below.
-  let cache_candidates = cache_candidate_indices(regular_messages, enable_caching)
+  let cache_candidates = cache_candidate_indices(
+    regular_messages, enable_caching,
+  )
 
   // Convert regular messages to Anthropic format
   let api_messages : Array[Json] = []
@@ -238,7 +240,9 @@ fn is_anthropic_user_with_tool_result(msg : Json) -> Bool {
           for item in arr {
             match item {
               Object(o) =>
-                if o.get("type") == Some("tool_result".to_json()) { return true }
+                if o.get("type") == Some("tool_result".to_json()) {
+                  return true
+                }
               _ => ()
             }
           }
@@ -263,8 +267,7 @@ fn apply_anthropic_reasoning(
   reasoning_effort : String?,
 ) -> Unit {
   let model_lower = model.to_lower()
-  let is_k3 = model_lower.has_prefix("k3") ||
-    model_lower.has_prefix("kimi-k3")
+  let is_k3 = model_lower.has_prefix("k3") || model_lower.has_prefix("kimi-k3")
   if is_k3 {
     body["thinking"] = Json::object({ "type": "enabled".to_json() })
     let effort_str = match reasoning_effort {

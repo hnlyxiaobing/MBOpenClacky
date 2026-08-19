@@ -1699,7 +1699,7 @@ async test "observe_no_vision_uses_text_placeholder" {
     "https://api.test.com",
     "test-model",
     @config.OpenAICompletions,
-    vision_supported=false,
+    vision_supported=Some(false),
   )
   let config = @config.AgentConfig::default()
   let agent = Agent::new(

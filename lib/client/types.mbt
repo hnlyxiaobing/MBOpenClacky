@@ -232,7 +232,7 @@ pub fn Usage::from_anthropic(
     cache_read_input_tokens: cache_read,
     // Per-turn new compute: excludes cache_read (nearly free), includes
     // cache_creation (new work billed at write rate) + output.
-    total_tokens: (prompt_tokens - cache_read) + cache_creation + output_tokens,
+    total_tokens: prompt_tokens - cache_read + cache_creation + output_tokens,
     api_cost: None,
     total_is_per_turn: true,
   }
@@ -240,6 +240,10 @@ pub fn Usage::from_anthropic(
 
 ///|
 /// Create a Latency from timing measurements.
-pub fn Latency::new(duration_ms : Int, ttft_ms? : Int, tps? : Double? = None) -> Latency {
+pub fn Latency::new(
+  duration_ms : Int,
+  ttft_ms? : Int,
+  tps? : Double? = None,
+) -> Latency {
   { duration_ms, ttft_ms, tps }
 }

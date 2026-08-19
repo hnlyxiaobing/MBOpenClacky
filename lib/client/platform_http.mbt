@@ -332,89 +332,120 @@ fn split_base_path(url : String) -> (String, String) {
 }
 
 ///|
-/// Perform the HTTP request via `@async/http` (TLS via SystemRoot:
-/// Schannel on Windows, OpenSSL system CA on POSIX). Raises on transport
-/// errors; HTTP error statuses are returned as normal responses.
+/// Map a platform `HttpMethod` to the `@async/http` request method.
+fn http_request_method(http_method : HttpMethod) -> @http.RequestMethod {
+  match http_method {
+    Get => @http.Get
+    Post => @http.Post
+    Put => @http.Put
+    Delete => @http.Delete
+  }
+}
+
+///|
+/// Establish the connection (TCP + TLS) for `url` and return a client whose
+/// persistent headers carry the request headers. Runs inside the open
+/// timeout window so a hanging connect fails fast (Ruby `open_timeout`).
+/// Raises on transport errors.
+async fn connect_client(
+  url : String,
+  headers : Map[String, String],
+) -> @http.Client {
+  let (base, _path) = split_base_path(url)
+  @http.Client::Client(base, headers~)
+}
+
+///|
+/// Perform the HTTP request on an already-connected client via `@async/http`
+/// (TLS via SystemRoot: Schannel on Windows, OpenSSL system CA on POSIX).
+/// Raises on transport errors; HTTP error statuses are returned as normal
+/// responses.
 async fn perform_request(
+  client : @http.Client,
   http_method : HttpMethod,
   url : String,
   body : String,
-  headers : Map[String, String],
 ) -> HttpResponse {
-  match http_method {
-    Get => {
-      let (resp, data) = @http.get(url, headers~)
-      HttpResponse::{
-        status_code: resp.code,
-        body: data.text(),
-        headers: map_to_headers(resp.headers),
-      }
+  let (_base, path) = split_base_path(url)
+  try {
+    client.request(http_request_method(http_method), path)
+    if body.length() > 0 {
+      client.write(@utf8.encode(body))
     }
-    Post => {
-      let (resp, data) = @http.post(url, @utf8.encode(body), headers~)
-      HttpResponse::{
-        status_code: resp.code,
-        body: data.text(),
-        headers: map_to_headers(resp.headers),
-      }
+    let resp = client.end_request()
+    let data = client.read_all()
+    HttpResponse::{
+      status_code: resp.code,
+      body: data.text(),
+      headers: map_to_headers(resp.headers),
     }
-    Put => {
-      let (resp, data) = @http.put(url, @utf8.encode(body), headers~)
-      HttpResponse::{
-        status_code: resp.code,
-        body: data.text(),
-        headers: map_to_headers(resp.headers),
-      }
+  } catch {
+    err => {
+      client.close()
+      raise err
     }
-    Delete => {
-      // No top-level DELETE helper; go through an explicit client.
-      let (base, path) = split_base_path(url)
-      let client = @http.Client::Client(base, headers~)
-      try {
-        let resp = client..request(@http.Delete, path).end_request()
-        let data = client.read_all()
-        HttpResponse::{
-          status_code: resp.code,
-          body: data.text(),
-          headers: map_to_headers(resp.headers),
-        }
-      } catch {
-        err => {
-          client.close()
-          raise err
-        }
-      } noraise {
-        result => {
-          client.close()
-          result
-        }
-      }
+  } noraise {
+    result => {
+      client.close()
+      result
     }
   }
 }
 
 ///|
 /// Actual HTTP transport via `@async/http`. `timeout_ms` bounds the whole
-/// request (same total-timeout semantics as the previous C transport).
+/// request (same total-timeout semantics as the previous C transport);
+/// `open_timeout_ms` bounds only the connect phase (TCP + TLS handshake),
+/// mirroring Ruby's `conn.options.open_timeout = 10` vs
+/// `conn.options.timeout = @read_timeout || 300`. A hanging connect fails
+/// fast with a `Timeout`, long reads are granted the full read window.
 pub async fn send_request(
   http_method : HttpMethod,
   url : String,
   body : String,
   headers : Array[(String, String)],
   timeout_ms : Int,
+  open_timeout_ms? : Int = 10000,
 ) -> Result[HttpResponse, HttpError] {
   let headers_map = headers_to_map(headers)
-  let result = @async.with_timeout_opt(timeout_ms, () => {
-    perform_request(http_method, url, body, headers_map)
+  // Phase 1: connect (TCP + TLS) within the open timeout window.
+  let conn = @async.with_timeout_opt(open_timeout_ms, () => {
+    connect_client(url, headers_map)
   }) catch {
     err =>
       return Err(
         ConnectionFailed("\{http_method_str(http_method)} \{url}: \{err}"),
       )
   }
-  match result {
-    None => Err(Timeout("\{http_method_str(http_method)} \{url} timed out"))
-    Some(resp) => Ok(resp)
+  match conn {
+    None =>
+      Err(
+        Timeout(
+          "\{http_method_str(http_method)} \{url} connect timed out after \{open_timeout_ms}ms",
+        ),
+      )
+    Some(client) => {
+      // Phase 2: send request and read response within the read timeout.
+      let result = @async.with_timeout_opt(timeout_ms, () => {
+        perform_request(client, http_method, url, body)
+      }) catch {
+        err => {
+          client.close()
+          return Err(
+            ConnectionFailed("\{http_method_str(http_method)} \{url}: \{err}"),
+          )
+        }
+      }
+      match result {
+        None =>
+          Err(
+            Timeout(
+              "\{http_method_str(http_method)} \{url} timed out after \{timeout_ms}ms",
+            ),
+          )
+        Some(resp) => Ok(resp)
+      }
+    }
   }
 }
 

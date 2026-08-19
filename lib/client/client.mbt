@@ -56,15 +56,25 @@ pub extend TestResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new LLM client.
+///
+/// When `vision_supported` is not explicitly provided, it is derived from
+/// the provider capability table (`model_supports_vision`) — mirroring Ruby
+/// `Providers.supports?` (providers.rb:1151) — so models that declare
+/// `vision: false` (DeepSeek, Kimi, MiniMax, …) no longer silently receive
+/// image_url blocks. Unknown providers default to `true` (conservative).
 pub fn Client::new(
   api_key : String,
   base_url : String,
   model : String,
   api_type : ApiType,
   provider_id? : String? = None,
-  vision_supported? : Bool = true,
+  vision_supported? : Bool? = None,
 ) -> Client {
-  { api_key, base_url, model, api_type, provider_id, vision_supported }
+  let vision = match vision_supported {
+    Some(v) => v
+    None => @config.model_supports_vision(provider_id, model)
+  }
+  { api_key, base_url, model, api_type, provider_id, vision_supported: vision }
 }
 
 ///|
@@ -90,6 +100,19 @@ pub fn Client::is_bedrock_format(self : Client) -> Bool {
 // ── Request Building ────────────────────────────────────────────────────────
 
 ///|
+/// Translate a display model name into the model id the configured endpoint
+/// actually expects (upstream client.rb resolves this via
+/// `Providers.resolve_api_model` before every request). No-op for providers
+/// without alias tables.
+pub fn Client::api_model_for(self : Client, model : String) -> String {
+  @config.Providers::resolve_api_model(
+    Some(self.base_url),
+    Some(self.api_key),
+    model,
+  )
+}
+
+///|
 /// Build the HTTP request body JSON for the given parameters.
 /// Dispatches to the appropriate format module based on API type.
 pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json {
@@ -98,10 +121,11 @@ pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json 
   } else {
     false
   }
+  let model = self.api_model_for(request.model)
   if self.is_bedrock_format() {
     build_bedrock_request(
       request.messages,
-      request.model,
+      model,
       request.tools,
       request.max_tokens,
       caching_enabled,
@@ -110,7 +134,7 @@ pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json 
   } else if self.is_anthropic_format() {
     build_anthropic_request(
       request.messages,
-      request.model,
+      model,
       request.tools,
       request.max_tokens,
       caching_enabled,
@@ -119,7 +143,7 @@ pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json 
   } else {
     build_openai_request(
       request.messages,
-      request.model,
+      model,
       request.tools,
       request.max_tokens,
       caching_enabled,
@@ -138,6 +162,7 @@ pub fn Client::build_simple_request(
   max_tokens : Int,
 ) -> Json {
   let messages = [@message.Message::user(content)]
+  let model = self.api_model_for(model)
   if self.is_bedrock_format() {
     build_bedrock_request(messages, model, [], max_tokens, false)
   } else if self.is_anthropic_format() {
@@ -243,7 +268,7 @@ pub fn Client::format_tool_results(
 /// Get the API endpoint path for this client's protocol.
 pub fn Client::api_path(self : Client) -> String {
   if self.is_bedrock_format() {
-    bedrock_converse_path(self.model)
+    bedrock_converse_path(self.api_model_for(self.model))
   } else if self.is_anthropic_format() {
     anthropic_messages_path(self.base_url)
   } else {
@@ -291,6 +316,15 @@ pub fn Client::anthropic_headers(self : Client) -> Map[String, String] {
   // For OpenRouter: also send Bearer token
   match self.provider_id {
     Some("openrouter") => headers["Authorization"] = "Bearer \{self.api_key}"
+    _ => ()
+  }
+  // Moonshot's Kimi Code (Coding Plan) endpoint enforces a User-Agent
+  // prefix whitelist limited to first-party coding agents; requests
+  // carrying a generic UA are rejected with HTTP 403. Mirror the upstream
+  // Claude Code-shaped UA (client.rb kimi-coding branch).
+  match self.provider_id {
+    Some("kimi-coding") =>
+      headers["User-Agent"] = "claude-cli/1.0.51 (external, cli)"
     _ => ()
   }
   headers

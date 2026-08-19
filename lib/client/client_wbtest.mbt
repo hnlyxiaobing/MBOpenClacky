@@ -82,6 +82,37 @@ test "build_openai_request_basic" {
 }
 
 ///|
+test "openai_max_output_for_overrides_ceiling" {
+  // Capability table (Ruby MODEL_MAX_OUTPUT): strong models get a raised
+  // ceiling instead of the 16K global default.
+  @debug.assert_eq(@config.max_output_for("glm-5.2"), Some(65536))
+  @debug.assert_eq(@config.max_output_for("GLM-5.2-Pro"), Some(65536))
+  @debug.assert_eq(@config.max_output_for("kimi-k3"), Some(65536))
+  @debug.assert_eq(@config.max_output_for("mimo-v2.5-pro"), Some(65536))
+  // mimo-v2.5 (non-pro) matches the later /mimo/ entry → 32K
+  @debug.assert_eq(@config.max_output_for("mimo-v2.5"), Some(32768))
+  @debug.assert_eq(@config.max_output_for("gemini-3.5-flash"), Some(65536))
+  @debug.assert_eq(@config.max_output_for("gpt-4o"), None)
+
+  // Request body uses the raised ceiling (glm-5.2: 16384 → 65536)
+  let messages = [@message.Message::user("Hello")]
+  let body = build_openai_request(messages, "glm-5.2", [], 16384, false)
+  let obj = match body {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  @debug.assert_eq(obj.get("max_tokens").unwrap().stringify(), "65536")
+
+  // Unlisted model keeps the caller-supplied value
+  let body2 = build_openai_request(messages, "gpt-4o", [], 1024, false)
+  let obj2 = match body2 {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  @debug.assert_eq(obj2.get("max_tokens").unwrap().stringify(), "1024")
+}
+
+///|
 test "build_openai_request_with_tools" {
   let messages = [@message.Message::user("test")]
   let tools : Array[Json] = [
@@ -140,6 +171,49 @@ test "build_openai_request_strips_image_for_non_vision" {
   let json_str = body.stringify()
   // Should NOT contain image_url
   assert_true(json_str.find("image_url") is None)
+}
+
+///|
+test "client_vision_defaults_from_capability_table" {
+  // Provider with text_only() preset (DeepSeek) → vision defaults false
+  let client = Client::new(
+    "test-key",
+    "https://api.deepseek.com",
+    "deepseek-chat",
+    @config.OpenAICompletions,
+    provider_id=Some("deepseek"),
+  )
+  @debug.assert_eq(client.vision_supported, false)
+
+  // Unknown provider → conservative default true (Ruby providers.rb:1151)
+  let unknown = Client::new(
+    "k",
+    "https://api.unknown.example",
+    "m",
+    @config.OpenAICompletions,
+    provider_id=Some("no-such-provider"),
+  )
+  @debug.assert_eq(unknown.vision_supported, true)
+
+  // No provider_id → conservative default true
+  let noprov = Client::new(
+    "k",
+    "https://api.x.example",
+    "m",
+    @config.OpenAICompletions,
+  )
+  @debug.assert_eq(noprov.vision_supported, true)
+
+  // Explicit override still wins
+  let explicit = Client::new(
+    "k",
+    "https://api.deepseek.com",
+    "deepseek-chat",
+    @config.OpenAICompletions,
+    provider_id=Some("deepseek"),
+    vision_supported=Some(true),
+  )
+  @debug.assert_eq(explicit.vision_supported, true)
 }
 
 // ── OpenAI Response Parsing Tests ───────────────────────────────────────────
@@ -394,7 +468,13 @@ test "build_anthropic_request_merges_consecutive_tool_results" {
     @message.Message::tool_result("tu_1", "read_file", "file contents"),
     @message.Message::tool_result("tu_2", "shell", "command output"),
   ]
-  let body = build_anthropic_request(messages, "claude-sonnet-4-5", [], 1024, false)
+  let body = build_anthropic_request(
+    messages,
+    "claude-sonnet-4-5",
+    [],
+    1024,
+    false,
+  )
   let obj = match body {
     Object(o) => o
     _ => abort("expected object")
@@ -414,10 +494,7 @@ test "build_anthropic_request_merges_consecutive_tool_results" {
           for block in blocks {
             match block {
               Object(b) =>
-                assert_eq(
-                  b.get("type"),
-                  Some("tool_result".to_json()),
-                )
+                assert_eq(b.get("type"), Some("tool_result".to_json()))
               _ => abort("expected tool_result block")
             }
           }
@@ -1077,4 +1154,79 @@ test "extract_error_code: invalid json" {
 test "extract_error_code: no error object" {
   let body = "{\"message\":\"Something went wrong\"}"
   @debug.assert_eq(extract_error_code(body), None)
+}
+
+///|
+test "client_api_model_for_volcengine_payg_alias" {
+  let client = Client::new(
+    "sk-x",
+    "https://ark.cn-beijing.volces.com/api/v3",
+    "doubao-seed-2.1-pro",
+    @config.OpenAICompletions,
+    provider_id=Some("volcengine-ark"),
+  )
+  // Display name → versioned id on the pay-as-you-go endpoint
+  @debug.assert_eq(
+    client.api_model_for("doubao-seed-2.1-pro"),
+    "doubao-seed-2-1-pro-260628",
+  )
+  // Model absent from alias table passes through
+  @debug.assert_eq(
+    client.api_model_for("doubao-1.5-pro-256k"),
+    "doubao-1.5-pro-256k",
+  )
+  // The request body carries the versioned id
+  let req : SendRequest = {
+    messages: [@message.Message::user("hi")],
+    model: "doubao-seed-2.1-pro",
+    tools: [],
+    max_tokens: 1024,
+    enable_caching: false,
+    reasoning_effort: None,
+  }
+  let body = client.build_request_body(req)
+  match body {
+    Object(o) =>
+      @debug.assert_eq(
+        o.get("model").unwrap().stringify(),
+        "\"doubao-seed-2-1-pro-260628\"",
+      )
+    _ => abort("expected object")
+  }
+}
+
+///|
+test "client_api_model_for_non_alias_provider_unchanged" {
+  let client = Client::new(
+    "sk-x",
+    "https://api.openai.com/v1",
+    "gpt-4o",
+    @config.OpenAICompletions,
+  )
+  @debug.assert_eq(client.api_model_for("gpt-4o"), "gpt-4o")
+}
+
+///|
+test "client_anthropic_headers_kimi_coding_ua" {
+  let kimi = Client::new(
+    "sk-x",
+    "https://api.kimi.com/coding",
+    "kimi-for-coding",
+    @config.AnthropicMessages,
+    provider_id=Some("kimi-coding"),
+  )
+  let headers = kimi.anthropic_headers()
+  @debug.assert_eq(
+    headers.get("User-Agent").unwrap(),
+    "claude-cli/1.0.51 (external, cli)",
+  )
+  // Non-kimi providers keep no special UA
+  let openai = Client::new(
+    "sk-x",
+    "https://api.openai.com/v1",
+    "gpt-4o",
+    @config.OpenAICompletions,
+  )
+  let headers2 = openai.anthropic_headers()
+  @debug.assert_eq(headers2.get("User-Agent"), None)
 }

@@ -129,6 +129,53 @@ pub fn get_model_capabilities(
 }
 
 ///|
+/// Per-model maximum output token limits (mirrors Ruby
+/// `Providers::MODEL_MAX_OUTPUT`, providers.rb:690).
+///
+/// The agent global default (16_384) is tuned for the lowest common
+/// denominator. Strong reasoning models (GLM-5.2, Kimi-K3, MiMo-V2.5)
+/// support 64K–128K output but are artificially throttled to 16K, causing
+/// truncation on long reasoning chains and code generation.
+///
+/// Entries are matched in order; the first match wins. Models not listed
+/// here fall back to the caller's max_tokens.
+pub fn max_output_for(model : String) -> Int? {
+  let m = model.to_lower()
+  if m.find("glm") is Some(_) {
+    Some(65536) // GLM-5.2: 128K output ceiling; 64K ample for reasoning+answer
+  } else if m.find("kimi-k3") is Some(_) {
+    Some(65536) // Kimi K3: max_completion_tokens=131072 (max 1M); 64K ample
+  } else if m.find("mimo-v2.5-pro") is Some(_) {
+    Some(65536) // MiMo-V2.5-Pro: max_completion_tokens=131072; 64K ample
+  } else if m.find("mimo") is Some(_) {
+    Some(32768) // MiMo-V2.5: max_completion_tokens=32768; full default ceiling
+  } else if m.find("gemini") is Some(_) {
+    Some(65536) // Gemini 3.x: 64K max output ceiling
+  } else {
+    None
+  }
+}
+
+///|
+/// Whether a provider+model supports vision input, using the conservative
+/// default semantics of Ruby `Providers.supports?` (providers.rb:1151):
+/// an unknown provider (or missing provider_id) defaults to `true`, and only
+/// an explicitly-declared `vision: false` capability yields `false`.
+/// Unlike `get_model_capabilities`, this never falls back to `text_only()`
+/// for unknown presets, so a freshly-added provider is assumed vision-capable
+/// until declared otherwise.
+pub fn model_supports_vision(provider_id : String?, model : String) -> Bool {
+  match provider_id {
+    None => true
+    Some(pid) =>
+      match Providers::find(pid) {
+        None => true
+        Some(_) => get_model_capabilities(pid, model).vision
+      }
+  }
+}
+
+///|
 /// Query the API type override for a specific model on a provider.
 /// Some providers (e.g. OpenRouter) route to different upstream APIs
 /// depending on the model. Returns the provider's default api_type string

@@ -227,7 +227,7 @@ pub fn Agent::rebuild_client_from_config(self : Agent) -> Unit {
         m.model,
         api_type,
         provider_id=self.client.provider_id,
-        vision_supported=self.client.vision_supported,
+        vision_supported=Some(self.client.vision_supported),
       )
     }
     None => ()

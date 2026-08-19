@@ -273,7 +273,8 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
     headers_arr.push((k, v))
   }
   let body_str = body_json.stringify()
-  let http_result = @client.http_post_async(url, body_str, headers_arr, 60000)
+  let t0 = current_time_ms()
+  let http_result = @client.http_post_async(url, body_str, headers_arr, 300000)
   match http_result {
     Err(err) =>
       raise @errors.RetryableError(
@@ -316,9 +317,50 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
         None => ()
       }
       self.clear_llm_error()
-      response
+      // ── Latency metrics ────────────────────────────────────────────
+      // Mirrors Ruby client.rb (non-streaming path): duration is the
+      // authoritative number and is aliased to ttft_ms because a plain
+      // POST delivers the whole body at once ("first token visible" ==
+      // request completion). tps = output tokens/sec when >= 10 tokens.
+      let output_tokens = match response.usage {
+        Some(usage) => usage.output_tokens
+        None => 0
+      }
+      {
+        ..response,
+        latency: Some(build_latency(t0, current_time_ms(), output_tokens)),
+      }
     }
   }
+}
+
+///|
+/// Build latency metrics mirroring Ruby client.rb's measurement block.
+///
+/// - `duration_ms` = wall-clock time from request start to response
+///   completion.
+/// - `ttft_ms` = time to first token; for non-streaming calls the caller
+///   passes the completion instant so ttft aliases duration (Ruby: "we
+///   record duration_ms as the authoritative number and alias it to
+///   ttft_ms for downstream consumers").
+/// - `tps` = output tokens per second, reported only when >= 10 output
+///   tokens and duration > 0 (Ruby threshold), rounded to 0.1 tok/s.
+fn build_latency(
+  t0_ms : Int64,
+  ttft_abs_ms : Int64,
+  output_tokens : Int,
+) -> @client.Latency {
+  let duration_ms = (current_time_ms() - t0_ms).to_int()
+  let ttft_ms = (ttft_abs_ms - t0_ms).to_int()
+  let tps = if output_tokens >= 10 && duration_ms > 0 {
+    Some(
+      (output_tokens.to_double() * 1000.0 / duration_ms.to_double() * 10.0).round() /
+      10.0,
+    )
+  } else {
+    None
+  }
+  { duration_ms, ttft_ms: Some(ttft_ms), tps }
 }
 
 ///|
@@ -372,7 +414,9 @@ pub async fn Agent::call_llm_stream_async(
   // Bedrock streams over the converse-stream endpoint, not `converse`
   // (Ruby bedrock_stream_endpoint: `/model/{m}/converse-stream`).
   let url = if is_bedrock {
-    self.client.build_url(@client.bedrock_converse_stream_path(self.client.model))
+    self.client.build_url(
+      @client.bedrock_converse_stream_path(self.client.model),
+    )
   } else {
     self.client.request_url()
   }
@@ -382,6 +426,8 @@ pub async fn Agent::call_llm_stream_async(
     headers_arr.push((k, v))
   }
   let body_str = body_json.stringify()
+  let t0 = current_time_ms()
+  let mut first_chunk_at : Int64? = None
 
   let openai_agg = @client.OpenAiStreamAggregator::new()
   let anthropic_agg = @client.AnthropicStreamAggregator::new()
@@ -399,12 +445,18 @@ pub async fn Agent::call_llm_stream_async(
       openai_agg.handle_delta(frame.data)
     }
     if delta.length() > 0 {
+      // Time-to-first-token: stamp the instant the first visible content
+      // delta reaches the consumer (Ruby wrapped_on_chunk semantics).
+      match first_chunk_at {
+        None => first_chunk_at = Some(current_time_ms())
+        Some(_) => ()
+      }
       on_chunk(delta)
     }
   }
 
   let http_result = @client.http_post_stream_async(
-    url, body_str, headers_arr, 60000, on_frame,
+    url, body_str, headers_arr, 300000, on_frame,
   )
   match http_result {
     Err(err) =>
@@ -449,7 +501,21 @@ pub async fn Agent::call_llm_stream_async(
         None => ()
       }
       self.clear_llm_error()
-      response
+      // ── Latency metrics ────────────────────────────────────────────
+      // Streaming: ttft_ms = first visible content delta (first_chunk_at);
+      // falls back to duration when the stream carried no visible content
+      // (e.g. Bedrock typed-event streams — mirrors Ruby's
+      // `first_chunk_at ? ... : duration_ms`). tps as in the non-streaming
+      // path (>= 10 output tokens, duration > 0).
+      let ttft_abs = match first_chunk_at {
+        Some(t) => t
+        None => current_time_ms()
+      }
+      let output_tokens = match response.usage {
+        Some(usage) => usage.output_tokens
+        None => 0
+      }
+      { ..response, latency: Some(build_latency(t0, ttft_abs, output_tokens)) }
     }
   }
 }

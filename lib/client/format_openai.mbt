@@ -40,7 +40,13 @@ pub fn build_openai_request(
   }
   // Map literals require static keys; max-token field name is model-dependent
   // (some OpenAI-compatible models only accept max_completion_tokens).
-  body[token_field_for(model)] = max_tokens.to_json()
+  // Also override max_tokens when the model declares a higher output ceiling
+  // in the capability table (mirrors Ruby send_openai_request, client.rb:348).
+  let effective_max_tokens = match @config.max_output_for(model) {
+    Some(limit) => limit
+    None => max_tokens
+  }
+  body[token_field_for(model)] = effective_max_tokens.to_json()
 
   // Add tools with optional cache_control on last tool
   if tools.length() > 0 {
@@ -121,7 +127,9 @@ fn apply_reasoning_params(
     // error (Z.ai migration guide), so "off" maps to the lightest effort
     // "low". Effort accepts low/high/max only; server default is max.
     body["thinking"] = Json::object({ "type": "enabled".to_json() })
-    if effort_str == "off" || effort_str == "nothink" || effort_str == "disabled" {
+    if effort_str == "off" ||
+      effort_str == "nothink" ||
+      effort_str == "disabled" {
       body["reasoning_effort"] = "low".to_json()
     } else if effort_str.length() > 0 {
       let mapped = match effort_str {
@@ -136,7 +144,9 @@ fn apply_reasoning_params(
     // GLM (Zhipu / Z.ai) supports a native top-level "thinking" field
     // ({type: "enabled"|"disabled"}) plus a restricted reasoning_effort that
     // only accepts "max" or "high". Other effort levels collapse to "high".
-    if effort_str == "off" || effort_str == "nothink" || effort_str == "disabled" {
+    if effort_str == "off" ||
+      effort_str == "nothink" ||
+      effort_str == "disabled" {
       body["thinking"] = Json::object({ "type": "disabled".to_json() })
     } else if effort_str.length() > 0 {
       let glm_effort = match effort_str {
@@ -153,7 +163,9 @@ fn apply_reasoning_params(
     // Thinking is always enabled and cannot be turned off; "off" maps to the
     // lowest intensity "low". Unsupported levels (medium, xhigh) would be
     // rejected or ignored by the server.
-    if effort_str == "off" || effort_str == "nothink" || effort_str == "disabled" {
+    if effort_str == "off" ||
+      effort_str == "nothink" ||
+      effort_str == "disabled" {
       body["reasoning_effort"] = "low".to_json()
     } else if effort_str.length() > 0 {
       let mapped = match effort_str {
@@ -167,7 +179,9 @@ fn apply_reasoning_params(
   } else if m.has_prefix("mimo-v2") {
     // MiMo-V2.5 (Xiaomi) controls reasoning via a top-level
     // thinking:{type:...} field rather than reasoning_effort.
-    if effort_str == "off" || effort_str == "nothink" || effort_str == "disabled" {
+    if effort_str == "off" ||
+      effort_str == "nothink" ||
+      effort_str == "disabled" {
       body["thinking"] = Json::object({ "type": "disabled".to_json() })
     } else if effort_str.length() > 0 {
       body["thinking"] = Json::object({ "type": "enabled".to_json() })
@@ -178,7 +192,9 @@ fn apply_reasoning_params(
     // we only send the field to explicitly switch modes:
     //   - reasoning_effort "off"/"disabled" → thinking disabled
     //   - any other effort → adaptive thinking (server picks intensity).
-    if effort_str == "off" || effort_str == "nothink" || effort_str == "disabled" {
+    if effort_str == "off" ||
+      effort_str == "nothink" ||
+      effort_str == "disabled" {
       body["thinking"] = Json::object({ "type": "disabled".to_json() })
     } else if effort_str.length() > 0 {
       body["thinking"] = Json::object({ "type": "adaptive".to_json() })
@@ -428,7 +444,7 @@ pub fn parse_openai_response(data : Json) -> LlmResponse {
           cache_creation=final_creation,
           cache_read=final_read,
           total_tokens=total,
-          api_cost=api_cost,
+          api_cost~,
         ),
       )
     }
@@ -474,12 +490,16 @@ fn parse_openai_tool_calls(message : Json) -> Array[@message.ToolCall]? {
             // back on the next turn or the replay 400s with "Function call is
             // missing a thought_signature".
             let extra_content = match
-              (if call is Object(obj) { obj.get("extra_content") } else { None }) {
+              (if call is Object(obj) {
+                obj.get("extra_content")
+              } else {
+                None
+              }) {
               Some(ec) => Some(ec)
               _ => None
             }
             calls.push(
-              @message.ToolCall::new(id, name, arguments, extra_content=extra_content),
+              @message.ToolCall::new(id, name, arguments, extra_content~),
             )
           }
           _ => ()

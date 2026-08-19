@@ -70,6 +70,9 @@ pub(all) struct EndpointVariant {
   base_url : String
   /// Optional region marker (e.g. "cn", "intl")
   region : String?
+  /// Alias group key for api_model_aliases (e.g. "payg"); endpoints in the
+  /// same billing group share model-id aliases. Mirrors Ruby `alias_group`.
+  alias_group : String?
 } derive(Debug)
 
 ///|
@@ -112,6 +115,10 @@ pub(all) struct ProviderPreset {
   audio_models : Array[String]
   /// Alternative endpoints that must resolve to this same preset.
   endpoint_variants : Array[EndpointVariant]
+  /// Per-billing-group display-model → endpoint model-id aliases. Keyed by
+  /// endpoint variant `alias_group`; the alias is applied just before the
+  /// request goes out (mirrors Ruby `api_model_aliases`, providers.rb:539).
+  api_model_aliases : Map[String, Map[String, String]]
 } derive(Debug)
 
 ///|
@@ -171,6 +178,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: ["gpt-4o"],
       video_models: [],
       audio_models: ["tts-1"],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -212,6 +220,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -231,6 +240,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -254,16 +264,19 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [
         {
           label: "Mainland China",
           label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          alias_group: None,
           base_url: "https://api.minimaxi.com/v1",
           region: Some("cn"),
         },
         {
           label: "International",
           label_key: Some("settings.models.baseurl.variant.international"),
+          alias_group: None,
           base_url: "https://api.minimax.io/v1",
           region: Some("intl"),
         },
@@ -293,16 +306,19 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [
         {
           label: "Mainland China",
           label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          alias_group: None,
           base_url: "https://api.moonshot.cn/v1",
           region: Some("cn"),
         },
         {
           label: "International",
           label_key: Some("settings.models.baseurl.variant.international"),
+          alias_group: None,
           base_url: "https://api.moonshot.ai/v1",
           region: Some("intl"),
         },
@@ -325,6 +341,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -352,6 +369,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -371,6 +389,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -395,22 +414,26 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [
         {
           label: "Mainland · Pay-as-you-go",
           label_key: Some("settings.models.baseurl.variant.mainland_cn_payg"),
+          alias_group: None,
           base_url: "https://open.bigmodel.cn/api/paas/v4",
           region: Some("cn"),
         },
         {
           label: "Mainland · Coding Plan",
           label_key: Some("settings.models.baseurl.variant.mainland_cn_coding"),
+          alias_group: None,
           base_url: "https://open.bigmodel.cn/api/coding/paas/v4",
           region: Some("cn"),
         },
         {
           label: "International · Pay-as-you-go",
           label_key: Some("settings.models.baseurl.variant.international_payg"),
+          alias_group: None,
           base_url: "https://api.z.ai/api/paas/v4",
           region: Some("intl"),
         },
@@ -419,6 +442,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
           label_key: Some(
             "settings.models.baseurl.variant.international_coding",
           ),
+          alias_group: None,
           base_url: "https://api.z.ai/api/coding/paas/v4",
           region: Some("intl"),
         },
@@ -446,6 +470,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -467,6 +492,7 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       image_models: [],
       video_models: [],
       audio_models: [],
+      api_model_aliases: Map([]),
       endpoint_variants: [],
     },
     {
@@ -498,22 +524,26 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       // Alibaba Cloud DashScope exposes three regional endpoints:
       // mainland China, international, and US. They share the same model
       // lineup & API shape, so a single preset with variants covers all.
+      api_model_aliases: Map([]),
       endpoint_variants: [
         {
           label: "China",
           label_key: Some("settings.models.baseurl.variant.mainland_cn"),
+          alias_group: None,
           base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
           region: Some("cn"),
         },
         {
           label: "International",
           label_key: Some("settings.models.baseurl.variant.international"),
+          alias_group: None,
           base_url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
           region: Some("intl"),
         },
         {
           label: "US",
           label_key: None,
+          alias_group: None,
           base_url: "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
           region: Some("us"),
         },
@@ -548,23 +578,39 @@ pub fn Providers::all() -> Array[ProviderPreset] {
       video_models: [],
       audio_models: [],
       // Volcengine Ark exposes three regional endpoints in China.
-      // They share the same model lineup & API shape.
+      // They share the same model lineup & API shape. The pay-as-you-go
+      // endpoint requires versioned model ids; see api_model_aliases below.
+      api_model_aliases: {
+        "payg": {
+          // glm-5.2 is delisted 2026-08-31 but existing configs must keep
+          // working until then, so the alias stays.
+          "glm-5.2": "glm-5-2-260617",
+          "deepseek-v4-pro": "deepseek-v4-pro-260425",
+          "deepseek-v4-flash": "deepseek-v4-flash-260425",
+          "doubao-seed-2.1-pro": "doubao-seed-2-1-pro-260628",
+          "doubao-seed-2.1-turbo": "doubao-seed-2-1-turbo-260628",
+          "doubao-seed-2.0-lite": "doubao-seed-2-0-lite-260428",
+        },
+      },
       endpoint_variants: [
         {
           label: "Beijing",
           label_key: None,
+          alias_group: Some("payg"),
           base_url: "https://ark.cn-beijing.volces.com/api/v3",
           region: Some("cn"),
         },
         {
           label: "Shanghai",
           label_key: None,
+          alias_group: None,
           base_url: "https://ark.cn-shanghai.volces.com/api/v3",
           region: Some("cn"),
         },
         {
           label: "Guangzhou",
           label_key: None,
+          alias_group: None,
           base_url: "https://ark.cn-guangzhou.volces.com/api/v3",
           region: Some("cn"),
         },
@@ -581,6 +627,121 @@ fn trim_trailing_slashes(url : String) -> String {
     end = end - 1
   }
   url[:end].to_owned()
+}
+
+///|
+/// True when the URL points at a loopback host (localhost / 127.0.0.1 /
+/// 0.0.0.0 with optional port or path). Mirrors the upstream regex
+/// `\Ahttps?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|/|\z)` (case-insensitive).
+fn is_localhost_url(url : String) -> Bool {
+  let lower = url.to_lower()
+  let hosts = [
+    "http://localhost", "https://localhost", "http://127.0.0.1", "https://127.0.0.1",
+    "http://0.0.0.0", "https://0.0.0.0",
+  ]
+  for h in hosts {
+    if lower.has_prefix(h) {
+      let rest = lower[h.length():]
+      return rest.is_empty() || rest.has_prefix(":") || rest.has_prefix("/")
+    }
+  }
+  false
+}
+
+///|
+/// Resolve a provider preset, trying base_url first and then falling back to
+/// api_key / loopback hints for the openclacky family (upstream
+/// `resolve_provider`, providers.rb:1052):
+///   1. base_url match (canonical base_url + endpoint_variants)
+///   2. api_key starting with "clacky-" → openclacky
+///   3. loopback base_url (http://localhost/127.0.0.1/0.0.0.0) → openclacky
+/// Returns None when nothing matches.
+pub fn Providers::resolve_with_fallback(
+  base_url : String?,
+  api_key : String?,
+) -> ProviderPreset? {
+  match base_url {
+    Some(url) =>
+      if !url.is_empty() {
+        match Providers::resolve(url) {
+          Some(preset) => return Some(preset)
+          None => ()
+        }
+      }
+    None => ()
+  }
+  match api_key {
+    Some(key) =>
+      if key.has_prefix("clacky-") {
+        return Providers::find("openclacky")
+      }
+    None => ()
+  }
+  match base_url {
+    Some(url) =>
+      if is_localhost_url(url) {
+        return Providers::find("openclacky")
+      }
+    None => ()
+  }
+  None
+}
+
+///|
+/// Find which alias group the given base_url belongs to by exact match
+/// (trailing slash normalised) against the preset's endpoint_variants
+/// (upstream `alias_group_for_base_url`, providers.rb:1106). Exact equality
+/// keeps "/api/v3" from leaking into an "/api/coding/v3" match.
+fn alias_group_for_base_url(
+  preset : ProviderPreset,
+  base_url : String,
+) -> String? {
+  let normalized = trim_trailing_slashes(base_url)
+  for variant in preset.endpoint_variants {
+    if trim_trailing_slashes(variant.base_url) == normalized {
+      return variant.alias_group
+    }
+  }
+  None
+}
+
+///|
+/// Translate a display model name into the real model id the target endpoint
+/// expects (upstream `resolve_api_model`, providers.rb:1075). Some providers
+/// expose the same model under different ids per billing endpoint — e.g.
+/// Volcengine Ark's pay-as-you-go API needs versioned ids
+/// ("doubao-seed-2-1-pro-260628") while the Coding/Agent Plan endpoints
+/// accept the short display name. Users always pick the short name; this
+/// swaps it just before the request goes out.
+///
+/// Returns the input model unchanged when no alias applies (unknown provider,
+/// endpoint without an alias group, or model not in the map).
+pub fn Providers::resolve_api_model(
+  base_url : String?,
+  api_key : String?,
+  model : String,
+) -> String {
+  match Providers::resolve_with_fallback(base_url, api_key) {
+    None => model
+    Some(preset) => {
+      let group = match base_url {
+        Some(url) => alias_group_for_base_url(preset, url)
+        None => None
+      }
+      match group {
+        None => model
+        Some(g) =>
+          match preset.api_model_aliases.get(g) {
+            None => model
+            Some(aliases) =>
+              match aliases.get(model) {
+                Some(m) => m
+                None => model
+              }
+          }
+      }
+    }
+  }
 }
 
 ///|

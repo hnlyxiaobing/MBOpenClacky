@@ -407,3 +407,99 @@ test "providers: openclacky has image and audio models" {
     None => fail("expected openclacky preset")
   }
 }
+
+///|
+test "providers: resolve_with_fallback matches base_url first" {
+  match
+    Providers::resolve_with_fallback(
+      Some("https://open.bigmodel.cn/api/paas/v4"),
+      Some("sk-whatever"),
+    ) {
+    Some(p) => @debug.assert_eq(p.id, "glm")
+    None => fail("expected bigmodel endpoint to resolve")
+  }
+}
+
+///|
+test "providers: resolve_with_fallback clacky- api key fallback" {
+  // Unknown base_url but clacky- key → openclacky
+  match
+    Providers::resolve_with_fallback(
+      Some("http://localhost:11434/v1"),
+      Some("clacky-abc123"),
+    ) {
+    Some(p) => @debug.assert_eq(p.id, "openclacky")
+    None => fail("expected clacky- key to resolve to openclacky")
+  }
+  // Unknown base_url, non-clacky key → None
+  match
+    Providers::resolve_with_fallback(
+      Some("http://example.invalid/v1"),
+      Some("sk-x"),
+    ) {
+    Some(_) => fail("unexpected resolve")
+    None => ()
+  }
+}
+
+///|
+test "providers: resolve_with_fallback loopback base_url" {
+  for
+    url in [
+      "http://localhost:7071/v1", "https://127.0.0.1:8443", "http://0.0.0.0:8080/",
+    ] {
+    match Providers::resolve_with_fallback(Some(url), Some("sk-x")) {
+      Some(p) => @debug.assert_eq(p.id, "openclacky")
+      None => fail("expected loopback url \{url} to resolve to openclacky")
+    }
+  }
+  // loopback-looking host but different port semantics must not match
+  match
+    Providers::resolve_with_fallback(
+      Some("http://localhostname/v1"),
+      Some("sk-x"),
+    ) {
+    Some(_) => fail("unexpected resolve for localhostname")
+    None => ()
+  }
+}
+
+///|
+test "providers: resolve_api_model volcengine payg alias" {
+  let payg_url = Some("https://ark.cn-beijing.volces.com/api/v3")
+  @debug.assert_eq(
+    Providers::resolve_api_model(payg_url, Some("sk-x"), "doubao-seed-2.1-pro"),
+    "doubao-seed-2-1-pro-260628",
+  )
+  @debug.assert_eq(
+    Providers::resolve_api_model(payg_url, Some("sk-x"), "glm-5.2"),
+    "glm-5-2-260617",
+  )
+  // model not in alias table passes through unchanged
+  @debug.assert_eq(
+    Providers::resolve_api_model(payg_url, Some("sk-x"), "doubao-1.5-pro-256k"),
+    "doubao-1.5-pro-256k",
+  )
+}
+
+///|
+test "providers: resolve_api_model non-payg endpoint untouched" {
+  // Coding Plan endpoint (no alias_group) → unchanged
+  @debug.assert_eq(
+    Providers::resolve_api_model(
+      Some("https://ark.cn-beijing.volces.com/api/coding/v3"),
+      Some("sk-x"),
+      "doubao-seed-2.1-pro",
+    ),
+    "doubao-seed-2.1-pro",
+  )
+  // Other providers without alias tables → unchanged
+  @debug.assert_eq(
+    Providers::resolve_api_model(
+      Some("https://api.openai.com/v1"),
+      Some("sk-x"),
+      "gpt-4o",
+    ),
+    "gpt-4o",
+  )
+}

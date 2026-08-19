@@ -216,7 +216,12 @@ test "openai_agg_extra_content_preserved" {
       match calls[0].extra_content {
         Some(ec) =>
           assert_eq(
-            (if ec is Object(obj) { obj.get("thought_signature") } else { None }) is Some(String(_)),
+            (if ec is Object(obj) {
+              obj.get("thought_signature")
+            } else {
+              None
+            })
+            is Some(String(_)),
             true,
           )
         None => assert_true(false)
