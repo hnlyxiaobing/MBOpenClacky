@@ -17,7 +17,9 @@ async test "stream request sends Accept text/event-stream header" {
     group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
       server.run_forever(async fn(req, _body, conn) {
         received_accept = match
-          req.headers.keys().find_first(k => k.to_lower() == "accept") {
+          req.headers
+          .keys()
+          .find_first(k => k.to_string().to_lower() == "accept") {
           Some(k) => req.headers[k]
           None => ""
         }

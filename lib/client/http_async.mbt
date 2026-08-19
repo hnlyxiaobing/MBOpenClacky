@@ -78,7 +78,7 @@ async fn stream_connect(
 ) -> @http.Client {
   let (base, _path) = split_base_path(url)
   headers["Accept"] = "text/event-stream"
-  @http.Client::Client(base, headers~)
+  @http.Client::Client(base, headers=string_headers_to_async_headers(headers))
 }
 
 ///|

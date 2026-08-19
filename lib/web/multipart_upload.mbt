@@ -121,7 +121,9 @@ async fn multipart_do_request(
     "PUT" => @http.Put
     _ => @http.Post
   }
-  let client = @http.Client::Client(base, headers~)
+  let async_headers : Map[@http.CaseInsensitiveString, String] = Map([])
+  headers.each(fn(key, value) { async_headers.set(key, value) })
+  let client = @http.Client::Client(base, headers=async_headers)
   defer client.close()
   let response = client..request(meth, path)..write(body).end_request()
   (response.code, client.read_all().text())

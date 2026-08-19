@@ -297,12 +297,25 @@ fn headers_to_map(headers : Array[(String, String)]) -> Map[String, String] {
 }
 
 ///|
+/// Convert a plain `Map[String, String]` header map into the async runtime's
+/// case-insensitive header map (async 0.21.0 changed the `Client` API).
+fn string_headers_to_async_headers(
+  headers : Map[String, String],
+) -> Map[@http.CaseInsensitiveString, String] {
+  let out : Map[@http.CaseInsensitiveString, String] = Map([])
+  headers.each(fn(key, value) { out.set(key, value) })
+  out
+}
+
+///|
 /// Convert an `@async/http` header map back into header pairs, so response
 /// headers (e.g. `Location` for redirects) survive the platform boundary.
-fn map_to_headers(header_map : Map[String, String]) -> Array[(String, String)] {
+fn map_to_headers(
+  header_map : Map[@http.CaseInsensitiveString, String],
+) -> Array[(String, String)] {
   let pairs : Array[(String, String)] = []
   for k in header_map.keys() {
-    pairs.push((k, header_map[k]))
+    pairs.push((k.to_string(), header_map[k]))
   }
   pairs
 }
@@ -352,7 +365,7 @@ async fn connect_client(
   headers : Map[String, String],
 ) -> @http.Client {
   let (base, _path) = split_base_path(url)
-  @http.Client::Client(base, headers~)
+  @http.Client::Client(base, headers=string_headers_to_async_headers(headers))
 }
 
 ///|
