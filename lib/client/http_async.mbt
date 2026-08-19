@@ -93,43 +93,32 @@ async fn stream_request_with_client(
   on_frame : (SseFrame) -> Unit,
 ) -> HttpResponse {
   let (_base, path) = split_base_path(url)
-  try {
-    client.request(@http.Post, path)
-    client.write(@utf8.encode(body))
-    let resp = client.end_request()
-    let pump = SseBytePump::new()
-    let full : Array[Byte] = []
-    for ;; {
-      match client.read_some() {
-        None => break
-        Some(chunk) => {
-          for b in chunk {
-            full.push(b)
-          }
-          for frame in pump.feed(chunk) {
-            on_frame(frame)
-          }
+  defer client.close()
+  client.request(@http.Post, path)
+  client.write(@utf8.encode(body))
+  let resp = client.end_request()
+  let pump = SseBytePump::new()
+  let full : Array[Byte] = []
+  for ;; {
+    match client.read_some() {
+      None => break
+      Some(chunk) => {
+        for b in chunk {
+          full.push(b)
+        }
+        for frame in pump.feed(chunk) {
+          on_frame(frame)
         }
       }
     }
-    // Flush any unterminated trailing frame.
-    for frame in pump.finish() {
-      on_frame(frame)
-    }
-    HttpResponse::{
-      status_code: resp.code,
-      body: @utf8.decode_lossy(Bytes::from_array(full)),
-      headers: [],
-    }
-  } catch {
-    err => {
-      client.close()
-      raise err
-    }
-  } noraise {
-    result => {
-      client.close()
-      result
-    }
+  }
+  // Flush any unterminated trailing frame.
+  for frame in pump.finish() {
+    on_frame(frame)
+  }
+  HttpResponse::{
+    status_code: resp.code,
+    body: @utf8.decode_lossy(Bytes::from_array(full)),
+    headers: [],
   }
 }

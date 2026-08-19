@@ -380,28 +380,17 @@ async fn perform_request(
   body : String,
 ) -> HttpResponse {
   let (_base, path) = split_base_path(url)
-  try {
-    client.request(http_request_method(http_method), path)
-    if body.length() > 0 {
-      client.write(@utf8.encode(body))
-    }
-    let resp = client.end_request()
-    let data = client.read_all()
-    HttpResponse::{
-      status_code: resp.code,
-      body: data.text(),
-      headers: map_to_headers(resp.headers),
-    }
-  } catch {
-    err => {
-      client.close()
-      raise err
-    }
-  } noraise {
-    result => {
-      client.close()
-      result
-    }
+  defer client.close()
+  client.request(http_request_method(http_method), path)
+  if body.length() > 0 {
+    client.write(@utf8.encode(body))
+  }
+  let resp = client.end_request()
+  let data = client.read_all()
+  HttpResponse::{
+    status_code: resp.code,
+    body: data.text(),
+    headers: map_to_headers(resp.headers),
   }
 }
 

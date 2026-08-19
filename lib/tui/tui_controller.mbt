@@ -1410,8 +1410,9 @@ fn TuiController::start_agent(
   let task = group.spawn(allow_failure=true) <| () => {
     let result = agent.run_async(text) catch {
       err => {
-        events.put(AgentError(@errors.error_message(err)))
-        raise err
+        let msg = @errors.error_message(err)
+        events.put(AgentError(msg))
+        raise @errors.AgentError(msg)
       }
     }
     events.put(AgentDone(result))

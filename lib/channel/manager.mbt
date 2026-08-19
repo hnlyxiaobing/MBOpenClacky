@@ -52,7 +52,7 @@ pub fn ChannelManager::load_config(
     return Ok(())
   }
   let content = @fs.read_file_to_string(self.config_path) catch {
-    e => return Err(ChannelError("Failed to read config file: \{e.to_repr()}"))
+    e => return Err(ChannelError("Failed to read config file: \{Repr(e)}"))
   }
   let json = @json.parse(content) catch {
     e => return Err(ChannelError("Invalid JSON in config file: \{e}"))

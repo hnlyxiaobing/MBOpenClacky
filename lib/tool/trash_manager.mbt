@@ -440,7 +440,9 @@ fn iso_to_unix_sec(iso : String) -> Int64? {
   // fractional-second part before parsing (mirrors Ruby's Time.parse,
   // which accepts "2020-01-01T00:00:00Z").
   let stripped = strip_iso_suffix(iso)
-  let dt = @time.PlainDateTime::from_str(stripped) catch { _ => return None }
+  let dt = (@string.FromStr::from_str(stripped) : @time.PlainDateTime) catch {
+    _ => return None
+  }
   Some(dt.to_unix_second())
 }
 
