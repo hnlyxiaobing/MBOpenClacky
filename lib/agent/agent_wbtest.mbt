@@ -1547,6 +1547,27 @@ async test "execute_single_tool_injects_todo_reminder" {
   assert_true(entry.content.contains("1 pending TODO"))
 }
 
+///|
+/// P6: every terminal invocation gets CLACKY_SESSION_ID injected into the
+/// child env (Ruby agent.rb semantics: args[:env] merged with the session
+/// id first, so a user-supplied env value would win).
+async test "execute_single_tool_injects_clacky_session_id_into_terminal" {
+  let agent = make_test_agent()
+  // make_test_agent() uses session id "test-session"
+  let cmd = if @tool.shell_is_windows() {
+    "echo %CLACKY_SESSION_ID%"
+  } else {
+    "echo $CLACKY_SESSION_ID"
+  }
+  let call = make_tool_call("c1", "terminal", "{\"command\":\"\{cmd}\"}")
+  let entry = agent.execute_single_tool(call)
+  assert_false(entry.is_error, msg="terminal failed: \{entry.content}")
+  assert_true(
+    entry.content.contains("test-session"),
+    msg="expected CLACKY_SESSION_ID in output, got: \{entry.content}",
+  )
+}
+
 // ── P6: denied pairing + canonical-name permission checks ────────────────────
 
 ///|

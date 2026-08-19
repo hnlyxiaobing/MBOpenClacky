@@ -2,7 +2,9 @@
 
 ///|
 /// The actual execution is intercepted and handled in the agent context
-/// (lib/agent/tool_executor.mbt). This stub returns a placeholder message.
+/// (lib/agent/tool_executor.mbt). The parameters/description/format
+/// surface mirrors the Ruby TodoManager tool (schema: action enum with
+/// polymorphic `task`/`id` accepting scalar or array).
 pub(all) struct TodoTool {} derive(Eq, Debug)
 
 ///|
@@ -18,7 +20,7 @@ impl Tool for TodoTool with fn name(_) -> String {
 
 ///|
 impl Tool for TodoTool with fn description(_) -> String {
-  "Manage task items - add, update status, list, remove, or set dependencies"
+  "Plan and track multi-step tasks. Skip for trivial single-step requests.\n\n`task` and `id` accept a single value OR an array — always batch when you can (e.g. `complete id:[1,2,3]` in one call, not three).\n\nOnly `complete` a todo once it's truly done end-to-end, not per sub-step."
 }
 
 ///|
@@ -28,35 +30,34 @@ impl Tool for TodoTool with fn parameters(_) -> Json {
     "properties": Json::object({
       "action": Json::object({
         "type": "string".to_json(),
-        "description": "The action to perform: add, update, list, remove, or set_deps".to_json(),
         "enum": [
           "add".to_json(),
-          "update".to_json(),
           "list".to_json(),
+          "complete".to_json(),
           "remove".to_json(),
-          "set_deps".to_json(),
+          "clear".to_json(),
+        ],
+        "description": "add | list | complete | remove | clear".to_json(),
+      }),
+      "task": Json::object({
+        "description": "add: task description(s). Accepts a string OR an array of strings for batch add.".to_json(),
+        "oneOf": [
+          Json::object({ "type": "string".to_json() }),
+          Json::object({
+            "type": "array".to_json(),
+            "items": Json::object({ "type": "string".to_json() }),
+          }),
         ],
       }),
-      "title": Json::object({
-        "type": "string".to_json(),
-        "description": "Task title (for add action)".to_json(),
-      }),
-      "description": Json::object({
-        "type": "string".to_json(),
-        "description": "Task description (for add action)".to_json(),
-      }),
       "id": Json::object({
-        "type": "string".to_json(),
-        "description": "Task ID (for update/remove/set_deps actions)".to_json(),
-      }),
-      "status": Json::object({
-        "type": "string".to_json(),
-        "description": "New status: pending, in_progress, completed, cancelled, or failed (for update action)".to_json(),
-      }),
-      "deps": Json::object({
-        "type": "array".to_json(),
-        "description": "Array of task IDs this task depends on (for set_deps action)".to_json(),
-        "items": Json::object({ "type": "string".to_json() }),
+        "description": "complete/remove: task id(s). Accepts an integer OR an array of integers for batch ops.".to_json(),
+        "oneOf": [
+          Json::object({ "type": "integer".to_json() }),
+          Json::object({
+            "type": "array".to_json(),
+            "items": Json::object({ "type": "integer".to_json() }),
+          }),
+        ],
       }),
     }),
     "required": ["action".to_json()],
@@ -75,9 +76,76 @@ impl Tool for TodoTool with fn execute(_, _args : Map[String, Json]) -> ToolResu
 
 ///|
 impl Tool for TodoTool with fn format_call(_, args : Map[String, Json]) -> String {
-  match args.get("action") {
-    Some(String(action)) => "Todo(\{action})"
-    _ => "Todo(?)"
+  let action = match args.get("action") {
+    Some(String(s)) => s
+    _ => return "TodoManager(?)"
+  }
+  match action {
+    "add" => {
+      let count = match args.get("task") {
+        Some(Array(items)) => items.length()
+        Some(_) => 1
+        _ => 0
+      }
+      if count == 1 {
+        "TodoManager(add 1 task)"
+      } else {
+        "TodoManager(add \{count} tasks)"
+      }
+    }
+    "complete" =>
+      match args.get("id") {
+        Some(Array(items)) if items.length() > 1 => {
+          let parts : Array[String] = items.map(fn(item) {
+            match item {
+              Number(n, ..) => n.to_int().to_string()
+              _ => "?"
+            }
+          })
+          "TodoManager(complete \{items.length()} tasks: \{parts.join(", ")})"
+        }
+        Some(id) => {
+          let single = match id {
+            Array(items) if items.length() == 1 =>
+              match items[0] {
+                Number(n, ..) => n.to_int().to_string()
+                _ => "?"
+              }
+            Number(n, ..) => n.to_int().to_string()
+            _ => "?"
+          }
+          "TodoManager(complete #\{single})"
+        }
+        _ => "TodoManager(complete ?)"
+      }
+    "remove" =>
+      match args.get("id") {
+        Some(Array(items)) if items.length() > 1 => {
+          let parts : Array[String] = items.map(fn(item) {
+            match item {
+              Number(n, ..) => n.to_int().to_string()
+              _ => "?"
+            }
+          })
+          "TodoManager(remove \{items.length()} tasks: \{parts.join(", ")})"
+        }
+        Some(id) => {
+          let single = match id {
+            Array(items) if items.length() == 1 =>
+              match items[0] {
+                Number(n, ..) => n.to_int().to_string()
+                _ => "?"
+              }
+            Number(n, ..) => n.to_int().to_string()
+            _ => "?"
+          }
+          "TodoManager(remove #\{single})"
+        }
+        _ => "TodoManager(remove ?)"
+      }
+    "list" => "TodoManager(list)"
+    "clear" => "TodoManager(clear all)"
+    _ => "TodoManager(\{action})"
   }
 }
 
@@ -86,7 +154,7 @@ impl Tool for TodoTool with fn format_result(_, result : ToolResult) -> String {
   if result.is_error {
     result.content
   } else {
-    "Todo operation completed (\{result.content.length()} chars)"
+    result.content
   }
 }
 

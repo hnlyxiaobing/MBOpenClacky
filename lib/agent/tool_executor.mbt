@@ -199,6 +199,43 @@ pub async fn Agent::execute_single_tool(
     }
     _ => ()
   }
+  // Inject CLACKY_SESSION_ID into terminal env (Ruby agent.rb semantics:
+  // every terminal invocation gets the session id so child processes can
+  // correlate output with the agent session).
+  let args = if canonical == "terminal" {
+    let session_json = Json::string(self.session_id)
+    let new_env : Map[String, Json] = match args.get("env") {
+      Some(obj) =>
+        // env: { ... } — merge CLACKY_SESSION_ID first so user value wins
+        match obj {
+          Object(m) => {
+            let merged = Map::from_array(m.to_array())
+            merged.set("CLACKY_SESSION_ID", session_json)
+            args.set("env", Json::object(merged))
+            args
+          }
+          _ => {
+            args.set(
+              "env",
+              Json::object(
+                Map::from_array([("CLACKY_SESSION_ID", session_json)]),
+              ),
+            )
+            args
+          }
+        }
+      None => {
+        args.set(
+          "env",
+          Json::object(Map::from_array([("CLACKY_SESSION_ID", session_json)])),
+        )
+        args
+      }
+    }
+    new_env
+  } else {
+    args
+  }
   // Execute — AnyTool implements Tool trait
   let result : @tool.ToolResult = @tool.Tool::execute(tool, args)
   let final_result = if result.is_error {
@@ -357,7 +394,56 @@ fn Agent::execute_memory_tool(
 }
 
 ///|
+/// Collect the `task` argument (string or array of strings), trimming
+/// each entry and dropping empties (Ruby normalize_to_array + strip).
+fn todo_tasks_arg(args : Map[String, Json]) -> Array[String] {
+  let out : Array[String] = []
+  match args.get("task") {
+    Some(String(s)) => {
+      let t = s.trim().to_string()
+      if t.length() > 0 {
+        out.push(t)
+      }
+    }
+    Some(Array(items)) =>
+      for item in items {
+        match item {
+          String(s) => {
+            let t = s.trim().to_string()
+            if t.length() > 0 {
+              out.push(t)
+            }
+          }
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  out
+}
+
+///|
+/// Collect the `id` argument (integer or array of integers).
+fn todo_ids_arg(args : Map[String, Json]) -> Array[Int] {
+  let out : Array[Int] = []
+  match args.get("id") {
+    Some(Number(n, ..)) => out.push(n.to_int())
+    Some(Array(items)) =>
+      for item in items {
+        match item {
+          Number(n, ..) => out.push(n.to_int())
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  out
+}
+
+///|
 /// Execute the todo_manager tool by dispatching to the agent's TodoManager.
+/// The result content mirrors the Ruby todo_manager result hash (JSON),
+/// so the model sees the same message/todos/reminder fields.
 fn Agent::execute_todo_tool(
   self : Agent,
   call : @message.ToolCall,
@@ -368,97 +454,172 @@ fn Agent::execute_todo_tool(
     _ => return build_error_result(call, "todo_manager: missing 'action'")
   }
   match action {
-    "add" => {
-      let title = match args.get("title") {
-        Some(String(s)) => s
-        _ => return build_error_result(call, "todo add: missing 'title'")
-      }
-      let description = match args.get("description") {
-        Some(String(s)) => s
-        _ => ""
-      }
-      let item = self.todo_manager.add(title, description)
-      build_success_result(call, @tool.ToolResult::{
-        content: "Task created with id: \{item.id}",
-        is_error: false,
-      })
-    }
-    "update" => {
-      let id = match args.get("id") {
-        Some(String(s)) => s
-        _ => return build_error_result(call, "todo update: missing 'id'")
-      }
-      let status_str = match args.get("status") {
-        Some(String(s)) => s
-        _ => return build_error_result(call, "todo update: missing 'status'")
-      }
-      let status = match TodoStatus::from_string(status_str) {
-        Some(st) => st
-        None =>
-          return build_error_result(
-            call,
-            "todo update: unknown status '\{status_str}'",
-          )
-      }
-      if self.todo_manager.update_status(id, status) {
-        build_success_result(call, @tool.ToolResult::{
-          content: "Task \{id} updated to \{status_str}",
-          is_error: false,
-        })
-      } else {
-        build_error_result(call, "Task '\{id}' not found")
-      }
-    }
-    "list" => {
-      let summary = self.todo_manager.summary()
-      build_success_result(call, @tool.ToolResult::{
-        content: summary,
-        is_error: false,
-      })
-    }
-    "remove" => {
-      let id = match args.get("id") {
-        Some(String(s)) => s
-        _ => return build_error_result(call, "todo remove: missing 'id'")
-      }
-      if self.todo_manager.remove(id) {
-        build_success_result(call, @tool.ToolResult::{
-          content: "Task \{id} removed",
-          is_error: false,
-        })
-      } else {
-        build_error_result(call, "Task '\{id}' not found")
-      }
-    }
-    "set_deps" => {
-      let id = match args.get("id") {
-        Some(String(s)) => s
-        _ => return build_error_result(call, "todo set_deps: missing 'id'")
-      }
-      let deps : Array[String] = match args.get("deps") {
-        Some(Array(items)) => {
-          let arr : Array[String] = []
-          for item in items {
-            match item {
-              String(s) => arr.push(s)
-              _ => ()
-            }
-          }
-          arr
-        }
-        _ => []
-      }
-      if self.todo_manager.set_blocked_by(id, deps) {
-        build_success_result(call, @tool.ToolResult::{
-          content: "Task \{id} dependencies updated",
-          is_error: false,
-        })
-      } else {
-        build_error_result(call, "Task '\{id}' not found")
-      }
-    }
-    _ => build_error_result(call, "todo_manager: unknown action '\{action}'")
+    "add" => self.todo_add(call, args)
+    "list" => self.todo_list(call)
+    "complete" => self.todo_complete(call, args)
+    "remove" => self.todo_remove(call, args)
+    "clear" => self.todo_clear(call)
+    _ => build_error_result(call, "Unknown action: \{action}")
   }
+}
+
+///|
+/// add: batch-add tasks, auto-clearing old completed items first
+/// (Ruby add_todos semantics).
+fn Agent::todo_add(
+  self : Agent,
+  call : @message.ToolCall,
+  args : Map[String, Json],
+) -> ToolResultEntry {
+  let tasks = todo_tasks_arg(args)
+  if tasks.is_empty() {
+    return build_error_result(call, "At least one task description is required")
+  }
+  let _ = self.todo_manager.clear_completed()
+  let added : Array[TodoItem] = []
+  for t in tasks {
+    added.push(self.todo_manager.add(t, ""))
+  }
+  let message = if added.length() == 1 {
+    "TODO added successfully"
+  } else {
+    "\{added.length()} TODOs added successfully"
+  }
+  let todos_json : Array[Json] = added.map(todo_item_to_model_json)
+  let content = Json::object({
+    "message": message.to_json(),
+    "todos": ToJson::to_json(todos_json),
+    "total": self.todo_manager.size().to_json(),
+    "reminder": "⚠️ IMPORTANT: You have added TODO(s) but have NOT started working yet! You MUST now use other tools (write, edit, shell, etc.) to actually complete these tasks. DO NOT stop here!".to_json(),
+  }).stringify()
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
+}
+
+///|
+/// list: render all tasks with pending/completed counts (Ruby list_todos).
+fn Agent::todo_list(self : Agent, call : @message.ToolCall) -> ToolResultEntry {
+  let content = if self.todo_manager.size() == 0 {
+    let todos_json : Array[Json] = []
+    Json::object({
+      "message": "No TODO items".to_json(),
+      "todos": ToJson::to_json(todos_json),
+      "total": (0).to_json(),
+    }).stringify()
+  } else {
+    self.todo_manager.list_to_model_json().stringify()
+  }
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
+}
+
+///|
+/// complete: mark one or more ids completed, auto-clearing when all tasks
+/// are done (Ruby complete_todo/complete_todos semantics).
+fn Agent::todo_complete(
+  self : Agent,
+  call : @message.ToolCall,
+  args : Map[String, Json],
+) -> ToolResultEntry {
+  let ids = todo_ids_arg(args)
+  if ids.is_empty() {
+    return build_error_result(call, "Task ID is required")
+  }
+  let (completed_now, already, not_found) = self.todo_manager.complete_by_ids(
+    ids,
+  )
+  // Single-id semantics mirror Ruby complete_todo: a missing task is an
+  // error, an already-completed task returns "Task already completed".
+  if ids.length() == 1 && not_found.length() == 1 {
+    return build_error_result(call, "Task not found: \{not_found[0]}")
+  }
+  if ids.length() == 1 && completed_now.length() == 0 && already.length() == 1 {
+    let content = Json::object({
+      "message": "Task already completed".to_json(),
+      "todo": todo_item_to_model_json(already[0]),
+    }).stringify()
+    return build_success_result(call, @tool.ToolResult::{
+      content,
+      is_error: false,
+    })
+  }
+  let completed_count = self.todo_manager.size() -
+    self.todo_manager.items.filter(fn(i) { i.status != Completed }).length()
+  let total_count = self.todo_manager.size()
+  let message = if ids.length() == 1 {
+    "Task marked as completed"
+  } else {
+    "\{completed_now.length()} task(s) marked as completed"
+  }
+  let result_map : Map[String, Json] = Map([])
+  result_map["message"] = message.to_json()
+  result_map["progress"] = "\{completed_count}/\{total_count}".to_json()
+  result_map["reminder"] = "⚠️ REMINDER: Check the PROJECT-SPECIFIC RULES section in your system prompt before continuing to the next task".to_json()
+  if already.length() > 0 {
+    result_map["already_completed"] = ToJson::to_json(
+      already.map(todo_item_to_model_json),
+    )
+  }
+  if not_found.length() > 0 {
+    result_map["not_found"] = ToJson::to_json(not_found)
+  }
+  match self.todo_manager.next_pending() {
+    Some(next) => {
+      result_map["next_task"] = todo_item_to_model_json(next)
+      result_map["next_task_info"] = "Progress: \{completed_count}/\{total_count}. Next task: #\{todo_int_id(next.id)} - \{next.title}".to_json()
+    }
+    None => {
+      // All tasks completed — auto-clear (Ruby behavior).
+      let _ = self.todo_manager.clear_all()
+      result_map["all_completed"] = true.to_json()
+      result_map["completion_message"] = "All tasks completed and cleared! (\{completed_count}/\{total_count})".to_json()
+    }
+  }
+  build_success_result(call, @tool.ToolResult::{
+    content: Json::object(result_map).stringify(),
+    is_error: false,
+  })
+}
+
+///|
+/// remove: delete one or more tasks (Ruby remove_todo/remove_todos).
+fn Agent::todo_remove(
+  self : Agent,
+  call : @message.ToolCall,
+  args : Map[String, Json],
+) -> ToolResultEntry {
+  let ids = todo_ids_arg(args)
+  if ids.is_empty() {
+    return build_error_result(call, "Task ID is required")
+  }
+  let (removed, not_found) = self.todo_manager.remove_by_ids(ids)
+  if removed.is_empty() && not_found.length() == ids.length() {
+    return build_error_result(call, "Task not found: \{not_found[0]}")
+  }
+  let message = if ids.length() == 1 {
+    "Task removed"
+  } else {
+    "\{removed.length()} task(s) removed"
+  }
+  let result_map : Map[String, Json] = Map([])
+  result_map["message"] = message.to_json()
+  result_map["remaining"] = self.todo_manager.size().to_json()
+  if not_found.length() > 0 {
+    result_map["not_found"] = ToJson::to_json(not_found)
+  }
+  build_success_result(call, @tool.ToolResult::{
+    content: Json::object(result_map).stringify(),
+    is_error: false,
+  })
+}
+
+///|
+/// clear: wipe all tasks (Ruby clear_todos).
+fn Agent::todo_clear(self : Agent, call : @message.ToolCall) -> ToolResultEntry {
+  let count = self.todo_manager.clear_all()
+  let content = Json::object({
+    "message": "All TODOs cleared".to_json(),
+    "cleared_count": count.to_json(),
+  }).stringify()
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
 }
 
 ///|

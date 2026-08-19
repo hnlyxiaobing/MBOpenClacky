@@ -13,9 +13,149 @@ pub fn TodoManager::new() -> TodoManager {
 ///|
 /// Generate the next unique task ID.
 fn TodoManager::gen_id(self : TodoManager) -> String {
-  let id = "task_" + self.next_id.to_string()
-  self.next_id = self.next_id + 1
-  id
+  // Ruby semantics: next id is always max existing id + 1 (1 when empty),
+  // so cleared/removed task ids get reused after a wipe.
+  let mut n = 1
+  for item in self.items {
+    let int_id = todo_int_id(item.id)
+    if int_id >= n {
+      n = int_id + 1
+    }
+  }
+  "task_" + n.to_string()
+}
+
+///|
+/// Convert a model-facing integer task id (as used by the tool schema)
+/// into the internal `task_N` string id.
+pub fn TodoManager::id_str(self : TodoManager, n : Int) -> String {
+  "task_" + n.to_string()
+}
+
+///|
+/// Convert an internal `task_N` id back to the integer id exposed to the
+/// model. Falls back to 0 if malformed.
+pub fn todo_int_id(id : String) -> Int {
+  let view = if id.has_prefix("task_") {
+    id.substring(start=5)
+  } else {
+    id.substring(start=0)
+  }
+  @strconv.parse_int(view) catch {
+    _ => 0
+  }
+}
+
+///|
+/// Auto-clear completed tasks (Ruby add_todos semantics: old completed
+/// items are dropped before adding new ones). Returns how many were
+/// cleared.
+pub fn TodoManager::clear_completed(self : TodoManager) -> Int {
+  let before = self.items.length()
+  self.items = self.items.filter(fn(item) { item.status != Completed })
+  before - self.items.length()
+}
+
+///|
+/// Mark several tasks completed in one call (Ruby complete_todos
+/// semantics: tolerates already-completed and not-found ids).
+/// Returns (completed_now, already_completed, not_found_ids).
+pub fn TodoManager::complete_by_ids(
+  self : TodoManager,
+  ids : Array[Int],
+) -> (Array[TodoItem], Array[TodoItem], Array[Int]) {
+  let ts = current_timestamp_iso()
+  let completed_now : Array[TodoItem] = []
+  let already : Array[TodoItem] = []
+  let not_found : Array[Int] = []
+  for n in ids {
+    let sid = self.id_str(n)
+    let mut found = false
+    for item in self.items {
+      if item.id == sid {
+        found = true
+        if item.status == Completed {
+          already.push(item)
+        } else {
+          item.status = Completed
+          item.updated_at = ts
+          completed_now.push(item)
+        }
+        break
+      }
+    }
+    if !found {
+      not_found.push(n)
+    }
+  }
+  (completed_now, already, not_found)
+}
+
+///|
+/// Remove several tasks in one call (Ruby remove_todos semantics).
+/// Returns (removed, not_found_ids).
+pub fn TodoManager::remove_by_ids(
+  self : TodoManager,
+  ids : Array[Int],
+) -> (Array[TodoItem], Array[Int]) {
+  let removed : Array[TodoItem] = []
+  let not_found : Array[Int] = []
+  let to_remove : Array[String] = []
+  for n in ids {
+    let sid = self.id_str(n)
+    match self.get(sid) {
+      None => not_found.push(n)
+      Some(item) => {
+        removed.push(item)
+        to_remove.push(sid)
+      }
+    }
+  }
+  if to_remove.length() > 0 {
+    self.items = self.items.filter(fn(item) { !to_remove.contains(item.id) })
+  }
+  (removed, not_found)
+}
+
+///|
+/// Clear all tasks (Ruby clear_todos semantics). Returns cleared count.
+pub fn TodoManager::clear_all(self : TodoManager) -> Int {
+  let count = self.items.length()
+  self.items = []
+  count
+}
+
+///|
+/// Render a task as the JSON object the model sees, aligned with the Ruby
+/// todo_manager result schema (`id` as integer, `task` for the text).
+pub fn todo_item_to_model_json(item : TodoItem) -> Json {
+  Json::object({
+    "id": todo_int_id(item.id).to_json(),
+    "task": ToJson::to_json(item.title),
+    "status": ToJson::to_json(item.status),
+    "created_at": ToJson::to_json(item.created_at),
+  })
+}
+
+///|
+/// Render the full todo list as model-facing JSON (Ruby list_todos shape).
+pub fn TodoManager::list_to_model_json(self : TodoManager) -> Json {
+  let todos : Array[Json] = self.items.map(todo_item_to_model_json)
+  let pending = self.items.filter(fn(i) { i.status == Pending }).length()
+  let completed = self.items.filter(fn(i) { i.status == Completed }).length()
+  Json::object({
+    "message": "TODO list".to_json(),
+    "todos": ToJson::to_json(todos),
+    "total": self.items.length().to_json(),
+    "pending": pending.to_json(),
+    "completed": completed.to_json(),
+  })
+}
+
+///|
+/// The next pending task after a completion, or None when all done.
+pub fn TodoManager::next_pending(self : TodoManager) -> TodoItem? {
+  self.items.iter().find_first(fn(item) { item.status == Pending })
 }
 
 ///|
