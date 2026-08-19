@@ -1791,3 +1791,97 @@ test "build_success_result_extracts_image_inject" {
   @debug.assert_eq(entry.image_inject, expected)
   @debug.assert_eq(entry.is_error, false)
 }
+// ── P6: request_user_feedback awaiting semantics ────────────────────────────
+
+///|
+async test "feedback_no_channel_appends_auto_reply" {
+  let agent = make_test_agent()
+  // No feedback_request/feedback_response wired (headless mode).
+  let call = make_tool_call(
+    "c1", "request_user_feedback", "{\"question\":\"Which option?\",\"context\":\"ctx\",\"options\":[\"a\",\"b\"]}",
+  )
+  let result = agent.act_async([call])
+  // Run does NOT suspend; auto-reply hint is appended for the LLM.
+  @debug.assert_eq(result.awaiting_feedback, false)
+  @debug.assert_eq(result.denied, false)
+  @debug.assert_eq(result.feedback, None)
+  @debug.assert_eq(result.tool_results.length(), 1)
+  assert_true(
+    result.tool_results[0].content.contains("**Question:** Which option?"),
+  )
+  assert_true(result.tool_results[0].content.contains("**Options:**"))
+  assert_true(result.tool_results[0].content.contains("1. a"))
+  assert_true(result.tool_results[0].content.contains("2. b"))
+  assert_true(result.tool_results[0].content.contains("[auto_reply]"))
+}
+
+///|
+async test "feedback_no_channel_missing_question_is_error" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "request_user_feedback", "{}")
+  let result = agent.act_async([call])
+  @debug.assert_eq(result.tool_results.length(), 1)
+  assert_true(result.tool_results[0].is_error)
+  assert_true(
+    result.tool_results[0].content.contains("Missing required parameter"),
+  )
+  // Error result: no feedback handling, no suspension.
+  @debug.assert_eq(result.awaiting_feedback, false)
+}
+
+///|
+async test "feedback_with_channel_user_reply_feeds_back" {
+  let agent = make_test_agent()
+  let req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+    kind=Unbounded,
+  )
+  let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
+  agent.feedback_request = Some(req_q)
+  agent.feedback_response = Some(resp_q)
+  // Simulate the user answering from the bridge side.
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      let (q, _ctx, _opts) = req_q.get()
+      @debug.assert_eq(q, "Choose?")
+      resp_q.put("pick B please")
+    }
+    let call = make_tool_call(
+      "c1", "request_user_feedback", "{\"question\":\"Choose?\"}",
+    )
+    let result = agent.act_async([call])
+    // Reply is routed back (feedback path), run does NOT suspend.
+    @debug.assert_eq(result.awaiting_feedback, false)
+    @debug.assert_eq(result.denied, false)
+    @debug.assert_eq(result.feedback, Some("pick B please"))
+    // Tool result keeps the question, no auto-reply hint (channel existed).
+    assert_true(
+      result.tool_results[0].content.contains("**Question:** Choose?"),
+    )
+    assert_false(result.tool_results[0].content.contains("[auto_reply]"))
+  })
+}
+
+///|
+async test "feedback_with_channel_empty_reply_suspends" {
+  let agent = make_test_agent()
+  let req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+    kind=Unbounded,
+  )
+  let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
+  agent.feedback_request = Some(req_q)
+  agent.feedback_response = Some(resp_q)
+  // Bridge replies with empty string (timeout / no answer).
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      let (_q, _ctx, _opts) = req_q.get()
+      resp_q.put("")
+    }
+    let call = make_tool_call(
+      "c1", "request_user_feedback", "{\"question\":\"Are you there?\"}",
+    )
+    let result = agent.act_async([call])
+    // Run suspends awaiting the user's next message.
+    @debug.assert_eq(result.awaiting_feedback, true)
+    @debug.assert_eq(result.feedback, None)
+  })
+}

@@ -126,6 +126,99 @@ priv struct ActionResult {
 }
 
 ///|
+/// Auto-reply hint appended when request_user_feedback runs without any
+/// interactive feedback channel (non-interactive mode). Aligned with the
+/// Ruby `@ui.nil?` path in agent.rb which merges `auto_reply` into the
+/// tool result so the LLM makes a reasonable decision and continues.
+let feedback_auto_reply_hint = "\n\n[auto_reply] No user is available. Please make a reasonable decision based on the context and continue."
+
+///|
+/// Extract (question, context, options) from request_user_feedback args.
+fn extract_feedback_args(
+  args : Map[String, Json],
+) -> (String, String?, Array[String]?) {
+  let question = match args.get("question") {
+    Some(String(q)) => q
+    _ => ""
+  }
+  let context = match args.get("context") {
+    Some(String(c)) => Some(c)
+    _ => None
+  }
+  let options = match args.get("options") {
+    Some(Array(arr)) => {
+      let opts : Array[String] = []
+      for item in arr {
+        match item {
+          String(s) => opts.push(s)
+          _ => ()
+        }
+      }
+      Some(opts)
+    }
+    _ => None
+  }
+  (question, context, options)
+}
+
+///|
+/// Post-execution handling for `request_user_feedback` (Ruby agent.rb
+/// L1299-1331): render the question via the FeedbackRequested hook, then
+/// wait for a reply through the wired feedback channel.
+///
+/// Returns `(entry, feedback?, awaiting)`:
+/// - `entry`   : tool result, possibly extended with the auto-reply hint
+/// - `feedback`: the user's answer (non-empty) to feed back to the LLM
+/// - `awaiting`: true when the run must suspend (user reply timed out or
+///   was empty — Ruby confirm_all waiting path)
+///
+/// With no feedback channel wired (headless), the auto-reply hint is
+/// appended so the LLM can proceed (Ruby `@ui.nil?` path).
+async fn Agent::handle_feedback_tool(
+  self : Agent,
+  tool_name : String,
+  entry : ToolResultEntry,
+  args : Map[String, Json],
+) -> (ToolResultEntry, String?, Bool) {
+  if tool_name != "request_user_feedback" || entry.is_error {
+    return (entry, None, false)
+  }
+  let (question, context, options) = extract_feedback_args(args)
+  self.hook_manager.emit(FeedbackRequested(question, context, options))
+  let (fb, aw) = match self.feedback_request {
+    Some(req_q) =>
+      match self.feedback_response {
+        Some(resp_q) => {
+          req_q.put((question, context, options))
+          let reply = resp_q.get()
+          if reply.length() > 0 {
+            // User answered: route the reply back to the LLM immediately
+            // (Ruby countdown String path → denied+feedback).
+            (Some(reply), false)
+          } else {
+            // Timed out / empty reply: suspend the run; the user's next
+            // message resumes it.
+            (None, true)
+          }
+        }
+        None => (None, false)
+      }
+    None => (None, false)
+  }
+  if fb is None && !aw {
+    let entry = {
+      id: entry.id,
+      content: entry.content + feedback_auto_reply_hint,
+      is_error: entry.is_error,
+      image_inject: entry.image_inject,
+    }
+    (entry, None, false)
+  } else {
+    (entry, fb, aw)
+  }
+}
+
+///|
 /// OBSERVE phase: inject tool results into conversation history.
 ///
 /// Uses client.format_tool_results to produce protocol-correct
@@ -288,8 +381,8 @@ async fn Agent::act_async(
 ) -> ActionResult {
   let results : Array[ToolResultEntry] = []
   let mut denied = false
-  let feedback : String? = None
-  let awaiting_feedback = false
+  let mut feedback : String? = None
+  let mut awaiting_feedback = false
 
   for call in tool_calls {
     if denied {
@@ -334,7 +427,15 @@ async fn Agent::act_async(
         self.hook_manager.emit(ToolExecuting(tool_name, args_json))
         let entry = self.execute_single_tool(call)
         self.hook_manager.emit(ToolExecuted(tool_name, entry))
-        results.push(entry)
+        let (entry2, fb, aw) = self.handle_feedback_tool(tool_name, entry, args)
+        match fb {
+          Some(text) => feedback = Some(text)
+          None => ()
+        }
+        if aw {
+          awaiting_feedback = true
+        }
+        results.push(entry2)
       } else {
         let entry = build_denied_result(call, None)
         self.hook_manager.emit(ToolDenied(tool_name))
@@ -346,7 +447,15 @@ async fn Agent::act_async(
       self.hook_manager.emit(ToolExecuting(tool_name, args_json))
       let entry = self.execute_single_tool(call)
       self.hook_manager.emit(ToolExecuted(tool_name, entry))
-      results.push(entry)
+      let (entry2, fb, aw) = self.handle_feedback_tool(tool_name, entry, args)
+      match fb {
+        Some(text) => feedback = Some(text)
+        None => ()
+      }
+      if aw {
+        awaiting_feedback = true
+      }
+      results.push(entry2)
     }
   }
   { denied, feedback, tool_results: results, awaiting_feedback }
@@ -445,8 +554,13 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               let action_result = self.act_async(tool_calls)
               self.observe(resp, action_result.tool_results)
               if action_result.awaiting_feedback {
+                // request_user_feedback suspended the run (no reply yet):
+                // end this run awaiting the user's next message.
                 done = Some(self.build_result(Success))
-              } else if action_result.denied {
+              } else {
+                // A user answer (feedback) is pushed as a user message so
+                // the LLM responds to it immediately. Without feedback the
+                // denied path ends the run (Ruby agent.rb denied handling).
                 match action_result.feedback {
                   Some(fb) if fb.length() > 0 => {
                     self.history.push(
@@ -454,7 +568,10 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                     )
                     self.hook_manager.emit(MessageAdded)
                   }
-                  _ => done = Some(self.build_result(Success))
+                  _ =>
+                    if action_result.denied {
+                      done = Some(self.build_result(Success))
+                    }
                 }
               }
             }

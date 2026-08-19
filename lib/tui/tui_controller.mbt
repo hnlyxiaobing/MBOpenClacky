@@ -47,6 +47,12 @@ pub(all) struct TuiController {
   mut screen_inited : Bool
   events : @aqueue.Queue[TuiEvent]
   mut confirmation_response : @aqueue.Queue[Bool]?
+  /// Reply queue for request_user_feedback (user answer delivered while
+  /// the agent task is still running).
+  mut feedback_response : @aqueue.Queue[String]?
+  /// True while the agent awaits a feedback reply (Enter submits the
+  /// answer instead of starting a new agent run).
+  mut feedback_pending : Bool
   mut agent_task : @async.Task[@agent.RunResult]?
   thinking_animator : ThinkingVerbAnimator
   mut last_thinking_len : Int
@@ -93,6 +99,8 @@ pub fn TuiController::new(
     screen_inited: false,
     events: @aqueue.Queue::Queue(kind=Unbounded),
     confirmation_response: None,
+    feedback_response: None,
+    feedback_pending: false,
     agent_task: None,
     thinking_animator: ThinkingVerbAnimator::new(),
     last_thinking_len: 0,
@@ -293,6 +301,17 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
   self.agent.confirmation_request = Some(req_q)
   self.agent.confirmation_response = Some(resp_q)
   self.confirmation_response = Some(resp_q)
+  // Feedback bridge for request_user_feedback: agent pushes the question
+  // onto fb_req_q, the bridge forwards it to the event loop, and the user's
+  // answer is delivered back on fb_resp_q (mirrors the confirmation queue
+  // mechanism; Web server side: handlers_ws.mbt setup_feedback_bridge).
+  let fb_req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+    kind=Unbounded,
+  )
+  let fb_resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
+  self.agent.feedback_request = Some(fb_req_q)
+  self.agent.feedback_response = Some(fb_resp_q)
+  self.feedback_response = Some(fb_resp_q)
   self.hooks.register_all(self.agent.hook_manager)
   // Wrap output lines at the real terminal width and show the startup
   // banner as the first output entry (it scrolls away naturally).
@@ -317,7 +336,7 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
     terminal_width=self.term_width,
   )
   ignore(self.output.append_text(startup_banner, OutputKind::Text))
-  self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q))
+  self.tty.with_raw_mode(() => self.async_event_loop(req_q, resp_q, fb_req_q))
 }
 
 ///|
@@ -326,6 +345,7 @@ async fn TuiController::async_event_loop(
   self : TuiController,
   req_q : @aqueue.Queue[(String, String)],
   _resp_q : @aqueue.Queue[Bool],
+  fb_req_q : @aqueue.Queue[(String, String?, Array[String]?)],
 ) -> Unit {
   @async.with_task_group() <| group => {
     let events = self.events
@@ -337,6 +357,9 @@ async fn TuiController::async_event_loop(
     }
     group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
       self.run_confirmation_bridge(req_q, events)
+    }
+    group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
+      self.run_feedback_bridge(fb_req_q, events)
     }
     self.main_loop(group)
   }
@@ -387,6 +410,22 @@ async fn TuiController::run_confirmation_bridge(
 }
 
 ///|
+/// Feedback bridge: forwards agent request_user_feedback requests to the
+/// main event queue. The user's answer is delivered back on
+/// self.feedback_response (see handle_enter_key). No timeout — CLI
+/// semantics: the user decides when to answer.
+async fn TuiController::run_feedback_bridge(
+  _self : TuiController,
+  req_q : @aqueue.Queue[(String, String?, Array[String]?)],
+  events : @aqueue.Queue[TuiEvent],
+) -> Unit {
+  while true {
+    let (question, context, options) = req_q.get()
+    events.put(FeedbackRequest(question, context, options))
+  }
+}
+
+///|
 /// Main event processing loop.
 async fn TuiController::main_loop(
   self : TuiController,
@@ -423,9 +462,19 @@ async fn TuiController::main_loop(
           self.dirty = true
           self.redraw()
         }
+      FeedbackRequest(question, _context, _options) => {
+        // The FeedbackRequested hook already rendered the question; switch
+        // the input area into feedback-answer mode so Enter delivers the
+        // reply to the blocked agent task instead of starting a new run.
+        self.feedback_pending = true
+        ignore(question)
+        self.dirty = true
+        self.redraw()
+      }
       AgentDone(result) => {
         self.agent_running = false
         self.agent_task = None
+        self.feedback_pending = false
         self.state.val.mode = TuiMode::Idle
         // Auto-hide the todo area on idle (data preserved; Ruby ui2
         // set_idle_status → hide_todos).
@@ -447,6 +496,7 @@ async fn TuiController::main_loop(
       AgentError(msg) => {
         self.agent_running = false
         self.agent_task = None
+        self.feedback_pending = false
         self.state.val.mode = TuiMode::Idle
         // Auto-hide the todo area on idle (same as AgentDone).
         self.state.val.todo_area.hide()
@@ -1097,6 +1147,21 @@ async fn TuiController::handle_key(
 /// Handle Enter key: submit input to agent if non-empty, else newline.
 async fn TuiController::handle_enter_key(self : TuiController) -> Unit {
   if self.input.is_empty() {
+    return
+  }
+  // While the agent awaits user feedback (request_user_feedback), Enter
+  // delivers the typed answer to the blocked agent task instead of
+  // starting a new run.
+  if self.feedback_pending {
+    let text = self.input.submit()
+    self.close_suggestions()
+    self.feedback_pending = false
+    match self.feedback_response {
+      Some(q) => ignore(q.try_put(text))
+      None => ()
+    }
+    self.redraw()
+    self.dirty = true
     return
   }
   if self.agent_running {

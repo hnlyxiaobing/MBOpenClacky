@@ -19,6 +19,8 @@ pub enum TuiEvent {
   Terminal(@tty.Event)
   /// Agent requests tool confirmation: (tool_name, tool_args).
   ConfirmationRequest(String, String)
+  /// Agent waits for user feedback: (question, context, options).
+  FeedbackRequest(String, String?, Array[String]?)
   /// Agent run completed.
   AgentDone(@agent.RunResult)
   /// Agent run failed with error.
