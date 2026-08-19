@@ -1,7 +1,8 @@
 ﻿# env overlay 配置通路补全（BUG-0041/0015/0052）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
+> **完成日期**: 2026-08-19  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0041、BUG-0015、BUG-0052；`reports/p5_fix_unit_clustering.md` FU-08  
 > **关联历史 spec**: 无（配置簇首份；同簇 FU-12 见 `2026-08-18_12_p5-config-loading-alignment.md`）  
 > **来源差距**: P3 链路层（剧本 005）+ P2 单元层（config-003、config-019）  
@@ -105,13 +106,13 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] `MBOPENCLACKY_COMPRESSION_THRESHOLD` 经 apply_env_overlay 生效（新增单测 + e2e 005 BUG-0041 部分闭环）
-- [ ] config-003：文件模型 + CLACKY_* env 时 models_count=2、current 保持文件模型（BUG-0015 闸门移除转绿）
-- [ ] config-019：CLACKY_ANTHROPIC_FORMAT=false 生效（BUG-0052 闸门移除转绿）
-- [ ] `test/diff/known_failure.mbt` 在册数组移除 BUG-0015、BUG-0052（及 BUG-0041，如用例落地）
-- [ ] `moon check` 0 errors（lib/config、test/diff、test/e2e）
-- [ ] `moon test lib/config`、`moon test test/diff` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] `MBOPENCLACKY_COMPRESSION_THRESHOLD` 经 apply_env_overlay 生效（新增单测 + e2e 005 BUG-0041 部分闭环）
+- [x] config-003：文件模型 + CLACKY_* env 时 models_count=2、current 与 Ruby 实测一致（sk-env；BUG-0015 闸门移除转绿。注：spec 原写"current 保持文件模型 sk-file"与 Ruby driver 实测 ruby_results.json 矛盾——Ruby default_model_config type=default 追加后 current 指向 env 模型，按实测修正）
+- [x] config-019：CLACKY_ANTHROPIC_FORMAT=false 生效（BUG-0052 闸门移除转绿）
+- [x] `test/diff/known_failure.mbt` 在册数组移除 BUG-0015、BUG-0052、BUG-0041
+- [x] `moon check` 0 errors（lib/config、test/diff、test/e2e）
+- [x] `moon test lib/config`、`moon test test/diff` 全部通过（138/138、145/145）
+- [x] 全量 `moon test` 无回归（3662/3662）
 
 ## 风险评估 [必填]
 
@@ -133,3 +134,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 |------|---------|------|
 | 2026-08-14 | 初始版本（BUG-0041+0015） | P5 归并分析 FU-08 |
 | 2026-08-14 | 并入 BUG-0052（CLACKY_ANTHROPIC_FORMAT 未读取） | P5 新登记条目，同根因族（env 变量读取缺口） |
+| 2026-08-19 | 实施完成：apply_env_overlay 读 MBOPENCLACKY_COMPRESSION_THRESHOLD；try_load_with_prefix 读 `<prefix>_ANTHROPIC_FORMAT`；merge_config 改按 type 去重追加 + 无 default 补首模型；新增 5 个白盒用例；config-003/019 移除闸门转绿；known_failure.mbt 移除 BUG-0041/0015/0052；e2e 005 注入改回 MBOPENCLACKY_ 前缀。全量 moon test 3662/3662 绿。实施中发现 config-003 的 test_cases.json 冻结值 current=sk-file 与 Ruby driver 实测 ruby_results.json（current=sk-env）矛盾，按实测与源码修正断言 | 验收通过归档 |
