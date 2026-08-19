@@ -27,27 +27,21 @@ pub let fallback_cooldown_seconds : Int = 1800
 pub let max_retries : Int = 10
 
 ///|
-/// Base delay in milliseconds for exponential backoff between retries.
+/// Base delay in milliseconds for retries (fixed, mirrors Ruby's
+/// `sleep retry_delay` — no exponential growth).
 pub let retry_base_delay_ms : Int = 5000
 
 ///|
-/// Maximum delay in milliseconds (cap for exponential backoff).
+/// Maximum delay in milliseconds (kept for API compatibility; Ruby has no
+/// cap concept since the delay is constant).
 pub let retry_max_delay_ms : Int = 60000
 
 ///|
-/// Compute the delay before the next retry using exponential backoff.
-/// delay = min(base_delay * 2^(attempt-1), max_delay)
-fn retry_delay_ms(attempt : Int) -> Int {
-  let mut delay = retry_base_delay_ms
-  let mut i = 1
-  while i < attempt {
-    delay = delay * 2
-    if delay >= retry_max_delay_ms {
-      return retry_max_delay_ms
-    }
-    i = i + 1
-  }
-  delay
+/// Delay before the next retry. Ruby sleeps a constant `retry_delay` (5s)
+/// on every retry (openclacky llm_caller.rb:54-55); MB mirrors that —
+/// the value is independent of the attempt number.
+fn retry_delay_ms(_attempt : Int) -> Int {
+  retry_base_delay_ms
 }
 
 ///|
@@ -121,7 +115,10 @@ pub async fn Agent::call_with_retry_async(self : Agent) -> @client.LlmResponse {
       Err(e) =>
         if @errors.is_retryable_error(e) {
           self.record_retryable_failure()
-          if attempt >= max_retries {
+          // Ruby semantics: max_retries = 10 *retries* after the initial
+          // attempt (attempts 1..10 sleep+retry; the 11th failure raises).
+          // `attempt > max_retries` (not >=) mirrors the 11-request budget.
+          if attempt > max_retries {
             if self.try_url_fallback() {
               attempt = 0
               continue
@@ -161,7 +158,10 @@ pub async fn Agent::call_stream_with_retry_async(
       Err(e) =>
         if @errors.is_retryable_error(e) {
           self.record_retryable_failure()
-          if attempt >= max_retries {
+          // Ruby semantics: max_retries = 10 *retries* after the initial
+          // attempt (attempts 1..10 sleep+retry; the 11th failure raises).
+          // `attempt > max_retries` (not >=) mirrors the 11-request budget.
+          if attempt > max_retries {
             if self.try_url_fallback() {
               attempt = 0
               continue

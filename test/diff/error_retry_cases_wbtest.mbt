@@ -184,63 +184,35 @@ test "retry_005_first_retry_delay" {
 
 ///|
 /// retry-006：第 2 次重试的延迟。
-/// A 级期望值（P3 剧本 002 ruby 实测固定 5s）：Ruby delay=5000；
-/// MB 指数退避 10000——BUG-0023 known-failure。
-/// 注：retry_delay_ms 私有不可达，Ruby 冻结序列在此注释冻结：
-/// [5000, 5000, 5000, 5000]；MB 实际序列 [5000, 10000, 20000, 40000, 60000]
-/// 已由 lib/agent/llm_caller_wbtest.mbt "retry_delay_ms exponential backoff"
-/// 冻结。修复 BUG-0023 后需在 lib/agent 侧更新该 wbtest 完成闭环。
+/// A 级期望值（P3 剧本 002 ruby 实测固定 5s）：Ruby delay=5000。
+/// 已修复（BUG-0023，spec 2026-08-18_08）：retry_delay_ms 固定返回 5000，
+/// 退避序列 [5000, 5000, ...] 由 lib/agent/llm_caller_wbtest.mbt
+/// "retry_delay_ms fixed 5s" 冻结；此处 pub 常量承接。
 test "retry_006_second_retry_delay" {
   assert_eq(@agent.retry_base_delay_ms, 5000)
-  // BUG-0023：Ruby 冻结值——第 2 次重试 delay=5000（固定间隔）。
-  // 证据：cases/error_retry/test_cases.json retry-006；
-  // P3 证据 reports/p3/002_stream_cut_retry_diff.md
-  if known_failure("BUG-0023") {
-    return
-  }
-  // 延迟序列断言入口不可达（retry_delay_ms 为私有函数），见文件头说明。
 }
 
 ///|
-/// retry-007：第 3 次重试的延迟。同 BUG-0023（Ruby 5000 vs MB 20000）。
+/// retry-007：第 3 次重试的延迟。已修复（BUG-0023）：固定 5000。
 /// A 级期望值（P3 剧本 002 ruby 实测固定 5s）。
 test "retry_007_third_retry_delay" {
   assert_eq(@agent.retry_base_delay_ms, 5000)
-  // BUG-0023：Ruby 冻结值——第 3 次重试 delay=5000（固定间隔）。
-  // 证据：cases/error_retry/test_cases.json retry-007
-  if known_failure("BUG-0023") {
-    return
-  }
-  // 延迟序列断言入口不可达（retry_delay_ms 为私有函数），见文件头说明。
 }
 
 ///|
-/// retry-008：第 4 次重试的延迟。同 BUG-0023（Ruby 5000 vs MB 40000）。
+/// retry-008：第 4 次重试的延迟。已修复（BUG-0023）：固定 5000。
 /// A 级期望值（P3 剧本 002 ruby 实测固定 5s）。
 test "retry_008_fourth_retry_delay" {
   assert_eq(@agent.retry_base_delay_ms, 5000)
-  // BUG-0023：Ruby 冻结值——第 4 次重试 delay=5000（固定间隔）。
-  // 证据：cases/error_retry/test_cases.json retry-008
-  if known_failure("BUG-0023") {
-    return
-  }
-  // 延迟序列断言入口不可达（retry_delay_ms 为私有函数），见文件头说明。
 }
 
 ///|
-/// retry-009：第 5 次重试的延迟（Ruby 仍 5000；MB 指数达 60s 上限）。
+/// retry-009：第 5 次重试的延迟。已修复（BUG-0023）：固定 5000（Ruby 无上限概念）。
 /// A 级期望值（P3 剧本 002 ruby 实测固定 5s）。
-/// green：MB 上限常量 retry_max_delay_ms=60000（MB 侧行为已由
-/// llm_caller_wbtest 冻结）。BUG-0023 known-failure 承接 Ruby 固定值。
 test "retry_009_fifth_retry_delay_capped" {
   assert_eq(@agent.retry_base_delay_ms, 5000)
+  // retry_max_delay_ms 保留为兼容常量（Ruby 无此概念）；固定 5s 后不再触及上限。
   assert_eq(@agent.retry_max_delay_ms, 60000)
-  // BUG-0023：Ruby 冻结值——第 5 次重试 delay=5000（固定间隔，无上限概念）。
-  // 证据：cases/error_retry/test_cases.json retry-009
-  if known_failure("BUG-0023") {
-    return
-  }
-  // 延迟序列断言入口不可达（retry_delay_ms 为私有函数），见文件头说明。
 }
 
 // ── retry_limits / url_fallback ──────────────────────────────────────────────

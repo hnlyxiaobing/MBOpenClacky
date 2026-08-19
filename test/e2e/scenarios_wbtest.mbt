@@ -202,11 +202,8 @@ async test "009 http_500_retry：500 重试两次后恢复" {
   // 绿：ruby 4 请求（2 次重试）、exit=0、最终成功 —— MB 当前行为一致。
   // 证据: diff-harness runs/009_http_500_retry/ruby/
   assert_golden(outcome, golden("009_http_500_retry"))
-  // BUG-0037: ruby 退避固定 5s/5s，MB 指数退避 5s/10s。
-  // 证据: reports/p3/009_diff.md（ruby 5.0s,5.0s vs moonbit 5.0s,10.0s）
-  if @diff.known_failure("BUG-0037") {
-    return
-  }
+  // BUG-0037 已修复（spec 2026-08-18_08）：retry_delay_ms 固定 5s，
+  // 退避间隔 ruby/MB 均为 5s/5s。证据: reports/p3/009_diff.md
   assert_retry_intervals(outcome.request_times, [5000, 5000], 1500)
 }
 
@@ -257,15 +254,16 @@ async test "012 finish_stop_with_tool_calls：tool_calls 正常执行" {
 
 ///|
 async test "013 consecutive_failures_circuit_breaker：连续失败熔断" {
-  // BUG-0039（兼引 BUG-0038 system prompt 中途切换）: ruby 10 次重试共 11 请求、
-  // 干净失败 exit=1；MB 重试 13 次共 15 请求、exit=-1 异常终止。
-  // 闸门后直接 return：当前行为下跑全量要 15 请求 × 指数退避（5→10→20→40→60s…），
-  // 会挂住测试套件数分钟。
-  // 证据: diff-harness reports/BUGS.md BUG-0038/0039；
-  //       runs/013_consecutive_failures_circuit_breaker/{ruby,moonbit}/
-  if @diff.known_failure("BUG-0039") {
-    return
-  }
+  // BUG-0039 已修复（spec 2026-08-18_08）：
+  // 任务包 1 复现定位结论——"MB 15 请求"系 diff-harness 运行记录污染：
+  // runs/013 moonbit 的 req_0009~0015 是后续 014 场景进程的请求误写入
+  // （system prompt 与 session context 完全不同、user prompt 为 014 文案）。
+  // MB 真实行为：指数退避 5+10+20+40+60+60+60=255s 后第 8 个请求 sleep 60s
+  // 时被 harness 300s 超时杀掉（exit=-1）——无额外重试路径。
+  // 退避改固定 5s 后：10 次重试共 11 请求 ≈50s 内完成、raise 干净失败 exit=1，
+  // 与 ruby 一致。
+  // 证据: diff-harness runs/013_consecutive_failures_circuit_breaker/
+  //       {ruby,moonbit}/requests/（污染分析见本 spec 现状分析）
   let outcome = run_scenario(
     "013_consecutive_failures_circuit_breaker",
     [("note.txt", "hello\n")],

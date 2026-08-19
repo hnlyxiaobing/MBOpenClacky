@@ -43,7 +43,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0020", // switch_model_by_id 失败时 current_model 行为不一致
    "BUG-0022", // 保存后加载 max_tokens 不一致（同根因 BUG-0012）
   // error_retry 模块（P2）
-   "BUG-0023", // 退避算法不一致（ruby 固定 5s vs MB 指数退避）
+  // BUG-0023 已修复（spec 2026-08-18_08_p5-retry-backoff-circuit-breaker.md：
+  // retry_delay_ms 固定 5000ms 对齐 Ruby sleep retry_delay），移出注册表
    "BUG-0024", // 402 错误分类不一致
   // BUG-0025/0026 已于基线实现（react 层空响应/thinking 静默重试，台账记录过时），
   // retry-013/014 为绿断言，不在册
@@ -53,9 +54,12 @@ let known_failure_bug_ids : Array[String] = [
   // link 层（P3，test/e2e 剧本用）
   // BUG-0032 已修复（spec 2026-08-18_02_p5-stream-truncation-retry-pipeline.md：
   // 流式缺 finish_reason / 空参数 tool_call 判截断并走重试管道），移出注册表
-   "BUG-0037", // HTTP 5xx/429 退避策略不一致（指数退避 vs 固定 5s）
+  // BUG-0037 已修复（spec 2026-08-18_08：retry_delay_ms 固定 5s，009 剧本
+  // 退避间隔断言转绿），移出注册表
    "BUG-0038", // 连续失败时 system prompt 中途切换
-   "BUG-0039", // 熔断行为不一致（15 请求 exit=-1 vs 11 请求 exit=1）
+  // BUG-0039 已修复（spec 2026-08-18_08：013 的"15 请求"系 diff-harness 记录
+  // 污染——req_0009+ 为 014 场景进程误写入；真实根因是指数退避拖垮 300s 超时。
+  // 退避固定 5s 后 11 请求干净 exit=1，e2e 013 转绿），移出注册表
    "BUG-0040", // 工具错误 tool_result 非标准 JSON
   // BUG-0041 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
   // apply_env_overlay 读取 MBOPENCLACKY_COMPRESSION_THRESHOLD），移出注册表

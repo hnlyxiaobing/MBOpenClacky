@@ -72,19 +72,15 @@ test "clear_llm_error resets recorded error fields" {
 // ── Retry Delay Tests ────────────────────────────────────────────────────────
 
 ///|
-test "retry_delay_ms exponential backoff" {
-  // attempt 1: base delay = 5000
+test "retry_delay_ms fixed 5s (mirrors Ruby sleep retry_delay)" {
+  // Ruby sleeps a constant retry_delay=5 on every retry; MB mirrors that:
+  // the delay is independent of the attempt number.
   @debug.assert_eq(retry_delay_ms(1), 5000)
-  // attempt 2: 5000 * 2 = 10000
-  @debug.assert_eq(retry_delay_ms(2), 10000)
-  // attempt 3: 5000 * 4 = 20000
-  @debug.assert_eq(retry_delay_ms(3), 20000)
-  // attempt 4: 5000 * 8 = 40000
-  @debug.assert_eq(retry_delay_ms(4), 40000)
-  // attempt 5: 5000 * 16 = 80000 → capped at 60000
-  @debug.assert_eq(retry_delay_ms(5), 60000)
-  // attempt 10: still capped
-  @debug.assert_eq(retry_delay_ms(10), 60000)
+  @debug.assert_eq(retry_delay_ms(2), 5000)
+  @debug.assert_eq(retry_delay_ms(3), 5000)
+  @debug.assert_eq(retry_delay_ms(4), 5000)
+  @debug.assert_eq(retry_delay_ms(5), 5000)
+  @debug.assert_eq(retry_delay_ms(10), 5000)
 }
 
 // ── Fallback State Machine Tests ─────────────────────────────────────────────
