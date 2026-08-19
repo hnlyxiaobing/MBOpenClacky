@@ -115,9 +115,11 @@ test "ext_truncate_exact_length" {
 
 ///|
 test "ext_truncate_long" {
+  // smart truncation: head 60% + tail 40% with a notice in between
   let (result, truncated) = truncate_output("hello world", max_chars=5)
   assert_true(truncated)
-  assert_true(result.contains("hello"))
+  assert_true(result.contains("hel"))
+  assert_true(result.contains("ld"))
   assert_true(result.contains("truncated"))
 }
 
