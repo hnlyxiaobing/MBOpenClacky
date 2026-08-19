@@ -154,7 +154,13 @@ pub extend ParsedCompression with Eq::{not_equal, equal}
 /// when triggered by token threshold, additionally checks that the
 /// reduction needed is at least 10% of current size; otherwise skips.
 pub fn Agent::needs_compression(self : Agent) -> Bool {
-  let token_count = estimate_history_tokens(self.history)
+  // Ruby: total_tokens = [@previous_total_tokens, @history.estimate_tokens].max
+  // (message_compressor_helper.rb:143)。API 报告的上一轮 token 数与当前估算取
+  // 大，覆盖"最后一个大 tool_result 刚追加、上一轮 usage 尚未反映"的场景
+  // （BUG-0042 差异一）。
+  let token_count = self.previous_total_tokens.max(
+    estimate_history_tokens(self.history),
+  )
   let msg_count = self.history.length()
   let token_threshold_exceeded = token_count >=
     self.config.compression_threshold
@@ -206,7 +212,30 @@ pub fn Agent::compress_messages_if_needed(
     n
   }
   if recent >= non_system_count {
-    return None
+    // Ruby 无此守卫；等价逻辑是 build_compression_message 在 messages_to_compress
+    // 为空时返回 nil。但 Ruby 的 get_recent_messages_with_tool_pairs 会对 content
+    // > 2000 字符的 tool_result 执行 truncate_tool_result（返回新 Hash，helper.rb
+    // :472-478），使原始大 tool_result 因对象相等性失配落入待压缩集 → 压缩指令
+    // 仍会生成（BUG-0042 差异二）。MB 显式模拟该可观测结果：存在超大 tool_result
+    // 时继续压缩流程，否则才返回 None。
+    let has_oversized_tool_result = {
+      let mut found = false
+      for msg in self.history {
+        if msg.role == @message.Tool {
+          match msg.content {
+            @message.Text(s) if s.length() > 2000 => {
+              found = true
+              break
+            }
+            _ => ()
+          }
+        }
+      }
+      found
+    }
+    if !has_oversized_tool_result {
+      return None
+    }
   }
   Some({
     original_token_count: token_count,

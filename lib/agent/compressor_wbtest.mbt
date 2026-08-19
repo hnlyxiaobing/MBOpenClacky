@@ -293,3 +293,91 @@ test "needs_compression_skips_when_reduction_below_10pct (BUG-0043)" {
   // Ruby: total=~13, reduction_needed = 13-10000 = -9987 < 13*0.1 → 不压缩
   assert_false(agent.needs_compression())
 }
+
+///|
+test "needs_compression_uses_max_previous_total_tokens (BUG-0042)" {
+  // 差异一回归：ruby 取 total_tokens = max(previous_total_tokens, estimate)
+  // （message_compressor_helper.rb:143）。场景：threshold=1、history 很小
+  // （estimate 远低于 target_compressed_tokens），但上一轮 API 报告
+  // previous_total_tokens=15000 → max 后触发压缩（10% 检查同样通过）。
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new("s", "a", "/tmp", client, config)
+  agent.config.compression_threshold = 1
+  agent.history.push(
+    @message.Message::user("Hello world, this is a test message"),
+  )
+  // previous_total_tokens 默认 0：estimate ≈ 13 → 10% 检查拦截
+  assert_false(agent.needs_compression())
+  // 上一轮 API 报告 15000：max(15000, ~13) = 15000 >= 1；
+  // reduction_needed = 15000-10000 = 5000 >= 15000*0.1 → 触发
+  agent.previous_total_tokens = 15000
+  assert_true(agent.needs_compression())
+}
+
+///|
+test "compress_messages_if_needed_guard_exception_oversized_tool_result (BUG-0042)" {
+  // 差异二回归：recent >= non_system_count 时，若 history 含 content > 2000 字符的
+  // tool_result，应继续压缩流程（模拟 ruby truncate_tool_result 截断后返回新 Hash、
+  // 破坏对象相等性、使原始大 tool_result 落入待压缩集的副作用，helper.rb:472-478）；
+  // 否则才返回 None。
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new("s", "a", "/tmp", client, config)
+  agent.config.compression_threshold = 1
+  agent.previous_total_tokens = 15000
+  agent.history.push(@message.Message::system("system prompt"))
+  agent.history.push(@message.Message::user("context"))
+  agent.history.push(@message.Message::user("读一下 big.txt"))
+  let asst = @message.Message::assistant("")
+  asst.tool_calls = Some([
+    @message.ToolCall::new("call_1", "file_reader", "{\"path\":\"big.txt\"}"),
+  ])
+  agent.history.push(asst)
+  let big_result = Array::make(3000, "a").join("")
+  agent.history.push(
+    @message.Message::tool_result("call_1", "file_reader", big_result),
+  )
+  // 5 条消息（含 system）：recent = min(5, 20) = 5 >= non_system(4) → 守卫命中，
+  // 但存在超大 tool_result → 例外放行，返回 Some
+  assert_true(agent.compress_messages_if_needed(false) is Some(_))
+}
+
+///|
+test "compress_messages_if_needed_guard_returns_none_without_oversized (BUG-0042)" {
+  // 反向确认：同样 5 条消息但 tool_result <= 2000 字符 → 无截断副作用，
+  // 守卫按原语义返回 None（全部非 system 消息都在 recent 中，无可压缩内容）。
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  let agent = Agent::new("s", "a", "/tmp", client, config)
+  agent.config.compression_threshold = 1
+  agent.previous_total_tokens = 15000
+  agent.history.push(@message.Message::system("system prompt"))
+  agent.history.push(@message.Message::user("context"))
+  agent.history.push(@message.Message::user("读一下 big.txt"))
+  let asst = @message.Message::assistant("")
+  asst.tool_calls = Some([
+    @message.ToolCall::new("call_1", "file_reader", "{\"path\":\"big.txt\"}"),
+  ])
+  agent.history.push(asst)
+  let small_result = Array::make(500, "a").join("")
+  agent.history.push(
+    @message.Message::tool_result("call_1", "file_reader", small_result),
+  )
+  assert_true(agent.compress_messages_if_needed(false) is None)
+}
