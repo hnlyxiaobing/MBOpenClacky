@@ -264,7 +264,7 @@ test "needs_compression_uses_config_threshold" {
     let _ = i
   }
   let large_text = buf.to_string()
-  agent.history.push(@message.Message::user(large_text))
+  agent.history.append(@message.Message::user(large_text))
   agent.config.compression_threshold = 5
   assert_true(agent.needs_compression())
   agent.config.compression_threshold = 999_999
@@ -287,7 +287,7 @@ test "needs_compression_skips_when_reduction_below_10pct (BUG-0043)" {
   let agent = Agent::new("s", "a", "/tmp", client, config)
   agent.config.compression_threshold = 1
   // 小 history：约几十 tokens，远低于 target_compressed_tokens=10000
-  agent.history.push(
+  agent.history.append(
     @message.Message::user("Hello world, this is a test message"),
   )
   // Ruby: total=~13, reduction_needed = 13-10000 = -9987 < 13*0.1 → 不压缩
@@ -309,7 +309,7 @@ test "needs_compression_uses_max_previous_total_tokens (BUG-0042)" {
   let config = @config.AgentConfig::default()
   let agent = Agent::new("s", "a", "/tmp", client, config)
   agent.config.compression_threshold = 1
-  agent.history.push(
+  agent.history.append(
     @message.Message::user("Hello world, this is a test message"),
   )
   // previous_total_tokens 默认 0：estimate ≈ 13 → 10% 检查拦截
@@ -336,16 +336,16 @@ test "compress_messages_if_needed_guard_exception_oversized_tool_result (BUG-004
   let agent = Agent::new("s", "a", "/tmp", client, config)
   agent.config.compression_threshold = 1
   agent.previous_total_tokens = 15000
-  agent.history.push(@message.Message::system("system prompt"))
-  agent.history.push(@message.Message::user("context"))
-  agent.history.push(@message.Message::user("读一下 big.txt"))
+  agent.history.append(@message.Message::system("system prompt"))
+  agent.history.append(@message.Message::user("context"))
+  agent.history.append(@message.Message::user("读一下 big.txt"))
   let asst = @message.Message::assistant("")
   asst.tool_calls = Some([
     @message.ToolCall::new("call_1", "file_reader", "{\"path\":\"big.txt\"}"),
   ])
-  agent.history.push(asst)
+  agent.history.append(asst)
   let big_result = Array::make(3000, "a").join("")
-  agent.history.push(
+  agent.history.append(
     @message.Message::tool_result("call_1", "file_reader", big_result),
   )
   // 5 条消息（含 system）：recent = min(5, 20) = 5 >= non_system(4) → 守卫命中，
@@ -367,16 +367,16 @@ test "compress_messages_if_needed_guard_returns_none_without_oversized (BUG-0042
   let agent = Agent::new("s", "a", "/tmp", client, config)
   agent.config.compression_threshold = 1
   agent.previous_total_tokens = 15000
-  agent.history.push(@message.Message::system("system prompt"))
-  agent.history.push(@message.Message::user("context"))
-  agent.history.push(@message.Message::user("读一下 big.txt"))
+  agent.history.append(@message.Message::system("system prompt"))
+  agent.history.append(@message.Message::user("context"))
+  agent.history.append(@message.Message::user("读一下 big.txt"))
   let asst = @message.Message::assistant("")
   asst.tool_calls = Some([
     @message.ToolCall::new("call_1", "file_reader", "{\"path\":\"big.txt\"}"),
   ])
-  agent.history.push(asst)
+  agent.history.append(asst)
   let small_result = Array::make(500, "a").join("")
-  agent.history.push(
+  agent.history.append(
     @message.Message::tool_result("call_1", "file_reader", small_result),
   )
   assert_true(agent.compress_messages_if_needed(false) is None)

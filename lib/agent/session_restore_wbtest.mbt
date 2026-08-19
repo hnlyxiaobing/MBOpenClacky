@@ -224,6 +224,11 @@ test "SessionData with new fields serialization" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1719000000000",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let json = ToJson::to_json(data)
   let parsed : SessionData = @json.from_json(json)
@@ -306,6 +311,11 @@ test "restore_session_enhanced basic" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1719000000000",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.session_id, "s_basic")
@@ -360,6 +370,11 @@ test "restore_session_enhanced with channel_info" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1719000000000",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.channel_info.unwrap().platform, "discord")
@@ -406,6 +421,11 @@ test "restore_session_enhanced error rollback detection" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1719000000000",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let result = restore_session_enhanced(config, data)
   @debug.assert_eq(result.needs_error_rollback, true)
@@ -502,4 +522,149 @@ test "backfill_task_meta_from_history" {
   // Task "2" metadata
   let meta2 = result.task_meta.get("2").unwrap()
   @debug.assert_eq(meta2.title, "Now do task two")
+}
+
+// ── Agent::restore_from_session integration (decision 6 wiring) ─────────────
+
+///|
+fn make_restore_agent() -> Agent {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "current-model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  Agent::new("test-session", "test-agent", "/tmp/test", client, config)
+}
+
+///|
+fn restore_test_session(messages : Array[@message.Message]) -> SessionData {
+  {
+    session_id: "s_restore",
+    name: "restore-test",
+    messages,
+    stats: {
+      total_iterations: 4,
+      total_cost_usd: 0.03,
+      total_tasks: 2,
+      cost_source: "estimated",
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      total_requests: 4,
+      cache_hit_requests: 0,
+    },
+    working_dir: "/tmp",
+    created_at: "1719000000000",
+    source: "manual",
+    reasoning_effort: None,
+    model_name: Some("archived-model"),
+    model_config_id: None,
+    channel_info: None,
+    latest_latency_ms: None,
+    latest_ttft_ms: None,
+    time_machine: None,
+    pending_error_rollback: false,
+    model_base_url: "https://api.test.com",
+    last_status: "idle",
+    last_error: "",
+    error_code: None,
+    top_up_url: None,
+    raw_message: None,
+    forked_from: None,
+    chunk_count: 0,
+    agent_profile: "general",
+    sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1719000000000",
+    previous_total_tokens: 0,
+    deleted_at: None,
+  }
+}
+
+///|
+/// The token baseline must survive restore; a zeroed baseline would make
+/// compression misfire immediately after resuming (decision 6).
+test "restore_from_session keeps previous_total_tokens baseline" {
+  let agent = make_restore_agent()
+  let data = { ..restore_test_session([]), previous_total_tokens: 5000 }
+  agent.restore_from_session(data)
+  @debug.assert_eq(agent.previous_total_tokens, 5000)
+}
+
+///|
+/// A session saved in an error state is rolled back past the failed run:
+/// history truncates to the last real user message (apply_error_rollback
+/// wired into the production restore path).
+test "restore_from_session rolls back history after error state" {
+  let agent = make_restore_agent()
+  let msgs = [
+    @message.Message::user("question"),
+    @message.Message::assistant("partial answer before crash"),
+  ]
+  let data = { ..restore_test_session(msgs), last_status: "error" }
+  agent.restore_from_session(data)
+  // Rollback keeps only the last real user message; the refreshed system
+  // prompt is re-inserted at the head.
+  let all = agent.history.all()
+  @debug.assert_eq(all.length(), 2)
+  @debug.assert_eq(all[0].role, @message.System)
+  @debug.assert_eq(all[1].role, @message.User)
+  match all[1].content {
+    @message.Text(s) => @debug.assert_eq(s, "question")
+    @message.Blocks(_) => panic()
+  }
+}
+
+///|
+/// The archived system prompt may reference stale models, skills, or rules;
+/// restore must rebuild it from the current agent state (decision 6).
+test "restore_from_session refreshes system prompt to current version" {
+  let agent = make_restore_agent()
+  let msgs = [
+    @message.Message::system("stale archived prompt"),
+    @message.Message::user("hi"),
+  ]
+  let data = restore_test_session(msgs)
+  agent.restore_from_session(data)
+  let all = agent.history.all()
+  @debug.assert_eq(all[0].role, @message.System)
+  let sys_content = match all[0].content {
+    @message.Text(s) => s
+    @message.Blocks(_) => ""
+  }
+  assert_true(sys_content.contains("current-model"))
+  assert_true(!sys_content.contains("stale archived"))
+}
+
+///|
+/// When the archived model still exists in the current config, the client
+/// is rebuilt on it instead of keeping the agent's default (Ruby
+/// open_ai.rb:187-191 model recovery).
+test "restore_from_session recovers archived model from config" {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "current-model",
+    @config.OpenAICompletions,
+  )
+  let config = {
+    ..@config.AgentConfig::default(),
+    models: [
+      @config.ModelConfig::new(
+        "m1", "test-key", "https://api.test.com", "archived-model",
+      ),
+    ],
+  }
+  let agent = Agent::new(
+    "test-session", "test-agent", "/tmp/test", client, config,
+  )
+  let data = {
+    ..restore_test_session([]),
+    model_name: Some("archived-model"),
+    model_base_url: "https://api.test.com",
+  }
+  agent.restore_from_session(data)
+  @debug.assert_eq(agent.client.model, "archived-model")
 }

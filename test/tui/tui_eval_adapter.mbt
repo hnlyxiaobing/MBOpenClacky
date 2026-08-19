@@ -1322,7 +1322,7 @@ fn TuiEvalSimulator::handle_slash_command(
 /// the observable output only (no disk I/O in tests).
 fn TuiEvalSimulator::on_exit_save(self : TuiEvalSimulator) -> Unit {
   // entry_count > 1 means something beyond the startup banner was written
-  if self.output.entry_count() > 1 || self.agent.history.length() > 0 {
+  if self.output.entry_count() > 1 || self.agent.history.size() > 0 {
     ignore(
       self.output.append_text(
         "[system] Session saved to disk: clacky --attach \{self.state.val.session_id}",

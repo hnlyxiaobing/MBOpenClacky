@@ -228,6 +228,14 @@ pub(all) struct SessionData {
   // Session model switch & agent profile (web-replication-05)
   agent_profile : String
   sub_model : String?
+  // Persistence alignment (decision 3/5): pinned exemption for capacity
+  // cleanup, serialized todo list, last-updated timestamp for list
+  // ordering, token baseline for compression, soft-delete marker.
+  pinned : Bool
+  todos : Json?
+  updated_at : String
+  previous_total_tokens : Int
+  deleted_at : String?
 } derive(Eq, Debug)
 
 ///|
@@ -253,15 +261,15 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
   {
     session_id: self.session_id,
     name: self.name,
-    // Strip API-internal fields but keep created_at so history pagination
-    // survives a save/load round trip. system_injected marks injected
-    // context messages and must survive persistence too, otherwise the
-    // web history dedup cannot distinguish them from real user messages.
-    messages: self.history.map(m => {
-      ..m.to_api_message(),
-      created_at: m.created_at,
-      system_injected: m.system_injected,
-    }),
+    // Persistence view: keep all internal fields (token_usage,
+    // compressed_summary, task_id, ...) and drop transient messages
+    // (decision 5/13: transient never hits disk). created_at and
+    // system_injected survive so history pagination and the web dedup
+    // keep working across a save/load round trip.
+    messages: self.history
+    .all()
+    .filter(fn(m) { m.transient != Some(true) })
+    .map(m => m.to_persist_message()),
     stats: {
       total_iterations: self.iterations,
       total_cost_usd: self.total_cost,
@@ -297,22 +305,45 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: self.session_sub_model,
+    pinned: self.pinned,
+    todos: Some(self.todo_manager.to_json()),
+    updated_at: current_timestamp_iso(),
+    previous_total_tokens: self.previous_total_tokens,
+    deleted_at: None,
   }
 }
 
 ///|
 /// Restore agent state from a SessionData snapshot.
 ///
-/// Resets runtime counters and rebuilds conversation history.
+/// Runs the enhanced restore path (decision 6): model recovery against the
+/// current config, error-state rollback, and a system-prompt refresh to the
+/// current version. Resets runtime counters and rebuilds conversation
+/// history.
 pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
-  // Restore identity
-  self.working_dir = data.working_dir
+  let result = restore_session_enhanced(self.config, data)
 
-  // Restore conversation history
-  self.history.clear()
-  for msg in data.messages {
-    self.history.push(msg)
+  // Restore identity
+  self.working_dir = result.working_dir
+
+  // Model recovery: if the saved model still exists in config, rebuild the
+  // client on it (Ruby open_ai.rb:187-191); otherwise keep the current
+  // default the agent was constructed with.
+  if result.model_recovered && !result.recovered_model_name.is_empty() {
+    self.rebuild_client_for_model(result.recovered_model_name)
   }
+
+  // Restore conversation history: when the saved session ended in an error
+  // state, roll back past the failed run first (apply_error_rollback), then
+  // repair any dangling tool_calls left by interrupted runs (Ruby
+  // message_history.rb:348-380 pairing guarantee).
+  let messages = if result.needs_error_rollback {
+    apply_error_rollback(result.messages)
+  } else {
+    result.messages
+  }
+  self.history.replace_all(messages)
+  self.history.repair_dangling_tool_calls()
 
   // Restore statistics
   self.iterations = data.stats.total_iterations
@@ -332,14 +363,29 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
   // Restore the per-session sub-model overlay
   self.session_sub_model = data.sub_model
 
+  // Restore pinned flag and the task list (decision 5: both survive
+  // a save/load round trip).
+  self.pinned = data.pinned
+  match data.todos {
+    Some(todos_json) => self.todo_manager.load_from_json(todos_json)
+    None => ()
+  }
+
+  // Restore the token baseline so compression does not misfire right
+  // after restore (decision 6; Ruby restores previous_total_tokens).
+  self.previous_total_tokens = data.previous_total_tokens
+
   // Reset transient state
   self.status = Idle
   self.error = None
   self.latest_latency = None
   self.fallback_state = PrimaryOk
   self.compression_level = 0
-  self.previous_total_tokens = 0
   self.mock_responses.clear()
+
+  // Refresh the system prompt to the current version (decision 6): the
+  // archived copy may reference stale models, skills, or rules.
+  self.history.replace_system_prompt(self.build_system_prompt())
 }
 
 ///|
@@ -439,6 +485,17 @@ pub impl ToJson for SessionData with fn to_json(self) {
     "chunk_count": ToJson::to_json(self.chunk_count),
     "agent_profile": ToJson::to_json(self.agent_profile),
     "sub_model": opt_string_json(self.sub_model),
+    "pinned": ToJson::to_json(self.pinned),
+    "updated_at": ToJson::to_json(self.updated_at),
+    "previous_total_tokens": ToJson::to_json(self.previous_total_tokens),
+  }
+  match self.todos {
+    Some(t) => obj["todos"] = t
+    None => ()
+  }
+  match self.deleted_at {
+    Some(ts) => obj["deleted_at"] = ts.to_json()
+    None => ()
   }
   match self.forked_from {
     Some(f) => obj["forked_from"] = ToJson::to_json(f)
@@ -555,6 +612,26 @@ impl FromJson for SessionData with fn from_json(json, path) {
         _ => "general"
       }
       let sub_model = opt_string_field(map, "sub_model")
+      let pinned = match map.get("pinned") {
+        Some(True) => true
+        _ => false
+      }
+      let todos = match map.get("todos") {
+        Some(Null) | None => None
+        Some(j) => Some(j)
+      }
+      let updated_at = match map.get("updated_at") {
+        Some(String(s)) => s
+        _ => created_at
+      }
+      let previous_total_tokens = match map.get("previous_total_tokens") {
+        Some(Number(d, ..)) => d.to_int()
+        _ => 0
+      }
+      let deleted_at = match map.get("deleted_at") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
       {
         session_id,
         name,
@@ -581,6 +658,11 @@ impl FromJson for SessionData with fn from_json(json, path) {
         chunk_count,
         agent_profile,
         sub_model,
+        pinned,
+        todos,
+        updated_at,
+        previous_total_tokens,
+        deleted_at,
       }
     }
     _ => raise JsonDecodeError((path, "SessionData: expected object"))
@@ -588,9 +670,19 @@ impl FromJson for SessionData with fn from_json(json, path) {
 }
 
 ///|
-/// Generate a unique session ID based on the current timestamp.
+/// Generate a unique, unpredictable session ID: 16 lowercase hex chars
+/// (64 bits of entropy), matching the Ruby reference's random-hex
+/// semantics. Millisecond timestamps could collide under rapid session
+/// creation, silently overwriting an existing session file.
 pub fn generate_session_id() -> String {
-  "s_" + current_time_ms().to_string()
+  let rng = @random.Rand::new()
+  let hex_chars = "0123456789abcdef"
+  let mut id = ""
+  for _i = 0; _i < 16; _i = _i + 1 {
+    let idx = rng.int(limit=16)
+    id = id + hex_chars[idx:idx + 1].to_owned()
+  }
+  id
 }
 
 ///|

@@ -205,3 +205,122 @@ test "MessageHistory from_messages" {
   @debug.debug_inspect(h.size(), content="2")
   @debug.debug_inspect(h.is_empty(), content="false")
 }
+
+///|
+test "MessageHistory repair_dangling_tool_calls inserts interrupted placeholder" {
+  let tc1 = ToolCall::new("call-1", "search", "{}")
+  let tc2 = ToolCall::new("call-2", "read", "{}")
+  let assistant_msg : Message = {
+    role: Assistant,
+    content: Text("calling tools"),
+    tool_calls: Some([tc1, tc2]),
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  // call-1 answered, call-2 dangling
+  let h = MessageHistory::from_messages([
+    Message::user("hi"),
+    assistant_msg,
+    Message::tool_result("call-1", "search", "result"),
+  ])
+  h.repair_dangling_tool_calls()
+  let msgs = h.all()
+  // user + assistant + placeholder(call-2) + tool_result(call-1)
+  @debug.debug_inspect(msgs.length(), content="4")
+  let placeholder = msgs[2]
+  @debug.debug_inspect(placeholder.role == Tool, content="true")
+  @debug.debug_inspect(placeholder.tool_call_id, content="Some(\"call-2\")")
+  match placeholder.content {
+    Text(s) => @debug.debug_inspect(s, content="\"(interrupted)\"")
+    _ => @debug.debug_inspect("wrong", content="\"(interrupted)\"")
+  }
+  // The answered call-1 result stays in place
+  @debug.debug_inspect(msgs[3].tool_call_id, content="Some(\"call-1\")")
+  // No dangling calls remain
+  @debug.debug_inspect(h.pending_tool_calls(), content="false")
+}
+
+///|
+test "MessageHistory pad_missing_reasoning only in thinking mode" {
+  let h = MessageHistory::new()
+  h.append(Message::assistant("plain answer"))
+  // Non-thinking mode: no padding
+  h.pad_missing_reasoning(false)
+  @debug.debug_inspect(h.all()[0].reasoning_content, content="None")
+  // Thinking mode: assistant without reasoning gets empty placeholder
+  h.pad_missing_reasoning(true)
+  @debug.debug_inspect(h.all()[0].reasoning_content, content="Some(\"\")")
+}
+
+///|
+test "MessageHistory to_api_cleaned filters transient and repairs pairing" {
+  let tc = ToolCall::new("call-x", "run", "{}")
+  let assistant_msg : Message = {
+    role: Assistant,
+    content: Text("calling"),
+    tool_calls: Some([tc]),
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let transient_msg : Message = {
+    role: User,
+    content: Text("transient"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: Some(true),
+  }
+  let h = MessageHistory::from_messages([
+    Message::user("hi"),
+    assistant_msg,
+    transient_msg,
+  ])
+  let api = h.to_api_cleaned(true)
+  // user + assistant + interrupted placeholder; transient filtered
+  @debug.debug_inspect(api.length(), content="3")
+  // Stored history untouched
+  @debug.debug_inspect(h.size(), content="3")
+  // Placeholder present in cleaned output
+  let last = api[2]
+  @debug.debug_inspect(last.role == Tool, content="true")
+  @debug.debug_inspect(last.tool_call_id, content="Some(\"call-x\")")
+  // Tool message name stripped on the wire
+  @debug.debug_inspect(last.name, content="None")
+}
+
+///|
+test "MessageHistory to_api strips tool message name" {
+  let h = MessageHistory::new()
+  h.append(Message::tool_result("c1", "search", "ok"))
+  let api = h.to_api()
+  @debug.debug_inspect(api[0].name, content="None")
+}

@@ -28,7 +28,7 @@ pub(all) struct Agent {
   /// model name. Persisted via SessionData.sub_model, never in config.yml.
   mut session_sub_model : String?
   // ── Conversation State ─────────────────────────────────────────────
-  history : Array[@message.Message]
+  history : @message.MessageHistory
   mut iterations : Int
   mut total_tasks : Int
   mut status : AgentStatus
@@ -37,7 +37,7 @@ pub(all) struct Agent {
   mut top_up_url : String?
   mut raw_message : String?
   mut reasoning_effort : String?
-  pinned : Bool
+  mut pinned : Bool
   // ── Cost & Cache Tracking ──────────────────────────────────────────
   mut total_cost : Double
   mut cost_source : CostSource
@@ -135,7 +135,7 @@ pub fn Agent::new(
     agent_pool: AgentPool::new(4, 4),
     session_sub_model: None,
     // Conversation state
-    history: [],
+    history: @message.MessageHistory::new(),
     iterations: 0,
     total_tasks: 0,
     status: Idle,
@@ -237,6 +237,36 @@ pub fn Agent::rebuild_client_from_config(self : Agent) -> Unit {
       )
     }
     None => ()
+  }
+}
+
+///|
+/// Rebuild the LLM client on the given model card from the CURRENT config.
+///
+/// Used by session restore model recovery (Ruby open_ai.rb:187-191): when
+/// the archived model still exists in config, restore the session onto it
+/// instead of the agent's default. No-op when the model is not configured.
+pub fn Agent::rebuild_client_for_model(
+  self : Agent,
+  model_name : String,
+) -> Unit {
+  for m in self.config.models {
+    if m.model == model_name {
+      let api_type = if m.anthropic_format {
+        @config.AnthropicMessages
+      } else {
+        @config.Providers::api_type_for_model(m.base_url, m.model)
+      }
+      self.client = @client.Client::new(
+        m.api_key,
+        m.base_url,
+        m.model,
+        api_type,
+        provider_id=self.client.provider_id,
+        vision_supported=Some(self.client.vision_supported),
+      )
+      return
+    }
   }
 }
 

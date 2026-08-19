@@ -322,18 +322,18 @@ test "detect_upstream_truncation ok without tool calls" {
 test "inject_upstream_truncation_hint_if_first injects once per task" {
   let agent = lc_make_agent("https://api.example.com")
   agent.inject_upstream_truncation_hint_if_first("write_file")
-  @debug.assert_eq(agent.history.length(), 1)
+  @debug.assert_eq(agent.history.size(), 1)
   // system_injected flag set (hidden from UI replay / compression logic)
-  @debug.assert_eq(agent.history[0].system_injected, Some(true))
+  @debug.assert_eq(agent.history.all()[0].system_injected, Some(true))
   // hint text mentions the truncated tool name
-  let text = match agent.history[0].content {
+  let text = match agent.history.all()[0].content {
     @message.Text(s) => s
     _ => ""
   }
   assert_true(text.contains("write_file"))
   // Second call within the same task is a no-op
   agent.inject_upstream_truncation_hint_if_first("write_file")
-  @debug.assert_eq(agent.history.length(), 1)
+  @debug.assert_eq(agent.history.size(), 1)
 }
 
 ///|
@@ -352,7 +352,7 @@ async test "call_with_retry_async retries UpstreamTruncatedError" {
   // retried (record_llm_success resets the counter after the 2nd success)
   @debug.assert_eq(agent.mock_responses.length(), 0)
   // One-shot hint injected into history
-  @debug.assert_eq(agent.history.length(), 1)
+  @debug.assert_eq(agent.history.size(), 1)
 }
 
 ///|

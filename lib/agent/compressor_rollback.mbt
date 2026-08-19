@@ -200,11 +200,15 @@ pub fn Agent::compress_with_safety(
     None => Failed("Compression not needed")
     Some(ctx) => {
       self.compression_level = self.compression_level + 1
-      let result = compress_with_level_fallback(self.history, llm_response, ctx)
+      let result = compress_with_level_fallback(
+        self.history.all(),
+        llm_response,
+        ctx,
+      )
       match result {
         Success(_) => {
           // Save archived chunk to disk for future recall
-          let to_archive = clone_messages(self.history)
+          let to_archive = clone_messages(self.history.all())
           match
             save_compressed_chunk(
               to_archive,

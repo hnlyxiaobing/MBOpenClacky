@@ -845,8 +845,6 @@ async fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
   }
   // Enforce session cap after save
   @agent.enforce_session_cap()
-  // Compress old sessions if needed (placeholder)
-  @agent.compress_old_sessions_if_needed(agent.session_id)
   print_run_result(result)
   let exit_code = match result.status {
     @agent.RunStatus::Success => 0

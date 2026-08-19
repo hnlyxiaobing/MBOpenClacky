@@ -272,13 +272,13 @@ test "retry_016_html_response_detection" {
 /// 内不可由本包观测，修复后需在 lib/agent 侧补断言完成闭环。
 test "retry_017_overflow_standard_pop_one" {
   let agent = retry_make_agent()
-  agent.history.push(@message.Message::system("sys"))
+  agent.history.append(@message.Message::system("sys"))
   for _ in 0..<5 {
-    agent.history.push(@message.Message::user("u"))
+    agent.history.append(@message.Message::user("u"))
   }
   let removed = agent.handle_context_overflow(@agent.Standard)
   assert_true(removed)
-  assert_eq(agent.history.length(), 5)
+  assert_eq(agent.history.size(), 5)
   // BUG-0028：Ruby 冻结值——pop 后调用压缩（compress_after_pop=true）。
   // 证据：cases/error_retry/test_cases.json retry-017
   if known_failure("BUG-0028") {
@@ -295,25 +295,25 @@ test "retry_017_overflow_standard_pop_one" {
 /// 200 条可删时 MB pop 100（剩 101），Ruby 冻结值 pop 64（剩 137）。
 test "retry_018_overflow_aggressive_pop_half" {
   let agent = retry_make_agent()
-  agent.history.push(@message.Message::system("sys"))
+  agent.history.append(@message.Message::system("sys"))
   for _ in 0..<100 {
-    agent.history.push(@message.Message::user("u"))
+    agent.history.append(@message.Message::user("u"))
   }
   let removed = agent.handle_context_overflow(@agent.Aggressive)
   assert_true(removed)
-  assert_eq(agent.history.length(), 51)
+  assert_eq(agent.history.size(), 51)
   // BUG-0029：Ruby 冻结值——激进模式 pop 上限 64（201 条历史 pop 64 剩 137）。
   // 证据：cases/error_retry/test_cases.json retry-018
   if known_failure("BUG-0029") {
     return
   }
   let agent2 = retry_make_agent()
-  agent2.history.push(@message.Message::system("sys"))
+  agent2.history.append(@message.Message::system("sys"))
   for _ in 0..<200 {
-    agent2.history.push(@message.Message::user("u"))
+    agent2.history.append(@message.Message::user("u"))
   }
   agent2.handle_context_overflow(@agent.Aggressive) |> ignore
-  assert_eq(agent2.history.length(), 137)
+  assert_eq(agent2.history.size(), 137)
 }
 
 // ── platform_http ────────────────────────────────────────────────────────────

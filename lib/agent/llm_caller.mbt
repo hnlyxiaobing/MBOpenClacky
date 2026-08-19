@@ -571,12 +571,11 @@ pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
 
 ///|
 /// Prepare messages for API submission by stripping internal fields.
+/// Runs the pre-submission cleanup pass (dangling tool_call repair,
+/// thinking-mode reasoning pad, transient filtering) on a copy.
 pub fn Agent::messages_for_api(self : Agent) -> Array[@message.Message] {
-  let result : Array[@message.Message] = []
-  for msg in self.history {
-    result.push(msg.to_api_message())
-  }
-  result
+  let thinking_mode = self.reasoning_effort is Some(_)
+  self.history.to_api_cleaned(thinking_mode)
 }
 
 // ── Fallback State Machine ────────────────────────────────────────────────────
@@ -708,7 +707,7 @@ fn Agent::inject_upstream_truncation_hint_if_first(
     compressed_summary: None,
     transient: None,
   }
-  self.history.push(msg)
+  self.history.append(msg)
   self.hook_manager.emit(MessageAdded)
 }
 
@@ -723,7 +722,7 @@ pub fn Agent::handle_context_overflow(
   self : Agent,
   mode : OverflowMode,
 ) -> Bool {
-  let history = self.history
+  let history = self.history.all()
   // Find the first non-system message index
   let mut first_non_system = history.length()
   for i in 0..<history.length() {

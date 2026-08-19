@@ -259,7 +259,7 @@ pub async fn Agent::auto_update_memory(self : Agent) -> Unit {
     return
   }
   // Step 2: Check conversation length
-  if self.history.length() < min_history_for_memory_update {
+  if self.history.size() < min_history_for_memory_update {
     return
   }
   // Step 3: Check memory_store is initialized
@@ -268,7 +268,7 @@ pub async fn Agent::auto_update_memory(self : Agent) -> Unit {
     None => return
   }
   // Step 4: Build extraction prompt
-  let prompt = build_memory_extraction_prompt(self.history)
+  let prompt = build_memory_extraction_prompt(self.history.all())
   // Step 5: Call LLM with extraction prompt
   // Silently catch LLM failures to avoid disrupting the main agent flow
   let response_text = self.call_llm_with_prompt(prompt) catch { _ => return }
@@ -306,17 +306,17 @@ pub async fn Agent::call_llm_with_prompt(
 ) -> String {
   // Temporarily add a user message for the extraction prompt
   let temp_msg = @message.Message::user(prompt)
-  self.history.push(temp_msg)
+  self.history.append(temp_msg)
   // Call LLM (uses mock_responses in tests)
   let resp = self.call_llm_async() catch {
     _ => {
       // Remove temporary message on error
-      ignore(self.history.pop())
+      ignore(self.history.pop_last())
       return ""
     }
   }
   // Remove temporary message
-  ignore(self.history.pop())
+  ignore(self.history.pop_last())
   // Extract text content
   match resp.content {
     Some(text) => text

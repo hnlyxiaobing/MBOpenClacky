@@ -314,7 +314,9 @@ test "compress_with_safety rolls back level on failure" {
   )
   agent.config.compression_threshold = 5
   for i in 0..<10 {
-    agent.history.push(@message.Message::user("Message \{i} with some content"))
+    agent.history.append(
+      @message.Message::user("Message \{i} with some content"),
+    )
   }
   let level_before = agent.compression_level
   let result = agent.compress_with_safety(invalid_compression_response)

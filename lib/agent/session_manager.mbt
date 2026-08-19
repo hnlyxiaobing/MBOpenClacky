@@ -8,113 +8,139 @@
 pub let max_sessions : Int = 200
 
 ///|
-/// Enforce the maximum session cap by removing the oldest sessions.
-///
-/// When the number of saved sessions exceeds `max_sessions`,
-/// the oldest excess sessions are deleted from disk.
+/// Soft-delete grace period: a soft-deleted session stays in place for this
+/// long (7 days) before it is moved into the trash directory.
+let soft_delete_grace_ms : Int64 = 7 * 24 * 3600 * 1000L
+
+///|
+/// Trash retention: files are physically deleted after this long (30 days)
+/// in the trash directory.
+let trash_retention_ms : Int64 = 30 * 24 * 3600 * 1000L
+
+///|
+/// Enforce the maximum session cap with a three-tier cleanup policy
+/// (decision 4: soft-delete → trash → purge):
+///   1. sessions soft-deleted longer than the grace period are moved to the
+///      trash directory (`.trash/`, hidden from session listing);
+///   2. trash files older than the retention period are physically removed;
+///   3. if the session count still exceeds `max_sessions`, the oldest
+///      non-pinned sessions are soft-deleted (deleted_at set in place).
 pub fn enforce_session_cap() -> Unit {
+  purge_expired_soft_deleted()
+  purge_expired_trash()
   let sessions = list_sessions()
   let count = sessions.length()
   if count <= max_sessions {
     return
   }
   let excess = count - max_sessions
-  // sessions is sorted ascending (oldest first); delete the first `excess`
   let mut deleted = 0
-  for session in sessions {
+  // list_sessions is updated_at descending; walk from the oldest end so the
+  // least-recently-touched sessions are soft-deleted first.
+  for i = sessions.length() - 1; i >= 0; i = i - 1 {
     if deleted >= excess {
       break
     }
-    delete_session(session.session_id)
+    let session = sessions[i]
+    if session.pinned {
+      continue
+    }
+    soft_delete_session(session.session_id)
     deleted = deleted + 1
   }
 }
 
 ///|
-/// Truncate a session's messages, keeping only the most recent ones.
-fn truncate_session(session : SessionData) -> Unit {
-  let msg_count = session.messages.length()
-  if msg_count <= max_recent_messages {
-    return
+/// Mark a session as soft-deleted (set deleted_at) without removing the file.
+fn soft_delete_session(session_id : String) -> Unit {
+  match load_session(session_id) {
+    None => ()
+    Some(data) => {
+      let updated = { ..data, deleted_at: Some(current_iso8601()) }
+      save_session(updated) catch {
+        _ => ()
+      }
+    }
   }
-  let keep_start = msg_count - max_recent_messages
-  let truncated : Array[@message.Message] = []
-  for i = keep_start; i < msg_count; i = i + 1 {
-    truncated.push(session.messages[i])
+}
+
+///|
+/// Move soft-deleted sessions whose grace period has elapsed into the trash.
+fn purge_expired_soft_deleted() -> Unit {
+  let dir = ensure_sessions_dir() catch { _ => return }
+  let filenames = @fs.read_dir(dir) catch { _ => return }
+  let now_ms = current_time_ms()
+  let threshold_iso = ms_to_iso8601(now_ms - soft_delete_grace_ms)
+  for name in filenames {
+    if !name.has_suffix(".json") {
+      continue
+    }
+    let filepath = @path.Path::join(dir, @path.Path(name)).to_string()
+    let json_str = @fs.read_file_to_string(filepath) catch { _ => continue }
+    let json = @json.parse(json_str) catch { _ => continue }
+    let parsed : SessionData = @json.from_json(json) catch { _ => continue }
+    match parsed.deleted_at {
+      None => continue
+      Some(deleted_at) =>
+        // ISO strings with a consistent offset compare in chronological order.
+        if deleted_at < threshold_iso {
+          move_file_to_trash(dir, name, filepath)
+        }
+    }
   }
-  // Mark compression on the first kept message
-  let msg_count_str = (msg_count - max_recent_messages).to_string()
-  let first_msg = truncated[0]
-  let compressed_msg = @message.Message::{
-    role: first_msg.role,
-    content: first_msg.content,
-    tool_calls: first_msg.tool_calls,
-    tool_call_id: first_msg.tool_call_id,
-    name: first_msg.name,
-    reasoning_content: first_msg.reasoning_content,
-    task_id: first_msg.task_id,
-    created_at: first_msg.created_at,
-    system_injected: first_msg.system_injected,
-    memory_update: first_msg.memory_update,
-    subagent_instructions: first_msg.subagent_instructions,
-    subagent_result: first_msg.subagent_result,
-    token_usage: first_msg.token_usage,
-    compressed_summary: Some("Compressed \{msg_count_str} older messages"),
-    transient: first_msg.transient,
+}
+
+///|
+/// Move a session file into the `.trash` directory. Implemented as
+/// read + write + remove because moonbitlang/x/fs exposes no rename API.
+fn move_file_to_trash(
+  sessions_dir : String,
+  filename : String,
+  filepath : String,
+) -> Unit {
+  let trash_dir = @path.Path::join(sessions_dir, @path.Path(".trash")).to_string()
+  if !@fs.path_exists(trash_dir) {
+    @utils.ensure_dir(trash_dir)
   }
-  truncated[0] = compressed_msg
-  let data : SessionData = {
-    session_id: session.session_id,
-    name: session.name,
-    messages: truncated,
-    stats: session.stats,
-    working_dir: session.working_dir,
-    created_at: session.created_at,
-    source: session.source,
-    reasoning_effort: session.reasoning_effort,
-    model_name: session.model_name,
-    model_config_id: session.model_config_id,
-    channel_info: session.channel_info,
-    latest_latency_ms: session.latest_latency_ms,
-    latest_ttft_ms: session.latest_ttft_ms,
-    time_machine: session.time_machine,
-    pending_error_rollback: session.pending_error_rollback,
-    model_base_url: session.model_base_url,
-    last_status: session.last_status,
-    last_error: session.last_error,
-    error_code: session.error_code,
-    top_up_url: session.top_up_url,
-    raw_message: session.raw_message,
-    forked_from: session.forked_from,
-    chunk_count: session.chunk_count,
-    agent_profile: session.agent_profile,
-    sub_model: session.sub_model,
+  let content = @fs.read_file_to_string(filepath) catch { _ => return }
+  let dest = @path.Path::join(trash_dir, @path.Path(filename)).to_string()
+  @fs.write_string_to_file(dest, content) catch {
+    _ => return
   }
-  save_session(data) catch {
+  @fs.remove_file(filepath) catch {
     _ => ()
   }
 }
 
 ///|
-/// Check old sessions and apply compression placeholder truncation.
-///
-/// Phase 6 implementation: identifies sessions exceeding compression thresholds,
-/// truncates messages beyond `max_recent_messages (20)`, and sets a
-/// `compressed_summary` marker on the first preserved message.
-/// Actual LLM-driven summary generation is deferred.
-pub fn compress_old_sessions_if_needed(current_id : String) -> Unit {
-  let sessions = list_sessions()
-  for session in sessions {
-    // Skip the currently active session
-    if session.session_id == current_id {
+/// Physically delete trash files older than the retention period.
+/// Trash files keep their original `<datetime>-<id8>.json` names, so the
+/// datetime prefix is parsed from the filename (no mtime API in x/fs).
+fn purge_expired_trash() -> Unit {
+  let dir = ensure_sessions_dir() catch { _ => return }
+  let trash_dir = @path.Path::join(dir, @path.Path(".trash")).to_string()
+  if !@fs.path_exists(trash_dir) {
+    return
+  }
+  let filenames = @fs.read_dir(trash_dir) catch { _ => return }
+  let now_ms = current_time_ms()
+  let threshold_iso = ms_to_iso8601(now_ms - trash_retention_ms)
+  let threshold_sanitized = threshold_iso.replace(old=":", new="-")
+  for name in filenames {
+    if !name.has_suffix(".json") {
       continue
     }
-    // Check if this session needs compression
-    let needs_it = session.messages.length() >= message_count_threshold
-    if needs_it {
-      truncate_session(session)
-    } else if estimate_history_tokens(session.messages) >= compression_threshold {
-      truncate_session(session)
+    // Filename layout `<datetime>-<id8>.json`; the datetime prefix is
+    // everything before the last '-' (the id8 segment). The prefix is
+    // sanitized the same way session_filename_datetime() is, so a
+    // dictionary comparison stays chronological.
+    let parts = name.split("-")
+    let stamp = parts[0:parts.length() - 1].join("-")
+    if stamp < threshold_sanitized {
+      let filepath = @path.Path::join(trash_dir, @path.Path(name)).to_string()
+      @fs.remove_file(filepath) catch {
+        _ => ()
+      }
     }
   }
 }
@@ -137,8 +163,10 @@ pub fn format_session_summary(data : SessionData) -> String {
 // ── Session Fork ──────────────────────────────────────────────────────────────
 
 ///|
-/// Fork a session: create a complete copy with a new session ID,
-/// reset statistics, and mark the origin via forked_from.
+/// Fork a session: create a complete copy with a new session ID and reset
+/// statistics. Mirrors Ruby forked-from semantics: the Time Machine state
+/// carries over and `forked_from` is left unset (the CLI records the
+/// lineage separately; decision 8).
 /// Returns the forked SessionData or an error message.
 pub fn fork_session(session_id : String) -> Result[SessionData, String] {
   let original = load_session(session_id)
@@ -170,7 +198,7 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
         channel_info: src.channel_info,
         latest_latency_ms: None,
         latest_ttft_ms: None,
-        time_machine: None,
+        time_machine: src.time_machine,
         pending_error_rollback: false,
         model_base_url: src.model_base_url,
         last_status: "",
@@ -178,10 +206,15 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
         error_code: None,
         top_up_url: None,
         raw_message: None,
-        forked_from: Some(src.session_id),
+        forked_from: None,
         chunk_count: 0,
         agent_profile: src.agent_profile,
         sub_model: src.sub_model,
+        pinned: false,
+        todos: src.todos,
+        updated_at: current_timestamp_iso(),
+        previous_total_tokens: 0,
+        deleted_at: None,
       }
       save_session(forked) catch {
         e => return Err("Failed to save forked session: \{@debug.to_string(e)}")
@@ -200,10 +233,10 @@ pub fn fork_session(session_id : String) -> Result[SessionData, String] {
 pub fn files_for(session_id : String) -> Array[String] {
   let dir = ensure_sessions_dir() catch { _ => return [] }
   let result : Array[String] = []
-  // Check the main JSON file
-  let json_path = @path.Path::join(dir, @path.Path(session_id + ".json")).to_string()
-  if @fs.path_exists(json_path) {
-    result.push(json_path)
+  // Check the main JSON file (new `<datetime>-<id8>.json` or legacy layout)
+  match find_session_file(dir, session_id) {
+    Some(p) => result.push(p)
+    None => ()
   }
   // Find associated chunk MD files
   let chunks = chunks_for_current(session_id)
@@ -304,8 +337,44 @@ fn parse_chunk_index(s : String) -> Int {
 // ── Full-Text Search ─────────────────────────────────────────────────────────
 
 ///|
-/// Search all session files for the given query string (case-sensitive).
-/// Returns an array of (session_id, matching_line) pairs.
+/// Soft timeout for full-text search: scanning stops after this many
+/// milliseconds even if files remain (Ruby wraps the search in
+/// Timeout.timeout; MoonBit has no cooperative cancellation for sync IO,
+/// so a deadline check between files is the closest equivalent).
+let search_timeout_ms : Int64 = 5000L
+
+///|
+/// Extract a snippet around the first query match in a line: up to 60 chars
+/// of context on each side, ellipsized at the window edges.
+fn snippet_around(line : StringView, query : String) -> String {
+  let window = 60
+  match line.find(query) {
+    None => line.trim().to_owned()
+    Some(idx) => {
+      let start = if idx > window { idx - window } else { 0 }
+      let end = if idx + query.length() + window < line.length() {
+        idx + query.length() + window
+      } else {
+        line.length()
+      }
+      let mut out = ""
+      if start > 0 {
+        out = out + "…"
+      }
+      out = out + line[start:end].to_owned()
+      if end < line.length() {
+        out = out + "…"
+      }
+      out
+    }
+  }
+}
+
+///|
+/// Search all session files (main JSON + chunk MD archives) for the given
+/// query string (case-sensitive). Returns an array of
+/// (session_id, snippet_around_match) pairs, one per session, bounded by a
+/// soft deadline.
 pub fn search_content(query : String) -> Array[(String, String)] {
   if query.length() < 2 {
     return []
@@ -313,19 +382,27 @@ pub fn search_content(query : String) -> Array[(String, String)] {
   let dir = ensure_sessions_dir() catch { _ => return [] }
   let filenames = @fs.read_dir(dir) catch { _ => return [] }
   let results : Array[(String, String)] = []
+  let deadline = current_time_ms() + search_timeout_ms
   for name in filenames {
+    if current_time_ms() > deadline {
+      break
+    }
     if !name.has_suffix(".json") {
       continue
     }
-    let session_id = name[:name.length() - 5].to_owned()
     let filepath = @path.Path::join(dir, @path.Path(name)).to_string()
     let content = @fs.read_file_to_string(filepath) catch { _ => continue }
+    // New filenames carry only the first 8 id chars; the content is the
+    // authoritative source for the session_id.
+    let json = @json.parse(content) catch { _ => continue }
+    let parsed : SessionData = @json.from_json(json) catch { _ => continue }
+    let session_id = parsed.session_id
     // Search line by line
     let lines = content.split("\n")
     let mut found = false
     for line in lines {
       if line.contains(query) {
-        results.push((session_id, line.trim().to_owned()))
+        results.push((session_id, snippet_around(line, query)))
         found = true
         break // one match per session
       }
@@ -340,7 +417,7 @@ pub fn search_content(query : String) -> Array[(String, String)] {
         let chunk_lines = chunk_content.split("\n")
         for line in chunk_lines {
           if line.contains(query) {
-            results.push((session_id, line.trim().to_owned()))
+            results.push((session_id, snippet_around(line, query)))
             break
           }
         }

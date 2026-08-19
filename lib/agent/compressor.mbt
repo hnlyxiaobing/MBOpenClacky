@@ -159,9 +159,9 @@ pub fn Agent::needs_compression(self : Agent) -> Bool {
   // 大，覆盖"最后一个大 tool_result 刚追加、上一轮 usage 尚未反映"的场景
   // （BUG-0042 差异一）。
   let token_count = self.previous_total_tokens.max(
-    estimate_history_tokens(self.history),
+    estimate_history_tokens(self.history.all()),
   )
-  let msg_count = self.history.length()
+  let msg_count = self.history.size()
   let token_threshold_exceeded = token_count >=
     self.config.compression_threshold
   let message_count_exceeded = msg_count >= message_count_threshold
@@ -191,8 +191,8 @@ pub fn Agent::compress_messages_if_needed(
   if !force && !self.needs_compression() {
     return None
   }
-  let token_count = estimate_history_tokens(self.history)
-  let msg_count = self.history.length()
+  let token_count = estimate_history_tokens(self.history.all())
+  let msg_count = self.history.size()
   let config = CompressionConfig::default()
   let recent = if msg_count < config.max_recent_messages {
     msg_count
@@ -204,7 +204,7 @@ pub fn Agent::compress_messages_if_needed(
   // In MB, this happens when recent >= msg_count - 1 (excluding system message).
   let non_system_count = {
     let mut n = 0
-    for msg in self.history {
+    for msg in self.history.all() {
       if msg.role != @message.System {
         n = n + 1
       }
@@ -220,7 +220,7 @@ pub fn Agent::compress_messages_if_needed(
     // 时继续压缩流程，否则才返回 None。
     let has_oversized_tool_result = {
       let mut found = false
-      for msg in self.history {
+      for msg in self.history.all() {
         if msg.role == @message.Tool {
           match msg.content {
             @message.Text(s) if s.length() > 2000 => {

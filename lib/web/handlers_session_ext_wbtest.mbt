@@ -92,6 +92,11 @@ fn wd_make_session(id : String, wd : String) -> @agent.SessionData {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "2026-01-01T00:00:00Z",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
 }
 

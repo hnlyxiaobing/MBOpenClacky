@@ -430,7 +430,7 @@ test "agent_set_reasoning_effort_empty" {
 ///|
 test "agent_to_session_data" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::user("hello"))
+  agent.history.append(@message.Message::user("hello"))
   let data = agent.to_session_data()
   @debug.assert_eq(data.session_id, "test-session")
   @debug.assert_eq(data.name, "test-agent")
@@ -442,8 +442,8 @@ test "agent_to_session_data" {
 test "to_session_data keeps system_injected on context messages" {
   let agent = make_test_agent()
   let ctx = @message.Message::user("[Session context: test]")
-  agent.history.push({ ..ctx, system_injected: Some(true) })
-  agent.history.push(@message.Message::user("real question"))
+  agent.history.append({ ..ctx, system_injected: Some(true) })
+  agent.history.append(@message.Message::user("real question"))
   let data = agent.to_session_data()
   @debug.assert_eq(data.messages.length(), 2)
   @debug.assert_eq(data.messages[0].system_injected, Some(true))
@@ -483,8 +483,8 @@ async test "run_empty_history_adds_system_prompt" {
   let result = agent.run("Hi") catch { _ => abort("unexpected error") }
   assert_true(result.status == Success)
   // First message should be system prompt
-  assert_true(agent.history.length() >= 2)
-  assert_true(agent.history[0].role == @message.System)
+  assert_true(agent.history.size() >= 2)
+  assert_true(agent.history.all()[0].role == @message.System)
 }
 
 ///|
@@ -725,7 +725,7 @@ test "needs_compression_true_by_count" {
   let agent = make_test_agent()
   // Add more than message_count_threshold messages
   for i in 0..<=message_count_threshold {
-    agent.history.push(@message.Message::user("msg \{i}"))
+    agent.history.append(@message.Message::user("msg \{i}"))
   }
   assert_true(agent.needs_compression())
 }
@@ -740,13 +740,13 @@ test "compress_messages_if_needed_none" {
 ///|
 test "compress_messages_if_needed_force" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::user("test"))
+  agent.history.append(@message.Message::user("test"))
   // Force mode with insufficient messages: should return None (aligned with Ruby)
   let ctx = agent.compress_messages_if_needed(true)
   assert_true(ctx is None)
   // Add enough messages to exceed max_recent_messages
   for i = 0; i < 25; i = i + 1 {
-    agent.history.push(@message.Message::user("msg \{i}"))
+    agent.history.append(@message.Message::user("msg \{i}"))
     let _ = i
   }
   let ctx2 = agent.compress_messages_if_needed(true)
@@ -785,7 +785,7 @@ async test "call_llm_no_mock_raises" {
 test "messages_for_api_strips_internal" {
   let agent = make_test_agent()
   let msg = @message.Message::user("test")
-  agent.history.push(msg)
+  agent.history.append(msg)
   let api_msgs = agent.messages_for_api()
   @debug.assert_eq(api_msgs.length(), 1)
   // Internal fields should be stripped by to_api_message
@@ -797,25 +797,25 @@ test "messages_for_api_strips_internal" {
 ///|
 test "handle_context_overflow_standard" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("msg1"))
-  agent.history.push(@message.Message::user("msg2"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("msg1"))
+  agent.history.append(@message.Message::user("msg2"))
   let removed = agent.handle_context_overflow(Standard)
   assert_true(removed)
-  @debug.assert_eq(agent.history.length(), 2) // system + msg1
+  @debug.assert_eq(agent.history.size(), 2) // system + msg1
 }
 
 ///|
 test "handle_context_overflow_aggressive" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::system("system"))
+  agent.history.append(@message.Message::system("system"))
   for i in 0..<10 {
-    agent.history.push(@message.Message::user("msg \{i}"))
+    agent.history.append(@message.Message::user("msg \{i}"))
   }
   let removed = agent.handle_context_overflow(Aggressive)
   assert_true(removed)
   // Should remove ~half of 10 = 5 messages
-  assert_true(agent.history.length() < 11)
+  assert_true(agent.history.size() < 11)
 }
 
 ///|
@@ -845,7 +845,7 @@ test "detect_upstream_truncation_invalid" {
 ///|
 test "session_data_roundtrip" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::user("hello"))
+  agent.history.append(@message.Message::user("hello"))
   agent.iterations = 5
   agent.total_cost = 1.5
   let data = agent.to_session_data()
@@ -853,7 +853,11 @@ test "session_data_roundtrip" {
   agent2.restore_from_session(data)
   @debug.assert_eq(agent2.iterations, 5)
   @debug.assert_eq(agent2.total_cost, 1.5)
-  @debug.assert_eq(agent2.history.length(), 1)
+  // Restore re-inserts a freshly built system prompt at the head
+  // (decision 6), so the history is [system, user].
+  @debug.assert_eq(agent2.history.size(), 2)
+  @debug.assert_eq(agent2.history.all()[0].role, @message.System)
+  @debug.assert_eq(agent2.history.all()[1].role, @message.User)
 }
 
 ///|
@@ -861,7 +865,7 @@ test "session_data_created_at_json_roundtrip" {
   // created_at must survive to_session_data -> to_json -> from_json so
   // history pagination keeps working after a save/load round trip.
   let agent = make_test_agent()
-  agent.history.push({
+  agent.history.append({
     ..@message.Message::user("stamped"),
     created_at: Some("1700000000001"),
   })
@@ -970,6 +974,11 @@ test "session_data_to_json_basic" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1234567890",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let json = ToJson::to_json(data)
   let json_str = json.stringify()
@@ -1018,6 +1027,11 @@ test "session_data_from_json_roundtrip" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1234567890",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   // Direct JSON construction avoids stringify/parse roundtrip issues
   let json_obj = Json::object({
@@ -1122,6 +1136,11 @@ test "session_data_with_multiple_messages_json" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1234567890",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let json_str = ToJson::to_json(data).stringify()
   let json = @json.parse(json_str)
@@ -1172,6 +1191,11 @@ test "format_session_summary_with_model" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1234567890",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_summary") is Some(_))
@@ -1218,6 +1242,11 @@ test "format_session_summary_no_model" {
     chunk_count: 0,
     agent_profile: "general",
     sub_model: None,
+    pinned: false,
+    todos: None,
+    updated_at: "1234567890",
+    previous_total_tokens: 0,
+    deleted_at: None,
   }
   let summary = format_session_summary(data)
   assert_true(summary.find("s_nomodel") is Some(_))
@@ -1227,8 +1256,11 @@ test "format_session_summary_no_model" {
 ///|
 test "generate_session_id_format" {
   let id = generate_session_id()
-  assert_true(id.has_prefix("s_"))
-  assert_true(id.length() > 2)
+  // 16-char random hex (decision 6), no legacy "s_" prefix.
+  assert_true(id.length() == 16)
+  for ch in id {
+    assert_true((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))
+  }
 }
 
 ///|
@@ -1688,7 +1720,7 @@ async test "observe_injects_image_user_message" {
   let response = make_mock_response("I'll take a screenshot", Some([]))
   agent.observe(response, entries)
   // The last history message is the follow-up user message with the image.
-  let last = agent.history[agent.history.length() - 1]
+  let last = agent.history.all()[agent.history.size() - 1]
   @debug.assert_eq(last.role, @message.User)
   @debug.assert_eq(last.system_injected, Some(true))
   match last.content {
@@ -1741,7 +1773,7 @@ async test "observe_no_vision_uses_text_placeholder" {
   ]
   let response = make_mock_response("I'll take a screenshot", Some([]))
   agent.observe(response, entries)
-  let last = agent.history[agent.history.length() - 1]
+  let last = agent.history.all()[agent.history.size() - 1]
   match last.content {
     @message.Blocks(blocks) => {
       @debug.assert_eq(blocks.length(), 1)
@@ -1764,10 +1796,10 @@ async test "observe_no_image_inject_no_extra_message" {
     "I'll take a screenshot",
     Some([make_tool_call("c1", "browser_screenshot", "{}")]),
   )
-  let before = agent.history.length()
+  let before = agent.history.size()
   agent.observe(response, entries)
   // Only the tool-result message was appended (no image follow-up).
-  @debug.assert_eq(agent.history.length(), before + 1)
+  @debug.assert_eq(agent.history.size(), before + 1)
 }
 
 ///|
@@ -1900,7 +1932,7 @@ test "invoke_skill requires task parameter" {
   assert_true(result.content.contains("missing 'task'"))
   // Nothing enqueued when validation fails.
   @debug.assert_eq(agent.pending_injections.length(), 0)
-  @debug.assert_eq(agent.history.length(), 0)
+  @debug.assert_eq(agent.history.size(), 0)
 }
 
 ///|
@@ -1926,7 +1958,7 @@ test "invoke_skill enqueues injection and returns short message" {
   assert_true(!result.content.contains("Active Skill"))
   // Injection deferred until flush: history untouched, one pending entry.
   @debug.assert_eq(agent.pending_injections.length(), 1)
-  @debug.assert_eq(agent.history.length(), 0)
+  @debug.assert_eq(agent.history.size(), 0)
 }
 
 ///|
@@ -1938,8 +1970,8 @@ test "flush_pending_injections injects assistant body then user shim" {
   agent.enqueue_injection("test-skill", "summarize")
   agent.flush_pending_injections()
   @debug.assert_eq(agent.pending_injections.length(), 0)
-  @debug.assert_eq(agent.history.length(), 2)
-  let assistant_msg = agent.history[0]
+  @debug.assert_eq(agent.history.size(), 2)
+  let assistant_msg = agent.history.all()[0]
   @debug.assert_eq(assistant_msg.role, @message.Assistant)
   @debug.assert_eq(assistant_msg.system_injected, Some(true))
   match assistant_msg.content {
@@ -1947,7 +1979,7 @@ test "flush_pending_injections injects assistant body then user shim" {
       assert_true(s.contains("Active Skill: test-skill"))
     _ => assert_true(false)
   }
-  let shim_msg = agent.history[1]
+  let shim_msg = agent.history.all()[1]
   @debug.assert_eq(shim_msg.role, @message.User)
   @debug.assert_eq(shim_msg.system_injected, Some(true))
   @debug.assert_eq(

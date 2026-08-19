@@ -44,9 +44,11 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   self.top_up_url = None
   self.raw_message = None
   // Inject system prompt on first run
-  if self.history.length() == 0 {
+  if self.history.size() == 0 {
     let system_prompt = self.build_system_prompt()
-    self.history.push(stamp_created_at(@message.Message::system(system_prompt)))
+    self.history.append(
+      stamp_created_at(@message.Message::system(system_prompt)),
+    )
     self.hook_manager.emit(MessageAdded)
   }
   // Inject per-run session context.
@@ -73,10 +75,10 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     compressed_summary: None,
     transient: None,
   }
-  self.history.push(ctx_msg)
+  self.history.append(ctx_msg)
   self.hook_manager.emit(MessageAdded)
   // Add user message
-  self.history.push(stamp_created_at(@message.Message::user(user_input)))
+  self.history.append(stamp_created_at(@message.Message::user(user_input)))
   self.hook_manager.emit(MessageAdded)
   self.total_tasks = self.total_tasks + 1
 
@@ -245,7 +247,7 @@ fn Agent::observe(
   // Format into protocol-specific messages
   let formatted = self.client.format_tool_results(response, results_map)
   for msg in formatted {
-    self.history.push(stamp_created_at(msg))
+    self.history.append(stamp_created_at(msg))
     self.hook_manager.emit(MessageAdded)
   }
   // Append a follow-up `role:"user"` message for image payloads.
@@ -282,7 +284,7 @@ fn Agent::observe(
           [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}" })]
         }
         let msg = @message.Message::user_blocks(blocks)
-        self.history.push(stamp_created_at(msg))
+        self.history.append(stamp_created_at(msg))
         self.hook_manager.emit(MessageAdded)
       }
     }
@@ -302,7 +304,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   let compression_ctx = self.compress_messages_if_needed(false)
   let did_insert_compression = match compression_ctx {
     Some(_) => {
-      self.history.push(build_compression_message())
+      self.history.append(build_compression_message())
       self.hook_manager.emit(MessageAdded)
       true
     }
@@ -321,7 +323,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   // assistant turn.
   if did_insert_compression {
     // Remove the compression instruction message we inserted (last msg).
-    self.history.pop() |> ignore
+    self.history.pop_last() |> ignore
     let content = match response.content {
       Some(c) => c
       None => ""
@@ -329,11 +331,11 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
     match compression_ctx {
       Some(ctx) => {
         self.compression_level = self.compression_level + 1
-        match compress_with_level_fallback(self.history, content, ctx) {
+        match compress_with_level_fallback(self.history.all(), content, ctx) {
           Success(_) => {
             // Save archived chunk to disk for future recall.
             let to_archive : Array[@message.Message] = []
-            for m in self.history {
+            for m in self.history.all() {
               to_archive.push(m)
             }
             match
@@ -348,7 +350,9 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
             // Reset previous_total_tokens to the compressed history's
             // estimated size so the next think() does not immediately
             // re-trigger compression (Ruby handle_compression_response).
-            self.previous_total_tokens = estimate_history_tokens(self.history)
+            self.previous_total_tokens = estimate_history_tokens(
+              self.history.all(),
+            )
           }
           Failed(_) => self.compression_level = self.compression_level - 1
         }
@@ -367,7 +371,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   let msg = @message.Message::assistant(content)
   msg.tool_calls = response.tool_calls
   msg.reasoning_content = response.reasoning_content
-  self.history.push(stamp_created_at(msg))
+  self.history.append(stamp_created_at(msg))
   self.hook_manager.emit(MessageAdded)
   self.hook_manager.emit(AfterLlmCall)
   Some(response)
@@ -479,7 +483,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
           Some("length") => {
             truncation_count = truncation_count + 1
             if truncation_count >= 3 {
-              self.history.push(
+              self.history.append(
                 stamp_created_at(
                   @message.Message::assistant(
                     "Response was truncated multiple times. Please break your task into smaller steps.",
@@ -494,7 +498,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                 ),
               )
             } else {
-              self.history.push(
+              self.history.append(
                 stamp_created_at(
                   @message.Message::user(
                     "Your previous response was truncated. Please continue from where you left off.",
@@ -524,7 +528,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                     ),
                   )
                 } else {
-                  self.history.push(
+                  self.history.append(
                     stamp_created_at(
                       @message.Message::user(
                         "Your response was empty. Please continue with the task.",
@@ -536,7 +540,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               } else if fake_tool_call_retries < max_fake_tool_call_retries &&
                 detect_fake_tool_call(content) {
                 fake_tool_call_retries = fake_tool_call_retries + 1
-                self.history.push(
+                self.history.append(
                   stamp_created_at(
                     @message.Message::user(fake_tool_call_correction_prompt),
                   ),
@@ -567,7 +571,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                 // denied path ends the run (Ruby agent.rb denied handling).
                 match action_result.feedback {
                   Some(fb) if fb.length() > 0 => {
-                    self.history.push(
+                    self.history.append(
                       stamp_created_at(@message.Message::user(fb)),
                     )
                     self.hook_manager.emit(MessageAdded)
@@ -599,7 +603,7 @@ fn Agent::run_skill_evolution_hooks(self : Agent) -> Unit {
     Some(_) => {
       let engine = @skill.EvolutionEngine::new()
       let history : Array[String] = []
-      for msg in self.history {
+      for msg in self.history.all() {
         match msg.content {
           @message.Text(text) => history.push(text)
           _ => ()

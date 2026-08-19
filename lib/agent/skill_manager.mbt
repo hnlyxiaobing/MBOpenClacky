@@ -73,7 +73,7 @@ pub fn Agent::inject_skill_command(
     compressed_summary: None,
     transient: None,
   }
-  self.history.push(msg)
+  self.history.append(msg)
   self.hook_manager.emit(MessageAdded)
 }
 
@@ -127,7 +127,7 @@ pub fn Agent::flush_pending_injections(self : Agent) -> Unit {
           compressed_summary: None,
           transient: None,
         }
-        self.history.push(msg)
+        self.history.append(msg)
         self.hook_manager.emit(MessageAdded)
       }
     }

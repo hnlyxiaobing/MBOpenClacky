@@ -103,6 +103,37 @@ pub impl ToJson for Message with fn to_json(self) {
     Some(true) => obj["system_injected"] = true.to_json()
     _ => ()
   }
+  // Persist the remaining internal fields (decision 5: token_usage and
+  // compressed_summary survive a save/load round trip; the rest are kept
+  // for the same reason). All are optional, so only Some values are written.
+  match self.task_id {
+    Some(v) => obj["task_id"] = v.to_json()
+    None => ()
+  }
+  match self.memory_update {
+    Some(v) => obj["memory_update"] = v
+    None => ()
+  }
+  match self.subagent_instructions {
+    Some(v) => obj["subagent_instructions"] = v.to_json()
+    None => ()
+  }
+  match self.subagent_result {
+    Some(v) => obj["subagent_result"] = v.to_json()
+    None => ()
+  }
+  match self.token_usage {
+    Some(v) => obj["token_usage"] = v
+    None => ()
+  }
+  match self.compressed_summary {
+    Some(v) => obj["compressed_summary"] = v.to_json()
+    None => ()
+  }
+  match self.transient {
+    Some(true) => obj["transient"] = true.to_json()
+    _ => ()
+  }
   Json::object(obj)
 }
 
@@ -228,12 +259,16 @@ pub fn Message::tool_result(
 ///|
 /// Return a copy of this message with internal fields stripped for API submission.
 pub fn Message::to_api_message(self : Message) -> Message {
+  let name = match self.role {
+    Tool => None
+    _ => self.name
+  }
   {
     role: self.role,
     content: self.content,
     tool_calls: self.tool_calls,
     tool_call_id: self.tool_call_id,
-    name: self.name,
+    name,
     reasoning_content: self.reasoning_content,
     task_id: None,
     created_at: None,
@@ -244,6 +279,31 @@ pub fn Message::to_api_message(self : Message) -> Message {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+  }
+}
+
+///|
+/// Return a copy of this message with all internal fields preserved, for
+/// session persistence. Unlike `to_api_message`, tool-result `name`,
+/// token_usage, compressed_summary and the rest survive the round trip
+/// (Ruby session_serializer semantics; only the wire layer strips them).
+pub fn Message::to_persist_message(self : Message) -> Message {
+  {
+    role: self.role,
+    content: self.content,
+    tool_calls: self.tool_calls,
+    tool_call_id: self.tool_call_id,
+    name: self.name,
+    reasoning_content: self.reasoning_content,
+    task_id: self.task_id,
+    created_at: self.created_at,
+    system_injected: self.system_injected,
+    memory_update: self.memory_update,
+    subagent_instructions: self.subagent_instructions,
+    subagent_result: self.subagent_result,
+    token_usage: self.token_usage,
+    compressed_summary: self.compressed_summary,
+    transient: self.transient,
   }
 }
 

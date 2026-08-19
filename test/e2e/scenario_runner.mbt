@@ -231,7 +231,7 @@ pub async fn run_scenario(
     request_times.push(r.at_ms)
   }
   let mut final_text = ""
-  for m in agent.history {
+  for m in agent.history.all() {
     if m.role == @message.Assistant {
       final_text = @agent.content_to_text(m.content)
     }

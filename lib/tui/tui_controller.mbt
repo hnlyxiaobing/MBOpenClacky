@@ -1759,7 +1759,7 @@ fn TuiController::perform_model_delete(self : TuiController, idx : Int) -> Unit 
 /// cmd/main.mbt) and tell the user how to re-attach.
 async fn TuiController::on_exit_save(self : TuiController) -> Unit {
   // Only save when the session had meaningful content
-  if self.state.val.messages.length() > 0 || self.agent.history.length() > 0 {
+  if self.state.val.messages.length() > 0 || self.agent.history.size() > 0 {
     let session_data = self.agent.to_session_data()
     @agent.save_session(session_data) catch {
       _ => ()

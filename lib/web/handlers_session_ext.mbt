@@ -184,6 +184,11 @@ fn handle_session_rename(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       // Sync the in-memory agent's name so a subsequent run does not
       // overwrite the renamed session file with the old name.
@@ -307,6 +312,11 @@ fn handle_update_working_dir(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -646,6 +656,11 @@ fn handle_session_patch(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       if changed {
         // Sync the in-memory agent's name so a subsequent run does not
@@ -881,6 +896,11 @@ fn handle_session_model_patch(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -995,6 +1015,11 @@ fn handle_session_submodel_patch(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: model_name,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       @agent.save_session(updated) catch {
         _ =>
@@ -1101,6 +1126,11 @@ fn handle_session_reasoning_effort_patch(
         chunk_count: data.chunk_count,
         agent_profile: data.agent_profile,
         sub_model: data.sub_model,
+        pinned: data.pinned,
+        todos: data.todos,
+        updated_at: data.updated_at,
+        previous_total_tokens: data.previous_total_tokens,
+        deleted_at: data.deleted_at,
       }
       @agent.save_session(updated) catch {
         _ =>

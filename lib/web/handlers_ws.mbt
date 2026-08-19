@@ -438,7 +438,7 @@ async fn handle_ws_edit_message(
   let agent = server_ref.val.get_or_create_agent(session_id)
   // Locate the last user message in the agent history.
   let mut last_user_idx = -1
-  for i, m in agent.history {
+  for i, m in agent.history.all() {
     if m.role is @message.User {
       last_user_idx = i
     }
@@ -452,8 +452,8 @@ async fn handle_ws_edit_message(
   }
   // Drop the last user message and everything after it; the run re-pushes
   // the edited message as the new last user message.
-  while agent.history.length() > last_user_idx {
-    ignore(agent.history.pop())
+  while agent.history.size() > last_user_idx {
+    ignore(agent.history.pop_last())
   }
   start_ws_run(server_ref, session_id, message)
 }
@@ -1259,7 +1259,7 @@ fn maybe_auto_rename_session(
   if !is_placeholder_session_name(agent.name) {
     return
   }
-  for m in agent.history {
+  for m in agent.history.all() {
     if m.role is @message.User && !(m.system_injected is Some(true)) {
       let title = derive_session_title(ws_message_text(m))
       if !title.is_empty() && title != agent.name {

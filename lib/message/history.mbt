@@ -113,6 +113,99 @@ pub fn MessageHistory::to_api(self : MessageHistory) -> Array[Message] {
 }
 
 ///|
+/// Return API-ready messages after the full pre-submission cleanup pass:
+/// dangling tool_call pairing repair, thinking-mode reasoning pad,
+/// transient-message filtering, and internal-field stripping.
+///
+/// The cleanup runs on a copy; the stored history is left untouched.
+pub fn MessageHistory::to_api_cleaned(
+  self : MessageHistory,
+  thinking_mode : Bool,
+) -> Array[Message] {
+  let copy = MessageHistory::from_messages(self.messages.map(fn(m) { m }))
+  copy.repair_dangling_tool_calls()
+  copy.pad_missing_reasoning(thinking_mode)
+  let result : Array[Message] = []
+  for msg in copy.messages {
+    match msg.transient {
+      Some(true) => continue
+      _ => result.push(strip_internal_fields(msg))
+    }
+  }
+  result
+}
+
+///|
+/// Repair dangling tool_calls by inserting a "(interrupted)" placeholder
+/// tool_result right after the assistant message that issued them
+/// (Ruby message_history.rb:348-380). Protocol-level pairing invariant
+/// for tool_use/tool_result, applied to pre-existing history that predates
+/// in-loop pairing guarantees.
+pub fn MessageHistory::repair_dangling_tool_calls(
+  self : MessageHistory,
+) -> Unit {
+  let answered : Map[String, Bool] = Map([])
+  for msg in self.messages {
+    match msg.tool_call_id {
+      Some(id) => answered[id] = true
+      None => ()
+    }
+  }
+  let result : Array[Message] = []
+  for msg in self.messages {
+    result.push(msg)
+    if msg.role != Assistant {
+      continue
+    }
+    match msg.tool_calls {
+      None => ()
+      Some(calls) =>
+        for tc in calls {
+          if answered.get(tc.id) is None {
+            result.push({
+              role: Tool,
+              content: Text("(interrupted)"),
+              tool_calls: None,
+              tool_call_id: Some(tc.id),
+              name: None,
+              reasoning_content: None,
+              task_id: None,
+              created_at: None,
+              system_injected: None,
+              memory_update: None,
+              subagent_instructions: None,
+              subagent_result: None,
+              token_usage: None,
+              compressed_summary: None,
+              transient: None,
+            })
+          }
+        }
+    }
+  }
+  self.messages = result
+}
+
+///|
+/// Backfill a reasoning placeholder on assistant messages that lack
+/// reasoning_content while thinking mode is active. Upstreams that
+/// require continuous reasoning chains (thinking-mode continuity) may
+/// reject or degrade when an assistant turn is missing it.
+pub fn MessageHistory::pad_missing_reasoning(
+  self : MessageHistory,
+  thinking_mode : Bool,
+) -> Unit {
+  if !thinking_mode {
+    return
+  }
+  for msg in self.messages {
+    if msg.role == Assistant && msg.reasoning_content is None {
+      msg.reasoning_content = Some("")
+    }
+  }
+}
+
+///|
 /// Return all messages (including internal fields).
 pub fn MessageHistory::all(self : MessageHistory) -> Array[Message] {
   self.messages
@@ -326,12 +419,18 @@ pub fn MessageHistory::clear(self : MessageHistory) -> Unit {
 ///|
 /// Strip internal fields from a message, returning an API-ready copy.
 fn strip_internal_fields(msg : Message) -> Message {
+  // Ruby tool-result messages carry no `name` field; upstreams may reject
+  // or be sensitive to the extra key (matrix §4 item 1).
+  let name = match msg.role {
+    Tool => None
+    _ => msg.name
+  }
   {
     role: msg.role,
     content: msg.content,
     tool_calls: msg.tool_calls,
     tool_call_id: msg.tool_call_id,
-    name: msg.name,
+    name,
     reasoning_content: msg.reasoning_content,
     task_id: None,
     created_at: None,
@@ -398,18 +497,10 @@ fn deep_sanitize_utf8(msg : Message) -> Message {
 ///|
 /// a defense-in-depth pass for data from external sources.
 fn sanitize_utf8_string(s : String) -> String {
-  // MoonBit strings are internally valid, but we iterate to clean
-  // any replacement characters or control chars that snuck in.
-  let buf = StringBuilder::new()
-  for c in s {
-    // Replace null bytes and surrogates with replacement char
-    if c == '\u0000' {
-      buf.write_char('\u{FFFD}')
-    } else {
-      buf.write_char(c)
-    }
-  }
-  buf.to_string()
+  // Ruby keeps legal NUL bytes (session_serializer.rb UTF-8 cleanup does
+  // not strip them); only genuinely invalid surrogates would need
+  // replacement here, and MoonBit strings cannot contain those.
+  s
 }
 
 ///|

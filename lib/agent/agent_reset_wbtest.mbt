@@ -28,14 +28,14 @@ fn make_two_model_agent() -> (Agent, @config.AgentConfig) {
 ///|
 test "reset_session assigns a new session_id and clears conversation state" {
   let (agent, _) = make_two_model_agent()
-  agent.history.push(@message.Message::user("hello"))
+  agent.history.append(@message.Message::user("hello"))
   agent.iterations = 7
   agent.total_cost = 1.23
   agent.total_tasks = 3
   agent.reset_session()
   assert_true(agent.session_id != "s_old")
   assert_true(agent.session_id.length() > 0)
-  assert_eq(agent.history.length(), 0)
+  assert_eq(agent.history.size(), 0)
   assert_eq(agent.iterations, 0)
   assert_eq(agent.total_cost, 0.0)
   assert_eq(agent.total_tasks, 0)

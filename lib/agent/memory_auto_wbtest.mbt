@@ -264,10 +264,10 @@ test "deduplicate_entries: filters intra-batch duplicates" {
 async test "auto_update_memory: disabled config skips" {
   let agent = make_test_agent_with_memory()
   agent.config.memory_update_enabled = false
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("hello"))
-  agent.history.push(@message.Message::assistant("hi"))
-  agent.history.push(@message.Message::user("more"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("hello"))
+  agent.history.append(@message.Message::assistant("hi"))
+  agent.history.append(@message.Message::user("more"))
   agent.mock_responses.push(
     make_mock_response(
       "<memory><title>Test</title><content>Test</content></memory>",
@@ -284,8 +284,8 @@ async test "auto_update_memory: disabled config skips" {
 ///|
 async test "auto_update_memory: short history skips" {
   let agent = make_test_agent_with_memory()
-  agent.history.push(@message.Message::user("hi"))
-  agent.history.push(@message.Message::assistant("hello"))
+  agent.history.append(@message.Message::user("hi"))
+  agent.history.append(@message.Message::assistant("hello"))
   agent.mock_responses.push(
     make_mock_response(
       "<memory><title>Test</title><content>Test</content></memory>",
@@ -302,10 +302,10 @@ async test "auto_update_memory: short history skips" {
 ///|
 async test "auto_update_memory: no memory_store skips" {
   let agent = make_test_agent()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("hello"))
-  agent.history.push(@message.Message::assistant("hi"))
-  agent.history.push(@message.Message::user("more"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("hello"))
+  agent.history.append(@message.Message::assistant("hi"))
+  agent.history.append(@message.Message::user("more"))
   agent.mock_responses.push(
     make_mock_response(
       "<memory><title>Test</title><content>Test</content></memory>",
@@ -321,10 +321,10 @@ async test "auto_update_memory: no memory_store skips" {
 ///|
 async test "auto_update_memory: stores extracted memories" {
   let agent = make_test_agent_with_memory()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("I prefer dark mode"))
-  agent.history.push(@message.Message::assistant("Got it!"))
-  agent.history.push(@message.Message::user("Thanks"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("I prefer dark mode"))
+  agent.history.append(@message.Message::assistant("Got it!"))
+  agent.history.append(@message.Message::user("Thanks"))
   agent.mock_responses.push(make_mock_response(make_mem_resp_single(), None))
   agent.auto_update_memory() catch {
     _ => abort("should not raise")
@@ -341,10 +341,10 @@ async test "auto_update_memory: deduplicates against existing" {
   let agent = make_test_agent_with_memory()
   let store = agent.memory_store.unwrap()
   ignore(store.add("User prefers dark mode", "Old content", UserPreference, []))
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("I prefer dark mode"))
-  agent.history.push(@message.Message::assistant("Got it!"))
-  agent.history.push(@message.Message::user("Thanks"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("I prefer dark mode"))
+  agent.history.append(@message.Message::assistant("Got it!"))
+  agent.history.append(@message.Message::user("Thanks"))
   agent.mock_responses.push(
     make_mock_response(
       "<memory><title>User prefers dark mode</title><content>Duplicate</content><category>user_preference</category></memory>",
@@ -360,10 +360,10 @@ async test "auto_update_memory: deduplicates against existing" {
 ///|
 async test "auto_update_memory: LLM error does not crash" {
   let agent = make_test_agent_with_memory()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("hello"))
-  agent.history.push(@message.Message::assistant("hi"))
-  agent.history.push(@message.Message::user("more"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("hello"))
+  agent.history.append(@message.Message::assistant("hi"))
+  agent.history.append(@message.Message::user("more"))
   agent.auto_update_memory() catch {
     _ => abort("should not raise")
   }
@@ -374,10 +374,10 @@ async test "auto_update_memory: LLM error does not crash" {
 ///|
 async test "auto_update_memory: empty response does nothing" {
   let agent = make_test_agent_with_memory()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("hello"))
-  agent.history.push(@message.Message::assistant("hi"))
-  agent.history.push(@message.Message::user("more"))
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("hello"))
+  agent.history.append(@message.Message::assistant("hi"))
+  agent.history.append(@message.Message::user("more"))
   agent.mock_responses.push(make_mock_response("Nothing to remember", None))
   agent.auto_update_memory() catch {
     _ => abort("should not raise")
@@ -389,11 +389,11 @@ async test "auto_update_memory: empty response does nothing" {
 ///|
 async test "auto_update_memory: history preserved after call" {
   let agent = make_test_agent_with_memory()
-  agent.history.push(@message.Message::system("system"))
-  agent.history.push(@message.Message::user("hello"))
-  agent.history.push(@message.Message::assistant("hi"))
-  agent.history.push(@message.Message::user("more"))
-  let history_len_before = agent.history.length()
+  agent.history.append(@message.Message::system("system"))
+  agent.history.append(@message.Message::user("hello"))
+  agent.history.append(@message.Message::assistant("hi"))
+  agent.history.append(@message.Message::user("more"))
+  let history_len_before = agent.history.size()
   agent.mock_responses.push(
     make_mock_response(
       "<memory><title>Test</title><content>Test</content></memory>",
@@ -403,5 +403,5 @@ async test "auto_update_memory: history preserved after call" {
   agent.auto_update_memory() catch {
     _ => abort("should not raise")
   }
-  assert_eq(agent.history.length(), history_len_before)
+  assert_eq(agent.history.size(), history_len_before)
 }
