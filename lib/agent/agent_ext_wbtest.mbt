@@ -83,48 +83,6 @@ test "ext_estimate_tokens_single_char" {
   assert_eq(estimate_token_count("a"), 1)
 }
 
-// ── AgentPool Tests ─────────────────────────────────────────────────────────
-
-///|
-test "ext_agent_pool_new" {
-  let pool = AgentPool::new(3, 5)
-  assert_eq(pool.max_running, 3)
-  assert_eq(pool.max_idle, 5)
-  assert_eq(pool.size(), 0)
-  assert_eq(pool.active_count(), 0)
-}
-
-///|
-test "ext_agent_pool_can_spawn_empty" {
-  let pool = AgentPool::new(3, 5)
-  assert_true(pool.can_spawn())
-}
-
-///|
-test "ext_agent_pool_all_done_empty" {
-  let pool = AgentPool::new(3, 5)
-  assert_true(pool.all_done())
-}
-
-///|
-test "ext_agent_pool_summary_empty" {
-  let pool = AgentPool::new(3, 5)
-  assert_eq(pool.summary(), "Agent pool: empty")
-}
-
-///|
-test "ext_agent_pool_collect_completed_empty" {
-  let pool = AgentPool::new(3, 5)
-  let completed = pool.collect_completed()
-  assert_eq(completed.length(), 0)
-}
-
-///|
-test "ext_agent_pool_get_not_found" {
-  let pool = AgentPool::new(3, 5)
-  assert_true(pool.get("nonexistent") is None)
-}
-
 // ── IterationTokenData Tests ─────────────────────────────────────────────────
 
 ///|
@@ -231,26 +189,7 @@ test "ext_estimate_tokens_unicode" {
   assert_true(tokens > 0)
 }
 
-// ── Additional AgentPool Tests ───────────────────────────────────────────────
-
-///|
-test "ext_agent_pool_zero_limits" {
-  let pool = AgentPool::new(0, 0)
-  assert_false(pool.can_spawn())
-}
-
-///|
-test "ext_agent_pool_large_limits" {
-  let pool = AgentPool::new(1000, 500)
-  assert_true(pool.can_spawn())
-}
-
-///|
-test "ext_agent_pool_summary_format" {
-  let pool = AgentPool::new(3, 5)
-  let s = pool.summary()
-  assert_true(s.contains("Agent pool"))
-}
+// ── IterationTokenData Tests ─────────────────────────────────────────────────
 
 ///|
 test "ext_iteration_token_data_different_values" {

@@ -46,6 +46,24 @@ fn make_mock_response(
 }
 
 ///|
+/// Variant with a custom finish_reason (truncation / empty tests).
+fn make_mock_response_fr(
+  content : String,
+  tool_calls : Array[@message.ToolCall]?,
+  finish_reason : String?,
+  reasoning_content? : String? = None,
+) -> @client.LlmResponse {
+  {
+    content: Some(content),
+    tool_calls,
+    finish_reason,
+    usage: Some(@client.Usage::from_openai(100, 50)),
+    latency: Some(@client.Latency::new(200, ttft_ms=50)),
+    reasoning_content,
+  }
+}
+
+///|
 fn make_tool_call(
   id : String,
   name : String,
@@ -502,6 +520,174 @@ async test "run_no_tool_calls_breaks" {
   let result = agent.run("question") catch { _ => abort("unexpected error") }
   assert_true(result.status == Success)
   @debug.assert_eq(agent.iterations, 1)
+}
+
+// ── B7 Task-1: main-loop robustness ─────────────────────────────────────────
+
+///|
+async test "run_truncation_drops_dangling_tool_calls" {
+  let agent = make_test_agent()
+  // Response 1: finish_reason=length with a dangling tool call. The args
+  // must be valid non-empty JSON — "{}" would be flagged as truncated by
+  // detect_upstream_truncation and absorbed by the retry pipeline before
+  // the main loop's length branch ever runs.
+  let tool_call = make_tool_call(
+    "call_1", "file_reader", "{\"path\":\"/tmp/x\"}",
+  )
+  agent.mock_responses.push(
+    make_mock_response_fr("partial...", Some([tool_call]), Some("length")),
+  )
+  // Response 2: normal completion.
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("do work") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success) // No assistant message may carry tool_calls after a truncation (the
+  // dangling calls are protocol poison for the next request).
+  let dangling = agent.history
+    .all()
+    .filter(fn(m) {
+      match m.tool_calls {
+        Some(calls) => calls.length() > 0
+        None => false
+      }
+    })
+  @debug.assert_eq(dangling.length(), 0)
+  // The detailed [SYSTEM] continuation hint is present.
+  let has_hint = agent.history
+    .all()
+    .any(fn(m) {
+      match m.content {
+        @message.Text(t) => t.contains("output token limit")
+        _ => false
+      }
+    })
+  assert_true(has_hint)
+}
+
+///|
+async test "run_truncation_three_times_apologizes_and_succeeds" {
+  let agent = make_test_agent()
+  for _i in 0..<3 {
+    agent.mock_responses.push(
+      make_mock_response_fr("partial", None, Some("length")),
+    )
+  }
+  let result = agent.run("big task") catch { _ => abort("unexpected error") }
+  // Ruby: too many truncations → apologize and end NORMALLY (Success).
+  assert_true(result.status == Success)
+  let has_apology = agent.history
+    .all()
+    .any(fn(m) {
+      match m.content {
+        @message.Text(t) => t.contains("too complex to complete")
+        _ => false
+      }
+    })
+  assert_true(has_apology)
+}
+
+///|
+async test "run_truncation_preserves_reasoning_content" {
+  let agent = make_test_agent()
+  agent.mock_responses.push(
+    make_mock_response_fr(
+      "partial",
+      None,
+      Some("length"),
+      reasoning_content=Some("thinking..."),
+    ),
+  )
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("x") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success)
+  // The truncated assistant message keeps its reasoning_content (Ruby
+  // truncated_msg[:reasoning_content]) so thinking-mode padding works.
+  let has_reasoning = agent.history
+    .all()
+    .any(fn(m) {
+      match m.reasoning_content {
+        Some(r) => r == "thinking..."
+        None => false
+      }
+    })
+  assert_true(has_reasoning)
+}
+
+///|
+async test "run_fake_tool_call_over_limit_returns_error" {
+  let agent = make_test_agent()
+  // Three fake-tool-call responses: two corrections, then stop-with-error.
+  for _i in 0..<3 {
+    agent.mock_responses.push(
+      make_mock_response_fr(
+        "<invoke name=\"search\">q</invoke>",
+        None,
+        Some("stop"),
+      ),
+    )
+  }
+  let result = agent.run("do it") catch { _ => abort("unexpected error") }
+  // Over-limit must NOT silently succeed with the XML text as the answer.
+  assert_true(result.status == Error)
+  match result.error {
+    Some(e) => assert_true(e.contains("repeatedly emitted"))
+    None => fail("expected an error message")
+  }
+}
+
+///|
+async test "run_fake_tool_call_recovers_after_correction" {
+  let agent = make_test_agent()
+  // Two fake responses (both within the retry budget) then a clean answer.
+  agent.mock_responses.push(
+    make_mock_response_fr(
+      "<invoke name=\"search\">q</invoke>",
+      None,
+      Some("stop"),
+    ),
+  )
+  agent.mock_responses.push(
+    make_mock_response_fr("<antml:invoke name=\"read\">", None, Some("stop")),
+  )
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("do it") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success)
+}
+
+///|
+async test "run_empty_response_stop_uses_loop_fallback" {
+  let agent = make_test_agent()
+  // finish_reason="stop" + empty content: llm_caller does NOT intercept
+  // (stop is protocol-legal); the main-loop fallback caps it at 3 → Error.
+  for _i in 0..<3 {
+    agent.mock_responses.push(make_mock_response_fr("", None, Some("stop")))
+  }
+  let result = agent.run("x") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Error)
+}
+
+///|
+async test "run_truncation_length_not_intercepted_by_empty_detector" {
+  let agent = make_test_agent()
+  // Empty content + finish_reason=length: the empty detector must NOT
+  // raise (length is truncation, handled by the loop's length branch),
+  // so the run continues to the next mock and succeeds.
+  agent.mock_responses.push(make_mock_response_fr("", None, Some("length")))
+  agent.mock_responses.push(make_mock_response("Done", None))
+  let result = agent.run("x") catch { _ => abort("unexpected error") }
+  assert_true(result.status == Success)
+}
+
+///|
+test "to_session_data_pending_error_rollback_flag" {
+  let agent = make_test_agent()
+  // status == Error derives the flag (existing persistence contract).
+  agent.status = Error
+  assert_true(agent.to_session_data().pending_error_rollback)
+  // The explicit 400-class flag (B7 decision 4) survives even when the
+  // run status has been reset (e.g. Idle after restore).
+  agent.status = Idle
+  agent.pending_error_rollback = true
+  assert_true(agent.to_session_data().pending_error_rollback)
 }
 
 ///|
@@ -1352,7 +1538,11 @@ async test "thinking_silent_response_retries" {
   agent.mock_responses.push(make_mock_response("Done thinking", None))
   let result = agent.run("question") catch { _ => abort("unexpected error") }
   assert_true(result.status == Success)
-  @debug.assert_eq(agent.iterations, 2)
+  // B7 decision 3: thinking-mode-silent responses (reasoning present, empty
+  // content, finish_reason=stop) are intercepted in llm_caller
+  // (check_empty_response → RetryableError) and absorbed by the internal
+  // 10-retry pipeline — the main loop never sees them, so iterations == 1.
+  @debug.assert_eq(agent.iterations, 1)
 }
 
 // ── P6: JSON result builders ─────────────────────────────────────────────────

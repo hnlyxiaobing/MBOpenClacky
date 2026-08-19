@@ -15,20 +15,44 @@
 pub let max_fake_tool_call_retries : Int = 2
 
 ///|
+/// Ceiling on ReAct loop iterations per task (B7 decision 6, MB superset).
+///
+/// Ruby has no such limit; this guards against runaway loops caused by
+/// models that keep emitting tool calls forever. Generous multiple of
+/// observed real-world task lengths (typically < 50 iterations).
+pub const MAX_ITERATIONS : Int = 200
+
+///|
 /// XML patterns that indicate a fake tool call in content.
-/// Each pattern is a substring prefix that we check via `contains`.
+///
+/// Mirrors Ruby `fake_tool_call_detector.rb` FAKE_TOOL_CALL_PATTERNS
+/// (5 case-insensitive regexes). MoonBit has no bundled regex engine
+/// (see B1/B2 task-0 regex survey), so we lower-case the content and
+/// match substrings — this preserves the case-insensitivity and the
+/// pattern set while accepting a small precision loss on whitespace
+/// tolerance (`<tool_use` variants require an explicit space or `>`).
 let fake_tool_call_patterns : Array[String] = [
-  "<invoke name=", "<function_calls>", "<tool_call>", "<antml:function_calls>", "<functions>",
+  // /<\s*invoke\s+name\s*=\s*["'][\w\-]+["']/i
+  "<invoke name=",
+  // /<\s*function_calls\s*>/i
+   "<function_calls>",
+  // /<\s*tool_use\s*[\s>]/i
+   "<tool_use ", "<tool_use>",
+  // /<\s*antml:invoke\s+name\s*=/i
+   "<antml:invoke name=",
+  // /<\s*antml:function_calls\s*>/i
+   "<antml:function_calls>",
 ]
 
 ///|
 /// Detect whether the given content contains XML-formatted fake tool calls.
 ///
 /// Returns true if any of the known XML tool call patterns are found
-/// in the content string.
+/// in the content string. The match is case-insensitive (Ruby `/i` flag).
 pub fn detect_fake_tool_call(content : String) -> Bool {
+  let lower = content.to_lower()
   for pattern in fake_tool_call_patterns {
-    if content.contains(pattern) {
+    if lower.contains(pattern) {
       return true
     }
   }

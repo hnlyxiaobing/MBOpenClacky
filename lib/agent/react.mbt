@@ -88,6 +88,16 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
       self.status = Error
       let err_msg = @errors.error_message(err)
       self.error = Some(err_msg)
+      // B7 decision 4: 400-class failures poison the conversation (e.g.
+      // dangling tool_calls or a rejected message), so flag the session
+      // for deferred rollback. Mirrors Ruby's @pending_error_rollback
+      // (set by restore_session, consumed at the next run start); the
+      // data layer + recovery chain live in B5 (to_session_data /
+      // restore_from_session → apply_error_rollback).
+      match err {
+        @errors.BadRequestError(_, _) => self.pending_error_rollback = true
+        _ => ()
+      }
       self.hook_manager.emit(ErrorOccurred(err_msg))
       raise @errors.AgentError(err_msg)
     }
@@ -474,6 +484,20 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
   let mut done : RunResult? = None
   while done is None {
     self.iterations = self.iterations + 1
+    // B7 decision 6: max_iterations ceiling (MB superset — Ruby has none).
+    // Protects against runaway loops; a generous multiple of observed
+    // real-world task lengths so legitimate long tasks are never hit.
+    if self.iterations > MAX_ITERATIONS {
+      done = Some(
+        self.build_result(
+          Error,
+          error=Some(
+            "Task exceeded the maximum of \{MAX_ITERATIONS} iterations. Stopping.",
+          ),
+        ),
+      )
+      break
+    }
     self.hook_manager.emit(BeforeIteration(self.iterations))
     let response = self.think_async()
     match response {
@@ -483,25 +507,49 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
           Some("length") => {
             truncation_count = truncation_count + 1
             if truncation_count >= 3 {
+              // Ruby agent.rb think: too many truncations — apologize and end
+              // the task normally (Success), instead of killing it with Error.
+              // The message appears in the conversation so the user sees why.
+              let apology = "I apologize, but this task is too complex to complete in a single response. " +
+                "Please break it down into smaller steps, or reduce the amount of content to generate at once.\n\n" +
+                "For example, when creating a long document:\n" +
+                "1. First create the file with a basic structure\n" +
+                "2. Then use edit() to add content section by section"
               self.history.append(
-                stamp_created_at(
-                  @message.Message::assistant(
-                    "Response was truncated multiple times. Please break your task into smaller steps.",
-                  ),
-                ),
+                stamp_created_at(@message.Message::assistant(apology)),
               )
               self.hook_manager.emit(MessageAdded)
-              done = Some(
-                self.build_result(
-                  Error,
-                  error=Some("Repeated response truncation"),
-                ),
-              )
+              done = Some(self.build_result(Success))
             } else {
+              // Drop the truncated assistant message that think_async just
+              // appended (its tool_calls are dangling — protocol poison that
+              // would 400 the next request), then re-append it text-only so
+              // the model sees what it attempted (Ruby truncated_msg).
+              // The last history entry is guaranteed to be that assistant
+              // message: think_async appends it before returning Some, and
+              // the compression path returns None instead.
+              self.history.pop_last() |> ignore
+              let truncated_text = match resp.content {
+                Some(c) => if c.trim().is_empty() { "..." } else { c }
+                None => "..."
+              }
+              let truncated_msg = @message.Message::assistant(truncated_text)
+              truncated_msg.reasoning_content = resp.reasoning_content
+              self.history.append(stamp_created_at(truncated_msg))
+              self.hook_manager.emit(MessageAdded)
+              // Insert the detailed [SYSTEM] continuation hint (Ruby
+              // agent.rb think truncated branch) so the model retries with
+              // smaller steps instead of re-triggering length again.
+              let max_tokens = self.config.max_tokens
               self.history.append(
                 stamp_created_at(
                   @message.Message::user(
-                    "Your previous response was truncated. Please continue from where you left off.",
+                    "[SYSTEM] Your previous response was truncated because it exceeded the output token limit (max_tokens=\{max_tokens}). " +
+                    "The incomplete tool call has been discarded. Please retry with a different approach:\n" +
+                    "- For long file content: create the file with a basic structure first, then use edit() to add content section by section\n" +
+                    "- Break down large tasks into multiple smaller tool calls\n" +
+                    "- Keep each tool call argument under 2000 characters\n" +
+                    "- Use multiple tool calls instead of one large call",
                   ),
                 ),
               )
@@ -519,6 +567,11 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                 None => ""
               }
               if content.is_empty() {
+                // Defense-in-depth fallback: empty responses are already
+                // intercepted in llm_caller (check_empty_response raises
+                // RetryableError → 10-retry pipeline). Reaching this branch
+                // means the mock path bypassed the check; keep a bounded
+                // fallback so the loop can never spin forever.
                 empty_response_retries = empty_response_retries + 1
                 if empty_response_retries >= 3 {
                   done = Some(
@@ -537,15 +590,34 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                   )
                   self.hook_manager.emit(MessageAdded)
                 }
-              } else if fake_tool_call_retries < max_fake_tool_call_retries &&
-                detect_fake_tool_call(content) {
+              } else if detect_fake_tool_call(content) {
                 fake_tool_call_retries = fake_tool_call_retries + 1
-                self.history.append(
-                  stamp_created_at(
-                    @message.Message::user(fake_tool_call_correction_prompt),
-                  ),
-                )
-                self.hook_manager.emit(MessageAdded)
+                if fake_tool_call_retries > max_fake_tool_call_retries {
+                  // Ruby fake_tool_call_detector.rb: over-limit → :stop.
+                  // Keep the fake content visible as an assistant message
+                  // (Ruby emit_assistant_message), then fail the run with a
+                  // clear error instead of silently returning the XML text
+                  // as the final answer (previous Success behavior).
+                  self.history.append(
+                    stamp_created_at(@message.Message::assistant(content)),
+                  )
+                  self.hook_manager.emit(MessageAdded)
+                  done = Some(
+                    self.build_result(
+                      Error,
+                      error=Some(
+                        "Model repeatedly emitted text-formatted tool calls instead of using the tool_calls API. Stopping.",
+                      ),
+                    ),
+                  )
+                } else {
+                  self.history.append(
+                    stamp_created_at(
+                      @message.Message::user(fake_tool_call_correction_prompt),
+                    ),
+                  )
+                  self.hook_manager.emit(MessageAdded)
+                }
               } else {
                 match resp.usage {
                   Some(usage) => self.track_cost(usage) |> ignore

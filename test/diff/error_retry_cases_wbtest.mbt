@@ -137,10 +137,12 @@ async test "retry_013_empty_response_triggers_reask" {
 /// retry-014：只有 thinking 没有 content 的静默响应应触发重试。
 /// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测：
 /// Ruby 检测 thinking-mode 静默响应并抛 RetryableError 重试。
-/// 代码核实结论：BUG-0026 所记"未实现"已过时——MB 的 react_loop_async
-/// 只看 content 是否为空，thinking-only 响应按空响应路径重试（已有
-/// lib/agent/agent_wbtest.mbt "thinking_silent_response_retries" 佐证）。
-/// 本用例按已实现写 green 断言。
+/// 代码核实结论（B7 决策 3 空响应重试下沉 llm_caller 后）：MB 在
+/// llm_caller 层 check_empty_response 检测 thinking-silent（有
+/// reasoning_content + finish_reason="stop" + 空 content）并抛
+/// RetryableError，在 LLM 调用层内重试——主循环不额外消耗迭代，
+/// 因此本次 run 的 iterations 为 1（第二次 mock 响应在 llm_caller
+/// 内部重试时被消费）。
 async test "retry_014_thinking_silent_response_triggers_reask" {
   let agent = retry_make_agent()
   agent.mock_responses.push(
@@ -149,7 +151,7 @@ async test "retry_014_thinking_silent_response_triggers_reask" {
   agent.mock_responses.push(mock_resp("Done thinking"))
   let result = agent.run("question") catch { _ => abort("unexpected error") }
   assert_true(result.status == @agent.Success)
-  assert_eq(result.iterations, 2)
+  assert_eq(result.iterations, 1)
 }
 
 ///|

@@ -291,7 +291,7 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     latest_latency_ms: latency_ms,
     latest_ttft_ms: ttft_ms,
     time_machine: None,
-    pending_error_rollback: self.status == Error,
+    pending_error_rollback: self.pending_error_rollback || self.status == Error,
     model_base_url: self.client.base_url,
     last_status: self.status.to_string_value(),
     last_error: match self.error {

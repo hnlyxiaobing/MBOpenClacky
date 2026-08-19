@@ -21,7 +21,6 @@ pub(all) struct Agent {
   mut skill_registry : @skill.SkillRegistry
   mut memory_store : MemoryStore?
   mut todo_manager : TodoManager
-  mut agent_pool : AgentPool
   // ── Session-scoped Model Overlay ─────────────────────────────────
   /// Per-session sub-model overlay (Ruby agent.set_session_sub_model):
   /// when set, request building uses it instead of the config card's
@@ -34,6 +33,11 @@ pub(all) struct Agent {
   mut status : AgentStatus
   mut error : String?
   mut error_code : String?
+  /// Deferred error-rollback flag (Ruby @pending_error_rollback): set when
+  /// a run ends in a 400-class failure that poisoned the conversation.
+  /// Persisted via SessionData and consumed by the restore path
+  /// (restore_from_session → apply_error_rollback). B7 decision 4.
+  mut pending_error_rollback : Bool
   mut top_up_url : String?
   mut raw_message : String?
   mut reasoning_effort : String?
@@ -87,6 +91,20 @@ pub(all) struct Agent {
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
   mock_responses : Array[@client.LlmResponse]
+  // ── Subagent Context (B7 decision 5) ─────────────────────────────
+  /// Runtime tool restrictions (mirrors Ruby fork_subagent's
+  /// before_tool_use hook): blocked at execution time in
+  /// execute_single_tool without touching the shared tool registry
+  /// (keeps prompt caching intact). Empty = nothing forbidden.
+  mut forbidden_tools : Array[String]
+  /// When Some, only tools in this list may execute (None = unrestricted).
+  mut allowed_tools : Array[String]?
+  /// True for agents produced by fork_subagent (B7).
+  mut is_subagent : Bool
+  /// Parent history size at fork time. Messages after this index belong
+  /// to the subagent's own run — final_reply / generate_subagent_summary
+  /// / extract_subagent_transcript slice from here.
+  mut parent_message_count : Int
 }
 
 ///|
@@ -132,7 +150,6 @@ pub fn Agent::new(
     skill_registry: @skill.SkillRegistry::new(),
     memory_store: None,
     todo_manager: TodoManager::new(),
-    agent_pool: AgentPool::new(4, 4),
     session_sub_model: None,
     // Conversation state
     history: @message.MessageHistory::new(),
@@ -141,6 +158,7 @@ pub fn Agent::new(
     status: Idle,
     error: None,
     error_code: None,
+    pending_error_rollback: false,
     top_up_url: None,
     raw_message: None,
     reasoning_effort: None,
@@ -178,6 +196,12 @@ pub fn Agent::new(
     pending_injections: [],
     // Test support
     mock_responses: [],
+    // Subagent context (B7): ordinary agents have no restrictions and are
+    // never subagents; fork_subagent sets these on the clone.
+    forbidden_tools: [],
+    allowed_tools: None,
+    is_subagent: false,
+    parent_message_count: 0,
   }
 }
 

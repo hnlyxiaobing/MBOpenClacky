@@ -60,10 +60,12 @@ specs/
 \r
 ## 最近归档 Spec
 
-### 2026-08-19 — 消息格式与会话持久化对齐（矩阵§4，1 项完成）
+### 2026-08-19 — 配置加载对齐 + 消息会话持久化对齐 + 核心循环与 subagent 对齐（3 项完成）
 
 | Spec | 名称 | 关键实现 | 测试 |
 |------|------|---------|------|
+| 13 | 核心循环与 subagent 对齐（P6） | length 截断恢复（丢 tool_calls + 详细提示 + 3 次致歉 Success）；fake tool call 大小写不敏感正则 + 超限 Error；空响应重试下沉 llm_caller 且排除 stop/length；400 置 pending_error_rollback；fork_subagent 全链路（config 继承/覆盖、lite、forbidden/allowed 执行期拦截）；fan_out/fan_out_labeled（Ruby Fanout 语义 + 超时取消保持 None）；决策 6：AgentPool 移除、max_iterations 上限 200、check_stale! 豁免记录 | lib/agent 434/434 ✅、全量 3773/3773 ✅ |
+| 12 | 配置加载对齐（P5） | 决策 1 选项 B：max_tokens 判原版缺陷（CONFIG_SETTINGS_KEYS/to_yaml 双双遗漏），MB 保留加载/保存，config-002/011 冻结 MB 行为（8192/4096）；from_toml 自动锚定 current_model_id（default badge 优先，回退第一个模型，BUG-0014）；switch_model_by_id 失败消息对齐 "model not found"（BUG-0020）；config-012 断言修正 false、BUG-0013 关闭为语义等价；known_failure 移除 5 编号 | lib/config 139/139 ✅、test/diff 145/145 ✅、全量 3756/3756 ✅ |
 | 11 | 消息格式与会话持久化对齐 | `Agent.history` 迁移 `MessageHistory`（"(interrupted)" 配对修复 + reasoning pad + rollback 身份语义 + task_chain 过滤）；会话 ID 随机 hex + 文件名日期前缀 + 旧格式兼容；三级清理策略（pinned 豁免 → 软删除 → 回收站）；restore_session_enhanced 生产接线（todos/time_machine/channel_info/previous_total_tokens 恢复 + system prompt 刷新 + 错误回滚）；列表 updated_at 降序 + 前缀匹配；fork 保留 time_machine；`compress_old_sessions_if_needed` 移除（裁决）；全文搜索 snippet + 5000ms 软超时；ZIP 导出导入保留（MB 超集，记录豁免） | lib/agent 417/417 ✅ |
 
 ### 2026-08-05 — TUI 全面对齐原版（4 项完成）

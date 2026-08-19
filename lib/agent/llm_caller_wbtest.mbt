@@ -470,3 +470,111 @@ async test "call_llm_stream_async populates latency with first-token ttft" {
   })
   server.close()
 }
+
+// ── Empty-Response Detector Tests (B7 decision 3) ────────────────────────────
+
+///|
+fn empty_resp(
+  content : String?,
+  finish_reason : String?,
+  reasoning_content? : String? = None,
+) -> @client.LlmResponse {
+  {
+    content,
+    tool_calls: None,
+    finish_reason,
+    usage: None,
+    latency: None,
+    reasoning_content,
+  }
+}
+
+///|
+test "check_empty_response raises on non-stop non-length empty" {
+  let resp = empty_resp(Some(""), Some("content_filter"))
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    e => @errors.is_retryable_error(e)
+  }
+  assert_true(raised)
+}
+
+///|
+test "check_empty_response ok when content present" {
+  let resp = empty_resp(Some("hello"), Some("content_filter"))
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(!raised)
+}
+
+///|
+test "check_empty_response ok for stop (protocol-legal empty)" {
+  let resp = empty_resp(Some(""), Some("stop"))
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(!raised)
+}
+
+///|
+test "check_empty_response ok for length (truncation, not transient)" {
+  let resp = empty_resp(Some(""), Some("length"))
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(!raised)
+}
+
+///|
+test "check_empty_response ok when tool_calls present" {
+  let resp : @client.LlmResponse = {
+    content: Some(""),
+    tool_calls: Some([
+      {
+        id: "c1",
+        type_: "function",
+        function: { name: "x", arguments: "{}" },
+        extra_content: None,
+      },
+    ]),
+    finish_reason: Some("content_filter"),
+    usage: None,
+    latency: None,
+    reasoning_content: None,
+  }
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(!raised)
+}
+
+///|
+test "check_empty_response thinking-silent stop with reasoning raises" {
+  let resp = empty_resp(
+    Some(""),
+    Some("stop"),
+    reasoning_content=Some("thinking..."),
+  )
+  let raised = try {
+    check_empty_response(resp)
+    false
+  } catch {
+    e => @errors.is_retryable_error(e)
+  }
+  assert_true(raised)
+}

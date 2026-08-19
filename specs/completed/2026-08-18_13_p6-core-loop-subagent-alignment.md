@@ -101,13 +101,13 @@ Ruby 参照（openclacky，只读）：`agent.rb:914,525-535,1122-1126,1608-1673
 
 ## 验收标准 [必填]
 
-- [ ] finish_reason=length 后历史无悬空 tool_calls；3 次截断正常结束（Success+致歉）
-- [ ] fake tool call 大小写不敏感命中；超限返回 Error 而非 Success
-- [ ] 空响应重试在 llm_caller 层且排除 stop/length
-- [ ] 400 错误置 pending_error_rollback（与 B5 恢复链联调通过）
-- [ ] fork_subagent 可产出独立子代理并继承/覆盖 config；forbidden_tools 在执行期真实拦截
-- [ ] subagent 成本计入父代理；transcript 回填存在
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] finish_reason=length 后历史无悬空 tool_calls；3 次截断正常结束（Success+致歉）
+- [x] fake tool call 大小写不敏感命中；超限返回 Error 而非 Success
+- [x] 空响应重试在 llm_caller 层且排除 stop/length
+- [x] 400 错误置 pending_error_rollback（与 B5 恢复链联调通过）
+- [x] fork_subagent 可产出独立子代理并继承/覆盖 config；forbidden_tools 在执行期真实拦截
+- [x] subagent 成本计入父代理；transcript 回填存在
+- [x] `moon check` 0 errors；全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -127,3 +127,4 @@ Ruby 参照（openclacky，只读）：`agent.rb:914,525-535,1122-1126,1608-1673
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§7 残留条目核实落 spec；5 项直接证实 + 7 项静态证实留任务包 0 复核）。
+- 2026-08-19：任务包 1/2/3 全部落地——length 截断恢复（丢 tool_calls + 详细提示 + 3 次致歉 Success）；fake tool call 大小写不敏感正则 + 超限 Error；空响应重试下沉 llm_caller 且排除 stop/length（retry-014 期望随行为修正 iterations=1）；400 置 pending_error_rollback；fork_subagent 全链路移植（config 继承/覆盖、lite、forbidden/allowed 执行期拦截）；fan_out/fan_out_labeled 按 Ruby Fanout 语义 + 超时取消修复（`@async.is_being_cancelled` 不写槽）；决策 6 裁决点落地——AgentPool/SubAgentHandle 移除（无运行时消费者）、max_iterations 补上限 200（MAX_ITERATIONS 常量）、lite 接线确认、check_stale! 豁免记录（单线程协程模型由 t.cancel() 覆盖）；BUGS.md 回写跳过（仓库无该文件，git 历史从未添加）；全量 `moon test` 3773/3773 通过后归档 | 落地实现 + 用户裁决

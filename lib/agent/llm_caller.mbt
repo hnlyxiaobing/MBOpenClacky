@@ -387,6 +387,7 @@ pub async fn Agent::call_llm_stream_async(
     // Mirror the real-path truncation checks so retry-pipeline tests can
     // inject stream-cut / truncated responses via the mock queue.
     self.check_stream_truncation(response)
+    check_empty_response(response)
     match response.content {
       Some(c) => if c.length() > 0 { on_chunk(c) }
       None => ()
@@ -496,6 +497,12 @@ pub async fn Agent::call_llm_stream_async(
       //    Both raise UpstreamTruncatedError so the retry pipeline treats
       //    them identically to 5xx/429.
       self.check_stream_truncation(response)
+      // ── Empty-response detector (Ruby llm_caller.rb) ───────────────
+      // Model returned nothing (no content, no tool_calls) with a non-stop,
+      // non-length finish_reason, or went thinking-silent (reasoning_content
+      // only, finish_reason="stop"). Raises RetryableError so the retry
+      // pipeline handles it identically to 5xx/429.
+      check_empty_response(response)
       match response.usage {
         Some(usage) => self.track_cost(usage) |> ignore
         None => ()
@@ -537,6 +544,52 @@ fn Agent::check_stream_truncation(
   }
   // ② tool_call arguments truncation.
   self.detect_upstream_truncation(response)
+}
+
+///|
+/// Empty-response detector (mirrors Ruby llm_caller.rb, which raises
+/// RetryableError inside `call_llm` so the generic retry + fallback
+/// pipeline handles it identically to 5xx/429):
+///
+/// ① Empty response: no content, no tool_calls, finish_reason != "stop"
+///    and != "length" (DeepSeek via OpenRouter occasionally does this).
+///    "length" is excluded on purpose — that is a truncation, handled by
+///    the main loop's length branch, not a transient failure.
+/// ② Thinking-mode silent response: model spent all output tokens inside
+///    `reasoning_content` and emitted empty content with finish_reason
+///    "stop" (protocol-legal but semantically "thought and went silent").
+///
+/// Shared by the real HTTP path and the mock path so tests can exercise
+/// the retry pipeline end-to-end.
+fn check_empty_response(response : @client.LlmResponse) -> Unit raise {
+  let empty_content = match response.content {
+    Some(c) => c.trim().is_empty()
+    None => true
+  }
+  let has_tool_calls = match response.tool_calls {
+    Some(calls) => calls.length() > 0
+    None => false
+  }
+  if empty_content && !has_tool_calls {
+    let fr = match response.finish_reason {
+      Some(f) => f
+      None => "" // check_stream_truncation already raised on None
+    }
+    if fr != "stop" && fr != "length" {
+      raise @errors.RetryableError(
+        "[LLM] Model returned empty response (no content, no tool_calls), retrying...",
+      )
+    }
+    let has_reasoning = match response.reasoning_content {
+      Some(r) => r.trim().length() > 0
+      None => false
+    }
+    if has_reasoning && fr == "stop" {
+      raise @errors.RetryableError(
+        "[LLM] Thinking-mode model produced reasoning but empty content/tool_calls, retrying...",
+      )
+    }
+  }
 }
 
 ///|

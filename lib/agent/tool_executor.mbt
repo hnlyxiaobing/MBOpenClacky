@@ -125,6 +125,19 @@ pub async fn Agent::execute_single_tool(
     }
     Allow => ()
   }
+  // ── Subagent tool restriction (B7 decision 5) ───────────────
+  // Mirrors Ruby fork_subagent's before_tool_use hook: forbidden tools
+  // are blocked at runtime without touching the shared registry (cache
+  // reuse). The raw name is checked first; the canonical name is checked
+  // again after resolution so aliases/case variants cannot bypass.
+  match self.tool_restriction_reason(tool_name) {
+    Some(reason) => {
+      let result = build_denied_result(call, Some(reason))
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
+    }
+    None => ()
+  }
   // Resolve canonical name
   let canonical = match self.tool_registry.resolve(tool_name) {
     Some(name) => name
@@ -137,6 +150,16 @@ pub async fn Agent::execute_single_tool(
       self.patch_chain.check_after(tool_name, args, result.content, true)
       return result
     }
+  }
+  // Canonical-name restriction re-check: an alias (e.g. "Write", "EDIT")
+  // that slipped past the raw-name check cannot bypass forbidden/allowed.
+  match self.tool_restriction_reason(canonical) {
+    Some(reason) => {
+      let result = build_denied_result(call, Some(reason))
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
+    }
+    None => ()
   }
   // Get the tool instance
   let tool = match self.tool_registry.get(canonical) {
@@ -962,6 +985,33 @@ pub fn build_error_result(
 ) -> ToolResultEntry {
   let content = Json::object({ "error": ToJson::to_json(error_message) }).stringify()
   { id: call.id, content, is_error: true, image_inject: None }
+}
+
+///|
+/// Check whether a tool name is restricted by this agent's subagent
+/// forbidden/allowed sets (B7 decision 5). Returns a denial reason, or
+/// None when the tool may execute.
+///
+/// Mirrors Ruby fork_subagent's before_tool_use hook semantics:
+/// forbidden_tools deny by exact name; allowed_tools (when set and
+/// non-empty) deny everything not listed. Ordinary (non-subagent)
+/// agents have both sets empty/None and are never restricted.
+fn Agent::tool_restriction_reason(self : Agent, name : String) -> String? {
+  for f in self.forbidden_tools {
+    if f == name {
+      return Some("Tool '\{name}' is forbidden in this subagent context")
+    }
+  }
+  match self.allowed_tools {
+    Some(allowed) =>
+      if !allowed.is_empty() && !allowed.contains(name) {
+        return Some(
+          "Tool '\{name}' is not in the allowed tool set for this subagent",
+        )
+      }
+    None => ()
+  }
+  None
 }
 
 ///|
