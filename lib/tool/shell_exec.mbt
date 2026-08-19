@@ -155,7 +155,7 @@ pub async fn run_shell_command(
   // On Windows the command runs from a temp .bat under cmd.exe /v:on so
   // that !ERRORLEVEL! above is expanded AFTER the command completes
   // (see terminal_exec.mbt for why a batch file is needed).
-  let sys_exit = run_system_command(shell_cmd)
+  let sys_exit = run_system_command(shell_cmd, Map([]))
   let raw = @fs.read_file_to_string(output_file) catch { _ => "" }
   @fs.remove_file(output_file) catch {
     _ => ()

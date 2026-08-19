@@ -51,11 +51,15 @@ pub fn is_slow_command(command : String) -> Bool {
 ///|
 /// Check if a command is multi-line (contains newlines or heredocs).
 /// Multi-line commands are unreliable in PTY shells and should be written to a file first.
+/// Ruby semantics: trailing newlines are stripped before checking (the model
+/// frequently emits a single trailing \n, which must not be rejected).
 pub fn is_multiline_command(command : String) -> Bool {
-  if command.find("\n") is Some(_) {
+  // Strip trailing whitespace/newlines, then test for an inner newline.
+  let trimmed = command.trim().to_owned()
+  if trimmed.find("\n") is Some(_) {
     return true
   }
-  if command.find("\r") is Some(_) {
+  if trimmed.find("\r") is Some(_) {
     return true
   }
   false
@@ -186,20 +190,15 @@ fn is_windows_platform() -> Bool {
 }
 
 ///|
-/// Execute a command by spawning a shell process via @process.run.
-/// Returns (output, exit_code, output_file_path).
-async fn execute_command_sync(
+/// Build the shell command line that captures output + exit-code marker.
+/// Used by both foreground (sync) and background (spawn_orphan) execution.
+fn build_marker_shell_cmd(
   user_command : String,
   cwd : String,
-  _timeout_ms : Int,
-  session_id : Int,
-) -> (String, Int, String) {
-  let output_file = build_output_file_path(session_id)
-  let token = generate_marker_token()
-  let is_win = is_windows_platform()
-
-  // Build shell command that captures output + exit code marker
-  let shell_cmd = if is_win {
+  output_file : String,
+  token : String,
+) -> String {
+  if is_windows_platform() {
     let cd_part = if cwd != "." && !cwd.is_empty() {
       "cd /d \"" + cwd + "\" && "
     } else {
@@ -238,13 +237,41 @@ async fn execute_command_sync(
     output_file +
     "'"
   }
+}
 
-  // Execute via the platform shell spawned by @process.run. Passing the
-  // command as a single argv element avoids the double-shell quoting the
-  // old system()-based path needed ("sh -c '...'" / cmd.exe wrapper).
-  let sys_exit_code = run_system_command(shell_cmd)
+///|
+/// Execute a command by spawning a shell process via @process.run.
+/// Returns (output, exit_code, output_file_path, timed_out).
+///
+/// Timeout semantics (Ruby-aligned): the run is bounded by `timeout_ms`;
+/// on timeout the child is terminated (graceful TERM then KILL via the
+/// cancellation handler), the partial output produced so far is returned
+/// together with the timed_out flag.
+async fn execute_command_sync(
+  user_command : String,
+  cwd : String,
+  timeout_ms : Int,
+  session_id : Int,
+  env : Map[String, String],
+) -> (String, Int, String, Bool) {
+  let output_file = build_output_file_path(session_id)
+  let token = generate_marker_token()
+  let shell_cmd = build_marker_shell_cmd(user_command, cwd, output_file, token)
 
-  // Read the output file
+  // Execute via the platform shell spawned by @process.run, bounded by
+  // the timeout. On timeout with_timeout_opt cancels the run task, which
+  // triggers @process.run's cancellation handler (graceful_cancel →
+  // TERM then KILL) to stop the child.
+  let result = @async.with_timeout_opt(timeout_ms, async fn() {
+    run_system_command(shell_cmd, env)
+  })
+  let timed_out = result is None
+  let sys_exit_code = match result {
+    Some(code) => code
+    None => -1
+  }
+
+  // Read the output file (may hold partial output on timeout)
   let raw_output = @fs.read_file_to_string(output_file) catch { _ => "" }
 
   // Parse completion marker for the real exit code
@@ -256,7 +283,92 @@ async fn execute_command_sync(
   // Remove marker line from output
   let cleaned_output = remove_marker_line(raw_output, token)
 
-  (cleaned_output, real_exit_code, output_file)
+  (cleaned_output, real_exit_code, output_file, timed_out)
+}
+
+///|
+/// Spawn a background command via spawn_orphan (truly async, PID tracked).
+///
+/// The command runs in an orphaned process writing to the session output
+/// file with a completion marker. A stdin pipe is created for interactive
+/// input; the writer is registered with the session manager.
+/// Returns the PID on success.
+async fn spawn_background_command(
+  user_command : String,
+  cwd : String,
+  output_file : String,
+  token : String,
+  env : Map[String, String],
+  session_id : Int,
+) -> Result[Int, String] {
+  let (child_stdin, stdin_writer) = @process.write_to_process() catch {
+    _ => return Err("failed to create stdin pipe")
+  }
+  let shell_cmd = build_marker_shell_cmd(user_command, cwd, output_file, token)
+  if is_windows_platform() {
+    windows_bat_counter.val = windows_bat_counter.val + 1
+    let bat_path = @path.Path::join(
+      shell_temp_dir(),
+      @path.Path(
+        "clacky_bg_\{@env.now().reinterpret_as_int64()}_\{windows_bat_counter.val}.bat",
+      ),
+    ).to_string()
+    @fs.write_string_to_file(bat_path, "@echo off\r\n" + shell_cmd + "\r\n") catch {
+      _ => return Err("failed to write background batch file")
+    }
+    let pid = @process.spawn_orphan(
+      "cmd.exe",
+      ["/v:on", "/c", bat_path],
+      stdin=child_stdin,
+      extra_env=env,
+      no_console_window=true,
+    ) catch {
+      _ => return Err("failed to spawn background process (cmd.exe)")
+    }
+    TerminalSessionManager::set_stdin_writer(session_id, stdin_writer)
+    Ok(pid)
+  } else {
+    let pid = @process.spawn_orphan(
+      "bash",
+      ["-c", shell_cmd],
+      stdin=child_stdin,
+      extra_env=env,
+    ) catch {
+      _ => return Err("failed to spawn background process (bash)")
+    }
+    TerminalSessionManager::set_stdin_writer(session_id, stdin_writer)
+    Ok(pid)
+  }
+}
+
+///|
+/// Poll a background session: read incremental output from the capture
+/// file; if the completion marker is present, finalize the session.
+/// Returns (output, exited, exit_code).
+fn poll_background_session(session : TerminalSession) -> (String, Bool, Int) {
+  match session.output_file {
+    Some(path) => {
+      let raw = @fs.read_file_to_string(path) catch { _ => "" }
+      let token = session.marker_token
+      let len = raw.length()
+      let new_part = if len > session.output_offset {
+        let s = raw[session.output_offset:].to_owned()
+        s
+      } else {
+        ""
+      }
+      // Detect completion marker
+      let exit_code = parse_completion_marker(raw, token)
+      match exit_code {
+        Some(code) => {
+          let cleaned = remove_marker_line(raw, token)
+          (cleaned, true, code)
+        }
+        None => (new_part, false, -1)
+      }
+    }
+    None => ("", false, -1)
+  }
 }
 
 ///|
@@ -332,7 +444,12 @@ impl Tool for Terminal with fn parameters(_) -> Json {
       }),
       "timeout": Json::object({
         "type": "integer".to_json(),
-        "description": "Maximum execution time in milliseconds (default: 30000)".to_json(),
+        "description": "Maximum execution time in seconds (default: 60)".to_json(),
+      }),
+      "env": Json::object({
+        "type": "object".to_json(),
+        "description": "Extra environment variables for the command (string keys/values)".to_json(),
+        "additionalProperties": Json::object({ "type": "string".to_json() }),
       }),
       "kill": Json::object({
         "type": "boolean".to_json(),
@@ -345,6 +462,28 @@ impl Tool for Terminal with fn parameters(_) -> Json {
 ///|
 impl Tool for Terminal with fn category(_) -> ToolCategory {
   Execution
+}
+
+///|
+/// Extract the env argument as a Map[String, String].
+fn extract_env_arg(args : Map[String, Json]) -> Map[String, String] {
+  let result : Map[String, String] = Map([])
+  match args.get("env") {
+    Some(Object(m)) =>
+      for entry in m.iter() {
+        let k = entry.0
+        let v = entry.1
+        match v {
+          String(s) => result[k] = s
+          Number(n, ..) => result[k] = n.to_string()
+          True => result[k] = "true"
+          False => result[k] = "false"
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  result
 }
 
 ///|
@@ -375,20 +514,83 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
         Some(String(s)) => s
         _ => ""
       }
+      // Interactive input: deliver to the session's stdin pipe.
+      if !input.is_empty() {
+        let delivered = TerminalSessionManager::send_input(id, input)
+        if !delivered {
+          return ToolResult::error(
+            "Session #\{id} not found, already exited, or has no input channel.",
+          )
+        }
+        return ToolResult::success(
+          "Session #\{id}: input sent to the running process.",
+        )
+      }
+      // Poll: for background sessions read incremental output from file.
       return match TerminalSessionManager::get(id) {
         Some(session) =>
           if session.status == Exited || session.status == Killed {
             let status_str = session.status.to_string()
             TerminalSessionManager::forget(id)
             ToolResult::error("Session #\{id} has already \{status_str}.")
-          } else if input.is_empty() {
-            // Poll: return current output
+          } else if session.output_file is Some(_) {
+            // Background session: poll the capture file.
+            let (new_output, exited, exit_code) = poll_background_session(
+              session,
+            )
+            if exited {
+              let (cleaned, was_truncated, overflow_file) = enhanced_process_terminal_output(
+                new_output,
+                command=session.command,
+                max_chars=terminal_max_output_chars,
+                session_id=id,
+              )
+              TerminalSessionManager::complete(
+                id,
+                cleaned,
+                exit_code,
+                overflow_file~,
+              )
+              let parts : Array[String] = [
+                "Session #\{id} [exited]:\n\{cleaned}",
+                "exit_code: \{exit_code}",
+              ]
+              if was_truncated {
+                match overflow_file {
+                  Some(path) => parts.push("full_output_file: \{path}")
+                  None => ()
+                }
+              }
+              ToolResult::success(parts.join("\n"))
+            } else {
+              let session_now = match TerminalSessionManager::get(id) {
+                Some(s) => s
+                None => session
+              }
+              let _ = session_now
+              // Update offset for incremental reads
+              match session.output_file {
+                Some(path) => {
+                  let raw = @fs.read_file_to_string(path) catch { _ => "" }
+                  let new_off = raw.length()
+                  if new_off > session.output_offset {
+                    match TerminalSessionManager::get(id) {
+                      Some(s) => s.output_offset = new_off
+                      _ => ()
+                    }
+                  }
+                }
+                None => ()
+              }
+              ToolResult::success(
+                "Session #\{id} [running]:\n\{new_output}\n" +
+                background_hint(false, id),
+              )
+            }
+          } else {
+            // Non-background (simplified) session: return stored output.
             ToolResult::success(
               "Session #\{id} [\{session.status.to_string()}]:\n\{session.output}",
-            )
-          } else {
-            ToolResult::success(
-              "Session #\{id}: input received (interactive input not yet supported in simplified mode).",
             )
           }
         None =>
@@ -411,7 +613,7 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
     return ToolResult::error("command cannot be empty")
   }
 
-  // Multi-line command block
+  // Multi-line command block (trailing newline stripped before the check)
   if is_multiline_command(command) {
     return ToolResult::error(
       "Multi-line commands are unreliable in our terminal shell " +
@@ -427,17 +629,30 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
     Some(String(s)) => s
     _ => "."
   }
-  let mut timeout = get_int_arg(args, "timeout", self.timeout)
+  // timeout is in SECONDS (Ruby semantics); convert to ms internally.
+  let mut timeout_sec = get_int_arg(args, "timeout", self.timeout / 1000)
+  let env = extract_env_arg(args)
 
-  // Security check
+  // Security check — propagate the concrete reason on rejection.
   let safe_cmd = make_safe(command) catch {
-    _ => return ToolResult::error("[Security] command validation failed")
+    SecurityError(msg) => return ToolResult::error("[Security] \{msg}")
   }
 
-  // Slow command auto-extension
+  // Safe-rm interception (Unix only): source the embedded safe_rm.sh so
+  // `rm` moves files into the per-project trash, and inject
+  // CLACKY_TRASH_DIR (Ruby spawn_shell semantics). The prefix goes on
+  // the already-safety-checked command, so it cannot bypass make_safe.
+  let safe_rm_path = ensure_safe_rm_script()
+  let spawn_cmd = match safe_rm_path {
+    Some(p) => with_safe_rm_prefix(safe_cmd, p)
+    None => safe_cmd
+  }
+  let spawn_env = merge_trash_env(env, cwd)
+
+  // Slow command auto-extension (seconds)
   if !background && is_slow_command(command) {
-    if timeout < slow_command_timeout_seconds * 1000 {
-      timeout = slow_command_timeout_seconds * 1000
+    if timeout_sec < slow_command_timeout_seconds {
+      timeout_sec = slow_command_timeout_seconds
     }
   }
 
@@ -446,41 +661,64 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
 
   // Register session
   let sid = TerminalSessionManager::register(command, cwd)
+  let timeout_ms = timeout_sec * 1000
 
   if background {
-    // Background mode: execute and report as background session
-    let (raw_output, exit_code, _output_file) = execute_command(
-      safe_cmd, cwd, timeout, sid,
-    )
-    let (cleaned, was_truncated, overflow_file) = enhanced_process_terminal_output(
-      raw_output,
-      command=safe_cmd,
-      max_chars=terminal_max_output_chars,
-      session_id=sid,
-    )
-    TerminalSessionManager::complete(sid, cleaned, exit_code, overflow_file~)
-    TerminalSessionManager::mark_running(sid)
+    // True background: spawn an orphan process, return immediately.
+    let output_file = build_output_file_path(sid)
+    let token = generate_marker_token()
+    match
+      spawn_background_command(
+        spawn_cmd, cwd, output_file, token, spawn_env, sid,
+      ) {
+      Err(msg) => {
+        TerminalSessionManager::forget(sid)
+        return ToolResult::error("Background spawn failed: \{msg}")
+      }
+      Ok(pid) => {
+        TerminalSessionManager::set_pid(sid, pid)
+        TerminalSessionManager::set_output_file(sid, output_file, token)
+        TerminalSessionManager::mark_running(sid)
 
-    let result_parts : Array[String] = []
-    match sec_note {
-      Some(note) => result_parts.push(note)
-      None => ()
-    }
-    result_parts.push("[Terminal] Background session #\{sid}")
-    result_parts.push(cleaned)
-    result_parts.push("exit_code: \{exit_code}")
-    if was_truncated {
-      match overflow_file {
-        Some(path) => result_parts.push("full_output_file: \{path}")
-        None => ()
+        // Collect the first ~300ms of startup output so the model sees
+        // immediate feedback (mirrors Ruby BACKGROUND_COLLECT_SECONDS).
+        @async.sleep(300)
+        let (new_output, _exited, _code) = poll_background_session(
+          match TerminalSessionManager::get(sid) {
+            Some(s) => s
+            None =>
+              return ToolResult::success(
+                "Session #\{sid} started (pid \{pid}).",
+              )
+          },
+        )
+        match TerminalSessionManager::get(sid) {
+          Some(s) =>
+            s.output_offset = match s.output_file {
+              Some(path) =>
+                (@fs.read_file_to_string(path) catch { _ => "" }).length()
+              None => 0
+            }
+          _ => ()
+        }
+
+        let parts : Array[String] = []
+        match sec_note {
+          Some(note) => parts.push(note)
+          None => ()
+        }
+        parts.push("[Terminal] Background session #\{sid} started (pid \{pid})")
+        if !new_output.is_empty() {
+          parts.push(new_output)
+        }
+        parts.push(background_hint(true, sid))
+        ToolResult::success(parts.join("\n"))
       }
     }
-    result_parts.push(background_hint(true, sid))
-    ToolResult::success(result_parts.join("\n"))
   } else {
     // Foreground mode: execute and wait for completion
-    let (raw_output, exit_code, _output_file) = execute_command(
-      safe_cmd, cwd, timeout, sid,
+    let (raw_output, exit_code, _output_file, timed_out) = execute_command(
+      spawn_cmd, cwd, timeout_ms, sid, spawn_env,
     )
     let (cleaned, was_truncated, overflow_file) = enhanced_process_terminal_output(
       raw_output,
@@ -494,6 +732,11 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
     match sec_note {
       Some(note) => result_parts.push(note)
       None => ()
+    }
+    if timed_out {
+      result_parts.push(
+        "[Terminal] Command timed out after \{timeout_sec}s (partial output shown).",
+      )
     }
     result_parts.push(cleaned)
     result_parts.push("exit_code: \{exit_code}")

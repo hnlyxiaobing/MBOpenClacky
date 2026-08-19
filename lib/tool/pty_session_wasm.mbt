@@ -13,6 +13,7 @@ async fn execute_command(
   cwd : String,
   timeout_ms : Int,
   session_id : Int,
+  env : Map[String, String],
 ) -> (String, Int, String) {
-  execute_command_sync(user_command, cwd, timeout_ms, session_id)
+  execute_command_sync(user_command, cwd, timeout_ms, session_id, env)
 }

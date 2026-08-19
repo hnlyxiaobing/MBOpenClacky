@@ -109,6 +109,7 @@ async fn[X] PtyHandle::spawn(
   group : @async.TaskGroup[X],
   shell : String,
   cwd : String,
+  env : Map[String, String],
 ) -> Result[PtyHandle, String] {
   // bash: --noediting disables readline line editing, whose bracketed-paste
   // / cursor-addressing escape sequences would otherwise interleave with
@@ -120,7 +121,7 @@ async fn[X] PtyHandle::spawn(
   } else {
     [shell[:]]
   }
-  let pty = @pty.spawn(group, shell[:], argv[:], cwd=cwd[:]) catch {
+  let pty = @pty.spawn(group, shell[:], argv[:], extra_env=env, cwd=cwd[:]) catch {
     err => return Err("failed to spawn PTY: \{err}")
   }
   Ok(PtyHandle::{ pty, cwd })
