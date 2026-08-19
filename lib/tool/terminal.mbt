@@ -171,9 +171,16 @@ fn get_temp_dir() -> String {
 
 ///|
 /// Build a temp file path for command output capture.
-fn build_output_file_path(session_id : Int) -> String {
+/// The per-call marker token is part of the file name so that concurrently
+/// running commands (e.g. parallel white-box tests invoking
+/// search_custom_script) never collide on the same output file even when
+/// `session_id` repeats (it is a business session id, not unique per call).
+fn build_output_file_path(session_id : Int, token : String) -> String {
   let tmp_dir = get_temp_dir()
-  @path.Path::join(tmp_dir, @path.Path("clacky_term_\{session_id}.out")).to_string()
+  @path.Path::join(
+    tmp_dir,
+    @path.Path("clacky_term_\{session_id}_\{token}.out"),
+  ).to_string()
 }
 
 ///|
@@ -254,8 +261,11 @@ async fn execute_command_sync(
   session_id : Int,
   env : Map[String, String],
 ) -> (String, Int, String, Bool) {
-  let output_file = build_output_file_path(session_id)
+  // Token first: the output file path embeds the token (unique per call in
+  // this process), so parallel executions with an equal session_id never
+  // share an output file.
   let token = generate_marker_token()
+  let output_file = build_output_file_path(session_id, token)
   let shell_cmd = build_marker_shell_cmd(user_command, cwd, output_file, token)
 
   // Execute via the platform shell spawned by @process.run, bounded by
@@ -665,8 +675,8 @@ impl Tool for Terminal with fn execute(self, args : Map[String, Json]) -> ToolRe
 
   if background {
     // True background: spawn an orphan process, return immediately.
-    let output_file = build_output_file_path(sid)
     let token = generate_marker_token()
+    let output_file = build_output_file_path(sid, token)
     match
       spawn_background_command(
         spawn_cmd, cwd, output_file, token, spawn_env, sid,
