@@ -514,19 +514,47 @@ fn parse_mcp_tool_response(response : Json) -> ToolResult {
     }
     { "content": Array(items), .. } => {
       let parts : Array[String] = []
+      // Image blocks (screenshot) are carried as data-URI lines so the
+      // screenshot producer (format_screenshot_result) can extract the
+      // real base64 payload instead of dropping it (aligned with Ruby
+      // `browser.rb` which pulls `type == "image"` blocks directly).
+      let image_lines : Array[String] = []
       for item in items {
         match item {
-          { "text": String(text), .. } => parts.push(text)
+          { "type": "text", "text": String(text), .. } => parts.push(text)
+          {
+            "type": "image",
+            "data": String(data),
+            "mimeType": String(mime),
+            ..
+          } => image_lines.push("data:\{mime};base64,\{data}")
+          { "type": "image", "data": String(data), .. } =>
+            image_lines.push("data:image/png;base64,\{data}")
           _ => ()
         }
       }
-      if parts.length() > 0 {
-        let output = join_browser_parts(parts, "\n")
-        ToolResult::success(
-          truncate_browser_output(output, max_llm_output_chars),
+      // Text part is truncated for LLM token budget; image data-URI lines
+      // must NOT be truncated or the base64 payload becomes unusable.
+      let text_part = if parts.length() > 0 {
+        truncate_browser_output(
+          join_browser_parts(parts, "\n"),
+          max_llm_output_chars,
         )
+      } else if image_lines.length() > 0 {
+        ""
       } else {
-        ToolResult::success("(empty response)")
+        "(empty response)"
+      }
+      if image_lines.length() > 0 {
+        let img = join_browser_parts(image_lines, "\n")
+        let output = if text_part.is_empty() {
+          img
+        } else {
+          text_part + "\n" + img
+        }
+        ToolResult::success(output)
+      } else {
+        ToolResult::success(text_part)
       }
     }
     String(text) => ToolResult::success(text)

@@ -25,7 +25,7 @@ import {
 supported_targets = "native"
 
 options(
-  "native-stub": [ "stat_native.c" ],
+  "native-stub": [ "stat_native.c", "browser_popen.c" ],
   targets: {
     "terminal_exec.mbt": [ "native" ],
     "terminal_exec_wasm.mbt": [ "wasm", "wasm-gc" ],

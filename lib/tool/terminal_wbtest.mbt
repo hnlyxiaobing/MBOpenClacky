@@ -228,8 +228,12 @@ test "spill_overflow_file writes random sidecar" {
   }
   assert_true(path != path2)
   // 清理
-  @fs.remove_file(path) catch { _ => () }
-  @fs.remove_file(path2) catch { _ => () }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+  @fs.remove_file(path2) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -253,7 +257,9 @@ test "enhanced pipeline spills and keeps tail" {
       }
       assert_true(full.contains("head-line"))
       assert_true(full.contains("tail-line"))
-      @fs.remove_file(path) catch { _ => () }
+      @fs.remove_file(path) catch {
+        _ => ()
+      }
     }
     None => fail("expected overflow file")
   }

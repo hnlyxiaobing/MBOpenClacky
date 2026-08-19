@@ -261,6 +261,8 @@ pub fn strip_command_echo(output : String, command : String) -> String {
 /// the OS, and we also best-effort prune files older than 7 days on
 /// each write so long-running servers don't accumulate garbage.
 let overflow_dir_name : String = "clacky-terminal-overflow"
+
+///|
 let overflow_max_age_sec : Int64 = 7 * 24 * 60 * 60
 
 ///|
@@ -268,19 +270,13 @@ let overflow_max_age_sec : Int64 = 7 * 24 * 60 * 60
 /// swallowed — we'd rather keep the current command's result than crash
 /// because of stale cleanup.
 fn prune_old_overflow_files(dir : String) -> Unit {
-  let cutoff_sec = @env.now().reinterpret_as_int64() / 1000 - overflow_max_age_sec
-  let files = @fs.read_dir(dir) catch {
-    _ => return
-  }
+  let cutoff_sec = @env.now().reinterpret_as_int64() / 1000 -
+    overflow_max_age_sec
+  let files = @fs.read_dir(dir) catch { _ => return }
   for name in files {
     let full = @path.Path::join(dir, @path.Path(name)).to_string()
     match mtime_sec_or_none(full) {
-      Some(m) =>
-        if m < cutoff_sec {
-          @fs.remove_file(full) catch {
-            _ => ()
-          }
-        }
+      Some(m) => if m < cutoff_sec { @fs.remove_file(full) catch { _ => () } }
       None => ()
     }
   }
@@ -295,7 +291,11 @@ fn now_stamp() -> String {
     _ => return "00000000-000000"
   }
   let p2 = fn(n : Int) -> String {
-    if n < 10 { "0" + n.to_string() } else { n.to_string() }
+    if n < 10 {
+      "0" + n.to_string()
+    } else {
+      n.to_string()
+    }
   }
   dt.year().to_string() +
   p2(dt.month()) +

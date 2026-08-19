@@ -2,6 +2,171 @@
 
 ///| Tests scroll native dispatch, fallback, fill focus/blur, and graceful degradation.
 
+///|
+/// Extract the value of a `marker`-prefixed line (e.g. "base64_data: ...").
+fn extract_marked_line(result : String, marker : String) -> String? {
+  for sv in result.split("\n") {
+    let line = sv.trim().to_owned()
+    if line.starts_with(marker) {
+      return Some(line[marker.length():].to_owned().trim().to_owned())
+    }
+  }
+  None
+}
+
+///|
+/// Test: PNG wider than 800px is downscaled to 800px (via python3+PIL when
+/// available) — Ruby downscale_png_chunky alignment. Verifies dual file
+/// saves (original + compressed) and a real base64 payload in image_inject.
+test "screenshot_downscale_real_png_via_pil" {
+  let has_pil = run_command_sync("python3 -c 'import PIL'")
+  if !has_pil {
+    println("SKIP: python3+PIL not available")
+    return
+  }
+  let tmp_dir = get_temp_dir_path()
+  let src = @path.Path::join(tmp_dir, @path.Path("mbopenclacky_test_1000.png")).to_string()
+  let gen = "python3 -c 'from PIL import Image; im=Image.new(\"RGB\",(1000,600),(255,0,0)); im.save(\"\{src}\")'"
+  assert_true(run_command_sync(gen), msg="PIL PNG generation should succeed")
+  let png_bytes = @fs.read_file_to_bytes(src) catch {
+    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+  }
+  @fs.remove_file(src) catch {
+    _ => ()
+  }
+  assert_true(png_bytes.length() > 0, msg="test PNG should be non-empty")
+  // Original width must be 1000 (> 800 → triggers downscale)
+  assert_eq(png_width(png_bytes), Some(1000))
+  let b64 = @base64.encode(png_bytes.view())
+  let result = format_screenshot_result("data:image/png;base64,\{b64}")
+  assert_true(result.find("Screenshot captured.") is Some(_))
+  assert_true(result.find("- Original (full resolution):") is Some(_))
+  assert_true(result.find("- Compressed (800px, sent to AI):") is Some(_))
+  // The injected payload must be real base64 of an 800px image (not a placeholder)
+  match extract_marked_line(result, "base64_data: ") {
+    Some(b64_data) => {
+      assert_true(
+        b64_data != "(\{b64.length()} chars)",
+        msg="must be real payload",
+      )
+      let decoded = @base64.decode(b64_data.view()) catch {
+        _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+      }
+      assert_eq(png_width(decoded), Some(800))
+    }
+    None => assert_true(false, msg="image_inject base64_data missing")
+  }
+  // Both files must exist on disk under $TMPDIR/clacky-uploads/
+  match extract_marked_line(result, "path: ") {
+    Some(p) =>
+      assert_true(@fs.path_exists(p), msg="compressed file should exist")
+    None => assert_true(false, msg="image_inject path missing")
+  }
+}
+
+///|
+/// Test: PNG already ≤ 800px is returned as-is (no tool invocation) and
+/// still produces a successful result with real payload.
+test "screenshot_small_png_kept_as_is" {
+  let has_pil = run_command_sync("python3 -c 'import PIL'")
+  if !has_pil {
+    println("SKIP: python3+PIL not available")
+    return
+  }
+  let tmp_dir = get_temp_dir_path()
+  let src = @path.Path::join(tmp_dir, @path.Path("mbopenclacky_test_600.png")).to_string()
+  let gen = "python3 -c 'from PIL import Image; im=Image.new(\"RGB\",(600,400),(0,128,255)); im.save(\"\{src}\")'"
+  assert_true(run_command_sync(gen))
+  let png_bytes = @fs.read_file_to_bytes(src) catch {
+    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+  }
+  @fs.remove_file(src) catch {
+    _ => ()
+  }
+  assert_eq(png_width(png_bytes), Some(600))
+  let b64 = @base64.encode(png_bytes.view())
+  let result = format_screenshot_result("data:image/png;base64,\{b64}")
+  assert_true(result.find("Screenshot captured.") is Some(_))
+  // No downscale note should appear (kept original resolution)
+  assert_true(result.find("no downscaling tool") is None)
+  // size must equal the original bytes length
+  match extract_marked_line(result, "size: ") {
+    Some(sz) => {
+      let expected = png_bytes.length().to_string()
+      assert_true(sz.starts_with(expected), msg="size should be original bytes")
+    }
+    None => assert_true(false, msg="size line missing")
+  }
+}
+
+///|
+/// Test: screenshot that stays over 150KB after downscaling is rejected with
+/// the Ruby-aligned hint (Use action=snapshot instead).
+test "screenshot_too_large_rejected_after_resize" {
+  let has_pil = run_command_sync("python3 -c 'import PIL'")
+  if !has_pil {
+    println("SKIP: python3+PIL not available")
+    return
+  }
+  let tmp_dir = get_temp_dir_path()
+  let src = @path.Path::join(tmp_dir, @path.Path("mbopenclacky_test_noise.png")).to_string()
+  // 1600x1600 random noise → downscale to 800x800 still ≫ 150KB
+  let gen = "python3 -c 'import random; from PIL import Image; im=Image.new(\"RGB\",(1600,1600)); im.putdata([(random.randint(0,255),random.randint(0,255),random.randint(0,255)) for _ in range(1600*1600)]); im.save(\"\{src}\")'"
+  assert_true(run_command_sync(gen))
+  let png_bytes = @fs.read_file_to_bytes(src) catch {
+    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+  }
+  @fs.remove_file(src) catch {
+    _ => ()
+  }
+  assert_true(
+    png_bytes.length() > 150 * 1024,
+    msg="noise PNG should exceed 150KB already",
+  )
+  let b64 = @base64.encode(png_bytes.view())
+  let result = format_screenshot_result("data:image/png;base64,\{b64}")
+  assert_true(
+    result.find("Screenshot too large after resize") is Some(_),
+    msg="should reject oversized screenshot",
+  )
+  assert_true(result.find("Use action=snapshot instead") is Some(_))
+}
+
+///|
+/// Test: PNG without PIL support (non-PNG data) — no crash, decode fallback
+/// keeps original payload as placeholder reference.
+test "screenshot_invalid_png_bytes_no_crash" {
+  // 4 random bytes — valid base64, invalid PNG
+  let fake_b64 = "dGVzdA=="
+  let result = format_screenshot_result("data:image/png;base64,\{fake_b64}")
+  assert_true(result.find("mime_type: image/png") is Some(_))
+  assert_true(result.find("format: png") is Some(_))
+  // decodes to 4 bytes → not a PNG → png_width None → downscale skipped,
+  // still within size budget → success with real payload
+  assert_true(result.find("Screenshot captured.") is Some(_))
+  assert_true(result.find("base64_data: dGVzdA==") is Some(_))
+}
+
+///|
+/// Test: save_path overrides original file location (MB extension).
+test "screenshot_save_path_override" {
+  let fake_b64 = "dGVzdA=="
+  let custom = @path.Path(get_temp_dir_path())
+    .join(@path.Path("mbopenclacky_custom_screenshot.png"))
+    .to_string()
+  let result = format_screenshot_result(
+    "data:image/png;base64,\{fake_b64}",
+    save_path=Some(custom),
+  )
+  let has_path = result.find(custom) is Some(_)
+  let has_fail_note = result.find("Failed to save") is Some(_)
+  assert_true(has_path || has_fail_note)
+  // clean up if written
+  @fs.remove_file(custom) catch {
+    _ => ()
+  }
+}
+
 // ── Screenshot Pipeline Tests (Task #2) ─────────────────────────────────────
 
 ///|
