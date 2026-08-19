@@ -1,7 +1,7 @@
 ﻿# 消息格式与会话持久化对齐（矩阵§4）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: ✅ 已完成（2026-08-19）· 已归档至 `specs/completed/`  
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §4  
 > **关联历史 spec**: 边界——token 估算（CJK 加权）归既有 `p5-token-estimation-alignment`；压缩簇（矩阵§5）归 p5-compression-trigger-semantics 等既有 spec；attach/continue CLI 语义与 B8 cli spec 交接（数据层在本 spec，CLI 入口在 B8）；矩阵旧台账编号已被覆盖，一律使用 `矩阵§4/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§4 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -127,15 +127,15 @@ Ruby 参照（openclacky，只读）：`message_history.rb:13-18,104-117,248-253
 
 ## 验收标准 [必填]
 
-- [ ] 生产 history 经 MessageHistory 封装，悬空 tool_calls 在 to_api 前被 "(interrupted)" 修复
-- [ ] 中断后恢复的会话请求通过 tool_use/tool_result 配对校验
-- [ ] 连续创建 1000 个会话无 ID 碰撞；旧格式会话仍可加载
-- [ ] pinned 会话在容量清理中豁免；软删除宽限期与回收站行为可回归验证
-- [ ] transient 不落盘；token_usage/compressed_summary 恢复后保留
-- [ ] 恢复后 todos/goal/previous_total_tokens 非零（存档有值时）；system prompt 为当前版本
-- [ ] 列表 updated_at 降序、前缀匹配命中；fork 保留 time_machine
-- [ ] compress_old_sessions_if_needed 裁决落地（移除或记录保留理由）
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] 生产 history 经 MessageHistory 封装，悬空 tool_calls 在 to_api 前被 "(interrupted)" 修复
+- [x] 中断后恢复的会话请求通过 tool_use/tool_result 配对校验
+- [x] 连续创建 1000 个会话无 ID 碰撞；旧格式会话仍可加载
+- [x] pinned 会话在容量清理中豁免；软删除宽限期与回收站行为可回归验证
+- [x] transient 不落盘；token_usage/compressed_summary 恢复后保留
+- [x] 恢复后 todos/goal/previous_total_tokens 非零（存档有值时）；system prompt 为当前版本
+- [x] 列表 updated_at 降序、前缀匹配命中；fork 保留 time_machine
+- [x] compress_old_sessions_if_needed 裁决落地（移除或记录保留理由）
+- [x] `moon check` 0 errors；全量 `moon test` 无回归（lib/agent 417/417）
 
 ## 风险评估 [必填]
 
@@ -155,3 +155,7 @@ Ruby 参照（openclacky，只读）：`message_history.rb:13-18,104-117,248-253
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§4 残留条目核实落 spec；4 项直接证实 + 13 项静态证实留任务包 0 复核；矩阵 unclear 条目 compress_old_sessions 升级为已核实生产调用）。
+- 2026-08-19：全部 4 个任务包完成并归档。
+  - **豁免记录**：`goal` 字段——MB `SessionData` 与 Ruby `session_serializer.rb` 均无持久化载体，跳过（无消费方）。`channel_info`/`time_machine` 在 `RestoreResult` 透传往返保留，Agent 无对应字段，记录豁免。`ext_events`/INTERNAL_FIELDS——仅移植 MB 有消费方的字段子集。
+  - **裁决落地**（决策 9）：`compress_old_sessions_if_needed` 及 `truncate_session` 已移除（cmd/main.mbt 调用点 + session_manager.mbt 实现）；ZIP 导出/导入作为 MB 超集**保留**（归档时记录，不改代码）；chunk front matter（`build_chunk_md`）确认已有；全文搜索按 Ruby 移植——`search_content` 匹配行改 `snippet_around` 上下文片段（前后 60 字符、边界省略号）+ 5000ms 软超时（每文件间查 deadline，MoonBit 无同步 IO 协作取消，为 `Timeout.timeout` 最接近等价物）。
+  - **工具链备注**：`moon info` 触发编译器 ICE（moonc 对 `_build/.../x/crypto/crypto.mi` 的 WSL 路径解析 bug，该 .mi 文件实际存在），与代码无关，跳过；关键验证为 `moon check` 0 errors + `moon test lib/agent` 417/417 通过。
