@@ -32,6 +32,11 @@ pub(open) trait StreamCallback {
 /// Parse all complete SSE frames from a text string.
 /// Returns the list of parsed frames (incomplete trailing data is discarded).
 pub fn parse_sse_frames(text : String) -> Array[SseFrame] {
+  // Normalize CRLF (and lone CR) line endings to LF before splitting —
+  // some proxies emit CRLF-terminated frames, and without this the
+  // "\n\n" delimiter never matches (each frame's last line ends in
+  // "\r\n\r\n"). Mirrors Ruby client.rb drain_sse_frames line chomping.
+  let text = normalize_sse_crlf(text)
   let frames : Array[SseFrame] = []
   let mut pos = 0
   let len = text.length()
@@ -53,6 +58,29 @@ pub fn parse_sse_frames(text : String) -> Array[SseFrame] {
 }
 
 ///|
+/// Normalize CRLF / lone-CR line endings to LF for SSE parsing.
+fn normalize_sse_crlf(text : String) -> String {
+  let bytes = @utf8.encode(text).to_array()
+  let out : Array[Byte] = []
+  let mut i = 0
+  let n = bytes.length()
+  while i < n {
+    let b = bytes[i]
+    if b == b'\r' {
+      // \r\n → keep only \n; lone \r → \n
+      if i + 1 < n && bytes[i + 1] == b'\n' {
+        i = i + 1
+      }
+      out.push(b'\n')
+    } else {
+      out.push(b)
+    }
+    i = i + 1
+  }
+  @utf8.decode_lossy(Bytes::from_array(out))
+}
+
+///|
 /// Parse a single SSE frame from text (between two \n\n separators).
 /// Returns None if the frame has no data lines.
 fn parse_single_frame(frame_text : String) -> SseFrame? {
@@ -69,6 +97,12 @@ fn parse_single_frame(frame_text : String) -> SseFrame? {
       None => len
     }
     let line = frame_text[pos:line_end].to_owned()
+    // Chomp a trailing \r (CRLF upstreams; mirrors Ruby line.chomp).
+    let line = if line.length() > 0 && line[line.length() - 1:].to_owned() == "\r" {
+      line[:line.length() - 1].to_owned()
+    } else {
+      line
+    }
     pos = if line_end < len { line_end + 1 } else { len }
 
     if is_line_prefix(line, "event:") {
@@ -140,6 +174,9 @@ pub fn SseBytePump::feed(self : SseBytePump, chunk : Bytes) -> Array[SseFrame] {
   for b in chunk {
     self.pending.push(b)
   }
+  // Normalize CRLF / lone-CR line endings so the "\n\n" delimiter matches
+  // even on proxies that emit CRLF-terminated frames.
+  self.pending = normalize_crlf_bytes(self.pending)
   let frames : Array[SseFrame] = []
   for ;; {
     let n = self.pending.length()
@@ -182,19 +219,34 @@ pub fn SseBytePump::feed_string(
 }
 
 ///|
-/// Flush any trailing bytes at end-of-stream. Usually returns [] — a
-/// well-formed SSE stream ends every frame with "\n\n" — but tolerates a
-/// final unterminated frame.
+/// Normalize CRLF / lone-CR line endings to LF at the byte level.
+fn normalize_crlf_bytes(bytes : Array[Byte]) -> Array[Byte] {
+  let out : Array[Byte] = []
+  let mut i = 0
+  let n = bytes.length()
+  while i < n {
+    let b = bytes[i]
+    if b == b'\r' {
+      if i + 1 < n && bytes[i + 1] == b'\n' {
+        i = i + 1
+      }
+      out.push(b'\n')
+    } else {
+      out.push(b)
+    }
+    i = i + 1
+  }
+  out
+}
+
+///|
+/// Flush any trailing bytes at end-of-stream. Returns [] — a well-formed
+/// SSE stream ends every frame with "\n\n". Incomplete trailing frames are
+/// discarded (mirrors Ruby: drain_sse_frames leaves incomplete data in the
+/// buffer and it is simply dropped at end of stream).
 pub fn SseBytePump::finish(self : SseBytePump) -> Array[SseFrame] {
-  if self.pending.is_empty() {
-    return []
-  }
-  let text = @utf8.decode_lossy(Bytes::from_array(self.pending))
   self.pending = []
-  match parse_sse_frame(text) {
-    Some(frame) => [frame]
-    None => []
-  }
+  []
 }
 
 // ── OpenAI Stream Aggregator ────────────────────────────────────────────────
@@ -206,6 +258,7 @@ struct OpenAiToolCallAcc {
   mut type_ : String?
   mut name : String?
   mut arguments : String
+  mut extra_content : Json?
 }
 
 ///|
@@ -327,7 +380,25 @@ pub fn OpenAiStreamAggregator::handle_delta(
       let input_tokens = json_int(u, "prompt_tokens")
       let output_tokens = json_int(u, "completion_tokens")
       let cache_creation = json_int(u, "cache_creation_input_tokens")
-      let cache_read = json_int(u, "cache_read_input_tokens")
+      let mut cache_read = json_int(u, "cache_read_input_tokens")
+      // OpenRouter / others report cache hits under prompt_tokens_details.
+      if cache_read == 0 {
+        match
+          (if u is Object(obj) {
+            obj.get("prompt_tokens_details")
+          } else {
+            None
+          }) {
+          Some(details) => cache_read = json_int(details, "cached_tokens")
+          _ => ()
+        }
+      }
+      let total = json_int(u, "total_tokens")
+      let api_cost = match
+        (if u is Object(obj) { obj.get("cost") } else { None }) {
+        Some(Number(n, ..)) => Some(n)
+        _ => None
+      }
       if input_tokens > 0 || output_tokens > 0 {
         self.usage = Some(
           Usage::from_openai(
@@ -335,6 +406,8 @@ pub fn OpenAiStreamAggregator::handle_delta(
             output_tokens,
             cache_creation~,
             cache_read~,
+            total_tokens=total,
+            api_cost=api_cost,
           ),
         )
       }
@@ -368,7 +441,14 @@ pub fn OpenAiStreamAggregator::to_response(
         Some(n) => n
         _ => ""
       }
-      arr.push(@message.ToolCall::new(id, name, acc.arguments))
+      arr.push(
+        @message.ToolCall::new(
+          id,
+          name,
+          acc.arguments,
+          extra_content=acc.extra_content,
+        ),
+      )
     }
     Some(arr)
   } else {
@@ -397,9 +477,21 @@ fn OpenAiStreamAggregator::merge_tool_call(
   self : OpenAiStreamAggregator,
   tc : Json,
 ) -> Unit {
-  let idx = json_int(tc, "index")
+  // Delta frames may omit the index — in that case the tool call is
+  // appended to the end (Ruby: `tc["index"] || @tool_calls.size`); never
+  // merge it into slot 0 which may hold a different concurrent call.
+  let idx = match (if tc is Object(obj) { obj.get("index") } else { None }) {
+    Some(Number(n, ..)) => n.to_int()
+    _ => self.tool_calls.length()
+  }
   while self.tool_calls.length() <= idx {
-    self.tool_calls.push({ id: None, type_: None, name: None, arguments: "" })
+    self.tool_calls.push({
+      id: None,
+      type_: None,
+      name: None,
+      arguments: "",
+      extra_content: None,
+    })
   }
   let acc = self.tool_calls[idx]
 
@@ -427,6 +519,13 @@ fn OpenAiStreamAggregator::merge_tool_call(
         _ => ()
       }
     }
+    _ => ()
+  }
+
+  // Preserve provider-specific per-call metadata (e.g. Vertex Gemini
+  // thought_signature via OpenRouter) — must be echoed back next turn.
+  match (if tc is Object(obj) { obj.get("extra_content") } else { None }) {
+    Some(ec) => acc.extra_content = Some(ec)
     _ => ()
   }
 }
@@ -519,7 +618,10 @@ pub fn AnthropicStreamAggregator::handle_delta(
           }
         _ => ()
       }
-    "content_block_start" =>
+    "content_block_start" => {
+      // Locate by index (Ruby: `data["index"] || @blocks.size`) so
+      // out-of-order / gap-indexed blocks don't get lost.
+      let idx = index_or_size(json, "index", self.blocks.length())
       match
         (if json is Object(obj) { obj.get("content_block") } else { None }) {
         Some(cb) =>
@@ -535,98 +637,114 @@ pub fn AnthropicStreamAggregator::handle_delta(
                 Some(String(s)) => Some(s)
                 _ => None
               }
-              self.blocks.push({
-                kind: ToolUse,
-                text: "",
-                tool_id: id,
-                tool_name: name,
-                input_str: "",
-              })
+              set_block_at(
+                self.blocks, idx, {
+                  kind: ToolUse,
+                  text: "",
+                  tool_id: id,
+                  tool_name: name,
+                  input_str: "",
+                },
+              )
             }
             Some(String("thinking")) =>
-              self.blocks.push({
-                kind: Thinking,
-                text: "",
-                tool_id: None,
-                tool_name: None,
-                input_str: "",
-              })
+              set_block_at(
+                self.blocks, idx, {
+                  kind: Thinking,
+                  text: "",
+                  tool_id: None,
+                  tool_name: None,
+                  input_str: "",
+                },
+              )
             _ =>
-              self.blocks.push({
-                kind: Text,
-                text: "",
-                tool_id: None,
-                tool_name: None,
-                input_str: "",
-              })
+              set_block_at(
+                self.blocks, idx, {
+                  kind: Text,
+                  text: "",
+                  tool_id: None,
+                  tool_name: None,
+                  input_str: "",
+                },
+              )
           }
         _ => ()
       }
+    }
     "content_block_delta" => {
-      let idx = json_int(json, "index")
-      if idx < self.blocks.length() {
-        let block = self.blocks[idx]
-        match (if json is Object(obj) { obj.get("delta") } else { None }) {
-          Some(delta) =>
-            match (if delta is Object(obj) { obj.get("type") } else { None }) {
-              Some(String("text_delta")) =>
-                match
-                  (if delta is Object(obj) { obj.get("text") } else { None }) {
-                  Some(String(text)) => {
-                    let new_block = {
-                      kind: block.kind,
-                      text: block.text + text,
-                      tool_id: block.tool_id,
-                      tool_name: block.tool_name,
-                      input_str: block.input_str,
-                    }
-                    self.blocks[idx] = new_block
-                    visible_delta = text
+      // Ruby: `data["index"] || 0`, and unknown indices auto-create a text
+      // block (`@blocks[idx] ||= ...`) instead of being dropped.
+      let idx = index_or_zero(json, "index")
+      while self.blocks.length() <= idx {
+        self.blocks.push({
+          kind: Text,
+          text: "",
+          tool_id: None,
+          tool_name: None,
+          input_str: "",
+        })
+      }
+      let block = self.blocks[idx]
+      match (if json is Object(obj) { obj.get("delta") } else { None }) {
+        Some(delta) =>
+          match (if delta is Object(obj) { obj.get("type") } else { None }) {
+            Some(String("text_delta")) =>
+              match
+                (if delta is Object(obj) { obj.get("text") } else { None }) {
+                Some(String(text)) => {
+                  let new_block = {
+                    kind: block.kind,
+                    text: block.text + text,
+                    tool_id: block.tool_id,
+                    tool_name: block.tool_name,
+                    input_str: block.input_str,
                   }
-                  _ => ()
+                  self.blocks[idx] = new_block
+                  visible_delta = text
                 }
-              Some(String("input_json_delta")) =>
-                match
-                  (if delta is Object(obj) {
-                    obj.get("partial_json")
-                  } else {
-                    None
-                  }) {
-                  Some(String(partial)) => {
-                    let new_block = {
-                      kind: ToolUse,
-                      text: block.text,
-                      tool_id: block.tool_id,
-                      tool_name: block.tool_name,
-                      input_str: block.input_str + partial,
-                    }
-                    self.blocks[idx] = new_block
+                _ => ()
+              }
+            Some(String("input_json_delta")) =>
+              match
+                (if delta is Object(obj) {
+                  obj.get("partial_json")
+                } else {
+                  None
+                }) {
+                Some(String(partial)) => {
+                  let new_block = {
+                    kind: ToolUse,
+                    text: block.text,
+                    tool_id: block.tool_id,
+                    tool_name: block.tool_name,
+                    input_str: block.input_str + partial,
                   }
-                  _ => ()
+                  self.blocks[idx] = new_block
                 }
-              Some(String("thinking_delta")) =>
-                match
-                  (if delta is Object(obj) {
-                    obj.get("thinking")
-                  } else {
-                    None
-                  }) {
-                  Some(String(thinking)) => {
-                    let new_block = {
-                      kind: block.kind,
-                      text: block.text + thinking,
-                      tool_id: block.tool_id,
-                      tool_name: block.tool_name,
-                      input_str: block.input_str,
-                    }
-                    self.blocks[idx] = new_block
+                _ => ()
+              }
+            Some(String("thinking_delta")) =>
+              match
+                (if delta is Object(obj) {
+                  obj.get("thinking")
+                } else {
+                  None
+                }) {
+                Some(String(thinking)) => {
+                  let new_block = {
+                    kind: block.kind,
+                    text: block.text + thinking,
+                    tool_id: block.tool_id,
+                    tool_name: block.tool_name,
+                    input_str: block.input_str,
                   }
-                  _ => ()
+                  self.blocks[idx] = new_block
                 }
-              _ => ()
-            }
-          _ => ()
-        }
+                _ => ()
+              }
+            _ => ()
+          }
+        _ => ()
       }
     }
     "content_block_stop" => ()
@@ -640,9 +758,19 @@ pub fn AnthropicStreamAggregator::handle_delta(
           }
         _ => ()
       }
+      // Aggregate usage across frames (Ruby merges each usage hash); some
+      // providers re-emit input tokens on the final delta, so accumulate
+      // the full input side here too, not just output_tokens.
       match (if json is Object(obj) { obj.get("usage") } else { None }) {
-        Some(u) =>
-          self.output_tokens = self.output_tokens + json_int(u, "output_tokens")
+        Some(u) => {
+          self.input_tokens = self.input_tokens + json_int(u, "input_tokens")
+          self.output_tokens = self.output_tokens +
+            json_int(u, "output_tokens")
+          self.cache_creation = self.cache_creation +
+            json_int(u, "cache_creation_input_tokens")
+          self.cache_read = self.cache_read +
+            json_int(u, "cache_read_input_tokens")
+        }
         _ => ()
       }
     }
@@ -801,7 +929,9 @@ pub fn BedrockStreamAggregator::handle(
         _ => ()
       }
     "contentBlockStart" => {
-      let idx = json_int(json, "contentBlockIndex")
+      // Ruby: `data["contentBlockIndex"] || @blocks.size` — missing index
+      // appends at the end rather than clobbering block 0.
+      let idx = index_or_size(json, "contentBlockIndex", self.blocks.length())
       match (if json is Object(obj) { obj.get("start") } else { None }) {
         Some(Object(start)) =>
           match start.get("toolUse") {
@@ -1014,8 +1144,11 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
           BedrockReasoning =>
             content_blocks.push(
               Json::object({
+                // Reasoning is accumulated in `reasoning`, not `text`;
+                // emitting the wrong field dropped all reasoning content
+                // (spec decision 10: "聚合器 reasoning 写入与 to_json 字段错配").
                 "reasoningContent": Json::object({
-                  "text": block.text.to_json(),
+                  "text": block.reasoning.to_json(),
                 }),
               }),
             )
@@ -1068,6 +1201,52 @@ fn json_int(json : Json, key : String) -> Int {
       }
     _ => 0
   }
+}
+
+///|
+/// Extract an integer index from a JSON object, defaulting to `fallback`
+/// when the key is absent (mirrors Ruby `data["index"] || fallback`).
+fn index_or(json : Json, key : String, fallback : Int) -> Int {
+  match json {
+    Object(obj) =>
+      match obj.get(key) {
+        Some(Number(n, ..)) => n.to_int()
+        _ => fallback
+      }
+    _ => fallback
+  }
+}
+
+///|
+/// Index lookup defaulting to 0.
+fn index_or_zero(json : Json, key : String) -> Int {
+  index_or(json, key, 0)
+}
+
+///|
+/// Index lookup defaulting to a collection size (append-at-end semantics).
+fn index_or_size(json : Json, key : String, size : Int) -> Int {
+  index_or(json, key, size)
+}
+
+///|
+/// Place a block at an index, padding with empty text blocks when the
+/// index is beyond the current array length.
+fn set_block_at(
+  blocks : Array[AnthropicBlockAcc],
+  idx : Int,
+  block : AnthropicBlockAcc,
+) -> Unit {
+  while blocks.length() <= idx {
+    blocks.push({
+      kind: Text,
+      text: "",
+      tool_id: None,
+      tool_name: None,
+      input_str: "",
+    })
+  }
+  blocks[idx] = block
 }
 
 ///|

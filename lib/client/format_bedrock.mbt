@@ -272,6 +272,14 @@ pub fn bedrock_converse_path(model : String) -> String {
 }
 
 ///|
+/// Determine the Bedrock Converse streaming API path for a given model.
+/// Format: model/{modelId}/converse-stream
+/// Mirrors Ruby `bedrock_stream_endpoint(model)` (client.rb:236).
+pub fn bedrock_converse_stream_path(model : String) -> String {
+  "model/\{model}/converse-stream"
+}
+
+///|
 /// Convert a canonical message to Bedrock Converse API format.
 fn to_bedrock_message(msg : @message.Message) -> Json {
   match msg.role {

@@ -327,7 +327,7 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
 /// reassembling the full response with the provider's stream aggregator.
 ///
 /// - Mock path: emits the whole content as one chunk, returns immediately.
-/// - Bedrock: no SSE-over-HTTP transport — falls back to `call_llm_async`.
+/// - Bedrock: streams over `/converse-stream` with typed SSE events.
 /// - OpenAI-compatible: `stream:true` + `stream_options.include_usage`.
 /// - Anthropic: `stream:true`.
 ///
@@ -356,21 +356,26 @@ pub async fn Agent::call_llm_stream_async(
     return response
   }
 
-  // ── Bedrock: no SSE-over-HTTP streaming, fall back ─────────────
-  if self.client.is_bedrock_format() {
-    return self.call_llm_async()
-  }
-
-  // ── Real HTTP path (async SSE streaming) ───────────────────────
+  // ── Bedrock: SSE-over-HTTP via converse-stream (ClackyAI proxy) ──
+  let is_bedrock = self.client.is_bedrock_format()
   let is_anthropic = self.client.is_anthropic_format()
   let request = self.build_send_request()
   let body_json0 = self.client.build_request_body(request)
   let body_json = if is_anthropic {
     @client.add_stream_flag(body_json0)
+  } else if is_bedrock {
+    // Ruby: send_bedrock_stream_request does `body.merge(stream: true)`.
+    @client.add_stream_flag(body_json0)
   } else {
     @client.add_stream_options(body_json0, true)
   }
-  let url = self.client.request_url()
+  // Bedrock streams over the converse-stream endpoint, not `converse`
+  // (Ruby bedrock_stream_endpoint: `/model/{m}/converse-stream`).
+  let url = if is_bedrock {
+    self.client.build_url(@client.bedrock_converse_stream_path(self.client.model))
+  } else {
+    self.client.request_url()
+  }
   let headers_map = self.client.request_headers()
   let headers_arr : Array[(String, String)] = []
   for k, v in headers_map {
@@ -380,9 +385,16 @@ pub async fn Agent::call_llm_stream_async(
 
   let openai_agg = @client.OpenAiStreamAggregator::new()
   let anthropic_agg = @client.AnthropicStreamAggregator::new()
+  let bedrock_agg = @client.BedrockStreamAggregator::new()
   let on_frame = fn(frame : @client.SseFrame) {
     let delta = if is_anthropic {
       anthropic_agg.handle_delta(frame.event, frame.data)
+    } else if is_bedrock {
+      // Bedrock emits typed events (messageStart/contentBlockStart/…);
+      // the aggregator accumulates them and yields no per-frame text
+      // delta (mirrors Ruby, where on_chunk is only fed usage info).
+      bedrock_agg.handle(frame.event, frame.data)
+      ""
     } else {
       openai_agg.handle_delta(frame.data)
     }
@@ -417,7 +429,9 @@ pub async fn Agent::call_llm_stream_async(
           "LLM API returned HTML response (invalid endpoint): url=\{url} body=\{body_snippet(http_resp.body, 500)}",
         )
       }
-      let response = if is_anthropic {
+      let response = if is_bedrock {
+        bedrock_agg.to_response()
+      } else if is_anthropic {
         anthropic_agg.to_response()
       } else {
         openai_agg.to_response()

@@ -57,11 +57,25 @@ pub fn build_anthropic_request(
   // Build system text
   let system_text = join_strings(system_parts, "\n\n")
 
+  // Compute cache-candidate indices (tail 2 regular messages, skipping
+  // injected compression hints) BEFORE conversion so the marker survives
+  // the tool_result merge pass below.
+  let cache_candidates = cache_candidate_indices(regular_messages, enable_caching)
+
   // Convert regular messages to Anthropic format
   let api_messages : Array[Json] = []
-  for msg in regular_messages {
-    api_messages.push(to_anthropic_message(msg))
+  for i in 0..<regular_messages.length() {
+    api_messages.push(
+      to_anthropic_message(regular_messages[i], cache_candidates.contains(i)),
+    )
   }
+
+  // Merge consecutive tool_result user messages into a single user message.
+  // Anthropic requires all tool_results for an assistant turn to appear in a
+  // SINGLE user message immediately after the assistant — the canonical
+  // format produces one role:"tool" message per result, which would break the
+  // protocol contract and be rejected by the server.
+  let api_messages = merge_anthropic_tool_results(api_messages)
 
   // Convert tools to Anthropic format
   let api_tools : Array[Json] = []
@@ -106,34 +120,187 @@ pub fn build_anthropic_request(
     body["tools"] = api_tools.to_json()
   }
 
-  // Add thinking/reasoning effort if specified
-  match normalize_effort(reasoning_effort) {
-    Some(effort) => {
-      body["thinking"] = Json::object({ "type": "adaptive".to_json() })
-      body["output_config"] = Json::object({ "effort": effort.to_json() })
-    }
-    None => ()
-  }
+  // Add thinking/reasoning params, model-family aware.
+  // Kimi (Moonshot Coding Plan) models expect thinking:{type:"enabled"}
+  // (the Claude-specific "adaptive" type is silently ignored by the Kimi
+  // backend) and additionally support a "max" effort level.
+  apply_anthropic_reasoning(body, model, reasoning_effort)
 
   Json::object(body)
 }
 
 ///|
 /// Normalize reasoning effort string, returning None for empty/invalid values.
+/// Accepts the full 5-level domain (low/medium/high/xhigh/max); unknown
+/// non-empty values warn on stderr instead of silently dropping the config.
 fn normalize_effort(effort : String?) -> String? {
   match effort {
     Some(e) =>
       match e {
-        "low" | "medium" | "high" => Some(e)
-        _ => None
+        "low" | "medium" | "high" | "xhigh" | "max" => Some(e)
+        _ => {
+          if e.length() > 0 {
+            println(
+              "[LLM] Unknown reasoning_effort '\{e}' ignored (valid: low/medium/high/xhigh/max)",
+            )
+          }
+          None
+        }
       }
     None => None
   }
 }
 
 ///|
+/// Compute the indices (into the regular-messages array) that should carry a
+/// message-level cache_control marker: the tail 2 non-injected messages when
+/// caching is enabled (mirrors Ruby `apply_message_caching`).
+fn cache_candidate_indices(
+  messages : Array[@message.Message],
+  enable_caching : Bool,
+) -> Array[Int] {
+  let result : Array[Int] = []
+  if !enable_caching {
+    return result
+  }
+  for i = messages.length() - 1; i >= 0; i = i - 1 {
+    if result.length() >= 2 {
+      break
+    }
+    let is_injected = match messages[i].system_injected {
+      Some(true) => true
+      _ => false
+    }
+    if !is_injected {
+      result.push(i)
+    }
+  }
+  result
+}
+
+///|
+/// Merge consecutive Anthropic-native user messages that contain tool_result
+/// blocks into a single user message. Mirrors Ruby's
+/// `merge_consecutive_tool_results` (run AFTER per-message conversion so
+/// cache_control markers hoisted onto the tool_result block are preserved on
+/// the merged message).
+fn merge_anthropic_tool_results(api_messages : Array[Json]) -> Array[Json] {
+  if api_messages.length() == 0 {
+    return []
+  }
+  let merged : Array[Json] = []
+  for msg in api_messages {
+    let prev = if merged.length() > 0 {
+      Some(merged[merged.length() - 1])
+    } else {
+      None
+    }
+    let should_merge = match prev {
+      Some(prev_msg) =>
+        is_anthropic_user_with_tool_result(prev_msg) &&
+        is_anthropic_user_with_tool_result(msg)
+      None => false
+    }
+    if should_merge {
+      match (merged[merged.length() - 1], msg) {
+        (Object(prev_obj), Object(cur_obj)) =>
+          match (prev_obj.get("content"), cur_obj.get("content")) {
+            (Some(Array(prev_arr)), Some(Array(cur_arr))) => {
+              let combined : Array[Json] = []
+              for item in prev_arr {
+                combined.push(item)
+              }
+              for item in cur_arr {
+                combined.push(item)
+              }
+              prev_obj["content"] = combined.to_json()
+            }
+            _ => merged.push(msg)
+          }
+        _ => merged.push(msg)
+      }
+    } else {
+      merged.push(msg)
+    }
+  }
+  merged
+}
+
+///|
+/// Check if an Anthropic-native message is a user message with tool_result blocks.
+/// Matches Ruby `b[:type] == "tool_result"` (anthropic.rb:151) — the converted
+/// block shape is `{"type":"tool_result",...}`, NOT a `tool_result` key.
+fn is_anthropic_user_with_tool_result(msg : Json) -> Bool {
+  match msg {
+    Object(obj) =>
+      match (obj.get("role"), obj.get("content")) {
+        (Some(String("user")), Some(Array(arr))) => {
+          for item in arr {
+            match item {
+              Object(o) =>
+                if o.get("type") == Some("tool_result".to_json()) { return true }
+              _ => ()
+            }
+          }
+          false
+        }
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+/// Apply model-family aware reasoning/thinking parameters to an Anthropic
+/// request body. Mirrors Ruby `MessageFormat::Anthropic.build_request_body`:
+/// - Kimi K3 (and kimi-k3) → thinking:{type:"enabled"} + output_config.effort
+///   (max/xhigh collapse to "max"); "off" leaves output_config unset.
+/// - Everything else → thinking:{type:"adaptive"} + output_config.effort with
+///   the full 5-level domain.
+fn apply_anthropic_reasoning(
+  body : Map[String, Json],
+  model : String,
+  reasoning_effort : String?,
+) -> Unit {
+  let model_lower = model.to_lower()
+  let is_k3 = model_lower.has_prefix("k3") ||
+    model_lower.has_prefix("kimi-k3")
+  if is_k3 {
+    body["thinking"] = Json::object({ "type": "enabled".to_json() })
+    let effort_str = match reasoning_effort {
+      Some(e) => e
+      None => ""
+    }
+    let k3_effort = match effort_str {
+      "max" | "xhigh" => Some("max")
+      "high" | "medium" | "low" => Some(effort_str)
+      _ => None
+    }
+    match k3_effort {
+      Some(ef) =>
+        body["output_config"] = Json::object({ "effort": ef.to_json() })
+      None => ()
+    }
+  } else {
+    match normalize_effort(reasoning_effort) {
+      Some(effort) => {
+        body["thinking"] = Json::object({ "type": "adaptive".to_json() })
+        body["output_config"] = Json::object({ "effort": effort.to_json() })
+      }
+      None => ()
+    }
+  }
+}
+
+///|
 /// Convert a canonical message to Anthropic API format.
-fn to_anthropic_message(msg : @message.Message) -> Json {
+/// `is_cache_candidate` marks the message as a cache breakpoint: the marker
+/// is hoisted onto the tool_result block for tool messages (where Anthropic
+/// expects it) and onto the last text block otherwise.
+fn to_anthropic_message(
+  msg : @message.Message,
+  is_cache_candidate : Bool,
+) -> Json {
   match msg.role {
     @message.Assistant =>
       match msg.tool_calls {
@@ -163,13 +330,15 @@ fn to_anthropic_message(msg : @message.Message) -> Json {
               }
             _ => ()
           }
-          // Add tool_use blocks
+          // Add tool_use blocks (id sanitised — Anthropic requires
+          // ^[a-zA-Z0-9_-]{1,128}$ and OpenAI-compatible upstreams may
+          // produce ids like "tool_name:0" that Anthropic rejects with 400)
           for tc in calls {
             let input = parse_tool_arguments(tc.function.arguments)
             blocks.push(
               Json::object({
                 "type": "tool_use".to_json(),
-                "id": tc.id.to_json(),
+                "id": sanitize_anthropic_tool_use_id(tc.id).to_json(),
                 "name": tc.function.name.to_json(),
                 "input": input,
               }),
@@ -183,6 +352,11 @@ fn to_anthropic_message(msg : @message.Message) -> Json {
         _ => {
           // Regular assistant message
           let content_json = content_to_anthropic_blocks(msg.content)
+          let content_json = if is_cache_candidate {
+            add_cache_control_to_last_block(content_json)
+          } else {
+            content_json
+          }
           Json::object({
             "role": "assistant".to_json(),
             "content": content_json,
@@ -197,13 +371,23 @@ fn to_anthropic_message(msg : @message.Message) -> Json {
           content_to_anthropic_blocks(@message.Blocks(blocks))
       }
       let tool_id = match msg.tool_call_id {
-        Some(id) => id
+        Some(id) => sanitize_anthropic_tool_use_id(id)
         _ => ""
       }
       let tool_result_block : Map[String, Json] = {
         "type": "tool_result".to_json(),
         "tool_use_id": tool_id.to_json(),
         "content": tool_content,
+      }
+      if is_cache_candidate {
+        // Hoist the cache marker onto the tool_result block — that's where
+        // Anthropic expects it for a tool_result turn. Leaving it on an
+        // inner text block would flip tool_result.content between "string"
+        // and "[{text,cache_control}]" per turn, mutating the cached prefix
+        // and destroying cache_read hit-rate.
+        tool_result_block["cache_control"] = Json::object({
+          "type": "ephemeral".to_json(),
+        })
       }
       Json::object({
         "role": "user".to_json(),
@@ -213,11 +397,78 @@ fn to_anthropic_message(msg : @message.Message) -> Json {
     _ => {
       // Regular user/system message (system should already be filtered)
       let content_json = content_to_anthropic_blocks(msg.content)
+      let content_json = if is_cache_candidate {
+        add_cache_control_to_last_block(content_json)
+      } else {
+        content_json
+      }
       Json::object({
         "role": msg.role.to_string_value().to_json(),
         "content": content_json,
       })
     }
+  }
+}
+
+///|
+/// Sanitize a tool use ID for Anthropic compatibility.
+/// Anthropic requires tool_use.id to match ^[a-zA-Z0-9_-]{1,128}$; illegal
+/// chars are replaced with "_" (pure function — same input maps to the same
+/// output on both the tool_use and tool_result sides, keeping ids
+/// self-consistent). Mirrors Ruby's `sanitize_tool_use_id`.
+fn sanitize_anthropic_tool_use_id(id : String) -> String {
+  let buf = StringBuilder::new()
+  let mut count = 0
+  for ch in id {
+    if count >= 128 {
+      break
+    }
+    if (ch >= 'a' && ch <= 'z') ||
+      (ch >= 'A' && ch <= 'Z') ||
+      (ch >= '0' && ch <= '9') ||
+      ch == '_' ||
+      ch == '-' {
+      buf.write_char(ch)
+    } else {
+      buf.write_char('_')
+    }
+    count = count + 1
+  }
+  buf.to_string()
+}
+
+///|
+/// Add a cache_control marker to the last TEXT block of an Anthropic content
+/// array. Non-text trailing blocks (e.g. tool_use) are left untouched — a
+/// cache_control on tool_use is not accepted by the API.
+fn add_cache_control_to_last_block(content_json : Json) -> Json {
+  match content_json {
+    Array(arr) if arr.length() > 0 => {
+      let last = arr[arr.length() - 1]
+      match last {
+        Object(obj) =>
+          match obj.get("type") {
+            Some(String("text")) => {
+              let new_obj : Map[String, Json] = Map([])
+              for k, v in obj {
+                new_obj[k] = v
+              }
+              new_obj["cache_control"] = Json::object({
+                "type": "ephemeral".to_json(),
+              })
+              let new_arr : Array[Json] = []
+              for i in 0..<(arr.length() - 1) {
+                new_arr.push(arr[i])
+              }
+              new_arr.push(Json::object(new_obj))
+              Json::array(new_arr)
+            }
+            _ => content_json
+          }
+        _ => content_json
+      }
+    }
+    _ => content_json
   }
 }
 

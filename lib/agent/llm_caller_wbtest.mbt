@@ -250,7 +250,7 @@ fn lc_tool_call(
   name : String,
   arguments : String,
 ) -> @message.ToolCall {
-  { id, type_: "function", function: { name, arguments } }
+  { id, type_: "function", function: { name, arguments }, extra_content: None }
 }
 
 ///|

@@ -180,6 +180,114 @@ test "anthropic_agg_output_tokens_delta" {
   assert_true(resp.usage is Some(_))
 }
 
+///|
+test "openai_agg_missing_index_appends_not_slot0" {
+  let agg = OpenAiStreamAggregator::new()
+  // A delta without an index must append a new tool call, never merge
+  // into slot 0 (Ruby: `tc["index"] || @tool_calls.size`).
+  agg.handle(
+    "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"a\",\"function\":{\"name\":\"f1\",\"arguments\":\"{}\"}}]}}]}",
+  )
+  agg.handle(
+    "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"function\":{\"arguments\":\"{\\\"x\\\":1}\"}}]}}]}",
+  )
+  let resp = agg.to_response()
+  match resp.tool_calls {
+    Some(calls) => {
+      assert_eq(calls.length(), 2)
+      assert_eq(calls[0].id, "a")
+      assert_eq(calls[0].function.name, "f1")
+      assert_eq(calls[1].id, "")
+      assert_eq(calls[1].function.arguments, "{\"x\":1}")
+    }
+    None => assert_true(false)
+  }
+}
+
+///|
+test "openai_agg_extra_content_preserved" {
+  let agg = OpenAiStreamAggregator::new()
+  agg.handle(
+    "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"t1\",\"function\":{\"name\":\"g\",\"arguments\":\"{}\"},\"extra_content\":{\"thought_signature\":\"sig-1\"}}]}}]}",
+  )
+  let resp = agg.to_response()
+  match resp.tool_calls {
+    Some(calls) =>
+      match calls[0].extra_content {
+        Some(ec) =>
+          assert_eq(
+            (if ec is Object(obj) { obj.get("thought_signature") } else { None }) is Some(String(_)),
+            true,
+          )
+        None => assert_true(false)
+      }
+    None => assert_true(false)
+  }
+}
+
+///|
+test "anthropic_agg_blocks_by_index_out_of_order" {
+  let agg = AnthropicStreamAggregator::new()
+  // content_block_start with an explicit index 2 (out of order) must not
+  // be dropped; deltas addressing it must land on the right block.
+  agg.handle(
+    "content_block_start", "{\"index\":2,\"content_block\":{\"type\":\"text\"}}",
+  )
+  agg.handle(
+    "content_block_delta", "{\"index\":2,\"delta\":{\"type\":\"text_delta\",\"text\":\"three\"}}",
+  )
+  agg.handle(
+    "content_block_delta", "{\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"one\"}}",
+  )
+  // Unknown index auto-creates a block instead of dropping the delta.
+  agg.handle(
+    "content_block_delta", "{\"index\":5,\"delta\":{\"type\":\"text_delta\",\"text\":\"six\"}}",
+  )
+  let resp = agg.to_response()
+  match resp.content {
+    Some(c) => assert_eq(c, "onethreesix")
+    None => assert_true(false)
+  }
+}
+
+///|
+test "anthropic_agg_usage_merges_input_side" {
+  let agg = AnthropicStreamAggregator::new()
+  agg.handle(
+    "message_start", "{\"message\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}",
+  )
+  // A message_delta that re-emits input tokens must accumulate, not replace.
+  agg.handle(
+    "message_delta", "{\"delta\":{},\"usage\":{\"input_tokens\":2,\"output_tokens\":1}}",
+  )
+  let resp = agg.to_response()
+  match resp.usage {
+    Some(u) => {
+      assert_eq(u.input_tokens, 12)
+      assert_eq(u.output_tokens, 6)
+    }
+    None => assert_true(false)
+  }
+}
+
+///|
+test "openai_agg_usage_prompt_details_cached" {
+  let agg = OpenAiStreamAggregator::new()
+  agg.handle(
+    "{\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":3,\"prompt_tokens_details\":{\"cached_tokens\":4}}}",
+  )
+  let resp = agg.to_response()
+  match resp.usage {
+    Some(u) => {
+      assert_eq(u.input_tokens, 10)
+      assert_eq(u.cache_read_input_tokens, 4)
+      assert_eq(u.total_tokens, 13)
+      assert_eq(u.total_is_per_turn, false)
+    }
+    None => assert_true(false)
+  }
+}
+
 // ── Streaming pipeline tests (#4) ───────────────────────────────────────────
 
 ///|
@@ -276,12 +384,30 @@ test "sse_byte_pump drops keep-alive comment frames" {
 }
 
 ///|
-test "sse_byte_pump finish flushes unterminated trailing frame" {
+test "sse_byte_pump finish discards unterminated trailing frame" {
   let pump = SseBytePump::new()
   @debug.assert_eq(pump.feed(@utf8.encode("data: tail")).length(), 0)
-  let frames = pump.finish()
+  // Ruby keeps incomplete trailing data in the buffer and drops it at
+  // end-of-stream; finish() must not emit a half frame.
+  @debug.assert_eq(pump.finish().length(), 0)
+}
+
+///|
+test "sse_byte_pump handles CRLF line endings" {
+  let pump = SseBytePump::new()
+  let frames = pump.feed(@utf8.encode("event: x\r\ndata: {\"a\":1}\r\n\r\n"))
   @debug.assert_eq(frames.length(), 1)
-  @debug.assert_eq(frames[0].data, "tail")
+  @debug.assert_eq(frames[0].event, "x")
+  @debug.assert_eq(frames[0].data, "{\"a\":1}")
+}
+
+///|
+test "parse_sse_frames handles CRLF fixtures" {
+  let text = "event: message\r\ndata: {\"b\":2}\r\n\r\n"
+  let frames = parse_sse_frames(text)
+  @debug.assert_eq(frames.length(), 1)
+  @debug.assert_eq(frames[0].event, "message")
+  @debug.assert_eq(frames[0].data, "{\"b\":2}")
 }
 
 ///|

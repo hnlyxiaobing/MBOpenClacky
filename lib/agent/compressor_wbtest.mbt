@@ -104,6 +104,7 @@ test "get_recent_with_tool_pairs keeps pairs together" {
     id: "call_1",
     type_: "function",
     function: { name: "read_file", arguments: "{\"path\": \"test.txt\"}" },
+    extra_content: None,
   }
   let messages : Array[@message.Message] = [
     @message.Message::user("Read my file"),

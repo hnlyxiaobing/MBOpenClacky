@@ -18,11 +18,15 @@ pub extend FunctionCall with ToJson::{to_json}
 
 ///|
 /// The `type_` field (trailing underscore avoids keyword collision) defaults to "function".
+/// `extra_content` preserves provider-specific per-call metadata (e.g. Vertex
+/// Gemini's `thought_signature` via OpenRouter) that must be echoed back on
+/// the next turn to avoid a 400.
 pub(all) struct ToolCall {
   id : String
   type_ : String
   function : FunctionCall
-} derive(Eq, Debug, ToJson)
+  extra_content : Json?
+} derive(Eq, Debug)
 
 ///|
 pub extend ToolCall with @moonbitlang/core/debug.Debug::{to_repr}
@@ -31,7 +35,18 @@ pub extend ToolCall with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend ToolCall with Eq::{not_equal, equal}
 
 ///|
-pub extend ToolCall with ToJson::{to_json}
+pub impl ToJson for ToolCall with fn to_json(self) {
+  let obj : Map[String, Json] = {
+    "id": self.id.to_json(),
+    "type": self.type_.to_json(),
+    "function": self.function.to_json(),
+  }
+  match self.extra_content {
+    Some(ec) => obj["extra_content"] = ec
+    None => ()
+  }
+  Json::object(obj)
+}
 
 ///|
 /// Create a ToolCall with the default type "function".
@@ -39,8 +54,14 @@ pub fn ToolCall::new(
   id : String,
   name : String,
   arguments : String,
+  extra_content? : Json? = None,
 ) -> ToolCall {
-  { id, type_: "function", function: FunctionCall::{ name, arguments } }
+  {
+    id,
+    type_: "function",
+    function: FunctionCall::{ name, arguments },
+    extra_content,
+  }
 }
 
 ///|
@@ -77,7 +98,11 @@ impl FromJson for ToolCall with fn from_json(json, path) {
         Some(f) => FromJson::from_json(f, path.add_key("function"))
         _ => raise JsonDecodeError((path, "ToolCall: missing 'function'"))
       }
-      { id, type_, function }
+      let extra_content = match map.get("extra_content") {
+        Some(ec) => Some(ec)
+        _ => None
+      }
+      { id, type_, function, extra_content }
     }
     _ => raise JsonDecodeError((path, "ToolCall: expected object"))
   }

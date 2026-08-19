@@ -305,11 +305,16 @@ test "parse_anthropic_response_with_cache_usage" {
   let json = @json.parse(raw)
   let resp = parse_anthropic_response(json)
   let usage = resp.usage.unwrap()
-  // Anthropic: input_tokens = raw_input + cache_read = 100 + 80
-  @debug.assert_eq(usage.input_tokens, 180)
+  // Anthropic two-convention normalisation: cached_input (80+20=100) fits
+  // inside raw input_tokens (100), so input already excludes cache_read and
+  // only cache_creation must be removed → 100-20 = 80.
+  @debug.assert_eq(usage.input_tokens, 80)
   @debug.assert_eq(usage.output_tokens, 50)
   @debug.assert_eq(usage.cache_read_input_tokens, 80)
   @debug.assert_eq(usage.cache_creation_input_tokens, 20)
+  // total_tokens = (input - cache_read) + cache_creation + output = 0+20+50
+  @debug.assert_eq(usage.total_tokens, 70)
+  @debug.assert_eq(usage.total_is_per_turn, true)
 }
 
 // ── Tool Result Formatting Tests ────────────────────────────────────────────
@@ -355,6 +360,73 @@ test "format_anthropic_tool_results" {
   @debug.assert_eq(msgs.length(), 2)
   assert_true(msgs[0].role == @message.Tool)
   assert_true(msgs[1].role == @message.Tool)
+}
+
+///|
+test "build_anthropic_request_merges_consecutive_tool_results" {
+  // Two consecutive tool-result turns for the same assistant turn.
+  // Anthropic requires them in a SINGLE user message; the canonical
+  // per-message conversion would emit two user messages (protocol
+  // violation → 400). Wire snapshot: exactly one user message with two
+  // tool_result blocks.
+  let assistant_msg : @message.Message = {
+    role: @message.Assistant,
+    content: @message.Text("searching"),
+    tool_calls: Some([
+      @message.ToolCall::new("tu_1", "read_file", "{\"path\":\"a\"}"),
+      @message.ToolCall::new("tu_2", "shell", "{\"cmd\":\"ls\"}"),
+    ]),
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let messages = [
+    assistant_msg,
+    @message.Message::tool_result("tu_1", "read_file", "file contents"),
+    @message.Message::tool_result("tu_2", "shell", "command output"),
+  ]
+  let body = build_anthropic_request(messages, "claude-sonnet-4-5", [], 1024, false)
+  let obj = match body {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  let msgs = match obj.get("messages") {
+    Some(Array(arr)) => arr
+    _ => abort("expected messages array")
+  }
+  // assistant + 1 merged user message (NOT 2 separate tool messages)
+  @debug.assert_eq(msgs.length(), 2)
+  match msgs[1] {
+    Object(user_msg) => {
+      assert_eq(user_msg.get("role"), Some("user".to_json()))
+      match user_msg.get("content") {
+        Some(Array(blocks)) => {
+          @debug.assert_eq(blocks.length(), 2)
+          for block in blocks {
+            match block {
+              Object(b) =>
+                assert_eq(
+                  b.get("type"),
+                  Some("tool_result".to_json()),
+                )
+              _ => abort("expected tool_result block")
+            }
+          }
+        }
+        _ => abort("expected content array")
+      }
+    }
+    _ => abort("expected user message object")
+  }
 }
 
 ///|
@@ -596,16 +668,23 @@ test "usage_from_openai" {
   @debug.assert_eq(usage.output_tokens, 50)
   @debug.assert_eq(usage.cache_creation_input_tokens, 10)
   @debug.assert_eq(usage.cache_read_input_tokens, 20)
+  // total_tokens falls back to prompt+completion, NOT per-turn
+  @debug.assert_eq(usage.total_tokens, 150)
+  @debug.assert_eq(usage.total_is_per_turn, false)
 }
 
 ///|
 test "usage_from_anthropic" {
   let usage = Usage::from_anthropic(100, 50, cache_creation=10, cache_read=20)
-  // Anthropic: input_tokens = raw_input + cache_read = 100 + 20 = 120
-  @debug.assert_eq(usage.input_tokens, 120)
+  // Two-convention normalisation: cached_input (30) fits inside raw input
+  // (100) → input already includes cache_creation, subtract it → 90.
+  @debug.assert_eq(usage.input_tokens, 90)
   @debug.assert_eq(usage.output_tokens, 50)
   @debug.assert_eq(usage.cache_creation_input_tokens, 10)
   @debug.assert_eq(usage.cache_read_input_tokens, 20)
+  // total_tokens = (90-20)+10+50 = 130, per-turn
+  @debug.assert_eq(usage.total_tokens, 130)
+  @debug.assert_eq(usage.total_is_per_turn, true)
 }
 
 // ── Bedrock API Key Detection Tests ──────────────────────────────────────────

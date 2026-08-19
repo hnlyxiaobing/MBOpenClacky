@@ -554,7 +554,7 @@ test "ext_toolcall_to_json_structure" {
   match ToJson::to_json(tc) {
     Object(obj) => {
       assert_eq(obj.get("id"), Some("id-1".to_json()))
-      assert_eq(obj.get("type_"), Some("function".to_json()))
+      assert_eq(obj.get("type"), Some("function".to_json()))
       match obj.get("function") {
         Some(Object(fn_obj)) => {
           assert_eq(fn_obj.get("name"), Some("func_name".to_json()))
