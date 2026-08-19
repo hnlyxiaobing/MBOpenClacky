@@ -29,6 +29,9 @@ pub extend Usage with Eq::{not_equal, equal}
 pub extend Usage with ToJson::{to_json}
 
 ///|
+pub extend Usage with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
 /// FromJson for Usage tolerates missing fields (old persisted sessions):
 /// absent counters default to 0, optional cost to None.
 pub impl FromJson for Usage with fn from_json(json, path) {
@@ -87,6 +90,9 @@ pub extend Latency with Eq::{not_equal, equal}
 
 ///|
 pub extend Latency with ToJson::{to_json}
+
+///|
+pub extend Latency with @moonbitlang/core/json.FromJson::{from_json}
 
 ///|
 /// FromJson for Latency tolerates missing optional fields.

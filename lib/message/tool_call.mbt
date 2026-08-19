@@ -35,6 +35,9 @@ pub extend ToolCall with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend ToolCall with Eq::{not_equal, equal}
 
 ///|
+pub extend ToolCall with ToJson::{to_json}
+
+///|
 pub impl ToJson for ToolCall with fn to_json(self) {
   let obj : Map[String, Json] = {
     "id": self.id.to_json(),
