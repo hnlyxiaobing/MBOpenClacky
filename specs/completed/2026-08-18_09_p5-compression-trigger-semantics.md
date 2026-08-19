@@ -1,7 +1,7 @@
 ﻿# 压缩触发语义对齐与 005 超时隔离（BUG-0042/0043）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成（2026-08-19 归档）  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0042、BUG-0043；`reports/p5_fix_unit_clustering.md` FU-07；`reports/BUG-0042_ANALYSIS.md`（完整根因链）  
 > **关联历史 spec**: 无（同簇估算输入见 `2026-08-18_05_p5-token-estimation-alignment.md`）  
 > **来源差距**: P3 链路层差分（剧本 005_compression_trigger）  
@@ -119,13 +119,13 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] 005 超时根因已定位并闭环（根因与修复/处置记录写入 BUGS.md 与本 spec 变更记录）
-- [ ] needs_compression 采用 max(previous_total_tokens, estimate) 语义（单测覆盖：estimate < threshold ≤ previous_total_tokens → 触发）
-- [ ] 5 条消息含 >2000 字符 tool_result 时 compress_messages_if_needed 返回 Some（单测）
-- [ ] test/e2e 005 剧本 BUG-0042 known-failure 闸门移除并转绿（req2 含压缩指令，与 ruby req_0002.json 对齐）
-- [ ] BUG-0043 在 BUGS.md 闭环（fixed，含实证记录），known_failure.mbt:59 登记移除
-- [ ] `moon check` 0 errors（lib/agent、test/e2e、test/diff）
-- [ ] `moon test lib/agent`、`moon test test/e2e` 全部通过；全量 `moon test` 无回归
+- [x] 005 超时根因已定位并闭环（根因与修复/处置记录写入 BUGS.md 与本 spec 变更记录）
+- [x] needs_compression 采用 max(previous_total_tokens, estimate) 语义（单测覆盖：estimate < threshold ≤ previous_total_tokens → 触发）
+- [x] 5 条消息含 >2000 字符 tool_result 时 compress_messages_if_needed 返回 Some（单测）
+- [x] test/e2e 005 剧本 BUG-0042 known-failure 闸门移除并转绿（req2 含压缩指令，与 ruby req_0002.json 对齐）
+- [x] BUG-0043 在 BUGS.md 闭环（fixed，含实证记录），known_failure.mbt:59 登记移除
+- [x] `moon check` 0 errors（lib/agent、test/e2e、test/diff）
+- [x] `moon test lib/agent`、`moon test test/e2e` 全部通过；全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -148,3 +148,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-07（BUG-0042/0043） |
 | 2026-08-14 | 范围收窄：BUG-0043 经实测（moon test lib/agent 339/339、代码复核）确认已修复，本 spec 仅承担闭环与 max 输入对齐；新增任务包 1（005 超时隔离） | 主代理指令 + 当前基线验证记录 |
+| 2026-08-19 | 实施完成并归档：任务包 1 结论——旧 runs/ 证据（300s 超时、requests/ 为空）在当前基线不复现（内生 runner 实测修复前 2 请求快速失败），无独立 bug 登记；任务包 2——needs_compression 取 max(previous_total_tokens, estimate)（compressor.mbt:132-136）、recent 守卫对 content>2000 的 tool_result 放行（compressor.mbt:184-201），单测 3 个新增；任务包 3——005 e2e 移除 known_failure 闸门转绿（3 请求、req_0002 含压缩指令），known_failure.mbt BUG-0042 登记移除，BUGS.md BUG-0042/0043 均改 fixed；任务包 4——moon check 0 errors、lib/agent 382/382、test/e2e 12/12、test/diff 145/145、全量 moon test 3665/3665 全绿 | 主代理指令（spec-driven-developer）|
