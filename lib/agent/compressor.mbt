@@ -357,25 +357,28 @@ pub fn estimate_history_tokens(history : Array[@message.Message]) -> Int {
 ///|
 /// Estimate token count for a single message.
 fn message_token_estimate(msg : @message.Message) -> Int {
-  let content_tokens = match msg.content {
-    @message.Text(s) => estimate_token_count(s)
-    @message.Blocks(blocks) => {
-      let mut t = 0
+  let mut tokens = 0
+  match msg.content {
+    @message.Text(s) => tokens = tokens + estimate_token_count(s)
+    @message.Blocks(blocks) =>
       for block in blocks {
         match block {
-          @message.Text(tb) => t = t + estimate_token_count(tb.text)
-          @message.Image(_) => t = t + 100 // rough image token estimate
+          @message.Text(tb) => tokens = tokens + estimate_token_count(tb.text)
+          // Image blocks carry no text field; Ruby counts them as 0
+          @message.Image(_) => ()
         }
       }
-      t
-    }
   }
-  // Add overhead for tool_calls JSON
-  let tc_tokens = match msg.tool_calls {
-    Some(calls) => calls.length() * 50 // rough per-call overhead
-    None => 0
+  // Tool calls: only the function name and arguments contribute tokens
+  match msg.tool_calls {
+    Some(calls) =>
+      for tc in calls {
+        tokens = tokens + estimate_token_count(tc.function.name)
+        tokens = tokens + estimate_token_count(tc.function.arguments)
+      }
+    None => ()
   }
-  content_tokens + tc_tokens
+  tokens
 }
 
 // ── Dynamic Recent Count ─────────────────────────────────────────────────────
@@ -383,17 +386,20 @@ fn message_token_estimate(msg : @message.Message) -> Int {
 ///|
 /// Calculate the target number of recent messages to preserve after compression.
 ///
-/// Based on total message count and desired compression ratio:
-/// - Higher message counts yield more recent messages (up to max 50)
-/// - Higher compression ratios reduce the count (fewer messages kept)
-/// - Result is clamped to [10, 50]
-pub fn calculate_target_recent_count(
-  total_messages : Int,
-  compression_ratio : Double,
-) -> Int {
-  let base = (total_messages.to_double() * (1.0 - compression_ratio)).to_int()
-  let clamped = base.max(10).min(50)
-  clamped
+/// Matches Ruby `calculate_target_recent_count` (message_compressor_helper.rb):
+/// recent messages get ~20% of the target compressed token budget at
+/// ~500 tokens per message, clamped to [20, max_recent_messages].
+/// Under current constants (target_compressed_tokens=10_000) the result is
+/// always 20 regardless of `reduction_needed`; the parameter is kept for
+/// API parity with Ruby.
+pub fn calculate_target_recent_count(reduction_needed : Int) -> Int {
+  let _ = reduction_needed // kept for API parity with Ruby; unused under constants
+  let tokens_per_message = 500 // Average estimate for a message with content
+  // Target recent messages budget (~20% of target compressed size)
+  let recent_budget = (target_compressed_tokens.to_double() * 0.2).to_int()
+  let target_messages = recent_budget / tokens_per_message
+  // Clamp to reasonable bounds
+  target_messages.max(20).min(max_recent_messages)
 }
 
 // ── Compression Skip Logic ───────────────────────────────────────────────────

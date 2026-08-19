@@ -425,15 +425,15 @@ fn estimate_message_tokens(msg : Message) -> Int {
         match block {
           ContentBlock::Text(tb) =>
             tokens = tokens + estimate_token_count(tb.text)
-          ContentBlock::Image(_) => tokens = tokens + 100
+          // Image blocks carry no text field; Ruby counts them as 0
+          ContentBlock::Image(_) => ()
         }
       }
   }
-  // Tool calls overhead
+  // Tool calls: only the function name and arguments contribute tokens
   match msg.tool_calls {
     Some(calls) =>
       for tc in calls {
-        tokens = tokens + 50
         tokens = tokens + estimate_token_count(tc.function.name)
         tokens = tokens + estimate_token_count(tc.function.arguments)
       }
@@ -443,11 +443,21 @@ fn estimate_message_tokens(msg : Message) -> Int {
 }
 
 ///|
-/// Estimate token count from string length (~4 chars per token).
+/// Estimate token count: ASCII printable chars at ~4 chars/token, other
+/// (multibyte) chars at ~1.5 chars/token; ceil applies to the weighted sum.
 fn estimate_token_count(s : String) -> Int {
-  let len = s.length()
-  // Ceiling division: (len + 3) / 4
-  (len + 3) / 4
+  let mut ascii_chars = 0
+  let mut total_chars = 0
+  for c in s {
+    total_chars = total_chars + 1
+    if c >= '\u{20}' && c <= '\u{7E}' {
+      ascii_chars = ascii_chars + 1
+    }
+  }
+  let multibyte_chars = total_chars - ascii_chars
+  (ascii_chars.to_double() / 4.0 + multibyte_chars.to_double() / 1.5)
+  .ceil()
+  .to_int()
 }
 
 ///| Drop the trailing assistant message if it has tool_calls with no

@@ -433,15 +433,18 @@ test "token_026_no_skip_compression" {
 
 ///|
 test "token_027_target_recent_count_known_failure" {
-  // BUG-0049：分层摘要 token 钳制公式差异。
+  // BUG-0049（已修复）：分层摘要 token 钳制公式差异。
   // 证据：diff-harness/cases/context_compression/test_cases.json token-027 +
   // ruby_results.json 实测 20（token 预算 10000*0.2=2000 / 500 = 4，钳制到
-  // [20, 20]）。MB 实测 19——公式为 total*(1-ratio) 钳制 [10,50]，且
+  // [20, 20]）。修复前 MB 实测 19——公式为 total*(1-ratio) 钳制 [10,50]，且
   // 100*(1.0-0.8) 在 IEEE754 下为 19.999...，to_int 截断得 19。
+  // 修复后对齐 Ruby 公式：recent_budget = target_compressed_tokens * 0.2，
+  // target = recent_budget / 500，钳制 [20, max_recent_messages]；
+  // 签名改为 (reduction_needed)，与 Ruby 形参一致（当前常量下结果恒为 20）。
   if known_failure("BUG-0049") {
     return
   }
-  assert_eq(@agent.calculate_target_recent_count(100, 0.8), 20)
+  assert_eq(@agent.calculate_target_recent_count(8000), 20)
 }
 
 // ── token-028 提取关键信息（BUG-0050） ───────────────────────────────────────

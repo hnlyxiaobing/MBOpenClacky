@@ -31,9 +31,9 @@ let known_failure_bug_ids : Array[String] = [
   // BUG-0007 已转 needs-investigation（台账与实测证据矛盾，见 BUGS.md 2026-08-14 修订），
   // 当前无断言挂该编号，不在册
    "BUG-0008", // expand_path 不解析 ~user（同 BUG-0005）
-   "BUG-0009", // token 估算不区分 CJK 字符
-   "BUG-0010", // tool_calls 估算多加 50 tokens
-   "BUG-0011", // 溢出恢复拆散 tool pair
+  // BUG-0009/0010 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
+  // token 估算分桶公式 + tool_calls 去 +50），移出注册表
+   "BUG-0011", // 溢出恢复拆散 tool pair（+50 根因已随 BUG-0010 修复，本体属 FU-09）
   // config_cli 模块（P2）
    "BUG-0012", // max_tokens 不从配置文件加载
    "BUG-0013", // anthropic_format 默认值不一致
@@ -65,9 +65,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0045", // edit 缺 new_string 静默删除（edit-018）
    "BUG-0046", // edit 非法 UTF-8 panic（edit-019，闸门内不得执行真实调用）
    "BUG-0047", // write 不支持嵌套目录创建（write-003/006）
-   "BUG-0048", // 图片 token 估算差异（token-008）
-   "BUG-0049", // 摘要 token 钳制公式差异（token-027）
-   "BUG-0050", // 关键信息提取规则差异（token-028）
+  // BUG-0048/0049/0050 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
+  // 图片块计 0 + 钳制公式对齐 + 关键信息提取对齐 driver 简化语义），移出注册表
    "BUG-0052", // CLACKY_ANTHROPIC_FORMAT 未读取（config-019）
 ]
 

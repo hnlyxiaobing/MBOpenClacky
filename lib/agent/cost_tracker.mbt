@@ -91,14 +91,24 @@ pub extend IterationTokenData with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend IterationTokenData with Eq::{not_equal, equal}
 
 ///|
-/// Estimate token count from character count (rough: chars / 4).
+/// Estimate token count from character count.
+/// ASCII printable chars (U+0020..U+007E) count as ~4 chars/token, all
+/// other chars (CJK, emoji, other multibyte) as ~1.5 chars/token; the
+/// weighted sum is rounded up once. Matches Ruby `estimate_content_tokens`
+/// (openclacky message_history.rb: `count(" -~")` / 4.0 + rest / 1.5, ceil).
 pub fn estimate_token_count(content : String) -> Int {
-  let chars = content.length()
-  if chars == 0 {
-    0
-  } else {
-    (chars + 3) / 4
+  let mut ascii_chars = 0
+  let mut total_chars = 0
+  for c in content {
+    total_chars = total_chars + 1
+    if c >= '\u{20}' && c <= '\u{7E}' {
+      ascii_chars = ascii_chars + 1
+    }
   }
+  let multibyte_chars = total_chars - ascii_chars
+  (ascii_chars.to_double() / 4.0 + multibyte_chars.to_double() / 1.5)
+  .ceil()
+  .to_int()
 }
 
 ///|

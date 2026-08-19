@@ -196,45 +196,6 @@ pub extend KeyInformation with Eq::{not_equal, equal}
 // 鈹€鈹€ Keyword Matching Helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 ///|
-/// Check if a line looks like a file path (has a known extension or path separator).
-fn is_likely_file_path(s : String) -> Bool {
-  if s.contains("/") || s.contains("\\") {
-    if s.contains(".mbt") ||
-      s.contains(".rb") ||
-      s.contains(".py") ||
-      s.contains(".js") ||
-      s.contains(".ts") ||
-      s.contains(".json") ||
-      s.contains(".toml") ||
-      s.contains(".md") ||
-      s.contains(".txt") ||
-      s.contains(".yaml") ||
-      s.contains(".yml") ||
-      s.contains(".c") ||
-      s.contains(".h") ||
-      s.contains(".rs") ||
-      s.contains(".go") {
-      return true
-    }
-  }
-  false
-}
-
-///|
-/// Extract file paths mentioned in text, one per line.
-fn extract_file_paths_from_text(text : String) -> Array[String] {
-  let lines = text.split("\n")
-  let paths : Array[String] = []
-  for line in lines {
-    let trimmed = line.trim().to_owned()
-    if is_likely_file_path(trimmed) {
-      paths.push(trimmed)
-    }
-  }
-  paths
-}
-
-///|
 /// Check if a string array already contains a value.
 fn str_array_contains(arr : Array[String], val : String) -> Bool {
   for item in arr {
@@ -253,13 +214,27 @@ fn push_unique(arr : Array[String], val : String) -> Unit {
   }
 }
 
+///|
+/// Keep at most the first 5 entries of a string array (in place).
+/// Matches the driver-side `uniq.first(5)` cap.
+fn cap_unique_entries(arr : Array[String]) -> Unit {
+  while arr.length() > 5 {
+    let _ = arr.pop()
+  }
+}
+
 // 鈹€鈹€ Extract Key Information 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 ///|
 /// Extract key information from conversation messages via keyword matching.
 ///
-/// Scans message content for file paths, decision keywords, task completion
-/// indicators, pending tasks, and error messages.
+/// Scans message content for file creation mentions, decision keywords, task
+/// completion indicators, pending tasks, and error messages. Aligned with the
+/// diff-harness ruby_driver simplified extraction (token-028):
+/// - files: any role whose content mentions "created"/"File" (whole text)
+/// - decisions: assistant messages with decision keywords
+/// - errors: user/assistant/tool messages with error keywords
+/// - files/decisions/errors keep at most 5 unique entries
 pub fn extract_key_information(
   messages : Array[@message.Message],
 ) -> KeyInformation {
@@ -277,10 +252,12 @@ pub fn extract_key_information(
       continue
     }
 
-    // Extract file paths from message content
-    let paths = extract_file_paths_from_text(text)
-    for p in paths {
-      push_unique(result.files_mentioned, p)
+    // Extract file references: any message mentioning file creation
+    // (driver parity: content containing "created" or "File")
+    let mentions_file = text.contains("created") || text.contains("File")
+    if mentions_file {
+      let cap = if text.length() > 100 { 100 } else { text.length() }
+      push_unique(result.files_mentioned, text[0:cap].trim().to_owned())
     }
 
     // Extract decisions from assistant messages
@@ -301,8 +278,9 @@ pub fn extract_key_information(
       }
     }
 
-    // Extract completed tasks from tool messages
-    if msg.role == @message.Tool {
+    // Extract completed tasks from tool messages; text already captured
+    // as a file mention goes to files_mentioned only
+    if msg.role == @message.Tool && !mentions_file {
       if text.contains("completed") ||
         text.contains("done") ||
         text.contains("success") ||
@@ -313,8 +291,10 @@ pub fn extract_key_information(
       }
     }
 
-    // Extract errors from any message
-    if msg.role == @message.User || msg.role == @message.Assistant {
+    // Extract errors from any message (including tool results)
+    if msg.role == @message.User ||
+      msg.role == @message.Assistant ||
+      msg.role == @message.Tool {
       if text.contains("error") ||
         text.contains("Error") ||
         text.contains("failed") ||
@@ -335,6 +315,11 @@ pub fn extract_key_information(
       }
     }
   }
+
+  // Cap dimensions at 5 unique entries (driver parity: uniq.first(5))
+  cap_unique_entries(result.files_mentioned)
+  cap_unique_entries(result.decisions_made)
+  cap_unique_entries(result.errors_encountered)
 
   result
 }
