@@ -308,11 +308,6 @@ test "todo_manager_status_flow" {
 // ── execute_todo_tool (Ruby-aligned action dispatch) ─────────────────────────
 
 ///|
-fn make_todo_call(action : String) -> @message.ToolCall {
-  make_tool_call("call_todo", "todo_manager", "{\"action\": \"\{action}\"}")
-}
-
-///|
 fn todo_args(pairs : Array[(String, Json)]) -> Map[String, Json] {
   let m : Map[String, Json] = Map([])
   for pair in pairs {
@@ -424,7 +419,7 @@ test "execute_todo_list_empty" {
 
 ///|
 test "execute_todo_list_nonempty" {
-  let (agent, _call, entry) = run_todo("list", [])
+  let (agent, _call, _entry) = run_todo("list", [])
   let _ = agent.todo_manager.add("Task One", "")
   let _ = agent.todo_manager.add("Task Two", "")
   let entry2 = agent.execute_todo_tool(

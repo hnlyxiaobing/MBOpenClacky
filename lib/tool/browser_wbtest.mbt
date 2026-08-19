@@ -7,7 +7,7 @@
 fn extract_marked_line(result : String, marker : String) -> String? {
   for sv in result.split("\n") {
     let line = sv.trim().to_owned()
-    if line.starts_with(marker) {
+    if line.has_prefix(marker) {
       return Some(line[marker.length():].to_owned().trim().to_owned())
     }
   }
@@ -93,7 +93,7 @@ test "screenshot_small_png_kept_as_is" {
   match extract_marked_line(result, "size: ") {
     Some(sz) => {
       let expected = png_bytes.length().to_string()
-      assert_true(sz.starts_with(expected), msg="size should be original bytes")
+      assert_true(sz.has_prefix(expected), msg="size should be original bytes")
     }
     None => assert_true(false, msg="size line missing")
   }

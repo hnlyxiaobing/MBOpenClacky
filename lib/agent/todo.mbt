@@ -28,7 +28,7 @@ fn TodoManager::gen_id(self : TodoManager) -> String {
 ///|
 /// Convert a model-facing integer task id (as used by the tool schema)
 /// into the internal `task_N` string id.
-pub fn TodoManager::id_str(self : TodoManager, n : Int) -> String {
+pub fn TodoManager::id_str(_self : TodoManager, n : Int) -> String {
   "task_" + n.to_string()
 }
 
@@ -36,12 +36,8 @@ pub fn TodoManager::id_str(self : TodoManager, n : Int) -> String {
 /// Convert an internal `task_N` id back to the integer id exposed to the
 /// model. Falls back to 0 if malformed.
 pub fn todo_int_id(id : String) -> Int {
-  let view = if id.has_prefix("task_") {
-    id.substring(start=5)
-  } else {
-    id.substring(start=0)
-  }
-  @strconv.parse_int(view) catch {
+  let s = if id.has_prefix("task_") { id[5:].to_owned() } else { id }
+  @string.parse_int(s) catch {
     _ => 0
   }
 }

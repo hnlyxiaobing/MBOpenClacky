@@ -403,7 +403,7 @@ fn todo_tasks_arg(args : Map[String, Json]) -> Array[String] {
   let out : Array[String] = []
   match args.get("task") {
     Some(String(s)) => {
-      let t = s.trim().to_string()
+      let t = s.trim().to_owned()
       if t.length() > 0 {
         out.push(t)
       }
@@ -412,7 +412,7 @@ fn todo_tasks_arg(args : Map[String, Json]) -> Array[String] {
       for item in items {
         match item {
           String(s) => {
-            let t = s.trim().to_string()
+            let t = s.trim().to_owned()
             if t.length() > 0 {
               out.push(t)
             }
