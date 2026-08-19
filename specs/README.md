@@ -60,6 +60,12 @@ specs/
 \r
 ## 最近归档 Spec
 
+### 2026-08-19 — 消息格式与会话持久化对齐（矩阵§4，1 项完成）
+
+| Spec | 名称 | 关键实现 | 测试 |
+|------|------|---------|------|
+| 11 | 消息格式与会话持久化对齐 | `Agent.history` 迁移 `MessageHistory`（"(interrupted)" 配对修复 + reasoning pad + rollback 身份语义 + task_chain 过滤）；会话 ID 随机 hex + 文件名日期前缀 + 旧格式兼容；三级清理策略（pinned 豁免 → 软删除 → 回收站）；restore_session_enhanced 生产接线（todos/time_machine/channel_info/previous_total_tokens 恢复 + system prompt 刷新 + 错误回滚）；列表 updated_at 降序 + 前缀匹配；fork 保留 time_machine；`compress_old_sessions_if_needed` 移除（裁决）；全文搜索 snippet + 5000ms 软超时；ZIP 导出导入保留（MB 超集，记录豁免） | lib/agent 417/417 ✅ |
+
 ### 2026-08-05 — TUI 全面对齐原版（4 项完成）
 
 | Spec | 名称 | 关键实现 | 测试 |
