@@ -1,7 +1,7 @@
 ﻿# Token 估算与压缩摘要辅助对齐（BUG-0009/0010/0048/0049/0050）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成（2026-08-19 实施并归档）  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0009、BUG-0010（B 类冻结）、BUG-0048/0049/0050（P5 新登记）；`reports/p5_fix_unit_clustering.md` FU-06  
 > **关联历史 spec**: 无（同簇触发语义见 `2026-08-18_09_p5-compression-trigger-semantics.md`）  
 > **来源差距**: P2 单元级差分（cases/context_compression token-003/004/006/007/008/009/027/028）  
@@ -132,14 +132,24 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] 移除 BUG-0009 闸门后 token-003/004 转绿（内容级：CJK 10、混合 6）
-- [ ] 移除 BUG-0010 闸门后 token-006/007/009 转绿（16/31/6）
-- [ ] 移除 BUG-0048 闸门后 token-008 转绿（8）
-- [ ] 移除 BUG-0049 闸门后 token-027 转绿（20）
-- [ ] 移除 BUG-0050 闸门后 token-028 转绿（files/errors 按冻结值）
-- [ ] `moon check` 0 errors（lib/message、lib/agent、test/diff）
-- [ ] `moon test test/diff`、`moon test lib/agent`、`moon test lib/message` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] 移除 BUG-0009 闸门后 token-003/004 转绿（内容级：CJK 10、混合 6）
+- [x] 移除 BUG-0010 闸门后 token-006/007/009 转绿（16/31/6）
+- [x] 移除 BUG-0048 闸门后 token-008 转绿（8）
+- [x] 移除 BUG-0049 闸门后 token-027 转绿（20）
+- [x] 移除 BUG-0050 闸门后 token-028 转绿（files/errors 按冻结值）
+- [x] `moon check` 0 errors（lib/message、lib/agent、test/diff）
+- [x] `moon test test/diff`、`moon test lib/agent`、`moon test lib/message` 全部通过
+- [x] 全量 `moon test` 无回归
+
+**实施验证记录（2026-08-19）**：
+
+- `moon check`：0 errors / 0 warnings（`reduction_needed` 形参以 `let _ =` 显式忽略，保 Ruby API 对齐）。
+- `moon test test/diff`：145/145 绿（BUG-0009/0010/0048/0049/0050 五编号移出 known_failure 注册表后闸门断言全部生效转绿）。
+- `moon test lib/agent`：377/377 绿；`moon test lib/message`：59/59 绿。
+- 全量 `moon test`：3633/3633 绿，无回归。
+- 决策 5 按默认方案 (a) 执行：`extract_key_information` 的 files 维度对齐 driver 简化语义（任意角色含 "created"/"File" 即收整条文本、去重、first(5)）；errors 纳入 Tool 角色；tasks_completed 与 files 消息级互斥；旧按行路径提取（is_likely_file_path/extract_file_paths_from_text）已删除（唯一调用方即本函数，无其他引用）。
+- 交付文件：`lib/agent/cost_tracker.mbt`、`lib/message/history.mbt`、`lib/agent/compressor.mbt`、`lib/agent/compressor_helper.mbt`、`test/diff/known_failure.mbt`、`test/diff/context_compression_cases_wbtest.mbt`（token-027 断言改新签名 `calculate_target_recent_count(8000)`）。
+- 附注：`moon fmt` 顺带把 `cmd/moon.pkg` 的空 `options()` 块展开为纯注释（无关格式化），已还原以保持本 spec 改动聚焦。
 
 ## 风险评估 [必填]
 
@@ -162,3 +172,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-06（BUG-0009/0010） |
 | 2026-08-14 | 并入 BUG-0048/0049/0050 | P5 新登记条目，同属压缩模块纯函数差分，与触发语义（FU-07）、溢出恢复（FU-09）正交 |
+| 2026-08-19 | 实施完成并归档 | 任务包 1~4 全部落地：三处估算对齐 Ruby 分桶公式（BUG-0009）、tool_calls 去 +50 补 name/args（BUG-0010）、图片块计 0（BUG-0048）、钳制公式与签名对齐（BUG-0049）、关键信息提取对齐 driver 简化语义（BUG-0050，按决策 5(a)）；known_failure 移除五编号，全量 3633 测试绿 |
