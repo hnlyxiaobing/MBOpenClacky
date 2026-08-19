@@ -52,16 +52,44 @@ priv struct SearchResult {
 let ddg_cooldown_ms : Int64 = 600_000L
 
 ///|
-/// Search providers in fallback order (matches the original PROVIDERS).
+/// Search providers in fallback order (matches the original PROVIDERS, plus
+/// a configured custom searcher from ~/.clacky/searchers/).
 priv enum SearchProvider {
   DuckDuckGo
   Bing
+  Custom(String) // provider basename from ~/.clacky/search.yml
 } derive(Eq)
 
 ///|
-/// Build the provider chain to try for this search. DuckDuckGo is skipped
-/// for 10 minutes after it has failed once (original `active_providers`).
-fn build_provider_chain() -> Array[SearchProvider] {
+/// How long a configured searcher script may run before it is killed
+/// (original SEARCHER_TIMEOUT = 30s).
+let searcher_timeout_ms : Int = 30_000
+
+///|
+/// Build the provider chain to try for this search. An explicitly configured
+/// searcher is authoritative (original `active_providers`): it is the only
+/// provider tried — never falling back to a built-in scraper, which would
+/// silently ignore the user's choice and make a broken key or script look
+/// like a low-quality result set. A provider whose script is not installed
+/// is treated as unset so web_search falls back to the built-ins instead of
+/// erroring on every search. DuckDuckGo is skipped for 10 minutes after it
+/// has failed once.
+
+///|
+/// Build the provider chain for an explicitly-resolved (provider, script)
+/// pair. A configured searcher is authoritative (original
+/// `active_providers`): it is the only provider tried — never falling back
+/// to a built-in scraper, which would silently ignore the user's choice and
+/// make a broken key or script look like a low-quality result set.
+/// A provider whose script is not installed is treated as unset so
+/// web_search falls back to the built-ins instead of erroring.
+fn build_provider_chain_with(
+  provider : String,
+  script_path : String?,
+) -> Array[SearchProvider] {
+  if !provider.is_empty() && script_path is Some(_) {
+    return [Custom(provider)]
+  }
   let now_ms = @env.now().reinterpret_as_int64()
   if now_ms < ddg_unavailable_until_ms.val {
     [Bing]
@@ -71,10 +99,17 @@ fn build_provider_chain() -> Array[SearchProvider] {
 }
 
 ///|
+fn build_provider_chain() -> Array[SearchProvider] {
+  let (provider, _key) = read_search_config()
+  build_provider_chain_with(provider, custom_searcher_path(provider))
+}
+
+///|
 fn provider_name(p : SearchProvider) -> String {
   match p {
     DuckDuckGo => "DuckDuckGo"
     Bing => "Bing"
+    Custom(name) => name
   }
 }
 
@@ -194,7 +229,8 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
     return ToolResult::error("Query cannot be empty")
   }
   let max = get_int_arg(args, "max_results", self.max_results)
-  let capped = if max > 20 { 20 } else if max < 1 { 10 } else { max }
+  // No hard cap (original passes max_results straight to the providers).
+  let capped = if max < 1 { 10 } else { max }
 
   // Percent-encode the query as UTF-8 (original CGI.escape). Un-encoded CJK
   // bytes in the request line make Bing answer HTTP 400.
@@ -205,6 +241,14 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
     let results = match provider {
       DuckDuckGo => search_ddg(encoded_query, capped)
       Bing => search_bing(query, encoded_query, capped)
+      Custom(name) =>
+        match search_custom(query, capped, name) {
+          Ok(r) => r
+          Err(msg) => {
+            failures.push(msg)
+            continue
+          }
+        }
     }
     if results.length() > 0 {
       if provider == DuckDuckGo {
@@ -229,7 +273,231 @@ impl Tool for WebSearch with fn execute(self, args : Map[String, Json]) -> ToolR
     }
   }
   let detail = failures.join(" | ")
-  ToolResult::error("All search providers failed for: \{query} \{detail}")
+  match providers {
+    [Custom(name)] => {
+      // The only configured provider failed — tell the user where to look
+      // (original `search_failure_message` for the :custom-only case).
+      let script_path = match custom_searcher_path(name) {
+        Some(p) => p
+        None => "<~/.clacky/searchers/>"
+      }
+      ToolResult::error(
+        "Configured search provider '\{name}' failed. Last error: \{detail}. " +
+        "Check the key and the script at \{script_path}, or reconfigure it " +
+        "in Settings → Search.",
+      )
+    }
+    _ =>
+      ToolResult::error("All search providers failed for: \{query} \{detail}")
+  }
+}
+
+///|
+// ── Configured searcher (~/.clacky/searchers/) ────────────────────────────
+
+///|
+/// Absolute path of ~/.clacky/search.yml.
+fn search_config_path() -> String {
+  match home_dir() {
+    Some(h) =>
+      @path.Path::join(@path.Path(h), @path.Path(".clacky/search.yml")).to_string()
+    None => "~/.clacky/search.yml"
+  }
+}
+
+///|
+/// Read (provider, key) from ~/.clacky/search.yml. A missing or corrupt
+/// file yields ("", "") so web_search falls back to the built-in engines
+/// (original SearchConfig.load rescue).
+fn read_search_config() -> (String, String) {
+  let path = search_config_path()
+  if !@fs.path_exists(path) {
+    return ("", "")
+  }
+  let content = @fs.read_file_to_string(path) catch { _ => return ("", "") }
+  parse_search_config(content)
+}
+
+///|
+/// Parse `provider:` and `key:` lines out of a search.yml-style string
+/// (line-based; no YAML dependency).
+fn parse_search_config(content : String) -> (String, String) {
+  let mut provider = ""
+  let mut key = ""
+  for line in content.split("\n") {
+    let t = line.trim().to_owned()
+    if t.has_prefix("provider:") {
+      provider = t[9:].to_owned().trim().to_owned()
+    } else if t.has_prefix("key:") {
+      key = t[4:].to_owned().trim().to_owned()
+    }
+  }
+  (provider, key)
+}
+
+///|
+/// Absolute path of the configured searcher script, or None when the
+/// provider is unset or its script is not installed (original
+/// `SearchConfig.script_path` — a missing script is treated as unset so
+/// web_search falls back to the built-ins instead of erroring).
+fn custom_searcher_path(provider : String) -> String? {
+  if provider.is_empty() {
+    return None
+  }
+  match home_dir() {
+    None => None
+    Some(h) => searcher_path_in(h, provider)
+  }
+}
+
+///|
+/// Look for <provider>.rb then <provider>.py inside the given searchers
+/// directory (the original tries .rb before .py).
+fn searcher_path_in(home : String, provider : String) -> String? {
+  let dir = @path.Path::join(@path.Path(home), @path.Path(".clacky/searchers"))
+  let rb = @path.Path::join(dir, @path.Path(provider + ".rb")).to_string()
+  if @fs.path_exists(rb) {
+    return Some(rb)
+  }
+  let py = @path.Path::join(dir, @path.Path(provider + ".py")).to_string()
+  if @fs.path_exists(py) {
+    return Some(py)
+  }
+  None
+}
+
+///|
+/// Quote a single argument for the platform shell (bash -c on Unix,
+/// cmd.exe .bat on Windows) so queries survive metacharacters.
+fn shell_quote(arg : String) -> String {
+  if is_windows_platform() {
+    "\"" + arg.replace(old="\"", new="\"\"") + "\""
+  } else {
+    "'" + arg.replace(old="'", new="'\\''") + "'"
+  }
+}
+
+///|
+/// Last index of `needle` in `haystack`, or -1 (find_substring walks
+/// forward; used to slice the trailing ']' of the searcher's JSON array).
+fn last_index_of(haystack : String, needle : String) -> Int {
+  let mut pos = find_substring(haystack, needle, 0)
+  let mut last = pos
+  while pos >= 0 {
+    last = pos
+    pos = find_substring(haystack, needle, pos + 1)
+  }
+  last
+}
+
+///|
+/// Run the configured searcher script (original `search_custom`):
+///   <interpreter> <script> "<query>" <max_results>
+/// with CLACKY_SEARCH_KEY in the environment. stdout must be a JSON array
+/// of {title, url, snippet} objects; empty-url items are dropped.
+async fn search_custom(
+  query : String,
+  max_results : Int,
+  provider_name : String,
+) -> Result[Array[SearchResult], String] {
+  let script = match custom_searcher_path(provider_name) {
+    Some(p) => p
+    None => return Err("Searcher script not found for '\{provider_name}'")
+  }
+  let (_provider, key) = read_search_config()
+  search_custom_script(script, query, max_results, key)
+}
+
+///|
+/// Run a searcher script directly (core of `search_custom`, testable without
+/// touching ~/.clacky): `<interpreter> <script> "<query>" <max_results>`
+/// with CLACKY_SEARCH_KEY in the environment, and the same timeout/exit/JSON
+/// handling as the original.
+async fn search_custom_script(
+  script : String,
+  query : String,
+  max_results : Int,
+  key : String,
+) -> Result[Array[SearchResult], String] {
+  let interpreter = if script.has_suffix(".rb") { "ruby" } else { "python3" }
+  let cmd = interpreter +
+    " " +
+    shell_quote(script) +
+    " " +
+    shell_quote(query) +
+    " " +
+    max_results.to_string()
+  let (output, exit_code, _out_file, timed_out) = execute_command_sync(
+    cmd,
+    ".",
+    searcher_timeout_ms,
+    @env.now().reinterpret_as_int64().to_int(),
+    Map::from_array([("CLACKY_SEARCH_KEY", key)]),
+  )
+  if timed_out {
+    return Err("Searcher timed out after 30s")
+  }
+  if exit_code != 0 {
+    let stderr = output.trim().to_owned()
+    if stderr.is_empty() {
+      return Err("Searcher exited with \{exit_code}")
+    }
+    return Err(stderr)
+  }
+  parse_custom_results(output, max_results)
+}
+
+///|
+/// Parse the searcher's JSON-array stdout into SearchResults (original
+/// `parse_custom_results`). stderr may be interleaved with stdout, so the
+/// JSON array is extracted from the first '[' to the last ']'.
+fn parse_custom_results(
+  raw : String,
+  max_results : Int,
+) -> Result[Array[SearchResult], String] {
+  let text = raw.trim().to_owned()
+  let start = find_substring(text, "[", 0)
+  if start < 0 {
+    return Err("Searcher must output a JSON array")
+  }
+  let end = last_index_of(text, "]")
+  if end <= start {
+    return Err("Searcher must output a JSON array")
+  }
+  let parsed = @json.parse(text[start:end + 1]) catch {
+    _ => return Err("Searcher must output a JSON array")
+  }
+  let items = match parsed {
+    Json::Array(arr) => arr
+    _ => return Err("Searcher must output a JSON array")
+  }
+  let results : Array[SearchResult] = []
+  for item in items {
+    if results.length() >= max_results {
+      break
+    }
+    let obj = match item {
+      Json::Object(o) => o
+      _ => continue
+    }
+    let url = match obj.get("url") {
+      Some(Json::String(s)) => s
+      _ => continue
+    }
+    if url.is_empty() {
+      continue
+    }
+    let title = match obj.get("title") {
+      Some(Json::String(s)) => s
+      _ => ""
+    }
+    let snippet = match obj.get("snippet") {
+      Some(Json::String(s)) => s
+      _ => ""
+    }
+    results.push({ title, url, snippet })
+  }
+  Ok(results)
 }
 
 ///|

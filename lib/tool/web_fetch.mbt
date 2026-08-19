@@ -28,10 +28,7 @@ impl Tool for WebFetch with fn name(_) -> String {
 
 ///|
 impl Tool for WebFetch with fn description(_) -> String {
-  "Fetches content from a specified URL and processes it.\n" +
-  "- Fetches the URL content, converts HTML to markdown\n" +
-  "- Use this tool when you need to retrieve and analyze web content\n" +
-  "- The URL must be a fully-formed valid URL"
+  "Fetch and parse content from a web page. Returns the page content, title, and metadata."
 }
 
 ///|
@@ -41,11 +38,11 @@ impl Tool for WebFetch with fn parameters(_) -> Json {
     "properties": Json::object({
       "url": Json::object({
         "type": "string".to_json(),
-        "description": "The URL to fetch content from".to_json(),
+        "description": "The URL to fetch (must be a valid HTTP/HTTPS URL)".to_json(),
       }),
       "max_length": Json::object({
         "type": "integer".to_json(),
-        "description": "Maximum number of characters to return (default: 3000)".to_json(),
+        "description": "Maximum content length to return in characters (default: 3000)".to_json(),
       }),
     }),
     "required": ["url".to_json()],
@@ -60,15 +57,15 @@ impl Tool for WebFetch with fn category(_) -> ToolCategory {
 ///|
 impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let url = match args.get("url") {
-    Some(String(s)) => s
+    Some(String(s)) => s.trim().to_owned()
     _ => return ToolResult::error("Missing required parameter: url")
   }
 
-  let normalized = normalize_url(url)
-  guard normalized.has_prefix("https://") || normalized.has_prefix("http://") else {
-    return ToolResult::error(
-      "Invalid URL: \{url}. Must be an HTTP or HTTPS URL.",
-    )
+  // Ruby web_fetch.rb validates the URL with URI.parse and rejects anything
+  // that is not URI::HTTP/URI::HTTPS. We do the same without rewriting the
+  // scheme: no http→https upgrade and no auto-prepending of "https://".
+  if !url.has_prefix("http://") && !url.has_prefix("https://") {
+    return ToolResult::error("URL must be HTTP or HTTPS")
   }
 
   let max_len = get_int_arg(args, "max_length", self.max_length)
@@ -88,31 +85,45 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
     ),
     ("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8"),
   ]
-  let first = http_get_follow_redirects(normalized, headers, 15000, 5)
+  let first = http_get_follow_redirects(url, headers, 15000, 5)
   let result = match first {
     Err(err) if @client.is_retryable(err) =>
       // One retry: ReaderClosed / connection reset / timeout are often
       // transient, and the retry frequently succeeds.
-      http_get_follow_redirects(normalized, headers, 15000, 5)
+      http_get_follow_redirects(url, headers, 15000, 5)
     other => other
   }
   match result {
     Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
-        let text = strip_html_tags(response.body)
-        let truncated = if text.length() > max_len {
-          safe_truncate(text, max_len) + "\n[truncated]"
-        } else {
-          text
-        }
-        ToolResult::success(truncated)
+        build_fetch_result(strip_html_tags(response.body), max_len)
       } else {
-        ToolResult::error(
-          "HTTP error \{response.status_code} fetching \{normalized}",
-        )
+        ToolResult::error("HTTP error \{response.status_code} fetching \{url}")
       }
-    Err(err) =>
-      ToolResult::error("Failed to fetch \{normalized}: \{err.to_repr()}")
+    Err(err) => ToolResult::error("Failed to fetch \{url}: \{err.to_repr()}")
+  }
+}
+
+///|
+/// Build the final ToolResult from fetched text. When the text exceeds
+/// max_len the FULL content is spilled to a sidecar temp file and the
+/// head is returned with a pointer to it (Ruby web_fetch.rb: truncated +
+/// temp_file fields).
+fn build_fetch_result(text : String, max_len : Int) -> ToolResult {
+  if text.length() > max_len {
+    let head = safe_truncate(text, max_len)
+    match spill_overflow_file(text) {
+      Some(path) =>
+        ToolResult::success(
+          head +
+          "\n[Content truncated for LLM. Full content saved to: " +
+          path +
+          "]",
+        )
+      None => ToolResult::success(head + "\n[truncated]")
+    }
+  } else {
+    ToolResult::success(text)
   }
 }
 
@@ -169,20 +180,7 @@ fn strip_html_tags(html : String) -> String {
 }
 
 ///|
-fn normalize_url(url : String) -> String {
-  let trimmed = url.trim().to_owned()
-  if trimmed.find("://") is Some(_) {
-    if trimmed.has_prefix("http://") {
-      "https://" + trimmed["http://".length():].to_owned()
-    } else {
-      trimmed
-    }
-  } else {
-    "https://\{trimmed}"
-  }
-}
-
-///|
+/// Strip leading "http(s)://" and the path, keeping only the host:port.
 fn extract_domain(url : String) -> String {
   let stripped = if url.has_prefix("https://") {
     url["https://".length():].to_owned()
