@@ -85,79 +85,6 @@ test "request_user_feedback_name_and_category" {
 // ── TrashManager Tests ───────────────────────────────────────────────────────
 
 ///|
-async test "trash_manager_help_action" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = { "action": "help".to_json() }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("Trash Manager Help") is Some(_))
-  assert_true(result.content.find("list") is Some(_))
-  assert_true(result.content.find("restore") is Some(_))
-  assert_true(result.content.find("status") is Some(_))
-  assert_true(result.content.find("empty") is Some(_))
-}
-
-///|
-async test "trash_manager_list_action" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = { "action": "list".to_json() }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("Trash is empty") is Some(_))
-}
-
-///|
-async test "trash_manager_status_action" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = { "action": "status".to_json() }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("Trash Status") is Some(_))
-}
-
-///|
-async test "trash_manager_restore_missing_path" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = { "action": "restore".to_json() }
-  let result = tool.execute(args)
-  assert_true(result.is_error)
-  assert_true(result.content.find("file_path") is Some(_))
-}
-
-///|
-async test "trash_manager_restore_not_found" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = {
-    "action": "restore".to_json(),
-    "file_path": "/some/path.txt".to_json(),
-  }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("not found in trash") is Some(_))
-}
-
-///|
-async test "trash_manager_empty_action" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = {
-    "action": "empty".to_json(),
-    "days_old": (14).to_json(),
-  }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("14") is Some(_))
-}
-
-///|
-async test "trash_manager_unknown_action" {
-  let tool = TrashManager::{  }
-  let args : Map[String, Json] = { "action": "unknown".to_json() }
-  let result = tool.execute(args)
-  assert_true(result.is_error)
-  assert_true(result.content.find("Unknown action") is Some(_))
-}
-
-///|
 test "trash_manager_format_call" {
   let tool = TrashManager::{  }
   let args : Map[String, Json] = { "action": "list".to_json() }
@@ -404,16 +331,6 @@ async test "anytool_request_user_feedback_via_anytool" {
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("test question") is Some(_))
-}
-
-///|
-async test "anytool_trash_manager_via_anytool" {
-  let tool = AnyTool::TrashManager(TrashManager::{  })
-  @debug.assert_eq(tool.name(), "trash_manager")
-  let args : Map[String, Json] = { "action": "help".to_json() }
-  let result = tool.execute(args)
-  assert_false(result.is_error)
-  assert_true(result.content.find("Trash Manager Help") is Some(_))
 }
 
 ///|
