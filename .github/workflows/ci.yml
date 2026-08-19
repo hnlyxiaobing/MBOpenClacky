@@ -18,7 +18,20 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          # GitHub Actions ubuntu-22.04 runners ship /etc/apt/sources.list.d/
+          # pointing at azure.archive.ubuntu.com, which is intermittently
+          # unreachable from CI and stalls `apt-get update` until the job is
+          # cancelled ("Error: The operation was canceled."). Repoint apt at
+          # the canonical archive.ubuntu.com mirror before updating.
+          sudo sed -i \
+            's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          # Bound the update: fail fast on an unreachable mirror instead of
+          # letting apt retry into the job timeout.
+          sudo apt-get update \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30
           # libssl-dev provides libcrypto for lib/brand's AES-256-GCM / RAND_bytes
           # C stubs (linked via -lcrypto). libcurl is no longer required: the
           # FFI C reduction (S-FFI-06) migrated lib/client HTTP transport to
