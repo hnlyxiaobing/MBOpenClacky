@@ -1,7 +1,8 @@
 ﻿# 重试退避与熔断对齐（BUG-0023/0037/0039）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
+> **完成日期**: 2026-08-19  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0023/0037/0039；`reports/p5_fix_unit_clustering.md` FU-02  
 > **关联历史 spec**: `specs/completed/2026-07-29_agent-06-url-fallback.md`  
 > **来源差距**: P2 单元层（retry-005~009）+ P3 链路层（剧本 002/008/009/013）  
@@ -30,7 +31,7 @@
 | "Ruby URL fallback 可从 provider preset 解析" | 读 openclacky `llm_caller.rb:303-320` | `fallback_base_url_for_current_provider` + `activate_url_fallback!`，一次性切换 + 新端点 5 次预算 | 确认差异 |
 | "Ruby fallback 模型在重试 3 次后激活" | 读 openclacky `llm_caller.rb:284-294` | `RETRIES_BEFORE_FALLBACK` 处 `try_activate_fallback` 并重置计数 | 确认 |
 | "MB fallback 状态机存在但语义待核" | 读 `lib/agent/llm_caller.mbt:15-23,54-101` | `retries_before_fallback=3`、`max_retries_on_fallback=5` 常量存在 | 语义对齐情况列入任务包 1 核实 |
-| "013 MB 15 请求来源" | 现有代码静态分析无法解释（attempt≥10 且 fallback_base_url=None 应 raise） | 未定位 | **列入任务包 1 复现定位**（与 BUG-0038 联合调查） |
+| "013 MB 15 请求来源" | 现有代码静态分析无法解释（attempt≥10 且 fallback_base_url=None 应 raise） | **已定位（2026-08-19 复现）**：系 diff-harness 运行记录污染——`runs/013` moonbit 的 req_0009~0015 是后续 014 场景进程的请求误写入（system prompt 与 session context 完全不同、user prompt 为 014 文案，见 runs/013 moonbit/requests/req_0009.json vs req_0008.json）。013 进程真实只发 8 请求后超时被杀 | 详见本 spec"任务包 1 结论" |
 
 ### 详细分析
 
@@ -46,6 +47,7 @@
    - **为什么**：与 Ruby `sleep retry_delay`（固定 5s）对齐；改动最小。
 2. **决策 2**：013 场景请求数差异（15 vs 11）先复现定位再修，定位结论回写本 spec 与 BUG-0039。
    - **为什么**：在未定位前改重试计数逻辑是盲目修改，违反"诚实标注不确定性"纪律。
+   - **定位结论（2026-08-19）**："15 请求"系 diff-harness 运行记录污染（req_0009~0015 为 014 场景进程误写入，证据：system prompt/session context/prompt 文案均不同）。013 进程真实行为：指数退避 5+10+20+40+60+60+60=255s 后第 8 个请求 sleep 60s 时被 harness 300s 超时杀掉（exit=-1）——**无额外重试路径**。修复后实测还存在一处真实语义差异：MB `attempt >= max_retries` 把 max_retries 当"最大尝试次数"（attempt 1-10 共 10 请求后 raise），Ruby 当"最大重试次数"（10 次重试 + 初始 = 11 请求）；已改为 `attempt > max_retries` 对齐 11 请求预算。BUG-0038（system prompt 中途切换）在 013 进程内未观察到（req_0001~0008 prompt 一致），与 013 无关，仍留 FU-03。
 3. **决策 3**：URL fallback 语义（preset 解析、一次性切换、fallback 上 5 次预算、重试 3 次激活 fallback 模型）的对齐**不纳入本 spec**，仅在确认其与 013 请求数差异相关时另立 spec。
    - **为什么**：fallback 是独立功能域，混入会扩大回归面。
 4. **决策 4**：确认 MB 对 429 `Retry-After` 头的处理（预期：不消费，与 ruby 一致）；若代码实际消费了则一并移除。
@@ -92,13 +94,13 @@ MoonBit 约束检查：不涉及动态加载 trait / FFI / 新依赖。
 
 ## 验收标准 [必填]
 
-- [ ] `retry_delay_ms(n)` 任意 attempt 返回 5000（单测）
-- [ ] 429 处理不消费 Retry-After（代码确认 + 008 剧本）
-- [ ] 009 剧本退避间隔断言转绿（BUG-0037 闭环）
-- [ ] 013 剧本 11 请求干净 exit=1（BUG-0039 闭环；请求数差异根因已定位并修复或移交 FU-03 并注明）
-- [ ] `test/diff` retry-005~009 转绿（BUG-0023 闭环）
-- [ ] `moon check` 0 errors（lib/agent）
-- [ ] 全量 `moon test` 无回归
+- [x] `retry_delay_ms(n)` 任意 attempt 返回 5000（单测：llm_caller_wbtest "retry_delay_ms fixed 5s"）
+- [x] 429 处理不消费 Retry-After（grep 代码确认 lib/ 无客户端消费逻辑，仅 web server 端设置响应头；008 剧本绿）
+- [x] 009 剧本退避间隔断言转绿（BUG-0037 闭环：间隔 5s/5s 断言通过）
+- [x] 013 剧本 11 请求干净 exit=1（BUG-0039 闭环：请求数差异根因已定位——记录污染 + `attempt >= max_retries` 语义修正为 `>`，e2e 013 11 请求 status=error）
+- [x] `test/diff` retry-005~009 转绿（BUG-0023 闭环：retry-006~009 闸门移除）
+- [x] `moon check` 0 errors（lib/agent）
+- [x] 全量 `moon test` 无回归（3662/3662）
 
 ## 风险评估 [必填]
 
@@ -118,3 +120,4 @@ MoonBit 约束检查：不涉及动态加载 trait / FFI / 新依赖。
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-02（BUG-0023/0037/0039） |
+| 2026-08-19 | 实施完成：retry_delay_ms 固定 5000ms（对齐 Ruby sleep retry_delay）；重试预算语义 `attempt >= max_retries` → `>`（Ruby 10 次重试 + 初始 = 11 请求）；retry-006~009 与 e2e 009/013 闸门移除；known_failure.mbt 移除 BUG-0023/0037/0039。任务包 1 定位结论："15 请求"系 diff-harness 记录污染（req_0009+ 为 014 进程误写入），无额外重试路径。全量 moon test 3662/3662 绿 | 验收通过归档 |
