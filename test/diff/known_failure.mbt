@@ -38,7 +38,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0012", // max_tokens 不从配置文件加载
    "BUG-0013", // anthropic_format 默认值不一致
    "BUG-0014", // current_model_id 未自动设置
-   "BUG-0015", // CLACKY_* 环境变量覆盖行为不一致
+  // BUG-0015 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
+  // merge_config 改按 type 去重追加 env 模型），移出注册表
    "BUG-0020", // switch_model_by_id 失败时 current_model 行为不一致
    "BUG-0022", // 保存后加载 max_tokens 不一致（同根因 BUG-0012）
   // error_retry 模块（P2）
@@ -56,7 +57,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0038", // 连续失败时 system prompt 中途切换
    "BUG-0039", // 熔断行为不一致（15 请求 exit=-1 vs 11 请求 exit=1）
    "BUG-0040", // 工具错误 tool_result 非标准 JSON
-   "BUG-0041", // MBOPENCLACKY_COMPRESSION_THRESHOLD 不被 env overlay 读取
+  // BUG-0041 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
+  // apply_env_overlay 读取 MBOPENCLACKY_COMPRESSION_THRESHOLD），移出注册表
    "BUG-0042", // needs_compression 语义/recent 守卫未对齐
   // BUG-0043 已修复（基线 commit 8f4381e，compressor.mbt:141-148 已有 10% 检查，
   // lib/agent 339/339 绿），移出注册表
@@ -67,7 +69,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0047", // write 不支持嵌套目录创建（write-003/006）
   // BUG-0048/0049/0050 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
   // 图片块计 0 + 钳制公式对齐 + 关键信息提取对齐 driver 简化语义），移出注册表
-   "BUG-0052", // CLACKY_ANTHROPIC_FORMAT 未读取（config-019）
+  // BUG-0052 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
+  // try_load_with_prefix 读取 <prefix>_ANTHROPIC_FORMAT），移出注册表
 ]
 
 ///|

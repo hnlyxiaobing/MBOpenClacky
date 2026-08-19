@@ -185,12 +185,13 @@ test "config_018_invalid_permission_mode_falls_back" {
 
 ///|
 /// config-003：配置文件有模型时同时设置 CLACKY_* 环境变量。
-/// 期望值冻结自 ruby_output（实测）：Ruby 仍追加环境变量模型，
-/// current 保持文件模型（sk-file），models_count=2。
-/// MB 实际行为：merge_config 用环境变量模型整体替换文件模型
-/// （current=sk-env，count=1）——BUG-0015 known-failure。
-/// 注：用例中的 moonbit_output（current=sk-file, count=1）为 Python 模拟，
-/// 与代码实测不符，不采用。
+/// 修复 BUG-0015 后：merge_config 按 type 去重追加 env 模型，
+/// models_count=2（文件模型保留）。current 解析为 env 模型
+/// （type=default badge），与 Ruby driver 实测一致——
+/// cases/config_cli/ruby_results.json config-003: current=sk-env, count=2。
+/// （test_cases.json 内嵌 ruby_output 的 current=sk-file 与实测矛盾，
+///   且与 Ruby 源码不符：default_model_config type=default 追加后
+///   current_model_id 指向该模型。按实测与源码为准。）
 test "config_003_env_overlay_with_file_model" {
   let saved = clear_and_save_env()
   @env.set_env_var("CLACKY_API_KEY", "sk-env")
@@ -213,16 +214,11 @@ test "config_003_env_overlay_with_file_model" {
     _ => ()
   }
   restore_env(saved)
-  // green：环境变量确实参与了加载（MB 侧环境变量模型成为唯一模型）
-  assert_eq(config.models.length(), 1)
-  // BUG-0015：Ruby 冻结值——current 保持文件模型且 models_count=2。
-  // 证据：cases/config_cli/test_cases.json config-003
-  if known_failure("BUG-0015") {
-    return
-  }
+  // BUG-0015 修复后：文件模型保留 + env 模型追加，models_count=2。
   assert_eq(config.models.length(), 2)
+  // current=env 模型（Ruby 实测 ruby_results.json config-003）。
   match config.current_model() {
-    Some(m) => assert_eq(m.api_key, "sk-file")
+    Some(m) => assert_eq(m.api_key, "sk-env")
     None => abort("current_model should exist")
   }
 }
@@ -335,10 +331,8 @@ test "config_015_claude_prefix_compat" {
 ///|
 /// config-019：CLACKY_ANTHROPIC_FORMAT=false 应使 anthropic_format=false。
 /// 期望值冻结自 ruby_output（实测）：false。
-/// MB 实际行为：try_load_with_prefix 硬编码 anthropic_format=true，从不读取
-/// CLACKY_ANTHROPIC_FORMAT——与 Ruby 不一致。该差异与 BUG-0013
-/// （anthropic_format 默认值/来源处理不一致）同根因族，已独立立项为
-/// BUG-0052，见 BUGS.md。
+/// BUG-0052 修复后：try_load_with_prefix 读取 <prefix>_ANTHROPIC_FORMAT，
+/// "false" -> anthropic_format=false（逐字对齐 ClackyEnv.default_anthropic_format）。
 test "config_019_clacky_anthropic_format_env" {
   let saved = clear_and_save_env()
   @env.set_env_var("CLACKY_API_KEY", "sk-test")
@@ -348,12 +342,6 @@ test "config_019_clacky_anthropic_format_env" {
   }
   restore_env(saved)
   assert_eq(config.models.length(), 1)
-  // BUG-0052：Ruby 冻结值 anthropic_format=false，
-  // MB 实际为 true（未读取 CLACKY_ANTHROPIC_FORMAT）。
-  // 证据：cases/config_cli/test_cases.json config-019
-  if known_failure("BUG-0052") {
-    return
-  }
   assert_true(!config.models[0].anthropic_format)
 }
 

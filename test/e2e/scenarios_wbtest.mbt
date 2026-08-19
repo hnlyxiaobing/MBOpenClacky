@@ -155,8 +155,11 @@ async test "005 compression_trigger：上下文压缩触发" {
     [("big.txt", big_txt_content())],
     "读一下 big.txt 的全部内容，然后告诉我行数",
     configure=fn(config) {
-      // 对齐 diff-harness FIXTURES 的 compression_threshold=1（经 config 直接注入）
-      config.compression_threshold = 1
+      // BUG-0041 修复后：MBOPENCLACKY_COMPRESSION_THRESHOLD 经
+      // apply_env_overlay 生效（对齐 diff-harness 的 MBOPENCLACKY_* 注入通路；
+      // 此前经 CLACKY_COMPRESSION_THRESHOLD 绕过，见 spec 2026-08-18_07）。
+      @env.set_env_var("MBOPENCLACKY_COMPRESSION_THRESHOLD", "1")
+      config.compression_threshold = config.apply_env_overlay().compression_threshold
     },
     timeout_ms=120_000,
   )

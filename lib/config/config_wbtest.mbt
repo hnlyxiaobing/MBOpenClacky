@@ -486,3 +486,117 @@ test "session_model_overlay honors session model despite different global badge"
   @debug.assert_eq(config.models[0].type_, Some("default"))
   @debug.assert_eq(config.models[1].type_, None)
 }
+
+// ── BUG-0041: MBOPENCLACKY_COMPRESSION_THRESHOLD via apply_env_overlay ──────
+
+///|
+test "apply_env_overlay_reads_compression_threshold" {
+  @env.set_env_var("MBOPENCLACKY_COMPRESSION_THRESHOLD", "1")
+  let config = AgentConfig::default()
+  let result = config.apply_env_overlay()
+  @debug.assert_eq(result.compression_threshold, 1)
+  @env.unset_env_var("MBOPENCLACKY_COMPRESSION_THRESHOLD")
+}
+
+// ── BUG-0052: <prefix>_ANTHROPIC_FORMAT honored in env load ─────────────────
+
+///|
+test "env_anthropic_format_false_via_clacky" {
+  @env.set_env_var("CLACKY_API_KEY", "sk-test")
+  @env.set_env_var("CLACKY_ANTHROPIC_FORMAT", "false")
+  let config = load_config_from_env()
+  @debug.assert_eq(config.models.length(), 1)
+  assert_true(!config.models[0].anthropic_format)
+  @env.unset_env_var("CLACKY_API_KEY")
+  @env.unset_env_var("CLACKY_ANTHROPIC_FORMAT")
+}
+
+///|
+test "env_anthropic_format_unset_or_true_defaults" {
+  @env.set_env_var("CLACKY_API_KEY", "sk-test")
+  // unset -> true
+  let unset = load_config_from_env()
+  assert_true(unset.models[0].anthropic_format)
+  // uppercase "TRUE" -> true (case-insensitive, Ruby downcase == "true")
+  @env.set_env_var("CLACKY_ANTHROPIC_FORMAT", "TRUE")
+  let upper = load_config_from_env()
+  assert_true(upper.models[0].anthropic_format)
+  @env.unset_env_var("CLACKY_API_KEY")
+  @env.unset_env_var("CLACKY_ANTHROPIC_FORMAT")
+}
+
+// ── BUG-0015: merge_config appends env models by type ───────────────────────
+
+///|
+test "merge_config_appends_env_model_by_type" {
+  let base = AgentConfig::default()
+  base.models.push(
+    ModelConfig::new("file", "sk-file", "https://file.com", "gpt-4"),
+  )
+  let overlay = AgentConfig::default()
+  overlay.models.push({
+    id: "default",
+    type_: Some("default"),
+    api_key: "sk-env",
+    base_url: "https://env.com",
+    model: "gpt-4-turbo",
+    anthropic_format: true,
+    runtime_id: "default",
+    media_type: None,
+  })
+  overlay.current_model_id = Some("default")
+  let merged = merge_config(base, overlay)
+  // File model preserved + env model appended (no duplicate type).
+  @debug.assert_eq(merged.models.length(), 2)
+  @debug.assert_eq(merged.models[0].api_key, "sk-file")
+  @debug.assert_eq(merged.models[1].type_, Some("default"))
+  // Env model is the default badge -> current_model resolves to it,
+  // matching Ruby ruby_results.json config-003 (current=sk-env).
+  match merged.current_model() {
+    Some(m) => @debug.assert_eq(m.api_key, "sk-env")
+    None => fail("expected env model as current")
+  }
+}
+
+///|
+test "merge_config_skips_duplicate_type" {
+  let base = AgentConfig::default()
+  base.models.push({
+    id: "file",
+    type_: Some("default"),
+    api_key: "sk-file",
+    base_url: "https://file.com",
+    model: "gpt-4",
+    anthropic_format: false,
+    runtime_id: "file",
+    media_type: None,
+  })
+  let overlay = AgentConfig::default()
+  overlay.models.push({
+    id: "default",
+    type_: Some("default"),
+    api_key: "sk-env",
+    base_url: "https://env.com",
+    model: "gpt-4-turbo",
+    anthropic_format: true,
+    runtime_id: "default",
+    media_type: None,
+  })
+  let merged = merge_config(base, overlay)
+  // type=default already present in base -> env model not appended.
+  @debug.assert_eq(merged.models.length(), 1)
+  @debug.assert_eq(merged.models[0].api_key, "sk-file")
+}
+
+///|
+test "merge_config_badges_first_model_when_no_default" {
+  let base = AgentConfig::default()
+  base.models.push(ModelConfig::new("m1", "k1", "https://a.com", "model-a"))
+  base.models.push(ModelConfig::new("m2", "k2", "https://b.com", "model-b"))
+  // Empty overlay (no env models): merge must still badge first model
+  // as default, matching Ruby agent_config.rb:305-307.
+  let merged = merge_config(base, AgentConfig::default())
+  @debug.assert_eq(merged.models.length(), 2)
+  @debug.assert_eq(merged.models[0].type_, Some("default"))
+  @debug.assert_eq(merged.models[1].type_, None)
+}

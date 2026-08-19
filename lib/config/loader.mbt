@@ -319,6 +319,12 @@ pub fn AgentConfig::apply_env_overlay(self : AgentConfig) -> AgentConfig {
     config.verbose = true
   }
 
+  // Override compression threshold
+  match @utils.env_int("MBOPENCLACKY_COMPRESSION_THRESHOLD") {
+    Some(n) => config.compression_threshold = n
+    None => ()
+  }
+
   config
 }
 

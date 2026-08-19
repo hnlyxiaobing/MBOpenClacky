@@ -55,6 +55,13 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
         Some(u) => u
         None => "https://api.anthropic.com"
       }
+      // <prefix>_ANTHROPIC_FORMAT: unset/empty -> true, else "true"
+      // (case-insensitive), matching ClackyEnv.default_anthropic_format.
+      let anthropic_format = match
+        @utils.env_var(prefix + "_ANTHROPIC_FORMAT") {
+        Some(v) => v.to_lower() == "true"
+        None => true
+      }
       // Build a model config from env
       let env_model : ModelConfig = {
         id: "default",
@@ -65,7 +72,7 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
         api_key: key,
         base_url,
         model: model_name,
-        anthropic_format: true,
+        anthropic_format,
         runtime_id: "default",
         media_type: None,
       }
@@ -151,12 +158,38 @@ pub fn env_key_mappings(prefix : String) -> Array[(String, String)] {
 /// Merge two AgentConfigs: non-default values in overlay override values in base.
 /// String fields: non-empty overlay wins.
 /// Int fields: non-zero overlay wins (except max_tokens where overlay > 0 wins).
-/// Array fields: non-empty overlay wins.
+/// Array fields: overlay models are appended by type (no duplicate type),
+/// matching Ruby agent_config.rb:287-307; if no model is badged "default"
+/// afterwards, the first model is badged default (agent_config.rb:305-307).
 pub fn merge_config(base : AgentConfig, overlay : AgentConfig) -> AgentConfig {
   let result = base
-  // Merge models: overlay wins if it has models
-  if !overlay.models.is_empty() {
-    result.models = overlay.models
+  // Merge models: append overlay models whose type is not already present
+  for m in overlay.models {
+    let t = match m.type_ {
+      Some(t) => t
+      None => "default"
+    }
+    // A base model without an explicit type does NOT count as "default"
+    // (Ruby has_default checks m["type"] == "default" exactly).
+    let exists = result.models.any(fn(bm) {
+      match bm.type_ {
+        Some(bt) => bt == t
+        None => false
+      }
+    })
+    if !exists {
+      result.models.push(m)
+    }
+  }
+  // Ensure at least one model carries the "default" badge
+  let has_default = result.models.any(fn(m) {
+    match m.type_ {
+      Some(t) => t == "default"
+      None => false
+    }
+  })
+  if !has_default && !result.models.is_empty() {
+    result.models[0].type_ = Some("default")
   }
   // Merge current_model_id
   match overlay.current_model_id {
