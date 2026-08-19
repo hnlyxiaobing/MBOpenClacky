@@ -18,17 +18,21 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          # GitHub Actions ubuntu-22.04 runners ship /etc/apt/sources.list.d/
-          # pointing at azure.archive.ubuntu.com, which is intermittently
-          # unreachable from CI and stalls `apt-get update` until the job is
-          # cancelled ("Error: The operation was canceled."). Repoint apt at
-          # the canonical archive.ubuntu.com mirror before updating.
-          sudo sed -i \
-            's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
-            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          # GitHub Actions ubuntu-22.04 runners use cloud-init's mirror+file
+          # syntax: /etc/apt/sources.list points at /etc/apt/apt-mirrors.txt,
+          # which lists azure.archive.ubuntu.com (intermittently unreachable
+          # from CI, stalling `apt-get update` until the job is cancelled).
+          # Repoint EVERY azure reference under /etc/apt at the canonical
+          # archive.ubuntu.com mirror before updating.
+          sudo grep -rl "azure.archive.ubuntu.com" /etc/apt/ 2>/dev/null | \
+            sudo xargs -r sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g'
+          if sudo grep -rq "azure.archive.ubuntu.com" /etc/apt/ 2>/dev/null; then
+            echo "::error::azure.archive.ubuntu.com still present in apt config" >&2
+            exit 1
+          fi
           # Bound the update: fail fast on an unreachable mirror instead of
           # letting apt retry into the job timeout.
-          sudo apt-get update \
+          sudo timeout 300 apt-get update \
             -o Acquire::Retries=2 \
             -o Acquire::http::Timeout=30 \
             -o Acquire::https::Timeout=30
