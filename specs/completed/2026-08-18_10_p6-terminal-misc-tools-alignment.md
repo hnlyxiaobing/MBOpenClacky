@@ -1,7 +1,7 @@
 ﻿# 终端与杂项工具对齐（terminal / todo / trash / browser / feedback / skill / web，矩阵§2）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已完成（2026-08-19 归档）  
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §2（terminal/todo/trash/browser/feedback/skill/web 部分）  
 > **关联历史 spec**: 无同簇既有 spec（16 份 p5 spec 中无 terminal/misc 工具专簇；`2026-08-18_24_p5-tool-result-json-format.md` 与本 spec 的"结构化结果"条目有交叉，实施时以该 spec 的 JSON 结论为统一格式基准）；矩阵旧台账编号已被覆盖，本 spec 一律使用 `矩阵§2/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§2 中 terminal/todo/trash/browser/feedback/invoke_skill/web_search/web_fetch 的 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -160,17 +160,17 @@ Ruby 参照（openclacky，只读）：`tools/terminal.rb`（L66-93/120-129/180-
 
 ## 验收标准 [必填]
 
-- [ ] timeout 参数真实生效：超时命令返回已产出输出 + 超时标记，不阻塞 agent 循环
-- [ ] background 命令立即返回 session_id，poll 可取增量输出，kill 终止真实进程
-- [ ] 尾部带单个换行的命令不被误拦；真实多行仍拦截
-- [ ] `rm` 被重写进回收站；trash_manager list/status/restore/delete 全部真实生效（wbtest 文件系统级断言）
-- [ ] 溢出输出头 60%+尾 40%，full_output_file 随机名且可读取
-- [ ] Security 拦截结果包含具体原因
-- [ ] request_user_feedback 执行后 run 以 awaiting_feedback 挂起，应答后继续
-- [ ] invoke_skill task 必填校验生效；技能全文走 assistant 注入
-- [ ] web_fetch 不改写协议、拒绝非 http(s)；截断页面给出 temp_file 路径且文件存在
-- [ ] web_search max_results 不硬裁剪
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] timeout 参数真实生效：超时命令返回已产出输出 + 超时标记，不阻塞 agent 循环
+- [x] background 命令立即返回 session_id，poll 可取增量输出，kill 终止真实进程
+- [x] 尾部带单个换行的命令不被误拦；真实多行仍拦截
+- [x] `rm` 被重写进回收站；trash_manager list/status/restore/delete 全部真实生效（wbtest 文件系统级断言）
+- [x] 溢出输出头 60%+尾 40%，full_output_file 随机名且可读取
+- [x] Security 拦截结果包含具体原因
+- [x] request_user_feedback 执行后 run 以 awaiting_feedback 挂起，应答后继续
+- [x] invoke_skill task 必填校验生效；技能全文走 assistant 注入
+- [x] web_fetch 不改写协议、拒绝非 http(s)；截断页面给出 temp_file 路径且文件存在
+- [x] web_search max_results 不硬裁剪
+- [x] `moon check` 0 errors；全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -191,3 +191,9 @@ Ruby 参照（openclacky，只读）：`tools/terminal.rb`（L66-93/120-129/180-
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§2 terminal/misc 残留条目核实落 spec；16 项验证记录完成，2 项 unclear 留任务包 0 实测）。
+- 2026-08-19：任务包 0-4 全部实施完成并归档。
+  - 任务包 1（terminal 控制面）：真实超时 + 超时处置、background 真异步、kill 接 pty 句柄、尾部换行 trim、session_id+input 交互通道、env 参数、timeout 单位统一秒、拦截原因透传、CLACKY_SESSION_ID 注入、sh→bash 后端。
+  - 任务包 2（trash/todo）：trash_manager 四 action 真实化（sidecar 元数据 + 回收站目录）、safe_rm rm 拦截（bash source 注入 + 危险路径豁免 + 多行命令误拦修复）、todo_manager add/list/complete/remove/clear + 批量 + 提醒文案 + Int id 适配。
+  - 任务包 3（output/browser/feedback）：output_cleaner \r 折叠/退格/CSI 清洗 + smart_truncate 60/40 + spill 随机文件名；browser 截图 800px 下采样 + 双落盘 + 真实 base64 image_inject 载荷（parse_mcp_tool_response image block 透传）；awaiting_feedback 挂起语义（react.mbt + TUI reply bridge，决策 10/11）。
+  - 任务包 4（skill/web）：invoke_skill task 必填校验 + pending_injections assistant 消息注入；web_fetch URL 校验反转修正（拒绝非 http(s)、不改写协议）+ script/style 剔除 + 截断落盘 temp_file；web_search 自定义 searcher（~/.clacky/searchers rb/py）+ max_results 不裁剪 + search.yml 解析 + UA 池。
+  - 回归：`moon check` 0 errors（仅既有 deprecated 警告）；全量 `moon test` 3741 通过 0 失败；`moon fmt`/`moon info` 干净。提交 04f0ac8/8b0aefa（含任务包 1-3 早前提交）。
