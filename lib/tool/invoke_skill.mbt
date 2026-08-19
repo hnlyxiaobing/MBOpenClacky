@@ -2,7 +2,8 @@
 
 ///|
 /// The actual execution is intercepted and handled in the agent context
-/// (lib/agent/tool_executor.mbt). This stub returns a placeholder message.
+/// (lib/agent/tool_executor.mbt): the skill instructions are injected as a
+/// system-injected assistant message after the tool result is observed.
 pub(all) struct InvokeSkill {} derive(Eq, Debug)
 
 ///|
@@ -18,7 +19,7 @@ impl Tool for InvokeSkill with fn name(_) -> String {
 
 ///|
 impl Tool for InvokeSkill with fn description(_) -> String {
-  "Invoke a registered skill by name with optional arguments"
+  "Invoke a specialized skill to handle specific tasks. Use this when user's request matches a skill's description (e.g., code exploration, document creation, etc.). This will read the skill's instructions and execute them appropriately (either inline or in a subagent)."
 }
 
 ///|
@@ -28,14 +29,14 @@ impl Tool for InvokeSkill with fn parameters(_) -> Json {
     "properties": Json::object({
       "skill_name": Json::object({
         "type": "string".to_json(),
-        "description": "The name of the skill to invoke".to_json(),
+        "description": "Name of the skill to invoke (e.g., 'code-explorer', 'pptx', 'pdf')".to_json(),
       }),
-      "arguments": Json::object({
+      "task": Json::object({
         "type": "string".to_json(),
-        "description": "Optional arguments string to pass to the skill".to_json(),
+        "description": "The task or query to pass to the skill".to_json(),
       }),
     }),
-    "required": ["skill_name".to_json()],
+    "required": ["skill_name".to_json(), "task".to_json()],
   })
 }
 

@@ -79,6 +79,10 @@ pub(all) struct Agent {
   /// Set by WS controller for interactive mode; None = headless (feedback denied).
   mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?)]?
   mut feedback_response : @aqueue.Queue[String]?
+  // ── Skill Injection ───────────────────────────────────────────────
+  /// Pending inline skill injections to flush after observe()
+  /// (Ruby agent.rb @pending_injections): (skill_name, task).
+  mut pending_injections : Array[(String, String)]
   // ── Test Support ─────────────────────────────────────────────────
   /// call_llm pops and returns the first element instead of
   /// making a real API call.
@@ -170,6 +174,8 @@ pub fn Agent::new(
     // Feedback (headless by default)
     feedback_request: None,
     feedback_response: None,
+    // Skill injection queue (empty by default)
+    pending_injections: [],
     // Test support
     mock_responses: [],
   }

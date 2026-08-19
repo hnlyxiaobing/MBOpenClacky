@@ -1885,3 +1885,76 @@ async test "feedback_with_channel_empty_reply_suspends" {
     @debug.assert_eq(result.feedback, None)
   })
 }
+
+// ── invoke_skill tool (task 4: param validation + injection) ──────────────
+
+///|
+test "invoke_skill requires task parameter" {
+  let agent = make_test_agent()
+  let args = Map::from_array([("skill_name", "test-skill".to_json())])
+  let call = make_tool_call(
+    "c1", "invoke_skill", "{\"skill_name\":\"test-skill\"}",
+  )
+  let result = agent.execute_invoke_skill(call, args)
+  @debug.assert_eq(result.is_error, true)
+  assert_true(result.content.contains("missing 'task'"))
+  // Nothing enqueued when validation fails.
+  @debug.assert_eq(agent.pending_injections.length(), 0)
+  @debug.assert_eq(agent.history.length(), 0)
+}
+
+///|
+test "invoke_skill enqueues injection and returns short message" {
+  let agent = make_test_agent()
+  agent.skill_registry.register(
+    @skill.Skill::default("test-skill", "file:///tmp/SKILL.md"),
+  )
+  let args = Map::from_array([
+    ("skill_name", "test-skill".to_json()),
+    ("task", "do the thing".to_json()),
+  ])
+  let call = make_tool_call(
+    "c1", "invoke_skill", "{\"skill_name\":\"test-skill\",\"task\":\"do the thing\"}",
+  )
+  let result = agent.execute_invoke_skill(call, args)
+  @debug.assert_eq(result.is_error, false)
+  @debug.assert_eq(
+    result.content,
+    "Skill 'test-skill' instructions expanded. Proceed to execute the task.",
+  )
+  // The tool result is the short confirmation, NOT the full skill body.
+  assert_true(!result.content.contains("Active Skill"))
+  // Injection deferred until flush: history untouched, one pending entry.
+  @debug.assert_eq(agent.pending_injections.length(), 1)
+  @debug.assert_eq(agent.history.length(), 0)
+}
+
+///|
+test "flush_pending_injections injects assistant body then user shim" {
+  let agent = make_test_agent()
+  agent.skill_registry.register(
+    @skill.Skill::default("test-skill", "file:///tmp/SKILL.md"),
+  )
+  agent.enqueue_injection("test-skill", "summarize")
+  agent.flush_pending_injections()
+  @debug.assert_eq(agent.pending_injections.length(), 0)
+  @debug.assert_eq(agent.history.length(), 2)
+  let assistant_msg = agent.history[0]
+  @debug.assert_eq(assistant_msg.role, @message.Assistant)
+  @debug.assert_eq(assistant_msg.system_injected, Some(true))
+  match assistant_msg.content {
+    @message.MessageContent::Text(s) =>
+      assert_true(s.contains("Active Skill: test-skill"))
+    _ => assert_true(false)
+  }
+  let shim_msg = agent.history[1]
+  @debug.assert_eq(shim_msg.role, @message.User)
+  @debug.assert_eq(shim_msg.system_injected, Some(true))
+  @debug.assert_eq(
+    shim_msg.content,
+    (
+      @message.MessageContent::Text(
+        "[SYSTEM] The skill instructions above have been loaded. Please proceed to execute the task now.",
+      ) : @message.MessageContent),
+  )
+}

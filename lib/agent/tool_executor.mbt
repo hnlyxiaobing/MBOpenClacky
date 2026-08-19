@@ -256,8 +256,11 @@ pub async fn Agent::execute_single_tool(
 }
 
 ///|
-/// Execute the invoke_skill tool by resolving the skill from the registry
-/// and returning its context as the result.
+/// Execute the invoke_skill tool by resolving the skill from the registry.
+/// Mirrors Ruby InvokeSkill#execute: skill_name and task are both required;
+/// the skill content is NOT returned inline — it is enqueued for deferred
+/// injection as a system-injected assistant message after observe(), so the
+/// toolResult is appended first (correct toolUse/toolResult ordering).
 fn Agent::execute_invoke_skill(
   self : Agent,
   call : @message.ToolCall,
@@ -267,17 +270,17 @@ fn Agent::execute_invoke_skill(
     Some(String(s)) => s
     _ => return build_error_result(call, "invoke_skill: missing 'skill_name'")
   }
-  let arguments = match args.get("arguments") {
+  let task = match args.get("task") {
     Some(String(s)) => s
-    _ => ""
+    _ => return build_error_result(call, "invoke_skill: missing 'task'")
   }
   match self.skill_registry.get(skill_name) {
     None =>
-      build_error_result(call, "Skill '\{skill_name}' not found in registry")
-    Some(skill) => {
-      let ctx = @skill.build_skill_context(skill, arguments)
+      build_error_result(call, "Skill '\\{skill_name}' not found in registry")
+    Some(_skill) => {
+      self.enqueue_injection(skill_name, task)
       build_success_result(call, @tool.ToolResult::{
-        content: ctx,
+        content: "Skill '\{skill_name}' instructions expanded. Proceed to execute the task.",
         is_error: false,
       })
     }

@@ -553,6 +553,10 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               let tool_calls = resp.tool_calls.unwrap()
               let action_result = self.act_async(tool_calls)
               self.observe(resp, action_result.tool_results)
+              // Deferred skill injections (invoke_skill tool) are flushed
+              // AFTER observe() so the toolResult is appended first
+              // (Ruby agent.rb L833 flush_pending_injections).
+              self.flush_pending_injections()
               if action_result.awaiting_feedback {
                 // request_user_feedback suspended the run (no reply yet):
                 // end this run awaiting the user's next message.

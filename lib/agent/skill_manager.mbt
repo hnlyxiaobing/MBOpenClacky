@@ -78,6 +78,64 @@ pub fn Agent::inject_skill_command(
 }
 
 ///|
+/// Enqueue an inline skill injection to be flushed after observe().
+/// Called by the invoke_skill tool to avoid injecting during tool
+/// execution, which would break toolUse/toolResult pairing (Ruby
+/// agent.rb enqueue_injection).
+pub fn Agent::enqueue_injection(
+  self : Agent,
+  skill_name : String,
+  task : String,
+) -> Unit {
+  self.pending_injections.push((skill_name, task))
+}
+
+///|
+/// Flush all pending inline skill injections into history. Must be called
+/// AFTER observe() so toolResult is appended before the skill instructions,
+/// producing the correct message sequence for all API providers (Ruby
+/// agent.rb flush_pending_injections).
+pub fn Agent::flush_pending_injections(self : Agent) -> Unit {
+  if self.pending_injections.is_empty() {
+    return
+  }
+  for entry in self.pending_injections {
+    let (skill_name, task) = entry
+    match self.skill_registry.get(skill_name) {
+      None => ()
+      Some(skill) => {
+        self.inject_skill_command(skill, task)
+        // Append a synthetic user message to keep the conversation
+        // sequence valid for strict providers (alternating user/assistant
+        // turns). Without this shim the next LLM call would find an
+        // assistant message at the tail (Ruby skill_manager.rb).
+        let shim = "[SYSTEM] The skill instructions above have been loaded. Please proceed to execute the task now."
+        let msg : @message.Message = {
+          role: @message.User,
+          content: @message.Text(shim),
+          tool_calls: None,
+          tool_call_id: None,
+          name: None,
+          reasoning_content: None,
+          task_id: None,
+          created_at: Some(current_time_ms().to_string()),
+          system_injected: Some(true),
+          memory_update: None,
+          subagent_instructions: None,
+          subagent_result: None,
+          token_usage: None,
+          compressed_summary: None,
+          transient: None,
+        }
+        self.history.push(msg)
+        self.hook_manager.emit(MessageAdded)
+      }
+    }
+  }
+  self.pending_injections = []
+}
+
+///|
 /// Load the full skill body from the skill's directory when the registry
 /// entry carries no body (context is None). Returns the entry unchanged
 /// when no readable SKILL.md exists.
