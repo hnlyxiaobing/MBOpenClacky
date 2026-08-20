@@ -1,7 +1,8 @@
 # 连续失败 system prompt 中途切换根因调查与修复（BUG-0038）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中（needs-investigation 条目，本 spec 以调查为先）  
+> **状态**: 已完成  
+> **完成日期**: 2026-08-20  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0038；`reports/p5_fix_unit_clustering.md` FU-03  
 > **关联历史 spec**: `specs/completed/2026-07-29_agent-06-url-fallback.md`、`specs/completed/2026-07-29_agent-01-session-context-injection.md`  
 > **来源差距**: P3 链路层差分（剧本 013）  
@@ -35,6 +36,28 @@
 
 **复现与证据**：`runs/013_circuit_breaker/moonbit/requests/req_0001~0015.json`（req9 起 system 消息突变）；`reports/p3/013_diff.md`。
 
+### 任务包 1 定位结论（2026-08-20）
+
+**根因：diff-harness 运行记录污染——"system prompt 中途切换"从未在 MB 进程内发生，假说 A/B/C 全部排除。**
+
+直接证据（`diff-harness/runs/013_consecutive_failures_circuit_breaker/moonbit/requests/`）：
+
+1. **req_0001~0008（013 真实 MB 请求）system prompt 逐字节一致**：8 个文件的 system 消息内容 SHA256 全部相同（文件体积均 24446B）。
+2. **req_0009~0015 是 ruby 进程跑 014 场景（tool_execution_failure_recovery）的请求被误写入 013 目录**：
+   - session context 工作目录为 `/tmp/diffharness_ruby_*`（非 MB 进程的 `/tmp/diffharness_moonbit_*`）；
+   - user 文案为 014 剧本的"先读一下 nonexistent.txt，再读一下 note.txt"（013 文案为"读一下 note.txt 然后告诉我内容"）；
+   - 文件体积从 24446B 突变为 34168B；
+   - 其 system prompt 即 ruby 风格文本——这正是"突变"观测的全部来源。
+3. 伴随现象均已有归属：第 8 次退避间隔异常与 exit=-1 系指数退避拖垮 harness 300s 超时（BUG-0037 已修复，退避固定 5s）；"15 请求"系同一污染（BUG-0039 已定位修复）。
+
+产品侧代码核验（排除任何真实突变路径）：
+
+- `react.mbt` `Agent::run`：system prompt 仅在 `history.size() == 0` 时构建注入一次，react 循环内无重建调用。
+- `llm_caller.mbt` 重试/fallback 路径只读 `history.to_api_cleaned`、append 消息；`handle_context_overflow` pop 非 system 消息；`try_url_fallback` 新建 Client 不触碰 history/prompt。
+- `agent.mbt:336` `history.clear()` 仅存在于显式 `reset_session()`（新会话 API）；`session_data.mbt:388` `replace_system_prompt` 仅存在于会话恢复（load）路径——均不在 013 连续失败路径上。
+
+**15 请求来源（FU-02 联合问题）**：与 BUG-0039 结论一致——req_0009+ 全部是污染记录，013 进程真实只发 8 请求（修复前指数退避超时被杀）/ 11 请求（修复后）。
+
 ## 决策 [必填 - 含为什么]
 
 1. **决策 1**：本 spec 第一阶段只做调查与最小复现，不预写修复方案；调查结论回写本 spec 后再补修复任务包。
@@ -43,6 +66,9 @@
    - **为什么**：一次复现回答两个问题，避免重复搭建调查环境。
 3. **决策 3**：无论根因如何，修复后必须补一条"连续失败场景 system prompt 稳定性"回归断言（013 剧本已知用例）。
    - **为什么**：该回归目前只有链路剧本能覆盖，必须固化。
+   - **已实施（2026-08-20）**：`test/e2e/scenarios_wbtest.mbt` 新增 `assert_system_prompt_stable`（断言所有请求的 system 消息逐字节一致），013 测试在 golden 断言后调用。
+4. **决策 4（调查后补充）**：根因为 harness 记录污染，**产品代码零改动**，BUG-0038 关闭为"非产品缺陷"。
+   - **为什么**：013 真实 MB 请求 req_0001~0008 的 system prompt 逐字节一致（SHA256 校验）；产品侧不存在任何中途重建/替换 system prompt 的代码路径（见"任务包 1 定位结论"）。修表像是禁忌（风险评估第 3 条），此处是"无表像可修"——观测本身即伪影。
 
 MoonBit 约束检查：调查阶段不涉及；修复方案确定后补充检查。
 
@@ -52,8 +78,10 @@ MoonBit 约束检查：调查阶段不涉及；修复方案确定后补充检查
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| 待定（调查后填写） | — | 候选：`lib/agent/llm_caller.mbt`（fallback）、`lib/agent/profile.mbt`/`default_profiles.mbt`（prompt 加载）、`lib/config/loader.mbt`/`env_compat.mbt`（配置重载） |
-| `test/e2e/`（013 剧本测试） | 修改 | 修复后移除 BUG-0038 闸门，补 prompt 稳定性断言 |
+| （产品代码） | 无改动 | 根因为 harness 记录污染，产品侧无缺陷（决策 4） |
+| `test/e2e/scenarios_wbtest.mbt` | 修改 | 新增 `assert_system_prompt_stable` 辅助函数；013 测试补 prompt 稳定性断言 |
+| `test/diff/known_failure.mbt` | 修改 | 移除 BUG-0038 注册（闭环） |
+| `diff-harness/reports/BUGS.md` | 修改 | BUG-0038 状态 needs-investigation → closed（非产品缺陷），记录根因 |
 
 ### 不涉及文件
 
@@ -80,11 +108,11 @@ MoonBit 约束检查：调查阶段不涉及；修复方案确定后补充检查
 
 ## 验收标准 [必填]
 
-- [ ] 根因定位并记录（代码路径 + 触发条件），BUG-0038 状态从 needs-investigation 转为 open/fixed
-- [ ] 013 剧本 req1~reqN 的 system prompt 全程一致（链路断言）
-- [ ] 013 请求数与 ruby 对齐（11；若差异根因移交 FU-02 则注明）
-- [ ] `moon check` 0 errors
-- [ ] 全量 `moon test` 无回归
+- [x] 根因定位并记录（代码路径 + 触发条件），BUG-0038 状态从 needs-investigation 转为 closed（非产品缺陷——harness 记录污染，见"任务包 1 定位结论"与 BUGS.md）
+- [x] 013 剧本 req1~reqN 的 system prompt 全程一致（链路断言 `assert_system_prompt_stable`，`moon test test/e2e --filter "*013*"` 1/1 绿）
+- [x] 013 请求数与 ruby 对齐（11；差异根因即 BUG-0039 的记录污染 + `attempt >= max_retries` 语义，已由 spec 2026-08-18_08 修复，e2e 013 golden request_count=11 转绿）
+- [x] `moon check` 0 errors
+- [x] 全量 `moon test` 无回归（3822 中 3801 过；21 个失败全部位于 `lib/tool/safe_rm_wbtest.mbt`，经 stash 基线复跑确认为既有环境性失败，与本 spec 改动无关）
 
 ## 风险评估 [必填]
 
@@ -104,3 +132,4 @@ MoonBit 约束检查：调查阶段不涉及；修复方案确定后补充检查
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本（调查型 spec） | P5 归并分析 FU-03（BUG-0038） |
+| 2026-08-20 | 任务包 1 定位结论回写：根因为 diff-harness 记录污染（req_0009+ 系 ruby 进程 014 场景误写入 013 目录），假说 A/B/C 全部排除，产品代码零改动；补 `assert_system_prompt_stable` 回归断言（e2e 013 转绿）；`known_failure.mbt` 移除 BUG-0038；BUGS.md BUG-0038 转 closed。全量 moon test 无回归（safe_rm 21 失败为基线既有环境问题） | 验收通过归档 |
