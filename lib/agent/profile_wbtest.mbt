@@ -19,7 +19,7 @@ test "profile: builtin coding resolves from assets and loads content" {
 
 ///|
 test "profile: unknown name raises explicit not-found error" {
-  let profile = AgentProfile::load_for_name("__no_such_agent__") catch {
+  let _ = AgentProfile::load_for_name("__no_such_agent__") catch {
     _ => {
       assert_true(true) // expected the error
       return

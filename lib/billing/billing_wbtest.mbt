@@ -210,11 +210,3 @@ fn make_test_records() -> Array[BillingRecord] {
     },
   ]
 }
-
-///|
-test "ms_to_date_string converts epoch milliseconds to UTC dates" {
-  @debug.assert_eq(ms_to_date_string(0L), "1970-01-01")
-  @debug.assert_eq(ms_to_date_string(1783382400000L), "2026-07-07")
-  @debug.assert_eq(ms_to_date_string(951782400000L), "2000-02-29")
-  @debug.assert_eq(ms_to_date_string(1735603200000L), "2024-12-31")
-}

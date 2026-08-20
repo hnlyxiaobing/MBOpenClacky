@@ -56,6 +56,9 @@ pub extend BillingRecord with Eq::{not_equal, equal}
 ///|
 /// Serialize with an ISO 8601 local timestamp, mirroring Ruby
 /// BillingRecord#to_h (`timestamp.iso8601`, spec 21 decision 7).
+pub extend BillingRecord with ToJson::{to_json}
+
+///|
 pub impl ToJson for BillingRecord with fn to_json(self) {
   Json::object({
     "id": ToJson::to_json(self.id),
@@ -74,6 +77,9 @@ pub impl ToJson for BillingRecord with fn to_json(self) {
 ///|
 /// Deserialize, accepting ISO 8601 strings and legacy numeric
 /// millisecond timestamps (records written before decision 7).
+pub extend BillingRecord with @moonbitlang/core/json.FromJson::{from_json}
+
+///|
 pub impl FromJson for BillingRecord with fn from_json(json, path) {
   match json {
     Object(map) => {

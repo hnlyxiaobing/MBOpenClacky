@@ -35,10 +35,7 @@ pub fn AgentProfile::load_for_name(
 /// Load a profile from a resolved directory: parse profile.yml (falling
 /// back to config.toml), load system_prompt.md, and resolve SOUL/USER/base
 /// from the shared agents/prompts locations.
-fn load_profile_from_dir(
-  name : String,
-  dir : String,
-) -> AgentProfile raise @errors.AgentError {
+fn load_profile_from_dir(name : String, dir : String) -> AgentProfile {
   let config = parse_profile_config(name, dir)
   let system_prompt = load_agent_file(dir + "/system_prompt.md")
   let soul_content = load_shared_agent_file("SOUL.md")
