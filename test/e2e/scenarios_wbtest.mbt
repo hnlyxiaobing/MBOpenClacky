@@ -88,6 +88,44 @@ fn assert_tool_results_valid_json(requests : Array[String]) -> Unit {
 }
 
 ///|
+/// 断言所有请求中的 system 消息内容逐字节一致（system prompt 会话内稳定性）。
+/// BUG-0038 回归：013 剧本的"prompt 中途切换"实为 diff-harness 记录污染
+/// （req_0009+ 系 ruby 进程跑 014 场景误写入 013 目录），产品侧不存在突变
+/// 路径；本断言固化"连续失败重试全程 system prompt 不变"这一真实不变量。
+fn assert_system_prompt_stable(requests : Array[String]) -> Unit {
+  let mut first : String? = None
+  for req in requests {
+    let body = @json.parse(req) catch { _ => continue }
+    guard jget(body, "messages") is Some(msgs_json) else { continue }
+    guard jarr(msgs_json) is Some(msgs) else { continue }
+    for m in msgs {
+      guard jget(m, "role") is Some(r) && jstr(r) == Some("system") else {
+        continue
+      }
+      guard jget(m, "content") is Some(c) && jstr(c) is Some(content) else {
+        continue
+      }
+      match first {
+        None => first = Some(content)
+        Some(f0) =>
+          if content != f0 {
+            println(
+              "FATAL: system prompt 会话内发生变化（BUG-0038 回归）",
+            )
+            panic()
+          }
+      }
+    }
+  }
+  if first is None {
+    println(
+      "FATAL: 请求中未找到 system 消息，无法断言 prompt 稳定性",
+    )
+    panic()
+  }
+}
+
+///|
 /// 005 的 fixture：15000 行重复内容（315000B，对齐 diff-harness FIXTURES）。
 fn big_txt_content() -> String {
   Array::make(15000, "x = 1234567890abcdef\n").join("")
@@ -284,6 +322,14 @@ async test "013 consecutive_failures_circuit_breaker：连续失败熔断" {
   )
   // ruby 基线：11 请求、exit=1（干净失败 ↔ outcome.status == "error"）
   assert_golden(outcome, golden("013_consecutive_failures_circuit_breaker"))
+  // BUG-0038 已关闭（spec 2026-08-18_19）：非产品缺陷——"req9 起 system
+  // prompt 突变"系 diff-harness 记录污染（req_0009+ 为 ruby 进程跑 014 场景
+  // 误写入 013 目录，session context 工作目录为 /tmp/diffharness_ruby_*、
+  // user 文案为 014 的"先读一下 nonexistent.txt..."；013 真实请求
+  // req_0001~0008 的 system prompt 逐字节一致）。此处固化回归断言：
+  // 连续失败重试全程 system prompt 逐字节一致。
+  // 证据: diff-harness runs/013_consecutive_failures_circuit_breaker/moonbit/requests/
+  assert_system_prompt_stable(outcome.requests)
 }
 
 ///|

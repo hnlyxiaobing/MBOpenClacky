@@ -65,7 +65,10 @@ let known_failure_bug_ids : Array[String] = [
   // 流式缺 finish_reason / 空参数 tool_call 判截断并走重试管道），移出注册表
   // BUG-0037 已修复（spec 2026-08-18_08：retry_delay_ms 固定 5s，009 剧本
   // 退避间隔断言转绿），移出注册表
-   "BUG-0038", // 连续失败时 system prompt 中途切换
+  // BUG-0038 已关闭（spec 2026-08-18_19：非产品缺陷——013 的"system prompt
+  // 中途切换"系 diff-harness 记录污染，req_0009+ 为 ruby 进程 014 场景误写入；
+  // 013 真实请求 prompt 逐字节一致。e2e 013 补 assert_system_prompt_stable
+  // 回归断言），移出注册表
   // BUG-0039 已修复（spec 2026-08-18_08：013 的"15 请求"系 diff-harness 记录
   // 污染——req_0009+ 为 014 场景进程误写入；真实根因是指数退避拖垮 300s 超时。
   // 退避固定 5s 后 11 请求干净 exit=1，e2e 013 转绿），移出注册表
