@@ -395,12 +395,12 @@ fn handle_ws_interrupt(
 /// Handle message (chat) message.
 /// Format: {"type": "message", "session_id": "...", "content": "...",
 ///           "attachments": [...], "images": [...]}
-/// `attachments` / `images` are parsed here so the agent run can pick
-/// them up. The actual image-injection plumbing is shared with the
-/// CLI `-i` path via the agent's tool-result image_inject mechanism
-/// (B2 spec 2026-08-18_04). Until B2 lands the injection helper, the
-/// parsed attachment metadata is attached to the user message as
-/// system_injected context so the agent can read referenced files.
+/// `attachments` are folded into the user message text as file
+/// references (agent can read them via file tools). `images` carrying
+/// inline base64 data are injected as real `ContentBlock::Image`
+/// blocks via `Agent::inject_user_image`, mirroring the observe()
+/// tool-result image_inject path in react.mbt. Images with only a
+/// `path` (no base64) are treated as file references in the text.
 async fn handle_ws_message(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
@@ -417,18 +417,100 @@ async fn handle_ws_message(
     None => return
   }
   ensure_subscribed(hub, conn_id, session_id)
-  // Parse optional attachments/images. The parsed metadata is folded
-  // into the user message text so the agent sees the referenced files
-  // even before the B2 image_inject plumbing is wired. Base64 payloads
-  // are NOT inlined here to avoid unbounded memory growth; clients
-  // should upload via POST /api/upload and pass the returned path.
-  let attachment_hint = extract_attachment_hint(obj)
-  let final_message = if attachment_hint.length() > 0 {
-    message + "\n\n[attachments]\n" + attachment_hint
+  // Parse images: those with inline base64 go through the real
+  // injection path; those with only a path become text references.
+  let injectable_images = extract_injectable_images(obj)
+  let path_only_hints = extract_path_only_image_hints(obj)
+  let attachment_hints = extract_attachment_hint(obj)
+  let mut text_suffix = ""
+  if path_only_hints.length() > 0 {
+    text_suffix = text_suffix + "\n\n[images]\n" + path_only_hints
+  }
+  if attachment_hints.length() > 0 {
+    text_suffix = text_suffix + "\n\n[attachments]\n" + attachment_hints
+  }
+  let final_message = if text_suffix.length() > 0 {
+    message + text_suffix
   } else {
     message
   }
-  start_ws_run(server_ref, session_id, final_message)
+  start_ws_run(server_ref, session_id, final_message, images=injectable_images)
+}
+
+///|
+/// Extract images that carry inline base64 data, ready for
+/// `Agent::inject_user_image`. Each element is (base64_data,
+/// mime_type, path?).
+fn extract_injectable_images(
+  obj : Map[String, Json],
+) -> Array[(String, String, String?)] {
+  let result : Array[(String, String, String?)] = []
+  match obj.get("images") {
+    Some(Array(arr)) =>
+      for item in arr {
+        match item {
+          Object(o) =>
+            match
+              (
+                o.get("data"),
+                o.get("base64_data"),
+                o.get("mime_type"),
+                o.get("path"),
+              ) {
+              (Some(String(d)), _, Some(String(mt)), p) =>
+                result.push(
+                  (
+                    d,
+                    mt,
+                    match p {
+                      Some(String(pp)) => Some(pp)
+                      _ => None
+                    },
+                  ),
+                )
+              (_, Some(String(d)), Some(String(mt)), p) =>
+                result.push(
+                  (
+                    d,
+                    mt,
+                    match p {
+                      Some(String(pp)) => Some(pp)
+                      _ => None
+                    },
+                  ),
+                )
+              _ => ()
+            }
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  result
+}
+
+///|
+/// Extract image path-only hints (images without inline base64 data)
+/// as text references for the user message.
+fn extract_path_only_image_hints(obj : Map[String, Json]) -> String {
+  let parts : Array[String] = []
+  match obj.get("images") {
+    Some(Array(arr)) =>
+      for item in arr {
+        match item {
+          Object(o) =>
+            // Only include images that have a path but NO base64 data.
+            match (o.get("path"), o.get("data"), o.get("base64_data")) {
+              (Some(String(p)), None, None) => parts.push("image:" + p)
+              _ => ()
+            }
+          String(s) => parts.push("image:" + s)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  parts.join("\n")
 }
 
 ///|
@@ -1060,10 +1142,15 @@ fn handle_ws_feedback(
 /// Start an agent run for a session. Registers hooks/confirmation bridge,
 /// echoes the user message, clears the cancel flag, and dispatches the run
 /// to a background async task so the WS read loop returns immediately.
+/// 
+/// `images` carries inline base64 images (if any) that are injected into
+/// the agent history as `ContentBlock::Image` blocks BEFORE the run
+/// starts, mirroring the observe() tool-result image_inject path.
 async fn start_ws_run(
   server_ref : Ref[WebServer],
   session_id : String,
   message : String,
+  images? : Array[(String, String, String?)] = [],
 ) -> Unit {
   let hub = server_ref.val.hub
   let state = get_ws_state(session_id)
@@ -1083,6 +1170,17 @@ async fn start_ws_run(
 
   // Time machine: open a new task so file writes in this run can be undone
   ignore(state.time_machine.start_new_task(Some(message)))
+
+  // Inject inline base64 images into the agent history before the run
+  // starts. Each image becomes a `role:"user"` message with a
+  // ContentBlock::Image, identical to the observe() tool-result path.
+  // The user's text message is then run as the next user turn.
+  if images.length() > 0 {
+    for entry in images {
+      let (base64_data, mime_type, path) = entry
+      agent.inject_user_image(base64_data, mime_type, path~)
+    }
+  }
 
   // Echo the user message back as history_user_message.
   hub.broadcast_session(

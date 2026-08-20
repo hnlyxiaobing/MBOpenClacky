@@ -2095,6 +2095,71 @@ test "build_success_result_extracts_image_inject" {
   @debug.assert_eq(entry.image_inject, expected)
   @debug.assert_eq(entry.is_error, false)
 }
+
+///|
+/// spec 2026-08-18_17 risk A: Agent::inject_user_image appends a user
+/// message with a ContentBlock::Image (data: URL) to the agent history.
+/// Verifies the WS attachments injection path (was previously only
+/// parsing metadata into text; now constructs real Image blocks).
+test "inject_user_image_appends_image_content_block" {
+  let agent = make_test_agent()
+  let initial_count = agent.history.size()
+  agent.inject_user_image(
+    "iVBORw0KGgo=",
+    "image/png",
+    path=Some("/tmp/screenshot.png"),
+  )
+  // A new user message was appended.
+  @debug.assert_eq(agent.history.size(), initial_count + 1)
+  // The last message is a user message with Blocks content.
+  let msgs = agent.history.all()
+  let last = msgs[msgs.length() - 1]
+  @debug.assert_eq(last.role, @message.User)
+  // The blocks contain at least one Image block with a data: URL.
+  match last.content {
+    @message.Blocks(blocks) => {
+      let mut found_image = false
+      for b in blocks {
+        match b {
+          @message.ContentBlock::Image(ib) => {
+            found_image = true
+            assert_true(ib.url.has_prefix("data:image/png;base64,"))
+          }
+          _ => ()
+        }
+      }
+      assert_true(found_image)
+    }
+    _ => fail("expected Blocks content, got plain text")
+  }
+}
+
+///|
+/// inject_user_image with no path still works (label defaults to "image").
+test "inject_user_image_no_path_defaults_label" {
+  let agent = make_test_agent()
+  agent.inject_user_image("AAAA", "image/jpeg")
+  let msgs = agent.history.all()
+  let last = msgs[msgs.length() - 1]
+  @debug.assert_eq(last.role, @message.User)
+  // Verify the text block mentions [Image: image].
+  match last.content {
+    @message.Blocks(blocks) => {
+      let mut found_text = false
+      for b in blocks {
+        match b {
+          @message.ContentBlock::Text(tb) =>
+            if tb.text.contains("[Image: image]") {
+              found_text = true
+            }
+          _ => ()
+        }
+      }
+      assert_true(found_text)
+    }
+    _ => fail("expected Blocks content")
+  }
+}
 // ── P6: request_user_feedback awaiting semantics ────────────────────────────
 
 ///|

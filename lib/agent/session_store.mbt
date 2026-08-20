@@ -55,8 +55,14 @@ fn session_file_path(sessions_dir : String, session_id : String) -> String {
 /// Timestamp used in session filenames: ISO 8601 with ':' replaced by '-'
 /// so the name stays legal on Windows (Ruby uses a human-sortable
 /// `<datetime>-<id8>.json` layout).
+/// Uses `replace_all` because `String::replace` only replaces the first
+/// match — leaving residual colons in the timezone offset (e.g.
+/// `+08:00`), which caused `write_string_to_file` to fail with
+/// `EINVAL` on Windows. Also strips '+' for cross-platform portability.
 fn session_filename_datetime() -> String {
-  current_timestamp_iso().replace(old=":", new="-")
+  current_timestamp_iso()
+  .replace_all(old=":", new="-")
+  .replace_all(old="+", new="-")
 }
 
 ///|
