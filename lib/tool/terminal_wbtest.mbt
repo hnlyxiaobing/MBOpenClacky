@@ -297,10 +297,9 @@ test "spill_overflow_file writes random sidecar" {
   // 目录为 clacky-terminal-overflow，文件名 `{ts}-s{sid}-{rand}.log`
   assert_true(path.contains("clacky-terminal-overflow"))
   assert_true(path.contains("-s42-"))
-  let name = match path.rev_find("/") {
-    Some(i) => path[i + 1:].to_owned()
-    None => path
-  }
+  // Basename via @utils (handles both `/` and `\` separators — the raw
+  // path uses `\` on Windows and `rev_find("/")` would miss it).
+  let name = @utils.basename_of(path)
   assert_true(name.length() == 15 + 1 + 3 + 1 + 6 + 4) // ts(YYYYMMDD-HHMMSS)-s42-rand.log
   assert_true(name.has_suffix(".log"))
   // 内容可读回

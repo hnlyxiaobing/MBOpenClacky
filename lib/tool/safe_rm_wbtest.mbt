@@ -62,6 +62,11 @@ fn sr_exists(path : String) -> Bool {
 /// safe_rm: `rm <file>` moves the file into the per-project trash with a
 /// readable metadata sidecar, instead of deleting it.
 async test "safe_rm: rm moves file into project trash" {
+  // safe_rm.sh interception is Unix-only (bash/zsh); Windows has no
+  // shell-function interception, so this behavior cannot be exercised.
+  if is_windows_platform() {
+    return
+  }
   with_temp_project(async fn(proj, trash) {
     let target = sr_join(proj, "hello.txt")
     @fs.write_string_to_file(target, "hello world") catch {
@@ -98,6 +103,9 @@ async test "safe_rm: rm moves file into project trash" {
 /// safe_rm: CLACKY_TRASH_DIR is injected into the child env, pointing at
 /// the per-project trash (Ruby spawn_shell semantics).
 async test "safe_rm: CLACKY_TRASH_DIR injected" {
+  if is_windows_platform() {
+    return
+  }
   with_temp_project(async fn(proj, trash) {
     let tool = Terminal::new()
     let args : Map[String, Json] = {
@@ -114,6 +122,9 @@ async test "safe_rm: CLACKY_TRASH_DIR injected" {
 ///|
 /// safe_rm: catastrophic targets are refused (not deleted).
 async test "safe_rm: dangerous target refused" {
+  if is_windows_platform() {
+    return
+  }
   let tool = Terminal::new()
   let args : Map[String, Json] = {
     "command": "rm /".to_json(),
@@ -127,6 +138,9 @@ async test "safe_rm: dangerous target refused" {
 ///|
 /// safe_rm: `-f` suppresses "no such file" errors (exit 0).
 async test "safe_rm: -f suppresses missing-file errors" {
+  if is_windows_platform() {
+    return
+  }
   with_temp_project(async fn(proj, _trash) {
     let missing = sr_join(proj, "does-not-exist.txt")
     let tool = Terminal::new()
@@ -143,6 +157,9 @@ async test "safe_rm: -f suppresses missing-file errors" {
 ///|
 /// safe_rm: `rm` without -f on a missing file reports an error (rc=1).
 async test "safe_rm: missing file without -f errors" {
+  if is_windows_platform() {
+    return
+  }
   with_temp_project(async fn(proj, _trash) {
     let missing = sr_join(proj, "nope.txt")
     let tool = Terminal::new()

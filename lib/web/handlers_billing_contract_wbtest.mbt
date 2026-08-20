@@ -13,9 +13,10 @@
 fn bc_use_dir(dir : String) -> Unit {
   @env.set_env_var("USERPROFILE", dir)
   // Drop leftovers from previous failed runs before re-creating the tree.
-  @fs.remove_file(dir + "/.mbopenclacky/billing/current.jsonl") catch {
-    _ => ()
-  }
+  // BillingStore::append writes monthly `YYYY-MM.jsonl` files (not the
+  // legacy `current.jsonl`), so clear every `.jsonl` file to avoid
+  // cross-run record leakage.
+  bc_clear_jsonl(dir)
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -24,6 +25,22 @@ fn bc_use_dir(dir : String) -> Unit {
   }
   @fs.create_dir(dir + "/.mbopenclacky/billing") catch {
     _ => ()
+  }
+}
+
+///|
+/// Remove all `.jsonl` billing files under `dir/.mbopenclacky/billing/`.
+/// Leaves pre-existing non-billing content untouched.
+fn bc_clear_jsonl(dir : String) -> Unit {
+  let billing = dir + "/.mbopenclacky/billing"
+  let entries = @fs.read_dir(billing) catch { _ => return }
+  for name in entries {
+    if name.has_suffix(".jsonl") {
+      let p = @path.Path::join(@path.Path(billing), @path.Path(name)).to_string()
+      @fs.remove_file(p) catch {
+        _ => ()
+      }
+    }
   }
 }
 
@@ -62,9 +79,7 @@ fn bc_body_json(resp : HttpResponse) -> Json {
 
 ///|
 fn bc_remove_dir(dir : String) -> Unit {
-  @fs.remove_file(dir + "/.mbopenclacky/billing/current.jsonl") catch {
-    _ => ()
-  }
+  bc_clear_jsonl(dir)
   @fs.remove_dir(dir + "/.mbopenclacky/billing") catch {
     _ => ()
   }

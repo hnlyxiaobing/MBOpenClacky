@@ -33,8 +33,15 @@ async test "terminal execute: non-zero exit code propagates" {
 /// instead of blocking the loop forever.
 async test "terminal execute: timeout bounds long commands" {
   let term = Terminal::new()
+  // Long-running command: `sleep 30` on Unix, `ping -n 30` (~30s of
+  // 1s-ICMP waits) on Windows where `sleep` is not a builtin.
+  let long_cmd = if is_windows_platform() {
+    "ping -n 30 127.0.0.1 > nul"
+  } else {
+    "sleep 30"
+  }
   let args : Map[String, Json] = {
-    "command": "sleep 30".to_json(),
+    "command": long_cmd.to_json(),
     "timeout": (1).to_json(),
   }
   let start = @env.now().reinterpret_as_int64()
@@ -54,8 +61,15 @@ async test "terminal execute: timeout bounds long commands" {
 /// with a session id and poll collects output incrementally.
 async test "terminal execute: background session lifecycle" {
   let term = Terminal::new()
+  // `&&` + `sleep` are Unix constructs; Windows cmd uses `&` and a
+  // `ping` delay (`sleep` is not a builtin there).
+  let cmd = if is_windows_platform() {
+    "echo bg_hello & ping -n 2 127.0.0.1 > nul & echo bg_done"
+  } else {
+    "echo bg_hello && sleep 1 && echo bg_done"
+  }
   let args : Map[String, Json] = {
-    "command": "echo bg_hello && sleep 1 && echo bg_done".to_json(),
+    "command": cmd.to_json(),
     "background": true.to_json(),
   }
   let result = term.execute(args)

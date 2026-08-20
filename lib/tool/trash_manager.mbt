@@ -524,21 +524,46 @@ fn dirname_of(path : String) -> String {
 
 ///|
 /// Create a directory (and parents), mirroring Ruby's FileUtils.mkdir_p.
-async fn ensure_dir(path : String) -> Unit {
-  let _ = @process.run(
-    if shell_is_windows() {
-      "mkdir"
-    } else {
-      "mkdir"
-    },
-    if shell_is_windows() {
-      [path]
-    } else {
-      ["-p", path]
-    },
-    no_console_window=true,
-  ) catch {
-    _ => -1
+/// Uses the cross-platform @utils.ensure_dir (@fs-based) instead of the
+/// platform shell: Windows `mkdir`/`move`/`rmdir` are cmd.exe builtins,
+/// not standalone executables, so @process.run cannot spawn them directly.
+fn ensure_dir(path : String) -> Unit {
+  @utils.ensure_dir(path)
+}
+
+///|
+/// Run a platform shell command silently (stdout/stderr discarded) and
+/// return the child exit code. Windows cmd.exe builtins (`move`, `rmdir`)
+/// are not standalone executables, and their locale-dependent status
+/// output is non-UTF-8, so both concerns are handled here: the command is
+/// carried verbatim in a .bat file (no MSVC argv re-escaping) with output
+/// redirected to `nul`.
+async fn run_silent(command : String) -> Int {
+  if shell_is_windows() {
+    windows_bat_counter.val = windows_bat_counter.val + 1
+    let bat_path = @path.Path::join(
+      shell_temp_dir(),
+      @path.Path(
+        "clacky_trash_\{@env.now().reinterpret_as_int64()}_\{windows_bat_counter.val}.bat",
+      ),
+    ).to_string()
+    @fs.write_string_to_file(
+      bat_path,
+      "@echo off\r\n" + command + " > nul 2>&1\r\n",
+    ) catch {
+      _ => return -1
+    }
+    let code = @process.run("cmd.exe", ["/c", bat_path], no_console_window=true) catch {
+      _ => -1
+    }
+    @fs.remove_file(bat_path) catch {
+      _ => ()
+    }
+    code
+  } else {
+    @process.run("bash", ["-c", command], no_console_window=true) catch {
+      _ => -1
+    }
   }
 }
 
@@ -546,9 +571,7 @@ async fn ensure_dir(path : String) -> Unit {
 /// Move a file or directory; returns the child exit code (0 = success).
 async fn move_path(src : String, dst : String) -> Int {
   if shell_is_windows() {
-    @process.run("move", ["/Y", src, dst], no_console_window=true) catch {
-      _ => -1
-    }
+    run_silent("move /Y \"" + src + "\" \"" + dst + "\"")
   } else {
     @process.run("mv", [src, dst], no_console_window=true) catch {
       _ => -1
@@ -560,9 +583,7 @@ async fn move_path(src : String, dst : String) -> Int {
 /// Recursively remove a path (permanent delete, used only by `empty`).
 async fn remove_path(path : String) -> Unit {
   if shell_is_windows() {
-    let _ = @process.run("rmdir", ["/s", "/q", path], no_console_window=true) catch {
-      _ => -1
-    }
+    let _ = run_silent("rmdir /s /q \"" + path + "\"")
   } else {
     let _ = @process.run("rm", ["-rf", path], no_console_window=true) catch {
       _ => -1

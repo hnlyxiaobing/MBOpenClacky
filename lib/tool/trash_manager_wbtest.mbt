@@ -324,21 +324,19 @@ fn seed_trash_entry(
   @fs.write_string_to_file(new_original_path(proj, name), content) catch {
     _ => ()
   }
-  let meta = "{\"original_path\":\"" +
-    new_original_path(proj, name) +
-    "\",\"trash_directory\":\"" +
-    trash +
-    "\",\"deleted_at\":\"" +
-    deleted_at +
-    "\",\"deleted_by\":\"wbtest\",\"file_size\":" +
-    content.length().to_string() +
-    ",\"file_type\":\"" +
-    file_type_of(name) +
-    "\",\"file_mode\":\"644\"}"
-  @fs.write_string_to_file(
-    trash_path(trash, name) + ".metadata.json",
-    meta.to_string(),
-  ) catch {
+  // Serialize via ToJson so path separators (e.g. Windows `\`) are
+  // correctly escaped — hand-rolled string concatenation produces
+  // invalid JSON when paths contain backslashes.
+  let meta = Json::object({
+    "original_path": new_original_path(proj, name).to_json(),
+    "trash_directory": trash.to_json(),
+    "deleted_at": deleted_at.to_json(),
+    "deleted_by": "wbtest".to_json(),
+    "file_size": content.length().to_json(),
+    "file_type": file_type_of(name).to_json(),
+    "file_mode": "644".to_json(),
+  }).stringify()
+  @fs.write_string_to_file(trash_path(trash, name) + ".metadata.json", meta) catch {
     _ => ()
   }
 }
@@ -360,9 +358,15 @@ async test "execute: list action via Tool trait" {
   @fs.write_string_to_file(seed_file, "e2e") catch {
     _ => ()
   }
-  let meta = "{\"original_path\":\"/tmp/e2e-seed.txt\",\"trash_directory\":\"" +
-    trash_dir +
-    "\",\"deleted_at\":\"2026-08-01T10:00:00Z\",\"deleted_by\":\"wbtest\",\"file_size\":3,\"file_type\":\".txt\",\"file_mode\":\"644\"}"
+  let meta = Json::object({
+    "original_path": "/tmp/e2e-seed.txt".to_json(),
+    "trash_directory": trash_dir.to_json(),
+    "deleted_at": "2026-08-01T10:00:00Z".to_json(),
+    "deleted_by": "wbtest".to_json(),
+    "file_size": (3).to_json(),
+    "file_type": ".txt".to_json(),
+    "file_mode": "644".to_json(),
+  }).stringify()
   @fs.write_string_to_file(seed_meta, meta) catch {
     _ => ()
   }
