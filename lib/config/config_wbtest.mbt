@@ -267,6 +267,29 @@ test "toml_roundtrip" {
   ])
   let config = AgentConfig::from_toml(value)
   let serialized = config.to_toml()
+  // p6 decision 2/6: runtime-only fields are stripped from serialization -
+  // settings never carries current_model_id, models never carry id
+  // (Ruby to_yaml strips RUNTIME_ONLY_FIELDS).
+  match serialized {
+    TomlTable(root) => {
+      match root.get("settings") {
+        Some(TomlTable(settings)) =>
+          assert_true(settings.get("current_model_id") is None)
+        _ => fail("expected settings table")
+      }
+      match root.get("models") {
+        Some(TomlArray(models)) => {
+          assert_true(models.length() == 1)
+          match models[0] {
+            TomlTable(m) => assert_true(m.get("id") is None)
+            _ => fail("expected model table")
+          }
+        }
+        _ => fail("expected models array")
+      }
+    }
+    _ => fail("expected root table")
+  }
   let config2 = AgentConfig::from_toml(serialized)
 
   assert_true(config2.permission_mode == ConfirmAll)
@@ -277,10 +300,13 @@ test "toml_roundtrip" {
   assert_true(config2.memory_update_enabled)
   @debug.assert_eq(config2.max_running_agents, 3)
   @debug.assert_eq(config2.max_idle_agents, 2)
-  @debug.assert_eq(config2.current_model_id, Some("test-id"))
   @debug.assert_eq(config2.models.length(), 1)
-  @debug.assert_eq(config2.models[0].id, "test-id")
+  // id was stripped and re-injected at load time (positional id)
+  @debug.assert_eq(config2.models[0].id, "model-1")
+  @debug.assert_eq(config2.models[0].runtime_id, "model-1")
   @debug.assert_eq(config2.models[0].api_key, "sk-test")
+  // current_model_id re-anchored to the first model by from_toml (BUG-0014)
+  @debug.assert_eq(config2.current_model_id, Some("model-1"))
 }
 
 ///|
@@ -336,29 +362,60 @@ test "has_model_configured" {
 }
 
 ///|
-test "model_config_from_toml_missing_id" {
+test "model_config_from_toml_missing_id_keeps_entry" {
+  // p6 decision 6: a missing id no longer drops the entry (Ruby parse_models
+  // keeps incomplete entries); AgentConfig::from_toml injects a runtime id.
   let v = toml([
     q("api_key", "key"),
     q("base_url", "https://api.test.com"),
     q("model", "m"),
   ])
-  assert_true(ModelConfig::from_toml(v) is None)
+  match ModelConfig::from_toml(v) {
+    Some(m) => {
+      @debug.assert_eq(m.id, "")
+      @debug.assert_eq(m.api_key, "key")
+    }
+    None => fail("expected Some for missing id")
+  }
+  // Full config load injects the runtime id
+  let value = toml([
+    "[[models]]",
+    q("api_key", "key"),
+    q("base_url", "https://api.test.com"),
+    q("model", "m"),
+  ])
+  let config = AgentConfig::from_toml(value)
+  @debug.assert_eq(config.models.length(), 1)
+  @debug.assert_eq(config.models[0].id, "model-1")
+  @debug.assert_eq(config.models[0].runtime_id, "model-1")
 }
 
 ///|
-test "model_config_from_toml_missing_base_url" {
+test "model_config_from_toml_missing_base_url_keeps_entry" {
   let v = toml([q("id", "m1"), q("api_key", "key"), q("model", "m")])
-  assert_true(ModelConfig::from_toml(v) is None)
+  match ModelConfig::from_toml(v) {
+    Some(m) => {
+      @debug.assert_eq(m.id, "m1")
+      @debug.assert_eq(m.base_url, "")
+    }
+    None => fail("expected Some for missing base_url")
+  }
 }
 
 ///|
-test "model_config_from_toml_missing_model" {
+test "model_config_from_toml_missing_model_keeps_entry" {
   let v = toml([
     q("id", "m1"),
     q("api_key", "key"),
     q("base_url", "https://api.test.com"),
   ])
-  assert_true(ModelConfig::from_toml(v) is None)
+  match ModelConfig::from_toml(v) {
+    Some(m) => {
+      @debug.assert_eq(m.id, "m1")
+      @debug.assert_eq(m.model, "")
+    }
+    None => fail("expected Some for missing model")
+  }
 }
 
 ///|
@@ -426,27 +483,29 @@ test "current_model uses default-badged model when current_model_id is unset" {
 }
 
 ///|
-test "current_model without badge keeps prior semantics" {
+test "current_model without badge falls back to first model" {
+  // p6 decision 2: with no current_model_id and no badge, a non-empty model
+  // list always resolves - Ruby falls back to current_model_index (default 0).
   let config = AgentConfig::default()
   let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
   let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
   config.models.push(m1)
   config.models.push(m2)
-  // No badge, no current_model_id, multiple models -> None (unchanged).
-  assert_true(config.current_model() is None)
-  // Unmatched id with no badge -> None (unchanged).
+  // No badge, no current_model_id, multiple models -> first model.
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m1"))
+  // Stale id (model deleted) is cleared and resolution falls back to first.
   config.current_model_id = Some("deleted-id")
-  assert_true(config.current_model() is None)
-  // Single model fallback (unchanged).
-  let solo = AgentConfig::default()
-  solo.models.push(m1)
-  @debug.assert_eq(solo.current_model().map(m => m.id), Some("m1"))
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m1"))
+  @debug.assert_eq(config.current_model_id, None)
+  // Empty model list -> None.
+  let empty = AgentConfig::default()
+  assert_true(empty.current_model() is None)
 }
 
 ///|
-test "current_model prefers badge over a valid current_model_id (legacy drift)" {
-  // Legacy drift: current_model_id set by an older code path, badge set later
-  // via Settings - the badge is the most recent explicit user choice.
+test "current_model prefers current_model_id over badge (id-first)" {
+  // p6 decision 2: current_model_id is the primary truth (Ruby
+  // resolve_current_model_entry checks id first); the badge is the fallback.
   let config = AgentConfig::default()
   let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
   let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
@@ -454,11 +513,16 @@ test "current_model prefers badge over a valid current_model_id (legacy drift)" 
   config.models.push(m1)
   config.models.push(m2)
   config.current_model_id = Some("m1")
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m1"))
+  // Without an id, the badge wins.
+  config.current_model_id = None
   @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
 }
 
 ///|
-test "switch_model_by_id moves the default badge" {
+test "switch_model_by_id does not move the default badge" {
+  // p6 decision 2: switch is session-level (Ruby switch_model_by_id only
+  // sets current_model_id); set_default_model_by_id moves the badge.
   let config = AgentConfig::default()
   let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
   let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
@@ -467,9 +531,25 @@ test "switch_model_by_id moves the default badge" {
   config.models.push(m2)
   @debug.assert_eq(config.switch_model_by_id("m2"), Ok(()))
   @debug.assert_eq(config.current_model_id, Some("m2"))
+  // Badge stays on m1
+  @debug.assert_eq(config.models[0].type_, Some("default"))
+  @debug.assert_eq(config.models[1].type_, None)
+  // But current resolution follows the id
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+  // set_default_model_by_id moves the badge (and normalizes the id)
+  @debug.assert_eq(config.set_default_model_by_id("m2"), Ok(()))
   @debug.assert_eq(config.models[1].type_, Some("default"))
   @debug.assert_eq(config.models[0].type_, None)
   @debug.assert_eq(config.current_model().map(m => m.id), Some("m2"))
+  // Error paths
+  @debug.assert_eq(
+    config.set_default_model_by_id("nope"),
+    Err("model not found"),
+  )
+  @debug.assert_eq(
+    config.set_default_model_by_id(""),
+    Err("model id must not be empty"),
+  )
 }
 
 ///|
@@ -655,4 +735,186 @@ test "from_toml_auto_anchors_current_model_id" {
     #|type = "default"
   let c3 = AgentConfig::from_toml(@toml.parse(explicit_toml))
   @debug.assert_eq(c3.current_model_id, Some("m1"))
+}
+
+// ── p6: model management APIs (Ruby agent_config.rb) ────────────────────────
+
+///|
+test "remove_model refuses last model and clears current_model_id" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  config.models.push(m1)
+  // Last remaining model cannot be removed
+  assert_false(config.remove_model(0))
+  @debug.assert_eq(config.models.length(), 1)
+  // Bad index
+  assert_false(config.remove_model(5))
+  assert_false(config.remove_model(-1))
+
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  config.models.push(m2)
+  config.current_model_id = Some("m2")
+  // Removing the current model clears current_model_id
+  assert_true(config.remove_model(1))
+  @debug.assert_eq(config.current_model_id, None)
+  @debug.assert_eq(config.models.length(), 1)
+  @debug.assert_eq(config.current_model().map(m => m.id), Some("m1"))
+
+  // Removing a non-current model keeps current_model_id
+  let m3 = ModelConfig::new("m3", "k", "https://c", "model-c")
+  config.models.push(m3)
+  config.current_model_id = Some("m1")
+  assert_true(config.remove_model(1))
+  @debug.assert_eq(config.current_model_id, Some("m1"))
+}
+
+///|
+test "set_model_type validates and moves tags" {
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "k", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "k", "https://b", "model-b")
+  m1.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  // Valid types
+  assert_true(config.set_model_type(1, Some("lite")))
+  @debug.assert_eq(config.models[1].type_, Some("lite"))
+  // Moving "default" to m2 clears it from m1
+  assert_true(config.set_model_type(1, Some("default")))
+  @debug.assert_eq(config.models[0].type_, None)
+  @debug.assert_eq(config.models[1].type_, Some("default"))
+  // None clears the tag
+  assert_true(config.set_model_type(1, None))
+  @debug.assert_eq(config.models[1].type_, None)
+  // Invalid type refused
+  assert_false(config.set_model_type(0, Some("bogus")))
+  // Bad index refused
+  assert_false(config.set_model_type(9, Some("lite")))
+}
+
+///|
+test "add_model appends and injects ids" {
+  let config = AgentConfig::default()
+  config.models.push(ModelConfig::new("m1", "k1", "https://a", "model-a"))
+  // Empty id -> generated positional id, runtime_id synced
+  config.add_model(ModelConfig::new("", "k2", "https://b", "model-b"))
+  @debug.assert_eq(config.models.length(), 2)
+  @debug.assert_eq(config.models[1].id, "model-1")
+  @debug.assert_eq(config.models[1].runtime_id, "model-1")
+  // Same model name still appends (no dedup-replace, Ruby add_model)
+  config.add_model(ModelConfig::new("m3", "k3", "https://b", "model-b"))
+  @debug.assert_eq(config.models.length(), 3)
+  @debug.assert_eq(config.models[2].id, "m3")
+}
+
+///|
+test "has_model_configured requires resolvable current model with api_key" {
+  // p6 decision 7: the badge/current model must itself carry a key - a
+  // different keyed model no longer satisfies the gate.
+  let config = AgentConfig::default()
+  let m1 = ModelConfig::new("m1", "key1", "https://a", "model-a")
+  let m2 = ModelConfig::new("m2", "", "https://b", "model-b")
+  m2.type_ = Some("default")
+  config.models.push(m1)
+  config.models.push(m2)
+  assert_false(config.has_model_configured())
+  // Switching to the keyed model satisfies it
+  config.current_model_id = Some("m1")
+  assert_true(config.has_model_configured())
+  // No models at all
+  assert_false(AgentConfig::default().has_model_configured())
+}
+
+// ── p6: CLACKY_LITE_* model injection and workspace env ────────────────────
+
+///|
+test "lite_env_model reads CLACKY_LITE_* variables" {
+  @env.set_env_var("CLACKY_LITE_API_KEY", "sk-lite")
+  @env.set_env_var("CLACKY_LITE_BASE_URL", "https://lite.example.com")
+  @env.set_env_var("CLACKY_LITE_MODEL", "claude-haiku-4")
+  match lite_env_model() {
+    Some(m) => {
+      @debug.assert_eq(m.api_key, "sk-lite")
+      @debug.assert_eq(m.base_url, "https://lite.example.com")
+      @debug.assert_eq(m.model, "claude-haiku-4")
+      @debug.assert_eq(m.id, "lite")
+      @debug.assert_eq(m.type_, Some("lite"))
+      assert_true(m.anthropic_format)
+    }
+    None => fail("expected lite model from env")
+  }
+  // Defaults when BASE_URL/MODEL are unset
+  @env.unset_env_var("CLACKY_LITE_BASE_URL")
+  @env.unset_env_var("CLACKY_LITE_MODEL")
+  match lite_env_model() {
+    Some(m) => {
+      @debug.assert_eq(m.base_url, "https://api.anthropic.com")
+      @debug.assert_eq(m.model, "claude-haiku-4")
+    }
+    None => fail("expected lite model with defaults")
+  }
+  @env.unset_env_var("CLACKY_LITE_API_KEY")
+  assert_true(lite_env_model() is None)
+}
+
+///|
+test "load_with_env injects lite model, workspace dir and default badge" {
+  let path = "/tmp/p6_load_with_env_test.toml"
+  let content =
+    #|[[models]]
+    #|id = "m1"
+    #|api_key = "sk-1"
+    #|base_url = "https://api.1.com"
+    #|model = "gpt-4"
+  @fs.write_string_to_file(path, content) catch {
+    _ => fail("write failed")
+  }
+  @env.set_env_var("CLACKY_LITE_API_KEY", "sk-lite")
+  @env.set_env_var("CLACKY_WORKSPACE_DIR", "/tmp/p6-ws")
+  let config = AgentConfig::load_with_env(path) catch {
+    _ => fail("load failed")
+  }
+  // Lite model injected
+  let lite = config.find_model_by_type("lite")
+  assert_true(lite is Some(_))
+  // Badge normalized onto the first model (none was badged in the file)
+  @debug.assert_eq(config.models[0].type_, Some("default"))
+  // Workspace dir filled from env
+  @debug.assert_eq(config.default_working_dir, Some("/tmp/p6-ws"))
+  @env.unset_env_var("CLACKY_LITE_API_KEY")
+  @env.unset_env_var("CLACKY_WORKSPACE_DIR")
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+}
+
+///|
+test "load_with_env skips lite injection when a lite model exists" {
+  let path = "/tmp/p6_load_with_env_test2.toml"
+  let content =
+    #|[[models]]
+    #|api_key = "sk-1"
+    #|base_url = "https://api.1.com"
+    #|model = "gpt-4"
+    #|
+    #|[[models]]
+    #|id = "lite"
+    #|type = "lite"
+    #|api_key = "sk-lite"
+    #|base_url = "https://api.1.com"
+    #|model = "haiku"
+  @fs.write_string_to_file(path, content) catch {
+    _ => fail("write failed")
+  }
+  @env.set_env_var("CLACKY_LITE_API_KEY", "sk-lite-other")
+  let config = AgentConfig::load_with_env(path) catch {
+    _ => fail("load failed")
+  }
+  let lite_models = config.models.filter(m => m.type_ == Some("lite"))
+  @debug.assert_eq(lite_models.length(), 1)
+  @debug.assert_eq(lite_models[0].api_key, "sk-lite")
+  @env.unset_env_var("CLACKY_LITE_API_KEY")
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
 }

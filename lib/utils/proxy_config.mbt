@@ -25,20 +25,29 @@ pub fn ProxyConfig::new() -> ProxyConfig {
 ///|
 /// Install proxy settings from explicit parameters or environment variables.
 /// Priority: explicit parameter > HTTPS_PROXY > HTTP_PROXY.
+/// Escape hatch: when CLACKY_NO_PROXY_ENV is truthy (1/true/yes), ambient
+/// HTTPS_PROXY/HTTP_PROXY environment variables are ignored entirely so
+/// users can bypass a corporate proxy without unsetting it in their shell
+/// (p6 decision 11). Explicit parameters are never overridden.
 pub fn ProxyConfig::install(
   proxy_url? : String? = None,
   no_proxy? : String? = None,
 ) -> ProxyConfig {
+  let env_disabled = env_bool("CLACKY_NO_PROXY_ENV")
   let url = match proxy_url {
     Some(u) => u
     None =>
-      match env_var("HTTPS_PROXY") {
-        Some(v) => v
-        None =>
-          match env_var("HTTP_PROXY") {
-            Some(v) => v
-            None => ""
-          }
+      if env_disabled {
+        ""
+      } else {
+        match env_var("HTTPS_PROXY") {
+          Some(v) => v
+          None =>
+            match env_var("HTTP_PROXY") {
+              Some(v) => v
+              None => ""
+            }
+        }
       }
   }
   let bypass = match no_proxy {

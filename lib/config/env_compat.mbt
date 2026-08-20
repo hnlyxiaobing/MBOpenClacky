@@ -1,13 +1,15 @@
-///| Environment variable compatibility layer for ClaudeCode and legacy prefixes.
+///| Environment variable compatibility layer.
 ///
 /// Environment variable prefix priority:
 /// 1. CLACKY_* (highest priority, project-specific)
 /// 2. OPENCLACKY_* (legacy compatibility)
-/// 3. CLAUDE_* (ClaudeCode compatibility)
+///
+/// CLAUDE_* (ClaudeCode) support is disabled, matching Ruby agent_config.rb
+/// where the ClaudeCodeEnv branch is commented out (p6 decision 5).
 
 ///|
 /// Load configuration from environment variables with priority-based prefix resolution.
-/// Tries CLACKY_ first, then OPENCLACKY_, then CLAUDE_ (ClaudeCode compat).
+/// Tries CLACKY_ first, then OPENCLACKY_.
 /// Returns a config with env_source set to the matched prefix layer.
 pub fn load_config_from_env() -> AgentConfig {
   // Try each prefix in priority order
@@ -22,18 +24,11 @@ pub fn load_config_from_env() -> AgentConfig {
           config.env_source = "env"
           config
         }
-        None =>
-          match load_claude_compat() {
-            Some(config) => {
-              config.env_source = "claude_compat"
-              config
-            }
-            None => {
-              let config = AgentConfig::default()
-              config.env_source = "toml"
-              config
-            }
-          }
+        None => {
+          let config = AgentConfig::default()
+          config.env_source = "toml"
+          config
+        }
       }
   }
 }
@@ -51,9 +46,21 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
         Some(m) => m
         None => "claude-sonnet-4-5"
       }
+      let provider = @utils.env_var(prefix + "_PROVIDER")
+      // Base URL resolution (p6 decision 4): explicit _BASE_URL >
+      // provider preset default (when _PROVIDER names a known preset) >
+      // Anthropic default.
       let base_url = match @utils.env_var(prefix + "_BASE_URL") {
         Some(u) => u
-        None => "https://api.anthropic.com"
+        None =>
+          match provider {
+            Some(p) =>
+              match Providers::find(p) {
+                Some(preset) => preset.base_url
+                None => "https://api.anthropic.com"
+              }
+            None => "https://api.anthropic.com"
+          }
       }
       // <prefix>_ANTHROPIC_FORMAT: unset/empty -> true, else "true"
       // (case-insensitive), matching ClackyEnv.default_anthropic_format.
@@ -65,7 +72,7 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
       // Build a model config from env
       let env_model : ModelConfig = {
         id: "default",
-        type_: match @utils.env_var(prefix + "_PROVIDER") {
+        type_: match provider {
           Some(p) => Some(p)
           None => Some("default")
         },
@@ -101,39 +108,40 @@ fn try_load_with_prefix(prefix : String) -> AgentConfig? {
 }
 
 ///|
-/// Load configuration from CLAUDE_* environment variables (ClaudeCode compatibility).
-/// Maps CLAUDE_API_KEY, CLAUDE_MODEL, CLAUDE_BASE_URL, CLAUDE_MAX_TOKENS.
-fn load_claude_compat() -> AgentConfig? {
-  let api_key = @utils.env_var("CLAUDE_API_KEY")
+/// Build a lite model config from CLACKY_LITE_* environment variables,
+/// or None when CLACKY_LITE_API_KEY is unset (Ruby ClackyEnv.lite_model_config,
+/// agent_config.rb:111-141).
+pub fn lite_env_model() -> ModelConfig? {
+  let api_key = @utils.env_var("CLACKY_LITE_API_KEY")
   match api_key {
     None => None
     Some(key) => {
-      let config = AgentConfig::default()
-      let model_name = match @utils.env_var("CLAUDE_MODEL") {
-        Some(m) => m
-        None => "claude-sonnet-4-5"
-      }
-      let base_url = match @utils.env_var("CLAUDE_BASE_URL") {
+      // Base URL resolution mirrors the default-model chain: explicit
+      // _BASE_URL > Anthropic default (Ruby leaves it nil; MB requires a
+      // non-optional string).
+      let base_url = match @utils.env_var("CLACKY_LITE_BASE_URL") {
         Some(u) => u
         None => "https://api.anthropic.com"
       }
-      let env_model : ModelConfig = {
-        id: "default",
-        type_: Some("default"),
+      let model = match @utils.env_var("CLACKY_LITE_MODEL") {
+        Some(m) => m
+        None => "claude-haiku-4"
+      }
+      let anthropic_format = match
+        @utils.env_var("CLACKY_LITE_ANTHROPIC_FORMAT") {
+        Some(v) => v.to_lower() == "true"
+        None => true
+      }
+      Some({
+        id: "lite",
+        type_: Some("lite"),
         api_key: key,
         base_url,
-        model: model_name,
-        anthropic_format: true,
-        runtime_id: "default",
+        model,
+        anthropic_format,
+        runtime_id: "lite",
         media_type: None,
-      }
-      config.models = [env_model]
-      config.current_model_id = Some("default")
-      match @utils.env_int("CLAUDE_MAX_TOKENS") {
-        Some(n) => config.max_tokens = n
-        None => ()
-      }
-      Some(config)
+      })
     }
   }
 }

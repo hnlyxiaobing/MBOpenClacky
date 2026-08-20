@@ -83,9 +83,17 @@ test "default model change survives a config save/load round trip" {
   let reloaded = @config.AgentConfig::load(path) catch {
     _ => abort("reload failed")
   }
-  assert_eq(reloaded.current_model_id, Some("m2"))
+  // p6: card ids are runtime-only (stripped on save, re-injected as
+  // positional ids on load), so current_model_id after reload is a fresh
+  // id and must not be compared literally. What must survive is the
+  // selection: the default badge lands on the model-two card and
+  // current_model() resolves to it.
+  assert_true(reloaded.current_model_id is Some(_))
   match reloaded.current_model() {
-    Some(m) => assert_eq(m.model, "model-two")
+    Some(m) => {
+      assert_eq(m.model, "model-two")
+      assert_eq(m.type_, Some("default"))
+    }
     None => abort("expected a current model after reload")
   }
 }

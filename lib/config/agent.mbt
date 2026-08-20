@@ -5,6 +5,7 @@ pub(all) struct AgentConfig {
   mut max_tokens : Int
   mut verbose : Bool
   mut enable_compression : Bool
+  mut enable_idle_compression : Bool
   mut enable_prompt_caching : Bool
   mut models : Array[ModelConfig]
   mut current_model_id : String?
@@ -16,9 +17,12 @@ pub(all) struct AgentConfig {
   mut fallback_model : String
   mut fallback_base_url : String?
   mut compression_threshold : Int
+  mut message_count_threshold : Int
   mut env_source : String
   /// Default working directory for spawned processes.
   mut default_working_dir : String?
+  /// Optional license-server override (Ruby CONFIG_SETTINGS_KEYS parity).
+  mut clacky_license_server : String?
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -38,6 +42,7 @@ pub fn AgentConfig::default() -> AgentConfig {
     max_tokens: 16384,
     verbose: false,
     enable_compression: true,
+    enable_idle_compression: true,
     enable_prompt_caching: true,
     models: [],
     current_model_id: None,
@@ -49,13 +54,18 @@ pub fn AgentConfig::default() -> AgentConfig {
     fallback_model: "",
     fallback_base_url: None,
     compression_threshold: 150000,
+    message_count_threshold: 200,
     env_source: "toml",
     default_working_dir: None,
+    clacky_license_server: None,
   }
 }
 
 ///|
 /// Switch the current model by its stable runtime_id.
+/// Per-session semantics (Ruby agent_config.rb switch_model_by_id): only
+/// updates current_model_id; does NOT move the Settings "default" badge.
+/// Use set_default_model_by_id to change the global default.
 /// Returns Ok(()) on success, Err(message) if the id is not found.
 pub fn AgentConfig::switch_model_by_id(
   self : AgentConfig,
@@ -67,9 +77,6 @@ pub fn AgentConfig::switch_model_by_id(
   for m in self.models {
     if m.runtime_id == id || m.id == id {
       self.current_model_id = Some(m.id)
-      // Keep the Settings "default" badge in sync so the two notions of
-      // "default model" can never drift apart.
-      self.set_default_badge(m.id)
       return Ok(())
     }
   }
@@ -78,6 +85,8 @@ pub fn AgentConfig::switch_model_by_id(
 
 ///|
 /// Switch the current model by its display name (case-insensitive exact match).
+/// Per-session semantics: only updates current_model_id; the "default" badge
+/// is untouched (see switch_model_by_id).
 /// Returns Ok(()) on success, Err(message) if the name is not found.
 pub fn AgentConfig::switch_model_by_name(
   self : AgentConfig,
@@ -92,12 +101,40 @@ pub fn AgentConfig::switch_model_by_name(
     let ml : String = "\{m.model.to_lower()}"
     if ml == lower {
       self.current_model_id = Some(m.id)
-      // Keep the Settings "default" badge in sync (see switch_model_by_id).
-      self.set_default_badge(m.id)
       return Ok(())
     }
   }
   Err("model not found with name: \{trimmed}")
+}
+
+///|
+/// Set the **global** default model marker (type: "default").
+/// Separate from switch_model_by_id: switching only changes the session's
+/// current model, while this moves the badge that new sessions start with
+/// (Ruby agent_config.rb set_default_model_by_id). Callers that want the
+/// choice to persist must also save the config.
+/// Returns Ok(()) on success, Err(message) if the id is not found.
+pub fn AgentConfig::set_default_model_by_id(
+  self : AgentConfig,
+  id : String,
+) -> Result[Unit, String] {
+  if id.is_empty() {
+    return Err("model id must not be empty")
+  }
+  let mut target : String? = None
+  for m in self.models {
+    if m.id == id || m.runtime_id == id {
+      target = Some(m.id)
+      break
+    }
+  }
+  match target {
+    Some(model_id) => {
+      self.set_default_badge(model_id)
+      Ok(())
+    }
+    None => Err("model not found")
+  }
 }
 
 ///|
@@ -118,20 +155,93 @@ fn AgentConfig::set_default_badge(self : AgentConfig, id : String) -> Unit {
 }
 
 ///|
-/// Dynamically add a model to the models mapping.
-/// Assigns a runtime_id if one is not already set.
-/// If a model with the same id already exists, it is replaced (dedup).
+/// Dynamically add a model to the models list.
+/// Ruby add_model semantics: always appends (no dedup-replace) and injects
+/// an id when the caller didn't provide one. Assigns runtime_id when unset.
 pub fn AgentConfig::add_model(self : AgentConfig, model : ModelConfig) -> Unit {
+  if model.id.is_empty() {
+    model.id = self.generate_model_id()
+  }
   if model.runtime_id.is_empty() {
     model.runtime_id = model.id
   }
-  for i = 0; i < self.models.length(); i = i + 1 {
-    if self.models[i].id == model.id {
-      self.models[i] = model
-      return
+  self.models.push(model)
+}
+
+///|
+/// Generate a model id that doesn't collide with any existing model id.
+/// Runtime-only (not persisted) - Ruby injects SecureRandom.uuid at load
+/// time instead; positional ids keep restart-stable references.
+fn AgentConfig::generate_model_id(self : AgentConfig) -> String {
+  let mut n = self.models.length()
+  let mut candidate = "model-\{n}"
+  let mut clash = true
+  while clash {
+    clash = false
+    for m in self.models {
+      if m.id == candidate {
+        n = n + 1
+        candidate = "model-\{n}"
+        clash = true
+        break
+      }
     }
   }
-  self.models.push(model)
+  candidate
+}
+
+///|
+/// Remove a model by index (Ruby agent_config.rb remove_model).
+/// Refuses to remove the last remaining model. If the removed model was the
+/// current one, current_model_id is cleared so resolution falls back to the
+/// default badge / first model. Returns false when refused.
+pub fn AgentConfig::remove_model(self : AgentConfig, index : Int) -> Bool {
+  if self.models.length() <= 1 {
+    return false
+  }
+  if index < 0 || index >= self.models.length() {
+    return false
+  }
+  let removed = self.models.remove(index)
+  match self.current_model_id {
+    Some(id) => if id == removed.id { self.current_model_id = None }
+    None => ()
+  }
+  true
+}
+
+///|
+/// Set a model's type tag (default/lite/image/video/audio/ocr), at most one
+/// model carries each type at a time (Ruby agent_config.rb set_model_type).
+/// Pass None to clear the tag. Returns false on bad index or unknown type.
+pub fn AgentConfig::set_model_type(
+  self : AgentConfig,
+  index : Int,
+  type_ : String?,
+) -> Bool {
+  if index < 0 || index >= self.models.length() {
+    return false
+  }
+  match type_ {
+    Some(t) => {
+      let valid = ["default", "lite", "image", "video", "audio", "ocr"].contains(
+        t,
+      )
+      if !valid {
+        return false
+      }
+      // Remove the tag from any other model that has it
+      for m in self.models {
+        match m.type_ {
+          Some(x) if x == t => m.type_ = None
+          _ => ()
+        }
+      }
+      self.models[index].type_ = Some(t)
+    }
+    None => self.models[index].type_ = None
+  }
+  true
 }
 
 ///|
@@ -143,8 +253,8 @@ pub fn AgentConfig::virtual_model_overlay(
   self : AgentConfig,
   overlay : ModelConfig,
 ) -> AgentConfig {
-  // Deep-copy so moving the "default" badge does not pollute the parent's
-  // shared model list (current_model() is badge-first).
+  // Deep-copy so the overlay's "default" badge move does not pollute the
+  // parent's shared model list (kept isolated per p6 decision 9).
   let copy = self.deep_copy()
   // Replace current_model_id to point to the overlay
   copy.current_model_id = Some(overlay.id)
@@ -187,12 +297,11 @@ pub fn AgentConfig::session_model_overlay(
     Some(id) => id
     None => return Err("model not found: \{model_id}")
   }
-  // Deep-copy so moving the "default" badge on the copy does not mutate the
-  // shared global config's models.
+  // Deep-copy so the badge move on the copy does not mutate the
+  // shared global config's models (isolation kept per p6 decision 9).
   let copy = self.deep_copy()
-  // Normalize to the model id so current_model() lookups always succeed,
-  // and move the badge so current_model() (badge-first) honors the session's
-  // model selection on this copy.
+  // Normalize to the model id so current_model() (id-first) honors the
+  // session's model selection on this copy.
   copy.current_model_id = Some(matched)
   copy.set_default_badge(matched)
   Ok(copy)
@@ -211,6 +320,7 @@ pub fn AgentConfig::deep_copy(self : AgentConfig) -> AgentConfig {
     max_tokens: self.max_tokens,
     verbose: self.verbose,
     enable_compression: self.enable_compression,
+    enable_idle_compression: self.enable_idle_compression,
     enable_prompt_caching: self.enable_prompt_caching,
     models: new_models,
     current_model_id: self.current_model_id,
@@ -222,8 +332,10 @@ pub fn AgentConfig::deep_copy(self : AgentConfig) -> AgentConfig {
     fallback_model: self.fallback_model,
     fallback_base_url: self.fallback_base_url,
     compression_threshold: self.compression_threshold,
+    message_count_threshold: self.message_count_threshold,
     env_source: self.env_source,
     default_working_dir: self.default_working_dir,
+    clacky_license_server: self.clacky_license_server,
   }
 }
 

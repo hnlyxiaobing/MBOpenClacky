@@ -203,9 +203,10 @@ pub fn execute(
       Ok("Use /config to open the configuration menu")
     Model(name~) => {
       // Match a configured model card by card id or model name, then take
-      // the same path as the menu selector: switch_model_by_id (sets the
-      // current model AND the default badge) + client rebuild. Persistence
-      // is layered on top by the controller (it owns the config path).
+      // the same path as the menu selector: switch_model_by_id (session
+      // switch) + set_default_model_by_id (pin the default badge, Ruby
+      // cli.rb:304-335) + client rebuild. Persistence is layered on top
+      // by the controller (it owns the config path and saves after execute).
       let mut matched : @config.ModelConfig? = None
       for m in agent.config.models {
         if m.id == name || m.model == name {
@@ -217,6 +218,7 @@ pub fn execute(
         Some(m) =>
           match agent.config.switch_model_by_id(m.id) {
             Ok(_) => {
+              ignore(agent.config.set_default_model_by_id(m.id))
               agent.rebuild_client_from_config()
               // Switching cards invalidates the per-session sub-model
               // overlay (it was pinned for the previous card).

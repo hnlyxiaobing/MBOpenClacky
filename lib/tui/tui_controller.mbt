@@ -834,10 +834,15 @@ async fn TuiController::handle_key(
                 close_config_dialog(self.state.val)
                 self.dirty = true
               } else {
-                // Model entry: switch to selected model
+                // Model entry: switch to selected model.
+                // CLI single-session semantics (Ruby cli.rb:245-256):
+                // switch + set default badge, then save.
                 let result = self.agent.config.switch_model_by_id(item.value)
                 match result {
                   Ok(_) => {
+                    ignore(
+                      self.agent.config.set_default_model_by_id(item.value),
+                    )
                     self.apply_model_switch()
                     self.save_config()
                     self.state.val.model_name = match
@@ -1577,9 +1582,9 @@ fn TuiController::try_open_submodel_drawer(
 
 ///|
 /// Switch to a model card and optionally pin a session sub-model overlay
-/// (Ruby cli.rb handle_model_command): switch + persist as the global
-/// default, then write/clear the overlay and save the session immediately
-/// so it survives a quit before the next task.
+/// (Ruby cli.rb handle_model_command): switch + set default badge + persist
+/// as the global default, then write/clear the overlay and save the session
+/// immediately so it survives a quit before the next task.
 fn TuiController::apply_model_card_switch(
   self : TuiController,
   card_id : String,
@@ -1587,6 +1592,9 @@ fn TuiController::apply_model_card_switch(
 ) -> Unit {
   match self.agent.config.switch_model_by_id(card_id) {
     Ok(_) => {
+      // /model in a single-session CLI also pins the default badge
+      // (Ruby cli.rb:304-335: switch + set_default + save).
+      ignore(self.agent.config.set_default_model_by_id(card_id))
       self.apply_model_switch()
       self.save_config()
       self.agent.set_session_sub_model(sub_model)

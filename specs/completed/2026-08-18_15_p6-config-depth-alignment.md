@@ -1,7 +1,7 @@
 ﻿# 配置加载深度对齐（矩阵§10）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已完成（2026-08-20 实施 + 全量回归通过，归档至 `specs/completed/`）· 此前：已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §10  
 > **关联历史 spec**: 边界——P2 用例面已归两份 p5 spec：`2026-08-18_12_p5-config-loading-alignment.md`（BUG-0012/0013/0014/0020/0022：max_tokens 加载、anthropic_format nil、current_model_id 自动设置、switch 失败文案）、`2026-08-18_07_p5-env-overlay-config-channel.md`（FU-08 env overlay）；本 spec 管矩阵 §10 的**深度面**（优先级方向、解析顺序、徽章语义、模型管理 API、identity、代理策略等），重叠处以 p5 spec 为准；Providers::resolve key/localhost 回退归 B4（BUG-0073）；search.yml 归 B1（BUG-0063）；文件权限 0600 随既有 BUG-0111 条目；矩阵旧台账编号已被覆盖，一律使用 `矩阵§10/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§10 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -126,14 +126,14 @@ Ruby 参照（openclacky，只读）：`agent_config.rb`（303-307 徽章归一�
 
 ## 验收标准 [必填]
 
-- [ ] 有 TOML 多模型配置时，设置 env API key 不再抹掉文件 models（字段级覆盖）
-- [ ] current_model 解析顺序为 id > 徽章 > index；current_model_id 不再写回 TOML
-- [ ] switch_model_by_id 不移动 default 徽章；set_default_model_by_id 独立可用
-- [ ] `_ANTHROPIC_FORMAT` env 变量被消费；CLACKY_LITE_*/CLACKY_WORKSPACE_DIR 生效
-- [ ] CLAUDE_* 兼容层按裁决处置（移除或文档化超集）
-- [ ] has_model_configured 要求 current_model 可解析；server 启动门联调通过
-- [ ] identity is_bound 在空 token 时返回 false；bind/clear 可用
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归；test/diff config 簇全绿
+- [x] 有 TOML 多模型配置时，设置 env API key 不再抹掉文件 models（字段级覆盖）
+- [x] current_model 解析顺序为 id > 徽章 > index；current_model_id 不再写回 TOML
+- [x] switch_model_by_id 不移动 default 徽章；set_default_model_by_id 独立可用
+- [x] `_ANTHROPIC_FORMAT` env 变量被消费；CLACKY_LITE_*/CLACKY_WORKSPACE_DIR 生效
+- [x] CLAUDE_* 兼容层按裁决处置（移除或文档化超集）
+- [x] has_model_configured 要求 current_model 可解析；server 启动门联调通过
+- [x] identity is_bound 在空 token 时返回 false；bind/clear 可用
+- [x] `moon check` 0 errors；全量 `moon test` 无回归；test/diff config 簇全绿
 
 ## 风险评估 [必填]
 
@@ -153,3 +153,12 @@ Ruby 参照（openclacky，只读）：`agent_config.rb`（303-307 徽章归一�
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§10 残留条目核实落 spec；10 项直接证实 + 16 项静态证实/unclear 留任务包 0；与两份 p5 配置 spec 边界已在头部声明）。
+- 2026-08-20：实施完成并归档。任务包 0-3 全部落地：
+  - **任务包 1**：env/file 优先级恢复 file > env + 字段级 merge（env_compat.mbt 重写 merge_config）；base_url 无 `_BASE_URL` 时保留 anthropic 默认（决策 4 裁决落地）；`_ANTHROPIC_FORMAT` 消费；CLACKY_LITE_* 注入（load_with_env 尾部，lite_env_model）；CLACKY_WORKSPACE_DIR 填充 default_working_dir；CLAUDE_* 兼容层整体移除（决策 5，load_claude_compat 删除）。
+  - **任务包 2**：current_model 解析顺序 id > 徽章 > 第一个模型（loader.mbt）；current_model_id 持久化剥离（to_toml 不写、from_toml 兼容旧值）；switch_model_by_id/name 去徽章化；新增 set_default_model_by_id；TUI 三处调用点（tui_controller config 菜单 / apply_model_card_switch / slash_commands Model 分支）补 set_default_model_by_id 调用对齐 Ruby cli.rb 单会话语义；load 徽章归一（Ruby agent_config.rb:303-307）。
+  - **任务包 3**：remove_model/set_model_type/add_model（追加+位置 id 注入 "model-{N}" 防碰撞）/ModelConfig.id 改 mut 运行时注入（缺 id/base_url/model 不再丢条目，保留空串+控制台告警）；settings 补 enable_idle_compression/message_count_threshold/skill_evolution/clacky_license_server 解析与写出（toml↔json 转换器）；has_model_configured 收紧为 current_model() 可解析且 api_key 非空（决策 7）；identity is_bound 判 token 非空 + bind_identity/clear_identity（决策 8，路径保持 ~/.clacky/identity.json 非笔误）；代理 CLACKY_NO_PROXY_ENV 逃生门（决策 9）。
+  - **任务包 4（测试）**：config_wbtest 断言反转（switch 不移徽章）+ 新 API 用例；identity_wbtest bind/clear（HOME 重定向隔离）；proxy_config_wbtest 逃生门；test/diff config_010（期望 0→1，缺字段保留条目）/config_015（CLAUDE_* 被忽略）期望更新；lib/web handlers_config_contract drifted-config 用例改断 id-first 语义；slash_commands_wbtest roundtrip 用例改语义级断言（id 为 runtime-only，徽章选择关系存活）。
+  - **实施中新发现并修复**：identity 的 derive(ToJson) 将 Int64 bound_at 序列化为 JSON 字符串，而 parse_identity 只接受 Number，导致 bind 后 is_bound 恒 false 的生产 bug--parse 兼容 Number/String 双格式修复（brand 包新增 core/string import）；slash_commands.mbt 消息字符串插值笔误（`\\{m.model}` 未插值）修复。
+  - **分期搁置（记录）**：derive_media_model/media 三态自省、fallback_base_url 派生按任务包 0 影响面分期（条目 21/22，非本 spec 验收面）；deep_copy 隔离语义保留为 MB 超集并记录（决策 9）；代理 epoch 实测为 reset 已实现的死代码路径，无消费者，保留现状。
+  - **回归**：moon check 0 errors；moon test 全量 3789/3789 通过（lib/config 146、lib/brand 129、lib/utils 306、lib/tui 319、lib/web 456、test/diff 145）；moon fmt/moon info 已跑（pkg.generated.mbti 更新，该文件不入库）。
+  - 改动文件：lib/config/{agent,config_wbtest,env_compat,loader,model}.mbt、lib/brand/{identity,identity_wbtest}.mbt、lib/brand/moon.pkg、lib/tui/{slash_commands,slash_commands_wbtest,tui_controller}.mbt、lib/utils/{proxy_config,proxy_config_wbtest}.mbt、lib/web/handlers_config_contract_wbtest.mbt、test/diff/config_cli_cases_wbtest.mbt（15 文件，+872/-169）。

@@ -123,15 +123,22 @@ test "config_002_load_basic_settings_and_model" {
 }
 
 ///|
-/// config-010：配置文件模型缺少必填字段（base_url/model）应跳过该模型。
-/// 期望值冻结自 ruby_output（实测）：models_count=0。应绿。
-test "config_010_incomplete_model_skipped" {
+/// config-010：配置文件模型缺少必填字段（base_url/model）时的处理。
+/// p6 对齐 Ruby load：缺 base_url/model 的条目不再被丢弃（Ruby 实测
+/// models_count=1），空字段保留并在加载时打印告警。期望值按 Ruby 实测
+/// 冻结：models_count=1、字段为空串。
+test "config_010_incomplete_model_kept" {
   let content =
     #|[[models]]
     #|id = "test"
     #|api_key = "sk-test"
   let config = load_toml_str("010", content)
-  assert_eq(config.models.length(), 0)
+  assert_eq(config.models.length(), 1)
+  assert_eq(config.models[0].id, "test")
+  assert_eq(config.models[0].api_key, "sk-test")
+  // p6：缺省字段保留为空串（不再跳过条目），与 Ruby agent_config.rb 一致。
+  assert_eq(config.models[0].base_url, "")
+  assert_eq(config.models[0].model, "")
 }
 
 ///|
@@ -299,10 +306,11 @@ test "config_006_clacky_priority_over_openclacky" {
 }
 
 ///|
-/// config-015：CLAUDE_* 环境变量兼容层（MB 扩展，Ruby 侧 ClaudeCode 支持已禁用）。
-/// BUG-0018 wontfix，冻结 MB 当前行为（最低优先级兼容层，anthropic_format=true，
-/// env_source="claude_compat"）。
-test "config_015_claude_prefix_compat" {
+/// config-015：CLAUDE_* 环境变量被忽略。
+/// p6 决策：CLAUDE_* 兼容层（load_claude_compat）已移除，对齐 Ruby
+/// （ClaudeCode 支持禁用，agent_config.rb 不读 CLAUDE_* 前缀）。
+/// 期望值按 Ruby 实测冻结：无模型产生、env_source="toml"。
+test "config_015_claude_prefix_ignored" {
   let saved = clear_and_save_env()
   @env.set_env_var("CLAUDE_API_KEY", "sk-claude")
   @env.set_env_var("CLAUDE_BASE_URL", "https://api.claude.com")
@@ -311,17 +319,10 @@ test "config_015_claude_prefix_compat" {
     _ => abort("load_with_env failed: 015")
   }
   restore_env(saved)
-  // wontfix（BUG-0018）：MB 扩展功能，冻结 MB 当前行为。
-  match config.current_model() {
-    Some(m) => {
-      assert_eq(m.api_key, "sk-claude")
-      assert_eq(m.base_url, "https://api.claude.com")
-      assert_eq(m.model, "claude-3-opus")
-      assert_true(m.anthropic_format)
-    }
-    None => abort("current_model should exist")
-  }
-  assert_eq(config.env_source, "claude_compat")
+  // p6：CLAUDE_* 前缀不再被读取，不产生任何模型。
+  assert_eq(config.models.length(), 0)
+  assert_true(config.current_model() is None)
+  assert_eq(config.env_source, "toml")
 }
 
 ///|

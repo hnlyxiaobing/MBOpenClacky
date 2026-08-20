@@ -1,7 +1,8 @@
 ///|
 /// Configuration for a single LLM model endpoint.
 pub(all) struct ModelConfig {
-  id : String
+  /// Model entry id (runtime-only, not persisted; injected when missing).
+  mut id : String
   mut type_ : String?
   api_key : String
   base_url : String

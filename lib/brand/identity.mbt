@@ -83,6 +83,9 @@ pub fn parse_identity(json : Json) -> Identity? {
       }
       let bound_at = match obj.get("bound_at") {
         Some(Number(n, ..)) => n.to_int64()
+        // derive(ToJson) serializes Int64 as a JSON string (JS precision
+        // guard), so a save-then-load round-trip arrives as String.
+        Some(String(s)) => @string.parse_int64(s) catch { _ => return None }
         _ => return None
       }
       let device_info = match obj.get("device_info") {
@@ -140,10 +143,12 @@ pub fn save_identity(identity : Identity) -> Unit {
 // ── Query helpers ──────────────────────────────────────────────────
 
 ///|
-/// Check whether the device has been bound (identity file exists on disk).
+/// Check whether the device has been bound. A mere file on disk is not
+/// enough (p6 decision 8, Ruby identity.rb): the stored identity must load
+/// and carry a non-empty device_token.
 pub fn is_bound() -> Bool {
-  match identity_path() {
-    Some(path) => @fs.path_exists(path)
+  match load_identity() {
+    Some(identity) => !identity.device_token.is_empty()
     None => false
   }
 }
@@ -154,5 +159,40 @@ pub fn verify_token(token : String) -> Bool {
   match load_identity() {
     Some(identity) => identity.device_token == token
     None => false
+  }
+}
+
+// ── Binding management ─────────────────────────────────────────────
+
+///|
+/// Bind the device to a user by persisting a fresh identity.
+/// Generates a new device_info snapshot, stamps bound_at with the current
+/// epoch time (ms), and writes the identity file (best-effort).
+/// Returns Err when the token is empty.
+pub fn bind_identity(
+  device_token : String,
+  user_id : String,
+) -> Result[Unit, String] {
+  if device_token.is_empty() {
+    return Err("device token must not be empty")
+  }
+  let identity = create_identity(
+    device_token,
+    user_id,
+    @env.now().reinterpret_as_int64(),
+    generate_device_id(),
+  )
+  save_identity(identity)
+  Ok(())
+}
+
+///|
+/// Unbind the device by removing the identity file.
+/// Errors (e.g. file missing, permission denied) are silently swallowed
+/// (best-effort) so clearing is always safe to call.
+pub fn clear_identity() -> Unit {
+  match identity_path() {
+    Some(path) => @fs.remove_file(path) catch { _ => () }
+    None => ()
   }
 }

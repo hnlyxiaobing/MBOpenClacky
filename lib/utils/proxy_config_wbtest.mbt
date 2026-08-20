@@ -71,3 +71,26 @@ test "proxy_config: install with empty url stays disabled" {
   assert_false(p.is_enabled())
   @debug.assert_eq(p.proxy_url(), "")
 }
+
+// ── p6: CLACKY_NO_PROXY_ENV escape hatch ─────────────────────────────────────
+
+///|
+test "proxy_config: CLACKY_NO_PROXY_ENV ignores ambient proxy vars" {
+  @env.set_env_var("HTTPS_PROXY", "http://corp-proxy:8080")
+  @env.set_env_var("HTTP_PROXY", "http://corp-proxy:8080")
+  @env.set_env_var("CLACKY_NO_PROXY_ENV", "1")
+  // No explicit parameter -> ambient env ignored entirely
+  let p = ProxyConfig::install()
+  @debug.assert_eq(p.proxy_url(), "")
+  assert_false(p.is_enabled())
+  // Explicit parameter still wins over the escape hatch
+  let explicit = ProxyConfig::install(proxy_url=Some("http://explicit:1"))
+  @debug.assert_eq(explicit.proxy_url(), "http://explicit:1")
+  @env.unset_env_var("CLACKY_NO_PROXY_ENV")
+  // Without the hatch, ambient HTTPS_PROXY is honored again
+  let ambient = ProxyConfig::install()
+  @debug.assert_eq(ambient.proxy_url(), "http://corp-proxy:8080")
+  // Cleanup
+  @env.unset_env_var("HTTPS_PROXY")
+  @env.unset_env_var("HTTP_PROXY")
+}
