@@ -18,13 +18,27 @@ pub fn Agent::load_skills(
 /// registry (Ruby skill_loader discovery): `~/.mbopenclacky/skills/`,
 /// legacy project dirs, and `<working_dir>/.clacky/skills/`.
 ///
+/// Directories are loaded in priority order (lowest first); a same-named
+/// skill from a later directory overrides the earlier registration, with
+/// an explicit warning printed (skill_loader.rb shadowing semantics,
+/// spec 2026-08-18_20 decision 3).
+///
 /// Call once after agent creation; skills become user-invocable as
 /// `/name` slash commands and appear in Tab completion.
 pub fn Agent::discover_workspace_skills(self : Agent) -> Unit {
-  let files = @skill.read_skill_files(
-    @skill.default_discovery_paths(self.working_dir),
-  )
-  self.load_skills(files)
+  for dir in @skill.default_discovery_paths(self.working_dir) {
+    let files = @skill.read_skill_files([dir])
+    for skill in @skill.discover_skills(files) {
+      // Explicit dedup arbitration: warn when overriding an existing
+      // registration from a lower-priority source.
+      if self.skill_registry.has(skill.name) {
+        println(
+          "[skills] '\{skill.name}' from \{dir} overrides an existing skill with the same name",
+        )
+      }
+      self.skill_registry.register(skill)
+    }
+  }
 }
 
 ///|
@@ -34,10 +48,26 @@ pub fn Agent::get_skill(self : Agent, name : String) -> @skill.Skill? {
 }
 
 ///|
-/// Return a human-readable summary of all available skills.
+/// Return a human-readable summary of all model-visible skills.
 /// Suitable for injection into the system prompt.
+///
+/// Skills marked `disable_model_invocation: true` are hidden from the
+/// model (they stay user-invocable via `/name`), and skills scoped to a
+/// different agent type (`agent`/`agent_type` frontmatter) are filtered
+/// to the current agent (Ruby skill visibility semantics, spec
+/// 2026-08-18_20 decision 5).
 pub fn Agent::available_skills_summary(self : Agent) -> String {
-  let skills = self.skill_registry.all()
+  let skills : Array[@skill.Skill] = []
+  for skill in self.skill_registry.all() {
+    if skill.disable_model_invocation {
+      continue
+    }
+    match skill.agent_type {
+      Some(agent_type) => if agent_type != self.name { continue }
+      None => ()
+    }
+    skills.push(skill)
+  }
   @skill.build_skills_summary(skills)
 }
 

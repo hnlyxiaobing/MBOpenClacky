@@ -1,8 +1,11 @@
-///| Default built-in skills for MBOpenClacky.
-/// Provides a core set of skills available out-of-the-box.
-
 ///|
-/// Metadata for a built-in default skill.
+/// Built-in default skills metadata, loaded from the bundled
+/// `assets/skills/*/SKILL.md` frontmatter.
+///
+/// The hardcoded metadata table is intentionally gone (spec
+/// 2026-08-18_20 item 2): disk SKILL.md files are the single source of
+/// truth, so built-in metadata can never drift from what users install
+/// and read on disk.
 pub(all) struct DefaultSkillMeta {
   name : String
   description : String
@@ -24,129 +27,96 @@ pub extend DefaultSkillMeta with Eq::{not_equal, equal}
 pub extend DefaultSkillMeta with ToJson::{to_json}
 
 ///|
-/// Get all built-in skill metadata definitions.
+/// Directory containing the bundled built-in skills (CWD-relative, the
+/// same convention as the web layer's BUILTIN_SKILLS_DIR).
+pub const DEFAULT_SKILLS_DIR : String = "assets/skills"
+
+///|
+/// One scanned built-in skill: its frontmatter metadata plus the on-disk
+/// directory (which may differ from the frontmatter name).
+priv struct DefaultSkillEntry {
+  meta : DefaultSkillMeta
+  directory : String
+}
+
+///|
+/// Scan a skills root directory for `*/SKILL.md` files and build metadata
+/// from each file's frontmatter. Entries are sorted by directory name for
+/// deterministic listing; a missing or unreadable root yields an empty
+/// array.
+///
+/// Frontmatter `name` falls back to the directory name when absent
+/// (skill_loader.rb semantics), so a skill is always addressable by its
+/// on-disk directory name.
+pub fn scan_default_skill_metas(base_dir : String) -> Array[DefaultSkillMeta] {
+  let metas : Array[DefaultSkillMeta] = []
+  for entry in scan_default_skill_entries(base_dir) {
+    metas.push(entry.meta)
+  }
+  metas
+}
+
+///|
+/// Scan a skills root directory into full entries (metadata + directory).
+fn scan_default_skill_entries(base_dir : String) -> Array[DefaultSkillEntry] {
+  let entries : Array[DefaultSkillEntry] = []
+  let raw = @fs.read_dir(base_dir) catch { _ => return entries }
+  // Collect candidate skill directories, skipping dot entries (Ruby's
+  // Dir.glob never yields dot-entries), then sort for determinism.
+  let dir_names : Array[String] = []
+  for entry in raw {
+    if entry.has_prefix(".") {
+      continue
+    }
+    let full = base_dir + "/" + entry
+    let is_dir = @fs.is_dir(full) catch { _ => false }
+    if is_dir {
+      dir_names.push(entry)
+    }
+  }
+  dir_names.sort()
+  for dir_name in dir_names {
+    let dir_path = base_dir + "/" + dir_name
+    let skill_md = dir_path + "/SKILL.md"
+    let content = @fs.read_file_to_string(skill_md) catch { _ => continue }
+    let (fields, _body) = parse_frontmatter(content)
+    let name = match fields.get("name") {
+      Some(n) => n
+      None => dir_name
+    }
+    let description = match fields.get("description") {
+      Some(d) => d
+      None => ""
+    }
+    let user_invocable = match fields.get("user_invocable") {
+      Some(v) => parse_yaml_bool(v)
+      None => true
+    }
+    let allowed_tools : Array[String] = match fields.get("allowed_tools") {
+      Some(v) =>
+        match parse_string_list(v) {
+          Some(items) => items
+          None => []
+        }
+      None => []
+    }
+    let category = match fields.get("category") {
+      Some(c) => c
+      None => ""
+    }
+    entries.push({
+      meta: { name, description, user_invocable, allowed_tools, category },
+      directory: dir_path,
+    })
+  }
+  entries
+}
+
+///|
+/// Get all built-in skill metadata (scanned from the bundled
+/// `assets/skills` directory).
 pub fn get_default_skill_metas() -> Array[DefaultSkillMeta] {
-  [
-    {
-      name: "code-explorer",
-      description: "Explore and analyze codebase structure, find patterns, understand architecture",
-      user_invocable: true,
-      allowed_tools: ["FileReader", "Grep", "Glob"],
-      category: "development",
-    },
-    {
-      name: "mcp-manager",
-      description: "Manage MCP server connections, install and configure servers",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "FileReader", "Write"],
-      category: "management",
-    },
-    {
-      name: "media-gen",
-      description: "Generate images, diagrams, and media content using AI tools",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "Write", "WebFetch"],
-      category: "utility",
-    },
-    {
-      name: "persist-memory",
-      description: "Save important information to long-term memory for future recall",
-      user_invocable: true,
-      allowed_tools: ["MemoryTool", "FileReader"],
-      category: "memory",
-    },
-    {
-      name: "recall-memory",
-      description: "Recall and search through previously saved memories",
-      user_invocable: true,
-      allowed_tools: ["MemoryTool"],
-      category: "memory",
-    },
-    {
-      name: "search-skills",
-      description: "Search for available skills by name, description, or capability",
-      user_invocable: true,
-      allowed_tools: ["FileReader", "Glob", "WebSearch"],
-      category: "utility",
-    },
-    {
-      name: "skill-creator",
-      description: "Create new custom skills with guided workflow",
-      user_invocable: true,
-      allowed_tools: ["Write", "FileReader", "Edit"],
-      category: "development",
-    },
-    {
-      name: "cron-task-creator",
-      description: "Create scheduled tasks and automation routines",
-      user_invocable: true,
-      allowed_tools: ["Write", "FileReader", "Terminal"],
-      category: "management",
-    },
-    {
-      name: "deploy",
-      description: "Deploy applications to cloud platforms and hosting services",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "FileReader", "WebFetch"],
-      category: "development",
-    },
-    {
-      name: "onboard",
-      description: "Onboard to a new project: analyze structure, conventions, and setup",
-      user_invocable: true,
-      allowed_tools: ["FileReader", "Grep", "Glob", "Write", "MemoryTool"],
-      category: "utility",
-    },
-    {
-      name: "product-help",
-      description: "Get help about MBOpenClacky features, commands, and best practices",
-      user_invocable: true,
-      allowed_tools: ["WebSearch", "WebFetch"],
-      category: "utility",
-    },
-    {
-      name: "browser_setup",
-      description: "Guide user through browser automation setup",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "FileReader", "Write"],
-      category: "management",
-    },
-    {
-      name: "channel_manager",
-      description: "Manage IM channel connections (Feishu/WeCom/Telegram/Discord/DingTalk/WeChat)",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "FileReader", "Write", "Edit"],
-      category: "management",
-    },
-    {
-      name: "new",
-      description: "Create a new project from scratch",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "Write", "FileReader"],
-      category: "development",
-    },
-    {
-      name: "personal_website",
-      description: "Generate and deploy a personal website",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "Write", "FileReader", "WebFetch"],
-      category: "development",
-    },
-    {
-      name: "skill_add",
-      description: "Install a skill from URL or local path",
-      user_invocable: true,
-      allowed_tools: ["Terminal", "FileReader", "Write", "WebFetch"],
-      category: "utility",
-    },
-    {
-      name: "meeting-summarizer",
-      description: "Summarize completed meetings from transcripts into structured summaries with key decisions, action items, and discussion highlights",
-      user_invocable: true,
-      allowed_tools: ["FileReader", "Write", "Terminal"],
-      category: "utility",
-    },
-  ]
+  scan_default_skill_metas(DEFAULT_SKILLS_DIR)
 }
 
 ///|
@@ -198,30 +168,28 @@ pub fn is_default_skill(name : String) -> Bool {
 }
 
 ///|
-/// Register all built-in skills into a SkillRegistry.
-/// Each skill is created with source="builtin" and directory pointing to assets/skills/<name>/.
+/// Register all built-in skills into a SkillRegistry, scanning the bundled
+/// `assets/skills` directory. Each skill is registered metadata-only
+/// (context None) with source="builtin" and its real on-disk directory, so
+/// the body is lazily loaded on first use.
 pub fn register_default_skills(registry : SkillRegistry) -> Unit {
-  let metas = get_default_skill_metas()
-  for meta in metas {
-    let skill : Skill = {
-      name: meta.name,
-      name_zh: None,
-      description: Some(meta.description),
-      description_zh: None,
-      disable_model_invocation: false,
-      user_invocable: meta.user_invocable,
-      allowed_tools: Some(meta.allowed_tools),
-      context: None,
-      agent_type: None,
-      argument_hint: None,
-      hooks: None,
-      fork_agent: false,
-      model: None,
-      forbidden_tools: None,
-      auto_summarize: false,
-      source: "builtin",
-      directory: Some("assets/skills/" + meta.name),
+  register_default_skills_from(registry, DEFAULT_SKILLS_DIR)
+}
+
+///|
+/// Register built-in skills from an explicit skills root directory
+/// (exposed for tests and non-standard layouts).
+pub fn register_default_skills_from(
+  registry : SkillRegistry,
+  base_dir : String,
+) -> Unit {
+  for entry in scan_default_skill_entries(base_dir) {
+    let skill_md = entry.directory + "/SKILL.md"
+    let content = @fs.read_file_to_string(skill_md) catch { _ => continue }
+    match
+      load_skill_meta_from_content(content, "builtin", Some(entry.directory)) {
+      Some(skill) => registry.register(skill)
+      None => () // unparseable SKILL.md: skip, mirroring Ruby's rescue-next
     }
-    registry.register(skill)
   }
 }

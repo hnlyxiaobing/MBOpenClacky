@@ -1,10 +1,14 @@
 ///|
 /// Get the default skill discovery paths for a given working directory.
 ///
-/// Order is lowest → highest priority (later registrations override
+/// Order is lowest -> highest priority (later registrations override
 /// same-named skills in the registry), aligned with the original
 /// skill_loader.rb: user-global skills (`~/.mbopenclacky/skills/`) first,
 /// then legacy project dirs, then the project-level `.clacky/skills/`.
+///
+/// MB extension paths (`.qoder/skills`, `skills`, `.skills`) beyond the
+/// Ruby set (global + `.clacky/skills`) are intentionally retained and
+/// recorded here per spec 2026-08-18_20 decision 3.
 pub fn default_discovery_paths(working_dir : String) -> Array[String] {
   let paths : Array[String] = []
   match @utils.skills_dir() {
@@ -20,7 +24,7 @@ pub fn default_discovery_paths(working_dir : String) -> Array[String] {
 
 ///|
 /// Read all skill files under the given discovery directories into a
-/// path → content map (ready for `discover_skills`).
+/// path -> content map (ready for `discover_skills`).
 ///
 /// Each directory is walked recursively (up to 3 levels, covering
 /// `<dir>/<skill>/SKILL.md` and `<dir>/<category>/<skill>/SKILL.md`
@@ -36,6 +40,11 @@ pub fn read_skill_files(paths : Array[String]) -> Map[String, String] {
 ///|
 /// Recursively collect skill file contents from `dir` (see
 /// `read_skill_files`).
+///
+/// Filename matching is strict (spec 2026-08-18_20 decision 3): only
+/// files named exactly `SKILL.md` are collected. Look-alikes such as
+/// `myskill.md`, `skills.md` or `skill.json` are NOT skill files
+/// (Ruby skill_loader.rb only checks `entry/SKILL.md`).
 fn collect_skill_files(
   dir : String,
   depth : Int,
@@ -53,11 +62,7 @@ fn collect_skill_files(
     let path = dir + "/" + name
     let is_file = @fs.is_file(path) catch { _ => false }
     if is_file {
-      let lower = name.to_lower()
-      if lower.has_suffix("skill.md") ||
-        lower.has_suffix("skills.md") ||
-        lower.has_suffix("skill.json") ||
-        lower.has_suffix("skills.json") {
+      if name == "SKILL.md" {
         let content = @fs.read_file_to_string(path) catch { _ => continue }
         out[path] = content
       }
@@ -72,37 +77,38 @@ fn collect_skill_files(
 
 ///|
 /// Discover and parse skills from a map of file path -> content.
-/// Supports both SKILL.md (markdown with frontmatter) and skill.json files.
+///
+/// Only paths ending in `/SKILL.md` (or a bare `SKILL.md`) are parsed;
+/// other files (including skill.json look-alikes) are ignored, matching
+/// the Ruby loader's strict filename contract.
 pub fn discover_skills(file_contents : Map[String, String]) -> Array[Skill] {
   let result : Array[Skill] = []
   for path, content in file_contents {
-    let lower_path = path.to_lower()
-    if lower_path.has_suffix("skill.md") || lower_path.has_suffix("skills.md") {
-      let directory = extract_directory(path)
-      match load_skill_from_content(content, path, directory) {
-        Some(skill) => result.push(skill)
-        None => ()
-      }
-    } else if lower_path.has_suffix("skill.json") ||
-      lower_path.has_suffix("skills.json") {
-      let json = @json.parse(content) catch { _ => continue }
-      match json {
-        Array(arr) =>
-          for item in arr {
-            match load_skill_from_json_value(item, path) {
-              Some(skill) => result.push(skill)
-              None => ()
-            }
-          }
-        Object(_) | String(_) | Number(_) | True | False | Null =>
-          match load_skill_from_json_value(json, path) {
-            Some(skill) => result.push(skill)
-            None => ()
-          }
-      }
+    if !is_skill_md_path(path) {
+      continue
+    }
+    let directory = extract_directory(path)
+    match load_skill_from_content(content, path, directory) {
+      Some(skill) => result.push(skill)
+      None => ()
     }
   }
   result
+}
+
+///|
+/// Whether a file path refers to a strict `SKILL.md` file: the last path
+/// segment must be exactly `SKILL.md`.
+fn is_skill_md_path(path : String) -> Bool {
+  let segments = path.split("/")
+  let mut last = ""
+  for seg in segments {
+    let sub = seg.split("\\")
+    for inner in sub {
+      last = inner.to_owned()
+    }
+  }
+  last == "SKILL.md"
 }
 
 ///|

@@ -685,3 +685,113 @@ test "classify_http_error maps 402 to BadRequestError" {
     None => fail("expected BadRequestError")
   }
 }
+
+// ── Timeout Hint / Retry Exhaustion (Spec 21 task package 2) ───────────────
+
+///|
+test "inject_large_output_hint_if_first_timeout injects once per task" {
+  let agent = lc_make_agent("https://api.example.com")
+  agent.inject_large_output_hint_if_first_timeout()
+  @debug.assert_eq(agent.history.size(), 1)
+  // system_injected flag set (hidden from UI replay / compression logic)
+  @debug.assert_eq(agent.history.all()[0].system_injected, Some(true))
+  let text = match agent.history.all()[0].content {
+    @message.Text(s) => s
+    _ => ""
+  }
+  assert_true(text.contains("[SYSTEM]"))
+  assert_true(text.contains("timed out"))
+  assert_true(text.contains("smaller steps"))
+  // Second call within the same task is a no-op
+  agent.inject_large_output_hint_if_first_timeout()
+  @debug.assert_eq(agent.history.size(), 1)
+}
+
+///|
+test "timeout hint flag resets per task like truncation hint" {
+  let agent = lc_make_agent("https://api.example.com")
+  agent.task_timeout_hint_injected = true
+  // run() resets per-task one-shot flags at task start (react.mbt).
+  // Simulate the reset directly:
+  agent.task_timeout_hint_injected = false
+  agent.inject_large_output_hint_if_first_timeout()
+  @debug.assert_eq(agent.history.size(), 1)
+}
+
+///|
+test "llm_retry_exhausted_message uses i18n keys with [LLM] prefix" {
+  let timeout_msg = llm_retry_exhausted_message(
+    @errors.LlmTimeoutError("t"),
+    10,
+  )
+  assert_true(timeout_msg.has_prefix("[LLM] "))
+  assert_true(timeout_msg.contains("timed out"))
+  assert_true(timeout_msg.contains("10"))
+  let service_msg = llm_retry_exhausted_message(@errors.RetryableError("r"), 5)
+  assert_true(service_msg.has_prefix("[LLM] "))
+  assert_true(service_msg.contains("unavailable"))
+  assert_true(service_msg.contains("5"))
+}
+
+///|
+test "LlmTimeoutError is retryable" {
+  assert_true(@errors.is_retryable_error(@errors.LlmTimeoutError("t")))
+  assert_false(@errors.is_agent_error(@errors.LlmTimeoutError("t")))
+}
+
+///|
+/// Push `n` truncated mock responses so every attempt raises
+/// UpstreamTruncatedError (retryable) — drives the retry loop to exhaustion.
+fn lc_push_truncated_mocks(agent : Agent, n : Int) -> Unit {
+  let mut i = 0
+  while i < n {
+    let tc = lc_tool_call("call_\{i}", "write_file", "{}")
+    agent.mock_responses.push(lc_mock_response("partial", Some([tc])))
+    i = i + 1
+  }
+}
+
+///|
+async test "call_with_retry_async exhaustion raises AgentError with i18n msg" {
+  let agent = lc_make_agent("https://api.example.com")
+  set_retry_delay_override_for_test(Some(1))
+  defer set_retry_delay_override_for_test(None)
+  // 11 failures exhaust the 11-request budget (attempt > max_retries).
+  lc_push_truncated_mocks(agent, 12)
+  let result = Ok(agent.call_with_retry_async()) catch { e => Err(e) }
+  match result {
+    Err(@errors.AgentError(msg)) => {
+      assert_true(msg.has_prefix("[LLM] "))
+      assert_true(msg.contains("unavailable"))
+    }
+    Err(e) => fail("expected AgentError, got \{e}")
+    Ok(_) => fail("expected exhaustion")
+  }
+  // Exactly 11 attempts consumed (11-request budget).
+  @debug.assert_eq(agent.mock_responses.length(), 1)
+  // One-shot truncation hint injected on the first failure.
+  @debug.assert_eq(agent.history.size(), 1)
+}
+
+///|
+async test "call_with_retry_async fallback budget capped at 5" {
+  let agent = lc_make_agent("https://api.example.com")
+  agent.fallback_model = Some("fallback-model")
+  set_retry_delay_override_for_test(Some(1))
+  defer set_retry_delay_override_for_test(None)
+  // 3 failures activate fallback (counter resets), then the fallback budget
+  // is MAX_RETRIES_ON_FALLBACK=5 → exhausts on the 6th fallback failure.
+  // Total failures: 3 + 6 = 9.
+  lc_push_truncated_mocks(agent, 15)
+  let result = Ok(agent.call_with_retry_async()) catch { e => Err(e) }
+  match result {
+    Err(@errors.AgentError(_)) => ()
+    Err(e) => fail("expected AgentError, got \{e}")
+    Ok(_) => fail("expected exhaustion")
+  }
+  @debug.assert_eq(agent.mock_responses.length(), 15 - 9)
+  match agent.fallback_state {
+    FallbackActive(_) => ()
+    _ => fail("fallback should still be active")
+  }
+}

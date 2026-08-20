@@ -1,10 +1,28 @@
 ///| Extended telemetry tests: version, device ID, event tracking, enabled state.
 
+///|
+fn enable_telemetry_env() -> Unit {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
+}
+
+///|
+fn disable_telemetry_env() -> Unit {
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
+}
+
 // ── is_telemetry_enabled Tests ──────────────────────────────────────────────
 
 ///|
 test "ext_telemetry_is_enabled" {
+  enable_telemetry_env()
   assert_true(is_telemetry_enabled())
+  disable_telemetry_env()
+}
+
+///|
+test "ext_telemetry_disabled_default" {
+  disable_telemetry_env()
+  assert_false(is_telemetry_enabled())
 }
 
 // ── get_telemetry_version Tests ──────────────────────────────────────────────
@@ -47,17 +65,21 @@ test "ext_telemetry_generate_id_empty_inputs" {
 
 ///|
 test "ext_telemetry_new" {
+  enable_telemetry_env()
   let t = Telemetry::new("device-123")
   assert_eq(t.device_id, "device-123")
   assert_true(t.enabled)
   assert_eq(t.events_sent, 0)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_new_empty_id" {
+  enable_telemetry_env()
   let t = Telemetry::new("")
   assert_eq(t.device_id, "")
   assert_true(t.enabled)
+  disable_telemetry_env()
 }
 
 ///|
@@ -71,19 +93,24 @@ test "ext_telemetry_endpoint_base" {
 
 ///|
 test "ext_telemetry_events_sent_initial" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   assert_eq(t.get_events_sent(), 0)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_events_sent_after_startup" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.startup(Some("test-brand"))
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_events_sent_after_task" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.task(
     "claude-sonnet-4-5",
@@ -99,31 +126,38 @@ test "ext_telemetry_events_sent_after_task" {
     None,
   )
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_events_sent_after_share" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.share("link_copied", None)
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_multiple_events" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.startup(None)
   t.task("m", "p", "s", 1, 100, 0.0, 1, 1, 0, 0, None)
   t.share("event", None)
   assert_eq(t.get_events_sent(), 3)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_share_with_extra" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   let extra : Map[String, String] = Map([])
   extra.set("key", "value")
   t.share("shared_link", Some(extra))
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 // ── get_event_path Tests ─────────────────────────────────────────────────────
@@ -176,29 +210,36 @@ test "ext_telemetry_event_path_share" {
 
 ///|
 test "ext_telemetry_startup_no_brand" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.startup(None)
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_startup_with_brand" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.startup(Some("my-brand"))
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_multiple_startups" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.startup(None)
   t.startup(Some("brand"))
   t.startup(None)
   assert_eq(t.get_events_sent(), 3)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_task_with_brand" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.task(
     "model-x",
@@ -214,25 +255,30 @@ test "ext_telemetry_task_with_brand" {
     Some("brand"),
   )
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_share_various_events" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   t.share("link_copied", None)
   t.share("export_created", None)
   t.share("session_shared", None)
   assert_eq(t.get_events_sent(), 3)
+  disable_telemetry_env()
 }
 
 ///|
 test "ext_telemetry_share_with_extra_map" {
+  enable_telemetry_env()
   let t = Telemetry::new("dev")
   let extra : Map[String, String] = Map([])
   extra.set("url", "https://example.com")
   extra.set("count", "5")
   t.share("export", Some(extra))
   assert_eq(t.get_events_sent(), 1)
+  disable_telemetry_env()
 }
 
 // ── Additional generate_anonymous_id Tests ──────────────────────────────────

@@ -1,35 +1,68 @@
 ///|
 test "telemetry_new_enabled" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   let t = Telemetry::new("device-123")
   assert_true(t.enabled)
   @debug.assert_eq(t.device_id, "device-123")
   @debug.assert_eq(t.events_sent, 0)
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }
 
 ///|
-test "telemetry_enabled_by_default" {
+test "telemetry_disabled_by_default" {
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
+  assert_false(is_telemetry_enabled())
+}
+
+///|
+test "telemetry_enabled_explicit_opt_in" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   assert_true(is_telemetry_enabled())
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "true")
+  assert_true(is_telemetry_enabled())
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "ON")
+  assert_true(is_telemetry_enabled())
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
+}
+
+///|
+test "telemetry_disabled_by_opt_out_values" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "0")
+  assert_false(is_telemetry_enabled())
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "false")
+  assert_false(is_telemetry_enabled())
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "off")
+  assert_false(is_telemetry_enabled())
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "anything-else")
+  assert_false(is_telemetry_enabled())
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }
 
 ///|
 test "telemetry_startup_increments_count" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   let t = Telemetry::new("dev-001")
   t.startup(None)
   @debug.assert_eq(t.get_events_sent(), 1)
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }
 
 ///|
 test "telemetry_task_increments_count" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   let t = Telemetry::new("dev-001")
   t.task("gpt-4", "openai", "success", 3, 5000, 0.05, 1000, 500, 100, 200, None)
   @debug.assert_eq(t.get_events_sent(), 1)
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }
 
 ///|
 test "telemetry_share_increments_count" {
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   let t = Telemetry::new("dev-001")
   t.share("share_open", None)
   @debug.assert_eq(t.get_events_sent(), 1)
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }
 
 ///|
@@ -150,8 +183,10 @@ test "telemetry_version_constant" {
 ///|
 test "detect_container_none" {
   // Container detection is a placeholder, always returns None
+  @env.set_env_var("MBOPENCLACKY_TELEMETRY", "1")
   let t = Telemetry::new("test")
   t.startup(None)
   // Since detect_container returns None, the payload should have None container
   @debug.assert_eq(t.get_events_sent(), 1)
+  @env.unset_env_var("MBOPENCLACKY_TELEMETRY")
 }

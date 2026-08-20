@@ -41,6 +41,9 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
   // Per-task one-shot state: the [SYSTEM] truncation hint may be injected
   // at most once per task (mirrors Ruby's @task_upstream_truncation_hint_injected).
   self.upstream_truncation_hint_injected = false
+  // Same one-shot discipline for the [SYSTEM] timeout hint
+  // (mirrors Ruby's @task_timeout_hint_injected reset in Agent#run).
+  self.task_timeout_hint_injected = false
   self.top_up_url = None
   self.raw_message = None
   // Inject system prompt on first run
@@ -619,10 +622,9 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
                   self.hook_manager.emit(MessageAdded)
                 }
               } else {
-                match resp.usage {
-                  Some(usage) => self.track_cost(usage) |> ignore
-                  None => ()
-                }
+                // Cost already tracked in llm_caller's response paths
+                // (single write point — calling track_cost here again
+                // double-billed every successful call).
                 done = Some(self.build_result(Success))
               }
             } else {

@@ -41,7 +41,21 @@ pub let retry_max_delay_ms : Int = 60000
 /// on every retry (openclacky llm_caller.rb:54-55); MB mirrors that —
 /// the value is independent of the attempt number.
 fn retry_delay_ms(_attempt : Int) -> Int {
-  retry_base_delay_ms
+  match retry_delay_override_ms.val {
+    Some(ms) => ms
+    None => retry_base_delay_ms
+  }
+}
+
+///|
+/// Test hook: when Some, `retry_delay_ms` returns this instead of
+/// `retry_base_delay_ms`, so retry-exhaustion tests don't sleep 5s per
+/// attempt. Production never sets it.
+let retry_delay_override_ms : Ref[Int?] = Ref(None)
+
+///|
+pub fn set_retry_delay_override_for_test(ms : Int?) -> Unit {
+  retry_delay_override_ms.val = ms
 }
 
 ///|
@@ -143,16 +157,42 @@ pub async fn Agent::call_with_retry_async(self : Agent) -> @client.LlmResponse {
       }
       Err(e) =>
         if @errors.is_retryable_error(e) {
+          // Ruby: the FIRST timeout within a task injects a [SYSTEM] hint
+          // telling the model to break the work into smaller steps.
+          if e is @errors.LlmTimeoutError(_) {
+            self.inject_large_output_hint_if_first_timeout()
+          }
+          let was_fallback_active = match self.fallback_state {
+            FallbackActive(_) => true
+            _ => false
+          }
           self.record_retryable_failure()
-          // Ruby semantics: max_retries = 10 *retries* after the initial
-          // attempt (attempts 1..10 sleep+retry; the 11th failure raises).
-          // `attempt > max_retries` (not >=) mirrors the 11-request budget.
-          if attempt > max_retries {
+          let fallback_active = match self.fallback_state {
+            FallbackActive(_) => true
+            _ => false
+          }
+          // Ruby resets the retry counter when the fallback model activates:
+          // the fallback gets its own fresh budget on the same request.
+          if fallback_active && !was_fallback_active {
+            attempt = 0
+          }
+          // Ruby: `current_max = fallback_active? ? MAX_RETRIES_ON_FALLBACK
+          // : max_retries` — fallback budget is capped at 5 (< 10).
+          let current_max = if fallback_active {
+            max_retries_on_fallback
+          } else {
+            max_retries
+          }
+          if attempt > current_max {
             if self.try_url_fallback() {
               attempt = 0
               continue
             }
-            raise e
+            // Ruby raises AgentError with an i18n message instead of
+            // re-raising the raw RetryableError up the stack.
+            raise @errors.AgentError(
+              llm_retry_exhausted_message(e, current_max),
+            )
           }
           let delay = retry_delay_ms(attempt)
           @async.sleep(delay)
@@ -186,16 +226,42 @@ pub async fn Agent::call_stream_with_retry_async(
       }
       Err(e) =>
         if @errors.is_retryable_error(e) {
+          // Ruby: the FIRST timeout within a task injects a [SYSTEM] hint
+          // telling the model to break the work into smaller steps.
+          if e is @errors.LlmTimeoutError(_) {
+            self.inject_large_output_hint_if_first_timeout()
+          }
+          let was_fallback_active = match self.fallback_state {
+            FallbackActive(_) => true
+            _ => false
+          }
           self.record_retryable_failure()
-          // Ruby semantics: max_retries = 10 *retries* after the initial
-          // attempt (attempts 1..10 sleep+retry; the 11th failure raises).
-          // `attempt > max_retries` (not >=) mirrors the 11-request budget.
-          if attempt > max_retries {
+          let fallback_active = match self.fallback_state {
+            FallbackActive(_) => true
+            _ => false
+          }
+          // Ruby resets the retry counter when the fallback model activates:
+          // the fallback gets its own fresh budget on the same request.
+          if fallback_active && !was_fallback_active {
+            attempt = 0
+          }
+          // Ruby: `current_max = fallback_active? ? MAX_RETRIES_ON_FALLBACK
+          // : max_retries` — fallback budget is capped at 5 (< 10).
+          let current_max = if fallback_active {
+            max_retries_on_fallback
+          } else {
+            max_retries
+          }
+          if attempt > current_max {
             if self.try_url_fallback() {
               attempt = 0
               continue
             }
-            raise e
+            // Ruby raises AgentError with an i18n message instead of
+            // re-raising the raw RetryableError up the stack.
+            raise @errors.AgentError(
+              llm_retry_exhausted_message(e, current_max),
+            )
           }
           let delay = retry_delay_ms(attempt)
           @async.sleep(delay)
@@ -205,6 +271,23 @@ pub async fn Agent::call_stream_with_retry_async(
     }
   }
   raise @errors.AgentError("retry loop exited unexpectedly")
+}
+
+///|
+/// i18n message raised when the retry budget is exhausted (mirrors Ruby's
+/// `raise AgentError.new("[LLM] #{I18n.t(...)}")`). Timeout exhaustion
+/// reports `llm.error.request_timeout`; every other retryable error
+/// reports `llm.error.service_unavailable` (Ruby's ConnectionFailed branch
+/// has no MB counterpart — connection failures surface as RetryableError).
+fn llm_retry_exhausted_message(err : Error, retries : Int) -> String {
+  let key = match err {
+    @errors.LlmTimeoutError(_) => "llm.error.request_timeout"
+    _ => "llm.error.service_unavailable"
+  }
+  "[LLM] " +
+  @i18n.t_with_params(@i18n.default_locale, key, {
+    "retries": retries.to_string(),
+  })
 }
 
 ///|
@@ -306,9 +389,19 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
   let http_result = @client.http_post_async(url, body_str, headers_arr, 300000)
   match http_result {
     Err(err) =>
-      raise @errors.RetryableError(
-        "HTTP request failed (url=\{url}): \{err.to_repr()}",
-      )
+      match err {
+        // Transport timeout maps to LlmTimeoutError so the retry loop can
+        // inject the first-timeout [SYSTEM] hint (Ruby Faraday::TimeoutError
+        // branch). Everything else stays a plain RetryableError.
+        @client.Timeout(msg) =>
+          raise @errors.LlmTimeoutError(
+            "HTTP request timed out (url=\{url}): \{msg}",
+          )
+        _ =>
+          raise @errors.RetryableError(
+            "HTTP request failed (url=\{url}): \{err.to_repr()}",
+          )
+      }
     Ok(http_resp) => {
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
@@ -486,9 +579,19 @@ pub async fn Agent::call_llm_stream_async(
   )
   match http_result {
     Err(err) =>
-      raise @errors.RetryableError(
-        "HTTP request failed (url=\{url}): \{err.to_repr()}",
-      )
+      match err {
+        // Transport timeout maps to LlmTimeoutError so the retry loop can
+        // inject the first-timeout [SYSTEM] hint (Ruby Faraday::TimeoutError
+        // branch). Everything else stays a plain RetryableError.
+        @client.Timeout(msg) =>
+          raise @errors.LlmTimeoutError(
+            "HTTP request timed out (url=\{url}): \{msg}",
+          )
+        _ =>
+          raise @errors.RetryableError(
+            "HTTP request failed (url=\{url}): \{err.to_repr()}",
+          )
+      }
     Ok(http_resp) => {
       match @client.map_http_error(http_resp.status_code, http_resp.body) {
         Some(err_msg) => {
@@ -764,6 +867,51 @@ fn Agent::inject_upstream_truncation_hint_if_first(
     "then append sections one at a time with `edit`.\n" +
     "- Break large tasks into multiple smaller tool calls instead of one big one.\n" +
     "- Keep each tool-call argument comfortably under ~2000 characters when possible."
+  let msg : @message.Message = {
+    role: @message.User,
+    content: @message.Text(hint),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  self.history.append(msg)
+  self.hook_manager.emit(MessageAdded)
+}
+
+///|
+/// Inject a one-shot [SYSTEM] user hint on the FIRST timeout within a
+/// task (mirrors Ruby's `inject_large_output_hint_if_first_timeout`).
+///
+/// A read timeout on the non-streaming POST almost always means the model
+/// is trying to produce too much output in one shot; retrying the identical
+/// request reproduces the identical timeout. The hint changes the prompt,
+/// so the retry is materially different. Subsequent timeouts in the same
+/// task fall back to plain retry (no duplicate hints). Carries
+/// `system_injected: true` so it stays hidden from UI replay and is
+/// skipped by compression/caching placement logic.
+fn Agent::inject_large_output_hint_if_first_timeout(self : Agent) -> Unit {
+  if self.task_timeout_hint_injected {
+    return
+  }
+  self.task_timeout_hint_injected = true
+  let hint = "[SYSTEM] The previous LLM response timed out (read timeout after ~300s). " +
+    "This usually means the model was trying to produce too much output in a single response. " +
+    "Please change your approach:\n" +
+    "- Break the task into multiple smaller steps, each producing a short response.\n" +
+    "- For long files: first create a skeleton with `write` (structure + placeholder comments only), " +
+    "then fill in each section with separate `edit` calls.\n" +
+    "- Keep each single tool-call argument (especially file content) well under ~500 lines.\n" +
+    "- Do NOT attempt to output the entire deliverable in one response."
   let msg : @message.Message = {
     role: @message.User,
     content: @message.Text(hint),

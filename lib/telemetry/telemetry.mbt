@@ -23,12 +23,23 @@ pub fn Telemetry::new(device_id : String) -> Telemetry {
 }
 
 ///|
-/// Check if telemetry is enabled (opt-out via env var)
+/// Check if telemetry is enabled.
+///
+/// Off by default (opt-out default, spec 21 decision 8): telemetry is only
+/// enabled when MBOPENCLACKY_TELEMETRY is explicitly set to a truthy value
+/// ("1"/"true"/"yes"/"on", case-insensitive). "0"/"false"/"no"/"off" and any
+/// other value keep it disabled.
 pub fn is_telemetry_enabled() -> Bool {
-  // Check MBOPENCLACKY_TELEMETRY env var
-  // If "0" or "false" -> disabled
-  // Otherwise -> enabled
-  true
+  match @env.get_env_var("MBOPENCLACKY_TELEMETRY") {
+    Some(v) => {
+      let normalized = v.to_lower().trim()
+      normalized == "1" ||
+      normalized == "true" ||
+      normalized == "yes" ||
+      normalized == "on"
+    }
+    None => false
+  }
 }
 
 ///|

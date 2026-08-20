@@ -40,6 +40,9 @@ let en_dict : Map[String, String] = {
   "tool.denied": "Tool execution denied: {{name}}",
   "config.saved": "Configuration saved",
   "brand.invalid_license": "Invalid or expired license",
+  "llm.error.request_timeout": "Request timed out after {{retries}} retries",
+  "llm.error.network_failed": "Network failed after {{retries}} retries",
+  "llm.error.service_unavailable": "Service unavailable after {{retries}} retries",
 }
 
 ///|
@@ -68,6 +71,9 @@ let zh_dict : Map[String, String] = {
   "tool.denied": "工具执行被拒绝：{{name}}",
   "config.saved": "配置已保存",
   "brand.invalid_license": "许可证无效或已过期",
+  "llm.error.request_timeout": "请求在 {{retries}} 次重试后仍然超时",
+  "llm.error.network_failed": "网络连接在 {{retries}} 次重试后仍然失败",
+  "llm.error.service_unavailable": "服务在 {{retries}} 次重试后仍不可用",
 }
 
 ///|

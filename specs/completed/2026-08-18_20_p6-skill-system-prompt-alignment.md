@@ -1,7 +1,7 @@
 ﻿# 技能系统与系统提示词对齐（矩阵§6）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已完成（2026-08-20）· 已归档至 `specs/completed/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §6  
 > **关联历史 spec**: 边界——`p5-session-context-alignment` 覆盖矩阵§7 的 session context 注入（与本 spec 层 "环境/模型/工作目录信息位置" 条目交叉，实施时以该 spec 为准）；invoke_skill 工具参数/注入机制归 B3 决策 12，本 spec 管技能加载与提示词侧；矩阵旧台账编号已被覆盖，一律使用 `矩阵§6/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§6 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -152,3 +152,4 @@ Ruby 参照（openclacky，只读）：`skill.rb:103-105,147-165,178-190,241-318
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§6 残留条目核实落 spec；5 项直接证实 + 12 项静态证实留任务包 0 复核）。
+- 2026-08-20：全部决策落地。决策 1/2（loader.mbt 行级 YAML 子集解析：块列表/一级嵌套/块标量，name 回退目录名、slug 校验、context_description 339+省略号、auto_summarize 默认 true、agent 别名 agent_type）；决策 1（default_skills.mbt 磁盘扫描替代硬编码表，单一真源）；决策 3（discovery.mbt 严格 SKILL.md 匹配，registry.mbt 名称归一 + skill_manager 逐目录顺序加载显式去重仲裁）；决策 4/5（executor.mbt ENV 展开 + Supporting Files + process_skill_content；available_skills_summary 过滤 disable_model_invocation 与 agent 作用域；tool_executor 拒绝模型调用禁用技能）；决策 6（build_skills_summary 对齐 Ruby AVAILABLE SKILLS 格式/排序/30 条截断/search-skills 置底；mtime LRU 因 skill 包无 stat API 退化为字母序）；决策 7（profile.mbt profile.yml/config.toml 解析、SOUL/USER agents 级路径 + assets 兜底、1000 字符截断、找不到显式报 AgentError）；决策 8（assets/agents/{coding,general,ext-developer}/system_prompt.md 与 assets/prompts/base.md 替换为 Ruby 原文，字节级一致）。moon check 0 errors；lib/skill 123、lib/agent 471 全绿。

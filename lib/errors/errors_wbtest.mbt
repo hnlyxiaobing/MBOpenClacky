@@ -81,6 +81,7 @@ test "is_agent_error" {
 test "is_retryable_error" {
   assert_true(is_retryable_error(RetryableError("test")))
   assert_true(is_retryable_error(UpstreamTruncatedError("test")))
+  assert_true(is_retryable_error(LlmTimeoutError("test")))
   assert_false(is_retryable_error(AgentError("test")))
 }
 

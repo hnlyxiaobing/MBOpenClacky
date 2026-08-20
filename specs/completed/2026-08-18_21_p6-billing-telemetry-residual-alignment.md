@@ -1,7 +1,7 @@
 ﻿# 计费/遥测/重试残留对齐（矩阵§11）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已完成（2026-08-20）· 已归档至 `specs/completed/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §11  
 > **关联历史 spec**: 边界——错误分类细分（BUG-0086 429/400/402）归 `2026-08-18_18_p5-error-classification-alignment.md`；重试间隔/退避/熔断（BUG-0088/0089）归 `2026-08-18_08_p5-retry-backoff-circuit-breaker.md`；断流检测管线（BUG-0079）归 `2026-08-18_02_p5-stream-truncation-retry-pipeline.md` 与 B4 接线决策；Usage 字段补齐（api_cost 载体）归 B4；本 spec 管矩阵 §11 的**计费/遥测/重试残留**；矩阵旧台账编号已被覆盖，一律使用 `矩阵§11/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§11 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -146,3 +146,6 @@ Ruby 参照（openclacky，只读）：`cost_tracker.rb:189-201`、`llm_caller.r
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§11 残留条目核实落 spec；10 项直接证实 + 8 项静态证实/unclear 留任务包 0；与三份 p5 重试/错误 spec 边界已在头部声明）。
+- 2026-08-19：任务包 1/2 落地（单点记账、api>price>estimated、delta 保护、is_retryable_error 接线、耗尽 AgentError、fallback 预算、[SYSTEM] 注入、子代理记账 skip）。
+- 2026-08-20：任务包 3 落地（账单 UUID+ISO8601+按月分文件+CLACKY_BILLING_DIR+日历边界+session_summary/clear+daily 30 天）。
+- 2026-08-20：**条目 19 遥测裁决已记录**：默认关闭（opt-out 默认态）——`is_telemetry_enabled` 仅在 `MBOPENCLACKY_TELEMETRY` 显式为 `1/true/yes/on`（大小写不敏感）时启用，其余值（含 `0/false/off/no`）与未设置一律关闭；`MBOPENCLACKY_TELEMETRY=0` 时遥测真实关闭（wbtest 覆盖）。理由：复刻版不应默认指向原版平台端点 `telemetry.mbopenclacky.dev`（数据出境未经同意）；待维护者明确端点归属后，再分期实施 send_event HTTP 接线、字段补齐（os/launch_source/cost_source/error_kind、extension_install）、SHA256 设备 ID 与容器检测（决策 8 的分期范围维持不变）。

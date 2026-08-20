@@ -49,7 +49,7 @@ pub fn Skill::default(name : String, source : String) -> Skill {
     fork_agent: false,
     model: None,
     forbidden_tools: None,
-    auto_summarize: false,
+    auto_summarize: true,
     source,
     directory: None,
   }

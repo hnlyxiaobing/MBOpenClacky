@@ -404,7 +404,7 @@ fn test_temp_dir(name : String) -> String {
 }
 
 ///|
-test "discover_skills: discovers from skill.md content" {
+test "discover_skills: discovers from SKILL.md content" {
   let file_contents : Map[String, String] = Map([])
   let skill_md_content =
     #|---
@@ -412,15 +412,10 @@ test "discover_skills: discovers from skill.md content" {
     #|description: Discovered from file map
     #|---
     #|Context body.
-  file_contents["/project/skills/skill.md"] = skill_md_content
+  file_contents["/project/skills/discovered-skill/SKILL.md"] = skill_md_content
   let skills = discover_skills(file_contents)
-  @debug.debug_inspect(skills.length(), content="1")
-  @debug.debug_inspect(
-    skills[0].name,
-    content=(
-      #|"discovered-skill"
-    ),
-  )
+  @debug.assert_eq(skills.length(), 1)
+  @debug.assert_eq(skills[0].name, "discovered-skill")
 }
 
 ///|
@@ -429,7 +424,25 @@ test "discover_skills: ignores unrelated files" {
   file_contents["/project/README.md"] = "# Project README"
   file_contents["/project/config.toml"] = "[settings]"
   let skills = discover_skills(file_contents)
-  @debug.debug_inspect(skills.length(), content="0")
+  @debug.assert_eq(skills.length(), 0)
+}
+
+///|
+test "discover_skills: strict SKILL.md filename, look-alikes rejected" {
+  let file_contents : Map[String, String] = Map([])
+  // Look-alike filenames must NOT be treated as skill files.
+  file_contents["/p/my-skill/myskill.md"] = "---\nname: fake-1\n---\nbody"
+  file_contents["/p/my-skill/skill.md"] = "---\nname: fake-2\n---\nbody"
+  file_contents["/p/my-skill/skills.md"] = "---\nname: fake-3\n---\nbody"
+  file_contents["/p/my-skill/skill.json"] = "{\"name\": \"fake-4\"}"
+  file_contents["/p/my-skill/SKILL.md.bak"] = "---\nname: fake-5\n---\nbody"
+  let skills = discover_skills(file_contents)
+  @debug.assert_eq(skills.length(), 0)
+  // Exact SKILL.md still discovered.
+  file_contents["/p/real-skill/SKILL.md"] = "---\nname: real-skill\n---\nbody"
+  let skills = discover_skills(file_contents)
+  @debug.assert_eq(skills.length(), 1)
+  @debug.assert_eq(skills[0].name, "real-skill")
 }
 
 // ============================================================
@@ -486,9 +499,9 @@ test "build_skills_summary: multiple skills" {
     { ..Skill::default("skill-two", "src"), description: Some("Second skill") },
   ]
   let summary = build_skills_summary(skills)
+  assert_true(summary.find("AVAILABLE SKILLS") is Some(_))
   assert_true(summary.find("skill-one") is Some(_))
   assert_true(summary.find("First skill") is Some(_))
-  assert_true(summary.find("<topic>") is Some(_))
   assert_true(summary.find("skill-two") is Some(_))
   assert_true(summary.find("Second skill") is Some(_))
 }
@@ -554,4 +567,203 @@ test "parse_frontmatter: inline description unaffected by block scalar support" 
     fields.get("description"),
     Some("Use this skill when exploring code."),
   )
+}
+
+// ============================================================
+// Block list / nested map parsing (spec 2026-08-18_20)
+// ============================================================
+
+///|
+test "parse_frontmatter: block list of allowed_tools" {
+  let content =
+    #|---
+    #|name: browser-setup
+    #|description: Configure the browser tool.
+    #|allowed_tools:
+    #|  - Terminal
+    #|  - WebFetch
+    #|  - Read
+    #|fork_agent: true
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.assert_eq(fields.get("allowed_tools"), Some("Terminal,WebFetch,Read"))
+  @debug.assert_eq(fields.get("fork_agent"), Some("true"))
+}
+
+///|
+test "load_skill_from_content: block list tools parsed" {
+  let content =
+    #|---
+    #|name: browser-setup
+    #|description: Configure the browser tool.
+    #|allowed_tools:
+    #|  - Terminal
+    #|  - WebFetch
+    #|---
+    #|Body.
+  let skill = load_skill_from_content(content, "assets/skills", None)
+  assert_true(skill is Some(_))
+  let s = skill.unwrap()
+  let tools = s.allowed_tools.unwrap()
+  @debug.assert_eq(tools.length(), 2)
+  @debug.assert_eq(tools[0], "Terminal")
+  @debug.assert_eq(tools[1], "WebFetch")
+}
+
+///|
+test "parse_frontmatter: one-level nested map flattened" {
+  let content =
+    #|---
+    #|name: nested-skill
+    #|hooks:
+    #|  on_start: echo start
+    #|  on_end: echo end
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.assert_eq(fields.get("hooks.on_start"), Some("echo start"))
+  @debug.assert_eq(fields.get("hooks.on_end"), Some("echo end"))
+}
+
+///|
+test "parse_frontmatter: empty value then next top-level key" {
+  let content =
+    #|---
+    #|name: gap-skill
+    #|description:
+    #|user_invocable: true
+    #|---
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.assert_eq(fields.get("description"), Some(""))
+  @debug.assert_eq(fields.get("user_invocable"), Some("true"))
+}
+
+// ============================================================
+// Name fallback / slug validation / description truncation
+// ============================================================
+
+///|
+test "load_skill_from_content: name falls back to directory basename" {
+  let content =
+    #|---
+    #|description: No name field here.
+    #|user_invocable: true
+    #|---
+    #|Body.
+  let skill = load_skill_from_content(
+    content,
+    "assets/skills",
+    Some("assets/skills/anonymous-skill"),
+  )
+  assert_true(skill is Some(_))
+  @debug.assert_eq(skill.unwrap().name, "anonymous-skill")
+}
+
+///|
+test "load_skill_from_content: no name and no directory returns None" {
+  let content =
+    #|---
+    #|description: No name, no directory.
+    #|---
+  let skill = load_skill_from_content(content, "src", None)
+  assert_true(skill is None)
+}
+
+///|
+test "is_valid_skill_slug: accepts lowercase slugs" {
+  assert_true(is_valid_skill_slug("browser-setup"))
+  assert_true(is_valid_skill_slug("deploy"))
+  assert_true(is_valid_skill_slug("skill-2"))
+  assert_false(is_valid_skill_slug(""))
+  assert_false(is_valid_skill_slug("Browser_Setup"))
+  assert_false(is_valid_skill_slug("my skill"))
+  assert_false(is_valid_skill_slug("驼峰"))
+}
+
+///|
+test "context_description: short description kept as-is" {
+  @debug.assert_eq(
+    context_description("A short description."),
+    "A short description.",
+  )
+}
+
+///|
+test "context_description: long description truncated at 339 + ellipsis" {
+  let long = "C".repeat(500)
+  let rendered = context_description(long)
+  @debug.assert_eq(rendered.length(), 340)
+  @debug.assert_eq(rendered, "C".repeat(339) + "…")
+}
+
+///|
+test "context_description: exactly 340 chars kept whole" {
+  let exact = "D".repeat(340)
+  let rendered = context_description(exact)
+  @debug.assert_eq(rendered.length(), 340)
+  @debug.assert_eq(rendered, exact)
+}
+
+///|
+test "load_skill_from_content: auto_summarize defaults to true" {
+  let content =
+    #|---
+    #|name: summarisable-skill
+    #|description: desc
+    #|---
+  let skill = load_skill_from_content(content, "src", None)
+  assert_true(skill is Some(_))
+  assert_true(skill.unwrap().auto_summarize)
+}
+
+///|
+test "load_skill_from_content: explicit auto_summarize false honoured" {
+  let content =
+    #|---
+    #|name: no-summary-skill
+    #|auto_summarize: false
+    #|---
+  let skill = load_skill_from_content(content, "src", None)
+  assert_false(skill.unwrap().auto_summarize)
+}
+
+///|
+test "load_skill_from_content: agent key aliases agent_type" {
+  let content =
+    #|---
+    #|name: scoped-skill
+    #|agent: coding
+    #|---
+  let skill = load_skill_from_content(content, "src", None)
+  @debug.assert_eq(skill.unwrap().agent_type, Some("coding"))
+}
+
+///|
+test "load_skill_from_content: yaml bool accepts yes and 1" {
+  let content =
+    #|---
+    #|name: bool-skill
+    #|fork_agent: yes
+    #|user_invocable: 1
+    #|disable_model_invocation: no
+    #|---
+  let skill = load_skill_from_content(content, "src", None)
+  let s = skill.unwrap()
+  assert_true(s.fork_agent)
+  assert_true(s.user_invocable)
+  assert_false(s.disable_model_invocation)
+}
+
+///|
+test "directory_basename: various separators" {
+  @debug.assert_eq(
+    directory_basename("assets/skills/browser-setup"),
+    "browser-setup",
+  )
+  @debug.assert_eq(
+    directory_basename("D:\\home\\.clacky\\skills\\my-skill"),
+    "my-skill",
+  )
+  @debug.assert_eq(directory_basename("trailing/"), "trailing")
 }

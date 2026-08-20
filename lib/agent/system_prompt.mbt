@@ -73,7 +73,9 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
   sections.write_string(brand_confidentiality_notice)
 
   // Layer 2: Agent persona (from profile) or default role
-  let profile = AgentProfile::load_for_name(self.name)
+  let profile = AgentProfile::load_for_name(self.name) catch {
+    _ => AgentProfile::default_profile()
+  }
   let persona = profile.build_system_prompt_section()
   if persona.length() > 0 {
     sections.write_string(format_prompt_section("Agent Identity", persona))

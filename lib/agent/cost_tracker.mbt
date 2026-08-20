@@ -131,20 +131,27 @@ fn calculate_model_cost(model : String, usage : @client.Usage) -> Double? {
 ///|
 /// Track cost from an LLM API usage response.
 ///
-/// Updates Agent state: total_cost, cache_stats, previous_total_tokens.
-/// Returns the collected IterationTokenData for this iteration.
+/// Cost source priority mirrors Ruby cost_tracker.rb: api (upstream-reported
+/// cost, e.g. OpenRouter `usage.cost`) > price (model pricing table) >
+/// estimated (unknown model, cost stays 0).
+///
+/// Updates Agent state: total_cost, cost_source, cache_stats,
+/// previous_total_tokens. Persists exactly one billing record per call
+/// (subagents skip persistence — their spend is absorbed by the parent,
+/// Ruby `unless @is_subagent`). Returns the collected IterationTokenData.
 fn Agent::track_cost(self : Agent, usage : @client.Usage) -> IterationTokenData {
-  // Calculate cost: try model pricing, fall back to 0
-  let cost = match calculate_model_cost(self.client.model, usage) {
-    Some(c) => c
-    None => 0.0
+  // Cost source: api > price > estimated (Ruby track_cost priority 1/2).
+  let (cost, source) = match usage.api_cost {
+    Some(api_cost) => (api_cost, Api)
+    None =>
+      match calculate_model_cost(self.client.model, usage) {
+        Some(c) => (c, Price)
+        None => (0.0, Estimated)
+      }
   }
-  let source = match calculate_model_cost(self.client.model, usage) {
-    Some(_) => Price
-    None => Estimated
-  }
-  // Update running total
+  // Update running total and session-level cost source
   self.total_cost = self.total_cost + cost
+  self.cost_source = source
   // Update cache stats
   self.cache_stats.cache_creation_input_tokens = self.cache_stats.cache_creation_input_tokens +
     usage.cache_creation_input_tokens
@@ -155,23 +162,41 @@ fn Agent::track_cost(self : Agent, usage : @client.Usage) -> IterationTokenData 
     self.cache_stats.cache_hit_requests = self.cache_stats.cache_hit_requests +
       1
   }
-  // Calculate token data
+  // Calculate token data. Two total_tokens conventions exist across
+  // providers (Ruby collect_iteration_tokens):
+  //   - OpenAI: cumulative input+output — delta = total - previous_total.
+  //   - Anthropic direct: per-turn new compute (`total_is_per_turn`) — the
+  //     total IS the delta; treating it as cumulative yields negative or
+  //     nonsensical deltas whenever cached prefixes shrink the new compute.
   let total_tokens = usage.input_tokens + usage.output_tokens
-  let delta = total_tokens - self.previous_total_tokens
-  self.previous_total_tokens = total_tokens
-  // Record to billing store
-  let billing_record = @billing.BillingRecord::new(
-    session_id=self.session_id,
-    model=self.client.model,
-    prompt_tokens=usage.input_tokens,
-    completion_tokens=usage.output_tokens,
-    cache_read_tokens=usage.cache_read_input_tokens,
-    cache_write_tokens=usage.cache_creation_input_tokens,
-    cost_usd=cost,
-    cost_source=source.to_string_value(),
-  )
-  let store = @billing.BillingStore::default()
-  let _ = store.append(billing_record)
+  let raw_delta = if usage.total_is_per_turn {
+    total_tokens
+  } else {
+    total_tokens - self.previous_total_tokens
+  }
+  // Guard: negative deltas (usage fallback / cross-turn reset) record 0.
+  let delta = if raw_delta < 0 { 0 } else { raw_delta }
+  // Guard: do NOT overwrite previous_total_tokens with 0 when the upstream
+  // returns zero usage (Ruby cost_tracker.rb) — resetting would poison the
+  // delta baseline for every subsequent turn.
+  if total_tokens > 0 {
+    self.previous_total_tokens = total_tokens
+  }
+  // Record to billing store — single write point per API call. Subagents
+  // skip persistence so the parent's absorbed cost is not double-counted.
+  if !self.is_subagent {
+    let billing_record = @billing.BillingRecord::new(
+      session_id=self.session_id,
+      model=self.client.model,
+      prompt_tokens=usage.input_tokens,
+      completion_tokens=usage.output_tokens,
+      cache_read_tokens=usage.cache_read_input_tokens,
+      cache_write_tokens=usage.cache_creation_input_tokens,
+      cost_usd=cost,
+      cost_source=source.to_string_value(),
+    )
+    let _ = self.billing_store.append(billing_record)
+  }
   let data : IterationTokenData = {
     delta_tokens: delta,
     prompt_tokens: usage.input_tokens,

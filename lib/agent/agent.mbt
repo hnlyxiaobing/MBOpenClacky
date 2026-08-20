@@ -47,6 +47,9 @@ pub(all) struct Agent {
   mut cost_source : CostSource
   mut cache_stats : CacheStats
   mut previous_total_tokens : Int
+  /// Billing record sink. Injectable for tests (temp dir); production uses
+  /// `BillingStore::default()` (CLACKY_BILLING_DIR override honored there).
+  mut billing_store : @billing.BillingStore
   // ── LLM Call State ─────────────────────────────────────────────────
   mut latest_latency : @client.Latency?
   mut fallback_state : FallbackState
@@ -62,6 +65,10 @@ pub(all) struct Agent {
   /// @task_upstream_truncation_hint_injected): reset at the start of
   /// `Agent::run`, set on the first UpstreamTruncatedError within a task.
   mut upstream_truncation_hint_injected : Bool
+  /// One-shot [SYSTEM] timeout hint injected per task (mirrors Ruby's
+  /// @task_timeout_hint_injected): reset at the start of `Agent::run`,
+  /// set on the first LlmTimeoutError within a task.
+  mut task_timeout_hint_injected : Bool
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
@@ -168,6 +175,7 @@ pub fn Agent::new(
     cost_source: Estimated,
     cache_stats: CacheStats::new(),
     previous_total_tokens: 0,
+    billing_store: @billing.BillingStore::default(),
     // LLM call state
     latest_latency: None,
     fallback_state: PrimaryOk,
@@ -180,6 +188,7 @@ pub fn Agent::new(
     idle_timer: IdleCompressionTimer::new(),
     // Upstream truncation retry
     upstream_truncation_hint_injected: false,
+    task_timeout_hint_injected: false,
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
     // Empty patch chain — extension patches are added via

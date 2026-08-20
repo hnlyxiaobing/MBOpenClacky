@@ -301,6 +301,26 @@ fn Agent::execute_invoke_skill(
     None =>
       build_error_result(call, "Skill '\\{skill_name}' not found in registry")
     Some(_skill) => {
+      // disable-model-invocation guard (Ruby skill.rb): the model may not
+      // invoke skills that opted out; only the user can via `/name`.
+      if _skill.disable_model_invocation {
+        return build_error_result(
+          call,
+          "Skill '\{skill_name}' does not allow model invocation",
+        )
+      }
+      // Agent-scope guard: skills scoped to another agent type are not
+      // invocable from this agent.
+      match _skill.agent_type {
+        Some(agent_type) =>
+          if agent_type != self.name {
+            return build_error_result(
+              call,
+              "Skill '\{skill_name}' is scoped to agent '\{agent_type}'",
+            )
+          }
+        None => ()
+      }
       self.enqueue_injection(skill_name, task)
       build_success_result(call, @tool.ToolResult::{
         content: "Skill '\{skill_name}' instructions expanded. Proceed to execute the task.",

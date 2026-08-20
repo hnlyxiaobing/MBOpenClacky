@@ -98,6 +98,25 @@ pub extend UpstreamTruncatedError with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 pub extend UpstreamTruncatedError with ToJson::{to_json}
 
+///| LLM request/read timed out (transport-level timeout, e.g. the 300s
+
+///| read window expired).
+
+///|
+/// Maps to Ruby's Faraday::TimeoutError rescue branch: retryable, and on
+/// the first occurrence within a task the caller injects the [SYSTEM]
+/// "break into smaller steps" hint (llm_caller's
+/// `inject_large_output_hint_if_first_timeout`).
+pub(all) suberror LlmTimeoutError {
+  LlmTimeoutError(String)
+} derive(ToJson, Debug)
+
+///|
+pub extend LlmTimeoutError with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend LlmTimeoutError with ToJson::{to_json}
+
 ///| Extract a human-readable message from an error.
 
 ///|
@@ -113,6 +132,7 @@ pub fn error_message(err : Error) -> String {
     BrowserNotReachableError(msg) => msg
     RetryableError(msg) => msg
     UpstreamTruncatedError(msg) => msg
+    LlmTimeoutError(msg) => msg
     _ => err.to_string()
   }
 }
@@ -137,6 +157,7 @@ pub fn is_retryable_error(err : Error) -> Bool {
   match err {
     RetryableError(_) => true
     UpstreamTruncatedError(_) => true
+    LlmTimeoutError(_) => true
     _ => false
   }
 }
