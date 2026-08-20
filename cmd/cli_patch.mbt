@@ -1,0 +1,186 @@
+///|
+/// CLI handlers for the `patch` subcommand group:
+///   patch new <name>      - create a new patch descriptor
+///   patch verify [path]   - verify patch descriptors parse correctly
+///   patch list [path]     - list available patches
+///
+/// Reuses the existing `PatchLoader` parser (patch_loader.mbt) for verify/list,
+/// so the CLI surface and the runtime loading surface stay consistent.
+
+///|
+/// Dispatch the `patch` subcommand. `patch_value` is the nested SimpleValue
+/// produced by clap for the `patch` subcommand; its `.subcmd` field names the
+/// concrete action (new/verify/list).
+pub fn handle_patch(patch_value : @clap.SimpleValue) -> Unit {
+  let action = match patch_value.subcmd {
+    Some(sub) => sub
+    None => {
+      print_patch_help()
+      return
+    }
+  }
+  match action.name {
+    "new" =>
+      match get_patch_named_arg(action, "name") {
+        Some(name) => handle_patch_new(action, name)
+        None => {
+          println("[patch] error: 'new' requires a <name> argument")
+          println(
+            "Usage: mbopenclacky patch new <name> [--module <m>] [--command <cmd>]",
+          )
+        }
+      }
+    "verify" => handle_patch_verify(get_patch_named_arg(action, "path"))
+    "list" => handle_patch_list(get_patch_named_arg(action, "path"))
+    _ => {
+      println("[patch] unknown subcommand: " + action.name)
+      print_patch_help()
+    }
+  }
+}
+
+///|
+/// Read a named argument from a nested SimpleValue.
+fn get_patch_named_arg(value : @clap.SimpleValue, name : String) -> String? {
+  match value.args.get(name) {
+    Some(arr) =>
+      match arr.get(0) {
+        Some(v) => Some(v)
+        None => None
+      }
+    None => None
+  }
+}
+
+///|
+/// Print the `patch` subcommand help text.
+fn print_patch_help() -> Unit {
+  println("Usage: mbopenclacky patch <action> [args]")
+  println("")
+  println("Actions:")
+  println("  new <name>                 Create a new patch descriptor")
+  println(
+    "  verify [path]              Verify patch descriptors parse correctly",
+  )
+  println("  list [path]                List available patches")
+}
+
+///|
+/// `patch new` — scaffold a new patch descriptor (.toml) in the patch dir.
+fn handle_patch_new(action : @clap.SimpleValue, name : String) -> Unit {
+  if name.is_empty() {
+    println("[patch] error: name cannot be empty")
+    return
+  }
+  let target_module = get_patch_named_arg(action, "module").unwrap_or("default")
+  let command = get_patch_named_arg(action, "command").unwrap_or("")
+  let description = get_patch_named_arg(action, "description").unwrap_or("")
+
+  let patch_dir = match @utils.home_dir() {
+    Some(home) =>
+      @path.Path::join(home, @path.Path(".clacky/patches")).to_string()
+    None => ".clacky/patches"
+  }
+  @utils.ensure_dir(patch_dir)
+
+  let filename = name.replace(old=" ", new="_") + ".toml"
+  let path = @path.Path::join(patch_dir, @path.Path(filename)).to_string()
+  if @fs.path_exists(path) {
+    println("[patch] error: patch already exists at " + path)
+    return
+  }
+
+  let content = gen_patch_descriptor(name, target_module, command, description)
+  @fs.write_string_to_file(path, content) catch {
+    e => println("[patch] create failed: " + @debug.to_string(e))
+  }
+  println("[patch] created " + path)
+}
+
+///|
+/// `patch verify [path]` — load the patch dir and report parse validity.
+fn handle_patch_verify(path_opt : String?) -> Unit {
+  let loader = match path_opt {
+    Some(d) => PatchLoader::new(d)
+    None => PatchLoader::default()
+  }
+  let patches = loader.load_patches()
+  if patches.is_empty() {
+    println("[patch] no patch descriptors found (nothing to verify)")
+    return
+  }
+  println("[patch] verified \{patches.length()} patch(es):")
+  for p in patches {
+    println(
+      "  - \{p.name} v\{p.version} -> \{p.target_module}" +
+      (if p.command.is_empty() { " (metadata only)" } else { "" }),
+    )
+  }
+}
+
+///|
+/// `patch list [path]` — list patch descriptors with their metadata.
+fn handle_patch_list(path_opt : String?) -> Unit {
+  let loader = match path_opt {
+    Some(d) => PatchLoader::new(d)
+    None => PatchLoader::default()
+  }
+  let patches = loader.load_patches()
+  if patches.is_empty() {
+    println("No patches found.")
+    println("Use `mbopenclacky patch new <name>` to create one.")
+    return
+  }
+  println(
+    pad_patch("NAME", 24) +
+    pad_patch("VERSION", 12) +
+    pad_patch("MODULE", 16) +
+    "ENABLED",
+  )
+  println(String::make(70, '-'))
+  for p in patches {
+    let state = if p.enabled { "enabled" } else { "disabled" }
+    println(
+      pad_patch(p.name, 24) +
+      pad_patch(p.version, 12) +
+      pad_patch(p.target_module, 16) +
+      state,
+    )
+  }
+}
+
+///|
+/// Generate a TOML-like patch descriptor (matching the simple parser in
+/// patch_loader.mbt).
+fn gen_patch_descriptor(
+  name : String,
+  target_module : String,
+  command : String,
+  description : String,
+) -> String {
+  let mut buf = "# Patch descriptor generated by `mbopenclacky patch new`\n"
+  buf = buf + "name = \"" + name + "\"\n"
+  buf = buf + "version = \"0.1.0\"\n"
+  if !description.is_empty() {
+    buf = buf + "description = \"" + description + "\"\n"
+  }
+  buf = buf + "target_module = \"" + target_module + "\"\n"
+  if !command.is_empty() {
+    buf = buf + "command = \"" + command + "\"\n"
+  }
+  buf = buf + "enabled = true\n"
+  buf
+}
+
+///|
+/// Pad a string on the right to `width` characters.
+fn pad_patch(s : String, width : Int) -> String {
+  if s.length() >= width {
+    return s
+  }
+  let mut buf = s
+  for _i in s.length()..<width {
+    buf = buf + " "
+  }
+  buf
+}

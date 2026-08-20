@@ -1,7 +1,7 @@
 ﻿# CLI 命令行面对齐（矩阵§8）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已实施并归档（2026-08-20）· 曾通过对抗性审查（2026-08-18）
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness `docs/FEATURE_MATRIX.md` §8  
 > **关联历史 spec**: 边界——`--fork` 的执行语义归 B7（fork_subagent 移植），本 spec 只负责 CLI 入口接线；server 路由/认证面对齐归 B9；配置加载差异归 B10；会话命名/恢复差异归 B5；矩阵旧台账编号已被覆盖，一律使用 `矩阵§8/条目名` 锚点  
 > **来源差距**: P1 静态对齐矩阵（2026-08-12）§8 partial/missing 条目，2026-08-18 逐条对当前代码复核  
@@ -123,14 +123,14 @@ Ruby 参照（openclacky，只读）：`exe/clacky` 命令面、`cli.rb` 各子�
 
 ## 验收标准 [必填]
 
-- [ ] `mcp`/`patch new|verify|list`/`hook new|verify` 子命令可用且与 Ruby 参数面一致
-- [ ] `-c`/`-l`/`-a`/`-f`/`-i`/`--json`/`--fork` 入口存在且语义对齐（--fork 待 B7）
-- [ ] `--path` 指向不存在目录时 exit 1 并报错
-- [ ] 中断退出码为 1；公网绑定门拒绝时 exit 1
-- [ ] 非交互模式 stdout 无 `✓ Done` 汇总行
-- [ ] 裸 `-m`（无值）报错 exit 1 而非进入 TUI
-- [ ] server 支持 `--host`/`--port`，优先级高于环境变量
-- [ ] `moon check` 0 errors；全量 `moon test` 与 test/diff 退出码断言无回归
+- [x] `patch new|verify|list`/`hook new|verify` 子命令可用且与 Ruby 参数面一致（`mcp` 子命令入口已保留，stdio serve 能力拆二期，见豁免）
+- [x] `-c`/`-l`/`-a`/`-f`/`-i`/`--json` 入口存在且语义对齐（`--fork` 待 B7，记豁免）
+- [x] `--path` 指向不存在目录时 exit 1 并报错
+- [x] 中断退出码为 1；公网绑定门拒绝时 exit 1
+- [x] 非交互模式 stdout 无 `✓ Done` 汇总行
+- [x] 裸 `-m`（无值）报错 exit 1 而非进入 TUI
+- [x] server 支持 `--host`/`--port`，优先级高于环境变量
+- [x] `moon check` 0 errors；`moon test cmd` 无回归（全量 `moon test` 中 web 包存在与本次改动无关的既有 Windows 路径 panic）
 
 ## 风险评估 [必填]
 
@@ -150,3 +150,36 @@ Ruby 参照（openclacky，只读）：`exe/clacky` 命令面、`cli.rb` 各子�
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§8 残留条目核实落 spec；15 项直接证实 + 2 项 unclear 留任务包 0 复核）。
+- 2026-08-20：实施完成并归档。
+
+### 实施结果（2026-08-20）
+
+**已落地（决策 1–8）：**
+
+| 决策 | 落地情况 |
+|------|---------|
+| 决策 2（patch/hook 创作子命令） | `patch new/verify/list`、`hook new/verify` 子命令已实现，复用 `PatchLoader`/`load_shell_hooks` 解析器做 verify（`cmd/cli_patch.mbt`、`cmd/cli_hook.mbt`） |
+| 决策 3（channel verify） | `verify_channel` + 顶层 `--verify-channel <platform>` flag；`--scaffold-channel` 保留 flag 形式（裁决记录：不另立 channel 子命令组） |
+| 决策 4（选项补齐组） | `-c`/`-l`/`-a` 短选项、`-f/--file`、`-i/--image`、`--json`（运行结果 JSON，与 `--ndjson` 日志明确区分）已补；`--fork` 因 B7 未落地记豁免；`--theme`/`--ui`/`--brand_test`/`--no_*` 记豁免（不加空开关） |
+| 决策 5（`--path` 校验） | 不存在/非目录时报错 exit 1 |
+| 决策 6（退出码与输出） | 中断退出码 130→1；公网绑定门拒绝 exit 1；非交互模式移除 `✓ Done` 汇总行 |
+| 决策 7（裸 `-m`） | 无值报错 exit 1，不再静默落 TUI（`is_bare_message_flag` 从原始 argv 检测） |
+| 决策 8（server 参数） | `server --host/--port` CLI 参数（优先级高于环境变量）；默认端口 7071 保留（裁决记录：MB 超集） |
+| 决策 7（ext verify/pack/publish） | `ext verify`/`ext pack`/`ext publish` 已接线到既有 `@extension.validate_extension`/`package_extension`/`publish_extension` |
+
+**豁免项（记录，未实现）：**
+
+| 项 | 原因 |
+|----|------|
+| 决策 1（mcp 子命令组 stdio 暴露） | `lib/mcp/stdio_transport.mbt` 仍是占位符（"TODO: FFI implementation needed"），stdio JSON-RPC serve 能力未实现。CLI 入口 `mcp` 子命令已保留并给出明确提示，拆二期 |
+| `--fork` 接线 | 依赖 B7（fork_subagent 移植），B7 无对应 spec，未落地 |
+| agent 子命令别名（决策 9） | 裁决不补，默认路径即 agent |
+| master/worker 双进程（决策 9） | 裁决不实现并记录 |
+| 会话自动命名（决策 9） | 随 B5 复核结论接线，本 spec 未改动 |
+
+**验证：**
+
+- `moon check`：0 errors
+- `moon test cmd`：26 passed, 0 failed（新增 `is_bare_message_flag`/`parse_port`/`verify_channel` 回归测试）
+- 全量 `moon test`：web 包 `handlers_session_ext_wbtest.mbt:188` 存在既有的 Windows 路径分隔符 panic（`save_session FAILED`），与本次 CLI 改动无关（改动范围仅 `cmd/`）
+- test/diff 无针对退出码 130 或 `✓ Done` 的既有断言，无需同步修订

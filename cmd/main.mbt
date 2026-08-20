@@ -36,11 +36,28 @@ async fn main {
       ),
       "verbose": @clap.Arg::flag(short='v', help="Show detailed output"),
       "version": @clap.Arg::flag(short='V', help="Print version information"),
-      "continue": @clap.Arg::flag(help="Resume the most recent session"),
-      "list": @clap.Arg::flag(help="List all saved sessions"),
+      "continue": @clap.Arg::flag(
+        short='c',
+        help="Resume the most recent session",
+      ),
+      "list": @clap.Arg::flag(short='l', help="List all saved sessions"),
       "attach": @clap.Arg::named(
+        short='a',
         nargs=@clap.Nargs::AtMost(1),
         help="Attach to a specific session by ID",
+      ),
+      "file": @clap.Arg::named(
+        short='f',
+        nargs=@clap.Nargs::AtMost(1),
+        help="Path to a file attachment to inject into the agent context",
+      ),
+      "image": @clap.Arg::named(
+        short='i',
+        nargs=@clap.Nargs::AtMost(1),
+        help="Path to an image attachment to inject into the agent context",
+      ),
+      "json": @clap.Arg::flag(
+        help="Emit the run result as machine-readable JSON on stdout",
       ),
       "ndjson": @clap.Arg::flag(help="Enable NDJSON (JSON Lines) log output"),
       "patches-dir": @clap.Arg::named(
@@ -62,6 +79,10 @@ async fn main {
       "list-templates": @clap.Arg::flag(
         help="List available channel adapter templates",
       ),
+      "verify-channel": @clap.Arg::named(
+        nargs=@clap.Nargs::AtMost(1),
+        help="Verify a channel adapter platform name against the whitelist",
+      ),
       "tui-eval": @clap.Arg::named(
         nargs=@clap.Nargs::AtMost(1),
         help="Run TUI eval scenarios from the given directory (headless mode)",
@@ -73,10 +94,92 @@ async fn main {
     },
     subcmds={
       "billing": @clap.SubCommand::new(help="Show billing and usage summary"),
-      "server": @clap.SubCommand::new(help="Start the web UI server"),
+      "server": @clap.SubCommand::new(
+        args={
+          "host": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Bind host address (overrides MBOPENCLACKY_WEB_HOST)",
+          ),
+          "port": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Bind port (overrides MBOPENCLACKY_WEB_PORT)",
+          ),
+        },
+        help="Start the web UI server",
+      ),
       "onboard": @clap.SubCommand::new(
         help="Device binding and identity management",
       ),
+      "patch": @clap.SubCommand::new(help="Manage patches (new/verify/list)", subcmds={
+        "new": @clap.SubCommand::new(
+          args={
+            "name": @clap.Arg::named(
+              nargs=@clap.Nargs::Fixed(1),
+              help="Patch name",
+            ),
+            "module": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Target module (default: default)",
+            ),
+            "command": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Shell command to run on apply",
+            ),
+            "description": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Patch description",
+            ),
+          },
+          help="Create a new patch descriptor",
+        ),
+        "verify": @clap.SubCommand::new(
+          args={
+            "path": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Patch directory to verify (default: ~/.clacky/patches/)",
+            ),
+          },
+          help="Verify patch descriptors parse correctly",
+        ),
+        "list": @clap.SubCommand::new(
+          args={
+            "path": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Patch directory to list (default: ~/.clacky/patches/)",
+            ),
+          },
+          help="List available patches",
+        ),
+      }),
+      "hook": @clap.SubCommand::new(help="Manage hooks (new/verify)", subcmds={
+        "new": @clap.SubCommand::new(
+          args={
+            "name": @clap.Arg::named(
+              nargs=@clap.Nargs::Fixed(1),
+              help="Hook name",
+            ),
+            "event": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Hook event (e.g. session_start)",
+            ),
+            "command": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Shell command to run",
+            ),
+          },
+          help="Create a new hook descriptor",
+        ),
+        "verify": @clap.SubCommand::new(
+          args={
+            "path": @clap.Arg::named(
+              nargs=@clap.Nargs::AtMost(1),
+              help="Hook directory to verify (default: ~/.clacky/hooks/)",
+            ),
+          },
+          help="Verify hook descriptors parse correctly",
+        ),
+      }),
+      "mcp": @clap.SubCommand::new(help="Expose this CLI as a stdio MCP server"),
       "benchmark": @clap.SubCommand::new(
         args={
           "scenario_dir": @clap.Arg::named(
@@ -107,7 +210,7 @@ async fn main {
         help="Run performance benchmarks for scenarios",
       ),
       "ext": @clap.SubCommand::new(
-        help="Manage installed extensions (list/install/uninstall/enable/disable/info/search/create)",
+        help="Manage installed extensions (list/install/uninstall/enable/disable/info/search/create/verify/pack/publish)",
         subcmds={
           "list": @clap.SubCommand::new(
             help="List installed and local extensions",
@@ -175,6 +278,37 @@ async fn main {
             },
             help="Scaffold a new extension in ./extensions",
           ),
+          "verify": @clap.SubCommand::new(
+            args={
+              "path": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Path to the extension directory to validate",
+              ),
+            },
+            help="Validate an extension's manifest and resources",
+          ),
+          "pack": @clap.SubCommand::new(
+            args={
+              "path": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Path to the extension directory to package",
+              ),
+              "output": @clap.Arg::named(
+                nargs=@clap.Nargs::AtMost(1),
+                help="Output directory (default: ./dist)",
+              ),
+            },
+            help="Package an extension into a distributable bundle",
+          ),
+          "publish": @clap.SubCommand::new(
+            args={
+              "path": @clap.Arg::named(
+                nargs=@clap.Nargs::Fixed(1),
+                help="Path to the extension directory to publish",
+              ),
+            },
+            help="Publish a local extension to the marketplace",
+          ),
         },
       ),
     },
@@ -190,6 +324,15 @@ async fn main {
   } else {
     let empty : Array[String] = []
     empty[:]
+  }
+
+  // Bare `-m`/`--message` without a value must be a hard error (align Ruby),
+  // not a silent fall-through to TUI. Detect it from the raw argv because
+  // clap's AtMost(1) makes a valueless `-m` indistinguishable from "no -m".
+  if is_bare_message_flag(cli_view) {
+    println("Error: -m/--message requires a value")
+    println("Usage: mbopenclacky -m <message>   (or --message <message>)")
+    @sys.exit(1)
   }
 
   let value = @clap.SimpleValue::new(parser.prog)
@@ -231,6 +374,15 @@ async fn main {
     None => ()
   }
 
+  // Handle --verify-channel <platform>
+  match get_named_arg(value, "verify-channel") {
+    Some(platform) => {
+      handle_verify_channel(platform)
+      return
+    }
+    None => ()
+  }
+
   // Handle --tui-eval <dir>
   match get_named_arg(value, "tui-eval") {
     Some(dir) => {
@@ -249,14 +401,14 @@ async fn main {
     None => ()
   }
 
-  // Handle subcommands: billing, server, onboard, ext
+  // Handle subcommands: billing, server, onboard, ext, patch, hook, mcp
   match value.subcmd {
     Some(sub) =>
       if sub.name == "billing" {
         handle_billing()
         return
       } else if sub.name == "server" {
-        handle_server() catch {
+        handle_server(sub) catch {
           err => println("Server error: \{err}")
         }
         return
@@ -268,6 +420,15 @@ async fn main {
         return
       } else if sub.name == "benchmark" {
         handle_benchmark(sub)
+        return
+      } else if sub.name == "patch" {
+        handle_patch(sub)
+        return
+      } else if sub.name == "hook" {
+        handle_hook(sub)
+        return
+      } else if sub.name == "mcp" {
+        handle_mcp()
         return
       }
     None => ()
@@ -400,6 +561,17 @@ fn handle_scaffold_channel(platform : String) -> Unit {
 }
 
 ///|
+fn handle_verify_channel(platform : String) -> Unit {
+  match verify_channel(platform) {
+    Ok(_) => println("Supported platform: \{platform}")
+    Err(e) => {
+      println("Error: \{e}")
+      @sys.exit(1)
+    }
+  }
+}
+
+///|
 /// Run TUI eval scenarios from the given directory (headless mode).
 fn handle_tui_eval(dir : String) -> Unit {
   println("Running TUI eval scenarios from: \{dir}")
@@ -446,7 +618,7 @@ async fn handle_web_eval(dir : String) -> Unit {
 }
 
 ///|
-async fn handle_server() -> Unit {
+async fn handle_server(sub : @clap.SimpleValue) -> Unit {
   // Load configuration and start the web server
   let config = @config.AgentConfig::load_default() catch {
     err => {
@@ -469,11 +641,14 @@ async fn handle_server() -> Unit {
   // Get API key for web auth from env or config
   let api_key = @env.get_env_var("MBOPENCLACKY_WEB_API_KEY")
 
-  // Bind address: default 127.0.0.1 (loopback only) for security.
-  // Set MBOPENCLACKY_WEB_HOST=0.0.0.0 to expose on all interfaces.
-  let host = match @env.get_env_var("MBOPENCLACKY_WEB_HOST") {
-    Some(h) => h.trim().to_owned()
-    None => "127.0.0.1"
+  // Bind address: CLI --host > env MBOPENCLACKY_WEB_HOST > default 127.0.0.1.
+  let host = match get_named_arg(sub, "host") {
+    Some(h) if !h.trim().to_owned().is_empty() => h.trim().to_owned()
+    _ =>
+      match @env.get_env_var("MBOPENCLACKY_WEB_HOST") {
+        Some(h) => h.trim().to_owned()
+        None => "127.0.0.1"
+      }
   }
 
   // Security gate: refuse to start on a non-loopback address without an API key.
@@ -514,26 +689,35 @@ async fn handle_server() -> Unit {
       "╚══════════════════════════════════════════════════════════════╝",
     )
     println("")
+    @sys.exit(1)
     return
   }
 
-  // Create and start the web server.
   // Default port is 7071 (to differentiate from the original OpenClacky,
-  // which uses 7070); override with the MBOPENCLACKY_WEB_PORT environment variable.
-  let port = match @env.get_env_var("MBOPENCLACKY_WEB_PORT") {
-    Some(p) => {
-      let n = @string.parse_int(p.trim()) catch { _ => 7071 }
-      if n > 0 && n < 65536 {
-        n
-      } else {
-        7071
+  // which uses 7070). CLI --port > env MBOPENCLACKY_WEB_PORT > default.
+  let port = match get_named_arg(sub, "port") {
+    Some(p) if !p.trim().to_owned().is_empty() => parse_port(p, 7071)
+    _ =>
+      match @env.get_env_var("MBOPENCLACKY_WEB_PORT") {
+        Some(p) => parse_port(p, 7071)
+        None => 7071
       }
-    }
-    None => 7071
   }
   let server = @web.WebServer::new(config, api_key)
   server.start(port, host~)
   println("Server stopped.")
+}
+
+///|
+/// Parse a port string into a valid TCP port (1..65535), falling back to
+/// `fallback` when the input is not a valid number.
+fn parse_port(p : String, fallback : Int) -> Int {
+  let n = @string.parse_int(p.trim()) catch { _ => fallback }
+  if n > 0 && n < 65536 {
+    n
+  } else {
+    fallback
+  }
 }
 
 ///|
@@ -554,6 +738,30 @@ fn get_named_arg(value : @clap.SimpleValue, name : String) -> String? {
     Some(arr) => arr.get(0)
     None => None
   }
+}
+
+///|
+/// Detect a bare `-m`/`--message` flag with no following value in the raw argv.
+/// A bare flag is one that (a) is the last argument, or (b) is followed by
+/// another argument that itself starts with `-`.
+fn is_bare_message_flag(cli_view : ArrayView[String]) -> Bool {
+  let n = cli_view.length()
+  let mut i = 0
+  while i < n {
+    let arg = cli_view[i]
+    if arg == "-m" || arg == "--message" {
+      // Bare if it's last, or the next token looks like another flag.
+      if i + 1 >= n {
+        return true
+      }
+      let next = cli_view[i + 1]
+      if next.has_prefix("-") {
+        return true
+      }
+    }
+    i = i + 1
+  }
+  false
 }
 
 ///|
@@ -628,6 +836,19 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // 8. Determine working directory
   let working_dir = match get_named_arg(value, "path") {
     Some(p) => {
+      // Validate the path exists and is a directory before changing into it.
+      // A non-existent / non-directory path is a hard error (align Ruby), not
+      // a silent fall-through into an undefined directory.
+      if !@fs.path_exists(p) {
+        println("Error: --path does not exist: \{p}")
+        @sys.exit(1)
+        return
+      }
+      if !(@fs.is_dir(p) catch { _ => false }) {
+        println("Error: --path is not a directory: \{p}")
+        @sys.exit(1)
+        return
+      }
       // If a path is provided, change to it and get the absolute path
       @utils.change_dir(p)
       @utils.current_dir()
@@ -714,8 +935,9 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
 
   // 15. Check if --message was provided (non-interactive mode)
   let msg_opt = get_named_arg(value, "message")
+  let json_output = value.get_flag("json") == Some(true)
   match msg_opt {
-    Some(msg) => run_non_interactive(agent, msg)
+    Some(msg) => run_non_interactive(agent, msg, json_output)
     None =>
       // Launch TUI in interactive mode
       @tui.run_tui_interactive(agent)
@@ -789,7 +1011,11 @@ fn apply_model_override(
 }
 
 ///|
-async fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
+async fn run_non_interactive(
+  agent : @agent.Agent,
+  message : String,
+  json_output : Bool,
+) -> Unit {
   if agent.config.verbose {
     println("Running agent with message: \{message}")
     println("Model: \{agent.current_model()}")
@@ -845,14 +1071,39 @@ async fn run_non_interactive(agent : @agent.Agent, message : String) -> Unit {
   }
   // Enforce session cap after save
   @agent.enforce_session_cap()
-  print_run_result(result)
+  if json_output {
+    println(run_result_to_json(result))
+  } else {
+    print_run_result(result)
+  }
   let exit_code = match result.status {
     @agent.RunStatus::Success => 0
     @agent.RunStatus::Error => 1
-    @agent.RunStatus::Interrupted => 130
+    // Align Ruby: interruption is a hard error exit 1, not the POSIX 130
+    // SIGINT convention. Keeps the stdout/exit-code contract consistent for
+    // script and CI consumers.
+    @agent.RunStatus::Interrupted => 1
   }
   @sys.exit(exit_code)
   return
+}
+
+///|
+/// Serialize a RunResult to a single-line JSON object for machine consumption
+/// (`--json`). This is the *result* format, distinct from `--ndjson` which is
+/// a logging format.
+fn run_result_to_json(result : @agent.RunResult) -> String {
+  let obj : Map[String, Json] = {
+    "status": result.status.to_string_value().to_json(),
+    "session_id": result.session_id.to_json(),
+    "iterations": result.iterations.to_json(),
+    "total_cost_usd": result.total_cost_usd.to_json(),
+  }
+  match result.error {
+    Some(e) => obj["error"] = e.to_json()
+    None => ()
+  }
+  Json::object(obj).stringify()
 }
 
 ///|
@@ -871,12 +1122,13 @@ fn handle_list_sessions() -> Unit {
 }
 
 ///|
+/// Print the human-readable run result to stdout. Aligned with Ruby: a
+/// successful non-interactive run emits no summary line (the model's own
+/// output is the sole stdout body), so the `Success` branch is intentionally
+/// empty. Error/Interrupted lines are kept for diagnostic clarity.
 fn print_run_result(result : @agent.RunResult) -> Unit {
   match result.status {
-    @agent.RunStatus::Success => {
-      let cost_str = result.total_cost_usd.to_string()
-      println("✓ Done (\{result.iterations} iterations, $\{cost_str})")
-    }
+    @agent.RunStatus::Success => ()
     @agent.RunStatus::Error => {
       let err_msg = result.error.unwrap_or("Unknown error")
       println("✗ Error: \{err_msg}")

@@ -59,6 +59,21 @@ pub fn list_channel_templates() -> Array[String] {
 }
 
 ///|
+/// Verify that a platform name is supported (whitelist check). Returns Ok on a
+/// supported platform, or Err with a message aligning the whitelist-out error
+/// text with the Ruby `clacky channel verify` surface.
+pub fn verify_channel(platform : String) -> Result[Unit, String] {
+  let platform_lower = platform.to_lower()
+  if is_supported_platform(platform_lower) {
+    Ok(())
+  } else {
+    Err(
+      "Unsupported platform: \{platform}. Supported: \{supported_platforms.join(", ")}",
+    )
+  }
+}
+
+///|
 fn is_supported_platform(platform : String) -> Bool {
   for p in supported_platforms {
     if p == platform {

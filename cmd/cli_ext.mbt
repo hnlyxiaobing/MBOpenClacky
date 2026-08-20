@@ -1,4 +1,4 @@
-///| CLI handlers for the `ext` subcommand. Provides six end-user operations:
+///| CLI handlers for the `ext` subcommand. Provides end-user operations:
 ///   ext list        - list installed + local extensions
 ///   ext install     - install a local extension path
 ///   ext uninstall   - remove an installed extension
@@ -78,6 +78,30 @@ pub fn handle_ext(ext_value : @clap.SimpleValue) -> Unit {
           println("Usage: mbopenclacky ext create <id>")
         }
       }
+    "verify" =>
+      match get_ext_named_arg(action, "path") {
+        Some(path) => handle_ext_verify(path)
+        None => {
+          println("[ext] error: 'verify' requires a <path> argument")
+          println("Usage: mbopenclacky ext verify <path>")
+        }
+      }
+    "pack" =>
+      match get_ext_named_arg(action, "path") {
+        Some(path) => handle_ext_pack(path, get_ext_named_arg(action, "output"))
+        None => {
+          println("[ext] error: 'pack' requires a <path> argument")
+          println("Usage: mbopenclacky ext pack <path> [--output <dir>]")
+        }
+      }
+    "publish" =>
+      match get_ext_named_arg(action, "path") {
+        Some(path) => handle_ext_publish(path)
+        None => {
+          println("[ext] error: 'publish' requires a <path> argument")
+          println("Usage: mbopenclacky ext publish <path>")
+        }
+      }
     _ => {
       println("[ext] unknown subcommand: " + action.name)
       print_ext_help()
@@ -114,6 +138,13 @@ fn print_ext_help() -> Unit {
   println("  search [query]             Search the local marketplace registry")
   println(
     "  create <id>                Scaffold a new extension in ./extensions",
+  )
+  println(
+    "  verify <path>              Validate an extension's manifest/resources",
+  )
+  println("  pack <path> [--output <d>] Package an extension into ./dist")
+  println(
+    "  publish <path>             Publish a local extension to the marketplace",
   )
 }
 
@@ -368,5 +399,66 @@ fn handle_ext_create(id : String) -> Unit {
   match @extension.create_extension_scaffold(template) {
     Ok(out_dir) => println("[ext] scaffolded new extension at " + out_dir)
     Err(msg) => println("[ext] create failed: " + msg)
+  }
+}
+
+///|
+/// `ext verify <path>` — validate an extension's manifest and resources.
+fn handle_ext_verify(path : String) -> Unit {
+  if !@fs.path_exists(path) {
+    println("[ext] error: path does not exist: " + path)
+    return
+  }
+  let ext = match
+    @extension.load_single_extension(path, @extension.ExtensionSource::Local) {
+    Some(e) => e
+    None => {
+      println("[ext] verify failed: could not load extension from " + path)
+      return
+    }
+  }
+  let result = @extension.validate_extension(ext)
+  if result.valid {
+    println(
+      "[ext] " + ext.manifest.id + " v" + ext.manifest.version + " is valid",
+    )
+    for w in result.warnings {
+      println("[ext]   warning: " + w)
+    }
+  } else {
+    println("[ext] verification failed for " + ext.manifest.id + ":")
+    for e in result.errors {
+      println("[ext]   - " + @extension.validation_error_message(e))
+    }
+  }
+}
+
+///|
+/// `ext pack <path>` — package an extension into a distributable bundle.
+fn handle_ext_pack(path : String, output : String?) -> Unit {
+  if !@fs.path_exists(path) {
+    println("[ext] error: path does not exist: " + path)
+    return
+  }
+  match @extension.package_extension(path, output_dir=output) {
+    Ok((package_dir, sha256)) => {
+      println("[ext] packaged " + path + " -> " + package_dir)
+      println("[ext] checksum: " + sha256)
+    }
+    Err(msg) => println("[ext] pack failed: " + msg)
+  }
+}
+
+///|
+/// `ext publish <path>` — publish a local extension to the marketplace.
+fn handle_ext_publish(path : String) -> Unit {
+  if !@fs.path_exists(path) {
+    println("[ext] error: path does not exist: " + path)
+    return
+  }
+  match @extension.publish_extension(path) {
+    Ok(entry) =>
+      println("[ext] published " + entry.id + " v" + entry.latest_version)
+    Err(msg) => println("[ext] publish failed: " + msg)
   }
 }
