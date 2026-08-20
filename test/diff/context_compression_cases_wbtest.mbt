@@ -485,16 +485,11 @@ test "token_028_extract_key_information_known_failure" {
 // ── token-029 溢出恢复 - 保留 tool pairs（BUG-0011） ─────────────────────────
 
 ///|
-test "token_029_overflow_keeps_tool_pairs_known_failure" {
-  // BUG-0011：溢出恢复拆散 tool pair。
-  // 证据：diff-harness/cases/context_compression/test_cases.json token-029；
-  // ruby_results.json 实测 kept_count=4, kept_roles=[user, assistant, tool, user]
-  // （总估算 23 <= max_tokens=50，无需弹出）。
-  // MB 实测：kept_count=1——每个 tool_call 计 50 tokens（BUG-0010）使
-  // assistant 消息估算 51 > 50，连乘弹出至只剩 user msg1。
-  if known_failure("BUG-0011") {
-    return
-  }
+/// token-029：4 条消息、max_tokens=50 时保留全部消息（总估算远低于预算）。
+/// 修复 BUG-0010（token 估算去除 +50 钳制）后转绿；token-029 frozen value
+/// kept_count=4 / kept_roles=[user, assistant, tool, user]，因
+/// `pulled_back_messages` 只在超出预算时弹窗。
+test "token_029_overflow_keeps_tool_pairs" {
   let msgs = [
     @message.Message::user("msg1"),
     assistant_with_tool_calls("msg2", [@message.ToolCall::new("c1", "f1", "{}")]),

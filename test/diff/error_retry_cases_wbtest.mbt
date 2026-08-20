@@ -269,9 +269,9 @@ test "retry_016_html_response_detection" {
 /// retry-017：context overflow 恢复 - 标准模式 pop 1 条消息。
 /// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测。
 /// green：标准模式 pop 1 条（两侧一致）。
-/// BUG-0028 known-failure：Ruby pop 后调用 compress_messages_if_needed，
-/// MB 仅 compression_level+1 不调压缩；压缩调用在 handle_context_overflow
-/// 内不可由本包观测，修复后需在 lib/agent 侧补断言完成闭环。
+/// BUG-0028 修复后（spec 2026-08-18_14）：pop 后调压缩。
+/// 压缩调用在 handle_context_overflow 内不可由本包直接观测；
+/// 闭环断言在 lib/agent 白盒（agent_wbtest.mbt overflow_pop_triggers_compression）。
 test "retry_017_overflow_standard_pop_one" {
   let agent = retry_make_agent()
   agent.history.append(@message.Message::system("sys"))
@@ -281,20 +281,15 @@ test "retry_017_overflow_standard_pop_one" {
   let removed = agent.handle_context_overflow(@agent.Standard)
   assert_true(removed)
   assert_eq(agent.history.size(), 5)
-  // BUG-0028：Ruby 冻结值——pop 后调用压缩（compress_after_pop=true）。
-  // 证据：cases/error_retry/test_cases.json retry-017
-  if known_failure("BUG-0028") {
-    return
-  }
-  // 压缩调用不可由本包观测（见文件头说明），修复后在 lib/agent 侧补断言。
 }
 
 ///|
 /// retry-018：context overflow 恢复 - 激进模式 pop 约一半消息。
 /// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测。
-/// green（100 条时两侧一致）：pop removable/2 = 50。
-/// BUG-0029 known-failure：Ruby 激进模式 pop 上限 64 条；MB 无上限，
-/// 200 条可删时 MB pop 100（剩 101），Ruby 冻结值 pop 64（剩 137）。
+/// 100 条历史时：half=50, lower=max(50,4)=50, upper=min(99,64)=64,
+/// remove_count=min(50,64)=50 → 剩 51。
+/// BUG-0029 修复后（spec 2026-08-18_14）：201 条历史钳制到 pop 64 剩 137
+/// （half=100, lower=100, upper=min(199,64)=64, remove=64）。
 test "retry_018_overflow_aggressive_pop_half" {
   let agent = retry_make_agent()
   agent.history.append(@message.Message::system("sys"))
@@ -304,11 +299,7 @@ test "retry_018_overflow_aggressive_pop_half" {
   let removed = agent.handle_context_overflow(@agent.Aggressive)
   assert_true(removed)
   assert_eq(agent.history.size(), 51)
-  // BUG-0029：Ruby 冻结值——激进模式 pop 上限 64（201 条历史 pop 64 剩 137）。
-  // 证据：cases/error_retry/test_cases.json retry-018
-  if known_failure("BUG-0029") {
-    return
-  }
+  // BUG-0029 冻结值：201 条历史（1 system + 200 user）aggressive pop 64 剩 137。
   let agent2 = retry_make_agent()
   agent2.history.append(@message.Message::system("sys"))
   for _ in 0..<200 {

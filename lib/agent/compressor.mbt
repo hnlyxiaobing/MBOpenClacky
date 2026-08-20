@@ -448,8 +448,13 @@ pub fn should_skip_compression(last_reduction_pct : Double) -> Bool {
 /// Pop messages from the tail until total tokens are within `max_tokens`.
 ///
 /// Returns (kept_messages, pulled_back_messages).
-/// Ensures tool_call/tool_result pair integrity: if a tool_result is kept,
-/// its parent assistant message with tool_calls is also kept.
+///
+/// Tool pair integrity follows Ruby's `get_recent_messages_with_tool_pairs`
+/// direction: when a tool_result stays in `kept` and its parent assistant
+/// message (the one that issued the matching `tool_calls` id) is no longer
+/// in `kept`, the parent is re-pulled from the popped set so the pair is
+/// preserved. The alternative (dropping the orphan tool_result) would lose
+/// tool execution context for the model.
 pub fn pulled_back_messages(
   messages : Array[@message.Message],
   max_tokens : Int,
@@ -470,69 +475,132 @@ pub fn pulled_back_messages(
     total_tokens = total_tokens - msg_tokens
   }
 
-  // Fix tool pair integrity: if a kept Tool message references an assistant
-  // tool_call that is no longer in kept, move that assistant to pulled too.
-  let kept_ids : Map[String, Bool] = Map([])
-  for msg in kept {
-    if msg.role == @message.Assistant {
-      match msg.tool_calls {
-        Some(calls) =>
-          for call in calls {
-            kept_ids[call.id] = true
-          }
-        None => ()
-      }
-    }
-  }
-  // Remove orphan tool results from kept (Tool messages whose call_id isn't in kept)
-  let clean_kept : Array[@message.Message] = []
-  for msg in kept {
-    if msg.role == @message.Tool {
-      match msg.tool_call_id {
-        Some(tc_id) =>
-          if kept_ids.get(tc_id) is Some(_) {
-            clean_kept.push(msg)
-          }
-        None => clean_kept.push(msg)
-      }
-    } else {
-      clean_kept.push(msg)
-    }
-  }
-
-  // Build pulled: messages not in clean_kept (in original order)
-  let kept_len = clean_kept.length()
+  // Build pulled from the popped tail first.
+  let kept_len_after_pop = kept.length()
   let pulled : Array[@message.Message] = []
-  for i = kept_len; i < total; i = i + 1 {
+  for i = kept_len_after_pop; i < total; i = i + 1 {
     pulled.push(messages[i])
   }
-  // Also add any orphaned tool results that were removed from kept
-  // (they may be at indices < kept_len)
-  if clean_kept.length() < kept.length() {
-    // Some messages were removed from middle of kept; rebuild pulled
-    while pulled.length() > 0 {
-      let _ = pulled.pop()
-    }
-    // Simple approach: messages in original but not in clean_kept
-    let kept_set : Map[Int, Bool] = Map([])
-    let mut ki = 0
-    for msg in clean_kept {
-      // Find msg in original messages
-      for j = 0; j < total; j = j + 1 {
-        if messages[j] == msg && kept_set.get(j) is None {
-          kept_set[j] = true
-          break
+
+  // Tool-pair integrity: re-pull parent assistant for any orphan tool_result.
+  // Direction matches Ruby `get_recent_messages_with_tool_pairs` —
+  // preserve the pair by bringing the parent back, not by deleting the child.
+  //
+  // We may need multiple passes because pulling an assistant in turn brings
+  // along any sibling tool_results it expected to follow (its own tool_call
+  // ids must remain answered). For overflow tail-pop purposes we only need
+  // a single pass: the tail pop removes contiguous suffix messages, so a
+  // parent assistant of a kept tool_result that was popped is the most-recent
+  // assistant preceding the tool_result, and that assistant carries tool_calls
+  // which (if they had results) are already in `kept` or `pulled`.
+  fn find_assistant_index(
+    msgs : Array[@message.Message],
+    call_id : String,
+  ) -> Int? {
+    let mut i = msgs.length() - 1
+    while i >= 0 {
+      let m = msgs[i]
+      if m.role == @message.Assistant {
+        match m.tool_calls {
+          Some(calls) =>
+            for c in calls {
+              if c.id == call_id {
+                return Some(i)
+              }
+            }
+          None => ()
         }
       }
-      let _ = ki
-      ki = ki + 1
+      i = i - 1
     }
-    for j = 0; j < total; j = j + 1 {
-      if kept_set.get(j) is None {
-        pulled.push(messages[j])
+    None
+  }
+
+  // Iterate to a fixed point: each re-pull might expose new orphans.
+  let mut changed = true
+  let mut safety = total + 1
+  while changed && safety > 0 {
+    changed = false
+    safety = safety - 1
+    // Collect kept tool_call ids
+    let kept_call_ids : Map[String, Bool] = Map([])
+    for msg in kept {
+      if msg.role == @message.Assistant {
+        match msg.tool_calls {
+          Some(calls) =>
+            for c in calls {
+              kept_call_ids[c.id] = true
+            }
+          None => ()
+        }
       }
+    }
+    // For each kept tool_result whose call_id is not answered, find parent
+    // assistant in `pulled` and re-pull it into `kept` (and remove from pulled).
+    let pull_indices : Array[Int] = []
+    for i, msg in kept {
+      if msg.role == @message.Tool {
+        match msg.tool_call_id {
+          Some(tc_id) =>
+            if kept_call_ids.get(tc_id) is None {
+              // Parent assistant is not in kept; find it in pulled
+              match find_assistant_index(pulled, tc_id) {
+                Some(pulled_idx) =>
+                  if !pull_indices.contains(pulled_idx) {
+                    pull_indices.push(pulled_idx)
+                  }
+                None => ()
+              }
+            }
+          None => ()
+        }
+      }
+      let _ = i
+    }
+    if pull_indices.length() > 0 {
+      // Sort indices ascending so we can splice them in order
+      pull_indices.sort()
+      // Build new kept with the pulled assistants inserted at their original
+      // position relative to the popped boundary.
+      // Simpler approach: append them to the end of kept in the order they
+      // appeared in `pulled` (ascending index = earlier in original).
+      // The pair invariant requires the assistant to come before its
+      // tool_result, which is already true for any kept tool_result, so
+      // appending is safe.
+      let new_kept : Array[@message.Message] = []
+      for msg in kept {
+        new_kept.push(msg)
+      }
+      for idx in pull_indices {
+        new_kept.push(pulled[idx])
+      }
+      // Rebuild pulled without the re-pulled assistants
+      let new_pulled : Array[@message.Message] = []
+      let mut pi = 0
+      for msg in pulled {
+        if pull_indices.contains(pi) {
+          ()
+        } else {
+          new_pulled.push(msg)
+        }
+        pi = pi + 1
+      }
+      // Mutate `kept` and `pulled` arrays in place to satisfy fixed-point loop
+      while kept.pop() is Some(_) {
+        ()
+      }
+      for msg in new_kept {
+        kept.push(msg)
+      }
+      while pulled.pop() is Some(_) {
+        ()
+      }
+      for msg in new_pulled {
+        pulled.push(msg)
+      }
+      changed = true
     }
   }
 
-  (clean_kept, pulled)
+  (kept, pulled)
 }

@@ -768,7 +768,19 @@ fn Agent::inject_upstream_truncation_hint_if_first(
 /// Handle context overflow by removing messages from history.
 ///
 /// Standard mode: removes the last non-system message.
-/// Aggressive mode: removes half the non-system messages.
+/// Aggressive mode: removes half the non-system messages, clamped to
+/// `[4, min(history.length() - 2, 64)]` to align with Ruby
+/// `perform_context_overflow_compression` (openclacky llm_caller.rb:535-549).
+/// The 64 ceiling protects very long histories from losing too much context
+/// in a single pop; the 4 floor guarantees meaningful recovery even when
+/// the history is small.
+///
+/// After popping, invokes `compress_messages_if_needed(false)` to mirror
+/// Ruby's pull-back-then-force-compress pipeline (BUG-0028 stage A). The
+/// compression call's result is returned for observability and so that
+/// callers (e.g. retry chain) can decide whether to fall back to
+/// Aggressive / raise. Production wiring (BadRequestError → this path)
+/// is staged for a follow-up spec (BUG-0028 stage B).
 ///
 /// Returns true if messages were removed, false if history is too small.
 pub fn Agent::handle_context_overflow(
@@ -791,24 +803,40 @@ pub fn Agent::handle_context_overflow(
   let remove_count = match mode {
     Standard => 1
     Aggressive => {
-      let half = removable / 2
-      if half < 1 {
-        1
+      // Mirror Ruby: pull_back = [[half, 4].max, [history.size - 2, 64].min].min
+      // where half = history.size / 2 and the upper bound is bounded by
+      // (history.size - 2) so we always leave at least 2 messages behind.
+      let half = history.length() / 2
+      let lower = if half < 4 { 4 } else { half }
+      let upper_raw = history.length() - 2
+      let upper = if upper_raw > 64 { 64 } else { upper_raw }
+      // remove_count = min(lower, upper)
+      if lower < upper {
+        lower
       } else {
-        half
+        upper
       }
     }
   }
+  // Clamp remove_count to removable so we never pop more than available.
+  // (Ruby uses history.size, MB uses removable which excludes system msgs.)
   let actual_remove = if remove_count < removable {
     remove_count
   } else {
     removable
+  }
+  if actual_remove < 1 {
+    return false
   }
   // Remove from the end
   for _ in 0..<actual_remove {
     history.pop() |> ignore
   }
   self.compression_level = self.compression_level + 1
+  // BUG-0028 stage A: after pop, trigger compression evaluation (force=false
+  // so we re-run the normal threshold check; pop alone may already have
+  // shrunk under the threshold, in which case None is a valid outcome).
+  let _ = self.compress_messages_if_needed(false)
   true
 }
 

@@ -33,7 +33,9 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0008", // expand_path 不解析 ~user（同 BUG-0005）
   // BUG-0009/0010 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
   // token 估算分桶公式 + tool_calls 去 +50），移出注册表
-   "BUG-0011", // 溢出恢复拆散 tool pair（+50 根因已随 BUG-0010 修复，本体属 FU-09）
+  // BUG-0011 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：
+  // pulled_back_messages 改回填方向对齐 Ruby driver，FU-06 修复后估算口径
+  // 收敛 token-029 kept_count=4），移出注册表
   // config_cli 模块（P2）
   // BUG-0012/0022 已裁决（spec 2026-08-18_12_p5-config-loading-alignment.md：
   // 决策 1 选项 B——Ruby CONFIG_SETTINGS_KEYS 与 to_yaml 双双遗漏 max_tokens，
@@ -52,8 +54,11 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0024", // 402 错误分类不一致
   // BUG-0025/0026 已于基线实现（react 层空响应/thinking 静默重试，台账记录过时），
   // retry-013/014 为绿断言，不在册
-   "BUG-0028", // context overflow 恢复后未调压缩
-   "BUG-0029", // context overflow 激进模式无 pop 上限
+  // BUG-0028 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：
+  // handle_context_overflow pop 后调 compress_messages_if_needed；
+  // 阶段 A 闭合 retry-017，阶段 B 生产接线另案），移出注册表
+  // BUG-0029 已修复（spec 2026-08-18_14：Aggressive 钳制 [4, min(len-2, 64)]
+  // 对齐 Ruby llm_caller.rb:535-549），移出注册表
    "BUG-0031", // 平台 HTTP failover 域名数不一致
   // link 层（P3，test/e2e 剧本用）
   // BUG-0032 已修复（spec 2026-08-18_02_p5-stream-truncation-retry-pipeline.md：

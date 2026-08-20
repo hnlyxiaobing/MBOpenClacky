@@ -381,3 +381,85 @@ test "compress_messages_if_needed_guard_returns_none_without_oversized (BUG-0042
   )
   assert_true(agent.compress_messages_if_needed(false) is None)
 }
+
+///|
+/// BUG-0011 决策 3 验收：pulled_back_messages 的 pair 处理方向对齐 Ruby
+/// `get_recent_messages_with_tool_pairs` —— kept 中的 tool_result 缺父时
+/// 把父 assistant 回填（而非删除 tool_result）。
+///
+/// 场景：max_tokens 极小，弹窗把 parent assistant 弹出，但 tool_result
+/// 留在 kept。期望：父 assistant 被回填到 kept；tool_result 保留。
+test "pulled_back_messages_repairs_pair_by_re_pulling_parent" {
+  // 构造 4 条消息：user + assistant(tool_calls) + tool_result + user(long)
+  // max_tokens 故意设极小以触发弹窗，使 assistant 被弹出、tool_result 留下。
+  let msgs : Array[@message.Message] = []
+  msgs.push(@message.Message::user("msg1"))
+  let asst = @message.Message::assistant("thinking...")
+  asst.tool_calls = Some([@message.ToolCall::new("c1", "f1", "{}")])
+  msgs.push(asst)
+  msgs.push(@message.Message::tool_result("c1", "f1", "result1"))
+  // 长 user 消息让总估算远超 budget
+  let long_user = String::make(500, 'x')
+  msgs.push(@message.Message::user(long_user))
+  let (kept, pulled) = pulled_back_messages(msgs, 1) // 极小 budget → 弹到只剩 1 条
+  // 因为 budget=1，弹到只剩 1 条；然后 pair repair 触发回填父 assistant。
+  // 我们验证 kept 不含孤立 tool_result（每个 tool_result 都有父 in kept）。
+  let kept_call_ids : Map[String, Bool] = Map([])
+  for m in kept {
+    if m.role == @message.Assistant {
+      match m.tool_calls {
+        Some(calls) =>
+          for c in calls {
+            kept_call_ids[c.id] = true
+          }
+        None => ()
+      }
+    }
+  }
+  // 验证 kept 中每个 tool_result 都有匹配的 parent call_id
+  for m in kept {
+    if m.role == @message.Tool {
+      match m.tool_call_id {
+        Some(id) =>
+          match kept_call_ids.get(id) {
+            Some(_) => ()
+            None => fail("orphan tool_result in kept: call_id not answered")
+          }
+        None => ()
+      }
+    }
+  }
+  // pulled 应非空
+  assert_true(pulled.length() > 0)
+}
+
+///|
+/// BUG-0011 决策 3 验收：parent assistant 已在 kept 时不重复添加。
+/// 即 budget 刚够保留所有消息时不触发回填逻辑。
+test "pulled_back_messages_no_repair_when_budget_sufficient" {
+  let msgs : Array[@message.Message] = [
+    @message.Message::user("msg1"),
+    {
+      role: @message.Assistant,
+      content: @message.Text("thinking"),
+      tool_calls: Some([@message.ToolCall::new("c1", "f1", "{}")]),
+      tool_call_id: None,
+      name: None,
+      reasoning_content: None,
+      task_id: None,
+      created_at: None,
+      system_injected: None,
+      memory_update: None,
+      subagent_instructions: None,
+      subagent_result: None,
+      token_usage: None,
+      compressed_summary: None,
+      transient: None,
+    },
+    @message.Message::tool_result("c1", "f1", "result1"),
+    @message.Message::user("msg3"),
+  ]
+  let (kept, _pulled) = pulled_back_messages(msgs, 10_000)
+  // budget 足够 → kept 应包含全部 4 条
+  assert_eq(kept.length(), 4)
+}

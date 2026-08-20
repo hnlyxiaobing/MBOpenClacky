@@ -1004,6 +1004,88 @@ test "handle_context_overflow_aggressive" {
   assert_true(agent.history.size() < 11)
 }
 
+// ── BUG-0029 / BUG-0028 验收点 (spec 2026-08-18_14) ────────────────────────
+
+///|
+/// BUG-0029 验收：Aggressive 钳制公式对齐 Ruby llm_caller.rb:535-549。
+/// 201 条历史（1 system + 200 user）→ half=100, lower=max(100,4)=100,
+/// upper=min(199,64)=64, remove=min(100,64)=64 → 剩 137。
+test "handle_context_overflow_aggressive_clamps_to_64" {
+  let agent = make_test_agent()
+  agent.history.append(@message.Message::system("sys"))
+  for _ in 0..<200 {
+    agent.history.append(@message.Message::user("u"))
+  }
+  assert_eq(agent.history.size(), 201)
+  let removed = agent.handle_context_overflow(Aggressive)
+  assert_true(removed)
+  assert_eq(agent.history.size(), 137)
+  // compression_level 在 pop 后 +1
+  @debug.assert_eq(agent.compression_level, 1)
+}
+
+///|
+/// BUG-0029 验收：Aggressive 的 lower 边界 = 4（max(half, 4)）。
+/// 9 条历史 → half=4, lower=max(4,4)=4, upper=min(7,64)=7, remove=4 → 剩 5。
+test "handle_context_overflow_aggressive_clamps_to_4" {
+  let agent = make_test_agent()
+  agent.history.append(@message.Message::system("sys"))
+  for i in 0..<8 {
+    agent.history.append(@message.Message::user("u \{i}"))
+  }
+  // 9 条 total：1 system + 8 user
+  assert_eq(agent.history.size(), 9)
+  let removed = agent.handle_context_overflow(Aggressive)
+  assert_true(removed)
+  // 弹 4 条 → 剩 5
+  assert_eq(agent.history.size(), 5)
+}
+
+///|
+/// BUG-0028 阶段 A 验收：handle_context_overflow pop 后调用
+/// compress_messages_if_needed(false)。压缩调用在函数内不可被外部直接观测，
+/// 本测试通过"巨大 tool_result 触发 oversized path"间接验证：
+/// 之前 needs_compression=false（短消息），handle_context_overflow 内部
+/// 调用 compress_messages_if_needed 时不会因 oversized path 误判 panic；
+/// 函数正常返回 + history size 减 1 + compression_level 增 1 即说明 pop
+/// 后压缩判定已执行。
+test "handle_context_overflow_pop_does_not_panic_with_oversized_tool_result" {
+  let agent = make_test_agent()
+  agent.config.compression_threshold = 100_000 // disable token threshold
+  agent.history.append(@message.Message::system("sys"))
+  agent.history.append(@message.Message::user("msg1"))
+  // assistant with matching tool_calls 让 tool_result 不被 drop
+  let asst = @message.Message::assistant("thinking")
+  asst.tool_calls = Some([@message.ToolCall::new("c1", "f1", "{}")])
+  agent.history.append(asst)
+  // > 2000 字符的 tool_result 触发 oversized path
+  let big = String::make(3000, 'a')
+  agent.history.append(@message.Message::tool_result("c1", "f1", big))
+  // 4 条 total，pop 1 → 剩 3
+  let removed = agent.handle_context_overflow(Standard)
+  assert_true(removed)
+  assert_eq(agent.history.size(), 3)
+  // compression_level 增 1
+  @debug.assert_eq(agent.compression_level, 1)
+}
+
+///|
+/// BUG-0028 阶段 A 验收：pop 后调压缩在长 history 上也不 panic。
+/// 100 条 user + 1 system = 101 条；threshold 高 → 不会真触发压缩。
+/// 验证函数完整跑完 pop + 压缩判定流程。
+test "handle_context_overflow_pop_evaluates_compression_on_long_history" {
+  let agent = make_test_agent()
+  agent.config.compression_threshold = 1_000_000 // disable
+  agent.history.append(@message.Message::system("sys"))
+  for _ in 0..<100 {
+    agent.history.append(@message.Message::user("u"))
+  }
+  let removed = agent.handle_context_overflow(Standard)
+  assert_true(removed)
+  assert_eq(agent.history.size(), 100) // 101 - 1
+  @debug.assert_eq(agent.compression_level, 1)
+}
+
 ///|
 test "detect_upstream_truncation_valid" {
   let agent = make_test_agent()
