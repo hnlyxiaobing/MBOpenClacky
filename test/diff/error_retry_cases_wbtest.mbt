@@ -11,10 +11,11 @@
 /// - `retry_delay_ms` 是 lib/agent 的包内私有函数，test/diff 跨包不可达；
 ///   退避序列（retry-005~009）只能断言 pub 常量（retry_base_delay_ms /
 ///   retry_max_delay_ms），指数形态已由 lib/agent/llm_caller_wbtest.mbt 冻结。
-/// - HTTP 状态码 → RetryableError/BadRequestError 的分类逻辑内联在
-///   llm_caller.mbt 的 call_llm_async / call_llm_stream_async（429/5xx →
-///   RetryableError，其余 → BadRequestError），没有纯函数入口，单测不可达；
-///   本文件只能覆盖其上游 map_http_error 的消息映射。
+/// - HTTP 状态码 → RetryableError/BadRequestError 的分类逻辑已下沉为
+///   llm_caller.mbt 的 classify_http_error（429/5xx → RetryableError，
+///   其余 → BadRequestError），但该 helper 为 lib/agent 包私有；
+///   test/diff 跨包不可达，相关分类断言在 lib/agent/llm_caller_wbtest.mbt
+///   覆盖。本文件只能覆盖其上游 map_http_error 的消息映射。
 /// - 平台 HTTP 的真实重试/failover 发生在网上，单测不可达；只能断言
 ///   PlatformHttpConfig 的公开结构（域名数、max_retries 默认值）。
 ///
@@ -60,8 +61,9 @@ fn mock_resp(
 /// retry-001：429 错误应触发重试。
 /// A 级期望值（P3 剧本 008 ruby 实测 429 重试）。
 /// green：map_http_error 把 429 映射为限流错误消息。
-/// 注：429 → RetryableError 的分类内联于 llm_caller.mbt（单测不可达），
-/// MB 与 Ruby 均会重试 429，链路层由 P3 剧本 008/009 覆盖。
+/// 注：429 → RetryableError 的分类由 llm_caller.mbt 的 classify_http_error
+/// 处理（lib/agent 私有，test/diff 不可直接断言）；MB 与 Ruby 均会重试 429，
+/// 链路层由 P3 剧本 008/009 覆盖。
 test "retry_001_http_429_retryable" {
   match @client.map_http_error(429, "{\"error\":{\"message\":\"slow down\"}}") {
     Some(msg) => assert_true(msg.contains("Rate limit"))
@@ -73,7 +75,8 @@ test "retry_001_http_429_retryable" {
 /// retry-002：500 错误应触发重试。
 /// A 级期望值（P3 剧本 009 ruby 实测 5xx 重试）。
 /// green：map_http_error 把 5xx 映射为服务不可用消息。
-/// 注：5xx → RetryableError 的分类内联于 llm_caller.mbt（单测不可达）。
+/// 注：5xx → RetryableError 的分类由 llm_caller.mbt 的 classify_http_error
+/// 处理（lib/agent 私有，test/diff 不可直接断言）。
 test "retry_002_http_500_retryable" {
   match @client.map_http_error(500, "internal error") {
     Some(msg) => assert_true(msg.contains("temporarily unavailable"))
@@ -85,7 +88,8 @@ test "retry_002_http_500_retryable" {
 /// retry-003：400 错误不应触发重试。
 /// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测。
 /// green：map_http_error 把普通 400 映射为客户端请求错误消息。
-/// 注：400 → BadRequestError（不重试）的分类内联于 llm_caller.mbt（单测不可达）。
+/// 注：400 → BadRequestError（不重试）的分类由 llm_caller.mbt 的
+/// classify_http_error 处理（lib/agent 私有，test/diff 不可直接断言）。
 test "retry_003_http_400_not_retryable" {
   match
     @client.map_http_error(400, "{\"error\":{\"message\":\"bad request\"}}") {
@@ -96,24 +100,22 @@ test "retry_003_http_400_not_retryable" {
 
 ///|
 /// retry-004：402 错误处理差异。
-/// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测：
-/// Ruby 将 402 视为 RetryableError（insufficient_credit，可重试）。
-/// MB 实际行为：map_http_error 映射为账单类消息，内联分类抛 BadRequestError
-/// （不重试）——BUG-0024 known-failure。
-/// 注：重试分类无纯函数入口，修复 BUG-0024 后需在本包可观测的入口上补断言。
+/// 原台账（P2 静态期望）：Ruby 402 → RetryableError（可重试）。
+/// 2026-08-14 代码核实推翻台账：Ruby 实际 402 → InsufficientCreditError
+/// （< AgentError，不在 rescue 重试分支），同样不重试。
+/// MB 行为：map_http_error 映射为账单类消息，classify_http_error 将其归为
+/// BadRequestError（不重试）。两侧“不重试”语义一致，差异只剩错误类型/文案。
+/// 注：classify_http_error 为 lib/agent 私有，跨包不可直接断言；
+/// 402 → BadRequestError 的验证在 lib/agent/llm_caller_wbtest.mbt。
 test "retry_004_http_402_classification" {
   // green：消息映射（MB 当前行为）
   match @client.map_http_error(402, "{\"error\":{\"message\":\"pay up\"}}") {
     Some(msg) => assert_true(msg.contains("Billing"))
     None => abort("402 should map to an error")
   }
-  // BUG-0024：Ruby 冻结值——402 为 RetryableError（可重试）；
-  // MB 实际为 BadRequestError（不可重试），分类内联于 llm_caller.mbt 不可达。
-  // 证据：cases/error_retry/test_cases.json retry-004
-  if known_failure("BUG-0024") {
-    return
-  }
-  // 修复后在此断言 402 的可重试分类（需要 lib 侧提供可观测入口）。
+  // BUG-0024 重新定基线：Ruby 实际 402 → InsufficientCreditError，同样不 rescue、
+  // 不重试；MB 402 → BadRequestError。两侧语义一致，差异只剩错误类型/文案。
+  // 直接分类断言在 lib/agent/llm_caller_wbtest.mbt（classify_http_error 私有）。
 }
 
 ///|
@@ -161,9 +163,11 @@ async test "retry_014_thinking_silent_response_triggers_reask" {
 /// green：map_http_error 对该 body 给出限流类消息（MB 确实检查
 /// ThrottlingException）。
 /// 注意（与用例 verdict=match 不符的发现）：MB 的重试分类只看状态码
-/// （llm_caller.mbt: 429/5xx → RetryableError），400 一律 BadRequestError，
-/// 即 MB 实际不会重试该错误；分类逻辑无纯函数入口，无法在单测断言，
-/// 此差异台账未立项（needs-investigation）。
+/// （classify_http_error: 429/5xx → RetryableError，其余 → BadRequestError），
+/// 400 一律 BadRequestError，即 MB 实际不会重试该错误。
+/// classify_http_error 已下沉为 lib/agent 私有 helper，test/diff 跨包不可
+/// 直接调用；400/402 → BadRequestError 的直接断言在
+/// lib/agent/llm_caller_wbtest.mbt 覆盖。
 test "retry_015_http_400_throttling_exception_message" {
   let body = "{\"error\":{\"message\":\"ThrottlingException: rate exceeded\"}}"
   match @client.map_http_error(400, body) {

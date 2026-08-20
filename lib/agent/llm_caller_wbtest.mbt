@@ -578,3 +578,110 @@ test "check_empty_response thinking-silent stop with reasoning raises" {
   }
   assert_true(raised)
 }
+
+// ── HTTP Error Classification Tests (P5 error classification alignment) ──────
+
+///|
+test "classify_http_error maps 5xx to RetryableError" {
+  let err = try {
+    classify_http_error(503, "", "service unavailable")
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(e) => assert_true(@errors.is_retryable_error(e))
+    None => fail("expected RetryableError")
+  }
+}
+
+///|
+test "classify_http_error maps 429 to RetryableError" {
+  let err = try {
+    classify_http_error(429, "", "rate limited")
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(e) => assert_true(@errors.is_retryable_error(e))
+    None => fail("expected RetryableError")
+  }
+}
+
+///|
+test "classify_http_error maps 400 with ThrottlingException to RetryableError" {
+  let body = "{\"error\":{\"message\":\"ThrottlingException: rate exceeded\"}}"
+  let err = try {
+    classify_http_error(400, body, "throttled")
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(e) => assert_true(@errors.is_retryable_error(e))
+    None => fail("expected RetryableError")
+  }
+}
+
+///|
+test "classify_http_error maps 400 with unavailable to RetryableError" {
+  let err = try {
+    classify_http_error(400, "service unavailable", "bad request")
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(e) => assert_true(@errors.is_retryable_error(e))
+    None => fail("expected RetryableError")
+  }
+}
+
+///|
+test "classify_http_error maps 400 with quota to RetryableError" {
+  let err = try {
+    classify_http_error(400, "exceeded quota", "bad request")
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(e) => assert_true(@errors.is_retryable_error(e))
+    None => fail("expected RetryableError")
+  }
+}
+
+///|
+test "classify_http_error maps plain 400 to BadRequestError" {
+  let err = try {
+    classify_http_error(
+      400, "{\"error\":{\"message\":\"bad request\"}}", "bad request",
+    )
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(@errors.BadRequestError(code, _)) => assert_eq(code, 400)
+    Some(e) => fail("expected BadRequestError, got \{e}")
+    None => fail("expected BadRequestError")
+  }
+}
+
+///|
+test "classify_http_error maps 402 to BadRequestError" {
+  let err = try {
+    classify_http_error(
+      402, "{\"error\":{\"message\":\"payment required\"}}", "payment required",
+    )
+    None
+  } catch {
+    e => Some(e)
+  }
+  match err {
+    Some(@errors.BadRequestError(code, _)) => assert_eq(code, 402)
+    Some(e) => fail("expected BadRequestError, got \{e}")
+    None => fail("expected BadRequestError")
+  }
+}

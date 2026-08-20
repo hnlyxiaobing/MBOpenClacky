@@ -450,12 +450,14 @@ async test "fan_out_timeout_fills_unfinished_slots" {
     {
       label: "slow",
       run: () => {
-        @async.sleep(5000)
+        // Use a very long sleep so that even under heavy event-loop load the
+        // timeout always fires before this job can complete naturally.
+        @async.sleep(3_600_000)
         2
       },
     },
   ]
-  let results = fan_out(jobs, max_concurrency=2, timeout_ms=Some(100)) catch {
+  let results = fan_out(jobs, max_concurrency=2, timeout_ms=Some(200)) catch {
     _ => abort("unexpected")
   }
   @debug.assert_eq(results.length(), 2)

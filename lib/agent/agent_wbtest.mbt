@@ -1858,8 +1858,11 @@ async test "execute_single_tool_injects_todo_reminder" {
 async test "execute_single_tool_injects_clacky_session_id_into_terminal" {
   let agent = make_test_agent()
   // make_test_agent() uses session id "test-session"
+  // On Windows the terminal tool may fall back to cmd.exe or run inside a
+  // PTY-backed bash (e.g. Git Bash).  Use an explicit `cmd /c` invocation so
+  // the Windows variable syntax expands correctly in both shells.
   let cmd = if @tool.shell_is_windows() {
-    "echo %CLACKY_SESSION_ID%"
+    "cmd /c set CLACKY_SESSION_ID"
   } else {
     "echo $CLACKY_SESSION_ID"
   }

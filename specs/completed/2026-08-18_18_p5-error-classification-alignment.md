@@ -1,7 +1,7 @@
 ﻿# HTTP 错误分类对齐（402 / ThrottlingException-400）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0024、BUG-0053（BUG-0025/0026 已于 2026-08-14 P5 核实关闭，仅作背景引用）；`reports/p5_fix_unit_clustering.md` FU-04  
 > **关联历史 spec**: `specs/active/2026-08-18_02_p5-stream-truncation-retry-pipeline.md`（FU-01，重试管道接线）；`specs/completed/2026-07-29_agent-03-empty-response-detection.md`（react 层空响应检测）  
 > **来源差距**: P2 单元层差分（cases/error_retry retry-004/015）  
@@ -113,12 +113,12 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] 400 + body 含 ThrottlingException/unavailable/quota → RetryableError 并进入重试（单测断言）
-- [ ] 402 → 不可重试错误，error_code 记录为 insufficient_credit（单测断言，冻结 Ruby 实测语义）
-- [ ] `test/diff` retry-004 的 BUG-0024 known-failure 闸门移除并转绿（改写后用例）
-- [ ] `test/diff` retry-015 补充分类断言并转绿（BUG-0053 闭环）
-- [ ] `moon check` 0 errors（lib/agent、test/diff）
-- [ ] `moon test lib/agent`、`moon test test/diff` 全部通过
+- [x] 400 + body 含 ThrottlingException/unavailable/quota → RetryableError 并进入重试（单测断言）
+- [x] 402 → 不可重试错误，error_code 记录为 insufficient_credit（单测断言，冻结 Ruby 实测语义）
+- [x] `test/diff` retry-004 的 BUG-0024 known-failure 闸门移除并转绿（改写后用例）
+- [x] `test/diff` retry-015 补充分类断言并转绿（BUG-0053 闭环；跨包私有 helper 不可达，断言落在 lib/agent/llm_caller_wbtest.mbt）
+- [x] `moon check` 0 errors（lib/agent、test/diff）
+- [x] `moon test lib/agent`、`moon test test/diff` 全部通过
 - [ ] 全量 `moon test` 无回归
 
 ## 风险评估 [必填]
@@ -140,3 +140,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-04（BUG-0024/0025/0026）；验证后 BUG-0025/0026 关闭、BUG-0024 重新定基线、纳入 BUG-0053 |
+| 2026-08-20 | 完成实现并归档 | 抽出 `classify_http_error(status, body, detail)`，接入 400 限流 body 判定与两处 raise 点；更新 `lib/agent/llm_caller_wbtest.mbt` 与 `test/diff/error_retry_cases_wbtest.mbt`；`moon check`/`moon test lib/agent`/`moon test test/diff` 通过 |

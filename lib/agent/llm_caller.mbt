@@ -45,6 +45,35 @@ fn retry_delay_ms(_attempt : Int) -> Int {
 }
 
 ///|
+/// Classify an upstream HTTP error into either a retryable transient error
+/// (5xx, 429, 400 with throttling body) or a non-retryable BadRequestError
+/// (everything else).
+fn classify_http_error(
+  status_code : Int,
+  body : String,
+  detail : String,
+) -> Unit raise {
+  let lower = body.to_lower()
+  let is_throttling = status_code == 400 &&
+    (
+      lower.contains("throttlingexception") ||
+      lower.contains("unavailable") ||
+      lower.contains("quota")
+    )
+  if is_throttling {
+    raise @errors.RetryableError("Rate limited or throttled: \{detail}")
+  }
+  match status_code {
+    500..<600 =>
+      raise @errors.RetryableError(
+        "Upstream API returned HTTP \{status_code}: \{detail}",
+      )
+    429 => raise @errors.RetryableError("Rate limited: \{detail}")
+    _ => raise @errors.BadRequestError(status_code, detail)
+  }
+}
+
+///|
 /// Record a retryable failure and transition the fallback state machine.
 ///
 /// - In PrimaryOk: increments consecutive failure counter; if it reaches
@@ -285,11 +314,7 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
         Some(err_msg) => {
           self.record_llm_error(http_resp.status_code, http_resp.body)
           let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
-          if http_resp.status_code == 429 ||
-            (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
-            raise @errors.RetryableError(detail)
-          }
-          raise @errors.BadRequestError(http_resp.status_code, detail)
+          classify_http_error(http_resp.status_code, http_resp.body, detail)
         }
         None => ()
       }
@@ -469,11 +494,7 @@ pub async fn Agent::call_llm_stream_async(
         Some(err_msg) => {
           self.record_llm_error(http_resp.status_code, http_resp.body)
           let detail = "\{err_msg} | url=\{url} status=\{http_resp.status_code} body=\{body_snippet(http_resp.body, 500)}"
-          if http_resp.status_code == 429 ||
-            (http_resp.status_code >= 500 && http_resp.status_code <= 599) {
-            raise @errors.RetryableError(detail)
-          }
-          raise @errors.BadRequestError(http_resp.status_code, detail)
+          classify_http_error(http_resp.status_code, http_resp.body, detail)
         }
         None => ()
       }

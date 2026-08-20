@@ -77,7 +77,10 @@ pub fn collapse_carriage_returns(text : String) -> String {
   if text.is_empty() {
     return text
   }
-  let lines = text.split("\n").collect()
+  // Normalize CRLF line endings first so they are not mistaken for carriage-
+  // return overwrites.  Genuine "abc\rdef" overwrites still collapse below.
+  let normalized = text.replace_all(old="\r\n", new="\n")
+  let lines = normalized.split("\n").collect()
   let parts : Array[String] = []
   for line in lines {
     let segs = line.split("\r").collect()
