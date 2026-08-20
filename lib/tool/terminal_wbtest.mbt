@@ -49,6 +49,93 @@ test "clean_ansi_output passthrough plain text" {
 }
 
 ///|
+async test "debug env propagation via execute_command" {
+  let env = Map::from_array([("CLACKY_SESSION_ID", "test-session")])
+  let cmd = if is_windows_platform() {
+    "cmd /c set CLACKY_SESSION_ID"
+  } else {
+    "echo CLACKY_SESSION_ID=$CLACKY_SESSION_ID"
+  }
+  let (output, exit_code, _path, timed_out) = execute_command(
+    cmd, "", 5000, 0, env,
+  )
+  println(
+    "DEBUG execute_command output: [" +
+    output +
+    "] exit=" +
+    exit_code.to_string() +
+    " timed_out=" +
+    timed_out.to_string(),
+  )
+  assert_true(output.contains("test-session"))
+}
+
+///|
+async test "debug terminal execute with env" {
+  let terminal = Terminal::new()
+  let cmd = if is_windows_platform() {
+    "cmd /c set CLACKY_SESSION_ID"
+  } else {
+    "echo CLACKY_SESSION_ID=$CLACKY_SESSION_ID"
+  }
+  let args : Map[String, Json] = Map::from_array([
+    ("command", Json::string(cmd)),
+    (
+      "env",
+      Json::object(
+        Map::from_array([("CLACKY_SESSION_ID", Json::string("test-session"))]),
+      ),
+    ),
+  ])
+  let result = terminal.execute(args)
+  println(
+    "DEBUG terminal result: is_error=" +
+    result.is_error.to_string() +
+    " content=[" +
+    result.content +
+    "]",
+  )
+  assert_true(result.content.contains("test-session"))
+}
+
+///|
+async test "debug enhanced_process_terminal_output" {
+  let raw = "\r\nCLACKY_SESSION_ID=test-session\r\n\r\nexit_code: 0\r\n"
+  let replaced = raw.replace(old="\r\n", new="\n")
+  println(
+    "DEBUG replaced repr: " +
+    @debug.to_string(replaced.to_array().map(fn(c) { c.to_int().to_string() })),
+  )
+  let a = clean_ansi_output(raw)
+  let b = strip_control_chars(a)
+  let c = collapse_carriage_returns(b)
+  let d = strip_backspaces(c)
+  let e = strip_carriage_returns(d)
+  println(
+    "DEBUG raw repr: " +
+    @debug.to_string(raw.to_array().map(fn(c) { c.to_int().to_string() })),
+  )
+  println(
+    "DEBUG ctrl repr: " +
+    @debug.to_string(b.to_array().map(fn(c) { c.to_int().to_string() })),
+  )
+  println(
+    "DEBUG collapse repr: " +
+    @debug.to_string(c.to_array().map(fn(c) { c.to_int().to_string() })),
+  )
+  println(
+    "DEBUG cr repr: " +
+    @debug.to_string(e.to_array().map(fn(c) { c.to_int().to_string() })),
+  )
+  let (cleaned, _trunc, _path) = enhanced_process_terminal_output(
+    raw,
+    command="cmd /c set CLACKY_SESSION_ID",
+  )
+  println("DEBUG enhanced cleaned: [" + cleaned + "]")
+  assert_true(cleaned.contains("test-session"))
+}
+
+///|
 test "strip_control_chars preserves newlines and tabs" {
   let input = "line1\nline2\ttab\rreturn"
   let result = strip_control_chars(input)

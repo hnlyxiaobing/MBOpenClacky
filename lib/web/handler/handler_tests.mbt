@@ -287,7 +287,12 @@ test "handler: trash list returns 200" {
 
 ///|
 test "handler: trash empty returns 200" {
-  let req = @web.HttpRequest::new(@web.DELETE, "/api/trash")
+  // handle_trash_empty requires {"confirm": true} in the body (spec-17 d2)
+  let req = @web.HttpRequest::new(
+    @web.DELETE,
+    "/api/trash",
+    body="{\"confirm\": true}",
+  )
   let resp = @web.handle_trash_empty(req)
   assert_eq(resp.status, 200)
   assert_true(resp.body.contains("emptied"))
