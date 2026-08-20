@@ -120,14 +120,21 @@ Ruby 参照（openclacky，只读）：`web/api_app.rb`/路由定义、WS 协议
 
 ## 验收标准 [必填]
 
-- [ ] `PATCH /api/skills/:name/enabled` 生效且前端契约联调通过；旧 POST 路径兼容期内可用
-- [ ] `DELETE /api/trash` 无确认参数时返回 400，不再无条件清空
-- [ ] WS message 携带 attachments 时附件进入 agent 消息（与 CLI `-i` 同一注入路径）
-- [ ] edit_message 支持 message_id 定位；缺省行为不变
-- [ ] WS session_list 的 has_more 与真实分页一致
-- [ ] 超时表仅命中声明的 /api 前缀路由；无 contains 宽匹配
-- [ ] /api/projects 组按 Ruby 契约可用
-- [ ] `moon check` 0 errors；全量 `moon test` 无回归
+- [x] `PATCH /api/skills/:name/toggle` 生效且前端契约联调通过；旧 POST 路径兼容期内可用
+  - **修正**: spec 决策 1 原写"`PATCH /api/skills/:name/enabled`"，任务包 0 复核发现前端实际用 `PATCH /api/skills/:name/toggle`（保持 `/toggle` 路径）。落地按前端契约执行：仅改 HTTP 方法 POST→PATCH，路径不变。原决策 1 中 `/enabled` 路径与前端不符，按 Harness v2 "gap 文档是假设"原则修正。
+- [x] `DELETE /api/trash` 无确认参数时返回 400，不再无条件清空
+- [~] WS message 携带 attachments 时附件进入 agent 消息（与 CLI `-i` 同一注入路径）
+  - **部分完成**: attachments/images 字段已解析并附加到用户消息文本中（`extract_attachment_hint`），agent 可读取文件引用。完整 base64 注入路径待 B2 image_inject 函数本体实现后接线（spec 已标注依赖 B2）。原 spec 决策 3 说"经 agent 消息注入（与 B2/B8 共用同一注入函数）"——注入函数本体缺失，先做解析半。
+- [x] edit_message 支持 message_id 定位；缺省行为不变
+  - 用 message.created_at 作为定位键（Message 结构无 id 字段，加 id 会触及核心序列化）
+- [x] WS session_list 的 has_more 与真实分页一致
+  - `build_session_list_event` 增加 has_more 参数（原硬编码 false），WS 全量推送时传 false
+- [x] 超时表仅命中声明的 /api 前缀路由；无 contains 宽匹配
+  - resolve 改为 `has_prefix || has_suffix`，移除 contains；chat/stream 与 chat 通过后缀区分
+- [~] /api/projects 组按 Ruby 契约可用
+  - **豁免**: 任务包 0 复核确认无前端消费方（grep web/ 0 命中），无 Ruby 源码可参照。按 spec 决策 7"无上游消费方的记录豁免"。trash list 的 projects 字段保持空数组（依赖 B3 trash 实体化提供数据源）。
+- [x] `moon check` 0 errors；全量 `moon test` 无回归
+  - 改动相关 wbtest 全过（trash 10、skills 19、store 3、ws 12、timeout 5 新增、events 32 含 2 新增、auth 20、web_handlers 45 含 1 更新、其他 70+）。`handlers_session_ext_wbtest.mbt:188` 的崩溃在改动前 main 分支已存在（save_session FAILED），与本 spec 无关。
 
 ## 风险评估 [必填]
 
@@ -147,3 +154,13 @@ Ruby 参照（openclacky，只读）：`web/api_app.rb`/路由定义、WS 协议
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness 矩阵§9 残留条目核实落 spec；3 项矩阵声称已被后续修复留证据，10 项直接证实，5 项静态证实留任务包 0）。
+- 2026-08-20：开发完成并归档。
+  - **任务包 0 复核修正**：
+    - 决策 1 路径修正：前端实际用 `PATCH /api/skills/:name/toggle`（保持 `/toggle`），非 `/enabled`。落地按前端契约执行。
+    - "X-Lang 端点 missing"误读：X-Lang 是 header 注入（web/app.js:17），非端点。豁免。
+    - /api/projects 无前端消费方、无 Ruby 源码——按决策 7 豁免。
+    - /api/store/extensions/brand 前端在用（web/features/extensions/store.js:159）——补齐。
+  - **任务包 1 落地**：trash 全量清空确认参数（`{"confirm": true}` 否则 400）；技能 toggle PATCH 化（保留 POST 兼容）；超时表去 contains 改 has_prefix + has_suffix。
+  - **任务包 2 落地**：attachments/images 解析（注入半待 B2）；edit_message message_id 定位（用 created_at 作键）；session_list has_more 参数化。
+  - **任务包 3 落地**：/api/store/extensions/brand 端点补齐；SPA fallback 细分（扩展名路径回 404，扩展名外回退 index.html 200）；品牌占位符补齐与 /api/projects 同样豁免（前端只用 2 个，无 Ruby 第 3/4 个可参照）。
+  - **测试**：新增 trash empty 确认参数回归 4 个、timeout 精确匹配 5 个、session_list has_more 2 个、store brand list 1 个；更新 web_handlers trash empty 测试 1 个反映新契约。

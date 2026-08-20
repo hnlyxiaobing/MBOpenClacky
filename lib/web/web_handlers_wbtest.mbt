@@ -484,11 +484,14 @@ test "handler: trash list returns 200" {
 }
 
 ///|
-test "handler: trash empty returns 200" {
+/// spec 2026-08-18_17 decision 2: DELETE /api/trash without the
+/// `{"confirm": true}` body is now rejected with 400 (was 200 — the
+/// old behaviour performed an irreversible unconditional empty).
+test "handler: trash empty rejects without confirm (spec-17 d2)" {
   let req = HttpRequest::new(DELETE, "/api/trash")
   let resp = handle_trash_empty(req)
-  @debug.assert_eq(resp.status, 200)
-  assert_true(resp.body.contains("emptied"))
+  @debug.assert_eq(resp.status, 400)
+  assert_true(resp.body.contains("confirm"))
 }
 
 // ══════════════════════════════════════════════════════════════════

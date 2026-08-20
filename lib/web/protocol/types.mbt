@@ -270,12 +270,20 @@ pub fn build_subscribed_event(target : String) -> String {
 
 ///|
 /// Build a session_list event.
-pub fn build_session_list_event(sessions : Array[Json]) -> String {
+/// `has_more` is now a real parameter (was hardcoded false) so the
+/// WS event face can mirror the HTTP SessionListResponse pagination
+/// semantics. WS senders that push the full list pass false; paged
+/// senders pass the result of total > limit, mirroring
+/// handle_list_sessions. See spec 2026-08-18_17 decision 5.
+pub fn build_session_list_event(
+  sessions : Array[Json],
+  has_more? : Bool = false,
+) -> String {
   build_global_event(
     event_session_list,
     Json::object({
       "sessions": Json::array(sessions),
-      "has_more": false.to_json(),
+      "has_more": has_more.to_json(),
       "cron_count": (0).to_json(),
       "latest_cron_updated_at": Json::null(),
     }),

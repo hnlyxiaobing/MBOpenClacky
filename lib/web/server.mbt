@@ -529,6 +529,10 @@ pub fn WebServer::build_app(
     // Extension store (spec-09): marketplace browse + install/enable/disable/uninstall
     api.group("/store", (st : @crescent.App) => {
       st.get("/extensions", event => handle_store_list_bridge(server_ref, event))
+      // Brand-private extensions (spec 2026-08-18_17 task pack 3).
+      st.get("/extensions/brand", event => {
+        handle_store_brand_list_bridge(server_ref, event)
+      })
       st.get("/extensions/installed", event => {
         handle_store_installed_bridge(server_ref, event)
       })
@@ -589,6 +593,13 @@ pub fn WebServer::build_app(
         handle_skills_put_content_bridge(server_ref, event)
       })
       sk.post("/:name/toggle", event => {
+        handle_skills_toggle_bridge(server_ref, event)
+      })
+      // PATCH /:name/toggle — preferred verb for skill enable/disable,
+      // aligned with the frontend PATCH contract (spec
+      // 2026-08-18_17 decision 1). The legacy POST route above is
+      // retained for one release as a compatibility alias.
+      sk.patch("/:name/toggle", event => {
         handle_skills_toggle_bridge(server_ref, event)
       })
       sk.put("/:name", event => handle_skills_update_bridge(server_ref, event))
@@ -884,19 +895,36 @@ pub fn WebServer::build_app(
 
   // ── Final Fallback ───────────────────────────────────────────
   // If the static middleware could not resolve the path (e.g. missing
-  // index.html), return a plain 404 instead of a generic empty response.
+  // index.html), fall back to SPA behaviour: extensionless paths
+  // (client-side routes like /settings) return index.html so deep
+  // links work; paths that look like static assets (have a file
+  // extension but were not served by StaticServer) return 404 so
+  // broken asset links are surfaced instead of masked as HTML.
+  // /api/*, /ws, and /health are excluded above and never reach here.
   app.set_not_found_handler((event : @crescent.Event) => {
     let path = event.req.path()
     if !path.has_prefix("/api/") &&
       path != "/ws" &&
       !path.has_prefix("/ws/") &&
       path != "/health" {
-      let raw = @fs.read_file_to_string("web/index.html") catch { _ => "" }
-      if !raw.is_empty() {
-        let content = process_template(raw, TemplateConfig::default())
-        return @core.HttpResponse::ok()
-          .header("Content-Type", "text/html; charset=utf-8")
-          .body(content)
+      // Skip paths that look like static assets: anything with a dot
+      // in the last path segment (e.g. style.css, logo.png, app.js).
+      // These were not resolved by StaticServer and should 404.
+      let last_segment = path.split("/").collect()
+      let tail = if last_segment.length() > 0 {
+        last_segment[last_segment.length() - 1]
+      } else {
+        ""
+      }
+      let looks_like_asset = tail.contains(".")
+      if !looks_like_asset {
+        let raw = @fs.read_file_to_string("web/index.html") catch { _ => "" }
+        if !raw.is_empty() {
+          let content = process_template(raw, TemplateConfig::default())
+          return @core.HttpResponse::ok()
+            .header("Content-Type", "text/html; charset=utf-8")
+            .body(content)
+        }
       }
     }
     @core.HttpResponse::not_found().body("Not Found")

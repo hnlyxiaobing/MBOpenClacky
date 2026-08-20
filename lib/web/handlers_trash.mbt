@@ -359,8 +359,33 @@ pub fn handle_trash_delete(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// DELETE /api/trash — Empty the entire recycle bin.
+/// Requires an explicit confirmation parameter in the request body:
+/// `{"confirm": true}`. Without it the request is rejected with 400
+/// to prevent accidental irreversible data loss. The real
+/// delete/restore semantics are still backed by the stub trash model;
+/// once B3 lands trash_manager this route will wire to the real data
+/// surface. See spec 2026-08-18_17 decision 2.
 pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
-  ignore(request)
+  // Require explicit confirmation in the body.
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => Json::empty_object()
+  }
+  let confirmed = match body_json {
+    Object(obj) =>
+      match obj.get("confirm") {
+        Some(True) => true
+        _ => false
+      }
+    _ => false
+  }
+  if !confirmed {
+    let body = Json::object({
+      "ok": false.to_json(),
+      "error": "Missing or false 'confirm' parameter".to_json(),
+      "message": "DELETE /api/trash requires {\"confirm\": true} to prevent accidental data loss".to_json(),
+    }).stringify()
+    return HttpResponse::bad_request(body)
+  }
   ensure_trash_loaded()
 
   let count = trash_state.val.items.length()

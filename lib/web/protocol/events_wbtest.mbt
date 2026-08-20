@@ -125,6 +125,26 @@ test "build_session_list_event: includes has_more cron_count latest_cron_updated
 }
 
 ///|
+/// spec 2026-08-18_17 decision 5: build_session_list_event must
+/// accept a real has_more value (was hardcoded false). When a paged
+/// sender has more sessions than the limit, the WS event face should
+/// mirror the HTTP SessionListResponse semantics.
+test "build_session_list_event: has_more=true reflects real pagination (spec-17 d5)" {
+  let result = build_session_list_event([], has_more=true)
+  let j = parse_json(result)
+  @debug.assert_eq(get_bool(j, "has_more"), true)
+}
+
+///|
+/// Default has_more remains false when omitted (backward compat for
+/// existing send_session_list callers that push the full list).
+test "build_session_list_event: has_more defaults to false (spec-17 d5)" {
+  let result = build_session_list_event([])
+  let j = parse_json(result)
+  @debug.assert_eq(get_bool(j, "has_more"), false)
+}
+
+///|
 test "build_interrupted_event: only type and session_id, no data" {
   let result = build_interrupted_event("sess-1")
   let j = parse_json(result)

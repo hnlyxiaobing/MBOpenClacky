@@ -393,8 +393,14 @@ fn handle_ws_interrupt(
 
 ///|
 /// Handle message (chat) message.
-/// Format: {"type": "message", "session_id": "...", "content": "..."}
-/// Echoes the user message and starts an async agent run.
+/// Format: {"type": "message", "session_id": "...", "content": "...",
+///           "attachments": [...], "images": [...]}
+/// `attachments` / `images` are parsed here so the agent run can pick
+/// them up. The actual image-injection plumbing is shared with the
+/// CLI `-i` path via the agent's tool-result image_inject mechanism
+/// (B2 spec 2026-08-18_04). Until B2 lands the injection helper, the
+/// parsed attachment metadata is attached to the user message as
+/// system_injected context so the agent can read referenced files.
 async fn handle_ws_message(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
@@ -411,14 +417,71 @@ async fn handle_ws_message(
     None => return
   }
   ensure_subscribed(hub, conn_id, session_id)
-  start_ws_run(server_ref, session_id, message)
+  // Parse optional attachments/images. The parsed metadata is folded
+  // into the user message text so the agent sees the referenced files
+  // even before the B2 image_inject plumbing is wired. Base64 payloads
+  // are NOT inlined here to avoid unbounded memory growth; clients
+  // should upload via POST /api/upload and pass the returned path.
+  let attachment_hint = extract_attachment_hint(obj)
+  let final_message = if attachment_hint.length() > 0 {
+    message + "\n\n[attachments]\n" + attachment_hint
+  } else {
+    message
+  }
+  start_ws_run(server_ref, session_id, final_message)
+}
+
+///|
+/// Extract a compact description of any `attachments` / `images`
+/// fields present on a WS message object. Returns an empty string
+/// when neither field is present. The description is appended to the
+/// user message so the agent can act on referenced files. This is the
+/// parsing half of the WS attachment pipeline (spec 2026-08-18_17
+/// decision 3); the injection half waits on B2.
+fn extract_attachment_hint(obj : Map[String, Json]) -> String {
+  let parts : Array[String] = []
+  match obj.get("attachments") {
+    Some(Array(arr)) =>
+      for item in arr {
+        match item {
+          Object(o) =>
+            match (o.get("path"), o.get("name")) {
+              (Some(String(p)), _) => parts.push("file:" + p)
+              (_, Some(String(n))) => parts.push("file:" + n)
+              _ => ()
+            }
+          String(s) => parts.push("file:" + s)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  match obj.get("images") {
+    Some(Array(arr)) =>
+      for item in arr {
+        match item {
+          Object(o) =>
+            match o.get("path") {
+              Some(String(p)) => parts.push("image:" + p)
+              _ => ()
+            }
+          String(s) => parts.push("image:" + s)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  parts.join("\n")
 }
 
 ///|
 /// Handle edit_message message.
 /// Format: {"type": "edit_message", "session_id": "...", "content": "..."}
-/// Replaces the last user message in the agent history (dropping everything
-/// after it) and re-runs the agent.
+/// Optional `message_id` (matched against message.created_at) locates
+/// the edit point; when absent the handler keeps the legacy "last user
+/// message" behaviour. Dropping everything after the edit point and
+/// re-running mirrors the Ruby edit_message semantics (see spec
+/// 2026-08-18_17 decision 4).
 async fn handle_ws_edit_message(
   server_ref : Ref[WebServer],
   _peer : @ws.WebSocketPeer,
@@ -436,23 +499,54 @@ async fn handle_ws_edit_message(
   }
   ensure_subscribed(hub, conn_id, session_id)
   let agent = server_ref.val.get_or_create_agent(session_id)
-  // Locate the last user message in the agent history.
-  let mut last_user_idx = -1
-  for i, m in agent.history.all() {
-    if m.role is @message.User {
-      last_user_idx = i
+  // Resolve the edit point. If the client supplied `message_id` we
+  // match it against message.created_at; otherwise we fall back to the
+  // last user message (legacy behaviour).
+  let target_id = match obj.get("message_id") {
+    Some(String(s)) if !s.is_empty() => Some(s)
+    _ => None
+  }
+  let mut target_idx = -1
+  match target_id {
+    Some(id) => {
+      let mut i = 0
+      for m in agent.history.all() {
+        match m.created_at {
+          Some(ts) if ts == id => {
+            target_idx = i
+            break
+          }
+          _ => ()
+        }
+        i = i + 1
+      }
+      if target_idx < 0 {
+        hub.broadcast_session(
+          session_id,
+          @protocol.build_error_event(session_id, "message_id not found: " + id),
+        )
+        return
+      }
+    }
+    None => {
+      // Legacy: locate the last user message in the agent history.
+      for i, m in agent.history.all() {
+        if m.role is @message.User {
+          target_idx = i
+        }
+      }
+      if target_idx < 0 {
+        hub.broadcast_session(
+          session_id,
+          @protocol.build_error_event(session_id, "no user message to edit"),
+        )
+        return
+      }
     }
   }
-  if last_user_idx < 0 {
-    hub.broadcast_session(
-      session_id,
-      @protocol.build_error_event(session_id, "no user message to edit"),
-    )
-    return
-  }
-  // Drop the last user message and everything after it; the run re-pushes
+  // Drop the target message and everything after it; the run re-pushes
   // the edited message as the new last user message.
-  while agent.history.size() > last_user_idx {
+  while agent.history.size() > target_idx {
     ignore(agent.history.pop_last())
   }
   start_ws_run(server_ref, session_id, message)

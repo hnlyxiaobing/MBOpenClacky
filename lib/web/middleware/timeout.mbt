@@ -19,19 +19,26 @@ pub(all) struct TimeoutConfig {
 /// - /api/brand/*: 90s (license validation, crypto operations)
 /// - /api/browser/*: 30s (browser automation)
 /// - /api/exchange/*: 20s (exchange rate lookups)
-/// - /api/video/*: 600s (video processing)
-/// - /api/audio/*: 120s (audio processing)
-/// - /api/sessions/*/chat/stream: 300s (streaming agent conversations)
-/// - /api/sessions/*/chat: 120s (non-streaming agent conversations)
+/// - /api/media/video: 600s (video processing)
+/// - /api/media/audio: 120s (audio processing)
+/// - /api/sessions/:id/chat/stream: 300s (streaming agent conversations)
+/// - /api/sessions/:id/chat: 120s (non-streaming agent conversations)
 /// - default: 30s
+///
+/// Chat routes are keyed by their `/chat/stream` and `/chat` suffixes
+/// (longest first) so that the streaming variant wins before the plain
+/// chat match. `resolve` matches both `has_prefix` (for `/api/*` routes)
+/// and `has_suffix` (for `/chat` and `/chat/stream`); the previous
+/// `contains` fallback matched any URL containing "/chat" (e.g.
+/// `/api/skills/chat-export`), so it was removed.
 pub fn default_timeout_config() -> TimeoutConfig {
   {
     routes: [
       ("/api/brand/", 90000),
       ("/api/browser/", 30000),
       ("/api/exchange/", 20000),
-      ("/api/video/", 600000),
-      ("/api/audio/", 120000),
+      ("/api/media/video", 600000),
+      ("/api/media/audio", 120000),
       ("/chat/stream", 300000),
       ("/chat", 120000),
     ],
@@ -41,15 +48,23 @@ pub fn default_timeout_config() -> TimeoutConfig {
 
 ///|
 /// Resolve the timeout for a given URL path based on the configuration.
-/// Routes are checked in order; first match wins.
+/// Routes are checked in order; first match wins. A route matches when
+/// the URL either starts with or ends with the configured pattern:
+///   - prefix-style routes (`/api/brand/`) match via `has_prefix`
+///   - suffix-style routes (`/chat`, `/chat/stream`) match via `has_suffix`
+/// Order the routes so longer suffixes precede shorter ones
+/// (e.g. `/chat/stream` before `/chat`) to keep the streaming variant
+/// from being shadowed by the plain chat match.
+///
+/// The previous implementation used `has_prefix || contains`, which
+/// matched any URL containing the substring (e.g. "/chat" hit
+/// `/api/skills/chat-export`), so the `contains` fallback was removed.
 pub fn TimeoutConfig::resolve(self : TimeoutConfig, url : String) -> Int {
   let mut i = 0
   while i < self.routes.length() {
-    let route = self.routes[i]
-    let prefix = route.0
-    let timeout = route.1
-    if url.has_prefix(prefix) || url.contains(prefix) {
-      return timeout
+    let prefix = self.routes[i].0
+    if url.has_prefix(prefix) || url.has_suffix(prefix) {
+      return self.routes[i].1
     }
     i = i + 1
   }

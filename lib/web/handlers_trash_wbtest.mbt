@@ -224,3 +224,82 @@ test "trash clear sessions: deletes only session items (web-ui2-03 BUG-022)" {
   }
   tw_reset_trash([])
 }
+
+///|
+/// spec 2026-08-18_17 decision 2: DELETE /api/trash must require
+/// `{"confirm": true}` in the body; without it the request is 400
+/// and the trash state is untouched (no irreversible data loss).
+test "trash empty: rejects without confirm parameter (spec-17 d2)" {
+  tw_reset_trash([tw_session_item("s1", "A Session")])
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/trash",
+    params: [],
+    body: "",
+    headers: [],
+  }
+  let resp = handle_trash_empty(req)
+  @debug.assert_eq(resp.status, 400)
+  // Trash state must be preserved.
+  @debug.assert_eq(trash_state.val.items.length(), 1)
+  tw_reset_trash([])
+}
+
+///|
+/// spec 2026-08-18_17 decision 2: with confirm=true the empty
+/// succeeds and clears the bin.
+test "trash empty: succeeds with confirm=true (spec-17 d2)" {
+  tw_reset_trash([
+    tw_session_item("s1", "First"),
+    tw_file_item("f1", "/tmp/a.txt"),
+  ])
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/trash",
+    params: [],
+    body: "{\"confirm\": true}",
+    headers: [],
+  }
+  let resp = handle_trash_empty(req)
+  @debug.assert_eq(resp.status, 200)
+  guard! tw_body_json(resp) is Json::Object(obj)
+  @debug.assert_eq(obj.get("status"), Some("emptied".to_json()))
+  @debug.assert_eq(obj.get("items_deleted"), Some((2).to_json()))
+  @debug.assert_eq(trash_state.val.items.length(), 0)
+}
+
+///|
+/// spec 2026-08-18_17 decision 2: confirm=false is treated as
+/// missing confirmation (400, no deletion).
+test "trash empty: rejects with confirm=false (spec-17 d2)" {
+  tw_reset_trash([tw_session_item("s1", "A Session")])
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/trash",
+    params: [],
+    body: "{\"confirm\": false}",
+    headers: [],
+  }
+  let resp = handle_trash_empty(req)
+  @debug.assert_eq(resp.status, 400)
+  @debug.assert_eq(trash_state.val.items.length(), 1)
+  tw_reset_trash([])
+}
+
+///|
+/// spec 2026-08-18_17 decision 2: malformed body is treated as
+/// not confirmed (400, no deletion).
+test "trash empty: rejects with malformed body (spec-17 d2)" {
+  tw_reset_trash([tw_session_item("s1", "A Session")])
+  let req : HttpRequest = {
+    http_method: DELETE,
+    path: "/api/trash",
+    params: [],
+    body: "not-json",
+    headers: [],
+  }
+  let resp = handle_trash_empty(req)
+  @debug.assert_eq(resp.status, 400)
+  @debug.assert_eq(trash_state.val.items.length(), 1)
+  tw_reset_trash([])
+}

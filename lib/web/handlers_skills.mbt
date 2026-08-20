@@ -461,7 +461,8 @@ pub fn handle_skills_update(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
-/// POST /api/skills/:name/toggle — Enable/disable a skill via `.disabled` marker.
+/// PATCH /api/skills/:name/toggle — Enable/disable a skill via `.disabled` marker.
+/// (Legacy POST route retained as a compatibility alias.)
 /// Body: {"enabled":true|false}
 pub fn handle_skills_toggle(request : HttpRequest) -> HttpResponse {
   let name = match validated_name(request) {

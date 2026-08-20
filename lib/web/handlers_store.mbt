@@ -380,3 +380,19 @@ pub fn handle_store_uninstall(request : HttpRequest) -> HttpResponse {
       }
   }
 }
+
+///|
+/// GET /api/store/extensions/brand — List brand-private marketplace extensions.
+/// The frontend (web/features/extensions/store.js#loadBrandExtensions)
+/// expects `{ extensions: [], warning: string|null }`. Until a
+/// brand-scoped registry is wired (B3/brand spec), this returns an
+/// empty list with a warning so the panel can render the empty state
+/// rather than failing the fetch. See spec 2026-08-18_17 task pack 3.
+pub fn handle_store_brand_list(_request : HttpRequest) -> HttpResponse {
+  let resp = Json::object({
+    "ok": true.to_json(),
+    "extensions": Json::array([]),
+    "warning": "No brand-private extension registry configured".to_json(),
+  }).stringify()
+  HttpResponse::ok(resp)
+}

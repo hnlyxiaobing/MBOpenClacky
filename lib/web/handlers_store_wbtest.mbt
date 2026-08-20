@@ -74,3 +74,20 @@ test "store uninstall rejects unknown id even with purge_data" {
   @debug.assert_eq(resp.status, 400)
   st_pop_profile(old)
 }
+
+///|
+/// spec 2026-08-18_17 task pack 3: GET /api/store/extensions/brand
+/// returns the frontend-expected shape `{ ok, extensions, warning }`
+/// with an empty extensions list (no brand registry configured).
+test "store brand list: returns empty extensions with warning (spec-17 tp3)" {
+  let resp = handle_store_brand_list(
+    HttpRequest::new(GET, "/api/store/extensions/brand"),
+  )
+  @debug.assert_eq(resp.status, 200)
+  let j = @json.parse(resp.body) catch { _ => Json::object(Map([])) }
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  guard! obj.get("extensions") is Some(Json::Array(arr))
+  @debug.assert_eq(arr.length(), 0)
+  guard! obj.get("warning") is Some(Json::String(_))
+}

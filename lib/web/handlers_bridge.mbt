@@ -749,6 +749,16 @@ fn handle_store_installed_bridge(
 }
 
 ///|
+/// GET /api/store/extensions/brand - list brand-private extensions.
+fn handle_store_brand_list_bridge(
+  _server_ref : Ref[WebServer],
+  event : @crescent.Event,
+) -> @core.HttpResponse {
+  let req = event_to_request(event, [])
+  response_to_core(handle_store_brand_list(req))
+}
+
+///|
 /// GET /api/store/extension?id= - extension detail.
 fn handle_store_detail_bridge(
   _server_ref : Ref[WebServer],
