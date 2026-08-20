@@ -437,6 +437,9 @@ pub struct FanOutResult[X] {
 } derive(Debug)
 
 ///|
+pub extend FanOutResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 /// True when the job completed without raising (Ruby Result#ok?).
 pub fn[X] FanOutResult::ok(self : FanOutResult[X]) -> Bool {
   self.error is None
