@@ -1,7 +1,7 @@
 ﻿# 工具错误 tool_result JSON 序列化对齐（BUG-0040）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0040；`reports/p5_fix_unit_clustering.md` FU-15  
 > **关联历史 spec**: `specs/active/2026-08-18_02_p5-stream-truncation-retry-pipeline.md`（FU-01，剧本 010 上有断言交叠）  
 > **来源差距**: P3 链路层差分（剧本 010/014）  
@@ -103,13 +103,13 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] 工具错误 tool_result content 为合法 JSON 且结构为 `{"error": "<msg>"}`（单测，含特殊字符往返用例）
-- [ ] denied 结果为标准 JSON `{error, action_performed, user_feedback}` 三字段（单测）
-- [ ] test/e2e 剧本 014 增加 tool content JSON 断言并通过（BUG-0040 断言闸门转绿）
-- [ ] `test/diff/known_failure.mbt` 的 BUG-0040 登记移除
-- [ ] `moon check` 0 errors（lib/agent、test/e2e、test/diff）
-- [ ] `moon test lib/agent`、`moon test test/e2e` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] 工具错误 tool_result content 为合法 JSON 且结构为 `{"error": "<msg>"}`（单测，含特殊字符往返用例）
+- [x] denied 结果为标准 JSON `{error, action_performed, user_feedback}` 三字段（单测）
+- [x] test/e2e 剧本 014 增加 tool content JSON 断言并通过（BUG-0040 断言闸门转绿）
+- [x] `test/diff/known_failure.mbt` 的 BUG-0040 登记移除
+- [x] `moon check` 0 errors（lib/agent、test/e2e、test/diff）
+- [x] `moon test lib/agent`、`moon test test/e2e` 全部通过
+- [x] 全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -130,3 +130,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-15（BUG-0040） |
+| 2026-08-21 | 标记已完成；全部验收项勾选 | 开发完成：序列化修复、wbtest 增强、e2e 断言转绿、BUG-0040 闸门移除 |

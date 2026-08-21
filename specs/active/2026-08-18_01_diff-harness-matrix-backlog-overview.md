@@ -86,7 +86,7 @@
 | 21 | [21_p6-billing-telemetry-residual-alignment.md](./2026-08-18_21_p6-billing-telemetry-residual-alignment.md) | B11 / 计费/遥测/重试残留（矩阵§11） | 13 + 06 + 02/08/18 | 单点记账、api_cost 三级、重试管道接线、遥测 opt-out |
 | 22 | [22_p6-e2e-link-layer-completion.md](./2026-08-18_22_p6-e2e-link-layer-completion.md) | B12 / e2e 链路层补全（P3 收尾） | 06 + 13 + 09（005） | mock 畸形 SSE/finish_reason、011/012 断言、005 fixture |
 | 23 | [23_p5-observability-stats-fields.md](./2026-08-18_23_p5-observability-stats-fields.md) | FU-14 / 可观测性统计字段 | 02/08（同文件错峰） | aggregator stats、usage cached_tokens、latency、display_* | **已完成（2026-08-21）· 已归档** |
-| 24 | [24_p5-tool-result-json-format.md](./2026-08-18_24_p5-tool-result-json-format.md) | FU-15 / 工具错误 tool_result JSON（BUG-0040） | 无 | 伪 JSON 序列化修正；014 断言随 B2 决策 2 |
+| 24 | [24_p5-tool-result-json-format.md](../completed/2026-08-18_24_p5-tool-result-json-format.md) | FU-15 / 工具错误 tool_result JSON（BUG-0040） | 无 | 伪 JSON 序列化修正；014 断言随 B2 决策 2 | **已完成（2026-08-21）· 已归档** |
 | 25 | [25_p5-write-tool-boundary-checks.md](./2026-08-18_25_p5-write-tool-boundary-checks.md) | FU-10 / write 边界检查（BUG-0002/0003/0047） | 无 | 写边界检查补全（工具簇，可与 26 并行） |
 | 26 | [26_p5-edit-tool-alignment.md](./2026-08-18_26_p5-edit-tool-alignment.md) | FU-16 / edit 工具对齐（BUG-0044/0045/0046） | 无 | 分层匹配/参数校验/UTF-8 健壮性（工具簇） |
 | 27 | [27_p5-path-handling-completion.md](./2026-08-18_27_p5-path-handling-completion.md) | FU-11 / 路径处理补全（BUG-0005/0008/0007） | 无 | ~user 解析 + 绝对路径行为核实（工具簇） |

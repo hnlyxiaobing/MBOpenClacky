@@ -74,7 +74,10 @@ let known_failure_bug_ids : Array[String] = [
   // BUG-0039 已修复（spec 2026-08-18_08：013 的"15 请求"系 diff-harness 记录
   // 污染——req_0009+ 为 014 场景进程误写入；真实根因是指数退避拖垮 300s 超时。
   // 退避固定 5s 后 11 请求干净 exit=1，e2e 013 转绿），移出注册表
-   "BUG-0040", // 工具错误 tool_result 非标准 JSON
+  // BUG-0040 已修复（spec 2026-08-18_24_p5-tool-result-json-format.md：
+  // build_error_result / build_denied_result 改为 Json::object + stringify，
+  // tool_result content 为标准 JSON；e2e 014 assert_tool_results_valid_json 生效），
+  // 移出注册表
   // BUG-0041 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
   // apply_env_overlay 读取 MBOPENCLACKY_COMPRESSION_THRESHOLD），移出注册表
   // BUG-0042 已修复（spec 2026-08-18_09_p5-compression-trigger-semantics.md：

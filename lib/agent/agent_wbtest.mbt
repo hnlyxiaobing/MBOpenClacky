@@ -362,6 +362,34 @@ test "build_error_result" {
   let entry = build_error_result(call, "file not found")
   @debug.assert_eq(entry.id, "call_2")
   assert_true(entry.is_error)
+  // BUG-0040 回归：内容必须是合法 JSON，error 字段还原原消息
+  let parsed = @json.parse(entry.content) catch { _ => panic() }
+  match parsed {
+    Object(obj) => {
+      assert_true(obj.contains("error"))
+      match obj["error"] {
+        String(s) => @debug.assert_eq(s, "file not found")
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "build_error_result_special_chars_roundtrip" {
+  let call = make_tool_call("call_x", "file_reader", "{}")
+  let msg = "msg with \"quotes\", \n newline, 中文, \\ backslash"
+  let entry = build_error_result(call, msg)
+  let parsed = @json.parse(entry.content) catch { _ => panic() }
+  match parsed {
+    Object(obj) =>
+      match obj["error"] {
+        String(s) => @debug.assert_eq(s, msg)
+        _ => panic()
+      }
+    _ => panic()
+  }
 }
 
 ///|
@@ -370,14 +398,45 @@ test "build_denied_result_no_feedback" {
   let entry = build_denied_result(call, None)
   @debug.assert_eq(entry.id, "call_3")
   assert_true(entry.is_error)
-  assert_true(entry.content.find("denied") is Some(_))
+  // BUG-0040 回归：denied 内容为合法 JSON，三字段对齐 Ruby
+  let parsed = @json.parse(entry.content) catch { _ => panic() }
+  match parsed {
+    Object(obj) => {
+      assert_true(obj.contains("error"))
+      match obj["error"] {
+        String(s) => assert_true(s.contains("denied"))
+        _ => panic()
+      }
+      assert_true(obj.contains("action_performed"))
+      match obj["action_performed"] {
+        False => ()
+        _ => panic()
+      }
+      assert_true(obj.contains("user_feedback"))
+      assert_true(obj["user_feedback"] is Json::Null)
+    }
+    _ => panic()
+  }
 }
 
 ///|
 test "build_denied_result_with_feedback" {
   let call = make_tool_call("call_4", "terminal", "{}")
   let entry = build_denied_result(call, Some("use ls instead"))
-  assert_true(entry.content.find("use ls instead") is Some(_))
+  let parsed = @json.parse(entry.content) catch { _ => panic() }
+  match parsed {
+    Object(obj) => {
+      match obj["user_feedback"] {
+        String(s) => @debug.assert_eq(s, "use ls instead")
+        _ => panic()
+      }
+      match obj["action_performed"] {
+        False => ()
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
 }
 
 ///|
