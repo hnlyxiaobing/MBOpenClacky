@@ -1,7 +1,7 @@
 # 平台 HTTP failover 域名补齐（BUG-0031）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0031；`reports/p5_fix_unit_clustering.md` FU-05  
 > **关联历史 spec**: 无  
 > **来源差距**: P2 单元层差分（cases/error_retry retry-020）  
@@ -84,11 +84,11 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 
 ## 验收标准 [必填]
 
-- [ ] PlatformHttpConfig 支持 primary/secondary/fallback 三域，failover 按序推进、空段跳过（单测断言）
-- [ ] `test/diff` retry-020 的 BUG-0031 known-failure 闸门移除并转绿
-- [ ] `moon check` 0 errors（lib/client、test/diff）
-- [ ] `moon test lib/client`、`moon test test/diff` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] PlatformHttpConfig 支持 primary/secondary/fallback 三域，failover 按序推进、空段跳过（单测断言）
+- [x] `test/diff` retry-020 的 BUG-0031 known-failure 闸门移除并转绿
+- [x] `moon check` 0 errors（lib/client、test/diff）
+- [x] `moon test lib/client`、`moon test test/diff` 全部通过
+- [x] 全量 `moon test` 无回归（3831/3831 通过）
 
 ## 风险评估 [必填]
 
@@ -108,3 +108,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-05（BUG-0031） |
+| 2026-08-21 | 开发完成：`PlatformHttpConfig` 补 `secondary_host` 字段（默认 `""`），failover 改为 primary→secondary→fallback 链式推进、空段跳过、链尾回卷；wbtest 新增三域顺序/空段跳过/secondary-only 用例；retry-020 移除 BUG-0031 闸门断言三域转绿；BUG-0031 移出 known_failure 注册表。`moon check` 0 errors，全量 `moon test` 3831/3831 通过 | P5 修复实施 |

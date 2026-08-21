@@ -6,6 +6,7 @@
 /// Platform HTTP client configuration.
 pub struct PlatformHttpConfig {
   primary_host : String
+  secondary_host : String
   fallback_host : String
   open_timeout_ms : Int
   read_timeout_ms : Int
@@ -24,6 +25,7 @@ pub extend PlatformHttpConfig with Eq::{not_equal, equal}
 /// Create a new platform HTTP config with sensible defaults.
 pub fn PlatformHttpConfig::new(
   primary_host~ : String,
+  secondary_host? : String = "",
   fallback_host? : String = "",
   open_timeout_ms? : Int = 8000,
   read_timeout_ms? : Int = 15000,
@@ -33,6 +35,7 @@ pub fn PlatformHttpConfig::new(
 ) -> PlatformHttpConfig {
   {
     primary_host,
+    secondary_host,
     fallback_host,
     open_timeout_ms,
     read_timeout_ms,
@@ -147,6 +150,24 @@ pub async fn PlatformHttpClient::delete(
 }
 
 ///|
+/// Ordered failover chain: primary -> secondary -> fallback, empty hosts skipped.
+fn PlatformHttpClient::failover_chain(
+  self : PlatformHttpClient,
+) -> Array[String] {
+  let chain : Array[String] = []
+  if self.config.primary_host.length() > 0 {
+    chain.push(self.config.primary_host)
+  }
+  if self.config.secondary_host.length() > 0 {
+    chain.push(self.config.secondary_host)
+  }
+  if self.config.fallback_host.length() > 0 {
+    chain.push(self.config.fallback_host)
+  }
+  chain
+}
+
+///|
 /// Execute request with retry and failover logic.
 async fn PlatformHttpClient::execute_with_retry(
   self : PlatformHttpClient,
@@ -157,67 +178,53 @@ async fn PlatformHttpClient::execute_with_retry(
 ) -> Result[HttpResponse, HttpError] {
   let max_attempts = self.config.max_retries + 1
   let mut last_error : HttpError = ConnectionFailed("no attempt made")
-  // Try current host
-  for attempt = 0; attempt < max_attempts; attempt = attempt + 1 {
-    if attempt > 0 {
-      let _backoff = self.calculate_backoff(attempt - 1)
-      // In a real implementation, we would sleep for backoff ms here
-    }
-    let url = build_request_url(self.current_host, path)
-    let result = send_request(
-      http_method,
-      url,
-      body,
-      headers,
-      self.config.read_timeout_ms,
-    )
-    match result {
-      Ok(response) => {
-        self.consecutive_failures = 0
-        return Ok(response)
+  // Walk the failover chain starting from the current host.
+  let chain = self.failover_chain()
+  let start = chain.search_by(fn(h) { h == self.current_host })
+  let hosts : Array[String] = match start {
+    Some(i) => {
+      let rest : Array[String] = []
+      for j = i; j < chain.length(); j = j + 1 {
+        rest.push(chain[j])
       }
-      Err(err) => {
-        last_error = err
-        self.consecutive_failures = self.consecutive_failures + 1
-        if !is_retryable(last_error) {
-          return Err(last_error)
-        }
-      }
+      rest
     }
+    None => chain
   }
-  // If we can failover, try the other host
-  if self.should_failover(last_error) {
-    self.do_failover()
-    // Only retry on failover host if we actually switched
-    if self.current_host != self.config.primary_host ||
-      self.config.fallback_host == "" {
-      // We switched hosts, try again
-      for attempt = 0; attempt < max_attempts; attempt = attempt + 1 {
-        if attempt > 0 {
-          let _backoff = self.calculate_backoff(attempt - 1)
+  for host_idx = 0; host_idx < hosts.length(); host_idx = host_idx + 1 {
+    let host = hosts[host_idx]
+    self.current_host = host
+    for attempt = 0; attempt < max_attempts; attempt = attempt + 1 {
+      if attempt > 0 {
+        let _backoff = self.calculate_backoff(attempt - 1)
+        // In a real implementation, we would sleep for backoff ms here
+      }
+      let url = build_request_url(host, path)
+      let result = send_request(
+        http_method,
+        url,
+        body,
+        headers,
+        self.config.read_timeout_ms,
+      )
+      match result {
+        Ok(response) => {
+          self.consecutive_failures = 0
+          return Ok(response)
         }
-        let url = build_request_url(self.current_host, path)
-        let result = send_request(
-          http_method,
-          url,
-          body,
-          headers,
-          self.config.read_timeout_ms,
-        )
-        match result {
-          Ok(response) => {
-            self.consecutive_failures = 0
-            return Ok(response)
-          }
-          Err(err) => {
-            last_error = err
-            self.consecutive_failures = self.consecutive_failures + 1
-            if !is_retryable(last_error) {
-              return Err(last_error)
-            }
+        Err(err) => {
+          last_error = err
+          self.consecutive_failures = self.consecutive_failures + 1
+          if !is_retryable(last_error) {
+            return Err(last_error)
           }
         }
       }
+    }
+    // Host exhausted; reset failover counters only when advancing further.
+    if host_idx + 1 < hosts.length() {
+      self.last_failover_epoch = 1
+      self.consecutive_failures = 0
     }
   }
   Err(
@@ -247,26 +254,27 @@ fn PlatformHttpClient::should_failover(
   self : PlatformHttpClient,
   error : HttpError,
 ) -> Bool {
-  guard self.config.fallback_host.length() > 0 else { return false }
   match error {
-    Timeout(_) => true
-    ConnectionFailed(_) => true
-    ServerError(_, _) => true
+    Timeout(_) => self.failover_chain().length() > 1
+    ConnectionFailed(_) => self.failover_chain().length() > 1
+    ServerError(_, _) => self.failover_chain().length() > 1
     ClientError(_, _) => false
     AllHostsFailed(_) => false
   }
 }
 
 ///|
-/// Execute failover: switch to the other host.
+/// Execute failover: advance to the next host in the chain
+/// (primary -> secondary -> fallback), wrapping around at the tail.
 fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
-  if self.config.fallback_host == "" {
+  let chain = self.failover_chain()
+  if chain.length() <= 1 {
     return
   }
-  if self.current_host == self.config.primary_host {
-    self.current_host = self.config.fallback_host
-  } else {
-    self.current_host = self.config.primary_host
+  let idx = chain.search_by(fn(h) { h == self.current_host })
+  self.current_host = match idx {
+    Some(i) => chain[(i + 1) % chain.length()]
+    None => chain[0]
   }
   self.last_failover_epoch = 1
   self.consecutive_failures = 0

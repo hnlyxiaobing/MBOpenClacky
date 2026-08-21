@@ -9,6 +9,12 @@ test "PlatformHttpConfig new defaults" {
     ),
   )
   @debug.debug_inspect(
+    cfg.secondary_host,
+    content=(
+      #|""
+    ),
+  )
+  @debug.debug_inspect(
     cfg.fallback_host,
     content=(
       #|""
@@ -30,6 +36,7 @@ test "PlatformHttpConfig new defaults" {
 test "PlatformHttpConfig new with all params" {
   let cfg = PlatformHttpConfig::new(
     primary_host="https://api.example.com",
+    secondary_host="https://api-cdn.example.com",
     fallback_host="https://api-backup.example.com",
     open_timeout_ms=5000,
     read_timeout_ms=10000,
@@ -41,6 +48,12 @@ test "PlatformHttpConfig new with all params" {
     cfg.primary_host,
     content=(
       #|"https://api.example.com"
+    ),
+  )
+  @debug.debug_inspect(
+    cfg.secondary_host,
+    content=(
+      #|"https://api-cdn.example.com"
     ),
   )
   @debug.debug_inspect(
@@ -201,6 +214,83 @@ test "do_failover no-op without fallback" {
     client.active_host(),
     content=(
       #|"https://primary.example.com"
+    ),
+  )
+}
+
+///|
+test "do_failover three-domain chain order" {
+  let cfg = PlatformHttpConfig::new(
+    primary_host="https://primary.example.com",
+    secondary_host="https://secondary.example.com",
+    fallback_host="https://fallback.example.com",
+  )
+  let client = PlatformHttpClient::new(cfg)
+  // primary -> secondary -> fallback, then wrap back to primary
+  client.do_failover()
+  @debug.debug_inspect(
+    client.active_host(),
+    content=(
+      #|"https://secondary.example.com"
+    ),
+  )
+  client.do_failover()
+  @debug.debug_inspect(
+    client.active_host(),
+    content=(
+      #|"https://fallback.example.com"
+    ),
+  )
+  client.do_failover()
+  @debug.debug_inspect(
+    client.active_host(),
+    content=(
+      #|"https://primary.example.com"
+    ),
+  )
+}
+
+///|
+test "do_failover empty secondary skips to fallback" {
+  let cfg = PlatformHttpConfig::new(
+    primary_host="https://primary.example.com",
+    fallback_host="https://fallback.example.com",
+  )
+  let client = PlatformHttpClient::new(cfg)
+  client.do_failover()
+  @debug.debug_inspect(
+    client.active_host(),
+    content=(
+      #|"https://fallback.example.com"
+    ),
+  )
+}
+
+///|
+test "should_failover with secondary host" {
+  // secondary alone (no fallback) still offers a failover target
+  let cfg = PlatformHttpConfig::new(
+    primary_host="https://api.example.com",
+    secondary_host="https://secondary.example.com",
+  )
+  let client = PlatformHttpClient::new(cfg)
+  @debug.debug_inspect(
+    client.should_failover(Timeout("timeout")),
+    content="true",
+  )
+}
+
+///|
+test "failover_chain skips empty hosts" {
+  let cfg = PlatformHttpConfig::new(
+    primary_host="https://primary.example.com",
+    fallback_host="https://fallback.example.com",
+  )
+  let client = PlatformHttpClient::new(cfg)
+  @debug.debug_inspect(
+    client.failover_chain(),
+    content=(
+      #|["https://primary.example.com", "https://fallback.example.com"]
     ),
   )
 }

@@ -62,7 +62,9 @@ let known_failure_bug_ids : Array[String] = [
   // 阶段 A 闭合 retry-017，阶段 B 生产接线另案），移出注册表
   // BUG-0029 已修复（spec 2026-08-18_14：Aggressive 钳制 [4, min(len-2, 64)]
   // 对齐 Ruby llm_caller.rb:535-549），移出注册表
-   "BUG-0031", // 平台 HTTP failover 域名数不一致
+  // BUG-0031 已修复（spec 2026-08-18_28_p5-platform-failover-domains.md：
+  // PlatformHttpConfig 补 secondary_host，failover 链 primary->secondary->
+  // fallback 按序推进空段跳过，retry-020 断言三域转绿），移出注册表
   // link 层（P3，test/e2e 剧本用）
   // BUG-0032 已修复（spec 2026-08-18_02_p5-stream-truncation-retry-pipeline.md：
   // 流式缺 finish_reason / 空参数 tool_call 判截断并走重试管道），移出注册表

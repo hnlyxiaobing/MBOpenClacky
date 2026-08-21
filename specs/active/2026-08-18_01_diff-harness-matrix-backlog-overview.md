@@ -90,7 +90,7 @@
 | 25 | [25_p5-write-tool-boundary-checks.md](./2026-08-18_25_p5-write-tool-boundary-checks.md) | FU-10 / write 边界检查（BUG-0002/0003/0047） | 无 | 写边界检查补全（工具簇，可与 26 并行） |
 | 26 | [26_p5-edit-tool-alignment.md](./2026-08-18_26_p5-edit-tool-alignment.md) | FU-16 / edit 工具对齐（BUG-0044/0045/0046） | 无 | 分层匹配/参数校验/UTF-8 健壮性（工具簇） |
 | 27 | [27_p5-path-handling-completion.md](./2026-08-18_27_p5-path-handling-completion.md) | FU-11 / 路径处理补全（BUG-0005/0008/0007） | 无 | ~user 解析 + 绝对路径行为核实（工具簇） |
-| 28 | [28_p5-platform-failover-domains.md](./2026-08-18_28_p5-platform-failover-domains.md) | FU-05 / 平台 HTTP failover 域名（BUG-0031） | 06（串行合入） | failover 域名补齐（重试外围） |
+| 28 | [28_p5-platform-failover-domains.md](../completed/2026-08-18_28_p5-platform-failover-domains.md) | FU-05 / 平台 HTTP failover 域名（BUG-0031） | 06（串行合入） | failover 域名补齐（重试外围） | **已完成（2026-08-21）· 已归档** |
 | 29 | [29_p5-session-context-alignment.md](./2026-08-18_29_p5-session-context-alignment.md) | FU-13 / Session Context 对齐 | 无 | OS 探测/Desktop/session_date 按日去重（批次 5 低风险） |
 
 **拓扑不变式**：上表"前置"列的所有编号均小于所在行编号——即依赖永远指向更早启动的 spec。

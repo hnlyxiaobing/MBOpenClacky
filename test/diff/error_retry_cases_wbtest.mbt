@@ -329,25 +329,26 @@ test "retry_019_platform_same_host_retries" {
 
 ///|
 /// retry-020：平台 HTTP 域名 failover 数量。
-/// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry），未经实测：
-/// Ruby 有 3 个域名（primary + secondary + fallback）；
-/// MB 有 2 个（primary + fallback）——BUG-0031 known-failure。
+/// 期望值源自 Ruby 源码静态分析（diff-harness cases/error_retry）：
+/// Ruby 有 3 个域名（primary + secondary + fallback）。
+/// BUG-0031 已修复（spec 2026-08-18_28）：PlatformHttpConfig 补 secondary_host，
+/// failover 链按 primary -> secondary -> fallback 顺序推进，空段跳过。
+/// Ruby 三域参照：PRIMARY www.openclacky.com / SECONDARY api.1024code.com /
+/// FALLBACK openclacky.up.railway.app。
 /// 注：真实 failover 发生在网上（单测不可达），此处对公开配置结构计数。
 test "retry_020_platform_failover_domains" {
   let config = @client.PlatformHttpConfig::new(
     primary_host="p.example.com",
+    secondary_host="s.example.com",
     fallback_host="f.example.com",
   )
-  let mb_domains = [config.primary_host, config.fallback_host]
+  let mb_domains = [
+      config.primary_host,
+      config.secondary_host,
+      config.fallback_host,
+    ]
     .iter()
     .filter(fn(h) { h.length() > 0 })
     .count()
-  // green：冻结 MB 当前行为（2 个域名）
-  assert_eq(mb_domains, 2)
-  // BUG-0031：Ruby 冻结值——3 个域名（primary + secondary + fallback）。
-  // 证据：cases/error_retry/test_cases.json retry-020
-  if known_failure("BUG-0031") {
-    return
-  }
   assert_eq(mb_domains, 3)
 }
