@@ -3,10 +3,17 @@
 /// cost source priority (api > price > estimated), delta-token guards,
 /// single-write billing persistence and subagent skip.
 
+///| Hermetic billing store counter — ensures unique directory names
+
+///|
+/// across tests even when they run in the same millisecond.
+let ct_billing_seq : Ref[Int] = { val: 0 }
+
 ///|
 /// Hermetic billing store under _build (never touches the user profile).
 fn ct_make_billing_store(tag : String) -> @billing.BillingStore {
-  let dir = "_build/ct_billing_\{tag}_\{@env.now().reinterpret_as_int64()}"
+  ct_billing_seq.val = ct_billing_seq.val + 1
+  let dir = "_build/ct_billing_\{tag}_\{ct_billing_seq.val}"
   @billing.BillingStore::new(dir)
 }
 
