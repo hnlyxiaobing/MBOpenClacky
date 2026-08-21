@@ -1,6 +1,6 @@
 {
   "name": "012_finish_stop_with_tool_calls",
-  "description": "finish_reason=stop 但携带非空 tool_calls：ruby 的 suspicious 检测应触发重试；MB 侧待验证",
+  "description": "finish_reason=stop 但携带非空 tool_calls（合法 arguments）：ruby 的 suspicious 检测（llm_caller.rb L427）仅为诊断日志、不触发重试；detect_upstream_truncation! 仅对截断 arguments 抛 UpstreamTruncatedError。故 stop+合法 tool_calls → 正常执行工具 → 2 请求、exit=0。",
   "steps": [
     {
       "match": {"last_user_contains": "读一下"},
@@ -8,7 +8,8 @@
         "type": "tool_calls",
         "tool_calls": [
           {"id": "call_1", "name": "read_file", "arguments": {"path": "note.txt"}}
-        ]
+        ],
+        "finish_reason": "stop"
       }
     },
     {

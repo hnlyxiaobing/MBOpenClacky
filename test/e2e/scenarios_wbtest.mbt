@@ -126,12 +126,6 @@ fn assert_system_prompt_stable(requests : Array[String]) -> Unit {
 }
 
 ///|
-/// 005 的 fixture：15000 行重复内容（315000B，对齐 diff-harness FIXTURES）。
-fn big_txt_content() -> String {
-  Array::make(15000, "x = 1234567890abcdef\n").join("")
-}
-
-///|
 async test "001 read_edit_file：读文件→编辑→回复完成" {
   let outcome = run_scenario(
     "001_read_edit_file",
@@ -199,9 +193,21 @@ async test "005 compression_trigger：上下文压缩触发" {
   // diff-harness 的 300s 挂死（旧证据来自已删除 runs/ 目录的修复候选）。
   // 证据: diff-harness reports/BUGS.md BUG-0041/0042/0043；
   //       reports/BUG-0042_ANALYSIS.md；runs/005_compression_trigger/{ruby,moonbit}/
+  // fixture 磁盘化（spec 2026-08-18_22 决策 5）：读取 test/e2e/fixtures/big.txt
+  // （315000B，与 diff-harness FIXTURES 逐字节一致：15000 行 "x = 1234567890abcdef\n"），
+  // 消除内存生成的编码/换行差异面；字节数断言兜底。
+  let big_fixture = @fs.read_file_to_string("test/e2e/fixtures/big.txt") catch {
+    _ => {
+      println(
+        "FATAL: 无法读取 test/e2e/fixtures/big.txt（moon test 的 CWD 应为项目根）",
+      )
+      panic()
+    }
+  }
+  @debug.assert_eq(big_fixture.length(), 315000)
   let outcome = run_scenario(
     "005_compression_trigger",
-    [("big.txt", big_txt_content())],
+    [("big.txt", big_fixture)],
     "读一下 big.txt 的全部内容，然后告诉我行数",
     configure=fn(config) {
       // BUG-0041 修复后：MBOPENCLACKY_COMPRESSION_THRESHOLD 经
@@ -283,23 +289,47 @@ async test "010 tool_call_args_truncated：空 arguments 恢复" {
 }
 
 ///|
-async test "011 malformed_sse_chunk：等待 ruby 基线（暂不断言）" {
-  // 011 从未在 diff-harness 执行过（runs/ 下无 011 目录，python mock server 尚不支持
-  // 注入畸形 chunk）。按纪律禁止编造期望值：需先在 diff-harness 扩展 python mock server
-  // 并跑 ruby 侧取得基线后，再回填本测试的断言。
-  // 证据: diff-harness AGENTS.md 第 4 节"诚实标注不确定性"；scenarios/011_malformed_sse_chunk.json
-  return
+async test "011 malformed_sse_chunk：畸形帧容错并正常完成" {
+  // 011 从未在 diff-harness 执行过（runs/ 下无 011 目录；python mock server 无畸形注入
+  // 能力，见 spec 2026-08-18_22 现状分析）。本剧本经 MB mock 的 malformed 类型重写为
+  // "正常流中混入畸形帧 + 收尾"：A 级期望值从两侧解析器源码静态推导——
+  //   Ruby: client.rb#drain_sse_frames（无 data: 前缀的帧 data_lines 为空 → 不 yield）
+  //         + openai_stream_aggregator.rb#parse_or_nil（非法 JSON 计数后返回 nil 跳过，
+  //         不中断流；仅 finish_reason 缺失才 raise UpstreamTruncatedError）。
+  //   MB:   lib/client/stream.mbt#parse_single_frame（无 data: 行 → None 丢弃）
+  //         + OpenAiStreamAggregator::handle_delta（JSON 解析失败 → 返回 "" 跳过）。
+  // 结论（A 级）：畸形帧被跳过、正常 content 帧累积、收尾帧携带 finish_reason=stop →
+  // 1 请求、exit=0（success）、最终回复为 content 帧原文。
+  let outcome = run_scenario(
+    "011_malformed_sse_chunk",
+    [],
+    "读一下文件，然后把内容告诉我",
+  )
+  @debug.assert_eq(outcome.status, "success")
+  @debug.assert_eq(outcome.requests.length(), 1)
+  @debug.assert_eq(outcome.final_text, "文件内容是 hello。")
 }
 
 ///|
-async test "012 finish_stop_with_tool_calls：tool_calls 正常执行" {
+async test "012 finish_stop_with_tool_calls：stop+tool_calls 正常执行（suspicious 仅日志）" {
   let outcome = run_scenario(
     "012_finish_stop_with_tool_calls",
     [("note.txt", "hello\n")],
     "读一下 note.txt 然后告诉我内容",
   )
-  // 黄金断言点：ruby 2 请求、exit=0
-  // 证据: diff-harness runs/012_finish_stop_with_tool_calls/ruby/
+  // 剧本刺激已修正：tool_calls 步骤补 finish_reason="stop"（此前 mock 硬编码
+  // "tool_calls"，stop+tool_calls 并存从未真实下发）。
+  // A 级期望值（2 请求、exit=0）从 ruby 源码静态推导：
+  //   - llm_caller.rb#detect_upstream_truncation! 仅对截断 arguments
+  //     （空/"{}"/非法 JSON）抛 UpstreamTruncatedError；本剧本 arguments 合法 → 不抛。
+  //   - llm_caller.rb L404-444 的 suspicious（finish_reason=stop + tool_calls）只是
+  //     Clacky::Logger.warn 诊断日志，不触发重试。
+  //   - 因此 stop+合法 tool_calls → agent 正常执行 read_file → 2 请求、exit=0。
+  // MB 侧 check_stream_truncation（lib/agent/llm_caller.mbt）同源：finish_reason 存在
+  // 且 arguments 合法 → 不抛，react 循环执行工具。与 ruby 行为一致。
+  // 黄金断言点：ruby 2 请求、exit=0（runs/012_finish_stop_with_tool_calls/ruby/，
+  // 修正刺激前的 2 请求基线在修正后经源码推导保持不变）。
+  // 证据: openclacky/lib/clacky/agent/llm_caller.rb L404-444、L695-745
   assert_golden(outcome, golden("012_finish_stop_with_tool_calls"))
 }
 

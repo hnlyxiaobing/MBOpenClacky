@@ -55,7 +55,7 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 
 ## 链路层：test/e2e
 
-- 机制：测试进程内起 **raw TCP mock LLM server**（`test/e2e/mock_llm_server.mbt`，基于 `moonbitlang/async/socket`，**无 python 依赖**），行为逐项对齐 diff-harness 的 python 版 mock server（顺序回放游标、content/tool_calls/stream_cut/error 四类响应、usage chunk、stream_cut 也发 [DONE]、剧本耗尽返回 500、Content-Length/chunked 双兼容）。用 `base_url` 注入构造真实 `Client` + `Agent`，跑完整 ReAct 循环。
+- 机制：测试进程内起 **raw TCP mock LLM server**（`test/e2e/mock_llm_server.mbt`，基于 `moonbitlang/async/socket`，**无 python 依赖**），行为逐项对齐 diff-harness 的 python 版 mock server（顺序回放游标、content/tool_calls/stream_cut/malformed/error 五类响应、content/tool_calls 可选 finish_reason 覆盖、usage chunk、stream_cut 也发 [DONE]、剧本耗尽返回 500、Content-Length/chunked 双兼容）。用 `base_url` 注入构造真实 `Client` + `Agent`，跑完整 ReAct 循环。
 - 断言：与 `test/e2e/golden.mbt` 内嵌的黄金断言点比对（请求数、tool_calls 序列、文件副作用、完成语义、退避间隔），**不做逐字节请求体比对**（规避 BUG-0033~0035 噪音）；每个 golden 含 `evidence` 字段指向 diff-harness `runs/<scenario>/ruby/` 基线。
 - 剧本数据存档于 `test/e2e/scenarios/*.json`（复制自 diff-harness）。实测 `moon test` 进程 CWD = 项目根，runner 会把剧本中的相对路径重写为临时目录绝对路径（不会污染仓库）。
 - 耗时：单次全量约 18s。008/009 含真实 5s 级退避（预期内）；002/005/013 当前被 known-failure 闸门隔离不耗时（005 闸门激活后有 runner 120s 超时保护）。

@@ -2,8 +2,10 @@
 ///
 /// 行为对齐 Python 原版（283 行，协议逐项核对）：
 /// - 顺序回放游标：每个 POST /chat/completions 消费剧本的一步；剧本耗尽后返回 500。
-/// - 四类响应：content（流式切块）/ tool_calls（增量 arguments 分片）/
-///   stream_cut（发部分内容 + [DONE]，不发 finish_reason）/ error（429/500，429 带 Retry-After）。
+/// - 五类响应：content（流式切块）/ tool_calls（增量 arguments 分片）/
+///   stream_cut（发部分内容 + [DONE]，不发 finish_reason）/ malformed（原始帧逐字节透传）/
+///   error（429/500，429 带 Retry-After）。content/tool_calls 可带可选 finish_reason
+///   字段覆盖收尾帧的取值（缺省分别为 stop / tool_calls）。
 /// - 可选 usage-only chunk（choices 为空、finish chunk 之后、[DONE] 之前）。
 /// - 请求体兼容 Content-Length 与 Transfer-Encoding: chunked（MB 的 HTTP 客户端用 chunked）。
 /// - GET /models 探测返回固定模型列表。
@@ -365,6 +367,11 @@ fn MockLlmServer::build_sse(
       }
     None => 16
   }
+  // 可选 finish_reason 覆盖：content/tool_calls 的收尾帧用该值（缺省 stop / tool_calls）。
+  let finish_override : String? = match jget(resp, "finish_reason") {
+    Some(f) => jstr(f)
+    None => None
+  }
   if rtype == "content" {
     let text = match jget(resp, "text") {
       Some(t) => jstr(t).unwrap_or("")
@@ -385,7 +392,13 @@ fn MockLlmServer::build_sse(
         ),
       )
     }
-    frames.push(sse(self.chunk_payload(model, Json::object({}), Some("stop"))))
+    let content_finish = match finish_override {
+      Some(f) => Some(f)
+      None => Some("stop")
+    }
+    frames.push(
+      sse(self.chunk_payload(model, Json::object({}), content_finish)),
+    )
   } else if rtype == "tool_calls" {
     // 先发起始 delta，再逐个 tool_call 以增量 arguments 形式推送
     frames.push(
@@ -452,9 +465,28 @@ fn MockLlmServer::build_sse(
         )
       }
     }
-    frames.push(
-      sse(self.chunk_payload(model, Json::object({}), Some("tool_calls"))),
-    )
+    let tc_finish = match finish_override {
+      Some(f) => Some(f)
+      None => Some("tool_calls")
+    }
+    frames.push(sse(self.chunk_payload(model, Json::object({}), tc_finish)))
+  } else if rtype == "malformed" {
+    // 畸形帧注入：frames 为原始帧字符串数组，逐字节透传（不经 sse()/chunk_payload）。
+    // 用于测试两侧解析器对非法 chunk 的容错（011 剧本）。帧内需自带 "\n\n" 分隔符。
+    let raw_frames = match jget(resp, "frames") {
+      Some(f) =>
+        match jarr(f) {
+          Some(arr) => arr
+          None => []
+        }
+      None => []
+    }
+    for f in raw_frames {
+      match jstr(f) {
+        Some(raw) => frames.push(raw)
+        None => ()
+      }
+    }
   } else if rtype == "stream_cut" {
     // 异常剧本：发一部分内容后直接结束（Python 版随后仍会补 [DONE]，见下）
     let text = match jget(resp, "text") {

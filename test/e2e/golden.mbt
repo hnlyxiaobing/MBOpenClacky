@@ -8,7 +8,8 @@
 
 ///|
 /// 基线可信度：11 个已执行剧本的 ruby 基线已核实完整可信；
-/// 011（malformed_sse_chunk）从未执行，无基线，对应测试按纪律留空。
+/// 011（malformed_sse_chunk）从未执行，无 ruby 基线，其断言为从两侧解析器源码
+/// 静态推导的 A 级期望值（见 scenarios_wbtest.mbt 011 测试注释），不挂 golden。
 
 ///|
 /// 一个剧本的黄金断言点。

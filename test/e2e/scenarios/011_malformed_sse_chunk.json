@@ -1,13 +1,18 @@
 {
   "name": "011_malformed_sse_chunk",
-  "description": "畸形 SSE chunk（非 JSON 数据混入流中）：检验两侧解析器对非法 chunk 的容错与恢复能力",
+  "description": "畸形 SSE chunk（非 JSON 数据混入流中）：检验两侧解析器对非法 chunk 的容错与恢复能力。单响应内混排：正常 content 帧 + 非 JSON data 帧（data: {bad json）+ 无 data: 前缀的垃圾行（garbage line）+ 截断 JSON 帧 + 正常收尾帧（finish_reason=stop）。期望：畸形帧被跳过、正常内容累积、流正常结束。",
   "steps": [
     {
       "match": {"last_user_contains": "读一下"},
       "response": {
-        "type": "content",
-        "text": "文件内容是 hello。",
-        "chunk_size": 8
+        "type": "malformed",
+        "frames": [
+          "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"created\":0,\"model\":\"mock-model\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"文件内容是 hello。\"},\"finish_reason\":null}]}\n\n",
+          "data: {bad json\n\n",
+          "garbage line\n\n",
+          "data: {\"choices\":[{\"delta\":{\"content\":\"trunc\"\n\n",
+          "data: {\"id\":\"c2\",\"object\":\"chat.completion.chunk\",\"created\":0,\"model\":\"mock-model\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
+        ]
       }
     }
   ]
