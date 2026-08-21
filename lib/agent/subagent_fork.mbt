@@ -151,6 +151,8 @@ pub fn Agent::fork_subagent(
           token_usage: None,
           compressed_summary: None,
           transient: None,
+          session_date: None,
+          session_context: None,
         }),
       )
       subagent.history.append(
@@ -175,6 +177,8 @@ pub fn Agent::fork_subagent(
           token_usage: None,
           compressed_summary: None,
           transient: None,
+          session_date: None,
+          session_context: None,
         }),
       )
     }

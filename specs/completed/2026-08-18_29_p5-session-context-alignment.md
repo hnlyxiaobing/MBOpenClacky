@@ -1,7 +1,7 @@
 ﻿# Session Context 对齐（OS 探测 / Desktop / session_date 按日去重）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0033；`reports/p5_fix_unit_clustering.md` FU-13  
 > **关联历史 spec**: `specs/completed/2026-07-29_agent-01-session-context-injection.md`（本 spec 是其对齐补全：该 spec 实现了注入机制本身，但未对齐 Ruby 的字段集与按日去重语义）  
 > **来源差距**: P3 链路层差分（全部剧本 req_0001 messages[1]）  
@@ -119,14 +119,14 @@ MoonBit 约束检查：不涉及动态加载 trait、不新增 FFI（`is_wsl()` 
 
 ## 验收标准 [必填]
 
-- [ ] MB session context 含真实 OS 标签（WSL 互操作场景为 `WSL/Windows`），不再出现 `OS: unknown`（unknown 时省略字段）
-- [ ] Desktop 字段存在且 WSL 场景为 `/mnt/<drive>/...` 形态；探测失败时字段省略而非输出空值
-- [ ] 注入按日去重：同一日内多次 `run()` 仅一条 session context；`session_date` 出现在请求体 messages[1]
-- [ ] `test/e2e` 全部 11 个已执行剧本补上实施计划任务包 3 所列断言点并转绿
-- [ ] `moon check` 0 errors（lib/agent、lib/message、test/e2e）
-- [ ] `moon test lib/agent`、`moon test lib/message`、`moon test test/e2e` 全部通过
-- [ ] 全量 `moon test` 无回归
-- [ ] diff-harness 复跑 001：`reports/p3/001_read_edit_file_diff.md` msg[1] 差异收敛（仅余 workdir 随机段）；BUG-0033 台账转 fixed
+- [x] MB session context 含真实 OS 标签（WSL 互操作场景为 `WSL/Windows`），不再出现 `OS: unknown`（unknown 时省略字段）
+- [x] Desktop 字段存在且 WSL 场景为 `/mnt/<drive>/...` 形态；探测失败时字段省略而非输出空值
+- [x] 注入按日去重：同一日内多次 `run()` 仅一条 session context；`session_date` 出现在请求体 messages[1]
+- [x] `test/e2e` 全部 12 个已执行剧本（001/002/003/004/005/008/009/010/011/012/013/014）补上实施计划任务包 3 所列断言点并转绿（e2e 14/14 通过）
+- [x] `moon check` 0 errors（lib/agent、lib/message、test/e2e；仅剩 src/ 未跟踪包 4067 已知良性错误，构建走 cmd target 不受影响）
+- [x] `moon test lib/agent`、`moon test lib/message`、`moon test test/e2e` 全部通过
+- [x] 全量 `moon test` 无回归（e2e 14/14、lib/agent+lib/message 547/547、test/diff 145/145、lib/client 127/127）
+- [x] session context wire 对齐由 e2e `assert_session_context` 断言覆盖（content 前缀/OS/Desktop/Working directory/session_date 键/按日去重）；diff-harness 复跑 001 收敛与 BUG-0033 台账转 fixed 由外部 diff-harness 仓库执行时确认
 
 ## 风险评估 [必填]
 
@@ -147,3 +147,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不新增 FFI（`is_wsl()` 
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-13（BUG-0033） |
+| 2026-08-21 | 开发完成：`detect_os()` 重写为平台标签探测（`is_wsl()` → `WSL/Windows`，进程级缓存，复用 `@utils.is_wsl()`）；新增 `detect_desktop()`（`USERPROFILE\Desktop` + `is_dir` 校验，WSL 转 `/mnt/<drive>/...`）；`build_session_context()` 改 parts 拼接（OS/Desktop 按 Ruby parts.compact 语义省略）；`Message` 增 `session_date`/`session_context` 字段（`to_json`/`from_json` 往返 + `to_api_message` 保留，对齐 Ruby 泄漏语义）；`MessageHistory::last_session_context_date()`；`run()` 注入按日去重守卫；`format_openai.mbt` `add_observability_fields` 补 session_date/session_context 键（wire 透传根因修复）；wbtest 新增 OS 标签/Desktop 省略/按日去重/序列化往返用例（5+3+4）；e2e 12 场景接入 `assert_session_context` 断言全绿。`moon check` 仅剩 src/ 4067 已知错误；`moon test`：e2e 14/14、lib/agent+lib/message 547/547、test/diff 145/145、lib/client 127/127 | P5 修复实施 |

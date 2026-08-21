@@ -478,6 +478,8 @@ test "backfill_task_meta_from_history" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let msg2 : @message.Message = {
     role: @message.Assistant,
@@ -498,6 +500,8 @@ test "backfill_task_meta_from_history" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let msg3 : @message.Message = {
     role: @message.User,
@@ -518,6 +522,8 @@ test "backfill_task_meta_from_history" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let messages = [msg1, msg2, msg3]
   let result = backfill_task_meta_from_history(messages, None)

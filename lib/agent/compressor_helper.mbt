@@ -124,6 +124,8 @@ pub fn build_compressed_summary_message(
     token_usage: None,
     compressed_summary: Some("true"),
     transient: None,
+    session_date: None,
+    session_context: None,
   }
 }
 
@@ -561,5 +563,7 @@ pub fn build_compressed_summary_with_chunks(
     token_usage: None,
     compressed_summary: Some("true"),
     transient: None,
+    session_date: None,
+    session_context: None,
   }
 }

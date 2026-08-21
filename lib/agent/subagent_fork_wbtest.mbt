@@ -244,6 +244,8 @@ test "generate_subagent_summary_contents" {
       token_usage: None,
       compressed_summary: None,
       transient: None,
+      session_date: None,
+      session_context: None,
     }),
   )
   sub.history.append(stamp_created_at(@message.Message::assistant("answer!")))
@@ -286,6 +288,8 @@ test "extract_subagent_transcript_drops_injected_scaffolding" {
       token_usage: None,
       compressed_summary: None,
       transient: None,
+      session_date: None,
+      session_context: None,
     }),
   )
   sub.history.append(
@@ -308,6 +312,8 @@ test "extract_subagent_transcript_drops_injected_scaffolding" {
       token_usage: None,
       compressed_summary: None,
       transient: None,
+      session_date: None,
+      session_context: None,
     }),
   )
   sub.history.append(stamp_created_at(@message.Message::assistant("done")))

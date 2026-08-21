@@ -58,6 +58,13 @@ pub(all) struct Message {
   mut latency : Json?
   display_text : String?
   display_files : Array[String]?
+  // Session context metadata (spec 2026-08-18_29 / BUG-0033): the
+  // injected session-context message carries the injection date so
+  // per-day dedup can skip re-injection, and a marker that identifies
+  // it as session context. Both leak into the wire JSON like Ruby's
+  // hash-passthrough (session_date is a plain key in Ruby requests).
+  session_date : String?
+  session_context : Bool?
   // Internal fields (stripped before API calls)
   task_id : String?
   mut created_at : String?
@@ -128,6 +135,16 @@ pub impl ToJson for Message with fn to_json(self) {
     Some(ts) => obj["created_at"] = ts.to_json()
     None => ()
   }
+  // Session context fields: session_date always when present (Ruby leaks
+  // it into the wire JSON as a plain key); session_context only when true.
+  match self.session_date {
+    Some(d) => obj["session_date"] = d.to_json()
+    None => ()
+  }
+  match self.session_context {
+    Some(true) => obj["session_context"] = true.to_json()
+    _ => ()
+  }
   // Persist the injected flag: restore_from_session must know a message is
   // system-injected (per-run session context) so the Web UI history dedup can
   // exclude it. Without this the flag was lost on save and the injected
@@ -183,6 +200,8 @@ pub fn Message::user(content : String) -> Message {
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -213,6 +232,8 @@ pub fn Message::user_blocks(blocks : Array[ContentBlock]) -> Message {
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),
@@ -238,6 +259,8 @@ pub fn Message::assistant(content : String) -> Message {
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -263,6 +286,8 @@ pub fn Message::system(content : String) -> Message {
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -292,6 +317,8 @@ pub fn Message::tool_result(
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -325,6 +352,10 @@ pub fn Message::to_api_message(self : Message) -> Message {
     latency: self.latency,
     display_text: self.display_text,
     display_files: self.display_files,
+    // Session context fields leak into the wire payload by design
+    // (Ruby hash-passthrough, spec 2026-08-18_29 decision 4).
+    session_date: self.session_date,
+    session_context: self.session_context,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -353,6 +384,8 @@ pub fn Message::to_persist_message(self : Message) -> Message {
     latency: self.latency,
     display_text: self.display_text,
     display_files: self.display_files,
+    session_date: self.session_date,
+    session_context: self.session_context,
     task_id: self.task_id,
     created_at: self.created_at,
     system_injected: self.system_injected,
@@ -421,6 +454,15 @@ pub impl FromJson for Message with fn from_json(json, path) {
         }
         _ => None
       }
+      let session_date = match map.get("session_date") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+      let session_context = match map.get("session_context") {
+        Some(True) => Some(true)
+        Some(False) => Some(false)
+        _ => None
+      }
       let task_id = match map.get("task_id") {
         Some(String(s)) => Some(s)
         _ => None
@@ -469,6 +511,8 @@ pub impl FromJson for Message with fn from_json(json, path) {
         latency,
         display_text,
         display_files,
+        session_date,
+        session_context,
         task_id,
         created_at,
         system_injected,

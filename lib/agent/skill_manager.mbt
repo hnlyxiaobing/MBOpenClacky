@@ -105,6 +105,8 @@ pub fn Agent::inject_skill_command(
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   self.history.append(msg)
   self.hook_manager.emit(MessageAdded)
@@ -162,6 +164,8 @@ pub fn Agent::flush_pending_injections(self : Agent) -> Unit {
           token_usage: None,
           compressed_summary: None,
           transient: None,
+          session_date: None,
+          session_context: None,
         }
         self.history.append(msg)
         self.hook_manager.emit(MessageAdded)

@@ -176,6 +176,59 @@ fn assert_observability_fields(requests : Array[String]) -> Unit {
 }
 
 ///|
+/// 断言 session context 注入（spec 2026-08-18_29 / BUG-0033）。
+///
+/// - 按日去重（决策 3/4）：每天最多 1 条 session-context 消息 —— 单场景单次
+///   run 只注入 1 条；该消息会随 history 出现在后续每个请求中，因此全序列
+///   去重后的唯一 content 数 == 1，且每个请求内至多出现 1 条。
+/// - content 格式：`[Session context: Today is <date>, <weekday>. Current
+///   model: <model>. ... Working directory: <wd>]`；OS 标签为 unknown 时省略
+///   "OS:" 段（决策 2）；Desktop 不可探测时省略 "Desktop:" 段（决策 2/3，
+///   e2e 的 USERPROFILE 指向无 Desktop 的临时 home，必被省略；若出现则
+///   必须是 /mnt/<drive> 形式）。
+/// - wire 上必须带 `session_date`（= 今天日期）与 `session_context: true`
+///   （决策 4：session_date 泄露进 wire JSON）。
+fn assert_session_context(requests : Array[String]) -> Unit raise {
+  let unique_contents : Array[String] = []
+  let today = @agent.current_iso8601()[:10].to_owned()
+  for ri, req in requests {
+    let body = @json.parse(req) catch { _ => continue }
+    guard jget(body, "messages") is Some(msgs_json) else { continue }
+    guard jarr(msgs_json) is Some(msgs) else { continue }
+    let mut ctx_in_req = 0
+    for m in msgs {
+      guard jget(m, "session_context") is Some(_) else { continue }
+      ctx_in_req = ctx_in_req + 1
+      guard jget(m, "content") is Some(c) && jstr(c) is Some(content) else {
+        println("FATAL: req\{ri} session-context 消息缺 content 文本")
+        panic()
+      }
+      if !unique_contents.contains(content) {
+        unique_contents.push(content)
+      }
+      assert_true(content.has_prefix("[Session context: Today is "))
+      assert_true(content.contains("Current model: mock-model."))
+      assert_true(content.contains("Working directory: "))
+      assert_true(content.has_suffix("]"))
+      assert_true(!content.contains("OS: unknown"))
+      // Desktop 若出现必须是 /mnt/<drive> 形式（决策 3 的 WSL 转换）
+      if content.contains("Desktop:") {
+        assert_true(content.contains("Desktop: /mnt/"))
+      }
+      guard jget(m, "session_date") is Some(d) && jstr(d) is Some(date) else {
+        println("FATAL: req\{ri} session-context 消息缺 session_date 键")
+        panic()
+      }
+      @debug.assert_eq(date, today)
+    }
+    // 按日去重：每个请求内至多 1 条 session-context 消息
+    @debug.assert_eq(ctx_in_req, 1)
+  }
+  // 全序列只有 1 条唯一 session context（同一天不重复注入）
+  @debug.assert_eq(unique_contents.length(), 1)
+}
+
+///|
 async test "001 read_edit_file：读文件→编辑→回复完成" {
   let outcome = run_scenario(
     "001_read_edit_file",
@@ -187,6 +240,8 @@ async test "001 read_edit_file：读文件→编辑→回复完成" {
   assert_golden(outcome, golden("001_read_edit_file"))
   // BUG-0034 / BUG-0035 回归：出站请求必须带 observability 字段
   assert_observability_fields(outcome.requests)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -202,6 +257,8 @@ async test "002 stream_cut_retry：断流后重试并恢复" {
   // 证据: diff-harness reports/BUGS.md BUG-0032；
   //       runs/002_stream_cut_retry/{ruby,moonbit}/requests/（ruby 4 请求 vs MB 修复前 1 请求）
   assert_golden(outcome, g)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
   // BUG-0023: ruby 退避固定 5s（req1→req2、req2→req3 各 ~5s），MB 指数退避。
   // 证据: reports/p3/002_stream_cut_retry_diff.md（ruby 间隔 5.0s, 5.0s）
   // 注：此处为量级断言（退避生效且未失控）；固定 5s 的精确验证在
@@ -224,6 +281,8 @@ async test "003 multi_turn_tool_sequence：read→edit→read 验证→完成" {
   assert_golden(outcome, golden("003_multi_turn_tool_sequence"))
   // BUG-0034 / BUG-0035 回归：多轮场景下 observability 字段必须全程携带
   assert_observability_fields(outcome.requests)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -236,6 +295,8 @@ async test "004 parallel_tool_calls：单响应内两个并行 tool_calls" {
   // 黄金断言点：ruby 2 请求、exit=0、文件无变化
   // 证据: diff-harness runs/004_parallel_tool_calls/ruby/
   assert_golden(outcome, golden("004_parallel_tool_calls"))
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -285,6 +346,8 @@ async test "005 compression_trigger：上下文压缩触发" {
       panic()
     }
   }
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -299,6 +362,8 @@ async test "008 http_429_retry_after：429 限流重试" {
   // MB 同为 5s（指数退避第一次也是 5s），两侧间隔一致，故本剧本无 gated 断言。
   // 证据: diff-harness runs/008_http_429_retry_after/ruby/
   assert_golden(outcome, golden("008_http_429_retry_after"))
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -316,6 +381,8 @@ async test "009 http_500_retry：500 重试两次后恢复" {
   // 注：此处为量级断言（退避生效且未失控）；固定 5s 的精确验证在
   // llm_caller_wbtest.mbt（retry_delay_ms 单测，无 wall-clock 依赖）。
   assert_retry_intervals(outcome.request_times, [5000, 5000], 1500)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -333,6 +400,8 @@ async test "010 tool_call_args_truncated：空 arguments 恢复" {
   @debug.assert_eq(outcome.requests.length(), g.request_count)
   @debug.assert_eq(outcome.file("out.txt"), Some("hello world"))
   @debug.assert_eq(outcome.final_text, g.final_text)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
   // BUG-0040: MB 工具错误 tool_result 非标准 JSON（{error: ...} 缺引号）。
   // 证据: diff-harness reports/BUGS.md BUG-0040（明确涉及 010 的 write_file 空参数错误）；
   //       runs/010_tool_call_args_truncated/moonbit/requests/req_0002.json
@@ -362,6 +431,8 @@ async test "011 malformed_sse_chunk：畸形帧容错并正常完成" {
   @debug.assert_eq(outcome.status, "success")
   @debug.assert_eq(outcome.requests.length(), 1)
   @debug.assert_eq(outcome.final_text, "文件内容是 hello。")
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -385,6 +456,8 @@ async test "012 finish_stop_with_tool_calls：stop+tool_calls 正常执行（sus
   // 修正刺激前的 2 请求基线在修正后经源码推导保持不变）。
   // 证据: openclacky/lib/clacky/agent/llm_caller.rb L404-444、L695-745
   assert_golden(outcome, golden("012_finish_stop_with_tool_calls"))
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -414,6 +487,8 @@ async test "013 consecutive_failures_circuit_breaker：连续失败熔断" {
   // 连续失败重试全程 system prompt 逐字节一致。
   // 证据: diff-harness runs/013_consecutive_failures_circuit_breaker/moonbit/requests/
   assert_system_prompt_stable(outcome.requests)
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
 }
 
 ///|
@@ -426,6 +501,8 @@ async test "014 tool_execution_failure_recovery：工具失败后恢复" {
   // 绿：ruby 3 请求、exit=0、恢复后读取成功 —— MB 当前一致。
   // 证据: diff-harness runs/014_tool_execution_failure_recovery/{ruby,moonbit}/
   assert_golden(outcome, golden("014_tool_execution_failure_recovery"))
+  // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
+  assert_session_context(outcome.requests)
   // BUG-0040: MB 工具错误 tool_result 非标准 JSON（{error: ...} 缺引号）；
   // ruby 为标准 JSON {"path":...,"content":null,"error":"File not found: ..."}。
   // 证据: diff-harness reports/BUGS.md BUG-0040；

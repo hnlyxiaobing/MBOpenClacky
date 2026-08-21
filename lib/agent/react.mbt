@@ -9,15 +9,45 @@
 ///|
 
 ///|
+/// Build the session-context text from its parts, omitting OS when the
+/// label is unknown/empty and Desktop when undetectable (Ruby
+/// agent.rb parts.compact semantics, spec 2026-08-18_29 decision 2).
+fn build_session_context_text(
+  date_part : String,
+  weekday : String,
+  model : String,
+  os : String,
+  desktop : String?,
+  wd : String,
+) -> String {
+  let parts : Array[String] = [
+    "[Session context: Today is \{date_part}, \{weekday}. Current model: \{model}.",
+  ]
+  if !os.is_empty() && os != "unknown" {
+    parts.push("OS: \{os}.")
+  }
+  match desktop {
+    Some(d) => parts.push("Desktop: \{d}.")
+    None => ()
+  }
+  parts.push("Working directory: \{wd}]")
+  parts.join(" ")
+}
+
+///|
 /// Build a session context message for the current run.
 fn Agent::build_session_context(self : Agent) -> String {
   let now = current_iso8601()
   let date_part = if now.length() >= 10 { now[:10].to_owned() } else { now }
   let weekday = current_weekday()
-  let os = detect_os()
-  let wd = self.working_dir
-  let model = self.client.model
-  "[Session context: Today is \{date_part}, \{weekday}. Current model: \{model}. OS: \{os}. Working directory: \{wd}]"
+  build_session_context_text(
+    date_part,
+    weekday,
+    self.client.model,
+    detect_os(),
+    detect_desktop(),
+    self.working_dir,
+  )
 }
 
 ///|
@@ -54,35 +84,58 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     )
     self.hook_manager.emit(MessageAdded)
   }
-  // Inject per-run session context.
+  // Inject per-run session context, deduped by day: Ruby only injects
+  // when the history has no session-context message dated today
+  // (agent.rb inject_session_context_if_needed → last_session_context_date),
+  // so long sessions do not accumulate a context message per run and
+  // request sequences stay comparable to Ruby.
   // NOTE: `created_at` is intentionally left None. The context message is an
   // injected artifact, not a real user message: stamping it with the current
   // ms would collide with the user message pushed right after (same
   // millisecond), and the Web UI's history dedup keys on created_at — two
   // history_user_message events with an identical timestamp would cause the
   // real user message to be skipped and its assistant reply hidden.
-  let ctx_msg : @message.Message = {
-    role: @message.User,
-    content: @message.Text(self.build_session_context()),
-    tool_calls: None,
-    tool_call_id: None,
-    name: None,
-    reasoning_content: None,
-    latency: None,
-    display_text: None,
-    display_files: None,
-    task_id: None,
-    created_at: None,
-    system_injected: Some(true),
-    memory_update: None,
-    subagent_instructions: None,
-    subagent_result: None,
-    token_usage: None,
-    compressed_summary: None,
-    transient: None,
+  let ctx_now = current_iso8601()
+  let ctx_date = if ctx_now.length() >= 10 {
+    ctx_now[:10].to_owned()
+  } else {
+    ctx_now
   }
-  self.history.append(ctx_msg)
-  self.hook_manager.emit(MessageAdded)
+  let ctx_msg : @message.Message? = if self.history.last_session_context_date() ==
+    Some(ctx_date) {
+    // Already injected today: skip the message entirely.
+    None
+  } else {
+    Some({
+      role: @message.User,
+      content: @message.Text(self.build_session_context()),
+      tool_calls: None,
+      tool_call_id: None,
+      name: None,
+      reasoning_content: None,
+      latency: None,
+      display_text: None,
+      display_files: None,
+      session_date: Some(ctx_date),
+      session_context: Some(true),
+      task_id: None,
+      created_at: None,
+      system_injected: Some(true),
+      memory_update: None,
+      subagent_instructions: None,
+      subagent_result: None,
+      token_usage: None,
+      compressed_summary: None,
+      transient: None,
+    })
+  }
+  match ctx_msg {
+    Some(m) => {
+      self.history.append(m)
+      self.hook_manager.emit(MessageAdded)
+    }
+    None => ()
+  }
   // Add user message
   self.history.append(stamp_created_at(@message.Message::user(user_input)))
   self.hook_manager.emit(MessageAdded)

@@ -37,6 +37,8 @@ test "MessageHistory to_api strips internal fields" {
     token_usage: None,
     compressed_summary: Some("summary"),
     transient: Some(true),
+    session_date: None,
+    session_context: None,
   }
   let h = MessageHistory::from_messages([msg])
   let api_msgs = h.to_api()
@@ -78,6 +80,8 @@ test "MessageHistory real_user_messages" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   h.append(injected)
   // Another real user message
@@ -115,6 +119,8 @@ test "MessageHistory pending_tool_calls" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let h2 = MessageHistory::from_messages([assistant_with_tools])
   @debug.debug_inspect(h2.pending_tool_calls(), content="true")
@@ -167,6 +173,8 @@ test "MessageHistory drop_dangling_tool_calls" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let h = MessageHistory::from_messages([Message::user("hi"), assistant_msg])
   @debug.debug_inspect(h.size(), content="2")
@@ -241,6 +249,8 @@ test "MessageHistory repair_dangling_tool_calls inserts interrupted placeholder"
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   // call-1 answered, call-2 dangling
   let h = MessageHistory::from_messages([
@@ -299,6 +309,8 @@ test "MessageHistory to_api_cleaned filters transient and repairs pairing" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let transient_msg : Message = {
     role: User,
@@ -319,6 +331,8 @@ test "MessageHistory to_api_cleaned filters transient and repairs pairing" {
     token_usage: None,
     compressed_summary: None,
     transient: Some(true),
+    session_date: None,
+    session_context: None,
   }
   let h = MessageHistory::from_messages([
     Message::user("hi"),
@@ -344,4 +358,92 @@ test "MessageHistory to_api strips tool message name" {
   h.append(Message::tool_result("c1", "search", "ok"))
   let api = h.to_api()
   @debug.debug_inspect(api[0].name, content="None")
+}
+
+///|
+/// last_session_context_date: newest session-context message wins.
+test "MessageHistory last_session_context_date newest" {
+  let older : Message = {
+    role: User,
+    content: Text("old ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-20"),
+    session_context: Some(true),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let newer : Message = {
+    role: User,
+    content: Text("new ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(true),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let plain = Message::user("hi")
+  let h = MessageHistory::from_messages([plain, older, plain, newer])
+  @debug.assert_eq(h.last_session_context_date(), Some("2026-08-21"))
+}
+
+///|
+/// last_session_context_date: no session-context message → None.
+test "MessageHistory last_session_context_date none" {
+  let h = MessageHistory::from_messages([Message::user("a"), Message::user("b")])
+  @debug.assert_eq(h.last_session_context_date(), None)
+}
+
+///|
+/// last_session_context_date: session_context=false does not count.
+test "MessageHistory last_session_context_date false ignored" {
+  let m : Message = {
+    role: User,
+    content: Text("ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(false),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let h = MessageHistory::from_messages([Message::user("a"), m])
+  @debug.assert_eq(h.last_session_context_date(), None)
 }

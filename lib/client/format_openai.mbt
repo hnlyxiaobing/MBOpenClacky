@@ -220,6 +220,12 @@ fn apply_reasoning_params(
 /// - user messages: always include `display_text` and `display_files`
 ///   (null when unset, matching Ruby's nil-as-null serialization).
 /// - other roles (system/tool): skipped — no observability fields defined.
+///
+/// Also leaks the session-context fields into the wire payload (spec
+/// 2026-08-18_29 decision 4): `session_date` whenever present, and
+/// `session_context: true` only when set — mirrors Ruby's hash-passthrough
+/// (session_date is a plain key on the wire; session_context is only emitted
+/// by the Ruby serializer when truthy).
 fn add_observability_fields(
   msg : @message.Message,
   obj : Map[String, Json],
@@ -239,6 +245,15 @@ fn add_observability_fields(
         None => Json::null()
       }
     }
+    _ => ()
+  }
+  // Session context fields leak into the wire by design (decision 4).
+  match msg.session_date {
+    Some(d) => obj["session_date"] = d.to_json()
+    None => ()
+  }
+  match msg.session_context {
+    Some(true) => obj["session_context"] = true.to_json()
     _ => ()
   }
 }

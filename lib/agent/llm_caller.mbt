@@ -965,6 +965,8 @@ fn Agent::inject_upstream_truncation_hint_if_first(
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   self.history.append(msg)
   self.hook_manager.emit(MessageAdded)
@@ -1013,6 +1015,8 @@ fn Agent::inject_large_output_hint_if_first_timeout(self : Agent) -> Unit {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   self.history.append(msg)
   self.hook_manager.emit(MessageAdded)

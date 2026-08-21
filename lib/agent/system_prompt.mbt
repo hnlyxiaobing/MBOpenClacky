@@ -39,17 +39,61 @@ let base_agent_rules : String =
   #|
 
 ///|
-/// Detect the operating system from environment variables.
-/// Returns "Windows_NT" on Windows, or OSTYPE on Unix-like systems.
+/// Cached OS label (probed once per process so per-run session context
+/// builds do not re-check environment variables).
+let os_label_cache : Ref[String?] = { val: None }
+
+///|
+/// Detect the operating system label for session context.
+/// WSL-interop launches report "WSL/Windows"; native Windows reports
+/// "Windows". Environment-variable probing (OS/OSTYPE) is unreliable in
+/// the real deployment shape (cmd.exe launched from WSL inherits
+/// neither — diff-harness P3 req_0001 observed `OS: unknown`), so the
+/// label is derived from the deployment shape instead
+/// (spec 2026-08-18_29 decision 1).
 fn detect_os() -> String {
-  match @utils.env_var("OS") {
-    Some(os) => os
-    None =>
-      match @utils.env_var("OSTYPE") {
-        Some(ostype) => ostype
-        None => "unknown"
-      }
+  match os_label_cache.val {
+    Some(v) => v
+    None => {
+      let v = if @utils.is_wsl() { "WSL/Windows" } else { "Windows" }
+      os_label_cache.val = Some(v)
+      v
+    }
   }
+}
+
+///|
+/// Convert a Windows path like "C:\Users\x\Desktop" to the WSL /mnt form
+/// "/mnt/c/Users/x/Desktop". Pure string rule — the deterministic
+/// equivalent of `wslpath` for the drive-letter case
+/// (spec 2026-08-18_29 decision 3).
+fn windows_path_to_mnt(path : String) -> String {
+  let normalized = path.replace_all(old="\\", new="/")
+  if normalized.length() >= 2 && normalized[1] == ':' {
+    let drive = normalized[:1].to_owned().to_lower()
+    let rest = normalized[2:]
+    "/mnt/\{drive}\{rest}"
+  } else {
+    normalized
+  }
+}
+
+///|
+/// Detect the user's Desktop directory, or None when unavailable.
+/// Looks up `USERPROFILE\Desktop` (existence-checked); in WSL-interop
+/// the path is converted to /mnt/<drive>/... so it matches Ruby's
+/// wslpath output. Missing profile or directory → None (field omitted
+/// per spec 2026-08-18_29 decision 3).
+fn detect_desktop() -> String? {
+  let profile = match @utils.env_var("USERPROFILE") {
+    Some(p) => p
+    None => return None
+  }
+  let candidate = profile + "\\Desktop"
+  if !(@fs.is_dir(candidate) catch { _ => false }) {
+    return None
+  }
+  Some(if @utils.is_wsl() { windows_path_to_mnt(candidate) } else { candidate })
 }
 
 ///|

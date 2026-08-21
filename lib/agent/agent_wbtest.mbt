@@ -2389,3 +2389,123 @@ test "flush_pending_injections injects assistant body then user shim" {
       ) : @message.MessageContent),
   )
 }
+// ── Session Context (spec 2026-08-18_29 / BUG-0033) ─────────────────────────
+
+///|
+/// Restore a set of env vars, then reset the process-level OS label cache
+/// so subsequent detect_os() calls re-probe.
+fn restore_env(pairs : Array[(String, String?)]) -> Unit {
+  pairs.each(fn(p) {
+    let (key, value) = p
+    match value {
+      Some(v) => @env.set_env_var(key, v)
+      None => @env.unset_env_var(key)
+    }
+  })
+  os_label_cache.val = None
+}
+
+///|
+/// detect_os: WSL-interop shape reports "WSL/Windows".
+test "session_context detect_os wsl" {
+  let saved : Array[(String, String?)] = [
+    ("WSL_DISTRO_NAME", @env.get_env_var("WSL_DISTRO_NAME")),
+    ("WSL_INTEROP", @env.get_env_var("WSL_INTEROP")),
+  ]
+  @env.set_env_var("WSL_DISTRO_NAME", "Ubuntu-22.04")
+  os_label_cache.val = None
+  @debug.assert_eq(detect_os(), "WSL/Windows")
+  // Cache holds the probe: a second call must not re-read the env.
+  @env.unset_env_var("WSL_DISTRO_NAME")
+  @debug.assert_eq(detect_os(), "WSL/Windows")
+  restore_env(saved)
+}
+
+///|
+/// detect_os: native (non-WSL) shape reports "Windows".
+test "session_context detect_os native" {
+  let saved : Array[(String, String?)] = [
+    ("WSL_DISTRO_NAME", @env.get_env_var("WSL_DISTRO_NAME")),
+    ("WSL_INTEROP", @env.get_env_var("WSL_INTEROP")),
+  ]
+  @env.unset_env_var("WSL_DISTRO_NAME")
+  @env.unset_env_var("WSL_INTEROP")
+  os_label_cache.val = None
+  @debug.assert_eq(detect_os(), "Windows")
+  restore_env(saved)
+}
+
+///|
+/// windows_path_to_mnt: drive-letter paths convert to /mnt/<drive> form.
+test "session_context windows_path_to_mnt" {
+  @debug.assert_eq(
+    windows_path_to_mnt("C:\\Users\\hnlyh\\Desktop"),
+    "/mnt/c/Users/hnlyh/Desktop",
+  )
+  @debug.assert_eq(
+    windows_path_to_mnt("D:\\Data\\file.txt"),
+    "/mnt/d/Data/file.txt",
+  )
+  // Non-drive paths (or already-posix) pass through unchanged.
+  @debug.assert_eq(
+    windows_path_to_mnt("/mnt/c/Users/x/Desktop"),
+    "/mnt/c/Users/x/Desktop",
+  )
+  @debug.assert_eq(windows_path_to_mnt("relative\\path"), "relative/path")
+}
+
+///|
+/// detect_desktop: undetectable profile/dir yields None (field omitted).
+test "session_context detect_desktop missing" {
+  let saved_profile = @env.get_env_var("USERPROFILE")
+  @env.set_env_var("USERPROFILE", "/nonexistent-profile-dir-for-test-20260821")
+  @debug.assert_eq(detect_desktop(), None)
+  match saved_profile {
+    Some(v) => @env.set_env_var("USERPROFILE", v)
+    None => @env.unset_env_var("USERPROFILE")
+  }
+}
+
+///|
+/// build_session_context_text: OS omitted when unknown, Desktop omitted
+/// when undetectable (Ruby parts.compact semantics, decision 2).
+test "session_context build_text omission rules" {
+  let wd = "/tmp/project"
+  let full = build_session_context_text(
+    "2026-08-21",
+    "Friday",
+    "mock-model",
+    "WSL/Windows",
+    Some("/mnt/c/Users/hnlyh/Desktop"),
+    wd,
+  )
+  assert_true(full.contains("[Session context: Today is 2026-08-21, Friday."))
+  assert_true(full.contains("Current model: mock-model."))
+  assert_true(full.contains("OS: WSL/Windows."))
+  assert_true(full.contains("Desktop: /mnt/c/Users/hnlyh/Desktop."))
+  assert_true(full.contains("Working directory: /tmp/project]"))
+
+  // unknown OS label → OS part dropped
+  let no_os = build_session_context_text(
+    "2026-08-21",
+    "Friday",
+    "mock-model",
+    "unknown",
+    Some("/mnt/c/Desktop"),
+    wd,
+  )
+  assert_true(!no_os.contains("OS:"))
+  assert_true(no_os.contains("Desktop: /mnt/c/Desktop."))
+
+  // undetectable Desktop → Desktop part dropped
+  let no_desktop = build_session_context_text(
+    "2026-08-21",
+    "Friday",
+    "mock-model",
+    "Windows",
+    None,
+    wd,
+  )
+  assert_true(no_desktop.contains("OS: Windows."))
+  assert_true(!no_desktop.contains("Desktop:"))
+}

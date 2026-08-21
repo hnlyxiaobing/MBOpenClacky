@@ -273,6 +273,8 @@ pub fn build_compression_message() -> @message.Message {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
 }
 

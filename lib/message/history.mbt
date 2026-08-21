@@ -172,6 +172,8 @@ pub fn MessageHistory::repair_dangling_tool_calls(
               latency: None,
               display_text: None,
               display_files: None,
+              session_date: None,
+              session_context: None,
               task_id: None,
               created_at: None,
               system_injected: None,
@@ -286,6 +288,24 @@ pub fn MessageHistory::last_real_user_index(self : MessageHistory) -> Int? {
         Some(true) => continue
         _ => return Some(i)
       }
+    }
+  }
+  None
+}
+
+///|
+/// Return the session_date of the most recent session-context message,
+/// or None if none was injected yet. Mirrors Ruby
+/// message_history.rb:177-182 (last_session_context_date scans the
+/// history for the newest message flagged as session context).
+pub fn MessageHistory::last_session_context_date(
+  self : MessageHistory,
+) -> String? {
+  for i = self.messages.length() - 1; i >= 0; i = i - 1 {
+    let msg = self.messages[i]
+    match msg.session_context {
+      Some(true) => return msg.session_date
+      _ => ()
     }
   }
   None
@@ -438,6 +458,8 @@ fn strip_internal_fields(msg : Message) -> Message {
     latency: msg.latency,
     display_text: msg.display_text,
     display_files: msg.display_files,
+    session_date: msg.session_date,
+    session_context: msg.session_context,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -487,6 +509,8 @@ fn deep_sanitize_utf8(msg : Message) -> Message {
     latency: msg.latency,
     display_text: msg.display_text,
     display_files: msg.display_files,
+    session_date: msg.session_date,
+    session_context: msg.session_context,
     task_id: msg.task_id,
     created_at: msg.created_at,
     system_injected: msg.system_injected,

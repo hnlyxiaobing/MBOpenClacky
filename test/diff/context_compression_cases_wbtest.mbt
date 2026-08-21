@@ -39,6 +39,8 @@ fn msg_of(
     latency: None,
     display_text: None,
     display_files: None,
+    session_date: None,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,

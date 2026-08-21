@@ -106,6 +106,8 @@ test "ext_message_to_api_strips_internal" {
     token_usage: None,
     compressed_summary: Some("sum"),
     transient: Some(true),
+    session_date: None,
+    session_context: None,
   }
   let api = msg.to_api_message()
   assert_true(api.task_id is None)
@@ -140,6 +142,8 @@ test "ext_message_to_api_preserves_core_fields" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let api = msg.to_api_message()
   assert_true(api.tool_calls is Some(_))
@@ -304,6 +308,8 @@ test "ext_history_truncate_from_created_at" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   h.replace_all([m1, Message::assistant("reply")])
   h.truncate_from_created_at("ts1")
@@ -332,6 +338,8 @@ test "ext_history_truncate_from_created_at_no_match" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   h.replace_all([m1])
   h.truncate_from_created_at("nonexistent")
@@ -360,6 +368,8 @@ test "ext_history_rollback_before" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   h.replace_all([m1, Message::assistant("reply")])
   h.rollback_before("tid1")
@@ -445,6 +455,8 @@ test "ext_history_append_user_drops_dangling" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let h = MessageHistory::from_messages([assistant_msg])
   assert_true(h.pending_tool_calls())
@@ -523,6 +535,8 @@ test "ext_history_pending_after_tool_result" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let tool_result = Message::tool_result("call-1", "search", "found it")
   let h = MessageHistory::from_messages([assistant_msg, tool_result])
@@ -565,6 +579,8 @@ test "ext_message_to_json_with_tool_calls" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   match ToJson::to_json(msg) {
     Object(obj) => assert_true(obj.get("tool_calls") is Some(_))
@@ -615,4 +631,138 @@ test "ext_imageblock_equality" {
   let ib3 : ImageBlock = { url: "http://y.png", detail: None }
   assert_true(ib1 == ib2)
   assert_true(ib1 != ib3)
+}
+
+///|
+/// Session context fields (spec 2026-08-18_29 / BUG-0033): session_date
+/// always leaks into wire JSON when present; session_context only when true.
+test "ext_message_to_json_session_context" {
+  let msg : Message = {
+    role: User,
+    content: Text("ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(true),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  match ToJson::to_json(msg) {
+    Object(obj) => {
+      assert_eq(obj.get("session_date"), Some("2026-08-21".to_json()))
+      assert_eq(obj.get("session_context"), Some(true.to_json()))
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+/// session_context=false is omitted from wire JSON (Ruby only sets the
+/// key when true).
+test "ext_message_to_json_session_context_false_omitted" {
+  let msg : Message = {
+    role: User,
+    content: Text("ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(false),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  match ToJson::to_json(msg) {
+    Object(obj) => {
+      assert_eq(obj.get("session_date"), Some("2026-08-21".to_json()))
+      assert_eq(obj.get("session_context"), None)
+    }
+    _ => assert_true(false)
+  }
+}
+
+///|
+/// from_json round-trips the session context fields.
+test "ext_message_from_json_session_context_roundtrip" {
+  let msg : Message = {
+    role: User,
+    content: Text("ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(true),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let parsed : Message = @json.from_json(ToJson::to_json(msg))
+  @debug.assert_eq(parsed.session_date, Some("2026-08-21"))
+  @debug.assert_eq(parsed.session_context, Some(true))
+}
+
+///|
+/// to_api_message keeps the session context fields (wire leak by design).
+test "ext_message_to_api_keeps_session_context" {
+  let msg : Message = {
+    role: User,
+    content: Text("ctx"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
+    session_date: Some("2026-08-21"),
+    session_context: Some(true),
+    task_id: None,
+    created_at: None,
+    system_injected: Some(true),
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  let api = msg.to_api_message()
+  @debug.assert_eq(api.session_date, Some("2026-08-21"))
+  @debug.assert_eq(api.session_context, Some(true))
+  // Plain messages stay clean on the wire.
+  let plain = Message::user("hello")
+  @debug.assert_eq(plain.to_api_message().session_date, None)
+  @debug.assert_eq(plain.to_api_message().session_context, None)
 }

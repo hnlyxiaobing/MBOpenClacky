@@ -161,6 +161,8 @@ test "build_openai_request_strips_image_for_non_vision" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   // vision_supported = false should strip image blocks
   let body = build_openai_request(
@@ -468,6 +470,8 @@ test "build_anthropic_request_merges_consecutive_tool_results" {
     token_usage: None,
     compressed_summary: None,
     transient: None,
+    session_date: None,
+    session_context: None,
   }
   let messages = [
     assistant_msg,
