@@ -1,7 +1,7 @@
 # edit 工具对齐（分层匹配/参数校验/UTF-8 健壮性，BUG-0044/0045/0046）· 增量 Spec
 
 > **创建日期**: 2026-08-15  
-> **状态**: 讨论中  
+> **状态**: 已完成  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0044/0045/0046；`reports/p5_fix_unit_clustering.md` FU-16  
 > **关联历史 spec**: 无（BUG-0001 replace_all 修复为直接代码修复，未立 spec）  
 > **来源差距**: P5 回归迁移实测（cases/file_edit edit-008/009/010/018/019）  
@@ -95,12 +95,12 @@ MoonBit 约束检查：不涉及 trait 动态加载 / FFI / 新依赖（unescape
 
 ## 验收标准 [必填]
 
-- [ ] 缺 new_string → 明确报错，文件不被修改（edit_018 转绿，BUG-0045 闭环）
-- [ ] 0xFF 文件可正常编辑不 panic（edit_019 转绿，BUG-0046 闭环）
-- [ ] trim/unescape/smart-line 三类回退与 Ruby 行为一致（edit_008/009/010 转绿，BUG-0044 闭环）
-- [ ] `moon check` 0 errors（lib/tool）
-- [ ] `moon test lib/tool`、`moon test test/diff` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] 缺 new_string → 明确报错，文件不被修改（edit_018 转绿，BUG-0045 闭环）
+- [x] 0xFF 文件可正常编辑不 panic（edit_019 转绿，BUG-0046 闭环）
+- [x] trim/unescape/smart-line 三类回退与 Ruby 行为一致（edit_008/009/010 转绿，BUG-0044 闭环）
+- [x] `moon check` 0 errors（lib/tool）
+- [x] `moon test lib/tool`、`moon test test/diff` 全部通过
+- [x] 全量 `moon test` 无回归（3881/3881 通过）
 
 ## 风险评估 [必填]
 
@@ -121,3 +121,4 @@ MoonBit 约束检查：不涉及 trait 动态加载 / FFI / 新依赖（unescape
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-15 | 初始版本 | P5 归并分析 FU-16（BUG-0044/0045/0046） |
+| 2026-08-21 | 全部实现完成，归档 | BUG-0044（分层匹配：trim/unescape/smart-line，`lib/tool/string_matcher.mbt` 新建）/ BUG-0045（new_string 必填校验）/ BUG-0046（`read_file_scrubbed` + 安全 `count_occurrences`）。`lib/tool/edit.mbt` 修改，`test/diff/known_failure.mbt` 移除三项闸门。全量 3881 测试通过。 |

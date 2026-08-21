@@ -78,7 +78,7 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
   }
   let new_string = match args.get("new_string") {
     Some(String(s)) => s
-    _ => ""
+    _ => return ToolResult::error("Missing required parameter: new_string")
   }
   let replace_all = get_bool_arg(args, "replace_all", false)
 
@@ -90,16 +90,24 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
     return ToolResult::error("File not found: \{path}")
   }
 
-  let content = @fs.read_file_to_string(path) catch {
-    _ => return ToolResult::error("Failed to read file: \{path}")
+  let content = match read_file_scrubbed(path) {
+    Some(c) => c
+    None => return ToolResult::error("Failed to read file: \{path}")
   }
 
-  let occurrences = count_occurrences(content, old_string)
-  guard occurrences > 0 else {
-    return ToolResult::error(
-      "old_string not found in file: \{path}. The string must match exactly including whitespace.",
-    )
+  let old_string = @utils.sanitize_string(old_string)
+  let new_string = @utils.sanitize_string(new_string)
+
+  let match_result = match find_match(content, old_string) {
+    Some(m) => m
+    None =>
+      return ToolResult::error(
+        "old_string not found in file: \{path}. The string must match exactly including whitespace.",
+      )
   }
+
+  let matched = match_result.matched_string
+  let occurrences = match_result.occurrences
 
   if !replace_all && occurrences > 1 {
     return ToolResult::error(
@@ -108,13 +116,13 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
   }
 
   let new_content = if replace_all {
-    content.replace_all(old=old_string, new=new_string)
+    content.replace_all(old=matched, new=new_string)
   } else {
-    match content.find(old_string) {
+    match content.find(matched) {
       Some(idx) =>
         content[:idx].to_owned() +
         new_string +
-        content[idx + old_string.length():].to_owned()
+        content[idx + matched.length():].to_owned()
       None => content
     }
   }
@@ -148,24 +156,4 @@ impl Tool for Edit with fn format_result(_, result : ToolResult) -> String {
 ///|
 impl Tool for Edit with fn to_function_definition(self) -> FunctionDefinition {
   FunctionDefinition::new(self.name(), self.description(), self.parameters())
-}
-
-///|
-fn count_occurrences(text : String, substring : String) -> Int {
-  if substring.is_empty() || text.is_empty() {
-    return 0
-  }
-  let mut count = 0
-  let mut pos = 0
-  let sub_len = substring.length()
-  let text_len = text.length()
-  while pos + sub_len <= text_len {
-    if text[pos:pos + sub_len].to_owned() == substring {
-      count = count + 1
-      pos = pos + sub_len
-    } else {
-      pos = pos + 1
-    }
-  }
-  count
 }

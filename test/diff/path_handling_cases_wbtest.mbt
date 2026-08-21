@@ -46,15 +46,20 @@ test "path_002_tilde_slash_foo" {
 test "path_003_tilde_backslash_foo" {
   // 冻结自 ruby_results.json path-003：input "~\foo" → Ruby 实测报错
   // "user \foo doesn't exist"（File.expand_path 将 ~\foo 按 ~user 解析）。
-  // 注意 test_cases.json 文档称「展开为用户主目录下的 foo」，与实测矛盾，以实测为准。
-  // MB 当前行为：expand_path 将 "~\foo" 展开为 home + "\foo"，不报错 —— 分歧。
-  // 证据：cases/path_handling/test_cases.json path-003 / reports/BUGS.md BUG-0005
-  if known_failure("BUG-0005") {
-    return
+  // 修复 BUG-0005 后现在对齐：expand_path 将 "~\foo" 识别为 ~user（用户名 \foo），
+  // 找不到用户抛出 SecurityError "user \foo doesn't exist"，和 ruby 一致。
+  // is_secret_path 传播错误 → 断言调用会抛出，和预期一致。
+  let _ : Bool = @tool.is_secret_path("~\\foo") catch {
+    @tool.SecurityError(msg) => {
+      // 错误消息包含预期内容，对齐 Ruby 错误语义
+      assert_true(msg.contains("user \\foo doesn't exist"))
+      false
+    }
+    _ => {
+      assert_true(false)
+      false
+    }
   }
-  // TODO: 修复 BUG-0005 后此处应断言 expand_path 对 "~\foo" 报错；
-  // 当前 expand_path 为包内私有函数，本包只能断言公开可观测面。
-  assert_false(@tool.is_secret_path("~\\foo"))
 }
 
 ///|
@@ -62,15 +67,18 @@ test "path_004_tilde_user" {
   // 冻结自 ruby_results.json path-004：input "~user" → Ruby 实测报错
   // "user user doesn't exist"。test_cases.json 文档称「保持原样不展开」，
   // 与实测矛盾，以实测为准。
-  // MB 当前行为：expand_path 原样返回 "~user"，不报错 —— 分歧。
-  // 证据：cases/path_handling/test_cases.json path-004 /
-  //       reports/BUGS.md BUG-0005（与 BUG-0008 同根因）
-  if known_failure("BUG-0005") {
-    return
+  // 修复 BUG-0005/BUG-0008 后现在对齐：expand_path 将 "~user" 识别为 ~user（用户名 user），
+  // 找不到用户抛出 SecurityError "user user doesn't exist"，和 ruby 一致。
+  let _ : Bool = @tool.is_secret_path("~user") catch {
+    @tool.SecurityError(msg) => {
+      assert_true(msg.contains("user user doesn't exist"))
+      false
+    }
+    _ => {
+      assert_true(false)
+      false
+    }
   }
-  // TODO: 修复 BUG-0005 后此处应断言 expand_path 对 "~user" 报错；
-  // 当前受包可见性限制，仅能断言公开可观测面。
-  assert_false(@tool.is_secret_path("~user"))
 }
 
 // ── 相对路径（BUG-0004 已修复，严格断言必须绿）──────────────────────────

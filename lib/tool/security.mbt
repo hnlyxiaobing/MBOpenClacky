@@ -150,7 +150,7 @@ pub fn command_safe_for_auto_execution(command : String) -> Bool {
 /// directory, and `.env` files (`.env` or `.env.*` as a path segment).
 /// Segment matching avoids substring false positives such as
 /// `release.env.bak` or a directory literally named `something.env.stuff`.
-pub fn is_secret_path(path : String) -> Bool {
+pub fn is_secret_path(path : String) -> Bool raise SecurityError {
   let expanded = expand_path(path)
   let normalized = expanded.to_lower().replace_all(old="\\", new="/")
   for seg in normalized.split("/") {
@@ -338,8 +338,8 @@ fn strip_quoted_strings(text : String) -> String {
 }
 
 ///|
-/// Expand a path: resolve ~ to home directory, handle relative paths.
-fn expand_path(path : String) -> String {
+/// Expand a path: resolve ~ to home directory, ~user to user's home, handle relative paths.
+fn expand_path(path : String) -> String raise SecurityError {
   if path.has_prefix("~") {
     match home_dir() {
       Some(home) =>
@@ -350,7 +350,12 @@ fn expand_path(path : String) -> String {
             path[1:].to_owned().has_prefix("\\") {
             home + path[1:].to_owned()
           } else {
-            path
+            // ~user: extract username and try to resolve from /etc/passwd
+            let username = path[1:].to_owned()
+            match resolve_user_home(username) {
+              Some(user_home) => user_home
+              None => raise SecurityError("user \{username} doesn't exist")
+            }
           }
         } else {
           path
@@ -379,6 +384,34 @@ fn home_dir() -> String? {
   match @env.get_env_var("HOME") {
     Some(p) if !p.is_empty() => return Some(p)
     _ => ()
+  }
+  None
+}
+
+///|
+/// Resolve a user's home directory from /etc/passwd (POSIX systems).
+/// Returns None if the user doesn't exist or /etc/passwd is unavailable.
+fn resolve_user_home(username : String) -> String? {
+  // Windows has no /etc/passwd
+  if !@fs.path_exists("/etc/passwd") {
+    return None
+  }
+  let content = @fs.read_file_to_string("/etc/passwd") catch {
+    _ => return None
+  }
+  for line in content.split("\n") {
+    let trimmed = line.trim()
+    // Skip comments and empty lines
+    if trimmed.is_empty() || trimmed.has_prefix("#") {
+      continue
+    }
+    let parts = trimmed.split(":").to_array()
+    if parts.length() >= 7 {
+      let entry_user = parts[0].trim().to_owned()
+      if entry_user == username {
+        return Some(parts[5].trim().to_owned())
+      }
+    }
   }
   None
 }

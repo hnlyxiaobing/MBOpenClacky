@@ -106,7 +106,8 @@ async test "edit_preserves_indentation" {
 // ── Edit 分层匹配（预期 MB 失败的用例）────────────────────────────────────
 
 ///|
-async test "edit_trim_match_expected_fail" {
+async test "edit_trim_match" {
+  // BUG-0044 已修复：分层匹配 trim 回退
   let dir = p2_tmpdir("edit05")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   @fs.write_string_to_file(path, "Hello, World!")
@@ -117,16 +118,15 @@ async test "edit_trim_match_expected_fail" {
     "new_string": "Ruby".to_json(),
   }
   let result = tool.execute(args)
-  // MB 预期：is_error = true（无 trim 匹配）
-  // Ruby 预期：is_error = false（trim 匹配成功）
-  let content = @fs.read_file_to_string(path)
-  assert_true(result.is_error || content == "Hello, Ruby!")
+  assert_false(result.is_error)
+  assert_eq(@fs.read_file_to_string(path), "Hello, Ruby!")
   @fs.remove_file(path)
   p2_cleanup(dir)
 }
 
 ///|
-async test "edit_unescape_match_expected_fail" {
+async test "edit_unescape_match" {
+  // BUG-0044 已修复：分层匹配 unescape 回退
   let dir = p2_tmpdir("edit06")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   @fs.write_string_to_file(path, "line1\nline2")
@@ -137,14 +137,15 @@ async test "edit_unescape_match_expected_fail" {
     "new_string": "replaced".to_json(),
   }
   let result = tool.execute(args)
-  let content = @fs.read_file_to_string(path)
-  assert_true(result.is_error || content == "replaced")
+  assert_false(result.is_error)
+  assert_eq(@fs.read_file_to_string(path), "replaced")
   @fs.remove_file(path)
   p2_cleanup(dir)
 }
 
 ///|
-async test "edit_smart_line_match_tabs_vs_spaces_expected_fail" {
+async test "edit_smart_line_match_tabs_vs_spaces" {
+  // BUG-0044 已修复：分层匹配 smart line 回退
   let dir = p2_tmpdir("edit07")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   @fs.write_string_to_file(path, "def test\n    puts 'hello'\nend")
@@ -155,8 +156,8 @@ async test "edit_smart_line_match_tabs_vs_spaces_expected_fail" {
     "new_string": "def test\n    puts 'world'\nend".to_json(),
   }
   let result = tool.execute(args)
-  let content = @fs.read_file_to_string(path)
-  assert_true(result.is_error || content == "def test\n    puts 'world'\nend")
+  assert_false(result.is_error)
+  assert_eq(@fs.read_file_to_string(path), "def test\n    puts 'world'\nend")
   @fs.remove_file(path)
   p2_cleanup(dir)
 }
@@ -204,7 +205,8 @@ async test "edit_literal_backslash_1" {
 // ── Edit new_string 缺失 ───────────────────────────────────────────────
 
 ///|
-async test "edit_missing_new_string_defaults_to_empty" {
+async test "edit_missing_new_string_is_error" {
+  // BUG-0045 已修复：缺 new_string 报错而非静默删除
   let dir = p2_tmpdir("edit10")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   @fs.write_string_to_file(path, "Hello, World!")
@@ -214,10 +216,7 @@ async test "edit_missing_new_string_defaults_to_empty" {
     "old_string": "World".to_json(),
   }
   let result = tool.execute(args)
-  // MB 行为：成功，new_string 默认为 ""
-  let content = @fs.read_file_to_string(path)
-  assert_false(result.is_error)
-  assert_eq(content, "Hello, !")
+  assert_true(result.is_error)
   @fs.remove_file(path)
   p2_cleanup(dir)
 }
@@ -538,6 +537,7 @@ async test "edit_cjk_old_new" {
 
 ///|
 async test "edit_missing_new_string" {
+  // BUG-0045 已修复：缺 new_string 报错
   let dir = p2_tmpdir("edit20")
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   @fs.write_string_to_file(path, "Hello World")
@@ -547,14 +547,7 @@ async test "edit_missing_new_string" {
     "old_string": "World".to_json(),
   }
   let result = tool.execute(args)
-  // Ruby: ArgumentError missing keyword: new_string (硬错误)
-  // MB: new_string 缺失时默认为 "" (静默删除)
-  // 记录行为差异
-  if !result.is_error {
-    let content = @fs.read_file_to_string(path)
-    // MB 行为：old_string 被删除
-    assert_eq(content, "Hello ")
-  }
+  assert_true(result.is_error)
   @fs.remove_file(path)
   p2_cleanup(dir)
 }

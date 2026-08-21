@@ -28,13 +28,12 @@ let known_failure_bug_ids : Array[String] = [
   // "Is a directory"，write_fuzz_1245 转绿），移出注册表
   // BUG-0003 已修复（spec 2026-08-18_25：空检查改 trim，纯空白路径报
   // "Path cannot be empty"，write_004 冻结期望按决策 2 修正后转绿），移出注册表
-  "BUG-0005", // expand_path 不解析 ~user（与 BUG-0008 同根因）
+  // BUG-0005/BUG-0008 已修复（本 spec：~user 解析实现，对齐 Ruby 报错语义），移出注册表
   // BUG-0006 已修复（spec 2026-08-18_23：OpenAiStreamAggregator 补 frames_seen/
   // bytes_seen/parse_failures/saw_done/approximate_output_tokens，stream-005/007/
   // 011/012/013/019 统计断言转绿，移除闸门）
   // BUG-0007 已转 needs-investigation（台账与实测证据矛盾，见 BUGS.md 2026-08-14 修订），
   // 当前无断言挂该编号，不在册
-   "BUG-0008", // expand_path 不解析 ~user（同 BUG-0005）
   // BUG-0009/0010 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
   // token 估算分桶公式 + tool_calls 去 +50），移出注册表
   // BUG-0011 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：
@@ -55,7 +54,7 @@ let known_failure_bug_ids : Array[String] = [
   // error_retry 模块（P2）
   // BUG-0023 已修复（spec 2026-08-18_08_p5-retry-backoff-circuit-breaker.md：
   // retry_delay_ms 固定 5000ms 对齐 Ruby sleep retry_delay），移出注册表
-   "BUG-0024", // 402 错误分类不一致
+  "BUG-0024", // 402 错误分类不一致
   // BUG-0025/0026 已于基线实现（react 层空响应/thinking 静默重试，台账记录过时），
   // retry-013/014 为绿断言，不在册
   // BUG-0028 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：
@@ -87,10 +86,13 @@ let known_failure_bug_ids : Array[String] = [
   // >2000 字符 tool_result 放行；005 e2e 转绿），移出注册表
   // BUG-0043 已修复（基线 commit 8f4381e，compressor.mbt:141-148 已有 10% 检查，
   // lib/agent 339/339 绿），移出注册表
+  // BUG-0044 已修复（spec 2026-08-18_26：分层匹配 trim/unescape/smart-line，
+  // edit_008/009/010 转绿），移出注册表
+  // BUG-0045 已修复（spec 2026-08-18_26：new_string 缺失报错而非静默删除，
+  // edit_018 转绿），移出注册表
+  // BUG-0046 已修复（spec 2026-08-18_26：UTF-8 清洗 + 安全 count_occurrences，
+  // edit_019 转绿），移出注册表
   // P5 新登记（详见 diff-harness reports/BUGS.md BUG-0044 起）
-   "BUG-0044", // edit 缺 Ruby 分层匹配回退（edit-008/009/010）
-   "BUG-0045", // edit 缺 new_string 静默删除（edit-018）
-   "BUG-0046", // edit 非法 UTF-8 panic（edit-019，闸门内不得执行真实调用）
   // BUG-0047 已修复（spec 2026-08-18_25：父目录创建换 @utils.ensure_dir
   // 递归创建，write-003/006 转绿），移出注册表
   // BUG-0048/0049/0050 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
