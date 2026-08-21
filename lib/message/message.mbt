@@ -47,6 +47,17 @@ pub(all) struct Message {
   tool_call_id : String?
   name : String?
   mut reasoning_content : String?
+  // Per-message observability / display fields (spec 2026-08-18_23
+  // decision 3 option A: aligned with Ruby's hash-passthrough behaviour
+  // where latency / display_text / display_files leak into the wire).
+  // `latency` is populated on assistant messages after the LLM call
+  // returns; `display_text` / `display_files` are written on user
+  // messages (typically null) so the TUI can show them later. Latency
+  // is stored as Json (the @client.Latency serialisation) so this
+  // package does not have to depend on lib/client.
+  mut latency : Json?
+  display_text : String?
+  display_files : Array[String]?
   // Internal fields (stripped before API calls)
   task_id : String?
   mut created_at : String?
@@ -88,6 +99,28 @@ pub impl ToJson for Message with fn to_json(self) {
   }
   if self.reasoning_content is Some(_) {
     obj["reasoning_content"] = ToJson::to_json(self.reasoning_content)
+  }
+  // Per-message observability / display fields (spec 2026-08-18_23
+  // option A). `latency` is set on assistant messages by react after
+  // the LLM call; `display_text` / `display_files` are always emitted
+  // on user messages (as null when not populated) — mirrors Ruby's
+  // hash-passthrough behaviour.
+  match self.latency {
+    Some(v) => obj["latency"] = v
+    None => ()
+  }
+  match self.role {
+    User => {
+      obj["display_text"] = match self.display_text {
+        Some(s) => s.to_json()
+        None => Json::null()
+      }
+      obj["display_files"] = match self.display_files {
+        Some(arr) => arr.to_json()
+        None => Json::null()
+      }
+    }
+    _ => ()
   }
   // Serialize as a plain string (not the Option-as-[x] form) so
   // Message::from_json can read it back.
@@ -147,6 +180,9 @@ pub fn Message::user(content : String) -> Message {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -174,6 +210,9 @@ pub fn Message::user_blocks(blocks : Array[ContentBlock]) -> Message {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),
@@ -196,6 +235,9 @@ pub fn Message::assistant(content : String) -> Message {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -218,6 +260,9 @@ pub fn Message::system(content : String) -> Message {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -244,6 +289,9 @@ pub fn Message::tool_result(
     tool_call_id: Some(tool_call_id),
     name: Some(name),
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -258,6 +306,10 @@ pub fn Message::tool_result(
 
 ///|
 /// Return a copy of this message with internal fields stripped for API submission.
+///
+/// Per spec 2026-08-18_23 (option A): `latency`, `display_text` and
+/// `display_files` are NOT stripped — they are part of the wire payload
+/// by design (mirrors Ruby's hash-passthrough behaviour).
 pub fn Message::to_api_message(self : Message) -> Message {
   let name = match self.role {
     Tool => None
@@ -270,6 +322,9 @@ pub fn Message::to_api_message(self : Message) -> Message {
     tool_call_id: self.tool_call_id,
     name,
     reasoning_content: self.reasoning_content,
+    latency: self.latency,
+    display_text: self.display_text,
+    display_files: self.display_files,
     task_id: None,
     created_at: None,
     system_injected: None,
@@ -295,6 +350,9 @@ pub fn Message::to_persist_message(self : Message) -> Message {
     tool_call_id: self.tool_call_id,
     name: self.name,
     reasoning_content: self.reasoning_content,
+    latency: self.latency,
+    display_text: self.display_text,
+    display_files: self.display_files,
     task_id: self.task_id,
     created_at: self.created_at,
     system_injected: self.system_injected,
@@ -339,6 +397,28 @@ pub impl FromJson for Message with fn from_json(json, path) {
       }
       let reasoning_content = match map.get("reasoning_content") {
         Some(String(s)) => Some(s)
+        _ => None
+      }
+      let latency = match map.get("latency") {
+        Some(Null) | None => None
+        Some(j) => Some(j)
+      }
+      let display_text = match map.get("display_text") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+      let display_files = match map.get("display_files") {
+        Some(Null) | None => None
+        Some(Array(items)) => {
+          let arr : Array[String] = []
+          for item in items {
+            match item {
+              String(s) => arr.push(s)
+              _ => ()
+            }
+          }
+          Some(arr)
+        }
         _ => None
       }
       let task_id = match map.get("task_id") {
@@ -386,6 +466,9 @@ pub impl FromJson for Message with fn from_json(json, path) {
         tool_call_id,
         name,
         reasoning_content,
+        latency,
+        display_text,
+        display_files,
         task_id,
         created_at,
         system_injected,

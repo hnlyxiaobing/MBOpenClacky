@@ -85,7 +85,7 @@
 | 20 | [20_p6-skill-system-prompt-alignment.md](./2026-08-18_20_p6-skill-system-prompt-alignment.md) | B6 / 技能系统与提示词（矩阵§6） | 03（YAML 选型同批） | frontmatter/懒加载命中/提示词层恢复/profile 链路 |
 | 21 | [21_p6-billing-telemetry-residual-alignment.md](./2026-08-18_21_p6-billing-telemetry-residual-alignment.md) | B11 / 计费/遥测/重试残留（矩阵§11） | 13 + 06 + 02/08/18 | 单点记账、api_cost 三级、重试管道接线、遥测 opt-out |
 | 22 | [22_p6-e2e-link-layer-completion.md](./2026-08-18_22_p6-e2e-link-layer-completion.md) | B12 / e2e 链路层补全（P3 收尾） | 06 + 13 + 09（005） | mock 畸形 SSE/finish_reason、011/012 断言、005 fixture |
-| 23 | [23_p5-observability-stats-fields.md](./2026-08-18_23_p5-observability-stats-fields.md) | FU-14 / 可观测性统计字段 | 02/08（同文件错峰） | aggregator stats、usage cached_tokens、latency、display_* |
+| 23 | [23_p5-observability-stats-fields.md](./2026-08-18_23_p5-observability-stats-fields.md) | FU-14 / 可观测性统计字段 | 02/08（同文件错峰） | aggregator stats、usage cached_tokens、latency、display_* | **已完成（2026-08-21）· 已归档** |
 | 24 | [24_p5-tool-result-json-format.md](./2026-08-18_24_p5-tool-result-json-format.md) | FU-15 / 工具错误 tool_result JSON（BUG-0040） | 无 | 伪 JSON 序列化修正；014 断言随 B2 决策 2 |
 | 25 | [25_p5-write-tool-boundary-checks.md](./2026-08-18_25_p5-write-tool-boundary-checks.md) | FU-10 / write 边界检查（BUG-0002/0003/0047） | 无 | 写边界检查补全（工具簇，可与 26 并行） |
 | 26 | [26_p5-edit-tool-alignment.md](./2026-08-18_26_p5-edit-tool-alignment.md) | FU-16 / edit 工具对齐（BUG-0044/0045/0046） | 无 | 分层匹配/参数校验/UTF-8 健壮性（工具簇） |
@@ -180,3 +180,4 @@ P4 从未执行、无基线数据（仅 fix_plan §5.4 目标口径），本轮�
 - 2026-08-18：通过对抗性审查，13 份文档（overview + B1~B12）移入 `specs/active/`；头部状态字段同步更新。
 - 2026-08-18：active/ 下 16 份 P5 spec 通过审查并移入；全部重编号并按阶段排序；文件名加 `2026-08-18_` 日期前缀；交叉引用同步更新；重写为总结性索引。
 - 2026-08-18：**按依赖拓扑重排全部编号**（修正此前"P6 整体前置于 P5"的排序错误——B10/B11/B12 实际依赖 P5 spec 先行）：新增 §0 排序原则与拓扑不变式；§2/§3/§5 更新为"逻辑编号+文件编号"双标识；28 份文件两阶段重命名，内容引用同步替换。
+- 2026-08-21：spec 23（FU-14 可观测性统计字段）开发完成。OpenAiStreamAggregator 补 frames_seen/bytes_seen/parse_failures/saw_done/approximate_output_tokens；usage 归一化补 cached_tokens 兜底（BUG-0051）；lib/agent/llm_caller.mbt 加 latency 测量点并在 to_api_message 挂载（BUG-0034）；lib/client/format_openai.mbt 加 add_observability_fields 在 wire 层补 display_text/display_files（BUG-0035）。stream-005/007/011/012/013/019 统计断言转绿；stream-020 cached_tokens=50 断言已就位；e2e 剧本 001/003 增 assert_observability_fields 回归。`test/diff` 145/145、`test/e2e` 14/14、`lib/client` 123/123、`lib/agent` 471/471、`lib/message` 63/63（合计 816/816）全绿。spec 23 移入 `specs/completed/`。

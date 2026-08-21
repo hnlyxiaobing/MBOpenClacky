@@ -1,7 +1,9 @@
 # 可观测性统计字段补齐（aggregator stats / usage cached_tokens / latency / display_*）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成
+> **归档日期**: 2026-08-21
+> **验收**: moon check 0 errors；moon test test/diff + test/e2e + lib/client + lib/agent + lib/message = 816/816 pass  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0006（含"P5 对既有条目的修订"范围补充）、BUG-0034、BUG-0035、BUG-0051；`reports/p5_fix_unit_clustering.md` FU-14  
 > **关联历史 spec**: 无（BUG-0006 为 P2 遗留 B 类冻结条目；BUG-0034/0035 为 P3 链路登记）  
 > **来源差距**: P2 单元级差分（stream-005/007/011/012/013/019/020）+ P3 链路层差分（剧本 001 req_0002/0003 assistant latency、req_0001 user display_*）  

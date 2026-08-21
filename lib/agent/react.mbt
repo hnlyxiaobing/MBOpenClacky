@@ -68,6 +68,9 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),
@@ -384,6 +387,14 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   let msg = @message.Message::assistant(content)
   msg.tool_calls = response.tool_calls
   msg.reasoning_content = response.reasoning_content
+  // Per spec 2026-08-18_23 (option A): attach latency to the assistant
+  // message so it survives a save/load round trip and the TUI can
+  // display it later. Stored as Json to avoid lib/message depending
+  // on lib/client.
+  msg.latency = match response.latency {
+    Some(lat) => Some(lat.to_json())
+    None => None
+  }
   self.history.append(stamp_created_at(msg))
   self.hook_manager.emit(MessageAdded)
   self.hook_manager.emit(AfterLlmCall)

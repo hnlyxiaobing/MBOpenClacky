@@ -212,6 +212,38 @@ fn apply_reasoning_params(
 }
 
 ///|
+/// Add observability / display fields (latency, display_text, display_files)
+/// to the wire JSON object. Per spec 2026-08-18_23 option A:
+/// - assistant messages: include `latency` when set (mirrors Ruby
+///   message_format/open_ai.rb hash-passthrough, which echoes the 7-field
+///   latency hash verbatim).
+/// - user messages: always include `display_text` and `display_files`
+///   (null when unset, matching Ruby's nil-as-null serialization).
+/// - other roles (system/tool): skipped — no observability fields defined.
+fn add_observability_fields(
+  msg : @message.Message,
+  obj : Map[String, Json],
+) -> Unit {
+  match msg.latency {
+    Some(v) => obj["latency"] = v
+    None => ()
+  }
+  match msg.role {
+    @message.User => {
+      obj["display_text"] = match msg.display_text {
+        Some(s) => s.to_json()
+        None => Json::null()
+      }
+      obj["display_files"] = match msg.display_files {
+        Some(arr) => arr.to_json()
+        None => Json::null()
+      }
+    }
+    _ => ()
+  }
+}
+
+///|
 /// Normalize a message's content for the OpenAI API.
 /// Strips image_url blocks when vision is not supported.
 fn normalize_openai_message(
@@ -230,6 +262,7 @@ fn normalize_openai_message(
           ]),
         }
         add_tool_fields(msg, obj)
+        add_observability_fields(msg, obj)
         Json::object(obj)
       } else {
         let content_arr : Array[Json] = []
@@ -241,6 +274,7 @@ fn normalize_openai_message(
           "content": content_arr.to_json(),
         }
         add_tool_fields(msg, obj)
+        add_observability_fields(msg, obj)
         Json::object(obj)
       }
     }
@@ -255,6 +289,7 @@ fn message_to_json(msg : @message.Message) -> Json {
     "content": content_to_json(msg.content),
   }
   add_tool_fields(msg, obj)
+  add_observability_fields(msg, obj)
   match msg.name {
     Some(n) => obj["name"] = n.to_json()
     _ => ()

@@ -126,6 +126,56 @@ fn assert_system_prompt_stable(requests : Array[String]) -> Unit {
 }
 
 ///|
+/// 断言请求体携带 observability 字段（spec 2026-08-18_23 / BUG-0034 / BUG-0035）。
+///
+/// - 每个 user 消息必须含 `display_text` 与 `display_files` 键（可为 null；
+///   spec 选项 A：user 始终序列化，对齐 Ruby hash-passthrough）。
+/// - 每个非首次请求中的 assistant 消息必须含非 null 的 `latency` 键
+///   （react 在 LLM 返回后挂上，反映本次调用端到端耗时）。
+///
+/// 此断言不校验 latency 的具体值（量级由各 LLM 后端的 timing 决定），
+/// 只校验"字段被正确写入并出现在出站请求体里"这一链路事实。
+fn assert_observability_fields(requests : Array[String]) -> Unit {
+  for ri, req in requests {
+    let body = @json.parse(req) catch { _ => continue }
+    guard jget(body, "messages") is Some(msgs_json) else { continue }
+    guard jarr(msgs_json) is Some(msgs) else { continue }
+    for m in msgs {
+      guard jget(m, "role") is Some(r) && jstr(r) is Some(role) else {
+        continue
+      }
+      if role == "user" {
+        // user 消息始终携带 display_text / display_files（可为 null）
+        guard jget(m, "display_text") is Some(_) else {
+          println(
+            "FATAL: req\{ri} user 消息缺 display_text 字段（spec 2026-08-18_23 选项 A）",
+          )
+          panic()
+        }
+        guard jget(m, "display_files") is Some(_) else {
+          println(
+            "FATAL: req\{ri} user 消息缺 display_files 字段（spec 2026-08-18_23 选项 A）",
+          )
+          panic()
+        }
+      } else if role == "assistant" && ri > 0 {
+        // 非首次请求里的 assistant 消息是历史 LLM 返回，必须已挂 latency
+        guard jget(m, "latency") is Some(lat) else {
+          println(
+            "FATAL: req\{ri} assistant 消息缺 latency 字段（BUG-0034 回归）",
+          )
+          panic()
+        }
+        if lat is Json::Null {
+          println("FATAL: req\{ri} assistant 消息 latency 为 null")
+          panic()
+        }
+      }
+    }
+  }
+}
+
+///|
 async test "001 read_edit_file：读文件→编辑→回复完成" {
   let outcome = run_scenario(
     "001_read_edit_file",
@@ -135,6 +185,8 @@ async test "001 read_edit_file：读文件→编辑→回复完成" {
   // 黄金断言点：ruby 3 请求、exit=0、config.yaml 端口改为 9090
   // 证据: diff-harness runs/001_read_edit_file/ruby/
   assert_golden(outcome, golden("001_read_edit_file"))
+  // BUG-0034 / BUG-0035 回归：出站请求必须带 observability 字段
+  assert_observability_fields(outcome.requests)
 }
 
 ///|
@@ -170,6 +222,8 @@ async test "003 multi_turn_tool_sequence：read→edit→read 验证→完成" {
   // 黄金断言点：ruby 4 请求、exit=0、app.conf debug=true
   // 证据: diff-harness runs/003_multi_turn_tool_sequence/ruby/
   assert_golden(outcome, golden("003_multi_turn_tool_sequence"))
+  // BUG-0034 / BUG-0035 回归：多轮场景下 observability 字段必须全程携带
+  assert_observability_fields(outcome.requests)
 }
 
 ///|

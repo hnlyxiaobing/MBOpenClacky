@@ -265,6 +265,16 @@ struct OpenAiToolCallAcc {
 ///|
 /// Reassembles an OpenAI-compatible chat-completion SSE stream into
 /// a non-streaming LlmResponse. Mirrors Ruby's OpenAIStreamAggregator.
+///
+/// Stream-level stats (frames_seen / bytes_seen / parse_failures / saw_done)
+/// align with Ruby's OpenAIStreamAggregator for the `log_stream_summary`
+/// anomaly detector. Boundary semantics (mirrors Ruby exactly):
+/// - `bytes_seen` accumulates the raw byte length of every `data:` payload
+///   fed to `handle`, INCLUDING the `[DONE]` sentinel.
+/// - `frames_seen` counts only successfully parsed JSON frames; the
+///   `[DONE]` sentinel and unparseable lines are NOT counted.
+/// - `parse_failures` counts `data:` payloads that fail JSON parse.
+/// - `saw_done` flips true on the `[DONE]` sentinel.
 pub(all) struct OpenAiStreamAggregator {
   mut content_parts : Array[String]
   mut content_len : Int
@@ -274,6 +284,10 @@ pub(all) struct OpenAiStreamAggregator {
   mut finish_reason : String?
   mut usage : Usage?
   mut last_output_tokens : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+  mut saw_done : Bool
 }
 
 ///|
@@ -288,6 +302,10 @@ pub fn OpenAiStreamAggregator::new() -> OpenAiStreamAggregator {
     finish_reason: None,
     usage: None,
     last_output_tokens: 0,
+    frames_seen: 0,
+    bytes_seen: 0,
+    parse_failures: 0,
+    saw_done: false,
   }
 }
 
@@ -305,12 +323,35 @@ pub fn OpenAiStreamAggregator::handle(
 /// Handle a single SSE data string from the OpenAI stream, returning the
 /// content text delta carried by this frame ("" when the frame carries no
 /// content, e.g. role frames, tool-call deltas, usage frames, [DONE]).
+///
+/// Stream stats are updated on every call:
+/// - `bytes_seen` is bumped by the raw `data_str.length()` of every call,
+///   including the `[DONE]` sentinel (matches Ruby's bytes_seen which
+///   counts the `data:` payload bytes verbatim).
+/// - `saw_done` flips true on the `[DONE]` sentinel (excluded from
+///   frames_seen / parse_failures counts).
+/// - `frames_seen` is bumped on every non-`[DONE]` payload **before**
+///   parse is attempted — matches Ruby's `OpenAiStreamAggregator#handle`
+///   (lib/clacky/openai_stream_aggregator.rb:48-49), which counts every
+///   non-DONE data line regardless of parse success.
+/// - `parse_failures` is bumped when JSON parse fails on a non-`[DONE]`
+///   payload (subset of frames_seen).
 pub fn OpenAiStreamAggregator::handle_delta(
   self : OpenAiStreamAggregator,
   data_str : String,
 ) -> String {
-  guard data_str != "[DONE]" else { return "" }
-  let json = @json.parse(data_str) catch { _ => return "" }
+  self.bytes_seen = self.bytes_seen + data_str.length()
+  if data_str == "[DONE]" {
+    self.saw_done = true
+    return ""
+  }
+  self.frames_seen = self.frames_seen + 1
+  let json = @json.parse(data_str) catch {
+    _ => {
+      self.parse_failures = self.parse_failures + 1
+      return ""
+    }
+  }
   let mut delta = ""
 
   // Process choice delta
@@ -474,6 +515,28 @@ pub fn OpenAiStreamAggregator::to_response(
 }
 
 ///|
+/// Approximate output token count for on_chunk progress and
+/// log_stream_summary. Mirrors Ruby's OpenAIStreamAggregator
+/// `approximate_output_tokens`: sum the bytes of the accumulated
+/// content, reasoning_content, and every tool call's JSON arguments,
+/// divide by 4, and round up. Returns 0 when the aggregator has
+/// produced no observable output yet.
+pub fn OpenAiStreamAggregator::approximate_output_tokens(
+  self : OpenAiStreamAggregator,
+) -> Int {
+  let mut bytes = self.content_len + self.reasoning_len
+  for tc in self.tool_calls {
+    bytes = bytes + tc.arguments.length()
+  }
+  let tokens = (bytes.to_double() / 4.0).ceil()
+  if tokens < 0.0 {
+    0
+  } else {
+    tokens.to_int()
+  }
+}
+
+///|
 fn OpenAiStreamAggregator::merge_tool_call(
   self : OpenAiStreamAggregator,
   tc : Json,
@@ -554,6 +617,11 @@ struct AnthropicBlockAcc {
 ///|
 /// Reassembles an Anthropic Messages SSE stream into a non-streaming
 /// LlmResponse. Mirrors Ruby's AnthropicStreamAggregator.
+///
+/// Stream-level stats (frames_seen / bytes_seen / parse_failures) align
+/// with Ruby's AnthropicStreamAggregator for the `log_stream_summary`
+/// anomaly detector. Anthropic streams have no `[DONE]` sentinel — the
+/// stream terminates with a `message_stop` event, so `saw_done` is unused.
 pub(all) struct AnthropicStreamAggregator {
   mut blocks : Array[AnthropicBlockAcc]
   mut stop_reason : String?
@@ -562,6 +630,9 @@ pub(all) struct AnthropicStreamAggregator {
   mut cache_creation : Int
   mut cache_read : Int
   mut last_output_tokens : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
 }
 
 ///|
@@ -575,6 +646,9 @@ pub fn AnthropicStreamAggregator::new() -> AnthropicStreamAggregator {
     cache_creation: 0,
     cache_read: 0,
     last_output_tokens: 0,
+    frames_seen: 0,
+    bytes_seen: 0,
+    parse_failures: 0,
   }
 }
 
@@ -592,12 +666,24 @@ pub fn AnthropicStreamAggregator::handle(
 /// Handle a single SSE event+data pair from the Anthropic stream, returning
 /// the visible text delta carried by this frame ("" for non-text events;
 /// thinking deltas are accumulated but NOT reported as visible text).
+///
+/// Stream stats are updated on every call:
+/// - `bytes_seen` is bumped by the raw `data_str.length()` of every call.
+/// - `parse_failures` is bumped when JSON parse fails.
+/// - `frames_seen` is bumped when JSON parse succeeds.
 pub fn AnthropicStreamAggregator::handle_delta(
   self : AnthropicStreamAggregator,
   event : String,
   data_str : String,
 ) -> String {
-  let json = @json.parse(data_str) catch { _ => return "" }
+  self.bytes_seen = self.bytes_seen + data_str.length()
+  let json = @json.parse(data_str) catch {
+    _ => {
+      self.parse_failures = self.parse_failures + 1
+      return ""
+    }
+  }
+  self.frames_seen = self.frames_seen + 1
   let mut visible_delta = ""
 
   match event {
@@ -847,6 +933,30 @@ pub fn AnthropicStreamAggregator::to_response(
   }
 }
 
+///|
+/// Approximate output token count for on_chunk progress and
+/// log_stream_summary. Mirrors Ruby's AnthropicStreamAggregator
+/// `approximate_output_tokens`: sum the bytes of accumulated content,
+/// thinking, and tool-use JSON arguments, divide by 4, round up.
+pub fn AnthropicStreamAggregator::approximate_output_tokens(
+  self : AnthropicStreamAggregator,
+) -> Int {
+  let mut bytes = 0
+  for block in self.blocks {
+    match block.kind {
+      Text => bytes = bytes + block.text.length()
+      Thinking => bytes = bytes + block.text.length()
+      ToolUse => bytes = bytes + block.input_str.length()
+    }
+  }
+  let tokens = (bytes.to_double() / 4.0).ceil()
+  if tokens < 0.0 {
+    0
+  } else {
+    tokens.to_int()
+  }
+}
+
 // ── Bedrock Stream Aggregator ───────────────────────────────────────────────
 
 ///|
@@ -879,6 +989,10 @@ struct BedrockBlockAcc {
 /// - contentBlockStop → no-op
 /// - messageStop → sets stopReason
 /// - metadata → merges usage
+///
+/// Stream-level stats (frames_seen / bytes_seen / parse_failures) align
+/// with the OpenAI/Anthropic aggregators. Bedrock events have no
+/// `[DONE]` sentinel — the stream terminates with `messageStop`.
 pub(all) struct BedrockStreamAggregator {
   mut role : String
   mut blocks : Map[Int, BedrockBlockAcc]
@@ -887,6 +1001,9 @@ pub(all) struct BedrockStreamAggregator {
   mut output_tokens : Int
   mut cache_read : Int
   mut cache_write : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
 }
 
 ///|
@@ -900,17 +1017,32 @@ pub fn BedrockStreamAggregator::new() -> BedrockStreamAggregator {
     output_tokens: 0,
     cache_read: 0,
     cache_write: 0,
+    frames_seen: 0,
+    bytes_seen: 0,
+    parse_failures: 0,
   }
 }
 
 ///|
 /// Handle a single SSE event+data pair from the Bedrock stream.
+///
+/// Stream stats are updated on every call:
+/// - `bytes_seen` is bumped by the raw `data_str.length()` of every call.
+/// - `parse_failures` is bumped when JSON parse fails.
+/// - `frames_seen` is bumped when JSON parse succeeds.
 pub fn BedrockStreamAggregator::handle(
   self : BedrockStreamAggregator,
   event : String,
   data_str : String,
 ) -> Unit {
-  let json = @json.parse(data_str) catch { _ => return }
+  self.bytes_seen = self.bytes_seen + data_str.length()
+  let json = @json.parse(data_str) catch {
+    _ => {
+      self.parse_failures = self.parse_failures + 1
+      return
+    }
+  }
+  self.frames_seen = self.frames_seen + 1
 
   match event {
     "messageStart" =>
@@ -1176,6 +1308,30 @@ pub fn BedrockStreamAggregator::to_response(
   self : BedrockStreamAggregator,
 ) -> LlmResponse {
   parse_bedrock_response(self.to_json())
+}
+
+///|
+/// Approximate output token count for on_chunk progress and
+/// log_stream_summary. Mirrors Ruby's BedrockStreamAggregator
+/// `approximate_output_tokens`: sum the bytes of accumulated text,
+/// reasoning, and tool-use JSON arguments, divide by 4, round up.
+pub fn BedrockStreamAggregator::approximate_output_tokens(
+  self : BedrockStreamAggregator,
+) -> Int {
+  let mut bytes = 0
+  for _, block in self.blocks {
+    match block.kind {
+      BedrockText => bytes = bytes + block.text.length()
+      BedrockReasoning => bytes = bytes + block.reasoning.length()
+      BedrockToolUse => bytes = bytes + block.input_str.length()
+    }
+  }
+  let tokens = (bytes.to_double() / 4.0).ceil()
+  if tokens < 0.0 {
+    0
+  } else {
+    tokens.to_int()
+  }
 }
 
 // ── JSON Helpers ────────────────────────────────────────────────────────────

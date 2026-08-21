@@ -446,14 +446,23 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
       }
       {
         ..response,
-        latency: Some(build_latency(t0, current_time_ms(), output_tokens)),
+        latency: Some(
+          build_latency(
+            t0,
+            current_time_ms(),
+            output_tokens,
+            self.client.model,
+            false,
+          ),
+        ),
       }
     }
   }
 }
 
 ///|
-/// Build latency metrics mirroring Ruby client.rb's measurement block.
+/// Build latency metrics mirroring Ruby client.rb's 7-field latency hash
+/// (`ttft_ms/duration_ms/output_tokens/tps/model/measured_at/streaming`).
 ///
 /// - `duration_ms` = wall-clock time from request start to response
 ///   completion.
@@ -461,12 +470,20 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
 ///   passes the completion instant so ttft aliases duration (Ruby: "we
 ///   record duration_ms as the authoritative number and alias it to
 ///   ttft_ms for downstream consumers").
+/// - `output_tokens` = usage.output_tokens at the moment of completion.
 /// - `tps` = output tokens per second, reported only when >= 10 output
 ///   tokens and duration > 0 (Ruby threshold), rounded to 0.1 tok/s.
+/// - `model` = the model that produced the response, for observability
+///   dashboards (Ruby: `latency[:model] = @client.model`).
+/// - `measured_at` = ISO-8601 timestamp at response completion (Ruby:
+///   `latency[:measured_at] = Time.now.iso8601`).
+/// - `streaming` = whether the response came from a streaming call.
 fn build_latency(
   t0_ms : Int64,
   ttft_abs_ms : Int64,
   output_tokens : Int,
+  model : String,
+  streaming : Bool,
 ) -> @client.Latency {
   let duration_ms = (current_time_ms() - t0_ms).to_int()
   let ttft_ms = (ttft_abs_ms - t0_ms).to_int()
@@ -478,7 +495,15 @@ fn build_latency(
   } else {
     None
   }
-  { duration_ms, ttft_ms: Some(ttft_ms), tps }
+  {
+    duration_ms,
+    ttft_ms: Some(ttft_ms),
+    output_tokens,
+    tps,
+    model: Some(model),
+    measured_at: Some(current_iso8601()),
+    streaming,
+  }
 }
 
 ///|
@@ -613,6 +638,55 @@ pub async fn Agent::call_llm_stream_async(
       } else {
         openai_agg.to_response()
       }
+      // Per spec 2026-08-18_23 (decision 5): emit a one-line warn log
+      // summarising the stream — mirrors Ruby's `log_stream_summary`.
+      // This makes per-call bytes / frames / parse-failure counts
+      // visible in stderr without needing the TUI / Web UI, which is
+      // invaluable when triaging flaky upstream connections.
+      let (frames_seen, bytes_seen, parse_failures, saw_done) = if is_bedrock {
+        (
+          bedrock_agg.frames_seen,
+          bedrock_agg.bytes_seen,
+          bedrock_agg.parse_failures,
+          false,
+        )
+      } else if is_anthropic {
+        (
+          anthropic_agg.frames_seen,
+          anthropic_agg.bytes_seen,
+          anthropic_agg.parse_failures,
+          false,
+        )
+      } else {
+        (
+          openai_agg.frames_seen,
+          openai_agg.bytes_seen,
+          openai_agg.parse_failures,
+          openai_agg.saw_done,
+        )
+      }
+      let approx = if is_bedrock {
+        @client.BedrockStreamAggregator::approximate_output_tokens(bedrock_agg)
+      } else if is_anthropic {
+        @client.AnthropicStreamAggregator::approximate_output_tokens(
+          anthropic_agg,
+        )
+      } else {
+        @client.OpenAiStreamAggregator::approximate_output_tokens(openai_agg)
+      }
+      let provider = if is_bedrock {
+        "bedrock"
+      } else if is_anthropic {
+        "anthropic"
+      } else {
+        "openai"
+      }
+      println(
+        "[stream-summary] provider=\{provider} " +
+        "frames_seen=\{frames_seen} bytes_seen=\{bytes_seen} " +
+        "parse_failures=\{parse_failures} saw_done=\{saw_done} " +
+        "approximate_output_tokens=\{approx}",
+      )
       // ── Stream truncation detectors ────────────────────────────────
       // ① Missing finish_reason: the SSE stream ended without the terminal
       //    finish chunk (upstream cut the stream) — mirrors Ruby
@@ -646,7 +720,12 @@ pub async fn Agent::call_llm_stream_async(
         Some(usage) => usage.output_tokens
         None => 0
       }
-      { ..response, latency: Some(build_latency(t0, ttft_abs, output_tokens)) }
+      {
+        ..response,
+        latency: Some(
+          build_latency(t0, ttft_abs, output_tokens, self.client.model, true),
+        ),
+      }
     }
   }
 }
@@ -874,6 +953,9 @@ fn Agent::inject_upstream_truncation_hint_if_first(
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),
@@ -919,6 +1001,9 @@ fn Agent::inject_large_output_hint_if_first_timeout(self : Agent) -> Unit {
     tool_call_id: None,
     name: None,
     reasoning_content: None,
+    latency: None,
+    display_text: None,
+    display_files: None,
     task_id: None,
     created_at: None,
     system_injected: Some(true),

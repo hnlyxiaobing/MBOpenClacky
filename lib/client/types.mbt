@@ -71,15 +71,28 @@ pub impl FromJson for Usage with fn from_json(json, path) {
 }
 
 ///|
-/// Latency metrics from an LLM API response.
+/// Latency metrics from an LLM API response. Mirrors Ruby's 7-field
+/// latency hash attached to assistant messages during session replay
+/// (`ttft_ms/duration_ms/output_tokens/tps/model/measured_at/streaming`).
 ///
-/// `ttft_ms` is the time to first token (falls back to duration for
-/// non-streaming calls); `tps` is output tokens per second (None when the
-/// measurement is unreliable, e.g. fewer than 10 output tokens).
+/// - `ttft_ms` is the time to first token (falls back to duration for
+///   non-streaming calls).
+/// - `tps` is output tokens per second, only populated when the
+///   measurement is reliable (>= 10 output tokens, duration > 0).
+/// - `model` echoes the model that produced the response (used to detect
+///   "wrong model" anomalies in observability dashboards).
+/// - `measured_at` is the ISO-8601 wall-clock instant the response was
+///   fully received (after the final token or final frame).
+/// - `streaming` flags whether the response was assembled from a streaming
+///   call (false for plain POST / non-streaming completions).
 pub(all) struct Latency {
   duration_ms : Int
   ttft_ms : Int?
+  output_tokens : Int
   tps : Double?
+  model : String?
+  measured_at : String?
+  streaming : Bool
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -95,7 +108,9 @@ pub extend Latency with ToJson::{to_json}
 pub extend Latency with @moonbitlang/core/json.FromJson::{from_json}
 
 ///|
-/// FromJson for Latency tolerates missing optional fields.
+/// FromJson for Latency tolerates missing optional fields and the
+/// extra fields added in spec 2026-08-18_23 (`model` / `measured_at` /
+/// `streaming`); older persisted sessions round-trip with defaults.
 pub impl FromJson for Latency with fn from_json(json, path) {
   match json {
     Object(map) => {
@@ -117,10 +132,27 @@ pub impl FromJson for Latency with fn from_json(json, path) {
           _ => None
         }
       }
+      let opt_str_of = fn(key : String) -> String? {
+        match map.get(key) {
+          Some(String(s)) => Some(s)
+          _ => None
+        }
+      }
+      let bool_of = fn(key : String, default : Bool) -> Bool {
+        match map.get(key) {
+          Some(True) => true
+          Some(False) => false
+          _ => default
+        }
+      }
       {
         duration_ms: int_of("duration_ms"),
         ttft_ms: opt_int_of("ttft_ms"),
+        output_tokens: int_of("output_tokens"),
         tps: opt_float_of("tps"),
+        model: opt_str_of("model"),
+        measured_at: opt_str_of("measured_at"),
+        streaming: bool_of("streaming", false),
       }
     }
     _ => raise JsonDecodeError((path, "Latency: expected object"))
@@ -245,11 +277,18 @@ pub fn Usage::from_anthropic(
 }
 
 ///|
-/// Create a Latency from timing measurements.
+/// Create a Latency from timing measurements. The 4 extra fields
+/// (output_tokens / model / measured_at / streaming) default to the
+/// pre-spec values; production code should use `build_latency` in
+/// `lib/agent/llm_caller.mbt` which fills all 7.
 pub fn Latency::new(
   duration_ms : Int,
   ttft_ms? : Int,
   tps? : Double? = None,
+  output_tokens? : Int = 0,
+  model? : String? = None,
+  measured_at? : String? = None,
+  streaming? : Bool = false,
 ) -> Latency {
-  { duration_ms, ttft_ms, tps }
+  { duration_ms, ttft_ms, output_tokens, tps, model, measured_at, streaming }
 }

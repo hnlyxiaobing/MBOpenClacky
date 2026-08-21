@@ -18,6 +18,20 @@ fn aggregate(chunks : Array[String]) -> @client.LlmResponse {
 }
 
 ///|
+/// 投喂 SSE data 行序列并返回（响应 + 聚合器），用于断言 frames_seen /
+/// bytes_seen / parse_failures / saw_done / approximate_output_tokens 统计面
+/// （BUG-0006 修复后由 *_stats 套件触发）。
+fn aggregate_with_stats(
+  chunks : Array[String],
+) -> (@client.LlmResponse, @client.OpenAiStreamAggregator) {
+  let agg = @client.OpenAiStreamAggregator::new()
+  for chunk in chunks {
+    agg.handle(chunk)
+  }
+  (agg.to_response(), agg)
+}
+
+///|
 /// 断言单个 tool call 的 id/type/name/arguments。
 fn assert_tool_call(
   tc : @message.ToolCall,
@@ -129,21 +143,24 @@ test "stream_005_malformed_json_core" {
 }
 
 ///|
-test "stream_005_stats_known_failure" {
-  // BUG-0006：OpenAiStreamAggregator 缺少统计面。
-  // 证据：diff-harness/cases/stream_parsing/test_cases.json stream-005，
-  // ruby_results.json 实测 parse_failures=1, frames_seen=4, bytes_seen=284,
-  // saw_done=true, approximate_output_tokens=2。
-  // 注：BUG-0006 台账只列了 frames_seen/bytes_seen/approximate_output_tokens，
-  // parse_failures/saw_done 同属缺失统计面，一并挂在此编号下。
-  if known_failure("BUG-0006") {
-    return
-  }
-  // BUG-0006 修复后：在此补写对 aggregator 统计字段的真实断言（冻结值见上），
-  // 并将本测试改名去掉 _known_failure 后缀。
-  fail(
-    "BUG-0006 已修复：请补写统计断言（parse_failures=1, frames_seen=4, bytes_seen=284, saw_done=true, approximate_output_tokens=2）",
-  )
+test "stream_005_malformed_json_stats" {
+  // BUG-0006 修复后断言：畸形行被计入 parse_failures，不影响 frames_seen。
+  // 冻结值（ruby_results.json stream-005）：
+  //   parse_failures=1, frames_seen=4, bytes_seen=284,
+  //   saw_done=true, approximate_output_tokens=2。
+  let (resp, agg) = aggregate_with_stats([
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}",
+    "this is not json", "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}",
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}",
+    "[DONE]",
+  ])
+  assert_eq(resp.content, Some("Hello"))
+  assert_eq(resp.finish_reason, Some("stop"))
+  assert_eq(agg.frames_seen, 4)
+  assert_eq(agg.bytes_seen, 284)
+  assert_eq(agg.parse_failures, 1)
+  assert_eq(agg.saw_done, true)
+  assert_eq(agg.approximate_output_tokens(), 2)
 }
 
 // ── stream-006 空 chunk 列表 ─────────────────────────────────────────────────
@@ -171,15 +188,16 @@ test "stream_007_only_done_core" {
 }
 
 ///|
-test "stream_007_stats_known_failure" {
-  // BUG-0006：证据 test_cases.json stream-007，
-  // ruby_results.json 实测 saw_done=true, frames_seen=0, bytes_seen=6。
-  if known_failure("BUG-0006") {
-    return
-  }
-  fail(
-    "BUG-0006 已修复：请补写统计断言（saw_done=true, frames_seen=0, bytes_seen=6）",
-  )
+test "stream_007_only_done_stats" {
+  // BUG-0006 修复后断言：只投喂 [DONE]，frames_seen=0，bytes_seen 仍记录
+  // 原始 payload 长度（含 `data:` 前缀与 `[DONE]` 文本）。
+  // 冻结值（ruby_results.json stream-007）：
+  //   saw_done=true, frames_seen=0, bytes_seen=6。
+  let (_, agg) = aggregate_with_stats(["[DONE]"])
+  assert_eq(agg.frames_seen, 0)
+  assert_eq(agg.bytes_seen, 6)
+  assert_eq(agg.saw_done, true)
+  assert_eq(agg.parse_failures, 0)
 }
 
 // ── stream-008 多个 tool_calls 并行 ──────────────────────────────────────────
@@ -278,16 +296,24 @@ test "stream_011_core" {
 }
 
 ///|
-test "stream_011_stats_known_failure" {
-  // BUG-0006：证据 test_cases.json stream-011，
-  // ruby_results.json 实测 frames_seen=3, bytes_seen=265, saw_done=true,
-  // approximate_output_tokens=1。
-  if known_failure("BUG-0006") {
-    return
-  }
-  fail(
-    "BUG-0006 已修复：请补写统计断言（frames_seen=3, bytes_seen=265, saw_done=true, approximate_output_tokens=1）",
-  )
+test "stream_011_stats" {
+  // BUG-0006 修复后断言：3 个有效 frame + [DONE]，输出 token 数 = 1
+  // （"Hi" 一字，按 4 字符/token 估算四舍五入到 1）。
+  // 冻结值（ruby_results.json stream-011）：
+  //   frames_seen=3, bytes_seen=265, saw_done=true,
+  //   approximate_output_tokens=1。
+  let (resp, agg) = aggregate_with_stats([
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}",
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}",
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}",
+    "[DONE]",
+  ])
+  assert_eq(resp.content, Some("Hi"))
+  assert_eq(resp.finish_reason, Some("stop"))
+  assert_eq(agg.frames_seen, 3)
+  assert_eq(agg.bytes_seen, 265)
+  assert_eq(agg.saw_done, true)
+  assert_eq(agg.approximate_output_tokens(), 1)
 }
 
 // ── stream-012 bytes_seen 统计 ───────────────────────────────────────────────
@@ -303,16 +329,21 @@ test "stream_012_core" {
 }
 
 ///|
-test "stream_012_stats_known_failure" {
-  // BUG-0006：证据 test_cases.json stream-012（bytes_seen_min=70），
-  // ruby_results.json 实测 bytes_seen=89, frames_seen=1, saw_done=false,
-  // approximate_output_tokens=1。
-  if known_failure("BUG-0006") {
-    return
-  }
-  fail(
-    "BUG-0006 已修复：请补写统计断言（frames_seen=1, bytes_seen=89, saw_done=false, approximate_output_tokens=1）",
-  )
+test "stream_012_stats" {
+  // BUG-0006 修复后断言：单条 data 行（无 [DONE]），saw_done=false，
+  // bytes_seen 计数与 ruby_results.json 对齐。
+  // 冻结值（ruby_results.json stream-012）：
+  //   bytes_seen=89, frames_seen=1, saw_done=false,
+  //   approximate_output_tokens=1。
+  let (resp, agg) = aggregate_with_stats([
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}",
+  ])
+  assert_eq(resp.content, Some("Hi"))
+  assert_true(resp.finish_reason is None)
+  assert_eq(agg.frames_seen, 1)
+  assert_eq(agg.bytes_seen, 89)
+  assert_eq(agg.saw_done, false)
+  assert_eq(agg.approximate_output_tokens(), 1)
 }
 
 // ── stream-013 approximate_output_tokens 估算 ────────────────────────────────
@@ -330,16 +361,23 @@ test "stream_013_core" {
 }
 
 ///|
-test "stream_013_stats_known_failure" {
-  // BUG-0006：证据 test_cases.json stream-013（approximate_output_tokens_min=2），
-  // ruby_results.json 实测 approximate_output_tokens=3, frames_seen=3,
-  // bytes_seen=268, saw_done=false。
-  if known_failure("BUG-0006") {
-    return
-  }
-  fail(
-    "BUG-0006 已修复：请补写统计断言（frames_seen=3, bytes_seen=268, saw_done=false, approximate_output_tokens=3）",
-  )
+test "stream_013_stats" {
+  // BUG-0006 修复后断言：3 frame 累积 "Hello world"（11 字符/4=2.75 → 3 token），
+  // 无 [DONE] → saw_done=false。
+  // 冻结值（ruby_results.json stream-013）：
+  //   approximate_output_tokens=3, frames_seen=3,
+  //   bytes_seen=268, saw_done=false。
+  let (resp, agg) = aggregate_with_stats([
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}",
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello world\"},\"finish_reason\":null}]}",
+    "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}",
+  ])
+  assert_eq(resp.content, Some("Hello world"))
+  assert_eq(resp.finish_reason, Some("stop"))
+  assert_eq(agg.frames_seen, 3)
+  assert_eq(agg.bytes_seen, 268)
+  assert_eq(agg.saw_done, false)
+  assert_eq(agg.approximate_output_tokens(), 3)
 }
 
 // ── stream-014 多个 content chunk 累积 ───────────────────────────────────────
@@ -443,16 +481,23 @@ test "stream_019_multiple_parse_failures_core" {
 }
 
 ///|
-test "stream_019_stats_known_failure" {
-  // BUG-0006：证据 test_cases.json stream-019，
-  // ruby_results.json 实测 parse_failures=3, frames_seen=4, bytes_seen=122,
-  // saw_done=true, approximate_output_tokens=2。
-  if known_failure("BUG-0006") {
-    return
-  }
-  fail(
-    "BUG-0006 已修复：请补写统计断言（parse_failures=3, frames_seen=4, bytes_seen=122, saw_done=true, approximate_output_tokens=2）",
-  )
+test "stream_019_multiple_parse_failures_stats" {
+  // BUG-0006 修复后断言：3 条畸形行 + 1 个有效 frame + [DONE]，
+  // parse_failures=3, frames_seen=4（仅有效 frame）。
+  // 冻结值（ruby_results.json stream-019）：
+  //   parse_failures=3, frames_seen=4, bytes_seen=122,
+  //   saw_done=true, approximate_output_tokens=2。
+  let (resp, agg) = aggregate_with_stats([
+    "invalid1", "invalid2", "invalid3", "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}",
+    "[DONE]",
+  ])
+  assert_eq(resp.content, Some("Hello"))
+  assert_true(resp.finish_reason is None)
+  assert_eq(agg.parse_failures, 3)
+  assert_eq(agg.frames_seen, 4)
+  assert_eq(agg.bytes_seen, 122)
+  assert_eq(agg.saw_done, true)
+  assert_eq(agg.approximate_output_tokens(), 2)
 }
 
 // ── stream-020 usage with cache tokens ───────────────────────────────────────
@@ -464,14 +509,16 @@ test "stream_020_usage_cache_tokens" {
     "{\"id\":\"chatcmpl-1\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}",
     "{\"id\":\"chatcmpl-1\",\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":10,\"prompt_tokens_details\":{\"cached_tokens\":50}}}",
   ])
-  // 冻结期望（ruby_results.json stream-020）：prompt_tokens=100, completion_tokens=10
+  // 冻结期望（ruby_results.json stream-020）：prompt_tokens=100,
+  // completion_tokens=10, prompt_tokens_details.cached_tokens=50
+  // (Ruby 侧原样保留)。
+  // MB 侧：top-level cache_read_input_tokens 优先；缺省时从
+  // prompt_tokens_details.cached_tokens 兜底（fix for BUG-0051，see
+  // diff-harness reports/BUGS.md）。
   assert_eq(resp.content, Some("Hi"))
   assert_eq(resp.finish_reason, Some("stop"))
   guard resp.usage is Some(usage) else { fail("expected usage") }
   assert_eq(usage.input_tokens, 100)
   assert_eq(usage.output_tokens, 10)
-  // 注意：Ruby 侧原样保留 usage 哈希（含 prompt_tokens_details.cached_tokens=50）；
-  // MB 侧 Usage 归一化为 cache_read_input_tokens，且不读取
-  // prompt_tokens_details.cached_tokens，该信息丢失（实测 cache_read_input_tokens=0）。
-  // 已登记 BUG-0051（diff-harness reports/BUGS.md），修复后补 cached_tokens 断言。
+  assert_eq(usage.cache_read_input_tokens, 50)
 }

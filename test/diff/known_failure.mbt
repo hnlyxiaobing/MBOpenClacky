@@ -27,7 +27,9 @@ let known_failure_bug_ids : Array[String] = [
   "BUG-0002", // write "." 路径应报 "Is a directory"
    "BUG-0003", // write 空路径错误消息不一致
    "BUG-0005", // expand_path 不解析 ~user（与 BUG-0008 同根因）
-   "BUG-0006", // OpenAiStreamAggregator 缺 frames_seen/bytes_seen/approximate_output_tokens/parse_failures/saw_done
+  // BUG-0006 已修复（spec 2026-08-18_23：OpenAiStreamAggregator 补 frames_seen/
+  // bytes_seen/parse_failures/saw_done/approximate_output_tokens，stream-005/007/
+  // 011/012/013/019 统计断言转绿，移除闸门）
   // BUG-0007 已转 needs-investigation（台账与实测证据矛盾，见 BUGS.md 2026-08-14 修订），
   // 当前无断言挂该编号，不在册
    "BUG-0008", // expand_path 不解析 ~user（同 BUG-0005）
