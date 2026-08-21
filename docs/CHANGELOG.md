@@ -25,8 +25,13 @@
 
 ## 变更记录
 
-### 2026-08-05  TUI 渲染层再重构 + 全面对齐原版 + 技能发现对齐 + CI 修复
+### 2026-08-21  编译告警清零 + 28 份 P5/P6 spec 全部归档 + 文档校准
 
+- `[fix]` **编译告警清零（4 个 unreachable_code）**：`lib/tool/security_wbtest.mbt`（2 处）与 `test/diff/path_handling_cases_wbtest.mbt`（2 处）的 catch `_ =>` 分支因 `expand_path`/`is_secret_path` 为单一错误类型（`raise SecurityError`）而不可达，删除冗余分支；顺手修复 `path_016_empty_string` 测试断言被误写入注释行导致测试体为空的问题（断言恢复生效）。`moon check` 0 errors / 0 warnings，全量 `moon test` 3843/3843 通过
+- `[docs]` **specs/active/ 清空，28 份 P5/P6 差分对齐 spec 全部归档**：16 份 P5 BUG 修复 spec（02/05/07~09/12/14/18/19/23~29）+ 12 份 P6 矩阵残留簇 spec（03/04/06/10/11/13/15~17/20~22）均已实现完成并归档至 `specs/completed/`；总览索引 `2026-08-18_01_diff-harness-matrix-backlog-overview.md` 状态更新后一并归档（28 份子 spec 归档证据：moon test 3843/3843 全绿 + 各实现 commit）
+- `[docs]` **文档指标校准**（README / CLAUDE.md / docs/project-status.md / specs/README.md）：源代码文件 291 -> 299（lib+cmd 非测试 `.mbt`）、测试文件 178 -> 197、代码行 ~127,500 -> ~148,600（源码 ~92,900 + 测试 ~55,700）、测试用例 3,100+ -> 3,843、REST 端点 216 -> 218 条路由注册（GET 90 / POST 86 / PATCH 15 / DELETE 18 / PUT 9，按 `lib/web/server.mbt` 实测口径）；CLAUDE.md 修正 provider 预设 12 -> 13（两处）与默认技能 17 -> 18；project-status.md 更新技能清单（新增 extend-openclacky，18 个）、Benchmark 基础设施差距标记已解决（`test/benchmark/` 已实现）、补记 P2~P6 差分测试对齐阶段完成状态；specs/README.md 清空过时的 Active 索引（T01~T18 早已完成）并补记 2026-08-21 收尾批次归档记录
+
+### 2026-08-05  TUI 渲染层再重构 + 全面对齐原版 + 技能发现对齐 + CI 修复
 - `[refactor]` **TUI 渲染层再重构**：废弃 mizchi/tui VNode 渲染（坐标 diff 与 commit-scrollback 物理滚动本质冲突，BUG-004），改为自研行级重绘（`tui_controller_render.mbt` 前缀 diff 只重写变化行）+ `screen_lines.mbt` 行模型原语；删除 `vnode_renderer.mbt`、`tui_controller_vnode.mbt`、`node_adapter.mbt`、`diff_renderer.mbt`、`brand_layout.mbt`；`mizchi/tui` 依赖收敛为仅 `core` 宽度测量
 - `[feat]` **TUI 全面对齐原版布局与命令语义（SPEC-01/02/03）**：状态栏置底、无框输入区、todo 自动显隐；`/clear` `/undo` `/model` `/config` 语义对齐、技能动态斜杠命令；tui-eval 场景 47/47 通过
 - `[feat]` **技能发现对齐原版**：新增 `Agent::discover_workspace_skills`（`lib/agent/skill_manager.mbt`）与 `@skill.read_skill_files`（`lib/skill/discovery.mbt`）；发现路径扩为 5 条（用户全局 `~/.mbopenclacky/skills/` 优先，项目级 `.clacky/skills/` 最后，同名后者覆盖）；CLI/Web/onboard 启动时自动发现

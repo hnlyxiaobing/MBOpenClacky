@@ -37,31 +37,26 @@ specs/
 
 ## Active Spec 索引
 
-| 优先级 | ID | 任务名称 | Spec 文件 | 类型 | 预估天数 | 依赖 |
-|--------|-----|---------|-----------|------|---------|------|
-| P0 | T01 | LLM 重试循环 + Fallback 激活 | `2026-07-27_llm-retry-fallback.md` | 增量 | 2 | 无 |
-| P0 | T02 | 压缩阈值 + 截断计数修复 | `2026-07-27_compression-threshold-truncation.md` | 增量 | 1 | 无 |
-| P0 | T03 | 错误响应格式统一 | `2026-07-27_error-response-format.md` | 增量 | 1 | 无 |
-| P0 | T04 | MCP 配置加载实现 | `2026-07-27_mcp-config-loading.md` | 启动 | 2 | 无 |
-| P1 | T05 | Fake Tool Call 检测器 | `2026-07-27_fake-tool-call-detection.md` | 启动 | 1 | 无 |
-| P1 | T06 | 工具输出截断 + 压缩回滚 | `2026-07-27_tool-output-truncation.md` | 增量 | 1 | 无 |
-| P1 | T07 | Time Machine 接入工具执行器 | `2026-07-27_time-machine-integration.md` | 增量 | 1 | 无 |
-| P1 | T08 | Provider vision 能力修复 | `2026-07-27_provider-vision-capabilities.md` | 增量 | 1 | 无 |
-| P1 | T09 | SKILL.md frontmatter 兼容性 | `2026-07-27_skill-frontmatter-compat.md` | 增量 | 1 | 无 |
-| P1 | T10 | Terminal 工具增强 | `2026-07-27_terminal-tool-enhancements.md` | 增量 | 2 | 无 |
-| P1 | T11 | Agent 人格加载系统 | `2026-07-27_agent-persona-loading.md` | 启动 | 2 | 无 |
-| P1 | T12 | Session 上下文注入 | `2026-07-27_session-context-injection.md` | 启动 | 1 | 无 |
-| P2 | T13 | WS token 级流式推送 | `2026-07-27_ws-token-streaming.md` | 启动 | 2 | 无 |
-| P2 | T14 | 项目规则加载系统 | `2026-07-27_project-rules-loading.md` | 启动 | 2 | 无 |
-| P2 | T15 | 补充 Provider 预设 | `2026-07-27_provider-presets-additions.md` | 增量 | 1 | T08 |
-| P2 | T16 | Web UI 次要功能补全 | `2026-07-27_web-ui-minor-features.md` | 增量 | 2 | 无 |
-| P2 | T17 | 自动记忆更新系统 | `2026-07-27_auto-memory-update.md` | 启动 | 2 | 无 |
-| P2 | T18 | 行为不兼容修复 | `2026-07-27_behavior-compat-fixes.md` | 增量 | 1 | 无 |
-\r
+**当前无活跃 spec**（截至 2026-08-21）。2026-08-18 批次的 28 份 P5/P6 差分对齐 spec（16 份 P5 BUG 修复 + 12 份 P6 矩阵残留簇）已全部实现并归档至 `specs/completed/`，`specs/active/` 已清空。新的开发任务从 `specs/draft/` 起草。
+
+> 历史：上一批活跃 spec 为 2026-07-27 的 T01~T18（gap 分析 18 项），已于 2026-07-27~29 全部完成归档。
+
 ## 最近归档 Spec
 
-### 2026-08-21 — e2e 链路层补全（P3 收尾，1 项完成）
+### 2026-08-21 - P5 差分修复收尾批次（7 项完成 + 总览归档，`specs/active/` 清空）
 
+| Spec | 名称 | 关键实现 | 测试 |
+|------|------|---------|------|
+| 23 | 可观测性统计字段（P5） | BUG-0006 三协议聚合器补 frames_seen/bytes_seen/parse_failures/saw_done + approximate_output_tokens；BUG-0051 usage 补 cached_tokens 兜底（stream-020 断言=50）；BUG-0034 Latency 7 字段（duration_ms/ttft_ms/tps 等）测量挂载 assistant 消息；BUG-0035 wire 层补 display_text/display_files；known_failure 移除 BUG-0006，stream-005/007/011/012/013/019 统计断言转绿 | test/diff 145/145、test/e2e 14/14、lib/client 123/123、lib/agent 471/471、lib/message 63/63 ✅ |
+| 24 | 工具错误 tool_result JSON（P5） | BUG-0040 build_error_result/build_denied_result 输出标准 JSON；wbtest 补 JSON parse + 特殊字符往返 + denied 三字段断言；e2e 014 assert_tool_results_valid_json 闸门移除转绿；known_failure 移除登记 | e2e 014 转绿 ✅ |
+| 25 | write 工具边界检查（P5） | BUG-0003 空检查改 trim（纯空白报 "Path cannot be empty"）；BUG-0002 新增 is_dir 预检；BUG-0047 父目录递归创建；write_004 冻结期望按决策 2 修正；known_failure 移除 3 编号 | lib/tool 395 绿、test/diff 145/145、全量 3881 绿 ✅ |
+| 26 | edit 工具对齐（P5） | BUG-0044/0045/0046 分层匹配/参数校验/UTF-8 健壮性（edit.mbt 重构 + 新增 string_matcher.mbt 247 行） | lib/tool 全绿 ✅ |
+| 27 | 路径处理补全（P5） | BUG-0005/0008 ~user 解析对齐（"user X doesn't exist"，~\foo 同步按 ~user 解析）；BUG-0007 经台账核验判定无效（不修，台账与实测证据不符） | test/diff 145/145 ✅ |
+| 28 | 平台 HTTP failover 域名（P5） | BUG-0031 三域 failover 链补齐 | lib/client 全绿 ✅ |
+| 29 | Session Context 对齐（P5） | BUG-0033 OS 探测/Desktop/session_date 按日去重 | lib/agent 全绿 ✅ |
+| 01 | 矩阵残留 Backlog 总览（索引） | 28 份子 spec 全部归档后，总览索引一并移入 `specs/completed/`，`specs/active/` 清空 | 全量 3843/3843 ✅、moon check 0 errors/0 warnings |
+
+### 2026-08-21 - e2e 链路层补全（P3 收尾，1 项完成）
 | Spec | 名称 | 关键实现 | 测试 |
 |------|------|---------|------|
 | 22 | e2e 链路层补全（P6） | mock 新增 malformed 类型（frames 原始帧逐字节透传）+ finish_override 字段（content/tool_calls 收尾帧）；011 剧本重写混排 4 类畸形帧 + A 级断言回填（status=success/1 请求/final_text）；012 剧本真实下发 stop+tool_calls + 断言重导（2 请求/exit=0）；005 fixture 磁盘化 `test/e2e/fixtures/big.txt` 315000B 与 diff-harness FIXTURES 逐字节一致（删内存生成函数） | test/e2e 14/14 ✅、moon check 0 errors |

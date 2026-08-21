@@ -4,26 +4,26 @@
 
 ## 项目介绍
 
-**MBOpenClacky** 是开源项目 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 MoonBit 完整重写版本，已实现原项目全部核心功能并扩展至商业可用级别。
+**MBOpenClacky** 是开源项目 [openclacky](https://github.com/clacky-ai/openclacky.git) 的 MoonBit 完整重写版本，已实现原项目全部核心功能并扩展至商业可用级别。差分测试 P2~P6 阶段（单元差分回归、e2e 剧本、BUG-0001~0057 修复、FEATURE_MATRIX 矩阵残留对齐）已全部完成，28 份相关 spec 归档于 `specs/completed/`。
 
 - **原始项目**：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky.git)（Ruby）
 - **本项目语言**：MoonBit
-- **完成度**：~95%（后端 ~98%，Web 前端 ~95%，TUI ~95%，部署 ~95%）
+- **完成度**：~99%（后端 ~99%，Web 前端 ~95%，TUI ~95%，部署 ~110%）
 
 ### 核心能力
 
 | 指标 | 数值 |
 |------|------|
-| 源代码文件 | 291 个 `.mbt`（lib + cmd） |
-| 测试文件 | 178 个 `_wbtest.mbt`（lib + cmd + test/） |
-| 代码行数 | ~127,500 行（源码 ~80,900 + 测试 ~46,500） |
-| 测试用例 | 3,100+ |
+| 源代码文件 | 299 个 `.mbt`（lib + cmd，不含测试） |
+| 测试文件 | 197 个 `_wbtest.mbt`（lib + cmd + test/） |
+| 代码行数 | ~148,600 行（源码 ~92,900 + 测试 ~55,700） |
+| 测试用例 | 3,843 |
 | 包数 | 24 个 lib 包 + 1 个 cmd 入口（含 `lib/zip`） |
 | Provider 预设 | 13 个 |
 | 内置工具 | 14 个 |
-| REST API 端点 | 216 条路由（含别名） |
+| REST API 端点 | 218 条路由注册（GET 90 / POST 86 / PATCH 15 / DELETE 18 / PUT 9） |
 | 默认 Skill | 18 个 |
-| `moon check` | 0 errors |
+| `moon check` | 0 errors / 0 warnings |
 | 原生二进制 | ~3.6 MB |
 
 ### 功能亮点
@@ -109,7 +109,7 @@ MBOpenClacky/
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
 │   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
 │   ├── channel/        # 6 平台 IM 适配器
-│   ├── web/            # Web 服务器（216 条路由、WebSocket）
+│   ├── web/            # Web 服务器（218 条路由注册、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）
 │   ├── tui/            # TUI 界面（行级重绘 + commit-scrollback + moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）

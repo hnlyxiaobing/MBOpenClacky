@@ -1,7 +1,7 @@
 ﻿# diff-harness 沉淀全量利用：矩阵残留 Backlog 总览（总结性索引）
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 汇总 `specs/active/` 下全部 28 份 spec（本篇为总览，不含自身）  
+> **状态**: 已完成并归档（2026-08-21）· 28 份子 spec 已全部实现并归档至 `specs/completed/`，本总览随最后归档一并移入 completed/，`specs/active/` 清空  
 > **来源**: `D:\MoonBit\diff-harness\`（差分测试沉淀仓库，只读，不修改）  
 > **锚点约定**: 遵循 diff-harness `reports/BUGS.md` L671-673——矩阵残留条目一律使用 `矩阵§N/条目名` 锚点；旧台账 BUG-0002~0240 编号已被 BUGS.md（BUG-0001~0057）覆盖，**禁止复用**
 
@@ -61,6 +61,7 @@
 ## 3. active/ 全部 spec 目录索引（28 份，按开发启动顺序编号）
 
 > **编号即启动顺序**（依赖拓扑，见 §0）；"前置"列给出硬/软前置的文件编号。链接指向同目录文件。
+> **归档状态（2026-08-21）**：下表 28 份 spec 已**全部实现完成并归档**至 `specs/completed/`（实现证据见各 spec 归档 commit：03=264ccb81、04=8aa08edd、05=88d0c4f1、06=921f2960、07=fe9f9e27、08=a9d3efd0、09=779a907e、10=8f0a46a5、11=091494f3、12=4066db73、13=f999cc0a、14=71fc2ace、15=18bd37ea、16=71cb7c69、17=be60abea、18=3a6d8827、19=90365cc5、20/21=309f15b3、22=da0a069a、23=a43b49f1、24=6b8ad138、25=c9ebd458、26/27=17982cbc、28=c9373163、29=ac0ccc88）；全量 `moon test` 3843/3843 通过。链接自本篇移入 completed/ 后指向同目录文件。
 
 | 编号 | 文件 | 逻辑编号 / 主题 | 前置（编号） | 一句话摘要 |
 |---|---|---|---|---|
@@ -86,12 +87,12 @@
 | 21 | [21_p6-billing-telemetry-residual-alignment.md](./2026-08-18_21_p6-billing-telemetry-residual-alignment.md) | B11 / 计费/遥测/重试残留（矩阵§11） | 13 + 06 + 02/08/18 | 单点记账、api_cost 三级、重试管道接线、遥测 opt-out |
 | 22 | [22_p6-e2e-link-layer-completion.md](./2026-08-18_22_p6-e2e-link-layer-completion.md) | B12 / e2e 链路层补全（P3 收尾） | 06 + 13 + 09（005） | mock 畸形 SSE/finish_reason、011/012 断言、005 fixture |
 | 23 | [23_p5-observability-stats-fields.md](./2026-08-18_23_p5-observability-stats-fields.md) | FU-14 / 可观测性统计字段 | 02/08（同文件错峰） | aggregator stats、usage cached_tokens、latency、display_* | **已完成（2026-08-21）· 已归档** |
-| 24 | [24_p5-tool-result-json-format.md](../completed/2026-08-18_24_p5-tool-result-json-format.md) | FU-15 / 工具错误 tool_result JSON（BUG-0040） | 无 | 伪 JSON 序列化修正；014 断言随 B2 决策 2 | **已完成（2026-08-21）· 已归档** |
+| 24 | [24_p5-tool-result-json-format.md](./2026-08-18_24_p5-tool-result-json-format.md) | FU-15 / 工具错误 tool_result JSON（BUG-0040） | 无 | 伪 JSON 序列化修正；014 断言随 B2 决策 2 | **已完成（2026-08-21）· 已归档** |
 | 25 | [25_p5-write-tool-boundary-checks.md](./2026-08-18_25_p5-write-tool-boundary-checks.md) | FU-10 / write 边界检查（BUG-0002/0003/0047） | 无 | 写边界检查补全（工具簇，可与 26 并行） |
 | 26 | [26_p5-edit-tool-alignment.md](./2026-08-18_26_p5-edit-tool-alignment.md) | FU-16 / edit 工具对齐（BUG-0044/0045/0046） | 无 | 分层匹配/参数校验/UTF-8 健壮性（工具簇） |
 | 27 | [27_p5-path-handling-completion.md](./2026-08-18_27_p5-path-handling-completion.md) | FU-11 / 路径处理补全（BUG-0005/0008/0007） | 无 | ~user 解析 + 绝对路径行为核实（工具簇） |
-| 28 | [28_p5-platform-failover-domains.md](../completed/2026-08-18_28_p5-platform-failover-domains.md) | FU-05 / 平台 HTTP failover 域名（BUG-0031） | 06（串行合入） | failover 域名补齐（重试外围） | **已完成（2026-08-21）· 已归档** |
-| 29 | [29_p5-session-context-alignment.md](../completed/2026-08-18_29_p5-session-context-alignment.md) | FU-13 / Session Context 对齐 | 无 | OS 探测/Desktop/session_date 按日去重（批次 5 低风险） | **已完成（2026-08-21）· 已归档** |
+| 28 | [28_p5-platform-failover-domains.md](./2026-08-18_28_p5-platform-failover-domains.md) | FU-05 / 平台 HTTP failover 域名（BUG-0031） | 06（串行合入） | failover 域名补齐（重试外围） | **已完成（2026-08-21）· 已归档** |
+| 29 | [29_p5-session-context-alignment.md](./2026-08-18_29_p5-session-context-alignment.md) | FU-13 / Session Context 对齐 | 无 | OS 探测/Desktop/session_date 按日去重（批次 5 低风险） | **已完成（2026-08-21）· 已归档** |
 
 **拓扑不变式**：上表"前置"列的所有编号均小于所在行编号——即依赖永远指向更早启动的 spec。
 
@@ -167,7 +168,7 @@ P4 从未执行、无基线数据（仅 fix_plan §5.4 目标口径），本轮�
 
 ## 7. 流程与纪律
 
-- 全部 28 份子 spec（12 份 P6 矩阵残留簇 + 16 份 P5 修复）均已通过对抗性审查并停留 `specs/active/`；本总览为索引聚合，不重复立项。
+- 全部 28 份子 spec（12 份 P6 矩阵残留簇 + 16 份 P5 修复）均已通过对抗性审查；截至 2026-08-21 全部实现完成并归档至 `specs/completed/`；本总览为索引聚合，不重复立项，随最后归档一并移入 completed/。
 - 对抗性审查结论：28 份 spec 均通过——"现状分析"代码验证诚实分级（直接证实 / 静态证实 / 已被后续修复 / unclear 留任务包 0），模板全部 `[必填]` 章节齐全，改动面未违反 MoonBit AOT 约束。
 - **编号纪律**：文件名编号 = 开发启动顺序（依赖拓扑）；重构编号时必须维持"依赖指向更小编号"的不变式；逻辑编号（B/FU/BUG）是稳定互引标识，不随排序变化。
 - 每份 spec 的矩阵声明均经 Grep/Read 对当前 HEAD 复核，核实分级标注齐全；unclear 项全部落"任务包 0"复核，不进硬决策。
@@ -181,3 +182,4 @@ P4 从未执行、无基线数据（仅 fix_plan §5.4 目标口径），本轮�
 - 2026-08-18：active/ 下 16 份 P5 spec 通过审查并移入；全部重编号并按阶段排序；文件名加 `2026-08-18_` 日期前缀；交叉引用同步更新；重写为总结性索引。
 - 2026-08-18：**按依赖拓扑重排全部编号**（修正此前"P6 整体前置于 P5"的排序错误——B10/B11/B12 实际依赖 P5 spec 先行）：新增 §0 排序原则与拓扑不变式；§2/§3/§5 更新为"逻辑编号+文件编号"双标识；28 份文件两阶段重命名，内容引用同步替换。
 - 2026-08-21：spec 23（FU-14 可观测性统计字段）开发完成。OpenAiStreamAggregator 补 frames_seen/bytes_seen/parse_failures/saw_done/approximate_output_tokens；usage 归一化补 cached_tokens 兜底（BUG-0051）；lib/agent/llm_caller.mbt 加 latency 测量点并在 to_api_message 挂载（BUG-0034）；lib/client/format_openai.mbt 加 add_observability_fields 在 wire 层补 display_text/display_files（BUG-0035）。stream-005/007/011/012/013/019 统计断言转绿；stream-020 cached_tokens=50 断言已就位；e2e 剧本 001/003 增 assert_observability_fields 回归。`test/diff` 145/145、`test/e2e` 14/14、`lib/client` 123/123、`lib/agent` 471/471、`lib/message` 63/63（合计 816/816）全绿。spec 23 移入 `specs/completed/`。
+- 2026-08-21：**28 份子 spec 全部实现完成并归档**（02~29 逐份实现 commit 见 §3 归档状态说明），本总览随最后归档一并移入 `specs/completed/`，`specs/active/` 清空。全量 `moon test` 3843/3843 通过、`moon check` 0 错误 0 警告。

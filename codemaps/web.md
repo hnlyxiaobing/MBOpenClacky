@@ -1,4 +1,4 @@
-# web — REST 服务器 · 216 条路由（含别名）· WebSocket 广播 · 静态资源 · 前端 SPA
+# web — REST 服务器 · 218 条路由注册 · WebSocket 广播 · 静态资源 · 前端 SPA
 
 > 路径: `lib/web/` · 74 mbt（src=39, test=35）+ 5 子包（broadcast/handler/middleware/protocol/sse）· Web UI 服务层
 > 前端: `web/` — 原生 JS SPA（index.html + app.js + app.css + 模块化 JS：core/ + components/ + features/ + ext_ui/ + vendor/），模板占位符由 `template_processor.mbt` 替换
@@ -48,7 +48,7 @@
 
 ```
 WebServer::start(port)
-  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（216 条路由，含别名）
+  ├─ app.get/post/put/delete/patch(...)   # server.mbt — 内联路由注册（218 条：GET 90 / POST 86 / PATCH 15 / DELETE 18 / PUT 9）
   │   ├─ /health                          # 健康检查
   │   ├─ /api/info                        # 系统信息
   │   ├─ /api/sessions/*                  # 会话管理（15 端点）

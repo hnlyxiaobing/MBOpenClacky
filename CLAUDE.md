@@ -29,13 +29,13 @@ lib/
   agent/      — Agent struct, ReAct loop, LLM caller, system prompt, session persistence,
                 hook system, memory store, todo manager, subagent pool, cost tracker,
                 compressor, time machine, profile, idle timer, session restore
-  client/     — LLM API client (OpenAI/Anthropic/Bedrock formats), stream aggregators,
-                platform HTTP client with domain failover, 12 provider presets
+  client/     - LLM API client (OpenAI/Anthropic/Bedrock formats), stream aggregators,
+                platform HTTP client with domain failover, 13 provider presets
   tool/       — Tool trait + 14 built-in tools (FileReader, Write, Edit, Grep, Glob,
                 Terminal/PTY, WebSearch, WebFetch, InvokeSkill, MemoryTool, TodoTool,
                 RequestUserFeedback, TrashManager, Browser) + registry with 70+ aliases
-  skill/      — SKILL.md parsing, registry, discovery, executor, evolution engine
-                (Reflector/AutoCreator), 17 default skills
+  skill/      - SKILL.md parsing, registry, discovery, executor, evolution engine
+                (Reflector/AutoCreator), 18 default skills
   extension/  — Extension lifecycle: loader, verifier, packager, scaffold,
                 marketplace, API extension dispatcher/loader, route contributions
   mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
@@ -54,7 +54,7 @@ lib/
                 progress stack, block-font (see docs/tui-architecture.md)
   server/     — Cron parser, scheduler, browser manager, backup manager, discover,
                 master/worker, session registry, git panel
-  config/     — TOML loader, 12 provider presets, capabilities, permission modes, env compat
+  config/     - TOML loader, 13 provider presets, capabilities, permission modes, env compat
   billing/    — Billing records, token tracking, cost calculation
   brand/      — White-label config, license validation, device binding, identity
                 persistence, AES-GCM/HMAC/SHA256 (C FFI)
@@ -103,17 +103,17 @@ Follow the Harness v2 loop — see [specs/decisions/harness-methodology-v2-upgra
 
 | Indicator | Value |
 |-----------|-------|
-| `.mbt` source files (lib + cmd) | 291 |
-| Test files (`_wbtest.mbt` + test/) | 178 |
-| Source lines | ~80,900 |
-| Test lines | ~46,500 |
-| Total lines (incl. test/) | ~127,500 |
-| Test cases | 3,100+ |
+| `.mbt` source files (lib + cmd, excl. tests) | 299 |
+| Test files (`_wbtest.mbt` + test/) | 197 |
+| Source lines | ~92,900 |
+| Test lines | ~55,700 |
+| Total lines (incl. test/) | ~153,300 |
+| Test cases | 3,843 |
 | Packages | 24 lib + 1 cmd |
 | Built-in tools | 14 |
 | Provider presets | 13 |
 | Default skills | 18 |
-| REST API endpoints | 216 routes (incl. aliases) |
-| `moon check` | 0 errors |
+| REST API endpoints | 218 route registrations (90 GET / 86 POST / 15 PATCH / 18 DELETE / 9 PUT) |
+| `moon check` | 0 errors / 0 warnings |
 | CI/CD | ✅ GitHub Actions |
-| Phase coverage | ~95% |
+| Phase coverage | ~99% (diff-testing P2-P6 complete) |

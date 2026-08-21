@@ -1,6 +1,6 @@
 # MBOpenClacky vs openclacky 功能对比分析
 
-> 最后更新: 2026-08-11
+> 最后更新: 2026-08-21
 > 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)
 
 ## 1. 项目概况
@@ -8,12 +8,12 @@
 | 维度 | openclacky (Ruby) | MBOpenClacky (MoonBit) |
 |------|-------------------|------------------------|
 | 语言 | Ruby ≥ 3.1 | MoonBit (AOT native) |
-| 源码文件数 | 428 `.rb` | 1,045 `.mbt` |
-| 核心库文件 | 223 (lib/clacky) | 453 (lib/) |
+| 源码文件数 | 428 `.rb` | 512 `.mbt`（排除 `.mbti`） |
+| 核心库文件 | 223 (lib/clacky) | 470 (lib/) |
 | 二进制大小 | ~50MB+ (含 Ruby 运行时) | ~3.6 MB (单一可执行) |
 | 启动时间 | 秒级 | 毫秒级 |
 | 包管理 | Bundler / RubyGems | moon (mooncakes) |
-| 测试框架 | RSpec | `_wbtest.mbt` (白盒内联) |
+| 测试框架 | RSpec | `_wbtest.mbt` (白盒内联)，3,843 用例 |
 
 ## 2. 工具集对比
 
@@ -84,7 +84,7 @@
 | skill-creator | 技能创建/编辑 |
 | meeting-summarizer | 会议总结 (SYSTEM_PROMPT 提及) |
 
-### 当前项目 (17 个默认技能)
+### 当前项目 (18 个默认技能)
 
 | 技能 | 说明 | 对标 |
 |------|------|------|
@@ -105,8 +105,9 @@
 | skill-add | 技能安装 | ✅ |
 | skill-creator | 技能创建/编辑 | ✅ |
 | meeting-summarizer | 会议总结 | ✅ |
+| extend-openclacky | 扩展开发向导 | 🆕 新增 |
 
-**差距: 0 个缺失技能。** 当前项目 17/17 全部覆盖。
+**差距: 0 个缺失技能。** 当前项目覆盖原项目全部 17 个技能，另新增 extend-openclacky（18 个）。
 
 ## 4. 扩展系统 (Extensions)
 
@@ -257,11 +258,11 @@
 
 | 功能 | 说明 | 影响 |
 |------|------|------|
-| Rich UI / UI2 系统 | lib/clacky/rich_ui.rb + lib/clacky/ui2/ | 低 — TUI 56 个文件已覆盖终端 UI |
-| Fanout 系统 | lib/clacky/fanout.rb | 低 — 消息分发机制 |
-| Search Config (Tavily) | lib/clacky/search_config.rb | 低 — web_search 已实现 |
-| Benchmark 基础设施 | benchmark/ (fixtures + results) | 中 — 性能测试对比能力 (spec 已创建) |
-| ~~默认扩展包~~ | ~~6 个内置扩展~~ | ✅ 已解决 — 已在 `assets/extensions/` |
+| Rich UI / UI2 系统 | lib/clacky/rich_ui.rb + lib/clacky/ui2/ | 低 - TUI 56 个文件已覆盖终端 UI |
+| Fanout 系统 | lib/clacky/fanout.rb | 低 - fan_out/fan_out_labeled 已按 Ruby Fanout 语义实现（spec 13） |
+| Search Config (Tavily) | lib/clacky/search_config.rb | 低 - web_search 已实现 |
+| ~~Benchmark 基础设施~~ | ~~benchmark/ (fixtures + results)~~ | ✅ 已解决 - `test/benchmark/` 已实现（runner/scenario/stats/comparator/timer/persistence） |
+| ~~默认扩展包~~ | ~~6 个内置扩展~~ | ✅ 已解决 - 已在 `assets/extensions/` |
 
 ### 6.2 仅当前项目有
 
@@ -300,14 +301,25 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 3. **性能**: AOT 编译，3.6MB 单一可执行，毫秒启动
 4. **类型安全**: 编译期错误检测，消除运行时 nil 错误
 
+### 差分测试对齐（P2~P6，2026-08-21 全部完成）
+
+以 diff-harness 沉淀（`test/diff` 145 用例、12 个 e2e 剧本、BUGS.md BUG-0001~0057、FEATURE_MATRIX 357 条目）为基线的行为对齐已全部完成，28 份 spec 归档于 `specs/completed/2026-08-18_02~29`：
+
+- **P2 单元差分回归**: `test/diff` 145/145 通过（known_failure 闸门纪律）
+- **P3 e2e 剧本**: `test/e2e` 14/14 通过（mock LLM server + 畸形 SSE 注入 + fixture 磁盘化）
+- **P5 BUG 修复**: 16 份 spec 覆盖流式截断、重试退避、压缩语义、配置加载、错误分类、计费遥测等
+- **P6 矩阵残留对齐**: 12 份 spec 覆盖只读工具、安全执行器、LLM 请求格式、消息持久化、核心循环、CLI、Web API、技能提示词、配置深度、计费遥测、e2e 链路层
+- **全量测试**: `moon test` 3,843/3,843 通过，`moon check` 0 errors / 0 warnings
+
 ### 主要差距 (1%)
 
-1. **Benchmark 基础设施** (影响: 中) — 无性能基准测试框架 (eval 框架已有，spec 已创建)
-2. ~~默认扩展包~~ ✅ 已解决 — 6 个内置扩展已在 `assets/extensions/`
-3. ~~Rich UI 组件~~ ✅ 已覆盖 — TUI 56 个文件已对齐 ui2
+1. ~~Benchmark 基础设施~~ ✅ 已解决 - `test/benchmark/` 已实现（runner/scenario/stats/comparator/timer/persistence + wbtest）
+2. ~~默认扩展包~~ ✅ 已解决 - 6 个内置扩展已在 `assets/extensions/`
+3. ~~Rich UI 组件~~ ✅ 已覆盖 - TUI 56 个文件已对齐 ui2
 
 ### 建议优先级
 
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
-| P2 | 建立 Benchmark 基础设施 | 2-3 天 | Spec 已创建 |
+| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 已完成（`test/benchmark/`） |
+| P3 | P4 真模型基准（需真 API key + WSL Ruby 环境） | 待定 | 方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |

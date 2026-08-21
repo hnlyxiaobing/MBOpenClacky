@@ -27,7 +27,7 @@
 | mcp | `mcp.md` | MCP 协议（Stdio/HTTP） |
 | channel | `channel.md` | 6 个 IM 适配器 |
 | server | `server.md` | Cron 调度、浏览器管理、Git 面板 |
-| web | `web.md` | REST 服务器、216 条路由（含别名）、WebSocket 流式、前端 SPA |
+| web | `web.md` | REST 服务器、218 条路由注册、WebSocket 流式、前端 SPA |
 | tui | `tui.md` | TUI（行级重绘 + commit-scrollback + mizchi/signals 响应式状态） |
 | config | `config.md` | TOML 配置加载 |
 | message | `message.md` | 消息模型、历史管理、工具调用 |
