@@ -27,7 +27,7 @@
 | 沉淀材料 | 利用状态 | 证据路径 |
 |---|---|---|
 | `cases/` 6 模块 + `ruby_results.json` | **已利用**（P2 阶段） | `test/diff` 145 用例 + `test/diff/known_failure.mbt` 闸门 |
-| `scenarios/` 12 剧本 + `runs/` + `logs/` | **已利用**（P3 阶段） | `test/e2e`（011 留空、012 刺激未下发、005 整剧本闸门——残留缺口归 22_p6-e2e） |
+| `scenarios/` 12 剧本 + `runs/` + `logs/` | **已利用**（P3 阶段） | `test/e2e`（011 畸形帧留空、012 刺激未下发、005 整剧本闸门——残留缺口归 22_p6-e2e；该 spec 完成后 011 A 级断言回填、012 下发 stop+tool_calls、005 fixture 磁盘化） |
 | `reports/BUGS.md` BUG-0001~0057 | **已利用**（P5 阶段） | 16 份 p5 spec 一一对应（见 §3 名单） |
 | `reports/BUG-0042_ANALYSIS.md`、fuzz 结果、`mock_llm_server.py` | **已利用** | 被 S07 spec、known-failure 台账、`test/e2e/mock_llm_server.mbt` 吸收 |
 | `docs/FEATURE_MATRIX.md` §1-§11 残留（约 200+ 条 partial/missing/unclear） | **本次利用** | 本文档 §2 映射表 + 12 份 p6 spec |
@@ -54,7 +54,7 @@
 | B9 | `17_p6-server-webapi-alignment.md` | §9 | trash DELETE 全量清空无确认参数（数据丢失级残留）、技能 toggle POST vs 前端 PATCH、WS 附件丢弃、`/api/projects` 缺失 | 10 项证实 + 3 项已被后续修复（XFF 门、trash 路由拆分、restore_preview） |
 | B10 | `15_p6-config-depth-alignment.md` | §10 | env 整体替换文件 models（优先级反转，重大分歧）、current_model 解析顺序相反、switch_model 移动全局徽章、identity 语义 | 10 项证实 |
 | B11 | `21_p6-billing-telemetry-residual-alignment.md` | §11 | 双倍计费（llm_caller 4 处 + react.mbt:373 重复记账）、api_cost 从未产生、delta_tokens 口径、遥测恒 true 空桩、重试预算重置/首次超时 [SYSTEM] 提示 | 10 项证实 |
-| B12 | `22_p6-e2e-link-layer-completion.md` | P3 总结 §6 + p5_regression_mapping §4 | mock 畸形 SSE/自定义 finish_reason 能力缺失、011 剧本名实不符+留空、012 刺激未下发、005 fixture 磁盘化 | 6 项全部直接核实 |
+| B12 | `22_p6-e2e-link-layer-completion.md` | P3 总结 §6 + p5_regression_mapping §4 | mock 畸形 SSE/自定义 finish_reason 能力缺失、011 剧本名实不符+留空、012 刺激未下发、005 fixture 磁盘化 | 6 项全部直接核实 | **已完成（2026-08-21）· 已归档** |
 
 **矩阵 §5（压缩簇）不立项**：经核实已被既有 p5 spec 覆盖——`09_p5-compression-trigger-semantics`（触发语义/recent 守卫）、`05_p5-token-estimation-alignment`（token 口径）、`14_p5-overflow-recovery-tool-pairs`（溢出恢复配对）、`02_p5-stream-truncation-retry-pipeline`（截断管线）。§5 残留仅 e2e 激活面，归 B12 决策 5。
 

@@ -1,7 +1,7 @@
 ﻿# e2e 链路层补全（P3 收尾）· 增量 Spec
 
 > **创建日期**: 2026-08-18  
-> **状态**: 已通过对抗性审查（2026-08-18）· 已移入 `specs/active/`
+> **状态**: 已完成（2026-08-21）· 已归档至 `specs/completed/`
 > **关联总览**: `specs/active/2026-08-18_01_diff-harness-matrix-backlog-overview.md`；diff-harness P3 总结 §6（mock 能力缺口）+ `reports/p5_regression_mapping.md` §4  
 > **关联历史 spec**: 边界——005 闸门背后的压缩语义归 `2026-08-18_09_p5-compression-trigger-semantics.md`（BUG-0042 修复后本 spec 激活 005）；013 闸门归 p5-retry-backoff-circuit-breaker（BUG-0039）；014 的 BUG-0040 断言归 B2 决策 2（伪 JSON 修复）；12 剧本的差分断言维护归既有 test/e2e 纪律（AGENTS.md 第 4 节诚实标注）  
 > **来源差距**: diff-harness P3 mock 能力缺口（畸形 SSE 注入 / 自定义 finish_reason / 005 大 fixture）从未利用；011 期望值无基线、012 刺激未真实下发  
@@ -65,7 +65,7 @@ Ruby 参照（openclacky，只读）：`client.rb` SSE 解析容错路径（011 
 | `test/e2e/mock_llm_server.mbt` | 修改 | malformed 类型、finish_reason 字段 |
 | `test/e2e/scenarios/011_malformed_sse_chunk.json` | 重写 | 畸形帧混排剧本 |
 | `test/e2e/scenarios/012_finish_stop_with_tool_calls.json` | 修改 | finish_reason: "stop" |
-| `test/e2e/scenarios/005_compression_trigger.json` | 修改 | fixture 路径引用 |
+| `test/e2e/scenarios/005_compression_trigger.json` | 不动 | fixture 路径引用由 runner `files` 参数注入 workdir + 路径重写实现，JSON 无需改（实施核实） |
 | `test/e2e/fixtures/big.txt`（新建） | 新建 | 315000B 对齐 diff-harness FIXTURES |
 | `test/e2e/scenarios_wbtest.mbt` | 修改 | 011 断言回填、012 断言重导、005 fixture 读取 |
 
@@ -88,11 +88,11 @@ Ruby 参照（openclacky，只读）：`client.rb` SSE 解析容错路径（011 
 
 ## 验收标准 [必填]
 
-- [ ] mock 可下发逐字节可控的畸形 SSE 帧与自定义 finish_reason
-- [ ] 011 剧本真实注入畸形帧；A 级期望值有硬断言、B 级项有标注注释，无编造
-- [ ] 012 剧本真实下发 stop+tool_calls；断言与 ruby 源码推导一致或挂闸门
-- [ ] 005 fixture 为磁盘文件且与 diff-harness FIXTURES 一致；闸门编号未被误移除
-- [ ] `moon check` 0 errors；test/e2e 套件全绿（闸门内项目除外）
+- [x] mock 可下发逐字节可控的畸形 SSE 帧与自定义 finish_reason
+- [x] 011 剧本真实注入畸形帧；A 级期望值有硬断言、B 级项有标注注释，无编造
+- [x] 012 剧本真实下发 stop+tool_calls；断言与 ruby 源码推导一致或挂闸门
+- [x] 005 fixture 为磁盘文件且与 diff-harness FIXTURES 一致；闸门编号未被误移除
+- [x] `moon check` 0 errors；test/e2e 套件全绿（闸门内项目除外）
 
 ## 风险评估 [必填]
 
@@ -111,3 +111,6 @@ Ruby 参照（openclacky，只读）：`client.rb` SSE 解析容错路径（011 
 ## 变更记录 [必填]
 
 - 2026-08-18：创建（diff-harness P3 mock 能力缺口落实；e2e 现状 6 项全部直接核实：mock 两类能力缺失、011 名实不符+留空、012 刺激未下发、005 闸门+内存 fixture）。
+- 2026-08-21：任务包 1 落地（mock 新增 malformed 类型逐字节透传 + finish_override 字段；`mock_llm_server_wbtest.mbt` 白盒断言逐字节校验）。
+- 2026-08-21：任务包 2 落地（011 剧本重写混排 4 类畸形帧 + A 级断言回填；012 剧本加 `finish_reason:"stop"` 真实下发 + 断言重导；005 fixture 磁盘化 `test/e2e/fixtures/big.txt` 315000B 与 diff-harness FIXTURES 逐字节一致，删内存生成函数；005 JSON 未改动——runner 通过 files 参数注入实现路径引用）。
+- 2026-08-21：验证（`moon check` 0 errors；`moon test test/e2e` 14/14 全绿；golden.mbt/TESTING.md/overview P3 行同步更新）。

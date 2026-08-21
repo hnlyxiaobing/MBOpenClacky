@@ -60,6 +60,12 @@ specs/
 \r
 ## 最近归档 Spec
 
+### 2026-08-21 — e2e 链路层补全（P3 收尾，1 项完成）
+
+| Spec | 名称 | 关键实现 | 测试 |
+|------|------|---------|------|
+| 22 | e2e 链路层补全（P6） | mock 新增 malformed 类型（frames 原始帧逐字节透传）+ finish_override 字段（content/tool_calls 收尾帧）；011 剧本重写混排 4 类畸形帧 + A 级断言回填（status=success/1 请求/final_text）；012 剧本真实下发 stop+tool_calls + 断言重导（2 请求/exit=0）；005 fixture 磁盘化 `test/e2e/fixtures/big.txt` 315000B 与 diff-harness FIXTURES 逐字节一致（删内存生成函数） | test/e2e 14/14 ✅、moon check 0 errors |
+
 ### 2026-08-19 — 配置加载对齐 + 消息会话持久化对齐 + 核心循环与 subagent 对齐（3 项完成）
 
 | Spec | 名称 | 关键实现 | 测试 |
