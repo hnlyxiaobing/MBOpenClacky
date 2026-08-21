@@ -4,8 +4,8 @@
 
 ///|
 test "smoke_known_failure_gate_skips" {
-  // BUG-0002 在册（未修复），闸门应命中并提前返回，后续恒假断言不执行。
-  if known_failure("BUG-0002") {
+  // BUG-0024 在册（未修复），闸门应命中并提前返回，后续恒假断言不执行。
+  if known_failure("BUG-0024") {
     return
   }
   // 若能执行到这里说明闸门失效，用恒假断言暴露问题。

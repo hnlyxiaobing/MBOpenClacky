@@ -542,13 +542,11 @@ async test "write_002_overwrite_existing" {
 async test "write_003_recursive_parent_dirs" {
   // 冻结自 ruby_results.json write-003：Ruby FileUtils.mkdir_p 递归创建
   // sub/dir/ 成功，bytes_written=4, content="Test"。
-  // MB 当前行为：@fs.create_dir 为单层创建（moonbitlang/x/fs 文档：
+  // MB 旧行为：@fs.create_dir 为单层创建（moonbitlang/x/fs 文档：
   // "nested directories are not supported for native backend"），
   // 父目录创建失败后写入失败（2026-08-14 实测："Failed to write file: ..."）。
+  // 2026-08-21 已修复（spec 2026-08-18_25：换用 @utils.ensure_dir 递归创建）。
   // 证据：diff-harness/reports/BUGS.md BUG-0047
-  if known_failure("BUG-0047") {
-    return
-  }
   let dir = fe_tmpdir("write003")
   let path = @path.Path::join(
     @path.Path::join(
@@ -571,15 +569,19 @@ async test "write_003_recursive_parent_dirs" {
 
 ///|
 async test "write_004_empty_path" {
-  // 冻结自 ruby_results.json write-004：Ruby 实测 error：
+  // 冻结自 ruby_results.json write-004，Ruby 实测 error：
   // "Failed to write file: Is a directory @ rb_sysopen - /tmp/.../"
   //（空 path 经 File.join(dir, "") 落到目录本身）。
   // 注意 test_cases.json 内嵌期望为 "cannot be empty"，与 Ruby 实测矛盾，
-  // 以实测为准。MB 当前报 "Path cannot be empty" —— BUG-0003。
+  // 以实测为准。MB 当前报 "Path cannot be empty" -- BUG-0003。
   // 证据：diff-harness/reports/BUGS.md BUG-0003 / ruby_results.json write-004
-  if known_failure("BUG-0003") {
-    return
-  }
+  //
+  // 2026-08-21 修订（spec 2026-08-18_25 决策 2）：冻结期望由 "Is a directory"
+  // 修正为 "Path cannot be empty"。依据：write.rb:26-28 对空串/纯空白先返回
+  // "Path cannot be empty"，根本走不到 File.write；ruby_results 中的
+  // "Is a directory" 是 diff-harness driver `File.join(dir, "")` 拼接成
+  // "<dir>/"（非空目录路径）传入工具的伪影，不代表 Ruby 真实工具行为。
+  // 按判定总则以 Ruby 真实工具源码行为为准。
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
     "path": "".to_json(),
@@ -587,7 +589,7 @@ async test "write_004_empty_path" {
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
-  assert_true(result.content.find("Is a directory") is Some(_))
+  assert_true(result.content.find("Path cannot be empty") is Some(_))
 }
 
 ///|
@@ -618,10 +620,8 @@ async test "write_006_deep_missing_dirs" {
   // bytes_written=4, content="deep"。
   // MB 当前行为同 write_003：单层 create_dir 失败 → 写入失败
   //（2026-08-14 实测："Failed to write file: ..."）。同 write_003，属同一根因。
+  // 2026-08-21 已修复（spec 2026-08-18_25：换用 @utils.ensure_dir 递归创建）。
   // 证据：diff-harness/reports/BUGS.md BUG-0047
-  if known_failure("BUG-0047") {
-    return
-  }
   let dir = fe_tmpdir("write006")
   let path = @path.Path::join(
     @path.Path::join(
@@ -669,12 +669,11 @@ async test "write_fuzz_1245_dot_is_directory" {
   // 固化自 diff-harness reports/fuzz_results.json fuzz-write-1245：
   // 输入 write(path=".", content=...)，Ruby 实测 error
   // "Is a directory @ rb_sysopen - /tmp/.../."；MB 成功写入（旧基线）。
+  // 2026-08-21 已修复（spec 2026-08-18_25：is_dir 预检，消息含
+  // "Is a directory" 子串，不逐字复刻 rb_sysopen 运行时格式）。
   // BUG-0003 的 fuzz 代表（fuzz-write-0226/1468，空路径）与 write_004 等价，
   // 由 write_004 覆盖，不再重复固化。
   // 证据：diff-harness/reports/BUGS.md BUG-0002
-  if known_failure("BUG-0002") {
-    return
-  }
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
     "path": ".".to_json(),

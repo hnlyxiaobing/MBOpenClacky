@@ -333,6 +333,60 @@ async test "write_empty_path" {
   assert_true(result.is_error)
 }
 
+// ── P5 spec 2026-08-18_25：write 边界检查（BUG-0002/0003/0047）──────────
+
+///|
+async test "write_whitespace_only_path_rejected" {
+  // BUG-0003：Ruby write.rb:26-28 对纯空白路径 strip 后判空，返回
+  // "Path cannot be empty"；MB 旧基线 is_empty 无 trim，实测成功写入。
+  let tool = Write::new()
+  let args : Map[String, Json] = {
+    "path": "   ".to_json(),
+    "content": "test".to_json(),
+  }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(result.content.find("Path cannot be empty") is Some(_))
+}
+
+///|
+async test "write_dot_path_is_directory" {
+  // BUG-0002：Ruby File.write(".") 抛 Errno::EISDIR，经 rescue 包装后消息含
+  // "Is a directory"。MB 用 is_dir 预检构造同语义消息。
+  let tool = Write::new()
+  let args : Map[String, Json] = {
+    "path": ".".to_json(),
+    "content": "test".to_json(),
+  }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(result.content.find("Is a directory") is Some(_))
+}
+
+///|
+async test "write_three_level_nested_dirs" {
+  // BUG-0047：Ruby FileUtils.mkdir_p 递归创建父目录；MB 旧基线单层
+  // create_dir 失败。修复后 ensure_dir 递归创建，三级嵌套写入成功。
+  let dir = p2_tmpdir("writenest")
+  let path = @path.Path::join(
+    @path.Path::join(
+      @path.Path::join(@path.Path(dir), @path.Path("x1")),
+      @path.Path("x2"),
+    ),
+    @path.Path("x3.txt"),
+  ).to_string()
+  let tool = Write::new()
+  let args : Map[String, Json] = {
+    "path": path.to_json(),
+    "content": "nested".to_json(),
+  }
+  let result = tool.execute(args)
+  assert_false(result.is_error)
+  assert_eq(@fs.read_file_to_string(path), "nested")
+  let _ = @fs.remove_file(path) catch { _ => () }
+  p2_cleanup(dir)
+}
+
 ///|
 async test "write_nested_parent_dirs" {
   let dir = p2_tmpdir("write03")

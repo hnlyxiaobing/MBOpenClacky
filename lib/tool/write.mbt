@@ -65,7 +65,7 @@ impl Tool for Write with fn execute(_, args : Map[String, Json]) -> ToolResult {
     _ => return ToolResult::error("Missing required parameter: content")
   }
 
-  guard !path.is_empty() else {
+  guard !path.trim().is_empty() else {
     return ToolResult::error("Path cannot be empty")
   }
 
@@ -75,11 +75,15 @@ impl Tool for Write with fn execute(_, args : Map[String, Json]) -> ToolResult {
     )
   }
 
+  // 显式预检而非依赖底层写失败的 OS 错误（Windows/POSIX 目录错误文案不同）
+  let path_is_dir = @fs.is_dir(path) catch { _ => false }
+  if path_is_dir {
+    return ToolResult::error("Failed to write file: Is a directory: \{path}")
+  }
+
   let parent = @path.Path::dirname(@path.Path(path)).to_string()
   if !parent.is_empty() && parent != path && !@fs.path_exists(parent) {
-    @fs.create_dir(parent) catch {
-      _ => ()
-    }
+    @utils.ensure_dir(parent)
   }
 
   @fs.write_string_to_file(path, content) catch {

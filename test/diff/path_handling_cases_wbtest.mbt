@@ -163,10 +163,10 @@ test "path_015_cjk" {
 test "path_016_empty_string" {
   // 冻结自 ruby_results.json path-016：input "" → Ruby 实测原样返回 ""，
   // is_secret=false。
-  // MB 当前行为：expand_path("") 走相对路径分支解析为 cwd —— 属 BUG-0004
-  // 遗留边界（冻结不修，与 BUG-0003 write 空路径检查修复时一并处理），
-  // 见 reports/BUGS.md BUG-0004「遗留边界」段。
-  assert_false(@tool.is_secret_path(""))
+  // MB 当前行为：expand_path("") 走相对路径分支解析为 cwd -- 属 BUG-0004
+  // 遗留边界（冻结不修；BUG-0003 的 write 空路径检查已于 2026-08-21 修复，
+  // 但该修复位于 write 工具层 trim 判空，不改变 expand_path 本身行为），
+  // 见 reports/BUGS.md BUG-0004「遗留边界」段。  assert_false(@tool.is_secret_path(""))
 }
 
 ///|

@@ -1,7 +1,7 @@
 # write 工具边界检查补全（BUG-0002/0003/0047）· 增量 Spec
 
 > **创建日期**: 2026-08-14  
-> **状态**: 讨论中  
+> **状态**: 已完成（2026-08-21）  
 > **关联总览**: diff-harness `reports/BUGS.md` BUG-0002、BUG-0003、BUG-0047；`reports/p5_fix_unit_clustering.md` FU-10  
 > **关联历史 spec**: 无  
 > **来源差距**: P2 单元层（write-003/004/006 + fuzz-write-1245/0226/1468）  
@@ -99,13 +99,13 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、新增包�
 
 ## 验收标准 [必填]
 
-- [ ] `write(".")` 报错且消息含 "Is a directory"（write_fuzz_1245 移除 BUG-0002 闸门转绿）
-- [ ] 空/纯空白路径报 "Path cannot be empty"（write_004 移除 BUG-0003 闸门转绿，冻结期望按决策 2 修正）
-- [ ] 三级嵌套目录写入成功（write_003/write_006 移除 BUG-0047 闸门转绿）
-- [ ] `test/diff/known_failure.mbt` 在册数组移除 BUG-0002、BUG-0003、BUG-0047
-- [ ] `moon check` 0 errors（lib/tool、test/diff）
-- [ ] `moon test lib/tool`、`moon test test/diff` 全部通过
-- [ ] 全量 `moon test` 无回归
+- [x] `write(".")` 报错且消息含 "Is a directory"（write_fuzz_1245 移除 BUG-0002 闸门转绿）
+- [x] 空/纯空白路径报 "Path cannot be empty"（write_004 移除 BUG-0003 闸门转绿，冻结期望按决策 2 修正）
+- [x] 三级嵌套目录写入成功（write_003/write_006 移除 BUG-0047 闸门转绿）
+- [x] `test/diff/known_failure.mbt` 在册数组移除 BUG-0002、BUG-0003、BUG-0047
+- [x] `moon check` 0 errors（lib/tool、test/diff）
+- [x] `moon test lib/tool`、`moon test test/diff` 全部通过
+- [x] 全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -128,3 +128,4 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、新增包�
 |------|---------|------|
 | 2026-08-14 | 初始版本（BUG-0002+0003） | P5 归并分析 FU-10 |
 | 2026-08-14 | 并入 BUG-0047（嵌套目录创建） | P5 新登记条目，同文件同主题 |
+| 2026-08-21 | 实施完成并归档 | 基线复验与 spec 一致；write.mbt trim 判空 + is_dir 预检 + ensure_dir 递归建目录；test/diff 四处闸门移除（write_004 冻结期望按决策 2 修正为 "Path cannot be empty"）；known_failure 移除三编号；smoke 闸门烟雾测试改用 BUG-0024；lib/tool 395 绿 / test/diff 145 绿 / 全量 3881 绿 |

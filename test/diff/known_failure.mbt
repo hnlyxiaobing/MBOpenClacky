@@ -24,9 +24,11 @@
 /// 修复后从此数组移除编号即完成闭环；本数组清零是 P5 修复阶段的验收条件之一。
 let known_failure_bug_ids : Array[String] = [
   // B 类冻结条目（P2.5 冻结，证据基于旧基线，修复前需重新验证）
-  "BUG-0002", // write "." 路径应报 "Is a directory"
-   "BUG-0003", // write 空路径错误消息不一致
-   "BUG-0005", // expand_path 不解析 ~user（与 BUG-0008 同根因）
+  // BUG-0002 已修复（spec 2026-08-18_25：write is_dir 预检，"." 报
+  // "Is a directory"，write_fuzz_1245 转绿），移出注册表
+  // BUG-0003 已修复（spec 2026-08-18_25：空检查改 trim，纯空白路径报
+  // "Path cannot be empty"，write_004 冻结期望按决策 2 修正后转绿），移出注册表
+  "BUG-0005", // expand_path 不解析 ~user（与 BUG-0008 同根因）
   // BUG-0006 已修复（spec 2026-08-18_23：OpenAiStreamAggregator 补 frames_seen/
   // bytes_seen/parse_failures/saw_done/approximate_output_tokens，stream-005/007/
   // 011/012/013/019 统计断言转绿，移除闸门）
@@ -89,7 +91,8 @@ let known_failure_bug_ids : Array[String] = [
    "BUG-0044", // edit 缺 Ruby 分层匹配回退（edit-008/009/010）
    "BUG-0045", // edit 缺 new_string 静默删除（edit-018）
    "BUG-0046", // edit 非法 UTF-8 panic（edit-019，闸门内不得执行真实调用）
-   "BUG-0047", // write 不支持嵌套目录创建（write-003/006）
+  // BUG-0047 已修复（spec 2026-08-18_25：父目录创建换 @utils.ensure_dir
+  // 递归创建，write-003/006 转绿），移出注册表
   // BUG-0048/0049/0050 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
   // 图片块计 0 + 钳制公式对齐 + 关键信息提取对齐 driver 简化语义），移出注册表
   // BUG-0052 已修复（spec 2026-08-18_07_p5-env-overlay-config-channel.md：
