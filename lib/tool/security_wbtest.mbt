@@ -7,10 +7,6 @@ test "expand_path ~user non-existent user should error" {
       assert_true(msg.contains("user nosuchuser doesn't exist"))
       ""
     }
-    _ => {
-      assert_true(false)
-      ""
-    }
   }
 }
 
@@ -20,10 +16,6 @@ test "expand_path ~\\foo (backslash after tilde) matches ~user and errors" {
   let _ : String = expand_path("~\\foo") catch {
     SecurityError(msg) => {
       assert_true(msg.contains("user \\foo doesn't exist"))
-      ""
-    }
-    _ => {
-      assert_true(false)
       ""
     }
   }

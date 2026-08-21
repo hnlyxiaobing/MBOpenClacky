@@ -55,10 +55,6 @@ test "path_003_tilde_backslash_foo" {
       assert_true(msg.contains("user \\foo doesn't exist"))
       false
     }
-    _ => {
-      assert_true(false)
-      false
-    }
   }
 }
 
@@ -72,10 +68,6 @@ test "path_004_tilde_user" {
   let _ : Bool = @tool.is_secret_path("~user") catch {
     @tool.SecurityError(msg) => {
       assert_true(msg.contains("user user doesn't exist"))
-      false
-    }
-    _ => {
-      assert_true(false)
       false
     }
   }
@@ -174,7 +166,8 @@ test "path_016_empty_string" {
   // MB 当前行为：expand_path("") 走相对路径分支解析为 cwd -- 属 BUG-0004
   // 遗留边界（冻结不修；BUG-0003 的 write 空路径检查已于 2026-08-21 修复，
   // 但该修复位于 write 工具层 trim 判空，不改变 expand_path 本身行为），
-  // 见 reports/BUGS.md BUG-0004「遗留边界」段。  assert_false(@tool.is_secret_path(""))
+  // 见 reports/BUGS.md BUG-0004「遗留边界」段。
+  assert_false(@tool.is_secret_path(""))
 }
 
 ///|
