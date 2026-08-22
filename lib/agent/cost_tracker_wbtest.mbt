@@ -14,7 +14,12 @@ let ct_billing_seq : Ref[Int] = { val: 0 }
 fn ct_make_billing_store(tag : String) -> @billing.BillingStore {
   ct_billing_seq.val = ct_billing_seq.val + 1
   let dir = "_build/ct_billing_\{tag}_\{ct_billing_seq.val}"
-  @billing.BillingStore::new(dir)
+  let store = @billing.BillingStore::new(dir)
+  // Hermetic: the sequence resets on every process start, so a directory
+  // left over from a previous run would be reused and pollute queries.
+  // Clear it first (ClearAll removes every .jsonl month file).
+  ignore(store.clear(@billing.ClearAll))
+  store
 }
 
 ///|
