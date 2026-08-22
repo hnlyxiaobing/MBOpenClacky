@@ -566,3 +566,104 @@ async test "read_file_scrubbed_gbk_file" {
   @fs.remove_file(f)
   rw_cleanup(dir)
 }
+
+// ── stubfix-03 task pack 4: FileReader document-format triage ────────────────
+
+///|
+/// .et/.dps get decision-9 wording at the FileReader layer too (defensive
+/// fallback when the executor interception is bypassed).
+async test "file_reader_et_reports_decision9" {
+  let dir = rw_tmpdir("fr_doc01")
+  let f = rw_write(dir, "data.et", "not really binary")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(
+    result.content.contains(
+      "WPS spreadsheet/presentation binary (.et/.dps) is not supported",
+    ),
+    msg="expected decision-9 wording, got: \{result.content}",
+  )
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}
+
+///|
+/// .dps hits decision 9 at the FileReader layer.
+async test "file_reader_dps_reports_decision9" {
+  let dir = rw_tmpdir("fr_doc02")
+  let f = rw_write(dir, "slides.dps", "not really binary")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(result.content.contains(".et/.dps"))
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}
+
+///|
+/// Whitelisted document extensions get the fallback wording pointing to
+/// the read tool's MoonBitMark path (defensive; the executor normally
+/// intercepts these before FileReader).
+async test "file_reader_docx_fallback_wording" {
+  let dir = rw_tmpdir("fr_doc03")
+  let f = rw_write(dir, "sample.docx", "not really binary")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(
+    result.content.contains("Use the read tool on this document"),
+    msg="expected fallback wording, got: \{result.content}",
+  )
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}
+
+///|
+/// .wps is whitelisted too (six formats include .wps).
+async test "file_reader_wps_fallback_wording" {
+  let dir = rw_tmpdir("fr_doc04")
+  let f = rw_write(dir, "doc.wps", "not really binary")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(result.content.contains("Use the read tool on this document"))
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}
+
+///|
+/// Non-document binaries (e.g. images) keep the original wording.
+async test "file_reader_png_keeps_original_wording" {
+  let dir = rw_tmpdir("fr_doc05")
+  let f = rw_write(dir, "pic.png", "not really a png")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_true(result.is_error)
+  assert_true(
+    result.content.contains("Binary or document file detected"),
+    msg="expected original binary wording, got: \{result.content}",
+  )
+  assert_false(result.content.contains("Use the read tool on this document"))
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}
+
+///|
+/// Plain text keeps the existing read semantics (zero regression).
+async test "file_reader_text_zero_regression" {
+  let dir = rw_tmpdir("fr_doc06")
+  let f = rw_write(dir, "notes.txt", "hello stubfix-03\n")
+  let tool = FileReader::new()
+  let args : Map[String, Json] = { "path": f.to_json() }
+  let result = tool.execute(args)
+  assert_false(result.is_error, msg="expected success, got: \{result.content}")
+  assert_true(result.content.contains("hello stubfix-03"))
+  @fs.remove_file(f)
+  rw_cleanup(dir)
+}

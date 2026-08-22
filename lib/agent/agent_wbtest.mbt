@@ -2509,3 +2509,163 @@ test "session_context build_text omission rules" {
   assert_true(no_desktop.contains("OS: Windows."))
   assert_true(!no_desktop.contains("Desktop:"))
 }
+
+// ── stubfix-03 task pack 4: document read via MoonBitMark ────────────────────
+
+///|
+/// read on a whitelisted .docx goes through MoonBitMark and returns the
+/// converted markdown with a parsed-from header line. NOTE: MoonBitMark's
+/// async/fs layer requires a kernel with statx; on WSL1 this test must be
+/// run on the Windows toolchain (moon.exe) instead.
+async test "execute_single_tool_reads_docx_document" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/unit_test_headers.docx\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_false(entry.is_error, msg="expected success, got: \{entry.content}")
+  assert_true(
+    entry.content.contains("[Parsed from Docx via MoonBitMark]"),
+    msg="expected parsed-from header, got: \{entry.content}",
+  )
+  assert_true(entry.content.contains("Section 1"))
+}
+
+///|
+/// read on .et hits decision 9 before the engine (short-circuit, no fs).
+async test "execute_single_tool_read_et_reports_decision9" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "file_reader", "{\"path\":\"data.et\"}")
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(
+    entry.content.contains(
+      "WPS spreadsheet/presentation binary (.et/.dps) is not supported",
+    ),
+    msg="expected decision-9 wording, got: \{entry.content}",
+  )
+}
+
+///|
+/// read on .dps hits decision 9 (short-circuit, no fs).
+async test "execute_single_tool_read_dps_reports_decision9" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "file_reader", "{\"path\":\"slides.dps\"}")
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(entry.content.contains(".et/.dps"))
+}
+
+///|
+/// read on an image path is NOT intercepted: it falls through to the
+/// generic FileReader (missing file → "File not found"), never a
+/// parsed-from marker.
+async test "execute_single_tool_read_png_not_intercepted" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/__nope__.png\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(
+    entry.content.contains("File not found"),
+    msg="expected file-not-found (png not intercepted), got: \{entry.content}",
+  )
+  assert_false(entry.content.contains("Parsed from"))
+}
+
+///|
+/// read on a plain text file keeps the existing text semantics (zero
+/// regression): no parsed-from header, real content returned.
+async test "execute_single_tool_read_text_zero_regression" {
+  let agent = make_test_agent()
+  let call = make_tool_call("c1", "file_reader", "{\"path\":\"README.md\"}")
+  let entry = agent.execute_single_tool(call)
+  assert_false(entry.is_error, msg="expected success, got: \{entry.content}")
+  assert_false(entry.content.contains("Parsed from"))
+  assert_true(entry.content.contains("MBOpenClacky"))
+}
+
+///|
+/// Task pack 5 acceptance: the read tool end-to-end across all six
+/// whitelisted formats returns real markdown with the parsed-from header
+/// (never a placeholder). Requires the Windows toolchain (MoonBitMark
+/// async/fs needs statx; WSL1 lacks it).
+async test "execute_single_tool_reads_all_six_formats" {
+  let fixtures = [
+    ("tests/fixtures/documents/unit_test_headers.docx", "Docx"),
+    ("tests/fixtures/documents/word_english.doc", "Doc"),
+    ("tests/fixtures/documents/wps_english.wps", "Wps"),
+    ("tests/fixtures/documents/multi_page.pdf", "Pdf"),
+    ("tests/fixtures/documents/test_01.xlsx", "Xlsx"),
+    ("tests/fixtures/documents/notes_chart_semantics.pptx", "Pptx"),
+  ]
+  let agent = make_test_agent()
+  for fixture in fixtures {
+    let (path, fmt) = fixture
+    let call = make_tool_call("c1", "file_reader", "{\"path\":\"\{path}\"}")
+    let entry = agent.execute_single_tool(call)
+    assert_false(
+      entry.is_error,
+      msg="\{fmt} expected success, got: \{entry.content}",
+    )
+    assert_true(
+      entry.content.contains("[Parsed from \{fmt} via MoonBitMark]"),
+      msg="\{fmt} expected parsed-from header, got: \{entry.content}",
+    )
+    assert_true(entry.content.length() > 0)
+  }
+}
+
+///|
+/// Task pack 5 acceptance: corrupt zip (truncated .docx) surfaces an
+/// honest error mentioning archive. Requires Windows toolchain.
+async test "execute_single_tool_read_corrupt_docx_errors" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/corrupt.docx\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(
+    entry.content.contains("Document conversion failed"),
+    msg="expected honest conversion error, got: \{entry.content}",
+  )
+}
+
+///|
+/// Task pack 5 acceptance: truncated .docx also errors honestly.
+async test "execute_single_tool_read_truncated_docx_errors" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/truncated.docx\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(entry.content.contains("Document conversion failed"))
+}
+
+///|
+/// Task pack 5 acceptance: encrypted .doc is honestly refused, not
+/// silently read as garbage. Requires Windows toolchain.
+async test "execute_single_tool_read_encrypted_doc_errors" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/word_encrypted.doc\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(entry.content.contains("Document conversion failed"))
+}
+
+///|
+/// Task pack 5 acceptance: truncated OLE2 (.doc) errors honestly.
+async test "execute_single_tool_read_truncated_doc_errors" {
+  let agent = make_test_agent()
+  let call = make_tool_call(
+    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/truncated.doc\"}",
+  )
+  let entry = agent.execute_single_tool(call)
+  assert_true(entry.is_error)
+  assert_true(entry.content.contains("Document conversion failed"))
+}
