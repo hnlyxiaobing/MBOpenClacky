@@ -321,6 +321,7 @@ pub fn is_binary_extension(path : String) -> Bool {
     ".rar", ".exe", ".dll", ".so", ".dylib", ".bin", ".class", ".o", ".a", ".pyc",
     ".woff", ".woff2", ".ttf", ".otf", ".eot", ".mp3", ".mp4", ".avi", ".mov", ".mkv",
     ".wav", ".flac", ".wasm", ".dat", ".db", ".sqlite", ".sqlite3", ".jar", ".war",
+    ".wps", ".et", ".dps",
   ]
   for ext in exts {
     if lower.has_suffix(ext) {

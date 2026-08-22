@@ -11,6 +11,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
+  "hnlyxiaobing/MBOpenClacky/lib/parser",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "hnlyxiaobing/MBOpenClacky/lib/skill",

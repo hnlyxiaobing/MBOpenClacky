@@ -77,6 +77,29 @@ let max_content_chars : Int = 60_000
 // ────────────────────────────────────────────────────────────────────────────
 
 ///|
+/// 本地副本：白名单六格式判断（stubfix-03 task pack 4）。
+/// lib/tool 不依赖 lib/parser（package-local 规则），此实现与
+/// lib/parser/moonbitmark_adapter.mbt 的 whitelisted_document_extensions
+/// 保持同步：.pdf/.docx/.pptx/.xlsx/.doc/.wps。
+fn is_whitelisted_document_extension(path : String) -> Bool {
+  let lower = path.to_lower()
+  lower.has_suffix(".pdf") ||
+  lower.has_suffix(".docx") ||
+  lower.has_suffix(".pptx") ||
+  lower.has_suffix(".xlsx") ||
+  lower.has_suffix(".doc") ||
+  lower.has_suffix(".wps")
+}
+
+///|
+/// 本地副本：.et/.dps 判断（决策 9）。与 lib/parser 的
+/// is_wps_binary_extension 保持同步。
+fn is_wps_binary_extension(path : String) -> Bool {
+  let lower = path.to_lower()
+  lower.has_suffix(".et") || lower.has_suffix(".dps")
+}
+
+///|
 impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> ToolResult {
   let path = match args.get("path") {
     Some(String(s)) => s
@@ -98,11 +121,25 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
     return ToolResult::error("Path is not a file: \{path}")
   }
 
-  // 图片/文档等二进制扩展名 → 清晰报错（决策 9 降级落地；
-  // Ruby 原版有文档解析管线，MB 无解析能力，报错引导 grep/其他工具）
+  // 文档/二进制扩展名分流（stubfix-03 task pack 4）：
+  // executor（lib/agent/tool_executor.mbt）已在 file_reader 之前拦截
+  // 白名单六格式（走 MoonBitMark 转换）与 .et/.dps（决策 9），此处为
+  // 防御性兜底——不经 executor 的直接调用路径也给出诚实文案。
+  // 图片等其余二进制保留原话术。
+  if is_wps_binary_extension(path) {
+    return ToolResult::error(
+      "WPS spreadsheet/presentation binary (.et/.dps) is not supported - convert to .xlsx/.pptx or .docx first",
+    )
+  }
+  if is_whitelisted_document_extension(path) {
+    return ToolResult::error(
+      "Document file detected: \\{get_basename(path)}. " +
+      "Use the read tool on this document to convert it to markdown via MoonBitMark.",
+    )
+  }
   if is_binary_extension(path) {
     return ToolResult::error(
-      "Binary or document file detected: \{get_basename(path)}. " +
+      "Binary or document file detected: \\{get_basename(path)}. " +
       "File parsing is not supported — use grep tool to search within it, " +
       "or an external tool for document content.",
     )

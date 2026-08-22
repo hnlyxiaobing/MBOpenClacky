@@ -222,6 +222,29 @@ pub async fn Agent::execute_single_tool(
     }
     _ => ()
   }
+  // ── Document read interception (stubfix-03 task pack 4) ──────────
+  // Ruby FileReader#execute parses .pdf/.docx/.pptx/.xlsx/.doc/.wps via
+  // MoonBitMark and reports `parsed_from` as a structured field. MB's
+  // ToolResult carries only text content, so the parsed-from marker rides
+  // as a header line inside the content. .et/.dps hit decision 9 (honest
+  // error) before the generic reader; all other paths keep file_reader's
+  // existing text semantics untouched.
+  if canonical == "file_reader" {
+    match args.get("path") {
+      Some(String(p)) if @parser.is_whitelisted_document_extension(p) ||
+        @parser.is_wps_binary_extension(p) => {
+        let result = execute_document_read(call, p)
+        self.patch_chain.check_after(
+          tool_name,
+          args,
+          result.content,
+          result.is_error,
+        )
+        return result
+      }
+      _ => ()
+    }
+  }
   // Inject CLACKY_SESSION_ID into terminal env (Ruby agent.rb semantics:
   // every terminal invocation gets the session id so child processes can
   // correlate output with the agent session).
@@ -276,6 +299,39 @@ pub async fn Agent::execute_single_tool(
     final_result.is_error,
   )
   final_result
+}
+
+///|
+/// Parse a whitelisted document via MoonBitMark and build the result
+/// entry (stubfix-03 task pack 4). Mirrors Ruby FileReader#execute's
+/// parsed_from path: success carries the converted markdown with a
+/// `[Parsed from <FMT> via MoonBitMark]` header line (MB ToolResult has
+/// no structured fields); failure carries the MoonBitMark diagnostic
+/// (including decision-9 wording for .et/.dps, which never reaches the
+/// engine). R7: cancellation is checked before and after the convert.
+async fn execute_document_read(
+  call : @message.ToolCall,
+  path : String,
+) -> ToolResultEntry {
+  if @async.is_being_cancelled() {
+    return build_error_result(call, "Tool execution cancelled")
+  }
+  let result = @parser.ParserManager::new().parse_document(path)
+  if @async.is_being_cancelled() {
+    return build_error_result(call, "Tool execution cancelled")
+  }
+  if result.is_success {
+    let fmt = result.metadata.format.to_string()
+    let marker = "[Parsed from \{fmt} via MoonBitMark]\n\n"
+    let content = marker + result.content
+    build_success_result(call, @tool.ToolResult::success(content))
+  } else {
+    let msg = match result.error {
+      Some(err) => err
+      None => "Document parsing failed"
+    }
+    build_error_result(call, msg)
+  }
 }
 
 ///|
