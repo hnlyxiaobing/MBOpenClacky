@@ -1,7 +1,7 @@
 # 渠道假成功 stub 改诚实报错（Telegram/WeCom/Weixin）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **状态**: 已完成（2026-08-22 实施完成）
 > **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 审装状态审计报告 2.1 节风险提示 + 第五节建议 2）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告 2.1「Telegram/WeCom/Weixin send_text 假成功 stub -- 静默丢消息」
@@ -95,13 +95,20 @@ MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑
 
 ## 验收标准 [必填]
 
-- [ ] `TelegramAdapter::send_text` / `WeComAdapter::send_text` / `WeixinAdapter::send_text` 均返回失败（Err 或 success:false + error 含 "not implemented"）
-- [ ] 飞书 `update_message` 与 Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file` 返回 Err（决策 5）
-- [ ] 全仓库 grep 不再存在 `tg_msg_`、`weixin_msg_pending` 伪造标识；Discord 伪造 JSON（`"id": "pending"`、`"deleted": true`）不复存在
-- [ ] WeCom `start` 不再产生假连接状态（status/validate 不误报可用）
-- [ ] 相关 wbtest 断言翻转并通过；新增假成功闸门用例
-- [ ] `moon check` 0 errors（lib/channel）
-- [ ] `moon test lib/channel` 通过；全量 `moon test` 无回归
+- [x] `TelegramAdapter::send_text` / `WeComAdapter::send_text` / `WeixinAdapter::send_text` 均返回失败（Err 或 success:false + error 含 "not implemented"）
+  - 证据：telegram.mbt:256-269、wecom.mbt:127-145、weixin.mbt:219-232 均返回 `Err(ChannelError("... send_text is not implemented yet"))`
+- [x] 飞书 `update_message` 与 Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file` 返回 Err（决策 5）
+  - 证据：feishu.mbt:142-152 返回 `Err(ChannelError("Feishu update_message is not implemented yet"))`；discord_api.mbt:75-138 四个方法均返回 Err
+- [x] 全仓库 grep 不再存在 `tg_msg_`、`weixin_msg_pending` 伪造标识；Discord 伪造 JSON（`"id": "pending"`、`"deleted": true`）不复存在
+  - 证据：`grep -n "tg_msg_\|weixin_msg_pending\|\"pending\"\|\"deleted\": true" lib/channel/{telegram,wecom,weixin,feishu,discord_api}.mbt` 全部 0 命中
+- [x] WeCom `start` 不再产生假连接状态（status/validate 不误报可用）
+  - 证据：wecom.mbt:96-107 `start` 移除 `ws.mark_connected()` 调用；channel_wbtest.mbt 新增 `wecom_adapter_start_does_not_set_connected_state` 测试断言 `is_connected == false` 通过
+- [x] 相关 wbtest 断言翻转并通过；新增假成功闸门用例
+  - 证据：channel_wbtest.mbt 新增 10 个 false-success 闸门用例（5 个 sync + 5 个 async）；`moon test lib/channel --target native` 通过 412/412
+- [x] `moon check` 0 errors（lib/channel）
+  - 证据：`moon check` 0 errors, 0 warnings
+- [x] `moon test lib/channel` 通过；全量 `moon test` 无回归
+  - 证据：`moon test --target native` 3865/3865 passed, 0 failed
 
 ## 风险评估 [必填]
 
@@ -122,3 +129,4 @@ MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 2.1 节风险提示 + P0 建议 2 |
 | 2026-08-22 | 审核修正：推翻"其余 stub 已返回 Err 无风险"的断言（审计 2.1 表格与尾部列表自相矛盾，实读核验飞书 adapter update_message 与 Discord edit/delete/get_current_user/upload_file 为伪造 Ok 假成功），新增决策 5 纳入同族翻转；验证表补录 WeCom send_text 在未运行时已有真 Err 路径（仅运行态为假成功）；行号复核（tg_msg_ :286、weixin_msg_pending :285、mark_connected :104 均属实） | 对抗性审核 + 第一性原理校验 |
+| 2026-08-22 | 实施完成：telegram.mbt send_text/update_message、wecom.mbt start/send_text、weixin.mbt send_text 全部改为 `Err("... is not implemented yet")`；feishu.mbt update_message、discord_api.mbt edit_message/delete_message/get_current_user/upload_file 同改；channel_wbtest.mbt 新增 10 个 false-success 闸门用例（含 async test）；`moon check` 0 errors，`moon test lib/channel` 412/412 通过，全量 `moon test --target native` 3865/3865 通过；`moon fmt`、`moon info` 完成；本 spec 归档到 `specs/completed/` | spec 实施落地 |

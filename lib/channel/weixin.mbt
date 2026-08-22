@@ -210,6 +210,12 @@ pub impl Adapter for WeixinAdapter with fn stop(self) -> Result[
 }
 
 ///|
+/// Send a text message via Weixin iLink Bot API.
+///
+/// Weixin send is not yet implemented; refuse to send with an honest error
+/// so callers cannot mistake a fabricated ack for delivery. The send queue
+/// and request builder are kept for the future Weixin implementation
+/// (backlog) to reuse.
 pub impl Adapter for WeixinAdapter with fn send_text(
   self,
   chat_id : String,
@@ -219,70 +225,9 @@ pub impl Adapter for WeixinAdapter with fn send_text(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  let client = match self.api_client {
-    Some(c) => c
-    None =>
-      return Err(
-        ChannelError("WeixinAdapter: api_client not configured (missing uin)"),
-      )
-  }
-  let queue = match self.send_queue {
-    Some(q) => q
-    None =>
-      return Err(ChannelError("WeixinAdapter: send_queue not initialized"))
-  }
-  // Sanitize Markdown (Weixin does not render Markdown)
-  let clean_text = sanitize_for_weixin(text)
-  // Split into chunks of max_message_length
-  let chunks = split_weixin_message(clean_text, queue.max_message_length)
-  let ctx_token = match self.context_token {
-    Some(t) => t
-    None => ""
-  }
-  // Process first chunk immediately
-  let first_text = if chunks.length() > 0 { chunks[0] } else { "" }
-  let pending : WeixinPendingMsg = {
-    chat_id,
-    text: first_text,
-    context_token: ctx_token,
-    retry_count: 0,
-  }
-  queue.enqueue(pending)
-  // Enqueue remaining chunks for async batch sending
-  let mut i = 1
-  while i < chunks.length() {
-    queue.enqueue({
-      chat_id,
-      text: chunks[i],
-      context_token: ctx_token,
-      retry_count: 0,
-    })
-    i = i + 1
-  }
-  // Build the request for the first message (demonstrate full flow)
-  let first = match queue.dequeue() {
-    Some(msg) => msg
-    None => return Err(ChannelError("WeixinAdapter: queue unexpectedly empty"))
-  }
-  let _req_body = client.build_send_text_request(
-    first.chat_id,
-    first.text,
-    first.context_token,
-  )
-  let _url = client.send_text_url()
-  let _headers = client.auth_headers()
-  // TODO: Execute async HTTP POST via @http:
-  //   let resp = await @http.post(url, headers.to_array(), req_body.to_string())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   let (msg_id, ret_code) = client.parse_send_response(parse_json_response(resp.body)?)
-  //   if is_rate_limited(ret_code) {
-  //     // Re-enqueue with incremented retry_count for exponential backoff
-  //     let retry_msg = { ...first, retry_count: first.retry_count + 1 }
-  //     queue.enqueue(retry_msg)
-  //     // TODO: schedule delayed retry via async sleep
-  //   }
-  //   return Ok({ message_id: msg_id, success: true, error: None })
-  Ok({ message_id: "weixin_msg_pending", success: true, error: None })
+  let _ = chat_id
+  let _ = text
+  Err(ChannelError("Weixin send_text is not implemented yet"))
 }
 
 ///|

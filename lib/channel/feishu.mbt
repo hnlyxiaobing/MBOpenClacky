@@ -148,18 +148,9 @@ pub impl Adapter for FeishuAdapter with fn update_message(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  match self.api_client {
-    Some(client) => {
-      let _req = match client.build_update_request(message_id, new_text) {
-        Ok(r) => r
-        Err(e) => return Err(e)
-      }
-      // TODO: Execute HTTP PATCH via async transport
-      let _ = _req
-      Ok(())
-    }
-    None => Err(ChannelError("No API client configured for message updates"))
-  }
+  let _ = message_id
+  let _ = new_text
+  Err(ChannelError("Feishu update_message is not implemented yet"))
 }
 
 ///|

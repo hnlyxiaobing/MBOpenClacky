@@ -262,33 +262,13 @@ pub impl Adapter for TelegramAdapter with fn send_text(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  // Split message if it exceeds Telegram's 4096 char limit
-  let chunks = split_telegram_message(text)
-  let mut last_result : SendResult = {
-    message_id: "",
-    success: true,
-    error: None,
-  }
-  for chunk in chunks {
-    let payload = build_telegram_send_request(
-      chat_id,
-      chunk,
-      reply_to,
-      Some("Markdown"),
-    )
-    // TODO: Send payload via async HTTP POST to api_client.send_message_url()
-    // let (response, body) = @http.post(url, payload_bytes, headers=...)
-    // let json = parse_json_response(body.to_string())
-    // last_result = api_client.parse_send_response(json)
-    // For now, build the request and return a structured result
-    let _ = payload
-    last_result = {
-      message_id: "tg_msg_" + chat_id,
-      success: true,
-      error: None,
-    }
-  }
-  Ok(last_result)
+  // Build the request payload so the real implementation (stubfix-06) can
+  // reuse this code path. Until then, refuse to send so callers see an
+  // honest error rather than a fabricated success.
+  let _ = chat_id
+  let _ = text
+  let _ = reply_to
+  Err(ChannelError("Telegram send_text is not implemented yet"))
 }
 
 ///|
@@ -301,13 +281,10 @@ pub impl Adapter for TelegramAdapter with fn update_message(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  let payload = build_telegram_edit_request(chat_id, message_id, new_text)
-  // TODO: Send payload via async HTTP POST to api_client.edit_message_url()
-  // let (response, body) = @http.post(url, payload_bytes, headers=...)
-  // let json = parse_json_response(body.to_string())
-  // api_client.parse_ok_response(json)
-  let _ = payload
-  Ok(())
+  let _ = chat_id
+  let _ = message_id
+  let _ = new_text
+  Err(ChannelError("Telegram update_message is not implemented yet"))
 }
 
 ///|

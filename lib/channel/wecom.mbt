@@ -90,20 +90,15 @@ pub impl Adapter for WeComAdapter with fn supports_message_updates(_self) -> Boo
 ///|
 /// Start the adapter: set state to running and prepare WebSocket connection.
 ///
-/// TODO: In production, this should spawn an async task to establish the
-/// WebSocket connection to wss://openws.work.weixin.qq.com and run the
-/// event loop (subscribe -> heartbeat -> receive messages).
+/// WeCom send/receive is not yet implemented; `start` only registers the
+/// callback and leaves the adapter in an honest "not connected" state so
+/// that status/validate queries do not falsely report availability.
 pub impl Adapter for WeComAdapter with fn start(
   self,
   handler : (ChannelEvent) -> Unit,
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // Mark WebSocket state as connected (actual connection via FFI/async)
-  match self.ws_state {
-    Some(ws) => ws.mark_connected()
-    None => ()
-  }
   Ok(())
 }
 
@@ -123,10 +118,12 @@ pub impl Adapter for WeComAdapter with fn stop(self) -> Result[
 }
 
 ///|
-/// Send a text message via WeCom WebSocket (markdown format).
+/// Send a text message via WeCom (markdown format).
 ///
-/// Builds an aibot_send_msg frame with markdown msg_type and returns
-/// the frame's req_id as the message_id for ACK tracking.
+/// WeCom WebSocket send is not yet implemented; refuse to send with an
+/// honest error so callers cannot mistake a fabricated ack for delivery.
+/// The frame builder (`build_send_msg_frame`) is kept for the future
+/// `stubfix-07` WebSocket implementation to reuse.
 pub impl Adapter for WeComAdapter with fn send_text(
   self,
   chat_id : String,
@@ -138,10 +135,10 @@ pub impl Adapter for WeComAdapter with fn send_text(
   }
   match self.ws_state {
     Some(ws) => {
-      let req_id = ws.next_req_id()
-      let _frame = build_send_msg_frame(chat_id, text, "markdown", req_id)
-      // TODO: Send frame via WebSocket FFI, wait for ACK with req_id match (30s timeout)
-      Ok({ message_id: req_id, success: true, error: None })
+      let _ = ws.next_req_id()
+      let _ = chat_id
+      let _ = text
+      Err(ChannelError("WeCom send_text is not implemented yet"))
     }
     None => Err(ChannelError("WebSocket not initialized"))
   }

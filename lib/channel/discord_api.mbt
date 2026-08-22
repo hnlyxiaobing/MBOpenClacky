@@ -81,14 +81,8 @@ pub fn DiscordApiClient::edit_message(
   let _url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
   let _headers = self.auth_headers()
   let _body = build_discord_edit_payload(content)
-  // TODO: Execute async HTTP PATCH via @http:
-  //   let resp = await @http.patch(url, headers.to_array(), body.to_string())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   parse_json_response(resp.body)
-  let result : Map[String, Json] = Map([])
-  result.set("id", message_id.to_json())
-  result.set("channel_id", channel_id.to_json())
-  Ok(Json::object(result))
+  let _ = self.bot_token
+  Err(ChannelError("Discord edit_message is not implemented yet"))
 }
 
 ///|
@@ -101,14 +95,10 @@ pub fn DiscordApiClient::delete_message(
   message_id : String,
 ) -> Result[Json, ChannelError] {
   let _url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
-  let _headers = self.auth_headers()
-  // TODO: Execute async HTTP DELETE via @http:
-  //   let resp = await @http.delete(url, headers.to_array())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  let result : Map[String, Json] = Map([])
-  result.set("id", message_id.to_json())
-  result.set("deleted", true.to_json())
-  Ok(Json::object(result))
+  let _ = self.bot_token
+  let _ = channel_id
+  let _ = message_id
+  Err(ChannelError("Discord delete_message is not implemented yet"))
 }
 
 ///|
@@ -120,16 +110,8 @@ pub fn DiscordApiClient::get_current_user(
   self : DiscordApiClient,
 ) -> Result[Json, ChannelError] {
   let _url = self.api_url("users/@me")
-  let _headers = self.auth_headers()
-  // TODO: Execute async HTTP GET via @http:
-  //   let resp = await @http.get(url, headers.to_array())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   parse_json_response(resp.body)
-  let result : Map[String, Json] = Map([])
-  result.set("id", "pending".to_json())
-  result.set("username", "bot".to_json())
-  result.set("bot", true.to_json())
-  Ok(Json::object(result))
+  let _ = self.bot_token
+  Err(ChannelError("Discord get_current_user is not implemented yet"))
 }
 
 ///|
@@ -147,16 +129,11 @@ pub fn DiscordApiClient::upload_file(
     .bot_token(self.bot_token)
     .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
     .content_type("multipart/form-data; boundary=----MBOpenClackyBoundary")
-  // TODO: Build multipart body and execute async HTTP POST via @http:
-  //   Body parts: "payload_json" (JSON with content="") + "file" (file content)
-  //   let resp = await @http.post(url, headers.to_array(), multipart_body)
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   parse_json_response(resp.body)
-  let result : Map[String, Json] = Map([])
-  result.set("id", "pending".to_json())
-  result.set("channel_id", channel_id.to_json())
-  result.set("filename", filename.to_json())
-  Ok(Json::object(result))
+  let _ = self.bot_token
+  let _ = _headers
+  let _ = channel_id
+  let _ = filename
+  Err(ChannelError("Discord upload_file is not implemented yet"))
 }
 
 ///|

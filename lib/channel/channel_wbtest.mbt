@@ -2032,3 +2032,220 @@ test "is_rate_limited_codes" {
   assert_false(is_rate_limited(0))
   assert_false(is_rate_limited(-1))
 }
+
+// ── False-success gate (stubfix-02) ─────────────────────────────────────────
+//
+// These tests pin the contract that channel adapters and API clients must
+// NEVER return success for unimplemented send/edit/delete operations. They
+// gate against regression to the silent-failure pattern documented in
+// specs/completed/2026-08-21_stubfix-02-honest-send-errors.md.
+
+///|
+test "discord_api_edit_message_returns_err" {
+  let client = DiscordApiClient::new("tok")
+  let result = client.edit_message("chan", "msg", "new text")
+  match result {
+    Err(ChannelError(msg)) =>
+      if msg.contains("not implemented") {
+        ()
+      } else {
+        assert_true(false)
+      }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "discord_api_delete_message_returns_err" {
+  let client = DiscordApiClient::new("tok")
+  let result = client.delete_message("chan", "msg")
+  match result {
+    Err(ChannelError(msg)) =>
+      if msg.contains("not implemented") {
+        ()
+      } else {
+        assert_true(false)
+      }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "discord_api_get_current_user_returns_err" {
+  let client = DiscordApiClient::new("tok")
+  let result = client.get_current_user()
+  match result {
+    Err(ChannelError(msg)) =>
+      if msg.contains("not implemented") {
+        ()
+      } else {
+        assert_true(false)
+      }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "discord_api_upload_file_returns_err" {
+  let client = DiscordApiClient::new("tok")
+  let result = client.upload_file("chan", "file.bin", "content")
+  match result {
+    Err(ChannelError(msg)) =>
+      if msg.contains("not implemented") {
+        ()
+      } else {
+        assert_true(false)
+      }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "wecom_adapter_start_does_not_set_connected_state" {
+  let config : ChannelConfig = {
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: { "corp_id": "corp1", "agent_id": "agent1", "secret": "sec1" },
+  }
+  match WeComAdapter::new(config) {
+    Ok(a) => {
+      let pre_connected = match a.ws_state {
+        Some(ws) => ws.is_connected
+        None => false
+      }
+      assert_false(pre_connected)
+      let _ = a.start(fn(_e) { () })
+      let post_connected = match a.ws_state {
+        Some(ws) => ws.is_connected
+        None => false
+      }
+      assert_false(post_connected)
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+async test "telegram_adapter_send_text_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::Telegram,
+    enabled: true,
+    settings: { "bot_token": "123456:ABC-DEF" },
+  }
+  match TelegramAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.send_text("chat1", "hello", None)
+      match result {
+        Err(ChannelError(msg)) =>
+          if msg.contains("not implemented") {
+            ()
+          } else {
+            assert_true(false)
+          }
+        Ok(r) => assert_false(r.success)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+async test "wecom_adapter_send_text_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: { "corp_id": "corp1", "agent_id": "agent1", "secret": "sec1" },
+  }
+  match WeComAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.send_text("chat1", "hello", None)
+      match result {
+        Err(ChannelError(msg)) =>
+          if msg.contains("not implemented") {
+            ()
+          } else {
+            assert_true(false)
+          }
+        Ok(r) => assert_false(r.success)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+async test "weixin_adapter_send_text_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::Weixin,
+    enabled: true,
+    settings: { "app_id": "wx_app", "app_secret": "wx_sec", "token": "wx_tok" },
+  }
+  match WeixinAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.send_text("chat1", "hello", None)
+      match result {
+        Err(ChannelError(msg)) =>
+          if msg.contains("not implemented") {
+            ()
+          } else {
+            assert_true(false)
+          }
+        Ok(r) => assert_false(r.success)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+async test "feishu_adapter_update_message_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::Feishu,
+    enabled: true,
+    settings: { "bot_id": "id", "bot_secret": "secret" },
+  }
+  match FeishuAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.update_message("chat1", "msg1", "edited")
+      match result {
+        Err(ChannelError(msg)) =>
+          if msg.contains("not implemented") {
+            ()
+          } else {
+            assert_true(false)
+          }
+        Ok(_) => assert_true(false)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+async test "telegram_adapter_update_message_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::Telegram,
+    enabled: true,
+    settings: { "bot_token": "123456:ABC-DEF" },
+  }
+  match TelegramAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.update_message("chat1", "msg1", "edited")
+      match result {
+        Err(ChannelError(msg)) =>
+          if msg.contains("not implemented") {
+            ()
+          } else {
+            assert_true(false)
+          }
+        Ok(_) => assert_true(false)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
