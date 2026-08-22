@@ -1,8 +1,8 @@
 # MCP stdio transport 实装（子进程 spawn + 请求响应关联）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 讨论中
-> **关联总览**: `specs/draft/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告 2.3 节 + 第五节建议 3）
+> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告 2.3 节 + 第五节建议 3）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告 2.3「MCP stdio transport 未实装：start/stop/send_message 全 placeholder，send_request 必抛错」
 > **依赖**: 无
@@ -29,9 +29,13 @@ MCP 客户端的核心通信层全部是空壳，导致 Web UI 配置的任何 M
 | "stdio start 只设标志" | `grep -n "FFI implementation needed\|is_alive = true" lib/mcp/stdio_transport.mbt` | :58 TODO 注释 + :62 `self.is_alive = true` | 确认 |
 | "send_message 丢弃" | 同上 | :88、:91 `ignore(message)` | 确认 |
 | "send_request 必抛错" | `grep -n "async runtime" lib/mcp/client.mbt` | :137 `"Response handling requires async runtime (method: ...)"` | 确认 |
-| "scheduler 式时间戳恒 0 同源" | `grep -n "TODO" lib/mcp/registry.mbt lib/mcp/client.mbt` | registry cleanup_idle 时间比较 TODO（审计 :216-234）、client started_at 恒 0（审计 :60） | 确认（时间戳能力与 stubfix-05 共用解法，见决策 5） |
-| "spawn 子进程先例存在可复用" | `grep -n "spawn_orphan\|@process" lib/server/browser_process.mbt` | :39-42 `@process.read_from_process()`/`write_to_process()` 管道 + spawn_orphan 模式完整可用（审计 3.5 澄清此为真实现） | 确认复用路径，无需新 FFI |
-| "JSON-RPC 编解码已就绪" | 审计 2.3 节"已实装（外围）" | mcp.json 解析、JSON-RPC 编解码、注册表管理均为真实现 | 确认只差通信层 |
+| "scheduler 式时间戳恒 0 同源" | `grep -n "TODO" lib/mcp/registry.mbt lib/mcp/client.mbt` | registry cleanup_idle 时间比较 TODO（registry.mbt:230-231，审计 :216-234 略偏）、client started_at 恒 0（client.mbt:57，审计 :60 略偏） | 确认（时间戳能力与 stubfix-05 共用解法，见决策 5） |
+| "spawn 子进程先例存在可复用" | `grep -n "spawn_orphan\|@process" lib/server/browser_process.mbt` | :39-42 `@process.read_from_process()`/`write_to_process()` 管道 + :48 `@process.spawn_orphan`（审计 3.5 澄清此为真实现；terminal.mbt:300 另有后台执行先例） | 确认复用路径，无需新 FFI |
+| "JSON-RPC 编解码已就绪" | 审计 2.3 节"已实装（外围）" + 实读 `lib/mcp/types.mbt:79,231` | `JsonRpcRequest::to_json`/`JsonRpcResponse::from_json` 实存；mcp.json 解析、注册表管理均为真实现 | 确认只差通信层 |
+| "async spawn 原语可用" | 实读 `.mooncakes/moonbitlang/async/src/pkg.generated.mbti:84-87` + `process/pkg.generated.mbti:36` | `TaskGroup::spawn/spawn_bg/spawn_loop` 与 `@async.process.spawn`（stdin/stdout/stderr 管道参数齐备）实存 | 确认无需新 FFI |
+| "spawn_orphan 先例" | `grep -rn "spawn_orphan" lib/` | browser_process.mbt:48、tool/terminal.mbt:300 两处生产使用 | 确认复用路径 |
+| "initialize 握手先例存在" | 实读 `lib/server/browser_manager.mbt:66-69` | chrome-devtools-mcp 子进程 "Create JSON-RPC client" + `client.initialize()` 真实现 | 确认决策 3 有完整参照 |
+| "handlers_mcp 行号" | 实读 `lib/web/handlers_mcp.mbt:412,492` | 两处 `registry.call_tool(...)` 精确命中 | 确认 |
 
 ### 详细分析
 
@@ -136,3 +140,4 @@ MoonBit 约束检查：
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 2.3 节 + P1 建议 3 |
+| 2026-08-22 | 审核补强：全部行号实读复核（started_at 恒 0 实为 client.mbt:57、cleanup_idle TODO 实为 registry.mbt:230-231、handlers_mcp:412/:492 精确命中）；补录 @async.process.spawn 原语（含 stderr 管道参数，直接回应"stderr 处理"疑点）、TaskGroup::spawn/spawn_bg、spawn_orphan 双先例（browser_process.mbt:48、terminal.mbt:300）、browser_manager.mbt:66-69 initialize 握手完整先例、JSON-RPC 编解码实存（types.mbt:79/:231） | 对抗性审核 + 第一性原理校验 |

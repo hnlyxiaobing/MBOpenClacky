@@ -1,9 +1,9 @@
 # Telegram 真发送实装（HTTP Bot API）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 讨论中
-> **关联总览**: `specs/draft/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告第五节建议 7）
-> **关联历史 spec**: `specs/draft/2026-08-21_stubfix-02-honest-send-errors.md`（本 spec 消费其翻转后的 Err 分支）
+> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告第五节建议 7）
+> **关联历史 spec**: `specs/active/2026-08-21_stubfix-02-honest-send-errors.md`（本 spec 消费其翻转后的 Err 分支）
 > **来源差距**: 审计报告 2.1「Telegram send_text 假成功 stub」+ 建议 7「HTTP 调用模式与 Feishu/Discord 完全同构，性价比极高」
 > **依赖**: stubfix-02（假成功先翻转为 Err，本 spec 替换为真实现）
 > **灰度 key**: 无
@@ -22,7 +22,7 @@ Telegram 的 `send_text` 在 stubfix-02 之后将返回诚实 Err（"not impleme
 |------|---------|------|------|
 | "http_post_json 为真实现" | 审计 2.1 节 + `lib/channel/http_helper.mbt:280-314`（@client FFI） | 飞书/钉钉/Discord 均经此真发送 | 确认可复用 |
 | "飞书同构模式参照" | 实读 feishu.mbt 发送路径（审计 91-137 真调 http_post_json） | build payload -> http_post_json -> 解析响应 -> message_id | 参照确认 |
-| "Telegram 配置字段就绪" | 实读 `lib/channel/telegram.mbt` 配置结构（bot_token/chat_id，实施时复核字段名） | adapter 已持有 token 与 chat 目标参数 | 确认（实施时以实际字段名为准） |
+| "Telegram 配置字段就绪" | 实读 `lib/channel/telegram.mbt` | `bot_token` 字段（:11 TelegramApiClient、:180 adapter、:192-196 settings["bot_token"] 读取）、`send_message_url`（:150）、`split_telegram_message`（:266）、`build_telegram_send_request` 实存 | **已复核（原"实施时复核字段名"疑点关闭）**：字段名与审计一致 |
 | "telegram wbtest 存在翻转后的 Err 骨架" | stubfix-02 决策 3 | 成功断言翻转为 Err + 回归骨架 | 确认本 spec 需再翻转回真实断言 |
 
 ### 详细分析
@@ -98,3 +98,4 @@ MoonBit 约束检查：无新增 FFI/AOT 影响。✅
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 2.1 节 + P2 建议 7 |
+| 2026-08-22 | 审核补强：全部声明实读复核（http_post_json @client FFI 真实现、bot_token/send_message_url(:150)/split_telegram_message(:266)/build_telegram_send_request 实存、weixin 限流 TODO 实为 :280-284 注释形态）；关闭"实施时复核字段名"疑点 | 对抗性审核 + 第一性原理校验 |

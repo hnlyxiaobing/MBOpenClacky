@@ -1,8 +1,8 @@
 # 调度器持久化实装（schedules.yml + 任务文件 + 时间戳）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 讨论中
-> **关联总览**: `specs/draft/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告第四节表格 + 第五节建议 5）
+> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告第四节表格 + 第五节建议 5）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告第四节「调度器持久化是 stub：不读 schedules.yml、任务不写盘、不删除任务文件--重启即丢；last_run_at 恒 0」
 > **依赖**: 无（时间戳解法与 stubfix-04 决策 5 共用）
@@ -30,7 +30,9 @@
 | "任务不写盘/不删/配置不回写" | 同上 | :187 写任务 TODO、:202 删任务 TODO、:210 序列化写配置 TODO | 确认 |
 | "last_run_at 恒 0" | 同上 | :162 `schedule.last_run_at = Some(0) // TODO: actual timestamp`；:123 cron 字段更新 TODO | 确认 |
 | "文件读写能力已存在于项目" | 既有事实：`@fs.write_string_to_file`、`@fs.read_file_to_string`（write 工具/file_reader 在用） | @fs 包提供同步文件读写 | 确认无需新 FFI |
-| "YAML 解析能力现状" | `grep -rn "yml\|yaml" lib/ --include="*.mbt"`（实施时复核） | 项目无通用 YAML 解析器（依赖表为 toml/crescent/tty 等） | **实施约束**：见决策 2 |
+| "YAML 解析能力现状" | `grep -rln "yaml\|yml" lib/ --include="*.mbt"` 排除 wbtest 后逐文件甄别 | 无通用 YAML 解析器（匹配项均为 .yml 文件路径引用）；**已有两处手写行式解析先例**：`lib/agent/profile.mbt:50-57`（profile.yml）、`lib/extension/loader.mbt:113-116`（ext.yml/ext.yaml manifest） | **已复核（原"实施时复核"疑点关闭）**：决策 2 有先例可循 |
+| "Ruby 原版持久化形态" | 实读 `openclacky/lib/clacky/server/scheduler.rb:23-24,160` | `SCHEDULES_FILE=~/.clacky/schedules.yml` + `TASKS_DIR=~/.clacky/tasks`；任务文件为 `.md`（`File.write(task_file_path(...))`）；MB `scheduler.mbt:188` 的 `name + ".md"` 已对齐 | 确认数据模型对齐（含任务文件扩展名） |
+| "TokenCache 无真实时间" | 实读 `lib/channel/http_helper.mbt:23` | `// ... since we don't have real time in pure MoonBit`（TokenCache 区块内） | 确认（审计引用 :44-61 略偏，注释在 :23） |
 
 ### 详细分析
 
@@ -116,3 +118,4 @@ MoonBit 约束检查：不涉及 FFI 新增（@fs 既有）、不涉及 trait �
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告第四节调度器条目 + P1 建议 5 |
+| 2026-08-22 | 审核补强：全部 TODO 行号实读复核（:24/:123/:162/:187/:202/:210 精确命中）；关闭"YAML 能力"待复核疑点（无通用解析器，但 profile.mbt:50-57 与 extension/loader.mbt:113-116 已有行式解析先例，决策 2 可直接参照）；补录 Ruby 原版形态验证（scheduler.rb:23-24，任务文件为 .md，与 MB :188 约定一致）；TokenCache 注释行号修正为 http_helper.mbt:23 | 对抗性审核 + 第一性原理校验 |

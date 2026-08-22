@@ -1,8 +1,8 @@
 # 渠道假成功 stub 改诚实报错（Telegram/WeCom/Weixin）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 讨论中
-> **关联总览**: `specs/draft/2026-08-21_stubfix-00-overview.md`（来源：stub 审装状态审计报告 2.1 节风险提示 + 第五节建议 2）
+> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 审装状态审计报告 2.1 节风险提示 + 第五节建议 2）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告 2.1「Telegram/WeCom/Weixin send_text 假成功 stub -- 静默丢消息」
 > **依赖**: 无（建议与 stubfix-01 同批次合入）
@@ -36,7 +36,14 @@
 
 假成功的存在使 stubfix-01 的接线（web send API 真调 adapter）失去意义--用户在 Web UI 点击发送显示成功，消息实际丢失。因此本 spec 是 stubfix-01 的语义前置（技术上无编译依赖，行为上必须先行或同批）。
 
-注意范围区分：本 spec 只改**假成功 -> 诚实报错**；把三个平台的发送真正实装分别是 stubfix-06（Telegram，P2）与后续 WeCom/Weixin 实装 spec（依赖 WebSocket/长轮询基础设施，backlog）。其余诚实报错型 stub（飞书 multipart 上传、Discord edit_message 等审计 2.1 列表）不在本 spec 重复处置--它们已返回 Err，无数据完整性风险，实装优先级由总览 backlog 排序。
+注意范围区分：本 spec 改**假成功 -> 诚实报错**；把三个平台的发送真正实装分别是 stubfix-06（Telegram，P2）与后续 WeCom/Weixin 实装 spec（依赖 WebSocket/长轮询基础设施，backlog）。
+
+**审核新发现（2026-08-22）**：初始版称"其余诚实报错型 stub（飞书 multipart 上传、Discord edit_message 等审计 2.1 列表）已返回 Err，无数据完整性风险"--**部分不实**。逐文件实读核验：
+
+- 诚实 Err 型（无需处置）：飞书 API 层 `send_message`/`upload_image`/`upload_file`/附件下载（feishu_api.mbt:165-330，返回 Err "not yet wired"）
+- **假成功型（同族缺陷，纳入本 spec）**：飞书 adapter `update_message`（feishu.mbt:148-170，构请求后 TODO 直接 `Ok(())`）；Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file`（discord_api.mbt:75-160，均返回 Ok + 伪造 JSON，如 `{"id":"pending"}`、`{"deleted":true}`）
+
+审计报告 2.1 的表格（"edit_message 未接 HTTP，返回伪造结果"）与尾部列表（"全部 stub ... 诚实报错型，返回 Err"）自相矛盾，初始 spec 继承了列表的错误说法。这些伪造成功与三平台 send_text 同属"静默假成功"类，一并翻转（决策 5）。
 
 ## 决策 [必填 - 含为什么]
 
@@ -48,6 +55,8 @@
    - **为什么**：测试与新语义一致；翻转后测试即闸门，防止未来回归到假成功。
 4. **决策 4（不做部分实装）**：不在本 spec 顺手实现 Telegram HTTP 发送（虽然审计评估"半小时工作量"）。
    - **为什么**：spec 单一职责（行为修正 vs 功能新增）；stubfix-06 独立承载，其验收含真实 HTTP mock 链路，与本 spec 的纯行为翻转混在一起会使审查焦点失焦。
+5. **决策 5（同族假成功一并翻转，2026-08-22 审核新增）**：飞书 adapter `update_message`（feishu.mbt:148-170）与 Discord API 层 `edit_message`/`delete_message`/`get_current_user`/`upload_file`（discord_api.mbt:75-160）由伪造 Ok 改为 Err（"... not implemented yet"）；URL/请求构建器（如 `get_me_url`、`build_update_request`）保留，供实装 spec 复用。
+   - **为什么**：与三平台 send_text 同属"静默假成功"（数据完整性事故级）；不翻转则本 spec 的验收标准"任何 send 路径不返回 success:true"存在漏洞（edit/delete/get 同样伪造）；改动为同构小翻转，不引入新审查面。飞书 API 层已是 Err 型的方法不动。
 
 MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑分支。✅
 
@@ -60,6 +69,8 @@ MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑
 | `lib/channel/telegram.mbt` | 修改 | send_text 假成功体 -> Err；getUpdates TODO 注释保留（实装属 backlog） |
 | `lib/channel/wecom.mbt` | 修改 | send_text 构帧丢弃路径 -> Err；start 的 mark_connected 假连接 -> 未启动语义（决策 2） |
 | `lib/channel/weixin.mbt` | 修改 | send_text 假 pending -> Err；入队死逻辑清除；AES TODO 保留注释 |
+| `lib/channel/feishu.mbt` | 修改 | update_message 伪造 `Ok(())` -> Err（决策 5） |
+| `lib/channel/discord_api.mbt` | 修改 | edit_message/delete_message/get_current_user/upload_file 伪造 Ok -> Err；URL 与请求构建器保留（决策 5） |
 | `lib/channel/telegram_wbtest.mbt` / `channel_wbtest.mbt`（相关用例） | 修改 | 成功断言 -> Err 断言（决策 3） |
 
 ### 不涉及文件
@@ -85,7 +96,8 @@ MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑
 ## 验收标准 [必填]
 
 - [ ] `TelegramAdapter::send_text` / `WeComAdapter::send_text` / `WeixinAdapter::send_text` 均返回失败（Err 或 success:false + error 含 "not implemented"）
-- [ ] 全仓库 grep 不再存在 `tg_msg_`、`weixin_msg_pending` 伪造标识
+- [ ] 飞书 `update_message` 与 Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file` 返回 Err（决策 5）
+- [ ] 全仓库 grep 不再存在 `tg_msg_`、`weixin_msg_pending` 伪造标识；Discord 伪造 JSON（`"id": "pending"`、`"deleted": true`）不复存在
 - [ ] WeCom `start` 不再产生假连接状态（status/validate 不误报可用）
 - [ ] 相关 wbtest 断言翻转并通过；新增假成功闸门用例
 - [ ] `moon check` 0 errors（lib/channel）
@@ -109,3 +121,4 @@ MoonBit 约束检查：不涉及 FFI/AOT/trait 动态加载；改动为纯逻辑
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 2.1 节风险提示 + P0 建议 2 |
+| 2026-08-22 | 审核修正：推翻"其余 stub 已返回 Err 无风险"的断言（审计 2.1 表格与尾部列表自相矛盾，实读核验飞书 adapter update_message 与 Discord edit/delete/get_current_user/upload_file 为伪造 Ok 假成功），新增决策 5 纳入同族翻转；验证表补录 WeCom send_text 在未运行时已有真 Err 路径（仅运行态为假成功）；行号复核（tg_msg_ :286、weixin_msg_pending :285、mark_connected :104 均属实） | 对抗性审核 + 第一性原理校验 |
