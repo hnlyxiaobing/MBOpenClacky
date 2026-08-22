@@ -307,6 +307,104 @@ pub fn ChannelManager::register_adapter(
 }
 
 ///|
+/// Initialize the channel manager: load config and create/register adapters
+/// for all enabled platforms. On error, returns the error but leaves the
+/// manager in a partially-initialized state (server can still start).
+pub fn ChannelManager::init(
+  self : ChannelManager,
+) -> Result[Array[String], ChannelError] {
+  match self.load_config() {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  let registered : Array[String] = []
+  for config in self.configs {
+    if config.enabled {
+      let name = config.platform.to_string_value()
+      match create_adapter_from_config(config) {
+        Ok(adapter) => {
+          self.register_adapter(name, adapter)
+          registered.push(name)
+        }
+        Err(e) => {
+          ignore(e)
+          println("[ChannelManager] adapter create failed for \{name}")
+        }
+      }
+    }
+  }
+  Ok(registered)
+}
+
+///|
+/// Get the list of configured (enabled) platform names.
+pub fn ChannelManager::configured_platforms(
+  self : ChannelManager,
+) -> Array[String] {
+  let result : Array[String] = []
+  for config in self.configs {
+    if config.enabled {
+      result.push(config.platform.to_string_value())
+    }
+  }
+  result
+}
+
+///|
+/// Check if a given platform is configured and enabled.
+pub fn ChannelManager::is_platform_configured(
+  self : ChannelManager,
+  platform : String,
+) -> Bool {
+  for config in self.configs {
+    if config.enabled && config.platform.to_string_value() == platform {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// Create an AnyAdapter from a ChannelConfig by dispatching to the
+/// platform-specific adapter constructor.
+fn create_adapter_from_config(
+  config : ChannelConfig,
+) -> Result[AnyAdapter, ChannelError] {
+  match config.platform {
+    Feishu =>
+      match FeishuAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::Feishu(a))
+        Err(e) => Err(e)
+      }
+    WeCom =>
+      match WeComAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::WeCom(a))
+        Err(e) => Err(e)
+      }
+    Telegram =>
+      match TelegramAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::Telegram(a))
+        Err(e) => Err(e)
+      }
+    Discord =>
+      match DiscordAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::Discord(a))
+        Err(e) => Err(e)
+      }
+    DingTalk =>
+      match DingTalkAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::DingTalk(a))
+        Err(e) => Err(e)
+      }
+    Weixin =>
+      match WeixinAdapter::new(config) {
+        Ok(a) => Ok(AnyAdapter::Weixin(a))
+        Err(e) => Err(e)
+      }
+  }
+}
+
+///|
 /// Extract a unique message identifier from platform event for dedup.
 fn extract_message_digest(platform : String, body : Json) -> String {
   match body {

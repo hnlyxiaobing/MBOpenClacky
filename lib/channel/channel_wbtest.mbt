@@ -279,7 +279,85 @@ test "channel_manager_load_config_invalid_platform" {
   }
 }
 
-// ── FeishuAdapter Tests ─────────────────────────────────────────────────────
+///|
+test "channel_manager_init_missing_config" {
+  let mgr = ChannelManager::new("/tmp/nonexistent_channels_init_$$$.json")
+  match mgr.init() {
+    Ok(platforms) => @debug.assert_eq(platforms.length(), 0)
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+test "channel_manager_init_corrupt_config" {
+  let path = test_temp_path("mbopenclacky_test_channels_init_corrupt.json")
+  @fs.write_string_to_file(path, "{ not valid json") catch {
+    _ => {
+      assert_true(false)
+      return
+    }
+  }
+  let mgr = ChannelManager::new(path)
+  match mgr.init() {
+    Ok(_) => assert_true(false)
+    Err(_) => ()
+  }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+}
+
+///|
+test "channel_manager_init_valid_config_registers_adapters" {
+  let path = test_temp_path("mbopenclacky_test_channels_init_valid.json")
+  let content =
+    #|{
+    #|  "channels": [
+    #|    {
+    #|      "platform": "feishu",
+    #|      "enabled": true,
+    #|      "settings": { "bot_id": "bot_1", "bot_secret": "sec_1" }
+    #|    },
+    #|    {
+    #|      "platform": "discord",
+    #|      "enabled": false,
+    #|      "settings": { "bot_token": "tok" }
+    #|    }
+    #|  ]
+    #|}
+  @fs.write_string_to_file(path, content) catch {
+    _ => {
+      assert_true(false)
+      return
+    }
+  }
+  let mgr = ChannelManager::new(path)
+  match mgr.init() {
+    Ok(platforms) => {
+      @debug.assert_eq(platforms.length(), 1)
+      @debug.assert_eq(platforms[0], "feishu")
+      // disabled discord platform must not be registered
+      assert_false(mgr.is_platform_configured("discord"))
+      assert_true(mgr.is_platform_configured("feishu"))
+      let configured = mgr.configured_platforms()
+      @debug.assert_eq(configured.length(), 1)
+      @debug.assert_eq(configured[0], "feishu")
+    }
+    Err(_) => assert_true(false)
+  }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+}
+
+///|
+test "channel_manager_is_platform_configured_empty" {
+  let mgr = ChannelManager::new("/tmp/nonexistent_channels_configured_$$$.json")
+  let _ = mgr.load_config()
+  assert_false(mgr.is_platform_configured("feishu"))
+  assert_false(mgr.is_platform_configured("discord"))
+  @debug.assert_eq(mgr.configured_platforms().length(), 0)
+}
 
 ///|
 test "feishu_adapter_new" {

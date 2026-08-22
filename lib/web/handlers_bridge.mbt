@@ -220,12 +220,12 @@ fn handle_channels_delete_bridge(
 }
 
 ///|
-fn handle_channels_test_bridge(
+async fn handle_channels_test_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_test(req))
+  response_to_core(handle_channels_test_async(req))
 }
 
 ///|
@@ -241,7 +241,8 @@ fn handle_channels_status_bridge(
 
 ///|
 /// POST /api/webhooks/:platform — Receive incoming IM webhook events.
-/// Routes the payload to the registered WebhookRegistry handler for the platform.
+/// Routes to ChannelManager::handle_webhook for configured platforms,
+/// falls back to WebhookRegistry for backward compatibility.
 /// Also handles Feishu URL-verification challenge.
 fn handle_webhook_bridge(
   server_ref : Ref[WebServer],
@@ -270,6 +271,20 @@ fn handle_webhook_bridge(
       None => ()
     }
   }
+  // Route to ChannelManager for configured platforms (decision 2)
+  if server_ref.val.channel_manager.val.is_platform_configured(platform) {
+    match server_ref.val.channel_manager.val.handle_webhook(platform, body) {
+      Ok(_) =>
+        return @core.HttpResponse::ok().json_value(
+          Json::object({ "status": "ok".to_json() }),
+        )
+      Err(e) =>
+        return @core.HttpResponse::bad_request().json_value(
+          Json::object({ "error": channel_error_msg(e).to_json() }),
+        )
+    }
+  }
+  // Fall back to WebhookRegistry (backward compat)
   match server_ref.val.webhook_registry.handle(platform, body) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
@@ -1054,12 +1069,14 @@ fn extract_chat_id_param(event : @crescent.Event) -> Array[(String, String)] {
 }
 
 ///|
-fn handle_channels_send_bridge(
-  _server_ref : Ref[WebServer],
+async fn handle_channels_send_bridge(
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_send(req))
+  response_to_core(
+    handle_channels_send_async(server_ref.val.channel_manager, req),
+  )
 }
 
 ///|

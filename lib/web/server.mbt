@@ -59,6 +59,8 @@ pub(all) struct WebServer {
   mcp_registry : @mcp.McpRegistry
   /// Device authorization session store (RFC 8628)
   mut device_auth_store : @brand.DeviceAuthStore
+  /// Channel manager for IM platform adapters
+  channel_manager : Ref[@channel.ChannelManager]
 }
 
 ///|
@@ -67,6 +69,11 @@ pub fn WebServer::new(
   config : @config.AgentConfig,
   api_key : String?,
 ) -> WebServer {
+  // ── Channel Manager Initialization ────────────────────────────
+  // Initialize the IM channel subsystem. Channels are optional — if the
+  // config file is missing or malformed the server still starts normally.
+  let channel_manager = init_channel_manager("~/.mbopenclacky/channels.json")
+
   {
     active_agents: Map([]),
     config,
@@ -78,6 +85,7 @@ pub fn WebServer::new(
     browser_manager: @server.BrowserManager::new("~/.mbopenclacky/browser.yml"),
     mcp_registry: @mcp.McpRegistry::load_default(),
     device_auth_store: @brand.DeviceAuthStore::new(),
+    channel_manager: Ref(channel_manager),
   }
 }
 
@@ -957,7 +965,25 @@ pub fn WebServer::build_app(
 
 ///|
 /// Registers all routes, middleware, and starts serving.
-///
+/// Initialize the ChannelManager: load config, register adapters for all
+/// configured platforms. Returns an empty ChannelManager on any error so the
+/// server can still start (decision 6: channels are optional).
+fn init_channel_manager(config_path : String) -> @channel.ChannelManager {
+  let cm = @channel.ChannelManager::new(config_path)
+  match cm.init() {
+    Ok(platforms) =>
+      println(
+        "[ChannelManager] initialized with platforms: \{platforms.join(", ")}",
+      )
+    Err(e) => {
+      ignore(e)
+      println("[ChannelManager] init failed — channels disabled")
+    }
+  }
+  cm
+}
+
+///|
 /// `host` defaults to `127.0.0.1` (loopback only). Set to `0.0.0.0` or
 /// another non-loopback address to bind on a public interface; in that
 /// case an API key MUST be set or the server refuses to start (see

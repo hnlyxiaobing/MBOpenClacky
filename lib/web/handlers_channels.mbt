@@ -331,8 +331,146 @@ pub fn handle_channels_delete(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
-/// POST /api/channels/:id/test — Test channel connectivity.
-/// Builds a temporary adapter from the stored config and validates it.
+/// POST /api/channels/:id/test — Test channel connectivity (async, real probing).
+/// Does real HTTP connectivity checks for Feishu (token request) and Discord
+/// (GET /users/@me). Other platforms return honest "not implemented" status.
+pub async fn handle_channels_test_async(request : HttpRequest) -> HttpResponse {
+  let id = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let arr = channels_store.val
+      let ch = arr[idx]
+      let start_time = @env.now().reinterpret_as_int64()
+
+      // Validate config first (field presence)
+      let platform_enum = match ch.platform {
+        "feishu" => @channel.Platform::Feishu
+        "wecom" => @channel.Platform::WeCom
+        "telegram" => @channel.Platform::Telegram
+        "discord" => @channel.Platform::Discord
+        "dingtalk" => @channel.Platform::DingTalk
+        "weixin" => @channel.Platform::Weixin
+        _ =>
+          return HttpResponse::ok(
+            Json::object({
+              "channel_id": id.to_json(),
+              "test_result": "failed".to_json(),
+              "error": "Unknown platform".to_json(),
+            }).stringify(),
+          )
+      }
+      let settings : Map[String, String] = Map([])
+      if ch.webhook_url != "" {
+        settings.set("webhook_url", ch.webhook_url)
+      }
+      if ch.api_key != "" {
+        settings.set("api_key", ch.api_key)
+      }
+      if ch.secret != "" {
+        settings.set("secret", ch.secret)
+      }
+      let config = @channel.ChannelConfig::{
+        platform: platform_enum,
+        enabled: ch.enabled,
+        settings,
+      }
+
+      // Real connectivity probing (decision 4: graded by platform)
+      let (test_result, error_msg) = match ch.platform {
+        "feishu" => test_feishu_connectivity(config)
+        "discord" => test_discord_connectivity(config)
+        "telegram" =>
+          ("not_implemented", "Telegram connectivity test not yet implemented")
+        "wecom" =>
+          ("not_implemented", "WeCom connectivity test not yet implemented")
+        "weixin" =>
+          ("not_implemented", "Weixin connectivity test not yet implemented")
+        "dingtalk" =>
+          ("not_implemented", "DingTalk connectivity test not yet implemented")
+        _ => ("failed", "Unknown platform")
+      }
+
+      let end_time = @env.now().reinterpret_as_int64()
+      let latency = (end_time - start_time).to_int()
+      // Update channel status based on test result
+      if test_result == "success" {
+        arr[idx].status = "connected"
+      } else {
+        arr[idx].status = "error"
+      }
+      arr[idx].updated_at = end_time
+      let resp_obj = Json::object({
+        "channel_id": id.to_json(),
+        "test_result": test_result.to_json(),
+        "latency_ms": latency.to_json(),
+        "error": error_msg.to_json(),
+      })
+      HttpResponse::ok(resp_obj.stringify())
+    }
+  }
+}
+
+///|
+/// Test Feishu connectivity by requesting a tenant_access_token.
+/// Uses the real FeishuApiClient::request_token path.
+async fn test_feishu_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let app_id = match config.settings.get("api_key") {
+    Some(v) => v
+    None =>
+      match config.settings.get("bot_id") {
+        Some(v) => v
+        None => return ("failed", "Missing api_key/bot_id setting")
+      }
+  }
+  let app_secret = match config.settings.get("secret") {
+    Some(v) => v
+    None =>
+      match config.settings.get("bot_secret") {
+        Some(v) => v
+        None => return ("failed", "Missing secret/bot_secret setting")
+      }
+  }
+  let client = @channel.FeishuApiClient::new(app_id, app_secret)
+  match client.request_token() {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
+  }
+}
+
+///|
+/// Test Discord connectivity by calling GET /users/@me.
+/// Uses http_get_json directly to avoid the stub get_current_user.
+async fn test_discord_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let bot_token = match config.settings.get("api_key") {
+    Some(v) => v
+    None =>
+      match config.settings.get("bot_token") {
+        Some(v) => v
+        None => return ("failed", "Missing api_key/bot_token setting")
+      }
+  }
+  let url = "https://discord.com/api/v10/users/@me"
+  let headers = @channel.HttpHeaders::new()
+    .bot_token(bot_token)
+    .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
+    .to_array()
+  match @channel.http_get_json(url, headers) {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
+  }
+}
+
+///|
+/// POST /api/channels/:id/test — Test channel connectivity (sync stub).
+/// Kept for backward compatibility; prefer handle_channels_test_async.
 pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
@@ -398,7 +536,7 @@ pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// Extract the error message string from a ChannelError.
-fn channel_error_msg(err : @channel.ChannelError) -> String {
+pub fn channel_error_msg(err : @channel.ChannelError) -> String {
   match err {
     @channel.ChannelError(msg) => msg
   }
@@ -513,6 +651,72 @@ pub fn handle_channels_status(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// POST /api/channels/:id/send — Send a message through the channel.
+/// Async version that calls ChannelManager::send_to for real adapter dispatch.
+pub async fn handle_channels_send_async(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
+  let id = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  if request.body == "" {
+    return HttpResponse::bad_request("Request body is required")
+  }
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  match find_channel_index(id) {
+    None => HttpResponse::not_found("Channel not found: \{id}")
+    Some(idx) => {
+      let ch = channels_store.val[idx]
+      if !ch.enabled {
+        return HttpResponse::bad_request("Channel is disabled")
+      }
+      let (message, chat_id) = match body_json {
+        Object(obj) => {
+          let m = channel_json_str(obj, "message")
+          let c = channel_json_str(obj, "chat_id")
+          (m, c)
+        }
+        _ => return HttpResponse::bad_request("Invalid JSON body")
+      }
+      if message == "" {
+        return HttpResponse::bad_request("Missing message field")
+      }
+      if chat_id == "" {
+        return HttpResponse::bad_request("Missing chat_id field")
+      }
+      // Call channel_manager.send_to for real adapter dispatch
+      let platform = ch.platform
+      match cm_ref.val.send_to(platform, chat_id, message) {
+        Ok(result) =>
+          HttpResponse::ok(
+            Json::object({
+              "success": result.success.to_json(),
+              "channel_id": id.to_json(),
+              "chat_id": chat_id.to_json(),
+              "message_id": result.message_id.to_json(),
+              "error": result.error.to_json(),
+            }).stringify(),
+          )
+        Err(e) =>
+          HttpResponse::ok(
+            Json::object({
+              "success": false.to_json(),
+              "channel_id": id.to_json(),
+              "chat_id": chat_id.to_json(),
+              "error": channel_error_msg(e).to_json(),
+            }).stringify(),
+          )
+      }
+    }
+  }
+}
+
+///|
+/// POST /api/channels/:id/send — Send a message through the channel (sync stub).
+/// Kept for backward compatibility; prefer handle_channels_send_async.
 pub fn handle_channels_send(request : HttpRequest) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
