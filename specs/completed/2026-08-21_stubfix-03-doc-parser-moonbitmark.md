@@ -192,22 +192,22 @@ MoonBit 约束检查：
 
 **MoonBitMark 侧（产出 moonbitmark@0.4.0）**
 
-- [ ] `src/ole2` wbtest 通过（正常流 / mini stream 流 / 损坏 magic / 截断 / FAT 环）
-- [ ] `.doc` 与 `.wps` fixture 转换出真实 markdown（非空、含文本片段、Heading 1-9 样式正确、中文不乱码）
-- [ ] 加密 .doc（fEncrypted）返回诚实 `ConversionError`，不静默
-- [ ] `moonbitmark@0.4.0` 发布至 mooncakes 且在线可访问（mooncakes.io docs 页）
+- [x] `src/ole2` wbtest 通过（正常流 / mini stream 流 / 损坏 magic / 截断 / FAT 环）
+- [x] `.doc` 与 `.wps` fixture 转换出真实 markdown（非空、含文本片段、Heading 1-9 样式正确、中文不乱码）
+- [x] 加密 .doc（fEncrypted）返回诚实 `ConversionError`，不静默
+- [x] `moonbitmark@0.4.0` 发布至 mooncakes 且在线可访问（mooncakes.io docs 页）
 
 **MBOpenClacky 侧**
 
-- [ ] `moon.mod` 含 `hnlyxiaobing/moonbitmark`（0.4.0），`moon add`/构建链路通过（无 path 依赖 hack 或已记录 fallback 决议）
-- [ ] read 工具读取 `.docx`/`.xlsx`/`.pptx`/`.pdf`/`.doc`/`.wps` fixture 返回真实 markdown 内容（含文本片段断言，非 placeholder），结果带 `parsed_from` 标注
-- [ ] read 工具读取 `.et`/`.dps` 返回诚实错误（决策 9 话术），`is_success=false`
-- [ ] `lib/parser` 不再存在任何 `ParseResult::success(placeholder...)` 假成功路径；六个 XxxParser 文件已删除（grep "placeholder" 仅剩错误提示文案）
-- [ ] `is_binary_extension` 列表含 `.wps/.et/.dps`
-- [ ] 图片扩展名（.png 等）read 行为零回归（仍报 Binary file 错误）
-- [ ] 普通文本文件 read 行为零回归（行号/分页/1MB 护栏）
-- [ ] `moon check` 0 errors（lib/parser、lib/tool、lib/agent）
-- [ ] `moon test lib/parser`、`moon test lib/tool`、`moon test lib/agent` 通过；全量 `moon test` 无回归
+- [x] `moon.mod` 含 `hnlyxiaobing/moonbitmark`（0.4.0），`moon add`/构建链路通过（无 path 依赖 hack 或已记录 fallback 决议）
+- [x] read 工具读取 `.docx`/`.xlsx`/`.pptx`/`.pdf`/`.doc`/`.wps` fixture 返回真实 markdown 内容（含文本片段断言，非 placeholder），结果带 `parsed_from` 标注
+- [x] read 工具读取 `.et`/`.dps` 返回诚实错误（决策 9 话术），`is_success=false`
+- [x] `lib/parser` 不再存在任何 `ParseResult::success(placeholder...)` 假成功路径；六个 XxxParser 文件已删除（grep "placeholder" 仅剩错误提示文案）
+- [x] `is_binary_extension` 列表含 `.wps/.et/.dps`
+- [x] 图片扩展名（.png 等）read 行为零回归（仍报 Binary file 错误）
+- [x] 普通文本文件 read 行为零回归（行号/分页/1MB 护栏）
+- [x] `moon check` 0 errors（lib/parser、lib/tool、lib/agent）
+- [x] `moon test lib/parser`、`moon test lib/tool`、`moon test lib/agent` 通过；全量 `moon test` 无回归
 
 ## 风险评估 [必填]
 
@@ -233,6 +233,7 @@ MoonBit 约束检查：
 
 | 日期 | 变更内容 | 原因 |
 |------|---------|------|
+| 2026-08-22 | 任务包 0-5 全部完成，验收标准全数勾选，spec 归档至 completed | MB 侧 read 工具接线 + 验收测试全绿（Windows 侧 lib/parser 29/29、lib/agent 487/487、全量 3829/3837——7 个 web_search 失败为 Windows 缺 python3 的环境问题，1 个 cost_tracker 为 pre-existing 目录残留 flaky，均与本次改动无关；WSL1 侧 lib/tool 347/347）；MoonBitMark 侧 moonbitmark@0.4.0 已发布 |
 | 2026-08-21 | 初始版本 | stub 审计报告 2.4 节 + MoonBitMark 本地调研（/mnt/d/MoonBit/MoonBitMark，v0.3.0） |
 | 2026-08-22 | 重大修订：DOC/WPS 由"诚实报错"改为"MoonBitMark 新增 OLE2/CFB + Word 二进制能力"（新增任务包 0/1，产出 0.4.0）；MB 白名单 4 -> 6 格式；六个 XxxParser 由"换壳保留"改为"整体删除"；sections 改消费 MoonBitMark AST；新增决策 4/9 | 用户决策：解析能力先加入 MoonBitMark，MB 侧全部依赖 MoonBitMark、不自建重复逻辑 |
 | 2026-08-22 | 审核修正：moonbitmark@0.3.0 发布状态已在线验证（R1 降级）；纠正"Ruby 原版只承诺四种格式"误判（file_processor.rb:76-79 实际将 .doc/.wps/.et/.dps 全路由进解析管线，经 textutil/antiword/LibreOffice 外部工具实现）；补录 doc.mbt 死代码 OLE2 函数；补录 `.wps/.et/.dps` 不在 is_binary_extension 的事实（glob.mbt:319-325）；zip.mbt stored-only 检查行号修正 210-217 -> 240-242；MoonBitMark 模块名前缀确认 `hnlyxiaobing`（git 5ae0b94 改名提交，pkg.generated.mbti 头注释为残留） | 对抗性审核 + 第一性原理校验，随修订一并移入 specs/active/ |

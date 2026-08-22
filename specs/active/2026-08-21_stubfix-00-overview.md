@@ -25,7 +25,7 @@
 |---|------|----------------|--------|---------|---------|
 | 01 | `2026-08-21_stubfix-01-channel-wiring.md` | 3.1/3.2/3.3 + 建议 1 | P0 | ChannelManager 孤儿 + webhook 断链 + send API 假成功 | server 生命周期挂载 + WebhookRegistry 接线 + send/test API 真调用 |
 | 02 | `2026-08-21_stubfix-02-honest-send-errors.md` | 2.1 风险提示 + 建议 2 | P0 | Telegram/WeCom/Weixin send_text 假成功（静默丢消息）；**审核扩围**：飞书 update_message、Discord edit_message/delete_message/get_current_user/upload_file 同为假成功 | 翻转为诚实 Err + wbtest 期望翻转 + 假成功闸门（扩围六处一并翻转） |
-| 03 | `2026-08-21_stubfix-03-doc-parser-moonbitmark.md`（已审核，移入 active） | 2.4 + 建议 4 | P1 | 文档解析 6 格式全 placeholder + parser 孤儿 + read 工具不解析 | MoonBitMark 新增 OLE2/CFB + Word 二进制能力并发布 0.4.0（任务包 0/1）→ MB 引入；六格式白名单 + 薄适配层（删六个 XxxParser）+ read 工具接线 |
+| 03 | `2026-08-21_stubfix-03-doc-parser-moonbitmark.md`（已完成 2026-08-22，移入 completed） | 2.4 + 建议 4 | P1 | 文档解析 6 格式全 placeholder + parser 孤儿 + read 工具不解析 | MoonBitMark 新增 OLE2/CFB + Word 二进制能力并发布 0.4.0（任务包 0/1）→ MB 引入；六格式白名单 + 薄适配层（删六个 XxxParser）+ read 工具接线 |
 | 04 | `2026-08-21_stubfix-04-mcp-stdio-transport.md` | 2.3 + 建议 3 | P1 | MCP stdio transport 空壳、请求响应无关联 | 复用 browser_process 的 @process spawn 模式 + JSON-RPC id 关联 + initialize 握手 |
 | 05 | `2026-08-21_stubfix-05-scheduler-persistence.md` | 第四节 scheduler 条目 + 建议 5 | P1 | 调度器不持久化（重启全丢）、时间戳恒 0 | @fs 读写 + yml 子集解析 + write-through + 共享时钟 |
 | 06 | `2026-08-21_stubfix-06-telegram-send.md` | 2.1 + 建议 7 | P2 | Telegram 发送假成功（02 翻转后待实装） | 复用 http_post_json 同构实现 + 错误映射 |
