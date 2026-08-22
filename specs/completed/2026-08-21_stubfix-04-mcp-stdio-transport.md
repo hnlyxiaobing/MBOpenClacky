@@ -1,7 +1,7 @@
 # MCP stdio transport 实装（子进程 spawn + 请求响应关联）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **状态**: 已完成（2026-08-22 实施完毕并验收通过，归档至 specs/completed/）
 > **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告 2.3 节 + 第五节建议 3）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告 2.3「MCP stdio transport 未实装：start/stop/send_message 全 placeholder，send_request 必抛错」
@@ -110,15 +110,15 @@ MoonBit 约束检查：
 
 ## 验收标准 [必填]
 
-- [ ] StdioTransport::start 真实 spawn 子进程并完成 MCP initialize 握手；失败返回明确错误（is_alive 真实反映）
-- [ ] tools/list 请求经 send_request 获得真实响应（wbtest + 手动端到端）
-- [ ] tools/call 全链路（Web UI -> handlers_mcp -> registry -> stdio -> 子进程 -> 响应）打通
-- [ ] 响应按 JSON-RPC id 关联，乱序/并发请求正确匹配；超时返回 Err 而非挂死
-- [ ] stop 终止子进程、管道清理无泄漏（重复 start/stop 幂等）
-- [ ] cleanup_idle 按真实时间戳工作，last_used_at 不再恒 0
-- [ ] HttpTransport 返回诚实 Err（不再 ignore）
-- [ ] `moon check` 0 errors（lib/mcp）
-- [ ] `moon test lib/mcp` 通过；全量 `moon test` 无回归
+- [x] StdioTransport::start 真实 spawn 子进程并完成 MCP initialize 握手；失败返回明确错误（is_alive 真实反映）-- stdio_transport.mbt:183-273（native start：管道 + spawn_orphan + 读循环，空命令/无 task group/管道失败均 Err）；握手在 client.mbt:59-119（errdefer disconnect 保证无半连接，INIT_TIMEOUT=60s）；wbtest：`StdioTransport start rejects empty command`、`start without task group errors`
+- [x] tools/list 请求经 send_request 获得真实响应 -- client.mbt:110-129；wbtest：python3 集成 Scenario 1（stdio_transport_wbtest.mbt:105 起）断言 1 个 echo 工具
+- [x] tools/call 全链路（Web UI -> handlers_mcp -> registry -> stdio -> 子进程 -> 响应）打通 -- handlers_mcp.mbt（probe/call/execute 三 handler 改 async 真调用）+ handlers_bridge.mbt async bridge + Scenario 1 call_tool 返回 "ok"；handlers_mcp_wbtest.mbt 7 个 async 测试
+- [x] 响应按 JSON-RPC id 关联，乱序/并发请求正确匹配；超时返回 Err 而非挂死 -- stdio_transport.mbt:346-410（send_request：pending map + with_timeout）、:451-520（dispatch_line：按 id 唤醒，通知/晚到响应转发 message_handler，非法 JSON 跳过）；wbtest：dispatch_line 乱序/通知/无效行/晚到 4 测试 + Scenario 5 并发乱序（ping_fast 先回）+ Scenario 3 超时（1s，Err 含 "timed out"）
+- [x] stop 终止子进程、管道清理无泄漏（重复 start/stop 幂等）-- stdio_transport.mbt:275-344（stop：fail_all_pending + cancel 读任务 + 关三管道 + 后台 hard_cancel/wait_pid）；wbtest Scenario 4（stop 幂等 + 后续 send Err "not started"）
+- [x] cleanup_idle 按真实时间戳工作，last_used_at 不再恒 0 -- lib/utils/time_util.mbt:7-15（now_ms/now_seconds，供 stubfix-05 复用）；registry.mbt cleanup_idle（now_seconds 比较）；client.mbt:70/:155/:201 last_used_at 维护；wbtest：`cleanup_idle removes stale and never-used clients, keeps fresh ones`
+- [x] HttpTransport 返回诚实 Err（不再 ignore）-- http_transport.mbt:57-59（`Err("HTTP MCP transport not implemented yet (url: ...)")`）；wbtest：`HttpTransport start returns honest not-implemented error`
+- [x] `moon check` 0 errors（全项目，含 lib/mcp）-- 2026-08-22 实测 0 errors 0 warnings
+- [x] `moon test lib/mcp` 通过（83/83）；全量 `moon test` 无回归（3845/3845）；`moon fmt`、`moon info` 已跑
 
 ## 风险评估 [必填]
 
@@ -141,3 +141,4 @@ MoonBit 约束检查：
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 2.3 节 + P1 建议 3 |
 | 2026-08-22 | 审核补强：全部行号实读复核（started_at 恒 0 实为 client.mbt:57、cleanup_idle TODO 实为 registry.mbt:230-231、handlers_mcp:412/:492 精确命中）；补录 @async.process.spawn 原语（含 stderr 管道参数，直接回应"stderr 处理"疑点）、TaskGroup::spawn/spawn_bg、spawn_orphan 双先例（browser_process.mbt:48、terminal.mbt:300）、browser_manager.mbt:66-69 initialize 握手完整先例、JSON-RPC 编解码实存（types.mbt:79/:231） | 对抗性审核 + 第一性原理校验 |
+| 2026-08-22 | 实施完成并验收：新增 lib/mcp/task_group.mbt（全局 task group 注册 + spawn helper）、lib/utils/time_util.mbt（now_ms/now_seconds，供 stubfix-05 复用，兑现决策 5 回写承诺）、lib/mcp/stdio_transport_wbtest.mbt（dispatch_line 白盒 4 测试 + python3 真实子进程集成 5 场景合一）；Transport trait async 化（start/stop/send_message/send_request，impl 用普通 fn + async body）；moon.pkg 增 async/aqueue/process 导入。**偏差记录**（均符合 spec 意图）：(a) async trait 级联超出"不涉及文件"清单--lib/web/handlers_mcp.mbt 三个 handler、handlers_bridge.mbt 三个 bridge、lib/web/server.mbt（with_task_group 内 set_mcp_task_group 接线）、lib/tool/browser{,_action,_page}.mtb 及其 wbtest（McpClient 调用方必须 async 化，Ruby 参照同构）；(b) read loop 需常驻 task group，故新增全局注册机制（web server 启动时接线，测试内 with_task_group 注册，async test 并行执行要求 python3 场景合并为单一顺序测试）；(c) 任务包 4 的"Web UI 手动端到端"以 python3 全链路 wbtest 替代（initialize->tools/list->call_tool 真子进程），Web UI 实机验收待用户配置真实服务器。验收：moon check 0 errors 0 warnings；moon test lib/mcp 83/83；全量 3845/3845；fmt/info 已跑 | 实施完毕，归档 |

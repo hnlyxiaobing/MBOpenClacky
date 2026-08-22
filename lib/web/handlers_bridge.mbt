@@ -104,7 +104,7 @@ fn handle_mcp_add_server_bridge(
 }
 
 ///|
-fn handle_mcp_probe_server_bridge(
+async fn handle_mcp_probe_server_bridge(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -151,7 +151,7 @@ fn handle_mcp_list_server_tools_bridge(
 }
 
 ///|
-fn handle_mcp_call_server_tool_bridge(
+async fn handle_mcp_call_server_tool_bridge(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
@@ -172,15 +172,14 @@ fn handle_mcp_list_tools_bridge(
 }
 
 ///|
-/// (legacy) POST /api/mcp/tools/:name/execute — Execute an MCP tool by name.
-fn handle_mcp_execute_tool_bridge(
+/// (legacy) POST /api/mcp/tools/:name/execute - Execute an MCP tool by name.
+async fn handle_mcp_execute_tool_bridge(
   server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_name_param(event))
   response_to_core(handle_mcp_execute_tool(server_ref.val.mcp_registry, req))
 }
-
 // ── Channel Bridges ───────────────────────────────────────────────
 
 ///|

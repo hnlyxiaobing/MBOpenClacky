@@ -67,3 +67,26 @@ test "parse_mcp_config invalid JSON raises" {
     _ => assert_true(true)
   }
 }
+
+///|
+test "cleanup_idle removes stale and never-used clients, keeps fresh ones" {
+  let registry = McpRegistry::new()
+  let now = @utils.now_seconds()
+  // Stale: last used well beyond the 300s idle timeout.
+  let stale = McpClient::from_spec(McpServerSpec::stdio("stale", "no-such-cmd"))
+  stale.last_used_at = Some(now - 400)
+  registry.clients["stale"] = stale
+  // Never completed a request: also dropped.
+  let never_used = McpClient::from_spec(
+    McpServerSpec::stdio("never", "no-such-cmd"),
+  )
+  registry.clients["never"] = never_used
+  // Fresh: must survive.
+  let fresh = McpClient::from_spec(McpServerSpec::stdio("fresh", "no-such-cmd"))
+  fresh.last_used_at = Some(now)
+  registry.clients["fresh"] = fresh
+  registry.cleanup_idle()
+  assert_false(registry.clients.contains("stale"))
+  assert_false(registry.clients.contains("never"))
+  assert_true(registry.clients.contains("fresh"))
+}

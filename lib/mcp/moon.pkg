@@ -2,5 +2,8 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/process",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }

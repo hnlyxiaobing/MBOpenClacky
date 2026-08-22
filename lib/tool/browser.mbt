@@ -443,7 +443,7 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
 /// Call the browser MCP server with the given tool name and arguments.
 /// If MCP is available, sends a JSON-RPC call through the registry.
 /// Falls back to a stub error message when MCP is not connected.
-pub fn Browser::mcp_call(
+pub async fn Browser::mcp_call(
   self : Browser,
   tool_name : String,
   args : Map[String, Json],

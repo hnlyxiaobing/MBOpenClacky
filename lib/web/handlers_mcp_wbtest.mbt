@@ -336,7 +336,7 @@ test "mcp_update_server: preserves enabled state" {
 // ── POST /api/mcp/:name/probe (probe) ───────────────────────────────
 
 ///|
-test "mcp_probe_server: non-existent returns 404" {
+async test "mcp_probe_server: non-existent returns 404" {
   let reg = @mcp.McpRegistry::new()
   let resp = handle_mcp_probe_server(
     reg,
@@ -346,7 +346,7 @@ test "mcp_probe_server: non-existent returns 404" {
 }
 
 ///|
-test "mcp_probe_server: existing server returns ok or not-connected" {
+async test "mcp_probe_server: existing server returns ok or not-connected" {
   let reg = @mcp.McpRegistry::new()
   reg.add_server(
     "srv1",
@@ -405,7 +405,7 @@ test "mcp_list_server_tools: existing server returns tools array" {
 // ── POST /api/mcp/:name/call (call tool) ─────────────────────────────
 
 ///|
-test "mcp_call_server_tool: non-existent server returns 404" {
+async test "mcp_call_server_tool: non-existent server returns 404" {
   let reg = @mcp.McpRegistry::new()
   let resp = handle_mcp_call_server_tool(
     reg,
@@ -420,7 +420,7 @@ test "mcp_call_server_tool: non-existent server returns 404" {
 }
 
 ///|
-test "mcp_call_server_tool: missing tool_name returns 400" {
+async test "mcp_call_server_tool: missing tool_name returns 400" {
   let reg = @mcp.McpRegistry::new()
   reg.add_server("srv1", @mcp.McpServerSpec::stdio("srv1", "node"))
   let resp = handle_mcp_call_server_tool(
@@ -431,7 +431,7 @@ test "mcp_call_server_tool: missing tool_name returns 400" {
 }
 
 ///|
-test "mcp_call_server_tool: empty body returns 400" {
+async test "mcp_call_server_tool: empty body returns 400" {
   let reg = @mcp.McpRegistry::new()
   reg.add_server("srv1", @mcp.McpServerSpec::stdio("srv1", "node"))
   let resp = handle_mcp_call_server_tool(
@@ -461,7 +461,7 @@ test "mcp_list_tools: lists tools across all servers" {
 }
 
 ///|
-test "mcp_execute_tool: tool not found returns 404" {
+async test "mcp_execute_tool: tool not found returns 404" {
   let reg = @mcp.McpRegistry::new()
   let resp = handle_mcp_execute_tool(
     reg,
@@ -476,7 +476,7 @@ test "mcp_execute_tool: tool not found returns 404" {
 }
 
 ///|
-test "mcp_execute_tool: empty body returns 400" {
+async test "mcp_execute_tool: empty body returns 400" {
   let reg = @mcp.McpRegistry::new()
   reg.add_server("srv1", @mcp.McpServerSpec::stdio("srv1", "node"))
   let resp = handle_mcp_execute_tool(

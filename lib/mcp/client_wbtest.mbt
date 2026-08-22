@@ -30,7 +30,7 @@ test "McpClient protocol_version and timeouts" {
   let client = McpClient::from_spec(spec)
   @debug.assert_eq(client.protocol_version(), "2024-11-05")
   @debug.assert_eq(client.default_timeout(), 30)
-  @debug.assert_eq(client.init_timeout(), 15)
+  @debug.assert_eq(client.init_timeout(), 60)
 }
 
 ///|
@@ -64,8 +64,12 @@ test "McpClient send_request_with_response error raises" {
 test "McpClient disconnect clears state" {
   let spec = McpServerSpec::stdio("test", "echo")
   let client = McpClient::from_spec(spec)
-  client.transport.start()
-  assert_true(client.is_connected())
+  client.server_info = Some({
+    name: "srv",
+    version: "1",
+    capabilities: { tools: true, prompts: false, resources: false },
+  })
+  client.tools = [{ name: "t", description: "d", input_schema: Json::null() }]
   client.disconnect()
   assert_false(client.is_connected())
   assert_true(client.server_info is None)

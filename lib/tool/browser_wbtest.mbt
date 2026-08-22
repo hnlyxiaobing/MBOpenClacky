@@ -338,7 +338,7 @@ test "escape_js_string_with_control_chars" {
 // ── Scroll Dispatch Tests ───────────────────────────────────────────────────
 
 ///|
-test "scroll_dispatch_attempts_native_then_fallback" {
+async test "scroll_dispatch_attempts_native_then_fallback" {
   // Without MCP, both native scroll_page and evaluate_script fallback fail.
   // Verifies the dispatch chain executes without panicking.
   let browser = Browser::new()
@@ -382,7 +382,7 @@ test "scroll_up_produces_negative_offset" {
 // ── Fill Enhancement Tests ──────────────────────────────────────────────────
 
 ///|
-test "fill_dispatch_degrades_gracefully_without_mcp" {
+async test "fill_dispatch_degrades_gracefully_without_mcp" {
   // Without MCP, fill fails but focus/blur failures are silently ignored.
   // The fill result itself should be an error (MCP not connected).
   let browser = Browser::new()
@@ -401,7 +401,7 @@ test "fill_dispatch_degrades_gracefully_without_mcp" {
 }
 
 ///|
-test "type_alias_uses_fill_enhanced_dispatch" {
+async test "type_alias_uses_fill_enhanced_dispatch" {
   // type is an alias for fill — should use the same enhanced dispatch path.
   let browser = Browser::new()
   let args : Map[String, Json] = {
@@ -419,7 +419,7 @@ test "type_alias_uses_fill_enhanced_dispatch" {
 }
 
 ///|
-test "fill_without_ref_skips_focus_blur" {
+async test "fill_without_ref_skips_focus_blur" {
   // Without ref, focus/blur enhancement is skipped entirely.
   // fill still fails due to no MCP, but no crash from missing ref.
   let browser = Browser::new()

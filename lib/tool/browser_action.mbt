@@ -9,7 +9,7 @@ let require_ref_kinds : Array[String] = [
 ///|
 /// Dispatch an 'act' action to the appropriate MCP tool based on kind.
 /// Validates require_ref before dispatching.
-fn Browser::dispatch_act(
+async fn Browser::dispatch_act(
   self : Browser,
   kind : String,
   args : Map[String, Json],
@@ -57,7 +57,7 @@ fn Browser::dispatch_act(
 
 ///|
 /// Dispatch scroll: try native MCP scroll_page first, fall back to evaluate_script.
-fn Browser::dispatch_scroll(
+async fn Browser::dispatch_scroll(
   self : Browser,
   args : Map[String, Json],
 ) -> ToolResult {
@@ -104,7 +104,7 @@ fn escape_js_string(s : String) -> String {
 ///|
 /// Dispatch fill with focus/blur evaluate_script enhancement.
 /// focus/blur failures are silently ignored (graceful degradation).
-fn Browser::dispatch_fill_enhanced(
+async fn Browser::dispatch_fill_enhanced(
   self : Browser,
   args : Map[String, Json],
 ) -> ToolResult {

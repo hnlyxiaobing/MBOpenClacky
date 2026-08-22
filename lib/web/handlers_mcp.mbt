@@ -181,7 +181,7 @@ pub fn handle_mcp_add_server(
 
 ///|
 /// POST /api/mcp/:name/probe — Probe server connectivity and return tools.
-pub fn handle_mcp_probe_server(
+pub async fn handle_mcp_probe_server(
   registry : @mcp.McpRegistry,
   request : HttpRequest,
 ) -> HttpResponse {
@@ -196,42 +196,30 @@ pub fn handle_mcp_probe_server(
         Stdio => _spec.command is Some(_)
         Http => _spec.url is Some(_)
       }
-      // Try to create client and list tools
-      match registry.get_client(name) {
-        Some(client) =>
-          match client.is_connected() {
-            true => {
-              // Check existing tools from client
-              let tools_arr : Array[Json] = []
-              for tool in client.tools {
-                let fields : Map[String, Json] = {
-                  "name": tool.name.to_json(),
-                  "description": tool.description.to_json(),
-                }
-                tools_arr.push(Json::object(fields))
-              }
-              let body = Json::object({
-                "ok": true.to_json(),
-                "tools": Json::array(tools_arr),
-              }).stringify()
-              HttpResponse::ok(body)
-            }
-            false => {
-              let body = Json::object({
-                "ok": false.to_json(),
-                "error": "Server not connected".to_json(),
-              }).stringify()
-              HttpResponse::ok(body)
-            }
-          }
-        None => {
+      // Real connectivity probe: connect (if needed) and list tools.
+      // Any failure is reported as ok:false instead of killing the server.
+      let tools : Array[@mcp.McpTool] = registry.tools_list(name) catch {
+        @mcp.McpError(msg) => {
           let body = Json::object({
             "ok": false.to_json(),
-            "error": "Failed to create client for server".to_json(),
+            "error": msg.to_json(),
           }).stringify()
-          HttpResponse::ok(body)
+          return HttpResponse::ok(body)
         }
       }
+      let tools_arr : Array[Json] = []
+      for tool in tools {
+        let fields : Map[String, Json] = {
+          "name": tool.name.to_json(),
+          "description": tool.description.to_json(),
+        }
+        tools_arr.push(Json::object(fields))
+      }
+      let body = Json::object({
+        "ok": true.to_json(),
+        "tools": Json::array(tools_arr),
+      }).stringify()
+      HttpResponse::ok(body)
     }
     None => HttpResponse::not_found("MCP server not found: " + name)
   }
@@ -381,8 +369,8 @@ pub fn handle_mcp_list_server_tools(
 }
 
 ///|
-/// POST /api/mcp/:name/call — Call a tool on a specific MCP server.
-pub fn handle_mcp_call_server_tool(
+/// POST /api/mcp/:name/call - Call a tool on a specific MCP server.
+pub async fn handle_mcp_call_server_tool(
   registry : @mcp.McpRegistry,
   request : HttpRequest,
 ) -> HttpResponse {
@@ -457,8 +445,8 @@ pub fn handle_mcp_list_tools(
 }
 
 ///|
-/// POST /api/mcp/tools/:name/execute — Execute an MCP tool by name (across all servers).
-pub fn handle_mcp_execute_tool(
+/// POST /api/mcp/tools/:name/execute - Execute an MCP tool by name (across all servers).
+pub async fn handle_mcp_execute_tool(
   registry : @mcp.McpRegistry,
   request : HttpRequest,
 ) -> HttpResponse {
@@ -478,29 +466,35 @@ pub fn handle_mcp_execute_tool(
     { "arguments": args, .. } => args
     _ => Json::object(Map([]))
   }
-  // Find the server that provides this tool and execute it
-  let mut result_json : Json? = None
-  let mut error_msg : String? = None
+  // Find the servers that provide this tool (sync scan), then execute on
+  // the first one that answers (async call must live outside the each
+  // closure, which cannot be async).
+  let candidates : Array[String] = []
   registry.specs.each(fn(server_name, _spec) {
-    if result_json is Some(_) {
-      return ()
-    }
     match registry.get_client(server_name) {
       Some(client) => {
         let has_tool = client.tools.any(fn(t) { t.name == tool_name })
         if has_tool {
-          let result = registry.call_tool(server_name, tool_name, arguments) catch {
-            @mcp.McpError(msg) => {
-              error_msg = Some(msg)
-              Json::null()
-            }
-          }
-          result_json = Some(result)
+          candidates.push(server_name)
         }
       }
       None => ()
     }
   })
+  let mut result_json : Json? = None
+  let mut error_msg : String? = None
+  for server_name in candidates {
+    if result_json is Some(_) {
+      break
+    }
+    let result = registry.call_tool(server_name, tool_name, arguments) catch {
+      @mcp.McpError(msg) => {
+        error_msg = Some(msg)
+        Json::null()
+      }
+    }
+    result_json = Some(result)
+  }
   match result_json {
     Some(result) => {
       let body = Json::object({

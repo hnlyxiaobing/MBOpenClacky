@@ -3,6 +3,10 @@
 ///|
 /// Transport that communicates with an MCP server over HTTP.
 /// Supports both application/json and text/event-stream (SSE) response modes.
+///
+/// I/O is not implemented yet (stubfix-04 decision 4: only stdio is real);
+/// every send path reports an honest error instead of silently dropping
+/// the message.
 pub(all) struct HttpTransport {
   url : String
   headers : Map[String, String]
@@ -41,20 +45,22 @@ pub extend HttpTransport with Transport::{
   stop,
   alive,
   send_message,
+  send_request,
   on_message,
   stderr_tail,
 }
 
 ///|
 /// Start the HTTP transport (establish connection).
-/// TODO: FFI implementation needed - requires HTTP client capability.
-pub impl Transport for HttpTransport with fn start(self) {
-  self.is_alive = true
+/// Not implemented: no network client is wired up yet. Stays not-alive so
+/// status reporting does not claim a connection that cannot carry traffic.
+pub impl Transport for HttpTransport with fn start(self) -> Result[Unit, String] {
+  Err("HTTP MCP transport not implemented yet (url: \{self.url})")
 }
 
 ///|
 /// Stop the HTTP transport (close session).
-pub impl Transport for HttpTransport with fn stop(self) {
+pub impl Transport for HttpTransport with fn stop(self) -> Unit {
   self.is_alive = false
   self.session_id = None
 }
@@ -67,17 +73,31 @@ pub impl Transport for HttpTransport with fn alive(self) -> Bool {
 
 ///|
 /// Send a JSON-RPC message via HTTP POST.
-pub impl Transport for HttpTransport with fn send_message(self, message) {
-  if !self.is_alive {
-    ignore(message)
-    return
-  }
-  ignore(message)
+pub impl Transport for HttpTransport with fn send_message(self, message) -> Result[
+  Unit,
+  String,
+] {
+  let _ = message
+  Err("HTTP MCP transport not implemented yet (url: \{self.url})")
+}
+
+///|
+/// Send a JSON-RPC request and wait for the response.
+pub impl Transport for HttpTransport with fn send_request(
+  self,
+  id,
+  message,
+  timeout_s,
+) -> Result[String, String] {
+  let _ = id
+  let _ = message
+  let _ = timeout_s
+  Err("HTTP MCP transport not implemented yet (url: \{self.url})")
 }
 
 ///|
 /// Register a message handler for incoming responses.
-pub impl Transport for HttpTransport with fn on_message(self, handler) {
+pub impl Transport for HttpTransport with fn on_message(self, handler) -> Unit {
   self.message_handler = Some(handler)
 }
 

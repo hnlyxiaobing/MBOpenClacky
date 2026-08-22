@@ -1006,9 +1006,12 @@ pub async fn WebServer::start(
   let addr = @socket.Addr::parse(bind_addr)
   let http_server = @http.Server(addr, reuse_addr=true)
   // Run the server inside a long-lived task group so WS handlers can spawn
-  // background agent runs (see handlers_ws.set_ws_task_group).
+  // background agent runs (see handlers_ws.set_ws_task_group), and so MCP
+  // stdio transports can host their persistent read loops
+  // (see @mcp.set_mcp_task_group).
   @async.with_task_group(group => {
     set_ws_task_group(group)
+    @mcp.set_mcp_task_group(group)
     app.serve_on(http_server) catch {
       err => println("Server error: \{err}")
     }

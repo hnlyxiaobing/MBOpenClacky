@@ -245,7 +245,7 @@ test "handler: mcp toggle server enabled" {
 }
 
 ///|
-test "handler: mcp probe server not found" {
+async test "handler: mcp probe server not found" {
   let registry = @mcp.McpRegistry::new()
   let req : HttpRequest = {
     http_method: POST,
@@ -273,7 +273,7 @@ test "handler: mcp list server tools not found" {
 }
 
 ///|
-test "handler: mcp call tool not found" {
+async test "handler: mcp call tool not found" {
   let registry = @mcp.McpRegistry::new()
   let req : HttpRequest = {
     http_method: POST,

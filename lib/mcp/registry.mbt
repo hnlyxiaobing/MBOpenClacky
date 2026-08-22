@@ -161,7 +161,8 @@ pub fn McpRegistry::set_enabled(
 }
 
 ///|
-/// Get or create a client for the named server.
+/// Get or create a client for the named server (does NOT start it -
+/// see ensure_started).
 pub fn McpRegistry::get_client(self : McpRegistry, name : String) -> McpClient? {
   // Check existing clients
   match self.clients.get(name) {
@@ -177,6 +178,34 @@ pub fn McpRegistry::get_client(self : McpRegistry, name : String) -> McpClient? 
         None => None
       }
   }
+}
+
+///|
+/// Ensure the named server's client exists and has completed the MCP
+/// initialize handshake. Connects lazily on first use (spec: call_tool
+/// 前置 ensure_started); later calls reuse the live connection.
+pub async fn McpRegistry::ensure_started(
+  self : McpRegistry,
+  name : String,
+) -> McpClient raise McpError {
+  let client = match self.get_client(name) {
+    Some(c) => c
+    None => raise McpError("Server not found: " + name)
+  }
+  if !client.is_connected() {
+    ignore(client.initialize())
+  }
+  client
+}
+
+///|
+/// List tools from a specific MCP server (connects if needed).
+pub async fn McpRegistry::tools_list(
+  self : McpRegistry,
+  server_name : String,
+) -> Array[McpTool] raise McpError {
+  let client = self.ensure_started(server_name)
+  client.tools_list()
 }
 
 ///|
@@ -196,16 +225,14 @@ pub fn McpRegistry::virtual_skills(self : McpRegistry) -> Array[VirtualSkill] {
 
 ///|
 /// Call a tool on a specific MCP server.
-pub fn McpRegistry::call_tool(
+pub async fn McpRegistry::call_tool(
   self : McpRegistry,
   server_name : String,
   tool_name : String,
   args : Json,
 ) -> Json raise McpError {
-  match self.get_client(server_name) {
-    Some(client) => client.call_tool(tool_name, args)
-    None => raise McpError("Server not found: " + server_name)
-  }
+  let client = self.ensure_started(server_name)
+  client.call_tool(tool_name, args)
 }
 
 ///|
@@ -228,18 +255,16 @@ pub fn McpRegistry::reload(self : McpRegistry) -> Unit raise McpError {
 ///|
 /// Clean up idle connections (idle > idle_timeout seconds).
 pub fn McpRegistry::cleanup_idle(self : McpRegistry) -> Unit {
-  // TODO: Implement with actual timestamp comparison
-  // In production, this would:
-  // 1. Get current timestamp
-  // 2. For each client, check if (now - last_used_at) > idle_timeout
-  // 3. Disconnect idle clients
+  let now = @utils.now_seconds()
   let to_remove : Array[String] = []
   self.clients.each(fn(name, client) {
     match client.last_used_at {
-      Some(_last_used) =>
-        // Placeholder: would compare with current time
-        // if now - last_used > self.idle_timeout { to_remove.push(name) }
-        ignore(name)
+      Some(last_used) =>
+        if now - last_used > self.idle_timeout {
+          to_remove.push(name)
+        }
+      // Client was created but never completed a request: drop it so the
+      // next call reconnects cleanly.
       None => to_remove.push(name)
     }
   })

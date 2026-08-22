@@ -21,7 +21,7 @@ pub fn Browser::invalidate_page_cache(self : Browser) -> Unit {
 /// Recover the selected page by listing available pages and selecting the first one.
 /// Updates the page cache with the newly selected page ID.
 /// Returns the recovered page ID or None if no pages are available.
-pub fn Browser::recover_selected_page(self : Browser) -> String? {
+pub async fn Browser::recover_selected_page(self : Browser) -> String? {
   let list_result = self.mcp_call("list_pages", Map([]))
   if list_result.is_error {
     return None
@@ -80,7 +80,7 @@ fn is_retryable_page_error(error_msg : String) -> Bool {
 ///|
 /// Resolve the current page ID, using cache if valid, otherwise recovering.
 /// Returns the page ID or None if recovery fails.
-fn Browser::resolve_page_id(self : Browser) -> String? {
+async fn Browser::resolve_page_id(self : Browser) -> String? {
   // Check cache first
   if !self.page_cache.invalidated {
     match self.page_cache.current {
@@ -97,7 +97,7 @@ fn Browser::resolve_page_id(self : Browser) -> String? {
 /// If the page cache is valid, uses the cached page ID.
 /// If the page cache is empty/invalidated, recovers by selecting the first available page.
 /// On retryable page errors, invalidates cache, recovers, and retries once.
-pub fn Browser::with_page(
+pub async fn Browser::with_page(
   self : Browser,
   tool_name : String,
   args : Map[String, Json],
@@ -124,7 +124,7 @@ pub fn Browser::with_page(
 /// Uses iteration-based waiting (each poll = ~one MCP round-trip).
 /// `timeout_ms` is converted to a max poll count (est. 150ms per poll).
 /// Returns Ok(()) when a selected page is found, Err on timeout.
-pub fn Browser::wait_for_page_ready(
+pub async fn Browser::wait_for_page_ready(
   self : Browser,
   timeout_ms? : Int = 1500,
 ) -> Result[Unit, String] {
