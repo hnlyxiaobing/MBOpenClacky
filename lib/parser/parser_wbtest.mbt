@@ -1,7 +1,7 @@
-///| Tests for lib/parser package
+///| Tests for lib/parser package（stubfix-03：MoonBitMark 薄适配层）
 
 // ============================================================
-// Format detection tests
+// Format detection tests（保留：detect_format/types.mbt 未改动）
 // ============================================================
 
 ///|
@@ -30,6 +30,14 @@ test "detect_format_xlsx" {
 }
 
 ///|
+test "detect_format_doc_and_wps" {
+  @debug.assert_eq(detect_format("letter.doc"), Doc)
+  @debug.assert_eq(detect_format("note.wps"), Wps)
+  @debug.assert_eq(detect_format("sheet.et"), Wps)
+  @debug.assert_eq(detect_format("deck.dps"), Wps)
+}
+
+///|
 test "detect_format_unknown" {
   let fmt = detect_format("readme.txt")
   match fmt {
@@ -48,7 +56,7 @@ test "detect_format_no_extension" {
 }
 
 // ============================================================
-// ParseResult construction tests
+// ParseResult construction tests（保留）
 // ============================================================
 
 ///|
@@ -79,560 +87,277 @@ test "parse_result_error" {
 }
 
 // ============================================================
-// PDF parser tests
+// 白名单校验（决策 2）
 // ============================================================
 
 ///|
-test "pdf_parser_new" {
-  let parser = PdfParser::new()
-  @debug.assert_eq(parser.command, "pdftotext")
-  assert_true(parser.max_pages is None)
+test "whitelist_accepts_six_document_extensions" {
+  assert_true(is_whitelisted_document_extension("a.pdf"))
+  assert_true(is_whitelisted_document_extension("a.docx"))
+  assert_true(is_whitelisted_document_extension("a.pptx"))
+  assert_true(is_whitelisted_document_extension("a.xlsx"))
+  assert_true(is_whitelisted_document_extension("a.doc"))
+  assert_true(is_whitelisted_document_extension("a.wps"))
+  assert_true(is_whitelisted_document_extension("/PATH/TO/A.PDF"))
 }
 
 ///|
-test "pdf_parser_with_command" {
-  let parser = PdfParser::with_command("/usr/local/bin/pdftotext")
-  @debug.assert_eq(parser.command, "/usr/local/bin/pdftotext")
+test "whitelist_rejects_others" {
+  assert_false(is_whitelisted_document_extension("a.txt"))
+  assert_false(is_whitelisted_document_extension("a.html"))
+  assert_false(is_whitelisted_document_extension("a.md"))
+  assert_false(is_whitelisted_document_extension("a.et"))
+  assert_false(is_whitelisted_document_extension("a.dps"))
+  assert_false(is_whitelisted_document_extension("noext"))
 }
 
 ///|
-test "pdf_parser_with_max_pages" {
-  let parser = PdfParser::with_max_pages(10)
-  assert_true(parser.max_pages == Some(10))
-}
-
-///|
-test "pdf_split_by_pages_single" {
-  let text = "Page one content"
-  let pages = split_by_pages(text)
-  @debug.assert_eq(pages.length(), 1)
-  @debug.assert_eq(pages[0], "Page one content")
-}
-
-///|
-test "pdf_split_by_pages_multiple" {
-  let text = "Page 1\u000cPage 2\u000cPage 3"
-  let pages = split_by_pages(text)
-  @debug.assert_eq(pages.length(), 3)
-  @debug.assert_eq(pages[0], "Page 1")
-  @debug.assert_eq(pages[1], "Page 2")
-  @debug.assert_eq(pages[2], "Page 3")
-}
-
-///|
-test "pdf_split_by_pages_trailing_ff" {
-  let text = "Only page\u000c"
-  let pages = split_by_pages(text)
-  @debug.assert_eq(pages.length(), 1)
-  @debug.assert_eq(pages[0], "Only page")
-}
-
-///|
-test "count_words_basic" {
-  @debug.assert_eq(count_words("hello world"), 2)
-  @debug.assert_eq(count_words("one two three four"), 4)
-  @debug.assert_eq(count_words(""), 0)
-  @debug.assert_eq(count_words("single"), 1)
-}
-
-///|
-test "count_words_whitespace_variants" {
-  @debug.assert_eq(count_words("tab\there"), 2)
-  @debug.assert_eq(count_words("new\nline"), 2)
-  @debug.assert_eq(count_words("  spaces  around  "), 2)
+test "wps_binary_extensions_detected" {
+  assert_true(is_wps_binary_extension("a.et"))
+  assert_true(is_wps_binary_extension("a.dps"))
+  assert_true(is_wps_binary_extension("A.ET"))
+  assert_false(is_wps_binary_extension("a.wps"))
+  assert_false(is_wps_binary_extension("a.doc"))
 }
 
 // ============================================================
-// DOCX parser tests
+// parse_document 短路路径（不触 fs，WSL1 也可跑）
 // ============================================================
 
 ///|
-test "docx_parser_new" {
-  let parser = DocxParser::new()
-  assert_true(parser.preserve_formatting)
+async test "parse_document_et_reports_decision9" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("data.et")
+  assert_false(result.is_success)
+  assert_true(result.error == Some(wps_binary_not_supported_message))
+  assert_true(result.metadata.format == Wps)
 }
 
 ///|
-test "docx_extract_text_from_xml_simple" {
-  let xml = "<w:p><w:r><w:t>Hello</w:t></w:r><w:r><w:t> World</w:t></w:r></w:p>"
-  let text = extract_text_from_xml(xml)
-  assert_true(text.contains("Hello"))
-  assert_true(text.contains("World"))
+async test "parse_document_dps_reports_decision9" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("slides.dps")
+  assert_false(result.is_success)
+  assert_true(result.error == Some(wps_binary_not_supported_message))
 }
 
 ///|
-test "docx_extract_xml_text_basic" {
-  let xml = "<root><w:t>First</w:t><w:t>Second</w:t></root>"
-  let results = extract_xml_text(xml, "w:t")
-  @debug.assert_eq(results.length(), 2)
-  @debug.assert_eq(results[0], "First")
-  @debug.assert_eq(results[1], "Second")
+async test "parse_document_unknown_short_circuits" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("readme.txt")
+  assert_false(result.is_success)
+  match result.error {
+    Some(message) => assert_true(message.contains("Unsupported format"))
+    None => fail("expected error")
+  }
 }
 
 ///|
-test "docx_extract_xml_text_empty" {
-  let xml = "<root>no tags here</root>"
-  let results = extract_xml_text(xml, "w:t")
-  @debug.assert_eq(results.length(), 0)
+async test "parse_document_non_whitelisted_short_circuits" {
+  // Unknown 之外但不在白名单：这里 .md 会被 detect_format 判为 Unknown，
+  // 与 .txt 同路径；再用一个可被识别但不在白名单的情况（.et 已覆盖决策 9）。
+  let manager = ParserManager::new()
+  let result = manager.parse_document("notes.html")
+  assert_false(result.is_success)
+  assert_true(result.error is Some(_))
 }
 
 ///|
-test "docx_extract_xml_text_nested" {
-  let xml = "<w:t xml:space=\"preserve\">Content with attributes</w:t>"
-  let results = extract_xml_text(xml, "w:t")
-  @debug.assert_eq(results.length(), 1)
-  @debug.assert_eq(results[0], "Content with attributes")
-}
-
-///|
-test "docx_metadata_extraction" {
-  let core_xml = "<cp:coreProperties><dc:title>My Document</dc:title><dc:creator>John Doe</dc:creator><dcterms:created>2024-01-15</dcterms:created></cp:coreProperties>"
-  let metadata = extract_docx_metadata(core_xml)
-  assert_true(metadata.title == Some("My Document"))
-  assert_true(metadata.author == Some("John Doe"))
-  assert_true(metadata.created_at == Some("2024-01-15"))
-  assert_true(metadata.format == Docx)
-}
-
-///|
-test "docx_table_text_extraction" {
-  let xml = "<w:tbl><w:tr><w:t>Cell1</w:t><w:t>Cell2</w:t></w:tr><w:tr><w:t>Cell3</w:t><w:t>Cell4</w:t></w:tr></w:tbl>"
-  let text = extract_table_text(xml)
-  assert_true(text.contains("Cell1"))
-  assert_true(text.contains("Cell2"))
-}
-
-// ============================================================
-// PPTX parser tests
-// ============================================================
-
-///|
-test "pptx_parser_new" {
-  let parser = PptxParser::new()
-  assert_true(parser.include_notes)
-}
-
-///|
-test "pptx_parser_without_notes" {
-  let parser = PptxParser::without_notes()
-  assert_false(parser.include_notes)
-}
-
-///|
-test "pptx_extract_slide_text" {
-  let xml = "<p:sp><a:t>Slide Title</a:t><a:t>Bullet point 1</a:t></p:sp>"
-  let text = extract_slide_text(xml)
-  assert_true(text.contains("Slide Title"))
-  assert_true(text.contains("Bullet point 1"))
-}
-
-///|
-test "pptx_extract_notes_text" {
-  let xml = "<p:txBody><a:t>Speaker note here</a:t></p:txBody>"
-  let text = extract_notes_text(xml)
-  assert_true(text.contains("Speaker note here"))
-}
-
-///|
-test "pptx_combine_slides" {
-  let slides = ["Introduction", "Main Content", "Conclusion"]
-  let notes = ["Start here", "Key points", "Wrap up"]
-  let combined = combine_slides(slides, notes, true)
-  assert_true(combined.contains("Slide 1"))
-  assert_true(combined.contains("Introduction"))
-  assert_true(combined.contains("[Notes: Start here]"))
-  assert_true(combined.contains("Slide 3"))
-}
-
-///|
-test "pptx_combine_slides_no_notes" {
-  let slides = ["Slide A", "Slide B"]
-  let notes : Array[String] = ["Note A", "Note B"]
-  let combined = combine_slides(slides, notes, false)
-  assert_true(combined.contains("Slide A"))
-  assert_false(combined.contains("[Notes:"))
-}
-
-// ============================================================
-// XLSX parser tests
-// ============================================================
-
-///|
-test "xlsx_parser_new" {
-  let parser = XlsxParser::new()
-  assert_true(parser.max_rows is None)
-  assert_true(parser.include_headers)
-}
-
-///|
-test "xlsx_build_shared_strings" {
-  let xml = "<sst><si><t>Hello</t></si><si><t>World</t></si><si><t>Test</t></si></sst>"
-  let strings = build_shared_strings(xml)
-  @debug.assert_eq(strings.length(), 3)
-  @debug.assert_eq(strings[0], "Hello")
-  @debug.assert_eq(strings[1], "World")
-  @debug.assert_eq(strings[2], "Test")
-}
-
-///|
-test "xlsx_build_shared_strings_empty" {
-  let xml = "<sst></sst>"
-  let strings = build_shared_strings(xml)
-  @debug.assert_eq(strings.length(), 0)
-}
-
-///|
-test "xlsx_format_as_table_with_headers" {
-  let rows : Array[Array[String]] = [
-    ["Name", "Age"],
-    ["Alice", "30"],
-    ["Bob", "25"],
-  ]
-  let table = format_as_table(rows, true)
-  assert_true(table.contains("| Name | Age |"))
-  assert_true(table.contains("| --- |"))
-  assert_true(table.contains("| Alice | 30 |"))
-}
-
-///|
-test "xlsx_format_as_table_without_headers" {
-  let rows : Array[Array[String]] = [["A", "B"], ["C", "D"]]
-  let table = format_as_table(rows, false)
-  assert_true(table.contains("A\tB"))
-  assert_true(table.contains("C\tD"))
-  assert_false(table.contains("|"))
-}
-
-///|
-test "xlsx_format_as_table_empty" {
-  let rows : Array[Array[String]] = []
-  let table = format_as_table(rows, true)
-  @debug.assert_eq(table, "")
-}
-
-// ============================================================
-// Utility function tests
-// ============================================================
-
-///|
-test "index_of_from_basic" {
-  @debug.assert_eq(index_of_from("hello world", "world", 0), 6)
-  @debug.assert_eq(index_of_from("hello world", "hello", 0), 0)
-  @debug.assert_eq(index_of_from("hello world", "xyz", 0), -1)
-}
-
-///|
-test "index_of_from_offset" {
-  @debug.assert_eq(index_of_from("abcabc", "abc", 1), 3)
-  @debug.assert_eq(index_of_from("abcabc", "abc", 4), -1)
-}
-
-///|
-test "parse_error_raise_catch" {
-  try {
-    raise ParseError("invalid format")
-  } catch {
-    ParseError(msg) =>
-      @debug.debug_inspect(
-        msg,
-        content=(
-          #|"invalid format"
-        ),
-      )
+async test "parse_document_missing_file_becomes_error" {
+  // 白名单内但文件不存在：引擎 fs 读取失败 → 异常 → ParseResult::error
+  // （WSL1 下 fs.open ENOSYS 同样走此错误路径，不会崩）
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/__missing__.docx",
+  )
+  assert_false(result.is_success)
+  match result.error {
+    Some(message) => assert_true(message.contains("Document conversion failed"))
+    None => fail("expected error")
   }
 }
 
 // ============================================================
-// DOC format detection tests
+// convert_result_to_parse_result 纯逻辑（决策 7 映射，不触 fs）
 // ============================================================
 
 ///|
-test "detect_format_doc" {
-  @debug.assert_eq(detect_format("document.doc"), Doc)
-  @debug.assert_eq(detect_format("/path/to/file.DOC"), Doc)
-  @debug.assert_eq(detect_format("C:\\docs\\report.Doc"), Doc)
-}
-
-///|
-test "detect_format_doc_vs_docx" {
-  // .docx must not be detected as .doc
-  @debug.assert_eq(detect_format("file.docx"), Docx)
-  @debug.assert_eq(detect_format("file.doc"), Doc)
-}
-
-///|
-test "is_doc_format_positive" {
-  assert_true(is_doc_format("report.doc"))
-  assert_true(is_doc_format("/tmp/file.DOC"))
-}
-
-///|
-test "is_doc_format_negative" {
-  assert_false(is_doc_format("file.docx"))
-  assert_false(is_doc_format("file.txt"))
-  assert_false(is_doc_format("file.pdf"))
-}
-
-///|
-test "detect_doc_subformat_doc" {
-  @debug.assert_eq(detect_doc_subformat("report.doc"), "doc")
-  @debug.assert_eq(detect_doc_subformat("template.dot"), "dot")
-  @debug.assert_eq(detect_doc_subformat("readme.rtf"), "rtf")
-}
-
-// ============================================================
-// WPS format detection tests
-// ============================================================
-
-///|
-test "detect_format_wps" {
-  @debug.assert_eq(detect_format("document.wps"), Wps)
-  @debug.assert_eq(detect_format("spreadsheet.et"), Wps)
-  @debug.assert_eq(detect_format("presentation.dps"), Wps)
-}
-
-///|
-test "detect_format_wps_case_insensitive" {
-  @debug.assert_eq(detect_format("DOCUMENT.WPS"), Wps)
-  @debug.assert_eq(detect_format("sheet.ET"), Wps)
-  @debug.assert_eq(detect_format("slides.DPS"), Wps)
-}
-
-///|
-test "is_wps_format_positive" {
-  assert_true(is_wps_format("file.wps"))
-  assert_true(is_wps_format("file.et"))
-  assert_true(is_wps_format("file.dps"))
-  assert_true(is_wps_format("FILE.WPS"))
-}
-
-///|
-test "is_wps_format_negative" {
-  assert_false(is_wps_format("file.doc"))
-  assert_false(is_wps_format("file.pdf"))
-  assert_false(is_wps_format("file.xlsx"))
-}
-
-///|
-test "wps_format_name_values" {
-  @debug.assert_eq(wps_format_name("doc.wps"), "wps")
-  @debug.assert_eq(wps_format_name("sheet.et"), "et")
-  @debug.assert_eq(wps_format_name("slides.dps"), "dps")
-  @debug.assert_eq(wps_format_name("file.txt"), "unknown")
-}
-
-///|
-test "detect_wps_format_valid" {
-  @debug.assert_eq(detect_wps_format("file.wps"), Wps)
-  @debug.assert_eq(detect_wps_format("file.et"), Wps)
-  @debug.assert_eq(detect_wps_format("file.dps"), Wps)
-}
-
-///|
-test "detect_wps_format_invalid" {
-  let fmt = detect_wps_format("file.txt")
-  match fmt {
-    Unknown(ext) => @debug.assert_eq(ext, "txt")
-    _ => fail("expected Unknown for .txt")
+test "convert_result_maps_title_author_stats" {
+  let meta = { "author": "Jane Doe", "title": "Title From Metadata" }
+  let stats : @core.ConvertStats = {
+    char_count: 1234,
+    block_count: 42,
+    duration_ms: Some(7),
+    used_fallback: false,
   }
+  let result = @core.ConvertResult::{
+    markdown: "# Hello\n\nBody text",
+    title: Some("Doc Title"),
+    metadata: meta,
+    warnings: [],
+    diagnostics: [],
+    assets: [],
+    source_type: "docx",
+    stats: Some(stats),
+    document: None,
+    raw_document: None,
+    normalized_document: None,
+    semantic_document: None,
+  }
+  let parsed = convert_result_to_parse_result(result, Docx)
+  assert_true(parsed.is_success)
+  assert_true(parsed.metadata.title == Some("Doc Title"))
+  assert_true(parsed.metadata.author == Some("Jane Doe"))
+  assert_true(parsed.metadata.word_count == Some(1234))
+  assert_true(parsed.metadata.format == Docx)
+  @debug.assert_eq(parsed.content, "# Hello\n\nBody text")
+  // document 为 None → sections 回退 [content]
+  @debug.assert_eq(parsed.sections.length(), 1)
+  @debug.assert_eq(parsed.sections[0], "# Hello\n\nBody text")
+}
+
+///|
+test "convert_result_sections_from_headings" {
+  // 手工构造 AST document（Heading blocks → sections）
+  let doc = @ast.Document::{
+    title: None,
+    metadata: Map([]),
+    blocks: [
+      @ast.Heading(1, [@ast.Text("Overview")]),
+      @ast.Paragraph([@ast.Text("intro")]),
+      @ast.Heading(2, [@ast.Text("Details")]),
+    ],
+    annotations: [],
+  }
+  let result = @core.ConvertResult::{
+    markdown: "# Overview\n\nintro\n\n## Details",
+    title: None,
+    metadata: Map([]),
+    warnings: [],
+    diagnostics: [],
+    assets: [],
+    source_type: "docx",
+    stats: None,
+    document: Some(doc),
+    raw_document: None,
+    normalized_document: None,
+    semantic_document: None,
+  }
+  let parsed = convert_result_to_parse_result(result, Docx)
+  @debug.assert_eq(parsed.sections.length(), 2)
+  @debug.assert_eq(parsed.sections[0], "Overview")
+  @debug.assert_eq(parsed.sections[1], "Details")
+}
+
+///|
+test "convert_result_truncates_over_1mb" {
+  let big = String::make(max_parse_text_bytes.to_int() + 100, 'a')
+  let result = @core.ConvertResult::{
+    markdown: big,
+    title: None,
+    metadata: Map([]),
+    warnings: [],
+    diagnostics: [],
+    assets: [],
+    source_type: "docx",
+    stats: None,
+    document: None,
+    raw_document: None,
+    normalized_document: None,
+    semantic_document: None,
+  }
+  let parsed = convert_result_to_parse_result(result, Docx)
+  assert_true(parsed.content.length() < big.length())
+  assert_true(parsed.content.contains("Content truncated"))
 }
 
 // ============================================================
-// DocParser tests
+// Fixture 端到端（真实转换，需 fs —— WSL1 因 statx ENOSYS 不可用，
+// 需在 Windows 侧跑 moon test lib/parser 验证）
 // ============================================================
 
 ///|
-test "doc_parser_new" {
-  let parser = DocParser::new()
-  assert_true(parser.preserve_formatting)
-}
-
-///|
-test "doc_parser_with_formatting" {
-  let parser = DocParser::with_formatting(false)
-  assert_false(parser.preserve_formatting)
-}
-
-///|
-test "doc_parser_parse_placeholder" {
-  let parser = DocParser::new()
-  let result = parser.parse("report.doc")
+async test "fixture_docx_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/unit_test_headers.docx",
+  )
   assert_true(result.is_success)
-  assert_true(result.content.contains("placeholder"))
-  assert_true(result.content.contains("report.doc"))
+  assert_true(result.content.contains("Section 1"))
+  assert_true(result.content.contains("Test Document"))
+  assert_true(result.metadata.format == Docx)
+  assert_true(result.sections.length() >= 1)
+}
+
+///|
+async test "fixture_doc_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/word_english.doc",
+  )
+  assert_true(result.is_success)
   assert_true(result.metadata.format == Doc)
+  assert_true(result.sections.length() >= 1)
 }
 
 ///|
-test "doc_parser_parse_wrong_extension" {
-  let parser = DocParser::new()
-  let result = parser.parse("report.txt")
-  assert_false(result.is_success)
-  assert_true(result.error is Some(_))
-}
-
-///|
-test "extract_doc_text_from_ole2_placeholder" {
-  let data = b"dummy"
-  let text = extract_doc_text_from_ole2(data)
-  assert_true(text.contains("not yet implemented"))
-}
-
-///|
-test "extract_doc_metadata_from_ole2_placeholder" {
-  let data = b"dummy"
-  let metadata = extract_doc_metadata_from_ole2(data)
-  assert_true(metadata.title is None)
-  assert_true(metadata.format == Doc)
-}
-
-// ============================================================
-// WpsParser tests
-// ============================================================
-
-///|
-test "wps_parser_new" {
-  let parser = WpsParser::new()
-  assert_true(parser.preserve_formatting)
-}
-
-///|
-test "wps_parser_with_formatting" {
-  let parser = WpsParser::with_formatting(false)
-  assert_false(parser.preserve_formatting)
-}
-
-///|
-test "wps_parser_parse_wps_placeholder" {
-  let parser = WpsParser::new()
-  let result = parser.parse("document.wps")
+async test "fixture_wps_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/wps_english.wps",
+  )
   assert_true(result.is_success)
-  assert_true(result.content.contains("placeholder"))
-  assert_true(result.content.contains("WPS Document"))
   assert_true(result.metadata.format == Wps)
 }
 
 ///|
-test "wps_parser_parse_et_placeholder" {
-  let parser = WpsParser::new()
-  let result = parser.parse("spreadsheet.et")
-  assert_true(result.is_success)
-  assert_true(result.content.contains("WPS Spreadsheet"))
-  assert_true(result.metadata.format == Wps)
-}
-
-///|
-test "wps_parser_parse_dps_placeholder" {
-  let parser = WpsParser::new()
-  let result = parser.parse("slides.dps")
-  assert_true(result.is_success)
-  assert_true(result.content.contains("WPS Presentation"))
-  assert_true(result.metadata.format == Wps)
-}
-
-///|
-test "wps_parser_parse_wrong_extension" {
-  let parser = WpsParser::new()
-  let result = parser.parse("file.doc")
-  assert_false(result.is_success)
-  assert_true(result.error is Some(_))
-}
-
-// ============================================================
-// ParserManager tests
-// ============================================================
-
-///|
-test "parser_manager_new" {
-  let mgr = ParserManager::new()
-  assert_true(mgr.preserve_formatting)
-}
-
-///|
-test "parser_manager_with_formatting" {
-  let mgr = ParserManager::with_formatting(false)
-  assert_false(mgr.preserve_formatting)
-}
-
-///|
-test "parser_manager_can_parse_supported" {
-  assert_true(ParserManager::can_parse("file.pdf"))
-  assert_true(ParserManager::can_parse("file.docx"))
-  assert_true(ParserManager::can_parse("file.pptx"))
-  assert_true(ParserManager::can_parse("file.xlsx"))
-  assert_true(ParserManager::can_parse("file.doc"))
-  assert_true(ParserManager::can_parse("file.wps"))
-  assert_true(ParserManager::can_parse("file.et"))
-  assert_true(ParserManager::can_parse("file.dps"))
-}
-
-///|
-test "parser_manager_can_parse_unsupported" {
-  assert_false(ParserManager::can_parse("file.txt"))
-  assert_false(ParserManager::can_parse("file.csv"))
-  assert_false(ParserManager::can_parse("file.html"))
-}
-
-///|
-test "parser_manager_parse_pdf" {
-  let mgr = ParserManager::new()
-  let result = mgr.parse("report.pdf")
+async test "fixture_pdf_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("tests/fixtures/documents/multi_page.pdf")
   assert_true(result.is_success)
   assert_true(result.metadata.format == Pdf)
 }
 
 ///|
-test "parser_manager_parse_docx" {
-  let mgr = ParserManager::new()
-  let result = mgr.parse("report.docx")
+async test "fixture_xlsx_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("tests/fixtures/documents/test_01.xlsx")
   assert_true(result.is_success)
-  assert_true(result.metadata.format == Docx)
+  assert_true(result.metadata.format == Xlsx)
 }
 
 ///|
-test "parser_manager_parse_doc" {
-  let mgr = ParserManager::new()
-  let result = mgr.parse("report.doc")
+async test "fixture_pptx_end_to_end" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/notes_chart_semantics.pptx",
+  )
   assert_true(result.is_success)
-  assert_true(result.metadata.format == Doc)
+  assert_true(result.metadata.format == Pptx)
 }
 
 ///|
-test "parser_manager_parse_wps" {
-  let mgr = ParserManager::new()
-  let result = mgr.parse("document.wps")
-  assert_true(result.is_success)
-  assert_true(result.metadata.format == Wps)
-}
-
-///|
-test "parser_manager_parse_unknown" {
-  let mgr = ParserManager::new()
-  let result = mgr.parse("file.xyz")
+async test "fixture_corrupt_docx_returns_error" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("tests/fixtures/documents/corrupt.docx")
   assert_false(result.is_success)
-  assert_true(result.error == Some("Unsupported format: xyz"))
+  assert_true(result.error is Some(_))
 }
 
 ///|
-test "parser_manager_supported_extensions" {
-  let exts = supported_extensions()
-  @debug.assert_eq(exts.length(), 8)
-  assert_true(exts.contains(".pdf"))
-  assert_true(exts.contains(".docx"))
-  assert_true(exts.contains(".doc"))
-  assert_true(exts.contains(".wps"))
-  assert_true(exts.contains(".et"))
-  assert_true(exts.contains(".dps"))
+async test "fixture_truncated_docx_returns_error" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document("tests/fixtures/documents/truncated.docx")
+  assert_false(result.is_success)
+  assert_true(result.error is Some(_))
 }
 
 ///|
-test "parser_manager_supported_formats" {
-  let fmts = supported_formats()
-  @debug.assert_eq(fmts.length(), 6)
-  assert_true(fmts.contains(Pdf))
-  assert_true(fmts.contains(Docx))
-  assert_true(fmts.contains(Pptx))
-  assert_true(fmts.contains(Xlsx))
-  assert_true(fmts.contains(Doc))
-  assert_true(fmts.contains(Wps))
+async test "fixture_encrypted_doc_returns_error" {
+  let manager = ParserManager::new()
+  let result = manager.parse_document(
+    "tests/fixtures/documents/word_encrypted.doc",
+  )
+  assert_false(result.is_success)
+  assert_true(result.error is Some(_))
 }

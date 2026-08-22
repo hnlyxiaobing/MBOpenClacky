@@ -1,5 +1,12 @@
 ///|
-/// Unified parser manager that routes to format-specific parsers
+/// Unified parser manager: 纯薄适配层，唯一真实入口为 async
+/// `parse_document`（经 MoonBitMark 引擎），不包含任何自建解析逻辑。
+///
+/// 对齐 spec 2026-08-21_stubfix-03 决策 2/6/9：
+/// - 决策 6：删除全部六个 XxxParser 文件，parser 层仅保留类型 +
+///   适配层 + 本管理器；
+/// - 决策 2：仅白名单六格式调用 MoonBitMark；
+/// - 决策 9：.et/.dps 诚实报错。
 pub(all) struct ParserManager {
   preserve_formatting : Bool
 } derive(Eq, Debug)
@@ -23,23 +30,9 @@ pub fn ParserManager::with_formatting(preserve : Bool) -> ParserManager {
 }
 
 ///|
-/// Parse a document file, auto-detecting its format and routing to the appropriate parser
-pub fn ParserManager::parse(self : ParserManager, path : String) -> ParseResult {
-  let fmt = detect_format(path)
-  match fmt {
-    Pdf => PdfParser::new().parse(path)
-    Docx => DocxParser::with_formatting(self.preserve_formatting).parse(path)
-    Pptx => PptxParser::new().parse(path)
-    Xlsx => XlsxParser::new().parse(path)
-    Doc => DocParser::with_formatting(self.preserve_formatting).parse(path)
-    Wps => WpsParser::with_formatting(self.preserve_formatting).parse(path)
-    Unknown(ext) =>
-      ParseResult::error("Unsupported format: " + ext, Unknown(ext))
-  }
-}
-
-///|
-/// Check whether a file can be parsed (i.e. has a recognized format)
+/// Check whether a file can be routed into the parsing pipeline.
+/// 非 Unknown 格式即可（.et/.dps 也会进入 parse_document 得到决策 9
+/// 诚实报错，而非 FileReader 的二进制兜底话术）。
 pub fn ParserManager::can_parse(path : String) -> Bool {
   let fmt = detect_format(path)
   match fmt {
@@ -49,7 +42,8 @@ pub fn ParserManager::can_parse(path : String) -> Bool {
 }
 
 ///|
-/// Return all supported file extensions
+/// Return all supported file extensions（含决策 9 的 .et/.dps——它们可被
+/// 识别为文档格式但 parse 时诚实报错）。
 pub fn supported_extensions() -> Array[String] {
   [".pdf", ".docx", ".pptx", ".xlsx", ".doc", ".wps", ".et", ".dps"]
 }

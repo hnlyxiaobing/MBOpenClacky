@@ -1,5 +1,10 @@
+warnings = "-29"
+
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
-  "hnlyxiaobing/MBOpenClacky/lib/vision",
+  "moonbitlang/async",
+  "hnlyxiaobing/moonbitmark/src/engine",
+  "hnlyxiaobing/moonbitmark/src/core",
+  "hnlyxiaobing/moonbitmark/src/ast",
 }
