@@ -1,7 +1,7 @@
 # 渠道系统接线（ChannelManager 孤儿 + Webhook 断链 + Web API 脱节）· 增量 Spec
 
 > **创建日期**: 2026-08-21
-> **状态**: 实施中（2026-08-22 对抗性审核通过，自 draft 移入 active）
+> **状态**: 已完成（2026-08-22 开发完成并验收通过，自 active 移入 completed）
 > **关联总览**: `specs/active/2026-08-21_stubfix-00-overview.md`（来源：stub 实装状态审计报告 3.1/3.2/3.3 节 + 第五节建议 1）
 > **关联历史 spec**: 无
 > **来源差距**: 审计报告 3.1「ChannelManager 孤儿代码」、3.2「Webhook 接收链路断裂」、3.3「Web 渠道管理 API 与真实 adapter 脱节」
@@ -110,14 +110,14 @@ MoonBit 约束检查：
 
 ## 验收标准 [必填]
 
-- [ ] web server 启动时 ChannelManager 被实例化并加载 channels.json（日志或 status 端点可证）
-- [ ] channels.json 缺失/损坏时 server 正常启动（决策 6）
-- [ ] 已配置平台的 `POST /api/webhooks/:platform` 事件进入 `ChannelManager::handle_webhook`（wbtest 断言转发）
-- [ ] 未配置平台仍返回 "No handler registered"（行为不外溢）
-- [ ] `POST /api/channels/:id/send` 真实调用 adapter send 链路（wbtest 断言 send_to 被触达；假成功注释删除）
-- [ ] `POST /api/channels/:id/test` 返回真实探测结果（飞书/Discord 连通性；未实装平台诚实标记）
-- [ ] `moon check` 0 errors（lib/web、lib/channel）
-- [ ] `moon test lib/web`、`moon test lib/channel` 通过；全量 `moon test` 无回归
+- [x] web server 启动时 ChannelManager 被实例化并加载 channels.json（日志或 status 端点可证）
+- [x] channels.json 缺失/损坏时 server 正常启动（决策 6）
+- [x] 已配置平台的 `POST /api/webhooks/:platform` 事件进入 `ChannelManager::handle_webhook`（wbtest 断言转发）
+- [x] 未配置平台仍返回 "No handler registered"（行为不外溢）
+- [x] `POST /api/channels/:id/send` 真实调用 adapter send 链路（wbtest 断言 send_to 被触达；假成功注释删除）
+- [x] `POST /api/channels/:id/test` 返回真实探测结果（飞书/Discord 连通性；未实装平台诚实标记）
+- [x] `moon check` 0 errors（lib/web、lib/channel）
+- [x] `moon test lib/web`（469 通过）、`moon test lib/channel`（402 通过）；全量 `moon test` 3854/3855（唯一失败为预存在 billing flaky，与本次改动无关，见变更记录）
 
 ## 风险评估 [必填]
 
@@ -140,3 +140,4 @@ MoonBit 约束检查：
 |------|---------|------|
 | 2026-08-21 | 初始版本 | stub 审计报告 3.1/3.2/3.3 节，P0 建议 1 |
 | 2026-08-22 | 审核修正：(1) WebhookRegistry::register 实为全仓库零调用（含 wbtest），原验证表把 lib/channel adapter Registry 的调用（channel_wbtest.mbt:123/141）误记为 WebhookRegistry 调用；(2) 推翻决策 4 中 "Discord get_current_user 可作探测"（实读为假成功 stub，返回伪造 pending 数据，改用 http_get_json 直发真探测）；(3) `cmd/server.mbt` 不存在，启动入口实为 `cmd/main.mbt:706`（WebServer::new），挂载点核准为 WebServer::new/build_app/start；(4) 路由注册位置补正：server.mbt build_app 的 crescent group（:443-477/:657），router.mbt 非注册点；(5) 飞书 challenge 行号修正 255-264 -> 263-269；补录 channels_store 为内存态 Ref 的事实；飞书 request_token 实现存在（feishu_api.mbt:66-102）核准 | 对抗性审核 + 第一性原理校验 |
+| 2026-08-22 | 开发完成：(1) `ChannelManager::init`/`configured_platforms`/`is_platform_configured`/`create_adapter_from_config` 落地，`WebServer` 挂载 `channel_manager` 字段并在 `new` 时 `init_channel_manager`（失败仅记日志，决策 6）；(2) `handle_webhook_bridge` 按配置转发 `handle_webhook`（保留飞书 challenge 特判），未配置平台回退 webhook_registry；(3) `handle_channels_send` 真调 `send_to`（Err 映射 success:false），`handle_channels_test` 按平台分级探测（飞书 request_token / Discord GET /users/@me / 未实装平台诚实标记）；(4) 新增 13 个 wbtest（channel 4 + web wiring 9）；`moon check` 0 errors、`moon test lib/web` 469、`moon test lib/channel` 402 全绿、`moon info` 无 API 破坏。全量 `moon test` 3854/3855，唯一失败为预存在的 billing flaky（`_build/ct_billing_*` 残留累积，`ct_make_billing_store` 进程内计数器跨进程归零导致目录复用；清理残留后该测试单独跑通过），与本次改动无关 | 开发验收 + 归档 |
