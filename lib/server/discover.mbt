@@ -31,8 +31,13 @@ let pid_file_dir : String = match @env.get_env_var("TEMP") {
 }
 
 ///|
+/// Timeout for the localhost port probe (ms). Short on purpose: probing
+/// a dead port fails fast; a live server answers the TCP handshake quickly.
+const DISCOVER_PROBE_TIMEOUT_MS : Int = 2_000
+
+///|
 /// Find the first active local server
-pub fn find_local() -> ServerInstance? {
+pub async fn find_local() -> ServerInstance? {
   let all = find_all_local()
   if all.length() > 0 {
     Some(all[0])
@@ -43,17 +48,34 @@ pub fn find_local() -> ServerInstance? {
 
 ///|
 /// Find all active local servers (sorted by port ascending)
-pub fn find_all_local() -> Array[ServerInstance] {
+pub async fn find_all_local() -> Array[ServerInstance] {
   // 1. Scan pid_file_dir for files matching pattern
-  // TODO: FFI - list files in pid_file_dir matching pid_file_prefix
-  let _dir = pid_file_dir
-  let _prefix = pid_file_prefix
+  let entries = @fs.read_dir(pid_file_dir) catch { _ => return [] }
   let results : Array[ServerInstance] = []
-  // 2. For each file, extract port from filename
-  // 3. Read PID from file content
-  // 4. Check if process is alive
-  // 5. If alive, add to results
-  // 6. Sort by port ascending (already sorted if scanning in order)
+  for entry in entries {
+    // 2. Check if filename matches pattern and extract port
+    match extract_port_from_filename(entry) {
+      Some(port) => {
+        // 3. Read PID from file content
+        let pid_path = pid_file_dir + entry
+        let content = @fs.read_file_to_string(pid_path) catch { _ => continue }
+        let pid = match parse_int(content.trim().to_owned()) {
+          Some(p) => p
+          None => continue
+        }
+        // 4. Check if process is alive (PID probe where possible, then
+        //    port probe - a stale PID file from a crashed server must not
+        //    be reported as a live instance)
+        if is_process_alive(pid) && is_server_reachable(port) {
+          // 5. If alive, add to results
+          results.push({ host: "localhost", port, pid })
+        }
+      }
+      None => ()
+    }
+  }
+  // 6. Sort by port ascending
+  results.sort_by(fn(a, b) { a.port.compare(b.port) })
   results
 }
 
@@ -61,9 +83,10 @@ pub fn find_all_local() -> Array[ServerInstance] {
 /// Write PID file for current server
 pub fn write_pid_file(port : Int, pid : Int) -> Result[Unit, String] {
   let filename = pid_file_prefix + port.to_string() + ".pid"
-  let _path = pid_file_dir + filename
-  // TODO: FFI - write pid to file
-  let _ = pid
+  let path = pid_file_dir + filename
+  @fs.write_string_to_file(path, pid.to_string()) catch {
+    _ => return Err("Failed to write PID file: " + path)
+  }
   Ok(())
 }
 
@@ -71,8 +94,12 @@ pub fn write_pid_file(port : Int, pid : Int) -> Result[Unit, String] {
 /// Remove PID file
 pub fn remove_pid_file(port : Int) -> Result[Unit, String] {
   let filename = pid_file_prefix + port.to_string() + ".pid"
-  let _path = pid_file_dir + filename
-  // TODO: FFI - delete file
+  let path = pid_file_dir + filename
+  if @fs.path_exists(path) {
+    @fs.remove_file(path) catch {
+      _ => return Err("Failed to remove PID file: " + path)
+    }
+  }
   Ok(())
 }
 
@@ -98,9 +125,31 @@ pub fn extract_port_from_filename(filename : String) -> Int? {
 }
 
 ///|
-/// Check if a process is alive by PID
+/// Check if a process is alive by PID.
+/// On Unix (incl. WSL) checks /proc/<pid>; on platforms without /proc
+/// (Windows native) conservatively returns true and relies on the
+/// caller's port probe (is_server_reachable) to filter stale PID files.
 pub fn is_process_alive(pid : Int) -> Bool {
-  // TODO: FFI - check if process is alive
-  let _ = pid
-  true
+  // /proc only exists on Linux. Checking "/proc/<pid>" unconditionally
+  // would report every server dead on Windows native, so gate on the
+  // procfs root first.
+  if @fs.path_exists("/proc") {
+    @fs.path_exists("/proc/\{pid}")
+  } else {
+    // No platform-agnostic process probe available (would need
+    // platform-specific FFI); the port probe provides the real signal.
+    true
+  }
+}
+
+///|
+/// Probe whether a server is actually reachable on localhost:port.
+/// Any HTTP response (including 401/404) proves a live listener;
+/// connection refused or timeout means the process is dead.
+async fn is_server_reachable(port : Int) -> Bool {
+  let url = "http://127.0.0.1:\{port}/health"
+  match @client.http_get(url, [], DISCOVER_PROBE_TIMEOUT_MS) {
+    Ok(_) => true
+    Err(_) => false
+  }
 }

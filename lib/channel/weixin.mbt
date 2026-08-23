@@ -342,8 +342,8 @@ pub fn WeixinAdapter::parse_event(
   }
   // Timestamp
   let timestamp = match msg.get("create_time") {
-    Some(Number(n, ..)) => n.to_int()
-    _ => 0
+    Some(Number(n, ..)) => n.to_int64()
+    _ => 0L
   }
   Ok({
     event_type,

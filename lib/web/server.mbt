@@ -1012,8 +1012,43 @@ pub async fn WebServer::start(
   @async.with_task_group(group => {
     set_ws_task_group(group)
     @mcp.set_mcp_task_group(group)
+    // Start IM channels inside the same task group: flips adapters to
+    // running (send gate) and spawns the Discord gateway loop so
+    // messages actually flow.
+    start_channels_in_group(self.channel_manager, group)
     app.serve_on(http_server) catch {
       err => println("Server error: \{err}")
     }
   })
+}
+
+///|
+/// Wire channel lifecycle into the server's task group: register the
+/// message handler, start all enabled adapters, and spawn connection
+/// loops (Discord gateway). Channels are optional - failures are logged
+/// and never abort server startup (stubfix-01 decision 6).
+fn start_channels_in_group(
+  cm_ref : Ref[@channel.ChannelManager],
+  group : @async.TaskGroup[Unit],
+) -> Unit {
+  let cm = cm_ref.val
+  // Minimal inbound-event handler: log the event so the receive chain is
+  // observable end-to-end. Routing events into agent sessions is a
+  // follow-up spec; without a handler ChannelManager::start refuses.
+  cm.on_message(fn(event) {
+    let platform = event.platform.to_string_value()
+    let preview = if event.text.length() > 80 {
+      event.text[0:80].to_owned() + "..."
+    } else {
+      event.text
+    }
+    println(
+      "[Channel:\{platform}] message from \{event.sender_name} (\{event.chat_id}): \{preview}",
+    )
+  })
+  match cm.start_with_gateway(group) {
+    Ok(_) => println("[ChannelManager] channels started")
+    Err(ChannelError(msg)) =>
+      println("[ChannelManager] channels not started: " + msg)
+  }
 }

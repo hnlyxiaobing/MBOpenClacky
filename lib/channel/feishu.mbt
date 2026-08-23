@@ -275,7 +275,7 @@ pub fn FeishuAdapter::parse_event(
   // ── Timestamp ──
   let timestamp = match message.get("create_time") {
     Some(String(s)) => parse_int_safe(s)
-    _ => 0
+    _ => 0L
   }
 
   // ── Reply-to ──
@@ -388,12 +388,14 @@ fn detect_bot_mention(mentions : Array[Json]) -> Bool {
 }
 
 ///|
-/// Parse a string as an Int, returning 0 on failure.
-fn parse_int_safe(s : String) -> Int {
-  let mut result = 0
+/// Parse a string as an Int64, returning 0 on failure.
+/// Feishu create_time is a millisecond-epoch string (13 digits) that
+/// overflows a 32-bit Int, so the accumulator must be Int64.
+fn parse_int_safe(s : String) -> Int64 {
+  let mut result = 0L
   for ch in s {
     if ch >= '0' && ch <= '9' {
-      result = result * 10 + (ch.to_int() - '0'.to_int())
+      result = result * 10L + (ch.to_int() - '0'.to_int()).to_int64()
     } else {
       break
     }

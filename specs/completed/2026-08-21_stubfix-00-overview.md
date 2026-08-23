@@ -1,7 +1,7 @@
 # Stub 实装修复批次总览（stubfix 01-08）· 总览文档
 
 > **创建日期**: 2026-08-21
-> **状态**: 实施中（2026-08-22 全部 8 份子 spec 对抗性审核通过，自 draft 移入 active）
+> **状态**: 已完成（2026-08-22 全部 8 份子 spec 对抗性审核通过；2026-08-23 子 spec 01-08 全部实施完成并归档；2026-08-23 批次实施后对抗性代码审查完成，5/06/07/08 四份 spec 的修订记录见各自变更记录末行；本总览随批次收尾归档）
 > **来源**: 《Stub 实装状态审计报告》（2026-08-21，全仓库 grep + 逐文件精读，四大领域 + 断链分析）
 > **批次命名**: stubfix
 > **依赖**: 无（批次内 spec 相对独立，个别软依赖见依赖链）
@@ -27,10 +27,10 @@
 | 02 | `2026-08-21_stubfix-02-honest-send-errors.md` | 2.1 风险提示 + 建议 2 | P0 | Telegram/WeCom/Weixin send_text 假成功（静默丢消息）；**审核扩围**：飞书 update_message、Discord edit_message/delete_message/get_current_user/upload_file 同为假成功 | 翻转为诚实 Err + wbtest 期望翻转 + 假成功闸门（扩围六处一并翻转） |
 | 03 | `2026-08-21_stubfix-03-doc-parser-moonbitmark.md`（已完成 2026-08-22，移入 completed） | 2.4 + 建议 4 | P1 | 文档解析 6 格式全 placeholder + parser 孤儿 + read 工具不解析 | MoonBitMark 新增 OLE2/CFB + Word 二进制能力并发布 0.4.0（任务包 0/1）→ MB 引入；六格式白名单 + 薄适配层（删六个 XxxParser）+ read 工具接线 |
 | 04 | `2026-08-21_stubfix-04-mcp-stdio-transport.md` | 2.3 + 建议 3 | P1 | MCP stdio transport 空壳、请求响应无关联 | 复用 browser_process 的 @process spawn 模式 + JSON-RPC id 关联 + initialize 握手 |
-| 05 | `2026-08-21_stubfix-05-scheduler-persistence.md` | 第四节 scheduler 条目 + 建议 5 | P1 | 调度器不持久化（重启全丢）、时间戳恒 0 | @fs 读写 + yml 子集解析 + write-through + 共享时钟 |
-| 06 | `2026-08-21_stubfix-06-telegram-send.md` | 2.1 + 建议 7 | P2 | Telegram 发送假成功（02 翻转后待实装） | 复用 http_post_json 同构实现 + 错误映射 |
-| 07 | `2026-08-21_stubfix-07-ws-gateway.md` | 2.2/3.6 + 建议 6 | P2 | WebSocket 客户端缺失（Discord/钉钉 Stream/WeCom 三平台共用） | WsClient 薄封装（**审核裁决：@async.websocket 随既有 async@0.21.0 依赖树内，零新增依赖，TLS/wss 内置**）+ Discord 网关连接层 + ISO 8601 解析 |
-| 08 | `2026-08-21_stubfix-08-infra-fs-modules.md` | 3.5 + 建议 9 | P3 | output_dir/backup/scripts/discover 四模块文件操作全 TODO | @fs/@utils 原语复用 + lib/zip 归档 + 按价值排序任务包 |
+| 05 | `2026-08-21_stubfix-05-scheduler-persistence.md`（已完成 2026-08-23，移入 completed） | 第四节 scheduler 条目 + 建议 5 | P1 | 调度器不持久化（重启全丢）、时间戳恒 0 | @fs 读写 + yml 子集解析 + write-through + 共享时钟 |
+| 06 | `2026-08-21_stubfix-06-telegram-send.md`（已完成 2026-08-23，移入 completed） | 2.1 + 建议 7 | P2 | Telegram 发送假成功（02 翻转后待实装） | 复用 http_post_json 同构实现 + 错误映射 |
+| 07 | `2026-08-21_stubfix-07-ws-gateway.md`（已完成 2026-08-23，移入 completed） | 2.2/3.6 + 建议 6 | P2 | WebSocket 客户端缺失（Discord/钉钉 Stream/WeCom 三平台共用） | WsClient 薄封装（**审核裁决：@async.websocket 随既有 async@0.21.0 依赖树内，零新增依赖，TLS/wss 内置**）+ Discord 网关连接层 + ISO 8601 解析 |
+| 08 | `2026-08-21_stubfix-08-infra-fs-modules.md`（已完成 2026-08-23，移入 completed） | 3.5 + 建议 9 | P3 | output_dir/backup/scripts/discover 四模块文件操作全 TODO | @fs/@utils 原语复用 + lib/zip 归档 + 按价值排序任务包 |
 
 ## 三、依赖链与实施顺序
 
@@ -91,8 +91,8 @@ stubfix-05（调度器持久化，独立）<──共享时钟──> stubfix-04
 ## 六、批次验收（整体）
 
 - [x] 8 份 spec 全部通过对抗性审查（每份的验证记录表被复核、决策被质询）后移入 `specs/active/`（2026-08-22 完成；审查要点：02 同族假成功扩围、03 DOC/WPS 方案落 MoonBitMark 0.4.0、07 裁决 @async.websocket、08 关闭 @fs 能力疑点）
-- [ ] 各 spec 独立实施、独立归档（`specs/completed/`），本总览随批次推进更新状态
-- [ ] 批次全部归档后：全仓库假成功型 stub 清零（grep `success.*placeholder` / `tg_msg_` / `weixin_msg_pending` 断言）；审计报告第五节建议 1-9 对应项全部关闭或显式入 backlog
+- [x] 各 spec 独立实施、独立归档（`specs/completed/`），本总览随批次推进更新状态（2026-08-23：01-08 全部实施完成并归档；各偏差记录见各 spec 变更记录末行）
+- [x] 批次全部归档后：全仓库假成功型 stub 清零（2026-08-23 复验：grep `success.*placeholder` / `tg_msg_` / `weixin_msg_pending` 在 lib/ 与 src/ 零匹配，wbtest 除外）；审计报告第五节建议 1-9 对应项全部关闭或显式入 backlog（见第五节）
 
 ## 变更记录 [必填]
 
@@ -100,3 +100,5 @@ stubfix-05（调度器持久化，独立）<──共享时钟──> stubfix-04
 |------|---------|------|
 | 2026-08-21 | 初始版本：8 份子 spec + MoonBitMark 调研结论 + backlog 归档 | stub 审计报告驱动的 Harness v2 批次起草 |
 | 2026-08-22 | 批次对抗性审核完成：02 行同步同族假成功扩围；07 行同步 @async.websocket 前置裁决；03 行维持 DOC/WPS 修订结论；08 行 @fs 能力疑点关闭（read_dir/remove_file/remove_dir 原生具备）；状态改"实施中"并随批次移入 active | 8 份子 spec 逐份审核（详见各 spec 变更记录） |
+| 2026-08-23 | stubfix-05/06/07/08 实施完成并归档：调度器持久化（YAML 子集读写 + 共享时钟）、Telegram 真发送（http_post_json 同构）、WsClient 薄封装 + Discord 网关连接层（@async.websocket 零新增依赖）、四基础设施模块文件操作真实现（@fs/@utils/@zip）；全量 moon check 0 errors，moon test 3837/3845（8 个失败均为环境缺 python3，与批次无关）。至此批次 8 份子 spec 全部实施完毕 | 批次收尾 |
+| 2026-08-23 | 批次实施后对抗性代码审查完成并修订：stubfix-05/06/07/08 未提交实现中发现并修复 8 项 C 级缺陷（调度器错误吞掉、时间戳 Int 32 位溢出、Discord 客户端心跳缺失、网关孤儿层零调用、backup 扩展名/列表/跳文件三连假成功、discover 假活进程）与 12 项 W 级问题；新增 23 个 wbtest（scheduler 10 + backup 5 + discord 4 + output_dir 4）；全量 moon check 0 errors，moon test 3868/3869 -> 修订后全绿（唯一失败为 web 层内存调度器与错误传播的交互，已修复）；修订明细见 4 份子 spec 变更记录末行 | 消灭假成功原则的批次级收尾审计 |

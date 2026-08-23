@@ -169,6 +169,35 @@ pub fn ChannelManager::stop(
 }
 
 ///|
+/// Start all enabled channels and spawn long-running connection loops
+/// (currently the Discord gateway event + heartbeat loop) into the given
+/// task group.
+///
+/// Call from an async context that owns a TaskGroup (e.g. WebServer::start);
+/// start() alone only flips adapters to running state - without the Discord
+/// gateway loop no messages would ever arrive.
+pub fn ChannelManager::start_with_gateway(
+  self : ChannelManager,
+  group : @async.TaskGroup[Unit],
+) -> Result[Unit, ChannelError] {
+  match self.start() {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  // Spawn connection loops for adapters that have one (Discord gateway).
+  match self.registry.find("discord") {
+    Some(AnyAdapter::Discord(adapter)) => {
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        adapter.run_gateway_loop()
+      })
+      ()
+    }
+    _ => ()
+  }
+  Ok(())
+}
+
+///|
 /// Reload configuration (stop + reload + start).
 pub fn ChannelManager::reload(
   self : ChannelManager,

@@ -5,7 +5,12 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",
   "moonbitlang/async/io",
   "moonbitlang/async/process",
+  "moonbitlang/x/fs",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "hnlyxiaobing/MBOpenClacky/lib/zip",
 }

@@ -320,8 +320,8 @@ pub fn DingTalkAdapter::parse_event(
 
   // Extract timestamp
   let timestamp = match msg.get("createAt") {
-    Some(Number(n, ..)) => n.to_int()
-    _ => 0
+    Some(Number(n, ..)) => n.to_int64()
+    _ => 0L
   }
 
   Ok({

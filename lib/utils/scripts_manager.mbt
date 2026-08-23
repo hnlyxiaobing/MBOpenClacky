@@ -57,11 +57,24 @@ pub fn ScriptsManager::build_script_path(
 }
 
 ///|
-/// List available scripts (TODO: FFI needed for directory scan).
+/// List available scripts in the scripts directory.
 pub fn ScriptsManager::list_scripts(self : ScriptsManager) -> Array[ScriptInfo] {
-  // TODO: implement via FFI directory scan
-  let _ = self.extensions
-  []
+  if !@fs.path_exists(self.scripts_dir) {
+    return []
+  }
+  let entries = @fs.read_dir(self.scripts_dir) catch { _ => return [] }
+  let result : Array[ScriptInfo] = []
+  for entry in entries {
+    let ext = detect_script_extension(entry)
+    if self.extensions.iter().any(fn(e) { e == ext }) {
+      let path = self.build_script_path(entry)
+      let is_file = @fs.is_file(path) catch { _ => false }
+      if is_file {
+        result.push({ name: entry, path, description: "", extension: ext })
+      }
+    }
+  }
+  result
 }
 
 ///|
@@ -81,14 +94,18 @@ pub fn ScriptsManager::find_script(
 }
 
 ///|
-/// Validate a script exists (TODO: FFI needed for file check).
+/// Validate a script exists.
 pub fn ScriptsManager::validate_script(
   self : ScriptsManager,
   name : String,
 ) -> Result[Unit, String] {
-  // TODO: implement via FFI file existence check
-  let _ = self.build_script_path(name)
-  Ok(())
+  let path = self.build_script_path(name)
+  let exists = @fs.is_file(path) catch { _ => false }
+  if exists {
+    Ok(())
+  } else {
+    Err("Script not found: " + name)
+  }
 }
 
 ///|

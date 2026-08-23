@@ -1,6 +1,6 @@
 # MBOpenClacky vs openclacky 功能对比分析
 
-> 最后更新: 2026-08-21
+> 最后更新: 2026-08-23
 > 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)
 
 ## 1. 项目概况
@@ -13,7 +13,7 @@
 | 二进制大小 | ~50MB+ (含 Ruby 运行时) | ~3.6 MB (单一可执行) |
 | 启动时间 | 秒级 | 毫秒级 |
 | 包管理 | Bundler / RubyGems | moon (mooncakes) |
-| 测试框架 | RSpec | `_wbtest.mbt` (白盒内联)，3,843 用例 |
+| 测试框架 | RSpec | `_wbtest.mbt` (白盒内联)，3,869 用例 |
 
 ## 2. 工具集对比
 

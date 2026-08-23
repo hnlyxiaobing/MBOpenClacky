@@ -158,7 +158,7 @@ test "scheduler_new" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-new.yml",
   }
   let scheduler = Scheduler::new(config)
   @debug.assert_eq(scheduler.state, Stopped)
@@ -170,7 +170,7 @@ test "scheduler_add_schedule" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-add.yml",
   }
   let scheduler = Scheduler::new(config)
   let result = scheduler.add_schedule(
@@ -188,7 +188,7 @@ test "scheduler_remove_schedule" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-remove.yml",
   }
   let scheduler = Scheduler::new(config)
   let _ = scheduler.add_schedule("test-task", "test", "* * * * *", true)
@@ -206,7 +206,7 @@ test "scheduler_list_schedules" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-list.yml",
   }
   let scheduler = Scheduler::new(config)
   let _ = scheduler.add_schedule("task1", "t1", "0 * * * *", true)
@@ -220,7 +220,7 @@ test "scheduler_tick_executes_due" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-tick.yml",
   }
   let scheduler = Scheduler::new(config)
   let _ = scheduler.add_schedule("hourly", "cleanup", "0 * * * *", true)
@@ -239,7 +239,7 @@ test "scheduler_tick_skips_disabled" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-skip.yml",
   }
   let scheduler = Scheduler::new(config)
   let _ = scheduler.add_schedule("disabled-task", "noop", "* * * * *", false)
@@ -253,7 +253,7 @@ test "scheduler_get_schedule" {
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/tasks",
-    config_path: "/tmp/schedules.yml",
+    config_path: "/tmp/mboc-wbt-sched-get.yml",
   }
   let scheduler = Scheduler::new(config)
   let _ = scheduler.add_schedule("my-task", "run-it", "*/10 * * * *", true)
@@ -336,7 +336,8 @@ test "backup_should_exclude" {
 ///|
 test "backup_generate_archive_name" {
   let name = generate_archive_name("20260617-143000")
-  @debug.assert_eq(name, "mbopenclacky-backup-20260617-143000.tar.gz")
+  // The archive is a ZIP (lib/zip create_zip); the extension must match.
+  @debug.assert_eq(name, "mbopenclacky-backup-20260617-143000.zip")
 }
 
 ///|
@@ -357,7 +358,7 @@ test "discover_extract_port" {
 }
 
 ///|
-test "discover_find_all_empty" {
+async test "discover_find_all_empty" {
   let servers = find_all_local()
   @debug.assert_eq(servers.length(), 0)
 }

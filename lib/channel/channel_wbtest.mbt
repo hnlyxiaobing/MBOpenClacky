@@ -2126,6 +2126,9 @@ test "wecom_adapter_start_does_not_set_connected_state" {
 }
 
 ///|
+/// stubfix-06: send_text is a real implementation (HTTP Bot API). With a
+/// fake token / unreachable network the call must surface a real HTTP or
+/// network error -- never the old "not implemented" stub error.
 async test "telegram_adapter_send_text_returns_err" {
   let config : ChannelConfig = {
     platform: Platform::Telegram,
@@ -2138,11 +2141,8 @@ async test "telegram_adapter_send_text_returns_err" {
       let result = a.send_text("chat1", "hello", None)
       match result {
         Err(ChannelError(msg)) =>
-          if msg.contains("not implemented") {
-            ()
-          } else {
-            assert_true(false)
-          }
+          // Real send path: error must NOT be the stub marker
+          assert_false(msg.contains("not implemented"))
         Ok(r) => assert_false(r.success)
       }
     }

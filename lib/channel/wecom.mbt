@@ -229,11 +229,11 @@ pub fn WeComAdapter::parse_event(
   let chat_type = detect_wecom_chat_type(msg)
   // Extract timestamp
   let timestamp = match msg.get("CreateTime") {
-    Some(Number(n, ..)) => n.to_int()
+    Some(Number(n, ..)) => n.to_int64()
     _ =>
       match msg.get("create_time") {
-        Some(Number(n, ..)) => n.to_int()
-        _ => 0
+        Some(Number(n, ..)) => n.to_int64()
+        _ => 0L
       }
   }
   // Extract reply_to if present

@@ -137,11 +137,29 @@ test "scripts_manager_list_scripts_empty" {
 }
 
 ///|
+/// stubfix-08: validate_script now checks real file existence.
 test "scripts_manager_validate_script_ok" {
-  let mgr = ScriptsManager::new("/scripts")
+  let dir = "tmp_scripts_validate"
+  ensure_dir(dir)
+  let script_path = dir + "/test.sh"
+  @fs.write_string_to_file(script_path, "#!/bin/sh\n") catch {
+    _ => ()
+  }
+  let mgr = ScriptsManager::new(dir)
   match mgr.validate_script("test.sh") {
     Ok(_) => assert_true(true)
     Err(msg) => fail("expected Ok, got Err: \{msg}")
+  }
+  // Missing script must be reported
+  match mgr.validate_script("nope.sh") {
+    Ok(_) => fail("expected Err for missing script")
+    Err(_) => assert_true(true)
+  }
+  @fs.remove_file(script_path) catch {
+    _ => ()
+  }
+  @fs.remove_dir(dir) catch {
+    _ => ()
   }
 }
 

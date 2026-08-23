@@ -262,13 +262,17 @@ pub impl Adapter for TelegramAdapter with fn send_text(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  // Build the request payload so the real implementation (stubfix-06) can
-  // reuse this code path. Until then, refuse to send so callers see an
-  // honest error rather than a fabricated success.
-  let _ = chat_id
-  let _ = text
-  let _ = reply_to
-  Err(ChannelError("Telegram send_text is not implemented yet"))
+  // Build request payload (no parse_mode for plain text, decision: risk R3)
+  let payload = build_telegram_send_request(chat_id, text, reply_to, None)
+  let url = self.api_client.send_message_url()
+  let headers = self.api_client.request_headers()
+  // Send via http_post_json (same path as Feishu/Discord, decision 1)
+  let json = match http_post_json(url, headers, payload.stringify()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  // Parse response: extract message_id or map error (decision 2-3)
+  TelegramApiClient::parse_send_response(json)
 }
 
 ///|
@@ -515,8 +519,8 @@ pub fn TelegramAdapter::parse_event(
   }
   // Extract timestamp (Telegram uses Unix seconds, convert to milliseconds)
   let timestamp = match message.get("date") {
-    Some(Number(n, ..)) => n.to_int() * 1000
-    _ => 0
+    Some(Number(n, ..)) => n.to_int64() * 1000L
+    _ => 0L
   }
   // Detect chat type from chat.type field
   let chat_type = detect_chat_type(message)

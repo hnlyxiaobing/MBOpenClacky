@@ -6,5 +6,7 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/async",
+  "moonbitlang/async/websocket",
 }

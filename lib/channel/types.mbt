@@ -126,7 +126,7 @@ pub(all) struct ChannelEvent {
   sender_name : String
   text : String
   attachments : Array[Attachment]
-  timestamp : Int // milliseconds
+  timestamp : Int64 // milliseconds
   reply_to : String?
   chat_type : ChatType
   raw : Json?

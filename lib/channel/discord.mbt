@@ -11,6 +11,7 @@ pub(all) struct DiscordAdapter {
   mut bot_user_id : String?
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
+  ws_client : WsClient
 }
 
 ///|
@@ -32,6 +33,7 @@ pub fn DiscordAdapter::new(
     bot_user_id: None,
     is_running: false,
     message_callback: None,
+    ws_client: WsClient::new(),
   })
 }
 
@@ -85,19 +87,9 @@ pub impl Adapter for DiscordAdapter with fn start(
   let state = GatewayState::new(self.bot_token)
   self.gateway_state = Some(state)
 
-  // TODO: Connect to Gateway WebSocket via @websocket:
-  //   let url = get_gateway_url(state)
-  //   let ws = await @websocket.connect(url)
-  //   Main loop:
-  //     1. Receive Hello (op 10) -> extract heartbeat_interval
-  //     2. Send Identify (op 2) or Resume (op 6) if should_resume(state)
-  //     3. Start heartbeat timer: every heartbeat_interval ms, send op 1
-  //     4. On Dispatch (op 0): extract event name, update seq, handle MESSAGE_CREATE
-  //     5. On Reconnect (op 7): close and reconnect to resume_gateway_url
-  //     6. On InvalidSession (op 9): if d=true, attempt resume; else re-identify
-  //     7. On close: if !is_fatal_close(code), schedule reconnect with backoff
-  //     8. On heartbeat miss (no ACK): force reconnect
-
+  // Step 3: Gateway connection is handled by run_gateway_loop (async).
+  // The caller (server/channel manager) should spawn run_gateway_loop
+  // as an async task after calling start.
   Ok(())
 }
 
@@ -288,10 +280,10 @@ pub fn DiscordAdapter::parse_event(
       }
     _ => None
   }
-  // Extract timestamp
-  let timestamp = match data.get("timestamp") {
-    Some(String(_ts)) => 0 // TODO: parse ISO 8601 to millis
-    _ => 0
+  // Extract timestamp (ISO 8601 -> epoch ms)
+  let timestamp : Int64 = match data.get("timestamp") {
+    Some(String(ts)) => parse_iso8601_to_ms(ts)
+    _ => 0L
   }
   Ok({
     event_type: EventType::Message,
@@ -332,7 +324,7 @@ pub fn build_discord_message(text : String, reply_to : String?) -> Json {
 /// This is the main event handler called for each incoming Gateway message.
 /// It handles opcodes: Dispatch (0), Heartbeat (1), Reconnect (7),
 /// InvalidSession (9), Hello (10), HeartbeatAck (11).
-pub fn DiscordAdapter::handle_gateway_event(
+pub async fn DiscordAdapter::handle_gateway_event(
   self : DiscordAdapter,
   raw : String,
 ) -> Unit {
@@ -372,46 +364,52 @@ pub fn DiscordAdapter::handle_gateway_event(
         _ => () // ignore other dispatch events
       }
     1 => {
-      // Heartbeat request from server - respond with heartbeat
-      // TODO: send build_heartbeat_payload(state.last_seq) via websocket
-      let _ = build_heartbeat_payload(state.last_seq)
+      // Heartbeat request from server - respond immediately
+      let payload = build_heartbeat_payload(state.last_seq)
+      let _ = self.ws_client.send_text(payload.stringify())
+      state.mark_heartbeat_sent()
     }
-    7 =>
+    7 => {
       // Reconnect - server requests reconnection
-      // TODO: Close current websocket, reconnect to get_gateway_url(state)
       state.reset_connection()
+      let _ = self.ws_client.close()
+    }
     9 => {
       // Invalid Session
       let resumable = parse_invalid_session(data)
       if !resumable {
-        // Clear session data for fresh Identify
         state.session_id = None
         state.last_seq = None
       }
-      // TODO: Send Identify or Resume after random 1-5s delay
       state.reset_connection()
+      let _ = self.ws_client.close()
+      // Discord requires waiting a random 1-5s before reconnecting after
+      // an Invalid Session (a fixed 2s is within the allowed window).
+      @async.sleep(2000)
     }
     10 =>
       // Hello - extract heartbeat interval and send Identify/Resume
       match parse_hello_payload(data) {
         Ok(interval) => {
           state.handle_hello(interval)
-          // TODO: Start heartbeat timer with interval ms
-          // TODO: Send Identify or Resume based on should_resume(state)
+          // Send Identify or Resume based on session state
           if should_resume(state) {
             match (state.session_id, state.last_seq) {
               (Some(sid), Some(seq)) => {
-                let _ = build_resume_payload(self.bot_token, sid, seq)
-                // TODO: send resume payload via websocket
+                let payload = build_resume_payload(self.bot_token, sid, seq)
+                let _ = self.ws_client.send_text(payload.stringify())
               }
               _ => {
-                let _ = build_identify_payload(self.bot_token, state.intents)
-                // TODO: send identify payload via websocket
+                let payload = build_identify_payload(
+                  self.bot_token,
+                  state.intents,
+                )
+                let _ = self.ws_client.send_text(payload.stringify())
               }
             }
           } else {
-            let _ = build_identify_payload(self.bot_token, state.intents)
-            // TODO: send identify payload via websocket
+            let payload = build_identify_payload(self.bot_token, state.intents)
+            let _ = self.ws_client.send_text(payload.stringify())
           }
         }
         Err(_) => ()
@@ -421,4 +419,269 @@ pub fn DiscordAdapter::handle_gateway_event(
       state.mark_heartbeat_acked()
     _ => () // ignore unknown opcodes
   }
+}
+
+///|
+/// Run the Discord Gateway event loop (async, long-running).
+/// Connects to the gateway, handles Hello/Identify/Resume, runs a
+/// client-side heartbeat task (required by the Discord protocol - the
+/// server disconnects clients that do not send op 1 heartbeats within
+/// ~1.5x heartbeat_interval), and processes incoming events.
+///
+/// Call this after adapter.start() to begin receiving events.
+pub async fn DiscordAdapter::run_gateway_loop(self : DiscordAdapter) -> Unit {
+  @async.with_task_group(group => {
+    // Heartbeat task: sends op 1 every heartbeat_interval. If the server
+    // missed the previous ACK, closes the connection to force a reconnect.
+    group.spawn_bg(no_wait=true, allow_failure=true, () => self.heartbeat_loop())
+    // Main connect/event loop.
+    self.gateway_connect_loop()
+  })
+}
+
+///|
+/// Heartbeat loop (spawned by run_gateway_loop).
+///
+/// Discord requires the FIRST heartbeat to be sent after
+/// heartbeat_interval * random(0..1) ms, and every subsequent heartbeat
+/// every heartbeat_interval ms. The server almost never sends op 1
+/// itself - the client must initiate. If a heartbeat is not ACKed (op 11)
+/// before the next one is due, the connection is considered zombie and
+/// is closed so the main loop reconnects (typically with Resume).
+pub async fn DiscordAdapter::heartbeat_loop(self : DiscordAdapter) -> Unit {
+  while self.is_running {
+    let state = match self.gateway_state {
+      Some(s) => s
+      None => return
+    }
+    let interval = state.heartbeat_interval
+    // Jitter in [0, interval) for the first heartbeat after (re)connect,
+    // derived from the millisecond clock (no RNG primitive available).
+    let jitter = (@utils.now_ms() % interval.to_int64()).to_int()
+    @async.sleep(jitter)
+    if !self.is_running {
+      return
+    }
+    // Re-read state: it may have been replaced by stop()/reset.
+    let state = match self.gateway_state {
+      Some(s) => s
+      None => return
+    }
+    if !state.is_connected || !self.ws_client.connected() {
+      // Not connected (yet); wait a full interval before retrying so the
+      // cadence restarts after the next HELLO.
+      @async.sleep(interval)
+      continue
+    }
+    if !state.heartbeat_acked {
+      // Server never ACKed our previous heartbeat: zombie connection.
+      // Close it - the main loop's recv() will surface Closed and
+      // reconnect (Resume keeps the session when possible).
+      let _ = self.ws_client.close()
+      state.reset_connection()
+      continue
+    }
+    let payload = build_heartbeat_payload(state.last_seq)
+    let _ = self.ws_client.send_text(payload.stringify())
+    state.mark_heartbeat_sent()
+    // Wait out the remainder of the interval.
+    @async.sleep(interval - jitter)
+  }
+}
+
+///|
+/// Reconnect/event loop (the connect -> recv -> dispatch cycle).
+pub async fn DiscordAdapter::gateway_connect_loop(
+  self : DiscordAdapter,
+) -> Unit {
+  while self.is_running {
+    let state = match self.gateway_state {
+      Some(s) => s
+      None => return
+    }
+    // Connect to gateway
+    let url = get_gateway_url(state)
+    match self.ws_client.connect(url) {
+      Ok(_) => ()
+      Err(_) => {
+        // Connection failed - backoff and retry
+        state.record_reconnect_attempt()
+        if state.reconnect_attempts >= MAX_RECONNECT_ATTEMPTS {
+          return
+        }
+        let delay = reconnect_delay_ms(state.reconnect_attempts)
+        @async.sleep(delay)
+        continue
+      }
+    }
+    // Event loop: receive and process messages
+    while self.is_running && self.ws_client.connected() {
+      let msg = self.ws_client.recv()
+      match msg {
+        WsMessage::Text(text) => {
+          let _ = self.handle_gateway_event(text)
+        }
+        WsMessage::Closed(code, _) => {
+          // Connection closed
+          if is_fatal_close(code) {
+            // Fatal close - do not reconnect
+            self.is_running = false
+            return
+          }
+          // Non-fatal close - attempt reconnect with backoff
+          state.reset_connection()
+          state.record_reconnect_attempt()
+          if !should_reconnect(state, code) {
+            self.is_running = false
+            return
+          }
+          let delay = reconnect_delay_ms(state.reconnect_attempts)
+          @async.sleep(delay)
+          break // break inner loop to reconnect
+        }
+      }
+    }
+    // Heartbeat check: if we're still connected but missed ACK, reconnect
+    if self.is_running && self.ws_client.connected() {
+      match self.gateway_state {
+        Some(s) if !s.heartbeat_acked => {
+          // Missed heartbeat ACK - force reconnect
+          let _ = self.ws_client.close()
+          s.reset_connection()
+        }
+        _ => ()
+      }
+    }
+  }
+}
+
+///|
+/// Send a heartbeat to the gateway (called periodically).
+pub async fn DiscordAdapter::send_heartbeat(self : DiscordAdapter) -> Unit {
+  let state = match self.gateway_state {
+    Some(s) => s
+    None => return
+  }
+  let payload = build_heartbeat_payload(state.last_seq)
+  let _ = self.ws_client.send_text(payload.stringify())
+  state.mark_heartbeat_sent()
+}
+
+// ── ISO 8601 Timestamp Parsing ──────────────────────────────────────────────
+
+///|
+/// Parse an ISO 8601 timestamp string to Unix epoch milliseconds.
+/// Handles format: "YYYY-MM-DDTHH:MM:SS.ffffff+HH:MM" or "...Z"
+/// Returns 0 on parse failure.
+pub fn parse_iso8601_to_ms(ts : String) -> Int64 {
+  // Minimum valid: "2026-01-01T00:00:00Z" = 20 chars
+  if ts.length() < 20 {
+    return 0L
+  }
+  // Parse date components
+  let year = parse_digits(ts, 0, 4)
+  let month = parse_digits(ts, 5, 7)
+  let day = parse_digits(ts, 8, 10)
+  let hour = parse_digits(ts, 11, 13)
+  let minute = parse_digits(ts, 14, 16)
+  let second = parse_digits(ts, 17, 19)
+  if year == 0 && month == 0 && day == 0 {
+    return 0L
+  }
+  // Convert to days since epoch using simplified calculation
+  let days = days_since_epoch(year, month, day)
+  let total_seconds = days.to_int64() * 86400L +
+    hour.to_int64() * 3600L +
+    minute.to_int64() * 60L +
+    second.to_int64()
+  // Parse timezone offset
+  let offset_seconds = parse_tz_offset(ts)
+  let utc_seconds = total_seconds - offset_seconds.to_int64()
+  // Parse fractional seconds (milliseconds)
+  let mut ms = 0L
+  if ts.length() > 19 && ts[19:20] == "." {
+    // Extract up to 3 digits of fractional seconds
+    let mut i = 20
+    let mut frac = 0
+    let mut digits = 0
+    while i < ts.length() && digits < 3 {
+      let ch = ts[i:i + 1]
+      if ch >= "0" && ch <= "9" {
+        frac = frac * 10 + (ch[0].to_int() - '0'.to_int())
+        digits = digits + 1
+      } else {
+        break
+      }
+      i = i + 1
+    }
+    // Pad to 3 digits
+    while digits < 3 {
+      frac = frac * 10
+      digits = digits + 1
+    }
+    ms = frac.to_int64()
+  }
+  utc_seconds * 1000L + ms
+}
+
+///|
+/// Parse decimal digits from a string slice [start, end).
+fn parse_digits(s : String, start : Int, end : Int) -> Int {
+  if end > s.length() {
+    return 0
+  }
+  let mut result = 0
+  for i = start; i < end; i = i + 1 {
+    let ch = s[i]
+    if ch >= '0' && ch <= '9' {
+      result = result * 10 + (ch.to_int() - '0'.to_int())
+    } else {
+      return 0
+    }
+  }
+  result
+}
+
+///|
+/// Parse timezone offset from ISO 8601 string.
+/// Handles "+HH:MM", "-HH:MM", and "Z" suffix.
+/// Returns offset in seconds (positive = ahead of UTC).
+fn parse_tz_offset(ts : String) -> Int {
+  let len = ts.length()
+  if len == 0 {
+    return 0
+  }
+  // Check for Z suffix
+  if ts[len - 1:] == "Z" {
+    return 0
+  }
+  // Look for + or - in the last 6 characters
+  let mut i = len - 6
+  if i < 19 {
+    i = 19
+  }
+  while i < len {
+    if ts[i:i + 1] == "+" || ts[i:i + 1] == "-" {
+      let sign = if ts[i:i + 1] == "-" { -1 } else { 1 }
+      let hh = parse_digits(ts, i + 1, i + 3)
+      let mm = parse_digits(ts, i + 4, i + 6)
+      return sign * (hh * 3600 + mm * 60)
+    }
+    i = i + 1
+  }
+  0
+}
+
+///|
+/// Calculate days since Unix epoch (1970-01-01) for a given date.
+fn days_since_epoch(year : Int, month : Int, day : Int) -> Int {
+  // Algorithm from http://howardhinnant.github.io/date_algorithms.html
+  let y = if month <= 2 { year - 1 } else { year }
+  let adjusted = if y >= 0 { y } else { y - 399 }
+  let era = adjusted / 400
+  let yoe = y - era * 400 // [0, 399]
+  let m = if month > 2 { month - 3 } else { month + 9 } // [0, 11]
+  let doy = (153 * m + 2) / 5 + day - 1 // [0, 365]
+  let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy // [0, 146096]
+  era * 146097 + doe - 719468
 }

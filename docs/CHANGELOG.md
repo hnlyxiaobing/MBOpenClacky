@@ -25,6 +25,21 @@
 
 ## 变更记录
 
+### 2026-08-23  stubfix 批次（01-08）全部实施完成归档 + 实施后对抗性代码审查修订
+
+- `[feat]` **stubfix-05~08 四份 spec 实施**（此前 01-04 已完成）：调度器持久化（YAML 子集读写 + write-through + 共享时钟）、Telegram 真发送（http_post_json 同构实现 + 错误映射）、WsClient 薄封装 + Discord 网关连接层（@async.websocket，零新增依赖）、四基础设施模块文件操作真实现（@fs/@utils/@zip：output_dir/backup_manager/scripts/discover）
+- `[fix]` **批次实施后对抗性代码审查修复 8 项 C 级缺陷**：
+  - 调度器 save_config 错误被吞（写盘失败仍返回 Ok，重启丢任务）-> 传播 Err；web 层内存调度器（config_path 为空）显式跳过写盘
+  - ChannelEvent.timestamp Int 32 位溢出（毫秒 epoch 约 1.78e12）-> 全平台改 Int64
+  - Discord 客户端主动心跳缺失（仅被动响应服务端 op 1，约 60s 被断开）-> heartbeat_loop（首跳 jitter + 周期心跳 + 丢 ACK 检测）
+  - run_gateway_loop 孤儿层（全仓库零调用，send 恒返 Adapter not running）-> ChannelManager::start_with_gateway + WebServer::start 接线
+  - backup 三连假成功：.tar.gz 扩展名撒谎（实际 ZIP）、list() 字符串读 ZIP 必失败返回空、run() 静默丢二进制文件 -> 全部修复
+  - discover is_process_alive 恒 true（崩溃残留 PID 当活 server）-> /proc 探测 + HTTP /health 双重校验
+- `[fix]` **12 项 W 级修复**：output_dir cleanup 语义欺诈（max_age 实为 max_count）、total_size 字符数统计、ensure_exists 恒 Ok、update_schedule 半更新状态、任务名路径消毒（防目录穿越）、yml 转义、include_sessions 落地、op9 重连延迟、旧测试写共享 /tmp/schedules.yml、ws_client close 置 conn=None 等
+- `[test]` **新增 23 个 wbtest**：scheduler_wbtest.mbt 10 例（持久化 roundtrip/脏数据容忍/原子性/路径穿越/写失败传播）、backup_wbtest.mbt 5 例（ZIP 含二进制往返/retention）、discord_wbtest.mbt 4 例（ISO8601 时区表驱动/溢出回归）、output_dir_wbtest.mbt 4 例（字节计数/max_files）
+- `[docs]` **specs 归档**：stubfix 批次 9 份文档（00-overview + 01-08）全部归档至 specs/completed/，各 spec 变更记录附对抗性审查修订行；批次验收项「全仓库假成功型 stub 清零」grep 复验通过
+- 验证：`moon check` 0 errors / 0 warnings；全量 `moon test` 3869/3869 全绿
+
 ### 2026-08-21  编译告警清零 + 28 份 P5/P6 spec 全部归档 + 文档校准
 
 - `[fix]` **编译告警清零（4 个 unreachable_code）**：`lib/tool/security_wbtest.mbt`（2 处）与 `test/diff/path_handling_cases_wbtest.mbt`（2 处）的 catch `_ =>` 分支因 `expand_path`/`is_secret_path` 为单一错误类型（`raise SecurityError`）而不可达，删除冗余分支；顺手修复 `path_016_empty_string` 测试断言被误写入注释行导致测试体为空的问题（断言恢复生效）。`moon check` 0 errors / 0 warnings，全量 `moon test` 3843/3843 通过
