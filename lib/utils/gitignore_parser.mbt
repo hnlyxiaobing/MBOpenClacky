@@ -115,7 +115,7 @@ pub fn is_ignored(
 /// Normalize path separators to forward slash and remove leading ./
 fn normalize_ignore_path(path : String) -> String {
   let chars = path.to_array()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in chars {
     if c == '\\' {
       buf.write_char('/')

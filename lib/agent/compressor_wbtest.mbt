@@ -204,7 +204,7 @@ test "should_trigger_idle_compression" {
   ]
   assert_true(should_trigger_idle_compression(small, 20000) == false)
   // Create a large message that exceeds threshold
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < 100000; i = i + 1 {
     buf.write_char('a')
     let _ = i
@@ -263,7 +263,7 @@ test "needs_compression_uses_config_threshold" {
   let agent = Agent::new("s", "a", "/tmp", client, config)
   // Build a large enough history so that reduction_needed >= 10%
   // target_compressed_tokens = 10000, so we need > ~11111 tokens
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < 50000; i = i + 1 {
     buf.write_char('a')
     let _ = i

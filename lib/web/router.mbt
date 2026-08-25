@@ -247,7 +247,7 @@ fn match_path_pattern(
 /// Split a path by '/' and filter empty segments.
 fn split_path(path : String) -> Array[String] {
   let parts : Array[String] = []
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for ch in path {
     if ch == '/' {
       if buf.to_string().length() > 0 {

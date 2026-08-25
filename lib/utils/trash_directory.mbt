@@ -149,7 +149,7 @@ fn find_last_dot(name : String) -> Int? {
 ///|
 /// Strip separators from ISO8601 timestamp for use in filenames.
 fn strip_timestamp_separators(timestamp : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in timestamp {
     if c == '-' || c == ':' {
       continue
@@ -218,7 +218,7 @@ pub fn generate_project_hash(project_root : String) -> String {
 /// Sanitize a project name for use inside a trash directory path:
 /// non [a-zA-Z0-9_-] chars become `_`, truncated to 20 chars.
 pub fn sanitize_project_name(name : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut count = 0
   for c in name {
     if count >= 20 {

@@ -180,7 +180,7 @@ fn serialize_args(args : Map[String, Json]) -> String {
   if args.is_empty() {
     return ""
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_char('[')
   let mut first = true
   for k, v in args {

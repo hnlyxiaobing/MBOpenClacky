@@ -168,7 +168,7 @@ fn format_log_line(
 ) -> String {
   let ts = current_timestamp_str()
   let label = level_label(level)
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("[")
   buf.write_string(ts)
   buf.write_string("] ")

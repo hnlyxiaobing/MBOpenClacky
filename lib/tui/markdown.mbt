@@ -190,7 +190,7 @@ fn is_horizontal_rule_impl(line : String) -> Bool {
 fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
   let tokens : Array[MarkdownToken] = []
   let chars = line.to_array()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let i = Ref(0)
   while i.val < chars.length() {
     if chars[i.val] == '[' {
@@ -316,7 +316,7 @@ pub fn MarkdownRenderer::render(
   input : String,
 ) -> String {
   let tokens = tokenize(input)
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for token in tokens {
     match token {
       Heading(level=_, text~) => {
@@ -413,7 +413,7 @@ pub fn MarkdownRenderer::render(
 fn split_lines_impl(s : String) -> Array[String] {
   let lines : Array[String] = []
   let chars = s.to_array()
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for i = 0; i < chars.length(); i = i + 1 {
     if chars[i] == '\n' {
       lines.push(current.to_string())

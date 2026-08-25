@@ -19,7 +19,7 @@ pub extend SkillResult with ToJson::{to_json}
 /// Build the skill execution context string (system prompt fragment).
 /// This is injected into the LLM system prompt when a skill is active.
 pub fn build_skill_context(skill : Skill, args : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# Active Skill: ")
   buf.write_string(skill.name)
   buf.write_string("\n\n")
@@ -81,7 +81,7 @@ pub fn build_skills_summary(skills : Array[Skill]) -> String {
   let total = ordered.length()
   let mut shown_count = 0
   let search_skills : Array[Skill] = []
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("\n\n")
   buf.write_string("=".repeat(80))
   buf.write_string("\nAVAILABLE SKILLS:\n")

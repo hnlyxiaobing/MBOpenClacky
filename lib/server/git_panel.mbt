@@ -192,7 +192,7 @@ pub fn build_git_status(
 ///|
 /// 格式化为单行状态摘要
 pub fn format_status_line(status : GitStatus) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(status.branch)
   if status.ahead > 0 || status.behind > 0 {
     buf.write_string(" ")
@@ -228,7 +228,7 @@ pub fn format_status_line(status : GitStatus) -> String {
 ///|
 /// 格式化为多行详细报告
 pub fn format_status_report(status : GitStatus) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("Branch: ")
   buf.write_string(status.branch)
   if status.is_detached {
@@ -291,7 +291,7 @@ pub fn is_clean(status : GitStatus) -> Bool {
 /// Split string into lines
 fn split_lines(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for ch in s {
     if ch == '\n' {
       result.push(current.to_string())
@@ -362,7 +362,7 @@ fn extract_number_after(s : String, keyword : String) -> Int {
 /// Split by whitespace for git panel (local to avoid conflict with cron's)
 fn git_split_whitespace(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   let mut in_word = false
   for ch in s {
     if ch == ' ' || ch == '\t' {

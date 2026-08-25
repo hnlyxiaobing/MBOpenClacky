@@ -14,7 +14,7 @@
 pub fn glob_to_regex(pattern : String) -> String {
   let chars = pattern.to_array()
   let n = chars.length()
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   let mut i = 0
   while i < n {
     let c = chars[i]

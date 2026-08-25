@@ -331,7 +331,7 @@ pub fn context_aware_suggestions(state : TuiState) -> Array[String] {
 fn split_whitespace_impl(s : String) -> Array[String] {
   let parts : Array[String] = []
   let chars = s.to_array()
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for i = 0; i < chars.length(); i = i + 1 {
     let c = chars[i]
     if c == ' ' || c == '\t' {

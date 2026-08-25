@@ -486,7 +486,7 @@ fn to_bedrock_tool(tool : Json) -> Json {
 /// Sanitize a tool use ID for Bedrock compatibility.
 /// Bedrock requires toolUseId to contain only alphanumeric characters, underscores, and hyphens.
 fn sanitize_tool_use_id(id : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for ch in id {
     if (ch >= 'a' && ch <= 'z') ||
       (ch >= 'A' && ch <= 'Z') ||

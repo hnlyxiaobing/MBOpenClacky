@@ -655,7 +655,7 @@ fn billing_query_param(request : HttpRequest, key : String) -> String? {
     Some(idx) => {
       let start = idx + target.length()
       let chars = request.path.to_array()
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       let mut i = start
       while i < chars.length() {
         let c = chars[i]

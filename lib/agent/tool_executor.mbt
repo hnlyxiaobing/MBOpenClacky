@@ -965,7 +965,7 @@ fn truncate_tool_output(output : String) -> String {
   if output.length() <= max_tool_output_chars {
     return output
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut count = 0
   let mut did_truncate = false
   for c in output {

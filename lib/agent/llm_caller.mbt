@@ -1104,7 +1104,7 @@ pub fn Agent::handle_context_overflow(
 /// Return the first `max_chars` characters of `body` for diagnostics.
 /// Appends "..." when the body was truncated.
 fn body_snippet(body : String, max_chars : Int) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut count = 0
   let mut truncated = false
   for c in body {

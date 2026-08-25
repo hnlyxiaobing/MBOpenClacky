@@ -191,7 +191,7 @@ fn do_search(
   max_file_size : Int,
   max_line_len : Int,
 ) -> ToolResult {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   let mut total_matches = 0
   let mut files_searched = 0
   let mut files_with_matches = 0

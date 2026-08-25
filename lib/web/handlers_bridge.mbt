@@ -62,7 +62,7 @@ fn find_query_param(url : String, key : String) -> String? {
     Some(idx) => {
       let start = idx + target.length()
       let chars = url.to_array()
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       let mut i = start
       while i < chars.length() {
         let c = chars[i]

@@ -146,7 +146,7 @@ fn resolve_skills_dir(skills_dir : String?) -> Result[String, String] {
 ///|
 /// Generate SKILL.md content from a creation candidate.
 fn generate_skill_md(candidate : CreationCandidate) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_string("---\n")
   sb.write_string("name: " + candidate.name + "\n")
   sb.write_string("description: " + candidate.description + "\n")
@@ -186,7 +186,7 @@ fn has_space(s : String) -> Bool {
 fn string_prefix(s : String, n : Int) -> String {
   let chars = s.to_array()
   let len = if chars.length() < n { chars.length() } else { n }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < len; i = i + 1 {
     buf.write_char(chars[i])
   }
@@ -232,7 +232,7 @@ fn calculate_confidence(pattern_count : Int, group : Array[String]) -> Int {
 ///|
 /// Generate a skill name from a prefix pattern.
 fn generate_skill_name(prefix : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("auto-")
   let chars = prefix.to_array()
   let mut count = 0

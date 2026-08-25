@@ -152,7 +152,7 @@ fn bytes_to_hex(bytes : Array[Byte]) -> String {
   let hex_digits = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for b in bytes {
     let v = b.to_int()
     buf.write_char(hex_digits[v / 16])

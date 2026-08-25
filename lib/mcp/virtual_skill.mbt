@@ -48,7 +48,7 @@ pub fn VirtualSkill::from_mcp_server(
 ///|
 /// Generate a system prompt section describing this virtual skill's tools.
 pub fn VirtualSkill::to_system_prompt_section(self : VirtualSkill) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("## MCP Skill: ")
   buf.write_string(self.name)
   buf.write_string("\n\n")
@@ -90,7 +90,7 @@ pub fn VirtualSkill::build_tool_call_instruction(
   self : VirtualSkill,
   tool_name : String,
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("To call tool '")
   buf.write_string(tool_name)
   buf.write_string("' on MCP server '")

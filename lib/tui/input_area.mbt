@@ -264,7 +264,7 @@ pub fn InputArea::render_wrapped_lines(
     let chars = line.to_array()
     for j = 0; j < segments.length(); j = j + 1 {
       let (start, end) = segments[j]
-      let sb = StringBuilder::new()
+      let sb = StringBuilder()
       if j == 0 {
         sb.write_string(prefix)
       } else {
@@ -317,7 +317,7 @@ pub fn InputArea::cursor_display_pos_wrapped(
     }
   }
   // Display width of the text before the cursor within its segment.
-  let before = StringBuilder::new()
+  let before = StringBuilder()
   for k = seg_start; k < cursor_col; k = k + 1 {
     before.write_char(chars[k])
   }

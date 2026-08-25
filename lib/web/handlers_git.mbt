@@ -45,7 +45,7 @@ fn parse_git_files(porcelain : String) -> Json {
 /// Split string into lines (local helper).
 fn git_split_lines(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for ch in s {
     if ch == '\n' {
       let line = current.to_string()

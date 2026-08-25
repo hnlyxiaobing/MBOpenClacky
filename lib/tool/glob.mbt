@@ -134,7 +134,7 @@ impl Tool for Glob with fn execute(self, args : Map[String, Json]) -> ToolResult
     return ToolResult::success("No files matched pattern: \{pattern}")
   }
 
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   if shown < total {
     sb.write_string(
       "Found \{total} file(s) matching: \{pattern} (showing first \{shown})\n",

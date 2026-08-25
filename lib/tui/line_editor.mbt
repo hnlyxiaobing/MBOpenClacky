@@ -56,7 +56,7 @@ pub fn LineEditor::multiline_new() -> LineEditor {
 ///|
 /// Full text content joined with newlines.
 pub fn LineEditor::text(self : LineEditor) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < self.lines.length(); i = i + 1 {
     if i > 0 {
       sb.write_char('\n')
@@ -190,7 +190,7 @@ pub fn LineEditor::insert_char(self : LineEditor, c : Char) -> Unit {
   let line = self.lines[self.cursor_line]
   let chars = line.to_array()
   let col = clamp_col(self.cursor_col, chars.length())
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < col; i = i + 1 {
     sb.write_char(chars[i])
   }
@@ -261,7 +261,7 @@ pub fn LineEditor::backspace(self : LineEditor) -> Unit {
     let line = self.lines[self.cursor_line]
     let chars = line.to_array()
     let col = clamp_col(self.cursor_col, chars.length())
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = 0; i < chars.length(); i = i + 1 {
       if i != col - 1 {
         sb.write_char(chars[i])
@@ -288,7 +288,7 @@ pub fn LineEditor::delete_forward(self : LineEditor) -> Unit {
   let chars = line.to_array()
   let col = clamp_col(self.cursor_col, chars.length())
   if col < chars.length() {
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = 0; i < chars.length(); i = i + 1 {
       if i != col {
         sb.write_char(chars[i])
@@ -408,7 +408,7 @@ pub fn LineEditor::kill_to_end(self : LineEditor) -> Unit {
   let chars = line.to_array()
   let col = clamp_col(self.cursor_col, chars.length())
   if col < chars.length() {
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = 0; i < col; i = i + 1 {
       sb.write_char(chars[i])
     }
@@ -428,7 +428,7 @@ pub fn LineEditor::kill_to_start(self : LineEditor) -> Unit {
     let line = self.lines[self.cursor_line]
     let chars = line.to_array()
     let col = clamp_col(self.cursor_col, chars.length())
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = col; i < chars.length(); i = i + 1 {
       sb.write_char(chars[i])
     }
@@ -465,7 +465,7 @@ pub fn LineEditor::kill_word(self : LineEditor) -> Unit {
   while new_col > 0 && !is_word_separator(chars[new_col - 1]) {
     new_col = new_col - 1
   }
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < new_col; i = i + 1 {
     sb.write_char(chars[i])
   }
@@ -572,7 +572,7 @@ fn clamp_col(col : Int, max : Int) -> Int {
 ///|
 /// Convert an array of chars to a string.
 fn char_array_to_string(chars : Array[Char]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for c in chars {
     sb.write_char(c)
   }

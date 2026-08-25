@@ -33,7 +33,7 @@ fn base64_encode(text : String) -> String {
     }
   }
   // Base64 encode
-  let result = StringBuilder::new()
+  let result = StringBuilder()
   let len = bytes.length()
   let mut i = 0
   while i < len {

@@ -1104,7 +1104,7 @@ fn extract_err_snippet(body : String) -> String {
 
 ///|
 fn body_snippet_local(body : String, max_chars : Int) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut count = 0
   let mut truncated = false
   for c in body {

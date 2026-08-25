@@ -10,7 +10,7 @@
 ///|
 /// Strip ANSI escape sequences from a string.
 pub fn strip_ansi(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   // Parse state: 0=normal, 1=after_esc, 2=in_csi, 3=in_osc, 4=osc_after_esc
   let mut parse_state = 0
   for c in s.iter() {
@@ -108,7 +108,7 @@ pub fn compose_screen_lines(
 ///|
 /// Convert a Node Style to an SGR prefix (empty when the style is plain).
 fn style_prefix(style : Style) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   if style.bold {
     buf.write_string("\u{1b}[1m")
   }
@@ -219,7 +219,7 @@ pub fn node_to_lines(node : Node) -> Array[String] {
         child_lines.push(ls)
       }
       if all_single {
-        let buf = StringBuilder::new()
+        let buf = StringBuilder()
         for ls in child_lines {
           if ls.length() == 1 {
             buf.write_string(ls[0])

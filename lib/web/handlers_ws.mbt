@@ -1404,7 +1404,7 @@ fn ws_message_text(msg : @message.Message) -> String {
 /// Derive a session title from the first user message: collapse all
 /// whitespace runs to single spaces and cap at 30 chars with an ellipsis.
 fn derive_session_title(text : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut last_was_space = true // also trims leading whitespace
   let mut count = 0
   let mut truncated = false

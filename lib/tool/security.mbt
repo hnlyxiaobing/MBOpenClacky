@@ -312,7 +312,7 @@ fn iso8601_now() -> String {
 /// Strip quoted strings (single and double) from a command for safer
 /// pattern matching (avoids false positives from quoted content).
 fn strip_quoted_strings(text : String) -> String {
-  let result = StringBuilder::new()
+  let result = StringBuilder()
   let chars = text.iter()
   let mut in_single_quote = false
   let mut in_double_quote = false

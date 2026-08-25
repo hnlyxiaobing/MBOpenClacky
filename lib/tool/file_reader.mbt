@@ -237,7 +237,7 @@ impl Tool for FileReader with fn execute(self, args : Map[String, Json]) -> Tool
     )
   }
 
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   let mut i = start_idx
   while i <= end_idx {
     let line = lines[i]
@@ -319,7 +319,7 @@ fn list_directory_contents(path : String) -> ToolResult {
   files.sort()
   let all_entries = dirs + files
 
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_string("Directory listing:\n")
   for entry in all_entries {
     sb.write_string("  \{entry}\n")

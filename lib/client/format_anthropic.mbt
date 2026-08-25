@@ -420,7 +420,7 @@ fn to_anthropic_message(
 /// output on both the tool_use and tool_result sides, keeping ids
 /// self-consistent). Mirrors Ruby's `sanitize_tool_use_id`.
 fn sanitize_anthropic_tool_use_id(id : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut count = 0
   for ch in id {
     if count >= 128 {

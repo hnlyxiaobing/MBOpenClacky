@@ -15,7 +15,7 @@ pub fn wrap_line_at_width(line : String, max_width : Int) -> Array[String] {
   let chars = line.to_array()
   for range in wrap_line_segments(line, max_width) {
     let (start, end) = range
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = start; i < end; i = i + 1 {
       sb.write_char(chars[i])
     }
@@ -154,7 +154,7 @@ pub fn wrap_ansi_line(line : String, max_width : Int) -> Array[String] {
   let mut seg_start = 0
   for bi = 0; bi < break_positions.length(); bi = bi + 1 {
     let bp = break_positions[bi]
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for k = seg_start; k < bp; k = k + 1 {
       sb.write_char(chars[k])
     }
@@ -166,7 +166,7 @@ pub fn wrap_ansi_line(line : String, max_width : Int) -> Array[String] {
     seg_start = bp
   }
   // Final segment (remainder)
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for k = seg_start; k < len; k = k + 1 {
     sb.write_char(chars[k])
   }

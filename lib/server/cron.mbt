@@ -271,7 +271,7 @@ fn describe_field(field : CronField, name : String) -> String {
 /// Split string by whitespace (simple implementation)
 fn split_whitespace(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   let mut in_word = false
   for ch in s {
     if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
@@ -295,7 +295,7 @@ fn split_whitespace(s : String) -> Array[String] {
 /// Split string by a single character
 fn split_by_char(s : String, sep : Char) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for ch in s {
     if ch == sep {
       result.push(current.to_string())

@@ -119,7 +119,7 @@ pub fn render_width_with_style(text : String, style : BlockFontStyle) -> Int {
 /// can be rendered as multiple block-font paragraphs.
 fn split_lines(text : String) -> Array[String] {
   let parts : Array[String] = []
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in text.iter() {
     if c == '\n' {
       parts.push(buf.to_string())

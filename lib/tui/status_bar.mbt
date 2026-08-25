@@ -184,7 +184,7 @@ pub fn StatusBar::format_full(self : StatusBar, state : TuiState) -> Unit {
 ///|
 /// Return the plain-text representation (no color codes).
 pub fn StatusBar::plain_text(self : StatusBar) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for seg in self.segments {
     sb.write_string(seg.text)
   }
@@ -198,7 +198,7 @@ pub fn StatusBar::plain_text(self : StatusBar) -> String {
 /// its `SegmentColor`. Use this for terminal rendering instead of
 /// `plain_text` when color output is desired.
 pub fn StatusBar::colored_text(self : StatusBar) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for seg in self.segments {
     sb.write_string(segment_color_code(seg.color))
     sb.write_string(seg.text)
@@ -320,7 +320,7 @@ fn truncate_dir_to_width(path : String, max_w : Int) -> String {
     acc_w = acc_w + cw
     i = i - 1
   }
-  let result = StringBuilder::new()
+  let result = StringBuilder()
   result.write_string("...")
   let mut j = i + 1
   while j < chars.length() {

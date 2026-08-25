@@ -111,7 +111,7 @@ fn detect_desktop() -> String? {
 /// 9. Memory summary
 /// 10. Task summary
 pub fn Agent::build_system_prompt(self : Agent) -> String {
-  let sections = StringBuilder::new()
+  let sections = StringBuilder()
 
   // Layer 1: Brand confidentiality notice
   sections.write_string(brand_confidentiality_notice)
@@ -198,7 +198,7 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
 ///|
 /// Format a titled prompt section with consistent delimiters.
 pub fn format_prompt_section(title : String, content : String) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_string("\n## ")
   sb.write_string(title)
   sb.write_string("\n")

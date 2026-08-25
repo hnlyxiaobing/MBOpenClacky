@@ -108,7 +108,7 @@ pub fn ProxyConfig::reset(self : ProxyConfig) -> ProxyConfig {
 ///|
 fn split_comma(s : String) -> Array[String] {
   let result : Array[String] = []
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for ch in s {
     if ch == ',' {
       result.push(buf.to_string())
@@ -139,7 +139,7 @@ fn trim_string(s : String) -> String {
   if start > end {
     return ""
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = start; i <= end; i = i + 1 {
     buf.write_char(chars[i])
   }

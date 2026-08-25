@@ -18,7 +18,7 @@ priv enum AnsiState {
 /// Removes: ESC[...m (color), ESC[...H (cursor), ESC[...J (clear screen), etc.
 /// CSI terminator set matches Ruby CSI_REGEX `\e\[[\d;?]*[a-zA-Z@]`.
 pub fn clean_ansi_output(raw : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut state : AnsiState = Normal
   for c in raw {
     match state {
@@ -59,7 +59,7 @@ pub fn clean_ansi_output(raw : String) -> String {
 ///|
 /// Remove invisible control characters (0x00-0x1F) except \n, \r, \t.
 pub fn strip_control_chars(text : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in text {
     let code = c.to_int()
     if code >= 0x20 || code == 0x0a || code == 0x0d || code == 0x09 {
@@ -107,7 +107,7 @@ pub fn strip_backspaces(text : String) -> String {
       chars.push(c)
     }
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in chars {
     buf.write_char(c)
   }
@@ -117,7 +117,7 @@ pub fn strip_backspaces(text : String) -> String {
 ///|
 /// Remove leftover isolated \r (Ruby clean step 6: normalize CRLF → LF).
 fn strip_carriage_returns(text : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in text {
     if c.to_int() != 0x0d {
       buf.write_char(c)
@@ -205,7 +205,7 @@ pub let max_line_chars : Int = 500
 /// Prevents a single minified JSON/CSS/JS blob from eating the entire output budget.
 pub fn truncate_long_lines(text : String, max_chars? : Int = 500) -> String {
   let lines = text.split("\n").collect()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut first = true
   for line in lines {
     if !first {
@@ -316,7 +316,7 @@ fn random_hex(n : Int) -> String {
   let hex_chars : Array[Char] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut i = 0
   while i < n {
     buf.write_char(hex_chars[rand.int(limit=16)])

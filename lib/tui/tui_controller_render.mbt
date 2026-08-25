@@ -208,7 +208,7 @@ async fn TuiController::paint_body_diff(
 
   // Paint changed rows, scrolling when we reach the bottom of the
   // output area.
-  let mut buf = StringBuilder::new()
+  let mut buf = StringBuilder()
   let mut row = prefix
   let mut i = prefix
   while i < new_body.length() {
@@ -216,7 +216,7 @@ async fn TuiController::paint_body_diff(
       // Flush pending paints before scrolling (the scroll shifts
       // all rows up; pending paints must be at their intended positions).
       self.tty.write_string(buf.to_string())
-      buf = StringBuilder::new()
+      buf = StringBuilder()
       let n = self.scroll_phys(1)
       drop_head_mut(painted, n)
       row = row - n
@@ -300,7 +300,7 @@ async fn TuiController::scroll_phys(
   let committed = self.output.commit_oldest_display_lines(requested)
   let n = if committed > requested { committed } else { requested }
   // Emit n newlines at the bottom row to scroll the screen up.
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("\u{1b}[")
   buf.write_string(self.term_height.to_string())
   buf.write_string(";1H")
@@ -332,7 +332,7 @@ async fn TuiController::paint_fixed_area(
   let skip = if n > th { n - th } else { 0 }
   let visible = n - skip
   let start = th - visible
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut i = 0
   while i < visible {
     buf.write_string("\u{1b}[")
@@ -355,7 +355,7 @@ async fn TuiController::clear_rows_range(
   if from_row >= to_row {
     return
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut r = from_row
   while r < to_row {
     buf.write_string("\u{1b}[")
@@ -455,7 +455,7 @@ fn TuiController::build_fixed_area_lines(
 /// (CJK-aware), passing escape sequences through untouched so exactly one
 /// terminal row is occupied when the line is printed directly to the tty.
 fn truncate_ansi_line(line : String, width : Int) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut col = 0
   // Parse state: 0=normal, 1=after_esc, 2=in_csi, 3=in_osc, 4=osc_after_esc
   let mut parse_state = 0

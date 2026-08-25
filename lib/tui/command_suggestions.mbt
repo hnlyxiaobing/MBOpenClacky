@@ -331,7 +331,7 @@ fn sugg_pad_right(s : String, min_width : Int) -> String {
     s
   } else {
     let padding = min_width - current
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     sb.write_string(s)
     for j = 0; j < padding; j = j + 1 {
       sb.write_char(' ')
@@ -347,7 +347,7 @@ fn sugg_truncate(s : String, max_width : Int) -> String {
   if width <= max_width {
     s
   } else {
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     let mut current_width = 0
     let target = max_width - 3 // room for "..."
     for c in s.iter() {
@@ -376,7 +376,7 @@ fn sugg_pad_box_line(line : String) -> String {
     if chars.length() < 2 {
       return line
     }
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     for i = 0; i < chars.length() - 1; i = i + 1 {
       sb.write_char(chars[i])
     }
