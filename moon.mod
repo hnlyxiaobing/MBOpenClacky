@@ -6,10 +6,10 @@ readme = "README.md"
 
 import {
   "moonbitlang/x@0.5.1",
-  "moonbitlang/async@0.21.0",
+  "moonbitlang/async@0.21.1",
   "hnlyxiaobing/toml@0.4.8",
   "TheWaWaR/clap@0.2.6",
-  "hnlyxiaobing/crescent@0.10.5",
+  "hnlyxiaobing/crescent@0.10.6",
   "hnlyxiaobing/moonbitmark@0.4.2",
   "moonbit-community/tty@0.3.0",
   "moonbit-community/pty@0.4.0",
