@@ -26,6 +26,10 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
+      - name: Compute toolchain cache-buster date
+        id: toolchain_buster
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker image
         uses: docker/build-push-action@v7
         with:
@@ -35,6 +39,11 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Refresh the toolchain-install layer at most once per day (see
+          # TOOLCHAIN_CACHE_BUSTER in Dockerfile): keeps the cached toolchain
+          # from going stale while still allowing same-day layer reuse.
+          build-args: |
+            TOOLCHAIN_CACHE_BUSTER=${{ steps.toolchain_buster.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

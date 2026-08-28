@@ -93,4 +93,12 @@ jobs:
         run: moon build --target native --release cmd
 
       - name: Run tests
-        run: moon test
+        # --release: moonc v0.10.11 (toolchain 20260827+) hits a compiler ICE in
+        # debug mode when linking test binaries that pull in
+        # bobzhang/mbtpdf@0.1.2 document/pdfpage find_pages_quick:
+        #   Machine_error(kind=unsupported;
+        #     who="Machine_of_clam_lower.lower_scalar_runtime_pccall";
+        #     message="unit runtime pccall cannot be used as a scalar value")
+        # Release-mode lowering does not hit the bug (all 3869 tests pass).
+        # Revisit once the compiler fix ships: try `moon test` (debug) again.
+        run: moon test --release

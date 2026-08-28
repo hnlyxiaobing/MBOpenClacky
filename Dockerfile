@@ -27,8 +27,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install MoonBit toolchain (use latest stable; pinned versions are not retained on CDN)
-RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+# Install MoonBit toolchain (use latest stable; pinned versions are not retained on CDN).
+#
+# TOOLCHAIN_CACHE_BUSTER invalidates this layer (and every layer after it) so
+# the build pulls the *current* `latest` toolchain instead of reusing one
+# cached by a previous build. Without it, GHA layer caching can pin a stale
+# toolchain for days: the 2026-08-28 build failed because a cached older
+# toolchain rejected async@0.21.1's `errdefer close(...)` (error 4174:
+# "calling function with error is not allowed inside `errdefer`") even though
+# the then-current toolchain compiled it fine. The workflow passes the build
+# date here, so the toolchain refreshes at most once per day.
+ARG TOOLCHAIN_CACHE_BUSTER
+RUN echo "toolchain cache buster: ${TOOLCHAIN_CACHE_BUSTER:-unset}" \
+    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
