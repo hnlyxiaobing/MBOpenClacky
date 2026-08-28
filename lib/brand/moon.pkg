@@ -2,7 +2,7 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
   "moonbitlang/core/string",
-  "hnlyxiaobing/toml",
+  "bobzhang/toml",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/crypto",

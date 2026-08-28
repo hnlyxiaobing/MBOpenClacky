@@ -4,7 +4,7 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "hnlyxiaobing/toml",
+  "bobzhang/toml",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
   "moonbitlang/x/path",

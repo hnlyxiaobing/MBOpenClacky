@@ -1,13 +1,13 @@
 name = "hnlyxiaobing/MBOpenClacky"
 
-version = "0.1.2"
+version = "0.1.3"
 
 readme = "README.md"
 
 import {
   "moonbitlang/x@0.5.1",
   "moonbitlang/async@0.21.1",
-  "hnlyxiaobing/toml@0.4.9",
+  "bobzhang/toml@0.4.3",
   "TheWaWaR/clap@0.2.6",
   "hnlyxiaobing/crescent@0.10.7",
   "hnlyxiaobing/moonbitmark@0.4.3",
