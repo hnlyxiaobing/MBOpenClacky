@@ -86,6 +86,9 @@ test "output_dir_cleanup_keeps_max_files" {
   @debug.assert_eq(removed, 2)
   let remaining = dir.list_files()
   @debug.assert_eq(remaining.length(), 3)
+  // readdir order is filesystem-dependent (hash order on ext4), so sort
+  // before positional assertions - list_files does not guarantee order.
+  remaining.sort_by(fn(a, b) { a.compare(b) })
   // The newest (highest-counter) files survive
   assert_true(remaining[2].has_suffix("media_5.png"))
   output_dir_cleanup(dir.get_path())
