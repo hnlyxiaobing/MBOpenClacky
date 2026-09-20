@@ -13,13 +13,18 @@ import {
   "moonbitlang/async/aqueue",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
-  "moonbitlang/x/fs",
 }
 
 // Values
 pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
 
 pub const MAX_ITERATIONS : Int = 200
+
+pub async fn acquire_session_lock(String) -> Result[SessionLock, String]
+
+pub async fn append_event(String, @protocol.Event, Int64) -> Result[Int, String]
+
+pub async fn append_summary(String, Int, Int, Int64) -> Result[Int, String]
 
 pub fn apply_error_rollback(Array[@message.Message]) -> Array[@message.Message]
 
@@ -61,6 +66,8 @@ pub fn content_to_text(@message.MessageContent) -> String
 
 pub fn count_messages_to_compress(Array[@message.Message], Int) -> Int
 
+pub async fn create_session_log(String, String, String) -> Result[Unit, String]
+
 pub fn current_iso8601() -> String
 
 pub fn current_time_ms() -> Int64
@@ -77,7 +84,7 @@ pub fn detect_fake_tool_call(String) -> Bool
 
 pub fn enforce_session_cap() -> Unit
 
-pub fn ensure_sessions_dir() -> String raise @fs.IOError
+pub fn ensure_sessions_dir() -> String raise @moonbitlang/x/fs.IOError
 
 pub fn estimate_history_tokens(Array[@message.Message]) -> Int
 
@@ -141,9 +148,13 @@ pub fn import_session_zip(Bytes) -> Result[SessionData, String]
 
 pub fn import_sessions_zip(Bytes) -> Result[Int, String]
 
+pub fn legacy_session_records(SessionData) -> SessionLogFile
+
 pub fn list_sessions() -> Array[SessionData]
 
 pub fn load_session(String) -> SessionData?
+
+pub fn load_session_file(String) -> Result[SessionData, String]
 
 pub let max_fake_tool_call_retries : Int
 
@@ -175,6 +186,8 @@ pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, Json], St
 
 pub fn pulled_back_messages(Array[@message.Message], Int) -> (Array[@message.Message], Array[@message.Message])
 
+pub fn read_session_log(String) -> SessionLogFile
+
 pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int) -> Array[@message.Message]
 
 pub fn restore_session_enhanced(@config.AgentConfig, SessionData) -> RestoreResult
@@ -187,9 +200,15 @@ pub let retry_max_delay_ms : Int
 
 pub fn save_compressed_chunk(Array[@message.Message], String, Int, topics? : String?) -> Result[String, String]
 
-pub fn save_session(SessionData) -> Unit raise @fs.IOError
+pub fn save_session(SessionData) -> Unit raise @moonbitlang/x/fs.IOError
 
 pub fn search_content(String) -> Array[(String, String)]
+
+pub fn session_lock_path(String) -> String
+
+pub fn session_log_path(String) -> String
+
+pub let session_log_version : Int
 
 pub fn set_retry_delay_override_for_test(Int?) -> Unit
 
@@ -595,6 +614,24 @@ pub fn KeyInformation::equal(Self, Self) -> Bool
 pub fn KeyInformation::not_equal(Self, Self) -> Bool
 pub fn KeyInformation::to_repr(Self) -> @debug.Repr
 
+pub(all) enum LogRecord {
+  EventRecord(LoggedEvent)
+  SummaryRecord(LogSummary)
+}
+
+pub(all) struct LogSummary {
+  seq : Int
+  unix_ms : Int64
+  from_seq : Int
+  to_seq : Int
+}
+
+pub(all) struct LoggedEvent {
+  seq : Int
+  unix_ms : Int64
+  event : @protocol.Event
+}
+
 pub(all) enum MemoryCategory {
   UserPreference
   ProjectInfo
@@ -814,6 +851,28 @@ pub fn SessionData::not_equal(Self, Self) -> Bool
 pub fn SessionData::to_json(Self) -> Json
 pub fn SessionData::to_repr(Self) -> @debug.Repr
 pub impl ToJson for SessionData
+
+pub(all) struct SessionLock {
+  file : @moonbitlang/async/fs.File
+  path : String
+  recovered_stale : Bool
+}
+pub fn SessionLock::release(Self) -> Unit
+
+pub(all) struct SessionLogFile {
+  header : SessionLogHeader?
+  records : Array[LogRecord]
+  truncated_tail : Bool
+  malformed_lines : Int
+}
+pub fn SessionLogFile::max_seq(Self) -> Int
+pub fn SessionLogFile::project(Self) -> Array[LogRecord]
+
+pub(all) struct SessionLogHeader {
+  version : Int
+  session_id : String
+  created_at : String
+}
 
 pub(all) struct SessionStats {
   total_iterations : Int

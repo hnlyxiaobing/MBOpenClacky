@@ -180,6 +180,15 @@ async fn main {
         ),
       }),
       "mcp": @clap.SubCommand::new(help="Expose this CLI as a stdio MCP server"),
+      "inspect": @clap.SubCommand::new(
+        args={
+          "path": @clap.Arg::positional(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Session log (.jsonl) or legacy session (.json) to replay offline",
+          ),
+        },
+        help="Replay a session log timeline offline (P1-2)",
+      ),
       "selftest": @clap.SubCommand::new(
         args={
           "bin": @clap.Arg::named(
@@ -453,6 +462,9 @@ async fn main {
         return
       } else if sub.name == "selftest" {
         handle_selftest(sub)
+        return
+      } else if sub.name == "inspect" {
+        handle_inspect(sub)
         return
       }
     None => ()
@@ -944,6 +956,9 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
       logger.log_event(@agent.hook_event_to_protocol(evt))
     })
   }
+  // Session event log (P1-2): buffer the engine's protocol events; the run
+  // path flushes them into the append-only .jsonl beside the session store.
+  attach_session_log(agent)
   // Built-in skills are user-invocable as slash commands (/name) and show
   // up in the system prompt summary (Ruby skills_by_command).
   @skill.register_default_skills(agent.skill_registry)
@@ -1103,6 +1118,8 @@ async fn run_non_interactive(
   }
   // Enforce session cap after save
   @agent.enforce_session_cap()
+  // Flush the buffered event stream into the append-only session log.
+  flush_session_log(agent.session_id, agent.created_at)
   if json_output {
     println(run_result_to_json(result))
   } else {
@@ -1166,6 +1183,7 @@ fn handle_list_sessions(json_output : Bool) -> Unit {
   }
   if sessions.is_empty() {
     println("No sessions found.")
+    report_unlisted_sessions(0)
     return
   }
   println("Sessions:")
@@ -1174,6 +1192,30 @@ fn handle_list_sessions(json_output : Bool) -> Unit {
     println(@agent.format_session_summary(session))
   }
   println("\{sessions.length()} session(s) total")
+  report_unlisted_sessions(sessions.length())
+}
+
+///|
+/// `list_sessions` silently skips files it cannot parse (and soft-deleted
+/// sessions). Never hide that: report the difference so an operator knows to
+/// run `mbopenclacky inspect <file>`.
+fn report_unlisted_sessions(parsed : Int) -> Unit {
+  let dir = match @utils.sessions_dir() {
+    Some(d) => d
+    None => return
+  }
+  let names = @fs.read_dir(dir) catch { _ => return }
+  let mut total = 0
+  for name in names {
+    if name.has_suffix(".json") {
+      total = total + 1
+    }
+  }
+  if total > parsed {
+    println(
+      "\{total - parsed} session file(s) not listed (unparseable or soft-deleted); use 'mbopenclacky inspect <file>' for details",
+    )
+  }
 }
 
 ///|

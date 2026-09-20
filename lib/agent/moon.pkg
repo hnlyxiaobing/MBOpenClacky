@@ -25,6 +25,7 @@ import {
   "moonbitlang/x/time",
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
+  "moonbitlang/async/fs" @afs,
   "moonbitlang/async/http",
   "moonbitlang/async/socket",
 }

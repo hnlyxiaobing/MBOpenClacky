@@ -3,17 +3,24 @@ package "hnlyxiaobing/MBOpenClacky/cmd"
 
 import {
   "DzmingLi/clap",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn attach_session_log(@agent.Agent) -> Unit
+
 pub async fn execute_hook(HookConfig, HookContext) -> Result[Unit, String]
+
+pub async fn flush_session_log(String, String) -> Unit
 
 pub fn handle_ext(@clap.SimpleValue) -> Unit
 
 pub fn handle_hook(@clap.SimpleValue) -> Unit
+
+pub fn handle_inspect(@clap.SimpleValue) -> Unit
 
 pub fn handle_mcp() -> Unit
 
