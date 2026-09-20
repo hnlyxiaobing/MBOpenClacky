@@ -77,11 +77,24 @@ jobs:
       - name: Type check
         run: moon check
 
-      - name: Warning budget gate (P2-3)
-        # Reports the MoonBit warning count against the P2-3 budget. Runs in
-        # report-only mode so CI is not broken by pre-existing warnings; flip
-        # to strict once the count is driven down to the <=200 target.
-        run: bash scripts/warn_count.sh 200
+      - name: Warning budget gate (P2-3, strict)
+        # moon check reports 0 warnings on the 2026-09-20 toolchain baseline
+        # (commit 5b74655). Strict: any new compiler warning fails CI. If the
+        # baseline legitimately moves, raise the budget explicitly here.
+        run: bash scripts/warn_count.sh 0 strict
+
+      - name: Public API gate (P0-1, .mbti diff)
+        # Regenerate every package interface; a public API change that was not
+        # committed as a .mbti update fails CI (the .mbti files are the
+        # machine-readable record of the public surface).
+        run: |
+          moon info
+          if ! git diff --exit-code -- '**/pkg.generated.mbti'; then
+            echo "::error::public API changed without committing .mbti files." \
+                 "Run 'moon info' locally and commit the updated pkg.generated.mbti." >&2
+            git diff --stat -- '**/pkg.generated.mbti' >&2 || true
+            exit 1
+          fi
 
       - name: Known-gaps ledger gate (P0-2)
         # Truth ledger: the auto-scan section must match a fresh scan of the
