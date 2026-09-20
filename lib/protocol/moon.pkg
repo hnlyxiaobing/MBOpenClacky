@@ -1,0 +1,8 @@
+// lib/protocol — 类型化引擎协议（P1-1）
+//
+// 叶子包：只依赖 moonbitlang/core/json，不依赖引擎（lib/agent）、
+// Web 层（lib/web）或 TUI。引擎事件与上游命令的类型定义、JSON 序列化
+// （to_json）与逆解析（parse）都集中在这里，是 wire 契约的唯一作者。
+import {
+  "moonbitlang/core/json",
+}

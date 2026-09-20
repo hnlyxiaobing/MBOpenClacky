@@ -1,0 +1,246 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/protocol"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct AssistantMessage {
+  content : String
+  role : String?
+  partial : Bool?
+  created_at : String?
+}
+
+pub(all) struct CacheStats {
+  total_requests : Int
+  cache_hit_requests : Int
+  cache_read_input_tokens : Int
+}
+
+pub(all) enum Command {
+  Subscribe(SubscribeCommand)
+  Message(MessageCommand)
+  EditMessage(EditMessageCommand)
+  Interrupt(SessionCommand)
+  Confirmation(ConfirmationCommand)
+  Feedback(FeedbackCommand)
+  RunTask(SessionCommand)
+  Ping
+  ListSessions
+}
+pub fn Command::from_wire(String) -> Self?
+pub fn Command::parse(Json) -> Self?
+pub fn Command::to_json(Self) -> Json
+pub fn Command::type_name(Self) -> String
+
+pub(all) struct Complete {
+  iterations : Int
+  cost : Double
+  cost_source : String
+  cache_stats : CacheStats
+}
+
+pub(all) struct ConfirmationCommand {
+  id : String
+  confirmed : Bool
+  session_id : String?
+}
+
+pub(all) struct ConfirmationResponse {
+  request_id : String
+  confirmed : Bool
+}
+
+pub(all) struct Connected {
+  session_id : String
+}
+
+pub(all) struct EditMessageCommand {
+  content : String
+  session_id : String?
+  id : String?
+}
+
+pub(all) struct ErrorMessage {
+  message : String
+}
+
+pub(all) enum Event {
+  SessionUpdate(SessionUpdate)
+  Progress(Progress)
+  PhaseStart(PhaseStart)
+  PhaseEnd(PhaseEnd)
+  ToolCall(ToolCall)
+  ToolResult(ToolResult)
+  ToolError(ToolError)
+  ErrorMessage(ErrorMessage)
+  Complete(Complete)
+  AssistantMessage(AssistantMessage)
+  TokenUsage(TokenUsage)
+  TokenDelta(TokenDelta)
+  Warning(TextMessage)
+  Info(TextMessage)
+  Success(TextMessage)
+  FilePreview(FilePreview)
+  ToolStdout(ToolStdout)
+  RequestFeedback(RequestFeedback)
+  RequestConfirmation(RequestConfirmation)
+  Interrupted
+  SessionRestored(SessionRestored)
+  SessionRenamed(SessionRenamed)
+  SessionDeleted
+  HistoryUserMessage(HistoryUserMessage)
+  TaskFinished(TaskFinished)
+  FeedbackResponse(FeedbackResponse)
+  ConfirmationResponse(ConfirmationResponse)
+  Connected(Connected)
+  Subscribed(Subscribed)
+  SessionList(SessionList)
+  Pong
+}
+pub fn Event::from_wire(String) -> Self?
+pub fn Event::is_global(Self) -> Bool
+pub fn Event::parse(Json) -> Self?
+pub fn Event::to_json(Self) -> Json
+pub fn Event::to_wire(Self, String?) -> String
+pub fn Event::type_name(Self) -> String
+
+pub(all) struct FeedbackCommand {
+  id : String
+  content : String
+  session_id : String?
+}
+
+pub(all) struct FeedbackResponse {
+  request_id : String
+  received : Bool
+}
+
+pub(all) struct FilePreview {
+  path : String
+  op : String
+}
+
+pub(all) struct HistoryUserMessage {
+  content : String
+  role : String
+  created_at : String
+}
+
+pub(all) struct MessageCommand {
+  content : String
+  session_id : String?
+}
+
+pub(all) struct PhaseEnd {
+  phase_id : String
+  summary : String?
+}
+
+pub(all) struct PhaseStart {
+  phase_id : String
+  kind : String?
+  label : String?
+}
+
+pub(all) struct Progress {
+  phase : String
+  message : String?
+  progress_type : String?
+  metadata : Json?
+  started_at : String?
+}
+
+pub(all) struct RequestConfirmation {
+  id : String
+  message : String
+}
+
+pub(all) struct RequestFeedback {
+  question : String
+  id : String?
+  context : String?
+  options : Array[String]?
+}
+
+pub(all) struct SessionCommand {
+  session_id : String?
+}
+
+pub(all) struct SessionList {
+  sessions : Array[Json]
+  has_more : Bool
+  cron_count : Int
+  latest_cron_updated_at : Json?
+}
+
+pub(all) struct SessionRenamed {
+  name : String
+}
+
+pub(all) struct SessionRestored {
+  session : Json
+}
+
+pub(all) struct SessionUpdate {
+  status : String?
+  session_id : String?
+  cost : Double?
+  cost_source : String?
+  latency : Json?
+}
+
+pub(all) struct SubscribeCommand {
+  session_id : String?
+}
+
+pub(all) struct Subscribed {
+  session_id : String
+}
+
+pub(all) struct TaskFinished {
+  session_id : String
+}
+
+pub(all) struct TextMessage {
+  message : String
+}
+
+pub(all) struct TokenDelta {
+  content : String
+}
+
+pub(all) struct TokenUsage {
+  cost : Double
+  prompt_tokens : Int?
+  completion_tokens : Int?
+  delta_tokens : Int?
+  total_tokens : Int?
+  cost_source : String?
+  cache_read : Int?
+  cache_write : Int?
+}
+
+pub(all) struct ToolCall {
+  name : String
+  args : Json
+  summary : Json?
+}
+
+pub(all) struct ToolError {
+  error : String
+}
+
+pub(all) struct ToolResult {
+  result : String
+}
+
+pub(all) struct ToolStdout {
+  lines : String
+}
+
+// Type aliases
+
+// Traits
