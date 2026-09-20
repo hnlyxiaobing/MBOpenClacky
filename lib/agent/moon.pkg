@@ -8,6 +8,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/random",
   "hnlyxiaobing/MBOpenClacky/lib/message",
+  "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/tool",

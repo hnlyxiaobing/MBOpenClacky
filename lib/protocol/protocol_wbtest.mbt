@@ -42,6 +42,7 @@ fn event_samples() -> Array[Event] {
       cost: None,
       cost_source: None,
       latency: None,
+      session: None,
     }),
     SessionUpdate({
       status: Some("idle"),
@@ -49,6 +50,7 @@ fn event_samples() -> Array[Event] {
       cost: None,
       cost_source: None,
       latency: None,
+      session: None,
     }),
     SessionUpdate({
       status: None,
@@ -56,6 +58,7 @@ fn event_samples() -> Array[Event] {
       cost: Some(0.25),
       cost_source: Some("provider"),
       latency: None,
+      session: None,
     }),
     SessionUpdate({
       status: None,
@@ -63,6 +66,7 @@ fn event_samples() -> Array[Event] {
       cost: None,
       cost_source: None,
       latency: Some(Json::object({ "total_ms": (12).to_json() })),
+      session: None,
     }),
     Progress({
       phase: "active",
@@ -89,13 +93,15 @@ fn event_samples() -> Array[Event] {
       name: "read",
       args: Json::object({ "path": "a.mbt".to_json() }),
       summary: None,
+      created_at: None,
     }),
     ToolCall({
       name: "write",
       args: Json::null(),
       summary: Some(Json::string("4 lines")),
+      created_at: None,
     }),
-    ToolResult({ result: "ok", }),
+    ToolResult({ result: "ok", created_at: None, }),
     ToolError({ error: "Tool denied: terminal", }),
     ErrorMessage({ message: "boom", }),
     Complete({
@@ -171,7 +177,8 @@ fn event_samples() -> Array[Event] {
     HistoryUserMessage({
       content: "hi",
       role: "user",
-      created_at: "1700000000000",
+      created_at: Some("1700000000000"),
+      system_injected: None,
     }),
     TaskFinished({ session_id: "s-1", }),
     FeedbackResponse({ request_id: "f-1", received: true, }),
@@ -259,6 +266,7 @@ test "wire: session framing puts type first and payload wins" {
     cost: None,
     cost_source: None,
     latency: None,
+    session: None,
   })
   assert_eq(
     started.to_wire(Some("s-1")),

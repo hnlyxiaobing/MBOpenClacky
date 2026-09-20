@@ -7,6 +7,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
   "hnlyxiaobing/MBOpenClacky/lib/message",
+  "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/skill",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
   "moonbitlang/async/aqueue",
@@ -133,6 +134,8 @@ pub fn get_default_profiles() -> Array[ProfileSpec]
 pub fn get_profile_spec(String) -> ProfileSpec?
 
 pub fn get_recent_with_tool_pairs(Array[@message.Message], Int) -> Array[@message.Message]
+
+pub fn hook_event_to_protocol(HookEvent) -> @protocol.Event
 
 pub fn import_session_zip(Bytes) -> Result[SessionData, String]
 

@@ -75,7 +75,11 @@ test "map_hook_event: FeedbackRequested maps to request_feedback" {
 }
 
 ///|
-test "map_hook_event: FeedbackRequested with null context and options" {
+/// Absent optional fields are omitted from the wire (P1-1 policy): every
+/// frontend consumer reads them through falsy checks, so `undefined` and
+/// `null` behave identically while the JSON stays smaller and round-trips
+/// exactly through @proto.Event::to_json/parse.
+test "map_hook_event: FeedbackRequested with absent context and options" {
   let mapped = map_hook_event(@agent.FeedbackRequested("Continue?", None, None))
   @debug.assert_eq(mapped.event_type, "request_feedback")
   let data = match mapped.data {
@@ -87,14 +91,8 @@ test "map_hook_event: FeedbackRequested with null context and options" {
     _ => abort("expected question string")
   }
   @debug.assert_eq(question, "Continue?")
-  match data.get("context") {
-    Some(Null) => ()
-    _ => abort("expected null context")
-  }
-  match data.get("options") {
-    Some(Null) => ()
-    _ => abort("expected null options")
-  }
+  assert_false(data.contains("context"))
+  assert_false(data.contains("options"))
 }
 
 ///|

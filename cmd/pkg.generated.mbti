@@ -3,6 +3,7 @@ package "hnlyxiaobing/MBOpenClacky/cmd"
 
 import {
   "DzmingLi/clap",
+  "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "moonbitlang/core/debug",
 }
@@ -64,6 +65,7 @@ pub fn NdjsonLogger::debug(Self, String, fields? : Map[String, String]?) -> Unit
 pub fn NdjsonLogger::error(Self, String, fields? : Map[String, String]?) -> Unit
 pub fn NdjsonLogger::info(Self, String, fields? : Map[String, String]?) -> Unit
 pub fn NdjsonLogger::log(Self, String, String, fields? : Map[String, String]?) -> Unit
+pub fn NdjsonLogger::log_event(Self, @protocol.Event) -> Unit
 pub fn NdjsonLogger::new(Bool) -> Self
 pub fn NdjsonLogger::warn(Self, String, fields? : Map[String, String]?) -> Unit
 

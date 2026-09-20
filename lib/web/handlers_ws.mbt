@@ -370,22 +370,8 @@ fn handle_ws_interrupt(
         // I-027: After interrupt, send the same closing frames as a normal
         // run end so the frontend status bar transitions to idle and the
         // progress indicator clears.
-        hub.broadcast_session(
-          sid,
-          @protocol.build_event(
-            @protocol.event_session_update,
-            sid,
-            Json::object({ "status": "idle".to_json() }),
-          ),
-        )
-        hub.broadcast_session(
-          sid,
-          @protocol.build_event(
-            @protocol.event_progress,
-            sid,
-            Json::object({ "phase": "done".to_json() }),
-          ),
-        )
+        hub.broadcast_session(sid, @protocol.session_status_frame(sid, "idle"))
+        hub.broadcast_session(sid, @protocol.progress_done_frame(sid))
       }
     None => ()
   }
@@ -753,11 +739,7 @@ fn broadcast_latency_frame(
       }
       hub.broadcast_session_raw(
         sid,
-        @protocol.build_event(
-          @protocol.event_session_update,
-          sid,
-          Json::object({ "latency": Json::object(lat_inner) }),
-        ),
+        @protocol.session_latency_frame(sid, Json::object(lat_inner)),
       )
     }
     None => ()
@@ -803,14 +785,7 @@ fn register_ws_hooks(
           state.chunk_buf = ""
           hub.broadcast_session(
             sid,
-            @protocol.build_event(
-              @protocol.event_assistant_message,
-              sid,
-              Json::object({
-                "role": "assistant".to_json(),
-                "content": content.to_json(),
-              }),
-            ),
+            @protocol.assistant_message_frame(sid, "assistant", content),
           )
         } else {
           hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
@@ -827,14 +802,7 @@ fn register_ws_hooks(
             state.chunk_buf = ""
             hub.broadcast_session(
               sid,
-              @protocol.build_event(
-                @protocol.event_assistant_message,
-                sid,
-                Json::object({
-                  "role": "assistant".to_json(),
-                  "content": content.to_json(),
-                }),
-              ),
+              @protocol.assistant_message_frame(sid, "assistant", content),
             )
           }
           hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
@@ -852,16 +820,12 @@ fn register_ws_hooks(
           hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
           // fix-08: Emit partial session_update frames for cost and latency
           // so the frontend can patch the session without a full snapshot.
-          let cost_obj : Map[String, Json] = {
-            "cost": usage_data.cost.to_json(),
-            "cost_source": usage_data.cost_source.to_string_value().to_json(),
-          }
           hub.broadcast_session_raw(
             sid,
-            @protocol.build_event(
-              @protocol.event_session_update,
+            @protocol.session_cost_frame(
               sid,
-              Json::object(cost_obj),
+              usage_data.cost,
+              usage_data.cost_source.to_string_value(),
             ),
           )
           broadcast_latency_frame(hub, sid, agent, usage_data)
@@ -967,13 +931,10 @@ async fn run_confirmation_bridge(
     state.pending_confirmations[request_id] = reply_q
     hub.broadcast_session(
       session_id,
-      @protocol.build_event(
-        @protocol.event_request_confirmation,
+      @protocol.request_confirmation_frame(
         session_id,
-        Json::object({
-          "id": request_id.to_json(),
-          "message": ("Allow tool \"" + tool + "\" to execute?").to_json(),
-        }),
+        request_id,
+        "Allow tool \"" + tool + "\" to execute?",
       ),
     )
     let answer = @async.with_timeout_opt(300_000, () => reply_q.get())
@@ -1041,25 +1002,10 @@ async fn run_feedback_bridge(
     let request_id = session_id + "-fb-" + state.confirm_seq.to_string()
     let reply_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
     state.pending_feedback[request_id] = reply_q
-    let opt_json : Json = match options {
-      Some(arr) => arr.to_json()
-      None => Json::null()
-    }
-    let ctx_json : Json = match context {
-      Some(c) => c.to_json()
-      None => Json::null()
-    }
     hub.broadcast_session(
       session_id,
-      @protocol.build_event(
-        @protocol.event_request_feedback,
-        session_id,
-        Json::object({
-          "id": request_id.to_json(),
-          "question": question.to_json(),
-          "context": ctx_json,
-          "options": opt_json,
-        }),
+      @protocol.request_feedback_frame(
+        session_id, request_id, question, context, options,
       ),
     )
     let answer = @async.with_timeout_opt(300_000, () => reply_q.get())
@@ -1127,15 +1073,7 @@ fn handle_ws_feedback(
         }
       }
   } // Acknowledge the client.
-  peer.text(
-    @protocol.build_global_event(
-      "feedback_response",
-      Json::object({
-        "request_id": request_id.to_json(),
-        "received": delivered.to_json(),
-      }),
-    ),
-  )
+  peer.text(@protocol.build_feedback_response(request_id, delivered))
 }
 
 ///|
@@ -1248,19 +1186,11 @@ async fn run_ws_agent(
       // frames are still required so the status bar follows up.
       hub.broadcast_session(
         session_id,
-        @protocol.build_event(
-          @protocol.event_session_update,
-          session_id,
-          Json::object({ "status": "idle".to_json() }),
-        ),
+        @protocol.session_status_frame(session_id, "idle"),
       )
       hub.broadcast_session(
         session_id,
-        @protocol.build_event(
-          @protocol.event_progress,
-          session_id,
-          Json::object({ "phase": "done".to_json() }),
-        ),
+        @protocol.progress_done_frame(session_id),
       )
       // Persist even on error so the user's input is not lost.
       let err_data = agent.to_session_data()
@@ -1325,19 +1255,11 @@ async fn run_ws_agent_blocking(
       // (unit tests, environments without a task group) too.
       hub.broadcast_session(
         session_id,
-        @protocol.build_event(
-          @protocol.event_session_update,
-          session_id,
-          Json::object({ "status": "idle".to_json() }),
-        ),
+        @protocol.session_status_frame(session_id, "idle"),
       )
       hub.broadcast_session(
         session_id,
-        @protocol.build_event(
-          @protocol.event_progress,
-          session_id,
-          Json::object({ "phase": "done".to_json() }),
-        ),
+        @protocol.progress_done_frame(session_id),
       )
       // Persist even on error so the user's input is not lost.
       let err_data = agent.to_session_data()

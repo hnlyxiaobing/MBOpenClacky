@@ -30,15 +30,16 @@ pub(all) struct CacheStats {
 }
 
 ///|
-/// Partial `session_update` patch: any subset of status / cost / latency.
-/// The agent emits status transitions; the web layer also emits cost and
-/// latency patches for the same wire event type.
+/// Partial `session_update` patch: any subset of status / cost / latency /
+/// full session snapshot. The agent emits status transitions; the web layer
+/// also emits cost, latency and snapshot patches for the same wire type.
 pub(all) struct SessionUpdate {
   status : String?
   session_id : String?
   cost : Double?
   cost_source : String?
   latency : Json?
+  session : Json?
 }
 
 ///|
@@ -73,12 +74,14 @@ pub(all) struct ToolCall {
   name : String
   args : Json
   summary : Json?
+  created_at : String?
 }
 
 ///|
 /// Tool execution result.
 pub(all) struct ToolResult {
   result : String
+  created_at : String?
 }
 
 ///|
@@ -182,7 +185,8 @@ pub(all) struct SessionRenamed {
 pub(all) struct HistoryUserMessage {
   content : String
   role : String
-  created_at : String
+  created_at : String?
+  system_injected : Bool?
 }
 
 ///|
@@ -512,6 +516,7 @@ pub fn Event::to_json(self : Event) -> Json {
       put_opt_double(out, "cost", u.cost)
       put_opt_string(out, "cost_source", u.cost_source)
       put_opt_json(out, "latency", u.latency)
+      put_opt_json(out, "session", u.session)
     }
     Progress(p) => {
       put_string(out, "phase", p.phase)
@@ -533,8 +538,12 @@ pub fn Event::to_json(self : Event) -> Json {
       put_string(out, "name", c.name)
       put_json(out, "args", c.args)
       put_opt_json(out, "summary", c.summary)
+      put_opt_string(out, "created_at", c.created_at)
     }
-    ToolResult(r) => put_string(out, "result", r.result)
+    ToolResult(r) => {
+      put_string(out, "result", r.result)
+      put_opt_string(out, "created_at", r.created_at)
+    }
     ToolError(e) => put_string(out, "error", e.error)
     ErrorMessage(e) => put_string(out, "message", e.message)
     Complete(c) => {
@@ -599,7 +608,8 @@ pub fn Event::to_json(self : Event) -> Json {
     HistoryUserMessage(m) => {
       put_string(out, "content", m.content)
       put_string(out, "role", m.role)
-      put_string(out, "created_at", m.created_at)
+      put_opt_string(out, "created_at", m.created_at)
+      put_opt_bool(out, "system_injected", m.system_injected)
     }
     TaskFinished(t) => put_string(out, "session_id", t.session_id)
     FeedbackResponse(r) => {
@@ -644,6 +654,7 @@ pub fn Event::parse(json : Json) -> Event? {
           cost: get_opt_double(fields, "cost"),
           cost_source: get_opt_string(fields, "cost_source"),
           latency: get_opt_json(fields, "latency"),
+          session: get_opt_json(fields, "session"),
         }),
       )
     "progress" =>
@@ -689,13 +700,20 @@ pub fn Event::parse(json : Json) -> Event? {
               name,
               args: get_opt_json(fields, "args").unwrap_or(Json::null()),
               summary: get_opt_json(fields, "summary"),
+              created_at: get_opt_string(fields, "created_at"),
             }),
           )
       }
     "tool_result" =>
       match get_string(fields, "result") {
         None => None
-        Some(result) => Some(ToolResult({ result, }))
+        Some(result) =>
+          Some(
+            ToolResult({
+              result,
+              created_at: get_opt_string(fields, "created_at"),
+            }),
+          )
       }
     "tool_error" =>
       match get_string(fields, "error") {
@@ -819,7 +837,8 @@ pub fn Event::parse(json : Json) -> Event? {
             HistoryUserMessage({
               content,
               role: get_opt_string(fields, "role").unwrap_or("user"),
-              created_at: get_opt_string(fields, "created_at").unwrap_or(""),
+              created_at: get_opt_string(fields, "created_at"),
+              system_injected: get_opt_bool(fields, "system_injected"),
             }),
           )
       }
@@ -918,10 +937,12 @@ fn parse_string_array(
 }
 
 ///|
-/// Frame the event body for a connection: `type` first, then the optional
-/// `session_id`, then the event fields. Payload fields win on key collisions,
-/// matching the historical `build_event` merge order.
-pub fn Event::to_wire(self : Event, session_id : String?) -> String {
+/// Frame the event body: `type` first, then the optional `session_id`, then
+/// the event fields. Payload fields win on key collisions, matching the
+/// historical `build_event` merge order. Use this (rather than `to_json`) when
+/// the framed object is embedded in a larger JSON document, e.g. the REST
+/// history events array.
+pub fn Event::to_framed_json(self : Event, session_id : String?) -> Json {
   let out : Map[String, Json] = Map([])
   put_string(out, "type", self.type_name())
   match session_id {
@@ -937,7 +958,13 @@ pub fn Event::to_wire(self : Event, session_id : String?) -> String {
       }
     _ => ()
   }
-  Json::object(out).stringify()
+  Json::object(out)
+}
+
+///|
+/// Frame the event body for a connection as a wire string.
+pub fn Event::to_wire(self : Event, session_id : String?) -> String {
+  self.to_framed_json(session_id).stringify()
 }
 
 ///|

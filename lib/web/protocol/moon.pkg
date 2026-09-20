@@ -1,6 +1,9 @@
 import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/message",
+  // The typed engine protocol (this package is itself named "protocol", so the
+  // leaf contract is aliased to @proto to keep references unambiguous).
+  "hnlyxiaobing/MBOpenClacky/lib/protocol" @proto,
   "moonbitlang/core/json",
 }
 

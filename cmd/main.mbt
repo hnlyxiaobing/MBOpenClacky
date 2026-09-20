@@ -936,6 +936,14 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   let agent = @agent.Agent::new(
     session_id, "CLI Agent", working_dir, client, config,
   )
+  // Machine-readable event stream: in --ndjson mode every engine event is
+  // logged as a typed protocol event (the CLI's exhaustive @proto.Event
+  // consumer).
+  if logger.enabled {
+    agent.hook_manager.register(fn(evt : @agent.HookEvent) {
+      logger.log_event(@agent.hook_event_to_protocol(evt))
+    })
+  }
   // Built-in skills are user-invocable as slash commands (/name) and show
   // up in the system prompt summary (Ruby skills_by_command).
   @skill.register_default_skills(agent.skill_registry)

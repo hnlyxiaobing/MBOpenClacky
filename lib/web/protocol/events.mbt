@@ -22,232 +22,83 @@ pub(all) struct MappedWsEvent {
 /// This is the single source of truth for event name and field mapping
 /// shared by both the WS push path and the REST history path.
 pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
+  let protocol_event = @agent.hook_event_to_protocol(event)
+  { event_type: protocol_event.type_name(), data: payload_of(protocol_event), }
+}
+
+///|
+/// The event body without its `type` discriminator 鈥?the historical
+/// `MappedWsEvent.data` shape, kept for the REST history path and the
+/// existing white-box tests.
+fn payload_of(event : @proto.Event) -> Json {
+  match event.to_json() {
+    Object(fields) => {
+      let out : Map[String, Json] = Map([])
+      for entry in fields {
+        if entry.0 != "type" {
+          out[entry.0] = entry.1
+        }
+      }
+      Json::object(out)
+    }
+    other => other
+  }
+}
+
+///|
+/// Adapt an agent status string for the frontend contract (I-028): the
+/// ws-dispatcher only recognises "idle" / "running", so the agent-internal
+/// "completed" is mapped to "idle" at this boundary. TUI and CLI consume the
+/// raw status.
+fn adapt_status(status : String?) -> String? {
+  match status {
+    Some("completed") => Some("idle")
+    other => other
+  }
+}
+
+///|
+/// Frame a protocol event for the web frontend: session-scoped events carry
+/// the session id, global frames do not. This exhaustive match is the web
+/// end's contract surface 鈥?adding an `Event` variant fails compilation here
+/// until the web layer accounts for it.
+pub fn ws_frame(session_id : String, event : @proto.Event) -> String {
+  let frame : String? = if event.is_global() { None } else { Some(session_id) }
   match event {
-    StatusChanged(_old, new) => {
-      // I-028: The frontend ws-dispatcher only recognises "idle" / "running".
-      // Agent-internal "completed" must be mapped to "idle" at the WS contract
-      // boundary so the frontend triggers Tasks/Skills refresh & clearProgress.
-      // TUI consumes AgentStatus directly (not via this mapping), so it is
-      // unaffected.
-      let status_str = match new {
-        @agent.Completed => "idle"
-        _ => new.to_string_value()
-      }
-      {
-        event_type: "session_update",
-        data: Json::object({ "status": status_str.to_json() }),
-      }
-    }
-    BeforeIteration(n) =>
-      {
-        event_type: "progress",
-        data: Json::object({
-          "phase": "active".to_json(),
-          "message": "Thinking...".to_json(),
-          "progress_type": "thinking".to_json(),
-          "metadata": Json::object({ "iteration": n.to_json() }),
-          "started_at": @agent.current_time_ms().to_string().to_json(),
-        }),
-      }
-    AfterIteration(_n) =>
-      {
-        event_type: "progress",
-        data: Json::object({ "phase": "done".to_json() }),
-      }
-    BeforeLlmCall =>
-      {
-        event_type: "phase_start",
-        data: Json::object({
-          "phase_id": "llm_call".to_json(),
-          "kind": "llm_call".to_json(),
-          "label": "LLM call".to_json(),
-        }),
-      }
-    AfterLlmCall =>
-      {
-        event_type: "phase_end",
-        data: Json::object({ "phase_id": "llm_call".to_json() }),
-      }
-    MessageAdded =>
-      {
-        event_type: "progress",
-        data: Json::object({ "phase": "done".to_json() }),
-      }
-    ToolExecuting(name, args) =>
-      {
-        event_type: "tool_call",
-        data: Json::object({
-          "name": name.to_json(),
-          "args": args.to_json(),
-          "summary": Json::null(),
-        }),
-      }
-    ToolExecuted(_name, result) => {
-      let is_err = result.is_error
-      let output = result.content
-      if is_err {
-        {
-          event_type: "tool_error",
-          data: Json::object({ "error": output.to_json() }),
-        }
-      } else {
-        {
-          event_type: "tool_result",
-          data: Json::object({ "result": output.to_json() }),
-        }
-      }
-    }
-    ErrorOccurred(msg) =>
-      { event_type: "error", data: Json::object({ "message": msg.to_json() }), }
-    RunCompleted(result) => {
-      let cs = result.cache_stats
-      {
-        event_type: "complete",
-        data: Json::object({
-          "iterations": result.iterations.to_json(),
-          "cost": result.total_cost_usd.to_json(),
-          "cost_source": result.cost_source.to_string_value().to_json(),
-          "cache_stats": Json::object({
-            "total_requests": cs.total_requests.to_json(),
-            "cache_hit_requests": cs.cache_hit_requests.to_json(),
-            "cache_read_input_tokens": cs.cache_read_input_tokens.to_json(),
-          }),
-        }),
-      }
-    }
-    StreamChunk(chunk) =>
-      {
-        event_type: "assistant_message",
-        data: Json::object({
-          "content": chunk.to_json(),
-          "partial": true.to_json(),
-        }),
-      }
-    SessionStarted(session_id) =>
-      {
-        event_type: "session_update",
-        data: Json::object({
-          "session_id": session_id.to_json(),
-          "status": "running".to_json(),
-        }),
-      }
-    SessionEnded(session_id) =>
-      {
-        event_type: "session_update",
-        data: Json::object({
-          "session_id": session_id.to_json(),
-          "status": "idle".to_json(),
-        }),
-      }
-    CostUpdated(cost) =>
-      {
-        event_type: "token_usage",
-        data: Json::object({ "cost": cost.to_json() }),
-      }
-    WarningOccurred(msg) =>
-      {
-        event_type: "warning",
-        data: Json::object({ "message": msg.to_json() }),
-      }
-    FileAccessed(path, op) =>
-      {
-        event_type: "file_preview",
-        data: Json::object({ "path": path.to_json(), "op": op.to_json() }),
-      }
-    ThinkingStarted =>
-      {
-        event_type: "phase_start",
-        data: Json::object({
-          "phase_id": "thinking".to_json(),
-          "kind": "thinking".to_json(),
-          "label": "Thinking".to_json(),
-        }),
-      }
-    ThinkingEnded =>
-      {
-        event_type: "phase_end",
-        data: Json::object({ "phase_id": "thinking".to_json() }),
-      }
-    SubagentStarted(name) =>
-      {
-        event_type: "phase_start",
-        data: Json::object({
-          "phase_id": name.to_json(),
-          "kind": "skill_evolution".to_json(),
-          "label": name.to_json(),
-        }),
-      }
-    SubagentEnded(name) =>
-      {
-        event_type: "phase_end",
-        data: Json::object({
-          "phase_id": name.to_json(),
-          "summary": Json::null(),
-        }),
-      }
-    RetryAttempt(n, reason) =>
-      {
-        event_type: "progress",
-        data: Json::object({
-          "phase": "active".to_json(),
-          "message": "Retrying...".to_json(),
-          "progress_type": "retry".to_json(),
-          "metadata": Json::object({
-            "attempt": n.to_json(),
-            "reason": reason.to_json(),
-          }),
-          "started_at": @agent.current_time_ms().to_string().to_json(),
-        }),
-      }
-    ToolStdout(lines) =>
-      {
-        event_type: "tool_stdout",
-        data: Json::object({ "lines": lines.to_json() }),
-      }
-    InfoMessage(msg) =>
-      { event_type: "info", data: Json::object({ "message": msg.to_json() }), }
-    SuccessMessage(msg) =>
-      {
-        event_type: "success",
-        data: Json::object({ "message": msg.to_json() }),
-      }
-    FeedbackRequested(question, context, options) => {
-      let opt_json : Json = match options {
-        Some(arr) => arr.to_json()
-        None => Json::null()
-      }
-      let ctx_json : Json = match context {
-        Some(c) => c.to_json()
-        None => Json::null()
-      }
-      {
-        event_type: "request_feedback",
-        data: Json::object({
-          "question": question.to_json(),
-          "context": ctx_json,
-          "options": opt_json,
-        }),
-      }
-    }
-    ToolDenied(name) =>
-      {
-        event_type: "tool_error",
-        data: Json::object({ "error": ("Tool denied: " + name).to_json() }),
-      }
-    UsageUpdated(data) =>
-      {
-        event_type: "token_usage",
-        data: Json::object({
-          "prompt_tokens": data.prompt_tokens.to_json(),
-          "completion_tokens": data.completion_tokens.to_json(),
-          "delta_tokens": data.delta_tokens.to_json(),
-          "total_tokens": data.total_tokens.to_json(),
-          "cost": data.cost.to_json(),
-          "cost_source": data.cost_source.to_string_value().to_json(),
-          "cache_read": data.cache_read.to_json(),
-          "cache_write": data.cache_write.to_json(),
-        }),
-      }
+    @proto.SessionUpdate(u) =>
+      @proto.SessionUpdate({ ..u, status: adapt_status(u.status), }).to_wire(
+        frame,
+      )
+    @proto.Progress(_)
+    | @proto.PhaseStart(_)
+    | @proto.PhaseEnd(_)
+    | @proto.ToolCall(_)
+    | @proto.ToolResult(_)
+    | @proto.ToolError(_)
+    | @proto.ErrorMessage(_)
+    | @proto.Complete(_)
+    | @proto.AssistantMessage(_)
+    | @proto.TokenUsage(_)
+    | @proto.TokenDelta(_)
+    | @proto.Warning(_)
+    | @proto.Info(_)
+    | @proto.Success(_)
+    | @proto.FilePreview(_)
+    | @proto.ToolStdout(_)
+    | @proto.RequestFeedback(_)
+    | @proto.RequestConfirmation(_)
+    | @proto.Interrupted
+    | @proto.SessionRestored(_)
+    | @proto.SessionRenamed(_)
+    | @proto.SessionDeleted
+    | @proto.HistoryUserMessage(_)
+    | @proto.TaskFinished(_)
+    | @proto.FeedbackResponse(_)
+    | @proto.ConfirmationResponse(_)
+    | @proto.Connected(_)
+    | @proto.Subscribed(_)
+    | @proto.SessionList(_)
+    | @proto.Pong => event.to_wire(frame)
   }
 }
 
@@ -257,8 +108,117 @@ pub fn format_hook_event(
   session_id : String,
   event : @agent.HookEvent,
 ) -> String {
-  let mapped = map_hook_event(event)
-  build_event(mapped.event_type, session_id, mapped.data)
+  ws_frame(session_id, @agent.hook_event_to_protocol(event))
+}
+
+///|
+/// A `session_update` status patch frame.
+pub fn session_status_frame(session_id : String, status : String) -> String {
+  ws_frame(
+    session_id,
+    @proto.SessionUpdate({
+      status: Some(status),
+      session_id: None,
+      cost: None,
+      cost_source: None,
+      latency: None,
+      session: None,
+    }),
+  )
+}
+
+///|
+/// A `session_update` cost patch frame (fix-08 partial update).
+pub fn session_cost_frame(
+  session_id : String,
+  cost : Double,
+  cost_source : String,
+) -> String {
+  ws_frame(
+    session_id,
+    @proto.SessionUpdate({
+      status: None,
+      session_id: None,
+      cost: Some(cost),
+      cost_source: Some(cost_source),
+      latency: None,
+      session: None,
+    }),
+  )
+}
+
+///|
+/// A `session_update` latency patch frame (fix-08 partial update).
+pub fn session_latency_frame(session_id : String, latency : Json) -> String {
+  ws_frame(
+    session_id,
+    @proto.SessionUpdate({
+      status: None,
+      session_id: None,
+      cost: None,
+      cost_source: None,
+      latency: Some(latency),
+      session: None,
+    }),
+  )
+}
+
+///|
+/// A `progress` done frame (closes the frontend progress indicator).
+pub fn progress_done_frame(session_id : String) -> String {
+  ws_frame(
+    session_id,
+    @proto.Progress({
+      phase: "done",
+      message: None,
+      progress_type: None,
+      metadata: None,
+      started_at: None,
+    }),
+  )
+}
+
+///|
+/// A complete (non-partial) assistant message frame.
+pub fn assistant_message_frame(
+  session_id : String,
+  role : String,
+  content : String,
+) -> String {
+  ws_frame(
+    session_id,
+    @proto.AssistantMessage({
+      content,
+      role: Some(role),
+      partial: None,
+      created_at: None,
+    }),
+  )
+}
+
+///|
+/// A tool confirmation request frame.
+pub fn request_confirmation_frame(
+  session_id : String,
+  request_id : String,
+  message : String,
+) -> String {
+  ws_frame(session_id, @proto.RequestConfirmation({ id: request_id, message, }))
+}
+
+///|
+/// A feedback request frame.
+pub fn request_feedback_frame(
+  session_id : String,
+  request_id : String,
+  question : String,
+  context : String?,
+  options : Array[String]?,
+) -> String {
+  ws_frame(
+    session_id,
+    @proto.RequestFeedback({ question, id: Some(request_id), context, options, }),
+  )
 }
 
 ///|
@@ -266,11 +226,7 @@ pub fn format_hook_event(
 /// T13: Forwarded alongside chunk aggregation so the frontend can animate
 /// token-by-token while the complete message is still sent on MessageAdded.
 pub fn build_token_delta_event(session_id : String, chunk : String) -> String {
-  build_event(
-    event_token_delta,
-    session_id,
-    Json::object({ "content": chunk.to_json() }),
-  )
+  @proto.TokenDelta({ content: chunk, }).to_wire(Some(session_id))
 }
 
 ///|
@@ -286,11 +242,14 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
     Some(m) => m.to_json()
     None => Json::null()
   }
-  build_event(
-    "session_update",
-    data.session_id,
-    Json::object({
-      "session": Json::object({
+  let patch = @proto.SessionUpdate({
+    status: None,
+    session_id: None,
+    cost: None,
+    cost_source: None,
+    latency: None,
+    session: Some(
+      Json::object({
         "id": data.session_id.to_json(),
         "name": data.name.to_json(),
         "status": data.last_status.to_json(),
@@ -304,8 +263,9 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
         "latest_latency": data.latest_latency_ms.to_json(),
         "messages": messages_arr.to_json(),
       }),
-    }),
-  )
+    ),
+  })
+  patch.to_wire(Some(data.session_id))
 }
 
 ///|
@@ -443,37 +403,38 @@ fn history_message_events(
   let mut ev_idx = 0
   match role {
     "user" => {
-      let obj : Map[String, Json] = {
-        "type": "history_user_message".to_json(),
-        "session_id": session_id.to_json(),
-        "role": role.to_json(),
-        "content": message_content(msg).to_json(),
-      }
       // Expose injected (non-user-authored) messages so the frontend can skip
       // them in its created_at-based dedup: injected context shares no real
       // user intent and must never be treated as the round's user message.
-      match msg.system_injected {
-        Some(true) => obj["system_injected"] = true.to_json()
-        _ => ()
-      }
-      if !ts.is_empty() {
-        obj["created_at"] = ts.to_json()
-      }
-      out.push(Json::object(obj))
+      let event = @proto.HistoryUserMessage({
+        content: message_content(msg),
+        role,
+        created_at: if ts.is_empty() {
+          None
+        } else {
+          Some(ts)
+        },
+        system_injected: match msg.system_injected {
+          Some(true) => Some(true)
+          _ => None
+        },
+      })
+      out.push(event.to_framed_json(Some(session_id)))
     }
     "assistant" => {
       let content = message_content(msg)
       if !content.is_empty() {
-        let obj : Map[String, Json] = {
-          "type": "assistant_message".to_json(),
-          "session_id": session_id.to_json(),
-          "role": role.to_json(),
-          "content": content.to_json(),
-        }
-        if !ts.is_empty() {
-          obj["created_at"] = ts.to_json()
-        }
-        out.push(Json::object(obj))
+        let event = @proto.AssistantMessage({
+          content,
+          role: Some(role),
+          partial: None,
+          created_at: if ts.is_empty() {
+            None
+          } else {
+            Some(ts)
+          },
+        })
+        out.push(event.to_framed_json(Some(session_id)))
       }
       match msg.tool_calls {
         Some(calls) =>
@@ -481,22 +442,21 @@ fn history_message_events(
             let args_json : Json = @json.parse(call.function.arguments) catch {
               _ => call.function.arguments.to_json()
             }
-            let obj : Map[String, Json] = {
-              "type": "tool_call".to_json(),
-              "session_id": session_id.to_json(),
-              "name": call.function.name.to_json(),
-              "args": args_json,
-              "summary": Json::null(),
+            let stamp = if ts.is_empty() {
+              None
+            } else {
+              Some(ts + "#" + msg_index.to_string() + "." + ev_idx.to_string())
             }
             if !ts.is_empty() {
-              obj["created_at"] = (ts +
-              "#" +
-              msg_index.to_string() +
-              "." +
-              ev_idx.to_string()).to_json()
               ev_idx = ev_idx + 1
             }
-            out.push(Json::object(obj))
+            let event = @proto.ToolCall({
+              name: call.function.name,
+              args: args_json,
+              summary: None,
+              created_at: stamp,
+            })
+            out.push(event.to_framed_json(Some(session_id)))
           }
         None => ()
       }
@@ -504,19 +464,16 @@ fn history_message_events(
     _ => {
       // role == "tool": surface the stored result so history shows each
       // tool call's outcome.
-      let obj : Map[String, Json] = {
-        "type": "tool_result".to_json(),
-        "session_id": session_id.to_json(),
-        "result": message_content(msg).to_json(),
+      let stamp = if ts.is_empty() {
+        None
+      } else {
+        Some(ts + "#" + msg_index.to_string() + "." + ev_idx.to_string())
       }
-      if !ts.is_empty() {
-        obj["created_at"] = (ts +
-        "#" +
-        msg_index.to_string() +
-        "." +
-        ev_idx.to_string()).to_json()
-      }
-      out.push(Json::object(obj))
+      let event = @proto.ToolResult({
+        result: message_content(msg),
+        created_at: stamp,
+      })
+      out.push(event.to_framed_json(Some(session_id)))
     }
   }
   out

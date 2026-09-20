@@ -7,15 +7,15 @@ import {
 }
 
 // Values
+pub fn assistant_message_frame(String, String, String) -> String
+
 pub fn build_confirmation_response(String, Bool) -> String
 
 pub fn build_connected_event(String) -> String
 
 pub fn build_error_event(String, String) -> String
 
-pub fn build_event(String, String, Json) -> String
-
-pub fn build_global_event(String, Json) -> String
+pub fn build_feedback_response(String, Bool) -> String
 
 pub fn build_history_user_message(String, String) -> String
 
@@ -116,6 +116,20 @@ pub fn format_hook_event(String, @agent.HookEvent) -> String
 pub fn map_hook_event(@agent.HookEvent) -> MappedWsEvent
 
 pub fn parse_upstream_type(String) -> UpstreamMessageType?
+
+pub fn progress_done_frame(String) -> String
+
+pub fn request_confirmation_frame(String, String, String) -> String
+
+pub fn request_feedback_frame(String, String, String, String?, Array[String]?) -> String
+
+pub fn session_cost_frame(String, Double, String) -> String
+
+pub fn session_latency_frame(String, Json) -> String
+
+pub fn session_status_frame(String, String) -> String
+
+pub fn ws_frame(String, @hnlyxiaobing/MBOpenClacky/lib/protocol.Event) -> String
 
 // Errors
 

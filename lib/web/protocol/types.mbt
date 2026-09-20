@@ -195,105 +195,51 @@ pub let event_status : String = "status"
 pub let event_cost_update : String = "cost_update"
 
 ///|
-/// Build a downstream WS event JSON string.
-/// Format: {"type": "<event_type>", "session_id": "<sid>", ...flat fields}
-/// The data object's fields are merged into the top level so the frontend
-/// can access them directly (e.g. ev.content, ev.name) without a nested
-/// `data` wrapper.
-pub fn build_event(
-  event_type : String,
-  session_id : String,
-  data : Json,
-) -> String {
-  let obj : Map[String, Json] = {
-    "type": event_type.to_json(),
-    "session_id": session_id.to_json(),
-  }
-  match data {
-    Object(m) =>
-      for entry in m {
-        obj[entry.0] = entry.1
-      }
-    _ => obj["data"] = data
-  }
-  Json::object(obj).stringify()
-}
-
-///|
-/// Build a downstream WS event JSON string without session_id.
-/// Format: {"type": "<event_type>", ...flat fields}
-pub fn build_global_event(event_type : String, data : Json) -> String {
-  let obj : Map[String, Json] = { "type": event_type.to_json() }
-  match data {
-    Object(m) =>
-      for entry in m {
-        obj[entry.0] = entry.1
-      }
-    _ => obj["data"] = data
-  }
-  Json::object(obj).stringify()
-}
-
-///|
-/// Build a simple text error event.
 pub fn build_error_event(session_id : String, message : String) -> String {
-  build_event(
-    event_error,
-    session_id,
-    Json::object({ "message": message.to_json() }),
-  )
+  @proto.ErrorMessage({ message, }).to_wire(Some(session_id))
 }
 
 ///|
 /// Build a pong response (orig: {"type":"pong"}).
 pub fn build_pong() -> String {
-  build_global_event(event_pong, Json::object(Map([])))
+  @proto.Pong.to_wire(None)
 }
 
 ///|
 /// Build a connected event.
 pub fn build_connected_event(session_id : String) -> String {
-  build_global_event(
-    event_connected,
-    Json::object({ "session_id": session_id.to_json() }),
-  )
+  @proto.Connected({ session_id, }).to_wire(None)
 }
 
 ///|
 /// Build a subscribed event.
 pub fn build_subscribed_event(target : String) -> String {
-  build_global_event(
-    event_subscribed,
-    Json::object({ "session_id": target.to_json() }),
-  )
+  @proto.Subscribed({ session_id: target, }).to_wire(None)
 }
 
 ///|
 /// Build a session_list event.
-/// `has_more` is now a real parameter (was hardcoded false) so the
-/// WS event face can mirror the HTTP SessionListResponse pagination
-/// semantics. WS senders that push the full list pass false; paged
-/// senders pass the result of total > limit, mirroring
-/// handle_list_sessions. See spec 2026-08-18_17 decision 5.
+/// `has_more` is a real parameter (was hardcoded false) so the WS event face
+/// can mirror the HTTP SessionListResponse pagination semantics. WS senders
+/// that push the full list pass false; paged senders pass the result of
+/// total > limit, mirroring handle_list_sessions. See spec 2026-08-18_17
+/// decision 5.
 pub fn build_session_list_event(
   sessions : Array[Json],
   has_more? : Bool = false,
 ) -> String {
-  build_global_event(
-    event_session_list,
-    Json::object({
-      "sessions": Json::array(sessions),
-      "has_more": has_more.to_json(),
-      "cron_count": (0).to_json(),
-      "latest_cron_updated_at": Json::null(),
-    }),
-  )
+  @proto.SessionList({
+    sessions,
+    has_more,
+    cron_count: 0,
+    latest_cron_updated_at: None,
+  }).to_wire(None)
 }
 
 ///|
 /// Build an interrupted event.
 pub fn build_interrupted_event(session_id : String) -> String {
-  build_event(event_interrupted, session_id, Json::empty_object())
+  @proto.Interrupted.to_wire(Some(session_id))
 }
 
 ///|
@@ -302,15 +248,12 @@ pub fn build_history_user_message(
   session_id : String,
   content : String,
 ) -> String {
-  build_event(
-    event_history_user_message,
-    session_id,
-    Json::object({
-      "role": "user".to_json(),
-      "content": content.to_json(),
-      "created_at": @agent.current_time_ms().to_string().to_json(),
-    }),
-  )
+  @proto.HistoryUserMessage({
+    content,
+    role: "user",
+    created_at: Some(@agent.current_time_ms().to_string()),
+    system_injected: None,
+  }).to_wire(Some(session_id))
 }
 
 ///|
@@ -319,17 +262,13 @@ pub fn build_session_renamed_event(
   session_id : String,
   new_name : String,
 ) -> String {
-  build_event(
-    "session_renamed",
-    session_id,
-    Json::object({ "name": new_name.to_json() }),
-  )
+  @proto.SessionRenamed({ name: new_name, }).to_wire(Some(session_id))
 }
 
 ///|
 /// Build a session_deleted event.
 pub fn build_session_deleted_event(session_id : String) -> String {
-  build_event("session_deleted", session_id, Json::empty_object())
+  @proto.SessionDeleted.to_wire(Some(session_id))
 }
 
 ///|
@@ -338,33 +277,26 @@ pub fn build_session_restored_event(
   session_id : String,
   session : Json,
 ) -> String {
-  build_event(
-    "session_restored",
-    session_id,
-    Json::object({ "session": session }),
-  )
+  @proto.SessionRestored({ session, }).to_wire(Some(session_id))
 }
 
 ///|
 /// Build a task_finished event (global broadcast, no session_id wrapping).
 pub fn build_task_finished_event(session_id : String) -> String {
-  build_global_event(
-    "task_finished",
-    Json::object({ "session_id": session_id.to_json() }),
-  )
+  @proto.TaskFinished({ session_id, }).to_wire(None)
 }
 
 ///|
-/// Build a confirmation response event.
+/// Build a confirmation response event (global).
 pub fn build_confirmation_response(
   request_id : String,
   confirmed : Bool,
 ) -> String {
-  build_global_event(
-    "confirmation_response",
-    Json::object({
-      "request_id": request_id.to_json(),
-      "confirmed": confirmed.to_json(),
-    }),
-  )
+  @proto.ConfirmationResponse({ request_id, confirmed, }).to_wire(None)
+}
+
+///|
+/// Build a feedback response event (global).
+pub fn build_feedback_response(request_id : String, received : Bool) -> String {
+  @proto.FeedbackResponse({ request_id, received, }).to_wire(None)
 }

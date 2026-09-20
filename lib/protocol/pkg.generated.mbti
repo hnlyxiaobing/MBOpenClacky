@@ -103,6 +103,7 @@ pub(all) enum Event {
 pub fn Event::from_wire(String) -> Self?
 pub fn Event::is_global(Self) -> Bool
 pub fn Event::parse(Json) -> Self?
+pub fn Event::to_framed_json(Self, String?) -> Json
 pub fn Event::to_json(Self) -> Json
 pub fn Event::to_wire(Self, String?) -> String
 pub fn Event::type_name(Self) -> String
@@ -126,7 +127,8 @@ pub(all) struct FilePreview {
 pub(all) struct HistoryUserMessage {
   content : String
   role : String
-  created_at : String
+  created_at : String?
+  system_injected : Bool?
 }
 
 pub(all) struct MessageCommand {
@@ -190,6 +192,7 @@ pub(all) struct SessionUpdate {
   cost : Double?
   cost_source : String?
   latency : Json?
+  session : Json?
 }
 
 pub(all) struct SubscribeCommand {
@@ -227,6 +230,7 @@ pub(all) struct ToolCall {
   name : String
   args : Json
   summary : Json?
+  created_at : String?
 }
 
 pub(all) struct ToolError {
@@ -235,6 +239,7 @@ pub(all) struct ToolError {
 
 pub(all) struct ToolResult {
   result : String
+  created_at : String?
 }
 
 pub(all) struct ToolStdout {

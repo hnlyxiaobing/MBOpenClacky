@@ -54,43 +54,26 @@ fn has_key(j : Json, key : String) -> Bool {
 }
 
 ///|
-fn is_null(j : Json, key : String) -> Bool {
-  match j {
-    Object(m) =>
-      match m.get(key) {
-        Some(Null) => true
-        _ => false
-      }
-    _ => false
-  }
-}
-
-///|
-test "build_event: flattens Object data into top level" {
-  let result = build_event(
-    "assistant_message",
-    "sess-1",
-    Json::object({
-      "role": "assistant".to_json(),
-      "content": "Hello!".to_json(),
-    }),
-  )
+test "wire framing: flattens event fields into the top level" {
+  let result = @proto.AssistantMessage({
+    content: "Hello!",
+    role: Some("assistant"),
+    partial: None,
+    created_at: None,
+  }).to_wire(Some("sess-1"))
   let j = parse_json(result)
   @debug.assert_eq(get_str(j, "type"), "assistant_message")
   @debug.assert_eq(get_str(j, "session_id"), "sess-1")
   @debug.assert_eq(get_str(j, "content"), "Hello!")
+  @debug.assert_eq(get_str(j, "role"), "assistant")
   assert_false(has_key(j, "data"))
 }
 
 ///|
-test "build_global_event: flattens Object data without session_id" {
-  let result = build_global_event(
-    "session_list",
-    Json::object({ "count": (3).to_json() }),
-  )
+test "wire framing: global events carry no session_id" {
+  let result = @proto.Pong.to_wire(None)
   let j = parse_json(result)
-  @debug.assert_eq(get_str(j, "type"), "session_list")
-  @debug.assert_eq(get_int(j, "count"), 3)
+  @debug.assert_eq(get_str(j, "type"), "pong")
   assert_false(has_key(j, "session_id"))
   assert_false(has_key(j, "data"))
 }
@@ -115,13 +98,15 @@ test "build_subscribed_event: uses 'session_id' not 'target'" {
 }
 
 ///|
-test "build_session_list_event: includes has_more cron_count latest_cron_updated_at" {
+test "build_session_list_event: includes has_more cron_count" {
   let result = build_session_list_event([])
   let j = parse_json(result)
   @debug.assert_eq(get_str(j, "type"), "session_list")
   @debug.assert_eq(get_bool(j, "has_more"), false)
   @debug.assert_eq(get_int(j, "cron_count"), 0)
-  assert_true(is_null(j, "latest_cron_updated_at"))
+  // Unknown optional fields are omitted (P1-1 wire policy); consumers read
+  // them through falsy checks, so absent and null behave alike.
+  assert_false(has_key(j, "latest_cron_updated_at"))
 }
 
 ///|
@@ -166,12 +151,22 @@ test "build_history_user_message: includes created_at and content" {
 
 ///|
 /// I-028: StatusChanged(Completed) must map to "idle" at the WS boundary.
-test "map_hook_event: StatusChanged Completed maps to idle" {
+/// The engine value stays raw ("completed"); the adaptation happens in
+/// `ws_frame`, the web end's exhaustive protocol match.
+test "map_hook_event: StatusChanged Completed maps to idle on the wire" {
   let mapped = map_hook_event(
     @agent.StatusChanged(@agent.Running, @agent.Completed),
   )
   @debug.assert_eq(mapped.event_type, "session_update")
-  let j = mapped.data
+  @debug.assert_eq(get_str(mapped.data, "status"), "completed")
+  // The framed wire event carries the frontend's vocabulary.
+  let framed = format_hook_event(
+    "sess-1",
+    @agent.StatusChanged(@agent.Running, @agent.Completed),
+  )
+  let j = parse_json(framed)
+  @debug.assert_eq(get_str(j, "type"), "session_update")
+  @debug.assert_eq(get_str(j, "session_id"), "sess-1")
   @debug.assert_eq(get_str(j, "status"), "idle")
 }
 
@@ -201,15 +196,15 @@ test "map_hook_event: StatusChanged Error passes through" {
 
 ///|
 /// fix-08: cost partial session_update frame has flat cost/cost_source fields.
-test "build_event: cost session_update frame" {
-  let result = build_event(
-    event_session_update,
-    "sess-1",
-    Json::object({
-      "cost": 0.0042.to_json(),
-      "cost_source": "estimated".to_json(),
-    }),
-  )
+test "session_update: cost frame carries flat cost/cost_source" {
+  let result = @proto.SessionUpdate({
+    status: None,
+    session_id: None,
+    cost: Some(0.0042),
+    cost_source: Some("estimated"),
+    latency: None,
+    session: None,
+  }).to_wire(Some("sess-1"))
   let j = parse_json(result)
   @debug.assert_eq(get_str(j, "type"), "session_update")
   @debug.assert_eq(get_str(j, "session_id"), "sess-1")
@@ -219,18 +214,21 @@ test "build_event: cost session_update frame" {
 
 ///|
 /// fix-08: latency partial session_update frame has nested latency object.
-test "build_event: latency session_update frame" {
+test "session_update: latency frame carries the nested latency object" {
   let lat_inner : Map[String, Json] = {
     "ttft_ms": (120).to_json(),
     "duration_ms": (2500).to_json(),
     "output_tokens": (350).to_json(),
     "tps": 140.0.to_json(),
   }
-  let result = build_event(
-    event_session_update,
-    "sess-1",
-    Json::object({ "latency": Json::object(lat_inner) }),
-  )
+  let result = @proto.SessionUpdate({
+    status: None,
+    session_id: None,
+    cost: None,
+    cost_source: None,
+    latency: Some(Json::object(lat_inner)),
+    session: None,
+  }).to_wire(Some("sess-1"))
   let j = parse_json(result)
   @debug.assert_eq(get_str(j, "type"), "session_update")
   @debug.assert_eq(get_str(j, "session_id"), "sess-1")
@@ -262,18 +260,21 @@ test "build_event: latency session_update frame" {
 
 ///|
 /// fix-08: latency frame with null ttft_ms (streaming without TTFT).
-test "build_event: latency session_update with null ttft" {
+test "session_update: latency frame tolerates null ttft_ms" {
   let lat_inner : Map[String, Json] = {
     "ttft_ms": Json::null(),
     "duration_ms": (1000).to_json(),
     "output_tokens": (100).to_json(),
     "tps": 100.0.to_json(),
   }
-  let result = build_event(
-    event_session_update,
-    "sess-1",
-    Json::object({ "latency": Json::object(lat_inner) }),
-  )
+  let result = @proto.SessionUpdate({
+    status: None,
+    session_id: None,
+    cost: None,
+    cost_source: None,
+    latency: Some(Json::object(lat_inner)),
+    session: None,
+  }).to_wire(Some("sess-1"))
   let j = parse_json(result)
   match j {
     Object(m) =>
