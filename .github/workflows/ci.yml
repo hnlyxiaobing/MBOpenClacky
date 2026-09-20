@@ -10,7 +10,7 @@ jobs:
   build:
     name: Check · Build · Test
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -109,6 +109,19 @@ jobs:
 
       - name: Build (native release)
         run: moon build --target native --release cmd
+
+      - name: CLI contract probes (P0-3)
+        # Asserts exit codes / stdout shape / stderr policy / forbidden panic
+        # markers as an argv array (no shell), then compares the release
+        # binary against `moon run cmd` and reports the differences.
+        run: |
+          BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
+          if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
+          if [ ! -x "$BIN" ]; then
+            echo "::error::release binary not found at $BIN" >&2
+            exit 1
+          fi
+          "$BIN" selftest --repo .
 
       - name: Run tests
         # --release: moonc v0.10.11 (toolchain 20260827+) hits a compiler ICE in

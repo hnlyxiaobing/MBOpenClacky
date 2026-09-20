@@ -1,6 +1,6 @@
 ///|
 /// MBOpenClacky - AI Agent CLI tool rewritten in MoonBit
-const VERSION : String = "0.1.0"
+const VERSION : String = "0.1.3"
 
 ///|
 async fn main {
@@ -180,6 +180,27 @@ async fn main {
         ),
       }),
       "mcp": @clap.SubCommand::new(help="Expose this CLI as a stdio MCP server"),
+      "selftest": @clap.SubCommand::new(
+        args={
+          "bin": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Release binary to probe (default: auto-detect under _build/)",
+          ),
+          "repo": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Repository root for probes and the moon-run comparison (default: .)",
+          ),
+          "timeout-ms": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Per-probe timeout in milliseconds (default: 30000)",
+          ),
+          "json": @clap.Arg::flag(help="Emit the probe report as JSON"),
+          "no-moon-run": @clap.Arg::flag(
+            help="Skip the `moon run cmd --` comparison target",
+          ),
+        },
+        help="Run CLI contract probes (P0-3)",
+      ),
       "benchmark": @clap.SubCommand::new(
         args={
           "scenario_dir": @clap.Arg::named(
@@ -430,13 +451,16 @@ async fn main {
       } else if sub.name == "mcp" {
         handle_mcp()
         return
+      } else if sub.name == "selftest" {
+        handle_selftest(sub)
+        return
       }
     None => ()
   }
 
   // Handle --list: list all saved sessions
   if value.get_flag("list") == Some(true) {
-    handle_list_sessions()
+    handle_list_sessions(value.get_flag("json") == Some(true))
     return
   }
 
@@ -1107,8 +1131,31 @@ fn run_result_to_json(result : @agent.RunResult) -> String {
 }
 
 ///|
-fn handle_list_sessions() -> Unit {
+fn handle_list_sessions(json_output : Bool) -> Unit {
   let sessions = @agent.list_sessions()
+  if json_output {
+    // Machine-readable session list (used by the `list_sessions_json`
+    // contract probe in cmd selftest).
+    let items : Array[Json] = []
+    for session in sessions {
+      let item : Map[String, Json] = {
+        "session_id": session.session_id.to_json(),
+        "created_at": session.created_at.to_json(),
+        "messages": session.messages.length().to_json(),
+        "model": match session.model_name {
+          Some(name) => name.to_json()
+          None => Json::null()
+        },
+      }
+      items.push(Json::object(item))
+    }
+    let payload : Map[String, Json] = {
+      "sessions": Json::array(items),
+      "total": sessions.length().to_json(),
+    }
+    println(Json::object(payload).stringify())
+    return
+  }
   if sessions.is_empty() {
     println("No sessions found.")
     return

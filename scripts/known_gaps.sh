@@ -64,6 +64,8 @@ SUPPRESSIONS=(
   # 真实 C 辅助文件引用（实现本体，非占位）
   '(pty_stubs\.c|time_stub\.c|tool_stubs\.c|browser_popen\.c)'
   'lib/tui/console_cp_ext\.mbt.*stub'
+  # 契约探针中作为断言期望值的 CLI 提示语（非缺口）
+  'cmd/selftest\.mbt.*not yet'
 )
 # Human-readable reasons for each rule live in docs/known-gaps.md §抑制规则.
 

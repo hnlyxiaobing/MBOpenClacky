@@ -27,4 +27,7 @@ pub fn handle_mcp() -> Unit {
   println("")
   println("The MCP registry itself is available over the web server REST API")
   println("(POST /api/mcp, etc.). Start it with:  mbopenclacky server")
+  // This is an unavailable-capability report, not a success: exit non-zero so
+  // scripts and the `mcp_unavailable` contract probe can detect it.
+  @sys.exit(1)
 }

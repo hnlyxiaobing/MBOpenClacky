@@ -85,11 +85,14 @@ moon build --target native --release cmd
 
 # 运行
 moon run cmd --message "Hello"          # 非交互模式
-./_build/native/debug/build/cmd/cmd.exe    # TUI 交互模式
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # TUI 交互模式（release 产物路径）
 moon run cmd -- server                     # Web 服务（端口 7071）
 
-# 测试
-moon test
+# 契约探针（退出码 / stdout 形状 / stderr 策略 + moon run 对比）
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe selftest
+
+# 测试（debug 模式受编译器 ICE 影响，见 docs/known-gaps.md，统一用 --release）
+moon test --release
 ```
 
 详细的环境要求、安装步骤、配置指南和故障排除，请参阅 [快速入门指南](docs/getting-started.md)。
