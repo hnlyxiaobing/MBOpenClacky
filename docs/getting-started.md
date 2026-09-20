@@ -268,7 +268,7 @@ chmod +x scripts/install.sh
 **脚本功能**：
 1. 检查 `moon` 命令是否可用，未安装时自动下载安装
 2. 检查 C 编译器（gcc/clang），缺失时提示安装命令
-3. 执行 `moon update && moon install` 获取依赖
+3. 执行 `moon update` 获取依赖（`moon install` 无参数形式已在 2026-09+ 工具链弃用并报错退出）
 4. 执行 `moon build --target native` 构建项目
 5. 输出配置指引（环境变量、TOML 配置文件路径）
 

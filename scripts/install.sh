@@ -240,12 +240,10 @@ step "Updating MoonBit package index..."
 
 cd "$PROJECT_ROOT"
 moon update
-ok "Package index updated."
+ok "Package index updated. Dependencies are resolved by moon update / build."
 
-step "Installing project dependencies..."
-
-moon install
-ok "Dependencies installed."
+# Note: bare `moon install` is deprecated and exits non-zero on the
+# 2026-09+ toolchains; `moon update` already downloads all dependencies.
 
 # ── Step 4: Build ────────────────────────────────────────────────────────────
 

@@ -205,16 +205,10 @@ if ($LASTEXITCODE -ne 0) {
     Write-Err "moon update failed (exit code: $LASTEXITCODE)"
     exit 1
 }
-Write-OK "Package index updated."
+Write-OK "Package index updated. Dependencies are resolved by moon update / build."
 
-Write-Step "Installing project dependencies..."
-
-moon install
-if ($LASTEXITCODE -ne 0) {
-    Write-Err "moon install failed (exit code: $LASTEXITCODE)"
-    exit 1
-}
-Write-OK "Dependencies installed."
+# Note: bare `moon install` is deprecated and exits non-zero on the
+# 2026-09+ toolchains; `moon update` already downloads all dependencies.
 
 # ── Step 4: Build ────────────────────────────────────────────────────────────
 

@@ -83,6 +83,11 @@ jobs:
         # to strict once the count is driven down to the <=200 target.
         run: bash scripts/warn_count.sh 200
 
+      - name: Known-gaps ledger gate (P0-2)
+        # Truth ledger: the auto-scan section must match a fresh scan of the
+        # code, and every hit must have a curated status row.
+        run: bash scripts/known_gaps.sh check
+
       - name: Guard insecure crypto build
         # Refuse to ship the weak crypto stubs (lib/brand/brand_stubs.c) in a
         # release artifact. This complements the compile-time #error guard in

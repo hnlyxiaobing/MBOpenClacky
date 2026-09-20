@@ -29,7 +29,7 @@
 ### 功能亮点
 
 - **多 LLM 后端**：OpenAI / Anthropic / DeepSeek / GLM 等 13 种 Provider 预设
-- **MCP 协议**：Stdio/HTTP 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射
+- **MCP 协议**：Stdio 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射（HTTP 传输为诚实报错的 stub，见 [known-gaps](docs/known-gaps.md)）
 - **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
 - **Web 前端 SPA + REST API**：暗色主题 + WebSocket 实时通信（token 级流式），默认端口 7071
 - **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + 视频理解（FFmpeg 抽帧 + LLM Vision）
@@ -75,7 +75,7 @@
 
 ```bash
 # 安装依赖
-moon update && moon install
+moon update
 
 # 类型检查
 moon check
@@ -107,7 +107,7 @@ MBOpenClacky/
 │   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）
 │   ├── skill/          # 技能系统 + GEP 进化引擎
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
-│   ├── mcp/            # MCP 协议（Stdio/HTTP + JSON-RPC）
+│   ├── mcp/            # MCP 协议（Stdio + JSON-RPC；HTTP 传输为 stub，见 known-gaps）
 │   ├── channel/        # 6 平台 IM 适配器
 │   ├── web/            # Web 服务器（218 条路由注册、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）
@@ -138,7 +138,8 @@ MBOpenClacky/
 
 ## 当前状态与已知问题
 
-详见 [项目状态文档](docs/project-status.md)。
+- 功能对比与完成度：[项目状态文档](docs/project-status.md)
+- **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md) — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
 
 ---
 

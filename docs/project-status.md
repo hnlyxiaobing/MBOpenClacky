@@ -159,7 +159,7 @@
 | Web Server | lib/clacky/server/ (36 文件) | lib/server/ (21 文件) + lib/web/ (85 文件) | ✅ 完整 |
 | REST API | lib/clacky/web/ (多个 handler) | lib/web/handlers*.mbt | ✅ 完整 |
 | WebSocket | ws.js + ws-dispatcher.js | lib/web/broadcast/hub.mbt | ✅ 完整 |
-| MCP 协议 | lib/clacky/mcp/ | lib/mcp/ | ✅ 完整 |
+| MCP 协议 | lib/clacky/mcp/ | lib/mcp/ | ⚠️ Stdio 完整；HTTP 传输为 stub（`Err("not implemented")`，见 known-gaps） |
 | 流式聚合 | *_stream_aggregator.rb (3 文件) | format_*.mbt (3 文件) | ✅ 完整 |
 | Provider 管理 | providers.rb (1084 行) | lib/config/provider.mbt | ✅ 完整 |
 
@@ -180,14 +180,14 @@
 
 | 解析器 | 原项目 | 当前项目 | 状态 |
 |--------|--------|----------|------|
-| PDF | pdf_parser.rb + 3 个 Python 脚本 | lib/parser/pdf.mbt | ✅ |
-| DOCX | docx_parser.rb | lib/parser/docx.mbt | ✅ |
-| PPTX | pptx_parser.rb | lib/parser/pptx.mbt | ✅ |
-| XLSX | xlsx_parser.py | lib/parser/xlsx.mbt | ✅ |
-| DOC | doc_parser.rb | lib/parser/doc.mbt | ✅ |
-| WPS | wps_parser.rb | lib/parser/wps.mbt | ✅ |
+| PDF | pdf_parser.rb + 3 个 Python 脚本 | lib/parser/（MoonBitMark 适配层） | ✅ |
+| DOCX | docx_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
+| PPTX | pptx_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
+| XLSX | xlsx_parser.py | lib/parser/（MoonBitMark 适配层） | ✅ |
+| DOC | doc_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
+| WPS | wps_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
 
-**差距: 0 个缺失解析器。** 原项目 PDF 解析有 3 个 Python 辅助脚本 (OCR/plumber/VLM)，当前项目用 MoonBit 原生实现。
+**说明：** 六格式统一经 [MoonBitMark](https://github.com/hnlyxiaobing/MoonBitMark) 引擎转换（`lib/parser` 为薄适配层，白名单外扩展名诚实报错）；`.et/.dps` 二进制不支持并明确提示。原项目 PDF 解析有 3 个 Python 辅助脚本 (OCR/plumber/VLM)，当前项目用 MoonBit 原生实现。
 
 ### 5.5 部署/运维
 
@@ -289,7 +289,7 @@
 | Web 前端 | **~95%** | 功能完整，Rich UI 组件差异 |
 | 扩展系统 | **100%** | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio) |
 | 部署运维 | **110%** | 超越原项目 |
-| MCP 协议 | **100%** | 完整实现 |
+| MCP 协议 | **部分** | Stdio 传输完整；HTTP 传输为 stub（诚实报错，见 known-gaps） |
 | 账单系统 | **100%** | 完整实现 + 汇率扩展 |
 | 核心引擎 | **100%** | Agent + Session + Context + Hook |
 
