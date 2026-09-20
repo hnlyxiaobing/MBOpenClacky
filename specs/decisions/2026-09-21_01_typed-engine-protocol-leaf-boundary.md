@@ -105,7 +105,12 @@ TUI 的 `HookEvent` 匹配仍是穷尽的，因此**新增引擎事件仍然会�
 
 ## 后续（不在本期）
 
-1. TUI 绑定 wire 词表（或在 `TuiEvent` 管道中增加 one 处穷尽分类）
-2. `Command` 接入 Web 上行分发（当前 `UpstreamMessageType` 仍是独立枚举，两套词表
-   一并由测试固定）
+1. **TUI 绑定 wire 词表的前置条件**：wire 需要先能区分 TUI 关心的粒度——具体是给
+   `progress{phase:"done"}` 增加 `progress_type` 判别值（`iteration_done` /
+   `message_added`），并让 `tool_error` 区分"工具执行失败"与"用户拒绝"。前端对未知
+   `progress_type` 已有回退（`web/sessions.js::_buildDisplayText` 走默认分支），且
+   `phase:"done"` 路径不读 `progress_type`（`web/ws-dispatcher.js`），因此加判别值
+   是安全变更；但它是 wire 变更，需与 TUI 绑定一起做并补前端验证。
+2. `Command` 接入 Web 上行分发（当前 `UpstreamMessageType` 仍是独立枚举；两套词表
+   的 `type` 名称一致性尚未由测试交叉固定）
 3. 协议版本协商（`Event` 变体增删的兼容策略）
