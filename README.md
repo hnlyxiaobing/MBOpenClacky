@@ -91,11 +91,36 @@ moon run cmd -- server                     # Web 服务（端口 7071）
 # 契约探针（退出码 / stdout 形状 / stderr 策略 + moon run 对比）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe selftest
 
+# 会话日志离线回放（append-only JSONL；旧 JSON 会话为只读导入）
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe inspect <session.jsonl>
+
+# 真话台账校验（扫描段过期 / 命中项缺状态行 即失败）
+scripts/known_gaps.sh check
+
 # 测试（debug 模式受编译器 ICE 影响，见 docs/known-gaps.md，统一用 --release）
 moon test --release
 ```
 
 详细的环境要求、安装步骤、配置指南和故障排除，请参阅 [快速入门指南](docs/getting-started.md)。
+
+---
+
+## 机器闸门与合规
+
+本仓库把"对外承诺"变成可运行的检查，而不是文档里的说法：
+
+| 闸门 | 命令 | 拦截 |
+|---|---|---|
+| 类型与警告 | `moon check`（CI 固定 0 警告预算） | 类型错误、新增警告 |
+| 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（31 个 `.mbti` 入库） |
+| CLI 契约 | `<binary> selftest` | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd` |
+| 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致 |
+| 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD） |
+
+- 验收对照与复现命令：[docs/acceptance.md](docs/acceptance.md)
+- 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
+- AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
+- 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)
 
 ---
 

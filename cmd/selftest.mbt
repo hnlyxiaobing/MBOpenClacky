@@ -717,6 +717,22 @@ pub async fn handle_selftest(sub : @clap.SimpleValue) -> Unit {
   // Secondary target: `moon run cmd --` (skipped when disabled or unavailable).
   let mut note = ""
   if with_moon_run {
+    // Warm up the comparison target once by running it once with a generous
+    // budget: the first `moon run cmd` pays a build that `moon build cmd` does
+    // not prepare identically, and that cost must not land inside a probe's
+    // timeout and be reported as a bogus hang.
+    let warmup = @async.with_timeout_opt(600_000, () => {
+      capture_output("moon", ["run", "cmd", "--", "--version"], repo)
+    }) catch {
+      _ => None
+    }
+    match warmup {
+      Some(result) =>
+        if !result.spawned || result.exit_code != 0 {
+          note = "note: `moon run cmd` warm-up failed; the comparison target may be incomplete"
+        }
+      None => note = "note: `moon run cmd` warm-up timed out"
+    }
     let mut unavailable = ""
     for probe in probes {
       let run = run_probe(

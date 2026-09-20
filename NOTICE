@@ -1,0 +1,60 @@
+MBOpenClacky NOTICE
+==================
+
+本文件披露 MBOpenClacky 的上游来源、第三方依赖与参考过的设计，供开源合规审查使用。
+
+1. 上游项目
+-----------
+- 项目：openclacky
+- 仓库：https://github.com/clacky-ai/openclacky
+- 许可：MIT License
+- 关系：MBOpenClacky 是 openclacky（Ruby 实现）的 MoonBit 重写版本。本仓库保留上游的
+  行为契约（CLI 语义、会话格式兼容、工具集与技能集合），实现代码为 MoonBit 独立编写。
+
+2. 本仓库许可
+-------------
+- MIT License，见 LICENSE。Copyright (c) 2026 hnlyxiaobing (MBOpenClacky contributors)。
+
+3. 第三方依赖（mooncakes 模块，版本取自 moon.mod）
+--------------------------------------------------
+| 模块 | 版本 | 许可 |
+|---|---|---|
+| moonbitlang/x | 0.5.5 | Apache-2.0 |
+| moonbitlang/async | 0.22.1 | Apache-2.0 |
+| bobzhang/toml | 0.4.3 | Apache-2.0 |
+| DzmingLi/clap | 0.2.8 | MIT |
+| hnlyxiaobing/crescent | 0.10.7 | Apache-2.0 |
+| hnlyxiaobing/moonbitmark | 0.4.5 | Apache-2.0 |
+| moonbit-community/tty | 0.3.0 | Apache-2.0 |
+| moonbit-community/pty | 0.4.1 | Apache-2.0 |
+| mizchi/tui | 0.10.2 | MIT |
+| mizchi/signals | 0.6.5 | MIT |
+| hustcer/tabular | 0.5.2 | Apache-2.0 |
+
+传递依赖（由上述模块引入，未直接使用）：bobzhang/lexer (Apache-2.0)、
+mizchi/layout (Apache-2.0)、mizchi/syntree (MIT)。
+
+MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonbitmark/`），
+其许可随 MoonBitMark 的 Apache-2.0 分发。
+
+4. 参考过的设计（不复制代码）
+-----------------------------
+- MoonBit 官方 OpenSeek：参考其工程思路——类型化协议 + 往返测试、append-only 会话
+  日志（header + 每行一事件 + `Summary(from,to)` 压缩标记）、分层能力评测。本仓库未
+  复制其代码，仅借鉴设计取向。
+- OpenHands / Claude Code 风格的 ReAct 工具循环与 hook 观察者模式：体现在 `lib/agent`
+  的 hook 系统与 `lib/tool` 的工具协议中，为公开设计模式，未复制实现。
+
+5. 本期（2026-09-11 – 09-24）新增工作相对于上游/基线
+-----------------------------------------------------
+基线：`main@5b74655`（2026-09-20 工具链升级）。
+
+- `lib/protocol/`：类型化引擎协议叶子包（Event/Command + `to_json`/`parse` 互逆 +
+  往返测试）
+- Web/CLI 接入该协议；`lib/web` 不再有手写事件 JSON 字面量
+- `lib/agent/session_log.mbt` + `cmd inspect`：append-only JSONL 会话日志与离线回放
+- `cmd selftest`：CLI 契约探针（退出码 / stdout 形状 / stderr 策略 / 禁用串 + 与
+  `moon run cmd` 的差异报告）
+- `scripts/known_gaps.sh` + `docs/known-gaps.md`：机器校验的真话台账
+- `.mbti` 公共 API 闸门（31 个接口文件入库 + CI `git diff --exit-code`）
+- 依赖升级：hnlyxiaobing/moonbitmark 0.4.3 → 0.4.5
