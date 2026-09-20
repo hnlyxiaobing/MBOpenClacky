@@ -10,7 +10,7 @@ import {
   "bobzhang/toml@0.4.3",
   "DzmingLi/clap@0.2.8",
   "hnlyxiaobing/crescent@0.10.7",
-  "hnlyxiaobing/moonbitmark@0.4.3",
+  "hnlyxiaobing/moonbitmark@0.4.5",
   "moonbit-community/tty@0.3.0",
   "moonbit-community/pty@0.4.1",
   "mizchi/tui@0.10.2",
