@@ -1,0 +1,683 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/web"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/brand",
+  "hnlyxiaobing/MBOpenClacky/lib/channel",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/mcp",
+  "hnlyxiaobing/MBOpenClacky/lib/server",
+  "hnlyxiaobing/MBOpenClacky/lib/web/broadcast",
+  "hnlyxiaobing/crescent",
+  "hnlyxiaobing/crescent/core",
+  "moonbitlang/async",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/core/ref",
+}
+
+// Values
+pub fn channel_error_msg(@channel.ChannelError) -> String
+
+pub let default_ext_timeout_ms : Int
+
+pub fn delete_meeting(String) -> Unit
+
+pub fn enabled_extensions(Array[ApiExtension]) -> Array[ApiExtension]
+
+pub fn generate_meeting_id() -> String
+
+pub fn get_mime_type(String) -> String
+
+pub async fn git_run(Array[String]) -> String
+
+pub async fn git_run_in_dir(String, Array[String]) -> String
+
+pub async fn git_run_with_code(Array[String]) -> (Int, String)
+
+pub fn handle_backup_config_update(HttpRequest) -> HttpResponse
+
+pub fn handle_backup_download(HttpRequest) -> HttpResponse
+
+pub fn handle_backups_create(HttpRequest) -> HttpResponse
+
+pub fn handle_backups_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_backups_list(HttpRequest) -> HttpResponse
+
+pub fn handle_backups_restore(HttpRequest) -> HttpResponse
+
+pub fn handle_benchmark_model_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_benchmark_model_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_billing_activate(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_clear(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_daily(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_export(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_records(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_sessions(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_status(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_summary(HttpRequest) -> HttpResponse
+
+pub fn handle_billing_usage(HttpRequest) -> HttpResponse
+
+pub fn handle_browser_configure(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_navigate(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_reload(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_screenshot(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_start(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_browser_status(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_stop(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_browser_toggle(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_browser_tool_call(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_channels_create(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_group_history(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_list(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_send(HttpRequest) -> HttpResponse
+
+pub async fn handle_channels_send_async(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
+
+pub fn handle_channels_status(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_test(HttpRequest) -> HttpResponse
+
+pub async fn handle_channels_test_async(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_update(HttpRequest) -> HttpResponse
+
+pub fn handle_channels_users(HttpRequest) -> HttpResponse
+
+pub fn handle_config_models_delete(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_config_models_patch(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_config_models_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_config_models_set_default(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_creator_skills(HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_add_server(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub async fn handle_mcp_call_server_tool(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub async fn handle_mcp_execute_tool(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_list_server_tools(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_list_servers(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_list_tools(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub async fn handle_mcp_probe_server(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_remove_server(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_toggle_server(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_mcp_update_server(@mcp.McpRegistry, HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_create(HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_get(HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_list(HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_summarize(HttpRequest) -> HttpResponse
+
+pub fn handle_meetings_update(HttpRequest) -> HttpResponse
+
+pub fn handle_memories_delete(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memories_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memories_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memories_put(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memory_file_delete(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memory_file_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_memory_file_put(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_models_delete(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_models_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_models_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_models_put(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_my_skill_publish(HttpRequest) -> HttpResponse
+
+pub fn handle_providers_list(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_schedules_create(HttpRequest) -> HttpResponse
+
+pub fn handle_schedules_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_schedules_history(HttpRequest) -> HttpResponse
+
+pub fn handle_schedules_list(HttpRequest) -> HttpResponse
+
+pub fn handle_schedules_trigger(HttpRequest) -> HttpResponse
+
+pub fn handle_schedules_update(HttpRequest) -> HttpResponse
+
+pub async fn handle_session_benchmark(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_session_git_branches(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_session_git_commit(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_session_git_diff(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_session_git_log(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub async fn handle_session_git_status(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_session_time_machine_diff(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_session_time_machine_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_session_time_machine_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_session_time_machine_restore_preview(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_session_time_machine_switch(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_settings_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_settings_put(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_share_get(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_share_post(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn handle_skills_create(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_evolution_history(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_evolve(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_get_content(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_install(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_list(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_put_content(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_toggle(HttpRequest) -> HttpResponse
+
+pub fn handle_skills_update(HttpRequest) -> HttpResponse
+
+pub fn handle_store_brand_list(HttpRequest) -> HttpResponse
+
+pub fn handle_store_detail(HttpRequest) -> HttpResponse
+
+pub fn handle_store_disable(HttpRequest) -> HttpResponse
+
+pub fn handle_store_enable(HttpRequest) -> HttpResponse
+
+pub fn handle_store_install(HttpRequest) -> HttpResponse
+
+pub fn handle_store_installed(HttpRequest) -> HttpResponse
+
+pub fn handle_store_list(HttpRequest) -> HttpResponse
+
+pub fn handle_store_skills(HttpRequest) -> HttpResponse
+
+pub fn handle_store_uninstall(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_add(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_clear_sessions(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_delete(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_empty(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_list(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_restore(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_restore_batch(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_sessions_list(HttpRequest) -> HttpResponse
+
+pub fn handle_trash_stats(HttpRequest) -> HttpResponse
+
+pub fn handle_upload_alias(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
+
+pub fn list_meetings() -> Array[Meeting]
+
+pub fn load_and_process_template(String, TemplateConfig) -> String?
+
+pub fn load_api_extensions(ext_dir? : String?) -> Array[ApiExtension]
+
+pub fn load_extensions_from_paths(Array[(String, String)]) -> Array[ApiExtension]
+
+pub fn load_meeting(String) -> Meeting?
+
+pub let max_ext_timeout_ms : Int
+
+pub fn meeting_status_from_string(String) -> MeetingStatus
+
+pub fn merge_api_extensions(Array[ApiExtension], Array[ApiExtension]) -> Array[ApiExtension]
+
+pub fn process_template(String, TemplateConfig) -> String
+
+pub fn register_all_routes(Router) -> Router
+
+pub fn save_meeting(Meeting) -> Result[Unit, String]
+
+pub fn set_multipart_transport_override((async (String, String, Array[(String, String)], Bytes, Int) -> Result[(Int, String), String])?) -> Unit
+
+pub fn set_ws_task_group(@async.TaskGroup[Unit]) -> Unit
+
+pub fn trash_add_session(String, String) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) struct AggregateStatsResponse {
+  total_cost_usd : Double
+  session_count : Int
+  total_messages : Int
+}
+
+pub(all) struct ApiExtension {
+  name : String
+  version : String
+  routes : Array[ExtensionRoute]
+  enabled : Bool
+} derive(@debug.Debug)
+pub fn ApiExtension::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CancelResponse {
+  cancelled : Bool
+}
+
+pub(all) struct ChannelEntry {
+  mut id : String
+  mut platform : String
+  mut name : String
+  mut webhook_url : String
+  mut api_key : String
+  mut secret : String
+  mut enabled : Bool
+  mut status : String
+  mut created_at : Int64
+  mut updated_at : Int64
+}
+
+pub(all) struct ChatRequest {
+  message : String
+} derive(@json.FromJson)
+pub fn ChatRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
+pub(all) struct ConfigResponse {
+  permission_mode : String
+  max_tokens : Int
+  verbose : Bool
+  current_model_id : String?
+  models : Array[@config.ModelConfig]
+}
+
+pub(all) struct CostResponse {
+  session_id : String
+  total_cost_usd : Double
+  cost_source : String
+  cache_creation_input_tokens : Int
+  cache_read_input_tokens : Int
+  total_requests : Int
+  cache_hit_requests : Int
+}
+
+pub(all) struct CreateSessionRequest {
+  name : String?
+} derive(@json.FromJson)
+pub fn CreateSessionRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
+type ExchangeRateResponse derive(ToJson)
+pub fn ExchangeRateResponse::to_json(Self) -> Json
+
+pub(all) struct ExtensionDispatcher {
+  extensions : Array[ApiExtension]
+  routes_ref : @ref.Ref[Map[String, ExtensionRoute]]
+  ext_dir : String?
+  last_signature : @ref.Ref[String]
+  request_count : @ref.Ref[Int]
+  check_every : Int
+}
+pub fn ExtensionDispatcher::ensure_fresh(Self) -> Unit
+pub fn ExtensionDispatcher::new(Array[ApiExtension]) -> Self
+pub fn ExtensionDispatcher::new_with_dir(Array[ApiExtension], String, check_every? : Int) -> Self
+pub fn ExtensionDispatcher::register_routes(Self, @crescent.App) -> Unit
+pub fn ExtensionDispatcher::route_summary(Self) -> Array[String]
+
+pub(all) struct ExtensionRoute {
+  http_method : String
+  path : String
+  handler_name : String
+  command : String
+  description : String
+  timeout_ms : Int
+} derive(@debug.Debug)
+pub fn ExtensionRoute::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HealthResponse {
+  status : String
+  uptime_seconds : Int64
+}
+pub fn HealthResponse::to_json(Self) -> Json
+pub impl ToJson for HealthResponse
+
+pub(all) enum HttpMethod {
+  GET
+  POST
+  PUT
+  DELETE
+} derive(Eq, @debug.Debug)
+pub fn HttpMethod::equal(Self, Self) -> Bool
+pub fn HttpMethod::not_equal(Self, Self) -> Bool
+pub fn HttpMethod::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HttpRequest {
+  http_method : HttpMethod
+  path : String
+  params : Array[(String, String)]
+  body : String
+  headers : Array[(String, String)]
+}
+pub fn HttpRequest::get_header(Self, String) -> String?
+pub fn HttpRequest::get_param(Self, String) -> String?
+pub fn HttpRequest::new(HttpMethod, String, body? : String, headers? : Array[(String, String)]) -> Self
+
+pub(all) struct HttpResponse {
+  status : Int
+  body : String
+  body_bytes : Bytes?
+  content_type : String
+  headers : Array[(String, String)]
+}
+pub fn HttpResponse::bad_request(String) -> Self
+pub fn HttpResponse::created(String) -> Self
+pub fn HttpResponse::html(String) -> Self
+pub fn HttpResponse::json(String) -> Self
+pub fn HttpResponse::no_content() -> Self
+pub fn HttpResponse::not_found(String) -> Self
+pub fn HttpResponse::ok(String) -> Self
+pub fn HttpResponse::to_crescent(Self) -> @core.HttpResponse
+pub fn HttpResponse::with_content_type(Self, String) -> Self
+pub fn HttpResponse::with_status(Self, Int) -> Self
+
+pub(all) struct InfoResponse {
+  version : String
+  name : String
+  uptime_seconds : Int64
+  active_sessions : Int
+}
+
+type MediaErrorResponse derive(ToJson)
+pub fn MediaErrorResponse::to_json(Self) -> Json
+
+pub(all) struct Meeting {
+  id : String
+  title : String
+  mut status : MeetingStatus
+  session_id : String?
+  participants : Array[String]
+  transcript : Array[TranscriptEntry]
+  mut summary : MeetingSummary?
+  created_at : Int64
+  mut ended_at : Int64
+} derive(Eq, @debug.Debug)
+pub fn Meeting::equal(Self, Self) -> Bool
+pub fn Meeting::not_equal(Self, Self) -> Bool
+pub fn Meeting::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MeetingData {
+  id : String
+  title : String
+  transcript : String
+  summary : String?
+  participants : Array[String]
+  status : String
+  created_at : String
+  updated_at : String
+}
+
+pub(all) enum MeetingStatus {
+  Active
+  Ended
+} derive(Eq, @debug.Debug)
+pub fn MeetingStatus::equal(Self, Self) -> Bool
+pub fn MeetingStatus::not_equal(Self, Self) -> Bool
+pub fn MeetingStatus::to_repr(Self) -> @debug.Repr
+pub fn MeetingStatus::to_string_value(Self) -> String
+
+pub(all) struct MeetingSummary {
+  overview : String
+  key_decisions : Array[String]
+  action_items : Array[String]
+  discussion_points : Array[String]
+  generated_at : Int64
+} derive(Eq, @debug.Debug)
+pub fn MeetingSummary::equal(Self, Self) -> Bool
+pub fn MeetingSummary::not_equal(Self, Self) -> Bool
+pub fn MeetingSummary::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ModelListResponse {
+  models : Array[@config.ModelConfig]
+}
+
+type OCRConfigResponse derive(ToJson)
+pub fn OCRConfigResponse::to_json(Self) -> Json
+
+type OCRConfigUpdateRequest derive(@json.FromJson)
+pub fn OCRConfigUpdateRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
+type OCRImageRequest derive(@json.FromJson)
+pub fn OCRImageRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
+type OCRTestResponse derive(ToJson)
+pub fn OCRTestResponse::to_json(Self) -> Json
+
+pub(all) struct PermissionResponse {
+  permission_mode : String
+  safe_tools : Array[String]
+}
+
+type RestartResponse derive(ToJson)
+pub fn RestartResponse::to_json(Self) -> Json
+
+pub(all) struct Route {
+  http_method : HttpMethod
+  path : String
+  handler_name : String
+}
+
+pub(all) struct Router {
+  routes : Array[Route]
+}
+pub fn Router::add_route(Self, HttpMethod, String, String) -> Self
+pub fn Router::match_route(Self, HttpMethod, String) -> Result[(Route, Array[(String, String)]), String]
+pub fn Router::new() -> Self
+
+pub(all) struct SessionLatency {
+  ttft_ms : Int?
+  duration_ms : Int?
+} derive(Eq, @debug.Debug)
+pub fn SessionLatency::equal(Self, Self) -> Bool
+pub fn SessionLatency::from_session_data(@agent.SessionData) -> Self?
+pub fn SessionLatency::not_equal(Self, Self) -> Bool
+pub fn SessionLatency::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SessionListResponse {
+  sessions : Array[SessionSummary]
+  has_more : Bool
+  cron_count : Int
+  latest_cron_updated_at : String?
+}
+pub fn SessionListResponse::to_json(Self) -> Json
+pub impl ToJson for SessionListResponse
+
+pub(all) struct SessionSummary {
+  id : String
+  name : String
+  working_dir : String
+  status : String
+  created_at : String
+  updated_at : String
+  total_tasks : Int
+  total_cost : Double
+  cost_source : String
+  error : String
+  model : String?
+  source : String
+  latest_latency : SessionLatency?
+  pinned : Bool
+  agent_profile : String
+  sub_model : String?
+  sub_model_options : Array[String]
+  reasoning_effort : String?
+  model_id : String?
+  card_model : String?
+  channel_info : @agent.ChannelInfo?
+  error_code : String?
+  top_up_url : String?
+  raw_message : String?
+}
+pub fn SessionSummary::to_json(Self) -> Json
+pub impl ToJson for SessionSummary
+
+pub(all) struct StaticServer {
+  root_dir : String
+  index_file : String
+}
+pub fn StaticServer::new(String, index_file? : String) -> Self
+pub fn StaticServer::serve(Self, String) -> HttpResponse
+
+pub(all) struct StatsResponse {
+  total_sessions : Int
+  total_cost_usd : Double
+  total_iterations : Int
+  total_tasks : Int
+}
+
+pub(all) struct StatusResponse {
+  session_id : String
+  status : String
+  iterations : Int
+  error : String?
+}
+
+pub(all) struct TemplateConfig {
+  brand_name : String
+  panel_agents_script : String
+  global_ext_script_tags : String
+  agent_webui_script_tags : String
+  official_panel_script_tags : String
+}
+pub fn TemplateConfig::default() -> Self
+
+pub(all) struct ToolListEntry {
+  name : String
+  description : String
+}
+
+pub(all) struct ToolListResponse {
+  tools : Array[ToolListEntry]
+}
+
+pub(all) struct TranscriptEntry {
+  speaker : String
+  content : String
+  timestamp : Int64
+} derive(Eq, @debug.Debug)
+pub fn TranscriptEntry::equal(Self, Self) -> Bool
+pub fn TranscriptEntry::not_equal(Self, Self) -> Bool
+pub fn TranscriptEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TrashItem {
+  id : String
+  item_type : String
+  name : String
+  deleted_at : String
+  expires_at : String
+}
+
+pub(all) struct TrashStats {
+  total : Int
+  by_type : Map[String, Int]
+}
+
+pub(all) struct UpdateConfigRequest {
+  permission_mode : String?
+  max_tokens : Int?
+  verbose : Bool?
+  max_tokens_request : Int?
+} derive(@json.FromJson)
+pub fn UpdateConfigRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+
+type UpgradeResponse derive(ToJson)
+pub fn UpgradeResponse::to_json(Self) -> Json
+
+pub(all) struct WebServer {
+  mut active_agents : Map[String, @agent.Agent]
+  config : @config.AgentConfig
+  api_key : String?
+  mut start_time : Int64
+  mut cancelled : Map[String, Bool]
+  webhook_registry : WebhookRegistry
+  hub : @broadcast.Hub
+  mut browser_manager : @server.BrowserManager
+  mcp_registry : @mcp.McpRegistry
+  mut device_auth_store : @brand.DeviceAuthStore
+  channel_manager : @ref.Ref[@channel.ChannelManager]
+}
+pub fn WebServer::build_app(Self) -> (@crescent.App, @ref.Ref[Self])
+pub fn WebServer::get_or_create_agent(Self, String) -> @agent.Agent
+pub fn WebServer::new(@config.AgentConfig, String?) -> Self
+pub async fn WebServer::start(Self, Int, host? : String) -> Unit
+
+pub(all) struct WebhookRegistry {
+  mut handlers : Map[String, (Json) -> Result[Unit, String]]
+}
+pub fn WebhookRegistry::handle(Self, String, Json) -> Result[Unit, String]
+pub fn WebhookRegistry::new() -> Self
+pub fn WebhookRegistry::register(Self, String, (Json) -> Result[Unit, String]) -> Unit
+
+// Type aliases
+
+// Traits

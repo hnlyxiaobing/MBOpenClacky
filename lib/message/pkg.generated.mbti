@@ -1,0 +1,154 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/message"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum ContentBlock {
+  Text(TextBlock)
+  Image(ImageBlock)
+} derive(Eq, @debug.Debug)
+pub fn ContentBlock::equal(Self, Self) -> Bool
+pub fn ContentBlock::not_equal(Self, Self) -> Bool
+pub fn ContentBlock::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FunctionCall {
+  name : String
+  arguments : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn FunctionCall::equal(Self, Self) -> Bool
+pub fn FunctionCall::not_equal(Self, Self) -> Bool
+pub fn FunctionCall::to_json(Self) -> Json
+pub fn FunctionCall::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ImageBlock {
+  url : String
+  detail : String?
+} derive(Eq, @debug.Debug)
+pub fn ImageBlock::equal(Self, Self) -> Bool
+pub fn ImageBlock::not_equal(Self, Self) -> Bool
+pub fn ImageBlock::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Message {
+  role : Role
+  content : MessageContent
+  mut tool_calls : Array[ToolCall]?
+  tool_call_id : String?
+  name : String?
+  mut reasoning_content : String?
+  mut latency : Json?
+  display_text : String?
+  display_files : Array[String]?
+  session_date : String?
+  session_context : Bool?
+  task_id : String?
+  mut created_at : String?
+  system_injected : Bool?
+  memory_update : Json?
+  subagent_instructions : String?
+  subagent_result : String?
+  token_usage : Json?
+  compressed_summary : String?
+  transient : Bool?
+} derive(Eq, @debug.Debug)
+pub fn Message::assistant(String) -> Self
+pub fn Message::equal(Self, Self) -> Bool
+pub fn Message::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Message::not_equal(Self, Self) -> Bool
+pub fn Message::system(String) -> Self
+pub fn Message::to_api_message(Self) -> Self
+pub fn Message::to_json(Self) -> Json
+pub fn Message::to_persist_message(Self) -> Self
+pub fn Message::to_repr(Self) -> @debug.Repr
+pub fn Message::tool_result(String, String, String) -> Self
+pub fn Message::user(String) -> Self
+pub fn Message::user_blocks(Array[ContentBlock]) -> Self
+pub impl ToJson for Message
+pub impl @json.FromJson for Message
+
+pub(all) enum MessageContent {
+  Text(String)
+  Blocks(Array[ContentBlock])
+} derive(Eq, @debug.Debug)
+pub fn MessageContent::equal(Self, Self) -> Bool
+pub fn MessageContent::not_equal(Self, Self) -> Bool
+pub fn MessageContent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MessageHistory {
+  mut messages : Array[Message]
+} derive(Eq)
+pub fn MessageHistory::all(Self) -> Array[Message]
+pub fn MessageHistory::append(Self, Message) -> Unit
+pub fn MessageHistory::clear(Self) -> Unit
+pub fn MessageHistory::delete_where(Self, (Message) -> Bool) -> Unit
+pub fn MessageHistory::drop_dangling_tool_calls(Self) -> Unit
+pub fn MessageHistory::equal(Self, Self) -> Bool
+pub fn MessageHistory::estimate_tokens(Self) -> Int
+pub fn MessageHistory::from_messages(Array[Message]) -> Self
+pub fn MessageHistory::is_empty(Self) -> Bool
+pub fn MessageHistory::last_real_user_index(Self) -> Int?
+pub fn MessageHistory::last_session_context_date(Self) -> String?
+pub fn MessageHistory::mutate_last_matching(Self, (Message) -> Bool, (Message) -> Message) -> Bool
+pub fn MessageHistory::new() -> Self
+pub fn MessageHistory::not_equal(Self, Self) -> Bool
+pub fn MessageHistory::pad_missing_reasoning(Self, Bool) -> Unit
+pub fn MessageHistory::pending_tool_calls(Self) -> Bool
+pub fn MessageHistory::pop_last(Self) -> Message?
+pub fn MessageHistory::real_user_messages(Self) -> Array[Message]
+pub fn MessageHistory::repair_dangling_tool_calls(Self) -> Unit
+pub fn MessageHistory::replace_all(Self, Array[Message]) -> Unit
+pub fn MessageHistory::replace_system_prompt(Self, String) -> Unit
+pub fn MessageHistory::rollback_before(Self, String) -> Unit
+pub fn MessageHistory::size(Self) -> Int
+pub fn MessageHistory::to_api(Self) -> Array[Message]
+pub fn MessageHistory::to_api_cleaned(Self, Bool) -> Array[Message]
+pub fn MessageHistory::truncate_from(Self, Int) -> Unit
+pub fn MessageHistory::truncate_from_created_at(Self, String) -> Unit
+
+pub(all) enum Role {
+  User
+  Assistant
+  System
+  Tool
+} derive(Compare, Eq, @debug.Debug)
+pub fn Role::compare(Self, Self) -> Int
+pub fn Role::equal(Self, Self) -> Bool
+pub fn Role::from_string(String) -> Self?
+pub fn Role::not_equal(Self, Self) -> Bool
+pub fn Role::op_ge(Self, Self) -> Bool
+pub fn Role::op_gt(Self, Self) -> Bool
+pub fn Role::op_le(Self, Self) -> Bool
+pub fn Role::op_lt(Self, Self) -> Bool
+pub fn Role::to_repr(Self) -> @debug.Repr
+pub fn Role::to_string_value(Self) -> String
+
+pub(all) struct TextBlock {
+  text : String
+} derive(Eq, @debug.Debug)
+pub fn TextBlock::equal(Self, Self) -> Bool
+pub fn TextBlock::not_equal(Self, Self) -> Bool
+pub fn TextBlock::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ToolCall {
+  id : String
+  type_ : String
+  function : FunctionCall
+  extra_content : Json?
+} derive(Eq, @debug.Debug)
+pub fn ToolCall::equal(Self, Self) -> Bool
+pub fn ToolCall::new(String, String, String, extra_content? : Json?) -> Self
+pub fn ToolCall::not_equal(Self, Self) -> Bool
+pub fn ToolCall::to_json(Self) -> Json
+pub fn ToolCall::to_repr(Self) -> @debug.Repr
+pub impl ToJson for ToolCall
+
+// Type aliases
+
+// Traits

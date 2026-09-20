@@ -1,0 +1,191 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/config"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn env_key_mappings(String) -> Array[(String, String)]
+
+pub fn get_api_type_for_model(String, String) -> String
+
+pub fn get_model_capabilities(String, String) -> ModelCapabilities
+
+pub fn lite_env_model() -> ModelConfig?
+
+pub fn load_config_from_env() -> AgentConfig
+
+pub fn max_output_for(String) -> Int?
+
+pub fn merge_config(AgentConfig, AgentConfig) -> AgentConfig
+
+pub fn model_supports_vision(String?, String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct AgentConfig {
+  mut permission_mode : PermissionMode
+  mut max_tokens : Int
+  mut verbose : Bool
+  mut enable_compression : Bool
+  mut enable_idle_compression : Bool
+  mut enable_prompt_caching : Bool
+  mut models : Array[ModelConfig]
+  mut current_model_id : String?
+  mut memory_update_enabled : Bool
+  mut skill_evolution : Json?
+  mut max_running_agents : Int
+  mut max_idle_agents : Int
+  mut proxy_url : String
+  mut fallback_model : String
+  mut fallback_base_url : String?
+  mut compression_threshold : Int
+  mut message_count_threshold : Int
+  mut env_source : String
+  mut default_working_dir : String?
+  mut clacky_license_server : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn AgentConfig::add_model(Self, ModelConfig) -> Unit
+pub fn AgentConfig::apply_env_overlay(Self) -> Self
+pub fn AgentConfig::current_model(Self) -> ModelConfig?
+pub fn AgentConfig::deep_copy(Self) -> Self
+pub fn AgentConfig::default() -> Self
+pub fn AgentConfig::derive_media_model(Self, String) -> ModelConfig?
+pub fn AgentConfig::equal(Self, Self) -> Bool
+pub fn AgentConfig::find_model_by_type(Self, String) -> ModelConfig?
+pub fn AgentConfig::has_model_configured(Self) -> Bool
+pub fn AgentConfig::lite_model_config_for_current(Self) -> ModelConfig?
+pub fn AgentConfig::load(String) -> Self raise
+pub fn AgentConfig::load_default() -> Self raise
+pub fn AgentConfig::load_with_env(String) -> Self raise
+pub fn AgentConfig::not_equal(Self, Self) -> Bool
+pub fn AgentConfig::remove_model(Self, Int) -> Bool
+pub fn AgentConfig::save(Self, String) -> Unit raise
+pub fn AgentConfig::session_model_overlay(Self, String) -> Result[Self, String]
+pub fn AgentConfig::set_default_model_by_id(Self, String) -> Result[Unit, String]
+pub fn AgentConfig::set_model_type(Self, Int, String?) -> Bool
+pub fn AgentConfig::switch_model_by_id(Self, String) -> Result[Unit, String]
+pub fn AgentConfig::switch_model_by_name(Self, String) -> Result[Unit, String]
+pub fn AgentConfig::to_json(Self) -> Json
+pub fn AgentConfig::to_repr(Self) -> @debug.Repr
+pub fn AgentConfig::virtual_model_overlay(Self, ModelConfig) -> Self
+
+pub(all) enum ApiType {
+  OpenAICompletions
+  AnthropicMessages
+  Bedrock
+  OpenAIResponses
+} derive(Eq, @debug.Debug)
+pub fn ApiType::equal(Self, Self) -> Bool
+pub fn ApiType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ApiType::from_string(String) -> Self?
+pub fn ApiType::not_equal(Self, Self) -> Bool
+pub fn ApiType::to_json(Self) -> Json
+pub fn ApiType::to_repr(Self) -> @debug.Repr
+pub fn ApiType::to_string_value(Self) -> String
+pub impl ToJson for ApiType
+pub impl @json.FromJson for ApiType
+
+pub(all) struct EndpointVariant {
+  label : String
+  label_key : String?
+  base_url : String
+  region : String?
+  alias_group : String?
+} derive(@debug.Debug)
+pub fn EndpointVariant::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ModelCapabilities {
+  vision : Bool
+  audio : Bool
+  video : Bool
+  reasoning : Bool
+  function_calling : Bool
+  streaming : Bool
+  json_mode : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn ModelCapabilities::equal(Self, Self) -> Bool
+pub fn ModelCapabilities::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ModelCapabilities::full() -> Self
+pub fn ModelCapabilities::not_equal(Self, Self) -> Bool
+pub fn ModelCapabilities::reasoning_model() -> Self
+pub fn ModelCapabilities::text_only() -> Self
+pub fn ModelCapabilities::to_json(Self) -> Json
+pub fn ModelCapabilities::to_repr(Self) -> @debug.Repr
+pub fn ModelCapabilities::with_vision() -> Self
+
+pub(all) struct ModelConfig {
+  mut id : String
+  mut type_ : String?
+  api_key : String
+  base_url : String
+  model : String
+  mut anthropic_format : Bool
+  mut runtime_id : String
+  mut media_type : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ModelConfig::deep_copy(Self) -> Self
+pub fn ModelConfig::equal(Self, Self) -> Bool
+pub fn ModelConfig::new(String, String, String, String) -> Self
+pub fn ModelConfig::not_equal(Self, Self) -> Bool
+pub fn ModelConfig::to_json(Self) -> Json
+pub fn ModelConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PermissionMode {
+  AutoApprove
+  ConfirmSafes
+  ConfirmAll
+} derive(Compare, Eq, @debug.Debug)
+pub fn PermissionMode::compare(Self, Self) -> Int
+pub fn PermissionMode::equal(Self, Self) -> Bool
+pub fn PermissionMode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn PermissionMode::from_string(String) -> Self?
+pub fn PermissionMode::not_equal(Self, Self) -> Bool
+pub fn PermissionMode::op_ge(Self, Self) -> Bool
+pub fn PermissionMode::op_gt(Self, Self) -> Bool
+pub fn PermissionMode::op_le(Self, Self) -> Bool
+pub fn PermissionMode::op_lt(Self, Self) -> Bool
+pub fn PermissionMode::to_repr(Self) -> @debug.Repr
+pub fn PermissionMode::to_string_value(Self) -> String
+pub impl @json.FromJson for PermissionMode
+
+pub(all) struct ProviderPreset {
+  id : String
+  name : String
+  base_url : String
+  api_type : ApiType
+  default_model : String
+  models : Array[String]
+  lite_models : Map[String, String]
+  fallback_models : Map[String, String]
+  capabilities : ModelCapabilities
+  model_capabilities : Map[String, ModelCapabilities]
+  model_api_overrides : Map[String, String]
+  website_url : String?
+  name_key : String?
+  image_models : Array[String]
+  video_models : Array[String]
+  audio_models : Array[String]
+  endpoint_variants : Array[EndpointVariant]
+  api_model_aliases : Map[String, Map[String, String]]
+} derive(@debug.Debug)
+pub fn ProviderPreset::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Providers {
+}
+pub fn Providers::all() -> Array[ProviderPreset]
+pub fn Providers::api_type_for(String) -> ApiType
+pub fn Providers::api_type_for_model(String, String) -> ApiType
+pub fn Providers::fallback_model(String, String) -> String?
+pub fn Providers::find(String) -> ProviderPreset?
+pub fn Providers::lite_model(String, String) -> String?
+pub fn Providers::resolve(String) -> ProviderPreset?
+pub fn Providers::resolve_api_model(String?, String?, String) -> String
+pub fn Providers::resolve_with_fallback(String?, String?) -> ProviderPreset?
+
+// Type aliases
+
+// Traits

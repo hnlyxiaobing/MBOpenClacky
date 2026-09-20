@@ -1,0 +1,1001 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/agent"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/billing",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/errors",
+  "hnlyxiaobing/MBOpenClacky/lib/message",
+  "hnlyxiaobing/MBOpenClacky/lib/skill",
+  "hnlyxiaobing/MBOpenClacky/lib/tool",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+}
+
+// Values
+pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
+
+pub const MAX_ITERATIONS : Int = 200
+
+pub fn apply_error_rollback(Array[@message.Message]) -> Array[@message.Message]
+
+pub fn apply_snapshot_entries(Array[SnapshotEntry]) -> Result[Int, String]
+
+pub fn backfill_task_meta_from_history(Array[@message.Message], SessionTimeMachine?) -> SessionTimeMachine
+
+pub fn build_chunk_md(Array[@message.Message], Int, topics? : String?) -> String
+
+pub fn build_compressed_summary_message(String, String) -> @message.Message
+
+pub fn build_compressed_summary_with_chunks(String, String, chunk_path? : String?, previous_chunks? : Array[ChunkInfo]) -> @message.Message
+
+pub fn build_compression_message() -> @message.Message
+
+pub fn build_denied_result(@message.ToolCall, String?) -> ToolResultEntry
+
+pub fn build_error_result(@message.ToolCall, String) -> ToolResultEntry
+
+pub fn build_memory_extraction_prompt(Array[@message.Message]) -> String
+
+pub fn build_previous_chunks_index(Array[ChunkInfo]) -> String
+
+pub fn build_success_result(@message.ToolCall, @tool.ToolResult) -> ToolResultEntry
+
+pub fn calculate_compression_savings(Int, Int, Int, Int) -> CompressionStats
+
+pub fn calculate_target_recent_count(Int) -> Int
+
+pub fn chunks_for_current(String) -> Array[String]
+
+pub fn compress_with_level_fallback(Array[@message.Message], String, CompressionContext) -> CompressionResult
+
+pub fn compress_with_rollback(Array[@message.Message], String, CompressionContext) -> CompressionResult
+
+pub let compression_threshold : Int
+
+pub fn content_to_text(@message.MessageContent) -> String
+
+pub fn count_messages_to_compress(Array[@message.Message], Int) -> Int
+
+pub fn current_iso8601() -> String
+
+pub fn current_time_ms() -> Int64
+
+pub fn current_timestamp_iso() -> String
+
+pub fn current_weekday() -> String
+
+pub fn deduplicate_entries(Array[ExtractedMemory], Array[MemoryEntry]) -> Array[ExtractedMemory]
+
+pub fn delete_session(String) -> Unit
+
+pub fn detect_fake_tool_call(String) -> Bool
+
+pub fn enforce_session_cap() -> Unit
+
+pub fn ensure_sessions_dir() -> String raise @fs.IOError
+
+pub fn estimate_history_tokens(Array[@message.Message]) -> Int
+
+pub fn estimate_token_count(String) -> Int
+
+pub fn export_all_sessions_zip() -> Result[Bytes, String]
+
+pub fn export_session_zip(String) -> Result[Bytes, String]
+
+pub fn extract_all_xml_blocks(String, String) -> Array[String]
+
+pub fn extract_image_inject(String) -> (String, ImageInject?)
+
+pub fn extract_key_information(Array[@message.Message]) -> KeyInformation
+
+pub fn extract_subagent_transcript(Agent, String) -> Json
+
+pub fn extract_xml_content(String, String) -> String?
+
+pub let fake_tool_call_correction_prompt : String
+
+pub let fallback_cooldown_seconds : Int
+
+pub async fn[X] fan_out(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms? : Int?) -> Array[FanOutResult[X]]
+
+pub async fn[X] fan_out_labeled(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms? : Int?) -> Array[FanOutResult[X]]
+
+pub fn files_for(String) -> Array[String]
+
+pub fn final_reply(Agent) -> String
+
+pub fn find_most_recent() -> SessionData?
+
+pub fn find_sessions_by_prefix(String) -> Array[SessionData]
+
+pub fn fork_session(String) -> Result[SessionData, String]
+
+pub fn format_chunk_message_content(@message.MessageContent) -> String
+
+pub fn format_prompt_section(String, String) -> String
+
+pub fn format_session_summary(SessionData) -> String
+
+pub fn generate_hierarchical_summary(Array[String], Int) -> String
+
+pub fn generate_session_id() -> String
+
+pub fn generate_subagent_summary(Agent) -> String
+
+pub fn get_default_profile_spec() -> ProfileSpec
+
+pub fn get_default_profiles() -> Array[ProfileSpec]
+
+pub fn get_profile_spec(String) -> ProfileSpec?
+
+pub fn get_recent_with_tool_pairs(Array[@message.Message], Int) -> Array[@message.Message]
+
+pub fn import_session_zip(Bytes) -> Result[SessionData, String]
+
+pub fn import_sessions_zip(Bytes) -> Result[Int, String]
+
+pub fn list_sessions() -> Array[SessionData]
+
+pub fn load_session(String) -> SessionData?
+
+pub let max_fake_tool_call_retries : Int
+
+pub let max_recent_messages : Int
+
+pub let max_retries : Int
+
+pub let max_retries_on_fallback : Int
+
+pub let max_sessions : Int
+
+pub let max_tool_output_chars : Int
+
+pub let message_count_threshold : Int
+
+pub fn ms_to_iso8601(Int64) -> String
+
+pub fn next_chunk_index(String) -> Int
+
+pub fn pad_chunk_index(Int) -> String
+
+pub fn parse_compression_response(String) -> Result[ParsedCompression, String]
+
+pub fn parse_memory_extraction_response(String) -> Array[ExtractedMemory]
+
+pub fn parse_tool_arguments(@message.ToolCall) -> Map[String, Json]
+
+pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, Json], String?)
+
+pub fn pulled_back_messages(Array[@message.Message], Int) -> (Array[@message.Message], Array[@message.Message])
+
+pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int) -> Array[@message.Message]
+
+pub fn restore_session_enhanced(@config.AgentConfig, SessionData) -> RestoreResult
+
+pub let retries_before_fallback : Int
+
+pub let retry_base_delay_ms : Int
+
+pub let retry_max_delay_ms : Int
+
+pub fn save_compressed_chunk(Array[@message.Message], String, Int, topics? : String?) -> Result[String, String]
+
+pub fn save_session(SessionData) -> Unit raise @fs.IOError
+
+pub fn search_content(String) -> Array[(String, String)]
+
+pub fn set_retry_delay_override_for_test(Int?) -> Unit
+
+pub fn should_skip_compression(Double) -> Bool
+
+pub fn should_trigger_idle_compression(Array[@message.Message], Int) -> Bool
+
+pub let target_compressed_tokens : Int
+
+pub fn task_num_of(String) -> Int
+
+pub fn todo_int_id(String) -> Int
+
+pub fn todo_item_to_model_json(TodoItem) -> Json
+
+pub fn truncate_chunk_content(String, Int) -> String
+
+pub fn truncate_memory(String) -> String
+
+pub fn truncate_text(String, Int) -> String
+
+pub fn truncate_tool_result(String, max_chars? : Int) -> String
+
+pub fn validate_profile_spec(ProfileSpec) -> Result[Unit, String]
+
+pub fn write_chunk(String, Int, String) -> Result[String, String]
+
+// Errors
+
+// Types and methods
+pub(all) struct Agent {
+  mut session_id : String
+  mut name : String
+  mut working_dir : String
+  created_at : String
+  source : AgentSource
+  mut client : @client.Client
+  mut config : @config.AgentConfig
+  mut tool_registry : @tool.ToolRegistry
+  mut skill_registry : @skill.SkillRegistry
+  mut memory_store : MemoryStore?
+  mut todo_manager : TodoManager
+  mut session_sub_model : String?
+  history : @message.MessageHistory
+  mut iterations : Int
+  mut total_tasks : Int
+  mut status : AgentStatus
+  mut error : String?
+  mut error_code : String?
+  mut pending_error_rollback : Bool
+  mut top_up_url : String?
+  mut raw_message : String?
+  mut reasoning_effort : String?
+  mut pinned : Bool
+  mut total_cost : Double
+  mut cost_source : CostSource
+  mut cache_stats : CacheStats
+  mut previous_total_tokens : Int
+  mut billing_store : @billing.BillingStore
+  mut latest_latency : @client.Latency?
+  mut fallback_state : FallbackState
+  mut fallback_model : String?
+  mut url_fallback_active : Bool
+  mut consecutive_retryable_failures : Int
+  mut fallback_activated_at_ms : Int64
+  mut compression_level : Int
+  mut idle_timer : IdleCompressionTimer
+  mut upstream_truncation_hint_injected : Bool
+  mut task_timeout_hint_injected : Bool
+  hook_manager : HookManager
+  patch_chain : PatchChain
+  mut confirmation_callback : ((String, String) -> Bool)?
+  mut confirmation_request : @aqueue.Queue[(String, String)]?
+  mut confirmation_response : @aqueue.Queue[Bool]?
+  mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?)]?
+  mut feedback_response : @aqueue.Queue[String]?
+  mut pending_injections : Array[(String, String)]
+  mock_responses : Array[@client.LlmResponse]
+  mut forbidden_tools : Array[String]
+  mut allowed_tools : Array[String]?
+  mut is_subagent : Bool
+  mut parent_message_count : Int
+}
+pub async fn Agent::auto_update_memory(Self) -> Unit
+pub fn Agent::available_skills_summary(Self) -> String
+pub fn Agent::build_send_request(Self) -> @client.SendRequest
+pub fn Agent::build_system_prompt(Self) -> String
+pub async fn Agent::call_llm_async(Self) -> @client.LlmResponse
+pub async fn Agent::call_llm_stream_async(Self, (String) -> Unit) -> @client.LlmResponse
+pub async fn Agent::call_llm_with_prompt(Self, String) -> String
+pub async fn Agent::call_stream_with_retry_async(Self, (String) -> Unit) -> @client.LlmResponse
+pub async fn Agent::call_with_retry_async(Self) -> @client.LlmResponse
+pub fn Agent::compress_messages_if_needed(Self, Bool) -> CompressionContext?
+pub fn Agent::compress_with_safety(Self, String) -> CompressionResult
+pub fn Agent::current_model(Self) -> String
+pub fn Agent::detect_upstream_truncation(Self, @client.LlmResponse) -> Unit raise
+pub fn Agent::discover_workspace_skills(Self) -> Unit
+pub fn Agent::effective_primary_model(Self) -> String
+pub fn Agent::enqueue_injection(Self, String, String) -> Unit
+pub async fn Agent::execute_single_tool(Self, @message.ToolCall) -> ToolResultEntry
+pub fn Agent::flush_pending_injections(Self) -> Unit
+pub fn Agent::fork_subagent(Self, model? : String?, forbidden_tools? : Array[String], system_prompt_suffix? : String?) -> Self raise @errors.AgentError
+pub fn Agent::get_skill(Self, String) -> @skill.Skill?
+pub fn Agent::handle_context_overflow(Self, OverflowMode) -> Bool
+pub fn Agent::handle_probe_failure(Self) -> Unit
+pub fn Agent::handle_probe_success(Self) -> Unit
+pub fn Agent::inject_skill_command(Self, @skill.Skill, String) -> Unit
+pub fn Agent::inject_user_image(Self, String, String, path? : String?) -> Unit
+pub fn Agent::is_safe_operation(Self, String, Map[String, Json]) -> Bool
+pub fn Agent::load_skills(Self, Map[String, String]) -> Unit
+pub fn Agent::messages_for_api(Self) -> Array[@message.Message]
+pub fn Agent::needs_compression(Self) -> Bool
+pub fn Agent::new(String, String, String, @client.Client, @config.AgentConfig) -> Self
+pub fn Agent::patch_chain_view(Self) -> PatchChain
+pub fn Agent::rebuild_client_for_model(Self, String) -> Unit
+pub fn Agent::rebuild_client_from_config(Self) -> Unit
+pub fn Agent::register_patch_rule(Self, PatchRule) -> Unit
+pub fn Agent::rename(Self, String) -> Unit
+pub fn Agent::reset_session(Self) -> Unit
+pub fn Agent::restore_from_session(Self, SessionData) -> Unit
+pub async fn Agent::run(Self, String) -> RunResult
+pub async fn Agent::run_async(Self, String) -> RunResult
+pub async fn Agent::run_detached(Self, String, model? : String?, forbidden_tools? : Array[String]) -> String
+pub fn Agent::set_reasoning_effort(Self, String?) -> Unit
+pub fn Agent::set_session_sub_model(Self, String?) -> Unit
+pub fn Agent::should_auto_execute(Self, String, Map[String, Json]) -> Bool
+pub fn Agent::to_session_data(Self) -> SessionData
+pub fn Agent::try_activate_fallback(Self, String) -> Bool
+pub fn Agent::try_url_fallback(Self) -> Bool
+
+pub(all) struct AgentProfile {
+  config : ProfileConfig
+  system_prompt : String?
+  soul_content : String?
+  user_content : String?
+  base_prompt : String?
+} derive(Eq, @debug.Debug)
+pub fn AgentProfile::build_system_prompt_section(Self) -> String
+pub fn AgentProfile::default_profile() -> Self
+pub fn AgentProfile::equal(Self, Self) -> Bool
+pub fn AgentProfile::is_skill_allowed(Self, String) -> Bool
+pub fn AgentProfile::load_for_name(String) -> Self raise @errors.AgentError
+pub fn AgentProfile::not_equal(Self, Self) -> Bool
+pub fn AgentProfile::to_repr(Self) -> @debug.Repr
+
+pub(all) enum AgentSource {
+  Manual
+  Cron
+  Channel
+} derive(Compare, Eq, @debug.Debug)
+pub fn AgentSource::compare(Self, Self) -> Int
+pub fn AgentSource::equal(Self, Self) -> Bool
+pub fn AgentSource::not_equal(Self, Self) -> Bool
+pub fn AgentSource::op_ge(Self, Self) -> Bool
+pub fn AgentSource::op_gt(Self, Self) -> Bool
+pub fn AgentSource::op_le(Self, Self) -> Bool
+pub fn AgentSource::op_lt(Self, Self) -> Bool
+pub fn AgentSource::to_json(Self) -> Json
+pub fn AgentSource::to_repr(Self) -> @debug.Repr
+pub fn AgentSource::to_string_value(Self) -> String
+pub impl ToJson for AgentSource
+
+pub(all) enum AgentStatus {
+  Idle
+  Running
+  WaitingForInput
+  Error
+  Completed
+} derive(Compare, Eq, @debug.Debug)
+pub fn AgentStatus::compare(Self, Self) -> Int
+pub fn AgentStatus::equal(Self, Self) -> Bool
+pub fn AgentStatus::not_equal(Self, Self) -> Bool
+pub fn AgentStatus::op_ge(Self, Self) -> Bool
+pub fn AgentStatus::op_gt(Self, Self) -> Bool
+pub fn AgentStatus::op_le(Self, Self) -> Bool
+pub fn AgentStatus::op_lt(Self, Self) -> Bool
+pub fn AgentStatus::to_json(Self) -> Json
+pub fn AgentStatus::to_repr(Self) -> @debug.Repr
+pub fn AgentStatus::to_string_value(Self) -> String
+pub impl ToJson for AgentStatus
+
+pub(all) struct CacheStats {
+  mut cache_creation_input_tokens : Int
+  mut cache_read_input_tokens : Int
+  mut total_requests : Int
+  mut cache_hit_requests : Int
+} derive(Eq, @debug.Debug)
+pub fn CacheStats::equal(Self, Self) -> Bool
+pub fn CacheStats::new() -> Self
+pub fn CacheStats::not_equal(Self, Self) -> Bool
+pub fn CacheStats::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ChannelInfo {
+  platform : String
+  channel_id : String
+  user_id : String
+  webhook_url : String
+} derive(Eq, @debug.Debug)
+pub fn ChannelInfo::equal(Self, Self) -> Bool
+pub fn ChannelInfo::not_equal(Self, Self) -> Bool
+pub fn ChannelInfo::to_json(Self) -> Json
+pub fn ChannelInfo::to_repr(Self) -> @debug.Repr
+pub impl ToJson for ChannelInfo
+
+pub(all) struct ChunkInfo {
+  basename : String
+  path : String
+  topics : String?
+} derive(Eq, @debug.Debug)
+pub fn ChunkInfo::equal(Self, Self) -> Bool
+pub fn ChunkInfo::not_equal(Self, Self) -> Bool
+pub fn ChunkInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompressedSummary {
+  timestamp : String
+  original_count : Int
+  compressed_count : Int
+  token_savings : Double
+} derive(Eq, @debug.Debug)
+pub fn CompressedSummary::equal(Self, Self) -> Bool
+pub fn CompressedSummary::not_equal(Self, Self) -> Bool
+pub fn CompressedSummary::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompressionConfig {
+  max_recent_messages : Int
+  target_compressed_tokens : Int
+  idle_compression_threshold : Int
+} derive(Eq, @debug.Debug)
+pub fn CompressionConfig::default() -> Self
+pub fn CompressionConfig::equal(Self, Self) -> Bool
+pub fn CompressionConfig::not_equal(Self, Self) -> Bool
+pub fn CompressionConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompressionContext {
+  original_token_count : Int
+  original_message_count : Int
+  compression_level : Int
+  recent_message_count : Int
+  chunk_path : String?
+  previous_chunks : Array[String]
+  compression_history : Array[CompressedSummary]
+} derive(Eq, @debug.Debug)
+pub fn CompressionContext::equal(Self, Self) -> Bool
+pub fn CompressionContext::not_equal(Self, Self) -> Bool
+pub fn CompressionContext::to_repr(Self) -> @debug.Repr
+
+pub enum CompressionResult {
+  Success(CompressionStats)
+  Failed(String)
+} derive(Eq, @debug.Debug)
+pub fn CompressionResult::equal(Self, Self) -> Bool
+pub fn CompressionResult::not_equal(Self, Self) -> Bool
+pub fn CompressionResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CompressionStats {
+  before_tokens : Int
+  after_tokens : Int
+  messages_removed : Int
+  compression_ratio : Double
+} derive(Eq, @debug.Debug)
+pub fn CompressionStats::equal(Self, Self) -> Bool
+pub fn CompressionStats::not_equal(Self, Self) -> Bool
+pub fn CompressionStats::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CostSource {
+  Api
+  Price
+  Default
+  Estimated
+} derive(Eq, @debug.Debug)
+pub fn CostSource::equal(Self, Self) -> Bool
+pub fn CostSource::not_equal(Self, Self) -> Bool
+pub fn CostSource::to_json(Self) -> Json
+pub fn CostSource::to_repr(Self) -> @debug.Repr
+pub fn CostSource::to_string_value(Self) -> String
+pub impl ToJson for CostSource
+
+pub(all) struct ExtractedMemory {
+  title : String
+  content : String
+  category : MemoryCategory
+  keywords : Array[String]
+}
+
+pub(all) enum FallbackState {
+  PrimaryOk
+  FallbackActive(Int)
+  Probing
+} derive(Eq, @debug.Debug)
+pub fn FallbackState::equal(Self, Self) -> Bool
+pub fn FallbackState::not_equal(Self, Self) -> Bool
+pub fn FallbackState::to_repr(Self) -> @debug.Repr
+
+pub struct FanOutJob[X] {
+  label : String
+  run : async () -> X
+}
+
+pub struct FanOutResult[X] {
+  index : Int
+  value : X?
+  error : String?
+  duration_ms : Int64
+} derive(@debug.Debug)
+pub fn[X] FanOutResult::ok(Self[X]) -> Bool
+pub fn[X : @debug.Debug] FanOutResult::to_repr(Self[X]) -> @debug.Repr
+
+pub(all) enum HookEvent {
+  StatusChanged(AgentStatus, AgentStatus)
+  BeforeIteration(Int)
+  AfterIteration(Int)
+  BeforeLlmCall
+  AfterLlmCall
+  MessageAdded
+  ToolExecuting(String, String)
+  ToolExecuted(String, ToolResultEntry)
+  ToolDenied(String)
+  UsageUpdated(IterationTokenData)
+  ErrorOccurred(String)
+  RunCompleted(RunResult)
+  StreamChunk(String)
+  SessionStarted(String)
+  SessionEnded(String)
+  CostUpdated(Double)
+  WarningOccurred(String)
+  FileAccessed(String, String)
+  ThinkingStarted
+  ThinkingEnded
+  SubagentStarted(String)
+  SubagentEnded(String)
+  RetryAttempt(Int, String)
+  ToolStdout(String)
+  InfoMessage(String)
+  SuccessMessage(String)
+  FeedbackRequested(String, String?, Array[String]?)
+}
+
+pub(all) struct HookManager {
+  mut callbacks : Array[(HookEvent) -> Unit]
+}
+pub fn HookManager::clear(Self) -> Unit
+pub fn HookManager::emit(Self, HookEvent) -> Unit
+pub fn HookManager::new() -> Self
+pub fn HookManager::register(Self, (HookEvent) -> Unit) -> Unit
+
+pub(all) struct IdleCompressionTimer {
+  delay : Int
+  mut state : TimerState
+  mut last_activity_at : Int
+  mut compress_count : Int
+  mut active : Bool
+  idle_threshold_ms : Int
+  mut timer_id : String?
+} derive(@debug.Debug)
+pub fn IdleCompressionTimer::active(Self) -> Bool
+pub fn IdleCompressionTimer::cancel(Self) -> Unit
+pub fn IdleCompressionTimer::compressing(Self) -> Bool
+pub fn IdleCompressionTimer::compression_done(Self) -> Unit
+pub fn IdleCompressionTimer::get_compress_count(Self) -> Int
+pub fn IdleCompressionTimer::is_idle(Self, Int) -> Bool
+pub fn IdleCompressionTimer::new() -> Self
+pub fn IdleCompressionTimer::reset_activity(Self, Int) -> Unit
+pub fn IdleCompressionTimer::should_compress(Self, Int, Int) -> Bool
+pub fn IdleCompressionTimer::shutdown(Self) -> Unit
+pub fn IdleCompressionTimer::start(Self, Int) -> Unit
+pub fn IdleCompressionTimer::stop(Self) -> Unit
+pub fn IdleCompressionTimer::tick(Self, Int) -> Bool
+pub fn IdleCompressionTimer::to_repr(Self) -> @debug.Repr
+pub fn IdleCompressionTimer::trigger_idle_compression(Self, Int, Int) -> Bool
+pub fn IdleCompressionTimer::with_threshold(Int) -> Self
+
+pub(all) struct ImageInject {
+  mime_type : String
+  base64_data : String
+  path : String?
+} derive(Eq, @debug.Debug)
+pub fn ImageInject::equal(Self, Self) -> Bool
+pub fn ImageInject::not_equal(Self, Self) -> Bool
+pub fn ImageInject::to_repr(Self) -> @debug.Repr
+
+pub(all) struct IterationTokenData {
+  delta_tokens : Int
+  prompt_tokens : Int
+  completion_tokens : Int
+  total_tokens : Int
+  cache_write : Int
+  cache_read : Int
+  cost : Double
+  cost_source : CostSource
+} derive(Eq, @debug.Debug)
+pub fn IterationTokenData::equal(Self, Self) -> Bool
+pub fn IterationTokenData::not_equal(Self, Self) -> Bool
+pub fn IterationTokenData::to_repr(Self) -> @debug.Repr
+
+pub(all) struct KeyInformation {
+  files_mentioned : Array[String]
+  decisions_made : Array[String]
+  tasks_completed : Array[String]
+  tasks_pending : Array[String]
+  errors_encountered : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn KeyInformation::equal(Self, Self) -> Bool
+pub fn KeyInformation::not_equal(Self, Self) -> Bool
+pub fn KeyInformation::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MemoryCategory {
+  UserPreference
+  ProjectInfo
+  TaskSummary
+  ExpertKnowledge
+  LearnedSkill
+} derive(Compare, Eq, @debug.Debug)
+pub fn MemoryCategory::compare(Self, Self) -> Int
+pub fn MemoryCategory::equal(Self, Self) -> Bool
+pub fn MemoryCategory::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MemoryCategory::from_string(String) -> Self?
+pub fn MemoryCategory::not_equal(Self, Self) -> Bool
+pub fn MemoryCategory::op_ge(Self, Self) -> Bool
+pub fn MemoryCategory::op_gt(Self, Self) -> Bool
+pub fn MemoryCategory::op_le(Self, Self) -> Bool
+pub fn MemoryCategory::op_lt(Self, Self) -> Bool
+pub fn MemoryCategory::to_repr(Self) -> @debug.Repr
+pub fn MemoryCategory::to_string_value(Self) -> String
+pub impl @json.FromJson for MemoryCategory
+
+pub(all) struct MemoryEntry {
+  id : String
+  title : String
+  content : String
+  category : MemoryCategory
+  keywords : Array[String]
+  created_at : String
+  updated_at : String
+} derive(Eq, @debug.Debug)
+pub fn MemoryEntry::equal(Self, Self) -> Bool
+pub fn MemoryEntry::not_equal(Self, Self) -> Bool
+pub fn MemoryEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MemoryStore {
+  mut entries : Array[MemoryEntry]
+  storage_path : String
+  mut next_id : Int
+}
+pub fn MemoryStore::add(Self, String, String, MemoryCategory, Array[String]) -> MemoryEntry
+pub fn MemoryStore::all(Self) -> Array[MemoryEntry]
+pub fn MemoryStore::by_category(Self, MemoryCategory) -> Array[MemoryEntry]
+pub fn MemoryStore::delete(Self, String) -> Bool
+pub fn MemoryStore::get(Self, String) -> MemoryEntry?
+pub fn MemoryStore::load_from_json(Self, Json) -> Unit
+pub fn MemoryStore::new(String) -> Self
+pub fn MemoryStore::search(Self, String, MemoryCategory?) -> Array[MemoryEntry]
+pub fn MemoryStore::size(Self) -> Int
+pub fn MemoryStore::summary(Self) -> String
+pub fn MemoryStore::to_json(Self) -> Json
+pub fn MemoryStore::update(Self, String, String) -> Bool
+
+pub(all) enum OverflowMode {
+  Standard
+  Aggressive
+} derive(Eq, @debug.Debug)
+pub fn OverflowMode::equal(Self, Self) -> Bool
+pub fn OverflowMode::not_equal(Self, Self) -> Bool
+pub fn OverflowMode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ParsedCompression {
+  topics : String
+  summary : String
+} derive(Eq, @debug.Debug)
+pub fn ParsedCompression::equal(Self, Self) -> Bool
+pub fn ParsedCompression::not_equal(Self, Self) -> Bool
+pub fn ParsedCompression::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PatchAction {
+  Allow
+  Block(String)
+} derive(Eq, @debug.Debug)
+pub fn PatchAction::equal(Self, Self) -> Bool
+pub fn PatchAction::not_equal(Self, Self) -> Bool
+pub fn PatchAction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PatchAuditEntry {
+  rule_name : String
+  source : String
+  tool_name : String
+  tool_args : String
+  action : String
+  timestamp : Int64
+} derive(@debug.Debug)
+pub fn PatchAuditEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PatchChain {
+  rules : Array[PatchRule]
+  mut audit_log : Array[PatchAuditEntry]
+}
+pub fn PatchChain::add_rule(Self, PatchRule) -> Unit
+pub fn PatchChain::audit_entries(Self) -> Array[PatchAuditEntry]
+pub fn PatchChain::check_after(Self, String, Map[String, Json], String, Bool) -> Unit
+pub async fn PatchChain::check_before(Self, String, Map[String, Json]) -> PatchAction
+pub fn PatchChain::len(Self) -> Int
+pub fn PatchChain::new() -> Self
+
+pub(all) struct PatchRule {
+  name : String
+  source : String
+  tool_pattern : String
+  args_pattern : String
+  action : PatchAction
+  command : String
+} derive(@debug.Debug)
+pub fn PatchRule::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ProfileConfig {
+  name : String
+  description : String?
+  skill_whitelist : Array[String]?
+  default_model : String?
+  system_prompt_path : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ProfileConfig::equal(Self, Self) -> Bool
+pub fn ProfileConfig::not_equal(Self, Self) -> Bool
+pub fn ProfileConfig::to_json(Self) -> Json
+pub fn ProfileConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ProfileSpec {
+  name : String
+  display_name : String
+  description : String
+  system_prompt_path : String
+  config_path : String
+  allowed_tools : Array[String]
+  hooks : Array[String]
+  is_default : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn ProfileSpec::equal(Self, Self) -> Bool
+pub fn ProfileSpec::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ProfileSpec::has_hook(Self, String) -> Bool
+pub fn ProfileSpec::is_tool_allowed(Self, String) -> Bool
+pub fn ProfileSpec::not_equal(Self, Self) -> Bool
+pub fn ProfileSpec::to_agent_profile(Self) -> AgentProfile
+pub fn ProfileSpec::to_json(Self) -> Json
+pub fn ProfileSpec::to_profile_config(Self) -> ProfileConfig
+pub fn ProfileSpec::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RestoreResult {
+  session_id : String
+  name : String
+  messages : Array[@message.Message]
+  working_dir : String
+  created_at : String
+  total_cost : Double
+  cost_source : String
+  channel_info : ChannelInfo?
+  latest_latency_ms : Int?
+  latest_ttft_ms : Int?
+  time_machine : SessionTimeMachine?
+  needs_error_rollback : Bool
+  model_recovered : Bool
+  recovered_model_name : String
+  warnings : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn RestoreResult::equal(Self, Self) -> Bool
+pub fn RestoreResult::not_equal(Self, Self) -> Bool
+pub fn RestoreResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RunResult {
+  status : RunStatus
+  session_id : String
+  iterations : Int
+  total_cost_usd : Double
+  cost_source : CostSource
+  cache_stats : CacheStats
+  error : String?
+} derive(Eq, @debug.Debug)
+pub fn RunResult::equal(Self, Self) -> Bool
+pub fn RunResult::not_equal(Self, Self) -> Bool
+pub fn RunResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum RunStatus {
+  Success
+  Error
+  Interrupted
+} derive(Eq, @debug.Debug)
+pub fn RunStatus::equal(Self, Self) -> Bool
+pub fn RunStatus::not_equal(Self, Self) -> Bool
+pub fn RunStatus::to_repr(Self) -> @debug.Repr
+pub fn RunStatus::to_string_value(Self) -> String
+
+pub(all) struct SessionData {
+  session_id : String
+  name : String
+  messages : Array[@message.Message]
+  stats : SessionStats
+  working_dir : String
+  created_at : String
+  source : String
+  reasoning_effort : String?
+  model_name : String?
+  model_config_id : String?
+  channel_info : ChannelInfo?
+  latest_latency_ms : Int?
+  latest_ttft_ms : Int?
+  time_machine : SessionTimeMachine?
+  pending_error_rollback : Bool
+  model_base_url : String
+  last_status : String
+  last_error : String
+  error_code : String?
+  top_up_url : String?
+  raw_message : String?
+  forked_from : String?
+  chunk_count : Int
+  agent_profile : String
+  sub_model : String?
+  pinned : Bool
+  todos : Json?
+  updated_at : String
+  previous_total_tokens : Int
+  deleted_at : String?
+} derive(Eq, @debug.Debug)
+pub fn SessionData::equal(Self, Self) -> Bool
+pub fn SessionData::not_equal(Self, Self) -> Bool
+pub fn SessionData::to_json(Self) -> Json
+pub fn SessionData::to_repr(Self) -> @debug.Repr
+pub impl ToJson for SessionData
+
+pub(all) struct SessionStats {
+  total_iterations : Int
+  total_cost_usd : Double
+  total_tasks : Int
+  cost_source : String
+  cache_creation_input_tokens : Int
+  cache_read_input_tokens : Int
+  total_requests : Int
+  cache_hit_requests : Int
+} derive(Eq, @debug.Debug)
+pub fn SessionStats::equal(Self, Self) -> Bool
+pub fn SessionStats::not_equal(Self, Self) -> Bool
+pub fn SessionStats::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SessionTaskMeta {
+  title : String
+  started_at : String
+  ended_at : String
+} derive(Eq, @debug.Debug)
+pub fn SessionTaskMeta::equal(Self, Self) -> Bool
+pub fn SessionTaskMeta::not_equal(Self, Self) -> Bool
+pub fn SessionTaskMeta::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SessionTimeMachine {
+  task_parents : Map[String, String]
+  task_meta : Map[String, SessionTaskMeta]
+  current_task_id : Int
+  active_task_id : Int
+} derive(Eq, @debug.Debug)
+pub fn SessionTimeMachine::equal(Self, Self) -> Bool
+pub fn SessionTimeMachine::not_equal(Self, Self) -> Bool
+pub fn SessionTimeMachine::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SnapshotEntry {
+  path : String
+  content : String?
+  is_absent : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn SnapshotEntry::equal(Self, Self) -> Bool
+pub fn SnapshotEntry::not_equal(Self, Self) -> Bool
+pub fn SnapshotEntry::to_json(Self) -> Json
+pub fn SnapshotEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TaskHistoryEntry {
+  task_id : String
+  task_num : Int
+  summary : String
+  status : TaskNavStatus
+  has_branches : Bool
+} derive(@debug.Debug)
+pub fn TaskHistoryEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TaskNavStatus {
+  Current
+  Past
+  Undone
+} derive(Eq, @debug.Debug)
+pub fn TaskNavStatus::equal(Self, Self) -> Bool
+pub fn TaskNavStatus::not_equal(Self, Self) -> Bool
+pub fn TaskNavStatus::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TaskNode {
+  task_id : String
+  parent_id : String?
+  children : Array[String]
+  is_active : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TaskNode::equal(Self, Self) -> Bool
+pub fn TaskNode::not_equal(Self, Self) -> Bool
+pub fn TaskNode::to_json(Self) -> Json
+pub fn TaskNode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TaskSnapshot {
+  task_id : String
+  parent_id : String?
+  mut before_entries : Array[SnapshotEntry]
+  mut after_entries : Array[SnapshotEntry]
+  created_at : Int
+  description : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TaskSnapshot::equal(Self, Self) -> Bool
+pub fn TaskSnapshot::not_equal(Self, Self) -> Bool
+pub fn TaskSnapshot::to_json(Self) -> Json
+pub fn TaskSnapshot::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TimeMachineState {
+  session_id : String
+  mut tasks : Array[TaskSnapshot]
+  mut current_task_id : String?
+  mut task_counter : Int
+  snapshot_dir : String
+} derive(Eq, @debug.Debug)
+pub fn TimeMachineState::checkpoint_after(Self, String, String?) -> Unit
+pub fn TimeMachineState::equal(Self, Self) -> Bool
+pub fn TimeMachineState::get_task_history(Self) -> Array[TaskSnapshot]
+pub fn TimeMachineState::history_with_status(Self) -> Array[TaskHistoryEntry]
+pub fn TimeMachineState::new(String) -> Self
+pub fn TimeMachineState::not_equal(Self, Self) -> Bool
+pub fn TimeMachineState::record_file_before_change(Self, String, String?) -> Unit
+pub fn TimeMachineState::redo_task(Self, String) -> Result[Array[SnapshotEntry], String]
+pub fn TimeMachineState::restore_to_task_state(Self, String) -> Result[Array[SnapshotEntry], String]
+pub fn TimeMachineState::start_new_task(Self, String?) -> String
+pub fn TimeMachineState::switch_to_task(Self, String) -> Result[Array[SnapshotEntry], String]
+pub fn TimeMachineState::to_repr(Self) -> @debug.Repr
+pub fn TimeMachineState::undo_last_task(Self) -> Result[Array[SnapshotEntry], String]
+
+pub(all) enum TimerState {
+  Idle
+  Waiting(Int)
+  Compressing
+  Cancelled
+} derive(Eq, @debug.Debug)
+pub fn TimerState::equal(Self, Self) -> Bool
+pub fn TimerState::not_equal(Self, Self) -> Bool
+pub fn TimerState::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TodoItem {
+  id : String
+  title : String
+  description : String
+  mut status : TodoStatus
+  blocked_by : Array[String]
+  created_at : String
+  mut updated_at : String
+} derive(Eq, @debug.Debug)
+pub fn TodoItem::equal(Self, Self) -> Bool
+pub fn TodoItem::not_equal(Self, Self) -> Bool
+pub fn TodoItem::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TodoManager {
+  mut items : Array[TodoItem]
+  mut next_id : Int
+}
+pub fn TodoManager::add(Self, String, String) -> TodoItem
+pub fn TodoManager::clear_all(Self) -> Int
+pub fn TodoManager::clear_completed(Self) -> Int
+pub fn TodoManager::complete_by_ids(Self, Array[Int]) -> (Array[TodoItem], Array[TodoItem], Array[Int])
+pub fn TodoManager::get(Self, String) -> TodoItem?
+pub fn TodoManager::id_str(Self, Int) -> String
+pub fn TodoManager::is_blocked(Self, String) -> Bool
+pub fn TodoManager::list_actionable(Self) -> Array[TodoItem]
+pub fn TodoManager::list_all(Self) -> Array[TodoItem]
+pub fn TodoManager::list_to_model_json(Self) -> Json
+pub fn TodoManager::load_from_json(Self, Json) -> Unit
+pub fn TodoManager::new() -> Self
+pub fn TodoManager::next_pending(Self) -> TodoItem?
+pub fn TodoManager::remove(Self, String) -> Bool
+pub fn TodoManager::remove_by_ids(Self, Array[Int]) -> (Array[TodoItem], Array[Int])
+pub fn TodoManager::set_blocked_by(Self, String, Array[String]) -> Bool
+pub fn TodoManager::size(Self) -> Int
+pub fn TodoManager::summary(Self) -> String
+pub fn TodoManager::to_json(Self) -> Json
+pub fn TodoManager::update_status(Self, String, TodoStatus) -> Bool
+
+pub(all) enum TodoStatus {
+  Pending
+  InProgress
+  Completed
+  Cancelled
+  Failed
+} derive(Compare, Eq, @debug.Debug)
+pub fn TodoStatus::compare(Self, Self) -> Int
+pub fn TodoStatus::equal(Self, Self) -> Bool
+pub fn TodoStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TodoStatus::from_string(String) -> Self?
+pub fn TodoStatus::not_equal(Self, Self) -> Bool
+pub fn TodoStatus::op_ge(Self, Self) -> Bool
+pub fn TodoStatus::op_gt(Self, Self) -> Bool
+pub fn TodoStatus::op_le(Self, Self) -> Bool
+pub fn TodoStatus::op_lt(Self, Self) -> Bool
+pub fn TodoStatus::to_repr(Self) -> @debug.Repr
+pub fn TodoStatus::to_string_value(Self) -> String
+pub impl @json.FromJson for TodoStatus
+
+pub(all) struct ToolResultEntry {
+  id : String
+  content : String
+  is_error : Bool
+  image_inject : ImageInject?
+} derive(Eq, @debug.Debug)
+pub fn ToolResultEntry::equal(Self, Self) -> Bool
+pub fn ToolResultEntry::not_equal(Self, Self) -> Bool
+pub fn ToolResultEntry::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

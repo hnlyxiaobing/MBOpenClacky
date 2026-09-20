@@ -1,0 +1,235 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/media"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn aggregate_summary(Array[FrameAnalysis]) -> String
+
+pub fn build_dashscope_image_request(String, MediaRequest) -> Json
+
+pub fn build_error(String, MediaErrorType, String, String, String) -> MediaResult
+
+pub fn build_ffmpeg_extract_command(String, String, Int, Int, Int) -> String
+
+pub fn build_ffmpeg_version_command() -> String
+
+pub fn build_gemini_image_request(MediaRequest) -> Json
+
+pub fn build_gemini_video_request(MediaRequest) -> Json
+
+pub fn build_openai_image_request(String, MediaRequest) -> Json
+
+pub fn build_openai_speech_request(String, MediaRequest) -> Json
+
+pub fn build_success(String, String, String, String) -> MediaResult
+
+pub fn build_video_error(String) -> VideoUnderstandResult
+
+pub fn build_video_success(Array[FrameAnalysis], String) -> VideoUnderstandResult
+
+pub fn calculate_frame_timestamp(Int, Int) -> Int
+
+pub fn capability_name(MediaCapability) -> String
+
+pub fn dashscope_generate_image(String, String, String, MediaRequest) -> MediaResult
+
+pub let default_interval_seconds : Int
+
+pub let default_max_duration_seconds : Int
+
+pub let default_max_frames : Int
+
+pub let default_video_prompt : String
+
+pub fn format_timestamp(Int) -> String
+
+pub fn frame_output_pattern(String) -> String
+
+pub fn gemini_generate_image(String, String, String, MediaRequest) -> MediaResult
+
+pub fn gemini_generate_video(String, String, String, MediaRequest) -> MediaResult
+
+pub let max_upload_size_mb : Int
+
+pub fn openai_generate_image(String, String, String, MediaRequest) -> MediaResult
+
+pub fn openai_generate_speech(String, String, String, MediaRequest) -> MediaResult
+
+pub fn parse_dashscope_response(Json) -> Result[String, String]
+
+pub fn parse_gemini_image_response(Json) -> Result[String, String]
+
+pub fn parse_openai_image_response(Json) -> Result[String, String]
+
+pub fn provider_capabilities(MediaProvider) -> Array[MediaCapability]
+
+pub fn provider_name(MediaProvider) -> String
+
+pub fn provider_supports(MediaProvider, MediaCapability) -> Bool
+
+pub fn resolve_interval_seconds(Int?) -> Int
+
+pub fn resolve_max_frames(Int?) -> Int
+
+pub fn sanitize_filename(String) -> String
+
+// Errors
+pub(all) suberror MediaError {
+  MediaError(String)
+} derive(ToJson, @debug.Debug)
+pub fn MediaError::to_json(Self) -> Json
+pub fn MediaError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct FrameAnalysis {
+  frame_index : Int
+  timestamp_seconds : Int
+  timestamp_label : String
+  description : String
+} derive(ToJson)
+pub fn FrameAnalysis::to_json(Self) -> Json
+
+pub(all) enum MediaCapability {
+  ImageGen
+  VideoGen
+  AudioGen
+  SpeechSynth
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaCapability::equal(Self, Self) -> Bool
+pub fn MediaCapability::not_equal(Self, Self) -> Bool
+pub fn MediaCapability::to_json(Self) -> Json
+pub fn MediaCapability::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MediaErrorType {
+  NotConfigured
+  ApiError
+  InvalidPrompt
+  QuotaExceeded
+  UnsupportedFormat
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaErrorType::equal(Self, Self) -> Bool
+pub fn MediaErrorType::not_equal(Self, Self) -> Bool
+pub fn MediaErrorType::to_json(Self) -> Json
+pub fn MediaErrorType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MediaGenerator {
+  base_url : String
+  api_key : String
+  model : String?
+} derive(@debug.Debug)
+pub fn MediaGenerator::detect_provider(Self) -> MediaProvider
+pub fn MediaGenerator::generate_image(Self, MediaRequest) -> MediaResult
+pub fn MediaGenerator::generate_speech(Self, MediaRequest) -> MediaResult
+pub fn MediaGenerator::generate_video(Self, MediaRequest) -> MediaResult
+pub fn MediaGenerator::new(String, String, String?) -> Self
+pub fn MediaGenerator::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MediaGeneratorConfig {
+  base_url : String
+  api_key : String
+  model : String?
+  output_dir : String
+  timeout_seconds : Int
+  retry_count : Int
+  max_file_size_mb : Int
+} derive(Eq, @debug.Debug)
+pub fn MediaGeneratorConfig::create_generator(Self) -> MediaGenerator
+pub fn MediaGeneratorConfig::default(String, String) -> Self
+pub fn MediaGeneratorConfig::equal(Self, Self) -> Bool
+pub fn MediaGeneratorConfig::not_equal(Self, Self) -> Bool
+pub fn MediaGeneratorConfig::to_repr(Self) -> @debug.Repr
+pub fn MediaGeneratorConfig::validate(Self) -> Array[String]
+
+pub(all) struct MediaOutputDir {
+  base_path : String
+  prefix : String
+  mut counter : Int
+}
+pub fn MediaOutputDir::cleanup(Self, Int) -> Int
+pub fn MediaOutputDir::ensure_exists(Self) -> Result[Unit, String]
+pub fn MediaOutputDir::generate_filename(Self, String, String) -> String
+pub fn MediaOutputDir::generate_path(Self, String, String, String) -> String
+pub fn MediaOutputDir::get_path(Self) -> String
+pub fn MediaOutputDir::list_files(Self, ext? : String?) -> Array[String]
+pub fn MediaOutputDir::new(String) -> Self
+pub fn MediaOutputDir::total_size(Self) -> Int64
+pub fn MediaOutputDir::with_prefix(String, String) -> Self
+
+pub(all) enum MediaProvider {
+  OpenAICompat
+  Gemini
+  DashScope
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaProvider::equal(Self, Self) -> Bool
+pub fn MediaProvider::not_equal(Self, Self) -> Bool
+pub fn MediaProvider::to_json(Self) -> Json
+pub fn MediaProvider::to_repr(Self) -> @debug.Repr
+
+pub(all) struct MediaRequest {
+  media_type : MediaType
+  prompt : String
+  aspect_ratio : String?
+  duration_seconds : Int?
+  voice : String?
+  output_dir : String
+  model : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaRequest::equal(Self, Self) -> Bool
+pub fn MediaRequest::image(String, String, aspect_ratio? : String?, model? : String?) -> Self
+pub fn MediaRequest::not_equal(Self, Self) -> Bool
+pub fn MediaRequest::speech(String, String, voice? : String?, model? : String?) -> Self
+pub fn MediaRequest::to_json(Self) -> Json
+pub fn MediaRequest::to_repr(Self) -> @debug.Repr
+pub fn MediaRequest::video(String, String, duration_seconds? : Int?, aspect_ratio? : String?, model? : String?) -> Self
+
+pub(all) struct MediaResult {
+  success : Bool
+  file_path : String?
+  error : String?
+  error_type : MediaErrorType?
+  provider : String
+  model : String
+  prompt : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaResult::equal(Self, Self) -> Bool
+pub fn MediaResult::not_equal(Self, Self) -> Bool
+pub fn MediaResult::to_json(Self) -> Json
+pub fn MediaResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MediaType {
+  Image
+  Video
+  Audio
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MediaType::equal(Self, Self) -> Bool
+pub fn MediaType::not_equal(Self, Self) -> Bool
+pub fn MediaType::to_json(Self) -> Json
+pub fn MediaType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct VideoUnderstandRequest {
+  video_base64 : String?
+  video_path : String?
+  prompt : String?
+  max_frames : Int?
+  interval_seconds : Int?
+} derive(ToJson, @json.FromJson)
+pub fn VideoUnderstandRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn VideoUnderstandRequest::to_json(Self) -> Json
+
+pub(all) struct VideoUnderstandResult {
+  ok : Bool
+  summary : String?
+  frames : Array[FrameAnalysis]
+  frame_count : Int
+  model : String?
+  error : String?
+} derive(ToJson)
+pub fn VideoUnderstandResult::to_json(Self) -> Json
+
+// Type aliases
+
+// Traits

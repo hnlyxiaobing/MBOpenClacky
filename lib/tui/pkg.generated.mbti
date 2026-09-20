@@ -1,0 +1,877 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/tui"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "mizchi/signals",
+  "moonbit-community/tty",
+  "moonbit-community/tty/color",
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/random",
+  "moonbitlang/core/ref",
+}
+
+// Values
+pub fn all_themes() -> Array[Theme]
+
+pub fn all_verbs() -> Array[String]
+
+pub fn ansi_display_width(String) -> Int
+
+pub let block_font_height : Int
+
+pub let block_font_width : Int
+
+pub fn build_config_menu_items(Array[@config.ModelConfig], String?) -> Array[ConfigMenuItem]
+
+pub fn build_model_card_items(Array[@config.ModelConfig], String?) -> Array[ConfigMenuItem]
+
+pub fn build_model_form(String, @config.ModelConfig?) -> FormDialog
+
+pub fn build_model_selector_items(Array[@config.ModelConfig], String?) -> Array[ConfigMenuItem]
+
+pub fn build_submodel_items(@config.ModelConfig, String?) -> Array[ConfigMenuItem]
+
+pub fn build_tool_prompt(String, String) -> String
+
+pub fn clear_confirmation_sequence() -> String
+
+pub fn close_config_dialog(TuiState) -> Unit
+
+pub fn compose_screen_lines(Array[String], Array[String], Int) -> Array[String]
+
+pub fn confirmation_default_yes(TuiState) -> Bool
+
+pub fn confirmation_prompt_text(TuiState) -> String
+
+pub fn consume_confirmation(TuiState) -> Unit
+
+pub fn context_aware_suggestions(TuiState) -> Array[String]
+
+pub fn cursor_display_col(String, Int) -> Int
+
+pub fn cycle_permission_mode(@config.PermissionMode) -> @config.PermissionMode
+
+pub fn default_hook_config() -> HookHandlerConfig
+
+pub let default_thinking_verbs : Array[String]
+
+pub fn display_col_to_char_index(String, Int) -> Int
+
+pub fn effective_content_width(Int) -> Int
+
+pub fn execute(SlashCommand, @agent.Agent) -> Result[String, String]
+
+pub fn format_cost(Double) -> String
+
+pub fn format_tips(String, TipsType, Int) -> String
+
+pub fn handle_confirmation_input(TuiState, Char?, Bool, Bool) -> Bool?
+
+pub fn has_pending_confirmation(TuiState) -> Bool
+
+pub fn is_action(ConfigMenuItem) -> Bool
+
+pub fn is_light_background() -> Bool
+
+pub fn is_separator(ConfigMenuItem) -> Bool
+
+pub fn is_thinking_phase_active(TuiState) -> Bool
+
+pub fn mask_api_key(String) -> String
+
+pub fn mask_api_key_summary(String) -> String
+
+pub fn merge_config_form_values(ConfigAction, Array[(String, String)], @config.ModelConfig?) -> Result[PendingConfigTest, String]
+
+pub let min_width_for_logo : Int
+
+pub fn node_to_lines(Node) -> Array[String]
+
+pub fn node_to_text(Node) -> String
+
+pub fn open_add_form(TuiState, ConfigMode) -> Unit
+
+pub fn open_config_menu(TuiState, @agent.Agent) -> Unit
+
+pub fn open_edit_form(TuiState, ConfigMode, @config.ModelConfig, Int) -> Unit
+
+pub fn open_model_selector(TuiState, @agent.Agent) -> Unit
+
+pub fn open_submodel_drawer(TuiState, @agent.Agent, @config.ModelConfig) -> Unit
+
+pub fn open_time_machine_menu(TuiState) -> Bool
+
+pub fn pad_ansi_line(String, Int) -> String
+
+pub fn parse_slash_command(String) -> Result[SlashCommand, String]
+
+pub fn paste_line_count(String) -> Int
+
+pub fn paste_placeholder_tag(Int) -> String
+
+pub fn provider_submodels(@config.ModelConfig) -> Array[String]
+
+pub fn render(String) -> String
+
+pub fn render_approval_dialog(ApprovalDialog) -> Node
+
+pub fn render_config_menu(ConfigMenuDialog, term_width? : Int, hints? : String?) -> Node
+
+pub fn render_confirmation_line(TuiState) -> String
+
+pub fn render_confirmation_lines(TuiState) -> Array[String]
+
+pub fn render_form_dialog(FormDialog) -> Node
+
+pub fn render_lines(String) -> Array[String]
+
+pub fn render_lines_with_style(String, BlockFontStyle) -> Array[String]
+
+pub fn render_thinking_live_view(TuiState, ThinkingVerbAnimator) -> Node
+
+pub fn render_thinking_summary(TuiState) -> Node
+
+pub fn render_width(String) -> Int
+
+pub fn render_width_with_style(String, BlockFontStyle) -> Int
+
+pub fn render_with_style(String, BlockFontStyle) -> String
+
+pub fn request_confirmation(TuiState, String, String, String, default_yes? : Bool) -> Unit
+
+pub fn reset_tui_session_state(TuiState, @agent.Agent) -> Unit
+
+pub fn restore_console_cp(Int) -> Unit
+
+pub fn return_to_config_menu(TuiState, @agent.Agent, ConfigMode) -> Unit
+
+pub async fn run_tui_interactive(@agent.Agent) -> Unit
+
+pub fn set_console_utf8() -> Int
+
+pub fn strip_ansi(String) -> String
+
+pub fn tokenize(String) -> Array[MarkdownToken]
+
+pub fn truncate_thinking_buffer(TuiState) -> Unit
+
+pub fn wrap_ansi_line(String, Int) -> Array[String]
+
+pub fn wrap_line_at_width(String, Int) -> Array[String]
+
+pub fn wrap_line_segments(String, Int) -> Array[(Int, Int)]
+
+// Errors
+
+// Types and methods
+pub(all) struct AgentHookHandler {
+  state : @ref.Ref[TuiState]
+  config : HookHandlerConfig
+  agent : @agent.Agent?
+  mut output : OutputBuffer?
+}
+pub fn AgentHookHandler::new(@ref.Ref[TuiState], config? : HookHandlerConfig, agent? : @agent.Agent?) -> Self
+pub fn AgentHookHandler::register_all(Self, @agent.HookManager) -> Unit
+pub fn AgentHookHandler::reset_for_run(Self) -> Unit
+pub fn AgentHookHandler::set_output(Self, OutputBuffer) -> Unit
+
+pub struct AgentOutputSync {
+  mut last_synced_index : Int
+  mut last_displayed_length : Int
+  mut stream_entry_id : Int?
+  mut markdown : MarkdownRenderer
+}
+
+pub(all) struct ApprovalDialog {
+  mut tool_name : String
+  mut tool_args : String
+  mut show_details : Bool
+  mut detailed_args : String
+} derive(@debug.Debug)
+pub fn ApprovalDialog::new(String, String) -> Self
+pub fn ApprovalDialog::to_repr(Self) -> @debug.Repr
+pub fn ApprovalDialog::toggle_details(Self) -> Unit
+
+pub(all) struct Banner {
+  style : BannerStyle
+  width : Int
+  use_color : Bool
+} derive(Eq, @debug.Debug)
+pub fn Banner::adaptive_width(Int) -> Int
+pub fn Banner::block_with_width(Int) -> Self
+pub fn Banner::equal(Self, Self) -> Bool
+pub fn Banner::new() -> Self
+pub fn Banner::not_equal(Self, Self) -> Bool
+pub fn Banner::render(Self, String, String?) -> String
+pub fn Banner::render_boxed(Self, String, String?) -> String
+pub fn Banner::render_separator(Self) -> String
+pub fn Banner::render_simple(Self, String, String?) -> String
+pub fn Banner::render_startup(Self, String, String, String, Bool, Bool, terminal_width? : Int) -> String
+pub fn Banner::to_repr(Self) -> @debug.Repr
+pub fn Banner::with_style(BannerStyle) -> Self
+pub fn Banner::with_style_and_width(BannerStyle, Int) -> Self
+pub fn Banner::with_width(Int) -> Self
+
+pub enum BannerStyle {
+  Boxed
+  Minimal
+  Block
+} derive(Eq, @debug.Debug)
+pub fn BannerStyle::equal(Self, Self) -> Bool
+pub fn BannerStyle::not_equal(Self, Self) -> Bool
+pub fn BannerStyle::to_repr(Self) -> @debug.Repr
+
+pub enum BlockFontStyle {
+  Standard
+  Banner
+  Shadow
+} derive(Eq)
+pub fn BlockFontStyle::equal(Self, Self) -> Bool
+pub fn BlockFontStyle::not_equal(Self, Self) -> Bool
+
+pub(all) struct CommandSuggestions {
+  commands : Array[SuggestionItem]
+  mut filtered : Array[SuggestionItem]
+  mut selected_index : Int
+  mut visible : Bool
+  max_visible : Int
+} derive(@debug.Debug)
+pub fn CommandSuggestions::accept(Self) -> String?
+pub fn CommandSuggestions::accept_item(Self) -> SuggestionItem?
+pub fn CommandSuggestions::add_command(Self, SuggestionItem) -> Unit
+pub fn CommandSuggestions::hide(Self) -> Unit
+pub fn CommandSuggestions::is_visible(Self) -> Bool
+pub fn CommandSuggestions::new() -> Self
+pub fn CommandSuggestions::render(Self) -> Array[String]
+pub fn CommandSuggestions::result_count(Self) -> Int
+pub fn CommandSuggestions::select_next(Self) -> Unit
+pub fn CommandSuggestions::select_prev(Self) -> Unit
+pub fn CommandSuggestions::set_commands(Self, Array[SuggestionItem]) -> Unit
+pub fn CommandSuggestions::show(Self) -> Unit
+pub fn CommandSuggestions::to_repr(Self) -> @debug.Repr
+pub fn CommandSuggestions::update_context_filter(Self, TuiState) -> Unit
+pub fn CommandSuggestions::update_filter(Self, String) -> Unit
+pub fn CommandSuggestions::with_skills(Array[SuggestionItem]) -> Self
+
+pub(all) enum ConfigAction {
+  Add
+  Edit
+} derive(Eq, @debug.Debug)
+pub fn ConfigAction::equal(Self, Self) -> Bool
+pub fn ConfigAction::not_equal(Self, Self) -> Bool
+pub fn ConfigAction::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ConfigMenuDialog {
+  mut title : String
+  mut items : Array[ConfigMenuItem]
+  mut selected_idx : Int
+  mut checked : Array[Bool]
+} derive(@debug.Debug)
+pub fn ConfigMenuDialog::as_model_selector(Array[@config.ModelConfig], String?) -> Self
+pub fn ConfigMenuDialog::as_time_machine(Array[@agent.TaskHistoryEntry]) -> Self
+pub fn ConfigMenuDialog::from_models(Array[@config.ModelConfig], String?) -> Self
+pub fn ConfigMenuDialog::get_checked(Self) -> Array[ConfigMenuItem]
+pub fn ConfigMenuDialog::get_selected(Self) -> ConfigMenuItem?
+pub fn ConfigMenuDialog::move_down(Self) -> Unit
+pub fn ConfigMenuDialog::move_up(Self) -> Unit
+pub fn ConfigMenuDialog::new(String, Array[ConfigMenuItem]) -> Self
+pub fn ConfigMenuDialog::to_repr(Self) -> @debug.Repr
+pub fn ConfigMenuDialog::toggle_current(Self) -> Unit
+
+pub(all) struct ConfigMenuItem {
+  label : String
+  mut value : String
+  multi_select : Bool
+  mut checked : Bool
+} derive(@debug.Debug)
+pub fn ConfigMenuItem::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ConfigMode {
+  ConfigMenu
+  ModelSelector
+} derive(Eq, @debug.Debug)
+pub fn ConfigMode::equal(Self, Self) -> Bool
+pub fn ConfigMode::not_equal(Self, Self) -> Bool
+pub fn ConfigMode::to_repr(Self) -> @debug.Repr
+
+pub(all) enum DialogState {
+  NoDialog
+  Approval(ApprovalDialog)
+  ConfigMenu(ConfigMenuDialog)
+  Form(FormDialog)
+  ConfigForm(mode~ : ConfigMode, form~ : FormDialog, action~ : ConfigAction, target_idx~ : Int)
+  TimeMachineMenu(ConfigMenuDialog)
+  ModelDrawer(level~ : ModelDrawerLevel, dialog~ : ConfigMenuDialog, card_id~ : String, card_model~ : String)
+} derive(@debug.Debug)
+pub fn DialogState::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FormDialog {
+  mut title : String
+  mut fields : Array[FormField]
+  mut focused_idx : Int
+} derive(@debug.Debug)
+pub fn FormDialog::backspace(Self) -> Unit
+pub fn FormDialog::collect_values(Self) -> Array[(String, String)]
+pub fn FormDialog::input_char(Self, Char) -> Unit
+pub fn FormDialog::new(String, Array[(String, Bool, String)]) -> Self
+pub fn FormDialog::new_with_mask(String, Array[(String, Bool, String, Bool)]) -> Self
+pub fn FormDialog::next_field(Self) -> Unit
+pub fn FormDialog::prev_field(Self) -> Unit
+pub fn FormDialog::to_repr(Self) -> @debug.Repr
+pub fn FormDialog::validate(Self) -> String?
+
+pub(all) struct FormField {
+  label : String
+  mut value : String
+  required : Bool
+  placeholder : String
+  masked : Bool
+} derive(@debug.Debug)
+pub fn FormField::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HookHandlerConfig {
+  track_tool_history : Bool
+  track_llm_calls : Bool
+  track_phases : Bool
+} derive(@debug.Debug)
+pub fn HookHandlerConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct InputArea {
+  editor : LineEditor
+  mut prompt : String
+  mut placeholder : String
+  border_color : @color.Color
+}
+pub fn InputArea::backspace(Self) -> Unit
+pub fn InputArea::clear(Self) -> Unit
+pub fn InputArea::cursor_display_pos(Self) -> (Int, Int)
+pub fn InputArea::cursor_display_pos_wrapped(Self, Int) -> (Int, Int)
+pub fn InputArea::cursor_down(Self) -> Unit
+pub fn InputArea::cursor_end(Self) -> Unit
+pub fn InputArea::cursor_home(Self) -> Unit
+pub fn InputArea::cursor_left(Self) -> Unit
+pub fn InputArea::cursor_right(Self) -> Unit
+pub fn InputArea::cursor_up(Self) -> Unit
+pub fn InputArea::delete_forward(Self) -> Unit
+pub fn InputArea::get_line(Self, Int) -> String
+pub fn InputArea::handle_enter(Self) -> Unit
+pub fn InputArea::insert_char(Self, Char) -> Unit
+pub fn InputArea::insert_text(Self, String) -> Unit
+pub fn InputArea::is_empty(Self) -> Bool
+pub fn InputArea::kill_to_end(Self) -> Unit
+pub fn InputArea::kill_to_start(Self) -> Unit
+pub fn InputArea::kill_word(Self) -> Unit
+pub fn InputArea::line_count(Self) -> Int
+pub fn InputArea::multiline_new() -> Self
+pub fn InputArea::new() -> Self
+pub fn InputArea::next_history(Self) -> Unit
+pub fn InputArea::prev_history(Self) -> Unit
+pub fn InputArea::raw_lines(Self) -> Array[String]
+pub fn InputArea::render_lines(Self) -> Array[String]
+pub fn InputArea::render_wrapped_lines(Self, Int) -> Array[String]
+pub fn InputArea::restore(Self, LineEditorSnapshot) -> Unit
+pub fn InputArea::set_placeholder(Self, String) -> Unit
+pub fn InputArea::set_prompt(Self, String) -> Unit
+pub fn InputArea::set_text(Self, String) -> Unit
+pub fn InputArea::snapshot(Self) -> LineEditorSnapshot
+pub fn InputArea::submit(Self) -> String
+pub fn InputArea::text(Self) -> String
+
+pub(all) struct LineEditor {
+  mut lines : Array[String]
+  multiline : Bool
+  mut history : Array[String]
+  mut history_index : Int
+  mut cursor_line : Int
+  mut cursor_col : Int
+}
+pub fn LineEditor::backspace(Self) -> Unit
+pub fn LineEditor::clear(Self) -> Unit
+pub fn LineEditor::cursor_down(Self) -> Unit
+pub fn LineEditor::cursor_end(Self) -> Unit
+pub fn LineEditor::cursor_home(Self) -> Unit
+pub fn LineEditor::cursor_left(Self) -> Unit
+pub fn LineEditor::cursor_pos(Self) -> (Int, Int)
+pub fn LineEditor::cursor_right(Self) -> Unit
+pub fn LineEditor::cursor_up(Self) -> Unit
+pub fn LineEditor::delete_forward(Self) -> Unit
+pub fn LineEditor::display_col(Self) -> Int
+pub fn LineEditor::get_line(Self, Int) -> String
+pub fn LineEditor::handle_enter(Self) -> Unit
+pub fn LineEditor::insert_char(Self, Char) -> Unit
+pub fn LineEditor::insert_text(Self, String) -> Unit
+pub fn LineEditor::is_empty(Self) -> Bool
+pub fn LineEditor::kill_to_end(Self) -> Unit
+pub fn LineEditor::kill_to_start(Self) -> Unit
+pub fn LineEditor::kill_word(Self) -> Unit
+pub fn LineEditor::line_count(Self) -> Int
+pub fn LineEditor::line_display_width(Self) -> Int
+pub fn LineEditor::multiline_new() -> Self
+pub fn LineEditor::new() -> Self
+pub fn LineEditor::next_history(Self) -> Unit
+pub fn LineEditor::prev_history(Self) -> Unit
+pub fn LineEditor::restore(Self, LineEditorSnapshot) -> Unit
+pub fn LineEditor::restore_history(Self, Array[String]) -> Unit
+pub fn LineEditor::set_text(Self, String) -> Unit
+pub fn LineEditor::snapshot(Self) -> LineEditorSnapshot
+pub fn LineEditor::submit(Self) -> String
+pub fn LineEditor::text(Self) -> String
+
+pub(all) struct LineEditorSnapshot {
+  lines : Array[String]
+  cursor_line : Int
+  cursor_col : Int
+}
+
+pub(all) struct MarkdownRenderer {
+  theme : Theme
+} derive(@debug.Debug)
+pub fn MarkdownRenderer::new(theme~ : Theme) -> Self
+pub fn MarkdownRenderer::render(Self, String) -> String
+pub fn MarkdownRenderer::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MarkdownToken {
+  Heading(level~ : Int, text~ : String)
+  Bold(text~ : String)
+  Italic(text~ : String)
+  Code(text~ : String)
+  CodeBlock(lang~ : String, code~ : String)
+  ListItem(indent~ : Int, text~ : String)
+  Paragraph(text~ : String)
+  BlockQuote(text~ : String)
+  HorizontalRule
+  TaskItem(checked~ : Bool, text~ : String)
+  Link(text~ : String, url~ : String)
+  Table(headers~ : Array[String], rows~ : Array[Array[String]])
+} derive(Eq, @debug.Debug)
+pub fn MarkdownToken::equal(Self, Self) -> Bool
+pub fn MarkdownToken::not_equal(Self, Self) -> Bool
+pub fn MarkdownToken::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ModelDrawerLevel {
+  Cards
+  SubModels
+} derive(Eq, @debug.Debug)
+pub fn ModelDrawerLevel::equal(Self, Self) -> Bool
+pub fn ModelDrawerLevel::not_equal(Self, Self) -> Bool
+pub fn ModelDrawerLevel::to_repr(Self) -> @debug.Repr
+
+pub enum Node {
+  Text(String, Style)
+  Column(Array[Node])
+  Row(Array[Node])
+  Border(String?, Array[Node])
+  Padding(Int, Int, Node)
+  Styled(Style, Node)
+  Empty
+}
+
+pub(all) struct OutputBuffer {
+  entries : Array[OutputEntry]
+  mut next_id : Int
+  max_entries : Int
+  mut version : Int
+  mut width : Int
+  collapse_threshold : Int
+}
+pub fn OutputBuffer::append(Self, Array[String], OutputKind) -> Int
+pub fn OutputBuffer::append_text(Self, String, OutputKind) -> Int
+pub fn OutputBuffer::clear(Self) -> Unit
+pub fn OutputBuffer::collapse_long_system(Self) -> Unit
+pub fn OutputBuffer::commit_oldest_display_lines(Self, Int) -> Int
+pub fn OutputBuffer::commit_oldest_lines(Self, Int) -> Int
+pub fn OutputBuffer::commit_through(Self, Int) -> Unit
+pub fn OutputBuffer::current_version(Self) -> Int
+pub fn OutputBuffer::entry_count(Self) -> Int
+pub fn OutputBuffer::expand_all(Self) -> Unit
+pub fn OutputBuffer::get_entry(Self, Int) -> OutputEntry?
+pub fn OutputBuffer::is_dirty_since(Self, Int) -> Bool
+pub fn OutputBuffer::is_fully_editable(Self, Int) -> Bool
+pub fn OutputBuffer::is_live(Self, Int) -> Bool
+pub fn OutputBuffer::last_entry_id(Self) -> Int?
+pub fn OutputBuffer::live_display_lines(Self) -> Array[String]
+pub fn OutputBuffer::live_entries(Self) -> Array[OutputEntry]
+pub fn OutputBuffer::live_tail_lines(Self, Int) -> Array[String]
+pub fn OutputBuffer::new(max_entries? : Int) -> Self
+pub fn OutputBuffer::remove(Self, Int) -> OutputEntry?
+pub fn OutputBuffer::replace(Self, Int, Array[String]) -> Int?
+pub fn OutputBuffer::replace_live(Self, Int, Array[String]) -> Bool
+pub fn OutputBuffer::tail_lines(Self, Int) -> Array[String]
+pub fn OutputBuffer::toggle_collapse(Self, Int) -> Unit
+pub fn OutputBuffer::total_lines(Self) -> Int
+pub fn OutputBuffer::total_live_lines(Self) -> Int
+
+pub(all) struct OutputEntry {
+  id : Int
+  lines : Array[String]
+  kind : OutputKind
+  mut committed_line_offset : Int
+  mut collapsed : Bool
+} derive(@debug.Debug)
+pub fn OutputEntry::display_lines(Self) -> Array[String]
+pub fn OutputEntry::is_collapsed(Self) -> Bool
+pub fn OutputEntry::is_committed(Self) -> Bool
+pub fn OutputEntry::is_fully_editable(Self) -> Bool
+pub fn OutputEntry::is_live(Self) -> Bool
+pub fn OutputEntry::line_count(Self) -> Int
+pub fn OutputEntry::live_lines(Self) -> Array[String]
+pub fn OutputEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) enum OutputKind {
+  Text
+  Progress
+  System
+} derive(Eq, @debug.Debug)
+pub fn OutputKind::equal(Self, Self) -> Bool
+pub fn OutputKind::not_equal(Self, Self) -> Bool
+pub fn OutputKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PendingConfigTest {
+  mode : ConfigMode
+  action : ConfigAction
+  target_idx : Int
+  name : String
+  model : String
+  api_key : String
+  base_url : String
+  anthropic_format : Bool
+} derive(@debug.Debug)
+pub fn PendingConfigTest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PendingConfirmation {
+  tool_name : String
+  tool_args : String
+  prompt_text : String
+  default_yes : Bool
+} derive(@debug.Debug)
+pub fn PendingConfirmation::to_repr(Self) -> @debug.Repr
+
+type ProgressEntry derive(@debug.Debug)
+pub fn ProgressEntry::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ProgressHandle {
+  id : String
+  stack : @ref.Ref[ProgressStackData]
+  index : Int
+}
+pub fn ProgressHandle::close(Self) -> Unit
+pub fn ProgressHandle::is_open(Self) -> Bool
+pub fn ProgressHandle::set_char_count(Self, Int) -> Unit
+pub fn ProgressHandle::set_metadata(Self, String) -> Unit
+pub fn ProgressHandle::update_message(Self, String) -> Unit
+
+pub(all) struct ProgressStack {
+  data : @ref.Ref[ProgressStackData]
+} derive(@debug.Debug)
+pub fn ProgressStack::close_all(Self) -> Unit
+pub fn ProgressStack::close_last(Self) -> Unit
+pub fn ProgressStack::has_open(Self) -> Bool
+pub fn ProgressStack::new() -> Self
+pub fn ProgressStack::open_count(Self) -> Int
+pub fn ProgressStack::push(Self, String) -> ProgressHandle
+pub fn ProgressStack::push_quiet(Self, String) -> ProgressHandle
+pub fn ProgressStack::render(Self) -> Array[String]
+pub fn ProgressStack::to_repr(Self) -> @debug.Repr
+pub fn ProgressStack::total_count(Self) -> Int
+pub fn ProgressStack::update_last_char_count(Self, Int) -> Unit
+
+pub(all) struct ProgressStackData {
+  entries : Array[ProgressEntry]
+  mut next_id : Int
+} derive(@debug.Debug)
+pub fn ProgressStackData::to_repr(Self) -> @debug.Repr
+
+pub(all) enum SegmentColor {
+  Status
+  Session
+  Dir
+  Permission
+  Model
+  Tasks
+  Cost
+  Dim
+  Default
+} derive(@debug.Debug)
+pub fn SegmentColor::to_repr(Self) -> @debug.Repr
+
+pub(all) enum SlashCommand {
+  Config
+  Model(name~ : String)
+  Clear
+  Help
+  Exit
+  Quit
+  Theme(name~ : String)
+  Undo
+} derive(Eq, @debug.Debug)
+pub fn SlashCommand::equal(Self, Self) -> Bool
+pub fn SlashCommand::not_equal(Self, Self) -> Bool
+pub fn SlashCommand::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SlashCommandDef {
+  name : String
+  description : String
+  usage : String
+} derive(Eq, @debug.Debug)
+pub fn SlashCommandDef::equal(Self, Self) -> Bool
+pub fn SlashCommandDef::not_equal(Self, Self) -> Bool
+pub fn SlashCommandDef::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SlashCommandParser {
+  commands : Array[SlashCommandDef]
+} derive(@debug.Debug)
+pub fn SlashCommandParser::get_completions(Self, String) -> Array[String]
+pub fn SlashCommandParser::new() -> Self
+pub fn SlashCommandParser::parse(Self, String) -> Result[SlashCommand, String]
+pub fn SlashCommandParser::to_repr(Self) -> @debug.Repr
+
+pub(all) struct StatusBar {
+  mut segments : Array[StatusSegment]
+} derive(@debug.Debug)
+pub fn StatusBar::colored_text(Self) -> String
+pub fn StatusBar::format_compact(Self, String, String, Double) -> Unit
+pub fn StatusBar::format_from_state(Self, TuiState) -> Unit
+pub fn StatusBar::format_from_state_adaptive(Self, TuiState, Int) -> Unit
+pub fn StatusBar::format_full(Self, TuiState) -> Unit
+pub fn StatusBar::get_segment(Self, Int) -> StatusSegment
+pub fn StatusBar::new() -> Self
+pub fn StatusBar::plain_text(Self) -> String
+pub fn StatusBar::segment_count(Self) -> Int
+pub fn StatusBar::to_repr(Self) -> @debug.Repr
+
+pub(all) struct StatusSegment {
+  text : String
+  color : SegmentColor
+} derive(@debug.Debug)
+pub fn StatusSegment::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Style {
+  fg : @color.Color?
+  bg : @color.Color?
+  bold : Bool
+  dim : Bool
+}
+pub fn Style::default_() -> Self
+pub fn Style::new(fg? : @color.Color, bg? : @color.Color, bold? : Bool, dim? : Bool) -> Self
+
+pub(all) struct SuggestionItem {
+  name : String
+  description : String
+  usage : String
+} derive(@debug.Debug)
+pub fn SuggestionItem::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Theme {
+  name : ThemeName
+  primary_color : String
+  secondary_color : String
+  accent_color : String
+  error_color : String
+  dim_color : String
+  tool_call_symbol : String
+  tool_result_symbol : String
+  tool_denied_symbol : String
+  shell_preview_symbol : String
+  file_preview_symbol : String
+  phase_enter_symbol : String
+  phase_exit_symbol : String
+} derive(Eq, @debug.Debug)
+pub fn Theme::default_() -> Self
+pub fn Theme::equal(Self, Self) -> Bool
+pub fn Theme::from_name(ThemeName) -> Self
+pub fn Theme::hacker() -> Self
+pub fn Theme::light() -> Self
+pub fn Theme::minimal() -> Self
+pub fn Theme::not_equal(Self, Self) -> Bool
+pub fn Theme::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ThemeName {
+  Hacker
+  Minimal
+  Default
+  Light
+} derive(Eq, @debug.Debug)
+pub fn ThemeName::equal(Self, Self) -> Bool
+pub fn ThemeName::not_equal(Self, Self) -> Bool
+pub fn ThemeName::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ThinkingVerbAnimator {
+  verbs : Array[String]
+  mut index : Int
+  mode : ThinkingVerbMode
+  rng : @random.Rand
+}
+pub fn ThinkingVerbAnimator::new() -> Self
+pub fn ThinkingVerbAnimator::new_random() -> Self
+pub fn ThinkingVerbAnimator::next(Self) -> String
+pub fn ThinkingVerbAnimator::reset(Self) -> Unit
+pub fn ThinkingVerbAnimator::with_verbs(Array[String], mode? : ThinkingVerbMode) -> Self
+
+pub enum ThinkingVerbMode {
+  Sequential
+  Random
+} derive(Eq, @debug.Debug)
+pub fn ThinkingVerbMode::equal(Self, Self) -> Bool
+pub fn ThinkingVerbMode::not_equal(Self, Self) -> Bool
+pub fn ThinkingVerbMode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TipsState {
+  mut message : String?
+  mut type_ : TipsType
+  mut set_tick : Int
+}
+pub fn TipsState::clear(Self) -> Unit
+pub fn TipsState::is_expired(Self, Int) -> Bool
+pub fn TipsState::new() -> Self
+pub fn TipsState::set(Self, String, TipsType, Int) -> Unit
+
+pub(all) enum TipsType {
+  Info
+  Warn
+  Error
+} derive(Eq, @debug.Debug)
+pub fn TipsType::equal(Self, Self) -> Bool
+pub fn TipsType::not_equal(Self, Self) -> Bool
+pub fn TipsType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TodoArea {
+  mut items : Array[TodoDisplayItem]
+  mut completed_count : Int
+  mut total_count : Int
+  mut hidden : Bool
+  max_display : Int
+} derive(@debug.Debug)
+pub fn TodoArea::hide(Self) -> Unit
+pub fn TodoArea::new() -> Self
+pub fn TodoArea::render_lines(Self) -> Array[String]
+pub fn TodoArea::show(Self) -> Unit
+pub fn TodoArea::to_repr(Self) -> @debug.Repr
+pub fn TodoArea::update(Self, Array[TodoDisplayItem], Int, Int) -> Unit
+pub fn TodoArea::visible(Self) -> Bool
+
+pub(all) struct TodoDisplayItem {
+  id : Int
+  title : String
+  status : String
+  description : String
+} derive(@debug.Debug)
+pub fn TodoDisplayItem::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ToolExecution {
+  name : String
+  args : String
+  mut completed : Bool
+  mut result_summary : String
+} derive(@debug.Debug)
+pub fn ToolExecution::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TuiController {
+  tty : @tty.Tty
+  mut term_width : Int
+  output : OutputBuffer
+  mut term_height : Int
+  status_bar : StatusBar
+  input : InputArea
+  state : @ref.Ref[TuiState]
+  agent : @agent.Agent
+  hooks : AgentHookHandler
+  mut quit : Bool
+  mut dirty : Bool
+  mut agent_running : Bool
+  mut painted_body : Array[String]
+  mut last_fixed_height : Int
+  mut screen_inited : Bool
+  events : @aqueue.Queue[TuiEvent]
+  mut confirmation_response : @aqueue.Queue[Bool]?
+  mut feedback_response : @aqueue.Queue[String]?
+  mut feedback_pending : Bool
+  mut agent_task : @async.Task[@agent.RunResult]?
+  thinking_animator : ThinkingVerbAnimator
+  mut last_thinking_len : Int
+  agent_output_sync : AgentOutputSync
+  mut theme : Theme
+  suggestions : CommandSuggestions
+  mut suggestions_active : Bool
+  mut suggestions_rows_drawn : Array[Int]
+  mut progress_rows_drawn : Array[Int]
+  tips : TipsState
+  mut pending_config_test : PendingConfigTest?
+}
+pub async fn TuiController::full_redraw(Self) -> Unit
+pub fn TuiController::new(@tty.Tty, @agent.Agent) -> Self
+pub async fn TuiController::redraw(Self) -> Unit
+pub async fn TuiController::run(Self) -> Unit
+
+pub enum TuiEvent {
+  Terminal(@tty.Event)
+  ConfirmationRequest(String, String)
+  FeedbackRequest(String, String?, Array[String]?)
+  AgentDone(@agent.RunResult)
+  AgentError(String)
+  SubmitInput(String)
+  Tick
+  StartConnectionTest(PendingConfigTest)
+  ConnectionTestDone(Bool, String)
+  TerminalClosed
+}
+
+pub(all) enum TuiMode {
+  Idle
+  Running
+} derive(Eq, @debug.Debug)
+pub fn TuiMode::equal(Self, Self) -> Bool
+pub fn TuiMode::not_equal(Self, Self) -> Bool
+pub fn TuiMode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TuiState {
+  mut session_id : String
+  mut model_name : String
+  mut mode : TuiMode
+  agent_status : @signals.Signal[String]
+  mut iterations : Int
+  mut working_dir : String
+  mut permission_mode : String
+  mut active_tasks : Int
+  mut messages : Array[String]
+  streaming_buffer : @signals.Signal[String]
+  streaming_active : @signals.Signal[Bool]
+  tool_output : @signals.Signal[String]
+  mut current_tool_name : String
+  mut current_tool_args : String
+  mut tool_history : Array[ToolExecution]
+  mut llm_call_count : Int
+  mut llm_calling : Bool
+  mut phase_stack : Array[String]
+  mut total_cost : Double
+  mut cost_source : String
+  mut latest_delta : Int
+  mut last_input_tokens : Int
+  mut last_output_tokens : Int
+  input_text : String
+  mut last_error : String?
+  progress_stack : ProgressStack
+  todo_area : TodoArea
+  mut pending_confirmation : PendingConfirmation?
+  mut theme : Theme
+  mut dialog : DialogState
+  thinking_buffer : @signals.Signal[String]
+  mut tick_count : Int
+  mut run_start_ts : Int64
+  mut total_iterations : Int
+  mut approved_all_tools : Bool
+  mut time_machine : @agent.TimeMachineState
+  mut paste_placeholder_count : Int
+  mut paste_placeholders : Array[(Int, String)]
+}
+pub fn TuiState::clear_paste_placeholders(Self) -> Unit
+pub fn TuiState::expand_paste_placeholders(Self, String) -> String
+pub fn TuiState::from_agent(@agent.Agent) -> Self
+pub fn TuiState::get_paste_placeholder(Self, Int) -> String?
+
+// Type aliases
+
+// Traits

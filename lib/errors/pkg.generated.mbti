@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/errors"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn error_message(Error) -> String
+
+pub fn is_agent_error(Error) -> Bool
+
+pub fn is_retryable_error(Error) -> Bool
+
+// Errors
+pub(all) suberror AgentError {
+  AgentError(String)
+} derive(ToJson, @debug.Debug)
+pub fn AgentError::to_json(Self) -> Json
+pub fn AgentError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror AgentInterrupted {
+  AgentInterrupted(String)
+} derive(ToJson, @debug.Debug)
+pub fn AgentInterrupted::to_json(Self) -> Json
+pub fn AgentInterrupted::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror BadRequestError {
+  BadRequestError(Int, String)
+} derive(ToJson, @debug.Debug)
+pub fn BadRequestError::to_json(Self) -> Json
+pub fn BadRequestError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror BrowserNotReachableError {
+  BrowserNotReachableError(String)
+} derive(ToJson, @debug.Debug)
+pub fn BrowserNotReachableError::to_json(Self) -> Json
+pub fn BrowserNotReachableError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror LlmTimeoutError {
+  LlmTimeoutError(String)
+} derive(ToJson, @debug.Debug)
+pub fn LlmTimeoutError::to_json(Self) -> Json
+pub fn LlmTimeoutError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror RetryableError {
+  RetryableError(String)
+} derive(ToJson, @debug.Debug)
+pub fn RetryableError::to_json(Self) -> Json
+pub fn RetryableError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror ToolCallError {
+  ToolCallError(String, String)
+} derive(ToJson, @debug.Debug)
+pub fn ToolCallError::to_json(Self) -> Json
+pub fn ToolCallError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror UpstreamTruncatedError {
+  UpstreamTruncatedError(String)
+} derive(ToJson, @debug.Debug)
+pub fn UpstreamTruncatedError::to_json(Self) -> Json
+pub fn UpstreamTruncatedError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+
+// Type aliases
+
+// Traits

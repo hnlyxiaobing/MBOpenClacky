@@ -1,0 +1,458 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/tool"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/mcp",
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "moonbitlang/async/process",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/string",
+}
+
+// Values
+pub fn background_hint(Bool, Int) -> String
+
+pub fn browser_disabled_error() -> String
+
+pub fn browser_not_setup_error() -> String
+
+pub fn classify_browser_error(String) -> String
+
+pub fn clean_ansi_output(String) -> String
+
+pub fn clean_output(String) -> String
+
+pub fn collapse_carriage_returns(String) -> String
+
+pub fn command_safe_for_auto_execution(String) -> Bool
+
+pub fn completion_marker(String, Int) -> String
+
+pub fn compress_snapshot(String) -> String
+
+pub fn count_occurrences(String, String) -> Int
+
+pub fn enhanced_process_terminal_output(String, command? : String, max_chars? : Int, session_id? : Int) -> (String, Bool, String?)
+
+pub fn file_size_or_none(String) -> Int64?
+
+pub fn find_header(Array[(String, String)], String) -> String?
+
+pub fn find_match(String, String) -> MatchResult?
+
+pub fn find_substring(String, String, Int) -> Int
+
+pub fn format_bytes(Int) -> String
+
+pub fn format_file_size(Int64) -> String
+
+pub fn format_screenshot_result(String, ref_param? : String?, format? : String?, save_path? : String?) -> String
+
+pub fn get_basename(String) -> String
+
+pub fn get_bool_arg(Map[String, Json], String, Bool) -> Bool
+
+pub fn get_int_arg(Map[String, Json], String, Int) -> Int
+
+pub fn get_string_arg(Map[String, Json], String, String) -> String
+
+pub fn glob_path_match(String, String) -> Bool
+
+pub fn glob_to_regex(String) -> String
+
+pub async fn http_get_follow_redirects(String, Array[(String, String)], Int, Int) -> Result[@client.HttpResponse, @client.HttpError]
+
+pub fn is_binary_extension(String) -> Bool
+
+pub fn is_browser_mcp_available() -> Bool
+
+pub fn is_multiline_command(String) -> Bool
+
+pub fn is_secret_path(String) -> Bool raise SecurityError
+
+pub fn is_slow_command(String) -> Bool
+
+pub fn join_browser_parts(Array[String], String) -> String
+
+pub fn join_path(String, String) -> String
+
+pub fn make_default_registry() -> ToolRegistry
+
+pub fn make_safe(String) -> String raise SecurityError
+
+pub let max_line_chars : Int
+
+pub fn mtime_sec_or_none(String) -> Int64?
+
+pub fn process_terminal_output(String, max_chars? : Int) -> (String, Bool)
+
+pub fn query_snapshot(String, String, offset? : Int) -> String
+
+pub fn read_file_scrubbed(String) -> String?
+
+pub fn relative_to(String, String) -> String
+
+pub fn resolve_url(String, String) -> String
+
+pub fn rewrite_note(String, String) -> String?
+
+pub async fn run_shell_command(String, env_vars? : Array[(String, String)], working_dir? : String?) -> ShellExecResult
+
+pub fn safe_truncate(String, Int) -> String
+
+pub fn sanitize_name(String) -> String
+
+pub fn set_browser_mcp_registry(@mcp.McpRegistry) -> Unit
+
+pub fn shell_is_windows() -> Bool
+
+pub fn shell_temp_dir_pub() -> String
+
+pub fn simple_glob_match(String, String) -> Bool
+
+pub fn smart_truncate(String, Int) -> String
+
+pub fn spill_overflow_file(String, session_id? : Int) -> String?
+
+pub fn strip_backspaces(String) -> String
+
+pub fn strip_command_echo(String, String) -> String
+
+pub fn strip_control_chars(String) -> String
+
+pub let terminal_max_output_chars : Int
+
+pub let terminal_overflow_preview_chars : Int
+
+pub fn truncate_browser_output(String, Int) -> String
+
+pub fn truncate_long_lines(String, max_chars? : Int) -> String
+
+pub fn truncate_output(String, max_chars? : Int) -> (String, Bool)
+
+pub fn url_decode(String) -> String
+
+pub fn validate_secret_write(String) -> Unit raise SecurityError
+
+pub fn walk_files(String, Int, Int, @utils.IgnoreConfig) -> Array[String]
+
+// Errors
+pub suberror SecurityError {
+  SecurityError(String)
+} derive(@debug.Debug)
+pub fn SecurityError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) enum AnyTool {
+  FileReader(FileReader)
+  Write(Write)
+  Edit(Edit)
+  Grep(Grep)
+  Glob(Glob)
+  Terminal(Terminal)
+  WebSearch(WebSearch)
+  WebFetch(WebFetch)
+  InvokeSkill(InvokeSkill)
+  MemoryTool(MemoryTool)
+  TodoTool(TodoTool)
+  RequestUserFeedback(RequestUserFeedback)
+  TrashManager(TrashManager)
+  Browser(Browser)
+} derive(Eq, @debug.Debug)
+pub fn AnyTool::category(Self) -> ToolCategory
+pub fn AnyTool::description(Self) -> String
+pub fn AnyTool::equal(Self, Self) -> Bool
+pub async fn AnyTool::execute(Self, Map[String, Json]) -> ToolResult
+pub fn AnyTool::format_call(Self, Map[String, Json]) -> String
+pub fn AnyTool::format_result(Self, ToolResult) -> String
+pub fn AnyTool::name(Self) -> String
+pub fn AnyTool::not_equal(Self, Self) -> Bool
+pub fn AnyTool::parameters(Self) -> Json
+pub fn AnyTool::to_function_definition(Self) -> FunctionDefinition
+pub fn AnyTool::to_repr(Self) -> @debug.Repr
+pub impl Tool for AnyTool
+
+pub(all) struct Browser {
+  mut daemon_connected : Bool
+  mut page_cache : PageCache
+} derive(Eq, @debug.Debug)
+pub fn Browser::equal(Self, Self) -> Bool
+pub fn Browser::handle_status(Self) -> String
+pub fn Browser::invalidate_page_cache(Self) -> Unit
+pub fn Browser::is_browser_configured(Self) -> Bool
+pub fn Browser::is_browser_enabled(Self) -> Bool
+pub async fn Browser::mcp_call(Self, String, Map[String, Json], page_id? : String?) -> ToolResult
+pub fn Browser::new() -> Self
+pub fn Browser::not_equal(Self, Self) -> Bool
+pub async fn Browser::recover_selected_page(Self) -> String?
+pub fn Browser::to_repr(Self) -> @debug.Repr
+pub async fn Browser::wait_for_page_ready(Self, timeout_ms? : Int) -> Result[Unit, String]
+pub async fn Browser::with_page(Self, String, Map[String, Json]) -> ToolResult
+
+pub(all) struct Edit {
+  encoding : String
+} derive(Eq, @debug.Debug)
+pub fn Edit::equal(Self, Self) -> Bool
+pub fn Edit::new() -> Self
+pub fn Edit::not_equal(Self, Self) -> Bool
+pub fn Edit::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FileReader {
+  max_lines : Int
+  max_line_chars : Int
+} derive(Eq, @debug.Debug)
+pub fn FileReader::equal(Self, Self) -> Bool
+pub fn FileReader::new() -> Self
+pub fn FileReader::not_equal(Self, Self) -> Bool
+pub fn FileReader::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FunctionDef {
+  name : String
+  description : String
+  parameters : Json
+} derive(Eq, ToJson, @debug.Debug)
+pub fn FunctionDef::equal(Self, Self) -> Bool
+pub fn FunctionDef::not_equal(Self, Self) -> Bool
+pub fn FunctionDef::to_json(Self) -> Json
+pub fn FunctionDef::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FunctionDefinition {
+  type_ : String
+  function : FunctionDef
+} derive(Eq, @debug.Debug)
+pub fn FunctionDefinition::equal(Self, Self) -> Bool
+pub fn FunctionDefinition::new(String, String, Json) -> Self
+pub fn FunctionDefinition::not_equal(Self, Self) -> Bool
+pub fn FunctionDefinition::to_json(Self) -> Json
+pub fn FunctionDefinition::to_repr(Self) -> @debug.Repr
+pub impl ToJson for FunctionDefinition
+
+pub(all) struct Glob {
+  limit : Int
+} derive(Eq, @debug.Debug)
+pub fn Glob::equal(Self, Self) -> Bool
+pub fn Glob::new() -> Self
+pub fn Glob::not_equal(Self, Self) -> Bool
+pub fn Glob::to_repr(Self) -> @debug.Repr
+
+pub struct GlobMatcher {
+  re : @string.Regex
+}
+pub fn GlobMatcher::match_path(Self, String) -> Bool
+pub fn GlobMatcher::new(String) -> Self
+
+pub(all) struct Grep {
+  max_files : Int
+  max_matches_per_file : Int
+  max_total_matches : Int
+  max_line_length : Int
+} derive(Eq, @debug.Debug)
+pub fn Grep::equal(Self, Self) -> Bool
+pub fn Grep::new() -> Self
+pub fn Grep::not_equal(Self, Self) -> Bool
+pub fn Grep::to_repr(Self) -> @debug.Repr
+
+pub(all) struct InvokeSkill {
+} derive(Eq, @debug.Debug)
+pub fn InvokeSkill::equal(Self, Self) -> Bool
+pub fn InvokeSkill::not_equal(Self, Self) -> Bool
+pub fn InvokeSkill::to_repr(Self) -> @debug.Repr
+
+type MatchResult
+
+pub(all) struct MemoryTool {
+} derive(Eq, @debug.Debug)
+pub fn MemoryTool::equal(Self, Self) -> Bool
+pub fn MemoryTool::not_equal(Self, Self) -> Bool
+pub fn MemoryTool::to_repr(Self) -> @debug.Repr
+
+type PageCache derive(Eq, @debug.Debug)
+pub fn PageCache::equal(Self, Self) -> Bool
+pub fn PageCache::not_equal(Self, Self) -> Bool
+pub fn PageCache::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PtyExecResult {
+  output : String
+  exit_code : Int?
+  duration_ms : Int
+  state : PtyReadState
+} derive(@debug.Debug)
+pub fn PtyExecResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum PtyReadState {
+  Matched
+  Idle
+  Timeout
+  Eof
+} derive(Eq, @debug.Debug)
+pub fn PtyReadState::equal(Self, Self) -> Bool
+pub fn PtyReadState::not_equal(Self, Self) -> Bool
+pub fn PtyReadState::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RequestUserFeedback {
+} derive(Eq, @debug.Debug)
+pub fn RequestUserFeedback::equal(Self, Self) -> Bool
+pub fn RequestUserFeedback::not_equal(Self, Self) -> Bool
+pub fn RequestUserFeedback::to_repr(Self) -> @debug.Repr
+
+pub(all) enum SessionStatus {
+  Starting
+  Running
+  Exited
+  Killed
+} derive(Eq, @debug.Debug)
+pub fn SessionStatus::equal(Self, Self) -> Bool
+pub fn SessionStatus::not_equal(Self, Self) -> Bool
+pub fn SessionStatus::to_repr(Self) -> @debug.Repr
+pub fn SessionStatus::to_string(Self) -> String
+
+pub(all) struct ShellExecResult {
+  output : String
+  exit_code : Int
+} derive(@debug.Debug)
+pub fn ShellExecResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Terminal {
+  timeout : Int
+  max_output_chars : Int
+} derive(Eq, @debug.Debug)
+pub fn Terminal::equal(Self, Self) -> Bool
+pub fn Terminal::new() -> Self
+pub fn Terminal::not_equal(Self, Self) -> Bool
+pub fn Terminal::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TerminalSession {
+  id : Int
+  mut command : String
+  mut status : SessionStatus
+  mut output : String
+  started_at : Int
+  mut exit_code : Int?
+  mut pid : Int?
+  mut cwd : String
+  mut overflow_file : String?
+  mut output_file : String?
+  mut marker_token : String
+  mut output_offset : Int
+} derive(@debug.Debug)
+pub fn TerminalSession::new(Int, String, String) -> Self
+pub fn TerminalSession::to_repr(Self) -> @debug.Repr
+
+pub struct TerminalSessionManager {
+}
+pub fn TerminalSessionManager::complete(Int, String, Int, overflow_file? : String?) -> Unit
+pub fn TerminalSessionManager::count() -> Int
+pub fn TerminalSessionManager::drop_stdin_writer(Int) -> Unit
+pub fn TerminalSessionManager::forget(Int) -> Unit
+pub fn TerminalSessionManager::get(Int) -> TerminalSession?
+pub async fn TerminalSessionManager::kill(Int) -> Bool
+pub async fn TerminalSessionManager::kill_all() -> Unit
+pub fn TerminalSessionManager::list() -> Array[TerminalSession]
+pub fn TerminalSessionManager::mark_running(Int) -> Unit
+pub fn TerminalSessionManager::refresh(Int) -> TerminalSession?
+pub fn TerminalSessionManager::register(String, String) -> Int
+pub async fn TerminalSessionManager::send_input(Int, String) -> Bool
+pub fn TerminalSessionManager::set_output_file(Int, String, String) -> Unit
+pub fn TerminalSessionManager::set_pid(Int, Int) -> Unit
+pub fn TerminalSessionManager::set_stdin_writer(Int, @process.WriteToProcess) -> Unit
+
+pub(all) struct TodoTool {
+} derive(Eq, @debug.Debug)
+pub fn TodoTool::equal(Self, Self) -> Bool
+pub fn TodoTool::not_equal(Self, Self) -> Bool
+pub fn TodoTool::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ToolCategory {
+  General
+  FileSystem
+  Execution
+  Web
+  Agent
+} derive(Compare, Eq, @debug.Debug)
+pub fn ToolCategory::compare(Self, Self) -> Int
+pub fn ToolCategory::equal(Self, Self) -> Bool
+pub fn ToolCategory::from_string(String) -> Self?
+pub fn ToolCategory::not_equal(Self, Self) -> Bool
+pub fn ToolCategory::op_ge(Self, Self) -> Bool
+pub fn ToolCategory::op_gt(Self, Self) -> Bool
+pub fn ToolCategory::op_le(Self, Self) -> Bool
+pub fn ToolCategory::op_lt(Self, Self) -> Bool
+pub fn ToolCategory::to_json(Self) -> Json
+pub fn ToolCategory::to_repr(Self) -> @debug.Repr
+pub fn ToolCategory::to_string_value(Self) -> String
+pub impl ToJson for ToolCategory
+
+pub(all) struct ToolRegistry {
+  tools : Map[String, AnyTool]
+  downcased_index : Map[String, String]
+  order : Array[String]
+} derive(@debug.Debug)
+pub fn ToolRegistry::all(Self) -> Array[AnyTool]
+pub fn ToolRegistry::all_definitions(Self) -> Array[FunctionDefinition]
+pub fn ToolRegistry::allowed_definitions(Self, Array[String]?) -> Array[FunctionDefinition]
+pub fn ToolRegistry::by_category(Self, ToolCategory) -> Array[AnyTool]
+pub fn ToolRegistry::get(Self, String) -> AnyTool?
+pub fn ToolRegistry::get_resolved(Self, String) -> AnyTool?
+pub fn ToolRegistry::has(Self, String) -> Bool
+pub fn ToolRegistry::new() -> Self
+pub fn ToolRegistry::register(Self, AnyTool) -> Unit
+pub fn ToolRegistry::resolve(Self, String) -> String?
+pub fn ToolRegistry::size(Self) -> Int
+pub fn ToolRegistry::to_repr(Self) -> @debug.Repr
+pub fn ToolRegistry::tool_names(Self) -> Array[String]
+
+pub(all) struct ToolResult {
+  content : String
+  is_error : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ToolResult::equal(Self, Self) -> Bool
+pub fn ToolResult::error(String) -> Self
+pub fn ToolResult::not_equal(Self, Self) -> Bool
+pub fn ToolResult::success(String) -> Self
+pub fn ToolResult::to_json(Self) -> Json
+pub fn ToolResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TrashManager {
+} derive(Eq, @debug.Debug)
+pub fn TrashManager::equal(Self, Self) -> Bool
+pub fn TrashManager::not_equal(Self, Self) -> Bool
+pub fn TrashManager::to_repr(Self) -> @debug.Repr
+
+pub(all) struct WebFetch {
+  max_length : Int
+} derive(Eq, @debug.Debug)
+pub fn WebFetch::equal(Self, Self) -> Bool
+pub fn WebFetch::new() -> Self
+pub fn WebFetch::not_equal(Self, Self) -> Bool
+pub fn WebFetch::to_repr(Self) -> @debug.Repr
+
+pub(all) struct WebSearch {
+  max_results : Int
+} derive(Eq, @debug.Debug)
+pub fn WebSearch::equal(Self, Self) -> Bool
+pub fn WebSearch::new() -> Self
+pub fn WebSearch::not_equal(Self, Self) -> Bool
+pub fn WebSearch::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Write {
+  encoding : String
+} derive(Eq, @debug.Debug)
+pub fn Write::equal(Self, Self) -> Bool
+pub fn Write::new() -> Self
+pub fn Write::not_equal(Self, Self) -> Bool
+pub fn Write::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
+pub(open) trait Tool {
+  fn name(Self) -> String
+  fn description(Self) -> String
+  fn parameters(Self) -> Json
+  fn category(Self) -> ToolCategory
+  async fn execute(Self, Map[String, Json]) -> ToolResult
+  fn format_call(Self, Map[String, Json]) -> String
+  fn format_result(Self, ToolResult) -> String
+  fn to_function_definition(Self) -> FunctionDefinition
+}

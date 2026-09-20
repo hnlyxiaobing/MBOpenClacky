@@ -1,0 +1,296 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/client"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/message",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn add_stream_flag(Json) -> Json
+
+pub fn add_stream_options(Json, Bool) -> Json
+
+pub fn anthropic_messages_path(String) -> String
+
+pub fn bedrock_converse_path(String) -> String
+
+pub fn bedrock_converse_stream_path(String) -> String
+
+pub fn build_anthropic_request(Array[@message.Message], String, Array[Json], Int, Bool, reasoning_effort? : String?) -> Json
+
+pub fn build_bedrock_request(Array[@message.Message], String, Array[Json], Int, Bool, reasoning_effort? : String?) -> Json
+
+pub fn build_openai_request(Array[@message.Message], String, Array[Json], Int, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
+
+pub fn extract_error_code(String) -> String?
+
+pub fn extract_error_message(String) -> String
+
+pub fn format_anthropic_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
+
+pub fn format_bedrock_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
+
+pub fn format_openai_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
+
+pub async fn http_get(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+
+pub async fn http_post(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+
+pub async fn http_post_async(String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+
+pub async fn http_post_stream_async(String, String, Array[(String, String)], Int, (SseFrame) -> Unit, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+
+pub fn is_bedrock_api_key(String, String) -> Bool
+
+pub fn is_html_response(String) -> Bool
+
+pub fn is_retryable(HttpError) -> Bool
+
+pub fn map_http_error(Int, String) -> String?
+
+pub fn parse_anthropic_response(Json) -> LlmResponse
+
+pub fn parse_bedrock_response(Json) -> LlmResponse
+
+pub fn parse_openai_response(Json) -> LlmResponse
+
+pub fn parse_sse_frame(String) -> SseFrame?
+
+pub fn parse_sse_frames(String) -> Array[SseFrame]
+
+pub async fn send_request(HttpMethod, String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+
+// Errors
+
+// Types and methods
+type AnthropicBlockAcc
+
+pub(all) struct AnthropicStreamAggregator {
+  mut blocks : Array[AnthropicBlockAcc]
+  mut stop_reason : String?
+  mut input_tokens : Int
+  mut output_tokens : Int
+  mut cache_creation : Int
+  mut cache_read : Int
+  mut last_output_tokens : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+}
+pub fn AnthropicStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn AnthropicStreamAggregator::handle(Self, String, String) -> Unit
+pub fn AnthropicStreamAggregator::handle_delta(Self, String, String) -> String
+pub fn AnthropicStreamAggregator::new() -> Self
+pub fn AnthropicStreamAggregator::to_response(Self) -> LlmResponse
+
+type BedrockBlockAcc
+
+pub(all) struct BedrockStreamAggregator {
+  mut role : String
+  mut blocks : Map[Int, BedrockBlockAcc]
+  mut stop_reason : String?
+  mut input_tokens : Int
+  mut output_tokens : Int
+  mut cache_read : Int
+  mut cache_write : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+}
+pub fn BedrockStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn BedrockStreamAggregator::handle(Self, String, String) -> Unit
+pub fn BedrockStreamAggregator::new() -> Self
+pub fn BedrockStreamAggregator::to_json(Self) -> Json
+pub fn BedrockStreamAggregator::to_response(Self) -> LlmResponse
+
+pub(all) struct Client {
+  api_key : String
+  base_url : String
+  model : String
+  api_type : @config.ApiType
+  provider_id : String?
+  vision_supported : Bool
+}
+pub fn Client::anthropic_headers(Self) -> Map[String, String]
+pub fn Client::api_model_for(Self, String) -> String
+pub fn Client::api_path(Self) -> String
+pub fn Client::build_request_body(Self, SendRequest) -> Json
+pub fn Client::build_simple_request(Self, String, String, Int) -> Json
+pub fn Client::build_url(Self, String) -> String
+pub fn Client::format_tool_results(Self, LlmResponse, Map[String, String]) -> Array[@message.Message]
+pub fn Client::is_anthropic_format(Self) -> Bool
+pub fn Client::is_bedrock_format(Self) -> Bool
+pub fn Client::new(String, String, String, @config.ApiType, provider_id? : String?, vision_supported? : Bool?) -> Self
+pub fn Client::openai_headers(Self) -> Map[String, String]
+pub fn Client::parse_response(Self, Json) -> LlmResponse
+pub fn Client::request_headers(Self) -> Map[String, String]
+pub fn Client::request_url(Self) -> String
+pub fn Client::supports_prompt_caching(Self, String) -> Bool
+pub async fn Client::test_connection(Self) -> TestResult
+
+pub enum HttpError {
+  Timeout(String)
+  ConnectionFailed(String)
+  ServerError(Int, String)
+  ClientError(Int, String)
+  AllHostsFailed(String)
+} derive(@debug.Debug)
+pub fn HttpError::to_repr(Self) -> @debug.Repr
+
+pub enum HttpMethod {
+  Get
+  Post
+  Put
+  Delete
+} derive(@debug.Debug)
+pub fn HttpMethod::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HttpResponse {
+  status_code : Int
+  body : String
+  headers : Array[(String, String)]
+} derive(@debug.Debug)
+pub fn HttpResponse::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Latency {
+  duration_ms : Int
+  ttft_ms : Int?
+  output_tokens : Int
+  tps : Double?
+  model : String?
+  measured_at : String?
+  streaming : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Latency::equal(Self, Self) -> Bool
+pub fn Latency::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Latency::new(Int, ttft_ms? : Int, tps? : Double?, output_tokens? : Int, model? : String?, measured_at? : String?, streaming? : Bool) -> Self
+pub fn Latency::not_equal(Self, Self) -> Bool
+pub fn Latency::to_json(Self) -> Json
+pub fn Latency::to_repr(Self) -> @debug.Repr
+pub impl @json.FromJson for Latency
+
+pub(all) struct LlmResponse {
+  content : String?
+  reasoning_content : String?
+  tool_calls : Array[@message.ToolCall]?
+  finish_reason : String?
+  usage : Usage?
+  latency : Latency?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn LlmResponse::equal(Self, Self) -> Bool
+pub fn LlmResponse::has_tool_calls(Self) -> Bool
+pub fn LlmResponse::is_finished(Self) -> Bool
+pub fn LlmResponse::not_equal(Self, Self) -> Bool
+pub fn LlmResponse::text_only(String) -> Self
+pub fn LlmResponse::to_json(Self) -> Json
+pub fn LlmResponse::to_repr(Self) -> @debug.Repr
+
+pub(all) struct OpenAiStreamAggregator {
+  mut content_parts : Array[String]
+  mut content_len : Int
+  mut reasoning_parts : Array[String]
+  mut reasoning_len : Int
+  mut tool_calls : Array[OpenAiToolCallAcc]
+  mut finish_reason : String?
+  mut usage : Usage?
+  mut last_output_tokens : Int
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+  mut saw_done : Bool
+}
+pub fn OpenAiStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn OpenAiStreamAggregator::handle(Self, String) -> Unit
+pub fn OpenAiStreamAggregator::handle_delta(Self, String) -> String
+pub fn OpenAiStreamAggregator::new() -> Self
+pub fn OpenAiStreamAggregator::to_response(Self) -> LlmResponse
+
+type OpenAiToolCallAcc
+
+pub struct PlatformHttpClient {
+  config : PlatformHttpConfig
+  mut current_host : String
+  mut consecutive_failures : Int
+  mut last_failover_epoch : Int
+}
+pub fn PlatformHttpClient::active_host(Self) -> String
+pub async fn PlatformHttpClient::delete(Self, String, headers? : Array[(String, String)]) -> Result[HttpResponse, HttpError]
+pub async fn PlatformHttpClient::get(Self, String, headers? : Array[(String, String)]) -> Result[HttpResponse, HttpError]
+pub fn PlatformHttpClient::new(PlatformHttpConfig) -> Self
+pub async fn PlatformHttpClient::post(Self, String, String, headers? : Array[(String, String)]) -> Result[HttpResponse, HttpError]
+pub async fn PlatformHttpClient::put(Self, String, String, headers? : Array[(String, String)]) -> Result[HttpResponse, HttpError]
+pub fn PlatformHttpClient::reset_failover(Self) -> Unit
+
+pub struct PlatformHttpConfig {
+  primary_host : String
+  secondary_host : String
+  fallback_host : String
+  open_timeout_ms : Int
+  read_timeout_ms : Int
+  max_retries : Int
+  initial_backoff_ms : Int
+  proxy_url : String
+} derive(Eq, @debug.Debug)
+pub fn PlatformHttpConfig::equal(Self, Self) -> Bool
+pub fn PlatformHttpConfig::new(primary_host~ : String, secondary_host? : String, fallback_host? : String, open_timeout_ms? : Int, read_timeout_ms? : Int, max_retries? : Int, initial_backoff_ms? : Int, proxy_url? : String) -> Self
+pub fn PlatformHttpConfig::not_equal(Self, Self) -> Bool
+pub fn PlatformHttpConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SendRequest {
+  messages : Array[@message.Message]
+  model : String
+  tools : Array[Json]
+  max_tokens : Int
+  enable_caching : Bool
+  reasoning_effort : String?
+}
+
+pub(all) struct SseBytePump {
+  mut pending : Array[Byte]
+}
+pub fn SseBytePump::feed(Self, Bytes) -> Array[SseFrame]
+pub fn SseBytePump::feed_string(Self, String) -> Array[SseFrame]
+pub fn SseBytePump::finish(Self) -> Array[SseFrame]
+pub fn SseBytePump::new() -> Self
+
+pub(all) struct SseFrame {
+  event : String
+  data : String
+} derive(Eq, @debug.Debug)
+pub fn SseFrame::equal(Self, Self) -> Bool
+pub fn SseFrame::not_equal(Self, Self) -> Bool
+pub fn SseFrame::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TestResult {
+  success : Bool
+  error : String?
+} derive(@debug.Debug)
+pub fn TestResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Usage {
+  input_tokens : Int
+  output_tokens : Int
+  cache_creation_input_tokens : Int
+  cache_read_input_tokens : Int
+  total_tokens : Int
+  api_cost : Double?
+  total_is_per_turn : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Usage::equal(Self, Self) -> Bool
+pub fn Usage::from_anthropic(Int, Int, cache_creation? : Int, cache_read? : Int) -> Self
+pub fn Usage::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Usage::from_openai(Int, Int, cache_creation? : Int, cache_read? : Int, total_tokens? : Int, api_cost? : Double?) -> Self
+pub fn Usage::not_equal(Self, Self) -> Bool
+pub fn Usage::to_json(Self) -> Json
+pub fn Usage::to_repr(Self) -> @debug.Repr
+pub impl @json.FromJson for Usage
+
+// Type aliases
+
+// Traits
+pub(open) trait StreamCallback {
+  fn on_chunk(Self, Int, Int) -> Unit
+}

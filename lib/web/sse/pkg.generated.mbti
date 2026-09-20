@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/web/sse"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+}
+
+// Values
+pub fn build_sse_body(Array[CapturedHookEvent], @agent.RunResult, resume_from? : Int) -> String
+
+pub fn capture_hook_event(@agent.HookEvent, id? : Int) -> CapturedHookEvent
+
+pub fn format_heartbeat() -> String
+
+pub fn format_retry_directive(Int) -> String
+
+pub fn format_sse_event(String, Json, id? : Int) -> String
+
+pub fn parse_last_event_id(String?) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) struct CapturedHookEvent {
+  event_type : String
+  data : Json
+  id : Int
+}
+
+// Type aliases
+
+// Traits
+

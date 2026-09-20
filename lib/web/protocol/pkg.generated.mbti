@@ -1,0 +1,142 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/web/protocol"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/message",
+}
+
+// Values
+pub fn build_confirmation_response(String, Bool) -> String
+
+pub fn build_connected_event(String) -> String
+
+pub fn build_error_event(String, String) -> String
+
+pub fn build_event(String, String, Json) -> String
+
+pub fn build_global_event(String, Json) -> String
+
+pub fn build_history_user_message(String, String) -> String
+
+pub fn build_interrupted_event(String) -> String
+
+pub fn build_messages_history(String, Array[@message.Message], limit? : Int, before? : String?, offset? : Int) -> Json
+
+pub fn build_pong() -> String
+
+pub fn build_session_deleted_event(String) -> String
+
+pub fn build_session_list_event(Array[Json], has_more? : Bool) -> String
+
+pub fn build_session_renamed_event(String, String) -> String
+
+pub fn build_session_restored_event(String, Json) -> String
+
+pub fn build_session_snapshot(@agent.SessionData) -> String
+
+pub fn build_subscribed_event(String) -> String
+
+pub fn build_task_finished_event(String) -> String
+
+pub fn build_token_delta_event(String, String) -> String
+
+pub let event_assistant_message : String
+
+pub let event_complete : String
+
+pub let event_connected : String
+
+pub let event_cost_update : String
+
+pub let event_diff : String
+
+pub let event_error : String
+
+pub let event_file_preview : String
+
+pub let event_history_user_message : String
+
+pub let event_info : String
+
+pub let event_interrupted : String
+
+pub let event_phase_end : String
+
+pub let event_phase_start : String
+
+pub let event_pong : String
+
+pub let event_progress : String
+
+pub let event_request_confirmation : String
+
+pub let event_request_feedback : String
+
+pub let event_server_stop : String
+
+pub let event_session_list : String
+
+pub let event_session_update : String
+
+pub let event_session_updated : String
+
+pub let event_shell_preview : String
+
+pub let event_status : String
+
+pub let event_subscribed : String
+
+pub let event_success : String
+
+pub let event_todo_update : String
+
+pub let event_token_delta : String
+
+pub let event_token_usage : String
+
+pub let event_tool_args : String
+
+pub let event_tool_call : String
+
+pub let event_tool_error : String
+
+pub let event_tool_result : String
+
+pub let event_tool_stdout : String
+
+pub let event_upgrade_available : String
+
+pub let event_upgrade_progress : String
+
+pub let event_warning : String
+
+pub fn format_hook_event(String, @agent.HookEvent) -> String
+
+pub fn map_hook_event(@agent.HookEvent) -> MappedWsEvent
+
+pub fn parse_upstream_type(String) -> UpstreamMessageType?
+
+// Errors
+
+// Types and methods
+pub(all) struct MappedWsEvent {
+  event_type : String
+  data : Json
+}
+
+pub(all) enum UpstreamMessageType {
+  Subscribe
+  Message
+  EditMessage
+  Interrupt
+  Confirmation
+  Feedback
+  RunTask
+  Ping
+  ListSessions
+}
+
+// Type aliases
+
+// Traits

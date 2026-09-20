@@ -1,0 +1,418 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/utils"
+
+import {
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn basename_of(String) -> String
+
+pub fn best_match(String, Array[String]) -> String?
+
+pub fn browser_summary() -> String
+
+pub fn builtin_ignore_patterns() -> Array[String]
+
+pub fn change_dir(String) -> Unit
+
+pub fn ci_provider_name() -> String?
+
+pub fn config_dir() -> String?
+
+pub fn config_file() -> String?
+
+pub fn create_trash_entry(String, timestamp? : String) -> TrashEntry
+
+pub fn current_dir() -> String
+
+pub fn detect_browser() -> BrowserInfo
+
+pub fn detect_chrome_ws_endpoint() -> ChromeWsEndpoint?
+
+pub fn detect_environment() -> EnvironmentType
+
+pub fn detect_installed_browsers() -> Array[BrowserInfo]
+
+pub fn detect_login_shell() -> ShellType
+
+pub fn detect_script_extension(String) -> String
+
+pub fn dir_size(String) -> Int
+
+pub fn ensure_dir(String) -> Unit
+
+pub fn env_bool(String) -> Bool
+
+pub fn env_int(String) -> Int?
+
+pub fn env_var(String) -> String?
+
+pub fn environment_summary() -> String
+
+pub fn estimate_utf8_byte_length(String) -> Int
+
+pub fn expand_trash_path(String, String) -> String
+
+pub fn expired_entries(Array[TrashEntry], Int, String) -> Array[TrashEntry]
+
+pub fn extract_key_value_pairs(String) -> Array[(String, String)]
+
+pub fn find_in_trash(Array[TrashEntry], String) -> Array[TrashEntry]
+
+pub fn fix_json_string(String) -> String
+
+pub fn format_trash_summary(Array[TrashEntry]) -> String
+
+pub fn fuzzy_match(String, String, max_distance? : Int) -> Bool
+
+pub fn fuzzy_search(String, Array[String], max_distance? : Int) -> Array[String]
+
+pub fn generate_project_hash(String) -> String
+
+pub fn get_trash_dir() -> String
+
+pub fn glob_match(String, String) -> Bool
+
+pub fn home_dir() -> String?
+
+pub fn is_binary_content(String, threshold? : Double) -> Bool
+
+pub fn is_browser_available(BrowserType) -> Bool
+
+pub fn is_ci() -> Bool
+
+pub fn is_docker() -> Bool
+
+pub fn is_epipe_error(String) -> Bool
+
+pub fn is_headless() -> Bool
+
+pub fn is_ignored(String, Array[IgnoreRule], is_dir? : Bool) -> Bool
+
+pub fn is_interactive() -> Bool
+
+pub fn is_login_shell_interactive() -> Bool
+
+pub fn is_script_extension(String) -> Bool
+
+pub fn is_ssh() -> Bool
+
+pub fn is_valid_utf8_content(String) -> Bool
+
+pub fn is_wsl() -> Bool
+
+pub fn is_wsl1() -> Bool
+
+pub fn levenshtein_distance(String, String) -> Int
+
+pub fn list_trash_entries(String) -> Array[TrashEntry]
+
+pub fn matches_rule(String, IgnoreRule) -> Bool
+
+pub fn merge_json_args(Array[Json]) -> Json
+
+pub fn now_ms() -> Int64
+
+pub fn now_seconds() -> Int
+
+pub fn parse_gitignore(String) -> Array[IgnoreRule]
+
+pub fn parse_is_wsl1(String) -> Bool
+
+pub fn parse_rule(String) -> IgnoreRule?
+
+pub fn project_trash_dir(String) -> String
+
+pub fn read_trash_metadata(String) -> TrashMetadata?
+
+pub fn safe_println(String) -> Unit
+
+pub fn safe_stderr_write(String) -> WriteResult
+
+pub fn safe_stdout_write(String) -> WriteResult
+
+pub fn safe_truncate(String, Int) -> String
+
+pub fn safe_write_lines(Array[String]) -> WriteResult
+
+pub fn sanitize_project_name(String) -> String
+
+pub fn sanitize_string(String) -> String
+
+pub fn sessions_dir() -> String?
+
+pub fn shell_config_path(ShellType) -> String?
+
+pub fn shell_name(ShellType) -> String
+
+pub fn shell_rc_files(ShellType) -> Array[String]
+
+pub fn shell_summary() -> String
+
+pub fn similarity_score(String, String) -> Double
+
+pub fn skills_dir() -> String?
+
+pub fn strip_bom(String) -> String
+
+pub fn trash_filename(String, String) -> String
+
+pub fn trash_metadata_path(String) -> String
+
+pub fn validate_required_args(Json, Array[String]) -> Array[String]
+
+// Errors
+
+// Types and methods
+pub(all) struct BlockFont {
+  style : BlockStyle
+  letter_spacing : Int
+} derive(Eq, @debug.Debug)
+pub fn BlockFont::char_width(Self) -> Int
+pub fn BlockFont::equal(Self, Self) -> Bool
+pub fn BlockFont::height() -> Int
+pub fn BlockFont::new() -> Self
+pub fn BlockFont::not_equal(Self, Self) -> Bool
+pub fn BlockFont::render_char(Self, Char) -> Array[String]
+pub fn BlockFont::render_text(Self, String) -> Array[String]
+pub fn BlockFont::to_repr(Self) -> @debug.Repr
+pub fn BlockFont::with_style(BlockStyle) -> Self
+
+pub enum BlockStyle {
+  Full
+  Half
+  Outline
+} derive(Eq, @debug.Debug)
+pub fn BlockStyle::equal(Self, Self) -> Bool
+pub fn BlockStyle::not_equal(Self, Self) -> Bool
+pub fn BlockStyle::to_repr(Self) -> @debug.Repr
+
+pub(all) struct BrowserInfo {
+  browser_type : BrowserType
+  version : String?
+  path : String?
+  is_headless : Bool
+} derive(Eq, @debug.Debug)
+pub fn BrowserInfo::equal(Self, Self) -> Bool
+pub fn BrowserInfo::not_equal(Self, Self) -> Bool
+pub fn BrowserInfo::to_repr(Self) -> @debug.Repr
+
+pub enum BrowserType {
+  Chrome
+  Firefox
+  Safari
+  Edge
+  Opera
+  Brave
+  Chromium
+  Unknown(String)
+} derive(Eq, @debug.Debug)
+pub fn BrowserType::equal(Self, Self) -> Bool
+pub fn BrowserType::not_equal(Self, Self) -> Bool
+pub fn BrowserType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ChromeWsEndpoint {
+  port : Int
+  ws_path : String
+  ws_url : String
+}
+
+pub enum EnvironmentType {
+  Local
+  CI(String)
+  Docker
+  WSL
+  SSH
+} derive(Eq, @debug.Debug)
+pub fn EnvironmentType::equal(Self, Self) -> Bool
+pub fn EnvironmentType::not_equal(Self, Self) -> Bool
+pub fn EnvironmentType::to_repr(Self) -> @debug.Repr
+
+pub struct IgnoreConfig {
+  gitignore_rules : Array[IgnoreRule]
+  custom_rules : Array[IgnoreRule]
+  builtin_rules : Array[IgnoreRule]
+} derive(@debug.Debug)
+pub fn IgnoreConfig::add_custom_pattern(Self, String) -> Self
+pub fn IgnoreConfig::filter_paths(Self, Array[String]) -> Array[String]
+pub fn IgnoreConfig::ignore_reason(Self, String) -> String?
+pub fn IgnoreConfig::load_gitignore(Self, String) -> Self
+pub fn IgnoreConfig::new() -> Self
+pub fn IgnoreConfig::should_ignore(Self, String, is_dir? : Bool) -> Bool
+pub fn IgnoreConfig::stats(Self) -> (Int, Int, Int)
+pub fn IgnoreConfig::to_repr(Self) -> @debug.Repr
+
+pub struct IgnoreRule {
+  pattern : String
+  is_negation : Bool
+  is_directory : Bool
+  is_anchored : Bool
+  regex_pattern : String
+} derive(Eq, @debug.Debug)
+pub fn IgnoreRule::equal(Self, Self) -> Bool
+pub fn IgnoreRule::not_equal(Self, Self) -> Bool
+pub fn IgnoreRule::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JsonArgParser {
+  strict : Bool
+} derive(Eq, @debug.Debug)
+pub fn JsonArgParser::equal(Self, Self) -> Bool
+pub fn JsonArgParser::new() -> Self
+pub fn JsonArgParser::not_equal(Self, Self) -> Bool
+pub fn JsonArgParser::parse(Self, String) -> Result[Json, String]
+pub fn JsonArgParser::strict() -> Self
+pub fn JsonArgParser::to_repr(Self) -> @debug.Repr
+
+pub struct LimitStack {
+  max_depth : Int
+  mut current_depth : Int
+  mut labels : Array[String]
+} derive(@debug.Debug)
+pub fn LimitStack::depth(Self) -> Int
+pub fn LimitStack::is_exceeded(Self) -> Bool
+pub fn LimitStack::new(max_depth? : Int) -> Self
+pub fn LimitStack::pop(Self) -> Unit
+pub fn LimitStack::push(Self, label? : String) -> Bool
+pub fn LimitStack::remaining(Self) -> Int
+pub fn LimitStack::reset(Self) -> Unit
+pub fn LimitStack::stack_trace(Self) -> Array[String]
+pub fn LimitStack::to_repr(Self) -> @debug.Repr
+
+pub enum LogLevel {
+  Debug
+  Info
+  Warn
+  Error
+} derive(Compare, Eq, @debug.Debug)
+pub fn LogLevel::compare(Self, Self) -> Int
+pub fn LogLevel::equal(Self, Self) -> Bool
+pub fn LogLevel::not_equal(Self, Self) -> Bool
+pub fn LogLevel::op_ge(Self, Self) -> Bool
+pub fn LogLevel::op_gt(Self, Self) -> Bool
+pub fn LogLevel::op_le(Self, Self) -> Bool
+pub fn LogLevel::op_lt(Self, Self) -> Bool
+pub fn LogLevel::to_repr(Self) -> @debug.Repr
+
+pub struct Logger {
+  log_dir : String
+  max_files : Int
+  min_level : LogLevel
+  console_echo : Bool
+}
+pub fn Logger::debug(Self, String, context? : Array[(String, String)]) -> Unit
+pub fn Logger::error(Self, String, context? : Array[(String, String)]) -> Unit
+pub fn Logger::info(Self, String, context? : Array[(String, String)]) -> Unit
+pub fn Logger::log_path(Self) -> String
+pub fn Logger::new(log_dir? : String, max_files? : Int, min_level? : LogLevel, console_echo? : Bool) -> Self
+pub fn Logger::rotate(Self) -> Unit
+pub fn Logger::should_log(Self, LogLevel) -> Bool
+pub fn Logger::warn(Self, String, context? : Array[(String, String)]) -> Unit
+
+type ProxyConfig derive(Eq, @debug.Debug)
+pub fn ProxyConfig::current_epoch(Self) -> Int
+pub fn ProxyConfig::equal(Self, Self) -> Bool
+pub fn ProxyConfig::install(proxy_url? : String?, no_proxy? : String?) -> Self
+pub fn ProxyConfig::is_enabled(Self) -> Bool
+pub fn ProxyConfig::new() -> Self
+pub fn ProxyConfig::not_equal(Self, Self) -> Bool
+pub fn ProxyConfig::proxy_url(Self) -> String
+pub fn ProxyConfig::reset(Self) -> Self
+pub fn ProxyConfig::should_bypass(Self, String) -> Bool
+pub fn ProxyConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ScriptInfo {
+  name : String
+  path : String
+  description : String
+  extension : String
+} derive(Eq, @debug.Debug)
+pub fn ScriptInfo::equal(Self, Self) -> Bool
+pub fn ScriptInfo::not_equal(Self, Self) -> Bool
+pub fn ScriptInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ScriptsManager {
+  scripts_dir : String
+  extensions : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn ScriptsManager::build_script_path(Self, String) -> String
+pub fn ScriptsManager::equal(Self, Self) -> Bool
+pub fn ScriptsManager::find_script(Self, String) -> ScriptInfo?
+pub fn ScriptsManager::list_scripts(Self) -> Array[ScriptInfo]
+pub fn ScriptsManager::new(String) -> Self
+pub fn ScriptsManager::not_equal(Self, Self) -> Bool
+pub fn ScriptsManager::script_info(Self, String) -> ScriptInfo?
+pub fn ScriptsManager::to_repr(Self) -> @debug.Repr
+pub fn ScriptsManager::validate_script(Self, String) -> Result[Unit, String]
+pub fn ScriptsManager::with_extensions(String, Array[String]) -> Self
+
+pub enum ShellType {
+  Bash
+  Zsh
+  Fish
+  Pwsh
+  Cmd
+  Unknown(String)
+} derive(Eq, @debug.Debug)
+pub fn ShellType::equal(Self, Self) -> Bool
+pub fn ShellType::not_equal(Self, Self) -> Bool
+pub fn ShellType::output(Self, &@builtin.Logger) -> Unit
+pub fn ShellType::to_repr(Self) -> @debug.Repr
+pub fn ShellType::to_string(Self) -> String
+pub impl Show for ShellType
+
+pub struct TrashEntry {
+  original_path : String
+  trash_path : String
+  deleted_at : String
+  size_bytes : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn TrashEntry::equal(Self, Self) -> Bool
+pub fn TrashEntry::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TrashEntry::not_equal(Self, Self) -> Bool
+pub fn TrashEntry::to_json(Self) -> Json
+pub fn TrashEntry::to_repr(Self) -> @debug.Repr
+
+pub struct TrashMetadata {
+  original_path : String
+  trash_directory : String
+  deleted_at : String
+  deleted_by : String
+  file_size : Int
+  file_type : String
+  file_mode : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn TrashMetadata::equal(Self, Self) -> Bool
+pub fn TrashMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TrashMetadata::not_equal(Self, Self) -> Bool
+pub fn TrashMetadata::to_json(Self) -> Json
+pub fn TrashMetadata::to_repr(Self) -> @debug.Repr
+
+pub(all) struct WorkspaceRules {
+  main_rule : String?
+  main_rule_path : String?
+  sub_rules : Array[(String, String)]
+} derive(Eq, @debug.Debug)
+pub fn WorkspaceRules::equal(Self, Self) -> Bool
+pub fn WorkspaceRules::find_main(String) -> Self
+pub fn WorkspaceRules::find_sub_projects(String) -> Array[(String, String)]
+pub fn WorkspaceRules::has_rules(Self) -> Bool
+pub fn WorkspaceRules::not_equal(Self, Self) -> Bool
+pub fn WorkspaceRules::to_prompt_section(Self) -> String?
+pub fn WorkspaceRules::to_repr(Self) -> @debug.Repr
+
+pub enum WriteResult {
+  Success(Int)
+  PipeBroken
+  Error(String)
+} derive(Eq, @debug.Debug)
+pub fn WriteResult::equal(Self, Self) -> Bool
+pub fn WriteResult::not_equal(Self, Self) -> Bool
+pub fn WriteResult::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+pub type LogContext = Array[(String, String)]
+
+// Traits

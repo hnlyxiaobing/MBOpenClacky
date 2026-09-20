@@ -1,0 +1,286 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/mcp"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/process",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn build_jsonrpc_notification(String) -> String
+
+pub fn build_jsonrpc_request(Int, String, Json?) -> String
+
+pub fn clear_mcp_task_group() -> Unit
+
+pub fn parse_jsonrpc_response(String) -> JsonRpcResponse?
+
+pub fn parse_mcp_config(String) -> Map[String, McpServerSpec] raise McpError
+
+pub fn set_mcp_task_group(@async.TaskGroup[Unit]) -> Unit
+
+// Errors
+pub(all) suberror McpError {
+  McpError(String)
+} derive(ToJson, @debug.Debug)
+pub fn McpError::to_json(Self) -> Json
+pub fn McpError::to_repr(Self) -> @debug.Repr
+
+pub(all) suberror TransportError {
+  TransportError(String)
+} derive(ToJson, @debug.Debug)
+pub fn TransportError::to_json(Self) -> Json
+pub fn TransportError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct HttpTransport {
+  url : String
+  headers : Map[String, String]
+  mut session_id : String?
+  mut is_alive : Bool
+  mut message_handler : ((String) -> Unit)?
+  open_timeout : Int
+  read_timeout : Int
+}
+pub fn HttpTransport::alive(Self) -> Bool
+pub fn HttpTransport::build_headers(Self) -> Map[String, String]
+pub fn HttpTransport::get_session_id(Self) -> String?
+pub fn HttpTransport::new(McpServerSpec) -> Self
+pub fn HttpTransport::on_message(Self, (String) -> Unit) -> Unit
+pub fn HttpTransport::receive_message(Self, String) -> Unit
+pub async fn HttpTransport::send_message(Self, String) -> Result[Unit, String]
+pub async fn HttpTransport::send_request(Self, Int, String, Int) -> Result[String, String]
+pub fn HttpTransport::set_session_id(Self, String) -> Unit
+pub async fn HttpTransport::start(Self) -> Result[Unit, String]
+pub fn HttpTransport::stderr_tail(Self) -> String
+pub fn HttpTransport::stop(Self) -> Unit
+pub impl Transport for HttpTransport
+
+pub(all) struct JsonRpcError {
+  code : Int
+  message : String
+  data : Json?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn JsonRpcError::equal(Self, Self) -> Bool
+pub fn JsonRpcError::not_equal(Self, Self) -> Bool
+pub fn JsonRpcError::to_json(Self) -> Json
+pub fn JsonRpcError::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JsonRpcRequest {
+  jsonrpc : String
+  id : Int
+  rpc_method : String
+  params : Json?
+} derive(Eq, @debug.Debug)
+pub fn JsonRpcRequest::equal(Self, Self) -> Bool
+pub fn JsonRpcRequest::not_equal(Self, Self) -> Bool
+pub fn JsonRpcRequest::to_json(Self) -> Json
+pub fn JsonRpcRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JsonRpcResponse {
+  jsonrpc : String
+  id : Int?
+  result : Json?
+  error : JsonRpcError?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn JsonRpcResponse::equal(Self, Self) -> Bool
+pub fn JsonRpcResponse::from_json(Json) -> Self?
+pub fn JsonRpcResponse::not_equal(Self, Self) -> Bool
+pub fn JsonRpcResponse::to_json(Self) -> Json
+pub fn JsonRpcResponse::to_repr(Self) -> @debug.Repr
+
+pub(all) struct McpCapabilities {
+  tools : Bool
+  prompts : Bool
+  resources : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn McpCapabilities::equal(Self, Self) -> Bool
+pub fn McpCapabilities::not_equal(Self, Self) -> Bool
+pub fn McpCapabilities::to_json(Self) -> Json
+pub fn McpCapabilities::to_repr(Self) -> @debug.Repr
+
+pub(all) struct McpClient {
+  name : String
+  transport : &Transport
+  mut tools : Array[McpTool]
+  mut server_info : McpServerInfo?
+  mut started_at : Int?
+  mut last_used_at : Int?
+  mut next_id : Int
+  timeout_s : Int
+}
+pub async fn McpClient::call_tool(Self, String, Json) -> Json raise McpError
+pub fn McpClient::default_timeout(Self) -> Int
+pub fn McpClient::disconnect(Self) -> Unit
+pub fn McpClient::from_spec(McpServerSpec) -> Self
+pub fn McpClient::init_timeout(Self) -> Int
+pub async fn McpClient::initialize(Self) -> McpServerInfo raise McpError
+pub fn McpClient::is_connected(Self) -> Bool
+pub fn McpClient::new(String, &Transport) -> Self
+pub fn McpClient::protocol_version(Self) -> String
+pub fn McpClient::send_request_with_response(Self, String, Json?, String) -> Json raise McpError
+pub async fn McpClient::tools_list(Self) -> Array[McpTool] raise McpError
+
+pub(all) struct McpRegistry {
+  mut clients : Map[String, McpClient]
+  config_path : String?
+  mut specs : Map[String, McpServerSpec]
+  mut enabled : Map[String, Bool]
+  idle_timeout : Int
+}
+pub fn McpRegistry::add_server(Self, String, McpServerSpec) -> Unit
+pub async fn McpRegistry::call_tool(Self, String, String, Json) -> Json raise McpError
+pub fn McpRegistry::cleanup_idle(Self) -> Unit
+pub fn McpRegistry::client_count(Self) -> Int
+pub async fn McpRegistry::ensure_started(Self, String) -> McpClient raise McpError
+pub fn McpRegistry::get_client(Self, String) -> McpClient?
+pub fn McpRegistry::is_enabled(Self, String) -> Bool
+pub fn McpRegistry::load_default() -> Self
+pub fn McpRegistry::load_from_file(String) -> Self
+pub fn McpRegistry::load_from_json(String) -> Self raise McpError
+pub fn McpRegistry::new() -> Self
+pub fn McpRegistry::reload(Self) -> Unit raise McpError
+pub fn McpRegistry::remove_server(Self, String) -> Unit
+pub fn McpRegistry::set_enabled(Self, String, Bool) -> Unit
+pub fn McpRegistry::shutdown(Self) -> Unit
+pub fn McpRegistry::spec_count(Self) -> Int
+pub async fn McpRegistry::tools_list(Self, String) -> Array[McpTool] raise McpError
+pub fn McpRegistry::virtual_skills(Self) -> Array[VirtualSkill]
+
+pub(all) struct McpServerInfo {
+  name : String
+  version : String
+  capabilities : McpCapabilities
+} derive(Eq, ToJson, @debug.Debug)
+pub fn McpServerInfo::equal(Self, Self) -> Bool
+pub fn McpServerInfo::from_json(Json) -> Self?
+pub fn McpServerInfo::not_equal(Self, Self) -> Bool
+pub fn McpServerInfo::to_json(Self) -> Json
+pub fn McpServerInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct McpServerSpec {
+  name : String
+  server_type : TransportType
+  command : String?
+  url : String?
+  args : Array[String]?
+  env : Map[String, String]?
+  cwd : String?
+  description : String?
+  headers : Map[String, String]?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn McpServerSpec::equal(Self, Self) -> Bool
+pub fn McpServerSpec::from_json(String, Json) -> Self?
+pub fn McpServerSpec::http(String, String, headers? : Map[String, String]?, description? : String?) -> Self
+pub fn McpServerSpec::not_equal(Self, Self) -> Bool
+pub fn McpServerSpec::stdio(String, String, args? : Array[String]?, env? : Map[String, String]?, cwd? : String?, description? : String?) -> Self
+pub fn McpServerSpec::to_json(Self) -> Json
+pub fn McpServerSpec::to_repr(Self) -> @debug.Repr
+
+pub(all) struct McpTool {
+  name : String
+  description : String
+  input_schema : Json
+} derive(Eq, ToJson, @debug.Debug)
+pub fn McpTool::equal(Self, Self) -> Bool
+pub fn McpTool::from_json(Json) -> Self?
+pub fn McpTool::not_equal(Self, Self) -> Bool
+pub fn McpTool::to_json(Self) -> Json
+pub fn McpTool::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SkillInfo {
+  name : String
+  description : String
+  version : String
+  category : String
+  user_invocable : Bool
+  allowed_tools : Array[String]
+  file_path : String
+  instructions : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn SkillInfo::equal(Self, Self) -> Bool
+pub fn SkillInfo::not_equal(Self, Self) -> Bool
+pub fn SkillInfo::to_json(Self) -> Json
+pub fn SkillInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SkillProvider {
+  skill_dirs : Array[String]
+  mut registered_skills : Array[SkillInfo]
+}
+pub fn SkillProvider::discover_from_contents(Self, Map[String, String]) -> Array[SkillInfo]
+pub fn SkillProvider::discover_skills(Self) -> Array[SkillInfo]
+pub fn SkillProvider::has_skill(Self, String) -> Bool
+pub fn SkillProvider::list_registered(Self) -> Array[SkillInfo]
+pub fn SkillProvider::new(Array[String]) -> Self
+pub fn SkillProvider::register_skill(Self, SkillInfo) -> Result[Unit, String]
+pub fn SkillProvider::registered_count(Self) -> Int
+
+pub(all) struct StdioTransport {
+  command : String
+  args : Array[String]
+  env : Map[String, String]
+  cwd : String?
+  mut is_alive : Bool
+  mut stderr_buffer : String
+  mut message_handler : ((String) -> Unit)?
+  mut pid : Int?
+  mut stdin_writer : @process.WriteToProcess?
+  mut stdout_reader : @process.ReadFromProcess?
+  mut stderr_reader : @process.ReadFromProcess?
+  mut read_task : @async.Task[Unit]?
+  mut stderr_task : @async.Task[Unit]?
+  mut pending : Map[Int, @aqueue.Queue[Result[String, String]]]
+}
+pub fn StdioTransport::alive(Self) -> Bool
+pub fn StdioTransport::append_stderr(Self, String) -> Unit
+pub fn StdioTransport::new(McpServerSpec) -> Self
+pub fn StdioTransport::on_message(Self, (String) -> Unit) -> Unit
+pub fn StdioTransport::receive_message(Self, String) -> Unit
+pub async fn StdioTransport::send_message(Self, String) -> Result[Unit, String]
+pub async fn StdioTransport::send_request(Self, Int, String, Int) -> Result[String, String]
+pub async fn StdioTransport::start(Self) -> Result[Unit, String]
+pub fn StdioTransport::stderr_tail(Self) -> String
+pub fn StdioTransport::stop(Self) -> Unit
+pub impl Transport for StdioTransport
+
+pub(all) enum TransportType {
+  Stdio
+  Http
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TransportType::equal(Self, Self) -> Bool
+pub fn TransportType::not_equal(Self, Self) -> Bool
+pub fn TransportType::to_json(Self) -> Json
+pub fn TransportType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct VirtualSkill {
+  name : String
+  description : String
+  mcp_server_name : String
+  mcp_tools : Array[McpTool]
+  fork_agent : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn VirtualSkill::build_tool_call_instruction(Self, String) -> String
+pub fn VirtualSkill::equal(Self, Self) -> Bool
+pub fn VirtualSkill::from_mcp_server(String, Array[McpTool]) -> Self
+pub fn VirtualSkill::from_skill_info(SkillInfo) -> Self
+pub fn VirtualSkill::has_tool(Self, String) -> Bool
+pub fn VirtualSkill::not_equal(Self, Self) -> Bool
+pub fn VirtualSkill::to_json(Self) -> Json
+pub fn VirtualSkill::to_repr(Self) -> @debug.Repr
+pub fn VirtualSkill::to_system_prompt_section(Self) -> String
+pub fn VirtualSkill::tool_count(Self) -> Int
+
+// Type aliases
+
+// Traits
+pub(open) trait Transport {
+  async fn start(Self) -> Result[Unit, String]
+  fn stop(Self) -> Unit
+  fn alive(Self) -> Bool
+  async fn send_message(Self, String) -> Result[Unit, String]
+  async fn send_request(Self, Int, String, Int) -> Result[String, String]
+  fn on_message(Self, (String) -> Unit) -> Unit
+  fn stderr_tail(Self) -> String
+}

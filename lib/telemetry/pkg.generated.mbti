@@ -1,0 +1,95 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/telemetry"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn generate_anonymous_id(String, String, String) -> String
+
+pub fn get_event_path(TelemetryEvent) -> String
+
+pub fn get_telemetry_version() -> String
+
+pub fn is_telemetry_enabled() -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct SharePayload {
+  device_id : String
+  event : String
+  extra : Map[String, String]?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn SharePayload::equal(Self, Self) -> Bool
+pub fn SharePayload::not_equal(Self, Self) -> Bool
+pub fn SharePayload::to_json(Self) -> Json
+pub fn SharePayload::to_repr(Self) -> @debug.Repr
+
+pub(all) struct StartupPayload {
+  device_id : String
+  version : String
+  brand : String?
+  container : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn StartupPayload::equal(Self, Self) -> Bool
+pub fn StartupPayload::not_equal(Self, Self) -> Bool
+pub fn StartupPayload::to_json(Self) -> Json
+pub fn StartupPayload::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TaskPayload {
+  device_id : String
+  version : String
+  brand : String?
+  model : String
+  provider : String
+  status : String
+  iterations : Int
+  duration_ms : Int
+  cost_usd : Double
+  prompt_tokens : Int
+  completion_tokens : Int
+  cache_creation_tokens : Int
+  cache_read_tokens : Int
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TaskPayload::equal(Self, Self) -> Bool
+pub fn TaskPayload::not_equal(Self, Self) -> Bool
+pub fn TaskPayload::to_json(Self) -> Json
+pub fn TaskPayload::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Telemetry {
+  device_id : String
+  enabled : Bool
+  endpoint_base : String
+  mut events_sent : Int
+}
+pub fn Telemetry::get_events_sent(Self) -> Int
+pub fn Telemetry::new(String) -> Self
+pub fn Telemetry::share(Self, String, Map[String, String]?) -> Unit
+pub fn Telemetry::startup(Self, String?) -> Unit
+pub fn Telemetry::task(Self, String, String, String, Int, Int, Double, Int, Int, Int, Int, String?) -> Unit
+
+pub(all) enum TelemetryEvent {
+  StartupEvent(StartupPayload)
+  TaskEvent(TaskPayload)
+  ShareEvent(SharePayload)
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TelemetryEvent::equal(Self, Self) -> Bool
+pub fn TelemetryEvent::not_equal(Self, Self) -> Bool
+pub fn TelemetryEvent::to_json(Self) -> Json
+pub fn TelemetryEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TelemetryEventType {
+  Startup
+  Task
+  Share
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TelemetryEventType::equal(Self, Self) -> Bool
+pub fn TelemetryEventType::not_equal(Self, Self) -> Bool
+pub fn TelemetryEventType::to_json(Self) -> Json
+pub fn TelemetryEventType::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

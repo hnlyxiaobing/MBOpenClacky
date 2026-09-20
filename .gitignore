@@ -16,6 +16,13 @@ _build/
 # 已生成 IDE 辅助文件
 *.mbti
 *.generated.*
+# P0-1 公共 API 闸门：lib/ 与 cmd/ 各包的接口文件必须入库，CI 以
+# `moon info` + `git diff --exit-code` 校验公共 API 变更是否随代码提交。
+# vendor/、test/ 与其他生成物继续忽略。
+!lib/pkg.generated.mbti
+!lib/**/pkg.generated.mbti
+!cmd/pkg.generated.mbti
+!cmd/**/pkg.generated.mbti
 *check_output*.txt
 .check*.txt
 

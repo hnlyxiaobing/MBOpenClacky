@@ -1,0 +1,11 @@
+# 生成的包接口文件（pkg.generated.mbti）入库并以 LF 存储/检出：
+# CI 的公共 API 闸门依赖 `moon info` 后 `git diff --exit-code`，
+# 而 core.autocrlf=true 的 Windows 工作区会把检出结果转成 CRLF，
+# 造成与 moon 写出的 LF 内容不一致的假差异。固定为 LF 后闸门在各平台一致。
+*.mbti text eol=lf
+
+# shell 脚本必须在所有平台以 LF 检出（CRLF 会破坏 shebang 与 bash 解析）。
+*.sh text eol=lf
+
+# 本文件自身也固定为 LF，避免 CRLF 影响属性解析。
+.gitattributes text eol=lf

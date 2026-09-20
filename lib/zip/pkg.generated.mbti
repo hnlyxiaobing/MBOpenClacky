@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/zip"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn create_zip(Array[ZipEntry]) -> Result[Bytes, String]
+
+pub fn extract_zip(Bytes) -> Result[Array[ZipEntry], String]
+
+pub fn find_entry(Bytes, String) -> Bytes?
+
+// Errors
+
+// Types and methods
+pub(all) struct ZipEntry {
+  name : String
+  data : Bytes
+} derive(Eq, @debug.Debug)
+pub fn ZipEntry::equal(Self, Self) -> Bool
+pub fn ZipEntry::not_equal(Self, Self) -> Bool
+pub fn ZipEntry::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

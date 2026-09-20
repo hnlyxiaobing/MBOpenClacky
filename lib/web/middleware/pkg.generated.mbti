@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/web/middleware"
+
+import {
+  "hnlyxiaobing/crescent",
+  "hnlyxiaobing/crescent/core",
+}
+
+// Values
+pub fn auth_middleware(String, allow_loopback_bypass? : Bool) -> @crescent.Middleware
+
+pub fn bad_request_response(String) -> @core.HttpResponse
+
+pub fn cache_control_middleware() -> @crescent.Middleware
+
+pub fn default_timeout_config() -> TimeoutConfig
+
+pub fn error_envelope_middleware() -> @crescent.Middleware
+
+pub fn error_response(Int, String, code? : String, hint? : String) -> Json
+
+pub fn forbidden_response(String) -> @core.HttpResponse
+
+pub fn internal_error_response(String) -> @core.HttpResponse
+
+pub fn is_loopback_ip(String) -> Bool
+
+pub fn is_public_path(String, String) -> Bool
+
+pub fn logging_middleware() -> @crescent.Middleware
+
+pub fn not_found_response(String) -> @core.HttpResponse
+
+pub fn rate_limit_response(Int) -> @core.HttpResponse
+
+pub fn secure_string_compare(String, String) -> Bool
+
+pub fn timeout_middleware(config? : TimeoutConfig) -> @crescent.Middleware
+
+// Errors
+
+// Types and methods
+pub(all) struct IpRateLimiter {
+  mut failures : Map[String, RateLimitEntry]
+  max_failures : Int
+  window_seconds : Int64
+}
+pub fn IpRateLimiter::is_limited(Self, String, Int64) -> Bool
+pub fn IpRateLimiter::new(max_failures? : Int, window_seconds? : Int64) -> Self
+pub fn IpRateLimiter::record_failure(Self, String, Int64) -> Unit
+pub fn IpRateLimiter::record_success(Self, String) -> Unit
+pub fn IpRateLimiter::retry_after(Self, String, Int64) -> Int
+
+pub(all) struct RateLimitEntry {
+  mut count : Int
+  mut first_failure_at : Int64
+}
+
+pub(all) struct TimeoutConfig {
+  routes : Array[(String, Int)]
+  default_ms : Int
+}
+pub fn TimeoutConfig::max_timeout(Self) -> Int
+pub fn TimeoutConfig::resolve(Self, String) -> Int
+
+// Type aliases
+
+// Traits

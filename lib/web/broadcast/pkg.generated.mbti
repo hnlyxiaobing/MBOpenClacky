@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/web/broadcast"
+
+import {
+  "hnlyxiaobing/crescent/websocket",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Hub {
+  mut connections : Map[String, HubConnection]
+  mut session_subs : Map[String, Array[String]]
+  mut global_subs : Array[String]
+}
+pub fn Hub::active_sessions(Self) -> Array[String]
+pub fn Hub::broadcast_global(Self, String) -> Unit
+pub fn Hub::broadcast_global_json(Self, String, Json) -> Unit
+pub fn Hub::broadcast_heartbeat(Self) -> Unit
+pub fn Hub::broadcast_session(Self, String, String) -> Unit
+pub fn Hub::broadcast_session_json(Self, String, String, Json) -> Unit
+pub fn Hub::broadcast_session_raw(Self, String, String) -> Unit
+pub fn Hub::connection_count(Self) -> Int
+pub fn Hub::get_connection_sessions(Self, String) -> Array[String]
+pub fn Hub::get_peer(Self, String) -> @websocket.WebSocketPeer?
+pub fn Hub::new() -> Self
+pub fn Hub::register(Self, @websocket.WebSocketPeer) -> Unit
+pub fn Hub::session_connection_count(Self, String) -> Int
+pub fn Hub::subscribe_global(Self, String) -> Unit
+pub fn Hub::subscribe_session(Self, String, String) -> Unit
+pub fn Hub::switch_session(Self, String, String) -> Unit
+pub fn Hub::unregister(Self, String) -> Unit
+pub fn Hub::unsubscribe_session(Self, String, String) -> Unit
+
+pub(all) struct HubConnection {
+  peer : @websocket.WebSocketPeer
+  mut session_ids : Array[String]
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,167 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/extension"
+
+import {
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn apply_enabled_state_to(Array[Extension]) -> Array[Extension]
+
+pub fn build_patch_chain(Array[Extension]) -> @agent.PatchChain
+
+pub fn collect_api_contribution_paths(Array[Extension]) -> Array[(String, String)]
+
+pub fn create_extension_scaffold(ExtensionTemplate, output_dir? : String?) -> Result[String, String]
+
+pub fn default_template(String, String) -> ExtensionTemplate
+
+pub fn disable_extension(String) -> Result[Extension, String]
+
+pub fn enable_extension(String) -> Result[Extension, String]
+
+pub fn enabled_extensions(Array[Extension]) -> Array[Extension]
+
+pub fn extension_id(Extension) -> String
+
+pub fn get_extension_by_id(String) -> Extension?
+
+pub fn get_source_directory(ExtensionSource) -> String
+
+pub fn install_extension_from_path(String) -> Result[Extension, String]
+
+pub fn is_extension_enabled(String) -> Bool
+
+pub fn list_installed_extensions() -> Array[Extension]
+
+pub fn list_local_extensions() -> Array[Extension]
+
+pub fn list_marketplace_extensions() -> Array[RegistryEntry]
+
+pub fn list_packaged_extensions(String) -> Array[(String, String, String, String)]
+
+pub fn load_all_extensions() -> Array[Extension]
+
+pub fn load_extensions_from_source(ExtensionSource) -> Array[Extension]
+
+pub fn load_single_extension(String, ExtensionSource) -> Extension?
+
+pub fn package_extension(String, output_dir? : String?) -> Result[(String, String), String]
+
+pub fn patch_rule_from_contribution(Extension, ExtensionContribution) -> @agent.PatchRule?
+
+pub fn patch_rules_from_extension(Extension) -> Array[@agent.PatchRule]
+
+pub fn publish_extension(String) -> Result[RegistryEntry, String]
+
+pub fn source_dir(ExtensionSource) -> String
+
+pub fn uninstall_extension(String, purge_data? : Bool) -> Result[Unit, String]
+
+pub fn unpack_extension(String, target_dir? : String?) -> Result[String, String]
+
+pub fn validate_all_extensions() -> Map[String, ValidationResult]
+
+pub fn validate_extension(Extension) -> ValidationResult
+
+pub fn validate_manifest(ExtensionManifest, String) -> ValidationResult
+
+pub fn validation_error_message(ValidationError) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct Extension {
+  manifest : ExtensionManifest
+  source : ExtensionSource
+  root_path : String
+  enabled : Bool
+  loaded_at : Int64
+  sha256 : String?
+}
+
+pub(all) struct ExtensionContribution {
+  type_ : ExtensionContributionType
+  id : String
+  name : String
+  description : String
+  path : String
+  config : Map[String, String]
+}
+
+pub(all) enum ExtensionContributionType {
+  Panel
+  Skill
+  Agent
+  Api
+  Hook
+  Patch
+} derive(Eq, @debug.Debug)
+pub fn ExtensionContributionType::equal(Self, Self) -> Bool
+pub fn ExtensionContributionType::not_equal(Self, Self) -> Bool
+pub fn ExtensionContributionType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ExtensionManifest {
+  id : String
+  name : String
+  version : String
+  description : String
+  author : String
+  license : String
+  homepage : String?
+  repository : String?
+  keywords : Array[String]
+  dependencies : Map[String, String]
+  contributions : Array[ExtensionContribution]
+  enabled_by_default : Bool
+}
+
+pub(all) enum ExtensionSource {
+  Builtin
+  Installed
+  Local
+} derive(Eq, @debug.Debug)
+pub fn ExtensionSource::equal(Self, Self) -> Bool
+pub fn ExtensionSource::not_equal(Self, Self) -> Bool
+pub fn ExtensionSource::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ExtensionTemplate {
+  id : String
+  name : String
+  version : String
+  description : String
+  author : String
+  license : String
+  contributions : Array[ExtensionContributionType]
+} derive(Eq)
+pub fn ExtensionTemplate::equal(Self, Self) -> Bool
+pub fn ExtensionTemplate::not_equal(Self, Self) -> Bool
+
+pub(all) struct RegistryEntry {
+  id : String
+  latest_version : String
+  versions : Array[String]
+  metadata : Map[String, String]
+  installs : Int
+  published_at : Int64
+}
+
+pub(all) enum ValidationError {
+  MissingRequiredField(String)
+  InvalidField(String, String)
+  InvalidContributionType(String)
+  MissingResource(String)
+  DependencyConflict(String, String)
+  InvalidVersion(String)
+}
+
+pub(all) struct ValidationResult {
+  valid : Bool
+  errors : Array[ValidationError]
+  warnings : Array[String]
+}
+
+// Type aliases
+
+// Traits

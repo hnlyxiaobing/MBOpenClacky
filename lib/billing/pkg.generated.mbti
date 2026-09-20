@@ -1,0 +1,142 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/billing"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn aggregate_summary(Array[BillingRecord], TimePeriod) -> Summary
+
+pub fn filter_records(Array[BillingRecord], from_ms? : Int64, to_ms? : Int64, model? : String, session_id? : String) -> Array[BillingRecord]
+
+pub fn generate_id() -> String
+
+pub fn get_period_start_ms(TimePeriod) -> Int64
+
+pub fn month_file_name(Int64) -> String
+
+pub fn month_file_start_ms(String) -> Int64?
+
+pub fn ms_to_iso8601_local(Int64) -> String
+
+pub fn ms_to_local_date_parts(Int64) -> (Int, Int, Int)
+
+pub fn ms_to_local_date_string(Int64) -> String
+
+pub fn parse_timestamp_to_ms(Json) -> Int64?
+
+// Errors
+
+// Types and methods
+pub(all) struct BillingRecord {
+  id : String
+  session_id : String
+  timestamp : Int64
+  model : String
+  prompt_tokens : Int
+  completion_tokens : Int
+  cache_read_tokens : Int
+  cache_write_tokens : Int
+  cost_usd : Double
+  cost_source : String
+} derive(Eq, @debug.Debug)
+pub fn BillingRecord::equal(Self, Self) -> Bool
+pub fn BillingRecord::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn BillingRecord::new(session_id~ : String, model~ : String, prompt_tokens~ : Int, completion_tokens~ : Int, cache_read_tokens? : Int, cache_write_tokens? : Int, cost_usd~ : Double, cost_source~ : String) -> Self
+pub fn BillingRecord::not_equal(Self, Self) -> Bool
+pub fn BillingRecord::to_json(Self) -> Json
+pub fn BillingRecord::to_repr(Self) -> @debug.Repr
+pub fn BillingRecord::total_tokens(Self) -> Int
+pub impl ToJson for BillingRecord
+pub impl @json.FromJson for BillingRecord
+
+pub(all) struct BillingStore {
+  billing_dir : String
+} derive(Eq, @debug.Debug)
+pub fn BillingStore::append(Self, BillingRecord) -> Result[String, String]
+pub fn BillingStore::cleanup(Self, Int64) -> Int
+pub fn BillingStore::clear(Self, ClearScope) -> Int
+pub fn BillingStore::daily_breakdown(Self, days? : Int) -> Array[DaySummary]
+pub fn BillingStore::default() -> Self
+pub fn BillingStore::equal(Self, Self) -> Bool
+pub fn BillingStore::new(String) -> Self
+pub fn BillingStore::not_equal(Self, Self) -> Bool
+pub fn BillingStore::query(Self, from_ms? : Int64, to_ms? : Int64, model? : String, session_id? : String, limit? : Int) -> Array[BillingRecord]
+pub fn BillingStore::session_summary(Self, TimePeriod, model? : String, limit? : Int, session_names? : Map[String, String]) -> Array[SessionSummary]
+pub fn BillingStore::summary(Self, TimePeriod, model? : String) -> Summary
+pub fn BillingStore::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ClearScope {
+  ClearToday
+  ClearAll
+} derive(Eq, @debug.Debug)
+pub fn ClearScope::equal(Self, Self) -> Bool
+pub fn ClearScope::not_equal(Self, Self) -> Bool
+pub fn ClearScope::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DaySummary {
+  date : String
+  total_cost : Double
+  total_tokens : Int
+  request_count : Int
+} derive(Eq, @debug.Debug)
+pub fn DaySummary::equal(Self, Self) -> Bool
+pub fn DaySummary::not_equal(Self, Self) -> Bool
+pub fn DaySummary::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ModelSummary {
+  cost : Double
+  prompt_tokens : Int
+  completion_tokens : Int
+  requests : Int
+} derive(Eq, @debug.Debug)
+pub fn ModelSummary::equal(Self, Self) -> Bool
+pub fn ModelSummary::not_equal(Self, Self) -> Bool
+pub fn ModelSummary::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SessionSummary {
+  session_id : String
+  session_name : String?
+  is_deleted : Bool
+  total_cost : Double
+  total_tokens : Int
+  prompt_tokens : Int
+  completion_tokens : Int
+  requests : Int
+} derive(Eq, @debug.Debug)
+pub fn SessionSummary::equal(Self, Self) -> Bool
+pub fn SessionSummary::not_equal(Self, Self) -> Bool
+pub fn SessionSummary::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Summary {
+  period : TimePeriod
+  total_cost : Double
+  total_prompt_tokens : Int
+  total_completion_tokens : Int
+  total_cache_read_tokens : Int
+  total_cache_write_tokens : Int
+  by_model : Map[String, ModelSummary]
+  record_count : Int
+} derive(Eq, @debug.Debug)
+pub fn Summary::equal(Self, Self) -> Bool
+pub fn Summary::not_equal(Self, Self) -> Bool
+pub fn Summary::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TimePeriod {
+  Day
+  Week
+  Month
+  Year
+  All
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn TimePeriod::equal(Self, Self) -> Bool
+pub fn TimePeriod::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TimePeriod::not_equal(Self, Self) -> Bool
+pub fn TimePeriod::to_json(Self) -> Json
+pub fn TimePeriod::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

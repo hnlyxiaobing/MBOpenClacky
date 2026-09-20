@@ -1,0 +1,58 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/pricing"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn calculate_cost(model~ : String, prompt_tokens~ : Int, completion_tokens~ : Int, cache_write_tokens~ : Int, cache_read_tokens~ : Int) -> Result[CostResult, String]
+
+pub fn get_pricing(String) -> ModelPricing?
+
+pub fn normalize_model_name(String) -> String?
+
+pub fn pricing_table() -> Map[String, ModelPricing]
+
+// Errors
+
+// Types and methods
+pub(all) struct CostResult {
+  total_cost : Double
+  source : CostSource
+  input_cost : Double
+  output_cost : Double
+  cache_write_cost : Double
+  cache_read_cost : Double
+} derive(Eq, @debug.Debug)
+pub fn CostResult::equal(Self, Self) -> Bool
+pub fn CostResult::not_equal(Self, Self) -> Bool
+pub fn CostResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CostSource {
+  Price
+  Estimated
+  Api
+} derive(Eq, @debug.Debug)
+pub fn CostSource::equal(Self, Self) -> Bool
+pub fn CostSource::not_equal(Self, Self) -> Bool
+pub fn CostSource::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ModelPricing {
+  input_default : Double
+  input_over_200k : Double
+  output_default : Double
+  output_over_200k : Double
+  cache_write_default : Double
+  cache_write_over_200k : Double
+  cache_read_default : Double
+  cache_read_over_200k : Double
+  context_threshold : Int
+} derive(Eq, @debug.Debug)
+pub fn ModelPricing::equal(Self, Self) -> Bool
+pub fn ModelPricing::not_equal(Self, Self) -> Bool
+pub fn ModelPricing::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

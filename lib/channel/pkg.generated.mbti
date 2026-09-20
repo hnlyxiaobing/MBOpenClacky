@@ -1,0 +1,861 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/channel"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/websocket",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const CHANNEL_HTTP_TIMEOUT_MS : Int = 30_000
+
+pub const DEFAULT_INTENTS : Int = 38401
+
+pub const DINGTALK_API_BASE : String = "https://api.dingtalk.com"
+
+pub const DINGTALK_OAPI_BASE : String = "https://oapi.dingtalk.com"
+
+pub const DISCORD_API_BASE : String = "https://discord.com/api/v10"
+
+pub const DISCORD_GATEWAY_URL : String = "wss://gateway.discord.gg/?v=10&encoding=json"
+
+pub const FEISHU_API_BASE : String = "https://open.feishu.cn/open-apis"
+
+pub const INTENT_DIRECT_MESSAGES : Int = 4096
+
+pub const INTENT_GUILDS : Int = 1
+
+pub const INTENT_GUILD_MESSAGES : Int = 512
+
+pub const INTENT_GUILD_MESSAGE_REACTIONS : Int = 1024
+
+pub const INTENT_MESSAGE_CONTENT : Int = 32768
+
+pub const MAX_RECONNECT_ATTEMPTS : Int = 10
+
+pub const RECONNECT_BASE_DELAY_MS : Int = 5000
+
+pub const TELEGRAM_API_BASE : String = "https://api.telegram.org"
+
+pub const TELEGRAM_MAX_MESSAGE_LENGTH : Int = 4096
+
+pub const WECOM_ACK_TIMEOUT : Int = 30000
+
+pub const WECOM_API_BASE : String = "https://qyapi.weixin.qq.com/cgi-bin"
+
+pub const WECOM_DEFAULT_CHUNK_SIZE : Int = 524288
+
+pub const WECOM_HEARTBEAT_INTERVAL : Int = 30000
+
+pub const WECOM_READ_TIMEOUT : Int = 75000
+
+pub const WECOM_WS_URL : String = "wss://openws.work.weixin.qq.com"
+
+pub const WEIXIN_API_BASE : String = "https://ilinkai.weixin.qq.com"
+
+pub const WEIXIN_CDN_BASE : String = "https://novac2c.cdn.weixin.qq.com/c2c"
+
+pub fn build_ack_frame(String) -> Json
+
+pub fn build_dingtalk_markdown_payload(String, String) -> Json
+
+pub fn build_dingtalk_message(String) -> Json
+
+pub fn build_discord_edit_payload(String) -> Json
+
+pub fn build_discord_message(String, String?) -> Json
+
+pub fn build_discord_send_payload(String, String?) -> Json
+
+pub fn build_feishu_card_content(String) -> Json
+
+pub fn build_feishu_message(String, String?) -> Json
+
+pub fn build_feishu_post_content(Array[Json]) -> Json
+
+pub fn build_feishu_text_content(String) -> Json
+
+pub fn build_heartbeat_payload(Int?) -> Json
+
+pub fn build_identify_payload(String, Int) -> Json
+
+pub fn build_json_body(Map[String, Json]) -> String
+
+pub fn build_ping_frame() -> Json
+
+pub fn build_resume_payload(String, String, Int) -> Json
+
+pub fn build_send_msg_frame(String, String, String, String) -> Json
+
+pub fn build_stream_ack(String) -> Json
+
+pub fn build_stream_pong() -> Json
+
+pub fn build_subscribe_frame(String, String) -> Json
+
+pub fn build_telegram_delete_request(String, String) -> Json
+
+pub fn build_telegram_edit_request(String, String, String) -> Json
+
+pub fn build_telegram_file_url(String, String) -> String
+
+pub fn build_telegram_get_file_request(String) -> Json
+
+pub fn build_telegram_message(String, String, String?) -> Json
+
+pub fn build_telegram_send_request(String, String, String?, String?) -> Json
+
+pub fn build_upload_chunk_frame(String, Int, String) -> Json
+
+pub fn build_upload_finish_frame(String) -> Json
+
+pub fn build_upload_init_frame(String, String, Int) -> Json
+
+pub fn build_wecom_markdown_msg(String) -> Json
+
+pub fn build_wecom_message(String, String, String) -> Json
+
+pub fn build_weixin_aes_key(String) -> (String, String)
+
+pub fn build_weixin_message(String, String, String) -> Json
+
+pub fn calculate_chunk_count(Int, Int) -> Int
+
+pub fn detect_chat_type(Map[String, Json]) -> ChatType
+
+pub fn detect_mime_type(String) -> String
+
+pub fn detect_wecom_chat_type(Map[String, Json]) -> ChatType
+
+pub fn detect_weixin_aes_mode(String) -> WeixinAesMode
+
+pub fn dingtalk_supported_exts() -> Array[String]
+
+pub fn extract_api_error(Json) -> String
+
+pub fn extract_data_chat_id(Json) -> String?
+
+pub fn extract_data_content(Json) -> String?
+
+pub fn extract_data_sender(Json) -> (String, String)
+
+pub fn extract_dingtalk_attachments(Map[String, Json]) -> Array[Attachment]
+
+pub fn extract_dingtalk_message_id(Json) -> String?
+
+pub fn extract_discord_message_id(Json) -> String?
+
+pub fn extract_event_name(Json) -> String?
+
+pub fn extract_feishu_doc_urls(String) -> Array[String]
+
+pub fn extract_feishu_message_id(Json) -> String?
+
+pub fn extract_req_id(Json) -> String?
+
+pub fn extract_seq(Json) -> Int?
+
+pub fn extract_session_webhook(Map[String, Json]) -> (String, Int)?
+
+pub fn extract_telegram_attachments(Map[String, Json]) -> Array[Attachment]
+
+pub fn extract_update_id(Map[String, Json]) -> Int
+
+pub fn extract_wecom_attachments(Map[String, Json]) -> Array[Attachment]
+
+pub fn extract_weixin_context_token(Map[String, Json]) -> String?
+
+pub fn find_last_str(StringView, String) -> Int?
+
+pub fn gateway_opcode_from_int(Int) -> GatewayOpcode?
+
+pub fn get_gateway_url(GatewayState) -> String
+
+pub fn handle_feishu_challenge(Json) -> String?
+
+pub async fn http_get_json(String, Array[(String, String)]) -> Result[Json, ChannelError]
+
+pub async fn http_post_json(String, Array[(String, String)], String) -> Result[Json, ChannelError]
+
+pub fn http_status_error(Int, String) -> ChannelError
+
+pub fn is_auth_error(Json) -> Bool
+
+pub fn is_bot_mention(String, String?) -> Bool
+
+pub fn is_card_preferred(String) -> Bool
+
+pub fn is_dingtalk_supported_ext(String) -> Bool
+
+pub fn is_fatal_close(Int) -> Bool
+
+pub fn is_rate_limited(Int) -> Bool
+
+pub fn is_response_frame(WeComFrameType) -> Bool
+
+pub fn is_success_status(Int) -> Bool
+
+pub fn is_webhook_valid(String, Int) -> Bool
+
+pub fn needs_ack(WeComFrameType) -> Bool
+
+pub fn needs_aes_decrypt(String) -> Bool
+
+pub fn parse_dingtalk_file(Map[String, Json]) -> Attachment?
+
+pub fn parse_dingtalk_picture(Map[String, Json]) -> Attachment?
+
+pub fn parse_dingtalk_richtext(Map[String, Json]) -> (String, Array[Attachment])
+
+pub fn parse_dingtalk_text(Map[String, Json]) -> String
+
+pub fn parse_feishu_file(Map[String, Json]) -> Attachment?
+
+pub fn parse_feishu_image(Map[String, Json]) -> Attachment?
+
+pub fn parse_feishu_message(Map[String, Json]) -> Result[FeishuParsedMessage, ChannelError]
+
+pub fn parse_feishu_post(Json) -> String
+
+pub fn parse_feishu_text(String) -> String
+
+pub fn parse_gateway_event(Json) -> Result[(Int, Json), ChannelError]
+
+pub fn parse_get_file_response(Json) -> Result[String, ChannelError]
+
+pub fn parse_hello_payload(Json) -> Result[Int, ChannelError]
+
+pub fn parse_incoming_frame(Json) -> Result[(WeComFrameType, Json), ChannelError]
+
+pub fn parse_invalid_session(Json) -> Bool
+
+pub fn parse_iso8601_to_ms(String) -> Int64
+
+pub fn parse_json_response(String) -> Result[Json, ChannelError]
+
+pub fn parse_post_element(Map[String, Json]) -> String
+
+pub fn parse_ready_payload(Json) -> Result[(String, String?), ChannelError]
+
+pub fn parse_stream_frame(Json) -> Result[(String, Json), ChannelError]
+
+pub fn parse_wecom_file(Map[String, Json]) -> Attachment?
+
+pub fn parse_wecom_image(Map[String, Json]) -> Attachment?
+
+pub fn parse_wecom_mixed(Map[String, Json]) -> (String, Array[Attachment])
+
+pub fn parse_wecom_text(Map[String, Json]) -> String
+
+pub fn parse_weixin_file_item(Map[String, Json]) -> Attachment?
+
+pub fn parse_weixin_image_item(Map[String, Json]) -> Attachment?
+
+pub fn parse_weixin_items(Array[Json]) -> (String, Array[Attachment])
+
+pub fn parse_weixin_text_item(Map[String, Json]) -> String
+
+pub fn parse_weixin_video_item(Map[String, Json]) -> Attachment?
+
+pub fn parse_weixin_voice_item(Map[String, Json]) -> String
+
+pub fn reconnect_delay_ms(Int) -> Int
+
+pub fn resolve_feishu_mentions(String, Array[Json]) -> String
+
+pub fn sanitize_for_weixin(String) -> String
+
+pub fn should_reconnect(GatewayState, Int) -> Bool
+
+pub fn should_resume(GatewayState) -> Bool
+
+pub fn should_retry_status(Int) -> Bool
+
+pub fn split_telegram_message(String) -> Array[String]
+
+pub fn split_weixin_message(String, Int) -> Array[String]
+
+pub fn webhook_url(String, String) -> String
+
+pub fn wecom_is_mentioned(Map[String, Json], String) -> Bool
+
+pub fn weixin_aes_decrypt(String, String) -> Result[String, ChannelError]
+
+pub fn weixin_aes_encrypt(String, String) -> Result[String, ChannelError]
+
+pub fn weixin_media_requires_encryption(String) -> Bool
+
+// Errors
+pub(all) suberror ChannelError {
+  ChannelError(String)
+} derive(ToJson, @debug.Debug)
+pub fn ChannelError::to_json(Self) -> Json
+pub fn ChannelError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) struct AdapterRegistry {
+  adapters : Map[String, AnyAdapter]
+}
+pub fn AdapterRegistry::all(Self) -> Array[AnyAdapter]
+pub fn AdapterRegistry::find(Self, String) -> AnyAdapter?
+pub fn AdapterRegistry::has(Self, String) -> Bool
+pub fn AdapterRegistry::list_names(Self) -> Array[String]
+pub fn AdapterRegistry::new() -> Self
+pub fn AdapterRegistry::register(Self, String, AnyAdapter) -> Unit
+pub fn AdapterRegistry::size(Self) -> Int
+
+pub(all) enum AnyAdapter {
+  Feishu(FeishuAdapter)
+  WeCom(WeComAdapter)
+  Telegram(TelegramAdapter)
+  Discord(DiscordAdapter)
+  DingTalk(DingTalkAdapter)
+  Weixin(WeixinAdapter)
+}
+pub fn AnyAdapter::platform_id(Self) -> Platform
+pub async fn AnyAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn AnyAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn AnyAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn AnyAdapter::supports_message_updates(Self) -> Bool
+pub async fn AnyAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn AnyAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for AnyAdapter
+
+pub(all) struct Attachment {
+  attachment_type : AttachmentType
+  url : String
+  filename : String?
+  size_bytes : Int?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Attachment::equal(Self, Self) -> Bool
+pub fn Attachment::not_equal(Self, Self) -> Bool
+pub fn Attachment::to_json(Self) -> Json
+pub fn Attachment::to_repr(Self) -> @debug.Repr
+
+pub(all) enum AttachmentType {
+  Image
+  File
+  Audio
+  Video
+} derive(Eq, ToJson, @debug.Debug)
+pub fn AttachmentType::equal(Self, Self) -> Bool
+pub fn AttachmentType::not_equal(Self, Self) -> Bool
+pub fn AttachmentType::to_json(Self) -> Json
+pub fn AttachmentType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ChannelConfig {
+  platform : Platform
+  enabled : Bool
+  settings : Map[String, String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ChannelConfig::equal(Self, Self) -> Bool
+pub fn ChannelConfig::not_equal(Self, Self) -> Bool
+pub fn ChannelConfig::to_json(Self) -> Json
+pub fn ChannelConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ChannelEvent {
+  event_type : EventType
+  platform : Platform
+  chat_id : String
+  message_id : String
+  sender_id : String
+  sender_name : String
+  text : String
+  attachments : Array[Attachment]
+  timestamp : Int64
+  reply_to : String?
+  chat_type : ChatType
+  raw : Json?
+  observe_only : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ChannelEvent::equal(Self, Self) -> Bool
+pub fn ChannelEvent::not_equal(Self, Self) -> Bool
+pub fn ChannelEvent::to_json(Self) -> Json
+pub fn ChannelEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ChannelManager {
+  registry : AdapterRegistry
+  mut configs : Array[ChannelConfig]
+  mut active_channels : Array[String]
+  config_path : String
+  mut message_handler : ((ChannelEvent) -> Unit)?
+  mut recent_digests : Array[(String, Int)]
+  mut digest_counter : Int
+}
+pub fn ChannelManager::configured_platforms(Self) -> Array[String]
+pub fn ChannelManager::handle_webhook(Self, String, Json) -> Result[Unit, ChannelError]
+pub fn ChannelManager::init(Self) -> Result[Array[String], ChannelError]
+pub fn ChannelManager::is_platform_configured(Self, String) -> Bool
+pub fn ChannelManager::load_config(Self) -> Result[Unit, ChannelError]
+pub fn ChannelManager::new(String) -> Self
+pub fn ChannelManager::on_message(Self, (ChannelEvent) -> Unit) -> Unit
+pub fn ChannelManager::register_adapter(Self, String, AnyAdapter) -> Unit
+pub fn ChannelManager::reload(Self) -> Result[Unit, ChannelError]
+pub async fn ChannelManager::send_to(Self, String, String, String) -> Result[SendResult, ChannelError]
+pub fn ChannelManager::start(Self) -> Result[Unit, ChannelError]
+pub fn ChannelManager::start_with_gateway(Self, @async.TaskGroup[Unit]) -> Result[Unit, ChannelError]
+pub fn ChannelManager::status(Self) -> Array[(String, Bool)]
+pub fn ChannelManager::stop(Self) -> Result[Unit, ChannelError]
+pub fn ChannelManager::validate_all(Self) -> Map[String, Array[String]]
+
+pub(all) enum ChatType {
+  Direct
+  Group
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ChatType::equal(Self, Self) -> Bool
+pub fn ChatType::not_equal(Self, Self) -> Bool
+pub fn ChatType::to_json(Self) -> Json
+pub fn ChatType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DingTalkAdapter {
+  access_token : String
+  secret : String?
+  webhook_url : String?
+  mut robot_code : String?
+  api_client : DingTalkApiClient?
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+  mut session_webhooks : Map[String, (String, Int)]
+  mut route_cache : Map[String, String]
+}
+pub fn DingTalkAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn DingTalkAdapter::parse_and_cache_event(Self, Json) -> Result[ChannelEvent, ChannelError]
+pub fn DingTalkAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn DingTalkAdapter::platform_id(Self) -> Platform
+pub async fn DingTalkAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn DingTalkAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn DingTalkAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn DingTalkAdapter::supports_message_updates(Self) -> Bool
+pub async fn DingTalkAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn DingTalkAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for DingTalkAdapter
+
+pub(all) struct DingTalkApiClient {
+  app_key : String
+  app_secret : String
+  api_base : String
+  oapi_base : String
+  access_token : TokenCache
+  oapi_token : TokenCache
+}
+pub fn DingTalkApiClient::access_token_url(Self) -> String
+pub async fn DingTalkApiClient::auth_headers(Self) -> Result[HttpHeaders, ChannelError]
+pub fn DingTalkApiClient::build_access_token_request(Self) -> Json
+pub fn DingTalkApiClient::build_oapi_token_request(Self) -> String
+pub fn DingTalkApiClient::build_send_msg_param(String, String) -> String
+pub fn DingTalkApiClient::build_upload_request(String) -> Json
+pub fn DingTalkApiClient::build_webhook_payload(String, String) -> Json
+pub async fn DingTalkApiClient::download_file_url(Self, String, String) -> Result[String, ChannelError]
+pub async fn DingTalkApiClient::get_access_token(Self) -> Result[String, ChannelError]
+pub async fn DingTalkApiClient::get_oapi_token(Self) -> Result[String, ChannelError]
+pub fn DingTalkApiClient::new(String, String) -> Self
+pub fn DingTalkApiClient::open_stream_connection(Self, String, String) -> Result[(String, String), ChannelError]
+pub fn DingTalkApiClient::parse_token_response(Json) -> Result[(String, Int), ChannelError]
+pub async fn DingTalkApiClient::request_access_token(Self) -> Result[String, ChannelError]
+pub async fn DingTalkApiClient::request_oapi_token(Self) -> Result[String, ChannelError]
+pub async fn DingTalkApiClient::send_to_group(Self, String, String, String, String) -> Result[Json, ChannelError]
+pub async fn DingTalkApiClient::send_to_user(Self, String, String, String, String) -> Result[Json, ChannelError]
+pub async fn DingTalkApiClient::send_via_webhook(Self, String, String, String) -> Result[Json, ChannelError]
+pub async fn DingTalkApiClient::upload_media_url(Self) -> Result[String, ChannelError]
+
+pub(all) struct DiscordAdapter {
+  bot_token : String
+  application_id : String?
+  api_client : DiscordApiClient
+  mut gateway_state : GatewayState?
+  mut bot_user_id : String?
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+  ws_client : WsClient
+}
+pub async fn DiscordAdapter::gateway_connect_loop(Self) -> Unit
+pub async fn DiscordAdapter::handle_gateway_event(Self, String) -> Unit
+pub async fn DiscordAdapter::heartbeat_loop(Self) -> Unit
+pub fn DiscordAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn DiscordAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn DiscordAdapter::platform_id(Self) -> Platform
+pub async fn DiscordAdapter::run_gateway_loop(Self) -> Unit
+pub async fn DiscordAdapter::send_heartbeat(Self) -> Unit
+pub async fn DiscordAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn DiscordAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn DiscordAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn DiscordAdapter::supports_message_updates(Self) -> Bool
+pub async fn DiscordAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn DiscordAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for DiscordAdapter
+
+pub(all) struct DiscordApiClient {
+  bot_token : String
+  base_url : String
+}
+pub fn DiscordApiClient::api_url(Self, String) -> String
+pub fn DiscordApiClient::auth_headers(Self) -> HttpHeaders
+pub fn DiscordApiClient::delete_message(Self, String, String) -> Result[Json, ChannelError]
+pub fn DiscordApiClient::download_attachment(Self, String) -> Result[String, ChannelError]
+pub fn DiscordApiClient::edit_message(Self, String, String, String) -> Result[Json, ChannelError]
+pub fn DiscordApiClient::get_current_user(Self) -> Result[Json, ChannelError]
+pub fn DiscordApiClient::new(String) -> Self
+pub async fn DiscordApiClient::send_message(Self, String, String, String?) -> Result[Json, ChannelError]
+pub fn DiscordApiClient::upload_file(Self, String, String, String) -> Result[Json, ChannelError]
+pub fn DiscordApiClient::with_base_url(String, String) -> Self
+
+pub(all) enum EventType {
+  Message
+  Command
+  Join
+  Leave
+} derive(Eq, ToJson, @debug.Debug)
+pub fn EventType::equal(Self, Self) -> Bool
+pub fn EventType::not_equal(Self, Self) -> Bool
+pub fn EventType::to_json(Self) -> Json
+pub fn EventType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct FeishuAdapter {
+  bot_id : String
+  bot_secret : String
+  webhook_url : String?
+  api_client : FeishuApiClient?
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+}
+pub fn FeishuAdapter::handle_webhook_event(Json) -> Result[ChannelEvent?, ChannelError]
+pub fn FeishuAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn FeishuAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn FeishuAdapter::platform_id(Self) -> Platform
+pub async fn FeishuAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn FeishuAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn FeishuAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn FeishuAdapter::supports_message_updates(Self) -> Bool
+pub async fn FeishuAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn FeishuAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for FeishuAdapter
+
+pub(all) struct FeishuApiClient {
+  app_id : String
+  app_secret : String
+  base_url : String
+  token_cache : TokenCache
+}
+pub fn FeishuApiClient::api_url(Self, String) -> String
+pub async fn FeishuApiClient::auth_headers(Self) -> Result[HttpHeaders, ChannelError]
+pub fn FeishuApiClient::auth_url(Self) -> String
+pub fn FeishuApiClient::build_auth_body(Self) -> Json
+pub async fn FeishuApiClient::build_send_request(Self, String, String, String?) -> Result[(String, Array[(String, String)], String), ChannelError]
+pub async fn FeishuApiClient::build_update_request(Self, String, String) -> Result[(String, Array[(String, String)], String), ChannelError]
+pub async fn FeishuApiClient::download_resource(Self, String, String, String) -> Result[String, ChannelError]
+pub async fn FeishuApiClient::fetch_chat_history(Self, String, Int) -> Result[Json, ChannelError]
+pub async fn FeishuApiClient::get_token(Self) -> Result[String, ChannelError]
+pub fn FeishuApiClient::new(String, String) -> Self
+pub async fn FeishuApiClient::request_token(Self) -> Result[String, ChannelError]
+pub async fn FeishuApiClient::send_message(Self, String, String, String?) -> Result[Json, ChannelError]
+pub async fn FeishuApiClient::update_message(Self, String, String) -> Result[Json, ChannelError]
+pub async fn FeishuApiClient::upload_file(Self, String, String, String) -> Result[String, ChannelError]
+pub async fn FeishuApiClient::upload_image(Self, String, String) -> Result[String, ChannelError]
+pub fn FeishuApiClient::with_base_url(String, String, String) -> Self
+
+pub(all) struct FeishuParsedMessage {
+  msg_type : String
+  text : String
+  attachments : Array[Attachment]
+  doc_urls : Array[String]
+}
+
+pub(all) enum GatewayOpcode {
+  Dispatch
+  Heartbeat
+  Identify
+  PresenceUpdate
+  VoiceStateUpdate
+  Resume
+  Reconnect
+  InvalidSession
+  Hello
+  HeartbeatAck
+} derive(Eq, @debug.Debug)
+pub fn GatewayOpcode::equal(Self, Self) -> Bool
+pub fn GatewayOpcode::not_equal(Self, Self) -> Bool
+pub fn GatewayOpcode::to_int(Self) -> Int
+pub fn GatewayOpcode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct GatewayState {
+  mut session_id : String?
+  mut last_seq : Int?
+  mut resume_gateway_url : String?
+  mut heartbeat_interval : Int
+  mut is_connected : Bool
+  mut is_ready : Bool
+  mut heartbeat_acked : Bool
+  mut reconnect_attempts : Int
+  bot_token : String
+  intents : Int
+}
+pub fn GatewayState::handle_hello(Self, Int) -> Unit
+pub fn GatewayState::handle_ready(Self, String, String?) -> Unit
+pub fn GatewayState::mark_heartbeat_acked(Self) -> Unit
+pub fn GatewayState::mark_heartbeat_sent(Self) -> Unit
+pub fn GatewayState::new(String) -> Self
+pub fn GatewayState::record_reconnect_attempt(Self) -> Unit
+pub fn GatewayState::reset_connection(Self) -> Unit
+pub fn GatewayState::update_seq(Self, Int) -> Unit
+pub fn GatewayState::with_intents(String, Int) -> Self
+
+pub(all) struct HttpHeaders {
+  mut headers : Map[String, String]
+}
+pub fn HttpHeaders::bearer(Self, String) -> Self
+pub fn HttpHeaders::bot_token(Self, String) -> Self
+pub fn HttpHeaders::content_type(Self, String) -> Self
+pub fn HttpHeaders::new() -> Self
+pub fn HttpHeaders::set(Self, String, String) -> Self
+pub fn HttpHeaders::to_array(Self) -> Array[(String, String)]
+
+pub(all) enum Platform {
+  Feishu
+  WeCom
+  Weixin
+  Telegram
+  Discord
+  DingTalk
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Platform::equal(Self, Self) -> Bool
+pub fn Platform::from_string(String) -> Self?
+pub fn Platform::not_equal(Self, Self) -> Bool
+pub fn Platform::to_json(Self) -> Json
+pub fn Platform::to_repr(Self) -> @debug.Repr
+pub fn Platform::to_string_value(Self) -> String
+
+pub(all) struct RetryConfig {
+  max_retries : Int
+  base_delay_ms : Int
+}
+pub fn RetryConfig::default() -> Self
+pub fn RetryConfig::delay_for_attempt(Self, Int) -> Int
+
+pub(all) struct SendResult {
+  message_id : String
+  success : Bool
+  error : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn SendResult::equal(Self, Self) -> Bool
+pub fn SendResult::not_equal(Self, Self) -> Bool
+pub fn SendResult::to_json(Self) -> Json
+pub fn SendResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TelegramAdapter {
+  bot_token : String
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+  mut last_update_id : Int
+  api_client : TelegramApiClient
+}
+pub fn TelegramAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn TelegramAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn TelegramAdapter::platform_id(Self) -> Platform
+pub async fn TelegramAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn TelegramAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn TelegramAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn TelegramAdapter::supports_message_updates(Self) -> Bool
+pub async fn TelegramAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn TelegramAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for TelegramAdapter
+
+pub(all) struct TelegramApiClient {
+  bot_token : String
+  base_url : String
+  http_headers : HttpHeaders
+}
+pub fn TelegramApiClient::api_url(Self, String) -> String
+pub fn TelegramApiClient::delete_message_url(Self) -> String
+pub fn TelegramApiClient::edit_message_url(Self) -> String
+pub fn TelegramApiClient::get_file_url(Self) -> String
+pub fn TelegramApiClient::get_me_url(Self) -> String
+pub fn TelegramApiClient::get_updates_payload(Self, Int, Int) -> Json
+pub fn TelegramApiClient::get_updates_url(Self) -> String
+pub fn TelegramApiClient::new(String) -> Self
+pub fn TelegramApiClient::parse_ok_response(Json) -> Result[Bool, ChannelError]
+pub fn TelegramApiClient::parse_send_response(Json) -> Result[SendResult, ChannelError]
+pub fn TelegramApiClient::parse_updates_response(Json) -> Result[Array[Json], ChannelError]
+pub fn TelegramApiClient::request_headers(Self) -> Array[(String, String)]
+pub fn TelegramApiClient::send_message_url(Self) -> String
+
+pub(all) struct TokenCache {
+  mut token : String
+  mut expires_at : Int
+  refresh_threshold : Int
+}
+pub fn TokenCache::clear(Self) -> Unit
+pub fn TokenCache::get_or_refresh(Self, String, Int) -> String
+pub fn TokenCache::is_valid(Self) -> Bool
+pub fn TokenCache::new(Int) -> Self
+pub fn TokenCache::set(Self, String, Int) -> Unit
+
+pub(all) struct WeComAdapter {
+  corp_id : String
+  agent_id : String
+  secret : String
+  token : String?
+  encoding_aes_key : String?
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+  ws_state : WeComWsState?
+  access_token_cache : TokenCache
+}
+pub fn WeComAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn WeComAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn WeComAdapter::platform_id(Self) -> Platform
+pub async fn WeComAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn WeComAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn WeComAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn WeComAdapter::supports_message_updates(Self) -> Bool
+pub async fn WeComAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn WeComAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for WeComAdapter
+
+pub(all) enum WeComFrameType {
+  Subscribe
+  SendMsg
+  Ping
+  Pong
+  Ack
+  Data
+} derive(Eq, @debug.Debug)
+pub fn WeComFrameType::equal(Self, Self) -> Bool
+pub fn WeComFrameType::not_equal(Self, Self) -> Bool
+pub fn WeComFrameType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct WeComUploadState {
+  mut upload_id : String
+  mut chunk_index : Int
+  chunk_size : Int
+  total_size : Int
+}
+pub fn WeComUploadState::is_complete(Self) -> Bool
+pub fn WeComUploadState::new(Int) -> Self
+pub fn WeComUploadState::next_chunk(Self) -> Int
+pub fn WeComUploadState::reset(Self) -> Unit
+pub fn WeComUploadState::set_upload_id(Self, String) -> Unit
+pub fn WeComUploadState::with_chunk_size(Int, Int) -> Self
+
+pub(all) struct WeComWsState {
+  bot_id : String
+  secret : String
+  mut is_connected : Bool
+  mut req_counter : Int
+  heartbeat_interval : Int
+  read_timeout : Int
+}
+pub fn WeComWsState::build_auth_frame(Self) -> Json
+pub fn WeComWsState::build_heartbeat(Self) -> Json
+pub fn WeComWsState::build_msg_frame(Self, String, String, String) -> Json
+pub fn WeComWsState::mark_connected(Self) -> Unit
+pub fn WeComWsState::mark_disconnected(Self) -> Unit
+pub fn WeComWsState::new(String, String) -> Self
+pub fn WeComWsState::next_req_id(Self) -> String
+pub fn WeComWsState::reset_counter(Self) -> Unit
+
+pub(all) struct WeixinAdapter {
+  app_id : String
+  app_secret : String
+  token : String
+  encoding_aes_key : String?
+  mut is_running : Bool
+  mut message_callback : ((ChannelEvent) -> Unit)?
+  api_client : WeixinApiClient?
+  send_queue : WeixinSendQueue?
+  mut context_token : String?
+  mut updates_buf : String?
+  mut last_send_time : Int
+}
+pub fn WeixinAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
+pub fn WeixinAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
+pub fn WeixinAdapter::platform_id(Self) -> Platform
+pub async fn WeixinAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+pub fn WeixinAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+pub fn WeixinAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn WeixinAdapter::supports_message_updates(Self) -> Bool
+pub async fn WeixinAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+pub fn WeixinAdapter::validate_config(Self) -> Array[String]
+pub impl Adapter for WeixinAdapter
+
+pub(all) enum WeixinAesMode {
+  OutboundImage
+  OutboundOther
+  Inbound
+} derive(Eq, @debug.Debug)
+pub fn WeixinAesMode::equal(Self, Self) -> Bool
+pub fn WeixinAesMode::not_equal(Self, Self) -> Bool
+pub fn WeixinAesMode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct WeixinApiClient {
+  token : String
+  uin : String
+  base_url : String
+  cdn_base : String
+}
+pub fn WeixinApiClient::auth_headers(Self) -> HttpHeaders
+pub fn WeixinApiClient::build_get_updates_request(Self, String?) -> Json
+pub fn WeixinApiClient::build_send_text_request(Self, String, String, String) -> Json
+pub fn WeixinApiClient::build_typing_request(Self, String, Int) -> Json
+pub fn WeixinApiClient::build_upload_request(Self, Int, Int) -> Json
+pub fn WeixinApiClient::download_media_url(Self, String) -> String
+pub fn WeixinApiClient::get_updates_url(Self, String?) -> String
+pub fn WeixinApiClient::get_upload_url(Self) -> String
+pub fn WeixinApiClient::new(String, String) -> Self
+pub fn WeixinApiClient::parse_get_updates_response(Self, Json) -> Result[(Array[Json], String?), ChannelError]
+pub fn WeixinApiClient::parse_send_response(Self, Json) -> Result[(String, Int), ChannelError]
+pub fn WeixinApiClient::send_text_url(Self) -> String
+pub fn WeixinApiClient::send_typing_url(Self) -> String
+
+pub(all) struct WeixinPendingMsg {
+  chat_id : String
+  text : String
+  context_token : String
+  retry_count : Int
+}
+
+pub(all) struct WeixinSendQueue {
+  mut pending_messages : Array[WeixinPendingMsg]
+  buffer_threshold : Int
+  flush_interval_ms : Int
+  min_send_interval_ms : Int
+  max_message_length : Int
+}
+pub fn WeixinSendQueue::calculate_retry_delay(Self, Int) -> Int
+pub fn WeixinSendQueue::dequeue(Self) -> WeixinPendingMsg?
+pub fn WeixinSendQueue::enqueue(Self, WeixinPendingMsg) -> Unit
+pub fn WeixinSendQueue::new() -> Self
+pub fn WeixinSendQueue::pending_count(Self) -> Int
+pub fn WeixinSendQueue::should_flush(Self) -> Bool
+
+pub(all) struct WsClient {
+  mut conn : @websocket.Conn?
+  mut is_connected : Bool
+}
+pub async fn WsClient::close(Self) -> Unit
+pub async fn WsClient::connect(Self, String) -> Result[Unit, ChannelError]
+pub fn WsClient::connected(Self) -> Bool
+pub fn WsClient::new() -> Self
+pub async fn WsClient::recv(Self) -> WsMessage
+pub async fn WsClient::send_text(Self, String) -> Result[Unit, ChannelError]
+
+pub(all) enum WsMessage {
+  Text(String)
+  Closed(Int, String?)
+} derive(Eq, @debug.Debug)
+pub fn WsMessage::equal(Self, Self) -> Bool
+pub fn WsMessage::not_equal(Self, Self) -> Bool
+pub fn WsMessage::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
+pub(open) trait Adapter {
+  fn platform_id(Self) -> Platform
+  fn start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
+  fn stop(Self) -> Result[Unit, ChannelError]
+  async fn send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
+  async fn update_message(Self, String, String, String) -> Result[Unit, ChannelError]
+  fn supports_message_updates(Self) -> Bool
+  fn validate_config(Self) -> Array[String]
+}

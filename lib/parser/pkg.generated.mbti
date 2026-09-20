@@ -1,0 +1,84 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/parser"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn detect_format(String) -> DocumentFormat
+
+pub fn is_whitelisted_document_extension(String) -> Bool
+
+pub fn is_wps_binary_extension(String) -> Bool
+
+pub fn supported_extensions() -> Array[String]
+
+pub fn supported_formats() -> Array[DocumentFormat]
+
+// Errors
+pub(all) suberror ParseError {
+  ParseError(String)
+} derive(ToJson, @debug.Debug)
+pub fn ParseError::to_json(Self) -> Json
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) enum DocumentFormat {
+  Pdf
+  Docx
+  Pptx
+  Xlsx
+  Doc
+  Wps
+  Unknown(String)
+} derive(Eq, ToJson, @debug.Debug)
+pub fn DocumentFormat::equal(Self, Self) -> Bool
+pub fn DocumentFormat::not_equal(Self, Self) -> Bool
+pub fn DocumentFormat::output(Self, &Logger) -> Unit
+pub fn DocumentFormat::to_json(Self) -> Json
+pub fn DocumentFormat::to_repr(Self) -> @debug.Repr
+pub fn DocumentFormat::to_string(Self) -> String
+pub impl Show for DocumentFormat
+
+pub(all) struct DocumentMetadata {
+  title : String?
+  author : String?
+  created_at : String?
+  page_count : Int?
+  word_count : Int?
+  format : DocumentFormat
+} derive(Eq, ToJson, @debug.Debug)
+pub fn DocumentMetadata::equal(Self, Self) -> Bool
+pub fn DocumentMetadata::not_equal(Self, Self) -> Bool
+pub fn DocumentMetadata::to_json(Self) -> Json
+pub fn DocumentMetadata::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ParseResult {
+  content : String
+  metadata : DocumentMetadata
+  sections : Array[String]
+  is_success : Bool
+  error : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ParseResult::equal(Self, Self) -> Bool
+pub fn ParseResult::error(String, DocumentFormat) -> Self
+pub fn ParseResult::not_equal(Self, Self) -> Bool
+pub fn ParseResult::success(String, DocumentMetadata, Array[String]) -> Self
+pub fn ParseResult::to_json(Self) -> Json
+pub fn ParseResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ParserManager {
+  preserve_formatting : Bool
+} derive(Eq, @debug.Debug)
+pub fn ParserManager::can_parse(String) -> Bool
+pub fn ParserManager::equal(Self, Self) -> Bool
+pub fn ParserManager::new() -> Self
+pub fn ParserManager::not_equal(Self, Self) -> Bool
+pub async fn ParserManager::parse_document(Self, String) -> ParseResult
+pub fn ParserManager::to_repr(Self) -> @debug.Repr
+pub fn ParserManager::with_formatting(Bool) -> Self
+
+// Type aliases
+
+// Traits

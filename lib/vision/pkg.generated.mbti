@@ -1,0 +1,108 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/vision"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compute_cache_key(VisionInput, String) -> String
+
+pub fn count_ocr_words(String) -> Int
+
+pub fn empty_result() -> VisionResult
+
+pub fn error_result(VisionStatus, String) -> VisionResult
+
+pub fn ok_result(String, Bool) -> VisionResult
+
+// Errors
+
+// Types and methods
+pub(all) struct OCRResult {
+  text : String
+  confidence : Float?
+  language : String?
+  word_count : Int
+} derive(Eq, ToJson, @debug.Debug)
+pub fn OCRResult::equal(Self, Self) -> Bool
+pub fn OCRResult::not_equal(Self, Self) -> Bool
+pub fn OCRResult::to_json(Self) -> Json
+pub fn OCRResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct VisionConfig {
+  api_key : String
+  base_url : String
+  model : String
+  max_tokens : Int
+  cache_dir : String
+  default_prompt : String
+} derive(Eq, @debug.Debug)
+pub fn VisionConfig::default() -> Self
+pub fn VisionConfig::equal(Self, Self) -> Bool
+pub fn VisionConfig::new(String, String, String, max_tokens? : Int, cache_dir? : String, default_prompt? : String) -> Self
+pub fn VisionConfig::not_equal(Self, Self) -> Bool
+pub fn VisionConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) enum VisionInput {
+  VisionBytes(Bytes)
+  DataUrl(String)
+  FilePath(String)
+} derive(@debug.Debug)
+pub fn VisionInput::to_repr(Self) -> @debug.Repr
+
+pub(all) struct VisionOCR {
+  resolver : VisionResolver
+} derive(@debug.Debug)
+pub fn VisionOCR::get_resolver(Self) -> VisionResolver
+pub fn VisionOCR::is_available(Self) -> Bool
+pub fn VisionOCR::new() -> Self
+pub async fn VisionOCR::ocr(Self, VisionInput) -> Result[OCRResult, String]
+pub fn VisionOCR::ocr_name(Self) -> String
+pub fn VisionOCR::to_repr(Self) -> @debug.Repr
+pub fn VisionOCR::with_resolver(VisionResolver) -> Self
+
+pub(all) struct VisionResolver {
+  config : VisionConfig
+  mut cache : Map[String, VisionResult]
+} derive(@debug.Debug)
+pub fn VisionResolver::cache_result(Self, String, VisionResult) -> Unit
+pub fn VisionResolver::cache_size(Self) -> Int
+pub fn VisionResolver::check_cache(Self, String) -> VisionResult?
+pub fn VisionResolver::clear_cache(Self) -> Unit
+pub async fn VisionResolver::describe(Self, VisionInput, String?) -> VisionResult
+pub fn VisionResolver::get_config(Self) -> VisionConfig
+pub fn VisionResolver::new() -> Self
+pub fn VisionResolver::to_repr(Self) -> @debug.Repr
+pub fn VisionResolver::with_config(VisionConfig) -> Self
+
+pub(all) struct VisionResult {
+  status : VisionStatus
+  text : String?
+  error : String?
+  cached : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn VisionResult::equal(Self, Self) -> Bool
+pub fn VisionResult::not_equal(Self, Self) -> Bool
+pub fn VisionResult::to_json(Self) -> Json
+pub fn VisionResult::to_repr(Self) -> @debug.Repr
+
+pub(all) enum VisionStatus {
+  Ok
+  Empty
+  CallFailed
+  BadImage
+} derive(Eq, ToJson, @debug.Debug)
+pub fn VisionStatus::equal(Self, Self) -> Bool
+pub fn VisionStatus::not_equal(Self, Self) -> Bool
+pub fn VisionStatus::to_json(Self) -> Json
+pub fn VisionStatus::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
+pub(open) trait OCRProvider {
+  fn ocr_name(Self) -> String
+  fn is_available(Self) -> Bool
+  fn ocr(Self, VisionInput) -> Result[OCRResult, String]
+}

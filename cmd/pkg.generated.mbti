@@ -1,0 +1,98 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/cmd"
+
+import {
+  "DzmingLi/clap",
+  "hnlyxiaobing/MBOpenClacky/lib/web",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub async fn execute_hook(HookConfig, HookContext) -> Result[Unit, String]
+
+pub fn handle_ext(@clap.SimpleValue) -> Unit
+
+pub fn handle_hook(@clap.SimpleValue) -> Unit
+
+pub fn handle_mcp() -> Unit
+
+pub fn handle_patch(@clap.SimpleValue) -> Unit
+
+pub async fn handle_selftest(@clap.SimpleValue) -> Unit
+
+pub fn list_channel_templates() -> Array[String]
+
+pub fn load_extensions(ext_dir? : String?) -> Array[@web.ApiExtension]
+
+pub fn load_shell_hooks(config_dir? : String?) -> Array[HookConfig]
+
+pub fn register_extensions(Array[@web.ApiExtension]) -> Result[Unit, String]
+
+pub fn scaffold_channel(String, output_dir? : String?) -> Result[Unit, String]
+
+pub fn verify_channel(String) -> Result[Unit, String]
+
+// Errors
+
+// Types and methods
+type CaptureResult
+
+type EngineCase
+
+type ExitExpect
+
+pub(all) struct HookConfig {
+  name : String
+  event : String
+  command : String
+  enabled : Bool
+} derive(@debug.Debug)
+pub fn HookConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HookContext {
+  session_id : String
+  message : String?
+  working_dir : String
+} derive(@debug.Debug)
+pub fn HookContext::to_repr(Self) -> @debug.Repr
+
+pub(all) struct NdjsonLogger {
+  enabled : Bool
+  mut seq : Int
+}
+pub fn NdjsonLogger::debug(Self, String, fields? : Map[String, String]?) -> Unit
+pub fn NdjsonLogger::error(Self, String, fields? : Map[String, String]?) -> Unit
+pub fn NdjsonLogger::info(Self, String, fields? : Map[String, String]?) -> Unit
+pub fn NdjsonLogger::log(Self, String, String, fields? : Map[String, String]?) -> Unit
+pub fn NdjsonLogger::new(Bool) -> Self
+pub fn NdjsonLogger::warn(Self, String, fields? : Map[String, String]?) -> Unit
+
+pub(all) struct PatchInfo {
+  name : String
+  version : String
+  description : String
+  target_module : String
+  command : String
+  enabled : Bool
+} derive(@debug.Debug)
+pub fn PatchInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct PatchLoader {
+  patch_dir : String
+}
+pub async fn PatchLoader::apply_patches(Self, Array[PatchInfo]) -> Result[Unit, String]
+pub fn PatchLoader::default() -> Self
+pub fn PatchLoader::load_patches(Self) -> Array[PatchInfo]
+pub fn PatchLoader::new(String) -> Self
+
+type Probe
+
+type ProbeRun
+
+type StderrExpect
+
+type StdoutShape
+
+// Type aliases
+
+// Traits

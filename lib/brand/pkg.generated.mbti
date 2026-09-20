@@ -1,0 +1,244 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/brand"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bind_identity(String, String) -> Result[Unit, String]
+
+pub async fn brand_http_get(String, Int) -> Result[(Int, String), String]
+
+pub fn clear_identity() -> Unit
+
+pub fn create_identity(String, String, Int64, DeviceInfo) -> Identity
+
+pub fn decrypt_aes256gcm(EncryptedData, Array[Byte]) -> Result[Array[Byte], String]
+
+pub fn derive_key(String, salt? : Array[Byte]) -> Array[Byte]
+
+pub fn encrypt_aes256gcm(Array[Byte], Array[Byte], aad? : Array[Byte]) -> Result[EncryptedData, String]
+
+pub fn ensure_device_id(BrandConfig) -> String
+
+pub fn format_iso8601(Int) -> String
+
+pub fn generate_device_id() -> DeviceInfo
+
+pub fn generate_nonce() -> Result[Array[Byte], String]
+
+pub fn hmac_sha256(String, String) -> String
+
+pub fn is_bound() -> Bool
+
+pub fn is_grace_exceeded(Int, Int) -> Bool
+
+pub fn is_valid_key_format(String) -> Bool
+
+pub fn load_identity() -> Identity?
+
+pub fn load_upload_meta(String) -> Map[String, UploadMeta]
+
+pub fn parse_identity(Json) -> Identity?
+
+pub fn parse_user_id_from_key(String) -> UInt
+
+pub let pbkdf2_default_iterations : Int
+
+pub fn record_upload(String, String, String, Int) -> Unit
+
+pub fn sanitize_skill_name(String) -> String
+
+pub fn save_identity(Identity) -> Unit
+
+pub fn secure_compare(Array[Byte], Array[Byte]) -> Bool
+
+pub fn sha256_hex(String) -> String
+
+pub fn simple_hash(String) -> String
+
+pub fn upload_meta_path(String) -> String
+
+pub fn verify_token(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct BrandConfig {
+  mut product_name : String?
+  mut package_name : String?
+  mut logo_url : String?
+  mut support_contact : String?
+  mut support_qr_url : String?
+  mut theme_color : String?
+  mut homepage_url : String?
+  mut license_key : String?
+  mut license_activated_at : String?
+  mut license_expires_at : String?
+  mut license_last_heartbeat : String?
+  mut device_id : String?
+  mut license_user_id : String?
+  mut distribution_last_refreshed_at : String?
+  mut license_last_heartbeat_failure : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn BrandConfig::activated(Self) -> Bool
+pub fn BrandConfig::apply_distribution(Self, Map[String, String]) -> Unit
+pub fn BrandConfig::default_config() -> Self
+pub fn BrandConfig::display_name(Self) -> String
+pub fn BrandConfig::distribution_refresh_due(Self, Int) -> Bool
+pub fn BrandConfig::equal(Self, Self) -> Bool
+pub fn BrandConfig::expired(Self, Int) -> Bool
+pub fn BrandConfig::is_branded(Self) -> Bool
+pub fn BrandConfig::load(String) -> Self
+pub fn BrandConfig::not_equal(Self, Self) -> Bool
+pub async fn BrandConfig::refresh_distribution(Self, Int) -> Result[Unit, String]
+pub fn BrandConfig::save(Self, String) -> Result[Unit, String]
+pub fn BrandConfig::to_h(Self) -> Map[String, String]
+pub fn BrandConfig::to_json(Self) -> Json
+pub fn BrandConfig::to_repr(Self) -> @debug.Repr
+pub fn BrandConfig::user_licensed(Self) -> Bool
+
+pub struct BrandSkillInfo {
+  name : String
+  version : String
+  description : String
+  installed : Bool
+  encrypted : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn BrandSkillInfo::equal(Self, Self) -> Bool
+pub fn BrandSkillInfo::not_equal(Self, Self) -> Bool
+pub fn BrandSkillInfo::to_json(Self) -> Json
+pub fn BrandSkillInfo::to_repr(Self) -> @debug.Repr
+
+pub struct BrandSkillManager {
+  config : BrandConfig
+  mut installed_cache : Array[BrandSkillInfo]
+}
+pub fn BrandSkillManager::check_for_updates(Self, String) -> Array[(String, String, String)]
+pub fn BrandSkillManager::create_skill(Self, String, Json) -> Result[Unit, String]
+pub fn BrandSkillManager::decrypt_skill_package(Bytes, String) -> Result[Bytes, String]
+pub fn BrandSkillManager::delete_skill(Self, String, String, Bool) -> Result[Unit, String]
+pub fn BrandSkillManager::disable_skill(Self, String, String) -> Result[Unit, String]
+pub fn BrandSkillManager::download_skill_package(Self, String, String) -> Result[Bytes, String]
+pub fn BrandSkillManager::enable_skill(Self, String, String) -> Result[Unit, String]
+pub fn BrandSkillManager::execute_skill(Self, String, String, String) -> Result[String, String]
+pub fn BrandSkillManager::execute_skill_with_context(Self, String, String, String, Json) -> Result[String, String]
+pub fn BrandSkillManager::fetch_available_skills(Self) -> Result[Array[Json], String]
+pub fn BrandSkillManager::fetch_available_skills_json(Self) -> String
+pub fn BrandSkillManager::fetch_skill_detail(Self, String) -> Result[Json, String]
+pub fn BrandSkillManager::get_skill(Self, String, String) -> BrandSkillInfo?
+pub fn BrandSkillManager::install_skill(Self, String, String, String) -> Result[Unit, String]
+pub fn BrandSkillManager::is_skill_enabled(Self, String, String) -> Bool
+pub fn BrandSkillManager::is_skill_installed(Self, String, String) -> Bool
+pub fn BrandSkillManager::list_installed_skills(Self, String) -> Array[BrandSkillInfo]
+pub fn BrandSkillManager::load_skill_content(Self, String, String) -> Result[String, String]
+pub fn BrandSkillManager::new(BrandConfig) -> Self
+pub fn BrandSkillManager::refresh_skill(Self, String, String) -> Result[Unit, String]
+pub fn BrandSkillManager::skill_base_path(Self, String, String) -> String
+pub fn BrandSkillManager::sync_skills(Self, String, Array[Json]) -> Result[Unit, String]
+pub fn BrandSkillManager::uninstall_skill(Self, String, String) -> Result[Unit, String]
+pub fn BrandSkillManager::update_all_skills(Self, String) -> Result[Unit, String]
+
+pub(all) struct DeviceAuthSession {
+  device_code : String
+  user_code : String
+  verification_uri : String
+  expires_at : Int64
+  interval : Int
+  approved : Bool
+} derive(Eq, @debug.Debug)
+pub fn DeviceAuthSession::equal(Self, Self) -> Bool
+pub fn DeviceAuthSession::not_equal(Self, Self) -> Bool
+pub fn DeviceAuthSession::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DeviceAuthStore {
+  mut sessions : Map[String, DeviceAuthSession]
+} derive(@debug.Debug)
+pub fn DeviceAuthStore::approve_device(Self, String) -> Bool
+pub fn DeviceAuthStore::new() -> Self
+pub fn DeviceAuthStore::poll_device_flow(Self, String, Int64) -> PollResult
+pub fn DeviceAuthStore::start_device_flow(Self, Int64, String) -> DeviceAuthSession
+pub fn DeviceAuthStore::to_repr(Self) -> @debug.Repr
+
+pub(all) struct DeviceInfo {
+  device_id : String
+  hostname : String
+  username : String
+  platform : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn DeviceInfo::equal(Self, Self) -> Bool
+pub fn DeviceInfo::not_equal(Self, Self) -> Bool
+pub fn DeviceInfo::to_json(Self) -> Json
+pub fn DeviceInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct EncryptedData {
+  ciphertext : Array[Byte]
+  nonce : Array[Byte]
+  tag : Array[Byte]
+  aad : Array[Byte]
+} derive(Eq, @debug.Debug)
+pub fn EncryptedData::equal(Self, Self) -> Bool
+pub fn EncryptedData::not_equal(Self, Self) -> Bool
+pub fn EncryptedData::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Identity {
+  device_token : String
+  user_id : String
+  bound_at : Int64
+  device_info : DeviceInfo
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Identity::equal(Self, Self) -> Bool
+pub fn Identity::not_equal(Self, Self) -> Bool
+pub fn Identity::to_json(Self) -> Json
+pub fn Identity::to_repr(Self) -> @debug.Repr
+
+pub(all) enum LicenseStatus {
+  Valid
+  Expired
+  GracePeriod
+  GraceExceeded
+  Invalid
+  NotConfigured
+} derive(Eq, ToJson, @debug.Debug)
+pub fn LicenseStatus::equal(Self, Self) -> Bool
+pub fn LicenseStatus::not_equal(Self, Self) -> Bool
+pub fn LicenseStatus::to_json(Self) -> Json
+pub fn LicenseStatus::to_repr(Self) -> @debug.Repr
+
+pub(all) struct LicenseValidator {
+  config : BrandConfig
+  mut last_check_at : Int?
+  mut activation_nonce_counter : Int
+}
+pub fn LicenseValidator::activate(Self, String, Int) -> Result[Unit, String]
+pub fn LicenseValidator::deactivate(Self) -> Result[Unit, String]
+pub fn LicenseValidator::grace_period_exceeded(Self, Int) -> Bool
+pub fn LicenseValidator::heartbeat(Self, Int) -> Result[Unit, String]
+pub fn LicenseValidator::heartbeat_due(Self, Int) -> Bool
+pub fn LicenseValidator::needs_heartbeat(Self, Int) -> Bool
+pub fn LicenseValidator::new(BrandConfig) -> Self
+pub fn LicenseValidator::record_heartbeat(Self, String) -> Unit
+pub fn LicenseValidator::validate(Self, Int) -> LicenseStatus
+
+pub(all) enum PollResult {
+  Pending
+  Approved(String)
+  Expired
+  SlowDown
+} derive(Eq, @debug.Debug)
+pub fn PollResult::equal(Self, Self) -> Bool
+pub fn PollResult::not_equal(Self, Self) -> Bool
+pub fn PollResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct UploadMeta {
+  platform_version : String
+  uploaded_at : String
+} derive(Eq, @debug.Debug)
+pub fn UploadMeta::equal(Self, Self) -> Bool
+pub fn UploadMeta::not_equal(Self, Self) -> Bool
+pub fn UploadMeta::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

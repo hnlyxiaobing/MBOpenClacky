@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/i18n"
+
+// Values
+pub let default_locale : String
+
+pub fn has(String) -> Bool
+
+pub fn is_supported(String) -> Bool
+
+pub fn resolve_locale(String?, String?) -> String
+
+pub let supported_locales : Array[String]
+
+pub fn t(String, String) -> String
+
+pub fn t_with_params(String, String, Map[String, String]) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,78 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hnlyxiaobing/MBOpenClacky/lib/hook"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn default_hooks_yml() -> String
+
+pub fn get_default_hook_timeout() -> Int
+
+pub fn parse_hook_event(String) -> ShellHookEvent?
+
+// Errors
+
+// Types and methods
+pub(all) enum HookExecResult {
+  Allow
+  Deny(String)
+  Error(String)
+} derive(Eq, ToJson, @debug.Debug)
+pub fn HookExecResult::equal(Self, Self) -> Bool
+pub fn HookExecResult::not_equal(Self, Self) -> Bool
+pub fn HookExecResult::to_json(Self) -> Json
+pub fn HookExecResult::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ShellHook {
+  name : String?
+  command : String
+  timeout : Int
+  event : ShellHookEvent
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ShellHook::equal(Self, Self) -> Bool
+pub fn ShellHook::not_equal(Self, Self) -> Bool
+pub fn ShellHook::to_json(Self) -> Json
+pub fn ShellHook::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ShellHookConfig {
+  hooks : Map[String, Array[ShellHook]]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ShellHookConfig::equal(Self, Self) -> Bool
+pub fn ShellHookConfig::not_equal(Self, Self) -> Bool
+pub fn ShellHookConfig::to_json(Self) -> Json
+pub fn ShellHookConfig::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ShellHookEvent {
+  BeforeToolUse
+  AfterToolUse
+  OnToolError
+  OnStart
+  OnIteration
+  OnComplete
+  SessionRollback
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ShellHookEvent::equal(Self, Self) -> Bool
+pub fn ShellHookEvent::event_name(Self) -> String
+pub fn ShellHookEvent::not_equal(Self, Self) -> Bool
+pub fn ShellHookEvent::to_json(Self) -> Json
+pub fn ShellHookEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ShellHookLoader {
+  mut config : ShellHookConfig
+  config_path : String
+  scripts_dir : String
+}
+pub fn ShellHookLoader::execute_hook(Self, ShellHook, Json) -> HookExecResult
+pub fn ShellHookLoader::has_hooks_for(Self, ShellHookEvent) -> Bool
+pub fn ShellHookLoader::hook_count(Self) -> Int
+pub fn ShellHookLoader::hooks_for_event(Self, ShellHookEvent) -> Array[ShellHook]
+pub fn ShellHookLoader::load(Self) -> Result[Unit, String]
+pub fn ShellHookLoader::load_into(Self, (ShellHookEvent, (Json) -> HookExecResult) -> Unit) -> Unit
+pub fn ShellHookLoader::new(String) -> Self
+pub fn ShellHookLoader::scaffold(String) -> Result[Unit, String]
+
+// Type aliases
+
+// Traits
