@@ -2,7 +2,10 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "moonbitlang/core/json",
-  "moonbitlang/core/debug",
 }
+
+import {
+  "moonbitlang/core/debug",
+} for "wbtest"
 
 supported_targets = "native"

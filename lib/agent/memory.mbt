@@ -11,7 +11,7 @@ pub(all) struct MemoryStore {
 
 ///|
 pub fn MemoryStore::new(storage_path : String) -> MemoryStore {
-  { entries: [], storage_path, next_id: 1 }
+  { entries: [], storage_path, next_id: 1, }
 }
 
 ///|

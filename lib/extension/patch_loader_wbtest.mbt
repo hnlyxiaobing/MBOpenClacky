@@ -45,7 +45,7 @@ fn patch_contrib(
   config : Map[String, String],
   path : String,
 ) -> ExtensionContribution {
-  { type_: Patch, id, name, description, path, config }
+  { type_: Patch, id, name, description, path, config, }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────

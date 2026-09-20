@@ -473,7 +473,12 @@ pub fn parse_weixin_image_item(item : Map[String, Json]) -> Attachment? {
         Some(Number(n, ..)) => Some(n.to_int())
         _ => None
       }
-      Some({ attachment_type: AttachmentType::Image, url, filename, size_bytes })
+      Some({
+        attachment_type: AttachmentType::Image,
+        url,
+        filename,
+        size_bytes,
+      })
     }
     _ => None
   }
@@ -500,7 +505,7 @@ pub fn parse_weixin_file_item(item : Map[String, Json]) -> Attachment? {
         Some(Number(n, ..)) => Some(n.to_int())
         _ => None
       }
-      Some({ attachment_type: AttachmentType::File, url, filename, size_bytes })
+      Some({ attachment_type: AttachmentType::File, url, filename, size_bytes, })
     }
     _ => None
   }
@@ -540,7 +545,12 @@ pub fn parse_weixin_video_item(item : Map[String, Json]) -> Attachment? {
         Some(Number(n, ..)) => Some(n.to_int())
         _ => None
       }
-      Some({ attachment_type: AttachmentType::Video, url, filename, size_bytes })
+      Some({
+        attachment_type: AttachmentType::Video,
+        url,
+        filename,
+        size_bytes,
+      })
     }
     _ => None
   }

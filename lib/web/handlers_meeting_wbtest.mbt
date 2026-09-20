@@ -50,8 +50,8 @@ test "meeting_json_roundtrip" {
     session_id: Some("s_123"),
     participants: ["Alice", "Bob"],
     transcript: [
-      { speaker: "Alice", content: "Hello team", timestamp: 1700000000000L },
-      { speaker: "Bob", content: "Ready to go", timestamp: 1700000001000L },
+      { speaker: "Alice", content: "Hello team", timestamp: 1700000000000L, },
+      { speaker: "Bob", content: "Ready to go", timestamp: 1700000001000L, },
     ],
     summary: None,
     created_at: 1700000000000L,

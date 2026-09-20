@@ -539,7 +539,7 @@ async test "file_reader_binary_extension_error" {
 ///|
 async test "utf8_scrub_invalid_bytes" {
   let bytes = Bytes::makei(4, fn(_) { (0xFF).to_byte() })
-  let s = @utf8.decode_lossy(bytes.view())
+  let s = @utf8.decode_lossy(bytes.exact_view())
   assert_true(s.contains("\uFFFD"))
 }
 

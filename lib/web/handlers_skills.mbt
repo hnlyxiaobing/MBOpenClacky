@@ -202,7 +202,7 @@ fn scan_skills(base_dir : String, source : String) -> Array[SkillScanEntry] {
     }
     let content = @fs.read_file_to_string(md) catch { _ => continue }
     let enabled = !@fs.path_exists(base_dir + "/" + entry + "/.disabled")
-    result.push({ name: entry, content, source, enabled })
+    result.push({ name: entry, content, source, enabled, })
   }
   result
 }

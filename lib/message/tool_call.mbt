@@ -62,7 +62,7 @@ pub fn ToolCall::new(
   {
     id,
     type_: "function",
-    function: FunctionCall::{ name, arguments },
+    function: FunctionCall::{ name, arguments, },
     extra_content,
   }
 }
@@ -79,7 +79,7 @@ impl FromJson for FunctionCall with fn from_json(json, path) {
         Some(String(s)) => s
         _ => raise JsonDecodeError((path, "FunctionCall: missing 'arguments'"))
       }
-      { name, arguments }
+      { name, arguments, }
     }
     _ => raise JsonDecodeError((path, "FunctionCall: expected object"))
   }
@@ -105,7 +105,7 @@ impl FromJson for ToolCall with fn from_json(json, path) {
         Some(ec) => Some(ec)
         _ => None
       }
-      { id, type_, function, extra_content }
+      { id, type_, function, extra_content, }
     }
     _ => raise JsonDecodeError((path, "ToolCall: expected object"))
   }

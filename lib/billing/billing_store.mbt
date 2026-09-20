@@ -102,7 +102,7 @@ pub fn BillingStore::new(billing_dir : String) -> BillingStore {
 /// (Ruby BillingStore#initialize precedence, spec 21 decision 7).
 pub fn BillingStore::default() -> BillingStore {
   match @env.get_env_var("CLACKY_BILLING_DIR") {
-    Some(dir) if !dir.is_empty() => return { billing_dir: dir }
+    Some(dir) if !dir.is_empty() => return { billing_dir: dir, }
     _ => ()
   }
   let dir = match @env.get_env_var("USERPROFILE") {
@@ -115,7 +115,7 @@ pub fn BillingStore::default() -> BillingStore {
         _ => ".mbopenclacky/billing"
       }
   }
-  { billing_dir: dir }
+  { billing_dir: dir, }
 }
 
 ///|

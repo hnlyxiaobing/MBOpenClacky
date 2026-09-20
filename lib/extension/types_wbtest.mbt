@@ -49,7 +49,7 @@ test "validation_error_message formats each constructor" {
 
 ///|
 test "ValidationResult struct fields are accessible" {
-  let r : ValidationResult = { valid: true, errors: [], warnings: [] }
+  let r : ValidationResult = { valid: true, errors: [], warnings: [], }
   @debug.assert_eq(r.valid, true)
   @debug.assert_eq(r.errors.length(), 0)
   @debug.assert_eq(r.warnings.length(), 0)

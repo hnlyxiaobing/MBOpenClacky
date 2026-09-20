@@ -15,7 +15,7 @@ test "todo_area: render_lines empty when hidden" {
   let todo = TodoArea::new()
   // update sets hidden=false when items > 0, so re-hide after
   todo.update(
-    [{ id: 1, title: "Task A", status: "pending", description: "" }],
+    [{ id: 1, title: "Task A", status: "pending", description: "", }],
     0,
     1,
   )
@@ -38,8 +38,8 @@ test "todo_area: render_lines shows header and items" {
   todo.show()
   todo.update(
     [
-      { id: 1, title: "Task A", status: "pending", description: "" },
-      { id: 2, title: "Task B", status: "completed", description: "" },
+      { id: 1, title: "Task A", status: "pending", description: "", },
+      { id: 2, title: "Task B", status: "completed", description: "", },
     ],
     1,
     2,
@@ -62,9 +62,9 @@ test "todo_area: status bullets" {
   // Use 3 items to avoid truncation
   todo.update(
     [
-      { id: 1, title: "Pending", status: "pending", description: "" },
-      { id: 2, title: "InProgress", status: "in_progress", description: "" },
-      { id: 3, title: "Done", status: "completed", description: "" },
+      { id: 1, title: "Pending", status: "pending", description: "", },
+      { id: 2, title: "InProgress", status: "in_progress", description: "", },
+      { id: 3, title: "Done", status: "completed", description: "", },
     ],
     1,
     3,
@@ -82,7 +82,12 @@ test "todo_area: max_display truncation" {
   // max_display = 3, but we add 5 items
   let items : Array[TodoDisplayItem] = []
   for i = 1; i <= 5; i = i + 1 {
-    items.push({ id: i, title: "Task \{i}", status: "pending", description: "" })
+    items.push({
+      id: i,
+      title: "Task \{i}",
+      status: "pending",
+      description: "",
+    })
   }
   todo.update(items, 0, 5)
   let lines = todo.render_lines()
@@ -95,7 +100,7 @@ test "todo_area: max_display truncation" {
 test "todo_area: hide and show" {
   let todo = TodoArea::new()
   todo.update(
-    [{ id: 1, title: "Task", status: "pending", description: "" }],
+    [{ id: 1, title: "Task", status: "pending", description: "", }],
     0,
     1,
   )
@@ -121,7 +126,7 @@ test "todo_area: update sets hidden to false when items exist" {
   let todo = TodoArea::new()
   assert_true(todo.hidden)
   todo.update(
-    [{ id: 1, title: "Task", status: "pending", description: "" }],
+    [{ id: 1, title: "Task", status: "pending", description: "", }],
     0,
     1,
   )

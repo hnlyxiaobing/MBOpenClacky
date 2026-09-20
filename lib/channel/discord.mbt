@@ -125,7 +125,7 @@ pub impl Adapter for DiscordAdapter with fn send_text(
     Some(id) => id
     None => return Err(ChannelError("Discord response missing message id"))
   }
-  Ok({ message_id: msg_id, success: true, error: None })
+  Ok({ message_id: msg_id, success: true, error: None, })
 }
 
 ///|

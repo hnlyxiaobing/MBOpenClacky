@@ -101,7 +101,7 @@ priv struct MarkerCounter {
 }
 
 ///|
-let marker_counter : MarkerCounter = { value: 0 }
+let marker_counter : MarkerCounter = { value: 0, }
 
 ///|
 /// Generate a unique token for completion markers.

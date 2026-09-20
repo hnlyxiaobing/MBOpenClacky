@@ -138,7 +138,7 @@ pub fn RegressionReport::detect_regression(
     None => ()
   }
 
-  { ..self, has_regression, regression_details }
+  { ..self, has_regression, regression_details, }
 }
 
 ///|

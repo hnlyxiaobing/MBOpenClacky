@@ -81,11 +81,10 @@ priv struct SessionManagerState {
 
 ///|
 /// Get the singleton session manager state (top-level let creates a persistent instance).
-let session_manager_state : SessionManagerState = { sessions: [], next_id: 0 }
+let session_manager_state : SessionManagerState = { sessions: [], next_id: 0, }
 
 ///|
 let _terminal_session_manager : TerminalSessionManager = TerminalSessionManager::{
-
 }
 
 ///|

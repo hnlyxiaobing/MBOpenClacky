@@ -506,9 +506,9 @@ test "build_messages_history: has_more false when only filtered roles remain" {
 
 ///|
 test "build_messages_history: before keeps boundary message" {
-  let m1 = { ..@message.Message::user("old"), created_at: Some("1000") }
-  let m2 = { ..@message.Message::user("boundary"), created_at: Some("2000") }
-  let m3 = { ..@message.Message::user("new"), created_at: Some("3000") }
+  let m1 = { ..@message.Message::user("old"), created_at: Some("1000"), }
+  let m2 = { ..@message.Message::user("boundary"), created_at: Some("2000"), }
+  let m3 = { ..@message.Message::user("new"), created_at: Some("3000"), }
   let result = build_messages_history(
     "sess-before",
     [m1, m2, m3],

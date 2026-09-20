@@ -288,8 +288,8 @@ test "SkillRegistry: get nonexistent returns None" {
 ///|
 test "SkillRegistry: list_user_invocable" {
   let reg = SkillRegistry::new()
-  let s1 = { ..Skill::default("skill-a", "src"), user_invocable: true }
-  let s2 = { ..Skill::default("skill-b", "src"), user_invocable: false }
+  let s1 = { ..Skill::default("skill-a", "src"), user_invocable: true, }
+  let s2 = { ..Skill::default("skill-b", "src"), user_invocable: false, }
   reg.register(s1)
   reg.register(s2)
   let invocable = reg.list_user_invocable()
@@ -305,9 +305,9 @@ test "SkillRegistry: list_user_invocable" {
 ///|
 test "SkillRegistry: list_by_agent_type" {
   let reg = SkillRegistry::new()
-  let s1 = { ..Skill::default("skill-x", "src"), agent_type: Some("coder") }
-  let s2 = { ..Skill::default("skill-y", "src"), agent_type: Some("reviewer") }
-  let s3 = { ..Skill::default("skill-z", "src"), agent_type: None }
+  let s1 = { ..Skill::default("skill-x", "src"), agent_type: Some("coder"), }
+  let s2 = { ..Skill::default("skill-y", "src"), agent_type: Some("reviewer"), }
+  let s3 = { ..Skill::default("skill-z", "src"), agent_type: None, }
   reg.register(s1)
   reg.register(s2)
   reg.register(s3)
@@ -496,7 +496,7 @@ test "build_skills_summary: multiple skills" {
       description: Some("First skill"),
       argument_hint: Some("<topic>"),
     },
-    { ..Skill::default("skill-two", "src"), description: Some("Second skill") },
+    { ..Skill::default("skill-two", "src"), description: Some("Second skill"), },
   ]
   let summary = build_skills_summary(skills)
   assert_true(summary.find("AVAILABLE SKILLS") is Some(_))

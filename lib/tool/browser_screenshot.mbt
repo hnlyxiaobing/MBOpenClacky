@@ -306,7 +306,7 @@ pub fn format_screenshot_result(
         }
       }
       // 5. Compose Ruby-style result: content_string + real image_inject payload
-      let compressed_b64 = @base64.encode(compressed_bytes.view())
+      let compressed_b64 = @base64.encode(compressed_bytes.exact_view())
       parts.push("")
       parts.push("Screenshot captured.")
       parts.push("- Original (full resolution): \{original_path}")

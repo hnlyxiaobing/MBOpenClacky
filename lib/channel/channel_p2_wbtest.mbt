@@ -454,9 +454,24 @@ test "feishu_parse_message_file_type" {
 test "weixin_send_queue_multiple_messages" {
   let q = WeixinSendQueue::new()
   // Enqueue 3 messages
-  q.enqueue({ chat_id: "c1", text: "msg1", context_token: "t1", retry_count: 0 })
-  q.enqueue({ chat_id: "c1", text: "msg2", context_token: "t2", retry_count: 0 })
-  q.enqueue({ chat_id: "c1", text: "msg3", context_token: "t3", retry_count: 1 })
+  q.enqueue({
+    chat_id: "c1",
+    text: "msg1",
+    context_token: "t1",
+    retry_count: 0,
+  })
+  q.enqueue({
+    chat_id: "c1",
+    text: "msg2",
+    context_token: "t2",
+    retry_count: 0,
+  })
+  q.enqueue({
+    chat_id: "c1",
+    text: "msg3",
+    context_token: "t3",
+    retry_count: 1,
+  })
   @debug.assert_eq(q.pending_count(), 3)
   assert_true(q.should_flush())
 

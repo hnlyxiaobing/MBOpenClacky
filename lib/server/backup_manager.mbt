@@ -12,7 +12,7 @@ pub fn BackupManager::new(
   config_path : String,
   source_dir : String,
 ) -> BackupManager {
-  { config: BackupConfig::default_config(), source_dir, config_path }
+  { config: BackupConfig::default_config(), source_dir, config_path, }
 }
 
 ///|
@@ -88,7 +88,7 @@ pub fn BackupManager::run(
               continue
             }
           }
-          entries.push({ name: entry, data: content })
+          entries.push({ name: entry, data: content, })
           files_count = files_count + 1
         }
       }

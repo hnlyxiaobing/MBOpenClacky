@@ -15,7 +15,7 @@ pub(all) struct DiscordApiClient {
 ///|
 /// Create a new DiscordApiClient with default base URL.
 pub fn DiscordApiClient::new(bot_token : String) -> DiscordApiClient {
-  { bot_token, base_url: DISCORD_API_BASE }
+  { bot_token, base_url: DISCORD_API_BASE, }
 }
 
 ///|
@@ -24,7 +24,7 @@ pub fn DiscordApiClient::with_base_url(
   bot_token : String,
   base_url : String,
 ) -> DiscordApiClient {
-  { bot_token, base_url }
+  { bot_token, base_url, }
 }
 
 ///|

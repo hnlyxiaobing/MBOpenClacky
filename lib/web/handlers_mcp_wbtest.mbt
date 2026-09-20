@@ -76,7 +76,7 @@ fn mcp_req(
   } else {
     []
   }
-  { http_method: m, path, params, body, headers: [] }
+  { http_method: m, path, params, body, headers: [], }
 }
 
 // ── GET /api/mcp (list servers) ──────────────────────────────────────

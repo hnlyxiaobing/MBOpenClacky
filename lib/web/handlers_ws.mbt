@@ -1222,8 +1222,9 @@ async fn run_ws_agent(
       state.running = false
       state.running_task = None
       state.chunk_buf = ""
-      if server_ref.val.cancelled.get(session_id) == Some(true) ||
-        @async.is_cancellation_error(err) {
+      // async@0.22: cancellation is no longer delivered as an error, so the
+      // cancelled flag is the only interrupt signal that reaches this catch.
+      if server_ref.val.cancelled.get(session_id) == Some(true) {
         // Interrupted: the interrupted event was already broadcast by the
         // interrupt handler; clear the flag and suppress the error.
         server_ref.val.cancelled[session_id] = false

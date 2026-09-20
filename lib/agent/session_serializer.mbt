@@ -30,8 +30,8 @@ pub fn export_session_zip(session_id : String) -> Result[Bytes, String] {
 
   // Create ZIP with entries
   let entries : Array[@zip.ZipEntry] = [
-    { name: "session.json", data: json_bytes },
-    { name: "metadata.json", data: metadata_bytes },
+    { name: "session.json", data: json_bytes, },
+    { name: "metadata.json", data: metadata_bytes, },
   ]
 
   @zip.create_zip(entries)
@@ -98,7 +98,7 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
   for session in sessions {
     let json_str = session.to_json().stringify()
     let entry_name = "sessions/" + session.session_id + ".json"
-    entries.push({ name: entry_name, data: @utf8.encode(json_str) })
+    entries.push({ name: entry_name, data: @utf8.encode(json_str), })
   }
 
   // Add manifest

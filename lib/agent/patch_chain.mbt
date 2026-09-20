@@ -83,7 +83,7 @@ pub(all) struct PatchChain {
 ///|
 /// Create an empty patch chain.
 pub fn PatchChain::new() -> PatchChain {
-  { rules: [], audit_log: [] }
+  { rules: [], audit_log: [], }
 }
 
 ///|

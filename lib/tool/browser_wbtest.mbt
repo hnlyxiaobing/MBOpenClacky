@@ -37,7 +37,7 @@ test "screenshot_downscale_real_png_via_pil" {
   assert_true(png_bytes.length() > 0, msg="test PNG should be non-empty")
   // Original width must be 1000 (> 800 → triggers downscale)
   assert_eq(png_width(png_bytes), Some(1000))
-  let b64 = @base64.encode(png_bytes.view())
+  let b64 = @base64.encode(png_bytes.exact_view())
   let result = format_screenshot_result("data:image/png;base64,\{b64}")
   assert_true(result.find("Screenshot captured.") is Some(_))
   assert_true(result.find("- Original (full resolution):") is Some(_))
@@ -84,7 +84,7 @@ test "screenshot_small_png_kept_as_is" {
     _ => ()
   }
   assert_eq(png_width(png_bytes), Some(600))
-  let b64 = @base64.encode(png_bytes.view())
+  let b64 = @base64.encode(png_bytes.exact_view())
   let result = format_screenshot_result("data:image/png;base64,\{b64}")
   assert_true(result.find("Screenshot captured.") is Some(_))
   // No downscale note should appear (kept original resolution)
@@ -123,7 +123,7 @@ test "screenshot_too_large_rejected_after_resize" {
     png_bytes.length() > 150 * 1024,
     msg="noise PNG should exceed 150KB already",
   )
-  let b64 = @base64.encode(png_bytes.view())
+  let b64 = @base64.encode(png_bytes.exact_view())
   let result = format_screenshot_result("data:image/png;base64,\{b64}")
   assert_true(
     result.find("Screenshot too large after resize") is Some(_),

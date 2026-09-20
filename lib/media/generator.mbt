@@ -16,7 +16,7 @@ pub fn MediaGenerator::new(
   api_key : String,
   model : String?,
 ) -> MediaGenerator {
-  { base_url, api_key, model }
+  { base_url, api_key, model, }
 }
 
 ///|

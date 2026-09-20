@@ -16,14 +16,14 @@
 fn has_version_suffix(url : String) -> Bool {
   // Strip a single trailing slash so /v3/ also matches.
   let trimmed = if url.has_suffix("/") {
-    String::sub(url, end=url.length() - 1).to_owned()
+    String::exact_view(url, end=url.length() - 1).to_owned()
   } else {
     url
   }
   match trimmed.rev_find("/") {
     None => false
     Some(idx) => {
-      let tail = String::sub(trimmed, start=idx + 1).to_owned()
+      let tail = String::exact_view(trimmed, start=idx + 1).to_owned()
       if tail.length() < 2 {
         false
       } else {
@@ -58,7 +58,7 @@ fn has_version_suffix(url : String) -> Bool {
 /// before path concatenation so we never produce accidental `//` segments.
 fn strip_trailing_slash(url : String) -> String {
   if url.has_suffix("/") {
-    String::sub(url, end=url.length() - 1).to_owned()
+    String::exact_view(url, end=url.length() - 1).to_owned()
   } else {
     url
   }

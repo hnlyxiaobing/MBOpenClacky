@@ -91,7 +91,7 @@ pub fn SessionLatency::from_session_data(
 ) -> SessionLatency? {
   match (sd.latest_ttft_ms, sd.latest_latency_ms) {
     (None, None) => None
-    (ttft_ms, duration_ms) => Some({ ttft_ms, duration_ms })
+    (ttft_ms, duration_ms) => Some({ ttft_ms, duration_ms, })
   }
 }
 

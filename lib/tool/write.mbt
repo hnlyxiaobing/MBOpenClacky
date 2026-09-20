@@ -14,7 +14,7 @@ pub extend Write with Eq::{not_equal, equal}
 
 ///|
 pub fn Write::new() -> Write {
-  { encoding: "utf-8" }
+  { encoding: "utf-8", }
 }
 
 ///|

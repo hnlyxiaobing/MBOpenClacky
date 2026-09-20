@@ -339,8 +339,8 @@ fn Agent::observe(
         }
         let blocks : Array[@message.ContentBlock] = if vision_supported {
           [
-            @message.ContentBlock::Text({ text: "[Image: \{label}]" }),
-            @message.ContentBlock::Image({ url: data_url, detail: None }),
+            @message.ContentBlock::Text({ text: "[Image: \{label}]", }),
+            @message.ContentBlock::Image({ url: data_url, detail: None, }),
           ]
         } else {
           // No vision support: keep a plain-text placeholder so the model
@@ -350,7 +350,7 @@ fn Agent::observe(
             Some(p) => " (saved at \{p})"
             None => ""
           }
-          [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}" })]
+          [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}", })]
         }
         let msg = @message.Message::user_blocks(blocks)
         self.history.append(stamp_created_at(msg))
@@ -539,7 +539,7 @@ async fn Agent::act_async(
       results.push(entry2)
     }
   }
-  { denied, feedback, tool_results: results, awaiting_feedback }
+  { denied, feedback, tool_results: results, awaiting_feedback, }
 }
 
 ///|

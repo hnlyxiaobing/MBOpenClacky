@@ -130,7 +130,7 @@ fn build_exchange_rate_response(
   let now = @agent.current_time_ms()
   let updated_at = if now == 0L { "" } else { format_iso8601_ms(now) }
   let date = if now == 0L { "" } else { format_iso8601_date(now) }
-  ExchangeRateResponse::{ from, to, rate, date, updated_at, source }
+  ExchangeRateResponse::{ from, to, rate, date, updated_at, source, }
 }
 
 ///|

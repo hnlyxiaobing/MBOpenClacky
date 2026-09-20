@@ -252,7 +252,7 @@ pub fn extract_zip(zip_data : Bytes) -> Result[Array[ZipEntry], String] {
     }
 
     let data = zip_data[data_offset:data_offset + comp_size].to_owned()
-    entries.push({ name, data })
+    entries.push({ name, data, })
 
     pos = pos + 46 + name_len + extra_len + comment_len
     i = i + 1

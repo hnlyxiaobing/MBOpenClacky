@@ -84,7 +84,7 @@ impl FromJson for TranscriptEntry with fn from_json(json, path) {
         Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
-      { speaker, content, timestamp }
+      { speaker, content, timestamp, }
     }
     _ => raise @json.JsonDecodeError((path, "TranscriptEntry: expected object"))
   }
@@ -138,7 +138,13 @@ impl FromJson for MeetingSummary with fn from_json(json, path) {
         Some(String(s)) => @string.parse_int64(s) catch { _ => 0L }
         _ => 0L
       }
-      { overview, key_decisions, action_items, discussion_points, generated_at }
+      {
+        overview,
+        key_decisions,
+        action_items,
+        discussion_points,
+        generated_at,
+      }
     }
     _ => raise @json.JsonDecodeError((path, "MeetingSummary: expected object"))
   }
@@ -152,7 +158,7 @@ fn parse_transcript_arr(json_opt : Json?) -> Array[TranscriptEntry] {
       let entries : Array[TranscriptEntry] = []
       for item in arr {
         let entry : TranscriptEntry = @json.from_json(item) catch {
-          _ => { speaker: "", content: "", timestamp: 0L }
+          _ => { speaker: "", content: "", timestamp: 0L, }
         }
         entries.push(entry)
       }

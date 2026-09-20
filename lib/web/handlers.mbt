@@ -511,7 +511,7 @@ fn handle_cancel(
       )
   }
   server_ref.val.cancelled[id] = true
-  let response = CancelResponse::{ cancelled: true }
+  let response = CancelResponse::{ cancelled: true, }
   @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 
@@ -587,7 +587,7 @@ fn handle_list_tools(
   let tools : Array[ToolListEntry] = []
   for name in tool_names {
     match agent.tool_registry.get(name) {
-      Some(t) => tools.push({ name, description: t.description() })
+      Some(t) => tools.push({ name, description: t.description(), })
       None => ()
     }
   }
@@ -753,7 +753,7 @@ fn handle_list_models(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let response = ModelListResponse::{ models: server_ref.val.config.models }
+  let response = ModelListResponse::{ models: server_ref.val.config.models, }
   @core.HttpResponse::ok().json_value(ToJson::to_json(response))
 }
 

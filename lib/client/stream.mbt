@@ -120,7 +120,7 @@ fn parse_single_frame(frame_text : String) -> SseFrame? {
     Some(e) => e
     None => "message"
   }
-  Some({ event: evt, data })
+  Some({ event: evt, data, })
 }
 
 ///|
@@ -165,7 +165,7 @@ pub(all) struct SseBytePump {
 ///|
 /// Create an empty pump.
 pub fn SseBytePump::new() -> SseBytePump {
-  { pending: [] }
+  { pending: [], }
 }
 
 ///|

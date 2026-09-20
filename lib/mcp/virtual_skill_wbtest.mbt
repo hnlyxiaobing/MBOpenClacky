@@ -44,9 +44,9 @@ test "VirtualSkill has_tool" {
 ///|
 test "VirtualSkill tool_count" {
   let tools = [
-    { name: "a", description: "A", input_schema: Json::null() },
-    { name: "b", description: "B", input_schema: Json::null() },
-    { name: "c", description: "C", input_schema: Json::null() },
+    { name: "a", description: "A", input_schema: Json::null(), },
+    { name: "b", description: "B", input_schema: Json::null(), },
+    { name: "c", description: "C", input_schema: Json::null(), },
   ]
   let skill = VirtualSkill::from_mcp_server("multi", tools)
   @debug.assert_eq(skill.tool_count(), 3)
@@ -55,7 +55,7 @@ test "VirtualSkill tool_count" {
 ///|
 test "VirtualSkill build_tool_call_instruction found" {
   let tools = [
-    { name: "grep", description: "Search files", input_schema: Json::null() },
+    { name: "grep", description: "Search files", input_schema: Json::null(), },
   ]
   let skill = VirtualSkill::from_mcp_server("code", tools)
   let instruction = skill.build_tool_call_instruction("grep")

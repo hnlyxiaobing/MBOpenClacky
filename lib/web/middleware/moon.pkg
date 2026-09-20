@@ -1,11 +1,10 @@
 import {
-  "moonbitlang/core/debug",
   "moonbitlang/core/env",
   "hnlyxiaobing/crescent",
   "hnlyxiaobing/crescent/core",
-  "moonbitlang/core/json",
 }
 
 import {
   "moonbitlang/async",
+  "moonbitlang/core/debug",
 } for "wbtest"

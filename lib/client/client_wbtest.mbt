@@ -139,8 +139,8 @@ test "build_openai_request_with_tools" {
 ///|
 test "build_openai_request_strips_image_for_non_vision" {
   let blocks : Array[@message.ContentBlock] = [
-    @message.Text({ text: "describe" }),
-    @message.Image({ url: "http://example.com/img.png", detail: None }),
+    @message.Text({ text: "describe", }),
+    @message.Image({ url: "http://example.com/img.png", detail: None, }),
   ]
   let msg : @message.Message = {
     role: @message.User,

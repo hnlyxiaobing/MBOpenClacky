@@ -17,7 +17,7 @@ fn make_rule(
   action~ : PatchAction,
   command? : String = "",
 ) -> PatchRule {
-  { name, source, tool_pattern, args_pattern, action, command }
+  { name, source, tool_pattern, args_pattern, action, command, }
 }
 
 ///|

@@ -163,7 +163,7 @@ async fn handle_media_video_understand(
   for i = 0; i < frame_files.length(); i = i + 1 {
     let frame_path = frame_files[i]
     let frame_bytes = @fs.read_file_to_bytes(frame_path) catch { _ => continue }
-    let b64 = @base64.encode(frame_bytes.view())
+    let b64 = @base64.encode(frame_bytes.exact_view())
     let data_url = "data:image/jpeg;base64," + b64
     let ts = @media.calculate_frame_timestamp(i, interval)
     let ts_label = @media.format_timestamp(ts)
@@ -196,7 +196,7 @@ priv struct VideoWorkDirCounter {
 }
 
 ///|
-let video_work_dir_counter : VideoWorkDirCounter = { value: 0 }
+let video_work_dir_counter : VideoWorkDirCounter = { value: 0, }
 
 ///|
 fn video_temp_base() -> String {

@@ -111,7 +111,7 @@ fn parse_channel_config_entry(json : Json) -> ChannelConfig? {
       }
     _ => ()
   }
-  Some({ platform, enabled, settings })
+  Some({ platform, enabled, settings, })
 }
 
 ///|

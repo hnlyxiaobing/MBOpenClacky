@@ -214,7 +214,7 @@ pub fn backfill_task_meta_from_history(
               Some(ts) => ts
               None => ""
             }
-            task_meta[tid] = { title, started_at: started, ended_at: "" }
+            task_meta[tid] = { title, started_at: started, ended_at: "", }
           }
         }
         // Update ended_at with latest timestamp
@@ -239,7 +239,7 @@ pub fn backfill_task_meta_from_history(
     }
   }
 
-  { task_parents, task_meta, current_task_id, active_task_id }
+  { task_parents, task_meta, current_task_id, active_task_id, }
 }
 
 ///|

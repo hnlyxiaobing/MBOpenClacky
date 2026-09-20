@@ -219,20 +219,20 @@ test "ext_history_replace_all" {
 
 ///|
 test "ext_textblock_construction" {
-  let tb : TextBlock = { text: "hello" }
+  let tb : TextBlock = { text: "hello", }
   assert_eq(tb.text, "hello")
 }
 
 ///|
 test "ext_imageblock_with_detail" {
-  let ib : ImageBlock = { url: "http://img.png", detail: Some("high") }
+  let ib : ImageBlock = { url: "http://img.png", detail: Some("high"), }
   assert_eq(ib.url, "http://img.png")
   assert_eq(ib.detail, Some("high"))
 }
 
 ///|
 test "ext_contentblock_text_to_json" {
-  let cb = ContentBlock::Text({ text: "hi" })
+  let cb = ContentBlock::Text({ text: "hi", })
   match ToJson::to_json(cb) {
     Object(obj) => {
       assert_eq(obj.get("type"), Some("text".to_json()))
@@ -247,7 +247,7 @@ test "ext_contentblock_text_to_json" {
 
 ///|
 test "ext_contentblock_image_to_json" {
-  let cb = ContentBlock::Image({ url: "http://x.png", detail: None })
+  let cb = ContentBlock::Image({ url: "http://x.png", detail: None, })
   match ToJson::to_json(cb) {
     Object(obj) => assert_eq(obj.get("type"), Some("image_url".to_json()))
     _ => assert_true(false)
@@ -266,8 +266,8 @@ test "ext_messagecontent_text_to_json" {
 ///|
 test "ext_messagecontent_blocks_to_json" {
   let mc = MessageContent::Blocks([
-    ContentBlock::Text({ text: "a" }),
-    ContentBlock::Image({ url: "u", detail: None }),
+    ContentBlock::Text({ text: "a", }),
+    ContentBlock::Image({ url: "u", detail: None, }),
   ])
   match ToJson::to_json(mc) {
     Array(arr) => assert_eq(arr.length(), 2)
@@ -277,9 +277,9 @@ test "ext_messagecontent_blocks_to_json" {
 
 ///|
 test "ext_contentblock_equality" {
-  let t1 = ContentBlock::Text({ text: "x" })
-  let t2 = ContentBlock::Text({ text: "x" })
-  let t3 = ContentBlock::Text({ text: "y" })
+  let t1 = ContentBlock::Text({ text: "x", })
+  let t2 = ContentBlock::Text({ text: "x", })
+  let t3 = ContentBlock::Text({ text: "y", })
   assert_true(t1 == t2)
   assert_true(t1 != t3)
 }
@@ -617,18 +617,18 @@ test "ext_role_to_json_all_variants" {
 
 ///|
 test "ext_functioncall_equality" {
-  let f1 : FunctionCall = { name: "search", arguments: "{}" }
-  let f2 : FunctionCall = { name: "search", arguments: "{}" }
-  let f3 : FunctionCall = { name: "other", arguments: "{}" }
+  let f1 : FunctionCall = { name: "search", arguments: "{}", }
+  let f2 : FunctionCall = { name: "search", arguments: "{}", }
+  let f3 : FunctionCall = { name: "other", arguments: "{}", }
   assert_true(f1 == f2)
   assert_true(f1 != f3)
 }
 
 ///|
 test "ext_imageblock_equality" {
-  let ib1 : ImageBlock = { url: "http://x.png", detail: Some("high") }
-  let ib2 : ImageBlock = { url: "http://x.png", detail: Some("high") }
-  let ib3 : ImageBlock = { url: "http://y.png", detail: None }
+  let ib1 : ImageBlock = { url: "http://x.png", detail: Some("high"), }
+  let ib2 : ImageBlock = { url: "http://x.png", detail: Some("high"), }
+  let ib3 : ImageBlock = { url: "http://y.png", detail: None, }
   assert_true(ib1 == ib2)
   assert_true(ib1 != ib3)
 }

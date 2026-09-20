@@ -17,13 +17,13 @@ pub extend MessageHistory with Eq::{not_equal, equal}
 ///|
 /// Create an empty message history.
 pub fn MessageHistory::new() -> MessageHistory {
-  { messages: [] }
+  { messages: [], }
 }
 
 ///|
 /// Create a message history from an existing array of messages.
 pub fn MessageHistory::from_messages(msgs : Array[Message]) -> MessageHistory {
-  { messages: msgs }
+  { messages: msgs, }
 }
 
 // ── Write operations ─────────────────────────────────────────────────────────
@@ -485,7 +485,7 @@ fn deep_sanitize_utf8(msg : Message) -> Message {
         match block {
           ContentBlock::Text(tb) =>
             cleaned.push(
-              ContentBlock::Text({ text: sanitize_utf8_string(tb.text) }),
+              ContentBlock::Text({ text: sanitize_utf8_string(tb.text), }),
             )
           ContentBlock::Image(ib) =>
             cleaned.push(

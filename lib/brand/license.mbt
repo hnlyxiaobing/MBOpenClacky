@@ -32,7 +32,7 @@ pub(all) struct LicenseValidator {
 
 ///|
 pub fn LicenseValidator::new(config : BrandConfig) -> LicenseValidator {
-  { config, last_check_at: None, activation_nonce_counter: 0 }
+  { config, last_check_at: None, activation_nonce_counter: 0, }
 }
 
 ///|

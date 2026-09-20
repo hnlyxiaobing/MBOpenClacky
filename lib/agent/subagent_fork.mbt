@@ -202,10 +202,10 @@ fn deep_clone_messages(
   for m in msgs {
     let tc : Array[@message.ToolCall]? = match m.tool_calls {
       Some(calls) =>
-        Some(calls.map(fn(c) { { ..c, function: { ..c.function } } }))
+        Some(calls.map(fn(c) { { ..c, function: { ..c.function, }, } }))
       None => None
     }
-    out.push({ ..m, tool_calls: tc })
+    out.push({ ..m, tool_calls: tc, })
   }
   out
 }
@@ -504,7 +504,7 @@ pub async fn[X] fan_out(
       slots[i] = Some(
         match outcome {
           Ok(v) =>
-            { index: i, value: Some(v), error: None, duration_ms: duration }
+            { index: i, value: Some(v), error: None, duration_ms: duration, }
           Err(e) =>
             {
               index: i,
@@ -571,7 +571,7 @@ pub async fn[X] fan_out_labeled(
     } else {
       job.label
     }
-    FanOutJob::{ label, run: job.run }
+    FanOutJob::{ label, run: job.run, }
   })
   fan_out(labeled, max_concurrency~, timeout_ms~)
 }

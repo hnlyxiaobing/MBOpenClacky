@@ -18,7 +18,7 @@ pub(all) struct WeixinApiClient {
 ///|
 /// Create a new WeixinApiClient with default base URLs.
 pub fn WeixinApiClient::new(token : String, uin : String) -> WeixinApiClient {
-  { token, uin, base_url: WEIXIN_API_BASE, cdn_base: WEIXIN_CDN_BASE }
+  { token, uin, base_url: WEIXIN_API_BASE, cdn_base: WEIXIN_CDN_BASE, }
 }
 
 ///|

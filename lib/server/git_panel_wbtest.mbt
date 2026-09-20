@@ -185,13 +185,13 @@ test "format_status_line dirty" {
 
 ///|
 test "needs_push when ahead" {
-  let status : GitStatus = { ..GitStatus::empty(), ahead: 3 }
+  let status : GitStatus = { ..GitStatus::empty(), ahead: 3, }
   assert_true(needs_push(status))
 }
 
 ///|
 test "needs_pull when behind" {
-  let status : GitStatus = { ..GitStatus::empty(), behind: 2 }
+  let status : GitStatus = { ..GitStatus::empty(), behind: 2, }
   assert_true(needs_pull(status))
 }
 
@@ -199,6 +199,6 @@ test "needs_pull when behind" {
 test "is_clean checks all" {
   let clean = GitStatus::empty()
   assert_true(is_clean(clean))
-  let dirty : GitStatus = { ..GitStatus::empty(), staged: 1, is_dirty: true }
+  let dirty : GitStatus = { ..GitStatus::empty(), staged: 1, is_dirty: true, }
   assert_false(is_clean(dirty))
 }

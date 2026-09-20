@@ -41,7 +41,7 @@ let base_agent_rules : String =
 ///|
 /// Cached OS label (probed once per process so per-run session context
 /// builds do not re-check environment variables).
-let os_label_cache : Ref[String?] = { val: None }
+let os_label_cache : Ref[String?] = { val: None, }
 
 ///|
 /// Detect the operating system label for session context.

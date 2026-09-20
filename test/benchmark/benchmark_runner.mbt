@@ -21,7 +21,7 @@ pub struct BenchmarkRunner {
 pub fn BenchmarkRunner::new(
   scenarios : Array[BenchmarkScenario],
 ) -> BenchmarkRunner {
-  { scenarios, results: [], current_scenario: None }
+  { scenarios, results: [], current_scenario: None, }
 }
 
 ///|
@@ -43,7 +43,7 @@ fn run_single_iteration(
 
   let elapsed_ms = timer.elapsed_ms()
 
-  { scenario_name: scenario.name, iteration, elapsed_ms, success, error }
+  { scenario_name: scenario.name, iteration, elapsed_ms, success, error, }
 }
 
 ///|

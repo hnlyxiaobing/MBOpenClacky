@@ -58,7 +58,7 @@ async test "execute_hook returns Err on non-zero exit" {
     command: "exit 7",
     enabled: true,
   }
-  let ctx : HookContext = { session_id: "s", message: None, working_dir: "." }
+  let ctx : HookContext = { session_id: "s", message: None, working_dir: ".", }
   match execute_hook(hook, ctx) {
     Ok(_) => fail("hook should fail")
     Err(e) => assert_true(e.contains("exit code 7"))
@@ -73,7 +73,7 @@ async test "execute_hook skips disabled hooks" {
     command: "exit 1",
     enabled: false,
   }
-  let ctx : HookContext = { session_id: "s", message: None, working_dir: "." }
+  let ctx : HookContext = { session_id: "s", message: None, working_dir: ".", }
   assert_true(execute_hook(hook, ctx) is Ok(_))
 }
 
@@ -85,7 +85,7 @@ async test "execute_hook rejects empty command" {
     command: "  ",
     enabled: true,
   }
-  let ctx : HookContext = { session_id: "s", message: None, working_dir: "." }
+  let ctx : HookContext = { session_id: "s", message: None, working_dir: ".", }
   assert_true(execute_hook(hook, ctx) is Err(_))
 }
 
@@ -157,8 +157,8 @@ test "register_extensions rejects duplicate names and bad routes" {
   }
   // Duplicate extension name
   let dup : Array[@web.ApiExtension] = [
-    { name: "a", version: "1", routes: [], enabled: true },
-    { name: "a", version: "2", routes: [], enabled: true },
+    { name: "a", version: "1", routes: [], enabled: true, },
+    { name: "a", version: "2", routes: [], enabled: true, },
   ]
   assert_true(register_extensions(dup) is Err(_))
   // Duplicate route within one extension

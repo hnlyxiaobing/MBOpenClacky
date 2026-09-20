@@ -15,7 +15,7 @@ priv struct ShellExecCounter {
 }
 
 ///|
-let shell_exec_counter : ShellExecCounter = { value: 0 }
+let shell_exec_counter : ShellExecCounter = { value: 0, }
 
 ///|
 pub(all) struct ShellExecResult {
@@ -165,7 +165,7 @@ pub async fn run_shell_command(
     // @process.run returns the child's real exit code on both platforms.
     None => sys_exit
   }
-  { output: strip_shell_marker(raw, token), exit_code }
+  { output: strip_shell_marker(raw, token), exit_code, }
 }
 
 ///|

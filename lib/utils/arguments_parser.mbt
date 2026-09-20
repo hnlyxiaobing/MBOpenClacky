@@ -16,13 +16,13 @@ pub extend JsonArgParser with Eq::{not_equal, equal}
 ///|
 /// Create a new JsonArgParser (non-strict by default).
 pub fn JsonArgParser::new() -> JsonArgParser {
-  JsonArgParser::{ strict: false }
+  JsonArgParser::{ strict: false, }
 }
 
 ///|
 /// Create a strict parser (no error recovery).
 pub fn JsonArgParser::strict() -> JsonArgParser {
-  JsonArgParser::{ strict: true }
+  JsonArgParser::{ strict: true, }
 }
 
 ///|

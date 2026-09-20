@@ -67,9 +67,9 @@ test "McpClient disconnect clears state" {
   client.server_info = Some({
     name: "srv",
     version: "1",
-    capabilities: { tools: true, prompts: false, resources: false },
+    capabilities: { tools: true, prompts: false, resources: false, },
   })
-  client.tools = [{ name: "t", description: "d", input_schema: Json::null() }]
+  client.tools = [{ name: "t", description: "d", input_schema: Json::null(), }]
   client.disconnect()
   assert_false(client.is_connected())
   assert_true(client.server_info is None)

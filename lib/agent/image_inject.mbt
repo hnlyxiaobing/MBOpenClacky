@@ -47,19 +47,22 @@ pub fn Agent::inject_user_image(
   }
   let blocks : Array[@message.ContentBlock] = if self.client.vision_supported {
     [
-      @message.ContentBlock::Text({ text: "[Image: \{label}]" }),
-      @message.ContentBlock::Image({ url: data_url, detail: None }),
+      @message.ContentBlock::Text({ text: "[Image: \{label}]", }),
+      @message.ContentBlock::Image({ url: data_url, detail: None, }),
     ]
   } else {
     let suffix = match path {
       Some(p) => " (saved at \{p})"
       None => ""
     }
-    [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}" })]
+    [@message.ContentBlock::Text({ text: "[Image: \{label}]\{suffix}", })]
   }
   let msg = @message.Message::user_blocks(blocks)
   // Stamp created_at so the message has a stable ordering key (used
   // by edit_message's message_id lookup and history pagination).
-  self.history.append({ ..msg, created_at: Some(current_time_ms().to_string()) })
+  self.history.append({
+    ..msg,
+    created_at: Some(current_time_ms().to_string()),
+  })
   self.hook_manager.emit(MessageAdded)
 }

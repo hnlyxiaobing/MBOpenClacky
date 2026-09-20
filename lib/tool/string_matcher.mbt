@@ -170,7 +170,7 @@ fn try_smart_match(content : String, old_string : String) -> MatchResult? {
       }
     }
     if matches > 0 {
-      return Some({ matched_string: first_match, occurrences: matches })
+      return Some({ matched_string: first_match, occurrences: matches, })
     }
   }
   None

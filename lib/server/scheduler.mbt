@@ -9,7 +9,7 @@ pub(all) struct Scheduler {
 ///|
 /// Create a new Scheduler
 pub fn Scheduler::new(config : SchedulerConfig) -> Scheduler {
-  { config, state: Stopped, last_check_at: None }
+  { config, state: Stopped, last_check_at: None, }
 }
 
 // ── YAML Subset Serialization/Deserialization ─────────────────────────────
@@ -213,7 +213,7 @@ fn parse_schedules_yml(
   }
   // Flush last entry
   flush_entry()
-  { schedules, tasks_dir, config_path }
+  { schedules, tasks_dir, config_path, }
 }
 
 // ── Scheduler Lifecycle ───────────────────────────────────────────────────
@@ -226,7 +226,11 @@ pub fn Scheduler::load_from_config(
 ) -> Result[Scheduler, SchedulerError] {
   if !@fs.path_exists(config_path) {
     // File missing: empty start (decision 5)
-    let config : SchedulerConfig = { schedules: [], tasks_dir: "", config_path }
+    let config : SchedulerConfig = {
+      schedules: [],
+      tasks_dir: "",
+      config_path,
+    }
     return Ok(Scheduler::new(config))
   }
   let content = @fs.read_file_to_string(config_path) catch {

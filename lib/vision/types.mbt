@@ -97,23 +97,23 @@ pub fn VisionConfig::new(
   cache_dir? : String = default_cache_dir,
   default_prompt? : String = default_vision_prompt,
 ) -> VisionConfig {
-  { api_key, base_url, model, max_tokens, cache_dir, default_prompt }
+  { api_key, base_url, model, max_tokens, cache_dir, default_prompt, }
 }
 
 ///|
 /// Build OK result
 pub fn ok_result(text : String, cached : Bool) -> VisionResult {
-  { status: Ok, text: Some(text), error: None, cached }
+  { status: Ok, text: Some(text), error: None, cached, }
 }
 
 ///|
 /// Build error result
 pub fn error_result(status : VisionStatus, error : String) -> VisionResult {
-  { status, text: None, error: Some(error), cached: false }
+  { status, text: None, error: Some(error), cached: false, }
 }
 
 ///|
 /// Build empty result
 pub fn empty_result() -> VisionResult {
-  { status: Empty, text: None, error: None, cached: false }
+  { status: Empty, text: None, error: None, cached: false, }
 }

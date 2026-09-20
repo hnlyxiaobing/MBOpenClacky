@@ -18,7 +18,7 @@ pub extend WebFetch with Eq::{not_equal, equal}
 
 ///|
 pub fn WebFetch::new() -> WebFetch {
-  { max_length: 3000 }
+  { max_length: 3000, }
 }
 
 ///|

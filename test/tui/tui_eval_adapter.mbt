@@ -205,7 +205,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
             mock_response: mock,
           }
         }
-        _ => { cols: 80, rows: 24, mock_response: "" }
+        _ => { cols: 80, rows: 24, mock_response: "", }
       }
       let actions : Array[EvalAction] = []
       match obj.get("actions") {
@@ -292,7 +292,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
           }
         _ => ()
       }
-      Ok({ name, description: desc, setup, actions, assertions })
+      Ok({ name, description: desc, setup, actions, assertions, })
     }
     _ => Err("Scenario must be a JSON object")
   }
@@ -1460,13 +1460,13 @@ pub fn TuiEvalSimulator::check_assertion(
       let desc = "screen contains '\{text}'"
       let region_label = if region.length() > 0 { region } else { "screen" }
       let detail = if passed { "" } else { "NOT FOUND in \{region_label}" }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     NotContains(text~) => {
       let passed = !self.screen.contains(text)
       let desc = "screen does NOT contain '\{text}'"
       let detail = if passed { "" } else { "FOUND (should not be present)" }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     ScreenEmpty => {
       let content = self.screen.content_trimmed()
@@ -1489,7 +1489,7 @@ pub fn TuiEvalSimulator::check_assertion(
       } else {
         "Row \{row}: '\{self.screen.get_row_trimmed(row)}'"
       }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     StatusContains(text~) => {
       let passed = self.check_status_region(text)
@@ -1499,25 +1499,25 @@ pub fn TuiEvalSimulator::check_assertion(
       } else {
         "Status: '\{self.screen.get_row_trimmed(self.status_row())}'"
       }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     InputContains(text~) => {
       let passed = self.check_input_region(text)
       let desc = "input area contains '\{text}'"
       let detail = if passed { "" } else { "NOT FOUND in input area" }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     OutputContains(text~) => {
       let passed = self.check_output_region(text)
       let desc = "output area contains '\{text}'"
       let detail = if passed { "" } else { "NOT FOUND in output area" }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
     DialogContains(text~) => {
       let passed = self.check_dialog_region(text)
       let desc = "dialog contains '\{text}'"
       let detail = if passed { "" } else { "NOT FOUND in dialog region" }
-      { description: desc, passed, detail }
+      { description: desc, passed, detail, }
     }
   }
 }

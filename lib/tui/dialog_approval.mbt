@@ -65,7 +65,7 @@ pub fn ApprovalDialog::new(
   tool_name : String,
   tool_args : String,
 ) -> ApprovalDialog {
-  { tool_name, tool_args, show_details: false, detailed_args: tool_args }
+  { tool_name, tool_args, show_details: false, detailed_args: tool_args, }
 }
 
 ///|

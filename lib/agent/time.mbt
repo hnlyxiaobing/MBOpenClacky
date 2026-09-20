@@ -9,7 +9,7 @@ pub fn current_time_ms() -> Int64 {
 /// Applied to every message that enters conversation history so history
 /// pagination/dedup can rely on `created_at`.
 fn stamp_created_at(msg : @message.Message) -> @message.Message {
-  { ..msg, created_at: Some(current_time_ms().to_string()) }
+  { ..msg, created_at: Some(current_time_ms().to_string()), }
 }
 
 ///|

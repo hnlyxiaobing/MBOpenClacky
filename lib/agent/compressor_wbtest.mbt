@@ -103,7 +103,7 @@ test "get_recent_with_tool_pairs keeps pairs together" {
   let tc : @message.ToolCall = {
     id: "call_1",
     type_: "function",
-    function: { name: "read_file", arguments: "{\"path\": \"test.txt\"}" },
+    function: { name: "read_file", arguments: "{\"path\": \"test.txt\"}", },
     extra_content: None,
   }
   let messages : Array[@message.Message] = [

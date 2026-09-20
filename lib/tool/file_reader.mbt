@@ -18,7 +18,7 @@ pub extend FileReader with Eq::{not_equal, equal}
 
 ///|
 pub fn FileReader::new() -> FileReader {
-  { max_lines: 1000, max_line_chars: 1000 }
+  { max_lines: 1000, max_line_chars: 1000, }
 }
 
 ///|

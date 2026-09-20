@@ -62,7 +62,7 @@ test "ext_validation_error_dependency_conflict" {
 
 ///|
 test "ext_validation_result_valid" {
-  let r : ValidationResult = { valid: true, errors: [], warnings: [] }
+  let r : ValidationResult = { valid: true, errors: [], warnings: [], }
   assert_true(r.valid)
   assert_eq(r.errors.length(), 0)
 }

@@ -38,7 +38,7 @@ pub(all) struct TipsState {
 ///|
 /// Create an empty tips state.
 pub fn TipsState::new() -> TipsState {
-  { message: None, type_: TipsType::Info, set_tick: 0 }
+  { message: None, type_: TipsType::Info, set_tick: 0, }
 }
 
 ///|

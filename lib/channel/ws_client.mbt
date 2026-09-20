@@ -25,7 +25,7 @@ pub(all) struct WsClient {
 ///|
 /// Create a new disconnected WsClient.
 pub fn WsClient::new() -> WsClient {
-  { conn: None, is_connected: false }
+  { conn: None, is_connected: false, }
 }
 
 ///|

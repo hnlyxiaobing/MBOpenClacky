@@ -263,11 +263,11 @@ async fn handle_config_ocr_test(
       match result.status {
         @vision.Ok =>
           @core.HttpResponse::ok().json_value(
-            OCRTestResponse::{ ok: true, text: result.text, error: None }.to_json(),
+            OCRTestResponse::{ ok: true, text: result.text, error: None, }.to_json(),
           )
         _ =>
           @core.HttpResponse::ok().json_value(
-            OCRTestResponse::{ ok: false, text: None, error: result.error }.to_json(),
+            OCRTestResponse::{ ok: false, text: None, error: result.error, }.to_json(),
           )
       }
     }

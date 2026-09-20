@@ -52,7 +52,7 @@ priv struct BrowserMcpState {
 
 ///|
 /// Global browser MCP state (mutable via struct field).
-let browser_mcp_state : BrowserMcpState = { registry: None }
+let browser_mcp_state : BrowserMcpState = { registry: None, }
 
 ///|
 /// Set the MCP registry for browser tool to use.
@@ -77,7 +77,10 @@ pub fn is_browser_mcp_available() -> Bool {
 ///|
 /// Create a new Browser tool instance.
 pub fn Browser::new() -> Browser {
-  { daemon_connected: false, page_cache: { current: None, invalidated: true } }
+  {
+    daemon_connected: false,
+    page_cache: { current: None, invalidated: true, },
+  }
 }
 
 ///|

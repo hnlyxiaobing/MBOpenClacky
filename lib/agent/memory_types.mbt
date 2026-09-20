@@ -138,7 +138,7 @@ impl FromJson for MemoryEntry with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
-      { id, title, content, category, keywords, created_at, updated_at }
+      { id, title, content, category, keywords, created_at, updated_at, }
     }
     _ => raise JsonDecodeError((path, "MemoryEntry: expected object"))
   }

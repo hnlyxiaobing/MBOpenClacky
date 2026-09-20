@@ -69,7 +69,7 @@ pub fn ThinkingVerbAnimator::with_verbs(
 ) -> ThinkingVerbAnimator {
   // Always carry a PRNG so the struct shape is uniform across modes;
   // it is only consulted when `mode == Random`.
-  { verbs, index: 0, mode, rng: @random.Rand::new() }
+  { verbs, index: 0, mode, rng: @random.Rand::new(), }
 }
 
 ///|

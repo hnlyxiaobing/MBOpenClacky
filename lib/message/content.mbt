@@ -92,7 +92,7 @@ impl FromJson for ImageBlock with fn from_json(json, path) {
         Some(String(s)) => Some(s)
         _ => None
       }
-      { url, detail }
+      { url, detail, }
     }
     _ => raise JsonDecodeError((path, "ImageBlock: expected object"))
   }

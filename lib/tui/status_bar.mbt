@@ -55,7 +55,7 @@ pub extend StatusBar with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a new empty StatusBar.
 pub fn StatusBar::new() -> StatusBar {
-  { segments: [] }
+  { segments: [], }
 }
 
 ///|
@@ -87,36 +87,36 @@ pub fn StatusBar::format_from_state(self : StatusBar, state : TuiState) -> Unit 
     text: indicator,
     color: SegmentColor::Status,
   })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Session ID (truncated to 8 chars)
   let sid = if state.session_id.length() > 8 {
     state.session_id[0:8].to_owned()
   } else {
     state.session_id
   }
-  self.segments.push(StatusSegment::{ text: sid, color: Session })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: sid, color: Session, })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Working directory (truncated)
   let dir = truncate_dir(state.working_dir, 30)
-  self.segments.push(StatusSegment::{ text: dir, color: Dir })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: dir, color: Dir, })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Permission mode
   self.segments.push(StatusSegment::{
     text: state.permission_mode,
     color: Permission,
   })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Model name (truncated)
   let model = truncate_model(state.model_name, 24)
-  self.segments.push(StatusSegment::{ text: model, color: Model })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: model, color: Model, })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Task count
   let tasks = "\{state.active_tasks} tasks"
-  self.segments.push(StatusSegment::{ text: tasks, color: Tasks })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: tasks, color: Tasks, })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   // Cost (calls/iters are debug-only and live in `format_full`, SPEC-02)
   let cost = "$\{format_cost(state.total_cost)}"
-  self.segments.push(StatusSegment::{ text: cost, color: Cost })
+  self.segments.push(StatusSegment::{ text: cost, color: Cost, })
 }
 
 ///|
@@ -138,9 +138,9 @@ pub fn StatusBar::format_compact(
     text: indicator,
     color: SegmentColor::Status,
   })
-  self.segments.push(StatusSegment::{ text: "  ", color: Dim })
-  self.segments.push(StatusSegment::{ text: model, color: Model })
-  self.segments.push(StatusSegment::{ text: "  ", color: Dim })
+  self.segments.push(StatusSegment::{ text: "  ", color: Dim, })
+  self.segments.push(StatusSegment::{ text: model, color: Model, })
+  self.segments.push(StatusSegment::{ text: "  ", color: Dim, })
   self.segments.push(StatusSegment::{
     text: "$\{format_cost(cost)}",
     color: Cost,
@@ -155,25 +155,25 @@ pub fn StatusBar::format_compact(
 pub fn StatusBar::format_full(self : StatusBar, state : TuiState) -> Unit {
   self.format_from_state(state)
   // Debug-only fields omitted from the default status line (SPEC-02).
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   self.segments.push(StatusSegment::{
     text: "\{state.llm_call_count} calls",
     color: Tasks,
   })
-  self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+  self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
   self.segments.push(StatusSegment::{
     text: "\{state.iterations} iters",
     color: Tasks,
   })
   if is_thinking_phase_active(state) {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
     self.segments.push(StatusSegment::{
       text: "🧠 thinking",
       color: SegmentColor::Model,
     })
   }
   if state.latest_delta > 0 {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
     self.segments.push(StatusSegment::{
       text: "+\{state.latest_delta} tok",
       color: Tasks,
@@ -408,30 +408,30 @@ pub fn StatusBar::format_from_state_adaptive(
     color: SegmentColor::Status,
   })
   if has_session {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: sid, color: Session })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
+    self.segments.push(StatusSegment::{ text: sid, color: Session, })
   }
   if has_dir {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: dir_compressed, color: Dir })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
+    self.segments.push(StatusSegment::{ text: dir_compressed, color: Dir, })
   }
   if has_perm {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
     self.segments.push(StatusSegment::{
       text: state.permission_mode,
       color: Permission,
     })
   }
   if has_model {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: model_name, color: Model })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
+    self.segments.push(StatusSegment::{ text: model_name, color: Model, })
   }
   if has_tasks {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: tasks_str, color: Tasks })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
+    self.segments.push(StatusSegment::{ text: tasks_str, color: Tasks, })
   }
   if has_cost {
-    self.segments.push(StatusSegment::{ text: " │ ", color: Dim })
-    self.segments.push(StatusSegment::{ text: cost_str, color: Cost })
+    self.segments.push(StatusSegment::{ text: " │ ", color: Dim, })
+    self.segments.push(StatusSegment::{ text: cost_str, color: Cost, })
   }
 }

@@ -56,7 +56,7 @@ fn soft_delete_session(session_id : String) -> Unit {
   match load_session(session_id) {
     None => ()
     Some(data) => {
-      let updated = { ..data, deleted_at: Some(current_iso8601()) }
+      let updated = { ..data, deleted_at: Some(current_iso8601()), }
       save_session(updated) catch {
         _ => ()
       }

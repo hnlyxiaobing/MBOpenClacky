@@ -62,7 +62,7 @@ pub fn create_trash_entry(
   let trash_name = trash_filename(original_path, ts)
   let trash_dir = get_trash_dir()
   let trash_path = @path.Path::join(trash_dir, @path.Path(trash_name)).to_string()
-  { original_path, trash_path, deleted_at: ts, size_bytes: 0 }
+  { original_path, trash_path, deleted_at: ts, size_bytes: 0, }
 }
 
 ///|

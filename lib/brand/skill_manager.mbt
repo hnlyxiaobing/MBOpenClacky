@@ -26,7 +26,7 @@ pub struct BrandSkillManager {
 
 ///|
 pub fn BrandSkillManager::new(config : BrandConfig) -> BrandSkillManager {
-  { config, installed_cache: [] }
+  { config, installed_cache: [], }
 }
 
 // ── 安装路径与 JSON 持久化 ──────────────────────────────────────
@@ -220,7 +220,7 @@ pub fn BrandSkillManager::list_installed_skills(
       }
       _ => ("0.0.0", "", false)
     }
-    result.push({ name, version, description, installed: true, encrypted })
+    result.push({ name, version, description, installed: true, encrypted, })
   })
   self.installed_cache = result
   result

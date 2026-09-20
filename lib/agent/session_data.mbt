@@ -56,7 +56,7 @@ impl FromJson for ChannelInfo with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
-      { platform, channel_id, user_id, webhook_url }
+      { platform, channel_id, user_id, webhook_url, }
     }
     _ => raise JsonDecodeError((path, "ChannelInfo: expected object"))
   }
@@ -101,7 +101,7 @@ impl FromJson for SessionTaskMeta with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
-      { title, started_at, ended_at }
+      { title, started_at, ended_at, }
     }
     _ => raise JsonDecodeError((path, "SessionTaskMeta: expected object"))
   }
@@ -171,7 +171,7 @@ impl FromJson for SessionTimeMachine with fn from_json(json, path) {
         Some(Number(d, ..)) => d.to_int()
         _ => 0
       }
-      { task_parents, task_meta, current_task_id, active_task_id }
+      { task_parents, task_meta, current_task_id, active_task_id, }
     }
     _ => raise JsonDecodeError((path, "SessionTimeMachine: expected object"))
   }

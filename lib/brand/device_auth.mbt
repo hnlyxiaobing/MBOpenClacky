@@ -68,7 +68,7 @@ pub extend DeviceAuthStore with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create an empty session store.
 pub fn DeviceAuthStore::new() -> DeviceAuthStore {
-  { sessions: Map([]) }
+  { sessions: Map([]), }
 }
 
 ///|
@@ -171,7 +171,7 @@ pub fn DeviceAuthStore::approve_device(
 ) -> Bool {
   match self.sessions.get(device_code) {
     Some(session) => {
-      let updated : DeviceAuthSession = { ..session, approved: true }
+      let updated : DeviceAuthSession = { ..session, approved: true, }
       self.sessions[device_code] = updated
       true
     }

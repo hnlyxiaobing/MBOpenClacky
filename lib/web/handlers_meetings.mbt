@@ -28,7 +28,10 @@ priv struct MeetingState {
 
 ///|
 /// Global meeting state singleton (module-level mutable).
-let meeting_state : Ref[MeetingState] = Ref({ meetings: Map([]), loaded: false })
+let meeting_state : Ref[MeetingState] = Ref({
+  meetings: Map([]),
+  loaded: false,
+})
 
 ///|
 /// Counter for generating unique IDs.

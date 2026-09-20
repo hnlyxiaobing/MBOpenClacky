@@ -34,7 +34,7 @@ pub(all) struct ScenarioOutcome {
 
 ///|
 /// 临时目录唯一名序号。
-let dir_serial : Ref[Int] = { val: 0 }
+let dir_serial : Ref[Int] = { val: 0, }
 
 ///|
 /// 取 JSON 对象的字段（非废弃 API 的本地封装；core/json 的 Json::value 已废弃）。
@@ -248,7 +248,7 @@ pub async fn run_scenario(
   // ── 6. 清理临时目录（尽力而为，失败不阻塞测试）────────────────────
   cleanup_dir(workdir)
   cleanup_dir(home)
-  { requests, request_times, status, final_text, final_files }
+  { requests, request_times, status, final_text, final_files, }
 }
 
 ///|

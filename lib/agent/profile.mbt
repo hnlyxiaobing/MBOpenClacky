@@ -41,7 +41,7 @@ fn load_profile_from_dir(name : String, dir : String) -> AgentProfile {
   let soul_content = load_shared_agent_file("SOUL.md")
   let user_content = load_shared_agent_file("USER.md")
   let base_prompt = load_file_content("assets/prompts/base.md")
-  { config, system_prompt, soul_content, user_content, base_prompt }
+  { config, system_prompt, soul_content, user_content, base_prompt, }
 }
 
 ///|

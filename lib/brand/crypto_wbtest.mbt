@@ -24,7 +24,7 @@ test "crypto_aes_gcm_tag_tamper_detected" {
   // Tamper with the tag by flipping a bit
   let tampered_tag = encrypted.tag
   tampered_tag[0] = (tampered_tag[0].to_int() ^ 0xFF).to_byte()
-  let tampered = { ..encrypted, tag: tampered_tag }
+  let tampered = { ..encrypted, tag: tampered_tag, }
   assert_true(decrypt_aes256gcm(tampered, key) is Err(_))
 }
 
@@ -38,7 +38,7 @@ test "crypto_aes_gcm_aad_tamper_detected" {
   }
   // Modify AAD - decryption should fail because AAD mismatch
   let wrong_aad : Array[Byte] = [b'w', b'r', b'o', b'n', b'g', b'!', b'!']
-  let tampered = { ..encrypted, aad: wrong_aad }
+  let tampered = { ..encrypted, aad: wrong_aad, }
   assert_true(decrypt_aes256gcm(tampered, key) is Err(_))
 }
 
@@ -52,7 +52,7 @@ test "crypto_aes_gcm_ciphertext_tamper_detected" {
   // Tamper with ciphertext
   let tampered_ct = encrypted.ciphertext
   tampered_ct[0] = (tampered_ct[0].to_int() ^ 0xFF).to_byte()
-  let tampered = { ..encrypted, ciphertext: tampered_ct }
+  let tampered = { ..encrypted, ciphertext: tampered_ct, }
   assert_true(decrypt_aes256gcm(tampered, key) is Err(_))
 }
 
@@ -63,7 +63,7 @@ test "crypto_aes_gcm_invalid_key_length" {
   assert_true(encrypt_aes256gcm(plaintext, short_key) is Err(_))
   assert_true(
     decrypt_aes256gcm(
-      { ciphertext: [], nonce: [], tag: [], aad: [] },
+      { ciphertext: [], nonce: [], tag: [], aad: [], },
       short_key,
     )
     is Err(_),

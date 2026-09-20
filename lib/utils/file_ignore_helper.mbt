@@ -22,7 +22,7 @@ pub fn IgnoreConfig::new() -> IgnoreConfig {
       None => ()
     }
   }
-  { gitignore_rules: [], custom_rules: [], builtin_rules }
+  { gitignore_rules: [], custom_rules: [], builtin_rules, }
 }
 
 ///|

@@ -42,7 +42,7 @@ pub fn VirtualScreen::new(width : Int, height : Int) -> VirtualScreen {
     grid.push(row)
     r = r + 1
   }
-  { width, height, cursor_row: 1, cursor_col: 1, grid }
+  { width, height, cursor_row: 1, cursor_col: 1, grid, }
 }
 
 ///|

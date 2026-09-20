@@ -16,7 +16,7 @@ pub extend Glob with Eq::{not_equal, equal}
 
 ///|
 pub fn Glob::new() -> Glob {
-  { limit: 10 }
+  { limit: 10, }
 }
 
 ///|
@@ -203,7 +203,7 @@ pub fn walk_files(
   ignore : @utils.IgnoreConfig,
 ) -> Array[String] {
   let results : Array[String] = []
-  let budget : WalkBudget = { dirs: 0 }
+  let budget : WalkBudget = { dirs: 0, }
   walk_recursive(base, base, ignore, limit, max_dirs, budget, results)
   results
 }

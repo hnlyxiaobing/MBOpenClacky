@@ -29,7 +29,7 @@ test "create_zip empty entries" {
 ///|
 test "create_zip single entry" {
   let entries : Array[ZipEntry] = [
-    { name: "hello.txt", data: @utf8.encode("world") },
+    { name: "hello.txt", data: @utf8.encode("world"), },
   ]
   let result = create_zip(entries)
   match result {
@@ -51,9 +51,9 @@ test "create_zip single entry" {
 ///|
 test "create_zip multiple entries" {
   let entries : Array[ZipEntry] = [
-    { name: "a.txt", data: @utf8.encode("alpha") },
-    { name: "b.txt", data: @utf8.encode("beta") },
-    { name: "c.txt", data: @utf8.encode("gamma") },
+    { name: "a.txt", data: @utf8.encode("alpha"), },
+    { name: "b.txt", data: @utf8.encode("beta"), },
+    { name: "c.txt", data: @utf8.encode("gamma"), },
   ]
   let result = create_zip(entries)
   match result {
@@ -76,7 +76,7 @@ test "create_zip multiple entries" {
 ///|
 test "find_entry found" {
   let entries : Array[ZipEntry] = [
-    { name: "target.txt", data: @utf8.encode("found me") },
+    { name: "target.txt", data: @utf8.encode("found me"), },
   ]
   let zip_data = create_zip(entries).unwrap()
   let result = find_entry(zip_data, "target.txt")
@@ -86,7 +86,7 @@ test "find_entry found" {
 ///|
 test "find_entry not found" {
   let entries : Array[ZipEntry] = [
-    { name: "other.txt", data: @utf8.encode("not me") },
+    { name: "other.txt", data: @utf8.encode("not me"), },
   ]
   let zip_data = create_zip(entries).unwrap()
   let result = find_entry(zip_data, "missing.txt")
@@ -165,7 +165,7 @@ test "roundtrip binary data" {
     binary.push(i.to_byte())
   }
   let data = Bytes::from_array(binary)
-  let entries : Array[ZipEntry] = [{ name: "bin.dat", data }]
+  let entries : Array[ZipEntry] = [{ name: "bin.dat", data, }]
   let zip_data = create_zip(entries).unwrap()
   let extracted = extract_zip(zip_data).unwrap()
   assert_eq(extracted.length(), 1)

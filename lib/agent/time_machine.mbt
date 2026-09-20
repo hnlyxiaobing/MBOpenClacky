@@ -69,7 +69,7 @@ pub fn TimeMachineState::record_file_before_change(
       }
       if !already_recorded {
         let is_absent = content is None
-        let entry : SnapshotEntry = { path, content, is_absent }
+        let entry : SnapshotEntry = { path, content, is_absent, }
         t.before_entries.push(entry)
       }
     }
@@ -99,7 +99,7 @@ pub fn TimeMachineState::checkpoint_after(
         }
       }
       let is_absent = content is None
-      let entry : SnapshotEntry = { path, content, is_absent }
+      let entry : SnapshotEntry = { path, content, is_absent, }
       if found_idx >= 0 {
         t.after_entries[found_idx] = entry
       } else {
@@ -198,7 +198,7 @@ fn TimeMachineState::collect_chain_state(
     }
     // fallback: absent file if still not found
     if !found {
-      result.push({ path, content: None, is_absent: true })
+      result.push({ path, content: None, is_absent: true, })
     }
   }
   result

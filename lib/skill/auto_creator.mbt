@@ -25,7 +25,7 @@ pub extend CreationCandidate with Eq::{not_equal, equal}
 ///|
 /// Create an AutoCreator with default settings.
 pub fn AutoCreator::new() -> AutoCreator {
-  { iteration_threshold: 12, confidence_threshold: 80 }
+  { iteration_threshold: 12, confidence_threshold: 80, }
 }
 
 ///|
@@ -34,7 +34,7 @@ pub fn AutoCreator::with_thresholds(
   iteration_threshold : Int,
   confidence_threshold : Int,
 ) -> AutoCreator {
-  { iteration_threshold, confidence_threshold }
+  { iteration_threshold, confidence_threshold, }
 }
 
 ///|
@@ -87,7 +87,7 @@ pub fn AutoCreator::detect_candidates(
           "...\" (seen " +
           pattern_count.to_string() +
           " times)"
-        candidates.push({ name, description, pattern_count, confidence })
+        candidates.push({ name, description, pattern_count, confidence, })
       }
     }
   }

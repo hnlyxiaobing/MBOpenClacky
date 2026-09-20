@@ -109,14 +109,14 @@ pub impl Adapter for FeishuAdapter with fn send_text(
         Err(e) => return Err(e)
       }
       match extract_feishu_message_id(json) {
-        Some(mid) => Ok({ message_id: mid, success: true, error: None })
+        Some(mid) => Ok({ message_id: mid, success: true, error: None, })
         None =>
           match json {
             Object(obj) =>
               match obj.get("code") {
                 Some(Number(n, ..)) if n.to_int() == 0 =>
                   // Success but no message_id returned (edge case)
-                  Ok({ message_id: "", success: true, error: None })
+                  Ok({ message_id: "", success: true, error: None, })
                 _ =>
                   Err(
                     ChannelError(

@@ -5,15 +5,15 @@ version = "0.1.3"
 readme = "README.md"
 
 import {
-  "moonbitlang/x@0.5.1",
-  "moonbitlang/async@0.21.1",
+  "moonbitlang/x@0.5.5",
+  "moonbitlang/async@0.22.1",
   "bobzhang/toml@0.4.3",
-  "TheWaWaR/clap@0.2.6",
+  "DzmingLi/clap@0.2.8",
   "hnlyxiaobing/crescent@0.10.7",
   "hnlyxiaobing/moonbitmark@0.4.3",
   "moonbit-community/tty@0.3.0",
   "moonbit-community/pty@0.4.1",
-  "mizchi/tui@0.10.0",
+  "mizchi/tui@0.10.2",
   "mizchi/signals@0.6.5",
   "hustcer/tabular@0.5.2",
 }
@@ -29,6 +29,5 @@ description = "AI Agent CLI tool rewritten in MoonBit"
 preferred_target = "native"
 
 options(
-  exclude: [ ],
   "--moonbit-unstable-prebuild": "build-script.js",
 )

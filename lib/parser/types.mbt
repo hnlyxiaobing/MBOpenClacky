@@ -127,7 +127,7 @@ pub fn ParseResult::success(
   metadata : DocumentMetadata,
   sections : Array[String],
 ) -> ParseResult {
-  { content, metadata, sections, is_success: true, error: None }
+  { content, metadata, sections, is_success: true, error: None, }
 }
 
 ///|
@@ -141,5 +141,5 @@ pub fn ParseResult::error(msg : String, format : DocumentFormat) -> ParseResult 
     word_count: None,
     format,
   }
-  { content: "", metadata, sections: [], is_success: false, error: Some(msg) }
+  { content: "", metadata, sections: [], is_success: false, error: Some(msg), }
 }

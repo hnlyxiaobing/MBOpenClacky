@@ -41,7 +41,7 @@ pub(all) struct MockLlmServer {
 /// （元素含 response 字段；match 字段被忽略——match 校验按任务书弱化）。
 pub async fn MockLlmServer::new(steps : Array[Json]) -> MockLlmServer {
   let listener = @socket.TcpServer(@socket.Addr::parse("127.0.0.1:0"))
-  { listener, steps, cursor: 0, requests: [], serial: 0, stopped: false }
+  { listener, steps, cursor: 0, requests: [], serial: 0, stopped: false, }
 }
 
 ///|
@@ -146,7 +146,7 @@ async fn MockLlmServer::handle_conn(
   }
   // ── 请求体（Content-Length 或 chunked）────────────────────────────
   let body = read_body(conn, headers)
-  self.requests.push({ body, at_ms: now_ms() })
+  self.requests.push({ body, at_ms: now_ms(), })
   let body_json = @json.parse(body) catch { _ => Json::object({}) }
   let model = match jget(body_json, "model") {
     Some(m) => jstr(m).unwrap_or("mock-model")

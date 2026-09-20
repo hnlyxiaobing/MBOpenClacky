@@ -59,7 +59,7 @@ pub fn HttpRequest::new(
   body? : String = "",
   headers? : Array[(String, String)] = [],
 ) -> HttpRequest {
-  { http_method, path, params: [], body, headers }
+  { http_method, path, params: [], body, headers, }
 }
 
 ///|
@@ -171,19 +171,19 @@ pub fn HttpResponse::with_content_type(
   self : HttpResponse,
   ct : String,
 ) -> HttpResponse {
-  { ..self, content_type: ct }
+  { ..self, content_type: ct, }
 }
 
 ///|
 pub fn HttpResponse::with_status(self : HttpResponse, s : Int) -> HttpResponse {
-  { ..self, status: s }
+  { ..self, status: s, }
 }
 
 // ── Router ────────────────────────────────────────────────────────
 
 ///|
 pub fn Router::new() -> Router {
-  { routes: [] }
+  { routes: [], }
 }
 
 ///|
@@ -193,7 +193,7 @@ pub fn Router::add_route(
   path : String,
   handler_name : String,
 ) -> Router {
-  self.routes.push({ http_method, path, handler_name })
+  self.routes.push({ http_method, path, handler_name, })
   self
 }
 

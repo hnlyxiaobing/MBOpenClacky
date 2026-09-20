@@ -14,7 +14,7 @@ pub(all) struct JsonRpcClient {
 ///|
 /// Create a new JsonRpcClient wrapping the given process.
 pub fn JsonRpcClient::new(process : BrowserProcess) -> JsonRpcClient {
-  { process, id_counter: 1 }
+  { process, id_counter: 1, }
 }
 
 ///|

@@ -31,7 +31,7 @@ pub fn FeishuApiClient::with_base_url(
   app_secret : String,
   base_url : String,
 ) -> FeishuApiClient {
-  { app_id, app_secret, base_url, token_cache: TokenCache::new(300_000) }
+  { app_id, app_secret, base_url, token_cache: TokenCache::new(300_000), }
 }
 
 // ── URL builders ──────────────────────────────────────────────────────────────

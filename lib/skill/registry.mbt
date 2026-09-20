@@ -20,7 +20,7 @@ pub fn normalize_skill_name(name : String) -> String {
 ///|
 /// Create a new empty SkillRegistry.
 pub fn SkillRegistry::new() -> SkillRegistry {
-  { skills: Map([]), discovery_paths: [] }
+  { skills: Map([]), discovery_paths: [], }
 }
 
 ///|

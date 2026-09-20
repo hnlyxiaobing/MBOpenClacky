@@ -18,7 +18,7 @@ pub struct SessionRegistry {
 ///|
 /// Create a new empty SessionRegistry
 pub fn SessionRegistry::new(max_sessions? : Int = 1000) -> SessionRegistry {
-  { entries: [], max_sessions }
+  { entries: [], max_sessions, }
 }
 
 ///|

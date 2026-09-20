@@ -89,7 +89,7 @@ pub extend ToolRegistry with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a new empty ToolRegistry.
 pub fn ToolRegistry::new() -> ToolRegistry {
-  { tools: Map([]), downcased_index: Map([]), order: [] }
+  { tools: Map([]), downcased_index: Map([]), order: [], }
 }
 
 ///|
@@ -342,11 +342,11 @@ pub fn make_default_registry() -> ToolRegistry {
   registry.register(AnyTool::Terminal(Terminal::new()))
   registry.register(AnyTool::WebSearch(WebSearch::new()))
   registry.register(AnyTool::WebFetch(WebFetch::new()))
-  registry.register(AnyTool::InvokeSkill(InvokeSkill::{  }))
-  registry.register(AnyTool::MemoryTool(MemoryTool::{  }))
-  registry.register(AnyTool::TodoTool(TodoTool::{  }))
-  registry.register(AnyTool::RequestUserFeedback(RequestUserFeedback::{  }))
-  registry.register(AnyTool::TrashManager(TrashManager::{  }))
+  registry.register(AnyTool::InvokeSkill(InvokeSkill::{ }))
+  registry.register(AnyTool::MemoryTool(MemoryTool::{ }))
+  registry.register(AnyTool::TodoTool(TodoTool::{ }))
+  registry.register(AnyTool::RequestUserFeedback(RequestUserFeedback::{ }))
+  registry.register(AnyTool::TrashManager(TrashManager::{ }))
   registry.register(AnyTool::Browser(Browser::new()))
   registry
 }

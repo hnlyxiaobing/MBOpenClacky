@@ -24,13 +24,13 @@ pub extend ReflectionReport with Eq::{not_equal, equal}
 ///|
 /// Create a SkillReflector with default settings.
 pub fn SkillReflector::new() -> SkillReflector {
-  { min_improvement_score: 70 }
+  { min_improvement_score: 70, }
 }
 
 ///|
 /// Create a SkillReflector with a custom threshold.
 pub fn SkillReflector::with_threshold(threshold : Int) -> SkillReflector {
-  { min_improvement_score: threshold }
+  { min_improvement_score: threshold, }
 }
 
 ///|
@@ -103,7 +103,7 @@ pub fn SkillReflector::reflect(
   if should_improve && suggestions.is_empty() {
     suggestions.push("Score below threshold — consider reviewing skill logic")
   }
-  { skill_name, performance_score: score, suggestions, should_improve }
+  { skill_name, performance_score: score, suggestions, should_improve, }
 }
 
 ///|

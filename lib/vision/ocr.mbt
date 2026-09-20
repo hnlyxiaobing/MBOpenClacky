@@ -50,7 +50,7 @@ pub extend VisionOCR with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a VisionOCR with default configuration.
 pub fn VisionOCR::new() -> VisionOCR {
-  { resolver: VisionResolver::new() }
+  { resolver: VisionResolver::new(), }
 }
 
 ///|

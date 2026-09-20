@@ -29,7 +29,7 @@ pub fn BenchmarkStats::new(
   iterations : Int,
   total_ms : Int64,
 ) -> BenchmarkStats {
-  { min_ms, max_ms, avg_ms, p50_ms, p95_ms, p99_ms, iterations, total_ms }
+  { min_ms, max_ms, avg_ms, p50_ms, p95_ms, p99_ms, iterations, total_ms, }
 }
 
 ///|

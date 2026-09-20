@@ -300,7 +300,7 @@ pub fn WeComUploadState::with_chunk_size(
   total_size : Int,
   chunk_size : Int,
 ) -> WeComUploadState {
-  { upload_id: "", chunk_index: 0, chunk_size, total_size }
+  { upload_id: "", chunk_index: 0, chunk_size, total_size, }
 }
 
 ///|

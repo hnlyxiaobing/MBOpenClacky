@@ -33,32 +33,32 @@ pub extend Banner with Eq::{not_equal, equal}
 ///|
 /// Create a new Banner with default style (Boxed, width 60, no color).
 pub fn Banner::new() -> Banner {
-  { style: Boxed, width: 60, use_color: false }
+  { style: Boxed, width: 60, use_color: false, }
 }
 
 ///|
 /// Create a new Banner with custom width (Boxed style, no color).
 pub fn Banner::with_width(width : Int) -> Banner {
-  { style: Boxed, width, use_color: false }
+  { style: Boxed, width, use_color: false, }
 }
 
 ///|
 /// Create with custom style.
 pub fn Banner::with_style(style : BannerStyle) -> Banner {
-  { style, width: 60, use_color: false }
+  { style, width: 60, use_color: false, }
 }
 
 ///|
 /// Create with custom style and width.
 pub fn Banner::with_style_and_width(style : BannerStyle, width : Int) -> Banner {
-  { style, width, use_color: false }
+  { style, width, use_color: false, }
 }
 
 ///|
 /// Create a Block-style banner with custom width (style variants are
 /// read-only outside this package, hence a dedicated constructor).
 pub fn Banner::block_with_width(width : Int) -> Banner {
-  { style: Block, width, use_color: false }
+  { style: Block, width, use_color: false, }
 }
 
 ///|

@@ -11,13 +11,13 @@ pub extend VisionResolver with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a new VisionResolver with default config
 pub fn VisionResolver::new() -> VisionResolver {
-  { config: VisionConfig::default(), cache: Map([]) }
+  { config: VisionConfig::default(), cache: Map([]), }
 }
 
 ///|
 /// Create a VisionResolver with custom config
 pub fn VisionResolver::with_config(config : VisionConfig) -> VisionResolver {
-  { config, cache: Map([]) }
+  { config, cache: Map([]), }
 }
 
 ///|
@@ -35,7 +35,7 @@ pub async fn VisionResolver::describe(
   let key = compute_cache_key(input, effective_prompt)
   // 2. Check cache → return if hit
   match self.check_cache(key) {
-    Some(cached_result) => return { ..cached_result, cached: true }
+    Some(cached_result) => return { ..cached_result, cached: true, }
     None => ()
   }
   // 3. Validate input
@@ -48,7 +48,7 @@ pub async fn VisionResolver::describe(
     DataUrl(url) => url
     VisionBytes(data) =>
       // Convert raw bytes to a base64 data URL
-      "data:image/png;base64," + @base64.encode(data.view())
+      "data:image/png;base64," + @base64.encode(data.exact_view())
     FilePath(path) => "file://" + path
   }
   let content_arr : Array[Json] = [

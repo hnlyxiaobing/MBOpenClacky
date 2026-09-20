@@ -179,7 +179,7 @@ test "scheduler_create_cron_task_rejects_traversal" {
   let config_path = "/tmp/mboc-wbt-sched-persist-trav.yml"
   sched_cleanup(config_path)
   let tasks_dir = "/tmp/mboc-wbt-sched-tasks-trav"
-  let config : SchedulerConfig = { schedules: [], tasks_dir, config_path }
+  let config : SchedulerConfig = { schedules: [], tasks_dir, config_path, }
   let scheduler = Scheduler::new(config)
   for evil in ["../evil", "a/b", "a\\b", "..", ""] {
     let result = scheduler.create_cron_task(evil, "content", "* * * * *")

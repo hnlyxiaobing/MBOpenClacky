@@ -62,7 +62,7 @@ test "build_skills_summary: search-skills pinned to the end" {
 ///|
 test "build_skills_summary: default skills come before user skills" {
   let skills : Array[Skill] = [
-    { ..Skill::default("user-skill", "project"), description: Some("user") },
+    { ..Skill::default("user-skill", "project"), description: Some("user"), },
     {
       ..Skill::default("builtin-skill", "builtin"),
       description: Some("builtin"),
@@ -85,7 +85,7 @@ test "build_skills_summary: uses context_description truncation" {
   // A description over 340 chars must be truncated in the summary.
   let long = "D".repeat(500)
   let skills = [
-    { ..Skill::default("long-desc", "builtin"), description: Some(long) },
+    { ..Skill::default("long-desc", "builtin"), description: Some(long), },
   ]
   let summary = build_skills_summary(skills)
   // The truncated description (339 + ellipsis) must not appear verbatim.

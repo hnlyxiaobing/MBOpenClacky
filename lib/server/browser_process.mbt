@@ -58,7 +58,7 @@ pub async fn BrowserProcess::spawn(
       return Err("Failed to spawn process: \{command}")
     }
   }
-  Ok({ pid, alive: true, stdin_writer, stdout_reader })
+  Ok({ pid, alive: true, stdin_writer, stdout_reader, })
 }
 
 ///|

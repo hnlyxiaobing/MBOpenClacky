@@ -10,7 +10,7 @@ pub(all) struct WebhookRegistry {
 
 ///|
 pub fn WebhookRegistry::new() -> WebhookRegistry {
-  { handlers: Map([]) }
+  { handlers: Map([]), }
 }
 
 ///|

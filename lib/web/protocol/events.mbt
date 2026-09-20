@@ -98,7 +98,7 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
       }
     }
     ErrorOccurred(msg) =>
-      { event_type: "error", data: Json::object({ "message": msg.to_json() }) }
+      { event_type: "error", data: Json::object({ "message": msg.to_json() }), }
     RunCompleted(result) => {
       let cs = result.cache_stats
       {
@@ -205,7 +205,7 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
         data: Json::object({ "lines": lines.to_json() }),
       }
     InfoMessage(msg) =>
-      { event_type: "info", data: Json::object({ "message": msg.to_json() }) }
+      { event_type: "info", data: Json::object({ "message": msg.to_json() }), }
     SuccessMessage(msg) =>
       {
         event_type: "success",

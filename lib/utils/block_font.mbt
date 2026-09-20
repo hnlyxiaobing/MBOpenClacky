@@ -39,13 +39,13 @@ pub extend BlockFont with Eq::{not_equal, equal}
 ///|
 /// Create a new BlockFont with default style (Full, spacing 1).
 pub fn BlockFont::new() -> BlockFont {
-  { style: Full, letter_spacing: 1 }
+  { style: Full, letter_spacing: 1, }
 }
 
 ///|
 /// Create with custom style and default spacing.
 pub fn BlockFont::with_style(style : BlockStyle) -> BlockFont {
-  { style, letter_spacing: 1 }
+  { style, letter_spacing: 1, }
 }
 
 ///|
@@ -125,7 +125,7 @@ pub fn BlockFont::render_char(self : BlockFont, c : Char) -> Array[String] {
     Some(bm) => bm
     None =>
       // Unknown character: render as a simple filled block
-      { rows: ["11111", "11111", "11111", "11111", "11111"] }
+      { rows: ["11111", "11111", "11111", "11111", "11111"], }
   }
   let result = []
   for row in bitmap.rows {

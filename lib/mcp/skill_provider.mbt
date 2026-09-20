@@ -32,7 +32,7 @@ pub(all) struct SkillProvider {
 ///|
 /// Create a new SkillProvider with directories to scan.
 pub fn SkillProvider::new(skill_dirs : Array[String]) -> SkillProvider {
-  { skill_dirs, registered_skills: [] }
+  { skill_dirs, registered_skills: [], }
 }
 
 ///|

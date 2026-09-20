@@ -55,7 +55,7 @@ pub fn Logger::new(
   } else {
     log_dir
   }
-  { log_dir: dir, max_files, min_level, console_echo }
+  { log_dir: dir, max_files, min_level, console_echo, }
 }
 
 ///|

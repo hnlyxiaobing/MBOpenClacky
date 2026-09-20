@@ -128,7 +128,7 @@ test "decode_bing_url decodes a1-prefixed urlsafe base64" {
 test "bing_results_relevant rejects filler and accepts token matches" {
   let query = "MoonBit 语言"
   let filler : Array[SearchResult] = [
-    { title: "Yandex", url: "https://yandex.ru", snippet: "Search engine" },
+    { title: "Yandex", url: "https://yandex.ru", snippet: "Search engine", },
   ]
   @debug.debug_inspect(bing_results_relevant(filler, query), content="false")
   let good : Array[SearchResult] = [

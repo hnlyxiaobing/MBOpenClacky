@@ -699,7 +699,7 @@ fn handle_backup_restore_body_bridge(
       HttpResponse::bad_request("Missing 'id' in request body"),
     )
   }
-  let req_with_id : HttpRequest = { ..req, params: [("id", id)] }
+  let req_with_id : HttpRequest = { ..req, params: [("id", id)], }
   response_to_core(handle_backups_restore(req_with_id))
 }
 
@@ -1044,7 +1044,7 @@ fn handle_trash_sessions_restore_body_bridge(
       HttpResponse::bad_request("Missing 'session_id' in request body"),
     )
   }
-  let req_with_id : HttpRequest = { ..req, params: [("id", session_id)] }
+  let req_with_id : HttpRequest = { ..req, params: [("id", session_id)], }
   response_to_core(handle_trash_restore(req_with_id))
 }
 

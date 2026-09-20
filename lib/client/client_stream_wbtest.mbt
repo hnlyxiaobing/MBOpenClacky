@@ -53,9 +53,9 @@ test "sse_parse_no_terminator" {
 
 ///|
 test "sse_frame_equality" {
-  let f1 : SseFrame = { event: "msg", data: "x" }
-  let f2 : SseFrame = { event: "msg", data: "x" }
-  let f3 : SseFrame = { event: "msg", data: "y" }
+  let f1 : SseFrame = { event: "msg", data: "x", }
+  let f2 : SseFrame = { event: "msg", data: "x", }
+  let f3 : SseFrame = { event: "msg", data: "y", }
   assert_true(f1 == f2)
   assert_true(f1 != f3)
 }

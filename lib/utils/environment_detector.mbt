@@ -56,7 +56,7 @@ pub fn is_wsl() -> Bool {
 
 ///|
 /// Cached result of the WSL1 detection (osrelease is read at most once).
-let wsl1_cache : Ref[Bool?] = { val: None }
+let wsl1_cache : Ref[Bool?] = { val: None, }
 
 ///|
 /// Check if running in WSL1 specifically (not WSL2, not native Linux).

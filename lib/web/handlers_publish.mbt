@@ -121,7 +121,7 @@ fn build_skill_zip(name : String, skill_dir : String) -> Result[Bytes, String] {
   let entries : Array[@zip.ZipEntry] = []
   for f in files {
     let (rel, data) = f
-    entries.push({ name: name + "/" + rel, data })
+    entries.push({ name: name + "/" + rel, data, })
   }
   @zip.create_zip(entries)
 }
@@ -143,7 +143,7 @@ fn upload_fail(
   error : String,
   already_exists? : Bool = false,
 ) -> SkillUploadOutcome {
-  { success: false, error, already_exists, platform_version: None }
+  { success: false, error, already_exists, platform_version: None, }
 }
 
 ///|

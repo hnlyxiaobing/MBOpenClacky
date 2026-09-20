@@ -32,7 +32,7 @@ priv struct TrashState {
 
 ///|
 /// Global trash state singleton (module-level mutable).
-let trash_state : Ref[TrashState] = Ref({ items: [], loaded: false })
+let trash_state : Ref[TrashState] = Ref({ items: [], loaded: false, })
 
 ///|
 /// Path to the trash state file.
@@ -111,7 +111,7 @@ fn parse_trash_item(json : Json) -> TrashItem? {
         Some(String(s)) => s
         _ => ""
       }
-      Some({ id, item_type, name, deleted_at, expires_at })
+      Some({ id, item_type, name, deleted_at, expires_at, })
     }
     _ => None
   }

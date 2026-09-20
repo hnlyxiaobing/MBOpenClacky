@@ -67,7 +67,7 @@ fn wiring_response_json(resp : HttpResponse) -> Json {
 ///|
 /// Build a POST HttpRequest targeting /api/channels/:id/... with a JSON body.
 fn wiring_make_request(path : String, body : String) -> HttpRequest {
-  { http_method: POST, path, params: [("id", "ch-1")], body, headers: [] }
+  { http_method: POST, path, params: [("id", "ch-1")], body, headers: [], }
 }
 
 ///|

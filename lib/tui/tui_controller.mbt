@@ -945,7 +945,7 @@ async fn TuiController::handle_key(
               self.dirty = true
             }
             Ok(merged) => {
-              let pending : PendingConfigTest = { ..merged, mode, target_idx }
+              let pending : PendingConfigTest = { ..merged, mode, target_idx, }
               self.pending_config_test = Some(pending)
               ignore(
                 self.output.append_text(

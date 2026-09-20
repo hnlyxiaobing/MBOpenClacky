@@ -125,7 +125,7 @@ test "merge_api_extensions: empty inputs yield empty output" {
 ///|
 test "merge_api_extensions: a only is preserved" {
   let a : Array[ApiExtension] = [
-    { name: "a", version: "1.0", routes: [], enabled: true },
+    { name: "a", version: "1.0", routes: [], enabled: true, },
   ]
   let result = merge_api_extensions(a, [])
   @debug.assert_eq(result.length(), 1)
@@ -135,7 +135,7 @@ test "merge_api_extensions: a only is preserved" {
 ///|
 test "merge_api_extensions: b only is preserved" {
   let b : Array[ApiExtension] = [
-    { name: "b", version: "1.0", routes: [], enabled: true },
+    { name: "b", version: "1.0", routes: [], enabled: true, },
   ]
   let result = merge_api_extensions([], b)
   @debug.assert_eq(result.length(), 1)
@@ -145,7 +145,7 @@ test "merge_api_extensions: b only is preserved" {
 ///|
 test "merge_api_extensions: b overrides a on name clash" {
   let mk = fn(n : String) -> ApiExtension {
-    { name: n, version: "1.0", routes: [], enabled: true }
+    { name: n, version: "1.0", routes: [], enabled: true, }
   }
   let a : Array[ApiExtension] = [mk("dup"), mk("only-in-a")]
   let b : Array[ApiExtension] = [mk("dup"), mk("only-in-b")]

@@ -174,7 +174,7 @@ test "worker_statuses lists all" {
 
 ///|
 test "Worker new defaults to Idle" {
-  let wid : WorkerId = { id: 1, name: "test-worker" }
+  let wid : WorkerId = { id: 1, name: "test-worker", }
   let config = WorkerConfig::default_with_id(wid)
   let w = Worker::new(config)
   @debug.assert_eq(w.status, Idle)
@@ -184,7 +184,7 @@ test "Worker new defaults to Idle" {
 
 ///|
 test "Worker mark_busy changes status" {
-  let wid : WorkerId = { id: 1, name: "w1" }
+  let wid : WorkerId = { id: 1, name: "w1", }
   let w = Worker::new(WorkerConfig::default_with_id(wid))
   w.mark_busy("processing")
   @debug.assert_eq(w.status, Busy("processing"))
@@ -192,7 +192,7 @@ test "Worker mark_busy changes status" {
 
 ///|
 test "Worker task_done increments counters" {
-  let wid : WorkerId = { id: 1, name: "w1" }
+  let wid : WorkerId = { id: 1, name: "w1", }
   let w = Worker::new(WorkerConfig::default_with_id(wid))
   w.mark_busy("t1")
   w.task_done(true)
@@ -206,7 +206,7 @@ test "Worker task_done increments counters" {
 
 ///|
 test "Worker is_available when Idle" {
-  let wid : WorkerId = { id: 1, name: "w1" }
+  let wid : WorkerId = { id: 1, name: "w1", }
   let w = Worker::new(WorkerConfig::default_with_id(wid))
   assert_true(w.is_available())
   w.mark_busy("work")

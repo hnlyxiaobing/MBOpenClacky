@@ -172,7 +172,7 @@ test "run_eval_scenario executes full scenario" {
   let scenario = EvalScenario::{
     name: "inline_test",
     description: "Test scenario",
-    setup: { cols: 40, rows: 10, mock_response: "" },
+    setup: { cols: 40, rows: 10, mock_response: "", },
     actions: [EvalAction::Type(text="hi")],
     assertions: [EvalAssertion::Contains(text="hi", region="")],
   }

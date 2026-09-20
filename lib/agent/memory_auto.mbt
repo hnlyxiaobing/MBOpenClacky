@@ -166,7 +166,7 @@ fn parse_memory_block(block : String) -> ExtractedMemory? {
     }
     None => []
   }
-  Some({ title, content, category, keywords })
+  Some({ title, content, category, keywords, })
 }
 
 ///|

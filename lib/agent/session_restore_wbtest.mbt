@@ -603,7 +603,7 @@ fn restore_test_session(messages : Array[@message.Message]) -> SessionData {
 /// compression misfire immediately after resuming (decision 6).
 test "restore_from_session keeps previous_total_tokens baseline" {
   let agent = make_restore_agent()
-  let data = { ..restore_test_session([]), previous_total_tokens: 5000 }
+  let data = { ..restore_test_session([]), previous_total_tokens: 5000, }
   agent.restore_from_session(data)
   @debug.assert_eq(agent.previous_total_tokens, 5000)
 }
@@ -618,7 +618,7 @@ test "restore_from_session rolls back history after error state" {
     @message.Message::user("question"),
     @message.Message::assistant("partial answer before crash"),
   ]
-  let data = { ..restore_test_session(msgs), last_status: "error" }
+  let data = { ..restore_test_session(msgs), last_status: "error", }
   agent.restore_from_session(data)
   // Rollback keeps only the last real user message; the refreshed system
   // prompt is re-inserted at the head.

@@ -9,7 +9,7 @@ pub(all) struct MediaOutputDir {
 ///|
 /// Create a new MediaOutputDir with default prefix "media"
 pub fn MediaOutputDir::new(base_path : String) -> MediaOutputDir {
-  { base_path, prefix: "media", counter: 0 }
+  { base_path, prefix: "media", counter: 0, }
 }
 
 ///|
@@ -18,7 +18,7 @@ pub fn MediaOutputDir::with_prefix(
   base_path : String,
   prefix : String,
 ) -> MediaOutputDir {
-  { base_path, prefix, counter: 0 }
+  { base_path, prefix, counter: 0, }
 }
 
 ///|

@@ -165,7 +165,7 @@ pub fn compress_with_level_fallback(
           // Skip fallbacks that are not more generous
           continue
         }
-        let fb_ctx = { ..ctx, recent_message_count: fb_count }
+        let fb_ctx = { ..ctx, recent_message_count: fb_count, }
         match compress_with_rollback(history, llm_response, fb_ctx) {
           Success(stats) => return Success(stats)
           Failed(e) => last_err = e

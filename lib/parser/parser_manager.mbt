@@ -20,13 +20,13 @@ pub extend ParserManager with Eq::{not_equal, equal}
 ///|
 /// Create a new ParserManager with default settings
 pub fn ParserManager::new() -> ParserManager {
-  { preserve_formatting: true }
+  { preserve_formatting: true, }
 }
 
 ///|
 /// Create a ParserManager with custom formatting setting
 pub fn ParserManager::with_formatting(preserve : Bool) -> ParserManager {
-  { preserve_formatting: preserve }
+  { preserve_formatting: preserve, }
 }
 
 ///|

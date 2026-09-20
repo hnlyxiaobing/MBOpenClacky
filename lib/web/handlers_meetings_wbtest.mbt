@@ -13,7 +13,7 @@ fn make_meeting_request(
   body? : String = "",
   params? : Array[(String, String)] = [],
 ) -> HttpRequest {
-  { http_method, path, params, body, headers: [] }
+  { http_method, path, params, body, headers: [], }
 }
 
 ///|

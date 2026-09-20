@@ -45,7 +45,7 @@ priv struct CapturedCall {
 fn install_mock_transport(
   result : Result[(Int, String), String],
 ) -> Ref[CapturedCall?] {
-  let captured : Ref[CapturedCall?] = { val: None }
+  let captured : Ref[CapturedCall?] = { val: None, }
   set_multipart_transport_override(
     Some(fn(
       http_method : String,
@@ -54,7 +54,7 @@ fn install_mock_transport(
       body : Bytes,
       _timeout : Int,
     ) -> Result[(Int, String), String] {
-      captured.val = Some({ http_method, url, headers, body })
+      captured.val = Some({ http_method, url, headers, body, })
       result
     }),
   )

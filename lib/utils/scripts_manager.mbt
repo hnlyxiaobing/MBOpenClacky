@@ -44,7 +44,7 @@ pub fn ScriptsManager::with_extensions(
   scripts_dir : String,
   extensions : Array[String],
 ) -> ScriptsManager {
-  ScriptsManager::{ scripts_dir, extensions }
+  ScriptsManager::{ scripts_dir, extensions, }
 }
 
 ///|
@@ -70,7 +70,7 @@ pub fn ScriptsManager::list_scripts(self : ScriptsManager) -> Array[ScriptInfo] 
       let path = self.build_script_path(entry)
       let is_file = @fs.is_file(path) catch { _ => false }
       if is_file {
-        result.push({ name: entry, path, description: "", extension: ext })
+        result.push({ name: entry, path, description: "", extension: ext, })
       }
     }
   }

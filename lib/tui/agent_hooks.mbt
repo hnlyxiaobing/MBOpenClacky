@@ -22,7 +22,7 @@ pub extend HookHandlerConfig with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Default configuration: all tracking enabled.
 pub fn default_hook_config() -> HookHandlerConfig {
-  { track_tool_history: true, track_llm_calls: true, track_phases: true }
+  { track_tool_history: true, track_llm_calls: true, track_phases: true, }
 }
 
 ///|
@@ -46,7 +46,7 @@ pub fn AgentHookHandler::new(
   config? : HookHandlerConfig = default_hook_config(),
   agent? : @agent.Agent? = None,
 ) -> AgentHookHandler {
-  { state, config, agent, output: None }
+  { state, config, agent, output: None, }
 }
 
 ///|

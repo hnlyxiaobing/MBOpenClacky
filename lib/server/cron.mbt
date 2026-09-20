@@ -68,7 +68,7 @@ pub fn CronExpression::parse(expr : String) -> Result[CronExpression, String] {
     Ok(f) => f
     Err(e) => return Err("day_of_week: " + e)
   }
-  Ok({ minute, hour, day_of_month, month, day_of_week, raw: expr })
+  Ok({ minute, hour, day_of_month, month, day_of_week, raw: expr, })
 }
 
 ///|

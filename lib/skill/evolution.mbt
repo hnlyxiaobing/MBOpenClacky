@@ -49,7 +49,7 @@ pub extend EvolutionResult with Eq::{not_equal, equal}
 ///|
 /// Create an EvolutionEngine with default settings.
 pub fn EvolutionEngine::new() -> EvolutionEngine {
-  { reflector: SkillReflector::new(), auto_creator: AutoCreator::new() }
+  { reflector: SkillReflector::new(), auto_creator: AutoCreator::new(), }
 }
 
 ///|
@@ -58,7 +58,7 @@ pub fn EvolutionEngine::with_components(
   reflector : SkillReflector,
   auto_creator : AutoCreator,
 ) -> EvolutionEngine {
-  { reflector, auto_creator }
+  { reflector, auto_creator, }
 }
 
 ///|
@@ -95,7 +95,7 @@ fn EvolutionEngine::handle_post_execution(
   }
   // Attempt to apply improvements
   match self.reflector.apply_improvements(report) {
-    Ok(msg) => Ok({ action: Improved, skill_name, diff_summary: msg })
+    Ok(msg) => Ok({ action: Improved, skill_name, diff_summary: msg, })
     Err(e) => Err("Failed to apply improvements: " + e)
   }
 }
@@ -126,7 +126,8 @@ fn EvolutionEngine::handle_auto_detect(
   }
   // Try to create the skill
   match self.auto_creator.create_skill(best) {
-    Ok(msg) => Ok({ action: Created, skill_name: best.name, diff_summary: msg })
+    Ok(msg) =>
+      Ok({ action: Created, skill_name: best.name, diff_summary: msg, })
     Err(e) => Err("Failed to create skill: " + e)
   }
 }

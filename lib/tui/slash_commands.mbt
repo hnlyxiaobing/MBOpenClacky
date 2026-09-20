@@ -68,9 +68,9 @@ pub fn SlashCommandParser::new() -> SlashCommandParser {
       description: "Start a fresh session (new session id)",
       usage: "/clear",
     },
-    { name: "help", description: "Show available commands", usage: "/help" },
-    { name: "exit", description: "Exit the application", usage: "/exit" },
-    { name: "quit", description: "Quit (alias for exit)", usage: "/quit" },
+    { name: "help", description: "Show available commands", usage: "/help", },
+    { name: "exit", description: "Exit the application", usage: "/exit", },
+    { name: "quit", description: "Quit (alias for exit)", usage: "/quit", },
     {
       name: "theme",
       description: "Switch the color theme",

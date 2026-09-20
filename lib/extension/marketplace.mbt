@@ -161,7 +161,7 @@ fn parse_registry_entry(json : Json) -> RegistryEntry? {
         Some(Number(d, ..)) => d.to_int64()
         _ => 0L
       }
-      Some({ id, latest_version, versions, metadata, installs, published_at })
+      Some({ id, latest_version, versions, metadata, installs, published_at, })
     }
     _ => None
   }
@@ -229,7 +229,7 @@ pub fn enable_extension(ext_id : String) -> Result[Extension, String] {
       state[ext_id] = true
       save_enabled_state_to_disk(state)
       println("[Marketplace] Enabled extension: " + ext_id)
-      Ok({ ..ext, enabled: true })
+      Ok({ ..ext, enabled: true, })
     }
     None => Err("extension not found: " + ext_id)
   }
@@ -247,7 +247,7 @@ pub fn disable_extension(ext_id : String) -> Result[Extension, String] {
       state[ext_id] = false
       save_enabled_state_to_disk(state)
       println("[Marketplace] Disabled extension: " + ext_id)
-      Ok({ ..ext, enabled: false })
+      Ok({ ..ext, enabled: false, })
     }
     None => Err("extension not found: " + ext_id)
   }
@@ -287,7 +287,7 @@ pub fn apply_enabled_state_to(
       Some(b) => b
       None => ext.enabled
     }
-    result.push({ ..ext, enabled: next_enabled })
+    result.push({ ..ext, enabled: next_enabled, })
   }
   result
 }

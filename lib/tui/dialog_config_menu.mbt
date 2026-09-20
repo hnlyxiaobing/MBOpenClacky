@@ -85,7 +85,7 @@ pub fn build_config_menu_items(
     let masked = mask_api_key(m.api_key)
     let current_marker = if is_current { " ●" } else { "" }
     let label = "\{m.model} \{type_badge} \{masked}\{current_marker}"
-    items.push({ label, value: m.id, multi_select: false, checked: false })
+    items.push({ label, value: m.id, multi_select: false, checked: false, })
   }
   // Separator (non-selectable)
   items.push({
@@ -420,7 +420,7 @@ pub fn ConfigMenuDialog::new(
   items : Array[ConfigMenuItem],
 ) -> ConfigMenuDialog {
   let checked = items.map(fn(_item) { false })
-  { title, items, selected_idx: 0, checked }
+  { title, items, selected_idx: 0, checked, }
 }
 
 ///|

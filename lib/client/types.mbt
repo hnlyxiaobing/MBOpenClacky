@@ -290,5 +290,5 @@ pub fn Latency::new(
   measured_at? : String? = None,
   streaming? : Bool = false,
 ) -> Latency {
-  { duration_ms, ttft_ms, output_tokens, tps, model, measured_at, streaming }
+  { duration_ms, ttft_ms, output_tokens, tps, model, measured_at, streaming, }
 }

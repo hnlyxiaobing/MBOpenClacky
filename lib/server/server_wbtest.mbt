@@ -365,7 +365,7 @@ async test "discover_find_all_empty" {
 
 ///|
 test "server_instance_creation" {
-  let instance : ServerInstance = { host: "127.0.0.1", port: 8080, pid: 12345 }
+  let instance : ServerInstance = { host: "127.0.0.1", port: 8080, pid: 12345, }
   @debug.assert_eq(instance.host, "127.0.0.1")
   @debug.assert_eq(instance.port, 8080)
   @debug.assert_eq(instance.pid, 12345)

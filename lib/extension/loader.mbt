@@ -265,7 +265,7 @@ fn build_contribution_from_obj(
     _ => return None
   }
   let config = parse_string_map(cobj, "config")
-  Some({ type_, id, name, description, path, config })
+  Some({ type_, id, name, description, path, config, })
 }
 
 ///|

@@ -246,7 +246,12 @@ fn lc_tool_call(
   name : String,
   arguments : String,
 ) -> @message.ToolCall {
-  { id, type_: "function", function: { name, arguments }, extra_content: None }
+  {
+    id,
+    type_: "function",
+    function: { name, arguments, },
+    extra_content: None,
+  }
 }
 
 ///|
@@ -545,7 +550,7 @@ test "check_empty_response ok when tool_calls present" {
       {
         id: "c1",
         type_: "function",
-        function: { name: "x", arguments: "{}" },
+        function: { name: "x", arguments: "{}", },
         extra_content: None,
       },
     ]),

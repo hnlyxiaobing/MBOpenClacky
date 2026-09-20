@@ -37,7 +37,7 @@ pub fn parse_feishu_message(
     "text" => {
       let text = parse_feishu_text(content_str)
       let doc_urls = extract_feishu_doc_urls(text)
-      Ok({ msg_type, text, attachments: [], doc_urls })
+      Ok({ msg_type, text, attachments: [], doc_urls, })
     }
     "post" => {
       let content_json = @json.parse(content_str) catch {
@@ -45,7 +45,7 @@ pub fn parse_feishu_message(
       }
       let text = parse_feishu_post(content_json)
       let doc_urls = extract_feishu_doc_urls(text)
-      Ok({ msg_type, text, attachments: [], doc_urls })
+      Ok({ msg_type, text, attachments: [], doc_urls, })
     }
     "image" => {
       let att = parse_feishu_image(message)
@@ -54,7 +54,7 @@ pub fn parse_feishu_message(
         Some(a) => attachments.push(a)
         None => ()
       }
-      Ok({ msg_type, text: "[image]", attachments, doc_urls: [] })
+      Ok({ msg_type, text: "[image]", attachments, doc_urls: [], })
     }
     "file" => {
       let att = parse_feishu_file(message)
@@ -63,7 +63,7 @@ pub fn parse_feishu_message(
         Some(a) => attachments.push(a)
         None => ()
       }
-      Ok({ msg_type, text: "[file]", attachments, doc_urls: [] })
+      Ok({ msg_type, text: "[file]", attachments, doc_urls: [], })
     }
     _ =>
       // Unknown type: try text extraction from content string as fallback

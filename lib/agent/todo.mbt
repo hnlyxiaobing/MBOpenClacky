@@ -7,7 +7,7 @@ pub(all) struct TodoManager {
 
 ///|
 pub fn TodoManager::new() -> TodoManager {
-  { items: [], next_id: 1 }
+  { items: [], next_id: 1, }
 }
 
 ///|

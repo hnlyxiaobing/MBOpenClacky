@@ -262,7 +262,7 @@ fn parse_ext_json(content : String) -> ApiExtension? {
         Some(False) => false
         _ => true
       }
-      Some({ name, version: get_str("version"), routes, enabled })
+      Some({ name, version: get_str("version"), routes, enabled, })
     }
     _ => None
   }

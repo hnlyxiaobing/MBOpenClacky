@@ -15,7 +15,7 @@ pub(all) struct Style {
 
 ///|
 pub fn Style::default_() -> Style {
-  { fg: None, bg: None, bold: false, dim: false }
+  { fg: None, bg: None, bold: false, dim: false, }
 }
 
 ///|
@@ -25,7 +25,7 @@ pub fn Style::new(
   bold? : Bool = false,
   dim? : Bool = false,
 ) -> Style {
-  { fg: Some(fg), bg: Some(bg), bold, dim }
+  { fg: Some(fg), bg: Some(bg), bold, dim, }
 }
 
 ///|

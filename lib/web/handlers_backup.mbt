@@ -45,7 +45,7 @@ fn read_dir_if_dir(path : String) -> Array[String] {
   if !is_directory {
     return []
   }
-  @fs.read_dir(path) catch {
+  @fs.read_dir(path).to_owned() catch {
     _ => {
       warn_read_dir_once(path)
       []
@@ -188,7 +188,7 @@ fn parse_backup_record(obj : Map[String, Json]) -> BackupRecord? {
     Some(String(s)) => s
     _ => ""
   }
-  Some({ id, label, created_at, size_bytes, status, scope, description })
+  Some({ id, label, created_at, size_bytes, status, scope, description, })
 }
 
 ///|

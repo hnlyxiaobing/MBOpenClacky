@@ -248,11 +248,11 @@ pub fn JsonRpcResponse::from_json(json : Json) -> JsonRpcResponse? {
             { "data": d, .. } => Some(d)
             _ => None
           }
-          Some({ code: code.to_int(), message: msg, data })
+          Some({ code: code.to_int(), message: msg, data, })
         }
         _ => None
       }
-      Some({ jsonrpc: ver, id, result, error })
+      Some({ jsonrpc: ver, id, result, error, })
     }
     _ => None
   }
@@ -268,7 +268,7 @@ pub fn McpTool::from_json(json : Json) -> McpTool? {
         { "input_schema": s, .. } => s
         _ => Json::null()
       }
-      Some({ name, description: desc, input_schema: schema })
+      Some({ name, description: desc, input_schema: schema, })
     }
     _ => None
   }
@@ -281,9 +281,9 @@ pub fn McpServerInfo::from_json(json : Json) -> McpServerInfo? {
     { "serverInfo": { "name": String(name), "version": String(ver), .. }, .. } => {
       let caps = match json {
         { "capabilities": c, .. } => parse_capabilities(c)
-        _ => { tools: false, prompts: false, resources: false }
+        _ => { tools: false, prompts: false, resources: false, }
       }
-      Some({ name, version: ver, capabilities: caps })
+      Some({ name, version: ver, capabilities: caps, })
     }
     _ => None
   }
@@ -304,7 +304,7 @@ fn parse_capabilities(json : Json) -> McpCapabilities {
     { "resources": _, .. } => true
     _ => false
   }
-  { tools, prompts, resources }
+  { tools, prompts, resources, }
 }
 
 ///|

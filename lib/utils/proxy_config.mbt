@@ -19,7 +19,7 @@ pub extend ProxyConfig with Eq::{not_equal, equal}
 ///|
 /// Create an empty proxy configuration (no proxy, epoch 0).
 pub fn ProxyConfig::new() -> ProxyConfig {
-  { proxy_url: "", epoch: 0, no_proxy: "" }
+  { proxy_url: "", epoch: 0, no_proxy: "", }
 }
 
 ///|
@@ -58,7 +58,7 @@ pub fn ProxyConfig::install(
         None => ""
       }
   }
-  { proxy_url: url, epoch: 1, no_proxy: bypass }
+  { proxy_url: url, epoch: 1, no_proxy: bypass, }
 }
 
 ///|
@@ -100,7 +100,7 @@ pub fn ProxyConfig::should_bypass(self : ProxyConfig, host : String) -> Bool {
 ///|
 /// Reset proxy configuration (clear URL, increment epoch).
 pub fn ProxyConfig::reset(self : ProxyConfig) -> ProxyConfig {
-  { proxy_url: "", epoch: self.epoch + 1, no_proxy: self.no_proxy }
+  { proxy_url: "", epoch: self.epoch + 1, no_proxy: self.no_proxy, }
 }
 
 // ─── Internal helpers ───────────────────────────────────────────────

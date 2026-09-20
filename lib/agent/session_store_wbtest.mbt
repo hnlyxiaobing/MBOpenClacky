@@ -73,7 +73,7 @@ fn ss_make_session(id : String, name : String) -> SessionData {
 test "save_session writes datetime-prefixed file and round trips" {
   let old = ss_push_profile()
   let id = generate_session_id()
-  let data = { ..ss_make_session(id, "roundtrip"), pinned: true }
+  let data = { ..ss_make_session(id, "roundtrip"), pinned: true, }
   save_session(data) catch {
     _ => assert_true(false)
   }

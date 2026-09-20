@@ -354,7 +354,7 @@ fn inject_api_contrib(
       })
       result.push({
         ..ext,
-        manifest: { ..ext.manifest, contributions: new_contribs },
+        manifest: { ..ext.manifest, contributions: new_contribs, },
       })
     } else {
       result.push(ext)

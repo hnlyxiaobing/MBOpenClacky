@@ -53,7 +53,7 @@ pub fn IpRateLimiter::new(
   max_failures? : Int = 10,
   window_seconds? : Int64 = 300L,
 ) -> IpRateLimiter {
-  { failures: Map([]), max_failures, window_seconds }
+  { failures: Map([]), max_failures, window_seconds, }
 }
 
 ///|
@@ -91,7 +91,7 @@ pub fn IpRateLimiter::record_failure(
       entry.count = entry.count + 1
     }
   } else {
-    self.failures[ip] = { count: 1, first_failure_at: now_ms }
+    self.failures[ip] = { count: 1, first_failure_at: now_ms, }
   }
 }
 

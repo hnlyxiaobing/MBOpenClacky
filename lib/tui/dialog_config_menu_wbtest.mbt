@@ -2,9 +2,9 @@
 /// Tests for ConfigMenuDialog rendering and navigation.
 fn make_test_menu() -> ConfigMenuDialog {
   let items = [
-    { label: "Option A", value: "a", multi_select: false, checked: false },
-    { label: "Option B", value: "b", multi_select: false, checked: false },
-    { label: "Option C", value: "c", multi_select: false, checked: false },
+    { label: "Option A", value: "a", multi_select: false, checked: false, },
+    { label: "Option B", value: "b", multi_select: false, checked: false, },
+    { label: "Option C", value: "c", multi_select: false, checked: false, },
   ]
   ConfigMenuDialog::new("Test Menu", items)
 }
@@ -12,9 +12,9 @@ fn make_test_menu() -> ConfigMenuDialog {
 ///|
 fn make_multi_menu() -> ConfigMenuDialog {
   let items = [
-    { label: "Enable X", value: "", multi_select: true, checked: false },
-    { label: "Enable Y", value: "", multi_select: true, checked: false },
-    { label: "Enable Z", value: "", multi_select: true, checked: false },
+    { label: "Enable X", value: "", multi_select: true, checked: false, },
+    { label: "Enable Y", value: "", multi_select: true, checked: false, },
+    { label: "Enable Z", value: "", multi_select: true, checked: false, },
   ]
   ConfigMenuDialog::new("Multi Menu", items)
 }

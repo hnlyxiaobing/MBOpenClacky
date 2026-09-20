@@ -305,7 +305,7 @@ fn do_search(
 /// 注意：x/fs read_file_to_string 内部是宽松解码（非法字节被组合成伪字符，
 /// 不产生 U+FFFD），故必须自己从 bytes 解码。
 pub fn read_file_scrubbed(path : String) -> String? {
-  Some(@utf8.decode_lossy(@fs.read_file_to_bytes(path).view())) catch {
+  Some(@utf8.decode_lossy(@fs.read_file_to_bytes(path).exact_view())) catch {
     _ => None
   }
 }

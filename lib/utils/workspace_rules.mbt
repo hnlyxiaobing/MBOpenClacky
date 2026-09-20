@@ -43,7 +43,7 @@ pub fn WorkspaceRules::find_main(dir : String) -> WorkspaceRules {
       }
     }
   }
-  { main_rule, main_rule_path, sub_rules: [] }
+  { main_rule, main_rule_path, sub_rules: [], }
 }
 
 ///|

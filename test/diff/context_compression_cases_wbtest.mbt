@@ -194,7 +194,7 @@ test "token_008_image_content_known_failure" {
   let msg = msg_of(
     @message.Role::User,
     @message.MessageContent::Blocks([
-      @message.ContentBlock::Text({ text: "看这张图片" }),
+      @message.ContentBlock::Text({ text: "看这张图片", }),
       @message.ContentBlock::Image({
         url: "data:image/png;base64,...",
         detail: None,

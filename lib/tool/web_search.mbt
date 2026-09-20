@@ -181,7 +181,7 @@ fn bing_headers(lang : String, host : String) -> Array[(String, String)] {
 
 ///|
 pub fn WebSearch::new() -> WebSearch {
-  { max_results: 10 }
+  { max_results: 10, }
 }
 
 ///|
@@ -495,7 +495,7 @@ fn parse_custom_results(
       Some(Json::String(s)) => s
       _ => ""
     }
-    results.push({ title, url, snippet })
+    results.push({ title, url, snippet, })
   }
   Ok(results)
 }
@@ -674,7 +674,7 @@ fn parse_ddg_results(html : String, max_results : Int) -> Array[SearchResult] {
     let is_filler = url.contains("duckduckgo.com") &&
       title == "Web search results"
     if url.length() > 0 && title.length() > 0 && !is_filler {
-      results.push({ title, url, snippet })
+      results.push({ title, url, snippet, })
     }
     pos = if snippet_pos >= 0 { snippet_pos + 1 } else { title_end + 1 }
   }
@@ -737,7 +737,7 @@ fn parse_bing_results(html : String, max_results : Int) -> Array[SearchResult] {
     // Snippet: <p class="b_lineclamp...">...</p> first, .b_caption <p> fallback
     let snippet = bing_snippet(html, title_end, limit)
     if url.length() > 0 && title.length() > 0 {
-      results.push({ title, url, snippet })
+      results.push({ title, url, snippet, })
     }
     pos = if block_end < 0 { html_len } else { block_end + 1 }
   }

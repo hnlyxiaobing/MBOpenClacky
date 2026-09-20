@@ -111,9 +111,9 @@ pub fn parse_web_eval_scenario(
             Some(False) => false
             _ => true
           }
-          { api_key, model_configured }
+          { api_key, model_configured, }
         }
-        _ => { api_key: None, model_configured: true }
+        _ => { api_key: None, model_configured: true, }
       }
       let steps : Array[WebEvalStep] = []
       match obj.get("steps") {
@@ -171,7 +171,13 @@ pub fn parse_web_eval_scenario(
                     }
                   _ => ()
                 }
-                steps.push({ http_method, path, body, headers, step_assertions })
+                steps.push({
+                  http_method,
+                  path,
+                  body,
+                  headers,
+                  step_assertions,
+                })
               }
               _ => ()
             }
@@ -193,7 +199,7 @@ pub fn parse_web_eval_scenario(
           }
         _ => ()
       }
-      Ok({ name, description: desc, setup, steps, assertions })
+      Ok({ name, description: desc, setup, steps, assertions, })
     }
     _ => Err("Scenario must be a JSON object")
   }

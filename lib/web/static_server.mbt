@@ -13,7 +13,7 @@ pub fn StaticServer::new(
   root_dir : String,
   index_file? : String = "index.html",
 ) -> StaticServer {
-  { root_dir, index_file }
+  { root_dir, index_file, }
 }
 
 ///|

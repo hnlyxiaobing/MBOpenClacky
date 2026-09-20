@@ -68,7 +68,7 @@ pub async fn find_all_local() -> Array[ServerInstance] {
         //    be reported as a live instance)
         if is_process_alive(pid) && is_server_reachable(port) {
           // 5. If alive, add to results
-          results.push({ host: "localhost", port, pid })
+          results.push({ host: "localhost", port, pid, })
         }
       }
       None => ()

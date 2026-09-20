@@ -105,7 +105,7 @@ fn scan_default_skill_entries(base_dir : String) -> Array[DefaultSkillEntry] {
       None => ""
     }
     entries.push({
-      meta: { name, description, user_invocable, allowed_tools, category },
+      meta: { name, description, user_invocable, allowed_tools, category, },
       directory: dir_path,
     })
   }

@@ -25,7 +25,7 @@ pub fn generate_device_id() -> DeviceInfo {
   let platform = get_platform()
   let raw = hostname + ":" + username + ":" + platform
   let device_id = simple_hash(raw)
-  { device_id, hostname, username, platform }
+  { device_id, hostname, username, platform, }
 }
 
 ///|

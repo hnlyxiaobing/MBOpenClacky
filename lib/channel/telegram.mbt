@@ -19,7 +19,7 @@ pub fn TelegramApiClient::new(bot_token : String) -> TelegramApiClient {
   let headers = HttpHeaders::new()
     .content_type("application/json")
     .set("Accept", "application/json")
-  { bot_token, base_url: TELEGRAM_API_BASE, http_headers: headers }
+  { bot_token, base_url: TELEGRAM_API_BASE, http_headers: headers, }
 }
 
 ///|
@@ -103,7 +103,7 @@ pub fn TelegramApiClient::parse_send_response(
             Some(Number(n, ..)) => n.to_int().to_string()
             _ => ""
           }
-          Ok({ message_id: msg_id, success: true, error: None })
+          Ok({ message_id: msg_id, success: true, error: None, })
         }
         _ => Err(ChannelError("Missing 'result' in send response"))
       }

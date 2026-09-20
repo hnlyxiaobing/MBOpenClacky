@@ -594,7 +594,7 @@ fn Agent::todo_add(
     "total": self.todo_manager.size().to_json(),
     "reminder": "⚠️ IMPORTANT: You have added TODO(s) but have NOT started working yet! You MUST now use other tools (write, edit, shell, etc.) to actually complete these tasks. DO NOT stop here!".to_json(),
   }).stringify()
-  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false, })
 }
 
 ///|
@@ -610,7 +610,7 @@ fn Agent::todo_list(self : Agent, call : @message.ToolCall) -> ToolResultEntry {
   } else {
     self.todo_manager.list_to_model_json().stringify()
   }
-  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false, })
 }
 
 ///|
@@ -721,7 +721,7 @@ fn Agent::todo_clear(self : Agent, call : @message.ToolCall) -> ToolResultEntry 
     "message": "All TODOs cleared".to_json(),
     "cleared_count": count.to_json(),
   }).stringify()
-  build_success_result(call, @tool.ToolResult::{ content, is_error: false })
+  build_success_result(call, @tool.ToolResult::{ content, is_error: false, })
 }
 
 ///|
@@ -996,7 +996,7 @@ pub fn build_success_result(
   let (content, inject) = extract_image_inject(
     truncate_tool_output(result.content),
   )
-  { id: call.id, content, is_error: false, image_inject: inject }
+  { id: call.id, content, is_error: false, image_inject: inject, }
 }
 
 ///|
@@ -1043,7 +1043,7 @@ pub fn extract_image_inject(content : String) -> (String, ImageInject?) {
         (Some(mime), Some(b64)) =>
           (
             content[:marker_pos].to_owned().trim().to_owned(),
-            Some({ mime_type: mime, base64_data: b64, path }),
+            Some({ mime_type: mime, base64_data: b64, path, }),
           )
         _ => (content, None)
       }
@@ -1060,7 +1060,7 @@ pub fn build_error_result(
   error_message : String,
 ) -> ToolResultEntry {
   let content = Json::object({ "error": ToJson::to_json(error_message) }).stringify()
-  { id: call.id, content, is_error: true, image_inject: None }
+  { id: call.id, content, is_error: true, image_inject: None, }
 }
 
 ///|
@@ -1114,5 +1114,5 @@ pub fn build_denied_result(
       None => Json::null()
     },
   }).stringify()
-  { id: call.id, content, is_error: true, image_inject: None }
+  { id: call.id, content, is_error: true, image_inject: None, }
 }

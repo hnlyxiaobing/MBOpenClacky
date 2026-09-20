@@ -45,7 +45,7 @@ pub extend CommandSuggestions with @moonbitlang/core/debug.Debug::{to_repr}
 /// Create a new CommandSuggestions with the default system commands.
 pub fn CommandSuggestions::new() -> CommandSuggestions {
   let commands = default_system_commands()
-  { commands, filtered: [], selected_index: 0, visible: false, max_visible: 5 }
+  { commands, filtered: [], selected_index: 0, visible: false, max_visible: 5, }
 }
 
 ///|
@@ -57,7 +57,7 @@ pub fn CommandSuggestions::with_skills(
   for sc in skill_commands {
     commands.push(sc)
   }
-  { commands, filtered: [], selected_index: 0, visible: false, max_visible: 5 }
+  { commands, filtered: [], selected_index: 0, visible: false, max_visible: 5, }
 }
 
 ///|
@@ -296,7 +296,7 @@ pub fn CommandSuggestions::set_commands(
 /// (`SlashCommandParser::new`).
 fn default_system_commands() -> Array[SuggestionItem] {
   [
-    { name: "/clear", description: "Clear message history", usage: "/clear" },
+    { name: "/clear", description: "Clear message history", usage: "/clear", },
     {
       name: "/config",
       description: "Open the configuration menu",
@@ -307,9 +307,9 @@ fn default_system_commands() -> Array[SuggestionItem] {
       description: "Open model selector or switch model",
       usage: "/model [name]",
     },
-    { name: "/help", description: "Show available commands", usage: "/help" },
-    { name: "/exit", description: "Exit the application", usage: "/exit" },
-    { name: "/quit", description: "Quit (alias for exit)", usage: "/quit" },
+    { name: "/help", description: "Show available commands", usage: "/help", },
+    { name: "/exit", description: "Exit the application", usage: "/exit", },
+    { name: "/quit", description: "Quit (alias for exit)", usage: "/quit", },
     {
       name: "/theme",
       description: "Switch the color theme",

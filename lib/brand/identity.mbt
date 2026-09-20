@@ -30,7 +30,7 @@ pub fn create_identity(
   bound_at : Int64,
   device_info : DeviceInfo,
 ) -> Identity {
-  { device_token, user_id, bound_at, device_info }
+  { device_token, user_id, bound_at, device_info, }
 }
 
 // ── Persistence ────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ pub fn parse_identity(json : Json) -> Identity? {
           }
         _ => return None
       }
-      Some({ device_token, user_id, bound_at, device_info })
+      Some({ device_token, user_id, bound_at, device_info, })
     }
     _ => None
   }
@@ -121,7 +121,7 @@ fn parse_device_info_json(obj : Map[String, Json]) -> DeviceInfo? {
     Some(String(s)) => s
     _ => return None
   }
-  Some({ device_id, hostname, username, platform })
+  Some({ device_id, hostname, username, platform, })
 }
 
 ///|

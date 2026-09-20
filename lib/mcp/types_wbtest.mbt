@@ -176,7 +176,11 @@ test "McpServerSpec from_json http" {
 
 ///|
 test "McpCapabilities default" {
-  let caps : McpCapabilities = { tools: true, prompts: false, resources: false }
+  let caps : McpCapabilities = {
+    tools: true,
+    prompts: false,
+    resources: false,
+  }
   assert_true(caps.tools)
   assert_false(caps.prompts)
   assert_false(caps.resources)

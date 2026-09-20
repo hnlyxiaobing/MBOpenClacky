@@ -41,3 +41,6 @@ _bak_tui_v1/
 .git_panel_output.tmp
 trace.json
 
+
+# vendor 补丁副本的隔离区（被禁用的 mbtpdf 示例/测试包，不参与构建）
+vendor_disabled/

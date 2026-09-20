@@ -7,7 +7,7 @@
 
 ///|
 /// across tests even when they run in the same millisecond.
-let ct_billing_seq : Ref[Int] = { val: 0 }
+let ct_billing_seq : Ref[Int] = { val: 0, }
 
 ///|
 /// Hermetic billing store under _build (never touches the user profile).

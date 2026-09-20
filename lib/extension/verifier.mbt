@@ -22,7 +22,7 @@ pub fn validate_manifest(
   validate_dependencies(manifest.dependencies, errors, warnings)
   validate_resources_exist(manifest.contributions, root_path, errors)
   let valid = errors.length() == 0
-  { valid, errors, warnings }
+  { valid, errors, warnings, }
 }
 
 ///|

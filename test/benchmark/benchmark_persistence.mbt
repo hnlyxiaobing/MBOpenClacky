@@ -13,7 +13,7 @@ pub fn BenchmarkResult::new(
   scenario_name : String,
   stats : BenchmarkStats,
 ) -> BenchmarkResult {
-  { scenario_name, timestamp: @agent.current_iso8601(), stats, metadata: {} }
+  { scenario_name, timestamp: @agent.current_iso8601(), stats, metadata: {}, }
 }
 
 ///|
@@ -122,7 +122,7 @@ pub fn BenchmarkResult::from_json(json_str : String) -> BenchmarkResult? {
         _ => {}
       }
 
-      Some({ scenario_name, timestamp, stats, metadata })
+      Some({ scenario_name, timestamp, stats, metadata, })
     }
     _ => None
   }

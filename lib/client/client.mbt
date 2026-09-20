@@ -74,7 +74,7 @@ pub fn Client::new(
     Some(v) => v
     None => @config.model_supports_vision(provider_id, model)
   }
-  { api_key, base_url, model, api_type, provider_id, vision_supported: vision }
+  { api_key, base_url, model, api_type, provider_id, vision_supported: vision, }
 }
 
 ///|
@@ -206,10 +206,10 @@ pub async fn Client::test_connection(self : Client) -> TestResult {
   }
   match http_result {
     Err(err) =>
-      { success: false, error: Some("Connection error: \{err.to_repr()}") }
+      { success: false, error: Some("Connection error: \{err.to_repr()}"), }
     Ok(resp) => {
       match map_http_error(resp.status_code, resp.body) {
-        Some(err_msg) => return { success: false, error: Some(err_msg) }
+        Some(err_msg) => return { success: false, error: Some(err_msg), }
         None => ()
       }
       if is_html_response(resp.body) {
@@ -220,10 +220,10 @@ pub async fn Client::test_connection(self : Client) -> TestResult {
       }
       ignore(
         @json.parse(resp.body) catch {
-          _ => return { success: false, error: Some("Invalid JSON response") }
+          _ => return { success: false, error: Some("Invalid JSON response"), }
         },
       )
-      { success: true, error: None }
+      { success: true, error: None, }
     }
   }
 }

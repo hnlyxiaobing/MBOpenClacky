@@ -527,7 +527,7 @@ pub fn load_upload_meta(skills_dir : String) -> Map[String, UploadMeta] {
       Some(String(v)) => v
       _ => ""
     }
-    result[name] = { platform_version: version, uploaded_at }
+    result[name] = { platform_version: version, uploaded_at, }
   }
   result
 }
@@ -544,7 +544,7 @@ pub fn record_upload(
   now : Int,
 ) -> Unit {
   let meta = load_upload_meta(skills_dir)
-  meta[skill_name] = { platform_version, uploaded_at: format_iso8601(now) }
+  meta[skill_name] = { platform_version, uploaded_at: format_iso8601(now), }
   let root : Map[String, Json] = Map([])
   for name, entry in meta {
     root[name] = Json::object({

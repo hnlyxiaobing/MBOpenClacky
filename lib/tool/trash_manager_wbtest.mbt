@@ -370,7 +370,7 @@ async test "execute: list action via Tool trait" {
   @fs.write_string_to_file(seed_meta, meta) catch {
     _ => ()
   }
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let args : Map[String, Json] = { "action": "list".to_json() }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -387,7 +387,7 @@ async test "execute: list action via Tool trait" {
 async test "execute: restore requires file_path" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let args : Map[String, Json] = { "action": "restore".to_json() }
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -398,7 +398,7 @@ async test "execute: restore requires file_path" {
 async test "execute: help shows usage when trash exists" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let args : Map[String, Json] = { "action": "help".to_json() }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -413,7 +413,7 @@ async test "execute: help shows usage when trash exists" {
 async test "execute: unknown action" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let args : Map[String, Json] = { "action": "unknown".to_json() }
   let result = tool.execute(args)
   assert_true(result.is_error)

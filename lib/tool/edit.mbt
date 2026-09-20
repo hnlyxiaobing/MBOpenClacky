@@ -14,7 +14,7 @@ pub extend Edit with Eq::{not_equal, equal}
 
 ///|
 pub fn Edit::new() -> Edit {
-  { encoding: "utf-8" }
+  { encoding: "utf-8", }
 }
 
 ///|

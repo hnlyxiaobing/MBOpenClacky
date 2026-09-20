@@ -8,7 +8,7 @@ pub(all) struct NdjsonLogger {
 
 ///|
 pub fn NdjsonLogger::new(enabled : Bool) -> NdjsonLogger {
-  { enabled, seq: 0 }
+  { enabled, seq: 0, }
 }
 
 ///|

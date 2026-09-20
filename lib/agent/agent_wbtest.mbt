@@ -69,7 +69,12 @@ fn make_tool_call(
   name : String,
   arguments : String,
 ) -> @message.ToolCall {
-  { id, type_: "function", function: { name, arguments }, extra_content: None }
+  {
+    id,
+    type_: "function",
+    function: { name, arguments, },
+    extra_content: None,
+  }
 }
 
 // ── CostTracker Tests ─────────────────────────────────────────────────────────
@@ -519,7 +524,7 @@ test "agent_to_session_data" {
 test "to_session_data keeps system_injected on context messages" {
   let agent = make_test_agent()
   let ctx = @message.Message::user("[Session context: test]")
-  agent.history.append({ ..ctx, system_injected: Some(true) })
+  agent.history.append({ ..ctx, system_injected: Some(true), })
   agent.history.append(@message.Message::user("real question"))
   let data = agent.to_session_data()
   @debug.assert_eq(data.messages.length(), 2)
@@ -2124,7 +2129,7 @@ async test "observe_no_vision_uses_text_placeholder" {
 async test "observe_no_image_inject_no_extra_message" {
   let agent = make_test_agent()
   let entries : Array[ToolResultEntry] = [
-    { id: "c1", content: "plain result", is_error: false, image_inject: None },
+    { id: "c1", content: "plain result", is_error: false, image_inject: None, },
   ]
   let response = make_mock_response(
     "I'll take a screenshot",

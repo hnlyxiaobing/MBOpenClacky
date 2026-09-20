@@ -490,8 +490,8 @@ async test "fan_out_timeout_fills_unfinished_slots" {
 async test "fan_out_labeled_default_and_custom_labels" {
   // Empty label → "Subagent {i+1}/{size}"; custom label preserved.
   let jobs : Array[FanOutJob[String]] = [
-    { label: "", run: () => "a" },
-    { label: "custom", run: () => "b" },
+    { label: "", run: () => "a", },
+    { label: "custom", run: () => "b", },
   ]
   let results = fan_out_labeled(jobs) catch { _ => abort("unexpected") }
   @debug.assert_eq(results.length(), 2)

@@ -390,13 +390,13 @@ test "SessionLatency::from_session_data builds object or none" {
   }
   @debug.assert_eq(
     SessionLatency::from_session_data(with_lat),
-    Some({ ttft_ms: Some(80), duration_ms: Some(350) }),
+    Some({ ttft_ms: Some(80), duration_ms: Some(350), }),
   )
   // duration only -> still an object (ttft null, signal hidden by frontend).
-  let dur_only = @agent.SessionData::{ ..base, latest_latency_ms: Some(120) }
+  let dur_only = @agent.SessionData::{ ..base, latest_latency_ms: Some(120), }
   @debug.assert_eq(
     SessionLatency::from_session_data(dur_only),
-    Some({ ttft_ms: None, duration_ms: Some(120) }),
+    Some({ ttft_ms: None, duration_ms: Some(120), }),
   )
 }
 
@@ -415,7 +415,7 @@ test "SessionSummary json emits latest_latency object" {
     error: "",
     model: Some("kimi-k2"),
     source: "manual",
-    latest_latency: Some({ ttft_ms: Some(80), duration_ms: Some(350) }),
+    latest_latency: Some({ ttft_ms: Some(80), duration_ms: Some(350), }),
     pinned: false,
     agent_profile: "general",
     sub_model: None,
@@ -439,7 +439,7 @@ test "SessionSummary json emits latest_latency object" {
       }
     _ => panic()
   }
-  let no_lat = SessionSummary::{ ..summary, latest_latency: None }
+  let no_lat = SessionSummary::{ ..summary, latest_latency: None, }
   match ToJson::to_json(no_lat) {
     Object(map) =>
       @debug.assert_eq(map.get("latest_latency"), Some(Json::null()))

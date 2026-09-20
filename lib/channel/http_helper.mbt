@@ -11,7 +11,7 @@ pub(all) struct TokenCache {
 ///|
 /// Create a new TokenCache.
 pub fn TokenCache::new(refresh_threshold_ms : Int) -> TokenCache {
-  { token: "", expires_at: 0, refresh_threshold: refresh_threshold_ms }
+  { token: "", expires_at: 0, refresh_threshold: refresh_threshold_ms, }
 }
 
 ///|
@@ -62,7 +62,7 @@ pub(all) struct HttpHeaders {
 
 ///|
 pub fn HttpHeaders::new() -> HttpHeaders {
-  { headers: Map([]) }
+  { headers: Map([]), }
 }
 
 ///|
@@ -198,7 +198,7 @@ pub(all) struct RetryConfig {
 ///|
 /// Default retry config: 3 retries with 1000ms base delay (exponential backoff).
 pub fn RetryConfig::default() -> RetryConfig {
-  { max_retries: 3, base_delay_ms: 1000 }
+  { max_retries: 3, base_delay_ms: 1000, }
 }
 
 ///|

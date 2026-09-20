@@ -286,10 +286,10 @@ pub fn parse_compression_response(
   let topics = extract_xml_content(content, "topics")
   let summary = extract_xml_content(content, "summary")
   match (topics, summary) {
-    (Some(t), Some(s)) => Ok({ topics: t, summary: s })
+    (Some(t), Some(s)) => Ok({ topics: t, summary: s, })
     (None, Some(s)) =>
       // Topics missing but summary present - use empty topics
-      Ok({ topics: "", summary: s })
+      Ok({ topics: "", summary: s, })
     (_, None) =>
       Err("Failed to parse compression response: missing <summary> tag")
   }
@@ -326,7 +326,7 @@ pub fn rebuild_history_with_compression(
         match msg.content {
           @message.Text(content) if content.length() > 2000 => {
             let truncated = truncate_tool_result(content)
-            { ..msg, content: @message.Text(truncated) }
+            { ..msg, content: @message.Text(truncated), }
           }
           _ => msg
         }

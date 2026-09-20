@@ -98,7 +98,7 @@ pub fn Telemetry::share(
   extra : Map[String, String]?,
 ) -> Unit {
   guard self.enabled else { return }
-  let payload : SharePayload = { device_id: self.device_id, event, extra }
+  let payload : SharePayload = { device_id: self.device_id, event, extra, }
   self.send_event(ShareEvent(payload))
 }
 

@@ -185,7 +185,7 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
         Some(id) => id
         None => "robot_" + chat_id
       }
-      Ok({ message_id: mid, success: true, error: None })
+      Ok({ message_id: mid, success: true, error: None, })
     }
     _ =>
       // Strategy 3: Fallback to configured webhook_url
@@ -203,7 +203,7 @@ pub impl Adapter for DingTalkAdapter with fn send_text(
             Some(id) => id
             None => "webhook_" + chat_id
           }
-          Ok({ message_id: mid, success: true, error: None })
+          Ok({ message_id: mid, success: true, error: None, })
         }
         None =>
           Err(

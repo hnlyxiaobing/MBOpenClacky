@@ -77,7 +77,7 @@ pub(all) struct HookManager {
 ///|
 /// Create a new HookManager with no registered callbacks.
 pub fn HookManager::new() -> HookManager {
-  { callbacks: [] }
+  { callbacks: [], }
 }
 
 ///|

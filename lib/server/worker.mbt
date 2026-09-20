@@ -160,5 +160,5 @@ pub fn Worker::is_available(self : Worker) -> Bool {
 ///|
 /// Create a default WorkerConfig with given id
 pub fn WorkerConfig::default_with_id(id : WorkerId) -> WorkerConfig {
-  { id, max_tasks: 1, heartbeat_interval_ms: 5000, shutdown_timeout_ms: 10000 }
+  { id, max_tasks: 1, heartbeat_interval_ms: 5000, shutdown_timeout_ms: 10000, }
 }

@@ -69,13 +69,13 @@ pub extend ToolResult with ToJson::{to_json}
 ///|
 /// Create a successful tool result.
 pub fn ToolResult::success(content : String) -> ToolResult {
-  { content, is_error: false }
+  { content, is_error: false, }
 }
 
 ///|
 /// Create an error tool result.
 pub fn ToolResult::error(content : String) -> ToolResult {
-  { content, is_error: true }
+  { content, is_error: true, }
 }
 
 ///|
@@ -134,7 +134,7 @@ pub fn FunctionDefinition::new(
   description : String,
   parameters : Json,
 ) -> FunctionDefinition {
-  { type_: "function", function: { name, description, parameters } }
+  { type_: "function", function: { name, description, parameters, }, }
 }
 
 ///|

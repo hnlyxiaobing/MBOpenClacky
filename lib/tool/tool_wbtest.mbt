@@ -4,7 +4,7 @@
 
 ///|
 async test "request_user_feedback_question_only" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let args : Map[String, Json] = {
     "question": "What framework should we use?".to_json(),
   }
@@ -16,7 +16,7 @@ async test "request_user_feedback_question_only" {
 
 ///|
 async test "request_user_feedback_with_context" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let args : Map[String, Json] = {
     "question": "Which option?".to_json(),
     "context": "We need to choose a database".to_json(),
@@ -30,7 +30,7 @@ async test "request_user_feedback_with_context" {
 
 ///|
 async test "request_user_feedback_with_options" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let args : Map[String, Json] = {
     "question": "Pick one".to_json(),
     "options": Json::array([
@@ -49,7 +49,7 @@ async test "request_user_feedback_with_options" {
 
 ///|
 async test "request_user_feedback_missing_question" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let args : Map[String, Json] = Map([])
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -58,7 +58,7 @@ async test "request_user_feedback_missing_question" {
 
 ///|
 test "request_user_feedback_format_call" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let args : Map[String, Json] = {
     "question": "What is the meaning of life?".to_json(),
   }
@@ -68,7 +68,7 @@ test "request_user_feedback_format_call" {
 
 ///|
 test "request_user_feedback_format_call_long_question" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let long_question = "This is a very long question that exceeds the sixty character limit for sure"
   let args : Map[String, Json] = { "question": long_question.to_json() }
   let formatted = tool.format_call(args)
@@ -77,7 +77,7 @@ test "request_user_feedback_format_call_long_question" {
 
 ///|
 test "request_user_feedback_name_and_category" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   @debug.assert_eq(tool.name(), "request_user_feedback")
   assert_true(tool.category() == General)
 }
@@ -86,7 +86,7 @@ test "request_user_feedback_name_and_category" {
 
 ///|
 test "trash_manager_format_call" {
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let args : Map[String, Json] = { "action": "list".to_json() }
   let formatted = tool.format_call(args)
   @debug.assert_eq(formatted, "TrashManager(list)")
@@ -94,7 +94,7 @@ test "trash_manager_format_call" {
 
 ///|
 test "trash_manager_name_and_category" {
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   @debug.assert_eq(tool.name(), "trash_manager")
   assert_true(tool.category() == FileSystem)
 }
@@ -324,7 +324,7 @@ test "registry_by_category_web_has_browser" {
 
 ///|
 async test "anytool_request_user_feedback_via_anytool" {
-  let tool = AnyTool::RequestUserFeedback(RequestUserFeedback::{  })
+  let tool = AnyTool::RequestUserFeedback(RequestUserFeedback::{ })
   @debug.assert_eq(tool.name(), "request_user_feedback")
   assert_true(tool.category() == General)
   let args : Map[String, Json] = { "question": "test question".to_json() }
@@ -347,7 +347,7 @@ async test "anytool_browser_via_anytool" {
 
 ///|
 test "request_user_feedback_to_function_definition" {
-  let tool = RequestUserFeedback::{  }
+  let tool = RequestUserFeedback::{ }
   let def = tool.to_function_definition()
   @debug.assert_eq(def.type_, "function")
   @debug.assert_eq(def.function.name, "request_user_feedback")
@@ -355,7 +355,7 @@ test "request_user_feedback_to_function_definition" {
 
 ///|
 test "trash_manager_to_function_definition" {
-  let tool = TrashManager::{  }
+  let tool = TrashManager::{ }
   let def = tool.to_function_definition()
   @debug.assert_eq(def.type_, "function")
   @debug.assert_eq(def.function.name, "trash_manager")

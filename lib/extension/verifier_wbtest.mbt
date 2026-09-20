@@ -3,7 +3,7 @@
 ///|
 test "validate_manifest rejects empty id" {
   let manifest = sample_manifest("valid-id")
-  let bad = { ..manifest, id: "" }
+  let bad = { ..manifest, id: "", }
   let result = validate_manifest(bad, "/tmp/does-not-matter")
   @debug.assert_eq(result.valid, false)
   @debug.assert_eq(result.errors.length() > 0, true)
@@ -34,7 +34,7 @@ test "validate_manifest rejects id with leading dash" {
 
 ///|
 test "validate_manifest rejects bad version" {
-  let manifest = { ..sample_manifest("good-id"), version: "1" }
+  let manifest = { ..sample_manifest("good-id"), version: "1", }
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
   @debug.assert_eq(result.valid, false)
   let messages = result.errors.map(fn(e) { validation_error_message(e) })
@@ -77,7 +77,7 @@ test "validate_manifest flags missing required fields" {
 ///|
 test "validate_manifest warns about dependencies" {
   let deps : Map[String, String] = { "other-ext": "^1.0.0" }
-  let manifest = { ..sample_manifest("with-deps"), dependencies: deps }
+  let manifest = { ..sample_manifest("with-deps"), dependencies: deps, }
   let result = validate_manifest(manifest, "/tmp/does-not-matter")
   @debug.assert_eq(result.warnings.length() > 0, true)
   let joined = result.warnings.join("; ")

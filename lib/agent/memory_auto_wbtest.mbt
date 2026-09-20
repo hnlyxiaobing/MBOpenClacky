@@ -206,8 +206,8 @@ test "parse_memory_extraction_response: max entries enforced" {
 ///|
 test "deduplicate_entries: no duplicates" {
   let new_entries = [
-    { title: "A", content: "CA", category: TaskSummary, keywords: [] },
-    { title: "B", content: "CB", category: TaskSummary, keywords: [] },
+    { title: "A", content: "CA", category: TaskSummary, keywords: [], },
+    { title: "B", content: "CB", category: TaskSummary, keywords: [], },
   ]
   let existing : Array[MemoryEntry] = []
   let result = deduplicate_entries(new_entries, existing)
@@ -217,7 +217,7 @@ test "deduplicate_entries: no duplicates" {
 ///|
 test "deduplicate_entries: filters existing by title" {
   let new_entries = [
-    { title: "Existing", content: "New", category: TaskSummary, keywords: [] },
+    { title: "Existing", content: "New", category: TaskSummary, keywords: [], },
     {
       title: "New Entry",
       content: "Fresh",
@@ -236,7 +236,7 @@ test "deduplicate_entries: filters existing by title" {
 ///|
 test "deduplicate_entries: case-insensitive title match" {
   let new_entries = [
-    { title: "EXISTING", content: "New", category: TaskSummary, keywords: [] },
+    { title: "EXISTING", content: "New", category: TaskSummary, keywords: [], },
   ]
   let store = MemoryStore::new("/tmp/test")
   ignore(store.add("existing", "Old content", TaskSummary, []))
@@ -247,9 +247,9 @@ test "deduplicate_entries: case-insensitive title match" {
 ///|
 test "deduplicate_entries: filters intra-batch duplicates" {
   let new_entries = [
-    { title: "Same Title", content: "A", category: TaskSummary, keywords: [] },
-    { title: "Same Title", content: "B", category: TaskSummary, keywords: [] },
-    { title: "Different", content: "C", category: TaskSummary, keywords: [] },
+    { title: "Same Title", content: "A", category: TaskSummary, keywords: [], },
+    { title: "Same Title", content: "B", category: TaskSummary, keywords: [], },
+    { title: "Different", content: "C", category: TaskSummary, keywords: [], },
   ]
   let existing : Array[MemoryEntry] = []
   let result = deduplicate_entries(new_entries, existing)

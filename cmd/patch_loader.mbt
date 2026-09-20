@@ -34,7 +34,7 @@ pub fn PatchLoader::default() -> PatchLoader {
       @path.Path::join(home, @path.Path(".clacky/patches")).to_string()
     None => ".clacky/patches"
   }
-  { patch_dir: dir }
+  { patch_dir: dir, }
 }
 
 ///|

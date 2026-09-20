@@ -124,7 +124,7 @@ async fn[X] PtyHandle::spawn(
   let pty = @pty.spawn(group, shell[:], argv[:], extra_env=env, cwd=cwd[:]) catch {
     err => return Err("failed to spawn PTY: \{err}")
   }
-  Ok(PtyHandle::{ pty, cwd })
+  Ok(PtyHandle::{ pty, cwd, })
 }
 
 ///|

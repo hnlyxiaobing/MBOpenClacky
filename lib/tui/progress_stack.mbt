@@ -79,7 +79,7 @@ pub extend ProgressStack with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Create a new empty progress stack.
 pub fn ProgressStack::new() -> ProgressStack {
-  { data: Ref(ProgressStackData::{ entries: [], next_id: 0 }) }
+  { data: Ref(ProgressStackData::{ entries: [], next_id: 0, }), }
 }
 
 ///|
@@ -105,7 +105,7 @@ pub fn ProgressStack::push(
   }
   let index = d.entries.length()
   d.entries.push(entry)
-  ProgressHandle::{ id, stack: self.data, index }
+  ProgressHandle::{ id, stack: self.data, index, }
 }
 
 ///|

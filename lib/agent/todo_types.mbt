@@ -138,7 +138,7 @@ impl FromJson for TodoItem with fn from_json(json, path) {
         Some(String(s)) => s
         _ => ""
       }
-      { id, title, description, status, blocked_by, created_at, updated_at }
+      { id, title, description, status, blocked_by, created_at, updated_at, }
     }
     _ => raise JsonDecodeError((path, "TodoItem: expected object"))
   }

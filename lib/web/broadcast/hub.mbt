@@ -24,14 +24,14 @@ pub(all) struct Hub {
 ///|
 /// Create a new empty Hub.
 pub fn Hub::new() -> Hub {
-  { connections: Map([]), session_subs: Map([]), global_subs: [] }
+  { connections: Map([]), session_subs: Map([]), global_subs: [], }
 }
 
 ///|
 /// Register a new WebSocket connection in the hub.
 pub fn Hub::register(self : Hub, peer : @ws.WebSocketPeer) -> Unit {
   let conn_id = peer.connection_id()
-  self.connections[conn_id] = { peer, session_ids: [] }
+  self.connections[conn_id] = { peer, session_ids: [], }
 }
 
 ///|

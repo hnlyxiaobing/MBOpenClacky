@@ -64,9 +64,9 @@ pub fn FormDialog::new(
 ) -> FormDialog {
   let form_fields = fields.map(fn(entry) {
     let (label, required, placeholder) = entry
-    { label, value: "", required, placeholder, masked: false }
+    { label, value: "", required, placeholder, masked: false, }
   })
-  { title, fields: form_fields, focused_idx: 0 }
+  { title, fields: form_fields, focused_idx: 0, }
 }
 
 ///|
@@ -78,9 +78,9 @@ pub fn FormDialog::new_with_mask(
 ) -> FormDialog {
   let form_fields = fields.map(fn(entry) {
     let (label, required, placeholder, masked) = entry
-    { label, value: "", required, placeholder, masked }
+    { label, value: "", required, placeholder, masked, }
   })
-  { title, fields: form_fields, focused_idx: 0 }
+  { title, fields: form_fields, focused_idx: 0, }
 }
 
 ///|
