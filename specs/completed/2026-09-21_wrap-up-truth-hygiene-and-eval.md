@@ -92,8 +92,7 @@ WSL 复现印证：`moon check` 绿，裸 `moon test --release` ICE，限定 `li
 
 修复：CI 的测试步骤只跑本模块自身的包（`lib cmd test`；`lib/mcp` 单列一步供 Linux 跑）。
 依赖的**库**代码仍参与构建并由 `lib/parser` 的测试覆盖，只是不再把其自带单测当成本仓库的回归面
-（`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，
-属独立的既有问题，登记但本轮未处理。
+（`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，同样是既有问题且**已定位修复**：`Dockerfile` 在 `moon build` 之后断言 `_build/native/release/build/cmd/cmd.exe` 存在，而 moon 的产物路径带模块命名空间（`_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd`），该断言恒不成立——构建本身成功，失败只来自它。已改为断言真实路径并兼容 `.exe`。本机无 Docker，本地无法复现镜像构建。
 
 本地等价序列（Windows 口径，排除挂起的 lib/mcp）已逐条跑绿：见 §5 其余条目。
 
