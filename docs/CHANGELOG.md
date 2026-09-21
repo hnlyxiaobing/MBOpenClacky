@@ -25,6 +25,19 @@
 
 ## 变更记录
 
+### 2026-09-21  2026-09 收尾（wrap-up T1–T13）：数字单一事实来源、会话日志接线补全、`cmd eval --offline`
+
+- `[feat]` **`cmd eval --offline`（P2 / G1，唯一"承诺了但完全没做"的交付物）**：新增 `test/eval/tool_harness.mbt`（工具白名单 + 沙箱目录 + 断言原语 + 评分 JSON，走真实 `lib/tool` registry，无模型无网络）与 `test/eval/tasks/*.json`（3 个仓库自有微小任务）；`cmd eval` 子命令按 3 任务 × 2 重复运行并输出评分向量（completion / verification / repeatability / cost），报告落 `docs/eval/<date>.md`；白名单外工具在执行前被拒（`terminal` 案例有测试固定）
+- `[feat]` **压缩 → Summary 端到端（G3/T6）**：`HookEvent` 新增 `CompressionPerformed(Int)`，真实 ReAct 压缩路径与 `compress_with_safety` 成功分支 emit；`cmd` 侧生产者按压缩边界切段，flush 时为被覆盖事件追加 `{"type":"summary",...}` 记录，多次压缩互不重叠。新引擎事件的穷尽匹配闸门在 `lib/agent`/`lib/tui`/`lib/web` 逐处报错并定位（无 `_` 兜底）
+- `[feat]` **TUI 路径会话日志 flush（G2/T5）**：`run_tui_interactive` 返回后与 `run_non_interactive` 对称地 flush，交互会话也产出 append-only JSONL；生产者重构为值类型（`SessionLogProducer`），可脱离进程全局状态测试
+- `[feat]` **`scripts/repo_stats.sh`（T1，数字单一事实来源）**：机器统计（源文件/测试文件/行数/用例数/`.mbti`/包/Provider/工具/Skill/REST 路由/版本四处一致性）生成 README、CLAUDE.md、`docs/project-status.md` 内同一标记块；`check` 支持 `--test-count-from <moon test 日志>`，CI 新增 `Repo stats gate`（stale 即红）
+- `[feat]` **CI 新增两条闸门**：`Deterministic capability eval`（`eval --offline` 退出码 + 评分全绿）与 `Repo stats gate`；作业超时 30 → 45 分钟
+- `[fix]` **版本对齐（T3/D2）**：`moon.mod` 0.1.3 → 0.2.0，`cmd VERSION` / `lib/tui app_version` / `lib/web handlers_version` 同步；四处一致性由 `repo_stats.sh` 校验并进 CI；新建 `v0.2.0` tag
+- `[fix]` **真话卫生（T2/T4/G4）**：README"完全兼容 openclacky 会话格式"改为与台账一致的表述（读取兼容性未经验证、schema 迁移未做）；`docs/project-status.md` 内部自相矛盾的用例数（3,869 vs 3,843）与 `.mbt` 口径统一到机器生成块，日期与"最后更新"对齐；修掉 `docs/MBOpenClacky-改造开发计划.md` 的悬空引用
+- `[docs]` 验收文档（`docs/acceptance.md`）按收尾结果重写：一键序列含 `repo_stats.sh` 与 `eval --offline`，探针 18/18，未完成项（`--live`、Web JSONL、schema 迁移）逐条如实登记
+- `[fix]` **两处跨平台测试夹具**：`lib/media/output_dir_wbtest.mbt` 与 `lib/server/scheduler_wbtest.mbt` 用 `/proc/...` 断言"写入必须失败"，这只在 Linux 成立（Windows 上 `/proc` 是普通目录，写成功了 → 断言反向失败）。改为"父路径是普通文件"的构造，两个平台都不可创建；Windows 本机全量（排除挂死的 lib/mcp）由 2 失败转为全绿
+- `[test]` 新增：harness 自检 + 任务集 + 评分 JSON 形状（`test/eval` 9 例）、生产者端到端（`cmd` 3 例）、压缩事件发射（`lib/agent` 2 例）；`HookEvent` 全类型发射夹具更新为 26 种
+
 ### 2026-08-23  stubfix 批次（01-08）全部实施完成归档 + 实施后对抗性代码审查修订
 
 - `[feat]` **stubfix-05~08 四份 spec 实施**（此前 01-04 已完成）：调度器持久化（YAML 子集读写 + write-through + 共享时钟）、Telegram 真发送（http_post_json 同构实现 + 错误映射）、WsClient 薄封装 + Discord 网关连接层（@async.websocket，零新增依赖）、四基础设施模块文件操作真实现（@fs/@utils/@zip：output_dir/backup_manager/scripts/discover）

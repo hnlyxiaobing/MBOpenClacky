@@ -24,12 +24,12 @@
 
 ## 问题：为什么是现在
 
-MBOpenClacky 是一个用 MoonBit **完整重写**的 AI Agent 平台：514 个 `.mbt`、218 条 REST 路由、6 个 IM 渠道、3,843 个白盒测试，功能广度已经足够。它真正稀缺的不是功能，而是**可证伪性**：
+MBOpenClacky 是一个用 MoonBit **完整重写**的 AI Agent 平台：514 个 `.mbt`、218 条 REST 路由、6 个 IM 渠道、3,843 个白盒测试（**以上为立项基线数字**；当前规模以 README 的机器生成表为准），功能广度已经足够。它真正稀缺的不是功能，而是**可证伪性**：
 
 1. **公共 API 零机器闸门**——全仓库 **0 个 `.mbti`**，接口变更只靠人工纪律；
 2. **前端事件各写各的**——`lib/web/protocol/` 只是 558 行手写 JSON 映射，TUI / CLI 另起炉灶，漂移只能靠人看；
 3. **会话不可回放**——`session_store.mbt` 整份 JSON 读写，压缩会改写历史，无法离线复现；
-4. **测试答不了真问题**——3,843 个用例全是白盒 + mock LLM，回答不了"接上真模型它到底能不能干活"；
+4. **测试答不了真问题**—‒立项时的 3,843 个用例全是白盒 + mock LLM，回答不了"接上真模型它到底能不能干活"；
 5. **文档与事实脱节**——README 宣称"**MCP 协议：Stdio/HTTP 传输**"，实测 `lib/mcp/http_transport.mbt` 三处 `Err("not implemented")`。
 
 这是工程可信度问题，不是功能问题——恰好与本届黑客松"**这不是提示词比赛**、看工程边界/测试质量/可维护性"的取向正面对齐。
@@ -79,7 +79,7 @@ MBOpenClacky 是一个用 MoonBit **完整重写**的 AI Agent 平台：514 个 
 
 一句话主张：冻结功能面，把 MBOpenClacky 的对外承诺——事件协议、会话记录、Agent 能力——从"文档里的说法"变成任何第三方跑一条命令就能证伪的合约。
 
-问题背景：MBOpenClacky 是用 MoonBit 完整重写的 AI Agent 平台，已有 514 个 .mbt、218 条 REST 路由、6 个 IM 渠道、3843 个白盒测试，功能广度足够；真正稀缺的是可证伪性——全仓库 0 个 .mbti（公共 API 无机器闸门）；lib/web/protocol 只是 558 行手写 JSON、TUI/CLI 各写各的；会话整份 JSON 读写、无法回放；3843 个测试全是白盒与 mock，回答不了真模型下能否干活；README 宣称 MCP HTTP 已支持，实测三处 Err("not implemented")。
+问题背景：MBOpenClacky 是用 MoonBit 完整重写的 AI Agent 平台，立项基线为 514 个 .mbt、218 条 REST 路由、6 个 IM 渠道、3843 个白盒测试，功能广度足够；真正稀缺的是可证伪性——全仓库 0 个 .mbti（公共 API 无机器闸门）；lib/web/protocol 只是 558 行手写 JSON、TUI/CLI 各写各的；会话整份 JSON 读写、无法回放；3843 个测试全是白盒与 mock，回答不了真模型下能否干活；README 宣称 MCP HTTP 已支持，实测三处 Err("not implemented")。
 
 本期目标（三条，均可独立复现）：
 1) 类型化引擎协议：把手写事件收敛为叶子模块 lib/protocol，定义 Event/Command 枚举与互为逆的 to_json/parse，Web/TUI/CLI 穷尽匹配，提交 .mbti 并由 CI diff 拦截；

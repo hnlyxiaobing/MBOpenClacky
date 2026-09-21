@@ -1,6 +1,6 @@
 # MBOpenClacky「契约化」改造开发计划（9/11 – 9/24，13 天）
 
-> 配套文件：`MBOpenClacky-一页项目说明.md`、`MBOpenClacky-参赛策略推演.md`
+> 配套文件：`MBOpenClacky-一页项目说明.md`；收尾计划见 `wrap-up-plan.md`
 > 基线：`main@c4b3fa4`（2026-08-28），MIT，native 目标
 > 验收日 / 报名截止：**2026-09-24**
 
