@@ -4,7 +4,7 @@
 
 ///|
 /// Current MBOpenClacky version (mirrors cmd/main.mbt).
-const VERSION : String = "0.1.0"
+const VERSION : String = "0.2.0"
 
 ///|
 /// GitHub API URL for the latest openclacky release.

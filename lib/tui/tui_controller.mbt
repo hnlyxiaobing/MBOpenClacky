@@ -18,7 +18,7 @@ let esc_timeout_ms : Int = 50
 ///|
 /// Application version shown in the startup banner.
 /// Mirrors `VERSION` in cmd/main.mbt (not importable from lib).
-let app_version : String = "0.1.0"
+let app_version : String = "0.2.0"
 
 ///|
 
