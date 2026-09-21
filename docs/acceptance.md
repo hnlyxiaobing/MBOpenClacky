@@ -141,8 +141,7 @@ moon test test/eval --release                       # 期望：9/9（harness 自
 | TUI 未绑定 wire 词表 | 已知取舍 | TUI 直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的信息）；TUI 的 HookEvent 匹配仍穷尽。理由见 ADR-0001 |
 | 旧会话文件 schema | 部分不兼容 | 参考机器 32 个会话文件中 31 个因旧 `tool_calls` schema 或非 JSON 内容无法解析；`--list` 如实报告数量，`inspect` 报告具体原因；schema 迁移未做（决策 D4 默认不做） |
 | GitHub Issue/PR 流程 | 未执行 | 本地提交连续；推送与 Issue/PR 属于远端流程 |
-| GitHub Actions 结果 | **红（既有问题，非本次改动引入）** | 公开 API 实测：`CI` 与 `Docker` 工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，**失败步骤是 `Run tests`**（`moon test --release`）；其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针全部 success。收尾环境为 Windows，无法复现（本平台 `lib/mcp` 挂起），`gh` 未登录、job 日志需鉴权，故**未能定位该失败**。台账已登记为 `open`（范围外）。收尾新增的两条 CI 闸门已前移到 `Run tests` 之前，仍会给出信号 |
-
+| GitHub Actions 结果 | **已定位并修复（2026-09-21）** | 公开 API 步骤级证据：`CI`/`Docker` 自 `c4b3fa4b`（2026-08-28）起每次都失败，失败步骤是 `Run tests`——裸 `moon test --release` 会连 `moon.work` 里的 `vendor/mbtpdf` 一起跑，而该依赖自带的内部测试驱动在当前工具链上 ICE。修复：CI 测试步骤只跑本模块自身的包（`lib cmd test`，`lib/mcp` 单列一步供 Linux 跑）。修复前已确认：同一次运行里 `Deterministic capability eval` 与 `Repo stats gate` **均为 success**（后者证明限定口径在 Linux 上同样得到 3818 个用例）。另：`Docker` 工作流失败于 `Build Docker image` 步骤，属独立的既有问题，本轮未处理 |
 ## 4. 本期提交序列（本地）
 
 ```

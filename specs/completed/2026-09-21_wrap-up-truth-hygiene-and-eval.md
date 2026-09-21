@@ -73,17 +73,27 @@
 - `moon check` 0 错误 0 警告；`bash scripts/warn_count.sh 0 strict` 绿
 - `moon test --release`（口径见 §3.4）全绿
 
-**未能达成的一项（如实记）：CI 绿。** 通过公开 API（无需鉴权）取得步骤级证据：`CI` 与 `Docker`
-工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，失败步骤是 `Run tests`
-（`moon test --release`），其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针
-全部 success。即：**这是早于本次收尾的既有问题**，本计划 R3 关于"CI 闸门已在工作"的判断对
-gate 成立、对"CI 整体绿"不成立。
+**CI 绿：曾失败，已定位并修复（2026-09-21）。** 通过公开 API（无需鉴权）取得步骤级证据：`CI` 与
+`Docker` 工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，失败步骤是 `Run tests`。
 
-收尾环境无法定位它：本机是 Windows（该平台 `lib/mcp` 挂起，全量跑不到头），`gh` 未登录且
-job 日志需鉴权（HTTP 403），WSL Ubuntu 未安装 MoonBit 工具链。处置：
-- 台账新增一行 `open`（范围外），含上述步骤级证据；
-- `.github/workflows/ci.yml` 新增的两条闸门（`Deterministic capability eval`、
-  `Repo stats gate`）**前移到 `Run tests` 之前**，使它们在既有失败修复前也能给出信号。
+根因（第一性原理定位，非猜测）：`moon.work` 声明工作区 `members = [".", "vendor/mbtpdf"]`，
+因此**裸 `moon test --release` 不只跑本模块，还会编译并运行 vendored 依赖 mbtpdf 自带的内部测试**；
+那个测试驱动在当前工具链上 ICE：
+
+```
+Error: Sys_error("/root/.moon/lib/core/_build/native/release/bundle/prelude/prelude.mi: No such file or directory")
+  ... bobzhang/mbtpdf/font/pdffont -test-mode ...
+```
+
+定位手段：CI 步骤级结论显示 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针全部 success，
+只有 `Run tests` 红；同一次运行中本收尾新增的 `Deterministic capability eval` 与 `Repo stats gate`
+（后者执行的正是"限定包列表"的测试）**双双 success**，直接指向"范围包含 vendor"这一差异。
+WSL 复现印证：`moon check` 绿，裸 `moon test --release` ICE，限定 `lib cmd test` 跑完 **3818/3818**。
+
+修复：CI 的测试步骤只跑本模块自身的包（`lib cmd test`；`lib/mcp` 单列一步供 Linux 跑）。
+依赖的**库**代码仍参与构建并由 `lib/parser` 的测试覆盖，只是不再把其自带单测当成本仓库的回归面
+（`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，
+属独立的既有问题，登记但本轮未处理。
 
 本地等价序列（Windows 口径，排除挂起的 lib/mcp）已逐条跑绿：见 §5 其余条目。
 

@@ -34,9 +34,13 @@
 #                  --test-count-from <file>. `check` compares it against the
 #                  recorded value, which is how the old 3,843-vs-3,869 drift
 #                  became a build failure instead of a silent inconsistency.
-#                  Caliber note: on Windows the suite excludes `lib/mcp` (its
-#                  stdio test deadlocks; see docs/known-gaps.md), and CI uses
-#                  the same exclusion so one number holds on both platforms.
+#                  Caliber note: the run is scoped to the module's own packages
+#                  (lib + cmd + test) and excludes `lib/mcp` (its stdio test
+#                  deadlocks on Windows — see docs/known-gaps.md); CI uses the
+#                  same scope so one number holds on both platforms. A bare
+#                  `moon test` cannot be used: moon.work also contains
+#                  vendor/mbtpdf, whose own test driver ICEs on the current
+#                  toolchain.
 #
 # Exit codes: 0 ok, 1 stale or inconsistent, 2 usage error.
 

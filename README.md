@@ -113,9 +113,11 @@ scripts/known_gaps.sh check
 # 仓库数字闸门（README/CLAUDE/project-status 的数字由脚本生成，stale 即失败）
 scripts/repo_stats.sh check
 
-# 测试（debug 模式受编译器 ICE 影响，见 docs/known-gaps.md，统一用 --release）
-# Windows 本机需排除挂起的 lib/mcp：moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')
-moon test --release
+# 测试（统一 --release：debug 模式受编译器 ICE 影响，见 docs/known-gaps.md）
+# 必须显式限定本模块的包：裸 `moon test` 会按 moon.work 连 vendor/mbtpdf 一起跑，
+# 而该依赖自带的单测在当前工具链上 ICE（详见 docs/known-gaps.md 的 CI 行）。
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')  # Windows
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')                       # Linux（含 lib/mcp）
 ```
 
 详细的环境要求、安装步骤、配置指南和故障排除，请参阅 [快速入门指南](docs/getting-started.md)。
