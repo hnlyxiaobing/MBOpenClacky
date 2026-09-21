@@ -25,6 +25,22 @@
 
 ## 变更记录
 
+### 2026-09-21  脚本体系瘦身：`scripts/` 15 个文件 → 8 个
+
+- `[chore]` 删除 8 个已经无法工作或被替代的脚本，逐个都有可复核的证据：
+  - `patch_crescent.sh`：目标是 `.mooncakes/bobzhang/crescent`，而依赖早已换成 `hnlyxiaobing/crescent@0.10.7`（缓存路径不同），且它要打的 `scripts/crescent_compat.patch` 在仓库中根本不存在。
+  - `setup_yoga.sh`：依赖 `vendor/yoga/`（不存在）与 `.mooncakes/Frank-III/onebit-yoga`（从来不是本项目的依赖，TUI 走 `mizchi/tui` + `moonbit-community/tty`），无任何 `moon.pkg` 引用 `libyoga_full.a`。
+  - `install_browser.sh`：打印 `--remote-debugging-port=9222` 的手动启动命令，但 `lib/server/browser_manager.mbt` 实际是 spawn `chrome-devtools-mcp` 子进程并自带浏览器，全仓库（代码+文档）没有任何地方引用 9222/remote-debugging。
+  - `with_msvc_env.sh`：把某台机器的 MSVC 14.50.35717 / SDK 10.0.26100 绝对路径写死；同一件事 `install.ps1` 已经用 vswhere 动态完成并写进文档，属于重复且必然腐烂的逻辑。
+  - `test_sse_server.py`：#4 时期的 Python SSE 假服务器，现由 `test/e2e/` 的进程内 mock LLM server 与 `test/web/` 的 `sse_valid` 断言覆盖，且 CI 不装 Python。
+  - `extract_i18n_keys.ps1` + `README_i18n_tools.md`：脚本路径指向已退役的 MoonBit SPA（`web/mb/main/i18n_dict_*.mbt`，该目录不存在），它自己的 README 就写着"直接使用会报错"。
+  - `check-crypto-build.ps1`：与 `check-crypto-build.sh` 是同一条 4 行规则的两种语言实现，CI 与文档只认 `.sh`（开发环境本身有 Git Bash）。规则单一真相源保留在 `.sh`。
+- `[fix]` `install.sh` / `install.ps1` 删掉四处不做事的逻辑：`--china-mirror` / `-ChinaMirror` 旗标（两个分支的 URL 完全相同）、只解析不比较的"版本检查"、`$NativeHost = $null` 占位变量，以及已经全局移除的 `-lcurl` 依赖探测（HTTP 早已迁到 `@async/http`，只剩 `-lcrypto`）。
+- `[fix]` `install.sh` / `install.ps1` 的构建与校验口径对齐：原先 `moon build --target X`（debug）却去 `_build/X/release/` 找产物，因此**每次安装脚本都会误报"没有产出可执行文件"**；现统一为 `moon build --target X --release cmd`（显式 `cmd`，避开 bare build 走整个 moon.work 的已知问题），产物发现改为按 `_build/<target>/release/build` 递归查找 `cmd.exe`/`cmd`（发布树以 author/module 分层，硬编码 `build\cmd` 早就失效）。
+- `[refactor]` `install.ps1` 中两段几乎逐行重复的 MSVC 激活逻辑（vswhere 主路径 + 6 个回退路径）合并为单个 `Activate-Msvc` 函数，候选路径由 edition 循环生成，行为不变。
+- `[chore]` `warn_count.sh` 从"默认预算 200、只报告、永远 exit 0、外加 strict 开关"收敛为一个真正的闸门：默认预算 0、超预算即非零退出；CI 步骤相应简化为 `bash scripts/warn_count.sh`，`docs/ai-usage.md` 同步。
+- `[docs]` `docs/getting-started.md` 的"安装脚本·已知局限性"表原先自述两条缺陷（未用 `--release cmd`、产出 debug 二进制且校验目录对不上），本次修复后从表中移除，脚本步骤与选项清单按实际行为重写；`check-crypto-build.{sh,ps1}` 的表述改为只剩 `.sh` 单一真相源。
+
 ### 2026-09-21  测试体系统一：根 `benchmark/` 并入 `test/`，文档层定义 8 层门禁
 
 - `[chore]` 仓库根不再有第二套测试目录：`benchmark/scenarios/{llm_latency,tool_exec}.json` 迁入 `test/benchmark/scenarios/`，`benchmark/capability/README.md` 迁入 `test/capability/README.md`，`benchmark/README.md` 删除（内容按层拆入两份新 README 与 `docs/testing.md`）。

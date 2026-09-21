@@ -12,7 +12,6 @@
 #   --yes / -y          Non-interactive mode (CI/CD friendly), auto-confirm all
 #   --install-moon      Force-install MoonBit if not found
 #   --target <target>   Override build target (native/wasm-gc)
-#   --china-mirror      Use China region mirror (when available)
 
 set -euo pipefail
 
@@ -20,7 +19,6 @@ set -euo pipefail
 
 auto_yes=false
 install_moon=false
-china_mirror=false
 user_target=""
 
 while [[ $# -gt 0 ]]; do
@@ -41,13 +39,9 @@ while [[ $# -gt 0 ]]; do
             user_target="$2"
             shift 2
             ;;
-        --china-mirror)
-            china_mirror=true
-            shift
-            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--yes|-y] [--install-moon] [--target <target>] [--china-mirror]"
+            echo "Usage: $0 [--yes|-y] [--install-moon] [--target <target>]"
             exit 1
             ;;
     esac
@@ -94,13 +88,8 @@ add_to_path() {
 }
 
 install_moonbit() {
-    local mirror="https://cli.moonbitlang.com"
-    if [ "${CHINA_MIRROR:-}" = "1" ] || [ "${china_mirror:-false}" = "true" ]; then
-        mirror="https://cli.moonbitlang.com"  # 目前只有官方源
-        warn "China mirror not yet available, using official source"
-    fi
     step "Installing MoonBit toolchain..."
-    if ! curl -fsSL "$mirror/install/unix.sh" | bash; then
+    if ! curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash; then
         err "Failed to install MoonBit toolchain."
         echo "  Please install manually from https://www.moonbitlang.com/download/"
         exit 1
@@ -139,17 +128,7 @@ if ! command -v moon &>/dev/null; then
     fi
 fi
 
-MOON_VERSION=$(moon version 2>&1 | head -1)
-ok "moon found: $MOON_VERSION"
-
-# ── Version check ───────────────────────────────────────────────────────────
-
-MOON_VERSION_NUM=$(echo "$MOON_VERSION" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-if [ -z "$MOON_VERSION_NUM" ]; then
-    warn "Could not parse moon version: $MOON_VERSION"
-else
-    ok "MoonBit version: $MOON_VERSION_NUM"
-fi
+ok "moon found: $(moon version 2>&1 | head -1)"
 
 # ── Step 2: Check C compiler ────────────────────────────────────────────────
 
@@ -187,48 +166,45 @@ else
     echo "  You can still build for wasm-gc without a C compiler."
 fi
 
-# ── Step 2.5: Check system dependencies (libcurl / libssl) ──────────────
-# Native builds link libcurl (HTTP client) and libssl/libcrypto (crypto).
+# ── Step 2.5: Check system dependencies (libssl) ───────────────────────
+# Native builds link libcrypto (lib/brand's AES-256-GCM / RAND_bytes C stubs).
+# HTTP no longer needs libcurl: the client transport moved to @async/http.
 # We only *detect* and *advise*; we do not auto-install system packages.
 
-step "Checking system dependencies (libcurl, libssl)..."
+step "Checking system dependencies (libssl)..."
 
 check_pkg() {
     # Returns 0 if the given pkg-config module is present.
     command -v pkg-config >/dev/null 2>&1 && pkg-config --exists "$1" 2>/dev/null
 }
 
-MISSING_DEPS=""
-if ! check_pkg "libcurl"; then MISSING_DEPS="$MISSING_DEPS libcurl"; fi
-if ! check_pkg "openssl"; then MISSING_DEPS="$MISSING_DEPS libssl"; fi
-
-if [ -z "$MISSING_DEPS" ]; then
-    ok "System dependencies (libcurl, libssl) satisfied."
+if check_pkg "openssl"; then
+    ok "System dependency (libssl/libcrypto) satisfied."
 else
-    warn "Missing system dependencies:$MISSING_DEPS"
-    echo "  The native build links these via -lcurl / -lcrypto."
-    echo "  Install them with your package manager, then re-run:"
+    warn "Missing system dependency: libssl"
+    echo "  The native build links it via -lcrypto."
+    echo "  Install it with your package manager, then re-run:"
     case "$OS" in
         linux)
             if command -v apt-get >/dev/null 2>&1; then
-                echo "    sudo apt-get install -y libcurl4-openssl-dev libssl-dev"
+                echo "    sudo apt-get install -y libssl-dev"
             elif command -v dnf >/dev/null 2>&1; then
-                echo "    sudo dnf install -y libcurl-devel openssl-devel"
+                echo "    sudo dnf install -y openssl-devel"
             elif command -v pacman >/dev/null 2>&1; then
-                echo "    sudo pacman -S libcurl openssl"
+                echo "    sudo pacman -S openssl"
             else
-                echo "    (install libcurl-dev and libssl-dev for your distro)"
+                echo "    (install libssl-dev for your distro)"
             fi
             ;;
         macos)
             if command -v brew >/dev/null 2>&1; then
-                echo "    brew install curl openssl"
+                echo "    brew install openssl"
             else
-                echo "    install curl + openssl (e.g. via Homebrew)"
+                echo "    install openssl (e.g. via Homebrew)"
             fi
             ;;
         *)
-            echo "    install libcurl-dev and libssl-dev"
+            echo "    install libssl-dev"
             ;;
     esac
     echo "  (If you only need wasm-gc, a C compiler is not required.)"
@@ -259,8 +235,11 @@ fi
 
 step "Building project (target: $BUILD_TARGET)..."
 
-if ! moon build --target "$BUILD_TARGET"; then
-    err "moon build failed (exit code: $?)"
+# `cmd` is named explicitly: a bare `moon build` walks the whole moon.work
+# workspace, and the vendored dependency's own test driver ICEs on the current
+# toolchain. `--release` so the artifact below really is the one we verify.
+if ! moon build --target "$BUILD_TARGET" --release cmd; then
+    err "moon build failed."
     echo "  Run 'moon check' for detailed error information."
     exit 1
 fi
@@ -273,12 +252,11 @@ step "Verifying build artifacts..."
 BUILD_DIR="$PROJECT_ROOT/_build/$BUILD_TARGET/release/build"
 
 if [ "$BUILD_TARGET" = "native" ]; then
-    # Look for executable in cmd subdirectory
-    EXE=$(find "$BUILD_DIR" -maxdepth 3 -type f -perm -u+x -name "*.exe" -o -type f -perm -u+x -name "cmd" 2>/dev/null | head -1 || true)
+    EXE=$(find "$BUILD_DIR" \( -type f -name "cmd.exe" \) -o \( -type f -name "cmd" -perm -u+x \) 2>/dev/null | head -1 || true)
     if [ -n "$EXE" ]; then
         ok "Build artifact found: $EXE"
     else
-        warn "No executable found in $BUILD_DIR"
+        warn "No executable found under $BUILD_DIR"
         echo "  The build succeeded but no executable was produced."
         echo "  Check that cmd/main.mbt contains a main() entry point."
     fi

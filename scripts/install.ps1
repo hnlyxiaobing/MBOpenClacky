@@ -11,8 +11,6 @@
     Path to the project root directory.
 .PARAMETER AutoInstall
     Non-interactive mode: auto-install MoonBit if missing (CI/CD friendly).
-.PARAMETER ChinaMirror
-    Use China region mirror for downloads (when available).
 .PARAMETER Target
     Override build target (native/wasm-gc).
 #>
@@ -21,12 +19,10 @@ param(
     # Script now lives in scripts/; default ProjectRoot is the repo root (one level up)
     [string]$ProjectRoot = (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)),
     [switch]$AutoInstall,
-    [switch]$ChinaMirror,
     [string]$Target = ""
 )
 
 $ErrorActionPreference = "Stop"
-$NativeHost = $null  # keep native host process alive for status checks
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,17 +55,43 @@ function Add-ToUserPath {
     }
 }
 
-function Install-MoonBit {
-    # NOTE: China mirror is not yet available; both paths use the official source.
-    # Update this when a China CDN becomes available.
-    $mirror = "https://cli.moonbitlang.com"
-    if ($ChinaMirror) {
-        Write-Warn "China mirror not yet available, using official source: $mirror"
+# Import a vcvarsall.bat environment into this process and re-look for cl.exe.
+# Returns the cl.exe command, or $null when no usable MSVC install was found.
+function Activate-Msvc {
+    $candidates = @()
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        $vsPath = & $vswhere -latest -property installationPath 2>$null
+        if ($vsPath) {
+            $candidates += (Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat")
+        }
     }
+    # Fallback for installs that vswhere cannot see.
+    foreach ($edition in "Community", "Professional", "Enterprise") {
+        $candidates += "$env:ProgramFiles\Microsoft Visual Studio\2022\$edition\VC\Auxiliary\Build\vcvarsall.bat"
+        $candidates += "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\$edition\VC\Auxiliary\Build\vcvarsall.bat"
+    }
+    foreach ($vcvarsall in $candidates) {
+        if (-not (Test-Path $vcvarsall)) { continue }
+        Write-Host "  Activating MSVC via $vcvarsall x64..." -ForegroundColor Gray
+        cmd /c "`"$vcvarsall`" x64 >nul 2>&1 && set" | ForEach-Object {
+            if ($_ -match "^(.+?)=(.*)$") {
+                [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+            }
+        }
+        $cl = Get-Command cl.exe -ErrorAction SilentlyContinue
+        if ($cl) {
+            Write-OK "cl.exe activated: $($cl.Source)"
+            return $cl
+        }
+    }
+    return $null
+}
+
+function Install-MoonBit {
     Write-Step "Installing MoonBit toolchain..."
     try {
-        $installScript = Invoke-WebRequest -Uri "$mirror/install/powershell.ps1" -UseBasicParsing
-        Invoke-Expression $installScript.Content
+        Invoke-Expression (Invoke-WebRequest -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -UseBasicParsing).Content
         Add-ToUserPath "$env:USERPROFILE\.moon\bin"
         $env:Path = "$env:USERPROFILE\.moon\bin;$env:Path"
         Write-OK "MoonBit installed successfully."
@@ -109,91 +131,27 @@ if (-not $moonCmd) {
 $moonVersion = (moon version 2>&1) -join " "
 Write-OK "moon found: $moonVersion"
 
-# ── Version check ───────────────────────────────────────────────────────────
-
-$versionMatch = [regex]::Match($moonVersion, '(\d+\.\d+\.\d+)')
-if ($versionMatch.Success) {
-    $moonVersionNum = $versionMatch.Groups[1].Value
-    Write-OK "MoonBit version: $moonVersionNum"
-} else {
-    Write-Warn "Could not parse moon version: $moonVersion"
-}
-
 # ── Step 2: Check C compiler ────────────────────────────────────────────────
 
 Write-Step "Checking C compiler (cl.exe)..."
 
 $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
-$activated = $false
-if (-not $clCmd) {
-    Write-Warn "cl.exe not found in PATH. Attempting to activate MSVC environment..."
-
-    # Try vswhere.exe to find VS installation dynamically
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (Test-Path $vswhere) {
-        $vsPath = & $vswhere -latest -property installationPath 2>$null
-        if ($vsPath) {
-            $vcvarsall = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
-            if (Test-Path $vcvarsall) {
-                Write-Host "  Found VS at: $vsPath" -ForegroundColor Gray
-                Write-Host "  Activating MSVC via vcvarsall.bat x64..." -ForegroundColor Gray
-                cmd /c "`"$vcvarsall`" x64 >nul 2>&1 && set" | ForEach-Object {
-                    if ($_ -match "^(.+?)=(.*)$") {
-                        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-                    }
-                }
-                $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
-                if ($clCmd) {
-                    $activated = $true
-                    Write-OK "cl.exe activated: $($clCmd.Source)"
-                }
-            }
-        }
-    }
-
-    # Fallback: check common VS paths if vswhere didn't work
-    if (-not $activated) {
-        $commonPaths = @(
-            "$env:ProgramFiles\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
-            "$env:ProgramFiles\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat",
-            "$env:ProgramFiles\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat",
-            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat",
-            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat",
-            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
-        )
-        foreach ($vcvarsall in $commonPaths) {
-            if (Test-Path $vcvarsall) {
-                Write-Host "  Found vcvarsall at: $vcvarsall" -ForegroundColor Gray
-                Write-Host "  Activating MSVC via vcvarsall.bat x64..." -ForegroundColor Gray
-                cmd /c "`"$vcvarsall`" x64 >nul 2>&1 && set" | ForEach-Object {
-                    if ($_ -match "^(.+?)=(.*)$") {
-                        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-                    }
-                }
-                $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
-                if ($clCmd) {
-                    $activated = $true
-                    Write-OK "cl.exe activated: $($clCmd.Source)"
-                    break
-                }
-            }
-        }
-    }
-
-    if (-not $activated) {
-        Write-Host "  Native builds require MSVC Build Tools." -ForegroundColor Yellow
-        Write-Host "  Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
-        Write-Host "  Or open 'x64 Native Tools Command Prompt' and re-run this script."
-        Write-Host "  You can still build for wasm-gc without a C compiler."
-        $hasCC = $false
-    }
-} else {
+if ($clCmd) {
     Write-OK "cl.exe found: $($clCmd.Source)"
-    $hasCC = $true
+} else {
+    Write-Warn "cl.exe not found in PATH. Attempting to activate MSVC environment..."
+    $clCmd = Activate-Msvc
 }
 
-# Set $hasCC if activation succeeded
-if ($activated) { $hasCC = $true }
+if ($clCmd) {
+    $hasCC = $true
+} else {
+    Write-Host "  Native builds require MSVC Build Tools." -ForegroundColor Yellow
+    Write-Host "  Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
+    Write-Host "  Or open 'x64 Native Tools Command Prompt' and re-run this script."
+    Write-Host "  You can still build for wasm-gc without a C compiler."
+    $hasCC = $false
+}
 
 # ── Step 3: Update & install dependencies ───────────────────────────────────
 
@@ -221,7 +179,10 @@ if ($Target -ne "") {
 }
 Write-Step "Building project (target: $buildTarget)..."
 
-moon build --target $buildTarget
+# `cmd` is named explicitly and the build is a release one: a bare `moon build`
+# walks the whole moon.work workspace (whose vendored member has a test driver
+# that ICEs), and verifying _build/.../release after a debug build finds nothing.
+moon build --target $buildTarget --release cmd
 if ($LASTEXITCODE -ne 0) {
     Write-Err "moon build failed (exit code: $LASTEXITCODE)"
     Write-Host "  Run 'moon check' for detailed error information."
@@ -233,27 +194,23 @@ Write-OK "Build succeeded."
 
 Write-Step "Verifying build artifacts..."
 
-$buildDir = Join-Path $ProjectRoot "_build\$buildTarget\release\build\cmd"
-$exePattern = "*.exe"
-$found = Get-ChildItem -Path $buildDir -Filter $exePattern -ErrorAction SilentlyContinue
-
-if (-not $found -and $buildTarget -eq "native") {
-    # Also check alternative output locations
-    $altDir = Join-Path $ProjectRoot "_build\$buildTarget\release\build"
-    $found = Get-ChildItem -Path $altDir -Recurse -Filter $exePattern -ErrorAction SilentlyContinue
-}
-
-if ($found) {
-    Write-OK "Build artifacts found:"
-    $found | ForEach-Object { Write-Host "  $($_.FullName)" -ForegroundColor Gray }
-} else {
-    if ($buildTarget -eq "native") {
-        Write-Warn "No .exe artifacts found in _build/$buildTarget/"
+# The release tree is keyed by author/module, so search it instead of
+# hard-coding a path that the layout has already outgrown.
+$buildRoot = Join-Path $ProjectRoot "_build\$buildTarget\release\build"
+$found = $null
+if ($buildTarget -eq "native") {
+    $found = Get-ChildItem -Path $buildRoot -Recurse -Filter "cmd.exe" -ErrorAction SilentlyContinue
+    if ($found) {
+        Write-OK "Build artifact(s) found:"
+        $found | ForEach-Object { Write-Host "  $($_.FullName)" -ForegroundColor Gray }
+    } else {
+        Write-Warn "No cmd.exe under $buildRoot"
         Write-Host "  The build succeeded but no executable was produced."
         Write-Host "  Check that cmd/main.mbt contains a main() entry point."
-    } else {
-        Write-OK "wasm-gc build artifacts are in _build/$buildTarget/"
     }
+} else {
+    $wasm = @(Get-ChildItem -Path $buildRoot -Recurse -Filter "*.wasm" -ErrorAction SilentlyContinue)
+    Write-OK "wasm-gc artifacts: $($wasm.Count) file(s) under $buildRoot"
 }
 
 # ── Step 6: Configuration guidance ──────────────────────────────────────────
@@ -277,7 +234,7 @@ Write-Host ""
 Write-Host "  2. Run the agent:"
 Write-Host ""
 if ($buildTarget -eq "native" -and $found) {
-    $exePath = $found[0].FullName
+    $exePath = @($found)[0].FullName
     Write-Host "     $exePath --message `"Hello`" --mode auto_approve" -ForegroundColor White
 } else {
     Write-Host "     moon run cmd -- --message `"Hello`" --mode auto_approve" -ForegroundColor White

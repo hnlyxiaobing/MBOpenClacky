@@ -268,9 +268,12 @@ chmod +x scripts/install.sh
 **脚本功能**：
 1. 检查 `moon` 命令是否可用，未安装时自动下载安装
 2. 检查 C 编译器（gcc/clang），缺失时提示安装命令
-3. 执行 `moon update` 获取依赖（`moon install` 无参数形式已在 2026-09+ 工具链弃用并报错退出）
-4. 执行 `moon build --target native` 构建项目
-5. 输出配置指引（环境变量、TOML 配置文件路径）
+3. 检查 `libssl`（`pkg-config openssl`），缺失时按发行版打印安装命令（HTTP 已迁到 `@async/http`，不再需要 libcurl）
+4. 执行 `moon update` 获取依赖（`moon install` 无参数形式已在 2026-09+ 工具链弃用并报错退出）
+5. 执行 `moon build --target native --release cmd` 构建项目，并在 `_build/native/release/build/` 下递归校验产物
+6. 输出配置指引（环境变量、TOML 配置文件路径）
+
+选项：`--yes|-y`（非交互）、`--install-moon`（缺失时自动装工具链）、`--target <native|wasm-gc>`。
 
 ### install.ps1（Windows）
 
@@ -280,20 +283,18 @@ chmod +x scripts/install.sh
 
 **脚本功能**：
 1. 检查 `moon` 命令是否可用，未安装时自动下载安装
-2. 通过 vswhere 动态检测 Visual Studio Build Tools 安装路径
+2. 通过 vswhere 动态检测 Visual Studio Build Tools 安装路径（vswhere 不可见时回退到常见安装目录）
 3. 自动调用 `vcvarsall.bat x64` 激活 MSVC 环境
-4. 执行 `moon build --target native` 构建项目
+4. 执行 `moon build --target native --release cmd` 构建项目，并递归校验 `cmd.exe` 产物
 5. 输出配置指引
+
+参数：`-ProjectRoot <path>`、`-AutoInstall`、`-Target <native|wasm-gc>`。
 
 ### 已知局限性
 
-> ⚠️ 安装脚本当前存在以下局限，后续计划修复：
-
 | 局限 | 影响 | 临时解决方案 |
 |------|------|------------|
-| 使用 `moon build --target native` 而非 `moon build --target native --release cmd` | 可能触发 moon #1488 bug（库包误链接） | 手动执行 `moon build --target native --release cmd` |
-| 未安装 OpenSSL 开发库（libssl-dev） | brand 包 AES-256-GCM 加密链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
-| 未构建 release 模式 | 产出 debug 二进制（约 8MB，含调试符号） | 手动追加 `--release` 标志 |
+| 脚本只探测并提示 `libssl-dev`，不会自动安装系统包 | 未装 OpenSSL 开发库时 brand 包 AES-256-GCM 链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
 | `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release（详见下方「品牌加密与密钥派生」） |
 
 ### 前置环境依赖清单
@@ -330,7 +331,7 @@ chmod +x scripts/install.sh
 
 ### 弱桩路径安全约束（MBOPENCLACKY_NO_OPENSSL）
 
-`scripts/check-crypto-build.{sh,ps1}` 与 `brand_stubs.c` 共同保障不安全桩代码无法进入生产：
+`scripts/check-crypto-build.sh` 与 `brand_stubs.c` 共同保障不安全桩代码无法进入生产：
 
 - **编译期**：`brand_stubs.c` 在未同时定义 `MBOPENCLACKY_INSECURE_DEBUG_BUILD` 时直接 `#error`，使不安全桩根本无法被编译。它仅在显式 `-DMBOPENCLACKY_NO_OPENSSL`（无 libcrypto 且无 Windows CNG 的极简/调试构建）时编入。
 - **CI / 构建脚本**：`scripts/check-crypto-build.sh release` 在 `MBOPENCLACKY_NO_OPENSSL` 与 release 组合下返回非零退出码，CI 步骤 `Guard insecure crypto build` 会因此失败。

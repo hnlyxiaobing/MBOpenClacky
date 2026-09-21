@@ -108,11 +108,11 @@ jobs:
       - name: Type check
         run: moon check -j "$(nproc)"
 
-      - name: Warning budget gate (P2-3, strict)
-        # moon check reports 0 warnings on the 2026-09-20 toolchain baseline
-        # (commit 5b74655). Strict: any new compiler warning fails CI. If the
-        # baseline legitimately moves, raise the budget explicitly here.
-        run: bash scripts/warn_count.sh 0 strict
+      - name: Warning budget gate (P2-3)
+        # The baseline is 0 warnings on the 2026-09 toolchain (commit 5b74655),
+        # so any new compiler warning fails CI. If the baseline legitimately
+        # moves, pass an explicit budget here.
+        run: bash scripts/warn_count.sh
 
       - name: Public API gate (P0-1, .mbti diff)
         # Regenerate every package interface; a public API change that was not

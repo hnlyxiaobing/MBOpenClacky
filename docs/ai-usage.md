@@ -15,7 +15,7 @@ AI 不参与的部分：验收标准的定义、范围冻结（P0+P1 承诺 / P2
 
 | 闸门 | 命令 | 拦住什么 |
 |---|---|---|
-| 类型与警告 | `moon check`（CI 以 `scripts/warn_count.sh 0 strict` 固定 0 警告预算） | 类型错误、新增编译警告 |
+| 类型与警告 | `moon check`（CI 以 `scripts/warn_count.sh` 固定 0 警告预算） | 类型错误、新增编译警告 |
 | 公共 API 冻结 | `moon info` 后 `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却不提交接口文件（接口文件入库，全仓数量见 `scripts/repo_stats.sh` 生成的表） |
 | 契约探针 | `moon build --target native --release cmd` 后 `<binary> selftest` | 退出码 / stdout 形状（empty/text/json/json-lines）/ stderr 干净度 / `Failure(`·`Panic(` 泄漏；并对比 `moon run cmd`，差异如实报告 |
 | 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致：扫描段过期、命中项缺少 curated 状态行、引用不存在的文件 |
