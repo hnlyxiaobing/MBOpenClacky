@@ -21,8 +21,8 @@
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 304 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 208 |
 | 源代码行数 | 97,249 |
-| 测试行数 | 58,094 |
-| 总行数 | 155,343 |
+| 测试行数 | 58,092 |
+| 总行数 | 155,341 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3818 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -139,6 +139,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')  
 | 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
 
 - 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
+- 三层回归测试体系（单元差分 / e2e 剧本 / 能力基准）：[docs/testing.md](docs/testing.md)
 - AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
 - 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)
 
@@ -174,7 +175,7 @@ MBOpenClacky/
 │   ├── errors/         # 错误类型层次
 │   ├── utils/          # 工具函数
 │   └── zip/            # ZIP 压缩/解压
-├── test/               # Eval 框架（通用引擎 + TUI 适配层 + 场景）
+├── test/               # 测试体系：单元差分 + e2e 剧本 + Eval 框架 + 文档解析夹具（fixtures/）
 ├── assets/             # Agent 配置、技能、Web 前端
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
 ├── .github/            # CI/CD 工作流

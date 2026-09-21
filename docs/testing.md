@@ -1,4 +1,4 @@
-# TESTING.md — 三层回归测试体系
+# 三层回归测试体系（docs/testing.md）
 
 > 本文档说明 MBOpenClacky 内生回归测试的三层结构、运行方式、known-failure 清单与新增用例规范。
 > 本体系由 diff-harness（`D:/MoonBit/diff-harness`）P2/P3 差分测试资产迁移而来，
@@ -13,6 +13,8 @@
 | 端到端层 | `benchmark/capability/` | 真模型能力基准（手动触发，不进 CI） | 见下文"端到端能力基准" | 手动 / 按里程碑 |
 
 现有白盒测试（`lib/**/*_wbtest.mbt`、`test/tui`、`test/web`）继续按原方式运行：`moon test`（全量）或 `moon test <pkg>`。
+
+数据夹具统一放在 `test/fixtures/documents/`（DOC/DOCX/XLSX/PPTX/PDF/WPS 样本，含损坏与截断用例），由 `lib/parser` 与 `lib/agent` 的白盒测试按仓库根相对路径读取（`moon test` 进程 CWD = 项目根）。
 
 ## 单元层：test/diff
 

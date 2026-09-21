@@ -168,7 +168,7 @@ async test "parse_document_missing_file_becomes_error" {
   // （WSL1 下 fs.open ENOSYS 同样走此错误路径，不会崩）
   let manager = ParserManager::new()
   let result = manager.parse_document(
-    "tests/fixtures/documents/__missing__.docx",
+    "test/fixtures/documents/__missing__.docx",
   )
   assert_false(result.is_success)
   match result.error {
@@ -280,7 +280,7 @@ test "convert_result_truncates_over_1mb" {
 async test "fixture_docx_end_to_end" {
   let manager = ParserManager::new()
   let result = manager.parse_document(
-    "tests/fixtures/documents/unit_test_headers.docx",
+    "test/fixtures/documents/unit_test_headers.docx",
   )
   assert_true(result.is_success)
   assert_true(result.content.contains("Section 1"))
@@ -293,7 +293,7 @@ async test "fixture_docx_end_to_end" {
 async test "fixture_doc_end_to_end" {
   let manager = ParserManager::new()
   let result = manager.parse_document(
-    "tests/fixtures/documents/word_english.doc",
+    "test/fixtures/documents/word_english.doc",
   )
   assert_true(result.is_success)
   assert_true(result.metadata.format == Doc)
@@ -303,9 +303,7 @@ async test "fixture_doc_end_to_end" {
 ///|
 async test "fixture_wps_end_to_end" {
   let manager = ParserManager::new()
-  let result = manager.parse_document(
-    "tests/fixtures/documents/wps_english.wps",
-  )
+  let result = manager.parse_document("test/fixtures/documents/wps_english.wps")
   assert_true(result.is_success)
   assert_true(result.metadata.format == Wps)
 }
@@ -313,7 +311,7 @@ async test "fixture_wps_end_to_end" {
 ///|
 async test "fixture_pdf_end_to_end" {
   let manager = ParserManager::new()
-  let result = manager.parse_document("tests/fixtures/documents/multi_page.pdf")
+  let result = manager.parse_document("test/fixtures/documents/multi_page.pdf")
   assert_true(result.is_success)
   assert_true(result.metadata.format == Pdf)
 }
@@ -321,7 +319,7 @@ async test "fixture_pdf_end_to_end" {
 ///|
 async test "fixture_xlsx_end_to_end" {
   let manager = ParserManager::new()
-  let result = manager.parse_document("tests/fixtures/documents/test_01.xlsx")
+  let result = manager.parse_document("test/fixtures/documents/test_01.xlsx")
   assert_true(result.is_success)
   assert_true(result.metadata.format == Xlsx)
 }
@@ -330,7 +328,7 @@ async test "fixture_xlsx_end_to_end" {
 async test "fixture_pptx_end_to_end" {
   let manager = ParserManager::new()
   let result = manager.parse_document(
-    "tests/fixtures/documents/notes_chart_semantics.pptx",
+    "test/fixtures/documents/notes_chart_semantics.pptx",
   )
   assert_true(result.is_success)
   assert_true(result.metadata.format == Pptx)
@@ -339,7 +337,7 @@ async test "fixture_pptx_end_to_end" {
 ///|
 async test "fixture_corrupt_docx_returns_error" {
   let manager = ParserManager::new()
-  let result = manager.parse_document("tests/fixtures/documents/corrupt.docx")
+  let result = manager.parse_document("test/fixtures/documents/corrupt.docx")
   assert_false(result.is_success)
   assert_true(result.error is Some(_))
 }
@@ -347,7 +345,7 @@ async test "fixture_corrupt_docx_returns_error" {
 ///|
 async test "fixture_truncated_docx_returns_error" {
   let manager = ParserManager::new()
-  let result = manager.parse_document("tests/fixtures/documents/truncated.docx")
+  let result = manager.parse_document("test/fixtures/documents/truncated.docx")
   assert_false(result.is_success)
   assert_true(result.error is Some(_))
 }
@@ -356,7 +354,7 @@ async test "fixture_truncated_docx_returns_error" {
 async test "fixture_encrypted_doc_returns_error" {
   let manager = ParserManager::new()
   let result = manager.parse_document(
-    "tests/fixtures/documents/word_encrypted.doc",
+    "test/fixtures/documents/word_encrypted.doc",
   )
   assert_false(result.is_success)
   assert_true(result.error is Some(_))

@@ -25,6 +25,10 @@
 
 ## 变更记录
 
+### 2026-09-21  测试目录合并：`tests/` → `test/`，`TESTING.md` → `docs/testing.md`
+
+- `[chore]` 仓库根不再有并列的 `test/` 与 `tests/`：`tests/fixtures/documents/`（17 份 DOC/DOCX/XLS/PPTX/PDF/WPS 夹具）整体迁入 `test/fixtures/documents/`，`lib/parser/parser_wbtest.mbt` 与 `lib/agent/agent_wbtest.mbt` 的 22 处仓库根相对路径同步改写（`moon test` 进程 CWD 仍为项目根，故只改字面量、逻辑不变）；根目录 `TESTING.md` 归入文档体系为 `docs/testing.md`，并在其中补记夹具位置，README 结构与文档链接同步。
+
 ### 2026-09-21  移除一次性过程文档
 
 - `[chore]` 删除 4 份阶段性一次性记录：`docs/acceptance.md`（本期验收对照）、`docs/wrap-up-plan.md`（已执行完的收尾计划）、`docs/stub-implementation-audit.md`（2026-08-21 审计快照）、`docs/eval/2026-09-21.md`（带日期的 `cmd eval --offline` 输出快照，本地重跑即再生；CI 里同目录的文件只存在于 runner 副本，从不回提交）。结论已在 `docs/project-status.md` §5 与 `docs/known-gaps.md` 中持续维护；README 的验收链接与 project-status 的死链同步清理，`specs/` 归档不动。

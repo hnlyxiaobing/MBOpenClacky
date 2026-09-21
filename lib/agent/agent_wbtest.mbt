@@ -2525,7 +2525,7 @@ test "session_context build_text omission rules" {
 async test "execute_single_tool_reads_docx_document" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/unit_test_headers.docx\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/unit_test_headers.docx\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_false(entry.is_error, msg="expected success, got: \{entry.content}")
@@ -2568,7 +2568,7 @@ async test "execute_single_tool_read_dps_reports_decision9" {
 async test "execute_single_tool_read_png_not_intercepted" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/__nope__.png\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/__nope__.png\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_true(entry.is_error)
@@ -2598,12 +2598,12 @@ async test "execute_single_tool_read_text_zero_regression" {
 /// async/fs needs statx; WSL1 lacks it).
 async test "execute_single_tool_reads_all_six_formats" {
   let fixtures = [
-    ("tests/fixtures/documents/unit_test_headers.docx", "Docx"),
-    ("tests/fixtures/documents/word_english.doc", "Doc"),
-    ("tests/fixtures/documents/wps_english.wps", "Wps"),
-    ("tests/fixtures/documents/multi_page.pdf", "Pdf"),
-    ("tests/fixtures/documents/test_01.xlsx", "Xlsx"),
-    ("tests/fixtures/documents/notes_chart_semantics.pptx", "Pptx"),
+    ("test/fixtures/documents/unit_test_headers.docx", "Docx"),
+    ("test/fixtures/documents/word_english.doc", "Doc"),
+    ("test/fixtures/documents/wps_english.wps", "Wps"),
+    ("test/fixtures/documents/multi_page.pdf", "Pdf"),
+    ("test/fixtures/documents/test_01.xlsx", "Xlsx"),
+    ("test/fixtures/documents/notes_chart_semantics.pptx", "Pptx"),
   ]
   let agent = make_test_agent()
   for fixture in fixtures {
@@ -2628,7 +2628,7 @@ async test "execute_single_tool_reads_all_six_formats" {
 async test "execute_single_tool_read_corrupt_docx_errors" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/corrupt.docx\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/corrupt.docx\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_true(entry.is_error)
@@ -2643,7 +2643,7 @@ async test "execute_single_tool_read_corrupt_docx_errors" {
 async test "execute_single_tool_read_truncated_docx_errors" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/truncated.docx\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/truncated.docx\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_true(entry.is_error)
@@ -2656,7 +2656,7 @@ async test "execute_single_tool_read_truncated_docx_errors" {
 async test "execute_single_tool_read_encrypted_doc_errors" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/word_encrypted.doc\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/word_encrypted.doc\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_true(entry.is_error)
@@ -2668,7 +2668,7 @@ async test "execute_single_tool_read_encrypted_doc_errors" {
 async test "execute_single_tool_read_truncated_doc_errors" {
   let agent = make_test_agent()
   let call = make_tool_call(
-    "c1", "file_reader", "{\"path\":\"tests/fixtures/documents/truncated.doc\"}",
+    "c1", "file_reader", "{\"path\":\"test/fixtures/documents/truncated.doc\"}",
   )
   let entry = agent.execute_single_tool(call)
   assert_true(entry.is_error)
