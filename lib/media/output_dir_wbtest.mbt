@@ -27,10 +27,21 @@ test "output_dir_ensure_exists_creates_dir" {
 }
 
 ///|
+/// A directory path that cannot be created on *any* platform: its parent is a
+/// regular file. The previous `/proc/...` fixture only holds on Linux — on
+/// Windows `/proc` is an ordinary directory that gets created happily, so the
+/// "failure must be reported" assertion silently inverted there.
+fn impossible_dir_path() -> String {
+  let blocker = "/tmp/mboc-wbt-media-blocker"
+  let _ = @fs.remove_file(blocker) catch { _ => () }
+  @fs.write_string_to_file(blocker, "not a directory") catch { _ => () }
+  blocker + "/media"
+}
+
+///|
 test "output_dir_ensure_exists_reports_failure" {
-  // /proc/<x>/media cannot be created - ensure_exists must say so
-  // instead of always returning Ok (W3).
-  let dir = MediaOutputDir::new("/proc/mboc-wbt-media-impossible")
+  // ensure_exists must say so instead of always returning Ok (W3).
+  let dir = MediaOutputDir::new(impossible_dir_path())
   let result = dir.ensure_exists()
   assert_true(result is Err(_))
 }

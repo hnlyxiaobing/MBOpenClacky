@@ -207,11 +207,22 @@ test "scheduler_add_duplicate_name_rejected" {
 }
 
 ///|
+/// A config path that cannot be written on *any* platform: its parent is a
+/// regular file. The previous `/proc/...` fixture only holds on Linux — on
+/// Windows `/proc` is an ordinary directory, so the write succeeded and the
+/// "failure must propagate" assertion inverted.
+fn impossible_config_path() -> String {
+  let blocker = "/tmp/mboc-wbt-sched-blocker"
+  let _ = @fs.remove_file(blocker) catch { _ => () }
+  @fs.write_string_to_file(blocker, "not a directory") catch { _ => () }
+  blocker + "/sched.yml"
+}
+
+///|
 /// Write-through failures must propagate as Err (C7 fix): an unwritable
 /// config_path cannot silently succeed.
 test "scheduler_save_failure_propagates" {
-  // /proc rejects regular file creation even for root
-  let config_path = "/proc/mboc-wbt-sched-impossible.yml"
+  let config_path = impossible_config_path()
   let config : SchedulerConfig = {
     schedules: [],
     tasks_dir: "/tmp/mboc-wbt-sched-tasks",
