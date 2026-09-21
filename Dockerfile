@@ -64,19 +64,25 @@ RUN moon update
 #   reports tee's status, so a failed build would look successful and only
 #   surface later as a missing binary in the COPY step.
 # buildx already prints the full RUN output on failure, so no log tee is
-# needed. The explicit `test -x` gives a clear error if the artifact path
-# ever changes with a future toolchain.
+# needed.
 #
 # The artifact path carries the *module* path: moon writes it under
 #   _build/native/release/build/<owner>/<module>/<package>/<name>
-# i.e. .../build/hnlyxiaobing/MBOpenClacky/cmd/cmd. An earlier revision asserted
-# .../build/cmd/cmd.exe, which never exists, so this RUN step failed on every
-# image build even though `moon build` itself succeeded (that is what kept the
-# Docker workflow red). Accept either suffix: Linux emits `cmd`, Windows `cmd.exe`.
+# i.e. .../build/hnlyxiaobing/MBOpenClacky/cmd/cmd. An earlier revision used
+# `.../build/cmd/cmd.exe`, which never exists — that broke the image build in
+# two places at once: this assertion and the `COPY --from=builder` below (the
+# copy is the one buildx reports: "failed to calculate checksum ... not found").
+#
+# Normalize to a stable path here so the runtime stage has a single, simple
+# source to copy and the suffix difference (Linux `cmd`, Windows `cmd.exe`)
+# stays local to this step.
 RUN cd /build \
     && moon build --target native --release cmd \
-    && { test -x /build/_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd \
-         || test -x /build/_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe; } \
+    && BIN_DIR=/build/_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd \
+    && mkdir -p /build/out \
+    && if [ -x "$BIN_DIR/cmd" ]; then cp "$BIN_DIR/cmd" /build/out/mbopenclacky; \
+       else cp "$BIN_DIR/cmd.exe" /build/out/mbopenclacky; fi \
+    && test -x /build/out/mbopenclacky \
     && echo "moon build succeeded"
 
 # ── Stage 2: Runtime ────────────────────────────────────────
@@ -107,8 +113,8 @@ RUN groupadd -r mbopenclacky && useradd -r -g mbopenclacky -m mbopenclacky
 
 WORKDIR /app
 
-# Copy built binary from builder stage (release artifact is named cmd.exe)
-COPY --from=builder /build/_build/native/release/build/cmd/cmd.exe ./mbopenclacky
+# Copy built binary from builder stage (normalized to a stable name there)
+COPY --from=builder /build/out/mbopenclacky ./mbopenclacky
 
 # Copy static web assets
 COPY --from=builder /build/assets/ ./assets/

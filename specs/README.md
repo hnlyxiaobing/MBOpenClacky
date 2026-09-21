@@ -93,6 +93,15 @@ specs/
 | 07 | Idle 压缩定时器 | `IdleCompressionTimer` — run 完成后启动，新输入取消，266s 触发 | 318/318 ✅ |
 | 08 | Skill Evolution 集成 | `run_skill_evolution_hooks()` — 成功 run 后自动检测模式 | 318/318 ✅ |
 
+### 2026-09-21 — 收尾批次（wrap-up T1–T13）
+
+| Spec | 名称 | 关键实现 | 判据 |
+|------|------|---------|------|
+| 01 | 真话卫生 + 会话日志接线 + `cmd eval` | 数字单一事实来源（`scripts/repo_stats.sh`，三份文档同一生成块 + CI 校验）；版本四处对齐 0.2.0；TUI 路径 flush 会话日志；压缩投影为 `summary` 记录（append-only 字节保全不变）；确定性 tool_harness + `cmd eval --offline`（评分向量进 CI，`--live` 按 D1 诚实 exit 1）；顺带定位并修复两条既有红：CI 裸 `moon test` 跑到 vendor/mbtpdf 的自带单测（ICE）、Dockerfile 断言了不含模块命名空间的产物路径 | 本地 `moon check` 0/0、警告预算 0、台账 162/162、`moon test --release` 3818/3818；CI 与 Docker 工作流转绿（步骤级证据见 spec §5） |
+
+归档文档：`specs/completed/2026-09-21_wrap-up-truth-hygiene-and-eval.md`
+（含决策 D1–D4、6 处对原计划的第一性原理修正，以及 CI/Docker 两条既有红因的定位过程）。
+
 ## 模板说明
 
 | 模板 | 用途 | 适用场景 |
