@@ -1,7 +1,7 @@
 # Web UI 对齐状态
 
-> 更新日期：2026-08-11
-> 回归测试步骤见 [web-ui-test-plan.md](web-ui-test-plan.md)。
+> 更新日期：2026-08-11（2026-09-21 合并回归方法）
+> 本文是 Web UI（`lib/web` 后端 + `web/` 前端）对齐上游 openclacky 的**结论记录**；日常回归走项目原生 eval 框架（见 [testing.md](testing.md) 层 4），不再维护独立的一次性对比方案文档。
 
 ## 总体结论
 
@@ -42,8 +42,23 @@ web-ui2-01~10 覆盖：system prompt 泄露、会话创建/删除契约、YAML b
 
 ## 回归方式
 
+日常回归用项目原生 eval 框架（无外部依赖、进 CI）：
+
 ```bash
-moon run cmd -- server        # 启动 Web 服务（端口 7071）
+moon run cmd -- server                 # 启动 Web 服务（端口 7071）
+moon run cmd -- --web-eval test/scenarios/web/   # Web API/WS 场景回放（testing.md 层 4）
 ```
 
-按 [web-ui-test-plan.md](web-ui-test-plan.md) 中的用例执行回归；REST 契约相关断言可参考 `lib/web/*_wbtest.mbt`。
+REST 契约断言另见 `lib/web/*_wbtest.mbt`。
+
+### 与上游做一次全面对比时（按需，非日常）
+
+前端为上游 v1.5.0 的托管 fork（同步基线与流程见 [web/UPSTREAM_SYNC.md](../web/UPSTREAM_SYNC.md)、改动登记见 [web/PATCHES.md](../web/PATCHES.md)）。若上游升级或怀疑漂移，按下列步骤对比，而非新建文档：
+
+1. **静态契约**：`diff -rq web/ <upstream>/lib/clacky/web/`（排除 `ext_ui/`、`PATCHES.md`、`UPSTREAM_SYNC.md`）核对前端文件；对照 `lib/web/server.mbt` 的路由注册核对端点矩阵。
+2. **API 契约**：同一组请求分别打到上游 `7070` 与本服务 `7071`，归一化（剔除 `timestamp`/`id` 等动态字段）后做结构 diff；写操作端点需两边构造等价前置状态。
+3. **UI 流程**：用 Playwright 双开浏览器执行相同操作流（新会话→聊天→WS 事件渲染→配置面板→My Data→Settings），记录 console 错误与 ≥400 响应。
+4. **WS 协议**：Node `ws` 脚本对两端 `/ws` 发相同帧序列（`subscribe`→`message`→`interrupt`→`ping`），比对事件类型序列与字段命名。
+5. **判定**：功能已有但行为错误 → 记为 bug；功能尚未实现 → 记为 gap；端口错开、认证变量命名、web-parity-05 删除的 legacy 端点属**有意差异**，不计入。修复后在此文追加一行结论即可。
+
+> 已知有意差异：端口 7071 vs 7070；认证变量 `MBOPENCLACKY_WEB_API_KEY` vs `CLACKY_ACCESS_KEY`（均回环免认证）；本项目独有 `web/ext_ui/`（git、time-machine 面板）为新增能力。

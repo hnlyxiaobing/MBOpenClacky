@@ -7,7 +7,8 @@ MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071**
 > 同时设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务器拒绝启动。
 
 > 前提：先构建原生二进制 `moon build --target native --release cmd`，产物位于
-> `_build/native/release/build/cmd/cmd.exe`（在 Linux/macOS 上为 `cmd`）。以下用
+> `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（发布树按
+> `<author>/<module>` 分层；Linux/macOS 上为 `cmd`，无 `.exe`）。以下用
 > `mbopenclacky` 指代该二进制。
 
 ---

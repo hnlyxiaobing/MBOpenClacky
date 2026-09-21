@@ -191,6 +191,7 @@ MBOpenClacky/
 
 - 功能对比与完成度：[项目状态文档](docs/project-status.md)
 - **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md) — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
+- **优化提升路线图（对标上游的优先级结论）**：[docs/improvement-roadmap.md](docs/improvement-roadmap.md)
 
 ---
 

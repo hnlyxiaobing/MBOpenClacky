@@ -25,6 +25,16 @@
 
 ## 变更记录
 
+### 2026-09-21  文档校准与去冗余 + 优化提升路线图
+
+- `[docs]` **新增 `docs/improvement-roadmap.md`**：以第一性原理（承诺落差 × 可信度影响 ÷ 成本）对标上游 openclacky，把真话台账与源码核对结果综合成分级路线图（P0 品牌资产法律矛盾 / 渠道宣传落差；P1 媒体生成、GEP 反思、`eval --live`；P2 契约与可观测性；P3 技术债与平台卫生），每条标注"接线 or 降级声明"的建议动作；README 增加入口链接。
+- `[fix]` **构建产物路径全仓校正**：`AGENTS.md`、`docs/getting-started.md`、`docs/tui-architecture.md`、`deploy/README.md` 的 `_build/native/{debug,release}/build/cmd/cmd.exe` 改为真实的 `.../build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（发布树按 `<author>/<module>` 分层，Dockerfile 曾因旧路径失败）。
+- `[fix]` **`docs/getting-started.md` 警告口径**：原"警告可忽略、只要 0 errors"与 CI 的 0 警告预算（`warn_count.sh`）矛盾，改为"0 errors / 0 warnings 是硬闸门"。
+- `[fix]` **`docs/tui-architecture.md` 命令表按代码重写**：核对 `lib/tui/slash_commands.mbt` 后，`/clear`（新建会话）、`/undo`（任务历史 undo/redo）、技能动态 `/xxx` 均已对齐原版（原表误标为"不同/缺失"），移除已删除的 `/new`、`/todo` 行，注明 `/config key value` 已按 SPEC-03 移除；更新日期与构建路径。
+- `[fix]` **`docs/project-status.md` 渠道完成度去夸大**：§5.3 原标 6/6「✅ 完整」与台账矛盾，改为按真实接线分级（仅 Telegram 发送 + Discord 网关接通，其余为诚实 stub）；§7 完成度表同步；修掉重复的 `## 5` 标题（收尾节改 `## 8`）；补工具计数口径说明（对比表 16 vs 机器闸门 14）。
+- `[chore]` **删除 `docs/web-ui-test-plan.md`**：一次性对比方法学，交叉引用（G-001~G-003/§6）已失效；可复用的"与上游全面对比"步骤精简并入 `docs/web-ui-parity.md`，日常回归统一指向原生 eval 框架（`docs/testing.md` 层 4）。
+- 验证：`scripts/repo_stats.sh check` 与 `scripts/known_gaps.sh check` 均绿（未改机器生成块，仅改散文与口径说明）。
+
 ### 2026-09-21  脚本体系瘦身：`scripts/` 15 个文件 → 8 个
 
 - `[chore]` 删除 8 个已经无法工作或被替代的脚本，逐个都有可复核的证据：

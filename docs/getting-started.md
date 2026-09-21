@@ -73,7 +73,9 @@ cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxili
 moon build --target native --release cmd
 ```
 
-构建产物路径：`_build/native/release/build/cmd/cmd.exe`（release，约 3.6MB）。
+构建产物路径：`_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（release，约 3.6MB）。
+
+> **路径说明**：moon 的发布树按 `<author>/<module>` 分层，本模块为 `hnlyxiaobing/MBOpenClacky`（见 `moon.mod`），因此产物在 `build/hnlyxiaobing/MBOpenClacky/cmd/` 下而非 `build/cmd/`。硬编码 `build/cmd/cmd.exe` 的旧路径恒不存在（Dockerfile 曾因此构建失败，见 `docs/known-gaps.md`）。Linux/macOS 上可执行文件名为 `cmd`（无 `.exe`）。
 
 **Debug 构建（体积更大，约 8MB，含调试符号）：**
 
@@ -155,7 +157,7 @@ moon run cmd -- --message "列出当前目录的文件" --mode auto_approve
 
 # 交互模式（TUI）
 # 推荐：直接运行编译好的二进制（moon run cmd 包装器在某些终端下可能不启动 TUI）
-./_build/native/debug/build/cmd/cmd.exe
+./_build/native/debug/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 
 # 或使用 moon run（可能在无头终端下不启动 TUI）
 moon run cmd
@@ -164,7 +166,7 @@ moon run cmd
 moon run cmd -- server
 
 # 或直接运行已构建的 release 二进制
-./_build/native/release/build/cmd/cmd.exe server
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe server
 ```
 
 **Web 服务端口**：默认 **7071**（与原版 OpenClacky 的 7070 区分，避免端口冲突）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
@@ -402,9 +404,9 @@ $env:PATH = "$env:USERPROFILE\.moon\bin;$env:PATH"
 moon build --target native --release cmd
 ```
 
-### `moon check` 报 Warning 但 0 errors
+### `moon check` 的警告预算
 
-Warnings 为已知的代码风格提示（如 deprecated 语法），不影响编译和运行。当前 `moon check` 结果为 0 errors。
+CI 以 `scripts/warn_count.sh` 固定 **0 警告预算**：`moon check` 必须同时为 **0 errors / 0 warnings**（README 机器生成表也以此为口径）。新增任何编译警告都会让 CI 变红，因此不要指望"警告可忽略"——出现警告即需修复。
 
 ### Web 工具（web_fetch / web_search）
 

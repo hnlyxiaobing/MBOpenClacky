@@ -10,7 +10,7 @@ moon check                                  # Type-check (0 errors expected)
 moon run cmd                                # Run CLI
 moon run cmd -- server                    # Web server (port 7071)
 moon run cmd --message "Hello"           # Non-interactive mode
-./_build/native/debug/build/cmd/cmd.exe     # TUI mode (recommended over moon run)
+./_build/native/debug/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # TUI mode (recommended over moon run)
 moon test                                   # Native only
 moon test lib/agent --filter "session*"     # Targeted test run
 moon update && moon install                 # Sync dependencies

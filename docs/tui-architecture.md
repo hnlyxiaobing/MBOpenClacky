@@ -1,6 +1,6 @@
 # TUI 架构与对齐状态
 
-> 更新日期：2026-08-11
+> 更新日期：2026-09-21
 
 ## 当前架构
 
@@ -23,19 +23,19 @@
 
 ### 命令语义对比
 
-| 命令 | 原版 (ui2) | MB | 一致性 | 关键差异 |
+> 命令集以 `lib/tui/slash_commands.mbt` 的 `SlashCommandParser::new()` 为准（下表已按实际代码核对）。
+
+| 命令 | 原版 (ui2) | MB | 一致性 | 说明 |
 |------|:--:|:--:|:--:|------|
 | `/exit` `/quit` | ✅ | ✅ | ✅ 一致 | — |
-| `/help` | ✅ | ✅ | ✅ 一致 | 内容随命令集不同；MB 多快捷键表 |
-| `/config` | ✅ | ✅ | ⚠️ 基本一致 | MB 多 `key=value` 直改；原版多连接测试、配置摘要 |
-| `/model` | ✅ | ✅ | ⚠️ 部分一致 | MB 带参切换不持久化；原版两级抽屉 + 一律持久化 |
-| `/clear` | ✅ | ✅ | ❌ 不同 | 原版 = 新建会话（新 session_id）；MB = 会话内清理 |
-| `/undo` | ✅ | ✅ | ❌ 明显不同 | 原版交互菜单 + undo/redo + 分支；MB 直接撤销最后任务 |
-| `/new` | ❌ | ✅ | — | MB 新增，原版由 `/clear` 承担 |
-| `/todo` | ❌ | ✅ | — | MB 新增，原版 todo 自动显隐 |
+| `/help` | ✅ | ✅ | ✅ 一致 | MB 附快捷键表并列出技能命令 |
+| `/config` | ✅ | ✅ | ✅ 一致 | 均为菜单式；MB 的 `/config key value` 直改已按 SPEC-03 移除（带参报用法错误） |
+| `/model` | ✅ | ✅ | ✅ 一致 | 带参切换 + 持久化；原版为两级抽屉 |
+| `/clear` | ✅ | ✅ | ✅ 一致 | 均为新建会话（新 session_id） |
+| `/undo` | ✅ | ✅ | ⚠️ 基本一致 | 均打开任务历史做 undo/redo；原版另有分支 |
 | `/theme` | ❌ | ✅ | — | MB 运行时切主题；原版仅启动参数 |
-| 技能动态 `/xxx` | ✅ | ❌ | — | 原版 SkillLoader 动态注册；MB 缺此机制 |
-| `?` 触发帮助 | ✅ | ❌ | — | 原版输入 `?` 触发 `/help` |
+| 技能动态 `/xxx` | ✅ | ✅ | ✅ 一致 | 用户可调用技能注册为斜杠命令（对齐 Ruby `skills_by_command`） |
+| `?` 触发帮助 | ✅ | ❌ | — | 原版输入 `?` 触发 `/help`；MB 未实现 |
 
 ### 命令扩展取舍（2026-08-05 决策）
 
@@ -52,8 +52,8 @@
 
 ```bash
 moon build --target native --release cmd          # 构建（须显式指定 cmd，规避 moon#1488）
-./_build/native/debug/build/cmd/cmd.exe            # 推荐直接运行 exe 进入 TUI
-cmd.exe --tui-eval test/scenarios/tui/             # TUI eval 场景回归（当前 47/47）
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # 推荐直接运行 exe 进入 TUI
+cmd.exe --tui-eval test/scenarios/tui/            # TUI eval 场景回归（当前 47/47）
 ```
 
 注意：`moon test --target wasm-gc` 会因 `tty`/`crescent` 的 FFI 失败，用 `moon check` 验证类型即可。

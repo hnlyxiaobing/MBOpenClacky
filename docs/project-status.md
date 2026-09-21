@@ -80,7 +80,9 @@
 | memory_tool | 记忆工具 | 🆕 新增 (原项目通过 skill 实现) |
 | pty | PTY 会话管理 | 🆕 新增 (原项目内嵌于 terminal) |
 
-**差距: 0 个缺失工具。** 当前项目覆盖原项目全部 16 个工具，并新增 memory_tool 和独立 PTY 管理。
+**差距: 0 个缺失工具。** 当前项目覆盖原项目全部工具，并新增 memory_tool 和独立 PTY 管理。
+
+> **口径说明**：本节对比表按"上游工具面"计数（含 `base` 抽象与 `security` 策略工具，共 16 项）；README/CLAUDE 机器生成表中的"内置工具 14"统计的是当前注册进 `AnyTool` 的内置工具数（`base` 为抽象基类不计、部分能力合并）。两个数字口径不同，均非错误——机器闸门以 14 为准。
 
 ## 3. 技能 (Skills) 对比
 
@@ -187,16 +189,18 @@
 
 ### 5.3 IM 渠道
 
-| 渠道 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| 飞书 (Feishu) | server/channel/adapters/feishu/ | lib/channel/feishu*.mbt | ✅ 完整 |
-| 企业微信 (WeCom) | server/channel/adapters/wecom/ | lib/channel/wecom*.mbt | ✅ 完整 |
-| Telegram | server/channel/adapters/telegram/ | lib/channel/telegram*.mbt | ✅ 完整 |
-| Discord | server/channel/adapters/discord/ | lib/channel/discord*.mbt | ✅ 完整 |
-| 钉钉 (DingTalk) | server/channel/adapters/dingtalk/ | lib/channel/dingtalk*.mbt | ✅ 完整 |
-| 微信 (Weixin) | server/channel/adapters/weixin/ | lib/channel/weixin*.mbt | ✅ 完整 |
+6 个渠道的**适配器骨架**（注册、消息类型、解析器、AnyAdapter 分发）全部就位；但**实际收发 HTTP/长轮询接线**完成度不一，以真话台账（[known-gaps.md](known-gaps.md)）为准：
 
-**差距: 0 个缺失渠道。** 6/6 渠道全部覆盖。
+| 渠道 | 适配器 | 发送(send) | 接收/长轮询 | 说明 |
+|------|:--:|:--:|:--:|------|
+| Telegram | ✅ | ✅ 真发送 | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；`update_message` 与 getUpdates 长轮询为诚实报错 stub |
+| Discord | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/upload 未实现 |
+| 飞书 (Feishu) | ✅ | ⚠️ stub | ⚠️ stub | 富文本解析完整；`send/update/upload/download` 未接 HTTP 传输，诚实报错 |
+| 企业微信 (WeCom) | ✅ | ⚠️ stub | ⚠️ stub | WebSocket send 未接线，诚实报错 |
+| 钉钉 (DingTalk) | ✅ | ⚠️ stub | ⚠️ stub | `open_stream_connection`/`download_file_url` 未接 HTTP，诚实报错 |
+| 微信 (Weixin) | ✅ | ⚠️ stub | ⚠️ stub | send 与 AES-128-ECB 加解密未接线，诚实报错 |
+
+**差距**：适配器覆盖 6/6，但只有 Telegram（发送）与 Discord（网关）真正接通网络；其余 4 个渠道及全平台的 `update_message`/`delete_message` 仍为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
 
 ### 5.4 文档解析器
 
@@ -306,7 +310,7 @@
 |------|--------|------|
 | 工具集 | **100%** | 16/16 全部覆盖 + 2 个新增 |
 | 技能 | **100%** | 17/17 全部覆盖 |
-| IM 渠道 | **100%** | 6/6 全部覆盖 |
+| IM 渠道 | **适配器 100% / 网络接线部分** | 6/6 适配器就位；仅 Telegram(发送)+Discord(网关) 真接通，其余为诚实 stub（见 §5.3） |
 | 文档解析器 | **100%** | 6/6 全部覆盖 |
 | Web 前端 | **~95%** | 功能完整，Rich UI 组件差异 |
 | 扩展系统 | **100%** | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio) |
@@ -348,7 +352,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 ---
 
-## 5. 2026-09 收尾完成
+## 8. 2026-09 收尾完成
 
 本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)）：
 
