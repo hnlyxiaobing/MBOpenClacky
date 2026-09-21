@@ -500,6 +500,26 @@ fn probe_set() -> Array[Probe] {
       stdout_contains: ["not yet available"],
       stderr_expect: Clean,
     },
+    // `eval --offline` is a new public promise (T8): its judge is this probe.
+    // Running it twice (native + moon-run) also re-asserts determinism.
+    {
+      name: "eval_offline",
+      args: ["eval", "--offline", "--repo", "."],
+      exit_expect: Zero,
+      stdout_shape: Json,
+      stdout_contains: ["\"completion_rate\"", "\"repeatability\""],
+      stderr_expect: Clean,
+    },
+    // The model-driven path is honestly unavailable (decision D1 fallback):
+    // exit 1 plus an actionable message, never a silent success.
+    {
+      name: "eval_live_unavailable",
+      args: ["eval", "--live"],
+      exit_expect: Exact(1),
+      stdout_shape: Text,
+      stdout_contains: ["not implemented in this build"],
+      stderr_expect: Clean,
+    },
   ]
 }
 

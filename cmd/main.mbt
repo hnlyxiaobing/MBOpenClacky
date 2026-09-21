@@ -1,6 +1,6 @@
 ///|
 /// MBOpenClacky - AI Agent CLI tool rewritten in MoonBit
-const VERSION : String = "0.1.3"
+const VERSION : String = "0.2.0"
 
 ///|
 async fn main {
@@ -188,6 +188,33 @@ async fn main {
           ),
         },
         help="Replay a session log timeline offline (P1-2)",
+      ),
+      "eval": @clap.SubCommand::new(
+        args={
+          "offline": @clap.Arg::flag(
+            help="Run the deterministic tool harness (no model, no network)",
+          ),
+          "live": @clap.Arg::flag(
+            help="Run the model-driven path (not implemented in this build)",
+          ),
+          "repo": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Repository root holding test/eval/tasks and docs/eval (default: .)",
+          ),
+          "tasks": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Task directory (default: <repo>/test/eval/tasks)",
+          ),
+          "trials": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Repetitions per task (default: 2)",
+          ),
+          "out": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Report directory (default: <repo>/docs/eval)",
+          ),
+        },
+        help="Agent capability evaluation (P2)",
       ),
       "selftest": @clap.SubCommand::new(
         args={
@@ -465,6 +492,9 @@ async fn main {
         return
       } else if sub.name == "inspect" {
         handle_inspect(sub)
+        return
+      } else if sub.name == "eval" {
+        handle_eval(sub)
         return
       }
     None => ()
@@ -985,9 +1015,14 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   let json_output = value.get_flag("json") == Some(true)
   match msg_opt {
     Some(msg) => run_non_interactive(agent, msg, json_output)
-    None =>
+    None => {
       // Launch TUI in interactive mode
       @tui.run_tui_interactive(agent)
+      // Flush the buffered event stream into the append-only session log,
+      // symmetric with `run_non_interactive`. The flush swallows its own
+      // errors so an interactive run's exit code is unaffected.
+      flush_session_log(agent.session_id, agent.created_at)
+    }
   }
 
   // 16. Restore original working directory

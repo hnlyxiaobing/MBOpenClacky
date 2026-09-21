@@ -1,0 +1,32 @@
+{
+  "id": "assertion-text-fix",
+  "goal": "修一个已知断言文案：把过期的期望串改成当前语义",
+  "seed": [
+    {
+      "path": "{sandbox}/log_check.mbt",
+      "content": "test \"summary covers the run\" {\n  assert_eq(label, \"old expectation\")\n}\n"
+    }
+  ],
+  "steps": [
+    {
+      "tool": "edit",
+      "args": {
+        "path": "{sandbox}/log_check.mbt",
+        "old_string": "old expectation",
+        "new_string": "superseded by summary"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "kind": "file_contains",
+      "path": "{sandbox}/log_check.mbt",
+      "text": "superseded by summary"
+    },
+    {
+      "kind": "file_not_contains",
+      "path": "{sandbox}/log_check.mbt",
+      "text": "old expectation"
+    }
+  ]
+}

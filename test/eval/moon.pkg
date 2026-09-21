@@ -1,5 +1,14 @@
+warnings = "-29" // async tests import moonbitlang/async for the runtime only
+
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/async",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
+  "hnlyxiaobing/MBOpenClacky/lib/tool",
 }
+
+// The deterministic tool harness drives the real lib/tool registry, which is
+// native-only (PTY / shell FFI).
+supported_targets = "native"

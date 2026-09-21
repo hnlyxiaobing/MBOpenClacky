@@ -1,0 +1,22 @@
+{
+  "id": "doc-note",
+  "goal": "补一段 doc：写出一个 markdown 片段并确认内容真的落盘",
+  "steps": [
+    {
+      "tool": "write",
+      "args": {
+        "path": "{sandbox}/compression.md",
+        "content": "# Context compaction\n\nSuperseded messages stay byte-identical; replay only hides them.\n"
+      },
+      "expect_contains": "compression.md"
+    }
+  ],
+  "checks": [
+    { "kind": "file_exists", "path": "{sandbox}/compression.md" },
+    {
+      "kind": "file_contains",
+      "path": "{sandbox}/compression.md",
+      "text": "byte-identical"
+    }
+  ]
+}
