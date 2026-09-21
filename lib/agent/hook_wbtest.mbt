@@ -88,6 +88,7 @@ test "hook_emit_all_event_types" {
       InfoMessage(_) => event_types.push("info")
       SuccessMessage(_) => event_types.push("success")
       FeedbackRequested(_, _, _) => event_types.push("feedback")
+      CompressionPerformed(_) => event_types.push("compression")
     }
   })
 
@@ -133,8 +134,9 @@ test "hook_emit_all_event_types" {
   hm.emit(InfoMessage("info msg"))
   hm.emit(SuccessMessage("success msg"))
   hm.emit(FeedbackRequested("Continue?", None, None))
+  hm.emit(CompressionPerformed(7))
 
-  @debug.debug_inspect(event_types.length(), content="25")
+  @debug.debug_inspect(event_types.length(), content="26")
 }
 
 ///|

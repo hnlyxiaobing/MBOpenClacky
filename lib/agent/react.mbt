@@ -401,7 +401,10 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
       Some(ctx) => {
         self.compression_level = self.compression_level + 1
         match compress_with_level_fallback(self.history.all(), content, ctx) {
-          Success(_) => {
+          Success(stats) => {
+            // A successful compression supersedes the history it replaced; the
+            // session-log producer projects this as a summary record.
+            self.hook_manager.emit(CompressionPerformed(stats.messages_removed))
             // Save archived chunk to disk for future recall.
             let to_archive : Array[@message.Message] = []
             for m in self.history.all() {

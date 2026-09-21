@@ -61,6 +61,10 @@ pub(all) enum HookEvent {
   SuccessMessage(String)
   /// Request user feedback (question, context, options).
   FeedbackRequested(String, String?, Array[String]?)
+  /// A compression pass succeeded (number of messages removed from history).
+  /// Consumers that keep an external record of the run use this to project the
+  /// compaction (see `cmd inspect`'s session-log summary records).
+  CompressionPerformed(Int)
 }
 
 ///|

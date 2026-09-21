@@ -14,7 +14,7 @@ pub fn attach_session_log(@agent.Agent) -> Unit
 
 pub async fn execute_hook(HookConfig, HookContext) -> Result[Unit, String]
 
-pub async fn flush_session_log(String, String) -> Unit
+pub async fn flush_session_log(String, String, sessions_dir? : String) -> Unit
 
 pub fn handle_ext(@clap.SimpleValue) -> Unit
 
@@ -97,6 +97,10 @@ pub fn PatchLoader::new(String) -> Self
 type Probe
 
 type ProbeRun
+
+type SessionLogProducer
+
+type SessionLogSegment
 
 type StderrExpect
 

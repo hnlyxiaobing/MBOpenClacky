@@ -164,5 +164,9 @@ pub fn hook_event_to_protocol(event : HookEvent) -> @protocol.Event {
     SuccessMessage(msg) => @protocol.Success({ message: msg, })
     FeedbackRequested(question, context, options) =>
       @protocol.RequestFeedback({ question, id: None, context, options, })
+    CompressionPerformed(removed) =>
+      @protocol.Info({
+        message: "compression performed: \{removed} message(s) superseded",
+      })
   }
 }

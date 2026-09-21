@@ -12,31 +12,82 @@
 /// flushes them into `<sessions dir>/<session_id>.jsonl` when the run ends.
 
 ///|
-/// Buffered protocol events for this process's session log.
-let session_log_events : Array[(@proto.Event, Int64)] = []
-
-///|
-/// Buffer the engine's events for the session log. Registered for every run;
-/// the flush happens when the run ends.
-pub fn attach_session_log(agent : @agent.Agent) -> Unit {
-  agent.hook_manager.register(fn(evt : @agent.HookEvent) {
-    session_log_events.push(
-      (@agent.hook_event_to_protocol(evt), @agent.current_time_ms()),
-    )
-  })
+/// A buffered run of protocol events that a compression either does or does
+/// not supersede. A run is appended in order; when a segment is marked
+/// `superseded`, its events get a `summary` record covering them so replay
+/// hides them behind the compaction projection (the original bytes stay).
+struct SessionLogSegment {
+  events : Array[(@proto.Event, Int64)]
+  mut superseded : Bool
 }
 
 ///|
-/// Flush buffered events into the append-only session log, creating it on
-/// first use. Never raises: the run's exit code must not depend on logging.
-pub async fn flush_session_log(
+/// Session-log producer state: the buffered events of one run, split at
+/// compression boundaries. Held as a value rather than a bare global so the
+/// wiring can be exercised without shared process state.
+struct SessionLogProducer {
+  segments : Array[SessionLogSegment]
+}
+
+///|
+fn SessionLogProducer::new() -> SessionLogProducer {
+  { segments: [], }
+}
+
+///|
+/// The segment currently accepting events.
+fn SessionLogProducer::open_segment(
+  self : SessionLogProducer,
+) -> SessionLogSegment {
+  if self.segments.length() == 0 {
+    self.segments.push({ events: [], superseded: false })
+  }
+  self.segments[self.segments.length() - 1]
+}
+
+///|
+/// Feed one engine hook event into the buffer.
+fn SessionLogProducer::on_hook_event(
+  self : SessionLogProducer,
+  evt : @agent.HookEvent,
+) -> Unit {
+  match evt {
+    @agent.CompressionPerformed(_) => {
+      // Everything buffered so far is superseded by this compaction. The
+      // summary record itself is appended at flush time, so the append-only
+      // write path stays in one place.
+      let segment = self.open_segment()
+      if segment.events.length() > 0 {
+        segment.superseded = true
+        self.segments.push({ events: [], superseded: false })
+      }
+    }
+    _ =>
+      self.open_segment().events.push(
+        (@agent.hook_event_to_protocol(evt), @agent.current_time_ms()),
+      )
+  }
+}
+
+///|
+fn SessionLogProducer::buffered(self : SessionLogProducer) -> Int {
+  let mut total = 0
+  for segment in self.segments {
+    total = total + segment.events.length()
+  }
+  total
+}
+
+///|
+/// Append the buffered events into `<dir>/<session_id>.jsonl`, creating it on
+/// first use, and append a `summary` record for every superseded segment.
+/// Never raises: the run's exit code must not depend on logging.
+async fn SessionLogProducer::flush(
+  self : SessionLogProducer,
   session_id : String,
   created_at : String,
+  dir : String,
 ) -> Unit {
-  if session_log_events.length() == 0 {
-    return
-  }
-  let dir = @agent.ensure_sessions_dir() catch { _ => return }
   let path = @path.Path::join(dir, @path.Path(session_id + ".jsonl")).to_string()
   if !@fs.path_exists(path) {
     match @agent.create_session_log(path, session_id, created_at) {
@@ -44,10 +95,82 @@ pub async fn flush_session_log(
       Err(_) => return
     }
   }
-  for item in session_log_events {
-    ignore(@agent.append_event(path, item.0, item.1) catch { _ => Ok(0) })
+  for segment in self.segments {
+    if segment.events.length() == 0 {
+      continue
+    }
+    let (first_seq, last_seq) = append_segment_events(path, segment.events)
+    if segment.superseded && first_seq > 0 && last_seq >= first_seq {
+      let result : Result[Int, String] = @agent.append_summary(
+        path, first_seq, last_seq, @agent.current_time_ms(),
+      ) catch {
+        _ => Ok(0)
+      }
+      ignore(result)
+    }
   }
-  session_log_events.clear()
+  self.segments.clear()
+}
+
+///|
+/// The producer registered for the CLI process's current run.
+let session_log_producer : SessionLogProducer = SessionLogProducer::new()
+
+///|
+/// Buffer the engine's events for the session log. Registered for every run;
+/// the flush happens when the run ends.
+pub fn attach_session_log(agent : @agent.Agent) -> Unit {
+  agent.hook_manager.register(fn(evt : @agent.HookEvent) {
+    session_log_producer.on_hook_event(evt)
+  })
+}
+
+///|
+/// Flush the process's buffered events into the append-only session log.
+/// Never raises: the run's exit code must not depend on logging.
+pub async fn flush_session_log(
+  session_id : String,
+  created_at : String,
+  sessions_dir? : String,
+) -> Unit {
+  if session_log_producer.buffered() == 0 {
+    return
+  }
+  let dir = match sessions_dir {
+    Some(explicit) => explicit
+    None => {
+      let fallback = @agent.ensure_sessions_dir() catch { _ => return }
+      fallback
+    }
+  }
+  session_log_producer.flush(session_id, created_at, dir)
+}
+
+///|
+/// Append one segment's events in order; returns the sequence range written
+/// (both 0 when nothing could be written).
+async fn append_segment_events(
+  path : String,
+  events : Array[(@proto.Event, Int64)],
+) -> (Int, Int) {
+  let mut first_seq = 0
+  let mut last_seq = 0
+  for item in events {
+    let result : Result[Int, String] = @agent.append_event(path, item.0, item.1) catch {
+      _ => Ok(0)
+    }
+    let seq = match result {
+      Ok(value) => value
+      Err(_) => 0
+    }
+    if seq > 0 {
+      if first_seq == 0 {
+        first_seq = seq
+      }
+      last_seq = seq
+    }
+  }
+  (first_seq, last_seq)
 }
 
 ///|

@@ -544,6 +544,7 @@ pub(all) enum HookEvent {
   InfoMessage(String)
   SuccessMessage(String)
   FeedbackRequested(String, String?, Array[String]?)
+  CompressionPerformed(Int)
 }
 
 pub(all) struct HookManager {

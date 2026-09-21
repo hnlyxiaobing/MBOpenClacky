@@ -206,7 +206,8 @@ pub fn Agent::compress_with_safety(
         ctx,
       )
       match result {
-        Success(_) => {
+        Success(stats) => {
+          self.hook_manager.emit(CompressionPerformed(stats.messages_removed))
           // Save archived chunk to disk for future recall
           let to_archive = clone_messages(self.history.all())
           match

@@ -325,3 +325,75 @@ test "compress_with_safety rolls back level on failure" {
     Failed(_) => @debug.assert_eq(agent.compression_level, level_before)
   }
 }
+// ── compress_with_safety: CompressionPerformed emission (T6) ────────
+
+///|
+/// A successful compression must announce itself: the session-log producer
+/// projects this event as a `summary` record, and the TUI/inspect renderers
+/// rely on it to explain why earlier turns disappeared.
+test "compress_with_safety emits CompressionPerformed on success" {
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let agent = Agent::new(
+    "s",
+    "a",
+    "/tmp",
+    client,
+    @config.AgentConfig::default(),
+  )
+  // Exceed message_count_threshold (200) so compression really triggers.
+  for msg in make_long_history() {
+    agent.history.append(msg)
+  }
+  let seen : Array[Int] = []
+  agent.hook_manager.register(fn(event : HookEvent) {
+    match event {
+      CompressionPerformed(removed) => seen.push(removed)
+      _ => ()
+    }
+  })
+  match agent.compress_with_safety(valid_compression_response) {
+    Success(stats) => {
+      @debug.assert_eq(seen.length(), 1)
+      @debug.assert_eq(seen[0], stats.messages_removed)
+    }
+    Failed(e) => fail("expected Success but got Failed: \{e}")
+  }
+}
+
+///|
+/// A failed compression changed nothing, so it must not claim to have
+/// superseded anything.
+test "compress_with_safety stays silent when compression fails" {
+  let client = @client.Client::new(
+    "key",
+    "https://api.test.com",
+    "model",
+    @config.OpenAICompletions,
+  )
+  let agent = Agent::new(
+    "s",
+    "a",
+    "/tmp",
+    client,
+    @config.AgentConfig::default(),
+  )
+  for msg in make_long_history() {
+    agent.history.append(msg)
+  }
+  let seen : Array[Int] = []
+  agent.hook_manager.register(fn(event : HookEvent) {
+    match event {
+      CompressionPerformed(removed) => seen.push(removed)
+      _ => ()
+    }
+  })
+  match agent.compress_with_safety(invalid_compression_response) {
+    Success(_) => fail("expected Failed for an invalid response")
+    Failed(_) => @debug.assert_eq(seen.length(), 0)
+  }
+}

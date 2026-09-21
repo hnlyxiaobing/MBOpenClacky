@@ -374,6 +374,13 @@ fn dispatch_hook_event(
     FeedbackRequested(question, _context, _options) =>
       // Feedback requested - append to output buffer
       append_feedback_requested(output, theme, question)
+    CompressionPerformed(removed) =>
+      // Context compaction - tell the user why earlier turns disappeared
+      append_info_message(
+        output,
+        theme,
+        "Context compressed (\{removed} message(s) superseded)",
+      )
   }
 }
 
