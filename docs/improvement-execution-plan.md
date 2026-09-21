@@ -1,0 +1,253 @@
+# MBOpenClacky 优化提升执行计划（可落地开发文档）
+
+> 生成日期：2026-09-21
+> 来源：把 [improvement-roadmap.md](improvement-roadmap.md) 的优先级结论，拆成可直接开工的**工作包（WP）**。路线图回答"做什么、为什么"，本文回答"怎么落地、改哪些文件、如何验收"。
+> 参考对象：上游 [clacky-ai/openclacky](https://github.com/clacky-ai/openclacky)（Ruby）。
+> 事实基线：所有"缺口"以机器校验的 [known-gaps.md](known-gaps.md) 为准；本文不重复逐行清单，只给闭环动作。
+
+---
+
+## 0. 如何使用本文
+
+1. 挑一个工作包（WP-x.y）。
+2. 按 Harness 方法论在 `specs/draft/` 建增量 spec（用 `specs/_templates/incremental-spec-template.md`），过对抗性评审后进 `specs/active/`。
+3. 实现时在 `moon check` 紧循环里小步推进；执行型工作（接线、改 stub、写测试）用**便宜模型**，仅架构/FFI 内存布局/对抗评审用贵模型（见 `AGENTS.md` 效率协议第 1 条）。
+4. 每闭环一个 WP：重跑 `scripts/known_gaps.sh generate` → 对应命中行消失 → 把 curated 台账行状态改 `fixed`；归档 spec 到 `specs/completed/`；在 `docs/CHANGELOG.md` 记一笔；更新本文对应 WP 的状态列。
+5. 提交遵循 `feat:`/`fix:`/`docs:` 小写类型前缀，一个 WP 一个逻辑提交。
+
+**状态标记**：`[ ]` 未开始 · `[~]` 进行中 · `[x]` 完成 · `[?]` 待决策门放行。
+
+---
+
+## 1. 全局约定（每个 WP 都适用）
+
+- **验证基线命令**（改动前后各跑一次，见 `docs/testing.md` 一键全跑）：
+  ```bash
+  moon check                                                       # 0 error / 0 warning（CI 硬闸门）
+  moon build --target native --release cmd
+  BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+  "$BIN" selftest --repo .                                         # 层 5 CLI 契约
+  "$BIN" eval --offline --repo .                                   # 层 6 确定性评测
+  moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')
+  scripts/known_gaps.sh check && scripts/repo_stats.sh check       # 台账与数字闸门
+  ```
+- **数字口径**：README/CLAUDE/project-status 的规模数字由 `scripts/repo_stats.sh` 生成，**禁止手改** `<!-- BEGIN: repo-stats -->` 块；改了代码规模就跑 `generate`。
+- **测试就近**：新测试放 `*_wbtest.mbt`（层 1）或 `test/diff`/`test/e2e`（层 2/3）；不新增顶层目录；一次性产物只落 `_build/`。
+- **诚实纪律**：接不通的路径必须返回可诊断的 `Err(...)`，不得静默假成功（stubfix 批次已清零假成功型 stub，勿回退）。
+
+---
+
+## 2. 决策门（开工前必须先拍板）
+
+路线图的核心判断是"不要停在『宣传 > 现实』的中间态"。以下两个门决定 Phase 1 走**接线**还是**降级声明**：
+
+| 门 | 问题 | 选项 A（接线） | 选项 B（降级声明） |
+|---|---|---|---|
+| **D-A 渠道** | 4 个未接通渠道（飞书/企微/钉钉/微信）本期做吗？ | 执行 WP-1.1~1.4 | 执行 WP-0.2，把 README"6 平台 IM 渠道"改为"6 平台适配器（Telegram/Discord 已接通，其余接线中）" |
+| **D-B 媒体生成** | 图/视频/语音生成本期做吗？ | 执行 WP-1.5 | 执行 WP-0.2，把"媒体生成"从亮点移到路线图，明确"视频理解 ≠ 生成" |
+
+> 建议：**D-A 选 A 且先做飞书**（国内主力、富文本解析已完整、HTTP 基础设施齐备）；**D-B 选 A**（`openai_compat.mbt` 已构建好请求体与解析器，只差一次 POST，成本极低）。若资源不足，至少执行选项 B 让文档与现实一致——**不允许两个门都悬空**。
+
+> **放行记录（2026-09-21）**：**D-A = A**（接线，飞书先行；D-B 同步放行 A）。依据：计划建议 + 第一性原理——接线的依赖（`@async/http`、`http_post_json`、`@client.http_post`）已就绪，宣传落差是当前最大可信度损耗；资源不足时可退选项 B，但在本轮内先执行 A 的低成本项（WP-1.5）。
+
+---
+
+## 3. 工作包总览
+
+| WP | 标题 | 优先级 | 门 | 预估 | 依赖 |
+|---|---|---|---|---|---|
+| WP-0.1 | 品牌资产法律核实与文档统一 | P0 | — | 0.5 天 | — |
+| WP-0.2 | 宣传口径对齐（降级声明分支） | P0 | D-A/D-B 选 B 时 | 0.5 天 | 决策门 |
+| WP-1.1 | 飞书 send/receive 接线 | P1 | D-A=A | 1–2 天 | — |
+| WP-1.2 | 钉钉 send 接线 | P1 | D-A=A | 1 天 | WP-1.1（复用模式） |
+| WP-1.3 | 企业微信 send 接线 | P1 | D-A=A | 1 天 | WP-1.1 |
+| WP-1.4 | 微信 send + AES-128-ECB | P1 | D-A=A | 2–3 天 | WP-1.4a 加密原语 |
+| WP-1.5 | 媒体生成接线（图/语音/视频） | P1 | D-B=A | 1–2 天 | — |
+| WP-1.6 | 全平台 update/delete_message | P2 | — | 1–2 天 | WP-1.1~1.4 |
+| WP-2.1 | GEP SkillReflector 做实 | P1 | — | 2–3 天 | — |
+| WP-2.2 | `cmd eval --live` 真模型评测接线 | P1 | — | 2–3 天 | — |
+| WP-3.1 | 旧会话 schema 只读迁移投影 | P2 | — | 1–2 天 | — |
+| WP-3.2 | Web 会话 JSONL 事件流（复议 D3） | P2 | — | 2–3 天 | — |
+| WP-3.3 | MCP HTTP 传输 | P2 | — | 1–2 天 | — |
+| WP-3.4 | 性能基准真实执行驱动 | P2 | — | 2 天 | 先出 spec |
+| WP-3.5 | Windows `lib/mcp` 测试挂死排查 | P3 | — | 1–2 天 | — |
+| WP-3.6 | TUI 绑定 wire 词表（ADR-0001 后续） | P3 | — | 2–3 天 | — |
+
+---
+
+## 4. 里程碑
+
+- **M1 可信度速赢（1 天）**：WP-0.1 必做；按决策门执行 WP-0.2 或放行 Phase 1。目标：消除法律风险 + 文档与现实一致。
+- **M2 网络接线（1–2 周）**：WP-1.1 → 1.2/1.3/1.5 并行 → 1.4（待加密原语）→ 1.6。目标：把已宣传的渠道/媒体做实。
+- **M3 能力深度（1 周）**：WP-2.1、WP-2.2。目标：GEP 反思做实 + 拿到真模型质量硬证据。
+- **M4 卫生与契约（backlog）**：WP-3.x 择机。均已在台账登记，不构成可信度风险。
+
+---
+
+## 5. 工作包详情
+
+### WP-0.1 品牌资产法律核实与文档统一 `[x]`（P0，先做）
+
+> **完成（2026-09-21）**：与上游 v1.5.0 原件哈希/内容比对，判定 `favicon.svg`、`icon*.svg`、`apple-touch-icon-180.png`、`logo_nav_dark.png`、`favicon.ico` 全部为上游原件 → 设计并替换为 MBOpenClacky 自有品牌（对话气泡 + 终端提示符，`#14B8A6`→`#3B82F6`）；`PATCHES.md` P0-001 归档 Resolved；`UPSTREAM_SYNC.md` 矛盾消除、rsync 排除补 `favicon.ico`；`index.html`/`brand/view.js` 默认品牌字符串同步。DoD 复验：矛盾 grep 通过，六文件与上游哈希全不同。
+
+- **目标**：消除 `web/UPSTREAM_SYNC.md` 自相矛盾（第 16 行"upstream originals still in place"vs 第 84–88 行"own brand assets"），确认 `web/{favicon.svg,icon.svg,apple-touch-icon-180.png,logo_nav_dark.png}` 来源合法。
+- **触点**：`web/UPSTREAM_SYNC.md`、`web/PATCHES.md`（P0-001）、四个品牌文件。
+- **步骤**：
+  1. 与上游 v1.5.0 原件逐文件比对（`diff`/图像比对）；判定是自制还是上游原件。
+  2. 若自制：`PATCHES.md` 的 P0-001 标 **Resolved**（保留记录），删掉 `UPSTREAM_SYNC.md` 第 16 行矛盾表述，与第 84–88 行统一。
+  3. 若为上游原件：设计并替换为 MBOpenClacky 品牌资产，再执行步骤 2。
+- **DoD**：两份文档对品牌资产的表述一致且与磁盘文件相符；仓库不含上游 OpenClacky 品牌资产。
+- **验证**：`grep -n "upstream originals still in place\|own brand assets" web/*.md` 无矛盾；人工图像核对。
+- **备注**：法律敏感，判定不确定时**保守替换**，不要猜。
+
+### WP-0.2 宣传口径对齐 `[?]`（P0，仅当 D-A/D-B 选 B）
+
+- **目标**：让 README/CLAUDE/project-status 的能力宣传与 `known-gaps.md` 一致。
+- **触点**：`README.md`（功能亮点段）、`CLAUDE.md`、`docs/project-status.md` §5.3/§7。
+- **步骤**：渠道改为"6 平台适配器（Telegram/Discord 已接通，其余接线中）"；媒体明确"视频理解已实现，图/视频/语音生成待接线"；GEP 收敛为"技能自动创建 + 进化框架（反思环节待接线）"。
+- **DoD**：无"已宣传但未接线"的表述；`scripts/repo_stats.sh check` 绿（未动数字块）。
+- **验证**：跑全局基线命令；人工比对 README 亮点与 known-gaps。
+
+### WP-1.1 飞书 send/receive 接线 `[?]`（P1，D-A=A）
+
+- **目标**：飞书适配器从"诚实 stub"变为真发送/接收，以 **Telegram 为参考实现**（`lib/channel/telegram.mbt::send_text` 已用 `http_post_json`）。
+- **触点**：`lib/channel/feishu_api.mbt`（`send_message`/`update_message`/`upload_image`/`upload_file`/`download_resource`/`fetch_chat_history` 的 `not yet wired` 分支）、`lib/channel/feishu.mbt`（`send_text`/`update_message`）。
+- **已具备的基础设施**（无需新造）：`http_helper.mbt` 的 `http_post_json`/`http_get_json`（async，走 `@client.http_post`）、`HttpHeaders`、`TokenCache`（tenant_access_token 缓存）、`FEISHU_API_BASE`、`extract_feishu_message_id`；`feishu_message_parser.mbt` 富文本解析已完整。
+- **步骤**：
+  1. `send_message`：构建飞书 `im/v1/messages` 请求体 → `http_post_json` → `extract_feishu_message_id`，映射错误码（`http_status_error` 已覆盖 `msg` 字段）。
+  2. `update_message`（PATCH）、`upload_image`/`upload_file`（multipart，需确认 `@client` 是否支持 multipart；不支持则先只接 JSON 类接口，multipart 记入台账）、`download_resource`/`fetch_chat_history`（GET）。
+  3. tenant_access_token 获取 + `TokenCache` 缓存刷新。
+- **DoD**：`feishu_api.mbt`/`feishu.mbt` 不再有 `not yet wired`/`not implemented` 命中（multipart 若受限则单独留台账行）；请求构建与响应解析有 `*_wbtest.mbt` 覆盖；HTTP 路径经本地 mock（参考 `test/e2e/mock_llm_server.mbt` 起 raw TCP）跑通一次。
+- **验证**：`moon test --release lib/channel`；`scripts/known_gaps.sh generate` 后飞书行消失 → 台账改 `fixed`。
+
+### WP-1.2 钉钉 send 接线 `[ ]`（P1，依赖 WP-1.1 模式）
+
+- **触点**：`lib/channel/dingtalk_api.mbt`（`open_stream_connection`/`download_file_url` 的 `not yet wired`）、`lib/channel/dingtalk.mbt`。
+- **已具备**：`DINGTALK_API_BASE`/`DINGTALK_OAPI_BASE`、`extract_dingtalk_message_id`、`http_post_json`。
+- **DoD/验证**：同 WP-1.1（钉钉行从台账消失）。
+
+### WP-1.3 企业微信 send 接线 `[ ]`（P1）
+
+- **触点**：`lib/channel/wecom.mbt`（`send_text`/`start` 的 `not yet implemented`）、`lib/channel/wecom_ws.mbt`（WebSocket send）。
+- **已具备**：`WECOM_API_BASE`、`http_post_json`；`extract_api_error` 已处理 `errmsg`。
+- **步骤**：access_token 获取 + 缓存；`message/send` 接线；WebSocket 收发用 `@async.websocket`（参考 `lib/channel/ws_client.mbt`、Discord 网关 stubfix-07）。
+- **DoD/验证**：同 WP-1.1。
+
+### WP-1.4 微信 send + AES-128-ECB `[ ]`（P1，依赖加密原语）
+
+- **前置 WP-1.4a**：微信消息加解密需 **AES-128-ECB**。先确认 `moonbitlang/x/crypto` 是否提供 ECB 模式；若无，评估 FFI 到 OpenSSL（POSIX）/BCrypt（Windows）——**这是贵模型环节**（FFI 内存布局）。
+- **触点**：`lib/channel/weixin_api.mbt`（`encrypt`/`decrypt` 的 `not yet implemented`）、`lib/channel/weixin.mbt`（`send_text`）。
+- **DoD**：AES-128-ECB 加解密有向量测试（对齐微信平台已知测试向量）；send 接通；台账微信行消失。
+- **验证**：`moon test --release lib/channel`；加解密往返 `decrypt(encrypt(x)) == x` + 官方向量。
+
+### WP-1.5 媒体生成接线 `[x]`（P1，D-B=A，成本极低）
+
+> **完成记录（2026-09-21）**：四个媒体端点全部接线。`lib/client` 新增二进制传输
+> （`http_get_bytes`/`http_post_bytes`，承载语音音频、multipart 上传与生成 URL 下载）；
+> `lib/media/openai_compat.mbt` 承载图/视频/语音（JSON + b64/URL 载荷，上游对齐超时
+> 240s/600s/120s/30s）并新增 transcription（multipart 二进制上传）；`dashscope.mbt`
+> 改为同步 multimodal-generation 上游协议（chat 形状 input + size/n/prompt_extend/
+> watermark 参数，图片 URL 下载落盘，因链接会过期）；`gemini.mbt` 直连改为与上游一致
+> 的诚实网关重定向错误；生成产物统一落 `{output_dir}/assets/generated/`。
+> `lib/web/handlers_media.mbt` 四端点改 async：非法输入/未配置模型返回诊断 400，
+> 其余走 MediaGenerator 真实调用；`handlers_bridge.mbt` video/status 如实报告同步
+> 执行模型。DoD 验证：`moon check` 0 错 0 警；`moon test --release lib/media lib/web
+> lib/client` 689/689 通过；`selftest` 18/18；`eval --offline` 3/3；台账 media 行全部
+> 转 `fixed`（`known_gaps.sh check` 一致）。
+
+- **目标**：把 `lib/media` 三个后端从 501 stub 变为真调用。**请求体与响应解析已写好，只差 HTTP POST。**
+- **触点**：
+  - `lib/media/openai_compat.mbt`：`openai_generate_image`/`openai_generate_speech` —— 已构建 `build_openai_image_request`/`build_openai_speech_request`、已有 `parse_openai_image_response`；补 `@client.http_post({base_url}/v1/images/generations, body, [Authorization: Bearer …], timeout)` 并解析。
+  - `lib/media/gemini.mbt`（图/视频）、`lib/media/dashscope.mbt`（图）：同模式。
+  - `lib/web/handlers_media.mbt`：把 4 个 501 端点改为调用上述函数（`image`/`video`/`audio/speech`/`audio/transcription`）；`handlers_bridge.mbt` 视频生成同步。
+- **DoD**：`lib/media/*.mbt` 无 `requires HTTP FFI - not yet implemented` 命中；请求构建/响应解析有 wbtest；REST 端点在配置了 key 时返回真实结果、未配置时返回可诊断错误（非 501 空壳）。
+- **验证**：`moon test --release lib/media lib/web`；`selftest`；台账 media 行消失。
+- **注意**：区分**生成**（本 WP）与**视频理解**（FFmpeg 抽帧 + Vision，已实现，勿动）。
+
+### WP-1.6 全平台 update/delete_message `[ ]`（P2）
+
+- **触点**：`discord_api.mbt`（`edit_message`/`delete_message`/`get_current_user`/`upload_file`）、`telegram.mbt`/`feishu.mbt` 的 `update_message`。
+- **DoD**：编辑/撤回在各已接通平台可用并有 wbtest；台账对应 `not implemented yet` 行消失。
+
+### WP-2.1 GEP SkillReflector 做实 `[ ]`（P1）
+
+- **目标**：`lib/skill/reflector.mbt` 从占位（"real implementation would invoke LLM or code modification"）变为真实的执行后反思。
+- **触点**：`lib/skill/reflector.mbt`、`lib/skill/evolution.mbt`（EvolutionEngine 调用点）、`lib/web/handlers_skills.mbt`（进化触发/日志查询 stub 端点）。
+- **步骤**：
+  1. 定义反思输入（最近任务的 transcript / 工具调用序列 / 成败）与输出（技能改进建议或 SKILL.md diff）。
+  2. 用现有 `Agent`/`Client` 走一次 LLM 调用产出结构化建议；落进化日志。
+  3. 接线 Web 端点（触发进化、查历史）。
+- **DoD**：`reflector.mbt` 无 `placeholder` 命中；反思产出可持久化并可被 Web 查询；有 wbtest（用 mock LLM，参考 `test/e2e`）。
+- **验证**：`moon test --release lib/skill lib/web`；台账 GEP 行消失。
+- **备注**：反思提示词设计属复杂推理，用贵模型；接线与测试用便宜模型。
+
+### WP-2.2 `cmd eval --live` 真模型评测接线 `[ ]`（P1，战略项）
+
+- **目标**：接通真模型能力评测，拿到与上游对标的硬证据。**规程与 schema 已定**（`test/capability/README.md`），只差任务集与运行器。
+- **触点**：新建 `test/capability/tasks/*.json`（schema = `test/eval/tasks/` + `prompt`/`acceptance`/`trials`）；`cmd/eval.mbt`（`--live` 分支，当前诚实 exit 1）；复用 `test/eval/tool_harness.mbt` 的 `seed`/`{sandbox}`/`checks` 原语。
+- **步骤**：
+  1. 从已验证的 e2e 剧本派生种子任务：001 read_edit、003 multi_turn、004 parallel、014 tool_failure_recovery。
+  2. `cmd eval --live` 读 `MBOPENCLACKY_API_KEY/BASE_URL/MODEL`，每任务跑 `trials`（≥5）次真实 ReAct 循环，跑 `checks` + 记录 transcript/退出码/token。
+  3. 输出评分向量（completion/verification/repeatability/cost）到 `_build/capability/results/`，报告写 `docs/eval/<date>.md`。
+  4. 更新 `cmd/selftest.mbt` 与 `cmd/main.mbt` 的 `--live` 帮助文本（去掉"not implemented"）。
+- **DoD**：一条命令用真实 key 产出可重跑报告；无 key 时仍诚实报错（不静默）；`--live` 不再命中 `not implemented`；**不进 CI**（成本/随机性）。
+- **验证**：手动 `cmd eval --live`（廉价模型）跑通一次，如实记录波动与成本；台账 eval 三行（`cmd/eval.mbt:75`、`cmd/main.mbt:198`、`cmd/selftest.mbt:520`）改状态。
+- **纪律**：禁止把真实 key 写入任务/结果文件；任务集只增不减。
+
+### WP-3.1 旧会话 schema 只读迁移投影 `[ ]`（P2）
+
+- **触点**：`lib/agent/session*.mbt`（只读导入路径）、`cmd inspect`。
+- **步骤**：旧 `tool_calls` schema → 新事件投影（只读，不就地改写）；加兼容测试（用参考机 `~/.mbopenclacky/sessions/*.json` 的脱敏样本）。
+- **DoD**：`--list` 能列出此前静默跳过的旧会话；`cmd inspect` 对旧格式给出时间线而非仅报因；README"读取兼容性未经验证"可升级为"已验证只读兼容"。
+
+### WP-3.2 Web 会话 JSONL 事件流（复议 D3）`[ ]`（P2）
+
+- **背景**：决策 D3 曾划为范围外。若追求三端可观测一致，需在 `lib/web/broadcast/hub.mbt` 加持久化旁路，复用 CLI/TUI 的 `SessionLogProducer`（值类型，可脱进程测试）。
+- **DoD**：Web 会话也产 append-only JSONL；压缩只追加 `Summary`；不改原始事件字节。
+
+### WP-3.3 MCP HTTP 传输 `[ ]`（P2）
+
+- **触点**：`lib/mcp/http_transport.mbt`（三处 `Err("... not implemented")`）。
+- **步骤**：用 `@async/http` 实现 Streamable HTTP / SSE 传输（Stdio 已完整，可复用 JSON-RPC 层）。
+- **DoD**：HTTP 传输可连一个真实/ mock MCP server；README MCP 表述升级。
+
+### WP-3.4 性能基准真实执行驱动 `[ ]`（P2，先出 spec）
+
+- **触点**：`test/benchmark/`（`BenchmarkRunner::run_scenario` 当前空循环计时，`tool`/`parameters` 不真执行）。
+- **前置**：先在 `specs/draft/` 出规格（真实性能闸门的口径、噪声处理）。
+- **DoD**：`cmd benchmark` 真执行工具路径并计时；结果落 `_build/benchmark/results/`；仍不进 CI。
+
+### WP-3.5 Windows `lib/mcp` 测试挂死排查 `[ ]`（P3）
+
+- **现象**：`moon test --release` 在 Windows 本机挂死于 `lib/mcp/mcp.whitebox_test.exe`（stdio 集成测试 spawn python3 前停住，疑似 async 管道/事件循环死锁）；Linux CI 全绿。
+- **步骤**：最小复现 → 定位 async spawn/pipe 在 Windows 的死锁点 → 修复或给该测试加 Windows 跳过 + 台账登记。
+- **DoD**：Windows 本机可跑全量测试（或该包有明确的平台跳过与根因记录）。
+
+### WP-3.6 TUI 绑定 wire 词表 `[ ]`（P3，ADR-0001 后续）
+
+- **背景**：TUI 直接消费引擎 `HookEvent`（富状态机需要 wire 丢弃的原始信息）；Web/CLI 已走 `lib/protocol`。见 `specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md`。
+- **DoD**：若决定统一，TUI 改绑 wire 词表并保留必要适配层；否则维持现状（HookEvent 穷尽匹配已保证新增事件即编译失败）。
+
+---
+
+## 6. 风险与触发条件
+
+| 风险 | 触发信号 | 立即动作 |
+|---|---|---|
+| 渠道 multipart/长轮询受 `@client` 能力限制 | 飞书 `upload_image` 无法发 multipart | 先接 JSON 类接口，multipart 单独留台账；不阻塞 WP-1.1 主体 |
+| 微信 AES-128-ECB 无现成原语 | `moonbitlang/x/crypto` 无 ECB | 走 FFI（贵模型），或该渠道降级声明，不拖累其余渠道 |
+| 真模型评测超预算/不稳定 | 单任务成本或时延不可控 | 降到 3 次重复、换更小任务，报告注明限制（规程已允许） |
+| 接线引入回归 | `moon test` 或 `selftest` 变红 | 回到最近绿提交，先补复现用例再修（效率协议第 4 条：先读完整错误） |
+| 范围被"顺手加功能"侵蚀 | PR 出现新渠道/Provider/前端重写 | 拒收，转 `known-gaps.md` 或下一期 |
+
+---
+
+## 7. 完成定义（整体）
+
+本计划视为达成，当：
+1. WP-0.1 完成（无法律矛盾）；
+2. 决策门 D-A/D-B 均已放行并执行对应分支（接线或降级，**无悬空**）；
+3. 已接线的 WP 在 `known-gaps.md` 对应行状态为 `fixed`，且全局基线命令全绿；
+4. `docs/improvement-roadmap.md` 对应条目状态同步更新，`docs/CHANGELOG.md` 有记录。
+
+> 维护约定：本文是**执行视图**，随 WP 进展更新状态标记；结论与优先级以 [improvement-roadmap.md](improvement-roadmap.md) 为准，逐行缺口以 [known-gaps.md](known-gaps.md) 为准。三者不一致时，以机器校验的台账为最终事实。

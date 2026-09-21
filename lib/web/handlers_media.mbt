@@ -1,5 +1,7 @@
 ///| Media generation REST API handlers.
-/// Image / video / speech / transcription endpoints remain stubs (501).
+/// Image / video / speech / transcription endpoints are wired through
+/// MediaGenerator using the configured media model for each modality;
+/// malformed input and missing model configuration return diagnostic 400s.
 /// Video understanding is implemented via FFmpeg frame extraction + LLM vision.
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -13,62 +15,241 @@ struct MediaErrorResponse {
 ///|
 pub extend MediaErrorResponse with ToJson::{to_json}
 
+// ── Shared helpers ────────────────────────────────────────────────
+
+///|
+/// Parse the JSON request body as an object, returning a diagnostic 400
+/// response on invalid input.
+fn media_request_json(
+  event : @crescent.Event,
+) -> Result[Json, @core.HttpResponse] {
+  let j : Json = event.req.body() catch {
+    _ =>
+      return Err(
+        @core.HttpResponse::bad_request().json_value(
+          MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }.to_json(),
+        ),
+      )
+  }
+  match j {
+    Object(_) => Ok(j)
+    _ =>
+      Err(
+        @core.HttpResponse::bad_request().json_value(
+          MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }.to_json(),
+        ),
+      )
+  }
+}
+
+///|
+fn media_string_field(j : Json, key : String) -> String? {
+  match j {
+    Object(fields) =>
+      match fields.get(key) {
+        Some(String(v)) => Some(v)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn media_int_field(j : Json, key : String) -> Int? {
+  match j {
+    Object(fields) =>
+      match fields.get(key) {
+        Some(Number(n, ..)) => Some(n.to_int())
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Resolve the configured media model for a modality: explicit media-type
+/// model first, then provider-derived default.
+fn resolve_media_model(
+  config : @config.AgentConfig,
+  kind : String,
+) -> @config.ModelConfig? {
+  match find_explicit_media_model(config, kind) {
+    Some(m) => Some(m)
+    None => config.derive_media_model(kind)
+  }
+}
+
+///|
+fn media_model_missing(kind : String) -> @core.HttpResponse {
+  @core.HttpResponse::bad_request().json_value(
+    MediaErrorResponse::{
+      ok: false,
+      message: "No " +
+      kind +
+      " media model configured. Add a model with media type '" +
+      kind +
+      "' or configure a provider preset that provides one.",
+    }.to_json(),
+  )
+}
+
 // ── Handlers ──────────────────────────────────────────────────────
 
 ///|
 /// POST /api/media/image
-fn handle_media_image(
-  _server_ref : Ref[WebServer],
-  _event : @crescent.Event,
+async fn handle_media_image(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
-    MediaErrorResponse::{
-      ok: false,
-      message: "Media image generation not yet implemented",
-    }.to_json(),
+  let j = match media_request_json(event) {
+    Err(resp) => return resp
+    Ok(j) => j
+  }
+  let prompt = media_string_field(j, "prompt").unwrap_or("")
+  if prompt.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      MediaErrorResponse::{ ok: false, message: "prompt is required", }.to_json(),
+    )
+  }
+  let config = server_ref.val.config
+  let model = match resolve_media_model(config, "image") {
+    Some(m) => m
+    None => return media_model_missing("image")
+  }
+  let request = @media.MediaRequest::image(
+    prompt,
+    media_string_field(j, "output_dir").unwrap_or("."),
+    aspect_ratio=media_string_field(j, "aspect_ratio"),
+    model=Some(model.model),
   )
+  let gen = @media.MediaGenerator::new(
+    model.base_url,
+    model.api_key,
+    Some(model.model),
+  )
+  let result = gen.generate_image(request)
+  @core.HttpResponse::ok().json_value(result.to_json())
 }
 
 ///|
 /// POST /api/media/video
-fn handle_media_video(
-  _server_ref : Ref[WebServer],
-  _event : @crescent.Event,
+async fn handle_media_video(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
-    MediaErrorResponse::{
-      ok: false,
-      message: "Media video generation not yet implemented",
-    }.to_json(),
+  let j = match media_request_json(event) {
+    Err(resp) => return resp
+    Ok(j) => j
+  }
+  let prompt = media_string_field(j, "prompt").unwrap_or("")
+  if prompt.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      MediaErrorResponse::{ ok: false, message: "prompt is required", }.to_json(),
+    )
+  }
+  let config = server_ref.val.config
+  let model = match resolve_media_model(config, "video") {
+    Some(m) => m
+    None => return media_model_missing("video")
+  }
+  let request = @media.MediaRequest::video(
+    prompt,
+    media_string_field(j, "output_dir").unwrap_or("."),
+    duration_seconds=media_int_field(j, "duration_seconds"),
+    aspect_ratio=media_string_field(j, "aspect_ratio"),
+    model=Some(model.model),
   )
+  let gen = @media.MediaGenerator::new(
+    model.base_url,
+    model.api_key,
+    Some(model.model),
+  )
+  let result = gen.generate_video(request)
+  @core.HttpResponse::ok().json_value(result.to_json())
 }
 
 ///|
 /// POST /api/media/audio/speech
-fn handle_media_speech(
-  _server_ref : Ref[WebServer],
-  _event : @crescent.Event,
+async fn handle_media_speech(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
-    MediaErrorResponse::{
-      ok: false,
-      message: "Media speech synthesis not yet implemented",
-    }.to_json(),
+  let j = match media_request_json(event) {
+    Err(resp) => return resp
+    Ok(j) => j
+  }
+  let prompt = match media_string_field(j, "input") {
+    Some(s) => s
+    None => media_string_field(j, "prompt").unwrap_or("")
+  }
+  if prompt.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      MediaErrorResponse::{
+        ok: false,
+        message: "input (or prompt) is required",
+      }.to_json(),
+    )
+  }
+  let config = server_ref.val.config
+  let model = match resolve_media_model(config, "audio") {
+    Some(m) => m
+    None => return media_model_missing("audio")
+  }
+  let request = @media.MediaRequest::speech(
+    prompt,
+    media_string_field(j, "output_dir").unwrap_or("."),
+    voice=media_string_field(j, "voice"),
+    model=Some(model.model),
   )
+  let gen = @media.MediaGenerator::new(
+    model.base_url,
+    model.api_key,
+    Some(model.model),
+  )
+  let result = gen.generate_speech(request)
+  @core.HttpResponse::ok().json_value(result.to_json())
 }
 
 ///|
 /// POST /api/media/audio/transcriptions
-fn handle_media_transcription(
-  _server_ref : Ref[WebServer],
-  _event : @crescent.Event,
+async fn handle_media_transcription(
+  server_ref : Ref[WebServer],
+  event : @crescent.Event,
 ) -> @core.HttpResponse {
-  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
-    MediaErrorResponse::{
-      ok: false,
-      message: "Media transcription not yet implemented",
-    }.to_json(),
+  let j = match media_request_json(event) {
+    Err(resp) => return resp
+    Ok(j) => j
+  }
+  let audio_path = media_string_field(j, "audio_path").unwrap_or("")
+  if audio_path.is_empty() {
+    return @core.HttpResponse::bad_request().json_value(
+      MediaErrorResponse::{ ok: false, message: "audio_path is required", }.to_json(),
+    )
+  }
+  if !@fs.path_exists(audio_path) {
+    return @core.HttpResponse::bad_request().json_value(
+      MediaErrorResponse::{
+        ok: false,
+        message: "Audio file could not be read: " + audio_path,
+      }.to_json(),
+    )
+  }
+  let config = server_ref.val.config
+  let model = match resolve_media_model(config, "stt") {
+    Some(m) => m
+    None => return media_model_missing("stt")
+  }
+  let request = @media.TranscriptionRequest::{
+    audio_path,
+    model: Some(model.model),
+  }
+  let gen = @media.MediaGenerator::new(
+    model.base_url,
+    model.api_key,
+    Some(model.model),
   )
+  let result = gen.generate_transcription(request)
+  @core.HttpResponse::ok().json_value(result.to_json())
 }
 
 ///|

@@ -25,6 +25,15 @@
 
 ## 变更记录
 
+### 2026-09-21  品牌资产重制 + 媒体生成全端点接线（执行计划 WP-0.1 / WP-1.5）
+
+- `[feat]` **媒体生成接线（WP-1.5）**：`/api/media/image|video|audio/speech|audio/transcriptions` 四端点从 501 stub 变为经 MediaGenerator 的真实调用——OpenAI 兼容网关承载图/视频/语音（JSON + b64/URL 载荷），转写走 multipart 二进制上传；DashScope 改为同步 multimodal-generation 上游协议并把返回的图片 URL 下载落盘；Gemini 直连按上游语义返回诚实网关重定向错误。生成产物统一落 `{output_dir}/assets/generated/`；未配置模型或非法输入返回诊断 400。
+  - `lib/client` 新增二进制 HTTP 传输 `http_get_bytes`/`http_post_bytes`（语音音频、multipart 上传、URL 下载）。
+  - `handlers_bridge` 的 `/api/media/video/status` 如实报告"同步执行、无任务队列"。
+  - 验证：`moon check` 0 错 0 警；`moon test --release lib/media lib/web lib/client` 689/689；`selftest` 18/18；`eval --offline` 3/3；known-gaps 台账 media 行全部转 `fixed`。
+- `[feat]` **品牌资产 MBOpenClacky 化（WP-0.1）**：核实六个品牌文件此前均为上游原版（哈希比对），以可编程验证的 MBOpenClacky 设计（青蓝渐变 + 气泡 chevron + 光标）重制 favicon.ico/favicon.svg/icon.svg/icon-dark.svg/apple-touch-icon-180.png/logo_nav_dark.png；`web/UPSTREAM_SYNC.md` 与 `web/PATCHES.md` 记录 P0-001 解决，favicon.ico 加入同步排除清单；品牌法律矛盾（P0-1）关闭。
+  - 决策门放行记录：D-A=A（渠道接线，飞书先行）、D-B=A（媒体接线）见 `docs/improvement-execution-plan.md` §2。
+
 ### 2026-09-21  文档校准与去冗余 + 优化提升路线图
 
 - `[docs]` **新增 `docs/improvement-roadmap.md`**：以第一性原理（承诺落差 × 可信度影响 ÷ 成本）对标上游 openclacky，把真话台账与源码核对结果综合成分级路线图（P0 品牌资产法律矛盾 / 渠道宣传落差；P1 媒体生成、GEP 反思、`eval --live`；P2 契约与可观测性；P3 技术债与平台卫生），每条标注"接线 or 降级声明"的建议动作；README 增加入口链接。

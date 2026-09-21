@@ -1,21 +1,23 @@
-///| Google Gemini native API for media generation
+///| Google Gemini native API for media generation.
+///
+/// Upstream parity: direct Gemini API access deliberately redirects to
+/// the OpenAI-compatible gateway for media generation, so both entry
+/// points below return an honest redirect error instead of attempting a
+/// direct call. Request builders and the response parser are kept for
+/// gateway-based use and testing.
 
 ///|
-/// Generate image using Gemini API
+/// Direct Gemini media access is unsupported; image generation should be
+/// routed through the OpenAI-compatible gateway.
 pub fn gemini_generate_image(
-  base_url : String,
-  api_key : String,
+  _base_url : String,
+  _api_key : String,
   model : String,
   request : MediaRequest,
 ) -> MediaResult {
-  let _request_body = build_gemini_image_request(request)
-  // TODO: FFI needed - Make HTTP POST to Gemini endpoint
-  // URL: {base_url}/v1beta/models/{model}:generateContent?key={api_key}
-  let _ = api_key
-  let _ = base_url
   build_error(
-    "Gemini image generation requires HTTP FFI - not yet implemented",
-    NotConfigured,
+    "Gemini media generation requires the OpenAI-compatible gateway: configure an image model served through a gateway endpoint instead of direct Gemini API access",
+    UnsupportedFormat,
     "gemini",
     model,
     request.prompt,
@@ -23,21 +25,17 @@ pub fn gemini_generate_image(
 }
 
 ///|
-/// Generate video using Gemini API (Veo)
+/// Direct Gemini media access is unsupported; video generation should be
+/// routed through the OpenAI-compatible gateway.
 pub fn gemini_generate_video(
-  base_url : String,
-  api_key : String,
+  _base_url : String,
+  _api_key : String,
   model : String,
   request : MediaRequest,
 ) -> MediaResult {
-  let _request_body = build_gemini_video_request(request)
-  // TODO: FFI needed - Make HTTP POST for video generation
-  // Gemini video generation is async: submit → poll for completion
-  let _ = api_key
-  let _ = base_url
   build_error(
-    "Gemini video generation requires HTTP FFI - not yet implemented",
-    NotConfigured,
+    "Gemini video generation requires the OpenAI-compatible gateway: configure a video model served through a gateway endpoint instead of direct Gemini API access",
+    UnsupportedFormat,
     "gemini",
     model,
     request.prompt,

@@ -31,7 +31,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **162** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **145** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -117,16 +117,6 @@
 | lib/mcp/stdio_transport.mbt:532 | stub | /// Stop the child process (WASM stub - no-op). |
 | lib/mcp/stdio_transport.mbt:539 | stub | /// Send a JSON-RPC message (WASM stub - not supported). |
 | lib/mcp/stdio_transport.mbt:550 | stub | /// Send a JSON-RPC request (WASM stub - not supported). |
-| lib/media/dashscope.mbt:12 | TODO | // TODO: FFI needed - Make HTTP POST to DashScope endpoint |
-| lib/media/dashscope.mbt:19 | not-yet | "DashScope image generation requires HTTP FFI - not yet implemented", |
-| lib/media/gemini.mbt:12 | TODO | // TODO: FFI needed - Make HTTP POST to Gemini endpoint |
-| lib/media/gemini.mbt:17 | not-yet | "Gemini image generation requires HTTP FFI - not yet implemented", |
-| lib/media/gemini.mbt:34 | TODO | // TODO: FFI needed - Make HTTP POST for video generation |
-| lib/media/gemini.mbt:39 | not-yet | "Gemini video generation requires HTTP FFI - not yet implemented", |
-| lib/media/openai_compat.mbt:13 | TODO | // TODO: FFI needed - Make HTTP POST to {base_url}/v1/images/generations |
-| lib/media/openai_compat.mbt:19 | not-yet | "OpenAI image generation requires HTTP FFI - not yet implemented", |
-| lib/media/openai_compat.mbt:36 | TODO | // TODO: FFI needed - Make HTTP POST to {base_url}/v1/audio/speech |
-| lib/media/openai_compat.mbt:40 | not-yet | "OpenAI speech generation requires HTTP FFI - not yet implemented", |
 | lib/server/browser_jsonrpc.mbt:176 | stub | // ── WASM fallback stubs ──────────────────────────────────────────────────── |
 | lib/server/browser_jsonrpc.mbt:179 | stub | /// Send a JSON-RPC request (WASM stub — not supported). |
 | lib/server/browser_jsonrpc.mbt:192 | stub | /// Send a JSON-RPC notification (WASM stub — not supported). |
@@ -172,8 +162,6 @@
 | lib/web/ext_loader.mbt:14 | stub | /// Shell command to execute for this route (empty = stub fallback) |
 | lib/web/handlers_backup.mbt:649 | not-implemented | /// Zip packaging of the snapshot directory is not implemented; returning |
 | lib/web/handlers_backup.mbt:670 | not-yet | "message": "Backup archive download not yet implemented".to_json(), |
-| lib/web/handlers_bridge.mbt:838 | not-implemented | // Video generation itself is not implemented (POST /api/media/video |
-| lib/web/handlers_bridge.mbt:845 | not-yet | "message": "Video generation not yet implemented".to_json(), |
 | lib/web/handlers_channels.mbt:336 | not-implemented | /// (GET /users/@me). Other platforms return honest "not implemented" status. |
 | lib/web/handlers_channels.mbt:387 | not-yet | ("not_implemented", "Telegram connectivity test not yet implemented") |
 | lib/web/handlers_channels.mbt:389 | not-yet | ("not_implemented", "WeCom connectivity test not yet implemented") |
@@ -185,11 +173,6 @@
 | lib/web/handlers_extra.mbt:13 | not-yet | /// capability not yet exposed by the git_exec layer, so it is deferred; |
 | lib/web/handlers_extra.mbt:1192 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
 | lib/web/handlers_extra.mbt:1218 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
-| lib/web/handlers_media.mbt:2 | stub | /// Image / video / speech / transcription endpoints remain stubs (501). |
-| lib/web/handlers_media.mbt:27 | not-yet | message: "Media image generation not yet implemented", |
-| lib/web/handlers_media.mbt:41 | not-yet | message: "Media video generation not yet implemented", |
-| lib/web/handlers_media.mbt:55 | not-yet | message: "Media speech synthesis not yet implemented", |
-| lib/web/handlers_media.mbt:69 | not-yet | message: "Media transcription not yet implemented", |
 | lib/web/handlers_skills.mbt:639 | stub | // ── Evolution Handlers (stubs pending evolution engine wiring) ──── |
 | lib/web/handlers_skills.mbt:648 | TODO | // TODO: Trigger GEP-based skill evolution process |
 | lib/web/handlers_skills.mbt:659 | TODO | // TODO: Query evolution log for historical records |
@@ -302,16 +285,16 @@
 | lib/mcp/stdio_transport.mbt:532 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:539 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:550 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
-| lib/media/dashscope.mbt:12 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/dashscope.mbt:19 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/gemini.mbt:12 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/gemini.mbt:17 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/gemini.mbt:34 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/gemini.mbt:39 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/openai_compat.mbt:13 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/openai_compat.mbt:19 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/openai_compat.mbt:36 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
-| lib/media/openai_compat.mbt:40 | open | 范围外（media） | 媒体生成 HTTP 未实现，REST 返回 501（已文档化） |
+| lib/media/dashscope.mbt:12 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/dashscope.mbt:19 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/gemini.mbt:12 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/gemini.mbt:17 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/gemini.mbt:34 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/gemini.mbt:39 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/openai_compat.mbt:13 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/openai_compat.mbt:19 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/openai_compat.mbt:36 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
+| lib/media/openai_compat.mbt:40 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
 | lib/server/browser_jsonrpc.mbt:176 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_jsonrpc.mbt:179 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_jsonrpc.mbt:192 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
@@ -357,8 +340,8 @@
 | lib/web/ext_loader.mbt:14 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/handlers_backup.mbt:649 | open | 范围外（web 备份） | 快照 ZIP 打包未实现 |
 | lib/web/handlers_backup.mbt:670 | open | 范围外（web 备份） | 快照 ZIP 打包未实现 |
-| lib/web/handlers_bridge.mbt:838 | open | 范围外（media） | 视频生成 501 |
-| lib/web/handlers_bridge.mbt:845 | open | 范围外（media） | 视频生成 501 |
+| lib/web/handlers_bridge.mbt:838 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
+| lib/web/handlers_bridge.mbt:845 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
 | lib/web/handlers_channels.mbt:336 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
 | lib/web/handlers_channels.mbt:387 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
 | lib/web/handlers_channels.mbt:389 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
@@ -370,11 +353,11 @@
 | lib/web/handlers_extra.mbt:13 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1192 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1218 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
-| lib/web/handlers_media.mbt:2 | open | 范围外（media） | 媒体端点 501（已文档化） |
-| lib/web/handlers_media.mbt:27 | open | 范围外（media） | 媒体端点 501（已文档化） |
-| lib/web/handlers_media.mbt:41 | open | 范围外（media） | 媒体端点 501（已文档化） |
-| lib/web/handlers_media.mbt:55 | open | 范围外（media） | 媒体端点 501（已文档化） |
-| lib/web/handlers_media.mbt:69 | open | 范围外（media） | 媒体端点 501（已文档化） |
+| lib/web/handlers_media.mbt:2 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
+| lib/web/handlers_media.mbt:27 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
+| lib/web/handlers_media.mbt:41 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
+| lib/web/handlers_media.mbt:55 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
+| lib/web/handlers_media.mbt:69 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
 | lib/web/handlers_skills.mbt:639 | open | 范围外（GEP） | 进化触发/日志查询未接线 |
 | lib/web/handlers_skills.mbt:648 | open | 范围外（GEP） | 进化触发/日志查询未接线 |
 | lib/web/handlers_skills.mbt:659 | open | 范围外（GEP） | 进化触发/日志查询未接线 |

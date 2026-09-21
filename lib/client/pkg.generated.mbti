@@ -37,9 +37,13 @@ pub fn format_openai_tool_results(LlmResponse, Map[String, String]) -> Array[@me
 
 pub async fn http_get(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
 
+pub async fn http_get_bytes(String, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]
+
 pub async fn http_post(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
 
 pub async fn http_post_async(String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+
+pub async fn http_post_bytes(String, Bytes, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]
 
 pub async fn http_post_stream_async(String, String, Array[(String, String)], Int, (SseFrame) -> Unit, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
 
@@ -62,6 +66,8 @@ pub fn parse_sse_frame(String) -> SseFrame?
 pub fn parse_sse_frames(String) -> Array[SseFrame]
 
 pub async fn send_request(HttpMethod, String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+
+pub async fn send_request_bytes(HttpMethod, String, Bytes, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponseBytes, HttpError]
 
 // Errors
 
@@ -154,6 +160,13 @@ pub(all) struct HttpResponse {
   headers : Array[(String, String)]
 } derive(@debug.Debug)
 pub fn HttpResponse::to_repr(Self) -> @debug.Repr
+
+pub(all) struct HttpResponseBytes {
+  status_code : Int
+  body : Bytes
+  headers : Array[(String, String)]
+} derive(@debug.Debug)
+pub fn HttpResponseBytes::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Latency {
   duration_ms : Int

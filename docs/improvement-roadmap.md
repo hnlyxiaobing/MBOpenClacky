@@ -4,6 +4,7 @@
 > 方法：第一性原理。以"本项目对外承诺 vs 代码实际行为"的差值为优先级依据，证据取自机器校验的真话台账 [known-gaps.md](known-gaps.md)、`web/PATCHES.md`、以及对 `lib/channel`、`lib/media`、`lib/skill` 等源码的直接核对。
 > 参考对象：上游 [clacky-ai/openclacky](https://github.com/clacky-ai/openclacky)（Ruby，Web 前端 fork 基线 v1.5.0）。
 > 本文只给结论与优先级，不重复台账的逐行清单；每条都标注**建议动作 = 接线（wire）还是降级声明（downgrade claim）**。
+> 落地执行视图（工作包 / 触点 / 验收 / 排期）见 [improvement-execution-plan.md](improvement-execution-plan.md)。
 
 ---
 
@@ -19,8 +20,10 @@
 
 ### 1.1 品牌资产的法律状态自相矛盾（必须人工核实）
 
+> **状态：✅ 已解决（2026-09-21，执行计划 WP-0.1）。** 与上游 v1.5.0 原件逐文件哈希比对判定：`favicon.svg`、`icon*.svg`、`apple-touch-icon-180.png`、`logo_nav_dark.png`、`favicon.ico` 全部为**上游原件**（SVG 内容一致仅换行符差异）。已替换为 MBOpenClacky 自有设计（对话气泡 + 终端提示符标记，`#14B8A6`→`#3B82F6` 渐变），`PATCHES.md` P0-001 归档为 Resolved，`UPSTREAM_SYNC.md` 矛盾表述已消除且 rsync 排除清单补入 `favicon.ico`。复验：六文件与上游原件哈希全部不同。
+
 - **证据**：`web/UPSTREAM_SYNC.md` 第 16 行称品牌资产"upstream originals still in place — P0-001 active，外部发布前必须替换"；同文件第 84–88 行又称"MBOpenClacky uses its own brand assets（monogram SVG）"。`web/PATCHES.md` 的 P0-001 仍为 **Active**，并写明"Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions"。
-- **实测**：`web/favicon.svg`（28×28 monogram 路径）、`web/icon.svg`（紫靛渐变环）看起来像自制占位，但无法在无上游原件的情况下确证；`apple-touch-icon-180.png` / `logo_nav_dark.png` 为二进制，未能判定来源。
+- **实测（2026-09-21 判定前）**：`web/favicon.svg`（28×28 monogram 路径）、`web/icon.svg`（紫靛渐变环）看起来像自制占位，但无法在无上游原件的情况下确证；`apple-touch-icon-180.png` / `logo_nav_dark.png` 为二进制，未能判定来源。
 - **风险**：这是一个 MIT 公开仓库。若仍内含上游品牌资产，属法律风险，且两份文档互相矛盾本身就违反项目的"真话"纪律。
 - **建议动作**：**人工核实 + 统一文档**。确认四个品牌文件的真实来源；若为自制，把 `UPSTREAM_SYNC.md`/`PATCHES.md` 的 P0-001 标为 Resolved 并去掉第 16 行的矛盾表述；若仍为上游原件，立即替换。此项低成本、高风险，应最先做。
 
@@ -39,6 +42,12 @@
 ## 2. P1 — 高价值能力做实（下一期主线）
 
 ### 2.1 媒体生成：宣传"多模态"，生成为 501 stub
+
+> **✅ 已解决（2026-09-21，执行计划 WP-1.5）**：图/视频/语音/转写四端点全部接线
+> （OpenAI 兼容网关承载 + DashScope 同步多模态协议 + Gemini 直连诚实网关重定向），
+> 生成产物落本地文件；`lib/client` 新增二进制传输。`selftest` 18/18、
+> `eval --offline` 3/3、`moon test --release lib/media lib/web lib/client` 689/689 全绿，
+> 台账 media 行全部转 `fixed`。
 
 - **证据**：`lib/media/{dashscope,gemini,openai_compat}.mbt` 全部 "requires HTTP FFI - not yet implemented"；REST `POST /api/media/{image,video,audio/speech,audio/transcription}` 返回 501（`handlers_media.mbt`）。
 - **区分**：**视频理解**（FFmpeg 抽帧 + LLM Vision）已实现且可用；未实现的是**媒体生成**（图/视频/语音）。README"多模态处理"把两者并列，容易误导。
@@ -109,7 +118,7 @@
 
 ## 6. 建议的下一步排序
 
-1. **P0-1.1** 核实并统一品牌资产法律状态（低成本、高风险，先做）。
+1. **P0-1.1** 核实并统一品牌资产法律状态（低成本、高风险，先做）。✅ 已完成（2026-09-21，WP-0.1，见 §1.1 状态注）。
 2. **P0-1.2 / P1-2.1** 对渠道与媒体生成做一次"接线 or 降级声明"的决断——二者同源（async HTTP），可一并规划；不决断则维持"宣传 > 现实"的可信度损耗。
 3. **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。
 4. **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。

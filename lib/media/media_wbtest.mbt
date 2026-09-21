@@ -137,33 +137,88 @@ test "build_openai_speech_request" {
 }
 
 ///|
-test "parse_openai_image_response_b64" {
+test "build_openai_speech_request_omits_default_voice" {
+  let req = MediaRequest::speech("hello", "/out")
+  let json_str = build_openai_speech_request("tts-1", req).stringify()
+  assert_true(json_str.contains("hello"))
+  assert_true(!json_str.contains("voice"))
+}
+
+///|
+test "build_openai_video_request" {
+  let req = MediaRequest::video(
+    "a rocket launch",
+    "/out",
+    duration_seconds=Some(8),
+    aspect_ratio=Some("16:9"),
+  )
+  let json_str = build_openai_video_request("sora-2", req).stringify()
+  assert_true(json_str.contains("sora-2"))
+  assert_true(json_str.contains("a rocket launch"))
+  assert_true(json_str.contains("aspect_ratio"))
+  assert_true(json_str.contains("duration"))
+}
+
+///|
+test "parse_openai_media_payload_b64" {
   let response : Json = Json::object({
     "data": Json::array([Json::object({ "b64_json": "abc123".to_json() })]),
   })
-  match parse_openai_image_response(response) {
-    Ok(data) => @debug.assert_eq(data, "abc123")
-    Err(e) => fail("unexpected error: " + e)
+  match parse_openai_media_payload(response) {
+    Ok(B64(data)) => @debug.assert_eq(data, "abc123")
+    _ => fail("expected B64 payload")
   }
 }
 
 ///|
-test "parse_openai_image_response_url" {
+test "parse_openai_media_payload_url" {
   let response : Json = Json::object({
     "data": Json::array([
       Json::object({ "url": "https://img.example.com/1.png".to_json() }),
     ]),
   })
-  match parse_openai_image_response(response) {
-    Ok(url) => @debug.assert_eq(url, "https://img.example.com/1.png")
-    Err(e) => fail("unexpected error: " + e)
+  match parse_openai_media_payload(response) {
+    Ok(Url(url)) => @debug.assert_eq(url, "https://img.example.com/1.png")
+    _ => fail("expected Url payload")
   }
 }
 
 ///|
-test "parse_openai_image_response_error" {
+test "parse_openai_media_payload_error" {
   let response : Json = Json::object({ "error": "bad".to_json() })
-  assert_true(parse_openai_image_response(response) is Err(_))
+  assert_true(parse_openai_media_payload(response) is Err(_))
+}
+
+///|
+test "join_media_url" {
+  @debug.assert_eq(
+    join_media_url("https://api.example.com/v1", "images/generations"),
+    "https://api.example.com/v1/images/generations",
+  )
+}
+
+///|
+test "build_multipart_audio_body" {
+  let audio = @utf8.encode("fake-audio-bytes")
+  let body = build_multipart_audio_body(
+    "clacky-media-boundary", "clip.mp3", "audio/mpeg", audio, "whisper-1",
+  )
+  let text = @utf8.decode_lossy(body)
+  assert_true(text.contains("--clacky-media-boundary"))
+  assert_true(text.contains("name=\"model\""))
+  assert_true(text.contains("whisper-1"))
+  assert_true(text.contains("filename=\"clip.mp3\""))
+  assert_true(text.contains("audio/mpeg"))
+  assert_true(text.contains("fake-audio-bytes"))
+  assert_true(text.has_suffix("--clacky-media-boundary--\r\n"))
+}
+
+///|
+test "audio_basename_and_extension" {
+  @debug.assert_eq(audio_basename("/tmp/a/clip.mp3"), "clip.mp3")
+  @debug.assert_eq(audio_basename("C:\\tmp\\clip.wav"), "clip.wav")
+  @debug.assert_eq(audio_extension("clip.MP3"), "mp3")
+  @debug.assert_eq(audio_extension("noext"), "bin")
 }
 
 // ============================================================
@@ -222,19 +277,40 @@ test "parse_gemini_image_response_success" {
 ///|
 test "build_dashscope_image_request" {
   let req = MediaRequest::image("bamboo forest", "/out")
-  let json = build_dashscope_image_request("wanx-v1", req)
+  let json = build_dashscope_image_request("wanx2.1-t2i-turbo", req)
   let json_str = json.stringify()
-  assert_true(json_str.contains("wanx-v1"))
+  assert_true(json_str.contains("wanx2.1-t2i-turbo"))
   assert_true(json_str.contains("bamboo forest"))
-  assert_true(json_str.contains("1024*1024"))
+  assert_true(json_str.contains("messages"))
+  assert_true(json_str.contains("prompt_extend"))
+  assert_true(json_str.contains("2048*2048"))
 }
 
 ///|
-test "parse_dashscope_response_url" {
+test "build_dashscope_image_request_landscape_label" {
+  let req = MediaRequest::image(
+    "city skyline",
+    "/out",
+    aspect_ratio=Some("landscape"),
+  )
+  let json_str = build_dashscope_image_request("wanx2.1-t2i-turbo", req).stringify()
+  assert_true(json_str.contains("2688*1536"))
+}
+
+///|
+test "parse_dashscope_response_image_url" {
   let response : Json = Json::object({
     "output": Json::object({
-      "results": Json::array([
-        Json::object({ "url": "https://oss.example.com/img.png".to_json() }),
+      "choices": Json::array([
+        Json::object({
+          "message": Json::object({
+            "content": Json::array([
+              Json::object({
+                "image": "https://oss.example.com/img.png".to_json(),
+              }),
+            ]),
+          }),
+        }),
       ]),
     }),
   })
@@ -245,14 +321,27 @@ test "parse_dashscope_response_url" {
 }
 
 ///|
-test "parse_dashscope_response_task_id" {
+test "parse_dashscope_response_error_code" {
   let response : Json = Json::object({
-    "output": Json::object({ "task_id": "t12345".to_json() }),
+    "code": "InvalidApiKey".to_json(),
+    "message": "Invalid API-key provided.".to_json(),
   })
   match parse_dashscope_response(response) {
-    Ok(val) => @debug.assert_eq(val, "task:t12345")
-    Err(e) => fail("unexpected error: " + e)
+    Err(e) => assert_true(e.contains("InvalidApiKey"))
+    Ok(_) => fail("expected error for error-code response")
   }
+}
+
+///|
+test "dashscope_endpoint_base_strips_path" {
+  @debug.assert_eq(
+    dashscope_endpoint_base("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+    "https://dashscope.aliyuncs.com",
+  )
+  @debug.assert_eq(
+    dashscope_endpoint_base("https://dashscope.aliyuncs.com"),
+    "https://dashscope.aliyuncs.com",
+  )
 }
 
 // ============================================================
@@ -282,21 +371,23 @@ test "media_error_raise_catch" {
 }
 
 ///|
-test "generator_route_to_openai" {
+async test "generator_route_to_openai_reports_transport_failure" {
   let gen = MediaGenerator::new(
-    "https://api.openai.com/v1",
+    "https://127.0.0.1:9/v1",
     "key",
     Some("dall-e-3"),
   )
   let req = MediaRequest::image("test", "/out")
   let result = gen.generate_image(req)
-  // Should route to OpenAI and fail with not-implemented
+  // Unroutable local endpoint: transport fails fast and is reported
+  // honestly as an API error rather than a success.
   assert_false(result.success)
   @debug.assert_eq(result.provider, "openai_compat")
+  assert_true(result.error.unwrap_or("") != "")
 }
 
 ///|
-test "generator_route_to_gemini" {
+async test "generator_route_to_gemini_redirects_to_gateway" {
   let gen = MediaGenerator::new(
     "https://generativelanguage.googleapis.com",
     "key",
@@ -306,6 +397,38 @@ test "generator_route_to_gemini" {
   let result = gen.generate_image(req)
   assert_false(result.success)
   @debug.assert_eq(result.provider, "gemini")
+  assert_true(result.error.unwrap_or("").contains("gateway"))
+  assert_true(result.error_type == Some(UnsupportedFormat))
+}
+
+///|
+async test "generator_route_video_to_openai_transport_failure" {
+  let gen = MediaGenerator::new("https://127.0.0.1:9/v1", "key", Some("sora-2"))
+  let req = MediaRequest::video("test", "/out")
+  let result = gen.generate_video(req)
+  assert_false(result.success)
+  @debug.assert_eq(result.provider, "openai_compat")
+}
+
+///|
+test "transcription_error_builds_result" {
+  let result = transcription_error("failed", "openai_compat", "whisper-1")
+  assert_false(result.success)
+  assert_true(result.text is None)
+  assert_true(result.error == Some("failed"))
+  @debug.assert_eq(result.provider, "openai_compat")
+}
+
+///|
+async test "generate_transcription_missing_file_is_error" {
+  let gen = MediaGenerator::new("https://127.0.0.1:9/v1", "key", None)
+  let req = TranscriptionRequest::{
+    audio_path: "/nonexistent/clacky-audio.mp3",
+    model: None,
+  }
+  let result = gen.generate_transcription(req)
+  assert_false(result.success)
+  assert_true(result.error.unwrap_or("").contains("could not be read"))
 }
 
 // ============================================================

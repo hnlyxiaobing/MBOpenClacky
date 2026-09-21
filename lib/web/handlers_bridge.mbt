@@ -831,18 +831,17 @@ fn handle_store_uninstall_bridge(
 
 ///|
 /// GET /api/media/video/status — video generation job status.
+/// Generation runs synchronously inside POST /api/media/video (no job
+/// queue), so there is never an in-flight job to report.
 fn handle_media_video_status_bridge(
   _server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  // Video generation itself is not implemented (POST /api/media/video
-  // returns 501), so there is no job queue to report status for —
-  // answer 501 rather than a hardcoded "idle".
-  @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
+  @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": false.to_json(),
-      "error": "unimplemented".to_json(),
-      "message": "Video generation not yet implemented".to_json(),
+      "ok": true.to_json(),
+      "status": "synchronous".to_json(),
+      "message": "Video generation runs synchronously in POST /api/media/video".to_json(),
     }),
   )
 }

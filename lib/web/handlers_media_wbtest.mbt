@@ -1,5 +1,6 @@
 ///| White-box tests for Media API handlers.
-/// Image/video/speech/transcription remain stubs (501).
+/// Image/video/speech/transcription are wired through MediaGenerator; with
+/// a default (unconfigured) config they return 400 diagnostics.
 /// Video understanding is implemented via FFmpeg + LLM vision.
 
 ///|
@@ -32,42 +33,108 @@ fn media_response_json(resp : @core.HttpResponse) -> Json {
   }
 }
 
-// ── Stub endpoints (501) ───────────────────────────────────────────
+// ── Wired endpoints (MediaGenerator) ───────────────────────────────
 
 ///|
-test "media image returns 501 stub" {
+async test "media image rejects invalid JSON" {
   let resp = handle_media_image(
     make_media_server_ref(),
-    make_media_event(Post, "/api/media/image"),
+    make_media_event(Post, "/api/media/image", body="not-json"),
   )
-  @debug.assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
 ///|
-test "media video returns 501 stub" {
+async test "media image without prompt returns 400" {
+  let resp = handle_media_image(
+    make_media_server_ref(),
+    make_media_event(Post, "/api/media/image", body="{}"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  let msg = match obj.get("message") {
+    Some(s) => @debug.to_string(s)
+    None => ""
+  }
+  assert_true(msg.contains("prompt"))
+}
+
+///|
+async test "media image without configured model returns 400" {
+  let resp = handle_media_image(
+    make_media_server_ref(),
+    make_media_event(Post, "/api/media/image", body="{\"prompt\":\"a cat\"}"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  let msg = match obj.get("message") {
+    Some(s) => @debug.to_string(s)
+    None => ""
+  }
+  assert_true(msg.contains("image"))
+}
+
+///|
+async test "media video without configured model returns 400" {
   let resp = handle_media_video(
     make_media_server_ref(),
-    make_media_event(Post, "/api/media/video"),
+    make_media_event(Post, "/api/media/video", body="{\"prompt\":\"waves\"}"),
   )
-  @debug.assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
 ///|
-test "media speech returns 501 stub" {
+async test "media speech without configured model returns 400" {
   let resp = handle_media_speech(
     make_media_server_ref(),
-    make_media_event(Post, "/api/media/audio/speech"),
+    make_media_event(
+      Post,
+      "/api/media/audio/speech",
+      body="{\"input\":\"hello\"}",
+    ),
   )
-  @debug.assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
 ///|
-test "media transcription returns 501 stub" {
+async test "media transcription without audio_path returns 400" {
   let resp = handle_media_transcription(
     make_media_server_ref(),
-    make_media_event(Post, "/api/media/audio/transcriptions"),
+    make_media_event(Post, "/api/media/audio/transcriptions", body="{}"),
   )
-  @debug.assert_eq(resp.status_code.to_int(), 501)
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+}
+
+///|
+async test "media transcription with missing file returns 400" {
+  let resp = handle_media_transcription(
+    make_media_server_ref(),
+    make_media_event(
+      Post,
+      "/api/media/audio/transcriptions",
+      body="{\"audio_path\":\"/nonexistent/clacky-audio.mp3\"}",
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 400)
+  let j = media_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
 }
 
 // ── Video Understanding ───────────────────────────────────────────

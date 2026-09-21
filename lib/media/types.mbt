@@ -106,6 +106,42 @@ pub extend MediaError with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend MediaError with ToJson::{to_json}
 
 ///|
+/// Speech-to-text request: transcribe a local audio file through an
+/// OpenAI-compatible /audio/transcriptions endpoint.
+pub(all) struct TranscriptionRequest {
+  audio_path : String
+  model : String?
+} derive(Eq, Debug, ToJson)
+
+///|
+pub extend TranscriptionRequest with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TranscriptionRequest with Eq::{not_equal, equal}
+
+///|
+pub extend TranscriptionRequest with ToJson::{to_json}
+
+///|
+/// Speech-to-text result: the transcript text, or a diagnostic error.
+pub(all) struct TranscriptionResult {
+  success : Bool
+  text : String?
+  error : String?
+  provider : String
+  model : String
+} derive(Eq, Debug, ToJson)
+
+///|
+pub extend TranscriptionResult with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend TranscriptionResult with Eq::{not_equal, equal}
+
+///|
+pub extend TranscriptionResult with ToJson::{to_json}
+
+///|
 /// Create a MediaRequest for image generation
 pub fn MediaRequest::image(
   prompt : String,

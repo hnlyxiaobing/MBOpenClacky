@@ -22,6 +22,117 @@ pub async fn http_post_async(
   send_request(Post, url, body, headers, timeout_ms, open_timeout_ms~)
 }
 
+// ── Binary transport (media downloads, multipart uploads) ─────────
+
+///|
+/// HTTP response carrying a binary body, for generated-media downloads
+/// and multipart uploads where a text round-trip would corrupt bytes.
+pub(all) struct HttpResponseBytes {
+  status_code : Int
+  body : Bytes
+  headers : Array[(String, String)]
+} derive(Debug)
+
+///|
+pub extend HttpResponseBytes with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+/// Perform a binary-bodied request on an already-connected client.
+/// Raises on transport errors; HTTP error statuses are returned as
+/// normal responses.
+async fn perform_request_bytes(
+  client : @http.Client,
+  http_method : HttpMethod,
+  url : String,
+  body : Bytes,
+) -> HttpResponseBytes {
+  let (_base, path) = split_base_path(url)
+  defer client.close()
+  client.request(http_request_method(http_method), path)
+  if body.length() > 0 {
+    client.write(body)
+  }
+  let resp = client.end_request()
+  HttpResponseBytes::{
+    status_code: resp.code,
+    body: client.read_all().binary(),
+    headers: map_to_headers(resp.headers),
+  }
+}
+
+///|
+/// Binary transport via `@async/http`, mirroring `send_request`:
+/// `open_timeout_ms` bounds the connect phase, `timeout_ms` the whole
+/// request.
+pub async fn send_request_bytes(
+  http_method : HttpMethod,
+  url : String,
+  body : Bytes,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+  open_timeout_ms? : Int = 10000,
+) -> Result[HttpResponseBytes, HttpError] {
+  let headers_map = headers_to_map(headers)
+  let conn = @async.with_timeout_opt(open_timeout_ms, () => {
+    connect_client(url, headers_map)
+  }) catch {
+    err =>
+      return Err(
+        ConnectionFailed("\{http_method_str(http_method)} \{url}: \{err}"),
+      )
+  }
+  match conn {
+    None =>
+      Err(
+        Timeout(
+          "\{http_method_str(http_method)} \{url} connect timed out after \{open_timeout_ms}ms",
+        ),
+      )
+    Some(client) => {
+      let result = @async.with_timeout_opt(timeout_ms, () => {
+        perform_request_bytes(client, http_method, url, body)
+      }) catch {
+        err => {
+          client.close()
+          return Err(
+            ConnectionFailed("\{http_method_str(http_method)} \{url}: \{err}"),
+          )
+        }
+      }
+      match result {
+        None =>
+          Err(
+            Timeout(
+              "\{http_method_str(http_method)} \{url} timed out after \{timeout_ms}ms",
+            ),
+          )
+        Some(resp) => Ok(resp)
+      }
+    }
+  }
+}
+
+///|
+/// Binary GET: download a resource as raw bytes.
+pub async fn http_get_bytes(
+  url : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponseBytes, HttpError] {
+  send_request_bytes(Get, url, Bytes::from_array([]), headers, timeout_ms)
+}
+
+///|
+/// Binary POST: upload raw bytes (e.g. multipart form bodies).
+pub async fn http_post_bytes(
+  url : String,
+  body : Bytes,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponseBytes, HttpError] {
+  send_request_bytes(Post, url, body, headers, timeout_ms)
+}
+
 // ── Streaming HTTP (SSE) ──────────────────────────────────────────
 
 ///|

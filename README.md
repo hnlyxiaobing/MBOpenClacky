@@ -20,9 +20,9 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 304 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 208 |
-| 源代码行数 | 97,269 |
-| 测试行数 | 58,092 |
-| 总行数 | 155,361 |
+| 源代码行数 | 98,186 |
+| 测试行数 | 58,284 |
+| 总行数 | 156,470 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3818 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -191,7 +191,7 @@ MBOpenClacky/
 
 - 功能对比与完成度：[项目状态文档](docs/project-status.md)
 - **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md) — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
-- **优化提升路线图（对标上游的优先级结论）**：[docs/improvement-roadmap.md](docs/improvement-roadmap.md)
+- **优化提升路线图（对标上游的优先级结论）**：[docs/improvement-roadmap.md](docs/improvement-roadmap.md)　落地执行计划：[docs/improvement-execution-plan.md](docs/improvement-execution-plan.md)
 
 ---
 

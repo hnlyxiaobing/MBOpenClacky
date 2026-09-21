@@ -35,7 +35,7 @@ pub fn MediaGenerator::detect_provider(self : MediaGenerator) -> MediaProvider {
 
 ///|
 /// Generate image - routes to correct provider
-pub fn MediaGenerator::generate_image(
+pub async fn MediaGenerator::generate_image(
   self : MediaGenerator,
   request : MediaRequest,
 ) -> MediaResult {
@@ -58,7 +58,7 @@ pub fn MediaGenerator::generate_image(
 
 ///|
 /// Generate video - routes to correct provider
-pub fn MediaGenerator::generate_video(
+pub async fn MediaGenerator::generate_video(
   self : MediaGenerator,
   request : MediaRequest,
 ) -> MediaResult {
@@ -71,12 +71,14 @@ pub fn MediaGenerator::generate_video(
       }
   }
   match self.detect_provider() {
+    OpenAICompat =>
+      openai_generate_video(self.base_url, self.api_key, model, request)
     Gemini => gemini_generate_video(self.base_url, self.api_key, model, request)
-    _ =>
+    DashScope =>
       build_error(
-        "Video generation is only supported by Gemini provider",
+        "DashScope video generation requires the OpenAI-compatible gateway: configure a video model served through a gateway endpoint",
         UnsupportedFormat,
-        provider_name(self.detect_provider()),
+        "dashscope",
         model,
         request.prompt,
       )
@@ -85,7 +87,7 @@ pub fn MediaGenerator::generate_video(
 
 ///|
 /// Generate speech/audio - routes to correct provider
-pub fn MediaGenerator::generate_speech(
+pub async fn MediaGenerator::generate_speech(
   self : MediaGenerator,
   request : MediaRequest,
 ) -> MediaResult {
@@ -107,6 +109,32 @@ pub fn MediaGenerator::generate_speech(
         provider_name(self.detect_provider()),
         model,
         request.prompt,
+      )
+  }
+}
+
+///|
+/// Transcribe a local audio file - routes to correct provider
+pub async fn MediaGenerator::generate_transcription(
+  self : MediaGenerator,
+  request : TranscriptionRequest,
+) -> TranscriptionResult {
+  let model = match self.model {
+    Some(m) => m
+    None =>
+      match request.model {
+        Some(m) => m
+        None => "whisper-1"
+      }
+  }
+  match self.detect_provider() {
+    OpenAICompat =>
+      openai_generate_transcription(self.base_url, self.api_key, model, request)
+    _ =>
+      transcription_error(
+        "Transcription is only supported by OpenAI-compatible providers",
+        provider_name(self.detect_provider()),
+        model,
       )
   }
 }

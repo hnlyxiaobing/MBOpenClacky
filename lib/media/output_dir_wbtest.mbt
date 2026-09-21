@@ -34,7 +34,9 @@ test "output_dir_ensure_exists_creates_dir" {
 fn impossible_dir_path() -> String {
   let blocker = "/tmp/mboc-wbt-media-blocker"
   let _ = @fs.remove_file(blocker) catch { _ => () }
-  @fs.write_string_to_file(blocker, "not a directory") catch { _ => () }
+  @fs.write_string_to_file(blocker, "not a directory") catch {
+    _ => ()
+  }
   blocker + "/media"
 }
 

@@ -21,9 +21,13 @@ pub fn build_gemini_image_request(MediaRequest) -> Json
 
 pub fn build_gemini_video_request(MediaRequest) -> Json
 
+pub fn build_multipart_audio_body(String, String, String, Bytes, String) -> Bytes
+
 pub fn build_openai_image_request(String, MediaRequest) -> Json
 
 pub fn build_openai_speech_request(String, MediaRequest) -> Json
+
+pub fn build_openai_video_request(String, MediaRequest) -> Json
 
 pub fn build_success(String, String, String, String) -> MediaResult
 
@@ -35,7 +39,7 @@ pub fn calculate_frame_timestamp(Int, Int) -> Int
 
 pub fn capability_name(MediaCapability) -> String
 
-pub fn dashscope_generate_image(String, String, String, MediaRequest) -> MediaResult
+pub async fn dashscope_generate_image(String, String, String, MediaRequest) -> MediaResult
 
 pub let default_interval_seconds : Int
 
@@ -55,15 +59,19 @@ pub fn gemini_generate_video(String, String, String, MediaRequest) -> MediaResul
 
 pub let max_upload_size_mb : Int
 
-pub fn openai_generate_image(String, String, String, MediaRequest) -> MediaResult
+pub async fn openai_generate_image(String, String, String, MediaRequest) -> MediaResult
 
-pub fn openai_generate_speech(String, String, String, MediaRequest) -> MediaResult
+pub async fn openai_generate_speech(String, String, String, MediaRequest) -> MediaResult
+
+pub async fn openai_generate_transcription(String, String, String, TranscriptionRequest) -> TranscriptionResult
+
+pub async fn openai_generate_video(String, String, String, MediaRequest) -> MediaResult
 
 pub fn parse_dashscope_response(Json) -> Result[String, String]
 
 pub fn parse_gemini_image_response(Json) -> Result[String, String]
 
-pub fn parse_openai_image_response(Json) -> Result[String, String]
+pub fn parse_openai_media_payload(Json) -> Result[MediaPayload, String]
 
 pub fn provider_capabilities(MediaProvider) -> Array[MediaCapability]
 
@@ -122,9 +130,10 @@ pub(all) struct MediaGenerator {
   model : String?
 } derive(@debug.Debug)
 pub fn MediaGenerator::detect_provider(Self) -> MediaProvider
-pub fn MediaGenerator::generate_image(Self, MediaRequest) -> MediaResult
-pub fn MediaGenerator::generate_speech(Self, MediaRequest) -> MediaResult
-pub fn MediaGenerator::generate_video(Self, MediaRequest) -> MediaResult
+pub async fn MediaGenerator::generate_image(Self, MediaRequest) -> MediaResult
+pub async fn MediaGenerator::generate_speech(Self, MediaRequest) -> MediaResult
+pub async fn MediaGenerator::generate_transcription(Self, TranscriptionRequest) -> TranscriptionResult
+pub async fn MediaGenerator::generate_video(Self, MediaRequest) -> MediaResult
 pub fn MediaGenerator::new(String, String, String?) -> Self
 pub fn MediaGenerator::to_repr(Self) -> @debug.Repr
 
@@ -158,6 +167,12 @@ pub fn MediaOutputDir::list_files(Self, ext? : String?) -> Array[String]
 pub fn MediaOutputDir::new(String) -> Self
 pub fn MediaOutputDir::total_size(Self) -> Int64
 pub fn MediaOutputDir::with_prefix(String, String) -> Self
+
+pub(all) enum MediaPayload {
+  B64(String)
+  Url(String)
+} derive(@debug.Debug)
+pub fn MediaPayload::to_repr(Self) -> @debug.Repr
 
 pub(all) enum MediaProvider {
   OpenAICompat
@@ -209,6 +224,27 @@ pub fn MediaType::equal(Self, Self) -> Bool
 pub fn MediaType::not_equal(Self, Self) -> Bool
 pub fn MediaType::to_json(Self) -> Json
 pub fn MediaType::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TranscriptionRequest {
+  audio_path : String
+  model : String?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TranscriptionRequest::equal(Self, Self) -> Bool
+pub fn TranscriptionRequest::not_equal(Self, Self) -> Bool
+pub fn TranscriptionRequest::to_json(Self) -> Json
+pub fn TranscriptionRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct TranscriptionResult {
+  success : Bool
+  text : String?
+  error : String?
+  provider : String
+  model : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn TranscriptionResult::equal(Self, Self) -> Bool
+pub fn TranscriptionResult::not_equal(Self, Self) -> Bool
+pub fn TranscriptionResult::to_json(Self) -> Json
+pub fn TranscriptionResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct VideoUnderstandRequest {
   video_base64 : String?
