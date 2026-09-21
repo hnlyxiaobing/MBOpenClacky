@@ -141,7 +141,7 @@ moon test test/eval --release                       # 期望：9/9（harness 自
 | TUI 未绑定 wire 词表 | 已知取舍 | TUI 直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的信息）；TUI 的 HookEvent 匹配仍穷尽。理由见 ADR-0001 |
 | 旧会话文件 schema | 部分不兼容 | 参考机器 32 个会话文件中 31 个因旧 `tool_calls` schema 或非 JSON 内容无法解析；`--list` 如实报告数量，`inspect` 报告具体原因；schema 迁移未做（决策 D4 默认不做） |
 | GitHub Issue/PR 流程 | 未执行 | 本地提交连续；推送与 Issue/PR 属于远端流程 |
-| GitHub Actions 结果观察 | 本轮未观察 | 收尾环境未登录 `gh`（`gh auth status` 未登录），因此**不在此断言 CI 绿**；`.github/workflows/ci.yml` 已包含本节全部闸门（含新增的 eval 与 repo-stats 步骤），本地等价序列已逐条跑绿 |
+| GitHub Actions 结果 | **红（既有问题，非本次改动引入）** | 公开 API 实测：`CI` 与 `Docker` 工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，**失败步骤是 `Run tests`**（`moon test --release`）；其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针全部 success。收尾环境为 Windows，无法复现（本平台 `lib/mcp` 挂起），`gh` 未登录、job 日志需鉴权，故**未能定位该失败**。台账已登记为 `open`（范围外）。收尾新增的两条 CI 闸门已前移到 `Run tests` 之前，仍会给出信号 |
 
 ## 4. 本期提交序列（本地）
 

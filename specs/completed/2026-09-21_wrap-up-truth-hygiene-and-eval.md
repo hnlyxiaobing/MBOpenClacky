@@ -73,9 +73,19 @@
 - `moon check` 0 错误 0 警告；`bash scripts/warn_count.sh 0 strict` 绿
 - `moon test --release`（口径见 §3.4）全绿
 
-未能在本环境验证的一项：**GitHub Actions 的实际执行结果**（收尾环境 `gh` 未登录）。
-因此本文与 `docs/acceptance.md` 都不断言 "CI 绿"；`.github/workflows/ci.yml` 已把上述闸门
-逐条写成步骤（新增 `Deterministic capability eval` 与 `Repo stats gate`），本地按同口径跑绿。
+**未能达成的一项（如实记）：CI 绿。** 通过公开 API（无需鉴权）取得步骤级证据：`CI` 与 `Docker`
+工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，失败步骤是 `Run tests`
+（`moon test --release`），其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针
+全部 success。即：**这是早于本次收尾的既有问题**，本计划 R3 关于"CI 闸门已在工作"的判断对
+gate 成立、对"CI 整体绿"不成立。
+
+收尾环境无法定位它：本机是 Windows（该平台 `lib/mcp` 挂起，全量跑不到头），`gh` 未登录且
+job 日志需鉴权（HTTP 403），WSL Ubuntu 未安装 MoonBit 工具链。处置：
+- 台账新增一行 `open`（范围外），含上述步骤级证据；
+- `.github/workflows/ci.yml` 新增的两条闸门（`Deterministic capability eval`、
+  `Repo stats gate`）**前移到 `Run tests` 之前**，使它们在既有失败修复前也能给出信号。
+
+本地等价序列（Windows 口径，排除挂起的 lib/mcp）已逐条跑绿：见 §5 其余条目。
 
 ## 6. 变更记录
 

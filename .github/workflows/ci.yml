@@ -123,17 +123,6 @@ jobs:
           fi
           "$BIN" selftest --repo .
 
-      - name: Run tests
-        # --release: moonc v0.10.11 (toolchain 20260827+) hits a compiler ICE in
-        # debug mode when linking test binaries that pull in
-        # bobzhang/mbtpdf@0.1.2 document/pdfpage find_pages_quick:
-        #   Machine_error(kind=unsupported;
-        #     who="Machine_of_clam_lower.lower_scalar_runtime_pccall";
-        #     message="unit runtime pccall cannot be used as a scalar value")
-        # Release-mode lowering does not hit the bug. Revisit once the compiler
-        # fix ships: try `moon test` (debug) again.
-        run: moon test --release
-
       - name: Deterministic capability eval (P2 / T8)
         # `cmd eval --offline` is a published promise (G1), so it is judged here:
         # the binary exits non-zero when any harness task fails, and the score
@@ -161,3 +150,19 @@ jobs:
           moon test --release $pkgs > "$RUNNER_TEMP/moon_test_stats.log" 2>&1
           bash scripts/repo_stats.sh check \
             --test-count-from "$RUNNER_TEMP/moon_test_stats.log"
+
+      - name: Run tests
+        # --release: moonc v0.10.11 (toolchain 20260827+) hits a compiler ICE in
+        # debug mode when linking test binaries that pull in
+        # bobzhang/mbtpdf@0.1.2 document/pdfpage find_pages_quick:
+        #   Machine_error(kind=unsupported;
+        #     who="Machine_of_clam_lower.lower_scalar_runtime_pccall";
+        #     message="unit runtime pccall cannot be used as a scalar value")
+        # Release-mode lowering does not hit the bug. Revisit once the compiler
+        # fix ships: try `moon test` (debug) again.
+        #
+        # NOTE 2026-09-21: this step has been red since 2026-08-28 (last green
+        # run c4b3fa4b) — see docs/known-gaps.md "CI 自 2026-08-28 起为红". The
+        # two gates above are ordered BEFORE it on purpose so they still report
+        # a signal while that pre-existing failure is being diagnosed.
+        run: moon test --release
