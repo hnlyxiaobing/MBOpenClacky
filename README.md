@@ -138,7 +138,6 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')  
 | 能力评测 | `<binary> eval --offline` | 确定性 tool_harness 的任务失败 / 不可重复（离线、无模型） |
 | 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
 
-- 验收对照与复现命令：[docs/acceptance.md](docs/acceptance.md)
 - 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
 - AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
 - 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)

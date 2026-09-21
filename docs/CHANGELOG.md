@@ -25,6 +25,10 @@
 
 ## 变更记录
 
+### 2026-09-21  移除一次性过程文档
+
+- `[chore]` 删除 4 份阶段性一次性记录：`docs/acceptance.md`（本期验收对照）、`docs/wrap-up-plan.md`（已执行完的收尾计划）、`docs/stub-implementation-audit.md`（2026-08-21 审计快照）、`docs/eval/2026-09-21.md`（带日期的 `cmd eval --offline` 输出快照，本地重跑即再生；CI 里同目录的文件只存在于 runner 副本，从不回提交）。结论已在 `docs/project-status.md` §5 与 `docs/known-gaps.md` 中持续维护；README 的验收链接与 project-status 的死链同步清理，`specs/` 归档不动。
+
 ### 2026-09-21  移除 `codemaps/` 目录
 
 - `[chore]` 删除 `codemaps/`（26 份代码地形索引文档）：该目录与 `.qoder/repowiki` 知识库重复，且无脚本/CI/运行时代码读取它，长期无人维护已失真；README 目录树同步移除该行，历史条目（本文档 2026-07 的创建记录）保留不改。

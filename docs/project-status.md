@@ -1,6 +1,6 @@
 # MBOpenClacky vs openclacky 功能对比分析
 
-> 最后更新: 2026-09-21（2026-09 收尾 wrap-up-plan 完成）
+> 最后更新: 2026-09-21（2026-09 收尾完成）
 > 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)
 > 数字口径: 本文所有仓库规模数字由 `scripts/repo_stats.sh` 生成并校验（见 §1.1），不由人手维护。
 
@@ -348,9 +348,9 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 ---
 
-## 5. 2026-09 收尾（wrap-up-plan）完成
+## 5. 2026-09 收尾完成
 
-本节确认 `docs/wrap-up-plan.md` 的收尾目标已在现有代码上落地（细节与判据见 `docs/acceptance.md`）：
+本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)）：
 
 - **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
 - **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。仍不产 JSONL 的是 Web 会话（决策 D3，范围外，台账已登记）。
