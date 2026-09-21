@@ -178,7 +178,6 @@ MBOpenClacky/
 ├── test/               # Eval 框架（通用引擎 + TUI 适配层 + 场景）
 ├── assets/             # Agent 配置、技能、Web 前端
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
-├── codemaps/           # 代码地形索引
 ├── .github/            # CI/CD 工作流
 └── docs/               # 项目文档
 ```

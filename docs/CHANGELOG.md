@@ -25,6 +25,10 @@
 
 ## 变更记录
 
+### 2026-09-21  移除 `codemaps/` 目录
+
+- `[chore]` 删除 `codemaps/`（26 份代码地形索引文档）：该目录与 `.qoder/repowiki` 知识库重复，且无脚本/CI/运行时代码读取它，长期无人维护已失真；README 目录树同步移除该行，历史条目（本文档 2026-07 的创建记录）保留不改。
+
 ### 2026-09-21  2026-09 收尾（wrap-up T1–T13）：数字单一事实来源、会话日志接线补全、`cmd eval --offline`
 
 - `[feat]` **`cmd eval --offline`（P2 / G1，唯一"承诺了但完全没做"的交付物）**：新增 `test/eval/tool_harness.mbt`（工具白名单 + 沙箱目录 + 断言原语 + 评分 JSON，走真实 `lib/tool` registry，无模型无网络）与 `test/eval/tasks/*.json`（3 个仓库自有微小任务）；`cmd eval` 子命令按 3 任务 × 2 重复运行并输出评分向量（completion / verification / repeatability / cost），报告落 `docs/eval/<date>.md`；白名单外工具在执行前被拒（`terminal` 案例有测试固定）
