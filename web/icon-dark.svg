@@ -1,23 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- MBOpenClacky app icon (dark variant): gradient bubble on a dark slate tile -->
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3a3a3c"/>
-      <stop offset="100%" style="stop-color:#1c1c1e"/>
+    <linearGradient id="mboc-tile-dark" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#334155"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="mboc-bubble" x1="24" y1="25" x2="76" y2="65" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#3B82F6"/>
     </linearGradient>
   </defs>
-  <!-- Rounded square background -->
-  <rect width="100" height="100" rx="22" ry="22" fill="url(#bg)"/>
-  <!-- Stylized "C" claw / lightning mark -->
-  <!-- Two arcs forming a C with a cut, suggesting speed/AI -->
-  <g transform="translate(50,50)">
-    <!-- Outer arc of C -->
-    <path d="M 8,-22
-             A 24,24 0 1 0 8,22
-             L 4,14
-             A 16,16 0 1 1 4,-14
-             Z"
-          fill="white" opacity="0.95"/>
-    <!-- Inner dot / eye -->
-    <circle cx="0" cy="0" r="4" fill="white" opacity="0.95"/>
-  </g>
+  <rect width="100" height="100" rx="22" fill="url(#mboc-tile-dark)"/>
+  <path d="M33 58L26 72L47 61Z" fill="url(#mboc-bubble)"/>
+  <rect x="24" y="25" width="52" height="40" rx="12" fill="url(#mboc-bubble)"/>
+  <path d="M36 37L46 45L36 53" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect x="50.5" y="41.5" width="11" height="7" rx="3.5" fill="#FFFFFF"/>
 </svg>

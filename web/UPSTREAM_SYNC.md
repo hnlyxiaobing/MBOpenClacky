@@ -13,9 +13,9 @@
 The web frontend uses a **managed fork** approach:
 - Full upstream asset set (87 files) synced to v1.5.0 on 2026-07-24 (fix-06). `index.html`, `app.js`, `app.css`, and all feature/vendor/i18n modules are upstream originals.
 - `{{BRAND_NAME}}` and `{{EXT_SCRIPTS}}` placeholders in `index.html` are processed at runtime by `lib/web/template_processor.mbt` (`process_template()`).
-- Brand assets (`favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`): upstream originals still in place - P0-001 active, must be replaced before external release (see `PATCHES.md`).
+- Brand assets (`favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`, `favicon.ico`): **MBOpenClacky-owned designs** (2026-09-21, WP-0.1). Before replacement all six files were verified byte-identical to upstream v1.5.0 originals; they now carry the MBOpenClacky mark (P0-001 resolved, see `PATCHES.md`).
 - `web/ext_ui/` (git, time-machine panels): MBOpenClacky-specific additions, excluded from upstream sync.
-- `web/PATCHES.md`: P0-001 (brand placeholders) remains **Active**. P0-002 (minimal skeleton) retired.
+- `web/PATCHES.md`: P0-001 (brand assets) **resolved** 2026-09-21. P0-002 (minimal skeleton) retired.
 
 ## Sync Procedure (Execution Checklist)
 
@@ -43,6 +43,7 @@ rsync -av --delete \
   --exclude='icon*.svg' \
   --exclude='apple-touch-icon-180.png' \
   --exclude='logo_nav_dark.png' \
+  --exclude='favicon.ico' \
   --exclude='ext_ui/' \
   --exclude='PATCHES.md' \
   --exclude='UPSTREAM_SYNC.md' \
@@ -82,11 +83,17 @@ Update this file with:
 
 ## Brand Assets
 
-MBOpenClacky uses its own brand assets (not upstream OpenClacky brand):
-- `favicon.svg`: MBOpenClacky monogram SVG (also used as the nav logo placeholder)
-- `icon*.svg`, `apple-touch-icon-180.png`: MBOpenClacky icon SVG
+MBOpenClacky uses its own brand assets (not upstream OpenClacky brand), designed and introduced 2026-09-21 (WP-0.1):
+- Mark: a chat bubble with a terminal prompt chevron `❯` + cursor, gradient `#14B8A6` (teal) → `#3B82F6` (blue).
+- `favicon.svg`: 28×28 mark (gradient bubble, white prompt glyph).
+- `icon.svg` / `icon-dark.svg`: 100×100 app icons (white bubble on gradient tile / gradient bubble on dark slate tile).
+- `apple-touch-icon-180.png`: 180×180 raster of the app icon.
+- `logo_nav_dark.png`: 87×112 transparent nav mark (same canvas as the file it replaced).
+- `favicon.ico`: 16×16 raster favicon.
 
-**Legal note**: Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions.
+Fork deltas that travel with the brand replacement: `index.html` header-logo `alt`, `features/brand/view.js` default logo text/alt (now "MBOpenClacky"). All six asset files are excluded from upstream sync (see the rsync command below), so an upstream sync cannot reintroduce upstream brand assets.
+
+**Legal note**: Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions. Status 2026-09-21: verified absent (all six files hash-compared against upstream v1.5.0 and differ).
 
 ## Sync History
 

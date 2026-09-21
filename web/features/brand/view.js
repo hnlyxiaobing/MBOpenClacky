@@ -252,7 +252,7 @@ const BrandView = (() => {
           logoText.textContent    = name;
           logoText.style.display  = "";
         } else {
-          logoText.textContent   = "OpenClacky";
+          logoText.textContent   = "MBOpenClacky";
           logoText.style.display = "";
         }
       }
@@ -265,7 +265,7 @@ const BrandView = (() => {
     if (!logoImg) return;
 
     logoImg.src           = "/logo_nav_dark.png";
-    logoImg.alt           = "OpenClacky";
+    logoImg.alt           = "MBOpenClacky";
     logoImg.style.display = "";
     if (brandWrap) brandWrap.classList.add("has-logo");
   }

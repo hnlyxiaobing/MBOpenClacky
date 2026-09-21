@@ -23,14 +23,14 @@ Each entry records what was changed, why, and when it should be reverted or repl
 - **Reason**: Upstream lacks the key; `I18n.t` returns the raw key which defeats the `|| "Untitled"` fallback in `sessions.js`. Added `sessions.untitled` ("Untitled" / "未命名会话").
 - **Re-apply after upstream sync**: Yes, until upstream ships the key.
 
-### P0-001: Brand Asset Placeholder (2026-07-21)
-
-- **Scope**: `favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`
-- **Status**: Pending replacement - currently using upstream brand assets verbatim. Must be replaced with MBOpenClacky-specific brand SVG/PNG before any external release.
-- **Action required**: Design MBOpenClacky-specific brand assets and replace before any external release.
-- **Legal note**: Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions.
-
 ## Retired Patches
+
+### P0-001: Brand Asset Placeholder (2026-07-21 -> 2026-09-21, resolved in WP-0.1)
+
+- **Scope**: `favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png` — plus `favicon.ico`, which turned out to be byte-identical to upstream as well.
+- **Resolution**: 2026-09-21 — verified all six files were byte-identical to upstream v1.5.0 originals (PNG/ICO by md5; SVG content-identical modulo CRLF). Replaced with MBOpenClacky-owned designs: chat-bubble + terminal-prompt mark, `#14B8A6` → `#3B82F6` gradient (SVGs hand-authored; `apple-touch-icon-180.png` 180×180, `logo_nav_dark.png` 87×112, `favicon.ico` 16×16 rasterized from the same geometry). Brand strings updated alongside: `index.html` header-logo `alt`, `features/brand/view.js` default logo text/alt.
+- **Re-apply after upstream sync**: No — the sync procedure excludes all six files (`--exclude='favicon.ico'` added to `UPSTREAM_SYNC.md`), so upstream brand assets cannot be synced back. After each sync, verify the exclude list still covers all six files.
+- **Legal note**: resolved — upstream OpenClacky brand assets are no longer present in the repository (hash-verified against v1.5.0 on 2026-09-21).
 
 ### P0-002: Minimal Skeleton in Place of Full Upstream Bundle (2026-07-21 -> 2026-07-22)
 
