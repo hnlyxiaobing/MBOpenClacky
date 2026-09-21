@@ -129,6 +129,22 @@ pub fn BenchmarkResult::from_json(json_str : String) -> BenchmarkResult? {
 }
 
 ///|
+/// ISO-8601 时间戳含 `:` 与 `+`，直接当文件名在 Windows 上会被拒
+/// (`IOError("Invalid argument")`)，这里把非 `[A-Za-z0-9-_]` 字符统一换成 `-`。
+fn filename_safe(timestamp : String) -> String {
+  let mut out = ""
+  for ch in timestamp.to_array() {
+    let c = ch.to_int()
+    let alnum = (c >= 48 && c <= 57) ||
+      (c >= 65 && c <= 90) ||
+      (c >= 97 && c <= 122)
+    let keep = alnum || ch == '-' || ch == '_'
+    out = out + (if keep { ch.to_string() } else { "-" })
+  }
+  out
+}
+
+///|
 /// 保存 BenchmarkResult 到文件
 pub fn save_result(
   result : BenchmarkResult,
@@ -140,7 +156,7 @@ pub fn save_result(
   ).to_string()
   @utils.ensure_dir(scenario_dir)
 
-  let filename = result.timestamp + ".json"
+  let filename = filename_safe(result.timestamp) + ".json"
   let filepath = @path.Path::join(scenario_dir, @path.Path(filename)).to_string()
 
   let json_str = result.to_json()

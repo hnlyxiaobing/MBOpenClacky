@@ -25,6 +25,13 @@
 
 ## 变更记录
 
+### 2026-09-21  测试体系统一：根 `benchmark/` 并入 `test/`，文档层定义 8 层门禁
+
+- `[chore]` 仓库根不再有第二套测试目录：`benchmark/scenarios/{llm_latency,tool_exec}.json` 迁入 `test/benchmark/scenarios/`，`benchmark/capability/README.md` 迁入 `test/capability/README.md`，`benchmark/README.md` 删除（内容按层拆入两份新 README 与 `docs/testing.md`）。
+- `[docs]` `docs/testing.md` 重写为唯一的测试体系真相源：8 层表（位置 / 命令 / 是否进 CI / 真实状态）、`test/` 目录地图、与 CI 同口径的一键全跑清单、CI 现状，以及新增用例规范第 6-7 条（先选层再写用例；不新增顶层目录，一次性产物只允许落在 `_build/`）。
+- `[fix]` 层 7 此前无法如实文档化，根因是三处缺陷，均已修复：`cmd benchmark` 的 `--iterations/--warmup` 从未被读取（传值静默失效，现经 `int_override` 生效）；`scenario_dir` 声明为 `Nargs::Fixed(1)` 导致无参调用直接报错、默认值不可达（改为 `AtMost(1)`）；结果文件名直接用 ISO-8601 时间戳，Windows 上每次保存都 `IOError("Invalid argument")`（新增 `filename_safe` 清洗）。场景默认输出目录改为 `_build/benchmark/results`。
+- `[docs]` 诚实记录边界：`BenchmarkRunner::run_scenario` 目前是驱动骨架（空循环计时，`tool`/`parameters` 不真执行），回归对比路径可用；真实性能闸门需先出 `specs/draft/` 规格。层 8（`cmd eval --live`）规程已定、任务集与运行器未实现，两者都不进 CI。
+
 ### 2026-09-21  测试目录合并：`tests/` → `test/`，`TESTING.md` → `docs/testing.md`
 
 - `[chore]` 仓库根不再有并列的 `test/` 与 `tests/`：`tests/fixtures/documents/`（17 份 DOC/DOCX/XLS/PPTX/PDF/WPS 夹具）整体迁入 `test/fixtures/documents/`，`lib/parser/parser_wbtest.mbt` 与 `lib/agent/agent_wbtest.mbt` 的 22 处仓库根相对路径同步改写（`moon test` 进程 CWD 仍为项目根，故只改字面量、逻辑不变）；根目录 `TESTING.md` 归入文档体系为 `docs/testing.md`，并在其中补记夹具位置，README 结构与文档链接同步。

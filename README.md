@@ -20,9 +20,9 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 304 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 208 |
-| 源代码行数 | 97,249 |
+| 源代码行数 | 97,269 |
 | 测试行数 | 58,092 |
-| 总行数 | 155,341 |
+| 总行数 | 155,361 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3818 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -107,6 +107,9 @@ moon run cmd -- server                     # Web 服务（端口 7071）
 # `--live`（真模型路径）本期未接线：诚实打印说明并 exit 1，见 docs/known-gaps.md
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe eval --offline --repo .
 
+# 性能基准（层 7，手动触发；场景在 test/benchmark/scenarios，结果写 _build/benchmark/results）
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe benchmark --iterations 20 --warmup 5
+
 # 真话台账校验（扫描段过期 / 命中项缺状态行 即失败）
 scripts/known_gaps.sh check
 
@@ -139,7 +142,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')  
 | 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
 
 - 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
-- 三层回归测试体系（单元差分 / e2e 剧本 / 能力基准）：[docs/testing.md](docs/testing.md)
+- 测试体系分层与门禁（层 1-8）：[docs/testing.md](docs/testing.md)
 - AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
 - 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)
 
@@ -175,7 +178,7 @@ MBOpenClacky/
 │   ├── errors/         # 错误类型层次
 │   ├── utils/          # 工具函数
 │   └── zip/            # ZIP 压缩/解压
-├── test/               # 测试体系：单元差分 + e2e 剧本 + Eval 框架 + 文档解析夹具（fixtures/）
+├── test/               # 测试体系层 1-8：差分 + e2e 剧本 + Eval 引擎/场景 + 基准 + 夹具（见 docs/testing.md）
 ├── assets/             # Agent 配置、技能、Web 前端
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
 ├── .github/            # CI/CD 工作流

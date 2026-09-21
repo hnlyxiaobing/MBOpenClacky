@@ -240,8 +240,8 @@ async fn main {
       "benchmark": @clap.SubCommand::new(
         args={
           "scenario_dir": @clap.Arg::named(
-            nargs=@clap.Nargs::Fixed(1),
-            help="Directory containing benchmark scenario JSON files",
+            nargs=@clap.Nargs::AtMost(1),
+            help="Scenario JSON directory (default: test/benchmark/scenarios)",
           ),
           "iterations": @clap.Arg::named(
             short='i',
@@ -261,7 +261,7 @@ async fn main {
           "output": @clap.Arg::named(
             short='o',
             nargs=@clap.Nargs::AtMost(1),
-            help="Output directory for results (default: benchmark/results)",
+            help="Results dir (default: _build/benchmark/results)",
           ),
         },
         help="Run performance benchmarks for scenarios",
@@ -1270,13 +1270,29 @@ fn print_run_result(result : @agent.RunResult) -> Unit {
 }
 
 ///|
+/// CLI 覆盖值：`--iterations` / `--warmup` 给出时替换场景文件里的同名参数。
+fn int_override(sub : @clap.SimpleValue, name : String) -> Int? {
+  let raw = get_named_arg(sub, name).unwrap_or("")
+  let parsed = @string.parse_int(raw.trim()) catch { _ => -1 }
+  if parsed >= 0 {
+    Some(parsed)
+  } else {
+    None
+  }
+}
+
+///|
 fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   // 获取参数
   let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or(
-    "benchmark/scenarios",
+    "test/benchmark/scenarios",
   )
   let threshold_str = get_named_arg(sub, "threshold").unwrap_or("10.0")
-  let output_dir = get_named_arg(sub, "output").unwrap_or("benchmark/results")
+  let output_dir = get_named_arg(sub, "output").unwrap_or(
+    "_build/benchmark/results",
+  )
+  let iterations = int_override(sub, "iterations")
+  let warmup = int_override(sub, "warmup")
 
   // 转换参数
   let threshold = @string.parse_double(threshold_str) catch { _ => 10.0 }
@@ -1297,7 +1313,11 @@ fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   println("Found \{scenarios.length()} scenario(s)")
 
   // 运行所有场景
-  for scenario in scenarios {
+  for loaded in scenarios {
+    let scenario = loaded.with_counts(
+      iterations.unwrap_or(loaded.iterations),
+      warmup.unwrap_or(loaded.warmup),
+    )
     println("\nRunning benchmark: \{scenario.name}")
 
     // 运行场景

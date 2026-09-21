@@ -1,22 +1,59 @@
-# 三层回归测试体系（docs/testing.md）
+# MBOpenClacky 测试体系（docs/testing.md）
 
-> 本文档说明 MBOpenClacky 内生回归测试的三层结构、运行方式、known-failure 清单与新增用例规范。
-> 本体系由 diff-harness（`D:/MoonBit/diff-harness`）P2/P3 差分测试资产迁移而来，
-> 期望值已从 Ruby 版 openclacky 的实测运行记录冻结为字面量/黄金断言点，**全部测试不依赖 Ruby 存在**。
+> 全项目**唯一**的测试体系总览：每一层回答一个可判定问题，有固定位置、固定命令、明确的 CI 归属与真实状态。
+> 差分层的资产由 diff-harness（`D:/MoonBit/diff-harness`）P2/P3 迁移而来，期望值已从 Ruby 版
+> openclacky 的实测记录冻结为字面量/黄金断言点，**全部测试不依赖 Ruby 存在**。
+> 新增/改动任何一层前先读本节的"分层与门禁"与末节"新增用例规范"。
 
-## 总览
+## 分层与门禁
 
-| 层 | 位置 | 内容 | 运行方式 | CI 频率 |
-|---|---|---|---|---|
-| 单元层 | `test/diff/` | 136 条单元差分用例（6 模块）+ fuzz 代表 + 冒烟，共 145 测试，期望值为冻结字面量 | `moon test test/diff` | 每次提交必跑 |
-| 链路层 | `test/e2e/` | MoonBit mock LLM server + 12 剧本回放，黄金断言点冻结自 ruby 基线，共 12 测试（约 18s） | `moon test test/e2e` | 每次提交必跑 |
-| 端到端层 | `benchmark/capability/` | 真模型能力基准（手动触发，不进 CI） | 见下文"端到端能力基准" | 手动 / 按里程碑 |
+| # | 层 | 回答的问题 | 位置 | 命令 | CI | 真实状态 |
+|---|---|---|---|---|---|---|
+| 1 | 白盒单元 | 每个包自身逻辑对不对 | `lib/**/*_wbtest.mbt`、`cmd/**/*_wbtest.mbt` | `moon test --release <pkg>` | 每次提交 | 有效 |
+| 2 | 差分单元 | 与 Ruby 基线语义是否一致 | `test/diff/` | `moon test --release test/diff` | 每次提交 | 有效（145 例） |
+| 3 | 链路 | 完整 ReAct 循环是否回归 | `test/e2e/` | `moon test --release test/e2e` | 每次提交 | 有效（12 剧本，约 18s） |
+| 4 | 界面效果 | TUI/Web 的实际渲染与响应行为 | `test/eval/`（引擎）+ `test/tui/`、`test/web/`（适配器）+ `test/scenarios/`（场景） | 引擎/适配器随 `moon test`；场景回放 `cmd.exe --tui-eval test/scenarios/tui/` | 引擎与适配器进 CI，场景回放手动 | 有效 |
+| 5 | CLI 契约 | 对外承诺的退出码与输出形状 | `cmd/selftest.mbt` | `cmd.exe selftest --repo .` | 每次提交 | 有效 |
+| 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
+| 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | **驱动为骨架**，见 [test/benchmark/README.md](../test/benchmark/README.md) |
+| 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/` | `cmd.exe eval --live`（未接线） | 不进 CI（成本与随机性） | 规程已定、任务集与运行器未实现，台账登记 |
 
-现有白盒测试（`lib/**/*_wbtest.mbt`、`test/tui`、`test/web`）继续按原方式运行：`moon test`（全量）或 `moon test <pkg>`。
+层与层之间不互相替代：性能与真模型基准**不得**用作回归门禁（随机性与噪声），白盒/差分/链路/契约/确定性评测**不得**被基准替代。
 
-数据夹具统一放在 `test/fixtures/documents/`（DOC/DOCX/XLSX/PPTX/PDF/WPS 样本，含损坏与截断用例），由 `lib/parser` 与 `lib/agent` 的白盒测试按仓库根相对路径读取（`moon test` 进程 CWD = 项目根）。
+## 目录地图
 
-## 单元层：test/diff
+```
+test/
+├── diff/        层 2：冻结期望值的单元差分 + known_failure.mbt（BUG 闸门）
+├── e2e/         层 3：进程内 mock LLM server + scenarios/（剧本）+ golden.mbt
+├── eval/        层 4/6：eval 引擎、tool_harness（确定性评分）、tasks/*.json
+├── tui/         层 4：虚拟屏与 TUI 适配器
+├── web/         层 4：Web API/WS 适配器
+├── scenarios/   层 4：tui/ 与 web/ 的 JSON 场景文件
+├── benchmark/   层 7：基准组件包 + scenarios/（输入）+ README（运行手册）
+├── capability/  层 8：真模型基准规程（README，任务集待建）
+└── fixtures/    层 1 的数据夹具：documents/（DOC/DOCX/XLSX/PPTX/PDF/WPS，含损坏与截断样本）
+```
+
+夹具由 `lib/parser` 与 `lib/agent` 的白盒测试按**仓库根相对路径**读取（`moon test` 进程 CWD = 项目根）。
+所有运行产物一律落 `_build/` 下（已被 gitignore）：性能基准结果在 `_build/benchmark/results/`，
+评测沙箱在 `_build/eval_sandbox/`；仓库里不留一次性日志。
+
+## 一键全跑（与 CI 同口径）
+
+```bash
+moon check                                                     # 0 error / 0 warning（CI 有警告预算闸门）
+moon build --target native --release cmd
+BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+"$BIN" selftest --repo .                                       # 层 5
+"$BIN" eval --offline --repo .                                 # 层 6
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')
+scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 台账与数字闸门
+```
+
+`lib/mcp` 的 stdio 用例在 Windows 上挂死，故本地排除、CI 用 Linux 单独跑（见 `docs/known-gaps.md`）。
+
+## 层 2 · 差分单元：test/diff
 
 - 用例来源：diff-harness `cases/<module>/test_cases.json` + `ruby_results.json`（Ruby 实测）。
 - 期望值全部冻结为测试代码中的字面量，注释注明冻结来源用例编号。
@@ -55,7 +92,7 @@ test "write_004_empty_path_suffix" {
 以下 BUG 经判定为 MB 扩展/改进或语义相同（见 diff-harness BUGS.md），其用例**冻结 MB 当前行为为期望**并注释 wontfix，不在 known-failure 之列：
 BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-0018（CLAUDE_* 兼容层）、BUG-0019（env_source 字段）、BUG-0021（permission_mode 枚举表示）、BUG-0027（HTML 响应严格处理）、BUG-0030（同域重试）。
 
-## 链路层：test/e2e
+## 层 3 · 链路：test/e2e
 
 - 机制：测试进程内起 **raw TCP mock LLM server**（`test/e2e/mock_llm_server.mbt`，基于 `moonbitlang/async/socket`，**无 python 依赖**），行为逐项对齐 diff-harness 的 python 版 mock server（顺序回放游标、content/tool_calls/stream_cut/malformed/error 五类响应、content/tool_calls 可选 finish_reason 覆盖、usage chunk、stream_cut 也发 [DONE]、剧本耗尽返回 500、Content-Length/chunked 双兼容）。用 `base_url` 注入构造真实 `Client` + `Agent`，跑完整 ReAct 循环。
 - 断言：与 `test/e2e/golden.mbt` 内嵌的黄金断言点比对（请求数、tool_calls 序列、文件副作用、完成语义、退避间隔），**不做逐字节请求体比对**（规避 BUG-0033~0035 噪音）；每个 golden 含 `evidence` 字段指向 diff-harness `runs/<scenario>/ruby/` 基线。
@@ -64,20 +101,21 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 - 闸门分布：002→BUG-0032/0023；005→BUG-0042（兼引 0041/0043）；009→BUG-0037；010/014→BUG-0040；013→BUG-0039（兼引 0038）；011 无 ruby 基线留空待冻结。
 - 剧本 011（malformed_sse）与 012（finish_stop+tool_calls）的原始目标场景在 diff-harness 侧无 ruby 基线（mock server 能力缺口），对应测试仅为占位注释，**待 diff-harness 补基线后冻结**。
 
-## 端到端能力基准（手动触发，不进 CI）
+## 层 7 / 层 8 · 两类基准（都不进 CI）
 
-真模型基准用于统计性能力对比（成功率、轮数、token 消耗、失败模式），成本与不确定性高，**不进 CI**。
+- **层 7 性能基准**：`test/benchmark/`，运行手册与"驱动仍是骨架"的边界说明见
+  [test/benchmark/README.md](../test/benchmark/README.md)。按里程碑手动跑，结果落 `_build/benchmark/results/`。
+- **层 8 真模型能力基准**：`test/capability/`，规程、任务 schema（与 `test/eval/tasks/` 同构）与判分口径见
+  [test/capability/README.md](../test/capability/README.md)。实现前 `cmd eval --live` 诚实 `exit 1`。
 
-- 位置：`benchmark/capability/`（任务集 + 判分说明）。
-- 现状：diff-harness P4 阶段未执行，`tasks/p4/` 任务集不存在；当前仅提供运行规程与初始任务种子（派生自 P3 剧本），任务集待扩充至 20~30 个 golden 任务后才有统计意义。
-- 运行方法：见 `benchmark/capability/README.md`。
+## CI 现状
 
-## CI 接入建议
+`.github/workflows/ci.yml` 已接入：`moon check`（0 警告预算）→ release 构建 → `selftest`（层 5）→
+`eval --offline`（层 6，评分须全 1）→ `moon test --release`（层 1-4，`lib/mcp` 单独一步）→
+`known_gaps.sh check` + `repo_stats.sh check`。基准两层（7/8）与层 4 的场景回放仍为手动。
 
-1. **每次提交必跑**：`moon check`（0 error）+ `moon test`（全量，含 test/diff 与 test/e2e）。
-2. **按日跑**：全量 + `moon test --target wasm-gc` 之外的扩展矩阵（如 release 构建冒烟 `moon build --target native --release cmd`）。
-3. **手动触发**：`benchmark/capability/` 能力基准（里程碑或修复批次完成后）。
-4. known-failure 清单建议纳入 CI 产物展示（`known_failure_bug_ids` 数组长度应单调递减，清零为修复阶段验收条件之一）。
+known-failure 清单（`known_failure_bug_ids` 数组长度应单调递减，清零为修复阶段验收条件之一）
+尚未纳入 CI 产物展示，属待办。
 
 ## 新增用例规范
 
@@ -86,3 +124,5 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 3. 单元用例放 `test/diff/`，命名 `<case_id>_<slug>`；链路剧本放 `test/e2e/`， golden 断言点必须可从 diff-harness `runs/` 基线追溯。
 4. 发现新的两侧分歧时：先在 diff-harness `reports/BUGS.md` 登记编号，再写 known-failure 用例——禁止无编号隔离。
 5. 用例只增不减；修正旧用例时保留原用例并新增修正版（注释说明继承关系）。
+6. **先选层再写用例**：包内逻辑→层 1（`*_wbtest.mbt` 就近放置）；与 Ruby 基线可比对的语义→层 2；需要完整 ReAct 循环→层 3；界面可观测行为→层 4 场景；对外命令形状→层 5 探针；可用工具脚本确定完成的任务→层 6 任务集；耗时/成功率属统计口径→层 7/8，且**不得**进回归门禁。
+7. **不新增顶层目录**：测试代码、数据夹具、场景与规程一律在 `test/` 下就近组织；一次性产物只允许出现在 `_build/` 下。

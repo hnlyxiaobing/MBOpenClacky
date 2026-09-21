@@ -57,6 +57,23 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> BenchmarkScenario? {
 }
 
 ///|
+/// 返回只替换迭代/预热次数的场景副本，用于让 CLI 覆盖值生效。
+pub fn BenchmarkScenario::with_counts(
+  self : BenchmarkScenario,
+  iterations : Int,
+  warmup : Int,
+) -> BenchmarkScenario {
+  {
+    name: self.name,
+    description: self.description,
+    iterations,
+    warmup,
+    concurrency: self.concurrency,
+    raw_json: self.raw_json,
+  }
+}
+
+///|
 /// 加载目录中的所有 benchmark 场景
 pub fn load_benchmark_scenarios(dir_path : String) -> Array[BenchmarkScenario] {
   let scenarios : Array[BenchmarkScenario] = []
