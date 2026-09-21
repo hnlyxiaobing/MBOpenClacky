@@ -69,13 +69,44 @@ jobs:
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Verify MoonBit installation
-        run: moon version
+        id: toolchain
+        run: |
+          moon version
+          # The compiler identity goes into the build-cache key below. A cache
+          # that a *newer* compiler could hit is exactly the stale-toolchain
+          # hazard the ~/.moon note above warns about, so the key must change
+          # whenever the toolchain does.
+          echo "id=$(moon version | head -1 | tr -d ' ()')" >> "$GITHUB_OUTPUT"
 
       - name: Update registry index
         run: moon update
 
+      - name: Cache compiled artifacts
+        # Measured breakdown of a green run (19.3 min total): "Run tests
+        # (module packages)" 13.3 min, "Build (native release)" 4.7 min, all
+        # other steps together ~1.3 min. The dominant cost is the host C
+        # compiler: `cc1` burning a full core on moon's generated C, per
+        # package, in two separate artifact trees (`build/` for the binary,
+        # `test/` for the suites). Recompiling identical inputs on every push
+        # is pure re-work, so both trees are cached against
+        # (compiler identity x source content).
+        #
+        # Priming the key with the source hash and `restore-keys` with the
+        # compiler-only prefix means an edit reuses the previous run's objects
+        # and recompiles just what changed, instead of starting from zero.
+        # Only the two trees CI uses are cached; the full `_build` also holds
+        # debug output and eval sandboxes that would only bloat the cache.
+        uses: actions/cache@v6
+        with:
+          path: |
+            _build/native/release
+            _build/wasm-gc
+          key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
+          restore-keys: |
+            moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
+
       - name: Type check
-        run: moon check
+        run: moon check -j "$(nproc)"
 
       - name: Warning budget gate (P2-3, strict)
         # moon check reports 0 warnings on the 2026-09-20 toolchain baseline
@@ -108,7 +139,9 @@ jobs:
         run: bash scripts/check-crypto-build.sh release
 
       - name: Build (native release)
-        run: moon build --target native --release cmd
+        # -j nproc: the C compile of generated code is the long pole; moon
+        # parallelizes across packages, so give it every runner core.
+        run: moon build --target native --release cmd -j "$(nproc)"
 
       - name: CLI contract probes (P0-3)
         # Asserts exit codes / stdout shape / stderr policy / forbidden panic
@@ -162,13 +195,13 @@ jobs:
         run: |
           pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
             | grep -v '^lib/mcp$' | tr '\n' ' ')
-          moon test --release $pkgs > "$RUNNER_TEMP/moon_test.log" 2>&1
+          moon test --release $pkgs -j "$(nproc)" > "$RUNNER_TEMP/moon_test.log" 2>&1
           cat "$RUNNER_TEMP/moon_test.log"
 
       - name: Run lib/mcp tests
         # lib/mcp is excluded from the step above only because its stdio
         # integration test deadlocks on Windows; Linux can and does run it.
-        run: moon test --release lib/mcp
+        run: moon test --release lib/mcp -j "$(nproc)"
 
       - name: Repo stats gate (T1)
         # The numbers in README / CLAUDE.md / docs/project-status.md are
