@@ -73,7 +73,7 @@
 - `moon check` 0 错误 0 警告；`bash scripts/warn_count.sh 0 strict` 绿
 - `moon test --release`（口径见 §3.4）全绿
 
-**CI 绿：曾失败，已定位并修复（2026-09-21）。** 通过公开 API（无需鉴权）取得步骤级证据：`CI` 与
+**CI 绿：曾失败，已定位并修复，并已复验为绿（2026-09-21）。** 通过公开 API（无需鉴权）取得步骤级证据：`CI` 与
 `Docker` 工作流自 `c4b3fa4b`（2026-08-28，最后一次 success）起每次都失败，失败步骤是 `Run tests`。
 
 根因（第一性原理定位，非猜测）：`moon.work` 声明工作区 `members = [".", "vendor/mbtpdf"]`，
@@ -91,6 +91,8 @@ Error: Sys_error("/root/.moon/lib/core/_build/native/release/bundle/prelude/prel
 WSL 复现印证：`moon check` 绿，裸 `moon test --release` ICE，限定 `lib cmd test` 跑完 **3818/3818**。
 
 修复：CI 的测试步骤只跑本模块自身的包（`lib cmd test`；`lib/mcp` 单列一步供 Linux 跑）。
+
+**复验证据**：commit `020ec26` 的 `CI` 工作流（run `35565534593`）全部步骤 success，含 `Run tests (module packages)`、`Run lib/mcp tests`、`Deterministic capability eval`、`Repo stats gate` —— 这是自 `c4b3fa4b`（2026-08-28）以来第一次绿，也证明收尾新增的两条闸门在真实 CI 上可执行且通过。
 依赖的**库**代码仍参与构建并由 `lib/parser` 的测试覆盖，只是不再把其自带单测当成本仓库的回归面
 （`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，同样是既有问题且**已定位修复**：`Dockerfile` 的产物路径不含模块命名空间，且**两处**都错（构建阶段的 `test -f` 断言、运行阶段的 `COPY --from=builder`）。真正的报错来自 COPY，经 job 页面读得：`failed to compute cache key ... "…/build/cmd/cmd.exe": not found`。修复方式是在构建阶段把产物规范化为 `/build/out/mbopenclacky`，运行阶段只引用该稳定路径。（首版修复只改了断言，报文随即暴露出 COPY 这一处——两处同源，一次改净。）本机无 Docker，本地无法复现镜像构建。
 
