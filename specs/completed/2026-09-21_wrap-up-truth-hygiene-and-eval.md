@@ -94,7 +94,7 @@ WSL 复现印证：`moon check` 绿，裸 `moon test --release` ICE，限定 `li
 
 **复验证据**：commit `020ec26` 的 `CI` 工作流（run `35565534593`）全部步骤 success，含 `Run tests (module packages)`、`Run lib/mcp tests`、`Deterministic capability eval`、`Repo stats gate` —— 这是自 `c4b3fa4b`（2026-08-28）以来第一次绿，也证明收尾新增的两条闸门在真实 CI 上可执行且通过。
 依赖的**库**代码仍参与构建并由 `lib/parser` 的测试覆盖，只是不再把其自带单测当成本仓库的回归面
-（`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，同样是既有问题且**已定位修复**：`Dockerfile` 的产物路径不含模块命名空间，且**两处**都错（构建阶段的 `test -f` 断言、运行阶段的 `COPY --from=builder`）。真正的报错来自 COPY，经 job 页面读得：`failed to compute cache key ... "…/build/cmd/cmd.exe": not found`。修复方式是在构建阶段把产物规范化为 `/build/out/mbopenclacky`，运行阶段只引用该稳定路径。（首版修复只改了断言，报文随即暴露出 COPY 这一处——两处同源，一次改净。）本机无 Docker，本地无法复现镜像构建。
+（`vendor/` 本就在公共 API 闸门与台账扫描范围之外）。`Docker` 工作流失败于 `Build Docker image`，同样是既有问题且**已定位修复**：`Dockerfile` 的产物路径不含模块命名空间，且**两处**都错（构建阶段的 `test -f` 断言、运行阶段的 `COPY --from=builder`）。真正的报错来自 COPY，经 job 页面读得：`failed to compute cache key ... "…/build/cmd/cmd.exe": not found`。修复方式是在构建阶段把产物规范化为 `/build/out/mbopenclacky`，运行阶段只引用该稳定路径。（首版修复只改了断言，报文随即暴露出 COPY 这一处——两处同源，一次改净。）本机无 Docker，本地无法复现镜像构建；**复验为绿**：commit `7770730` 的 Docker 工作流（run `35566838562`）所有步骤 success，含 `Build Docker image` 与 `Verify image`。
 
 本地等价序列（Windows 口径，排除挂起的 lib/mcp）已逐条跑绿：见 §5 其余条目。
 
