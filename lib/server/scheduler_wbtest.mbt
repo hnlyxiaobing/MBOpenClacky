@@ -214,7 +214,9 @@ test "scheduler_add_duplicate_name_rejected" {
 fn impossible_config_path() -> String {
   let blocker = "/tmp/mboc-wbt-sched-blocker"
   let _ = @fs.remove_file(blocker) catch { _ => () }
-  @fs.write_string_to_file(blocker, "not a directory") catch { _ => () }
+  @fs.write_string_to_file(blocker, "not a directory") catch {
+    _ => ()
+  }
   blocker + "/sched.yml"
 }
 

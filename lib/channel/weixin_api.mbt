@@ -193,6 +193,32 @@ pub fn WeixinApiClient::parse_send_response(
   Ok((message_id, ret_code))
 }
 
+///|
+/// Cheap credential/liveness probe: one `getupdates` round trip with a 1s
+/// long-poll timeout instead of the 40s used by the receive loop.
+/// A usable bot token yields ret == 0 (possibly with no messages); any other
+/// ret is surfaced as an error so a broken token cannot look healthy.
+pub async fn WeixinApiClient::probe_connectivity(
+  self : WeixinApiClient,
+) -> Result[Unit, ChannelError] {
+  let payload : Map[String, Json] = Map([])
+  payload.set("timeout", (1).to_json())
+  payload.set("buf", "".to_json())
+  let json = match
+    http_post_json(
+      self.get_updates_url(None),
+      self.auth_headers().to_array(),
+      Json::object(payload).stringify(),
+    ) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match self.parse_get_updates_response(json) {
+    Ok(_) => Ok(())
+    Err(e) => Err(e)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Send typing indicator
 // ---------------------------------------------------------------------------

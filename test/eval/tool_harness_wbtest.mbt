@@ -86,11 +86,11 @@ async test "harness: score json carries the scoring vector" {
       return
     }
   }
-  for key in [
-    "mode", "trials", "tasks", "tasks_passed", "assertions",
-    "assertions_passed", "completion_rate", "verification_rate", "repeatability",
-    "cost_usd", "results",
-  ] {
+  for
+    key in [
+      "mode", "trials", "tasks", "tasks_passed", "assertions", "assertions_passed",
+      "completion_rate", "verification_rate", "repeatability", "cost_usd", "results",
+    ] {
     assert_true(fields.contains(key))
   }
 }

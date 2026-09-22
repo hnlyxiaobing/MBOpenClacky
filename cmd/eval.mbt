@@ -7,7 +7,8 @@
 ///
 /// stdout carries exactly one JSON object — the score vector — so a contract
 /// probe can assert its shape. The human-readable report goes to
-/// `docs/eval/<date>.md` (overridable with `--out`).
+/// `_build/eval/<date>.md` (overridable with `--out`): the offline run is a
+/// repeatable gate, so it keeps its artifact out of the worktree.
 ///
 /// `--live` is the model-driven path. It is **not wired in this build**: it
 /// exits 1 with an actionable message and is registered as `open` in
@@ -20,14 +21,15 @@
 fn eval_sandbox_root(repo : String) -> String {
   let build_dir = @path.Path::join(repo, @path.Path("_build")).to_string()
   if !@fs.path_exists(build_dir) {
-    @fs.create_dir(build_dir) catch { _ => () }
+    @fs.create_dir(build_dir) catch {
+      _ => ()
+    }
   }
-  let root = @path.Path::join(
-    build_dir,
-    @path.Path("eval_sandbox"),
-  ).to_string()
+  let root = @path.Path::join(build_dir, @path.Path("eval_sandbox")).to_string()
   if !@fs.path_exists(root) {
-    @fs.create_dir(root) catch { _ => () }
+    @fs.create_dir(root) catch {
+      _ => ()
+    }
   }
   root
 }
@@ -94,11 +96,7 @@ async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
   }
   let tasks_dir = match get_named_arg(sub, "tasks") {
     Some(dir) => dir
-    None =>
-      @path.Path::join(
-        repo,
-        @path.Path("test/eval/tasks"),
-      ).to_string()
+    None => @path.Path::join(repo, @path.Path("test/eval/tasks")).to_string()
   }
   let tasks = @eval.load_harness_tasks(tasks_dir)
   if tasks.length() == 0 {
@@ -109,19 +107,25 @@ async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
   let sandbox_root = eval_sandbox_root(repo)
   let report = @eval.run_harness_batch(tasks, sandbox_root, trials)
   let score = report.score(trials)
-  // Human-readable report.
+  // Human-readable report. The offline run is a repeatable gate, so its report
+  // defaults under _build/ and leaves the worktree clean; a live run (whose
+  // evidence is worth committing) is expected to default to docs/eval/ once
+  // that path is wired. `--out <dir>` overrides either default.
   let out_dir = match get_named_arg(sub, "out") {
     Some(dir) => dir
-    None => @path.Path::join(repo, @path.Path("docs/eval")).to_string()
+    None => @path.Path::join(repo, @path.Path("_build/eval")).to_string()
   }
   let stamp = @agent.ms_to_iso8601(@agent.current_time_ms())
-  let date = if stamp.length() >= 10 { stamp[:10].to_owned() } else { "unknown" }
-  let report_path = @path.Path::join(
-    out_dir,
-    @path.Path("\{date}.md"),
-  ).to_string()
+  let date = if stamp.length() >= 10 {
+    stamp[:10].to_owned()
+  } else {
+    "unknown"
+  }
+  let report_path = @path.Path::join(out_dir, @path.Path("\{date}.md")).to_string()
   if !@fs.path_exists(out_dir) {
-    @fs.create_dir(out_dir) catch { _ => () }
+    @fs.create_dir(out_dir) catch {
+      _ => ()
+    }
   }
   let markdown = report.to_markdown("offline", trials)
   @fs.write_string_to_file(report_path, markdown) catch {

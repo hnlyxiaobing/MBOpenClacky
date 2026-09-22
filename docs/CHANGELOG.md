@@ -25,6 +25,15 @@
 
 ## 变更记录
 
+### 2026-09-22  连通性探针真实化 + 遗留卫生清理
+
+- `[feat]` **四平台连通性探针真实化**：`POST /api/channels/:id/test` 对 telegram/wecom/weixin/dingtalk 从 `not_implemented` 改为真实只读探测——telegram 调 Bot API `getMe`、企微请求 corp `gettoken`、微信跑 1 秒超时的 `getupdates`、钉钉请求新 API `accessToken`；凭据缺失或被拒时回传平台自身的诊断错误（不再有"未实现"占位）。新增 `WeixinApiClient::probe_connectivity`（复用 auth_headers 与响应解析，避免连通性测试阻塞 40 秒），并给 `extract_api_error` 补上 Telegram 的 `description` 字段。
+  - 关于覆盖深度：探针的"凭据缺失 → failed"分支有确定性测试；happy path 需真实平台凭据，与既有的飞书/Discord 探针同口径，未做 mock 注入（字段仅 api_key/secret/webhook_url，无可注入的 base URL 通道）。
+- `[fix]` **删除两处不可达且伪造成功的同步处理器**：`handle_channels_send` 会在不做任何派发的情况下返回 `"success":true`（违反 stubfix-02 的诚实契约），`handle_channels_test`（连同其 `test_channel_adapter`）只做字段校验却挂在"连通性测试"名下；两者都不在任何线上路由上（`server.mbt` 的 bridge 早已指向异步版本，`router.mbt` 已 `@deprecated` 且只存路由名字符串）。同步关闭台账 `handlers_channels` 8 行。
+- `[fix]` **离线评测不再污染工作区**：`cmd eval --offline` 的可读报告从 `docs/eval/<date>.md` 改落 `_build/eval/<date>.md`（确定性闸门不应产生未跟踪产物）；`--out` 仍可覆盖，CLI help 与 `tool_harness` 文档同步；`docs/eval/` 保留给真模型路径（WP-2.2）作为可入库证据。
+- `[chore]` **清除既有 `moon fmt` 漂移**：`moon fmt --check` 首次全仓通过——此前 `cmd/eval.mbt`、`cmd/inspect.mbt`、`cmd/session_log_producer_wbtest.mbt`、`lib/server/scheduler_wbtest.mbt`、`test/eval/moon.pkg`、`test/eval/tool_harness.mbt`、`test/eval/tool_harness_wbtest.mbt` 共 7 个文件不合格（含 `moon.pkg` 注释前的多余空格）。
+  - 验证：`moon check -d` 全仓 0 错 0 警（312 tasks）；`moon test --release lib/channel` 444/444、`lib/web` 477/477；CI 同口径全量 scoped 套件 3864/3864；`selftest` 18/18；`eval --offline` 3/3 且报告落 `_build/eval/`；台账 8 行转 `fixed`（112 → 104 live hits）；`repo_stats` 测试用例数 3856 → 3864；spec 见 `specs/completed/2026-09-22_leftover-hygiene-and-connectivity-probes.md`。
+
 ### 2026-09-22  钉钉/企业微信/微信 send 接线（执行计划 WP-1.2~1.4）
 
 - `[feat]` **三渠道发送侧真接线（WP-1.2~1.4）**：钉钉 `open_stream_connection`/`download_file_url`、企业微信 `message/send`、微信 `sendmessage` 全部从诚实 stub 变为经 `@client` 异步传输的真实调用；业务失败（钉钉走 HTTP 状态、企微走 `errcode`、微信走 `ret`）一律映射为诊断错误，响应缺失关键字段也报错，杜绝静默假成功。

@@ -40,7 +40,7 @@ fn SessionLogProducer::open_segment(
   self : SessionLogProducer,
 ) -> SessionLogSegment {
   if self.segments.length() == 0 {
-    self.segments.push({ events: [], superseded: false })
+    self.segments.push({ events: [], superseded: false, })
   }
   self.segments[self.segments.length() - 1]
 }
@@ -59,7 +59,7 @@ fn SessionLogProducer::on_hook_event(
       let segment = self.open_segment()
       if segment.events.length() > 0 {
         segment.superseded = true
-        self.segments.push({ events: [], superseded: false })
+        self.segments.push({ events: [], superseded: false, })
       }
     }
     _ =>
@@ -102,7 +102,10 @@ async fn SessionLogProducer::flush(
     let (first_seq, last_seq) = append_segment_events(path, segment.events)
     if segment.superseded && first_seq > 0 && last_seq >= first_seq {
       let result : Result[Int, String] = @agent.append_summary(
-        path, first_seq, last_seq, @agent.current_time_ms(),
+        path,
+        first_seq,
+        last_seq,
+        @agent.current_time_ms(),
       ) catch {
         _ => Ok(0)
       }

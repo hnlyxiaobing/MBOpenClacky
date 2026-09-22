@@ -96,13 +96,9 @@ pub fn handle_channels_group_history(HttpRequest) -> HttpResponse
 
 pub fn handle_channels_list(HttpRequest) -> HttpResponse
 
-pub fn handle_channels_send(HttpRequest) -> HttpResponse
-
 pub async fn handle_channels_send_async(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
 pub fn handle_channels_status(HttpRequest) -> HttpResponse
-
-pub fn handle_channels_test(HttpRequest) -> HttpResponse
 
 pub async fn handle_channels_test_async(HttpRequest) -> HttpResponse
 

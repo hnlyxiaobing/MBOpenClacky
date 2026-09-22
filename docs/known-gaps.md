@@ -31,7 +31,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **112** 条（另有 117 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **104** 条（另有 117 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -40,7 +40,7 @@
 | cmd/cli_mcp.mbt:11 | not-yet | /// not yet implemented, so this entry point reports a clear, actionable |
 | cmd/cli_mcp.mbt:18 | not-yet | println("mbopenclacky mcp: stdio MCP server exposure is not yet available.") |
 | cmd/cli_mcp.mbt:24 | placeholder | "still a placeholder pending FFI child-process support. This CLI cannot", |
-| cmd/eval.mbt:75 | not-implemented | "eval --live: the model-driven path is not implemented in this build;", |
+| cmd/eval.mbt:77 | not-implemented | "eval --live: the model-driven path is not implemented in this build;", |
 | cmd/main.mbt:198 | not-implemented | help="Run the model-driven path (not implemented in this build)", |
 | cmd/selftest.mbt:520 | not-implemented | stdout_contains: ["not implemented in this build"], |
 | lib/agent/react.mbt:348 | not-yet | // here — not yet ported.) |
@@ -129,14 +129,6 @@
 | lib/web/ext_loader.mbt:14 | stub | /// Shell command to execute for this route (empty = stub fallback) |
 | lib/web/handlers_backup.mbt:649 | not-implemented | /// Zip packaging of the snapshot directory is not implemented; returning |
 | lib/web/handlers_backup.mbt:670 | not-yet | "message": "Backup archive download not yet implemented".to_json(), |
-| lib/web/handlers_channels.mbt:336 | not-implemented | /// (GET /users/@me). Other platforms return honest "not implemented" status. |
-| lib/web/handlers_channels.mbt:387 | not-yet | ("not_implemented", "Telegram connectivity test not yet implemented") |
-| lib/web/handlers_channels.mbt:389 | not-yet | ("not_implemented", "WeCom connectivity test not yet implemented") |
-| lib/web/handlers_channels.mbt:391 | not-yet | ("not_implemented", "Weixin connectivity test not yet implemented") |
-| lib/web/handlers_channels.mbt:393 | not-yet | ("not_implemented", "DingTalk connectivity test not yet implemented") |
-| lib/web/handlers_channels.mbt:448 | stub | /// Uses http_get_json directly to avoid the stub get_current_user. |
-| lib/web/handlers_channels.mbt:472 | stub | /// POST /api/channels/:id/test — Test channel connectivity (sync stub). |
-| lib/web/handlers_channels.mbt:718 | stub | /// POST /api/channels/:id/send — Send a message through the channel (sync stub). |
 | lib/web/handlers_extra.mbt:13 | not-yet | /// capability not yet exposed by the git_exec layer, so it is deferred; |
 | lib/web/handlers_extra.mbt:1192 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
 | lib/web/handlers_extra.mbt:1218 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
@@ -309,14 +301,14 @@
 | lib/web/handlers_backup.mbt:670 | open | 范围外（web 备份） | 快照 ZIP 打包未实现 |
 | lib/web/handlers_bridge.mbt:838 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
 | lib/web/handlers_bridge.mbt:845 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
-| lib/web/handlers_channels.mbt:336 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:387 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:389 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:391 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:393 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:448 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:472 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
-| lib/web/handlers_channels.mbt:718 | open | 范围外（channel） | 渠道连通性测试/发送端点为 stub |
+| lib/web/handlers_channels.mbt:336 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:387 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:389 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:391 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:393 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:448 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:472 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
+| lib/web/handlers_channels.mbt:718 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
 | lib/web/handlers_extra.mbt:13 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1192 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1218 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
@@ -332,7 +324,7 @@
 | lib/web/handlers_trash.mbt:365 | open | 范围外（web） | trash 模型仍为 stub 语义 |
 | lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
 | lib/web/handlers_ws.mbt:278 | open | 范围外（web） | updated_at 回退 created_at |
-| cmd/eval.mbt:75 | open | P2 真模型评测（D1 回退） | `eval --live` 诚实声明模型路径未接线并 exit 1；确定性 harness 已就绪，真模型从未执行 |
+| cmd/eval.mbt:77 | open | P2 真模型评测（D1 回退） | `eval --live` 诚实声明模型路径未接线并 exit 1；确定性 harness 已就绪，真模型从未执行 |
 | cmd/main.mbt:198 | open | P2 真模型评测（D1 回退） | 同上：`eval` 子命令 `--live` 的帮助文本如实标注未接线 |
 | cmd/selftest.mbt:520 | open | P2 真模型评测（D1 回退） | 同上：契约探针把该诚实行为固定成判据（exit 1 + 说明文本） |
 

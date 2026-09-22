@@ -154,6 +154,11 @@ pub fn extract_api_error(json : Json) -> String {
         Some(String(msg)) => return msg
         _ => ()
       }
+      // Try "description" field (Telegram Bot API)
+      match obj.get("description") {
+        Some(String(msg)) => return msg
+        _ => ()
+      }
       "Unknown API error"
     }
     _ => "Invalid error response"

@@ -199,7 +199,7 @@ async fn main {
           ),
           "repo": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
-            help="Repository root holding test/eval/tasks and docs/eval (default: .)",
+            help="Repository root holding test/eval/tasks (default: .)",
           ),
           "tasks": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
@@ -211,7 +211,7 @@ async fn main {
           ),
           "out": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
-            help="Report directory (default: <repo>/docs/eval)",
+            help="Report directory (default: <repo>/_build/eval)",
           ),
         },
         help="Agent capability evaluation (P2)",

@@ -842,6 +842,18 @@ test "extract_api_error_nested" {
 }
 
 ///|
+/// Telegram's Bot API reports failures as {"ok":false,"description":"..."},
+/// so the probe error path needs this field to stay diagnostic.
+test "extract_api_error_description_field_telegram" {
+  let json = @json.parse(
+    "{\"ok\":false,\"error_code\":401,\"description\":\"Unauthorized\"}",
+  ) catch {
+    _ => Json::object(Map([]))
+  }
+  @debug.assert_eq(extract_api_error(json), "Unauthorized")
+}
+
+///|
 test "extract_api_error_unknown" {
   let json = @json.parse("{\"code\":500}") catch { _ => Json::object(Map([])) }
   @debug.assert_eq(extract_api_error(json), "Unknown API error")

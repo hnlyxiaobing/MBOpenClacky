@@ -9,27 +9,29 @@
 /// `session_id`. Any leftover log or lock from a previous run is removed, so
 /// the assertions hold no matter how often the suite is re-run.
 fn producer_test_path(session_id : String) -> (String, String) {
-  let parent = @path.Path::join(
-    "_build",
-    @path.Path("wbtest_session_log"),
-  ).to_string()
+  let parent = @path.Path::join("_build", @path.Path("wbtest_session_log")).to_string()
   if !@fs.path_exists(parent) {
-    @fs.create_dir(parent) catch { _ => () }
+    @fs.create_dir(parent) catch {
+      _ => ()
+    }
   }
   let dir = @path.Path::join(parent, @path.Path(session_id)).to_string()
   if !@fs.path_exists(dir) {
-    @fs.create_dir(dir) catch { _ => () }
+    @fs.create_dir(dir) catch {
+      _ => ()
+    }
   }
-  let path = @path.Path::join(
-    dir,
-    @path.Path(session_id + ".jsonl"),
-  ).to_string()
+  let path = @path.Path::join(dir, @path.Path(session_id + ".jsonl")).to_string()
   if @fs.path_exists(path) {
-    @fs.remove_file(path) catch { _ => () }
+    @fs.remove_file(path) catch {
+      _ => ()
+    }
   }
   let lock = path + ".lock"
   if @fs.path_exists(lock) {
-    @fs.remove_file(lock) catch { _ => () }
+    @fs.remove_file(lock) catch {
+      _ => ()
+    }
   }
   (dir, path)
 }
@@ -124,9 +126,7 @@ async test "attach_session_log + flush_session_log write the run's log" {
   attach_session_log(agent)
   agent.hook_manager.emit(@agent.InfoMessage("wired"))
   agent.hook_manager.emit(@agent.CompressionPerformed(1))
-  flush_session_log(
-    agent.session_id, agent.created_at, sessions_dir=dir,
-  )
+  flush_session_log(agent.session_id, agent.created_at, sessions_dir=dir)
   let log = @agent.read_session_log(path)
   @debug.assert_eq(log.records.length(), 2)
   match log.records[1] {
@@ -137,9 +137,7 @@ async test "attach_session_log + flush_session_log write the run's log" {
     @agent.EventRecord(_) => fail("expected a trailing summary record")
   }
   // A second flush with an empty buffer must not create or touch the file.
-  flush_session_log(
-    agent.session_id, agent.created_at, sessions_dir=dir,
-  )
+  flush_session_log(agent.session_id, agent.created_at, sessions_dir=dir)
   let again = @agent.read_session_log(path)
   @debug.assert_eq(again.records.length(), 2)
 }

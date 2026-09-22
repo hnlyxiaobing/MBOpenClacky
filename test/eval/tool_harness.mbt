@@ -135,19 +135,17 @@ pub fn parse_harness_task(text : String) -> HarnessTask? {
           Some(step_fields) =>
             match json_string(step_fields, "tool") {
               Some(tool) => {
-                let args = match as_object(
-                  step_fields.get("args").unwrap_or(Json::null()),
-                ) {
+                let args = match
+                  as_object(step_fields.get("args").unwrap_or(Json::null())) {
                   Some(found) => found
                   None => Map([])
                 }
                 steps.push({
                   tool,
                   args,
-                  expect_contains: json_string(
-                    step_fields,
-                    "expect_contains",
-                  ).unwrap_or(""),
+                  expect_contains: json_string(step_fields, "expect_contains").unwrap_or(
+                    "",
+                  ),
                 })
               }
               None => ()
@@ -196,7 +194,7 @@ pub fn parse_harness_task(text : String) -> HarnessTask? {
       }
     _ => ()
   }
-  Some({ id, goal, seeds, steps, checks })
+  Some({ id, goal, seeds, steps, checks, })
 }
 
 ///|
@@ -261,13 +259,21 @@ fn evaluate_check(check : HarnessCheck, sandbox : String) -> HarnessAssertion {
       {
         description: "file exists: \{check.path}",
         passed: exists,
-        detail: if exists { "" } else { "missing" },
+        detail: if exists {
+          ""
+        } else {
+          "missing"
+        },
       }
     "file_missing" =>
       {
         description: "file absent: \{check.path}",
         passed: !exists,
-        detail: if exists { "still present" } else { "" },
+        detail: if exists {
+          "still present"
+        } else {
+          ""
+        },
       }
     "file_contains" | "file_not_contains" => {
       let content = @fs.read_file_to_string(path) catch { _ => "" }
@@ -285,11 +291,12 @@ fn evaluate_check(check : HarnessCheck, sandbox : String) -> HarnessAssertion {
         },
       }
     }
-    other => {
-      description: "check kind '\{other}' is supported",
-      passed: false,
-      detail: "unknown check kind",
-    }
+    other =>
+      {
+        description: "check kind '\{other}' is supported",
+        passed: false,
+        detail: "unknown check kind",
+      }
   }
 }
 
@@ -301,7 +308,7 @@ async fn execute_tool(
   args : Map[String, Json],
 ) -> @tool.ToolResult {
   @tool.Tool::execute(tool, args) catch {
-    err => { content: "tool raised: " + @debug.to_string(err), is_error: true }
+    err => { content: "tool raised: " + @debug.to_string(err), is_error: true, }
   }
 }
 
@@ -352,7 +359,11 @@ pub async fn run_harness_task(
           assertions.push({
             description: "step \{steps_run}: \{step.tool} output contains '\{step.expect_contains}'",
             passed: hit,
-            detail: if hit { "" } else { "not found in tool output" },
+            detail: if hit {
+              ""
+            } else {
+              "not found in tool output"
+            },
           })
         }
       }
@@ -388,10 +399,12 @@ pub async fn run_harness_batch(
 ) -> HarnessReport {
   let results : Array[HarnessTaskResult] = []
   if trials <= 0 {
-    return HarnessReport::{ results }
+    return HarnessReport::{ results, }
   }
   if !@fs.path_exists(sandbox_root) {
-    @fs.create_dir(sandbox_root) catch { _ => () }
+    @fs.create_dir(sandbox_root) catch {
+      _ => ()
+    }
   }
   for task in tasks {
     for trial in 0..<trials {
@@ -403,16 +416,20 @@ pub async fn run_harness_batch(
       results.push(run_harness_task(task, sandbox))
     }
   }
-  HarnessReport::{ results }
+  HarnessReport::{ results, }
 }
 
 ///|
 /// Create a clean sandbox directory (removing a leftover one first).
 fn prepare_sandbox(sandbox : String) -> Unit {
   if @fs.path_exists(sandbox) {
-    @fs.remove_dir(sandbox) catch { _ => () }
+    @fs.remove_dir(sandbox) catch {
+      _ => ()
+    }
   }
-  @fs.create_dir(sandbox) catch { _ => () }
+  @fs.create_dir(sandbox) catch {
+    _ => ()
+  }
 }
 
 // ── Scoring ─────────────────────────────────────────────────────────────────
@@ -431,7 +448,10 @@ pub(all) struct EvalScoreVector {
 }
 
 ///|
-pub fn HarnessReport::score(self : HarnessReport, trials : Int) -> EvalScoreVector {
+pub fn HarnessReport::score(
+  self : HarnessReport,
+  trials : Int,
+) -> EvalScoreVector {
   let tasks : Array[String] = []
   let mut assertions = 0
   let mut assertions_passed = 0
@@ -552,7 +572,7 @@ pub fn HarnessReport::to_score_json(
 }
 
 ///|
-/// A human-readable report body for `docs/eval/<date>.md`.
+/// A human-readable report body for the report file (`<out-dir>/<date>.md`).
 pub fn HarnessReport::to_markdown(
   self : HarnessReport,
   mode : String,
@@ -562,9 +582,7 @@ pub fn HarnessReport::to_markdown(
   let lines : Array[String] = []
   lines.push("# cmd eval report（\{mode}）")
   lines.push("")
-  lines.push(
-    "| 任务 | 步骤 | 断言 | 通过 | 本次结果 |",
-  )
+  lines.push("| 任务 | 步骤 | 断言 | 通过 | 本次结果 |")
   lines.push("|---|---|---|---|---|")
   for result in self.results {
     let mut passed_assertions = 0
@@ -591,7 +609,9 @@ pub fn HarnessReport::to_markdown(
   lines.push(
     "| 可重复性（trials 全部一致的任务 / tasks，trials=\{trials}） | \{score.repeatability()} |",
   )
-  lines.push("| 成本（USD，offline 不调用模型） | \{score.cost_usd} |")
+  lines.push(
+    "| 成本（USD，offline 不调用模型） | \{score.cost_usd} |",
+  )
   lines.push("")
   lines.push("## 断言明细")
   lines.push("")

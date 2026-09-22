@@ -124,13 +124,48 @@ async test "channels_send_async rejects missing chat_id" {
 // ── test wiring ───────────────────────────────────────────────────
 
 ///|
-async test "channels_test_async grades telegram as not_implemented" {
-  let id = wiring_seed_channel("telegram", true)
+/// Every platform is probed for real now, so a channel seeded without
+/// credentials must come back as a diagnostic failure -- never as
+/// "not_implemented".
+async fn assert_probe_fails_without_credentials(platform : String) -> Unit {
+  let id = wiring_seed_channel(platform, true)
   let req = wiring_make_request("/api/channels/\{id}/test", "")
   let resp = handle_channels_test_async(req)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("test_result"), Some("not_implemented".to_json()))
+  @debug.assert_eq(obj.get("test_result"), Some("failed".to_json()))
+  guard! obj.get("error") is Some(Json::String(err))
+  assert_true(err.contains("Missing"))
+}
+
+///|
+async test "channels_test_async probes telegram and reports missing credentials" {
+  assert_probe_fails_without_credentials("telegram")
+}
+
+///|
+async test "channels_test_async probes wecom and reports missing credentials" {
+  assert_probe_fails_without_credentials("wecom")
+}
+
+///|
+async test "channels_test_async probes weixin and reports missing credentials" {
+  assert_probe_fails_without_credentials("weixin")
+}
+
+///|
+async test "channels_test_async probes dingtalk and reports missing credentials" {
+  assert_probe_fails_without_credentials("dingtalk")
+}
+
+///|
+async test "channels_test_async probes discord and reports missing credentials" {
+  assert_probe_fails_without_credentials("discord")
+}
+
+///|
+async test "channels_test_async probes feishu and reports missing credentials" {
+  assert_probe_fails_without_credentials("feishu")
 }
 
 ///|
@@ -144,11 +179,11 @@ async test "channels_test_async grades unknown platform as failed" {
 }
 
 ///|
-async test "channels_test_async reports disabled channel as missing" {
+async test "channels_test_async still resolves a disabled channel" {
   let id = wiring_seed_channel("telegram", false)
   let req = wiring_make_request("/api/channels/\{id}/test", "")
-  // Disabled channels still resolve by id and return a not-implemented result
-  // (test probes connectivity regardless of the enabled flag).
+  // The probe runs regardless of the enabled flag; the entry must still
+  // resolve by id (200) rather than looking like a missing channel.
   let resp = handle_channels_test_async(req)
   @debug.assert_eq(resp.status, 200)
 }

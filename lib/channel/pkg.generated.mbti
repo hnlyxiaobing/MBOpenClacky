@@ -838,6 +838,7 @@ pub fn WeixinApiClient::get_upload_url(Self) -> String
 pub fn WeixinApiClient::new(String, String) -> Self
 pub fn WeixinApiClient::parse_get_updates_response(Self, Json) -> Result[(Array[Json], String?), ChannelError]
 pub fn WeixinApiClient::parse_send_response(Self, Json) -> Result[(String, Int), ChannelError]
+pub async fn WeixinApiClient::probe_connectivity(Self) -> Result[Unit, ChannelError]
 pub fn WeixinApiClient::send_text_url(Self) -> String
 pub fn WeixinApiClient::send_typing_url(Self) -> String
 pub fn WeixinApiClient::with_base_url(String, String, String) -> Self

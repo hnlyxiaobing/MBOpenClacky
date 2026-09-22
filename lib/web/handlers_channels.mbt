@@ -332,8 +332,11 @@ pub fn handle_channels_delete(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// POST /api/channels/:id/test — Test channel connectivity (async, real probing).
-/// Does real HTTP connectivity checks for Feishu (token request) and Discord
-/// (GET /users/@me). Other platforms return honest "not implemented" status.
+/// Every platform is probed with a read-only call against its real API: Feishu
+/// and DingTalk request an access token, WeCom requests a corp token, Telegram
+/// calls getMe, Discord calls GET /users/@me, and Weixin runs a 1s getupdates
+/// round trip. A probe reports "failed" with the platform's own error message
+/// when credentials are missing or rejected.
 pub async fn handle_channels_test_async(request : HttpRequest) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
@@ -383,14 +386,10 @@ pub async fn handle_channels_test_async(request : HttpRequest) -> HttpResponse {
       let (test_result, error_msg) = match ch.platform {
         "feishu" => test_feishu_connectivity(config)
         "discord" => test_discord_connectivity(config)
-        "telegram" =>
-          ("not_implemented", "Telegram connectivity test not yet implemented")
-        "wecom" =>
-          ("not_implemented", "WeCom connectivity test not yet implemented")
-        "weixin" =>
-          ("not_implemented", "Weixin connectivity test not yet implemented")
-        "dingtalk" =>
-          ("not_implemented", "DingTalk connectivity test not yet implemented")
+        "telegram" => test_telegram_connectivity(config)
+        "wecom" => test_wecom_connectivity(config)
+        "weixin" => test_weixin_connectivity(config)
+        "dingtalk" => test_dingtalk_connectivity(config)
         _ => ("failed", "Unknown platform")
       }
 
@@ -445,7 +444,8 @@ async fn test_feishu_connectivity(
 
 ///|
 /// Test Discord connectivity by calling GET /users/@me.
-/// Uses http_get_json directly to avoid the stub get_current_user.
+/// Probes the endpoint directly rather than through
+/// DiscordApiClient::get_current_user, which is a registered gap (WP-1.6).
 async fn test_discord_connectivity(
   config : @channel.ChannelConfig,
 ) -> (String, String) {
@@ -469,68 +469,94 @@ async fn test_discord_connectivity(
 }
 
 ///|
-/// POST /api/channels/:id/test — Test channel connectivity (sync stub).
-/// Kept for backward compatibility; prefer handle_channels_test_async.
-pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
-  let id = match request.get_param("id") {
+/// Test Telegram connectivity by calling the Bot API getMe method.
+async fn test_telegram_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let bot_token = match config.settings.get("bot_token") {
     Some(v) => v
-    None => return HttpResponse::bad_request("Missing parameter: id")
+    None =>
+      match config.settings.get("api_key") {
+        Some(v) => v
+        None => return ("failed", "Missing bot_token/api_key setting")
+      }
   }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let arr = channels_store.val
-      let ch = arr[idx]
-      let start_time = @env.now().reinterpret_as_int64()
-      let platform_enum = match ch.platform {
-        "feishu" => @channel.Platform::Feishu
-        "wecom" => @channel.Platform::WeCom
-        "telegram" => @channel.Platform::Telegram
-        "discord" => @channel.Platform::Discord
-        "dingtalk" => @channel.Platform::DingTalk
-        "weixin" => @channel.Platform::Weixin
-        _ =>
-          return HttpResponse::ok(
-            Json::object({
-              "channel_id": id.to_json(),
-              "test_result": "failed".to_json(),
-              "error": "Unknown platform".to_json(),
-            }).stringify(),
-          )
+  let client = @channel.TelegramApiClient::new(bot_token)
+  match @channel.http_get_json(client.get_me_url(), client.request_headers()) {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
+  }
+}
+
+///|
+/// Test WeCom connectivity by requesting a corp access_token.
+async fn test_wecom_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let corp_id = match config.settings.get("corp_id") {
+    Some(v) => v
+    None =>
+      match config.settings.get("api_key") {
+        Some(v) => v
+        None => return ("failed", "Missing corp_id/api_key setting")
       }
-      let settings : Map[String, String] = Map([])
-      if ch.webhook_url != "" {
-        settings.set("webhook_url", ch.webhook_url)
+  }
+  let corp_secret = match config.settings.get("secret") {
+    Some(v) => v
+    None => return ("failed", "Missing secret setting")
+  }
+  let client = @channel.WeComApiClient::new(corp_id, corp_secret)
+  match client.get_access_token() {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
+  }
+}
+
+///|
+/// Test Weixin connectivity with a short-timeout getupdates round trip.
+async fn test_weixin_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let token = match config.settings.get("token") {
+    Some(v) => v
+    None =>
+      match config.settings.get("api_key") {
+        Some(v) => v
+        None => return ("failed", "Missing token/api_key setting")
       }
-      if ch.api_key != "" {
-        settings.set("api_key", ch.api_key)
+  }
+  let uin = match config.settings.get("uin") {
+    Some(v) => v
+    None => return ("failed", "Missing uin setting")
+  }
+  let client = @channel.WeixinApiClient::new(token, uin)
+  match client.probe_connectivity() {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
+  }
+}
+
+///|
+/// Test DingTalk connectivity by requesting a new-API access_token.
+async fn test_dingtalk_connectivity(
+  config : @channel.ChannelConfig,
+) -> (String, String) {
+  let app_key = match config.settings.get("app_key") {
+    Some(v) => v
+    None =>
+      match config.settings.get("api_key") {
+        Some(v) => v
+        None => return ("failed", "Missing app_key/api_key setting")
       }
-      if ch.secret != "" {
-        settings.set("secret", ch.secret)
-      }
-      let config = @channel.ChannelConfig::{
-        platform: platform_enum,
-        enabled: ch.enabled,
-        settings,
-      }
-      let (test_result, error_msg) = test_channel_adapter(ch.platform, config)
-      let end_time = @env.now().reinterpret_as_int64()
-      let latency = (end_time - start_time).to_int()
-      // Update channel status based on test result
-      if test_result == "success" {
-        arr[idx].status = "connected"
-      } else {
-        arr[idx].status = "error"
-      }
-      arr[idx].updated_at = end_time
-      let resp_obj = Json::object({
-        "channel_id": id.to_json(),
-        "test_result": test_result.to_json(),
-        "latency_ms": latency.to_json(),
-        "error": error_msg.to_json(),
-      })
-      HttpResponse::ok(resp_obj.stringify())
-    }
+  }
+  let app_secret = match config.settings.get("secret") {
+    Some(v) => v
+    None => return ("failed", "Missing secret setting")
+  }
+  let client = @channel.DingTalkApiClient::new(app_key, app_secret)
+  match client.request_access_token() {
+    Ok(_) => ("success", "")
+    Err(e) => ("failed", channel_error_msg(e))
   }
 }
 
@@ -539,89 +565,6 @@ pub fn handle_channels_test(request : HttpRequest) -> HttpResponse {
 pub fn channel_error_msg(err : @channel.ChannelError) -> String {
   match err {
     @channel.ChannelError(msg) => msg
-  }
-}
-
-///|
-/// Test a channel adapter by constructing it from config and validating.
-fn test_channel_adapter(
-  platform : String,
-  config : @channel.ChannelConfig,
-) -> (String, String) {
-  match platform {
-    "feishu" =>
-      match @channel.FeishuAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    "wecom" =>
-      match @channel.WeComAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    "telegram" =>
-      match @channel.TelegramAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    "discord" =>
-      match @channel.DiscordAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    "dingtalk" =>
-      match @channel.DingTalkAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    "weixin" =>
-      match @channel.WeixinAdapter::new(config) {
-        Ok(adapter) => {
-          let errors = adapter.validate_config()
-          if errors.length() == 0 {
-            ("success", "")
-          } else {
-            ("failed", errors.join(", "))
-          }
-        }
-        Err(e) => ("failed", channel_error_msg(e))
-      }
-    _ => ("failed", "Unknown platform")
   }
 }
 
@@ -710,54 +653,6 @@ pub async fn handle_channels_send_async(
             }).stringify(),
           )
       }
-    }
-  }
-}
-
-///|
-/// POST /api/channels/:id/send — Send a message through the channel (sync stub).
-/// Kept for backward compatibility; prefer handle_channels_send_async.
-pub fn handle_channels_send(request : HttpRequest) -> HttpResponse {
-  let id = match request.get_param("id") {
-    Some(v) => v
-    None => return HttpResponse::bad_request("Missing parameter: id")
-  }
-  if request.body == "" {
-    return HttpResponse::bad_request("Request body is required")
-  }
-  let body_json : Json = @json.parse(request.body) catch {
-    _ => return HttpResponse::bad_request("Invalid JSON body")
-  }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let ch = channels_store.val[idx]
-      if !ch.enabled {
-        return HttpResponse::bad_request("Channel is disabled")
-      }
-      let (message, chat_id) = match body_json {
-        Object(obj) => {
-          let m = channel_json_str(obj, "message")
-          let c = channel_json_str(obj, "chat_id")
-          (m, c)
-        }
-        _ => return HttpResponse::bad_request("Invalid JSON body")
-      }
-      if message == "" {
-        return HttpResponse::bad_request("Missing message field")
-      }
-      if chat_id == "" {
-        return HttpResponse::bad_request("Missing chat_id field")
-      }
-      // For now, return success. In a real implementation, we would call the channel adapter.
-      HttpResponse::ok(
-        Json::object({
-          "success": true.to_json(),
-          "channel_id": id.to_json(),
-          "chat_id": chat_id.to_json(),
-          "message": message.to_json(),
-        }).stringify(),
-      )
     }
   }
 }

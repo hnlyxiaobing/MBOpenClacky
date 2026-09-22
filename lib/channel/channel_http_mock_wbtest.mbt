@@ -143,6 +143,8 @@ async fn mock_platform_handle_conn(
       )
     } else if path.contains("sendmessage") {
       mock_http_send(conn, 200, "{\"ret\":-2,\"errmsg\":\"send too fast\"}")
+    } else if path.contains("getupdates") {
+      mock_http_send(conn, 200, "{\"ret\":-1,\"errmsg\":\"invalid token\"}")
     } else {
       mock_http_send(conn, 500, "{\"message\":\"mock failure\"}")
     }
@@ -170,6 +172,8 @@ async fn mock_platform_handle_conn(
     )
   } else if path.contains("sendmessage") {
     mock_http_send(conn, 200, "{\"ret\":0,\"msg_id\":\"wx_msg_1\"}")
+  } else if path.contains("getupdates") {
+    mock_http_send(conn, 200, "{\"ret\":0,\"item_list\":[],\"buf\":\"\"}")
   } else {
     mock_http_send(conn, 404, "{\"message\":\"not found\"}")
   }
@@ -394,6 +398,57 @@ async test "weixin_send_rate_limit_surfaces" {
         assert_true(msg.contains("send too fast"))
         assert_true(msg.contains("rate limited"))
       }
+    }
+    server.shutdown()
+  })
+}
+
+///|
+/// The connectivity probe must be cheap: one getupdates round trip carrying the
+/// 1s long-poll timeout, not the 40s used by the receive loop.
+async test "weixin_probe_connectivity_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let client = WeixinApiClient::with_base_url(
+      "tok",
+      "uin-1",
+      server.base_url(),
+    )
+    match client.probe_connectivity() {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("getupdates"), 1)
+    let body = @json.parse(server.first_body("getupdates")) catch {
+      _ => Json::object(Map([]))
+    }
+    match body {
+      Object(obj) =>
+        match obj.get("timeout") {
+          Some(Number(n, ..)) => assert_eq(n.to_int(), 1)
+          _ => assert_true(false)
+        }
+      _ => assert_true(false)
+    }
+    server.shutdown()
+  })
+}
+
+///|
+async test "weixin_probe_connectivity_surfaces_token_error" {
+  let server = MockPlatformServer::new()
+  server.fail_mode = true
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let client = WeixinApiClient::with_base_url(
+      "bad",
+      "uin-1",
+      server.base_url(),
+    )
+    match client.probe_connectivity() {
+      Ok(_) => assert_true(false)
+      Err(ChannelError(msg)) => assert_true(msg.contains("invalid token"))
     }
     server.shutdown()
   })
