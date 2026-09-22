@@ -108,7 +108,19 @@
 - **DoD**：无"已宣传但未接线"的表述；`scripts/repo_stats.sh check` 绿（未动数字块）。
 - **验证**：跑全局基线命令；人工比对 README 亮点与 known-gaps。
 
-### WP-1.1 飞书 send/receive 接线 `[?]`（P1，D-A=A）
+### WP-1.1 飞书 send/receive 接线 `[x]`（P1，D-A=A）
+
+> **完成（2026-09-22）**：`FeishuApiClient` 六方法（send/update/upload_image/upload_file/
+> download/fetch_history）全部经 `@client` 异步传输真接线：upload 走手工 multipart
+> 二进制上传（签名 Bytes 化），download 走 `http_get_bytes` + base64，其余走 JSON
+> GET/POST/PATCH（`HttpMethod` 新增 `Patch`）；所有响应追加 `code != 0` 业务检查。
+> **顺带修正契约缺陷**：`build_send_request`/`build_update_request` 的 `content` 由嵌套
+> 对象改为飞书要求的字符串化 JSON（原形状对真实 API 必失败）。`FeishuAdapter::
+> update_message` 接通；`start()` TODO 如实化（webhook 接收已由 stubfix-01 承担）。
+> DoD 验证：`moon check` 0 错 0 警；`moon test lib/channel lib/client lib/web`
+> 1021/1021（含 mock TCP server 六方法真 HTTP 往返 + 业务错误注入）；`selftest`
+> 18/18；`eval --offline` 3/3；台账飞书 14 行转 `fixed`；spec 归档
+> `specs/completed/2026-09-22_wp-1.1-feishu-wiring.md`。
 
 - **目标**：飞书适配器从"诚实 stub"变为真发送/接收，以 **Telegram 为参考实现**（`lib/channel/telegram.mbt::send_text` 已用 `http_post_json`）。
 - **触点**：`lib/channel/feishu_api.mbt`（`send_message`/`update_message`/`upload_image`/`upload_file`/`download_resource`/`fetch_chat_history` 的 `not yet wired` 分支）、`lib/channel/feishu.mbt`（`send_text`/`update_message`）。

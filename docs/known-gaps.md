@@ -31,7 +31,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **145** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **131** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -75,20 +75,6 @@
 | lib/channel/discord_api.mbt:114 | not-implemented | Err(ChannelError("Discord get_current_user is not implemented yet")) |
 | lib/channel/discord_api.mbt:136 | not-implemented | Err(ChannelError("Discord upload_file is not implemented yet")) |
 | lib/channel/discord_api.mbt:150 | TODO | // TODO: Execute async HTTP GET via @http: |
-| lib/channel/feishu.mbt:76 | TODO | // TODO: Start webhook listener or long-polling via FFI |
-| lib/channel/feishu.mbt:153 | not-implemented | Err(ChannelError("Feishu update_message is not implemented yet")) |
-| lib/channel/feishu_api.mbt:178 | TODO | // TODO: POST url with headers and body via async HTTP FFI |
-| lib/channel/feishu_api.mbt:188 | not-yet | "FeishuApiClient::send_message not yet wired to HTTP transport", |
-| lib/channel/feishu_api.mbt:227 | TODO | // TODO: PATCH url with headers and body via async HTTP FFI |
-| lib/channel/feishu_api.mbt:230 | not-yet | "FeishuApiClient::update_message not yet wired to HTTP transport", |
-| lib/channel/feishu_api.mbt:250 | TODO | // TODO: POST multipart/form-data with image_type and image file |
-| lib/channel/feishu_api.mbt:254 | not-yet | "FeishuApiClient::upload_image not yet wired to HTTP transport", |
-| lib/channel/feishu_api.mbt:273 | TODO | // TODO: POST multipart/form-data with file_type, file_name, and file |
-| lib/channel/feishu_api.mbt:276 | not-yet | ChannelError("FeishuApiClient::upload_file not yet wired to HTTP transport"), |
-| lib/channel/feishu_api.mbt:301 | TODO | // TODO: GET url with auth headers |
-| lib/channel/feishu_api.mbt:305 | not-yet | "FeishuApiClient::download_resource not yet wired to HTTP transport", |
-| lib/channel/feishu_api.mbt:327 | TODO | // TODO: GET url with auth headers |
-| lib/channel/feishu_api.mbt:331 | not-yet | "FeishuApiClient::fetch_chat_history not yet wired to HTTP transport", |
 | lib/channel/telegram.mbt:234 | TODO | // TODO: Start long-polling loop via getUpdates API. |
 | lib/channel/telegram.mbt:291 | not-implemented | Err(ChannelError("Telegram update_message is not implemented yet")) |
 | lib/channel/wecom.mbt:93 | not-yet | /// WeCom send/receive is not yet implemented; `start` only registers the |
@@ -243,20 +229,20 @@
 | lib/channel/discord_api.mbt:114 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/discord_api.mbt:136 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/discord_api.mbt:150 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu.mbt:76 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu.mbt:153 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:178 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:188 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:227 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:230 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:250 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:254 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:273 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:276 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:301 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:305 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:327 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/feishu_api.mbt:331 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
+| lib/channel/feishu.mbt:76 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu.mbt:153 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:178 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:188 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:227 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:230 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:250 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:254 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:273 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:276 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:301 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:305 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:327 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
+| lib/channel/feishu_api.mbt:331 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/telegram.mbt:234 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/telegram.mbt:291 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/wecom.mbt:93 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |

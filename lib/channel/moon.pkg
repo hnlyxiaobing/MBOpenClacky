@@ -4,9 +4,13 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/fs",
+  "moonbitlang/x/codec/base64",
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/async",
+  "moonbitlang/async/socket",
   "moonbitlang/async/websocket",
 }

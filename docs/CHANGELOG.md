@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-09-22  飞书 send/receive 接线（执行计划 WP-1.1）
+
+- `[feat]` **飞书六 API 真接线（WP-1.1）**：`FeishuApiClient` 的 `send_message`/`update_message`/`upload_image`/`upload_file`/`download_resource`/`fetch_chat_history` 从诚实 stub 变为经 `@client` 异步传输的真实调用——upload 走手工 multipart 二进制上传（签名 Bytes 化），download 走二进制 GET + base64 编码，其余走 JSON GET/POST/PATCH；所有 JSON 响应追加 `code != 0` 业务错误检查（飞书 v1 业务失败也返回 HTTP 200），杜绝静默假成功。
+  - `lib/client`：`HttpMethod` 新增 `Patch` 变体，新增 `http_patch` 便捷包装；`lib/channel` 新增 `http_patch_json`。
+  - **契约修正**：`build_send_request`/`build_update_request` 的 `content` 从嵌套对象改为飞书 API 要求的字符串化 JSON——原形状对真实 API 必失败（`send_text` 此前从未跑通真实链路，缺陷未暴露）。
+  - `FeishuAdapter::update_message` 接通；`start()` 的误导性 TODO 改为如实描述（webhook 接收已由 stubfix-01 的 HTTP server 路由承担）。
+  - 验证：`moon check` 0 错 0 警；`moon test lib/channel lib/client lib/web` 1021/1021（含新增 mock TCP server 六方法真 HTTP 往返 + 业务错误注入测试）；`selftest` 18/18；`eval --offline` 3/3；known-gaps 台账飞书 14 行转 `fixed`；spec 见 `specs/completed/2026-09-22_wp-1.1-feishu-wiring.md`。
+
 ### 2026-09-21  品牌资产重制 + 媒体生成全端点接线（执行计划 WP-0.1 / WP-1.5）
 
 - `[feat]` **媒体生成接线（WP-1.5）**：`/api/media/image|video|audio/speech|audio/transcriptions` 四端点从 501 stub 变为经 MediaGenerator 的真实调用——OpenAI 兼容网关承载图/视频/语音（JSON + b64/URL 载荷），转写走 multipart 二进制上传；DashScope 改为同步 multimodal-generation 上游协议并把返回的图片 URL 下载落盘；Gemini 直连按上游语义返回诚实网关重定向错误。生成产物统一落 `{output_dir}/assets/generated/`；未配置模型或非法输入返回诊断 400。

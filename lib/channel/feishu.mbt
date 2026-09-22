@@ -73,7 +73,10 @@ pub impl Adapter for FeishuAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // TODO: Start webhook listener or long-polling via FFI
+  // Receive mode is webhook-driven: incoming events arrive via the HTTP
+  // server's /api/webhooks/feishu route (challenge + parse_event already
+  // wired) and reach the handler through ChannelManager::handle_webhook.
+  // No listener is started here; long-polling mode is a separate work item.
   Ok(())
 }
 
@@ -148,9 +151,19 @@ pub impl Adapter for FeishuAdapter with fn update_message(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  let _ = message_id
-  let _ = new_text
-  Err(ChannelError("Feishu update_message is not implemented yet"))
+  match self.api_client {
+    Some(client) =>
+      match client.update_message(message_id, new_text) {
+        Ok(_) => Ok(())
+        Err(e) => Err(e)
+      }
+    None =>
+      Err(
+        ChannelError(
+          "FeishuAdapter has no api_client; cannot update without credentials",
+        ),
+      )
+  }
 }
 
 ///|

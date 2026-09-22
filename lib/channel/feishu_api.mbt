@@ -146,11 +146,14 @@ pub async fn FeishuApiClient::build_send_request(
   } else {
     build_feishu_text_content(text)
   }
+  // Feishu contract: msg_type is a plain string and content is the
+  // stringified inner JSON, e.g. {"msg_type":"text","content":"{\"text\":...}"}
   let msg_type_str = content_type_of(content)
+  let content_str = extract_content_string(content)
   let payload : Map[String, Json] = Map([])
   payload.set("receive_id", chat_id.to_json())
   payload.set("msg_type", msg_type_str.to_json())
-  payload.set("content", content)
+  payload.set("content", content_str.to_json())
   match reply_to {
     Some(id) => {
       let reply_obj : Map[String, Json] = Map([])
@@ -171,23 +174,19 @@ pub async fn FeishuApiClient::send_message(
   text : String,
   reply_to : String?,
 ) -> Result[Json, ChannelError] {
-  let _req = match self.build_send_request(chat_id, text, reply_to) {
+  let (url, headers, body) = match
+    self.build_send_request(chat_id, text, reply_to) {
     Ok(r) => r
     Err(e) => return Err(e)
   }
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let (url, headers, body) = _req
-  // let response = @http.fetch(url, { method: "POST", headers, body })
-  // if !is_success_status(response.status) {
-  //   return Err(http_status_error(response.status, response.body))
-  // }
-  // let json = parse_json_response(response.body)?
-  // Ok(json)
-  Err(
-    ChannelError(
-      "FeishuApiClient::send_message not yet wired to HTTP transport",
-    ),
-  )
+  let json = match http_post_json(url, headers, body) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match check_feishu_code(json, "send_message") {
+    Ok(_) => Ok(json)
+    Err(e) => Err(e)
+  }
 }
 
 ///|
@@ -208,8 +207,9 @@ pub async fn FeishuApiClient::build_update_request(
   } else {
     build_feishu_text_content(text)
   }
+  // Feishu PATCH contract: body is {"content": "<stringified inner JSON>"}
   let payload : Map[String, Json] = Map([])
-  payload.set("content", content)
+  payload.set("content", extract_content_string(content).to_json())
   Ok((url, headers.to_array(), build_json_body(payload)))
 }
 
@@ -220,16 +220,18 @@ pub async fn FeishuApiClient::update_message(
   message_id : String,
   text : String,
 ) -> Result[Json, ChannelError] {
-  let _req = match self.build_update_request(message_id, text) {
+  let (url, headers, body) = match self.build_update_request(message_id, text) {
     Ok(r) => r
     Err(e) => return Err(e)
   }
-  // TODO: PATCH url with headers and body via async HTTP FFI
-  Err(
-    ChannelError(
-      "FeishuApiClient::update_message not yet wired to HTTP transport",
-    ),
-  )
+  let json = match http_patch_json(url, headers, body) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match check_feishu_code(json, "update_message") {
+    Ok(_) => Ok(json)
+    Err(e) => Err(e)
+  }
 }
 
 // ── Resource API ──────────────────────────────────────────────────────────────
@@ -239,21 +241,34 @@ pub async fn FeishuApiClient::update_message(
 pub async fn FeishuApiClient::upload_image(
   self : FeishuApiClient,
   image_type : String,
-  _image_data : String,
+  image_data : Bytes,
 ) -> Result[String, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_url("im/v1/images")
-  let _ = image_type
-  // TODO: POST multipart/form-data with image_type and image file
-  // Returns {"data": {"image_key": "img_..."}} on success
-  Err(
-    ChannelError(
-      "FeishuApiClient::upload_image not yet wired to HTTP transport",
-    ),
+  let url = self.api_url("im/v1/images")
+  let boundary = "clacky-feishu-upload"
+  let _ = headers.content_type("multipart/form-data; boundary=" + boundary)
+  let body = build_feishu_multipart_body(
+    boundary,
+    [("image_type", image_type)],
+    "image",
+    "image.png",
+    "application/octet-stream",
+    image_data,
   )
+  let resp = match
+    @client.http_post_bytes(
+      url,
+      body,
+      headers.to_array(),
+      CHANNEL_HTTP_TIMEOUT_MS,
+    ) {
+    Ok(r) => r
+    Err(e) => return Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+  parse_upload_response(resp, "image_key")
 }
 
 ///|
@@ -262,35 +277,86 @@ pub async fn FeishuApiClient::upload_file(
   self : FeishuApiClient,
   file_type : String,
   file_name : String,
-  _file_data : String,
+  file_data : Bytes,
 ) -> Result[String, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_url("im/v1/files")
-  let _ = (file_type, file_name)
-  // TODO: POST multipart/form-data with file_type, file_name, and file
-  // Returns {"data": {"file_key": "file_..."}} on success
-  Err(
-    ChannelError("FeishuApiClient::upload_file not yet wired to HTTP transport"),
+  let url = self.api_url("im/v1/files")
+  let boundary = "clacky-feishu-upload"
+  let _ = headers.content_type("multipart/form-data; boundary=" + boundary)
+  let body = build_feishu_multipart_body(
+    boundary,
+    [("file_type", file_type), ("file_name", file_name)],
+    "file",
+    file_name,
+    "application/octet-stream",
+    file_data,
   )
+  let resp = match
+    @client.http_post_bytes(
+      url,
+      body,
+      headers.to_array(),
+      CHANNEL_HTTP_TIMEOUT_MS,
+    ) {
+    Ok(r) => r
+    Err(e) => return Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+  parse_upload_response(resp, "file_key")
+}
+
+///|
+/// Parse a Feishu upload response and extract data.<key_field>.
+fn parse_upload_response(
+  resp : @client.HttpResponseBytes,
+  key_field : String,
+) -> Result[String, ChannelError] {
+  if !is_success_status(resp.status_code) {
+    return Err(
+      http_status_error(resp.status_code, @utf8.decode_lossy(resp.body)),
+    )
+  }
+  let json = match parse_json_response(@utf8.decode_lossy(resp.body)) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match check_feishu_code(json, "upload") {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  match json {
+    Object(obj) =>
+      match obj.get("data") {
+        Some(Object(data)) =>
+          match data.get(key_field) {
+            Some(String(key)) if !key.is_empty() => Ok(key)
+            _ =>
+              Err(
+                ChannelError("Feishu upload response missing data." + key_field),
+              )
+          }
+        _ => Err(ChannelError("Feishu upload response missing data object"))
+      }
+    _ => Err(ChannelError("Invalid Feishu upload response"))
+  }
 }
 
 ///|
 /// Download a resource (image/file) attached to a message.
-/// Returns the raw content as a string (base64 for binary).
+/// Returns the binary content base64-encoded.
 pub async fn FeishuApiClient::download_resource(
   self : FeishuApiClient,
   message_id : String,
   file_key : String,
   resource_type : String,
 ) -> Result[String, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_url(
+  let url = self.api_url(
     "im/v1/messages/" +
     message_id +
     "/resources/" +
@@ -298,13 +364,17 @@ pub async fn FeishuApiClient::download_resource(
     "?type=" +
     resource_type,
   )
-  // TODO: GET url with auth headers
-  // Returns binary content on success
-  Err(
-    ChannelError(
-      "FeishuApiClient::download_resource not yet wired to HTTP transport",
-    ),
-  )
+  let resp = match
+    @client.http_get_bytes(url, headers.to_array(), CHANNEL_HTTP_TIMEOUT_MS) {
+    Ok(r) => r
+    Err(e) => return Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+  if !is_success_status(resp.status_code) {
+    return Err(
+      http_status_error(resp.status_code, @utf8.decode_lossy(resp.body)),
+    )
+  }
+  Ok(@base64.encode(resp.body.exact_view()))
 }
 
 ///|
@@ -314,23 +384,24 @@ pub async fn FeishuApiClient::fetch_chat_history(
   chat_id : String,
   limit : Int,
 ) -> Result[Json, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_url(
+  let url = self.api_url(
     "im/v1/messages?container_id_type=chat&container_id=" +
     chat_id +
-    "&page_size=" +
+    "&sort_type=ByCreateTimeAsc&page_size=" +
     limit.to_string(),
   )
-  // TODO: GET url with auth headers
-  // Returns {"data": {"items": [...]}} on success
-  Err(
-    ChannelError(
-      "FeishuApiClient::fetch_chat_history not yet wired to HTTP transport",
-    ),
-  )
+  let json = match http_get_json(url, headers.to_array()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match check_feishu_code(json, "fetch_chat_history") {
+    Ok(_) => Ok(json)
+    Err(e) => Err(e)
+  }
 }
 
 // ── Content builder helpers ───────────────────────────────────────────────────
@@ -401,4 +472,83 @@ fn content_type_of(content : Json) -> String {
       }
     _ => "text"
   }
+}
+
+///|
+/// Extract the stringified inner JSON ("content" field) from a content JSON
+/// built by the helpers above. Feishu API contract: the payload's content
+/// field is the inner JSON as a string, not an object.
+fn extract_content_string(content : Json) -> String {
+  match content {
+    Object(obj) =>
+      match obj.get("content") {
+        Some(String(s)) => s
+        _ => ""
+      }
+    _ => ""
+  }
+}
+
+///|
+/// Check a Feishu API response body code. Feishu v1 endpoints return HTTP 200
+/// even for business failures, so code != 0 must be surfaced as an error.
+fn check_feishu_code(
+  json : Json,
+  action : String,
+) -> Result[Unit, ChannelError] {
+  match json {
+    Object(obj) =>
+      match obj.get("code") {
+        Some(Number(n, ..)) if n.to_int() == 0 => Ok(())
+        _ =>
+          Err(
+            ChannelError(
+              "Feishu " + action + " failed: " + extract_api_error(json),
+            ),
+          )
+      }
+    _ => Err(ChannelError("Invalid Feishu " + action + " response"))
+  }
+}
+
+///|
+/// Build a multipart/form-data body with text fields and one binary file
+/// part, as expected by Feishu im/v1/images and im/v1/files endpoints.
+pub fn build_feishu_multipart_body(
+  boundary : String,
+  fields : Array[(String, String)],
+  file_field : String,
+  filename : String,
+  file_content_type : String,
+  data : Bytes,
+) -> Bytes {
+  let builder = StringBuilder()
+  for field in fields {
+    let (name, value) = field
+    builder.write_string(
+      "--\{boundary}\r\n" +
+      "Content-Disposition: form-data; name=\"\{name}\"\r\n" +
+      "\r\n" +
+      "\{value}\r\n",
+    )
+  }
+  builder.write_string(
+    "--\{boundary}\r\n" +
+    "Content-Disposition: form-data; name=\"\{file_field}\"; filename=\"\{filename}\"\r\n" +
+    "Content-Type: \{file_content_type}\r\n" +
+    "\r\n",
+  )
+  let head = builder.to_string()
+  let tail = "\r\n--\{boundary}--\r\n"
+  let out : Array[Byte] = []
+  for b in @utf8.encode(head) {
+    out.push(b)
+  }
+  for b in data {
+    out.push(b)
+  }
+  for b in @utf8.encode(tail) {
+    out.push(b)
+  }
+  Bytes::from_array(out)
 }

@@ -65,6 +65,7 @@ pub enum HttpMethod {
   Post
   Put
   Delete
+  Patch
 } derive(Debug)
 
 ///|
@@ -290,6 +291,7 @@ fn http_method_str(m : HttpMethod) -> String {
     Post => "POST"
     Put => "PUT"
     Delete => "DELETE"
+    Patch => "PATCH"
   }
 }
 
@@ -360,6 +362,7 @@ fn http_request_method(http_method : HttpMethod) -> @http.RequestMethod {
     Post => @http.Post
     Put => @http.Put
     Delete => @http.Delete
+    Patch => @http.Patch
   }
 }
 
@@ -480,6 +483,19 @@ pub async fn http_get(
   timeout_ms : Int,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Get, url, "", headers, timeout_ms)
+}
+
+///|
+/// Convenience wrapper: send an HTTP PATCH request with the given URL, body,
+/// and headers (e.g. Feishu message edit). HttpMethod is a read-only enum, so
+/// external callers construct methods through these wrappers.
+pub async fn http_patch(
+  url : String,
+  body : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponse, HttpError] {
+  send_request(Patch, url, body, headers, timeout_ms)
 }
 
 // ── Public Helpers ───────────────────────────────────────────────────────────

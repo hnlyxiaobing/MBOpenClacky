@@ -39,6 +39,8 @@ pub async fn http_get(String, Array[(String, String)], Int) -> Result[HttpRespon
 
 pub async fn http_get_bytes(String, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]
 
+pub async fn http_patch(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+
 pub async fn http_post(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
 
 pub async fn http_post_async(String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
@@ -151,6 +153,7 @@ pub enum HttpMethod {
   Post
   Put
   Delete
+  Patch
 } derive(@debug.Debug)
 pub fn HttpMethod::to_repr(Self) -> @debug.Repr
 

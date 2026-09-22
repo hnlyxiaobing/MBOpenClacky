@@ -72,6 +72,8 @@ pub fn build_feishu_card_content(String) -> Json
 
 pub fn build_feishu_message(String, String?) -> Json
 
+pub fn build_feishu_multipart_body(String, Array[(String, String)], String, String, String, Bytes) -> Bytes
+
 pub fn build_feishu_post_content(Array[Json]) -> Json
 
 pub fn build_feishu_text_content(String) -> Json
@@ -175,6 +177,8 @@ pub fn get_gateway_url(GatewayState) -> String
 pub fn handle_feishu_challenge(Json) -> String?
 
 pub async fn http_get_json(String, Array[(String, String)]) -> Result[Json, ChannelError]
+
+pub async fn http_patch_json(String, Array[(String, String)], String) -> Result[Json, ChannelError]
 
 pub async fn http_post_json(String, Array[(String, String)], String) -> Result[Json, ChannelError]
 
@@ -550,8 +554,8 @@ pub fn FeishuApiClient::new(String, String) -> Self
 pub async fn FeishuApiClient::request_token(Self) -> Result[String, ChannelError]
 pub async fn FeishuApiClient::send_message(Self, String, String, String?) -> Result[Json, ChannelError]
 pub async fn FeishuApiClient::update_message(Self, String, String) -> Result[Json, ChannelError]
-pub async fn FeishuApiClient::upload_file(Self, String, String, String) -> Result[String, ChannelError]
-pub async fn FeishuApiClient::upload_image(Self, String, String) -> Result[String, ChannelError]
+pub async fn FeishuApiClient::upload_file(Self, String, String, Bytes) -> Result[String, ChannelError]
+pub async fn FeishuApiClient::upload_image(Self, String, Bytes) -> Result[String, ChannelError]
 pub fn FeishuApiClient::with_base_url(String, String, String) -> Self
 
 pub(all) struct FeishuParsedMessage {

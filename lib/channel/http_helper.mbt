@@ -292,6 +292,25 @@ pub async fn http_get_json(
 }
 
 ///|
+/// Execute an HTTP PATCH request with JSON body and parse the JSON response.
+pub async fn http_patch_json(
+  url : String,
+  headers : Array[(String, String)],
+  body : String,
+) -> Result[Json, ChannelError] {
+  let resp = @client.http_patch(url, body, headers, CHANNEL_HTTP_TIMEOUT_MS)
+  match resp {
+    Ok(r) => {
+      if !is_success_status(r.status_code) {
+        return Err(http_status_error(r.status_code, r.body))
+      }
+      parse_json_response(r.body)
+    }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
 /// Extract `message_id` from a Feishu send-message response.
 /// Path: data.message_id
 pub fn extract_feishu_message_id(json : Json) -> String? {

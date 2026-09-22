@@ -2213,7 +2213,7 @@ async test "feishu_adapter_update_message_returns_err" {
       let result = a.update_message("chat1", "msg1", "edited")
       match result {
         Err(ChannelError(msg)) =>
-          if msg.contains("not implemented") {
+          if msg.contains("no api_client") {
             ()
           } else {
             assert_true(false)
