@@ -177,6 +177,8 @@ pub extend WeixinAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -285,6 +287,22 @@ pub impl Adapter for WeixinAdapter with fn update_message(
   _new_text : String,
 ) -> Result[Unit, ChannelError] {
   Err(ChannelError("Weixin does not support message updates"))
+}
+
+///|
+pub impl Adapter for WeixinAdapter with fn supports_message_deletion(
+  _self,
+) -> Bool {
+  false // Weixin does not support message deletion
+}
+
+///|
+pub impl Adapter for WeixinAdapter with fn delete_message(
+  _self,
+  _chat_id : String,
+  _message_id : String,
+) -> Result[Unit, ChannelError] {
+  Err(ChannelError("Weixin does not support message deletion"))
 }
 
 ///|

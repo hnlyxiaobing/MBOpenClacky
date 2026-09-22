@@ -2,8 +2,7 @@
 ///
 /// Provides methods for all major Discord REST API operations:
 /// sending/editing/deleting messages, user info, file upload/download.
-/// Since MoonBit Adapter trait methods are synchronous, HTTP calls
-/// are prepared here and dispatched via the async runtime separately.
+/// All calls go through the shared channel HTTP helpers.
 
 ///|
 /// Discord REST API client.
@@ -72,33 +71,30 @@ pub async fn DiscordApiClient::send_message(
 /// Edit an existing message in a Discord channel.
 ///
 /// PATCH /channels/{channel_id}/messages/{message_id}
-pub fn DiscordApiClient::edit_message(
+pub async fn DiscordApiClient::edit_message(
   self : DiscordApiClient,
   channel_id : String,
   message_id : String,
   content : String,
 ) -> Result[Json, ChannelError] {
-  let _url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
-  let _headers = self.auth_headers()
-  let _body = build_discord_edit_payload(content)
-  let _ = self.bot_token
-  Err(ChannelError("Discord edit_message is not implemented yet"))
+  let url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
+  let headers = self.auth_headers().to_array()
+  let body = build_discord_edit_payload(content).stringify()
+  http_patch_json(url, headers, body)
 }
 
 ///|
 /// Delete a message from a Discord channel.
 ///
 /// DELETE /channels/{channel_id}/messages/{message_id}
-pub fn DiscordApiClient::delete_message(
+/// Discord answers 204 No Content on success.
+pub async fn DiscordApiClient::delete_message(
   self : DiscordApiClient,
   channel_id : String,
   message_id : String,
-) -> Result[Json, ChannelError] {
-  let _url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
-  let _ = self.bot_token
-  let _ = channel_id
-  let _ = message_id
-  Err(ChannelError("Discord delete_message is not implemented yet"))
+) -> Result[Unit, ChannelError] {
+  let url = self.api_url("channels/" + channel_id + "/messages/" + message_id)
+  http_delete_ok(url, self.auth_headers().to_array())
 }
 
 ///|
@@ -106,54 +102,52 @@ pub fn DiscordApiClient::delete_message(
 ///
 /// GET /users/@me
 /// Returns JSON with `id`, `username`, `bot` fields.
-pub fn DiscordApiClient::get_current_user(
+pub async fn DiscordApiClient::get_current_user(
   self : DiscordApiClient,
 ) -> Result[Json, ChannelError] {
-  let _url = self.api_url("users/@me")
-  let _ = self.bot_token
-  Err(ChannelError("Discord get_current_user is not implemented yet"))
+  let url = self.api_url("users/@me")
+  http_get_json(url, self.auth_headers().to_array())
 }
 
 ///|
 /// Upload a file to a Discord channel via multipart POST.
 ///
 /// POST /channels/{channel_id}/messages (multipart/form-data)
-pub fn DiscordApiClient::upload_file(
+pub async fn DiscordApiClient::upload_file(
   self : DiscordApiClient,
   channel_id : String,
   filename : String,
-  _content : String,
+  content : String,
 ) -> Result[Json, ChannelError] {
-  let _url = self.api_url("channels/" + channel_id + "/messages")
-  let _headers = HttpHeaders::new()
+  let url = self.api_url("channels/" + channel_id + "/messages")
+  let headers = HttpHeaders::new()
     .bot_token(self.bot_token)
     .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
-    .content_type("multipart/form-data; boundary=----MBOpenClackyBoundary")
-  let _ = self.bot_token
-  let _ = _headers
-  let _ = channel_id
-  let _ = filename
-  Err(ChannelError("Discord upload_file is not implemented yet"))
+    .content_type(
+      "multipart/form-data; boundary=" + DISCORD_UPLOAD_BOUNDARY,
+    )
+    .to_array()
+  let body = build_discord_upload_body(
+    DISCORD_UPLOAD_BOUNDARY,
+    filename,
+    content,
+  )
+  http_post_json(url, headers, body)
 }
 
 ///|
 /// Download an attachment from a Discord CDN URL.
 ///
 /// GET {url}
-pub fn DiscordApiClient::download_attachment(
+pub async fn DiscordApiClient::download_attachment(
   self : DiscordApiClient,
   url : String,
 ) -> Result[String, ChannelError] {
-  let _headers = HttpHeaders::new()
+  let headers = HttpHeaders::new()
     .bot_token(self.bot_token)
     .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
-  // TODO: Execute async HTTP GET via @http:
-  //   let resp = await @http.get(url, headers.to_array())
-  //   if !is_success_status(resp.status) { return Err(http_status_error(resp.status, resp.body)) }
-  //   Ok(resp.body)
-  let _ = self.bot_token
-  let _ = url
-  Ok("")
+    .to_array()
+  http_get_text(url, headers)
 }
 
 ///|
@@ -178,4 +172,45 @@ pub fn build_discord_edit_payload(content : String) -> Json {
   let msg : Map[String, Json] = Map([])
   msg.set("content", content.to_json())
   Json::object(msg)
+}
+
+///|
+/// Boundary delimiter for Discord multipart/form-data uploads.
+pub const DISCORD_UPLOAD_BOUNDARY : String = "----MBOpenClackyBoundary"
+
+///|
+/// Build the multipart/form-data body for a file upload: a `payload_json`
+/// part, then the file part (Discord requires the attachments to be
+/// referenced from payload_json only when they need extra metadata).
+pub fn build_discord_upload_body(
+  boundary : String,
+  filename : String,
+  content : String,
+) -> String {
+  let crlf = "\r\n"
+  let delimiter = "--" + boundary
+  let payload = build_discord_send_payload("", None).stringify()
+  delimiter +
+  crlf +
+  "Content-Disposition: form-data; name=\"payload_json\"" +
+  crlf +
+  "Content-Type: application/json" +
+  crlf +
+  crlf +
+  payload +
+  crlf +
+  delimiter +
+  crlf +
+  "Content-Disposition: form-data; name=\"files[0]\"; filename=\"" +
+  filename +
+  "\"" +
+  crlf +
+  "Content-Type: application/octet-stream" +
+  crlf +
+  crlf +
+  content +
+  crlf +
+  delimiter +
+  "--" +
+  crlf
 }

@@ -174,6 +174,24 @@ async fn mock_platform_handle_conn(
     mock_http_send(conn, 200, "{\"ret\":0,\"msg_id\":\"wx_msg_1\"}")
   } else if path.contains("getupdates") {
     mock_http_send(conn, 200, "{\"ret\":0,\"item_list\":[],\"buf\":\"\"}")
+  } else if path.contains("editMessageText") {
+    mock_http_send(conn, 200, "{\"ok\":true,\"result\":{\"message_id\":7}}")
+  } else if path.contains("deleteMessage") {
+    mock_http_send(conn, 200, "{\"ok\":true,\"result\":true}")
+  } else if path.contains("users/@me") {
+    mock_http_send(
+      conn, 200, "{\"id\":\"bot-1\",\"username\":\"mbbot\",\"bot\":true}",
+    )
+  } else if http_method == "PATCH" && path.contains("/messages/") {
+    mock_http_send(conn, 200, "{\"id\":\"msg-1\",\"content\":\"edited\"}")
+  } else if http_method == "DELETE" && path.contains("/messages/") {
+    // Discord answers 204 No Content on message deletion.
+    mock_http_send(conn, 204, "")
+  } else if http_method == "POST" && path.contains("/channels/") {
+    // Discord send and multipart upload share this endpoint.
+    mock_http_send(conn, 200, "{\"id\":\"msg-9\"}")
+  } else if http_method == "GET" && path.contains("/attachments/") {
+    mock_http_send(conn, 200, "attachment-bytes")
   } else {
     mock_http_send(conn, 404, "{\"message\":\"not found\"}")
   }
@@ -473,4 +491,181 @@ async test "weixin_send_without_uin_reports_missing_client" {
     Ok(_) => assert_true(false)
     Err(ChannelError(msg)) => assert_true(msg.contains("no api_client"))
   }
+}
+
+// ── Telegram / Discord edit + delete (WP-1.6) ────────────────────────────────
+//
+// Adapters are built as struct literals so their API client can point at the
+// mock server (Telegram/Discord have no `api_base` setting).
+
+///|
+fn telegram_test_adapter(api_base : String) -> TelegramAdapter {
+  {
+    bot_token: "tok",
+    is_running: true,
+    message_callback: None,
+    last_update_id: 0,
+    api_client: TelegramApiClient::with_base_url("tok", api_base),
+  }
+}
+
+///|
+fn discord_test_adapter(api_base : String) -> DiscordAdapter {
+  {
+    bot_token: "tok",
+    application_id: None,
+    api_client: DiscordApiClient::with_base_url("tok", api_base),
+    gateway_state: None,
+    bot_user_id: None,
+    is_running: true,
+    message_callback: None,
+    ws_client: WsClient::new(),
+  }
+}
+
+///|
+/// Edited and deleted through `AnyAdapter`, which also exercises the trait
+/// dispatch added with the delete method.
+async test "telegram_edit_and_delete_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let any : AnyAdapter = AnyAdapter::Telegram(
+      telegram_test_adapter(server.base_url()),
+    )
+    match any.update_message("chat1", "msg7", "edited text") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("editMessageText"), 1)
+    let edit_body = server.first_body("editMessageText")
+    assert_true(edit_body.contains("chat1"))
+    assert_true(edit_body.contains("msg7"))
+    assert_true(edit_body.contains("edited text"))
+    match any.delete_message("chat1", "msg7") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("deleteMessage"), 1)
+    assert_true(server.first_body("deleteMessage").contains("msg7"))
+    server.shutdown()
+  })
+}
+
+///|
+async test "telegram_edit_error_surfaces" {
+  let server = MockPlatformServer::new()
+  server.fail_mode = true
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let adapter = telegram_test_adapter(server.base_url())
+    match adapter.update_message("chat1", "msg7", "edited") {
+      Ok(_) => assert_true(false)
+      Err(ChannelError(msg)) => {
+        assert_true(msg.contains("Internal Server Error"))
+        assert_false(msg.contains("not implemented"))
+      }
+    }
+    server.shutdown()
+  })
+}
+
+///|
+async test "discord_edit_and_delete_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let adapter = discord_test_adapter(server.base_url())
+    match adapter.update_message("chan1", "msg7", "edited text") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("PATCH /channels/chan1/messages/msg7"), 1)
+    assert_true(server.first_body("PATCH /channels/").contains("edited text"))
+    // DELETE answers 204 with no body: success is status-only.
+    match adapter.delete_message("chan1", "msg7") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("DELETE /channels/chan1/messages/msg7"), 1)
+    server.shutdown()
+  })
+}
+
+///|
+async test "discord_delete_error_surfaces" {
+  let server = MockPlatformServer::new()
+  server.fail_mode = true
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let adapter = discord_test_adapter(server.base_url())
+    match adapter.delete_message("chan1", "msg7") {
+      Ok(_) => assert_true(false)
+      Err(ChannelError(msg)) => {
+        assert_true(msg.contains("Internal Server Error"))
+        assert_false(msg.contains("not implemented"))
+      }
+    }
+    server.shutdown()
+  })
+}
+
+///|
+async test "discord_get_current_user_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let client = DiscordApiClient::with_base_url("tok", server.base_url())
+    match client.get_current_user() {
+      Ok(json) =>
+        match json {
+          Object(obj) =>
+            assert_eq(obj.get("id"), Some("bot-1".to_json()))
+          _ => assert_true(false)
+        }
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("GET /users/@me"), 1)
+    server.shutdown()
+  })
+}
+
+///|
+async test "discord_upload_file_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let client = DiscordApiClient::with_base_url("tok", server.base_url())
+    match client.upload_file("chan1", "report.txt", "file-content") {
+      Ok(json) =>
+        match json {
+          Object(obj) => assert_eq(obj.get("id"), Some("msg-9".to_json()))
+          _ => assert_true(false)
+        }
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("POST /channels/chan1/messages"), 1)
+    let body = server.first_body("POST /channels/chan1/messages")
+    assert_true(body.contains("payload_json"))
+    assert_true(body.contains("filename=\"report.txt\""))
+    assert_true(body.contains("file-content"))
+    server.shutdown()
+  })
+}
+
+///|
+async test "discord_download_attachment_mock_round_trip" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let client = DiscordApiClient::with_base_url("tok", server.base_url())
+    match client.download_attachment(
+      server.base_url() + "/attachments/1/report.txt",
+    ) {
+      Ok(body) => assert_eq(body, "attachment-bytes")
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.count("GET /attachments/"), 1)
+    server.shutdown()
+  })
 }

@@ -20,6 +20,8 @@ pub const DISCORD_API_BASE : String = "https://discord.com/api/v10"
 
 pub const DISCORD_GATEWAY_URL : String = "wss://gateway.discord.gg/?v=10&encoding=json"
 
+pub const DISCORD_UPLOAD_BOUNDARY : String = "----MBOpenClackyBoundary"
+
 pub const FEISHU_API_BASE : String = "https://open.feishu.cn/open-apis"
 
 pub const INTENT_DIRECT_MESSAGES : Int = 4096
@@ -69,6 +71,8 @@ pub fn build_discord_edit_payload(String) -> Json
 pub fn build_discord_message(String, String?) -> Json
 
 pub fn build_discord_send_payload(String, String?) -> Json
+
+pub fn build_discord_upload_body(String, String, String) -> String
 
 pub fn build_feishu_card_content(String) -> Json
 
@@ -182,7 +186,13 @@ pub fn get_gateway_url(GatewayState) -> String
 
 pub fn handle_feishu_challenge(Json) -> String?
 
+pub async fn http_delete_json(String, Array[(String, String)]) -> Result[Json, ChannelError]
+
+pub async fn http_delete_ok(String, Array[(String, String)]) -> Result[Unit, ChannelError]
+
 pub async fn http_get_json(String, Array[(String, String)]) -> Result[Json, ChannelError]
+
+pub async fn http_get_text(String, Array[(String, String)]) -> Result[String, ChannelError]
 
 pub async fn http_patch_json(String, Array[(String, String)], String) -> Result[Json, ChannelError]
 
@@ -336,10 +346,12 @@ pub(all) enum AnyAdapter {
   DingTalk(DingTalkAdapter)
   Weixin(WeixinAdapter)
 }
+pub async fn AnyAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn AnyAdapter::platform_id(Self) -> Platform
 pub async fn AnyAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn AnyAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn AnyAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn AnyAdapter::supports_message_deletion(Self) -> Bool
 pub fn AnyAdapter::supports_message_updates(Self) -> Bool
 pub async fn AnyAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn AnyAdapter::validate_config(Self) -> Array[String]
@@ -449,6 +461,7 @@ pub(all) struct DingTalkAdapter {
   mut session_webhooks : Map[String, (String, Int)]
   mut route_cache : Map[String, String]
 }
+pub async fn DingTalkAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn DingTalkAdapter::parse_and_cache_event(Self, Json) -> Result[ChannelEvent, ChannelError]
 pub fn DingTalkAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
@@ -456,6 +469,7 @@ pub fn DingTalkAdapter::platform_id(Self) -> Platform
 pub async fn DingTalkAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn DingTalkAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn DingTalkAdapter::supports_message_deletion(Self) -> Bool
 pub fn DingTalkAdapter::supports_message_updates(Self) -> Bool
 pub async fn DingTalkAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::validate_config(Self) -> Array[String]
@@ -500,6 +514,7 @@ pub(all) struct DiscordAdapter {
   mut message_callback : ((ChannelEvent) -> Unit)?
   ws_client : WsClient
 }
+pub async fn DiscordAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub async fn DiscordAdapter::gateway_connect_loop(Self) -> Unit
 pub async fn DiscordAdapter::handle_gateway_event(Self, String) -> Unit
 pub async fn DiscordAdapter::heartbeat_loop(Self) -> Unit
@@ -511,6 +526,7 @@ pub async fn DiscordAdapter::send_heartbeat(Self) -> Unit
 pub async fn DiscordAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn DiscordAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn DiscordAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn DiscordAdapter::supports_message_deletion(Self) -> Bool
 pub fn DiscordAdapter::supports_message_updates(Self) -> Bool
 pub async fn DiscordAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn DiscordAdapter::validate_config(Self) -> Array[String]
@@ -522,13 +538,13 @@ pub(all) struct DiscordApiClient {
 }
 pub fn DiscordApiClient::api_url(Self, String) -> String
 pub fn DiscordApiClient::auth_headers(Self) -> HttpHeaders
-pub fn DiscordApiClient::delete_message(Self, String, String) -> Result[Json, ChannelError]
-pub fn DiscordApiClient::download_attachment(Self, String) -> Result[String, ChannelError]
-pub fn DiscordApiClient::edit_message(Self, String, String, String) -> Result[Json, ChannelError]
-pub fn DiscordApiClient::get_current_user(Self) -> Result[Json, ChannelError]
+pub async fn DiscordApiClient::delete_message(Self, String, String) -> Result[Unit, ChannelError]
+pub async fn DiscordApiClient::download_attachment(Self, String) -> Result[String, ChannelError]
+pub async fn DiscordApiClient::edit_message(Self, String, String, String) -> Result[Json, ChannelError]
+pub async fn DiscordApiClient::get_current_user(Self) -> Result[Json, ChannelError]
 pub fn DiscordApiClient::new(String) -> Self
 pub async fn DiscordApiClient::send_message(Self, String, String, String?) -> Result[Json, ChannelError]
-pub fn DiscordApiClient::upload_file(Self, String, String, String) -> Result[Json, ChannelError]
+pub async fn DiscordApiClient::upload_file(Self, String, String, String) -> Result[Json, ChannelError]
 pub fn DiscordApiClient::with_base_url(String, String) -> Self
 
 pub(all) enum EventType {
@@ -550,6 +566,7 @@ pub(all) struct FeishuAdapter {
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
 }
+pub async fn FeishuAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn FeishuAdapter::handle_webhook_event(Json) -> Result[ChannelEvent?, ChannelError]
 pub fn FeishuAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn FeishuAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
@@ -557,6 +574,7 @@ pub fn FeishuAdapter::platform_id(Self) -> Platform
 pub async fn FeishuAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn FeishuAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn FeishuAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn FeishuAdapter::supports_message_deletion(Self) -> Bool
 pub fn FeishuAdapter::supports_message_updates(Self) -> Bool
 pub async fn FeishuAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn FeishuAdapter::validate_config(Self) -> Array[String]
@@ -574,6 +592,7 @@ pub fn FeishuApiClient::auth_url(Self) -> String
 pub fn FeishuApiClient::build_auth_body(Self) -> Json
 pub async fn FeishuApiClient::build_send_request(Self, String, String, String?) -> Result[(String, Array[(String, String)], String), ChannelError]
 pub async fn FeishuApiClient::build_update_request(Self, String, String) -> Result[(String, Array[(String, String)], String), ChannelError]
+pub async fn FeishuApiClient::delete_message(Self, String) -> Result[Json, ChannelError]
 pub async fn FeishuApiClient::download_resource(Self, String, String, String) -> Result[String, ChannelError]
 pub async fn FeishuApiClient::fetch_chat_history(Self, String, Int) -> Result[Json, ChannelError]
 pub async fn FeishuApiClient::get_token(Self) -> Result[String, ChannelError]
@@ -680,12 +699,14 @@ pub(all) struct TelegramAdapter {
   mut last_update_id : Int
   api_client : TelegramApiClient
 }
+pub async fn TelegramAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn TelegramAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn TelegramAdapter::platform_id(Self) -> Platform
 pub async fn TelegramAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn TelegramAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn TelegramAdapter::supports_message_deletion(Self) -> Bool
 pub fn TelegramAdapter::supports_message_updates(Self) -> Bool
 pub async fn TelegramAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::validate_config(Self) -> Array[String]
@@ -709,6 +730,7 @@ pub fn TelegramApiClient::parse_send_response(Json) -> Result[SendResult, Channe
 pub fn TelegramApiClient::parse_updates_response(Json) -> Result[Array[Json], ChannelError]
 pub fn TelegramApiClient::request_headers(Self) -> Array[(String, String)]
 pub fn TelegramApiClient::send_message_url(Self) -> String
+pub fn TelegramApiClient::with_base_url(String, String) -> Self
 
 pub(all) struct TokenCache {
   mut token : String
@@ -732,12 +754,14 @@ pub(all) struct WeComAdapter {
   ws_state : WeComWsState?
   api_client : WeComApiClient
 }
+pub async fn WeComAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn WeComAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn WeComAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn WeComAdapter::platform_id(Self) -> Platform
 pub async fn WeComAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn WeComAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn WeComAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn WeComAdapter::supports_message_deletion(Self) -> Bool
 pub fn WeComAdapter::supports_message_updates(Self) -> Bool
 pub async fn WeComAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn WeComAdapter::validate_config(Self) -> Array[String]
@@ -811,12 +835,14 @@ pub(all) struct WeixinAdapter {
   mut updates_buf : String?
   mut last_send_time : Int
 }
+pub async fn WeixinAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn WeixinAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn WeixinAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn WeixinAdapter::platform_id(Self) -> Platform
 pub async fn WeixinAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn WeixinAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn WeixinAdapter::stop(Self) -> Result[Unit, ChannelError]
+pub fn WeixinAdapter::supports_message_deletion(Self) -> Bool
 pub fn WeixinAdapter::supports_message_updates(Self) -> Bool
 pub async fn WeixinAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn WeixinAdapter::validate_config(Self) -> Array[String]
@@ -903,5 +929,7 @@ pub(open) trait Adapter {
   async fn send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
   async fn update_message(Self, String, String, String) -> Result[Unit, ChannelError]
   fn supports_message_updates(Self) -> Bool
+  async fn delete_message(Self, String, String) -> Result[Unit, ChannelError]
+  fn supports_message_deletion(Self) -> Bool
   fn validate_config(Self) -> Array[String]
 }

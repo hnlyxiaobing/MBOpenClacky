@@ -35,6 +35,8 @@ pub fn format_bedrock_tool_results(LlmResponse, Map[String, String]) -> Array[@m
 
 pub fn format_openai_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
 
+pub async fn http_delete(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+
 pub async fn http_get(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
 
 pub async fn http_get_bytes(String, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]

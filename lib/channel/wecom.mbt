@@ -74,6 +74,8 @@ pub extend WeComAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -152,6 +154,22 @@ pub impl Adapter for WeComAdapter with fn update_message(
   _new_text : String,
 ) -> Result[Unit, ChannelError] {
   Err(ChannelError("WeCom does not support message updates"))
+}
+
+///|
+pub impl Adapter for WeComAdapter with fn supports_message_deletion(
+  _self,
+) -> Bool {
+  false
+}
+
+///|
+pub impl Adapter for WeComAdapter with fn delete_message(
+  _self,
+  _chat_id : String,
+  _message_id : String,
+) -> Result[Unit, ChannelError] {
+  Err(ChannelError("WeCom does not support message deletion"))
 }
 
 ///|

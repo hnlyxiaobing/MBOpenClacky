@@ -234,6 +234,28 @@ pub async fn FeishuApiClient::update_message(
   }
 }
 
+///|
+/// Delete (recall) an existing message by message_id.
+/// DELETE /im/v1/messages/{message_id}
+pub async fn FeishuApiClient::delete_message(
+  self : FeishuApiClient,
+  message_id : String,
+) -> Result[Json, ChannelError] {
+  let headers = match self.auth_headers() {
+    Ok(h) => h
+    Err(e) => return Err(e)
+  }
+  let url = self.api_url("im/v1/messages/" + message_id)
+  let json = match http_delete_json(url, headers.to_array()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match check_feishu_code(json, "delete_message") {
+    Ok(_) => Ok(json)
+    Err(e) => Err(e)
+  }
+}
+
 // ── Resource API ──────────────────────────────────────────────────────────────
 
 ///|

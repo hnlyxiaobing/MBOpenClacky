@@ -1026,9 +1026,11 @@ test "build_telegram_edit_request" {
   let payload = build_telegram_edit_request("c1", "msg42", "new text")
   match payload {
     Object(obj) => {
+      @debug.assert_eq(obj.get("chat_id"), Some("c1".to_json()))
       @debug.assert_eq(obj.get("message_id"), Some("msg42".to_json()))
       @debug.assert_eq(obj.get("text"), Some("new text".to_json()))
-      @debug.assert_eq(obj.get("parse_mode"), Some("Markdown".to_json()))
+      // Plain text edit: no parse_mode (rich text is backlog, R3)
+      @debug.assert_eq(obj.get("parse_mode"), None)
     }
     _ => assert_true(false)
   }
@@ -2045,69 +2047,147 @@ test "is_rate_limited_codes" {
   assert_false(is_rate_limited(-1))
 }
 
-// ── False-success gate (stubfix-02) ─────────────────────────────────────────
+// ── False-success gate (stubfix-02; Discord wired in WP-1.6) ────────────────
 //
 // These tests pin the contract that channel adapters and API clients must
-// NEVER return success for unimplemented send/edit/delete operations. They
-// gate against regression to the silent-failure pattern documented in
+// NEVER return success for unimplemented or failing operations. They gate
+// against regression to the silent-failure pattern documented in
 // specs/completed/2026-08-21_stubfix-02-honest-send-errors.md.
+//
+// Since WP-1.6 the Discord REST methods are wired to real HTTP, so the gate
+// is now "unreachable endpoint surfaces a transport error" instead of "stub
+// error". A closed local port fails fast without touching the Discord API.
 
 ///|
-test "discord_api_edit_message_returns_err" {
-  let client = DiscordApiClient::new("tok")
+async test "discord_api_edit_message_returns_err" {
+  let client = DiscordApiClient::with_base_url("tok", "http://127.0.0.1:1")
   let result = client.edit_message("chan", "msg", "new text")
   match result {
-    Err(ChannelError(msg)) =>
-      if msg.contains("not implemented") {
-        ()
-      } else {
-        assert_true(false)
-      }
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
     Ok(_) => assert_true(false)
   }
 }
 
 ///|
-test "discord_api_delete_message_returns_err" {
-  let client = DiscordApiClient::new("tok")
+async test "discord_api_delete_message_returns_err" {
+  let client = DiscordApiClient::with_base_url("tok", "http://127.0.0.1:1")
   let result = client.delete_message("chan", "msg")
   match result {
-    Err(ChannelError(msg)) =>
-      if msg.contains("not implemented") {
-        ()
-      } else {
-        assert_true(false)
-      }
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
     Ok(_) => assert_true(false)
   }
 }
 
 ///|
-test "discord_api_get_current_user_returns_err" {
-  let client = DiscordApiClient::new("tok")
+async test "discord_api_get_current_user_returns_err" {
+  let client = DiscordApiClient::with_base_url("tok", "http://127.0.0.1:1")
   let result = client.get_current_user()
   match result {
-    Err(ChannelError(msg)) =>
-      if msg.contains("not implemented") {
-        ()
-      } else {
-        assert_true(false)
-      }
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
     Ok(_) => assert_true(false)
   }
 }
 
 ///|
-test "discord_api_upload_file_returns_err" {
-  let client = DiscordApiClient::new("tok")
+async test "discord_api_upload_file_returns_err" {
+  let client = DiscordApiClient::with_base_url("tok", "http://127.0.0.1:1")
   let result = client.upload_file("chan", "file.bin", "content")
   match result {
-    Err(ChannelError(msg)) =>
-      if msg.contains("not implemented") {
-        ()
-      } else {
-        assert_true(false)
-      }
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+/// download_attachment used to return Ok("") without any HTTP call; an
+/// unreachable CDN URL must now surface a transport error.
+async test "discord_api_download_attachment_returns_err" {
+  let client = DiscordApiClient::with_base_url("tok", "http://127.0.0.1:1")
+  let result = client.download_attachment(
+    "http://127.0.0.1:1/attachments/1/f.bin",
+  )
+  match result {
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
+    Ok(_) => assert_true(false)
+  }
+}
+
+// ── Delete capability declaration matches implementation (WP-1.6) ────────────
+
+///|
+test "delete_capability_flags_match_platform_support" {
+  let feishu = FeishuAdapter::new({
+    platform: Platform::Feishu,
+    enabled: true,
+    settings: { "bot_id": "id", "bot_secret": "secret" },
+  })
+  let telegram = TelegramAdapter::new({
+    platform: Platform::Telegram,
+    enabled: true,
+    settings: { "bot_token": "tok" },
+  })
+  let discord = DiscordAdapter::new({
+    platform: Platform::Discord,
+    enabled: true,
+    settings: { "bot_token": "tok" },
+  })
+  let wecom = WeComAdapter::new({
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: { "corp_id": "c", "agent_id": "a", "secret": "s" },
+  })
+  let dingtalk = DingTalkAdapter::new({
+    platform: Platform::DingTalk,
+    enabled: true,
+    settings: { "access_token": "t" },
+  })
+  let weixin = WeixinAdapter::new({
+    platform: Platform::Weixin,
+    enabled: true,
+    settings: { "token": "t" },
+  })
+  // Wired platforms declare both edit and delete support.
+  assert_true(feishu.unwrap().supports_message_deletion())
+  assert_true(telegram.unwrap().supports_message_deletion())
+  assert_true(discord.unwrap().supports_message_deletion())
+  // Unsupported platforms declare neither.
+  assert_false(wecom.unwrap().supports_message_deletion())
+  assert_false(dingtalk.unwrap().supports_message_deletion())
+  assert_false(weixin.unwrap().supports_message_deletion())
+}
+
+///|
+/// Unsupported platforms must report the platform's missing capability --
+/// not a stub marker and not a silent success.
+async test "unsupported_platforms_report_honest_delete_errors" {
+  let wecom = WeComAdapter::new({
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: { "corp_id": "c", "agent_id": "a", "secret": "s" },
+  }).unwrap()
+  let dingtalk = DingTalkAdapter::new({
+    platform: Platform::DingTalk,
+    enabled: true,
+    settings: { "access_token": "t" },
+  }).unwrap()
+  let weixin = WeixinAdapter::new({
+    platform: Platform::Weixin,
+    enabled: true,
+    settings: { "token": "t" },
+  }).unwrap()
+  let _ = wecom.start(fn(_e) { () })
+  let _ = dingtalk.start(fn(_e) { () })
+  let _ = weixin.start(fn(_e) { () })
+  match wecom.delete_message("chat", "msg") {
+    Err(ChannelError(msg)) => assert_true(msg.contains("does not support"))
+    Ok(_) => assert_true(false)
+  }
+  match dingtalk.delete_message("chat", "msg") {
+    Err(ChannelError(msg)) => assert_true(msg.contains("does not support"))
+    Ok(_) => assert_true(false)
+  }
+  match weixin.delete_message("chat", "msg") {
+    Err(ChannelError(msg)) => assert_true(msg.contains("does not support"))
     Ok(_) => assert_true(false)
   }
 }
@@ -2240,26 +2320,63 @@ async test "feishu_adapter_update_message_returns_err" {
 }
 
 ///|
-async test "telegram_adapter_update_message_returns_err" {
+/// WP-1.6: without app_id/app_secret there is no API client, so deletion must
+/// report the missing credentials rather than a successful no-op.
+async test "feishu_adapter_delete_message_without_client_returns_err" {
   let config : ChannelConfig = {
-    platform: Platform::Telegram,
+    platform: Platform::Feishu,
     enabled: true,
-    settings: { "bot_token": "123456:ABC-DEF" },
+    settings: { "bot_id": "id", "bot_secret": "secret" },
   }
-  match TelegramAdapter::new(config) {
+  match FeishuAdapter::new(config) {
     Ok(a) => {
       let _ = a.start(fn(_e) { () })
-      let result = a.update_message("chat1", "msg1", "edited")
+      let result = a.delete_message("chat1", "msg1")
       match result {
-        Err(ChannelError(msg)) =>
-          if msg.contains("not implemented") {
-            ()
-          } else {
-            assert_true(false)
-          }
+        Err(ChannelError(msg)) => assert_true(msg.contains("no api_client"))
         Ok(_) => assert_true(false)
       }
     }
     Err(_) => assert_true(false)
+  }
+}
+
+///|
+/// WP-1.6: `update_message` is now the real editMessageText call. Against a
+/// closed local port it must surface a transport error -- never the old
+/// "not implemented" stub error.
+async test "telegram_adapter_update_message_returns_err" {
+  let adapter : TelegramAdapter = {
+    bot_token: "123456:ABC-DEF",
+    is_running: true,
+    message_callback: None,
+    last_update_id: 0,
+    api_client: TelegramApiClient::with_base_url(
+      "123456:ABC-DEF",
+      "http://127.0.0.1:1",
+    ),
+  }
+  match adapter.update_message("chat1", "msg1", "edited") {
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+/// WP-1.6: `delete_message` is the real deleteMessage call; same gate.
+async test "telegram_adapter_delete_message_returns_err" {
+  let adapter : TelegramAdapter = {
+    bot_token: "123456:ABC-DEF",
+    is_running: true,
+    message_callback: None,
+    last_update_id: 0,
+    api_client: TelegramApiClient::with_base_url(
+      "123456:ABC-DEF",
+      "http://127.0.0.1:1",
+    ),
+  }
+  match adapter.delete_message("chat1", "msg1") {
+    Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
+    Ok(_) => assert_true(false)
   }
 }

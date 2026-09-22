@@ -332,10 +332,8 @@ test "telegram_build_edit_request" {
         Some(String(s)) => assert_eq(s, "Edited text")
         _ => assert_true(false)
       }
-      match obj.get("parse_mode") {
-        Some(String(s)) => assert_eq(s, "Markdown")
-        _ => assert_true(false)
-      }
+      // Plain text edit: no parse_mode (rich text is backlog, R3)
+      assert_true(obj.get("parse_mode") is None)
     }
     _ => assert_true(false)
   }

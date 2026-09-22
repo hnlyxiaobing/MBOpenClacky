@@ -24,10 +24,10 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 308 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 217 |
-| 源代码行数 | 100,092 |
-| 测试行数 | 61,247 |
-| 总行数 | 161,339 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3864 |
+| 源代码行数 | 100,391 |
+| 测试行数 | 61,590 |
+| 总行数 | 161,981 |
+| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3953 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -191,18 +191,18 @@
 
 6 个渠道的**适配器骨架**（注册、消息类型、解析器、AnyAdapter 分发）全部就位；但**实际收发 HTTP/长轮询接线**完成度不一，以真话台账（[known-gaps.md](known-gaps.md)）为准：
 
-| 渠道 | 适配器 | 发送(send) | 接收/长轮询 | 说明 |
-|------|:--:|:--:|:--:|------|
-| Telegram | ✅ | ✅ 真发送 | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；getUpdates 长轮询与 `update_message` 仍为诚实报错 stub（WP-1.6） |
-| Discord | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/get_current_user/upload 未实现（WP-1.6） |
-| 飞书 (Feishu) | ✅ | ✅ | ✅ webhook | `send/update(PATCH)/upload(multipart)/download/history` 全部经真实传输（WP-1.1）；接收走 `/api/webhooks/feishu` |
-| 企业微信 (WeCom) | ✅ | ✅ | ✅ webhook | `gettoken` 缓存 + `message/send`（WP-1.3）；WebSocket 收发未接线，接收走 `/api/webhooks/wecom` |
-| 钉钉 (DingTalk) | ✅ | ✅ | ✅ webhook | send 与 `open_stream_connection`/`download_file_url` 经真实 HTTP POST（WP-1.2）；Stream Mode WS 循环为独立工作项 |
-| 微信 (Weixin) | ✅ | ✅ | ✅ webhook | `sendmessage` + AES-128-ECB/PKCS#7（WP-1.4）；接收走 `/api/webhooks/weixin` |
+| 渠道 | 适配器 | 发送(send) | 编辑/撤回 | 接收/长轮询 | 说明 |
+|------|:--:|:--:|:--:|:--:|------|
+| Telegram | ✅ | ✅ 真发送 | ✅ | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；`update_message`（editMessageText）与 `delete_message`（deleteMessage）已接线（WP-1.6）；getUpdates 长轮询仍为诚实报错 stub |
+| Discord | ✅ | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/get_current_user/upload/download 全部经真实 REST（WP-1.6） |
+| 飞书 (Feishu) | ✅ | ✅ | ✅ | ✅ webhook | `send/update(PATCH)/upload(multipart)/download/history` 全部经真实传输（WP-1.1），撤回走 `DELETE`（WP-1.6）；接收走 `/api/webhooks/feishu` |
+| 企业微信 (WeCom) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | `gettoken` 缓存 + `message/send`（WP-1.3）；WebSocket 收发未接线，接收走 `/api/webhooks/wecom`；编辑/撤回平台不支持且如实报错 |
+| 钉钉 (DingTalk) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | send 与 `open_stream_connection`/`download_file_url` 经真实 HTTP POST（WP-1.2）；Stream Mode WS 循环为独立工作项；编辑/撤回平台不支持且如实报错 |
+| 微信 (Weixin) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | `sendmessage` + AES-128-ECB/PKCS#7（WP-1.4）；接收走 `/api/webhooks/weixin`；编辑/撤回平台不支持且如实报错 |
 
-**配置来源**：六个平台统一读写 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`）。Web 面板、`channel-manager` 技能与运行时共用该文件，面板状态即运行时投影（2026-09-22 贯通，见 `specs/active/2026-09-22_channel-config-single-source-of-truth.md`）。
+**配置来源**：六个平台统一读写 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`）。Web 面板、`channel-manager` 技能与运行时共用该文件，面板状态即运行时投影（2026-09-22 贯通，见 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`）。
 
-**差距**：send 侧六平台均已接通；剩余缺口是全平台的编辑/撤回（`update_message`/`delete_message`，WP-1.6）与 Telegram 长轮询、企微 WebSocket 收发、钉钉 Stream Mode。均为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
+**差距**：send 侧六平台均已接通，编辑/撤回在飞书/Telegram/Discord 已接线（WP-1.6）、在企微/微信/钉钉按平台能力如实声明不支持；剩余缺口是接收侧长轮询/WebSocket（Telegram `getUpdates`、企微 WebSocket 收发、钉钉 Stream Mode）。均为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
 
 ### 5.4 文档解析器
 
@@ -350,7 +350,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
 | P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 基础设施已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。**注意**：执行驱动仍是模拟（计时恒 0ms、回归报告场景名 `unknown`），真实执行属 [improvement-execution-plan.md](improvement-execution-plan.md) **WP-3.4，未开始** |
-| P2/P3 | 优化提升执行计划的剩余工作包（WP-1.6 全平台编辑/撤回、WP-3.1~3.6 卫生项） | 择机 | ❌ **7 项未开始**（17 个 WP 中 9 完成 / 1 作废 / 7 未开始）；逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
+| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ❌ **6 项未开始**（17 个 WP 中 10 完成 / 1 作废 / 6 未开始）；逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
 | P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---

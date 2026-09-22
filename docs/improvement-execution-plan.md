@@ -63,7 +63,7 @@
 | WP-1.3 | 企业微信 send 接线 | P1 | D-A=A | 1 天 | WP-1.1 | `[x]` 完成（2026-09-22） |
 | WP-1.4 | 微信 send + AES-128-ECB | P1 | D-A=A | 2–3 天 | WP-1.4a 加密原语 | `[x]` 完成（2026-09-22） |
 | WP-1.5 | 媒体生成接线（图/语音/视频） | P1 | D-B=A | 1–2 天 | — | `[x]` 完成（2026-09-21） |
-| WP-1.6 | 全平台 update/delete_message | P2 | — | 1–2 天 | WP-1.1~1.4 | `[ ]` 未开始（剩余范围见 §3.1） |
+| WP-1.6 | 全平台 update/delete_message | P2 | — | 1–2 天 | WP-1.1~1.4 | `[x]` 完成（2026-09-22） |
 | WP-1.7 | 渠道配置单一真相源贯通 | P1 | — | 1–2 天 | WP-1.1~1.4 | `[x]` 完成（2026-09-22） |
 | WP-2.1 | GEP SkillReflector 做实 | P1 | — | 2–3 天 | — | `[x]` 完成（2026-09-22） |
 | WP-2.2 | `cmd eval --live` 真模型评测接线 | P1 | — | 2–3 天 | — | `[x]` 完成（2026-09-22） |
@@ -74,45 +74,40 @@
 | WP-3.5 | Windows `lib/mcp` 测试挂死排查 | P3 | — | 1–2 天 | — | `[ ]` 未开始 |
 | WP-3.6 | TUI 绑定 wire 词表（ADR-0001 后续） | P3 | — | 2–3 天 | — | `[ ]` 未开始 |
 
-> **一句话结论**：17 个 WP 中 **9 个完成、1 个作废、7 个未开始**。已完成的是 P0 与 P1 主线（品牌 / 渠道 send / 媒体 / 渠道配置 / GEP 反思 / 真模型评测）；
-> 未开始的是 1 个 P2 渠道补齐项（WP-1.6）与全部 6 个 P3/P2 卫生项（WP-3.1~3.6）。因此 §7 的整体完成定义**尚未达成**。
+> **一句话结论**：17 个 WP 中 **10 个完成、1 个作废、6 个未开始**。已完成的是 P0 与全部 P1/P2 渠道与能力主线（品牌 / 渠道 send / 媒体 / 渠道配置 / GEP 反思 / 真模型评测 / 全平台编辑撤回）；
+> 未开始的是全部 6 个 P2/P3 卫生项（WP-3.1~3.6）。因此 §7 的整体完成定义**尚未达成**。
 > 逐项证据与剩余范围见下节 §3.1。
 
 ### 3.1 完成情况核对（逐项代码验证，2026-09-22）
 
-**已完成（9 项）**：
+**已完成（10 项）**：
 
 | WP | 核对证据 |
 |---|---|
 | WP-0.1 | `web/PATCHES.md` 的 P0-001 标题即 `resolved in WP-0.1`，并记录六文件替换与 rsync 排除；`web/UPSTREAM_SYNC.md` 不再自相矛盾（仅剩"uses its own brand assets"一处表述）。 |
 | WP-1.1~1.4 | `scripts/known_gaps.sh generate` 后飞书/钉钉/企微/微信相关命中全部消失，curated 行转 `fixed`（飞书 14 + 钉钉 6 + 企微 3 + 微信 10 行）。 |
 | WP-1.5 | `lib/media/*` 无 "requires HTTP FFI" 命中；台账 media 行全部 `fixed`。 |
+| WP-1.6 | `scripts/known_gaps.sh generate` 后 `discord_api.mbt` 5 行 + `telegram.mbt:291` 全部消失，curated 行转 `fixed`（95 → 89）；`Adapter` trait 新增 `delete_message`/`supports_message_deletion` 并由 `AnyAdapter` 分发 6 平台；飞书/Telegram/Discord 的编辑与撤回经本地 mock 真 HTTP 往返；`supports_message_*` 声明与实现一致（不支持撤回的企微/微信/钉钉如实报错）。 |
 | WP-1.7 | 渠道端点全部读写 `ChannelManager`（无 `channels_store` 双真相源）；台账「渠道配置不生效」相关行 `fixed`。 |
 | WP-2.1 | `lib/skill/reflector.mbt` 无 `placeholder` 命中；两端点为真实实现；台账 6 行 `fixed`（104 → 98）。 |
 | WP-2.2 | `grep -rn "not implemented" cmd/eval.mbt cmd/main.mbt cmd/selftest.mbt` → 0 命中；台账 3 行 `fixed`（98 → 95）；真模型实测 12/12 trial（`docs/eval/2026-09-22.md`）。 |
 | WP-0.2 | 决策门 D-A/D-B 均选 A（放行记录见 §2），"降级声明"分支**不适用**，故标 `[—]`。 |
 
-**未完成（7 项）**——以下均为本次逐项核验后的**精确剩余范围**，不是推测：
+**未完成（6 项）**——以下均为本次逐项核验后的**精确剩余范围**，不是推测：
 
-1. **WP-1.6 全平台 update/delete_message**（P2）
-   - 飞书 `update_message` **已真实接通**（WP-1.1 顺带完成，`lib/channel/feishu_api.mbt:218` 走 PATCH）。
-   - **Telegram**：`lib/channel/telegram.mbt:291` 仍 `Err("Telegram update_message is not implemented yet")`，而 `supports_message_updates` 返回 `true`（`:223`，注释称支持 `editMessageText`）→ **声明与实现不一致**，且 Telegram Bot API 确可实现。
-   - **Discord**：`lib/channel/discord_api.mbt` 四个方法仍 `not implemented yet`（`edit_message:85`、`delete_message:101`、`get_current_user:114`、`upload_file:136`）+ 一处 `TODO: Execute async HTTP GET via @http`（`:150`）。`DiscordAdapter::update_message` 因此必然报错，但 `supports_message_updates` 返回 `true`（`lib/channel/discord.mbt:57`）→ 同一处不一致。
-   - **企微 / 微信 / 钉钉**：`supports_message_updates=false` 且如实报"不支持编辑"——这是**平台能力事实**，不是缺口。
-   - **`delete_message` 不在接口里**：`lib/channel/adapter.mbt:15-32` 的 `Adapter` trait 只有 `send_text`/`update_message`/`supports_message_updates`/`validate_config`，故"撤回"部分需先扩接口（连带 `AnyAdapter` 分发与各平台实现）。
-2. **WP-3.1 旧会话 schema 只读迁移投影**（P2）：`README.md:77` 仍如实标注"对上游 openclacky 会话的**读取兼容性未经验证**（旧版本会话文件的可见性已修，schema 迁移未做）"。
-3. **WP-3.2 Web 会话 JSONL 事件流**（P2）：`SessionLogProducer` 只存在于 `cmd/inspect.mbt`（CLI 路径）；`lib/web` 无任何会话事件日志接线。
-4. **WP-3.3 MCP HTTP 传输**（P2）：`lib/mcp/http_transport.mbt` 三处 `Err("HTTP MCP transport not implemented yet")`（`:58`/`:81`/`:95`），台账 3 行 `open`。
-5. **WP-3.4 性能基准真实执行驱动**（P2）：`test/benchmark/benchmark_runner.mbt:37-44` 明写"为了简化，我们模拟执行"，`elapsed_ms` 紧随 `BenchmarkTimer::new()` 读取。**实测**（2026-09-22）`cmd benchmark --iterations 3 --warmup 1` 输出 Total/Min/Max/Avg/P50/P95/P99 **全部为 0ms**，且回归报告的场景名显示 `unknown`；`test/benchmark/README.md:52` 已如实说明该限制。
-6. **WP-3.5 Windows `lib/mcp` 测试挂死**（P3）：**本次复验仍挂死**（2026-09-22，`timeout 40 moon test --release lib/mcp`）：`mcp.whitebox_test.exe` 无输出、被计时器杀死（exit 143）。故本机全量测试仍需排除该包（Linux CI 全绿）。
-7. **WP-3.6 TUI 绑定 wire 词表**（P3）：`lib/tui/agent_hooks.mbt` 仍直接消费引擎 `HookEvent`；ADR-0001 的后续项未启动。
+1. **WP-3.1 旧会话 schema 只读迁移投影**（P2）：`README.md:77` 仍如实标注"对上游 openclacky 会话的**读取兼容性未经验证**（旧版本会话文件的可见性已修，schema 迁移未做）"。
+2. **WP-3.2 Web 会话 JSONL 事件流**（P2）：`SessionLogProducer` 只存在于 `cmd/inspect.mbt`（CLI 路径）；`lib/web` 无任何会话事件日志接线。
+3. **WP-3.3 MCP HTTP 传输**（P2）：`lib/mcp/http_transport.mbt` 三处 `Err("HTTP MCP transport not implemented yet")`（`:58`/`:81`/`:95`），台账 3 行 `open`。
+4. **WP-3.4 性能基准真实执行驱动**（P2）：`test/benchmark/benchmark_runner.mbt:37-44` 明写"为了简化，我们模拟执行"，`elapsed_ms` 紧随 `BenchmarkTimer::new()` 读取。**实测**（2026-09-22）`cmd benchmark --iterations 3 --warmup 1` 输出 Total/Min/Max/Avg/P50/P95/P99 **全部为 0ms**，且回归报告的场景名显示 `unknown`；`test/benchmark/README.md:52` 已如实说明该限制。
+5. **WP-3.5 Windows `lib/mcp` 测试挂死**（P3）：**本次复验仍挂死**（2026-09-22，`timeout 40 moon test --release lib/mcp`）：`mcp.whitebox_test.exe` 无输出、被计时器杀死（exit 143）。故本机全量测试仍需排除该包（Linux CI 全绿）。
+6. **WP-3.6 TUI 绑定 wire 词表**（P3）：`lib/tui/agent_hooks.mbt` 仍直接消费引擎 `HookEvent`；ADR-0001 的后续项未启动。
 
 ---
 
 ## 4. 里程碑
 
 - **M1 可信度速赢（1 天）** `[x]` 已完成（2026-09-21）：WP-0.1 落地（品牌资产替换 + 两份文档统一）；决策门 D-A/D-B 均放行 A，故 WP-0.2 作废。✅ 法律风险消除、文档与现实一致。
-- **M2 网络接线（1–2 周）** `[x]` 主体完成（2026-09-22）：WP-1.1→1.2/1.3/1.5 并行 →1.4 全部接线（`moonbitlang/x/crypto` 提供 AES-ECB，无需 FFI），并顺带闭环 WP-1.7 暴露的四处"配置不生效"断点。**未完成**：WP-1.6（全平台 update/delete_message）。
+- **M2 网络接线（1–2 周）** `[x]` 完成（2026-09-22）：WP-1.1→1.2/1.3/1.5 并行 →1.4 全部接线（`moonbitlang/x/crypto` 提供 AES-ECB，无需 FFI），WP-1.6 补齐全平台编辑/撤回，并顺带闭环 WP-1.7 暴露的四处"配置不生效"断点。
 - **M3 能力深度（1 周）** `[x]` 已完成（2026-09-22）：WP-2.1（GEP 反思做实 + 进化日志 + 两端点）、WP-2.2（`cmd eval --live` 真模型评测，首次真模型运行见 `docs/eval/`）。**遗留**：上游 Ruby 侧对标、任务集扩充（均已在路线图 §2.3 记为待办）。
 - **M4 卫生与契约（backlog）** `[ ]` 未开始：WP-3.1~3.6 全部未做（核对证据见 §3.1）。均已在台账登记，不构成可信度风险。
 
@@ -250,17 +245,26 @@
 - **验证**：`moon test --release lib/media lib/web`；`selftest`；台账 media 行消失。
 - **注意**：区分**生成**（本 WP）与**视频理解**（FFmpeg 抽帧 + Vision，已实现，勿动）。
 
-### WP-1.6 全平台 update/delete_message `[ ]`（P2）
+### WP-1.6 全平台 update/delete_message `[x]`（P2）
 
-> **剩余范围（2026-09-22 代码核对，非推测）**：
-> 1. **Telegram**：`lib/channel/telegram.mbt:291` 仍 `Err("Telegram update_message is not implemented yet")`，而 `supports_message_updates` 已返回 `true`（`:223`，注释称支持 `editMessageText`）→ 把该不一致消除（接线 `editMessageText`，或把 `supports_message_updates` 改为 `false`）。
-> 2. **Discord**：`lib/channel/discord_api.mbt` 四方法仍 stub（`edit_message:85`、`delete_message:101`、`get_current_user:114`、`upload_file:136`）+ 一处 `TODO`（`:150`）；`DiscordAdapter::update_message` 因此必然报错，而 `lib/channel/discord.mbt:57` 的 `supports_message_updates` 返回 `true` → 同一处不一致待消除。
-> 3. **delete_message 不在接口里**：`lib/channel/adapter.mbt:15-32` 的 `Adapter` trait 只有 `send_text`/`update_message`/`supports_message_updates`/`validate_config` → 撤回能力须先扩 trait（含 `AnyAdapter` 分发与各平台实现）。
-> 4. **非缺口**：企微/微信/钉钉 `supports_message_updates=false` 并如实报"不支持编辑"，属平台能力事实。
-> 5. 飞书 `update_message` **已由 WP-1.1 接通**（`lib/channel/feishu_api.mbt:218` 走 PATCH），本 WP 无需再动。
+> **完成（2026-09-22）**：按 D-A/D-B 的 A 路线**接线**而非降级标志，消除两处"声明与实现不一致"并补齐接口缺口。
+> ①**接口扩展**：`Adapter` trait 新增 `delete_message` + `supports_message_deletion`，`AnyAdapter` 补 extend 列表与 6 平台分发。
+> ②**Telegram**：`update_message` 接 `editMessageText`（纯文本、不带 `parse_mode`，与发送侧 R3 决策一致，同时删掉旧 builder 里写死的 `Markdown`）、新增 `delete_message` 接 `deleteMessage`；`supports_message_*` 均与实现一致。
+> ③**Discord**：`edit_message`（PATCH）/`delete_message`（DELETE，204 仅看状态）/`get_current_user`（GET /users/@me）/`upload_file`（手工 multipart）四方法接线；`download_attachment` 的 `Ok("")` **静默假成功**改为真实 GET；`start()` 里无法 await 的同步探测删除（`bot_user_id` 全仓无读取方），改由 web 的 Discord 连通性探针调用真实 `get_current_user`（该探针此前正是为绕开 stub 而手工拼 URL）。
+> ④**飞书**：新增 `delete_message`（DELETE `/im/v1/messages/{message_id}` + code 检查），`update_message` 沿用 WP-1.1 已接通的 PATCH。
+> ⑤**不支持撤回的平台**：企微/微信/钉钉补 `supports_message_deletion=false` 并如实报 "does not support message deletion"，不虚报平台能力。
+> ⑥**传输层**：`lib/client` 加 `http_delete` 包装（`HttpMethod` 对外不可构造，既有权衡）；`lib/channel` 加 `http_delete_ok`（Discord 204 无 body）/`http_delete_json`（飞书 200 + code）/`http_get_text`。
+> **DoD 验证**：台账 6 行（`discord_api.mbt:85/101/114/136/150` + `telegram.mbt:291`）消失并转 `fixed`（95 → 89 命中）；编辑/撤回在飞书/Telegram/Discord 经本地 mock 真 HTTP 往返并有失败面断言；存量 stub 闸门（4 个 discord + 1 个 telegram）改写为"未接线端口必真报错"而非删除；`moon check -d` 0 错 0 警；`moon test --release` 全量口径 **3953/3953**（channel 473 / web 498 / client 127 单包复验全绿）；`known_gaps`/`repo_stats` 闸门绿。spec 归档 `specs/completed/2026-09-22_wp-1.6-message-edit-delete-wiring.md`。
 
-- **触点**：`lib/channel/{telegram,discord,discord_api}.mbt`、`lib/channel/adapter.mbt`（如需 delete 语义）。
-- **DoD**：编辑/撤回在各已接通平台可用并有 wbtest；`supports_message_updates` 与实现一致；台账对应 `not implemented yet` 行（`discord_api.mbt:85/101/114/136/150`、`telegram.mbt` 相关行）消失。
+- **历史剩余范围（开工前核对，非推测）**：
+  1. **Telegram**：`lib/channel/telegram.mbt` 的 `update_message` 为 stub，而 `supports_message_updates` 已返回 `true` → 声明与实现不一致。
+  2. **Discord**：`lib/channel/discord_api.mbt` 四方法为 stub + 一处 `TODO`；`DiscordAdapter::update_message` 必然报错，而 `supports_message_updates` 返回 `true` → 同一处不一致。
+  3. **delete_message 不在接口里**：`Adapter` trait 只有 `send_text`/`update_message`/`supports_message_updates`/`validate_config` → 撤回能力须先扩 trait（含 `AnyAdapter` 分发与各平台实现）。
+  4. **非缺口**：企微/微信/钉钉 `supports_message_updates=false` 并如实报"不支持编辑"，属平台能力事实。
+  5. 飞书 `update_message` **已由 WP-1.1 接通**（走 PATCH），本 WP 无需重做。
+
+- **触点**：`lib/channel/{telegram,discord,discord_api,adapter,feishu,feishu_api,wecom,weixin,dingtalk}.mbt`、`lib/client/platform_http.mbt`、`lib/channel/http_helper.mbt`、`lib/web/handlers_channels.mbt`。
+- **DoD**：编辑/撤回在各已接通平台可用并有 wbtest；`supports_message_updates`/`supports_message_deletion` 与实现一致；台账对应 `not implemented yet` 行消失。
 
 ### WP-1.7 渠道配置单一真相源贯通 `[x]`（P1，WP-1.2~1.4 收尾时暴露的产品面缺口）
 
@@ -430,7 +434,7 @@
 **当前状态（2026-09-22 核对）：整体尚未达成。**
 - 条件 1 ✅ 满足（WP-0.1 已完成，`web/PATCHES.md` P0-001 `resolved`）。
 - 条件 2 ✅ 满足（D-A/D-B 均选 A 并执行接线，无悬空）。
-- 条件 3 ⚠️ **部分满足**：已完成的 9 个 WP 对应台账行均为 `fixed`、全局基线命令全绿；但 **WP-1.6 与 WP-3.1~3.6 未开始**，其台账行仍为 `open`（这是有意的如实登记，不是遗漏）。
+- 条件 3 ⚠️ **部分满足**：已完成的 10 个 WP 对应台账行均为 `fixed`、全局基线命令全绿；但 **WP-3.1~3.6 未开始**，其台账行仍为 `open`（这是有意的如实登记，不是遗漏）。
 - 条件 4 ⚠️ **部分满足**：已完成 WP 的路线图条目与 `CHANGELOG` 均已同步；未开始项的路线图状态已按本次核对标注为未完成。
 - 结论：**P0 与 P1 主线全部闭环；余下 7 个 P2/P3 工作包（1 个渠道补齐 + 6 个卫生项）按资源择机**，不影响对外承诺的可信度（均为已披露的诚实 stub/骨架）。
 

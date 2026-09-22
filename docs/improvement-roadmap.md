@@ -37,8 +37,8 @@
   - **接线**：优先补飞书（国内主力，且富文本解析已完整）与微信（需先补 `moonbitlang/x/crypto` 的 AES-128-ECB）；async HTTP 基础设施已具备（`http_helper.mbt`、`@async/http`）。
   - **降级声明**：若本期不接线，README 应把"6 平台 IM 渠道"改为"6 平台适配器（Telegram/Discord 已接通，其余接线中，见 known-gaps）"。
 
-> **状态：⚠️ 部分解决（2026-09-22 核对）。** **已做**：六平台 **send 侧**全部真接线（WP-1.1 飞书 / WP-1.2 钉钉 / WP-1.3 企微 / WP-1.4 微信 + AES-128-ECB，WP-1.7 打通配置单一真相源），媒体生成 WP-1.5 同步落地；宣传口径与代码已一致。
-> **未做**（详见执行计划 §3.1）：**编辑/撤回**（WP-1.6）——Telegram `update_message` 与 Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file` 仍为诚实报错 stub，且 `delete_message` 尚不在 `Adapter` trait 接口内；**接收侧**长轮询/WebSocket 仍待接线（Telegram `getUpdates`、企微 WebSocket、钉钉 Stream Mode）。以上均为已披露的诚实 stub，非静默假成功。
+> **状态：✅ 已解决（2026-09-22，WP-1.6 收尾）。** **已做**：六平台 **send 侧**全部真接线（WP-1.1 飞书 / WP-1.2 钉钉 / WP-1.3 企微 / WP-1.4 微信 + AES-128-ECB，WP-1.7 打通配置单一真相源），媒体生成 WP-1.5 同步落地；**编辑/撤回**由 WP-1.6 补齐——飞书 / Telegram / Discord 走真实端点（`PATCH`、`editMessageText`、`deleteMessage`、Discord `PATCH`/`DELETE`），`Adapter` trait 新增 `delete_message` 与 `supports_message_deletion` 并由 `AnyAdapter` 分发 6 平台，企微/微信/钉钉如实声明不支持撤回（平台能力事实）；两处"声明支持编辑但实现是 stub"的不一致随之消除（台账 6 行转 `fixed`，95 → 89）。宣传口径与代码一致。
+> **未做**（详见执行计划 §3.1）：**接收侧**长轮询/WebSocket 仍待接线（Telegram `getUpdates`、企微 WebSocket、钉钉 Stream Mode），为已披露的诚实 stub（台账 `open`），非静默假成功。
 
 > **补充（2026-09-22，WP-1.7）**：接线落地后暴露的产品面缺口已闭环——渠道配置此前有**四处"配了不生效"**：默认路径的字面 `~` 从未被展开（管理端因此恒加载空配置、零适配器注册）、Web 面板持有一套不落盘也不喂给运行时的内存配置、`channel-manager` 技能指示写的 `channels.yml`（YAML、平台为键）运行时从不读取、面板 Diagnostics 走 Agent 而非已做真实的 REST 探针（该探针此前无任何调用方）。现在面板 / 技能 / 运行时共用 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`），面板状态即运行时投影，`has_token` 等由真实 settings 推导且凭据明文不出响应。详见执行计划 WP-1.7 与 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`。
 
@@ -148,7 +148,7 @@
 ## 6. 建议的下一步排序
 
 1. **P0-1.1** 核实并统一品牌资产法律状态（低成本、高风险，先做）。✅ 已完成（2026-09-21，WP-0.1，见 §1.1 状态注）。
-2. ✅ **P0-1.2 / P1-2.1** 渠道与媒体生成的"接线 or 降级声明"决断已完成（2026-09-22，D-A/D-B 均选 A）：六平台 send 侧 + 媒体生成 + 渠道配置单一真相源全部接线。**剩余**：编辑/撤回（WP-1.6）与接收侧长轮询/WebSocket（见 §1.2 状态注）。
+2. ✅ **P0-1.2 / P1-2.1** 渠道与媒体生成的"接线 or 降级声明"决断已完成（2026-09-22，D-A/D-B 均选 A）：六平台 send 侧 + 媒体生成 + 渠道配置单一真相源 + **全平台编辑/撤回（WP-1.6）** 全部接线。**剩余**：接收侧长轮询/WebSocket（见 §1.2 状态注）。
 3. ✅ **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。已完成（2026-09-22，WP-2.2）：首次真模型运行 12/12 trial、97,130 token，报告入 `docs/eval/`；**上游对标与任务集扩充仍待办**。
 4. ✅ **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。已完成（2026-09-22，WP-2.1）：真实 LLM 驱动反思 + 进化日志 + 两个真实 Web 端点。
 5. ✅ 两份一次性过程文档（黑客松一页说明与 13 天改造计划）已于 2026-09-22 删除，可用内容并入本文 §7。

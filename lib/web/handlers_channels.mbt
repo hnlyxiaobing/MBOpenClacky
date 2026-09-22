@@ -482,9 +482,8 @@ async fn test_feishu_connectivity(
 }
 
 ///|
-/// Test Discord connectivity by calling GET /users/@me.
-/// Probes the endpoint directly rather than through
-/// DiscordApiClient::get_current_user, which is a registered gap (WP-1.6).
+/// Test Discord connectivity by calling GET /users/@me through the channel
+/// API client.
 async fn test_discord_connectivity(
   config : @channel.ChannelConfig,
 ) -> (String, String) {
@@ -496,12 +495,8 @@ async fn test_discord_connectivity(
         None => return ("failed", "Missing bot_token/api_key setting")
       }
   }
-  let url = "https://discord.com/api/v10/users/@me"
-  let headers = @channel.HttpHeaders::new()
-    .bot_token(bot_token)
-    .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
-    .to_array()
-  match @channel.http_get_json(url, headers) {
+  let client = @channel.DiscordApiClient::new(bot_token)
+  match client.get_current_user() {
     Ok(_) => ("success", "")
     Err(e) => ("failed", channel_error_msg(e))
   }

@@ -498,6 +498,17 @@ pub async fn http_patch(
   send_request(Patch, url, body, headers, timeout_ms)
 }
 
+///|
+/// Convenience wrapper: send an HTTP DELETE request with the given URL and
+/// headers (e.g. Discord message deletion, which answers 204 without a body).
+pub async fn http_delete(
+  url : String,
+  headers : Array[(String, String)],
+  timeout_ms : Int,
+) -> Result[HttpResponse, HttpError] {
+  send_request(Delete, url, "", headers, timeout_ms)
+}
+
 // ── Public Helpers ───────────────────────────────────────────────────────────
 
 ///|

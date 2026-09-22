@@ -25,6 +25,16 @@
 
 ## 变更记录
 
+### 2026-09-22  全平台消息编辑/撤回接线（执行计划 WP-1.6）
+
+- `[feat]` **编辑/撤回从"声明支持、实现是 stub"变为真实端点（WP-1.6）**：`Adapter` trait 新增 `delete_message` + `supports_message_deletion`，`AnyAdapter` 补 6 平台分发；飞书 / Telegram / Discord 的编辑与撤回走真实 HTTP。
+  - Telegram：`update_message` 接 `editMessageText`、`delete_message` 接 `deleteMessage`；编辑 payload 去掉写死的 `parse_mode: Markdown`（与发送侧 stubfix-06 的 R3"首版纯文本"决策一致，避免模型/用户文本里的 markdown 字符触发 400）。
+  - Discord：`edit_message`(PATCH) / `delete_message`(DELETE，204 仅看状态) / `get_current_user`(GET /users/@me) / `upload_file`(手工 multipart) 四方法接线；`download_attachment` 原为不发任何请求即返回 `Ok("")` 的**静默假成功**，改为真实 GET；`start()` 里无法 await 的同步用户探测删除（`bot_user_id` 全仓无读取方），web 的 Discord 连通性探针改走真实 `get_current_user`（此前正是为绕开 stub 而手工拼 URL）。
+  - 飞书：新增 `delete_message`（`DELETE /im/v1/messages/{message_id}` + code 检查）；企微/微信/钉钉补 `supports_message_deletion=false` 并如实报"平台不支持撤回"（不虚报能力，与编辑侧声明同构）。
+  - `lib/client` 新增 `http_delete` 包装（`HttpMethod` 为 `pub enum`、对外不可构造，沿用 post/get/patch 先例）；`lib/channel` 新增 `http_delete_ok`（Discord 204 无 body）/`http_delete_json`（飞书 200 + code）/`http_get_text`。
+  - 测试：mock TCP 基建补 Telegram/Discord/飞书路由与往返用例（编辑、撤回、取用户、multipart 上传、CDN 下载、失败面注入），其中一条经 `AnyAdapter` 走以覆盖新分发；存量 5 条"断言 stub 报错"的闸门测试改写为"未接线端口必真报错"（改指闭合本地端口，确定性且无网络依赖），保住 stubfix-02 的禁止假成功契约。
+  - 验证：`moon check -d` 312 tasks 0 错 0 警；`moon test --release` CI 同口径全量 **3953/3953**（channel 473 / web 498 / client 127 单包复验全绿）；台账 6 行（`discord_api.mbt` 5 + `telegram.mbt` 1）转 `fixed`（95 → 89）；`repo_stats.sh` 用例数 3864（文档旧值，最近一次全量实为 3940）→ 3953；spec 归档 `specs/completed/2026-09-22_wp-1.6-message-edit-delete-wiring.md`。
+
 ### 2026-09-22  执行计划/路线图状态核对：标清已完成与未完成项
 
 - `[docs]` **逐项代码核对 17 个工作包的真实状态**（不采信文档既有标记）：**9 项已完成**（WP-0.1、WP-1.1~1.5、WP-1.7、WP-2.1、WP-2.2）、**1 项作废**（WP-0.2，决策门 D-A/D-B 均选 A 故降级分支不适用）、**7 项未开始**（WP-1.6 全平台编辑/撤回、WP-3.1~3.6）。结论记录于 `docs/improvement-execution-plan.md` §3/§3.1：总览表新增状态列，并给出每项的核对证据与**精确剩余范围**。

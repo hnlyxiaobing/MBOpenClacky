@@ -34,7 +34,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **95** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **89** 条（另有 119 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -64,13 +64,7 @@
 | lib/brand/skill_manager.mbt:530 | TODO | // TODO: 标记技能为启用状态 |
 | lib/brand/skill_manager.mbt:540 | TODO | // TODO: 标记技能为禁用状态 |
 | lib/brand/skill_manager.mbt:550 | TODO | // TODO: 查询技能启用状态 |
-| lib/channel/discord_api.mbt:85 | not-implemented | Err(ChannelError("Discord edit_message is not implemented yet")) |
-| lib/channel/discord_api.mbt:101 | not-implemented | Err(ChannelError("Discord delete_message is not implemented yet")) |
-| lib/channel/discord_api.mbt:114 | not-implemented | Err(ChannelError("Discord get_current_user is not implemented yet")) |
-| lib/channel/discord_api.mbt:136 | not-implemented | Err(ChannelError("Discord upload_file is not implemented yet")) |
-| lib/channel/discord_api.mbt:150 | TODO | // TODO: Execute async HTTP GET via @http: |
-| lib/channel/telegram.mbt:234 | TODO | // TODO: Start long-polling loop via getUpdates API. |
-| lib/channel/telegram.mbt:291 | not-implemented | Err(ChannelError("Telegram update_message is not implemented yet")) |
+| lib/channel/telegram.mbt:250 | TODO | // TODO: Start long-polling loop via getUpdates API. |
 | lib/client/client.mbt:15 | stub | ///\| synchronous stubs that build requests and parse responses using |
 | lib/extension/verifier.mbt:159 | not-yet | /// Validate dependencies. MVP: just warn that automatic resolution is not yet implemented. |
 | lib/hook/shell_loader.mbt:21 | TODO,placeholder | // Parse hooks.yml (placeholder: TODO file read + TOML/YAML parse) |
@@ -191,11 +185,11 @@
 | lib/channel/dingtalk_api.mbt:382 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
 | lib/channel/dingtalk_api.mbt:408 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
 | lib/channel/dingtalk_api.mbt:424 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/discord_api.mbt:85 | open | 范围外（channel，WP-1.6） | `edit_message` 诚实报错，但 `lib/channel/discord.mbt:57` 的 `supports_message_updates` 返回 `true`——**声明与实现不一致**；同文件 `delete_message:101`/`get_current_user:114`/`upload_file:136` 亦为 stub，且 `delete_message` 不在 `Adapter` trait 内（2026-09-22 复核） |
-| lib/channel/discord_api.mbt:101 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/discord_api.mbt:114 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/discord_api.mbt:136 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/discord_api.mbt:150 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
+| lib/channel/discord_api.mbt:85 | fixed | WP-1.6 | Discord 编辑接线（2026-09-22）：`edit_message` 走 PATCH，`supports_message_updates=true` 与实现一致 |
+| lib/channel/discord_api.mbt:101 | fixed | WP-1.6 | Discord 撤回接线（2026-09-22）：`delete_message` 走 DELETE（204 仅看状态）；`Adapter` trait 新增 `delete_message`/`supports_message_deletion` 并由 `AnyAdapter` 分发 |
+| lib/channel/discord_api.mbt:114 | fixed | WP-1.6 | Discord 用户信息接线（2026-09-22）：`get_current_user` 走 GET /users/@me；web 连通性探针改走该方法（不再手工拼 URL 绕开 stub） |
+| lib/channel/discord_api.mbt:136 | fixed | WP-1.6 | Discord 上传接线（2026-09-22）：`upload_file` 走 multipart POST + `build_discord_upload_body` |
+| lib/channel/discord_api.mbt:150 | fixed | WP-1.6 | Discord 下载接线（2026-09-22）：`download_attachment` 走真实 GET；原实现不发请求即返回 `Ok("")`（静默假成功）已消除 |
 | lib/channel/feishu.mbt:76 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/feishu.mbt:153 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/feishu_api.mbt:178 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
@@ -210,8 +204,8 @@
 | lib/channel/feishu_api.mbt:305 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/feishu_api.mbt:327 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/feishu_api.mbt:331 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/telegram.mbt:234 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/telegram.mbt:291 | open | 范围外（channel，WP-1.6） | `update_message` 诚实报错，但 `supports_message_updates` 返回 `true`（`:223` 注释称支持 `editMessageText`）——**声明与实现不一致**；接线时须同时消除（2026-09-22 复核） |
+| lib/channel/telegram.mbt:250 | open | 范围外（channel） | 接收侧长轮询（getUpdates）未接线，`start()` 的 TODO 如实登记；编辑/撤回已由 WP-1.6 接线，不倒扣此行 |
+| lib/channel/telegram.mbt:291 | fixed | WP-1.6 | Telegram 编辑/撤回接线（2026-09-22）：`update_message` 走 editMessageText（纯文本不带 parse_mode，与发送侧 R3 决策一致）、`delete_message` 走 deleteMessage；`supports_message_updates=true` 与实现一致 |
 | lib/channel/wecom.mbt:93 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
 | lib/channel/wecom.mbt:123 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
 | lib/channel/wecom.mbt:141 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |

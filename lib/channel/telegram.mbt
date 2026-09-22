@@ -16,10 +16,19 @@ pub(all) struct TelegramApiClient {
 ///|
 /// Create a new TelegramApiClient with default settings.
 pub fn TelegramApiClient::new(bot_token : String) -> TelegramApiClient {
+  TelegramApiClient::with_base_url(bot_token, TELEGRAM_API_BASE)
+}
+
+///|
+/// Create a new TelegramApiClient with a custom base URL (for testing).
+pub fn TelegramApiClient::with_base_url(
+  bot_token : String,
+  base_url : String,
+) -> TelegramApiClient {
   let headers = HttpHeaders::new()
     .content_type("application/json")
     .set("Accept", "application/json")
-  { bot_token, base_url: TELEGRAM_API_BASE, http_headers: headers, }
+  { bot_token, base_url, http_headers: headers, }
 }
 
 ///|
@@ -211,6 +220,8 @@ pub extend TelegramAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -222,6 +233,11 @@ pub impl Adapter for TelegramAdapter with fn platform_id(_self) -> Platform {
 ///|
 pub impl Adapter for TelegramAdapter with fn supports_message_updates(_self) -> Bool {
   true // Telegram supports editMessageText
+}
+
+///|
+pub impl Adapter for TelegramAdapter with fn supports_message_deletion(_self) -> Bool {
+  true // Telegram supports deleteMessage
 }
 
 ///|
@@ -285,10 +301,45 @@ pub impl Adapter for TelegramAdapter with fn update_message(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  let _ = chat_id
-  let _ = message_id
-  let _ = new_text
-  Err(ChannelError("Telegram update_message is not implemented yet"))
+  let payload = build_telegram_edit_request(chat_id, message_id, new_text)
+  let json = match
+    http_post_json(
+      self.api_client.edit_message_url(),
+      self.api_client.request_headers(),
+      payload.stringify(),
+    ) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match TelegramApiClient::parse_ok_response(json) {
+    Ok(_) => Ok(())
+    Err(e) => Err(e)
+  }
+}
+
+///|
+pub impl Adapter for TelegramAdapter with fn delete_message(
+  self,
+  chat_id : String,
+  message_id : String,
+) -> Result[Unit, ChannelError] {
+  if !self.is_running {
+    return Err(ChannelError("Adapter not running"))
+  }
+  let payload = build_telegram_delete_request(chat_id, message_id)
+  let json = match
+    http_post_json(
+      self.api_client.delete_message_url(),
+      self.api_client.request_headers(),
+      payload.stringify(),
+    ) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match TelegramApiClient::parse_ok_response(json) {
+    Ok(_) => Ok(())
+    Err(e) => Err(e)
+  }
 }
 
 ///|
@@ -570,6 +621,8 @@ pub fn build_telegram_send_request(
 
 ///|
 /// Build the editMessageText request payload as JSON.
+/// Plain text (no parse_mode), same decision as sendMessage: rich-text
+/// formatting is backlog (specs/completed/2026-08-21_stubfix-06-telegram-send.md R3).
 pub fn build_telegram_edit_request(
   chat_id : String,
   message_id : String,
@@ -579,7 +632,6 @@ pub fn build_telegram_edit_request(
   msg.set("chat_id", chat_id.to_json())
   msg.set("message_id", message_id.to_json())
   msg.set("text", text.to_json())
-  msg.set("parse_mode", "Markdown".to_json())
   Json::object(msg)
 }
 

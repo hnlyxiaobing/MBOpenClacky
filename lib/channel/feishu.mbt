@@ -53,6 +53,8 @@ pub extend FeishuAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -63,6 +65,13 @@ pub impl Adapter for FeishuAdapter with fn platform_id(_self) -> Platform {
 
 ///|
 pub impl Adapter for FeishuAdapter with fn supports_message_updates(_self) -> Bool {
+  true
+}
+
+///|
+pub impl Adapter for FeishuAdapter with fn supports_message_deletion(
+  _self,
+) -> Bool {
   true
 }
 
@@ -161,6 +170,30 @@ pub impl Adapter for FeishuAdapter with fn update_message(
       Err(
         ChannelError(
           "FeishuAdapter has no api_client; cannot update without credentials",
+        ),
+      )
+  }
+}
+
+///|
+pub impl Adapter for FeishuAdapter with fn delete_message(
+  self,
+  _chat_id : String,
+  message_id : String,
+) -> Result[Unit, ChannelError] {
+  if !self.is_running {
+    return Err(ChannelError("Adapter not running"))
+  }
+  match self.api_client {
+    Some(client) =>
+      match client.delete_message(message_id) {
+        Ok(_) => Ok(())
+        Err(e) => Err(e)
+      }
+    None =>
+      Err(
+        ChannelError(
+          "FeishuAdapter has no api_client; cannot delete without credentials",
         ),
       )
   }

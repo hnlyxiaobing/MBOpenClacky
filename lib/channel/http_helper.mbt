@@ -316,6 +316,62 @@ pub async fn http_patch_json(
 }
 
 ///|
+/// Execute an HTTP DELETE request and parse the JSON response.
+pub async fn http_delete_json(
+  url : String,
+  headers : Array[(String, String)],
+) -> Result[Json, ChannelError] {
+  let resp = @client.http_delete(url, headers, CHANNEL_HTTP_TIMEOUT_MS)
+  match resp {
+    Ok(r) => {
+      if !is_success_status(r.status_code) {
+        return Err(http_status_error(r.status_code, r.body))
+      }
+      parse_json_response(r.body)
+    }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
+/// Execute an HTTP DELETE request whose success carries no JSON body
+/// (Discord answers 204 No Content). Only the status is inspected.
+pub async fn http_delete_ok(
+  url : String,
+  headers : Array[(String, String)],
+) -> Result[Unit, ChannelError] {
+  let resp = @client.http_delete(url, headers, CHANNEL_HTTP_TIMEOUT_MS)
+  match resp {
+    Ok(r) =>
+      if is_success_status(r.status_code) {
+        Ok(())
+      } else {
+        Err(http_status_error(r.status_code, r.body))
+      }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
+/// Execute an HTTP GET request and return the raw response body
+/// (e.g. downloading a Discord CDN attachment).
+pub async fn http_get_text(
+  url : String,
+  headers : Array[(String, String)],
+) -> Result[String, ChannelError] {
+  let resp = @client.http_get(url, headers, CHANNEL_HTTP_TIMEOUT_MS)
+  match resp {
+    Ok(r) =>
+      if is_success_status(r.status_code) {
+        Ok(r.body)
+      } else {
+        Err(http_status_error(r.status_code, r.body))
+      }
+    Err(e) => Err(ChannelError("HTTP error: \{@debug.to_string(e)}"))
+  }
+}
+
+///|
 /// Extract `message_id` from a Feishu send-message response.
 /// Path: data.message_id
 pub fn extract_feishu_message_id(json : Json) -> String? {

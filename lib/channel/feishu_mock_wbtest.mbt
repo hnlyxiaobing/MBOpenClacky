@@ -108,6 +108,8 @@ async fn mock_feishu_handle_conn(
     )
   } else if http_method == "PATCH" && path.contains("im/v1/messages/") {
     mock_http_send(conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{}}")
+  } else if http_method == "DELETE" && path.contains("im/v1/messages/") {
+    mock_http_send(conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{}}")
   } else if http_method == "POST" && path.contains("im/v1/images") {
     mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{\"image_key\":\"img_v2_mock\"}}",
@@ -360,6 +362,11 @@ async test "feishu_api_mock_round_trip_all_methods" {
       Ok(_) => ()
       Err(_) => assert_true(false)
     }
+    // delete_message (recall)
+    match client.delete_message("om_mock123") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
     // upload_image
     let img : Bytes = Bytes::from_array([b'\x89', b'P', b'N', b'G'])
     match client.upload_image("message", img) {
@@ -404,8 +411,8 @@ async test "feishu_api_mock_round_trip_all_methods" {
     }
     server.shutdown()
   })
-  // auth + 6 API calls
-  assert_true(server.requests.length() >= 7)
+  // auth + 7 API calls
+  assert_true(server.requests.length() >= 8)
 }
 
 ///|
@@ -420,6 +427,32 @@ async test "feishu_api_mock_business_error_surfaces" {
       Ok(_) => assert_true(false)
       Err(ChannelError(msg)) => assert_true(msg.contains("token expired"))
     }
+    server.shutdown()
+  })
+}
+
+///|
+/// WP-1.6: the adapter's recall path reaches the mock over a real socket.
+async test "feishu_adapter_delete_message_mock_round_trip" {
+  let server = MockFeishuServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let base = "http://127.0.0.1:\{server.port()}"
+    let adapter : FeishuAdapter = {
+      bot_id: "id",
+      bot_secret: "secret",
+      webhook_url: None,
+      api_client: Some(FeishuApiClient::with_base_url("app", "secret", base)),
+      is_running: true,
+      message_callback: None,
+    }
+    match adapter.delete_message("oc_chat", "om_delete_1") {
+      Ok(_) => ()
+      Err(_) => assert_true(false)
+    }
+    assert_eq(server.requests.length(), 2) // auth + delete
+    let (delete_line, _) = server.requests[1]
+    assert_true(delete_line.contains("DELETE /im/v1/messages/om_delete_1"))
     server.shutdown()
   })
 }

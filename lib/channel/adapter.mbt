@@ -29,6 +29,13 @@ pub(open) trait Adapter {
   ///| Whether this platform supports message updates.
   fn supports_message_updates(Self) -> Bool
 
+  ///| Delete (recall) an existing message.
+  /// params: chat_id, message_id
+  async fn delete_message(Self, String, String) -> Result[Unit, ChannelError]
+
+  ///| Whether this platform supports message deletion (recall).
+  fn supports_message_deletion(Self) -> Bool
+
   ///| Validate platform-specific configuration.
   /// returns: array of error messages (empty = valid)
   fn validate_config(Self) -> Array[String]
@@ -55,6 +62,8 @@ pub extend AnyAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -140,6 +149,36 @@ pub impl Adapter for AnyAdapter with fn supports_message_updates(self) -> Bool {
     Discord(a) => a.supports_message_updates()
     DingTalk(a) => a.supports_message_updates()
     Weixin(a) => a.supports_message_updates()
+  }
+}
+
+///|
+pub impl Adapter for AnyAdapter with fn delete_message(
+  self,
+  chat_id : String,
+  message_id : String,
+) -> Result[Unit, ChannelError] {
+  match self {
+    Feishu(a) => a.delete_message(chat_id, message_id)
+    WeCom(a) => a.delete_message(chat_id, message_id)
+    Telegram(a) => a.delete_message(chat_id, message_id)
+    Discord(a) => a.delete_message(chat_id, message_id)
+    DingTalk(a) => a.delete_message(chat_id, message_id)
+    Weixin(a) => a.delete_message(chat_id, message_id)
+  }
+}
+
+///|
+pub impl Adapter for AnyAdapter with fn supports_message_deletion(
+  self,
+) -> Bool {
+  match self {
+    Feishu(a) => a.supports_message_deletion()
+    WeCom(a) => a.supports_message_deletion()
+    Telegram(a) => a.supports_message_deletion()
+    Discord(a) => a.supports_message_deletion()
+    DingTalk(a) => a.supports_message_deletion()
+    Weixin(a) => a.supports_message_deletion()
   }
 }
 

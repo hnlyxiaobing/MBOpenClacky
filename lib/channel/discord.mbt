@@ -45,6 +45,8 @@ pub extend DiscordAdapter with Adapter::{
   send_text,
   update_message,
   supports_message_updates,
+  delete_message,
+  supports_message_deletion,
   validate_config,
 }
 
@@ -59,6 +61,11 @@ pub impl Adapter for DiscordAdapter with fn supports_message_updates(_self) -> B
 }
 
 ///|
+pub impl Adapter for DiscordAdapter with fn supports_message_deletion(_self) -> Bool {
+  true // Discord supports DELETE /channels/{id}/messages/{id}
+}
+
+///|
 pub impl Adapter for DiscordAdapter with fn start(
   self,
   handler : (ChannelEvent) -> Unit,
@@ -66,28 +73,11 @@ pub impl Adapter for DiscordAdapter with fn start(
   self.message_callback = Some(handler)
   self.is_running = true
 
-  // Step 1: Fetch bot user info via REST API
-  let user_json = match self.api_client.get_current_user() {
-    Ok(v) => v
-    Err(_) => {
-      let empty : Map[String, Json] = Map([])
-      Json::object(empty)
-    }
-  }
-  match user_json {
-    Object(obj) =>
-      match obj.get("id") {
-        Some(String(id)) => self.bot_user_id = Some(id)
-        _ => ()
-      }
-    _ => ()
-  }
-
-  // Step 2: Initialize Gateway state
+  // Initialize Gateway state
   let state = GatewayState::new(self.bot_token)
   self.gateway_state = Some(state)
 
-  // Step 3: Gateway connection is handled by run_gateway_loop (async).
+  // Gateway connection is handled by run_gateway_loop (async).
   // The caller (server/channel manager) should spawn run_gateway_loop
   // as an async task after calling start.
   Ok(())
@@ -143,6 +133,18 @@ pub impl Adapter for DiscordAdapter with fn update_message(
     Err(e) => return Err(e)
   }
   Ok(())
+}
+
+///|
+pub impl Adapter for DiscordAdapter with fn delete_message(
+  self,
+  chat_id : String,
+  message_id : String,
+) -> Result[Unit, ChannelError] {
+  if !self.is_running {
+    return Err(ChannelError("Adapter not running"))
+  }
+  self.api_client.delete_message(chat_id, message_id)
 }
 
 ///|
