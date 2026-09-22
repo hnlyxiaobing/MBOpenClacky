@@ -37,6 +37,9 @@
   - **接线**：优先补飞书（国内主力，且富文本解析已完整）与微信（需先补 `moonbitlang/x/crypto` 的 AES-128-ECB）；async HTTP 基础设施已具备（`http_helper.mbt`、`@async/http`）。
   - **降级声明**：若本期不接线，README 应把"6 平台 IM 渠道"改为"6 平台适配器（Telegram/Discord 已接通，其余接线中，见 known-gaps）"。
 
+> **状态：⚠️ 部分解决（2026-09-22 核对）。** **已做**：六平台 **send 侧**全部真接线（WP-1.1 飞书 / WP-1.2 钉钉 / WP-1.3 企微 / WP-1.4 微信 + AES-128-ECB，WP-1.7 打通配置单一真相源），媒体生成 WP-1.5 同步落地；宣传口径与代码已一致。
+> **未做**（详见执行计划 §3.1）：**编辑/撤回**（WP-1.6）——Telegram `update_message` 与 Discord `edit_message`/`delete_message`/`get_current_user`/`upload_file` 仍为诚实报错 stub，且 `delete_message` 尚不在 `Adapter` trait 接口内；**接收侧**长轮询/WebSocket 仍待接线（Telegram `getUpdates`、企微 WebSocket、钉钉 Stream Mode）。以上均为已披露的诚实 stub，非静默假成功。
+
 > **补充（2026-09-22，WP-1.7）**：接线落地后暴露的产品面缺口已闭环——渠道配置此前有**四处"配了不生效"**：默认路径的字面 `~` 从未被展开（管理端因此恒加载空配置、零适配器注册）、Web 面板持有一套不落盘也不喂给运行时的内存配置、`channel-manager` 技能指示写的 `channels.yml`（YAML、平台为键）运行时从不读取、面板 Diagnostics 走 Agent 而非已做真实的 REST 探针（该探针此前无任何调用方）。现在面板 / 技能 / 运行时共用 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`），面板状态即运行时投影，`has_token` 等由真实 settings 推导且凭据明文不出响应。详见执行计划 WP-1.7 与 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`。
 
 ---
@@ -95,23 +98,23 @@
 
 ## 3. P2 — 契约与可观测性深化
 
-| 项 | 证据 | 落差 | 建议动作 |
-|---|---|---|---|
-| Web 会话不产 JSONL 事件流 | `attach_session_log` 只接 CLI（`--message` + TUI，T5 后对称）；Web 会话仍整份 JSON CRUD | CLI/TUI 可离线回放，Web 不可；决策 D3 明确划为范围外 | 若要三端观测一致，需在广播层加持久化旁路；否则维持 D3，保持 README 措辞精确即可 |
-| 旧会话 schema 迁移 | `~/.mbopenclacky/sessions/*.json` 只读导入，`--list` 已报未列出数、`cmd inspect` 逐文件报因；schema 迁移未做 | 对上游 openclacky 旧会话的读取兼容性"未经验证" | 补一个只读迁移投影（旧 `tool_calls` schema → 新事件），并加兼容测试；README 已诚实标注，非紧急 |
-| MCP HTTP 传输 | `lib/mcp/http_transport.mbt` 三处 `Err("... not implemented")`；Stdio + JSON-RPC 完整 | README 已诚实标注（P0-2 修正过），仅 Stdio 可用 | 按需接线；因已诚实披露，可信度无损，优先级低于渠道/媒体 |
-| 性能基准驱动为骨架 | `BenchmarkRunner::run_scenario` 空循环计时，`tool`/`parameters` 不真执行（`test/benchmark/README.md`） | 层 7 可做回归对比，但不能作为真实性能闸门 | 先出 `specs/draft/` 规格再实装真实执行路径；不进 CI（计时噪声） |
+| 项 | 证据（核对于 2026-09-22） | 落差 | 建议动作 | 状态 |
+|---|---|---|---|---|
+| Web 会话不产 JSONL 事件流 | `SessionLogProducer` 只在 `cmd/inspect.mbt`（CLI 路径）；`lib/web` 无任何接线 | CLI/TUI 可离线回放，Web 不可；决策 D3 明确划为范围外 | 若要三端观测一致，需在广播层加持久化旁路；否则维持 D3，保持 README 措辞精确即可 | `[ ]` 未开始（WP-3.2） |
+| 旧会话 schema 迁移 | `~/.mbopenclacky/sessions/*.json` 只读导入，`--list` 已报未列出数、`cmd inspect` 逐文件报因；schema 迁移未做 | 对上游 openclacky 旧会话的读取兼容性"未经验证"（`README.md:77` 如实标注） | 补一个只读迁移投影（旧 `tool_calls` schema → 新事件），并加兼容测试；README 已诚实标注，非紧急 | `[ ]` 未开始（WP-3.1） |
+| MCP HTTP 传输 | `lib/mcp/http_transport.mbt` 三处 `Err("HTTP MCP transport not implemented yet")`（`:58/81/95`）；Stdio + JSON-RPC 完整 | README 已诚实标注（P0-2 修正过），仅 Stdio 可用 | 按需接线；因已诚实披露，可信度无损，优先级低于渠道/媒体 | `[ ]` 未开始（WP-3.3） |
+| 性能基准驱动为骨架 | `BenchmarkRunner::run_scenario` 的 `run_single_iteration` 明写"模拟执行"，`elapsed_ms` 紧随计时器创建读取；实测 `cmd benchmark --iterations 3 --warmup 1` 输出**全部 0ms**、回归报告场景名为 `unknown`（`test/benchmark/README.md:52` 已如实说明） | 层 7 可做回归对比，但不能作为真实性能闸门 | 先出 `specs/draft/` 规格再实装真实执行路径；不进 CI（计时噪声） | `[ ]` 未开始（WP-3.4） |
 
 ---
 
 ## 4. P3 — 技术债与平台卫生（可择机）
 
-- **TUI 未绑定 wire 词表**：TUI 直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息），Web/CLI 已走类型化 `lib/protocol`。ADR-0001（`specs/decisions/2026-09-21_01_*`）已记录取舍与后续项。HookEvent 穷尽匹配保证新增引擎事件即编译失败，风险可控。**动作**：维持现状，除非要三端完全统一协议面。
-- **品牌服务端集成**：license 激活/心跳/技能商店全为 HTTP stub（`lib/brand/{license,skill_manager}.mbt`）。**动作**：仅当商业化（白标授权服务）成为目标时接线；否则属有意范围外。
-- **遥测占位**：HTTP POST / 容器检测 / SHA256 为占位（`lib/telemetry/telemetry.mbt`）。fire-and-forget、匿名，影响低。**动作**：低优先。
-- **Windows 本机全量测试阻塞**：`lib/mcp` stdio 测试在 Windows 本机挂死（疑似 async 管道/事件循环死锁），是本机全量测试唯一阻塞点（其余包排除它即全绿）；Linux CI 全绿。**动作**：专项排查 async spawn/pipe 在 Windows 的死锁；开发主环境为 WSL/Linux，非紧急。
-- **debug 模式测试 ICE**：moonc ≥ v0.10.11 链接测试二进制报 `unit runtime pccall...`（上游编译器 bug，mbtpdf pdfpage 触发）。已统一用 `--release`。**动作**：跟踪上游修复后复测，不在本仓纠缠。
-- **wasm-gc 目标**：`tty`/`crescent` 的 native FFI 使其不可用；native 为唯一验收目标。**动作**：维持，如实标注。
+- **TUI 未绑定 wire 词表** `[ ]` 未开始（WP-3.6）：TUI 直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息），Web/CLI 已走类型化 `lib/protocol`。ADR-0001（`specs/decisions/2026-09-21_01_*`）已记录取舍与后续项。HookEvent 穷尽匹配保证新增引擎事件即编译失败，风险可控。**动作**：维持现状，除非要三端完全统一协议面。
+- **品牌服务端集成** `[ ]` 有意范围外（无商业化目标前不做）：license 激活/心跳/技能商店全为 HTTP stub（`lib/brand/{license,skill_manager}.mbt`）。**动作**：仅当商业化（白标授权服务）成为目标时接线；否则属有意范围外。
+- **遥测占位** `[ ]` 低优先：HTTP POST / 容器检测 / SHA256 为占位（`lib/telemetry/telemetry.mbt`）。fire-and-forget、匿名，影响低。**动作**：低优先。
+- **Windows 本机全量测试阻塞** `[ ]` 未开始（WP-3.5，**2026-09-22 复验仍挂死**：40s 上限下 `mcp.whitebox_test.exe` 无输出被杀死，exit 143）：`lib/mcp` stdio 测试在 Windows 本机挂死（疑似 async 管道/事件循环死锁），是本机全量测试唯一阻塞点（其余包排除它即全绿）；Linux CI 全绿。**动作**：专项排查 async spawn/pipe 在 Windows 的死锁；开发主环境为 WSL/Linux，非紧急。
+- **debug 模式测试 ICE** `[ ]` 待上游修复（本地已统一 `--release` 规避）：moonc ≥ v0.10.11 链接测试二进制报 `unit runtime pccall...`（上游编译器 bug，mbtpdf pdfpage 触发）。已统一用 `--release`。**动作**：跟踪上游修复后复测，不在本仓纠缠。
+- **wasm-gc 目标** `[ ]` 有意范围外（native 为唯一验收目标）：`tty`/`crescent` 的 native FFI 使其不可用；native 为唯一验收目标。**动作**：维持，如实标注。
 
 ---
 
@@ -137,7 +140,7 @@
 
 **遗留的文档一致性小项**（低优先，供后续顺手处理）：
 
-- 上游版本引用不一致：`web/UPSTREAM_SYNC.md` 记 Web 前端基线 v1.5.0，`docs/tui-architecture.md` 记对齐 ui2 v1.5.4。无法在无 Ruby 源的情况下判定，未擅改；建议核对本地 openclacky 检出的真实版本后统一。
+- 上游版本引用不一致：`web/UPSTREAM_SYNC.md` 记 Web 前端基线 v1.5.0，`docs/tui-architecture.md` 记对齐 ui2 v1.5.4。本工作区无 `.repos/`（上游 Ruby 检出不存在），故**仍无法核对**，未擅改；建议拿到上游检出后统一。
 - 品牌资产矛盾（见 §1.1）属法律项，已单列为 P0。
 
 ---
@@ -145,9 +148,9 @@
 ## 6. 建议的下一步排序
 
 1. **P0-1.1** 核实并统一品牌资产法律状态（低成本、高风险，先做）。✅ 已完成（2026-09-21，WP-0.1，见 §1.1 状态注）。
-2. **P0-1.2 / P1-2.1** 对渠道与媒体生成做一次"接线 or 降级声明"的决断——二者同源（async HTTP），可一并规划；不决断则维持"宣传 > 现实"的可信度损耗。
+2. ✅ **P0-1.2 / P1-2.1** 渠道与媒体生成的"接线 or 降级声明"决断已完成（2026-09-22，D-A/D-B 均选 A）：六平台 send 侧 + 媒体生成 + 渠道配置单一真相源全部接线。**剩余**：编辑/撤回（WP-1.6）与接收侧长轮询/WebSocket（见 §1.2 状态注）。
 3. ✅ **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。已完成（2026-09-22，WP-2.2）：首次真模型运行 12/12 trial、97,130 token，报告入 `docs/eval/`；**上游对标与任务集扩充仍待办**。
-4. **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。
+4. ✅ **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。已完成（2026-09-22，WP-2.1）：真实 LLM 驱动反思 + 进化日志 + 两个真实 Web 端点。
 5. ✅ 两份一次性过程文档（黑客松一页说明与 13 天改造计划）已于 2026-09-22 删除，可用内容并入本文 §7。
 6. P2/P3 按资源择机；均已在 `known-gaps.md` 如实登记，不构成可信度风险。
 

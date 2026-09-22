@@ -25,6 +25,16 @@
 
 ## 变更记录
 
+### 2026-09-22  执行计划/路线图状态核对：标清已完成与未完成项
+
+- `[docs]` **逐项代码核对 17 个工作包的真实状态**（不采信文档既有标记）：**9 项已完成**（WP-0.1、WP-1.1~1.5、WP-1.7、WP-2.1、WP-2.2）、**1 项作废**（WP-0.2，决策门 D-A/D-B 均选 A 故降级分支不适用）、**7 项未开始**（WP-1.6 全平台编辑/撤回、WP-3.1~3.6）。结论记录于 `docs/improvement-execution-plan.md` §3/§3.1：总览表新增状态列，并给出每项的核对证据与**精确剩余范围**。
+- `[docs]` **补正三处失真**：①WP-3.4 原写"空循环计时"，实测 `cmd benchmark --iterations 3 --warmup 1` 全部 **0ms** 且回归报告场景名为 `unknown`（`run_single_iteration` 明写"模拟执行"）；②WP-1.6 的剩余范围精确化——Telegram 与 Discord 的 `update_message`/`edit_message` 仍诚实报错但 `supports_message_updates` 返回 `true`（**声明与实现不一致**），且 `delete_message` 尚不在 `Adapter` trait 接口内（飞书已由 WP-1.1 接通，企微/微信/钉钉为平台不支持的事实）；③WP-3.5 **本次复验仍挂死**（`timeout 40 moon test --release lib/mcp` → `mcp.whitebox_test.exe` 无输出被杀死，exit 143），本机全量测试仍按台账口径排除该包。
+- `[docs]` **路线图按状态补齐标记**：§1.2 渠道补"⚠️ 部分解决"状态注（send 侧全通、编辑/撤回与接收侧待办）；§3 P2 表新增状态列；§4 P3 各项加 `[ ]` 标记与原因；§6 下一步排序的 2/4 两项标 ✅ 并注明剩余；§5 的"上游版本引用不一致"注明本工作区无 `.repos/`（仍无法核对）。
+- `[docs]` **`project-status.md` §7 建议优先级同步**：Benchmark 行注明"基础设施已完成、执行驱动仍为模拟（WP-3.4 未开始）"，并新增"剩余 7 个工作包未开始"一行指向执行计划 §3.1。
+- `[docs]` **`known-gaps.md` 台账补证**：`telegram.mbt:291` 与 `discord_api.mbt:85` 两行标注"声明与实现不一致"的具体位置与 WP 归属；Windows `lib/mcp` 挂死行补 2026-09-22 复验证据（仍挂死）。
+
+> 验证：`scripts/known_gaps.sh check` 绿（95 命中 / 162 curated）、`scripts/repo_stats.sh check` 绿、`git diff --check` 干净。本次为纯文档/台账变更，未改代码，故未重跑测试套件（上一提交的 3940/3940 仍适用）。
+
 ### 2026-09-22  `cmd eval --live` 真模型能力评测接线（WP-2.2）
 
 - `[feat]` **真模型能力评测从"规程已定、无任务集无运行器"变为一条命令跑通**：新增 `test/eval/live_harness.mbt`（批次驱动 + 真 ReAct 运行器工厂）与 `test/capability/tasks/` 4 条任务（派生自已验证的 e2e 剧本 001/003/004/014），入口 `cmd eval --live`。

@@ -349,7 +349,8 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
-| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 已完成（`test/benchmark/`） |
+| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 基础设施已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。**注意**：执行驱动仍是模拟（计时恒 0ms、回归报告场景名 `unknown`），真实执行属 [improvement-execution-plan.md](improvement-execution-plan.md) **WP-3.4，未开始** |
+| P2/P3 | 优化提升执行计划的剩余工作包（WP-1.6 全平台编辑/撤回、WP-3.1~3.6 卫生项） | 择机 | ❌ **7 项未开始**（17 个 WP 中 9 完成 / 1 作废 / 7 未开始）；逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
 | P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---
