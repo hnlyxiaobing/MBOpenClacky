@@ -21,10 +21,11 @@
 | CI 自 2026-08-28 起为红 | **2026-09-21 已定位并修复。** 失败步骤是 `Run tests`：裸 `moon test --release` 按 `moon.work` 的工作区成员 `[".", "vendor/mbtpdf"]` **同时运行被 vendored 的依赖自身的内部测试**，而该测试驱动在当前工具链上 ICE（`Sys_error(".../core/_build/native/release/bundle/prelude/prelude.mi: No such file or directory")`）。其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针**全部 success**（步骤级证据取自公开 API） | **fixed（已复验）**：CI 的测试步骤改为只跑本模块自身的包（`lib cmd test`；`lib/mcp` 单列一步供 Linux 跑），与 `scripts/repo_stats.sh` 公布的用例数同口径；依赖的**库**代码仍被构建并由 `lib/parser` 的测试覆盖，只是不再运行其自带单测。定位手段：公开 API 的步骤级结论 + WSL 复现（`moon check` 绿、裸 `moon test --release` ICE、限定包列表跑完 3818/3818）。**复验**：commit `020ec26` 的 CI run `35565534593` 全部步骤 success，为 2026-08-28 以来首次绿 |
 | Docker 工作流失败（`Build Docker image`） | **2026-09-21 已定位并修复。** 根因是产物路径写错，且**在 Dockerfile 中出现两处**：① 构建阶段的 `test -f /build/_build/native/release/build/cmd/cmd.exe` 断言；② 运行阶段的 `COPY --from=builder /build/_build/native/release/build/cmd/cmd.exe`。moon 的产物路径含模块命名空间，实际为 `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd`，两处**恒不成立**——`moon build` 本身成功，失败来自这两处引用。buildx 报文即指向 ②：`failed to compute cache key ... "\/build\/_build\/native\/release\/build\/cmd\/cmd.exe": not found`（**经 job 页面读到的真实报错**） | **fixed**：构建阶段把产物规范化为稳定路径 `/build/out/mbopenclacky`（`cmd`/`cmd.exe` 两种后缀在本地判别），运行阶段改为 `COPY --from=builder /build/out/mbopenclacky`；注释写明路径规则。**复验为绿**：commit `7770730` 的 `Docker` 工作流（run `35566838562`）全部步骤 success，含 `Build Docker image` 与 `Verify image`（后者 `docker run --rm mbopenclacky:latest --version` 实际执行了镜像内二进制）。本机无 Docker，本地无法复现；判据取自工作流步骤级结果 |
 | wasm-gc 目标 | `moon test --target wasm-gc` 因 tty/crescent 的 native FFI 失败 | 本期以 native 为唯一验收目标；wasm 仅 `moon check`（非阻塞） |
-| 真模型评测波动 | mock LLM 测试无法回答"真模型能否干活" | **已接线一半**（2026-09 收尾）：`cmd eval --offline` 用确定性 tool_harness 给"工具层能否端到端干活"一个可复现判据（3 任务 × 2 次重复，评分向量进 CI）。**真模型路径未实现**：`cmd eval --live` 无 key/未接线时诚实打印说明并 exit 1（决策 D1 回退方案），本环境从未执行过真模型评测 |
+| 真模型评测波动 | mock LLM 测试无法回答"真模型能否干活" | **已接线（2026-09-22，WP-2.2）**：`cmd eval --offline` 给工具层一个可复现判据（3 任务 × 2 次重复，进 CI）；`cmd eval --live` 用真实 ReAct 循环跑 `test/capability/tasks/`（4 任务 × 3 次重复）并产出评分向量 + 报告（`docs/eval/<date>.md`，不进 CI）。**首次真模型运行（deepseek-flash @ api.deepseek.com）**：12/12 trial 全通过、33/33 断言、可重复性 1.0、0 基础设施失败、97,130 token；本次**如实说明**：任务集小且偏基础，全通过只说明链路与模型可用，不构成"模型强"的证据（成本列因该模型无定价条目记为 0，token 用量为真实成本代理） |
 | 旧会话文件兼容性 | 参考机器 `~/.mbopenclacky/sessions/` 有 32 个 `.json`，`--list` 仅列出 1 个（`list_sessions` 静默跳过解析失败/软删除的文件）；原因包括旧 `tool_calls` schema 不匹配与文件根本不是 JSON | 已修（可见性）：`--list` 现在打印未列出文件数，`cmd inspect <file>` 逐文件报告具体原因（P1-2）。旧文件只读保留，不做就地改写；schema 迁移本身仍待办 |
 | P1-1 协议接入面（TUI） | `lib/protocol` 已接入 Web（`ws_frame` + 全部事件构造）与 CLI（`--ndjson` 事件流 + `cmd inspect` 渲染），TUI 仍直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息：tool args 原始字符串、MessageAdded/AfterIteration 区分） | 计划风险表预案"先抽协议 + 保留适配层，不做大爆炸式替换"；TUI 的 HookEvent 匹配仍是穷尽的（新增引擎事件即编译失败）。如需 TUI 也绑定 wire 词表，见 `specs/decisions/` ADR-0001 的后续项 |
-| P2 能力评测分层 | `test/eval/eval_engine.mbt` 是通用场景引擎；确定性 `tool_harness` 与真模型 `cmd eval 5×3` 的落地状态 | **部分 fixed**（2026-09 收尾）：`test/eval/tool_harness.mbt`（工具白名单 + 沙箱 + 断言原语 + 评分 JSON）与 `cmd eval --offline` 已上线并纳入 CI；任务集为 3 任务 × 2 重复（`test/eval/tasks/*.json`，可扩展）。**仍 open**：真模型 `--live` 未接线（见上一行） |
+| P2 能力评测分层 | `test/eval/eval_engine.mbt` 是通用场景引擎；确定性 `tool_harness` 与真模型 `cmd eval 5×3` 的落地状态 | **两层均已落地（2026-09-22，WP-2.2）**：确定性层 `test/eval/tool_harness.mbt` + `cmd eval --offline`（3 任务 × 2 重复，进 CI）；真模型层 `test/eval/live_harness.mbt` + `test/capability/tasks/`（4 任务 × 3 重复，不进 CI），两层共用同一任务 schema（真模型层追加 `prompt`/`acceptance`/`trials`）与同一 `checks`/评分向量。任务集扩充（目标 20~30 条）仍在路线图内 |
+| 真模型评测的 stdout 诊断污染 | 流式调用每次收尾打印一行 `[stream-summary]`（`lib/agent/llm_caller.mbt:685`），其注释与所依据的 spec（`2026-08-18_02` 决策 5）都写"visible in stderr"，实际却走 `println`（stdout） | **范围外（WP-2.2 发现并如实登记）**：影响一切机器可读 stdout（`-m --json`、`eval --live`）。本 WP 未改共享诊断路由（MoonBit core 无 stderr 原语，`eprintln` 属 async 内部包，改用文件 logger 会失去控制台可见性），改为**如实声明契约**：`eval --live` 的 JSON 是 stdout **最后一行**，且另存 `_build/capability/results/<stamp>/score.json`。修复该行需要专门的诊断路由决策 |
 | Web 会话不产 JSONL 事件流 | `attach_session_log` 只接在 CLI 路径（`--message` 与 TUI，T5 后两者对称）；Web 会话主体仍是整份 JSON CRUD | 决策 D3 默认：**范围外**，不接入（把事件日志接进 Web 需要广播层新增持久化旁路）；README 已精确化措辞 |
 | 技能进化未接面板 UI | WP-2.1 已接线两端点（`POST /api/skills/:name/evolve`、`GET /api/skills/evolution/history`）且返回真实数据，但 `web/features/skills/` 无调用方（端点仅由 API/脚本/agent 使用） | **有意识为之**：面板没有技能执行证据可提交，若加"优化"按钮就只能提交空证据或伪造证据，反而制造新的假成功；WP-2.1 的 DoD 以"可被 Web 查询"为准。面板展示进化历史需新增 i18n 键 + 渲染 + CSS，属独立 UI 任务，**本 WP 显式范围外**（见 `specs/completed/2026-09-22_wp-2.1-gep-skill-reflector.md` 决策 6） |
 | 技能执行台账缺失 | 全仓无技能↔执行记录（`skill_usage`/`SkillExecution` 等符号 0 命中），故 `Agent::run_skill_evolution_hooks` 只跑 `AutoDetect`，`PostExecution` 分支在运行期无调用方 | **范围外**：反思证据因此必须由调用方提供（`transcript` 必填，缺失返回可诊断 400）。把 PostExecution 接入 agent 运行期需先建技能执行台账，属独立 WP |
@@ -33,7 +34,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **98** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **95** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -42,9 +43,6 @@
 | cmd/cli_mcp.mbt:11 | not-yet | /// not yet implemented, so this entry point reports a clear, actionable |
 | cmd/cli_mcp.mbt:18 | not-yet | println("mbopenclacky mcp: stdio MCP server exposure is not yet available.") |
 | cmd/cli_mcp.mbt:24 | placeholder | "still a placeholder pending FFI child-process support. This CLI cannot", |
-| cmd/eval.mbt:77 | not-implemented | "eval --live: the model-driven path is not implemented in this build;", |
-| cmd/main.mbt:198 | not-implemented | help="Run the model-driven path (not implemented in this build)", |
-| cmd/selftest.mbt:520 | not-implemented | stdout_contains: ["not implemented in this build"], |
 | lib/agent/react.mbt:348 | not-yet | // here — not yet ported.) |
 | lib/brand/crypto.mbt:215 | stub | // ---- WASM fallback stubs ---- |
 | lib/brand/device.mbt:33 | TODO | /// TODO: Replace with FFI to GetComputerNameW / gethostname(). |
@@ -320,8 +318,8 @@
 | lib/web/handlers_trash.mbt:365 | open | 范围外（web） | trash 模型仍为 stub 语义 |
 | lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
 | lib/web/handlers_ws.mbt:278 | open | 范围外（web） | updated_at 回退 created_at |
-| cmd/eval.mbt:77 | open | P2 真模型评测（D1 回退） | `eval --live` 诚实声明模型路径未接线并 exit 1；确定性 harness 已就绪，真模型从未执行 |
-| cmd/main.mbt:198 | open | P2 真模型评测（D1 回退） | 同上：`eval` 子命令 `--live` 的帮助文本如实标注未接线 |
-| cmd/selftest.mbt:520 | open | P2 真模型评测（D1 回退） | 同上：契约探针把该诚实行为固定成判据（exit 1 + 说明文本） |
+| cmd/eval.mbt:77 | fixed | WP-2.2 | `--live` 已接线（2026-09-22）：`test/capability/tasks/` 任务集 + 真 ReAct 运行器（工具面限定为 file_reader/write/edit/grep/glob）+ 评分向量与报告落盘；无 key 时仍诚实 exit 1 |
+| cmd/main.mbt:198 | fixed | WP-2.2 | `--live` 帮助文本改为如实描述「需配置模型」（2026-09-22） |
+| cmd/selftest.mbt:520 | fixed | WP-2.2 | 契约探针改为与 key 无关的确定性失败路径（缺任务集→exit 1、模式互斥→exit 2），避免探针继承环境后触发真实计费调用（2026-09-22） |
 
 <!-- END: curation -->

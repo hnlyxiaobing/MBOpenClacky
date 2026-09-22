@@ -1,0 +1,18 @@
+{
+  "id": "cap-003-parallel-read",
+  "goal": "读两个文件判断内容是否一致，并把结论落盘",
+  "seed": [
+    { "path": "{sandbox}/a.txt", "content": "alpha\nbeta\n" },
+    { "path": "{sandbox}/b.txt", "content": "alpha\nbeta\n" }
+  ],
+  "prompt": "工作目录里有 a.txt 和 b.txt。请读取这两个文件并判断内容是否一致，然后把结论写入 verdict.txt：一致就只写一行 same=true，不一致就写 same=false 并另起一行说明差异。完成后简要说明。",
+  "acceptance": "verdict.txt 存在且为 same=true；a.txt 与 b.txt 未被改写",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/verdict.txt", "text": "same=true" },
+    { "kind": "file_not_contains", "path": "{sandbox}/verdict.txt", "text": "same=false" },
+    { "kind": "file_contains", "path": "{sandbox}/a.txt", "text": "alpha" },
+    { "kind": "file_contains", "path": "{sandbox}/b.txt", "text": "beta" }
+  ],
+  "trials": 3,
+  "source": "派生自 test/e2e/scenarios/004_parallel_tool_calls.json"
+}

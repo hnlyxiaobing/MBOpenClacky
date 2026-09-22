@@ -10,9 +10,10 @@
 /// `_build/eval/<date>.md` (overridable with `--out`): the offline run is a
 /// repeatable gate, so it keeps its artifact out of the worktree.
 ///
-/// `--live` is the model-driven path. It is **not wired in this build**: it
-/// exits 1 with an actionable message and is registered as `open` in
-/// `docs/known-gaps.md` ("harness 就绪、真模型未执行", decision D1 fallback).
+/// `--live` is the model-driven path (layer 8, `cmd/eval_live.mbt`): the same
+/// task schema and `checks`, driven by a real ReAct loop over
+/// `test/capability/tasks/`, with its evidence committed to `docs/eval/`. It
+/// needs a configured model and reports honestly when there is none.
 
 ///|
 /// Create (if needed) `<repo>/_build/eval_sandbox` and return it. A fresh clone
@@ -73,16 +74,7 @@ async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
     }
   }
   if !mode {
-    println(
-      "eval --live: the model-driven path is not implemented in this build;",
-    )
-    println(
-      "  the deterministic harness is available now:  mbopenclacky eval --offline --repo .",
-    )
-    println(
-      "  Status is registered in docs/known-gaps.md (真模型评测波动: harness 就绪、真模型未执行).",
-    )
-    @sys.exit(1)
+    run_live_eval(repo, sub)
     return
   }
   let trials = match get_named_arg(sub, "trials") {
@@ -98,7 +90,11 @@ async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
     Some(dir) => dir
     None => @path.Path::join(repo, @path.Path("test/eval/tasks")).to_string()
   }
-  let tasks = @eval.load_harness_tasks(tasks_dir)
+  let tasks = if @fs.path_exists(tasks_dir) {
+    @eval.load_harness_tasks(tasks_dir)
+  } else {
+    []
+  }
   if tasks.length() == 0 {
     println("eval: no task files found in \{tasks_dir}")
     @sys.exit(1)
@@ -108,9 +104,9 @@ async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
   let report = @eval.run_harness_batch(tasks, sandbox_root, trials)
   let score = report.score(trials)
   // Human-readable report. The offline run is a repeatable gate, so its report
-  // defaults under _build/ and leaves the worktree clean; a live run (whose
-  // evidence is worth committing) is expected to default to docs/eval/ once
-  // that path is wired. `--out <dir>` overrides either default.
+  // defaults under _build/ and leaves the worktree clean; the live run (whose
+  // evidence is worth committing) defaults to docs/eval/ instead. `--out`
+  // overrides either default.
   let out_dir = match get_named_arg(sub, "out") {
     Some(dir) => dir
     None => @path.Path::join(repo, @path.Path("_build/eval")).to_string()

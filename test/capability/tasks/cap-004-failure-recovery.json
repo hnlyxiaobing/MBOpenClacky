@@ -1,0 +1,15 @@
+{
+  "id": "cap-004-failure-recovery",
+  "goal": "工具报错后恢复：读不存在的文件失败后改读存在的文件并把内容落盘",
+  "seed": [
+    { "path": "{sandbox}/note.txt", "content": "hello" }
+  ],
+  "prompt": "工作目录里只有 note.txt。请先尝试读取 missing.txt；如果这次读取失败，不要把失败当成任务结束——改读 note.txt，把它的完整内容写入 report.txt（report.txt 里只写文件内容本身，不要加解释）。最后简要说明你做了哪些尝试。",
+  "acceptance": "report.txt 存在且内容为 hello；note.txt 未被修改",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/report.txt", "text": "hello" },
+    { "kind": "file_contains", "path": "{sandbox}/note.txt", "text": "hello" }
+  ],
+  "trials": 3,
+  "source": "派生自 test/e2e/scenarios/014_tool_execution_failure_recovery.json"
+}

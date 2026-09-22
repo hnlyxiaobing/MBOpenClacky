@@ -276,10 +276,42 @@
 - **范围外（已在台账登记）**：面板无进化 UI（面板没有技能执行证据可提交，加按钮只会制造新假成功）；
   把 `PostExecution` 接入 agent 运行期需先建"技能执行台账"机制。
 
-### WP-2.2 `cmd eval --live` 真模型评测接线 `[ ]`（P1，战略项）
+### WP-2.2 `cmd eval --live` 真模型评测接线 `[x]`（P1，战略项）
+
+> **完成（2026-09-22）**：真模型能力评测从"规程已定、无任务集无运行器"变为**一条命令跑通**。
+> ①`test/eval/tool_harness.mbt` 的任务 schema 追加 `prompt`/`acceptance`/`trials`（offline 任务不受影响），
+> 评分/报告函数加可选 `cost_usd`；②新增 `test/eval/live_harness.mbt`：runner 以
+> `async (String, String) -> LiveRunOutcome` 注入 → 批次驱动（逐 trial 独立沙箱 + seed + checks + 真实成本累加 +
+> transcript 落盘）可**无网络确定性测试**，真 runner 工厂 `make_agent_live_runner` 走真 Agent + 事件捕获；
+> ③新增 `test/capability/tasks/` 4 条任务（派生自 001/003/004/014 已验证剧本）；④`cmd/eval_live.mbt` 接线
+> `--live`：模型解析（`MBOPENCLACKY_*` 显式覆盖 → `config.toml`/`CLACKY_*` → `DEEPSEEK_*` 兜底）、无模型时
+> 可诊断 exit 1、报告落 `docs/eval/<date>.md`、transcript/JSON 落 `_build/capability/results/<stamp>/`；
+> ⑤契约探针改为与 key 无关的确定性路径（避免探针继承环境后真发付费请求）。
+>
+> **安全要点**：`auto_approve` 下一切已注册工具自动执行（`should_auto_execute` 恒真），故真模型**工具面被重建的
+> 受限 registry 收窄为** `file_reader`/`write`/`edit`/`grep`/`glob`（无 shell、无网络），与确定性层同构；
+> 仅设 `allowed_tools` 不够——它只过滤发给模型的 definitions，执行解析走 registry（`get_resolved`）。
+>
+> DoD 验证：`moon check -d` 312 tasks 0 错 0 警；`moon test --release test/eval cmd` 63/63（含 mock LLM 端到端：
+> 真 runner + 真工具 + 真沙箱）；`selftest` 20/20；`eval --offline` 3/3；`fmt`/`known_gaps`（95 命中）/`repo_stats` 三闸门绿。
+> **真模型实测**（deepseek-flash @ api.deepseek.com，4 任务 × 3 次）：12/12 trial 通过、33/33 断言、
+> 可重复性 1.0、0 基础设施失败、97,130 token、成本列 0（该模型无定价条目，如实标注 + 给 token 代理）；
+> 报告 `docs/eval/2026-09-22.md`。**如实说明**：任务集小且偏基础，全通过只证明链路与模型可用，不构成模型能力结论。
+>
+> 完成记录归档：`specs/completed/2026-09-22_wp-2.2-live-model-eval.md`。
+>
+> **实施期发现（本 WP 未扩大改动，已登记）**：
+> 1. `MBOPENCLACKY_*` 在存在 `config.toml` 时**会被忽略**（`apply_env_overlay` 仅在 `models` 为空时才用 env），
+>    与 README 的"设 MBOPENCLACKY_API_KEY 即可"暗示不符。基准必须可指名模型，故 live 路径把 `MBOPENCLACKY_*`
+>    提升为**显式覆盖**并如实标注来源；全局语义未改（属独立决策）。
+> 2. 流式调用每次收尾的 `[stream-summary]`（`lib/agent/llm_caller.mbt:685`）注释与所依据 spec 都写 stderr、实际走
+>    stdout，污染一切机器可读 stdout（`-m --json`、`eval --live`）。本 WP 改为**如实声明契约**（JSON 是 stdout
+>    最后一行 + 另存 score.json），修复需专门的诊断路由决策（core 无 stderr 原语），已入台账。
+> 3. 工具按**进程 CWD** 解析相对路径（e2e runner 亦如此），故真 runner 逐 trial chdir；这会与并发测试相互影响，
+>    故测试用绝对路径 + `chdir=false`，CLI 侧路径全部绝对化。
 
 - **目标**：接通真模型能力评测，拿到与上游对标的硬证据。**规程与 schema 已定**（`test/capability/README.md`），只差任务集与运行器。
-- **触点**：新建 `test/capability/tasks/*.json`（schema = `test/eval/tasks/` + `prompt`/`acceptance`/`trials`）；`cmd/eval.mbt`（`--live` 分支，当前诚实 exit 1）；复用 `test/eval/tool_harness.mbt` 的 `seed`/`{sandbox}`/`checks` 原语。
+- **触点**：新建 `test/capability/tasks/*.json`（schema = `test/eval/tasks/` + `prompt`/`acceptance`/`trials`）；`cmd/eval.mbt`（`--live` 分支，开工时为诚实 exit 1）；复用 `test/eval/tool_harness.mbt` 的 `seed`/`{sandbox}`/`checks` 原语。
 - **步骤**：
   1. 从已验证的 e2e 剧本派生种子任务：001 read_edit、003 multi_turn、004 parallel、014 tool_failure_recovery。
   2. `cmd eval --live` 读 `MBOPENCLACKY_API_KEY/BASE_URL/MODEL`，每任务跑 `trials`（≥5）次真实 ReAct 循环，跑 `checks` + 记录 transcript/退出码/token。

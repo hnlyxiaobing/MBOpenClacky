@@ -1,0 +1,18 @@
+{
+  "id": "cap-002-multi-turn",
+  "goal": "多轮读改复核：把 app.conf 的 debug 从 false 改为 true 并读回复核",
+  "seed": [
+    {
+      "path": "{sandbox}/app.conf",
+      "content": "[app]\nmode = server\ndebug=false\n"
+    }
+  ],
+  "prompt": "工作目录里有 app.conf。请把 debug 的值从 false 改成 true；改完后再读取一次确认改动生效；最后在回答里报告你读到的最终 debug 值。",
+  "acceptance": "app.conf 中 debug=true 且不再有 debug=false；模型回答中报告最终值为 true（体现改后复核）",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/app.conf", "text": "debug=true" },
+    { "kind": "file_not_contains", "path": "{sandbox}/app.conf", "text": "debug=false" }
+  ],
+  "trials": 3,
+  "source": "派生自 test/e2e/scenarios/003_multi_turn_tool_sequence.json"
+}

@@ -4,6 +4,7 @@ package "hnlyxiaobing/MBOpenClacky/cmd"
 import {
   "DzmingLi/clap",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/web",
   "moonbitlang/core/debug",
@@ -36,6 +37,10 @@ pub fn load_shell_hooks(config_dir? : String?) -> Array[HookConfig]
 
 pub fn register_extensions(Array[@web.ApiExtension]) -> Result[Unit, String]
 
+pub fn resolve_live_model() -> LiveModel?
+
+pub async fn run_live_eval(String, @clap.SimpleValue) -> Unit
+
 pub fn scaffold_channel(String, output_dir? : String?) -> Result[Unit, String]
 
 pub fn verify_channel(String) -> Result[Unit, String]
@@ -63,6 +68,13 @@ pub(all) struct HookContext {
   working_dir : String
 } derive(@debug.Debug)
 pub fn HookContext::to_repr(Self) -> @debug.Repr
+
+pub(all) struct LiveModel {
+  config : @config.AgentConfig
+  source : String
+  model : String
+  base_url : String
+}
 
 pub(all) struct NdjsonLogger {
   enabled : Bool

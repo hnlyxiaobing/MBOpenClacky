@@ -195,7 +195,7 @@ async fn main {
             help="Run the deterministic tool harness (no model, no network)",
           ),
           "live": @clap.Arg::flag(
-            help="Run the model-driven path (not implemented in this build)",
+            help="Run the model-driven capability benchmark (needs a configured model)",
           ),
           "repo": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
@@ -203,7 +203,7 @@ async fn main {
           ),
           "tasks": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
-            help="Task directory (default: <repo>/test/eval/tasks)",
+            help="Task directory (offline: <repo>/test/eval/tasks; live: <repo>/test/capability/tasks)",
           ),
           "trials": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),

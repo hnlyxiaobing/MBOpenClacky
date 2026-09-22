@@ -24,6 +24,9 @@
 ///
 /// `{sandbox}` expands to the per-trial sandbox directory. Check kinds:
 /// `file_exists`, `file_missing`, `file_contains`, `file_not_contains`.
+///
+/// The model-driven layer (`live_harness.mbt`) reads the same documents and
+/// additionally honours `prompt`, `acceptance` and `trials`.
 
 ///|
 /// Tools a task file may drive. Anything outside this list is rejected before
@@ -61,12 +64,23 @@ pub(all) struct HarnessSeed {
 ///|
 /// A harness task: a goal, optional seed fixtures, an ordered step script, and
 /// its checks.
+///
+/// The model-driven layer (`test/capability/tasks/`) reuses this same shape and
+/// adds three fields on top: `prompt` (the instruction handed to the model),
+/// `acceptance` (the natural-language criterion) and `trials` (how many times
+/// to repeat). Offline tasks leave them empty and behave exactly as before.
 pub(all) struct HarnessTask {
   id : String
   goal : String
   seeds : Array[HarnessSeed]
   steps : Array[HarnessStep]
   checks : Array[HarnessCheck]
+  /// Instruction for the model ("" for scripted tasks).
+  prompt : String
+  /// Natural-language success criterion ("" for scripted tasks).
+  acceptance : String
+  /// Per-task repetition count; 0 means "use the caller's default".
+  trials : Int
 }
 
 ///|
@@ -194,7 +208,19 @@ pub fn parse_harness_task(text : String) -> HarnessTask? {
       }
     _ => ()
   }
-  Some({ id, goal, seeds, steps, checks, })
+  Some({
+    id,
+    goal,
+    seeds,
+    steps,
+    checks,
+    prompt: json_string(fields, "prompt").unwrap_or(""),
+    acceptance: json_string(fields, "acceptance").unwrap_or(""),
+    trials: match fields.get("trials") {
+      Some(Number(n, ..)) => n.to_int()
+      _ => 0
+    },
+  })
 }
 
 ///|
@@ -313,15 +339,13 @@ async fn execute_tool(
 }
 
 ///|
-/// Run one task: execute its steps through the real tool registry inside
-/// `sandbox`, then evaluate its checks.
-pub async fn run_harness_task(
+/// Materialize a task's seed fixtures inside `sandbox`. A write failure is a
+/// failed assertion, never a silent skip.
+fn materialize_seeds(
   task : HarnessTask,
   sandbox : String,
-) -> HarnessTaskResult {
+) -> Array[HarnessAssertion] {
   let assertions : Array[HarnessAssertion] = []
-  let registry = @tool.make_default_registry()
-  let mut steps_run = 0
   for seed in task.seeds {
     let path = expand_sandbox(seed.path, sandbox)
     @fs.write_string_to_file(path, expand_sandbox(seed.content, sandbox)) catch {
@@ -332,6 +356,35 @@ pub async fn run_harness_task(
           detail: @debug.to_string(err),
         })
     }
+  }
+  assertions
+}
+
+///|
+/// Evaluate every check of `task` against `sandbox`.
+fn evaluate_checks(
+  task : HarnessTask,
+  sandbox : String,
+) -> Array[HarnessAssertion] {
+  let assertions : Array[HarnessAssertion] = []
+  for check in task.checks {
+    assertions.push(evaluate_check(check, sandbox))
+  }
+  assertions
+}
+
+///|
+/// Run one task: execute its steps through the real tool registry inside
+/// `sandbox`, then evaluate its checks.
+pub async fn run_harness_task(
+  task : HarnessTask,
+  sandbox : String,
+) -> HarnessTaskResult {
+  let assertions : Array[HarnessAssertion] = []
+  let registry = @tool.make_default_registry()
+  let mut steps_run = 0
+  for assertion in materialize_seeds(task, sandbox) {
+    assertions.push(assertion)
   }
   for step in task.steps {
     let position = steps_run + 1
@@ -375,8 +428,8 @@ pub async fn run_harness_task(
         })
     }
   }
-  for check in task.checks {
-    assertions.push(evaluate_check(check, sandbox))
+  for assertion in evaluate_checks(task, sandbox) {
+    assertions.push(assertion)
   }
   let mut passed = true
   for assertion in assertions {
@@ -436,7 +489,8 @@ fn prepare_sandbox(sandbox : String) -> Unit {
 
 ///|
 /// The evaluation score vector: completion, verification discipline,
-/// repeatability, and cost (always 0 offline — no model is called).
+/// repeatability, and cost (always 0 offline — no model is called; a live run
+/// passes the summed model cost).
 pub(all) struct EvalScoreVector {
   tasks : Int
   tasks_passed : Int
@@ -451,6 +505,7 @@ pub(all) struct EvalScoreVector {
 pub fn HarnessReport::score(
   self : HarnessReport,
   trials : Int,
+  cost_usd? : Double = 0.0,
 ) -> EvalScoreVector {
   let tasks : Array[String] = []
   let mut assertions = 0
@@ -499,7 +554,7 @@ pub fn HarnessReport::score(
     assertions_passed,
     repeatable_tasks: repeatable,
     trials,
-    cost_usd: 0.0,
+    cost_usd,
   }
 }
 
@@ -536,8 +591,9 @@ pub fn HarnessReport::to_score_json(
   self : HarnessReport,
   mode : String,
   trials : Int,
+  cost_usd? : Double = 0.0,
 ) -> Json {
-  let score = self.score(trials)
+  let score = self.score(trials, cost_usd~)
   let results : Array[Json] = []
   for result in self.results {
     let mut passed_assertions = 0
@@ -577,8 +633,9 @@ pub fn HarnessReport::to_markdown(
   self : HarnessReport,
   mode : String,
   trials : Int,
+  cost_usd? : Double = 0.0,
 ) -> String {
-  let score = self.score(trials)
+  let score = self.score(trials, cost_usd~)
   let lines : Array[String] = []
   lines.push("# cmd eval report（\{mode}）")
   lines.push("")
@@ -610,7 +667,7 @@ pub fn HarnessReport::to_markdown(
     "| 可重复性（trials 全部一致的任务 / tasks，trials=\{trials}） | \{score.repeatability()} |",
   )
   lines.push(
-    "| 成本（USD，offline 不调用模型） | \{score.cost_usd} |",
+    "| 成本（USD\{if cost_usd > 0.0 { "，模型估算" } else { "，offline 不调用模型" }}） | \{score.cost_usd} |",
   )
   lines.push("")
   lines.push("## 断言明细")

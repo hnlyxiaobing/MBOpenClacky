@@ -22,11 +22,11 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 307 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 214 |
-| 源代码行数 | 99,714 |
-| 测试行数 | 60,589 |
-| 总行数 | 160,303 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 308 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 217 |
+| 源代码行数 | 100,092 |
+| 测试行数 | 61,247 |
+| 总行数 | 161,339 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3864 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -350,7 +350,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
 | P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 已完成（`test/benchmark/`） |
-| P3 | P4 真模型基准（需真 API key + WSL Ruby 环境） | 待定 | 方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
+| P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---
 
@@ -360,5 +360,5 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 - **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
 - **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。仍不产 JSONL 的是 Web 会话（决策 D3，范围外，台账已登记）。
-- **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI；真模型路径 `--live` 未接线，诚实 exit 1 并登记 `open`（决策 D1 回退）。
+- **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI（3 任务 × 2 重复）；真模型路径 `cmd eval --live` 已接线（WP-2.2，2026-09-22）——`test/capability/tasks/` 4 任务 × 3 重复走真实 ReAct 循环，报告入 `docs/eval/`，不进 CI。**未完成**：与上游 Ruby 侧的对标，以及任务集扩充到 20~30 条（当前任务集偏基础、无区分度，全通过不构成模型能力结论）。
 - **发布卫生**：版本对齐 `0.2.0`（`moon.mod` / `cmd` / `lib/tui` / `lib/web` 四处，机器校验）；`v0.2.0` tag 指向收尾提交；`v0.2.0-hackathon` 保留为历史标记。

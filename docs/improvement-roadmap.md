@@ -22,18 +22,18 @@
 
 > **状态：✅ 已解决（2026-09-21，执行计划 WP-0.1）。** 与上游 v1.5.0 原件逐文件哈希比对判定：`favicon.svg`、`icon*.svg`、`apple-touch-icon-180.png`、`logo_nav_dark.png`、`favicon.ico` 全部为**上游原件**（SVG 内容一致仅换行符差异）。已替换为 MBOpenClacky 自有设计（对话气泡 + 终端提示符标记，`#14B8A6`→`#3B82F6` 渐变），`PATCHES.md` P0-001 归档为 Resolved，`UPSTREAM_SYNC.md` 矛盾表述已消除且 rsync 排除清单补入 `favicon.ico`。复验：六文件与上游原件哈希全部不同。
 
-- **证据**：`web/UPSTREAM_SYNC.md` 第 16 行称品牌资产"upstream originals still in place — P0-001 active，外部发布前必须替换"；同文件第 84–88 行又称"MBOpenClacky uses its own brand assets（monogram SVG）"。`web/PATCHES.md` 的 P0-001 仍为 **Active**，并写明"Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions"。
+- **证据（修复前）**：`web/UPSTREAM_SYNC.md` 第 16 行称品牌资产"upstream originals still in place — P0-001 active，外部发布前必须替换"；同文件第 84–88 行又称"MBOpenClacky uses its own brand assets（monogram SVG）"。`web/PATCHES.md` 的 P0-001 仍为 **Active**，并写明"Upstream OpenClacky brand assets must NOT ship in MBOpenClacky distributions"。
 - **实测（2026-09-21 判定前）**：`web/favicon.svg`（28×28 monogram 路径）、`web/icon.svg`（紫靛渐变环）看起来像自制占位，但无法在无上游原件的情况下确证；`apple-touch-icon-180.png` / `logo_nav_dark.png` 为二进制，未能判定来源。
 - **风险**：这是一个 MIT 公开仓库。若仍内含上游品牌资产，属法律风险，且两份文档互相矛盾本身就违反项目的"真话"纪律。
-- **建议动作**：**人工核实 + 统一文档**。确认四个品牌文件的真实来源；若为自制，把 `UPSTREAM_SYNC.md`/`PATCHES.md` 的 P0-001 标为 Resolved 并去掉第 16 行的矛盾表述；若仍为上游原件，立即替换。此项低成本、高风险，应最先做。
+- **建议动作（已执行）**：**人工核实 + 统一文档**。确认四个品牌文件的真实来源；若为自制，把 `UPSTREAM_SYNC.md`/`PATCHES.md` 的 P0-001 标为 Resolved 并去掉第 16 行的矛盾表述；若仍为上游原件，立即替换。此项低成本、高风险，应最先做。
 
 ### 1.2 IM 渠道：宣传"6 平台"，实际仅 2 个接通网络
 
-- **证据**：README 亮点列"6 平台 IM 渠道"，`project-status.md` 旧版曾标 6/6「✅ 完整」（本轮已改为按台账的真实分级）。核对 `lib/channel`：
+- **证据（修复前）**：README 亮点列"6 平台 IM 渠道"，`project-status.md` 旧版曾标 6/6「✅ 完整」（本轮已改为按台账的真实分级）。核对 `lib/channel`：
   - **真接通**：Telegram `send_text`（经 `http_post_json`）、Discord（网关连接 + 心跳，stubfix-07）。
   - **诚实 stub**：飞书 / 企业微信 / 钉钉 / 微信 的 send/receive/长轮询未接 HTTP 传输；微信 AES-128-ECB 加解密未实现；**全平台** `update_message`/`delete_message` 未实现。
-- **落差**：适配器骨架 6/6 完整，但"能用"的只有 1.5 个渠道。这是当前**最大的"宣传 vs 现实"落差**。
-- **建议动作**：二选一，不要维持现状。
+- **落差（修复前）**：适配器骨架 6/6 完整，但"能用"的只有 1.5 个渠道。这是当前**最大的"宣传 vs 现实"落差**。
+- **建议动作（已执行）**：二选一，不要维持现状。
   - **接线**：优先补飞书（国内主力，且富文本解析已完整）与微信（需先补 `moonbitlang/x/crypto` 的 AES-128-ECB）；async HTTP 基础设施已具备（`http_helper.mbt`、`@async/http`）。
   - **降级声明**：若本期不接线，README 应把"6 平台 IM 渠道"改为"6 平台适配器（Telegram/Discord 已接通，其余接线中，见 known-gaps）"。
 
@@ -51,9 +51,9 @@
 > `eval --offline` 3/3、`moon test --release lib/media lib/web lib/client` 689/689 全绿，
 > 台账 media 行全部转 `fixed`。
 
-- **证据**：`lib/media/{dashscope,gemini,openai_compat}.mbt` 全部 "requires HTTP FFI - not yet implemented"；REST `POST /api/media/{image,video,audio/speech,audio/transcription}` 返回 501（`handlers_media.mbt`）。
+- **证据（修复前）**：`lib/media/{dashscope,gemini,openai_compat}.mbt` 全部 "requires HTTP FFI - not yet implemented"；REST `POST /api/media/{image,video,audio/speech,audio/transcription}` 返回 501（`handlers_media.mbt`）。
 - **区分**：**视频理解**（FFmpeg 抽帧 + LLM Vision）已实现且可用；未实现的是**媒体生成**（图/视频/语音）。README"多模态处理"把两者并列，容易误导。
-- **建议动作**：**接线**（HTTP 基础设施已具备，与渠道接线同源）或**降级声明**（把"媒体生成"从亮点移到"路线图"，明确视频理解 ≠ 生成）。
+- **建议动作（已执行）**：**接线**（HTTP 基础设施已具备，与渠道接线同源）或**降级声明**（把"媒体生成"从亮点移到"路线图"，明确视频理解 ≠ 生成）。
 
 ### 2.2 GEP 技能自进化：反思环节是占位实现
 
@@ -70,15 +70,26 @@
 > **仍范围外**：面板无进化 UI（无执行证据可提交，见台账登记）；把 `PostExecution`
 > 接入 agent 运行期需先建"技能执行台账"机制。
 
-- **证据**：`lib/skill/reflector.mbt` 明写 "Currently a placeholder — real implementation would invoke LLM or code modification"；`handlers_skills.mbt` 的进化触发/日志查询端点为 stub（"stubs pending evolution engine wiring"）。
+- **证据（修复前）**：`lib/skill/reflector.mbt` 明写 "Currently a placeholder — real implementation would invoke LLM or code modification"；`handlers_skills.mbt` 的进化触发/日志查询端点为 stub（"stubs pending evolution engine wiring"）。
 - **落差**：README/CLAUDE 把"GEP 技能自进化（EvolutionEngine + SkillReflector + AutoCreator）"列为核心技术优势，但 Reflect（执行后反思改进技能）这一步是空壳。AutoCreator（模式检测自动建技能）与 EvolutionEngine 骨架在位。
-- **建议动作**：**接线** SkillReflector 的真实 LLM 驱动反思 + Web 进化端点；否则把"自进化"表述收敛为"技能自动创建（AutoCreator）+ 进化框架（反思环节待接线）"。
+- **建议动作（已执行）**：**接线** SkillReflector 的真实 LLM 驱动反思 + Web 进化端点；否则把"自进化"表述收敛为"技能自动创建（AutoCreator）+ 进化框架（反思环节待接线）"。
 
 ### 2.3 真模型能力评测（`cmd eval --live`）：项目自己认定的稀缺项
 
-- **证据**：`cmd/eval.mbt`、`cmd/main.mbt`、`cmd/selftest.mbt` 均诚实标注 `--live` 未接线（无 key 时 exit 1）；`testing.md` 层 8"规程已定、任务集与运行器未实现"。确定性 `eval --offline`（层 6，真实工具层 + 沙箱 + 断言）已进 CI。
+> **✅ 已解决（2026-09-22，执行计划 WP-2.2）**：`cmd eval --live` 已接线——`test/capability/tasks/`
+> 4 条任务（派生自已验证的 e2e 剧本）+ `test/eval/live_harness.mbt` 真 ReAct 运行器，两层共用同一
+> 任务 schema 与 `checks`/评分向量。模型解析：`MBOPENCLACKY_*` 显式覆盖 → `config.toml`/`CLACKY_*`
+> → `DEEPSEEK_*` 兜底；无模型配置时诚实 exit 1。真模型工具面被收窄为
+> `file_reader`/`write`/`edit`/`grep`/`glob`（`auto_approve` 下 registry 即可执行面）。
+> **首次真模型运行**（deepseek-flash @ api.deepseek.com，4 任务 × 3 次）：12/12 trial 通过、
+> 33/33 断言、可重复性 1.0、97,130 token；报告 `docs/eval/2026-09-22.md`。
+> **如实说明**：任务集小且偏基础，全通过只证明"链路 + 模型可用"，**不构成模型能力结论**；
+> 与上游 Ruby 侧的对标尚未执行（需 WSL 侧 `openclacky agent -m`）。
+> **仍待办**：任务集扩充到 20~30 条（更难的类别才有区分度，见 `test/capability/README.md`）。
+
+- **证据（修复前）**：`cmd/eval.mbt`、`cmd/main.mbt`、`cmd/selftest.mbt` 均诚实标注 `--live` 未接线（无 key 时 exit 1）；`testing.md` 层 8"规程已定、任务集与运行器未实现"。确定性 `eval --offline`（层 6，真实工具层 + 沙箱 + 断言）已进 CI。
 - **战略意义**：黑客松立项文档的核心论点就是"3800+ 白盒 + mock 测试回答不了『接上真模型能不能干活』"。`--offline` 回答了"工具层能否端到端干活"，但"真模型自主完成任务的成功率/成本"仍无判据。这是与上游做**质量对标**的唯一硬证据。
-- **建议动作**：**接线**。用一个廉价 Provider key 跑 `test/capability/` 的任务集（schema 已与 `test/eval/tasks/` 同构），产出评分向量 + 成本，落 `docs/eval/`。不进 CI（成本/随机性），但需至少跑通一次并如实记录波动。
+- **建议动作（已执行）**：**接线**。用一个廉价 Provider key 跑 `test/capability/` 的任务集（schema 已与 `test/eval/tasks/` 同构），产出评分向量 + 成本，落 `docs/eval/`。不进 CI（成本/随机性），但需至少跑通一次并如实记录波动。
 
 ---
 
@@ -135,7 +146,7 @@
 
 1. **P0-1.1** 核实并统一品牌资产法律状态（低成本、高风险，先做）。✅ 已完成（2026-09-21，WP-0.1，见 §1.1 状态注）。
 2. **P0-1.2 / P1-2.1** 对渠道与媒体生成做一次"接线 or 降级声明"的决断——二者同源（async HTTP），可一并规划；不决断则维持"宣传 > 现实"的可信度损耗。
-3. **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。
+3. ✅ **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。已完成（2026-09-22，WP-2.2）：首次真模型运行 12/12 trial、97,130 token，报告入 `docs/eval/`；**上游对标与任务集扩充仍待办**。
 4. **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。
 5. ✅ 两份一次性过程文档（黑客松一页说明与 13 天改造计划）已于 2026-09-22 删除，可用内容并入本文 §7。
 6. P2/P3 按资源择机；均已在 `known-gaps.md` 如实登记，不构成可信度风险。

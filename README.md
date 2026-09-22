@@ -18,11 +18,11 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 307 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 214 |
-| 源代码行数 | 99,714 |
-| 测试行数 | 60,589 |
-| 总行数 | 160,303 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 308 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 217 |
+| 源代码行数 | 100,092 |
+| 测试行数 | 61,247 |
+| 总行数 | 161,339 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3864 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -104,8 +104,13 @@ moon run cmd -- server                     # Web 服务（端口 7071）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe inspect <session.jsonl>
 
 # 确定性能力评测（离线 harness：3 任务 × 2 次重复，stdout 输出评分向量 JSON）
-# `--live`（真模型路径）本期未接线：诚实打印说明并 exit 1，见 docs/known-gaps.md
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe eval --offline --repo .
+
+# 真模型能力评测（层 8，手动触发、不进 CI）：默认任务集 test/capability/tasks（4 任务 × 3 次重复），
+# 报告写 docs/eval/<date>.md。需配置模型（MBOPENCLACKY_* / config.toml / DEEPSEEK_*），否则诚实 exit 1。
+MBOPENCLACKY_API_KEY=... MBOPENCLACKY_BASE_URL=https://api.deepseek.com \
+  MBOPENCLACKY_MODEL=deepseek-flash MBOPENCLACKY_ANTHROPIC_FORMAT=false \
+  ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe eval --live
 
 # 性能基准（层 7，手动触发；场景在 test/benchmark/scenarios，结果写 _build/benchmark/results）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe benchmark --iterations 20 --warmup 5

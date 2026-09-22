@@ -25,6 +25,21 @@
 
 ## 变更记录
 
+### 2026-09-22  `cmd eval --live` 真模型能力评测接线（WP-2.2）
+
+- `[feat]` **真模型能力评测从"规程已定、无任务集无运行器"变为一条命令跑通**：新增 `test/eval/live_harness.mbt`（批次驱动 + 真 ReAct 运行器工厂）与 `test/capability/tasks/` 4 条任务（派生自已验证的 e2e 剧本 001/003/004/014），入口 `cmd eval --live`。
+- `[feat]` **两层共用一套口径**：`test/eval/tool_harness.mbt` 的任务 schema 追加 `prompt`/`acceptance`/`trials`（offline 任务不受影响），评分/报告函数加可选 `cost_usd`；真模型层复用同一 `seed` 铺设、`{sandbox}` 展开、`checks` 断言与评分向量，不另造判分器。
+- `[feat]` **模型解析可指名、可复现**：`MBOPENCLACKY_*` 为显式覆盖（同名变量在既有 `apply_env_overlay` 中当 `config.toml` 存在时会被忽略，基准必须能指定模型）→ `config.toml`/`CLACKY_*` → `DEEPSEEK_*` 兜底（默认 `https://api.deepseek.com` + `deepseek-flash`，均可用 `DEEPSEEK_BASE_URL`/`DEEPSEEK_MODEL` 覆盖）；三者皆无时 exit 1 并给出可操作指引，绝不假成功。
+- `[feat]` **产物分层**：报告落 `docs/eval/<date>.md`（入库证据，含模型/来源/任务集/trials/工具面/解读边界），逐 trial transcript 与 `score.json` 落 `_build/capability/results/<stamp>/`，沙箱 `_build/capability/sandbox/`。
+- `[fix]` **真模型工具面被收窄**：`auto_approve` 下一切已注册工具自动执行（`should_auto_execute` 恒真），仅设 `allowed_tools` 只过滤"模型可见的 definitions"、执行解析仍走 registry，故改为**重建受限 registry**，把可执行面限定为 `file_reader`/`write`/`edit`/`grep`/`glob`（无 shell、无网络），与确定性层同构。
+- `[fix]` **契约探针不再可能触发真实计费**：原 `eval_live_unavailable` 探针断言"未接线"文本；新探针改为与 key 无关的确定性路径（缺任务集 → exit 1、`--offline --live` 互斥 → exit 2），因为探针继承进程环境，在有 key 的机器上跑有效 repo 会真发请求。
+- `[fix]` **缺目录诊断不再污染 stderr**：eval 命令先做 `path_exists` 判断再读目录，避免底层 fs 诊断直达 stderr 破坏"干净 stderr"契约（offline 路径一并修正）。
+- `[test]` 新增 `test/eval/live_harness_wbtest.mbt`（假 runner 驱动：逐 trial 独立沙箱/重复次数/成本累加/失败不中断/无 prompt 即基础设施失败/transcript 落盘/工具面收窄/任务集完整性）、`test/eval/capability_mock_wbtest.mbt`（**mock LLM 端到端**：真 runner + 真工具 + 真沙箱，断言文件副作用与 checks 一致）、`cmd/eval_live_wbtest.mbt`（模型解析优先级：显式覆盖 > config.toml > DeepSeek 兜底 > None）。
+- `[docs]` 台账 3 行 eval 缺口转 `fixed`（命中 98 → 95），并在 §已知环境问题登记两项：真模型评测已接线（含首次真模型结果），以及**流式 `[stream-summary]` 走 stdout 与其注释/spec 所称 stderr 不符**（范围外，改为如实声明契约）；`test/capability/README.md` 重写为可执行手册；`testing.md` 层 8、路线图 §2.3、执行计划 WP-2.2 同步；spec 归档 `specs/completed/2026-09-22_wp-2.2-live-model-eval.md`。
+
+> 验证：`moon check -d` 0 错 0 警；`moon test --release test/eval cmd` 63/63（含 mock LLM 端到端）；`selftest` 20/20（native 与 moon-run 一致）；`eval --offline` 3/3；`known_gaps`/`repo_stats` 闸门绿。
+> **首次真模型运行**（deepseek-flash @ api.deepseek.com，4 任务 × 3 次）：12/12 trial 通过、33/33 断言、可重复性 1.0、0 基础设施失败、97,130 token（prompt 93,084 / completion 4,046）；成本列 0 因该模型无定价条目（如实标注 + 以 token 为成本代理）。**如实说明**：任务集小且偏基础，全通过只证明链路与模型可用，**不构成模型能力结论**；与上游 Ruby 侧的对标尚未执行。
+
 ### 2026-09-22  GEP 技能反思做实：真实 LLM 反思 + 进化日志 + Web 端点（WP-2.1）
 
 - `[feat]` **技能反思环节从占位变为真实 LLM 驱动流程**：删除占位 `apply_improvements`，新增 `build_reflection_prompt`（嵌入技能名/定义/执行证据，要求严格 JSON 输出）与 `parse_reflection_response`（容错解析：剥离代码围栏、容忍前后缀散文、字符级花括号配平且正确处理字符串内引号与转义、丢弃空 suggestions 元素）；超长证据按头尾截断（上限 12000 字符）。

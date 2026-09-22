@@ -16,7 +16,7 @@
 | 5 | CLI 契约 | 对外承诺的退出码与输出形状 | `cmd/selftest.mbt` | `cmd.exe selftest --repo .` | 每次提交 | 有效 |
 | 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
 | 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | **驱动为骨架**，见 [test/benchmark/README.md](../test/benchmark/README.md) |
-| 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/` | `cmd.exe eval --live`（未接线） | 不进 CI（成本与随机性） | 规程已定、任务集与运行器未实现，台账登记 |
+| 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/`（任务集）+ `test/eval/live_harness.mbt`（运行器） | `cmd.exe eval --live` | 不进 CI（成本与随机性） | 有效（4 任务 × 3 重复；首次真模型运行见 `docs/eval/`，台账登记 stdouts 诊断限制） |
 
 层与层之间不互相替代：性能与真模型基准**不得**用作回归门禁（随机性与噪声），白盒/差分/链路/契约/确定性评测**不得**被基准替代。
 
@@ -31,13 +31,14 @@ test/
 ├── web/         层 4：Web API/WS 适配器
 ├── scenarios/   层 4：tui/ 与 web/ 的 JSON 场景文件
 ├── benchmark/   层 7：基准组件包 + scenarios/（输入）+ README（运行手册）
-├── capability/  层 8：真模型基准规程（README，任务集待建）
+├── capability/  层 8：真模型基准（README 规程 + tasks/*.json 任务集）
 └── fixtures/    层 1 的数据夹具：documents/（DOC/DOCX/XLSX/PPTX/PDF/WPS，含损坏与截断样本）
 ```
 
 夹具由 `lib/parser` 与 `lib/agent` 的白盒测试按**仓库根相对路径**读取（`moon test` 进程 CWD = 项目根）。
 所有运行产物一律落 `_build/` 下（已被 gitignore）：性能基准结果在 `_build/benchmark/results/`，
-评测沙箱在 `_build/eval_sandbox/`；仓库里不留一次性日志。
+确定性评测沙箱在 `_build/eval_sandbox/`，真模型评测的沙箱/transcript/JSON 在 `_build/capability/`；
+仓库里不留一次性日志（层 8 的 markdown 报告是**有意的入库证据**，落 `docs/eval/`）。
 
 ## 一键全跑（与 CI 同口径）
 
@@ -105,8 +106,10 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 
 - **层 7 性能基准**：`test/benchmark/`，运行手册与"驱动仍是骨架"的边界说明见
   [test/benchmark/README.md](../test/benchmark/README.md)。按里程碑手动跑，结果落 `_build/benchmark/results/`。
-- **层 8 真模型能力基准**：`test/capability/`，规程、任务 schema（与 `test/eval/tasks/` 同构）与判分口径见
-  [test/capability/README.md](../test/capability/README.md)。实现前 `cmd eval --live` 诚实 `exit 1`。
+- **层 8 真模型能力基准**：`test/capability/`（任务集）+ `test/eval/live_harness.mbt`（真 ReAct 运行器），任务 schema
+  与 `test/eval/tasks/` 同构、判分口径同为 `checks`/评分向量。运行方法与纪律见
+  [test/capability/README.md](../test/capability/README.md)；报告落 `docs/eval/<date>.md`（入库证据），
+  transcript 与 `score.json` 落 `_build/capability/results/<stamp>/`。
 
 ## CI 现状
 

@@ -1,0 +1,19 @@
+{
+  "id": "cap-001-file-edit",
+  "goal": "读取配置文件并把端口从 8080 改为 9090",
+  "seed": [
+    {
+      "path": "{sandbox}/config.yaml",
+      "content": "# service config\nport: 8080\nhost: localhost\n"
+    }
+  ],
+  "prompt": "工作目录里有 config.yaml。请读取它，把其中的 port 从 8080 改成 9090（其余内容保持不变），完成后简要说明你做了什么。",
+  "acceptance": "config.yaml 中 port 为 9090 且不再出现 8080；host 等其余内容未被破坏",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/config.yaml", "text": "port: 9090" },
+    { "kind": "file_not_contains", "path": "{sandbox}/config.yaml", "text": "port: 8080" },
+    { "kind": "file_contains", "path": "{sandbox}/config.yaml", "text": "host: localhost" }
+  ],
+  "trials": 3,
+  "source": "派生自 test/e2e/scenarios/001_read_edit_file.json"
+}

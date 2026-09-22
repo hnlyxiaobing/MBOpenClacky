@@ -510,14 +510,26 @@ fn probe_set() -> Array[Probe] {
       stdout_contains: ["\"completion_rate\"", "\"repeatability\""],
       stderr_expect: Clean,
     },
-    // The model-driven path is honestly unavailable (decision D1 fallback):
-    // exit 1 plus an actionable message, never a silent success.
+    // `eval --live` is the model-driven benchmark: it must fail honestly on bad
+    // input and must never silently succeed. The probe stays key-independent —
+    // it fails on input validation *before* the model is resolved — because the
+    // probe inherits this process's environment and a machine with a real key
+    // would otherwise make the contract probe a paid API call.
     {
-      name: "eval_live_unavailable",
-      args: ["eval", "--live"],
+      name: "eval_live_missing_tasks",
+      args: ["eval", "--live", "--repo", "no-such-repo-for-selftest"],
       exit_expect: Exact(1),
       stdout_shape: Text,
-      stdout_contains: ["not implemented in this build"],
+      stdout_contains: ["no task files found"],
+      stderr_expect: Clean,
+    },
+    // Contradictory mode selection is rejected up front, with no model call.
+    {
+      name: "eval_mode_conflict",
+      args: ["eval", "--offline", "--live"],
+      exit_expect: Exact(2),
+      stdout_shape: Text,
+      stdout_contains: ["mutually exclusive"],
       stderr_expect: Clean,
     },
   ]
