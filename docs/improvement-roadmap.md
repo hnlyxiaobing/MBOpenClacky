@@ -99,7 +99,7 @@
 | 开发规范 | `AGENTS.md`、`docs/development-efficiency.md`、`docs/ai-usage.md` | 编码/效率/AI 使用纪律 | 保留 |
 | 使用与体系 | `docs/getting-started.md`、`docs/testing.md`、`deploy/README.md` | 安装/测试/部署 | 保留 |
 | 子系统状态 | `docs/tui-architecture.md`、`docs/web-ui-parity.md`、`web/UPSTREAM_SYNC.md`、`web/PATCHES.md` | 与上游对齐的结论记录 | 保留（本轮已校准） |
-| 一次性过程记录 | `docs/MBOpenClacky-一页项目说明.md`、`docs/MBOpenClacky-改造开发计划.md` | 黑客松（9/11–9/24）报名与 13 天计划 | **9/24 提交确认后删除**——结论已沉淀在 `project-status.md` §8 与 `CHANGELOG.md`；活动窗口未过，暂留 |
+| 一次性过程记录 | ~~`docs/MBOpenClacky-一页项目说明.md`~~、~~`docs/MBOpenClacky-改造开发计划.md`~~ | 黑客松（9/11–9/24）报名与 13 天计划 | **已于 2026-09-22 删除**——排期表 / 逐日产出 / 报名前置项 / 一页主张属一次性记录（结论本就在 `project-status.md` §8 与 `CHANGELOG.md`）；仍有生命力的**范围冻结**与**下一期候选排序**已沉淀为本文 §7 |
 
 **本轮已修正的失真**（均以代码/实测为据）：
 
@@ -122,7 +122,34 @@
 2. **P0-1.2 / P1-2.1** 对渠道与媒体生成做一次"接线 or 降级声明"的决断——二者同源（async HTTP），可一并规划；不决断则维持"宣传 > 现实"的可信度损耗。
 3. **P1-2.3** 接通 `cmd eval --live`，拿到与上游对标的真模型质量硬证据（项目自身立项论点）。
 4. **P1-2.2** 做实 GEP SkillReflector，或收敛"自进化"表述。
-5. 9/24 黑客松提交确认后，删除两份一次性过程文档（§5）。
+5. ✅ 两份一次性过程文档（黑客松一页说明与 13 天改造计划）已于 2026-09-22 删除，可用内容并入本文 §7。
 6. P2/P3 按资源择机；均已在 `known-gaps.md` 如实登记，不构成可信度风险。
+
+---
+
+## 7. 范围冻结与下一期候选（原《MBOpenClacky-改造开发计划》沉淀，2026-09-22）
+
+> 本节承接已删除的一次性过程文档 `docs/MBOpenClacky-改造开发计划.md` 中仍有生命力的两条：**本期范围边界**与**下一期候选的依赖顺序**。逐日排期、DoD 清单与报名前置项随该文档一并删除；本期已交付项与验收证据由 [project-status.md](project-status.md) §8 与 [CHANGELOG.md](CHANGELOG.md) 承载。
+
+### 7.1 范围冻结（本期明确不做）
+
+范围外改动一律登记 [known-gaps.md](known-gaps.md)，不在本期实现：
+
+- 不新增 IM 渠道 / Provider，不重写前端；
+- 不实现 MCP `resources` / `prompts`（仅 Stdio 传输，HTTP 传输维持诚实报错 stub）；
+- 不动计费、白标、遥测的服务端集成；
+- 不追求 wasm 全量通过——**native 为唯一验收目标**（wasm 仅 `moon check`，非阻塞）。
+
+### 7.2 下一期候选（按运行时原语的依赖顺序）
+
+按 MoonBit 官方 OpenSeek 的工程纪律排序，上游原语就位后再叠加能力：
+
+1. **类型化 fail-closed 审批**：把当前的布尔通过/拒绝改为 `Rejected` / `Cancelled` / `Unavailable` 三分，审批不可用必须显式失败而非默认放行；
+2. **子代理进程级隔离**：隔离 + 预算 + 类型化报告；
+3. **沙箱与写范围工具化**：把"哪些路径可写"从隐式约定变成工具层强制；
+4. **`goal` / `plan` / `steer` / `job` 运行时原语**；
+5. **前端契约测试与产品端点探针**：把 Web 前端的消费面也纳入机器闸门。
+
+> 与 §2–§4 的关系：§2–§4 按"承诺落差 × 可信度影响 ÷ 成本"排（先做实已宣传的能力），本节按运行时原语的依赖顺序排（上游原语先行）；实际排期取两者交集。
 
 > 维护约定：本文件是**结论与优先级**，不替代 `known-gaps.md` 的逐行台账。每做实/降级一条，更新本文对应行的状态，并在 `CHANGELOG.md` 记一笔；数字口径一律以机器生成块为准，勿手改。

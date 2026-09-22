@@ -101,7 +101,7 @@ jobs:
           path: |
             _build/native/release
             _build/wasm-gc
-          key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
+          key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'scripts/build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
           restore-keys: |
             moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 

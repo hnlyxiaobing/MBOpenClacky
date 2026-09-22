@@ -38,7 +38,7 @@ pkgtype(kind: "executable")
 // for AES-256-GCM and RAND_bytes on Linux/macOS. Windows uses BCrypt
 // (auto-linked via #pragma comment in crypto_native.c).
 //
-// -lcrypto is injected by build-script.js (moon.mod prebuild) for non-Windows
-// platforms only; declaring it unconditionally here would make MSVC look for
-// crypto.lib and fail with LNK1181 on Windows (no OpenSSL installed).
-// See build-script.js header for the propagation mechanism.
+// -lcrypto is injected by scripts/build-script.js (moon.mod prebuild) for
+// non-Windows platforms only; declaring it unconditionally here would make MSVC
+// look for crypto.lib and fail with LNK1181 on Windows (no OpenSSL installed).
+// See scripts/build-script.js header for the propagation mechanism.

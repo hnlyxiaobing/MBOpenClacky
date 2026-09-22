@@ -29,5 +29,5 @@ description = "AI Agent CLI tool rewritten in MoonBit"
 preferred_target = "native"
 
 options(
-  "--moonbit-unstable-prebuild": "build-script.js",
+  "--moonbit-unstable-prebuild": "scripts/build-script.js",
 )

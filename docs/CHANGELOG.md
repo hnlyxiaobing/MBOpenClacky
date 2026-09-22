@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-09-22  一次性文档归并 + 构建脚本归位 `scripts/`
+
+- `[docs]` **归并并删除两份黑客松一次性文档**：`docs/MBOpenClacky-改造开发计划.md`（13 天排期 / DoD / 质量闸门矩阵 / 风险登记）与 `docs/MBOpenClacky-一页项目说明.md`（报名用一页说明与官方验收自检）。归并前逐项评估：质量闸门矩阵已在 `docs/ai-usage.md` 的闸门表、本期交付与验收证据已在 `docs/project-status.md` §8、逐日排期与报名前置项属一次性记录；仍有生命力的两条沉淀为 `docs/improvement-roadmap.md` §7——**§7.1 范围冻结**（不新增渠道/Provider、不重写前端、不实现 MCP resources/prompts、不动计费白标遥测服务端、native 为唯一验收目标）与 **§7.2 下一期候选**（类型化 fail-closed 审批 → 子代理进程级隔离+预算 → 沙箱与写范围工具化 → goal/plan/steer/job 原语 → 前端契约测试与产品端点探针）。无内容丢失。
+  - 关联引用同步：`docs/known-gaps.md` §状态说明与 `docs/ai-usage.md`（§声明、§人类审查关注点）原先指向改造计划文档的"范围冻结"，改指 `docs/improvement-roadmap.md` §7.1；`improvement-roadmap.md` §5 文档健康度表的"9/24 提交确认后删除"改为已完成，§6 第 5 条同步勾除。
+- `[chore]` **`build-script.js` 从仓库根归位 `scripts/build-script.js`**：该脚本是 `moon.mod` 的 `--moonbit-unstable-prebuild` 入口（为新构建规划器下不能声明 `link` 的 lib/brand、lib/web 注入 `-lcrypto` 链接配置），一直在核心位置却与其余 8 个脚本分离。移动后同步四处引用：`moon.mod` 的 prebuild 路径、`.github/workflows/ci.yml` 构建缓存的 `hashFiles` 列表、`Dockerfile` 的 nodejs 依赖说明、`cmd/moon.pkg` 的注释。
+  - `[fix]` 顺带修正 `lib/brand/moon.pkg`、`lib/web/moon.pkg` 注释里把该脚本误写成 `build-script.py` 的旧名（脚本从来是 `.js`，`.dockerignore`/`COPY . .` 不受影响）。
+  - `[refactor]` 脚本内删除一处死逻辑：stdin 的 `data` 监听把 `BuildScriptEnvironment` JSON 累加进 `input` 变量，但全程未读取——改为只排空 stdin 等 `end`，输出契约（`rerun_if` / `vars` / `link_configs`）与 Windows 不注入 `-lcrypto` 的分支行为不变。
+
 ### 2026-09-22  连通性探针真实化 + 遗留卫生清理
 
 - `[feat]` **四平台连通性探针真实化**：`POST /api/channels/:id/test` 对 telegram/wecom/weixin/dingtalk 从 `not_implemented` 改为真实只读探测——telegram 调 Bot API `getMe`、企微请求 corp `gettoken`、微信跑 1 秒超时的 `getupdates`、钉钉请求新 API `accessToken`；凭据缺失或被拒时回传平台自身的诊断错误（不再有"未实现"占位）。新增 `WeixinApiClient::probe_connectivity`（复用 auth_headers 与响应解析，避免连通性测试阻塞 40 秒），并给 `extract_api_error` 补上 Telegram 的 `description` 字段。
