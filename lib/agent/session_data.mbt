@@ -197,6 +197,22 @@ pub extend SessionStats with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend SessionStats with Eq::{not_equal, equal}
 
 ///|
+/// Zeroed statistics, used when a persisted file carries no `stats` block
+/// (upstream-format files) or one that no longer decodes.
+fn empty_session_stats() -> SessionStats {
+  {
+    total_iterations: 0,
+    total_cost_usd: 0.0,
+    total_tasks: 0,
+    cost_source: "manual",
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    total_requests: 0,
+    cache_hit_requests: 0,
+  }
+}
+
+///|
 /// Complete serializable snapshot of an Agent session.
 pub(all) struct SessionData {
   session_id : String
@@ -528,9 +544,12 @@ impl FromJson for SessionData with fn from_json(json, path) {
         Some(String(s)) => s
         _ => raise JsonDecodeError((path, "SessionData: missing 'session_id'"))
       }
+      // Presentation-only fields: older and upstream-format files can omit
+      // them, and losing a whole session over an unnamed file would put it
+      // back in the silently-skipped set this reader exists to empty.
       let name = match map.get("name") {
         Some(String(s)) => s
-        _ => raise JsonDecodeError((path, "SessionData: missing 'name'"))
+        _ => ""
       }
       let messages = match map.get("messages") {
         Some(Array(items)) => {
@@ -543,16 +562,22 @@ impl FromJson for SessionData with fn from_json(json, path) {
         _ => raise JsonDecodeError((path, "SessionData: missing 'messages'"))
       }
       let stats = match map.get("stats") {
-        Some(s) => FromJson::from_json(s, path.add_key("stats"))
-        _ => raise JsonDecodeError((path, "SessionData: missing 'stats'"))
+        Some(s) => FromJson::from_json(s, path.add_key("stats")) catch {
+          _ => empty_session_stats()
+        }
+        _ => empty_session_stats()
       }
       let working_dir = match map.get("working_dir") {
         Some(String(s)) => s
-        _ => raise JsonDecodeError((path, "SessionData: missing 'working_dir'"))
+        _ => ""
       }
+      // Timestamps are written as ISO strings; upstream-format files store
+      // them as epoch-millisecond numbers, which `normalize_created_at`
+      // already knows how to convert.
       let created_at = match map.get("created_at") {
         Some(String(s)) => normalize_created_at(s)
-        _ => raise JsonDecodeError((path, "SessionData: missing 'created_at'"))
+        Some(Number(d, ..)) => normalize_created_at(d.to_int64().to_string())
+        _ => ""
       }
       let source = match map.get("source") {
         Some(String(s)) => s

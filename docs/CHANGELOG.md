@@ -25,6 +25,26 @@
 
 ## 变更记录
 
+### 2026-09-22  MCP HTTP 传输接线（执行计划 WP-3.3）
+
+- `[feat]` **MCP 从"只有 Stdio"变为 Stdio + HTTP 双传输**：`lib/mcp/http_transport.mbt` 的三处 `Err("HTTP MCP transport not implemented yet")` 全部换成真实实现（`@async/http`）。
+  - 实现 MCP **Streamable HTTP**：每请求一条连接 POST，应答按 `Content-Type` 分流——`application/json` 取与本请求 id 匹配的帧（含 batch 数组），`text/event-stream` 逐帧扫描 `data:` 行并在命中本 id 时立即返回（服务端保持流打开也不会挂死），非本请求的 JSON-RPC 帧（通知 / 服务端发起请求）按 stdio 同语义转交 message handler。
+  - 服务端 `Mcp-Session-Id` 被捕获并在后续请求回带（有状态 server 不会把第二个请求当新会话）。
+  - `start` 只做配置校验（绝对 http(s) + 有 host）并置为可用——Streamable HTTP 无常驻连接，可达性由第一个请求如实报错，**不假装已连接**；通知按 202/空体为成功，HTTP ≥400 与服务端 error 对象都报错（延续 stubfix-02 的禁止假成功）。
+  - 测试 **13 条全部走真实 socket**（同进程 `@http.Server` 绑 127.0.0.1 临时端口，无外网）：JSON 往返、SSE 往返（通知 + 陈旧 id 帧 + 本 id 帧，断言只返回本 id 且前两帧被转发）、路径/`Accept`/会话回带、空通知体、服务端 503、拒连、SSE 未回复即关流、另一 id 的回复被拒、batch 与 url 切分单测；另有**端到端**一条：`McpClient` 经 HTTP 完成 `initialize` + `notifications/initialized` + `tools/list`。存量"断言 stub 报错"的闸门测试改写为"不可用 url 必真报错"。
+  - 验证：`moon check -d` 0 错 0 警；新测试 13/13 与其余非挂死分片（`build_jsonrpc` 3、`dispatch_line` 4、`session_id` 1、`McpClient` 6、`registry` 13、`virtual_skill` 1）全绿；台账 3 行消失（89 → 86）并转 `fixed`。**如实说明**：Windows 本机仍无法跑 `lib/mcp` 全量（`mcp.whitebox_test.exe` 挂死在 stdio 的 python3 集成测试，WP-3.5 范围），故采用分片验证；CI（Linux）该包全绿。spec 归档 `specs/completed/2026-09-22_wp-3.3-mcp-http-transport.md`。
+
+### 2026-09-22  旧会话只读迁移投影（执行计划 WP-3.1）
+
+- `[fix]` **参考机上 32 个历史会话文件从"只列出 1 个"变为 32/32 全部可见**（`cmd --list` 不再有"未列出"提示）。
+  - 逐文件核对（原执行计划只笼统写"旧 `tool_calls` schema 不匹配"）后定位到**两类独立成因**：① **7 个文件的根本不是 JSON**——早期构建把 `Json` 的 Debug-repr（`Object({session_id: String(...)})`）写进了 `.json`；② **24 个文件被旧的 Option 序列化器多包了一层**（`Some(x)` 写成 `[x]`，`tool_calls` 因此是 `[[...]]`，解码在 `ToolCall: expected object` 处失败），同批文件里 `tool_call_id`/`name`/`reasoning_content` 被写成 `[scalar]`——**原先不只是"看不见"，而是静默丢字段**（会让恢复后的 tool_result 失去与 tool_call 的配对）。
+  - 新增 `lib/agent/session_legacy_repr.mbt`：Debug-repr → `Json` 的递归下降投影（含 `String(...)` 原文体的括号终结规则）；解析必须整份到结尾，否则返回 `None` 而非半截猜测。裸 JSON 失败时才回退到该投影。
+  - `lib/message` 新增 `opt_message_string`/`opt_message_bool`/`opt_message_tool_calls` 容忍旧包装，`ToolCall` 兼容旧派生键 `type_`；`SessionData` 对缺 `stats`/`working_dir`/`name` 与数字型 `created_at` 不再丢弃整份会话（`session_id`/`messages` 仍硬要求）。
+  - `cmd inspect` 现在按实际格式报告（`format: legacy debug-repr` / `legacy json`）并渲染时间线，而非只报"不是会话文件"。
+  - **只读保证**：磁盘字节不变，投影只在内存中构造（按 WP 决策"只读，不就地改写"）。
+  - 测试：`lib/agent` 502/502（含 8 条新用例：投影形态、正文保真含裸 `)`、数字整/小数、拒非 repr、拒截断、列表/加载集成、字段变体、格式标签）；`lib/message` 76/76（含 6 条旧包装用例）。夹具只复用真实 dump 的**结构**，正文自拟（真实文件含 CONFIDENTIAL 品牌内容，不入库）。
+  - **如实说明**：参考机上没有上游 openclacky（Ruby）的原始会话样本，故"对上游文件的端到端比对"仍属未验证；`README.md` 已改为精确表述（已验证：旧版转储 + 字段变体；未验证：上游原始样本），不用 DoD 的乐观措辞。spec 归档 `specs/completed/2026-09-22_wp-3.1-legacy-session-readonly-projection.md`。
+
 ### 2026-09-22  全平台消息编辑/撤回接线（执行计划 WP-1.6）
 
 - `[feat]` **编辑/撤回从"声明支持、实现是 stub"变为真实端点（WP-1.6）**：`Adapter` trait 新增 `delete_message` + `supports_message_deletion`，`AnyAdapter` 补 6 平台分发；飞书 / Telegram / Discord 的编辑与撤回走真实 HTTP。

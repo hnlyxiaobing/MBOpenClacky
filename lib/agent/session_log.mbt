@@ -412,18 +412,14 @@ pub fn SessionLock::release(self : SessionLock) -> Unit {
 
 ///|
 /// Load a legacy whole-JSON session from an arbitrary path (read-only),
-/// reporting why a file could not be read.
-pub fn load_session_file(path : String) -> Result[SessionData, String] {
+/// reporting why a file could not be read. The second element of the `Ok`
+/// names the on-disk format ("legacy json" or "legacy debug-repr") so the
+/// caller can report which projection was applied.
+pub fn load_session_file(path : String) -> Result[(SessionData, String), String] {
   let content = @fs.read_file_to_string(path) catch {
     err => return Err("cannot read file: " + @debug.to_string(err))
   }
-  let json = @json.parse(content) catch {
-    err => return Err("not valid JSON: " + @debug.to_string(err))
-  }
-  let parsed : SessionData = @json.from_json(json) catch {
-    err => return Err("not a session document: " + @debug.to_string(err))
-  }
-  Ok(parsed)
+  decode_session_document(content)
 }
 
 ///|

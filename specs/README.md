@@ -102,6 +102,24 @@ specs/
 归档文档：`specs/completed/2026-09-21_wrap-up-truth-hygiene-and-eval.md`
 （含决策 D1–D4、6 处对原计划的第一性原理修正，以及 CI/Docker 两条既有红因的定位过程）。
 
+### 2026-09-22 — 优化提升执行计划批次（P0/P1 主线闭环 + 2 个 P2 卫生项）
+
+> 本节为**补记**：该批次此前未回填到本索引（上一节停在 2026-09-21）。逐项的验证判据与实测数字见 `docs/CHANGELOG.md` 对应条目，避免在两处重复维护易漂移的数字。
+
+| Spec | 名称 |
+|------|------|
+| `2026-09-22_wp-1.1-feishu-wiring.md` | 飞书 send/receive 接线 |
+| `2026-09-22_wp-1.2-1.4-channel-send-wiring.md` | 钉钉 · 企微 · 微信 send 接线（微信含 AES-128-ECB 加密原语） |
+| `2026-09-22_wp-1.6-message-edit-delete-wiring.md` | 全平台 update/delete_message 接线（`Adapter` 扩 `delete_message` + 6 平台分发） |
+| `2026-09-22_wp-2.1-gep-skill-reflector.md` | GEP SkillReflector 做实（LLM 驱动反思 + 进化日志 + Web 端点） |
+| `2026-09-22_wp-2.2-live-model-eval.md` | `cmd eval --live` 真模型评测接线（含首次真模型运行报告） |
+| `2026-09-22_wp-3.1-legacy-session-readonly-projection.md` | 旧会话只读迁移投影（参考机会话 1/32 → 32/32 可列出；只读，不改写文件） |
+| `2026-09-22_wp-3.3-mcp-http-transport.md` | MCP HTTP 传输接线（Streamable HTTP / SSE，13 条真实 socket 测试 + `McpClient` 端到端握手） |
+| `2026-09-22_channel-config-single-source-of-truth.md` | 渠道配置单一真相源贯通（配置路径 → 运行时 → Web 面板 → channel-manager 技能） |
+| `2026-09-22_leftover-hygiene-and-connectivity-probes.md` | 渠道连通性探针真实化 + 遗留卫生清理 |
+
+未完成项（WP-3.2、WP-3.4~3.6）的精确剩余范围与逐项代码核对证据见 `docs/improvement-execution-plan.md` §3.1。
+
 ## 模板说明
 
 | 模板 | 用途 | 适用场景 |

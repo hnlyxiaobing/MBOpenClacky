@@ -76,15 +76,18 @@ test "build_jsonrpc_request ID format" {
 }
 
 ///|
-async test "HttpTransport start returns honest not-implemented error" {
-  let spec = McpServerSpec::http("api", "http://localhost:9/mcp")
+/// HttpTransport no longer reports "not implemented": an unusable url is
+/// rejected up front, a usable one starts (see `http_transport_wbtest.mbt`
+/// for the round trips against a real local server).
+async test "HttpTransport start rejects an unusable url" {
+  let spec = McpServerSpec::http("api", "localhost:9/mcp")
   let t = HttpTransport::new(spec)
   let started : Result[Unit, String] = t.start() catch {
     _ => Err("Transport start was cancelled")
   }
   match started {
     Ok(_) => assert_true(false)
-    Err(e) => assert_true(e.contains("not implemented"))
+    Err(e) => assert_true(e.contains("http(s)"))
   }
   assert_false(t.alive())
 }

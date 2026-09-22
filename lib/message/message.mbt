@@ -399,6 +399,58 @@ pub fn Message::to_persist_message(self : Message) -> Message {
 }
 
 ///|
+/// Read an optional message string field.
+///
+/// An earlier build's broken `Option` serializer persisted `Some(x)` as
+/// `[x]`, so a single-element array is unwrapped instead of dropped — the
+/// same tolerance `opt_string_field` applies to session-level fields. Without
+/// it, `tool_call_id` silently vanishes and restored tool results can no
+/// longer be paired with their calls.
+fn opt_message_string(map : Map[String, Json], key : String) -> String? {
+  match map.get(key) {
+    Some(String(s)) => Some(s)
+    Some(Array([String(s)])) => Some(s)
+    _ => None
+  }
+}
+
+///|
+/// Read an optional message bool field, unwrapping the same `[true]` /
+/// `[false]` wrapper.
+fn opt_message_bool(map : Map[String, Json], key : String) -> Bool? {
+  match map.get(key) {
+    Some(True) | Some(Array([True])) => Some(true)
+    Some(False) | Some(Array([False])) => Some(false)
+    _ => None
+  }
+}
+
+///|
+/// Read the persisted tool-call list, tolerating the `[[...]]` wrapper the
+/// broken serializer wrote around `Array[ToolCall]?`.
+fn opt_message_tool_calls(
+  map : Map[String, Json],
+  path : @json.JsonPath,
+) -> Array[ToolCall]? raise @json.JsonDecodeError {
+  let items = match map.get("tool_calls") {
+    Some(Array([Array(inner)])) => Some(inner)
+    Some(Array([Null])) => None
+    Some(Array(items)) => Some(items)
+    _ => None
+  }
+  match items {
+    Some(items) => {
+      let calls : Array[ToolCall] = []
+      for item in items {
+        calls.push(FromJson::from_json(item, path.add_key("tool_calls")))
+      }
+      Some(calls)
+    }
+    None => None
+  }
+}
+
+///|
 pub impl FromJson for Message with fn from_json(json, path) {
   match json {
     Object(map) => {
@@ -410,36 +462,15 @@ pub impl FromJson for Message with fn from_json(json, path) {
         Some(c) => FromJson::from_json(c, path.add_key("content"))
         _ => MessageContent::Text("")
       }
-      let tool_calls = match map.get("tool_calls") {
-        Some(Array(items)) => {
-          let calls : Array[ToolCall] = []
-          for item in items {
-            calls.push(FromJson::from_json(item, path.add_key("tool_calls")))
-          }
-          Some(calls)
-        }
-        _ => None
-      }
-      let tool_call_id = match map.get("tool_call_id") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let name = match map.get("name") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let reasoning_content = match map.get("reasoning_content") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+      let tool_calls = opt_message_tool_calls(map, path)
+      let tool_call_id = opt_message_string(map, "tool_call_id")
+      let name = opt_message_string(map, "name")
+      let reasoning_content = opt_message_string(map, "reasoning_content")
       let latency = match map.get("latency") {
         Some(Null) | None => None
         Some(j) => Some(j)
       }
-      let display_text = match map.get("display_text") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+      let display_text = opt_message_string(map, "display_text")
       let display_files = match map.get("display_files") {
         Some(Null) | None => None
         Some(Array(items)) => {
@@ -454,53 +485,23 @@ pub impl FromJson for Message with fn from_json(json, path) {
         }
         _ => None
       }
-      let session_date = match map.get("session_date") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let session_context = match map.get("session_context") {
-        Some(True) => Some(true)
-        Some(False) => Some(false)
-        _ => None
-      }
-      let task_id = match map.get("task_id") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let created_at = match map.get("created_at") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let system_injected = match map.get("system_injected") {
-        Some(True) => Some(true)
-        Some(False) => Some(false)
-        _ => None
-      }
+      let session_date = opt_message_string(map, "session_date")
+      let session_context = opt_message_bool(map, "session_context")
+      let task_id = opt_message_string(map, "task_id")
+      let created_at = opt_message_string(map, "created_at")
+      let system_injected = opt_message_bool(map, "system_injected")
       let memory_update = match map.get("memory_update") {
         Some(Null) | None => None
         Some(j) => Some(j)
       }
-      let subagent_instructions = match map.get("subagent_instructions") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let subagent_result = match map.get("subagent_result") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+      let subagent_instructions = opt_message_string(map, "subagent_instructions")
+      let subagent_result = opt_message_string(map, "subagent_result")
       let token_usage = match map.get("token_usage") {
         Some(Null) | None => None
         Some(j) => Some(j)
       }
-      let compressed_summary = match map.get("compressed_summary") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let transient = match map.get("transient") {
-        Some(True) => Some(true)
-        Some(False) => Some(false)
-        _ => None
-      }
+      let compressed_summary = opt_message_string(map, "compressed_summary")
+      let transient = opt_message_bool(map, "transient")
       {
         role,
         content,

@@ -22,12 +22,12 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 308 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 217 |
-| 源代码行数 | 100,391 |
-| 测试行数 | 61,590 |
-| 总行数 | 161,981 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3953 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 220 |
+| 源代码行数 | 101,013 |
+| 测试行数 | 62,345 |
+| 总行数 | 163,358 |
+| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -183,7 +183,7 @@
 | Web Server | lib/clacky/server/ (36 文件) | lib/server/ (21 文件) + lib/web/ (85 文件) | ✅ 完整 |
 | REST API | lib/clacky/web/ (多个 handler) | lib/web/handlers*.mbt | ✅ 完整 |
 | WebSocket | ws.js + ws-dispatcher.js | lib/web/broadcast/hub.mbt | ✅ 完整 |
-| MCP 协议 | lib/clacky/mcp/ | lib/mcp/ | ⚠️ Stdio 完整；HTTP 传输为 stub（`Err("not implemented")`，见 known-gaps） |
+| MCP 协议 | lib/clacky/mcp/ | lib/mcp/ | ✅ Stdio + HTTP（Streamable HTTP / SSE）双传输完整（WP-3.3，2026-09-22） |
 | 流式聚合 | *_stream_aggregator.rb (3 文件) | format_*.mbt (3 文件) | ✅ 完整 |
 | Provider 管理 | providers.rb (1084 行) | lib/config/provider.mbt | ✅ 完整 |
 
@@ -317,7 +317,7 @@
 | Web 前端 | **~95%** | 功能完整，Rich UI 组件差异 |
 | 扩展系统 | **100%** | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio) |
 | 部署运维 | **110%** | 超越原项目 |
-| MCP 协议 | **部分** | Stdio 传输完整；HTTP 传输为 stub（诚实报错，见 known-gaps） |
+| MCP 协议 | **100%** | Stdio 与 HTTP（Streamable HTTP / SSE）传输均为真实实现；能力面仍只覆盖 tools（`resources`/`prompts` 原就不在范围） |
 | 账单系统 | **100%** | 完整实现 + 汇率扩展 |
 | 核心引擎 | **100%** | Agent + Session + Context + Hook |
 
@@ -350,7 +350,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
 | P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 基础设施已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。**注意**：执行驱动仍是模拟（计时恒 0ms、回归报告场景名 `unknown`），真实执行属 [improvement-execution-plan.md](improvement-execution-plan.md) **WP-3.4，未开始** |
-| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ❌ **6 项未开始**（17 个 WP 中 10 完成 / 1 作废 / 6 未开始）；逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
+| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ⚠️ **4 项未开始**（17 个 WP 中 12 完成 / 1 作废 / 4 未开始）；已完成 WP-3.1 旧会话只读投影（参考机会话 1/32 → **32/32 可列出**）与 WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）。逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
 | P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---

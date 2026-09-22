@@ -18,12 +18,12 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 308 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 217 |
-| 源代码行数 | 100,391 |
-| 测试行数 | 61,590 |
-| 总行数 | 161,981 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3953 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 220 |
+| 源代码行数 | 101,013 |
+| 测试行数 | 62,345 |
+| 总行数 | 163,358 |
+| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -38,7 +38,7 @@
 ### 功能亮点
 
 - **多 LLM 后端**：OpenAI / Anthropic / DeepSeek / GLM 等 13 种 Provider 预设
-- **MCP 协议**：Stdio 传输 + JSON-RPC 2.0 + 虚拟 Skill 映射（HTTP 传输为诚实报错的 stub，见 [known-gaps](docs/known-gaps.md)）
+- **MCP 协议**：Stdio 与 HTTP（Streamable HTTP / SSE）传输 + JSON-RPC 2.0 + 虚拟 Skill 映射（HTTP 侧经本地 mock server 完成握手与 tools/list 往返）
 - **6 平台 IM 渠道**：飞书 / 企微 / Telegram / Discord / 钉钉 / 微信
 - **Web 前端 SPA + REST API**：暗色主题 + WebSocket 实时通信（token 级流式），默认端口 7071
 - **多模态处理**：PDF/DOCX/PPTX/XLSX 解析 + Vision OCR + 视频理解（FFmpeg 抽帧 + LLM Vision）
@@ -74,7 +74,7 @@
 | 并发需求 | 单用户 CLI 场景，无高并发 | 适合多进程/多线程并发写入 |
 | 数据规模 | 会话数据量小（KB 级） | 适合大数据量（MB+） |
 | 跨平台 | 纯文件操作，无平台差异 | 需处理不同平台 SQLite 兼容性 |
-| 与原项目兼容 | 沿用同一套 JSON 会话文件格式；对上游 openclacky 会话的**读取兼容性未经验证**（旧版本会话文件的可见性已修，schema 迁移未做，见 [known-gaps](docs/known-gaps.md)） | 需额外迁移逻辑 |
+| 与原项目兼容 | 沿用同一套 JSON 会话文件格式。参考机上 32 个历史会话文件（含早期 Debug-repr 转储、旧 Option 序列化器写出的 `[x]` / `[[...]]` 形态）**只读读取已验证**：`--list` 与 `cmd inspect` 均可读，文件本身不被改写。**上游 openclacky（Ruby）原始会话文件样本不在手**，未做端到端比对；读取路径已放宽为容忍缺字段、数字时间戳等字段变体（见 [known-gaps](docs/known-gaps.md)） | 需额外迁移逻辑 |
 
 结论：对于 AI Agent CLI 工具的单用户、低并发、小数据量场景，JSON 文件方案在简洁性、可调试性和零依赖方面优势明显，是更合适的选择。
 
@@ -164,7 +164,7 @@ MBOpenClacky/
 │   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）
 │   ├── skill/          # 技能系统 + GEP 进化引擎
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
-│   ├── mcp/            # MCP 协议（Stdio + JSON-RPC；HTTP 传输为 stub，见 known-gaps）
+│   ├── mcp/            # MCP 协议（Stdio + HTTP/SSE 传输 + JSON-RPC 2.0）
 │   ├── channel/        # 6 平台 IM 适配器
 │   ├── web/            # Web 服务器（214 条路由注册，数量见上方机器生成表、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）

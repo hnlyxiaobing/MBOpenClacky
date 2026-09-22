@@ -154,7 +154,7 @@ pub fn list_sessions() -> Array[SessionData]
 
 pub fn load_session(String) -> SessionData?
 
-pub fn load_session_file(String) -> Result[SessionData, String]
+pub fn load_session_file(String) -> Result[(SessionData, String), String]
 
 pub let max_fake_tool_call_retries : Int
 

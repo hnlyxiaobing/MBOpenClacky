@@ -22,7 +22,7 @@
 | Docker 工作流失败（`Build Docker image`） | **2026-09-21 已定位并修复。** 根因是产物路径写错，且**在 Dockerfile 中出现两处**：① 构建阶段的 `test -f /build/_build/native/release/build/cmd/cmd.exe` 断言；② 运行阶段的 `COPY --from=builder /build/_build/native/release/build/cmd/cmd.exe`。moon 的产物路径含模块命名空间，实际为 `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd`，两处**恒不成立**——`moon build` 本身成功，失败来自这两处引用。buildx 报文即指向 ②：`failed to compute cache key ... "\/build\/_build\/native\/release\/build\/cmd\/cmd.exe": not found`（**经 job 页面读到的真实报错**） | **fixed**：构建阶段把产物规范化为稳定路径 `/build/out/mbopenclacky`（`cmd`/`cmd.exe` 两种后缀在本地判别），运行阶段改为 `COPY --from=builder /build/out/mbopenclacky`；注释写明路径规则。**复验为绿**：commit `7770730` 的 `Docker` 工作流（run `35566838562`）全部步骤 success，含 `Build Docker image` 与 `Verify image`（后者 `docker run --rm mbopenclacky:latest --version` 实际执行了镜像内二进制）。本机无 Docker，本地无法复现；判据取自工作流步骤级结果 |
 | wasm-gc 目标 | `moon test --target wasm-gc` 因 tty/crescent 的 native FFI 失败 | 本期以 native 为唯一验收目标；wasm 仅 `moon check`（非阻塞） |
 | 真模型评测波动 | mock LLM 测试无法回答"真模型能否干活" | **已接线（2026-09-22，WP-2.2）**：`cmd eval --offline` 给工具层一个可复现判据（3 任务 × 2 次重复，进 CI）；`cmd eval --live` 用真实 ReAct 循环跑 `test/capability/tasks/`（4 任务 × 3 次重复）并产出评分向量 + 报告（`docs/eval/<date>.md`，不进 CI）。**首次真模型运行（deepseek-flash @ api.deepseek.com）**：12/12 trial 全通过、33/33 断言、可重复性 1.0、0 基础设施失败、97,130 token；本次**如实说明**：任务集小且偏基础，全通过只说明链路与模型可用，不构成"模型强"的证据（成本列因该模型无定价条目记为 0，token 用量为真实成本代理） |
-| 旧会话文件兼容性 | 参考机器 `~/.mbopenclacky/sessions/` 有 32 个 `.json`，`--list` 仅列出 1 个（`list_sessions` 静默跳过解析失败/软删除的文件）；原因包括旧 `tool_calls` schema 不匹配与文件根本不是 JSON | 已修（可见性）：`--list` 现在打印未列出文件数，`cmd inspect <file>` 逐文件报告具体原因（P1-2）。旧文件只读保留，不做就地改写；schema 迁移本身仍待办 |
+| 旧会话文件兼容性 | 参考机器 `~/.mbopenclacky/sessions/` 有 32 个 `.json`，`--list` 曾仅列出 1 个（`list_sessions` 静默跳过解析失败/软删除的文件）；原因包括旧 `tool_calls` schema 不匹配（旧 Option 序列化器把 `Some(x)` 写成 `[x]`，`tool_calls` 因此成为 `[[...]]`，解码报 `ToolCall: expected object`）与文件根本不是 JSON（早期构建把 `Json` 的 Debug-repr 写进 `.json`） | **已修（2026-09-22，WP-3.1 只读迁移投影）**：新增 Debug-repr 投影（`lib/agent/session_legacy_repr.mbt`，repr → `Json`，解析不到底返回 `None` 而非猜测）+ 放宽旧 Option 包装与缺字段容忍；参考机 **32/32 全部可列出**，`cmd inspect` 两种旧格式都给出时间线。**只读**：文件字节不变，不做就地改写（按 WP 决策，schema 迁移=只读投影，非重写既有文件）。参考机上仍无上游 Ruby 会话样本，故对上游原始文件的端到端比对仍属未验证的诚实缺口（README 已如实标注） |
 | P1-1 协议接入面（TUI） | `lib/protocol` 已接入 Web（`ws_frame` + 全部事件构造）与 CLI（`--ndjson` 事件流 + `cmd inspect` 渲染），TUI 仍直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息：tool args 原始字符串、MessageAdded/AfterIteration 区分） | 计划风险表预案"先抽协议 + 保留适配层，不做大爆炸式替换"；TUI 的 HookEvent 匹配仍是穷尽的（新增引擎事件即编译失败）。如需 TUI 也绑定 wire 词表，见 `specs/decisions/` ADR-0001 的后续项 |
 | P2 能力评测分层 | `test/eval/eval_engine.mbt` 是通用场景引擎；确定性 `tool_harness` 与真模型 `cmd eval 5×3` 的落地状态 | **两层均已落地（2026-09-22，WP-2.2）**：确定性层 `test/eval/tool_harness.mbt` + `cmd eval --offline`（3 任务 × 2 重复，进 CI）；真模型层 `test/eval/live_harness.mbt` + `test/capability/tasks/`（4 任务 × 3 重复，不进 CI），两层共用同一任务 schema（真模型层追加 `prompt`/`acceptance`/`trials`）与同一 `checks`/评分向量。任务集扩充（目标 20~30 条）仍在路线图内 |
 | 真模型评测的 stdout 诊断污染 | 流式调用每次收尾打印一行 `[stream-summary]`（`lib/agent/llm_caller.mbt:685`），其注释与所依据的 spec（`2026-08-18_02` 决策 5）都写"visible in stderr"，实际却走 `println`（stdout） | **范围外（WP-2.2 发现并如实登记）**：影响一切机器可读 stdout（`-m --json`、`eval --live`）。本 WP 未改共享诊断路由（MoonBit core 无 stderr 原语，`eprintln` 属 async 内部包，改用文件 logger 会失去控制台可见性），改为**如实声明契约**：`eval --live` 的 JSON 是 stdout **最后一行**，且另存 `_build/capability/results/<stamp>/score.json`。修复该行需要专门的诊断路由决策 |
@@ -34,7 +34,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **89** 条（另有 119 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **86** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -69,9 +69,6 @@
 | lib/extension/verifier.mbt:159 | not-yet | /// Validate dependencies. MVP: just warn that automatic resolution is not yet implemented. |
 | lib/hook/shell_loader.mbt:21 | TODO,placeholder | // Parse hooks.yml (placeholder: TODO file read + TOML/YAML parse) |
 | lib/hook/shell_loader.mbt:48 | TODO,placeholder | // 2. Pass event_data JSON to STDIN (placeholder: TODO FFI) |
-| lib/mcp/http_transport.mbt:58 | not-implemented | Err("HTTP MCP transport not implemented yet (url: \{self.url})") |
-| lib/mcp/http_transport.mbt:81 | not-implemented | Err("HTTP MCP transport not implemented yet (url: \{self.url})") |
-| lib/mcp/http_transport.mbt:95 | not-implemented | Err("HTTP MCP transport not implemented yet (url: \{self.url})") |
 | lib/mcp/stdio_transport.mbt:35 | stub | /// (WASM stub - process spawning not supported). |
 | lib/mcp/stdio_transport.mbt:518 | stub | // ── WASM fallback stubs ──────────────────────────────────────────────────── |
 | lib/mcp/stdio_transport.mbt:521 | stub | /// Start the child process (WASM stub - not supported). |
@@ -223,9 +220,7 @@
 | lib/extension/verifier.mbt:159 | open | 范围外（extension） | 依赖自动解析未实现，仅警告 |
 | lib/hook/shell_loader.mbt:21 | open | 范围外（hook） | hooks.yml 读取与 STDIN 传递未实现 |
 | lib/hook/shell_loader.mbt:48 | open | 范围外（hook） | hooks.yml 读取与 STDIN 传递未实现 |
-| lib/mcp/http_transport.mbt:58 | open | 范围外（MCP） | MCP HTTP 传输为 stub；README 不实声明已修正（P0-2） |
-| lib/mcp/http_transport.mbt:81 | open | 范围外（MCP） | MCP HTTP 传输为 stub；README 不实声明已修正（P0-2） |
-| lib/mcp/http_transport.mbt:95 | open | 范围外（MCP） | MCP HTTP 传输为 stub；README 不实声明已修正（P0-2） |
+| lib/mcp/http_transport.mbt:58 | fixed | WP-3.3 | MCP Streamable HTTP 已接线（2026-09-22）：`start` 校验 url 并置为可用（无连接可建），`send_request` 走 `@async/http` POST，`application/json` 与 `text/event-stream` 两种应答都可解析，服务端 `Mcp-Session-Id` 被捕获并在后续请求回带；行号随重写漂移 |
 | lib/mcp/stdio_transport.mbt:35 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:518 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:521 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |

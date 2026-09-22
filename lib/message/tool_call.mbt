@@ -93,9 +93,15 @@ impl FromJson for ToolCall with fn from_json(json, path) {
         Some(String(s)) => s
         _ => raise JsonDecodeError((path, "ToolCall: missing 'id'"))
       }
+      // Older builds persisted the struct field name `type_` (derived
+      // `ToJson`); current writes use `type`.
       let type_ = match map.get("type") {
         Some(String(s)) => s
-        _ => "function"
+        _ =>
+          match map.get("type_") {
+            Some(String(s)) => s
+            _ => "function"
+          }
       }
       let function = match map.get("function") {
         Some(f) => FromJson::from_json(f, path.add_key("function"))

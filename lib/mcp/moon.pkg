@@ -4,6 +4,12 @@ import {
   "moonbitlang/x/fs",
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
+  "moonbitlang/async/http",
   "moonbitlang/async/process",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
+
+import {
+  "moonbitlang/async/io",
+  "moonbitlang/async/socket",
+} for "wbtest"

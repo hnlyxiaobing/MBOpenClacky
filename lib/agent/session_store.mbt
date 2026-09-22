@@ -125,6 +125,53 @@ pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
 }
 
 ///|
+/// Decode one session document as plain JSON.
+fn decode_session_json(json : Json) -> Result[SessionData, String] {
+  let parsed : SessionData = @json.from_json(json) catch {
+    err => return Err("not a session document: " + @debug.to_string(err))
+  }
+  Ok(parsed)
+}
+
+///|
+/// Decode a session document from text, reporting which format the bytes
+/// were in.
+///
+/// Plain JSON is tried first. A file that is not JSON is retried as the
+/// legacy Debug-repr projection: early builds persisted `json.to_repr()`, and
+/// those sessions used to be skipped silently by every reader.
+fn decode_session_document(text : String) -> Result[(SessionData, String), String] {
+  let parsed : Result[Json, String] = Ok(@json.parse(text)) catch {
+    err => Err("not valid JSON: " + @debug.to_string(err))
+  }
+  match parsed {
+    Ok(json) =>
+      match decode_session_json(json) {
+        Ok(data) => Ok((data, "legacy json"))
+        Err(reason) => decode_legacy_repr_document(text, reason)
+      }
+    Err(json_error) => decode_legacy_repr_document(text, json_error)
+  }
+}
+
+///|
+/// Retry a document that is not readable as JSON as the legacy Debug-repr
+/// projection, falling back to the JSON error when that does not apply.
+fn decode_legacy_repr_document(
+  text : String,
+  json_error : String,
+) -> Result[(SessionData, String), String] {
+  match parse_legacy_debug_repr(text) {
+    Some(json) =>
+      match decode_session_json(json) {
+        Ok(data) => Ok((data, "legacy debug-repr"))
+        Err(reason) => Err(reason)
+      }
+    None => Err(json_error)
+  }
+}
+
+///|
 /// Load a session from disk by session ID.
 /// Returns None if the session file does not exist or if any error occurs.
 pub fn load_session(session_id : String) -> SessionData? {
@@ -136,10 +183,11 @@ pub fn load_session(session_id : String) -> SessionData? {
   if !@fs.path_exists(path) {
     return None
   }
-  let json_str = @fs.read_file_to_string(path) catch { _ => return None }
-  let json = @json.parse(json_str) catch { _ => return None }
-  let parsed : SessionData = @json.from_json(json) catch { _ => return None }
-  Some(parsed)
+  let text = @fs.read_file_to_string(path) catch { _ => return None }
+  match decode_session_document(text) {
+    Ok((data, _format)) => Some(data)
+    Err(_) => None
+  }
 }
 
 ///|
@@ -162,7 +210,8 @@ pub fn delete_session(session_id : String) -> Unit {
 /// List all saved sessions, sorted by updated_at descending (most recently
 /// touched first; Ruby session_manager.rb ordering). Sessions whose
 /// updated_at is absent fall back to created_at.
-/// Silently skips files that fail to load or parse.
+/// Silently skips files that fail to load or parse (including the legacy
+/// Debug-repr projections that `decode_session_document` cannot recover).
 /// Soft-deleted sessions (deleted_at set) are excluded; the capacity
 /// cleanup policy handles them separately.
 pub fn list_sessions() -> Array[SessionData] {
@@ -175,9 +224,11 @@ pub fn list_sessions() -> Array[SessionData] {
       // only the first 8 id chars, so the content is the authoritative
       // source (fallback to the legacy filename when unparseable).
       let filepath = @path.Path::join(dir, @path.Path(name)).to_string()
-      let json_str = @fs.read_file_to_string(filepath) catch { _ => continue }
-      let json = @json.parse(json_str) catch { _ => continue }
-      let parsed : SessionData = @json.from_json(json) catch { _ => continue }
+      let text = @fs.read_file_to_string(filepath) catch { _ => continue }
+      let parsed = match decode_session_document(text) {
+        Ok((data, _format)) => data
+        Err(_) => continue
+      }
       match parsed.deleted_at {
         Some(_) => continue
         None => ()

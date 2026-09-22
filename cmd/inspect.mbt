@@ -292,7 +292,7 @@ pub fn handle_inspect(sub : @clap.SimpleValue) -> Unit {
     return
   }
   // Otherwise try the legacy whole-JSON session (read-only import).
-  let data = match @agent.load_session_file(path) {
+  let (data, format) = match @agent.load_session_file(path) {
     Ok(parsed) => parsed
     Err(reason) => {
       println("inspect: \{path} is neither a session log nor a session file:")
@@ -303,7 +303,7 @@ pub fn handle_inspect(sub : @clap.SimpleValue) -> Unit {
   }
   render_session_file(
     path,
-    "legacy json (read-only import; nothing was written)",
+    format + " (read-only import; nothing was written)",
     @agent.legacy_session_records(data),
   )
 }
