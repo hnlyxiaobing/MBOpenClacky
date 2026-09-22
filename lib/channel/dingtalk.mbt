@@ -92,13 +92,12 @@ pub impl Adapter for DingTalkAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // TODO: If api_client is available, POST /v1.0/gateway/connections/open
-  // to obtain WS endpoint and ticket, then connect via @websocket.
-  // Stream Mode lifecycle:
-  //   1. POST open_stream_connection(clientId=appKey, clientSecret=appSecret)
-  //   2. Connect to returned WS endpoint
-  //   3. Handle frames: SYSTEM (ping→pong), EVENT, CALLBACK (→ACK)
-  //   4. Re-connect on disconnect using new endpoint
+  // Receive mode is callback-driven: robot messages arrive via the HTTP
+  // server's /api/webhooks/dingtalk route and reach the handler through
+  // ChannelManager::handle_webhook, which uses parse_and_cache_event to cache
+  // sessionWebhook + conversation routing. No listener is started here; the
+  // Stream Mode WebSocket loop (open_stream_connection -> @websocket, with
+  // SYSTEM pong / EVENT / CALLBACK ACK handling) is a separate work item.
   Ok(())
 }
 
@@ -109,7 +108,10 @@ pub impl Adapter for DingTalkAdapter with fn stop(self) -> Result[
 ] {
   self.is_running = false
   self.message_callback = None
-  // TODO: Close WebSocket connection if active
+  // This adapter holds no persistent stream connection: receive is
+  // webhook-driven (see start). A Stream Mode loop, when added, must close
+  // its WebSocket here and drop the cached session webhooks.
+  self.session_webhooks = Map([])
   Ok(())
 }
 

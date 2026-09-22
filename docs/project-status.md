@@ -22,12 +22,12 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 304 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 209 |
-| 源代码行数 | 98,384 |
-| 测试行数 | 58,706 |
-| 总行数 | 157,090 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3818 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 305 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 210 |
+| 源代码行数 | 98,713 |
+| 测试行数 | 59,313 |
+| 总行数 | 158,026 |
+| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3856 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |

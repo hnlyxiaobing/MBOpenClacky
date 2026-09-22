@@ -18,7 +18,18 @@ pub(all) struct WeixinApiClient {
 ///|
 /// Create a new WeixinApiClient with default base URLs.
 pub fn WeixinApiClient::new(token : String, uin : String) -> WeixinApiClient {
-  { token, uin, base_url: WEIXIN_API_BASE, cdn_base: WEIXIN_CDN_BASE, }
+  WeixinApiClient::with_base_url(token, uin, WEIXIN_API_BASE)
+}
+
+///|
+/// Create a WeixinApiClient with a custom API base (for testing). The CDN base
+/// stays at the production value: it is only used to build download URLs.
+pub fn WeixinApiClient::with_base_url(
+  token : String,
+  uin : String,
+  base_url : String,
+) -> WeixinApiClient {
+  { token, uin, base_url, cdn_base: WEIXIN_CDN_BASE, }
 }
 
 ///|
@@ -307,11 +318,7 @@ pub fn detect_weixin_aes_mode(data_header : String) -> WeixinAesMode {
 /// Build AES key components for Weixin media encryption.
 ///
 /// Returns (key_hex, iv_hex) pair.
-/// key = hex_decode(aes_key_str), iv = first 16 bytes of key.
-///
-/// NOTE: Actual AES-128-ECB encrypt/decrypt is not implemented here because
-/// MoonBit stdlib does not include AES primitives. Use an external crypto
-/// library (e.g., moonbitlang/x/crypto) for the actual cipher operations.
+/// key = hex_decode(aes_key_str), iv = first 16 bytes of key (ECB ignores it).
 pub fn build_weixin_aes_key(aes_key_str : String) -> (String, String) {
   if aes_key_str.length() >= 32 {
     // Key is first 32 hex chars (16 bytes), IV is first 16 bytes of key (same as key for ECB)
@@ -334,43 +341,142 @@ pub fn weixin_media_requires_encryption(aes_key : String) -> Bool {
 }
 
 ///|
-/// Placeholder for AES-128-ECB encryption of media data.
-///
-/// TODO: Implement using moonbitlang/x/crypto or FFI to OpenSSL.
-/// Input: plaintext bytes (as String), key (16 bytes hex).
-/// Output: ciphertext bytes (as String).
-pub fn weixin_aes_encrypt(
-  _plaintext : String,
-  _key_hex : String,
-) -> Result[String, ChannelError] {
-  // TODO: Implement AES-128-ECB encryption
-  // let key = hex_decode(key_hex)
-  // let cipher = AES128ECB.new(key)
-  // Ok(cipher.encrypt(plaintext))
-  Err(
-    ChannelError(
-      "AES encryption not yet implemented: requires moonbitlang/x/crypto",
-    ),
-  )
+/// Value of a single hex digit, or None when the char is not hex.
+fn hex_digit_value(c : Char) -> Int? {
+  if c >= '0' && c <= '9' {
+    Some(c.to_int() - '0'.to_int())
+  } else if c >= 'a' && c <= 'f' {
+    Some(c.to_int() - 'a'.to_int() + 10)
+  } else if c >= 'A' && c <= 'F' {
+    Some(c.to_int() - 'A'.to_int() + 10)
+  } else {
+    None
+  }
 }
 
 ///|
-/// Placeholder for AES-128-ECB decryption of media data.
-///
-/// TODO: Implement using moonbitlang/x/crypto or FFI to OpenSSL.
-/// Input: ciphertext bytes (as String), key (16 bytes hex).
-/// Output: plaintext bytes (as String).
+/// Decode a 32-hex-char key string into the 16 raw bytes AES-128 needs.
+pub fn weixin_aes_key_from_hex(key_hex : String) -> Result[Bytes, ChannelError] {
+  if key_hex.length() != 32 {
+    return Err(
+      ChannelError(
+        "Weixin AES key must be 32 hex chars (16 bytes), got " +
+        key_hex.length().to_string(),
+      ),
+    )
+  }
+  let out : Array[Byte] = []
+  let mut high = -1
+  for c in key_hex {
+    let digit = match hex_digit_value(c) {
+      Some(v) => v
+      None =>
+        return Err(
+          ChannelError("Invalid hex digit in Weixin AES key: " + c.to_string()),
+        )
+    }
+    if high < 0 {
+      high = digit
+    } else {
+      out.push((high * 16 + digit).to_byte())
+      high = -1
+    }
+  }
+  Ok(Bytes::from_array(out))
+}
+
+///|
+/// Pad data to a 16-byte multiple with PKCS#7 (always appends 1..16 bytes).
+pub fn pkcs7_pad(data : Bytes) -> Bytes {
+  let pad_len = 16 - data.length() % 16
+  let out : Array[Byte] = []
+  for b in data {
+    out.push(b)
+  }
+  for _ in 0..<pad_len {
+    out.push(pad_len.to_byte())
+  }
+  Bytes::from_array(out)
+}
+
+///|
+/// Strip PKCS#7 padding, rejecting inconsistent padding.
+pub fn pkcs7_unpad(data : Bytes) -> Result[Bytes, ChannelError] {
+  let len = data.length()
+  if len == 0 || len % 16 != 0 {
+    return Err(ChannelError("Invalid padded length: " + len.to_string()))
+  }
+  let pad_len = data[len - 1].to_int()
+  if pad_len == 0 || pad_len > 16 {
+    return Err(
+      ChannelError("Invalid PKCS#7 pad length: " + pad_len.to_string()),
+    )
+  }
+  let body_len = len - pad_len
+  let mut i = body_len
+  while i < len {
+    if data[i].to_int() != pad_len {
+      return Err(ChannelError("Malformed PKCS#7 padding"))
+    }
+    i = i + 1
+  }
+  let out : Array[Byte] = []
+  let mut j = 0
+  while j < body_len {
+    out.push(data[j])
+    j = j + 1
+  }
+  Ok(Bytes::from_array(out))
+}
+
+///|
+/// AES-128-ECB encrypt of a block-aligned buffer (caller owns padding).
+pub fn weixin_aes_ecb_encrypt(
+  key : Bytes,
+  data : Bytes,
+) -> Result[Bytes, ChannelError] {
+  let out = @crypto.aes_ecb_encrypt(key, data) catch {
+    _ =>
+      return Err(
+        ChannelError("AES-128-ECB encryption failed (key or data length)"),
+      )
+  }
+  Ok(out)
+}
+
+///|
+/// AES-128-ECB decrypt of a block-aligned buffer (caller strips padding).
+pub fn weixin_aes_ecb_decrypt(
+  key : Bytes,
+  data : Bytes,
+) -> Result[Bytes, ChannelError] {
+  let out = @crypto.aes_ecb_decrypt(key, data) catch {
+    _ =>
+      return Err(
+        ChannelError("AES-128-ECB decryption failed (key or data length)"),
+      )
+  }
+  Ok(out)
+}
+
+///|
+/// AES-128-ECB encrypt with PKCS#7 padding, as used for Weixin media.
+pub fn weixin_aes_encrypt(
+  plaintext : Bytes,
+  key : Bytes,
+) -> Result[Bytes, ChannelError] {
+  weixin_aes_ecb_encrypt(key, pkcs7_pad(plaintext))
+}
+
+///|
+/// AES-128-ECB decrypt followed by PKCS#7 unpadding.
 pub fn weixin_aes_decrypt(
-  _ciphertext : String,
-  _key_hex : String,
-) -> Result[String, ChannelError] {
-  // TODO: Implement AES-128-ECB decryption
-  // let key = hex_decode(key_hex)
-  // let cipher = AES128ECB.new(key)
-  // Ok(cipher.decrypt(ciphertext))
-  Err(
-    ChannelError(
-      "AES decryption not yet implemented: requires moonbitlang/x/crypto",
-    ),
-  )
+  ciphertext : Bytes,
+  key : Bytes,
+) -> Result[Bytes, ChannelError] {
+  let raw = match weixin_aes_ecb_decrypt(key, ciphertext) {
+    Ok(r) => r
+    Err(e) => return Err(e)
+  }
+  pkcs7_unpad(raw)
 }

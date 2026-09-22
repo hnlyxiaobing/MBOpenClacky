@@ -24,12 +24,8 @@ pub(all) struct WeComAdapter {
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
   ws_state : WeComWsState?
-  access_token_cache : TokenCache
+  api_client : WeComApiClient
 }
-
-///|
-/// Access token refresh threshold: 5 minutes before expiry.
-const WECOM_TOKEN_REFRESH_THRESHOLD : Int = 300000
 
 ///|
 /// Create a new WeComAdapter from channel configuration.
@@ -51,7 +47,12 @@ pub fn WeComAdapter::new(
   let token = config.settings.get("token")
   let encoding_aes_key = config.settings.get("encoding_aes_key")
   let ws_state : WeComWsState? = Some(WeComWsState::new(corp_id, secret))
-  let access_token_cache = TokenCache::new(WECOM_TOKEN_REFRESH_THRESHOLD)
+  // Optional api_base override so tests can point the REST client at a mock.
+  let api_base = match config.settings.get("api_base") {
+    Some(v) => v
+    None => WECOM_API_BASE
+  }
+  let api_client = WeComApiClient::with_base_url(corp_id, secret, api_base)
   Ok({
     corp_id,
     agent_id,
@@ -61,7 +62,7 @@ pub fn WeComAdapter::new(
     is_running: false,
     message_callback: None,
     ws_state,
-    access_token_cache,
+    api_client,
   })
 }
 
@@ -88,11 +89,14 @@ pub impl Adapter for WeComAdapter with fn supports_message_updates(_self) -> Boo
 }
 
 ///|
-/// Start the adapter: set state to running and prepare WebSocket connection.
+/// Start the adapter: register the message handler and mark it running.
 ///
-/// WeCom send/receive is not yet implemented; `start` only registers the
-/// callback and leaves the adapter in an honest "not connected" state so
-/// that status/validate queries do not falsely report availability.
+/// Receive mode is callback-driven: WeCom pushes events to the HTTP server's
+/// /api/webhooks/wecom route, which reaches the handler through
+/// ChannelManager::handle_webhook (WeComAdapter::parse_event). No listener is
+/// started here, and the WebSocket state stays disconnected until a real
+/// aibot connection is opened by a separate work item. Sending does not depend
+/// on the WebSocket: it goes through the REST client (WeComApiClient).
 pub impl Adapter for WeComAdapter with fn start(
   self,
   handler : (ChannelEvent) -> Unit,
@@ -118,12 +122,12 @@ pub impl Adapter for WeComAdapter with fn stop(self) -> Result[
 }
 
 ///|
-/// Send a text message via WeCom (markdown format).
+/// Send a text message via the WeCom app message API.
 ///
-/// WeCom WebSocket send is not yet implemented; refuse to send with an
-/// honest error so callers cannot mistake a fabricated ack for delivery.
-/// The frame builder (`build_send_msg_frame`) is kept for the future
-/// `stubfix-07` WebSocket implementation to reuse.
+/// `chat_id` is mapped to the API's `touser` (userid, or `@all`); group-chat
+/// delivery uses a different endpoint and is reported as an errcode error by
+/// the platform rather than silently succeeding. `_reply_to` is accepted for
+/// interface compatibility and has no equivalent in the app message API.
 pub impl Adapter for WeComAdapter with fn send_text(
   self,
   chat_id : String,
@@ -133,14 +137,9 @@ pub impl Adapter for WeComAdapter with fn send_text(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  match self.ws_state {
-    Some(ws) => {
-      let _ = ws.next_req_id()
-      let _ = chat_id
-      let _ = text
-      Err(ChannelError("WeCom send_text is not implemented yet"))
-    }
-    None => Err(ChannelError("WebSocket not initialized"))
+  match self.api_client.send_text(chat_id, self.agent_id, text) {
+    Ok(msgid) => Ok({ message_id: msgid, success: true, error: None, })
+    Err(e) => Err(e)
   }
 }
 
@@ -416,21 +415,6 @@ pub fn build_wecom_markdown_msg(content : String) -> Json {
   let msg : Map[String, Json] = Map([])
   msg.set("msgtype", "markdown".to_json())
   msg.set("markdown", Json::object(md))
-  Json::object(msg)
-}
-
-///|
-/// Build WeCom text message payload JSON.
-pub fn build_wecom_message(
-  text : String,
-  _touser : String,
-  _agent_id : String,
-) -> Json {
-  let text_obj : Map[String, Json] = Map([])
-  text_obj.set("content", text.to_json())
-  let msg : Map[String, Json] = Map([])
-  msg.set("msgtype", "text".to_json())
-  msg.set("text", Json::object(text_obj))
   Json::object(msg)
 }
 

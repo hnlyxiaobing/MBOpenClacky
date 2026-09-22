@@ -339,3 +339,184 @@ test "weixin_media_requires_encryption_non_empty" {
 test "weixin_media_requires_encryption_empty" {
   assert_false(weixin_media_requires_encryption(""))
 }
+
+// ── AES-128-ECB (WP-1.4) ─────────────────────────────────────────────────────
+
+///|
+/// Hex-decode a test buffer literal of any even length, failing the test when
+/// the literal is malformed. `raise` because `assert_true` can abort the test.
+fn aes_test_bytes(hex : String) -> Bytes raise {
+  if hex.length() % 2 != 0 {
+    assert_true(false)
+    return Bytes::from_array([])
+  }
+  let out : Array[Byte] = []
+  let mut high = -1
+  for c in hex {
+    let digit = match hex_digit_value(c) {
+      Some(d) => d
+      None => {
+        assert_true(false)
+        return Bytes::from_array([])
+      }
+    }
+    if high < 0 {
+      high = digit
+    } else {
+      out.push((high * 16 + digit).to_byte())
+      high = -1
+    }
+  }
+  Bytes::from_array(out)
+}
+
+///|
+/// AES key used by the FIPS-197 §C.1 vector.
+fn aes_test_key() -> Bytes raise {
+  aes_test_bytes("000102030405060708090a0b0c0d0e0f")
+}
+
+///|
+/// FIPS-197 §C.1 AES-128 example vector, through the padding-free block path:
+/// key 000102...0f, plaintext 00112233...ff -> ciphertext 69c4e0d8...c55a.
+test "weixin_aes_ecb_fips197_vector" {
+  let key = aes_test_key()
+  let plain = aes_test_bytes("00112233445566778899aabbccddeeff")
+  let cipher = match weixin_aes_ecb_encrypt(key, plain) {
+    Ok(c) => c
+    Err(_) => {
+      assert_true(false)
+      Bytes::from_array([])
+    }
+  }
+  assert_eq(
+    @crypto.bytes_to_hex_string(cipher),
+    "69c4e0d86a7b0430d8cdb78070b4c55a",
+  )
+  let back = match weixin_aes_ecb_decrypt(key, cipher) {
+    Ok(b) => b
+    Err(_) => {
+      assert_true(false)
+      Bytes::from_array([])
+    }
+  }
+  assert_eq(
+    @crypto.bytes_to_hex_string(back),
+    "00112233445566778899aabbccddeeff",
+  )
+}
+
+///|
+test "weixin_aes_key_from_hex_rejects_wrong_length" {
+  assert_true(weixin_aes_key_from_hex("short") is Err(_))
+  assert_true(weixin_aes_key_from_hex("") is Err(_))
+  // 33 chars
+  assert_true(
+    weixin_aes_key_from_hex("000102030405060708090a0b0c0d0e0f00") is Err(_),
+  )
+}
+
+///|
+test "weixin_aes_key_from_hex_rejects_non_hex" {
+  let result = weixin_aes_key_from_hex("zz0102030405060708090a0b0c0d0e0f")
+  match result {
+    Err(ChannelError(msg)) => assert_true(msg.contains("Invalid hex digit"))
+    _ => assert_true(false)
+  }
+}
+
+///|
+test "weixin_aes_ecb_rejects_unaligned_data" {
+  let key = aes_test_key()
+  // 17 bytes: not a multiple of the AES block size
+  let odd = aes_test_bytes("00112233445566778899aabbccddeeff00")
+  assert_eq(odd.length(), 17)
+  assert_true(weixin_aes_ecb_encrypt(key, odd) is Err(_))
+}
+
+///|
+test "weixin_aes_ecb_rejects_short_key" {
+  let short_key = aes_test_bytes("000102030405060708090a0b0c0d0e") // 15 bytes
+  let block = aes_test_bytes("00112233445566778899aabbccddeeff")
+  assert_true(weixin_aes_ecb_encrypt(short_key, block) is Err(_))
+}
+
+// ── PKCS#7 padding ───────────────────────────────────────────────────────────
+
+///|
+test "pkcs7_pad_appends_full_block_when_aligned" {
+  let block = aes_test_bytes("00112233445566778899aabbccddeeff")
+  let padded = pkcs7_pad(block)
+  assert_eq(padded.length(), 32)
+  assert_eq(padded[padded.length() - 1].to_int(), 16)
+}
+
+///|
+test "pkcs7_pad_fills_partial_block" {
+  let partial = aes_test_bytes("00112233445566778899aabbccddee") // 15 bytes
+  let padded = pkcs7_pad(partial)
+  assert_eq(padded.length(), 16)
+  assert_eq(padded[15].to_int(), 1)
+}
+
+///|
+test "pkcs7_unpad_round_trips" {
+  let partial = aes_test_bytes("00112233445566778899aabbccddee")
+  let back = match pkcs7_unpad(pkcs7_pad(partial)) {
+    Ok(b) => b
+    Err(_) => {
+      assert_true(false)
+      Bytes::from_array([])
+    }
+  }
+  assert_eq(@crypto.bytes_to_hex_string(back), "00112233445566778899aabbccddee")
+}
+
+///|
+test "pkcs7_unpad_rejects_malformed_padding" {
+  // last byte claims 5 pad bytes but the preceding byte disagrees
+  let bad = aes_test_bytes("00112233445566778899aabbccddee03")
+  assert_true(pkcs7_unpad(bad) is Err(_))
+  // pad length 0 is invalid
+  let zero = aes_test_bytes("00112233445566778899aabbccddee00")
+  assert_true(pkcs7_unpad(zero) is Err(_))
+  // not block-aligned
+  assert_true(pkcs7_unpad(aes_test_bytes("00112233")) is Err(_))
+  assert_true(pkcs7_unpad(Bytes::from_array([])) is Err(_))
+}
+
+// ── AES round trip with padding ──────────────────────────────────────────────
+
+///|
+test "weixin_aes_encrypt_decrypt_round_trip" {
+  let key = aes_test_key()
+  let plain = @utf8.encode("weixin media payload crossing the block boundary")
+  let cipher = match weixin_aes_encrypt(plain, key) {
+    Ok(c) => c
+    Err(_) => {
+      assert_true(false)
+      Bytes::from_array([])
+    }
+  }
+  // PKCS#7 always adds padding, so the ciphertext is longer than the input
+  assert_true(cipher.length() > plain.length())
+  assert_eq(cipher.length() % 16, 0)
+  let back = match weixin_aes_decrypt(cipher, key) {
+    Ok(b) => b
+    Err(_) => {
+      assert_true(false)
+      Bytes::from_array([])
+    }
+  }
+  assert_eq(
+    @utf8.decode_lossy(back),
+    "weixin media payload crossing the block boundary",
+  )
+}
+
+///|
+test "weixin_aes_decrypt_rejects_non_multiple_ciphertext" {
+  let key = aes_test_key()
+  let truncated = aes_test_bytes("00112233445566778899aabbccddee")
+  assert_true(weixin_aes_decrypt(truncated, key) is Err(_))
+}

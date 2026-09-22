@@ -132,23 +132,59 @@
 - **DoD**：`feishu_api.mbt`/`feishu.mbt` 不再有 `not yet wired`/`not implemented` 命中（multipart 若受限则单独留台账行）；请求构建与响应解析有 `*_wbtest.mbt` 覆盖；HTTP 路径经本地 mock（参考 `test/e2e/mock_llm_server.mbt` 起 raw TCP）跑通一次。
 - **验证**：`moon test --release lib/channel`；`scripts/known_gaps.sh generate` 后飞书行消失 → 台账改 `fixed`。
 
-### WP-1.2 钉钉 send 接线 `[ ]`（P1，依赖 WP-1.1 模式）
+### WP-1.2 钉钉 send 接线 `[x]`（P1，依赖 WP-1.1 模式）
 
-- **触点**：`lib/channel/dingtalk_api.mbt`（`open_stream_connection`/`download_file_url` 的 `not yet wired`）、`lib/channel/dingtalk.mbt`。
+> **完成（2026-09-22）**：`DingTalkApiClient::open_stream_connection`（POST
+> `/v1.0/gateway/connections/open`）与 `download_file_url`（POST
+> `/v1.0/robot/messageFiles/download`）从 `not yet wired` 变为真实 HTTP POST +
+> 响应解析——缺 `endpoint`/`downloadUrl` 即返回诊断错误，不静默假成功；新增
+> `with_base_url` 供离线 mock 验证。`DingTalkAdapter::start`/`stop` 的误导性 TODO
+> 改为如实描述（robot 回调经 `/api/webhooks/dingtalk` → `ChannelManager` 到达
+> `parse_and_cache_event`；Stream Mode WS 循环是独立工作项），`stop` 顺带清空已
+> 缓存的 sessionWebhook。DoD 验证：`moon check -d` 全仓 0 错 0 警；
+> `moon test --release lib/channel` 441/441（含 gateway/download 两方法 mock TCP
+> 往返 + 401 错误注入 + token 只取一次断言）；台账钉钉 6 行转 `fixed`。
+
+- **触点**：`lib/channel/dingtalk_api.mbt`（`open_stream_connection`/`download_file_url`）、`lib/channel/dingtalk.mbt`。
 - **已具备**：`DINGTALK_API_BASE`/`DINGTALK_OAPI_BASE`、`extract_dingtalk_message_id`、`http_post_json`。
 - **DoD/验证**：同 WP-1.1（钉钉行从台账消失）。
 
-### WP-1.3 企业微信 send 接线 `[ ]`（P1）
+### WP-1.3 企业微信 send 接线 `[x]`（P1）
 
-- **触点**：`lib/channel/wecom.mbt`（`send_text`/`start` 的 `not yet implemented`）、`lib/channel/wecom_ws.mbt`（WebSocket send）。
+> **完成（2026-09-22）**：新增 `lib/channel/wecom_api.mbt`（`WeComApiClient`：
+> `gettoken` 取 access_token 并缓存、`message/send` 发送、`errcode != 0` 一律映射
+> 为诊断错误）。`WeComAdapter` 从持 `TokenCache` 改为持 `api_client`，`send_text`
+> 真实发送（`chat_id` 映射 API 的 `touser`，群聊投递由平台 errcode 如实回报）；
+> `start` 注释如实化（接收走 `/api/webhooks/wecom` 路由，WebSocket 收发为独立工作
+> 项）；删除零调用方的旧 `build_wecom_message`（与 `build_wecom_send_body` 重复且
+> 忽略自己的参数）。DoD 验证：`moon test --release lib/channel` 441/441（含
+> token+send 往返、第二次发送复用缓存 token 的计数断言、errcode 40013/81013 注入、
+> `api_base` 不可达时的真实传输错误）；台账企微 3 行转 `fixed`。
+
+- **触点**：`lib/channel/wecom.mbt`、`lib/channel/wecom_ws.mbt`（WebSocket 帧构建保留给接收侧）。
 - **已具备**：`WECOM_API_BASE`、`http_post_json`；`extract_api_error` 已处理 `errmsg`。
 - **步骤**：access_token 获取 + 缓存；`message/send` 接线；WebSocket 收发用 `@async.websocket`（参考 `lib/channel/ws_client.mbt`、Discord 网关 stubfix-07）。
 - **DoD/验证**：同 WP-1.1。
 
-### WP-1.4 微信 send + AES-128-ECB `[ ]`（P1，依赖加密原语）
+### WP-1.4 微信 send + AES-128-ECB `[x]`（P1，依赖加密原语）
 
-- **前置 WP-1.4a**：微信消息加解密需 **AES-128-ECB**。先确认 `moonbitlang/x/crypto` 是否提供 ECB 模式；若无，评估 FFI 到 OpenSSL（POSIX）/BCrypt（Windows）——**这是贵模型环节**（FFI 内存布局）。
-- **触点**：`lib/channel/weixin_api.mbt`（`encrypt`/`decrypt` 的 `not yet implemented`）、`lib/channel/weixin.mbt`（`send_text`）。
+> **前置 WP-1.4a 已解，无需 FFI**：`moonbitlang/x/crypto` 提供
+> `aes_ecb_encrypt`/`aes_ecb_decrypt`（无填充、要求块对齐）。`lib/channel` 直接
+> 导入该包并自实现 PKCS#7 补/去填充，**取消了计划中评估 OpenSSL/BCrypt FFI 的
+> 贵模型环节**。
+>
+> **完成（2026-09-22）**：`weixin_aes_encrypt`/`weixin_aes_decrypt` 从 placeholder
+> 变为真实 AES-128-ECB（`weixin_aes_key_from_hex` 校验 32 hex 字符，无填充块路径
+> `weixin_aes_ecb_encrypt/decrypt` 单独暴露以便对齐官方向量）；
+> `WeixinAdapter::send_text` 走真实 `sendmessage`（文本先 `sanitize_for_weixin`、
+> 附上下文 token、`ret != 0` 一律报错并对 `-2` 标注限流），缺 `uin` 时如实报
+> `no api_client`；`start` 的 TODO 长轮询注释如实化（接收走
+> `/api/webhooks/weixin` 路由）。DoD 验证：FIPS-197 §C.1 官方向量
+> （`69c4e0d8…c55a`）+ 加解密往返 + 畸形填充/非块对齐/短密钥错误用例；
+> `moon test --release lib/channel` 441/441；台账微信 10 行转 `fixed`。
+
+- **前置 WP-1.4a**：**已解**——`moonbitlang/x/crypto` 提供 AES-ECB，无需 FFI。
+- **触点**：`lib/channel/weixin_api.mbt`、`lib/channel/weixin.mbt`。
 - **DoD**：AES-128-ECB 加解密有向量测试（对齐微信平台已知测试向量）；send 接通；台账微信行消失。
 - **验证**：`moon test --release lib/channel`；加解密往返 `decrypt(encrypt(x)) == x` + 官方向量。
 

@@ -2126,6 +2126,58 @@ test "wecom_adapter_start_does_not_set_connected_state" {
 }
 
 ///|
+/// stubfix-06 / WP-1.3: send_text is a real implementation (WeCom app message
+/// API). With an unreachable endpoint the call must surface a real transport
+/// error -- never the old "not implemented" stub error.
+async test "wecom_adapter_send_text_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: {
+      "corp_id": "corp1",
+      "agent_id": "agent1",
+      "secret": "sec1",
+      // Closed local port: fails fast without touching WeCom.
+      "api_base": "http://127.0.0.1:1",
+    },
+  }
+  match WeComAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.send_text("chat1", "hello", None)
+      match result {
+        Err(ChannelError(msg)) => assert_false(msg.contains("not implemented"))
+        Ok(r) => assert_false(r.success)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+/// stubfix-06 / WP-1.4: send_text is a real implementation (iLink sendmessage
+/// API). Without the `uin` needed to build the API client the adapter reports
+/// the missing configuration -- never the old "not implemented" stub error.
+async test "weixin_adapter_send_text_without_uin_returns_err" {
+  let config : ChannelConfig = {
+    platform: Platform::Weixin,
+    enabled: true,
+    settings: { "app_id": "wx_app", "app_secret": "wx_sec", "token": "wx_tok" },
+  }
+  match WeixinAdapter::new(config) {
+    Ok(a) => {
+      let _ = a.start(fn(_e) { () })
+      let result = a.send_text("chat1", "hello", None)
+      match result {
+        Err(ChannelError(msg)) => assert_true(msg.contains("no api_client"))
+        Ok(r) => assert_false(r.success)
+      }
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
 /// stubfix-06: send_text is a real implementation (HTTP Bot API). With a
 /// fake token / unreachable network the call must surface a real HTTP or
 /// network error -- never the old "not implemented" stub error.
@@ -2143,56 +2195,6 @@ async test "telegram_adapter_send_text_returns_err" {
         Err(ChannelError(msg)) =>
           // Real send path: error must NOT be the stub marker
           assert_false(msg.contains("not implemented"))
-        Ok(r) => assert_false(r.success)
-      }
-    }
-    Err(_) => assert_true(false)
-  }
-}
-
-///|
-async test "wecom_adapter_send_text_returns_err" {
-  let config : ChannelConfig = {
-    platform: Platform::WeCom,
-    enabled: true,
-    settings: { "corp_id": "corp1", "agent_id": "agent1", "secret": "sec1" },
-  }
-  match WeComAdapter::new(config) {
-    Ok(a) => {
-      let _ = a.start(fn(_e) { () })
-      let result = a.send_text("chat1", "hello", None)
-      match result {
-        Err(ChannelError(msg)) =>
-          if msg.contains("not implemented") {
-            ()
-          } else {
-            assert_true(false)
-          }
-        Ok(r) => assert_false(r.success)
-      }
-    }
-    Err(_) => assert_true(false)
-  }
-}
-
-///|
-async test "weixin_adapter_send_text_returns_err" {
-  let config : ChannelConfig = {
-    platform: Platform::Weixin,
-    enabled: true,
-    settings: { "app_id": "wx_app", "app_secret": "wx_sec", "token": "wx_tok" },
-  }
-  match WeixinAdapter::new(config) {
-    Ok(a) => {
-      let _ = a.start(fn(_e) { () })
-      let result = a.send_text("chat1", "hello", None)
-      match result {
-        Err(ChannelError(msg)) =>
-          if msg.contains("not implemented") {
-            ()
-          } else {
-            assert_true(false)
-          }
         Ok(r) => assert_false(r.success)
       }
     }

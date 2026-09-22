@@ -138,10 +138,15 @@ pub fn WeixinAdapter::new(
     None => return Err(ChannelError("Missing setting: token"))
   }
   let encoding_aes_key = config.settings.get("encoding_aes_key")
+  // Optional api_base override so tests can point the client at a mock.
+  let api_base = match config.settings.get("api_base") {
+    Some(v) => v
+    None => WEIXIN_API_BASE
+  }
   // Build API client if uin is available
   let uin = config.settings.get("uin")
   let api_client = match uin {
-    Some(u) => Some(WeixinApiClient::new(token, u))
+    Some(u) => Some(WeixinApiClient::with_base_url(token, u, api_base))
     None => None
   }
   let send_queue = WeixinSendQueue::new()
@@ -188,14 +193,11 @@ pub impl Adapter for WeixinAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // TODO: Spawn long-polling loop via async runtime:
-  //   loop {
-  //     let req = api_client.build_get_updates_request(self.updates_buf)
-  //     let resp = await @http.post(url, headers, req.to_string())
-  //     let (messages, next_buf) = api_client.parse_get_updates_response(resp)
-  //     self.updates_buf = next_buf
-  //     for msg in messages { handler(parse_event(msg)?) }
-  //   }
+  // Receive mode is callback-driven: iLink messages reach the HTTP server's
+  // /api/webhooks/weixin route and are decoded by ChannelManager::handle_webhook
+  // (WeixinAdapter::parse_event). No polling loop is started here; driving
+  // get_updates in a loop (with the buf cursor and long-poll timeout) is a
+  // separate work item, and sending does not depend on it.
   Ok(())
 }
 
@@ -210,12 +212,12 @@ pub impl Adapter for WeixinAdapter with fn stop(self) -> Result[
 }
 
 ///|
-/// Send a text message via Weixin iLink Bot API.
+/// Send a text message via the Weixin iLink Bot API.
 ///
-/// Weixin send is not yet implemented; refuse to send with an honest error
-/// so callers cannot mistake a fabricated ack for delivery. The send queue
-/// and request builder are kept for the future Weixin implementation
-/// (backlog) to reuse.
+/// The outbound text is sanitized (Weixin renders no Markdown) and the reply
+/// context token from the last inbound message is attached when present. A
+/// non-zero `ret` is surfaced as an error -- including ret == -2, which means
+/// the bot is sending too fast -- so a throttle never looks like delivery.
 pub impl Adapter for WeixinAdapter with fn send_text(
   self,
   chat_id : String,
@@ -225,9 +227,50 @@ pub impl Adapter for WeixinAdapter with fn send_text(
   if !self.is_running {
     return Err(ChannelError("Adapter not running"))
   }
-  let _ = chat_id
-  let _ = text
-  Err(ChannelError("Weixin send_text is not implemented yet"))
+  let client = match self.api_client {
+    Some(c) => c
+    None =>
+      return Err(
+        ChannelError(
+          "WeixinAdapter has no api_client; set the 'uin' setting to enable sending",
+        ),
+      )
+  }
+  let context_token = match self.context_token {
+    Some(t) => t
+    None => ""
+  }
+  let payload = client.build_send_text_request(
+    chat_id,
+    sanitize_for_weixin(text),
+    context_token,
+  )
+  let json = match
+    http_post_json(
+      client.send_text_url(),
+      client.auth_headers().to_array(),
+      payload.stringify(),
+    ) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  let (message_id, ret_code) = match client.parse_send_response(json) {
+    Ok(pair) => pair
+    Err(e) => return Err(e)
+  }
+  if ret_code != 0 {
+    let hint = if is_rate_limited(ret_code) { " (rate limited)" } else { "" }
+    return Err(
+      ChannelError(
+        "Weixin send failed: ret=" +
+        ret_code.to_string() +
+        hint +
+        " " +
+        extract_api_error(json),
+      ),
+    )
+  }
+  Ok({ message_id, success: true, error: None, })
 }
 
 ///|

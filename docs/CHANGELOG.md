@@ -25,6 +25,16 @@
 
 ## 变更记录
 
+### 2026-09-22  钉钉/企业微信/微信 send 接线（执行计划 WP-1.2~1.4）
+
+- `[feat]` **三渠道发送侧真接线（WP-1.2~1.4）**：钉钉 `open_stream_connection`/`download_file_url`、企业微信 `message/send`、微信 `sendmessage` 全部从诚实 stub 变为经 `@client` 异步传输的真实调用；业务失败（钉钉走 HTTP 状态、企微走 `errcode`、微信走 `ret`）一律映射为诊断错误，响应缺失关键字段也报错，杜绝静默假成功。
+  - 钉钉（WP-1.2）：两个 API 方法走真实 HTTP POST + 响应解析；新增 `DingTalkApiClient::with_base_url` 供离线 mock 验证；`start`/`stop` 的误导性 TODO 改为如实描述（robot 回调经 `/api/webhooks/dingtalk` → `ChannelManager` → `parse_and_cache_event`；Stream Mode WebSocket 循环是独立工作项），`stop` 顺带清空缓存的 sessionWebhook。
+  - 企业微信（WP-1.3）：新增 `lib/channel/wecom_api.mbt`（`gettoken` 取 token 并缓存 + `message/send` 发送 + `errcode != 0` 检查）；`WeComAdapter` 从持 `TokenCache` 改为持 `api_client`，`send_text` 真实发送（`chat_id` 映射 `touser`，群聊投递由平台 errcode 如实回报）；删除零调用方且忽略自身参数的旧 `build_wecom_message`。
+  - 微信（WP-1.4）：**AES-128-ECB 落地，取消 FFI 评估**——`moonbitlang/x/crypto` 已提供 `aes_ecb_encrypt/decrypt`，`lib/channel` 直接导入并自实现 PKCS#7 补/去填充；`weixin_aes_encrypt/decrypt` 从 placeholder 变为真实现（无填充块路径单独暴露以对齐官方向量），`weixin_aes_key_from_hex` 校验 32 hex 字符；`send_text` 走真实 `sendmessage`（文本先 `sanitize_for_weixin`、附上下文 token、`ret != 0` 报错并对 `-2` 标注限流），缺 `uin` 时如实报 `no api_client`；`start` 的 TODO 长轮询注释如实化。
+  - 测试：新增 `lib/channel/channel_http_mock_wbtest.mbt`（单个通用 mock TCP server 覆盖三渠道真 HTTP 往返、`errcode 40013/81013` 与 `ret=-2` 注入、token 缓存计数、不可达端点）；`weixin_api_wbtest.mbt` 补 AES/PKCS#7 向量与边界用例（含 FIPS-197 §C.1 向量 `69c4e0d8…c55a`）；`feishu_mock_wbtest.mbt` 的 mock 原语重命名为通用名以便复用；两条断言 `not implemented` 的旧测试改为验证真实错误契约。
+  - 验证：`moon check -d` 全仓 0 错 0 警（312 tasks）；`moon test --release lib/channel` 441/441；CI 同口径全量 scoped 套件 3856/3856（排除 `lib/mcp`）；`selftest` / `eval --offline` 无回归；台账钉钉 6 / 企微 3 / 微信 10 行转 `fixed`；spec 归档 `specs/completed/2026-09-22_wp-1.2-1.4-channel-send-wiring.md`。
+  - `[docs]` **repo 指标重新生成**：借本次全量套件把 README/CLAUDE/project-status 的测试用例数从 3818 更正为 3856（本次新增 19 条，另 19 条为此前累积漂移——`repo_stats.sh generate` 未显式传 `--test-count` 时会沿用文档中的旧值，故数字不随新增用例自动更新；已在提交信息中如实说明），源文件/测试文件/行数同步更新。
+
 ### 2026-09-22  飞书 send/receive 接线（执行计划 WP-1.1）
 
 - `[feat]` **飞书六 API 真接线（WP-1.1）**：`FeishuApiClient` 的 `send_message`/`update_message`/`upload_image`/`upload_file`/`download_resource`/`fetch_chat_history` 从诚实 stub 变为经 `@client` 异步传输的真实调用——upload 走手工 multipart 二进制上传（签名 Bytes 化），download 走二进制 GET + base64 编码，其余走 JSON GET/POST/PATCH；所有 JSON 响应追加 `code != 0` 业务错误检查（飞书 v1 业务失败也返回 HTTP 200），杜绝静默假成功。

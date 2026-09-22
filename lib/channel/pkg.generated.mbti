@@ -50,6 +50,8 @@ pub const WECOM_HEARTBEAT_INTERVAL : Int = 30000
 
 pub const WECOM_READ_TIMEOUT : Int = 75000
 
+pub const WECOM_TOKEN_REFRESH_THRESHOLD : Int = 300000
+
 pub const WECOM_WS_URL : String = "wss://openws.work.weixin.qq.com"
 
 pub const WEIXIN_API_BASE : String = "https://ilinkai.weixin.qq.com"
@@ -116,13 +118,15 @@ pub fn build_upload_init_frame(String, String, Int) -> Json
 
 pub fn build_wecom_markdown_msg(String) -> Json
 
-pub fn build_wecom_message(String, String, String) -> Json
+pub fn build_wecom_send_body(String, String, String) -> Json
 
 pub fn build_weixin_aes_key(String) -> (String, String)
 
 pub fn build_weixin_message(String, String, String) -> Json
 
 pub fn calculate_chunk_count(Int, Int) -> Int
+
+pub fn check_wecom_errcode(Json, String) -> Result[Unit, ChannelError]
 
 pub fn detect_chat_type(Map[String, Json]) -> ChatType
 
@@ -252,6 +256,8 @@ pub fn parse_wecom_mixed(Map[String, Json]) -> (String, Array[Attachment])
 
 pub fn parse_wecom_text(Map[String, Json]) -> String
 
+pub fn parse_wecom_token_response(Json) -> Result[(String, Int), ChannelError]
+
 pub fn parse_weixin_file_item(Map[String, Json]) -> Attachment?
 
 pub fn parse_weixin_image_item(Map[String, Json]) -> Attachment?
@@ -263,6 +269,10 @@ pub fn parse_weixin_text_item(Map[String, Json]) -> String
 pub fn parse_weixin_video_item(Map[String, Json]) -> Attachment?
 
 pub fn parse_weixin_voice_item(Map[String, Json]) -> String
+
+pub fn pkcs7_pad(Bytes) -> Bytes
+
+pub fn pkcs7_unpad(Bytes) -> Result[Bytes, ChannelError]
 
 pub fn reconnect_delay_ms(Int) -> Int
 
@@ -284,9 +294,15 @@ pub fn webhook_url(String, String) -> String
 
 pub fn wecom_is_mentioned(Map[String, Json], String) -> Bool
 
-pub fn weixin_aes_decrypt(String, String) -> Result[String, ChannelError]
+pub fn weixin_aes_decrypt(Bytes, Bytes) -> Result[Bytes, ChannelError]
 
-pub fn weixin_aes_encrypt(String, String) -> Result[String, ChannelError]
+pub fn weixin_aes_ecb_decrypt(Bytes, Bytes) -> Result[Bytes, ChannelError]
+
+pub fn weixin_aes_ecb_encrypt(Bytes, Bytes) -> Result[Bytes, ChannelError]
+
+pub fn weixin_aes_encrypt(Bytes, Bytes) -> Result[Bytes, ChannelError]
+
+pub fn weixin_aes_key_from_hex(String) -> Result[Bytes, ChannelError]
 
 pub fn weixin_media_requires_encryption(String) -> Bool
 
@@ -454,7 +470,7 @@ pub async fn DingTalkApiClient::download_file_url(Self, String, String) -> Resul
 pub async fn DingTalkApiClient::get_access_token(Self) -> Result[String, ChannelError]
 pub async fn DingTalkApiClient::get_oapi_token(Self) -> Result[String, ChannelError]
 pub fn DingTalkApiClient::new(String, String) -> Self
-pub fn DingTalkApiClient::open_stream_connection(Self, String, String) -> Result[(String, String), ChannelError]
+pub async fn DingTalkApiClient::open_stream_connection(Self, String, String) -> Result[(String, String), ChannelError]
 pub fn DingTalkApiClient::parse_token_response(Json) -> Result[(String, Int), ChannelError]
 pub async fn DingTalkApiClient::request_access_token(Self) -> Result[String, ChannelError]
 pub async fn DingTalkApiClient::request_oapi_token(Self) -> Result[String, ChannelError]
@@ -462,6 +478,7 @@ pub async fn DingTalkApiClient::send_to_group(Self, String, String, String, Stri
 pub async fn DingTalkApiClient::send_to_user(Self, String, String, String, String) -> Result[Json, ChannelError]
 pub async fn DingTalkApiClient::send_via_webhook(Self, String, String, String) -> Result[Json, ChannelError]
 pub async fn DingTalkApiClient::upload_media_url(Self) -> Result[String, ChannelError]
+pub fn DingTalkApiClient::with_base_url(String, String, String) -> Self
 
 pub(all) struct DiscordAdapter {
   bot_token : String
@@ -703,7 +720,7 @@ pub(all) struct WeComAdapter {
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
   ws_state : WeComWsState?
-  access_token_cache : TokenCache
+  api_client : WeComApiClient
 }
 pub fn WeComAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn WeComAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
@@ -715,6 +732,19 @@ pub fn WeComAdapter::supports_message_updates(Self) -> Bool
 pub async fn WeComAdapter::update_message(Self, String, String, String) -> Result[Unit, ChannelError]
 pub fn WeComAdapter::validate_config(Self) -> Array[String]
 pub impl Adapter for WeComAdapter
+
+pub(all) struct WeComApiClient {
+  corp_id : String
+  corp_secret : String
+  base_url : String
+  token_cache : TokenCache
+}
+pub async fn WeComApiClient::get_access_token(Self) -> Result[String, ChannelError]
+pub fn WeComApiClient::new(String, String) -> Self
+pub fn WeComApiClient::send_message_url(Self, String) -> String
+pub async fn WeComApiClient::send_text(Self, String, String, String) -> Result[String, ChannelError]
+pub fn WeComApiClient::token_url(Self) -> String
+pub fn WeComApiClient::with_base_url(String, String, String) -> Self
 
 pub(all) enum WeComFrameType {
   Subscribe
@@ -810,6 +840,7 @@ pub fn WeixinApiClient::parse_get_updates_response(Self, Json) -> Result[(Array[
 pub fn WeixinApiClient::parse_send_response(Self, Json) -> Result[(String, Int), ChannelError]
 pub fn WeixinApiClient::send_text_url(Self) -> String
 pub fn WeixinApiClient::send_typing_url(Self) -> String
+pub fn WeixinApiClient::with_base_url(String, String, String) -> Self
 
 pub(all) struct WeixinPendingMsg {
   chat_id : String

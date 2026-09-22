@@ -31,7 +31,7 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **131** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **112** 条（另有 117 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
@@ -64,12 +64,6 @@
 | lib/brand/skill_manager.mbt:530 | TODO | // TODO: 标记技能为启用状态 |
 | lib/brand/skill_manager.mbt:540 | TODO | // TODO: 标记技能为禁用状态 |
 | lib/brand/skill_manager.mbt:550 | TODO | // TODO: 查询技能启用状态 |
-| lib/channel/dingtalk.mbt:95 | TODO | // TODO: If api_client is available, POST /v1.0/gateway/connections/open |
-| lib/channel/dingtalk.mbt:112 | TODO | // TODO: Close WebSocket connection if active |
-| lib/channel/dingtalk_api.mbt:362 | TODO | // TODO: POST url with headers and body via async HTTP FFI |
-| lib/channel/dingtalk_api.mbt:382 | not-yet | "DingTalkApiClient::open_stream_connection not yet wired to HTTP transport", |
-| lib/channel/dingtalk_api.mbt:408 | TODO | // TODO: POST url with headers and body via async HTTP FFI |
-| lib/channel/dingtalk_api.mbt:424 | not-yet | "DingTalkApiClient::download_file_url not yet wired to HTTP transport", |
 | lib/channel/discord_api.mbt:85 | not-implemented | Err(ChannelError("Discord edit_message is not implemented yet")) |
 | lib/channel/discord_api.mbt:101 | not-implemented | Err(ChannelError("Discord delete_message is not implemented yet")) |
 | lib/channel/discord_api.mbt:114 | not-implemented | Err(ChannelError("Discord get_current_user is not implemented yet")) |
@@ -77,19 +71,6 @@
 | lib/channel/discord_api.mbt:150 | TODO | // TODO: Execute async HTTP GET via @http: |
 | lib/channel/telegram.mbt:234 | TODO | // TODO: Start long-polling loop via getUpdates API. |
 | lib/channel/telegram.mbt:291 | not-implemented | Err(ChannelError("Telegram update_message is not implemented yet")) |
-| lib/channel/wecom.mbt:93 | not-yet | /// WeCom send/receive is not yet implemented; `start` only registers the |
-| lib/channel/wecom.mbt:123 | not-yet | /// WeCom WebSocket send is not yet implemented; refuse to send with an |
-| lib/channel/wecom.mbt:141 | not-implemented | Err(ChannelError("WeCom send_text is not implemented yet")) |
-| lib/channel/weixin.mbt:191 | TODO | // TODO: Spawn long-polling loop via async runtime: |
-| lib/channel/weixin.mbt:215 | not-yet | /// Weixin send is not yet implemented; refuse to send with an honest error |
-| lib/channel/weixin.mbt:230 | not-implemented | Err(ChannelError("Weixin send_text is not implemented yet")) |
-| lib/channel/weixin_api.mbt:312 | not-implemented | /// NOTE: Actual AES-128-ECB encrypt/decrypt is not implemented here because |
-| lib/channel/weixin_api.mbt:339 | TODO | /// TODO: Implement using moonbitlang/x/crypto or FFI to OpenSSL. |
-| lib/channel/weixin_api.mbt:346 | TODO | // TODO: Implement AES-128-ECB encryption |
-| lib/channel/weixin_api.mbt:352 | not-yet | "AES encryption not yet implemented: requires moonbitlang/x/crypto", |
-| lib/channel/weixin_api.mbt:360 | TODO | /// TODO: Implement using moonbitlang/x/crypto or FFI to OpenSSL. |
-| lib/channel/weixin_api.mbt:367 | TODO | // TODO: Implement AES-128-ECB decryption |
-| lib/channel/weixin_api.mbt:373 | not-yet | "AES decryption not yet implemented: requires moonbitlang/x/crypto", |
 | lib/client/client.mbt:15 | stub | ///\| synchronous stubs that build requests and parse responses using |
 | lib/extension/verifier.mbt:159 | not-yet | /// Validate dependencies. MVP: just warn that automatic resolution is not yet implemented. |
 | lib/hook/shell_loader.mbt:21 | TODO,placeholder | // Parse hooks.yml (placeholder: TODO file read + TOML/YAML parse) |
@@ -218,12 +199,12 @@
 | lib/brand/skill_manager.mbt:530 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:540 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:550 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/channel/dingtalk.mbt:95 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/dingtalk.mbt:112 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/dingtalk_api.mbt:362 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/dingtalk_api.mbt:382 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/dingtalk_api.mbt:408 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/dingtalk_api.mbt:424 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
+| lib/channel/dingtalk.mbt:95 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
+| lib/channel/dingtalk.mbt:112 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
+| lib/channel/dingtalk_api.mbt:362 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
+| lib/channel/dingtalk_api.mbt:382 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
+| lib/channel/dingtalk_api.mbt:408 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
+| lib/channel/dingtalk_api.mbt:424 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
 | lib/channel/discord_api.mbt:85 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/discord_api.mbt:101 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/discord_api.mbt:114 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
@@ -245,19 +226,19 @@
 | lib/channel/feishu_api.mbt:331 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
 | lib/channel/telegram.mbt:234 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
 | lib/channel/telegram.mbt:291 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/wecom.mbt:93 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/wecom.mbt:123 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/wecom.mbt:141 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin.mbt:191 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin.mbt:215 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin.mbt:230 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:312 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:339 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:346 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:352 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:360 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:367 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
-| lib/channel/weixin_api.mbt:373 | open | 范围外（channel） | 渠道 HTTP API/长轮询/AES 未接线，方法诚实报错 |
+| lib/channel/wecom.mbt:93 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
+| lib/channel/wecom.mbt:123 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
+| lib/channel/wecom.mbt:141 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
+| lib/channel/weixin.mbt:191 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin.mbt:215 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin.mbt:230 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:312 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:339 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:346 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:352 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:360 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:367 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
+| lib/channel/weixin_api.mbt:373 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
 | lib/client/client.mbt:15 | open | 范围外（client） | 注释疑似过时：S-FFI-06 已迁移 @async/http，需更新注释 |
 | lib/extension/verifier.mbt:159 | open | 范围外（extension） | 依赖自动解析未实现，仅警告 |
 | lib/hook/shell_loader.mbt:21 | open | 范围外（hook） | hooks.yml 读取与 STDIN 传递未实现 |

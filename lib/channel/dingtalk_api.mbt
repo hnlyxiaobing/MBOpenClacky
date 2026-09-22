@@ -38,6 +38,25 @@ pub fn DingTalkApiClient::new(
   }
 }
 
+///|
+/// Create a DingTalkApiClient pointing at a custom base URL (for testing).
+/// Both the new API and the OAPI base are redirected, so token requests and
+/// message calls hit the same host.
+pub fn DingTalkApiClient::with_base_url(
+  app_key : String,
+  app_secret : String,
+  base_url : String,
+) -> DingTalkApiClient {
+  {
+    app_key,
+    app_secret,
+    api_base: base_url,
+    oapi_base: base_url,
+    access_token: TokenCache::new(300000),
+    oapi_token: TokenCache::new(300000),
+  }
+}
+
 // ── Auth: New API access_token ──────────────────────────────────────────────
 
 ///|
@@ -348,40 +367,39 @@ pub fn DingTalkApiClient::build_upload_request(filename : String) -> Json {
 ///|
 /// Open a Stream Mode connection to get a WebSocket endpoint.
 /// POST /v1.0/gateway/connections/open
-/// Returns (ws_endpoint, ticket) on success.
-pub fn DingTalkApiClient::open_stream_connection(
+/// Returns (ws_endpoint, ticket) on success; ticket is empty when absent.
+pub async fn DingTalkApiClient::open_stream_connection(
   self : DingTalkApiClient,
   client_id : String,
   client_secret : String,
 ) -> Result[(String, String), ChannelError] {
-  let _url = self.api_base + "/v1.0/gateway/connections/open"
-  let _body : Map[String, Json] = Map([])
-  _body.set("clientId", client_id.to_json())
-  _body.set("clientSecret", client_secret.to_json())
-  let _headers = HttpHeaders::new().content_type("application/json")
-  // TODO: POST url with headers and body via async HTTP FFI
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // let json = parse_json_response(response.body)?
-  // match json {
-  //   Object(obj) => {
-  //     let endpoint = match obj.get("endpoint") {
-  //       Some(String(ep)) => ep
-  //       _ => return Err(ChannelError("Missing endpoint in stream response"))
-  //     }
-  //     let ticket = match obj.get("ticket") {
-  //       Some(String(t)) => t
-  //       _ => ""
-  //     }
-  //     Ok((endpoint, ticket))
-  //   }
-  //   _ => Err(ChannelError("Invalid stream connection response"))
-  // }
-  let _ = _body
-  Err(
-    ChannelError(
-      "DingTalkApiClient::open_stream_connection not yet wired to HTTP transport",
-    ),
-  )
+  let url = self.api_base + "/v1.0/gateway/connections/open"
+  let body : Map[String, Json] = Map([])
+  body.set("clientId", client_id.to_json())
+  body.set("clientSecret", client_secret.to_json())
+  let headers = HttpHeaders::new().content_type("application/json").to_array()
+  let json = match
+    http_post_json(url, headers, Json::object(body).stringify()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match json {
+    Object(obj) => {
+      let endpoint = match obj.get("endpoint") {
+        Some(String(ep)) if !ep.is_empty() => ep
+        _ =>
+          return Err(
+            ChannelError("Missing endpoint in stream connection response"),
+          )
+      }
+      let ticket = match obj.get("ticket") {
+        Some(String(t)) => t
+        _ => ""
+      }
+      Ok((endpoint, ticket))
+    }
+    _ => Err(ChannelError("Invalid stream connection response"))
+  }
 }
 
 // ── File download API ───────────────────────────────────────────────────────
@@ -397,33 +415,27 @@ pub async fn DingTalkApiClient::download_file_url(
   download_code : String,
   robot_code : String,
 ) -> Result[String, ChannelError] {
-  let _headers = match self.auth_headers() {
+  let headers = match self.auth_headers() {
     Ok(h) => h
     Err(e) => return Err(e)
   }
-  let _url = self.api_base + "/v1.0/robot/messageFiles/download"
-  let _body : Map[String, Json] = Map([])
-  _body.set("downloadCode", download_code.to_json())
-  _body.set("robotCode", robot_code.to_json())
-  // TODO: POST url with headers and body via async HTTP FFI
-  // Step 1: Get download URL
-  // let response = @http.fetch(url, { method: "POST", headers: ..., body: ... })
-  // let json = parse_json_response(response.body)?
-  // match json {
-  //   Object(obj) => {
-  //     match obj.get("downloadUrl") {
-  //       Some(String(url)) => Ok(url)
-  //       _ => Err(ChannelError("Missing downloadUrl in response"))
-  //     }
-  //   }
-  //   _ => Err(ChannelError("Invalid download response"))
-  // }
-  let _ = _body
-  Err(
-    ChannelError(
-      "DingTalkApiClient::download_file_url not yet wired to HTTP transport",
-    ),
-  )
+  let url = self.api_base + "/v1.0/robot/messageFiles/download"
+  let body : Map[String, Json] = Map([])
+  body.set("downloadCode", download_code.to_json())
+  body.set("robotCode", robot_code.to_json())
+  let json = match
+    http_post_json(url, headers.to_array(), Json::object(body).stringify()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  match json {
+    Object(obj) =>
+      match obj.get("downloadUrl") {
+        Some(String(u)) if !u.is_empty() => Ok(u)
+        _ => Err(ChannelError("Missing downloadUrl in download response"))
+      }
+    _ => Err(ChannelError("Invalid download response"))
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

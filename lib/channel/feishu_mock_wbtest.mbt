@@ -49,7 +49,9 @@ async fn MockFeishuServer::serve(self : MockFeishuServer) -> Unit {
 }
 
 ///|
-async fn mock_feishu_send(
+/// Write a single HTTP/1.1 response. Shared with the other channel mock tests
+/// (channel_http_mock_wbtest.mbt).
+async fn mock_http_send(
   conn : @socket.Tcp,
   status : Int,
   body : String,
@@ -88,47 +90,48 @@ async fn mock_feishu_handle_conn(
     }
   }
   let has_body = http_method == "POST" || http_method == "PATCH"
-  let body = if has_body { mock_feishu_read_body(conn, headers) } else { "" }
+  let body = if has_body { mock_http_read_body(conn, headers) } else { "" }
   server.requests.push((http_method + " " + path, body))
   // Business-failure injection: Feishu returns HTTP 200 with code != 0.
   if server.fail_mode {
-    mock_feishu_send(conn, 200, "{\"code\":99991663,\"msg\":\"token expired\"}")
+    mock_http_send(conn, 200, "{\"code\":99991663,\"msg\":\"token expired\"}")
     return
   }
   if path.contains("tenant_access_token/internal") {
-    mock_feishu_send(
+    mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"tenant_access_token\":\"t-mock\",\"expire\":7200}",
     )
   } else if http_method == "POST" &&
     path.contains("im/v1/messages?receive_id_type") {
-    mock_feishu_send(
+    mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{\"message_id\":\"om_mock123\"}}",
     )
   } else if http_method == "PATCH" && path.contains("im/v1/messages/") {
-    mock_feishu_send(conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{}}")
+    mock_http_send(conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{}}")
   } else if http_method == "POST" && path.contains("im/v1/images") {
-    mock_feishu_send(
+    mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{\"image_key\":\"img_v2_mock\"}}",
     )
   } else if http_method == "POST" && path.contains("im/v1/files") {
-    mock_feishu_send(
+    mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{\"file_key\":\"file_v2_mock\"}}",
     )
   } else if http_method == "GET" && path.contains("/resources/") {
-    mock_feishu_send(conn, 200, "hello-bytes")
+    mock_http_send(conn, 200, "hello-bytes")
   } else if http_method == "GET" && path.contains("container_id_type=chat") {
-    mock_feishu_send(
+    mock_http_send(
       conn, 200, "{\"code\":0,\"msg\":\"success\",\"data\":{\"items\":[]}}",
     )
   } else {
-    mock_feishu_send(conn, 404, "{\"code\":99991672,\"msg\":\"not found\"}")
+    mock_http_send(conn, 404, "{\"code\":99991672,\"msg\":\"not found\"}")
   }
 }
 
 ///|
 /// Read a request body (Content-Length or chunked; the MoonBit HTTP client
 /// sends chunked). Same byte-accumulation rationale as the e2e mock server.
-async fn mock_feishu_read_body(
+/// Shared with the other channel mock tests (channel_http_mock_wbtest.mbt).
+async fn mock_http_read_body(
   conn : @socket.Tcp,
   headers : Map[String, String],
 ) -> String {
@@ -148,7 +151,7 @@ async fn mock_feishu_read_body(
         [h, ..] => h.to_owned()
         _ => size_line
       }
-      let size = mock_feishu_parse_hex(size_hex)
+      let size = mock_http_parse_hex(size_hex)
       if size <= 0 {
         for ;; {
           match conn.read_until("\r\n") {
@@ -188,7 +191,7 @@ async fn mock_feishu_read_body(
 }
 
 ///|
-fn mock_feishu_parse_hex(s : String) -> Int {
+fn mock_http_parse_hex(s : String) -> Int {
   let mut n = 0
   for c in s {
     let d = match c {
