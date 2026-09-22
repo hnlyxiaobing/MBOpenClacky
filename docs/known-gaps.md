@@ -26,7 +26,7 @@
 | P1-1 协议接入面（TUI） | `lib/protocol` 已接入 Web（`ws_frame` + 全部事件构造）与 CLI（`--ndjson` 事件流 + `cmd inspect` 渲染），TUI 仍直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息：tool args 原始字符串、MessageAdded/AfterIteration 区分） | 计划风险表预案"先抽协议 + 保留适配层，不做大爆炸式替换"；TUI 的 HookEvent 匹配仍是穷尽的（新增引擎事件即编译失败）。如需 TUI 也绑定 wire 词表，见 `specs/decisions/` ADR-0001 的后续项 |
 | P2 能力评测分层 | `test/eval/eval_engine.mbt` 是通用场景引擎；确定性 `tool_harness` 与真模型 `cmd eval 5×3` 的落地状态 | **两层均已落地（2026-09-22，WP-2.2）**：确定性层 `test/eval/tool_harness.mbt` + `cmd eval --offline`（3 任务 × 2 重复，进 CI）；真模型层 `test/eval/live_harness.mbt` + `test/capability/tasks/`（4 任务 × 3 重复，不进 CI），两层共用同一任务 schema（真模型层追加 `prompt`/`acceptance`/`trials`）与同一 `checks`/评分向量。任务集扩充（目标 20~30 条）仍在路线图内 |
 | 真模型评测的 stdout 诊断污染 | 流式调用每次收尾打印一行 `[stream-summary]`（`lib/agent/llm_caller.mbt:685`），其注释与所依据的 spec（`2026-08-18_02` 决策 5）都写"visible in stderr"，实际却走 `println`（stdout） | **范围外（WP-2.2 发现并如实登记）**：影响一切机器可读 stdout（`-m --json`、`eval --live`）。本 WP 未改共享诊断路由（MoonBit core 无 stderr 原语，`eprintln` 属 async 内部包，改用文件 logger 会失去控制台可见性），改为**如实声明契约**：`eval --live` 的 JSON 是 stdout **最后一行**，且另存 `_build/capability/results/<stamp>/score.json`。修复该行需要专门的诊断路由决策 |
-| Web 会话不产 JSONL 事件流 | `attach_session_log` 只接在 CLI 路径（`--message` 与 TUI，T5 后两者对称）；Web 会话主体仍是整份 JSON CRUD | 决策 D3 默认：**范围外**，不接入（把事件日志接进 Web 需要广播层新增持久化旁路）；README 已精确化措辞 |
+| Web 会话不产 JSONL 事件流 | `attach_session_log` 只接在 CLI 路径（`--message` 与 TUI，T5 后两者对称）；Web 会话主体仍是整份 JSON CRUD | **已修（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent/session_log.mbt` 为值类型，`lib/web/handlers_ws.mbt` 的 per-session `WsSessionState` 持有独立 producer——hook 闭包在广播前旁路喂全部引擎事件（抑制是 UI 呈现决策，日志记录引擎实际所见），四个 run 退出路径（成功/错误 × 异步/同步回退）在 `save_session` 同位 flush。**实测**（隔离 home + 本地 mock 上游，端口 7073）：Web 会话运行后产出 `<sessions>/<id>.jsonl`（version 头 + seq 连续事件），成功与错误路径均落盘，`cmd inspect` 可回放；空缓冲不建文件。压缩→Summary 追加与原字节保全由 `lib/agent` 单测断言 |
 | 技能进化未接面板 UI | WP-2.1 已接线两端点（`POST /api/skills/:name/evolve`、`GET /api/skills/evolution/history`）且返回真实数据，但 `web/features/skills/` 无调用方（端点仅由 API/脚本/agent 使用） | **有意识为之**：面板没有技能执行证据可提交，若加"优化"按钮就只能提交空证据或伪造证据，反而制造新的假成功；WP-2.1 的 DoD 以"可被 Web 查询"为准。面板展示进化历史需新增 i18n 键 + 渲染 + CSS，属独立 UI 任务，**本 WP 显式范围外**（见 `specs/completed/2026-09-22_wp-2.1-gep-skill-reflector.md` 决策 6） |
 | 技能执行台账缺失 | 全仓无技能↔执行记录（`skill_usage`/`SkillExecution` 等符号 0 命中），故 `Agent::run_skill_evolution_hooks` 只跑 `AutoDetect`，`PostExecution` 分支在运行期无调用方 | **范围外**：反思证据因此必须由调用方提供（`transcript` 必填，缺失返回可诊断 400）。把 PostExecution 接入 agent 运行期需先建技能执行台账，属独立 WP |
 
@@ -123,7 +123,7 @@
 | lib/web/handlers_store.mbt:227 | not-yet | "message": "Remote extension download is not yet supported. Install from local path instead.".to_json(), |
 | lib/web/handlers_trash.mbt:365 | stub | /// delete/restore semantics are still backed by the stub trash model; |
 | lib/web/handlers_version.mbt:287 | not-yet | message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.", |
-| lib/web/handlers_ws.mbt:278 | TODO | updated_at: sd.created_at, // TODO(P1): track real updated_at |
+| lib/web/handlers_ws.mbt:283 | TODO | updated_at: sd.created_at, // TODO(P1): track real updated_at |
 
 <!-- END: auto-scan -->
 
@@ -306,7 +306,7 @@
 | lib/web/handlers_store.mbt:227 | open | 范围外（extension） | 远程扩展下载不支持（提示本地安装） |
 | lib/web/handlers_trash.mbt:365 | open | 范围外（web） | trash 模型仍为 stub 语义 |
 | lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
-| lib/web/handlers_ws.mbt:278 | open | 范围外（web） | updated_at 回退 created_at |
+| lib/web/handlers_ws.mbt:283 | open | 范围外（web） | updated_at 回退 created_at |
 | cmd/eval.mbt:77 | fixed | WP-2.2 | `--live` 已接线（2026-09-22）：`test/capability/tasks/` 任务集 + 真 ReAct 运行器（工具面限定为 file_reader/write/edit/grep/glob）+ 评分向量与报告落盘；无 key 时仍诚实 exit 1 |
 | cmd/main.mbt:198 | fixed | WP-2.2 | `--live` 帮助文本改为如实描述「需配置模型」（2026-09-22） |
 | cmd/selftest.mbt:520 | fixed | WP-2.2 | 契约探针改为与 key 无关的确定性失败路径（缺任务集→exit 1、模式互斥→exit 2），避免探针继承环境后触发真实计费调用（2026-09-22） |

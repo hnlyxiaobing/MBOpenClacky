@@ -68,14 +68,14 @@
 | WP-2.1 | GEP SkillReflector 做实 | P1 | — | 2–3 天 | — | `[x]` 完成（2026-09-22） |
 | WP-2.2 | `cmd eval --live` 真模型评测接线 | P1 | — | 2–3 天 | — | `[x]` 完成（2026-09-22） |
 | WP-3.1 | 旧会话 schema 只读迁移投影 | P2 | — | 1–2 天 | — | `[x]` 完成（2026-09-22） |
-| WP-3.2 | Web 会话 JSONL 事件流（复议 D3） | P2 | — | 2–3 天 | — | `[ ]` 未开始 |
+| WP-3.2 | Web 会话 JSONL 事件流（复议 D3） | P2 | — | 2–3 天 | — | `[x]` 完成（2026-09-22） |
 | WP-3.3 | MCP HTTP 传输 | P2 | — | 1–2 天 | — | `[x]` 完成（2026-09-22） |
 | WP-3.4 | 性能基准真实执行驱动 | P2 | — | 2 天 | 先出 spec | `[ ]` 未开始 |
 | WP-3.5 | Windows `lib/mcp` 测试挂死排查 | P3 | — | 1–2 天 | — | `[ ]` 未开始 |
 | WP-3.6 | TUI 绑定 wire 词表（ADR-0001 后续） | P3 | — | 2–3 天 | — | `[ ]` 未开始 |
 
-> **一句话结论**：17 个 WP 中 **12 个完成、1 个作废、4 个未开始**。已完成的是 P0 与全部 P1/P2 渠道与能力主线（品牌 / 渠道 send / 媒体 / 渠道配置 / GEP 反思 / 真模型评测 / 全平台编辑撤回 / 旧会话只读投影 / MCP HTTP 传输）；
-> 未开始的是 4 个 P2/P3 卫生项（WP-3.2、WP-3.4~3.6）。因此 §7 的整体完成定义**尚未达成**。
+> **一句话结论**：17 个 WP 中 **13 个完成、1 个作废、3 个未开始**。已完成的是 P0 与全部 P1/P2 渠道与能力主线（品牌 / 渠道 send / 媒体 / 渠道配置 / GEP 反思 / 真模型评测 / 全平台编辑撤回 / 旧会话只读投影 / Web 会话 JSONL 事件流 / MCP HTTP 传输）；
+> 未开始的是 3 个 P2/P3 卫生项（WP-3.4~3.6）。因此 §7 的整体完成定义**尚未达成**。
 > 逐项证据与剩余范围见下节 §3.1。
 
 ### 3.1 完成情况核对（逐项代码验证，2026-09-22）
@@ -90,14 +90,14 @@
 | WP-1.6 | `scripts/known_gaps.sh generate` 后 `discord_api.mbt` 5 行 + `telegram.mbt:291` 全部消失，curated 行转 `fixed`（95 → 89）；`Adapter` trait 新增 `delete_message`/`supports_message_deletion` 并由 `AnyAdapter` 分发 6 平台；飞书/Telegram/Discord 的编辑与撤回经本地 mock 真 HTTP 往返；`supports_message_*` 声明与实现一致（不支持撤回的企微/微信/钉钉如实报错）。 |
 | WP-1.7 | 渠道端点全部读写 `ChannelManager`（无 `channels_store` 双真相源）；台账「渠道配置不生效」相关行 `fixed`。 |
 | WP-3.1 | 参考机 `~/.mbopenclacky/sessions/` 由 **1/32 可列出 → 32/32**（`cmd --list` 无「未列出」提示）；新增 `lib/agent/session_legacy_repr.mbt` 处理 Debug-repr 转储，`lib/message` 容忍旧 Option 包装（`[x]`/`[[...]]`/`type_`）与 `SessionData` 缺字段容忍；`cmd inspect` 对两种旧格式均渲染时间线；文件字节不变（只读投影）。 |
+| WP-3.2 | `SessionLogProducer` 下沉 `lib/agent/session_log.mbt` 为值类型；`lib/web/handlers_ws.mbt` per-session 旁路接线（hook 广播前喂全部事件，四个 run 退出路径在 `save_session` 同位 flush）。**实测**（隔离 home + 本地 mock 上游）：Web 会话产出 `<sessions>/<id>.jsonl`（version 头 + seq 连续事件），成功与错误路径均落盘，`cmd inspect` 可回放；空缓冲不建文件；压缩→Summary 追加与原字节保全由单测断言。 |
 | WP-3.3 | `grep -c "not implemented" lib/mcp/http_transport.mbt` → 0；台账 3 行消失（89 → 86）并转 `fixed`；13 条新测试全部走真实 socket（JSON/SSE 往返、会话回带、503 与拒连报错、SSE 关流报错、另一 id 拒收、batch/url 单测），另有 `McpClient` 经 HTTP 完成握手 + `tools/list` 的端到端一条。 |
 | WP-2.1 | `lib/skill/reflector.mbt` 无 `placeholder` 命中；两端点为真实实现；台账 6 行 `fixed`（104 → 98）。 |
 | WP-2.2 | `grep -rn "not implemented" cmd/eval.mbt cmd/main.mbt cmd/selftest.mbt` → 0 命中；台账 3 行 `fixed`（98 → 95）；真模型实测 12/12 trial（`docs/eval/2026-09-22.md`）。 |
 | WP-0.2 | 决策门 D-A/D-B 均选 A（放行记录见 §2），"降级声明"分支**不适用**，故标 `[—]`。 |
 
-**未完成（4 项）**——以下均为本次逐项核验后的**精确剩余范围**，不是推测：
+**未完成（3 项）**——以下均为本次逐项核验后的**精确剩余范围**，不是推测：
 
-1. **WP-3.2 Web 会话 JSONL 事件流**（P2）：`SessionLogProducer` 只存在于 `cmd/inspect.mbt`（CLI 路径）；`lib/web` 无任何会话事件日志接线。
 4. **WP-3.4 性能基准真实执行驱动**（P2）：`test/benchmark/benchmark_runner.mbt:37-44` 明写"为了简化，我们模拟执行"，`elapsed_ms` 紧随 `BenchmarkTimer::new()` 读取。**实测**（2026-09-22）`cmd benchmark --iterations 3 --warmup 1` 输出 Total/Min/Max/Avg/P50/P95/P99 **全部为 0ms**，且回归报告的场景名显示 `unknown`；`test/benchmark/README.md:52` 已如实说明该限制。
 5. **WP-3.5 Windows `lib/mcp` 测试挂死**（P3）：**本次复验仍挂死**（2026-09-22，`timeout 40 moon test --release lib/mcp`）：`mcp.whitebox_test.exe` 无输出、被计时器杀死（exit 143）。故本机全量测试仍需排除该包（Linux CI 全绿）。
 6. **WP-3.6 TUI 绑定 wire 词表**（P3）：`lib/tui/agent_hooks.mbt` 仍直接消费引擎 `HookEvent`；ADR-0001 的后续项未启动。
@@ -109,7 +109,7 @@
 - **M1 可信度速赢（1 天）** `[x]` 已完成（2026-09-21）：WP-0.1 落地（品牌资产替换 + 两份文档统一）；决策门 D-A/D-B 均放行 A，故 WP-0.2 作废。✅ 法律风险消除、文档与现实一致。
 - **M2 网络接线（1–2 周）** `[x]` 完成（2026-09-22）：WP-1.1→1.2/1.3/1.5 并行 →1.4 全部接线（`moonbitlang/x/crypto` 提供 AES-ECB，无需 FFI），WP-1.6 补齐全平台编辑/撤回，并顺带闭环 WP-1.7 暴露的四处"配置不生效"断点。
 - **M3 能力深度（1 周）** `[x]` 已完成（2026-09-22）：WP-2.1（GEP 反思做实 + 进化日志 + 两端点）、WP-2.2（`cmd eval --live` 真模型评测，首次真模型运行见 `docs/eval/`）。**遗留**：上游 Ruby 侧对标、任务集扩充（均已在路线图 §2.3 记为待办）。
-- **M4 卫生与契约（backlog）** `[ ]` 部分完成：WP-3.1、WP-3.3 已完成，WP-3.2、WP-3.4~3.6 未做（核对证据见 §3.1）。均已在台账登记，不构成可信度风险。
+- **M4 卫生与契约（backlog）** `[ ]` 部分完成：WP-3.1、WP-3.2、WP-3.3 已完成，WP-3.4~3.6 未做（核对证据见 §3.1）。均已在台账登记，不构成可信度风险。
 
 ---
 
@@ -385,10 +385,18 @@
   - **如实说明**：参考机上**没有上游 Ruby openclacky 的原始会话样本**，因此"对上游文件的端到端比对"仍属未验证；README 改为精确表述（已验证：旧版转储 + 字段变体；未验证：上游原始样本）。
   - spec 归档：`specs/completed/2026-09-22_wp-3.1-legacy-session-readonly-projection.md`。
 
-### WP-3.2 Web 会话 JSONL 事件流（复议 D3）`[ ]`（P2）
+### WP-3.2 Web 会话 JSONL 事件流（复议 D3）`[x]`（P2，2026-09-22 完成）
 
 - **背景**：决策 D3 曾划为范围外。若追求三端可观测一致，需在 `lib/web/broadcast/hub.mbt` 加持久化旁路，复用 CLI/TUI 的 `SessionLogProducer`（值类型，可脱进程测试）。
 - **DoD**：Web 会话也产 append-only JSONL；压缩只追加 `Summary`；不改原始事件字节。
+- **完成记录（2026-09-22）**：
+  - 实现路径与背景设想有一处偏差：持久化旁路没有放 `hub.mbt`（广播层是纯扇出，放在那里会让"UI 订阅"与"落盘"耦合），而是接在 `lib/web/handlers_ws.mbt` 的既有 hook 上——`SessionLogProducer` 从 `cmd/inspect.mbt` 下沉 `lib/agent/session_log.mbt` 为 `pub` 值类型（逻辑逐字迁移，写原语本就在该包），`WsSessionState` 每会话持有独立 producer，hook 闭包在广播 match 之前喂全部引擎事件。
+  - **喂事件不挑拣**：Web 广播出于 UI 需求会抑制部分帧（如中断后的矛盾 complete），但日志契约是"记录引擎实际发出的事件"（与 CLI/TUI 一致），抑制是呈现决策、发生在日志层之后。
+  - **flush 挂四个 run 退出路径**（成功/错误 × 异步/同步回退）的 `save_session` 同位；`buffered()==0` 短路（无事件不建空文件，含守卫下沉进 `SessionLogProducer::flush` 本体）；目录缺省 `ensure_sessions_dir()`、失败静默返回，日志失败绝不影响 run 退出码；`sessions_dir` 可注入（wbtest 用 `_build` scratch 目录，不触真实 home）。
+  - 测试：`lib/agent` 新增 4 条（压缩→Summary、双压缩、空缓冲不建文件、跨写入者 seq 续写）；`lib/web` 新增 2 条（真实 `register_ws_hooks` + emit + flush 全链路、空缓冲不建文件）；cmd 既有 3 条薄包装测试原样通过（迁移无回归）。
+  - **实测端到端**（隔离 home + 本地 mock 上游，`USERPROFILE` 指向临时目录）：Web 会话运行后产出 `<sessions>/<id>.jsonl`（version 头 + seq 连续事件），成功路径（`task_finished`/`complete`）与错误路径（LLM 不可达）均落盘；`cmd inspect <id>.jsonl` 正常回放时间线。用户真实 `~/.mbopenclacky` 未被触碰。
+  - **如实说明**：压缩→Summary 的端到端触发需真实长对话（mock 会话不可达），该不变量由 `lib/agent` 单测断言（与 CLI/TUI 共用同一生产者实现，无差异化路径）。会话删除不联动清理 `.jsonl`（显式范围外，与 CLI 行为一致）。
+  - spec 归档：`specs/completed/2026-09-22_wp-3.2-web-session-jsonl-event-stream.md`。
 
 ### WP-3.3 MCP HTTP 传输 `[x]`（P2，2026-09-22 完成）
 
@@ -452,7 +460,7 @@
 **当前状态（2026-09-22 核对）：整体尚未达成。**
 - 条件 1 ✅ 满足（WP-0.1 已完成，`web/PATCHES.md` P0-001 `resolved`）。
 - 条件 2 ✅ 满足（D-A/D-B 均选 A 并执行接线，无悬空）。
-- 条件 3 ⚠️ **部分满足**：已完成的 12 个 WP 对应台账行均为 `fixed`、全局基线命令全绿；但 **WP-3.2、WP-3.4~3.6 未开始**，其台账行仍为 `open`（这是有意的如实登记，不是遗漏）。
+- 条件 3 ⚠️ **部分满足**：已完成的 13 个 WP 对应台账行均为 `fixed`、全局基线命令全绿；但 **WP-3.4~3.6 未开始**，其台账行仍为 `open`（这是有意的如实登记，不是遗漏）。
 - 条件 4 ⚠️ **部分满足**：已完成 WP 的路线图条目与 `CHANGELOG` 均已同步；未开始项的路线图状态已按本次核对标注为未完成。
 - 结论：**P0 与 P1 主线全部闭环；余下 7 个 P2/P3 工作包（1 个渠道补齐 + 6 个卫生项）按资源择机**，不影响对外承诺的可信度（均为已披露的诚实 stub/骨架）。
 

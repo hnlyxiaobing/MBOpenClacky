@@ -23,10 +23,10 @@
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 220 |
-| 源代码行数 | 101,013 |
-| 测试行数 | 62,345 |
-| 总行数 | 163,358 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
+| 源代码行数 | 101,059 |
+| 测试行数 | 62,590 |
+| 总行数 | 163,649 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -350,7 +350,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
 | P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 基础设施已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。**注意**：执行驱动仍是模拟（计时恒 0ms、回归报告场景名 `unknown`），真实执行属 [improvement-execution-plan.md](improvement-execution-plan.md) **WP-3.4，未开始** |
-| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ⚠️ **4 项未开始**（17 个 WP 中 12 完成 / 1 作废 / 4 未开始）；已完成 WP-3.1 旧会话只读投影（参考机会话 1/32 → **32/32 可列出**）与 WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）。逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
+| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ⚠️ **3 项未开始**（17 个 WP 中 13 完成 / 1 作废 / 3 未开始）；已完成 WP-3.1 旧会话只读投影（参考机会话 1/32 → **32/32 可列出**）、WP-3.2 Web 会话 JSONL 事件流（三端均可离线回放）与 WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）。逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
 | P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---
@@ -360,6 +360,6 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)）：
 
 - **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
-- **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。仍不产 JSONL 的是 Web 会话（决策 D3，范围外，台账已登记）。
+- **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。**Web 会话已接线（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent` 为值类型，Web per-session 旁路 + 四个 run 退出路径 flush，三端（CLI/TUI/Web）均产 append-only JSONL 且 `cmd inspect` 可回放。
 - **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI（3 任务 × 2 重复）；真模型路径 `cmd eval --live` 已接线（WP-2.2，2026-09-22）——`test/capability/tasks/` 4 任务 × 3 重复走真实 ReAct 循环，报告入 `docs/eval/`，不进 CI。**未完成**：与上游 Ruby 侧的对标，以及任务集扩充到 20~30 条（当前任务集偏基础、无区分度，全通过不构成模型能力结论）。
 - **发布卫生**：版本对齐 `0.2.0`（`moon.mod` / `cmd` / `lib/tui` / `lib/web` 四处，机器校验）；`v0.2.0` tag 指向收尾提交；`v0.2.0-hackathon` 保留为历史标记。

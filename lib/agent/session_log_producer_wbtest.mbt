@@ -1,8 +1,10 @@
-///| Tests for the CLI session-log producer (T5 / T6).
+///| Tests for the shared session-log producer (WP-3.2).
 ///
-/// These cover the wiring the unit tests in `lib/agent/session_log_wbtest.mbt`
-/// cannot: that a compression is projected as a `summary` record over the
-/// events it supersedes, while those events stay byte-identical in the file.
+/// The producer is a value type consumed by the CLI process, the TUI and the
+/// Web per-session state. These tests cover the invariants the write
+/// primitives alone cannot: compression splits segments and projects as a
+/// `summary` record, the covered events stay byte-identical in the file, and
+/// a flush never creates an empty log.
 
 ///|
 /// A scratch sessions directory under `_build`, plus the log path for
@@ -37,39 +39,22 @@ fn producer_test_path(session_id : String) -> (String, String) {
 }
 
 ///|
-fn producer_test_agent(session_id : String) -> @agent.Agent {
-  let client = @client.Client::new(
-    "key",
-    "https://api.test.com",
-    "model",
-    @config.OpenAICompletions,
-  )
-  @agent.Agent::new(
-    session_id,
-    "producer-test",
-    ".",
-    client,
-    @config.AgentConfig::default(),
-  )
-}
-
-///|
 async test "session log producer projects a compression as a summary" {
   let (dir, path) = producer_test_path("wbtest-summary")
-  let producer = @agent.SessionLogProducer::new()
-  producer.on_hook_event(@agent.InfoMessage("first"))
-  producer.on_hook_event(@agent.InfoMessage("second"))
-  producer.on_hook_event(@agent.CompressionPerformed(2))
-  producer.on_hook_event(@agent.InfoMessage("third"))
+  let producer = SessionLogProducer::new()
+  producer.on_hook_event(InfoMessage("first"))
+  producer.on_hook_event(InfoMessage("second"))
+  producer.on_hook_event(CompressionPerformed(2))
+  producer.on_hook_event(InfoMessage("third"))
   producer.flush("wbtest-summary", "2026-09-21T00:00:00Z", dir)
-  let log = @agent.read_session_log(path)
+  let log = read_session_log(path)
   @debug.assert_eq(log.malformed_lines, 0)
   @debug.assert_eq(log.truncated_tail, false)
   // Three events plus the compaction marker.
   @debug.assert_eq(log.records.length(), 4)
   let summary = match log.records[2] {
-    @agent.SummaryRecord(found) => found
-    @agent.EventRecord(_) => {
+    SummaryRecord(found) => found
+    EventRecord(_) => {
       fail("expected a summary record at index 2")
       return
     }
@@ -89,19 +74,19 @@ async test "session log producer projects a compression as a summary" {
 ///|
 async test "two compressions in one run produce two disjoint summaries" {
   let (dir, path) = producer_test_path("wbtest-two-summaries")
-  let producer = @agent.SessionLogProducer::new()
-  producer.on_hook_event(@agent.InfoMessage("a"))
-  producer.on_hook_event(@agent.CompressionPerformed(1))
-  producer.on_hook_event(@agent.InfoMessage("b"))
-  producer.on_hook_event(@agent.CompressionPerformed(1))
-  producer.on_hook_event(@agent.InfoMessage("c"))
+  let producer = SessionLogProducer::new()
+  producer.on_hook_event(InfoMessage("a"))
+  producer.on_hook_event(CompressionPerformed(1))
+  producer.on_hook_event(InfoMessage("b"))
+  producer.on_hook_event(CompressionPerformed(1))
+  producer.on_hook_event(InfoMessage("c"))
   producer.flush("wbtest-two-summaries", "2026-09-21T00:00:00Z", dir)
-  let log = @agent.read_session_log(path)
-  let summaries : Array[@agent.LogSummary] = []
+  let log = read_session_log(path)
+  let summaries : Array[LogSummary] = []
   for record in log.records {
     match record {
-      @agent.SummaryRecord(found) => summaries.push(found)
-      @agent.EventRecord(_) => ()
+      SummaryRecord(found) => summaries.push(found)
+      EventRecord(_) => ()
     }
   }
   @debug.assert_eq(summaries.length(), 2)
@@ -117,27 +102,28 @@ async test "two compressions in one run produce two disjoint summaries" {
 }
 
 ///|
-/// The CLI wiring as `run_agent` uses it: the producer is registered on the
-/// agent's hook manager and flushed by the run path. This is the only test
-/// that touches the process-global producer, so it cannot race another test.
-async test "attach_session_log + flush_session_log write the run's log" {
-  let (dir, path) = producer_test_path("wbtest-cli-wiring")
-  let agent = producer_test_agent("wbtest-cli-wiring")
-  attach_session_log(agent)
-  agent.hook_manager.emit(@agent.InfoMessage("wired"))
-  agent.hook_manager.emit(@agent.CompressionPerformed(1))
-  flush_session_log(agent.session_id, agent.created_at, sessions_dir=dir)
-  let log = @agent.read_session_log(path)
+async test "flush with an empty buffer creates no file" {
+  let (dir, path) = producer_test_path("wbtest-empty-buffer")
+  let producer = SessionLogProducer::new()
+  @debug.assert_eq(producer.buffered(), 0)
+  producer.flush("wbtest-empty-buffer", "2026-09-21T00:00:00Z", dir)
+  assert_false(@fs.path_exists(path))
+}
+
+///|
+/// A log started by another writer (e.g. the CLI in an earlier run) must be
+/// appended to with a continuing sequence, never overwritten.
+async test "flush continues an existing log's sequence" {
+  let (dir, path) = producer_test_path("wbtest-continuation")
+  let existing_event : @protocol.Event = @protocol.Info({ message: "from cli", })
+  let _ = append_event(path, existing_event, 1000L)
+  let producer = SessionLogProducer::new()
+  producer.on_hook_event(InfoMessage("from web"))
+  producer.flush("wbtest-continuation", "2026-09-21T00:00:00Z", dir)
+  let log = read_session_log(path)
   @debug.assert_eq(log.records.length(), 2)
   match log.records[1] {
-    @agent.SummaryRecord(found) => {
-      @debug.assert_eq(found.from_seq, 1)
-      @debug.assert_eq(found.to_seq, 1)
-    }
-    @agent.EventRecord(_) => fail("expected a trailing summary record")
+    EventRecord(event) => @debug.assert_eq(event.seq, 2)
+    SummaryRecord(_) => fail("expected an event record at index 1")
   }
-  // A second flush with an empty buffer must not create or touch the file.
-  flush_session_log(agent.session_id, agent.created_at, sessions_dir=dir)
-  let again = @agent.read_session_log(path)
-  @debug.assert_eq(again.records.length(), 2)
 }

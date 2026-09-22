@@ -110,10 +110,6 @@ type Probe
 
 type ProbeRun
 
-type SessionLogProducer
-
-type SessionLogSegment
-
 type StderrExpect
 
 type StdoutShape

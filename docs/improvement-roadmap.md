@@ -100,7 +100,7 @@
 
 | 项 | 证据（核对于 2026-09-22） | 落差 | 建议动作 | 状态 |
 |---|---|---|---|---|
-| Web 会话不产 JSONL 事件流 | `SessionLogProducer` 只在 `cmd/inspect.mbt`（CLI 路径）；`lib/web` 无任何接线 | CLI/TUI 可离线回放，Web 不可；决策 D3 明确划为范围外 | 若要三端观测一致，需在广播层加持久化旁路；否则维持 D3，保持 README 措辞精确即可 | `[ ]` 未开始（WP-3.2） |
+| Web 会话不产 JSONL 事件流 | **已接线（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent` 为值类型，`lib/web/handlers_ws.mbt` per-session 旁路（hook 广播前喂全部事件，四个 run 退出路径 flush）；实测 Web 会话产出 append-only JSONL 且 `cmd inspect` 可回放 | CLI/TUI/Web 三端可离线回放会话时间线；D3 复议落地 | 剩余：Web 面板回放 UI（独立任务，`cmd inspect` 已可回放） | `[x]` 已完成（WP-3.2） |
 | 旧会话 schema 迁移 | **只读投影已落地（2026-09-22，WP-3.1）**：新增 Debug-repr 投影（`lib/agent/session_legacy_repr.mbt`）+ 旧 Option 包装（`[x]` / `[[...]]`）与缺字段容忍；参考机 32 个 `.json` **32/32 可列出**，`cmd inspect` 对两种旧格式都给时间线 | 上游 Ruby 会话样本不在手 → 对上游原始文件的端到端比对仍未验证（`README.md:77` 已如实标注）；文件不做就地改写 | 剩余仅"拿到上游样本再比对"（无样本则维持现状表述） | `[x]` 已完成（WP-3.1，只读投影） |
 | MCP HTTP 传输 | **已接线（2026-09-22，WP-3.3）**：`lib/mcp/http_transport.mbt` 三处 `not implemented` 清零；`@async/http` 实现 Streamable HTTP（POST + `application/json` / `text/event-stream` 两种应答、`Mcp-Session-Id` 捕获与回带、SSE 逐帧相关 id） | README 表述升级为"Stdio 与 HTTP 传输可用" | 剩余：`resources`/`prompts` 能力面（原就不在范围） | `[x]` 已完成（WP-3.3） |
 | 性能基准驱动为骨架 | `BenchmarkRunner::run_scenario` 的 `run_single_iteration` 明写"模拟执行"，`elapsed_ms` 紧随计时器创建读取；实测 `cmd benchmark --iterations 3 --warmup 1` 输出**全部 0ms**、回归报告场景名为 `unknown`（`test/benchmark/README.md:52` 已如实说明） | 层 7 可做回归对比，但不能作为真实性能闸门 | 先出 `specs/draft/` 规格再实装真实执行路径；不进 CI（计时噪声） | `[ ]` 未开始（WP-3.4） |

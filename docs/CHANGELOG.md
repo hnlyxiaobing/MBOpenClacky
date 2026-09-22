@@ -25,6 +25,12 @@
 
 ## 变更记录
 
+### 2026-09-22  Web 会话 JSONL 事件流（执行计划 WP-3.2）
+
+- `[feat]` **三端会话日志闭环**：`SessionLogProducer` 从 `cmd/inspect.mbt` 下沉 `lib/agent/session_log.mbt` 为 `pub` 值类型（逻辑逐字迁移，CLI 的 `attach_session_log`/`flush_session_log` 改薄包装）；`lib/web/handlers_ws.mbt` 的 per-session `WsSessionState` 持有独立 producer，hook 闭包在广播 match 之前旁路喂全部引擎事件（广播抑制是 UI 呈现决策，日志记录引擎实际所见，与 CLI/TUI 一致），四个 run 退出路径（成功/错误 × 异步/同步回退）在 `save_session` 同位 flush；`buffered()==0` 守卫下沉 `SessionLogProducer::flush` 本体（无事件的 run 不建空 `.jsonl`）。
+- `[test]` 新增 6 条：`lib/agent` 4 条（压缩→Summary 追加且原字节不变、双压缩两段 Summary、空缓冲不建文件、跨写入者 seq 续写）、`lib/web` 2 条（真实 `register_ws_hooks` + emit + flush 全链路、空缓冲不建文件，均用 `_build` scratch 目录不触真实 home）；cmd 既有 3 条薄包装测试原样通过。
+- `[docs]` 台账「Web 会话不产 JSONL 事件流」行转 `fixed`（附隔离 home + mock 上游实测证据：成功/错误路径均落盘、`cmd inspect` 可回放）；执行计划/路线图/项目状态/README 三端表述同步；spec 归档 `specs/completed/2026-09-22_wp-3.2-web-session-jsonl-event-stream.md`。
+
 ### 2026-09-22  MCP HTTP 传输接线（执行计划 WP-3.3）
 
 - `[feat]` **MCP 从"只有 Stdio"变为 Stdio + HTTP 双传输**：`lib/mcp/http_transport.mbt` 的三处 `Err("HTTP MCP transport not implemented yet")` 全部换成真实实现（`@async/http`）。

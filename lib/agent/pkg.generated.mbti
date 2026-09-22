@@ -875,6 +875,20 @@ pub(all) struct SessionLogHeader {
   created_at : String
 }
 
+pub(all) struct SessionLogProducer {
+  segments : Array[SessionLogSegment]
+}
+pub fn SessionLogProducer::buffered(Self) -> Int
+pub async fn SessionLogProducer::flush(Self, String, String, String) -> Unit
+pub fn SessionLogProducer::new() -> Self
+pub fn SessionLogProducer::on_hook_event(Self, HookEvent) -> Unit
+pub fn SessionLogProducer::open_segment(Self) -> SessionLogSegment
+
+pub(all) struct SessionLogSegment {
+  events : Array[(@protocol.Event, Int64)]
+  mut superseded : Bool
+}
+
 pub(all) struct SessionStats {
   total_iterations : Int
   total_cost_usd : Double

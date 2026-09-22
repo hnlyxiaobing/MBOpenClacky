@@ -408,6 +408,144 @@ pub fn SessionLock::release(self : SessionLock) -> Unit {
   self.file.close()
 }
 
+// ── Producer (CLI / TUI / Web run paths) ────────────────────────────────────
+
+///|
+/// A buffered run of protocol events that a compression either does or does
+/// not supersede. A run is appended in order; when a segment is marked
+/// `superseded`, its events get a `summary` record covering them so replay
+/// hides them behind the compaction projection (the original bytes stay).
+pub(all) struct SessionLogSegment {
+  events : Array[(@protocol.Event, Int64)]
+  mut superseded : Bool
+}
+
+///|
+/// Session-log producer state: the buffered events of one run, split at
+/// compression boundaries. Held as a value rather than a bare global so each
+/// frontend (CLI process, TUI, Web per-session state) can own its instance
+/// and the wiring can be exercised without shared process state.
+pub(all) struct SessionLogProducer {
+  segments : Array[SessionLogSegment]
+}
+
+///|
+pub fn SessionLogProducer::new() -> SessionLogProducer {
+  { segments: [], }
+}
+
+///|
+/// The segment currently accepting events.
+pub fn SessionLogProducer::open_segment(
+  self : SessionLogProducer,
+) -> SessionLogSegment {
+  if self.segments.length() == 0 {
+    self.segments.push({ events: [], superseded: false, })
+  }
+  self.segments[self.segments.length() - 1]
+}
+
+///|
+/// Feed one engine hook event into the buffer.
+pub fn SessionLogProducer::on_hook_event(
+  self : SessionLogProducer,
+  evt : HookEvent,
+) -> Unit {
+  match evt {
+    CompressionPerformed(_) => {
+      // Everything buffered so far is superseded by this compaction. The
+      // summary record itself is appended at flush time, so the append-only
+      // write path stays in one place.
+      let segment = self.open_segment()
+      if segment.events.length() > 0 {
+        segment.superseded = true
+        self.segments.push({ events: [], superseded: false, })
+      }
+    }
+    _ =>
+      self.open_segment().events.push(
+        (hook_event_to_protocol(evt), current_time_ms()),
+      )
+  }
+}
+
+///|
+pub fn SessionLogProducer::buffered(self : SessionLogProducer) -> Int {
+  let mut total = 0
+  for segment in self.segments {
+    total = total + segment.events.length()
+  }
+  total
+}
+
+///|
+/// Append the buffered events into `<dir>/<session_id>.jsonl`, creating it on
+/// first use, and append a `summary` record for every superseded segment.
+/// Never raises: the run's exit code must not depend on logging.
+pub async fn SessionLogProducer::flush(
+  self : SessionLogProducer,
+  session_id : String,
+  created_at : String,
+  dir : String,
+) -> Unit {
+  // An eventless run must not create an empty log file.
+  if self.buffered() == 0 {
+    return
+  }
+  let path = @path.Path::join(dir, @path.Path(session_id + ".jsonl")).to_string()
+  if !@fs.path_exists(path) {
+    match create_session_log(path, session_id, created_at) {
+      Ok(_) => ()
+      Err(_) => return
+    }
+  }
+  for segment in self.segments {
+    if segment.events.length() == 0 {
+      continue
+    }
+    let (first_seq, last_seq) = append_segment_events(path, segment.events)
+    if segment.superseded && first_seq > 0 && last_seq >= first_seq {
+      let result : Result[Int, String] = append_summary(
+        path,
+        first_seq,
+        last_seq,
+        current_time_ms(),
+      ) catch {
+        _ => Ok(0)
+      }
+      ignore(result)
+    }
+  }
+  self.segments.clear()
+}
+
+///|
+/// Append one segment's events in order; returns the sequence range written
+/// (both 0 when nothing could be written).
+async fn append_segment_events(
+  path : String,
+  events : Array[(@protocol.Event, Int64)],
+) -> (Int, Int) {
+  let mut first_seq = 0
+  let mut last_seq = 0
+  for item in events {
+    let result : Result[Int, String] = append_event(path, item.0, item.1) catch {
+      _ => Ok(0)
+    }
+    let seq = match result {
+      Ok(value) => value
+      Err(_) => 0
+    }
+    if seq > 0 {
+      if first_seq == 0 {
+        first_seq = seq
+      }
+      last_seq = seq
+    }
+  }
+  (first_seq, last_seq)
+}
+
 // ── Legacy import (read-only) ───────────────────────────────────────────────
 
 ///|
@@ -415,7 +553,9 @@ pub fn SessionLock::release(self : SessionLock) -> Unit {
 /// reporting why a file could not be read. The second element of the `Ok`
 /// names the on-disk format ("legacy json" or "legacy debug-repr") so the
 /// caller can report which projection was applied.
-pub fn load_session_file(path : String) -> Result[(SessionData, String), String] {
+pub fn load_session_file(
+  path : String,
+) -> Result[(SessionData, String), String] {
   let content = @fs.read_file_to_string(path) catch {
     err => return Err("cannot read file: " + @debug.to_string(err))
   }

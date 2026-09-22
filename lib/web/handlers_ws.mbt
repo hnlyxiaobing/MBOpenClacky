@@ -39,6 +39,10 @@ priv struct WsSessionState {
   pending_feedback : Map[String, @async.Queue[String]]
   /// Time Machine state for file-change snapshots (undo/restore).
   time_machine : @agent.TimeMachineState
+  /// Per-session session-log producer (WP-3.2): buffers the run's protocol
+  /// events and flushes them into the append-only `<sessions>/<id>.jsonl`
+  /// when the run ends, mirroring the CLI/TUI paths.
+  producer : @agent.SessionLogProducer
 }
 
 ///|
@@ -73,6 +77,7 @@ fn get_ws_state(session_id : String) -> WsSessionState {
         pending_confirmations: Map([]),
         pending_feedback: Map([]),
         time_machine: @agent.TimeMachineState::new(session_id),
+        producer: @agent.SessionLogProducer::new(),
       }
       ws_states[session_id] = s
       s
@@ -769,6 +774,10 @@ fn register_ws_hooks(
   let sid = session_id
   let state = get_ws_state(sid)
   agent.hook_manager.register(fn(evt : @agent.HookEvent) {
+    // WP-3.2: every engine event lands in the session log regardless of the
+    // broadcast decisions below — suppression is a UI presentation choice,
+    // the log records what the engine actually emitted (same as CLI/TUI).
+    state.producer.on_hook_event(evt)
     match evt {
       @agent.StreamChunk(chunk) => {
         // Aggregate; pushed as one complete assistant_message on MessageAdded.
@@ -1144,6 +1153,32 @@ async fn start_ws_run(
 }
 
 ///|
+/// Flush the session's buffered events into the append-only JSONL session
+/// log (WP-3.2). Never raises and never affects the run's outcome. The
+/// write primitives re-derive `seq` from the file, so a log started by the
+/// CLI (or an earlier server run) is appended to, never overwritten.
+/// `sessions_dir` is injectable so tests can use a scratch directory;
+/// production flushes next to the session's `.json`.
+async fn flush_ws_session_log(
+  state : WsSessionState,
+  session_id : String,
+  created_at : String,
+  sessions_dir? : String,
+) -> Unit {
+  if state.producer.buffered() == 0 {
+    return
+  }
+  let dir = match sessions_dir {
+    Some(explicit) => explicit
+    None => {
+      let fallback = @agent.ensure_sessions_dir() catch { _ => return }
+      fallback
+    }
+  }
+  state.producer.flush(session_id, created_at, dir)
+}
+
+///|
 /// Async agent run worker: executes the run without blocking the WS read
 /// loop. The complete event is broadcast by the RunCompleted hook mapping;
 /// here we only handle errors, interrupts, and session persistence.
@@ -1197,6 +1232,7 @@ async fn run_ws_agent(
       @agent.save_session(err_data) catch {
         _ => ()
       }
+      flush_ws_session_log(state, session_id, agent.created_at)
       return
     }
   }
@@ -1209,6 +1245,7 @@ async fn run_ws_agent(
   @agent.save_session(data) catch {
     _ => ()
   }
+  flush_ws_session_log(state, session_id, agent.created_at)
   // Content-based auto-rename for placeholder ("Session N") sessions.
   maybe_auto_rename_session(hub, agent, session_id)
   @agent.enforce_session_cap()
@@ -1266,6 +1303,7 @@ async fn run_ws_agent_blocking(
       @agent.save_session(err_data) catch {
         _ => ()
       }
+      flush_ws_session_log(state, session_id, agent.created_at)
       return
     }
   }
@@ -1276,6 +1314,7 @@ async fn run_ws_agent_blocking(
   @agent.save_session(data) catch {
     _ => ()
   }
+  flush_ws_session_log(state, session_id, agent.created_at)
   // Content-based auto-rename for placeholder ("Session N") sessions.
   maybe_auto_rename_session(hub, agent, session_id)
   @agent.enforce_session_cap()

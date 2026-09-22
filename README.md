@@ -19,10 +19,10 @@
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 220 |
-| 源代码行数 | 101,013 |
-| 测试行数 | 62,345 |
-| 总行数 | 163,358 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
+| 源代码行数 | 101,059 |
+| 测试行数 | 62,590 |
+| 总行数 | 163,649 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -100,7 +100,7 @@ moon run cmd -- server                     # Web 服务（端口 7071）
 # 契约探针（退出码 / stdout 形状 / stderr 策略 + moon run 对比）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe selftest
 
-# 会话日志离线回放（append-only JSONL；旧 JSON 会话为只读导入）
+# 会话日志离线回放（CLI/TUI/Web 三端会话均产 append-only JSONL；旧 JSON 会话为只读导入）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe inspect <session.jsonl>
 
 # 确定性能力评测（离线 harness：3 任务 × 2 次重复，stdout 输出评分向量 JSON）
