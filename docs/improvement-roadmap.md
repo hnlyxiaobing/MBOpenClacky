@@ -57,6 +57,19 @@
 
 ### 2.2 GEP 技能自进化：反思环节是占位实现
 
+> **✅ 已解决（2026-09-22，执行计划 WP-2.1）**：反思环节接线为真实的 LLM 驱动流程——
+> `lib/skill` 新增 `build_reflection_prompt`/`parse_reflection_response`（纯函数，容错解析）
+> 与追加式进化日志（`~/.mbopenclacky/skills/evolution_log.json`，上限 500 条），
+> `apply_proposal` 回写技能定义且**必先备份**（`SKILL.md.bak.<ms>`）；占位
+> `apply_improvements` 已删除。Web 两端点从硬编码假成功改为真实实现：
+> `POST /api/skills/:name/evolve`（证据必填，缺失返回可诊断 400；`apply` 为显式 opt-in）
+> 与 `GET /api/skills/evolution/history`（真实日志，支持 `?skill=`/`?limit=`）。
+> 验收：`moon check -d` 0 错 0 警；`lib/skill`146 + `lib/agent`494 + `lib/web`498 全绿；
+> `selftest` 18/18；`eval --offline` 3/3；隔离 HOME 起真实服务 + 本地 mock LLM 跑通
+> 提议/回写/查询全链路（含备份内容 == 原内容的校验）；台账 6 行转 `fixed`。
+> **仍范围外**：面板无进化 UI（无执行证据可提交，见台账登记）；把 `PostExecution`
+> 接入 agent 运行期需先建"技能执行台账"机制。
+
 - **证据**：`lib/skill/reflector.mbt` 明写 "Currently a placeholder — real implementation would invoke LLM or code modification"；`handlers_skills.mbt` 的进化触发/日志查询端点为 stub（"stubs pending evolution engine wiring"）。
 - **落差**：README/CLAUDE 把"GEP 技能自进化（EvolutionEngine + SkillReflector + AutoCreator）"列为核心技术优势，但 Reflect（执行后反思改进技能）这一步是空壳。AutoCreator（模式检测自动建技能）与 EvolutionEngine 骨架在位。
 - **建议动作**：**接线** SkillReflector 的真实 LLM 驱动反思 + Web 进化端点；否则把"自进化"表述收敛为"技能自动创建（AutoCreator）+ 进化框架（反思环节待接线）"。

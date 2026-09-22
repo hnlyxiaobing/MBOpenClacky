@@ -636,28 +636,366 @@ pub fn handle_creator_skills(request : HttpRequest) -> HttpResponse {
   )
 }
 
-// ── Evolution Handlers (stubs pending evolution engine wiring) ────
+// ── Evolution Handlers ────────────────────────────────────────────
 
 ///|
-/// POST /api/skills/:name/evolve — Trigger skill evolution/improvement.
-pub fn handle_skills_evolve(request : HttpRequest) -> HttpResponse {
-  let name = match request.get_param("name") {
-    Some(v) => v
-    None => return HttpResponse::bad_request("Missing parameter: name")
-  }
-  // TODO: Trigger GEP-based skill evolution process
-  ignore(name)
-  let body =
-    #|{"name":"skill-name","evolution_id":"evo-001","status":"evolving","message":"Evolution triggered"}
-  HttpResponse::ok(body)
+/// Reflection needs real execution evidence. Without a transcript the scoring
+/// heuristics would measure nothing, so the endpoint refuses rather than
+/// inventing evidence and returning a meaningless score.
+let missing_transcript_hint : String = "Missing field: transcript — reflection requires real execution evidence ({\"transcript\": \"<session output>\"})"
+
+///|
+/// Build an error response whose message is JSON-escaped.
+///
+/// `HttpResponse::bad_request`/`not_found` interpolate the message raw, which
+/// emits invalid JSON whenever the text contains quotes or braces — as the
+/// transcript hint and the parser diagnostics do.
+fn json_error(status : Int, message : String) -> HttpResponse {
+  HttpResponse::json(Json::object({ "error": message.to_json() }).stringify()).with_status(
+    status,
+  )
 }
 
 ///|
-/// GET /api/skills/evolution/history — Get evolution history across all skills.
+fn json_int_field(body : String, key : String) -> Int? {
+  let j : Json = @json.parse(body) catch { _ => return None }
+  match j {
+    Object(obj) =>
+      match obj.get(key) {
+        Some(Number(n, ..)) => Some(n.to_int())
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn json_opt_str_or_null(v : String?) -> Json {
+  match v {
+    Some(s) => s.to_json()
+    None => Json::null()
+  }
+}
+
+///|
+/// Trim an upstream body for inclusion in an error message.
+fn snippet(text : String) -> String {
+  let chars = text.to_array()
+  if chars.length() <= 300 {
+    return text
+  }
+  let head : Array[Char] = []
+  for i = 0; i < 300; i = i + 1 {
+    head.push(chars[i])
+  }
+  String::from_array(head) + "…"
+}
+
+///|
+/// Send exactly one reflection request through the configured model.
+///
+/// Every failure is diagnosable: transport error, non-2xx status (with a body
+/// snippet), non-JSON body, or a response carrying no text.
+async fn call_reflection_model(
+  model : @config.ModelConfig,
+  prompt : String,
+) -> Result[String, String] {
+  let api_type = if model.anthropic_format {
+    @config.AnthropicMessages
+  } else {
+    @config.Providers::api_type_for_model(model.base_url, model.model)
+  }
+  let client = @client.Client::new(
+    model.api_key,
+    model.base_url,
+    model.model,
+    api_type,
+  )
+  let body_json = client.build_simple_request(prompt, model.model, 4096)
+  let headers_map = client.request_headers()
+  let headers : Array[(String, String)] = []
+  for k, v in headers_map {
+    headers.push((k, v))
+  }
+  let response = match
+    @client.http_post(
+      client.request_url(),
+      body_json.stringify(),
+      headers,
+      120000,
+    ) {
+    Ok(r) => r
+    Err(e) => return Err("Reflection request failed: " + @debug.to_string(e))
+  }
+  if response.status_code < 200 || response.status_code >= 300 {
+    return Err(
+      "Reflection request returned HTTP " +
+      response.status_code.to_string() +
+      ": " +
+      snippet(response.body),
+    )
+  }
+  let parsed_json : Json = @json.parse(response.body) catch {
+    _ => return Err("Reflection response body is not JSON")
+  }
+  match client.parse_response(parsed_json).content {
+    Some(c) =>
+      if c.trim().is_empty() {
+        Err("Reflection response contained no text content")
+      } else {
+        Ok(c)
+      }
+    None => Err("Reflection response contained no text content")
+  }
+}
+
+///|
+/// Persist an outcome, returning a warning to surface when the write failed.
+///
+/// A failed append must not be swallowed (the log is part of the contract) and
+/// must not mask the reflection result, so it is reported alongside it.
+fn append_log_or_note(
+  log_path : String,
+  entry : @skill.EvolutionLogEntry,
+) -> Json {
+  match @skill.append_evolution_log_at(log_path, entry) {
+    Ok(_) => Json::null()
+    Err(e) => e.to_json()
+  }
+}
+
+///|
+/// Score a skill against real evidence and, when warranted, obtain an
+/// LLM-proposed revision and optionally write it back.
+///
+/// `apply` writes to the skill's **user** directory (a builtin skill gains a
+/// user override rather than being edited in place), always backing up an
+/// existing file first. `log_path` is injected so callers and tests control
+/// where the outcome is recorded.
+async fn run_skill_reflection(
+  log_path : String,
+  model : @config.ModelConfig,
+  skill_name : String,
+  source : String,
+  skill_content : String,
+  transcript : String,
+  iterations : Int,
+  apply : Bool,
+  force : Bool,
+) -> Result[Json, String] {
+  let report = @skill.SkillReflector::new().reflect(
+    skill_name, transcript, iterations,
+  )
+  let entry = @skill.EvolutionLogEntry::new(
+    skill_name,
+    source,
+    report.performance_score,
+    report.should_improve,
+    "no_change",
+  )
+  entry.model = Some(model.model)
+  // Below threshold and not forced: report honestly without spending a call.
+  if !report.should_improve && !force {
+    entry.suggestions = report.suggestions
+    let log_note = append_log_or_note(log_path, entry)
+    return Ok(
+      Json::object({
+        "ok": true.to_json(),
+        "evolution_id": entry.id.to_json(),
+        "skill_name": skill_name.to_json(),
+        "source": source.to_json(),
+        "score": report.performance_score.to_json(),
+        "should_improve": false.to_json(),
+        "action": "no_change".to_json(),
+        "suggestions": Json::array(
+          report.suggestions.map(fn(s) { s.to_json() }),
+        ),
+        "revised_skill_md": Json::null(),
+        "applied": false.to_json(),
+        "backup_path": Json::null(),
+        "model": model.model.to_json(),
+        "log_error": log_note,
+      }),
+    )
+  }
+  let prompt = @skill.build_reflection_prompt(report, skill_content, transcript)
+  let content = match call_reflection_model(model, prompt) {
+    Ok(c) => c
+    Err(e) => {
+      entry.action = "error"
+      entry.error = Some(e)
+      ignore(append_log_or_note(log_path, entry))
+      return Err(e)
+    }
+  }
+  let proposal = match @skill.parse_reflection_response(content) {
+    Ok(p) => p
+    Err(e) => {
+      entry.action = "error"
+      entry.error = Some(e)
+      ignore(append_log_or_note(log_path, entry))
+      return Err(e)
+    }
+  }
+  entry.suggestions = proposal.suggestions
+  let mut applied = false
+  let mut backup : String? = None
+  if apply {
+    let target_dir = user_skills_dir() + "/" + skill_name
+    match @skill.apply_proposal(target_dir, proposal) {
+      Ok(b) => {
+        applied = true
+        backup = b
+        entry.action = "applied"
+        entry.backup_path = b
+      }
+      Err(e) => {
+        entry.action = "error"
+        entry.error = Some(e)
+        ignore(append_log_or_note(log_path, entry))
+        return Err(e)
+      }
+    }
+  } else {
+    entry.action = "proposed"
+  }
+  let log_note = append_log_or_note(log_path, entry)
+  Ok(
+    Json::object({
+      "ok": true.to_json(),
+      "evolution_id": entry.id.to_json(),
+      "skill_name": skill_name.to_json(),
+      "source": source.to_json(),
+      "score": report.performance_score.to_json(),
+      "should_improve": true.to_json(),
+      "action": entry.action.to_json(),
+      "suggestions": Json::array(
+        proposal.suggestions.map(fn(s) { s.to_json() }),
+      ),
+      "revised_skill_md": json_opt_str_or_null(proposal.revised_skill_md),
+      "applied": applied.to_json(),
+      "backup_path": json_opt_str_or_null(backup),
+      "model": model.model.to_json(),
+      "log_error": log_note,
+    }),
+  )
+}
+
+///|
+/// POST /api/skills/:name/evolve — Reflect on a skill against real execution
+/// evidence, and optionally write an LLM-proposed revision back.
+///
+/// Body: `{"transcript": "...", "iterations"?: 1, "apply"?: false, "force"?: false}`
+/// - `transcript` (required): the execution evidence to reflect on.
+/// - `iterations`: agent iterations used, feeding the scoring heuristic.
+/// - `apply`: write the proposed revision back (backs up an existing file).
+/// - `force`: reflect even when the heuristic score is above the threshold.
+pub async fn handle_skills_evolve(
+  config : @config.AgentConfig,
+  request : HttpRequest,
+) -> HttpResponse {
+  let name = match validated_name(request) {
+    Ok(n) => n
+    Err(resp) => return resp
+  }
+  // Validate the request body before any disk access: a malformed request
+  // should fail fast without depending on filesystem state.
+  let transcript = match json_str_field(request.body, "transcript") {
+    Some(t) =>
+      if t.trim().is_empty() {
+        return json_error(400, missing_transcript_hint)
+      } else {
+        t
+      }
+    None => return json_error(400, missing_transcript_hint)
+  }
+  let iterations = match json_int_field(request.body, "iterations") {
+    Some(i) if i > 0 => i
+    _ => 1
+  }
+  let apply = match json_bool_field(request.body, "apply") {
+    Some(b) => b
+    None => false
+  }
+  let force = match json_bool_field(request.body, "force") {
+    Some(b) => b
+    None => false
+  }
+  let (skill_dir, source) = match find_skill_dir(name) {
+    Some(pair) => pair
+    None => return json_error(404, "Skill not found: " + name)
+  }
+  let skill_content = @fs.read_file_to_string(skill_dir + "/SKILL.md") catch {
+    e =>
+      return json_error(
+        400,
+        "Cannot read the skill definition: " + @debug.to_string(e),
+      )
+  }
+  // Prefer the lite model (reflection is a cheap review task), falling back to
+  // the active one. Absent both, the endpoint fails rather than faking a result.
+  let model = match @config.AgentConfig::lite_model_config_for_current(config) {
+    Some(m) => m
+    None =>
+      match config.current_model() {
+        Some(m) => m
+        None =>
+          return json_error(
+            400, "No model configured — configure a model before requesting skill reflection",
+          )
+      }
+  }
+  match
+    run_skill_reflection(
+      @skill.evolution_log_path(),
+      model,
+      name,
+      source,
+      skill_content,
+      transcript,
+      iterations,
+      apply,
+      force,
+    ) {
+    Ok(json) => HttpResponse::ok(json.stringify())
+    // Reflection failures are reported with the real diagnostic. Status 400 (not
+    // 5xx) because `response_to_core` only maps 201/204/400/404 and would turn
+    // any other code into a 200 — a 502 here would reach the client as success.
+    // This matches how the media endpoints report provider failures.
+    Err(e) => json_error(400, e)
+  }
+}
+
+///|
+/// GET /api/skills/evolution/history — Read the persisted evolution log.
+///
+/// Query: `?skill=<name>` filters by skill; `?limit=<n>` caps the number of
+/// entries returned (default 50).
 pub fn handle_skills_evolution_history(request : HttpRequest) -> HttpResponse {
-  ignore(request)
-  // TODO: Query evolution log for historical records
-  let body =
-    #|{"history":[],"total":0}
-  HttpResponse::ok(body)
+  let all = @skill.load_evolution_log()
+  let filtered = match request.get_param("skill") {
+    Some(name) => all.filter(fn(e) { e.skill_name == name })
+    None => all
+  }
+  let limit = match request.get_param("limit") {
+    Some(v) => {
+      let n = @string.parse_int(v) catch { _ => 50 }
+      if n > 0 {
+        n
+      } else {
+        50
+      }
+    }
+    None => 50
+  }
+  let out : Array[Json] = []
+  for i = 0; i < filtered.length() && i < limit; i = i + 1 {
+    out.push(filtered[i].to_json())
+  }
+  HttpResponse::ok(
+    Json::object({
+      "history": Json::array(out),
+      "total": filtered.length().to_json(),
+    }).stringify(),
+  )
 }

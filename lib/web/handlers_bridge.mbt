@@ -409,12 +409,12 @@ fn handle_skills_delete_bridge(
 }
 
 ///|
-fn handle_skills_evolve_bridge(
-  _server_ref : Ref[WebServer],
+async fn handle_skills_evolve_bridge(
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_name_param(event))
-  response_to_core(handle_skills_evolve(req))
+  response_to_core(handle_skills_evolve(server_ref.val.config, req))
 }
 
 ///|
@@ -476,7 +476,20 @@ fn handle_skills_evolution_history_bridge(
   _server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
+  // Query strings are not part of `HttpRequest.params` (which carries route
+  // params only), so lift the filters from the URL — same convention as the
+  // backup-download bridge.
+  let url = event.req.url
+  let params : Array[(String, String)] = []
+  match find_query_param(url, "skill") {
+    Some(v) => params.push(("skill", v))
+    None => ()
+  }
+  match find_query_param(url, "limit") {
+    Some(v) => params.push(("limit", v))
+    None => ()
+  }
+  let req = event_to_request(event, params)
   response_to_core(handle_skills_evolution_history(req))
 }
 

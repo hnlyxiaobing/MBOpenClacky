@@ -9,6 +9,14 @@ import {
 // Values
 pub const DEFAULT_SKILLS_DIR : String = "assets/skills"
 
+pub fn append_evolution_log(EvolutionLogEntry) -> Result[Unit, String]
+
+pub fn append_evolution_log_at(String, EvolutionLogEntry) -> Result[Unit, String]
+
+pub fn apply_proposal(String, ReflectionProposal) -> Result[String?, String]
+
+pub fn build_reflection_prompt(ReflectionReport, String, String) -> String
+
 pub fn build_skill_context(Skill, String) -> String
 
 pub fn build_skills_summary(Array[Skill]) -> String
@@ -20,6 +28,8 @@ pub fn default_discovery_paths(String) -> Array[String]
 pub fn directory_basename(String) -> String
 
 pub fn discover_skills(Map[String, String]) -> Array[Skill]
+
+pub fn evolution_log_path() -> String
 
 pub fn expand_env_vars(String) -> String
 
@@ -35,6 +45,10 @@ pub fn is_valid_skill_slug(String) -> Bool
 
 pub fn list_default_skill_names() -> Array[String]
 
+pub fn load_evolution_log() -> Array[EvolutionLogEntry]
+
+pub fn load_evolution_log_at(String) -> Array[EvolutionLogEntry]
+
 pub fn load_skill_from_content(String, String, String?) -> Skill?
 
 pub fn load_skill_from_json_value(Json, String) -> Skill?
@@ -44,6 +58,8 @@ pub fn load_skill_meta_from_content(String, String, String?) -> Skill?
 pub fn normalize_skill_name(String) -> String
 
 pub fn parse_frontmatter(String) -> (Map[String, String], String)
+
+pub fn parse_reflection_response(String) -> Result[ReflectionProposal, String]
 
 pub fn parse_string_list(String) -> Array[String]?
 
@@ -111,6 +127,24 @@ pub fn EvolutionEngine::evolve(Self, EvolutionScenario) -> Result[EvolutionResul
 pub fn EvolutionEngine::new() -> Self
 pub fn EvolutionEngine::with_components(SkillReflector, AutoCreator) -> Self
 
+pub(all) struct EvolutionLogEntry {
+  mut id : String
+  mut created_at : Int
+  mut skill_name : String
+  mut source : String
+  mut score : Int
+  mut should_improve : Bool
+  mut action : String
+  mut suggestions : Array[String]
+  mut backup_path : String?
+  mut model : String?
+  mut error : String?
+} derive(@debug.Debug)
+pub fn EvolutionLogEntry::from_json(Json) -> Self?
+pub fn EvolutionLogEntry::new(String, String, Int, Bool, String) -> Self
+pub fn EvolutionLogEntry::to_json(Self) -> Json
+pub fn EvolutionLogEntry::to_repr(Self) -> @debug.Repr
+
 pub(all) struct EvolutionResult {
   action : EvolutionAction
   skill_name : String
@@ -124,6 +158,14 @@ pub(all) enum EvolutionScenario {
   PostExecution(skill_name~ : String, result~ : String, iterations~ : Int)
   AutoDetect(conversation_history~ : Array[String], iteration_count~ : Int)
 }
+
+pub(all) struct ReflectionProposal {
+  suggestions : Array[String]
+  revised_skill_md : String?
+} derive(Eq, @debug.Debug)
+pub fn ReflectionProposal::equal(Self, Self) -> Bool
+pub fn ReflectionProposal::not_equal(Self, Self) -> Bool
+pub fn ReflectionProposal::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ReflectionReport {
   skill_name : String
@@ -163,7 +205,7 @@ pub fn Skill::to_repr(Self) -> @debug.Repr
 pub(all) struct SkillReflector {
   min_improvement_score : Int
 }
-pub fn SkillReflector::apply_improvements(Self, ReflectionReport) -> Result[String, String]
+pub fn SkillReflector::needs_proposal(Self, ReflectionReport) -> Bool
 pub fn SkillReflector::new() -> Self
 pub fn SkillReflector::reflect(Self, String, String, Int) -> ReflectionReport
 pub fn SkillReflector::with_threshold(Int) -> Self

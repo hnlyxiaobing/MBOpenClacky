@@ -227,7 +227,42 @@
 - **DoD**：面板状态与运行时一致且凭据不泄露；配置变更落盘并在重载后保持；技能写入的路径与 schema 可被 `load_config` 解析；探针使用真实凭据。
 - **备注**：探针 happy path 仍需真实平台凭据，沿既有口径以 mock/缺失分支覆盖并如实标注。
 
-### WP-2.1 GEP SkillReflector 做实 `[ ]`（P1）
+### WP-2.1 GEP SkillReflector 做实 `[x]`（P1）
+
+> **完成（2026-09-22）**：反思环节从占位变为真实 LLM 驱动流程。①`lib/skill` 删除占位
+> `apply_improvements`，新增 `ReflectionProposal` + `build_reflection_prompt`（嵌入技能名/
+> 定义/执行证据，要求严格 JSON 输出）+ `parse_reflection_response`（**容错解析**：剥离代码
+> 围栏、容忍前后缀散文、按字符扫描做花括号配平且正确处理字符串内引号/转义、空 suggestions
+> 元素丢弃）；证据超长按头尾截断（12000 字符上限）。②新增 `evolution_log.mbt`：手写
+> `to_json`/`from_json`（**容错解码**，缺字段回落默认值，坏条目跳过），追加式日志写
+> `~/.mbopenclacky/skills/evolution_log.json`（最新在前、上限 500、损坏文件读作空但**不覆盖**）；
+> 因 `x/fs` 无 rename/append，写入为读-改-写且**如实标注非原子**。③新增 `proposal_apply.mbt`：
+> 回写前**必先备份**为 `SKILL.md.bak.<ms>`，无既有文件时创建覆盖层并回报 `None`。
+> ④两个 Web 端点从硬编码假成功改为真实实现：`POST /api/skills/:name/evolve`（`transcript`
+> 必填，缺失返回可诊断 400；`apply` 显式 opt-in；`force` 可绕过分数门；无可用模型返回 400）
+> 与 `GET /api/skills/evolution/history`（真实日志 + `?skill=`/`?limit=`）；`EvolutionEngine`
+> 形状不变（`handle_post_execution` 不再调占位）。⑤失败一律如实上报并**落 `action:"error"`
+> 日志**，无静默假成功。
+>
+> DoD 验证：`moon check -d` 312 tasks 0 错 0 警；`moon test --release lib/skill lib/agent`
+> 640/640、`lib/web` 498/498；`selftest` 18/18；`eval --offline` 3/3；`fmt`/`known_gaps`/
+> `repo_stats` 三闸门绿；台账 6 行转 `fixed`（104 → 98 命中）。
+> **隔离 HOME 起真实服务 + 本地 mock LLM 端到端实测**（本环境无真实 key，故用 mock 验证
+> 传输与解析链路）：提议路径返回真实 suggestions 与改写内容；`apply` 路径真实回写且
+> 备份内容 == 原内容；`GET history` 读回真实条目并支持过滤/限量。
+> 该实测**发现并修掉 3 个单测未覆盖的真实缺陷**（见下方"实施期发现"）。
+>
+> 完成记录归档：`specs/completed/2026-09-22_wp-2.1-gep-skill-reflector.md`。
+>
+> **实施期发现的既有基础设施缺陷（本 WP 已规避，未扩大改动）**：
+> 1. `response_to_core`（`handlers_bridge.mbt`）只映射 201/204/400/404，**其他状态码一律回落为
+>    200** → handler 返回 5xx 会以 200 到达客户端（静默假成功）。本 WP 因此用 400 而非 502。
+>    其他 handler 均未使用 5xx，故当前无实际影响；若将来需要 5xx，须先修该映射。
+> 2. `HttpResponse::bad_request`/`not_found` 直接插值消息、**不做 JSON 转义** → 消息含引号或
+>    花括号时产出**非法 JSON** 响应体。本 WP 新增 `json_error`（经 `to_json()` 转义）规避并加
+>    回归测试；既有调用点消息均无特殊字符，暂不受影响。
+> 3. 查询串**不在** `HttpRequest.params`（该字段只承载路由参数），bridge 必须从 `event.req.url`
+>    用 `find_query_param` 取出后注入（同 backup-download bridge 惯例）。本 WP 已按此接线并实测。
 
 - **目标**：`lib/skill/reflector.mbt` 从占位（"real implementation would invoke LLM or code modification"）变为真实的执行后反思。
 - **触点**：`lib/skill/reflector.mbt`、`lib/skill/evolution.mbt`（EvolutionEngine 调用点）、`lib/web/handlers_skills.mbt`（进化触发/日志查询 stub 端点）。
@@ -238,6 +273,8 @@
 - **DoD**：`reflector.mbt` 无 `placeholder` 命中；反思产出可持久化并可被 Web 查询；有 wbtest（用 mock LLM，参考 `test/e2e`）。
 - **验证**：`moon test --release lib/skill lib/web`；台账 GEP 行消失。
 - **备注**：反思提示词设计属复杂推理，用贵模型；接线与测试用便宜模型。
+- **范围外（已在台账登记）**：面板无进化 UI（面板没有技能执行证据可提交，加按钮只会制造新假成功）；
+  把 `PostExecution` 接入 agent 运行期需先建"技能执行台账"机制。
 
 ### WP-2.2 `cmd eval --live` 真模型评测接线 `[ ]`（P1，战略项）
 

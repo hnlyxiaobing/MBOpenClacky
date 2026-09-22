@@ -25,6 +25,21 @@
 
 ## 变更记录
 
+### 2026-09-22  GEP 技能反思做实：真实 LLM 反思 + 进化日志 + Web 端点（WP-2.1）
+
+- `[feat]` **技能反思环节从占位变为真实 LLM 驱动流程**：删除占位 `apply_improvements`，新增 `build_reflection_prompt`（嵌入技能名/定义/执行证据，要求严格 JSON 输出）与 `parse_reflection_response`（容错解析：剥离代码围栏、容忍前后缀散文、字符级花括号配平且正确处理字符串内引号与转义、丢弃空 suggestions 元素）；超长证据按头尾截断（上限 12000 字符）。
+- `[feat]` **新增追加式进化日志**（`~/.mbopenclacky/skills/evolution_log.json`，最新在前、上限 500 条）：手写 `to_json`/`from_json` 以容错解码（缺字段回落默认值、坏条目跳过），损坏文件读作空但**不覆盖**；因 `x/fs` 无 rename/append，写入为读-改-写并如实标注非原子。
+- `[feat]` **回写技能定义必先备份**：`apply_proposal` 先把现有 `SKILL.md` 复制为 `SKILL.md.bak.<ms>` 再写入，无既有文件时创建用户覆盖层（不写 builtin 目录）。
+- `[fix]` **两个 Web 进化端点从硬编码假成功改为真实实现**：`POST /api/skills/:name/evolve` 的 `transcript` 必填（缺失返回可诊断 400，不伪造证据）、`apply` 为显式 opt-in、`force` 可绕过分数门、无可用模型返回可诊断 400；`GET /api/skills/evolution/history` 返回真实日志并支持 `?skill=`/`?limit=`。失败一律如实上报并落 `action:"error"` 日志，无静默假成功。
+- `[fix]` **错误响应体 JSON 转义**：新增 `json_error`，避免 `HttpResponse::bad_request`/`not_found` 原样插值导致含引号/花括号的消息产出**非法 JSON** 响应体；并加回归测试。
+- `[fix]` **历史查询的过滤/限量接线**：查询串不在 `HttpRequest.params`（只承载路由参数），bridge 改为从 `event.req.url` 经 `find_query_param` 取出后注入（此前 `?skill=` 被忽略，返回全量）。
+- `[test]` 新增 `lib/skill/reflector_wbtest.mbt`、`lib/skill/evolution_log_wbtest.mbt`、`lib/web/handlers_skills_evolve_wbtest.mbt`（prompt/解析/日志往返/裁剪/备份还原/端点契约/错误体 JSON 合法性）。
+- `[docs]` 台账 6 行 GEP 缺口转 `fixed`（命中 104 → 98），并登记两项显式范围外（面板无进化 UI、技能执行台账缺失）；路线图 §2.2 与执行计划 WP-2.1 标记完成；spec 归档 `specs/completed/2026-09-22_wp-2.1-gep-skill-reflector.md`。
+- `[chore]` 同步 `repo_stats` 数字块（307 源文件 / 214 测试文件 / 160,303 总行）。
+
+> 验证：`moon check -d` 0 错 0 警；`moon test --release lib/skill lib/agent` 640/640、`lib/web` 498/498；`selftest` 18/18；`eval --offline` 3/3；`fmt`/`known_gaps`/`repo_stats` 三闸门绿；**隔离 HOME 起真实服务 + 本地 mock LLM 端到端**跑通提议/回写/查询全链路（备份内容 == 原内容）。
+> 本次端到端实测另发现两项既有基础设施缺陷并已如实记录（未扩大改动）：`response_to_core` 会把非 201/204/400/404 状态码回落为 200（故本 WP 用 400 而非 502）；`bad_request`/`not_found` 的消息不做 JSON 转义。
+
 ### 2026-09-22  渠道配置单一真相源贯通（配置路径 → 运行时 → Web 面板 → 技能）
 
 - `[fix]` **默认配置路径的字面 `~` 从未被展开，渠道配置在生产中恒不加载**：`server.mbt` 以字面量 `"~/.mbopenclacky/channels.json"` 构造 `ChannelManager`，而 `moonbitlang/x/fs` 不做 tilde 展开、`lib/channel` 内也无展开逻辑，`@fs.path_exists("~/...")` 恒 false → `load_config` 按"空配置"返回 → **零适配器被注册**，`send_to`/`is_platform_configured` 恒失败、webhook 接收路径全部丢弃事件。新增 `ChannelManager::expand_config_path`（`@utils.home_dir()` + `@path.Path::join`，与 `lib/brand`、`lib/billing` 同范式）在读写前解析，home 不可解析时返回可诊断错误而非静默降级；`init_channel_manager` 不再 `ignore(e)` 吞掉失败原因。

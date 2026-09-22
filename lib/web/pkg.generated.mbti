@@ -222,7 +222,7 @@ pub fn handle_skills_delete(HttpRequest) -> HttpResponse
 
 pub fn handle_skills_evolution_history(HttpRequest) -> HttpResponse
 
-pub fn handle_skills_evolve(HttpRequest) -> HttpResponse
+pub async fn handle_skills_evolve(@config.AgentConfig, HttpRequest) -> HttpResponse
 
 pub fn handle_skills_get_content(HttpRequest) -> HttpResponse
 

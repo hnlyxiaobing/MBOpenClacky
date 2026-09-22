@@ -95,7 +95,7 @@ test "reflector_should_improve_threshold" {
 }
 
 ///|
-test "reflector_apply_improvements_needed" {
+test "reflector_needs_proposal_when_below_threshold" {
   let r = SkillReflector::new()
   let report : ReflectionReport = {
     skill_name: "broken-skill",
@@ -103,12 +103,11 @@ test "reflector_apply_improvements_needed" {
     suggestions: ["Has errors"],
     should_improve: true,
   }
-  let result = r.apply_improvements(report)
-  assert_true(result is Ok(_))
+  @debug.assert_eq(r.needs_proposal(report), true)
 }
 
 ///|
-test "reflector_apply_improvements_not_needed" {
+test "reflector_needs_proposal_when_above_threshold" {
   let r = SkillReflector::new()
   let report : ReflectionReport = {
     skill_name: "good-skill",
@@ -116,8 +115,7 @@ test "reflector_apply_improvements_not_needed" {
     suggestions: [],
     should_improve: false,
   }
-  let result = r.apply_improvements(report)
-  assert_true(result is Err(_))
+  @debug.assert_eq(r.needs_proposal(report), false)
 }
 
 ///|

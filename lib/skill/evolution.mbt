@@ -77,6 +77,12 @@ pub fn EvolutionEngine::evolve(
 
 ///|
 /// Handle post-execution reflection scenario.
+///
+/// This is the pure, synchronous half of reflection: it scores the execution
+/// and, when the score falls below the threshold, reports the automated
+/// suggestions as the improvement summary. Producing an actual proposal
+/// requires an LLM call, which the caller performs via
+/// `build_reflection_prompt` / `parse_reflection_response`.
 fn EvolutionEngine::handle_post_execution(
   self : EvolutionEngine,
   skill_name : String,
@@ -93,11 +99,17 @@ fn EvolutionEngine::handle_post_execution(
       "/100 — no improvement needed",
     })
   }
-  // Attempt to apply improvements
-  match self.reflector.apply_improvements(report) {
-    Ok(msg) => Ok({ action: Improved, skill_name, diff_summary: msg, })
-    Err(e) => Err("Failed to apply improvements: " + e)
-  }
+  Ok({
+    action: Improved,
+    skill_name,
+    diff_summary: if report.suggestions.is_empty() {
+      "Score " +
+      report.performance_score.to_string() +
+      "/100 — review recommended"
+    } else {
+      report.suggestions.join("; ")
+    },
+  })
 }
 
 ///|
