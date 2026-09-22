@@ -88,23 +88,23 @@ pub fn handle_browser_toggle(@ref.Ref[WebServer], @crescent.Event) -> @core.Http
 
 pub async fn handle_browser_tool_call(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
 
-pub fn handle_channels_create(HttpRequest) -> HttpResponse
+pub fn handle_channels_create(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
-pub fn handle_channels_delete(HttpRequest) -> HttpResponse
+pub fn handle_channels_delete(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
 pub fn handle_channels_group_history(HttpRequest) -> HttpResponse
 
-pub fn handle_channels_list(HttpRequest) -> HttpResponse
+pub fn handle_channels_list(@ref.Ref[@channel.ChannelManager]) -> HttpResponse
 
 pub async fn handle_channels_send_async(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
-pub fn handle_channels_status(HttpRequest) -> HttpResponse
+pub fn handle_channels_status(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
-pub async fn handle_channels_test_async(HttpRequest) -> HttpResponse
+pub async fn handle_channels_test_async(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
-pub fn handle_channels_update(HttpRequest) -> HttpResponse
+pub fn handle_channels_update(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
-pub fn handle_channels_users(HttpRequest) -> HttpResponse
+pub fn handle_channels_users(@ref.Ref[@channel.ChannelManager], HttpRequest) -> HttpResponse
 
 pub fn handle_config_models_delete(@ref.Ref[WebServer], @crescent.Event) -> @core.HttpResponse
 
@@ -321,19 +321,6 @@ pub fn ApiExtension::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CancelResponse {
   cancelled : Bool
-}
-
-pub(all) struct ChannelEntry {
-  mut id : String
-  mut platform : String
-  mut name : String
-  mut webhook_url : String
-  mut api_key : String
-  mut secret : String
-  mut enabled : Bool
-  mut status : String
-  mut created_at : Int64
-  mut updated_at : Int64
 }
 
 pub(all) struct ChatRequest {

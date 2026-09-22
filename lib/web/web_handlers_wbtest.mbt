@@ -288,8 +288,7 @@ async test "handler: mcp call tool not found" {
 
 ///|
 test "handler: channels list returns 200" {
-  let req = HttpRequest::new(GET, "/api/channels")
-  let resp = handle_channels_list(req)
+  let resp = handle_channels_list(wiring_empty_manager())
   @debug.assert_eq(resp.status, 200)
   // Response is wrapped as {"channels": [...]} (fix-04).
   let trimmed = resp.body.trim()
@@ -300,15 +299,15 @@ test "handler: channels list returns 200" {
 ///|
 test "handler: channels list covers all platforms and masks secrets" {
   // Configure one platform with secrets, then verify the list output.
+  let cm_ref = wiring_empty_manager()
   let create_req = HttpRequest::new(
     POST,
     "/api/channels",
-    body="{\"platform\":\"wecom\",\"name\":\"fix04-ch\",\"config\":{\"api_key\":\"fix04-ak-plain\",\"secret\":\"fix04-sk-plain\"}}",
+    body="{\"platform\":\"wecom\",\"config\":{\"api_key\":\"fix04-ak-plain\",\"secret\":\"fix04-sk-plain\"}}",
   )
-  let create_resp = handle_channels_create(create_req)
+  let create_resp = handle_channels_create(cm_ref, create_req)
   @debug.assert_eq(create_resp.status, 201)
-  let req = HttpRequest::new(GET, "/api/channels")
-  let resp = handle_channels_list(req)
+  let resp = handle_channels_list(cm_ref)
   @debug.assert_eq(resp.status, 200)
   let parsed = @json.parse(resp.body)
   match parsed {
@@ -357,36 +356,29 @@ test "handler: channels list covers all platforms and masks secrets" {
     body: "",
     headers: [],
   }
-  let del_resp = handle_channels_delete(del_req)
+  let del_resp = handle_channels_delete(cm_ref, del_req)
   @debug.assert_eq(del_resp.status, 204)
 }
 
 ///|
 test "handler: channels delete returns 204 for an existing channel" {
   // Create a channel first so the delete target exists, then delete it.
+  let cm_ref = wiring_empty_manager()
   let create_req = HttpRequest::new(
     POST,
     "/api/channels",
-    body="{\"platform\":\"telegram\",\"name\":\"wbtest-ch\"}",
+    body="{\"platform\":\"telegram\",\"settings\":{\"bot_token\":\"tok\"}}",
   )
-  let create_resp = handle_channels_create(create_req)
+  let create_resp = handle_channels_create(cm_ref, create_req)
   @debug.assert_eq(create_resp.status, 201)
-  let created_id = match @json.parse(create_resp.body) {
-    Object(obj) =>
-      match obj.get("id") {
-        Some(String(s)) => s
-        _ => panic()
-      }
-    _ => panic()
-  }
   let del_req : HttpRequest = {
     http_method: DELETE,
-    path: "/api/channels/" + created_id,
-    params: [("id", created_id)],
+    path: "/api/channels/telegram",
+    params: [("id", "telegram")],
     body: "",
     headers: [],
   }
-  let resp = handle_channels_delete(del_req)
+  let resp = handle_channels_delete(cm_ref, del_req)
   @debug.assert_eq(resp.status, 204)
 }
 

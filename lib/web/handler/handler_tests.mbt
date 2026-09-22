@@ -225,9 +225,19 @@ test "handler: mcp register server with body returns 201" {
 }
 
 ///|
+/// A channel manager over a config path that does not exist: channels are
+/// unconfigured, which is what these contract checks need.
+fn test_channel_manager() -> Ref[@channel.ChannelManager] {
+  Ref(
+    @channel.ChannelManager::new(
+      "/tmp/mbopenclacky_handler_test_absent_channels.json",
+    ),
+  )
+}
+
+///|
 test "handler: channels list returns 200" {
-  let req = @web.HttpRequest::new(@web.GET, "/api/channels")
-  let resp = @web.handle_channels_list(req)
+  let resp = @web.handle_channels_list(test_channel_manager())
   assert_eq(resp.status, 200)
   assert_true(resp.body.contains("\"channels\""))
 }
@@ -241,7 +251,7 @@ test "handler: channels delete requires id param" {
     body: "",
     headers: [],
   }
-  let resp = @web.handle_channels_delete(req)
+  let resp = @web.handle_channels_delete(test_channel_manager(), req)
   assert_eq(resp.status, 400)
 }
 

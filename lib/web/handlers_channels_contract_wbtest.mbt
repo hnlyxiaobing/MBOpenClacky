@@ -2,8 +2,7 @@
 
 ///|
 test "channels list: platform-specific fields present for each platform" {
-  let req = HttpRequest::new(GET, "/api/channels")
-  let resp = handle_channels_list(req)
+  let resp = handle_channels_list(wiring_empty_manager())
   @debug.assert_eq(resp.status, 200)
   let parsed = @json.parse(resp.body)
   match parsed {
@@ -62,8 +61,7 @@ test "channels list: platform-specific fields present for each platform" {
 
 ///|
 test "channels list: has_token is boolean, never plaintext token key" {
-  let req = HttpRequest::new(GET, "/api/channels")
-  let resp = handle_channels_list(req)
+  let resp = handle_channels_list(wiring_empty_manager())
   let body = resp.body
   // No plaintext "token":"..." key — only has_token booleans.
   assert_false(body.contains("\"token\":"))
@@ -93,8 +91,7 @@ test "channels list: has_token is boolean, never plaintext token key" {
 
 ///|
 test "channels list: allowed_users is an array for feishu/discord/telegram" {
-  let req = HttpRequest::new(GET, "/api/channels")
-  let resp = handle_channels_list(req)
+  let resp = handle_channels_list(wiring_empty_manager())
   let parsed = @json.parse(resp.body)
   match parsed {
     Object(top) =>

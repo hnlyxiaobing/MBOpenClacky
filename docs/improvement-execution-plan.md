@@ -64,6 +64,7 @@
 | WP-1.4 | 微信 send + AES-128-ECB | P1 | D-A=A | 2–3 天 | WP-1.4a 加密原语 |
 | WP-1.5 | 媒体生成接线（图/语音/视频） | P1 | D-B=A | 1–2 天 | — |
 | WP-1.6 | 全平台 update/delete_message | P2 | — | 1–2 天 | WP-1.1~1.4 |
+| WP-1.7 | 渠道配置单一真相源贯通 | P1 | — | 1–2 天 | WP-1.1~1.4 |
 | WP-2.1 | GEP SkillReflector 做实 | P1 | — | 2–3 天 | — |
 | WP-2.2 | `cmd eval --live` 真模型评测接线 | P1 | — | 2–3 天 | — |
 | WP-3.1 | 旧会话 schema 只读迁移投影 | P2 | — | 1–2 天 | — |
@@ -216,6 +217,15 @@
 
 - **触点**：`discord_api.mbt`（`edit_message`/`delete_message`/`get_current_user`/`upload_file`）、`telegram.mbt`/`feishu.mbt` 的 `update_message`。
 - **DoD**：编辑/撤回在各已接通平台可用并有 wbtest；台账对应 `not implemented yet` 行消失。
+
+### WP-1.7 渠道配置单一真相源贯通 `[x]`（P1，WP-1.2~1.4 收尾时暴露的产品面缺口）
+
+> **完成（2026-09-22）**：修掉四处"配置了不生效"的断点。①**默认路径字面 `~` 从未展开**——`server.mbt` 以 `"~/.mbopenclacky/channels.json"` 构造 manager，`x/fs` 不展开 tilde，`load_config` 恒按空配置返回、**零适配器注册**；新增 `expand_config_path`（`@utils.home_dir()` + `Path::join`）在读写前解析，home 不可解析即报错。②删除 Web 侧 `channels_store`/`ChannelEntry` 双真相源，全部渠道端点改为读写 `ChannelManager`，`has_config`/`enabled`/`running`/`has_token`/`token_updated_at` 全部来自真实状态，密钥键统一掩码为 `has_<key>`。③`channel-manager` 技能从 `channels.yml`（YAML、平台为键的扁平结构，运行时从不读取）重写为 `channels.json` 的真实 schema 与完整 settings 键名。④面板 Diagnostics 从 `/channel-manager doctor` 改调真实 REST 探针（此前该端点无任何调用方），探针取 manager 的真实配置。**顺带修掉一个运行期阻塞**：`WeixinAdapter::new` 硬要求 iLink 路径从不使用的 `app_id`/`app_secret`，使已配置的微信渠道无法构造、永不启动。DoD 验证：`moon check -d` 312 tasks 0 错 0 警；`moon test --release lib/channel lib/web lib/web/handler` 987/987；`selftest` 18/18；`eval --offline` 3/3；`fmt`/`known_gaps`/`repo_stats` 三闸门绿；隔离 HOME 起真实服务 + 浏览器实测面板状态与三类探针结果。spec 归档 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`。
+
+- **目标**：让"配好的渠道"在运行时真正生效，并让 Web 面板 / 技能 / 运行时共用一份配置。
+- **触点**：`lib/channel/manager.mbt`（读写与应用原语）、`lib/channel/registry.mbt`、`lib/web/handlers_channels.mbt`、`lib/web/handlers_bridge.mbt`、`lib/web/server.mbt`、`assets/skills/channel-manager/SKILL.md`、`web/features/channels/*`。
+- **DoD**：面板状态与运行时一致且凭据不泄露；配置变更落盘并在重载后保持；技能写入的路径与 schema 可被 `load_config` 解析；探针使用真实凭据。
+- **备注**：探针 happy path 仍需真实平台凭据，沿既有口径以 mock/缺失分支覆盖并如实标注。
 
 ### WP-2.1 GEP SkillReflector 做实 `[ ]`（P1）
 

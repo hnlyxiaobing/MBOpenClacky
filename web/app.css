@@ -9586,6 +9586,17 @@ body.setup-mode[data-theme="dark"] {
 .hint-warn { background: rgba(234,179,8,.10);       color: #ca8a04;                     border: 1px solid rgba(234,179,8,.25); }
 .hint-idle { background: var(--color-bg-tertiary);  color: var(--color-text-secondary); border: 1px solid var(--color-border-primary); }
 
+/* Transient result of the "Diagnostics" probe (POST /api/channels/:id/test). */
+.channel-test-result {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.channel-test-result:empty { display: none; }
+.channel-test-result.test-ok   { color: var(--color-success); }
+.channel-test-result.test-fail { color: var(--color-error, #dc2626); }
+
 /* ── Channel card footer ─────────────────────────────────────────────────── */
 .channel-card-footer {
   display: flex;

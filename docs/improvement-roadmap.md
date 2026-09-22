@@ -37,6 +37,8 @@
   - **接线**：优先补飞书（国内主力，且富文本解析已完整）与微信（需先补 `moonbitlang/x/crypto` 的 AES-128-ECB）；async HTTP 基础设施已具备（`http_helper.mbt`、`@async/http`）。
   - **降级声明**：若本期不接线，README 应把"6 平台 IM 渠道"改为"6 平台适配器（Telegram/Discord 已接通，其余接线中，见 known-gaps）"。
 
+> **补充（2026-09-22，WP-1.7）**：接线落地后暴露的产品面缺口已闭环——渠道配置此前有**四处"配了不生效"**：默认路径的字面 `~` 从未被展开（管理端因此恒加载空配置、零适配器注册）、Web 面板持有一套不落盘也不喂给运行时的内存配置、`channel-manager` 技能指示写的 `channels.yml`（YAML、平台为键）运行时从不读取、面板 Diagnostics 走 Agent 而非已做真实的 REST 探针（该探针此前无任何调用方）。现在面板 / 技能 / 运行时共用 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`），面板状态即运行时投影，`has_token` 等由真实 settings 推导且凭据明文不出响应。详见执行计划 WP-1.7 与 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`。
+
 ---
 
 ## 2. P1 — 高价值能力做实（下一期主线）

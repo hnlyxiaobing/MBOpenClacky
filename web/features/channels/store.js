@@ -72,9 +72,24 @@ const ChannelsStore = (() => {
       await Channels.load({ silent: true });
     },
 
-    /** Open a session and run the channel doctor / setup commands. */
-    runTest(command, name)  { return _sendToAgent(command, name); },
-    openSetup(command, name) { return _sendToAgent(command, name); },
+    /** Open a session and run the channel setup commands. */
+    runSetup(command, name) { return _sendToAgent(command, name); },
+
+    /**
+     * Probe a platform's connectivity through the server's real read-only
+     * probe and return {test_result, latency_ms, error}. The probe uses the
+     * credentials stored in ~/.mbopenclacky/channels.json.
+     */
+    async test(platform) {
+      const res = await fetch(
+        `/api/channels/${encodeURIComponent(platform)}/test`,
+        { method: "POST", headers: { "Content-Type": "application/json" } },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || "test failed");
+      return data;
+    },
+
     sendToAgent: _sendToAgent,
   };
 

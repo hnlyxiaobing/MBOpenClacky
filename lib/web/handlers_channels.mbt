@@ -1,126 +1,13 @@
 ///| IM Channel management REST API handlers.
-/// Provides CRUD operations for channel configurations backed by an in-memory
-/// store, with connectivity testing via the channel adapter registry.
+///
+/// Channels have exactly one configuration source: the ChannelManager's config
+/// file (`~/.mbopenclacky/channels.json`). These handlers project that config
+/// for the web panel and write changes back through the manager - there is no
+/// web-side store of its own. Credential-valued settings are never serialized;
+/// see `masked_settings_json`.
+/// (Spec: specs/active/2026-09-22_channel-config-single-source-of-truth.md)
 
-// ── Channel Store ─────────────────────────────────────────────────
-
-///|
-/// A stored channel configuration entry for the web panel.
-pub(all) struct ChannelEntry {
-  mut id : String
-  mut platform : String
-  mut name : String
-  mut webhook_url : String
-  mut api_key : String
-  mut secret : String
-  mut enabled : Bool
-  mut status : String
-  mut created_at : Int64
-  mut updated_at : Int64
-}
-
-///|
-/// In-memory channel configuration store.
-let channels_store : Ref[Array[ChannelEntry]] = Ref([])
-
-///|
-/// Auto-incrementing counter for generating unique channel IDs.
-let channel_id_counter : Ref[Int] = Ref(0)
-
-///|
-/// Generate a new unique channel ID.
-fn next_channel_id() -> String {
-  channel_id_counter.val = channel_id_counter.val + 1
-  "ch-\{channel_id_counter.val}"
-}
-
-///|
-/// Find a channel entry by ID, falling back to platform name.
-/// This dual-key lookup allows routes like /:id to accept either a
-/// channel ID (e.g. "ch-1") or a platform name (e.g. "telegram").
-fn find_channel_index(id_or_platform : String) -> Int? {
-  let arr = channels_store.val
-  let mut i = 0
-  while i < arr.length() {
-    if arr[i].id == id_or_platform || arr[i].platform == id_or_platform {
-      return Some(i)
-    }
-    i = i + 1
-  }
-  None
-}
-
-///|
-/// Platform-specific configuration field placeholders, mirroring the orig
-/// Ruby channel handler so the frontend can render per-platform config forms.
-/// Secret values (token) are exposed only as booleans (has_token) or
-/// metadata (token_updated_at), never in plaintext.
-fn platform_extra_fields(platform : String) -> Array[(String, Json)] {
-  match platform {
-    "feishu" =>
-      [
-        ("app_id", "".to_json()),
-        ("domain", "".to_json()),
-        ("allowed_users", Json::array([])),
-      ]
-    "wecom" => [("bot_id", "".to_json())]
-    "weixin" =>
-      [
-        ("base_url", "".to_json()),
-        ("has_token", false.to_json()),
-        ("token_updated_at", Json::null()),
-      ]
-    "discord" =>
-      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
-    "telegram" =>
-      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
-    "dingtalk" =>
-      [("allowed_users", Json::array([])), ("has_token", false.to_json())]
-    _ => []
-  }
-}
-
-///|
-/// Merge platform-specific extra fields into a JSON object.
-fn merge_platform_fields(obj : Json, platform : String) -> Json {
-  match obj {
-    Object(o) => {
-      for kv in platform_extra_fields(platform) {
-        o[kv.0] = kv.1
-      }
-      Json::object(o)
-    }
-    other => other
-  }
-}
-
-///|
-/// Convert a ChannelEntry to a JSON object for API responses.
-/// Secrets are never serialized in plaintext: api_key/secret are exposed
-/// as has_api_key/has_secret booleans only (aligns with orig safe fields).
-fn channel_entry_to_json(ch : ChannelEntry) -> Json {
-  merge_platform_fields(
-    Json::object({
-      "id": ch.id.to_json(),
-      "platform": ch.platform.to_json(),
-      "name": ch.name.to_json(),
-      "status": ch.status.to_json(),
-      "enabled": ch.enabled.to_json(),
-      "running": (ch.status == "connected").to_json(),
-      "has_config": true.to_json(),
-      "has_api_key": (ch.api_key != "").to_json(),
-      "has_secret": (ch.secret != "").to_json(),
-      "config": Json::object({
-        "webhook_url": ch.webhook_url.to_json(),
-        "has_api_key": (ch.api_key != "").to_json(),
-        "has_secret": (ch.secret != "").to_json(),
-      }),
-      "created_at": ch.created_at.to_string().to_json(),
-      "updated_at": ch.updated_at.to_string().to_json(),
-    }),
-    ch.platform,
-  )
-}
+// ── Platform + settings helpers ───────────────────────────────────
 
 ///|
 /// All supported channel platforms (canonical list, mirrors normalize_platform).
@@ -159,69 +46,244 @@ fn channel_json_obj(
   }
 }
 
-// ── Channel Handlers ──────────────────────────────────────────────
-
 ///|
-/// GET /api/channels — List all supported IM channel platforms.
-/// Returns {channels: [...]} with one item per supported platform;
-/// unconfigured platforms get {platform, enabled:false, running:false,
-/// has_config:false} so the frontend can render every platform card.
-pub fn handle_channels_list(request : HttpRequest) -> HttpResponse {
-  ignore(request)
-  let items : Array[Json] = []
-  for platform in supported_platforms {
-    match find_channel_index(platform) {
-      Some(idx) => items.push(channel_entry_to_json(channels_store.val[idx]))
-      None =>
-        items.push(
-          merge_platform_fields(
-            Json::object({
-              "platform": platform.to_json(),
-              "enabled": false.to_json(),
-              "running": false.to_json(),
-              "has_config": false.to_json(),
-            }),
-            platform,
-          ),
-        )
-    }
+/// Settings keys whose values must never appear in an API response. Anything
+/// ending in `_secret`/`_token` counts too (app_secret, bot_token, ...).
+fn is_secret_setting_key(key : String) -> Bool {
+  match key {
+    "secret"
+    | "api_key"
+    | "token"
+    | "uin"
+    | "access_token"
+    | "encoding_aes_key"
+    | "client_secret" => true
+    _ => key.has_suffix("_secret") || key.has_suffix("_token")
   }
-  let body = Json::object({ "channels": Json::array(items) }).stringify()
-  HttpResponse::ok(body)
 }
 
 ///|
-/// POST /api/channels — Create a new IM channel configuration.
-/// Expects body: {"platform":"feishu|wecom|telegram|discord|dingtalk|weixin","name":"...","config":{...}}
-pub fn handle_channels_create(request : HttpRequest) -> HttpResponse {
+/// Serialize settings for a response: credential values become `has_<key>`
+/// booleans, every other key is passed through.
+fn masked_settings_json(settings : Map[String, String]) -> Json {
+  let out : Map[String, Json] = Map([])
+  for key, value in settings {
+    if is_secret_setting_key(key) {
+      out.set("has_" + key, true.to_json())
+    } else {
+      out.set(key, value.to_json())
+    }
+  }
+  Json::object(out)
+}
+
+///|
+/// Whether the settings carry at least one credential.
+fn settings_have_credential(settings : Map[String, String]) -> Bool {
+  for key, _value in settings {
+    if is_secret_setting_key(key) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// `token_updated_at` as a JSON number when the setting holds one, else null.
+/// The Weixin QR pairing page compares it against the time it started polling.
+fn token_updated_at_json(settings : Map[String, String]) -> Json {
+  match settings.get("token_updated_at") {
+    None => Json::null()
+    Some(raw) => {
+      let parsed : Json = @json.parse(raw) catch { _ => return Json::null() }
+      match parsed {
+        Number(_, ..) => parsed
+        _ => Json::null()
+      }
+    }
+  }
+}
+
+///|
+/// Collect string-valued settings from a JSON object. Non-string values are
+/// dropped: adapters read settings as strings.
+fn channel_settings_from_json(obj : Map[String, Json]) -> Map[String, String] {
+  let out : Map[String, String] = Map([])
+  for key, value in obj {
+    match value {
+      String(s) => out.set(key, s)
+      _ => ()
+    }
+  }
+  out
+}
+
+///|
+/// Read settings from a request object, accepting either `settings` (current)
+/// or `config` (the shape this endpoint used to take).
+fn channel_settings_field(obj : Map[String, Json]) -> Map[String, String]? {
+  match channel_json_obj(obj, "settings") {
+    Some(m) => Some(channel_settings_from_json(m))
+    None =>
+      match channel_json_obj(obj, "config") {
+        Some(m) => Some(channel_settings_from_json(m))
+        None => None
+      }
+  }
+}
+
+// ── Projection ────────────────────────────────────────────────────
+
+///|
+/// Platform-specific parity fields the panel and skill docs expect beyond the
+/// real settings (web-ui2-05 contract). Values start as placeholders and are
+/// overlaid by the configured settings when a platform has any.
+fn platform_extra_fields(platform : String) -> Array[(String, Json)] {
+  match platform {
+    "feishu" =>
+      [
+        ("app_id", "".to_json()),
+        ("domain", "".to_json()),
+        ("allowed_users", Json::array([])),
+      ]
+    "wecom" => [("bot_id", "".to_json()), ("allowed_users", Json::array([]))]
+    "weixin" => [("base_url", "".to_json()), ("allowed_users", Json::array([]))]
+    "discord" | "telegram" | "dingtalk" => [("allowed_users", Json::array([]))]
+    _ => []
+  }
+}
+
+///|
+/// Project one platform's configuration into the panel's channel shape.
+/// `has_config`/`enabled` come from the stored config, `running` from the
+/// manager's active set, and credentials are reduced to booleans (never
+/// plaintext).
+fn channel_status_json(
+  mgr : @channel.ChannelManager,
+  platform : String,
+) -> Json {
+  let base : Map[String, Json] = Map([])
+  for kv in platform_extra_fields(platform) {
+    base.set(kv.0, kv.1)
+  }
+  match mgr.find_platform(platform) {
+    None => {
+      base.set("platform", platform.to_json())
+      base.set("enabled", false.to_json())
+      base.set("running", false.to_json())
+      base.set("has_config", false.to_json())
+      base.set("has_token", false.to_json())
+      base.set("token_updated_at", Json::null())
+      base.set("settings", Json::object(Map([])))
+      base.set("status", "disconnected".to_json())
+      Json::object(base)
+    }
+    Some(cfg) => {
+      let running = cfg.enabled && mgr.active_channels.contains(platform)
+      // Real settings overlay the parity placeholders; credentials become flags.
+      for key, value in cfg.settings {
+        if is_secret_setting_key(key) {
+          base.set("has_" + key, true.to_json())
+        } else {
+          base.set(key, value.to_json())
+        }
+      }
+      base.set("platform", platform.to_json())
+      base.set("enabled", cfg.enabled.to_json())
+      base.set("running", running.to_json())
+      base.set("has_config", true.to_json())
+      base.set("has_token", settings_have_credential(cfg.settings).to_json())
+      base.set("token_updated_at", token_updated_at_json(cfg.settings))
+      base.set("settings", masked_settings_json(cfg.settings))
+      base.set(
+        "status",
+        (if running { "connected" } else { "disconnected" }).to_json(),
+      )
+      Json::object(base)
+    }
+  }
+}
+
+// ── Config mutation ───────────────────────────────────────────────
+
+///|
+/// Apply the persisted config to the running adapters and report the outcome.
+///
+/// The config file is already written by the time this runs, so a runtime
+/// failure is reported as a diagnostic string rather than silently swallowed -
+/// callers must not claim the change took effect when it did not.
+fn apply_config_after_change(cm_ref : Ref[@channel.ChannelManager]) -> String {
+  match cm_ref.val.apply_config() {
+    Ok(_) => {
+      respawn_channel_gateway(cm_ref)
+      "applied"
+    }
+    Err(e) => {
+      let msg = channel_error_msg(e)
+      println("[channels] config saved but runtime apply failed: " + msg)
+      "saved; runtime apply failed: " + msg
+    }
+  }
+}
+
+///|
+/// Re-spawn the Discord gateway loop for the rebuilt adapter set. The previous
+/// adapter's stop() ends its loop, so this does not duplicate loops.
+fn respawn_channel_gateway(cm_ref : Ref[@channel.ChannelManager]) -> Unit {
+  match ws_task_group.val {
+    None => ()
+    Some(group) => cm_ref.val.spawn_gateways(group)
+  }
+}
+
+// ── Channel Handlers ──────────────────────────────────────────────
+
+///|
+/// GET /api/channels - List all supported IM channel platforms.
+/// Returns {channels: [...]} with one item per supported platform, projected
+/// from the channel manager's configuration.
+pub fn handle_channels_list(
+  cm_ref : Ref[@channel.ChannelManager],
+) -> HttpResponse {
+  let mgr = cm_ref.val
+  let items : Array[Json] = []
+  for platform in supported_platforms {
+    items.push(channel_status_json(mgr, platform))
+  }
+  HttpResponse::ok(Json::object({ "channels": Json::array(items) }).stringify())
+}
+
+///|
+/// POST /api/channels - Create or replace an IM channel configuration.
+/// Expects body: {"platform":"feishu|...","enabled":true,"settings":{...}}
+/// (`config` is accepted as an alias of `settings`).
+pub fn handle_channels_create(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
   if request.body == "" {
     return HttpResponse::bad_request("Request body is required")
   }
   let body_json : Json = @json.parse(request.body) catch {
     _ => return HttpResponse::bad_request("Invalid JSON body")
   }
-  let (platform, name, webhook_url, api_key, secret) = match body_json {
+  let (platform, settings, enabled) = match body_json {
     Object(obj) => {
       let p = channel_json_str(obj, "platform")
-      let n = channel_json_str(obj, "name")
-      let (wu, ak, sc) = match channel_json_obj(obj, "config") {
-        Some(cfg) =>
-          (
-            channel_json_str(cfg, "webhook_url"),
-            channel_json_str(cfg, "api_key"),
-            channel_json_str(cfg, "secret"),
-          )
-        None => ("", "", "")
+      let s = match channel_settings_field(obj) {
+        Some(m) => m
+        None => Map([])
       }
-      (p, n, wu, ak, sc)
+      let e = match obj.get("enabled") {
+        Some(False) => false
+        _ => true
+      }
+      (p, s, e)
     }
     _ => return HttpResponse::bad_request("Invalid JSON body")
   }
   if platform == "" {
     return HttpResponse::bad_request("platform is required")
-  }
-  if name == "" {
-    return HttpResponse::bad_request("name is required")
   }
   match normalize_platform(platform) {
     None =>
@@ -230,187 +292,164 @@ pub fn handle_channels_create(request : HttpRequest) -> HttpResponse {
       )
     Some(_) => ()
   }
-  let now = @env.now().reinterpret_as_int64()
-  let id = next_channel_id()
-  let entry : ChannelEntry = {
-    id,
-    platform,
-    name,
-    webhook_url,
-    api_key,
-    secret,
-    enabled: true,
-    status: "disconnected",
-    created_at: now,
-    updated_at: now,
-  }
-  channels_store.val.push(entry)
-  let body = Json::object({
-    "id": id.to_json(),
-    "status": "created".to_json(),
-    "message": "Channel created successfully".to_json(),
-  }).stringify()
-  HttpResponse::created(body)
-}
-
-///|
-/// PUT /api/channels/:id — Update an existing channel configuration.
-pub fn handle_channels_update(request : HttpRequest) -> HttpResponse {
-  let id = match request.get_param("id") {
-    Some(v) => v
-    None => return HttpResponse::bad_request("Missing parameter: id")
-  }
-  if request.body == "" {
-    return HttpResponse::bad_request("Request body is required")
-  }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let body_json : Json = @json.parse(request.body) catch {
-        _ => return HttpResponse::bad_request("Invalid JSON body")
-      }
-      match body_json {
-        Object(obj) => {
-          let arr = channels_store.val
-          // Handle enabled field (for PATCH /:id/enabled toggle).
-          match obj.get("enabled") {
-            Some(True) => arr[idx].enabled = true
-            Some(False) => arr[idx].enabled = false
-            _ => ()
-          }
-          let platform = channel_json_str(obj, "platform")
-          if platform != "" {
-            match normalize_platform(platform) {
-              None =>
-                return HttpResponse::bad_request(
-                  "Invalid platform: \{platform}",
-                )
-              Some(_) => arr[idx].platform = platform
-            }
-          }
-          let name = channel_json_str(obj, "name")
-          if name != "" {
-            arr[idx].name = name
-          }
-          match channel_json_obj(obj, "config") {
-            Some(cfg) => {
-              arr[idx].webhook_url = channel_json_str(cfg, "webhook_url")
-              arr[idx].api_key = channel_json_str(cfg, "api_key")
-              arr[idx].secret = channel_json_str(cfg, "secret")
-            }
-            None => ()
-          }
-          arr[idx].updated_at = @env.now().reinterpret_as_int64()
-        }
-        _ => return HttpResponse::bad_request("Invalid JSON body")
-      }
-      let body = Json::object({
-        "id": id.to_json(),
-        "status": "updated".to_json(),
-        "message": "Channel updated successfully".to_json(),
-      }).stringify()
-      HttpResponse::ok(body)
+  match cm_ref.val.upsert_platform(platform, enabled, settings) {
+    Err(e) => HttpResponse::bad_request(channel_error_msg(e))
+    Ok(_) => {
+      let note = apply_config_after_change(cm_ref)
+      HttpResponse::created(
+        Json::object({
+          "platform": platform.to_json(),
+          "status": "created".to_json(),
+          "message": "Channel created successfully".to_json(),
+          "runtime": note.to_json(),
+        }).stringify(),
+      )
     }
   }
 }
 
 ///|
-/// DELETE /api/channels/:id — Delete a channel configuration.
-pub fn handle_channels_delete(request : HttpRequest) -> HttpResponse {
-  let id = match request.get_param("id") {
+/// PUT /api/channels/:id - Update an existing channel configuration.
+/// Also serves PATCH /api/channels/:id/enabled (the panel's toggle): when only
+/// `enabled` is present the existing settings are kept.
+pub fn handle_channels_update(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
+  let platform = match request.get_param("id") {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      ignore(channels_store.val.remove(idx))
+  let existing = match cm_ref.val.find_platform(platform) {
+    Some(c) => c
+    None => return HttpResponse::not_found("Channel not found: \{platform}")
+  }
+  if request.body == "" {
+    return HttpResponse::bad_request("Request body is required")
+  }
+  let body_json : Json = @json.parse(request.body) catch {
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  let (enabled, settings) = match body_json {
+    Object(obj) => {
+      let e = match obj.get("enabled") {
+        Some(True) => true
+        Some(False) => false
+        _ => existing.enabled
+      }
+      let s = match channel_settings_field(obj) {
+        Some(m) => m
+        None => existing.settings
+      }
+      (e, s)
+    }
+    _ => return HttpResponse::bad_request("Invalid JSON body")
+  }
+  match cm_ref.val.upsert_platform(platform, enabled, settings) {
+    Err(e) => HttpResponse::bad_request(channel_error_msg(e))
+    Ok(_) => {
+      let note = apply_config_after_change(cm_ref)
+      HttpResponse::ok(
+        Json::object({
+          "platform": platform.to_json(),
+          "status": "updated".to_json(),
+          "message": "Channel updated successfully".to_json(),
+          "runtime": note.to_json(),
+        }).stringify(),
+      )
+    }
+  }
+}
+
+///|
+/// DELETE /api/channels/:id - Delete a channel configuration.
+pub fn handle_channels_delete(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
+  let platform = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  match cm_ref.val.remove_platform(platform) {
+    Err(e) => HttpResponse::not_found(channel_error_msg(e))
+    Ok(_) => {
+      ignore(apply_config_after_change(cm_ref))
       HttpResponse::no_content()
     }
   }
 }
 
 ///|
-/// POST /api/channels/:id/test — Test channel connectivity (async, real probing).
-/// Every platform is probed with a read-only call against its real API: Feishu
-/// and DingTalk request an access token, WeCom requests a corp token, Telegram
-/// calls getMe, Discord calls GET /users/@me, and Weixin runs a 1s getupdates
-/// round trip. A probe reports "failed" with the platform's own error message
-/// when credentials are missing or rejected.
-pub async fn handle_channels_test_async(request : HttpRequest) -> HttpResponse {
+/// GET /api/channels/:id/status - Get a channel's configuration status.
+pub fn handle_channels_status(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
+  let platform = match request.get_param("id") {
+    Some(v) => v
+    None => return HttpResponse::bad_request("Missing parameter: id")
+  }
+  HttpResponse::ok(channel_status_json(cm_ref.val, platform).stringify())
+}
+
+// ── Connectivity probing ──────────────────────────────────────────
+
+///|
+/// POST /api/channels/:id/test - Test channel connectivity (async, real probing).
+/// The probe is built from the platform's stored configuration, so it uses the
+/// credentials the runtime would actually send with. Every platform is probed
+/// with a read-only call against its real API: Feishu and DingTalk request an
+/// access token, WeCom requests a corp token, Telegram calls getMe, Discord
+/// calls GET /users/@me, and Weixin runs a 1s getupdates round trip.
+/// A probe reports "failed" with the platform's own error message when
+/// credentials are missing or rejected.
+pub async fn handle_channels_test_async(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let arr = channels_store.val
-      let ch = arr[idx]
-      let start_time = @env.now().reinterpret_as_int64()
-
-      // Validate config first (field presence)
-      let platform_enum = match ch.platform {
-        "feishu" => @channel.Platform::Feishu
-        "wecom" => @channel.Platform::WeCom
-        "telegram" => @channel.Platform::Telegram
-        "discord" => @channel.Platform::Discord
-        "dingtalk" => @channel.Platform::DingTalk
-        "weixin" => @channel.Platform::Weixin
-        _ =>
-          return HttpResponse::ok(
-            Json::object({
-              "channel_id": id.to_json(),
-              "test_result": "failed".to_json(),
-              "error": "Unknown platform".to_json(),
-            }).stringify(),
-          )
-      }
-      let settings : Map[String, String] = Map([])
-      if ch.webhook_url != "" {
-        settings.set("webhook_url", ch.webhook_url)
-      }
-      if ch.api_key != "" {
-        settings.set("api_key", ch.api_key)
-      }
-      if ch.secret != "" {
-        settings.set("secret", ch.secret)
-      }
-      let config = @channel.ChannelConfig::{
-        platform: platform_enum,
-        enabled: ch.enabled,
-        settings,
-      }
-
-      // Real connectivity probing (decision 4: graded by platform)
-      let (test_result, error_msg) = match ch.platform {
-        "feishu" => test_feishu_connectivity(config)
-        "discord" => test_discord_connectivity(config)
-        "telegram" => test_telegram_connectivity(config)
-        "wecom" => test_wecom_connectivity(config)
-        "weixin" => test_weixin_connectivity(config)
-        "dingtalk" => test_dingtalk_connectivity(config)
-        _ => ("failed", "Unknown platform")
-      }
-
-      let end_time = @env.now().reinterpret_as_int64()
-      let latency = (end_time - start_time).to_int()
-      // Update channel status based on test result
-      if test_result == "success" {
-        arr[idx].status = "connected"
-      } else {
-        arr[idx].status = "error"
-      }
-      arr[idx].updated_at = end_time
-      let resp_obj = Json::object({
-        "channel_id": id.to_json(),
-        "test_result": test_result.to_json(),
-        "latency_ms": latency.to_json(),
-        "error": error_msg.to_json(),
-      })
-      HttpResponse::ok(resp_obj.stringify())
-    }
+  let platform = match normalize_platform(id) {
+    Some(p) => p
+    None =>
+      return HttpResponse::bad_request(
+        "Unknown platform: \{id}. Supported: feishu, wecom, telegram, discord, dingtalk, weixin",
+      )
   }
+  let config = match cm_ref.val.find_platform(platform) {
+    Some(c) => c
+    None =>
+      return HttpResponse::ok(
+        Json::object({
+          "channel_id": platform.to_json(),
+          "test_result": "failed".to_json(),
+          "error": "Platform is not configured: \{platform}".to_json(),
+        }).stringify(),
+      )
+  }
+  let start_time = @env.now().reinterpret_as_int64()
+  let (test_result, error_msg) = match platform {
+    "feishu" => test_feishu_connectivity(config)
+    "discord" => test_discord_connectivity(config)
+    "telegram" => test_telegram_connectivity(config)
+    "wecom" => test_wecom_connectivity(config)
+    "weixin" => test_weixin_connectivity(config)
+    "dingtalk" => test_dingtalk_connectivity(config)
+    _ => ("failed", "Unknown platform")
+  }
+  let end_time = @env.now().reinterpret_as_int64()
+  let latency = (end_time - start_time).to_int()
+  HttpResponse::ok(
+    Json::object({
+      "channel_id": platform.to_json(),
+      "test_result": test_result.to_json(),
+      "latency_ms": latency.to_json(),
+      "error": error_msg.to_json(),
+    }).stringify(),
+  )
 }
 
 ///|
@@ -419,20 +458,20 @@ pub async fn handle_channels_test_async(request : HttpRequest) -> HttpResponse {
 async fn test_feishu_connectivity(
   config : @channel.ChannelConfig,
 ) -> (String, String) {
-  let app_id = match config.settings.get("api_key") {
+  let app_id = match config.settings.get("app_id") {
     Some(v) => v
     None =>
       match config.settings.get("bot_id") {
         Some(v) => v
-        None => return ("failed", "Missing api_key/bot_id setting")
+        None => return ("failed", "Missing app_id/bot_id setting")
       }
   }
-  let app_secret = match config.settings.get("secret") {
+  let app_secret = match config.settings.get("app_secret") {
     Some(v) => v
     None =>
       match config.settings.get("bot_secret") {
         Some(v) => v
-        None => return ("failed", "Missing secret/bot_secret setting")
+        None => return ("failed", "Missing app_secret/bot_secret setting")
       }
   }
   let client = @channel.FeishuApiClient::new(app_id, app_secret)
@@ -449,12 +488,12 @@ async fn test_feishu_connectivity(
 async fn test_discord_connectivity(
   config : @channel.ChannelConfig,
 ) -> (String, String) {
-  let bot_token = match config.settings.get("api_key") {
+  let bot_token = match config.settings.get("bot_token") {
     Some(v) => v
     None =>
-      match config.settings.get("bot_token") {
+      match config.settings.get("api_key") {
         Some(v) => v
-        None => return ("failed", "Missing api_key/bot_token setting")
+        None => return ("failed", "Missing bot_token/api_key setting")
       }
   }
   let url = "https://discord.com/api/v10/users/@me"
@@ -519,11 +558,7 @@ async fn test_weixin_connectivity(
 ) -> (String, String) {
   let token = match config.settings.get("token") {
     Some(v) => v
-    None =>
-      match config.settings.get("api_key") {
-        Some(v) => v
-        None => return ("failed", "Missing token/api_key setting")
-      }
+    None => return ("failed", "Missing token setting")
   }
   let uin = match config.settings.get("uin") {
     Some(v) => v
@@ -549,9 +584,9 @@ async fn test_dingtalk_connectivity(
         None => return ("failed", "Missing app_key/api_key setting")
       }
   }
-  let app_secret = match config.settings.get("secret") {
+  let app_secret = match config.settings.get("app_secret") {
     Some(v) => v
-    None => return ("failed", "Missing secret setting")
+    None => return ("failed", "Missing app_secret setting")
   }
   let client = @channel.DingTalkApiClient::new(app_key, app_secret)
   match client.request_access_token() {
@@ -568,32 +603,10 @@ pub fn channel_error_msg(err : @channel.ChannelError) -> String {
   }
 }
 
-///|
-/// GET /api/channels/:id/status — Get channel connection status.
-pub fn handle_channels_status(request : HttpRequest) -> HttpResponse {
-  let id = match request.get_param("id") {
-    Some(v) => v
-    None => return HttpResponse::bad_request("Missing parameter: id")
-  }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let ch = channels_store.val[idx]
-      let body = Json::object({
-        "channel_id": id.to_json(),
-        "status": ch.status.to_json(),
-        "enabled": ch.enabled.to_json(),
-        "platform": ch.platform.to_json(),
-        "name": ch.name.to_json(),
-        "updated_at": ch.updated_at.to_string().to_json(),
-      }).stringify()
-      HttpResponse::ok(body)
-    }
-  }
-}
+// ── Message dispatch ──────────────────────────────────────────────
 
 ///|
-/// POST /api/channels/:id/send — Send a message through the channel.
+/// POST /api/channels/:id/send - Send a message through the channel.
 /// Async version that calls ChannelManager::send_to for real adapter dispatch.
 pub async fn handle_channels_send_async(
   cm_ref : Ref[@channel.ChannelManager],
@@ -609,10 +622,13 @@ pub async fn handle_channels_send_async(
   let body_json : Json = @json.parse(request.body) catch {
     _ => return HttpResponse::bad_request("Invalid JSON body")
   }
-  match find_channel_index(id) {
-    None => HttpResponse::not_found("Channel not found: \{id}")
-    Some(idx) => {
-      let ch = channels_store.val[idx]
+  let platform = match normalize_platform(id) {
+    Some(p) => p
+    None => return HttpResponse::not_found("Channel not found: \{id}")
+  }
+  match cm_ref.val.find_platform(platform) {
+    None => HttpResponse::not_found("Channel not found: \{platform}")
+    Some(ch) => {
       if !ch.enabled {
         return HttpResponse::bad_request("Channel is disabled")
       }
@@ -630,14 +646,12 @@ pub async fn handle_channels_send_async(
       if chat_id == "" {
         return HttpResponse::bad_request("Missing chat_id field")
       }
-      // Call channel_manager.send_to for real adapter dispatch
-      let platform = ch.platform
       match cm_ref.val.send_to(platform, chat_id, message) {
         Ok(result) =>
           HttpResponse::ok(
             Json::object({
               "success": result.success.to_json(),
-              "channel_id": id.to_json(),
+              "channel_id": platform.to_json(),
               "chat_id": chat_id.to_json(),
               "message_id": result.message_id.to_json(),
               "error": result.error.to_json(),
@@ -647,7 +661,7 @@ pub async fn handle_channels_send_async(
           HttpResponse::ok(
             Json::object({
               "success": false.to_json(),
-              "channel_id": id.to_json(),
+              "channel_id": platform.to_json(),
               "chat_id": chat_id.to_json(),
               "error": channel_error_msg(e).to_json(),
             }).stringify(),
@@ -657,8 +671,10 @@ pub async fn handle_channels_send_async(
   }
 }
 
+// ── Membership / history (unchanged behavior) ─────────────────────
+
 ///|
-/// GET /api/channels/group_history/:chat_id — Get group chat history.
+/// GET /api/channels/group_history/:chat_id - Get group chat history.
 pub fn handle_channels_group_history(request : HttpRequest) -> HttpResponse {
   let chat_id = match request.get_param("chat_id") {
     Some(v) => v
@@ -672,24 +688,24 @@ pub fn handle_channels_group_history(request : HttpRequest) -> HttpResponse {
 
 ///|
 /// GET /api/channels/:id/users - Get users for a channel.
-/// The :id param accepts either a channel ID or a platform name.
-pub fn handle_channels_users(request : HttpRequest) -> HttpResponse {
-  let id_or_platform = match request.get_param("id") {
+/// The :id param accepts a platform name.
+pub fn handle_channels_users(
+  cm_ref : Ref[@channel.ChannelManager],
+  request : HttpRequest,
+) -> HttpResponse {
+  let platform = match request.get_param("id") {
     Some(v) => v
     None => return HttpResponse::bad_request("Missing parameter: id")
   }
-  match find_channel_index(id_or_platform) {
-    None => HttpResponse::not_found("Channel not found: \{id_or_platform}")
-    Some(idx) => {
-      let ch = channels_store.val[idx]
+  match cm_ref.val.find_platform(platform) {
+    None => HttpResponse::not_found("Channel not found: \{platform}")
+    Some(_ch) =>
       // For now, return empty users. In a real implementation, we would query the channel adapter.
       HttpResponse::ok(
         Json::object({
-          "platform": ch.platform.to_json(),
-          "channel_id": ch.id.to_json(),
+          "platform": platform.to_json(),
           "users": Json::array([]),
         }).stringify(),
       )
-    }
   }
 }

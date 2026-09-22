@@ -975,10 +975,8 @@ fn init_channel_manager(config_path : String) -> @channel.ChannelManager {
       println(
         "[ChannelManager] initialized with platforms: \{platforms.join(", ")}",
       )
-    Err(e) => {
-      ignore(e)
-      println("[ChannelManager] init failed — channels disabled")
-    }
+    Err(@channel.ChannelError(msg)) =>
+      println("[ChannelManager] init failed - channels disabled: " + msg)
   }
   cm
 }

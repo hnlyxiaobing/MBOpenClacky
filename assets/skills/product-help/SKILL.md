@@ -78,7 +78,7 @@ Configuration lives in:
 - `~/.mbopenclacky/memories/` — persistent memories
 - `~/.mbopenclacky/sessions/` — session history
 - `~/.mbopenclacky/mcp.json` — MCP server config
-- `~/.mbopenclacky/channels.yml` — IM channel config
+- `~/.mbopenclacky/channels.json` — IM channel config
 
 ### Model Configuration
 

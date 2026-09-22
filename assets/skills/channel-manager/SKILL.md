@@ -1,4 +1,3 @@
-
 ---
 name: channel-manager
 description: |
@@ -25,6 +24,40 @@ category: management
 
 Configure IM platform channels for MBOpenClacky.
 
+## Configuration file (single source of truth)
+
+All channel configuration lives in **one** file, read by the runtime at server
+startup and re-applied whenever the web panel changes it:
+
+```
+~/.mbopenclacky/channels.json
+```
+
+Schema — platform credentials always go inside `settings`, as **strings**:
+
+```json
+{
+  "channels": [
+    {
+      "platform": "feishu",
+      "enabled": true,
+      "settings": { "app_id": "cli_xxx", "app_secret": "xxx" }
+    }
+  ]
+}
+```
+
+Rules:
+
+- `platform` is one of `feishu`, `wecom`, `weixin`, `discord`, `telegram`, `dingtalk` (lowercase).
+- `enabled` is a boolean. A disabled platform keeps its settings but is not started.
+- `settings` values must be strings — numbers and booleans are ignored by the loader.
+- There is **no** `channels.yml`; YAML is not parsed. Never write the YAML shape.
+- Read the file, edit it, write the whole file back. Preserve other platforms.
+
+After changing the file, the running server picks the change up when the web
+panel applies it; a manually edited file takes effect on next server start.
+
 ---
 
 ## Command Parsing
@@ -43,18 +76,23 @@ Configure IM platform channels for MBOpenClacky.
 
 ## `status`
 
-Read the channel configuration from `~/.mbopenclacky/channels.yml` or call the server API if available.
+Read `~/.mbopenclacky/channels.json`, or call `GET /api/channels` when a server
+is running. The API returns one entry per platform:
 
-Response shape (example):
 ```json
 {"channels":[
-  {"platform":"feishu","enabled":true,"running":true,"has_config":true,"app_id":"cli_xxx","domain":"https://open.feishu.cn","allowed_users":[]},
-  {"platform":"wecom","enabled":false,"running":false,"has_config":false,"bot_id":""},
-  {"platform":"weixin","enabled":true,"running":true,"has_config":true,"has_token":true,"base_url":"https://ilinkai.weixin.qq.com","allowed_users":[]},
-  {"platform":"discord","enabled":true,"running":true,"has_config":true,"has_token":true,"allowed_users":[]},
-  {"platform":"telegram","enabled":true,"running":true,"has_config":true,"has_token":true,"base_url":"https://api.telegram.org","parse_mode":"Markdown","allowed_users":[]}
+  {"platform":"feishu","enabled":true,"running":true,"has_config":true,
+   "has_token":true,"settings":{"app_id":"cli_xxx","has_app_secret":true}},
+  {"platform":"wecom","enabled":false,"running":false,"has_config":false,
+   "has_token":false,"settings":{}}
 ]}
 ```
+
+- `has_config` — a config entry exists for the platform.
+- `running` — the adapter is currently active.
+- `has_token` — at least one credential is present.
+- `settings` — non-secret keys verbatim; every credential key appears as
+  `has_<key>` only. Credential values are **never** returned by the API.
 
 Display the result:
 
@@ -67,16 +105,13 @@ wecom      ❌ no     ❌ no     (not configured)
 weixin     ✅ yes    ✅ yes    has_token: true
 discord    ✅ yes    ✅ yes    has_token: true
 telegram   ✅ yes    ✅ yes    has_token: true
-dingtalk   ✅ yes    ✅ yes    client_id: ding_xxx...
+dingtalk   ✅ yes    ✅ yes    app_key: ding_xxx...
 ─────────────────────────────────────────────────────
 ```
 
 - Feishu: show `app_id` (truncated to 12 chars)
-- WeCom: show `bot_id` if present
-- Weixin: show `has_token: true/false` (token value is never displayed)
-- Discord: show `has_token: true/false` (token value is never displayed)
-- Telegram: show `has_token: true/false` (bot token is never displayed)
-- DingTalk: show `client_id` (truncated to 12 chars)
+- WeCom: show `corp_id` (truncated) when present
+- Weixin / Discord / Telegram / DingTalk: show `has_token: true/false` only
 
 If no channels are configured yet: "No channels configured yet. Run `channel-manager setup` to get started."
 
@@ -97,8 +132,6 @@ Ask:
 ---
 
 ### Feishu setup
-
-Guide the user through the Feishu Open Platform setup:
 
 #### Step 1 — Create Feishu App
 
@@ -137,16 +170,18 @@ Guide the user through the Feishu Open Platform setup:
 
 #### Step 6 — Save Configuration
 
-Write the credentials to `~/.mbopenclacky/channels.yml`:
+Add this entry to `~/.mbopenclacky/channels.json`:
 
-```yaml
-channels:
-  feishu:
-    enabled: true
-    app_id: "<app_id>"
-    app_secret: "<app_secret>"
-    domain: "https://open.feishu.cn"
+```json
+{
+  "platform": "feishu",
+  "enabled": true,
+  "settings": { "app_id": "<app_id>", "app_secret": "<app_secret>" }
+}
 ```
+
+`bot_id` + `bot_secret` are accepted instead of `app_id` + `app_secret`.
+`webhook_url` is optional.
 
 On success: "✅ Feishu channel configured! You can now chat with the assistant via Feishu."
 
@@ -161,18 +196,24 @@ On success: "✅ Feishu channel configured! You can now chat with the assistant 
 5. In the app settings, copy the **AgentId**, **Secret**, and **CorpID**
 6. Ask user to paste them here
 7. Under "Developer Interface", configure the receiving server if needed
-8. Save the credentials:
+8. Save the entry:
 
-```yaml
-channels:
-  wecom:
-    enabled: true
-    corp_id: "<corp_id>"
-    agent_id: "<agent_id>"
-    secret: "<secret>"
-    token: "<token>"  # optional, for receiving messages
-    encoding_aes_key: "<encoding_aes_key>"  # optional
+```json
+{
+  "platform": "wecom",
+  "enabled": true,
+  "settings": {
+    "corp_id": "<corp_id>",
+    "agent_id": "<agent_id>",
+    "secret": "<secret>",
+    "token": "<token>",
+    "encoding_aes_key": "<encoding_aes_key>"
+  }
+}
 ```
+
+`token` and `encoding_aes_key` are required only for receiving messages.
+`api_base` is an optional override.
 
 On success: "✅ WeCom channel configured! You can now chat with the assistant via WeCom."
 
@@ -189,16 +230,23 @@ Weixin setup varies by the integration method. Guide user through their chosen m
 
 2. Follow the instructions for their chosen method
 3. Typically involves scanning a QR code or logging in via web
-4. Save the token/credentials to the configuration
+4. Save the entry (`uin` is the account identifier sent as the `X-WECHAT-UIN` header):
 
-```yaml
-channels:
-  weixin:
-    enabled: true
-    method: "ilink"  # or "wxbot", "custom"
-    token: "<token>"
-    base_url: "https://api.ilinkai.com"
+```json
+{
+  "platform": "weixin",
+  "enabled": true,
+  "settings": {
+    "token": "<token>",
+    "uin": "<uin>",
+    "token_updated_at": "<epoch-milliseconds-as-a-string>"
+  }
+}
 ```
+
+`app_id`, `app_secret`, `encoding_aes_key` and `api_base` are optional.
+Write `token_updated_at` when the token is (re)issued: the web QR pairing page
+polls for it to confirm the pairing completed.
 
 On success: "✅ Weixin channel configured! You can now chat with the assistant via WeChat."
 
@@ -218,13 +266,14 @@ On success: "✅ Weixin channel configured! You can now chat with the assistant 
 10. Copy the generated URL, open it in a browser, add the bot to your server
 11. Ask user to paste the bot token and application ID here
 
-Save configuration:
-```yaml
-channels:
-  discord:
-    enabled: true
-    bot_token: "<bot_token>"
-    application_id: "<application_id>"
+Save the entry:
+
+```json
+{
+  "platform": "discord",
+  "enabled": true,
+  "settings": { "bot_token": "<bot_token>", "application_id": "<application_id>" }
+}
 ```
 
 On success: "✅ Discord channel configured! You can now chat with the assistant on your Discord server."
@@ -236,19 +285,20 @@ On success: "✅ Discord channel configured! You can now chat with the assistant
 1. Tell user to open Telegram and search for "@BotFather"
 2. Start a chat, send `/newbot`
 3. Follow the instructions: choose display name and username ending in `bot`
-4. BotFather will give a **bot token**
+4. BotFather will give you a **bot token**
 5. Ask user to paste the token here
-6. Optional: ask if they have a custom API endpoint (for self-hosted)
 
-Save configuration:
-```yaml
-channels:
-  telegram:
-    enabled: true
-    bot_token: "<bot_token>"
-    base_url: "https://api.telegram.org"  # or custom endpoint
-    parse_mode: "Markdown"
+Save the entry:
+
+```json
+{
+  "platform": "telegram",
+  "enabled": true,
+  "settings": { "bot_token": "<bot_token>" }
+}
 ```
+
+The API endpoint is fixed (`https://api.telegram.org`); there is no setting for it.
 
 Important notes:
 - **Group chats**: The user must disable Privacy Mode in @BotFather first: `/mybots` → select bot → "Bot Settings" → "Group Privacy" → "Turn off"
@@ -270,14 +320,17 @@ On success: "✅ Telegram channel configured! You can now chat with the assistan
 8. Ask user to paste them here
 9. Under "Development Management", configure the robot if needed
 
-Save configuration:
-```yaml
-channels:
-  dingtalk:
-    enabled: true
-    app_key: "<app_key>"
-    app_secret: "<app_secret>"
+Save the entry:
+
+```json
+{
+  "platform": "dingtalk",
+  "enabled": true,
+  "settings": { "app_key": "<app_key>", "app_secret": "<app_secret>" }
+}
 ```
+
+`access_token`, `secret`, `webhook_url` and `robot_code` are optional.
 
 On success: "✅ DingTalk channel configured! You can now chat with the assistant via DingTalk."
 
@@ -285,7 +338,8 @@ On success: "✅ DingTalk channel configured! You can now chat with the assistan
 
 ## `enable`
 
-Read the current config, set `enabled: true` for the specified platform, save the file.
+Read `~/.mbopenclacky/channels.json`, set `"enabled": true` for the specified
+platform, save the file.
 
 Say: "✅ &lt;platform&gt; channel enabled."
 
@@ -293,7 +347,8 @@ Say: "✅ &lt;platform&gt; channel enabled."
 
 ## `disable`
 
-Read the current config, set `enabled: false` for the specified platform, save the file.
+Read `~/.mbopenclacky/channels.json`, set `"enabled": false` for the specified
+platform, save the file.
 
 Say: "❌ &lt;platform&gt; channel disabled."
 
@@ -312,9 +367,16 @@ Say: "❌ &lt;platform&gt; channel disabled."
 
 Check each item and report ✅/❌ with remediation:
 
-1. **Config file**: Does `~/.mbopenclacky/channels.yml` exist and is it readable?
-2. **Required keys**: For each enabled platform, check that required keys are present
-3. **Platform connectivity**: If possible, ping the platform API to verify credentials work
+1. **Config file**: does `~/.mbopenclacky/channels.json` exist and parse as JSON?
+2. **Schema**: is the root an object with a `channels` array, and is every entry
+   `{platform, enabled, settings}` with string-valued settings? A YAML file or a
+   platform-keyed map is a configuration that the runtime will not read.
+3. **Required keys**: for each enabled platform, check the keys from the setup
+   section above are present.
+4. **Platform connectivity**: call `POST /api/channels/&lt;platform&gt;/test` when a
+   server is running — it probes the real API with the stored credentials and
+   returns `test_result`, `latency_ms` and the platform's own error message.
+   Without a server, report that connectivity was not verified.
 
 ---
 
@@ -328,11 +390,14 @@ Extract platform and message from the user's instruction.
 
 ### Check configuration
 
-Verify the specified platform is configured and enabled.
+Verify the specified platform is configured and enabled in
+`~/.mbopenclacky/channels.json`.
 
 ### Send the message
 
-Use the appropriate channel adapter to send the message.
+Call `POST /api/channels/&lt;platform&gt;/send` with
+`{"message": "...", "chat_id": "..."}`; it dispatches through the running
+adapter.
 
 ### Output
 

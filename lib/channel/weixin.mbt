@@ -125,13 +125,17 @@ pub(all) struct WeixinAdapter {
 pub fn WeixinAdapter::new(
   config : ChannelConfig,
 ) -> Result[WeixinAdapter, ChannelError] {
+  // app_id/app_secret belong to WeChat Official Account setups; the iLink
+  // send/receive path is driven by `token` + `uin`. Requiring them here made
+  // the documented configuration impossible to construct, so a configured
+  // Weixin channel never started at all.
   let app_id = match config.settings.get("app_id") {
     Some(v) => v
-    None => return Err(ChannelError("Missing setting: app_id"))
+    None => ""
   }
   let app_secret = match config.settings.get("app_secret") {
     Some(v) => v
-    None => return Err(ChannelError("Missing setting: app_secret"))
+    None => ""
   }
   let token = match config.settings.get("token") {
     Some(v) => v
@@ -288,14 +292,11 @@ pub impl Adapter for WeixinAdapter with fn validate_config(self) -> Array[
   String,
 ] {
   let errors : Array[String] = []
-  if self.app_id.is_empty() {
-    errors.push("app_id is required")
-  }
-  if self.app_secret.is_empty() {
-    errors.push("app_secret is required")
-  }
   if self.token.is_empty() {
     errors.push("token is required")
+  }
+  if self.api_client is None {
+    errors.push("uin is required to send messages")
   }
   errors
 }

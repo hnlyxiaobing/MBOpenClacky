@@ -138,6 +138,8 @@ pub fn detect_weixin_aes_mode(String) -> WeixinAesMode
 
 pub fn dingtalk_supported_exts() -> Array[String]
 
+pub fn expand_config_path(String, String?) -> Result[String, ChannelError]
+
 pub fn extract_api_error(Json) -> String
 
 pub fn extract_data_chat_id(Json) -> String?
@@ -318,6 +320,7 @@ pub(all) struct AdapterRegistry {
   adapters : Map[String, AnyAdapter]
 }
 pub fn AdapterRegistry::all(Self) -> Array[AnyAdapter]
+pub fn AdapterRegistry::clear(Self) -> Unit
 pub fn AdapterRegistry::find(Self, String) -> AnyAdapter?
 pub fn AdapterRegistry::has(Self, String) -> Bool
 pub fn AdapterRegistry::list_names(Self) -> Array[String]
@@ -403,7 +406,9 @@ pub(all) struct ChannelManager {
   mut recent_digests : Array[(String, Int)]
   mut digest_counter : Int
 }
+pub fn ChannelManager::apply_config(Self) -> Result[Unit, ChannelError]
 pub fn ChannelManager::configured_platforms(Self) -> Array[String]
+pub fn ChannelManager::find_platform(Self, String) -> ChannelConfig?
 pub fn ChannelManager::handle_webhook(Self, String, Json) -> Result[Unit, ChannelError]
 pub fn ChannelManager::init(Self) -> Result[Array[String], ChannelError]
 pub fn ChannelManager::is_platform_configured(Self, String) -> Bool
@@ -412,11 +417,16 @@ pub fn ChannelManager::new(String) -> Self
 pub fn ChannelManager::on_message(Self, (ChannelEvent) -> Unit) -> Unit
 pub fn ChannelManager::register_adapter(Self, String, AnyAdapter) -> Unit
 pub fn ChannelManager::reload(Self) -> Result[Unit, ChannelError]
+pub fn ChannelManager::remove_platform(Self, String) -> Result[Unit, ChannelError]
+pub fn ChannelManager::save_config(Self) -> Result[Unit, ChannelError]
 pub async fn ChannelManager::send_to(Self, String, String, String) -> Result[SendResult, ChannelError]
+pub fn ChannelManager::set_platform_enabled(Self, String, Bool) -> Result[Unit, ChannelError]
+pub fn ChannelManager::spawn_gateways(Self, @async.TaskGroup[Unit]) -> Unit
 pub fn ChannelManager::start(Self) -> Result[Unit, ChannelError]
 pub fn ChannelManager::start_with_gateway(Self, @async.TaskGroup[Unit]) -> Result[Unit, ChannelError]
 pub fn ChannelManager::status(Self) -> Array[(String, Bool)]
 pub fn ChannelManager::stop(Self) -> Result[Unit, ChannelError]
+pub fn ChannelManager::upsert_platform(Self, String, Bool, Map[String, String]) -> Result[Unit, ChannelError]
 pub fn ChannelManager::validate_all(Self) -> Map[String, Array[String]]
 
 pub(all) enum ChatType {

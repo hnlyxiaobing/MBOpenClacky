@@ -43,15 +43,20 @@ pub fn ChannelManager::new(config_path : String) -> ChannelManager {
 /// ```
 ///
 /// Returns Ok(()) when the file does not exist (treated as empty config).
-/// Returns Err on JSON parse failure or invalid entries.
+/// Returns Err on JSON parse failure, invalid entries, or an unresolvable
+/// `~` config path.
 pub fn ChannelManager::load_config(
   self : ChannelManager,
 ) -> Result[Unit, ChannelError] {
-  if !@fs.path_exists(self.config_path) {
+  let path = match self.resolved_config_path() {
+    Ok(p) => p
+    Err(e) => return Err(e)
+  }
+  if !@fs.path_exists(path) {
     self.configs = []
     return Ok(())
   }
-  let content = @fs.read_file_to_string(self.config_path) catch {
+  let content = @fs.read_file_to_string(path) catch {
     e => return Err(ChannelError("Failed to read config file: \{Repr(e)}"))
   }
   let json = @json.parse(content) catch {
@@ -169,6 +174,29 @@ pub fn ChannelManager::stop(
 }
 
 ///|
+/// Spawn connection loops for adapters that have one (currently the Discord
+/// gateway event + heartbeat loop) into the given task group.
+///
+/// A fresh adapter created by `apply_config` has no loop; call this after
+/// re-applying configuration. The previous adapter's `stop()` flips its
+/// `is_running` to false and ends its loop, so spawning one loop per apply
+/// does not duplicate them.
+pub fn ChannelManager::spawn_gateways(
+  self : ChannelManager,
+  group : @async.TaskGroup[Unit],
+) -> Unit {
+  match self.registry.find("discord") {
+    Some(AnyAdapter::Discord(adapter)) => {
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        adapter.run_gateway_loop()
+      })
+      ()
+    }
+    _ => ()
+  }
+}
+
+///|
 /// Start all enabled channels and spawn long-running connection loops
 /// (currently the Discord gateway event + heartbeat loop) into the given
 /// task group.
@@ -184,16 +212,7 @@ pub fn ChannelManager::start_with_gateway(
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  // Spawn connection loops for adapters that have one (Discord gateway).
-  match self.registry.find("discord") {
-    Some(AnyAdapter::Discord(adapter)) => {
-      group.spawn_bg(no_wait=true, allow_failure=true, () => {
-        adapter.run_gateway_loop()
-      })
-      ()
-    }
-    _ => ()
-  }
+  self.spawn_gateways(group)
   Ok(())
 }
 
@@ -391,6 +410,200 @@ pub fn ChannelManager::is_platform_configured(
     }
   }
   false
+}
+
+///|
+/// Look up a configured platform by name (enabled or not).
+pub fn ChannelManager::find_platform(
+  self : ChannelManager,
+  platform : String,
+) -> ChannelConfig? {
+  for config in self.configs {
+    if config.platform.to_string_value() == platform {
+      return Some(config)
+    }
+  }
+  None
+}
+
+///|
+/// Expand a leading `~` in a config path using `home`.
+///
+/// `moonbitlang/x/fs` does not expand `~`, so the default channel config path
+/// (`~/.mbopenclacky/channels.json`) silently resolved to a non-existent file
+/// and the runtime loaded zero channels. An unresolvable `~` path is reported
+/// as an error rather than degrading to an empty config.
+pub fn expand_config_path(
+  path : String,
+  home : String?,
+) -> Result[String, ChannelError] {
+  let unresolved : Result[String, ChannelError] = Err(
+    ChannelError("Cannot resolve home directory for config path: \{path}"),
+  )
+  if path == "~" {
+    match home {
+      Some(h) if h != "" => Ok(h)
+      _ => unresolved
+    }
+  } else if path.has_prefix("~/") || path.has_prefix("~\\") {
+    match home {
+      Some(h) if h != "" =>
+        Ok(
+          @path.Path::join(@path.Path(h), @path.Path(path[2:].to_owned())).to_string(),
+        )
+      _ => unresolved
+    }
+  } else {
+    Ok(path)
+  }
+}
+
+///|
+/// This manager's config path with `~` expanded, for file I/O.
+fn ChannelManager::resolved_config_path(
+  self : ChannelManager,
+) -> Result[String, ChannelError] {
+  expand_config_path(self.config_path, @utils.home_dir())
+}
+
+///|
+/// Persist `configs` to the config path in the schema `load_config` parses:
+/// `{ "channels": [ {platform, enabled, settings} ] }`.
+pub fn ChannelManager::save_config(
+  self : ChannelManager,
+) -> Result[Unit, ChannelError] {
+  let path = match self.resolved_config_path() {
+    Ok(p) => p
+    Err(e) => return Err(e)
+  }
+  let entries : Array[Json] = []
+  for config in self.configs {
+    let settings : Map[String, Json] = Map([])
+    for key, value in config.settings {
+      settings.set(key, value.to_json())
+    }
+    entries.push(
+      Json::object({
+        "platform": config.platform.to_string_value().to_json(),
+        "enabled": config.enabled.to_json(),
+        "settings": Json::object(settings),
+      }),
+    )
+  }
+  let content = Json::object({ "channels": Json::array(entries) }).stringify()
+  let dir = @path.Path::dirname(@path.Path(path)).to_string()
+  if dir != "" && dir != "." && !@fs.path_exists(dir) {
+    @utils.ensure_dir(dir)
+  }
+  @fs.write_string_to_file(path, content) catch {
+    e => return Err(ChannelError("Failed to write config file: \{Repr(e)}"))
+  }
+  Ok(())
+}
+
+///|
+/// Replace or append a platform config, then persist. `settings` is stored
+/// verbatim: adapters read platform-specific credential keys from it.
+pub fn ChannelManager::upsert_platform(
+  self : ChannelManager,
+  platform : String,
+  enabled : Bool,
+  settings : Map[String, String],
+) -> Result[Unit, ChannelError] {
+  let parsed = match Platform::from_string(platform) {
+    Some(p) => p
+    None => return Err(ChannelError("Unknown platform: " + platform))
+  }
+  let entry : ChannelConfig = { platform: parsed, enabled, settings, }
+  let mut replaced = false
+  let next : Array[ChannelConfig] = []
+  for config in self.configs {
+    if config.platform.to_string_value() == platform {
+      next.push(entry)
+      replaced = true
+    } else {
+      next.push(config)
+    }
+  }
+  if !replaced {
+    next.push(entry)
+  }
+  self.configs = next
+  self.save_config()
+}
+
+///|
+/// Enable or disable a configured platform, then persist.
+pub fn ChannelManager::set_platform_enabled(
+  self : ChannelManager,
+  platform : String,
+  enabled : Bool,
+) -> Result[Unit, ChannelError] {
+  let mut found = false
+  let next : Array[ChannelConfig] = []
+  for config in self.configs {
+    if config.platform.to_string_value() == platform {
+      found = true
+      next.push({
+        platform: config.platform,
+        enabled,
+        settings: config.settings,
+      })
+    } else {
+      next.push(config)
+    }
+  }
+  if !found {
+    return Err(
+      ChannelError(
+        "Platform is not configured: " + platform + " (add it first)",
+      ),
+    )
+  }
+  self.configs = next
+  self.save_config()
+}
+
+///|
+/// Remove a configured platform, then persist.
+pub fn ChannelManager::remove_platform(
+  self : ChannelManager,
+  platform : String,
+) -> Result[Unit, ChannelError] {
+  let next : Array[ChannelConfig] = []
+  for config in self.configs {
+    if config.platform.to_string_value() != platform {
+      next.push(config)
+    }
+  }
+  if next.length() == self.configs.length() {
+    return Err(ChannelError("Platform is not configured: " + platform))
+  }
+  self.configs = next
+  self.save_config()
+}
+
+///|
+/// Re-apply configuration from disk: stop running adapters, drop the registry
+/// (so disabled/removed platforms lose their adapters), reload, rebuild and
+/// start.
+///
+/// The message handler must already be set (`on_message`) for `start` to work.
+/// Long-running connection loops (Discord gateway) are NOT included here -
+/// `lib/web` re-spawns them via `start_with_gateway` inside its task group.
+pub fn ChannelManager::apply_config(
+  self : ChannelManager,
+) -> Result[Unit, ChannelError] {
+  match self.stop() {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  self.registry.clear()
+  match self.init() {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  self.start()
 }
 
 ///|

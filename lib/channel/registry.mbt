@@ -58,6 +58,14 @@ pub fn AdapterRegistry::has(self : AdapterRegistry, name : String) -> Bool {
 }
 
 ///|
+/// Drop every registered adapter. Used when re-applying configuration: a
+/// platform that was disabled or removed must not keep a stale live adapter
+/// (adapters hold their own config and token caches).
+pub fn AdapterRegistry::clear(self : AdapterRegistry) -> Unit {
+  self.adapters.clear()
+}
+
+///|
 /// Get the number of registered adapters.
 pub fn AdapterRegistry::size(self : AdapterRegistry) -> Int {
   self.adapters.length()

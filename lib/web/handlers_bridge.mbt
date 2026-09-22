@@ -184,56 +184,57 @@ async fn handle_mcp_execute_tool_bridge(
 
 ///|
 fn handle_channels_list_bridge(
-  _server_ref : Ref[WebServer],
-  event : @crescent.Event,
+  server_ref : Ref[WebServer],
+  _event : @crescent.Event,
 ) -> @core.HttpResponse {
-  let req = event_to_request(event, [])
-  response_to_core(handle_channels_list(req))
+  response_to_core(handle_channels_list(server_ref.val.channel_manager))
 }
 
 ///|
 fn handle_channels_create_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, [])
-  response_to_core(handle_channels_create(req))
+  response_to_core(handle_channels_create(server_ref.val.channel_manager, req))
 }
 
 ///|
 fn handle_channels_update_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_update(req))
+  response_to_core(handle_channels_update(server_ref.val.channel_manager, req))
 }
 
 ///|
 fn handle_channels_delete_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_delete(req))
+  response_to_core(handle_channels_delete(server_ref.val.channel_manager, req))
 }
 
 ///|
 async fn handle_channels_test_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_test_async(req))
+  response_to_core(
+    handle_channels_test_async(server_ref.val.channel_manager, req),
+  )
 }
 
 ///|
 fn handle_channels_status_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_status(req))
+  response_to_core(handle_channels_status(server_ref.val.channel_manager, req))
 }
 
 // ── Webhook Bridge ─────────────────────────────────────────────────
@@ -1088,20 +1089,20 @@ fn handle_channels_group_history_bridge(
 
 ///|
 fn handle_channels_users_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_users(req))
+  response_to_core(handle_channels_users(server_ref.val.channel_manager, req))
 }
 
 ///|
 /// PATCH /api/channels/:id/enabled - Toggle channel enabled state.
-/// The :id param accepts either a channel ID or a platform name.
+/// The :id param accepts a platform name.
 fn handle_channels_toggle_enabled_bridge(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let req = event_to_request(event, extract_id_param(event))
-  response_to_core(handle_channels_update(req))
+  response_to_core(handle_channels_update(server_ref.val.channel_manager, req))
 }

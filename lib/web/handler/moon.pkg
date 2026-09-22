@@ -1,5 +1,6 @@
 import {
   "hnlyxiaobing/MBOpenClacky/lib/web",
+  "hnlyxiaobing/MBOpenClacky/lib/channel",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "moonbitlang/core/debug",
 }

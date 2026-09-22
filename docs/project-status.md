@@ -23,10 +23,10 @@
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 305 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 210 |
-| 源代码行数 | 98,647 |
-| 测试行数 | 59,417 |
-| 总行数 | 158,064 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 211 |
+| 源代码行数 | 98,894 |
+| 测试行数 | 59,952 |
+| 总行数 | 158,846 |
 | 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3864 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -193,14 +193,16 @@
 
 | 渠道 | 适配器 | 发送(send) | 接收/长轮询 | 说明 |
 |------|:--:|:--:|:--:|------|
-| Telegram | ✅ | ✅ 真发送 | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；`update_message` 与 getUpdates 长轮询为诚实报错 stub |
-| Discord | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/upload 未实现 |
-| 飞书 (Feishu) | ✅ | ⚠️ stub | ⚠️ stub | 富文本解析完整；`send/update/upload/download` 未接 HTTP 传输，诚实报错 |
-| 企业微信 (WeCom) | ✅ | ⚠️ stub | ⚠️ stub | WebSocket send 未接线，诚实报错 |
-| 钉钉 (DingTalk) | ✅ | ⚠️ stub | ⚠️ stub | `open_stream_connection`/`download_file_url` 未接 HTTP，诚实报错 |
-| 微信 (Weixin) | ✅ | ⚠️ stub | ⚠️ stub | send 与 AES-128-ECB 加解密未接线，诚实报错 |
+| Telegram | ✅ | ✅ 真发送 | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；getUpdates 长轮询与 `update_message` 仍为诚实报错 stub（WP-1.6） |
+| Discord | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/get_current_user/upload 未实现（WP-1.6） |
+| 飞书 (Feishu) | ✅ | ✅ | ✅ webhook | `send/update(PATCH)/upload(multipart)/download/history` 全部经真实传输（WP-1.1）；接收走 `/api/webhooks/feishu` |
+| 企业微信 (WeCom) | ✅ | ✅ | ✅ webhook | `gettoken` 缓存 + `message/send`（WP-1.3）；WebSocket 收发未接线，接收走 `/api/webhooks/wecom` |
+| 钉钉 (DingTalk) | ✅ | ✅ | ✅ webhook | send 与 `open_stream_connection`/`download_file_url` 经真实 HTTP POST（WP-1.2）；Stream Mode WS 循环为独立工作项 |
+| 微信 (Weixin) | ✅ | ✅ | ✅ webhook | `sendmessage` + AES-128-ECB/PKCS#7（WP-1.4）；接收走 `/api/webhooks/weixin` |
 
-**差距**：适配器覆盖 6/6，但只有 Telegram（发送）与 Discord（网关）真正接通网络；其余 4 个渠道及全平台的 `update_message`/`delete_message` 仍为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
+**配置来源**：六个平台统一读写 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`）。Web 面板、`channel-manager` 技能与运行时共用该文件，面板状态即运行时投影（2026-09-22 贯通，见 `specs/active/2026-09-22_channel-config-single-source-of-truth.md`）。
+
+**差距**：send 侧六平台均已接通；剩余缺口是全平台的编辑/撤回（`update_message`/`delete_message`，WP-1.6）与 Telegram 长轮询、企微 WebSocket 收发、钉钉 Stream Mode。均为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
 
 ### 5.4 文档解析器
 
