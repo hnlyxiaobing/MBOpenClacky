@@ -113,9 +113,9 @@ in CI — a hand-edited number turns the build red. Calibers are defined in the 
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,066 |
-| 测试行数 | 62,598 |
-| 总行数 | 163,664 |
+| 源代码行数 | 101,207 |
+| 测试行数 | 62,613 |
+| 总行数 | 163,820 |
 | 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |

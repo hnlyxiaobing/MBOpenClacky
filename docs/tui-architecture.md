@@ -53,7 +53,8 @@
 ```bash
 moon build --target native --release cmd          # 构建（须显式指定 cmd，规避 moon#1488）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # 推荐直接运行 exe 进入 TUI
-cmd.exe --tui-eval test/scenarios/tui/            # TUI eval 场景回归（当前 47/47）
+cmd.exe eval --tui test/scenarios/tui/            # TUI eval 场景回归（统一入口，--format text|json|markdown）
+cmd.exe --tui-eval test/scenarios/tui/            # 旧顶层旗标，仍可用（报告落 logs/）
 ```
 
 注意：`moon test --target wasm-gc` 会因 `tty`/`crescent` 的 FFI 失败，用 `moon check` 验证类型即可。

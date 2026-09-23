@@ -25,6 +25,19 @@
 
 ## 变更记录
 
+### 2026-09-23  eval 报告管线与 CLI 入口统一（AssertionKind / UnifiedReport）
+
+**代码批次**已由 commit `519c8e5` 交付，本条补记其内容并记录随后的文档同步。
+
+- `[refactor]` **统一断言枚举 `AssertionKind`（`test/eval/assertions.mbt`，20 种）**：TUI 适配器（`text_contains`/`screen_empty`/`row_contains`/`status_contains`/`input_contains`/`output_contains`/`dialog_contains`/`file_exists`/`file_missing`/`file_contains`/`file_not_contains` 等）与 Web 适配器（`status_eq`/`status_in`/`body_contains`/`body_not_contains`/`jsonpath_eq`/`header_contains`/`sse_valid`/`body_length_gt` 等）此前各写各的解析与求值分支，现收敛为单一 `pub(all) enum AssertionKind` + 单一 `parse_assertion_kind`。解析器同时接受 TUI 风格 `"check"` 字段与 Web 风格 `"type"` 字段（向后兼容，既有场景 JSON 无需改动）。
+- `[refactor]` **统一报告 `UnifiedReport` + 三渲染器（`test/eval/eval_engine.mbt`）**：新增 `UnifiedReport`/`UnifiedSuiteResult`/`UnifiedAssertionResult`/`UnifiedSummary` 与 `render_unified_report_text`/`_json`/`_markdown`；`EvalBatchResult::to_unified_report`、`HarnessReport::to_unified_report` 把各后端结果归一后渲染。
+- `[feat]` **统一 CLI 入口 `cmd eval`（`cmd/eval.mbt` + `cmd/main.mbt`）**：`--tui <dir>` / `--web <dir>` / `--offline` / `--live` 四后端同一子命令分派，共享 `--repo` / `--tasks` / `--trials` / `--out` / `--format text|json|markdown`；报告默认落 `_build/eval/<suite>_<date>.<ext>`。旧顶层旗标 `--tui-eval` / `--web-eval` 保留（走 `format_eval_report` 旧路径、报告落 `logs/`）。
+- `[refactor]` **性能基准接入统一管线**：`test/benchmark/benchmark_runner.mbt` 新增 `benchmark_results_to_unified_report`，`handle_benchmark` 跑完各场景后用 `render_unified_report_text` 输出统一报告页脚（逐次计时与回归对比照旧）。
+- `[fix]` **`lib/skill/evolution.mbt` 可选参数语法错误**修正（附带于本批次，`pkg.generated.mbti` 同步）。
+- `[docs]` **文档同步**：`docs/testing.md` 层 4 命令行改为统一 `eval --tui/--web --format` 入口、目录地图标注 `assertions.mbt` 与 `UnifiedReport`，新增「层 4 · 界面效果：统一断言与报告管线」小节；`README.md`、`docs/tui-architecture.md`、`docs/web-ui-parity.md` 的场景回放命令补统一入口。
+- `[chore]` **数字重新生成**：`scripts/repo_stats.sh generate`（commit `519c8e5` 改代码后未回填，行数漂移致 CI `Repo stats gate` 红——用例数 3,973 不变，行数 101,066/62,598/163,664 → 101,207/62,613/163,820）；`repo_stats.sh check` 与 `known_gaps.sh check` 复验绿。
+- **验证**：`moon check -d` 0 错 0 警；`moon build --target native --release cmd` 成功；`moon info` 无公共 API 变更告警。**如实说明**：本批次全量 `moon test` 因超时被中止、未跑完，验证范围窄于常规（以构建通过为兜底）；文档同步批次（本条 `[docs]`）不改代码，无需重跑测试。
+
 ### 2026-09-23  执行计划收尾（WP-3.4~3.6）+ 文档集状态对齐与冗余删减
 
 **代码批次**已由 commit `3e4f567` 交付，本条补记其内容并记录随后的文档治理。

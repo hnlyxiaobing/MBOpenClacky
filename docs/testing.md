@@ -12,7 +12,7 @@
 | 1 | 白盒单元 | 每个包自身逻辑对不对 | `lib/**/*_wbtest.mbt`、`cmd/**/*_wbtest.mbt` | `moon test --release <pkg>` | 每次提交 | 有效 |
 | 2 | 差分单元 | 与 Ruby 基线语义是否一致 | `test/diff/` | `moon test --release test/diff` | 每次提交 | 有效（145 例） |
 | 3 | 链路 | 完整 ReAct 循环是否回归 | `test/e2e/` | `moon test --release test/e2e` | 每次提交 | 有效（12 剧本，约 18s） |
-| 4 | 界面效果 | TUI/Web 的实际渲染与响应行为 | `test/eval/`（引擎）+ `test/tui/`、`test/web/`（适配器）+ `test/scenarios/`（场景） | 引擎/适配器随 `moon test`；场景回放 `cmd.exe --tui-eval test/scenarios/tui/` | 引擎与适配器进 CI，场景回放手动 | 有效 |
+| 4 | 界面效果 | TUI/Web 的实际渲染与响应行为 | `test/eval/`（引擎 + `assertions.mbt` 统一断言）+ `test/tui/`、`test/web/`（适配器）+ `test/scenarios/`（场景） | 引擎/适配器随 `moon test`；场景回放 `cmd.exe eval --tui test/scenarios/tui/`（Web 用 `eval --web`；`--format text\|json\|markdown`） | 引擎与适配器进 CI，场景回放手动 | 有效 |
 | 5 | CLI 契约 | 对外承诺的退出码与输出形状 | `cmd/selftest.mbt` | `cmd.exe selftest --repo .` | 每次提交 | 有效 |
 | 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
 | 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | 有效（真执行默认 registry 中的工具并计时），见 [test/benchmark/README.md](../test/benchmark/README.md) |
@@ -26,7 +26,7 @@
 test/
 ├── diff/        层 2：冻结期望值的单元差分 + known_failure.mbt（BUG 闸门）
 ├── e2e/         层 3：进程内 mock LLM server + scenarios/（剧本）+ golden.mbt
-├── eval/        层 4/6：eval 引擎、tool_harness（确定性评分）、tasks/*.json
+├── eval/        层 4/6：eval 引擎（含 UnifiedReport + text/json/markdown 渲染器）、assertions.mbt（统一 AssertionKind）、tool_harness（确定性评分）、tasks/*.json
 ├── tui/         层 4：虚拟屏与 TUI 适配器
 ├── web/         层 4：Web API/WS 适配器
 ├── scenarios/   层 4：tui/ 与 web/ 的 JSON 场景文件
@@ -104,6 +104,15 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 - 耗时：单次全量约 18s。008/009 含真实 5s 级退避（预期内）；002/005/013 当前被 known-failure 闸门隔离不耗时（005 闸门激活后有 runner 120s 超时保护）。
 - 闸门分布：002→BUG-0032/0023；005→BUG-0042（兼引 0041/0043）；009→BUG-0037；010/014→BUG-0040；013→BUG-0039（兼引 0038）；011 无 ruby 基线留空待冻结。
 - 剧本 011（malformed_sse）与 012（finish_stop+tool_calls）的原始目标场景在 diff-harness 侧无 ruby 基线（mock server 能力缺口），对应测试仅为占位注释，**待 diff-harness 补基线后冻结**。
+
+## 层 4 · 界面效果：统一断言与报告管线
+
+层 4（TUI/Web 场景回放）与层 7（性能基准）共用一套断言词表与报告管线，收敛在 `test/eval/`：
+
+- **统一断言枚举 `AssertionKind`（`test/eval/assertions.mbt`，20 种）**：TUI 侧（`text_contains`/`screen_empty`/`row_contains`/`status_contains`/`input_contains`/`output_contains`/`dialog_contains`/`file_*` 等）与 Web 侧（`status_eq`/`status_in`/`body_contains`/`jsonpath_eq`/`header_contains`/`sse_valid`/`body_length_gt` 等）此前各写各的解析分支，现合并为单一枚举 + 单一 `parse_assertion_kind`。解析器同时接受 TUI 风格的 `"check"` 字段与 Web 风格的 `"type"` 字段（向后兼容，旧场景 JSON 不改）。
+- **统一报告 `UnifiedReport`（`test/eval/eval_engine.mbt`）+ 三个渲染器**：`render_unified_report_text` / `_json` / `_markdown`。各适配器的批次结果经 `to_unified_report` 归一后渲染，`cmd eval --format text|json|markdown` 选择输出形状；报告默认落 `_build/eval/<suite>_<date>.<ext>`。
+- **统一 CLI 入口 `cmd eval`（`cmd/eval.mbt`）**：`--tui <dir>` / `--web <dir>` / `--offline` / `--live` 四后端同一入口分派，`--repo` / `--tasks` / `--trials` / `--out` / `--format` 为共享参数。旧顶层旗标 `--tui-eval` / `--web-eval` 仍可用（走 `format_eval_report` 旧路径、报告落 `logs/`），但新入口是推荐路径。
+- **层 7 接入同一管线**：`cmd benchmark` 跑完各场景后经 `benchmark_results_to_unified_report` 归一，末尾用 `render_unified_report_text` 输出统一报告页脚（每场景的逐次计时与回归对比仍照旧打印）。
 
 ## 层 7 / 层 8 · 两类基准（都不进 CI）
 

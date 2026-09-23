@@ -46,7 +46,8 @@ web-ui2-01~10 覆盖：system prompt 泄露、会话创建/删除契约、YAML b
 
 ```bash
 moon run cmd -- server                 # 启动 Web 服务（端口 7071）
-moon run cmd -- --web-eval test/scenarios/web/   # Web API/WS 场景回放（testing.md 层 4）
+moon run cmd -- eval --web test/scenarios/web/   # Web API/WS 场景回放（统一入口，testing.md 层 4）
+moon run cmd -- --web-eval test/scenarios/web/   # 旧顶层旗标，仍可用（报告落 logs/）
 ```
 
 REST 契约断言另见 `lib/web/*_wbtest.mbt`。
