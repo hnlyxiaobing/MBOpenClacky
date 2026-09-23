@@ -25,30 +25,72 @@ pub fn BenchmarkRunner::new(
 }
 
 ///|
+/// 实际执行工具并返回 (elapsed_ms, success, error)
+async fn execute_tool_timed(
+  tool : @tool.AnyTool,
+  args : Map[String, Json],
+) -> (Int64, Bool, String) {
+  let timer = BenchmarkTimer::new()
+  let result = @tool.Tool::execute(tool, args) catch {
+    err =>
+      @tool.ToolResult::{
+        content: "tool raised: " + @debug.to_string(err),
+        is_error: true,
+      }
+  }
+  let elapsed_ms = timer.elapsed_ms()
+  (
+    elapsed_ms,
+    !result.is_error,
+    if result.is_error {
+      result.content
+    } else {
+      ""
+    },
+  )
+}
+
+///|
 /// 运行单个场景的单次迭代
-fn run_single_iteration(
+async fn run_single_iteration(
   scenario : BenchmarkScenario,
   iteration : Int,
 ) -> BenchmarkIterationResult {
-  let timer = BenchmarkTimer::new()
-  let success = true
-  let error = ""
+  let registry = @tool.make_default_registry()
+  let _ = iteration
 
-  // 这里应该实际执行场景，但为了简化，我们模拟执行
-  // 实际实现中，这里应该调用场景的执行逻辑
-  // 例如：执行 LLM 调用、工具执行等
+  if scenario.tool == "" {
+    return {
+      scenario_name: scenario.name,
+      iteration,
+      elapsed_ms: 0L,
+      success: false,
+      error: "scenario has no tool configured",
+    }
+  }
 
-  // 模拟执行时间（实际应该根据场景类型执行）
-  let _ = scenario.iterations + iteration
-
-  let elapsed_ms = timer.elapsed_ms()
-
-  { scenario_name: scenario.name, iteration, elapsed_ms, success, error, }
+  match registry.get_resolved(scenario.tool) {
+    Some(tool) => {
+      let (elapsed_ms, success, error) = execute_tool_timed(
+        tool,
+        scenario.parameters,
+      )
+      { scenario_name: scenario.name, iteration, elapsed_ms, success, error, }
+    }
+    None =>
+      {
+        scenario_name: scenario.name,
+        iteration,
+        elapsed_ms: 0L,
+        success: false,
+        error: "tool not found: \{scenario.tool}",
+      }
+  }
 }
 
 ///|
 /// 运行单个场景的所有迭代
-pub fn BenchmarkRunner::run_scenario(
+pub async fn BenchmarkRunner::run_scenario(
   scenario : BenchmarkScenario,
 ) -> BenchmarkStats {
   let samples : Array[Int64] = []
@@ -71,7 +113,7 @@ pub fn BenchmarkRunner::run_scenario(
 
 ///|
 /// 运行所有场景
-pub fn BenchmarkRunner::run_all(
+pub async fn BenchmarkRunner::run_all(
   self : BenchmarkRunner,
 ) -> Array[(String, BenchmarkStats)] {
   let results : Array[(String, BenchmarkStats)] = []

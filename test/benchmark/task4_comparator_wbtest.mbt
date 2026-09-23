@@ -158,7 +158,7 @@ test "compare_with_history" {
   let history : Array[BenchmarkResult] = []
   history.push(BenchmarkResult::new("scenario1", current_stats))
 
-  let report = compare_with_history(current_stats, history, 10.0)
-  @test.assert_eq(report.scenario_name, "unknown")
+  let report = compare_with_history("scenario1", current_stats, history, 10.0)
+  @test.assert_eq(report.scenario_name, "scenario1")
   @test.assert_eq(report.current_stats, current_stats)
 }

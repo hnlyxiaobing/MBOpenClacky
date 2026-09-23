@@ -11,6 +11,10 @@ pub struct BenchmarkScenario {
   warmup : Int
   /// 并发数（暂不实现，保留字段）
   concurrency : Int
+  /// 要执行的工具名称（如 "file_reader", "grep"）
+  tool : String
+  /// 传递给工具的参数
+  parameters : Map[String, Json]
   /// 原始 JSON 内容（用于传递给 eval 框架）
   raw_json : String
 }
@@ -42,6 +46,18 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> BenchmarkScenario? {
         Some(Number(n, ..)) => n.to_int()
         _ => 1
       }
+      let tool = match map.get("tool") {
+        Some(String(s)) => s
+        _ => ""
+      }
+      let parameters : Map[String, Json] = Map([])
+      match map.get("parameters") {
+        Some(Object(pm)) =>
+          for key, value in pm {
+            parameters[key] = value
+          }
+        _ => ()
+      }
 
       Some({
         name,
@@ -49,6 +65,8 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> BenchmarkScenario? {
         iterations,
         warmup,
         concurrency,
+        tool,
+        parameters,
         raw_json: json_str,
       })
     }
@@ -69,6 +87,8 @@ pub fn BenchmarkScenario::with_counts(
     iterations,
     warmup,
     concurrency: self.concurrency,
+    tool: self.tool,
+    parameters: self.parameters,
     raw_json: self.raw_json,
   }
 }

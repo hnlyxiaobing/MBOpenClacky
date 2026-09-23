@@ -1282,7 +1282,7 @@ fn int_override(sub : @clap.SimpleValue, name : String) -> Int? {
 }
 
 ///|
-fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
+async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   // 获取参数
   let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or(
     "test/benchmark/scenarios",
@@ -1337,7 +1337,12 @@ fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
     // 加载历史结果进行比较
     let history = @benchmark.load_history(scenario.name, output_dir)
     if history.length() > 0 {
-      let report = @benchmark.compare_with_history(stats, history, threshold)
+      let report = @benchmark.compare_with_history(
+        scenario.name,
+        stats,
+        history,
+        threshold,
+      )
       println(report.to_markdown())
     }
   }

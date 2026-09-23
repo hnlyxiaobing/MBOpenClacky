@@ -197,11 +197,11 @@ pub fn RegressionReport::to_markdown(self : RegressionReport) -> String {
 ///|
 /// 比较当前结果与历史结果
 pub fn compare_with_history(
+  scenario_name : String,
   current_stats : BenchmarkStats,
   history : Array[BenchmarkResult],
   threshold_pct : Double,
 ) -> RegressionReport {
-  let scenario_name = "unknown"
   let mut last_stats : BenchmarkStats? = None
   let mut median_stats : BenchmarkStats? = None
 

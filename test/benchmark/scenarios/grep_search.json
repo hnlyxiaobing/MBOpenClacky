@@ -1,0 +1,11 @@
+{
+  "name": "grep_search",
+  "description": "Benchmark grep tool search performance",
+  "tool": "grep",
+  "parameters": {
+    "pattern": "fn execute",
+    "path": "lib/tool"
+  },
+  "iterations": 10,
+  "warmup": 3
+}

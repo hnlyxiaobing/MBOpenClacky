@@ -412,7 +412,7 @@
   - **如实说明**：Windows 本机仍无法跑该包全量（`mcp.whitebox_test.exe` 在 stdio 的 python3 集成测试处挂死，WP-3.5 范围），故本 WP 用 `--filter` 分片验证：新 HTTP 测试 13/13、其余非挂死用例（`build_jsonrpc` 3、`dispatch_line` 4、`session_id` 1、`McpClient` 6、`registry` 13、`virtual_skill` 1）全绿。
   - spec 归档：`specs/completed/2026-09-22_wp-3.3-mcp-http-transport.md`。
 
-### WP-3.4 性能基准真实执行驱动 `[ ]`（P2，先出 spec）
+### WP-3.4 性能基准真实执行驱动 `[x]`（P2，先出 spec）
 
 > **现状核对（2026-09-22）**：`test/benchmark/benchmark_runner.mbt:37-44` 的 `run_single_iteration` 明写"为了简化，我们模拟执行"，
 > 且 `elapsed_ms` 紧随 `BenchmarkTimer::new()` 读取——**实测** `cmd benchmark --iterations 3 --warmup 1`
@@ -423,17 +423,20 @@
 - **触点**：`test/benchmark/`（`BenchmarkRunner::run_scenario` 当前为模拟执行，`tool`/`parameters` 不真执行）。
 - **前置**：先在 `specs/draft/` 出规格（真实性能闸门的口径、噪声处理）。
 - **DoD**：`cmd benchmark` 真执行工具路径并计时（数值不再恒为 0ms，回归报告场景名不再是 `unknown`）；结果落 `_build/benchmark/results/`；仍不进 CI。
+- **完成**：`benchmark_runner.mbt` 改为通过 `@tool.make_default_registry()` 真执行工具并计时；`benchmark_comparator.mbt` 修复 `scenario_name` 传参（不再硬编码 `"unknown"`）；场景文件 `llm_latency.json` → `grep_search.json`（使用真实 grep 工具）；E2E 验证 grep_search ~86ms、tool_exec ~21ms。
 
-### WP-3.5 Windows `lib/mcp` 测试挂死排查 `[ ]`（P3）
+### WP-3.5 Windows `lib/mcp` 测试挂死排查 `[x]`（P3）
 
 - **现象**：`moon test --release` 在 Windows 本机挂死于 `lib/mcp/mcp.whitebox_test.exe`（stdio 集成测试 spawn python3 前停住，疑似 async 管道/事件循环死锁）；Linux CI 全绿。
 - **步骤**：最小复现 → 定位 async spawn/pipe 在 Windows 的死锁点 → 修复或给该测试加 Windows 跳过 + 台账登记。
 - **DoD**：Windows 本机可跑全量测试（或该包有明确的平台跳过与根因记录）。
+- **完成**：根因为 Windows 命名管道上 `read_until("\n")` 阻塞 async fiber + `task.cancel()` 协作式取消无法中断阻塞 I/O → `with_task_group` 永久等待读循环任务。修复：`stdio_transport_wbtest.mbt` 添加运行时 Windows 检测并跳过集成测试，附详细根因注释。全量测试 4135/4141（6 个预存 vendored mbtpdf 失败）。
 
-### WP-3.6 TUI 绑定 wire 词表 `[ ]`（P3，ADR-0001 后续）
+### WP-3.6 TUI 绑定 wire 词表 `[x]`（P3，ADR-0001 后续）
 
 - **背景**：TUI 直接消费引擎 `HookEvent`（富状态机需要 wire 丢弃的原始信息）；Web/CLI 已走 `lib/protocol`。见 `specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md`。
 - **DoD**：若决定统一，TUI 改绑 wire 词表并保留必要适配层；否则维持现状（HookEvent 穷尽匹配已保证新增事件即编译失败）。
+- **结论**：维持现状。验证 `lib/tui/agent_hooks.mbt:115-384` 穷尽匹配 28 个 `HookEvent` 变体，MoonBit 编译期穷尽检查保证新增事件即编译失败。TUI 需要 wire 有意丢弃的信息（原始 tool args 字符串、`MessageAdded` vs `AfterIteration` 区分用于 TodoArea 刷新），强行改绑 wire 词表会降低保真度。ADR-0001 §7 决策成立。
 
 ---
 
