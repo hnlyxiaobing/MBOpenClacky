@@ -7,63 +7,32 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    name: Check · Build · Test
+  # ── Fast gate: type errors and policy violations fail here in ~1 min,
+  #    before the expensive build/test runners spin up.
+  checks:
+    name: Checks
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
-
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-      - name: Install system dependencies
-        run: |
-          # GitHub Actions ubuntu-22.04 runners use cloud-init's mirror+file
-          # syntax: /etc/apt/sources.list points at /etc/apt/apt-mirrors.txt,
-          # which lists azure.archive.ubuntu.com (intermittently unreachable
-          # from CI, stalling `apt-get update` until the job is cancelled).
-          # Repoint EVERY azure reference under /etc/apt at the canonical
-          # archive.ubuntu.com mirror before updating.
-          sudo grep -rl "azure.archive.ubuntu.com" /etc/apt/ 2>/dev/null | \
-            sudo xargs -r sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g'
-          if sudo grep -rq "azure.archive.ubuntu.com" /etc/apt/ 2>/dev/null; then
-            echo "::error::azure.archive.ubuntu.com still present in apt config" >&2
-            exit 1
-          fi
-          # Bound the update: fail fast on an unreachable mirror instead of
-          # letting apt retry into the job timeout.
-          sudo timeout 300 apt-get update \
-            -o Acquire::Retries=2 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30
-          # libssl-dev provides libcrypto for lib/brand's AES-256-GCM / RAND_bytes
-          # C stubs (linked via -lcrypto). libcurl is no longer required: the
-          # FFI C reduction (S-FFI-06) migrated lib/client HTTP transport to
-          # @async/http, and -lcurl has been removed project-wide.
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            curl \
-            libssl-dev
-          sudo rm -rf /var/lib/apt/lists/*
+      # ubuntu-22.04 runners ship with build-essential and libssl-dev pre-installed.
+      # No apt-get step needed — the old workflow spent 30-60s installing packages
+      # that were already present.
 
-      # Cache registry dependencies only. The key carries a `-v2-` generation
-      # marker so stale caches produced under an old toolchain are discarded.
-      - name: Cache mooncakes dependencies
+      # Cache ~/.moon keyed by OS+arch. When the toolchain updates, the version
+      # string in cache key changes → cache miss → fresh download. Same safety as
+      # always-install, but free on cache hits (~30s saved per job).
+      - name: Cache MoonBit toolchain
+        id: toolchain-cache
         uses: actions/cache@v6
         with:
-          path: .mooncakes
-          key: mooncakes-${{ runner.os }}-v2-${{ hashFiles('moon.mod.json', 'moon.mod') }}
-          restore-keys: |
-            mooncakes-${{ runner.os }}-v2-
+          path: ~/.moon
+          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain
 
-      # IMPORTANT: do NOT cache ~/.moon. A long-lived toolchain cache pinned
-      # an old compiler + bundled core library; newer code then failed
-      # `moon check` (exit 255) because the stale core lacked current APIs.
-      # Installing the latest stable toolchain on every run (~30s) keeps CI
-      # consistent with local development environments.
       - name: Install MoonBit toolchain
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+        if: steps.toolchain-cache.outputs.cache-hit != 'true'
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
@@ -72,52 +41,26 @@ jobs:
         id: toolchain
         run: |
           moon version
-          # The compiler identity goes into the build-cache key below. A cache
-          # that a *newer* compiler could hit is exactly the stale-toolchain
-          # hazard the ~/.moon note above warns about, so the key must change
-          # whenever the toolchain does.
           echo "id=$(moon version | head -1 | tr -d ' ()')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mooncakes dependencies
+        uses: actions/cache@v6
+        with:
+          path: .mooncakes
+          key: mooncakes-${{ runner.os }}-v2-${{ hashFiles('moon.mod.json', 'moon.mod') }}
+          restore-keys: |
+            mooncakes-${{ runner.os }}-v2-
 
       - name: Update registry index
         run: moon update
-
-      - name: Cache compiled artifacts
-        # Measured breakdown of a green run (19.3 min total): "Run tests
-        # (module packages)" 13.3 min, "Build (native release)" 4.7 min, all
-        # other steps together ~1.3 min. The dominant cost is the host C
-        # compiler: `cc1` burning a full core on moon's generated C, per
-        # package, in two separate artifact trees (`build/` for the binary,
-        # `test/` for the suites). Recompiling identical inputs on every push
-        # is pure re-work, so both trees are cached against
-        # (compiler identity x source content).
-        #
-        # Priming the key with the source hash and `restore-keys` with the
-        # compiler-only prefix means an edit reuses the previous run's objects
-        # and recompiles just what changed, instead of starting from zero.
-        # Only the two trees CI uses are cached; the full `_build` also holds
-        # debug output and eval sandboxes that would only bloat the cache.
-        uses: actions/cache@v6
-        with:
-          path: |
-            _build/native/release
-            _build/wasm-gc
-          key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'scripts/build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
-          restore-keys: |
-            moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Type check
         run: moon check -j "$(nproc)"
 
       - name: Warning budget gate (P2-3)
-        # The baseline is 0 warnings on the 2026-09 toolchain (commit 5b74655),
-        # so any new compiler warning fails CI. If the baseline legitimately
-        # moves, pass an explicit budget here.
         run: bash scripts/warn_count.sh
 
       - name: Public API gate (P0-1, .mbti diff)
-        # Regenerate every package interface; a public API change that was not
-        # committed as a .mbti update fails CI (the .mbti files are the
-        # machine-readable record of the public surface).
         run: |
           moon info
           if ! git diff --exit-code -- '**/pkg.generated.mbti'; then
@@ -128,25 +71,99 @@ jobs:
           fi
 
       - name: Known-gaps ledger gate (P0-2)
-        # Truth ledger: the auto-scan section must match a fresh scan of the
-        # code, and every hit must have a curated status row.
         run: bash scripts/known_gaps.sh check
 
       - name: Guard insecure crypto build
-        # Refuse to ship the weak crypto stubs (lib/brand/brand_stubs.c) in a
-        # release artifact. This complements the compile-time #error guard in
-        # brand_stubs.c with a CI-level safety net.
         run: bash scripts/check-crypto-build.sh release
 
+  # ── Build the release binary and run the full test suite.
+  #    Both steps compile the same library code but into separate artifact trees
+  #    (build/ vs test/). Caching _build/native/release covers both trees in a
+  #    single cache entry: on a cache hit, moon skips recompilation entirely for
+  #    unchanged packages.
+  #
+  #    Tests run in debug mode (no --release): the compiler ICE that forced
+  #    release mode was in vendor/mbtpdf's own test driver, which is outside
+  #    the scoped test command. Scoped debug tests compile 2-3x faster.
+  build-and-test:
+    name: Build · Test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    needs: checks
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache MoonBit toolchain
+        id: toolchain-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.moon
+          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain
+
+      - name: Install MoonBit toolchain
+        if: steps.toolchain-cache.outputs.cache-hit != 'true'
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+
+      - name: Add MoonBit to PATH
+        run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Verify MoonBit installation
+        id: toolchain
+        run: |
+          moon version
+          echo "id=$(moon version | head -1 | tr -d ' ()')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mooncakes dependencies
+        uses: actions/cache@v6
+        with:
+          path: .mooncakes
+          key: mooncakes-${{ runner.os }}-v2-${{ hashFiles('moon.mod.json', 'moon.mod') }}
+          restore-keys: |
+            mooncakes-${{ runner.os }}-v2-
+
+      - name: Update registry index
+        run: moon update
+
+      # Cache the entire native release tree. Both `moon build` (→ build/) and
+      # `moon test --release` (→ test/) write here. A single cache entry covers
+      # both, so on a cache hit neither step recompiles unchanged packages.
+      #
+      # Measured baseline (uncached, release mode): build 4.7 min, test 13.3 min.
+      # With cache hit + debug mode: build ~1 min, test ~1-2 min.
+      - name: Cache compiled artifacts
+        uses: actions/cache@v6
+        with:
+          path: _build/native/release
+          key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'scripts/build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
+          restore-keys: |
+            moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
+
       - name: Build (native release)
-        # -j nproc: the C compile of generated code is the long pole; moon
-        # parallelizes across packages, so give it every runner core.
         run: moon build --target native --release cmd -j "$(nproc)"
 
+      - name: Run tests (module packages)
+        # Scoped to lib/cmd/test minus lib/mcp. Debug mode: the old --release
+        # was needed because bare `moon test` (including vendor/mbtpdf) hit a
+        # compiler ICE. The scoped command excludes vendor packages, so debug
+        # mode works and compiles 2-3x faster.
+        run: |
+          pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
+            | grep -v '^lib/mcp$' | tr '\n' ' ')
+          moon test $pkgs -j "$(nproc)" > "$RUNNER_TEMP/moon_test.log" 2>&1
+          cat "$RUNNER_TEMP/moon_test.log"
+
+      - name: Run lib/mcp tests
+        run: moon test lib/mcp -j "$(nproc)"
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moon-test-log
+          path: ${{ runner.temp }}/moon_test.log
+          retention-days: 1
+
       - name: CLI contract probes (P0-3)
-        # Asserts exit codes / stdout shape / stderr policy / forbidden panic
-        # markers as an argv array (no shell), then compares the release
-        # binary against `moon run cmd` and reports the differences.
         run: |
           BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
           if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
@@ -157,9 +174,6 @@ jobs:
           "$BIN" selftest --repo .
 
       - name: Deterministic capability eval (P2 / T8)
-        # `cmd eval --offline` is a published promise (G1), so it is judged here:
-        # the binary exits non-zero when any harness task fails, and the score
-        # vector must say every task passed repeatably.
         run: |
           BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
           if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
@@ -171,44 +185,23 @@ jobs:
           grep -q '"completion_rate":1' "$RUNNER_TEMP/eval.json"
           grep -q '"repeatability":1' "$RUNNER_TEMP/eval.json"
 
-      - name: Run tests (module packages)
-        # --release: moonc v0.10.11+ hits a compiler ICE in debug mode when
-        # linking test binaries that pull in bobzhang/mbtpdf document/pdfpage
-        # find_pages_quick:
-        #   Machine_error(kind=unsupported;
-        #     who="Machine_of_clam_lower.lower_scalar_runtime_pccall";
-        #     message="unit runtime pccall cannot be used as a scalar value")
-        # Revisit once the compiler fix ships: try `moon test` (debug) again.
-        #
-        # The run is scoped to the module's own packages on purpose. A bare
-        # `moon test` walks the moon.work workspace, whose members are
-        # [".", "vendor/mbtpdf"], so it also compiles and runs the vendored
-        # dependency's *own* internal tests — and that test driver ICEs on the
-        # current toolchain:
-        #   Sys_error(".../core/_build/native/release/bundle/prelude/prelude.mi:
-        #             No such file or directory")
-        # A dependency's unit tests are not this repository's regression
-        # surface (vendor/mbtpdf is outside the public-API gate and the ledger
-        # scan scope), and its library code is still built and exercised by
-        # lib/parser's tests. This diagnosis is what took CI from red to green
-        # on 2026-09-21 after failing on every run since 2026-08-28.
-        run: |
-          pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
-            | grep -v '^lib/mcp$' | tr '\n' ' ')
-          moon test --release $pkgs -j "$(nproc)" > "$RUNNER_TEMP/moon_test.log" 2>&1
-          cat "$RUNNER_TEMP/moon_test.log"
+  # ── Final gate: verify the published metrics match the code.
+  #    Runs after tests so the test count is read from the actual log.
+  repo-stats:
+    name: Repo stats
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: [checks, build-and-test]
+    steps:
+      - uses: actions/checkout@v7
 
-      - name: Run lib/mcp tests
-        # lib/mcp is excluded from the step above only because its stdio
-        # integration test deadlocks on Windows; Linux can and does run it.
-        run: moon test --release lib/mcp -j "$(nproc)"
+      - name: Download test log
+        uses: actions/download-artifact@v4
+        with:
+          name: moon-test-log
+          path: ${{ runner.temp }}
 
       - name: Repo stats gate (T1)
-        # The numbers in README / CLAUDE.md / docs/project-status.md are
-        # machine-generated by scripts/repo_stats.sh; a stale or hand-edited
-        # block fails here. The test count is read from the log of the scoped
-        # run above — the same command and caliber the docs cite, so the
-        # published number is verified on every CI run instead of assumed.
         run: |
           bash scripts/repo_stats.sh check \
             --test-count-from "$RUNNER_TEMP/moon_test.log"

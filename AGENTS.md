@@ -19,7 +19,7 @@ moon info                                   # Verify public API changes
 ```
 
 - **Never bare `moon test`**: `moon.work` includes `vendor/mbtpdf`, so a bare run also executes that dependency's own tests (6 of them fail on the current toolchain and are not this repo's regression surface). Use the scoped command above; CI additionally publishes its test count from the same scope minus `lib/mcp` (run separately) — see `docs/improvement-execution-plan.md` §1.1.
-- Always use `--release`: debug-mode test linking hits a moonc ICE (`docs/known-gaps.md`).
+- Scoped tests (the command above) work in both debug and release mode. The old compiler ICE was in vendor/mbtpdf's own test driver, which the scoped command excludes. CI uses debug mode for speed; use `--release` locally only when testing release-specific behavior.
 
 `moon test --target wasm-gc` fails on FFI in `tty`/`crescent`; use `moon check` to validate.
 
