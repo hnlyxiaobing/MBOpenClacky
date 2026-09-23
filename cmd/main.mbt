@@ -197,6 +197,18 @@ async fn main {
           "live": @clap.Arg::flag(
             help="Run the model-driven capability benchmark (needs a configured model)",
           ),
+          "tui": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Run TUI eval scenarios from the given directory",
+          ),
+          "web": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Run Web API eval scenarios from the given directory",
+          ),
+          "format": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Output format: text (default), json, markdown",
+          ),
           "repo": @clap.Arg::named(
             nargs=@clap.Nargs::AtMost(1),
             help="Repository root holding test/eval/tasks (default: .)",
@@ -214,7 +226,7 @@ async fn main {
             help="Report directory (default: <repo>/_build/eval)",
           ),
         },
-        help="Agent capability evaluation (P2)",
+        help="Unified evaluation runner (TUI, Web, harness offline/live)",
       ),
       "selftest": @clap.SubCommand::new(
         args={
@@ -1312,6 +1324,9 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
 
   println("Found \{scenarios.length()} scenario(s)")
 
+  // 收集所有场景的统计结果用于统一报告
+  let all_results : Array[(String, @benchmark.BenchmarkStats)] = []
+
   // 运行所有场景
   for loaded in scenarios {
     let scenario = loaded.with_counts(
@@ -1325,6 +1340,9 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
 
     // 显示结果
     println(stats.to_markdown(scenario.name))
+
+    // 收集到统一报告
+    all_results.push((scenario.name, stats))
 
     // 保存结果
     let result = @benchmark.BenchmarkResult::new(scenario.name, stats)
@@ -1346,6 +1364,11 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
       println(report.to_markdown())
     }
   }
+
+  // 输出统一报告
+  let unified = @benchmark.benchmark_results_to_unified_report(all_results)
+  println("")
+  println(@eval.render_unified_report_text(unified))
 
   println("\nBenchmark completed!")
 }

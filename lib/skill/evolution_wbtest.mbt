@@ -202,7 +202,10 @@ test "auto_creator_create_skill_valid" {
     pattern_count: 5,
     confidence: 90,
   }
-  let result = ac.create_skill(candidate)
+  let result = ac.create_skill(
+    candidate,
+    skills_dir=Some(auto_creation_test_dir()),
+  )
   assert_true(result is Ok(_))
 }
 
@@ -292,7 +295,10 @@ test "evolution_engine_auto_detect_with_patterns" {
     ],
     iteration_count=15,
   )
-  let result = engine.evolve(scenario)
+  let result = engine.evolve(
+    scenario,
+    skills_dir=Some(auto_creation_test_dir()),
+  )
   assert_true(result is Ok(_))
   let r = result.unwrap()
   @debug.assert_eq(r.action, Created)

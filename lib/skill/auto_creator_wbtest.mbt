@@ -1,6 +1,15 @@
 ///| White-box tests for AutoCreator skill file generation.
 
 ///|
+/// Scratch skills directory under `_build`, shared with the evolution tests.
+/// Keeping generated SKILL.md files here avoids polluting the project root and
+/// the user's real `~/.mbopenclacky/skills/` directory.
+fn auto_creation_test_dir() -> String {
+  let base = @path.Path::join("_build", @path.Path("wbtest_auto_creator"))
+  @path.Path::join(base, @path.Path("skills")).to_string()
+}
+
+///|
 test "auto_creator_create_skill_writes_valid_skill_md" {
   let ac = AutoCreator::new()
   let candidate : CreationCandidate = {
@@ -9,7 +18,7 @@ test "auto_creator_create_skill_writes_valid_skill_md" {
     pattern_count: 5,
     confidence: 90,
   }
-  let test_dir = "./.test_auto_creator/skills"
+  let test_dir = auto_creation_test_dir()
   @utils.ensure_dir(test_dir)
   let skill_dir = test_dir + "/auto-wbtest-compile"
   let file_path = skill_dir + "/SKILL.md"
@@ -40,7 +49,7 @@ test "auto_creator_create_skill_low_confidence_fails" {
   }
   let result = ac.create_skill(
     candidate,
-    skills_dir=Some("./.test_auto_creator/skills"),
+    skills_dir=Some(auto_creation_test_dir()),
   )
   assert_true(result is Err(_))
 }
@@ -56,7 +65,7 @@ test "auto_creator_create_skill_low_pattern_count_fails" {
   }
   let result = ac.create_skill(
     candidate,
-    skills_dir=Some("./.test_auto_creator/skills"),
+    skills_dir=Some(auto_creation_test_dir()),
   )
   assert_true(result is Err(_))
 }

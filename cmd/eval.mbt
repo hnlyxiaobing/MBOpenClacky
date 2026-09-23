@@ -1,19 +1,13 @@
-///| `cmd eval` — Agent capability evaluation (P2 / G1).
+///| `cmd eval` — Unified evaluation runner.
 ///
-/// `--offline` drives the deterministic tool harness in `test/eval/tasks/`
-/// through the real tool registry: no model, no network, reproducible scoring.
-/// Tasks are run `--trials` times (default 2, i.e. the plan's 3×2 batch) so
-/// repeatability is measured rather than assumed.
+/// Dispatches to one of four eval backends based on flags:
+///   --tui <dir>     → TUI headless eval (test/tui)
+///   --web <dir>     → Web API eval (test/web)
+///   --offline       → Deterministic tool harness (test/eval/tool_harness)
+///   --live          → Model-driven capability benchmark (test/eval/live_harness)
 ///
-/// stdout carries exactly one JSON object — the score vector — so a contract
-/// probe can assert its shape. The human-readable report goes to
-/// `_build/eval/<date>.md` (overridable with `--out`): the offline run is a
-/// repeatable gate, so it keeps its artifact out of the worktree.
-///
-/// `--live` is the model-driven path (layer 8, `cmd/eval_live.mbt`): the same
-/// task schema and `checks`, driven by a real ReAct loop over
-/// `test/capability/tasks/`, with its evidence committed to `docs/eval/`. It
-/// needs a configured model and reports honestly when there is none.
+/// All backends produce a unified report via the shared renderers in eval_engine.
+/// `--format` selects output: text (default), json, markdown.
 
 ///|
 /// Create (if needed) `<repo>/_build/eval_sandbox` and return it. A fresh clone
@@ -63,8 +57,123 @@ fn eval_mode(sub : @clap.SimpleValue) -> Bool? {
 }
 
 ///|
+fn parse_output_format(sub : @clap.SimpleValue) -> String {
+  match get_named_arg(sub, "format") {
+    Some(f) => {
+      let trimmed = f.trim().to_owned().to_lower()
+      if trimmed == "json" || trimmed == "markdown" {
+        trimmed
+      } else {
+        "text"
+      }
+    }
+    None => "text"
+  }
+}
+
+///|
+fn write_unified_report(
+  report : @eval.UnifiedReport,
+  format : String,
+  out_dir : String,
+  suite_name : String,
+) -> String {
+  let stamp = @agent.ms_to_iso8601(@agent.current_time_ms())
+  let date = if stamp.length() >= 10 {
+    stamp[:10].to_owned()
+  } else {
+    "unknown"
+  }
+  let ext = if format == "json" {
+    "json"
+  } else if format == "markdown" {
+    "md"
+  } else {
+    "txt"
+  }
+  let report_path = @path.Path::join(
+    out_dir,
+    @path.Path("\{suite_name}_\{date}.\{ext}"),
+  ).to_string()
+  if !@fs.path_exists(out_dir) {
+    @fs.create_dir(out_dir) catch {
+      _ => ()
+    }
+  }
+  let content = if format == "json" {
+    @eval.render_unified_report_json(report).stringify()
+  } else if format == "markdown" {
+    @eval.render_unified_report_markdown(report)
+  } else {
+    @eval.render_unified_report_text(report)
+  }
+  @fs.write_string_to_file(report_path, content) catch {
+    err => println("eval: could not write report: \{@debug.to_string(err)}")
+  }
+  report_path
+}
+
+///|
 async fn handle_eval(sub : @clap.SimpleValue) -> Unit {
   let repo = get_named_arg(sub, "repo").unwrap_or(".")
+  let format = parse_output_format(sub)
+  let out_dir = match get_named_arg(sub, "out") {
+    Some(dir) => dir
+    None => @path.Path::join(repo, @path.Path("_build/eval")).to_string()
+  }
+  // ── TUI eval ──────────────────────────────────────────────────────────
+  match get_named_arg(sub, "tui") {
+    Some(dir) => {
+      println("Running TUI eval scenarios from: \{dir}")
+      let batch = @test_tui.run_eval_scenarios(dir)
+      let report = batch.to_unified_report(suite_name="tui")
+      let report_path = write_unified_report(report, format, out_dir, "tui")
+      if format == "json" {
+        println(
+          eval_attach_report_path(
+            @eval.render_unified_report_json(report),
+            report_path,
+          ).stringify(),
+        )
+      } else {
+        println(@eval.render_unified_report_text(report))
+      }
+      println("")
+      println("Report saved to: \{report_path}")
+      if batch.failed_count > 0 {
+        @sys.exit(1)
+      }
+      return
+    }
+    None => ()
+  }
+  // ── Web eval ──────────────────────────────────────────────────────────
+  match get_named_arg(sub, "web") {
+    Some(dir) => {
+      println("Running Web API eval scenarios from: \{dir}")
+      let batch = @test_web.run_web_eval_scenarios(dir)
+      let report = batch.to_unified_report(suite_name="web")
+      let report_path = write_unified_report(report, format, out_dir, "web")
+      if format == "json" {
+        println(
+          eval_attach_report_path(
+            @eval.render_unified_report_json(report),
+            report_path,
+          ).stringify(),
+        )
+      } else {
+        println(@eval.render_unified_report_text(report))
+      }
+      println("")
+      println("Report saved to: \{report_path}")
+      if batch.failed_count > 0 {
+        @sys.exit(1)
+      }
+      return
+    }
+    None => ()
+  }
+  // ── Harness offline / live ────────────────────────────────────────────
   let mode = match eval_mode(sub) {
     Some(offline) => offline
     None => {

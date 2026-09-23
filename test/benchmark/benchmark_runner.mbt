@@ -152,3 +152,52 @@ pub fn BenchmarkRunner::generate_report(
   )
   lines.join("\n")
 }
+
+///|
+/// Convert benchmark results to a unified report
+pub fn benchmark_results_to_unified_report(
+  results : Array[(String, BenchmarkStats)],
+  suite_name? : String = "benchmark",
+) -> @eval.UnifiedReport {
+  let suites : Array[@eval.UnifiedSuiteResult] = []
+  let mut passed_count = 0
+  for pair in results {
+    let (name, stats) = pair
+    let ok = stats.iterations > 0
+    if ok {
+      passed_count = passed_count + 1
+    }
+    let meta : Map[String, Json] = {
+      "min_ms": stats.min_ms.to_json(),
+      "max_ms": stats.max_ms.to_json(),
+      "avg_ms": stats.avg_ms.to_json(),
+      "p50_ms": stats.p50_ms.to_json(),
+      "p95_ms": stats.p95_ms.to_json(),
+      "p99_ms": stats.p99_ms.to_json(),
+      "iterations": stats.iterations.to_json(),
+      "total_ms": stats.total_ms.to_json(),
+    }
+    let suite : @eval.UnifiedSuiteResult = {
+      name,
+      passed: ok,
+      assertions: [],
+      error: if ok {
+        ""
+      } else {
+        "no successful iterations"
+      },
+      duration_ms: stats.total_ms.to_double(),
+      metadata: Json::object(meta),
+    }
+    suites.push(suite)
+  }
+  let total = results.length()
+  let failed = total - passed_count
+  {
+    suite_name,
+    kind: @eval.UnifiedTestKind::Benchmark,
+    timestamp: "",
+    results: suites,
+    summary: { total, passed: passed_count, failed, },
+  }
+}

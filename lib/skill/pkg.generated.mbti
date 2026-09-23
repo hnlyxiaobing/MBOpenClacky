@@ -123,7 +123,7 @@ pub(all) struct EvolutionEngine {
   reflector : SkillReflector
   auto_creator : AutoCreator
 }
-pub fn EvolutionEngine::evolve(Self, EvolutionScenario) -> Result[EvolutionResult, String]
+pub fn EvolutionEngine::evolve(Self, EvolutionScenario, skills_dir? : String?) -> Result[EvolutionResult, String]
 pub fn EvolutionEngine::new() -> Self
 pub fn EvolutionEngine::with_components(SkillReflector, AutoCreator) -> Self
 

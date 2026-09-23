@@ -63,15 +63,23 @@ pub fn EvolutionEngine::with_components(
 
 ///|
 /// Main entry point: dispatch to the appropriate evolution strategy based on scenario.
+///
+/// `skills_dir` overrides the destination directory for auto-created skills;
+/// `None` falls back to the global `~/.mbopenclacky/skills/` directory.
 pub fn EvolutionEngine::evolve(
   self : EvolutionEngine,
   scenario : EvolutionScenario,
+  skills_dir? : String? = None,
 ) -> Result[EvolutionResult, String] {
   match scenario {
     PostExecution(skill_name~, result~, iterations~) =>
       self.handle_post_execution(skill_name, result, iterations)
     AutoDetect(conversation_history~, iteration_count~) =>
-      self.handle_auto_detect(conversation_history, iteration_count)
+      self.handle_auto_detect(
+        conversation_history,
+        iteration_count,
+        skills_dir~,
+      )
   }
 }
 
@@ -118,6 +126,7 @@ fn EvolutionEngine::handle_auto_detect(
   self : EvolutionEngine,
   conversation_history : Array[String],
   iteration_count : Int,
+  skills_dir? : String? = None,
 ) -> Result[EvolutionResult, String] {
   let candidates = self.auto_creator.detect_candidates(
     conversation_history, iteration_count,
@@ -137,7 +146,7 @@ fn EvolutionEngine::handle_auto_detect(
     }
   }
   // Try to create the skill
-  match self.auto_creator.create_skill(best) {
+  match self.auto_creator.create_skill(best, skills_dir~) {
     Ok(msg) =>
       Ok({ action: Created, skill_name: best.name, diff_summary: msg, })
     Err(e) => Err("Failed to create skill: " + e)
