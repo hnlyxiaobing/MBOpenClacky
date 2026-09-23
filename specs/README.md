@@ -37,7 +37,7 @@ specs/
 
 ## Active Spec 索引
 
-**当前无活跃 spec**（截至 2026-08-21）。2026-08-18 批次的 28 份 P5/P6 差分对齐 spec（16 份 P5 BUG 修复 + 12 份 P6 矩阵残留簇）已全部实现并归档至 `specs/completed/`，`specs/active/` 已清空。新的开发任务从 `specs/draft/` 起草。
+**当前无活跃 spec**（核对于 2026-09-23）。2026-08-18 批次的 28 份 P5/P6 差分对齐 spec（16 份 P5 BUG 修复 + 12 份 P6 矩阵残留簇）已全部实现并归档至 `specs/completed/`，`specs/active/` 已清空。新的开发任务从 `specs/draft/` 起草。
 
 > 历史：上一批活跃 spec 为 2026-07-27 的 T01~T18（gap 分析 18 项），已于 2026-07-27~29 全部完成归档。
 
@@ -114,11 +114,14 @@ specs/
 | `2026-09-22_wp-2.1-gep-skill-reflector.md` | GEP SkillReflector 做实（LLM 驱动反思 + 进化日志 + Web 端点） |
 | `2026-09-22_wp-2.2-live-model-eval.md` | `cmd eval --live` 真模型评测接线（含首次真模型运行报告） |
 | `2026-09-22_wp-3.1-legacy-session-readonly-projection.md` | 旧会话只读迁移投影（参考机会话 1/32 → 32/32 可列出；只读，不改写文件） |
+| `2026-09-22_wp-3.2-web-session-jsonl-event-stream.md` | Web 会话 JSONL 事件流（`SessionLogProducer` 下沉 `lib/agent`，三端均可离线回放） |
 | `2026-09-22_wp-3.3-mcp-http-transport.md` | MCP HTTP 传输接线（Streamable HTTP / SSE，13 条真实 socket 测试 + `McpClient` 端到端握手） |
 | `2026-09-22_channel-config-single-source-of-truth.md` | 渠道配置单一真相源贯通（配置路径 → 运行时 → Web 面板 → channel-manager 技能） |
 | `2026-09-22_leftover-hygiene-and-connectivity-probes.md` | 渠道连通性探针真实化 + 遗留卫生清理 |
 
-未完成项（WP-3.2、WP-3.4~3.6）的精确剩余范围与逐项代码核对证据见 `docs/improvement-execution-plan.md` §3.1。
+**无 spec 的收尾批次（如实登记）**：WP-3.4（性能基准真执行）、WP-3.5（Windows `lib/mcp` 挂死）、WP-3.6（TUI 协议面，结论为维持现状）
+于 2026-09-23 以代码提交 `3e4f567` 直接闭环，未走 `specs/draft → 对抗评审 → active` 流程（P2/P3 卫生项例外，偏差与复验证据记录在
+`docs/improvement-execution-plan.md` §3）。全部 17 个工作包已闭环，逐项状态见该表；剩余候选见 `docs/improvement-roadmap.md` §4–§5。
 
 ## 模板说明
 

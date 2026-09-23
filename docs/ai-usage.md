@@ -7,7 +7,7 @@
 通过下述机器闸门方可合入。
 
 AI 不参与的部分：验收标准的定义、范围冻结（本期不做清单见
-`docs/improvement-roadmap.md` §7.1）、需求取舍、对「未完成项」是否如实登记的判断。
+`docs/improvement-roadmap.md` §5）、需求取舍、对「未完成项」是否如实登记的判断。
 
 ## 机器闸门（任何改动合入前必须同时通过）
 
@@ -39,8 +39,8 @@ AI 不参与的部分：验收标准的定义、范围冻结（本期不做清�
 
 AI 产出中需要人工判断而非闸门保证的部分：
 
-1. **范围**：是否夹带了范围外功能（范围冻结见 `docs/improvement-roadmap.md` §7.1）
+1. **范围**：是否夹带了范围外功能（范围冻结见 `docs/improvement-roadmap.md` §5）
 2. **真实性**：文档声明是否与实测一致（本期已修正 README 的 MCP HTTP 不实声明、
    `--version` 与 `moon.mod` 版本漂移、`moon install` 弃用命令等）
-3. **取舍**：如 TUI 未绑定 wire 词表、P2 评测未实现——均登记在 `docs/known-gaps.md`
-   而非隐去
+3. **取舍**：如 TUI 维持直接消费引擎 `HookEvent`（不绑定 wire 词表）、品牌服务端集成与
+   wasm-gc 目标不接线——均登记在 `docs/known-gaps.md` 或路线图而非隐去

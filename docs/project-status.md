@@ -24,10 +24,10 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,059 |
-| 测试行数 | 62,590 |
-| 总行数 | 163,649 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
+| 源代码行数 | 101,066 |
+| 测试行数 | 62,598 |
+| 总行数 | 163,664 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -312,7 +312,7 @@
 |------|--------|------|
 | 工具集 | **100%** | 16/16 全部覆盖 + 2 个新增 |
 | 技能 | **100%** | 17/17 全部覆盖 |
-| IM 渠道 | **适配器 100% / 网络接线部分** | 6/6 适配器就位；仅 Telegram(发送)+Discord(网关) 真接通，其余为诚实 stub（见 §5.3） |
+| IM 渠道 | **适配器 100% / send 100%** | 6/6 适配器就位且 send 侧全部真接线；剩余缺口是接收侧长轮询/WS（Telegram `getUpdates`、企微 WS、钉钉 Stream Mode），详见 §5.3 |
 | 文档解析器 | **100%** | 6/6 全部覆盖 |
 | Web 前端 | **~95%** | 功能完整，Rich UI 组件差异 |
 | 扩展系统 | **100%** | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio) |
@@ -349,8 +349,8 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 | 优先级 | 任务 | 预估工作量 | 状态 |
 |--------|------|-----------|------|
-| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 基础设施已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。**注意**：执行驱动仍是模拟（计时恒 0ms、回归报告场景名 `unknown`），真实执行属 [improvement-execution-plan.md](improvement-execution-plan.md) **WP-3.4，未开始** |
-| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ⚠️ **3 项未开始**（17 个 WP 中 13 完成 / 1 作废 / 3 未开始）；已完成 WP-3.1 旧会话只读投影（参考机会话 1/32 → **32/32 可列出**）、WP-3.2 Web 会话 JSONL 事件流（三端均可离线回放）与 WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）。逐项剩余范围与代码核对证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §3.1 |
+| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。执行驱动自 2026-09-23 起真执行默认 registry 中的工具并计时（`cmd benchmark`，WP-3.4），边界见 [test/benchmark/README.md](../test/benchmark/README.md) |
+| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ✅ **17 个 WP 全部闭环**（16 完成 / 1 作废）：WP-3.1 旧会话只读投影（参考机 1/32 → **32/32 可列出**）、WP-3.2 Web 会话 JSONL 事件流（三端均可离线回放）、WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）、WP-3.4 基准真执行、WP-3.5 Windows `lib/mcp` 挂死（根因定位 + 平台跳过）、WP-3.6 TUI 协议面（结论：维持 HookEvent 穷尽匹配，ADR-0001 §7）。逐项证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §5 |
 | P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
 
 ---

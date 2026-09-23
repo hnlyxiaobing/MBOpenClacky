@@ -8,7 +8,7 @@
 | 角色 | 位置 |
 |---|---|
 | 计时/统计/执行/持久化/回归对比 | `benchmark_*.mbt` 六个组件 + 两份 `*_wbtest.mbt` |
-| 场景输入 | `scenarios/*.json`（当前 `llm_latency`、`tool_exec`） |
+| 场景输入 | `scenarios/*.json`（当前 `grep_search`、`tool_exec`） |
 | 运行结果 | `_build/benchmark/results/<scenario>/<timestamp>.json`（默认输出在 `_build/` 下，不入库） |
 
 结果文件名由 ISO-8601 时间戳净化而来（`:` 与 `+` 换成 `-`），Windows 上同样可写。
@@ -47,10 +47,19 @@ moon build --target native --release cmd
 }
 ```
 
-## 现状与边界（诚实说明）
+## 现状与边界
 
-- `BenchmarkRunner::run_scenario` 目前是**驱动骨架**：它按 `iterations`/`warmup` 空转计次，`tool`/`parameters` 尚未接到真实的工具执行或 LLM 调用，因此输出的 `min/max/p50/p95/p99` 反映的是计时管线本身，**不是**被测能力的延迟。要把它变成可用的性能门禁，需要先在 `specs/draft/` 写清执行语义（工具路径、LLM 路径是否走 mock、噪声与门禁判据），再实施。
-- 回归对比链路是真实可用的：每次运行落一份结果，`compare_with_history` 与上一次及历史中位数比对并按 `--threshold` 判定 `Regression detected`。
+- **真实执行**：`BenchmarkRunner::run_scenario` 对每次迭代经 `@tool.make_default_registry()` 解析 `tool`
+  并真执行 `parameters`，`min/max/avg/p50/p95/p99` 即被测工具的真实耗时；`warmup` 次执行不计入样本。
+  工具执行失败（含工具名不在 registry）的那次迭代不计入样本，全部失败时统计为空。
+- **只覆盖工具路径**：本层测的是单个工具的墙钟时间，不含模型调用；真模型的能力与成本属层 8
+  （`cmd eval --live`）。
+- **中位数报表是单指标占位**：`compare_with_history` 构造的中位数对象只填 `p95_ms`，
+  其余字段（`iterations`/`min`/`max`/`avg`）恒为 0，不是测量结果。
+- **历史基线要同代**：`_build/benchmark/results/` 里 2026-09-23 之前落盘的结果出自模拟驱动、全为 0ms，
+  与真实基线混算会误报 `Regression detected`；换口径后先删掉旧场景目录再比较。
+- 回归对比链路本身是真实可用的：每次运行落一份结果，`compare_with_history` 与上一次及历史中位数比对，
+  按 `--threshold` 判定 `Regression detected`。
 - 本层**不进 CI**（计时噪声大），按里程碑手动运行。
 
 ## 新增场景

@@ -25,6 +25,24 @@
 
 ## 变更记录
 
+### 2026-09-23  执行计划收尾（WP-3.4~3.6）+ 文档集状态对齐与冗余删减
+
+**代码批次**已由 commit `3e4f567` 交付，本条补记其内容并记录随后的文档治理。
+
+- `[feat]` **性能基准改为真实执行（WP-3.4）**：`test/benchmark/benchmark_runner.mbt` 的 `run_single_iteration` 从"模拟执行"变为经 `@tool.make_default_registry()` 解析场景 `tool`、真执行 `parameters`，`BenchmarkTimer` 只包住这一次调用；runner/comparator 调用链改 async。`BenchmarkScenario` 新增 `tool`/`parameters` 字段与 JSON 解析。工具执行失败（含工具名不在 registry）的迭代不计入样本并给出诊断信息，不静默记 0。
+  - 场景文件：`llm_latency.json` 删除（其工具名不在默认 registry 中，永远测不到被测面），换为 `grep_search.json`（`grep` + `lib/tool`）；`tool_exec.json` 保留 `file_reader`。
+  - **实测**（release 二进制，`--iterations 5 --warmup 2`）：`grep_search` avg 99ms（min 94 / max 101）、`tool_exec` avg 46.2ms（min 39 / max 56）——此前恒为 **0ms**。
+- `[fix]` **回归报告给出真实场景名**：`compare_with_history` 此前内部硬编码 `scenario_name = "unknown"`，现由 `cmd/main.mbt::handle_benchmark` 传入实际场景名（报告标题为 `## Regression Report: grep_search`）。
+- `[test]` **Windows 本机全量测试解除阻塞（WP-3.5）**：`lib/mcp` 的 python3 stdio 集成测试在 Windows 上运行时检测 `OS=Windows_NT` 即跳过，注释写明根因——Windows 命名管道上 `read_until("\n")` 阻塞 async fiber，而 `task.cancel()` 是协作式取消、无法中断阻塞 I/O，导致 `with_task_group` 永久等待读循环任务（Linux 无此现象，CI 一直全绿）。**复验**：`moon test --release lib/mcp` 96/96；本模块全包（`lib cmd test`）4,069/4,069；CI 发布口径（该步不含 `lib/mcp`）3,973/3,973。
+- `[docs]` **WP-3.6 结论：维持现状**（不动代码）。`lib/tui/agent_hooks.mbt` 穷尽匹配引擎 `HookEvent`，新增事件即编译失败；TUI 的富状态机需要 wire 词表有意丢弃的信息（原始 tool args 字符串、`MessageAdded` vs `AfterIteration` 的区分用于 TodoArea 刷新），改绑 wire 反而降保真度 ⇒ ADR-0001 §7 的取舍成立。
+- `[docs]` **执行计划与路线图重写为"结论 + 索引"形态**（`docs/improvement-execution-plan.md` 470 → 159 行、`docs/improvement-roadmap.md` 184 → 102 行）：17 个 WP 状态全部对齐为闭环（16 完成 / 1 作废），删除 §3.1 与 §5 逐 WP"完成记录 / 修复前证据"三处互相重复的叙述（交付细节一律指向 CHANGELOG 与 `specs/completed/`），作废的决策门选项表压成放行记录，风险表去掉已随 WP 关闭而失效的两行（multipart 能力、AES 原语）。
+- `[docs]` **保留并集中三条会绊住后来者的既有约束**：新增执行计划 §1.1（用例数与格式化口径：`repo_stats.sh generate` 不带 `--test-count` 会沿用旧值；`moon fmt` 裸跑会重排无关文件；裸 `moon test` 会连带跑 vendored `vendor/mbtpdf` 自带测试——实测 4,141 例 / 6 例失败全在依赖自身，非本仓回归面）与 §1.2（Web `response_to_core` 把 5xx 回落成 200、`bad_request`/`not_found` 不转义 JSON、查询串不在 `HttpRequest.params`、`MBOPENCLACKY_*` 在有 `config.toml` 时被忽略、`[stream-summary]` 走 stdout、工具按进程 CWD 解析相对路径）。路线图 §3 的"维护纪律"改为只留失真模式清单，不再复述历轮改动。
+- `[fix]` **五处与代码脱节的文档陈述**：①`CLAUDE.md` 的 `media/` 仍写"REST handlers are 501 stubs"（WP-1.5 已接线）；②`docs/testing.md` 层 7 状态仍写"驱动为骨架"；③`docs/project-status.md` §7 汇总仍写"仅 Telegram+Discord 真接通"（与本文 §5.3 自相矛盾）且 Benchmark 行标 WP-3.4 未开始；④`test/benchmark/README.md` 的"现状与边界"仍在描述模拟驱动、场景清单含已删除的 `llm_latency`；⑤台账「Windows 本机 release 测试挂起」行仍标待调查。跨文档失效引用同步：`improvement-roadmap.md` 章节重编号后，`docs/known-gaps.md`、`docs/ai-usage.md`、`specs/README.md` 的 `§7.1` / `执行计划 §3.1` 引用改指新位置。
+- `[docs]` **`specs/README.md` 索引补漏与如实登记**：补上漏记的 `2026-09-22_wp-3.2-web-session-jsonl-event-stream.md`；"当前无活跃 spec"的核对日期更新；**如实登记 WP-3.4~3.6 未走 `draft → 对抗评审 → active` 流程**（P2/P3 卫生项例外），若要把基准升级为门禁必须先补 `specs/draft/` 规格。
+- `[chore]` **数字重新生成**：`scripts/repo_stats.sh generate --test-count 3973`（commit `3e4f567` 改代码后未回填，源/测试行数与用例数三处漂移）；同时更新该脚本的用例数口径注释与生成表标签——`lib/mcp` 已不在 Windows 阻塞，保留两步拆分只因 CI 门禁从第一步日志取数（合并两步属独立改动，本期未动 CI）。
+- `[docs]` **用户侧命令文档解除"Windows 必须排除 `lib/mcp`"**：`README.md` 与 `docs/testing.md` 的测试命令合并为一条 scoped 全量命令（Windows/Linux 通用，附实测原因说明：裸跑会连带 vendored `vendor/mbtpdf` 的 72 例、其中 6 例失败），`docs/testing.md` 小节标题不再自称"与 CI 同口径"（CI 仍是两步）；`AGENTS.md` / `CLAUDE.md` 同步该口径与"永不裸跑 `moon test`"；README 闸门表里手写的"31 个 `.mbti`"改为引用生成表（实际 32 个，正是不走机器的散文才会漂）。
+- **验证**：`moon check -d` 312 tasks 0 错 0 警；`selftest` 20/20；`eval --offline` 3 任务 × 2 重复全通过（16/16 断言，completion/verification/repeatability = 1）；`moon test --release` 本模块全包 4,069/4,069（含 `lib/mcp` 96/96）；`cmd benchmark` 产出真实计时与非 `unknown` 场景名；`known_gaps.sh check` 绿（86 条命中 / 160 条 curated 行）；`repo_stats.sh check --test-count 3973` 绿。
+
 ### 2026-09-22  Web 会话 JSONL 事件流（执行计划 WP-3.2）
 
 - `[feat]` **三端会话日志闭环**：`SessionLogProducer` 从 `cmd/inspect.mbt` 下沉 `lib/agent/session_log.mbt` 为 `pub` 值类型（逻辑逐字迁移，CLI 的 `attach_session_log`/`flush_session_log` 改薄包装）；`lib/web/handlers_ws.mbt` 的 per-session `WsSessionState` 持有独立 producer，hook 闭包在广播 match 之前旁路喂全部引擎事件（广播抑制是 UI 呈现决策，日志记录引擎实际所见，与 CLI/TUI 一致），四个 run 退出路径（成功/错误 × 异步/同步回退）在 `save_session` 同位 flush；`buffered()==0` 守卫下沉 `SessionLogProducer::flush` 本体（无事件的 run 不建空 `.jsonl`）。

@@ -15,7 +15,7 @@
 | 4 | 界面效果 | TUI/Web 的实际渲染与响应行为 | `test/eval/`（引擎）+ `test/tui/`、`test/web/`（适配器）+ `test/scenarios/`（场景） | 引擎/适配器随 `moon test`；场景回放 `cmd.exe --tui-eval test/scenarios/tui/` | 引擎与适配器进 CI，场景回放手动 | 有效 |
 | 5 | CLI 契约 | 对外承诺的退出码与输出形状 | `cmd/selftest.mbt` | `cmd.exe selftest --repo .` | 每次提交 | 有效 |
 | 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
-| 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | **驱动为骨架**，见 [test/benchmark/README.md](../test/benchmark/README.md) |
+| 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | 有效（真执行默认 registry 中的工具并计时），见 [test/benchmark/README.md](../test/benchmark/README.md) |
 | 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/`（任务集）+ `test/eval/live_harness.mbt`（运行器） | `cmd.exe eval --live` | 不进 CI（成本与随机性） | 有效（4 任务 × 3 重复；首次真模型运行见 `docs/eval/`，台账登记 stdouts 诊断限制） |
 
 层与层之间不互相替代：性能与真模型基准**不得**用作回归门禁（随机性与噪声），白盒/差分/链路/契约/确定性评测**不得**被基准替代。
@@ -40,19 +40,22 @@ test/
 确定性评测沙箱在 `_build/eval_sandbox/`，真模型评测的沙箱/transcript/JSON 在 `_build/capability/`；
 仓库里不留一次性日志（层 8 的 markdown 报告是**有意的入库证据**，落 `docs/eval/`）。
 
-## 一键全跑（与 CI 同口径）
+## 一键全跑
 
 ```bash
-moon check                                                     # 0 error / 0 warning（CI 有警告预算闸门）
+moon check -d                                                  # 全仓 0 error / 0 warning（CI 有警告预算闸门）
 moon build --target native --release cmd
 BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 "$BIN" selftest --repo .                                       # 层 5
 "$BIN" eval --offline --repo .                                 # 层 6
-moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 台账与数字闸门
 ```
 
-`lib/mcp` 的 stdio 用例在 Windows 上挂死，故本地排除、CI 用 Linux 单独跑（见 `docs/known-gaps.md`）。
+- 不能裸跑 `moon test`：`moon.work` 会连 `vendor/mbtpdf` 自带的 72 条用例一起跑，其中 6 条
+  文档测试在当前工具链上失败（依赖自身问题，非本模块代码）。
+- 上面的命令 Windows 与 Linux 通用——`lib/mcp` 的 stdio 挂死已于 2026-09-23 解决（见 `docs/known-gaps.md`）。
+  CI 仍分两步（主步排除 `lib/mcp`，另一步单独跑），所以入库用例数取主步口径。
 
 ## 层 2 · 差分单元：test/diff
 
@@ -104,8 +107,9 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 
 ## 层 7 / 层 8 · 两类基准（都不进 CI）
 
-- **层 7 性能基准**：`test/benchmark/`，运行手册与"驱动仍是骨架"的边界说明见
-  [test/benchmark/README.md](../test/benchmark/README.md)。按里程碑手动跑，结果落 `_build/benchmark/results/`。
+- **层 7 性能基准**：`test/benchmark/`，运行手册与边界说明（工具名须在默认 registry、中位数报表只填
+  `p95`、换口径后旧 0ms 基线须清理）见 [test/benchmark/README.md](../test/benchmark/README.md)。
+  按里程碑手动跑，结果落 `_build/benchmark/results/`。
 - **层 8 真模型能力基准**：`test/capability/`（任务集）+ `test/eval/live_harness.mbt`（真 ReAct 运行器），任务 schema
   与 `test/eval/tasks/` 同构、判分口径同为 `checks`/评分向量。运行方法与纪律见
   [test/capability/README.md](../test/capability/README.md)；报告落 `docs/eval/<date>.md`（入库证据），

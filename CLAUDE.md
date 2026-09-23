@@ -13,9 +13,11 @@ moon build --target native --release cmd            # Build native binary (alway
 moon run cmd                                        # Run CLI
 moon run cmd --message "Hello"                   # Non-interactive mode
 moon run cmd -- server                              # Web server (port 7071)
-moon test                                           # White-box tests (native only)
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')   # Full suite (native, scoped)
 moon update && moon install                         # Sync dependencies
 ```
+
+- **Scoped test command, not bare `moon test`** — `moon.work` also contains `vendor/mbtpdf`, whose own tests are not this repo's regression surface. Full caliber notes: `docs/improvement-execution-plan.md` §1.1 and `docs/testing.md`.
 
 - Tests are co-located `*_wbtest.mbt` files. `moon test --target wasm-gc` fails due to FFI in `tty`/`crescent`.
 - Always use `moon build --target native --release cmd` (not bare `moon build`) — [moon#1488](https://github.com/moonbitlang/moon/issues/1488).
@@ -58,7 +60,8 @@ lib/
   billing/    — Billing records, token tracking, cost calculation
   brand/      — White-label config, license validation, device binding, identity
                 persistence, AES-GCM/HMAC/SHA256 (C FFI)
-  media/      — Image/video/audio generation logic (OpenAI/Gemini/DashScope); REST handlers are 501 stubs
+  media/      — Image/video/audio generation logic (OpenAI/Gemini/DashScope); the four REST
+                generation endpoints call these for real (binary HTTP transport lives in lib/client)
   parser/     — PDF, DOCX (ZIP+XML), PPTX, XLSX parsers
   vision/     — Vision OCR + SHA256 caching
   pricing/    — Model pricing table (677 lines), cost calculator
@@ -110,10 +113,10 @@ in CI — a hand-edited number turns the build red. Calibers are defined in the 
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,059 |
-| 测试行数 | 62,590 |
-| 总行数 | 163,649 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
+| 源代码行数 | 101,066 |
+| 测试行数 | 62,598 |
+| 总行数 | 163,664 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |

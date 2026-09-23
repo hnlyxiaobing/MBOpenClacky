@@ -20,10 +20,10 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,059 |
-| 测试行数 | 62,590 |
-| 总行数 | 163,649 |
-| 测试用例（`moon test --release`；同口径排除 lib/mcp，见台账） | 3967 |
+| 源代码行数 | 101,066 |
+| 测试行数 | 62,598 |
+| 总行数 | 163,664 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -123,9 +123,9 @@ scripts/repo_stats.sh check
 
 # 测试（统一 --release：debug 模式受编译器 ICE 影响，见 docs/known-gaps.md）
 # 必须显式限定本模块的包：裸 `moon test` 会按 moon.work 连 vendor/mbtpdf 一起跑，
-# 而该依赖自带的单测在当前工具链上 ICE（详见 docs/known-gaps.md 的 CI 行）。
-moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' | grep -v '^lib/mcp$')  # Windows
-moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')                       # Linux（含 lib/mcp）
+# 多出的 72 条用例中有 6 条该依赖自带的文档测试失败（非本模块代码）。
+# Windows 与 Linux 同一条命令：lib/mcp 的挂起已于 2026-09-23 解决（见台账）。
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 ```
 
 详细的环境要求、安装步骤、配置指南和故障排除，请参阅 [快速入门指南](docs/getting-started.md)。
@@ -139,7 +139,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')  
 | 闸门 | 命令 | 拦截 |
 |---|---|---|
 | 类型与警告 | `moon check`（CI 固定 0 警告预算） | 类型错误、新增警告 |
-| 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（31 个 `.mbti` 入库） |
+| 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（数量见「当前规模」生成表） |
 | CLI 契约 | `<binary> selftest` | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd` |
 | 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致 |
 | 数字单一事实来源 | `scripts/repo_stats.sh check` | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
