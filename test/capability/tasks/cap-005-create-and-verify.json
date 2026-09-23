@@ -1,0 +1,16 @@
+{
+  "id": "cap-005-create-and-verify",
+  "goal": "从零创建两个文件并读回复核内容",
+  "seed": [],
+  "prompt": "请在当前工作目录创建两个文件：notes.txt（内容恰好两行：第一行 status=ok，第二行 count=2）和 meta.txt（内容一行：source=cap-005）。创建完成后分别读取这两个文件，并在回答中逐字报告你读到的内容。",
+  "acceptance": "notes.txt 与 meta.txt 均存在且内容与要求完全一致；模型回答中报告了读到的内容（体现创建后复核）",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/notes.txt", "text": "status=ok" },
+    { "kind": "file_contains", "path": "{sandbox}/notes.txt", "text": "count=2" },
+    { "kind": "file_contains", "path": "{sandbox}/meta.txt", "text": "source=cap-005" },
+    { "kind": "file_exists", "path": "{sandbox}/notes.txt" },
+    { "kind": "file_exists", "path": "{sandbox}/meta.txt" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：创建类任务（现有 cap-001~004 均为改既有文件）"
+}

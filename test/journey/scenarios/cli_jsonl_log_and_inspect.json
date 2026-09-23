@@ -1,0 +1,28 @@
+{
+  "id": "cli_jsonl_log_and_inspect",
+  "title": "Session JSONL log and offline inspect replay",
+  "area": "cli",
+  "description": "一轮完整运行后：append-only 事件日志 <session_id>.jsonl 落盘且可被 `inspect` 离线回放（退出码 0、时间线表头可见）。",
+  "timeout_ms": 180000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "任务完成，结果如上。", "usage": { "prompt_tokens": 50, "completion_tokens": 10 } } }
+  ],
+  "phases": [
+    { "name": "run", "steps": [
+      { "action": "spawn_cli", "message": "帮我确认环境正常", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 90000, "capture": "session_id" }
+    ] },
+    { "name": "inspect", "steps": [
+      { "action": "spawn_bin", "args": [ "inspect", "{home}/.mbopenclacky/sessions/{capture:session_id}.jsonl" ] },
+      { "action": "wait_child", "timeout_ms": 30000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "file_exists", "path": "{home}/.mbopenclacky/sessions/{capture:session_id}.jsonl" },
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_contains", "text": "Session:" },
+    { "type": "stdout_contains", "text": "jsonl" }
+  ]
+}

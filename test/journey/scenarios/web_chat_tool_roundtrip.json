@@ -1,0 +1,46 @@
+{
+  "id": "web_chat_tool_roundtrip",
+  "title": "Web chat: tool-call round-trip over WS",
+  "area": "web",
+  "description": "用户在 Web 发送触发写工具的消息：tool_call 事件帧、工具真实修改沙箱工作区文件、最终回答（assistant_message/complete）、会话 .jsonl 事件日志落盘、恰好 2 次上游请求。",
+  "timeout_ms": 150000,
+  "permission_mode": "auto_approve",
+  "seed": [
+    { "path": "notes.md", "content": "# notes\nhello world\n" }
+  ],
+  "llm_steps": [
+    { "response": { "type": "tool_calls", "tool_calls": [
+      { "id": "call_1", "name": "write", "arguments": { "path": "notes.md", "content": "# NOTES\nhello world\n" } }
+    ] } },
+    { "response": { "type": "content", "text": "已将标题改为大写。", "usage": { "prompt_tokens": 100, "completion_tokens": 20 } } }
+  ],
+  "phases": [
+    { "name": "launch", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Tool\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] }
+    ] },
+    { "name": "chat", "steps": [
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 },
+      { "action": "ws_send", "frame": { "type": "message", "session_id": "{capture:session.id}", "content": "把 notes.md 的标题改成大写" } },
+      { "action": "ws_wait_event", "event": "tool_call", "timeout_ms": 30000 },
+      { "action": "ws_wait_event", "event": "complete", "timeout_ms": 60000 },
+      { "action": "assert", "assertions": [
+        { "type": "ws_event_received", "event": "assistant_message" },
+        { "type": "ws_event_count_at_least", "event": "token_delta", "min": 1 }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "file_contains", "path": "{workspace}/notes.md", "text": "# NOTES" },
+    { "type": "file_exists", "path": "{home}/.mbopenclacky/sessions/{capture:session.id}.jsonl" },
+    { "type": "mock_request_count", "min": 2, "max": 2 }
+  ]
+}

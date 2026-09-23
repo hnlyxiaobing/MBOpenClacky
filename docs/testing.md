@@ -17,6 +17,7 @@
 | 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
 | 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | 有效（真执行默认 registry 中的工具并计时），见 [test/benchmark/README.md](../test/benchmark/README.md) |
 | 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/`（任务集）+ `test/eval/live_harness.mbt`（运行器） | `cmd.exe eval --live` | 不进 CI（成本与随机性） | 有效（4 任务 × 3 重复；首次真模型运行见 `docs/eval/`，台账登记 stdouts 诊断限制） |
+| 9 | 用户旅程 E2E | 真实二进制走完整用户链路是否可用 | `test/journey/`（运行器 + `scenarios/` 13 条旅程）+ `cmd/journey.mbt` | `cmd.exe journey --repo .` | 手动 / 定时（不进 CI；运行手册见 [test/journey/README.md](../test/journey/README.md)） | 有效（13/13：Web 5 / TUI 3 / 持久化 3 / CLI 2；失败自动记台账 `docs/journey-failures.md`） |
 
 层与层之间不互相替代：性能与真模型基准**不得**用作回归门禁（随机性与噪声），白盒/差分/链路/契约/确定性评测**不得**被基准替代。
 
@@ -30,6 +31,7 @@ test/
 ├── tui/         层 4：虚拟屏与 TUI 适配器
 ├── web/         层 4：Web API/WS 适配器
 ├── scenarios/   层 4：tui/ 与 web/ 的 JSON 场景文件
+├── journey/     层 9：用户旅程 E2E（运行器 + scenarios/ 场景 + README 运行手册）
 ├── benchmark/   层 7：基准组件包 + scenarios/（输入）+ README（运行手册）
 ├── capability/  层 8：真模型基准（README 规程 + tasks/*.json 任务集）
 └── fixtures/    层 1 的数据夹具：documents/（DOC/DOCX/XLSX/PPTX/PDF/WPS，含损坏与截断样本）
@@ -48,6 +50,7 @@ moon build --target native --release cmd
 BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 "$BIN" selftest --repo .                                       # 层 5
 "$BIN" eval --offline --repo .                                 # 层 6
+"$BIN" journey --repo .                                        # 层 9（可选：13 条用户旅程，约 2 分钟）
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 台账与数字闸门
 ```
@@ -124,6 +127,29 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
   [test/capability/README.md](../test/capability/README.md)；报告落 `docs/eval/<date>.md`（入库证据），
   transcript 与 `score.json` 落 `_build/capability/results/<stamp>/`。
 
+## 层 9 · 用户旅程 E2E：test/journey（cmd journey）
+
+代替用户日常手工验证的自动化 E2E：驱动**真实编译产物**（子进程 server / `--message`、
+真实 REST+WebSocket、进程内 TUI 模拟器走真实 ReAct）完成端用户旅程，上游统一为
+进程内 mock（`test/e2e` 的 MockLlmServer 原样复用，剧本格式一致）。
+
+- **入口**：`cmd.exe journey --repo .`（独立子命令而非 `eval` 后端——子进程/端口/看门狗/
+  台账维护/区分「产品红」与「运行器坏」的退出码契约 0/1/2/3 不适合 eval 的旗标身份）。
+  退出码与证据/台账语义见 [test/journey/README.md](../test/journey/README.md)。
+- **隔离**：每旅程沙箱（`_build/journey/<stamp>/<id>/{home,workspace}`），子进程以
+  USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 环境覆盖注入，种子 config 的默认模型指向
+  mock 端口——绝不触碰真实 `~/.mbopenclacky`。
+- **看门狗**：步级超时（http/wait/ws_wait/tui_send 各自携带）+ 旅程级超时 + 子进程
+  硬杀 + no_wait 后台任务取消——任何路径不挂起。
+- **证据与台账**：失败旅程的证据包（mock 请求原文、WS 双向帧、子进程输出、虚拟屏
+  截图、工作区终态）落 `_build/journey/<stamp>/<id>/`；`docs/journey-failures.md`
+  台账自动维护，**同场景转绿即自动闭环**（移入「已修复」段），为修复提供结构化输入。
+- **与层 4 的关系**：层 4 的进程内适配器验证界面单步行为（L4 证据缺口：截图仅内存
+  存留）——层 9 复用其 TuiEvalSimulator 与共享 AssertionKind 词表（新增 8 个旅程断言
+  种类），但覆盖跨进程链路（会话持久化、`--continue` 恢复、真实网络栈）。
+- **真模型分离**：旅程场景刻意全 mock；真模型质量归层 8（周检规程见
+  `test/journey/README.md` 的「真模型定期档」）。
+
 ## CI 现状
 
 `.github/workflows/ci.yml` 已接入：`moon check`（0 警告预算）→ release 构建 → `selftest`（层 5）→
@@ -140,5 +166,5 @@ known-failure 清单（`known_failure_bug_ids` 数组长度应单调递减，清
 3. 单元用例放 `test/diff/`，命名 `<case_id>_<slug>`；链路剧本放 `test/e2e/`， golden 断言点必须可从 diff-harness `runs/` 基线追溯。
 4. 发现新的两侧分歧时：先在 diff-harness `reports/BUGS.md` 登记编号，再写 known-failure 用例——禁止无编号隔离。
 5. 用例只增不减；修正旧用例时保留原用例并新增修正版（注释说明继承关系）。
-6. **先选层再写用例**：包内逻辑→层 1（`*_wbtest.mbt` 就近放置）；与 Ruby 基线可比对的语义→层 2；需要完整 ReAct 循环→层 3；界面可观测行为→层 4 场景；对外命令形状→层 5 探针；可用工具脚本确定完成的任务→层 6 任务集；耗时/成功率属统计口径→层 7/8，且**不得**进回归门禁。
+6. **先选层再写用例**：包内逻辑→层 1（`*_wbtest.mbt` 就近放置）；与 Ruby 基线可比对的语义→层 2；需要完整 ReAct 循环→层 3；界面可观测行为→层 4 场景；对外命令形状→层 5 探针；可用工具脚本确定完成的任务→层 6 任务集；耗时/成功率属统计口径→层 7/8，且**不得**进回归门禁；跨进程/端到端用户旅程（持久化、重启恢复、真实网络栈）→层 9 旅程场景。
 7. **不新增顶层目录**：测试代码、数据夹具、场景与规程一律在 `test/` 下就近组织；一次性产物只允许出现在 `_build/` 下。

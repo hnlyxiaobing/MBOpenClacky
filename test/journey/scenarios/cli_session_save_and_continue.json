@@ -1,0 +1,30 @@
+{
+  "id": "cli_session_save_and_continue",
+  "title": "Session persistence: save then --continue",
+  "area": "cli",
+  "description": "用户跑完一轮任务后退出（会话落盘），随后 --continue 恢复最近会话继续对话：stdout 显示 Resuming，第二轮的 LLM 请求携带第一轮的历史消息。",
+  "timeout_ms": 180000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "好的，已记住你的偏好：简洁回复。", "usage": { "prompt_tokens": 50, "completion_tokens": 10 } } },
+    { "response": { "type": "content", "text": "你的偏好是简洁回复。", "usage": { "prompt_tokens": 80, "completion_tokens": 12 } } }
+  ],
+  "phases": [
+    { "name": "turn1", "steps": [
+      { "action": "spawn_cli", "message": "请记住：我的偏好是简洁回复。", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] },
+    { "name": "turn2_continue", "steps": [
+      { "action": "spawn_cli", "message": "我的偏好是什么？", "json": true, "mode": "auto_approve", "continue": true },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_contains", "text": "Resuming session" },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "mock_request_count", "min": 2, "max": 2 },
+    { "type": "mock_request_contains", "index": 1, "text": "我的偏好是简洁回复" }
+  ]
+}

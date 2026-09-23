@@ -18,12 +18,12 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,207 |
-| 测试行数 | 62,613 |
-| 总行数 | 163,820 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 310 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 226 |
+| 源代码行数 | 101,376 |
+| 测试行数 | 63,062 |
+| 总行数 | 164,438 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3981 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -110,7 +110,19 @@ moon run cmd -- server                     # Web 服务（端口 7071）
 # 确定性能力评测（离线 harness：3 任务 × 2 次重复，stdout 输出评分向量 JSON）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe eval --offline --repo .
 
-# 真模型能力评测（层 8，手动触发、不进 CI）：默认任务集 test/capability/tasks（4 任务 × 3 次重复），
+# 用户旅程 E2E（层 9，代替日常手工验证：真实二进制 + mock 上游走 13 条端到端旅程——
+# Web WS 聊天 5 / TUI 交互 3 / 持久化与重启恢复 3 / CLI 一次性 2；进程级沙箱隔离，三级看门狗永不挂起）
+# 触发方式：先构建 release 产物，再跑 journey 子命令（journey 驱动的就是这个二进制）
+moon build --target native --release cmd
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe journey --repo .            # 全量 13 条
+./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe journey --repo . --filter cli_ --verbose   # 只跑某面 + 逐步日志
+# 退出码：0=全绿  1=产品红（≥1 旅程失败）  2=用法错  3=运行器坏（区分「产品问题」与「E2E 自身故障」）
+# 失败自动落证据包到 _build/journey/<时间戳>/<场景>/（mock 请求原文 / WS 双向帧 / 子进程输出 / TUI 虚拟屏 / 工作区终态）
+# 并 upsert 入库台账 docs/journey-failures.md；同场景转绿即自动移入「已修复」段（闭环无手工步骤）。
+# 定时无人值守：本机已注册 Windows 计划任务「MBOpenClacky Journey E2E」（每日 08:30，先构建再跑）。
+# 完整运行手册 / 场景 schema / 断言与占位符：test/journey/README.md；设计规格：specs/draft/2026-09-23_journey-e2e-runner.md
+
+# 真模型能力评测（层 8，手动触发、不进 CI）：默认任务集 test/capability/tasks（6 任务 × 3 次重复），
 # 报告写 docs/eval/<date>.md。需配置模型（MBOPENCLACKY_* / config.toml / DEEPSEEK_*），否则诚实 exit 1。
 MBOPENCLACKY_API_KEY=... MBOPENCLACKY_BASE_URL=https://api.deepseek.com \
   MBOPENCLACKY_MODEL=deepseek-flash MBOPENCLACKY_ANTHROPIC_FORMAT=false \
@@ -151,7 +163,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 | 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
 
 - 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
-- 测试体系分层与门禁（层 1-8）：[docs/testing.md](docs/testing.md)
+- 测试体系分层与门禁（层 1-9）：[docs/testing.md](docs/testing.md)
 - AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
 - 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)
 

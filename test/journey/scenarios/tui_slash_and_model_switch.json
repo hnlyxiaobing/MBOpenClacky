@@ -1,0 +1,39 @@
+{
+  "id": "tui_slash_and_model_switch",
+  "title": "TUI slash command, model switch, then a run on the new model",
+  "area": "tui",
+  "description": "用户使用斜杠命令（/help）、通过 /config 菜单切换模型（状态栏反映新模型），随后在新模型上发送消息仍能正常完成——交互与真实 ReAct 混合旅程。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "llm_steps": [
+    { "response": { "type": "content", "text": "当前使用 mock-model-b。", "usage": { "prompt_tokens": 50, "completion_tokens": 8 } } }
+  ],
+  "phases": [
+    { "name": "slash_help", "steps": [
+      { "action": "tui_new", "cols": 120, "rows": 40 },
+      { "action": "tui_type", "text": "/help" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "assert", "assertions": [
+        { "type": "output_contains", "text": "Available commands:" }
+      ] }
+    ] },
+    { "name": "model_switch", "steps": [
+      { "action": "tui_type", "text": "/config" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "tui_press", "key": "j" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "assert", "assertions": [
+        { "type": "output_contains", "text": "Model switched to:" }
+      ] }
+    ] },
+    { "name": "chat_on_new_model", "steps": [
+      { "action": "tui_type", "text": "现在用什么模型？" },
+      { "action": "tui_send", "timeout_ms": 60000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_contains", "text": "mock-model-b" },
+    { "type": "output_contains", "text": "mock-model-b" },
+    { "type": "mock_request_count", "min": 1, "max": 1 }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "cli_message_error_exit_code",
+  "title": "CLI error path exit-code contract",
+  "area": "cli",
+  "description": "上游持续 500（剧本为空即每次请求耗尽）时：运行以 Error 结束，--json 输出 status=Error，退出码 1——脚本与 CI 依赖的对外契约。",
+  "timeout_ms": 180000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [],
+  "phases": [
+    { "name": "run", "steps": [
+      { "action": "spawn_cli", "message": "随便做点什么", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 150000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 1 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Error\"" }
+  ]
+}

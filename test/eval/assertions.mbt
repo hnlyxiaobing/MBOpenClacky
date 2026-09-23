@@ -54,6 +54,24 @@ pub(all) enum AssertionKind {
   FileContains(path~ : String, text~ : String)
   /// File at the given path does NOT contain the given text.
   FileNotContains(path~ : String, text~ : String)
+  /// Last child process exit code equals the given value.
+  ExitCode(code~ : Int)
+  /// Last child process stdout contains the given text.
+  StdoutContains(text~ : String)
+  /// Last child process stderr contains the given text.
+  StderrContains(text~ : String)
+  /// Last stdout JSON line at the given path equals the given value.
+  StdoutJsonPathEq(path~ : String, value~ : String)
+  /// Any received WebSocket frame (raw text) contains the given substring.
+  WsFrameContains(text~ : String)
+  /// A WebSocket event with the given `type_name()` was received.
+  WsEventReceived(event~ : String)
+  /// Count of WebSocket events of the given type is at least `min`.
+  WsEventCountAtLeast(event~ : String, min~ : Int)
+  /// Mock upstream request count within [min, max]; max = -1 means unbounded.
+  MockRequestCount(min~ : Int, max~ : Int)
+  /// Mock upstream request body (0-based index) contains the given text.
+  MockRequestContains(index~ : Int, text~ : String)
 }
 
 ///|
@@ -125,6 +143,27 @@ pub fn parse_assertion_kind(json : Json) -> AssertionKind? {
       AssertionKind::FileContains(path=get_s("path"), text=get_s("text"))
     "file_not_contains" =>
       AssertionKind::FileNotContains(path=get_s("path"), text=get_s("text"))
+    "exit_code" => AssertionKind::ExitCode(code=get_i("code"))
+    "stdout_contains" => AssertionKind::StdoutContains(text=get_s("text"))
+    "stderr_contains" => AssertionKind::StderrContains(text=get_s("text"))
+    "stdout_json_path_eq" =>
+      AssertionKind::StdoutJsonPathEq(path=get_s("path"), value=get_s("value"))
+    "ws_frame_contains" => AssertionKind::WsFrameContains(text=get_s("text"))
+    "ws_event_received" => AssertionKind::WsEventReceived(event=get_s("event"))
+    "ws_event_count_at_least" =>
+      AssertionKind::WsEventCountAtLeast(event=get_s("event"), min=get_i("min"))
+    "mock_request_count" => {
+      let max = match fields.get("max") {
+        Some(Number(n, ..)) => n.to_int()
+        _ => -1
+      }
+      AssertionKind::MockRequestCount(min=get_i("min"), max~)
+    }
+    "mock_request_contains" =>
+      AssertionKind::MockRequestContains(
+        index=get_i("index"),
+        text=get_s("text"),
+      )
     _ => return None
   }
   Some(kind)
@@ -217,6 +256,52 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
       Json::object({
         "kind": "file_not_contains".to_json(),
         "path": path.to_json(),
+        "text": text.to_json(),
+      })
+    ExitCode(code~) =>
+      Json::object({ "type": "exit_code".to_json(), "code": code.to_json() })
+    StdoutContains(text~) =>
+      Json::object({
+        "type": "stdout_contains".to_json(),
+        "text": text.to_json(),
+      })
+    StderrContains(text~) =>
+      Json::object({
+        "type": "stderr_contains".to_json(),
+        "text": text.to_json(),
+      })
+    StdoutJsonPathEq(path~, value~) =>
+      Json::object({
+        "type": "stdout_json_path_eq".to_json(),
+        "path": path.to_json(),
+        "value": value.to_json(),
+      })
+    WsFrameContains(text~) =>
+      Json::object({
+        "type": "ws_frame_contains".to_json(),
+        "text": text.to_json(),
+      })
+    WsEventReceived(event~) =>
+      Json::object({
+        "type": "ws_event_received".to_json(),
+        "event": event.to_json(),
+      })
+    WsEventCountAtLeast(event~, min~) =>
+      Json::object({
+        "type": "ws_event_count_at_least".to_json(),
+        "event": event.to_json(),
+        "min": min.to_json(),
+      })
+    MockRequestCount(min~, max~) =>
+      Json::object({
+        "type": "mock_request_count".to_json(),
+        "min": min.to_json(),
+        "max": max.to_json(),
+      })
+    MockRequestContains(index~, text~) =>
+      Json::object({
+        "type": "mock_request_contains".to_json(),
+        "index": index.to_json(),
         "text": text.to_json(),
       })
   }

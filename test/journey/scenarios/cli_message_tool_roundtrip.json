@@ -1,0 +1,29 @@
+{
+  "id": "cli_message_tool_roundtrip",
+  "title": "CLI one-shot task with tool round-trip",
+  "area": "cli",
+  "description": "用户以非交互模式下达带工具调用的任务：-m 消息触发 write 工具修改工作区文件，--json 输出机器可读结果，退出码 0。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "seed": [
+    { "path": "notes.md", "content": "# notes\nhello world\n" }
+  ],
+  "llm_steps": [
+    { "response": { "type": "tool_calls", "tool_calls": [
+      { "id": "call_1", "name": "write", "arguments": { "path": "notes.md", "content": "# NOTES\nhello world\n" } }
+    ] } },
+    { "response": { "type": "content", "text": "已把 notes.md 的标题改成大写。", "usage": { "prompt_tokens": 100, "completion_tokens": 20 } } }
+  ],
+  "phases": [
+    { "name": "run", "steps": [
+      { "action": "spawn_cli", "message": "把 notes.md 的标题改成大写", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "file_contains", "path": "{workspace}/notes.md", "text": "# NOTES" },
+    { "type": "mock_request_count", "min": 2, "max": 2 }
+  ]
+}

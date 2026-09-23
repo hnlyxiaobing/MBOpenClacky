@@ -1,0 +1,29 @@
+{
+  "id": "tui_tool_deny_without_confirmation",
+  "title": "TUI tool call denied when no confirmation is answered",
+  "area": "tui",
+  "description": "confirm_safes 模式下模型请求 write 工具、但进程内没有确认应答通道：工具被拒绝（[!!] write denied 渲染到输出区、文件不被修改）、运行终止后状态栏回到 idle——权限拒绝路径的回归护栏。",
+  "timeout_ms": 120000,
+  "permission_mode": "confirm_safes",
+  "seed": [
+    { "path": "notes.md", "content": "# notes\nhello world\n" }
+  ],
+  "llm_steps": [
+    { "response": { "type": "tool_calls", "tool_calls": [
+      { "id": "call_1", "name": "write", "arguments": { "path": "notes.md", "content": "# NOTES\nhello world\n" } }
+    ] } }
+  ],
+  "phases": [
+    { "name": "chat", "steps": [
+      { "action": "tui_new", "cols": 100, "rows": 30 },
+      { "action": "tui_type", "text": "把 notes.md 的标题改成大写" },
+      { "action": "tui_send", "timeout_ms": 60000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "file_not_contains", "path": "{workspace}/notes.md", "text": "# NOTES" },
+    { "type": "output_contains", "text": "write denied" },
+    { "type": "status_contains", "text": "idle" },
+    { "type": "mock_request_count", "min": 1, "max": 1 }
+  ]
+}

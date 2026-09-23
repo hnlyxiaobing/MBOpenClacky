@@ -125,6 +125,7 @@ pub(all) enum UnifiedTestKind {
   HarnessLive
   Benchmark
   Contract
+  Journey
 }
 
 ///|

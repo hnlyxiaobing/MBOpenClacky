@@ -1,0 +1,28 @@
+{
+  "id": "cli_crash_recovery",
+  "title": "Crash mid-run then a subsequent run still works",
+  "area": "cli",
+  "description": "进程在上游应答后被硬杀（模拟崩溃）：随后的 --continue 运行仍能正常完成并成功退出——崩溃不破坏后续可用性。（会话是否恢复取决于落盘时机，两种结局都接受，只断言后续运行成功。）",
+  "timeout_ms": 180000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "第一轮完成。", "usage": { "prompt_tokens": 40, "completion_tokens": 8 } } },
+    { "response": { "type": "content", "text": "第二轮完成。", "usage": { "prompt_tokens": 60, "completion_tokens": 8 } } }
+  ],
+  "phases": [
+    { "name": "crash", "steps": [
+      { "action": "spawn_cli", "message": "第一轮：介绍一下你自己", "json": true, "mode": "auto_approve" },
+      { "action": "kill_child_mid_run", "after_mock_request": 1 }
+    ] },
+    { "name": "recover", "steps": [
+      { "action": "spawn_cli", "message": "第二轮：继续", "json": true, "mode": "auto_approve", "continue": true },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "mock_request_count", "min": 2, "max": 2 }
+  ]
+}

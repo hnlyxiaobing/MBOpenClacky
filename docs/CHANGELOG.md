@@ -25,6 +25,20 @@
 
 ## 变更记录
 
+### 2026-09-23  用户旅程 E2E 工作流（层 9 · cmd journey）：代替日常手工验证
+
+- `[feat]` **`cmd journey` 子命令 + `test/journey/` 运行器**：驱动**真实编译产物**走 13 条端到端用户旅程（Web WS 聊天 5 / TUI 交互 3 / 持久化与重启恢复 3 / CLI 一次性 2），上游统一为进程内 MockLlmServer（`test/e2e` 原样复用、剧本格式一致）。单进程托管 mock + WS journal + 子进程：server/CLI 子进程以 USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 环境覆盖注入沙箱（`_build/journey/<stamp>/<id>/{home,workspace}`），种子 config 默认模型指向 mock——绝不触碰真实 `~/.mbopenclacky`。退出码契约 0/1/2/3 区分全绿/产品红/用法错/运行器坏（调度器可报警「运行器坏」）；三级看门狗（步级超时 + 旅程级超时 + 子进程硬杀 + no_wait 后台任务取消），任何路径不挂起。
+  - 独立子命令而非 `eval --journey` 后端：子进程/端口/台账/退出码契约不适合 eval 的旗标身份；共享机制（UnifiedReport、三渲染器、AssertionKind 词表、`write_unified_report`）照旧复用。
+- `[feat]` **失败自动记录闭环**：失败旅程写证据包（`journey.json` 轨迹/断言明细、`mock_requests.jsonl` 上游请求原文、`ws_frames.jsonl` 双向 WS 帧、`rest_log.jsonl`、子进程 stdout/stderr/exit、种子 config、工作区终态、TUI 虚拟屏截图+`final_screen.txt`）到 `_build/journey/<stamp>/<id>/`（绿色默认删除，`--keep-all` 保留）；入库台账 `docs/journey-failures.md` 自动维护（仿 known-gaps 的 marked 段纪律）——失败 upsert 到「未修复」段（首次/最近/连续失败/摘要/证据路径），**同场景重跑转绿即自动移入「已修复」段，闭环无手工步骤**；人工批注 curated 段。
+- `[feat]` **Web 驱动**：server 子进程 `/health` 就绪轮询 + 真实 TCP REST（复用 `@client.http_*`）+ WS journal（`@websocket.Conn` 客户端 + recv 循环 + `@proto.Event::from_wire` 生产解析器分类事件 + `wait_event` 阻塞等待），占位符 `{port}/{mock_port}/{workspace}/{home}/{capture:x}`；进程内互操作先以 echo 服务器排雷（wbtest）。
+- `[feat]` **TUI 驱动**：`TuiEvalSimulator::new_with_agent`（从 `new` 抽出，`new` 委托）注入真实 Agent（指向 mock），`tui_send` 提交已键入文本走**真实 ReAct**，生产 AgentHookHandler 管线把真实事件渲染进虚拟屏（截图顺带持久化——补上层 4 证据缺口）；`TuiState.messages` 的无头镜像同步（控制器 AgentOutputSync 的旅程版）。
+- `[feat]` **断言词表扩展**：`AssertionKind` 新增 8 个旅程种类（`exit_code`/`stdout_contains`/`stderr_contains`/`stdout_json_path_eq`/`ws_frame_contains`/`ws_event_received`/`ws_event_count_at_least`/`mock_request_count`/`mock_request_contains`）+ `UnifiedTestKind::Journey`，纯增量。
+- `[feat]` **真模型定期档**：capability 任务集 4→6（新增 `cap-005-create-and-verify` 创建复核、`cap-006-precision-edit` 精确编辑）；真模型冒烟（qwen3.8-max，trials=1）：两个新任务全过、cap-001 单次 Error 已在台账 curated 段登记观察。
+- `[fix]` **`live_harness_wbtest` 任务集完备性检查**：期望 4→6；移除 seeds 非空断言（创建类任务合法无种子，原断言过度约束）。
+- `[docs]` **`docs/testing.md`** 层 9 行 + 专节 + 目录地图 + 一键全跑 + 选层规则；**`README.md`** journey 命令块与层引用；**`test/journey/README.md`** 运行手册（手动/定时/schtasks/证据与台账语义/场景编写纪律/真模型周检规程）；spec `specs/draft/2026-09-23_journey-e2e-runner.md`（对抗性评审清单齐全）。
+- `[chore]` `scripts/repo_stats.sh generate`（源码行数 101,207→101,376、测试行数 62,613→63,062、总行数 163,820→164,438、用例数 3,973→3,981）；`repo_stats.sh check`（含 `--test-count-from` 全量日志）与 `known_gaps.sh check` 复验绿。
+- **验证**：`moon check -d` 0 错 0 警；全量 scoped `moon test --release` **3,981/3,981**（+8 用例）；`cmd.exe journey --repo .` **13/13**；Windows 任务计划程序注册 `MBOpenClacky Journey E2E`（每日 08:30，**先构建再跑**变体）并以 `schtasks /Run` 演练成功（`_build/journey/scheduled.log` 记录 build + 13/13）；真模型冒烟见 `docs/eval/2026-09-23.md`。**如实说明**：真模型冒烟走用户已配置模型（有少量 token 成本）；台账 curated 段登记 cap-001 真模型单次失败待周检复核。
+
 ### 2026-09-23  eval 报告管线与 CLI 入口统一（AssertionKind / UnifiedReport）
 
 **代码批次**已由 commit `519c8e5` 交付，本条补记其内容并记录随后的文档同步。

@@ -1,0 +1,37 @@
+{
+  "id": "web_chat_error_recovery",
+  "title": "Web chat: upstream 500 then retry succeeds",
+  "area": "web",
+  "description": "用户在 Web 聊天时上游先返回一次 500：客户端按重试策略重发，第二次请求成功，会话正常完成（complete）——瞬时故障不影响用户体验。",
+  "timeout_ms": 150000,
+  "llm_steps": [
+    { "response": { "type": "error", "status": 500 } },
+    { "response": { "type": "content", "text": "重试成功后的回复。", "usage": { "prompt_tokens": 60, "completion_tokens": 10 } } }
+  ],
+  "phases": [
+    { "name": "launch", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Error\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] }
+    ] },
+    { "name": "chat", "steps": [
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 },
+      { "action": "ws_send", "frame": { "type": "message", "session_id": "{capture:session.id}", "content": "你好" } },
+      { "action": "ws_wait_event", "event": "complete", "timeout_ms": 90000 },
+      { "action": "assert", "assertions": [
+        { "type": "ws_event_received", "event": "assistant_message" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "mock_request_count", "min": 2, "max": 2 },
+    { "type": "ws_frame_contains", "text": "重试成功后的回复" }
+  ]
+}

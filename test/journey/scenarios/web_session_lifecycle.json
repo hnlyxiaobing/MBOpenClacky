@@ -1,0 +1,38 @@
+{
+  "id": "web_session_lifecycle",
+  "title": "Session CRUD and WS subscribe over real server",
+  "area": "web",
+  "description": "用户在 Web 上管理会话：REST 创建（201）、列表可见、WS 订阅成功、删除后 GET 404（无 LLM 调用）。",
+  "timeout_ms": 90000,
+  "llm_steps": [],
+  "phases": [
+    { "name": "create", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Lifecycle\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 },
+        { "type": "body_contains", "text": "J-Lifecycle" }
+      ] }
+    ] },
+    { "name": "list_and_subscribe", "steps": [
+      { "action": "http", "method": "GET", "path": "/api/sessions", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "body_contains", "text": "{capture:session.id}" }
+      ] },
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 }
+    ] },
+    { "name": "delete", "steps": [
+      { "action": "http", "method": "DELETE", "path": "/api/sessions/{capture:session.id}", "timeout_ms": 5000 },
+      { "action": "http", "method": "GET", "path": "/api/sessions/{capture:session.id}", "timeout_ms": 5000 }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_eq", "status": 404 }
+  ]
+}

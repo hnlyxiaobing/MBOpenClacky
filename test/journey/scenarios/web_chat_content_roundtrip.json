@@ -1,0 +1,38 @@
+{
+  "id": "web_chat_content_roundtrip",
+  "title": "Web chat: content reply over WebSocket",
+  "area": "web",
+  "description": "用户在 Web 建会话并通过 WS 发送消息：token 级流式帧（token_delta）、完整的 assistant_message、完成事件（complete）；会话事件日志 .jsonl 落盘。",
+  "timeout_ms": 120000,
+  "llm_steps": [
+    { "response": { "type": "content", "text": "你好！这是一条模拟回复。", "usage": { "prompt_tokens": 60, "completion_tokens": 12 } } }
+  ],
+  "phases": [
+    { "name": "launch", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Chat\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] }
+    ] },
+    { "name": "chat", "steps": [
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 },
+      { "action": "ws_send", "frame": { "type": "message", "session_id": "{capture:session.id}", "content": "你好" } },
+      { "action": "ws_wait_event", "event": "assistant_message", "timeout_ms": 30000 },
+      { "action": "ws_wait_event", "event": "complete", "timeout_ms": 30000 },
+      { "action": "assert", "assertions": [
+        { "type": "ws_event_count_at_least", "event": "token_delta", "min": 1 },
+        { "type": "ws_frame_contains", "text": "模拟回复" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "mock_request_count", "min": 1, "max": 1 },
+    { "type": "file_exists", "path": "{home}/.mbopenclacky/sessions/{capture:session.id}.jsonl" }
+  ]
+}

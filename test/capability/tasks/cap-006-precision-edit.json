@@ -1,0 +1,21 @@
+{
+  "id": "cap-006-precision-edit",
+  "goal": "在重复模式中精确修改指定一次出现",
+  "seed": [
+    {
+      "path": "{sandbox}/hosts.conf",
+      "content": "node role=web id=1\nnode role=web id=2\nnode role=db id=3\nnode role=web id=4\n"
+    }
+  ],
+  "prompt": "工作目录里有 hosts.conf，共 4 行 node 配置。请只把 role=db 的那一行（id=3）改为 role=cache，其余三行（包括其他 role=web 的行）必须保持逐字不变。完成后读取文件复核并简要说明。",
+  "acceptance": "hosts.conf 中 id=3 行为 role=cache；仍有恰好 3 行 role=web（id=1/2/4 未被波及）——精确编辑不产生误伤",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/hosts.conf", "text": "node role=cache id=3" },
+    { "kind": "file_not_contains", "path": "{sandbox}/hosts.conf", "text": "role=db" },
+    { "kind": "file_contains", "path": "{sandbox}/hosts.conf", "text": "node role=web id=1" },
+    { "kind": "file_contains", "path": "{sandbox}/hosts.conf", "text": "node role=web id=2" },
+    { "kind": "file_contains", "path": "{sandbox}/hosts.conf", "text": "node role=web id=4" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：精确编辑（区别于 cap-001 的单值替换）"
+}

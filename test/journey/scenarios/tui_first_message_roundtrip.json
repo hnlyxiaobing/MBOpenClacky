@@ -1,0 +1,25 @@
+{
+  "id": "tui_first_message_roundtrip",
+  "title": "TUI first message round-trip (real ReAct)",
+  "area": "tui",
+  "description": "用户在 TUI 键入第一条消息并提交：真实 ReAct 循环（mock 上游）经生产 hook 管线把回复渲染到输出区，状态栏回到 idle，截图留档。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "llm_steps": [
+    { "response": { "type": "content", "text": "好的，这是模拟回复。", "usage": { "prompt_tokens": 50, "completion_tokens": 10 } } }
+  ],
+  "phases": [
+    { "name": "chat", "steps": [
+      { "action": "tui_new", "cols": 100, "rows": 30 },
+      { "action": "tui_type", "text": "帮我记住一句话" },
+      { "action": "tui_send", "timeout_ms": 60000 },
+      { "action": "tui_screenshot", "name": "after_reply" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "output_contains", "text": "模拟回复" },
+    { "type": "status_contains", "text": "idle" },
+    { "type": "contains", "text": "[user] 帮我记住一句话" },
+    { "type": "mock_request_count", "min": 1, "max": 1 }
+  ]
+}

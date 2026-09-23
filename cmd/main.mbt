@@ -228,6 +228,39 @@ async fn main {
         },
         help="Unified evaluation runner (TUI, Web, harness offline/live)",
       ),
+      "journey": @clap.SubCommand::new(
+        args={
+          "repo": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Repository root (default: .)",
+          ),
+          "scenarios": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Journey scenario directory (default: <repo>/test/journey/scenarios)",
+          ),
+          "bin": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Binary under test (default: auto-detect release build)",
+          ),
+          "filter": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Substring filter on scenario ids (default: all)",
+          ),
+          "format": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Output format: text (default), json, markdown",
+          ),
+          "out": @clap.Arg::named(
+            nargs=@clap.Nargs::AtMost(1),
+            help="Report directory (default: <repo>/_build/journey)",
+          ),
+          "keep-all": @clap.Arg::flag(
+            help="Keep evidence bundles for green journeys too",
+          ),
+          "verbose": @clap.Arg::flag(help="Print per-journey progress lines"),
+        },
+        help="Run user-journey E2E against the real binary (mock LLM upstream)",
+      ),
       "selftest": @clap.SubCommand::new(
         args={
           "bin": @clap.Arg::named(
@@ -507,6 +540,9 @@ async fn main {
         return
       } else if sub.name == "eval" {
         handle_eval(sub)
+        return
+      } else if sub.name == "journey" {
+        handle_journey(sub)
         return
       }
     None => ()

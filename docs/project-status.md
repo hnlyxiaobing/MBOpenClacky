@@ -22,12 +22,12 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 309 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 222 |
-| 源代码行数 | 101,207 |
-| 测试行数 | 62,613 |
-| 总行数 | 163,820 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3973 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 310 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 226 |
+| 源代码行数 | 101,376 |
+| 测试行数 | 63,062 |
+| 总行数 | 164,438 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3981 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -361,5 +361,6 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 - **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
 - **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。**Web 会话已接线（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent` 为值类型，Web per-session 旁路 + 四个 run 退出路径 flush，三端（CLI/TUI/Web）均产 append-only JSONL 且 `cmd inspect` 可回放。
-- **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI（3 任务 × 2 重复）；真模型路径 `cmd eval --live` 已接线（WP-2.2，2026-09-22）——`test/capability/tasks/` 4 任务 × 3 重复走真实 ReAct 循环，报告入 `docs/eval/`，不进 CI。**未完成**：与上游 Ruby 侧的对标，以及任务集扩充到 20~30 条（当前任务集偏基础、无区分度，全通过不构成模型能力结论）。
+- **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI（3 任务 × 2 重复）；真模型路径 `cmd eval --live` 已接线（WP-2.2，2026-09-22）——`test/capability/tasks/` 6 任务 × 3 重复走真实 ReAct 循环，报告入 `docs/eval/`，不进 CI。**未完成**：与上游 Ruby 侧的对标，以及任务集扩充到 20~30 条（当前任务集偏基础、无区分度，全通过不构成模型能力结论）。
+- **用户旅程 E2E（层 9，2026-09-23）**：`cmd journey --repo .` 驱动**真实编译产物**走 13 条端到端用户旅程（Web WS 聊天 5 / TUI 交互 3 / 持久化与重启恢复 3 / CLI 一次性 2），上游为进程内 mock（`test/e2e` MockLlmServer 复用），每旅程独立沙箱 home（子进程以 USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 覆盖注入，绝不触碰真实 `~/.mbopenclacky`）+ 三级看门狗（永不挂起）。退出码 0/1/2/3 区分全绿/产品红/用法错/运行器坏；失败自动落证据包（`_build/journey/<stamp>/`）+ upsert 入库台账 `docs/journey-failures.md`，**同场景转绿即自动闭环**。不进 CI（成本与进程级资源），手动一条命令 + 本机计划任务（每日 08:30，先构建再跑）触发；运行手册 `test/journey/README.md`、规格 `specs/draft/2026-09-23_journey-e2e-runner.md`。全量 scoped 测试 3,981/3,981（+8）。
 - **发布卫生**：版本对齐 `0.2.0`（`moon.mod` / `cmd` / `lib/tui` / `lib/web` 四处，机器校验）；`v0.2.0` tag 指向收尾提交；`v0.2.0-hackathon` 保留为历史标记。

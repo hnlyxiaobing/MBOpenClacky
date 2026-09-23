@@ -329,9 +329,14 @@ pub(all) struct TuiEvalSimulator {
 }
 
 ///|
-/// Create a new eval simulator with given dimensions.
-pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
-  let agent = make_eval_agent()
+/// Create a new eval simulator with given dimensions and an explicit agent.
+/// The journey driver passes a real agent pointed at a mock upstream so a
+/// real ReAct run flows through the production hook → screen pipeline.
+pub fn TuiEvalSimulator::new_with_agent(
+  cols : Int,
+  rows : Int,
+  agent : @agent.Agent,
+) -> TuiEvalSimulator {
   let state = Ref(@libtui.TuiState::from_agent(agent))
   let output = @libtui.OutputBuffer::new()
   // Render startup banner into the output buffer so eval scenarios
@@ -368,6 +373,12 @@ pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
     agent,
     hooks,
   }
+}
+
+///|
+/// Create a new eval simulator with given dimensions.
+pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
+  TuiEvalSimulator::new_with_agent(cols, rows, make_eval_agent())
 }
 
 ///|

@@ -1,0 +1,28 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/process",
+  "moonbitlang/async/socket",
+  "moonbitlang/async/websocket",
+  "hnlyxiaobing/MBOpenClacky/lib/agent",
+  "hnlyxiaobing/MBOpenClacky/lib/client",
+  "hnlyxiaobing/MBOpenClacky/lib/config",
+  "hnlyxiaobing/MBOpenClacky/lib/protocol" @proto,
+  "hnlyxiaobing/MBOpenClacky/lib/tui" @libtui,
+  "hnlyxiaobing/MBOpenClacky/lib/utils",
+  "hnlyxiaobing/MBOpenClacky/test/eval",
+  "hnlyxiaobing/MBOpenClacky/test/e2e",
+  "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
+}
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/async/http",
+} for "wbtest"
+
+supported_targets = "native"

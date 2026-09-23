@@ -8,7 +8,6 @@ _build/
 
 # IDE and tool data
 .qoder/
-.claude/
 
 # Local test/automation scratch dirs (contain node_modules etc.)
 .test_auto_creator/

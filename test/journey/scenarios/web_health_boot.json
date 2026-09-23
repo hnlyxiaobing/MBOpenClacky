@@ -1,0 +1,21 @@
+{
+  "id": "web_health_boot",
+  "title": "Web server boot and health endpoint",
+  "area": "web",
+  "description": "server 子进程在隔离沙箱内启动：/health 返回 200 与 ok 状态，随后被干净地终止（无 LLM 调用）。",
+  "timeout_ms": 60000,
+  "llm_steps": [],
+  "phases": [
+    { "name": "boot", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "GET", "path": "/health", "timeout_ms": 5000 }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_eq", "status": 200 },
+    { "type": "json_path_eq", "path": "status", "value": "\"ok\"" }
+  ]
+}

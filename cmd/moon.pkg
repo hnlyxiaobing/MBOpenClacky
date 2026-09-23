@@ -28,6 +28,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/test/benchmark",
   "hnlyxiaobing/MBOpenClacky/test/tui" @test_tui,
   "hnlyxiaobing/MBOpenClacky/test/web" @test_web,
+  "hnlyxiaobing/MBOpenClacky/test/journey" @test_journey,
 }
 
 supported_targets = "native"
