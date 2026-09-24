@@ -54,6 +54,8 @@ pub fn environment_summary() -> String
 
 pub fn estimate_utf8_byte_length(String) -> Int
 
+pub fn expand_home(String) -> String
+
 pub fn expand_trash_path(String, String) -> String
 
 pub fn expired_entries(Array[TrashEntry], Int, String) -> Array[TrashEntry]
@@ -162,7 +164,11 @@ pub fn trash_filename(String, String) -> String
 
 pub fn trash_metadata_path(String) -> String
 
+pub fn upsert_yml_scalar(String, String, String) -> String
+
 pub fn validate_required_args(Json, Array[String]) -> Array[String]
+
+pub fn yml_scalar(String, String) -> String?
 
 // Errors
 

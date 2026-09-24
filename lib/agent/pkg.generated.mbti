@@ -236,6 +236,8 @@ pub fn validate_profile_spec(ProfileSpec) -> Result[Unit, String]
 
 pub fn write_chunk(String, Int, String) -> Result[String, String]
 
+pub fn write_diagnostic(String) -> Unit
+
 // Errors
 
 // Types and methods

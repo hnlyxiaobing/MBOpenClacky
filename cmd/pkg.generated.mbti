@@ -23,7 +23,7 @@ pub fn handle_hook(@clap.SimpleValue) -> Unit
 
 pub fn handle_inspect(@clap.SimpleValue) -> Unit
 
-pub fn handle_mcp() -> Unit
+pub async fn handle_mcp_serve() -> Unit
 
 pub fn handle_patch(@clap.SimpleValue) -> Unit
 

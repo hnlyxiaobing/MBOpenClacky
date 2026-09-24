@@ -47,7 +47,7 @@ pub fn format_bytes(Int) -> String
 
 pub fn format_file_size(Int64) -> String
 
-pub fn format_screenshot_result(String, ref_param? : String?, format? : String?, save_path? : String?) -> String
+pub fn format_screenshot_result(String, ref_param? : String?, format? : String?, save_path? : String?, max_width? : Int?, max_height? : Int?) -> String
 
 pub fn get_basename(String) -> String
 

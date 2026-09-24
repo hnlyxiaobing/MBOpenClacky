@@ -129,7 +129,7 @@ pub fn BrowserConfig::to_json(Self) -> Json
 pub fn BrowserConfig::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BrowserManager {
-  config : BrowserConfig
+  mut config : BrowserConfig
   mut daemon_pid : Int?
   mut is_running : Bool
   mut started_at : Int?

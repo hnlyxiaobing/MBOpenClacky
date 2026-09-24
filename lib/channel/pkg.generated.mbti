@@ -132,6 +132,10 @@ pub fn calculate_chunk_count(Int, Int) -> Int
 
 pub fn check_wecom_errcode(Json, String) -> Result[Unit, ChannelError]
 
+pub fn classify_stream_frame(Json) -> StreamInboundAction
+
+pub fn classify_ws_frame(Json) -> WsInboundAction
+
 pub fn detect_chat_type(Map[String, Json]) -> ChatType
 
 pub fn detect_mime_type(String) -> String
@@ -460,12 +464,16 @@ pub(all) struct DingTalkAdapter {
   mut message_callback : ((ChannelEvent) -> Unit)?
   mut session_webhooks : Map[String, (String, Int)]
   mut route_cache : Map[String, String]
+  mut stream_url : String
+  mut stream_backoff_ms : Int
 }
 pub async fn DingTalkAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn DingTalkAdapter::parse_and_cache_event(Self, Json) -> Result[ChannelEvent, ChannelError]
 pub fn DingTalkAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn DingTalkAdapter::platform_id(Self) -> Platform
+pub async fn DingTalkAdapter::resolve_stream_endpoint(Self) -> Result[String, ChannelError]
+pub async fn DingTalkAdapter::run_stream_loop(Self) -> Unit
 pub async fn DingTalkAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn DingTalkAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::stop(Self) -> Result[Unit, ChannelError]
@@ -692,17 +700,30 @@ pub fn SendResult::not_equal(Self, Self) -> Bool
 pub fn SendResult::to_json(Self) -> Json
 pub fn SendResult::to_repr(Self) -> @debug.Repr
 
+pub(all) enum StreamInboundAction {
+  Ignore
+  SendPong
+  AckAndDispatch(message_id~ : String, data~ : Json)
+} derive(Eq, @debug.Debug)
+pub fn StreamInboundAction::equal(Self, Self) -> Bool
+pub fn StreamInboundAction::not_equal(Self, Self) -> Bool
+pub fn StreamInboundAction::to_repr(Self) -> @debug.Repr
+
 pub(all) struct TelegramAdapter {
   bot_token : String
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
   mut last_update_id : Int
+  mut poll_backoff_ms : Int
+  mut poll_idle_ms : Int
   api_client : TelegramApiClient
 }
 pub async fn TelegramAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn TelegramAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn TelegramAdapter::platform_id(Self) -> Platform
+pub async fn TelegramAdapter::poll_once(Self) -> Result[Int, ChannelError]
+pub async fn TelegramAdapter::run_long_poll_loop(Self) -> Unit
 pub async fn TelegramAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn TelegramAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::stop(Self) -> Result[Unit, ChannelError]
@@ -751,6 +772,8 @@ pub(all) struct WeComAdapter {
   encoding_aes_key : String?
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
+  mut ws_url : String
+  mut ws_backoff_ms : Int
   ws_state : WeComWsState?
   api_client : WeComApiClient
 }
@@ -758,6 +781,7 @@ pub async fn WeComAdapter::delete_message(Self, String, String) -> Result[Unit, 
 pub fn WeComAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn WeComAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn WeComAdapter::platform_id(Self) -> Platform
+pub async fn WeComAdapter::run_ws_loop(Self) -> Unit
 pub async fn WeComAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn WeComAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
 pub fn WeComAdapter::stop(Self) -> Result[Unit, ChannelError]
@@ -910,6 +934,17 @@ pub fn WsClient::connected(Self) -> Bool
 pub fn WsClient::new() -> Self
 pub async fn WsClient::recv(Self) -> WsMessage
 pub async fn WsClient::send_text(Self, String) -> Result[Unit, ChannelError]
+
+pub(all) enum WsInboundAction {
+  Ignore
+  SendPong
+  Ack(req_id~ : String)
+  Dispatch(req_id~ : String, data~ : Json)
+  Fatal(message~ : String)
+} derive(Eq, @debug.Debug)
+pub fn WsInboundAction::equal(Self, Self) -> Bool
+pub fn WsInboundAction::not_equal(Self, Self) -> Bool
+pub fn WsInboundAction::to_repr(Self) -> @debug.Repr
 
 pub(all) enum WsMessage {
   Text(String)
