@@ -52,12 +52,12 @@ BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 "$BIN" eval --offline --repo .                                 # 层 6
 "$BIN" journey --repo .                                        # 层 9（可选：18 条用户旅程，约 2 分钟）
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
-scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 台账与数字闸门
+scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 活跃台账与数字闸门（已修复归档：resolved-gaps.md）
 ```
 
 - 不能裸跑 `moon test`：`moon.work` 会连 `vendor/mbtpdf` 自带的 72 条用例一起跑，其中 6 条
   文档测试在当前工具链上失败（依赖自身问题，非本模块代码）。
-- 上面的命令 Windows 与 Linux 通用——`lib/mcp` 的 stdio 挂死已于 2026-09-23 解决（见 `docs/known-gaps.md`）。
+- 上面的命令 Windows 与 Linux 通用——`lib/mcp` 的 stdio 挂死已于 2026-09-23 解决（见 `known-gaps.md`；已修复归档见 `resolved-gaps.md`）。
   CI 仍分两步（主步排除 `lib/mcp`，另一步单独跑），所以入库用例数取主步口径。
 
 ## 层 2 · 差分单元：test/diff

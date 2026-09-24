@@ -2,15 +2,16 @@
 
 > **真话台账**：由 `scripts/known_gaps.sh` 扫描产品代码生成（`generate`），由 CI 以 `check` 模式校验——扫描段落必须与代码一致（stale 即红），且每条命中必有 curated 状态行。
 >
-> **纪律**：修复一条缺口 → 重跑 `generate` → 该条从扫描表消失 → 将对应 curated 行状态改为 `fixed`（保留修复记录）。新增 TODO/stub → `generate` 后必须在 §台账 补行，否则 CI 红。
+> **纪律**：修复一条缺口 → 重跑 `generate` → 该条从扫描表消失 → 将对应 curated 行从本文移至 `docs/resolved-gaps.md` 并标记为 `fixed`（保留修复记录）。新增 TODO/stub → `generate` 后必须在 §台账 补行，否则 CI 红。
 >
 > 裸 `Err(` 不计为缺口：Err(...) 是 MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回；仅当同行携带 stub 短语时经由扫描模式命中（见下）。
 
 ## 状态说明
 
 - `open`：真实缺口，已确认；除注明外均属本期范围外（范围冻结见 `docs/improvement-roadmap.md` §5）
-- `fixed`：缺口已修复（保留历史记录；行号可能漂移，文件必须仍存在）
 - `retracted`：撤回（误报或不再适用）
+
+> 已修复条目（`fixed`）归档至 [`docs/resolved-gaps.md`](resolved-gaps.md)，不再参与本文的 CI 校验。
 
 ## 已知环境问题（非代码 TODO，人工维护）
 
@@ -18,8 +19,6 @@
 |---|---|---|
 | `moon test`（debug）编译器 ICE | moonc ≥ v0.10.11（20260827+ 工具链）链接测试二进制时报 `Machine_error(kind=unsupported; ... "unit runtime pccall cannot be used as a scalar value")`（bobzhang/mbtpdf pdfpage 触发） | **范围限定**：ICE 仅在裸 `moon test`（含 vendor/mbtpdf 自身测试）时触发。CI 的 scoped 命令（`lib cmd test` minus `lib/mcp`）排除 vendor 包，debug 模式全绿（2026-09-23 复验）。CI 已改回 debug 模式以加速编译（2-3×）。若需跑裸 `moon test`（含 vendor），仍需 `--release` |
 | Windows 本机 release 测试挂起（lib/mcp） | 曾在 Windows 本机挂起于 `lib/mcp/mcp.whitebox_test.exe`：近零 CPU、无子进程产出（stdio 的 python3 集成测试停住），Linux CI 该包一直全绿 | **已解（2026-09-23，WP-3.5，commit `3e4f567`）**：根因是 Windows 命名管道上 `read_until("\n")` 阻塞 async fiber，而 `task.cancel()` 是协作式取消、无法中断阻塞 I/O ⇒ `with_task_group` 永久等待读循环任务。**处置**：该集成测试运行时检测 Windows 即跳过，根因写在测试注释里（不是掩盖——跳过的只是 Windows 上的进程级集成面，HTTP/JSON-RPC/registry 测试照跑）。**复验**：`moon test --release lib/mcp` 96/96，本模块全包（`lib cmd test`）4,069/4,069，Windows 本机全量测试不再需要排除该包。仍存的上游缺口：`@async` 在 Windows 上对阻塞管道读的取消语义，若将来要在 Windows 覆盖 stdio 传输集成测试需另案 |
-| CI 自 2026-08-28 起为红 | **2026-09-21 已定位并修复。** 失败步骤是 `Run tests`：裸 `moon test --release` 按 `moon.work` 的工作区成员 `[".", "vendor/mbtpdf"]` **同时运行被 vendored 的依赖自身的内部测试**，而该测试驱动在当前工具链上 ICE（`Sys_error(".../core/_build/native/release/bundle/prelude/prelude.mi: No such file or directory")`）。其前的 type check / 警告预算 / 公共 API / 真话台账 / 构建 / 契约探针**全部 success**（步骤级证据取自公开 API） | **fixed（已复验）**：CI 的测试步骤改为只跑本模块自身的包（`lib cmd test`；`lib/mcp` 单列一步供 Linux 跑），与 `scripts/repo_stats.sh` 公布的用例数同口径；依赖的**库**代码仍被构建并由 `lib/parser` 的测试覆盖，只是不再运行其自带单测。定位手段：公开 API 的步骤级结论 + WSL 复现（`moon check` 绿、裸 `moon test --release` ICE、限定包列表跑完 3818/3818）。**复验**：commit `020ec26` 的 CI run `35565534593` 全部步骤 success，为 2026-08-28 以来首次绿 |
-| Docker 工作流失败（`Build Docker image`） | **2026-09-21 已定位并修复。** 根因是产物路径写错，且**在 Dockerfile 中出现两处**：① 构建阶段的 `test -f /build/_build/native/release/build/cmd/cmd.exe` 断言；② 运行阶段的 `COPY --from=builder /build/_build/native/release/build/cmd/cmd.exe`。moon 的产物路径含模块命名空间，实际为 `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd`，两处**恒不成立**——`moon build` 本身成功，失败来自这两处引用。buildx 报文即指向 ②：`failed to compute cache key ... "\/build\/_build\/native\/release\/build\/cmd\/cmd.exe": not found`（**经 job 页面读到的真实报错**） | **fixed**：构建阶段把产物规范化为稳定路径 `/build/out/mbopenclacky`（`cmd`/`cmd.exe` 两种后缀在本地判别），运行阶段改为 `COPY --from=builder /build/out/mbopenclacky`；注释写明路径规则。**复验为绿**：commit `7770730` 的 `Docker` 工作流（run `35566838562`）全部步骤 success，含 `Build Docker image` 与 `Verify image`（后者 `docker run --rm mbopenclacky:latest --version` 实际执行了镜像内二进制）。本机无 Docker，本地无法复现；判据取自工作流步骤级结果 |
 | wasm-gc 目标 | `moon test --target wasm-gc` 因 tty/crescent 的 native FFI 失败 | 本期以 native 为唯一验收目标；wasm 仅 `moon check`（非阻塞） |
 | 真模型评测波动 | mock LLM 测试无法回答"真模型能否干活" | **已接线（2026-09-22，WP-2.2）**：`cmd eval --offline` 给工具层一个可复现判据（3 任务 × 2 次重复，进 CI）；`cmd eval --live` 用真实 ReAct 循环跑 `test/capability/tasks/`（10 任务 × 3 次重复）并产出评分向量 + 报告（`docs/eval/<date>.md`，不进 CI）。**首次真模型运行（deepseek-flash @ api.deepseek.com）**：12/12 trial 全通过、33/33 断言、可重复性 1.0、0 基础设施失败、97,130 token；本次**如实说明**：任务集小且偏基础，全通过只说明链路与模型可用，不构成"模型强"的证据（成本列因该模型无定价条目记为 0，token 用量为真实成本代理） |
 | 旧会话文件兼容性 | 参考机器 `~/.mbopenclacky/sessions/` 有 32 个 `.json`，`--list` 曾仅列出 1 个（`list_sessions` 静默跳过解析失败/软删除的文件）；原因包括旧 `tool_calls` schema 不匹配（旧 Option 序列化器把 `Some(x)` 写成 `[x]`，`tool_calls` 因此成为 `[[...]]`，解码报 `ToolCall: expected object`）与文件根本不是 JSON（早期构建把 `Json` 的 Debug-repr 写进 `.json`） | **已修（2026-09-22，WP-3.1 只读迁移投影）**：新增 Debug-repr 投影（`lib/agent/session_legacy_repr.mbt`，repr → `Json`，解析不到底返回 `None` 而非猜测）+ 放宽旧 Option 包装与缺字段容忍；参考机 **32/32 全部可列出**，`cmd inspect` 两种旧格式都给出时间线。**只读**：文件字节不变，不做就地改写（按 WP 决策，schema 迁移=只读投影，非重写既有文件）。参考机上仍无上游 Ruby 会话样本，故对上游原始文件的端到端比对仍属未验证的诚实缺口（README 已如实标注） |
@@ -132,10 +131,6 @@
 | 位置 | 状态 | 交付物 | 说明 |
 |---|---|---|---|
 | cmd/channel_scaffold.mbt:88 | open | 范围外（channel 脚手架） | 脚手架模板生成的适配器为有意起点代码 |
-| cmd/cli_mcp.mbt:9 | fixed | 计划 #10 | cli_mcp stdio MCP server 已接线（2026-09-23）：server 侧 JSON-RPC 协议面（initialize/tools/list/tools/call）实现，读自身进程 stdin |
-| cmd/cli_mcp.mbt:11 | fixed | 计划 #10 | 同上（2026-09-23） |
-| cmd/cli_mcp.mbt:18 | fixed | 计划 #10 | 同上（2026-09-23） |
-| cmd/cli_mcp.mbt:24 | fixed | 计划 #10 | 同上（2026-09-23） |
 | lib/agent/react.mbt:348 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
 | lib/agent/diagnostics.mbt:9 | retracted | 误报（域术语） | 注释里的 "stub" 指实现 stderr 路由的 **C stub 本体**（`stderr_stub.c` 的 `mbopenclacky_write_stderr`，由 `write_diagnostic` 调用），属实现本体而非占位——与 `pty_stubs.c`/`time_stub.c` 同类。建议后续并入 §抑制规则 的 C 辅助文件族 |
 | lib/brand/crypto.mbt:215 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
@@ -158,75 +153,18 @@
 | lib/brand/skill_manager.mbt:530 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:540 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:550 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/channel/dingtalk.mbt:95 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/dingtalk.mbt:112 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/dingtalk_api.mbt:362 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/dingtalk_api.mbt:382 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/dingtalk_api.mbt:408 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/dingtalk_api.mbt:424 | fixed | WP-1.2 | 钉钉 Stream/gateway 与文件下载接线（2026-09-22）：open_stream_connection/download_file_url 走真实 HTTP POST，双 token 缓存复用；start/stop 的 TODO 改为如实描述（webhook 接收由 ChannelManager 承担） |
-| lib/channel/discord_api.mbt:85 | fixed | WP-1.6 | Discord 编辑接线（2026-09-22）：`edit_message` 走 PATCH，`supports_message_updates=true` 与实现一致 |
-| lib/channel/discord_api.mbt:101 | fixed | WP-1.6 | Discord 撤回接线（2026-09-22）：`delete_message` 走 DELETE（204 仅看状态）；`Adapter` trait 新增 `delete_message`/`supports_message_deletion` 并由 `AnyAdapter` 分发 |
-| lib/channel/discord_api.mbt:114 | fixed | WP-1.6 | Discord 用户信息接线（2026-09-22）：`get_current_user` 走 GET /users/@me；web 连通性探针改走该方法（不再手工拼 URL 绕开 stub） |
-| lib/channel/discord_api.mbt:136 | fixed | WP-1.6 | Discord 上传接线（2026-09-22）：`upload_file` 走 multipart POST + `build_discord_upload_body` |
-| lib/channel/discord_api.mbt:150 | fixed | WP-1.6 | Discord 下载接线（2026-09-22）：`download_attachment` 走真实 GET；原实现不发请求即返回 `Ok("")`（静默假成功）已消除 |
-| lib/channel/feishu.mbt:76 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu.mbt:153 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:178 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:188 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:227 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:230 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:250 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:254 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:273 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:276 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:301 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:305 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:327 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/feishu_api.mbt:331 | fixed | WP-1.1 | 飞书 send/update/upload/download/history 已接线（2026-09-22）：PATCH 传输支持、multipart 二进制上传、content 契约修正，业务 code 检查防假成功；webhook 接收已由 stubfix-01 承担 |
-| lib/channel/telegram.mbt:250 | fixed | 计划 #7 | Telegram getUpdates 长轮询接收侧已接线（2026-09-23）：`start()` 进入 `poll_loop`（HTTP POST getUpdates + timeout=30），入站消息经 ChannelManager 投递；编辑/撤回由 WP-1.6 接线 |
-| lib/channel/telegram.mbt:291 | fixed | WP-1.6 | Telegram 编辑/撤回接线（2026-09-22）：`update_message` 走 editMessageText（纯文本不带 parse_mode，与发送侧 R3 决策一致）、`delete_message` 走 deleteMessage；`supports_message_updates=true` 与实现一致 |
-| lib/channel/wecom.mbt:93 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
-| lib/channel/wecom.mbt:123 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
-| lib/channel/wecom.mbt:141 | fixed | WP-1.3 | 企微 send 接线（2026-09-22）：新增 WeComApiClient（gettoken 缓存 + message/send），errcode!=0 一律报错；adapter 改持 api_client，start 注释如实化 |
-| lib/channel/weixin.mbt:191 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin.mbt:215 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin.mbt:230 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:312 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:339 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:346 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:352 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:360 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:367 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
-| lib/channel/weixin_api.mbt:373 | fixed | WP-1.4 | 微信 send 与 AES-128-ECB 接线（2026-09-22）：AES-128-ECB 加 PKCS#7 由 moonbitlang/x/crypto 承载并有 FIPS-197 向量测试；send_text 走真实 sendmessage 并处理 ret 与限流；start 注释如实化 |
 | lib/client/client.mbt:15 | open | 范围外（client） | 注释疑似过时：S-FFI-06 已迁移 @async/http，需更新注释 |
 | lib/extension/verifier.mbt:159 | open | 范围外（extension） | 依赖自动解析未实现，仅警告 |
-| cmd/hook_loader.mbt:27 | fixed | 计划 #18 | 死代码清理（2026-09-23）：`lib/hook/shell_loader.mbt`（`ShellHookLoader`）已删除——生产代码零调用且 `execute_hook` 无条件 `Allow` 是静默放行陷阱；真实加载路径 `cmd/hook_loader.mbt:27 load_shell_hooks` 由 `cmd/hook_loader_wbtest.mbt`（4 例）覆盖 |
-| cmd/hook_loader.mbt:48 | fixed | 计划 #18 | 同上（2026-09-23）；原 `shell_loader.mbt:48` 的 STDIN 传递 TODO 随文件删除一并清除 |
-| lib/mcp/http_transport.mbt:58 | fixed | WP-3.3 | MCP Streamable HTTP 已接线（2026-09-22）：`start` 校验 url 并置为可用（无连接可建），`send_request` 走 `@async/http` POST，`application/json` 与 `text/event-stream` 两种应答都可解析，服务端 `Mcp-Session-Id` 被捕获并在后续请求回带；行号随重写漂移 |
 | lib/mcp/stdio_transport.mbt:35 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:518 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:521 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:532 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:539 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/mcp/stdio_transport.mbt:550 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
-| lib/media/dashscope.mbt:12 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/dashscope.mbt:19 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/gemini.mbt:12 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/gemini.mbt:17 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/gemini.mbt:34 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/gemini.mbt:39 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/openai_compat.mbt:13 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/openai_compat.mbt:19 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/openai_compat.mbt:36 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
-| lib/media/openai_compat.mbt:40 | fixed | WP-1.5 | 媒体生成已接线（2026-09-21）：OpenAI 兼容网关承载图/语音/视频，DashScope 同步多模态接口，Gemini 直连重定向网关 |
 | lib/server/browser_jsonrpc.mbt:176 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_jsonrpc.mbt:179 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_jsonrpc.mbt:192 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_jsonrpc.mbt:205 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
-| lib/server/browser_manager.mbt:36 | fixed | 计划 #20 | browser_manager 运维 TODO 已修（2026-09-23）：`browser.yml` 经 `simple_yml` 解析、`started_at` 由 `@env.now()` 填充、uptime 真实计算、配置写回 |
-| lib/server/browser_manager.mbt:80 | fixed | 计划 #20 | 同上（2026-09-23） |
-| lib/server/browser_manager.mbt:125 | fixed | 计划 #20 | 同上（2026-09-23） |
-| lib/server/browser_manager.mbt:150 | fixed | 计划 #20 | 同上（2026-09-23） |
 | lib/server/browser_process.mbt:3 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_process.mbt:19 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_process.mbt:155 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
@@ -235,18 +173,9 @@
 | lib/server/browser_process.mbt:181 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_process.mbt:190 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/server/browser_process.mbt:197 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
-| lib/skill/reflector.mbt:111 | fixed | WP-2.1 | 占位 `apply_improvements` 已删除，替换为 LLM 反思的 prompt 构建与响应解析纯函数（2026-09-22） |
-| lib/skill/reflector.mbt:116 | fixed | WP-2.1 | 同上（2026-09-22） |
-| lib/skill/reflector.mbt:124 | fixed | WP-2.1 | 同上（2026-09-22） |
 | lib/telemetry/telemetry.mbt:110 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:127 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:146 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
-| lib/tool/browser.mbt:234 | fixed | 计划 #19 | browser 截图尺寸约束与配置检测已修（2026-09-23）：`max_width`/`max_height` 在 schema 中标注为 enforced；`browser_config_path` 存在性与 `enabled` 检测已实现 |
-| lib/tool/browser.mbt:237 | fixed | 计划 #19 | 同上（2026-09-23） |
-| lib/tool/browser.mbt:241 | fixed | 计划 #19 | 同上（2026-09-23） |
-| lib/tool/browser.mbt:427 | fixed | 计划 #19 | 同上（2026-09-23） |
-| lib/tool/browser.mbt:439 | fixed | 计划 #19 | 同上（2026-09-23） |
-| lib/tool/browser.mbt:448 | fixed | 计划 #19 | 同上（2026-09-23）；行号随 #19 编辑漂移，原 "stub" 标记移至 :476 |
 | lib/tool/browser.mbt:476 | open | 范围外（browser 工具） | MCP 未连接时的回退错误消息（设计行为：无 MCP 则无法调用浏览器工具，诚实报错） |
 | lib/tool/pty_session_wasm.mbt:6 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/tool/pty_session_wasm.mbt:10 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
@@ -263,35 +192,10 @@
 | lib/web/ext_dispatcher.mbt:446 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:469 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_loader.mbt:14 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
-| lib/web/handlers_backup.mbt:649 | fixed | 计划 #11 | 备份快照 ZIP 下载已接线（2026-09-23）：`build_backup_zip` 经 `lib/zip` 打包快照目录，成功返回 `application/zip` + `body_bytes`，失败走 `HttpResponse::json_status(500, …)` 诊断体；原 501 占位与 `not_found(Json::object().stringify())` 的双层嵌套隐患一并清除 |
-| lib/web/handlers_backup.mbt:670 | fixed | 计划 #11 | 同上（2026-09-23）；行号随重写漂移，文件仍存在 |
-| lib/web/handlers_bridge.mbt:838 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
-| lib/web/handlers_bridge.mbt:845 | fixed | WP-1.5 | 视频生成已接线（2026-09-21），status 端点如实报告同步执行模型 |
-| lib/web/handlers_channels.mbt:336 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:387 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:389 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:391 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:393 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:448 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:472 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
-| lib/web/handlers_channels.mbt:718 | fixed | 连通性探针 | 四平台连通性探针真实化（telegram getMe / 企微 gettoken / 微信 1s getupdates / 钉钉 token），并删除不可达且伪造 success 的同步 test/send 处理器（2026-09-22） |
 | lib/web/handlers_extra.mbt:13 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1192 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1218 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
-| lib/web/handlers_media.mbt:2 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
-| lib/web/handlers_media.mbt:27 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
-| lib/web/handlers_media.mbt:41 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
-| lib/web/handlers_media.mbt:55 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
-| lib/web/handlers_media.mbt:69 | fixed | WP-1.5 | 媒体 REST 端点已接线（2026-09-21），无配置或非法输入返回诊断 400 |
-| lib/web/handlers_skills.mbt:639 | fixed | WP-2.1 | 进化端点已接线：真实 LLM 反思 + 进化日志持久化 + 历史查询端点（2026-09-22） |
-| lib/web/handlers_skills.mbt:648 | fixed | WP-2.1 | 同上（2026-09-22） |
-| lib/web/handlers_skills.mbt:659 | fixed | WP-2.1 | 同上（2026-09-22） |
 | lib/web/handlers_store.mbt:227 | open | 范围外（extension） | 远程扩展下载不支持（提示本地安装） |
-| lib/web/handlers_trash.mbt:365 | fixed | 计划 #13 | trash 已接真实数据面（2026-09-23，注释标 `fix-13`）：软删除会话保留磁盘负载（`@utils.get_trash_dir()`），`trash_add_session` 由会话删除流程调用，使 `GET /api/trash/sessions` 反映真实回收站内容并以 `remove_trash_item` 做恢复/清理 |
 | lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
-| lib/web/handlers_ws.mbt:283 | fixed | 计划 #4 | WS 会话摘要改由共享助手 `session_updated_at(sd)` 提供真实活跃时间（2026-09-23），与 REST 侧投影（`handlers.mbt:33`）同源；旧会话缺该字段时回落 `created_at`，故不破坏旧文件兼容 |
-| cmd/eval.mbt:77 | fixed | WP-2.2 | `--live` 已接线（2026-09-22）：`test/capability/tasks/` 任务集 + 真 ReAct 运行器（工具面限定为 file_reader/write/edit/grep/glob）+ 评分向量与报告落盘；无 key 时仍诚实 exit 1 |
-| cmd/main.mbt:198 | fixed | WP-2.2 | `--live` 帮助文本改为如实描述「需配置模型」（2026-09-22） |
-| cmd/selftest.mbt:520 | fixed | WP-2.2 | 契约探针改为与 key 无关的确定性失败路径（缺任务集→exit 1、模式互斥→exit 2），避免探针继承环境后触发真实计费调用（2026-09-22） |
 
 <!-- END: curation -->

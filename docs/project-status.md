@@ -189,7 +189,7 @@
 
 ### 5.3 IM 渠道
 
-6 个渠道的**适配器骨架**（注册、消息类型、解析器、AnyAdapter 分发）全部就位；但**实际收发 HTTP/长轮询接线**完成度不一，以真话台账（[known-gaps.md](known-gaps.md)）为准：
+6 个渠道的**适配器骨架**（注册、消息类型、解析器、AnyAdapter 分发）全部就位；但**实际收发 HTTP/长轮询接线**完成度不一，以真话台账（[known-gaps.md](known-gaps.md)）为准（已修复归档见 [resolved-gaps.md](resolved-gaps.md)）：
 
 | 渠道 | 适配器 | 发送(send) | 编辑/撤回 | 接收/长轮询 | 说明 |
 |------|:--:|:--:|:--:|:--:|------|
@@ -202,7 +202,7 @@
 
 **配置来源**：六个平台统一读写 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`）。Web 面板、`channel-manager` 技能与运行时共用该文件，面板状态即运行时投影（2026-09-22 贯通，见 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`）。
 
-**差距**：send 侧六平台均已接通，编辑/撤回在飞书/Telegram/Discord 已接线（WP-1.6）、在企微/微信/钉钉按平台能力如实声明不支持；剩余缺口是接收侧长轮询/WebSocket（Telegram `getUpdates`、企微 WebSocket 收发、钉钉 Stream Mode）。均为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段。
+**差距**：send 侧六平台均已接通，编辑/撤回在飞书/Telegram/Discord 已接线（WP-1.6）、在企微/微信/钉钉按平台能力如实声明不支持；剩余缺口是接收侧长轮询/WebSocket（Telegram `getUpdates`、企微 WebSocket 收发、钉钉 Stream Mode）。均为诚实报错 stub（未接线，非静默假成功）。详见 [known-gaps.md](known-gaps.md) 的 channel 段（已修复项归档于 [resolved-gaps.md](resolved-gaps.md)）。
 
 ### 5.4 文档解析器
 
@@ -357,7 +357,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 ## 8. 2026-09 收尾完成
 
-本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)）：
+本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)（已修复归档见 [resolved-gaps.md](resolved-gaps.md)））：
 
 - **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
 - **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。**Web 会话已接线（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent` 为值类型，Web per-session 旁路 + 四个 run 退出路径 flush，三端（CLI/TUI/Web）均产 append-only JSONL 且 `cmd inspect` 可回放。

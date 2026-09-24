@@ -131,7 +131,7 @@ MBOPENCLACKY_API_KEY=... MBOPENCLACKY_BASE_URL=https://api.deepseek.com \
 # 性能基准（层 7，手动触发；场景在 test/benchmark/scenarios，结果写 _build/benchmark/results）
 ./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe benchmark --iterations 20 --warmup 5
 
-# 真话台账校验（扫描段过期 / 命中项缺状态行 即失败）
+# 真话台账校验（扫描段过期 / 命中项缺状态行 即失败；活跃缺口在 docs/known-gaps.md，已修复归档在 docs/resolved-gaps.md）
 scripts/known_gaps.sh check
 
 # 仓库数字闸门（README/CLAUDE/project-status 的数字由脚本生成，stale 即失败）
@@ -157,12 +157,12 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 | 类型与警告 | `moon check`（CI 固定 0 警告预算） | 类型错误、新增警告 |
 | 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（数量见「当前规模」生成表） |
 | CLI 契约 | `<binary> selftest` | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd` |
-| 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致 |
+| 真话台账 | `scripts/known_gaps.sh check` | 活跃台账（`docs/known-gaps.md`）与代码不一致 |
 | 数字单一事实来源 | `scripts/repo_stats.sh check` | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
 | 能力评测 | `<binary> eval --offline` | 确定性 tool_harness 的任务失败 / 不可重复（离线、无模型） |
 | 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
 
-- 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)
+- 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)（活跃缺口） / [docs/resolved-gaps.md](docs/resolved-gaps.md)（已修复归档）
 - 测试体系分层与门禁（层 1-9）：[docs/testing.md](docs/testing.md)
 - AI 使用声明：[docs/ai-usage.md](docs/ai-usage.md)　开源披露：[NOTICE](NOTICE)
 - 协议叶子边界决策：[ADR-0001](specs/decisions/2026-09-21_01_typed-engine-protocol-leaf-boundary.md)
@@ -211,7 +211,7 @@ MBOpenClacky/
 ## 当前状态与已知问题
 
 - 功能对比与完成度：[项目状态文档](docs/project-status.md)
-- **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md) — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
+- **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md)（活跃缺口） / [docs/resolved-gaps.md](docs/resolved-gaps.md)（已修复归档） — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
 - **优化提升路线图（对标上游的优先级结论）**：[docs/improvement-roadmap.md](docs/improvement-roadmap.md)　落地执行计划：[docs/improvement-execution-plan.md](docs/improvement-execution-plan.md)
 
 ---
