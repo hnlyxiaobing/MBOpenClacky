@@ -88,32 +88,50 @@ async fn http_step(
     expanded_headers.push((pair.0, expand_journey_placeholders(pair.1, ctx)))
   }
   let verb_norm = verb.to_upper()
-  let result = match verb_norm {
+  // GET goes through the byte-level transport: a binary response body (e.g. a
+  // backup ZIP download) is not valid UTF-8, and the text transport raises
+  // Malformed. Text decoding stays lossy — the body is only ever matched
+  // against substrings; `last_http_body_bytes` carries the true byte count.
+  let result : Result[
+    (Int, String, Int, Array[(String, String)]),
+    @client.HttpError,
+  ] = match verb_norm {
     "POST" =>
-      @client.http_post(url, expanded_body, expanded_headers, timeout_ms)
-    "DELETE" => @client.http_delete(url, expanded_headers, timeout_ms)
+      @client.http_post(url, expanded_body, expanded_headers, timeout_ms).map(
+        fn(r) { (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers) },
+      )
+    "DELETE" =>
+      @client.http_delete(url, expanded_headers, timeout_ms).map(fn(r) {
+        (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers)
+      })
     "PATCH" =>
-      @client.http_patch(url, expanded_body, expanded_headers, timeout_ms)
-    _ => @client.http_get(url, expanded_headers, timeout_ms)
+      @client.http_patch(url, expanded_body, expanded_headers, timeout_ms).map(
+        fn(r) { (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers) },
+      )
+    _ =>
+      @client.http_get_bytes(url, expanded_headers, timeout_ms).map(fn(r) {
+        (r.status_code, @utf8.decode_lossy(r.body), r.body.length(), r.headers)
+      })
   }
   match result {
     Ok(resp) => {
-      state.last_http_status = resp.status_code
-      state.last_http_body = resp.body
-      state.last_http_headers = resp.headers
+      let (status_code, resp_body, body_bytes, resp_headers) = resp
+      state.last_http_status = status_code
+      state.last_http_body = resp_body
+      state.last_http_body_bytes = body_bytes
+      state.last_http_headers = resp_headers
       state.rest_log.push(
         Json::object({
           "method": verb_norm.to_json(),
           "path": path.to_json(),
-          "status": resp.status_code.to_json(),
-          "body": resp.body.to_json(),
+          "status": status_code.to_json(),
+          "body_bytes": body_bytes.to_json(),
+          "body": resp_body.to_json(),
         }).stringify(),
       )
-      state.trace.push(
-        "[\{phase_name}] \{verb_norm} \{path} → \{resp.status_code}",
-      )
+      state.trace.push("[\{phase_name}] \{verb_norm} \{path} → \{status_code}")
       if capture.length() > 0 {
-        if !capture_json_field(ctx, resp.body, capture) {
+        if !capture_json_field(ctx, resp_body, capture) {
           state.error = "[\{phase_name}] http capture '\{capture}' not found in response body"
         }
       }

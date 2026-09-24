@@ -1,0 +1,52 @@
+{
+  "id": "web_trash_roundtrip",
+  "title": "Session delete/restore goes through a real trash payload",
+  "area": "web",
+  "description": "会话删除必须真的把数据移入回收站并能原样恢复。此前删除会直接抹掉会话文件，而恢复路由只删掉台账条目就报「restored」——静默假成功。断言含磁盘证据（trash 目录下确有 payload），用于区分真实数据面与只改台账的 stub。",
+  "timeout_ms": 120000,
+  "llm_steps": [],
+  "phases": [
+    { "name": "create_and_delete", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Trash\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] },
+      { "action": "http", "method": "DELETE", "path": "/api/sessions/{capture:session.id}", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 }
+      ] }
+    ] },
+    { "name": "trash_holds_payload", "steps": [
+      { "action": "http", "method": "GET", "path": "/api/trash/sessions", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "body_contains", "text": "{capture:session.id}" },
+        { "type": "file_exists", "path": "{home}/.mbopenclacky/trash/sessions/{capture:session.id}" }
+      ] },
+      { "action": "http", "method": "GET", "path": "/api/sessions/{capture:session.id}", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 404 }
+      ] }
+    ] },
+    { "name": "restore", "steps": [
+      { "action": "http", "method": "POST", "path": "/api/trash/sessions/{capture:session.id}/restore", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "body_contains", "text": "restored" }
+      ] },
+      { "action": "http", "method": "GET", "path": "/api/sessions/{capture:session.id}", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "json_path_eq", "path": "session.id", "value": "\"{capture:session.id}\"" },
+        { "type": "json_path_eq", "path": "session.name", "value": "\"J-Trash\"" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "mock_request_count", "min": 0, "max": 0 }
+  ]
+}

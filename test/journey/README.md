@@ -13,7 +13,7 @@ E2E，与层 4 的单步场景回放互补：层 4 验证界面单步行为，�
 ```bash
 moon build --target native --release cmd
 BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
-"$BIN" journey --repo .            # 全量 13 条旅程
+"$BIN" journey --repo .            # 全量 18 条旅程
 "$BIN" journey --repo . --filter cli_ --verbose   # 只跑 CLI 面
 ```
 
@@ -70,13 +70,16 @@ error / stream_cut 顺序回放）、`phases`（相位列表）、`assertions`�
 | `spawn_cli` / `spawn_bin` / `wait_child` | message/json/mode/continue、args、timeout_ms/capture | 子进程 CLI 与任意子命令；wait 可从 stdout JSON capture |
 | `kill_child` / `kill_child_mid_run` | after_mock_request | 硬杀 / 上游第 N 次请求后硬杀（崩溃模拟） |
 | `tui_new` / `tui_type` / `tui_press` / `tui_send` / `tui_screenshot` | cols,rows / text / key / timeout_ms | 进程内模拟器；tui_send 提交已键入文本走**真实 ReAct** |
+| `sleep` | sleep_ms | 纯等待。不是断言，而是**配速**：需要在事件之间拉开真实间隔时使用（如秒级时间戳下的「活跃会话上浮」断言） |
 | `assert` | assertions | 步内断言（共享 AssertionKind 词表） |
 
 断言复用 `test/eval/assertions.mbt` 的统一词表（含旅程新增：`exit_code`、
-`stdout_contains` / `stderr_contains` / `stdout_json_path_eq`、`ws_frame_contains`、
-`ws_event_received` / `ws_event_count_at_least`、`mock_request_count` /
-`mock_request_contains`）。注意 `json_path_eq` / `stdout_json_path_eq` 的期望值是
-stringify 形式（字符串值带引号，写 `"\"ok\""`）。
+`stdout_contains` / `stderr_contains` / `stdout_not_contains` / `stderr_not_contains` /
+`stdout_json_path_eq`、`ws_frame_contains`、`ws_event_received` / `ws_event_count_at_least`、
+`mock_request_count` / `mock_request_contains`、`json_path_ne`）。注意 `json_path_eq` /
+`json_path_ne` / `stdout_json_path_eq` 的期望值是 stringify 形式（字符串值带引号，写
+`"\"ok\""`）；路径走对象键与数组下标（如 `sessions.0.id`），下标越界或段落类型不匹配
+一律判失败（见 `context.mbt` 的 `journey_json_walk`）。
 
 占位符：`{port}` `{mock_port}` `{workspace}` `{home}` `{capture:<name>}`。
 
@@ -89,7 +92,7 @@ stringify 形式（字符串值带引号，写 `"\"ok\""`）。
 日常档刻意全 mock（确定性、可归因）。真模型质量由层 8 覆盖，建议每周手动跑：
 
 ```bash
-"$BIN" eval --live --repo . --trials 3      # test/capability/tasks 全量 6 任务
+"$BIN" eval --live --repo . --trials 3      # test/capability/tasks 全量 10 任务
 ```
 
 审阅 `docs/eval/<日期>.md`；失败任务在台账 curated 段登记批注并引用报告。

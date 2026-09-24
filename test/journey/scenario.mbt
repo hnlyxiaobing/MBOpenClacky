@@ -56,6 +56,10 @@ pub(all) enum StepAction {
   TuiSend(text~ : String, timeout_ms~ : Int)
   /// Capture a simulator screenshot into the evidence bundle.
   TuiScreenshot(name~ : String)
+  /// Plain wall-clock pause. Journey assertions must not depend on time, but
+  /// some flows need a real gap between events (e.g. proving a list reorders
+  /// by last-activity when timestamps have one-second resolution).
+  Sleep(sleep_ms~ : Int)
   /// Evaluate assertions against the current journey context.
   Assert(assertions~ : Array[@eval.AssertionKind])
 }
@@ -241,6 +245,7 @@ fn parse_step_action(fields : Map[String, Json]) -> Result[StepAction, String] {
         ),
       )
     "tui_screenshot" => Ok(TuiScreenshot(name=get_str(fields, "name")))
+    "sleep" => Ok(Sleep(sleep_ms=get_int(fields, "sleep_ms", 1_000)))
     "assert" => {
       let assertions : Array[@eval.AssertionKind] = []
       match fields.get("assertions") {

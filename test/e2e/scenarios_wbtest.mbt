@@ -28,18 +28,16 @@ fn assert_golden(outcome : ScenarioOutcome, g : Golden) -> Unit raise {
 }
 
 ///|
-/// 断言退避间隔：request_times 相邻差值应处于合理量级窗口内。
+/// 校验退避确实发生：`request_times` 相邻差值不得低于下限。
 ///
-/// 端到端场景不依赖 wall-clock 精确值：在 CI 等受限环境下，`@async.sleep`
-/// 的实际等待会因 CPU 争抢而膨胀（实测 5s 退避可膨胀至 ~14s；CI run
-/// 32232679372 实测 10.3s）。因此这里只断言"退避确实发生且量级合理"
-/// （[2s, 20s]）——既排除退避失效（≈0ms 立即重试），也排除指数退避失控
-/// （第 2 次即 10s、第 3 次 20s，挂死风险）。
-/// 固定 5s 退避的精确断言由 lib/agent/llm_caller_wbtest.mbt 的
-/// "retry_delay_ms fixed 5s" 单元测试承担（无 wall-clock 依赖）。
+/// 只对**下界**判失败：`@async.sleep` 的实际等待只会因 CPU 争抢而变长、
+/// 不会变短，所以"未退避（≈0ms 立即重试）"是可靠的失败信号。
+/// 上界仅作诊断打印、**不再判失败**——2026-09-23 实测高负载下 5s 退避膨胀到
+/// 22768ms 越界，导致整条测试二进制以 0xc0000409 崩溃（假红）。退避是否精确
+/// 为 5s 由 `lib/agent/llm_caller_wbtest.mbt` 的无 wall-clock 单元断言承担。
 ///
-/// `expected_ms`/`tolerance_ms` 参数保留以兼容调用点；窗口取全局
-/// [min_ms, max_ms] 边界（预期值 5s 与真实膨胀都在窗口内）。
+/// `expected_ms` / `_tolerance_ms` 参数保留以兼容调用点（前者用于段数计数，
+/// 后者已不参与上界判定）。
 fn assert_retry_intervals(
   times : Array[Int64],
   expected_ms : Array[Int],
@@ -52,16 +50,33 @@ fn assert_retry_intervals(
     panic()
   }
   let min_ms = 2000
-  let max_ms = 20000
+  let diag_above_ms = 20000
   for i in 0..<expected_ms.length() {
     let delta = (times[i + 1] - times[i]).to_int()
-    if delta < min_ms || delta > max_ms {
+    if delta < min_ms {
       println(
-        "FATAL: 退避间隔越界: req\{i + 1}→req\{i + 2} = \{delta}ms，期望量级 [\{min_ms}, \{max_ms}]ms，times=\{Repr(times)}",
+        "FATAL: 退避未发生（疑似立即重试）: req\{i + 1}→req\{i + 2} = \{delta}ms，下限 \{min_ms}ms，times=\{Repr(times)}",
       )
       panic()
     }
+    if delta > diag_above_ms {
+      println(
+        "[diag] 退避间隔高于预期量级（负载膨胀，不算失败）: req\{i + 1}→req\{i + 2} = \{delta}ms > \{diag_above_ms}ms",
+      )
+    }
   }
+}
+
+///|
+/// 负载敏感回归（计划 §7.3 case 14a）：膨胀的退避间隔只打印诊断、不再判失败。
+/// 纯数组合成、不 sleep，确定性——修前第二/三条会 panic 致进程崩溃。
+test "assert_retry_intervals tolerates load-inflated backoff" {
+  // 正常 5s 退避
+  assert_retry_intervals([0L, 5000L], [5000], 1500)
+  // 高负载膨胀（实测曾达 22768ms）：修前越界 panic，修后仅诊断
+  assert_retry_intervals([0L, 22768L], [5000], 1500)
+  // 多段：仅第 2 段膨胀，同样只诊断
+  assert_retry_intervals([0L, 5000L, 31000L], [5000, 5000], 1500)
 }
 
 ///|

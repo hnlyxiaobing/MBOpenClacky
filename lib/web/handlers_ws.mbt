@@ -280,7 +280,7 @@ fn send_session_list(
         working_dir: sd.working_dir,
         status: sd.last_status,
         created_at: sd.created_at,
-        updated_at: sd.created_at, // TODO(P1): track real updated_at
+        updated_at: session_updated_at(sd),
         total_tasks: sd.stats.total_tasks,
         total_cost: sd.stats.total_cost_usd,
         cost_source: sd.stats.cost_source,

@@ -307,6 +307,28 @@ async fn dispatch_step(
 ///|
 /// Extract a value from JSON by a simple dot-separated path.
 /// Supports object keys only (no arrays).
+
+///|
+/// Parse a `.`-separated path segment as an array index (`"0"`, `"12"`).
+/// Returns `None` for non-numeric segments (object keys).
+fn parse_path_index(part : String) -> Int? {
+  if part.is_empty() {
+    return None
+  }
+  let mut acc = 0
+  for i in 0..<part.length() {
+    let c = part[i]
+    if c < '0' || c > '9' {
+      return None
+    }
+    acc = acc * 10 + (c.to_int() - '0'.to_int())
+  }
+  Some(acc)
+}
+
+///|
+/// Resolve a dot path against a JSON value, walking object keys and array
+/// indices (e.g. `sessions.0.updated_at`). Returns the stringified value.
 fn json_path_value(json : Json, path : String) -> String? {
   let parts = path.split(".").map(fn(s) { s.to_owned() }).to_array()
   let mut current = json
@@ -315,6 +337,16 @@ fn json_path_value(json : Json, path : String) -> String? {
       Object(obj) =>
         match obj.get(part) {
           Some(v) => current = v
+          None => return None
+        }
+      Array(items) =>
+        match parse_path_index(part) {
+          Some(i) =>
+            if i >= 0 && i < items.length() {
+              current = items[i]
+            } else {
+              return None
+            }
           None => return None
         }
       _ => return None

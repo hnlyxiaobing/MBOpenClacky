@@ -279,7 +279,7 @@ async test "live: the shipped capability task set is complete" {
     @path.Path("test/capability/tasks"),
   ).to_string()
   let tasks = load_harness_tasks(dir)
-  @debug.assert_eq(tasks.length(), 6)
+  @debug.assert_eq(tasks.length(), 10)
   let ids : Array[String] = []
   for task in tasks {
     assert_true(task.prompt != "")

@@ -21,7 +21,7 @@ moon update && moon install                         # Sync dependencies
 
 - **Scoped test command, not bare `moon test`** — `moon.work` also contains `vendor/mbtpdf`, whose own tests are not this repo's regression surface. Full caliber notes: `docs/improvement-execution-plan.md` §1.1 and `docs/testing.md`.
 
-- **Automated E2E (`cmd journey`)** drives the real binary through 13 user journeys (Web WS chat / TUI / persistence+restart / CLI) against a mock LLM upstream in isolated sandboxes; exit `0`=green `1`=product red `2`=usage `3`=runner broken. Failures auto-record evidence (`_build/journey/<stamp>/`) + the committed ledger `docs/journey-failures.md`, which self-closes when a scenario goes green. A daily scheduled task (`MBOpenClacky Journey E2E`, build-then-run) is registered on this machine. Runbook: `test/journey/README.md`; layering: `docs/testing.md` §层 9.
+- **Automated E2E (`cmd journey`)** drives the real binary through 18 user journeys (Web WS chat 9 / TUI 3 / CLI 6) against a mock LLM upstream in isolated sandboxes; exit `0`=green `1`=product red `2`=usage `3`=runner broken. Failures auto-record evidence (`_build/journey/<stamp>/`) + the committed ledger `docs/journey-failures.md`, which self-closes when a scenario goes green. A daily scheduled task (`MBOpenClacky Journey E2E`, build-then-run) is registered on this machine. Runbook: `test/journey/README.md`; layering: `docs/testing.md` §层 9.
 
 - Tests are co-located `*_wbtest.mbt` files. `moon test --target wasm-gc` fails due to FFI in `tty`/`crescent`.
 - Always use `moon build --target native --release cmd` (not bare `moon build`) — [moon#1488](https://github.com/moonbitlang/moon/issues/1488).
@@ -115,12 +115,12 @@ in CI — a hand-edited number turns the build red. Calibers are defined in the 
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 310 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 226 |
-| 源代码行数 | 101,376 |
-| 测试行数 | 63,062 |
-| 总行数 | 164,438 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3981 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 311 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 235 |
+| 源代码行数 | 102,380 |
+| 测试行数 | 63,939 |
+| 总行数 | 166,319 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3994 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |

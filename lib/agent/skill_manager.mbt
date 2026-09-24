@@ -30,9 +30,10 @@ pub fn Agent::discover_workspace_skills(self : Agent) -> Unit {
     let files = @skill.read_skill_files([dir])
     for skill in @skill.discover_skills(files) {
       // Explicit dedup arbitration: warn when overriding an existing
-      // registration from a lower-priority source.
+      // registration from a lower-priority source. stderr — stdout is
+      // reserved for the machine-readable payload.
       if self.skill_registry.has(skill.name) {
-        println(
+        write_diagnostic(
           "[skills] '\{skill.name}' from \{dir} overrides an existing skill with the same name",
         )
       }

@@ -22,6 +22,21 @@ pub fn home_dir() -> String? {
 }
 
 ///|
+/// Expand a leading `~` against the user's home directory. Paths that do not
+/// start with `~`, or whose home directory cannot be resolved, pass through.
+pub fn expand_home(path : String) -> String {
+  guard path.has_prefix("~") else { return path }
+  guard home_dir() is Some(home) else { return path }
+  if path == "~" {
+    home
+  } else if path.has_prefix("~/") || path.has_prefix("~\\") {
+    @path.Path::join(@path.Path(home), @path.Path(path[2:].to_owned())).to_string()
+  } else {
+    path
+  }
+}
+
+///|
 /// Get the configuration directory path: `~/.mbopenclacky/`.
 /// Returns None if home directory cannot be determined.
 pub fn config_dir() -> String? {

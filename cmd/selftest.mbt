@@ -440,8 +440,8 @@ async fn run_probe(
 ///   clap reports its message on **stdout** (observed, upstream behaviour),
 ///   so the probe pins the observable contract rather than an aspirational
 ///   stderr policy.
-/// - `mcp_unavailable`: a capability that is honestly reported as missing
-///   must still exit non-zero so scripts can detect it
+/// - `mcp_serves_stdio`: the stdio MCP server exits cleanly at EOF instead of
+///   reporting an unavailable capability
 fn probe_set() -> Array[Probe] {
   [
     {
@@ -492,12 +492,15 @@ fn probe_set() -> Array[Probe] {
       stdout_contains: ["InvalidArgumentValue"],
       stderr_expect: Clean,
     },
+    // `mcp` now serves JSON-RPC on stdin/stdout (plan #10) instead of
+    // reporting an unavailable capability. With stdin at EOF it must exit
+    // cleanly and print nothing — the probe pins the server contract.
     {
-      name: "mcp_unavailable",
+      name: "mcp_serves_stdio",
       args: ["mcp"],
-      exit_expect: NonZero,
-      stdout_shape: Text,
-      stdout_contains: ["not yet available"],
+      exit_expect: Zero,
+      stdout_shape: Empty,
+      stdout_contains: [],
       stderr_expect: Clean,
     },
     // `eval --offline` is a new public promise (T8): its judge is this probe.

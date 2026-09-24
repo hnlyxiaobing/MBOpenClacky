@@ -25,14 +25,18 @@ fn event_to_request(
 ///|
 /// Convert our HttpResponse to crescent @core.HttpResponse.
 fn response_to_core(resp : HttpResponse) -> @core.HttpResponse {
-  let core_resp = match resp.status {
-    201 => @core.HttpResponse::created()
-    204 => @core.HttpResponse::no_content()
-    400 => @core.HttpResponse::bad_request()
-    404 => @core.HttpResponse::not_found()
-    _ => @core.HttpResponse::ok()
+  // Preserve the real status code — a handler's honest 5xx must not arrive as
+  // 200, or error diagnosis over the bridge is silently falsified.
+  let status = @core.StatusCode::from_int(resp.status)
+  let mut core_resp = match resp.body_bytes {
+    Some(bytes) =>
+      @core.HttpResponse::HttpResponse(status_code=status, raw_body=bytes)
+    None => @core.HttpResponse::HttpResponse(status_code=status).body(resp.body)
   }
-  core_resp.header("Content-Type", resp.content_type).body(resp.body)
+  for pair in resp.headers {
+    core_resp = core_resp.header(pair.0, pair.1)
+  }
+  core_resp.header("Content-Type", resp.content_type)
 }
 
 ///|

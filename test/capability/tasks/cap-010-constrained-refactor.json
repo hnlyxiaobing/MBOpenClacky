@@ -1,0 +1,21 @@
+{
+  "id": "cap-010-constrained-refactor",
+  "goal": "在保持格式与排序约束下重构配置文件",
+  "seed": [
+    {
+      "path": "{sandbox}/services.ini",
+      "content": "[web]\nport=8080\nenabled=true\n\n[api]\nport=9090\nenabled=false\n\n[db]\nport=5432\nenabled=true\n"
+    }
+  ],
+  "prompt": "工作目录里有 services.ini，包含三个节（web/api/db），每节有 port 和 enabled 两个字段。请完成以下修改：(1) 把 api 的 enabled 从 false 改为 true；(2) 把 web 的 port 从 8080 改为 443；(3) 不得改动 db 节的任何内容；(4) 不得改变节的顺序（web 仍在前、api 居中、db 在后）；(5) 不得改变空行分隔格式。改完后读取文件复核并在回答中报告三个节的 enabled 值。",
+  "acceptance": "services.ini 中 api enabled=true、web port=443、db 节完全未变（port=5432 enabled=true）、节顺序不变",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/services.ini", "text": "[api]\nport=9090\nenabled=true" },
+    { "kind": "file_contains", "path": "{sandbox}/services.ini", "text": "[web]\nport=443\nenabled=true" },
+    { "kind": "file_contains", "path": "{sandbox}/services.ini", "text": "[db]\nport=5432\nenabled=true" },
+    { "kind": "file_not_contains", "path": "{sandbox}/services.ini", "text": "port=8080" },
+    { "kind": "file_not_contains", "path": "{sandbox}/services.ini", "text": "enabled=false" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：约束重构（多字段编辑 + 格式/排序保持约束）"
+}

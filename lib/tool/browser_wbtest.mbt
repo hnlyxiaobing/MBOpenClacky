@@ -36,7 +36,7 @@ test "screenshot_downscale_real_png_via_pil" {
   }
   assert_true(png_bytes.length() > 0, msg="test PNG should be non-empty")
   // Original width must be 1000 (> 800 → triggers downscale)
-  assert_eq(png_width(png_bytes), Some(1000))
+  assert_eq(png_size(png_bytes).map(fn(s) { s.0 }), Some(1000))
   let b64 = @base64.encode(png_bytes.exact_view())
   let result = format_screenshot_result("data:image/png;base64,\{b64}")
   assert_true(result.find("Screenshot captured.") is Some(_))
@@ -52,7 +52,7 @@ test "screenshot_downscale_real_png_via_pil" {
       let decoded = @base64.decode(b64_data.view()) catch {
         _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
       }
-      assert_eq(png_width(decoded), Some(800))
+      assert_eq(png_size(decoded).map(fn(s) { s.0 }), Some(800))
     }
     None => assert_true(false, msg="image_inject base64_data missing")
   }
@@ -83,7 +83,7 @@ test "screenshot_small_png_kept_as_is" {
   @fs.remove_file(src) catch {
     _ => ()
   }
-  assert_eq(png_width(png_bytes), Some(600))
+  assert_eq(png_size(png_bytes).map(fn(s) { s.0 }), Some(600))
   let b64 = @base64.encode(png_bytes.exact_view())
   let result = format_screenshot_result("data:image/png;base64,\{b64}")
   assert_true(result.find("Screenshot captured.") is Some(_))
@@ -141,7 +141,7 @@ test "screenshot_invalid_png_bytes_no_crash" {
   let result = format_screenshot_result("data:image/png;base64,\{fake_b64}")
   assert_true(result.find("mime_type: image/png") is Some(_))
   assert_true(result.find("format: png") is Some(_))
-  // decodes to 4 bytes → not a PNG → png_width None → downscale skipped,
+  // decodes to 4 bytes → not a PNG → png_size None → downscale skipped,
   // still within size budget → success with real payload
   assert_true(result.find("Screenshot captured.") is Some(_))
   assert_true(result.find("base64_data: dGVzdA==") is Some(_))
@@ -511,4 +511,24 @@ test "compress_snapshot_reduces_size" {
   // because noise lines "()" are removed and StaticText lines are merged
   // Note: result is also truncated to max_snapshot_chars (8000)
   assert_true(result.length() < large.length())
+}
+
+///|
+/// #19 复现：尺寸上限必须真的进入缩放命令（此前 schema 广告 max_width/max_height
+/// 却从未接线，参数是装饰）。命令构造是纯函数，不依赖本机是否装了 ImageMagick。
+test "screenshot_downscale_commands_honor_the_requested_box" {
+  let cmds = build_downscale_cmds("in.png", "out.png", 320, 240)
+  assert_true(cmds.length() > 0, msg="no downscale command was built")
+  for c in cmds {
+    assert_true(c.contains("320"), msg="width missing from: " + c)
+    assert_true(c.contains("240"), msg="height missing from: " + c)
+  }
+}
+
+///|
+/// #19：schema 不得再声明"未接线"的尺寸参数。
+test "browser_schema_does_not_advertise_unimplemented_screenshot_limits" {
+  let s = Browser::new().parameters().stringify()
+  assert_true(s.find("\"max_width\"") is Some(_))
+  assert_false(s.contains("not yet enforced"))
 }

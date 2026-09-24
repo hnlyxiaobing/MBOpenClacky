@@ -44,6 +44,9 @@ pub(all) struct JourneyState {
   /// Last HTTP response (web steps).
   mut last_http_status : Int
   mut last_http_body : String
+  /// Raw byte length of the last HTTP body. Tracked separately because binary
+  /// responses (e.g. a backup ZIP) are decoded lossily for text assertions.
+  mut last_http_body_bytes : Int
   mut last_http_headers : Array[(String, String)]
   /// Last exited child's outputs (cli/persistence steps).
   mut last_exit_code : Int?
@@ -82,6 +85,7 @@ fn new_journey_state(
     tui: None,
     last_http_status: 0,
     last_http_body: "",
+    last_http_body_bytes: 0,
     last_http_headers: [],
     last_exit_code: None,
     last_stdout: "",
@@ -150,6 +154,10 @@ async fn execute_step(
     TuiSend(text~, timeout_ms~) =>
       tui_send_step(group, state, text, timeout_ms, phase_name)
     TuiScreenshot(name~) => tui_screenshot_step(state, name, phase_name)
+    Sleep(sleep_ms~) => {
+      state.trace.push("sleep \{sleep_ms}ms (\{phase_name})")
+      @async.sleep(sleep_ms)
+    }
     Assert(assertions~) =>
       for kind in assertions {
         let result = evaluate_journey_assertion(state, kind)

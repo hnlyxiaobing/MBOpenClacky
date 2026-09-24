@@ -33,5 +33,5 @@ import {
 supported_targets = "native"
 
 options(
-  "native-stub": [ "time_stub.c" ],
+  "native-stub": [ "time_stub.c", "stderr_stub.c" ],
 )

@@ -111,7 +111,7 @@ pub fn HttpResponse::created(body : String) -> HttpResponse {
 
 ///|
 pub fn HttpResponse::not_found(message : String) -> HttpResponse {
-  let body = "{\"error\":\"\{message}\"}"
+  let body = Json::object({ "error": message.to_json() }).stringify()
   {
     status: 404,
     body,
@@ -123,7 +123,7 @@ pub fn HttpResponse::not_found(message : String) -> HttpResponse {
 
 ///|
 pub fn HttpResponse::bad_request(message : String) -> HttpResponse {
-  let body = "{\"error\":\"\{message}\"}"
+  let body = Json::object({ "error": message.to_json() }).stringify()
   {
     status: 400,
     body,
@@ -177,6 +177,22 @@ pub fn HttpResponse::with_content_type(
 ///|
 pub fn HttpResponse::with_status(self : HttpResponse, s : Int) -> HttpResponse {
   { ..self, status: s, }
+}
+
+///|
+/// An arbitrary-status response carrying an already-serialized JSON body.
+///
+/// `bad_request`/`not_found` take a *message* and wrap it as
+/// `{"error": <message>}`; callers that build their own body object must use
+/// this instead, or the body ends up double-encoded inside an `error` string.
+pub fn HttpResponse::json_status(status : Int, body : String) -> HttpResponse {
+  {
+    status,
+    body,
+    body_bytes: None,
+    content_type: "application/json",
+    headers: [],
+  }
 }
 
 // ── Router ────────────────────────────────────────────────────────

@@ -71,9 +71,9 @@ fn screenshot_filename(
 }
 
 ///|
-/// Parse the PNG width from the IHDR chunk (bytes 16..20, big-endian).
-/// Returns None for non-PNG data.
-fn png_width(image : Bytes) -> Int? {
+/// Parse the PNG width and height from the IHDR chunk (bytes 16..24,
+/// big-endian). Returns None for non-PNG data.
+fn png_size(image : Bytes) -> (Int, Int)? {
   if image.length() < 24 {
     return None
   }
@@ -85,12 +85,16 @@ fn png_width(image : Bytes) -> Int? {
     }
     i = i + 1
   }
-  // IHDR: length(4) + "IHDR"(4) + width(4 big-endian)
+  // IHDR: length(4) + "IHDR"(4) + width(4 big-endian) + height(4 big-endian)
   let w = (image[16].to_int() << 24) |
     (image[17].to_int() << 16) |
     (image[18].to_int() << 8) |
     image[19].to_int()
-  Some(w)
+  let h = (image[20].to_int() << 24) |
+    (image[21].to_int() << 16) |
+    (image[22].to_int() << 8) |
+    image[23].to_int()
+  Some((w, h))
 }
 
 ///|
@@ -108,46 +112,56 @@ fn quote_shell_arg(arg : String, is_win : Bool) -> String {
 /// Build candidate downscale commands (highest priority first).
 /// magick/convert: ImageMagick; sips: macOS; python3(+PIL): fallback.
 /// Each command reads `in_path`, writes `out_path`, exit 0 on success.
+/// `max_width`/`max_height` form a bounding box (aspect ratio preserved).
 fn build_downscale_cmds(
   in_path : String,
   out_path : String,
   max_width : Int,
+  max_height : Int,
 ) -> Array[String] {
   let is_win = shell_is_windows()
   let in_q = quote_shell_arg(in_path, is_win)
   let out_q = quote_shell_arg(out_path, is_win)
+  let box = "\{max_width}x\{max_height}"
   let cmds : Array[String] = []
   if is_win {
-    cmds.push("magick \{in_q} -resize \{max_width}x -strip \{out_q}")
-    cmds.push("convert \{in_q} -resize \{max_width}x -strip \{out_q}")
+    cmds.push("magick \{in_q} -resize \{box} -strip \{out_q}")
+    cmds.push("convert \{in_q} -resize \{box} -strip \{out_q}")
     // cmd.exe: outer double quotes, Python code uses single-quoted paths
     cmds.push(
-      "python -c \"from PIL import Image; im=Image.open('\{in_path.replace(old="'", new="")}'); im.thumbnail((\{max_width},\{max_width})); im.save('\{out_path.replace(old="'", new="")}')\"",
+      "python -c \"from PIL import Image; im=Image.open('\{in_path.replace(old="'", new="")}'); im.thumbnail((\{max_width},\{max_height})); im.save('\{out_path.replace(old="'", new="")}')\"",
     )
   } else {
-    cmds.push("magick \{in_q} -resize \{max_width}x -strip \{out_q}")
-    cmds.push("convert \{in_q} -resize \{max_width}x -strip \{out_q}")
-    cmds.push("sips -Z \{max_width} \{in_q} --out \{out_q}")
+    cmds.push("magick \{in_q} -resize \{box} -strip \{out_q}")
+    cmds.push("convert \{in_q} -resize \{box} -strip \{out_q}")
+    // sips has no bounding box: two passes, each a no-op when already inside.
+    cmds.push(
+      "sips -Z \{max_width} \{in_q} --out \{out_q} && sips -Z \{max_height} \{out_q} --out \{out_q}",
+    )
     // shell single quotes around the whole -c program; paths inside use
     // double quotes (safe inside single quotes)
     cmds.push(
-      "python3 -c 'from PIL import Image; im=Image.open(\"\{in_path}\"); im.thumbnail((\{max_width},\{max_width})); im.save(\"\{out_path}\")'",
+      "python3 -c 'from PIL import Image; im=Image.open(\"\{in_path}\"); im.thumbnail((\{max_width},\{max_height})); im.save(\"\{out_path}\")'",
     )
   }
   cmds
 }
 
 ///|
-/// Downscale PNG bytes so width ≤ max_width, mirroring Ruby
-/// `downscale_png_chunky`: no-op when already within width, CLI resize
-/// otherwise. Returns None when no tool is available or the input is not
-/// a decodable PNG (caller keeps the original — Ruby fallback).
-fn downscale_image_bytes(image : Bytes, max_width : Int) -> Bytes? {
-  let w = match png_width(image) {
-    Some(w) => w
+/// Downscale PNG bytes to fit the `max_width` × `max_height` bounding box,
+/// mirroring Ruby `downscale_png_chunky`: no-op when already inside, CLI
+/// resize otherwise. Returns None when no tool is available or the input is
+/// not a decodable PNG (caller keeps the original — Ruby fallback).
+fn downscale_image_bytes(
+  image : Bytes,
+  max_width : Int,
+  max_height : Int,
+) -> Bytes? {
+  let (w, h) = match png_size(image) {
+    Some(size) => size
     None => return None
   }
-  if w <= max_width {
+  if w <= max_width && h <= max_height {
     return Some(image)
   }
   let tmp_dir = get_temp_dir_path()
@@ -164,7 +178,7 @@ fn downscale_image_bytes(image : Bytes, max_width : Int) -> Bytes? {
     _ => return None
   }
   let mut result : Bytes? = None
-  let cmds = build_downscale_cmds(in_path, out_path, max_width)
+  let cmds = build_downscale_cmds(in_path, out_path, max_width, max_height)
   // while instead of for: a `for` in value position would be treated as a
   // yielding loop and demand an else branch
   let mut i = 0
@@ -206,11 +220,15 @@ fn downscale_image_bytes(image : Bytes, max_width : Int) -> Bytes? {
 /// `format` controls output mime: "jpeg" → image/jpeg, default "png" →
 /// image/png. `save_path` optionally overrides the original save location
 /// (MB extension, kept for backward compatibility).
+/// `max_width`/`max_height` override the default 800px downscale box when the
+/// caller asks for a specific bound; both default to `screenshot_max_width`.
 pub fn format_screenshot_result(
   mcp_output : String,
   ref_param? : String? = None,
   format? : String? = None,
   save_path? : String? = None,
+  max_width? : Int? = None,
+  max_height? : Int? = None,
 ) -> String {
   // Resolve output format: mime type and file extension
   let fmt = match format {
@@ -275,8 +293,11 @@ pub fn format_screenshot_result(
           return join_browser_parts(parts, "\n")
         }
       }
-      // 2. Downscale to 800px — Ruby downscale_png_chunky
-      let downscaled = downscale_image_bytes(png_bytes, screenshot_max_width)
+      // 2. Downscale into the requested bounding box (default 800px square) —
+      //    Ruby downscale_png_chunky
+      let box_w = max_width.unwrap_or(screenshot_max_width)
+      let box_h = max_height.unwrap_or(screenshot_max_width)
+      let downscaled = downscale_image_bytes(png_bytes, box_w, box_h)
       let compressed_bytes = match downscaled {
         Some(b) => b
         None => png_bytes // no tool available — Ruby keeps original
@@ -287,7 +308,7 @@ pub fn format_screenshot_result(
         let size_kb = compressed_bytes.length() / 1024
         return "Screenshot too large after resize (\{size_kb}KB). Use action=snapshot instead."
       }
-      // 4. Save compressed (800px) for AI reference — suffix: "compressed"
+      // 4. Save compressed (downscaled) for AI reference — suffix: "compressed"
       let compressed_name = screenshot_filename(hex, suffix="compressed", ext~)
       let compressed_path = @path.Path(upload_dir)
         .join(@path.Path(compressed_name))
@@ -311,7 +332,7 @@ pub fn format_screenshot_result(
       parts.push("Screenshot captured.")
       parts.push("- Original (full resolution): \{original_path}")
       parts.push(
-        "- Compressed (\{screenshot_max_width}px, sent to AI): \{compressed_path}",
+        "- Compressed (\{box_w}x\{box_h} max, sent to AI): \{compressed_path}",
       )
       if downscaled is None {
         parts.push(

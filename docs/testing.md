@@ -16,8 +16,8 @@
 | 5 | CLI 契约 | 对外承诺的退出码与输出形状 | `cmd/selftest.mbt` | `cmd.exe selftest --repo .` | 每次提交 | 有效 |
 | 6 | 确定性能力评测 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt` + `test/eval/tasks/*.json` | `cmd.exe eval --offline --repo .` | 每次提交（评分向量须全 1） | 有效（3 任务 × 2 重复） |
 | 7 | 性能基准 | 关键路径耗时是否退化 | `test/benchmark/`（含 `scenarios/`） | `cmd.exe benchmark` | 不进 CI（计时噪声） | 有效（真执行默认 registry 中的工具并计时），见 [test/benchmark/README.md](../test/benchmark/README.md) |
-| 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/`（任务集）+ `test/eval/live_harness.mbt`（运行器） | `cmd.exe eval --live` | 不进 CI（成本与随机性） | 有效（4 任务 × 3 重复；首次真模型运行见 `docs/eval/`，台账登记 stdouts 诊断限制） |
-| 9 | 用户旅程 E2E | 真实二进制走完整用户链路是否可用 | `test/journey/`（运行器 + `scenarios/` 13 条旅程）+ `cmd/journey.mbt` | `cmd.exe journey --repo .` | 手动 / 定时（不进 CI；运行手册见 [test/journey/README.md](../test/journey/README.md)） | 有效（13/13：Web 5 / TUI 3 / 持久化 3 / CLI 2；失败自动记台账 `docs/journey-failures.md`） |
+| 8 | 真模型能力基准 | 模型自主完成任务的成功率与成本 | `test/capability/`（任务集）+ `test/eval/live_harness.mbt`（运行器） | `cmd.exe eval --live` | 不进 CI（成本与随机性） | 有效（10 任务 × 3 重复；首次真模型运行见 `docs/eval/`，台账登记 stdouts 诊断限制） |
+| 9 | 用户旅程 E2E | 真实二进制走完整用户链路是否可用 | `test/journey/`（运行器 + `scenarios/` 18 条旅程）+ `cmd/journey.mbt` | `cmd.exe journey --repo .` | 手动 / 定时（不进 CI；运行手册见 [test/journey/README.md](../test/journey/README.md)） | 有效（18/18：Web 9 / TUI 3 / CLI 6；失败自动记台账 `docs/journey-failures.md`） |
 
 层与层之间不互相替代：性能与真模型基准**不得**用作回归门禁（随机性与噪声），白盒/差分/链路/契约/确定性评测**不得**被基准替代。
 
@@ -50,7 +50,7 @@ moon build --target native --release cmd
 BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 "$BIN" selftest --repo .                                       # 层 5
 "$BIN" eval --offline --repo .                                 # 层 6
-"$BIN" journey --repo .                                        # 层 9（可选：13 条用户旅程，约 2 分钟）
+"$BIN" journey --repo .                                        # 层 9（可选：18 条用户旅程，约 2 分钟）
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 scripts/known_gaps.sh check && scripts/repo_stats.sh check      # 台账与数字闸门
 ```
@@ -112,7 +112,7 @@ BUG-0016（MBOPENCLACKY_* 前缀）、BUG-0017（OPENCLACKY_* 前缀）、BUG-00
 
 层 4（TUI/Web 场景回放）与层 7（性能基准）共用一套断言词表与报告管线，收敛在 `test/eval/`：
 
-- **统一断言枚举 `AssertionKind`（`test/eval/assertions.mbt`，20 种）**：TUI 侧（`text_contains`/`screen_empty`/`row_contains`/`status_contains`/`input_contains`/`output_contains`/`dialog_contains`/`file_*` 等）与 Web 侧（`status_eq`/`status_in`/`body_contains`/`jsonpath_eq`/`header_contains`/`sse_valid`/`body_length_gt` 等）此前各写各的解析分支，现合并为单一枚举 + 单一 `parse_assertion_kind`。解析器同时接受 TUI 风格的 `"check"` 字段与 Web 风格的 `"type"` 字段（向后兼容，旧场景 JSON 不改）。
+- **统一断言枚举 `AssertionKind`（`test/eval/assertions.mbt`，32 种）**：TUI 侧（`text_contains`/`screen_empty`/`row_contains`/`status_contains`/`input_contains`/`output_contains`/`dialog_contains`/`file_*` 等）与 Web 侧（`status_eq`/`status_in`/`body_contains`/`jsonpath_eq`/`header_contains`/`sse_valid`/`body_length_gt` 等）此前各写各的解析分支，现合并为单一枚举 + 单一 `parse_assertion_kind`。解析器同时接受 TUI 风格的 `"check"` 字段与 Web 风格的 `"type"` 字段（向后兼容，旧场景 JSON 不改）。路径类断言（`json_path_eq` / `json_path_ne` / `stdout_json_path_eq`）走对象键**与数组下标**（`sessions.0.updated_at`），见 `test/journey/context.mbt` 的 `journey_json_walk` 与 `test/web/web_e2e_adapter.mbt` 的 `json_path_value`。
 - **统一报告 `UnifiedReport`（`test/eval/eval_engine.mbt`）+ 三个渲染器**：`render_unified_report_text` / `_json` / `_markdown`。各适配器的批次结果经 `to_unified_report` 归一后渲染，`cmd eval --format text|json|markdown` 选择输出形状；报告默认落 `_build/eval/<suite>_<date>.<ext>`。
 - **统一 CLI 入口 `cmd eval`（`cmd/eval.mbt`）**：`--tui <dir>` / `--web <dir>` / `--offline` / `--live` 四后端同一入口分派，`--repo` / `--tasks` / `--trials` / `--out` / `--format` 为共享参数。旧顶层旗标 `--tui-eval` / `--web-eval` 仍可用（走 `format_eval_report` 旧路径、报告落 `logs/`），但新入口是推荐路径。
 - **层 7 接入同一管线**：`cmd benchmark` 跑完各场景后经 `benchmark_results_to_unified_report` 归一，末尾用 `render_unified_report_text` 输出统一报告页脚（每场景的逐次计时与回归对比仍照旧打印）。

@@ -2351,6 +2351,8 @@ async test "telegram_adapter_update_message_returns_err" {
     is_running: true,
     message_callback: None,
     last_update_id: 0,
+    poll_backoff_ms: 1000,
+    poll_idle_ms: 200,
     api_client: TelegramApiClient::with_base_url(
       "123456:ABC-DEF",
       "http://127.0.0.1:1",
@@ -2370,6 +2372,8 @@ async test "telegram_adapter_delete_message_returns_err" {
     is_running: true,
     message_callback: None,
     last_update_id: 0,
+    poll_backoff_ms: 1000,
+    poll_idle_ms: 200,
     api_client: TelegramApiClient::with_base_url(
       "123456:ABC-DEF",
       "http://127.0.0.1:1",

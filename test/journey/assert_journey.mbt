@@ -131,6 +131,31 @@ pub fn evaluate_journey_assertion(
         },
       )
     }
+    JsonPathNe(path~, value~) => {
+      let j = @json.parse(state.last_http_body) catch {
+        _ => Json::object(Map([]))
+      }
+      let actual = journey_json_path_value(j, path)
+      let expected = expand_journey_placeholders(value, ctx)
+      // A missing path fails: absent is not "different".
+      let passed = match actual {
+        Some(v) => v != expected
+        None => false
+      }
+      let detail = if passed {
+        ""
+      } else {
+        match actual {
+          Some(v) => "unchanged (still \{v})"
+          None => "path missing"
+        }
+      }
+      journey_assert(
+        "json path '\{path}' differs from '\{expected}'",
+        passed,
+        detail,
+      )
+    }
     HeaderContains(name~, text~) => {
       let mut header_value = ""
       for pair in state.last_http_headers {
@@ -180,14 +205,14 @@ pub fn evaluate_journey_assertion(
       journey_assert("body is valid SSE", passed, detail)
     }
     BodyLengthGt(min~) => {
-      let passed = state.last_http_body.length() > min
+      let passed = state.last_http_body_bytes > min
       journey_assert(
         "body length > \{min}",
         passed,
         if passed {
           ""
         } else {
-          "body length: \{state.last_http_body.length()}"
+          "body length: \{state.last_http_body_bytes} bytes"
         },
       )
     }
@@ -253,6 +278,30 @@ pub fn evaluate_journey_assertion(
           ""
         } else {
           "stderr (\{state.last_stderr.length()} chars) lacks it"
+        },
+      )
+    }
+    StdoutNotContains(text~) => {
+      let passed = !state.last_stdout.contains(text)
+      journey_assert(
+        "stdout does NOT contain '\{text}'",
+        passed,
+        if passed {
+          ""
+        } else {
+          "found in stdout (\{state.last_stdout.length()} chars)"
+        },
+      )
+    }
+    StderrNotContains(text~) => {
+      let passed = !state.last_stderr.contains(text)
+      journey_assert(
+        "stderr does NOT contain '\{text}'",
+        passed,
+        if passed {
+          ""
+        } else {
+          "found in stderr (\{state.last_stderr.length()} chars)"
         },
       )
     }

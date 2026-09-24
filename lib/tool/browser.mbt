@@ -231,14 +231,13 @@ impl Tool for Browser with fn parameters(_) -> Json {
         "type": "string".to_json(),
         "description": "screenshot: custom file path to save (default: temp dir)".to_json(),
       }),
-      // TODO: max_width / max_height — enforce via MCP clip or libpng FFI when available
       "max_width": Json::object({
         "type": "integer".to_json(),
-        "description": "screenshot: max width in pixels (TODO: not yet enforced)".to_json(),
+        "description": "screenshot: max output width in pixels (aspect ratio preserved; default 800)".to_json(),
       }),
       "max_height": Json::object({
         "type": "integer".to_json(),
-        "description": "screenshot: max height in pixels (TODO: not yet enforced)".to_json(),
+        "description": "screenshot: max output height in pixels (aspect ratio preserved; default 800)".to_json(),
       }),
     }),
     "required": ["action".to_json()],
@@ -334,12 +333,22 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
           Some(String(sp)) => Some(sp)
           _ => None
         }
+        let max_width_param : Int? = match args.get("max_width") {
+          Some(Number(n, ..)) if n.to_int() > 0 => Some(n.to_int())
+          _ => None
+        }
+        let max_height_param : Int? = match args.get("max_height") {
+          Some(Number(n, ..)) if n.to_int() > 0 => Some(n.to_int())
+          _ => None
+        }
         ToolResult::success(
           format_screenshot_result(
             raw_result.content,
             ref_param~,
             format=format_param,
             save_path=save_path_param,
+            max_width=max_width_param,
+            max_height=max_height_param,
           ),
         )
       } else {
@@ -417,6 +426,22 @@ impl Tool for Browser with fn to_function_definition(self) -> FunctionDefinition
 let browser_config_path : String = "~/.mbopenclacky/browser.yml"
 
 ///|
+/// Whether browser.yml carries an explicit `enabled: false`. A file that only
+/// declares a configured browser (`browser: { path: ... }`, what the
+/// browser-setup skill writes) counts as enabled, since it is only written
+/// after a browser was detected.
+fn browser_yml_enabled(text : String) -> Bool {
+  match @utils.yml_scalar(text, "enabled") {
+    Some(v) => v.to_lower() == "true"
+    None =>
+      match @utils.yml_scalar(text, "path") {
+        Some(p) => !p.is_empty()
+        None => true
+      }
+  }
+}
+
+///|
 /// Check if the browser configuration file exists or MCP is available.
 pub fn Browser::is_browser_configured(self : Browser) -> Bool {
   ignore(self)
@@ -424,8 +449,7 @@ pub fn Browser::is_browser_configured(self : Browser) -> Bool {
   if is_browser_mcp_available() {
     return true
   }
-  // TODO: Check if browser_config_path exists on the filesystem
-  false
+  @fs.path_exists(@utils.expand_home(browser_config_path))
 }
 
 ///|
@@ -436,8 +460,12 @@ pub fn Browser::is_browser_enabled(self : Browser) -> Bool {
   if is_browser_mcp_available() {
     return true
   }
-  // TODO: Read browser_config_path and check if 'enabled' is true
-  false
+  let path = @utils.expand_home(browser_config_path)
+  if !@fs.path_exists(path) {
+    return false
+  }
+  let text = @fs.read_file_to_string(path) catch { _ => return false }
+  browser_yml_enabled(text)
 }
 
 // ── MCP Call Interface ───────────────────────────────────────────────────────

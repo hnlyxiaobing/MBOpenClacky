@@ -23,9 +23,21 @@ pub(all) struct WeComAdapter {
   encoding_aes_key : String?
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
+  /// Bot WebSocket endpoint (overridable so tests can point at a local mock).
+  mut ws_url : String
+  /// Reconnect backoff in ms (reset after a successful connection).
+  mut ws_backoff_ms : Int
   ws_state : WeComWsState?
   api_client : WeComApiClient
 }
+
+///|
+/// Initial WebSocket reconnect backoff (ms).
+let wecom_ws_backoff_base_ms : Int = 1_000
+
+///|
+/// WebSocket reconnect backoff cap (ms).
+let wecom_ws_backoff_max_ms : Int = 30_000
 
 ///|
 /// Create a new WeComAdapter from channel configuration.
@@ -53,6 +65,10 @@ pub fn WeComAdapter::new(
     None => WECOM_API_BASE
   }
   let api_client = WeComApiClient::with_base_url(corp_id, secret, api_base)
+  let ws_url = match config.settings.get("ws_url") {
+    Some(v) if !v.is_empty() => v
+    _ => WECOM_WS_URL
+  }
   Ok({
     corp_id,
     agent_id,
@@ -61,6 +77,8 @@ pub fn WeComAdapter::new(
     encoding_aes_key,
     is_running: false,
     message_callback: None,
+    ws_url,
+    ws_backoff_ms: wecom_ws_backoff_base_ms,
     ws_state,
     api_client,
   })
@@ -105,7 +123,101 @@ pub impl Adapter for WeComAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
+  self.ws_backoff_ms = wecom_ws_backoff_base_ms
+  // The receive side owns an async context; the caller spawns
+  // `run_ws_loop` (see ChannelManager::spawn_gateways).
   Ok(())
+}
+
+///|
+/// WebSocket receive loop: connect, authenticate, then pump inbound frames.
+/// Heartbeats are answered, data frames are ACKed and dispatched. Dropouts
+/// back off and reconnect; a credential rejection ends the loop instead of
+/// retrying forever, and `stop()` flips `is_running` so the loop exits.
+pub async fn WeComAdapter::run_ws_loop(self : WeComAdapter) -> Unit {
+  let client = WsClient::new()
+  while self.is_running {
+    match client.connect(self.ws_url) {
+      Err(_) => {
+        self.backoff_and_sleep()
+        continue
+      }
+      Ok(_) => ()
+    }
+    match self.ws_state {
+      Some(ws) => {
+        ws.mark_connected()
+        let auth = ws.build_auth_frame().stringify()
+        match client.send_text(auth) {
+          Ok(_) => ()
+          Err(_) => {
+            client.close()
+            self.backoff_and_sleep()
+            continue
+          }
+        }
+      }
+      None => ()
+    }
+    self.ws_backoff_ms = wecom_ws_backoff_base_ms
+    let mut fatal = false
+    while self.is_running && client.connected() {
+      match client.recv() {
+        WsMessage::Closed(_, _) => break
+        WsMessage::Text(text) => {
+          let json : Json = @json.parse(text) catch { _ => continue }
+          match classify_ws_frame(json) {
+            WsInboundAction::Ignore => ()
+            WsInboundAction::SendPong =>
+              ignore(client.send_text(build_ping_frame().stringify()))
+            WsInboundAction::Ack(req_id~) =>
+              ignore(client.send_text(build_ack_frame(req_id).stringify()))
+            WsInboundAction::Dispatch(req_id~, data~) => {
+              if !req_id.is_empty() {
+                ignore(client.send_text(build_ack_frame(req_id).stringify()))
+              }
+              match WeComAdapter::parse_event(data) {
+                Ok(event) =>
+                  match self.message_callback {
+                    Some(cb) => cb(event)
+                    None => ()
+                  }
+                Err(_) => ()
+              }
+            }
+            WsInboundAction::Fatal(_) => {
+              fatal = true
+              self.is_running = false
+            }
+          }
+        }
+      }
+    }
+    match self.ws_state {
+      Some(ws) => ws.mark_disconnected()
+      None => ()
+    }
+    client.close()
+    if fatal {
+      break
+    }
+    if self.is_running {
+      self.backoff_and_sleep()
+    }
+  }
+}
+
+///|
+/// Double the reconnect backoff (capped) and wait, so a dead endpoint is
+/// retried at a sane rate instead of spinning.
+async fn WeComAdapter::backoff_and_sleep(self : WeComAdapter) -> Unit {
+  let delay = self.ws_backoff_ms
+  self.ws_backoff_ms = if delay * 2 > wecom_ws_backoff_max_ms {
+    wecom_ws_backoff_max_ms
+  } else {
+    delay * 2
+  }
+  @async.sleep(delay)
 }
 
 ///|

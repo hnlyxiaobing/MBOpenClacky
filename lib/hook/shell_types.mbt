@@ -97,6 +97,3 @@ pub fn ShellHookEvent::event_name(self : ShellHookEvent) -> String {
     SessionRollback => "session_rollback"
   }
 }
-
-///|
-const DEFAULT_HOOK_TIMEOUT : Int = 10

@@ -1,7 +1,7 @@
 # 用户旅程 E2E 运行器（Layer 9 · `cmd journey`）· 增量 Spec
 
 > **创建日期**: 2026-09-23  
-> **状态**: 实施完成（13/13 旅程全绿、全量测试 3,981/3,981、定时演练成功；待对抗性评审后归档）  
+> **状态**: 实施完成（18/18 旅程全绿、全量测试 3,981/3,981、定时演练成功；待对抗性评审后归档）  
 > **关联总览**: `docs/testing.md`（8 层测试体系，本 spec 新增第 9 层）  
 > **关联历史 spec**: `specs/completed/`（web-replication 系列、eval 统一为 519c8e5 提交）  
 > **来源差距**: 用户日常使用场景（多轮聊天/持久化/重启恢复/WS 流式/CLI 一次性任务）无自动化 E2E 覆盖，靠手工验证  
@@ -74,7 +74,7 @@
 | `test/journey/evidence.mbt` | 新建 | 证据包写入器 |
 | `test/journey/ledger.mbt` | 新建 | 失败台账维护 |
 | `test/journey/runner.mbt` | 新建 | run_journey_batch + 看门狗 |
-| `test/journey/scenarios/*.json` | 新建 | 13 个 v1 旅程 |
+| `test/journey/scenarios/*.json` | 新建 | 18 个 v1 旅程 |
 | `test/journey/README.md` | 新建 | 运行手册 |
 | `test/journey/*_wbtest.mbt` | 新建 | co-located 白盒测试 |
 | `cmd/journey.mbt` | 新建 | handle_journey + 旗标 + 退出码 |
@@ -106,8 +106,8 @@
 - 子进程 + WS journal（含互操作排雷 wbtest）
 - 三类驱动器 + 断言求值 + 证据 + runner 骨架
 
-### 任务包 3：13 个旅程场景 + 台账（预估 1 天）
-- CLI/持久化（5）→ Web（5）→ TUI（3）按序落地
+### 任务包 3：18 个旅程场景 + 台账（预估 1 天）
+- Web（9）→ TUI（3）→ CLI（6）按序落地
 - ledger.mbt + 状态迁移测试 + 全量批
 
 ### 任务包 4：cmd 接线 + 文档 + 真模型档（预估 0.5 天）
@@ -117,7 +117,7 @@
 
 ## 验收标准 [必填]
 
-- [ ] `cmd.exe journey --repo .` 13/13 PASS，exit 0，报告落 `_build/journey/report_<date>.txt`
+- [ ] `cmd.exe journey --repo .` 18/18 PASS，exit 0，报告落 `_build/journey/report_<date>.txt`
 - [ ] 注入失败（改坏一个期望）→ exit 1 + 证据包含 journey.json/ws_frames.jsonl/mock_requests.jsonl + 台账 open 行
 - [ ] 还原后重跑 → 旅程绿 + 台账行移入「已修复」（闭环）
 - [ ] 全程无挂起：单步/单旅程/整批看门狗生效（模拟超时可验证）
@@ -154,3 +154,4 @@
 |------|---------|------|
 | 2026-09-23 | 初始版本 | 用户会话确认四项决策（上游/触发/证据/范围） |
 | 2026-09-23 | 实施完成：13 条旅程全绿（Web 5/TUI 3/持久化 3/CLI 2）；失败→台账→转绿自动闭环经有机验证两轮；全量 scoped 测试 3,981/3,981（+8）；schtasks 注册并演练成功（scheduled.log 记录 13/13）；真模型冒烟 2 个新 capability 任务全过（cap-001 单次失败入 curated 观察段） | — |
+| 2026-09-24 | 旅程扩展至 18 条（+5：cli_stdout_json_clean / web_error_body_json_safety / web_session_updated_at_order / web_backup_download_archive / web_trash_roundtrip），18/18 全绿 | 补齐 development-plan §7 中 P0 修复项的 E2E 覆盖（#1 stdout 干净、#2 JSON 安全、#4 updated_at 投影、#11 backup、#13 trash） |

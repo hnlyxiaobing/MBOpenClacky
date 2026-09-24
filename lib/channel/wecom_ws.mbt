@@ -424,6 +424,50 @@ pub fn needs_ack(frame_type : WeComFrameType) -> Bool {
   }
 }
 
+// ── Receive-loop decisions ───────────────────────────────────────────────────
+
+///|
+/// What the receive loop must do with one inbound frame.
+pub(all) enum WsInboundAction {
+  /// Nothing actionable (response-only or unparseable frame).
+  Ignore
+  /// The server pinged; answer with our own heartbeat frame.
+  SendPong
+  /// Acknowledge a request frame without dispatching it.
+  Ack(req_id~ : String)
+  /// Acknowledge a data frame and dispatch the contained message.
+  Dispatch(req_id~ : String, data~ : Json)
+  /// Credentials were rejected — reconnecting would only repeat the failure.
+  Fatal(message~ : String)
+} derive(Eq, Debug)
+
+///|
+pub extend WsInboundAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend WsInboundAction with Eq::{not_equal, equal}
+
+///|
+/// Classify one inbound frame. Pure: the loop owns the socket and the backoff,
+/// this decides what to send and whether the connection is still usable.
+pub fn classify_ws_frame(json : Json) -> WsInboundAction {
+  if is_auth_error(json) {
+    return Fatal(message="WeCom rejected the bot credentials")
+  }
+  match parse_incoming_frame(json) {
+    Err(_) => Ignore
+    Ok((frame_type, data)) =>
+      match frame_type {
+        WeComFrameType::Ping => SendPong
+        WeComFrameType::Data =>
+          Dispatch(req_id=extract_req_id(data).unwrap_or(""), data~)
+        WeComFrameType::SendMsg =>
+          Ack(req_id=extract_req_id(data).unwrap_or(""))
+        _ => Ignore
+      }
+  }
+}
+
 ///|
 /// Check if a frame type represents a server response to our request.
 pub fn is_response_frame(frame_type : WeComFrameType) -> Bool {

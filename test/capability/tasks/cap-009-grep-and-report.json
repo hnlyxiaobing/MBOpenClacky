@@ -1,0 +1,21 @@
+{
+  "id": "cap-009-grep-and-report",
+  "goal": "在多个文件中搜索匹配行并汇总报告",
+  "seed": [
+    { "path": "{sandbox}/logs/app.log", "content": "2026-09-23 INFO started\n2026-09-23 ERROR connection timeout\n2026-09-23 INFO request ok\n2026-09-23 ERROR disk full\n" },
+    { "path": "{sandbox}/logs/worker.log", "content": "2026-09-23 INFO job started\n2026-09-23 ERROR OOM killed\n" }
+  ],
+  "prompt": "工作目录的 logs/ 下有两个日志文件。请搜索所有包含 ERROR 的行，把匹配的行数写入 error_report.txt：第一行 count=<ERROR 总行数>，第二行 files=2（涉及的日志文件数）。然后在 error_report.txt 后续行列出每一条 ERROR 行内容（每行一条，前缀写来源文件名如 app.log: 2026-09-23 ERROR connection timeout）。完成后简要说明。",
+  "acceptance": "error_report.txt 存在且 count=3、files=2；包含三条 ERROR 行的内容；原始日志未被修改",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/error_report.txt", "text": "count=3" },
+    { "kind": "file_contains", "path": "{sandbox}/error_report.txt", "text": "files=2" },
+    { "kind": "file_contains", "path": "{sandbox}/error_report.txt", "text": "connection timeout" },
+    { "kind": "file_contains", "path": "{sandbox}/error_report.txt", "text": "disk full" },
+    { "kind": "file_contains", "path": "{sandbox}/error_report.txt", "text": "OOM killed" },
+    { "kind": "file_contains", "path": "{sandbox}/logs/app.log", "text": "ERROR connection timeout" },
+    { "kind": "file_contains", "path": "{sandbox}/logs/worker.log", "text": "ERROR OOM killed" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：搜索+汇总（需 grep 多文件 + 计数 + 结构化输出）"
+}

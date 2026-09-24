@@ -18,6 +18,73 @@ pub(all) struct DingTalkAdapter {
   mut message_callback : ((ChannelEvent) -> Unit)?
   mut session_webhooks : Map[String, (String, Int)] // chat_id → (webhook_url, expire_time_ms)
   mut route_cache : Map[String, String] // conv_id → conv_type ("1"=Direct, "2"=Group)
+  /// Stream Mode endpoint override (tests point this at a local mock; empty
+  /// means "ask the gateway via open_stream_connection").
+  mut stream_url : String
+  /// Reconnect backoff in ms (reset after a successful connection).
+  mut stream_backoff_ms : Int
+}
+
+///|
+/// Initial Stream Mode reconnect backoff (ms).
+let dingtalk_stream_backoff_base_ms : Int = 1_000
+
+///|
+/// Stream Mode reconnect backoff cap (ms).
+let dingtalk_stream_backoff_max_ms : Int = 30_000
+
+///|
+/// What the Stream Mode loop must do with one inbound frame.
+pub(all) enum StreamInboundAction {
+  Ignore
+  /// SYSTEM/ping — answer with a pong.
+  SendPong
+  /// CALLBACK — ACK it and dispatch the robot message.
+  AckAndDispatch(message_id~ : String, data~ : Json)
+} derive(Eq, Debug)
+
+///|
+pub extend StreamInboundAction with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend StreamInboundAction with Eq::{not_equal, equal}
+
+///|
+/// Classify one Stream Mode frame (pure, so the loop only owns the socket).
+/// SYSTEM frames carrying `topic=ping` need a pong; CALLBACK frames must be
+/// ACKed by `messageId` and then dispatched.
+pub fn classify_stream_frame(json : Json) -> StreamInboundAction {
+  match parse_stream_frame(json) {
+    Err(_) => Ignore
+    Ok((frame_type, data)) =>
+      match frame_type {
+        "SYSTEM" =>
+          match data {
+            Object(obj) =>
+              match obj.get("topic") {
+                Some(String(t)) if t == "ping" => SendPong
+                _ => Ignore
+              }
+            _ => Ignore
+          }
+        "CALLBACK" => {
+          let message_id = match data {
+            Object(obj) =>
+              match obj.get("headers") {
+                Some(Object(h)) =>
+                  match h.get("messageId") {
+                    Some(String(id)) => id
+                    _ => ""
+                  }
+                _ => ""
+              }
+            _ => ""
+          }
+          AckAndDispatch(message_id~, data~)
+        }
+        _ => Ignore
+      }
+  }
 }
 
 ///|
@@ -61,6 +128,11 @@ pub fn DingTalkAdapter::new(
     message_callback: None,
     session_webhooks: Map([]),
     route_cache: Map([]),
+    stream_url: match config.settings.get("stream_url") {
+      Some(v) => v
+      None => ""
+    },
+    stream_backoff_ms: dingtalk_stream_backoff_base_ms,
   })
 }
 
@@ -94,13 +166,108 @@ pub impl Adapter for DingTalkAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // Receive mode is callback-driven: robot messages arrive via the HTTP
-  // server's /api/webhooks/dingtalk route and reach the handler through
-  // ChannelManager::handle_webhook, which uses parse_and_cache_event to cache
-  // sessionWebhook + conversation routing. No listener is started here; the
-  // Stream Mode WebSocket loop (open_stream_connection -> @websocket, with
-  // SYSTEM pong / EVENT / CALLBACK ACK handling) is a separate work item.
+  self.stream_backoff_ms = dingtalk_stream_backoff_base_ms
+  // Two receive transports are supported and both are wired:
+  // - HTTP webhook: robot messages arrive at /api/webhooks/dingtalk and reach
+  //   the handler through ChannelManager::handle_webhook (parse_and_cache_event
+  //   caches sessionWebhook + conversation routing).
+  // - Stream Mode: the caller spawns `run_stream_loop` (see
+  //   ChannelManager::spawn_gateways) to hold the gateway WebSocket open.
   Ok(())
+}
+
+///|
+/// Resolve the Stream Mode endpoint: an explicit override when set, otherwise
+/// the gateway's `open_stream_connection` handshake (endpoint + ticket).
+pub async fn DingTalkAdapter::resolve_stream_endpoint(self : DingTalkAdapter) -> Result[
+  String,
+  ChannelError,
+] {
+  if !self.stream_url.is_empty() {
+    return Ok(self.stream_url)
+  }
+  match self.api_client {
+    Some(client) => {
+      let secret = self.secret.unwrap_or("")
+      match client.open_stream_connection(self.access_token, secret) {
+        Ok((endpoint, ticket)) => Ok(endpoint + "?ticket=" + ticket)
+        Err(e) => Err(e)
+      }
+    }
+    None => Err(
+      ChannelError(
+        "Stream Mode requires app_key/app_secret (no API client configured)",
+      ),
+    )
+  }
+}
+
+///|
+/// Stream Mode receive loop: open the gateway WebSocket, answer SYSTEM pings,
+/// ACK CALLBACK frames and dispatch the robot message. Dropouts back off and
+/// reconnect; `stop()` flips `is_running` so the loop exits.
+pub async fn DingTalkAdapter::run_stream_loop(self : DingTalkAdapter) -> Unit {
+  let client = WsClient::new()
+  while self.is_running {
+    let endpoint = match self.resolve_stream_endpoint() {
+      Ok(u) => u
+      Err(_) => {
+        self.stream_backoff_and_sleep()
+        continue
+      }
+    }
+    match client.connect(endpoint) {
+      Err(_) => {
+        self.stream_backoff_and_sleep()
+        continue
+      }
+      Ok(_) => ()
+    }
+    self.stream_backoff_ms = dingtalk_stream_backoff_base_ms
+    while self.is_running && client.connected() {
+      match client.recv() {
+        WsMessage::Closed(_, _) => break
+        WsMessage::Text(text) => {
+          let json : Json = @json.parse(text) catch { _ => continue }
+          match classify_stream_frame(json) {
+            StreamInboundAction::Ignore => ()
+            StreamInboundAction::SendPong =>
+              ignore(client.send_text(build_stream_pong().stringify()))
+            StreamInboundAction::AckAndDispatch(message_id~, data~) => {
+              if !message_id.is_empty() {
+                ignore(client.send_text(build_stream_ack(message_id).stringify()))
+              }
+              match DingTalkAdapter::parse_event(data) {
+                Ok(event) =>
+                  match self.message_callback {
+                    Some(cb) => cb(event)
+                    None => ()
+                  }
+                Err(_) => ()
+              }
+            }
+          }
+        }
+      }
+    }
+    client.close()
+    if self.is_running {
+      self.stream_backoff_and_sleep()
+    }
+  }
+}
+
+///|
+/// Double the reconnect backoff (capped) and wait, so a dead gateway is
+/// retried at a sane rate instead of spinning.
+async fn DingTalkAdapter::stream_backoff_and_sleep(self : DingTalkAdapter) -> Unit {
+  let delay = self.stream_backoff_ms
+  self.stream_backoff_ms = if delay * 2 > dingtalk_stream_backoff_max_ms {
+    dingtalk_stream_backoff_max_ms
+  } else {
+    delay * 2
+  }
+  @async.sleep(delay)
 }
 
 ///|

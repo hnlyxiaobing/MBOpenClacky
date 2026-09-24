@@ -156,6 +156,131 @@ fn remove_trash_item(target_id : String) -> Bool {
   trash_state.val.items.length() < before
 }
 
+// ── Session payload (real data surface) ───────────────────────────
+//
+// A trashed session keeps its on-disk payload, so restore is a real
+// restoration rather than a bookkeeping-only "restored" message. Each file
+// moved in gets a `<name>.origin` sidecar recording where it came from.
+
+///|
+/// Directory holding one trashed session's payload (its JSON document plus
+/// any chunk archives).
+fn trashed_session_dir(id : String) -> String {
+  @path.Path::join(
+    @path.Path::join(
+      @path.Path(@utils.get_trash_dir()),
+      @path.Path("sessions"),
+    ),
+    @path.Path(id),
+  ).to_string()
+}
+
+///|
+/// Move a session's on-disk payload into the trash directory.
+/// Returns the number of files moved (0 when the session has no payload,
+/// e.g. an in-memory-only session that was never persisted).
+pub fn trash_session_payload(id : String) -> Int {
+  let files = @agent.files_for(id)
+  if files.length() == 0 {
+    return 0
+  }
+  let dir = trashed_session_dir(id)
+  @utils.ensure_dir(dir)
+  let mut moved = 0
+  for src in files {
+    if !@fs.path_exists(src) {
+      continue
+    }
+    let name = @utils.basename_of(src)
+    let dst = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
+    let data = @fs.read_file_to_bytes(src) catch { _ => continue }
+    @fs.write_bytes_to_file(dst, data) catch { _ => continue }
+    @fs.write_string_to_file(dst + ".origin", src) catch {
+      _ => continue
+    }
+    @fs.remove_file(src) catch { _ => continue }
+    moved = moved + 1
+  }
+  if moved == 0 {
+    remove_trashed_session_dir(id)
+  }
+  moved
+}
+
+///|
+/// Move a trashed session's payload back to its original paths.
+/// Returns true only when at least one file was actually restored — a
+/// payload-less trash entry must not report success.
+pub fn restore_session_payload(id : String) -> Bool {
+  let dir = trashed_session_dir(id)
+  if !@fs.path_exists(dir) {
+    return false
+  }
+  let names = @fs.read_dir(dir) catch { _ => return false }
+  let mut restored = 0
+  for name in names {
+    if name.has_suffix(".origin") {
+      continue
+    }
+    let src = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
+    let origin_path = src + ".origin"
+    if !@fs.path_exists(origin_path) {
+      continue
+    }
+    let origin = @fs.read_file_to_string(origin_path) catch { _ => continue }
+    if origin.is_empty() {
+      continue
+    }
+    match parent_dir_of_path(origin) {
+      Some(parent) => @utils.ensure_dir(parent)
+      None => ()
+    }
+    let data = @fs.read_file_to_bytes(src) catch { _ => continue }
+    @fs.write_bytes_to_file(origin, data) catch { _ => continue }
+    restored = restored + 1
+  }
+  if restored > 0 {
+    remove_trashed_session_dir(id)
+  }
+  restored > 0
+}
+
+///|
+/// Drop a trashed session's payload without restoring it.
+pub fn remove_trashed_session_dir(id : String) -> Unit {
+  let dir = trashed_session_dir(id)
+  if !@fs.path_exists(dir) {
+    return
+  }
+  let names = @fs.read_dir(dir) catch { _ => return }
+  for name in names {
+    let p = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
+    @fs.remove_file(p) catch {
+      _ => ()
+    }
+  }
+  @fs.remove_dir(dir) catch {
+    _ => ()
+  }
+}
+
+///|
+/// Parent directory of a path, or None when there is no separator.
+fn parent_dir_of_path(path : String) -> String? {
+  let chars = path.to_array()
+  let mut last_sep = -1
+  for i, c in chars {
+    if c == '/' || c == '\\' {
+      last_sep = i
+    }
+  }
+  if last_sep <= 0 {
+    None
+  } else {
+    Some(path[:last_sep].to_owned())
+  }
+}
+
 // ── Trash Handlers ────────────────────────────────────────────────
 
 ///|
@@ -278,6 +403,18 @@ pub fn handle_trash_restore(request : HttpRequest) -> HttpResponse {
 
   match found_item {
     Some(item) => {
+      // A session entry must actually put its payload back; reporting
+      // "restored" for an empty payload would be a silent fake success.
+      if item.item_type == "session" && !restore_session_payload(item.id) {
+        return HttpResponse::json_status(
+          500,
+          Json::object({
+            "ok": false.to_json(),
+            "error": "Trash payload missing".to_json(),
+            "message": "Session data for '\{item.id}' is no longer in the trash directory; nothing was restored".to_json(),
+          }).stringify(),
+        )
+      }
       let _ = remove_trash_item(id)
       save_trash_state()
       let body = Json::object({
@@ -323,6 +460,7 @@ pub fn handle_trash_restore_batch(request : HttpRequest) -> HttpResponse {
 
   for target_id in ids {
     if remove_trash_item(target_id) {
+      let _ = restore_session_payload(target_id)
       restored.push(target_id)
     } else {
       not_found.push(target_id)
@@ -349,6 +487,9 @@ pub fn handle_trash_delete(request : HttpRequest) -> HttpResponse {
   ensure_trash_loaded()
 
   if remove_trash_item(id) {
+    // Permanently deleting a session entry must also drop its payload,
+    // or the bytes stay on disk after the user asked for deletion.
+    remove_trashed_session_dir(id)
     save_trash_state()
     let body = Json::object({ "ok": true.to_json() }).stringify()
     HttpResponse::ok(body)
@@ -361,10 +502,9 @@ pub fn handle_trash_delete(request : HttpRequest) -> HttpResponse {
 /// DELETE /api/trash — Empty the entire recycle bin.
 /// Requires an explicit confirmation parameter in the request body:
 /// `{"confirm": true}`. Without it the request is rejected with 400
-/// to prevent accidental irreversible data loss. The real
-/// delete/restore semantics are still backed by the stub trash model;
-/// once B3 lands trash_manager this route will wire to the real data
-/// surface. See spec 2026-08-18_17 decision 2.
+/// to prevent accidental irreversible data loss. Trashed session payloads
+/// (moved under `<trash>/sessions/<id>/` on delete) are dropped along with
+/// their entries.
 pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
   // Require explicit confirmation in the body.
   let body_json : Json = @json.parse(request.body) catch {
@@ -389,6 +529,11 @@ pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
   ensure_trash_loaded()
 
   let count = trash_state.val.items.length()
+  for item in trash_state.val.items {
+    if item.item_type == "session" {
+      remove_trashed_session_dir(item.id)
+    }
+  }
   trash_state.val.items = []
   save_trash_state()
 
@@ -414,6 +559,7 @@ pub fn handle_trash_clear_sessions(request : HttpRequest) -> HttpResponse {
   for item in trash_state.val.items {
     if item.item_type == "session" {
       deleted_count = deleted_count + 1
+      remove_trashed_session_dir(item.id)
     } else {
       remaining.push(item)
     }

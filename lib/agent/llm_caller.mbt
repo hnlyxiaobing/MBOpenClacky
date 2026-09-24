@@ -643,6 +643,7 @@ pub async fn Agent::call_llm_stream_async(
       // This makes per-call bytes / frames / parse-failure counts
       // visible in stderr without needing the TUI / Web UI, which is
       // invaluable when triaging flaky upstream connections.
+      // stderr (not stdout): `--message --json` / `eval --live` parse stdout.
       let (frames_seen, bytes_seen, parse_failures, saw_done) = if is_bedrock {
         (
           bedrock_agg.frames_seen,
@@ -681,7 +682,7 @@ pub async fn Agent::call_llm_stream_async(
       } else {
         "openai"
       }
-      println(
+      write_diagnostic(
         "[stream-summary] provider=\{provider} " +
         "frames_seen=\{frames_seen} bytes_seen=\{bytes_seen} " +
         "parse_failures=\{parse_failures} saw_done=\{saw_done} " +

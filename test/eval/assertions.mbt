@@ -40,6 +40,10 @@ pub(all) enum AssertionKind {
   BodyNotContains(text~ : String)
   /// JSON body at the given path equals the given value.
   JsonPathEq(path~ : String, value~ : String)
+  /// JSON body at the given path does NOT equal the given value.
+  /// The path must still resolve — a missing path fails the assertion
+  /// (a missing value is not "different", it is absent).
+  JsonPathNe(path~ : String, value~ : String)
   /// HTTP header with the given name contains the given text.
   HeaderContains(name~ : String, text~ : String)
   /// Body is valid SSE format (data: lines are valid JSON).
@@ -60,6 +64,10 @@ pub(all) enum AssertionKind {
   StdoutContains(text~ : String)
   /// Last child process stderr contains the given text.
   StderrContains(text~ : String)
+  /// Last child process stdout does NOT contain the given text.
+  StdoutNotContains(text~ : String)
+  /// Last child process stderr does NOT contain the given text.
+  StderrNotContains(text~ : String)
   /// Last stdout JSON line at the given path equals the given value.
   StdoutJsonPathEq(path~ : String, value~ : String)
   /// Any received WebSocket frame (raw text) contains the given substring.
@@ -133,6 +141,8 @@ pub fn parse_assertion_kind(json : Json) -> AssertionKind? {
     "body_not_contains" => AssertionKind::BodyNotContains(text=get_s("text"))
     "json_path_eq" =>
       AssertionKind::JsonPathEq(path=get_s("path"), value=get_s("value"))
+    "json_path_ne" =>
+      AssertionKind::JsonPathNe(path=get_s("path"), value=get_s("value"))
     "header_contains" =>
       AssertionKind::HeaderContains(name=get_s("name"), text=get_s("text"))
     "sse_valid" => AssertionKind::SseValid
@@ -146,6 +156,10 @@ pub fn parse_assertion_kind(json : Json) -> AssertionKind? {
     "exit_code" => AssertionKind::ExitCode(code=get_i("code"))
     "stdout_contains" => AssertionKind::StdoutContains(text=get_s("text"))
     "stderr_contains" => AssertionKind::StderrContains(text=get_s("text"))
+    "stdout_not_contains" =>
+      AssertionKind::StdoutNotContains(text=get_s("text"))
+    "stderr_not_contains" =>
+      AssertionKind::StderrNotContains(text=get_s("text"))
     "stdout_json_path_eq" =>
       AssertionKind::StdoutJsonPathEq(path=get_s("path"), value=get_s("value"))
     "ws_frame_contains" => AssertionKind::WsFrameContains(text=get_s("text"))
@@ -233,6 +247,12 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
         "path": path.to_json(),
         "value": value.to_json(),
       })
+    JsonPathNe(path~, value~) =>
+      Json::object({
+        "type": "json_path_ne".to_json(),
+        "path": path.to_json(),
+        "value": value.to_json(),
+      })
     HeaderContains(name~, text~) =>
       Json::object({
         "type": "header_contains".to_json(),
@@ -243,7 +263,7 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
     BodyLengthGt(min~) =>
       Json::object({ "type": "body_length_gt".to_json(), "min": min.to_json() })
     FileExists(path~) =>
-      Json::object({ "kind": "file_exists".to_json(), "path": path.to_json() })
+      Json::object({ "type": "file_exists".to_json(), "path": path.to_json() })
     FileMissing(path~) =>
       Json::object({ "kind": "file_missing".to_json(), "path": path.to_json() })
     FileContains(path~, text~) =>
@@ -268,6 +288,16 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
     StderrContains(text~) =>
       Json::object({
         "type": "stderr_contains".to_json(),
+        "text": text.to_json(),
+      })
+    StdoutNotContains(text~) =>
+      Json::object({
+        "type": "stdout_not_contains".to_json(),
+        "text": text.to_json(),
+      })
+    StderrNotContains(text~) =>
+      Json::object({
+        "type": "stderr_not_contains".to_json(),
         "text": text.to_json(),
       })
     StdoutJsonPathEq(path~, value~) =>

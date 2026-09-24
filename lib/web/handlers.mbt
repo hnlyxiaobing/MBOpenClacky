@@ -3,6 +3,18 @@
 // ── Session Handlers ────────────────────────────────────────────
 
 ///|
+/// The session's last-activity timestamp for list ordering/relative time.
+/// Legacy session files written before `updated_at` existed fall back to
+/// `created_at` (same rule as `@agent.list_sessions`).
+fn session_updated_at(sd : @agent.SessionData) -> String {
+  if sd.updated_at.is_empty() {
+    sd.created_at
+  } else {
+    sd.updated_at
+  }
+}
+
+///|
 /// Build a SessionSummary from persisted session data. Shared by the list,
 /// create, and detail endpoints so every session response is shape-isomorphic
 /// with orig.
@@ -18,7 +30,7 @@ fn build_session_summary(
     working_dir: sd.working_dir,
     status: sd.last_status,
     created_at: sd.created_at,
-    updated_at: sd.created_at,
+    updated_at: session_updated_at(sd),
     total_tasks: sd.stats.total_tasks,
     total_cost: sd.stats.total_cost_usd,
     cost_source: sd.stats.cost_source,
@@ -157,7 +169,9 @@ fn handle_list_sessions(
       ),
     )
   }
-  // Sort: pinned sessions first, then by updated_at descending
+  // Sort: pinned sessions first, then by updated_at descending. Equal
+  // timestamps (same-second activity) break by id so ordering is
+  // deterministic across runs rather than dependent on map iteration order.
   summaries.sort_by(fn(a, b) {
     let a_pin = if a.pinned { 0 } else { 1 }
     let b_pin = if b.pinned { 0 } else { 1 }
@@ -165,7 +179,8 @@ fn handle_list_sessions(
     if pin_cmp != 0 {
       pin_cmp
     } else {
-      b.updated_at.compare(a.updated_at)
+      let ts_cmp = b.updated_at.compare(a.updated_at)
+      if ts_cmp != 0 { ts_cmp } else { a.id.compare(b.id) }
     }
   })
   let total = summaries.length()
@@ -399,9 +414,16 @@ fn handle_delete_session(
   }
   // Soft-delete parity with orig (fix-13): sessions that exist on disk are
   // recorded in the trash bin so GET /api/trash/sessions can surface them.
+  // The on-disk payload is moved into the trash directory first, so the
+  // restore route can genuinely bring the session back (a trash entry whose
+  // payload was already deleted would make "restored" a fake success).
   // In-memory-only sessions have no on-disk payload and are not trashed.
   match @agent.load_session(id) {
-    Some(data) => trash_add_session(id, data.name)
+    Some(data) => {
+      if trash_session_payload(id) > 0 {
+        trash_add_session(id, data.name)
+      }
+    }
     None => ()
   }
   @agent.delete_session(id)

@@ -1,0 +1,30 @@
+{
+  "id": "web_backup_download_archive",
+  "title": "Backup download returns a real archive",
+  "area": "web",
+  "description": "用户创建备份后下载归档：必须拿到真实 ZIP（Content-Disposition attachment + 非空字节体）。此前下载恒 501『not yet implemented』，且该 501 被状态码回落吞成 200——本旅程同时是 #11 的验收与 #1 的联动断言。",
+  "timeout_ms": 120000,
+  "llm_steps": [],
+  "phases": [
+    { "name": "create_then_download", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/backup/run", "body": "{\"scope\":\"full\",\"description\":\"journey\"}", "capture": "id", "timeout_ms": 15000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] },
+      { "action": "http", "method": "GET", "path": "/api/backup/download/{capture:id}", "timeout_ms": 15000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "header_contains", "name": "Content-Disposition", "text": "attachment" },
+        { "type": "header_contains", "name": "Content-Type", "text": "application/zip" },
+        { "type": "body_length_gt", "min": 100 }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_eq", "status": 200 }
+  ]
+}

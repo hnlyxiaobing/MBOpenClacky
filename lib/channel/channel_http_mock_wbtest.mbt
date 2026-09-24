@@ -145,6 +145,8 @@ async fn mock_platform_handle_conn(
       mock_http_send(conn, 200, "{\"ret\":-2,\"errmsg\":\"send too fast\"}")
     } else if path.contains("getupdates") {
       mock_http_send(conn, 200, "{\"ret\":-1,\"errmsg\":\"invalid token\"}")
+    } else if path.contains("getUpdates") {
+      mock_http_send(conn, 500, "{\"ok\":false,\"description\":\"mock outage\"}")
     } else {
       mock_http_send(conn, 500, "{\"message\":\"mock failure\"}")
     }
@@ -192,6 +194,16 @@ async fn mock_platform_handle_conn(
     mock_http_send(conn, 200, "{\"id\":\"msg-9\"}")
   } else if http_method == "GET" && path.contains("/attachments/") {
     mock_http_send(conn, 200, "attachment-bytes")
+  } else if path.contains("getUpdates") {
+    // Telegram long poll (#7): serve one scripted inbound update on the first
+    // call, then an empty result so the loop has nothing left to dispatch.
+    if server.count("getUpdates") == 1 {
+      mock_http_send(
+        conn, 200, "{\"ok\":true,\"result\":[{\"update_id\":101,\"message\":{\"message_id\":5,\"text\":\"hi from telegram\",\"chat\":{\"id\":123,\"type\":\"private\"},\"from\":{\"id\":7,\"first_name\":\"Ada\"}}}]}",
+      )
+    } else {
+      mock_http_send(conn, 200, "{\"ok\":true,\"result\":[]}")
+    }
   } else {
     mock_http_send(conn, 404, "{\"message\":\"not found\"}")
   }
@@ -505,6 +517,8 @@ fn telegram_test_adapter(api_base : String) -> TelegramAdapter {
     is_running: true,
     message_callback: None,
     last_update_id: 0,
+    poll_backoff_ms: 1000,
+    poll_idle_ms: 200,
     api_client: TelegramApiClient::with_base_url("tok", api_base),
   }
 }
@@ -667,5 +681,236 @@ async test "discord_download_attachment_mock_round_trip" {
     }
     assert_eq(server.count("GET /attachments/"), 1)
     server.shutdown()
+  })
+}
+
+// ── Telegram receive side (plan #7) ──────────────────────────────────────────
+
+///|
+/// #7：长轮询必须把入站消息真正投递到回调；空轮询后循环继续存活，`stop()`
+/// 能结束它（此前 start() 是 TODO，接收侧完全没接线）。
+async test "telegram_long_poll_delivers_inbound_messages" {
+  let server = MockPlatformServer::new()
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let adapter = telegram_test_adapter(server.base_url())
+    adapter.poll_idle_ms = 10
+    adapter.poll_backoff_ms = 10
+    let received : Array[String] = []
+    adapter.message_callback = Some(fn(event) { received.push(event.text) })
+    group.spawn_bg(no_wait=true, allow_failure=true, async fn() {
+      adapter.run_long_poll_loop()
+    })
+    let mut waited = 0
+    while received.length() == 0 && waited < 150 {
+      @async.sleep(20)
+      waited = waited + 1
+    }
+    match adapter.stop() {
+      _ => ()
+    }
+    assert_true(received.length() >= 1, msg="no inbound event was delivered")
+    assert_eq(received[0], "hi from telegram")
+    assert_true(server.count("getUpdates") >= 1)
+    assert_eq(adapter.last_update_id, 101)
+    server.shutdown()
+  })
+}
+
+///|
+/// #7：上游故障时循环必须退避重连而不是崩溃/退出（连续失败仍继续轮询）。
+async test "telegram_long_poll_survives_a_failing_upstream" {
+  let server = MockPlatformServer::new()
+  server.fail_mode = true
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() { server.serve() })
+    let adapter = telegram_test_adapter(server.base_url())
+    adapter.poll_idle_ms = 10
+    adapter.poll_backoff_ms = 10
+    adapter.message_callback = Some(fn(_event) { () })
+    group.spawn_bg(no_wait=true, allow_failure=true, async fn() {
+      adapter.run_long_poll_loop()
+    })
+    let mut waited = 0
+    while server.count("getUpdates") < 3 && waited < 150 {
+      @async.sleep(20)
+      waited = waited + 1
+    }
+    match adapter.stop() {
+      _ => ()
+    }
+    assert_true(
+      server.count("getUpdates") >= 2,
+      msg="loop stopped retrying after a failed poll",
+    )
+    server.shutdown()
+  })
+}
+
+// ── WeCom WebSocket receive side (plan #8) ───────────────────────────────────
+
+///|
+/// #8：帧分类必须把 ping 答成心跳、data 帧 ACK 后投递、凭据被拒时判致命
+/// （此前 WS 收发全是 stub，接收侧没有接线）。
+test "wecom_frame_classification_drives_the_receive_loop" {
+  let ping : Json = @json.parse("{\"type\":\"ping\"}") catch { _ => Json::null() }
+  assert_eq(classify_ws_frame(ping), WsInboundAction::SendPong)
+  let data : Json = @json.parse(
+    "{\"type\":\"data\",\"req_id\":\"r1\",\"chat_id\":\"c1\",\"content\":\"hi\",\"msg_type\":\"text\",\"from_user_id\":\"u1\"}",
+  ) catch {
+    _ => Json::null()
+  }
+  match classify_ws_frame(data) {
+    WsInboundAction::Dispatch(req_id~, data=payload) => {
+      assert_eq(req_id, "r1")
+      // 同一个 data 帧必须能解析成可投递的 ChannelEvent
+      match WeComAdapter::parse_event(payload) {
+        Ok(event) => {
+          assert_eq(event.chat_id, "c1")
+          assert_eq(event.text, "hi")
+        }
+        Err(_) => assert_true(false, msg="data frame did not parse into an event")
+      }
+    }
+    _ => assert_true(false, msg="data frame was not classified as a dispatch")
+  }
+  let auth_err : Json = @json.parse(
+    "{\"type\":\"auth_error\",\"errcode\":40001}",
+  ) catch {
+    _ => Json::null()
+  }
+  match classify_ws_frame(auth_err) {
+    WsInboundAction::Fatal(_) => ()
+    _ => assert_true(false, msg="auth error must be fatal")
+  }
+  let unknown : Json = @json.parse("{\"type\":\"whatever\"}") catch {
+    _ => Json::null()
+  }
+  assert_eq(classify_ws_frame(unknown), WsInboundAction::Ignore)
+}
+
+///|
+/// #8：端点不可达时必须退避重连且循环不崩，`stop()` 能结束它。
+async test "wecom_ws_loop_backs_off_on_a_dead_endpoint" {
+  let config : ChannelConfig = {
+    platform: Platform::WeCom,
+    enabled: true,
+    settings: {
+      "corp_id": "cid",
+      "agent_id": "aid",
+      "secret": "sec",
+      "ws_url": "ws://127.0.0.1:1",
+    },
+  }
+  let adapter = match WeComAdapter::new(config) {
+    Ok(a) => a
+    Err(_) => {
+      assert_true(false, msg="adapter construction failed")
+      return
+    }
+  }
+  @async.with_task_group(async fn(group) {
+    match adapter.start(fn(_event) { () }) {
+      _ => ()
+    }
+    group.spawn_bg(no_wait=true, allow_failure=true, async fn() {
+      adapter.run_ws_loop()
+    })
+    // Wait for the failed-connect path to bump the backoff (the connect itself
+    // may take a moment on some platforms); then ask the loop to stop.
+    let mut waited = 0
+    while adapter.ws_backoff_ms == 1000 && waited < 250 {
+      @async.sleep(20)
+      waited = waited + 1
+    }
+    match adapter.stop() {
+      _ => ()
+    }
+    assert_true(
+      adapter.ws_backoff_ms > 1000,
+      msg="backoff did not grow after a failed connect (\{adapter.ws_backoff_ms}ms)",
+    )
+  })
+}
+
+// ── DingTalk Stream Mode receive side (plan #9) ──────────────────────────────
+
+///|
+/// #9：Stream Mode 帧分类——SYSTEM/ping 答 pong、CALLBACK 按 messageId ACK 后
+/// 投递、其它帧忽略（此前 WS 循环是独立工作项，接收侧未接线）。
+test "dingtalk_stream_frame_classification_drives_the_loop" {
+  let ping : Json = @json.parse(
+    "{\"type\":\"SYSTEM\",\"data\":{\"topic\":\"ping\"}}",
+  ) catch {
+    _ => Json::null()
+  }
+  assert_eq(classify_stream_frame(ping), StreamInboundAction::SendPong)
+  let other_system : Json = @json.parse(
+    "{\"type\":\"SYSTEM\",\"data\":{\"topic\":\"connected\"}}",
+  ) catch {
+    _ => Json::null()
+  }
+  assert_eq(classify_stream_frame(other_system), StreamInboundAction::Ignore)
+  let callback : Json = @json.parse(
+    "{\"type\":\"CALLBACK\",\"data\":{\"headers\":{\"messageId\":\"m-1\"},\"msgtype\":\"text\",\"text\":{\"content\":\"hi\"},\"senderStaffId\":\"u1\",\"conversationId\":\"c1\"}}",
+  ) catch {
+    _ => Json::null()
+  }
+  match classify_stream_frame(callback) {
+    StreamInboundAction::AckAndDispatch(message_id~, data~) => {
+      assert_eq(message_id, "m-1")
+      match DingTalkAdapter::parse_event(data) {
+        Ok(event) => assert_true(
+          !event.chat_id.is_empty() || event.text.contains("hi"),
+          msg="callback frame did not yield a usable event",
+        )
+        Err(_) => assert_true(false, msg="callback frame did not parse")
+      }
+    }
+    _ => assert_true(false, msg="CALLBACK was not classified as a dispatch")
+  }
+  // ACK frame carries the messageId so the gateway can correlate it
+  let ack = build_stream_ack("m-1").stringify()
+  assert_true(ack.contains("m-1"), msg="ack lost the messageId: " + ack)
+}
+
+///|
+/// #9：网关不可达时必须退避重连且循环不崩，`stop()` 能结束它。
+async test "dingtalk_stream_loop_backs_off_on_a_dead_gateway" {
+  let config : ChannelConfig = {
+    platform: Platform::DingTalk,
+    enabled: true,
+    settings: {
+      "access_token": "tok",
+      "app_secret": "sec",
+      "stream_url": "ws://127.0.0.1:1",
+    },
+  }
+  let adapter = match DingTalkAdapter::new(config) {
+    Ok(a) => a
+    Err(_) => {
+      assert_true(false, msg="adapter construction failed")
+      return
+    }
+  }
+  @async.with_task_group(async fn(group) {
+    match adapter.start(fn(_event) { () }) {
+      _ => ()
+    }
+    group.spawn_bg(no_wait=true, allow_failure=true, async fn() {
+      adapter.run_stream_loop()
+    })
+    let mut waited = 0
+    while adapter.stream_backoff_ms == 1000 && waited < 250 {
+      @async.sleep(20)
+      waited = waited + 1
+    }
+    match adapter.stop() {
+      _ => ()
+    }
+    assert_true(
+      adapter.stream_backoff_ms > 1000,
+      msg="backoff did not grow after a failed connect (\{adapter.stream_backoff_ms}ms)",
+    )
   })
 }

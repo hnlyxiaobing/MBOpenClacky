@@ -1,0 +1,21 @@
+{
+  "id": "cap-007-multi-file-aggregation",
+  "goal": "读取多个文件并聚合统计后写入摘要",
+  "seed": [
+    { "path": "{sandbox}/scores/alice.txt", "content": "90\n" },
+    { "path": "{sandbox}/scores/bob.txt", "content": "75\n" },
+    { "path": "{sandbox}/scores/carol.txt", "content": "88\n" }
+  ],
+  "prompt": "工作目录的 scores/ 子目录下有三个文件，每个文件里只有一个整数分数。请读取这三个文件，计算总分和平均分（保留整数），然后把结果写入 summary.txt：第一行 total=<总分>，第二行 average=<平均分>，第三行 count=3。完成后简要说明计算过程。",
+  "acceptance": "summary.txt 存在且 total=253、average=84、count=3；原始分数文件未被修改",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/summary.txt", "text": "total=253" },
+    { "kind": "file_contains", "path": "{sandbox}/summary.txt", "text": "average=84" },
+    { "kind": "file_contains", "path": "{sandbox}/summary.txt", "text": "count=3" },
+    { "kind": "file_contains", "path": "{sandbox}/scores/alice.txt", "text": "90" },
+    { "kind": "file_contains", "path": "{sandbox}/scores/bob.txt", "text": "75" },
+    { "kind": "file_contains", "path": "{sandbox}/scores/carol.txt", "text": "88" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：多文件聚合（需读 3 文件 + 算术 + 写摘要）"
+}

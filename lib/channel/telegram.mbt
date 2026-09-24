@@ -190,8 +190,30 @@ pub(all) struct TelegramAdapter {
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
   mut last_update_id : Int
+  /// Current reconnect backoff in ms (reset to the base after a good poll).
+  mut poll_backoff_ms : Int
+  /// Pause between empty polls in ms (depends only on how fast the server
+  /// answers, not on Telegram's own long-poll hold time).
+  mut poll_idle_ms : Int
   api_client : TelegramApiClient
 }
+
+///|
+/// Long-poll timeout requested from Telegram (seconds). Telegram holds the
+/// request open for this long when it has nothing to report.
+let telegram_poll_timeout_s : Int = 25
+
+///|
+/// Initial reconnect backoff after a failed poll (ms).
+let telegram_backoff_base_ms : Int = 1_000
+
+///|
+/// Backoff cap (ms) — a broken token or a long outage must not spin.
+let telegram_backoff_max_ms : Int = 30_000
+
+///|
+/// Default pause between empty polls (ms).
+let telegram_poll_idle_ms_default : Int = 200
 
 ///|
 /// Create a new TelegramAdapter from channel configuration.
@@ -208,6 +230,8 @@ pub fn TelegramAdapter::new(
     is_running: false,
     message_callback: None,
     last_update_id: 0,
+    poll_backoff_ms: telegram_backoff_base_ms,
+    poll_idle_ms: telegram_poll_idle_ms_default,
     api_client,
   })
 }
@@ -247,15 +271,92 @@ pub impl Adapter for TelegramAdapter with fn start(
 ) -> Result[Unit, ChannelError] {
   self.message_callback = Some(handler)
   self.is_running = true
-  // TODO: Start long-polling loop via getUpdates API.
-  // The loop should:
-  // 1. Call api_client.get_updates_payload(last_update_id + 1, 25) to build request
-  // 2. POST to api_client.get_updates_url() with the payload
-  // 3. Parse response via api_client.parse_updates_response()
-  // 4. For each update, call parse_event() and invoke handler
-  // 5. Update last_update_id from each processed update
-  // Requires async context: spawn async task using @async runtime
+  self.poll_backoff_ms = telegram_backoff_base_ms
+  // The receive side is a long-poll loop that must own an async context;
+  // the caller spawns `run_long_poll_loop` (see ChannelManager::spawn_gateways).
   Ok(())
+}
+
+///|
+/// One getUpdates round: fetch, dispatch every parseable update, and advance
+/// `last_update_id`. Returns the number of events dispatched; a transport or
+/// API failure is reported as `Err` so the loop can back off.
+pub async fn TelegramAdapter::poll_once(self : TelegramAdapter) -> Result[
+  Int,
+  ChannelError,
+] {
+  let payload = self.api_client.get_updates_payload(
+    self.last_update_id + 1,
+    telegram_poll_timeout_s,
+  )
+  let url = self.api_client.get_updates_url()
+  let headers = self.api_client.request_headers()
+  let json = match http_post_json(url, headers, payload.stringify()) {
+    Ok(j) => j
+    Err(e) => return Err(e)
+  }
+  let updates = match TelegramApiClient::parse_updates_response(json) {
+    Ok(u) => u
+    Err(e) => return Err(e)
+  }
+  let mut dispatched = 0
+  for update in updates {
+    match update {
+      Object(obj) =>
+        match obj.get("update_id") {
+          Some(Number(n, ..)) => {
+            let id = n.to_int()
+            if id > self.last_update_id {
+              self.last_update_id = id
+            }
+          }
+          _ => ()
+        }
+      _ => ()
+    }
+    // Updates that carry no `message` (edited_message, channel_post, …) are
+    // skipped without noise — the adapter only models inbound messages.
+    match TelegramAdapter::parse_event(update) {
+      Ok(event) => {
+        match self.message_callback {
+          Some(cb) => {
+            cb(event)
+            dispatched = dispatched + 1
+          }
+          None => ()
+        }
+      }
+      Err(_) => ()
+    }
+  }
+  Ok(dispatched)
+}
+
+///|
+/// Long-poll receive loop: keeps calling getUpdates and dispatching events to
+/// the registered callback. A failed poll backs off exponentially (capped) and
+/// retries instead of ending the loop, so a transient outage does not silently
+/// kill the channel; `stop()` flips `is_running` and the loop exits.
+pub async fn TelegramAdapter::run_long_poll_loop(self : TelegramAdapter) -> Unit {
+  while self.is_running {
+    match self.poll_once() {
+      Ok(dispatched) => {
+        self.poll_backoff_ms = telegram_backoff_base_ms
+        if dispatched == 0 {
+          @async.sleep(self.poll_idle_ms)
+        }
+      }
+      Err(_) => {
+        let delay = self.poll_backoff_ms
+        self.poll_backoff_ms = if delay * 2 > telegram_backoff_max_ms {
+          telegram_backoff_max_ms
+        } else {
+          delay * 2
+        }
+        @async.sleep(delay)
+      }
+    }
+  }
 }
 
 ///|

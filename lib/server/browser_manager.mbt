@@ -1,7 +1,7 @@
 ///|
 /// Chrome DevTools MCP daemon manager
 pub(all) struct BrowserManager {
-  config : BrowserConfig
+  mut config : BrowserConfig
   mut daemon_pid : Int?
   mut is_running : Bool
   mut started_at : Int?
@@ -33,9 +33,45 @@ pub fn BrowserManager::new(config_path : String) -> BrowserManager {
 pub fn BrowserManager::load_config(
   self : BrowserManager,
 ) -> Result[Unit, BrowserError] {
-  // TODO: FFI - read and parse browser.yml from self.config_path
-  let _ = self.config_path
   let _ = mcp_handshake_timeout
+  let path = @utils.expand_home(self.config_path)
+  if !@fs.path_exists(path) {
+    // A missing config file is the normal "never set up" state, not an error.
+    return Ok(())
+  }
+  let text = @fs.read_file_to_string(path) catch {
+    _ => return Err(BrowserError("Failed to read browser config: \{path}"))
+  }
+  // `enabled` is honored when written explicitly; otherwise the file's mere
+  // existence with a configured browser `path` means the user ran browser-setup,
+  // which only writes the file after detecting a browser.
+  let enabled = match @utils.yml_scalar(text, "enabled") {
+    Some(v) => v.to_lower() == "true"
+    None =>
+      match @utils.yml_scalar(text, "path") {
+        Some(p) => !p.is_empty()
+        None => self.config.enabled
+      }
+  }
+  let chrome_version = match @utils.yml_scalar(text, "chrome_version") {
+    Some(v) => Some(v)
+    None => self.config.chrome_version
+  }
+  let configured_at = match @utils.yml_scalar(text, "configured_at") {
+    Some(v) => Some(v)
+    None => self.config.configured_at
+  }
+  let mcp_command = match @utils.yml_scalar(text, "mcp_command") {
+    Some(v) if !v.is_empty() => v
+    _ => self.config.mcp_command
+  }
+  self.config = {
+    ..self.config,
+    enabled,
+    chrome_version,
+    configured_at,
+    mcp_command,
+  }
   Ok(())
 }
 
@@ -77,7 +113,7 @@ pub async fn BrowserManager::start(
   // 7. Update state
   self.is_running = true
   self.daemon_pid = Some(proc.pid)
-  self.started_at = Some(0) // TODO: get current timestamp
+  self.started_at = Some((@env.now().reinterpret_as_int64() / 1000L).to_int())
   self.client = Some(client)
   self.last_error = None
   Ok(())
@@ -122,8 +158,11 @@ pub async fn BrowserManager::reload(
 /// Get current status
 pub fn BrowserManager::status(self : BrowserManager) -> BrowserStatus {
   let uptime = match self.started_at {
-    Some(_ts) => None // TODO: compute uptime from current time - started_at
-    None => None
+    Some(ts) if self.is_running => {
+      let now_sec = (@env.now().reinterpret_as_int64() / 1000L).to_int()
+      Some(if now_sec <= ts { 0 } else { now_sec - ts })
+    }
+    _ => None
   }
   {
     enabled: self.config.enabled,
@@ -147,10 +186,48 @@ pub fn BrowserManager::configure(
   self : BrowserManager,
   chrome_version : String,
 ) -> Result[Unit, BrowserError] {
-  // TODO: FFI - update config file with new chrome_version
-  let _ = chrome_version
-  let _ = self.config_path
+  let path = @utils.expand_home(self.config_path)
+  match parent_dir_of(path) {
+    Some(parent) => @utils.ensure_dir(parent)
+    None => ()
+  }
+  let existing = if @fs.path_exists(path) {
+    @fs.read_file_to_string(path) catch { _ => "" }
+  } else {
+    "# MBOpenClacky browser configuration\n"
+  }
+  let stamp = @env.now().reinterpret_as_int64().to_string()
+  let updated = @utils.upsert_yml_scalar(
+    @utils.upsert_yml_scalar(existing, "chrome_version", chrome_version),
+    "configured_at",
+    stamp,
+  )
+  @fs.write_string_to_file(path, updated) catch {
+    _ => return Err(BrowserError("Failed to write browser config: \{path}"))
+  }
+  self.config = {
+    ..self.config,
+    chrome_version: Some(chrome_version),
+    configured_at: Some(stamp),
+  }
   Ok(())
+}
+
+///|
+/// Parent directory of a path, or None when there is no separator.
+fn parent_dir_of(path : String) -> String? {
+  let chars = path.to_array()
+  let mut last_sep = -1
+  for i, c in chars {
+    if c == '/' || c == '\\' {
+      last_sep = i
+    }
+  }
+  if last_sep <= 0 {
+    None
+  } else {
+    Some(path[:last_sep].to_owned())
+  }
 }
 
 ///|

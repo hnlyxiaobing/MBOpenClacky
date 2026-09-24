@@ -1,0 +1,17 @@
+{
+  "id": "cap-008-conditional-branching",
+  "goal": "根据文件内容条件分支执行不同操作",
+  "seed": [
+    { "path": "{sandbox}/status.txt", "content": "mode=staging\n" }
+  ],
+  "prompt": "工作目录里有 status.txt。请读取它，检查 mode 的值：如果 mode=production，把 deploy.txt 写成 action=rollback；如果 mode=staging，把 deploy.txt 写成 action=deploy；其他值写 action=unknown。完成后简要说明你读到了什么值以及为什么做了这个选择。",
+  "acceptance": "deploy.txt 存在且内容为 action=deploy（因为 status.txt 里 mode=staging）；status.txt 未被修改",
+  "checks": [
+    { "kind": "file_contains", "path": "{sandbox}/deploy.txt", "text": "action=deploy" },
+    { "kind": "file_not_contains", "path": "{sandbox}/deploy.txt", "text": "action=rollback" },
+    { "kind": "file_not_contains", "path": "{sandbox}/deploy.txt", "text": "action=unknown" },
+    { "kind": "file_contains", "path": "{sandbox}/status.txt", "text": "mode=staging" }
+  ],
+  "trials": 3,
+  "source": "补齐 journey 主题：条件分支（模型须根据读取内容选择不同写入路径）"
+}

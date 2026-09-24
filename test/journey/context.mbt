@@ -150,8 +150,27 @@ pub fn expand_journey_placeholders(
 }
 
 ///|
-/// Walk a dot-separated path through JSON object keys
-/// (e.g. "session.id"). Object keys only, no arrays.
+/// Parse a `.`-separated path segment as an array index (`"0"`, `"12"`).
+/// Returns `None` for non-numeric segments (object keys).
+fn parse_path_index(part : String) -> Int? {
+  if part.is_empty() {
+    return None
+  }
+  let mut acc = 0
+  for i in 0..<part.length() {
+    let c = part[i]
+    if c < '0' || c > '9' {
+      return None
+    }
+    acc = acc * 10 + (c.to_int() - '0'.to_int())
+  }
+  Some(acc)
+}
+
+///|
+/// Walk a dot-separated path through JSON object keys and array indices
+/// (e.g. "session.id" or "sessions.0.updated_at"). Numeric segments index
+/// into arrays; all other segments are object keys.
 pub fn journey_json_walk(json : Json, path : String) -> Json? {
   let parts = path.split(".").map(fn(s) { s.to_owned() }).to_array()
   let mut current = json
@@ -160,6 +179,16 @@ pub fn journey_json_walk(json : Json, path : String) -> Json? {
       Object(obj) =>
         match obj.get(part) {
           Some(v) => current = v
+          None => return None
+        }
+      Array(items) =>
+        match parse_path_index(part) {
+          Some(i) =>
+            if i >= 0 && i < items.length() {
+              current = items[i]
+            } else {
+              return None
+            }
           None => return None
         }
       _ => return None

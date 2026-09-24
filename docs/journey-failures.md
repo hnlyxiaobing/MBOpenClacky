@@ -13,11 +13,13 @@
 <!-- BEGIN: journey-fixed (auto) -->
 | 场景 | 首次失败 | 修复于 | 曾连续失败 | 摘要 |
 |---|---|---|---|---|
+| web_error_body_json_safety | 2026-09-23 | 2026-09-23 | 1 | json path 'error' equals '"Channel not found: a\"b{c}"' — actual: "Channel not f... |
+| web_session_updated_at_order | 2026-09-23 | 2026-09-23 | 1 | json path 'sessions.0.name' equals '"J-Ordered-A"' — actual: "J-Ordered-B" |
+| web_backup_download_archive | 2026-09-23 | 2026-09-23 | 1 | [create_then_download] GET /api/backup/download/{capture:id} failed: connection ... |
 <!-- END: journey-fixed (auto) -->
 
 ## 人工批注（curated）
 <!-- BEGIN: journey-curation -->
 | 场景 | 状态 | 备注 / BUG 引用 |
 |---|---|---|
-| cap-001-file-edit | 观察 | 真模型定期档（qwen3.8-max，trials=1）单次 Error：文件未按预期修改。真模型随机性口径，非层 9 旅程失败；证据见 docs/eval/2026-09-23.md。下轮周检复核，连续失败再升级排查。 |
 <!-- END: journey-curation -->

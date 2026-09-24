@@ -530,7 +530,7 @@ async fn main {
         handle_hook(sub)
         return
       } else if sub.name == "mcp" {
-        handle_mcp()
+        handle_mcp_serve()
         return
       } else if sub.name == "selftest" {
         handle_selftest(sub)

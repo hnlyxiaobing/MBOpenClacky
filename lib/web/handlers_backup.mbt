@@ -540,7 +540,8 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
   // Write snapshot data to disk
   match write_snapshot_data(id, snapshot) {
     Err(e) =>
-      return HttpResponse::bad_request(
+      return HttpResponse::json_status(
+        400,
         Json::object({ "error": e.to_json() }).stringify(),
       )
     Ok(_) => ()
@@ -558,7 +559,8 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
   }
   match save_backup_record(rec) {
     Err(e) =>
-      HttpResponse::bad_request(
+      HttpResponse::json_status(
+        400,
         Json::object({ "error": e.to_json() }).stringify(),
       )
     Ok(_) => {
@@ -585,7 +587,8 @@ pub fn handle_backups_restore(request : HttpRequest) -> HttpResponse {
   // Verify backup exists
   match load_backup(id) {
     None =>
-      HttpResponse::not_found(
+      HttpResponse::json_status(
+        404,
         Json::object({
           "error": "Backup not found".to_json(),
           "id": id.to_json(),
@@ -595,7 +598,8 @@ pub fn handle_backups_restore(request : HttpRequest) -> HttpResponse {
       // Restore snapshot data
       match restore_snapshot_data(id) {
         Err(e) =>
-          HttpResponse::bad_request(
+          HttpResponse::json_status(
+            400,
             Json::object({
               "id": id.to_json(),
               "status": "failed".to_json(),
@@ -625,7 +629,8 @@ pub fn handle_backups_delete(request : HttpRequest) -> HttpResponse {
   // Verify backup exists
   match load_backup(id) {
     None =>
-      HttpResponse::not_found(
+      HttpResponse::json_status(
+        404,
         Json::object({
           "error": "Backup not found".to_json(),
           "id": id.to_json(),
@@ -645,9 +650,60 @@ pub fn handle_backups_delete(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
+/// Recursively collect every file under the backup data directory into
+/// `(relative_path, bytes)` pairs, preserving the snapshot layout
+/// (`config.toml`, `sessions/<id>.json`, `skills/<name>`).
+fn collect_backup_files(
+  dir : String,
+  prefix : String,
+  out : Array[(String, Bytes)],
+) -> Result[Unit, String] {
+  let entries = @fs.read_dir(dir) catch {
+    _ => return Err("Failed to read backup data directory")
+  }
+  for entry in entries {
+    let full = @path.Path::join(@path.Path(dir), @path.Path(entry)).to_string()
+    let rel = if prefix == "" { entry } else { prefix + "/" + entry }
+    let is_sub_dir = @fs.is_dir(full) catch { _ => false }
+    if is_sub_dir {
+      match collect_backup_files(full, rel, out) {
+        Err(e) => return Err(e)
+        Ok(_) => ()
+      }
+    } else {
+      let data = @fs.read_file_to_bytes(full) catch {
+        _ => return Err("Failed to read backup file: " + rel)
+      }
+      out.push((rel, data))
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Package a backup's snapshot directory into a ZIP archive, entries named
+/// by their relative path inside the snapshot.
+fn build_backup_zip(id : String) -> Result[Bytes, String] {
+  let files : Array[(String, Bytes)] = []
+  match collect_backup_files(backup_data_dir(id), "", files) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  if files.length() == 0 {
+    return Err("Backup snapshot directory is empty")
+  }
+  files.sort_by(fn(a, b) { a.0.compare(b.0) })
+  let entries : Array[@zip.ZipEntry] = []
+  for f in files {
+    entries.push({ name: f.0, data: f.1, })
+  }
+  @zip.create_zip(entries)
+}
+
+///|
 /// GET /api/backup/download/:id — Download a backup as a zip archive.
-/// Zip packaging of the snapshot directory is not implemented; returning
-/// metadata in place of the archive would fake success, so answer 501.
+/// The archive is the snapshot directory packaged in place; a missing or
+/// empty snapshot is reported as an error rather than as an empty archive.
 pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
   let id = match request.get_param("id") {
     Some(v) => v
@@ -655,23 +711,33 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
   }
   match load_backup(id) {
     None =>
-      HttpResponse::not_found(
+      HttpResponse::json_status(
+        404,
         Json::object({
           "error": "Backup not found".to_json(),
           "id": id.to_json(),
         }).stringify(),
       )
     Some(_) =>
-      HttpResponse::{
-        status: 501,
-        body: Json::object({
-          "ok": false.to_json(),
-          "error": "unimplemented".to_json(),
-          "message": "Backup archive download not yet implemented".to_json(),
-        }).stringify(),
-        body_bytes: None,
-        content_type: "application/json",
-        headers: [],
+      match build_backup_zip(id) {
+        Err(e) =>
+          HttpResponse::json_status(
+            500,
+            Json::object({
+              "error": "Failed to package backup archive".to_json(),
+              "id": id.to_json(),
+              "message": e.to_json(),
+            }).stringify(),
+          )
+        Ok(bytes) => {
+          status: 200,
+          body: "",
+          body_bytes: Some(bytes),
+          content_type: "application/zip",
+          headers: [
+            ("Content-Disposition", "attachment; filename=\"" + id + ".zip\""),
+          ],
+        }
       }
   }
 }

@@ -1,0 +1,45 @@
+{
+  "id": "web_session_updated_at_order",
+  "title": "Session list ordering reflects real activity",
+  "area": "web",
+  "description": "创建顺序与活跃顺序刻意错开：先建 A 再建 B，然后只在 A 上聊天。会话列表必须把最近活跃的 A 排在首位——此前投影 updated_at = created_at，列表恒按创建时间排序，活跃会话永不上浮。两处编写要点：①capture 的键**就是**响应的 JSON 点路径（创建响应为 {\"session\":{...}}，故写 session.id），且键会互相覆盖——所以只捕获 A、不在 B 上重复捕获；②创建与活跃之间插入 `sleep`（时间戳为秒级粒度，同秒内活跃与创建可能相等，排序会退化到 id tie-break）；终局断言用**会话名**（确定性字符串）而非时间戳比较，名字既能唯一标识 A，又只需 stringify 形式（字符串值带引号）。",
+  "timeout_ms": 120000,
+  "llm_steps": [
+    { "response": { "type": "content", "text": "A 的回复。", "usage": { "prompt_tokens": 60, "completion_tokens": 8 } } }
+  ],
+  "phases": [
+    { "name": "create_two_sessions", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Ordered-A\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Ordered-B\"}", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] }
+    ] },
+    { "name": "activate_a", "steps": [
+      { "action": "sleep", "sleep_ms": 1500 },
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 },
+      { "action": "ws_send", "frame": { "type": "message", "session_id": "{capture:session.id}", "content": "在吗" } },
+      { "action": "ws_wait_event", "event": "complete", "timeout_ms": 30000 }
+    ] },
+    { "name": "list", "steps": [
+      { "action": "http", "method": "GET", "path": "/api/sessions", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 200 },
+        { "type": "json_path_eq", "path": "sessions.0.name", "value": "\"J-Ordered-A\"" },
+        { "type": "json_path_eq", "path": "sessions.0.id", "value": "\"{capture:session.id}\"" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "mock_request_count", "min": 1, "max": 1 }
+  ]
+}

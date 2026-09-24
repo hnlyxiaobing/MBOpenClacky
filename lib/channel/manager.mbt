@@ -174,8 +174,9 @@ pub fn ChannelManager::stop(
 }
 
 ///|
-/// Spawn connection loops for adapters that have one (currently the Discord
-/// gateway event + heartbeat loop) into the given task group.
+/// Spawn connection loops for adapters that have one (the Discord gateway
+/// event + heartbeat loop, the Telegram getUpdates long-poll loop, and the
+/// WeCom bot WebSocket receive loop) into the given task group.
 ///
 /// A fresh adapter created by `apply_config` has no loop; call this after
 /// re-applying configuration. The previous adapter's `stop()` flips its
@@ -189,6 +190,33 @@ pub fn ChannelManager::spawn_gateways(
     Some(AnyAdapter::Discord(adapter)) => {
       group.spawn_bg(no_wait=true, allow_failure=true, () => {
         adapter.run_gateway_loop()
+      })
+      ()
+    }
+    _ => ()
+  }
+  match self.registry.find("telegram") {
+    Some(AnyAdapter::Telegram(adapter)) => {
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        adapter.run_long_poll_loop()
+      })
+      ()
+    }
+    _ => ()
+  }
+  match self.registry.find("dingtalk") {
+    Some(AnyAdapter::DingTalk(adapter)) => {
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        adapter.run_stream_loop()
+      })
+      ()
+    }
+    _ => ()
+  }
+  match self.registry.find("wecom") {
+    Some(AnyAdapter::WeCom(adapter)) => {
+      group.spawn_bg(no_wait=true, allow_failure=true, () => {
+        adapter.run_ws_loop()
       })
       ()
     }

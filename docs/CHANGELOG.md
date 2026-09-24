@@ -25,6 +25,43 @@
 
 ## 变更记录
 
+### 2026-09-23  开发计划批次闭环：P0-P2 代码面清零 + 文档校准 + 任务集扩充 + benchmark 规格
+
+- `[fix]` **#1 Web 状态码回落**（`lib/web/handlers_bridge.mbt`）：`response_to_core` 补全 status 映射，不再把 500/501/503 吞成 200
+- `[fix]` **#2 JSON 转义**（`lib/web/router.mbt`）：`not_found`/`bad_request` 等错误构造器改用 `to_json()` 转义 message，产出合法 JSON
+- `[fix]` **#3 stdout 污染**（`lib/agent/diagnostics.mbt` + `stderr_stub.c`）：`[stream-summary]` 诊断行改走 stderr C stub，stdout 对机器可读场景保持干净
+- `[fix]` **#4 updated_at 回退**（`lib/web/handlers.mbt` + `handlers_ws.mbt`）：`build_session_summary` 投影真实 `updated_at`，排序加 id 确定性 tie-break
+- `[feat]` **#7/#8/#9 渠道接收侧**（`lib/channel/telegram.mbt` + `wecom.mbt` + `dingtalk.mbt`）：Telegram 长轮询、企微 WebSocket、钉钉 Stream Mode 三条接收链路均接线，含退避重连
+- `[feat]` **#10 MCP stdio server**（`cmd/cli_mcp.mbt`）：完整 JSON-RPC 2.0 server（initialize/tools/list/tools/call），经 `@moonbitlang/async/stdio` 读 stdin
+- `[feat]` **#11 备份 ZIP**（`lib/web/handlers_backup.mbt`）：`build_backup_zip` 真打包快照目录，返回 `application/zip` + `Content-Disposition`
+- `[feat]` **#13 trash 接线**（`lib/web/handlers_trash.mbt`）：trash/restore 接真实磁盘 payload 移动，非 stub 模型
+- `[chore]` **#18 死代码清理**：删除 `lib/hook/shell_loader.mbt`（`ShellHookLoader` 零调用 + 静默 `Allow` 陷阱），新增 `cmd/hook_loader_wbtest.mbt` 为幸存真实路径加护栏
+- `[feat]` **#19/#20 browser 卫生**：`browser_manager` 实现 `load_config`/`configure`/`status`（browser.yml 解析 + 真实 uptime）；`browser` 工具实现 `is_browser_configured`/`is_browser_enabled` + 截图尺寸约束
+- `[docs]` **#6 文档校准**：project-status §4 扩展包状态与 §6.1/§7 对齐；known-gaps/testing/README 任务数 4→6→10 同步；README 测试命令注释从"统一 --release"改为"scoped debug"
+- `[test]` **#16 任务集扩充**：`test/capability/tasks/` 从 6 条扩至 10 条（新增聚合/条件分支/搜索汇总/约束重构），每任务具备失败可能
+- `[docs]` **#17 benchmark 规格**：`specs/draft/2026-09-23_benchmark-gate.md` 定义 p95 阈值、基线同代约束、噪声处理策略
+
+### 2026-09-23  开发计划 E2E 用例第二批：14a 去浮动假红 + 18a 护栏 + 层 9 场景校验修复
+
+- `[fix]` **14a：退避间隔断言的负载敏感假红已消除**（`test/e2e/scenarios_wbtest.mbt`）：`assert_retry_intervals` 原先对 `[2000, 20000]ms` 上下界都判失败，高负载下 `@async.sleep` 膨胀到 22,768ms 越界即 `panic()`，整条测试二进制以 `0xc0000409` 崩溃（反馈报告 §四 P3 实测复现）。现**只保留下界判失败**（sleep 只会因 CPU 争抢变长、不会变短，"未退避"才是可靠失败信号），**上界改为仅打印 `[diag]` 诊断**；新增不 sleep 的确定性用例（合成时间数组：5s / 22,768ms / 多段 31,000ms）。退避精确值仍由层 1 `lib/agent/llm_caller_wbtest.mbt` 承担。
+- `[test]` **18a：真实 hook 加载路径护栏**（新增 `cmd/hook_loader_wbtest.mbt`，4 例）：覆盖 `load_shell_hooks` 的缺目录→空列表、TOML `[[hook]]` 分节/引号剥离/`enabled=false`、JSON `{"hooks":[…]}` 且跳过无名条目、以及混入 `.txt` 与畸形内容不抛错。目的：#18 要删除的是被替代的平行设计 `lib/hook/shell_loader.mbt`（生产代码零调用），先给幸存真实路径（已接 `cmd/main.mbt:998` 与 `hook verify`）加护栏。临时产物落 `_build/hook_loader_wbtest/`。
+- `[test]` **层 9 三个并发写出的场景经核对后修复两处可证缺陷**（`test/journey/scenarios/`）：
+  - `web_session_updated_at_order.json`（4b）：`capture: "id_a"` 不是合法的响应 JSON 路径（创建响应为 `{"session":{...}}`；且 capture 的键**就是**路径、两次捕获互相覆盖）→ 改为只捕获 `session.id`（B 不捕获）；终局断言由 `sessions.0.id == {capture:id_a}`（缺 stringify 形式，必失败）改为**确定性会话名** `sessions.0.name == "J-Ordered-A"`，同时避开秒级时间戳同秒相等导致的抖动；description 写明两条编写要点。
+  - `web_error_body_json_safety.json`（2b）：向量原为百分号编码 `a%22b%7Bc%7D`，但 crescent `Event::param` **不做 URL 解码**（`lib/web` 全仓无 `param_decoded` 调用，见 `.mooncakes/hnlyxiaobing/crescent/param.mbt:4` 注释），到达 handler 时仍是字面量、根本不进入转义路径（用例会静默失效）→ 已由并发会话改为原样引号，本次补 description 说明"为何不能改回编码"。
+- `[test]` **层 9/层 1 用例全量核对**：逐份核对了并发会话同期写出的 1b（`web_backup_download_archive`）、3a（`cli_stdout_json_clean`）、4a（`lib/web/handlers_wbtest.mbt`）——**1b 通过**（`handle_backups_create` 返回 201 且响应根级有 `id`，故 `capture: "id"` 成立；`response_to_core` 已扩展 `body_bytes → raw_body` 并搬运 headers，ZIP 与 `Content-Disposition` 能过桥）；**4a 通过**（真实投影 + 旧会话回落各一例）；**3a 基本通过**，但其中 `stdout_not_contains "[skills]"` 目前是 vacuous（`lib/agent/skill_manager.mbt:37` 的同名覆盖告警在旅程沙箱不会触发，做实需 home 种子）。至此**所有未阻塞的用例均已落地**；剩余 7a/8a/9a、10a/10b、12a、13a、20a 等待 #7/#8/#9、#10、#12、#13、#20 实现。
+- `[docs]` `docs/development-plan-2026-09-23.md` §7.3/§7.5：14a 落地方式写实；4a/1b 改判为已落地并记录核对依据；剩余阻塞项逐条列明。
+- `[chore]` **台账闭环**：并发落地的 #11/#4 移除了三处标记致 `known_gaps.sh check` 转红，按纪律 `generate` 重扫（86 → **84** 命中）并改判 curated 行——`handlers_backup.mbt:649/670` → `fixed`（#11：`build_backup_zip` + `application/zip` + 500 `json_status`，原 `not_found(Json::object().stringify())` 双层嵌套隐患一并清除）、`handlers_ws.mbt:283` → `fixed`（#4）；新增 `lib/agent/diagnostics.mbt:9` → `retracted`（注释里的 "stub" 指实现 stderr 路由的 C stub 本体，非占位，建议并入 §抑制规则 的 C 辅助文件族）。`scripts/repo_stats.sh generate --test-count 3994`（测试文件 229→232、测试行数、总行数同步）。
+- **验证**：`moon test test/e2e --filter "*load-inflated*"` **1 passed**（打印两条 `[diag]`，22,768ms / 26,000ms 不再判失败）；`moon test cmd --filter "load_shell_hooks*"` **4 passed**；发布口径全量 **3,994/3,994**、`lib/mcp` **96/96**、`moon check -d` **全绿**（并发会话已完成 #3 的 FFI 标注修复）；`repo_stats.sh check` 与 `known_gaps.sh check`（84 命中 / 161 curated）复验绿。**如实说明**：层 9 五个新场景本次**未跑** `cmd journey`——另一会话可能同时运行运行器（运行手册规定"一次只跑一个"），且失败会写入 `docs/journey-failures.md` 台账。
+
+### 2026-09-23  开发计划的 E2E 用例首批落地（测试基建 P-A/P-B + Spec A 复现用例 1a/2a）
+
+- `[test]` **JSON 路径支持数组下标（P-A）**：`journey_json_walk`（`test/journey/context.mbt`）与 `json_path_value`（`test/web/web_e2e_adapter.mbt`）此前只走对象键，列表类端点（如会话列表排序）无法断言；现支持数字段索引（`sessions.0.updated_at`），越界或段落类型不匹配返回 `None`（判失败）。新增 `test/journey/context_wbtest.mbt` 3 例（对象键 / 数组下标 / 越界与类型不匹配）。
+- `[test]` **断言词表 29 → 32 种（P-B）**：新增 `stdout_not_contains`、`stderr_not_contains`、`json_path_ne`（枚举 + 解析 + 序列化 + journey 求值）。`json_path_ne` 语义为"路径必须解析成功且值不同"——路径缺失不算"不同"。新增 `test/eval/assertions_wbtest.mbt` 覆盖解析/序列化往返。
+- `[test]` **Spec A 复现用例 1a/2a + 自移除闸门**：新增 `lib/web/response_fidelity_wbtest.mbt`——1a 表驱动断言 `response_to_core` 必须保留真实状态码（现状 5xx/429 全落 `_ => ok()`；现存受害者是 `/api/backup/download/:id` 的诚实 501 被吞成 200）；2a 断言错误响应体在用户输入含引号/花括号/换行时仍是合法 JSON（现状 `router.mbt:113/125` 直接插值）。两条用例经 `plan_fix_pending` 闸门在修复前保持 CI 绿，**闸门临时清空已验证确实转红**（`200 != 429`、`error body is not valid JSON: {"error":"a"b{c}…`），修复提交移除对应 id 即闭环——与 `test/diff` 的 `known_failure` 同一精神，编号属本计划工作项。
+- `[docs]` `docs/testing.md` 断言词表计数由陈旧的"20 种"更正为 32（本次实际新增 3 种）并注明路径断言的数组下标支持；`test/journey/README.md` 同步新断言与路径语义；`docs/development-plan-2026-09-23.md` §7.2/§7.5 记录进度（**4a 暂缓**：`SessionData` 尚无 `updated_at` 字段，用例无法在修复前编译，待 Spec C 引入后同批落地；**层 9 用例 1b/2b/3a/4b 暂缓**：提前写入会让 `cmd journey` 把已知待修项写进台账、污染失败信号）。
+- `[chore]` `scripts/repo_stats.sh generate --test-count 3987`（测试文件 226→229、测试行数 63,062→63,214、总行数 164,438→164,590、用例数 3,981→3,987）；`repo_stats.sh check` 与 `known_gaps.sh check`（86 命中 / 160 curated）复验绿。
+- **验证**：`moon check -d` 0 错 0 警；全量 scoped `moon test --release` **4,083/4,083**（发布口径 3,987 + `lib/mcp` 96，与新增 6 例吻合）。
+
 ### 2026-09-23  用户旅程 E2E 工作流（层 9 · cmd journey）：代替日常手工验证
 
 - `[feat]` **`cmd journey` 子命令 + `test/journey/` 运行器**：驱动**真实编译产物**走 13 条端到端用户旅程（Web WS 聊天 5 / TUI 交互 3 / 持久化与重启恢复 3 / CLI 一次性 2），上游统一为进程内 MockLlmServer（`test/e2e` 原样复用、剧本格式一致）。单进程托管 mock + WS journal + 子进程：server/CLI 子进程以 USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 环境覆盖注入沙箱（`_build/journey/<stamp>/<id>/{home,workspace}`），种子 config 默认模型指向 mock——绝不触碰真实 `~/.mbopenclacky`。退出码契约 0/1/2/3 区分全绿/产品红/用法错/运行器坏（调度器可报警「运行器坏」）；三级看门狗（步级超时 + 旅程级超时 + 子进程硬杀 + no_wait 后台任务取消），任何路径不挂起。

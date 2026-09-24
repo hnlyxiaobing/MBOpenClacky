@@ -1,0 +1,24 @@
+{
+  "id": "web_error_body_json_safety",
+  "title": "Error bodies stay valid JSON with hostile input",
+  "area": "web",
+  "description": "用户输入进入错误消息（/api/channels/:id/send 的 \"Channel not found: <id>\"）时，响应体必须仍是合法 JSON。此前 bad_request/not_found 直接插值 message，含引号即产出不可解析的 JSON。向量必须是**原样引号**：crescent 的 Event::param 不做 URL 解码（lib/web 全仓无 param_decoded 调用，见 .mooncakes/hnlyxiaobing/crescent/param.mbt:4 注释），百分号编码到 handler 时仍是字面量、不会进入转义路径，改回编码会让本用例静默失效。期望值为 stringify 形式（字符串值带引号）。",
+  "timeout_ms": 90000,
+  "llm_steps": [],
+  "phases": [
+    { "name": "hostile_channel_id", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/channels/a\"b{c}/send", "body": "{\"message\":\"x\",\"chat_id\":\"y\"}", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 404 },
+        { "type": "json_path_eq", "path": "error", "value": "\"Channel not found: a\\\"b{c}\"" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_eq", "status": 404 }
+  ]
+}

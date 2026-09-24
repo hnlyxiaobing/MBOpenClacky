@@ -1,0 +1,26 @@
+{
+  "id": "cli_stdout_json_clean",
+  "title": "Machine-readable stdout stays clean",
+  "area": "cli",
+  "description": "非交互 --json 模式下 stdout 必须只承载 JSON 载荷：诊断行（[stream-summary]、[skills] 冲突告警）改走 stderr。此前它们经 println 落 stdout，迫使契约声明「JSON 是 stdout 最后一行」。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "你好，有什么可以帮你？", "usage": { "prompt_tokens": 100, "completion_tokens": 20 } } }
+  ],
+  "phases": [
+    { "name": "run", "steps": [
+      { "action": "spawn_cli", "message": "打个招呼", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "stdout_not_contains", "text": "[stream-summary]" },
+    { "type": "stdout_not_contains", "text": "[skills]" },
+    { "type": "stderr_contains", "text": "[stream-summary]" },
+    { "type": "mock_request_count", "min": 1, "max": 1 }
+  ]
+}

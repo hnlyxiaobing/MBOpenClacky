@@ -14,7 +14,7 @@ moon run cmd --message "Hello"           # Non-interactive mode
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')   # Full suite (native, scoped)
 moon test lib/agent --filter "session*"     # Targeted test run
 cmd.exe eval --offline --repo .             # Layer 6 deterministic tool eval (in CI)
-cmd.exe journey --repo .                    # Layer 9 user-journey E2E (real binary + mock upstream, 13 journeys)
+cmd.exe journey --repo .                    # Layer 9 user-journey E2E (real binary + mock upstream, 18 journeys)
 moon update && moon install                 # Sync dependencies
 moon fmt <changed files>                    # Format only what you touched
 moon info                                   # Verify public API changes
@@ -39,7 +39,7 @@ moon info                                   # Verify public API changes
 - Eval framework tests live in `test/` (e.g. `test/eval/eval_engine_wbtest.mbt`).
 - Validate after every edit: `moon check` then relevant `moon test` scope. To judge the whole repo as clean use `moon check -d` — `moon check <pkg-path>` can miss errors in sub-packages (and may report "no work to do").
 - Layer 4 scenario replay (in-process, manual): `moon build --target native --release cmd` then `cmd.exe eval --tui test/scenarios/tui/` (Web: `eval --web test/scenarios/web/`; `--format text|json|markdown`). The unified `eval` subcommand replaced the old top-level `--tui-eval`/`--web-eval` flags.
-- **Layer 9 user-journey E2E (automated, replaces manual daily testing)**: drives the REAL binary through 13 end-to-end journeys (Web WS chat / TUI / persistence+restart / CLI `--message`) against an in-process mock LLM upstream, with sandboxed per-journey homes and three-level watchdogs (never hangs). Trigger: `moon build --target native --release cmd` then `cmd.exe journey --repo .` (add `--filter <id-prefix> --verbose` to debug one area). Exit codes: `0` all green, `1` product red (≥1 journey failed), `2` usage, `3` runner/infra broken. Failures auto-write an evidence bundle to `_build/journey/<stamp>/<id>/` and upsert the committed ledger `docs/journey-failures.md` — a scenario that goes green again auto-closes its ledger row (the fix loop). Unattended: a Windows scheduled task `MBOpenClacky Journey E2E` (daily 08:30, build-then-run) is registered on this machine; runbook and full schema in `test/journey/README.md`, spec in `specs/draft/2026-09-23_journey-e2e-runner.md`.
+- **Layer 9 user-journey E2E (automated, replaces manual daily testing)**: drives the REAL binary through 18 end-to-end journeys (Web WS chat 9 / TUI 3 / CLI 6) against an in-process mock LLM upstream, with sandboxed per-journey homes and three-level watchdogs (never hangs). Trigger: `moon build --target native --release cmd` then `cmd.exe journey --repo .` (add `--filter <id-prefix> --verbose` to debug one area). Exit codes: `0` all green, `1` product red (≥1 journey failed), `2` usage, `3` runner/infra broken. Failures auto-write an evidence bundle to `_build/journey/<stamp>/<id>/` and upsert the committed ledger `docs/journey-failures.md` — a scenario that goes green again auto-closes its ledger row (the fix loop). Unattended: a Windows scheduled task `MBOpenClacky Journey E2E` (daily 08:30, build-then-run) is registered on this machine; runbook and full schema in `test/journey/README.md`, spec in `specs/draft/2026-09-23_journey-e2e-runner.md`.
 
 ## Commit Guidelines
 
