@@ -125,6 +125,10 @@ pub fn build_skills_summary(skills : Array[Skill]) -> String {
 ///  1. default-source skills first, alphabetical (stable baseline).
 ///  2. user-installed skills after, by directory mtime descending (LRU),
 ///     ties broken alphabetically.
+///
+/// NOTE: alpha ordering uses `@utils.compare_lexicographic`, not core
+/// `String::compare` — the core one is shortlex (length before content), so
+/// `"new".compare("deploy") < 0` even though Ruby's `String#<=>` says `> 0`.
 fn order_skills_for_prompt(skills : Array[Skill]) -> Array[Skill] {
   let default_skills : Array[Skill] = []
   let user_skills : Array[Skill] = []
@@ -135,13 +139,13 @@ fn order_skills_for_prompt(skills : Array[Skill]) -> Array[Skill] {
       user_skills.push(skill)
     }
   }
-  default_skills.sort_by(fn(a, b) { a.name.compare(b.name) })
+  default_skills.sort_by(fn(a, b) { @utils.compare_lexicographic(a.name, b.name) })
   user_skills.sort_by(fn(a, b) {
     let ma = directory_mtime(a.directory)
     let mb = directory_mtime(b.directory)
     // mtime descending; on tie, name ascending.
     if ma == mb {
-      a.name.compare(b.name)
+      @utils.compare_lexicographic(a.name, b.name)
     } else if ma > mb {
       -1
     } else {

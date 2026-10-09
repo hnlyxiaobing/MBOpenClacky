@@ -24,6 +24,8 @@ pub fn change_dir(String) -> Unit
 
 pub fn ci_provider_name() -> String?
 
+pub fn compare_lexicographic(String, String) -> Int
+
 pub fn config_dir() -> String?
 
 pub fn config_file() -> String?

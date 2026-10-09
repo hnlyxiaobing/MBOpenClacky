@@ -30,11 +30,16 @@ test "build_skills_summary: within 30 cap lists all skills" {
 test "build_skills_summary: 30 cap drops overflow with hint" {
   let skills = make_skills(35, "builtin")
   let summary = build_skills_summary(skills)
-  // First 30 (alphabetical) shown.
+  // First 30 in Ruby `String#<=>` order: skill-0, skill-1, skill-10 … skill-4.
+  // Note the order is lexicographic, so "skill-34" (rank 29) is kept while
+  // "skill-5" (rank 31) is dropped.
   assert_true(summary.find("skill-0") is Some(_))
   assert_true(summary.find("skill-29") is Some(_))
+  assert_true(summary.find("skill-34") is Some(_))
+  assert_true(summary.find("skill-4") is Some(_))
   // Overflow dropped.
-  assert_true(summary.find("skill-34") is None)
+  assert_true(summary.find("skill-5") is None)
+  assert_true(summary.find("skill-9") is None)
   // Hint mentions the dropped count.
   assert_true(summary.find("more skill(s)") is Some(_))
   assert_true(summary.find("5") is Some(_))
@@ -91,4 +96,25 @@ test "build_skills_summary: uses context_description truncation" {
   // The truncated description (339 + ellipsis) must not appear verbatim.
   assert_true(summary.find(long) is None)
   assert_true(summary.find("D".repeat(339)) is Some(_))
+}
+
+///|
+/// BUG-0075 regression: default skills are ordered by Ruby's `String#<=>`
+/// (code-unit lexicographic), not MoonBit's shortlex `String::compare`, which
+/// would yield zeta, alpha, deploy, media-gen for the input below.
+test "build_skills_summary: default skills lexicographic (BUG-0075)" {
+  let skills : Array[Skill] = [
+    { ..Skill::default("zeta", "builtin"), description: Some("z") },
+    { ..Skill::default("deploy", "builtin"), description: Some("d") },
+    { ..Skill::default("media-gen", "builtin"), description: Some("m") },
+    { ..Skill::default("alpha", "builtin"), description: Some("a") },
+  ]
+  let summary = build_skills_summary(skills)
+  let expected : Array[String] = ["alpha", "deploy", "media-gen", "zeta"]
+  let mut prev = -1
+  for name in expected {
+    let pos = summary.find(name).unwrap()
+    assert_true(pos > prev)
+    prev = pos
+  }
 }

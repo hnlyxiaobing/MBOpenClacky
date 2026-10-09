@@ -44,23 +44,6 @@ fn dirs_fwd_slashes(path : String) -> String {
 }
 
 ///|
-/// Lexicographic (code-unit) comparison matching Ruby's `String#<=>`, which
-/// orig's `sort_by { it[:name].downcase }` relies on. Core `String::compare`
-/// is shortlex (length first), which would order e.g. "zeta" before "alpha".
-fn dirs_lex_compare(a : String, b : String) -> Int {
-  let ca = a.to_array()
-  let cb = b.to_array()
-  let n = if ca.length() < cb.length() { ca.length() } else { cb.length() }
-  for i = 0; i < n; i = i + 1 {
-    let order = ca[i].compare(cb[i])
-    if order != 0 {
-      return order
-    }
-  }
-  ca.length().compare(cb.length())
-}
-
-///|
 /// Parent directory of `path`, accepting both `/` and `\` separators.
 /// `@path.Path::dirname` only recognizes the platform separator, but the
 /// picker frontend sends `/`-joined paths even on Windows (orig Ruby File
@@ -182,7 +165,12 @@ fn handle_dirs_list(
       dir_names.push(name)
     }
   }
-  dir_names.sort_by(fn(a, b) { dirs_lex_compare(a.to_lower(), b.to_lower()) })
+  // Ruby `sort_by { it[:name].downcase }`: case-insensitive lexicographic
+  // order, not core `String::compare` (shortlex — see
+  // `@utils.compare_lexicographic`).
+  dir_names.sort_by(fn(a, b) {
+    @utils.compare_lexicographic(a.to_lower(), b.to_lower())
+  })
   let items : Array[Json] = []
   for name in dir_names {
     let full = @path.Path::join(@path.Path(target), @path.Path(name)).to_string()
