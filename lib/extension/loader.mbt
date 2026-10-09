@@ -43,8 +43,7 @@ pub fn load_extensions_from_source(
 /// Get the directory path for a specific source.
 pub fn get_source_directory(source : ExtensionSource) -> String {
   match source {
-    ExtensionSource::Builtin =>
-      @path.Path::join(@utils.current_dir(), @path.Path("assets/extensions")).to_string()
+    ExtensionSource::Builtin => @utils.assets_path("extensions")
     ExtensionSource::Installed =>
       match @utils.home_dir() {
         Some(home) =>

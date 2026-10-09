@@ -48,7 +48,7 @@ fn handle_agent_skills(
   // Return skills filtered for this agent type.
   // For now, return all skills as available for any agent.
   let user_dir = agent_skills_user_dir()
-  let builtin_dir = "assets/skills"
+  let builtin_dir = @utils.assets_path("skills")
   let skills : Array[Json] = []
   for pair in agent_scan_skills_dir(builtin_dir, "builtin") {
     skills.push(pair.1)
@@ -115,7 +115,7 @@ fn agent_extract_skill_desc(content : String) -> String {
 ///|
 fn load_agents_from_assets() -> Array[Json] {
   let result : Array[Json] = []
-  let base_dir = "assets/agents"
+  let base_dir = @utils.assets_path("agents")
   if !@fs.path_exists(base_dir) {
     return result
   }

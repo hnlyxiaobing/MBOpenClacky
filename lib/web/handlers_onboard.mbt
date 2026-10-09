@@ -318,6 +318,7 @@ fn handle_onboard_complete(
     ".",
     client,
     server_ref.val.config,
+    profile="coding",
   )
   // User-global and project-level skills become available to invoke_skill.
   agent.discover_workspace_skills()

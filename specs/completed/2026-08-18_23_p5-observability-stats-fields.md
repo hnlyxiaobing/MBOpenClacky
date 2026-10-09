@@ -151,3 +151,12 @@ MoonBit 约束检查：不涉及动态加载 trait、不涉及 FFI、不新增�
 |------|---------|------|
 | 2026-08-14 | 初始版本 | P5 归并分析 FU-14（BUG-0006/0034/0035） |
 | 2026-08-14 | 并入 BUG-0051（usage 归一化丢失 cached_tokens，任务包 2） | P5 新登记条目，同属可观测性/统计字段族 |
+| 2026-10-09 | 修正任务包 3 第 2 条的 `display_text` 出网条件（见下方追加说明），同步更新 `test/e2e/scenarios_wbtest.mbt` 断言 | B0-10 差分复跑（剧本 015）抓包证实原实现与 Ruby 语义不一致 |
+
+### 追加说明（2026-10-09，B0-10 收尾；不删旧版条目）
+
+- **旧版前提（本 spec 任务包 3 第 2 条）**：「user 消息序列化补 `display_text: null`/`display_files: null`」，即 wire 层为**所有** user 消息补齐这两个键。
+- **实测推翻（剧本 015 抓包，证据 `reports/p3/015_diff_after.md`）**：Ruby 侧只有**真实用户回合**（`agent.rb:1026-1032`）的 message hash 携带 `display_text`；由系统注入的回合——session context（`agent.rb:2875-2881`）、`[SYSTEM]` 重试提示（`agent.rb:1128/1137`）、压缩指令（`agent.rb:1274`）——**均不携带**。`display_files` 两侧 wire 上均不出现。
+- **现实现**：`lib/client/format_openai.mbt` 以 `msg.system_injected != Some(true)` 门控 `display_text` 写入；`lib/message/history.mbt` 的 `strip_internal_fields(msg, keep_system_injected)` 在 `to_api` 传 `false`、`to_api_cleaned` 传 `true`，保证标记在压缩/清洗链路上不被提前清空。
+- **断言同步**：`test/e2e/scenarios_wbtest.mbt::assert_observability_fields(requests, user_prompt)` 改为按「场景提示词是否出现在 content 中」判定真实用户回合——真实回合必须带 `display_text`，系统注入回合不得带，`display_files` 一律不得出现（原「所有 user 消息必须带 `display_text`」的断言即本 spec 旧前提的编码，已按 Ruby 语义改写，非放宽）。
+- **回归证据**：`moon test test/e2e` 15/15 通过；`scripts/compare_system_prompt.py` 015/016 head 逐行一致。

@@ -141,16 +141,22 @@ fn assert_system_prompt_stable(requests : Array[String]) -> Unit {
 }
 
 ///|
-/// 断言请求体携带 observability 字段（spec 2026-08-18_23 / BUG-0034 / BUG-0035）。
+/// 断言请求体携带 observability 字段（spec 2026-08-18_23 / BUG-0034 / BUG-0035 / BUG-0069）。
 ///
-/// - 每个 user 消息必须含 `display_text` 与 `display_files` 键（可为 null；
-///   spec 选项 A：user 始终序列化，对齐 Ruby hash-passthrough）。
+/// - user 消息按 Ruby 的「原始 hash 直通 + INTERNAL_FIELDS 黑名单」语义出网：
+///   只有**真实用户回合**（content 含场景提示词 `user_prompt`）带 `display_text`
+///   键（可为 null）；system 注入回合（session context / `[SYSTEM]` 重试提示 /
+///   压缩指令）在 Ruby 侧构造时 hash 里就没有该键，故 wire 上不得出现。
+///   （BUG-0069 依据：openclacky `lib/clacky/agent/agent.rb:1026-1032` 只在真实
+///   用户回合的 hash 字面量里写 `display_text`，session context 注入点
+///   `agent.rb:2875-2881` 不写；MB 侧等价载体是 `system_injected`。）
+///   `display_files` 同属 INTERNAL_FIELDS，wire 上剥离，两侧都不应出现。
 /// - 每个非首次请求中的 assistant 消息必须含非 null 的 `latency` 键
 ///   （react 在 LLM 返回后挂上，反映本次调用端到端耗时）。
 ///
 /// 此断言不校验 latency 的具体值（量级由各 LLM 后端的 timing 决定），
 /// 只校验"字段被正确写入并出现在出站请求体里"这一链路事实。
-fn assert_observability_fields(requests : Array[String]) -> Unit {
+fn assert_observability_fields(requests : Array[String], user_prompt : String) -> Unit {
   for ri, req in requests {
     let body = @json.parse(req) catch { _ => continue }
     guard jget(body, "messages") is Some(msgs_json) else { continue }
@@ -160,16 +166,29 @@ fn assert_observability_fields(requests : Array[String]) -> Unit {
         continue
       }
       if role == "user" {
-        // user 消息始终携带 display_text / display_files（可为 null）
-        guard jget(m, "display_text") is Some(_) else {
-          println(
-            "FATAL: req\{ri} user 消息缺 display_text 字段（spec 2026-08-18_23 选项 A）",
-          )
+        // BUG-0069 对齐：display_files 是 Ruby INTERNAL_FIELDS，wire 上不应泄漏
+        if jget(m, "display_files") is Some(_) {
+          println("FATAL: req\{ri} user 消息泄漏了 internal 字段 display_files")
           panic()
         }
-        guard jget(m, "display_files") is Some(_) else {
+        let is_real_user_turn = match jget(m, "content") {
+          Some(c) =>
+            match jstr(c) {
+              Some(text) => text.contains(user_prompt)
+              None => false
+            }
+          None => false
+        }
+        if is_real_user_turn {
+          guard jget(m, "display_text") is Some(_) else {
+            println(
+              "FATAL: req\{ri} 真实用户回合缺 display_text 字段（spec 2026-08-18_23 选项 A）",
+            )
+            panic()
+          }
+        } else if jget(m, "display_text") is Some(_) {
           println(
-            "FATAL: req\{ri} user 消息缺 display_files 字段（spec 2026-08-18_23 选项 A）",
+            "FATAL: req\{ri} system 注入回合携带了 display_text 字段（BUG-0069 对齐：Ruby 侧该类 hash 无此键）",
           )
           panic()
         }
@@ -191,7 +210,7 @@ fn assert_observability_fields(requests : Array[String]) -> Unit {
 }
 
 ///|
-/// 断言 session context 注入（spec 2026-08-18_29 / BUG-0033）。
+/// 断言 session context 注入（spec 2026-08-18_29 / BUG-0033 / BUG-0069）。
 ///
 /// - 按日去重（决策 3/4）：每天最多 1 条 session-context 消息 —— 单场景单次
 ///   run 只注入 1 条；该消息会随 history 出现在后续每个请求中，因此全序列
@@ -201,8 +220,8 @@ fn assert_observability_fields(requests : Array[String]) -> Unit {
 ///   "OS:" 段（决策 2）；Desktop 不可探测时省略 "Desktop:" 段（决策 2/3，
 ///   e2e 的 USERPROFILE 指向无 Desktop 的临时 home，必被省略；若出现则
 ///   必须是 /mnt/<drive> 形式）。
-/// - wire 上必须带 `session_date`（= 今天日期）与 `session_context: true`
-///   （决策 4：session_date 泄露进 wire JSON）。
+/// - wire 上必须带 `session_date`（= 今天日期）；`session_context` 是 Ruby
+///   INTERNAL_FIELDS 内部标记，wire 上必须已剥离（BUG-0069 对齐）。
 fn assert_session_context(requests : Array[String]) -> Unit raise {
   let unique_contents : Array[String] = []
   let today = @agent.current_iso8601()[:10].to_owned()
@@ -212,16 +231,21 @@ fn assert_session_context(requests : Array[String]) -> Unit raise {
     guard jarr(msgs_json) is Some(msgs) else { continue }
     let mut ctx_in_req = 0
     for m in msgs {
-      guard jget(m, "session_context") is Some(_) else { continue }
-      ctx_in_req = ctx_in_req + 1
       guard jget(m, "content") is Some(c) && jstr(c) is Some(content) else {
-        println("FATAL: req\{ri} session-context 消息缺 content 文本")
+        continue
+      }
+      if !content.has_prefix("[Session context: Today is ") {
+        continue
+      }
+      ctx_in_req = ctx_in_req + 1
+      // BUG-0069 对齐：session_context 标记属于 internal fields，不应出现在 wire JSON
+      if jget(m, "session_context") is Some(_) {
+        println("FATAL: req\{ri} session-context 消息泄漏了 internal 字段 session_context")
         panic()
       }
       if !unique_contents.contains(content) {
         unique_contents.push(content)
       }
-      assert_true(content.has_prefix("[Session context: Today is "))
       assert_true(content.contains("Current model: mock-model."))
       assert_true(content.contains("Working directory: "))
       assert_true(content.has_suffix("]"))
@@ -254,7 +278,7 @@ async test "001 read_edit_file：读文件→编辑→回复完成" {
   // 证据: diff-harness runs/001_read_edit_file/ruby/
   assert_golden(outcome, golden("001_read_edit_file"))
   // BUG-0034 / BUG-0035 回归：出站请求必须带 observability 字段
-  assert_observability_fields(outcome.requests)
+  assert_observability_fields(outcome.requests, "把 config.yaml 里的端口改成 9090")
   // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
   assert_session_context(outcome.requests)
 }
@@ -295,7 +319,7 @@ async test "003 multi_turn_tool_sequence：read→edit→read 验证→完成" {
   // 证据: diff-harness runs/003_multi_turn_tool_sequence/ruby/
   assert_golden(outcome, golden("003_multi_turn_tool_sequence"))
   // BUG-0034 / BUG-0035 回归：多轮场景下 observability 字段必须全程携带
-  assert_observability_fields(outcome.requests)
+  assert_observability_fields(outcome.requests, "把 app.conf 里的 debug 改成 true，改完再读一次确认")
   // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
   assert_session_context(outcome.requests)
 }

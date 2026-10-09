@@ -19,6 +19,20 @@ fn make_test_agent() -> Agent {
 }
 
 ///|
+/// Test agent carrying a real profile, so the system prompt exercises the
+/// full six-layer assembly (spec 2026-10-09_system-prompt-assembly-alignment).
+fn make_prompt_agent() -> Agent {
+  let client = @client.Client::new(
+    "test-key",
+    "https://api.test.com",
+    "test-model",
+    @config.OpenAICompletions,
+  )
+  let config = @config.AgentConfig::default()
+  Agent::new("test-session", "coding", "/tmp/test", client, config)
+}
+
+///|
 fn _make_anthropic_agent() -> Agent {
   let client = @client.Client::new(
     "test-key",
@@ -185,56 +199,67 @@ test "estimate_token_count" {
 
 ///|
 test "build_system_prompt_not_empty" {
-  let agent = make_test_agent()
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
   assert_true(prompt.length() > 0)
 }
 
 ///|
-test "build_system_prompt_has_brand_notice" {
-  let agent = make_test_agent()
+/// The hand-written confidentiality banner MB used to prepend has no
+/// counterpart in the Ruby builder and must not come back.
+test "build_system_prompt_omits_authored_brand_notice" {
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("CONFIDENTIAL") is Some(_))
+  assert_true(prompt.find("CONFIDENTIAL") is None)
 }
 
 ///|
 test "build_system_prompt_has_base_rules" {
-  let agent = make_test_agent()
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("Core Behavior") is Some(_))
+  assert_true(prompt.find("General Behavior") is Some(_))
 }
 
 ///|
-test "build_system_prompt_has_working_dir" {
-  let agent = make_test_agent()
+/// Ruby keeps the working directory out of the system prompt (it travels in
+/// the per-message session context instead).
+test "build_system_prompt_omits_working_dir" {
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("/tmp/test") is Some(_))
+  assert_true(prompt.find("/tmp/test") is None)
 }
 
 ///|
-test "build_system_prompt_has_model" {
-  let agent = make_test_agent()
+/// Same for the model name — Ruby never injects it into the prompt.
+test "build_system_prompt_omits_model" {
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("test-model") is Some(_))
+  assert_true(prompt.find("test-model") is None)
 }
 
 ///|
-test "build_system_prompt_has_environment" {
-  let agent = make_test_agent()
+/// The authored Environment layer (OS probe, date, desktop) was MB-only.
+test "build_system_prompt_omits_environment_section" {
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("Environment") is Some(_))
-  assert_true(prompt.find("Current date:") is Some(_))
-  assert_true(prompt.find("Operating System:") is Some(_))
+  assert_true(prompt.find("Environment") is None)
+  assert_true(prompt.find("Current date:") is None)
+  assert_true(prompt.find("Operating System:") is None)
 }
 
 ///|
-test "build_system_prompt_has_role_fallback" {
-  // Agent named "test-agent" has no profile files on disk,
-  // so build_system_prompt should fall back to the hardcoded Role.
-  let agent = make_test_agent()
+/// Layer order and section titles follow Ruby SystemPromptBuilder: the agent
+/// system prompt, then base.md, then the SOUL / USER sections.
+test "build_system_prompt_orders_agent_then_base_then_soul_user" {
+  let agent = make_prompt_agent()
   let prompt = agent.build_system_prompt()
-  assert_true(prompt.find("## Role") is Some(_))
-  assert_true(prompt.find("AI coding assistant") is Some(_))
+  let sp = prompt.find("AI coding assistant").unwrap()
+  let base = prompt.find("General Behavior").unwrap()
+  let soul_title = prompt.find("AGENT SOUL (from ~/.clacky/agents/SOUL.md)").unwrap()
+  let user_title = prompt.find("USER PROFILE (from ~/.clacky/agents/USER.md)").unwrap()
+  assert_true(sp < base)
+  assert_true(base < soul_title)
+  assert_true(soul_title < user_title)
 }
 
 ///|
@@ -244,10 +269,10 @@ test "detect_os_returns_nonempty" {
 }
 
 ///|
-test "format_prompt_section" {
-  let section = format_prompt_section("Title", "Content here")
-  assert_true(section.find("## Title") is Some(_))
-  assert_true(section.find("Content here") is Some(_))
+test "format_section" {
+  let sep = "=".repeat(80)
+  let section = format_section("Title", "Content here")
+  assert_eq(section, "\n" + sep + "\nTitle\n" + sep + "\nContent here\n" + sep)
 }
 
 ///|

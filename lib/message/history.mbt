@@ -107,7 +107,7 @@ pub fn MessageHistory::truncate_from(
 pub fn MessageHistory::to_api(self : MessageHistory) -> Array[Message] {
   let result : Array[Message] = []
   for msg in self.messages {
-    result.push(strip_internal_fields(msg))
+    result.push(strip_internal_fields(msg, false))
   }
   result
 }
@@ -129,7 +129,15 @@ pub fn MessageHistory::to_api_cleaned(
   for msg in copy.messages {
     match msg.transient {
       Some(true) => continue
-      _ => result.push(strip_internal_fields(msg))
+      // BUG-0069：这一层保留 `system_injected`（传 true），因为它对线格式层
+      // 仍有语义：Ruby 的请求体是「原始 hash 直通 + INTERNAL_FIELDS 黑名单
+      // 剥离」，所以「键是否存在」本身携带信息——`display_text` 只出现在真实
+      // 用户回合的 hash 里（agent.rb:1026-1032），system-injected 的注入消息
+      // （session context / 文件引用 / 压缩指令）键集合里没有它。MB 的等价
+      // 载体就是 `system_injected`。真正把它从请求体里抹掉的是线格式层
+      // （`to_api_message` / `to_anthropic_message`），而 `MessageHistory::to_api`
+      // 保持原契约（传 false，即清空）。
+      _ => result.push(strip_internal_fields(msg, true))
     }
   }
   result
@@ -441,13 +449,19 @@ pub fn MessageHistory::clear(self : MessageHistory) -> Unit {
 
 ///|
 /// Strip internal fields from a message, returning an API-ready copy.
-fn strip_internal_fields(msg : Message) -> Message {
+///
+/// `keep_system_injected`：是否保留 `system_injected` 标记。`to_api` 传 false
+/// （纯剥离视图，契约同 Ruby `INTERNAL_FIELDS` 黑名单）；`to_api_cleaned` 传
+/// true，因为该标记在到达线格式层之前还有语义（见 `to_api_cleaned` 里
+/// BUG-0069 的说明），最终由 `to_api_message` / 各线格式转换抹除。
+fn strip_internal_fields(msg : Message, keep_system_injected : Bool) -> Message {
   // Ruby tool-result messages carry no `name` field; upstreams may reject
   // or be sensitive to the extra key (matrix §4 item 1).
   let name = match msg.role {
     Tool => None
     _ => msg.name
   }
+  let system_injected = if keep_system_injected { msg.system_injected } else { None }
   {
     role: msg.role,
     content: msg.content,
@@ -462,7 +476,7 @@ fn strip_internal_fields(msg : Message) -> Message {
     session_context: msg.session_context,
     task_id: None,
     created_at: None,
-    system_injected: None,
+    system_injected,
     memory_update: None,
     subagent_instructions: None,
     subagent_result: None,

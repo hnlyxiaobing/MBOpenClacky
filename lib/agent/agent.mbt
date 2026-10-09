@@ -10,6 +10,10 @@ pub(all) struct Agent {
   // ── Identity & Session ─────────────────────────────────────────────
   mut session_id : String
   mut name : String
+  /// Agent profile driving the system prompt (Ruby `@agent_profile.name`).
+  /// Independent of `name`: `name` is the session's display name, while this
+  /// selects `assets/agents/<profile>/`. Defaults to "coding" like the CLI.
+  mut profile_name : String
   mut working_dir : String
   created_at : String
   source : AgentSource
@@ -136,16 +140,21 @@ pub extend FallbackState with Eq::{not_equal, equal}
 
 ///|
 /// Create a new agent with the given client and configuration.
+///
+/// `profile` selects the agent profile (Ruby `Agent#initialize(profile:)`);
+/// it defaults to "coding", matching the CLI's `--agent` default.
 pub fn Agent::new(
   session_id : String,
   name : String,
   working_dir : String,
   client : @client.Client,
   config : @config.AgentConfig,
+  profile? : String = "coding",
 ) -> Agent {
   {
     session_id,
     name,
+    profile_name: profile,
     working_dir,
     created_at: current_timestamp_iso(),
     source: Manual,
@@ -219,6 +228,24 @@ pub fn Agent::new(
 /// follow up with `save_session(agent.to_session_data())`.
 pub fn Agent::rename(self : Agent, new_name : String) -> Unit {
   self.name = new_name
+}
+
+///|
+/// Switch the agent profile (in-memory). Callers that need persistence should
+/// follow up with `save_session(agent.to_session_data())`.
+pub fn Agent::set_profile(self : Agent, profile : String) -> Unit {
+  self.profile_name = profile
+}
+
+///|
+/// Resolve the agent's profile, surfacing the failure instead of silently
+/// falling back: a missing profile drops the whole instruction stack
+/// (base.md, SOUL.md, USER.md and `agents/<profile>/system_prompt.md`).
+pub fn Agent::resolve_profile(self : Agent) -> Result[AgentProfile, String] {
+  let profile = AgentProfile::load_for_name(self.profile_name) catch {
+    err => return Err(@errors.error_message(err))
+  }
+  Ok(profile)
 }
 
 ///|

@@ -1,7 +1,8 @@
 ///|
 /// Regression tests for the agent profile loading chain (spec
-/// 2026-08-18_20 decision 7): profile.yml parsing, SOUL/USER agents-level
-/// resolution with bundled fallback, 1000-char truncation, and explicit
+/// 2026-08-18_20 decision 7, updated by the 2026-10-09 system-prompt-assembly
+/// spec): profile.yml parsing, SOUL/USER resolution from the user agents dir
+/// with built-in constant fallback, 1000-char truncation, and explicit
 /// not-found error.
 
 ///|
@@ -29,24 +30,32 @@ test "profile: unknown name raises explicit not-found error" {
 }
 
 ///|
-test "profile: build_system_prompt_section orders base → soul → user → agent" {
-  let profile = AgentProfile::load_for_name("coding") catch {
-    _ => AgentProfile::default_profile()
-  }
-  let section = profile.build_system_prompt_section()
-  assert_false(section.is_empty())
-  // base.md rules appear (General Behavior).
-  assert_true(section.contains("General Behavior"))
+/// The constants are the Ruby AgentProfile::DEFAULT_SOUL / DEFAULT_USER text
+/// and are what the system prompt falls back to when the user file is absent.
+test "profile: built-in SOUL/USER defaults match Ruby constants" {
+  assert_eq(default_soul_md(), DEFAULT_SOUL)
+  assert_eq(default_user_md(), DEFAULT_USER)
+  assert_true(DEFAULT_SOUL.contains("calm, precise, and helpful"))
+  assert_true(DEFAULT_USER.contains("No user profile configured yet"))
 }
 
 ///|
-test "profile: SOUL/USER resolve from bundled assets fallback" {
+test "profile: soul/user_profile resolve to non-empty text for any profile" {
   let profile = AgentProfile::load_for_name("general") catch {
     _ => AgentProfile::default_profile()
   }
-  // SOUL.md resolved (user override absent → bundled assets/agents/SOUL.md).
-  assert_true(profile.soul_content is Some(_))
-  assert_true(profile.user_content is Some(_))
+  // Either the user override or the built-in default — never empty.
+  assert_false(profile.soul().is_empty())
+  assert_false(profile.user_profile().is_empty())
+}
+
+///|
+/// Without a user override the profile falls back to the built-in constants,
+/// not to the bundled assets/agents/*.md display copies.
+test "profile: missing user file falls back to built-in constants" {
+  let p = AgentProfile::default_profile()
+  assert_eq(p.soul(), truncate_memory(DEFAULT_SOUL))
+  assert_eq(p.user_profile(), truncate_memory(DEFAULT_USER))
 }
 
 ///|

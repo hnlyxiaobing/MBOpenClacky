@@ -7,7 +7,10 @@
 // ── Helpers ───────────────────────────────────────────────────────
 
 ///|
-const BUILTIN_SKILLS_DIR = "assets/skills"
+/// Bundled skills root, anchored to the installation rather than the CWD.
+fn builtin_skills_dir() -> String {
+  @utils.assets_path("skills")
+}
 
 ///|
 fn user_skills_dir() -> String {
@@ -53,7 +56,7 @@ fn find_skill_dir(name : String) -> (String, String)? {
   if @fs.path_exists(user_path + "/SKILL.md") {
     return Some((user_path, "user"))
   }
-  let builtin_path = BUILTIN_SKILLS_DIR + "/" + name
+  let builtin_path = builtin_skills_dir() + "/" + name
   if @fs.path_exists(builtin_path + "/SKILL.md") {
     return Some((builtin_path, "default"))
   }
@@ -211,7 +214,7 @@ fn scan_skills(base_dir : String, source : String) -> Array[SkillScanEntry] {
 /// Merged scan of builtin + user skills (user overrides builtin by name).
 fn merged_skill_scan() -> Array[SkillScanEntry] {
   let merged : Map[String, SkillScanEntry] = Map([])
-  for entry in scan_skills(BUILTIN_SKILLS_DIR, "default") {
+  for entry in scan_skills(builtin_skills_dir(), "default") {
     merged.set(entry.name, entry)
   }
   for entry in scan_skills(user_skills_dir(), "user") {
@@ -518,7 +521,7 @@ pub fn handle_skills_delete(request : HttpRequest) -> HttpResponse {
       Err(e) => return HttpResponse::bad_request("Failed to delete skill: " + e)
     }
   }
-  if @fs.path_exists(BUILTIN_SKILLS_DIR + "/" + name + "/SKILL.md") {
+  if @fs.path_exists(builtin_skills_dir() + "/" + name + "/SKILL.md") {
     return HttpResponse::bad_request("Cannot delete builtin skill: " + name)
   }
   HttpResponse::not_found("Skill not found: " + name)
@@ -543,7 +546,7 @@ pub fn handle_skills_install(request : HttpRequest) -> HttpResponse {
     return HttpResponse::bad_request("Skill already installed: " + name)
   }
   // Prefer copying the builtin SKILL.md; fall back to store metadata skeleton.
-  let builtin_md = BUILTIN_SKILLS_DIR + "/" + name + "/SKILL.md"
+  let builtin_md = builtin_skills_dir() + "/" + name + "/SKILL.md"
   let content = if @fs.path_exists(builtin_md) {
     @fs.read_file_to_string(builtin_md) catch {
       _ => ""

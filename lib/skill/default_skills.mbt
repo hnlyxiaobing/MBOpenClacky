@@ -27,9 +27,11 @@ pub extend DefaultSkillMeta with Eq::{not_equal, equal}
 pub extend DefaultSkillMeta with ToJson::{to_json}
 
 ///|
-/// Directory containing the bundled built-in skills (CWD-relative, the
-/// same convention as the web layer's BUILTIN_SKILLS_DIR).
-pub const DEFAULT_SKILLS_DIR : String = "assets/skills"
+/// Directory containing the bundled built-in skills, anchored to the
+/// installation rather than the process CWD (which `--path` moves).
+pub fn default_skills_dir() -> String {
+  @utils.assets_path("skills")
+}
 
 ///|
 /// One scanned built-in skill: its frontmatter metadata plus the on-disk
@@ -116,7 +118,7 @@ fn scan_default_skill_entries(base_dir : String) -> Array[DefaultSkillEntry] {
 /// Get all built-in skill metadata (scanned from the bundled
 /// `assets/skills` directory).
 pub fn get_default_skill_metas() -> Array[DefaultSkillMeta] {
-  scan_default_skill_metas(DEFAULT_SKILLS_DIR)
+  scan_default_skill_metas(default_skills_dir())
 }
 
 ///|
@@ -173,7 +175,7 @@ pub fn is_default_skill(name : String) -> Bool {
 /// (context None) with source="builtin" and its real on-disk directory, so
 /// the body is lazily loaded on first use.
 pub fn register_default_skills(registry : SkillRegistry) -> Unit {
-  register_default_skills_from(registry, DEFAULT_SKILLS_DIR)
+  register_default_skills_from(registry, default_skills_dir())
 }
 
 ///|

@@ -311,7 +311,12 @@ fn handle_create_session(
     api_type,
   )
   let agent = @agent.Agent::new(
-    session_id, name, working_dir, client, session_config,
+    session_id,
+    name,
+    working_dir,
+    client,
+    session_config,
+    profile=agent_profile,
   )
   // User-global and project-level skills become available to invoke_skill.
   agent.discover_workspace_skills()
@@ -341,8 +346,7 @@ fn handle_create_session(
     Some(model_config.model),
     model_options,
   )
-  // to_session_data hardcodes agent_profile to "general"; apply the requested one.
-  let summary = SessionSummary::{ ..summary, agent_profile, }
+  // to_session_data now carries the real profile, so no patch-up is needed.
   let resp : Map[String, Json] = { "session": session_response_json(summary) }
   if model_fallback {
     resp["model_fallback"] = true.to_json()

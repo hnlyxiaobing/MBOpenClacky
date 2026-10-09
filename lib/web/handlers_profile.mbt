@@ -85,11 +85,18 @@ fn json_get_obj(j : Json, key : String) -> Json {
 // ── User/Soul content helpers ────────────────────────────
 
 ///|
-/// Path for user content file (user-editable override).
+/// Path for user content file (user-editable override). Lives under
+/// `agents/` so it is the same file the system prompt reads
+/// (Ruby PROFILE_USER_AGENTS_DIR = ~/.clacky/agents).
 fn profile_user_md_path() -> String? {
   match @utils.config_dir() {
     Some(d) =>
-      Some(@path.Path::join(@path.Path(d), @path.Path("USER.md")).to_string())
+      Some(
+        @path.Path::join(
+          @path.Path::join(@path.Path(d), @path.Path("agents")),
+          @path.Path("USER.md"),
+        ).to_string(),
+      )
     None => None
   }
 }
@@ -99,16 +106,22 @@ fn profile_user_md_path() -> String? {
 fn profile_soul_md_path() -> String? {
   match @utils.config_dir() {
     Some(d) =>
-      Some(@path.Path::join(@path.Path(d), @path.Path("SOUL.md")).to_string())
+      Some(
+        @path.Path::join(
+          @path.Path::join(@path.Path(d), @path.Path("agents")),
+          @path.Path("SOUL.md"),
+        ).to_string(),
+      )
     None => None
   }
 }
 
 ///|
-/// Read a profile markdown file, falling back to builtin default.
+/// Read a profile markdown file, falling back to the built-in default body
+/// (Ruby http_server `_profile_read_file` → AgentProfile::DEFAULT_*).
 fn read_profile_md(
   user_path : String?,
-  builtin_path : String,
+  default_content : String,
 ) -> (String, Bool) {
   // Try user override first.
   match user_path {
@@ -121,9 +134,7 @@ fn read_profile_md(
       }
     None => ()
   }
-  // Fall back to builtin.
-  let content = @fs.read_file_to_string(builtin_path) catch { _ => "" }
-  (content, true)
+  (default_content, true)
 }
 
 ///|
@@ -156,11 +167,11 @@ fn handle_profile_get(
   // Read user/soul content.
   let (user_content, user_is_default) = read_profile_md(
     profile_user_md_path(),
-    "assets/agents/USER.md",
+    @agent.default_user_md(),
   )
   let (soul_content, soul_is_default) = read_profile_md(
     profile_soul_md_path(),
-    "assets/agents/SOUL.md",
+    @agent.default_soul_md(),
   )
   let user_path = match profile_user_md_path() {
     Some(p) => p

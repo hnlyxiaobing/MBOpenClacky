@@ -30,7 +30,12 @@ pub fn build_openai_request(
   let api_messages : Array[Json] = []
   for msg in messages {
     let api_msg = msg.to_api_message()
-    let json = normalize_openai_message(api_msg, vision_supported)
+    // BUG-0069：`to_api_message` 会剥掉 `system_injected`，但 Ruby 侧是否带
+    // `display_text` 键恰恰取决于「这条消息是否为 system 注入」——只有真实用户
+    // 回合的 hash 带该键（agent.rb:1026-1032）。所以在剥之前先取好这个判定，
+    // 传给序列化层。
+    let emit_display_text = msg.system_injected != Some(true)
+    let json = normalize_openai_message(api_msg, vision_supported, emit_display_text)
     api_messages.push(json)
   }
 
@@ -212,13 +217,17 @@ fn apply_reasoning_params(
 }
 
 ///|
-/// Add observability / display fields (latency, display_text, display_files)
-/// to the wire JSON object. Per spec 2026-08-18_23 option A:
+/// Add observability / display fields (latency, display_text) to the wire
+/// JSON object. Per spec 2026-08-18_23 option A:
 /// - assistant messages: include `latency` when set (mirrors Ruby
 ///   message_format/open_ai.rb hash-passthrough, which echoes the 7-field
 ///   latency hash verbatim).
-/// - user messages: always include `display_text` and `display_files`
-///   (null when unset, matching Ruby's nil-as-null serialization).
+/// - user messages: include `display_text` (null when unset, matching Ruby's
+///   nil-as-null serialization) **only for real user turns** —
+///   `emit_display_text` 由调用方依据原消息的 `system_injected` 传入（见
+///   `build_openai_request`）。`display_files` is NOT emitted: it is
+///   listed in Ruby's `MessageHistory::INTERNAL_FIELDS` and therefore stripped
+///   before the payload is built (BUG-0069).
 /// - other roles (system/tool): skipped — no observability fields defined.
 ///
 /// Also leaks the session-context fields into the wire payload (spec
@@ -229,6 +238,7 @@ fn apply_reasoning_params(
 fn add_observability_fields(
   msg : @message.Message,
   obj : Map[String, Json],
+  emit_display_text : Bool,
 ) -> Unit {
   match msg.latency {
     Some(v) => obj["latency"] = v
@@ -236,13 +246,21 @@ fn add_observability_fields(
   }
   match msg.role {
     @message.User => {
-      obj["display_text"] = match msg.display_text {
-        Some(s) => s.to_json()
-        None => Json::null()
-      }
-      obj["display_files"] = match msg.display_files {
-        Some(arr) => arr.to_json()
-        None => Json::null()
+      // BUG-0069：Ruby 对消息是「hash 直通 + 黑名单剥离」（`to_api` →
+      // `strip_internal_fields`），因此**键是否存在**决定它是否出网：
+      //   - `display_files` 在 `INTERNAL_FIELDS`（message_history.rb:13-19）里，
+      //     永远被剥离 → 这里不写。
+      //   - `display_text` 不在黑名单里，但只有真实用户回合才在
+      //     `@history.append` 里带上它（agent.rb:1026-1032）；session context
+      //     （agent.rb:2875-2881）、文件/上下文注入（agent.rb:1128/1137/1274）
+      //     等 system-injected 消息的键集合里根本没有该键，Ruby 侧不会出现。
+      //     故由调用方传入 `emit_display_text`（= 原消息非 system_injected），
+      //     因为 `to_api_message` 已把 `system_injected` 剥掉。
+      if emit_display_text {
+        obj["display_text"] = match msg.display_text {
+          Some(s) => s.to_json()
+          None => Json::null()
+        }
       }
     }
     _ => ()
@@ -261,12 +279,14 @@ fn add_observability_fields(
 ///|
 /// Normalize a message's content for the OpenAI API.
 /// Strips image_url blocks when vision is not supported.
+/// `emit_display_text` 见 `add_observability_fields`（BUG-0069）。
 fn normalize_openai_message(
   msg : @message.Message,
   vision_supported : Bool,
+  emit_display_text : Bool,
 ) -> Json {
   match msg.content {
-    @message.Text(_) => message_to_json(msg)
+    @message.Text(_) => message_to_json(msg, emit_display_text)
     @message.Blocks(blocks) => {
       let filtered = normalize_content_blocks(blocks, vision_supported)
       if filtered.length() == 0 {
@@ -277,7 +297,7 @@ fn normalize_openai_message(
           ]),
         }
         add_tool_fields(msg, obj)
-        add_observability_fields(msg, obj)
+        add_observability_fields(msg, obj, emit_display_text)
         Json::object(obj)
       } else {
         let content_arr : Array[Json] = []
@@ -289,7 +309,7 @@ fn normalize_openai_message(
           "content": content_arr.to_json(),
         }
         add_tool_fields(msg, obj)
-        add_observability_fields(msg, obj)
+        add_observability_fields(msg, obj, emit_display_text)
         Json::object(obj)
       }
     }
@@ -298,13 +318,13 @@ fn normalize_openai_message(
 
 ///|
 /// Convert a Message to its JSON representation manually.
-fn message_to_json(msg : @message.Message) -> Json {
+fn message_to_json(msg : @message.Message, emit_display_text : Bool) -> Json {
   let obj : Map[String, Json] = {
     "role": msg.role.to_string_value().to_json(),
     "content": content_to_json(msg.content),
   }
   add_tool_fields(msg, obj)
-  add_observability_fields(msg, obj)
+  add_observability_fields(msg, obj, emit_display_text)
   match msg.name {
     Some(n) => obj["name"] = n.to_json()
     _ => ()

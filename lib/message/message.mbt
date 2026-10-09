@@ -47,9 +47,10 @@ pub(all) struct Message {
   tool_call_id : String?
   name : String?
   mut reasoning_content : String?
-  // Per-message observability / display fields (spec 2026-08-18_23
-  // decision 3 option A: aligned with Ruby's hash-passthrough behaviour
-  // where latency / display_text / display_files leak into the wire).
+  // Per-message observability / display fields. Ruby's MessageHistory
+  // strips a fixed key blacklist (INTERNAL_FIELDS) on the way out, which
+  // covers `display_files` / `session_context` but NOT `latency` /
+  // `display_text` / `session_date` — those reach the model.
   // `latency` is populated on assistant messages after the LLM call
   // returns; `display_text` / `display_files` are written on user
   // messages (typically null) so the TUI can show them later. Latency
@@ -61,8 +62,8 @@ pub(all) struct Message {
   // Session context metadata (spec 2026-08-18_29 / BUG-0033): the
   // injected session-context message carries the injection date so
   // per-day dedup can skip re-injection, and a marker that identifies
-  // it as session context. Both leak into the wire JSON like Ruby's
-  // hash-passthrough (session_date is a plain key in Ruby requests).
+  // it as session context. `session_date` is a plain key on the wire;
+  // `session_context` is internal-only (stripped by to_api_message).
   session_date : String?
   session_context : Bool?
   // Internal fields (stripped before API calls)
@@ -107,11 +108,9 @@ pub impl ToJson for Message with fn to_json(self) {
   if self.reasoning_content is Some(_) {
     obj["reasoning_content"] = ToJson::to_json(self.reasoning_content)
   }
-  // Per-message observability / display fields (spec 2026-08-18_23
-  // option A). `latency` is set on assistant messages by react after
-  // the LLM call; `display_text` / `display_files` are always emitted
-  // on user messages (as null when not populated) — mirrors Ruby's
-  // hash-passthrough behaviour.
+  // User-message display fields: `display_text` is always emitted (Ruby
+  // keeps the key even when nil); `display_files` only when populated —
+  // to_api_message clears it so it never reaches the model.
   match self.latency {
     Some(v) => obj["latency"] = v
     None => ()
@@ -122,9 +121,9 @@ pub impl ToJson for Message with fn to_json(self) {
         Some(s) => s.to_json()
         None => Json::null()
       }
-      obj["display_files"] = match self.display_files {
-        Some(arr) => arr.to_json()
-        None => Json::null()
+      match self.display_files {
+        Some(arr) => obj["display_files"] = arr.to_json()
+        None => ()
       }
     }
     _ => ()
@@ -334,9 +333,10 @@ pub fn Message::tool_result(
 ///|
 /// Return a copy of this message with internal fields stripped for API submission.
 ///
-/// Per spec 2026-08-18_23 (option A): `latency`, `display_text` and
-/// `display_files` are NOT stripped — they are part of the wire payload
-/// by design (mirrors Ruby's hash-passthrough behaviour).
+/// Mirrors Ruby MessageHistory#strip_internal_fields (an `INTERNAL_FIELDS`
+/// key blacklist): `latency`, `display_text` and `session_date` stay on the
+/// wire, while `display_files` and `session_context` are stripped along with
+/// the task/token/compression bookkeeping.
 pub fn Message::to_api_message(self : Message) -> Message {
   let name = match self.role {
     Tool => None
@@ -351,11 +351,11 @@ pub fn Message::to_api_message(self : Message) -> Message {
     reasoning_content: self.reasoning_content,
     latency: self.latency,
     display_text: self.display_text,
-    display_files: self.display_files,
-    // Session context fields leak into the wire payload by design
-    // (Ruby hash-passthrough, spec 2026-08-18_29 decision 4).
+    display_files: None,
+    // session_date stays (Ruby sends it as a plain key); session_context is
+    // in Ruby's INTERNAL_FIELDS and must not reach the model.
     session_date: self.session_date,
-    session_context: self.session_context,
+    session_context: None,
     task_id: None,
     created_at: None,
     system_injected: None,

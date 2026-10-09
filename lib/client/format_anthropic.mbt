@@ -155,8 +155,18 @@ fn normalize_effort(effort : String?) -> String? {
 
 ///|
 /// Compute the indices (into the regular-messages array) that should carry a
-/// message-level cache_control marker: the tail 2 non-injected messages when
-/// caching is enabled (mirrors Ruby `apply_message_caching`).
+/// message-level cache_control marker: the tail 2 messages.
+///
+/// Ruby's `apply_message_caching` (client.rb:605-628) *intends* to skip
+/// system-injected compression instructions via `is_compression_instruction?`,
+/// but that predicate is dead code: the `messages` reaching the client are
+/// already the output of `MessageHistory#to_api` (llm_caller.rb:110), whose
+/// `strip_internal_fields` (message_history.rb:377-379) removes
+/// `system_injected` — it is a member of `INTERNAL_FIELDS`
+/// (message_history.rb:13-19). 观察到的 Ruby 行为因此是「尾部 2 条，不跳过」
+/// ——这里显式不读 `system_injected` 来复刻该行为（BUGS.md BUG-0069 记录：
+/// 该标记现在会活着到达本层，若不显式停用跳过逻辑，Anthropic 线的
+/// cache_control 落点会与 Ruby 观察行为不一致）。
 fn cache_candidate_indices(
   messages : Array[@message.Message],
   enable_caching : Bool,
@@ -169,13 +179,7 @@ fn cache_candidate_indices(
     if result.length() >= 2 {
       break
     }
-    let is_injected = match messages[i].system_injected {
-      Some(true) => true
-      _ => false
-    }
-    if !is_injected {
-      result.push(i)
-    }
+    result.push(i)
   }
   result
 }

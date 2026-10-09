@@ -734,8 +734,11 @@ test "ext_message_from_json_session_context_roundtrip" {
 }
 
 ///|
-/// to_api_message keeps the session context fields (wire leak by design).
-test "ext_message_to_api_keeps_session_context" {
+/// to_api_message strips the internal fields Ruby's
+/// MessageHistory#strip_internal_fields removes — session_context included —
+/// while session_date stays on the wire.
+/// (Was "ext_message_to_api_keeps_session_context" before BUG-0069 was fixed.)
+test "ext_message_to_api_strips_session_context" {
   let msg : Message = {
     role: User,
     content: Text("ctx"),
@@ -759,8 +762,10 @@ test "ext_message_to_api_keeps_session_context" {
     transient: None,
   }
   let api = msg.to_api_message()
+  // session_context is part of Ruby's INTERNAL_FIELDS blacklist.
+  @debug.assert_eq(api.session_context, None)
+  // session_date is not in the blacklist, so it survives the strip.
   @debug.assert_eq(api.session_date, Some("2026-08-21"))
-  @debug.assert_eq(api.session_context, Some(true))
   // Plain messages stay clean on the wire.
   let plain = Message::user("hello")
   @debug.assert_eq(plain.to_api_message().session_date, None)

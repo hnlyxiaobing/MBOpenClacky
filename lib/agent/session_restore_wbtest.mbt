@@ -550,7 +550,7 @@ fn make_restore_agent() -> Agent {
     @config.OpenAICompletions,
   )
   let config = @config.AgentConfig::default()
-  Agent::new("test-session", "test-agent", "/tmp/test", client, config)
+  Agent::new("test-session", "coding", "/tmp/test", client, config)
 }
 
 ///|
@@ -649,8 +649,11 @@ test "restore_from_session refreshes system prompt to current version" {
     @message.Text(s) => s
     @message.Blocks(_) => ""
   }
-  assert_true(sys_content.contains("current-model"))
+  // Rebuilt from the live profile (the archived session's "general" one),
+  // not from the archived text.
+  assert_true(sys_content.contains("versatile digital employee"))
   assert_true(!sys_content.contains("stale archived"))
+  @debug.assert_eq(sys_content, agent.build_system_prompt())
 }
 
 ///|

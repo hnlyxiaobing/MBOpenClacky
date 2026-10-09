@@ -452,7 +452,7 @@ pub async fn handle_my_skill_publish(request : HttpRequest) -> HttpResponse {
     force,
     @brand.BrandConfig::load(brand_config_dir()),
     user_skills_dir(),
-    BUILTIN_SKILLS_DIR,
+    builtin_skills_dir(),
   )
 }
 

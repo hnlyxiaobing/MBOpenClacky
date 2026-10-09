@@ -319,7 +319,7 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     raw_message: self.raw_message,
     forked_from: None,
     chunk_count: 0,
-    agent_profile: "general",
+    agent_profile: self.profile_name,
     sub_model: self.session_sub_model,
     pinned: self.pinned,
     todos: Some(self.todo_manager.to_json()),
@@ -341,7 +341,11 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
 
   // Restore identity
   self.working_dir = result.working_dir
-
+  // A session created by an older build may carry an empty profile; keep the
+  // CLI-provided one in that case rather than blanking it out.
+  if !data.agent_profile.is_empty() {
+    self.profile_name = data.agent_profile
+  }
   // Model recovery: if the saved model still exists in config, rebuild the
   // client on it (Ruby open_ai.rb:187-191); otherwise keep the current
   // default the agent was constructed with.

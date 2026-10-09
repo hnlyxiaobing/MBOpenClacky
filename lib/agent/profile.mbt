@@ -5,13 +5,39 @@
 ///     built-in `assets/agents/<name>/`.
 ///   - Missing profile raises an explicit error (no silent default).
 ///   - SOUL.md / USER.md read from the `agents/` level (shared across all
-///     agents) with bundled `assets/agents/SOUL.md` / `USER.md` fallback.
+///     agents); a missing/blank file falls back to the built-in
+///     DEFAULT_SOUL / DEFAULT_USER constants, never to the bundled assets.
 ///   - base.md read from `assets/prompts/base.md` (bundled, shared).
 
 ///|
 /// Maximum characters loaded from each agent memory file (SOUL.md / USER.md),
 /// matching Ruby SystemPromptBuilder::MAX_MEMORY_FILE_CHARS.
 const MAX_MEMORY_FILE_CHARS : Int = 1000
+
+///|
+/// Built-in personality used when the user has no `~/.mbopenclacky/agents/SOUL.md`
+/// (Ruby AgentProfile::DEFAULT_SOUL).
+const DEFAULT_SOUL : String =
+  "You are calm, precise, and helpful. You communicate clearly and concisely.\nYou are honest about uncertainty and ask for clarification when needed.\nYou take initiative but respect the user's preferences and decisions."
+
+///|
+/// Built-in user profile used when the user has no
+/// `~/.mbopenclacky/agents/USER.md` (Ruby AgentProfile::DEFAULT_USER).
+const DEFAULT_USER : String =
+  "(No user profile configured yet. To personalize, create ~/.clacky/agents/USER.md)"
+
+///|
+/// Built-in SOUL.md body (Ruby AgentProfile::DEFAULT_SOUL), exposed so the
+/// Web profile view shows exactly what the model receives.
+pub fn default_soul_md() -> String {
+  DEFAULT_SOUL
+}
+
+///|
+/// Built-in USER.md body (Ruby AgentProfile::DEFAULT_USER).
+pub fn default_user_md() -> String {
+  DEFAULT_USER
+}
 
 ///|
 /// Load agent profile by name.
@@ -24,10 +50,12 @@ pub fn AgentProfile::load_for_name(
 ) -> AgentProfile raise @errors.AgentError {
   match resolve_profile_dir(name) {
     Some(dir) => load_profile_from_dir(name, dir)
-    None =>
+    None => {
+      let builtin = @utils.assets_path("agents/" + name)
       raise @errors.AgentError(
-        "Agent profile '\{name}' not found. Looked in ~/.mbopenclacky/agents/\{name} and assets/agents/\{name}.",
+        "Agent profile '\{name}' not found. Looked in ~/.mbopenclacky/agents/\{name} and \{builtin}.",
       )
+    }
   }
 }
 
@@ -37,10 +65,18 @@ pub fn AgentProfile::load_for_name(
 /// from the shared agents/prompts locations.
 fn load_profile_from_dir(name : String, dir : String) -> AgentProfile {
   let config = parse_profile_config(name, dir)
-  let system_prompt = load_agent_file(dir + "/system_prompt.md")
-  let soul_content = load_shared_agent_file("SOUL.md")
-  let user_content = load_shared_agent_file("USER.md")
-  let base_prompt = load_file_content("assets/prompts/base.md")
+  // Ruby's AgentProfile#system_prompt / #base_prompt both `.strip` the file
+  // body (agent_profile.rb: `load_agent_file` → `.strip`; `base_prompt` →
+  // `File.read(...).strip`). Without this, a trailing newline in either file
+  // adds a spurious blank line at the layer boundary in the assembled prompt
+  // (diff-harness 015 req_0001 line 68 / 106).
+  let system_prompt = strip_opt(load_agent_file(dir + "/system_prompt.md"))
+  // User override only — the built-in fallback lives in computed_soul /
+  // computed_user_profile so the bundled assets are never injected as a
+  // personality the user never wrote (Ruby AgentProfile#soul).
+  let soul_content = load_user_agent_override("SOUL.md")
+  let user_content = load_user_agent_override("USER.md")
+  let base_prompt = strip_opt(load_file_content(@utils.assets_path("prompts/base.md")))
   { config, system_prompt, soul_content, user_content, base_prompt, }
 }
 
@@ -117,40 +153,37 @@ fn parse_toml_kv(content : String) -> Map[String, String] {
 }
 
 ///|
-/// Get the combined system prompt section from profile.
-///
-/// Order (Ruby system_prompt_builder.rb): base.md → SOUL.md → USER.md →
-/// agent-specific system_prompt.md, with SOUL/USER truncated to
-/// MAX_MEMORY_FILE_CHARS.
-pub fn AgentProfile::build_system_prompt_section(self : AgentProfile) -> String {
-  let mut buf = ""
-  match self.base_prompt {
-    Some(bp) => buf = buf + bp.trim().to_owned() + "\n\n"
-    None => ()
-  }
+/// Effective SOUL.md content: user override when present, else the built-in
+/// DEFAULT_SOUL, truncated to MAX_MEMORY_FILE_CHARS
+/// (Ruby AgentProfile#soul + SystemPromptBuilder#truncate).
+pub fn AgentProfile::soul(self : AgentProfile) -> String {
   match self.soul_content {
-    Some(soul) => buf = buf + truncate_memory(soul) + "\n\n"
-    None => ()
+    Some(content) => truncate_memory(content)
+    None => truncate_memory(DEFAULT_SOUL)
   }
+}
+
+///|
+/// Effective USER.md content: user override when present, else the built-in
+/// DEFAULT_USER, truncated to MAX_MEMORY_FILE_CHARS
+/// (Ruby AgentProfile#user_profile + SystemPromptBuilder#truncate).
+pub fn AgentProfile::user_profile(self : AgentProfile) -> String {
   match self.user_content {
-    Some(user) => buf = buf + truncate_memory(user) + "\n\n"
-    None => ()
+    Some(content) => truncate_memory(content)
+    None => truncate_memory(DEFAULT_USER)
   }
-  match self.system_prompt {
-    Some(sp) => buf = buf + sp.trim().to_owned()
-    None => ()
-  }
-  buf
 }
 
 ///|
 /// Truncate a memory file to MAX_MEMORY_FILE_CHARS, appending a marker
-/// (Ruby SystemPromptBuilder#truncate).
+/// (Ruby SystemPromptBuilder#truncate). The content is stripped first —
+/// Ruby's AgentProfile#soul / #user_profile already `.strip` the file body.
 pub fn truncate_memory(text : String) -> String {
-  if text.length() <= MAX_MEMORY_FILE_CHARS {
-    text.trim().to_owned()
+  let body = text.trim().to_owned()
+  if body.length() <= MAX_MEMORY_FILE_CHARS {
+    body
   } else {
-    text[0:MAX_MEMORY_FILE_CHARS].to_owned() + "\n... [truncated]"
+    body[0:MAX_MEMORY_FILE_CHARS].to_owned() + "\n... [truncated]"
   }
 }
 
@@ -202,14 +235,14 @@ fn resolve_profile_dir(name : String) -> String? {
       if @fs.path_exists(user_path) {
         return Some(user_path)
       }
-      let builtin_path = "assets/agents/" + name
+      let builtin_path = @utils.assets_path("agents/" + name)
       if @fs.path_exists(builtin_path) {
         return Some(builtin_path)
       }
       None
     }
     None => {
-      let builtin_path = "assets/agents/" + name
+      let builtin_path = @utils.assets_path("agents/" + name)
       if @fs.path_exists(builtin_path) {
         Some(builtin_path)
       } else {
@@ -231,6 +264,17 @@ fn load_file_content(path : String) -> String? {
 }
 
 ///|
+/// Strip leading/trailing whitespace from an optional file body, mirroring
+/// Ruby's `File.read(path).strip` in `AgentProfile#system_prompt` and
+/// `#base_prompt`. `None` passes through untouched.
+fn strip_opt(text : String?) -> String? {
+  match text {
+    Some(s) => Some(s.trim().to_owned())
+    None => None
+  }
+}
+
+///|
 /// Load an agent-specific file (system_prompt.md), returning None when
 /// missing or empty.
 fn load_agent_file(path : String) -> String? {
@@ -246,17 +290,16 @@ fn load_agent_file(path : String) -> String? {
 }
 
 ///|
-/// Load a shared agent-level file (SOUL.md / USER.md): user override at
-/// `~/.mbopenclacky/agents/<file>` first, then bundled `assets/agents/<file>`.
-fn load_shared_agent_file(filename : String) -> String? {
+/// Load a user-level agent memory file (`~/.mbopenclacky/agents/<file>`),
+/// returning None when absent or blank. Mirrors Ruby's `File.exist? &&
+/// !File.zero?` gate — the bundled asset is deliberately NOT a fallback
+/// here, because DEFAULT_SOUL / DEFAULT_USER are the built-in defaults.
+fn load_user_agent_override(filename : String) -> String? {
   match @utils.config_dir() {
     Some(dir) => {
       let user_path = @path.Path::join(dir, @path.Path("agents/" + filename)).to_string()
-      match load_agent_file(user_path) {
-        Some(content) => Some(content)
-        None => load_agent_file("assets/agents/" + filename)
-      }
+      load_agent_file(user_path)
     }
-    None => load_agent_file("assets/agents/" + filename)
+    None => None
   }
 }

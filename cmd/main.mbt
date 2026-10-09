@@ -4,6 +4,8 @@ const VERSION : String = "0.2.0"
 
 ///|
 async fn main {
+  // Resolve bundled assets before any handler changes the process CWD.
+  @utils.prewarm_assets_root()
   let parser = @clap.Parser::new(
     prog="mbopenclacky",
     description="AI Agent CLI tool rewritten in MoonBit",
@@ -28,7 +30,7 @@ async fn main {
       "agent": @clap.Arg::named(
         nargs=@clap.Nargs::Fixed(1),
         defaults=["coding"],
-        help="Agent profile to use",
+        help="Agent profile to use: coding, general, or any custom profile name (default: coding)",
       ),
       "path": @clap.Arg::named(
         nargs=@clap.Nargs::AtMost(1),
@@ -880,8 +882,11 @@ fn is_bare_message_flag(cli_view : ArrayView[String]) -> Bool {
 
 ///|
 async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
-  // 0. Save original working directory for restore on exit
+  // 0. Save original working directory for restore on exit, and resolve the
+  // bundled assets root while it is still the CWD — step 8 moves the process
+  // into the user's project directory.
   let original_dir = @utils.current_dir()
+  @utils.prewarm_assets_root()
 
   // 1. Load configuration from default path (~/.mbopenclacky/config.toml)
   let config = @config.AgentConfig::load_default() catch {
@@ -1022,10 +1027,40 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
     }
   }
 
-  // 13. Create the agent
+  // 13. Resolve the agent profile. A resumed session keeps the profile it was
+  // created with; only sessions predating the field fall back to the CLI flag
+  // (Ruby cli.rb:573-575).
+  let cli_profile = get_named_arg(value, "agent").unwrap_or("coding")
+  let agent_profile = match session_data {
+    Some(data) =>
+      if data.agent_profile.is_empty() {
+        cli_profile
+      } else {
+        data.agent_profile
+      }
+    None => cli_profile
+  }
+
+  // 14. Create the agent
   let agent = @agent.Agent::new(
-    session_id, "CLI Agent", working_dir, client, config,
+    session_id,
+    "CLI Agent",
+    working_dir,
+    client,
+    config,
+    profile=agent_profile,
   )
+  // An unknown profile silently drops base.md, SOUL.md, USER.md and the
+  // profile's own system_prompt.md, so fail loudly instead of degrading.
+  match agent.resolve_profile() {
+    Ok(_) => ()
+    Err(err) => {
+      println("Error: \{err}")
+      @utils.change_dir(original_dir)
+      @sys.exit(1)
+      return
+    }
+  }
   // Machine-readable event stream: in --ndjson mode every engine event is
   // logged as a typed protocol event (the CLI's exhaustive @proto.Event
   // consumer).
@@ -1045,7 +1080,7 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   agent.discover_workspace_skills()
   logger.info("Agent created: session=\{session_id}")
 
-  // 14. Restore session state if continuing or attaching
+  // 15. Restore session state if continuing or attaching
   match session_data {
     Some(data) => {
       agent.restore_from_session(data)
@@ -1058,7 +1093,7 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
     None => ()
   }
 
-  // 15. Check if --message was provided (non-interactive mode)
+  // 16. Check if --message was provided (non-interactive mode)
   let msg_opt = get_named_arg(value, "message")
   let json_output = value.get_flag("json") == Some(true)
   match msg_opt {
@@ -1073,7 +1108,7 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
     }
   }
 
-  // 16. Restore original working directory
+  // 17. Restore original working directory
   if working_dir != original_dir && working_dir != "." {
     @utils.change_dir(original_dir)
   }
