@@ -290,3 +290,66 @@ test "fork_session keeps time_machine and leaves forked_from unset" {
   delete_session(forked.session_id)
   ss_pop_profile(old)
 }
+
+///|
+/// Chunk archives share the session document's `<datetime>-<id8>` basename
+/// (BUG-0080). Ruby writes `<chunk_base_name>-chunk-<N>.md`, where the base is
+/// the same string used for the session JSON file.
+test "write_chunk reuses session basename (BUG-0080)" {
+  let old = ss_push_profile()
+  let id = generate_session_id()
+  let created = "2026-01-01T00:00:00+08:00"
+  let path = match write_chunk(id, created, 1, "# Session Chunk 1") {
+    Ok(p) => p
+    Err(_) => {
+      assert_true(false)
+      ""
+    }
+  }
+  let fname = @path.Path::basename(@path.Path(path)).to_owned()
+  let expected = "2026-01-01-00-00-00-" + id[:8].to_owned() + "-chunk-1.md"
+  @debug.assert_eq(fname, expected)
+  // Discovery and index derivation agree with the writer's basename.
+  let found = chunks_for_current(id, created)
+  @debug.assert_eq(found.length(), 1)
+  @debug.assert_eq(
+    @path.Path::basename(@path.Path(found[0])).to_owned(),
+    expected,
+  )
+  @debug.assert_eq(next_chunk_index(id, created), 2)
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
+  ss_pop_profile(old)
+}
+
+///|
+/// Archives written before the basename alignment used the bare
+/// `{session_id}-chunk-N.md` prefix and must stay discoverable, with the next
+/// index continuing past them so a re-compression never overwrites them
+/// (BUG-0080 legacy fallback).
+test "chunk discovery keeps legacy {session_id}-chunk-N.md readable (BUG-0080)" {
+  let old = ss_push_profile()
+  let id = generate_session_id()
+  let created = "2026-01-01T00:00:00+08:00"
+  let dir = ensure_sessions_dir() catch {
+    _ => {
+      assert_true(false)
+      ""
+    }
+  }
+  let legacy_name = id + "-chunk-3.md"
+  let legacy = @path.Path::join(dir, @path.Path(legacy_name)).to_string()
+  @fs.write_string_to_file(legacy, "# legacy chunk")
+  let found = chunks_for_current(id, created)
+  @debug.assert_eq(found.length(), 1)
+  @debug.assert_eq(
+    @path.Path::basename(@path.Path(found[0])).to_owned(),
+    legacy_name,
+  )
+  @debug.assert_eq(next_chunk_index(id, created), 4)
+  @fs.remove_file(legacy) catch {
+    _ => ()
+  }
+  ss_pop_profile(old)
+}

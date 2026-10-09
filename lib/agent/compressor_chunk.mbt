@@ -180,6 +180,7 @@ pub fn build_chunk_md(
 pub fn save_compressed_chunk(
   messages : Array[@message.Message],
   session_id : String,
+  created_at : String,
   chunk_index : Int,
   topics? : String? = None,
 ) -> Result[String, String] {
@@ -199,5 +200,5 @@ pub fn save_compressed_chunk(
   }
 
   let md_content = build_chunk_md(to_archive, chunk_index, topics~)
-  write_chunk(session_id, chunk_index, md_content)
+  write_chunk(session_id, created_at, chunk_index, md_content)
 }

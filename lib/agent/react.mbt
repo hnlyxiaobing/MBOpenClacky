@@ -463,6 +463,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
               save_compressed_chunk(
                 to_archive,
                 self.session_id,
+                self.created_at,
                 self.compression_level,
               ) {
               Ok(_) => ()

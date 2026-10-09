@@ -74,7 +74,7 @@ pub fn calculate_compression_savings(Int, Int, Int, Int) -> CompressionStats
 
 pub fn calculate_target_recent_count(Int) -> Int
 
-pub fn chunks_for_current(String) -> Array[String]
+pub fn chunks_for_current(String, String) -> Array[String]
 
 pub fn compress_with_level_fallback(Array[@message.Message], String, CompressionContext) -> CompressionResult
 
@@ -198,7 +198,7 @@ pub let message_count_threshold : Int
 
 pub fn ms_to_iso8601(Int64) -> String
 
-pub fn next_chunk_index(String) -> Int
+pub fn next_chunk_index(String, String) -> Int
 
 pub fn pad_chunk_index(Int) -> String
 
@@ -228,7 +228,7 @@ pub let retry_base_delay_ms : Int
 
 pub let retry_max_delay_ms : Int
 
-pub fn save_compressed_chunk(Array[@message.Message], String, Int, topics? : String?) -> Result[String, String]
+pub fn save_compressed_chunk(Array[@message.Message], String, String, Int, topics? : String?) -> Result[String, String]
 
 pub fn save_session(SessionData) -> Unit raise @moonbitlang/x/fs.IOError
 
@@ -264,7 +264,7 @@ pub fn truncate_tool_result(String, max_chars? : Int) -> String
 
 pub fn validate_profile_spec(ProfileSpec) -> Result[Unit, String]
 
-pub fn write_chunk(String, Int, String) -> Result[String, String]
+pub fn write_chunk(String, String, Int, String) -> Result[String, String]
 
 pub fn write_diagnostic(String) -> Unit
 

@@ -214,6 +214,7 @@ pub fn Agent::compress_with_safety(
             save_compressed_chunk(
               to_archive,
               self.session_id,
+              self.created_at,
               self.compression_level,
             ) {
             Ok(_) => ()
