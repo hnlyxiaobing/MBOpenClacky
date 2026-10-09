@@ -221,21 +221,23 @@ fn load_all_backups() -> Array[BackupRecord] {
     }
   }
   // Sort by created_at descending (newest first)
-  let len = records.length()
-  let mut i = 0
-  while i < len {
-    let mut j = 0
-    while j < len - 1 - i {
-      if records[j].created_at < records[j + 1].created_at {
-        let tmp = records[j]
-        records[j] = records[j + 1]
-        records[j + 1] = tmp
-      }
-      j = j + 1
-    }
-    i = i + 1
-  }
-  records
+  sort_backups_newest_first(records)
+}
+
+///|
+/// Sort backup records newest first by `created_at`.
+///
+/// `created_at` 是 ISO 8601 字符串，原实现直接用 `<`（core `String::compare`
+/// = shortlex，先比长度），长度不同的时间戳会排错；改用字典序，与 orig 的
+/// 字符串排序口径一致（BUG-0079）。
+fn sort_backups_newest_first(
+  records : Array[BackupRecord],
+) -> Array[BackupRecord] {
+  let sorted = records
+  sorted.sort_by(fn(a, b) {
+    @utils.compare_lexicographic(b.created_at, a.created_at)
+  })
+  sorted
 }
 
 ///|
@@ -692,7 +694,11 @@ fn build_backup_zip(id : String) -> Result[Bytes, String] {
   if files.length() == 0 {
     return Err("Backup snapshot directory is empty")
   }
-  files.sort_by(fn(a, b) { a.0.compare(b.0) })
+  // 条目按相对路径排序，保证 ZIP 内容顺序稳定可复现（tar/zip 两者都不保证
+  // 目录遍历顺序）。core `String::compare` 是 shortlex（先比长度），会把
+  // 短路径整体排到长路径之前；改用字典序，与 orig 一切字符串排序口径一致
+  // （BUG-0079）。
+  files.sort_by(fn(a, b) { @utils.compare_lexicographic(a.0, b.0) })
   let entries : Array[@zip.ZipEntry] = []
   for f in files {
     entries.push({ name: f.0, data: f.1, })

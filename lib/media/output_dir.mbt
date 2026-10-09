@@ -110,6 +110,14 @@ pub fn MediaOutputDir::cleanup(self : MediaOutputDir, max_files : Int) -> Int {
   }
   // Sort by filename ascending, remove from the front (oldest by
   // counter order).
+  //
+  // BUG-0079 豁免：这里刻意保留 core `String::compare`（shortlex）。同一前缀
+  // 生成的文件名形如 `<prefix>_<counter>.<ext>`，前缀等长时 shortlex 先比长度
+  // 再比内容，恰好等于按 counter 数值升序（`media_2.png` 长 11 < `media_10.png`
+  // 长 12，短的在前）；反过来用字典序会把 `media_10.png` 排到 `media_2.png`
+  // 之前，删除顺序反而错。本函数在 orig 中没有对应实现（Ruby 只在
+  // media/base.rb 落盘、从不清理），故无「以 orig 口径为准」的压力，保持能
+  // 正确表达 counter 顺序的比较即可。
   files.sort_by(fn(a, b) { a.compare(b) })
   let mut removed = 0
   let to_remove = files.length() - max_count

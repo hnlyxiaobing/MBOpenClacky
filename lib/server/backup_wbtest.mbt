@@ -175,3 +175,34 @@ test "backup_is_heavy_exclude" {
   assert_false(is_heavy_exclude("/home/x/.mbopenclacky/config.yml"))
   assert_false(is_heavy_exclude("/home/x/.mbopenclacky/ocr_cache/f"))
 }
+
+///|
+/// BUG-0079：归档保留策略的排序比较器必须是字典序。orig 侧
+/// `backup_manager.rb#prune` 按 `File.mtime` 保留最新，本实现按名字里的时间戳
+/// 排序近似（见 backup_manager.mbt 注释）；真实归档名
+/// `mbopenclacky-backup-<now_ms>.zip` 的毫秒时间戳定宽，两种口径结果一致，
+/// 所以这里用位数不同的合成名把口径差异暴露出来：字典序下
+/// `…-10000.zip` 更小（第 21 位 '1' < '9'）先被删，shortlex 先比长度则把它
+/// 排在后面 —— 被保留的文件正好相反。
+test "apply_retention: keeps the lexicographically newest name (BUG-0079)" {
+  let dest = "/tmp/mboc-wbt-backup-retention-bug79"
+  @utils.ensure_dir(dest)
+  backup_cleanup_dir_files(dest)
+  @fs.write_string_to_file(dest + "/mbopenclacky-backup-9999.zip", "old") catch {
+    _ => fail("setup write failed")
+  }
+  @fs.write_string_to_file(dest + "/mbopenclacky-backup-10000.zip", "new") catch {
+    _ => fail("setup write failed")
+  }
+  let removed = match apply_retention(dest, 1) {
+    Ok(n) => n
+    Err(_) => {
+      fail("apply_retention returned Err")
+      0
+    }
+  }
+  assert_eq(removed, 1)
+  assert_false(@fs.path_exists(dest + "/mbopenclacky-backup-10000.zip"))
+  assert_true(@fs.path_exists(dest + "/mbopenclacky-backup-9999.zip"))
+  backup_cleanup_dir_files(dest)
+}

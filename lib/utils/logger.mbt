@@ -126,8 +126,10 @@ pub fn Logger::rotate(self : Logger) -> Unit {
   if log_files.length() <= self.max_files {
     return
   }
-  // Sort ascending by name (date encoded in name ensures chronological order)
-  log_files.sort_by(fn(a, b) { a.compare(b) })
+  // Sort ascending by name (date encoded in name ensures chronological order)。
+  // 字典序比较器：core `String::compare` 是 shortlex（先比长度），与 orig
+  // `Dir.glob(...).sort` 的字典序口径不一致（BUG-0079）。
+  log_files.sort_by(fn(a, b) { compare_lexicographic(a, b) })
   // Remove oldest files beyond retention
   let to_remove = log_files.length() - self.max_files
   for i in 0..<to_remove {

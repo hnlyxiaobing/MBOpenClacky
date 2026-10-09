@@ -278,3 +278,59 @@ test "TrashEntry: to_json and from_json roundtrip" {
   let parsed : TrashEntry = @json.from_json(json)
   assert_eq(parsed, entry)
 }
+
+///|
+/// BUG-0079：`list_trash_entries` 的 newest-first 排序必须走字典序
+/// （orig `get_deleted_files`: `sort_by { |f| f[:deleted_at] }.reverse`），
+/// 而不是 core `String::compare` 的 shortlex（先比长度）。
+/// 这里用两个长度不同的 ISO 时间戳把两种口径区分开：
+/// `"2026-10-09T12:00:05.5Z"`（22 字符）与 `"2026-10-09T12:00:05Z"`（20 字符），
+/// 公共前缀之后是 '.' 与 'Z'，字典序上 '.' < 'Z'，故 `"…05Z"` 更大、应排最前；
+/// shortlex 先比长度则会把长串顶到最前 —— 结果相反。
+test "list_trash_entries: newest-first uses lexicographic deleted_at (BUG-0079)" {
+  let dir = "/tmp/mboc-wbt-trash-order-bug79"
+  @fs.create_dir(dir) catch { _ => () }
+  let stale = @fs.read_dir(dir) catch { _ => [] }
+  for name in stale {
+    @fs.remove_file(@path.Path::join(dir, @path.Path(name)).to_string()) catch {
+      _ => ()
+    }
+  }
+  let meta_a : TrashMetadata = {
+    original_path: "/work/a.txt",
+    trash_directory: dir,
+    deleted_at: "2026-10-09T12:00:05.5Z",
+    deleted_by: "clacky",
+    file_size: 3,
+    file_type: "file",
+    file_mode: "0644",
+  }
+  let meta_b : TrashMetadata = {
+    original_path: "/work/b.txt",
+    trash_directory: dir,
+    deleted_at: "2026-10-09T12:00:05Z",
+    deleted_by: "clacky",
+    file_size: 3,
+    file_type: "file",
+    file_mode: "0644",
+  }
+  for pair in [
+    ("a.txt", meta_a.to_json().stringify()),
+    ("b.txt", meta_b.to_json().stringify()),
+  ] {
+    let (name, meta_json) = pair
+    @fs.write_string_to_file(dir + "/" + name, "abc") catch {
+      _ => assert_true(false)
+    }
+    @fs.write_string_to_file(dir + "/" + name + ".metadata.json", meta_json) catch {
+      _ => assert_true(false)
+    }
+  }
+  let entries = list_trash_entries(dir)
+  assert_eq(entries.length(), 2)
+  assert_eq(entries[0].deleted_at, "2026-10-09T12:00:05Z")
+  assert_eq(entries[1].deleted_at, "2026-10-09T12:00:05.5Z")
+  for name in ["a.txt", "a.txt.metadata.json", "b.txt", "b.txt.metadata.json"] {
+    @fs.remove_file(dir + "/" + name) catch { _ => () }
+  }
+}

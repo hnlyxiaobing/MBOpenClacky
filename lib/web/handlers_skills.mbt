@@ -622,7 +622,10 @@ pub fn handle_creator_skills(request : HttpRequest) -> HttpResponse {
   ignore(request)
   let licensed = @brand.BrandConfig::load(brand_config_dir()).user_licensed()
   let entries = scan_skills(user_skills_dir(), "user")
-  entries.sort_by(fn(a, b) { a.name.compare(b.name) })
+  // orig（http_server.rb `local_skills ... .sort_by { |e| e[:name] }`）走
+  // Ruby `String#<=>`（字典序）；core `String::compare` 是 shortlex，名字长度
+  // 不同时顺序会反（BUG-0079），故改用 compare_lexicographic。
+  entries.sort_by(fn(a, b) { @utils.compare_lexicographic(a.name, b.name) })
   let meta = @brand.load_upload_meta(user_skills_dir())
   let local_skills : Array[Json] = []
   for entry in entries {

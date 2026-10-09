@@ -341,9 +341,13 @@ pub fn list_trash_entries(trash_dir : String) -> Array[TrashEntry] {
       None => continue
     }
   }
-  // Newest first by deleted_at (ISO8601 sorts lexicographically).
+  // Newest first by deleted_at（orig: `sort_by { |f| f[:deleted_at] }.reverse`）。
+  // deleted_at 是 ISO 8601 字符串，必须走字典序比较器：core `String::compare`
+  // 是 shortlex（先比长度），带小数秒/不同偏移量时长度不齐会排错（BUG-0079）。
   let sorted = entries
-  sorted.sort_by(fn(a, b) { b.deleted_at.compare(a.deleted_at) })
+  sorted.sort_by(fn(a, b) {
+    compare_lexicographic(b.deleted_at, a.deleted_at)
+  })
   sorted
 }
 

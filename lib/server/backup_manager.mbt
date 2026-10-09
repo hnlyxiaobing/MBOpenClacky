@@ -227,8 +227,11 @@ fn apply_retention(dest_dir : String, keep : Int) -> Result[Int, BackupError] {
       backups.push(entry)
     }
   }
-  // Sort by name (timestamp in name gives chronological order)
-  backups.sort_by(fn(a, b) { a.compare(b) })
+  // Sort by name (timestamp in name gives chronological order)。名字按字典序
+  // 比较：core `String::compare` 是 shortlex（先比长度），时间戳位数不一致时
+  // 会排错（BUG-0079）。orig 侧按 mtime 保留最新（backup_manager.rb#prune），
+  // 名字里的毫秒时间戳定宽时两者顺序一致。
+  backups.sort_by(fn(a, b) { @utils.compare_lexicographic(a, b) })
   // Delete oldest files beyond keep limit
   let mut removed = 0
   if backups.length() > keep {

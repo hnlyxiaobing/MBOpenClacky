@@ -63,3 +63,33 @@ test "log_filename format" {
   assert_true(filename.has_suffix(".log"))
   @env.set_env_var("MBOPENCLACKY_LOG_DATE", "")
 }
+
+///|
+/// BUG-0079：日志轮转按名字排序时必须是字典序（orig `Dir.glob(...).sort`），
+/// 不能是 core `String::compare` 的 shortlex（先比长度）。
+/// 真实日志名 `clacky-YYYY-MM-DD.log` 定宽，两种口径结果相同；这里故意用位数
+/// 不同的合成名把口径差异暴露出来：字典序下 `clacky-2026-01-02.log` 更小
+/// （第 12 位 '0' < '1'）会被删，shortlex 下则因更短而排在前面 —— 恰好相反。
+test "Logger::rotate: drops the lexicographically oldest name (BUG-0079)" {
+  let dir = "/tmp/mboc-wbt-logger-rotate-bug79"
+  @fs.create_dir(dir) catch { _ => () }
+  let stale = @fs.read_dir(dir) catch { _ => [] }
+  for name in stale {
+    @fs.remove_file(@path.Path::join(dir, @path.Path(name)).to_string()) catch {
+      _ => ()
+    }
+  }
+  @fs.write_string_to_file(dir + "/clacky-2026-1-1.log", "old") catch {
+    _ => assert_true(false)
+  }
+  @fs.write_string_to_file(dir + "/clacky-2026-01-02.log", "new") catch {
+    _ => assert_true(false)
+  }
+  let logger = Logger::new(log_dir=dir, max_files=1)
+  logger.rotate()
+  // 字典序最小者被删除，另一个保留
+  assert_false(@fs.path_exists(dir + "/clacky-2026-01-02.log"))
+  assert_true(@fs.path_exists(dir + "/clacky-2026-1-1.log"))
+  // 清理
+  @fs.remove_file(dir + "/clacky-2026-1-1.log") catch { _ => () }
+}

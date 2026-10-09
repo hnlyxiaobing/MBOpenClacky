@@ -136,9 +136,13 @@ fn handle_list_sessions(
       continue
     }
     // Apply before cursor: only sessions created before the cursor
-    // (ISO 8601 timestamps compare lexicographically).
+    // (ISO 8601 timestamps compare lexicographically — core `String::compare`
+    // is shortlex, so use the lexicographic helper; BUG-0079).
     match before {
-      Some(b) => if !b.is_empty() && sd.created_at >= b { continue }
+      Some(b) =>
+        if !b.is_empty() && @utils.compare_lexicographic(sd.created_at, b) >= 0 {
+          continue
+        }
       None => ()
     }
     // Apply type filters against the session source field.
@@ -172,6 +176,8 @@ fn handle_list_sessions(
   // Sort: pinned sessions first, then by updated_at descending. Equal
   // timestamps (same-second activity) break by id so ordering is
   // deterministic across runs rather than dependent on map iteration order.
+  // 两个字符串键都走字典序比较器：core `String::compare` 是 shortlex，
+  // 长度不同的时间戳/会话 id 会排错（BUG-0079）。
   summaries.sort_by(fn(a, b) {
     let a_pin = if a.pinned { 0 } else { 1 }
     let b_pin = if b.pinned { 0 } else { 1 }
@@ -179,8 +185,12 @@ fn handle_list_sessions(
     if pin_cmp != 0 {
       pin_cmp
     } else {
-      let ts_cmp = b.updated_at.compare(a.updated_at)
-      if ts_cmp != 0 { ts_cmp } else { a.id.compare(b.id) }
+      let ts_cmp = @utils.compare_lexicographic(b.updated_at, a.updated_at)
+      if ts_cmp != 0 {
+        ts_cmp
+      } else {
+        @utils.compare_lexicographic(a.id, b.id)
+      }
     }
   })
   let total = summaries.length()

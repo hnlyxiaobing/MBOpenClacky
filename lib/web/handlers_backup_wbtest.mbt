@@ -93,3 +93,35 @@ test "backup download reports 500 for an empty snapshot directory" {
   @debug.assert_eq(resp.status, 500)
   wd_pop_profile(old)
 }
+
+///|
+/// BUG-0079：备份列表按 `created_at` 倒序（最新在前），`created_at` 是 ISO 8601
+/// 字符串，必须走字典序而不是 core `String::compare` 的 shortlex（先比长度）。
+/// 这里用两个长度不同的时间戳把口径差异暴露出来：字典序下
+/// `"2026-10-09T12:00:05Z"` 更大（'.' < 'Z'），应排最前；shortlex 先比长度则会
+/// 把 `"…05.5Z"` 顶到最前 —— 顺序正好相反。
+test "sort_backups_newest_first uses lexicographic created_at (BUG-0079)" {
+  let records : Array[BackupRecord] = [
+    {
+      id: "bk_a",
+      label: "a",
+      created_at: "2026-10-09T12:00:05.5Z",
+      size_bytes: 1,
+      status: "completed",
+      scope: "full",
+      description: "",
+    },
+    {
+      id: "bk_b",
+      label: "b",
+      created_at: "2026-10-09T12:00:05Z",
+      size_bytes: 1,
+      status: "completed",
+      scope: "full",
+      description: "",
+    },
+  ]
+  let sorted = sort_backups_newest_first(records)
+  assert_eq(sorted[0].id, "bk_b")
+  assert_eq(sorted[1].id, "bk_a")
+}
