@@ -52,17 +52,13 @@ fn session_file_path(sessions_dir : String, session_id : String) -> String {
 }
 
 ///|
-/// Timestamp used in session filenames: ISO 8601 with ':' replaced by '-'
-/// so the name stays legal on Windows (Ruby uses a human-sortable
-/// `<datetime>-<id8>.json` layout).
-/// Uses `replace_all` because `String::replace` only replaces the first
-/// match — leaving residual colons in the timezone offset (e.g.
-/// `+08:00`), which caused `write_string_to_file` to fail with
-/// `EINVAL` on Windows. Also strips '+' for cross-platform portability.
-fn session_filename_datetime() -> String {
-  current_timestamp_iso()
-  .replace_all(old=":", new="-")
-  .replace_all(old="+", new="-")
+/// Timestamp segment of session filenames, matching Ruby's
+/// `Time.parse(created_at).strftime("%Y-%m-%d-%H-%M-%S")` (BUG-0076).
+/// Ruby derives the name from the session's own `created_at` so the basename
+/// is stable for the lifetime of the session; the same basename is reused by
+/// the `-chunk-N.md` archives.
+fn session_filename_datetime(created_at : String) -> String {
+  filename_datetime(created_at)
 }
 
 ///|
@@ -109,7 +105,7 @@ pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
       }
       @path.Path::join(
         dir,
-        @path.Path(session_filename_datetime() + "-" + id8 + ".json"),
+        @path.Path(session_filename_datetime(data.created_at) + "-" + id8 + ".json"),
       ).to_string()
     }
   }

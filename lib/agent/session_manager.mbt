@@ -124,17 +124,20 @@ fn purge_expired_trash() -> Unit {
   }
   let filenames = @fs.read_dir(trash_dir) catch { _ => return }
   let now_ms = current_time_ms()
-  let threshold_iso = ms_to_iso8601(now_ms - trash_retention_ms)
-  // Same sanitisation as the writer (session_store.mbt`session_filename_datetime`):
-  // every `:` becomes `-`, otherwise the lexicographic compare is meaningless.
-  let threshold_sanitized = threshold_iso.replace_all(old=":", new="-")
+  // Same rendering as the writer (session_store.mbt`session_filename_datetime`),
+  // otherwise the lexicographic compare below is meaningless: both sides must
+  // be `%Y-%m-%d-%H-%M-%S` (no `T`, no offset) for a dictionary order to be
+  // chronological (BUG-0076).
+  let threshold_sanitized = filename_datetime(
+    ms_to_iso8601(now_ms - trash_retention_ms),
+  )
   for name in filenames {
     if !name.has_suffix(".json") {
       continue
     }
     // Filename layout `<datetime>-<id8>.json`; the datetime prefix is
     // everything before the last '-' (the id8 segment). The prefix is
-    // sanitized the same way session_filename_datetime() is, so a
+    // rendered the same way session_filename_datetime() renders it, so a
     // dictionary comparison stays chronological.
     let parts = name.split("-")
     let stamp = parts[0:parts.length() - 1].join("-")

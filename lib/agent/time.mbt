@@ -64,6 +64,40 @@ pub fn ms_to_iso8601(ms : Int64) -> String {
 }
 
 ///|
+/// True when the string starts with a full `YYYY-MM-DDTHH:MM:SS` timestamp.
+fn has_iso_datetime_prefix(s : String) -> Bool {
+  if s.length() < 19 {
+    return false
+  }
+  s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':'
+}
+
+///|
+/// Render a timestamp the way Ruby renders session/chunk filenames:
+/// `Time.parse(created_at).strftime("%Y-%m-%d-%H-%M-%S")` — e.g.
+/// `2026-10-09-14-30-00`, with no `T` and no UTC offset.
+///
+/// Ruby uses `Time.parse` and `strftime` without a target zone, so the
+/// rendered wall clock is the timestamp's own offset, which is exactly the
+/// first 19 characters of the ISO 8601 string: only the separators need
+/// rewriting. Values without a full `YYYY-MM-DDTHH:MM:SS` prefix (legacy
+/// epoch-millisecond dumps, empty strings) fall back to the current local
+/// time instead of raising, because the filename must remain usable.
+pub fn filename_datetime(iso : String) -> String {
+  let stamp = if has_iso_datetime_prefix(iso) {
+    iso[:19].to_owned()
+  } else {
+    let now = current_iso8601()
+    if has_iso_datetime_prefix(now) {
+      now[:19].to_owned()
+    } else {
+      "1970-01-01T00-00-00"
+    }
+  }
+  stamp.replace_all(old=":", new="-").replace_all(old="T", new="-")
+}
+
+///|
 /// Current weekday name (e.g. "Monday", "Tuesday").
 pub fn current_weekday() -> String {
   let iso = current_iso8601()

@@ -136,6 +136,8 @@ pub async fn[X] fan_out(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms?
 
 pub async fn[X] fan_out_labeled(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms? : Int?) -> Array[FanOutResult[X]]
 
+pub fn filename_datetime(String) -> String
+
 pub fn files_for(String) -> Array[String]
 
 pub fn final_reply(Agent) -> String

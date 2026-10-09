@@ -98,6 +98,58 @@ test "save_session writes datetime-prefixed file and round trips" {
 }
 
 ///|
+/// The datetime segment is rendered the way Ruby's
+/// `Time.parse(created_at).strftime("%Y-%m-%d-%H-%M-%S")` renders it: no `T`
+/// separator and no UTC offset (BUG-0076).
+test "filename_datetime renders Ruby strftime layout" {
+  @debug.assert_eq(
+    filename_datetime("2026-10-09T14:30:00+08:00"),
+    "2026-10-09-14-30-00",
+  )
+  // Ruby keeps the timestamp's own offset: rendering is wall-clock, not UTC.
+  @debug.assert_eq(
+    filename_datetime("2026-10-09T14:30:00-05:00"),
+    "2026-10-09-14-30-00",
+  )
+  @debug.assert_eq(
+    filename_datetime("2026-10-09T14:30:00"),
+    "2026-10-09-14-30-00",
+  )
+  // Unparseable values fall back to "now" but keep the same shape.
+  let fallback = filename_datetime("1700000000000")
+  assert_true(fallback.length() == 19)
+  assert_true(fallback[4] == '-' && fallback[7] == '-')
+  assert_true(fallback[10] == '-' && fallback[13] == '-')
+}
+
+///|
+/// A silently rewritten `created_at` must not let the filename drift: the
+/// name is derived from the session's own timestamp, like Ruby's
+/// `generate_filename(session_id, created_at)`.
+test "saved filename uses session created_at, not wall clock" {
+  let old = ss_push_profile()
+  let id = generate_session_id()
+  // ss_make_session pins created_at to 2026-01-01T00:00:00+08:00.
+  save_session(ss_make_session(id, "stamp")) catch {
+    _ => assert_true(false)
+  }
+  let dir = ensure_sessions_dir() catch {
+    _ => {
+      assert_true(false)
+      ""
+    }
+  }
+  let fname = @path.Path::basename(
+    @path.Path(find_session_file(dir, id).unwrap()),
+  ).to_owned()
+  assert_true(fname.has_prefix("2026-01-01-00-00-00-"))
+  assert_true(fname.has_suffix("-" + id[:8].to_owned() + ".json"))
+  assert_true(!fname.contains("T"))
+  delete_session(id)
+  ss_pop_profile(old)
+}
+
+///|
 /// Legacy files written as `<session_id>.json` (pre-alignment) must still
 /// load (decision 3 backward compatibility).
 test "load_session reads legacy session_id.json files" {
