@@ -282,9 +282,9 @@ fn audit_log(action : String, message : String) -> Unit {
   let log_file = @path.Path(log_dir).join(@path.Path("safety.log")).to_string()
   let ts = iso8601_now()
   let entry = Json::object({
-      "timestamp": ts.to_json(),
-      "action": action.to_json(),
-      "message": message.to_json(),
+      "timestamp": Json(ts),
+      "action": Json(action),
+      "message": Json(message),
     }).stringify() +
     "\n"
   // Append via read-modify-write (x/fs has no append API; audit logs stay small).

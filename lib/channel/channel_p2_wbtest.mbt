@@ -80,7 +80,7 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   // 3. Build Identify payload
   let identify = build_identify_payload("BOT_TOKEN", DEFAULT_INTENTS)
   match identify {
-    Object(obj) => @debug.assert_eq(obj.get("op"), Some((2).to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("op"), Some(Json((2))))
     _ => assert_true(false)
   }
 
@@ -137,11 +137,11 @@ test "discord_gateway_reconnect_flow" {
       let resume_fn = build_resume_payload("TOK", "sess1", seq)
       match resume_fn {
         Object(obj) => {
-          @debug.assert_eq(obj.get("op"), Some((6).to_json()))
+          @debug.assert_eq(obj.get("op"), Some(Json((6))))
           match obj.get("d") {
             Some(Object(d)) => {
-              @debug.assert_eq(d.get("session_id"), Some("sess1".to_json()))
-              @debug.assert_eq(d.get("seq"), Some((10).to_json()))
+              @debug.assert_eq(d.get("session_id"), Some(Json("sess1")))
+              @debug.assert_eq(d.get("seq"), Some(Json((10))))
             }
             _ => assert_true(false)
           }
@@ -200,8 +200,8 @@ test "wecom_subscribe_and_send_flow" {
   let auth = state.build_auth_frame()
   match auth {
     Object(obj) => {
-      @debug.assert_eq(obj.get("type"), Some("aibot_subscribe".to_json()))
-      @debug.assert_eq(obj.get("bot_id"), Some("bot123".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_subscribe")))
+      @debug.assert_eq(obj.get("bot_id"), Some(Json("bot123")))
     }
     _ => assert_true(false)
   }
@@ -214,8 +214,8 @@ test "wecom_subscribe_and_send_flow" {
   let msg_frame = state.build_msg_frame("chat1", "Hello WeCom", "text")
   match msg_frame {
     Object(obj) => {
-      @debug.assert_eq(obj.get("type"), Some("aibot_send_msg".to_json()))
-      @debug.assert_eq(obj.get("chat_id"), Some("chat1".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_send_msg")))
+      @debug.assert_eq(obj.get("chat_id"), Some(Json("chat1")))
       assert_true(obj.get("req_id") is Some(_))
     }
     _ => assert_true(false)
@@ -260,7 +260,7 @@ test "wecom_chunked_upload_flow" {
   let init = build_upload_init_frame("upload_abc", "bigfile.zip", 2097152)
   match init {
     Object(obj) =>
-      @debug.assert_eq(obj.get("type"), Some("aibot_upload_init".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_upload_init")))
     _ => assert_true(false)
   }
 
@@ -271,7 +271,7 @@ test "wecom_chunked_upload_flow" {
     let chunk = build_upload_chunk_frame("upload_abc", idx, "chunk_data")
     match chunk {
       Object(obj) =>
-        @debug.assert_eq(obj.get("type"), Some("aibot_upload_chunk".to_json()))
+        @debug.assert_eq(obj.get("type"), Some(Json("aibot_upload_chunk")))
       _ => assert_true(false)
     }
     chunk_count = chunk_count + 1
@@ -282,7 +282,7 @@ test "wecom_chunked_upload_flow" {
   let finish = build_upload_finish_frame("upload_abc")
   match finish {
     Object(obj) =>
-      @debug.assert_eq(obj.get("type"), Some("aibot_upload_finish".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_upload_finish")))
     _ => assert_true(false)
   }
 }
@@ -304,8 +304,8 @@ test "dingtalk_stream_callback_ack_flow" {
       let ack = build_stream_ack("msg_001")
       match ack {
         Object(obj) => {
-          @debug.assert_eq(obj.get("code"), Some((200).to_json()))
-          @debug.assert_eq(obj.get("messageId"), Some("msg_001".to_json()))
+          @debug.assert_eq(obj.get("code"), Some(Json((200))))
+          @debug.assert_eq(obj.get("messageId"), Some(Json("msg_001")))
         }
         _ => assert_true(false)
       }
@@ -324,7 +324,7 @@ test "dingtalk_stream_callback_ack_flow" {
       @debug.assert_eq(ft, "SYSTEM")
       let pong = build_stream_pong()
       match pong {
-        Object(obj) => @debug.assert_eq(obj.get("type"), Some("pong".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("type"), Some(Json("pong")))
         _ => assert_true(false)
       }
     }
@@ -342,8 +342,8 @@ test "dingtalk_token_request_and_parse_flow" {
   let new_api_body = client.build_access_token_request()
   match new_api_body {
     Object(obj) => {
-      @debug.assert_eq(obj.get("appKey"), Some("appkey1".to_json()))
-      @debug.assert_eq(obj.get("appSecret"), Some("appsecret1".to_json()))
+      @debug.assert_eq(obj.get("appKey"), Some(Json("appkey1")))
+      @debug.assert_eq(obj.get("appSecret"), Some(Json("appsecret1")))
     }
     _ => assert_true(false)
   }
@@ -387,23 +387,23 @@ test "dingtalk_token_request_and_parse_flow" {
 test "feishu_parse_post_rich_text" {
   let post_json : Map[String, Json] = {
     "zh_cn": Json::object({
-      "title": "Meeting Notes".to_json(),
+      "title": Json("Meeting Notes"),
       "content": Json::array([
         Json::array([
           Json::object({
-            "tag": "text".to_json(),
-            "text": "Discussed ".to_json(),
+            "tag": Json("text"),
+            "text": Json("Discussed "),
           }),
           Json::object({
-            "tag": "a".to_json(),
-            "text": "Q3 Plan".to_json(),
-            "href": "https://docs.feishu.cn/docx/plan123".to_json(),
+            "tag": Json("a"),
+            "text": Json("Q3 Plan"),
+            "href": Json("https://docs.feishu.cn/docx/plan123"),
           }),
         ]),
         Json::array([
           Json::object({
-            "tag": "text".to_json(),
-            "text": "Action items assigned.".to_json(),
+            "tag": Json("text"),
+            "text": Json("Action items assigned."),
           }),
         ]),
       ]),
@@ -419,8 +419,8 @@ test "feishu_parse_post_rich_text" {
 ///|
 test "feishu_resolve_mentions_multiple" {
   let mentions : Array[Json] = [
-    Json::object({ "key": "@_user_1".to_json(), "name": "Alice".to_json() }),
-    Json::object({ "key": "@_user_2".to_json(), "name": "Bob".to_json() }),
+    Json::object({ "key": Json("@_user_1"), "name": Json("Alice") }),
+    Json::object({ "key": Json("@_user_2"), "name": Json("Bob") }),
   ]
   let result = resolve_feishu_mentions("@_user_1 and @_user_2 meet", mentions)
   @debug.assert_eq(result, "@Alice and @Bob meet")
@@ -436,8 +436,8 @@ test "feishu_extract_doc_urls_multiple" {
 ///|
 test "feishu_parse_message_file_type" {
   let msg : Map[String, Json] = {
-    "message_type": "file".to_json(),
-    "content": "{\"file_key\":\"file_xyz\",\"file_name\":\"report.pdf\"}".to_json(),
+    "message_type": Json("file"),
+    "content": Json("{\"file_key\":\"file_xyz\",\"file_name\":\"report.pdf\"}"),
   }
   match parse_feishu_message(msg) {
     Ok(parsed) => {
@@ -539,7 +539,7 @@ test "feishu_text_content_roundtrip" {
   let content = build_feishu_text_content("Hello World")
   match content {
     Object(obj) => {
-      @debug.assert_eq(obj.get("msg_type"), Some("text".to_json()))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json("text")))
       // content field is a serialized JSON string (using Show trait, not strict JSON)
       assert_true(obj.get("content") is Some(_))
     }
@@ -552,7 +552,7 @@ test "feishu_card_content_roundtrip" {
   let content = build_feishu_card_content("```rust\nfn main() {}\n```")
   match content {
     Object(obj) =>
-      @debug.assert_eq(obj.get("msg_type"), Some("interactive".to_json()))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json("interactive")))
     _ => assert_true(false)
   }
 }
@@ -571,7 +571,7 @@ test "http_full_request_response_flow" {
 
   // Build request body
   let payload : Map[String, Json] = Map([])
-  payload.set("content", "Hello from bot".to_json())
+  payload.set("content", Json("Hello from bot"))
   let body = build_json_body(payload)
   assert_true(body.contains("content"))
 

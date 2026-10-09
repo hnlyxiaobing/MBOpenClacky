@@ -34,10 +34,10 @@ fn load_profile() -> Json {
 ///|
 fn default_profile_json() -> Json {
   Json::object({
-    "name": "".to_json(),
-    "email": "".to_json(),
+    "name": Json(""),
+    "email": Json(""),
     "preferences": Json::object(Map([])),
-    "theme": "dark".to_json(),
+    "theme": Json("dark"),
   })
 }
 
@@ -183,16 +183,16 @@ fn handle_profile_get(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
+      "ok": Json(true),
       "user": Json::object({
-        "path": user_path.to_json(),
-        "content": user_content.to_json(),
-        "is_default": user_is_default.to_json(),
+        "path": Json(user_path),
+        "content": Json(user_content),
+        "is_default": Json(user_is_default),
       }),
       "soul": Json::object({
-        "path": soul_path.to_json(),
-        "content": soul_content.to_json(),
-        "is_default": soul_is_default.to_json(),
+        "path": Json(soul_path),
+        "content": Json(soul_content),
+        "is_default": Json(soul_is_default),
       }),
     }),
   )
@@ -210,7 +210,7 @@ fn handle_profile_put(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Check for kind-based update (user/soul content).
@@ -225,13 +225,13 @@ fn handle_profile_put(
     match save_profile_md(path, content) {
       Ok(_) =>
         return @core.HttpResponse::ok().json_value(
-          Json::object({ "ok": true.to_json(), "kind": kind.to_json() }),
+          Json::object({ "ok": Json(true), "kind": Json(kind) }),
         )
       Err(msg) =>
         return @core.HttpResponse::internal_server_error().json_value(
           Json::object({
-            "error": "Failed to save profile content".to_json(),
-            "detail": msg.to_json(),
+            "error": Json("Failed to save profile content"),
+            "detail": Json(msg),
           }),
         )
     }
@@ -259,21 +259,21 @@ fn handle_profile_put(
     json_get_str(existing, "theme")
   }
   let merged = Json::object({
-    "name": name.to_json(),
-    "email": email.to_json(),
+    "name": Json(name),
+    "email": Json(email),
     "preferences": preferences,
-    "theme": theme.to_json(),
+    "theme": Json(theme),
   })
   match save_profile(merged) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "profile": merged }),
+        Json::object({ "ok": Json(true), "profile": merged }),
       )
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to save profile".to_json(),
-          "detail": msg.to_json(),
+          "error": Json("Failed to save profile"),
+          "detail": Json(msg),
         }),
       )
   }

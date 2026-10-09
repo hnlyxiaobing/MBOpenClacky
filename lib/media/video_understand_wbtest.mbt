@@ -174,10 +174,10 @@ test "build_video_error_result" {
 ///|
 test "video_understand_request_from_json_base64" {
   let json : Json = Json::object({
-    "video_base64": "AAAAIGZ0eQ==".to_json(),
-    "prompt": "What is in this video?".to_json(),
-    "max_frames": (10).to_json(),
-    "interval_seconds": (3).to_json(),
+    "video_base64": Json("AAAAIGZ0eQ=="),
+    "prompt": Json("What is in this video?"),
+    "max_frames": Json((10)),
+    "interval_seconds": Json((3)),
   })
   let req : VideoUnderstandRequest = @json.from_json(json)
   @debug.assert_eq(req.video_base64, Some("AAAAIGZ0eQ=="))
@@ -188,7 +188,7 @@ test "video_understand_request_from_json_base64" {
 
 ///|
 test "video_understand_request_from_json_path" {
-  let json : Json = Json::object({ "video_path": "/tmp/video.mp4".to_json() })
+  let json : Json = Json::object({ "video_path": Json("/tmp/video.mp4") })
   let req : VideoUnderstandRequest = @json.from_json(json)
   @debug.assert_eq(req.video_path, Some("/tmp/video.mp4"))
   assert_true(req.video_base64 is None)

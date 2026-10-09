@@ -249,7 +249,7 @@ impl ToJson for Meeting with fn to_json(self) {
   Json::object({
     "id": ToJson::to_json(self.id),
     "title": ToJson::to_json(self.title),
-    "status": self.status.to_string_value().to_json(),
+    "status": Json(self.status.to_string_value()),
     "session_id": session_json,
     "participants": ToJson::to_json(self.participants),
     "transcript": ToJson::to_json(self.transcript),

@@ -634,7 +634,7 @@ async test "discord_get_current_user_mock_round_trip" {
       Ok(json) =>
         match json {
           Object(obj) =>
-            assert_eq(obj.get("id"), Some("bot-1".to_json()))
+            assert_eq(obj.get("id"), Some(Json("bot-1")))
           _ => assert_true(false)
         }
       Err(_) => assert_true(false)
@@ -653,7 +653,7 @@ async test "discord_upload_file_mock_round_trip" {
     match client.upload_file("chan1", "report.txt", "file-content") {
       Ok(json) =>
         match json {
-          Object(obj) => assert_eq(obj.get("id"), Some("msg-9".to_json()))
+          Object(obj) => assert_eq(obj.get("id"), Some(Json("msg-9")))
           _ => assert_true(false)
         }
       Err(_) => assert_true(false)

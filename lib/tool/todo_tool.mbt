@@ -26,41 +26,45 @@ impl Tool for TodoTool with fn description(_) -> String {
 ///|
 impl Tool for TodoTool with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "action": Json::object({
-        "type": "string".to_json(),
+        "type": Json("string"),
         "enum": [
-          "add".to_json(),
-          "list".to_json(),
-          "complete".to_json(),
-          "remove".to_json(),
-          "clear".to_json(),
+          Json("add"),
+          Json("list"),
+          Json("complete"),
+          Json("remove"),
+          Json("clear"),
         ],
-        "description": "add | list | complete | remove | clear".to_json(),
+        "description": Json("add | list | complete | remove | clear"),
       }),
       "task": Json::object({
-        "description": "add: task description(s). Accepts a string OR an array of strings for batch add.".to_json(),
+        "description": Json(
+          "add: task description(s). Accepts a string OR an array of strings for batch add.",
+        ),
         "oneOf": [
-          Json::object({ "type": "string".to_json() }),
+          Json::object({ "type": Json("string") }),
           Json::object({
-            "type": "array".to_json(),
-            "items": Json::object({ "type": "string".to_json() }),
+            "type": Json("array"),
+            "items": Json::object({ "type": Json("string") }),
           }),
         ],
       }),
       "id": Json::object({
-        "description": "complete/remove: task id(s). Accepts an integer OR an array of integers for batch ops.".to_json(),
+        "description": Json(
+          "complete/remove: task id(s). Accepts an integer OR an array of integers for batch ops.",
+        ),
         "oneOf": [
-          Json::object({ "type": "integer".to_json() }),
+          Json::object({ "type": Json("integer") }),
           Json::object({
-            "type": "array".to_json(),
-            "items": Json::object({ "type": "integer".to_json() }),
+            "type": Json("array"),
+            "items": Json::object({ "type": Json("integer") }),
           }),
         ],
       }),
     }),
-    "required": ["action".to_json()],
+    "required": [Json("action")],
   })
 }
 

@@ -19,8 +19,8 @@ fn mock_step(response : Json) -> Json {
 ///|
 fn mock_tool_call(id : String, name : String, args : Map[String, Json]) -> Json {
   Json::object({
-    "id": id.to_json(),
-    "name": name.to_json(),
+    "id": Json(id),
+    "name": Json(name),
     "arguments": Json::object(args),
   })
 }
@@ -97,7 +97,7 @@ async test "live: the real runner drives tools through the mock LLM end to end" 
   let steps : Array[Json] = [
     mock_step(
       Json::object({
-        "type": "tool_calls".to_json(),
+        "type": Json("tool_calls"),
         "tool_calls": Json::array([
           mock_tool_call("call_read_1", "file_reader", { "path": sandbox }),
         ]),
@@ -105,7 +105,7 @@ async test "live: the real runner drives tools through the mock LLM end to end" 
     ),
     mock_step(
       Json::object({
-        "type": "tool_calls".to_json(),
+        "type": Json("tool_calls"),
         "tool_calls": Json::array([
           mock_tool_call("call_edit_1", "edit", {
             "path": sandbox,
@@ -117,8 +117,8 @@ async test "live: the real runner drives tools through the mock LLM end to end" 
     ),
     mock_step(
       Json::object({
-        "type": "content".to_json(),
-        "text": "已将 config.yaml 的端口从 8080 改为 9090。".to_json(),
+        "type": Json("content"),
+        "text": Json("已将 config.yaml 的端口从 8080 改为 9090。"),
       }),
     ),
   ]

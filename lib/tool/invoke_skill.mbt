@@ -25,18 +25,20 @@ impl Tool for InvokeSkill with fn description(_) -> String {
 ///|
 impl Tool for InvokeSkill with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "skill_name": Json::object({
-        "type": "string".to_json(),
-        "description": "Name of the skill to invoke (e.g., 'code-explorer', 'pptx', 'pdf')".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Name of the skill to invoke (e.g., 'code-explorer', 'pptx', 'pdf')",
+        ),
       }),
       "task": Json::object({
-        "type": "string".to_json(),
-        "description": "The task or query to pass to the skill".to_json(),
+        "type": Json("string"),
+        "description": Json("The task or query to pass to the skill"),
       }),
     }),
-    "required": ["skill_name".to_json(), "task".to_json()],
+    "required": [Json("skill_name"), Json("task")],
   })
 }
 

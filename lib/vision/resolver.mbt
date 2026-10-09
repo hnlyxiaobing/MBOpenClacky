@@ -53,24 +53,24 @@ pub async fn VisionResolver::describe(
   }
   let content_arr : Array[Json] = [
     Json::object({
-      "type": "text".to_json(),
-      "text": effective_prompt.to_json(),
+      "type": Json("text"),
+      "text": Json(effective_prompt),
     }),
     Json::object({
-      "type": "image_url".to_json(),
+      "type": Json("image_url"),
       "image_url": Json::object({
-        "url": image_url.to_json(),
-        "detail": "high".to_json(),
+        "url": Json(image_url),
+        "detail": Json("high"),
       }),
     }),
   ]
   let body : Map[String, Json] = {
-    "model": self.config.model.to_json(),
-    "max_tokens": self.config.max_tokens.to_json(),
+    "model": Json(self.config.model),
+    "max_tokens": Json(self.config.max_tokens),
     "messages": Json::array([
       Json::object({
-        "role": "user".to_json(),
-        "content": content_arr.to_json(),
+        "role": Json("user"),
+        "content": Json(content_arr),
       }),
     ]),
   }

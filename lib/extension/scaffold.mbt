@@ -136,39 +136,39 @@ fn generate_manifest_json(manifest : ExtensionManifest) -> String {
       ExtensionContributionType::Patch => "patch"
     }
     let config_obj : Map[String, Json] = Map([])
-    contrib.config.each(fn(k, v) { config_obj[k] = v.to_json() })
+    contrib.config.each(fn(k, v) { config_obj[k] = Json(v) })
     contributions_json.push(
       Json::object({
-        "type": type_str.to_json(),
-        "id": contrib.id.to_json(),
-        "name": contrib.name.to_json(),
-        "description": contrib.description.to_json(),
-        "path": contrib.path.to_json(),
+        "type": Json(type_str),
+        "id": Json(contrib.id),
+        "name": Json(contrib.name),
+        "description": Json(contrib.description),
+        "path": Json(contrib.path),
         "config": Json::object(config_obj),
       }),
     )
   }
   let manifest_obj : Map[String, Json] = {
-    "id": manifest.id.to_json(),
-    "name": manifest.name.to_json(),
-    "version": manifest.version.to_json(),
-    "description": manifest.description.to_json(),
-    "author": manifest.author.to_json(),
-    "license": manifest.license.to_json(),
-    "keywords": Json::array(manifest.keywords.map(fn(k) { k.to_json() })),
+    "id": Json(manifest.id),
+    "name": Json(manifest.name),
+    "version": Json(manifest.version),
+    "description": Json(manifest.description),
+    "author": Json(manifest.author),
+    "license": Json(manifest.license),
+    "keywords": Json::array(manifest.keywords.map(fn(k) { Json(k) })),
     "contributions": Json::array(contributions_json),
-    "enabled_by_default": manifest.enabled_by_default.to_json(),
+    "enabled_by_default": Json(manifest.enabled_by_default),
   }
   match manifest.homepage {
-    Some(hp) => manifest_obj["homepage"] = hp.to_json()
+    Some(hp) => manifest_obj["homepage"] = Json(hp)
     None => ()
   }
   match manifest.repository {
-    Some(repo) => manifest_obj["repository"] = repo.to_json()
+    Some(repo) => manifest_obj["repository"] = Json(repo)
     None => ()
   }
   let deps_obj : Map[String, Json] = Map([])
-  manifest.dependencies.each(fn(k, v) { deps_obj[k] = v.to_json() })
+  manifest.dependencies.each(fn(k, v) { deps_obj[k] = Json(v) })
   manifest_obj["dependencies"] = Json::object(deps_obj)
   Json::object(manifest_obj).stringify()
 }
@@ -220,17 +220,17 @@ fn generate_panel_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "panel".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("panel"),
+    "extension": Json(ext_id),
     "ui": Json::object({
-      "title": name.to_json(),
+      "title": Json(name),
       "components": Json::array([
         Json::object({
-          "type": "text".to_json(),
-          "content": ("Welcome to the " + name + " panel!").to_json(),
+          "type": Json("text"),
+          "content": Json(("Welcome to the " + name + " panel!")),
         }),
       ]),
     }),
@@ -247,15 +247,15 @@ fn generate_skill_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "skill".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("skill"),
+    "extension": Json(ext_id),
     "skills": Json::array([
       Json::object({
-        "name": "sample_action".to_json(),
-        "description": "A sample skill action".to_json(),
+        "name": Json("sample_action"),
+        "description": Json("A sample skill action"),
         "parameters": Json::object(Map([])),
       }),
     ]),
@@ -272,16 +272,16 @@ fn generate_agent_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "agent".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("agent"),
+    "extension": Json(ext_id),
     "config": Json::object({
-      "system_prompt": ("You are a helpful assistant for the " +
+      "system_prompt": Json(("You are a helpful assistant for the " +
       ext_id +
-      " extension.").to_json(),
-      "temperature": 0.7.to_json(),
+      " extension.")),
+      "temperature": Json(0.7),
     }),
   }
   Json::object(obj).stringify()
@@ -296,17 +296,17 @@ fn generate_api_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "api".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("api"),
+    "extension": Json(ext_id),
     "routes": Json::array([
       Json::object({
-        "method": "GET".to_json(),
-        "path": "/hello".to_json(),
-        "handler": "hello_world".to_json(),
-        "description": "A sample API endpoint".to_json(),
+        "method": Json("GET"),
+        "path": Json("/hello"),
+        "handler": Json("hello_world"),
+        "description": Json("A sample API endpoint"),
       }),
     ]),
   }
@@ -322,16 +322,16 @@ fn generate_hook_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "hook".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("hook"),
+    "extension": Json(ext_id),
     "hooks": Json::array([
       Json::object({
-        "event": "session_start".to_json(),
-        "handler": "on_session_start".to_json(),
-        "description": "Called when a session starts".to_json(),
+        "event": Json("session_start"),
+        "handler": Json("on_session_start"),
+        "description": Json("Called when a session starts"),
       }),
     ]),
   }
@@ -347,16 +347,16 @@ fn generate_patch_template(
   desc : String,
 ) -> String {
   let obj : Map[String, Json] = {
-    "id": id.to_json(),
-    "name": name.to_json(),
-    "description": desc.to_json(),
-    "type": "patch".to_json(),
-    "extension": ext_id.to_json(),
+    "id": Json(id),
+    "name": Json(name),
+    "description": Json(desc),
+    "type": Json("patch"),
+    "extension": Json(ext_id),
     "patches": Json::array([
       Json::object({
-        "target": "some_config".to_json(),
-        "operation": "merge".to_json(),
-        "value": Json::object({ "enabled": true.to_json() }),
+        "target": Json("some_config"),
+        "operation": Json("merge"),
+        "value": Json::object({ "enabled": Json(true) }),
       }),
     ]),
   }

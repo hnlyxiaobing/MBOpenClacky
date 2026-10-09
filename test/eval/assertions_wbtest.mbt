@@ -7,17 +7,17 @@
 test "assertion_kind round-trips the new negations and json_path_ne" {
   let specs : Array[Json] = [
     Json::object({
-      "type": "json_path_ne".to_json(),
-      "path": "updated_at".to_json(),
-      "value": "\"x\"".to_json(),
+      "type": Json("json_path_ne"),
+      "path": Json("updated_at"),
+      "value": Json("\"x\""),
     }),
     Json::object({
-      "type": "stdout_not_contains".to_json(),
-      "text": "[stream-summary]".to_json(),
+      "type": Json("stdout_not_contains"),
+      "text": Json("[stream-summary]"),
     }),
     Json::object({
-      "type": "stderr_not_contains".to_json(),
-      "text": "traceback".to_json(),
+      "type": Json("stderr_not_contains"),
+      "text": Json("traceback"),
     }),
   ]
   for spec in specs {

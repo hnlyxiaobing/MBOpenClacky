@@ -604,21 +604,21 @@ pub fn HarnessReport::to_score_json(
     }
     results.push(
       Json::object({
-        "task_id": result.task_id.to_json(),
+        "task_id": Json(result.task_id),
         "passed": Json::boolean(result.passed),
-        "steps_run": result.steps_run.to_json(),
-        "assertions": result.assertions.length().to_json(),
-        "assertions_passed": passed_assertions.to_json(),
+        "steps_run": Json(result.steps_run),
+        "assertions": Json(result.assertions.length()),
+        "assertions_passed": Json(passed_assertions),
       }),
     )
   }
   Json::object({
-    "mode": mode.to_json(),
-    "trials": trials.to_json(),
-    "tasks": score.tasks.to_json(),
-    "tasks_passed": score.tasks_passed.to_json(),
-    "assertions": score.assertions.to_json(),
-    "assertions_passed": score.assertions_passed.to_json(),
+    "mode": Json(mode),
+    "trials": Json(trials),
+    "tasks": Json(score.tasks),
+    "tasks_passed": Json(score.tasks_passed),
+    "assertions": Json(score.assertions),
+    "assertions_passed": Json(score.assertions_passed),
     "completion_rate": Json::number(score.completion_rate()),
     "verification_rate": Json::number(score.verification_rate()),
     "repeatability": Json::number(score.repeatability()),

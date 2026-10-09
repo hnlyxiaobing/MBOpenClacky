@@ -122,11 +122,11 @@ async fn http_step(
       state.last_http_headers = resp_headers
       state.rest_log.push(
         Json::object({
-          "method": verb_norm.to_json(),
-          "path": path.to_json(),
-          "status": status_code.to_json(),
-          "body_bytes": body_bytes.to_json(),
-          "body": resp_body.to_json(),
+          "method": Json(verb_norm),
+          "path": Json(path),
+          "status": Json(status_code),
+          "body_bytes": Json(body_bytes),
+          "body": Json(resp_body),
         }).stringify(),
       )
       state.trace.push("[\{phase_name}] \{verb_norm} \{path} → \{status_code}")
@@ -145,7 +145,7 @@ async fn http_step(
 /// Recursively expand journey placeholders inside a JSON frame's strings.
 fn expand_frame_strings(frame : Json, ctx : JourneyContext) -> Json {
   match frame {
-    String(s) => expand_journey_placeholders(s, ctx).to_json()
+    String(s) => Json(expand_journey_placeholders(s, ctx))
     Array(items) => {
       let out : Array[Json] = []
       for item in items {

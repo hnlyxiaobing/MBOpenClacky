@@ -45,7 +45,7 @@ pub fn MemoryCategory::from_string(s : String) -> MemoryCategory? {
 
 ///|
 impl ToJson for MemoryCategory with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }
 
 ///|

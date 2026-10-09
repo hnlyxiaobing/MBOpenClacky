@@ -99,7 +99,7 @@ pub fn build_anthropic_request(
           new_obj[k] = v
         }
         new_obj["cache_control"] = Json::object({
-          "type": "ephemeral".to_json(),
+          "type": Json("ephemeral"),
         })
         api_tools[last_idx] = Json::object(new_obj)
       }
@@ -109,17 +109,17 @@ pub fn build_anthropic_request(
 
   // Build request body
   let body : Map[String, Json] = {
-    "model": model.to_json(),
-    "max_tokens": max_tokens.to_json(),
-    "messages": api_messages.to_json(),
+    "model": Json(model),
+    "max_tokens": Json(max_tokens),
+    "messages": Json(api_messages),
   }
 
   if system_text.length() > 0 {
-    body["system"] = system_text.to_json()
+    body["system"] = Json(system_text)
   }
 
   if api_tools.length() > 0 {
-    body["tools"] = api_tools.to_json()
+    body["tools"] = Json(api_tools)
   }
 
   // Add thinking/reasoning params, model-family aware.
@@ -219,7 +219,7 @@ fn merge_anthropic_tool_results(api_messages : Array[Json]) -> Array[Json] {
               for item in cur_arr {
                 combined.push(item)
               }
-              prev_obj["content"] = combined.to_json()
+              prev_obj["content"] = Json(combined)
             }
             _ => merged.push(msg)
           }
@@ -244,7 +244,7 @@ fn is_anthropic_user_with_tool_result(msg : Json) -> Bool {
           for item in arr {
             match item {
               Object(o) =>
-                if o.get("type") == Some("tool_result".to_json()) {
+                if o.get("type") == Some(Json("tool_result")) {
                   return true
                 }
               _ => ()
@@ -273,7 +273,7 @@ fn apply_anthropic_reasoning(
   let model_lower = model.to_lower()
   let is_k3 = model_lower.has_prefix("k3") || model_lower.has_prefix("kimi-k3")
   if is_k3 {
-    body["thinking"] = Json::object({ "type": "enabled".to_json() })
+    body["thinking"] = Json::object({ "type": Json("enabled") })
     let effort_str = match reasoning_effort {
       Some(e) => e
       None => ""
@@ -285,14 +285,14 @@ fn apply_anthropic_reasoning(
     }
     match k3_effort {
       Some(ef) =>
-        body["output_config"] = Json::object({ "effort": ef.to_json() })
+        body["output_config"] = Json::object({ "effort": Json(ef) })
       None => ()
     }
   } else {
     match normalize_effort(reasoning_effort) {
       Some(effort) => {
-        body["thinking"] = Json::object({ "type": "adaptive".to_json() })
-        body["output_config"] = Json::object({ "effort": effort.to_json() })
+        body["thinking"] = Json::object({ "type": Json("adaptive") })
+        body["output_config"] = Json::object({ "effort": Json(effort) })
       }
       None => ()
     }
@@ -318,8 +318,8 @@ fn to_anthropic_message(
             @message.Text(text) if text.length() > 0 =>
               blocks.push(
                 Json::object({
-                  "type": "text".to_json(),
-                  "text": text.to_json(),
+                  "type": Json("text"),
+                  "text": Json(text),
                 }),
               )
             @message.Blocks(content_blocks) =>
@@ -328,8 +328,8 @@ fn to_anthropic_message(
                   @message.Text(tb) if tb.text.length() > 0 =>
                     blocks.push(
                       Json::object({
-                        "type": "text".to_json(),
-                        "text": tb.text.to_json(),
+                        "type": Json("text"),
+                        "text": Json(tb.text),
                       }),
                     )
                   _ => ()
@@ -344,16 +344,16 @@ fn to_anthropic_message(
             let input = parse_tool_arguments(tc.function.arguments)
             blocks.push(
               Json::object({
-                "type": "tool_use".to_json(),
-                "id": sanitize_anthropic_tool_use_id(tc.id).to_json(),
-                "name": tc.function.name.to_json(),
+                "type": Json("tool_use"),
+                "id": Json(sanitize_anthropic_tool_use_id(tc.id)),
+                "name": Json(tc.function.name),
                 "input": input,
               }),
             )
           }
           Json::object({
-            "role": "assistant".to_json(),
-            "content": blocks.to_json(),
+            "role": Json("assistant"),
+            "content": Json(blocks),
           })
         }
         _ => {
@@ -365,7 +365,7 @@ fn to_anthropic_message(
             content_json
           }
           Json::object({
-            "role": "assistant".to_json(),
+            "role": Json("assistant"),
             "content": content_json,
           })
         }
@@ -373,7 +373,7 @@ fn to_anthropic_message(
     @message.Tool => {
       // Tool result -> Anthropic user message with tool_result block
       let tool_content : Json = match msg.content {
-        @message.Text(text) => text.to_json()
+        @message.Text(text) => Json(text)
         @message.Blocks(blocks) =>
           content_to_anthropic_blocks(@message.Blocks(blocks))
       }
@@ -382,8 +382,8 @@ fn to_anthropic_message(
         _ => ""
       }
       let tool_result_block : Map[String, Json] = {
-        "type": "tool_result".to_json(),
-        "tool_use_id": tool_id.to_json(),
+        "type": Json("tool_result"),
+        "tool_use_id": Json(tool_id),
         "content": tool_content,
       }
       if is_cache_candidate {
@@ -393,11 +393,11 @@ fn to_anthropic_message(
         // and "[{text,cache_control}]" per turn, mutating the cached prefix
         // and destroying cache_read hit-rate.
         tool_result_block["cache_control"] = Json::object({
-          "type": "ephemeral".to_json(),
+          "type": Json("ephemeral"),
         })
       }
       Json::object({
-        "role": "user".to_json(),
+        "role": Json("user"),
         "content": Json::array([Json::object(tool_result_block)]),
       })
     }
@@ -410,7 +410,7 @@ fn to_anthropic_message(
         content_json
       }
       Json::object({
-        "role": msg.role.to_string_value().to_json(),
+        "role": Json(msg.role.to_string_value()),
         "content": content_json,
       })
     }
@@ -461,7 +461,7 @@ fn add_cache_control_to_last_block(content_json : Json) -> Json {
                 new_obj[k] = v
               }
               new_obj["cache_control"] = Json::object({
-                "type": "ephemeral".to_json(),
+                "type": Json("ephemeral"),
               })
               let new_arr : Array[Json] = []
               for i in 0..<(arr.length() - 1) {
@@ -487,11 +487,11 @@ fn content_to_anthropic_blocks(content : @message.MessageContent) -> Json {
       if text.length() == 0 {
         // Anthropic rejects empty text blocks — use placeholder
         Json::array([
-          Json::object({ "type": "text".to_json(), "text": "...".to_json() }),
+          Json::object({ "type": Json("text"), "text": Json("...") }),
         ])
       } else {
         Json::array([
-          Json::object({ "type": "text".to_json(), "text": text.to_json() }),
+          Json::object({ "type": Json("text"), "text": Json(text) }),
         ])
       }
     @message.Blocks(blocks) => {
@@ -502,8 +502,8 @@ fn content_to_anthropic_blocks(content : @message.MessageContent) -> Json {
             if tb.text.length() > 0 {
               result.push(
                 Json::object({
-                  "type": "text".to_json(),
-                  "text": tb.text.to_json(),
+                  "type": Json("text"),
+                  "text": Json(tb.text),
                 }),
               )
             }
@@ -516,10 +516,10 @@ fn content_to_anthropic_blocks(content : @message.MessageContent) -> Json {
       }
       if result.length() == 0 {
         Json::array([
-          Json::object({ "type": "text".to_json(), "text": "...".to_json() }),
+          Json::object({ "type": Json("text"), "text": Json("...") }),
         ])
       } else {
-        result.to_json()
+        Json(result)
       }
     }
   }
@@ -540,11 +540,11 @@ fn url_to_anthropic_image(url : String) -> Json? {
         let data = url[sep + 8:].to_owned()
         Some(
           Json::object({
-            "type": "image".to_json(),
+            "type": Json("image"),
             "source": Json::object({
-              "type": "base64".to_json(),
-              "media_type": media_type.to_json(),
-              "data": data.to_json(),
+              "type": Json("base64"),
+              "media_type": Json(media_type),
+              "data": Json(data),
             }),
           }),
         )
@@ -552,10 +552,10 @@ fn url_to_anthropic_image(url : String) -> Json? {
       None =>
         Some(
           Json::object({
-            "type": "image".to_json(),
+            "type": Json("image"),
             "source": Json::object({
-              "type": "url".to_json(),
-              "url": url.to_json(),
+              "type": Json("url"),
+              "url": Json(url),
             }),
           }),
         )
@@ -563,8 +563,8 @@ fn url_to_anthropic_image(url : String) -> Json? {
   } else {
     Some(
       Json::object({
-        "type": "image".to_json(),
-        "source": Json::object({ "type": "url".to_json(), "url": url.to_json() }),
+        "type": Json("image"),
+        "source": Json::object({ "type": Json("url"), "url": Json(url) }),
       }),
     )
   }
@@ -740,7 +740,7 @@ pub fn format_anthropic_tool_results(
       for tc in calls {
         let content = match tool_results.get(tc.id) {
           Some(result) => result
-          None => { "error": "Tool result missing" }.to_json().stringify()
+          None => Json({ "error": "Tool result missing" }).stringify()
         }
         messages.push(
           @message.Message::tool_result(tc.id, tc.function.name, content),

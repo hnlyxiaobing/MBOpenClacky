@@ -95,7 +95,7 @@ pub(all) struct Agent {
   /// round-trip (Ruby `show_feedback_request(..., questions:)`).
   /// Set by WS controller for interactive mode; None = headless (feedback denied).
   mut feedback_request : @aqueue.Queue[
-    (String, String?, Array[String]?, Array[@tool.AskQuestion])
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
   ]?
   mut feedback_response : @aqueue.Queue[String]?
   // ── Skill Injection ───────────────────────────────────────────────

@@ -31,29 +31,35 @@ impl Tool for TrashManager with fn description(_) -> String {
 ///|
 impl Tool for TrashManager with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "action": Json::object({
-        "type": "string".to_json(),
-        "description": "Action to perform: 'list' (show deleted files), 'restore' (restore a file), 'status' (show trash summary), 'empty' (permanently delete old files), 'help' (show usage)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Action to perform: 'list' (show deleted files), 'restore' (restore a file), 'status' (show trash summary), 'empty' (permanently delete old files), 'help' (show usage)",
+        ),
         "enum": [
-          "list".to_json(),
-          "restore".to_json(),
-          "status".to_json(),
-          "empty".to_json(),
-          "help".to_json(),
+          Json("list"),
+          Json("restore"),
+          Json("status"),
+          Json("empty"),
+          Json("help"),
         ],
       }),
       "file_path": Json::object({
-        "type": "string".to_json(),
-        "description": "Original file path to restore (required for 'restore' action)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Original file path to restore (required for 'restore' action)",
+        ),
       }),
       "days_old": Json::object({
-        "type": "integer".to_json(),
-        "description": "For 'empty' action: permanently delete files older than this many days (default: 7)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "For 'empty' action: permanently delete files older than this many days (default: 7)",
+        ),
       }),
     }),
-    "required": ["action".to_json()],
+    "required": [Json("action")],
   })
 }
 

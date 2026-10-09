@@ -24,41 +24,45 @@ impl Tool for MemoryTool with fn description(_) -> String {
 ///|
 impl Tool for MemoryTool with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "action": Json::object({
-        "type": "string".to_json(),
-        "description": "The action to perform: create, search, update, delete, or list".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "The action to perform: create, search, update, delete, or list",
+        ),
         "enum": [
-          "create".to_json(),
-          "search".to_json(),
-          "update".to_json(),
-          "delete".to_json(),
-          "list".to_json(),
+          Json("create"),
+          Json("search"),
+          Json("update"),
+          Json("delete"),
+          Json("list"),
         ],
       }),
       "title": Json::object({
-        "type": "string".to_json(),
-        "description": "Title of the memory entry (for create/update)".to_json(),
+        "type": Json("string"),
+        "description": Json("Title of the memory entry (for create/update)"),
       }),
       "content": Json::object({
-        "type": "string".to_json(),
-        "description": "Content of the memory entry (for create/update)".to_json(),
+        "type": Json("string"),
+        "description": Json("Content of the memory entry (for create/update)"),
       }),
       "category": Json::object({
-        "type": "string".to_json(),
-        "description": "Category: user_preference, project_info, task_summary, expert_knowledge, or learned_skill".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Category: user_preference, project_info, task_summary, expert_knowledge, or learned_skill",
+        ),
       }),
       "query": Json::object({
-        "type": "string".to_json(),
-        "description": "Search query string (for search action)".to_json(),
+        "type": Json("string"),
+        "description": Json("Search query string (for search action)"),
       }),
       "id": Json::object({
-        "type": "string".to_json(),
-        "description": "Memory entry ID (for update/delete)".to_json(),
+        "type": Json("string"),
+        "description": Json("Memory entry ID (for update/delete)"),
       }),
     }),
-    "required": ["action".to_json()],
+    "required": [Json("action")],
   })
 }
 

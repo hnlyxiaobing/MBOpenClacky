@@ -776,10 +776,10 @@ pub fn is_webhook_valid(url : String, expire_time : Int) -> Bool {
 /// Build a DingTalk markdown message payload.
 pub fn build_dingtalk_markdown_payload(title : String, text : String) -> Json {
   let md_obj : Map[String, Json] = Map([])
-  md_obj.set("title", title.to_json())
-  md_obj.set("text", text.to_json())
+  md_obj.set("title", Json(title))
+  md_obj.set("text", Json(text))
   let msg : Map[String, Json] = Map([])
-  msg.set("msgtype", "markdown".to_json())
+  msg.set("msgtype", Json("markdown"))
   msg.set("markdown", Json::object(md_obj))
   Json::object(msg)
 }
@@ -831,9 +831,9 @@ pub fn parse_stream_frame(json : Json) -> Result[(String, Json), ChannelError] {
 /// DingTalk requires ACK to confirm message processing.
 pub fn build_stream_ack(message_id : String) -> Json {
   let ack : Map[String, Json] = Map([])
-  ack.set("code", (200).to_json())
-  ack.set("message", "OK".to_json())
-  ack.set("messageId", message_id.to_json())
+  ack.set("code", Json((200)))
+  ack.set("message", Json("OK"))
+  ack.set("messageId", Json(message_id))
   Json::object(ack)
 }
 
@@ -842,7 +842,7 @@ pub fn build_stream_ack(message_id : String) -> Json {
 /// DingTalk Stream Mode sends periodic pings to keep the connection alive.
 pub fn build_stream_pong() -> Json {
   let pong : Map[String, Json] = Map([])
-  pong.set("type", "pong".to_json())
+  pong.set("type", Json("pong"))
   Json::object(pong)
 }
 
@@ -850,9 +850,9 @@ pub fn build_stream_pong() -> Json {
 /// Build DingTalk webhook message payload (legacy helper for backward compatibility).
 pub fn build_dingtalk_message(text : String) -> Json {
   let text_obj : Map[String, Json] = Map([])
-  text_obj.set("content", text.to_json())
+  text_obj.set("content", Json(text))
   let msg : Map[String, Json] = Map([])
-  msg.set("msgtype", "text".to_json())
+  msg.set("msgtype", Json("text"))
   msg.set("text", Json::object(text_obj))
   Json::object(msg)
 }

@@ -274,7 +274,7 @@ test "TrashEntry: to_json and from_json roundtrip" {
     deleted_at: "2024-01-01T00:00:00Z",
     size_bytes: 1024,
   }
-  let json = entry.to_json()
+  let json = Json(entry)
   let parsed : TrashEntry = @json.from_json(json)
   assert_eq(parsed, entry)
 }
@@ -315,8 +315,8 @@ test "list_trash_entries: newest-first uses lexicographic deleted_at (BUG-0079)"
     file_mode: "0644",
   }
   for pair in [
-    ("a.txt", meta_a.to_json().stringify()),
-    ("b.txt", meta_b.to_json().stringify()),
+    ("a.txt", Json(meta_a).stringify()),
+    ("b.txt", Json(meta_b).stringify()),
   ] {
     let (name, meta_json) = pair
     @fs.write_string_to_file(dir + "/" + name, "abc") catch {

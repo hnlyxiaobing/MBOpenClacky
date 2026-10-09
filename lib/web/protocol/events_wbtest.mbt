@@ -216,10 +216,10 @@ test "session_update: cost frame carries flat cost/cost_source" {
 /// fix-08: latency partial session_update frame has nested latency object.
 test "session_update: latency frame carries the nested latency object" {
   let lat_inner : Map[String, Json] = {
-    "ttft_ms": (120).to_json(),
-    "duration_ms": (2500).to_json(),
-    "output_tokens": (350).to_json(),
-    "tps": 140.0.to_json(),
+    "ttft_ms": Json((120)),
+    "duration_ms": Json((2500)),
+    "output_tokens": Json((350)),
+    "tps": Json(140.0),
   }
   let result = @proto.SessionUpdate({
     status: None,
@@ -263,9 +263,9 @@ test "session_update: latency frame carries the nested latency object" {
 test "session_update: latency frame tolerates null ttft_ms" {
   let lat_inner : Map[String, Json] = {
     "ttft_ms": Json::null(),
-    "duration_ms": (1000).to_json(),
-    "output_tokens": (100).to_json(),
-    "tps": 100.0.to_json(),
+    "duration_ms": Json((1000)),
+    "output_tokens": Json((100)),
+    "tps": Json(100.0),
   }
   let result = @proto.SessionUpdate({
     status: None,

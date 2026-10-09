@@ -17,8 +17,8 @@ let mcp_protocol_version : String = "2024-11-05"
 /// JSON-RPC error object.
 fn mcp_error(code : Int, message : String) -> Json {
   Json::object({
-    "code": code.to_json(),
-    "message": message.to_json(),
+    "code": Json(code),
+    "message": Json(message),
   })
 }
 
@@ -41,13 +41,13 @@ fn mcp_request_id(req : Json) -> Json? {
 /// `initialize` — protocol version, tool capability, server identity.
 fn mcp_initialize_result() -> Json {
   Json::object({
-    "protocolVersion": mcp_protocol_version.to_json(),
+    "protocolVersion": Json(mcp_protocol_version),
     "capabilities": Json::object({
-      "tools": Json::object({ "listChanged": false.to_json() }),
+      "tools": Json::object({ "listChanged": Json(false) }),
     }),
     "serverInfo": Json::object({
-      "name": "mbopenclacky".to_json(),
-      "version": VERSION.to_json(),
+      "name": Json("mbopenclacky"),
+      "version": Json(VERSION),
     }),
   })
 }
@@ -60,8 +60,8 @@ fn mcp_tools_list_result(registry : @tool.ToolRegistry) -> Json {
   for def in registry.all_definitions() {
     tools.push(
       Json::object({
-        "name": def.function.name.to_json(),
-        "description": def.function.description.to_json(),
+        "name": Json(def.function.name),
+        "description": Json(def.function.description),
         "inputSchema": def.function.parameters,
       }),
     )
@@ -103,11 +103,11 @@ async fn mcp_tools_call_result(
       Json::object({
         "content": Json::array([
           Json::object({
-            "type": "text".to_json(),
-            "text": result.content.to_json(),
+            "type": Json("text"),
+            "text": Json(result.content),
           }),
         ]),
-        "isError": result.is_error.to_json(),
+        "isError": Json(result.is_error),
       })
     }
   }
@@ -118,9 +118,9 @@ async fn mcp_tools_call_result(
 fn mcp_tool_error(message : String) -> Json {
   Json::object({
     "content": Json::array([
-      Json::object({ "type": "text".to_json(), "text": message.to_json() }),
+      Json::object({ "type": Json("text"), "text": Json(message) }),
     ]),
-    "isError": true.to_json(),
+    "isError": Json(true),
   })
 }
 
@@ -151,7 +151,7 @@ async fn mcp_dispatch(
     None => return None
   }
   let base : Map[String, Json] = Map([])
-  base.set("jsonrpc", "2.0".to_json())
+  base.set("jsonrpc", Json("2.0"))
   base.set("id", response_id)
   match method_name {
     "initialize" => {
@@ -206,7 +206,7 @@ pub async fn handle_mcp_serve() -> Unit {
         if parse_failed {
           stdout.write(
             Json::object({
-              "jsonrpc": "2.0".to_json(),
+              "jsonrpc": Json("2.0"),
               "id": Json::null(),
               "error": mcp_error(-32700, "Parse error"),
             }).stringify() + "\n",

@@ -130,10 +130,7 @@ fn frame_style_from_name(name : String) -> BlockFontStyle {
 /// `@utils.BlockFont` and frames them here, so the two renderers compose:
 /// glyph density comes from one, the frame from the other. `Standard`
 /// returns the rows unchanged; empty input stays empty.
-fn frame_lines(
-  rows : Array[String],
-  style : BlockFontStyle,
-) -> Array[String] {
+fn frame_lines(rows : Array[String], style : BlockFontStyle) -> Array[String] {
   if rows.length() == 0 {
     return rows
   }

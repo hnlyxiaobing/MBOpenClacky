@@ -89,8 +89,7 @@ fn LegacyReprCursor::take_raw_body(self : LegacyReprCursor) -> String? {
         while look < self.text.length() && is_repr_space(self.text[look]) {
           look = look + 1
         }
-        if look < self.text.length() &&
-          is_repr_container_close(self.text[look]) {
+        if look < self.text.length() && is_repr_container_close(self.text[look]) {
           let body = self.text[start:self.pos].to_owned()
           self.pos = self.pos + 1
           return Some(body)
@@ -240,7 +239,7 @@ fn parse_legacy_debug_repr(text : String) -> Json? {
     return None
   }
   let doc = text.trim().to_owned()
-  let cursor : LegacyReprCursor = { text: doc, pos: 0 }
+  let cursor : LegacyReprCursor = { text: doc, pos: 0, }
   let value = match cursor.parse_value() {
     Some(v) => v
     None => return None

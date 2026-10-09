@@ -235,7 +235,7 @@ test "ext_contentblock_text_to_json" {
   let cb = ContentBlock::Text({ text: "hi", })
   match ToJson::to_json(cb) {
     Object(obj) => {
-      assert_eq(obj.get("type"), Some("text".to_json()))
+      assert_eq(obj.get("type"), Some(Json("text")))
       match obj.get("text") {
         Some(String(s)) => assert_eq(s, "hi")
         _ => assert_true(false)
@@ -249,7 +249,7 @@ test "ext_contentblock_text_to_json" {
 test "ext_contentblock_image_to_json" {
   let cb = ContentBlock::Image({ url: "http://x.png", detail: None, })
   match ToJson::to_json(cb) {
-    Object(obj) => assert_eq(obj.get("type"), Some("image_url".to_json()))
+    Object(obj) => assert_eq(obj.get("type"), Some(Json("image_url")))
     _ => assert_true(false)
   }
 }
@@ -550,8 +550,8 @@ test "ext_message_to_json_minimal" {
   let msg = Message::user("hello world")
   match ToJson::to_json(msg) {
     Object(obj) => {
-      assert_eq(obj.get("role"), Some("user".to_json()))
-      assert_eq(obj.get("content"), Some("hello world".to_json()))
+      assert_eq(obj.get("role"), Some(Json("user")))
+      assert_eq(obj.get("content"), Some(Json("hello world")))
     }
     _ => assert_true(false)
   }
@@ -593,12 +593,12 @@ test "ext_toolcall_to_json_structure" {
   let tc = ToolCall::new("id-1", "func_name", "{\"arg\":1}")
   match ToJson::to_json(tc) {
     Object(obj) => {
-      assert_eq(obj.get("id"), Some("id-1".to_json()))
-      assert_eq(obj.get("type"), Some("function".to_json()))
+      assert_eq(obj.get("id"), Some(Json("id-1")))
+      assert_eq(obj.get("type"), Some(Json("function")))
       match obj.get("function") {
         Some(Object(fn_obj)) => {
-          assert_eq(fn_obj.get("name"), Some("func_name".to_json()))
-          assert_eq(fn_obj.get("arguments"), Some("{\"arg\":1}".to_json()))
+          assert_eq(fn_obj.get("name"), Some(Json("func_name")))
+          assert_eq(fn_obj.get("arguments"), Some(Json("{\"arg\":1}")))
         }
         _ => assert_true(false)
       }
@@ -609,10 +609,10 @@ test "ext_toolcall_to_json_structure" {
 
 ///|
 test "ext_role_to_json_all_variants" {
-  assert_true(ToJson::to_json(User) == "user".to_json())
-  assert_true(ToJson::to_json(Assistant) == "assistant".to_json())
-  assert_true(ToJson::to_json(System) == "system".to_json())
-  assert_true(ToJson::to_json(Tool) == "tool".to_json())
+  assert_true(ToJson::to_json(User) == Json("user"))
+  assert_true(ToJson::to_json(Assistant) == Json("assistant"))
+  assert_true(ToJson::to_json(System) == Json("system"))
+  assert_true(ToJson::to_json(Tool) == Json("tool"))
 }
 
 ///|
@@ -661,8 +661,8 @@ test "ext_message_to_json_session_context" {
   }
   match ToJson::to_json(msg) {
     Object(obj) => {
-      assert_eq(obj.get("session_date"), Some("2026-08-21".to_json()))
-      assert_eq(obj.get("session_context"), Some(true.to_json()))
+      assert_eq(obj.get("session_date"), Some(Json("2026-08-21")))
+      assert_eq(obj.get("session_context"), Some(Json(true)))
     }
     _ => assert_true(false)
   }
@@ -696,7 +696,7 @@ test "ext_message_to_json_session_context_false_omitted" {
   }
   match ToJson::to_json(msg) {
     Object(obj) => {
-      assert_eq(obj.get("session_date"), Some("2026-08-21".to_json()))
+      assert_eq(obj.get("session_date"), Some(Json("2026-08-21")))
       assert_eq(obj.get("session_context"), None)
     }
     _ => assert_true(false)

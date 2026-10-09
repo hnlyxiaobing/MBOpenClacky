@@ -8,9 +8,7 @@
 ///|
 async test "terminal execute: simple echo succeeds (pty or fallback)" {
   let term = Terminal::new()
-  let args : Map[String, Json] = {
-    "command": "echo clacky_pty_smoke".to_json(),
-  }
+  let args : Map[String, Json] = { "command": Json("echo clacky_pty_smoke") }
   let result = term.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.contains("clacky_pty_smoke"))
@@ -21,7 +19,7 @@ async test "terminal execute: simple echo succeeds (pty or fallback)" {
 async test "terminal execute: non-zero exit code propagates" {
   let term = Terminal::new()
   // (exit 3) works in cmd.exe (.bat fallback), sh, and PTY bash alike.
-  let args : Map[String, Json] = { "command": "(exit 3)".to_json() }
+  let args : Map[String, Json] = { "command": Json("(exit 3)") }
   let result = term.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.contains("exit_code: 3"))
@@ -41,8 +39,8 @@ async test "terminal execute: timeout bounds long commands" {
     "sleep 30"
   }
   let args : Map[String, Json] = {
-    "command": long_cmd.to_json(),
-    "timeout": (1).to_json(),
+    "command": Json(long_cmd),
+    "timeout": Json(1),
   }
   let start = @env.now().reinterpret_as_int64()
   let result = term.execute(args)
@@ -69,8 +67,8 @@ async test "terminal execute: background session lifecycle" {
     "echo bg_hello && sleep 1 && echo bg_done"
   }
   let args : Map[String, Json] = {
-    "command": cmd.to_json(),
-    "background": true.to_json(),
+    "command": Json(cmd),
+    "background": Json(true),
   }
   let result = term.execute(args)
   assert_false(result.is_error)
@@ -92,8 +90,8 @@ async test "terminal execute: background session lifecycle" {
   let mut saw_done = false
   for i in 0..<20 {
     let poll_args : Map[String, Json] = {
-      "session_id": sid.to_json(),
-      "input": "".to_json(),
+      "session_id": Json(sid),
+      "input": Json(""),
     }
     let poll = term.execute(poll_args)
     if poll.content.contains("bg_done") || poll.content.contains("exited") {
@@ -119,8 +117,8 @@ async test "terminal execute: background session lifecycle" {
 async test "terminal execute: kill terminates background session" {
   let term = Terminal::new()
   let args : Map[String, Json] = {
-    "command": "sleep 60".to_json(),
-    "background": true.to_json(),
+    "command": Json("sleep 60"),
+    "background": Json(true),
   }
   let result = term.execute(args)
   assert_false(result.is_error)
@@ -136,8 +134,8 @@ async test "terminal execute: kill terminates background session" {
   @async.sleep(200)
 
   let kill_args : Map[String, Json] = {
-    "session_id": sid.to_json(),
-    "kill": true.to_json(),
+    "session_id": Json(sid),
+    "kill": Json(true),
   }
   let kill = term.execute(kill_args)
   assert_false(kill.is_error)
@@ -145,8 +143,8 @@ async test "terminal execute: kill terminates background session" {
 
   // The session must now report as killed/exited on poll.
   let poll_args : Map[String, Json] = {
-    "session_id": sid.to_json(),
-    "input": "".to_json(),
+    "session_id": Json(sid),
+    "input": Json(""),
   }
   let poll = term.execute(poll_args)
   assert_true(

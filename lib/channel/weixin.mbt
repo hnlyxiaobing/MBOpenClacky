@@ -866,9 +866,9 @@ pub fn build_weixin_message(
   text : String,
 ) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("ToUserName", to_user.to_json())
-  msg.set("FromUserName", from_user.to_json())
-  msg.set("MsgType", "text".to_json())
-  msg.set("Content", text.to_json())
+  msg.set("ToUserName", Json(to_user))
+  msg.set("FromUserName", Json(from_user))
+  msg.set("MsgType", Json("text"))
+  msg.set("Content", Json(text))
   Json::object(msg)
 }

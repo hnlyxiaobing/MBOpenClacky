@@ -308,11 +308,11 @@ pub fn DiscordAdapter::parse_event(
 /// Build Discord message payload JSON.
 pub fn build_discord_message(text : String, reply_to : String?) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("content", text.to_json())
+  msg.set("content", Json(text))
   match reply_to {
     Some(id) => {
       let ref_obj : Map[String, Json] = Map([])
-      ref_obj.set("message_id", id.to_json())
+      ref_obj.set("message_id", Json(id))
       msg.set("message_reference", Json::object(ref_obj))
     }
     None => ()

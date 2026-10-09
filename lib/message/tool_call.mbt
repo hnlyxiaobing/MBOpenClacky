@@ -40,9 +40,9 @@ pub extend ToolCall with ToJson::{to_json}
 ///|
 pub impl ToJson for ToolCall with fn to_json(self) {
   let obj : Map[String, Json] = {
-    "id": self.id.to_json(),
-    "type": self.type_.to_json(),
-    "function": self.function.to_json(),
+    "id": Json(self.id),
+    "type": Json(self.type_),
+    "function": Json(self.function),
   }
   match self.extra_content {
     Some(ec) => obj["extra_content"] = ec

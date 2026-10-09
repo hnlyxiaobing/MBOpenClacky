@@ -839,7 +839,7 @@ pub fn Providers::api_type_for_model(
 
 ///|
 pub impl ToJson for ApiType with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }
 
 ///|

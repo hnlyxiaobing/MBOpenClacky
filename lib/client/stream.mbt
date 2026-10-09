@@ -1254,15 +1254,15 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
             content_blocks.push(
               Json::object({
                 "toolUse": Json::object({
-                  "toolUseId": id.to_json(),
-                  "name": name.to_json(),
+                  "toolUseId": Json(id),
+                  "name": Json(name),
                   "input": input,
                 }),
               }),
             )
           }
           BedrockText =>
-            content_blocks.push(Json::object({ "text": block.text.to_json() }))
+            content_blocks.push(Json::object({ "text": Json(block.text) }))
           BedrockReasoning =>
             content_blocks.push(
               Json::object({
@@ -1270,7 +1270,7 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
                 // emitting the wrong field dropped all reasoning content
                 // (spec decision 10: "聚合器 reasoning 写入与 to_json 字段错配").
                 "reasoningContent": Json::object({
-                  "text": block.reasoning.to_json(),
+                  "text": Json(block.reasoning),
                 }),
               }),
             )
@@ -1283,19 +1283,19 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
   let body : Map[String, Json] = {
     "output": Json::object({
       "message": Json::object({
-        "role": self.role.to_json(),
-        "content": content_blocks.to_json(),
+        "role": Json(self.role),
+        "content": Json(content_blocks),
       }),
     }),
     "usage": Json::object({
-      "inputTokens": self.input_tokens.to_json(),
-      "outputTokens": self.output_tokens.to_json(),
-      "cacheReadInputTokens": self.cache_read.to_json(),
-      "cacheWriteInputTokens": self.cache_write.to_json(),
+      "inputTokens": Json(self.input_tokens),
+      "outputTokens": Json(self.output_tokens),
+      "cacheReadInputTokens": Json(self.cache_read),
+      "cacheWriteInputTokens": Json(self.cache_write),
     }),
   }
   match self.stop_reason {
-    Some(r) => body["stopReason"] = r.to_json()
+    Some(r) => body["stopReason"] = Json(r)
     None => ()
   }
   Json::object(body)
@@ -1307,7 +1307,7 @@ pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json 
 pub fn BedrockStreamAggregator::to_response(
   self : BedrockStreamAggregator,
 ) -> LlmResponse {
-  parse_bedrock_response(self.to_json())
+  parse_bedrock_response(BedrockStreamAggregator::to_json(self))
 }
 
 ///|

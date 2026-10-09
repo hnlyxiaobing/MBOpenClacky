@@ -79,10 +79,10 @@ pub fn WeixinApiClient::build_get_updates_request(
   let _ = self.token
   let payload : Map[String, Json] = Map([])
   let timeout = 40
-  payload.set("timeout", timeout.to_json())
+  payload.set("timeout", Json(timeout))
   match buf {
-    Some(b) => payload.set("buf", b.to_json())
-    None => payload.set("buf", "".to_json())
+    Some(b) => payload.set("buf", Json(b))
+    None => payload.set("buf", Json(""))
   }
   Json::object(payload)
 }
@@ -160,13 +160,13 @@ pub fn WeixinApiClient::build_send_text_request(
 ) -> Json {
   let _ = self.token
   let text_item : Map[String, Json] = Map([])
-  text_item.set("text", text.to_json())
+  text_item.set("text", Json(text))
   let payload : Map[String, Json] = Map([])
-  payload.set("to_user_name", to_user_id.to_json())
+  payload.set("to_user_name", Json(to_user_id))
   payload.set("text_item", Json::object(text_item))
-  payload.set("context_token", context_token.to_json())
+  payload.set("context_token", Json(context_token))
   let msg_type = 1 // TEXT
-  payload.set("msg_type", msg_type.to_json())
+  payload.set("msg_type", Json(msg_type))
   Json::object(payload)
 }
 
@@ -202,8 +202,8 @@ pub async fn WeixinApiClient::probe_connectivity(
   self : WeixinApiClient,
 ) -> Result[Unit, ChannelError] {
   let payload : Map[String, Json] = Map([])
-  payload.set("timeout", (1).to_json())
-  payload.set("buf", "".to_json())
+  payload.set("timeout", Json((1)))
+  payload.set("buf", Json(""))
   let json = match
     http_post_json(
       self.get_updates_url(None),
@@ -245,8 +245,8 @@ pub fn WeixinApiClient::build_typing_request(
 ) -> Json {
   let _ = self.token
   let payload : Map[String, Json] = Map([])
-  payload.set("to_user_name", to_user_id.to_json())
-  payload.set("typing_status", status.to_json())
+  payload.set("to_user_name", Json(to_user_id))
+  payload.set("typing_status", Json(status))
   Json::object(payload)
 }
 
@@ -276,8 +276,8 @@ pub fn WeixinApiClient::build_upload_request(
 ) -> Json {
   let _ = self.token
   let payload : Map[String, Json] = Map([])
-  payload.set("media_type", media_type.to_json())
-  payload.set("file_size", file_size.to_json())
+  payload.set("media_type", Json(media_type))
+  payload.set("file_size", Json(file_size))
   Json::object(payload)
 }
 

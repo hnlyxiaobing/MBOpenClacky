@@ -17,14 +17,14 @@ pub fn export_session_zip(session_id : String) -> Result[Bytes, String] {
   }
 
   // Serialize session to JSON
-  let json_str = session_data.to_json().stringify()
+  let json_str = Json(session_data).stringify()
   let json_bytes = @utf8.encode(json_str)
 
   // Create export metadata
   let metadata = Json::object({
-    "exported_at": current_timestamp_iso().to_json(),
-    "format_version": (1).to_json(),
-    "session_id": session_id.to_json(),
+    "exported_at": Json(current_timestamp_iso()),
+    "format_version": Json(1),
+    "session_id": Json(session_id),
   })
   let metadata_bytes = @utf8.encode(metadata.stringify())
 
@@ -96,16 +96,16 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
 
   // Add each session
   for session in sessions {
-    let json_str = session.to_json().stringify()
+    let json_str = Json(session).stringify()
     let entry_name = "sessions/" + session.session_id + ".json"
     entries.push({ name: entry_name, data: @utf8.encode(json_str), })
   }
 
   // Add manifest
   let manifest = Json::object({
-    "exported_at": current_timestamp_iso().to_json(),
-    "format_version": (1).to_json(),
-    "session_count": sessions.length().to_json(),
+    "exported_at": Json(current_timestamp_iso()),
+    "format_version": Json(1),
+    "session_count": Json(sessions.length()),
   })
   entries.push({
     name: "manifest.json",

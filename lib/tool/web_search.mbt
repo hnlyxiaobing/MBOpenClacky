@@ -199,18 +199,18 @@ impl Tool for WebSearch with fn description(_) -> String {
 ///|
 impl Tool for WebSearch with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "query": Json::object({
-        "type": "string".to_json(),
-        "description": "Search query. Value range: 1 to 100 characters.".to_json(),
+        "type": Json("string"),
+        "description": Json("Search query. Value range: 1 to 100 characters."),
       }),
       "max_results": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum number of results to return (default: 10)".to_json(),
+        "type": Json("integer"),
+        "description": Json("Maximum number of results to return (default: 10)"),
       }),
     }),
-    "required": ["query".to_json()],
+    "required": [Json("query")],
   })
 }
 

@@ -154,11 +154,11 @@ pub async fn DiscordApiClient::download_attachment(
 /// Build the JSON payload for sending a Discord message.
 pub fn build_discord_send_payload(content : String, reply_to : String?) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("content", content.to_json())
+  msg.set("content", Json(content))
   match reply_to {
     Some(id) => {
       let ref_obj : Map[String, Json] = Map([])
-      ref_obj.set("message_id", id.to_json())
+      ref_obj.set("message_id", Json(id))
       msg.set("message_reference", Json::object(ref_obj))
     }
     None => ()
@@ -170,7 +170,7 @@ pub fn build_discord_send_payload(content : String, reply_to : String?) -> Json 
 /// Build the JSON payload for editing a Discord message.
 pub fn build_discord_edit_payload(content : String) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("content", content.to_json())
+  msg.set("content", Json(content))
   Json::object(msg)
 }
 

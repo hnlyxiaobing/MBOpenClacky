@@ -256,13 +256,13 @@ fn handle_webhook_bridge(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: platform".to_json() }),
+        Json::object({ "error": Json("Missing parameter: platform") }),
       )
   }
   let body : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Feishu URL-verification challenge: return the challenge string directly
@@ -280,11 +280,11 @@ fn handle_webhook_bridge(
     match server_ref.val.channel_manager.val.handle_webhook(platform, body) {
       Ok(_) =>
         return @core.HttpResponse::ok().json_value(
-          Json::object({ "status": "ok".to_json() }),
+          Json::object({ "status": Json("ok") }),
         )
       Err(e) =>
         return @core.HttpResponse::bad_request().json_value(
-          Json::object({ "error": channel_error_msg(e).to_json() }),
+          Json::object({ "error": Json(channel_error_msg(e)) }),
         )
     }
   }
@@ -292,11 +292,11 @@ fn handle_webhook_bridge(
   match server_ref.val.webhook_registry.handle(platform, body) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "status": "ok".to_json() }),
+        Json::object({ "status": Json("ok") }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -654,9 +654,9 @@ fn handle_backup_open_folder_bridge(
   // available in headless mode — report honestly instead of faking success.
   @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     Json::object({
-      "ok": false.to_json(),
-      "error": "unimplemented".to_json(),
-      "message": "backup open-folder not available in headless mode".to_json(),
+      "ok": Json(false),
+      "error": Json("unimplemented"),
+      "message": Json("backup open-folder not available in headless mode"),
     }),
   )
 }
@@ -685,9 +685,9 @@ fn handle_backup_config_bridge(
   response_to_core(
     HttpResponse::ok(
       Json::object({
-        "backup_dir": backup_config.val.backup_dir.to_json(),
-        "auto_backup": backup_config.val.auto_backup.to_json(),
-        "max_backups": backup_config.val.max_backups.to_json(),
+        "backup_dir": Json(backup_config.val.backup_dir),
+        "auto_backup": Json(backup_config.val.auto_backup),
+        "max_backups": Json(backup_config.val.max_backups),
       }).stringify(),
     ),
   )
@@ -857,9 +857,9 @@ fn handle_media_video_status_bridge(
 ) -> @core.HttpResponse {
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "status": "synchronous".to_json(),
-      "message": "Video generation runs synchronously in POST /api/media/video".to_json(),
+      "ok": Json(true),
+      "status": Json("synchronous"),
+      "message": Json("Video generation runs synchronously in POST /api/media/video"),
     }),
   )
 }
@@ -895,24 +895,24 @@ fn media_type_state_json(config : @config.AgentConfig, kind : String) -> Json {
   match find_explicit_media_model(config, kind) {
     Some(mc) =>
       Json::object({
-        "configured": true.to_json(),
-        "model": mc.model.to_json(),
-        "base_url": mc.base_url.to_json(),
-        "source": "custom".to_json(),
+        "configured": Json(true),
+        "model": Json(mc.model),
+        "base_url": Json(mc.base_url),
+        "source": Json("custom"),
       })
     None =>
       match config.derive_media_model(kind) {
         Some(mc) =>
           Json::object({
-            "configured": true.to_json(),
-            "model": mc.model.to_json(),
-            "base_url": mc.base_url.to_json(),
-            "source": "auto".to_json(),
+            "configured": Json(true),
+            "model": Json(mc.model),
+            "base_url": Json(mc.base_url),
+            "source": Json("auto"),
           })
         None =>
           Json::object({
-            "configured": false.to_json(),
-            "source": "off".to_json(),
+            "configured": Json(false),
+            "source": Json("off"),
           })
       }
   }
@@ -946,7 +946,7 @@ fn handle_file_action_bridge(
   let body : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let action = match body {
@@ -959,7 +959,7 @@ fn handle_file_action_bridge(
   }
   if action.is_empty() || path.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "action and path required".to_json() }),
+      Json::object({ "error": Json("action and path required") }),
     )
   }
   // display-path is a pure path-translation query (no OS integration), so it
@@ -968,8 +968,8 @@ fn handle_file_action_bridge(
   if action == "display-path" {
     return @core.HttpResponse::ok().json_value(
       Json::object({
-        "ok": true.to_json(),
-        "path": linux_to_win_path(path).to_json(),
+        "ok": Json(true),
+        "path": Json(linux_to_win_path(path)),
       }),
     )
   }
@@ -977,9 +977,9 @@ fn handle_file_action_bridge(
   // in headless mode — report honestly instead of faking success.
   @core.HttpResponse::HttpResponse(status_code=@core.StatusCode::NotImplemented).json_value(
     Json::object({
-      "ok": false.to_json(),
-      "error": "unimplemented".to_json(),
-      "message": ("file-action '" + action + "' not available in headless mode").to_json(),
+      "ok": Json(false),
+      "error": Json("unimplemented"),
+      "message": Json(("file-action '" + action + "' not available in headless mode")),
     }),
   )
 }

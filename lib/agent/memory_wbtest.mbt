@@ -263,7 +263,7 @@ test "memory_store_to_json_and_load" {
   let store = MemoryStore::new("/tmp/mem")
   let _ = store.add("Title One", "Content one", ExpertKnowledge, ["kw1"])
   let _ = store.add("Title Two", "Content two", TaskSummary, ["kw2", "kw3"])
-  let json = store.to_json()
+  let json = MemoryStore::to_json(store)
 
   let store2 = MemoryStore::new("/tmp/mem")
   store2.load_from_json(json)

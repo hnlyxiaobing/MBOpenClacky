@@ -328,13 +328,13 @@ fn seed_trash_entry(
   // correctly escaped — hand-rolled string concatenation produces
   // invalid JSON when paths contain backslashes.
   let meta = Json::object({
-    "original_path": new_original_path(proj, name).to_json(),
-    "trash_directory": trash.to_json(),
-    "deleted_at": deleted_at.to_json(),
-    "deleted_by": "wbtest".to_json(),
-    "file_size": content.length().to_json(),
-    "file_type": file_type_of(name).to_json(),
-    "file_mode": "644".to_json(),
+    "original_path": Json(new_original_path(proj, name)),
+    "trash_directory": Json(trash),
+    "deleted_at": Json(deleted_at),
+    "deleted_by": Json("wbtest"),
+    "file_size": Json(content.length()),
+    "file_type": Json(file_type_of(name)),
+    "file_mode": Json("644"),
   }).stringify()
   @fs.write_string_to_file(trash_path(trash, name) + ".metadata.json", meta) catch {
     _ => ()
@@ -359,19 +359,19 @@ async test "execute: list action via Tool trait" {
     _ => ()
   }
   let meta = Json::object({
-    "original_path": "/tmp/e2e-seed.txt".to_json(),
-    "trash_directory": trash_dir.to_json(),
-    "deleted_at": "2026-08-01T10:00:00Z".to_json(),
-    "deleted_by": "wbtest".to_json(),
-    "file_size": (3).to_json(),
-    "file_type": ".txt".to_json(),
-    "file_mode": "644".to_json(),
+    "original_path": Json("/tmp/e2e-seed.txt"),
+    "trash_directory": Json(trash_dir),
+    "deleted_at": Json("2026-08-01T10:00:00Z"),
+    "deleted_by": Json("wbtest"),
+    "file_size": Json(3),
+    "file_type": Json(".txt"),
+    "file_mode": Json("644"),
   }).stringify()
   @fs.write_string_to_file(seed_meta, meta) catch {
     _ => ()
   }
   let tool = TrashManager::{ }
-  let args : Map[String, Json] = { "action": "list".to_json() }
+  let args : Map[String, Json] = { "action": Json("list") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.contains("e2e-seed.txt"))
@@ -388,7 +388,7 @@ async test "execute: restore requires file_path" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
   let tool = TrashManager::{ }
-  let args : Map[String, Json] = { "action": "restore".to_json() }
+  let args : Map[String, Json] = { "action": Json("restore") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.contains("file_path"))
@@ -399,7 +399,7 @@ async test "execute: help shows usage when trash exists" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
   let tool = TrashManager::{ }
-  let args : Map[String, Json] = { "action": "help".to_json() }
+  let args : Map[String, Json] = { "action": Json("help") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.contains("Trash Manager Help"))
@@ -414,7 +414,7 @@ async test "execute: unknown action" {
   let trash_dir = @utils.project_trash_dir(@utils.current_dir())
   ensure_dir(trash_dir)
   let tool = TrashManager::{ }
-  let args : Map[String, Json] = { "action": "unknown".to_json() }
+  let args : Map[String, Json] = { "action": Json("unknown") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.contains("Unknown action"))

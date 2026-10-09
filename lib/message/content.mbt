@@ -40,7 +40,7 @@ pub extend ContentBlock with Eq::{not_equal, equal}
 
 ///|
 impl ToJson for TextBlock with fn to_json(self) {
-  Json::object({ "type": "text".to_json(), "text": ToJson::to_json(self.text) })
+  Json::object({ "type": Json("text"), "text": ToJson::to_json(self.text) })
 }
 
 ///|
@@ -52,9 +52,9 @@ impl ToJson for TextBlock with fn to_json(self) {
 /// parity, so the `detail` field is omitted unless it is explicitly set.
 impl ToJson for ImageBlock with fn to_json(self) {
   Json::object({
-    "type": "image_url".to_json(),
+    "type": Json("image_url"),
     "image_url": Json::object(match self.detail {
-      Some(detail) => { "url": ToJson::to_json(self.url), "detail": detail.to_json() }
+      Some(detail) => { "url": ToJson::to_json(self.url), "detail": Json(detail) }
       None => { "url": ToJson::to_json(self.url) }
     }),
   })

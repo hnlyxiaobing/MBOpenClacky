@@ -77,7 +77,7 @@ test "profile put merges fields and persists" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   @fs.remove_file("_build/.mbopenclacky/profile.json") catch {
     _ => ()
   }
@@ -136,7 +136,7 @@ test "dirs mkdir creates directory under cwd" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("path"))
   @fs.remove_dir("cc_test_dir") catch {
     _ => ()
@@ -190,6 +190,6 @@ async test "config media test reports no model for unknown kind" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = cc_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   assert_true(obj.contains("error"))
 }

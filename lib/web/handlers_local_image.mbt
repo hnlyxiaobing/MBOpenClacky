@@ -89,7 +89,7 @@ fn handle_local_image(
     Some(p) if !p.is_empty() => p
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing 'path' query parameter".to_json() }),
+        Json::object({ "error": Json("Missing 'path' query parameter") }),
       )
   }
   let local_path = strip_file_protocol(raw_path)
@@ -97,20 +97,20 @@ fn handle_local_image(
     Ok(pair) => pair
     Err(msg) =>
       return @core.HttpResponse::forbidden().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   if !@fs.path_exists(safe_path) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "file not found".to_json() }),
+      Json::object({ "error": Json("file not found") }),
     )
   }
   let bytes = @fs.read_file_to_bytes(safe_path) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to read file".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to read file"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }

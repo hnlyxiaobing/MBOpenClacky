@@ -15,7 +15,7 @@ test "JsonRpcRequest construction" {
 
 ///|
 test "JsonRpcRequest with params" {
-  let params = Json::object({ "name": "test_tool".to_json() })
+  let params = Json::object({ "name": Json("test_tool") })
   let req : JsonRpcRequest = {
     jsonrpc: "2.0",
     id: 42,
@@ -213,10 +213,10 @@ test "build_jsonrpc_request without params" {
 ///|
 test "build_jsonrpc_request with params" {
   let params = Json::object({
-    "protocolVersion": "2024-11-05".to_json(),
+    "protocolVersion": Json("2024-11-05"),
     "clientInfo": Json::object({
-      "name": "test-client".to_json(),
-      "version": "1.0.0".to_json(),
+      "name": Json("test-client"),
+      "version": Json("1.0.0"),
     }),
   })
   let req_str = build_jsonrpc_request(2, "initialize", Some(params))
@@ -286,7 +286,7 @@ test "JsonRpcRequest to_json" {
     rpc_method: "tools/list",
     params: None,
   }
-  let json = req.to_json()
+  let json = JsonRpcRequest::to_json(req)
   match json {
     { "jsonrpc": String(ver), "id": Number(id, ..), "method": String(m), .. } => {
       @debug.assert_eq(ver, "2.0")
@@ -302,9 +302,9 @@ test "McpTool to_json roundtrip" {
   let tool : McpTool = {
     name: "test_tool",
     description: "A test tool",
-    input_schema: Json::object({ "type": "object".to_json() }),
+    input_schema: Json::object({ "type": Json("object") }),
   }
-  let json = tool.to_json()
+  let json = Json(tool)
   match json {
     { "name": String(name), "description": String(desc), .. } => {
       @debug.assert_eq(name, "test_tool")

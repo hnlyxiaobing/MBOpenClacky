@@ -165,11 +165,11 @@ pub fn BackupManager::status(self : BackupManager) -> Json {
   let backups = self.list()
   let backup_count = backups.length()
   Json::object({
-    "enabled": self.config.enabled.to_json(),
-    "dest_dir": self.config.dest_dir.to_json(),
-    "keep": self.config.keep.to_json(),
-    "include_sessions": self.config.include_sessions.to_json(),
-    "backup_count": backup_count.to_json(),
+    "enabled": Json(self.config.enabled),
+    "dest_dir": Json(self.config.dest_dir),
+    "keep": Json(self.config.keep),
+    "include_sessions": Json(self.config.include_sessions),
+    "backup_count": Json(backup_count),
   })
 }
 

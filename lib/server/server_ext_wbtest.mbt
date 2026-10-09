@@ -289,7 +289,7 @@ test "ext_backup_result_to_json" {
     timestamp: "2026-01-01",
     files_count: 5,
   }
-  match r.to_json() {
+  match Json(r) {
     Object(obj) => assert_true(obj.get("files_count") is Some(_))
     _ => assert_true(false)
   }

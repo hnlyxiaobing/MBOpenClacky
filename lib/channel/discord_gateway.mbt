@@ -289,14 +289,14 @@ pub fn GatewayState::reset_connection(self : GatewayState) -> Unit {
 /// Sent after Hello to authenticate with the gateway.
 pub fn build_identify_payload(token : String, intents : Int) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", (2).to_json())
+  payload.set("op", Json((2)))
   let d : Map[String, Json] = Map([])
-  d.set("token", token.to_json())
-  d.set("intents", intents.to_json())
+  d.set("token", Json(token))
+  d.set("intents", Json(intents))
   let properties : Map[String, Json] = Map([])
-  properties.set("os", "windows".to_json())
-  properties.set("browser", "MBOpenClacky".to_json())
-  properties.set("device", "MBOpenClacky".to_json())
+  properties.set("os", Json("windows"))
+  properties.set("browser", Json("MBOpenClacky"))
+  properties.set("device", Json("MBOpenClacky"))
   d.set("properties", Json::object(properties))
   payload.set("d", Json::object(d))
   Json::object(payload)
@@ -312,11 +312,11 @@ pub fn build_resume_payload(
   seq : Int,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", (6).to_json())
+  payload.set("op", Json((6)))
   let d : Map[String, Json] = Map([])
-  d.set("token", token.to_json())
-  d.set("session_id", session_id.to_json())
-  d.set("seq", seq.to_json())
+  d.set("token", Json(token))
+  d.set("session_id", Json(session_id))
+  d.set("seq", Json(seq))
   payload.set("d", Json::object(d))
   Json::object(payload)
 }
@@ -327,9 +327,9 @@ pub fn build_resume_payload(
 /// `seq` is the last received sequence number, or null if none.
 pub fn build_heartbeat_payload(seq : Int?) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", (1).to_json())
+  payload.set("op", Json((1)))
   match seq {
-    Some(s) => payload.set("d", s.to_json())
+    Some(s) => payload.set("d", Json(s))
     None => payload.set("d", Json::null())
   }
   Json::object(payload)

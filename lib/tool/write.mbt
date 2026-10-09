@@ -34,18 +34,18 @@ impl Tool for Write with fn description(_) -> String {
 ///|
 impl Tool for Write with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "path": Json::object({
-        "type": "string".to_json(),
-        "description": "The absolute path to the file to write".to_json(),
+        "type": Json("string"),
+        "description": Json("The absolute path to the file to write"),
       }),
       "content": Json::object({
-        "type": "string".to_json(),
-        "description": "The content to write to the file".to_json(),
+        "type": Json("string"),
+        "description": Json("The content to write to the file"),
       }),
     }),
-    "required": ["path".to_json(), "content".to_json()],
+    "required": [Json("path"), Json("content")],
   })
 }
 

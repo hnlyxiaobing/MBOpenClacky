@@ -131,13 +131,13 @@ test "dirs list returns six-key contract with home default" {
     assert_true(obj.contains(key))
   }
   let home_norm = dirs_fwd_slashes(dc_home)
-  @debug.assert_eq(obj.get("root"), Some(home_norm.to_json()))
-  @debug.assert_eq(obj.get("path"), Some(home_norm.to_json()))
-  @debug.assert_eq(obj.get("home"), Some(home_norm.to_json()))
+  @debug.assert_eq(obj.get("root"), Some(Json(home_norm)))
+  @debug.assert_eq(obj.get("path"), Some(Json(home_norm)))
+  @debug.assert_eq(obj.get("home"), Some(Json(home_norm)))
   // No configured default_working_dir -> <home>/clacky_workspace fallback.
   @debug.assert_eq(
     obj.get("default"),
-    Some((home_norm + "/clacky_workspace").to_json()),
+    Some(Json((home_norm + "/clacky_workspace"))),
   )
   // Directories only, sorted by lowercase name; file/hidden/IGNORED excluded.
   @debug.assert_eq(dc_entry_names(j), ["alpha", "Beta", "zeta"])
@@ -162,7 +162,7 @@ test "dirs list entries carry absolute-joined path and type dir" {
   assert_true(items.length() > 0)
   for it in items {
     guard! it is Json::Object(entry)
-    @debug.assert_eq(entry.get("type"), Some("dir".to_json()))
+    @debug.assert_eq(entry.get("type"), Some(Json("dir")))
     match entry.get("path") {
       Some(String(p)) => {
         assert_true(p.has_prefix(home_norm + "/"))
@@ -174,7 +174,7 @@ test "dirs list entries carry absolute-joined path and type dir" {
   // parent of the fixture home is its dirname.
   @debug.assert_eq(
     obj.get("parent"),
-    Some(dirs_fwd_slashes("_build").to_json()),
+    Some(Json(dirs_fwd_slashes("_build"))),
   )
   dc_remove_tree(dc_home)
 }
@@ -210,8 +210,8 @@ test "dirs list falls back to nearest existing ancestor" {
   let j = dc_response_json(resp)
   guard! j is Json::Object(obj)
   let home_norm = dirs_fwd_slashes(dc_home)
-  @debug.assert_eq(obj.get("root"), Some(home_norm.to_json()))
-  @debug.assert_eq(obj.get("path"), Some(home_norm.to_json()))
+  @debug.assert_eq(obj.get("root"), Some(Json(home_norm)))
+  @debug.assert_eq(obj.get("path"), Some(Json(home_norm)))
   @debug.assert_eq(dc_entry_names(j), ["alpha", "Beta", "zeta"])
   dc_remove_tree(dc_home)
 }
@@ -230,8 +230,8 @@ test "dirs list expands tilde to home" {
   let j = dc_response_json(resp)
   guard! j is Json::Object(obj)
   let alpha_norm = dirs_fwd_slashes(dc_home + "/alpha")
-  @debug.assert_eq(obj.get("root"), Some(alpha_norm.to_json()))
-  @debug.assert_eq(obj.get("path"), Some(alpha_norm.to_json()))
+  @debug.assert_eq(obj.get("root"), Some(Json(alpha_norm)))
+  @debug.assert_eq(obj.get("path"), Some(Json(alpha_norm)))
   dc_remove_tree(dc_home)
 }
 

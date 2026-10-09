@@ -159,8 +159,8 @@ fn save_meeting_state() -> Unit {
     arr.push(meeting_to_json(entry.1))
   }
   let data = Json::object({
-    "meetings": arr.to_json(),
-    "updated_at": meeting_current_epoch_secs().to_json(),
+    "meetings": Json(arr),
+    "updated_at": Json(meeting_current_epoch_secs()),
   })
   @fs.write_string_to_file(path, data.stringify()) catch {
     _ => ()
@@ -171,18 +171,18 @@ fn save_meeting_state() -> Unit {
 /// Convert a MeetingData to JSON.
 fn meeting_to_json(m : MeetingData) -> Json {
   let summary_json : Json = match m.summary {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
   Json::object({
-    "id": m.id.to_json(),
-    "title": m.title.to_json(),
-    "transcript": m.transcript.to_json(),
+    "id": Json(m.id),
+    "title": Json(m.title),
+    "transcript": Json(m.transcript),
     "summary": summary_json,
-    "participants": m.participants.to_json(),
-    "status": m.status.to_json(),
-    "created_at": m.created_at.to_json(),
-    "updated_at": m.updated_at.to_json(),
+    "participants": Json(m.participants),
+    "status": Json(m.status),
+    "created_at": Json(m.created_at),
+    "updated_at": Json(m.updated_at),
   })
 }
 
@@ -202,8 +202,8 @@ pub fn handle_meetings_list(request : HttpRequest) -> HttpResponse {
     }
   }
   let body = Json::object({
-    "meetings": arr.to_json(),
-    "total": arr.length().to_json(),
+    "meetings": Json(arr),
+    "total": Json(arr.length()),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -401,9 +401,9 @@ pub fn handle_meetings_summarize(request : HttpRequest) -> HttpResponse {
       meeting_state.val.meetings.set(id, updated)
       save_meeting_state()
       let body = Json::object({
-        "id": id.to_json(),
-        "status": "summarized".to_json(),
-        "message": "Summary generation triggered. Use the meeting-summarizer skill for full AI summarization.".to_json(),
+        "id": Json(id),
+        "status": Json("summarized"),
+        "message": Json("Summary generation triggered. Use the meeting-summarizer skill for full AI summarization."),
         "meeting": meeting_to_json(updated),
       }).stringify()
       HttpResponse::ok(body)

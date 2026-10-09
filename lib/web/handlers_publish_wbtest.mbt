@@ -186,7 +186,7 @@ test "upload_meta: record_upload then load round trip in orig file shape" {
   let j : Json = @json.parse(raw) catch { _ => panic() }
   guard! j is Json::Object(root)
   guard! root.get("skill-a") is Some(Object(entry))
-  @debug.assert_eq(entry.get("platform_version"), Some("1.2.0".to_json()))
+  @debug.assert_eq(entry.get("platform_version"), Some(Json("1.2.0")))
   assert_true(entry.get("uploaded_at") is Some(String(_)))
 }
 
@@ -353,10 +353,10 @@ async test "publish: step 1 unlicensed returns 403 in orig shape" {
   @debug.assert_eq(resp.status, 403)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   @debug.assert_eq(
     obj.get("error"),
-    Some("User license required to publish skills".to_json()),
+    Some(Json("User license required to publish skills")),
   )
 }
 
@@ -376,8 +376,8 @@ async test "publish: step 2 unknown skill returns 404 in orig shape" {
   @debug.assert_eq(resp.status, 404)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
-  @debug.assert_eq(obj.get("error"), Some("Skill 'demo' not found".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
+  @debug.assert_eq(obj.get("error"), Some(Json("Skill 'demo' not found")))
 }
 
 ///|
@@ -401,10 +401,10 @@ async test "publish: step 3 builtin skill returns 422 in orig shape" {
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   @debug.assert_eq(
     obj.get("error"),
-    Some("Built-in system skills cannot be published".to_json()),
+    Some(Json("Built-in system skills cannot be published")),
   )
 }
 
@@ -434,9 +434,9 @@ async test "publish: success returns {ok,name,platform_version} and records uplo
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("name"), Some("demo".to_json()))
-  @debug.assert_eq(obj.get("platform_version"), Some("9.9.9".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("name"), Some(Json("demo")))
+  @debug.assert_eq(obj.get("platform_version"), Some(Json("9.9.9")))
   // Step 5 side effect: platform version persisted for creator/skills.
   guard! meta.get("demo") is Some(m)
   @debug.assert_eq(m.platform_version, "9.9.9")
@@ -466,9 +466,9 @@ async test "publish: already_exists upload failure returns 422 with flag" {
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
-  @debug.assert_eq(obj.get("already_exists"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("error"), Some("name_taken".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
+  @debug.assert_eq(obj.get("already_exists"), Some(Json(true)))
+  @debug.assert_eq(obj.get("error"), Some(Json("name_taken")))
 }
 
 ///|
@@ -494,9 +494,9 @@ async test "publish: platform 500 upload failure returns 422 already_exists fals
   @debug.assert_eq(resp.status, 422)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
-  @debug.assert_eq(obj.get("already_exists"), Some(false.to_json()))
-  @debug.assert_eq(obj.get("error"), Some("boom".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
+  @debug.assert_eq(obj.get("already_exists"), Some(Json(false)))
+  @debug.assert_eq(obj.get("error"), Some(Json("boom")))
 }
 
 // ── handler-level checks ────────────────────────────────────────────
@@ -528,12 +528,12 @@ test "entries: upload_meta wires platform_version/uploaded_at, absent record sta
   }
   let listed = skill_list_entry_json(entry, meta)
   guard! listed is Json::Object(l)
-  @debug.assert_eq(l.get("platform_version"), Some("3.1.4".to_json()))
-  @debug.assert_eq(l.get("uploaded_at"), Some("2026-07-25T00:00:00Z".to_json()))
+  @debug.assert_eq(l.get("platform_version"), Some(Json("3.1.4")))
+  @debug.assert_eq(l.get("uploaded_at"), Some(Json("2026-07-25T00:00:00Z")))
   let creator = creator_local_entry_json(entry, meta)
   guard! creator is Json::Object(c)
-  @debug.assert_eq(c.get("platform_version"), Some("3.1.4".to_json()))
-  @debug.assert_eq(c.get("uploaded_at"), Some("2026-07-25T00:00:00Z".to_json()))
+  @debug.assert_eq(c.get("platform_version"), Some(Json("3.1.4")))
+  @debug.assert_eq(c.get("uploaded_at"), Some(Json("2026-07-25T00:00:00Z")))
   // No record → orig empty-value rule (null).
   let other : SkillScanEntry = {
     name: "other",

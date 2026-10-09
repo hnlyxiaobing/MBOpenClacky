@@ -150,7 +150,7 @@ fn handle_config_ocr_update(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let req : OCRConfigUpdateRequest = match j {
@@ -158,12 +158,12 @@ fn handle_config_ocr_update(
       @json.from_json(j) catch {
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Invalid OCR config request".to_json() }),
+            Json::object({ "error": Json("Invalid OCR config request") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let source = detect_ocr_source(req)
@@ -172,12 +172,12 @@ fn handle_config_ocr_update(
     "off" => {
       remove_ocr_model(config)
       @core.HttpResponse::ok().json_value(
-        OCRConfigResponse::{
+        Json(OCRConfigResponse::{
           ok: true,
           source: "off",
           model: None,
           message: None,
-        }.to_json(),
+        }),
       )
     }
     "auto" => {
@@ -187,22 +187,22 @@ fn handle_config_ocr_update(
           let copy = model.deep_copy()
           config.models.push(copy)
           @core.HttpResponse::ok().json_value(
-            OCRConfigResponse::{
+            Json(OCRConfigResponse::{
               ok: true,
               source: "auto",
               model: Some(model.model),
               message: None,
-            }.to_json(),
+            }),
           )
         }
         None =>
           @core.HttpResponse::internal_server_error().json_value(
-            OCRConfigResponse::{
+            Json(OCRConfigResponse::{
               ok: false,
               source: "auto",
               model: None,
               message: Some("Unable to derive OCR model from current provider"),
-            }.to_json(),
+            }),
           )
       }
     }
@@ -212,33 +212,33 @@ fn handle_config_ocr_update(
       let model = req.model.unwrap_or("")
       if base_url.is_empty() || api_key.is_empty() || model.is_empty() {
         return @core.HttpResponse::bad_request().json_value(
-          OCRConfigResponse::{
+          Json(OCRConfigResponse::{
             ok: false,
             source: "custom",
             model: None,
             message: Some("Custom OCR requires base_url, api_key, and model"),
-          }.to_json(),
+          }),
         )
       }
       let anthropic_format = req.anthropic_format.unwrap_or(false)
       upsert_ocr_model(config, base_url, api_key, model, anthropic_format)
       @core.HttpResponse::ok().json_value(
-        OCRConfigResponse::{
+        Json(OCRConfigResponse::{
           ok: true,
           source: "custom",
           model: Some(model),
           message: None,
-        }.to_json(),
+        }),
       )
     }
     other =>
       @core.HttpResponse::bad_request().json_value(
-        OCRConfigResponse::{
+        Json(OCRConfigResponse::{
           ok: false,
           source: other,
           model: None,
           message: Some("Unknown source; use off, auto, or custom"),
-        }.to_json(),
+        }),
       )
   }
 }
@@ -263,21 +263,21 @@ async fn handle_config_ocr_test(
       match result.status {
         @vision.Ok =>
           @core.HttpResponse::ok().json_value(
-            OCRTestResponse::{ ok: true, text: result.text, error: None, }.to_json(),
+            Json(OCRTestResponse::{ ok: true, text: result.text, error: None, }),
           )
         _ =>
           @core.HttpResponse::ok().json_value(
-            OCRTestResponse::{ ok: false, text: None, error: result.error, }.to_json(),
+            Json(OCRTestResponse::{ ok: false, text: None, error: result.error, }),
           )
       }
     }
     None =>
       @core.HttpResponse::internal_server_error().json_value(
-        OCRTestResponse::{
+        Json(OCRTestResponse::{
           ok: false,
           text: None,
           error: Some("No OCR model configured"),
-        }.to_json(),
+        }),
       )
   }
 }
@@ -292,7 +292,7 @@ async fn handle_internal_ocr_image(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let req : OCRImageRequest = match j {
@@ -300,12 +300,12 @@ async fn handle_internal_ocr_image(
       @json.from_json(j) catch {
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Invalid OCR image request".to_json() }),
+            Json::object({ "error": Json("Invalid OCR image request") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let input = match (req.data_url, req.path) {
@@ -313,7 +313,7 @@ async fn handle_internal_ocr_image(
     (_, Some(path)) if !path.is_empty() => @vision.VisionInput::FilePath(path)
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing data_url or path".to_json() }),
+        Json::object({ "error": Json("Missing data_url or path") }),
       )
   }
   let config = server_ref.val.config
@@ -325,15 +325,15 @@ async fn handle_internal_ocr_image(
         @vision.Ok =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "text": result.text.unwrap_or("").to_json(),
+              "ok": Json(true),
+              "text": Json(result.text.unwrap_or("")),
             }),
           )
         _ =>
           @core.HttpResponse::internal_server_error().json_value(
             Json::object({
-              "ok": false.to_json(),
-              "message": result.error.unwrap_or("OCR failed").to_json(),
+              "ok": Json(false),
+              "message": Json(result.error.unwrap_or("OCR failed")),
             }),
           )
       }
@@ -341,8 +341,8 @@ async fn handle_internal_ocr_image(
     None =>
       @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "ok": false.to_json(),
-          "message": "No OCR model configured".to_json(),
+          "ok": Json(false),
+          "message": Json("No OCR model configured"),
         }),
       )
   }

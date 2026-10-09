@@ -74,18 +74,18 @@ pub fn build_bedrock_request(
   }
 
   // Build request body
-  let body : Map[String, Json] = { "messages": final_messages.to_json() }
+  let body : Map[String, Json] = { "messages": Json(final_messages) }
 
   // Add system prompt if present
   let system_text = join_strings(system_parts, "\n\n")
   if system_text.length() > 0 {
     body["system"] = Json::array([
-      Json::object({ "text": system_text.to_json() }),
+      Json::object({ "text": Json(system_text) }),
     ])
   }
 
   // Add inference config
-  body["inferenceConfig"] = Json::object({ "maxTokens": max_tokens.to_json() })
+  body["inferenceConfig"] = Json::object({ "maxTokens": Json(max_tokens) })
 
   // Add tool config if tools are provided
   if tools.length() > 0 {
@@ -93,15 +93,15 @@ pub fn build_bedrock_request(
     for tool in tools {
       api_tools.push(to_bedrock_tool(tool))
     }
-    body["toolConfig"] = Json::object({ "tools": api_tools.to_json() })
+    body["toolConfig"] = Json::object({ "tools": Json(api_tools) })
   }
 
   // Add reasoning effort if specified
   match normalize_effort(reasoning_effort) {
     Some(effort) =>
       body["additionalModelRequestFields"] = Json::object({
-        "thinking": Json::object({ "type": "adaptive".to_json() }),
-        "output_config": Json::object({ "effort": effort.to_json() }),
+        "thinking": Json::object({ "type": Json("adaptive") }),
+        "output_config": Json::object({ "effort": Json(effort) }),
       })
     None => ()
   }
@@ -249,7 +249,7 @@ pub fn format_bedrock_tool_results(
       for tc in calls {
         let content = match tool_results.get(tc.id) {
           Some(result) => result
-          None => { "error": "Tool result missing" }.to_json().stringify()
+          None => Json({ "error": "Tool result missing" }).stringify()
         }
         messages.push(
           @message.Message::tool_result(tc.id, tc.function.name, content),
@@ -290,12 +290,12 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
           // Add text content if present
           match msg.content {
             @message.Text(text) if text.length() > 0 =>
-              blocks.push(Json::object({ "text": text.to_json() }))
+              blocks.push(Json::object({ "text": Json(text) }))
             @message.Blocks(content_blocks) =>
               for block in content_blocks {
                 match block {
                   @message.Text(tb) if tb.text.length() > 0 =>
-                    blocks.push(Json::object({ "text": tb.text.to_json() }))
+                    blocks.push(Json::object({ "text": Json(tb.text) }))
                   _ => ()
                 }
               }
@@ -307,23 +307,23 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
             blocks.push(
               Json::object({
                 "toolUse": Json::object({
-                  "toolUseId": sanitize_tool_use_id(tc.id).to_json(),
-                  "name": tc.function.name.to_json(),
+                  "toolUseId": Json(sanitize_tool_use_id(tc.id)),
+                  "name": Json(tc.function.name),
                   "input": input,
                 }),
               }),
             )
           }
           Json::object({
-            "role": "assistant".to_json(),
-            "content": blocks.to_json(),
+            "role": Json("assistant"),
+            "content": Json(blocks),
           })
         }
         _ => {
           // Regular assistant message
           let content_json = content_to_bedrock_blocks(msg.content)
           Json::object({
-            "role": "assistant".to_json(),
+            "role": Json("assistant"),
             "content": content_json,
           })
         }
@@ -331,13 +331,13 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
     @message.Tool => {
       // Tool result -> Bedrock user message with toolResult block
       let result_blocks : Array[Json] = match msg.content {
-        @message.Text(text) => [Json::object({ "text": text.to_json() })]
+        @message.Text(text) => [Json::object({ "text": Json(text) })]
         @message.Blocks(blocks) => {
           let result : Array[Json] = []
           for block in blocks {
             match block {
               @message.Text(tb) if tb.text.length() > 0 =>
-                result.push(Json::object({ "text": tb.text.to_json() }))
+                result.push(Json::object({ "text": Json(tb.text) }))
               @message.Image(ib) =>
                 match url_to_bedrock_image(ib.url) {
                   Some(img) => result.push(img)
@@ -347,7 +347,7 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
             }
           }
           if result.length() == 0 {
-            [Json::object({ "text": "...".to_json() })]
+            [Json::object({ "text": Json("...") })]
           } else {
             result
           }
@@ -358,12 +358,12 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
         _ => ""
       }
       Json::object({
-        "role": "user".to_json(),
+        "role": Json("user"),
         "content": Json::array([
           Json::object({
             "toolResult": Json::object({
-              "toolUseId": tool_id.to_json(),
-              "content": result_blocks.to_json(),
+              "toolUseId": Json(tool_id),
+              "content": Json(result_blocks),
             }),
           }),
         ]),
@@ -373,7 +373,7 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
       // Regular user message
       let content_json = content_to_bedrock_blocks(msg.content)
       Json::object({
-        "role": msg.role.to_string_value().to_json(),
+        "role": Json(msg.role.to_string_value()),
         "content": content_json,
       })
     }
@@ -387,16 +387,16 @@ fn content_to_bedrock_blocks(content : @message.MessageContent) -> Json {
     @message.Text(text) =>
       if text.length() == 0 {
         // Bedrock rejects empty content arrays — use placeholder
-        Json::array([Json::object({ "text": "...".to_json() })])
+        Json::array([Json::object({ "text": Json("...") })])
       } else {
-        Json::array([Json::object({ "text": text.to_json() })])
+        Json::array([Json::object({ "text": Json(text) })])
       }
     @message.Blocks(blocks) => {
       let result : Array[Json] = []
       for block in blocks {
         match block {
           @message.Text(tb) if tb.text.length() > 0 =>
-            result.push(Json::object({ "text": tb.text.to_json() }))
+            result.push(Json::object({ "text": Json(tb.text) }))
           @message.Image(ib) =>
             match url_to_bedrock_image(ib.url) {
               Some(img) => result.push(img)
@@ -406,9 +406,9 @@ fn content_to_bedrock_blocks(content : @message.MessageContent) -> Json {
         }
       }
       if result.length() == 0 {
-        Json::array([Json::object({ "text": "...".to_json() })])
+        Json::array([Json::object({ "text": Json("...") })])
       } else {
-        result.to_json()
+        Json(result)
       }
     }
   }
@@ -435,8 +435,8 @@ fn url_to_bedrock_image(url : String) -> Json? {
         Some(
           Json::object({
             "image": Json::object({
-              "format": format.to_json(),
-              "source": Json::object({ "bytes": data.to_json() }),
+              "format": Json(format),
+              "source": Json::object({ "bytes": Json(data) }),
             }),
           }),
         )
@@ -534,7 +534,7 @@ fn merge_consecutive_tool_results(messages : Array[Json]) -> Array[Json] {
               for item in cur_arr {
                 combined.push(item)
               }
-              prev_obj["content"] = combined.to_json()
+              prev_obj["content"] = Json(combined)
             }
             _ => merged.push(msg)
           }
@@ -603,10 +603,10 @@ fn apply_bedrock_caching(api_messages : Array[Json]) -> Array[Json] {
                 }
                 new_content.push(
                   Json::object({
-                    "cachePoint": Json::object({ "type": "default".to_json() }),
+                    "cachePoint": Json::object({ "type": Json("default") }),
                   }),
                 )
-                obj["content"] = new_content.to_json()
+                obj["content"] = Json(new_content)
               }
             }
             _ => ()

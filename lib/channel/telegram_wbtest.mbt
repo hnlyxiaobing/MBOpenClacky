@@ -114,7 +114,7 @@ test "telegram_parse_updates_api_error" {
 
 ///|
 test "telegram_parse_updates_invalid_format" {
-  let json = "not_an_object".to_json()
+  let json = Json("not_an_object")
   let result = TelegramApiClient::parse_updates_response(json)
   assert_true(result is Err(_))
 }
@@ -149,7 +149,7 @@ test "telegram_parse_send_response_api_error" {
 
 ///|
 test "telegram_parse_send_response_invalid_format" {
-  let json = "42".to_json()
+  let json = Json("42")
   let result = TelegramApiClient::parse_send_response(json)
   assert_true(result is Err(_))
 }
@@ -180,7 +180,7 @@ test "telegram_parse_ok_response_error" {
 
 ///|
 test "telegram_parse_ok_response_invalid_format" {
-  let json = "42".to_json()
+  let json = Json("42")
   let result = TelegramApiClient::parse_ok_response(json)
   assert_true(result is Err(_))
 }
@@ -189,7 +189,7 @@ test "telegram_parse_ok_response_invalid_format" {
 
 ///|
 test "telegram_extract_update_id" {
-  let update : Map[String, Json] = { "update_id": (12345).to_json() }
+  let update : Map[String, Json] = { "update_id": Json((12345)) }
   assert_eq(extract_update_id(update), 12345)
 }
 
@@ -201,7 +201,7 @@ test "telegram_extract_update_id_missing_returns_zero" {
 
 ///|
 test "telegram_extract_update_id_non_number_returns_zero" {
-  let update : Map[String, Json] = { "update_id": "abc".to_json() }
+  let update : Map[String, Json] = { "update_id": Json("abc") }
   assert_eq(extract_update_id(update), 0)
 }
 
@@ -209,21 +209,21 @@ test "telegram_extract_update_id_non_number_returns_zero" {
 
 ///|
 test "telegram_detect_chat_type_private" {
-  let chat : Map[String, Json] = { "type": "private".to_json() }
+  let chat : Map[String, Json] = { "type": Json("private") }
   let msg : Map[String, Json] = { "chat": Json::object(chat) }
   assert_eq(detect_chat_type(msg), Direct)
 }
 
 ///|
 test "telegram_detect_chat_type_group" {
-  let chat : Map[String, Json] = { "type": "group".to_json() }
+  let chat : Map[String, Json] = { "type": Json("group") }
   let msg : Map[String, Json] = { "chat": Json::object(chat) }
   assert_eq(detect_chat_type(msg), Group)
 }
 
 ///|
 test "telegram_detect_chat_type_supergroup" {
-  let chat : Map[String, Json] = { "type": "supergroup".to_json() }
+  let chat : Map[String, Json] = { "type": Json("supergroup") }
   let msg : Map[String, Json] = { "chat": Json::object(chat) }
   assert_eq(detect_chat_type(msg), Group)
 }

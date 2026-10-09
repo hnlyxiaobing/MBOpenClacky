@@ -289,24 +289,24 @@ pub fn LiveReport::to_score_json(
     }
     trials_json.push(
       Json::object({
-        "task_id": result.task_id.to_json(),
-        "trial": result.trial.to_json(),
+        "task_id": Json(result.task_id),
+        "trial": Json(result.trial),
         "passed": Json::boolean(result.passed),
-        "status": result.outcome.status.to_json(),
-        "iterations": result.outcome.iterations.to_json(),
+        "status": Json(result.outcome.status),
+        "iterations": Json(result.outcome.iterations),
         "cost_usd": Json::number(result.outcome.cost_usd),
         "tool_calls": Json::array(
           result.outcome.tool_steps.map(fn(step) { Json::string(step) }),
         ),
         "failures": Json::array(failures),
-        "transcript_path": result.transcript_path.to_json(),
+        "transcript_path": Json(result.transcript_path),
       }),
     )
   }
-  fields["infrastructure_errors"] = self.infrastructure_errors().to_json()
-  fields["prompt_tokens"] = prompt_tokens.to_json()
-  fields["completion_tokens"] = completion_tokens.to_json()
-  fields["cost_source"] = cost_source.to_json()
+  fields["infrastructure_errors"] = Json(self.infrastructure_errors())
+  fields["prompt_tokens"] = Json(prompt_tokens)
+  fields["completion_tokens"] = Json(completion_tokens)
+  fields["cost_source"] = Json(cost_source)
   fields["trials_detail"] = Json::array(trials_json)
   Json::object(fields)
 }

@@ -145,7 +145,7 @@ test "ext_cost_source_all_variants_distinct" {
 ///|
 test "ext_cost_source_to_json_all" {
   for s in [Api, Price, Default, Estimated] {
-    match s.to_json() {
+    match Json(s) {
       String(_) => assert_true(true)
       _ => assert_true(false)
     }

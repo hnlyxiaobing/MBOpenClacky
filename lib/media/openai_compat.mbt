@@ -358,11 +358,11 @@ pub fn build_openai_image_request(
     None => "1024x1024"
   }
   Json::object({
-    "model": model.to_json(),
-    "prompt": request.prompt.to_json(),
-    "n": (1).to_json(),
-    "response_format": "b64_json".to_json(),
-    "size": size.to_json(),
+    "model": Json(model),
+    "prompt": Json(request.prompt),
+    "n": Json((1)),
+    "response_format": Json("b64_json"),
+    "size": Json(size),
   })
 }
 
@@ -373,15 +373,15 @@ pub fn build_openai_video_request(
   request : MediaRequest,
 ) -> Json {
   let fields : Map[String, Json] = {
-    "model": model.to_json(),
-    "prompt": request.prompt.to_json(),
+    "model": Json(model),
+    "prompt": Json(request.prompt),
   }
   match request.aspect_ratio {
-    Some(ratio) => fields["aspect_ratio"] = ratio.to_json()
+    Some(ratio) => fields["aspect_ratio"] = Json(ratio)
     None => ()
   }
   match request.duration_seconds {
-    Some(d) => fields["duration"] = d.to_json()
+    Some(d) => fields["duration"] = Json(d)
     None => ()
   }
   Json::object(fields)
@@ -395,12 +395,12 @@ pub fn build_openai_speech_request(
   request : MediaRequest,
 ) -> Json {
   let fields : Map[String, Json] = {
-    "model": model.to_json(),
-    "input": request.prompt.to_json(),
-    "response_format": "mp3".to_json(),
+    "model": Json(model),
+    "input": Json(request.prompt),
+    "response_format": Json("mp3"),
   }
   match request.voice {
-    Some(v) => fields["voice"] = v.to_json()
+    Some(v) => fields["voice"] = Json(v)
     None => ()
   }
   Json::object(fields)

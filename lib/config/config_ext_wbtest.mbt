@@ -157,11 +157,11 @@ test "ext_capabilities_custom_construction" {
 ///|
 test "ext_capabilities_to_json" {
   let cap = ModelCapabilities::full()
-  let json = cap.to_json()
+  let json = Json(cap)
   match json {
     Object(obj) => {
-      assert_eq(obj.get("vision"), Some(true.to_json()))
-      assert_eq(obj.get("reasoning"), Some(true.to_json()))
+      assert_eq(obj.get("vision"), Some(Json(true)))
+      assert_eq(obj.get("reasoning"), Some(Json(true)))
     }
     _ => assert_true(false)
   }

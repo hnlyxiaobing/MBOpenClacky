@@ -189,150 +189,150 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
   match kind {
     TextContains(text~, region~) =>
       Json::object({
-        "check": "contains".to_json(),
-        "text": text.to_json(),
-        "region": region.to_json(),
+        "check": Json("contains"),
+        "text": Json(text),
+        "region": Json(region),
       })
     TextNotContains(text~) =>
-      Json::object({ "check": "not_contains".to_json(), "text": text.to_json() })
-    ScreenEmpty => Json::object({ "check": "screen_empty".to_json() })
+      Json::object({ "check": Json("not_contains"), "text": Json(text) })
+    ScreenEmpty => Json::object({ "check": Json("screen_empty") })
     RowContains(row~, text~) =>
       Json::object({
-        "check": "row_contains".to_json(),
-        "row": row.to_json(),
-        "text": text.to_json(),
+        "check": Json("row_contains"),
+        "row": Json(row),
+        "text": Json(text),
       })
     StatusContains(text~) =>
       Json::object({
-        "check": "status_contains".to_json(),
-        "text": text.to_json(),
+        "check": Json("status_contains"),
+        "text": Json(text),
       })
     InputContains(text~) =>
       Json::object({
-        "check": "input_contains".to_json(),
-        "text": text.to_json(),
+        "check": Json("input_contains"),
+        "text": Json(text),
       })
     OutputContains(text~) =>
       Json::object({
-        "check": "output_contains".to_json(),
-        "text": text.to_json(),
+        "check": Json("output_contains"),
+        "text": Json(text),
       })
     DialogContains(text~) =>
       Json::object({
-        "check": "dialog_contains".to_json(),
-        "text": text.to_json(),
+        "check": Json("dialog_contains"),
+        "text": Json(text),
       })
     HttpStatusEq(status~) =>
-      Json::object({ "type": "status_eq".to_json(), "status": status.to_json() })
+      Json::object({ "type": Json("status_eq"), "status": Json(status) })
     HttpStatusIn(statuses~) => {
       let arr : Array[Json] = []
       for s in statuses {
-        arr.push(s.to_json())
+        arr.push(Json(s))
       }
       Json::object({
-        "type": "status_in".to_json(),
+        "type": Json("status_in"),
         "statuses": Json::array(arr),
       })
     }
     BodyContains(text~) =>
-      Json::object({ "type": "body_contains".to_json(), "text": text.to_json() })
+      Json::object({ "type": Json("body_contains"), "text": Json(text) })
     BodyNotContains(text~) =>
       Json::object({
-        "type": "body_not_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("body_not_contains"),
+        "text": Json(text),
       })
     JsonPathEq(path~, value~) =>
       Json::object({
-        "type": "json_path_eq".to_json(),
-        "path": path.to_json(),
-        "value": value.to_json(),
+        "type": Json("json_path_eq"),
+        "path": Json(path),
+        "value": Json(value),
       })
     JsonPathNe(path~, value~) =>
       Json::object({
-        "type": "json_path_ne".to_json(),
-        "path": path.to_json(),
-        "value": value.to_json(),
+        "type": Json("json_path_ne"),
+        "path": Json(path),
+        "value": Json(value),
       })
     HeaderContains(name~, text~) =>
       Json::object({
-        "type": "header_contains".to_json(),
-        "name": name.to_json(),
-        "text": text.to_json(),
+        "type": Json("header_contains"),
+        "name": Json(name),
+        "text": Json(text),
       })
-    SseValid => Json::object({ "type": "sse_valid".to_json() })
+    SseValid => Json::object({ "type": Json("sse_valid") })
     BodyLengthGt(min~) =>
-      Json::object({ "type": "body_length_gt".to_json(), "min": min.to_json() })
+      Json::object({ "type": Json("body_length_gt"), "min": Json(min) })
     FileExists(path~) =>
-      Json::object({ "type": "file_exists".to_json(), "path": path.to_json() })
+      Json::object({ "type": Json("file_exists"), "path": Json(path) })
     FileMissing(path~) =>
-      Json::object({ "kind": "file_missing".to_json(), "path": path.to_json() })
+      Json::object({ "kind": Json("file_missing"), "path": Json(path) })
     FileContains(path~, text~) =>
       Json::object({
-        "kind": "file_contains".to_json(),
-        "path": path.to_json(),
-        "text": text.to_json(),
+        "kind": Json("file_contains"),
+        "path": Json(path),
+        "text": Json(text),
       })
     FileNotContains(path~, text~) =>
       Json::object({
-        "kind": "file_not_contains".to_json(),
-        "path": path.to_json(),
-        "text": text.to_json(),
+        "kind": Json("file_not_contains"),
+        "path": Json(path),
+        "text": Json(text),
       })
     ExitCode(code~) =>
-      Json::object({ "type": "exit_code".to_json(), "code": code.to_json() })
+      Json::object({ "type": Json("exit_code"), "code": Json(code) })
     StdoutContains(text~) =>
       Json::object({
-        "type": "stdout_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("stdout_contains"),
+        "text": Json(text),
       })
     StderrContains(text~) =>
       Json::object({
-        "type": "stderr_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("stderr_contains"),
+        "text": Json(text),
       })
     StdoutNotContains(text~) =>
       Json::object({
-        "type": "stdout_not_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("stdout_not_contains"),
+        "text": Json(text),
       })
     StderrNotContains(text~) =>
       Json::object({
-        "type": "stderr_not_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("stderr_not_contains"),
+        "text": Json(text),
       })
     StdoutJsonPathEq(path~, value~) =>
       Json::object({
-        "type": "stdout_json_path_eq".to_json(),
-        "path": path.to_json(),
-        "value": value.to_json(),
+        "type": Json("stdout_json_path_eq"),
+        "path": Json(path),
+        "value": Json(value),
       })
     WsFrameContains(text~) =>
       Json::object({
-        "type": "ws_frame_contains".to_json(),
-        "text": text.to_json(),
+        "type": Json("ws_frame_contains"),
+        "text": Json(text),
       })
     WsEventReceived(event~) =>
       Json::object({
-        "type": "ws_event_received".to_json(),
-        "event": event.to_json(),
+        "type": Json("ws_event_received"),
+        "event": Json(event),
       })
     WsEventCountAtLeast(event~, min~) =>
       Json::object({
-        "type": "ws_event_count_at_least".to_json(),
-        "event": event.to_json(),
-        "min": min.to_json(),
+        "type": Json("ws_event_count_at_least"),
+        "event": Json(event),
+        "min": Json(min),
       })
     MockRequestCount(min~, max~) =>
       Json::object({
-        "type": "mock_request_count".to_json(),
-        "min": min.to_json(),
-        "max": max.to_json(),
+        "type": Json("mock_request_count"),
+        "min": Json(min),
+        "max": Json(max),
       })
     MockRequestContains(index~, text~) =>
       Json::object({
-        "type": "mock_request_contains".to_json(),
-        "index": index.to_json(),
-        "text": text.to_json(),
+        "type": Json("mock_request_contains"),
+        "index": Json(index),
+        "text": Json(text),
       })
   }
 }

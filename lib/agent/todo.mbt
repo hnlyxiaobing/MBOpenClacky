@@ -126,7 +126,7 @@ pub fn TodoManager::clear_all(self : TodoManager) -> Int {
 /// todo_manager result schema (`id` as integer, `task` for the text).
 pub fn todo_item_to_model_json(item : TodoItem) -> Json {
   Json::object({
-    "id": todo_int_id(item.id).to_json(),
+    "id": Json(todo_int_id(item.id)),
     "task": ToJson::to_json(item.title),
     "status": ToJson::to_json(item.status),
     "created_at": ToJson::to_json(item.created_at),
@@ -140,11 +140,11 @@ pub fn TodoManager::list_to_model_json(self : TodoManager) -> Json {
   let pending = self.items.filter(fn(i) { i.status == Pending }).length()
   let completed = self.items.filter(fn(i) { i.status == Completed }).length()
   Json::object({
-    "message": "TODO list".to_json(),
+    "message": Json("TODO list"),
     "todos": ToJson::to_json(todos),
-    "total": self.items.length().to_json(),
-    "pending": pending.to_json(),
-    "completed": completed.to_json(),
+    "total": Json(self.items.length()),
+    "pending": Json(pending),
+    "completed": Json(completed),
   })
 }
 

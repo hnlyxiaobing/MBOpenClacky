@@ -39,9 +39,9 @@ test "create meeting with title only" {
   guard! j is Json::Object(obj)
   guard! obj.get("id") is Some(String(id))
   assert_true(id.contains("meeting-"))
-  @debug.assert_eq(obj.get("title"), Some("Standup".to_json()))
-  @debug.assert_eq(obj.get("status"), Some("active".to_json()))
-  @debug.assert_eq(obj.get("transcript"), Some("".to_json()))
+  @debug.assert_eq(obj.get("title"), Some(Json("Standup")))
+  @debug.assert_eq(obj.get("status"), Some(Json("active")))
+  @debug.assert_eq(obj.get("transcript"), Some(Json("")))
 }
 
 ///|
@@ -73,7 +73,7 @@ test "create meeting with full fields" {
   @debug.assert_eq(resp.status, 201)
   let j = resp_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("title"), Some("Q2 Review".to_json()))
+  @debug.assert_eq(obj.get("title"), Some(Json("Q2 Review")))
   guard! obj.get("participants") is Some(Array(arr))
   @debug.assert_eq(arr.length(), 2)
 }
@@ -129,7 +129,7 @@ test "get meeting by id" {
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("title"), Some("Sprint Planning".to_json()))
+  @debug.assert_eq(obj.get("title"), Some(Json("Sprint Planning")))
 }
 
 ///|
@@ -161,8 +161,8 @@ test "update meeting title and status" {
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("title"), Some("Updated Title".to_json()))
-  @debug.assert_eq(obj.get("status"), Some("completed".to_json()))
+  @debug.assert_eq(obj.get("title"), Some(Json("Updated Title")))
+  @debug.assert_eq(obj.get("status"), Some(Json("completed")))
 }
 
 ///|
@@ -233,10 +233,10 @@ test "summarize sets status and summary placeholder" {
   @debug.assert_eq(resp.status, 200)
   let j = resp_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("status"), Some("summarized".to_json()))
+  @debug.assert_eq(obj.get("status"), Some(Json("summarized")))
   guard! obj.get("meeting") is Some(Object(mobj))
   assert_true(mobj.get("summary") is Some(_))
-  @debug.assert_eq(mobj.get("status"), Some("summarized".to_json()))
+  @debug.assert_eq(mobj.get("status"), Some(Json("summarized")))
 }
 
 ///|

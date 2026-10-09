@@ -16,7 +16,7 @@ struct MockMcpLog {
 
 ///|
 fn mock_log() -> MockMcpLog {
-  { paths: [], accepts: [], session_ids: [], bodies: [] }
+  { paths: [], accepts: [], session_ids: [], bodies: [], }
 }
 
 ///|
@@ -40,16 +40,18 @@ fn mock_json_handler(
   code : Int,
   session_id : String,
 ) -> (MockMcpLog) -> async (@http.Request, &@io.Reader, @http.ServerConnection) -> Unit {
-  log => (request, body, conn) => {
-    log.record(request, body)
-    conn.send_response(code, "OK", extra_headers={
-      "Content-Type": "application/json",
-      "Mcp-Session-Id": session_id,
-    })
-    conn.write_string(
-      "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":\"pong\"}",
-    )
-    conn.end_response()
+  log => {
+    (request, body, conn) => {
+      log.record(request, body)
+      conn.send_response(code, "OK", extra_headers={
+        "Content-Type": "application/json",
+        "Mcp-Session-Id": session_id,
+      })
+      conn.write_string(
+        "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":\"pong\"}",
+      )
+      conn.end_response()
+    }
   }
 }
 
@@ -60,26 +62,34 @@ fn mock_json_handler(
 fn mock_sse_handler(
   id : Int,
 ) -> (MockMcpLog) -> async (@http.Request, &@io.Reader, @http.ServerConnection) -> Unit {
-  log => (request, body, conn) => {
-    log.record(request, body)
-    conn.send_response(200, "OK", extra_headers={
-      "Content-Type": "text/event-stream",
-    })
-    conn.write_string(
-      "event: message\ndata: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/message\",\"params\":{\"level\":\"info\"}}\n\n",
-    )
-    conn.write_string("data: {\"jsonrpc\":\"2.0\",\"id\":9999,\"result\":\"stale\"}\n\n")
-    conn.write_string(
-      "data: {\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":\"pong\"}\n\n",
-    )
-    conn.end_response()
+  log => {
+    (request, body, conn) => {
+      log.record(request, body)
+      conn.send_response(200, "OK", extra_headers={
+        "Content-Type": "text/event-stream",
+      })
+      conn.write_string(
+        "event: message\ndata: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/message\",\"params\":{\"level\":\"info\"}}\n\n",
+      )
+      conn.write_string(
+        "data: {\"jsonrpc\":\"2.0\",\"id\":9999,\"result\":\"stale\"}\n\n",
+      )
+      conn.write_string(
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":\"pong\"}\n\n",
+      )
+      conn.end_response()
+    }
   }
 }
 
 ///|
 /// Start a mock server and hand back its base URL and the mock log.
 async fn with_mock_server(
-  handler : (MockMcpLog) -> async (@http.Request, &@io.Reader, @http.ServerConnection) -> Unit,
+  handler : (MockMcpLog) -> async (
+    @http.Request,
+    &@io.Reader,
+    @http.ServerConnection,
+  ) -> Unit,
   run : async (String, MockMcpLog) -> Unit,
 ) -> Unit {
   let log = mock_log()
@@ -144,24 +154,21 @@ async test "HttpTransport start validates the url and is idempotent" {
 
 ///|
 async test "HttpTransport POSTs the message and correlates the JSON reply" {
-  with_mock_server(
-    mock_json_handler(1, 200, "sess-42"),
-    (url, _log) => {
-      let transport = HttpTransport::new(McpServerSpec::http("mock", url))
-      match transport.start() {
-        Ok(_) => ()
-        Err(e) => fail("start failed: " + e)
-      }
-      let sent = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
-      let reply = match transport.send_request(1, sent, 5) {
-        Ok(text) => text
-        Err(e) => fail("send_request failed: " + e)
-      }
-      assert_true(reply.contains("\"result\":\"pong\""))
-      // The server-assigned session id is captured for later requests.
-      @debug.assert_eq(transport.get_session_id(), Some("sess-42"))
-    },
-  )
+  with_mock_server(mock_json_handler(1, 200, "sess-42"), (url, _log) => {
+    let transport = HttpTransport::new(McpServerSpec::http("mock", url))
+    match transport.start() {
+      Ok(_) => ()
+      Err(e) => fail("start failed: " + e)
+    }
+    let sent = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+    let reply = match transport.send_request(1, sent, 5) {
+      Ok(text) => text
+      Err(e) => fail("send_request failed: " + e)
+    }
+    assert_true(reply.contains("\"result\":\"pong\""))
+    // The server-assigned session id is captured for later requests.
+    @debug.assert_eq(transport.get_session_id(), Some("sess-42"))
+  })
 }
 
 ///|
@@ -169,23 +176,22 @@ async test "HttpTransport POSTs the message and correlates the JSON reply" {
 /// configured url, the SSE-capable `Accept` header, and the session id once
 /// the server has assigned one.
 async test "HttpTransport sends path, accept header and session id" {
-  with_mock_server(
-    mock_json_handler(1, 200, "sess-7"),
-    (url, log) => {
-      let transport = HttpTransport::new(McpServerSpec::http("mock", url))
-      let _ = transport.start()
-      let _ = transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5)
-      let _ = transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5)
-      @debug.assert_eq(log.paths.length(), 2)
-      @debug.assert_eq(log.paths[0], "/mcp")
-      assert_true(log.accepts[0].contains("text/event-stream"))
-      assert_true(log.accepts[0].contains("application/json"))
-      assert_true(log.bodies[0].contains("\"method\"") || log.bodies[0].contains("\"id\""))
-      // First request has no session yet; the second echoes what the server sent.
-      @debug.assert_eq(log.session_ids[0], "")
-      @debug.assert_eq(log.session_ids[1], "sess-7")
-    },
-  )
+  with_mock_server(mock_json_handler(1, 200, "sess-7"), (url, log) => {
+    let transport = HttpTransport::new(McpServerSpec::http("mock", url))
+    let _ = transport.start()
+    let _ = transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5)
+    let _ = transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5)
+    @debug.assert_eq(log.paths.length(), 2)
+    @debug.assert_eq(log.paths[0], "/mcp")
+    assert_true(log.accepts[0].contains("text/event-stream"))
+    assert_true(log.accepts[0].contains("application/json"))
+    assert_true(
+      log.bodies[0].contains("\"method\"") || log.bodies[0].contains("\"id\""),
+    )
+    // First request has no session yet; the second echoes what the server sent.
+    @debug.assert_eq(log.session_ids[0], "")
+    @debug.assert_eq(log.session_ids[1], "sess-7")
+  })
 }
 
 // ── SSE replies ─────────────────────────────────────────────────────────────
@@ -195,25 +201,22 @@ async test "HttpTransport sends path, accept header and session id" {
 /// for another id go to the message handler, and only the frame carrying our
 /// id is returned.
 async test "HttpTransport reads an SSE reply and forwards other frames" {
-  with_mock_server(
-    mock_sse_handler(7),
-    (url, _log) => {
-      let transport = HttpTransport::new(McpServerSpec::http("mock", url))
-      let forwarded : Array[String] = []
-      transport.on_message(fn(payload) { forwarded.push(payload) })
-      let _ = transport.start()
-      let reply = match
-        transport.send_request(7, "{\"jsonrpc\":\"2.0\",\"id\":7}", 5) {
-        Ok(text) => text
-        Err(e) => fail("send_request failed: " + e)
-      }
-      assert_true(reply.contains("\"result\":\"pong\""))
-      assert_true(reply.contains("\"id\":7"))
-      @debug.assert_eq(forwarded.length(), 2)
-      assert_true(forwarded[0].contains("notifications/message"))
-      assert_true(forwarded[1].contains("\"id\":9999"))
-    },
-  )
+  with_mock_server(mock_sse_handler(7), (url, _log) => {
+    let transport = HttpTransport::new(McpServerSpec::http("mock", url))
+    let forwarded : Array[String] = []
+    transport.on_message(fn(payload) { forwarded.push(payload) })
+    let _ = transport.start()
+    let reply = match
+      transport.send_request(7, "{\"jsonrpc\":\"2.0\",\"id\":7}", 5) {
+      Ok(text) => text
+      Err(e) => fail("send_request failed: " + e)
+    }
+    assert_true(reply.contains("\"result\":\"pong\""))
+    assert_true(reply.contains("\"id\":7"))
+    @debug.assert_eq(forwarded.length(), 2)
+    assert_true(forwarded[0].contains("notifications/message"))
+    assert_true(forwarded[1].contains("\"id\":9999"))
+  })
 }
 
 ///|
@@ -221,12 +224,16 @@ async test "HttpTransport reads an SSE reply and forwards other frames" {
 /// an empty success.
 async test "HttpTransport reports an SSE stream closing without the reply" {
   with_mock_server(
-    _log => (_request, _body, conn) => {
-      conn.send_response(200, "OK", extra_headers={
-        "Content-Type": "text/event-stream",
-      })
-      conn.write_string("data: {\"jsonrpc\":\"2.0\",\"id\":9999,\"result\":\"other\"}\n\n")
-      conn.end_response()
+    _log => {
+      (_request, _body, conn) => {
+        conn.send_response(200, "OK", extra_headers={
+          "Content-Type": "text/event-stream",
+        })
+        conn.write_string(
+          "data: {\"jsonrpc\":\"2.0\",\"id\":9999,\"result\":\"other\"}\n\n",
+        )
+        conn.end_response()
+      }
     },
     (url, _log) => {
       let transport = HttpTransport::new(McpServerSpec::http("mock", url))
@@ -244,17 +251,14 @@ async test "HttpTransport reports an SSE stream closing without the reply" {
 ///|
 /// A reply for a different id must not be accepted as ours.
 async test "HttpTransport rejects a JSON reply for another id" {
-  with_mock_server(
-    mock_json_handler(4242, 200, ""),
-    (url, _log) => {
-      let transport = HttpTransport::new(McpServerSpec::http("mock", url))
-      let _ = transport.start()
-      match transport.send_request(5, "{\"jsonrpc\":\"2.0\",\"id\":5}", 5) {
-        Ok(text) => fail("expected an error, got: " + text)
-        Err(e) => assert_true(e.contains("no reply for id"))
-      }
-    },
-  )
+  with_mock_server(mock_json_handler(4242, 200, ""), (url, _log) => {
+    let transport = HttpTransport::new(McpServerSpec::http("mock", url))
+    let _ = transport.start()
+    match transport.send_request(5, "{\"jsonrpc\":\"2.0\",\"id\":5}", 5) {
+      Ok(text) => fail("expected an error, got: " + text)
+      Err(e) => assert_true(e.contains("no reply for id"))
+    }
+  })
 }
 
 ///|
@@ -281,34 +285,35 @@ async test "HttpTransport reports a refused connection" {
 ///|
 /// A server error status is surfaced with its code.
 async test "HttpTransport reports a server error status" {
-  with_mock_server(
-    mock_json_handler(1, 503, ""),
-    (url, _log) => {
-      let transport = HttpTransport::new(McpServerSpec::http("mock", url))
-      let _ = transport.start()
-      match transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5) {
-        Ok(text) => fail("expected an HTTP error, got: " + text)
-        Err(e) => assert_true(e.contains("503"))
-      }
-    },
-  )
+  with_mock_server(mock_json_handler(1, 503, ""), (url, _log) => {
+    let transport = HttpTransport::new(McpServerSpec::http("mock", url))
+    let _ = transport.start()
+    match transport.send_request(1, "{\"jsonrpc\":\"2.0\",\"id\":1}", 5) {
+      Ok(text) => fail("expected an HTTP error, got: " + text)
+      Err(e) => assert_true(e.contains("503"))
+    }
+  })
 }
 
 ///|
 /// Notifications expect no body: a 202 with an empty body is a success.
 async test "HttpTransport accepts an empty notification response" {
   with_mock_server(
-    _log => (_request, _body, conn) => {
-      conn.send_response(202, "Accepted", extra_headers={
-        "Mcp-Session-Id": "sess-9",
-      })
-      conn.end_response()
+    _log => {
+      (_request, _body, conn) => {
+        conn.send_response(202, "Accepted", extra_headers={
+          "Mcp-Session-Id": "sess-9",
+        })
+        conn.end_response()
+      }
     },
     (url, _log) => {
       let transport = HttpTransport::new(McpServerSpec::http("mock", url))
       let _ = transport.start()
       match
-        transport.send_message("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}") {
+        transport.send_message(
+          "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+        ) {
         Ok(_) => assert_true(true)
         Err(e) => fail("notification must be accepted: " + e)
       }
@@ -321,9 +326,11 @@ async test "HttpTransport accepts an empty notification response" {
 /// A notification rejected by the server is an error, not a silent success.
 async test "HttpTransport reports a rejected notification" {
   with_mock_server(
-    _log => (_request, _body, conn) => {
-      conn.send_response(500, "Server Error")
-      conn.end_response()
+    _log => {
+      (_request, _body, conn) => {
+        conn.send_response(500, "Server Error")
+        conn.end_response()
+      }
     },
     (url, _log) => {
       let transport = HttpTransport::new(McpServerSpec::http("mock", url))
@@ -350,45 +357,47 @@ async test "HttpTransport reports a rejected notification" {
 /// and lists tools, all over sockets against a mock MCP server.
 async test "McpClient completes the HTTP handshake and lists tools" {
   with_mock_server(
-    log => (request, body, conn) => {
-      log.record(request, body)
-      let text = log.bodies[log.bodies.length() - 1]
-      let parsed = parse_json_opt(text)
-      let rpc_method = match parsed {
-        Some({ "method": String(m), .. }) => m
-        _ => ""
-      }
-      let id = match parsed {
-        Some({ "id": Number(n, ..), .. }) => n.to_int()
-        _ => 0
-      }
-      match rpc_method {
-        "initialize" => {
-          conn.send_response(200, "OK", extra_headers={
-            "Content-Type": "application/json",
-            "Mcp-Session-Id": "sess-e2e",
-          })
-          conn.write_string(
-            "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"serverInfo\":{\"name\":\"mock-mcp\",\"version\":\"1.0\"}}}",
-          )
-          conn.end_response()
+    log => {
+      (request, body, conn) => {
+        log.record(request, body)
+        let text = log.bodies[log.bodies.length() - 1]
+        let parsed = parse_json_opt(text)
+        let rpc_method = match parsed {
+          Some({ "method": String(m), .. }) => m
+          _ => ""
         }
-        "notifications/initialized" => {
-          conn.send_response(202, "Accepted")
-          conn.end_response()
+        let id = match parsed {
+          Some({ "id": Number(n, ..), .. }) => n.to_int()
+          _ => 0
         }
-        "tools/list" => {
-          conn.send_response(200, "OK", extra_headers={
-            "Content-Type": "application/json",
-          })
-          conn.write_string(
-            "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"echoes back\",\"inputSchema\":{\"type\":\"object\"}}]}}",
-          )
-          conn.end_response()
-        }
-        _ => {
-          conn.send_response(404, "Not Found")
-          conn.end_response()
+        match rpc_method {
+          "initialize" => {
+            conn.send_response(200, "OK", extra_headers={
+              "Content-Type": "application/json",
+              "Mcp-Session-Id": "sess-e2e",
+            })
+            conn.write_string(
+              "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"serverInfo\":{\"name\":\"mock-mcp\",\"version\":\"1.0\"}}}",
+            )
+            conn.end_response()
+          }
+          "notifications/initialized" => {
+            conn.send_response(202, "Accepted")
+            conn.end_response()
+          }
+          "tools/list" => {
+            conn.send_response(200, "OK", extra_headers={
+              "Content-Type": "application/json",
+            })
+            conn.write_string(
+              "{\"jsonrpc\":\"2.0\",\"id\":\{id},\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"echoes back\",\"inputSchema\":{\"type\":\"object\"}}]}}",
+            )
+            conn.end_response()
+          }
+          _ => {
+            conn.send_response(404, "Not Found")
+            conn.end_response()
+          }
         }
       }
     },
@@ -405,10 +414,7 @@ async test "McpClient completes the HTTP handshake and lists tools" {
       @debug.assert_eq(tools[0].name, "echo")
       // Handshake + list = three POSTs; the notification carries no id.
       assert_true(log.bodies.length() >= 3)
-      @debug.assert_eq(
-        log.session_ids[2],
-        "sess-e2e",
-      )
+      @debug.assert_eq(log.session_ids[2], "sess-e2e")
       client.disconnect()
     },
   )
@@ -428,8 +434,8 @@ test "extract_reply picks our frame out of a batch payload" {
   assert_true(extract_reply("not json", 1) is None)
   // A notification (no id) never matches a pending request.
   assert_true(
-    extract_reply("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/x\"}", 1) is
-      None,
+    extract_reply("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/x\"}", 1)
+    is None,
   )
 }
 

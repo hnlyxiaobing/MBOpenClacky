@@ -205,9 +205,9 @@ test "screenshot_custom_save_path_appears_in_output" {
 /// Test: build_mcp_screenshot_args transparently passes format and quality.
 test "build_mcp_screenshot_args_passes_format_and_quality" {
   let args : Map[String, Json] = {
-    "format": "jpeg".to_json(),
-    "quality": (80).to_json(),
-    "full_page": true.to_json(),
+    "format": Json("jpeg"),
+    "quality": Json(80),
+    "full_page": Json(true),
   }
   let result = build_mcp_screenshot_args(args)
   let s = result.stringify()
@@ -261,8 +261,8 @@ test "screenshot_result_includes_size_and_format" {
 ///|
 test "build_mcp_scroll_args_with_direction_and_amount" {
   let args : Map[String, Json] = {
-    "direction": "down".to_json(),
-    "amount": (500).to_json(),
+    "direction": Json("down"),
+    "amount": Json(500),
   }
   let result = build_mcp_scroll_args(args)
   let s = result.stringify()
@@ -274,7 +274,7 @@ test "build_mcp_scroll_args_with_direction_and_amount" {
 
 ///|
 test "build_mcp_scroll_args_direction_only" {
-  let args : Map[String, Json] = { "direction": "up".to_json() }
+  let args : Map[String, Json] = { "direction": Json("up") }
   let result = build_mcp_scroll_args(args)
   let s = result.stringify()
   assert_true(s.find("direction") is Some(_))
@@ -293,8 +293,8 @@ test "build_mcp_scroll_args_empty" {
 ///|
 test "build_mcp_args_routes_scroll_page" {
   let args : Map[String, Json] = {
-    "direction": "down".to_json(),
-    "amount": (300).to_json(),
+    "direction": Json("down"),
+    "amount": Json(300),
   }
   let result = build_mcp_args("scroll_page", args)
   let s = result.stringify()
@@ -343,8 +343,8 @@ async test "scroll_dispatch_attempts_native_then_fallback" {
   // Verifies the dispatch chain executes without panicking.
   let browser = Browser::new()
   let args : Map[String, Json] = {
-    "direction": "down".to_json(),
-    "amount": (300).to_json(),
+    "direction": Json("down"),
+    "amount": Json(300),
   }
   let result = browser.dispatch_act("scroll", args)
   assert_true(result.is_error)
@@ -358,8 +358,8 @@ async test "scroll_dispatch_attempts_native_then_fallback" {
 test "scroll_fallback_produces_evaluate_script_args" {
   // Verify that the evaluate_script fallback builds correct scrollBy JS
   let args : Map[String, Json] = {
-    "direction": "down".to_json(),
-    "amount": (500).to_json(),
+    "direction": Json("down"),
+    "amount": Json(500),
   }
   let result = build_mcp_evaluate_args(args)
   let s = result.stringify()
@@ -370,8 +370,8 @@ test "scroll_fallback_produces_evaluate_script_args" {
 ///|
 test "scroll_up_produces_negative_offset" {
   let args : Map[String, Json] = {
-    "direction": "up".to_json(),
-    "amount": (200).to_json(),
+    "direction": Json("up"),
+    "amount": Json(200),
   }
   let result = build_mcp_evaluate_args(args)
   let s = result.stringify()
@@ -387,10 +387,10 @@ async test "fill_dispatch_degrades_gracefully_without_mcp" {
   // The fill result itself should be an error (MCP not connected).
   let browser = Browser::new()
   let args : Map[String, Json] = {
-    "action": "act".to_json(),
-    "kind": "fill".to_json(),
-    "ref": "e5".to_json(),
-    "text": "hello".to_json(),
+    "action": Json("act"),
+    "kind": Json("fill"),
+    "ref": Json("e5"),
+    "text": Json("hello"),
   }
   let result = browser.dispatch_act("fill", args)
   assert_true(result.is_error)
@@ -405,10 +405,10 @@ async test "type_alias_uses_fill_enhanced_dispatch" {
   // type is an alias for fill — should use the same enhanced dispatch path.
   let browser = Browser::new()
   let args : Map[String, Json] = {
-    "action": "act".to_json(),
-    "kind": "type".to_json(),
-    "ref": "e3".to_json(),
-    "text": "test input".to_json(),
+    "action": Json("act"),
+    "kind": Json("type"),
+    "ref": Json("e3"),
+    "text": Json("test input"),
   }
   let result = browser.dispatch_act("type", args)
   assert_true(result.is_error)
@@ -423,7 +423,7 @@ async test "fill_without_ref_skips_focus_blur" {
   // Without ref, focus/blur enhancement is skipped entirely.
   // fill still fails due to no MCP, but no crash from missing ref.
   let browser = Browser::new()
-  let args : Map[String, Json] = { "text": "hello".to_json() }
+  let args : Map[String, Json] = { "text": Json("hello") }
   let result = browser.dispatch_fill_enhanced(args)
   assert_true(result.is_error)
 }

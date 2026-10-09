@@ -14,14 +14,14 @@ pub fn error_response(
   hint? : String = "",
 ) -> Json {
   let fields : Map[String, Json] = Map([
-    ("error", message.to_json()),
-    ("status", status.to_json()),
+    ("error", Json(message)),
+    ("status", Json(status)),
   ])
   if code.length() > 0 {
-    fields["code"] = code.to_json()
+    fields["code"] = Json(code)
   }
   if hint.length() > 0 {
-    fields["hint"] = hint.to_json()
+    fields["hint"] = Json(hint)
   }
   Json::object(fields)
 }

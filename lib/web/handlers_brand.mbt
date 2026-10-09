@@ -29,7 +29,7 @@ fn now_seconds() -> Int {
 /// Convert an Option[String] to Json (None → null).
 fn opt_str_json(opt : String?) -> Json {
   match opt {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
 }
@@ -46,8 +46,8 @@ fn license_status_json(status : @brand.LicenseStatus) -> Json {
     @brand.NotConfigured => "not_configured"
   }
   Json::object({
-    "status": status_str.to_json(),
-    "valid": (status == @brand.Valid).to_json(),
+    "status": Json(status_str),
+    "valid": Json((status == @brand.Valid)),
   })
 }
 
@@ -72,11 +72,11 @@ fn handle_brand_config(
       "support_qr_url": opt_str_json(cfg.support_qr_url),
       "theme_color": opt_str_json(cfg.theme_color),
       "homepage_url": opt_str_json(cfg.homepage_url),
-      "branded": cfg.is_branded().to_json(),
-      "activated": cfg.activated().to_json(),
-      "expired": cfg.expired(now_seconds()).to_json(),
+      "branded": Json(cfg.is_branded()),
+      "activated": Json(cfg.activated()),
+      "expired": Json(cfg.expired(now_seconds())),
       "license_expires_at": opt_str_json(cfg.license_expires_at),
-      "user_licensed": cfg.user_licensed().to_json(),
+      "user_licensed": Json(cfg.user_licensed()),
       "license_user_id": opt_str_json(cfg.license_user_id),
     }),
   )
@@ -92,7 +92,7 @@ fn handle_brand_activate(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let license_key : String = match j {
@@ -101,12 +101,12 @@ fn handle_brand_activate(
         Some(String(k)) => k
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'license_key' field".to_json() }),
+            Json::object({ "error": Json("Missing 'license_key' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let dir = brand_config_dir()
@@ -118,15 +118,15 @@ fn handle_brand_activate(
       let _ = cfg.save(dir)
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "activated": true.to_json(),
-          "product_name": cfg.display_name().to_json(),
+          "activated": Json(true),
+          "product_name": Json(cfg.display_name()),
           "expires_at": opt_str_json(cfg.license_expires_at),
         }),
       )
     }
     Err(msg) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json(), "activated": false.to_json() }),
+        Json::object({ "error": Json(msg), "activated": Json(false) }),
       )
   }
 }
@@ -158,18 +158,18 @@ fn handle_brand_status(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "activated": activated.to_json(),
-      "branded": branded.to_json(),
-      "needs_activation": needs_activation.to_json(),
-      "test_mode": (!branded).to_json(),
-      "user_licensed": activated.to_json(),
-      "product_name": cfg.display_name().to_json(),
+      "activated": Json(activated),
+      "branded": Json(branded),
+      "needs_activation": Json(needs_activation),
+      "test_mode": Json((!branded)),
+      "user_licensed": Json(activated),
+      "product_name": Json(cfg.display_name()),
       "theme_color": opt_str_json(cfg.theme_color),
       "license_status": license_status_json(status),
       "expires_at": opt_str_json(cfg.license_expires_at),
       "device_id": opt_str_json(cfg.device_id),
       "warning": opt_str_json(warning),
-      "grace": is_grace.to_json(),
+      "grace": Json(is_grace),
     }),
   )
 }
@@ -187,7 +187,7 @@ fn handle_brand_heartbeat(
   let ts = now_seconds()
   if !cfg.activated() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "License not activated".to_json() }),
+      Json::object({ "error": Json("License not activated") }),
     )
   }
   if validator.needs_heartbeat(ts) {
@@ -196,20 +196,20 @@ fn handle_brand_heartbeat(
         let _ = cfg.save(dir)
         @core.HttpResponse::ok().json_value(
           Json::object({
-            "heartbeat": "sent".to_json(),
+            "heartbeat": Json("sent"),
             "last_heartbeat": opt_str_json(cfg.license_last_heartbeat),
           }),
         )
       }
       Err(msg) =>
         @core.HttpResponse::bad_request().json_value(
-          Json::object({ "error": msg.to_json() }),
+          Json::object({ "error": Json(msg) }),
         )
     }
   } else {
     @core.HttpResponse::ok().json_value(
       Json::object({
-        "heartbeat": "not_due".to_json(),
+        "heartbeat": Json("not_due"),
         "last_heartbeat": opt_str_json(cfg.license_last_heartbeat),
       }),
     )
@@ -235,14 +235,14 @@ fn handle_brand_skills_list(
   let skills = manager.list_installed_skills(dir)
   let items : Array[Json] = []
   for s in skills {
-    items.push(s.to_json())
+    items.push(Json(s))
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "skills": items.to_json(),
-      "free_mode": (!cfg.is_branded()).to_json(),
-      "paid_skills_count": (0).to_json(),
+      "ok": Json(true),
+      "skills": Json(items),
+      "free_mode": Json((!cfg.is_branded())),
+      "paid_skills_count": Json((0)),
     }),
   )
 }
@@ -257,7 +257,7 @@ fn handle_brand_skills_install(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let name = match j {
@@ -266,12 +266,12 @@ fn handle_brand_skills_install(
         Some(String(n)) => n
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'name' field".to_json() }),
+            Json::object({ "error": Json("Missing 'name' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let sanitized = @brand.sanitize_skill_name(name)
@@ -279,14 +279,14 @@ fn handle_brand_skills_install(
   let cfg = @brand.BrandConfig::load(dir)
   let manager = @brand.BrandSkillManager::new(cfg)
   match
-    manager.create_skill(dir, Json::object({ "name": sanitized.to_json() })) {
+    manager.create_skill(dir, Json::object({ "name": Json(sanitized) })) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "name": sanitized.to_json() }),
+        Json::object({ "ok": Json(true), "name": Json(sanitized) }),
       )
     Err(msg) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -301,7 +301,7 @@ fn handle_brand_skills_delete(
     Some(n) => n.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing skill name".to_json() }),
+        Json::object({ "error": Json("Missing skill name") }),
       )
   }
   let dir = brand_skills_config_dir()
@@ -310,11 +310,11 @@ fn handle_brand_skills_delete(
   match manager.delete_skill(dir, name, true) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "name": name.to_json() }),
+        Json::object({ "ok": Json(true), "name": Json(name) }),
       )
     Err(msg) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -346,11 +346,11 @@ fn handle_brand_deactivate(
   match cfg.save(dir) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json() }),
+        Json::object({ "ok": Json(true) }),
       )
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }

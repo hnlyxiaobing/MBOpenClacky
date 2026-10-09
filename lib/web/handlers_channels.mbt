@@ -69,9 +69,9 @@ fn masked_settings_json(settings : Map[String, String]) -> Json {
   let out : Map[String, Json] = Map([])
   for key, value in settings {
     if is_secret_setting_key(key) {
-      out.set("has_" + key, true.to_json())
+      out.set("has_" + key, Json(true))
     } else {
-      out.set(key, value.to_json())
+      out.set(key, Json(value))
     }
   }
   Json::object(out)
@@ -142,12 +142,12 @@ fn platform_extra_fields(platform : String) -> Array[(String, Json)] {
   match platform {
     "feishu" =>
       [
-        ("app_id", "".to_json()),
-        ("domain", "".to_json()),
+        ("app_id", Json("")),
+        ("domain", Json("")),
         ("allowed_users", Json::array([])),
       ]
-    "wecom" => [("bot_id", "".to_json()), ("allowed_users", Json::array([]))]
-    "weixin" => [("base_url", "".to_json()), ("allowed_users", Json::array([]))]
+    "wecom" => [("bot_id", Json("")), ("allowed_users", Json::array([]))]
+    "weixin" => [("base_url", Json("")), ("allowed_users", Json::array([]))]
     "discord" | "telegram" | "dingtalk" => [("allowed_users", Json::array([]))]
     _ => []
   }
@@ -168,14 +168,14 @@ fn channel_status_json(
   }
   match mgr.find_platform(platform) {
     None => {
-      base.set("platform", platform.to_json())
-      base.set("enabled", false.to_json())
-      base.set("running", false.to_json())
-      base.set("has_config", false.to_json())
-      base.set("has_token", false.to_json())
+      base.set("platform", Json(platform))
+      base.set("enabled", Json(false))
+      base.set("running", Json(false))
+      base.set("has_config", Json(false))
+      base.set("has_token", Json(false))
       base.set("token_updated_at", Json::null())
       base.set("settings", Json::object(Map([])))
-      base.set("status", "disconnected".to_json())
+      base.set("status", Json("disconnected"))
       Json::object(base)
     }
     Some(cfg) => {
@@ -183,21 +183,21 @@ fn channel_status_json(
       // Real settings overlay the parity placeholders; credentials become flags.
       for key, value in cfg.settings {
         if is_secret_setting_key(key) {
-          base.set("has_" + key, true.to_json())
+          base.set("has_" + key, Json(true))
         } else {
-          base.set(key, value.to_json())
+          base.set(key, Json(value))
         }
       }
-      base.set("platform", platform.to_json())
-      base.set("enabled", cfg.enabled.to_json())
-      base.set("running", running.to_json())
-      base.set("has_config", true.to_json())
-      base.set("has_token", settings_have_credential(cfg.settings).to_json())
+      base.set("platform", Json(platform))
+      base.set("enabled", Json(cfg.enabled))
+      base.set("running", Json(running))
+      base.set("has_config", Json(true))
+      base.set("has_token", Json(settings_have_credential(cfg.settings)))
       base.set("token_updated_at", token_updated_at_json(cfg.settings))
       base.set("settings", masked_settings_json(cfg.settings))
       base.set(
         "status",
-        (if running { "connected" } else { "disconnected" }).to_json(),
+        Json((if running { "connected" } else { "disconnected" })),
       )
       Json::object(base)
     }
@@ -298,10 +298,10 @@ pub fn handle_channels_create(
       let note = apply_config_after_change(cm_ref)
       HttpResponse::created(
         Json::object({
-          "platform": platform.to_json(),
-          "status": "created".to_json(),
-          "message": "Channel created successfully".to_json(),
-          "runtime": note.to_json(),
+          "platform": Json(platform),
+          "status": Json("created"),
+          "message": Json("Channel created successfully"),
+          "runtime": Json(note),
         }).stringify(),
       )
     }
@@ -351,10 +351,10 @@ pub fn handle_channels_update(
       let note = apply_config_after_change(cm_ref)
       HttpResponse::ok(
         Json::object({
-          "platform": platform.to_json(),
-          "status": "updated".to_json(),
-          "message": "Channel updated successfully".to_json(),
-          "runtime": note.to_json(),
+          "platform": Json(platform),
+          "status": Json("updated"),
+          "message": Json("Channel updated successfully"),
+          "runtime": Json(note),
         }).stringify(),
       )
     }
@@ -424,9 +424,9 @@ pub async fn handle_channels_test_async(
     None =>
       return HttpResponse::ok(
         Json::object({
-          "channel_id": platform.to_json(),
-          "test_result": "failed".to_json(),
-          "error": "Platform is not configured: \{platform}".to_json(),
+          "channel_id": Json(platform),
+          "test_result": Json("failed"),
+          "error": Json("Platform is not configured: \{platform}"),
         }).stringify(),
       )
   }
@@ -444,10 +444,10 @@ pub async fn handle_channels_test_async(
   let latency = (end_time - start_time).to_int()
   HttpResponse::ok(
     Json::object({
-      "channel_id": platform.to_json(),
-      "test_result": test_result.to_json(),
-      "latency_ms": latency.to_json(),
-      "error": error_msg.to_json(),
+      "channel_id": Json(platform),
+      "test_result": Json(test_result),
+      "latency_ms": Json(latency),
+      "error": Json(error_msg),
     }).stringify(),
   )
 }
@@ -645,20 +645,20 @@ pub async fn handle_channels_send_async(
         Ok(result) =>
           HttpResponse::ok(
             Json::object({
-              "success": result.success.to_json(),
-              "channel_id": platform.to_json(),
-              "chat_id": chat_id.to_json(),
-              "message_id": result.message_id.to_json(),
-              "error": result.error.to_json(),
+              "success": Json(result.success),
+              "channel_id": Json(platform),
+              "chat_id": Json(chat_id),
+              "message_id": Json(result.message_id),
+              "error": Json(result.error),
             }).stringify(),
           )
         Err(e) =>
           HttpResponse::ok(
             Json::object({
-              "success": false.to_json(),
-              "channel_id": platform.to_json(),
-              "chat_id": chat_id.to_json(),
-              "error": channel_error_msg(e).to_json(),
+              "success": Json(false),
+              "channel_id": Json(platform),
+              "chat_id": Json(chat_id),
+              "error": Json(channel_error_msg(e)),
             }).stringify(),
           )
       }
@@ -677,7 +677,7 @@ pub fn handle_channels_group_history(request : HttpRequest) -> HttpResponse {
   }
   // For now, return empty history. In a real implementation, we would query the channel adapter.
   HttpResponse::ok(
-    Json::object({ "chat_id": chat_id.to_json(), "messages": Json::array([]) }).stringify(),
+    Json::object({ "chat_id": Json(chat_id), "messages": Json::array([]) }).stringify(),
   )
 }
 
@@ -698,7 +698,7 @@ pub fn handle_channels_users(
       // For now, return empty users. In a real implementation, we would query the channel adapter.
       HttpResponse::ok(
         Json::object({
-          "platform": platform.to_json(),
+          "platform": Json(platform),
           "users": Json::array([]),
         }).stringify(),
       )

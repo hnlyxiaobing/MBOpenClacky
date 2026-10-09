@@ -119,7 +119,7 @@ test "working_dir update accepts relative path and persists" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("working_dir"), Some("sub/dir".to_json()))
+  @debug.assert_eq(obj.get("working_dir"), Some(Json("sub/dir")))
   match @agent.load_session(id) {
     Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
     None => panic()
@@ -147,7 +147,7 @@ test "working_dir update normalizes mixed separators" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("working_dir"), Some("sub/dir".to_json()))
+  @debug.assert_eq(obj.get("working_dir"), Some(Json("sub/dir")))
   match @agent.load_session(id) {
     Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
     None => panic()
@@ -205,7 +205,7 @@ test "create session normalizes mixed separators in working_dir" {
   guard! j is Json::Object(top)
   guard! top.get("session") is Some(Object(s))
   guard! s.get("id") is Some(String(id))
-  @debug.assert_eq(s.get("working_dir"), Some("sub/dir".to_json()))
+  @debug.assert_eq(s.get("working_dir"), Some(Json("sub/dir")))
   match @agent.load_session(id) {
     Some(d) => @debug.assert_eq(d.working_dir, "sub/dir")
     None => panic()
@@ -432,8 +432,8 @@ test "SessionSummary json emits latest_latency object" {
     Object(map) =>
       match map.get("latest_latency") {
         Some(Object(lat)) => {
-          @debug.assert_eq(lat.get("ttft_ms"), Some((80).to_json()))
-          @debug.assert_eq(lat.get("duration_ms"), Some((350).to_json()))
+          @debug.assert_eq(lat.get("ttft_ms"), Some(Json((80))))
+          @debug.assert_eq(lat.get("duration_ms"), Some(Json((350))))
         }
         _ => panic()
       }
@@ -466,7 +466,7 @@ test "get session wraps response in session key" {
     Object(top) =>
       match top.get("session") {
         Some(Object(s)) => {
-          @debug.assert_eq(s.get("id"), Some(id.to_json()))
+          @debug.assert_eq(s.get("id"), Some(Json(id)))
           assert_false(s.contains("session_id"))
           assert_false(s.contains("messages"))
         }
@@ -501,7 +501,7 @@ test "get session wraps response in session key" {
     Object(top) =>
       match top.get("session") {
         Some(Object(s)) => {
-          @debug.assert_eq(s.get("id"), Some(mem_id.to_json()))
+          @debug.assert_eq(s.get("id"), Some(Json(mem_id)))
           assert_false(s.contains("session_id"))
           assert_false(s.contains("messages"))
         }
@@ -547,27 +547,27 @@ test "SessionSummary json emits fix-09 fields" {
   }
   match ToJson::to_json(summary) {
     Object(map) => {
-      @debug.assert_eq(map.get("model_id"), Some("claude-3-5-sonnet".to_json()))
+      @debug.assert_eq(map.get("model_id"), Some(Json("claude-3-5-sonnet")))
       @debug.assert_eq(
         map.get("card_model"),
-        Some("claude-3-5-sonnet".to_json()),
+        Some(Json("claude-3-5-sonnet")),
       )
       @debug.assert_eq(
         map.get("error_code"),
-        Some("insufficient_credit".to_json()),
+        Some(Json("insufficient_credit")),
       )
       @debug.assert_eq(
         map.get("top_up_url"),
-        Some("https://console.anthropic.com/settings/billing".to_json()),
+        Some(Json("https://console.anthropic.com/settings/billing")),
       )
       @debug.assert_eq(
         map.get("raw_message"),
-        Some("Your credit balance is too low".to_json()),
+        Some(Json("Your credit balance is too low")),
       )
       match map.get("channel_info") {
         Some(Object(ci)) => {
-          @debug.assert_eq(ci.get("platform"), Some("telegram".to_json()))
-          @debug.assert_eq(ci.get("channel_id"), Some("ch123".to_json()))
+          @debug.assert_eq(ci.get("platform"), Some(Json("telegram")))
+          @debug.assert_eq(ci.get("channel_id"), Some(Json("ch123")))
         }
         _ => panic()
       }
@@ -644,13 +644,13 @@ test "fork response strips messages so system prompt does not leak" {
   )
   let j = wd_response_json(resp)
   guard! j is Json::Object(top)
-  @debug.assert_eq(top.get("source_session_id"), Some(id.to_json()))
+  @debug.assert_eq(top.get("source_session_id"), Some(Json(id)))
   // forked_session must exist and carry NO messages key.
   match top.get("forked_session") {
     Some(Object(fs)) => {
       assert_false(fs.contains("messages"))
       // metadata still present
-      @debug.assert_eq(fs.get("source"), Some("manual".to_json()))
+      @debug.assert_eq(fs.get("source"), Some(Json("manual")))
       // cleanup the forked session too
       match fs.get("session_id") {
         Some(String(fid)) => @agent.delete_session(fid)
@@ -689,10 +689,10 @@ test "create session response has orig shape with id and no messages" {
   assert_false(s.contains("session_id"))
   assert_false(s.contains("messages"))
   assert_true(s.contains("status"))
-  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model"), Some(Json("model-x")))
   // model_id carries the ModelConfig id, not the API model string.
-  @debug.assert_eq(s.get("model_id"), Some("m1".to_json()))
-  @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some(Json("m1")))
+  @debug.assert_eq(s.get("card_model"), Some(Json("model-x")))
   @debug.assert_eq(s.get("error"), Some(Json::null()))
   @agent.delete_session(id)
   wd_pop_profile(old)
@@ -721,11 +721,11 @@ test "detail response aligns orig field names and omits messages" {
   let j = wd_response_json(resp)
   guard! j is Json::Object(top)
   guard! top.get("session") is Some(Object(s))
-  @debug.assert_eq(s.get("id"), Some(id.to_json()))
-  @debug.assert_eq(s.get("status"), Some("idle".to_json()))
-  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
-  @debug.assert_eq(s.get("model_id"), Some("m1".to_json()))
-  @debug.assert_eq(s.get("card_model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("id"), Some(Json(id)))
+  @debug.assert_eq(s.get("status"), Some(Json("idle")))
+  @debug.assert_eq(s.get("model"), Some(Json("model-x")))
+  @debug.assert_eq(s.get("model_id"), Some(Json("m1")))
+  @debug.assert_eq(s.get("card_model"), Some(Json("model-x")))
   @debug.assert_eq(s.get("error"), Some(Json::null()))
   @debug.assert_eq(s.get("error_code"), Some(Json::null()))
   @debug.assert_eq(s.get("top_up_url"), Some(Json::null()))
@@ -753,7 +753,7 @@ test "delete session returns 200 ok json (web-ui2-03 BUG-008)" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
@@ -774,7 +774,7 @@ test "create session without name returns 400 name is required" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("error"), Some("name is required".to_json()))
+  @debug.assert_eq(obj.get("error"), Some(Json("name is required")))
   wd_pop_profile(old)
 }
 
@@ -794,7 +794,7 @@ test "create session with empty name returns 400 name is required" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("error"), Some("name is required".to_json()))
+  @debug.assert_eq(obj.get("error"), Some(Json("name is required")))
   wd_pop_profile(old)
 }
 
@@ -818,8 +818,8 @@ test "rename session returns ok and name (web-ui2-09 BUG-011)" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("name"), Some("renamed-x".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("name"), Some(Json("renamed-x")))
   assert_false(obj.contains("session_id"))
   assert_false(obj.contains("old_name"))
   @agent.delete_session(id)
@@ -843,8 +843,8 @@ test "pin session returns ok and pinned (web-ui2-09 BUG-011)" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("pinned"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("pinned"), Some(Json(true)))
   assert_false(obj.contains("session_id"))
   assert_false(obj.contains("name"))
   // cleanup pinned entry so the test is hermetic
@@ -966,8 +966,8 @@ test "create with id!=model persists and reports config id" {
   assert_false(top.contains("model_fallback"))
   guard! top.get("session") is Some(Object(s))
   guard! s.get("id") is Some(String(id))
-  @debug.assert_eq(s.get("model_id"), Some("cfg_1".to_json()))
-  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
+  @debug.assert_eq(s.get("model_id"), Some(Json("cfg_1")))
+  @debug.assert_eq(s.get("model"), Some(Json("model-x")))
   // The persisted snapshot carries the config id.
   match @agent.load_session(id) {
     Some(d) => {
@@ -1003,12 +1003,12 @@ test "create with unknown model_id falls back and flags model_fallback" {
   @debug.assert_eq(resp.status_code.to_int(), 201)
   let j = wd_response_json(resp)
   guard! j is Json::Object(top)
-  @debug.assert_eq(top.get("model_fallback"), Some(true.to_json()))
+  @debug.assert_eq(top.get("model_fallback"), Some(Json(true)))
   guard! top.get("session") is Some(Object(s))
   guard! s.get("id") is Some(String(id))
   // The session runs on the default model and reports that model's id.
-  @debug.assert_eq(s.get("model"), Some("model-x".to_json()))
-  @debug.assert_eq(s.get("model_id"), Some("cfg_1".to_json()))
+  @debug.assert_eq(s.get("model"), Some(Json("model-x")))
+  @debug.assert_eq(s.get("model_id"), Some(Json("cfg_1")))
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
@@ -1041,7 +1041,7 @@ test "model patch persists config id for disk-backed session" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = wd_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("model_id"), Some("cfg_9".to_json()))
+  @debug.assert_eq(obj.get("model_id"), Some(Json("cfg_9")))
   match @agent.load_session(id) {
     Some(d) => {
       @debug.assert_eq(d.model_config_id, Some("cfg_9"))
@@ -1057,7 +1057,7 @@ test "model patch persists config id for disk-backed session" {
   let j2 = wd_response_json(resp2)
   guard! j2 is Json::Object(top2)
   guard! top2.get("session") is Some(Object(s2))
-  @debug.assert_eq(s2.get("model_id"), Some("cfg_9".to_json()))
+  @debug.assert_eq(s2.get("model_id"), Some(Json("cfg_9")))
   @agent.delete_session(id)
   wd_pop_profile(old)
 }

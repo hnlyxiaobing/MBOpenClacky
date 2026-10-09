@@ -117,10 +117,10 @@ test "build_openai_request_with_tools" {
   let messages = [@message.Message::user("test")]
   let tools : Array[Json] = [
     Json::object({
-      "type": "function".to_json(),
+      "type": Json("function"),
       "function": Json::object({
-        "name": "shell".to_json(),
-        "description": "Run shell command".to_json(),
+        "name": Json("shell"),
+        "description": Json("Run shell command"),
         "parameters": Json::object(Map([])),
       }),
     }),
@@ -292,11 +292,11 @@ test "build_anthropic_request_separates_system" {
 test "build_anthropic_request_converts_tools" {
   let tools : Array[Json] = [
     Json::object({
-      "type": "function".to_json(),
+      "type": Json("function"),
       "function": Json::object({
-        "name": "read_file".to_json(),
-        "description": "Read a file".to_json(),
-        "parameters": Json::object({ "type": "object".to_json() }),
+        "name": Json("read_file"),
+        "description": Json("Read a file"),
+        "parameters": Json::object({ "type": Json("object") }),
       }),
     }),
   ]
@@ -497,14 +497,14 @@ test "build_anthropic_request_merges_consecutive_tool_results" {
   @debug.assert_eq(msgs.length(), 2)
   match msgs[1] {
     Object(user_msg) => {
-      assert_eq(user_msg.get("role"), Some("user".to_json()))
+      assert_eq(user_msg.get("role"), Some(Json("user")))
       match user_msg.get("content") {
         Some(Array(blocks)) => {
           @debug.assert_eq(blocks.length(), 2)
           for block in blocks {
             match block {
               Object(b) =>
-                assert_eq(b.get("type"), Some("tool_result".to_json()))
+                assert_eq(b.get("type"), Some(Json("tool_result")))
               _ => abort("expected tool_result block")
             }
           }
@@ -895,11 +895,11 @@ test "build_bedrock_request_separates_system" {
 test "build_bedrock_request_converts_tools" {
   let tools : Array[Json] = [
     Json::object({
-      "type": "function".to_json(),
+      "type": Json("function"),
       "function": Json::object({
-        "name": "read_file".to_json(),
-        "description": "Read a file".to_json(),
-        "parameters": Json::object({ "type": "object".to_json() }),
+        "name": Json("read_file"),
+        "description": Json("Read a file"),
+        "parameters": Json::object({ "type": Json("object") }),
       }),
     }),
   ]

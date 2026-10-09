@@ -31,7 +31,7 @@ pub async fn Browser::recover_selected_page(self : Browser) -> String? {
   match page_id {
     Some(pid) => {
       // Select the recovered page via MCP (bypass with_page to avoid recursion)
-      let select_args : Map[String, Json] = { "target_id": pid.to_json() }
+      let select_args : Map[String, Json] = { "target_id": Json(pid) }
       ignore(self.mcp_call("select_page", select_args))
       // Update cache
       self.page_cache.current = Some(pid)

@@ -20,23 +20,23 @@ pub fn write_journey_evidence(
   for a in state.assertions {
     assertions_json.push(
       Json::object({
-        "description": a.description.to_json(),
+        "description": Json(a.description),
         "passed": Json::boolean(a.passed),
-        "detail": a.detail.to_json(),
+        "detail": Json(a.detail),
       }),
     )
   }
   let trace_json : Array[Json] = []
   for line in state.trace {
-    trace_json.push(line.to_json())
+    trace_json.push(Json(line))
   }
   let summary = Json::object({
-    "id": scenario_id.to_json(),
+    "id": Json(scenario_id),
     "passed": Json::boolean(passed),
-    "error": error.to_json(),
-    "bin": state.ctx.bin_path.to_json(),
-    "server_port": state.ctx.server_port.to_json(),
-    "mock_port": state.ctx.mock_port.to_json(),
+    "error": Json(error),
+    "bin": Json(state.ctx.bin_path),
+    "server_port": Json(state.ctx.server_port),
+    "mock_port": Json(state.ctx.mock_port),
     "trace": Json::array(trace_json),
     "assertions": Json::array(assertions_json),
   })
@@ -49,9 +49,9 @@ pub fn write_journey_evidence(
     let r = state.mock.requests[i]
     lines.push(
       Json::object({
-        "seq": (i + 1).to_json(),
-        "at_ms": r.at_ms.to_json(),
-        "body": r.body.to_json(),
+        "seq": Json((i + 1)),
+        "at_ms": Json(r.at_ms),
+        "body": Json(r.body),
       }).stringify(),
     )
   }
@@ -89,17 +89,17 @@ pub fn write_journey_evidence(
       for i = 0; i < j.frames_out.length(); i = i + 1 {
         frame_lines.push(
           Json::object({
-            "dir": "out".to_json(),
-            "text": j.frames_out[i].to_json(),
+            "dir": Json("out"),
+            "text": Json(j.frames_out[i]),
           }).stringify(),
         )
       }
       for i = 0; i < j.frames_in.length(); i = i + 1 {
         frame_lines.push(
           Json::object({
-            "dir": "in".to_json(),
-            "event": j.events[i].to_json(),
-            "text": j.frames_in[i].to_json(),
+            "dir": Json("in"),
+            "event": Json(j.events[i]),
+            "text": Json(j.frames_in[i]),
           }).stringify(),
         )
       }

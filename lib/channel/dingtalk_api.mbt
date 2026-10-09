@@ -66,8 +66,8 @@ pub fn DingTalkApiClient::build_access_token_request(
   self : DingTalkApiClient,
 ) -> Json {
   let body : Map[String, Json] = Map([])
-  body.set("appKey", self.app_key.to_json())
-  body.set("appSecret", self.app_secret.to_json())
+  body.set("appKey", Json(self.app_key))
+  body.set("appSecret", Json(self.app_secret))
   Json::object(body)
 }
 
@@ -232,9 +232,9 @@ pub fn DingTalkApiClient::build_webhook_payload(
     _ => {
       // Default: text message
       let text_obj : Map[String, Json] = Map([])
-      text_obj.set("content", text.to_json())
+      text_obj.set("content", Json(text))
       let msg : Map[String, Json] = Map([])
-      msg.set("msgtype", "text".to_json())
+      msg.set("msgtype", Json("text"))
       msg.set("text", Json::object(text_obj))
       Json::object(msg)
     }
@@ -267,18 +267,18 @@ pub fn DingTalkApiClient::build_send_msg_param(
 ) -> String {
   let param : Map[String, Json] = Map([])
   match msg_key {
-    "sampleText" => param.set("content", content.to_json())
+    "sampleText" => param.set("content", Json(content))
     "sampleMarkdown" => {
-      param.set("title", "AI Assistant".to_json())
-      param.set("text", content.to_json())
+      param.set("title", Json("AI Assistant"))
+      param.set("text", Json(content))
     }
     "sampleActionCard" => {
-      param.set("title", "AI Assistant".to_json())
-      param.set("markdown", content.to_json())
-      param.set("singleTitle", "查看详情".to_json())
-      param.set("singleURL", "".to_json())
+      param.set("title", Json("AI Assistant"))
+      param.set("markdown", Json(content))
+      param.set("singleTitle", Json("查看详情"))
+      param.set("singleURL", Json(""))
     }
-    _ => param.set("content", content.to_json())
+    _ => param.set("content", Json(content))
   }
   Json::object(param).stringify()
 }
@@ -299,11 +299,11 @@ pub async fn DingTalkApiClient::send_to_user(
   }
   let url = self.api_base + "/v1.0/robot/oToMessages/batchSend"
   let body : Map[String, Json] = Map([])
-  body.set("robotCode", robot_code.to_json())
-  let user_ids : Array[Json] = [user_id.to_json()]
+  body.set("robotCode", Json(robot_code))
+  let user_ids : Array[Json] = [Json(user_id)]
   body.set("userIds", Json::array(user_ids))
-  body.set("msgKey", msg_key.to_json())
-  body.set("msgParam", msg_param.to_json())
+  body.set("msgKey", Json(msg_key))
+  body.set("msgParam", Json(msg_param))
   http_post_json(url, headers.to_array(), Json::object(body).stringify())
 }
 
@@ -323,10 +323,10 @@ pub async fn DingTalkApiClient::send_to_group(
   }
   let url = self.api_base + "/v1.0/robot/groupMessages/send"
   let body : Map[String, Json] = Map([])
-  body.set("robotCode", robot_code.to_json())
-  body.set("openConversationId", open_conversation_id.to_json())
-  body.set("msgKey", msg_key.to_json())
-  body.set("msgParam", msg_param.to_json())
+  body.set("robotCode", Json(robot_code))
+  body.set("openConversationId", Json(open_conversation_id))
+  body.set("msgKey", Json(msg_key))
+  body.set("msgParam", Json(msg_param))
   http_post_json(url, headers.to_array(), Json::object(body).stringify())
 }
 
@@ -349,7 +349,7 @@ pub async fn DingTalkApiClient::upload_media_url(
 /// Build upload metadata JSON for multipart request.
 pub fn DingTalkApiClient::build_upload_request(filename : String) -> Json {
   let meta : Map[String, Json] = Map([])
-  meta.set("filename", filename.to_json())
+  meta.set("filename", Json(filename))
   // Determine media type from extension
   let ext = get_file_extension(filename)
   let media_type = match ext {
@@ -358,7 +358,7 @@ pub fn DingTalkApiClient::build_upload_request(filename : String) -> Json {
     "mp4" | "avi" | "mov" => "video"
     _ => "file"
   }
-  meta.set("mediaType", media_type.to_json())
+  meta.set("mediaType", Json(media_type))
   Json::object(meta)
 }
 
@@ -375,8 +375,8 @@ pub async fn DingTalkApiClient::open_stream_connection(
 ) -> Result[(String, String), ChannelError] {
   let url = self.api_base + "/v1.0/gateway/connections/open"
   let body : Map[String, Json] = Map([])
-  body.set("clientId", client_id.to_json())
-  body.set("clientSecret", client_secret.to_json())
+  body.set("clientId", Json(client_id))
+  body.set("clientSecret", Json(client_secret))
   let headers = HttpHeaders::new().content_type("application/json").to_array()
   let json = match
     http_post_json(url, headers, Json::object(body).stringify()) {
@@ -421,8 +421,8 @@ pub async fn DingTalkApiClient::download_file_url(
   }
   let url = self.api_base + "/v1.0/robot/messageFiles/download"
   let body : Map[String, Json] = Map([])
-  body.set("downloadCode", download_code.to_json())
-  body.set("robotCode", robot_code.to_json())
+  body.set("downloadCode", Json(download_code))
+  body.set("robotCode", Json(robot_code))
   let json = match
     http_post_json(url, headers.to_array(), Json::object(body).stringify()) {
     Ok(j) => j

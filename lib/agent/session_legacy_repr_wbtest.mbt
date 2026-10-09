@@ -82,9 +82,15 @@ test "legacy repr parses numbers as whole and fractional values" {
     Some(Json::number(0.005)),
   )
   @debug.assert_eq(repr_field(json, "chunk_count"), Some(Json::number(0.0)))
-  @debug.assert_eq(repr_field(json, "pending_error_rollback"), Some(Json::boolean(true)))
+  @debug.assert_eq(
+    repr_field(json, "pending_error_rollback"),
+    Some(Json::boolean(true)),
+  )
   @debug.assert_eq(repr_field(json, "reasoning_effort"), Some(Json::null()))
-  @debug.assert_eq(repr_field(json, "model_name"), Some(Json::array([Json::string("kimi-k2.7-code")])))
+  @debug.assert_eq(
+    repr_field(json, "model_name"),
+    Some(Json::array([Json::string("kimi-k2.7-code")])),
+  )
 }
 
 ///|
@@ -186,7 +192,9 @@ test "schema variants without optional blocks still load" {
 test "legacy json format label is preserved" {
   let old = ss_push_profile()
   let id = generate_session_id()
-  save_session(ss_make_session(id, "plain")) catch { _ => assert_true(false) }
+  save_session(ss_make_session(id, "plain")) catch {
+    _ => assert_true(false)
+  }
   let dir = ensure_sessions_dir() catch {
     _ => {
       assert_true(false)

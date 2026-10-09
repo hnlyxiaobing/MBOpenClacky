@@ -199,11 +199,11 @@ async fn MockLlmServer::handle_conn(
 fn MockLlmServer::next_response(self : MockLlmServer) -> Json {
   if self.cursor >= self.steps.length() {
     return Json::object({
-      "type": "error".to_json(),
-      "status": (500).to_json(),
+      "type": Json("error"),
+      "status": Json((500)),
       "body": Json::object({
         "error": Json::object({
-          "message": "scenario exhausted (\{self.steps.length()} steps), but agent sent request #\{self.cursor + 1}".to_json(),
+          "message": Json("scenario exhausted (\{self.steps.length()} steps), but agent sent request #\{self.cursor + 1}"),
         }),
       }),
     })
@@ -213,7 +213,7 @@ fn MockLlmServer::next_response(self : MockLlmServer) -> Json {
   match jget(step, "response") {
     Some(r) => r
     None =>
-      Json::object({ "type": "error".to_json(), "status": (500).to_json() })
+      Json::object({ "type": Json("error"), "status": Json((500)) })
   }
 }
 
@@ -329,17 +329,17 @@ fn MockLlmServer::chunk_payload(
 ) -> Json {
   self.serial = self.serial + 1
   let finish = match finish_reason {
-    Some(r) => r.to_json()
+    Some(r) => Json(r)
     None => Json::null()
   }
   Json::object({
-    "id": "chatcmpl-mock\{self.serial}".to_json(),
-    "object": "chat.completion.chunk".to_json(),
-    "created": (now_ms() / 1000).to_json(),
-    "model": model.to_json(),
+    "id": Json("chatcmpl-mock\{self.serial}"),
+    "object": Json("chat.completion.chunk"),
+    "created": Json((now_ms() / 1000)),
+    "model": Json(model),
     "choices": Json::array([
       Json::object({
-        "index": (0).to_json(),
+        "index": Json((0)),
         "delta": delta,
         "finish_reason": finish,
       }),
@@ -384,8 +384,8 @@ fn MockLlmServer::build_sse(
           self.chunk_payload(
             model,
             Json::object({
-              "role": "assistant".to_json(),
-              "content": piece.to_json(),
+              "role": Json("assistant"),
+              "content": Json(piece),
             }),
             None,
           ),
@@ -406,7 +406,7 @@ fn MockLlmServer::build_sse(
         self.chunk_payload(
           model,
           Json::object({
-            "role": "assistant".to_json(),
+            "role": Json("assistant"),
             "content": Json::null(),
           }),
           None,
@@ -428,19 +428,19 @@ fn MockLlmServer::build_sse(
         None => ""
       }
       let head = Json::object({
-        "index": idx.to_json(),
-        "id": id.to_json(),
-        "type": "function".to_json(),
+        "index": Json(idx),
+        "id": Json(id),
+        "type": Json("function"),
         "function": Json::object({
-          "name": name.to_json(),
-          "arguments": "".to_json(),
+          "name": Json(name),
+          "arguments": Json(""),
         }),
       })
       frames.push(
         sse(
           self.chunk_payload(
             model,
-            Json::object({ "tool_calls": [head].to_json() }),
+            Json::object({ "tool_calls": Json([head]) }),
             None,
           ),
         ),
@@ -451,14 +451,14 @@ fn MockLlmServer::build_sse(
       }
       for frag in split_chars(args, arg_piece) {
         let delta = Json::object({
-          "index": idx.to_json(),
-          "function": Json::object({ "arguments": frag.to_json() }),
+          "index": Json(idx),
+          "function": Json::object({ "arguments": Json(frag) }),
         })
         frames.push(
           sse(
             self.chunk_payload(
               model,
-              Json::object({ "tool_calls": [delta].to_json() }),
+              Json::object({ "tool_calls": Json([delta]) }),
               None,
             ),
           ),
@@ -498,8 +498,8 @@ fn MockLlmServer::build_sse(
         self.chunk_payload(
           model,
           Json::object({
-            "role": "assistant".to_json(),
-            "content": text.to_json(),
+            "role": Json("assistant"),
+            "content": Json(text),
           }),
           None,
         ),
@@ -511,8 +511,8 @@ fn MockLlmServer::build_sse(
         self.chunk_payload(
           model,
           Json::object({
-            "role": "assistant".to_json(),
-            "content": "[unsupported type \{rtype}]".to_json(),
+            "role": Json("assistant"),
+            "content": Json("[unsupported type \{rtype}]"),
           }),
           Some("stop"),
         ),
@@ -525,10 +525,10 @@ fn MockLlmServer::build_sse(
       frames.push(
         sse(
           Json::object({
-            "id": "chatcmpl-mock-usage".to_json(),
-            "object": "chat.completion.chunk".to_json(),
-            "created": (now_ms() / 1000).to_json(),
-            "model": model.to_json(),
+            "id": Json("chatcmpl-mock-usage"),
+            "object": Json("chat.completion.chunk"),
+            "created": Json((now_ms() / 1000)),
+            "model": Json(model),
             "choices": Json::array([]),
             "usage": usage,
           }),

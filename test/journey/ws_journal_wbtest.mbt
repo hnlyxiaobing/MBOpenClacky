@@ -48,9 +48,9 @@ async test "ws journal: echo server round-trip and event waiting" {
         // raw frame but classified as "".
         journal.send_json(
           Json::object({
-            "type": "message".to_json(),
-            "session_id": "s1".to_json(),
-            "content": "hello".to_json(),
+            "type": Json("message"),
+            "session_id": Json("s1"),
+            "content": Json("hello"),
           }),
         )
         journal.send_text("{\"type\":\"poke\"}")

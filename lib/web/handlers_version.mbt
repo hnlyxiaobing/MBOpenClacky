@@ -184,11 +184,11 @@ async fn handle_version_info(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "current": VERSION.to_json(),
-      "latest": latest_str.to_json(),
-      "needs_update": needs_update.to_json(),
-      "launcher": launcher.to_json(),
-      "cli_command": cli_command.to_json(),
+      "current": Json(VERSION),
+      "latest": Json(latest_str),
+      "needs_update": Json(needs_update),
+      "launcher": Json(launcher),
+      "cli_command": Json(cli_command),
     }),
   )
 }
@@ -204,29 +204,29 @@ async fn handle_version_check(
     Ok(latest) => {
       let needs_update = version_is_newer(VERSION, latest)
       let update_json : Json = if needs_update {
-        Json::object({ "version": latest.to_json() })
+        Json::object({ "version": Json(latest) })
       } else {
         Json::null()
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "current_version": VERSION.to_json(),
+          "ok": Json(true),
+          "current_version": Json(VERSION),
           "available_update": update_json,
           "update": update_json,
-          "needs_update": needs_update.to_json(),
+          "needs_update": Json(needs_update),
         }),
       )
     }
     Err(msg) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "current_version": VERSION.to_json(),
+          "ok": Json(true),
+          "current_version": Json(VERSION),
           "available_update": Json::null(),
           "update": Json::null(),
-          "needs_update": false.to_json(),
-          "message": ("Unable to check for updates: " + msg).to_json(),
+          "needs_update": Json(false),
+          "message": Json(("Unable to check for updates: " + msg)),
         }),
       )
   }
@@ -250,24 +250,24 @@ async fn handle_version_upgrade(
         "Already on the latest version"
       }
       @core.HttpResponse::ok().json_value(
-        UpgradeResponse::{
+        Json(UpgradeResponse::{
           ok: true,
           current: VERSION,
           latest: Some(latest),
           needs_update,
           message,
-        }.to_json(),
+        }),
       )
     }
     Err(msg) =>
       @core.HttpResponse::ok().json_value(
-        UpgradeResponse::{
+        Json(UpgradeResponse::{
           ok: true,
           current: VERSION,
           latest: None,
           needs_update: false,
           message: "Unable to check for updates: " + msg,
-        }.to_json(),
+        }),
       )
   }
 }
@@ -282,9 +282,9 @@ fn handle_restart(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   @core.HttpResponse::ok().json_value(
-    RestartResponse::{
+    Json(RestartResponse::{
       ok: true,
       message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.",
-    }.to_json(),
+    }),
   )
 }

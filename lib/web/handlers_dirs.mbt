@@ -120,7 +120,7 @@ fn handle_dirs_list(
   match validate_path(raw) {
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
     _ => ()
   }
@@ -138,8 +138,8 @@ fn handle_dirs_list(
   if !is_directory(target) {
     return @core.HttpResponse::not_found().json_value(
       Json::object({
-        "error": "Directory not found".to_json(),
-        "path": dirs_fwd_slashes(target).to_json(),
+        "error": Json("Directory not found"),
+        "path": Json(dirs_fwd_slashes(target)),
       }),
     )
   }
@@ -147,8 +147,8 @@ fn handle_dirs_list(
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to read directory".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to read directory"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
@@ -176,9 +176,9 @@ fn handle_dirs_list(
     let full = @path.Path::join(@path.Path(target), @path.Path(name)).to_string()
     items.push(
       Json::object({
-        "name": name.to_json(),
-        "path": dirs_fwd_slashes(full).to_json(),
-        "type": "dir".to_json(),
+        "name": Json(name),
+        "path": Json(dirs_fwd_slashes(full)),
+        "type": Json("dir"),
       }),
     )
   }
@@ -196,12 +196,12 @@ fn handle_dirs_list(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "root": dirs_fwd_slashes(target).to_json(),
-      "path": dirs_fwd_slashes(target).to_json(),
-      "parent": dirs_fwd_slashes(parent).to_json(),
-      "home": dirs_fwd_slashes(home).to_json(),
-      "default": default_dir.to_json(),
-      "entries": items.to_json(),
+      "root": Json(dirs_fwd_slashes(target)),
+      "path": Json(dirs_fwd_slashes(target)),
+      "parent": Json(dirs_fwd_slashes(parent)),
+      "home": Json(dirs_fwd_slashes(home)),
+      "default": Json(default_dir),
+      "entries": Json(items),
     }),
   )
 }
@@ -216,7 +216,7 @@ fn handle_dirs_mkdir(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let parent = match j {
@@ -233,25 +233,25 @@ fn handle_dirs_mkdir(
         Some(String(n)) => n
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'name' field".to_json() }),
+            Json::object({ "error": Json("Missing 'name' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match validate_path(parent) {
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
     _ => ()
   }
   match validate_path(name) {
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
     _ => ()
   }
@@ -263,8 +263,8 @@ fn handle_dirs_mkdir(
   if @fs.path_exists(full_path) {
     return @core.HttpResponse::bad_request().json_value(
       Json::object({
-        "error": "Directory already exists".to_json(),
-        "path": full_path.to_json(),
+        "error": Json("Directory already exists"),
+        "path": Json(full_path),
       }),
     )
   }
@@ -277,12 +277,12 @@ fn handle_dirs_mkdir(
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to create directory".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to create directory"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "ok": true.to_json(), "path": target.to_json() }),
+    Json::object({ "ok": Json(true), "path": Json(target) }),
   )
 }

@@ -191,7 +191,8 @@ pub fn attachment_classify(path : String) -> Attachment {
   } else {
     None
   }
-  let preview_path : String? = if attachment_text_preview_extension(ext) || kind == "csv" {
+  let preview_path : String? = if attachment_text_preview_extension(ext) ||
+    kind == "csv" {
     Some(path)
   } else {
     None
@@ -235,7 +236,10 @@ pub fn prepare_cli_attachments(
 /// Magic-byte image MIME detection (`Utils::FileProcessor.detect_image_mime_type`).
 /// Extensions lie; the actual bytes decide. Falls back to `fallback` (the
 /// extension-based guess) for payloads shorter than 4 bytes or unknown magic.
-pub fn attachment_detect_image_mime_type(data : Bytes, fallback : String) -> String {
+pub fn attachment_detect_image_mime_type(
+  data : Bytes,
+  fallback : String,
+) -> String {
   if data.length() < 4 {
     return fallback
   }
@@ -340,9 +344,7 @@ pub fn resolve_attachment_images(
     if file_size > max_image_bytes {
       continue
     }
-    let bytes = @fs.read_file_to_bytes(att.path) catch {
-      _ => continue
-    }
+    let bytes = @fs.read_file_to_bytes(att.path) catch { _ => continue }
     let b64 = @base64.encode(bytes.exact_view())
     let byte_size = b64.length() * 3 / 4
     let mime = attachment_detect_image_mime_type(
@@ -359,9 +361,13 @@ pub fn resolve_attachment_images(
       })
     } else {
       let data_url = Some("data:\{mime};base64,\{b64}")
-      inlined.push(
-        { ..att, kind: "image", mime_type: mime, size_bytes: Some(byte_size), data_url },
-      )
+      inlined.push({
+        ..att,
+        kind: "image",
+        mime_type: mime,
+        size_bytes: Some(byte_size),
+        data_url,
+      })
     }
   }
   let ordered : Array[Attachment] = []
@@ -380,7 +386,8 @@ fn attachment_downgrade_note(reason : String) -> String {
       "The current model does not support vision input and no OCR sidecar is configured. Tell the user clearly that to analyze this image they need to either: (1) configure an OCR sidecar model in Settings → Media → OCR (any vision-capable model works as the sidecar — e.g. gemini-3-5-flash, gpt-4o-mini, claude-3-5-haiku), or (2) switch the current model to a vision-capable one. Do not attempt to guess the image content."
     "too_large" =>
       "Image was too large for inline delivery and has been saved to disk. Read it with a vision-capable tool/model if needed."
-    _ => "Image was too large for inline delivery and has been saved to disk. Read it with a vision-capable tool/model if needed."
+    _ =>
+      "Image was too large for inline delivery and has been saved to disk. Read it with a vision-capable tool/model if needed."
   }
 }
 

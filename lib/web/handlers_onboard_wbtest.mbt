@@ -42,12 +42,12 @@ test "onboard device start returns device and user codes" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("device_code"))
   assert_true(obj.contains("user_code"))
   assert_true(obj.contains("verification_uri"))
   assert_true(obj.contains("verification_uri_complete"))
-  @debug.assert_eq(obj.get("interval"), Some((5).to_json()))
+  @debug.assert_eq(obj.get("interval"), Some(Json((5))))
 }
 
 // ── Device Poll ───────────────────────────────────────────────────
@@ -67,8 +67,8 @@ test "onboard device poll returns pending for a registered code" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("status"), Some("pending".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("status"), Some(Json("pending")))
 }
 
 ///|
@@ -82,8 +82,8 @@ test "onboard device poll returns approved for approved prefix" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("status"), Some("approved".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("status"), Some(Json("approved")))
   // Note: the approved response returns ok/status/device_token; default_model is
   // intentionally not asserted because it is not part of the current contract.
 }
@@ -106,7 +106,7 @@ test "onboard complete fails without configured model" {
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("error"), Some("No model configured".to_json()))
+  @debug.assert_eq(obj.get("error"), Some(Json("No model configured")))
 }
 
 // ── Skip Soul ─────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ test "onboard skip soul returns ok" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("path"))
   // Cleanup created config dir.
   @fs.remove_dir("_build/.mbopenclacky") catch {

@@ -589,10 +589,12 @@ fn Agent::todo_add(
   }
   let todos_json : Array[Json] = added.map(todo_item_to_model_json)
   let content = Json::object({
-    "message": message.to_json(),
+    "message": Json(message),
     "todos": ToJson::to_json(todos_json),
-    "total": self.todo_manager.size().to_json(),
-    "reminder": "⚠️ IMPORTANT: You have added TODO(s) but have NOT started working yet! You MUST now use other tools (write, edit, shell, etc.) to actually complete these tasks. DO NOT stop here!".to_json(),
+    "total": Json(self.todo_manager.size()),
+    "reminder": Json(
+      "⚠️ IMPORTANT: You have added TODO(s) but have NOT started working yet! You MUST now use other tools (write, edit, shell, etc.) to actually complete these tasks. DO NOT stop here!",
+    ),
   }).stringify()
   build_success_result(call, @tool.ToolResult::{ content, is_error: false, })
 }
@@ -603,9 +605,9 @@ fn Agent::todo_list(self : Agent, call : @message.ToolCall) -> ToolResultEntry {
   let content = if self.todo_manager.size() == 0 {
     let todos_json : Array[Json] = []
     Json::object({
-      "message": "No TODO items".to_json(),
+      "message": Json("No TODO items"),
       "todos": ToJson::to_json(todos_json),
-      "total": (0).to_json(),
+      "total": Json(0),
     }).stringify()
   } else {
     self.todo_manager.list_to_model_json().stringify()
@@ -635,7 +637,7 @@ fn Agent::todo_complete(
   }
   if ids.length() == 1 && completed_now.length() == 0 && already.length() == 1 {
     let content = Json::object({
-      "message": "Task already completed".to_json(),
+      "message": Json("Task already completed"),
       "todo": todo_item_to_model_json(already[0]),
     }).stringify()
     return build_success_result(call, @tool.ToolResult::{
@@ -652,9 +654,11 @@ fn Agent::todo_complete(
     "\{completed_now.length()} task(s) marked as completed"
   }
   let result_map : Map[String, Json] = Map([])
-  result_map["message"] = message.to_json()
-  result_map["progress"] = "\{completed_count}/\{total_count}".to_json()
-  result_map["reminder"] = "⚠️ REMINDER: Check the PROJECT-SPECIFIC RULES section in your system prompt before continuing to the next task".to_json()
+  result_map["message"] = Json(message)
+  result_map["progress"] = Json("\{completed_count}/\{total_count}")
+  result_map["reminder"] = Json(
+    "⚠️ REMINDER: Check the PROJECT-SPECIFIC RULES section in your system prompt before continuing to the next task",
+  )
   if already.length() > 0 {
     result_map["already_completed"] = ToJson::to_json(
       already.map(todo_item_to_model_json),
@@ -666,13 +670,17 @@ fn Agent::todo_complete(
   match self.todo_manager.next_pending() {
     Some(next) => {
       result_map["next_task"] = todo_item_to_model_json(next)
-      result_map["next_task_info"] = "Progress: \{completed_count}/\{total_count}. Next task: #\{todo_int_id(next.id)} - \{next.title}".to_json()
+      result_map["next_task_info"] = Json(
+        "Progress: \{completed_count}/\{total_count}. Next task: #\{todo_int_id(next.id)} - \{next.title}",
+      )
     }
     None => {
       // All tasks completed — auto-clear (Ruby behavior).
       let _ = self.todo_manager.clear_all()
-      result_map["all_completed"] = true.to_json()
-      result_map["completion_message"] = "All tasks completed and cleared! (\{completed_count}/\{total_count})".to_json()
+      result_map["all_completed"] = Json(true)
+      result_map["completion_message"] = Json(
+        "All tasks completed and cleared! (\{completed_count}/\{total_count})",
+      )
     }
   }
   build_success_result(call, @tool.ToolResult::{
@@ -702,8 +710,8 @@ fn Agent::todo_remove(
     "\{removed.length()} task(s) removed"
   }
   let result_map : Map[String, Json] = Map([])
-  result_map["message"] = message.to_json()
-  result_map["remaining"] = self.todo_manager.size().to_json()
+  result_map["message"] = Json(message)
+  result_map["remaining"] = Json(self.todo_manager.size())
   if not_found.length() > 0 {
     result_map["not_found"] = ToJson::to_json(not_found)
   }
@@ -718,8 +726,8 @@ fn Agent::todo_remove(
 fn Agent::todo_clear(self : Agent, call : @message.ToolCall) -> ToolResultEntry {
   let count = self.todo_manager.clear_all()
   let content = Json::object({
-    "message": "All TODOs cleared".to_json(),
-    "cleared_count": count.to_json(),
+    "message": Json("All TODOs cleared"),
+    "cleared_count": Json(count),
   }).stringify()
   build_success_result(call, @tool.ToolResult::{ content, is_error: false, })
 }

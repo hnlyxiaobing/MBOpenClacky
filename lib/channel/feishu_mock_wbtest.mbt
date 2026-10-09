@@ -234,8 +234,8 @@ async test "feishu_build_send_request_payload_shape" {
   }
   match json {
     Object(obj) => {
-      assert_true(obj.get("receive_id") == Some("oc_chat".to_json()))
-      assert_true(obj.get("msg_type") == Some("text".to_json()))
+      assert_true(obj.get("receive_id") == Some(Json("oc_chat")))
+      assert_true(obj.get("msg_type") == Some(Json("text")))
       // content must be a stringified JSON, not a nested object
       match obj.get("content") {
         Some(String(s)) => {
@@ -247,7 +247,7 @@ async test "feishu_build_send_request_payload_shape" {
           }
           match inner {
             Object(io) =>
-              assert_true(io.get("text") == Some("plain hello".to_json()))
+              assert_true(io.get("text") == Some(Json("plain hello")))
             _ => assert_true(false)
           }
         }
@@ -302,7 +302,7 @@ async test "feishu_build_send_request_card_shape" {
   }
   match json {
     Object(obj) =>
-      assert_true(obj.get("msg_type") == Some("interactive".to_json()))
+      assert_true(obj.get("msg_type") == Some(Json("interactive")))
     _ => assert_true(false)
   }
 }

@@ -548,8 +548,8 @@ pub fn record_upload(
   let root : Map[String, Json] = Map([])
   for name, entry in meta {
     root[name] = Json::object({
-      "platform_version": entry.platform_version.to_json(),
-      "uploaded_at": entry.uploaded_at.to_json(),
+      "platform_version": Json(entry.platform_version),
+      "uploaded_at": Json(entry.uploaded_at),
     })
   }
   @utils.ensure_dir(skills_dir)

@@ -159,12 +159,7 @@ fn ask_normalize_question(item : Json) -> AskQuestion? {
     _ => None
   }
   let recommended = match raw_recommended {
-    Some(r) =>
-      if r >= 0 && r < options.length() {
-        Some(r)
-      } else {
-        None
-      }
+    Some(r) => if r >= 0 && r < options.length() { Some(r) } else { None }
     None => None
   }
   Some({
@@ -174,7 +169,8 @@ fn ask_normalize_question(item : Json) -> AskQuestion? {
     multi: ask_truthy(ask_fetch(obj, "multi")),
     // A question with no options is free-form by definition, whatever the
     // model said.
-    allow_free_text: options.length() == 0 || ask_truthy(ask_fetch(obj, "allow_free_text")),
+    allow_free_text: options.length() == 0 ||
+    ask_truthy(ask_fetch(obj, "allow_free_text")),
     recommended,
   })
 }
@@ -245,7 +241,13 @@ pub fn render_text(questions : Array[AskQuestion], context : String?) -> String 
     }
     if q.options.length() > 0 {
       parts.push("")
-      parts.push(if q.multi { "**Options (choose any):**" } else { "**Options:**" })
+      parts.push(
+        if q.multi {
+          "**Options (choose any):**"
+        } else {
+          "**Options:**"
+        },
+      )
       let mut i = 0
       for opt in q.options {
         let marker = match q.recommended {
@@ -256,7 +258,9 @@ pub fn render_text(questions : Array[AskQuestion], context : String?) -> String 
         i = i + 1
       }
       if q.allow_free_text {
-        parts.push("  \{q.options.length() + 1}. Other — type your own answer")
+        parts.push(
+          "  \{q.options.length() + 1}. Other — type your own answer",
+        )
       }
     }
     q_index = q_index + 1
@@ -304,7 +308,9 @@ pub fn render_card(questions : Array[AskQuestion], context : String?) -> String 
         i = i + 1
       }
       if q.allow_free_text {
-        parts.push("  \{q.options.length() + 1}. Other — type your own answer")
+        parts.push(
+          "  \{q.options.length() + 1}. Other — type your own answer",
+        )
       }
     }
     q_index = q_index + 1
@@ -340,55 +346,69 @@ impl Tool for AskUser with fn description(_) -> String {
 ///|
 impl Tool for AskUser with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "questions": Json::object({
-        "type": "array".to_json(),
-        "description": "Questions to ask in one round-trip. Use this, or the `question` shorthand.".to_json(),
+        "type": Json("array"),
+        "description": Json(
+          "Questions to ask in one round-trip. Use this, or the `question` shorthand.",
+        ),
         "items": Json::object({
-          "type": "object".to_json(),
+          "type": Json("object"),
           "properties": Json::object({
             "question": Json::object({
-              "type": "string".to_json(),
-              "description": "A concise question in one sentence, no more than 80 characters.".to_json(),
+              "type": Json("string"),
+              "description": Json(
+                "A concise question in one sentence, no more than 80 characters.",
+              ),
             }),
             "description": Json::object({
-              "type": "string".to_json(),
-              "description": "Optional detail shown under the question.".to_json(),
+              "type": Json("string"),
+              "description": Json("Optional detail shown under the question."),
             }),
             "options": Json::object({
-              "type": "array".to_json(),
-              "items": Json::object({ "type": "string".to_json() }),
-              "description": "Selectable answers, each specific enough to act on.".to_json(),
+              "type": Json("array"),
+              "items": Json::object({ "type": Json("string") }),
+              "description": Json(
+                "Selectable answers, each specific enough to act on.",
+              ),
             }),
             "multi": Json::object({
-              "type": "boolean".to_json(),
-              "description": "True if several options may be picked. Default false.".to_json(),
+              "type": Json("boolean"),
+              "description": Json(
+                "True if several options may be picked. Default false.",
+              ),
             }),
             "allow_free_text": Json::object({
-              "type": "boolean".to_json(),
-              "description": "True to let the user type their own answer instead.".to_json(),
+              "type": Json("boolean"),
+              "description": Json(
+                "True to let the user type their own answer instead.",
+              ),
             }),
             "recommended": Json::object({
-              "type": "integer".to_json(),
-              "description": "0-based index of the option you recommend; it is pre-selected.".to_json(),
+              "type": Json("integer"),
+              "description": Json(
+                "0-based index of the option you recommend; it is pre-selected.",
+              ),
             }),
           }),
-          "required": ["question".to_json()],
+          "required": [Json("question")],
         }),
       }),
       "question": Json::object({
-        "type": "string".to_json(),
-        "description": "Single-question shorthand: one sentence, no more than 80 characters.".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Single-question shorthand: one sentence, no more than 80 characters.",
+        ),
       }),
       "context": Json::object({
-        "type": "string".to_json(),
-        "description": "Optional background shown above the questions.".to_json(),
+        "type": Json("string"),
+        "description": Json("Optional background shown above the questions."),
       }),
       "options": Json::object({
-        "type": "array".to_json(),
-        "items": Json::object({ "type": "string".to_json() }),
-        "description": "Options for the single-question shorthand.".to_json(),
+        "type": Json("array"),
+        "items": Json::object({ "type": Json("string") }),
+        "description": Json("Options for the single-question shorthand."),
       }),
     }),
   })

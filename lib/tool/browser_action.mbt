@@ -32,7 +32,7 @@ async fn Browser::dispatch_act(
       for entry in args.iter() {
         augmented[entry.0] = entry.1
       }
-      augmented["dblClick"] = true.to_json()
+      augmented["dblClick"] = Json(true)
       self.with_page("click", augmented)
     }
     "type" | "fill" =>
@@ -113,7 +113,7 @@ async fn Browser::dispatch_fill_enhanced(
     Some(String(ref_val)) => {
       let escaped = escape_js_string(ref_val)
       let focus_script = "document.querySelector('[data-ref=\"\{escaped}\"]')?.focus()"
-      let focus_args : Map[String, Json] = { "js": focus_script.to_json() }
+      let focus_args : Map[String, Json] = { "js": Json(focus_script) }
       ignore(self.with_page("evaluate_script", focus_args))
     }
     _ => ()
@@ -126,7 +126,7 @@ async fn Browser::dispatch_fill_enhanced(
       Some(String(ref_val)) => {
         let escaped = escape_js_string(ref_val)
         let blur_script = "document.querySelector('[data-ref=\"\{escaped}\"]')?.blur()"
-        let blur_args : Map[String, Json] = { "js": blur_script.to_json() }
+        let blur_args : Map[String, Json] = { "js": Json(blur_script) }
         ignore(self.with_page("evaluate_script", blur_args))
       }
       _ => ()

@@ -52,8 +52,8 @@ test "ocr config update switches source off" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = ocr_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("source"), Some("off".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("source"), Some(Json("off")))
 }
 
 ///|
@@ -68,7 +68,7 @@ test "ocr config update custom requires fields" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = ocr_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -80,9 +80,9 @@ test "ocr config update custom stores model" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = ocr_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("source"), Some("custom".to_json()))
-  @debug.assert_eq(obj.get("model"), Some("gpt-4o".to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
+  @debug.assert_eq(obj.get("source"), Some(Json("custom")))
+  @debug.assert_eq(obj.get("model"), Some(Json("gpt-4o")))
   // Verify the model is registered in the config.
   let ocr_model = server_ref.val.config.find_model_by_type("ocr")
   assert_true(ocr_model is Some(_))
@@ -98,7 +98,7 @@ async test "ocr config test fails without model" {
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = ocr_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 // ── Internal OCR ──────────────────────────────────────────────────
@@ -123,5 +123,5 @@ async test "internal ocr fails without configured model" {
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = ocr_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }

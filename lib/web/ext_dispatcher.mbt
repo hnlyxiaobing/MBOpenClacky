@@ -285,7 +285,7 @@ fn build_ext_env_vars(
   // Route params as JSON object
   let params_map : Map[String, Json] = Map([])
   for kv in event.params {
-    params_map[kv.0] = kv.1.to_owned().to_json()
+    params_map[kv.0] = Json(kv.1.to_owned())
   }
   let params_json = Json::object(params_map)
   envs.push(("CLACKY_EXT_PARAMS", params_json.stringify()))
@@ -358,9 +358,9 @@ fn parse_ext_response(
   // Exit code 124: Unix `timeout` killed the handler
   if exit_code == 124 {
     let error_body = Json::object({
-      "error": "timeout".to_json(),
-      "code": "EXT_TIMEOUT".to_json(),
-      "hint": "handler exceeded its timeout budget".to_json(),
+      "error": Json("timeout"),
+      "code": Json("EXT_TIMEOUT"),
+      "hint": Json("handler exceeded its timeout budget"),
     }).stringify()
     return (504, "application/json", error_body)
   }
@@ -368,10 +368,10 @@ fn parse_ext_response(
   if exit_code >= 128 && exit_code < 256 {
     let signal_num = exit_code - 128
     let error_body = Json::object({
-      "error": "handler crashed".to_json(),
-      "code": "EXT_CRASH".to_json(),
-      "signal": signal_num.to_json(),
-      "hint": "handler terminated by signal".to_json(),
+      "error": Json("handler crashed"),
+      "code": Json("EXT_CRASH"),
+      "signal": Json(signal_num),
+      "hint": Json("handler terminated by signal"),
     }).stringify()
     return (502, "application/json", error_body)
   }
@@ -381,9 +381,9 @@ fn parse_ext_response(
     _ => {
       // Fallback: raw output as error
       let error_body = Json::object({
-        "error": "handler script exited with code \{exit_code}".to_json(),
-        "code": "EXT_EXEC_ERROR".to_json(),
-        "hint": trimmed.to_json(),
+        "error": Json("handler script exited with code \{exit_code}"),
+        "code": Json("EXT_EXEC_ERROR"),
+        "hint": Json(trimmed),
       }).stringify()
       return (500, "application/json", error_body)
     }
@@ -398,9 +398,9 @@ fn parse_ext_response(
             _ => "handler script error"
           }
           let error_body = Json::object({
-            "error": error_msg.to_json(),
-            "code": "EXT_EXEC_ERROR".to_json(),
-            "hint": "Check handler script output".to_json(),
+            "error": Json(error_msg),
+            "code": Json("EXT_EXEC_ERROR"),
+            "hint": Json("Check handler script output"),
           }).stringify()
           return (status, "application/json", error_body)
         }
@@ -410,9 +410,9 @@ fn parse_ext_response(
   }
   // Fallback: raw output as error
   let error_body = Json::object({
-    "error": "handler script exited with code \{exit_code}".to_json(),
-    "code": "EXT_EXEC_ERROR".to_json(),
-    "hint": trimmed.to_json(),
+    "error": Json("handler script exited with code \{exit_code}"),
+    "code": Json("EXT_EXEC_ERROR"),
+    "hint": Json(trimmed),
   }).stringify()
   (500, "application/json", error_body)
 }

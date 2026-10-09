@@ -88,9 +88,9 @@ fn fm_bool_json(fields : Map[String, String], key : String) -> Json {
   match fields.get(key) {
     Some(v) =>
       if v.to_lower() == "true" {
-        true.to_json()
+        Json(true)
       } else if v.to_lower() == "false" {
-        false.to_json()
+        Json(false)
       } else {
         Json::null()
       }
@@ -107,7 +107,7 @@ fn upload_meta_fields(
   name : String,
 ) -> (Json, Json) {
   match meta.get(name) {
-    Some(m) => (m.platform_version.to_json(), m.uploaded_at.to_json())
+    Some(m) => (Json(m.platform_version), Json(m.uploaded_at))
     None => (Json::null(), Json::null())
   }
 }
@@ -129,22 +129,22 @@ fn skill_list_entry_json(
   let invalid = !fields.contains("name")
   let (platform_version, uploaded_at) = upload_meta_fields(meta, entry.name)
   let obj : Map[String, Json] = {
-    "name": entry.name.to_json(),
+    "name": Json(entry.name),
     "name_zh": opt_str_json(fields.get("name_zh")),
-    "description": fm_description(fields).to_json(),
+    "description": Json(fm_description(fields)),
     "description_zh": opt_str_json(fields.get("description_zh")),
-    "source": entry.source.to_json(),
+    "source": Json(entry.source),
     "always_show": fm_bool_json(fields, "always_show"),
-    "enabled": entry.enabled.to_json(),
-    "invalid": invalid.to_json(),
+    "enabled": Json(entry.enabled),
+    "invalid": Json(invalid),
     "warnings": Json::array([]),
     "platform_version": platform_version,
     "uploaded_at": uploaded_at,
     "local_modified_at": Json::null(),
-    "shadowing_brand": false.to_json(),
+    "shadowing_brand": Json(false),
   }
   if invalid {
-    obj["invalid_reason"] = "missing 'name' in SKILL.md frontmatter".to_json()
+    obj["invalid_reason"] = Json("missing 'name' in SKILL.md frontmatter")
   }
   Json::object(obj)
 }
@@ -161,14 +161,14 @@ fn creator_local_entry_json(
   let (fields, _) = @skill.parse_frontmatter(entry.content)
   let (platform_version, uploaded_at) = upload_meta_fields(meta, entry.name)
   Json::object({
-    "name": entry.name.to_json(),
-    "description": fm_description(fields).to_json(),
-    "source": entry.source.to_json(),
-    "enabled": entry.enabled.to_json(),
+    "name": Json(entry.name),
+    "description": Json(fm_description(fields)),
+    "source": Json(entry.source),
+    "enabled": Json(entry.enabled),
     "platform_version": platform_version,
     "uploaded_at": uploaded_at,
     "local_modified_at": Json::null(),
-    "shadowing_brand": false.to_json(),
+    "shadowing_brand": Json(false),
   })
 }
 
@@ -180,12 +180,12 @@ fn creator_local_entry_json(
 fn session_skill_entry_json(entry : SkillScanEntry) -> Json {
   let (fields, _) = @skill.parse_frontmatter(entry.content)
   Json::object({
-    "name": entry.name.to_json(),
+    "name": Json(entry.name),
     "name_zh": opt_str_json(fields.get("name_zh")),
-    "description": fm_description(fields).to_json(),
+    "description": Json(fm_description(fields)),
     "description_zh": opt_str_json(fields.get("description_zh")),
-    "encrypted": false.to_json(),
-    "source_type": entry.source.to_json(),
+    "encrypted": Json(false),
+    "source_type": Json(entry.source),
     "always_show": fm_bool_json(fields, "always_show"),
   })
 }
@@ -322,7 +322,7 @@ pub fn handle_skills_list(request : HttpRequest) -> HttpResponse {
   HttpResponse::ok(
     Json::object({
       "skills": Json::array(skills),
-      "total": merged.length().to_json(),
+      "total": Json(merged.length()),
     }).stringify(),
   )
 }
@@ -371,9 +371,9 @@ pub fn handle_skills_create(request : HttpRequest) -> HttpResponse {
   }
   HttpResponse::created(
     Json::object({
-      "name": name.to_json(),
-      "status": "created".to_json(),
-      "source": "user".to_json(),
+      "name": Json(name),
+      "status": Json("created"),
+      "source": Json("user"),
     }).stringify(),
   )
 }
@@ -395,9 +395,9 @@ pub fn handle_skills_get_content(request : HttpRequest) -> HttpResponse {
       }
       HttpResponse::ok(
         Json::object({
-          "name": name.to_json(),
-          "content": content.to_json(),
-          "source": source.to_json(),
+          "name": Json(name),
+          "content": Json(content),
+          "source": Json(source),
         }).stringify(),
       )
     }
@@ -406,8 +406,8 @@ pub fn handle_skills_get_content(request : HttpRequest) -> HttpResponse {
       HttpResponse::{
         status: 404,
         body: Json::object({
-          "ok": false.to_json(),
-          "error": ("Skill not found: " + name).to_json(),
+          "ok": Json(false),
+          "error": Json(("Skill not found: " + name)),
         }).stringify(),
         body_bytes: None,
         content_type: "application/json",
@@ -429,9 +429,9 @@ fn write_skill_content(name : String, content : String) -> HttpResponse {
   }
   HttpResponse::ok(
     Json::object({
-      "name": name.to_json(),
-      "status": "updated".to_json(),
-      "source": "user".to_json(),
+      "name": Json(name),
+      "status": Json("updated"),
+      "source": Json("user"),
     }).stringify(),
   )
 }
@@ -500,9 +500,9 @@ pub fn handle_skills_toggle(request : HttpRequest) -> HttpResponse {
   }
   HttpResponse::ok(
     Json::object({
-      "name": name.to_json(),
-      "enabled": enabled.to_json(),
-      "source": source.to_json(),
+      "name": Json(name),
+      "enabled": Json(enabled),
+      "source": Json(source),
     }).stringify(),
   )
 }
@@ -580,7 +580,7 @@ pub fn handle_skills_install(request : HttpRequest) -> HttpResponse {
       )
   }
   HttpResponse::created(
-    Json::object({ "name": name.to_json(), "status": "installed".to_json() }).stringify(),
+    Json::object({ "name": Json(name), "status": Json("installed") }).stringify(),
   )
 }
 
@@ -594,17 +594,17 @@ pub fn handle_store_skills(request : HttpRequest) -> HttpResponse {
     let installed = @fs.path_exists(skill_md_path(user_dir, meta.name))
     skills.push(
       Json::object({
-        "name": meta.name.to_json(),
-        "description": meta.description.to_json(),
-        "category": meta.category.to_json(),
-        "installed": installed.to_json(),
+        "name": Json(meta.name),
+        "description": Json(meta.description),
+        "category": Json(meta.category),
+        "installed": Json(installed),
       }),
     )
   }
   HttpResponse::ok(
     Json::object({
       "skills": Json::array(skills),
-      "total": skills.length().to_json(),
+      "total": Json(skills.length()),
     }).stringify(),
   )
 }
@@ -633,8 +633,8 @@ pub fn handle_creator_skills(request : HttpRequest) -> HttpResponse {
   }
   HttpResponse::ok(
     Json::object({
-      "ok": true.to_json(),
-      "licensed": licensed.to_json(),
+      "ok": Json(true),
+      "licensed": Json(licensed),
       "cloud_skills": Json::array([]),
       "local_skills": Json::array(local_skills),
       "platform_fetch_error": Json::null(),
@@ -657,7 +657,7 @@ let missing_transcript_hint : String = "Missing field: transcript — reflection
 /// emits invalid JSON whenever the text contains quotes or braces — as the
 /// transcript hint and the parser diagnostics do.
 fn json_error(status : Int, message : String) -> HttpResponse {
-  HttpResponse::json(Json::object({ "error": message.to_json() }).stringify()).with_status(
+  HttpResponse::json(Json::object({ "error": Json(message) }).stringify()).with_status(
     status,
   )
 }
@@ -678,7 +678,7 @@ fn json_int_field(body : String, key : String) -> Int? {
 ///|
 fn json_opt_str_or_null(v : String?) -> Json {
   match v {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
 }
@@ -766,7 +766,7 @@ fn append_log_or_note(
 ) -> Json {
   match @skill.append_evolution_log_at(log_path, entry) {
     Ok(_) => Json::null()
-    Err(e) => e.to_json()
+    Err(e) => Json(e)
   }
 }
 
@@ -806,20 +806,20 @@ async fn run_skill_reflection(
     let log_note = append_log_or_note(log_path, entry)
     return Ok(
       Json::object({
-        "ok": true.to_json(),
-        "evolution_id": entry.id.to_json(),
-        "skill_name": skill_name.to_json(),
-        "source": source.to_json(),
-        "score": report.performance_score.to_json(),
-        "should_improve": false.to_json(),
-        "action": "no_change".to_json(),
+        "ok": Json(true),
+        "evolution_id": Json(entry.id),
+        "skill_name": Json(skill_name),
+        "source": Json(source),
+        "score": Json(report.performance_score),
+        "should_improve": Json(false),
+        "action": Json("no_change"),
         "suggestions": Json::array(
-          report.suggestions.map(fn(s) { s.to_json() }),
+          report.suggestions.map(fn(s) { Json(s) }),
         ),
         "revised_skill_md": Json::null(),
-        "applied": false.to_json(),
+        "applied": Json(false),
         "backup_path": Json::null(),
-        "model": model.model.to_json(),
+        "model": Json(model.model),
         "log_error": log_note,
       }),
     )
@@ -868,20 +868,20 @@ async fn run_skill_reflection(
   let log_note = append_log_or_note(log_path, entry)
   Ok(
     Json::object({
-      "ok": true.to_json(),
-      "evolution_id": entry.id.to_json(),
-      "skill_name": skill_name.to_json(),
-      "source": source.to_json(),
-      "score": report.performance_score.to_json(),
-      "should_improve": true.to_json(),
-      "action": entry.action.to_json(),
+      "ok": Json(true),
+      "evolution_id": Json(entry.id),
+      "skill_name": Json(skill_name),
+      "source": Json(source),
+      "score": Json(report.performance_score),
+      "should_improve": Json(true),
+      "action": Json(entry.action),
       "suggestions": Json::array(
-        proposal.suggestions.map(fn(s) { s.to_json() }),
+        proposal.suggestions.map(fn(s) { Json(s) }),
       ),
       "revised_skill_md": json_opt_str_or_null(proposal.revised_skill_md),
-      "applied": applied.to_json(),
+      "applied": Json(applied),
       "backup_path": json_opt_str_or_null(backup),
-      "model": model.model.to_json(),
+      "model": Json(model.model),
       "log_error": log_note,
     }),
   )
@@ -996,12 +996,12 @@ pub fn handle_skills_evolution_history(request : HttpRequest) -> HttpResponse {
   }
   let out : Array[Json] = []
   for i = 0; i < filtered.length() && i < limit; i = i + 1 {
-    out.push(filtered[i].to_json())
+    out.push(@skill.EvolutionLogEntry::to_json(filtered[i]))
   }
   HttpResponse::ok(
     Json::object({
       "history": Json::array(out),
-      "total": filtered.length().to_json(),
+      "total": Json(filtered.length()),
     }).stringify(),
   )
 }

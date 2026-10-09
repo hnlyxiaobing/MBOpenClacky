@@ -556,10 +556,10 @@ test "build_feishu_message" {
   let msg = build_feishu_message("Hello Feishu", None)
   match msg {
     Object(obj) => {
-      assert_true(obj.get("msg_type") == Some("text".to_json()))
+      assert_true(obj.get("msg_type") == Some(Json("text")))
       match obj.get("content") {
         Some(Object(content)) =>
-          assert_true(content.get("text") == Some("Hello Feishu".to_json()))
+          assert_true(content.get("text") == Some(Json("Hello Feishu")))
         _ => assert_true(false)
       }
     }
@@ -781,7 +781,7 @@ test "http_headers_chain" {
 ///|
 test "build_json_body_produces_json" {
   let payload : Map[String, Json] = Map([])
-  payload.set("key", "value".to_json())
+  payload.set("key", Json("value"))
   let body = build_json_body(payload)
   assert_true(body.contains("key"))
   assert_true(body.contains("value"))
@@ -996,8 +996,8 @@ test "build_telegram_send_request_basic" {
   let payload = build_telegram_send_request("chat1", "hello", None, None)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("chat_id"), Some("chat1".to_json()))
-      @debug.assert_eq(obj.get("text"), Some("hello".to_json()))
+      @debug.assert_eq(obj.get("chat_id"), Some(Json("chat1")))
+      @debug.assert_eq(obj.get("text"), Some(Json("hello")))
       assert_true(obj.get("reply_to_message_id") is None)
     }
     _ => assert_true(false)
@@ -1014,8 +1014,8 @@ test "build_telegram_send_request_with_reply" {
   )
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("reply_to_message_id"), Some("msg99".to_json()))
-      @debug.assert_eq(obj.get("parse_mode"), Some("Markdown".to_json()))
+      @debug.assert_eq(obj.get("reply_to_message_id"), Some(Json("msg99")))
+      @debug.assert_eq(obj.get("parse_mode"), Some(Json("Markdown")))
     }
     _ => assert_true(false)
   }
@@ -1026,9 +1026,9 @@ test "build_telegram_edit_request" {
   let payload = build_telegram_edit_request("c1", "msg42", "new text")
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("chat_id"), Some("c1".to_json()))
-      @debug.assert_eq(obj.get("message_id"), Some("msg42".to_json()))
-      @debug.assert_eq(obj.get("text"), Some("new text".to_json()))
+      @debug.assert_eq(obj.get("chat_id"), Some(Json("c1")))
+      @debug.assert_eq(obj.get("message_id"), Some(Json("msg42")))
+      @debug.assert_eq(obj.get("text"), Some(Json("new text")))
       // Plain text edit: no parse_mode (rich text is backlog, R3)
       @debug.assert_eq(obj.get("parse_mode"), None)
     }
@@ -1066,7 +1066,7 @@ test "split_telegram_long_split" {
 ///|
 test "detect_chat_type_private" {
   let msg : Map[String, Json] = {
-    "chat": Json::object({ "type": "private".to_json() }),
+    "chat": Json::object({ "type": Json("private") }),
   }
   assert_true(detect_chat_type(msg) == ChatType::Direct)
 }
@@ -1074,7 +1074,7 @@ test "detect_chat_type_private" {
 ///|
 test "detect_chat_type_group" {
   let msg : Map[String, Json] = {
-    "chat": Json::object({ "type": "group".to_json() }),
+    "chat": Json::object({ "type": Json("group") }),
   }
   assert_true(detect_chat_type(msg) == ChatType::Group)
 }
@@ -1172,7 +1172,7 @@ test "build_discord_send_payload_basic" {
   let payload = build_discord_send_payload("hello discord", None)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("content"), Some("hello discord".to_json()))
+      @debug.assert_eq(obj.get("content"), Some(Json("hello discord")))
       assert_true(obj.get("message_reference") is None)
     }
     _ => assert_true(false)
@@ -1186,7 +1186,7 @@ test "build_discord_send_payload_reply" {
     Object(obj) =>
       match obj.get("message_reference") {
         Some(Object(ref_obj)) =>
-          @debug.assert_eq(ref_obj.get("message_id"), Some("msg123".to_json()))
+          @debug.assert_eq(ref_obj.get("message_id"), Some(Json("msg123")))
         _ => assert_true(false)
       }
     _ => assert_true(false)
@@ -1198,7 +1198,7 @@ test "build_discord_edit_payload" {
   let payload = build_discord_edit_payload("edited text")
   match payload {
     Object(obj) =>
-      @debug.assert_eq(obj.get("content"), Some("edited text".to_json()))
+      @debug.assert_eq(obj.get("content"), Some(Json("edited text")))
     _ => assert_true(false)
   }
 }
@@ -1302,11 +1302,11 @@ test "build_identify_payload_structure" {
   let payload = build_identify_payload("BOT_TOK", DEFAULT_INTENTS)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some((2).to_json()))
+      @debug.assert_eq(obj.get("op"), Some(Json((2))))
       match obj.get("d") {
         Some(Object(d)) => {
-          @debug.assert_eq(d.get("token"), Some("BOT_TOK".to_json()))
-          @debug.assert_eq(d.get("intents"), Some(DEFAULT_INTENTS.to_json()))
+          @debug.assert_eq(d.get("token"), Some(Json("BOT_TOK")))
+          @debug.assert_eq(d.get("intents"), Some(Json(DEFAULT_INTENTS)))
         }
         _ => assert_true(false)
       }
@@ -1320,8 +1320,8 @@ test "build_heartbeat_payload_with_seq" {
   let payload = build_heartbeat_payload(Some(42))
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some((1).to_json()))
-      @debug.assert_eq(obj.get("d"), Some((42).to_json()))
+      @debug.assert_eq(obj.get("op"), Some(Json((1))))
+      @debug.assert_eq(obj.get("d"), Some(Json((42))))
     }
     _ => assert_true(false)
   }
@@ -1332,7 +1332,7 @@ test "build_heartbeat_payload_null" {
   let payload = build_heartbeat_payload(None)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some((1).to_json()))
+      @debug.assert_eq(obj.get("op"), Some(Json((1))))
       assert_true(obj.get("d") == Some(Json::null()))
     }
     _ => assert_true(false)
@@ -1344,11 +1344,11 @@ test "build_resume_payload" {
   let payload = build_resume_payload("TOK", "sess123", 99)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some((6).to_json()))
+      @debug.assert_eq(obj.get("op"), Some(Json((6))))
       match obj.get("d") {
         Some(Object(d)) => {
-          @debug.assert_eq(d.get("session_id"), Some("sess123".to_json()))
-          @debug.assert_eq(d.get("seq"), Some((99).to_json()))
+          @debug.assert_eq(d.get("session_id"), Some(Json("sess123")))
+          @debug.assert_eq(d.get("seq"), Some(Json((99))))
         }
         _ => assert_true(false)
       }
@@ -1459,8 +1459,8 @@ test "feishu_build_auth_body" {
   let body = client.build_auth_body()
   match body {
     Object(obj) => {
-      @debug.assert_eq(obj.get("app_id"), Some("myapp".to_json()))
-      @debug.assert_eq(obj.get("app_secret"), Some("mysecret".to_json()))
+      @debug.assert_eq(obj.get("app_id"), Some(Json("myapp")))
+      @debug.assert_eq(obj.get("app_secret"), Some(Json("mysecret")))
     }
     _ => assert_true(false)
   }
@@ -1473,7 +1473,7 @@ test "build_feishu_text_content_structure" {
   let content = build_feishu_text_content("Hello Feishu")
   match content {
     Object(obj) => {
-      @debug.assert_eq(obj.get("msg_type"), Some("text".to_json()))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json("text")))
       assert_true(obj.get("content") is Some(_))
     }
     _ => assert_true(false)
@@ -1485,7 +1485,7 @@ test "build_feishu_card_content_structure" {
   let content = build_feishu_card_content("```python\nprint('hi')\n```")
   match content {
     Object(obj) =>
-      @debug.assert_eq(obj.get("msg_type"), Some("interactive".to_json()))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json("interactive")))
     _ => assert_true(false)
   }
 }
@@ -1515,8 +1515,8 @@ test "parse_feishu_text_invalid_json" {
 ///|
 test "parse_feishu_message_text" {
   let msg : Map[String, Json] = {
-    "message_type": "text".to_json(),
-    "content": "{\"text\":\"hello feishu\"}".to_json(),
+    "message_type": Json("text"),
+    "content": Json("{\"text\":\"hello feishu\"}"),
   }
   match parse_feishu_message(msg) {
     Ok(parsed) => {
@@ -1530,8 +1530,8 @@ test "parse_feishu_message_text" {
 ///|
 test "parse_feishu_message_image" {
   let msg : Map[String, Json] = {
-    "message_type": "image".to_json(),
-    "content": "{\"image_key\":\"img_abc\"}".to_json(),
+    "message_type": Json("image"),
+    "content": Json("{\"image_key\":\"img_abc\"}"),
   }
   match parse_feishu_message(msg) {
     Ok(parsed) => {
@@ -1547,7 +1547,7 @@ test "parse_feishu_message_image" {
 ///|
 test "resolve_feishu_mentions" {
   let mentions : Array[Json] = [
-    Json::object({ "key": "@_user_1".to_json(), "name": "Alice".to_json() }),
+    Json::object({ "key": Json("@_user_1"), "name": Json("Alice") }),
   ]
   let result = resolve_feishu_mentions("Hello @_user_1", mentions)
   @debug.assert_eq(result, "Hello @Alice")
@@ -1599,8 +1599,8 @@ test "build_subscribe_frame" {
   let frame = build_subscribe_frame("bot1", "secret1")
   match frame {
     Object(obj) => {
-      @debug.assert_eq(obj.get("type"), Some("aibot_subscribe".to_json()))
-      @debug.assert_eq(obj.get("bot_id"), Some("bot1".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_subscribe")))
+      @debug.assert_eq(obj.get("bot_id"), Some(Json("bot1")))
     }
     _ => assert_true(false)
   }
@@ -1611,9 +1611,9 @@ test "build_send_msg_frame" {
   let frame = build_send_msg_frame("chat1", "hello", "text", "req1")
   match frame {
     Object(obj) => {
-      @debug.assert_eq(obj.get("type"), Some("aibot_send_msg".to_json()))
-      @debug.assert_eq(obj.get("chat_id"), Some("chat1".to_json()))
-      @debug.assert_eq(obj.get("req_id"), Some("req1".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("aibot_send_msg")))
+      @debug.assert_eq(obj.get("chat_id"), Some(Json("chat1")))
+      @debug.assert_eq(obj.get("req_id"), Some(Json("req1")))
     }
     _ => assert_true(false)
   }
@@ -1623,7 +1623,7 @@ test "build_send_msg_frame" {
 test "build_ping_frame" {
   let frame = build_ping_frame()
   match frame {
-    Object(obj) => @debug.assert_eq(obj.get("type"), Some("ping".to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("type"), Some(Json("ping")))
     _ => assert_true(false)
   }
 }
@@ -1633,8 +1633,8 @@ test "build_ack_frame" {
   let frame = build_ack_frame("req42")
   match frame {
     Object(obj) => {
-      @debug.assert_eq(obj.get("type"), Some("ack".to_json()))
-      @debug.assert_eq(obj.get("req_id"), Some("req42".to_json()))
+      @debug.assert_eq(obj.get("type"), Some(Json("ack")))
+      @debug.assert_eq(obj.get("req_id"), Some(Json("req42")))
     }
     _ => assert_true(false)
   }
@@ -1746,8 +1746,8 @@ test "dingtalk_build_access_token_request" {
   let body = client.build_access_token_request()
   match body {
     Object(obj) => {
-      @debug.assert_eq(obj.get("appKey"), Some("mykey".to_json()))
-      @debug.assert_eq(obj.get("appSecret"), Some("mysec".to_json()))
+      @debug.assert_eq(obj.get("appKey"), Some(Json("mykey")))
+      @debug.assert_eq(obj.get("appSecret"), Some(Json("mysec")))
     }
     _ => assert_true(false)
   }
@@ -1812,7 +1812,7 @@ test "dingtalk_parse_token_oapi_error" {
 test "dingtalk_webhook_payload_text" {
   let payload = DingTalkApiClient::build_webhook_payload("hello", "text")
   match payload {
-    Object(obj) => @debug.assert_eq(obj.get("msgtype"), Some("text".to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("msgtype"), Some(Json("text")))
     _ => assert_true(false)
   }
 }
@@ -1822,7 +1822,7 @@ test "dingtalk_webhook_payload_markdown" {
   let payload = DingTalkApiClient::build_webhook_payload("**bold**", "markdown")
   match payload {
     Object(obj) =>
-      @debug.assert_eq(obj.get("msgtype"), Some("markdown".to_json()))
+      @debug.assert_eq(obj.get("msgtype"), Some(Json("markdown")))
     _ => assert_true(false)
   }
 }
@@ -1845,8 +1845,8 @@ test "dingtalk_build_stream_ack" {
   let ack = build_stream_ack("msg999")
   match ack {
     Object(obj) => {
-      @debug.assert_eq(obj.get("code"), Some((200).to_json()))
-      @debug.assert_eq(obj.get("messageId"), Some("msg999".to_json()))
+      @debug.assert_eq(obj.get("code"), Some(Json((200))))
+      @debug.assert_eq(obj.get("messageId"), Some(Json("msg999")))
     }
     _ => assert_true(false)
   }
@@ -1856,7 +1856,7 @@ test "dingtalk_build_stream_ack" {
 test "dingtalk_build_stream_pong" {
   let pong = build_stream_pong()
   match pong {
-    Object(obj) => @debug.assert_eq(obj.get("type"), Some("pong".to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("type"), Some(Json("pong")))
     _ => assert_true(false)
   }
 }
@@ -1909,7 +1909,7 @@ test "weixin_build_get_updates_request" {
   let client = WeixinApiClient::new("t", "u")
   let req = client.build_get_updates_request(None)
   match req {
-    Object(obj) => @debug.assert_eq(obj.get("timeout"), Some((40).to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("timeout"), Some(Json((40))))
     _ => assert_true(false)
   }
 }
@@ -1946,8 +1946,8 @@ test "weixin_build_send_text_request" {
   let req = client.build_send_text_request("user1", "hello", "ctx_tok")
   match req {
     Object(obj) => {
-      @debug.assert_eq(obj.get("to_user_name"), Some("user1".to_json()))
-      @debug.assert_eq(obj.get("msg_type"), Some((1).to_json()))
+      @debug.assert_eq(obj.get("to_user_name"), Some(Json("user1")))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json((1))))
     }
     _ => assert_true(false)
   }
@@ -1959,8 +1959,8 @@ test "weixin_build_typing_request" {
   let req = client.build_typing_request("user1", 1)
   match req {
     Object(obj) => {
-      @debug.assert_eq(obj.get("to_user_name"), Some("user1".to_json()))
-      @debug.assert_eq(obj.get("typing_status"), Some((1).to_json()))
+      @debug.assert_eq(obj.get("to_user_name"), Some(Json("user1")))
+      @debug.assert_eq(obj.get("typing_status"), Some(Json((1))))
     }
     _ => assert_true(false)
   }

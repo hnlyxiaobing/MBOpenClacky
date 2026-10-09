@@ -91,10 +91,7 @@ async test "glob_match_regex_meta_escape" {
 ///|
 async test "glob_empty_pattern_error" {
   let tool = Glob::new()
-  let args : Map[String, Json] = {
-    "pattern": "".to_json(),
-    "base_path": ".".to_json(),
-  }
+  let args : Map[String, Json] = { "pattern": Json(""), "base_path": Json(".") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("cannot be empty") is Some(_))
@@ -112,8 +109,8 @@ async test "glob_missing_pattern_error" {
 async test "glob_base_path_not_found" {
   let tool = Glob::new()
   let args : Map[String, Json] = {
-    "pattern": "**/*.mbt".to_json(),
-    "base_path": "/nonexistent_dir_xyz".to_json(),
+    "pattern": Json("**/*.mbt"),
+    "base_path": Json("/nonexistent_dir_xyz"),
   }
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -126,8 +123,8 @@ async test "glob_base_path_is_file" {
   let f = rw_write(dir, "x.txt", "hi")
   let tool = Glob::new()
   let args : Map[String, Json] = {
-    "pattern": "**/*".to_json(),
-    "base_path": f.to_json(),
+    "pattern": Json("**/*"),
+    "base_path": Json(f),
   }
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -146,9 +143,9 @@ async test "glob_bare_pattern_expansion" {
   // 裸模式 *.mbt → **/*.mbt（递归）
   let tool = Glob::new()
   let args : Map[String, Json] = {
-    "pattern": "*.mbt".to_json(),
-    "base_path": dir.to_json(),
-    "limit": (10).to_json(),
+    "pattern": Json("*.mbt"),
+    "base_path": Json(dir),
+    "limit": Json(10),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -164,8 +161,8 @@ async test "glob_no_match_message" {
   let _ = rw_write(dir, "a.txt", "x")
   let tool = Glob::new()
   let args : Map[String, Json] = {
-    "pattern": "**/*.rb".to_json(),
-    "base_path": dir.to_json(),
+    "pattern": Json("**/*.rb"),
+    "base_path": Json(dir),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -178,7 +175,7 @@ async test "glob_no_match_message" {
 ///|
 async test "grep_empty_pattern_error" {
   let tool = Grep::new()
-  let args : Map[String, Json] = { "pattern": "   ".to_json() }
+  let args : Map[String, Json] = { "pattern": Json("   ") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("cannot be empty") is Some(_))
@@ -198,8 +195,8 @@ async test "grep_invalid_regex_error" {
   let _ = rw_write(dir, "a.txt", "hello")
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "([unclosed".to_json(),
-    "path": dir.to_json(),
+    "pattern": Json("([unclosed"),
+    "path": Json(dir),
   }
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -212,10 +209,7 @@ async test "grep_basic_match" {
   let dir = rw_tmpdir("gr02")
   let _ = rw_write(dir, "a.txt", "hello world\nfoo bar\n")
   let tool = Grep::new()
-  let args : Map[String, Json] = {
-    "pattern": "hello".to_json(),
-    "path": dir.to_json(),
-  }
+  let args : Map[String, Json] = { "pattern": Json("hello"), "path": Json(dir) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("Found 1 match(es)") is Some(_))
@@ -230,8 +224,8 @@ async test "grep_regex_character_class" {
   let _ = rw_write(dir, "a.txt", "abc123\ndef\n")
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "[0-9]+".to_json(),
-    "path": dir.to_json(),
+    "pattern": Json("[0-9]+"),
+    "path": Json(dir),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -245,10 +239,7 @@ async test "grep_anchor_per_line" {
   let dir = rw_tmpdir("gr04")
   let _ = rw_write(dir, "a.txt", "foo at start\nnot foo here\n")
   let tool = Grep::new()
-  let args : Map[String, Json] = {
-    "pattern": "^foo".to_json(),
-    "path": dir.to_json(),
-  }
+  let args : Map[String, Json] = { "pattern": Json("^foo"), "path": Json(dir) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("foo at start") is Some(_))
@@ -262,9 +253,9 @@ async test "grep_case_insensitive" {
   let _ = rw_write(dir, "a.txt", "Hello World\n")
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "hello".to_json(),
-    "path": dir.to_json(),
-    "case_insensitive": true.to_json(),
+    "pattern": Json("hello"),
+    "path": Json(dir),
+    "case_insensitive": Json(true),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -279,9 +270,9 @@ async test "grep_file_pattern_filter" {
   let _ = rw_write(dir, "b.txt", "needle\n")
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "needle".to_json(),
-    "path": dir.to_json(),
-    "file_pattern": "*.mbt".to_json(),
+    "pattern": Json("needle"),
+    "path": Json(dir),
+    "file_pattern": Json("*.mbt"),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -296,9 +287,9 @@ async test "grep_context_lines" {
   let _ = rw_write(dir, "a.txt", "line1\nneedle\nline3\n")
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "needle".to_json(),
-    "path": dir.to_json(),
-    "context_lines": (1).to_json(),
+    "pattern": Json("needle"),
+    "path": Json(dir),
+    "context_lines": Json(1),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -314,8 +305,8 @@ async test "grep_large_file_skipped" {
   let _ = rw_write(dir, "big.txt", big)
   let tool = Grep::new()
   let args : Map[String, Json] = {
-    "pattern": "needle".to_json(),
-    "path": dir.to_json(),
+    "pattern": Json("needle"),
+    "path": Json(dir),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -331,7 +322,7 @@ async test "file_reader_basic_no_line_numbers" {
   let dir = rw_tmpdir("fr01")
   let f = rw_write(dir, "a.txt", "line one\nline two\nline three\n")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   // 无行号前缀（Ruby 对齐）
@@ -347,9 +338,9 @@ async test "file_reader_start_end_range" {
   let f = rw_write(dir, "a.txt", "l1\nl2\nl3\nl4\nl5\n")
   let tool = FileReader::new()
   let args : Map[String, Json] = {
-    "path": f.to_json(),
-    "start_line": (2).to_json(),
-    "end_line": (3).to_json(),
+    "path": Json(f),
+    "start_line": Json(2),
+    "end_line": Json(3),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -365,10 +356,7 @@ async test "file_reader_max_lines" {
   let dir = rw_tmpdir("fr03")
   let f = rw_write(dir, "a.txt", "l1\nl2\nl3\nl4\nl5\n")
   let tool = FileReader::new()
-  let args : Map[String, Json] = {
-    "path": f.to_json(),
-    "max_lines": (2).to_json(),
-  }
+  let args : Map[String, Json] = { "path": Json(f), "max_lines": Json(2) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("l1") is Some(_))
@@ -384,9 +372,9 @@ async test "file_reader_offset_limit_alias" {
   let f = rw_write(dir, "a.txt", "l1\nl2\nl3\nl4\nl5\n")
   let tool = FileReader::new()
   let args : Map[String, Json] = {
-    "path": f.to_json(),
-    "offset": (2).to_json(),
-    "limit": (2).to_json(),
+    "path": Json(f),
+    "offset": Json(2),
+    "limit": Json(2),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -402,10 +390,7 @@ async test "file_reader_start_exceeds_error" {
   let dir = rw_tmpdir("fr05")
   let f = rw_write(dir, "a.txt", "l1\nl2\n")
   let tool = FileReader::new()
-  let args : Map[String, Json] = {
-    "path": f.to_json(),
-    "start_line": (100).to_json(),
-  }
+  let args : Map[String, Json] = { "path": Json(f), "start_line": Json(100) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("exceeds") is Some(_))
@@ -419,9 +404,9 @@ async test "file_reader_start_gt_end_error" {
   let f = rw_write(dir, "a.txt", "l1\nl2\nl3\n")
   let tool = FileReader::new()
   let args : Map[String, Json] = {
-    "path": f.to_json(),
-    "start_line": (3).to_json(),
-    "end_line": (2).to_json(),
+    "path": Json(f),
+    "start_line": Json(3),
+    "end_line": Json(2),
   }
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -434,7 +419,7 @@ async test "file_reader_empty_file" {
   let dir = rw_tmpdir("fr07")
   let f = rw_write(dir, "empty.txt", "")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_eq(result.content, "")
@@ -450,7 +435,7 @@ async test "file_reader_directory_listing" {
   let sub = rw_mkdir(dir, "zdir")
   let _ = rw_write(sub, "inner.txt", "z")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": dir.to_json() }
+  let args : Map[String, Json] = { "path": Json(dir) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("Directory listing") is Some(_))
@@ -467,7 +452,7 @@ async test "file_reader_large_file_guard" {
   let big = rw_big_string(1_100_000, 'x')
   let f = rw_write(dir, "big.txt", big)
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("too large") is Some(_))
@@ -489,7 +474,7 @@ async test "file_reader_content_truncation" {
   }
   let f = rw_write(dir, "big.txt", sb.to_string())
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("[Content truncated") is Some(_))
@@ -504,7 +489,7 @@ async test "file_reader_line_truncation" {
   let long_line = rw_big_string(5000, 'x')
   let f = rw_write(dir, "a.txt", long_line + "\n")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("Line truncated") is Some(_))
@@ -515,7 +500,7 @@ async test "file_reader_line_truncation" {
 ///|
 async test "file_reader_not_found" {
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": "/nonexistent/xyz.txt".to_json() }
+  let args : Map[String, Json] = { "path": Json("/nonexistent/xyz.txt") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("not found") is Some(_))
@@ -526,7 +511,7 @@ async test "file_reader_binary_extension_error" {
   let dir = rw_tmpdir("fr13")
   let f = rw_write(dir, "img.png", "not really png but extension matters")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("Binary or document") is Some(_))
@@ -576,7 +561,7 @@ async test "file_reader_et_reports_decision9" {
   let dir = rw_tmpdir("fr_doc01")
   let f = rw_write(dir, "data.et", "not really binary")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(
@@ -595,7 +580,7 @@ async test "file_reader_dps_reports_decision9" {
   let dir = rw_tmpdir("fr_doc02")
   let f = rw_write(dir, "slides.dps", "not really binary")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.contains(".et/.dps"))
@@ -611,7 +596,7 @@ async test "file_reader_docx_fallback_wording" {
   let dir = rw_tmpdir("fr_doc03")
   let f = rw_write(dir, "sample.docx", "not really binary")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(
@@ -628,7 +613,7 @@ async test "file_reader_wps_fallback_wording" {
   let dir = rw_tmpdir("fr_doc04")
   let f = rw_write(dir, "doc.wps", "not really binary")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.contains("Use the read tool on this document"))
@@ -642,7 +627,7 @@ async test "file_reader_png_keeps_original_wording" {
   let dir = rw_tmpdir("fr_doc05")
   let f = rw_write(dir, "pic.png", "not really a png")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(
@@ -660,7 +645,7 @@ async test "file_reader_text_zero_regression" {
   let dir = rw_tmpdir("fr_doc06")
   let f = rw_write(dir, "notes.txt", "hello stubfix-03\n")
   let tool = FileReader::new()
-  let args : Map[String, Json] = { "path": f.to_json() }
+  let args : Map[String, Json] = { "path": Json(f) }
   let result = tool.execute(args)
   assert_false(result.is_error, msg="expected success, got: \{result.content}")
   assert_true(result.content.contains("hello stubfix-03"))

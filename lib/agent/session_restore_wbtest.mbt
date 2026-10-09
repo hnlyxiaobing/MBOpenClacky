@@ -118,7 +118,7 @@ test "option string fields serialize as plain string or null" {
   )
   match ToJson::to_json(data) {
     Object(map) => {
-      @debug.assert_eq(map.get("model_name"), Some("kimi-k2".to_json()))
+      @debug.assert_eq(map.get("model_name"), Some(Json("kimi-k2")))
       @debug.assert_eq(map.get("sub_model"), Some(Json::null()))
       @debug.assert_eq(map.get("reasoning_effort"), Some(Json::null()))
     }

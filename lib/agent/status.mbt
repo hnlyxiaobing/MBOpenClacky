@@ -64,10 +64,10 @@ pub fn AgentSource::to_string_value(self : AgentSource) -> String {
 
 ///|
 pub impl ToJson for AgentStatus with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }
 
 ///|
 pub impl ToJson for AgentSource with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }

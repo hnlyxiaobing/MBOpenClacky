@@ -19,10 +19,10 @@ test "check_stdout_shape: Text" {
 
 ///|
 test "check_stdout_shape: Json" {
-  @debug.assert_eq(check_stdout_shape(Json, "{\"total\":0}").length(), 0)
-  @debug.assert_eq(check_stdout_shape(Json, "[1,2,3]").length(), 0)
-  assert_true(check_stdout_shape(Json, "not json").length() > 0)
-  assert_true(check_stdout_shape(Json, "").length() > 0)
+  @debug.assert_eq(check_stdout_shape(JsonShape, "{\"total\":0}").length(), 0)
+  @debug.assert_eq(check_stdout_shape(JsonShape, "[1,2,3]").length(), 0)
+  assert_true(check_stdout_shape(JsonShape, "not json").length() > 0)
+  assert_true(check_stdout_shape(JsonShape, "").length() > 0)
 }
 
 ///|

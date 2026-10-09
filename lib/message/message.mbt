@@ -118,11 +118,11 @@ pub impl ToJson for Message with fn to_json(self) {
   match self.role {
     User => {
       obj["display_text"] = match self.display_text {
-        Some(s) => s.to_json()
+        Some(s) => Json(s)
         None => Json::null()
       }
       match self.display_files {
-        Some(arr) => obj["display_files"] = arr.to_json()
+        Some(arr) => obj["display_files"] = Json(arr)
         None => ()
       }
     }
@@ -131,17 +131,17 @@ pub impl ToJson for Message with fn to_json(self) {
   // Serialize as a plain string (not the Option-as-[x] form) so
   // Message::from_json can read it back.
   match self.created_at {
-    Some(ts) => obj["created_at"] = ts.to_json()
+    Some(ts) => obj["created_at"] = Json(ts)
     None => ()
   }
   // Session context fields: session_date always when present (Ruby leaks
   // it into the wire JSON as a plain key); session_context only when true.
   match self.session_date {
-    Some(d) => obj["session_date"] = d.to_json()
+    Some(d) => obj["session_date"] = Json(d)
     None => ()
   }
   match self.session_context {
-    Some(true) => obj["session_context"] = true.to_json()
+    Some(true) => obj["session_context"] = Json(true)
     _ => ()
   }
   // Persist the injected flag: restore_from_session must know a message is
@@ -149,14 +149,14 @@ pub impl ToJson for Message with fn to_json(self) {
   // exclude it. Without this the flag was lost on save and the injected
   // context message (same created_at as the real user message) broke rendering.
   match self.system_injected {
-    Some(true) => obj["system_injected"] = true.to_json()
+    Some(true) => obj["system_injected"] = Json(true)
     _ => ()
   }
   // Persist the remaining internal fields (decision 5: token_usage and
   // compressed_summary survive a save/load round trip; the rest are kept
   // for the same reason). All are optional, so only Some values are written.
   match self.task_id {
-    Some(v) => obj["task_id"] = v.to_json()
+    Some(v) => obj["task_id"] = Json(v)
     None => ()
   }
   match self.memory_update {
@@ -164,11 +164,11 @@ pub impl ToJson for Message with fn to_json(self) {
     None => ()
   }
   match self.subagent_instructions {
-    Some(v) => obj["subagent_instructions"] = v.to_json()
+    Some(v) => obj["subagent_instructions"] = Json(v)
     None => ()
   }
   match self.subagent_result {
-    Some(v) => obj["subagent_result"] = v.to_json()
+    Some(v) => obj["subagent_result"] = Json(v)
     None => ()
   }
   match self.token_usage {
@@ -176,11 +176,11 @@ pub impl ToJson for Message with fn to_json(self) {
     None => ()
   }
   match self.compressed_summary {
-    Some(v) => obj["compressed_summary"] = v.to_json()
+    Some(v) => obj["compressed_summary"] = Json(v)
     None => ()
   }
   match self.transient {
-    Some(true) => obj["transient"] = true.to_json()
+    Some(true) => obj["transient"] = Json(true)
     _ => ()
   }
   Json::object(obj)

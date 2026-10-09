@@ -6,7 +6,7 @@
 async test "ask_user_question_only" {
   let tool = AskUser::{ }
   let args : Map[String, Json] = {
-    "question": "What framework should we use?".to_json(),
+    "question": Json("What framework should we use?"),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -18,8 +18,8 @@ async test "ask_user_question_only" {
 async test "ask_user_with_context" {
   let tool = AskUser::{ }
   let args : Map[String, Json] = {
-    "question": "Which option?".to_json(),
-    "context": "We need to choose a database".to_json(),
+    "question": Json("Which option?"),
+    "context": Json("We need to choose a database"),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -32,12 +32,8 @@ async test "ask_user_with_context" {
 async test "ask_user_with_options" {
   let tool = AskUser::{ }
   let args : Map[String, Json] = {
-    "question": "Pick one".to_json(),
-    "options": Json::array([
-      "PostgreSQL".to_json(),
-      "MySQL".to_json(),
-      "SQLite".to_json(),
-    ]),
+    "question": Json("Pick one"),
+    "options": Json::array([Json("PostgreSQL"), Json("MySQL"), Json("SQLite")]),
   }
   let result = tool.execute(args)
   assert_false(result.is_error)
@@ -60,7 +56,7 @@ async test "ask_user_missing_question" {
 test "ask_user_format_call" {
   let tool = AskUser::{ }
   let args : Map[String, Json] = {
-    "question": "What is the meaning of life?".to_json(),
+    "question": Json("What is the meaning of life?"),
   }
   let formatted = tool.format_call(args)
   assert_true(formatted.find("ask_user") is Some(_))
@@ -70,7 +66,7 @@ test "ask_user_format_call" {
 test "ask_user_format_call_long_question" {
   let tool = AskUser::{ }
   let long_question = "This is a very long question that exceeds the sixty character limit for sure"
-  let args : Map[String, Json] = { "question": long_question.to_json() }
+  let args : Map[String, Json] = { "question": Json(long_question) }
   let formatted = tool.format_call(args)
   assert_true(formatted.find("...") is Some(_))
 }
@@ -103,17 +99,17 @@ test "ask_user_legacy_alias_routes_to_same_tool" {
 async test "ask_user_questions_schema_renders_every_question" {
   let tool = AskUser::{ }
   let args : Map[String, Json] = {
-    "context": "Pick a stack".to_json(),
+    "context": Json("Pick a stack"),
     "questions": Json::array([
       Json::object({
-        "question": "Which database?".to_json(),
-        "description": "We need persistence".to_json(),
-        "options": Json::array(["PostgreSQL".to_json(), "SQLite".to_json()]),
+        "question": Json("Which database?"),
+        "description": Json("We need persistence"),
+        "options": Json::array([Json("PostgreSQL"), Json("SQLite")]),
         "recommended": Json::number(0),
       }),
       Json::object({
-        "question": "Which language?".to_json(),
-        "options": Json::array(["MoonBit".to_json()]),
+        "question": Json("Which language?"),
+        "options": Json::array([Json("MoonBit")]),
         "allow_free_text": Json::boolean(true),
       }),
     ]),
@@ -141,9 +137,9 @@ test "ask_user_questions_field_is_normalized_not_echoed" {
   // Malformed entries are dropped, not fatal (Ruby `normalize_questions`).
   let args : Map[String, Json] = {
     "questions": Json::array([
-      "not an object".to_json(),
-      Json::object({ "description": "no question text".to_json() }),
-      Json::object({ "question": "   keep me   ".to_json() }),
+      Json("not an object"),
+      Json::object({ "description": Json("no question text") }),
+      Json::object({ "question": Json("   keep me   ") }),
     ]),
   }
   let questions = normalize_questions(args)
@@ -156,7 +152,7 @@ test "ask_user_questions_field_is_normalized_not_echoed" {
 ///|
 test "trash_manager_format_call" {
   let tool = TrashManager::{ }
-  let args : Map[String, Json] = { "action": "list".to_json() }
+  let args : Map[String, Json] = { "action": Json("list") }
   let formatted = tool.format_call(args)
   @debug.assert_eq(formatted, "TrashManager(list)")
 }
@@ -202,7 +198,7 @@ test "browser_name_and_category" {
 ///|
 async test "browser_status_action" {
   let tool = Browser::new()
-  let args : Map[String, Json] = { "action": "status".to_json() }
+  let args : Map[String, Json] = { "action": Json("status") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("Browser Status") is Some(_))
@@ -211,7 +207,7 @@ async test "browser_status_action" {
 ///|
 async test "browser_not_configured_error" {
   let tool = Browser::new()
-  let args : Map[String, Json] = { "action": "snapshot".to_json() }
+  let args : Map[String, Json] = { "action": Json("snapshot") }
   let result = tool.execute(args)
   assert_true(result.is_error)
   assert_true(result.content.find("not set up") is Some(_))
@@ -220,7 +216,7 @@ async test "browser_not_configured_error" {
 ///|
 async test "browser_open_missing_url" {
   let tool = Browser::new()
-  let args : Map[String, Json] = { "action": "open".to_json() }
+  let args : Map[String, Json] = { "action": Json("open") }
   let result = tool.execute(args)
   // Browser is not configured, so we get the setup error first
   assert_true(result.is_error)
@@ -230,7 +226,7 @@ async test "browser_open_missing_url" {
 ///|
 test "browser_format_call" {
   let tool = Browser::new()
-  let args : Map[String, Json] = { "action": "navigate".to_json() }
+  let args : Map[String, Json] = { "action": Json("navigate") }
   let formatted = tool.format_call(args)
   @debug.assert_eq(formatted, "browser(navigate)")
 }
@@ -396,7 +392,7 @@ async test "anytool_ask_user_via_anytool" {
   let tool = AnyTool::AskUser(AskUser::{ })
   @debug.assert_eq(tool.name(), "ask_user")
   assert_true(tool.category() == General)
-  let args : Map[String, Json] = { "question": "test question".to_json() }
+  let args : Map[String, Json] = { "question": Json("test question") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("test question") is Some(_))
@@ -406,7 +402,7 @@ async test "anytool_ask_user_via_anytool" {
 async test "anytool_browser_via_anytool" {
   let tool = AnyTool::Browser(Browser::new())
   @debug.assert_eq(tool.name(), "browser")
-  let args : Map[String, Json] = { "action": "status".to_json() }
+  let args : Map[String, Json] = { "action": Json("status") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.find("Browser Status") is Some(_))

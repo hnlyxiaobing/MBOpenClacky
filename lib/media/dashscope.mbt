@@ -104,22 +104,22 @@ pub fn build_dashscope_image_request(
     None => "2048*2048"
   }
   Json::object({
-    "model": model.to_json(),
+    "model": Json(model),
     "input": Json::object({
       "messages": Json::array([
         Json::object({
-          "role": "user".to_json(),
+          "role": Json("user"),
           "content": Json::array([
-            Json::object({ "text": request.prompt.to_json() }),
+            Json::object({ "text": Json(request.prompt) }),
           ]),
         }),
       ]),
     }),
     "parameters": Json::object({
-      "size": size.to_json(),
-      "n": (1).to_json(),
-      "prompt_extend": true.to_json(),
-      "watermark": false.to_json(),
+      "size": Json(size),
+      "n": Json((1)),
+      "prompt_extend": Json(true),
+      "watermark": Json(false),
     }),
   })
 }

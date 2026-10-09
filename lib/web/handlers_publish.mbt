@@ -308,9 +308,9 @@ async fn upload_skill_zip(
 /// Build a JSON error body in the orig publish shape.
 fn publish_error_json(error : String, already_exists? : Bool = false) -> String {
   Json::object({
-    "ok": false.to_json(),
-    "error": error.to_json(),
-    "already_exists": already_exists.to_json(),
+    "ok": Json(false),
+    "error": Json(error),
+    "already_exists": Json(already_exists),
   }).stringify()
 }
 
@@ -408,14 +408,14 @@ async fn publish_skill(
       None => ()
     }
     let version_json = match outcome.platform_version {
-      Some(v) => v.to_json()
+      Some(v) => Json(v)
       None => Json::null()
     }
     {
       status: 200,
       body: Json::object({
-        "ok": true.to_json(),
-        "name": name.to_json(),
+        "ok": Json(true),
+        "name": Json(name),
         "platform_version": version_json,
       }).stringify(),
       body_bytes: None,

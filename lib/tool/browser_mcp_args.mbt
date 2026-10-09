@@ -39,7 +39,7 @@ fn build_mcp_args(tool_name : String, args : Map[String, Json]) -> Json {
 fn build_mcp_navigate_args(args : Map[String, Json]) -> Json {
   let obj : Map[String, Json] = Map([])
   match args.get("url") {
-    Some(String(url)) => obj["url"] = url.to_json()
+    Some(String(url)) => obj["url"] = Json(url)
     _ => ()
   }
   Json::object(obj)
@@ -119,7 +119,7 @@ fn build_mcp_fill_args(args : Map[String, Json]) -> Json {
   }
   // Accept both "text" (user-facing) and "value" (direct MCP) keys
   match args.get("text") {
-    Some(String(t)) => obj["value"] = t.to_json()
+    Some(String(t)) => obj["value"] = Json(t)
     _ =>
       match args.get("value") {
         Some(v) => obj["value"] = v
@@ -185,7 +185,7 @@ fn build_mcp_wait_args(args : Map[String, Json]) -> Json {
     _ => ()
   }
   match args.get("ms") {
-    Some(Number(n, ..)) => obj["timeout"] = n.to_int().to_json()
+    Some(Number(n, ..)) => obj["timeout"] = Json(n.to_int())
     _ => ()
   }
   Json::object(obj)
@@ -207,7 +207,7 @@ fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
         "left" => "window.scrollBy(-\{amount}, 0)"
         _ => "window.scrollBy(\{amount}, 0)"
       }
-      obj["script"] = scroll_js.to_json()
+      obj["script"] = Json(scroll_js)
       return Json::object(obj)
     }
     _ => ()
@@ -220,7 +220,7 @@ fn build_mcp_evaluate_args(args : Map[String, Json]) -> Json {
       } else {
         "(function() { " + js + " })()"
       }
-      obj["script"] = script.to_json()
+      obj["script"] = Json(script)
     }
     Some(v) => obj["script"] = v
     _ => ()
@@ -269,7 +269,7 @@ fn build_mcp_select_page_args(args : Map[String, Json]) -> Json {
     _ => ()
   }
   // Add bringToFront for focus behavior
-  obj["bringToFront"] = true.to_json()
+  obj["bringToFront"] = Json(true)
   Json::object(obj)
 }
 

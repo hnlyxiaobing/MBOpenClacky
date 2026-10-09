@@ -33,9 +33,9 @@ fn build_request(id : Int, http_method : String, params : Json?) -> String {
     None => Json::object(Map([]))
   }
   Json::object({
-    "jsonrpc": "2.0".to_json(),
-    "id": id.to_json(),
-    "method": http_method.to_json(),
+    "jsonrpc": Json("2.0"),
+    "id": Json(id),
+    "method": Json(http_method),
     "params": p,
   }).stringify()
 }
@@ -48,8 +48,8 @@ fn build_notification(http_method : String, params : Json?) -> String {
     None => Json::object(Map([]))
   }
   Json::object({
-    "jsonrpc": "2.0".to_json(),
-    "method": http_method.to_json(),
+    "jsonrpc": Json("2.0"),
+    "method": Json(http_method),
     "params": p,
   }).stringify()
 }
@@ -154,11 +154,11 @@ pub async fn JsonRpcClient::initialize(
   self : JsonRpcClient,
 ) -> Result[Json, String] {
   let params : Json = Json::object({
-    "protocolVersion": mcp_protocol_version.to_json(),
+    "protocolVersion": Json(mcp_protocol_version),
     "capabilities": Json::object(Map([])),
     "clientInfo": Json::object({
-      "name": "MBOpenClacky".to_json(),
-      "version": "0.1.0".to_json(),
+      "name": Json("MBOpenClacky"),
+      "version": Json("0.1.0"),
     }),
   })
   let result = match self.call("initialize", params) {

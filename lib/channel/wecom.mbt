@@ -541,9 +541,9 @@ pub fn parse_wecom_mixed(
 /// WeCom supports markdown in bot messages for rich formatting.
 pub fn build_wecom_markdown_msg(content : String) -> Json {
   let md : Map[String, Json] = Map([])
-  md.set("content", content.to_json())
+  md.set("content", Json(content))
   let msg : Map[String, Json] = Map([])
-  msg.set("msgtype", "markdown".to_json())
+  msg.set("msgtype", Json("markdown"))
   msg.set("markdown", Json::object(md))
   Json::object(msg)
 }

@@ -92,9 +92,9 @@ pub fn session_lock_path(jsonl_path : String) -> String {
 ///|
 fn header_to_json(header : SessionLogHeader) -> Json {
   Json::object({
-    "version": header.version.to_json(),
-    "session_id": header.session_id.to_json(),
-    "created_at": header.created_at.to_json(),
+    "version": Json(header.version),
+    "session_id": Json(header.session_id),
+    "created_at": Json(header.created_at),
   })
 }
 
@@ -103,11 +103,11 @@ fn header_to_json(header : SessionLogHeader) -> Json {
 /// `seq` / `unix_ms` envelope.
 fn event_to_json(record : LoggedEvent) -> Json {
   let out : Map[String, Json] = Map([])
-  out["seq"] = record.seq.to_json()
+  out["seq"] = Json(record.seq)
   // Written as an explicit JSON number: Int64's generic ToJson encoding is not
   // guaranteed to be a plain number, and the reader expects one.
   out["unix_ms"] = Json::number(record.unix_ms.to_double())
-  match record.event.to_json() {
+  match @protocol.Event::to_json(record.event) {
     Object(fields) =>
       for entry in fields {
         out[entry.0] = entry.1
@@ -120,11 +120,11 @@ fn event_to_json(record : LoggedEvent) -> Json {
 ///|
 fn summary_to_json(summary : LogSummary) -> Json {
   Json::object({
-    "seq": summary.seq.to_json(),
+    "seq": Json(summary.seq),
     "unix_ms": Json::number(summary.unix_ms.to_double()),
-    "type": "summary".to_json(),
-    "from_seq": summary.from_seq.to_json(),
-    "to_seq": summary.to_seq.to_json(),
+    "type": Json("summary"),
+    "from_seq": Json(summary.from_seq),
+    "to_seq": Json(summary.to_seq),
   })
 }
 
@@ -613,7 +613,7 @@ pub fn legacy_session_records(data : SessionData) -> SessionLogFile {
       Some(calls) =>
         for call in calls {
           let args : Json = @json.parse(call.function.arguments) catch {
-            _ => call.function.arguments.to_json()
+            _ => Json(call.function.arguments)
           }
           records.push(
             EventRecord({

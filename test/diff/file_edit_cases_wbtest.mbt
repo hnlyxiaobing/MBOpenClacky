@@ -38,9 +38,9 @@ async test "edit_001_basic_exact_replace" {
   @fs.write_string_to_file(path, "Hello, World!")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "World".to_json(),
-    "new_string": "Ruby".to_json(),
+    "path": Json(path),
+    "old_string": Json("World"),
+    "new_string": Json("Ruby"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -59,10 +59,10 @@ async test "edit_002_replace_all" {
   @fs.write_string_to_file(path, "foo bar foo baz foo")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "foo".to_json(),
-    "new_string": "qux".to_json(),
-    "replace_all": true.to_json(),
+    "path": Json(path),
+    "old_string": Json("foo"),
+    "new_string": Json("qux"),
+    "replace_all": Json(true),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -84,9 +84,9 @@ async test "edit_003_multiple_matches_without_replace_all" {
   @fs.write_string_to_file(path, "foo foo foo")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "foo".to_json(),
-    "new_string": "bar".to_json(),
+    "path": Json(path),
+    "old_string": Json("foo"),
+    "new_string": Json("bar"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -107,9 +107,9 @@ async test "edit_004_old_string_not_found" {
   @fs.write_string_to_file(path, "Hello, World!")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "notfound".to_json(),
-    "new_string": "replacement".to_json(),
+    "path": Json(path),
+    "old_string": Json("notfound"),
+    "new_string": Json("replacement"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -126,9 +126,9 @@ async test "edit_005_file_not_found" {
   // 绝对路径」已于 2026-10-09 经 openclacky 源码对读确认为台账误记并销案（两侧一致）。
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": "/nonexistent/file.txt".to_json(),
-    "old_string": "foo".to_json(),
-    "new_string": "bar".to_json(),
+    "path": Json("/nonexistent/file.txt"),
+    "old_string": Json("foo"),
+    "new_string": Json("bar"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -144,9 +144,9 @@ async test "edit_006_path_is_directory" {
   let dir = fe_tmpdir("edit006")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": dir.to_json(),
-    "old_string": "foo".to_json(),
-    "new_string": "bar".to_json(),
+    "path": Json(dir),
+    "old_string": Json("foo"),
+    "new_string": Json("bar"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -162,9 +162,9 @@ async test "edit_007_indentation_preserved" {
   @fs.write_string_to_file(path, "  def hello\n    puts 'world'\n  end")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "    puts 'world'".to_json(),
-    "new_string": "    puts 'Ruby'".to_json(),
+    "path": Json(path),
+    "old_string": Json("    puts 'world'"),
+    "new_string": Json("    puts 'Ruby'"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -194,9 +194,9 @@ async test "edit_008_trim_match" {
   @fs.write_string_to_file(path, "Hello, World!")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "  World  ".to_json(),
-    "new_string": "Ruby".to_json(),
+    "path": Json(path),
+    "old_string": Json("  World  "),
+    "new_string": Json("Ruby"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -220,9 +220,9 @@ async test "edit_009_unescape_match" {
   @fs.write_string_to_file(path, "line1\nline2")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "line1\\nline2".to_json(),
-    "new_string": "replaced".to_json(),
+    "path": Json(path),
+    "old_string": Json("line1\\nline2"),
+    "new_string": Json("replaced"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -245,9 +245,9 @@ async test "edit_010_smart_line_match_tabs_vs_spaces" {
   @fs.write_string_to_file(path, "def test\n    puts 'hello'\nend")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "def test\n\tputs 'hello'\nend".to_json(),
-    "new_string": "def test\n    puts 'world'\nend".to_json(),
+    "path": Json(path),
+    "old_string": Json("def test\n\tputs 'hello'\nend"),
+    "new_string": Json("def test\n    puts 'world'\nend"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -270,9 +270,9 @@ async test "edit_011_first_line_match_helpful_error" {
   )
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "def hello\n  puts 'world'\n  puts 'python'".to_json(),
-    "new_string": "something else".to_json(),
+    "path": Json(path),
+    "old_string": Json("def hello\n  puts 'world'\n  puts 'python'"),
+    "new_string": Json("something else"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -291,9 +291,9 @@ async test "edit_012_literal_backslash_ampersand" {
   @fs.write_string_to_file(path, "hello world")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "world".to_json(),
-    "new_string": "[\\&]".to_json(),
+    "path": Json(path),
+    "old_string": Json("world"),
+    "new_string": Json("[\\&]"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -310,9 +310,9 @@ async test "edit_013_literal_backslash_1" {
   @fs.write_string_to_file(path, "abc")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "b".to_json(),
-    "new_string": "\\1".to_json(),
+    "path": Json(path),
+    "old_string": Json("b"),
+    "new_string": Json("\\1"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -329,9 +329,9 @@ async test "edit_014_literal_single_backslash" {
   @fs.write_string_to_file(path, "[/]")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "[/]".to_json(),
-    "new_string": "[/\\]".to_json(),
+    "path": Json(path),
+    "old_string": Json("[/]"),
+    "new_string": Json("[/\\]"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -348,9 +348,9 @@ async test "edit_015_literal_double_backslash" {
   @fs.write_string_to_file(path, "x")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "x".to_json(),
-    "new_string": "\\\\".to_json(),
+    "path": Json(path),
+    "old_string": Json("x"),
+    "new_string": Json("\\\\"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -372,9 +372,9 @@ async test "edit_016_empty_old_string" {
   @fs.write_string_to_file(path, "Hello")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "".to_json(),
-    "new_string": "X".to_json(),
+    "path": Json(path),
+    "old_string": Json(""),
+    "new_string": Json("X"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -390,9 +390,9 @@ async test "edit_017_cjk_replacement" {
   @fs.write_string_to_file(path, "你好世界")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "世界".to_json(),
-    "new_string": "Ruby".to_json(),
+    "path": Json(path),
+    "old_string": Json("世界"),
+    "new_string": Json("Ruby"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -416,8 +416,8 @@ async test "edit_018_missing_new_string" {
   @fs.write_string_to_file(path, "Hello, World!")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "World".to_json(),
+    "path": Json(path),
+    "old_string": Json("World"),
   }
   let result = @tool.Tool::execute(tool, args)
   // Ruby 实测期望 = 参数错误（硬错误）
@@ -446,9 +446,9 @@ async test "edit_019_invalid_utf8_byte" {
   @fs.write_bytes_to_file(path, b"\x48\x65\x6c\x6c\x6f\xff\x57\x6f\x72\x6c\x64")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "Hello".to_json(),
-    "new_string": "Hi".to_json(),
+    "path": Json(path),
+    "old_string": Json("Hello"),
+    "new_string": Json("Hi"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -466,9 +466,9 @@ async test "edit_020_special_regex_chars" {
   @fs.write_string_to_file(path, "price is 100")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "100".to_json(),
-    "new_string": "$200 (50% off)".to_json(),
+    "path": Json(path),
+    "old_string": Json("100"),
+    "new_string": Json("$200 (50% off)"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -487,10 +487,10 @@ async test "edit_021_replace_all_zero_matches" {
   @fs.write_string_to_file(path, "Hello")
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "old_string": "notexist".to_json(),
-    "new_string": "X".to_json(),
-    "replace_all": true.to_json(),
+    "path": Json(path),
+    "old_string": Json("notexist"),
+    "new_string": Json("X"),
+    "replace_all": Json(true),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -508,8 +508,8 @@ async test "write_001_basic_new_file" {
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "content": "Hello, World!".to_json(),
+    "path": Json(path),
+    "content": Json("Hello, World!"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -527,8 +527,8 @@ async test "write_002_overwrite_existing" {
   @fs.write_string_to_file(path, "Old content")
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "content": "New content".to_json(),
+    "path": Json(path),
+    "content": Json("New content"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -557,8 +557,8 @@ async test "write_003_recursive_parent_dirs" {
   ).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "content": "Test".to_json(),
+    "path": Json(path),
+    "content": Json("Test"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -584,8 +584,8 @@ async test "write_004_empty_path" {
   // 按判定总则以 Ruby 真实工具源码行为为准。
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": "".to_json(),
-    "content": "test".to_json(),
+    "path": Json(""),
+    "content": Json("test"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
@@ -603,8 +603,8 @@ async test "write_005_cjk_bytes_written" {
   let path = @path.Path::join(@path.Path(dir), @path.Path("test.txt")).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "content": "你好世界".to_json(),
+    "path": Json(path),
+    "content": Json("你好世界"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -641,8 +641,8 @@ async test "write_006_deep_missing_dirs" {
   ).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": path.to_json(),
-    "content": "deep".to_json(),
+    "path": Json(path),
+    "content": Json("deep"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
@@ -657,7 +657,7 @@ async test "write_007_nil_path" {
   //（driver 将 nil 转为空串传入）。MB 缺 path 参数时报
   // "Missing required parameter: path"（消息级分歧，未登记）。行为契约一致：报错。
   let tool = @tool.AnyTool::Write(@tool.Write::new())
-  let args : Map[String, Json] = { "content": "test".to_json() }
+  let args : Map[String, Json] = { "content": Json("test") }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
 }
@@ -676,8 +676,8 @@ async test "write_fuzz_1245_dot_is_directory" {
   // 证据：diff-harness/reports/BUGS.md BUG-0002
   let tool = @tool.AnyTool::Write(@tool.Write::new())
   let args : Map[String, Json] = {
-    "path": ".".to_json(),
-    "content": "test".to_json(),
+    "path": Json("."),
+    "content": Json("test"),
   }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)

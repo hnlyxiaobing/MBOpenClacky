@@ -9,11 +9,11 @@
 async test "mock malformed 帧逐字节透传" {
   let server = MockLlmServer::new([])
   let resp = Json::object({
-    "type": "malformed".to_json(),
+    "type": Json("malformed"),
     "frames": Json::array([
-      "data: {bad json\n\n".to_json(),
-      "garbage line\n\n".to_json(),
-      "data: {\"choices\":[{\"delta\":{\"content\":\"trunc\"\n\n".to_json(),
+      Json("data: {bad json\n\n"),
+      Json("garbage line\n\n"),
+      Json("data: {\"choices\":[{\"delta\":{\"content\":\"trunc\"\n\n"),
     ]),
   })
   let frames = server.build_sse(resp, "mock-model")
@@ -34,9 +34,9 @@ async test "mock finish_reason 覆盖 content/tool_calls 收尾帧" {
   let server = MockLlmServer::new([])
   // content + finish_reason=length：收尾帧应携带 length
   let c_resp = Json::object({
-    "type": "content".to_json(),
-    "text": "hi".to_json(),
-    "finish_reason": "length".to_json(),
+    "type": Json("content"),
+    "text": Json("hi"),
+    "finish_reason": Json("length"),
   })
   let c_frames = server.build_sse(c_resp, "mock-model")
   assert_true(
@@ -44,15 +44,15 @@ async test "mock finish_reason 覆盖 content/tool_calls 收尾帧" {
   )
   // tool_calls + finish_reason=stop：构成 012 刺激
   let t_resp = Json::object({
-    "type": "tool_calls".to_json(),
+    "type": Json("tool_calls"),
     "tool_calls": Json::array([
       Json::object({
-        "id": "call_1".to_json(),
-        "name": "read_file".to_json(),
-        "arguments": Json::object({ "path": "note.txt".to_json() }),
+        "id": Json("call_1"),
+        "name": Json("read_file"),
+        "arguments": Json::object({ "path": Json("note.txt") }),
       }),
     ]),
-    "finish_reason": "stop".to_json(),
+    "finish_reason": Json("stop"),
   })
   let t_frames = server.build_sse(t_resp, "mock-model")
   assert_true(
@@ -60,8 +60,8 @@ async test "mock finish_reason 覆盖 content/tool_calls 收尾帧" {
   )
   // 缺省行为不变：content 无 finish_reason 字段时收尾帧仍为 stop
   let d_resp = Json::object({
-    "type": "content".to_json(),
-    "text": "hi".to_json(),
+    "type": Json("content"),
+    "text": Json("hi"),
   })
   let d_frames = server.build_sse(d_resp, "mock-model")
   assert_true(

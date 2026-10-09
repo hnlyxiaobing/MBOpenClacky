@@ -96,151 +96,158 @@ impl Tool for Browser with fn description(_) -> String {
 ///|
 impl Tool for Browser with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "action": Json::object({
-        "type": "string".to_json(),
-        "description": "Browser action to perform".to_json(),
+        "type": Json("string"),
+        "description": Json("Browser action to perform"),
         "enum": [
-          "snapshot".to_json(),
-          "act".to_json(),
-          "open".to_json(),
-          "navigate".to_json(),
-          "tabs".to_json(),
-          "focus".to_json(),
-          "close".to_json(),
-          "screenshot".to_json(),
-          "status".to_json(),
+          Json("snapshot"),
+          Json("act"),
+          Json("open"),
+          Json("navigate"),
+          Json("tabs"),
+          Json("focus"),
+          Json("close"),
+          Json("screenshot"),
+          Json("status"),
         ],
       }),
       "kind": Json::object({
-        "type": "string".to_json(),
-        "description": "act: interaction kind".to_json(),
+        "type": Json("string"),
+        "description": Json("act: interaction kind"),
         "enum": [
-          "click".to_json(),
-          "dblclick".to_json(),
-          "type".to_json(),
-          "fill".to_json(),
-          "press".to_json(),
-          "hover".to_json(),
-          "drag".to_json(),
-          "select".to_json(),
-          "scroll".to_json(),
-          "wait".to_json(),
-          "evaluate".to_json(),
-          "click_at".to_json(),
+          Json("click"),
+          Json("dblclick"),
+          Json("type"),
+          Json("fill"),
+          Json("press"),
+          Json("hover"),
+          Json("drag"),
+          Json("select"),
+          Json("scroll"),
+          Json("wait"),
+          Json("evaluate"),
+          Json("click_at"),
         ],
       }),
       "ref": Json::object({
-        "type": "string".to_json(),
-        "description": "element ref from snapshot (e.g. 'e1')".to_json(),
+        "type": Json("string"),
+        "description": Json("element ref from snapshot (e.g. 'e1')"),
       }),
       "text": Json::object({
-        "type": "string".to_json(),
-        "description": "act type/fill text".to_json(),
+        "type": Json("string"),
+        "description": Json("act type/fill text"),
       }),
       "key": Json::object({
-        "type": "string".to_json(),
-        "description": "act press key (e.g. 'Enter')".to_json(),
+        "type": Json("string"),
+        "description": Json("act press key (e.g. 'Enter')"),
       }),
       "direction": Json::object({
-        "type": "string".to_json(),
-        "description": "act scroll direction".to_json(),
-        "enum": [
-          "up".to_json(),
-          "down".to_json(),
-          "left".to_json(),
-          "right".to_json(),
-        ],
+        "type": Json("string"),
+        "description": Json("act scroll direction"),
+        "enum": [Json("up"), Json("down"), Json("left"), Json("right")],
       }),
       "amount": Json::object({
-        "type": "integer".to_json(),
-        "description": "act scroll pixels (default 300)".to_json(),
+        "type": Json("integer"),
+        "description": Json("act scroll pixels (default 300)"),
       }),
       "ms": Json::object({
-        "type": "integer".to_json(),
-        "description": "act wait ms".to_json(),
+        "type": Json("integer"),
+        "description": Json("act wait ms"),
       }),
       "selector": Json::object({
-        "type": "string".to_json(),
-        "description": "act wait: text or CSS selector".to_json(),
+        "type": Json("string"),
+        "description": Json("act wait: text or CSS selector"),
       }),
       "js": Json::object({
-        "type": "string".to_json(),
-        "description": "act evaluate: JS expression (use IIFE for multi-line/async)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "act evaluate: JS expression (use IIFE for multi-line/async)",
+        ),
       }),
       "target_ref": Json::object({
-        "type": "string".to_json(),
-        "description": "act drag destination ref".to_json(),
+        "type": Json("string"),
+        "description": Json("act drag destination ref"),
       }),
       "values": Json::object({
-        "type": "array".to_json(),
-        "items": Json::object({ "type": "string".to_json() }),
-        "description": "act select options".to_json(),
+        "type": Json("array"),
+        "items": Json::object({ "type": Json("string") }),
+        "description": Json("act select options"),
       }),
       "x": Json::object({
-        "type": "number".to_json(),
-        "description": "click_at x px".to_json(),
+        "type": Json("number"),
+        "description": Json("click_at x px"),
       }),
       "y": Json::object({
-        "type": "number".to_json(),
-        "description": "click_at y px".to_json(),
+        "type": Json("number"),
+        "description": Json("click_at y px"),
       }),
       "url": Json::object({
-        "type": "string".to_json(),
-        "description": "open/navigate URL".to_json(),
+        "type": Json("string"),
+        "description": Json("open/navigate URL"),
       }),
       "target_id": Json::object({
-        "type": "string".to_json(),
-        "description": "focus/close tab id".to_json(),
+        "type": Json("string"),
+        "description": Json("focus/close tab id"),
       }),
       "interactive": Json::object({
-        "type": "boolean".to_json(),
-        "description": "snapshot: only interactive elements".to_json(),
+        "type": Json("boolean"),
+        "description": Json("snapshot: only interactive elements"),
       }),
       "compact": Json::object({
-        "type": "boolean".to_json(),
-        "description": "snapshot: drop empty containers".to_json(),
+        "type": Json("boolean"),
+        "description": Json("snapshot: drop empty containers"),
       }),
       "depth": Json::object({
-        "type": "integer".to_json(),
-        "description": "snapshot: max tree depth".to_json(),
+        "type": Json("integer"),
+        "description": Json("snapshot: max tree depth"),
       }),
       "query": Json::object({
-        "type": "string".to_json(),
-        "description": "snapshot: return window around first match".to_json(),
+        "type": Json("string"),
+        "description": Json("snapshot: return window around first match"),
       }),
       "offset": Json::object({
-        "type": "integer".to_json(),
-        "description": "snapshot: skip N lines (paging)".to_json(),
+        "type": Json("integer"),
+        "description": Json("snapshot: skip N lines (paging)"),
       }),
       "full_page": Json::object({
-        "type": "boolean".to_json(),
-        "description": "screenshot: full page".to_json(),
+        "type": Json("boolean"),
+        "description": Json("screenshot: full page"),
       }),
       "format": Json::object({
-        "type": "string".to_json(),
-        "description": "screenshot: output format ('png' or 'jpeg', default 'png')".to_json(),
-        "enum": ["png".to_json(), "jpeg".to_json()],
+        "type": Json("string"),
+        "description": Json(
+          "screenshot: output format ('png' or 'jpeg', default 'png')",
+        ),
+        "enum": [Json("png"), Json("jpeg")],
       }),
       "quality": Json::object({
-        "type": "integer".to_json(),
-        "description": "screenshot: jpeg quality 0-100 (only applies when format='jpeg')".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "screenshot: jpeg quality 0-100 (only applies when format='jpeg')",
+        ),
       }),
       "save_path": Json::object({
-        "type": "string".to_json(),
-        "description": "screenshot: custom file path to save (default: temp dir)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "screenshot: custom file path to save (default: temp dir)",
+        ),
       }),
       "max_width": Json::object({
-        "type": "integer".to_json(),
-        "description": "screenshot: max output width in pixels (aspect ratio preserved; default 800)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "screenshot: max output width in pixels (aspect ratio preserved; default 800)",
+        ),
       }),
       "max_height": Json::object({
-        "type": "integer".to_json(),
-        "description": "screenshot: max output height in pixels (aspect ratio preserved; default 800)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "screenshot: max output height in pixels (aspect ratio preserved; default 800)",
+        ),
       }),
     }),
-    "required": ["action".to_json()],
+    "required": [Json("action")],
   })
 }
 
@@ -409,7 +416,7 @@ impl Tool for Browser with fn format_result(_, result : ToolResult) -> String {
     }
   } else {
     let lines = result.content.split("\n")
-    "[OK] \{lines.length()} lines"
+    "[OK] \{lines.count()} lines"
   }
 }
 
@@ -489,7 +496,7 @@ pub async fn Browser::mcp_call(
         for entry in args.iter() {
           augmented[entry.0] = entry.1
         }
-        augmented["pageId"] = pid.to_json()
+        augmented["pageId"] = Json(pid)
         augmented
       }
       None => args

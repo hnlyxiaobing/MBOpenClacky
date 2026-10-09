@@ -34,8 +34,8 @@ fn mt_json(resp : @core.HttpResponse) -> Json {
 fn mt_assert_off(entry : Json) -> Unit raise {
   guard! entry is Json::Object(obj)
   @debug.assert_eq(obj.length(), 2)
-  @debug.assert_eq(obj.get("configured"), Some(false.to_json()))
-  @debug.assert_eq(obj.get("source"), Some("off".to_json()))
+  @debug.assert_eq(obj.get("configured"), Some(Json(false)))
+  @debug.assert_eq(obj.get("source"), Some(Json("off")))
 }
 
 ///|
@@ -64,13 +64,13 @@ test "media types: explicit image model reports source custom" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   guard! mt_json(resp) is Json::Object(obj)
   guard! obj.get("image") is Some(Object(image))
-  @debug.assert_eq(image.get("configured"), Some(true.to_json()))
-  @debug.assert_eq(image.get("model"), Some("gpt-image-1".to_json()))
+  @debug.assert_eq(image.get("configured"), Some(Json(true)))
+  @debug.assert_eq(image.get("model"), Some(Json("gpt-image-1")))
   @debug.assert_eq(
     image.get("base_url"),
-    Some("https://api.example.com/v1".to_json()),
+    Some(Json("https://api.example.com/v1")),
   )
-  @debug.assert_eq(image.get("source"), Some("custom".to_json()))
+  @debug.assert_eq(image.get("source"), Some(Json("custom")))
   // no sensitive fields leak
   assert_true(!image.contains("api_key"))
   // other modalities stay off
@@ -94,17 +94,17 @@ test "media types: derivable provider reports source auto" {
   guard! mt_json(resp) is Json::Object(obj)
   // openai preset derives image (gpt-4o) and audio (tts-1)
   guard! obj.get("image") is Some(Object(image))
-  @debug.assert_eq(image.get("configured"), Some(true.to_json()))
-  @debug.assert_eq(image.get("source"), Some("auto".to_json()))
-  @debug.assert_eq(image.get("model"), Some("gpt-4o".to_json()))
+  @debug.assert_eq(image.get("configured"), Some(Json(true)))
+  @debug.assert_eq(image.get("source"), Some(Json("auto")))
+  @debug.assert_eq(image.get("model"), Some(Json("gpt-4o")))
   @debug.assert_eq(
     image.get("base_url"),
-    Some("https://api.openai.com/v1".to_json()),
+    Some(Json("https://api.openai.com/v1")),
   )
   guard! obj.get("audio") is Some(Object(audio))
-  @debug.assert_eq(audio.get("configured"), Some(true.to_json()))
-  @debug.assert_eq(audio.get("source"), Some("auto".to_json()))
-  @debug.assert_eq(audio.get("model"), Some("tts-1".to_json()))
+  @debug.assert_eq(audio.get("configured"), Some(Json(true)))
+  @debug.assert_eq(audio.get("source"), Some(Json("auto")))
+  @debug.assert_eq(audio.get("model"), Some(Json("tts-1")))
   // openai preset derives nothing for the remaining modalities
   for kind in ["video", "stt", "video_understanding"] {
     guard! obj.get(kind) is Some(entry)

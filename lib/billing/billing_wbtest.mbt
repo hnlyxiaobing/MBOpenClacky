@@ -58,7 +58,7 @@ test "BillingRecord serialization roundtrip" {
     cost_usd: 0.0425,
     cost_source: "estimated",
   }
-  let json = record.to_json()
+  let json = Json(record)
   let json_str = json.stringify()
   let parsed = @json.parse(json_str)
   let restored : BillingRecord = @json.from_json(parsed)

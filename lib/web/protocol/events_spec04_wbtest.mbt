@@ -194,8 +194,8 @@ test "build_task_finished_event: produces correct JSON without session_id wrappi
 ///|
 test "build_session_restored_event: produces correct JSON with nested session" {
   let session_json = Json::object({
-    "id": "sess-abc".to_json(),
-    "name": "Restored Session".to_json(),
+    "id": Json("sess-abc"),
+    "name": Json("Restored Session"),
   })
   let json_str = build_session_restored_event("sess-abc", session_json)
   let j = parse_json(json_str)

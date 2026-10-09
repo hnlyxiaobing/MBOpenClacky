@@ -251,9 +251,9 @@ pub fn auth_middleware(
         .json_value(
           Json::object({
             "error": Json::object({
-              "status": (429).to_json(),
-              "message": "Too many failed authentication attempts".to_json(),
-              "retry_after": retry.to_json(),
+              "status": Json((429)),
+              "message": Json("Too many failed authentication attempts"),
+              "retry_after": Json(retry),
             }),
           }),
         )
@@ -273,9 +273,9 @@ pub fn auth_middleware(
           .json_value(
             Json::object({
               "error": Json::object({
-                "status": (401).to_json(),
-                "message": "Invalid API key".to_json(),
-                "hint": "Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie".to_json(),
+                "status": Json((401)),
+                "message": Json("Invalid API key"),
+                "hint": Json("Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie"),
               }),
             }),
           )
@@ -287,9 +287,9 @@ pub fn auth_middleware(
         .json_value(
           Json::object({
             "error": Json::object({
-              "status": (401).to_json(),
-              "message": "Missing API key".to_json(),
-              "hint": "Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie".to_json(),
+              "status": Json((401)),
+              "message": Json("Missing API key"),
+              "hint": Json("Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie"),
             }),
           }),
         )

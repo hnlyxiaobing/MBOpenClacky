@@ -51,9 +51,9 @@ test "file-action display-path returns 200 with path passthrough off-WSL" {
   )
   @debug.assert_eq(resp.status_code.to_int(), 200)
   guard! fa_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   // /tmp/foo is not a /mnt path, so it passes through unchanged on any host.
-  @debug.assert_eq(obj.get("path"), Some("/tmp/foo".to_json()))
+  @debug.assert_eq(obj.get("path"), Some(Json("/tmp/foo")))
 }
 
 ///|

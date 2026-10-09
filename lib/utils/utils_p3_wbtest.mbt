@@ -337,7 +337,7 @@ test "json_arg_parser_parse_valid" {
   match parser.parse("{\"key\":\"value\"}") {
     Ok(json) =>
       match json {
-        Object(obj) => @debug.assert_eq(obj.get("key"), Some("value".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("key"), Some(Json("value")))
         _ => fail("expected Object")
       }
     Err(msg) => fail("expected Ok, got: \{msg}")
@@ -359,7 +359,7 @@ test "json_arg_parser_parse_with_trailing_comma" {
   match parser.parse("{\"key\":\"value\",}") {
     Ok(json) =>
       match json {
-        Object(obj) => @debug.assert_eq(obj.get("key"), Some("value".to_json()))
+        Object(obj) => @debug.assert_eq(obj.get("key"), Some(Json("value")))
         _ => fail("expected Object")
       }
     Err(msg) => fail("expected Ok after fix, got: \{msg}")
@@ -452,8 +452,8 @@ test "merge_json_args_basic" {
   let merged = merge_json_args([obj1, obj2])
   match merged {
     Object(obj) => {
-      @debug.assert_eq(obj.get("a"), Some((1).to_json()))
-      @debug.assert_eq(obj.get("b"), Some((2).to_json()))
+      @debug.assert_eq(obj.get("a"), Some(Json((1))))
+      @debug.assert_eq(obj.get("b"), Some(Json((2))))
     }
     _ => fail("expected Object")
   }
@@ -465,7 +465,7 @@ test "merge_json_args_override" {
   let obj2 = @json.parse("{\"a\":99}") catch { _ => Json::object(Map([])) }
   let merged = merge_json_args([obj1, obj2])
   match merged {
-    Object(obj) => @debug.assert_eq(obj.get("a"), Some((99).to_json()))
+    Object(obj) => @debug.assert_eq(obj.get("a"), Some(Json((99))))
     _ => fail("expected Object")
   }
 }

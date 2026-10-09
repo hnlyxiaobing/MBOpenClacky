@@ -42,37 +42,37 @@ pub fn handle_mcp_list_servers(
       None => false
     }
     let fields : Map[String, Json] = {
-      "name": name.to_json(),
-      "type": type_str.to_json(),
-      "disabled": disabled.to_json(),
-      "status": status_str.to_json(),
+      "name": Json(name),
+      "type": Json(type_str),
+      "disabled": Json(disabled),
+      "status": Json(status_str),
       "tools": Json::array([]),
-      "has_env": has_env.to_json(),
-      "has_headers": has_headers.to_json(),
+      "has_env": Json(has_env),
+      "has_headers": Json(has_headers),
       // Align with orig: url is always present (null for stdio servers).
       "url": match spec.url {
-        Some(u) => u.to_json()
+        Some(u) => Json(u)
         None => Json::null()
       },
     }
     match spec.description {
-      Some(d) => fields["description"] = d.to_json()
+      Some(d) => fields["description"] = Json(d)
       None => ()
     }
     match spec.command {
-      Some(cmd) => fields["command"] = cmd.to_json()
+      Some(cmd) => fields["command"] = Json(cmd)
       None => ()
     }
     match spec.args {
-      Some(args) => fields["args"] = args.to_json()
+      Some(args) => fields["args"] = Json(args)
       None => ()
     }
     servers_arr.push(Json::object(fields))
   })
   let body = Json::object({
-    "configured": configured.to_json(),
-    "config_exists": config_exists.to_json(),
-    "config_path": config_path.to_json(),
+    "configured": Json(configured),
+    "config_exists": Json(config_exists),
+    "config_path": Json(config_path),
     "servers": Json::array(servers_arr),
   }).stringify()
   HttpResponse::ok(body)
@@ -170,11 +170,11 @@ pub fn handle_mcp_add_server(
   }
   registry.add_server(name, spec)
   let body = Json::object({
-    "name": name.to_json(),
-    "type": transport.to_json(),
-    "status": "registered".to_json(),
-    "ok": true.to_json(),
-    "message": "Server registered successfully".to_json(),
+    "name": Json(name),
+    "type": Json(transport),
+    "status": Json("registered"),
+    "ok": Json(true),
+    "message": Json("Server registered successfully"),
   }).stringify()
   HttpResponse::created(body)
 }
@@ -201,8 +201,8 @@ pub async fn handle_mcp_probe_server(
       let tools : Array[@mcp.McpTool] = registry.tools_list(name) catch {
         @mcp.McpError(msg) => {
           let body = Json::object({
-            "ok": false.to_json(),
-            "error": msg.to_json(),
+            "ok": Json(false),
+            "error": Json(msg),
           }).stringify()
           return HttpResponse::ok(body)
         }
@@ -210,13 +210,13 @@ pub async fn handle_mcp_probe_server(
       let tools_arr : Array[Json] = []
       for tool in tools {
         let fields : Map[String, Json] = {
-          "name": tool.name.to_json(),
-          "description": tool.description.to_json(),
+          "name": Json(tool.name),
+          "description": Json(tool.description),
         }
         tools_arr.push(Json::object(fields))
       }
       let body = Json::object({
-        "ok": true.to_json(),
+        "ok": Json(true),
         "tools": Json::array(tools_arr),
       }).stringify()
       HttpResponse::ok(body)
@@ -254,7 +254,7 @@ pub fn handle_mcp_toggle_server(
           )
       }
       registry.set_enabled(name, enabled)
-      let body = Json::object({ "ok": true.to_json() }).stringify()
+      let body = Json::object({ "ok": Json(true) }).stringify()
       HttpResponse::ok(body)
     }
     None => HttpResponse::not_found("MCP server not found: " + name)
@@ -292,9 +292,9 @@ pub fn handle_mcp_update_server(
           registry.specs[name] = spec
           registry.enabled[name] = was_enabled
           let body = Json::object({
-            "ok": true.to_json(),
-            "name": name.to_json(),
-            "message": "Server updated successfully".to_json(),
+            "ok": Json(true),
+            "name": Json(name),
+            "message": Json("Server updated successfully"),
           }).stringify()
           HttpResponse::ok(body)
         }
@@ -318,7 +318,7 @@ pub fn handle_mcp_remove_server(
   match registry.specs.get(name) {
     Some(_) => {
       registry.remove_server(name)
-      let body = Json::object({ "ok": true.to_json() }).stringify()
+      let body = Json::object({ "ok": Json(true) }).stringify()
       HttpResponse::ok(body)
     }
     None => HttpResponse::not_found("MCP server not found: " + name)
@@ -340,16 +340,16 @@ pub fn handle_mcp_list_server_tools(
       let tools_arr : Array[Json] = []
       for tool in client.tools {
         let fields : Map[String, Json] = {
-          "name": tool.name.to_json(),
-          "description": tool.description.to_json(),
-          "server": name.to_json(),
+          "name": Json(tool.name),
+          "description": Json(tool.description),
+          "server": Json(name),
         }
         tools_arr.push(Json::object(fields))
       }
       let body = Json::object({
-        "server": name.to_json(),
+        "server": Json(name),
         "tools": Json::array(tools_arr),
-        "total": tools_arr.length().to_json(),
+        "total": Json(tools_arr.length()),
       }).stringify()
       HttpResponse::ok(body)
     }
@@ -358,8 +358,8 @@ pub fn handle_mcp_list_server_tools(
       HttpResponse::{
         status: 404,
         body: Json::object({
-          "ok": false.to_json(),
-          "error": ("MCP server not found: " + name).to_json(),
+          "ok": Json(false),
+          "error": Json(("MCP server not found: " + name)),
         }).stringify(),
         body_bytes: None,
         content_type: "application/json",
@@ -403,8 +403,8 @@ pub async fn handle_mcp_call_server_tool(
       }
       let body = Json::object({
         "result": result,
-        "server": name.to_json(),
-        "tool_name": tool_name.to_json(),
+        "server": Json(name),
+        "tool_name": Json(tool_name),
       }).stringify()
       HttpResponse::ok(body)
     }
@@ -427,9 +427,9 @@ pub fn handle_mcp_list_tools(
       Some(client) =>
         for tool in client.tools {
           let fields : Map[String, Json] = {
-            "name": tool.name.to_json(),
-            "description": tool.description.to_json(),
-            "server": name.to_json(),
+            "name": Json(tool.name),
+            "description": Json(tool.description),
+            "server": Json(name),
           }
           tools_arr.push(Json::object(fields))
         }
@@ -439,7 +439,7 @@ pub fn handle_mcp_list_tools(
   let total = tools_arr.length()
   let body = Json::object({
     "tools": Json::array(tools_arr),
-    "total": total.to_json(),
+    "total": Json(total),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -499,8 +499,8 @@ pub async fn handle_mcp_execute_tool(
     Some(result) => {
       let body = Json::object({
         "result": result,
-        "status": "executed".to_json(),
-        "tool_name": tool_name.to_json(),
+        "status": Json("executed"),
+        "tool_name": Json(tool_name),
       }).stringify()
       HttpResponse::ok(body)
     }

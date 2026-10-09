@@ -32,9 +32,9 @@ fn parse_git_files(porcelain : String) -> Json {
     let staged = x != ' ' && x != '?'
     files.push(
       Json::object({
-        "path": file_path.to_json(),
-        "status": status.to_json(),
-        "staged": staged.to_json(),
+        "path": Json(file_path),
+        "status": Json(status),
+        "staged": Json(staged),
       }),
     )
   }
@@ -68,7 +68,7 @@ fn git_split_lines(s : String) -> Array[String] {
 /// Helper: build JSON error response.
 fn git_error_resp(msg : String) -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
-    Json::object({ "error": msg.to_json() }),
+    Json::object({ "error": Json(msg) }),
   )
 }
 
@@ -76,7 +76,7 @@ fn git_error_resp(msg : String) -> @core.HttpResponse {
 /// Helper: build JSON success response.
 fn git_ok_resp(msg : String) -> @core.HttpResponse {
   @core.HttpResponse::ok().json_value(
-    Json::object({ "status": "ok".to_json(), "message": msg.to_json() }),
+    Json::object({ "status": Json("ok"), "message": Json(msg) }),
   )
 }
 
@@ -117,14 +117,14 @@ async fn is_git_repo(dir : String) -> Bool {
 ///|
 /// Build a {repo:false} response for non-git directories.
 fn git_no_repo_response() -> @core.HttpResponse {
-  @core.HttpResponse::ok().json_value(Json::object({ "repo": false.to_json() }))
+  @core.HttpResponse::ok().json_value(Json::object({ "repo": Json(false) }))
 }
 
 ///|
 /// 404 response for an unknown session id in session-scoped git endpoints.
 fn git_session_not_found() -> @core.HttpResponse {
   @core.HttpResponse::not_found().json_value(
-    Json::object({ "error": "Session not found".to_json() }),
+    Json::object({ "error": Json("Session not found") }),
   )
 }
 
@@ -140,7 +140,7 @@ pub async fn handle_session_git_status(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing session id".to_json() }),
+        Json::object({ "error": Json("Missing session id") }),
       )
   }
   let dir = match session_working_dir(server_ref, session_id) {
@@ -163,20 +163,20 @@ pub async fn handle_session_git_status(
   let files = parse_git_files(porcelain)
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "repo": true.to_json(),
-      "branch": status.branch.to_json(),
-      "ahead": status.ahead.to_json(),
-      "behind": status.behind.to_json(),
-      "staged": status.staged.to_json(),
-      "modified": status.modified.to_json(),
-      "untracked": status.untracked.to_json(),
-      "deleted": status.deleted.to_json(),
-      "conflicts": status.conflicts.to_json(),
-      "last_commit_msg": status.last_commit_msg.to_json(),
-      "last_commit_hash": status.last_commit_hash.to_json(),
-      "last_commit_time": status.last_commit_time.to_json(),
-      "is_dirty": status.is_dirty.to_json(),
-      "is_detached": status.is_detached.to_json(),
+      "repo": Json(true),
+      "branch": Json(status.branch),
+      "ahead": Json(status.ahead),
+      "behind": Json(status.behind),
+      "staged": Json(status.staged),
+      "modified": Json(status.modified),
+      "untracked": Json(status.untracked),
+      "deleted": Json(status.deleted),
+      "conflicts": Json(status.conflicts),
+      "last_commit_msg": Json(status.last_commit_msg),
+      "last_commit_hash": Json(status.last_commit_hash),
+      "last_commit_time": Json(status.last_commit_time),
+      "is_dirty": Json(status.is_dirty),
+      "is_detached": Json(status.is_detached),
       "files": files,
     }),
   )
@@ -192,7 +192,7 @@ pub async fn handle_session_git_diff(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing session id".to_json() }),
+        Json::object({ "error": Json("Missing session id") }),
       )
   }
   let dir = match session_working_dir(server_ref, session_id) {
@@ -210,7 +210,7 @@ pub async fn handle_session_git_diff(
   }
   let output = git_run_in_dir(dir, args)
   @core.HttpResponse::ok().json_value(
-    Json::object({ "repo": true.to_json(), "diff": output.to_json() }),
+    Json::object({ "repo": Json(true), "diff": Json(output) }),
   )
 }
 
@@ -224,7 +224,7 @@ pub async fn handle_session_git_log(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing session id".to_json() }),
+        Json::object({ "error": Json("Missing session id") }),
       )
   }
   let dir = match session_working_dir(server_ref, session_id) {
@@ -243,12 +243,12 @@ pub async fn handle_session_git_log(
       let hash = trimmed[0:7].to_owned()
       let message = trimmed[8:].to_owned()
       entries.push(
-        Json::object({ "hash": hash.to_json(), "message": message.to_json() }),
+        Json::object({ "hash": Json(hash), "message": Json(message) }),
       )
     }
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "repo": true.to_json(), "log": Json::array(entries) }),
+    Json::object({ "repo": Json(true), "log": Json::array(entries) }),
   )
 }
 
@@ -262,7 +262,7 @@ pub async fn handle_session_git_branches(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing session id".to_json() }),
+        Json::object({ "error": Json("Missing session id") }),
       )
   }
   let dir = match session_working_dir(server_ref, session_id) {
@@ -285,19 +285,19 @@ pub async fn handle_session_git_branches(
       let name = line[2:].to_owned().trim().to_owned()
       current = name
       branches.push(
-        Json::object({ "name": name.to_json(), "current": true.to_json() }),
+        Json::object({ "name": Json(name), "current": Json(true) }),
       )
     } else {
       branches.push(
-        Json::object({ "name": trimmed.to_json(), "current": false.to_json() }),
+        Json::object({ "name": Json(trimmed), "current": Json(false) }),
       )
     }
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "repo": true.to_json(),
+      "repo": Json(true),
       "branches": Json::array(branches),
-      "current": current.to_json(),
+      "current": Json(current),
     }),
   )
 }
@@ -312,7 +312,7 @@ pub async fn handle_session_git_commit(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing session id".to_json() }),
+        Json::object({ "error": Json("Missing session id") }),
       )
   }
   let dir = match session_working_dir(server_ref, session_id) {

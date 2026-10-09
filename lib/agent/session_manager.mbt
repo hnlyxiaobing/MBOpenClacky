@@ -142,7 +142,7 @@ fn purge_expired_trash() -> Unit {
     // rendered the same way session_filename_datetime() renders it, so a
     // dictionary comparison stays chronological.
     let parts = name.split("-")
-    let stamp = parts[0:parts.length() - 1].join("-")
+    let stamp = parts[0:parts.count() - 1].join("-")
     if stamp < threshold_sanitized {
       let filepath = @path.Path::join(trash_dir, @path.Path(name)).to_string()
       @fs.remove_file(filepath) catch {

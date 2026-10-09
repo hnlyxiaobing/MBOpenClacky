@@ -71,11 +71,11 @@ pub fn build_wecom_send_body(
   text : String,
 ) -> Json {
   let text_obj : Map[String, Json] = Map([])
-  text_obj.set("content", text.to_json())
+  text_obj.set("content", Json(text))
   let body : Map[String, Json] = Map([])
-  body.set("touser", touser.to_json())
-  body.set("msgtype", "text".to_json())
-  body.set("agentid", agent_id.to_json())
+  body.set("touser", Json(touser))
+  body.set("msgtype", Json("text"))
+  body.set("agentid", Json(agent_id))
   body.set("text", Json::object(text_obj))
   Json::object(body)
 }

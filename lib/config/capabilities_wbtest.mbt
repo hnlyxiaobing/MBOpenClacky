@@ -151,7 +151,7 @@ test "get_api_type_for_model: openclacky claude uses bedrock default" {
 ///|
 test "ModelCapabilities: to_json from_json roundtrip" {
   let cap = ModelCapabilities::full()
-  let json = cap.to_json()
+  let json = Json(cap)
   let parsed : ModelCapabilities = @json.from_json(json)
   assert_eq(parsed, cap)
 }

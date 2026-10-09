@@ -228,7 +228,7 @@ fn handle_create_session(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "name is required".to_json() }),
+        Json::object({ "error": Json("name is required") }),
       )
   }
   let name : String = match j {
@@ -237,12 +237,12 @@ fn handle_create_session(
         Some(String(n)) if !n.is_empty() => n
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "name is required".to_json() }),
+            Json::object({ "error": Json("name is required") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "name is required".to_json() }),
+        Json::object({ "error": Json("name is required") }),
       )
   }
   // Parse agent_profile from request (web-replication-05).
@@ -303,7 +303,7 @@ fn handle_create_session(
     Some(mc) => mc
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "No model configured".to_json() }),
+        Json::object({ "error": Json("No model configured") }),
       )
   }
   let api_type = if model_config.anthropic_format {
@@ -359,7 +359,7 @@ fn handle_create_session(
   // to_session_data now carries the real profile, so no patch-up is needed.
   let resp : Map[String, Json] = { "session": session_response_json(summary) }
   if model_fallback {
-    resp["model_fallback"] = true.to_json()
+    resp["model_fallback"] = Json(true)
   }
   @core.HttpResponse::created().json_value(Json::object(resp))
 }
@@ -374,7 +374,7 @@ fn handle_get_session(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let pinned_map = load_pinned_map()
@@ -408,7 +408,7 @@ fn handle_get_session(
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -423,7 +423,7 @@ fn handle_delete_session(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   // Soft-delete parity with orig (fix-13): sessions that exist on disk are
@@ -445,7 +445,7 @@ fn handle_delete_session(
   // Broadcast session_deleted via WS so the sidebar updates in real time.
   let hub = server_ref.val.hub
   hub.broadcast_session(id, @protocol.build_session_deleted_event(id))
-  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
 }
 
 ///|
@@ -458,7 +458,7 @@ fn handle_restore_session(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let session_opt = @agent.load_session(id)
@@ -480,7 +480,7 @@ fn handle_restore_session(
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -497,7 +497,7 @@ fn handle_get_status(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match server_ref.val.active_agents.get(id) {
@@ -524,7 +524,7 @@ fn handle_get_status(
         }
         None =>
           @core.HttpResponse::not_found().json_value(
-            Json::object({ "error": "Session not found".to_json() }),
+            Json::object({ "error": Json("Session not found") }),
           )
       }
     }
@@ -543,7 +543,7 @@ fn handle_cancel(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   server_ref.val.cancelled[id] = true
@@ -563,7 +563,7 @@ fn handle_get_cost(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match server_ref.val.active_agents.get(id) {
@@ -596,7 +596,7 @@ fn handle_get_cost(
         }
         None =>
           @core.HttpResponse::not_found().json_value(
-            Json::object({ "error": "Session not found".to_json() }),
+            Json::object({ "error": Json("Session not found") }),
           )
       }
     }
@@ -615,7 +615,7 @@ fn handle_list_tools(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let agent = server_ref.val.get_or_create_agent(id)
@@ -663,14 +663,14 @@ fn media_capabilities_json(cfg : @config.AgentConfig) -> Json {
   let caps : Map[String, Json] = Map([])
   let ocr = cfg.find_model_by_type("ocr")
   caps["vision"] = Json::object({
-    "configured": (ocr is Some(_)).to_json(),
-    "primary": false.to_json(),
+    "configured": Json((ocr is Some(_))),
+    "primary": Json(false),
     "model": config_media_opt_str(ocr.map(fn(m) { m.model })),
   })
   for kind in ["image", "video", "audio", "stt", "video_understanding"] {
     let entry = cfg.find_model_by_type(kind)
     caps[kind] = Json::object({
-      "configured": (entry is Some(_)).to_json(),
+      "configured": Json((entry is Some(_))),
       "model": config_media_opt_str(entry.map(fn(m) { m.model })),
     })
   }
@@ -699,7 +699,7 @@ fn handle_get_config(
     }
     match model_to_web_json(m) {
       Object(o) => {
-        o["index"] = i.to_json()
+        o["index"] = Json(i)
         models_json.push(Json::object(o))
       }
       _ => ()
@@ -709,7 +709,7 @@ fn handle_get_config(
   let mut current_id : Json = Json::null()
   match cfg.current_model() {
     Some(cur) => {
-      current_id = cur.id.to_json()
+      current_id = Json(cur.id)
       for i = 0; i < cfg.models.length(); i = i + 1 {
         if cfg.models[i].id == cur.id {
           current_index = i
@@ -721,14 +721,14 @@ fn handle_get_config(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "models": models_json.to_json(),
-      "current_index": current_index.to_json(),
+      "models": Json(models_json),
+      "current_index": Json(current_index),
       "current_id": current_id,
       "media_capabilities": media_capabilities_json(cfg),
-      "permission_mode": permission_mode_str(cfg.permission_mode).to_json(),
-      "max_tokens": cfg.max_tokens.to_json(),
-      "verbose": cfg.verbose.to_json(),
-      "current_model_id": cfg.current_model_id.to_json(),
+      "permission_mode": Json(permission_mode_str(cfg.permission_mode)),
+      "max_tokens": Json(cfg.max_tokens),
+      "verbose": Json(cfg.verbose),
+      "current_model_id": Json(cfg.current_model_id),
     }),
   )
 }
@@ -752,7 +752,7 @@ fn handle_update_config(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match j {

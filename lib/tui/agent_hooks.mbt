@@ -253,7 +253,13 @@ fn dispatch_hook_event(
       // `show_tool_result` on the awaiting-feedback path, and MB always emits
       // FeedbackRequested (the card) for a non-error ask_user call.
       if !@tool.is_ask_user_tool(name) {
-        append_tool_result_entry(output, theme, name, result.content, result.is_error)
+        append_tool_result_entry(
+          output,
+          theme,
+          name,
+          result.content,
+          result.is_error,
+        )
       }
     }
     ErrorOccurred(msg) => {
@@ -379,7 +385,11 @@ fn dispatch_hook_event(
       // Feedback requested - render the rich card (numbered questions +
       // options with the recommended marker), matching Ruby ui2's ask_user
       // branch rather than the truncated format_call summary.
-      append_feedback_requested(output, theme, @tool.render_card(questions, context))
+      append_feedback_requested(
+        output,
+        theme,
+        @tool.render_card(questions, context),
+      )
     CompressionPerformed(removed) =>
       // Context compaction - tell the user why earlier turns disappeared
       append_info_message(

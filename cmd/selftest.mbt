@@ -41,7 +41,7 @@ enum StdoutShape {
   /// stdout must be non-empty plain text.
   Text
   /// stdout must parse as a single JSON value.
-  Json
+  JsonShape
   /// every non-empty stdout line must parse as JSON.
   JsonLines
 }
@@ -169,7 +169,7 @@ fn check_stdout_shape(shape : StdoutShape, stdout : String) -> Array[String] {
       if trimmed.length() == 0 {
         failures.push("expected text stdout, got empty output")
       }
-    Json =>
+    JsonShape =>
       if trimmed.length() == 0 {
         failures.push("expected JSON stdout, got empty output")
       } else if !is_valid_json(trimmed) {
@@ -283,15 +283,15 @@ fn engine_cases() -> Array[EngineCase] {
   })
   cases.push({
     label: "stdout json / json",
-    ok: check_stdout_shape(Json, "{\"a\":1}").length() == 0,
+    ok: check_stdout_shape(JsonShape, "{\"a\":1}").length() == 0,
   })
   cases.push({
     label: "stdout json / not json",
-    ok: check_stdout_shape(Json, "nope").length() > 0,
+    ok: check_stdout_shape(JsonShape, "nope").length() > 0,
   })
   cases.push({
     label: "stdout json / empty",
-    ok: check_stdout_shape(Json, "").length() > 0,
+    ok: check_stdout_shape(JsonShape, "").length() > 0,
   })
   cases.push({
     label: "stdout jsonl / jsonl",
@@ -472,7 +472,7 @@ fn probe_set() -> Array[Probe] {
       name: "list_sessions_json",
       args: ["--list", "--json"],
       exit_expect: Zero,
-      stdout_shape: Json,
+      stdout_shape: JsonShape,
       stdout_contains: ["\"sessions\"", "\"total\""],
       stderr_expect: Clean,
     },
@@ -509,7 +509,7 @@ fn probe_set() -> Array[Probe] {
       name: "eval_offline",
       args: ["eval", "--offline", "--repo", "."],
       exit_expect: Zero,
-      stdout_shape: Json,
+      stdout_shape: JsonShape,
       stdout_contains: ["\"completion_rate\"", "\"repeatability\""],
       stderr_expect: Clean,
     },
@@ -675,14 +675,14 @@ fn render_json_report(
   for run in runs {
     let failures : Array[Json] = []
     for failure in run.failures {
-      failures.push(failure.to_json())
+      failures.push(Json(failure))
     }
     let item : Map[String, Json] = {
-      "name": run.name.to_json(),
-      "target": run.target.to_json(),
-      "executed": run.executed.to_json(),
-      "exit_code": run.exit_code.to_json(),
-      "ok": (run.executed && run.failures.length() == 0).to_json(),
+      "name": Json(run.name),
+      "target": Json(run.target),
+      "executed": Json(run.executed),
+      "exit_code": Json(run.exit_code),
+      "ok": Json((run.executed && run.failures.length() == 0)),
       "failures": Json::array(failures),
     }
     items.push(Json::object(item))
@@ -690,17 +690,17 @@ fn render_json_report(
   let cases : Array[Json] = []
   for case in engine {
     let item : Map[String, Json] = {
-      "label": case.label.to_json(),
-      "ok": case.ok.to_json(),
+      "label": Json(case.label),
+      "ok": Json(case.ok),
     }
     cases.push(Json::object(item))
   }
   let diffs : Array[Json] = []
   for difference in differences {
-    diffs.push(difference.to_json())
+    diffs.push(Json(difference))
   }
   let report : Map[String, Json] = {
-    "ok": ok.to_json(),
+    "ok": Json(ok),
     "engine_checks": Json::array(cases),
     "probes": Json::array(items),
     "differences": Json::array(diffs),

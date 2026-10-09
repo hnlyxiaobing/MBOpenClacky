@@ -126,8 +126,8 @@ fn save_trash_state() -> Unit {
     items_json.push(trash_item_to_json(item))
   }
   let data = Json::object({
-    "items": items_json.to_json(),
-    "updated_at": current_epoch_secs().to_json(),
+    "items": Json(items_json),
+    "updated_at": Json(current_epoch_secs()),
   })
   @fs.write_string_to_file(path, data.stringify()) catch {
     _ => ()
@@ -138,11 +138,11 @@ fn save_trash_state() -> Unit {
 /// Convert a TrashItem to JSON.
 fn trash_item_to_json(item : TrashItem) -> Json {
   Json::object({
-    "id": item.id.to_json(),
-    "item_type": item.item_type.to_json(),
-    "name": item.name.to_json(),
-    "deleted_at": item.deleted_at.to_json(),
-    "expires_at": item.expires_at.to_json(),
+    "id": Json(item.id),
+    "item_type": Json(item.item_type),
+    "name": Json(item.name),
+    "deleted_at": Json(item.deleted_at),
+    "expires_at": Json(item.expires_at),
   })
 }
 
@@ -289,15 +289,15 @@ fn parent_dir_of_path(path : String) -> String? {
 /// fields are emitted as empty/0 (see fix-13 spec risk notes).
 fn trash_file_entry_json(item : TrashItem) -> Json {
   Json::object({
-    "original_path": item.name.to_json(),
-    "deleted_at": item.deleted_at.to_json(),
-    "deleted_by": "".to_json(),
-    "file_mode": "".to_json(),
-    "file_size": (0).to_json(),
-    "file_type": item.item_type.to_json(),
-    "project_name": "".to_json(),
-    "project_root": "".to_json(),
-    "trash_file": item.id.to_json(),
+    "original_path": Json(item.name),
+    "deleted_at": Json(item.deleted_at),
+    "deleted_by": Json(""),
+    "file_mode": Json(""),
+    "file_size": Json((0)),
+    "file_type": Json(item.item_type),
+    "project_name": Json(""),
+    "project_root": Json(""),
+    "trash_file": Json(item.id),
   })
 }
 
@@ -306,16 +306,16 @@ fn trash_file_entry_json(item : TrashItem) -> Json {
 /// Fields without a data source in TrashItem are emitted as empty/0/null.
 fn trash_session_entry_json(item : TrashItem) -> Json {
   Json::object({
-    "session_id": item.id.to_json(),
-    "name": item.name.to_json(),
-    "created_at": "".to_json(),
-    "updated_at": "".to_json(),
-    "deleted_at": item.deleted_at.to_json(),
-    "total_tasks": (0).to_json(),
-    "file_size": (0).to_json(),
+    "session_id": Json(item.id),
+    "name": Json(item.name),
+    "created_at": Json(""),
+    "updated_at": Json(""),
+    "deleted_at": Json(item.deleted_at),
+    "total_tasks": Json((0)),
+    "file_size": Json((0)),
     "model": Json::null(),
-    "working_dir": "".to_json(),
-    "source": "".to_json(),
+    "working_dir": Json(""),
+    "source": Json(""),
   })
 }
 
@@ -335,11 +335,11 @@ pub fn handle_trash_list(request : HttpRequest) -> HttpResponse {
   }
 
   let body = Json::object({
-    "ok": true.to_json(),
-    "files": files.to_json(),
+    "ok": Json(true),
+    "files": Json(files),
     "projects": Json::array([]),
-    "total_count": files.length().to_json(),
-    "total_size": (0).to_json(),
+    "total_count": Json(files.length()),
+    "total_size": Json((0)),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -359,10 +359,10 @@ pub fn handle_trash_sessions_list(request : HttpRequest) -> HttpResponse {
   }
 
   let body = Json::object({
-    "ok": true.to_json(),
-    "sessions": sessions.to_json(),
-    "count": sessions.length().to_json(),
-    "total_size": (0).to_json(),
+    "ok": Json(true),
+    "sessions": Json(sessions),
+    "count": Json(sessions.length()),
+    "total_size": Json((0)),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -409,18 +409,18 @@ pub fn handle_trash_restore(request : HttpRequest) -> HttpResponse {
         return HttpResponse::json_status(
           500,
           Json::object({
-            "ok": false.to_json(),
-            "error": "Trash payload missing".to_json(),
-            "message": "Session data for '\{item.id}' is no longer in the trash directory; nothing was restored".to_json(),
+            "ok": Json(false),
+            "error": Json("Trash payload missing"),
+            "message": Json("Session data for '\{item.id}' is no longer in the trash directory; nothing was restored"),
           }).stringify(),
         )
       }
       let _ = remove_trash_item(id)
       save_trash_state()
       let body = Json::object({
-        "id": item.id.to_json(),
-        "status": "restored".to_json(),
-        "message": "Item restored successfully".to_json(),
+        "id": Json(item.id),
+        "status": Json("restored"),
+        "message": Json("Item restored successfully"),
       }).stringify()
       HttpResponse::ok(body)
     }
@@ -470,9 +470,9 @@ pub fn handle_trash_restore_batch(request : HttpRequest) -> HttpResponse {
   save_trash_state()
 
   let body = Json::object({
-    "restored": restored.to_json(),
-    "not_found": not_found.to_json(),
-    "message": "Batch restore completed".to_json(),
+    "restored": Json(restored),
+    "not_found": Json(not_found),
+    "message": Json("Batch restore completed"),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -491,7 +491,7 @@ pub fn handle_trash_delete(request : HttpRequest) -> HttpResponse {
     // or the bytes stay on disk after the user asked for deletion.
     remove_trashed_session_dir(id)
     save_trash_state()
-    let body = Json::object({ "ok": true.to_json() }).stringify()
+    let body = Json::object({ "ok": Json(true) }).stringify()
     HttpResponse::ok(body)
   } else {
     HttpResponse::not_found("Item not found in trash")
@@ -520,9 +520,9 @@ pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
   }
   if !confirmed {
     let body = Json::object({
-      "ok": false.to_json(),
-      "error": "Missing or false 'confirm' parameter".to_json(),
-      "message": "DELETE /api/trash requires {\"confirm\": true} to prevent accidental data loss".to_json(),
+      "ok": Json(false),
+      "error": Json("Missing or false 'confirm' parameter"),
+      "message": Json("DELETE /api/trash requires {\"confirm\": true} to prevent accidental data loss"),
     }).stringify()
     return HttpResponse::bad_request(body)
   }
@@ -538,9 +538,9 @@ pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
   save_trash_state()
 
   let body = Json::object({
-    "status": "emptied".to_json(),
-    "message": "Trash emptied successfully".to_json(),
-    "items_deleted": count.to_json(),
+    "status": Json("emptied"),
+    "message": Json("Trash emptied successfully"),
+    "items_deleted": Json(count),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -568,9 +568,9 @@ pub fn handle_trash_clear_sessions(request : HttpRequest) -> HttpResponse {
   save_trash_state()
 
   let body = Json::object({
-    "ok": true.to_json(),
-    "deleted_count": deleted_count.to_json(),
-    "days_old": (7).to_json(),
+    "ok": Json(true),
+    "deleted_count": Json(deleted_count),
+    "days_old": Json((7)),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -591,11 +591,11 @@ pub fn handle_trash_stats(request : HttpRequest) -> HttpResponse {
 
   let by_type_obj : Map[String, Json] = Map([])
   for entry in by_type.iter() {
-    by_type_obj.set(entry.0, entry.1.to_json())
+    by_type_obj.set(entry.0, Json(entry.1))
   }
 
   let body = Json::object({
-    "total": trash_state.val.items.length().to_json(),
+    "total": Json(trash_state.val.items.length()),
     "by_type": Json::object(by_type_obj),
   }).stringify()
   HttpResponse::ok(body)
@@ -626,10 +626,10 @@ pub fn handle_trash_add(request : HttpRequest) -> HttpResponse {
   save_trash_state()
 
   let body = Json::object({
-    "id": item.id.to_json(),
-    "status": "trashed".to_json(),
-    "expires_at": item.expires_at.to_json(),
-    "message": "Item moved to trash".to_json(),
+    "id": Json(item.id),
+    "status": Json("trashed"),
+    "expires_at": Json(item.expires_at),
+    "message": Json("Item moved to trash"),
   }).stringify()
   HttpResponse::ok(body)
 }

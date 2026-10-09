@@ -40,8 +40,8 @@ pub fn build_openai_request(
   }
 
   let body : Map[String, Json] = {
-    "model": model.to_json(),
-    "messages": api_messages.to_json(),
+    "model": Json(model),
+    "messages": Json(api_messages),
   }
   // Map literals require static keys; max-token field name is model-dependent
   // (some OpenAI-compatible models only accept max_completion_tokens).
@@ -51,7 +51,7 @@ pub fn build_openai_request(
     Some(limit) => limit
     None => max_tokens
   }
-  body[token_field_for(model)] = effective_max_tokens.to_json()
+  body[token_field_for(model)] = Json(effective_max_tokens)
 
   // Add tools with optional cache_control on last tool
   if tools.length() > 0 {
@@ -69,7 +69,7 @@ pub fn build_openai_request(
                 new_obj[k] = v
               }
               new_obj["cache_control"] = Json::object({
-                "type": "ephemeral".to_json(),
+                "type": Json("ephemeral"),
               })
               cached_tools.push(Json::object(new_obj))
             }
@@ -80,9 +80,9 @@ pub fn build_openai_request(
         }
         i = i + 1
       }
-      body["tools"] = cached_tools.to_json()
+      body["tools"] = Json(cached_tools)
     } else {
-      body["tools"] = tools.to_json()
+      body["tools"] = Json(tools)
     }
   }
 
@@ -131,11 +131,11 @@ fn apply_reasoning_params(
     // GLM-5.3 always thinks: thinking.type "disabled" is rejected with an
     // error (Z.ai migration guide), so "off" maps to the lightest effort
     // "low". Effort accepts low/high/max only; server default is max.
-    body["thinking"] = Json::object({ "type": "enabled".to_json() })
+    body["thinking"] = Json::object({ "type": Json("enabled") })
     if effort_str == "off" ||
       effort_str == "nothink" ||
       effort_str == "disabled" {
-      body["reasoning_effort"] = "low".to_json()
+      body["reasoning_effort"] = Json("low")
     } else if effort_str.length() > 0 {
       let mapped = match effort_str {
         "max" | "xhigh" => "max"
@@ -143,7 +143,7 @@ fn apply_reasoning_params(
         "medium" | "low" => "low"
         _ => "max"
       }
-      body["reasoning_effort"] = mapped.to_json()
+      body["reasoning_effort"] = Json(mapped)
     }
   } else if m.has_prefix("glm-4") || m.has_prefix("glm-5") {
     // GLM (Zhipu / Z.ai) supports a native top-level "thinking" field
@@ -152,7 +152,7 @@ fn apply_reasoning_params(
     if effort_str == "off" ||
       effort_str == "nothink" ||
       effort_str == "disabled" {
-      body["thinking"] = Json::object({ "type": "disabled".to_json() })
+      body["thinking"] = Json::object({ "type": Json("disabled") })
     } else if effort_str.length() > 0 {
       let glm_effort = match effort_str {
         "max" | "xhigh" => "max"
@@ -160,8 +160,8 @@ fn apply_reasoning_params(
         "medium" | "low" => "high" // GLM collapses these to "high"
         _ => "max"
       }
-      body["thinking"] = Json::object({ "type": "enabled".to_json() })
-      body["reasoning_effort"] = glm_effort.to_json()
+      body["thinking"] = Json::object({ "type": Json("enabled") })
+      body["reasoning_effort"] = Json(glm_effort)
     }
   } else if m.has_prefix("kimi-k3") {
     // Kimi K3 reasoning_effort only accepts low/high/max (default max).
@@ -171,7 +171,7 @@ fn apply_reasoning_params(
     if effort_str == "off" ||
       effort_str == "nothink" ||
       effort_str == "disabled" {
-      body["reasoning_effort"] = "low".to_json()
+      body["reasoning_effort"] = Json("low")
     } else if effort_str.length() > 0 {
       let mapped = match effort_str {
         "max" | "xhigh" => "max"
@@ -179,7 +179,7 @@ fn apply_reasoning_params(
         "medium" | "low" => "low"
         _ => "max"
       }
-      body["reasoning_effort"] = mapped.to_json()
+      body["reasoning_effort"] = Json(mapped)
     }
   } else if m.has_prefix("mimo-v2") {
     // MiMo-V2.5 (Xiaomi) controls reasoning via a top-level
@@ -187,9 +187,9 @@ fn apply_reasoning_params(
     if effort_str == "off" ||
       effort_str == "nothink" ||
       effort_str == "disabled" {
-      body["thinking"] = Json::object({ "type": "disabled".to_json() })
+      body["thinking"] = Json::object({ "type": Json("disabled") })
     } else if effort_str.length() > 0 {
-      body["thinking"] = Json::object({ "type": "enabled".to_json() })
+      body["thinking"] = Json::object({ "type": Json("enabled") })
     }
   } else if m == "minimax-m3" {
     // MiniMax-M3 controls thinking via { type: "adaptive" | "disabled" }.
@@ -200,19 +200,19 @@ fn apply_reasoning_params(
     if effort_str == "off" ||
       effort_str == "nothink" ||
       effort_str == "disabled" {
-      body["thinking"] = Json::object({ "type": "disabled".to_json() })
+      body["thinking"] = Json::object({ "type": Json("disabled") })
     } else if effort_str.length() > 0 {
-      body["thinking"] = Json::object({ "type": "adaptive".to_json() })
+      body["thinking"] = Json::object({ "type": Json("adaptive") })
     }
   } else if m.contains("deepseek") {
     // DeepSeek V4 reasoning_effort only accepts low/high/max.
     // xhigh is not recognized — map it to max.
     let effort = if effort_str == "xhigh" { "max" } else { effort_str }
     if effort.length() > 0 {
-      body["reasoning_effort"] = effort.to_json()
+      body["reasoning_effort"] = Json(effort)
     }
   } else if effort_str.length() > 0 {
-    body["reasoning_effort"] = effort_str.to_json()
+    body["reasoning_effort"] = Json(effort_str)
   }
 }
 
@@ -258,7 +258,7 @@ fn add_observability_fields(
       //     因为 `to_api_message` 已把 `system_injected` 剥掉。
       if emit_display_text {
         obj["display_text"] = match msg.display_text {
-          Some(s) => s.to_json()
+          Some(s) => Json(s)
           None => Json::null()
         }
       }
@@ -267,11 +267,11 @@ fn add_observability_fields(
   }
   // Session context fields leak into the wire by design (decision 4).
   match msg.session_date {
-    Some(d) => obj["session_date"] = d.to_json()
+    Some(d) => obj["session_date"] = Json(d)
     None => ()
   }
   match msg.session_context {
-    Some(true) => obj["session_context"] = true.to_json()
+    Some(true) => obj["session_context"] = Json(true)
     _ => ()
   }
 }
@@ -291,9 +291,9 @@ fn normalize_openai_message(
       let filtered = normalize_content_blocks(blocks, vision_supported)
       if filtered.length() == 0 {
         let obj : Map[String, Json] = {
-          "role": msg.role.to_string_value().to_json(),
+          "role": Json(msg.role.to_string_value()),
           "content": Json::array([
-            Json::object({ "type": "text".to_json(), "text": "...".to_json() }),
+            Json::object({ "type": Json("text"), "text": Json("...") }),
           ]),
         }
         add_tool_fields(msg, obj)
@@ -305,8 +305,8 @@ fn normalize_openai_message(
           content_arr.push(content_block_to_json(block))
         }
         let obj : Map[String, Json] = {
-          "role": msg.role.to_string_value().to_json(),
-          "content": content_arr.to_json(),
+          "role": Json(msg.role.to_string_value()),
+          "content": Json(content_arr),
         }
         add_tool_fields(msg, obj)
         add_observability_fields(msg, obj, emit_display_text)
@@ -320,13 +320,13 @@ fn normalize_openai_message(
 /// Convert a Message to its JSON representation manually.
 fn message_to_json(msg : @message.Message, emit_display_text : Bool) -> Json {
   let obj : Map[String, Json] = {
-    "role": msg.role.to_string_value().to_json(),
+    "role": Json(msg.role.to_string_value()),
     "content": content_to_json(msg.content),
   }
   add_tool_fields(msg, obj)
   add_observability_fields(msg, obj, emit_display_text)
   match msg.name {
-    Some(n) => obj["name"] = n.to_json()
+    Some(n) => obj["name"] = Json(n)
     _ => ()
   }
   Json::object(obj)
@@ -336,13 +336,13 @@ fn message_to_json(msg : @message.Message, emit_display_text : Bool) -> Json {
 /// Convert MessageContent to JSON.
 fn content_to_json(content : @message.MessageContent) -> Json {
   match content {
-    @message.Text(s) => s.to_json()
+    @message.Text(s) => Json(s)
     @message.Blocks(blocks) => {
       let arr : Array[Json] = []
       for b in blocks {
         arr.push(content_block_to_json(b))
       }
-      arr.to_json()
+      Json(arr)
     }
   }
 }
@@ -352,13 +352,13 @@ fn content_to_json(content : @message.MessageContent) -> Json {
 fn content_block_to_json(block : @message.ContentBlock) -> Json {
   match block {
     @message.Text(tb) =>
-      Json::object({ "type": "text".to_json(), "text": tb.text.to_json() })
+      Json::object({ "type": Json("text"), "text": Json(tb.text) })
     @message.Image(ib) =>
       Json::object({
-        "type": "image_url".to_json(),
+        "type": Json("image_url"),
         "image_url": Json::object(match ib.detail {
-          Some(detail) => { "url": ib.url.to_json(), "detail": detail.to_json() }
-          None => { "url": ib.url.to_json() }
+          Some(detail) => { "url": Json(ib.url), "detail": Json(detail) }
+          None => { "url": Json(ib.url) }
         }),
       })
   }
@@ -372,11 +372,11 @@ fn add_tool_fields(msg : @message.Message, obj : Map[String, Json]) -> Unit {
       let arr : Array[Json] = []
       for tc in calls {
         let tc_obj : Map[String, Json] = {
-          "id": tc.id.to_json(),
-          "type": "function".to_json(),
+          "id": Json(tc.id),
+          "type": Json("function"),
           "function": Json::object({
-            "name": tc.function.name.to_json(),
-            "arguments": tc.function.arguments.to_json(),
+            "name": Json(tc.function.name),
+            "arguments": Json(tc.function.arguments),
           }),
         }
         // Preserve provider-specific per-call metadata (e.g. Vertex Gemini's
@@ -388,12 +388,12 @@ fn add_tool_fields(msg : @message.Message, obj : Map[String, Json]) -> Unit {
         }
         arr.push(Json::object(tc_obj))
       }
-      obj["tool_calls"] = arr.to_json()
+      obj["tool_calls"] = Json(arr)
     }
     _ => ()
   }
   match msg.tool_call_id {
-    Some(id) => obj["tool_call_id"] = id.to_json()
+    Some(id) => obj["tool_call_id"] = Json(id)
     _ => ()
   }
 }
@@ -599,7 +599,7 @@ pub fn format_openai_tool_results(
       for tc in calls {
         let content = match tool_results.get(tc.id) {
           Some(result) => result
-          None => { "error": "Tool result missing" }.to_json().stringify()
+          None => Json({ "error": "Tool result missing" }).stringify()
         }
         messages.push(
           @message.Message::tool_result(tc.id, tc.function.name, content),

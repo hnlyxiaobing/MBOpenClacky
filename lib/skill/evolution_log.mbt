@@ -59,14 +59,14 @@ pub fn EvolutionLogEntry::new(
 ///|
 pub fn EvolutionLogEntry::to_json(self : EvolutionLogEntry) -> Json {
   Json::object({
-    "id": self.id.to_json(),
-    "created_at": self.created_at.to_json(),
-    "skill_name": self.skill_name.to_json(),
-    "source": self.source.to_json(),
-    "score": self.score.to_json(),
-    "should_improve": self.should_improve.to_json(),
-    "action": self.action.to_json(),
-    "suggestions": Json::array(self.suggestions.map(fn(s) { s.to_json() })),
+    "id": Json(self.id),
+    "created_at": Json(self.created_at),
+    "skill_name": Json(self.skill_name),
+    "source": Json(self.source),
+    "score": Json(self.score),
+    "should_improve": Json(self.should_improve),
+    "action": Json(self.action),
+    "suggestions": Json::array(self.suggestions.map(fn(s) { Json(s) })),
     "backup_path": optional_str_json(self.backup_path),
     "model": optional_str_json(self.model),
     "error": optional_str_json(self.error),
@@ -200,7 +200,7 @@ pub fn append_evolution_log_at(
     }
     entries.push(e)
   }
-  let json = Json::array(entries.map(fn(e) { e.to_json() }))
+  let json = Json::array(entries.map(fn(e) { EvolutionLogEntry::to_json(e) }))
   @fs.write_string_to_file(path, json.stringify()) catch {
     e => return Err("Failed to write evolution log: " + @debug.to_string(e))
   }
@@ -215,7 +215,7 @@ fn dir_name(path : String) -> String {
 ///|
 fn optional_str_json(v : String?) -> Json {
   match v {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
 }

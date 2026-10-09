@@ -52,7 +52,7 @@ test "session skills: returns real non-empty list in orig entry shape" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = sc_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("session_id"), Some("sess-1".to_json()))
+  @debug.assert_eq(obj.get("session_id"), Some(Json("sess-1")))
   guard! obj.get("skills") is Some(Array(skills))
   // Real scan must find the builtin skills (was an empty stub before).
   assert_true(skills.length() > 0)
@@ -67,10 +67,10 @@ test "session skills: returns real non-empty list in orig entry shape" {
       ] {
       assert_true(entry.contains(key))
     }
-    @debug.assert_eq(entry.get("encrypted"), Some(false.to_json()))
-    if entry.get("name") == Some("code-explorer".to_json()) {
+    @debug.assert_eq(entry.get("encrypted"), Some(Json(false)))
+    if entry.get("name") == Some(Json("code-explorer")) {
       saw_code_explorer = true
-      @debug.assert_eq(entry.get("source_type"), Some("default".to_json()))
+      @debug.assert_eq(entry.get("source_type"), Some(Json("default")))
     }
   }
   assert_true(saw_code_explorer)
@@ -105,7 +105,7 @@ test "session skills: user_invocable false skills are excluded" {
   guard! obj.get("skills") is Some(Array(skills))
   for skill in skills {
     guard! skill is Json::Object(entry)
-    assert_false(entry.get("name") == Some(name.to_json()))
+    assert_false(entry.get("name") == Some(Json(name)))
   }
   // ...while the global /api/skills listing still shows the skill shape
   // independent of user_invocable (verified indirectly: the filter only
@@ -134,24 +134,24 @@ test "creator skills: local_skills contains real user skill with orig keys" {
   @debug.assert_eq(resp.status, 200)
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   guard! obj.get("local_skills") is Some(Array(local_entries))
   let mut found = false
   for entry in local_entries {
     guard! entry is Json::Object(e)
-    if e.get("name") == Some(name.to_json()) {
+    if e.get("name") == Some(Json(name)) {
       found = true
       @debug.assert_eq(
         e.get("description"),
-        Some("creator local skill".to_json()),
+        Some(Json("creator local skill")),
       )
-      @debug.assert_eq(e.get("source"), Some("user".to_json()))
-      @debug.assert_eq(e.get("enabled"), Some(true.to_json()))
+      @debug.assert_eq(e.get("source"), Some(Json("user")))
+      @debug.assert_eq(e.get("enabled"), Some(Json(true)))
       // No upload_meta / mtime data source: orig empty-value rule.
       @debug.assert_eq(e.get("platform_version"), Some(Json::null()))
       @debug.assert_eq(e.get("uploaded_at"), Some(Json::null()))
       @debug.assert_eq(e.get("local_modified_at"), Some(Json::null()))
-      @debug.assert_eq(e.get("shadowing_brand"), Some(false.to_json()))
+      @debug.assert_eq(e.get("shadowing_brand"), Some(Json(false)))
     }
   }
   assert_true(found)

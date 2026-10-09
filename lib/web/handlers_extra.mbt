@@ -109,21 +109,21 @@ fn body_has_key(j : Json, key : String) -> Bool {
 /// JSON error body helpers.
 fn bad_json() -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
-    Json::object({ "error": "Invalid JSON body".to_json() }),
+    Json::object({ "error": Json("Invalid JSON body") }),
   )
 }
 
 ///|
 fn err_no_config() -> @core.HttpResponse {
   @core.HttpResponse::internal_server_error().json_value(
-    Json::object({ "error": "Config directory unavailable".to_json() }),
+    Json::object({ "error": Json("Config directory unavailable") }),
   )
 }
 
 ///|
 fn err_msg(msg : String) -> @core.HttpResponse {
   @core.HttpResponse::internal_server_error().json_value(
-    Json::object({ "error": msg.to_json() }),
+    Json::object({ "error": Json(msg) }),
   )
 }
 
@@ -206,14 +206,14 @@ fn enrich_memory_entry(raw : Json) -> Json {
       let size = content.length()
       let updated_at = match o.get("created_at") {
         Some(n) => n
-        None => now_ms().to_json()
+        None => Json(now_ms())
       }
       Json::object({
-        "id": id.to_json(),
-        "filename": (id + ".json").to_json(),
-        "topic": topic.to_json(),
-        "description": content.to_json(),
-        "content": content.to_json(),
+        "id": Json(id),
+        "filename": Json((id + ".json")),
+        "topic": Json(topic),
+        "description": Json(content),
+        "content": Json(content),
         "tags": match o.get("tags") {
           Some(t) => t
           None => Json::array(empty_arr())
@@ -221,10 +221,10 @@ fn enrich_memory_entry(raw : Json) -> Json {
         "updated_at": updated_at,
         "created_at": match o.get("created_at") {
           Some(c) => c
-          None => now_ms().to_json()
+          None => Json(now_ms())
         },
-        "size": size.to_json(),
-        "preview": preview.to_json(),
+        "size": Json(size),
+        "preview": Json(preview),
       })
     }
     _ => raw
@@ -250,8 +250,8 @@ pub fn handle_memories_get(
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "dir": dir.to_json(),
+          "ok": Json(true),
+          "dir": Json(dir),
           "memories": Json::array(enriched),
         }),
       )
@@ -270,7 +270,7 @@ pub fn handle_memories_post(
   let content = extra_json_str(body, "content")
   if content.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "content required".to_json() }),
+      Json::object({ "error": Json("content required") }),
     )
   }
   match extra_path("memories.json") {
@@ -286,16 +286,16 @@ pub fn handle_memories_post(
         _ => Json::array(empty_arr())
       }
       let entry = Json::object({
-        "id": id.to_json(),
-        "content": content.to_json(),
+        "id": Json(id),
+        "content": Json(content),
         "tags": tags,
-        "created_at": now_ms().to_json(),
+        "created_at": Json(now_ms()),
       })
       arr.push(entry)
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "id": id.to_json() }),
+            Json::object({ "ok": Json(true), "id": Json(id) }),
           )
         Err(e) => err_msg(e)
       }
@@ -314,7 +314,7 @@ pub fn handle_memories_put(
   let id = extra_json_str(body, "id")
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id required".to_json() }),
+      Json::object({ "error": Json("id required") }),
     )
   }
   match extra_path("memories.json") {
@@ -329,10 +329,10 @@ pub fn handle_memories_put(
                 let content = if extra_json_str(body, "content").is_empty() {
                   match o.get("content") {
                     Some(c) => c
-                    None => "".to_json()
+                    None => Json("")
                   }
                 } else {
-                  extra_json_str(body, "content").to_json()
+                  Json(extra_json_str(body, "content"))
                 }
                 let tags = match body {
                   Object(bo) =>
@@ -350,12 +350,12 @@ pub fn handle_memories_put(
                   _ => Json::array(empty_arr())
                 }
                 arr[i] = Json::object({
-                  "id": id.to_json(),
+                  "id": Json(id),
                   "content": content,
                   "tags": tags,
                   "created_at": match o.get("created_at") {
                     Some(c) => c
-                    None => now_ms().to_json()
+                    None => Json(now_ms())
                   },
                 })
                 found = true
@@ -367,13 +367,13 @@ pub fn handle_memories_put(
       }
       if !found {
         return @core.HttpResponse::not_found().json_value(
-          Json::object({ "error": "memory not found".to_json() }),
+          Json::object({ "error": Json("memory not found") }),
         )
       }
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -398,7 +398,7 @@ pub fn handle_memories_delete(
   }
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id query parameter required".to_json() }),
+      Json::object({ "error": Json("id query parameter required") }),
     )
   }
   match extra_path("memories.json") {
@@ -417,7 +417,7 @@ pub fn handle_memories_delete(
       match save_array(p, filtered) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -458,7 +458,7 @@ pub fn handle_memory_file_get(
     Some(p) => memory_filename_to_id(p.to_owned())
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: filename".to_json() }),
+        Json::object({ "error": Json("Missing parameter: filename") }),
       )
   }
   match load_memories_array() {
@@ -470,7 +470,7 @@ pub fn handle_memory_file_get(
               Some(String(existing)) if existing == id =>
                 return @core.HttpResponse::ok().json_value(
                   Json::object({
-                    "ok": true.to_json(),
+                    "ok": Json(true),
                     "memory": enrich_memory_entry(e),
                   }),
                 )
@@ -480,7 +480,7 @@ pub fn handle_memory_file_get(
         }
       }
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "memory not found".to_json() }),
+        Json::object({ "error": Json("memory not found") }),
       )
     }
     None => err_no_config()
@@ -498,7 +498,7 @@ pub fn handle_memory_file_put(
     Some(p) => memory_filename_to_id(p.to_owned())
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: filename".to_json() }),
+        Json::object({ "error": Json("Missing parameter: filename") }),
       )
   }
   let body : Json = event.req.body() catch { _ => return bad_json() }
@@ -513,10 +513,10 @@ pub fn handle_memory_file_put(
                 let content = if extra_json_str(body, "content").is_empty() {
                   match o.get("content") {
                     Some(c) => c
-                    None => "".to_json()
+                    None => Json("")
                   }
                 } else {
-                  extra_json_str(body, "content").to_json()
+                  Json(extra_json_str(body, "content"))
                 }
                 let tags = match body {
                   Object(bo) =>
@@ -534,12 +534,12 @@ pub fn handle_memory_file_put(
                   _ => Json::array(empty_arr())
                 }
                 arr[i] = Json::object({
-                  "id": id.to_json(),
+                  "id": Json(id),
                   "content": content,
                   "tags": tags,
                   "created_at": match o.get("created_at") {
                     Some(c) => c
-                    None => now_ms().to_json()
+                    None => Json(now_ms())
                   },
                 })
                 found = true
@@ -551,13 +551,13 @@ pub fn handle_memory_file_put(
       }
       if !found {
         return @core.HttpResponse::not_found().json_value(
-          Json::object({ "error": "memory not found".to_json() }),
+          Json::object({ "error": Json("memory not found") }),
         )
       }
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -576,7 +576,7 @@ pub fn handle_memory_file_delete(
     Some(p) => memory_filename_to_id(p.to_owned())
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: filename".to_json() }),
+        Json::object({ "error": Json("Missing parameter: filename") }),
       )
   }
   match load_memories_array() {
@@ -600,13 +600,13 @@ pub fn handle_memory_file_delete(
       })
       if !found {
         return @core.HttpResponse::not_found().json_value(
-          Json::object({ "error": "memory not found".to_json() }),
+          Json::object({ "error": Json("memory not found") }),
         )
       }
       match save_array(p, filtered) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -649,7 +649,7 @@ pub fn handle_settings_put(
     Object(_) => ()
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "settings object required".to_json() }),
+        Json::object({ "error": Json("settings object required") }),
       )
   }
   match extra_path("settings.json") {
@@ -665,7 +665,7 @@ pub fn handle_settings_put(
       match save_array(p, [merged]) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "settings": merged }),
+            Json::object({ "ok": Json(true), "settings": merged }),
           )
         Err(e) => err_msg(e)
       }
@@ -718,7 +718,7 @@ pub fn handle_share_post(
   let target = extra_json_str(body, "target")
   if stype.is_empty() || target.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "type and target required".to_json() }),
+      Json::object({ "error": Json("type and target required") }),
     )
   }
   match extra_path("shares.json") {
@@ -727,17 +727,17 @@ pub fn handle_share_post(
       let id = extra_id()
       let content = extra_json_str(body, "content")
       let entry = Json::object({
-        "id": id.to_json(),
-        "type": stype.to_json(),
-        "target": target.to_json(),
-        "content": content.to_json(),
-        "created_at": now_ms().to_json(),
+        "id": Json(id),
+        "type": Json(stype),
+        "target": Json(target),
+        "content": Json(content),
+        "created_at": Json(now_ms()),
       })
       arr.push(entry)
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "id": id.to_json() }),
+            Json::object({ "ok": Json(true), "id": Json(id) }),
           )
         Err(e) => err_msg(e)
       }
@@ -774,7 +774,7 @@ pub fn handle_models_post(
   let model = extra_json_str(body, "model")
   if name.is_empty() || model.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "name and model required".to_json() }),
+      Json::object({ "error": Json("name and model required") }),
     )
   }
   match extra_path("models.json") {
@@ -782,17 +782,17 @@ pub fn handle_models_post(
       let arr = load_array(p)
       let id = extra_id()
       let entry = Json::object({
-        "id": id.to_json(),
-        "name": name.to_json(),
-        "base_url": extra_json_str(body, "base_url").to_json(),
-        "model": model.to_json(),
-        "api_key": extra_json_str(body, "api_key").to_json(),
+        "id": Json(id),
+        "name": Json(name),
+        "base_url": Json(extra_json_str(body, "base_url")),
+        "model": Json(model),
+        "api_key": Json(extra_json_str(body, "api_key")),
       })
       arr.push(entry)
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "id": id.to_json() }),
+            Json::object({ "ok": Json(true), "id": Json(id) }),
           )
         Err(e) => err_msg(e)
       }
@@ -810,7 +810,7 @@ pub fn handle_models_put(
   let id = path_id(event)
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id path parameter required".to_json() }),
+      Json::object({ "error": Json("id path parameter required") }),
     )
   }
   let body : Json = event.req.body() catch { _ => return bad_json() }
@@ -824,11 +824,11 @@ pub fn handle_models_put(
             match o.get("id") {
               Some(String(existing)) if existing == id => {
                 arr[i] = Json::object({
-                  "id": id.to_json(),
-                  "name": extra_json_str(body, "name").to_json(),
-                  "base_url": extra_json_str(body, "base_url").to_json(),
-                  "model": extra_json_str(body, "model").to_json(),
-                  "api_key": extra_json_str(body, "api_key").to_json(),
+                  "id": Json(id),
+                  "name": Json(extra_json_str(body, "name")),
+                  "base_url": Json(extra_json_str(body, "base_url")),
+                  "model": Json(extra_json_str(body, "model")),
+                  "api_key": Json(extra_json_str(body, "api_key")),
                 })
                 found = true
               }
@@ -839,13 +839,13 @@ pub fn handle_models_put(
       }
       if !found {
         return @core.HttpResponse::not_found().json_value(
-          Json::object({ "error": "model not found".to_json() }),
+          Json::object({ "error": Json("model not found") }),
         )
       }
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -863,7 +863,7 @@ pub fn handle_models_delete(
   let id = path_id(event)
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id path parameter required".to_json() }),
+      Json::object({ "error": Json("id path parameter required") }),
     )
   }
   match extra_path("models.json") {
@@ -882,7 +882,7 @@ pub fn handle_models_delete(
       match save_array(p, filtered) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json() }),
+            Json::object({ "ok": Json(true) }),
           )
         Err(e) => err_msg(e)
       }
@@ -902,7 +902,7 @@ pub fn handle_benchmark_model_get(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   match extra_path("benchmark_models.json") {
@@ -921,8 +921,8 @@ pub fn handle_benchmark_model_get(
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": session_id.to_json(),
-          "model": "".to_json(),
+          "session_id": Json(session_id),
+          "model": Json(""),
         }),
       )
     }
@@ -939,14 +939,14 @@ pub fn handle_benchmark_model_post(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   let body : Json = event.req.body() catch { _ => return bad_json() }
   let model = extra_json_str(body, "model")
   if model.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "model required".to_json() }),
+      Json::object({ "error": Json("model required") }),
     )
   }
   match extra_path("benchmark_models.json") {
@@ -959,9 +959,9 @@ pub fn handle_benchmark_model_post(
             match o.get("session_id") {
               Some(String(sid)) if sid == session_id => {
                 arr[i] = Json::object({
-                  "session_id": session_id.to_json(),
-                  "model": model.to_json(),
-                  "updated_at": now_ms().to_json(),
+                  "session_id": Json(session_id),
+                  "model": Json(model),
+                  "updated_at": Json(now_ms()),
                 })
                 found = true
               }
@@ -973,16 +973,16 @@ pub fn handle_benchmark_model_post(
       if !found {
         arr.push(
           Json::object({
-            "session_id": session_id.to_json(),
-            "model": model.to_json(),
-            "updated_at": now_ms().to_json(),
+            "session_id": Json(session_id),
+            "model": Json(model),
+            "updated_at": Json(now_ms()),
           }),
         )
       }
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
-            Json::object({ "ok": true.to_json(), "model": model.to_json() }),
+            Json::object({ "ok": Json(true), "model": Json(model) }),
           )
         Err(e) => err_msg(e)
       }
@@ -1004,7 +1004,7 @@ pub async fn handle_session_benchmark(
   let models = server_ref.val.config.models
   if models.is_empty() {
     return @core.HttpResponse::ok().json_value(
-      Json::object({ "ok": true.to_json(), "results": Json::array([]) }),
+      Json::object({ "ok": Json(true), "results": Json::array([]) }),
     )
   }
 
@@ -1039,19 +1039,19 @@ pub async fn handle_session_benchmark(
         if http_resp.status_code >= 200 && http_resp.status_code < 300 {
           results.push(
             Json::object({
-              "model_id": model_id.to_json(),
-              "ok": true.to_json(),
-              "ttft_ms": elapsed.to_json(),
+              "model_id": Json(model_id),
+              "ok": Json(true),
+              "ttft_ms": Json(elapsed),
             }),
           )
         } else {
           let err_msg = extract_err_snippet(http_resp.body)
           results.push(
             Json::object({
-              "model_id": model_id.to_json(),
-              "ok": false.to_json(),
-              "ttft_ms": elapsed.to_json(),
-              "error": err_msg.to_json(),
+              "model_id": Json(model_id),
+              "ok": Json(false),
+              "ttft_ms": Json(elapsed),
+              "error": Json(err_msg),
             }),
           )
         }
@@ -1065,10 +1065,10 @@ pub async fn handle_session_benchmark(
         }
         results.push(
           Json::object({
-            "model_id": model_id.to_json(),
-            "ok": false.to_json(),
-            "ttft_ms": elapsed.to_json(),
-            "error": err_msg.to_json(),
+            "model_id": Json(model_id),
+            "ok": Json(false),
+            "ttft_ms": Json(elapsed),
+            "error": Json(err_msg),
           }),
         )
       }
@@ -1076,7 +1076,7 @@ pub async fn handle_session_benchmark(
   }
 
   @core.HttpResponse::ok().json_value(
-    Json::object({ "ok": true.to_json(), "results": Json::array(results) }),
+    Json::object({ "ok": Json(true), "results": Json::array(results) }),
   )
 }
 
@@ -1132,14 +1132,14 @@ pub fn handle_session_time_machine_get(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   match extra_path("time_machine_" + session_id + ".json") {
     Some(p) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": session_id.to_json(),
+          "session_id": Json(session_id),
           "points": Json::array(load_array(p)),
         }),
       )
@@ -1156,7 +1156,7 @@ pub fn handle_session_time_machine_post(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   let body : Json = event.req.body() catch { _ => Json::object(Map([])) }
@@ -1166,17 +1166,17 @@ pub fn handle_session_time_machine_post(
       let arr = load_array(p)
       let id = extra_id()
       let entry = Json::object({
-        "id": id.to_json(),
-        "description": description.to_json(),
-        "created_at": now_ms().to_json(),
+        "id": Json(id),
+        "description": Json(description),
+        "created_at": Json(now_ms()),
       })
       arr.push(entry)
       match save_array(p, arr) {
         Ok(_) =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "id": id.to_json(),
+              "ok": Json(true),
+              "id": Json(id),
               "points": Json::array(arr),
             }),
           )
@@ -1197,7 +1197,7 @@ pub fn handle_session_time_machine_diff(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   let task_id = match event.param("task_id") {
@@ -1206,10 +1206,10 @@ pub fn handle_session_time_machine_diff(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "session_id": session_id.to_json(),
-      "task_id": task_id.to_json(),
-      "diff": "".to_json(),
-      "available": false.to_json(),
+      "session_id": Json(session_id),
+      "task_id": Json(task_id),
+      "diff": Json(""),
+      "available": Json(false),
     }),
   )
 }
@@ -1223,7 +1223,7 @@ pub fn handle_session_time_machine_restore_preview(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   let task_id = match event.param("task_id") {
@@ -1232,10 +1232,10 @@ pub fn handle_session_time_machine_restore_preview(
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "session_id": session_id.to_json(),
-      "task_id": task_id.to_json(),
-      "preview": "".to_json(),
-      "available": false.to_json(),
+      "session_id": Json(session_id),
+      "task_id": Json(task_id),
+      "preview": Json(""),
+      "available": Json(false),
     }),
   )
 }
@@ -1252,14 +1252,14 @@ pub fn handle_session_time_machine_switch(
   let session_id = path_id(event)
   if session_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "session id required".to_json() }),
+      Json::object({ "error": Json("session id required") }),
     )
   }
   let body : Json = event.req.body() catch { _ => Json::object(Map([])) }
   let task_id = extra_json_str(body, "task_id")
   if task_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "task_id required".to_json() }),
+      Json::object({ "error": Json("task_id required") }),
     )
   }
   match extra_path("time_machine_" + session_id + ".json") {
@@ -1281,16 +1281,16 @@ pub fn handle_session_time_machine_switch(
         Some(_) =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "message": ("Switched to task " + task_id).to_json(),
-              "task_id": task_id.to_json(),
+              "ok": Json(true),
+              "message": Json(("Switched to task " + task_id)),
+              "task_id": Json(task_id),
             }),
           )
         None =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": false.to_json(),
-              "error": "Task not found".to_json(),
+              "ok": Json(false),
+              "error": Json("Task not found"),
             }),
           )
       }
@@ -1323,9 +1323,9 @@ fn persist_agent_config(config : @config.AgentConfig) -> Result[Unit, String] {
 fn err_config_persist(msg : String) -> @core.HttpResponse {
   @core.HttpResponse::internal_server_error().json_value(
     Json::object({
-      "ok": false.to_json(),
-      "error": "Failed to persist configuration".to_json(),
-      "detail": msg.to_json(),
+      "ok": Json(false),
+      "error": Json("Failed to persist configuration"),
+      "detail": Json(msg),
     }),
   )
 }
@@ -1358,8 +1358,8 @@ pub fn handle_config_models_post(
     }
     return @core.HttpResponse::bad_request().json_value(
       Json::object({
-        "ok": false.to_json(),
-        "error": ("Missing required field(s): " + missing.join(", ")).to_json(),
+        "ok": Json(false),
+        "error": Json(("Missing required field(s): " + missing.join(", "))),
       }),
     )
   }
@@ -1394,9 +1394,9 @@ pub fn handle_config_models_post(
   }
   @core.HttpResponse::created().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "model": mc.to_json(),
-      "current_index": (cfg.models.length() - 1).to_json(),
+      "ok": Json(true),
+      "model": Json(mc),
+      "current_index": Json((cfg.models.length() - 1)),
     }),
   )
 }
@@ -1410,7 +1410,7 @@ pub fn handle_config_models_patch(
   let id = path_id(event)
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id required".to_json() }),
+      Json::object({ "error": Json("id required") }),
     )
   }
   let body : Json = event.req.body() catch { _ => return bad_json() }
@@ -1475,14 +1475,14 @@ pub fn handle_config_models_patch(
   }
   if !found {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "model not found".to_json() }),
+      Json::object({ "error": Json("model not found") }),
     )
   }
   match persist_agent_config(cfg) {
     Ok(_) => ()
     Err(msg) => return err_config_persist(msg)
   }
-  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
 }
 
 ///|
@@ -1494,7 +1494,7 @@ pub fn handle_config_models_delete(
   let id = path_id(event)
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id required".to_json() }),
+      Json::object({ "error": Json("id required") }),
     )
   }
   let cfg = server_ref.val.config
@@ -1507,7 +1507,7 @@ pub fn handle_config_models_delete(
   }
   if filtered.length() == before {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "model not found".to_json() }),
+      Json::object({ "error": Json("model not found") }),
     )
   }
   cfg.models = filtered
@@ -1520,7 +1520,7 @@ pub fn handle_config_models_delete(
     Ok(_) => ()
     Err(msg) => return err_config_persist(msg)
   }
-  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
 }
 
 ///|
@@ -1532,7 +1532,7 @@ pub fn handle_config_models_set_default(
   let id = path_id(event)
   if id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "id required".to_json() }),
+      Json::object({ "error": Json("id required") }),
     )
   }
   let cfg = server_ref.val.config
@@ -1545,7 +1545,7 @@ pub fn handle_config_models_set_default(
   }
   if !found {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "model not found".to_json() }),
+      Json::object({ "error": Json("model not found") }),
     )
   }
   cfg.current_model_id = Some(id)
@@ -1565,7 +1565,7 @@ pub fn handle_config_models_set_default(
     Err(msg) => return err_config_persist(msg)
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "ok": true.to_json(), "current_model_id": id.to_json() }),
+    Json::object({ "ok": Json(true), "current_model_id": Json(id) }),
   )
 }
 
@@ -1583,41 +1583,41 @@ pub fn handle_providers_list(
   let providers : Array[Json] = []
   for preset in @config.Providers::all() {
     let obj : Map[String, Json] = Map([])
-    obj["id"] = preset.id.to_json()
-    obj["name"] = preset.name.to_json()
+    obj["id"] = Json(preset.id)
+    obj["name"] = Json(preset.name)
     match preset.name_key {
-      Some(k) => obj["name_key"] = k.to_json()
+      Some(k) => obj["name_key"] = Json(k)
       None => ()
     }
-    obj["base_url"] = preset.base_url.to_json()
-    obj["default_model"] = preset.default_model.to_json()
-    obj["models"] = preset.models.to_json()
+    obj["base_url"] = Json(preset.base_url)
+    obj["default_model"] = Json(preset.default_model)
+    obj["models"] = Json(preset.models)
     if !preset.endpoint_variants.is_empty() {
       let variants : Array[Json] = []
       for v in preset.endpoint_variants {
         let vobj : Map[String, Json] = Map([])
-        vobj["label"] = v.label.to_json()
+        vobj["label"] = Json(v.label)
         match v.label_key {
-          Some(k) => vobj["label_key"] = k.to_json()
+          Some(k) => vobj["label_key"] = Json(k)
           None => ()
         }
-        vobj["base_url"] = v.base_url.to_json()
+        vobj["base_url"] = Json(v.base_url)
         match v.region {
-          Some(r) => vobj["region"] = r.to_json()
+          Some(r) => vobj["region"] = Json(r)
           None => ()
         }
         variants.push(Json::object(vobj))
       }
-      obj["endpoint_variants"] = variants.to_json()
+      obj["endpoint_variants"] = Json(variants)
     }
     match preset.website_url {
-      Some(u) => obj["website_url"] = u.to_json()
+      Some(u) => obj["website_url"] = Json(u)
       None => ()
     }
     providers.push(Json::object(obj))
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "providers": providers.to_json() }),
+    Json::object({ "providers": Json(providers) }),
   )
 }
 
@@ -1641,7 +1641,7 @@ fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
   let body = event.req.raw_body
   if body.length() == 0 {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "Empty request body".to_json() }),
+      Json::object({ "error": Json("Empty request body") }),
     )
   }
   let content_type = event.req.get_header("Content-Type").unwrap_or("")
@@ -1650,7 +1650,7 @@ fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
     None =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({
-          "error": "No file part found in multipart body".to_json(),
+          "error": Json("No file part found in multipart body"),
         }),
       )
   }
@@ -1658,7 +1658,7 @@ fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
   let save_name = sanitize_upload_filename(filename)
   if save_name.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "Invalid file name".to_json() }),
+      Json::object({ "error": Json("Invalid file name") }),
     )
   }
   // Save to a temp location under the config dir.
@@ -1677,14 +1677,14 @@ fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
   @fs.write_bytes_to_file(save_path, content) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": @debug.to_string(e).to_json() }),
+        Json::object({ "error": Json(@debug.to_string(e)) }),
       )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "name": save_name.to_json(),
-      "path": save_path.to_json(),
+      "ok": Json(true),
+      "name": Json(save_name),
+      "path": Json(save_path),
     }),
   )
 }
@@ -1854,7 +1854,7 @@ fn load_pinned_map() -> Map[String, Bool] {
 fn save_pinned_map(m : Map[String, Bool]) -> Result[Unit, String] {
   let obj : Map[String, Json] = Map([])
   for k, v in m {
-    obj[k] = v.to_json()
+    obj[k] = Json(v)
   }
   match extra_path("session_pinned.json") {
     Some(p) => {
@@ -1886,11 +1886,11 @@ fn handle_config_settings_get(
   let cfg = server_ref.val.config
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "enable_compression": cfg.enable_compression.to_json(),
-      "enable_prompt_caching": cfg.enable_prompt_caching.to_json(),
-      "memory_update_enabled": cfg.memory_update_enabled.to_json(),
-      "proxy_url": cfg.proxy_url.to_json(),
+      "ok": Json(true),
+      "enable_compression": Json(cfg.enable_compression),
+      "enable_prompt_caching": Json(cfg.enable_prompt_caching),
+      "memory_update_enabled": Json(cfg.memory_update_enabled),
+      "proxy_url": Json(cfg.proxy_url),
     }),
   )
 }
@@ -1908,7 +1908,7 @@ fn handle_config_settings_patch(
     Object(o) => o
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "settings object required".to_json() }),
+        Json::object({ "error": Json("settings object required") }),
       )
   }
   let cfg = server_ref.val.config
@@ -1939,7 +1939,7 @@ fn handle_config_settings_patch(
   match persist_agent_config(cfg) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json() }),
+        Json::object({ "ok": Json(true) }),
       )
     Err(msg) => return err_config_persist(msg)
   }

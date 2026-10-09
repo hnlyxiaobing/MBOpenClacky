@@ -45,11 +45,11 @@ pub fn package_extension(
   let sha256 = compute_checksum(ext.manifest.id, ext.manifest.version, ext_dir)
   // Write sidecar metadata.
   let info_obj : Map[String, Json] = Map([])
-  info_obj["id"] = ext.manifest.id.to_json()
-  info_obj["version"] = ext.manifest.version.to_json()
-  info_obj["sha256"] = sha256.to_json()
-  info_obj["root_path"] = ext_dir.to_json()
-  info_obj["packaged_at"] = @agent.current_time_ms().to_json()
+  info_obj["id"] = Json(ext.manifest.id)
+  info_obj["version"] = Json(ext.manifest.version)
+  info_obj["sha256"] = Json(sha256)
+  info_obj["root_path"] = Json(ext_dir)
+  info_obj["packaged_at"] = Json(@agent.current_time_ms())
   let info_path = @path.Path::join(out_dir, @path.Path(package_name + ".json")).to_string()
   @fs.write_string_to_file(info_path, Json::object(info_obj).stringify()) catch {
     e => return Err("failed to write package info: " + @debug.to_string(e))

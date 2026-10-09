@@ -36,14 +36,14 @@ fn handle_files_list(
     Ok(p) => p
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   if !@fs.path_exists(dir) {
     return @core.HttpResponse::not_found().json_value(
       Json::object({
-        "error": "Path not found".to_json(),
-        "path": dir.to_json(),
+        "error": Json("Path not found"),
+        "path": Json(dir),
       }),
     )
   }
@@ -51,8 +51,8 @@ fn handle_files_list(
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to read directory".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to read directory"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
@@ -61,14 +61,14 @@ fn handle_files_list(
     let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let is_dir = @fs.path_exists(full) && is_directory(full)
     items.push(
-      Json::object({ "name": name.to_json(), "is_dir": is_dir.to_json() }),
+      Json::object({ "name": Json(name), "is_dir": Json(is_dir) }),
     )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "path": dir.to_json(),
-      "entries": items.to_json(),
-      "count": entries.length().to_json(),
+      "path": Json(dir),
+      "entries": Json(items),
+      "count": Json(entries.length()),
     }),
   )
 }
@@ -84,7 +84,7 @@ fn handle_files_read(
     Some(p) if !p.is_empty() => p
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing 'path' query parameter".to_json() }),
+        Json::object({ "error": Json("Missing 'path' query parameter") }),
       )
   }
   // Fix: [C3] Files API无路径校验，存在路径穿越风险 — read操作路径校验
@@ -92,14 +92,14 @@ fn handle_files_read(
     Ok(p) => p
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   if !@fs.path_exists(file_path) {
     return @core.HttpResponse::not_found().json_value(
       Json::object({
-        "error": "File not found".to_json(),
-        "path": file_path.to_json(),
+        "error": Json("File not found"),
+        "path": Json(file_path),
       }),
     )
   }
@@ -107,16 +107,16 @@ fn handle_files_read(
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to read file".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to read file"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "path": file_path.to_json(),
-      "content": content.to_json(),
-      "size": content.length().to_json(),
+      "path": Json(file_path),
+      "content": Json(content),
+      "size": Json(content.length()),
     }),
   )
 }
@@ -132,7 +132,7 @@ fn handle_files_write(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let file_path : String = match j {
@@ -141,12 +141,12 @@ fn handle_files_write(
         Some(String(p)) => p
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'path' field".to_json() }),
+            Json::object({ "error": Json("Missing 'path' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Fix: [C3] Files API无路径校验，存在路径穿越风险 — write操作路径校验(严格)
@@ -154,7 +154,7 @@ fn handle_files_write(
     Ok(p) => p
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   let content : String = match j {
@@ -163,12 +163,12 @@ fn handle_files_write(
         Some(String(c)) => c
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'content' field".to_json() }),
+            Json::object({ "error": Json("Missing 'content' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Ensure parent directory exists
@@ -180,16 +180,16 @@ fn handle_files_write(
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to write file".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to write file"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "path": file_path.to_json(),
-      "written": content.length().to_json(),
-      "status": "ok".to_json(),
+      "path": Json(file_path),
+      "written": Json(content.length()),
+      "status": Json("ok"),
     }),
   )
 }
@@ -205,7 +205,7 @@ fn handle_files_upload(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let dir : String = match j {
@@ -222,12 +222,12 @@ fn handle_files_upload(
         Some(String(f)) => f
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'filename' field".to_json() }),
+            Json::object({ "error": Json("Missing 'filename' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Fix: [C3] Files API无路径校验，存在路径穿越风险 — upload操作路径+文件名校验(严格)
@@ -235,14 +235,14 @@ fn handle_files_upload(
     Ok(p) => p
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   let filename = match validate_path(filename) {
     Ok(p) => p
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
   let b64 : String = match j {
@@ -251,12 +251,12 @@ fn handle_files_upload(
         Some(String(b)) => b
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'content_base64' field".to_json() }),
+            Json::object({ "error": Json("Missing 'content_base64' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Ensure target directory exists
@@ -267,24 +267,24 @@ fn handle_files_upload(
   let bytes = @base64.decode(b64.view()) catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid base64 content".to_json() }),
+        Json::object({ "error": Json("Invalid base64 content") }),
       )
   }
   @fs.write_bytes_to_file(target, bytes) catch {
     e =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to write file".to_json(),
-          "detail": @debug.to_string(e).to_json(),
+          "error": Json("Failed to write file"),
+          "detail": Json(@debug.to_string(e)),
         }),
       )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "path": target.to_json(),
-      "filename": filename.to_json(),
-      "size": bytes.length().to_json(),
-      "status": "uploaded".to_json(),
+      "path": Json(target),
+      "filename": Json(filename),
+      "size": Json(bytes.length()),
+      "status": Json("uploaded"),
     }),
   )
 }
@@ -297,19 +297,19 @@ fn handle_files_paths(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let home = match @utils.home_dir() {
-    Some(h) => h.to_json()
+    Some(h) => Json(h)
     None => Json::null()
   }
   let config = match @utils.config_dir() {
-    Some(c) => c.to_json()
+    Some(c) => Json(c)
     None => Json::null()
   }
   let sessions = match @utils.sessions_dir() {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
   let skills = match @utils.skills_dir() {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
   @core.HttpResponse::ok().json_value(
@@ -318,7 +318,7 @@ fn handle_files_paths(
       "config_dir": config,
       "sessions_dir": sessions,
       "skills_dir": skills,
-      "working_dir": ".".to_json(),
+      "working_dir": Json("."),
     }),
   )
 }

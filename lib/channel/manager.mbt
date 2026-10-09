@@ -508,12 +508,12 @@ pub fn ChannelManager::save_config(
   for config in self.configs {
     let settings : Map[String, Json] = Map([])
     for key, value in config.settings {
-      settings.set(key, value.to_json())
+      settings.set(key, Json(value))
     }
     entries.push(
       Json::object({
-        "platform": config.platform.to_string_value().to_json(),
-        "enabled": config.enabled.to_json(),
+        "platform": Json(config.platform.to_string_value()),
+        "enabled": Json(config.enabled),
         "settings": Json::object(settings),
       }),
     )

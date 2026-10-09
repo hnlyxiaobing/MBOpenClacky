@@ -79,11 +79,7 @@ fn split_server_url(url : String) -> Result[(String, String), String] {
     return Err("HTTP MCP transport has no host in the url: \{url}")
   }
   let origin = url[:scheme_end + slash].to_owned()
-  let path = if slash >= rest.length() {
-    "/"
-  } else {
-    rest[slash:].to_owned()
-  }
+  let path = if slash >= rest.length() { "/" } else { rest[slash:].to_owned() }
   Ok((origin, path))
 }
 
@@ -102,9 +98,9 @@ fn parse_json_opt(text : String) -> Json? {
 /// case-insensitive header map.
 fn HttpTransport::request_headers(self : HttpTransport) -> @http.Headers {
   let result : @http.Headers = Map([])
-  self.build_headers().each(fn(k, v) {
-    result[@http.CaseInsensitiveString(k)] = v
-  })
+  self
+  .build_headers()
+  .each(fn(k, v) { result[@http.CaseInsensitiveString(k)] = v })
   result
 }
 
@@ -167,10 +163,7 @@ fn HttpTransport::forward(self : HttpTransport, payload : String) -> Unit {
 /// Validate the configured URL and mark the transport usable. No network
 /// round trip happens here: Streamable HTTP has no connection to establish,
 /// and the first request reports reachability honestly.
-pub impl Transport for HttpTransport with fn start(self) -> Result[
-  Unit,
-  String,
-] {
+pub impl Transport for HttpTransport with fn start(self) -> Result[Unit, String] {
   if self.is_alive {
     return Ok(())
   }
@@ -215,8 +208,8 @@ pub impl Transport for HttpTransport with fn send_message(self, message) -> Resu
   }
   defer client.close()
   let posted : Result[@http.Response, String] = Ok(
-      client.post(path, message, extra_headers=self.request_headers()),
-    ) catch {
+    client.post(path, message, extra_headers=self.request_headers()),
+  ) catch {
     _ => Err("Failed to POST to the MCP server: \{self.url}")
   }
   let response = match posted {
@@ -225,7 +218,9 @@ pub impl Transport for HttpTransport with fn send_message(self, message) -> Resu
   }
   self.capture_session_id(response.headers)
   if response.code >= 400 {
-    return Err("MCP server rejected the notification with HTTP \{response.code}")
+    return Err(
+      "MCP server rejected the notification with HTTP \{response.code}",
+    )
   }
   // 202 Accepted (notifications) and 200 with an empty body are both normal.
   let text = client.read_all().text().trim().to_owned()
@@ -259,10 +254,9 @@ pub impl Transport for HttpTransport with fn send_request(
     Ok(parts) => parts
     Err(reason) => return Err(reason)
   }
-  let result : Result[String, String] = @async.with_timeout(
-    timeout_s * 1000,
-    () => self.round_trip(origin, path, id, message),
-  ) catch {
+  let result : Result[String, String] = @async.with_timeout(timeout_s * 1000, () => {
+    self.round_trip(origin, path, id, message)
+  }) catch {
     @async.TimeoutError =>
       Err(
         "MCP request timed out after \{timeout_s}s (id: \{id}, url: \{self.url})",
@@ -298,10 +292,10 @@ fn HttpTransport::open_endpoint(
 ///|
 /// Open a connection to the server origin, reporting a refused or
 /// unresolvable connection as an error.
-async fn HttpTransport::connect(self : HttpTransport, origin : String) -> Result[
-  @http.Client,
-  String,
-] {
+async fn HttpTransport::connect(
+  self : HttpTransport,
+  origin : String,
+) -> Result[@http.Client, String] {
   let connected : Result[@http.Client, String] = Ok(@http.Client(origin)) catch {
     _ => Err("Failed to connect to the MCP server: \{self.url}")
   }
@@ -328,8 +322,8 @@ async fn HttpTransport::round_trip(
   }
   defer client.close()
   let posted : Result[@http.Response, String] = Ok(
-      client.post(path, message, extra_headers=self.request_headers()),
-    ) catch {
+    client.post(path, message, extra_headers=self.request_headers()),
+  ) catch {
     _ => Err("Failed to POST to the MCP server: \{self.url}")
   }
   let response = match posted {

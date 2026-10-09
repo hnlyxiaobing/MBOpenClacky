@@ -60,6 +60,7 @@ fn Agent::build_session_context(self : Agent) -> String {
 ///
 /// Raises AgentInterrupted on user interruption (Ctrl+C).
 /// Raises AgentError on unrecoverable errors.
+
 ///|
 /// `attach` carries CLI attachments (`-f/--file`, `-i/--image`, BUG-0060).
 /// When present they are resolved to vision blocks / file references and the
@@ -150,8 +151,7 @@ pub async fn Agent::run(
   // (Ruby `format_user_content`), and everything is then summarised in a
   // trailing `# Files mentioned by the user:` system-injected message.
   let attachments = match attach {
-    Some(atts) =>
-      resolve_attachment_images(atts, self.client.vision_supported)
+    Some(atts) => resolve_attachment_images(atts, self.client.vision_supported)
     None => []
   }
   if attachments.length() > 0 {
@@ -163,7 +163,8 @@ pub async fn Agent::run(
       }
       for img in vision_images {
         match img.data_url {
-          Some(url) => blocks.push(@message.ContentBlock::Image({ url, detail: None, }))
+          Some(url) =>
+            blocks.push(@message.ContentBlock::Image({ url, detail: None, }))
           None => ()
         }
       }
@@ -265,11 +266,7 @@ fn extract_feedback_args(
 ) -> (String, String?, Array[String]?, Array[@tool.AskQuestion]) {
   let questions = @tool.normalize_questions(args)
   let context = @tool.ask_user_context(args)
-  let first = if questions.length() > 0 {
-    Some(questions[0])
-  } else {
-    None
-  }
+  let first = if questions.length() > 0 { Some(questions[0]) } else { None }
   let question = match first {
     Some(q) => q.question
     None => ""
@@ -304,7 +301,9 @@ async fn Agent::handle_feedback_tool(
     return (entry, None, false)
   }
   let (question, context, options, questions) = extract_feedback_args(args)
-  self.hook_manager.emit(FeedbackRequested(question, context, options, questions))
+  self.hook_manager.emit(
+    FeedbackRequested(question, context, options, questions),
+  )
   let (fb, aw) = match self.feedback_request {
     Some(req_q) =>
       match self.feedback_response {
@@ -498,7 +497,7 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
   // display it later. Stored as Json to avoid lib/message depending
   // on lib/client.
   msg.latency = match response.latency {
-    Some(lat) => Some(lat.to_json())
+    Some(lat) => Some(Json(lat))
     None => None
   }
   self.history.append(stamp_created_at(msg))

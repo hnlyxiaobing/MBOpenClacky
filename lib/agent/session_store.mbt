@@ -105,11 +105,13 @@ pub fn save_session(data : SessionData) -> Unit raise @fs.IOError {
       }
       @path.Path::join(
         dir,
-        @path.Path(session_filename_datetime(data.created_at) + "-" + id8 + ".json"),
+        @path.Path(
+          session_filename_datetime(data.created_at) + "-" + id8 + ".json",
+        ),
       ).to_string()
     }
   }
-  let json_str = data.to_json().stringify(indent=2)
+  let json_str = Json(data).stringify(indent=2)
   @fs.write_string_to_file(path, json_str)
   // Verify the file was actually written (catch silent write failures).
   if !@fs.path_exists(path) {
@@ -136,7 +138,9 @@ fn decode_session_json(json : Json) -> Result[SessionData, String] {
 /// Plain JSON is tried first. A file that is not JSON is retried as the
 /// legacy Debug-repr projection: early builds persisted `json.to_repr()`, and
 /// those sessions used to be skipped silently by every reader.
-fn decode_session_document(text : String) -> Result[(SessionData, String), String] {
+fn decode_session_document(
+  text : String,
+) -> Result[(SessionData, String), String] {
   let parsed : Result[Json, String] = Ok(@json.parse(text)) catch {
     err => Err("not valid JSON: " + @debug.to_string(err))
   }

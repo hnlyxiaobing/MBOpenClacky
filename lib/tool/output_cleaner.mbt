@@ -149,7 +149,7 @@ pub fn smart_truncate(output : String, max_chars : Int) -> String {
   if total_chars <= max_chars {
     return output
   }
-  let total_lines = output.split("\n").length()
+  let total_lines = output.split("\n").count()
   // 60% head, 40% tail
   let head_budget = (max_chars.to_double() * 0.6).to_int()
   let tail_budget = max_chars - head_budget
@@ -312,7 +312,7 @@ fn now_stamp() -> String {
 ///|
 /// 6-hex-char random suffix mirroring Ruby `SecureRandom.hex(3)`.
 fn random_hex(n : Int) -> String {
-  let rand = @random.Rand::new()
+  let rand = @random.Rand()
   let hex_chars : Array[Char] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]

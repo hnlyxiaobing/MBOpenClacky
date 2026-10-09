@@ -106,19 +106,19 @@ test "detect_mime_type_short_string" {
 
 ///|
 test "parse_wecom_text_pascal_case" {
-  let msg : Map[String, Json] = { "Content": "Hello WeCom".to_json() }
+  let msg : Map[String, Json] = { "Content": Json("Hello WeCom") }
   assert_eq(parse_wecom_text(msg), "Hello WeCom")
 }
 
 ///|
 test "parse_wecom_text_snake_case" {
-  let msg : Map[String, Json] = { "content": "Hello snake".to_json() }
+  let msg : Map[String, Json] = { "content": Json("Hello snake") }
   assert_eq(parse_wecom_text(msg), "Hello snake")
 }
 
 ///|
 test "parse_wecom_text_nested_json" {
-  let inner : Map[String, Json] = { "content": "Nested text".to_json() }
+  let inner : Map[String, Json] = { "content": Json("Nested text") }
   let msg : Map[String, Json] = { "text": Json::object(inner) }
   assert_eq(parse_wecom_text(msg), "Nested text")
 }
@@ -131,7 +131,7 @@ test "parse_wecom_text_empty_msg" {
 
 ///|
 test "parse_wecom_text_non_string_value" {
-  let msg : Map[String, Json] = { "Content": (42).to_json() }
+  let msg : Map[String, Json] = { "Content": Json((42)) }
   assert_eq(parse_wecom_text(msg), "")
 }
 
@@ -139,37 +139,37 @@ test "parse_wecom_text_non_string_value" {
 
 ///|
 test "detect_chat_type_group_string" {
-  let msg : Map[String, Json] = { "ChatType": "group".to_json() }
+  let msg : Map[String, Json] = { "ChatType": Json("group") }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 
 ///|
 test "detect_chat_type_group_numeric_string" {
-  let msg : Map[String, Json] = { "ChatType": "2".to_json() }
+  let msg : Map[String, Json] = { "ChatType": Json("2") }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 
 ///|
 test "detect_chat_type_direct_string" {
-  let msg : Map[String, Json] = { "ChatType": "single".to_json() }
+  let msg : Map[String, Json] = { "ChatType": Json("single") }
   assert_eq(detect_wecom_chat_type(msg), Direct)
 }
 
 ///|
 test "detect_chat_type_snake_case_group" {
-  let msg : Map[String, Json] = { "chat_type": "group".to_json() }
+  let msg : Map[String, Json] = { "chat_type": Json("group") }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 
 ///|
 test "detect_chat_type_numeric_type_field" {
-  let msg : Map[String, Json] = { "Type": (2).to_json() }
+  let msg : Map[String, Json] = { "Type": Json((2)) }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 
 ///|
 test "detect_chat_type_chat_id_with_at" {
-  let msg : Map[String, Json] = { "ChatId": "wrXXXXX@im".to_json() }
+  let msg : Map[String, Json] = { "ChatId": Json("wrXXXXX@im") }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 
@@ -183,7 +183,7 @@ test "detect_chat_type_default_direct" {
 
 ///|
 test "wecom_is_mentioned_at_list_match" {
-  let at_obj : Map[String, Json] = { "userid": "bot123".to_json() }
+  let at_obj : Map[String, Json] = { "userid": Json("bot123") }
   let msg : Map[String, Json] = {
     "at_list": Json::array([Json::object(at_obj)]),
   }
@@ -192,7 +192,7 @@ test "wecom_is_mentioned_at_list_match" {
 
 ///|
 test "wecom_is_mentioned_at_list_no_match" {
-  let at_obj : Map[String, Json] = { "userid": "other_user".to_json() }
+  let at_obj : Map[String, Json] = { "userid": Json("other_user") }
   let msg : Map[String, Json] = {
     "at_list": Json::array([Json::object(at_obj)]),
   }
@@ -201,19 +201,19 @@ test "wecom_is_mentioned_at_list_no_match" {
 
 ///|
 test "wecom_is_mentioned_content_pascal" {
-  let msg : Map[String, Json] = { "Content": "Hello @bot123".to_json() }
+  let msg : Map[String, Json] = { "Content": Json("Hello @bot123") }
   assert_true(wecom_is_mentioned(msg, "bot123"))
 }
 
 ///|
 test "wecom_is_mentioned_content_snake" {
-  let msg : Map[String, Json] = { "content": "Hey @bot123".to_json() }
+  let msg : Map[String, Json] = { "content": Json("Hey @bot123") }
   assert_true(wecom_is_mentioned(msg, "bot123"))
 }
 
 ///|
 test "wecom_is_mentioned_no_mention" {
-  let msg : Map[String, Json] = { "Content": "Just a message".to_json() }
+  let msg : Map[String, Json] = { "Content": Json("Just a message") }
   assert_false(wecom_is_mentioned(msg, "bot123"))
 }
 

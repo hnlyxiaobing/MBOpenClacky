@@ -105,7 +105,7 @@ test "fm_bool_json renders true/false/null" {
       #|---
     ),
   )
-  @debug.assert_eq(fm_bool_json(fields, "always_show"), true.to_json())
+  @debug.assert_eq(fm_bool_json(fields, "always_show"), Json(true))
   @debug.assert_eq(fm_bool_json(fields, "missing"), Json::null())
   @debug.assert_eq(fm_bool_json(fields, "other_flag"), Json::null())
 }
@@ -139,15 +139,15 @@ test "skill_list_entry_json aligns with orig contract keys" {
     ] {
     assert_true(obj.contains(key))
   }
-  @debug.assert_eq(obj.get("name"), Some("demo".to_json()))
-  @debug.assert_eq(obj.get("name_zh"), Some("演示".to_json()))
-  @debug.assert_eq(obj.get("description_zh"), Some("演示技能".to_json()))
-  @debug.assert_eq(obj.get("always_show"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("invalid"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("name"), Some(Json("demo")))
+  @debug.assert_eq(obj.get("name_zh"), Some(Json("演示")))
+  @debug.assert_eq(obj.get("description_zh"), Some(Json("演示技能")))
+  @debug.assert_eq(obj.get("always_show"), Some(Json(true)))
+  @debug.assert_eq(obj.get("invalid"), Some(Json(false)))
   @debug.assert_eq(obj.get("warnings"), Some(Json::array([])))
   @debug.assert_eq(obj.get("platform_version"), Some(Json::null()))
   @debug.assert_eq(obj.get("uploaded_at"), Some(Json::null()))
-  @debug.assert_eq(obj.get("shadowing_brand"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("shadowing_brand"), Some(Json(false)))
   // invalid_reason only present when invalid.
   assert_false(obj.contains("invalid_reason"))
 }
@@ -166,7 +166,7 @@ test "skill_list_entry_json marks entries without frontmatter name invalid" {
   }
   let j = skill_list_entry_json(entry, Map([]))
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("invalid"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("invalid"), Some(Json(true)))
   assert_true(obj.contains("invalid_reason"))
   @debug.assert_eq(obj.get("name_zh"), Some(Json::null()))
 }
@@ -292,7 +292,7 @@ test "handler: creator skills matches orig five-key contract" {
   let j : Json = @json.parse(resp.body) catch { _ => panic() }
   guard! j is Json::Object(obj)
   // fix-16: exactly the orig top-level keys.
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("licensed"))
   @debug.assert_eq(obj.get("cloud_skills"), Some(Json::array([])))
   assert_true(obj.contains("local_skills"))

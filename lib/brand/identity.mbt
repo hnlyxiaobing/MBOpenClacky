@@ -132,7 +132,7 @@ pub fn save_identity(identity : Identity) -> Unit {
     Some(path) => {
       let parent = @path.Path::dirname(@path.Path(path)).to_string()
       @utils.ensure_dir(parent)
-      @fs.write_string_to_file(path, identity.to_json().stringify()) catch {
+      @fs.write_string_to_file(path, Json(identity).stringify()) catch {
         _ => ()
       }
     }

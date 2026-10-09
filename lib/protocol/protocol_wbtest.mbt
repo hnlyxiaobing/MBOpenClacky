@@ -8,12 +8,12 @@
 ///|
 /// Assert that one event survives a full JSON roundtrip.
 fn assert_event_roundtrip(e : Event) -> Unit raise {
-  let before = e.to_json().stringify()
-  match Event::parse(e.to_json()) {
+  let before = Event::to_json(e).stringify()
+  match Event::parse(Event::to_json(e)) {
     None => fail("Event::parse returned None for \{e.type_name()}")
     Some(back) => {
       assert_eq(back.type_name(), e.type_name())
-      assert_eq(back.to_json().stringify(), before)
+      assert_eq(Event::to_json(back).stringify(), before)
     }
   }
 }
@@ -21,12 +21,12 @@ fn assert_event_roundtrip(e : Event) -> Unit raise {
 ///|
 /// Assert that one command survives a full JSON roundtrip.
 fn assert_command_roundtrip(c : Command) -> Unit raise {
-  let before = c.to_json().stringify()
-  match Command::parse(c.to_json()) {
+  let before = Command::to_json(c).stringify()
+  match Command::parse(Command::to_json(c)) {
     None => fail("Command::parse returned None for \{c.type_name()}")
     Some(back) => {
       assert_eq(back.type_name(), c.type_name())
-      assert_eq(back.to_json().stringify(), before)
+      assert_eq(Command::to_json(back).stringify(), before)
     }
   }
 }
@@ -65,14 +65,14 @@ fn event_samples() -> Array[Event] {
       session_id: None,
       cost: None,
       cost_source: None,
-      latency: Some(Json::object({ "total_ms": (12).to_json() })),
+      latency: Some(Json::object({ "total_ms": Json(12) })),
       session: None,
     }),
     Progress({
       phase: "active",
       message: Some("Thinking..."),
       progress_type: Some("thinking"),
-      metadata: Some(Json::object({ "iteration": (2).to_json() })),
+      metadata: Some(Json::object({ "iteration": Json(2) })),
       started_at: Some("1700000000000"),
     }),
     Progress({
@@ -91,7 +91,7 @@ fn event_samples() -> Array[Event] {
     PhaseEnd({ phase_id: "sub-1", summary: Some("done"), }),
     ToolCall({
       name: "read",
-      args: Json::object({ "path": "a.mbt".to_json() }),
+      args: Json::object({ "path": Json("a.mbt") }),
       summary: None,
       created_at: None,
     }),
@@ -171,9 +171,7 @@ fn event_samples() -> Array[Event] {
       message: "Allow tool \"terminal\" to execute?",
     }),
     Interrupted,
-    SessionRestored({
-      session: Json::object({ "session_id": "s-1".to_json() }),
-    }),
+    SessionRestored({ session: Json::object({ "session_id": Json("s-1") }), }),
     SessionRenamed({ name: "Renamed", }),
     SessionDeleted,
     HistoryUserMessage({
@@ -188,7 +186,7 @@ fn event_samples() -> Array[Event] {
     Connected({ session_id: "s-1", }),
     Subscribed({ session_id: "s-1", }),
     SessionList({
-      sessions: [Json::object({ "session_id": "s-1".to_json() })],
+      sessions: [Json::object({ "session_id": Json("s-1") })],
       has_more: true,
       cron_count: 2,
       latest_cron_updated_at: Some(Json::string("1700000000000")),
@@ -231,7 +229,7 @@ test "roundtrip: every Command variant survives to_json/parse" {
 
 ///|
 test "parse: unknown event type returns None" {
-  assert_true(Event::parse(Json::object({ "type": "nope".to_json() })) is None)
+  assert_true(Event::parse(Json::object({ "type": Json("nope") })) is None)
   assert_true(Event::parse(Json::string("not an object")) is None)
   assert_true(Event::parse(Json::object(Map([]))) is None)
 }
@@ -239,13 +237,9 @@ test "parse: unknown event type returns None" {
 ///|
 test "parse: missing required field returns None" {
   // progress requires phase; error requires message.
-  assert_true(
-    Event::parse(Json::object({ "type": "progress".to_json() })) is None,
-  )
-  assert_true(Event::parse(Json::object({ "type": "error".to_json() })) is None)
-  assert_true(
-    Command::parse(Json::object({ "type": "message".to_json() })) is None,
-  )
+  assert_true(Event::parse(Json::object({ "type": Json("progress") })) is None)
+  assert_true(Event::parse(Json::object({ "type": Json("error") })) is None)
+  assert_true(Command::parse(Json::object({ "type": Json("message") })) is None)
 }
 
 ///|
@@ -310,7 +304,7 @@ test "options and metadata survive as JSON values" {
     options: Some(["a", "b"]),
     questions: [],
   })
-  match Event::parse(e.to_json()) {
+  match Event::parse(Event::to_json(e)) {
     Some(RequestFeedback(f)) =>
       match f.options {
         Some(options) => {

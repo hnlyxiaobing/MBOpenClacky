@@ -78,9 +78,9 @@ pub extend JsonRpcRequest with Eq::{not_equal, equal}
 /// requests with no params member).
 pub fn JsonRpcRequest::to_json(self : JsonRpcRequest) -> Json {
   let fields : Map[String, Json] = {
-    "jsonrpc": self.jsonrpc.to_json(),
-    "id": self.id.to_json(),
-    "method": self.rpc_method.to_json(),
+    "jsonrpc": Json(self.jsonrpc),
+    "id": Json(self.id),
+    "method": Json(self.rpc_method),
   }
   match self.params {
     Some(p) => fields["params"] = p

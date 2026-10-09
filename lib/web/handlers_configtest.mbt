@@ -138,7 +138,7 @@ async fn handle_config_test(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Extract raw fields from the frontend payload.
@@ -189,7 +189,7 @@ async fn handle_config_test(
     }
     let msg = "Missing required field(s): " + missing.join(", ")
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "ok": false.to_json(), "message": msg.to_json() }),
+      Json::object({ "ok": Json(false), "message": Json(msg) }),
     )
   }
   // Pick test protocol based on anthropic_format. Anthropic-compatible
@@ -231,13 +231,13 @@ async fn handle_config_test(
       if resp.status_code >= 200 && resp.status_code < 300 {
         @core.HttpResponse::ok().json_value(
           Json::object({
-            "ok": true.to_json(),
-            "message": ("Connected (" +
+            "ok": Json(true),
+            "message": Json(("Connected (" +
             resp.status_code.to_string() +
             ", " +
             elapsed.to_string() +
-            "ms)").to_json(),
-            "effective_base_url": base_url.to_json(),
+            "ms)")),
+            "effective_base_url": Json(base_url),
           }),
         )
       } else {
@@ -273,18 +273,18 @@ async fn handle_config_test(
         }
         @core.HttpResponse::ok().json_value(
           Json::object({
-            "ok": false.to_json(),
-            "message": msg.to_json(),
-            "error_code": code.to_json(),
+            "ok": Json(false),
+            "message": Json(msg),
+            "error_code": Json(code),
           }),
         )
       }
     Err(e) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": false.to_json(),
-          "message": classify_http_error(e).to_json(),
-          "error_code": "network_error".to_json(),
+          "ok": Json(false),
+          "message": Json(classify_http_error(e)),
+          "error_code": Json("network_error"),
         }),
       )
   }
@@ -315,7 +315,7 @@ async fn handle_config_media_test(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let kind = match j {
@@ -324,12 +324,12 @@ async fn handle_config_media_test(
         Some(String(k)) => k
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'kind' field".to_json() }),
+            Json::object({ "error": Json("Missing 'kind' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let mut model : @config.ModelConfig? = None
@@ -354,21 +354,21 @@ async fn handle_config_media_test(
         Ok(resp) =>
           if resp.status_code >= 200 && resp.status_code < 300 {
             @core.HttpResponse::ok().json_value(
-              Json::object({ "ok": true.to_json(), "kind": kind.to_json() }),
+              Json::object({ "ok": Json(true), "kind": Json(kind) }),
             )
           } else {
             @core.HttpResponse::ok().json_value(
               Json::object({
-                "ok": false.to_json(),
-                "error": ("HTTP " + resp.status_code.to_string()).to_json(),
+                "ok": Json(false),
+                "error": Json(("HTTP " + resp.status_code.to_string())),
               }),
             )
           }
         Err(e) =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": false.to_json(),
-              "error": @debug.to_string(e).to_json(),
+              "ok": Json(false),
+              "error": Json(@debug.to_string(e)),
             }),
           )
       }
@@ -376,9 +376,9 @@ async fn handle_config_media_test(
     None =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": false.to_json(),
-          "error": "No media model configured for kind".to_json(),
-          "kind": kind.to_json(),
+          "ok": Json(false),
+          "error": Json("No media model configured for kind"),
+          "kind": Json(kind),
         }),
       )
   }
@@ -399,10 +399,10 @@ fn is_valid_media_kind(kind : String) -> Bool {
 fn err_invalid_media_kind(kind : String) -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
     Json::object({
-      "ok": false.to_json(),
-      "error": ("Unknown media kind: " +
+      "ok": Json(false),
+      "error": Json(("Unknown media kind: " +
       kind +
-      "; use image, video, audio, stt, or video_understanding").to_json(),
+      "; use image, video, audio, stt, or video_understanding")),
     }),
   )
 }
@@ -418,7 +418,7 @@ fn handle_config_media_get(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "kind path parameter required".to_json() }),
+        Json::object({ "error": Json("kind path parameter required") }),
       )
   }
   if !is_valid_media_kind(kind) {
@@ -430,11 +430,11 @@ fn handle_config_media_get(
     Some(mc) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "kind": kind.to_json(),
-          "source": "custom".to_json(),
-          "model": mc.model.to_json(),
-          "base_url": mc.base_url.to_json(),
+          "ok": Json(true),
+          "kind": Json(kind),
+          "source": Json("custom"),
+          "model": Json(mc.model),
+          "base_url": Json(mc.base_url),
         }),
       )
     None =>
@@ -443,21 +443,21 @@ fn handle_config_media_get(
         Some(mc) =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "kind": kind.to_json(),
-              "source": "auto".to_json(),
-              "model": mc.model.to_json(),
-              "base_url": mc.base_url.to_json(),
+              "ok": Json(true),
+              "kind": Json(kind),
+              "source": Json("auto"),
+              "model": Json(mc.model),
+              "base_url": Json(mc.base_url),
             }),
           )
         None =>
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "kind": kind.to_json(),
-              "source": "off".to_json(),
-              "model": "".to_json(),
-              "base_url": "".to_json(),
+              "ok": Json(true),
+              "kind": Json(kind),
+              "source": Json("off"),
+              "model": Json(""),
+              "base_url": Json(""),
             }),
           )
       }
@@ -475,7 +475,7 @@ fn handle_config_media_patch(
     Some(v) => v.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "kind path parameter required".to_json() }),
+        Json::object({ "error": Json("kind path parameter required") }),
       )
   }
   if !is_valid_media_kind(kind) {
@@ -484,7 +484,7 @@ fn handle_config_media_patch(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let source = match j {
@@ -506,9 +506,9 @@ fn handle_config_media_patch(
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "kind": kind.to_json(),
-          "source": "off".to_json(),
+          "ok": Json(true),
+          "kind": Json(kind),
+          "source": Json("off"),
         }),
       )
     }
@@ -524,10 +524,10 @@ fn handle_config_media_patch(
           }
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": true.to_json(),
-              "kind": kind.to_json(),
-              "source": "auto".to_json(),
-              "model": mc.model.to_json(),
+              "ok": Json(true),
+              "kind": Json(kind),
+              "source": Json("auto"),
+              "model": Json(mc.model),
             }),
           )
         }
@@ -539,10 +539,10 @@ fn handle_config_media_patch(
           }
           @core.HttpResponse::ok().json_value(
             Json::object({
-              "ok": false.to_json(),
-              "kind": kind.to_json(),
-              "source": "auto".to_json(),
-              "error": "Unable to derive media model for kind".to_json(),
+              "ok": Json(false),
+              "kind": Json(kind),
+              "source": Json("auto"),
+              "error": Json("Unable to derive media model for kind"),
             }),
           )
         }
@@ -555,7 +555,7 @@ fn handle_config_media_patch(
       if base_url.is_empty() || api_key.is_empty() || model.is_empty() {
         return @core.HttpResponse::bad_request().json_value(
           Json::object({
-            "error": "Custom media requires base_url, api_key, and model".to_json(),
+            "error": Json("Custom media requires base_url, api_key, and model"),
           }),
         )
       }
@@ -576,17 +576,17 @@ fn handle_config_media_patch(
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "kind": kind.to_json(),
-          "source": "custom".to_json(),
-          "model": model.to_json(),
+          "ok": Json(true),
+          "kind": Json(kind),
+          "source": Json("custom"),
+          "model": Json(model),
         }),
       )
     }
     other =>
       @core.HttpResponse::bad_request().json_value(
         Json::object({
-          "error": ("Unknown source: " + other + "; use off, auto, or custom").to_json(),
+          "error": Json(("Unknown source: " + other + "; use off, auto, or custom")),
         }),
       )
   }
@@ -677,7 +677,7 @@ fn config_media_provider_id(base_url : String) -> String? {
 /// Serialize an optional string as a plain JSON string or null.
 fn config_media_opt_str(s : String?) -> Json {
   match s {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
 }
@@ -695,18 +695,18 @@ fn media_state_json(config : @config.AgentConfig, kind : String) -> Json {
     None => None
   }
   Json::object({
-    "source": source.to_json(),
+    "source": Json(source),
     "model": config_media_opt_str(entry.map(fn(e) { e.model })),
     "base_url": config_media_opt_str(entry.map(fn(e) { e.base_url })),
     "api_key_masked": config_media_opt_str(
       entry.map(fn(e) { web_mask_api_key(e.api_key) }),
     ),
     "provider": config_media_opt_str(provider),
-    "available": ([] : Array[Json]).to_json(),
+    "available": Json(([] : Array[Json])),
     "aliases": Json::object(Map([])),
-    "stale": false.to_json(),
+    "stale": Json(false),
     "requested_model": Json::null(),
-    "configured": (entry is Some(_)).to_json(),
+    "configured": Json((entry is Some(_))),
   })
 }
 
@@ -729,7 +729,7 @@ fn media_default_provider_json(
   let obj : Map[String, Json] = Map([])
   obj["provider"] = config_media_opt_str(provider)
   obj["model"] = config_media_opt_str(preview.map(fn(e) { e.model }))
-  obj["available"] = ([] : Array[Json]).to_json()
+  obj["available"] = Json(([] : Array[Json]))
   if with_aliases {
     obj["aliases"] = Json::object(Map([]))
   }
@@ -751,20 +751,20 @@ fn handle_config_ocr_get(
     None => None
   }
   let ocr = Json::object({
-    "source": source.to_json(),
+    "source": Json(source),
     "model": config_media_opt_str(entry.map(fn(e) { e.model })),
     "base_url": config_media_opt_str(entry.map(fn(e) { e.base_url })),
     "api_key_masked": config_media_opt_str(
       entry.map(fn(e) { web_mask_api_key(e.api_key) }),
     ),
     "provider": config_media_opt_str(provider),
-    "available": ([] : Array[Json]).to_json(),
-    "stale": false.to_json(),
+    "available": Json(([] : Array[Json])),
+    "stale": Json(false),
     "requested_model": Json::null(),
-    "configured": (entry is Some(_)).to_json(),
+    "configured": Json((entry is Some(_))),
     // `primary` marks "the chat model itself handles vision"; MoonBit has no
     // vision-capability detection for that path, so it is always false.
-    "primary": false.to_json(),
+    "primary": Json(false),
   })
   @core.HttpResponse::ok().json_value(
     Json::object({

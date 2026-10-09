@@ -305,9 +305,9 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
   // onto fb_req_q, the bridge forwards it to the event loop, and the user's
   // answer is delivered back on fb_resp_q (mirrors the confirmation queue
   // mechanism; Web server side: handlers_ws.mbt setup_feedback_bridge).
-  let fb_req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
-    kind=Unbounded,
-  )
+  let fb_req_q : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ] = @aqueue.Queue::Queue(kind=Unbounded)
   let fb_resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
   self.agent.feedback_request = Some(fb_req_q)
   self.agent.feedback_response = Some(fb_resp_q)
@@ -345,7 +345,9 @@ async fn TuiController::async_event_loop(
   self : TuiController,
   req_q : @aqueue.Queue[(String, String)],
   _resp_q : @aqueue.Queue[Bool],
-  fb_req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
+  fb_req_q : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ],
 ) -> Unit {
   @async.with_task_group() <| group => {
     let events = self.events
@@ -416,7 +418,9 @@ async fn TuiController::run_confirmation_bridge(
 /// semantics: the user decides when to answer.
 async fn TuiController::run_feedback_bridge(
   _self : TuiController,
-  req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
+  req_q : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ],
   events : @aqueue.Queue[TuiEvent],
 ) -> Unit {
   while true {

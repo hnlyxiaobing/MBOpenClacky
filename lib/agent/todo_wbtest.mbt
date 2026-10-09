@@ -245,7 +245,7 @@ test "todo_manager_to_json_and_load" {
   let _ = tm.update_status(t1.id, InProgress)
   let t2 = tm.add("Task Two", "Description two")
   let _ = tm.set_blocked_by(t2.id, [t1.id])
-  let json = tm.to_json()
+  let json = TodoManager::to_json(tm)
 
   let tm2 = TodoManager::new()
   tm2.load_from_json(json)
@@ -387,16 +387,16 @@ test "execute_todo_add_auto_clears_completed" {
   let call = make_tool_call("c1", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "Old A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("Old A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "complete".to_json()), ("id", (1).to_json())]),
+    todo_args([("action", Json("complete")), ("id", Json(1))]),
   )
   @debug.assert_eq(agent.todo_manager.size(), 0)
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "New B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("New B"))]),
   )
   assert_false(entry.is_error)
   @debug.assert_eq(agent.todo_manager.size(), 1)
@@ -424,7 +424,7 @@ test "execute_todo_list_nonempty" {
   let _ = agent.todo_manager.add("Task Two", "")
   let entry2 = agent.execute_todo_tool(
     make_tool_call("c", "todo_manager", "{}"),
-    todo_args([("action", "list".to_json())]),
+    todo_args([("action", Json("list"))]),
   )
   assert_false(entry2.is_error)
   guard entry2.content.find("TODO list") is Some(_) else {
@@ -447,15 +447,15 @@ test "execute_todo_complete_single" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "complete".to_json()), ("id", (1).to_json())]),
+    todo_args([("action", Json("complete")), ("id", Json(1))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("Task marked as completed") is Some(_) else {
@@ -478,18 +478,15 @@ test "execute_todo_complete_all_auto_clears" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([
-      ("action", "complete".to_json()),
-      ("id", ToJson::to_json([1, 2])),
-    ]),
+    todo_args([("action", Json("complete")), ("id", ToJson::to_json([1, 2]))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("2 task(s) marked as completed") is Some(_) else {
@@ -503,7 +500,7 @@ test "execute_todo_complete_all_auto_clears" {
 
 ///|
 test "execute_todo_complete_not_found" {
-  let (_agent, _call, entry) = run_todo("complete", [("id", (99).to_json())])
+  let (_agent, _call, entry) = run_todo("complete", [("id", Json(99))])
   assert_true(entry.is_error)
   guard entry.content.find("Task not found: 99") is Some(_) else {
     fail("not found message: \{entry.content}")
@@ -516,19 +513,19 @@ test "execute_todo_complete_already_completed" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "complete".to_json()), ("id", (1).to_json())]),
+    todo_args([("action", Json("complete")), ("id", Json(1))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "complete".to_json()), ("id", (1).to_json())]),
+    todo_args([("action", Json("complete")), ("id", Json(1))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("Task already completed") is Some(_) else {
@@ -553,15 +550,15 @@ test "execute_todo_remove_single" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "remove".to_json()), ("id", (1).to_json())]),
+    todo_args([("action", Json("remove")), ("id", Json(1))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("Task removed") is Some(_) else {
@@ -579,19 +576,19 @@ test "execute_todo_remove_batch" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "C".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("C"))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "remove".to_json()), ("id", ToJson::to_json([1, 3]))]),
+    todo_args([("action", Json("remove")), ("id", ToJson::to_json([1, 3]))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("2 task(s) removed") is Some(_) else {
@@ -605,7 +602,7 @@ test "execute_todo_remove_batch" {
 
 ///|
 test "execute_todo_remove_not_found" {
-  let (_agent, _call, entry) = run_todo("remove", [("id", (99).to_json())])
+  let (_agent, _call, entry) = run_todo("remove", [("id", Json(99))])
   assert_true(entry.is_error)
   guard entry.content.find("Task not found: 99") is Some(_) else {
     fail("not found message: \{entry.content}")
@@ -618,15 +615,15 @@ test "execute_todo_clear" {
   let call = make_tool_call("c", "todo_manager", "{}")
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "A".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("A"))]),
   )
   let _ = agent.execute_todo_tool(
     call,
-    todo_args([("action", "add".to_json()), ("task", "B".to_json())]),
+    todo_args([("action", Json("add")), ("task", Json("B"))]),
   )
   let entry = agent.execute_todo_tool(
     call,
-    todo_args([("action", "clear".to_json())]),
+    todo_args([("action", Json("clear"))]),
   )
   assert_false(entry.is_error)
   guard entry.content.find("All TODOs cleared") is Some(_) else {

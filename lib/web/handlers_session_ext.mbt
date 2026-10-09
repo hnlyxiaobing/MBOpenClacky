@@ -38,21 +38,21 @@ fn handle_session_export(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match @agent.load_session(id) {
     Some(data) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session": data.to_json(),
-          "exported_at": @agent.current_timestamp_iso().to_json(),
-          "format_version": (1).to_json(),
+          "session": Json(data),
+          "exported_at": Json(@agent.current_timestamp_iso()),
+          "format_version": Json((1)),
         }),
       )
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -68,7 +68,7 @@ fn handle_session_export_zip(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match @agent.export_session_zip(id) {
@@ -79,7 +79,7 @@ fn handle_session_export_zip(
       .body(zip_data)
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -95,12 +95,12 @@ fn handle_session_fork(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match @agent.fork_session(id) {
     Ok(forked) => {
-      let forked_json = forked.to_json()
+      let forked_json = Json(forked)
       // Fork returns metadata only; strip messages to avoid leaking the system prompt.
       match forked_json {
         Json::Object(obj) => ignore(obj.remove("messages"))
@@ -109,13 +109,13 @@ fn handle_session_fork(
       @core.HttpResponse::created().json_value(
         Json::object({
           "forked_session": forked_json,
-          "source_session_id": id.to_json(),
+          "source_session_id": Json(id),
         }),
       )
     }
     Err(msg) =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -132,13 +132,13 @@ fn handle_session_rename(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let new_name : String = match j {
@@ -147,12 +147,12 @@ fn handle_session_rename(
         Some(String(n)) => n
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'name' field".to_json() }),
+            Json::object({ "error": Json("Missing 'name' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match @agent.load_session(id) {
@@ -201,7 +201,7 @@ fn handle_session_rename(
       @agent.save_session(updated) catch {
         _ =>
           return @core.HttpResponse::internal_server_error().json_value(
-            Json::object({ "error": "Failed to save session".to_json() }),
+            Json::object({ "error": Json("Failed to save session") }),
           )
       }
       // Broadcast session_renamed via WS so the sidebar updates in real time.
@@ -211,12 +211,12 @@ fn handle_session_rename(
         @protocol.build_session_renamed_event(id, new_name),
       )
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "name": new_name.to_json() }),
+        Json::object({ "ok": Json(true), "name": Json(new_name) }),
       )
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -234,13 +234,13 @@ fn handle_update_working_dir(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let raw_dir : String = match j {
@@ -249,12 +249,12 @@ fn handle_update_working_dir(
         Some(String(d)) => d
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing 'working_dir' field".to_json() }),
+            Json::object({ "error": Json("Missing 'working_dir' field") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Normalize separators once at the trust boundary so validation and
@@ -264,7 +264,7 @@ fn handle_update_working_dir(
   match validate_path(new_dir) {
     Err(msg) =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
     Ok(_) => ()
   }
@@ -277,7 +277,7 @@ fn handle_update_working_dir(
         if !wd_is_within_dir(cfg_dir, new_dir) {
           return @core.HttpResponse::bad_request().json_value(
             Json::object({
-              "error": "Absolute working_dir must be within the configured working directory".to_json(),
+              "error": Json("Absolute working_dir must be within the configured working directory"),
             }),
           )
         }
@@ -321,19 +321,19 @@ fn handle_update_working_dir(
       @agent.save_session(updated) catch {
         _ =>
           return @core.HttpResponse::internal_server_error().json_value(
-            Json::object({ "error": "Failed to save session".to_json() }),
+            Json::object({ "error": Json("Failed to save session") }),
           )
       }
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": id.to_json(),
-          "working_dir": new_dir.to_json(),
+          "session_id": Json(id),
+          "working_dir": Json(new_dir),
         }),
       )
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -393,7 +393,7 @@ fn handle_session_messages(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   // Parse optional pagination params.
@@ -443,7 +443,7 @@ fn handle_session_messages(
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -459,7 +459,7 @@ fn handle_session_import(
   let body = event.req.raw_body
   if body.length() == 0 {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "Empty request body".to_json() }),
+      Json::object({ "error": Json("Empty request body") }),
     )
   }
 
@@ -468,13 +468,13 @@ fn handle_session_import(
     Ok(session_data) =>
       @core.HttpResponse::created().json_value(
         Json::object({
-          "session": session_data.to_json(),
-          "message": "Session imported successfully".to_json(),
+          "session": Json(session_data),
+          "message": Json("Session imported successfully"),
         }),
       )
     Err(msg) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -490,7 +490,7 @@ fn handle_sessions_import_all(
   let body = event.req.raw_body
   if body.length() == 0 {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "Empty request body".to_json() }),
+      Json::object({ "error": Json("Empty request body") }),
     )
   }
 
@@ -499,13 +499,13 @@ fn handle_sessions_import_all(
     Ok(count) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "imported_count": count.to_json(),
-          "message": "Sessions imported successfully".to_json(),
+          "imported_count": Json(count),
+          "message": Json("Sessions imported successfully"),
         }),
       )
     Err(msg) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -526,7 +526,7 @@ fn handle_sessions_export_all(
       .body(zip_data)
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -544,7 +544,7 @@ fn handle_session_export_zip_get(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   match @agent.export_session_zip(id) {
@@ -555,7 +555,7 @@ fn handle_session_export_zip_get(
       .body(zip_data)
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": msg.to_json() }),
+        Json::object({ "error": Json(msg) }),
       )
   }
 }
@@ -572,13 +572,13 @@ fn handle_session_patch(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match @agent.load_session(id) {
@@ -587,7 +587,7 @@ fn handle_session_patch(
         Object(o) => o
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Invalid JSON body".to_json() }),
+            Json::object({ "error": Json("Invalid JSON body") }),
           )
       }
       let mut changed = false
@@ -618,8 +618,8 @@ fn handle_session_patch(
                 Err(msg) =>
                   return @core.HttpResponse::internal_server_error().json_value(
                     Json::object({
-                      "error": "Failed to persist pinned state".to_json(),
-                      "detail": msg.to_json(),
+                      "error": Json("Failed to persist pinned state"),
+                      "detail": Json(msg),
                     }),
                   )
               }
@@ -674,7 +674,7 @@ fn handle_session_patch(
         @agent.save_session(updated) catch {
           _ =>
             return @core.HttpResponse::internal_server_error().json_value(
-              Json::object({ "error": "Failed to save session".to_json() }),
+              Json::object({ "error": Json("Failed to save session") }),
             )
         }
         // Broadcast session_updated via hub.
@@ -687,15 +687,15 @@ fn handle_session_patch(
           )
         }
         let model_field : Json = match updated.model_name {
-          Some(m) => m.to_json()
+          Some(m) => Json(m)
           None => Json::null()
         }
         hub.broadcast_session_json(
           id,
           "session_updated",
           Json::object({
-            "session_id": id.to_json(),
-            "name": updated.name.to_json(),
+            "session_id": Json(id),
+            "name": Json(updated.name),
             "model": model_field,
             "pinned": pinned_val,
           }),
@@ -703,20 +703,20 @@ fn handle_session_patch(
       }
       let effective_pinned = load_pinned_map().get(id).unwrap_or(false)
       let resp_obj : Map[String, Json] = Map([])
-      resp_obj["ok"] = true.to_json()
+      resp_obj["ok"] = Json(true)
       match obj.get("name") {
-        Some(_) => resp_obj["name"] = updated.name.to_json()
+        Some(_) => resp_obj["name"] = Json(updated.name)
         _ => ()
       }
       match obj.get("pinned") {
-        Some(_) => resp_obj["pinned"] = effective_pinned.to_json()
+        Some(_) => resp_obj["pinned"] = Json(effective_pinned)
         _ => ()
       }
       @core.HttpResponse::ok().json_value(Json::object(resp_obj))
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -736,13 +736,13 @@ fn handle_session_skills(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let _ = server_ref
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "session_id": id.to_json(),
+      "session_id": Json(id),
       "skills": Json::array(session_skills_json()),
     }),
   )
@@ -759,7 +759,7 @@ fn handle_session_files(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   // Determine working directory for the session.
@@ -770,7 +770,7 @@ fn handle_session_files(
         Some(agent) => agent.to_session_data().working_dir
         None =>
           return @core.HttpResponse::not_found().json_value(
-            Json::object({ "error": "Session not found".to_json() }),
+            Json::object({ "error": Json("Session not found") }),
           )
       }
   }
@@ -778,8 +778,8 @@ fn handle_session_files(
   if !@fs.path_exists(dir) {
     return @core.HttpResponse::ok().json_value(
       Json::object({
-        "session_id": id.to_json(),
-        "path": dir.to_json(),
+        "session_id": Json(id),
+        "path": Json(dir),
         "files": Json::array([]),
       }),
     )
@@ -788,8 +788,8 @@ fn handle_session_files(
     _ =>
       return @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": id.to_json(),
-          "path": dir.to_json(),
+          "session_id": Json(id),
+          "path": Json(dir),
           "files": Json::array([]),
         }),
       )
@@ -799,15 +799,15 @@ fn handle_session_files(
     let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let is_dir = @fs.path_exists(full) && is_directory(full)
     items.push(
-      Json::object({ "name": name.to_json(), "is_dir": is_dir.to_json() }),
+      Json::object({ "name": Json(name), "is_dir": Json(is_dir) }),
     )
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "session_id": id.to_json(),
-      "path": dir.to_json(),
-      "files": items.to_json(),
-      "count": entries.length().to_json(),
+      "session_id": Json(id),
+      "path": Json(dir),
+      "files": Json(items),
+      "count": Json(entries.length()),
     }),
   )
 }
@@ -827,13 +827,13 @@ fn handle_session_model_patch(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let model_id = match j {
@@ -842,12 +842,12 @@ fn handle_session_model_patch(
         Some(String(s)) => s
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing field: model_id".to_json() }),
+            Json::object({ "error": Json("Missing field: model_id") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   // Look up model config by id or runtime_id.
@@ -863,7 +863,7 @@ fn handle_session_model_patch(
     Some(m) => m
     None =>
       return @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Model not found: \{model_id}".to_json() }),
+        Json::object({ "error": Json("Model not found: \{model_id}") }),
       )
   }
   match load_session_or_active(server_ref, id) {
@@ -905,7 +905,7 @@ fn handle_session_model_patch(
       @agent.save_session(updated) catch {
         _ =>
           return @core.HttpResponse::internal_server_error().json_value(
-            Json::object({ "error": "Failed to save session".to_json() }),
+            Json::object({ "error": Json("Failed to save session") }),
           )
       }
       // Swap active agent's client if present.
@@ -932,22 +932,22 @@ fn handle_session_model_patch(
         id,
         "session_updated",
         Json::object({
-          "session_id": id.to_json(),
-          "model": mc.model.to_json(),
-          "model_id": mc.id.to_json(),
+          "session_id": Json(id),
+          "model": Json(mc.model),
+          "model_id": Json(mc.id),
         }),
       )
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": id.to_json(),
-          "model": mc.model.to_json(),
-          "model_id": mc.id.to_json(),
+          "session_id": Json(id),
+          "model": Json(mc.model),
+          "model_id": Json(mc.id),
         }),
       )
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -963,13 +963,13 @@ fn handle_session_submodel_patch(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let model_name : String? = match j {
@@ -979,12 +979,12 @@ fn handle_session_submodel_patch(
         Some(Null) => None
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({ "error": "Missing field: model_name".to_json() }),
+            Json::object({ "error": Json("Missing field: model_name") }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match load_session_or_active(server_ref, id) {
@@ -1024,27 +1024,27 @@ fn handle_session_submodel_patch(
       @agent.save_session(updated) catch {
         _ =>
           return @core.HttpResponse::internal_server_error().json_value(
-            Json::object({ "error": "Failed to save session".to_json() }),
+            Json::object({ "error": Json("Failed to save session") }),
           )
       }
       // Broadcast session_updated.
       let hub = server_ref.val.hub
       let sub_json : Json = match model_name {
-        Some(s) => s.to_json()
+        Some(s) => Json(s)
         None => Json::null()
       }
       hub.broadcast_session_json(
         id,
         "session_updated",
-        Json::object({ "session_id": id.to_json(), "sub_model": sub_json }),
+        Json::object({ "session_id": Json(id), "sub_model": sub_json }),
       )
       @core.HttpResponse::ok().json_value(
-        Json::object({ "session_id": id.to_json(), "sub_model": sub_json }),
+        Json::object({ "session_id": Json(id), "sub_model": sub_json }),
       )
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }
@@ -1060,13 +1060,13 @@ fn handle_session_reasoning_effort_patch(
     Some(p) => p.to_owned()
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing parameter: id".to_json() }),
+        Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   let effort : String? = match j {
@@ -1077,13 +1077,13 @@ fn handle_session_reasoning_effort_patch(
         _ =>
           return @core.HttpResponse::bad_request().json_value(
             Json::object({
-              "error": "Missing field: reasoning_effort".to_json(),
+              "error": Json("Missing field: reasoning_effort"),
             }),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid JSON body".to_json() }),
+        Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
   match load_session_or_active(server_ref, id) {
@@ -1135,7 +1135,7 @@ fn handle_session_reasoning_effort_patch(
       @agent.save_session(updated) catch {
         _ =>
           return @core.HttpResponse::internal_server_error().json_value(
-            Json::object({ "error": "Failed to save session".to_json() }),
+            Json::object({ "error": Json("Failed to save session") }),
           )
       }
       // Update active agent's reasoning_effort if present.
@@ -1146,27 +1146,27 @@ fn handle_session_reasoning_effort_patch(
       // Broadcast session_updated.
       let hub = server_ref.val.hub
       let eff_json : Json = match normalized {
-        Some(e) => e.to_json()
+        Some(e) => Json(e)
         None => Json::null()
       }
       hub.broadcast_session_json(
         id,
         "session_updated",
         Json::object({
-          "session_id": id.to_json(),
+          "session_id": Json(id),
           "reasoning_effort": eff_json,
         }),
       )
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "session_id": id.to_json(),
+          "session_id": Json(id),
           "reasoning_effort": eff_json,
         }),
       )
     }
     None =>
       @core.HttpResponse::not_found().json_value(
-        Json::object({ "error": "Session not found".to_json() }),
+        Json::object({ "error": Json("Session not found") }),
       )
   }
 }

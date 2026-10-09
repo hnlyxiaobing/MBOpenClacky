@@ -92,9 +92,9 @@ fn BrandSkillManager::add_to_installed(
 ) -> Unit {
   let skills = load_installed_skills_json(config_dir)
   let meta : Map[String, Json] = Map([])
-  meta["version"] = version.to_json()
-  meta["description"] = description.to_json()
-  meta["encrypted"] = encrypted.to_json()
+  meta["version"] = Json(version)
+  meta["description"] = Json(description)
+  meta["encrypted"] = Json(encrypted)
   skills[name] = Json::object(meta)
   save_installed_skills_json(config_dir, skills)
   self.installed_cache.push({
@@ -489,10 +489,10 @@ pub fn BrandSkillManager::create_skill(
   let skill_path = self.skill_base_path(config_dir, name)
   @utils.ensure_dir(skill_path)
   let meta : Map[String, Json] = Map([])
-  meta["name"] = name.to_json()
-  meta["version"] = version.to_json()
-  meta["description"] = description.to_json()
-  meta["encrypted"] = encrypted.to_json()
+  meta["name"] = Json(name)
+  meta["version"] = Json(version)
+  meta["description"] = Json(description)
+  meta["encrypted"] = Json(encrypted)
   let meta_file = @path.Path::join(skill_path, @path.Path("skill.json")).to_string()
   @fs.write_string_to_file(meta_file, Json::object(meta).stringify()) catch {
     _ => return Err("Failed to write skill metadata")

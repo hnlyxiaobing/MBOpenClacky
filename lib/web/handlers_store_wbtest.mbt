@@ -86,7 +86,7 @@ test "store brand list: returns empty extensions with warning (spec-17 tp3)" {
   @debug.assert_eq(resp.status, 200)
   let j = @json.parse(resp.body) catch { _ => Json::object(Map([])) }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   guard! obj.get("extensions") is Some(Json::Array(arr))
   @debug.assert_eq(arr.length(), 0)
   guard! obj.get("warning") is Some(Json::String(_))

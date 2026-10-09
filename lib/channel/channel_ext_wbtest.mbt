@@ -76,8 +76,8 @@ test "ext_dingtalk_build_access_token_request" {
   let json = client.build_access_token_request()
   match json {
     Object(obj) => {
-      assert_eq(obj.get("appKey"), Some("k".to_json()))
-      assert_eq(obj.get("appSecret"), Some("s".to_json()))
+      assert_eq(obj.get("appKey"), Some(Json("k")))
+      assert_eq(obj.get("appSecret"), Some(Json("s")))
     }
     _ => assert_true(false)
   }

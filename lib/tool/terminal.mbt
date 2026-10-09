@@ -430,40 +430,42 @@ impl Tool for Terminal with fn description(_) -> String {
 ///|
 impl Tool for Terminal with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "command": Json::object({
-        "type": "string".to_json(),
-        "description": "The CLI command to execute".to_json(),
+        "type": Json("string"),
+        "description": Json("The CLI command to execute"),
       }),
       "background": Json::object({
-        "type": "boolean".to_json(),
-        "description": "Set to true to run the command in the background".to_json(),
+        "type": Json("boolean"),
+        "description": Json("Set to true to run the command in the background"),
       }),
       "session_id": Json::object({
-        "type": "integer".to_json(),
-        "description": "Session ID to continue or kill a running session".to_json(),
+        "type": Json("integer"),
+        "description": Json("Session ID to continue or kill a running session"),
       }),
       "input": Json::object({
-        "type": "string".to_json(),
-        "description": "Input to send to an existing session".to_json(),
+        "type": Json("string"),
+        "description": Json("Input to send to an existing session"),
       }),
       "cwd": Json::object({
-        "type": "string".to_json(),
-        "description": "Working directory for the command".to_json(),
+        "type": Json("string"),
+        "description": Json("Working directory for the command"),
       }),
       "timeout": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum execution time in seconds (default: 60)".to_json(),
+        "type": Json("integer"),
+        "description": Json("Maximum execution time in seconds (default: 60)"),
       }),
       "env": Json::object({
-        "type": "object".to_json(),
-        "description": "Extra environment variables for the command (string keys/values)".to_json(),
-        "additionalProperties": Json::object({ "type": "string".to_json() }),
+        "type": Json("object"),
+        "description": Json(
+          "Extra environment variables for the command (string keys/values)",
+        ),
+        "additionalProperties": Json::object({ "type": Json("string") }),
       }),
       "kill": Json::object({
-        "type": "boolean".to_json(),
-        "description": "Set to true to kill a running session".to_json(),
+        "type": Json("boolean"),
+        "description": Json("Set to true to kill a running session"),
       }),
     }),
   })

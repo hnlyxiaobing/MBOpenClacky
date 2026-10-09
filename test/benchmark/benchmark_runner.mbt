@@ -168,14 +168,14 @@ pub fn benchmark_results_to_unified_report(
       passed_count = passed_count + 1
     }
     let meta : Map[String, Json] = {
-      "min_ms": stats.min_ms.to_json(),
-      "max_ms": stats.max_ms.to_json(),
-      "avg_ms": stats.avg_ms.to_json(),
-      "p50_ms": stats.p50_ms.to_json(),
-      "p95_ms": stats.p95_ms.to_json(),
-      "p99_ms": stats.p99_ms.to_json(),
-      "iterations": stats.iterations.to_json(),
-      "total_ms": stats.total_ms.to_json(),
+      "min_ms": Json(stats.min_ms),
+      "max_ms": Json(stats.max_ms),
+      "avg_ms": Json(stats.avg_ms),
+      "p50_ms": Json(stats.p50_ms),
+      "p95_ms": Json(stats.p95_ms),
+      "p99_ms": Json(stats.p99_ms),
+      "iterations": Json(stats.iterations),
+      "total_ms": Json(stats.total_ms),
     }
     let suite : @eval.UnifiedSuiteResult = {
       name,

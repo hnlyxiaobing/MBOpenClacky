@@ -46,7 +46,7 @@ test "plan_2a_error_body_is_valid_json" {
   for body in bodies {
     let parsed : Json = @json.parse(body) catch { _ => Json::null() }
     match parsed {
-      Object(obj) => @debug.assert_eq(obj.get("error"), Some(hostile.to_json()))
+      Object(obj) => @debug.assert_eq(obj.get("error"), Some(Json(hostile)))
       _ => assert_true(false, msg="error body is not valid JSON: \{body}")
     }
   }

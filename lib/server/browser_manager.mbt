@@ -251,7 +251,7 @@ pub async fn BrowserManager::mcp_call(
   match self.client {
     Some(client) => {
       let params = Json::object({
-        "name": tool_name.to_json(),
+        "name": Json(tool_name),
         "arguments": arguments,
       })
       match client.call("tools/call", params) {

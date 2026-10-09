@@ -111,7 +111,7 @@ pub fn HttpResponse::created(body : String) -> HttpResponse {
 
 ///|
 pub fn HttpResponse::not_found(message : String) -> HttpResponse {
-  let body = Json::object({ "error": message.to_json() }).stringify()
+  let body = Json::object({ "error": Json(message) }).stringify()
   {
     status: 404,
     body,
@@ -123,7 +123,7 @@ pub fn HttpResponse::not_found(message : String) -> HttpResponse {
 
 ///|
 pub fn HttpResponse::bad_request(message : String) -> HttpResponse {
-  let body = Json::object({ "error": message.to_json() }).stringify()
+  let body = Json::object({ "error": Json(message) }).stringify()
   {
     status: 400,
     body,

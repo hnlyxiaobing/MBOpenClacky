@@ -57,8 +57,8 @@ pub fn TelegramApiClient::get_updates_payload(
   timeout : Int,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("offset", offset.to_json())
-  payload.set("timeout", timeout.to_json())
+  payload.set("offset", Json(offset))
+  payload.set("timeout", Json(timeout))
   payload.set("allowed_updates", Json::array([]))
   Json::object(payload)
 }
@@ -707,14 +707,14 @@ pub fn build_telegram_send_request(
   parse_mode : String?,
 ) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("chat_id", chat_id.to_json())
-  msg.set("text", text.to_json())
+  msg.set("chat_id", Json(chat_id))
+  msg.set("text", Json(text))
   match parse_mode {
-    Some(mode) => msg.set("parse_mode", mode.to_json())
+    Some(mode) => msg.set("parse_mode", Json(mode))
     None => ()
   }
   match reply_to {
-    Some(id) => msg.set("reply_to_message_id", id.to_json())
+    Some(id) => msg.set("reply_to_message_id", Json(id))
     None => ()
   }
   Json::object(msg)
@@ -730,9 +730,9 @@ pub fn build_telegram_edit_request(
   text : String,
 ) -> Json {
   let msg : Map[String, Json] = Map([])
-  msg.set("chat_id", chat_id.to_json())
-  msg.set("message_id", message_id.to_json())
-  msg.set("text", text.to_json())
+  msg.set("chat_id", Json(chat_id))
+  msg.set("message_id", Json(message_id))
+  msg.set("text", Json(text))
   Json::object(msg)
 }
 
@@ -750,7 +750,7 @@ pub fn build_telegram_message(
 /// Build the getFile request payload as JSON.
 pub fn build_telegram_get_file_request(file_id : String) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("file_id", file_id.to_json())
+  payload.set("file_id", Json(file_id))
   Json::object(payload)
 }
 
@@ -761,8 +761,8 @@ pub fn build_telegram_delete_request(
   message_id : String,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("chat_id", chat_id.to_json())
-  payload.set("message_id", message_id.to_json())
+  payload.set("chat_id", Json(chat_id))
+  payload.set("message_id", Json(message_id))
   Json::object(payload)
 }
 

@@ -396,22 +396,22 @@ pub fn Event::is_global(self : Event) -> Bool {
 
 ///|
 fn put_string(out : Map[String, Json], key : String, value : String) -> Unit {
-  out[key] = value.to_json()
+  out[key] = Json(value)
 }
 
 ///|
 fn put_int(out : Map[String, Json], key : String, value : Int) -> Unit {
-  out[key] = value.to_json()
+  out[key] = Json(value)
 }
 
 ///|
 fn put_double(out : Map[String, Json], key : String, value : Double) -> Unit {
-  out[key] = value.to_json()
+  out[key] = Json(value)
 }
 
 ///|
 fn put_bool(out : Map[String, Json], key : String, value : Bool) -> Unit {
-  out[key] = value.to_json()
+  out[key] = Json(value)
 }
 
 ///|
@@ -426,7 +426,7 @@ fn put_opt_string(
   value : String?,
 ) -> Unit {
   match value {
-    Some(v) => out[key] = v.to_json()
+    Some(v) => out[key] = Json(v)
     None => ()
   }
 }
@@ -434,7 +434,7 @@ fn put_opt_string(
 ///|
 fn put_opt_int(out : Map[String, Json], key : String, value : Int?) -> Unit {
   match value {
-    Some(v) => out[key] = v.to_json()
+    Some(v) => out[key] = Json(v)
     None => ()
   }
 }
@@ -446,7 +446,7 @@ fn put_opt_double(
   value : Double?,
 ) -> Unit {
   match value {
-    Some(v) => out[key] = v.to_json()
+    Some(v) => out[key] = Json(v)
     None => ()
   }
 }
@@ -454,7 +454,7 @@ fn put_opt_double(
 ///|
 fn put_opt_bool(out : Map[String, Json], key : String, value : Bool?) -> Unit {
   match value {
-    Some(v) => out[key] = v.to_json()
+    Some(v) => out[key] = Json(v)
     None => ()
   }
 }
@@ -572,9 +572,9 @@ pub fn Event::to_json(self : Event) -> Json {
         out,
         "cache_stats",
         Json::object({
-          "total_requests": c.cache_stats.total_requests.to_json(),
-          "cache_hit_requests": c.cache_stats.cache_hit_requests.to_json(),
-          "cache_read_input_tokens": c.cache_stats.cache_read_input_tokens.to_json(),
+          "total_requests": Json(c.cache_stats.total_requests),
+          "cache_hit_requests": Json(c.cache_stats.cache_hit_requests),
+          "cache_read_input_tokens": Json(c.cache_stats.cache_read_input_tokens),
         }),
       )
     }
@@ -607,14 +607,14 @@ pub fn Event::to_json(self : Event) -> Json {
       put_opt_string(out, "context", f.context)
       match f.options {
         Some(options) =>
-          put_json(
-            out,
-            "options",
-            Json::array(options.map(fn(o) { o.to_json() })),
-          )
+          put_json(out, "options", Json::array(options.map(fn(o) { Json(o) })))
         None => ()
       }
-      put_json(out, "questions", Json::array(f.questions.map(ask_question_to_json)))
+      put_json(
+        out,
+        "questions",
+        Json::array(f.questions.map(ask_question_to_json)),
+      )
     }
     RequestConfirmation(c) => {
       put_string(out, "id", c.id)
@@ -941,11 +941,11 @@ fn ask_question_to_json(q : AskQuestion) -> Json {
   let out : Map[String, Json] = Map([])
   put_string(out, "question", q.question)
   put_string(out, "description", q.description)
-  put_json(out, "options", Json::array(q.options.map(fn(o) { o.to_json() })))
+  put_json(out, "options", Json::array(q.options.map(fn(o) { Json(o) })))
   put_bool(out, "multi", q.multi)
   put_bool(out, "allow_free_text", q.allow_free_text)
   match q.recommended {
-    Some(r) => put_json(out, "recommended", r.to_json())
+    Some(r) => put_json(out, "recommended", Json(r))
     None => put_json(out, "recommended", Json::null())
   }
   Json::object(out)
@@ -1041,7 +1041,7 @@ pub fn Event::to_framed_json(self : Event, session_id : String?) -> Json {
     Some(sid) => put_string(out, "session_id", sid)
     None => ()
   }
-  match self.to_json() {
+  match Event::to_json(self) {
     Object(fields) =>
       for entry in fields {
         if entry.0 != "type" {

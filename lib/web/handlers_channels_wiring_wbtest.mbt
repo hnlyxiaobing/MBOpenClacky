@@ -86,7 +86,7 @@ fn wiring_find_channel(
   guard! top.get("channels") is Some(Json::Array(items))
   for item in items {
     guard! item is Json::Object(o)
-    if o.get("platform") == Some(platform.to_json()) {
+    if o.get("platform") == Some(Json(platform)) {
       return Some(o)
     }
   }
@@ -137,7 +137,7 @@ async test "channels_send_async maps adapter-not-found to success:false" {
   let resp = handle_channels_send_async(cm_ref, req)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("success"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("success"), Some(Json(false)))
   guard! obj.get("error") is Some(Json::String(err))
   assert_true(err.contains("Adapter not found"))
 }
@@ -174,7 +174,7 @@ async fn assert_probe_fails_without_credentials(platform : String) -> Unit {
   let resp = handle_channels_test_async(cm_ref, req)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("test_result"), Some("failed".to_json()))
+  @debug.assert_eq(obj.get("test_result"), Some(Json("failed")))
   guard! obj.get("error") is Some(Json::String(err))
   assert_true(err.contains("Missing"))
 }
@@ -224,7 +224,7 @@ async test "channels_test_async reports unconfigured platforms as failed" {
   let resp = handle_channels_test_async(cm_ref, req)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("test_result"), Some("failed".to_json()))
+  @debug.assert_eq(obj.get("test_result"), Some(Json("failed")))
   guard! obj.get("error") is Some(Json::String(err))
   assert_true(err.contains("not configured"))
 }
@@ -249,13 +249,13 @@ test "channels_list projects the manager's config, not a web-side store" {
   let resp = handle_channels_list(cm_ref)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_find_channel(resp, "telegram") is Some(tg)
-  @debug.assert_eq(tg.get("has_config"), Some(true.to_json()))
-  @debug.assert_eq(tg.get("enabled"), Some(true.to_json()))
-  @debug.assert_eq(tg.get("has_token"), Some(true.to_json()))
+  @debug.assert_eq(tg.get("has_config"), Some(Json(true)))
+  @debug.assert_eq(tg.get("enabled"), Some(Json(true)))
+  @debug.assert_eq(tg.get("has_token"), Some(Json(true)))
   // Unconfigured platforms stay honest.
   guard! wiring_find_channel(resp, "wecom") is Some(wc)
-  @debug.assert_eq(wc.get("has_config"), Some(false.to_json()))
-  @debug.assert_eq(wc.get("has_token"), Some(false.to_json()))
+  @debug.assert_eq(wc.get("has_config"), Some(Json(false)))
+  @debug.assert_eq(wc.get("has_token"), Some(Json(false)))
 }
 
 ///|
@@ -270,10 +270,10 @@ test "channels_list never serializes credential values" {
   assert_false(body.contains("\"token\":"))
   assert_false(body.contains("\"uin\":"))
   guard! wiring_find_channel(resp, "weixin") is Some(wx)
-  @debug.assert_eq(wx.get("has_token"), Some(true.to_json()))
-  @debug.assert_eq(wx.get("has_uin"), Some(true.to_json()))
+  @debug.assert_eq(wx.get("has_token"), Some(Json(true)))
+  @debug.assert_eq(wx.get("has_uin"), Some(Json(true)))
   // non-secret settings pass through
-  @debug.assert_eq(wx.get("base_url"), Some("https://ilink".to_json()))
+  @debug.assert_eq(wx.get("base_url"), Some(Json("https://ilink")))
 }
 
 ///|
@@ -392,9 +392,9 @@ test "channels_status is projected from the manager" {
   let resp = handle_channels_status(cm_ref, req)
   @debug.assert_eq(resp.status, 200)
   guard! wiring_response_json(resp) is Json::Object(obj)
-  @debug.assert_eq(obj.get("platform"), Some("telegram".to_json()))
-  @debug.assert_eq(obj.get("has_config"), Some(true.to_json()))
-  @debug.assert_eq(obj.get("has_token"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("platform"), Some(Json("telegram")))
+  @debug.assert_eq(obj.get("has_config"), Some(Json(true)))
+  @debug.assert_eq(obj.get("has_token"), Some(Json(true)))
   assert_false(resp.body.contains("SECRET-TOK-VALUE"))
 }
 

@@ -34,30 +34,28 @@ impl Tool for Edit with fn description(_self) -> String {
 ///|
 impl Tool for Edit with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "path": Json::object({
-        "type": "string".to_json(),
-        "description": "The absolute path to the file to modify".to_json(),
+        "type": Json("string"),
+        "description": Json("The absolute path to the file to modify"),
       }),
       "old_string": Json::object({
-        "type": "string".to_json(),
-        "description": "The text to replace".to_json(),
+        "type": Json("string"),
+        "description": Json("The text to replace"),
       }),
       "new_string": Json::object({
-        "type": "string".to_json(),
-        "description": "The text to replace it with".to_json(),
+        "type": Json("string"),
+        "description": Json("The text to replace it with"),
       }),
       "replace_all": Json::object({
-        "type": "boolean".to_json(),
-        "description": "Replace all occurrences of old_string (default false)".to_json(),
+        "type": Json("boolean"),
+        "description": Json(
+          "Replace all occurrences of old_string (default false)",
+        ),
       }),
     }),
-    "required": [
-      "path".to_json(),
-      "old_string".to_json(),
-      "new_string".to_json(),
-    ],
+    "required": [Json("path"), Json("old_string"), Json("new_string")],
   })
 }
 

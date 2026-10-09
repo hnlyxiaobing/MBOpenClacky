@@ -34,18 +34,20 @@ impl Tool for WebFetch with fn description(_) -> String {
 ///|
 impl Tool for WebFetch with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "url": Json::object({
-        "type": "string".to_json(),
-        "description": "The URL to fetch (must be a valid HTTP/HTTPS URL)".to_json(),
+        "type": Json("string"),
+        "description": Json("The URL to fetch (must be a valid HTTP/HTTPS URL)"),
       }),
       "max_length": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum content length to return in characters (default: 3000)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum content length to return in characters (default: 3000)",
+        ),
       }),
     }),
-    "required": ["url".to_json()],
+    "required": [Json("url")],
   })
 }
 

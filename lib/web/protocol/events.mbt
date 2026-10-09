@@ -31,7 +31,7 @@ pub fn map_hook_event(event : @agent.HookEvent) -> MappedWsEvent {
 /// `MappedWsEvent.data` shape, kept for the REST history path and the
 /// existing white-box tests.
 fn payload_of(event : @proto.Event) -> Json {
-  match event.to_json() {
+  match @proto.Event::to_json(event) {
     Object(fields) => {
       let out : Map[String, Json] = Map([])
       for entry in fields {
@@ -243,10 +243,10 @@ pub fn build_token_delta_event(session_id : String, chunk : String) -> String {
 pub fn build_session_snapshot(data : @agent.SessionData) -> String {
   let messages_arr : Array[Json] = []
   for msg in data.messages {
-    messages_arr.push(msg.to_json())
+    messages_arr.push(Json(msg))
   }
   let model_field : Json = match data.model_name {
-    Some(m) => m.to_json()
+    Some(m) => Json(m)
     None => Json::null()
   }
   let patch = @proto.SessionUpdate({
@@ -257,18 +257,18 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
     latency: None,
     session: Some(
       Json::object({
-        "id": data.session_id.to_json(),
-        "name": data.name.to_json(),
-        "status": data.last_status.to_json(),
-        "working_dir": data.working_dir.to_json(),
+        "id": Json(data.session_id),
+        "name": Json(data.name),
+        "status": Json(data.last_status),
+        "working_dir": Json(data.working_dir),
         "model": model_field,
-        "created_at": data.created_at.to_json(),
-        "total_tasks": data.stats.total_tasks.to_json(),
-        "total_cost": data.stats.total_cost_usd.to_json(),
-        "cost_source": data.stats.cost_source.to_json(),
-        "source": data.source.to_json(),
-        "latest_latency": data.latest_latency_ms.to_json(),
-        "messages": messages_arr.to_json(),
+        "created_at": Json(data.created_at),
+        "total_tasks": Json(data.stats.total_tasks),
+        "total_cost": Json(data.stats.total_cost_usd),
+        "cost_source": Json(data.stats.cost_source),
+        "source": Json(data.source),
+        "latest_latency": Json(data.latest_latency_ms),
+        "messages": Json(messages_arr),
       }),
     ),
   })
@@ -383,7 +383,7 @@ pub fn build_messages_history(
     events.push(collected[j])
     j = j - 1
   }
-  Json::object({ "events": events.to_json(), "has_more": has_more.to_json() })
+  Json::object({ "events": Json(events), "has_more": Json(has_more) })
 }
 
 ///|
@@ -447,7 +447,7 @@ fn history_message_events(
         Some(calls) =>
           for call in calls {
             let args_json : Json = @json.parse(call.function.arguments) catch {
-              _ => call.function.arguments.to_json()
+              _ => Json(call.function.arguments)
             }
             let stamp = if ts.is_empty() {
               None

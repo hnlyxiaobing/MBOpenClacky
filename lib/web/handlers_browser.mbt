@@ -11,7 +11,7 @@ pub fn handle_browser_status(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let status = server_ref.val.browser_manager.status()
-  @core.HttpResponse::ok().json_value(status.to_json())
+  @core.HttpResponse::ok().json_value(Json(status))
 }
 
 ///|
@@ -24,13 +24,13 @@ pub async fn handle_browser_start(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "status": "started".to_json(),
-          "message": "Browser daemon started".to_json(),
+          "status": Json("started"),
+          "message": Json("Browser daemon started"),
         }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -45,13 +45,13 @@ pub async fn handle_browser_stop(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "status": "stopped".to_json(),
-          "message": "Browser daemon stopped".to_json(),
+          "status": Json("stopped"),
+          "message": Json("Browser daemon stopped"),
         }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -65,14 +65,14 @@ pub async fn handle_browser_navigate(
   let body : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Request body is required".to_json() }),
+        Json::object({ "error": Json("Request body is required") }),
       )
   }
   match server_ref.val.browser_manager.mcp_call("navigate_page", body) {
     Ok(result) => @core.HttpResponse::ok().json_value(result)
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -88,7 +88,7 @@ pub async fn handle_browser_screenshot(
     Ok(result) => @core.HttpResponse::ok().json_value(result)
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -102,7 +102,7 @@ pub fn handle_browser_configure(
   let body : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Request body is required".to_json() }),
+        Json::object({ "error": Json("Request body is required") }),
       )
   }
   let chrome_version = match body {
@@ -110,7 +110,7 @@ pub fn handle_browser_configure(
     _ =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({
-          "error": "Missing or invalid 'chrome_version' field".to_json(),
+          "error": Json("Missing or invalid 'chrome_version' field"),
         }),
       )
   }
@@ -118,13 +118,13 @@ pub fn handle_browser_configure(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "status": "configured".to_json(),
-          "chrome_version": chrome_version.to_json(),
+          "status": Json("configured"),
+          "chrome_version": Json(chrome_version),
         }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -139,13 +139,13 @@ pub async fn handle_browser_reload(
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "status": "reloaded".to_json(),
-          "message": "Browser daemon reloaded".to_json(),
+          "status": Json("reloaded"),
+          "message": Json("Browser daemon reloaded"),
         }),
       )
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }
@@ -158,7 +158,7 @@ pub fn handle_browser_toggle(
 ) -> @core.HttpResponse {
   let new_state = server_ref.val.browser_manager.toggle()
   @core.HttpResponse::ok().json_value(
-    Json::object({ "enabled": new_state.to_json() }),
+    Json::object({ "enabled": Json(new_state) }),
   )
 }
 
@@ -172,14 +172,14 @@ pub async fn handle_browser_tool_call(
   let body : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Request body is required".to_json() }),
+        Json::object({ "error": Json("Request body is required") }),
       )
   }
   let tool_name = match body {
     { "tool": String(v), .. } => v
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Missing or invalid 'tool' field".to_json() }),
+        Json::object({ "error": Json("Missing or invalid 'tool' field") }),
       )
   }
   let arguments = match body {
@@ -190,7 +190,7 @@ pub async fn handle_browser_tool_call(
     Ok(result) => @core.HttpResponse::ok().json_value(result)
     Err(e) =>
       @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": e.to_json() }),
+        Json::object({ "error": Json(e) }),
       )
   }
 }

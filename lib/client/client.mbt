@@ -527,10 +527,10 @@ pub fn add_stream_options(body : Json, include_usage : Bool) -> Json {
       for k, v in obj {
         new_obj[k] = v
       }
-      new_obj["stream"] = true.to_json()
+      new_obj["stream"] = Json(true)
       if include_usage {
         new_obj["stream_options"] = Json::object({
-          "include_usage": true.to_json(),
+          "include_usage": Json(true),
         })
       }
       Json::object(new_obj)
@@ -548,7 +548,7 @@ pub fn add_stream_flag(body : Json) -> Json {
       for k, v in obj {
         new_obj[k] = v
       }
-      new_obj["stream"] = true.to_json()
+      new_obj["stream"] = Json(true)
       Json::object(new_obj)
     }
     _ => body

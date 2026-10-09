@@ -310,12 +310,9 @@ pub fn extract_subagent_transcript(
       @message.Tool => "tool"
       _ => continue
     }
-    let obj : Map[String, Json] = { "role": role.to_json() }
+    let obj : Map[String, Json] = { "role": Json(role) }
     match m.content {
-      @message.Text(t) =>
-        if t.trim().length() > 0 {
-          obj["content"] = t.to_json()
-        }
+      @message.Text(t) => if t.trim().length() > 0 { obj["content"] = Json(t) }
       _ => ()
     }
     match m.tool_calls {
@@ -325,17 +322,17 @@ pub fn extract_subagent_transcript(
           for tc in calls {
             arr.push(
               Json::object({
-                "name": tc.function.name.to_json(),
-                "arguments": tc.function.arguments.to_json(),
+                "name": Json(tc.function.name),
+                "arguments": Json(tc.function.arguments),
               }),
             )
           }
-          obj["tool_calls"] = arr.to_json()
+          obj["tool_calls"] = Json(arr)
         }
       None => ()
     }
     match m.tool_call_id {
-      Some(id) => obj["tool_call_id"] = id.to_json()
+      Some(id) => obj["tool_call_id"] = Json(id)
       None => ()
     }
     if obj.contains("content") || obj.contains("tool_calls") {
@@ -343,10 +340,10 @@ pub fn extract_subagent_transcript(
     }
   }
   Json::object({
-    "skill": skill_identifier.to_json(),
-    "iterations": subagent.iterations.to_json(),
-    "cost_usd": format_cost(subagent.total_cost).to_json(),
-    "events": events.to_json(),
+    "skill": Json(skill_identifier),
+    "iterations": Json(subagent.iterations),
+    "cost_usd": Json(format_cost(subagent.total_cost)),
+    "events": Json(events),
   })
 }
 

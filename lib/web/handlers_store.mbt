@@ -9,33 +9,33 @@
 fn extension_to_store_json(ext : @extension.Extension) -> Json {
   let m = ext.manifest
   let obj : Map[String, Json] = Map([])
-  obj["id"] = m.id.to_json()
-  obj["name"] = m.name.to_json()
-  obj["version"] = m.version.to_json()
-  obj["description"] = m.description.to_json()
-  obj["author"] = m.author.to_json()
-  obj["license"] = m.license.to_json()
-  obj["enabled"] = ext.enabled.to_json()
-  obj["installed"] = (ext.source is @extension.ExtensionSource::Installed).to_json()
+  obj["id"] = Json(m.id)
+  obj["name"] = Json(m.name)
+  obj["version"] = Json(m.version)
+  obj["description"] = Json(m.description)
+  obj["author"] = Json(m.author)
+  obj["license"] = Json(m.license)
+  obj["enabled"] = Json(ext.enabled)
+  obj["installed"] = Json((ext.source is @extension.ExtensionSource::Installed))
   obj["source"] = match ext.source {
-    Builtin => "builtin".to_json()
-    Installed => "installed".to_json()
-    Local => "local".to_json()
+    Builtin => Json("builtin")
+    Installed => Json("installed")
+    Local => Json("local")
   }
-  obj["root_path"] = ext.root_path.to_json()
-  obj["loaded_at"] = ext.loaded_at.to_json()
+  obj["root_path"] = Json(ext.root_path)
+  obj["loaded_at"] = Json(ext.loaded_at)
   match m.homepage {
-    Some(h) => obj["homepage"] = h.to_json()
+    Some(h) => obj["homepage"] = Json(h)
     None => ()
   }
   match m.repository {
-    Some(r) => obj["repository"] = r.to_json()
+    Some(r) => obj["repository"] = Json(r)
     None => ()
   }
-  obj["enabled_by_default"] = m.enabled_by_default.to_json()
+  obj["enabled_by_default"] = Json(m.enabled_by_default)
   // Keywords
   let kw : Array[Json] = []
-  m.keywords.each(fn(k) { kw.push(k.to_json()) })
+  m.keywords.each(fn(k) { kw.push(Json(k)) })
   obj["keywords"] = Json::array(kw)
   Json::object(obj)
 }
@@ -44,42 +44,42 @@ fn extension_to_store_json(ext : @extension.Extension) -> Json {
 /// Serialize a RegistryEntry to a JSON object for the store catalog.
 fn registry_entry_to_store_json(entry : @extension.RegistryEntry) -> Json {
   let obj : Map[String, Json] = Map([])
-  obj["id"] = entry.id.to_json()
+  obj["id"] = Json(entry.id)
   let name = match entry.metadata.get("name") {
     Some(s) => s
     None => entry.id
   }
-  obj["name"] = name.to_json()
+  obj["name"] = Json(name)
   let name_zh = match entry.metadata.get("name_zh") {
     Some(s) => s
     None => ""
   }
-  obj["name_zh"] = name_zh.to_json()
+  obj["name_zh"] = Json(name_zh)
   let desc = match entry.metadata.get("description") {
     Some(s) => s
     None => ""
   }
-  obj["description"] = desc.to_json()
-  obj["version"] = entry.latest_version.to_json()
-  obj["latest_version"] = entry.latest_version.to_json()
+  obj["description"] = Json(desc)
+  obj["version"] = Json(entry.latest_version)
+  obj["latest_version"] = Json(entry.latest_version)
   let author = match entry.metadata.get("author") {
     Some(s) => s
     None => ""
   }
-  obj["author"] = author.to_json()
-  obj["installs"] = entry.installs.to_json()
-  obj["published_at"] = entry.published_at.to_json()
+  obj["author"] = Json(author)
+  obj["installs"] = Json(entry.installs)
+  obj["published_at"] = Json(entry.published_at)
   // Versions array
   let vers : Array[Json] = []
-  entry.versions.each(fn(v) { vers.push(v.to_json()) })
+  entry.versions.each(fn(v) { vers.push(Json(v)) })
   obj["versions"] = Json::array(vers)
   // download_url from metadata if present
   match entry.metadata.get("download_url") {
-    Some(url) => obj["download_url"] = url.to_json()
+    Some(url) => obj["download_url"] = Json(url)
     None => ()
   }
-  obj["installed"] = false.to_json()
-  obj["enabled"] = false.to_json()
+  obj["installed"] = Json(false)
+  obj["enabled"] = Json(false)
   Json::object(obj)
 }
 
@@ -97,8 +97,8 @@ pub fn handle_store_list(request : HttpRequest) -> HttpResponse {
     let json = match registry_entry_to_store_json(e) {
       Object(obj) =>
         if installed_ids.contains(e.id) {
-          obj["installed"] = true.to_json()
-          obj["enabled"] = @extension.is_extension_enabled(e.id).to_json()
+          obj["installed"] = Json(true)
+          obj["enabled"] = Json(@extension.is_extension_enabled(e.id))
           Json::object(obj)
         } else {
           Json::object(obj)
@@ -133,7 +133,7 @@ pub fn handle_store_list(request : HttpRequest) -> HttpResponse {
   }
   // fix-20 (I-033): read endpoints carry ok:true like the write endpoints.
   let resp = Json::object({
-    "ok": true.to_json(),
+    "ok": Json(true),
     "extensions": Json::array(filtered),
   }).stringify()
   HttpResponse::ok(resp)
@@ -146,7 +146,7 @@ pub fn handle_store_installed(_request : HttpRequest) -> HttpResponse {
   let arr : Array[Json] = []
   installed.each(fn(e) { arr.push(extension_to_store_json(e)) })
   let resp = Json::object({
-    "ok": true.to_json(),
+    "ok": Json(true),
     "extensions": Json::array(arr),
   }).stringify()
   HttpResponse::ok(resp)
@@ -164,7 +164,7 @@ pub fn handle_store_detail(request : HttpRequest) -> HttpResponse {
   match installed.iter().find_first(fn(e) { e.manifest.id == id }) {
     Some(ext) => {
       let resp = Json::object({
-        "ok": true.to_json(),
+        "ok": Json(true),
         "extension": extension_to_store_json(ext),
       }).stringify()
       HttpResponse::ok(resp)
@@ -175,7 +175,7 @@ pub fn handle_store_detail(request : HttpRequest) -> HttpResponse {
       match entries.iter().find_first(fn(e) { e.id == id }) {
         Some(entry) => {
           let resp = Json::object({
-            "ok": true.to_json(),
+            "ok": Json(true),
             "extension": registry_entry_to_store_json(entry),
           }).stringify()
           HttpResponse::ok(resp)
@@ -183,9 +183,9 @@ pub fn handle_store_detail(request : HttpRequest) -> HttpResponse {
         None =>
           HttpResponse::not_found(
             Json::object({
-              "ok": false.to_json(),
-              "error": "Extension not found".to_json(),
-              "id": id.to_json(),
+              "ok": Json(false),
+              "error": Json("Extension not found"),
+              "id": Json(id),
             }).stringify(),
           )
       }
@@ -222,9 +222,9 @@ pub fn handle_store_install(request : HttpRequest) -> HttpResponse {
     return HttpResponse::{
       status: 501,
       body: Json::object({
-        "ok": false.to_json(),
-        "error": "unimplemented".to_json(),
-        "message": "Remote extension download is not yet supported. Install from local path instead.".to_json(),
+        "ok": Json(false),
+        "error": Json("unimplemented"),
+        "message": Json("Remote extension download is not yet supported. Install from local path instead."),
       }).stringify(),
       body_bytes: None,
       content_type: "application/json",
@@ -235,16 +235,16 @@ pub fn handle_store_install(request : HttpRequest) -> HttpResponse {
   match @extension.install_extension_from_path(download_url) {
     Ok(ext) => {
       let resp = Json::object({
-        "ok": true.to_json(),
+        "ok": Json(true),
         "extension": extension_to_store_json(ext),
-        "message": "Extension installed successfully".to_json(),
+        "message": Json("Extension installed successfully"),
       }).stringify()
       HttpResponse::ok(resp)
     }
     Err(e) =>
       HttpResponse::{
         status: 400,
-        body: Json::object({ "ok": false.to_json(), "error": e.to_json() }).stringify(),
+        body: Json::object({ "ok": Json(false), "error": Json(e) }).stringify(),
         body_bytes: None,
         content_type: "application/json",
         headers: [],
@@ -276,7 +276,7 @@ pub fn handle_store_enable(request : HttpRequest) -> HttpResponse {
   match @extension.enable_extension(id) {
     Ok(ext) => {
       let resp = Json::object({
-        "ok": true.to_json(),
+        "ok": Json(true),
         "extension": extension_to_store_json(ext),
       }).stringify()
       HttpResponse::ok(resp)
@@ -284,7 +284,7 @@ pub fn handle_store_enable(request : HttpRequest) -> HttpResponse {
     Err(e) =>
       HttpResponse::{
         status: 400,
-        body: Json::object({ "ok": false.to_json(), "error": e.to_json() }).stringify(),
+        body: Json::object({ "ok": Json(false), "error": Json(e) }).stringify(),
         body_bytes: None,
         content_type: "application/json",
         headers: [],
@@ -316,7 +316,7 @@ pub fn handle_store_disable(request : HttpRequest) -> HttpResponse {
   match @extension.disable_extension(id) {
     Ok(ext) => {
       let resp = Json::object({
-        "ok": true.to_json(),
+        "ok": Json(true),
         "extension": extension_to_store_json(ext),
       }).stringify()
       HttpResponse::ok(resp)
@@ -324,7 +324,7 @@ pub fn handle_store_disable(request : HttpRequest) -> HttpResponse {
     Err(e) =>
       HttpResponse::{
         status: 400,
-        body: Json::object({ "ok": false.to_json(), "error": e.to_json() }).stringify(),
+        body: Json::object({ "ok": Json(false), "error": Json(e) }).stringify(),
         body_bytes: None,
         content_type: "application/json",
         headers: [],
@@ -365,15 +365,15 @@ pub fn handle_store_uninstall(request : HttpRequest) -> HttpResponse {
   match @extension.uninstall_extension(id, purge_data~) {
     Ok(_) => {
       let resp = Json::object({
-        "ok": true.to_json(),
-        "message": "Extension uninstalled successfully".to_json(),
+        "ok": Json(true),
+        "message": Json("Extension uninstalled successfully"),
       }).stringify()
       HttpResponse::ok(resp)
     }
     Err(e) =>
       HttpResponse::{
         status: 400,
-        body: Json::object({ "ok": false.to_json(), "error": e.to_json() }).stringify(),
+        body: Json::object({ "ok": Json(false), "error": Json(e) }).stringify(),
         body_bytes: None,
         content_type: "application/json",
         headers: [],
@@ -390,9 +390,9 @@ pub fn handle_store_uninstall(request : HttpRequest) -> HttpResponse {
 /// rather than failing the fetch. See spec 2026-08-18_17 task pack 3.
 pub fn handle_store_brand_list(_request : HttpRequest) -> HttpResponse {
   let resp = Json::object({
-    "ok": true.to_json(),
+    "ok": Json(true),
     "extensions": Json::array([]),
-    "warning": "No brand-private extension registry configured".to_json(),
+    "warning": Json("No brand-private extension registry configured"),
   }).stringify()
   HttpResponse::ok(resp)
 }

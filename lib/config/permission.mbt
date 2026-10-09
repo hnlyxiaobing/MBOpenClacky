@@ -43,7 +43,7 @@ pub fn PermissionMode::from_string(s : String) -> PermissionMode? {
 
 ///|
 impl ToJson for PermissionMode with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }
 
 ///|

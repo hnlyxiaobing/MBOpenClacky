@@ -42,7 +42,7 @@ test "extract_key_value_pairs: no object yields empty" {
 
 ///|
 test "validate_required_args: reports missing keys" {
-  let obj : Json = Json::object({ "a": "1".to_json(), "b": "2".to_json() })
+  let obj : Json = Json::object({ "a": Json("1"), "b": Json("2") })
   let missing = validate_required_args(obj, ["a", "b", "c"])
   @debug.assert_eq(missing.length(), 1)
   @debug.assert_eq(missing[0], "c")
@@ -50,7 +50,7 @@ test "validate_required_args: reports missing keys" {
 
 ///|
 test "validate_required_args: complete object has none missing" {
-  let obj : Json = Json::object({ "a": "1".to_json() })
+  let obj : Json = Json::object({ "a": Json("1") })
   @debug.assert_eq(validate_required_args(obj, ["a"]).length(), 0)
 }
 
@@ -63,8 +63,8 @@ test "validate_required_args: non-object returns all required" {
 
 ///|
 test "merge_json_args: later objects override earlier" {
-  let o1 : Json = Json::object({ "a": "1".to_json() })
-  let o2 : Json = Json::object({ "a": "2".to_json(), "b": "3".to_json() })
+  let o1 : Json = Json::object({ "a": Json("1") })
+  let o2 : Json = Json::object({ "a": Json("2"), "b": Json("3") })
   let merged = merge_json_args([o1, o2])
   match merged {
     Object(m) => {
@@ -79,7 +79,7 @@ test "merge_json_args: later objects override earlier" {
 test "merge_json_args: non-object entries are ignored" {
   let merged = merge_json_args([
     Json::string("skip"),
-    Json::object({ "k": "v".to_json() }),
+    Json::object({ "k": Json("v") }),
   ])
   match merged {
     Object(m) => assert_true(m.get("k") is Some(String("v")))

@@ -143,7 +143,7 @@ fn rewrite_step_paths(steps : Array[Json], workdir : String) -> Unit {
       guard jobj(args_json) is Some(args) else { continue }
       if args.get("path") is Some(p) && jstr(p) is Some(ps) {
         if !is_abs_path(ps) {
-          args["path"] = "\{workdir}/\{ps}".to_json()
+          args["path"] = Json("\{workdir}/\{ps}")
         }
       }
     }

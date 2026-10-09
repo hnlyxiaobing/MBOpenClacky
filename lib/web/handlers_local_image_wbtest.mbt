@@ -51,7 +51,7 @@ test "local image proxy returns 404 for missing file" {
     _ => fail("expected JSON error body")
   }
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("error"), Some("file not found".to_json()))
+  @debug.assert_eq(obj.get("error"), Some(Json("file not found")))
   assert_false(obj.contains("path"))
 }
 

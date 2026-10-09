@@ -38,26 +38,32 @@ impl Tool for FileReader with fn description(_) -> String {
 ///|
 impl Tool for FileReader with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "path": Json::object({
-        "type": "string".to_json(),
-        "description": "The absolute path to the file to read".to_json(),
+        "type": Json("string"),
+        "description": Json("The absolute path to the file to read"),
       }),
       "max_lines": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum number of lines to read from start (default: 1000)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum number of lines to read from start (default: 1000)",
+        ),
       }),
       "start_line": Json::object({
-        "type": "integer".to_json(),
-        "description": "Start line number (1-indexed, e.g., 100 reads from line 100)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Start line number (1-indexed, e.g., 100 reads from line 100)",
+        ),
       }),
       "end_line": Json::object({
-        "type": "integer".to_json(),
-        "description": "End line number (1-indexed, e.g., 200 reads up to line 200)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "End line number (1-indexed, e.g., 200 reads up to line 200)",
+        ),
       }),
     }),
-    "required": ["path".to_json()],
+    "required": [Json("path")],
   })
 }
 

@@ -242,7 +242,7 @@ test "weixin_api_parse_get_updates_error" {
 ///|
 test "weixin_api_parse_get_updates_invalid_format" {
   let client = WeixinApiClient::new("tok", "uin")
-  let json = "not_object".to_json()
+  let json = Json("not_object")
   let result = client.parse_get_updates_response(json)
   assert_true(result is Err(_))
 }
@@ -282,7 +282,7 @@ test "weixin_api_parse_send_response_error" {
 ///|
 test "weixin_api_parse_send_response_invalid_format" {
   let client = WeixinApiClient::new("tok", "uin")
-  let json = "42".to_json()
+  let json = Json("42")
   let result = client.parse_send_response(json)
   assert_true(result is Err(_))
 }

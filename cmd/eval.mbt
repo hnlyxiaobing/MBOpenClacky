@@ -34,7 +34,7 @@ fn eval_sandbox_root(repo : String) -> String {
 fn eval_attach_report_path(json : Json, path : String) -> Json {
   match json {
     Object(fields) => {
-      fields["report_path"] = path.to_json()
+      fields["report_path"] = Json(path)
       Json::object(fields)
     }
     other => other

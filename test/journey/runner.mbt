@@ -381,10 +381,10 @@ pub async fn run_journey_batch(
       error: o.error,
       duration_ms: o.duration_ms,
       metadata: Json::object({
-        "area": o.area.to_json(),
-        "title": o.title.to_json(),
-        "description": o.description.to_json(),
-        "evidence_dir": o.evidence_dir.to_json(),
+        "area": Json(o.area),
+        "title": Json(o.title),
+        "description": Json(o.description),
+        "evidence_dir": Json(o.evidence_dir),
       }),
     })
   }

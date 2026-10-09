@@ -16,6 +16,7 @@
 
 ///|
 /// Convert an agent `HookEvent` into the typed protocol event.
+
 ///|
 /// Convert normalized `ask_user` questions into their protocol counterparts
 /// (Web UI `request_feedback` frames carry them verbatim so the frontend can
@@ -52,7 +53,7 @@ pub fn hook_event_to_protocol(event : HookEvent) -> @protocol.Event {
         phase: "active",
         message: Some("Thinking..."),
         progress_type: Some("thinking"),
-        metadata: Some(Json::object({ "iteration": n.to_json() })),
+        metadata: Some(Json::object({ "iteration": Json(n) })),
         started_at: Some(current_time_ms().to_string()),
       })
     AfterIteration(_n) =>
@@ -175,7 +176,7 @@ pub fn hook_event_to_protocol(event : HookEvent) -> @protocol.Event {
         message: Some("Retrying..."),
         progress_type: Some("retry"),
         metadata: Some(
-          Json::object({ "attempt": n.to_json(), "reason": reason.to_json() }),
+          Json::object({ "attempt": Json(n), "reason": Json(reason) }),
         ),
         started_at: Some(current_time_ms().to_string()),
       })

@@ -31,9 +31,9 @@ pub fn build_jsonrpc_request(
     None => Json::object(Map([]))
   }
   let obj = Json::object({
-    "jsonrpc": "2.0".to_json(),
-    "id": id.to_json(),
-    "method": rpc_method.to_json(),
+    "jsonrpc": Json("2.0"),
+    "id": Json(id),
+    "method": Json(rpc_method),
     "params": p,
   })
   obj.stringify()
@@ -43,8 +43,8 @@ pub fn build_jsonrpc_request(
 /// Build a JSON-RPC 2.0 notification string (no id, no response expected).
 pub fn build_jsonrpc_notification(rpc_method : String) -> String {
   Json::object({
-    "jsonrpc": "2.0".to_json(),
-    "method": rpc_method.to_json(),
+    "jsonrpc": Json("2.0"),
+    "method": Json(rpc_method),
     "params": Json::object(Map([])),
   }).stringify()
 }

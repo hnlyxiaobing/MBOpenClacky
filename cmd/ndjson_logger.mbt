@@ -25,13 +25,13 @@ pub fn NdjsonLogger::log(
   self.seq = self.seq + 1
   let ts = @env.now()
   let obj : Map[String, Json] = {
-    "level": level.to_json(),
-    "message": message.to_json(),
-    "timestamp": ts.to_json(),
-    "seq": self.seq.to_json(),
+    "level": Json(level),
+    "message": Json(message),
+    "timestamp": Json(ts),
+    "seq": Json(self.seq),
   }
   match fields {
-    Some(f) => f.each(fn(k, v) { obj[k] = v.to_json() })
+    Some(f) => f.each(fn(k, v) { obj[k] = Json(v) })
     None => ()
   }
   println(Json::object(obj).stringify())
@@ -117,11 +117,11 @@ pub fn NdjsonLogger::log_event(
     | @proto.Pong => "debug"
   }
   let obj : Map[String, Json] = {
-    "level": level.to_json(),
-    "message": event.type_name().to_json(),
-    "timestamp": @env.now().to_json(),
-    "seq": self.seq.to_json(),
-    "event": event.to_json(),
+    "level": Json(level),
+    "message": Json(event.type_name()),
+    "timestamp": Json(@env.now()),
+    "seq": Json(self.seq),
+    "event": @proto.Event::to_json(event),
   }
   println(Json::object(obj).stringify())
 }

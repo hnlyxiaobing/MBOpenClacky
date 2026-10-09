@@ -17,14 +17,12 @@ const MAX_MEMORY_FILE_CHARS : Int = 1000
 ///|
 /// Built-in personality used when the user has no `~/.mbopenclacky/agents/SOUL.md`
 /// (Ruby AgentProfile::DEFAULT_SOUL).
-const DEFAULT_SOUL : String =
-  "You are calm, precise, and helpful. You communicate clearly and concisely.\nYou are honest about uncertainty and ask for clarification when needed.\nYou take initiative but respect the user's preferences and decisions."
+const DEFAULT_SOUL : String = "You are calm, precise, and helpful. You communicate clearly and concisely.\nYou are honest about uncertainty and ask for clarification when needed.\nYou take initiative but respect the user's preferences and decisions."
 
 ///|
 /// Built-in user profile used when the user has no
 /// `~/.mbopenclacky/agents/USER.md` (Ruby AgentProfile::DEFAULT_USER).
-const DEFAULT_USER : String =
-  "(No user profile configured yet. To personalize, create ~/.clacky/agents/USER.md)"
+const DEFAULT_USER : String = "(No user profile configured yet. To personalize, create ~/.clacky/agents/USER.md)"
 
 ///|
 /// Built-in SOUL.md body (Ruby AgentProfile::DEFAULT_SOUL), exposed so the
@@ -76,7 +74,9 @@ fn load_profile_from_dir(name : String, dir : String) -> AgentProfile {
   // personality the user never wrote (Ruby AgentProfile#soul).
   let soul_content = load_user_agent_override("SOUL.md")
   let user_content = load_user_agent_override("USER.md")
-  let base_prompt = strip_opt(load_file_content(@utils.assets_path("prompts/base.md")))
+  let base_prompt = strip_opt(
+    load_file_content(@utils.assets_path("prompts/base.md")),
+  )
   { config, system_prompt, soul_content, user_content, base_prompt, }
 }
 

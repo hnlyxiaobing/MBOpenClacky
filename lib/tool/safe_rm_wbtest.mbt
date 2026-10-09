@@ -74,8 +74,8 @@ async test "safe_rm: rm moves file into project trash" {
     }
     let tool = Terminal::new()
     let args : Map[String, Json] = {
-      "command": ("rm '" + target + "'").to_json(),
-      "cwd": proj.to_json(),
+      "command": Json("rm '" + target + "'"),
+      "cwd": Json(proj),
     }
     let result = tool.execute(args)
     assert_false(result.is_error)
@@ -109,8 +109,8 @@ async test "safe_rm: CLACKY_TRASH_DIR injected" {
   with_temp_project(async fn(proj, trash) {
     let tool = Terminal::new()
     let args : Map[String, Json] = {
-      "command": "echo $CLACKY_TRASH_DIR".to_json(),
-      "cwd": proj.to_json(),
+      "command": Json("echo $CLACKY_TRASH_DIR"),
+      "cwd": Json(proj),
     }
     let result = tool.execute(args)
     assert_false(result.is_error)
@@ -126,10 +126,7 @@ async test "safe_rm: dangerous target refused" {
     return
   }
   let tool = Terminal::new()
-  let args : Map[String, Json] = {
-    "command": "rm /".to_json(),
-    "cwd": ".".to_json(),
-  }
+  let args : Map[String, Json] = { "command": Json("rm /"), "cwd": Json(".") }
   let result = tool.execute(args)
   assert_false(result.is_error)
   assert_true(result.content.contains("refused dangerous target"))
@@ -145,8 +142,8 @@ async test "safe_rm: -f suppresses missing-file errors" {
     let missing = sr_join(proj, "does-not-exist.txt")
     let tool = Terminal::new()
     let args : Map[String, Json] = {
-      "command": ("rm -f '" + missing + "'").to_json(),
-      "cwd": proj.to_json(),
+      "command": Json("rm -f '" + missing + "'"),
+      "cwd": Json(proj),
     }
     let result = tool.execute(args)
     assert_false(result.is_error)
@@ -164,8 +161,8 @@ async test "safe_rm: missing file without -f errors" {
     let missing = sr_join(proj, "nope.txt")
     let tool = Terminal::new()
     let args : Map[String, Json] = {
-      "command": ("rm '" + missing + "'").to_json(),
-      "cwd": proj.to_json(),
+      "command": Json("rm '" + missing + "'"),
+      "cwd": Json(proj),
     }
     let result = tool.execute(args)
     assert_false(result.is_error)

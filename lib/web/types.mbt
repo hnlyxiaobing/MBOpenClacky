@@ -19,20 +19,20 @@ fn web_mask_api_key(key : String) -> String {
 ///   - api_key -> api_key_masked (masked, never exposes the raw key)
 ///   - type_   -> type (frontend uses `model.type`)
 fn model_to_web_json(m : @config.ModelConfig) -> Json {
-  // Note: `m.type_.to_json()` would serialize `Some("claude")` as `["claude"]`
+  // Note: `Json(m.type_)` would serialize `Some("claude")` as `["claude"]`
   // because MoonBit's `ToJson for T?` uses array form (`[value]`). We want a
   // plain string (or null) for the frontend, matching derived struct behavior.
   let type_json = match m.type_ {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   Json::object({
-    "id": m.id.to_json(),
+    "id": Json(m.id),
     "type": type_json,
-    "model": m.model.to_json(),
-    "base_url": m.base_url.to_json(),
-    "api_key_masked": web_mask_api_key(m.api_key).to_json(),
-    "anthropic_format": m.anthropic_format.to_json(),
+    "model": Json(m.model),
+    "base_url": Json(m.base_url),
+    "api_key_masked": Json(web_mask_api_key(m.api_key)),
+    "anthropic_format": Json(m.anthropic_format),
   })
 }
 
@@ -242,11 +242,11 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
   let latest_latency = match self.latest_latency {
     Some(lat) => {
       let ttft = match lat.ttft_ms {
-        Some(v) => v.to_json()
+        Some(v) => Json(v)
         None => Json::null()
       }
       let duration = match lat.duration_ms {
-        Some(v) => v.to_json()
+        Some(v) => Json(v)
         None => Json::null()
       }
       Json::object({ "ttft_ms": ttft, "duration_ms": duration })
@@ -254,23 +254,23 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     None => Json::null()
   }
   let model = match self.model {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let sub_model = match self.sub_model {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let reasoning_effort = match self.reasoning_effort {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let model_id = match self.model_id {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let card_model = match self.card_model {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let channel_info = match self.channel_info {
@@ -278,35 +278,35 @@ pub impl ToJson for SessionSummary with fn to_json(self) {
     None => Json::null()
   }
   let error_code = match self.error_code {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let top_up_url = match self.top_up_url {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   let raw_message = match self.raw_message {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   Json::object({
-    "id": self.id.to_json(),
-    "name": self.name.to_json(),
-    "working_dir": self.working_dir.to_json(),
-    "status": self.status.to_json(),
-    "created_at": self.created_at.to_json(),
-    "updated_at": self.updated_at.to_json(),
-    "total_tasks": self.total_tasks.to_json(),
-    "total_cost": self.total_cost.to_json(),
-    "cost_source": self.cost_source.to_json(),
-    "error": self.error.to_json(),
+    "id": Json(self.id),
+    "name": Json(self.name),
+    "working_dir": Json(self.working_dir),
+    "status": Json(self.status),
+    "created_at": Json(self.created_at),
+    "updated_at": Json(self.updated_at),
+    "total_tasks": Json(self.total_tasks),
+    "total_cost": Json(self.total_cost),
+    "cost_source": Json(self.cost_source),
+    "error": Json(self.error),
     "model": model,
-    "source": self.source.to_json(),
+    "source": Json(self.source),
     "latest_latency": latest_latency,
-    "pinned": self.pinned.to_json(),
-    "agent_profile": self.agent_profile.to_json(),
+    "pinned": Json(self.pinned),
+    "agent_profile": Json(self.agent_profile),
     "sub_model": sub_model,
-    "sub_model_options": self.sub_model_options.to_json(),
+    "sub_model_options": Json(self.sub_model_options),
     "reasoning_effort": reasoning_effort,
     "model_id": model_id,
     "card_model": card_model,
@@ -323,13 +323,13 @@ pub extend SessionListResponse with ToJson::{to_json}
 ///|
 pub impl ToJson for SessionListResponse with fn to_json(self) {
   let cron_updated = match self.latest_cron_updated_at {
-    Some(v) => v.to_json()
+    Some(v) => Json(v)
     None => Json::null()
   }
   Json::object({
-    "sessions": self.sessions.to_json(),
-    "has_more": self.has_more.to_json(),
-    "cron_count": self.cron_count.to_json(),
+    "sessions": Json(self.sessions),
+    "has_more": Json(self.has_more),
+    "cron_count": Json(self.cron_count),
     "latest_cron_updated_at": cron_updated,
   })
 }
@@ -337,64 +337,64 @@ pub impl ToJson for SessionListResponse with fn to_json(self) {
 ///|
 impl ToJson for ToolListEntry with fn to_json(self) {
   Json::object({
-    "name": self.name.to_json(),
-    "description": self.description.to_json(),
+    "name": Json(self.name),
+    "description": Json(self.description),
   })
 }
 
 ///|
 impl ToJson for ToolListResponse with fn to_json(self) {
-  Json::object({ "tools": self.tools.to_json() })
+  Json::object({ "tools": Json(self.tools) })
 }
 
 ///|
 impl ToJson for StatusResponse with fn to_json(self) {
   let err = match self.error {
-    Some(e) => Some(e.to_json())
+    Some(e) => Some(Json(e))
     None => None
   }
   Json::object({
-    "session_id": self.session_id.to_json(),
-    "status": self.status.to_json(),
-    "iterations": self.iterations.to_json(),
+    "session_id": Json(self.session_id),
+    "status": Json(self.status),
+    "iterations": Json(self.iterations),
     "error": err,
   })
 }
 
 ///|
 impl ToJson for CancelResponse with fn to_json(self) {
-  Json::object({ "cancelled": self.cancelled.to_json() })
+  Json::object({ "cancelled": Json(self.cancelled) })
 }
 
 ///|
 impl ToJson for CostResponse with fn to_json(self) {
   Json::object({
-    "session_id": self.session_id.to_json(),
-    "total_cost_usd": self.total_cost_usd.to_json(),
-    "cost_source": self.cost_source.to_json(),
-    "cache_creation_input_tokens": self.cache_creation_input_tokens.to_json(),
-    "cache_read_input_tokens": self.cache_read_input_tokens.to_json(),
-    "total_requests": self.total_requests.to_json(),
-    "cache_hit_requests": self.cache_hit_requests.to_json(),
+    "session_id": Json(self.session_id),
+    "total_cost_usd": Json(self.total_cost_usd),
+    "cost_source": Json(self.cost_source),
+    "cache_creation_input_tokens": Json(self.cache_creation_input_tokens),
+    "cache_read_input_tokens": Json(self.cache_read_input_tokens),
+    "total_requests": Json(self.total_requests),
+    "cache_hit_requests": Json(self.cache_hit_requests),
   })
 }
 
 ///|
 impl ToJson for StatsResponse with fn to_json(self) {
   Json::object({
-    "total_sessions": self.total_sessions.to_json(),
-    "total_cost_usd": self.total_cost_usd.to_json(),
-    "total_iterations": self.total_iterations.to_json(),
-    "total_tasks": self.total_tasks.to_json(),
+    "total_sessions": Json(self.total_sessions),
+    "total_cost_usd": Json(self.total_cost_usd),
+    "total_iterations": Json(self.total_iterations),
+    "total_tasks": Json(self.total_tasks),
   })
 }
 
 ///|
 impl ToJson for AggregateStatsResponse with fn to_json(self) {
   Json::object({
-    "total_cost_usd": self.total_cost_usd.to_json(),
-    "session_count": self.session_count.to_json(),
-    "total_messages": self.total_messages.to_json(),
+    "total_cost_usd": Json(self.total_cost_usd),
+    "session_count": Json(self.session_count),
+    "total_messages": Json(self.total_messages),
   })
 }
 
@@ -404,18 +404,18 @@ pub extend HealthResponse with ToJson::{to_json}
 ///|
 pub impl ToJson for HealthResponse with fn to_json(self) {
   Json::object({
-    "status": self.status.to_json(),
-    "uptime_seconds": self.uptime_seconds.to_json(),
+    "status": Json(self.status),
+    "uptime_seconds": Json(self.uptime_seconds),
   })
 }
 
 ///|
 impl ToJson for InfoResponse with fn to_json(self) {
   Json::object({
-    "version": self.version.to_json(),
-    "name": self.name.to_json(),
-    "uptime_seconds": self.uptime_seconds.to_json(),
-    "active_sessions": self.active_sessions.to_json(),
+    "version": Json(self.version),
+    "name": Json(self.name),
+    "uptime_seconds": Json(self.uptime_seconds),
+    "active_sessions": Json(self.active_sessions),
   })
 }
 
@@ -425,13 +425,13 @@ impl ToJson for ModelListResponse with fn to_json(self) {
   for m in self.models {
     models_json.push(model_to_web_json(m))
   }
-  Json::object({ "models": models_json.to_json() })
+  Json::object({ "models": Json(models_json) })
 }
 
 ///|
 impl ToJson for PermissionResponse with fn to_json(self) {
   Json::object({
-    "permission_mode": self.permission_mode.to_json(),
-    "safe_tools": self.safe_tools.to_json(),
+    "permission_mode": Json(self.permission_mode),
+    "safe_tools": Json(self.safe_tools),
   })
 }

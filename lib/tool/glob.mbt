@@ -36,22 +36,26 @@ impl Tool for Glob with fn description(_) -> String {
 ///|
 impl Tool for Glob with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "pattern": Json::object({
-        "type": "string".to_json(),
-        "description": "The glob pattern to match files (e.g., '**/*.rb', 'lib/**/*.rb', '*.txt')".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "The glob pattern to match files (e.g., '**/*.rb', 'lib/**/*.rb', '*.txt')",
+        ),
       }),
       "base_path": Json::object({
-        "type": "string".to_json(),
-        "description": "The base directory to search in (defaults to current directory)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "The base directory to search in (defaults to current directory)",
+        ),
       }),
       "limit": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum number of results to return (default: 10)".to_json(),
+        "type": Json("integer"),
+        "description": Json("Maximum number of results to return (default: 10)"),
       }),
     }),
-    "required": ["pattern".to_json()],
+    "required": [Json("pattern")],
   })
 }
 

@@ -27,7 +27,7 @@ fn media_request_json(
     _ =>
       return Err(
         @core.HttpResponse::bad_request().json_value(
-          MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }.to_json(),
+          Json(MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }),
         ),
       )
   }
@@ -36,7 +36,7 @@ fn media_request_json(
     _ =>
       Err(
         @core.HttpResponse::bad_request().json_value(
-          MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }.to_json(),
+          Json(MediaErrorResponse::{ ok: false, message: "Invalid JSON body", }),
         ),
       )
   }
@@ -82,14 +82,14 @@ fn resolve_media_model(
 ///|
 fn media_model_missing(kind : String) -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
-    MediaErrorResponse::{
+    Json(MediaErrorResponse::{
       ok: false,
       message: "No " +
       kind +
       " media model configured. Add a model with media type '" +
       kind +
       "' or configure a provider preset that provides one.",
-    }.to_json(),
+    }),
   )
 }
 
@@ -108,7 +108,7 @@ async fn handle_media_image(
   let prompt = media_string_field(j, "prompt").unwrap_or("")
   if prompt.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      MediaErrorResponse::{ ok: false, message: "prompt is required", }.to_json(),
+      Json(MediaErrorResponse::{ ok: false, message: "prompt is required", }),
     )
   }
   let config = server_ref.val.config
@@ -128,7 +128,7 @@ async fn handle_media_image(
     Some(model.model),
   )
   let result = gen.generate_image(request)
-  @core.HttpResponse::ok().json_value(result.to_json())
+  @core.HttpResponse::ok().json_value(Json(result))
 }
 
 ///|
@@ -144,7 +144,7 @@ async fn handle_media_video(
   let prompt = media_string_field(j, "prompt").unwrap_or("")
   if prompt.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      MediaErrorResponse::{ ok: false, message: "prompt is required", }.to_json(),
+      Json(MediaErrorResponse::{ ok: false, message: "prompt is required", }),
     )
   }
   let config = server_ref.val.config
@@ -165,7 +165,7 @@ async fn handle_media_video(
     Some(model.model),
   )
   let result = gen.generate_video(request)
-  @core.HttpResponse::ok().json_value(result.to_json())
+  @core.HttpResponse::ok().json_value(Json(result))
 }
 
 ///|
@@ -184,10 +184,10 @@ async fn handle_media_speech(
   }
   if prompt.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      MediaErrorResponse::{
+      Json(MediaErrorResponse::{
         ok: false,
         message: "input (or prompt) is required",
-      }.to_json(),
+      }),
     )
   }
   let config = server_ref.val.config
@@ -207,7 +207,7 @@ async fn handle_media_speech(
     Some(model.model),
   )
   let result = gen.generate_speech(request)
-  @core.HttpResponse::ok().json_value(result.to_json())
+  @core.HttpResponse::ok().json_value(Json(result))
 }
 
 ///|
@@ -223,15 +223,15 @@ async fn handle_media_transcription(
   let audio_path = media_string_field(j, "audio_path").unwrap_or("")
   if audio_path.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      MediaErrorResponse::{ ok: false, message: "audio_path is required", }.to_json(),
+      Json(MediaErrorResponse::{ ok: false, message: "audio_path is required", }),
     )
   }
   if !@fs.path_exists(audio_path) {
     return @core.HttpResponse::bad_request().json_value(
-      MediaErrorResponse::{
+      Json(MediaErrorResponse::{
         ok: false,
         message: "Audio file could not be read: " + audio_path,
-      }.to_json(),
+      }),
     )
   }
   let config = server_ref.val.config
@@ -249,7 +249,7 @@ async fn handle_media_transcription(
     Some(model.model),
   )
   let result = gen.generate_transcription(request)
-  @core.HttpResponse::ok().json_value(result.to_json())
+  @core.HttpResponse::ok().json_value(Json(result))
 }
 
 ///|
@@ -261,7 +261,7 @@ async fn handle_media_video_understand(
   let j : Json = event.req.body() catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        @media.build_video_error("Invalid JSON body").to_json(),
+        Json(@media.build_video_error("Invalid JSON body")),
       )
   }
   let req : @media.VideoUnderstandRequest = match j {
@@ -269,12 +269,12 @@ async fn handle_media_video_understand(
       @json.from_json(j) catch {
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            @media.build_video_error("Invalid video understand request body").to_json(),
+            Json(@media.build_video_error("Invalid video understand request body")),
           )
       }
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        @media.build_video_error("Invalid JSON body").to_json(),
+        Json(@media.build_video_error("Invalid JSON body")),
       )
   }
   let config = server_ref.val.config
@@ -282,9 +282,9 @@ async fn handle_media_video_understand(
     Some(m) => m
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
-        @media.build_video_error(
+        Json(@media.build_video_error(
           "No vision-capable model configured. Configure an OCR or vision model first.",
-        ).to_json(),
+        )),
       )
   }
   let ffmpeg_check = @tool.run_shell_command(
@@ -292,16 +292,16 @@ async fn handle_media_video_understand(
   )
   if ffmpeg_check.exit_code != 0 {
     return @core.HttpResponse::internal_server_error().json_value(
-      @media.build_video_error(
+      Json(@media.build_video_error(
         "FFmpeg is not installed or not available in PATH. Install FFmpeg to use video understanding.",
-      ).to_json(),
+      )),
     )
   }
   let work_dir = match create_video_work_dir() {
     Ok(d) => d
     Err(e) =>
       return @core.HttpResponse::internal_server_error().json_value(
-        @media.build_video_error("Failed to create temp directory: " + e).to_json(),
+        Json(@media.build_video_error("Failed to create temp directory: " + e)),
       )
   }
   let video_path = match resolve_video_source(req, work_dir) {
@@ -309,7 +309,7 @@ async fn handle_media_video_understand(
     Err(e) => {
       cleanup_video_work_dir(work_dir)
       return @core.HttpResponse::bad_request().json_value(
-        @media.build_video_error(e).to_json(),
+        Json(@media.build_video_error(e)),
       )
     }
   }
@@ -323,19 +323,19 @@ async fn handle_media_video_understand(
   if extract_result.exit_code != 0 {
     cleanup_video_work_dir(work_dir)
     return @core.HttpResponse::internal_server_error().json_value(
-      @media.build_video_error(
+      Json(@media.build_video_error(
         "FFmpeg failed to extract frames: " +
         extract_result.output.trim().to_owned(),
-      ).to_json(),
+      )),
     )
   }
   let frame_files = list_frame_files(work_dir)
   if frame_files.length() == 0 {
     cleanup_video_work_dir(work_dir)
     return @core.HttpResponse::internal_server_error().json_value(
-      @media.build_video_error(
+      Json(@media.build_video_error(
         "No frames were extracted. The video may be corrupted or in an unsupported format.",
-      ).to_json(),
+      )),
     )
   }
   let resolver = build_video_resolver(model)
@@ -366,7 +366,7 @@ async fn handle_media_video_understand(
   }
   cleanup_video_work_dir(work_dir)
   let result = @media.build_video_success(frames, model.model)
-  @core.HttpResponse::ok().json_value(result.to_json())
+  @core.HttpResponse::ok().json_value(Json(result))
 }
 
 // ── Video Understanding Helpers ──────────────────────────────────

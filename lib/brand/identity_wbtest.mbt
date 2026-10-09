@@ -15,10 +15,10 @@ test "identity_create_and_fields" {
 test "identity_to_json_is_object" {
   let di = generate_device_id()
   let identity = create_identity("tok-1", "u1", 1000L, di)
-  let j = identity.to_json()
+  let j = Json(identity)
   match j {
     Object(_) => ()
-    _ => fail("identity.to_json() must be an Object")
+    _ => fail("Json(identity) must be an Object")
   }
 }
 
@@ -27,10 +27,10 @@ test "identity_to_json_is_object" {
 test "parse_identity_minimal" {
   let di = generate_device_id()
   let json = Json::object({
-    "device_token": "tok-1".to_json(),
-    "user_id": "user-1".to_json(),
-    "bound_at": (1000).to_json(),
-    "device_info": di.to_json(),
+    "device_token": Json("tok-1"),
+    "user_id": Json("user-1"),
+    "bound_at": Json((1000)),
+    "device_info": Json(di),
   })
   guard parse_identity(json) is Some(id) else {
     fail("parse_identity with minimal json should succeed")
@@ -43,9 +43,9 @@ test "parse_identity_minimal" {
 test "parse_identity_invalid_missing_token" {
   let di = generate_device_id()
   let json = Json::object({
-    "user_id": "user-1".to_json(),
-    "bound_at": 1000L.to_json(),
-    "device_info": di.to_json(),
+    "user_id": Json("user-1"),
+    "bound_at": Json(1000L),
+    "device_info": Json(di),
   })
   assert_true(parse_identity(json) is None)
 }
@@ -53,8 +53,8 @@ test "parse_identity_invalid_missing_token" {
 ///|
 /// Test parse_identity invalid non-object inputs
 test "parse_identity_invalid_non_object" {
-  assert_true(parse_identity("hello".to_json()) is None)
-  assert_true(parse_identity(true.to_json()) is None)
+  assert_true(parse_identity(Json("hello")) is None)
+  assert_true(parse_identity(Json(true)) is None)
   assert_true(parse_identity(Json::null()) is None)
 }
 
@@ -62,9 +62,9 @@ test "parse_identity_invalid_non_object" {
 /// Test parse_identity missing device_info
 test "parse_identity_invalid_missing_device_info" {
   let json = Json::object({
-    "device_token": "tok-1".to_json(),
-    "user_id": "user-1".to_json(),
-    "bound_at": 1000L.to_json(),
+    "device_token": Json("tok-1"),
+    "user_id": Json("user-1"),
+    "bound_at": Json(1000L),
   })
   assert_true(parse_identity(json) is None)
 }

@@ -159,7 +159,7 @@ pub fn save_result(
   let filename = filename_safe(result.timestamp) + ".json"
   let filepath = @path.Path::join(scenario_dir, @path.Path(filename)).to_string()
 
-  let json_str = result.to_json()
+  let json_str = BenchmarkResult::to_json(result)
   @fs.write_string_to_file(filepath, json_str) catch {
     e => return Err("Failed to write result file: \{@debug.to_string(e)}")
   }

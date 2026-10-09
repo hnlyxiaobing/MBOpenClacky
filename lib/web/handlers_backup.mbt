@@ -146,14 +146,14 @@ fn format_iso_timestamp(epoch_ms : Int64) -> String {
 /// Convert a BackupRecord to JSON for API response.
 fn record_to_json(r : BackupRecord) -> Json {
   Json::object({
-    "id": r.id.to_json(),
-    "label": r.label.to_json(),
-    "created_at": r.created_at.to_json(),
-    "size_bytes": r.size_bytes.to_json(),
-    "size": r.size_bytes.to_json(),
-    "status": r.status.to_json(),
-    "scope": r.scope.to_json(),
-    "description": r.description.to_json(),
+    "id": Json(r.id),
+    "label": Json(r.label),
+    "created_at": Json(r.created_at),
+    "size_bytes": Json(r.size_bytes),
+    "size": Json(r.size_bytes),
+    "status": Json(r.status),
+    "scope": Json(r.scope),
+    "description": Json(r.description),
   })
 }
 
@@ -295,7 +295,7 @@ fn collect_snapshot_data(scope : String) -> (Json, Int) {
     if @fs.path_exists(config_file) {
       let content = @fs.read_file_to_string(config_file) catch { _ => "" }
       total_size = total_size + content.length()
-      data.set("config.toml", content.to_json())
+      data.set("config.toml", Json(content))
     }
   }
   // Snapshot session data
@@ -310,7 +310,7 @@ fn collect_snapshot_data(scope : String) -> (Json, Int) {
         let fpath = @path.Path::join(@path.Path(sessions_dir), @path.Path(name)).to_string()
         let content = @fs.read_file_to_string(fpath) catch { _ => continue }
         total_size = total_size + content.length()
-        data.set("sessions/" + name, content.to_json())
+        data.set("sessions/" + name, Json(content))
       }
     }
   }
@@ -326,7 +326,7 @@ fn collect_snapshot_data(scope : String) -> (Json, Int) {
         let fpath = @path.Path::join(@path.Path(skills_dir), @path.Path(name)).to_string()
         let content = @fs.read_file_to_string(fpath) catch { _ => continue }
         total_size = total_size + content.length()
-        data.set("skills/" + name, content.to_json())
+        data.set("skills/" + name, Json(content))
       }
     }
   }
@@ -479,22 +479,22 @@ pub fn handle_backups_list(request : HttpRequest) -> HttpResponse {
   }
   let body = Json::object({
     "backups": Json::array(items),
-    "total": records.length().to_json(),
+    "total": Json(records.length()),
     // Orig BackupManager::DEFAULT_CONFIG shape; no scheduler/config file exists
     // in this runtime yet, so defaults are emitted verbatim.
     "config": Json::object({
-      "enabled": false.to_json(),
-      "cron": "0 3 * * *".to_json(),
+      "enabled": Json(false),
+      "cron": Json("0 3 * * *"),
       "dest_dir": Json::null(),
-      "keep": (7).to_json(),
-      "include_sessions": true.to_json(),
+      "keep": Json((7)),
+      "include_sessions": Json(true),
       "last_run_at": Json::null(),
       "last_status": Json::null(),
       "last_error": Json::null(),
       "last_archive": Json::null(),
     }),
-    "dest_dir": backups_dir().to_json(),
-    "is_wsl": @utils.is_wsl().to_json(),
+    "dest_dir": Json(backups_dir()),
+    "is_wsl": Json(@utils.is_wsl()),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -544,7 +544,7 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
     Err(e) =>
       return HttpResponse::json_status(
         400,
-        Json::object({ "error": e.to_json() }).stringify(),
+        Json::object({ "error": Json(e) }).stringify(),
       )
     Ok(_) => ()
   }
@@ -563,15 +563,15 @@ pub fn handle_backups_create(request : HttpRequest) -> HttpResponse {
     Err(e) =>
       HttpResponse::json_status(
         400,
-        Json::object({ "error": e.to_json() }).stringify(),
+        Json::object({ "error": Json(e) }).stringify(),
       )
     Ok(_) => {
       let resp = Json::object({
-        "id": id.to_json(),
-        "status": "created".to_json(),
-        "created_at": created_at.to_json(),
-        "size_bytes": total_size.to_json(),
-        "message": "Backup created successfully".to_json(),
+        "id": Json(id),
+        "status": Json("created"),
+        "created_at": Json(created_at),
+        "size_bytes": Json(total_size),
+        "message": Json("Backup created successfully"),
       }).stringify()
       HttpResponse::created(resp)
     }
@@ -592,8 +592,8 @@ pub fn handle_backups_restore(request : HttpRequest) -> HttpResponse {
       HttpResponse::json_status(
         404,
         Json::object({
-          "error": "Backup not found".to_json(),
-          "id": id.to_json(),
+          "error": Json("Backup not found"),
+          "id": Json(id),
         }).stringify(),
       )
     Some(_) =>
@@ -603,16 +603,16 @@ pub fn handle_backups_restore(request : HttpRequest) -> HttpResponse {
           HttpResponse::json_status(
             400,
             Json::object({
-              "id": id.to_json(),
-              "status": "failed".to_json(),
-              "error": e.to_json(),
+              "id": Json(id),
+              "status": Json("failed"),
+              "error": Json(e),
             }).stringify(),
           )
         Ok(_) => {
           let resp = Json::object({
-            "id": id.to_json(),
-            "status": "restored".to_json(),
-            "message": "Backup restored successfully".to_json(),
+            "id": Json(id),
+            "status": Json("restored"),
+            "message": Json("Backup restored successfully"),
           }).stringify()
           HttpResponse::ok(resp)
         }
@@ -634,8 +634,8 @@ pub fn handle_backups_delete(request : HttpRequest) -> HttpResponse {
       HttpResponse::json_status(
         404,
         Json::object({
-          "error": "Backup not found".to_json(),
-          "id": id.to_json(),
+          "error": Json("Backup not found"),
+          "id": Json(id),
         }).stringify(),
       )
     Some(_) => {
@@ -720,8 +720,8 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
       HttpResponse::json_status(
         404,
         Json::object({
-          "error": "Backup not found".to_json(),
-          "id": id.to_json(),
+          "error": Json("Backup not found"),
+          "id": Json(id),
         }).stringify(),
       )
     Some(_) =>
@@ -730,9 +730,9 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
           HttpResponse::json_status(
             500,
             Json::object({
-              "error": "Failed to package backup archive".to_json(),
-              "id": id.to_json(),
-              "message": e.to_json(),
+              "error": Json("Failed to package backup archive"),
+              "id": Json(id),
+              "message": Json(e),
             }).stringify(),
           )
         Ok(bytes) => {
@@ -798,10 +798,10 @@ pub fn handle_backup_config_update(request : HttpRequest) -> HttpResponse {
     _ => return HttpResponse::bad_request("Invalid JSON body")
   }
   let resp = Json::object({
-    "backup_dir": backup_config.val.backup_dir.to_json(),
-    "auto_backup": backup_config.val.auto_backup.to_json(),
-    "max_backups": backup_config.val.max_backups.to_json(),
-    "updated": true.to_json(),
+    "backup_dir": Json(backup_config.val.backup_dir),
+    "auto_backup": Json(backup_config.val.auto_backup),
+    "max_backups": Json(backup_config.val.max_backups),
+    "updated": Json(true),
   }).stringify()
   HttpResponse::ok(resp)
 }

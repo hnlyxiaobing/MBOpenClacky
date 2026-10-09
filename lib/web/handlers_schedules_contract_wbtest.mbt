@@ -25,7 +25,7 @@ fn find_cron_task(body : String, name : String) -> Map[String, Json]? {
           for item in items {
             match item {
               Object(o) =>
-                if o.get("name") == Some(name.to_json()) {
+                if o.get("name") == Some(Json(name)) {
                   return Some(o)
                 }
               _ => ()
@@ -64,13 +64,13 @@ test "cron manual tasks: unscheduled task file yields scheduled=false entry" {
   @debug.assert_eq(entries.length(), 1)
   match entries[0] {
     Object(o) => {
-      @debug.assert_eq(o.get("name"), Some("wbtest19foo".to_json()))
-      @debug.assert_eq(o.get("content"), Some("hello task".to_json()))
-      @debug.assert_eq(o.get("message"), Some("hello task".to_json()))
-      @debug.assert_eq(o.get("scheduled"), Some(false.to_json()))
-      @debug.assert_eq(o.get("cron"), Some("".to_json()))
-      @debug.assert_eq(o.get("cron_expression"), Some("".to_json()))
-      @debug.assert_eq(o.get("enabled"), Some(true.to_json()))
+      @debug.assert_eq(o.get("name"), Some(Json("wbtest19foo")))
+      @debug.assert_eq(o.get("content"), Some(Json("hello task")))
+      @debug.assert_eq(o.get("message"), Some(Json("hello task")))
+      @debug.assert_eq(o.get("scheduled"), Some(Json(false)))
+      @debug.assert_eq(o.get("cron"), Some(Json("")))
+      @debug.assert_eq(o.get("cron_expression"), Some(Json("")))
+      @debug.assert_eq(o.get("enabled"), Some(Json(true)))
     }
     _ => panic()
   }
@@ -122,9 +122,9 @@ test "cron-tasks list: merges manual task file as scheduled=false entry" {
   @debug.assert_eq(resp.status, 200)
   match find_cron_task(resp.body, name) {
     Some(o) => {
-      @debug.assert_eq(o.get("scheduled"), Some(false.to_json()))
-      @debug.assert_eq(o.get("content"), Some("manual prompt".to_json()))
-      @debug.assert_eq(o.get("cron"), Some("".to_json()))
+      @debug.assert_eq(o.get("scheduled"), Some(Json(false)))
+      @debug.assert_eq(o.get("content"), Some(Json("manual prompt")))
+      @debug.assert_eq(o.get("cron"), Some(Json("")))
     }
     None => panic()
   }
@@ -152,9 +152,9 @@ test "cron-tasks list: task file content wins over messages cache" {
     Some(o) => {
       // Scheduled entry keeps scheduled=true but content comes from the
       // task file (orig: task files are the primary table).
-      @debug.assert_eq(o.get("scheduled"), Some(true.to_json()))
-      @debug.assert_eq(o.get("content"), Some("file content".to_json()))
-      @debug.assert_eq(o.get("cron"), Some("0 9 * * *".to_json()))
+      @debug.assert_eq(o.get("scheduled"), Some(Json(true)))
+      @debug.assert_eq(o.get("content"), Some(Json("file content")))
+      @debug.assert_eq(o.get("cron"), Some(Json("0 9 * * *")))
     }
     None => panic()
   }

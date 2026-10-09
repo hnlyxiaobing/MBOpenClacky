@@ -160,8 +160,8 @@ pub fn Hub::broadcast_session_json(
   data : Json,
 ) -> Unit {
   let payload = Json::object({
-    "type": event_type.to_json(),
-    "session_id": session_id.to_json(),
+    "type": Json(event_type),
+    "session_id": Json(session_id),
     "data": data,
   }).stringify()
   self.broadcast_session(session_id, payload)
@@ -174,7 +174,7 @@ pub fn Hub::broadcast_global_json(
   event_type : String,
   data : Json,
 ) -> Unit {
-  let payload = Json::object({ "type": event_type.to_json(), "data": data }).stringify()
+  let payload = Json::object({ "type": Json(event_type), "data": data }).stringify()
   self.broadcast_global(payload)
 }
 
@@ -185,7 +185,7 @@ pub fn Hub::broadcast_heartbeat(self : Hub) -> Unit {
   let ts = @env.now().reinterpret_as_int64()
   self.broadcast_global_json(
     "heartbeat",
-    Json::object({ "timestamp": ts.to_json() }),
+    Json::object({ "timestamp": Json(ts) }),
   )
 }
 

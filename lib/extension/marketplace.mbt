@@ -62,10 +62,10 @@ fn save_enabled_state_to_disk(state : Map[String, Bool]) -> Unit {
   let parent = @path.Path::dirname(@path.Path(path)).to_string()
   @utils.ensure_dir(parent)
   let states_obj : Map[String, Json] = Map([])
-  state.each(fn(id, value) { states_obj[id] = value.to_json() })
+  state.each(fn(id, value) { states_obj[id] = Json(value) })
   let wrapper : Map[String, Json] = {
     "states": Json::object(states_obj),
-    "updated_at": @agent.current_time_ms().to_json(),
+    "updated_at": Json(@agent.current_time_ms()),
   }
   @fs.write_string_to_file(path, Json::object(wrapper).stringify()) catch {
     _ => ()
@@ -175,21 +175,21 @@ fn save_registry_to_disk(entries : Map[String, RegistryEntry]) -> Unit {
   @utils.ensure_dir(parent)
   let entries_obj : Map[String, Json] = Map([])
   entries.each(fn(id, entry) {
-    let versions_json : Array[Json] = entry.versions.map(fn(v) { v.to_json() })
+    let versions_json : Array[Json] = entry.versions.map(fn(v) { Json(v) })
     let metadata_json : Map[String, Json] = Map([])
-    entry.metadata.each(fn(k, v) { metadata_json[k] = v.to_json() })
+    entry.metadata.each(fn(k, v) { metadata_json[k] = Json(v) })
     entries_obj[id] = Json::object({
-      "id": entry.id.to_json(),
-      "latest_version": entry.latest_version.to_json(),
+      "id": Json(entry.id),
+      "latest_version": Json(entry.latest_version),
       "versions": Json::array(versions_json),
       "metadata": Json::object(metadata_json),
-      "installs": entry.installs.to_json(),
-      "published_at": entry.published_at.to_json(),
+      "installs": Json(entry.installs),
+      "published_at": Json(entry.published_at),
     })
   })
   let registry_obj : Map[String, Json] = {
     "entries": Json::object(entries_obj),
-    "updated_at": @agent.current_time_ms().to_json(),
+    "updated_at": Json(@agent.current_time_ms()),
   }
   @fs.write_string_to_file(path, Json::object(registry_obj).stringify()) catch {
     _ => ()

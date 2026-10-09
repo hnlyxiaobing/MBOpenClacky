@@ -42,8 +42,7 @@ test "ask_user_family_skips_tool_call_and_result_lines" {
     None,
     Some(output),
     @agent.HookEvent::ToolExecuting(
-      "ask_user",
-      "{\"questions\":[{\"question\":\"Which database?\"}]}",
+      "ask_user", "{\"questions\":[{\"question\":\"Which database?\"}]}",
     ),
   )
   assert_eq(state_ref.val.agent_status.get(), "tool_call")
@@ -57,22 +56,21 @@ test "ask_user_family_skips_tool_call_and_result_lines" {
     Some(output),
     @agent.HookEvent::ToolExecuting("request_user_feedback", "{}"),
   )
-  assert_false(joined_output_lines(output, 20).contains("request_user_feedback"))
+  assert_false(
+    joined_output_lines(output, 20).contains("request_user_feedback"),
+  )
   // 2. ask_user result: no visible line either.
   dispatch_hook_event(
     state_ref,
     config,
     None,
     Some(output),
-    @agent.HookEvent::ToolExecuted(
-      "ask_user",
-      @agent.ToolResultEntry::{
-        id: "c1",
-        content: "**Question #1:** Which database?",
-        is_error: false,
-        image_inject: None,
-      },
-    ),
+    @agent.HookEvent::ToolExecuted("ask_user", @agent.ToolResultEntry::{
+      id: "c1",
+      content: "**Question #1:** Which database?",
+      is_error: false,
+      image_inject: None,
+    }),
   )
   assert_eq(state_ref.val.agent_status.get(), "tool_done")
   // The rendered card text must not leak through the tool-result line.
@@ -85,21 +83,16 @@ test "ask_user_family_skips_tool_call_and_result_lines" {
     config,
     None,
     Some(output),
-    @agent.HookEvent::FeedbackRequested(
-      "Which database?",
-      None,
-      None,
-      [
-        @tool.AskQuestion::{
-          question: "Which database?",
-          description: "",
-          options: ["PostgreSQL", "SQLite"],
-          multi: false,
-          allow_free_text: true,
-          recommended: Some(0),
-        },
-      ],
-    ),
+    @agent.HookEvent::FeedbackRequested("Which database?", None, None, [
+      @tool.AskQuestion::{
+        question: "Which database?",
+        description: "",
+        options: ["PostgreSQL", "SQLite"],
+        multi: false,
+        allow_free_text: true,
+        recommended: Some(0),
+      },
+    ]),
   )
   let card_view = joined_output_lines(output, 20)
   assert_true(card_view.contains("Which database?"))
@@ -118,15 +111,12 @@ test "ask_user_family_skips_tool_call_and_result_lines" {
     config,
     None,
     Some(output),
-    @agent.HookEvent::ToolExecuted(
-      "read_file",
-      @agent.ToolResultEntry::{
-        id: "c2",
-        content: "file contents",
-        is_error: false,
-        image_inject: None,
-      },
-    ),
+    @agent.HookEvent::ToolExecuted("read_file", @agent.ToolResultEntry::{
+      id: "c2",
+      content: "file contents",
+      is_error: false,
+      image_inject: None,
+    }),
   )
   let tool_view = joined_output_lines(output, 20)
   assert_true(tool_view.contains("read_file"))

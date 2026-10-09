@@ -23,13 +23,13 @@ fn handle_onboard_device_start(
     session.user_code
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "device_code": session.device_code.to_json(),
-      "user_code": session.user_code.to_json(),
-      "verification_uri": session.verification_uri.to_json(),
-      "verification_uri_complete": verification_uri_complete.to_json(),
-      "expires_in": (900).to_json(),
-      "interval": session.interval.to_json(),
+      "ok": Json(true),
+      "device_code": Json(session.device_code),
+      "user_code": Json(session.user_code),
+      "verification_uri": Json(session.verification_uri),
+      "verification_uri_complete": Json(verification_uri_complete),
+      "expires_in": Json((900)),
+      "interval": Json(session.interval),
     }),
   )
 }
@@ -46,7 +46,7 @@ fn handle_onboard_device_poll(
     _ =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({
-          "error": "Missing 'device_code' query parameter".to_json(),
+          "error": Json("Missing 'device_code' query parameter"),
         }),
       )
   }
@@ -55,29 +55,29 @@ fn handle_onboard_device_poll(
     @brand.Approved(token) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "approved".to_json(),
-          "device_token": token.to_json(),
+          "ok": Json(true),
+          "status": Json("approved"),
+          "device_token": Json(token),
         }),
       )
     @brand.Pending =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "status": "pending".to_json() }),
+        Json::object({ "ok": Json(true), "status": Json("pending") }),
       )
     @brand.Expired =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "expired".to_json(),
-          "error": "authorization_pending".to_json(),
+          "ok": Json(true),
+          "status": Json("expired"),
+          "error": Json("authorization_pending"),
         }),
       )
     @brand.SlowDown =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "pending".to_json(),
-          "error": "slow_down".to_json(),
+          "ok": Json(true),
+          "status": Json("pending"),
+          "error": Json("slow_down"),
         }),
       )
   }
@@ -108,7 +108,7 @@ fn handle_onboard_device_poll_post(
         _ =>
           return @core.HttpResponse::bad_request().json_value(
             Json::object({
-              "error": "Missing 'device_code' in body or query".to_json(),
+              "error": Json("Missing 'device_code' in body or query"),
             }),
           )
       }
@@ -118,29 +118,29 @@ fn handle_onboard_device_poll_post(
     @brand.Approved(token) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "approved".to_json(),
-          "device_token": token.to_json(),
+          "ok": Json(true),
+          "status": Json("approved"),
+          "device_token": Json(token),
         }),
       )
     @brand.Pending =>
       @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": true.to_json(), "status": "pending".to_json() }),
+        Json::object({ "ok": Json(true), "status": Json("pending") }),
       )
     @brand.Expired =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "expired".to_json(),
-          "error": "authorization_pending".to_json(),
+          "ok": Json(true),
+          "status": Json("expired"),
+          "error": Json("authorization_pending"),
         }),
       )
     @brand.SlowDown =>
       @core.HttpResponse::ok().json_value(
         Json::object({
-          "ok": true.to_json(),
-          "status": "pending".to_json(),
-          "error": "slow_down".to_json(),
+          "ok": Json(true),
+          "status": Json("pending"),
+          "error": Json("slow_down"),
         }),
       )
   }
@@ -180,9 +180,9 @@ fn load_onboard_state() -> Json {
 ///|
 fn default_onboard_state() -> Json {
   Json::object({
-    "completed": false.to_json(),
-    "step": (0).to_json(),
-    "skipped": false.to_json(),
+    "completed": Json(false),
+    "step": Json((0)),
+    "skipped": Json(false),
   })
 }
 
@@ -216,8 +216,8 @@ fn handle_onboard_status(
   let cfg = @brand.BrandConfig::load(brand_config_dir())
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "needs_onboard": needs_onboard.to_json(),
-      "branded": cfg.is_branded().to_json(),
+      "needs_onboard": Json(needs_onboard),
+      "branded": Json(cfg.is_branded()),
     }),
   )
 }
@@ -230,15 +230,15 @@ fn handle_onboard_start(
 ) -> @core.HttpResponse {
   let state = load_onboard_state()
   let new_state = Json::object({
-    "completed": false.to_json(),
-    "step": (1).to_json(),
+    "completed": Json(false),
+    "step": Json((1)),
     "skipped": json_get_bool(state, "skipped"),
   })
   save_onboard_state(new_state)
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "step": (1).to_json(),
+      "ok": Json(true),
+      "step": Json((1)),
       "device_code": Json::null(),
     }),
   )
@@ -251,12 +251,12 @@ fn handle_onboard_skip(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let new_state = Json::object({
-    "completed": true.to_json(),
-    "step": (2).to_json(),
-    "skipped": true.to_json(),
+    "completed": Json(true),
+    "step": Json((2)),
+    "skipped": Json(true),
   })
   save_onboard_state(new_state)
-  @core.HttpResponse::ok().json_value(Json::object({ "ok": true.to_json() }))
+  @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
 }
 
 ///|
@@ -265,9 +265,9 @@ fn json_get_bool(j : Json, key : String) -> Json {
     Object(obj) =>
       match obj.get(key) {
         Some(v) => v
-        _ => false.to_json()
+        _ => Json(false)
       }
-    _ => false.to_json()
+    _ => Json(false)
   }
 }
 
@@ -284,9 +284,9 @@ fn handle_onboard_complete(
   for session_id, _ in server_ref.val.active_agents {
     return @core.HttpResponse::ok().json_value(
       Json::object({
-        "ok": true.to_json(),
-        "session_id": session_id.to_json(),
-        "created": false.to_json(),
+        "ok": Json(true),
+        "session_id": Json(session_id),
+        "created": Json(false),
       }),
     )
   }
@@ -294,7 +294,7 @@ fn handle_onboard_complete(
     Some(mc) => mc
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({ "error": "No model configured".to_json() }),
+        Json::object({ "error": Json("No model configured") }),
       )
   }
   let api_type = if model_config.anthropic_format {
@@ -325,9 +325,9 @@ fn handle_onboard_complete(
   server_ref.val.active_agents[session_id] = agent
   @core.HttpResponse::ok().json_value(
     Json::object({
-      "ok": true.to_json(),
-      "session_id": session_id.to_json(),
-      "created": true.to_json(),
+      "ok": Json(true),
+      "session_id": Json(session_id),
+      "created": Json(true),
     }),
   )
 }
@@ -360,7 +360,7 @@ fn handle_onboard_skip_soul(
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Unable to determine config directory".to_json(),
+          "error": Json("Unable to determine config directory"),
         }),
       )
   }
@@ -379,8 +379,8 @@ fn handle_onboard_skip_soul(
         e =>
           return @core.HttpResponse::internal_server_error().json_value(
             Json::object({
-              "error": "Failed to create config directory".to_json(),
-              "detail": @debug.to_string(e).to_json(),
+              "error": Json("Failed to create config directory"),
+              "detail": Json(@debug.to_string(e)),
             }),
           )
       }
@@ -390,8 +390,8 @@ fn handle_onboard_skip_soul(
         e =>
           return @core.HttpResponse::internal_server_error().json_value(
             Json::object({
-              "error": "Failed to create agents directory".to_json(),
-              "detail": @debug.to_string(e).to_json(),
+              "error": Json("Failed to create agents directory"),
+              "detail": Json(@debug.to_string(e)),
             }),
           )
       }
@@ -400,13 +400,13 @@ fn handle_onboard_skip_soul(
       e =>
         return @core.HttpResponse::internal_server_error().json_value(
           Json::object({
-            "error": "Failed to write SOUL.md".to_json(),
-            "detail": @debug.to_string(e).to_json(),
+            "error": Json("Failed to write SOUL.md"),
+            "detail": Json(@debug.to_string(e)),
           }),
         )
     }
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "ok": true.to_json(), "path": soul_path.to_json() }),
+    Json::object({ "ok": Json(true), "path": Json(soul_path) }),
   )
 }

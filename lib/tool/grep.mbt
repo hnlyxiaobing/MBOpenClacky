@@ -44,46 +44,60 @@ impl Tool for Grep with fn description(_) -> String {
 ///|
 impl Tool for Grep with fn parameters(_) -> Json {
   Json::object({
-    "type": "object".to_json(),
+    "type": Json("object"),
     "properties": Json::object({
       "pattern": Json::object({
-        "type": "string".to_json(),
-        "description": "The regular expression pattern to search for".to_json(),
+        "type": Json("string"),
+        "description": Json("The regular expression pattern to search for"),
       }),
       "path": Json::object({
-        "type": "string".to_json(),
-        "description": "File or directory to search in (defaults to current directory)".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "File or directory to search in (defaults to current directory)",
+        ),
       }),
       "file_pattern": Json::object({
-        "type": "string".to_json(),
-        "description": "Glob pattern to filter files (e.g., '*.rb', '**/*.js')".to_json(),
+        "type": Json("string"),
+        "description": Json(
+          "Glob pattern to filter files (e.g., '*.rb', '**/*.js')",
+        ),
       }),
       "case_insensitive": Json::object({
-        "type": "boolean".to_json(),
-        "description": "Perform case-insensitive search (default: false)".to_json(),
+        "type": Json("boolean"),
+        "description": Json("Perform case-insensitive search (default: false)"),
       }),
       "context_lines": Json::object({
-        "type": "integer".to_json(),
-        "description": "Number of context lines to show before and after each match (max: 10)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Number of context lines to show before and after each match (max: 10)",
+        ),
       }),
       "max_files": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum number of matching files to return (default: 50)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum number of matching files to return (default: 50)",
+        ),
       }),
       "max_matches_per_file": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum number of matches to return per file (default: 50)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum number of matches to return per file (default: 50)",
+        ),
       }),
       "max_total_matches": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum total number of matches to return across all files (default: 200)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum total number of matches to return across all files (default: 200)",
+        ),
       }),
       "max_file_size": Json::object({
-        "type": "integer".to_json(),
-        "description": "Maximum file size in bytes to search (default: 1048576)".to_json(),
+        "type": Json("integer"),
+        "description": Json(
+          "Maximum file size in bytes to search (default: 1048576)",
+        ),
       }),
     }),
-    "required": ["pattern".to_json()],
+    "required": [Json("pattern")],
   })
 }
 

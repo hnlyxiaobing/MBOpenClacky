@@ -1401,13 +1401,13 @@ async fn run_non_interactive(
 /// a logging format.
 fn run_result_to_json(result : @agent.RunResult) -> String {
   let obj : Map[String, Json] = {
-    "status": result.status.to_string_value().to_json(),
-    "session_id": result.session_id.to_json(),
-    "iterations": result.iterations.to_json(),
-    "total_cost_usd": result.total_cost_usd.to_json(),
+    "status": Json(result.status.to_string_value()),
+    "session_id": Json(result.session_id),
+    "iterations": Json(result.iterations),
+    "total_cost_usd": Json(result.total_cost_usd),
   }
   match result.error {
-    Some(e) => obj["error"] = e.to_json()
+    Some(e) => obj["error"] = Json(e)
     None => ()
   }
   Json::object(obj).stringify()
@@ -1422,11 +1422,11 @@ fn handle_list_sessions(json_output : Bool) -> Unit {
     let items : Array[Json] = []
     for session in sessions {
       let item : Map[String, Json] = {
-        "session_id": session.session_id.to_json(),
-        "created_at": session.created_at.to_json(),
-        "messages": session.messages.length().to_json(),
+        "session_id": Json(session.session_id),
+        "created_at": Json(session.created_at),
+        "messages": Json(session.messages.length()),
         "model": match session.model_name {
-          Some(name) => name.to_json()
+          Some(name) => Json(name)
           None => Json::null()
         },
       }
@@ -1434,7 +1434,7 @@ fn handle_list_sessions(json_output : Bool) -> Unit {
     }
     let payload : Map[String, Json] = {
       "sessions": Json::array(items),
-      "total": sessions.length().to_json(),
+      "total": Json(sessions.length()),
     }
     println(Json::object(payload).stringify())
     return

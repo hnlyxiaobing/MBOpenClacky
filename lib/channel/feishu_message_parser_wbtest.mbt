@@ -185,7 +185,7 @@ test "feishu_resolve_mentions_missing_name" {
 
 ///|
 test "feishu_resolve_mentions_non_object_entry" {
-  let mentions : Array[Json] = ["not an object".to_json()]
+  let mentions : Array[Json] = [Json("not an object")]
   let result = resolve_feishu_mentions("Hello", mentions)
   assert_eq(result, "Hello")
 }
@@ -195,8 +195,8 @@ test "feishu_resolve_mentions_non_object_entry" {
 ///|
 test "feishu_parse_message_text_type" {
   let msg : Map[String, Json] = {
-    "message_type": "text".to_json(),
-    "content": "{\"text\":\"Hello Feishu\"}".to_json(),
+    "message_type": Json("text"),
+    "content": Json("{\"text\":\"Hello Feishu\"}"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -212,7 +212,7 @@ test "feishu_parse_message_text_type" {
 ///|
 test "feishu_parse_message_default_type" {
   let msg : Map[String, Json] = {
-    "content": "{\"text\":\"Default\"}".to_json(),
+    "content": Json("{\"text\":\"Default\"}"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -227,8 +227,8 @@ test "feishu_parse_message_default_type" {
 ///|
 test "feishu_parse_message_with_doc_url" {
   let msg : Map[String, Json] = {
-    "message_type": "text".to_json(),
-    "content": "{\"text\":\"See https://docs.feishu.cn/docx/abc\"}".to_json(),
+    "message_type": Json("text"),
+    "content": Json("{\"text\":\"See https://docs.feishu.cn/docx/abc\"}"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -243,8 +243,8 @@ test "feishu_parse_message_with_doc_url" {
 ///|
 test "feishu_parse_message_unknown_type" {
   let msg : Map[String, Json] = {
-    "message_type": "interactive".to_json(),
-    "content": "some content".to_json(),
+    "message_type": Json("interactive"),
+    "content": Json("some content"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -259,8 +259,8 @@ test "feishu_parse_message_unknown_type" {
 ///|
 test "feishu_parse_message_empty_content" {
   let msg : Map[String, Json] = {
-    "message_type": "text".to_json(),
-    "content": "".to_json(),
+    "message_type": Json("text"),
+    "content": Json(""),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -275,8 +275,8 @@ test "feishu_parse_message_empty_content" {
 ///|
 test "feishu_parse_message_image_type" {
   let msg : Map[String, Json] = {
-    "message_type": "image".to_json(),
-    "content": "{\"image_key\":\"img_abc123\"}".to_json(),
+    "message_type": Json("image"),
+    "content": Json("{\"image_key\":\"img_abc123\"}"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -292,8 +292,8 @@ test "feishu_parse_message_image_type" {
 ///|
 test "feishu_parse_message_file_type" {
   let msg : Map[String, Json] = {
-    "message_type": "file".to_json(),
-    "content": "{\"file_key\":\"file_abc\",\"file_name\":\"doc.pdf\"}".to_json(),
+    "message_type": Json("file"),
+    "content": Json("{\"file_key\":\"file_abc\",\"file_name\":\"doc.pdf\"}"),
   }
   let result = parse_feishu_message(msg)
   match result {
@@ -310,8 +310,8 @@ test "feishu_parse_message_file_type" {
 test "feishu_parse_message_post_type" {
   let post_content = "{\"zh_cn\":{\"title\":\"Title\",\"content\":[[{\"tag\":\"text\",\"text\":\"Hello\"}]]}}"
   let msg : Map[String, Json] = {
-    "message_type": "post".to_json(),
-    "content": post_content.to_json(),
+    "message_type": Json("post"),
+    "content": Json(post_content),
   }
   let result = parse_feishu_message(msg)
   match result {

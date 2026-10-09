@@ -47,7 +47,7 @@ pub fn ToolCategory::from_string(s : String) -> ToolCategory? {
 
 ///|
 pub impl ToJson for ToolCategory with fn to_json(self) {
-  self.to_string_value().to_json()
+  Json(self.to_string_value())
 }
 
 ///|
@@ -121,10 +121,7 @@ pub extend FunctionDefinition with ToJson::{to_json}
 pub impl ToJson for FunctionDefinition with fn to_json(
   self : FunctionDefinition,
 ) -> Json {
-  Json::object({
-    "type": self.type_.to_json(),
-    "function": self.function.to_json(),
-  })
+  Json::object({ "type": Json(self.type_), "function": Json(self.function) })
 }
 
 ///|

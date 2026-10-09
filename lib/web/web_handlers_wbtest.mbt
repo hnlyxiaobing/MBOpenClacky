@@ -325,7 +325,7 @@ test "handler: channels list covers all platforms and masks secrets" {
                 assert_true(o.get("enabled") is Some(_))
                 assert_true(o.get("running") is Some(_))
                 assert_true(o.get("has_config") is Some(_))
-                if o.get("has_config") == Some(true.to_json()) {
+                if o.get("has_config") == Some(Json(true)) {
                   configured_seen = true
                   // Configured entries expose booleans, never plaintext.
                   assert_true(o.get("has_api_key") is Some(_))
@@ -412,15 +412,15 @@ test "handler: cron task items expose orig-compatible keys" {
           for item in items {
             match item {
               Object(o) =>
-                if o.get("name") == Some("fix04-cron-wbtest".to_json()) {
+                if o.get("name") == Some(Json("fix04-cron-wbtest")) {
                   found = true
-                  @debug.assert_eq(o.get("cron"), Some("0 9 * * *".to_json()))
+                  @debug.assert_eq(o.get("cron"), Some(Json("0 9 * * *")))
                   @debug.assert_eq(
                     o.get("content"),
-                    Some("fix04 content".to_json()),
+                    Some(Json("fix04 content")),
                   )
-                  @debug.assert_eq(o.get("scheduled"), Some(true.to_json()))
-                  @debug.assert_eq(o.get("enabled"), Some(true.to_json()))
+                  @debug.assert_eq(o.get("scheduled"), Some(Json(true)))
+                  @debug.assert_eq(o.get("enabled"), Some(Json(true)))
                 }
               _ => panic()
             }

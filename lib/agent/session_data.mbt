@@ -322,7 +322,7 @@ pub fn Agent::to_session_data(self : Agent) -> SessionData {
     agent_profile: self.profile_name,
     sub_model: self.session_sub_model,
     pinned: self.pinned,
-    todos: Some(self.todo_manager.to_json()),
+    todos: Some(TodoManager::to_json(self.todo_manager)),
     updated_at: current_timestamp_iso(),
     previous_total_tokens: self.previous_total_tokens,
     deleted_at: None,
@@ -514,7 +514,7 @@ pub impl ToJson for SessionData with fn to_json(self) {
     None => ()
   }
   match self.deleted_at {
-    Some(ts) => obj["deleted_at"] = ts.to_json()
+    Some(ts) => obj["deleted_at"] = Json(ts)
     None => ()
   }
   match self.forked_from {
@@ -566,9 +566,10 @@ impl FromJson for SessionData with fn from_json(json, path) {
         _ => raise JsonDecodeError((path, "SessionData: missing 'messages'"))
       }
       let stats = match map.get("stats") {
-        Some(s) => FromJson::from_json(s, path.add_key("stats")) catch {
-          _ => empty_session_stats()
-        }
+        Some(s) =>
+          FromJson::from_json(s, path.add_key("stats")) catch {
+            _ => empty_session_stats()
+          }
         _ => empty_session_stats()
       }
       let working_dir = match map.get("working_dir") {
@@ -704,7 +705,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
 /// semantics. Millisecond timestamps could collide under rapid session
 /// creation, silently overwriting an existing session file.
 pub fn generate_session_id() -> String {
-  let rng = @random.Rand::new()
+  let rng = @random.Rand()
   let hex_chars = "0123456789abcdef"
   let mut id = ""
   for _i = 0; _i < 16; _i = _i + 1 {
@@ -766,7 +767,7 @@ fn opt_string_field(map : Map[String, Json], key : String) -> String? {
 /// Serialize a `String?` field as a plain string or null (never an array).
 fn opt_string_json(value : String?) -> Json {
   match value {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
 }

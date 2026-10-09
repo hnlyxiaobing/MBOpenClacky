@@ -147,9 +147,9 @@ async test "reflection: clean evidence reports no_change without a model call" {
     // would surface here as a request failure.
     Err(e) => fail("expected no_change, got error: " + e)
   }
-  @debug.assert_eq(json_field(json, "action"), Some("no_change".to_json()))
-  @debug.assert_eq(json_field(json, "should_improve"), Some(false.to_json()))
-  @debug.assert_eq(json_field(json, "applied"), Some(false.to_json()))
+  @debug.assert_eq(json_field(json, "action"), Some(Json("no_change")))
+  @debug.assert_eq(json_field(json, "should_improve"), Some(Json(false)))
+  @debug.assert_eq(json_field(json, "applied"), Some(Json(false)))
   @debug.assert_eq(json_field(json, "log_error"), Some(Json::null()))
   // The outcome really was persisted.
   let logged = @skill.load_evolution_log_at(log)

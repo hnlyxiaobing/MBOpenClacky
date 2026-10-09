@@ -803,7 +803,7 @@ pub fn Agent::build_send_request(self : Agent) -> @client.SendRequest {
   let defs = self.tool_registry.all_definitions()
   let tools_json : Array[Json] = []
   for def in defs {
-    tools_json.push(def.to_json())
+    tools_json.push(Json(def))
   }
   // When fallback is active, use the fallback model instead of the primary.
   // In Probing state we intentionally use the primary model to test recovery.

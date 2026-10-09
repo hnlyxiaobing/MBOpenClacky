@@ -468,12 +468,12 @@ fn join_feishu_strings(arr : Array[String], sep : String) -> String {
 /// Build Feishu message payload JSON.
 pub fn build_feishu_message(text : String, reply_to : String?) -> Json {
   let content : Map[String, Json] = Map([])
-  content.set("text", text.to_json())
+  content.set("text", Json(text))
   let msg : Map[String, Json] = Map([])
-  msg.set("msg_type", "text".to_json())
+  msg.set("msg_type", Json("text"))
   msg.set("content", Json::object(content))
   match reply_to {
-    Some(id) => msg.set("reply_in_thread", id.to_json())
+    Some(id) => msg.set("reply_in_thread", Json(id))
     None => ()
   }
   Json::object(msg)

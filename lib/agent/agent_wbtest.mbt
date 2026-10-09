@@ -113,7 +113,7 @@ test "cost_source_to_string" {
 ///|
 test "cost_source_json" {
   let json = CostSource::Api.to_json()
-  @debug.assert_eq(json, "api".to_json())
+  @debug.assert_eq(json, Json("api"))
 }
 
 ///|
@@ -255,8 +255,12 @@ test "build_system_prompt_orders_agent_then_base_then_soul_user" {
   let prompt = agent.build_system_prompt()
   let sp = prompt.find("AI coding assistant").unwrap()
   let base = prompt.find("General Behavior").unwrap()
-  let soul_title = prompt.find("AGENT SOUL (from ~/.clacky/agents/SOUL.md)").unwrap()
-  let user_title = prompt.find("USER PROFILE (from ~/.clacky/agents/USER.md)").unwrap()
+  let soul_title = prompt
+    .find("AGENT SOUL (from ~/.clacky/agents/SOUL.md)")
+    .unwrap()
+  let user_title = prompt
+    .find("USER PROFILE (from ~/.clacky/agents/USER.md)")
+    .unwrap()
   assert_true(sp < base)
   assert_true(base < soul_title)
   assert_true(soul_title < user_title)
@@ -323,7 +327,7 @@ test "should_auto_execute_confirm_safes_write" {
 test "should_auto_execute_confirm_safes_terminal_safe" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmSafes
-  let params : Map[String, Json] = { "command": "ls -la".to_json() }
+  let params : Map[String, Json] = { "command": Json("ls -la") }
   assert_true(agent.should_auto_execute("terminal", params))
 }
 
@@ -1392,15 +1396,15 @@ test "session_data_from_json_roundtrip" {
   }
   // Direct JSON construction avoids stringify/parse roundtrip issues
   let json_obj = Json::object({
-    "session_id": "s_roundtrip".to_json(),
-    "name": "roundtrip-test".to_json(),
+    "session_id": Json("s_roundtrip"),
+    "name": Json("roundtrip-test"),
     "messages": ToJson::to_json(original.messages),
     "stats": ToJson::to_json(original.stats),
-    "working_dir": "/home/test".to_json(),
-    "created_at": "9876543210".to_json(),
-    "source": "cli".to_json(),
-    "reasoning_effort": "high".to_json(),
-    "model_name": "gpt-4".to_json(),
+    "working_dir": Json("/home/test"),
+    "created_at": Json("9876543210"),
+    "source": Json("cli"),
+    "reasoning_effort": Json("high"),
+    "model_name": Json("gpt-4"),
   })
   let parsed : SessionData = @json.from_json(json_obj)
   @debug.assert_eq(parsed.session_id, "s_roundtrip")
@@ -1434,12 +1438,12 @@ test "session_data_from_json_missing_optional" {
   }
   // Build JSON with only required fields
   let map : Map[String, Json] = {
-    "session_id": "s_minimal".to_json(),
-    "name": "minimal".to_json(),
-    "messages": (([] : Array[Json]).to_json() : Json),
+    "session_id": Json("s_minimal"),
+    "name": Json("minimal"),
+    "messages": (Json(([] : Array[Json])) : Json),
     "stats": ToJson::to_json(stats),
-    "working_dir": "/tmp".to_json(),
-    "created_at": "0".to_json(),
+    "working_dir": Json("/tmp"),
+    "created_at": Json("0"),
   }
   let json_str = Json::object(map).stringify()
   let json = @json.parse(json_str)
@@ -2297,9 +2301,9 @@ async test "feedback_no_channel_missing_question_is_error" {
 ///|
 async test "feedback_with_channel_user_reply_feeds_back" {
   let agent = make_test_agent()
-  let req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
-    kind=Unbounded,
-  )
+  let req_q : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ] = @aqueue.Queue::Queue(kind=Unbounded)
   let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
   agent.feedback_request = Some(req_q)
   agent.feedback_response = Some(resp_q)
@@ -2329,9 +2333,9 @@ async test "feedback_with_channel_user_reply_feeds_back" {
 ///|
 async test "feedback_with_channel_empty_reply_suspends" {
   let agent = make_test_agent()
-  let req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
-    kind=Unbounded,
-  )
+  let req_q : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ] = @aqueue.Queue::Queue(kind=Unbounded)
   let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
   agent.feedback_request = Some(req_q)
   agent.feedback_response = Some(resp_q)
@@ -2356,7 +2360,7 @@ async test "feedback_with_channel_empty_reply_suspends" {
 ///|
 test "invoke_skill requires task parameter" {
   let agent = make_test_agent()
-  let args = Map::from_array([("skill_name", "test-skill".to_json())])
+  let args = Map::from_array([("skill_name", Json("test-skill"))])
   let call = make_tool_call(
     "c1", "invoke_skill", "{\"skill_name\":\"test-skill\"}",
   )
@@ -2375,8 +2379,8 @@ test "invoke_skill enqueues injection and returns short message" {
     @skill.Skill::default("test-skill", "file:///tmp/SKILL.md"),
   )
   let args = Map::from_array([
-    ("skill_name", "test-skill".to_json()),
-    ("task", "do the thing".to_json()),
+    ("skill_name", Json("test-skill")),
+    ("task", Json("do the thing")),
   ])
   let call = make_tool_call(
     "c1", "invoke_skill", "{\"skill_name\":\"test-skill\",\"task\":\"do the thing\"}",

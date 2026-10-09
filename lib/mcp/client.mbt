@@ -72,11 +72,11 @@ pub async fn McpClient::initialize(
   self.last_used_at = Some(@utils.now_seconds())
   // Build initialize params
   let params : Json = Json::object({
-    "protocolVersion": mcp_protocol_version.to_json(),
+    "protocolVersion": Json(mcp_protocol_version),
     "capabilities": Json::object(Map([])),
     "clientInfo": Json::object({
-      "name": "MBOpenClacky".to_json(),
-      "version": "0.1.0".to_json(),
+      "name": Json("MBOpenClacky"),
+      "version": Json("0.1.0"),
     }),
   })
   // Any failure past this point leaves a half-open connection: stop the
@@ -132,7 +132,7 @@ pub async fn McpClient::call_tool(
   arguments : Json,
 ) -> Json raise McpError {
   let params : Json = Json::object({
-    "name": tool_name.to_json(),
+    "name": Json(tool_name),
     "arguments": arguments,
   })
   self.send_request("tools/call", Some(params), self.timeout_s)

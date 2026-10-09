@@ -264,14 +264,14 @@ async fn handle_exchange_rate(
     Some(c) => c
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid 'from' currency code".to_json() }),
+        Json::object({ "error": Json("Invalid 'from' currency code") }),
       )
   }
   let to = match validate_currency_code(to_raw) {
     Some(c) => c
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({ "error": "Invalid 'to' currency code".to_json() }),
+        Json::object({ "error": Json("Invalid 'to' currency code") }),
       )
   }
   // Check cache.
@@ -281,7 +281,7 @@ async fn handle_exchange_rate(
       if entry.from == from &&
         entry.to == to &&
         now - entry.cached_at < exchange_rate_cache_ttl_ms {
-        return @core.HttpResponse::ok().json_value(entry.response.to_json())
+        return @core.HttpResponse::ok().json_value(Json(entry.response))
       }
     None => ()
   }
@@ -294,13 +294,13 @@ async fn handle_exchange_rate(
         response,
         cached_at: now,
       })
-      @core.HttpResponse::ok().json_value(response.to_json())
+      @core.HttpResponse::ok().json_value(Json(response))
     }
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
         Json::object({
-          "error": "Failed to fetch exchange rate".to_json(),
-          "detail": msg.to_json(),
+          "error": Json("Failed to fetch exchange rate"),
+          "detail": Json(msg),
         }),
       )
   }

@@ -89,7 +89,7 @@ async test "version upgrade returns current version" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = version_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("current"), Some(VERSION.to_json()))
+  @debug.assert_eq(obj.get("current"), Some(Json(VERSION)))
   assert_true(obj.contains("message"))
 }
 
@@ -103,6 +103,6 @@ test "restart returns ok message" {
   @debug.assert_eq(resp.status_code.to_int(), 200)
   let j = version_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(true.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("message"))
 }

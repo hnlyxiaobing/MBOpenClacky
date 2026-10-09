@@ -41,18 +41,19 @@ fn attach_msg_text(m : @message.Message) -> String {
     @message.Text(s) => s
     @message.Blocks(blocks) =>
       blocks
-        .map(fn(b) {
-          match b {
-            @message.ContentBlock::Text(t) => t.text
-            @message.ContentBlock::Image(_) => "[image]"
-          }
-        })
-        .join("")
+      .map(fn(b) {
+        match b {
+          @message.ContentBlock::Text(t) => t.text
+          @message.ContentBlock::Image(_) => "[image]"
+        }
+      })
+      .join("")
   }
 }
 
 // ── Extension / MIME / type classification ───────────────────────────────────
 
+///|
 test "attachment_extension_variants" {
   @debug.assert_eq(attachment_extension("/a/b/report.md"), ".md")
   // Ruby special-cases the compound `.tar.gz` extension.
@@ -63,6 +64,7 @@ test "attachment_extension_variants" {
   @debug.assert_eq(attachment_extension("/a/b/noext"), "")
 }
 
+///|
 test "attachment_detect_mime_type_table" {
   @debug.assert_eq(attachment_detect_mime_type("x.png"), "image/png")
   @debug.assert_eq(attachment_detect_mime_type("x.JPG"), "image/jpeg")
@@ -79,6 +81,7 @@ test "attachment_detect_mime_type_table" {
   )
 }
 
+///|
 test "attachment_kind_for_extension" {
   @debug.assert_eq(attachment_kind_for_extension(".md"), "text")
   @debug.assert_eq(attachment_kind_for_extension(".csv"), "csv")
@@ -92,6 +95,7 @@ test "attachment_kind_for_extension" {
   @debug.assert_eq(attachment_kind_for_extension(".exe"), "file")
 }
 
+///|
 test "attachment_detect_image_mime_type_magic_bytes" {
   let png = attach_fake_png(16)
   @debug.assert_eq(
@@ -116,6 +120,7 @@ test "attachment_detect_image_mime_type_magic_bytes" {
   )
 }
 
+///|
 test "attachment_format_size" {
   assert_eq(attachment_format_size(0), "0B")
   assert_eq(attachment_format_size(512), "512B")
@@ -130,10 +135,13 @@ test "attachment_format_size" {
 
 // ── prepare_cli_attachments ──────────────────────────────────────────────────
 
+///|
 test "prepare_cli_attachments_classifies_text_file" {
   let dir = attach_tmp_dir("classify")
   let path = dir + "/notes.md"
-  @fs.write_string_to_file(path, "# hello\n") catch { _ => () }
+  @fs.write_string_to_file(path, "# hello\n") catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   assert_eq(list.length(), 1)
   let att = list[0]
@@ -146,12 +154,14 @@ test "prepare_cli_attachments_classifies_text_file" {
   assert_eq(att.data_url, None)
 }
 
+///|
 test "prepare_cli_attachments_marks_directory" {
   let dir = attach_tmp_dir("dirmark")
   let list = attach_prepare([dir])
   assert_eq(list[0].kind, "directory")
 }
 
+///|
 test "prepare_cli_attachments_missing_file_raises" {
   let missing = "/tmp/mb_attach_test_definitely_missing_xyz.txt"
   let mut captured : String? = None
@@ -165,10 +175,13 @@ test "prepare_cli_attachments_missing_file_raises" {
 
 // ── Prompt layout ────────────────────────────────────────────────────────────
 
+///|
 test "build_files_mentioned_prompt_layout" {
   let dir = attach_tmp_dir("prompt")
   let path = dir + "/notes.md"
-  @fs.write_string_to_file(path, "body") catch { _ => () }
+  @fs.write_string_to_file(path, "body") catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   let prompt = build_files_mentioned_prompt(list)
   let expected = "# Files mentioned by the user:\n" +
@@ -185,23 +198,24 @@ test "build_files_mentioned_prompt_layout" {
   assert_eq(prompt, expected)
 }
 
+///|
 test "directory_entry_omits_size_and_preview" {
   let dir = attach_tmp_dir("direntry")
   let list = attach_prepare([dir])
   let entry = attachment_entry_text(list[0])
-  assert_eq(
-    entry,
-    "## mb_attach_test_direntry: " + dir + "\nType: directory",
-  )
+  assert_eq(entry, "## mb_attach_test_direntry: " + dir + "\nType: directory")
 }
 
 // ── Vision inlining / downgrade ──────────────────────────────────────────────
 
+///|
 test "resolve_attachment_images_inlines_small_png" {
   let dir = attach_tmp_dir("inline")
   let path = dir + "/shot.png"
   // 13 bytes → base64 is 20 chars → Ruby's `(b64.bytesize * 3) / 4` = 15.
-  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch { _ => () }
+  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   let resolved = resolve_attachment_images(list, true)
   assert_eq(resolved.length(), 1)
@@ -218,10 +232,13 @@ test "resolve_attachment_images_inlines_small_png" {
   )
 }
 
+///|
 test "resolve_attachment_images_downgrades_without_vision" {
   let dir = attach_tmp_dir("novision")
   let path = dir + "/shot.png"
-  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch { _ => () }
+  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   let resolved = resolve_attachment_images(list, false)
   assert_eq(resolved.length(), 1)
@@ -239,6 +256,7 @@ test "resolve_attachment_images_downgrades_without_vision" {
   }
 }
 
+///|
 test "resolve_attachment_images_drops_oversized_image" {
   let dir = attach_tmp_dir("oversized")
   let path = dir + "/big.png"
@@ -251,12 +269,17 @@ test "resolve_attachment_images_drops_oversized_image" {
   assert_eq(resolve_attachment_images(list, true).length(), 0)
 }
 
+///|
 test "resolve_attachment_images_orders_inlined_before_disk_files" {
   let dir = attach_tmp_dir("order")
   let doc = dir + "/notes.md"
   let img = dir + "/shot.png"
-  @fs.write_string_to_file(doc, "body") catch { _ => () }
-  @fs.write_bytes_to_file(img, attach_fake_png(13)) catch { _ => () }
+  @fs.write_string_to_file(doc, "body") catch {
+    _ => ()
+  }
+  @fs.write_bytes_to_file(img, attach_fake_png(13)) catch {
+    _ => ()
+  }
   // CLI order: --file before --image (Ruby `file_paths = Array(:file) + Array(:image)`).
   let list = attach_prepare([doc, img])
   // Ruby: `all_meta_files = vision_images + all_disk_files`, and disk files keep
@@ -269,12 +292,15 @@ test "resolve_attachment_images_orders_inlined_before_disk_files" {
 
 // ── Agent integration ────────────────────────────────────────────────────────
 
+///|
 async test "run_with_attach_appends_system_injected_file_prompt" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("ok", None))
   let dir = attach_tmp_dir("run")
   let path = dir + "/notes.md"
-  @fs.write_string_to_file(path, "body") catch { _ => () }
+  @fs.write_string_to_file(path, "body") catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   ignore(
     agent.run("summarize this", attach=Some(list)) catch {
@@ -304,12 +330,15 @@ async test "run_with_attach_appends_system_injected_file_prompt" {
   assert_eq(prompt_turn, user_turn + 1)
 }
 
+///|
 async test "run_with_attached_image_uses_content_blocks" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("ok", None))
   let dir = attach_tmp_dir("runimg")
   let path = dir + "/shot.png"
-  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch { _ => () }
+  @fs.write_bytes_to_file(path, attach_fake_png(13)) catch {
+    _ => ()
+  }
   let list = attach_prepare([path])
   ignore(
     agent.run("what is this", attach=Some(list)) catch {
@@ -342,6 +371,7 @@ async test "run_with_attached_image_uses_content_blocks" {
   assert_true(seen_blocks, msg="user message should carry text + image blocks")
 }
 
+///|
 async test "run_without_attach_keeps_plain_user_message" {
   let agent = make_test_agent()
   agent.mock_responses.push(make_mock_response("ok", None))

@@ -1,7 +1,9 @@
 ///| System prompt builder for Agent sessions.
 
 ///| Composes the six prompt layers in Ruby's order:
+
 ///| agent persona → base rules → project rules → SOUL → USER → skills
+
 ///| (openclacky/lib/clacky/agent/system_prompt_builder.rb).
 
 ///|
@@ -86,15 +88,11 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
   match self.resolve_profile() {
     Ok(profile) => {
       match profile.system_prompt {
-        Some(sp) => if !sp.trim().is_empty() {
-          parts.push(sp)
-        }
+        Some(sp) => if !sp.trim().is_empty() { parts.push(sp) }
         None => ()
       }
       match profile.base_prompt {
-        Some(bp) => if !bp.trim().is_empty() {
-          parts.push(bp)
-        }
+        Some(bp) => if !bp.trim().is_empty() { parts.push(bp) }
         None => ()
       }
       if self.working_dir.length() > 0 {
@@ -119,13 +117,12 @@ pub fn Agent::build_system_prompt(self : Agent) -> String {
         )
       }
     }
-    Err(err) => {
+    Err(err) =>
       // Losing the profile drops base.md, SOUL.md, USER.md and the agent's own
       // system_prompt.md, so report it rather than degrading quietly.
       write_diagnostic(
         "warning: agent profile '\{self.profile_name}' failed to load: \{err}",
       )
-    }
   }
   let skills_summary = self.available_skills_summary()
   if skills_summary.length() > 0 {

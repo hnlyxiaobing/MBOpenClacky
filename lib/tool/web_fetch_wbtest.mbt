@@ -13,7 +13,7 @@ async test "web_fetch rejects non-http urls" {
         "ftp://example.com", "file:///etc/passwd", "example.com", "javascript:alert(1)",
       ] {
       group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
-        let result = tool.execute(Map::from_array([("url", bad.to_json())]))
+        let result = tool.execute(Map::from_array([("url", Json(bad))]))
         assert_true(result.is_error, msg="should reject: " + bad)
         @debug.assert_eq(result.content, "URL must be HTTP or HTTPS")
       }
@@ -30,7 +30,7 @@ async test "web_fetch accepts http and https without rewriting" {
     // rewritten https:// (no http→https upgrade).
     group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
       let http_result = tool.execute(
-        Map::from_array([("url", "http://127.0.0.1:1/nope".to_json())]),
+        Map::from_array([("url", Json("http://127.0.0.1:1/nope"))]),
       )
       assert_true(http_result.is_error)
       assert_true(http_result.content.contains("http://127.0.0.1:1/nope"))

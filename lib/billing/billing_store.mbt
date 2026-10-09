@@ -136,7 +136,7 @@ pub fn BillingStore::append(
     @path.Path(month_file_name(record.timestamp)),
   ).to_string()
   // Serialize record to JSON line
-  let json_line = record.to_json().stringify()
+  let json_line = Json(record).stringify()
   // Append to file
   append_line(file_path, json_line) catch {
     _ => return Err("Failed to append billing record")
@@ -577,7 +577,7 @@ fn append_line(file_path : String, line : String) -> Unit raise @fs.IOError {
 fn rewrite_records(file_path : String, records : Array[BillingRecord]) -> Unit {
   let mut content = ""
   for record in records {
-    content = content + record.to_json().stringify() + "\n"
+    content = content + Json(record).stringify() + "\n"
   }
   @fs.write_string_to_file(file_path, content) catch {
     _ => ()

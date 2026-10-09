@@ -46,17 +46,17 @@ pub fn gemini_generate_video(
 /// Build Gemini image generation request
 pub fn build_gemini_image_request(request : MediaRequest) -> Json {
   let gen_config : Map[String, Json] = {
-    "responseModalities": Json::array(["TEXT".to_json(), "IMAGE".to_json()]),
+    "responseModalities": Json::array([Json("TEXT"), Json("IMAGE")]),
   }
   match request.aspect_ratio {
-    Some(ratio) => gen_config["aspectRatio"] = ratio.to_json()
+    Some(ratio) => gen_config["aspectRatio"] = Json(ratio)
     None => ()
   }
   Json::object({
     "contents": Json::array([
       Json::object({
         "parts": Json::array([
-          Json::object({ "text": request.prompt.to_json() }),
+          Json::object({ "text": Json(request.prompt) }),
         ]),
       }),
     ]),
@@ -67,13 +67,13 @@ pub fn build_gemini_image_request(request : MediaRequest) -> Json {
 ///|
 /// Build Gemini video generation request
 pub fn build_gemini_video_request(request : MediaRequest) -> Json {
-  let instance : Map[String, Json] = { "prompt": request.prompt.to_json() }
+  let instance : Map[String, Json] = { "prompt": Json(request.prompt) }
   match request.aspect_ratio {
-    Some(ratio) => instance["aspectRatio"] = ratio.to_json()
+    Some(ratio) => instance["aspectRatio"] = Json(ratio)
     None => ()
   }
   match request.duration_seconds {
-    Some(d) => instance["durationSeconds"] = d.to_json()
+    Some(d) => instance["durationSeconds"] = Json(d)
     None => ()
   }
   Json::object({ "instances": Json::array([Json::object(instance)]) })

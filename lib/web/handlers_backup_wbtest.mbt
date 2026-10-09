@@ -41,8 +41,8 @@ test "backup download packages the snapshot directory into a real zip" {
     write_snapshot_data(
       id,
       Json::object({
-        "config.toml": "model = \"mock\"\n".to_json(),
-        "sessions/s1.json": "{\"id\":\"s1\"}".to_json(),
+        "config.toml": Json("model = \"mock\"\n"),
+        "sessions/s1.json": Json("{\"id\":\"s1\"}"),
       }),
     ) {
     _ => ()

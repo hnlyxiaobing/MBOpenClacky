@@ -8,7 +8,7 @@ fn handle_agents_list(
 ) -> @core.HttpResponse {
   let agents = load_agents_from_assets()
   @core.HttpResponse::ok().json_value(
-    Json::object({ "agents": agents.to_json() }),
+    Json::object({ "agents": Json(agents) }),
   )
 }
 
@@ -24,7 +24,7 @@ fn handle_agent_skills(
   }
   if agent_id.is_empty() {
     return @core.HttpResponse::bad_request().json_value(
-      Json::object({ "error": "agent id required".to_json() }),
+      Json::object({ "error": Json("agent id required") }),
     )
   }
   // 404 for unknown agents instead of silently returning a generic list.
@@ -42,7 +42,7 @@ fn handle_agent_skills(
   }
   if !exists {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({ "error": "agent not found".to_json() }),
+      Json::object({ "error": Json("agent not found") }),
     )
   }
   // Return skills filtered for this agent type.
@@ -57,7 +57,7 @@ fn handle_agent_skills(
     skills.push(pair.1)
   }
   @core.HttpResponse::ok().json_value(
-    Json::object({ "agent_id": agent_id.to_json(), "skills": skills.to_json() }),
+    Json::object({ "agent_id": Json(agent_id), "skills": Json(skills) }),
   )
 }
 
@@ -90,9 +90,9 @@ fn agent_scan_skills_dir(
       (
         entry,
         Json::object({
-          "name": entry.to_json(),
-          "description": desc.to_json(),
-          "source": source.to_json(),
+          "name": Json(entry),
+          "description": Json(desc),
+          "source": Json(source),
         }),
       ),
     )
@@ -142,20 +142,20 @@ fn load_agents_from_assets() -> Array[Json] {
     // fix-20 (I-034): avatar follows orig semantics — "/agent_avatar/<id>"
     // when the agent dir ships an avatar.png, null otherwise.
     let avatar : Json = if @fs.path_exists(agent_dir + "/avatar.png") {
-      ("/agent_avatar/" + id).to_json()
+      Json(("/agent_avatar/" + id))
     } else {
       Json::null()
     }
     let agent = Json::object({
-      "id": id.to_json(),
-      "title": title.to_json(),
-      "title_zh": title_zh.to_json(),
-      "description": description.to_json(),
-      "description_zh": description_zh.to_json(),
-      "source": "builtin".to_json(),
-      "order": order.to_json(),
-      "layer": "core".to_json(),
-      "author": "openclacky".to_json(),
+      "id": Json(id),
+      "title": Json(title),
+      "title_zh": Json(title_zh),
+      "description": Json(description),
+      "description_zh": Json(description_zh),
+      "source": Json("builtin"),
+      "order": Json(order),
+      "layer": Json("core"),
+      "author": Json("openclacky"),
       "avatar": avatar,
     })
     result.push(agent)

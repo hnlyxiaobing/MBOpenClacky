@@ -274,7 +274,7 @@ fn send_session_list(
   let summaries : Array[Json] = []
   for sd in all_sessions {
     summaries.push(
-      SessionSummary::{
+      Json(SessionSummary::{
         id: sd.session_id,
         name: sd.name,
         working_dir: sd.working_dir,
@@ -302,7 +302,7 @@ fn send_session_list(
         error_code: sd.error_code,
         top_up_url: sd.top_up_url,
         raw_message: sd.raw_message,
-      }.to_json(),
+      }),
     )
   }
   peer.text(@protocol.build_session_list_event(summaries))
@@ -733,14 +733,14 @@ fn broadcast_latency_frame(
         0.0
       }
       let ttft : Json = match lat.ttft_ms {
-        Some(t) => t.to_json()
+        Some(t) => Json(t)
         None => Json::null()
       }
       let lat_inner : Map[String, Json] = {
         "ttft_ms": ttft,
-        "duration_ms": lat.duration_ms.to_json(),
-        "output_tokens": usage_data.completion_tokens.to_json(),
-        "tps": tps.to_json(),
+        "duration_ms": Json(lat.duration_ms),
+        "output_tokens": Json(usage_data.completion_tokens),
+        "tps": Json(tps),
       }
       hub.broadcast_session_raw(
         sid,

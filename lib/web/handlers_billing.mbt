@@ -72,15 +72,15 @@ fn save_billing_state(
 ) -> Unit {
   let file_path = billing_state_file()
   let expires_json : Json = match expires_at {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
   let state : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("active", active.to_json())
-    m.set("plan", plan.to_json())
+    m.set("active", Json(active))
+    m.set("plan", Json(plan))
     m.set("expires_at", expires_json)
-    m.set("updated_at", @env.now().to_string().to_json())
+    m.set("updated_at", Json(@env.now().to_string()))
     m
   }
   // Ensure directory exists
@@ -100,21 +100,21 @@ fn save_billing_state(
 fn features_for_plan(plan : String) -> Json {
   match plan {
     "pro" =>
-      [
-        "basic_agent".to_json(),
-        "tools".to_json(),
-        "mcp".to_json(),
-        "skills".to_json(),
-        "multi_model".to_json(),
-      ].to_json()
+      Json([
+        Json("basic_agent"),
+        Json("tools"),
+        Json("mcp"),
+        Json("skills"),
+        Json("multi_model"),
+      ])
     "yearly" | "monthly" =>
-      [
-        "basic_agent".to_json(),
-        "tools".to_json(),
-        "mcp".to_json(),
-        "skills".to_json(),
-      ].to_json()
-    _ => ["basic_agent".to_json(), "tools".to_json()].to_json()
+      Json([
+        Json("basic_agent"),
+        Json("tools"),
+        Json("mcp"),
+        Json("skills"),
+      ])
+    _ => Json([Json("basic_agent"), Json("tools")])
   }
 }
 
@@ -130,17 +130,17 @@ pub fn handle_billing_status(request : HttpRequest) -> HttpResponse {
   // Load persisted activation state
   let (active, plan, expires_at) = load_billing_state()
   let expires_json : Json = match expires_at {
-    Some(s) => s.to_json()
+    Some(s) => Json(s)
     None => Json::null()
   }
   let body : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("active", active.to_json())
-    m.set("plan", plan.to_json())
+    m.set("active", Json(active))
+    m.set("plan", Json(plan))
     m.set("expires_at", expires_json)
     m.set("features", features_for_plan(plan))
-    m.set("current_month_cost", summary.total_cost.to_json())
-    m.set("current_month_requests", summary.record_count.to_json())
+    m.set("current_month_cost", Json(summary.total_cost))
+    m.set("current_month_requests", Json(summary.record_count))
     m
   }
   HttpResponse::ok(Json::object(body).stringify())
@@ -194,10 +194,10 @@ pub fn handle_billing_activate(request : HttpRequest) -> HttpResponse {
   // Return success response
   let resp : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("active", true.to_json())
-    m.set("plan", valid_plan.to_json())
-    m.set("expires_at", expires_at.to_json())
-    m.set("message", "Plan activated successfully".to_json())
+    m.set("active", Json(true))
+    m.set("plan", Json(valid_plan))
+    m.set("expires_at", Json(expires_at))
+    m.set("message", Json("Plan activated successfully"))
     m
   }
   HttpResponse::ok(Json::object(resp).stringify())
@@ -217,11 +217,11 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
     let tokens = ms.prompt_tokens + ms.completion_tokens
     let entry : Map[String, Json] = {
       let m : Map[String, Json] = Map([])
-      m.set("tokens", tokens.to_json())
-      m.set("cost", ms.cost.to_json())
-      m.set("prompt_tokens", ms.prompt_tokens.to_json())
-      m.set("completion_tokens", ms.completion_tokens.to_json())
-      m.set("requests", ms.requests.to_json())
+      m.set("tokens", Json(tokens))
+      m.set("cost", Json(ms.cost))
+      m.set("prompt_tokens", Json(ms.prompt_tokens))
+      m.set("completion_tokens", Json(ms.completion_tokens))
+      m.set("requests", Json(ms.requests))
       m
     }
     by_model_map.set(model, Json::object(entry))
@@ -233,9 +233,9 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
     if ds.total_tokens > 0 || ds.request_count > 0 {
       let entry : Map[String, Json] = {
         let m : Map[String, Json] = Map([])
-        m.set("tokens", ds.total_tokens.to_json())
-        m.set("cost", ds.total_cost.to_json())
-        m.set("requests", ds.request_count.to_json())
+        m.set("tokens", Json(ds.total_tokens))
+        m.set("cost", Json(ds.total_cost))
+        m.set("requests", Json(ds.request_count))
         m
       }
       by_day_map.set(ds.date, Json::object(entry))
@@ -245,10 +245,10 @@ pub fn handle_billing_usage(request : HttpRequest) -> HttpResponse {
     summary.total_completion_tokens
   let body : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("period", "current_month".to_json())
-    m.set("total_tokens", total_tokens.to_json())
-    m.set("total_requests", summary.record_count.to_json())
-    m.set("total_cost_usd", summary.total_cost.to_json())
+    m.set("period", Json("current_month"))
+    m.set("total_tokens", Json(total_tokens))
+    m.set("total_requests", Json(summary.record_count))
+    m.set("total_cost_usd", Json(summary.total_cost))
     m.set("by_model", Json::object(by_model_map))
     m.set("by_day", Json::object(by_day_map))
     m
@@ -369,10 +369,10 @@ pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
     by_model_map.set(
       model,
       Json::object({
-        "cost": ms.cost.to_json(),
-        "prompt_tokens": ms.prompt_tokens.to_json(),
-        "completion_tokens": ms.completion_tokens.to_json(),
-        "requests": ms.requests.to_json(),
+        "cost": Json(ms.cost),
+        "prompt_tokens": Json(ms.prompt_tokens),
+        "completion_tokens": Json(ms.completion_tokens),
+        "requests": Json(ms.requests),
       }),
     )
   })
@@ -387,29 +387,29 @@ pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
     day_costs.set(date, cost + r.cost_usd)
   }
   let by_day_map : Map[String, Json] = Map([])
-  day_costs.each(fn(date, cost) { by_day_map.set(date, cost.to_json()) })
+  day_costs.each(fn(date, cost) { by_day_map.set(date, Json(cost)) })
   // "all" period has no lower bound in orig (from: null)
   let from_json : Json = match period {
     @billing.All => Json::null()
-    _ => billing_ms_to_datetime(from_ms).to_json()
+    _ => Json(billing_ms_to_datetime(from_ms))
   }
   let body : Map[String, Json] = {
     let m : Map[String, Json] = Map([])
-    m.set("period", period_name.to_json())
+    m.set("period", Json(period_name))
     m.set("from", from_json)
-    m.set("to", billing_ms_to_datetime(now_ms).to_json())
-    m.set("total_cost", summary.total_cost.to_json())
+    m.set("to", Json(billing_ms_to_datetime(now_ms)))
+    m.set("total_cost", Json(summary.total_cost))
     m.set(
       "total_tokens",
-      (summary.total_prompt_tokens + summary.total_completion_tokens).to_json(),
+      Json((summary.total_prompt_tokens + summary.total_completion_tokens)),
     )
-    m.set("prompt_tokens", summary.total_prompt_tokens.to_json())
-    m.set("completion_tokens", summary.total_completion_tokens.to_json())
-    m.set("cache_read_tokens", summary.total_cache_read_tokens.to_json())
-    m.set("cache_write_tokens", summary.total_cache_write_tokens.to_json())
+    m.set("prompt_tokens", Json(summary.total_prompt_tokens))
+    m.set("completion_tokens", Json(summary.total_completion_tokens))
+    m.set("cache_read_tokens", Json(summary.total_cache_read_tokens))
+    m.set("cache_write_tokens", Json(summary.total_cache_write_tokens))
     m.set("by_model", Json::object(by_model_map))
     m.set("by_day", Json::object(by_day_map))
-    m.set("record_count", summary.record_count.to_json())
+    m.set("record_count", Json(summary.record_count))
     m
   }
   HttpResponse::ok(Json::object(body).stringify())
@@ -461,14 +461,14 @@ pub fn handle_billing_daily(request : HttpRequest) -> HttpResponse {
     }
     items.push(
       Json::object({
-        "date": date.to_json(),
-        "cost": cost.to_json(),
-        "tokens": tokens.to_json(),
-        "prompt_tokens": prompt.to_json(),
-        "completion_tokens": completion.to_json(),
-        "cache_read_tokens": cache_read.to_json(),
-        "cache_write_tokens": cache_write.to_json(),
-        "requests": requests.to_json(),
+        "date": Json(date),
+        "cost": Json(cost),
+        "tokens": Json(tokens),
+        "prompt_tokens": Json(prompt),
+        "completion_tokens": Json(completion),
+        "cache_read_tokens": Json(cache_read),
+        "cache_write_tokens": Json(cache_write),
+        "requests": Json(requests),
       }),
     )
   }
@@ -488,23 +488,23 @@ pub fn handle_billing_records(request : HttpRequest) -> HttpResponse {
   for r in records {
     items.push(
       Json::object({
-        "id": r.id.to_json(),
-        "session_id": r.session_id.to_json(),
-        "timestamp": billing_ms_to_datetime(r.timestamp).to_json(),
-        "model": r.model.to_json(),
-        "prompt_tokens": r.prompt_tokens.to_json(),
-        "completion_tokens": r.completion_tokens.to_json(),
-        "cache_read_tokens": r.cache_read_tokens.to_json(),
-        "cache_write_tokens": r.cache_write_tokens.to_json(),
-        "cost_usd": r.cost_usd.to_json(),
-        "cost_source": r.cost_source.to_json(),
+        "id": Json(r.id),
+        "session_id": Json(r.session_id),
+        "timestamp": Json(billing_ms_to_datetime(r.timestamp)),
+        "model": Json(r.model),
+        "prompt_tokens": Json(r.prompt_tokens),
+        "completion_tokens": Json(r.completion_tokens),
+        "cache_read_tokens": Json(r.cache_read_tokens),
+        "cache_write_tokens": Json(r.cache_write_tokens),
+        "cost_usd": Json(r.cost_usd),
+        "cost_source": Json(r.cost_source),
       }),
     )
   }
   HttpResponse::ok(
     Json::object({
       "records": Json::array(items),
-      "count": items.length().to_json(),
+      "count": Json(items.length()),
     }).stringify(),
   )
 }
@@ -566,27 +566,27 @@ pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
     let (sid, agg) = pairs[i]
     items.push(
       Json::object({
-        "session_id": sid.to_json(),
+        "session_id": Json(sid),
         // NOTE: no session-name data source yet (orig reads SessionManager);
         // emit empty string per spec risk convention.
-        "session_name": "".to_json(),
-        "total_cost": agg.total_cost.to_json(),
-        "total_tokens": (agg.prompt_tokens + agg.completion_tokens).to_json(),
-        "prompt_tokens": agg.prompt_tokens.to_json(),
-        "completion_tokens": agg.completion_tokens.to_json(),
-        "cache_read_tokens": agg.cache_read_tokens.to_json(),
-        "cache_write_tokens": agg.cache_write_tokens.to_json(),
-        "requests": agg.requests.to_json(),
-        "first_request": billing_ms_to_datetime(agg.first_ms).to_json(),
-        "last_request": billing_ms_to_datetime(agg.last_ms).to_json(),
-        "models": agg.models.map(fn(m) { m.to_json() }).to_json(),
+        "session_name": Json(""),
+        "total_cost": Json(agg.total_cost),
+        "total_tokens": Json((agg.prompt_tokens + agg.completion_tokens)),
+        "prompt_tokens": Json(agg.prompt_tokens),
+        "completion_tokens": Json(agg.completion_tokens),
+        "cache_read_tokens": Json(agg.cache_read_tokens),
+        "cache_write_tokens": Json(agg.cache_write_tokens),
+        "requests": Json(agg.requests),
+        "first_request": Json(billing_ms_to_datetime(agg.first_ms)),
+        "last_request": Json(billing_ms_to_datetime(agg.last_ms)),
+        "models": Json(agg.models.map(fn(m) { Json(m) })),
       }),
     )
   }
   HttpResponse::ok(
     Json::object({
       "sessions": Json::array(items),
-      "count": items.length().to_json(),
+      "count": Json(items.length()),
     }).stringify(),
   )
 }
@@ -606,8 +606,8 @@ pub fn handle_billing_clear(request : HttpRequest) -> HttpResponse {
   // must not silently downgrade the user's plan.
   HttpResponse::ok(
     Json::object({
-      "ok": true.to_json(),
-      "message": "Billing records cleared".to_json(),
+      "ok": Json(true),
+      "message": Json("Billing records cleared"),
     }).stringify(),
   )
 }

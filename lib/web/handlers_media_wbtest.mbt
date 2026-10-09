@@ -44,7 +44,7 @@ async test "media image rejects invalid JSON" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -56,7 +56,7 @@ async test "media image without prompt returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   let msg = match obj.get("message") {
     Some(s) => @debug.to_string(s)
     None => ""
@@ -73,7 +73,7 @@ async test "media image without configured model returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   let msg = match obj.get("message") {
     Some(s) => @debug.to_string(s)
     None => ""
@@ -90,7 +90,7 @@ async test "media video without configured model returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -106,7 +106,7 @@ async test "media speech without configured model returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -118,7 +118,7 @@ async test "media transcription without audio_path returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -134,7 +134,7 @@ async test "media transcription with missing file returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 // ── Video Understanding ───────────────────────────────────────────
@@ -148,7 +148,7 @@ async test "video understand with empty body returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -160,7 +160,7 @@ async test "video understand with non-object JSON returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -172,7 +172,7 @@ async test "video understand with invalid JSON returns 400" {
   @debug.assert_eq(resp.status_code.to_int(), 400)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }
 
 ///|
@@ -184,7 +184,7 @@ async test "video understand with no model configured returns 500" {
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
   let err = match obj.get("error") {
     Some(s) => @debug.to_string(s)
     None => ""
@@ -205,5 +205,5 @@ async test "video understand with video_path but no model returns 500" {
   @debug.assert_eq(resp.status_code.to_int(), 500)
   let j = media_response_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("ok"), Some(false.to_json()))
+  @debug.assert_eq(obj.get("ok"), Some(Json(false)))
 }

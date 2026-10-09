@@ -135,9 +135,9 @@ fn save_schedule_state() -> Unit {
     execs_json.push(execution_to_json(e))
   }
   let data = Json::object({
-    "schedules": schedules_json.to_json(),
-    "executions": execs_json.to_json(),
-    "next_id": schedule_state.val.next_id.to_json(),
+    "schedules": Json(schedules_json),
+    "executions": Json(execs_json),
+    "next_id": Json(schedule_state.val.next_id),
   })
   @fs.write_string_to_file(path, data.stringify()) catch {
     _ => ()
@@ -186,17 +186,17 @@ fn read_task_file(dir : String, name : String) -> String? {
 fn task_file_to_api_json(name : String, content : String) -> Json {
   let run_count : Int = 0
   Json::object({
-    "id": name.to_json(),
-    "schedule_id": name.to_json(),
-    "name": name.to_json(),
-    "cron_expression": "".to_json(),
-    "cron": "".to_json(),
-    "enabled": true.to_json(),
-    "next_execution": "".to_json(),
-    "message": content.to_json(),
-    "content": content.to_json(),
-    "scheduled": false.to_json(),
-    "run_count": run_count.to_json(),
+    "id": Json(name),
+    "schedule_id": Json(name),
+    "name": Json(name),
+    "cron_expression": Json(""),
+    "cron": Json(""),
+    "enabled": Json(true),
+    "next_execution": Json(""),
+    "message": Json(content),
+    "content": Json(content),
+    "scheduled": Json(false),
+    "run_count": Json(run_count),
   })
 }
 
@@ -266,17 +266,17 @@ fn schedule_to_api_json(s : @server.Schedule, message : String) -> Json {
     None => ""
   }
   Json::object({
-    "id": s.name.to_json(),
-    "schedule_id": s.name.to_json(),
-    "name": s.name.to_json(),
-    "cron_expression": s.cron.raw.to_json(),
-    "cron": s.cron.raw.to_json(),
-    "enabled": s.enabled.to_json(),
-    "next_execution": next_exec.to_json(),
-    "message": message.to_json(),
-    "content": message.to_json(),
-    "scheduled": true.to_json(),
-    "run_count": s.run_count.to_json(),
+    "id": Json(s.name),
+    "schedule_id": Json(s.name),
+    "name": Json(s.name),
+    "cron_expression": Json(s.cron.raw),
+    "cron": Json(s.cron.raw),
+    "enabled": Json(s.enabled),
+    "next_execution": Json(next_exec),
+    "message": Json(message),
+    "content": Json(message),
+    "scheduled": Json(true),
+    "run_count": Json(s.run_count),
   })
 }
 
@@ -284,10 +284,10 @@ fn schedule_to_api_json(s : @server.Schedule, message : String) -> Json {
 /// Convert an ExecutionRecord to JSON.
 fn execution_to_json(e : ExecutionRecord) -> Json {
   Json::object({
-    "status": e.status.to_json(),
-    "executed_at": e.executed_at.to_json(),
-    "timestamp": e.executed_at.to_json(),
-    "output": e.output.to_json(),
+    "status": Json(e.status),
+    "executed_at": Json(e.executed_at),
+    "timestamp": Json(e.executed_at),
+    "output": Json(e.output),
   })
 }
 
@@ -433,14 +433,14 @@ pub fn handle_schedules_create(request : HttpRequest) -> HttpResponse {
   let run_count : Int = 0
   // Build response matching frontend expectations
   let resp = Json::object({
-    "id": id.to_json(),
-    "schedule_id": id.to_json(),
-    "name": name.to_json(),
-    "cron_expression": cron_expr.to_json(),
-    "enabled": enabled.to_json(),
-    "next_execution": "".to_json(),
-    "message": message.to_json(),
-    "run_count": run_count.to_json(),
+    "id": Json(id),
+    "schedule_id": Json(id),
+    "name": Json(name),
+    "cron_expression": Json(cron_expr),
+    "enabled": Json(enabled),
+    "next_execution": Json(""),
+    "message": Json(message),
+    "run_count": Json(run_count),
   })
   HttpResponse::created(resp.stringify())
 }
@@ -517,11 +517,11 @@ pub fn handle_schedules_update(request : HttpRequest) -> HttpResponse {
     Some(s) => schedule_to_api_json(s, msg)
     None =>
       Json::object({
-        "id": id.to_json(),
-        "name": (if name != "" { name } else { id }).to_json(),
-        "cron_expression": cron_expr.to_json(),
-        "enabled": enabled.unwrap_or(true).to_json(),
-        "message": msg.to_json(),
+        "id": Json(id),
+        "name": Json((if name != "" { name } else { id })),
+        "cron_expression": Json(cron_expr),
+        "enabled": Json(enabled.unwrap_or(true)),
+        "message": Json(msg),
       })
   }
   HttpResponse::ok(resp.stringify())
@@ -581,10 +581,10 @@ pub fn handle_schedules_trigger(request : HttpRequest) -> HttpResponse {
 
       let msg = schedule_state.val.messages.get(id).unwrap_or("")
       let body = Json::object({
-        "id": id.to_json(),
-        "triggered": true.to_json(),
-        "message": ("Schedule '" + id + "' triggered manually").to_json(),
-        "prompt": msg.to_json(),
+        "id": Json(id),
+        "triggered": Json(true),
+        "message": Json(("Schedule '" + id + "' triggered manually")),
+        "prompt": Json(msg),
       })
       HttpResponse::ok(body.stringify())
     }
@@ -610,5 +610,5 @@ pub fn handle_schedules_history(request : HttpRequest) -> HttpResponse {
     }
   }
 
-  HttpResponse::ok(filtered.to_json().stringify())
+  HttpResponse::ok(Json(filtered).stringify())
 }

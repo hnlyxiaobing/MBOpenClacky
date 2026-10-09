@@ -231,8 +231,8 @@ pub fn HarnessReport::to_unified_report(
       error: "",
       duration_ms: 0.0,
       metadata: Json::object({
-        "goal": r.goal.to_json(),
-        "steps_run": r.steps_run.to_json(),
+        "goal": Json(r.goal),
+        "steps_run": Json(r.steps_run),
       }),
     })
   }
@@ -306,31 +306,31 @@ pub fn render_unified_report_json(report : UnifiedReport) -> Json {
     for ar in result.assertions {
       assertions_json.push(
         Json::object({
-          "description": ar.description.to_json(),
+          "description": Json(ar.description),
           "passed": Json::boolean(ar.passed),
-          "detail": ar.detail.to_json(),
+          "detail": Json(ar.detail),
         }),
       )
     }
     results_json.push(
       Json::object({
-        "name": result.name.to_json(),
+        "name": Json(result.name),
         "passed": Json::boolean(result.passed),
         "assertions": Json::array(assertions_json),
-        "error": result.error.to_json(),
+        "error": Json(result.error),
         "duration_ms": Json::number(result.duration_ms),
         "metadata": result.metadata,
       }),
     )
   }
   Json::object({
-    "suite_name": report.suite_name.to_json(),
-    "timestamp": report.timestamp.to_json(),
+    "suite_name": Json(report.suite_name),
+    "timestamp": Json(report.timestamp),
     "results": Json::array(results_json),
     "summary": Json::object({
-      "total": report.summary.total.to_json(),
-      "passed": report.summary.passed.to_json(),
-      "failed": report.summary.failed.to_json(),
+      "total": Json(report.summary.total),
+      "passed": Json(report.summary.passed),
+      "failed": Json(report.summary.failed),
     }),
   })
 }

@@ -162,7 +162,7 @@ test "build_openai_video_request" {
 ///|
 test "parse_openai_media_payload_b64" {
   let response : Json = Json::object({
-    "data": Json::array([Json::object({ "b64_json": "abc123".to_json() })]),
+    "data": Json::array([Json::object({ "b64_json": Json("abc123") })]),
   })
   match parse_openai_media_payload(response) {
     Ok(B64(data)) => @debug.assert_eq(data, "abc123")
@@ -174,7 +174,7 @@ test "parse_openai_media_payload_b64" {
 test "parse_openai_media_payload_url" {
   let response : Json = Json::object({
     "data": Json::array([
-      Json::object({ "url": "https://img.example.com/1.png".to_json() }),
+      Json::object({ "url": Json("https://img.example.com/1.png") }),
     ]),
   })
   match parse_openai_media_payload(response) {
@@ -185,7 +185,7 @@ test "parse_openai_media_payload_url" {
 
 ///|
 test "parse_openai_media_payload_error" {
-  let response : Json = Json::object({ "error": "bad".to_json() })
+  let response : Json = Json::object({ "error": Json("bad") })
   assert_true(parse_openai_media_payload(response) is Err(_))
 }
 
@@ -257,7 +257,7 @@ test "parse_gemini_image_response_success" {
         "content": Json::object({
           "parts": Json::array([
             Json::object({
-              "inlineData": Json::object({ "data": "base64data".to_json() }),
+              "inlineData": Json::object({ "data": Json("base64data") }),
             }),
           ]),
         }),
@@ -306,7 +306,7 @@ test "parse_dashscope_response_image_url" {
           "message": Json::object({
             "content": Json::array([
               Json::object({
-                "image": "https://oss.example.com/img.png".to_json(),
+                "image": Json("https://oss.example.com/img.png"),
               }),
             ]),
           }),
@@ -323,8 +323,8 @@ test "parse_dashscope_response_image_url" {
 ///|
 test "parse_dashscope_response_error_code" {
   let response : Json = Json::object({
-    "code": "InvalidApiKey".to_json(),
-    "message": "Invalid API-key provided.".to_json(),
+    "code": Json("InvalidApiKey"),
+    "message": Json("Invalid API-key provided."),
   })
   match parse_dashscope_response(response) {
     Err(e) => assert_true(e.contains("InvalidApiKey"))

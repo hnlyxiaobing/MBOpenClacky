@@ -135,7 +135,7 @@ test "dingtalk_parse_token_response_missing_token" {
 
 ///|
 test "dingtalk_parse_token_response_invalid_format" {
-  let json = "42".to_json()
+  let json = Json("42")
   let result = DingTalkApiClient::parse_token_response(json)
   assert_true(result is Err(_))
 }
