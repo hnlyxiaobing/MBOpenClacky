@@ -1,0 +1,5 @@
+import {
+  "Milky2018/css/values" @types,
+  "mizchi/crater-core" @layout_types,
+  "Milky2018/css/style",
+}

@@ -1,0 +1,10 @@
+import {
+  "mizchi/crater-core/node",
+  "mizchi/crater-core" @ccore,
+  "Milky2018/css/style",
+  "Milky2018/css/values",
+  "mizchi/tui-terminal-buffer/buffer" @terminal_buffer,
+  "moonbitlang/core/debug",
+}
+
+supported_targets = "js+native"

@@ -1,4 +1,6 @@
 members = [
   ".",
   "vendor/mbtpdf",
+  "vendor/mizchi-crater-core",
+  "vendor/mizchi-tui",
 ]
