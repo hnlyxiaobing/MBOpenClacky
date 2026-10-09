@@ -332,7 +332,7 @@ test "should_auto_execute_confirm_all" {
   let agent = make_test_agent()
   agent.config.permission_mode = @config.ConfirmAll
   // ConfirmAll (aligned with Ruby openclacky): all tools auto-execute.
-  // The difference from AutoApprove is only in request_user_feedback handling:
+  // The difference from AutoApprove is only in ask_user handling:
   // AutoApprove injects auto_reply; ConfirmAll truly waits for user input.
   assert_true(agent.should_auto_execute("file_reader", Map([])))
   assert_true(agent.should_auto_execute("terminal", Map([])))
@@ -373,7 +373,7 @@ test "is_safe_operation_other_tools" {
   assert_true(agent.is_safe_operation("web_fetch", Map([])))
   assert_true(agent.is_safe_operation("invoke_skill", Map([])))
   assert_true(agent.is_safe_operation("todo_manager", Map([])))
-  assert_true(agent.is_safe_operation("request_user_feedback", Map([])))
+  assert_true(agent.is_safe_operation("ask_user", Map([])))
 }
 
 ///|
@@ -2252,7 +2252,7 @@ test "inject_user_image_no_path_defaults_label" {
     _ => fail("expected Blocks content")
   }
 }
-// ── P6: request_user_feedback awaiting semantics ────────────────────────────
+// ── P6: ask_user awaiting semantics ────────────────────────────────────────
 
 ///|
 async test "feedback_no_channel_appends_auto_reply" {
@@ -2283,8 +2283,12 @@ async test "feedback_no_channel_missing_question_is_error" {
   let result = agent.act_async([call])
   @debug.assert_eq(result.tool_results.length(), 1)
   assert_true(result.tool_results[0].is_error)
+  // Ruby: top-level `required` is empty (only the questions[] item requires
+  // "question"), so `{}` reaches `execute` and fails normalize_questions.
   assert_true(
-    result.tool_results[0].content.contains("Missing required parameter"),
+    result.tool_results[0].content.contains(
+      "ask_user requires at least one question with non-empty text.",
+    ),
   )
   // Error result: no feedback handling, no suspension.
   @debug.assert_eq(result.awaiting_feedback, false)
@@ -2293,7 +2297,7 @@ async test "feedback_no_channel_missing_question_is_error" {
 ///|
 async test "feedback_with_channel_user_reply_feeds_back" {
   let agent = make_test_agent()
-  let req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+  let req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
     kind=Unbounded,
   )
   let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
@@ -2302,7 +2306,7 @@ async test "feedback_with_channel_user_reply_feeds_back" {
   // Simulate the user answering from the bridge side.
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
-      let (q, _ctx, _opts) = req_q.get()
+      let (q, _ctx, _opts, _qs) = req_q.get()
       @debug.assert_eq(q, "Choose?")
       resp_q.put("pick B please")
     }
@@ -2325,7 +2329,7 @@ async test "feedback_with_channel_user_reply_feeds_back" {
 ///|
 async test "feedback_with_channel_empty_reply_suspends" {
   let agent = make_test_agent()
-  let req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+  let req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
     kind=Unbounded,
   )
   let resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
@@ -2334,7 +2338,7 @@ async test "feedback_with_channel_empty_reply_suspends" {
   // Bridge replies with empty string (timeout / no answer).
   @async.with_task_group(group => {
     group.spawn_bg(no_wait=true, allow_failure=true) <| () => {
-      let (_q, _ctx, _opts) = req_q.get()
+      let (_q, _ctx, _opts, _qs) = req_q.get()
       resp_q.put("")
     }
     let call = make_tool_call(

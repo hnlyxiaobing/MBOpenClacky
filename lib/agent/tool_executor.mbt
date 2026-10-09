@@ -50,7 +50,7 @@ pub extend ToolResultEntry with Eq::{not_equal, equal}
 /// Aligned with Ruby openclacky agent.rb + tool_executor.rb:
 /// - AutoApprove: all tools auto-execute, no human present
 /// - ConfirmAll: all tools auto-execute, human present for
-///   request_user_feedback only
+///   ask_user only
 /// - ConfirmSafes: blacklist model — only `edit` and `write` require
 ///   confirmation; everything else auto-executes
 pub fn Agent::should_auto_execute(

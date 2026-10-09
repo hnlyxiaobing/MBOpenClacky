@@ -23,7 +23,7 @@ extend TrashManager with Tool::{
 }
 
 ///|
-extend RequestUserFeedback with Tool::{
+extend AskUser with Tool::{
   name,
   description,
   parameters,

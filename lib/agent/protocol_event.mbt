@@ -16,6 +16,26 @@
 
 ///|
 /// Convert an agent `HookEvent` into the typed protocol event.
+///|
+/// Convert normalized `ask_user` questions into their protocol counterparts
+/// (Web UI `request_feedback` frames carry them verbatim so the frontend can
+/// render one card per question).
+pub fn ask_questions_to_protocol(
+  questions : Array[@tool.AskQuestion],
+) -> Array[@protocol.AskQuestion] {
+  questions.map(fn(q) {
+    {
+      question: q.question,
+      description: q.description,
+      options: q.options,
+      multi: q.multi,
+      allow_free_text: q.allow_free_text,
+      recommended: q.recommended,
+    }
+  })
+}
+
+///|
 pub fn hook_event_to_protocol(event : HookEvent) -> @protocol.Event {
   match event {
     StatusChanged(_old, new) =>
@@ -162,8 +182,14 @@ pub fn hook_event_to_protocol(event : HookEvent) -> @protocol.Event {
     ToolStdout(lines) => @protocol.ToolStdout({ lines, })
     InfoMessage(msg) => @protocol.Info({ message: msg, })
     SuccessMessage(msg) => @protocol.Success({ message: msg, })
-    FeedbackRequested(question, context, options) =>
-      @protocol.RequestFeedback({ question, id: None, context, options, })
+    FeedbackRequested(question, context, options, questions) =>
+      @protocol.RequestFeedback({
+        question,
+        id: None,
+        context,
+        options,
+        questions: ask_questions_to_protocol(questions),
+      })
     CompressionPerformed(removed) =>
       @protocol.Info({
         message: "compression performed: \{removed} message(s) superseded",

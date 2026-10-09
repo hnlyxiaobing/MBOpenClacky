@@ -55,6 +55,7 @@ test "map_hook_event: FeedbackRequested maps to request_feedback" {
       "What model?",
       Some("model selection"),
       Some(["gpt-4", "claude-3"]),
+      [],
     ),
   )
   @debug.assert_eq(mapped.event_type, "request_feedback")
@@ -80,7 +81,7 @@ test "map_hook_event: FeedbackRequested maps to request_feedback" {
 /// `null` behave identically while the JSON stays smaller and round-trips
 /// exactly through @proto.Event::to_json/parse.
 test "map_hook_event: FeedbackRequested with absent context and options" {
-  let mapped = map_hook_event(@agent.FeedbackRequested("Continue?", None, None))
+  let mapped = map_hook_event(@agent.FeedbackRequested("Continue?", None, None, []))
   @debug.assert_eq(mapped.event_type, "request_feedback")
   let data = match mapped.data {
     Object(o) => o
@@ -93,6 +94,76 @@ test "map_hook_event: FeedbackRequested with absent context and options" {
   @debug.assert_eq(question, "Continue?")
   assert_false(data.contains("context"))
   assert_false(data.contains("options"))
+}
+
+///|
+/// Field of a question object rendered as compact JSON ("<missing>" when the
+/// key is absent), so assertions stay independent of Json internals.
+fn q_field(q : Map[String, Json], key : String) -> String {
+  match q.get(key) {
+    Some(v) => v.stringify()
+    None => "<missing>"
+  }
+}
+
+///|
+/// The `questions[]` array is the canonical payload for multi-question
+/// requests; the legacy single-question fields are derived from its first
+/// entry (Ruby `show_tool_call` ask_user branch).
+test "map_hook_event: FeedbackRequested carries questions[] to the wire" {
+  let mapped = map_hook_event(
+    @agent.FeedbackRequested(
+      "Which database?",
+      Some("Pick a stack"),
+      Some(["PostgreSQL", "SQLite"]),
+      [
+        {
+          question: "Which database?",
+          description: "We need persistence",
+          options: ["PostgreSQL", "SQLite"],
+          multi: false,
+          allow_free_text: true,
+          recommended: Some(0),
+        },
+        {
+          question: "Which language?",
+          description: "",
+          options: [],
+          multi: false,
+          allow_free_text: true,
+          recommended: None,
+        },
+      ],
+    ),
+  )
+  @debug.assert_eq(mapped.event_type, "request_feedback")
+  let data = match mapped.data {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  let questions = match data.get("questions") {
+    Some(Array(arr)) => arr
+    _ => abort("expected questions array")
+  }
+  @debug.assert_eq(questions.length(), 2)
+  let first = match questions[0] {
+    Object(o) => o
+    _ => abort("expected question object")
+  }
+  @debug.assert_eq(q_field(first, "question"), "\"Which database?\"")
+  @debug.assert_eq(q_field(first, "description"), "\"We need persistence\"")
+  @debug.assert_eq(q_field(first, "options"), "[\"PostgreSQL\",\"SQLite\"]")
+  @debug.assert_eq(q_field(first, "multi"), "false")
+  @debug.assert_eq(q_field(first, "allow_free_text"), "true")
+  @debug.assert_eq(q_field(first, "recommended"), "0")
+  let second = match questions[1] {
+    Object(o) => o
+    _ => abort("expected question object")
+  }
+  // A question without options is free-form by definition.
+  @debug.assert_eq(q_field(second, "options"), "[]")
+  @debug.assert_eq(q_field(second, "allow_free_text"), "true")
+  @debug.assert_eq(q_field(second, "recommended"), "null")
 }
 
 ///|

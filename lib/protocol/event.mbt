@@ -153,12 +153,30 @@ pub(all) struct ToolStdout {
 }
 
 ///|
+/// One normalized question inside a feedback round-trip (Ruby
+/// `AskUser.normalize_question` shape, serialized as-is to the Web UI so it can
+/// render a clickable card).
+pub(all) struct AskQuestion {
+  question : String
+  description : String
+  options : Array[String]
+  multi : Bool
+  allow_free_text : Bool
+  recommended : Int?
+}
+
+///|
 /// Agent asks for user feedback.
+///
+/// `question`/`options` describe the first question (legacy single-question
+/// consumers); `questions` carries every normalized question of the round-trip
+/// (Ruby `show_feedback_request(..., questions: questions)`).
 pub(all) struct RequestFeedback {
   question : String
   id : String?
   context : String?
   options : Array[String]?
+  questions : Array[AskQuestion]
 }
 
 ///|
@@ -596,6 +614,7 @@ pub fn Event::to_json(self : Event) -> Json {
           )
         None => ()
       }
+      put_json(out, "questions", Json::array(f.questions.map(ask_question_to_json)))
     }
     RequestConfirmation(c) => {
       put_string(out, "id", c.id)
@@ -809,6 +828,7 @@ pub fn Event::parse(json : Json) -> Event? {
               id: get_opt_string(fields, "id"),
               context: get_opt_string(fields, "context"),
               options: parse_string_array(fields, "options"),
+              questions: parse_ask_questions(fields, "questions"),
             }),
           )
       }
@@ -913,6 +933,78 @@ fn parse_cache_stats(fields : Map[String, Json]) -> CacheStats {
     _ =>
       { total_requests: 0, cache_hit_requests: 0, cache_read_input_tokens: 0, }
   }
+}
+
+///|
+/// Serialize one normalized question for the Wire/Web UI (`request_feedback`).
+fn ask_question_to_json(q : AskQuestion) -> Json {
+  let out : Map[String, Json] = Map([])
+  put_string(out, "question", q.question)
+  put_string(out, "description", q.description)
+  put_json(out, "options", Json::array(q.options.map(fn(o) { o.to_json() })))
+  put_bool(out, "multi", q.multi)
+  put_bool(out, "allow_free_text", q.allow_free_text)
+  match q.recommended {
+    Some(r) => put_json(out, "recommended", r.to_json())
+    None => put_json(out, "recommended", Json::null())
+  }
+  Json::object(out)
+}
+
+///|
+/// Read the `questions` array of a `request_feedback` frame back into typed
+/// questions (missing / malformed entries degrade to skipped items).
+fn parse_ask_questions(
+  fields : Map[String, Json],
+  key : String,
+) -> Array[AskQuestion] {
+  let out : Array[AskQuestion] = []
+  match fields.get(key) {
+    Some(Array(items)) =>
+      for item in items {
+        match item {
+          Object(obj) =>
+            match get_string(obj, "question") {
+              None => ()
+              Some(question) => {
+                let options = match parse_string_array(obj, "options") {
+                  Some(o) => o
+                  None => []
+                }
+                let recommended = match obj.get("recommended") {
+                  Some(Number(n, ..)) => Some(n.to_int())
+                  _ => None
+                }
+                let multi = match obj.get("multi") {
+                  Some(True) => true
+                  Some(False) => false
+                  _ => false
+                }
+                let allow_free_text = match obj.get("allow_free_text") {
+                  Some(True) => true
+                  Some(False) => false
+                  _ => false
+                }
+                let description = match get_string(obj, "description") {
+                  Some(d) => d
+                  None => ""
+                }
+                out.push({
+                  question,
+                  description,
+                  options,
+                  multi,
+                  allow_free_text,
+                  recommended,
+                })
+              }
+            }
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  out
 }
 
 ///|

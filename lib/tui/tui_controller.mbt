@@ -47,7 +47,7 @@ pub(all) struct TuiController {
   mut screen_inited : Bool
   events : @aqueue.Queue[TuiEvent]
   mut confirmation_response : @aqueue.Queue[Bool]?
-  /// Reply queue for request_user_feedback (user answer delivered while
+  /// Reply queue for ask_user (user answer delivered while
   /// the agent task is still running).
   mut feedback_response : @aqueue.Queue[String]?
   /// True while the agent awaits a feedback reply (Enter submits the
@@ -301,11 +301,11 @@ pub async fn TuiController::run(self : TuiController) -> Unit {
   self.agent.confirmation_request = Some(req_q)
   self.agent.confirmation_response = Some(resp_q)
   self.confirmation_response = Some(resp_q)
-  // Feedback bridge for request_user_feedback: agent pushes the question
+  // Feedback bridge for ask_user: agent pushes the question
   // onto fb_req_q, the bridge forwards it to the event loop, and the user's
   // answer is delivered back on fb_resp_q (mirrors the confirmation queue
   // mechanism; Web server side: handlers_ws.mbt setup_feedback_bridge).
-  let fb_req_q : @aqueue.Queue[(String, String?, Array[String]?)] = @aqueue.Queue::Queue(
+  let fb_req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @aqueue.Queue::Queue(
     kind=Unbounded,
   )
   let fb_resp_q : @aqueue.Queue[String] = @aqueue.Queue::Queue(kind=Unbounded)
@@ -345,7 +345,7 @@ async fn TuiController::async_event_loop(
   self : TuiController,
   req_q : @aqueue.Queue[(String, String)],
   _resp_q : @aqueue.Queue[Bool],
-  fb_req_q : @aqueue.Queue[(String, String?, Array[String]?)],
+  fb_req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
 ) -> Unit {
   @async.with_task_group() <| group => {
     let events = self.events
@@ -416,11 +416,11 @@ async fn TuiController::run_confirmation_bridge(
 /// semantics: the user decides when to answer.
 async fn TuiController::run_feedback_bridge(
   _self : TuiController,
-  req_q : @aqueue.Queue[(String, String?, Array[String]?)],
+  req_q : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
   events : @aqueue.Queue[TuiEvent],
 ) -> Unit {
   while true {
-    let (question, context, options) = req_q.get()
+    let (question, context, options, _questions) = req_q.get()
     events.put(FeedbackRequest(question, context, options))
   }
 }

@@ -121,7 +121,7 @@ pub fn progress_done_frame(String) -> String
 
 pub fn request_confirmation_frame(String, String, String) -> String
 
-pub fn request_feedback_frame(String, String, String, String?, Array[String]?) -> String
+pub fn request_feedback_frame(String, String, String, String?, Array[String]?, Array[@hnlyxiaobing/MBOpenClacky/lib/protocol.AskQuestion]) -> String
 
 pub fn session_cost_frame(String, Double, String) -> String
 

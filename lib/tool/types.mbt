@@ -153,7 +153,7 @@ pub(all) enum AnyTool {
   InvokeSkill(InvokeSkill)
   MemoryTool(MemoryTool)
   TodoTool(TodoTool)
-  RequestUserFeedback(RequestUserFeedback)
+  AskUser(AskUser)
   TrashManager(TrashManager)
   Browser(Browser)
 } derive(Eq, Debug)

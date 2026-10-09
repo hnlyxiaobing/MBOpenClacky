@@ -167,7 +167,7 @@ test "make_default_registry_has_all_tools" {
   assert_true(reg.has("invoke_skill"))
   assert_true(reg.has("memory"))
   assert_true(reg.has("todo_manager"))
-  assert_true(reg.has("request_user_feedback"))
+  assert_true(reg.has("ask_user"))
   assert_true(reg.has("trash_manager"))
   assert_true(reg.has("browser"))
 }

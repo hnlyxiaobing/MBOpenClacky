@@ -157,12 +157,14 @@ fn event_samples() -> Array[Event] {
       id: Some("f-1"),
       context: Some("ctx"),
       options: Some(["yes", "no"]),
+      questions: [],
     }),
     RequestFeedback({
       question: "Continue?",
       id: None,
       context: None,
       options: None,
+      questions: [],
     }),
     RequestConfirmation({
       id: "c-1",
@@ -306,6 +308,7 @@ test "options and metadata survive as JSON values" {
     id: None,
     context: None,
     options: Some(["a", "b"]),
+    questions: [],
   })
   match Event::parse(e.to_json()) {
     Some(RequestFeedback(f)) =>

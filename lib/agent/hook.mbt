@@ -59,8 +59,12 @@ pub(all) enum HookEvent {
   InfoMessage(String)
   /// Success message (message text).
   SuccessMessage(String)
-  /// Request user feedback (question, context, options).
-  FeedbackRequested(String, String?, Array[String]?)
+  /// Request user feedback: (first question's text, context, first question's
+  /// options, every normalized question). Mirrors Ruby
+  /// `ui.show_feedback_request(first[:question], context, first[:options], questions: questions)`
+  /// — the leading three fields are the legacy single-question view, the last
+  /// one lets card UIs render a multi-question round-trip.
+  FeedbackRequested(String, String?, Array[String]?, Array[@tool.AskQuestion])
   /// A compression pass succeeded (number of messages removed from history).
   /// Consumers that keep an external record of the run use this to project the
   /// compaction (see `cmd inspect`'s session-log summary records).

@@ -61,9 +61,12 @@ let tool_aliases : Map[String, String] = {
   "run_skill": "invoke_skill",
   "todo": "todo_manager",
   "task_manager": "todo_manager",
-  "ask_user": "request_user_feedback",
-  "user_feedback": "request_user_feedback",
-  "ask": "request_user_feedback",
+  // ask_user aliases（Ruby agent/tool_registry.rb TOOL_ALIASES）
+  "request_user_feedback": "ask_user",
+  "user_feedback": "ask_user",
+  "ask": "ask_user",
+  "ask_question": "ask_user",
+  "clarify": "ask_user",
   // NOTE: undo/redo/tasks/task_history aliases were removed — their targets
   // (undo_task/redo_task/list_tasks) are not registered tools; resolving to
   // a nonexistent tool only produces confusing errors (Ruby has no such aliases).
@@ -345,7 +348,7 @@ pub fn make_default_registry() -> ToolRegistry {
   registry.register(AnyTool::InvokeSkill(InvokeSkill::{ }))
   registry.register(AnyTool::MemoryTool(MemoryTool::{ }))
   registry.register(AnyTool::TodoTool(TodoTool::{ }))
-  registry.register(AnyTool::RequestUserFeedback(RequestUserFeedback::{ }))
+  registry.register(AnyTool::AskUser(AskUser::{ }))
   registry.register(AnyTool::TrashManager(TrashManager::{ }))
   registry.register(AnyTool::Browser(Browser::new()))
   registry

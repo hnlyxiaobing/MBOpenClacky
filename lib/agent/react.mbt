@@ -248,43 +248,41 @@ priv struct ActionResult {
 }
 
 ///|
-/// Auto-reply hint appended when request_user_feedback runs without any
+/// Auto-reply hint appended when ask_user runs without any
 /// interactive feedback channel (non-interactive mode). Aligned with the
 /// Ruby `@ui.nil?` path in agent.rb which merges `auto_reply` into the
 /// tool result so the LLM makes a reasonable decision and continues.
 let feedback_auto_reply_hint = "\n\n[auto_reply] No user is available. Please make a reasonable decision based on the context and continue."
 
 ///|
-/// Extract (question, context, options) from request_user_feedback args.
+/// Extract (question, context, options, questions) from ask_user args using
+/// the canonical normalizer (Ruby `AskUser.normalize_questions`). The first
+/// three values describe the first question — the legacy single-question view
+/// that IM/plain UIs consume; `questions` carries the full round-trip for card
+/// UIs.
 fn extract_feedback_args(
   args : Map[String, Json],
-) -> (String, String?, Array[String]?) {
-  let question = match args.get("question") {
-    Some(String(q)) => q
-    _ => ""
+) -> (String, String?, Array[String]?, Array[@tool.AskQuestion]) {
+  let questions = @tool.normalize_questions(args)
+  let context = @tool.ask_user_context(args)
+  let first = if questions.length() > 0 {
+    Some(questions[0])
+  } else {
+    None
   }
-  let context = match args.get("context") {
-    Some(String(c)) => Some(c)
-    _ => None
+  let question = match first {
+    Some(q) => q.question
+    None => ""
   }
-  let options = match args.get("options") {
-    Some(Array(arr)) => {
-      let opts : Array[String] = []
-      for item in arr {
-        match item {
-          String(s) => opts.push(s)
-          _ => ()
-        }
-      }
-      Some(opts)
-    }
-    _ => None
+  let options = match first {
+    Some(q) => Some(q.options)
+    None => None
   }
-  (question, context, options)
+  (question, context, options, questions)
 }
 
 ///|
-/// Post-execution handling for `request_user_feedback` (Ruby agent.rb
+/// Post-execution handling for `ask_user` (Ruby agent.rb
 /// L1299-1331): render the question via the FeedbackRequested hook, then
 /// wait for a reply through the wired feedback channel.
 ///
@@ -302,16 +300,16 @@ async fn Agent::handle_feedback_tool(
   entry : ToolResultEntry,
   args : Map[String, Json],
 ) -> (ToolResultEntry, String?, Bool) {
-  if tool_name != "request_user_feedback" || entry.is_error {
+  if !@tool.is_ask_user_tool(tool_name) || entry.is_error {
     return (entry, None, false)
   }
-  let (question, context, options) = extract_feedback_args(args)
-  self.hook_manager.emit(FeedbackRequested(question, context, options))
+  let (question, context, options, questions) = extract_feedback_args(args)
+  self.hook_manager.emit(FeedbackRequested(question, context, options, questions))
   let (fb, aw) = match self.feedback_request {
     Some(req_q) =>
       match self.feedback_response {
         Some(resp_q) => {
-          req_q.put((question, context, options))
+          req_q.put((question, context, options, questions))
           let reply = resp_q.get()
           if reply.length() > 0 {
             // User answered: route the reply back to the LLM immediately
@@ -754,7 +752,7 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
               // (Ruby agent.rb L833 flush_pending_injections).
               self.flush_pending_injections()
               if action_result.awaiting_feedback {
-                // request_user_feedback suspended the run (no reply yet):
+                // ask_user suspended the run (no reply yet):
                 // end this run awaiting the user's next message.
                 done = Some(self.build_result(Success))
               } else {

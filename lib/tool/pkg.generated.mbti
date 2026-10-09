@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn ask_user_context(Map[String, Json]) -> String?
+
 pub fn background_hint(Bool, Int) -> String
 
 pub fn browser_disabled_error() -> String
@@ -63,6 +65,8 @@ pub fn glob_to_regex(String) -> String
 
 pub async fn http_get_follow_redirects(String, Array[(String, String)], Int, Int) -> Result[@client.HttpResponse, @client.HttpError]
 
+pub fn is_ask_user_tool(String) -> Bool
+
 pub fn is_binary_extension(String) -> Bool
 
 pub fn is_browser_mcp_available() -> Bool
@@ -85,6 +89,8 @@ pub let max_line_chars : Int
 
 pub fn mtime_sec_or_none(String) -> Int64?
 
+pub fn normalize_questions(Map[String, Json]) -> Array[AskQuestion]
+
 pub fn process_terminal_output(String, max_chars? : Int) -> (String, Bool)
 
 pub fn query_snapshot(String, String, offset? : Int) -> String
@@ -92,6 +98,10 @@ pub fn query_snapshot(String, String, offset? : Int) -> String
 pub fn read_file_scrubbed(String) -> String?
 
 pub fn relative_to(String, String) -> String
+
+pub fn render_card(Array[AskQuestion], String?) -> String
+
+pub fn render_text(Array[AskQuestion], String?) -> String
 
 pub fn resolve_url(String, String) -> String
 
@@ -156,7 +166,7 @@ pub(all) enum AnyTool {
   InvokeSkill(InvokeSkill)
   MemoryTool(MemoryTool)
   TodoTool(TodoTool)
-  RequestUserFeedback(RequestUserFeedback)
+  AskUser(AskUser)
   TrashManager(TrashManager)
   Browser(Browser)
 } derive(Eq, @debug.Debug)
@@ -172,6 +182,24 @@ pub fn AnyTool::parameters(Self) -> Json
 pub fn AnyTool::to_function_definition(Self) -> FunctionDefinition
 pub fn AnyTool::to_repr(Self) -> @debug.Repr
 pub impl Tool for AnyTool
+
+pub(all) struct AskQuestion {
+  question : String
+  description : String
+  options : Array[String]
+  multi : Bool
+  allow_free_text : Bool
+  recommended : Int?
+} derive(Eq, @debug.Debug)
+pub fn AskQuestion::equal(Self, Self) -> Bool
+pub fn AskQuestion::not_equal(Self, Self) -> Bool
+pub fn AskQuestion::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AskUser {
+} derive(Eq, @debug.Debug)
+pub fn AskUser::equal(Self, Self) -> Bool
+pub fn AskUser::not_equal(Self, Self) -> Bool
+pub fn AskUser::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Browser {
   mut daemon_connected : Bool
@@ -289,12 +317,6 @@ pub(all) enum PtyReadState {
 pub fn PtyReadState::equal(Self, Self) -> Bool
 pub fn PtyReadState::not_equal(Self, Self) -> Bool
 pub fn PtyReadState::to_repr(Self) -> @debug.Repr
-
-pub(all) struct RequestUserFeedback {
-} derive(Eq, @debug.Debug)
-pub fn RequestUserFeedback::equal(Self, Self) -> Bool
-pub fn RequestUserFeedback::not_equal(Self, Self) -> Bool
-pub fn RequestUserFeedback::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SessionStatus {
   Starting

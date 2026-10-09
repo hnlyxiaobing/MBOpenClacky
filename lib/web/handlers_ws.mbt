@@ -855,12 +855,35 @@ fn register_ws_hooks(
             None => ()
           }
         }
-        // Forward event to web UI
-        hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+        // Forward event to web UI. The ask_user family is suppressed: Ruby's
+        // WebUI `show_tool_call` emits `request_feedback` for it and returns,
+        // so no generic `tool_call` frame is ever sent for that tool.
+        if forwards_tool_frames(name) {
+          hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+        }
       }
+      @agent.ToolExecuted(name, _) =>
+        // Same for the result: Ruby skips `show_tool_result` on the
+        // awaiting-feedback path, and the request_feedback card is the display.
+        if forwards_tool_frames(name) {
+          hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
+        }
       _ => hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
     }
   })
+}
+
+///|
+/// Whether the web UI should forward the generic `tool_call` / `tool_result`
+/// frames for this tool.
+///
+/// Returns false for the ask_user family: Ruby's
+/// `WebUI::UIController#show_tool_call` emits `request_feedback` for that tool
+/// and returns before the generic branch, so the browser never receives a
+/// `tool_call` frame for it (and `#show_tool_result` is skipped on the
+/// awaiting-feedback path). Emitting both made the card appear twice.
+pub fn forwards_tool_frames(name : String) -> Bool {
+  !@tool.is_ask_user_tool(name)
 }
 
 ///|
@@ -979,7 +1002,7 @@ fn setup_feedback_bridge(
   }
   match ws_task_group.val {
     Some(group) => {
-      let req_q : @async.Queue[(String, String?, Array[String]?)] = @async.Queue::Queue(
+      let req_q : @async.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @async.Queue::Queue(
         kind=Unbounded,
       )
       let resp_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
@@ -1000,13 +1023,13 @@ fn setup_feedback_bridge(
 async fn run_feedback_bridge(
   server_ref : Ref[WebServer],
   session_id : String,
-  req_q : @async.Queue[(String, String?, Array[String]?)],
+  req_q : @async.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
   resp_q : @async.Queue[String],
 ) -> Unit {
   let hub = server_ref.val.hub
   let state = get_ws_state(session_id)
   while true {
-    let (question, context, options) = req_q.get()
+    let (question, context, options, questions) = req_q.get()
     state.confirm_seq = state.confirm_seq + 1
     let request_id = session_id + "-fb-" + state.confirm_seq.to_string()
     let reply_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
@@ -1014,7 +1037,12 @@ async fn run_feedback_bridge(
     hub.broadcast_session(
       session_id,
       @protocol.request_feedback_frame(
-        session_id, request_id, question, context, options,
+        session_id,
+        request_id,
+        question,
+        context,
+        options,
+        @agent.ask_questions_to_protocol(questions),
       ),
     )
     let answer = @async.with_timeout_opt(300_000, () => reply_q.get())

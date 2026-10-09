@@ -6,6 +6,15 @@ package "hnlyxiaobing/MBOpenClacky/lib/protocol"
 // Errors
 
 // Types and methods
+pub(all) struct AskQuestion {
+  question : String
+  description : String
+  options : Array[String]
+  multi : Bool
+  allow_free_text : Bool
+  recommended : Int?
+}
+
 pub(all) struct AssistantMessage {
   content : String
   role : String?
@@ -165,6 +174,7 @@ pub(all) struct RequestFeedback {
   id : String?
   context : String?
   options : Array[String]?
+  questions : Array[AskQuestion]
 }
 
 pub(all) struct SessionCommand {

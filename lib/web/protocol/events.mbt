@@ -214,10 +214,17 @@ pub fn request_feedback_frame(
   question : String,
   context : String?,
   options : Array[String]?,
+  questions : Array[@proto.AskQuestion],
 ) -> String {
   ws_frame(
     session_id,
-    @proto.RequestFeedback({ question, id: Some(request_id), context, options, }),
+    @proto.RequestFeedback({
+      question,
+      id: Some(request_id),
+      context,
+      options,
+      questions,
+    }),
   )
 }
 

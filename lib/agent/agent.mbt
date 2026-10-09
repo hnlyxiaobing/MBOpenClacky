@@ -90,9 +90,13 @@ pub(all) struct Agent {
   mut confirmation_request : @aqueue.Queue[(String, String)]?
   mut confirmation_response : @aqueue.Queue[Bool]?
   // ── Feedback ─────────────────────────────────────────────────────
-  /// Async feedback: agent pushes (question, context, options) and awaits response.
+  /// Async feedback: agent pushes (question, context, options, questions) and
+  /// awaits response. `questions` carries every normalized question of the
+  /// round-trip (Ruby `show_feedback_request(..., questions:)`).
   /// Set by WS controller for interactive mode; None = headless (feedback denied).
-  mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?)]?
+  mut feedback_request : @aqueue.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion])
+  ]?
   mut feedback_response : @aqueue.Queue[String]?
   // ── Skill Injection ───────────────────────────────────────────────
   /// Pending inline skill injections to flush after observe()

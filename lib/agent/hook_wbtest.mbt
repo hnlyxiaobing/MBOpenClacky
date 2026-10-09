@@ -87,7 +87,7 @@ test "hook_emit_all_event_types" {
       ToolStdout(_) => event_types.push("tool_stdout")
       InfoMessage(_) => event_types.push("info")
       SuccessMessage(_) => event_types.push("success")
-      FeedbackRequested(_, _, _) => event_types.push("feedback")
+      FeedbackRequested(_, _, _, _) => event_types.push("feedback")
       CompressionPerformed(_) => event_types.push("compression")
     }
   })
@@ -133,7 +133,7 @@ test "hook_emit_all_event_types" {
   hm.emit(ToolStdout("output line"))
   hm.emit(InfoMessage("info msg"))
   hm.emit(SuccessMessage("success msg"))
-  hm.emit(FeedbackRequested("Continue?", None, None))
+  hm.emit(FeedbackRequested("Continue?", None, None, []))
   hm.emit(CompressionPerformed(7))
 
   @debug.debug_inspect(event_types.length(), content="26")

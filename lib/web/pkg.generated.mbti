@@ -26,6 +26,8 @@ pub fn delete_meeting(String) -> Unit
 
 pub fn enabled_extensions(Array[ApiExtension]) -> Array[ApiExtension]
 
+pub fn forwards_tool_frames(String) -> Bool
+
 pub fn generate_meeting_id() -> String
 
 pub fn get_mime_type(String) -> String

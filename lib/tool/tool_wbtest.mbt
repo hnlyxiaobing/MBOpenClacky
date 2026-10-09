@@ -1,10 +1,10 @@
-///| Tests for the tool package: RequestUserFeedback, TrashManager, Browser, and registry integration.
+///| Tests for the tool package: AskUser, TrashManager, Browser, and registry integration.
 
-// ── RequestUserFeedback Tests ────────────────────────────────────────────────
+// ── AskUser Tests ────────────────────────────────────────────────────────────
 
 ///|
-async test "request_user_feedback_question_only" {
-  let tool = RequestUserFeedback::{ }
+async test "ask_user_question_only" {
+  let tool = AskUser::{ }
   let args : Map[String, Json] = {
     "question": "What framework should we use?".to_json(),
   }
@@ -15,8 +15,8 @@ async test "request_user_feedback_question_only" {
 }
 
 ///|
-async test "request_user_feedback_with_context" {
-  let tool = RequestUserFeedback::{ }
+async test "ask_user_with_context" {
+  let tool = AskUser::{ }
   let args : Map[String, Json] = {
     "question": "Which option?".to_json(),
     "context": "We need to choose a database".to_json(),
@@ -29,8 +29,8 @@ async test "request_user_feedback_with_context" {
 }
 
 ///|
-async test "request_user_feedback_with_options" {
-  let tool = RequestUserFeedback::{ }
+async test "ask_user_with_options" {
+  let tool = AskUser::{ }
   let args : Map[String, Json] = {
     "question": "Pick one".to_json(),
     "options": Json::array([
@@ -48,8 +48,8 @@ async test "request_user_feedback_with_options" {
 }
 
 ///|
-async test "request_user_feedback_missing_question" {
-  let tool = RequestUserFeedback::{ }
+async test "ask_user_missing_question" {
+  let tool = AskUser::{ }
   let args : Map[String, Json] = Map([])
   let result = tool.execute(args)
   assert_true(result.is_error)
@@ -57,18 +57,18 @@ async test "request_user_feedback_missing_question" {
 }
 
 ///|
-test "request_user_feedback_format_call" {
-  let tool = RequestUserFeedback::{ }
+test "ask_user_format_call" {
+  let tool = AskUser::{ }
   let args : Map[String, Json] = {
     "question": "What is the meaning of life?".to_json(),
   }
   let formatted = tool.format_call(args)
-  assert_true(formatted.find("request_user_feedback") is Some(_))
+  assert_true(formatted.find("ask_user") is Some(_))
 }
 
 ///|
-test "request_user_feedback_format_call_long_question" {
-  let tool = RequestUserFeedback::{ }
+test "ask_user_format_call_long_question" {
+  let tool = AskUser::{ }
   let long_question = "This is a very long question that exceeds the sixty character limit for sure"
   let args : Map[String, Json] = { "question": long_question.to_json() }
   let formatted = tool.format_call(args)
@@ -76,10 +76,79 @@ test "request_user_feedback_format_call_long_question" {
 }
 
 ///|
-test "request_user_feedback_name_and_category" {
-  let tool = RequestUserFeedback::{ }
-  @debug.assert_eq(tool.name(), "request_user_feedback")
+test "ask_user_name_and_category" {
+  let tool = AskUser::{ }
+  @debug.assert_eq(tool.name(), "ask_user")
   assert_true(tool.category() == General)
+}
+
+///|
+test "ask_user_legacy_alias_routes_to_same_tool" {
+  // Ruby `TOOL_NAMES = %w[ask_user request_user_feedback]`: both spellings are
+  // the same tool, and the registry resolves the retired name too.
+  assert_true(is_ask_user_tool("ask_user"))
+  assert_true(is_ask_user_tool("request_user_feedback"))
+  assert_false(is_ask_user_tool("browser"))
+  let registry = make_default_registry()
+  assert_true(registry.resolve("request_user_feedback") == Some("ask_user"))
+  // Ruby `get` is a plain map lookup (it raises on a miss), so only `resolve`
+  // honours aliases — match that by going through `get_resolved`.
+  match registry.get_resolved("request_user_feedback") {
+    Some(AskUser(_)) => ()
+    _ => fail("legacy alias did not resolve to AskUser")
+  }
+}
+
+///|
+async test "ask_user_questions_schema_renders_every_question" {
+  let tool = AskUser::{ }
+  let args : Map[String, Json] = {
+    "context": "Pick a stack".to_json(),
+    "questions": Json::array([
+      Json::object({
+        "question": "Which database?".to_json(),
+        "description": "We need persistence".to_json(),
+        "options": Json::array(["PostgreSQL".to_json(), "SQLite".to_json()]),
+        "recommended": Json::number(0),
+      }),
+      Json::object({
+        "question": "Which language?".to_json(),
+        "options": Json::array(["MoonBit".to_json()]),
+        "allow_free_text": Json::boolean(true),
+      }),
+    ]),
+  }
+  let questions = normalize_questions(args)
+  assert_eq(questions.length(), 2)
+  assert_eq(questions[0].recommended, Some(0))
+  assert_eq(questions[0].description, "We need persistence")
+  // No options -> free-form, whatever the model said.
+  assert_true(questions[1].allow_free_text)
+  let rendered = render_text(questions, ask_user_context(args))
+  assert_true(rendered.find("**Context:** Pick a stack") is Some(_))
+  assert_true(rendered.find("**Question #1:** Which database?") is Some(_))
+  assert_true(rendered.find("**Question #2:** Which language?") is Some(_))
+  assert_true(rendered.find("1. PostgreSQL _(recommended)_") is Some(_))
+  assert_true(rendered.find("2. Other — type your own answer") is Some(_))
+  // `execute` returns exactly that markdown (Ruby `render_text(normalized, context)`).
+  let result = tool.execute(args)
+  assert_false(result.is_error)
+  assert_eq(result.content, rendered)
+}
+
+///|
+test "ask_user_questions_field_is_normalized_not_echoed" {
+  // Malformed entries are dropped, not fatal (Ruby `normalize_questions`).
+  let args : Map[String, Json] = {
+    "questions": Json::array([
+      "not an object".to_json(),
+      Json::object({ "description": "no question text".to_json() }),
+      Json::object({ "question": "   keep me   ".to_json() }),
+    ]),
+  }
+  let questions = normalize_questions(args)
+  assert_eq(questions.length(), 1)
+  assert_eq(questions[0].question, "keep me")
 }
 
 // ── TrashManager Tests ───────────────────────────────────────────────────────
@@ -252,7 +321,7 @@ test "registry_has_all_fourteen_tools" {
 ///|
 test "registry_resolves_request_user_feedback" {
   let registry = make_default_registry()
-  assert_true(registry.resolve("request_user_feedback") is Some(_))
+  assert_true(registry.resolve("ask_user") is Some(_))
   assert_true(registry.resolve("ask_user") is Some(_))
   assert_true(registry.resolve("user_feedback") is Some(_))
   assert_true(registry.resolve("ask") is Some(_))
@@ -275,11 +344,11 @@ test "registry_resolves_browser" {
 }
 
 ///|
-test "registry_get_request_user_feedback" {
+test "registry_get_ask_user" {
   let registry = make_default_registry()
-  match registry.get("request_user_feedback") {
-    Some(RequestUserFeedback(_)) => ()
-    _ => fail("expected RequestUserFeedback tool")
+  match registry.get("ask_user") {
+    Some(AskUser(_)) => ()
+    _ => fail("expected AskUser tool")
   }
 }
 
@@ -323,9 +392,9 @@ test "registry_by_category_web_has_browser" {
 }
 
 ///|
-async test "anytool_request_user_feedback_via_anytool" {
-  let tool = AnyTool::RequestUserFeedback(RequestUserFeedback::{ })
-  @debug.assert_eq(tool.name(), "request_user_feedback")
+async test "anytool_ask_user_via_anytool" {
+  let tool = AnyTool::AskUser(AskUser::{ })
+  @debug.assert_eq(tool.name(), "ask_user")
   assert_true(tool.category() == General)
   let args : Map[String, Json] = { "question": "test question".to_json() }
   let result = tool.execute(args)
@@ -346,11 +415,11 @@ async test "anytool_browser_via_anytool" {
 // ── FunctionDefinition Tests ─────────────────────────────────────────────────
 
 ///|
-test "request_user_feedback_to_function_definition" {
-  let tool = RequestUserFeedback::{ }
+test "ask_user_to_function_definition" {
+  let tool = AskUser::{ }
   let def = tool.to_function_definition()
   @debug.assert_eq(def.type_, "function")
-  @debug.assert_eq(def.function.name, "request_user_feedback")
+  @debug.assert_eq(def.function.name, "ask_user")
 }
 
 ///|

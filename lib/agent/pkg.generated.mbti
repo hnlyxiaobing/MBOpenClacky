@@ -30,6 +30,8 @@ pub fn apply_error_rollback(Array[@message.Message]) -> Array[@message.Message]
 
 pub fn apply_snapshot_entries(Array[SnapshotEntry]) -> Result[Int, String]
 
+pub fn ask_questions_to_protocol(Array[@tool.AskQuestion]) -> Array[@protocol.AskQuestion]
+
 pub fn attachment_classify(String) -> Attachment
 
 pub fn attachment_detect_image_mime_type(Bytes, String) -> String
@@ -312,7 +314,7 @@ pub(all) struct Agent {
   mut confirmation_callback : ((String, String) -> Bool)?
   mut confirmation_request : @aqueue.Queue[(String, String)]?
   mut confirmation_response : @aqueue.Queue[Bool]?
-  mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?)]?
+  mut feedback_request : @aqueue.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])]?
   mut feedback_response : @aqueue.Queue[String]?
   mut pending_injections : Array[(String, String)]
   mock_responses : Array[@client.LlmResponse]
@@ -587,7 +589,7 @@ pub(all) enum HookEvent {
   ToolStdout(String)
   InfoMessage(String)
   SuccessMessage(String)
-  FeedbackRequested(String, String?, Array[String]?)
+  FeedbackRequested(String, String?, Array[String]?, Array[@tool.AskQuestion])
   CompressionPerformed(Int)
 }
 

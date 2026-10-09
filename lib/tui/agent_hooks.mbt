@@ -219,8 +219,13 @@ fn dispatch_hook_event(
       }
       // Push progress spinner for tool execution
       ignore(s.progress_stack.push("Running: \{name}"))
-      // Append [=>] tool call entry to output buffer ([C] for shell tools)
-      append_tool_call_entry(output, theme, name, args)
+      // Append [=>] tool call entry to output buffer ([C] for shell tools).
+      // The ask_user family is suppressed: Ruby's `show_tool_call` returns
+      // early for it (agent.rb `unless Tools::AskUser.feedback_tool?`), and
+      // the interactive card rendered on FeedbackRequested *is* the display.
+      if !@tool.is_ask_user_tool(name) {
+        append_tool_call_entry(output, theme, name, args)
+      }
     }
     ToolExecuted(name, result) => {
       s.tool_output.set("Completed: \{name}")
@@ -243,14 +248,13 @@ fn dispatch_hook_event(
       }
       // Close the tool spinner
       s.progress_stack.close_last()
-      // Append [<=] tool result entry to output buffer
-      append_tool_result_entry(
-        output,
-        theme,
-        name,
-        result.content,
-        result.is_error,
-      )
+      // Append [<=] tool result entry to output buffer.
+      // Suppressed for the ask_user family: Ruby never calls
+      // `show_tool_result` on the awaiting-feedback path, and MB always emits
+      // FeedbackRequested (the card) for a non-error ask_user call.
+      if !@tool.is_ask_user_tool(name) {
+        append_tool_result_entry(output, theme, name, result.content, result.is_error)
+      }
     }
     ErrorOccurred(msg) => {
       s.last_error = Some(msg)
@@ -371,9 +375,11 @@ fn dispatch_hook_event(
     SuccessMessage(msg) =>
       // Success message - append to output buffer
       append_success_message(output, theme, msg)
-    FeedbackRequested(question, _context, _options) =>
-      // Feedback requested - append to output buffer
-      append_feedback_requested(output, theme, question)
+    FeedbackRequested(_question, context, _options, questions) =>
+      // Feedback requested - render the rich card (numbered questions +
+      // options with the recommended marker), matching Ruby ui2's ask_user
+      // branch rather than the truncated format_call summary.
+      append_feedback_requested(output, theme, @tool.render_card(questions, context))
     CompressionPerformed(removed) =>
       // Context compaction - tell the user why earlier turns disappeared
       append_info_message(
@@ -671,11 +677,19 @@ fn append_success_message(
 fn append_feedback_requested(
   output : OutputBuffer?,
   theme : Theme,
-  question : String,
+  text : String,
 ) -> Unit {
   match output {
     Some(buf) => {
-      let entry = "\{theme.dim_color}[?] \{question}\u001b[0m"
+      let body : Array[String] = []
+      for i, line in text.split("\n") {
+        if i == 0 {
+          body.push("[?] \{line}")
+        } else {
+          body.push("    \{line}")
+        }
+      }
+      let entry = "\{theme.dim_color}\{body.join("\n")}\u001b[0m"
       ignore(buf.append_text(entry, OutputKind::System))
     }
     None => ()
