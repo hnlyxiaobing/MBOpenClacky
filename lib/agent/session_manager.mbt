@@ -125,7 +125,9 @@ fn purge_expired_trash() -> Unit {
   let filenames = @fs.read_dir(trash_dir) catch { _ => return }
   let now_ms = current_time_ms()
   let threshold_iso = ms_to_iso8601(now_ms - trash_retention_ms)
-  let threshold_sanitized = threshold_iso.replace(old=":", new="-")
+  // Same sanitisation as the writer (session_store.mbt`session_filename_datetime`):
+  // every `:` becomes `-`, otherwise the lexicographic compare is meaningless.
+  let threshold_sanitized = threshold_iso.replace_all(old=":", new="-")
   for name in filenames {
     if !name.has_suffix(".json") {
       continue

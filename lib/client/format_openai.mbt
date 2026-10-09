@@ -356,9 +356,9 @@ fn content_block_to_json(block : @message.ContentBlock) -> Json {
     @message.Image(ib) =>
       Json::object({
         "type": "image_url".to_json(),
-        "image_url": Json::object({
-          "url": ib.url.to_json(),
-          "detail": ib.detail.to_json(),
+        "image_url": Json::object(match ib.detail {
+          Some(detail) => { "url": ib.url.to_json(), "detail": detail.to_json() }
+          None => { "url": ib.url.to_json() }
         }),
       })
   }

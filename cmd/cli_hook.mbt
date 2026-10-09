@@ -79,7 +79,7 @@ fn handle_hook_new(action : @clap.SimpleValue, name : String) -> Unit {
   }
   @utils.ensure_dir(hook_dir)
 
-  let filename = name.replace(old=" ", new="_") + ".toml"
+  let filename = name.replace_all(old=" ", new="_") + ".toml"
   let path = @path.Path::join(hook_dir, @path.Path(filename)).to_string()
   if @fs.path_exists(path) {
     println("[hook] error: hook already exists at " + path)

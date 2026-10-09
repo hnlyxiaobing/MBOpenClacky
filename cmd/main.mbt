@@ -51,12 +51,12 @@ async fn main {
       "file": @clap.Arg::named(
         short='f',
         nargs=@clap.Nargs::AtMost(1),
-        help="Path to a file attachment to inject into the agent context",
+        help="Path(s) to a file attachment to inject into the agent context",
       ),
       "image": @clap.Arg::named(
         short='i',
         nargs=@clap.Nargs::AtMost(1),
-        help="Path to an image attachment to inject into the agent context",
+        help="Path(s) to an image attachment to inject into the agent context",
       ),
       "json": @clap.Arg::flag(
         help="Emit the run result as machine-readable JSON on stdout",
@@ -439,6 +439,19 @@ async fn main {
     @sys.exit(1)
   }
 
+  // CLI attachments (`-f/--file`, `-i/--image`) are pulled out of the raw argv
+  // up-front — see `extract_attachment_flags` for why clap can't carry them.
+  // Ruby only consumes these flags on the `-m` path (cli.rb:166-169), so the
+  // extraction is likewise gated on a `-m`/`--message` run; that keeps the
+  // sub-command shorts (`benchmark -i`, ...) untouched.
+  let cli_file_paths : Array[String] = []
+  let cli_image_paths : Array[String] = []
+  let cli_view = if has_message_flag(cli_view) {
+    extract_attachment_flags(cli_view, cli_file_paths, cli_image_paths)
+  } else {
+    cli_view
+  }
+
   let value = @clap.SimpleValue::new(parser.prog)
   let help_msg = parser.parse(value, cli_view) catch {
     err => {
@@ -560,7 +573,7 @@ async fn main {
   // Initialize NDJSON logger if --ndjson flag is set
   let ndjson_enabled = value.get_flag("ndjson") == Some(true)
   let logger = NdjsonLogger::new(ndjson_enabled)
-  run_agent(value, logger)
+  run_agent(value, logger, cli_file_paths, cli_image_paths)
 }
 
 ///|
@@ -881,7 +894,94 @@ fn is_bare_message_flag(cli_view : ArrayView[String]) -> Bool {
 }
 
 ///|
-async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
+/// Whether the raw argv carries a `-m`/`--message` flag (non-interactive run).
+/// Used to decide whether CLI attachment flags should be pulled out of argv.
+fn has_message_flag(cli_view : ArrayView[String]) -> Bool {
+  for arg in cli_view {
+    if arg == "-m" || arg == "--message" {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// Whether `arg` looks like another CLI option (and therefore terminates a
+/// greedy value list — same rule as optimist's `type: :array`).
+fn looks_like_cli_option(arg : String) -> Bool {
+  arg.length() > 1 && arg.has_prefix("-")
+}
+
+///|
+/// Pull every `-f/--file` and `-i/--image` occurrence out of the raw argv and
+/// return the remaining argv.
+///
+/// Why a pre-pass instead of clap's own multi-value support: the vendored clap
+/// (@DzmingLi/clap 0.2.8) cannot express an *optional and repeatable* named
+/// argument. `AtLeast(1)` makes `complete_level` reject an absent flag
+/// ("Invalid name argument length=0"); `Any`/`AtLeast` never mark the argument
+/// full, so the parser keeps swallowing the following `-f`/`-i` tokens as
+/// values; `AtMost(1)` raises `TooManyArgs` on the second occurrence. Same
+/// idiom as the bare `-m` detection above.
+///
+/// The semantics reproduced here are Ruby/optimist's `type: :array`
+/// (cli.rb:60-61), verified against the LF reference:
+///   * one occurrence collects a *greedy* value list: `-f a b c` → [a, b, c];
+///   * a list ends at the next token that looks like an option;
+///   * a later occurrence of the same flag *replaces* the earlier list:
+///     `-f a -f b` → [b] (not [a, b]);
+///   * `Array(options[:file]) + Array(options[:image])` (cli.rb:167) is the
+///     merge order, i.e. all `-f` paths before all `-i` paths.
+fn extract_attachment_flags(
+  cli_view : ArrayView[String],
+  file_out : Array[String],
+  image_out : Array[String],
+) -> ArrayView[String] {
+  let rest : Array[String] = []
+  let n = cli_view.length()
+  let mut i = 0
+  while i < n {
+    let arg = cli_view[i]
+    let is_file = arg == "-f" || arg == "--file"
+    let is_image = arg == "-i" || arg == "--image"
+    if is_file || is_image {
+      let sink = if is_file {
+        file_out
+      } else {
+        image_out
+      }
+      sink.clear()
+      i = i + 1
+      while i < n && !looks_like_cli_option(cli_view[i]) {
+        sink.push(cli_view[i])
+        i = i + 1
+      }
+      if sink.is_empty() {
+        // Ruby/optimist: "No value provided for option '--file'" (the long form
+        // is used in the message even when `-f` was typed), then exit 1.
+        let long = if is_file {
+          "--file"
+        } else {
+          "--image"
+        }
+        println("No value provided for option '\{long}'")
+        @sys.exit(1)
+      }
+    } else {
+      rest.push(arg)
+      i = i + 1
+    }
+  }
+  rest[:]
+}
+
+///|
+async fn run_agent(
+  value : @clap.SimpleValue,
+  logger : NdjsonLogger,
+  cli_file_paths : Array[String],
+  cli_image_paths : Array[String],
+) -> Unit {
   // 0. Save original working directory for restore on exit, and resolve the
   // bundled assets root while it is still the CWD — step 8 moves the process
   // into the user's project directory.
@@ -1075,6 +1175,22 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // Built-in skills are user-invocable as slash commands (/name) and show
   // up in the system prompt summary (Ruby skills_by_command).
   @skill.register_default_skills(agent.skill_registry)
+  // Extension-contributed built-in skills (Ruby skill_loader.rb
+  // load_default_skills second glob): a switched-off extension never
+  // advertises its skills in the AVAILABLE SKILLS block, so gate the scan on
+  // the extension enablement state resolved here (lib/skill cannot import
+  // lib/extension without a module cycle).
+  let disabled_ext_ids : Array[String] = []
+  for ext in @extension.load_all_extensions() {
+    if !ext.enabled {
+      disabled_ext_ids.push(ext.manifest.id)
+    }
+  }
+  @skill.register_extension_skills(
+    agent.skill_registry,
+    @skill.default_extensions_dir(),
+    disabled_ext_ids,
+  )
   // User-global and project-level skills (.clacky/skills etc.) are
   // discovered from disk and override same-named built-ins.
   agent.discover_workspace_skills()
@@ -1096,8 +1212,32 @@ async fn run_agent(value : @clap.SimpleValue, logger : NdjsonLogger) -> Unit {
   // 16. Check if --message was provided (non-interactive mode)
   let msg_opt = get_named_arg(value, "message")
   let json_output = value.get_flag("json") == Some(true)
+  // CLI attachments (`-f/--file`, `-i/--image`). Ruby merges both flags in
+  // order: `Array(options[:file]) + Array(options[:image])` (cli.rb:167).
+  let attachment_paths : Array[String] = []
+  for p in cli_file_paths {
+    attachment_paths.push(p)
+  }
+  for p in cli_image_paths {
+    attachment_paths.push(p)
+  }
   match msg_opt {
-    Some(msg) => run_non_interactive(agent, msg, json_output)
+    Some(msg) => {
+      let attachments : Array[@agent.Attachment]? = if attachment_paths.length() > 0 {
+        Some(
+          @agent.prepare_cli_attachments(attachment_paths) catch {
+            @errors.AgentError(m) => {
+              println("Error: \{m}")
+              @sys.exit(1)
+              []
+            }
+          },
+        )
+      } else {
+        None
+      }
+      run_non_interactive(agent, msg, json_output, attachments=attachments)
+    }
     None => {
       // Launch TUI in interactive mode
       @tui.run_tui_interactive(agent)
@@ -1180,13 +1320,13 @@ async fn run_non_interactive(
   agent : @agent.Agent,
   message : String,
   json_output : Bool,
+  attachments? : Array[@agent.Attachment]? = None,
 ) -> Unit {
   if agent.config.verbose {
     println("Running agent with message: \{message}")
     println("Model: \{agent.current_model()}")
   }
-  let result = agent.run(message) catch {
-    @errors.AgentInterrupted(msg) => {
+  let result = agent.run(message, attach=attachments) catch {    @errors.AgentInterrupted(msg) => {
       if agent.config.verbose {
         println("\nInterrupted: \{msg}")
       }

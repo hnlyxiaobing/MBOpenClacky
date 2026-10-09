@@ -1240,3 +1240,36 @@ test "client_anthropic_headers_kimi_coding_ua" {
   let headers2 = openai.anthropic_headers()
   @debug.assert_eq(headers2.get("User-Agent"), None)
 }
+
+///|
+/// BUG-0077 回归：Ruby 的 `image_url` 段只有 `url`（agent.rb:2793-2804），
+/// 因此 MB 侧 `detail` 为 None 时必须整键省略，而不是输出 `"detail": null`。
+test "content_block_to_json_omits_detail_when_none" {
+  let none_json = content_block_to_json(
+    @message.Image({ url: "data:image/png;base64,AAAA", detail: None }),
+  )
+  let obj = match @json.parse(none_json.stringify()) {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  let kind = match obj.get("type") {
+    Some(String(s)) => s
+    _ => ""
+  }
+  assert_eq(kind, "image_url")
+  match obj.get("image_url") {
+    Some(Object(img)) => assert_true(img.get("detail") is None)
+    _ => abort("expected image_url object")
+  }
+  let some_json = content_block_to_json(
+    @message.Image({ url: "u", detail: Some("high") }),
+  )
+  let some_obj = match @json.parse(some_json.stringify()) {
+    Object(o) => o
+    _ => abort("expected object")
+  }
+  match some_obj.get("image_url") {
+    Some(Object(img)) => assert_true(img.get("detail") is Some(_))
+    _ => abort("expected image_url object")
+  }
+}

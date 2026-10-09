@@ -8,6 +8,10 @@ import {
 }
 
 // Values
+pub fn assets_path(String) -> String
+
+pub fn assets_root() -> String
+
 pub fn basename_of(String) -> String
 
 pub fn best_match(String, Array[String]) -> String?
@@ -126,9 +130,13 @@ pub fn parse_is_wsl1(String) -> Bool
 
 pub fn parse_rule(String) -> IgnoreRule?
 
+pub fn prewarm_assets_root() -> Unit
+
 pub fn project_trash_dir(String) -> String
 
 pub fn read_trash_metadata(String) -> TrashMetadata?
+
+pub fn reset_assets_root_for_test() -> Unit
 
 pub fn safe_println(String) -> Unit
 

@@ -122,8 +122,8 @@ async test "edit_004_old_string_not_found" {
 async test "edit_005_file_not_found" {
   // 冻结自 ruby_results.json edit-005，Ruby 实测 error：
   // "File not found: /nonexistent/file.txt" —— 与 MB 消息逐字一致。
-  // 注：本例 path 为绝对路径，Ruby 实测并未拒绝绝对路径 —— BUG-0007 台账
-  // 「Ruby 拒绝绝对路径」的描述与本实测证据不符（详见迁移报告）。
+  // 注：本例 path 为绝对路径，Ruby 实测并未拒绝绝对路径 —— BUG-0007「Ruby 拒绝
+  // 绝对路径」已于 2026-10-09 经 openclacky 源码对读确认为台账误记并销案（两侧一致）。
   let tool = @tool.AnyTool::Edit(@tool.Edit::new())
   let args : Map[String, Json] = {
     "path": "/nonexistent/file.txt".to_json(),

@@ -7,8 +7,6 @@ import {
 }
 
 // Values
-pub const DEFAULT_SKILLS_DIR : String = "assets/skills"
-
 pub fn append_evolution_log(EvolutionLogEntry) -> Result[Unit, String]
 
 pub fn append_evolution_log_at(String, EvolutionLogEntry) -> Result[Unit, String]
@@ -24,6 +22,10 @@ pub fn build_skills_summary(Array[Skill]) -> String
 pub fn context_description(String) -> String
 
 pub fn default_discovery_paths(String) -> Array[String]
+
+pub fn default_extensions_dir() -> String
+
+pub fn default_skills_dir() -> String
 
 pub fn directory_basename(String) -> String
 
@@ -70,6 +72,8 @@ pub fn read_skill_files(Array[String]) -> Map[String, String]
 pub fn register_default_skills(SkillRegistry) -> Unit
 
 pub fn register_default_skills_from(SkillRegistry, String) -> Unit
+
+pub fn register_extension_skills(SkillRegistry, String, Array[String]) -> Unit
 
 pub fn scan_default_skill_metas(String) -> Array[DefaultSkillMeta]
 
@@ -198,6 +202,7 @@ pub(all) struct Skill {
 } derive(Eq, ToJson, @debug.Debug)
 pub fn Skill::default(String, String) -> Self
 pub fn Skill::equal(Self, Self) -> Bool
+pub fn Skill::is_allowed_for_profile(Self, String) -> Bool
 pub fn Skill::not_equal(Self, Self) -> Bool
 pub fn Skill::to_json(Self) -> Json
 pub fn Skill::to_repr(Self) -> @debug.Repr
@@ -219,7 +224,7 @@ pub fn SkillRegistry::find_skill_command(Self, String) -> (Skill, String)?
 pub fn SkillRegistry::get(Self, String) -> Skill?
 pub fn SkillRegistry::has(Self, String) -> Bool
 pub fn SkillRegistry::list_by_agent_type(Self, String) -> Array[Skill]
-pub fn SkillRegistry::list_user_invocable(Self) -> Array[Skill]
+pub fn SkillRegistry::list_user_invocable(Self, String) -> Array[Skill]
 pub fn SkillRegistry::new() -> Self
 pub fn SkillRegistry::register(Self, Skill) -> Unit
 pub fn SkillRegistry::remove(Self, String) -> Bool

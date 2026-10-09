@@ -1,6 +1,7 @@
 
 ---
 name: new
+agent: coding
 description: Create a new MoonBit project to start development quickly. Use when user says "new project", "create moonbit project", "init moonbit", "新建项目", "初始化项目".
 user_invocable: true
 category: development

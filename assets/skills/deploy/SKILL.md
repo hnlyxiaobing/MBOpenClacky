@@ -1,6 +1,7 @@
 
 ---
 name: deploy
+agent: coding
 description: Deploy MoonBit applications to various platforms. Handles first-time setup and re-deploys idempotently. Trigger on: "deploy", "deploy to &lt;platform&gt;", "&lt;platform&gt; deploy", "发布", "部署", "上线".
 disable-model-invocation: false
 user_invocable: true

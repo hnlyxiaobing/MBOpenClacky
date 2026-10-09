@@ -13,7 +13,10 @@ pub(all) struct SkillRegistry {
 /// still resolves the on-disk `browser-setup` skill.
 pub fn normalize_skill_name(name : String) -> String {
   let lower = name.to_lower()
-  let underscored = lower.replace(old="-", new="_")
+  // `replace_all`: a name may carry several hyphens (`cron-task-creator`);
+  // `String::replace` only rewrites the first occurrence, which would leave
+  // the underscore spelling unresolvable.
+  let underscored = lower.replace_all(old="-", new="_")
   underscored
 }
 
@@ -34,23 +37,85 @@ pub fn SkillRegistry::register(self : SkillRegistry, skill : Skill) -> Unit {
 
 ///|
 /// Get a skill by name (hyphen/underscore spellings equivalent).
+///
+/// BUG-0074 回归：注册键是 frontmatter 里的原始名字（`cron-task-creator`），
+/// 只把**查询串**归一化不足以让下划线写法命中，因此先精确查，再按归一化键
+/// 线性扫描（技能数量级很小）。
 pub fn SkillRegistry::get(self : SkillRegistry, name : String) -> Skill? {
   match self.skills.get(name) {
     Some(skill) => Some(skill)
-    None => self.skills.get(normalize_skill_name(name))
+    None => {
+      let target = normalize_skill_name(name)
+      for key, skill in self.skills {
+        if normalize_skill_name(key) == target {
+          return Some(skill)
+        }
+      }
+      None
+    }
   }
 }
 
 ///|
-/// List all skills that are user-invocable.
-pub fn SkillRegistry::list_user_invocable(self : SkillRegistry) -> Array[Skill] {
+/// List all skills that are user-invocable for the given agent profile
+/// (Ruby `user_invocable_skills(profile)`, skill_manager.rb:210 —— 有 profile
+/// 时按 `agent:` 作用域过滤；profile_name 传空串表示不过滤).
+pub fn SkillRegistry::list_user_invocable(
+  self : SkillRegistry,
+  profile_name : String,
+) -> Array[Skill] {
   let result : Array[Skill] = []
   for _, skill in self.skills {
-    if skill.user_invocable {
+    if skill.user_invocable && skill.is_allowed_for_profile(profile_name) {
       result.push(skill)
     }
   }
   result
+}
+
+///|
+/// Ruby `Skill#agents_scope` + `Skill#allowed_for_agent?`：
+/// frontmatter 的 `agent:` 字段默认是 `all`（字段缺失，或 YAML 空值解析为空串，
+/// 两种都算 all）；写明具体 profile 名时，只有这些 profile 能看到该技能。
+/// 列表写法同时兼容 `agent: [a, b]`（MB 的 frontmatter 解析是扁平 Key-Value，
+/// Ruby 走真 YAML，这里等价兼容）与逗号/空格分隔的标量。
+/// profile_name 传空串时不过滤（Ruby 里 `user_invocable_skills(nil)` 的语义）。
+pub fn Skill::is_allowed_for_profile(self : Skill, profile_name : String) -> Bool {
+  let raw = match self.agent_type {
+    None => return true
+    Some(t) => t
+  }
+  let scope = raw.replace_all(old="[", new="").replace_all(old="]", new="").trim()
+  if scope.length() == 0 {
+    // YAML 里 `agent:` 空值 → Ruby 解析为 nil → agents_scope = ["all"]
+    return true
+  }
+  if profile_name.length() == 0 {
+    return true
+  }
+  for token in scope_tokens(scope.to_owned()) {
+    if token == "all" || token == profile_name {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// 把 `agent:` 作用域串切成 token（逗号或空白分隔，忽略空片段）。
+fn scope_tokens(scope : String) -> Array[String] {
+  let out : Array[String] = []
+  for chunk in scope.split(",") {
+    for token in chunk.split(" ") {
+      for piece in token.split("\t") {
+        let t = piece.trim()
+        if t.length() > 0 {
+          out.push(t.to_owned())
+        }
+      }
+    }
+  }
+  out
 }
 
 ///|
@@ -127,12 +192,16 @@ pub fn SkillRegistry::size(self : SkillRegistry) -> Int {
 }
 
 ///|
-/// Remove a skill by name. Returns true if it existed.
+/// Remove a skill by name (hyphen/underscore spellings equivalent).
 pub fn SkillRegistry::remove(self : SkillRegistry, name : String) -> Bool {
-  if self.skills.contains(name) {
-    self.skills.remove(name)
-    true
-  } else {
-    false
+  match self.get(name) {
+    Some(skill) =>
+      if self.skills.contains(skill.name) {
+        self.skills.remove(skill.name)
+        true
+      } else {
+        false
+      }
+    None => false
   }
 }

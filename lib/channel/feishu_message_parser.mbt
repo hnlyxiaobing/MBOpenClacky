@@ -223,7 +223,8 @@ pub fn resolve_feishu_mentions(text : String, mentions : Array[Json]) -> String 
           Some(String(s)) => s
           _ => continue
         }
-        result = result.replace(old=key, new="@" + name)
+        // One mention can appear several times in a message (Ruby `gsub`).
+        result = result.replace_all(old=key, new="@" + name)
       }
       _ => ()
     }

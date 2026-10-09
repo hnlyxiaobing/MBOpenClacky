@@ -98,3 +98,56 @@ test "verify_channel: unknown platform fails" {
   assert_true(verify_channel("slack") is Err(_))
   assert_true(verify_channel("") is Err(_))
 }
+
+///|
+/// BUG-0060 回归：`-f/--file`、`-i/--image` 的 raw-argv 预扫描。
+/// 语义对齐 Ruby/optimist 的 `type: :array`：一次出现贪婪收集多个值，
+/// 列表在下个形如选项的 token 处结束，同一 flag 再次出现则覆盖前一次。
+test "extract_attachment_flags: greedy multi-value then option boundary" {
+  let files : Array[String] = []
+  let images : Array[String] = []
+  let argv : Array[String] = ["-m", "hi", "-f", "a.txt", "b.txt", "-i", "c.png"]
+  let rest = extract_attachment_flags(argv[:], files, images)
+  assert_eq(files.length(), 2)
+  assert_eq(files[0], "a.txt")
+  assert_eq(files[1], "b.txt")
+  assert_eq(images.length(), 1)
+  assert_eq(images[0], "c.png")
+  assert_eq(rest.length(), 2)
+  assert_eq(rest[0], "-m")
+  assert_eq(rest[1], "hi")
+}
+
+///|
+test "extract_attachment_flags: repeated flag replaces the earlier list" {
+  let files : Array[String] = []
+  let images : Array[String] = []
+  let argv : Array[String] = ["-f", "a.txt", "-f", "b.txt"]
+  let _ = extract_attachment_flags(argv[:], files, images)
+  assert_eq(files.length(), 1)
+  assert_eq(files[0], "b.txt")
+}
+
+///|
+test "extract_attachment_flags: long forms and no flags" {
+  let files : Array[String] = []
+  let images : Array[String] = []
+  let _ = extract_attachment_flags(["--file", "a.txt", "--image", "b.png"][:], files, images)
+  assert_eq(files[0], "a.txt")
+  assert_eq(images[0], "b.png")
+  let f2 : Array[String] = []
+  let i2 : Array[String] = []
+  let rest = extract_attachment_flags(["-m", "hi"][:], f2, i2)
+  assert_eq(f2.length(), 0)
+  assert_eq(i2.length(), 0)
+  assert_eq(rest.length(), 2)
+}
+
+///|
+test "looks_like_cli_option: flags yes, lone dash and values no" {
+  assert_true(looks_like_cli_option("-f"))
+  assert_true(looks_like_cli_option("--file"))
+  assert_false(looks_like_cli_option("-"))
+  assert_false(looks_like_cli_option("a.txt"))
+  assert_false(looks_like_cli_option(""))
+}

@@ -65,7 +65,7 @@ fn screenshot_filename(
   suffix? : String = "",
   ext? : String = "png",
 ) -> String {
-  let stamp = now_stamp().replace(old="-", new="_")
+  let stamp = now_stamp().replace_all(old="-", new="_")
   let label = if suffix.is_empty() { "" } else { "_" + suffix }
   "screenshot_\{stamp}_\{hex}\{label}.\{ext}"
 }
@@ -104,7 +104,7 @@ fn quote_shell_arg(arg : String, is_win : Bool) -> String {
   if is_win {
     "\"" + arg + "\""
   } else {
-    "'" + arg.replace(old="'", new="'\\''") + "'"
+    "'" + arg.replace_all(old="'", new="'\\''") + "'"
   }
 }
 
@@ -129,7 +129,7 @@ fn build_downscale_cmds(
     cmds.push("convert \{in_q} -resize \{box} -strip \{out_q}")
     // cmd.exe: outer double quotes, Python code uses single-quoted paths
     cmds.push(
-      "python -c \"from PIL import Image; im=Image.open('\{in_path.replace(old="'", new="")}'); im.thumbnail((\{max_width},\{max_height})); im.save('\{out_path.replace(old="'", new="")}')\"",
+      "python -c \"from PIL import Image; im=Image.open('\{in_path.replace_all(old="'", new="")}'); im.thumbnail((\{max_width},\{max_height})); im.save('\{out_path.replace_all(old="'", new="")}')\"",
     )
   } else {
     cmds.push("magick \{in_q} -resize \{box} -strip \{out_q}")

@@ -60,7 +60,16 @@ fn Agent::build_session_context(self : Agent) -> String {
 ///
 /// Raises AgentInterrupted on user interruption (Ctrl+C).
 /// Raises AgentError on unrecoverable errors.
-pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
+///|
+/// `attach` carries CLI attachments (`-f/--file`, `-i/--image`, BUG-0060).
+/// When present they are resolved to vision blocks / file references and the
+/// `# Files mentioned by the user:` prompt is appended right after the user
+/// message — mirroring Ruby's `Agent#append_user_input`.
+pub async fn Agent::run(
+  self : Agent,
+  user_input : String,
+  attach? : Array[Attachment]? = None,
+) -> RunResult {
   // ── 1. Initialize ──────────────────────────────────────────────────
   let old_status = self.status
   self.status = Running
@@ -136,8 +145,46 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
     }
     None => ()
   }
-  // Add user message
-  self.history.append(stamp_created_at(@message.Message::user(user_input)))
+  // Add user message. CLI attachments (if any) are resolved here: images the
+  // model can see are inlined as vision blocks in the *same* user message
+  // (Ruby `format_user_content`), and everything is then summarised in a
+  // trailing `# Files mentioned by the user:` system-injected message.
+  let attachments = match attach {
+    Some(atts) =>
+      resolve_attachment_images(atts, self.client.vision_supported)
+    None => []
+  }
+  if attachments.length() > 0 {
+    let vision_images = attachments.filter(fn(a) { a.data_url is Some(_) })
+    if vision_images.length() > 0 {
+      let blocks : Array[@message.ContentBlock] = []
+      if user_input != "" {
+        blocks.push(@message.ContentBlock::Text({ text: user_input, }))
+      }
+      for img in vision_images {
+        match img.data_url {
+          Some(url) => blocks.push(@message.ContentBlock::Image({ url, detail: None, }))
+          None => ()
+        }
+      }
+      // `user_blocks` marks the message system_injected (it exists for the
+      // observe() image path); a real user turn must not be, so clear it.
+      let msg = @message.Message::user_blocks(blocks)
+      self.history.append(stamp_created_at({ ..msg, system_injected: None, }))
+    } else {
+      self.history.append(stamp_created_at(@message.Message::user(user_input)))
+    }
+    self.hook_manager.emit(MessageAdded)
+    let file_prompt = build_files_mentioned_prompt(attachments)
+    let prompt_msg = @message.Message::user(file_prompt)
+    self.history.append(
+      stamp_created_at({ ..prompt_msg, system_injected: Some(true), }),
+    )
+    self.hook_manager.emit(MessageAdded)
+  } else {
+    self.history.append(stamp_created_at(@message.Message::user(user_input)))
+    self.hook_manager.emit(MessageAdded)
+  }
   self.hook_manager.emit(MessageAdded)
   self.total_tasks = self.total_tasks + 1
 
@@ -183,8 +230,12 @@ pub async fn Agent::run(self : Agent, user_input : String) -> RunResult {
 ///|
 /// Async entry point: run the ReAct loop without blocking the event loop.
 /// Alias for `Agent::run` (kept for existing callers).
-pub async fn Agent::run_async(self : Agent, user_input : String) -> RunResult {
-  self.run(user_input)
+pub async fn Agent::run_async(
+  self : Agent,
+  user_input : String,
+  attach? : Array[Attachment]? = None,
+) -> RunResult {
+  self.run(user_input, attach~)
 }
 
 ///|

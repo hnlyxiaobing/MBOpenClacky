@@ -116,7 +116,7 @@ pub fn TuiController::new(
   // Merge user-invocable skills into the Tab-completion view (Ruby
   // skills_by_command): they appear alongside the static slash commands
   // with their description and argument hint.
-  for skill in agent.skill_registry.list_user_invocable() {
+  for skill in agent.skill_registry.list_user_invocable(agent.profile_name) {
     controller.suggestions.add_command(SuggestionItem::{
       name: "/\{skill.name}",
       description: match skill.description {

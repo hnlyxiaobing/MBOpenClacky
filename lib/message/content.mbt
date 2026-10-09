@@ -44,12 +44,18 @@ impl ToJson for TextBlock with fn to_json(self) {
 }
 
 ///|
+/// Serialize an image block as an OpenAI `image_url` part.
+///
+/// Ruby only ever emits `{type:, image_url: {url:}}` for these parts
+/// (agent.rb:2793-2804; `image_path`/`image_name` are stripped by MessageHistory
+/// before the payload is built). Mirroring that exactly matters for prompt-cache
+/// parity, so the `detail` field is omitted unless it is explicitly set.
 impl ToJson for ImageBlock with fn to_json(self) {
   Json::object({
     "type": "image_url".to_json(),
-    "image_url": Json::object({
-      "url": ToJson::to_json(self.url),
-      "detail": ToJson::to_json(self.detail),
+    "image_url": Json::object(match self.detail {
+      Some(detail) => { "url": ToJson::to_json(self.url), "detail": detail.to_json() }
+      None => { "url": ToJson::to_json(self.url) }
     }),
   })
 }

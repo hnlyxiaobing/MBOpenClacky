@@ -32,8 +32,10 @@ let known_failure_bug_ids : Array[String] = [
   // BUG-0006 已修复（spec 2026-08-18_23：OpenAiStreamAggregator 补 frames_seen/
   // bytes_seen/parse_failures/saw_done/approximate_output_tokens，stream-005/007/
   // 011/012/013/019 统计断言转绿，移除闸门）
-  // BUG-0007 已转 needs-investigation（台账与实测证据矛盾，见 BUGS.md 2026-08-14 修订），
-  // 当前无断言挂该编号，不在册
+  // BUG-0007 已销案（2026-10-09 openclacky 源码对读：tools/edit.rb、tools/write.rb 参数
+  // 描述即 "absolute or relative"，tools/base.rb#expand_path 对 "/" 开头路径原样返回，
+  // 全库无「拒绝绝对路径」逻辑；MB expand_path 行为一致。台账原始描述系误记，两侧无差异），
+  // 不在册
   // BUG-0009/0010 已修复（spec 2026-08-18_05_p5-token-estimation-alignment.md：
   // token 估算分桶公式 + tool_calls 去 +50），移出注册表
   // BUG-0011 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：
@@ -105,7 +107,7 @@ let known_failure_bug_ids : Array[String] = [
 
 ///|
 /// 判断某个 BUG 是否处于 known-failure 状态（未修复、断言应跳过）。
-/// 用法：`if known_failure("BUG-0007") { return }`
+/// 用法：`if known_failure("BUG-NNNN") { return }`
 pub fn known_failure(bug_id : String) -> Bool {
   known_failure_bug_ids.contains(bug_id)
 }

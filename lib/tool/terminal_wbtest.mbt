@@ -101,7 +101,7 @@ async test "debug terminal execute with env" {
 ///|
 async test "debug enhanced_process_terminal_output" {
   let raw = "\r\nCLACKY_SESSION_ID=test-session\r\n\r\nexit_code: 0\r\n"
-  let replaced = raw.replace(old="\r\n", new="\n")
+  let replaced = raw.replace_all(old="\r\n", new="\n")
   println(
     "DEBUG replaced repr: " +
     @debug.to_string(replaced.to_array().map(fn(c) { c.to_int().to_string() })),

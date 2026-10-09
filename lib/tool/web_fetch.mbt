@@ -171,12 +171,12 @@ fn strip_html_tags(html : String) -> String {
   }
   // Decode common HTML entities
   result
-  .replace(old="&nbsp;", new=" ")
-  .replace(old="&amp;", new="&")
-  .replace(old="&lt;", new="<")
-  .replace(old="&gt;", new=">")
-  .replace(old="&quot;", new="\"")
-  .replace(old="&#39;", new="'")
+  .replace_all(old="&nbsp;", new=" ")
+  .replace_all(old="&amp;", new="&")
+  .replace_all(old="&lt;", new="<")
+  .replace_all(old="&gt;", new=">")
+  .replace_all(old="&quot;", new="\"")
+  .replace_all(old="&#39;", new="'")
 }
 
 ///|

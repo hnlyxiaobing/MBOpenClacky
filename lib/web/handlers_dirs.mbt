@@ -34,7 +34,7 @@ fn dirs_fwd_slashes(path : String) -> String {
   // Collapse consecutive "/" to a single "/".
   let mut result = normalized
   while result.contains("//") {
-    result = result.replace(old="//", new="/")
+    result = result.replace_all(old="//", new="/")
   }
   if is_unc && !result.has_prefix("//") {
     "/" + result

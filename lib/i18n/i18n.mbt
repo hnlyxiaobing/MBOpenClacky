@@ -164,7 +164,8 @@ fn substitute(template : String, params : Map[String, String]) -> String {
   }
   let mut result = template
   for k, v in params {
-    result = result.replace(old="{{" + k + "}}", new=v)
+    // Ruby `gsub`: every occurrence of a placeholder is replaced.
+    result = result.replace_all(old="{{" + k + "}}", new=v)
   }
   result
 }

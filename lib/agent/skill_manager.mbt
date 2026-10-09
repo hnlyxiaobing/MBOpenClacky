@@ -54,18 +54,17 @@ pub fn Agent::get_skill(self : Agent, name : String) -> @skill.Skill? {
 ///
 /// Skills marked `disable_model_invocation: true` are hidden from the
 /// model (they stay user-invocable via `/name`), and skills scoped to a
-/// different agent type (`agent`/`agent_type` frontmatter) are filtered
-/// to the current agent (Ruby skill visibility semantics, spec
-/// 2026-08-18_20 decision 5).
+/// different agent profile (`agent:` frontmatter) are filtered to the
+/// current profile (Ruby `build_skill_context` → `filter_skills_by_profile`
+/// → `AgentProfile#skill_allowed?`；作用域判定用 profile 名，不是 Agent#name)。
 pub fn Agent::available_skills_summary(self : Agent) -> String {
   let skills : Array[@skill.Skill] = []
   for skill in self.skill_registry.all() {
     if skill.disable_model_invocation {
       continue
     }
-    match skill.agent_type {
-      Some(agent_type) => if agent_type != self.name { continue }
-      None => ()
+    if !skill.is_allowed_for_profile(self.profile_name) {
+      continue
     }
     skills.push(skill)
   }

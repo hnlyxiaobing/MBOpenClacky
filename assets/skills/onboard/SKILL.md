@@ -3,6 +3,7 @@
 name: onboard
 description: |
   Onboard a new user OR curate a single piece of the assistant's inner state. Without arguments, runs the full first-time setup (AI name, personality, user profile, optional browser + personal website). With `scope:soul` or `scope:user`, runs a quick chat to update just that one profile file.
+disable-model-invocation: true
 user_invocable: true
 category: utility
 argument_hint: "[scope:soul | scope:user | lang:zh | lang:en]"

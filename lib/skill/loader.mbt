@@ -57,8 +57,10 @@ pub fn parse_frontmatter(content : String) -> (Map[String, String], String) {
           idx = idx + 1
           continue
         }
-        // Normalise hyphens to underscores for Ruby ecosystem compatibility.
-        let key = key_raw.replace(old="-", new="_")
+        // Normalise hyphens to underscores for Ruby ecosystem compatibility
+        // (Ruby reads `disable-model-invocation` verbatim; we underscore every
+        // hyphen, so `replace_all` — not `replace`, which only hits the first).
+        let key = key_raw.replace_all(old="-", new="_")
         let value = trimmed[colon_pos + 1:].trim().to_owned()
         match block_scalar_indicator(value) {
           Some(indicator) => {
@@ -196,7 +198,7 @@ fn collect_block(
               break
             }
             let child_val = strip_quotes(t[pos + 1:].trim().to_owned())
-            pairs.push((child_key.replace(old="-", new="_"), child_val))
+            pairs.push((child_key.replace_all(old="-", new="_"), child_val))
             idx = idx + 1
           }
           None => break

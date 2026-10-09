@@ -274,7 +274,7 @@ pub fn execute(
       }
       // User-invocable skills are callable as slash commands (Ruby
       // skills_by_command) — list them so /help stays truthful.
-      let skills = agent.skill_registry.list_user_invocable()
+      let skills = agent.skill_registry.list_user_invocable(agent.profile_name)
       if skills.length() > 0 {
         lines.push("")
         lines.push("Skill commands:")

@@ -1,0 +1,12 @@
+{
+  "id": "mb-extend",
+  "name": "MBOpenClacky Internals",
+  "version": "1.0.0",
+  "description": "Guide skill for hacking on MBOpenClacky itself (custom tools, Web UI, channels, hooks). Shipped disabled by default so the default AVAILABLE SKILLS catalog stays identical to openclacky's (BUG-0070).",
+  "author": "MBOpenClacky",
+  "license": "MIT",
+  "keywords": ["internals", "extend", "hack"],
+  "contributions": [],
+  "dependencies": {},
+  "enabled_by_default": false
+}

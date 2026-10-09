@@ -83,7 +83,7 @@ fn handle_patch_new(action : @clap.SimpleValue, name : String) -> Unit {
   }
   @utils.ensure_dir(patch_dir)
 
-  let filename = name.replace(old=" ", new="_") + ".toml"
+  let filename = name.replace_all(old=" ", new="_") + ".toml"
   let path = @path.Path::join(patch_dir, @path.Path(filename)).to_string()
   if @fs.path_exists(path) {
     println("[patch] error: patch already exists at " + path)

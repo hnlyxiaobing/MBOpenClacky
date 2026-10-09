@@ -139,7 +139,7 @@ pub fn ToolRegistry::resolve(self : ToolRegistry, name : String) -> String? {
   }
 
   // 4. Hyphen-to-underscore normalization
-  let normalized = downcased.replace(old="-", new="_")
+  let normalized = downcased.replace_all(old="-", new="_")
   if normalized != downcased {
     match self.downcased_index.get(normalized) {
       Some(canonical) => return Some(canonical)

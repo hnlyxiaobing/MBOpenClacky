@@ -371,9 +371,9 @@ fn searcher_path_in(home : String, provider : String) -> String? {
 /// cmd.exe .bat on Windows) so queries survive metacharacters.
 fn shell_quote(arg : String) -> String {
   if is_windows_platform() {
-    "\"" + arg.replace(old="\"", new="\"\"") + "\""
+    "\"" + arg.replace_all(old="\"", new="\"\"") + "\""
   } else {
-    "'" + arg.replace(old="'", new="'\\''") + "'"
+    "'" + arg.replace_all(old="'", new="'\\''") + "'"
   }
 }
 
@@ -911,12 +911,12 @@ fn strip_simple_html(s : String) -> String {
     }
   }
   result
-  .replace(old="&nbsp;", new=" ")
-  .replace(old="&amp;", new="&")
-  .replace(old="&lt;", new="<")
-  .replace(old="&gt;", new=">")
-  .replace(old="&quot;", new="\"")
-  .replace(old="&#39;", new="'")
+  .replace_all(old="&nbsp;", new=" ")
+  .replace_all(old="&amp;", new="&")
+  .replace_all(old="&lt;", new="<")
+  .replace_all(old="&gt;", new=">")
+  .replace_all(old="&quot;", new="\"")
+  .replace_all(old="&#39;", new="'")
   .trim()
   .to_owned()
 }

@@ -34,6 +34,16 @@ pub fn default_skills_dir() -> String {
 }
 
 ///|
+/// Directory containing the bundled built-in extensions. Each
+/// `<ext_id>/skills/<skill>/SKILL.md` tree contributes built-in skills the
+/// same way the top-level `assets/skills` tree does (Ruby
+/// `skill_loader.rb#load_default_skills` second glob over
+/// `default_extensions/*/skills/*/SKILL.md`).
+pub fn default_extensions_dir() -> String {
+  @utils.assets_path("extensions")
+}
+
+///|
 /// One scanned built-in skill: its frontmatter metadata plus the on-disk
 /// directory (which may differ from the frontmatter name).
 priv struct DefaultSkillEntry {
@@ -194,4 +204,60 @@ pub fn register_default_skills_from(
       None => () // unparseable SKILL.md: skip, mirroring Ruby's rescue-next
     }
   }
+}
+
+///|
+/// Register skills contributed by the *enabled* built-in extensions, i.e.
+/// `<extensions_dir>/<ext_id>/skills/<skill>/SKILL.md`.
+///
+/// Mirrors Ruby `skill_loader.rb#load_default_skills`, which globs every
+/// `default_extensions/*/skills/*/SKILL.md` and `next`s when
+/// `Clacky::ExtensionLoader.disabled?(ext_id)` — a switched-off extension
+/// therefore never advertises its skills in the `AVAILABLE SKILLS` block
+/// (e.g. `meeting-summarizer` under the default-off `meeting` extension).
+///
+/// `lib/skill` cannot import `lib/extension` (lib/extension -> lib/agent ->
+/// lib/skill would form a cycle), so the caller resolves the enablement state
+/// and passes the disabled extension ids in.
+pub fn register_extension_skills(
+  registry : SkillRegistry,
+  extensions_dir : String,
+  disabled_ext_ids : Array[String],
+) -> Unit {
+  let raw_ids = @fs.read_dir(extensions_dir) catch { _ => return }
+  // Ruby's Dir.glob yields no dot-entries; sort for deterministic order.
+  let ext_ids : Array[String] = []
+  for id in raw_ids {
+    ext_ids.push(id)
+  }
+  ext_ids.sort()
+  for ext_id in ext_ids {
+    if ext_id.has_prefix(".") {
+      continue
+    }
+    if ext_is_disabled(disabled_ext_ids, ext_id) {
+      continue
+    }
+    let skills_root = extensions_dir + "/" + ext_id + "/skills"
+    for entry in scan_default_skill_entries(skills_root) {
+      let skill_md = entry.directory + "/SKILL.md"
+      let content = @fs.read_file_to_string(skill_md) catch { _ => continue }
+      match
+        load_skill_meta_from_content(content, "builtin", Some(entry.directory)) {
+        Some(skill) => registry.register(skill)
+        None => () // unparseable SKILL.md: skip, mirroring Ruby's rescue-next
+      }
+    }
+  }
+}
+
+///|
+/// Membership test for the disabled-extension id list.
+fn ext_is_disabled(disabled_ext_ids : Array[String], ext_id : String) -> Bool {
+  for id in disabled_ext_ids {
+    if id == ext_id {
+      return true
+    }
+  }
+  false
 }

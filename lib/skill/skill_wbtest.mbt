@@ -292,7 +292,7 @@ test "SkillRegistry: list_user_invocable" {
   let s2 = { ..Skill::default("skill-b", "src"), user_invocable: false, }
   reg.register(s1)
   reg.register(s2)
-  let invocable = reg.list_user_invocable()
+  let invocable = reg.list_user_invocable("")
   @debug.debug_inspect(invocable.length(), content="1")
   @debug.debug_inspect(
     invocable[0].name,
@@ -300,6 +300,49 @@ test "SkillRegistry: list_user_invocable" {
       #|"skill-a"
     ),
   )
+}
+
+///|
+/// Ruby Skill#allowed_for_agent? / AgentProfile#skill_allowed? 语义：
+/// `agent:` 缺省或空值 → all；写明 profile 名 → 仅该 profile 可见；
+/// 列表写法 → 命中任一即可。
+test "Skill: is_allowed_for_profile" {
+  let unscoped = Skill::default("skill-a", "src")
+  let all_scope = { ..Skill::default("skill-b", "src"), agent_type: Some("all"), }
+  let empty_scope = { ..Skill::default("skill-c", "src"), agent_type: Some(""), }
+  let scoped = { ..Skill::default("skill-d", "src"), agent_type: Some("ext-developer"), }
+  let listed = { ..Skill::default("skill-e", "src"), agent_type: Some("[coder, ext-developer]"), }
+  let spaced = { ..Skill::default("skill-f", "src"), agent_type: Some("coder ext-developer"), }
+
+  for name in ["coding", "general", "ext-developer"] {
+    assert_true(unscoped.is_allowed_for_profile(name))
+    assert_true(all_scope.is_allowed_for_profile(name))
+    assert_true(empty_scope.is_allowed_for_profile(name))
+  }
+  assert_false(scoped.is_allowed_for_profile("coding"))
+  assert_false(scoped.is_allowed_for_profile("general"))
+  assert_true(scoped.is_allowed_for_profile("ext-developer"))
+  assert_true(listed.is_allowed_for_profile("coder"))
+  assert_true(listed.is_allowed_for_profile("ext-developer"))
+  assert_false(listed.is_allowed_for_profile("general"))
+  assert_true(spaced.is_allowed_for_profile("ext-developer"))
+  assert_false(spaced.is_allowed_for_profile("general"))
+  // 空 profile 名 = 不过滤（Ruby user_invocable_skills(nil)）
+  assert_true(scoped.is_allowed_for_profile(""))
+}
+
+///|
+test "SkillRegistry: list_user_invocable filters by profile scope" {
+  let reg = SkillRegistry::new()
+  reg.register({ ..Skill::default("everyone", "src"), user_invocable: true, })
+  reg.register(
+    { ..Skill::default("ext-develop", "src"), user_invocable: true, agent_type: Some("ext-developer"), },
+  )
+  let coding = reg.list_user_invocable("coding")
+  @debug.debug_inspect(coding.length(), content="1")
+  assert_eq(coding[0].name, "everyone")
+  let ext = reg.list_user_invocable("ext-developer")
+  @debug.debug_inspect(ext.length(), content="2")
 }
 
 ///|
@@ -766,4 +809,80 @@ test "directory_basename: various separators" {
     "my-skill",
   )
   @debug.assert_eq(directory_basename("trailing/"), "trailing")
+}
+
+///|
+/// BUG-0074 回归：frontmatter 的 key 归一化必须替换**每一个**连字符。
+/// Ruby 直接读 `disable-model-invocation` 原文；MB 读下划线写法，只替换首个
+/// 连字符会让 `disable-model-invocation` 落成 `disable_model-invocation`，
+/// 于是 `disable_model_invocation` 恒为 false —— 015 剧本里 onboard 技能
+/// 因此仍然出现在模型可见清单里。
+test "parse_frontmatter: hyphenated keys normalise every hyphen" {
+  let content =
+    #|---
+    #|name: onboard
+    #|disable-model-invocation: true
+    #|allowed-tools: Read,Write
+    #|multi-hyphen-key-name: value
+    #|---
+    #|Body.
+  let (fields, _body) = parse_frontmatter(content)
+  @debug.debug_inspect(
+    fields.get("disable_model_invocation"),
+    content=(
+      #|Some("true")
+    ),
+  )
+  @debug.debug_inspect(
+    fields.get("allowed_tools"),
+    content=(
+      #|Some("Read,Write")
+    ),
+  )
+  @debug.debug_inspect(
+    fields.get("multi_hyphen_key_name"),
+    content=(
+      #|Some("value")
+    ),
+  )
+}
+
+///|
+/// BUG-0074 回归（端到端）：带连字符的 frontmatter key 必须真正生效。
+test "load_skill_from_content: disable-model-invocation honoured" {
+  let content =
+    #|---
+    #|name: onboard
+    #|disable-model-invocation: true
+    #|---
+    #|Body.
+  let skill = load_skill_from_content(content, "builtin", None)
+  assert_true(skill.unwrap().disable_model_invocation)
+}
+
+///|
+/// BUG-0074 回归：技能名 lookup 归一化需替换全部连字符，否则
+/// `cron_task_creator` 解析不出 `cron-task-creator`。
+test "normalize_skill_name: every hyphen becomes underscore" {
+  @debug.assert_eq(
+    normalize_skill_name("cron-task-creator"),
+    "cron_task_creator",
+  )
+  @debug.assert_eq(normalize_skill_name("media-gen"), "media_gen")
+  @debug.assert_eq(normalize_skill_name("plain"), "plain")
+  let registry = SkillRegistry::new()
+  let content =
+    #|---
+    #|name: cron-task-creator
+    #|---
+    #|Body.
+  registry.register(load_skill_from_content(content, "builtin", None).unwrap())
+  match registry.get("cron_task_creator") {
+    Some(_) => ()
+    None => abort("cron_task_creator should resolve to cron-task-creator")
+  }
+  match registry.get("cron-task-creator") {
+    Some(_) => ()
+    None => abort("cron-task-creator should resolve")
+  }
 }

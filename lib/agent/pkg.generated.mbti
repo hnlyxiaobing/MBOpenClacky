@@ -30,6 +30,22 @@ pub fn apply_error_rollback(Array[@message.Message]) -> Array[@message.Message]
 
 pub fn apply_snapshot_entries(Array[SnapshotEntry]) -> Result[Int, String]
 
+pub fn attachment_classify(String) -> Attachment
+
+pub fn attachment_detect_image_mime_type(Bytes, String) -> String
+
+pub fn attachment_detect_mime_type(String) -> String
+
+pub fn attachment_entry_text(Attachment) -> String
+
+pub fn attachment_extension(String) -> String
+
+pub fn attachment_format_size(Int) -> String
+
+pub fn attachment_kind_for_extension(String) -> String
+
+pub fn attachment_mime_types() -> Map[String, String]
+
 pub fn backfill_task_meta_from_history(Array[@message.Message], SessionTimeMachine?) -> SessionTimeMachine
 
 pub fn build_chunk_md(Array[@message.Message], Int, topics? : String?) -> String
@@ -43,6 +59,8 @@ pub fn build_compression_message() -> @message.Message
 pub fn build_denied_result(@message.ToolCall, String?) -> ToolResultEntry
 
 pub fn build_error_result(@message.ToolCall, String) -> ToolResultEntry
+
+pub fn build_files_mentioned_prompt(Array[Attachment]) -> String
 
 pub fn build_memory_extraction_prompt(Array[@message.Message]) -> String
 
@@ -77,6 +95,10 @@ pub fn current_timestamp_iso() -> String
 pub fn current_weekday() -> String
 
 pub fn deduplicate_entries(Array[ExtractedMemory], Array[MemoryEntry]) -> Array[ExtractedMemory]
+
+pub fn default_soul_md() -> String
+
+pub fn default_user_md() -> String
 
 pub fn delete_session(String) -> Unit
 
@@ -124,7 +146,7 @@ pub fn fork_session(String) -> Result[SessionData, String]
 
 pub fn format_chunk_message_content(@message.MessageContent) -> String
 
-pub fn format_prompt_section(String, String) -> String
+pub fn format_section(String, String) -> String
 
 pub fn format_session_summary(SessionData) -> String
 
@@ -184,11 +206,15 @@ pub fn parse_tool_arguments(@message.ToolCall) -> Map[String, Json]
 
 pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, Json], String?)
 
+pub fn prepare_cli_attachments(Array[String]) -> Array[Attachment] raise @errors.AgentError
+
 pub fn pulled_back_messages(Array[@message.Message], Int) -> (Array[@message.Message], Array[@message.Message])
 
 pub fn read_session_log(String) -> SessionLogFile
 
 pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int) -> Array[@message.Message]
+
+pub fn resolve_attachment_images(Array[Attachment], Bool) -> Array[Attachment]
 
 pub fn restore_session_enhanced(@config.AgentConfig, SessionData) -> RestoreResult
 
@@ -244,6 +270,7 @@ pub fn write_diagnostic(String) -> Unit
 pub(all) struct Agent {
   mut session_id : String
   mut name : String
+  mut profile_name : String
   mut working_dir : String
   created_at : String
   source : AgentSource
@@ -323,17 +350,19 @@ pub fn Agent::is_safe_operation(Self, String, Map[String, Json]) -> Bool
 pub fn Agent::load_skills(Self, Map[String, String]) -> Unit
 pub fn Agent::messages_for_api(Self) -> Array[@message.Message]
 pub fn Agent::needs_compression(Self) -> Bool
-pub fn Agent::new(String, String, String, @client.Client, @config.AgentConfig) -> Self
+pub fn Agent::new(String, String, String, @client.Client, @config.AgentConfig, profile? : String) -> Self
 pub fn Agent::patch_chain_view(Self) -> PatchChain
 pub fn Agent::rebuild_client_for_model(Self, String) -> Unit
 pub fn Agent::rebuild_client_from_config(Self) -> Unit
 pub fn Agent::register_patch_rule(Self, PatchRule) -> Unit
 pub fn Agent::rename(Self, String) -> Unit
 pub fn Agent::reset_session(Self) -> Unit
+pub fn Agent::resolve_profile(Self) -> Result[AgentProfile, String]
 pub fn Agent::restore_from_session(Self, SessionData) -> Unit
-pub async fn Agent::run(Self, String) -> RunResult
-pub async fn Agent::run_async(Self, String) -> RunResult
+pub async fn Agent::run(Self, String, attach? : Array[Attachment]?) -> RunResult
+pub async fn Agent::run_async(Self, String, attach? : Array[Attachment]?) -> RunResult
 pub async fn Agent::run_detached(Self, String, model? : String?, forbidden_tools? : Array[String]) -> String
+pub fn Agent::set_profile(Self, String) -> Unit
 pub fn Agent::set_reasoning_effort(Self, String?) -> Unit
 pub fn Agent::set_session_sub_model(Self, String?) -> Unit
 pub fn Agent::should_auto_execute(Self, String, Map[String, Json]) -> Bool
@@ -348,13 +377,14 @@ pub(all) struct AgentProfile {
   user_content : String?
   base_prompt : String?
 } derive(Eq, @debug.Debug)
-pub fn AgentProfile::build_system_prompt_section(Self) -> String
 pub fn AgentProfile::default_profile() -> Self
 pub fn AgentProfile::equal(Self, Self) -> Bool
 pub fn AgentProfile::is_skill_allowed(Self, String) -> Bool
 pub fn AgentProfile::load_for_name(String) -> Self raise @errors.AgentError
 pub fn AgentProfile::not_equal(Self, Self) -> Bool
+pub fn AgentProfile::soul(Self) -> String
 pub fn AgentProfile::to_repr(Self) -> @debug.Repr
+pub fn AgentProfile::user_profile(Self) -> String
 
 pub(all) enum AgentSource {
   Manual
@@ -391,6 +421,18 @@ pub fn AgentStatus::to_json(Self) -> Json
 pub fn AgentStatus::to_repr(Self) -> @debug.Repr
 pub fn AgentStatus::to_string_value(Self) -> String
 pub impl ToJson for AgentStatus
+
+pub(all) struct Attachment {
+  name : String
+  path : String
+  kind : String
+  mime_type : String
+  size_bytes : Int?
+  preview_path : String?
+  data_url : String?
+  downgrade_note : String?
+} derive(@debug.Debug)
+pub fn Attachment::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CacheStats {
   mut cache_creation_input_tokens : Int
