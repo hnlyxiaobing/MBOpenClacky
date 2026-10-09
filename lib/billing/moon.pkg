@@ -4,11 +4,8 @@ import {
   "moonbitlang/core/random",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "moonbitlang/x/sys",
   "moonbitlang/core/json",
 }
-
-warnings = "-29"
 
 options(
   "native-stub": [ "billing_time_stub.c" ],

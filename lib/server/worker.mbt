@@ -1,5 +1,7 @@
 ///|
 /// Worker status in the pool
+// `Failed` is set by the white-box tests only.
+#warnings("-unused_constructor")
 pub enum WorkerStatus {
   Idle
   Busy(String)

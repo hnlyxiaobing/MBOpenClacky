@@ -15,6 +15,8 @@
 
 ///|
 /// Available block font styles.
+// `Banner` / `Shadow` are selected by the white-box tests only.
+#warnings("-unused_constructor")
 pub enum BlockFontStyle {
   /// 5x5 bitmap drawn with the full block character.
   Standard

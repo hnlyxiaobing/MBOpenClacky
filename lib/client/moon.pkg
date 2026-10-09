@@ -1,13 +1,13 @@
-warnings = "-1-6-29"
-
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",
   "moonbitlang/async/http",
-  "moonbitlang/async/socket",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/config",
-  "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
+
+import {
+  "moonbitlang/async/socket",
+} for "wbtest"

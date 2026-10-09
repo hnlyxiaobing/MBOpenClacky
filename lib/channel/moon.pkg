@@ -1,10 +1,6 @@
-warnings = "-29"
-
 import {
   "moonbitlang/core/debug",
-  "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
@@ -13,6 +9,11 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/async",
-  "moonbitlang/async/socket",
   "moonbitlang/async/websocket",
 }
+
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "moonbitlang/async/socket",
+} for "wbtest"

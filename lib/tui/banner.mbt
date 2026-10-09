@@ -4,6 +4,8 @@
 
 ///|
 /// Banner rendering style
+// `Minimal` is selected by the white-box tests only.
+#warnings("-unused_constructor")
 pub enum BannerStyle {
   Boxed // Box drawing characters border
   Minimal // Simple separator lines

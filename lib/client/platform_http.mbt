@@ -73,6 +73,8 @@ pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// HTTP request error types.
+// ServerError / ClientError are constructed by the white-box tests only.
+#warnings("-unused_constructor")
 pub enum HttpError {
   Timeout(String)
   ConnectionFailed(String)
@@ -251,6 +253,8 @@ fn PlatformHttpClient::calculate_backoff(
 
 ///|
 /// Determine if an error warrants failover to another host.
+// Only the white-box tests call this.
+#warnings("-unused_value")
 fn PlatformHttpClient::should_failover(
   self : PlatformHttpClient,
   error : HttpError,
@@ -267,6 +271,8 @@ fn PlatformHttpClient::should_failover(
 ///|
 /// Execute failover: advance to the next host in the chain
 /// (primary -> secondary -> fallback), wrapping around at the tail.
+// Only the white-box tests call this.
+#warnings("-unused_value")
 fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
   let chain = self.failover_chain()
   if chain.length() <= 1 {

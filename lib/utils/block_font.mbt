@@ -4,6 +4,8 @@
 
 ///|
 /// Block font style
+// `Half` / `Outline` are selected by the white-box tests only.
+#warnings("-unused_constructor")
 pub enum BlockStyle {
   Full // Full block characters (█)
   Half // Half block characters (▀▄)

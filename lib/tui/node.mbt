@@ -30,6 +30,9 @@ pub fn Style::new(
 
 ///|
 /// A node in the rendering tree.
+// `Column` is constructed by the white-box tests only; `Padding` / `Styled`
+// are part of the renderer's node vocabulary but are not constructed yet.
+#warnings("-unused_constructor")
 pub enum Node {
   /// Styled text string.
   Text(String, Style)

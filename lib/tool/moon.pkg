@@ -1,18 +1,13 @@
-warnings = "-29"
-
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
-  "moonbitlang/core/ref",
   "moonbitlang/core/random",
   "moonbitlang/core/string",
-  "moonbitlang/core/strconv",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/time",
   "moonbitlang/core/env",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "moonbitlang/x/sys",
   "moonbitlang/x/codec/base64",
   "hnlyxiaobing/MBOpenClacky/lib/mcp",
   "hnlyxiaobing/MBOpenClacky/lib/client",
@@ -37,3 +32,7 @@ options(
     "shell_exec_wbtest.mbt": [ "native" ],
   },
 )
+
+import {
+  "moonbitlang/core/ref",
+} for "wbtest"

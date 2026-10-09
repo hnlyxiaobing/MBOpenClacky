@@ -1,11 +1,6 @@
-warnings = "-29"
-
-// async tests import moonbitlang/async for the runtime only
 import {
   "moonbitlang/core/debug",
-  "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "moonbitlang/async",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "hnlyxiaobing/MBOpenClacky/lib/tool",
@@ -18,8 +13,12 @@ import {
 // The model-driven layer (live_harness.mbt) additionally drives the real
 // lib/agent ReAct loop against the model in the task config; it reuses the
 // mock LLM server from test/e2e to prove the wiring without a network.
+// The async tests additionally need the `moonbitlang/async` runtime, and
+// `@env` is used by the capability mock.
 import {
   "hnlyxiaobing/MBOpenClacky/test/e2e",
+  "moonbitlang/core/env",
+  "moonbitlang/async",
 } for "wbtest"
 
 // The deterministic tool harness drives the real lib/tool registry, which is

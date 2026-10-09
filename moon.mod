@@ -6,16 +6,16 @@ readme = "README.md"
 
 import {
   "moonbitlang/x@0.5.5",
-  "moonbitlang/async@0.22.1",
-  "bobzhang/toml@0.4.3",
+  "moonbitlang/async@0.22.4",
+  "moonbit-community/toml@0.5.0",
   "DzmingLi/clap@0.2.8",
   "hnlyxiaobing/crescent@0.10.7",
   "hnlyxiaobing/moonbitmark@0.4.5",
-  "moonbit-community/tty@0.3.0",
-  "moonbit-community/pty@0.4.1",
+  "moonbit-community/tty@0.4.0",
+  "moonbit-community/pty@0.4.3",
   "mizchi/tui@0.10.2",
-  "mizchi/signals@0.6.5",
-  "hustcer/tabular@0.5.2",
+  "mizchi/signals@0.6.6",
+  "hustcer/tabular@0.6.0",
 }
 
 repository = "https://github.com/hnlyxiaobing/MBOpenClacky"

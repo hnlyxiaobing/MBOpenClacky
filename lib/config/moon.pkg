@@ -1,12 +1,12 @@
-warnings = "-29"
-
 import {
   "moonbitlang/core/debug",
-  "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "bobzhang/toml",
+  "moonbit-community/toml",
   "moonbitlang/x/fs",
-  "moonbitlang/x/sys",
   "moonbitlang/x/path",
   "hnlyxiaobing/MBOpenClacky/lib/utils",
 }
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"

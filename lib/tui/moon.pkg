@@ -21,8 +21,6 @@ import {
   "hustcer/tabular",
 }
 
-warnings = "-6"
-
 supported_targets = "native"
 
 options(
