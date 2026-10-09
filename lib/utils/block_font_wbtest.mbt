@@ -116,3 +116,34 @@ test "BlockFont::render_text single char" {
   @debug.assert_eq(lines.length(), 5)
   @debug.assert_eq(lines[0], " ███ ")
 }
+
+///|
+test "block_style_from_name maps names and falls back to Full" {
+  // `BlockFont::new` reads the environment through this helper; with no
+  // setting it keeps the full-block default.
+  @debug.assert_eq(BlockFont::new().style, Full)
+  @debug.assert_eq(block_style_from_name("full"), Full)
+  @debug.assert_eq(block_style_from_name("half"), Half)
+  @debug.assert_eq(block_style_from_name("outline"), Outline)
+  // Unknown or misspelled values keep the default look.
+  @debug.assert_eq(block_style_from_name("dotted"), Full)
+  @debug.assert_eq(block_style_from_name(""), Full)
+}
+
+///|
+test "block_style_from_name drives the rendered glyph set" {
+  // The startup logo picks its glyph density through this helper, so each
+  // name must render the glyphs the style documents.
+  let full = BlockFont::with_style(block_style_from_name("full")).render_char(
+    'A',
+  )
+  let half = BlockFont::with_style(block_style_from_name("half")).render_char(
+    'A',
+  )
+  let outline = BlockFont::with_style(
+    block_style_from_name("outline"),
+  ).render_char('A')
+  assert_true(full[0].contains("█"))
+  assert_true(half[0].contains("▀"))
+  assert_true(outline[0].contains("▓"))
+}

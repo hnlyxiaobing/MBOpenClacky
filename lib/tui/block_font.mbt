@@ -15,8 +15,8 @@
 
 ///|
 /// Available block font styles.
-// `Banner` / `Shadow` are selected by the white-box tests only.
-#warnings("-unused_constructor")
+// `Banner` / `Shadow` are selected by `MBOPENCLACKY_LOGO_FRAME`
+// (none | box | shadow) through `frame_style_from_name`.
 pub enum BlockFontStyle {
   /// 5x5 bitmap drawn with the full block character.
   Standard
@@ -110,6 +110,38 @@ pub fn render_width_with_style(text : String, style : BlockFontStyle) -> Int {
     }
   }
   max_w
+}
+
+///|
+/// Parse a logo-frame name: `"none"` (the default), `"box"`, or
+/// `"shadow"`. Unknown names fall back to `Standard` (no frame).
+fn frame_style_from_name(name : String) -> BlockFontStyle {
+  match name {
+    "box" => Banner
+    "shadow" => Shadow
+    _ => Standard
+  }
+}
+
+///|
+/// Frame rows of already-rendered block-font art with `style`.
+///
+/// The startup logo renders its glyphs with the compact
+/// `@utils.BlockFont` and frames them here, so the two renderers compose:
+/// glyph density comes from one, the frame from the other. `Standard`
+/// returns the rows unchanged; empty input stays empty.
+fn frame_lines(
+  rows : Array[String],
+  style : BlockFontStyle,
+) -> Array[String] {
+  if rows.length() == 0 {
+    return rows
+  }
+  match style {
+    Standard => rows
+    Banner => apply_banner_frame(rows)
+    Shadow => apply_shadow(rows)
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -205,3 +205,31 @@ test "unknown but printable ASCII falls back gracefully" {
     @debug.assert_eq(line.contains("`"), true)
   }
 }
+
+///|
+test "frame_style_from_name maps frame names" {
+  assert_true(frame_style_from_name("none") == Standard)
+  assert_true(frame_style_from_name("box") == Banner)
+  assert_true(frame_style_from_name("shadow") == Shadow)
+  // Unknown names keep the default (no frame).
+  assert_true(frame_style_from_name("glow") == Standard)
+}
+
+///|
+test "frame_lines frames already-rendered rows" {
+  let rows : Array[String] = ["AB", "CD"]
+  // Standard leaves the rows untouched.
+  @debug.assert_eq(frame_lines(rows, Standard).length(), 2)
+  // Banner wraps them in a single-line box (one row above and below).
+  let boxed = frame_lines(rows, Banner)
+  @debug.assert_eq(boxed.length(), 4)
+  assert_true(boxed[0].contains("╔"))
+  assert_true(boxed[3].contains("╚"))
+  // Shadow adds a shadow column right and a shadow row below.
+  let shadow = frame_lines(rows, Shadow)
+  @debug.assert_eq(shadow.length(), 3)
+  assert_true(shadow[0].contains("░"))
+  // Empty input stays empty.
+  let empty : Array[String] = []
+  @debug.assert_eq(frame_lines(empty, Banner).length(), 0)
+}

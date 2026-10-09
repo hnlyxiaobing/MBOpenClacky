@@ -1,12 +1,12 @@
 ///|
 /// Worker status in the pool
-// `Failed` is set by the white-box tests only.
-#warnings("-unused_constructor")
 pub enum WorkerStatus {
   Idle
   Busy(String)
   Stopping
   Stopped
+  /// A task failed on this worker; `ServerMaster::health_check` reports it
+  /// and `restart_worker` puts it back to `Idle`.
   Failed(String)
 } derive(Debug, Eq)
 
@@ -93,14 +93,19 @@ pub fn Worker::mark_idle(self : Worker) -> Unit {
 }
 
 ///|
-/// Record task completion, incrementing appropriate counter
+/// Record task completion, incrementing the appropriate counter.
+///
+/// A success returns the worker to `Idle` (ready for the next task); a
+/// failure marks it `Failed`, which is the state `ServerMaster::health_check`
+/// reports and `ServerMaster::restart_worker` clears.
 pub fn Worker::task_done(self : Worker, success : Bool) -> Unit {
   if success {
     self.tasks_completed += 1
+    self.status = Idle
   } else {
     self.tasks_failed += 1
+    self.status = Failed("task failed")
   }
-  self.status = Idle
 }
 
 ///|

@@ -202,6 +202,10 @@ test "Worker task_done increments counters" {
   w.task_done(false)
   @debug.assert_eq(w.tasks_completed, 1)
   @debug.assert_eq(w.tasks_failed, 1)
+  // A failed task marks the worker `Failed`, which `health_check` reports and
+  // `restart_worker` clears.
+  @debug.assert_eq(w.status, Failed("task failed"))
+  assert_false(w.is_available())
 }
 
 ///|
@@ -213,4 +217,21 @@ test "Worker is_available when Idle" {
   assert_false(w.is_available())
   w.mark_idle()
   assert_true(w.is_available())
+}
+
+///|
+test "failed task makes the worker unhealthy until restarted" {
+  let master = ServerMaster::new()
+  master.start()
+  let wid = master.dispatch_task("do work").unwrap()
+  let _ = master.complete_task(wid, false)
+  @debug.assert_eq(
+    master.find_worker(wid).unwrap().status,
+    Failed("task failed"),
+  )
+  assert_true(master.health_check("2026-01-01T00:00:00Z").contains(wid))
+  @debug.assert_eq(master.pool_stats().failed_workers, 1)
+  let _ = master.restart_worker(wid)
+  assert_false(master.health_check("2026-01-01T00:00:00Z").contains(wid))
+  @debug.assert_eq(master.find_worker(wid).unwrap().status, Idle)
 }

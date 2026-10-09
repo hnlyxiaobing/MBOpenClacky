@@ -118,8 +118,50 @@ test "Banner::render dispatches by style" {
 
 ///|
 test "Banner::render_separator with color" {
-  let banner = { style: Minimal, width: 20, use_color: true, }
+  let banner : Banner = {
+    style: BannerStyle::Minimal,
+    width: 20,
+    use_color: true,
+  }
   let sep = banner.render_separator()
   assert_true(sep.contains("\u{1b}[38;2;0;200;255m"))
   assert_true(sep.contains("\u{1b}[0m"))
+}
+
+///|
+test "startup logo honours glyph density and frame" {
+  let plain : Banner = {
+    style: BannerStyle::Block,
+    width: 60,
+    use_color: false,
+  }
+  let plain_logo = plain.render_startup(
+    "0.2.0",
+    "/tmp",
+    "default",
+    false,
+    false,
+    terminal_width=120,
+  )
+  assert_true(plain_logo.contains("█"))
+  assert_false(plain_logo.contains("░"))
+}
+
+///|
+test "startup logo degrades to Minimal on a narrow terminal" {
+  let banner : Banner = {
+    style: BannerStyle::Block,
+    width: 60,
+    use_color: false,
+  }
+  let narrow = banner.render_startup(
+    "0.2.0",
+    "/tmp",
+    "default",
+    false,
+    false,
+    terminal_width=60,
+  )
+  assert_true(narrow.contains("Welcome, MBOpenClacky is here"))
+  assert_false(narrow.contains("█"))
 }

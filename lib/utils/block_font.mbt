@@ -4,8 +4,8 @@
 
 ///|
 /// Block font style
-// `Half` / `Outline` are selected by the white-box tests only.
-#warnings("-unused_constructor")
+// `Half` / `Outline` are selected by `MBOPENCLACKY_LOGO_STYLE`
+// (full | half | outline) through `block_style_from_name`.
 pub enum BlockStyle {
   Full // Full block characters (█)
   Half // Half block characters (▀▄)
@@ -39,15 +39,40 @@ pub extend BlockFont with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend BlockFont with Eq::{not_equal, equal}
 
 ///|
-/// Create a new BlockFont with default style (Full, spacing 1).
+/// Environment variable selecting the logo glyph density
+/// (`full` | `half` | `outline`).
+let logo_style_env : String = "MBOPENCLACKY_LOGO_STYLE"
+
+///|
+/// Create a new BlockFont with the default style (spacing 1).
+///
+/// The glyph density is `Full` unless `MBOPENCLACKY_LOGO_STYLE` asks for a
+/// lighter set (`half` -> half blocks, `outline` -> shaded), which is how the
+/// startup logo picks its look for a light or dark terminal.
 pub fn BlockFont::new() -> BlockFont {
-  { style: Full, letter_spacing: 1, }
+  let style = match @env.get_env_var(logo_style_env) {
+    Some(name) => block_style_from_name(name.to_lower())
+    None => Full
+  }
+  { style, letter_spacing: 1, }
 }
 
 ///|
 /// Create with custom style and default spacing.
 pub fn BlockFont::with_style(style : BlockStyle) -> BlockFont {
   { style, letter_spacing: 1, }
+}
+
+///|
+/// Parse a glyph-density name: `"full"` (the default), `"half"`, or
+/// `"outline"`. Unknown names fall back to `Full`, so an unset or
+/// misspelled setting keeps the default look.
+fn block_style_from_name(name : String) -> BlockStyle {
+  match name {
+    "half" => Half
+    "outline" => Outline
+    _ => Full
+  }
 }
 
 ///|

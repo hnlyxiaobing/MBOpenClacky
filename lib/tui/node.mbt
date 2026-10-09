@@ -30,9 +30,9 @@ pub fn Style::new(
 
 ///|
 /// A node in the rendering tree.
-// `Column` is constructed by the white-box tests only; `Padding` / `Styled`
-// are part of the renderer's node vocabulary but are not constructed yet.
-#warnings("-unused_constructor")
+// `Column` / `Padding` / `Styled` compose dialog bodies (see
+// `render_approval_dialog`): `Column` groups rows, `Padding` supplies the
+// blank rows around a group, and `Styled` dims a whole group at once.
 pub enum Node {
   /// Styled text string.
   Text(String, Style)

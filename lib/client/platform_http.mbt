@@ -73,8 +73,8 @@ pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// HTTP request error types.
-// ServerError / ClientError are constructed by the white-box tests only.
-#warnings("-unused_constructor")
+// `ServerError` / `ClientError` classify a completed request whose status code
+// is an error (see `classify_response`).
 pub enum HttpError {
   Timeout(String)
   ConnectionFailed(String)
@@ -172,6 +172,11 @@ fn PlatformHttpClient::failover_chain(
 
 ///|
 /// Execute request with retry and failover logic.
+///
+/// A transport failure (`Timeout` / `ConnectionFailed`) and an HTTP 5xx are
+/// retryable within a host and then fail over to the next host; an HTTP 4xx
+/// becomes a `ClientError` that returns immediately, since another host would
+/// answer the same way.
 async fn PlatformHttpClient::execute_with_retry(
   self : PlatformHttpClient,
   http_method : HttpMethod,
@@ -211,10 +216,20 @@ async fn PlatformHttpClient::execute_with_retry(
         self.config.read_timeout_ms,
       )
       match result {
-        Ok(response) => {
-          self.consecutive_failures = 0
-          return Ok(response)
-        }
+        Ok(response) =>
+          match classify_response(response) {
+            None => {
+              self.consecutive_failures = 0
+              return Ok(response)
+            }
+            Some(err) => {
+              last_error = err
+              self.consecutive_failures = self.consecutive_failures + 1
+              if !is_retryable(last_error) {
+                return Err(last_error)
+              }
+            }
+          }
         Err(err) => {
           last_error = err
           self.consecutive_failures = self.consecutive_failures + 1
@@ -224,11 +239,12 @@ async fn PlatformHttpClient::execute_with_retry(
         }
       }
     }
-    // Host exhausted; reset failover counters only when advancing further.
-    if host_idx + 1 < hosts.length() {
-      self.last_failover_epoch = 1
-      self.consecutive_failures = 0
+    // This host is exhausted. Move on only when the error is one another
+    // host could answer differently; a 4xx already returned above.
+    if !self.should_failover(last_error) {
+      break
     }
+    self.do_failover()
   }
   Err(
     AllHostsFailed("All hosts exhausted after retries: \{last_error.to_repr()}"),
@@ -253,8 +269,6 @@ fn PlatformHttpClient::calculate_backoff(
 
 ///|
 /// Determine if an error warrants failover to another host.
-// Only the white-box tests call this.
-#warnings("-unused_value")
 fn PlatformHttpClient::should_failover(
   self : PlatformHttpClient,
   error : HttpError,
@@ -271,8 +285,6 @@ fn PlatformHttpClient::should_failover(
 ///|
 /// Execute failover: advance to the next host in the chain
 /// (primary -> secondary -> fallback), wrapping around at the tail.
-// Only the white-box tests call this.
-#warnings("-unused_value")
 fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
   let chain = self.failover_chain()
   if chain.length() <= 1 {
@@ -288,6 +300,33 @@ fn PlatformHttpClient::do_failover(self : PlatformHttpClient) -> Unit {
 }
 
 // ── HTTP Transport (@async/http) ─────────────────────────────────────────────
+
+///|
+/// Classify a completed response by status code: `None` for a success
+/// (2xx/3xx), `ServerError` for 5xx (retryable, failover-eligible) and
+/// `ClientError` for 4xx (the request is at fault, so retrying — or moving to
+/// another host — cannot help). The body excerpt travels with the error so the
+/// caller can surface the server's own message.
+fn classify_response(response : HttpResponse) -> HttpError? {
+  if response.status_code >= 500 {
+    Some(ServerError(response.status_code, error_body_excerpt(response.body)))
+  } else if response.status_code >= 400 {
+    Some(ClientError(response.status_code, error_body_excerpt(response.body)))
+  } else {
+    None
+  }
+}
+
+///|
+/// Excerpt of an error body for the error message (256 characters max).
+fn error_body_excerpt(body : String) -> String {
+  let max_chars = 256
+  if body.length() > max_chars {
+    body[:max_chars].to_owned() + "..."
+  } else {
+    body
+  }
+}
 
 ///|
 /// Convert an HttpMethod enum to its HTTP method string.

@@ -49,3 +49,23 @@ test "approval: expanded shows full args" {
   assert_true(text.contains("Details"))
   assert_true(text.contains("Hide"))
 }
+
+///|
+test "approval: details group is a padded, dimmed column" {
+  let d = ApprovalDialog::new("terminal", "ls")
+  d.show_details = true
+  let node = render_approval_dialog(d)
+  // Tool / Args / blank / Details / args / blank / buttons inside the border.
+  @debug.assert_eq(node_to_lines(node).length(), 9)
+  match node {
+    Border(_, [Column(children)]) => {
+      @debug.assert_eq(children.length(), 4)
+      match children[2] {
+        Padding(1, 0, Styled(_, Column(details))) =>
+          @debug.assert_eq(details.length(), 2)
+        _ => fail("expected a padded, dimmed details group")
+      }
+    }
+    _ => fail("expected the body to be a Column inside the border")
+  }
+}

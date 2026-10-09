@@ -27,11 +27,21 @@ pub fn render_approval_dialog(dialog : ApprovalDialog) -> Node {
   }
   children.push(Node::Text("Args: \{summary}", Style::default_()))
 
-  // Details section (expanded)
+  // Details section (expanded): `Padding` supplies the blank row above and
+  // below the group, `Styled` dims the whole group in one place instead of
+  // styling every line separately.
   if dialog.show_details {
-    children.push(Node::Text("", Style::default_()))
-    children.push(Node::Text("─ Details ─", Style::new(dim=true)))
-    children.push(Node::Text(dialog.detailed_args, Style::new(dim=true)))
+    let details : Array[Node] = [
+      Node::Text("─ Details ─", Style::default_()),
+      Node::Text(dialog.detailed_args, Style::default_()),
+    ]
+    children.push(
+      Node::Padding(
+        1,
+        0,
+        Node::Styled(Style::new(dim=true), Node::Column(details)),
+      ),
+    )
   }
 
   // Button row
@@ -53,10 +63,13 @@ pub fn render_approval_dialog(dialog : ApprovalDialog) -> Node {
       Style::new(fg=@color.Color::Basic(@color.BasicColor::Yellow)),
     ),
   ]
-  children.push(Node::Text("", Style::default_()))
+  // The details group above already emits its trailing blank row; without it
+  // the button row needs its own separator.
+  if !dialog.show_details {
+    children.push(Node::Text("", Style::default_()))
+  }
   children.push(Node::Row(buttons))
-
-  Node::Border(Some("⚠ Approval Required"), children)
+  Node::Border(Some("⚠ Approval Required"), [Node::Column(children)])
 }
 
 ///|

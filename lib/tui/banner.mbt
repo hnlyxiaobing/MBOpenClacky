@@ -4,8 +4,8 @@
 
 ///|
 /// Banner rendering style
-// `Minimal` is selected by the white-box tests only.
-#warnings("-unused_constructor")
+// `Minimal` is the no-artwork style: the startup logo falls back to it when
+// the terminal is too narrow for the block-font artwork.
 pub enum BannerStyle {
   Boxed // Box drawing characters border
   Minimal // Simple separator lines
@@ -61,6 +61,22 @@ pub fn Banner::with_style_and_width(style : BannerStyle, width : Int) -> Banner 
 /// read-only outside this package, hence a dedicated constructor).
 pub fn Banner::block_with_width(width : Int) -> Banner {
   { style: Block, width, use_color: false, }
+}
+
+///|
+/// Environment variable selecting the frame drawn around the startup logo
+/// (`none` (default) | `box` | `shadow`).
+let logo_frame_env : String = "MBOPENCLACKY_LOGO_FRAME"
+
+///|
+/// Frame style for the startup logo artwork, read from `logo_frame_env`; the
+/// glyph density comes from `@utils.BlockFont::new`, which reads
+/// `MBOPENCLACKY_LOGO_STYLE`.
+fn logo_frame_style() -> BlockFontStyle {
+  match @env.get_env_var(logo_frame_env) {
+    Some(name) => frame_style_from_name(name.to_lower())
+    None => BlockFontStyle::Standard
+  }
 }
 
 ///|
@@ -244,8 +260,18 @@ fn Banner::colorize(self : Banner, text : String) -> String {
 
 ///|
 /// Minimum terminal width for showing the full ASCII art logo.
-/// Below this width, the logo degrades to a plain text welcome line.
+/// Below this width, the logo degrades to the `Minimal` style (a plain
+/// welcome line, no artwork).
 pub let min_width_for_logo : Int = 90
+
+///|
+/// Title drawn as block-font artwork (also used by the `Boxed` logo frame).
+let logo_text : String = "MBOpenClacky"
+
+///|
+/// Plain welcome line shown instead of the artwork when the terminal is too
+/// narrow for it (`BannerStyle::Minimal`).
+let minimal_logo_text : String = "Welcome, MBOpenClacky is here"
 
 ///|
 /// Tagline shown below the logo (aligned with the OpenClacky baseline
@@ -311,20 +337,34 @@ pub fn Banner::render_startup(
 }
 
 ///|
-/// Render the logo section: block font for wide terminals, plain text for narrow.
+/// Render the logo section: block-font artwork for wide terminals, the
+/// `Minimal` style (a plain welcome line, no artwork) otherwise.
+///
+/// The artwork's glyph density comes from `@utils.BlockFont::new` (see
+/// `MBOPENCLACKY_LOGO_STYLE`) and its frame from `logo_frame_style` (see
+/// `MBOPENCLACKY_LOGO_FRAME`); the `Boxed` style frames the title with
+/// box-drawing characters instead.
 fn Banner::render_logo_section(self : Banner, effective_width : Int) -> String {
-  if effective_width >= min_width_for_logo {
-    // Full block font logo
-    let font = @utils.BlockFont::new()
-    let lines = font.render_text("MBOpenClacky")
-    let parts : Array[String] = []
-    for line in lines {
-      parts.push(self.colorize(line))
-    }
-    parts.join("\n")
+  let style = if effective_width >= min_width_for_logo {
+    self.style
   } else {
-    // Narrow terminal: plain text fallback
-    self.colorize("Welcome, MBOpenClacky is here")
+    // Narrow terminal: no room for the artwork.
+    Minimal
+  }
+  match style {
+    Minimal => self.colorize(minimal_logo_text)
+    Boxed => self.render_boxed(logo_text, None)
+    Block => {
+      // Glyph density comes from the compact `@utils` renderer, the frame
+      // from this package's renderer.
+      let font = @utils.BlockFont::new()
+      let lines = frame_lines(font.render_text(logo_text), logo_frame_style())
+      let parts : Array[String] = []
+      for line in lines {
+        parts.push(self.colorize(line))
+      }
+      parts.join("\n")
+    }
   }
 }
 

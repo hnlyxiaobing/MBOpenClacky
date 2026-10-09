@@ -335,3 +335,48 @@ async test "execute_with_retry exhausts retries" {
     _ => fail("Expected AllHostsFailed error")
   }
 }
+
+///|
+test "classify_response maps status codes to HttpError" {
+  let ok : HttpResponse = { status_code: 200, body: "{}", headers: [], }
+  match classify_response(ok) {
+    None => ()
+    Some(_) => fail("2xx must classify as a success")
+  }
+  let moved : HttpResponse = { status_code: 302, body: "", headers: [], }
+  match classify_response(moved) {
+    None => ()
+    Some(_) => fail("3xx must classify as a success")
+  }
+  let missing : HttpResponse = {
+    status_code: 404,
+    body: "missing",
+    headers: [],
+  }
+  match classify_response(missing) {
+    Some(ClientError(code, body)) => {
+      @debug.assert_eq(code, 404)
+      @debug.assert_eq(body, "missing")
+    }
+    Some(other) => fail("404 must be ClientError, got \{other.to_repr()}")
+    None => fail("404 must not classify as a success")
+  }
+  let gateway : HttpResponse = {
+    status_code: 502,
+    body: "upstream",
+    headers: [],
+  }
+  match classify_response(gateway) {
+    Some(ServerError(code, _)) => @debug.assert_eq(code, 502)
+    Some(other) => fail("502 must be ServerError, got \{other.to_repr()}")
+    None => fail("502 must not classify as a success")
+  }
+}
+
+///|
+test "error_body_excerpt truncates long bodies" {
+  @debug.assert_eq(error_body_excerpt("boom"), "boom")
+  let long = error_body_excerpt("x".repeat(300))
+  @debug.assert_eq(long.length(), 259)
+  assert_true(long.has_suffix("..."))
+}
