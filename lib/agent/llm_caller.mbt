@@ -545,12 +545,15 @@ pub async fn Agent::call_llm_stream_async(
   // ── Bedrock: SSE-over-HTTP via converse-stream (ClackyAI proxy) ──
   let is_bedrock = self.client.is_bedrock_format()
   let is_anthropic = self.client.is_anthropic_format()
+  let is_responses = self.client.is_responses_format()
   let request = self.build_send_request()
   let body_json0 = self.client.build_request_body(request)
   let body_json = if is_anthropic {
     @client.add_stream_flag(body_json0)
   } else if is_bedrock {
     // Ruby: send_bedrock_stream_request does `body.merge(stream: true)`.
+    @client.add_stream_flag(body_json0)
+  } else if is_responses {
     @client.add_stream_flag(body_json0)
   } else {
     @client.add_stream_options(body_json0, true)
@@ -576,6 +579,7 @@ pub async fn Agent::call_llm_stream_async(
   let openai_agg = @client.OpenAiStreamAggregator::new()
   let anthropic_agg = @client.AnthropicStreamAggregator::new()
   let bedrock_agg = @client.BedrockStreamAggregator::new()
+  let responses_agg = @client.OpenAiResponsesStreamAggregator::new()
   let on_frame = fn(frame : @client.SseFrame) {
     let delta = if is_anthropic {
       anthropic_agg.handle_delta(frame.event, frame.data)
@@ -585,6 +589,8 @@ pub async fn Agent::call_llm_stream_async(
       // delta (mirrors Ruby, where on_chunk is only fed usage info).
       bedrock_agg.handle(frame.event, frame.data)
       ""
+    } else if is_responses {
+      responses_agg.handle_delta(frame.event, frame.data)
     } else {
       openai_agg.handle_delta(frame.data)
     }
@@ -635,6 +641,8 @@ pub async fn Agent::call_llm_stream_async(
         bedrock_agg.to_response()
       } else if is_anthropic {
         anthropic_agg.to_response()
+      } else if is_responses {
+        responses_agg.to_response()
       } else {
         openai_agg.to_response()
       }
@@ -658,6 +666,13 @@ pub async fn Agent::call_llm_stream_async(
           anthropic_agg.parse_failures,
           false,
         )
+      } else if is_responses {
+        (
+          responses_agg.frames_seen,
+          responses_agg.bytes_seen,
+          responses_agg.parse_failures,
+          false,
+        )
       } else {
         (
           openai_agg.frames_seen,
@@ -672,6 +687,10 @@ pub async fn Agent::call_llm_stream_async(
         @client.AnthropicStreamAggregator::approximate_output_tokens(
           anthropic_agg,
         )
+      } else if is_responses {
+        @client.OpenAiResponsesStreamAggregator::approximate_output_tokens(
+          responses_agg,
+        )
       } else {
         @client.OpenAiStreamAggregator::approximate_output_tokens(openai_agg)
       }
@@ -679,6 +698,8 @@ pub async fn Agent::call_llm_stream_async(
         "bedrock"
       } else if is_anthropic {
         "anthropic"
+      } else if is_responses {
+        "openai-responses"
       } else {
         "openai"
       }

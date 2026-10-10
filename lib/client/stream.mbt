@@ -594,6 +594,282 @@ fn OpenAiStreamAggregator::merge_tool_call(
   }
 }
 
+// ── OpenAI Responses Stream Aggregator ─────────────────────────────────────
+
+///|
+/// Internal accumulator for a single Responses API function call output item.
+struct ResponsesToolCallAcc {
+  call_id : String?
+  name : String?
+  mut arguments : String
+}
+
+///|
+/// Reassembles an OpenAI Responses API SSE stream into a non-streaming
+/// LlmResponse. Mirrors Ruby's OpenAiResponsesStreamAggregator.
+///
+/// The Responses API uses typed SSE events (not the Chat Completions
+/// `choices[0].delta` format):
+/// - `response.output_text.delta` — text content delta
+/// - `response.function_call_arguments.delta` — tool call arguments delta
+/// - `response.output_item.added` — new output item (message or function_call)
+/// - `response.completed` — terminal event with final usage
+/// - `response.incomplete` / `response.failed` — terminal error events
+///
+/// No `[DONE]` sentinel — stream ends with a terminal event.
+pub(all) struct OpenAiResponsesStreamAggregator {
+  mut content_parts : Array[String]
+  mut content_len : Int
+  mut reasoning_parts : Array[String]
+  mut reasoning_len : Int
+  mut tool_calls : Array[ResponsesToolCallAcc]
+  mut current_item_type : String?
+  mut current_item_index : Int
+  mut finish_reason : String?
+  mut usage : Usage?
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+}
+
+///|
+/// Create a new Responses API stream aggregator.
+pub fn OpenAiResponsesStreamAggregator::new() -> OpenAiResponsesStreamAggregator {
+  {
+    content_parts: [],
+    content_len: 0,
+    reasoning_parts: [],
+    reasoning_len: 0,
+    tool_calls: [],
+    current_item_type: None,
+    current_item_index: -1,
+    finish_reason: None,
+    usage: None,
+    frames_seen: 0,
+    bytes_seen: 0,
+    parse_failures: 0,
+  }
+}
+
+///|
+/// Handle a single SSE event+data pair from the Responses API stream.
+pub fn OpenAiResponsesStreamAggregator::handle(
+  self : OpenAiResponsesStreamAggregator,
+  event : String,
+  data_str : String,
+) -> Unit {
+  ignore(self.handle_delta(event, data_str))
+}
+
+///|
+/// Handle a single SSE event+data pair, returning the visible text delta.
+///
+/// Stream stats are updated on every call:
+/// - `bytes_seen` accumulates raw `data_str.length()`.
+/// - `parse_failures` bumped when JSON parse fails.
+/// - `frames_seen` bumped when JSON parse succeeds.
+pub fn OpenAiResponsesStreamAggregator::handle_delta(
+  self : OpenAiResponsesStreamAggregator,
+  event : String,
+  data_str : String,
+) -> String {
+  self.bytes_seen = self.bytes_seen + data_str.length()
+  let json = @json.parse(data_str) catch {
+    _ => {
+      self.parse_failures = self.parse_failures + 1
+      return ""
+    }
+  }
+  self.frames_seen = self.frames_seen + 1
+  let mut visible_delta = ""
+
+  match event {
+    "response.output_item.added" => {
+      match (if json is Object(obj) { obj.get("item") } else { None }) {
+        Some(item) =>
+          match (if item is Object(obj) { obj.get("type") } else { None }) {
+            Some(String("function_call")) => {
+              let call_id = match
+                (if item is Object(obj) {
+                  obj.get("call_id")
+                } else {
+                  None
+                }) {
+                Some(String(s)) => Some(s)
+                _ => None
+              }
+              let name = match
+                (if item is Object(obj) { obj.get("name") } else { None }) {
+                Some(String(s)) => Some(s)
+                _ => None
+              }
+              self.tool_calls.push({
+                call_id,
+                name,
+                arguments: "",
+              })
+              self.current_item_type = Some("function_call")
+              self.current_item_index = self.tool_calls.length() - 1
+            }
+            Some(String("message")) => {
+              self.current_item_type = Some("message")
+              self.current_item_index = -1
+            }
+            _ => ()
+          }
+        _ => ()
+      }
+    }
+    "response.output_text.delta" => {
+      let text = match
+        (if json is Object(obj) { obj.get("delta") } else { None }) {
+        Some(String(s)) => s
+        _ => ""
+      }
+      if text.length() > 0 {
+        self.content_parts.push(text)
+        self.content_len = self.content_len + text.length()
+        visible_delta = text
+      }
+    }
+    "response.output_text.done" => ()
+    "response.function_call_arguments.delta" => {
+      let text = match
+        (if json is Object(obj) { obj.get("delta") } else { None }) {
+        Some(String(s)) => s
+        _ => ""
+      }
+      if text.length() > 0 && self.current_item_index >= 0 &&
+        self.current_item_index < self.tool_calls.length() {
+        let acc = self.tool_calls[self.current_item_index]
+        acc.arguments = acc.arguments + text
+      }
+    }
+    "response.function_call_arguments.done" => ()
+    "response.output_item.done" => {
+      self.current_item_type = None
+      self.current_item_index = -1
+    }
+    "response.reasoning_text.delta" => {
+      let text = match
+        (if json is Object(obj) { obj.get("delta") } else { None }) {
+        Some(String(s)) => s
+        _ => ""
+      }
+      if text.length() > 0 {
+        self.reasoning_parts.push(text)
+        self.reasoning_len = self.reasoning_len + text.length()
+      }
+    }
+    "response.completed" => {
+      self.finish_reason = Some("stop")
+      self.extract_responses_usage(json)
+    }
+    "response.incomplete" => {
+      self.finish_reason = Some("length")
+      self.extract_responses_usage(json)
+    }
+    "response.failed" => {
+      self.finish_reason = Some("error")
+      self.extract_responses_usage(json)
+    }
+    "response.created" | "response.in_progress" | "response.content_part.added" |
+    "response.content_part.done" => ()
+    _ => ()
+  }
+  visible_delta
+}
+
+///|
+/// Extract usage from a terminal Responses API event.
+fn OpenAiResponsesStreamAggregator::extract_responses_usage(
+  self : OpenAiResponsesStreamAggregator,
+  json : Json,
+) -> Unit {
+  match (if json is Object(obj) { obj.get("response") } else { None }) {
+    Some(resp) =>
+      match (if resp is Object(obj) { obj.get("usage") } else { None }) {
+        Some(u) => {
+          let input_tokens = json_int(u, "input_tokens")
+          let output_tokens = json_int(u, "output_tokens")
+          let total = json_int(u, "total_tokens")
+          if input_tokens > 0 || output_tokens > 0 {
+            self.usage = Some(
+              Usage::from_openai(input_tokens, output_tokens, total_tokens=total),
+            )
+          }
+        }
+        _ => ()
+      }
+    _ => ()
+  }
+}
+
+///|
+/// Convert accumulated stream data into a non-streaming LlmResponse.
+pub fn OpenAiResponsesStreamAggregator::to_response(
+  self : OpenAiResponsesStreamAggregator,
+) -> LlmResponse {
+  let content = join_str_array(self.content_parts, "")
+  let content_val : String? = if content.length() > 0 {
+    Some(content)
+  } else {
+    None
+  }
+
+  let tool_calls : Array[@message.ToolCall]? = if self.tool_calls.length() > 0 {
+    let arr : Array[@message.ToolCall] = []
+    for acc in self.tool_calls {
+      let id = match acc.call_id {
+        Some(id) => id
+        _ => ""
+      }
+      let name = match acc.name {
+        Some(n) => n
+        _ => ""
+      }
+      arr.push(@message.ToolCall::new(id, name, acc.arguments))
+    }
+    Some(arr)
+  } else {
+    None
+  }
+
+  let reasoning = join_str_array(self.reasoning_parts, "")
+  let reasoning_val : String? = if reasoning.length() > 0 {
+    Some(reasoning)
+  } else {
+    None
+  }
+
+  {
+    content: content_val,
+    reasoning_content: reasoning_val,
+    tool_calls,
+    finish_reason: self.finish_reason,
+    usage: self.usage,
+    latency: None,
+  }
+}
+
+///|
+/// Approximate output token count for on_chunk progress and
+/// log_stream_summary.
+pub fn OpenAiResponsesStreamAggregator::approximate_output_tokens(
+  self : OpenAiResponsesStreamAggregator,
+) -> Int {
+  let mut bytes = self.content_len + self.reasoning_len
+  for tc in self.tool_calls {
+    bytes = bytes + tc.arguments.length()
+  }
+  let tokens = (bytes.to_double() / 4.0).ceil()
+  if tokens < 0.0 {
+    0
+  } else {
+    tokens.to_int()
+  }
+}
+
 // ── Anthropic Stream Aggregator ─────────────────────────────────────────────
 
 ///|

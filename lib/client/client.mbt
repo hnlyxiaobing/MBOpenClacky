@@ -97,6 +97,15 @@ pub fn Client::is_bedrock_format(self : Client) -> Bool {
   }
 }
 
+///|
+/// Check if this client uses the OpenAI Responses API (/v1/responses).
+pub fn Client::is_responses_format(self : Client) -> Bool {
+  match self.api_type {
+    @config.OpenAIResponses => true
+    _ => false
+  }
+}
+
 // ── Request Building ────────────────────────────────────────────────────────
 
 ///|
@@ -140,6 +149,16 @@ pub fn Client::build_request_body(self : Client, request : SendRequest) -> Json 
       caching_enabled,
       reasoning_effort=request.reasoning_effort,
     )
+  } else if self.is_responses_format() {
+    build_openai_responses_request(
+      request.messages,
+      model,
+      request.tools,
+      request.max_tokens,
+      caching_enabled,
+      vision_supported=self.vision_supported,
+      reasoning_effort=request.reasoning_effort,
+    )
   } else {
     build_openai_request(
       request.messages,
@@ -167,6 +186,15 @@ pub fn Client::build_simple_request(
     build_bedrock_request(messages, model, [], max_tokens, false)
   } else if self.is_anthropic_format() {
     build_anthropic_request(messages, model, [], max_tokens, false)
+  } else if self.is_responses_format() {
+    build_openai_responses_request(
+      messages,
+      model,
+      [],
+      max_tokens,
+      false,
+      vision_supported=self.vision_supported,
+    )
   } else {
     build_openai_request(
       messages,
@@ -238,6 +266,8 @@ pub fn Client::parse_response(self : Client, data : Json) -> LlmResponse {
     parse_bedrock_response(data)
   } else if self.is_anthropic_format() {
     parse_anthropic_response(data)
+  } else if self.is_responses_format() {
+    parse_openai_responses_response(data)
   } else {
     parse_openai_response(data)
   }
@@ -257,6 +287,8 @@ pub fn Client::format_tool_results(
     format_bedrock_tool_results(response, tool_results)
   } else if self.is_anthropic_format() {
     format_anthropic_tool_results(response, tool_results)
+  } else if self.is_responses_format() {
+    format_openai_responses_tool_results(response, tool_results)
   } else {
     format_openai_tool_results(response, tool_results)
   }
@@ -271,6 +303,8 @@ pub fn Client::api_path(self : Client) -> String {
     bedrock_converse_path(self.api_model_for(self.model))
   } else if self.is_anthropic_format() {
     anthropic_messages_path(self.base_url)
+  } else if self.is_responses_format() {
+    "responses"
   } else {
     "chat/completions"
   }
