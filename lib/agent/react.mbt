@@ -189,6 +189,20 @@ pub async fn Agent::run(
   self.hook_manager.emit(MessageAdded)
   self.total_tasks = self.total_tasks + 1
 
+  // ── Shell hooks: session_rollback (deferred from restore) ──────
+  if self.session_rollback_pending {
+    self.session_rollback_pending = false
+    self.trigger_shell_hooks(@hook.SessionRollback) |> ignore
+  }
+  // ── Shell hooks: on_start (veto-capable) ───────────────────────
+  match self.trigger_shell_hooks(@hook.OnStart) {
+    @hook.Deny(reason) => {
+      self.status = Completed
+      return self.build_result(Error, error=Some("Agent start denied: \{reason}"))
+    }
+    _ => ()
+  }
+
   // ── 2. ReAct Loop ──────────────────────────────────────────────────
   let result = self.react_loop_async() catch {
     err => {
@@ -215,6 +229,8 @@ pub async fn Agent::run(
   self.status = Completed
   self.hook_manager.emit(StatusChanged(completed_status, Completed))
   self.hook_manager.emit(RunCompleted(result))
+  // ── Shell hooks: on_complete (observation-only) ──────────────────
+  self.trigger_shell_hooks(@hook.OnComplete) |> ignore
   // T17: Auto memory update - extract memorable info from conversation
   self.auto_update_memory() catch {
     _ => ()
@@ -454,12 +470,14 @@ async fn Agent::think_async(self : Agent) -> @client.LlmResponse? {
             // session-log producer projects this as a summary record.
             self.hook_manager.emit(CompressionPerformed(stats.messages_removed))
             // Save archived chunk to disk for future recall.
+            // Use save_or_merge_chunk to merge into existing chunk or create
+            // new one with disk-derived index (BUG-0082).
             let to_archive : Array[@message.Message] = []
             for m in self.history.all() {
               to_archive.push(m)
             }
             match
-              save_compressed_chunk(
+              save_or_merge_chunk(
                 to_archive,
                 self.session_id,
                 self.created_at,
@@ -618,6 +636,8 @@ async fn Agent::react_loop_async(self : Agent) -> RunResult {
       break
     }
     self.hook_manager.emit(BeforeIteration(self.iterations))
+    // ── Shell hooks: on_iteration (observation-only) ─────────────
+    self.trigger_shell_hooks(@hook.OnIteration) |> ignore
     let response = self.think_async()
     match response {
       None => ()

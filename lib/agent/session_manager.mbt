@@ -13,9 +13,9 @@ pub let max_sessions : Int = 200
 let soft_delete_grace_ms : Int64 = 7 * 24 * 3600 * 1000L
 
 ///|
-/// Trash retention: files are physically deleted after this long (30 days)
-/// in the trash directory.
-let trash_retention_ms : Int64 = 30 * 24 * 3600 * 1000L
+/// Trash retention: files are physically deleted after this long (8 days)
+/// in the trash directory. Aligned with Ruby `cleanup_trash(days: 8)`.
+let trash_retention_ms : Int64 = 8 * 24 * 3600 * 1000L
 
 ///|
 /// Enforce the maximum session cap with a three-tier cleanup policy
@@ -28,6 +28,7 @@ let trash_retention_ms : Int64 = 30 * 24 * 3600 * 1000L
 pub fn enforce_session_cap() -> Unit {
   purge_expired_soft_deleted()
   purge_expired_trash()
+  cleanup_file_trash()
   let sessions = list_sessions()
   let count = sessions.length()
   if count <= max_sessions {
@@ -118,6 +119,8 @@ fn move_file_to_trash(
 /// Physically delete trash files older than the retention period.
 /// Trash files keep their original `<datetime>-<id8>.json` names, so the
 /// datetime prefix is parsed from the filename (no mtime API in x/fs).
+/// Also removes associated chunk archives and Time Machine snapshots
+/// (mirrors Ruby `_hard_delete_session_with_chunks` + `_delete_snapshots`).
 fn purge_expired_trash() -> Unit {
   let dir = ensure_sessions_dir() catch { _ => return }
   let trash_dir = @path.Path::join(dir, @path.Path(".trash")).to_string()
@@ -145,9 +148,108 @@ fn purge_expired_trash() -> Unit {
     let stamp = parts[0:parts.count() - 1].join("-")
     if stamp < threshold_sanitized {
       let filepath = @path.Path::join(trash_dir, @path.Path(name)).to_string()
-      @fs.remove_file(filepath) catch {
-        _ => ()
+      // Try to extract session_id for snapshot cleanup
+      let json_str = @fs.read_file_to_string(filepath) catch { _ => "" }
+      let session_id = extract_session_id_from_json(json_str)
+      hard_delete_session_file(trash_dir, name)
+      if session_id != "" {
+        delete_session_snapshots(session_id)
       }
+    }
+  }
+}
+
+///|
+/// Extract session_id from a session JSON string. Returns "" on failure.
+fn extract_session_id_from_json(json_str : String) -> String {
+  if json_str.is_empty() {
+    return ""
+  }
+  let json = @json.parse(json_str) catch { _ => return "" }
+  let parsed : SessionData = @json.from_json(json) catch { _ => return "" }
+  parsed.session_id
+}
+
+///|
+/// Permanently delete a session JSON file and its associated chunk archives.
+/// Mirrors Ruby `_hard_delete_session_with_chunks`.
+fn hard_delete_session_file(dir : String, json_filename : String) -> Unit {
+  let filepath = @path.Path::join(dir, @path.Path(json_filename)).to_string()
+  @fs.remove_file(filepath) catch { _ => () }
+  // Derive chunk base from filename (strip .json suffix)
+  let base = if json_filename.has_suffix(".json") {
+    json_filename[:json_filename.length() - 5].to_owned()
+  } else {
+    json_filename
+  }
+  let chunk_prefix = base + "-chunk-"
+  let chunk_suffix = ".md"
+  let all_files = @fs.read_dir(dir) catch { _ => return }
+  for name in all_files {
+    if name.has_prefix(chunk_prefix) && name.has_suffix(chunk_suffix) {
+      let chunk_path = @path.Path::join(dir, @path.Path(name)).to_string()
+      @fs.remove_file(chunk_path) catch { _ => () }
+    }
+  }
+}
+
+///|
+/// Remove a session's Time Machine snapshot directory.
+/// Mirrors Ruby `_delete_snapshots`.
+fn delete_session_snapshots(session_id : String) -> Unit {
+  if session_id.is_empty() {
+    return
+  }
+  let snap_dir = match @utils.config_dir() {
+    Some(d) => @path.Path::join(@path.Path(d), @path.Path("snapshots/" + session_id)).to_string()
+    None => return
+  }
+  if !@fs.path_exists(snap_dir) {
+    return
+  }
+  remove_dir_recursive(snap_dir)
+}
+
+///|
+/// Recursively remove a directory and all its contents.
+fn remove_dir_recursive(dir : String) -> Unit {
+  let entries = @fs.read_dir(dir) catch { _ => return }
+  for entry in entries {
+    let path = @path.Path::join(dir, @path.Path(entry)).to_string()
+    let is_directory = @fs.is_dir(path) catch { _ => false }
+    if is_directory {
+      remove_dir_recursive(path)
+    } else {
+      @fs.remove_file(path) catch { _ => () }
+    }
+  }
+  @fs.remove_dir(dir) catch { _ => () }
+}
+
+///|
+/// Clean up file-level trash entries older than 8 days.
+/// Walks every project's file-trash directory and removes expired entries.
+/// Mirrors Ruby `cleanup_file_trash(days: 8)` called from `run_cleanup_async`.
+fn cleanup_file_trash() -> Unit {
+  let root = @utils.get_trash_dir()
+  let file_trash = @path.Path::join(@path.Path(root), @path.Path("file-trash")).to_string()
+  if !@fs.path_exists(file_trash) {
+    return
+  }
+  let project_dirs = @fs.read_dir(file_trash) catch { _ => return }
+  let today = current_timestamp_iso()[:10].to_owned()
+  for name in project_dirs {
+    let proj_dir = @path.Path::join(file_trash, @path.Path(name)).to_string()
+    let is_dir = @fs.is_dir(proj_dir) catch { _ => false }
+    if !is_dir {
+      continue
+    }
+    let entries = @utils.list_trash_entries(proj_dir)
+    let expired = @utils.expired_entries(entries, 8, today)
+    for entry in expired {
+      @fs.remove_file(entry.trash_path) catch { _ => () }
+      let meta_path = @utils.trash_metadata_path(entry.trash_path)
+      @fs.remove_file(meta_path) catch { _ => () }
     }
   }
 }

@@ -76,6 +76,14 @@ pub(all) struct Agent {
   // ── Hook System ─────────────────────────────────────────────────
   /// Hook manager for lifecycle event observers.
   hook_manager : HookManager
+  // ── Shell Hook System ───────────────────────────────────────────
+  /// Shell hooks loaded from ~/.clacky/hooks/. Triggered at 7 lifecycle
+  /// events (Ruby HookManager semantics): before_tool_use, after_tool_use,
+  /// on_tool_error, on_start, on_iteration, on_complete, session_rollback.
+  mut shell_hooks : Array[@hook.ShellHook]
+  /// Set by restore_from_session when error rollback was applied;
+  /// consumed by Agent::run to fire the session_rollback shell hook.
+  mut session_rollback_pending : Bool
   // ── Patch System ────────────────────────────────────────────────
   /// Ordered chain of patch rules evaluated before/after every tool call.
   /// Owned by the Agent; extension patches are folded in at construction
@@ -204,6 +212,10 @@ pub fn Agent::new(
     task_timeout_hint_injected: false,
     // Clear any hook callbacks from prior runs
     hook_manager: HookManager::new(),
+    // Shell hooks: loaded from ~/.clacky/hooks/ at startup (cmd/main.mbt).
+    // Empty by default; trigger_shell_hooks is a no-op when empty.
+    shell_hooks: [],
+    session_rollback_pending: false,
     // Empty patch chain — extension patches are added via
     // `register_patch_rule` after extensions have been discovered.
     patch_chain: PatchChain::new(),

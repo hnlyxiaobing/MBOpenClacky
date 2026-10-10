@@ -55,20 +55,63 @@ fn windows_path_to_mnt(path : String) -> String {
 
 ///|
 /// Detect the user's Desktop directory, or None when unavailable.
-/// Looks up `USERPROFILE\Desktop` (existence-checked); in WSL-interop
-/// the path is converted to /mnt/<drive>/... so it matches Ruby's
-/// wslpath output. Missing profile or directory → None (field omitted
-/// per spec 2026-08-18_29 decision 3).
+/// In WSL: converts `USERPROFILE\Desktop` to `/mnt/<drive>/...` form BEFORE
+/// checking existence (fixes BUG-0068: the old code checked the Windows path
+/// on the Linux filesystem, which always failed). Falls back to `~/Desktop`
+/// or `~/桌面` (matching Ruby's `fallback_desktop_path`).
+/// On native Windows: checks `USERPROFILE\Desktop` directly.
 fn detect_desktop() -> String? {
+  if @utils.is_wsl() {
+    detect_desktop_wsl()
+  } else {
+    detect_desktop_windows()
+  }
+}
+
+fn detect_desktop_wsl() -> String? {
+  // Try USERPROFILE if set, convert to /mnt form, then check
+  let profile_opt = @utils.env_var("USERPROFILE")
+  match profile_opt {
+    Some(profile) => {
+      let candidate = windows_path_to_mnt(profile + "\\Desktop")
+      let exists = @fs.is_dir(candidate) catch { _ => false }
+      if exists {
+        return Some(candidate)
+      }
+    }
+    None => ()
+  }
+  // Fallback: ~/Desktop or ~/桌面 (Ruby fallback_desktop_path)
+  let home_opt = @utils.home_dir()
+  match home_opt {
+    Some(home) => {
+      let desktop = @path.Path::join(@path.Path(home), @path.Path("Desktop")).to_string()
+      let desktop_exists = @fs.is_dir(desktop) catch { _ => false }
+      if desktop_exists {
+        return Some(desktop)
+      }
+      let zhuomian = @path.Path::join(@path.Path(home), @path.Path("桌面")).to_string()
+      let zhuomian_exists = @fs.is_dir(zhuomian) catch { _ => false }
+      if zhuomian_exists {
+        return Some(zhuomian)
+      }
+    }
+    None => ()
+  }
+  None
+}
+
+fn detect_desktop_windows() -> String? {
   let profile = match @utils.env_var("USERPROFILE") {
     Some(p) => p
     None => return None
   }
   let candidate = profile + "\\Desktop"
-  if !(@fs.is_dir(candidate) catch { _ => false }) {
+  let exists = @fs.is_dir(candidate) catch { _ => false }
+  if !exists {
     return None
   }
-  Some(if @utils.is_wsl() { windows_path_to_mnt(candidate) } else { candidate })
+  Some(candidate)
 }
 
 ///|

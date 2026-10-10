@@ -132,11 +132,24 @@ pub async fn Agent::execute_single_tool(
   // again after resolution so aliases/case variants cannot bypass.
   match self.tool_restriction_reason(tool_name) {
     Some(reason) => {
-      let result = build_denied_result(call, Some(reason))
+      let result = build_denied_result(call, Some(reason), system_injected=true)
       self.patch_chain.check_after(tool_name, args, result.content, true)
       return result
     }
     None => ()
+  }
+  // ── Shell hooks: before_tool_use (veto-capable) ────────────────
+  match self.trigger_shell_hooks(
+    @hook.BeforeToolUse,
+    tool_name=Some(tool_name),
+    tool_args=Some(Json::object(args).stringify()),
+  ) {
+    @hook.Deny(reason) => {
+      let result = build_denied_result(call, Some(reason))
+      self.patch_chain.check_after(tool_name, args, result.content, true)
+      return result
+    }
+    _ => ()
   }
   // Resolve canonical name
   let canonical = match self.tool_registry.resolve(tool_name) {
@@ -155,7 +168,7 @@ pub async fn Agent::execute_single_tool(
   // that slipped past the raw-name check cannot bypass forbidden/allowed.
   match self.tool_restriction_reason(canonical) {
     Some(reason) => {
-      let result = build_denied_result(call, Some(reason))
+      let result = build_denied_result(call, Some(reason), system_injected=true)
       self.patch_chain.check_after(tool_name, args, result.content, true)
       return result
     }
@@ -182,13 +195,7 @@ pub async fn Agent::execute_single_tool(
       } else {
         self.inject_todo_reminder(call, result)
       }
-      self.patch_chain.check_after(
-        tool_name,
-        args,
-        final_result.content,
-        final_result.is_error,
-      )
-      return final_result
+      return self.finalize_tool_result(tool_name, args, final_result)
     }
     "memory" => {
       let result = self.execute_memory_tool(call, args)
@@ -197,13 +204,7 @@ pub async fn Agent::execute_single_tool(
       } else {
         self.inject_todo_reminder(call, result)
       }
-      self.patch_chain.check_after(
-        tool_name,
-        args,
-        final_result.content,
-        final_result.is_error,
-      )
-      return final_result
+      return self.finalize_tool_result(tool_name, args, final_result)
     }
     "todo_manager" => {
       let result = self.execute_todo_tool(call, args)
@@ -212,13 +213,7 @@ pub async fn Agent::execute_single_tool(
       } else {
         self.inject_todo_reminder(call, result)
       }
-      self.patch_chain.check_after(
-        tool_name,
-        args,
-        final_result.content,
-        final_result.is_error,
-      )
-      return final_result
+      return self.finalize_tool_result(tool_name, args, final_result)
     }
     _ => ()
   }
@@ -234,13 +229,7 @@ pub async fn Agent::execute_single_tool(
       Some(String(p)) if @parser.is_whitelisted_document_extension(p) ||
         @parser.is_wps_binary_extension(p) => {
         let result = execute_document_read(call, p)
-        self.patch_chain.check_after(
-          tool_name,
-          args,
-          result.content,
-          result.is_error,
-        )
-        return result
+        return self.finalize_tool_result(tool_name, args, result)
       }
       _ => ()
     }
@@ -298,7 +287,51 @@ pub async fn Agent::execute_single_tool(
     final_result.content,
     final_result.is_error,
   )
+  // ── Shell hooks: after_tool_use + on_tool_error ────────────────
+  self.trigger_shell_hooks(
+    @hook.AfterToolUse,
+    tool_name=Some(canonical),
+    tool_args=Some(Json::object(args).stringify()),
+  ) |> ignore
+  if final_result.is_error {
+    self.trigger_shell_hooks(
+      @hook.OnToolError,
+      tool_name=Some(canonical),
+      tool_args=Some(Json::object(args).stringify()),
+    ) |> ignore
+  }
   final_result
+}
+
+///|
+/// Fire after_tool_use / on_tool_error shell hooks and run the patch
+/// chain after-hook for early-return tool paths (agent-context tools
+/// and document reads) that bypass the main execution tail.
+async fn Agent::finalize_tool_result(
+  self : Agent,
+  tool_name : String,
+  args : Map[String, Json],
+  result : ToolResultEntry,
+) -> ToolResultEntry {
+  self.trigger_shell_hooks(
+    @hook.AfterToolUse,
+    tool_name=Some(tool_name),
+    tool_args=Some(Json::object(args).stringify()),
+  ) |> ignore
+  if result.is_error {
+    self.trigger_shell_hooks(
+      @hook.OnToolError,
+      tool_name=Some(tool_name),
+      tool_args=Some(Json::object(args).stringify()),
+    ) |> ignore
+  }
+  self.patch_chain.check_after(
+    tool_name,
+    args,
+    result.content,
+    result.is_error,
+  )
+  result
 }
 
 ///|
@@ -1099,28 +1132,45 @@ fn Agent::tool_restriction_reason(self : Agent, name : String) -> String? {
 }
 
 ///|
-/// Build a denied result entry when user rejects tool execution.
+/// Build a denied result entry when tool execution is rejected.
 ///
-/// Aligned with Ruby `ToolExecutor#build_denied_result` (non
-/// system-injected path): the message clearly states the action was NOT
-/// performed, `action_performed` is false and `user_feedback` carries
-/// the user's feedback (JSON null when absent).
+/// Aligned with Ruby `ToolExecutor#build_denied_result`:
+/// - `system_injected=false` (user denial): message clearly states the action
+///   was NOT performed, `action_performed` is false, `user_feedback` carries
+///   the user's feedback (JSON null when absent).
+/// - `system_injected=true` (system denial, e.g., subagent tool restriction):
+///   simpler format with `system_injected: true` flag.
 pub fn build_denied_result(
   call : @message.ToolCall,
   feedback : String?,
+  system_injected? : Bool = false,
 ) -> ToolResultEntry {
-  let msg = match feedback {
-    Some(fb) =>
-      "Tool use denied by user. This action was NOT performed. User feedback: \{fb}"
-    None => "Tool use denied by user. This action was NOT performed."
+  let content = if system_injected {
+    // System-generated feedback (e.g., subagent tool restrictions)
+    let reason = match feedback {
+      Some(fb) => fb
+      None => "restricted"
+    }
+    let msg = "Tool \{call.function.name} denied: \{reason}"
+    Json::object({
+      "error": ToJson::to_json(msg),
+      "system_injected": ToJson::to_json(true),
+    }).stringify()
+  } else {
+    // User manually denied or provided feedback
+    let msg = match feedback {
+      Some(fb) =>
+        "Tool use denied by user. This action was NOT performed. User feedback: \{fb}"
+      None => "Tool use denied by user. This action was NOT performed."
+    }
+    Json::object({
+      "error": ToJson::to_json(msg),
+      "action_performed": ToJson::to_json(false),
+      "user_feedback": match feedback {
+        Some(fb) => ToJson::to_json(fb)
+        None => Json::null()
+      },
+    }).stringify()
   }
-  let content = Json::object({
-    "error": ToJson::to_json(msg),
-    "action_performed": ToJson::to_json(false),
-    "user_feedback": match feedback {
-      Some(fb) => ToJson::to_json(fb)
-      None => Json::null()
-    },
-  }).stringify()
   { id: call.id, content, is_error: true, image_inject: None, }
 }

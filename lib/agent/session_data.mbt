@@ -358,6 +358,7 @@ pub fn Agent::restore_from_session(self : Agent, data : SessionData) -> Unit {
   // repair any dangling tool_calls left by interrupted runs (Ruby
   // message_history.rb:348-380 pairing guarantee).
   let messages = if result.needs_error_rollback {
+    self.session_rollback_pending = true
     apply_error_rollback(result.messages)
   } else {
     result.messages

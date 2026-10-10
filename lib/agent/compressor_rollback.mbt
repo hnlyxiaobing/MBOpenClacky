@@ -208,10 +208,12 @@ pub fn Agent::compress_with_safety(
       match result {
         Success(stats) => {
           self.hook_manager.emit(CompressionPerformed(stats.messages_removed))
-          // Save archived chunk to disk for future recall
+          // Save archived chunk to disk for future recall.
+          // Use save_or_merge_chunk to merge into existing chunk or create
+          // new one with disk-derived index (BUG-0082).
           let to_archive = clone_messages(self.history.all())
           match
-            save_compressed_chunk(
+            save_or_merge_chunk(
               to_archive,
               self.session_id,
               self.created_at,
