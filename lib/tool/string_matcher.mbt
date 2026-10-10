@@ -133,9 +133,9 @@ fn try_parse_hex4(chars : Array[Char], start : Int) -> Int? {
   for j = 0; j < 4; j = j + 1 {
     let c = chars[start + j]
     let digit = match c {
-      '0'..<='9' => c.to_int() - '0'.to_int()
-      'a'..<='f' => c.to_int() - 'a'.to_int() + 10
-      'A'..<='F' => c.to_int() - 'A'.to_int() + 10
+      '0'..='9' => c.to_int() - '0'.to_int()
+      'a'..='f' => c.to_int() - 'a'.to_int() + 10
+      'A'..='F' => c.to_int() - 'A'.to_int() + 10
       _ => return None
     }
     code = code * 16 + digit

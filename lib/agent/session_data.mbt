@@ -706,7 +706,7 @@ impl FromJson for SessionData with fn from_json(json, path) {
 /// semantics. Millisecond timestamps could collide under rapid session
 /// creation, silently overwriting an existing session file.
 pub fn generate_session_id() -> String {
-  let rng = @random.Rand::Rand()
+  let rng = @random.Rand::new()
   let hex_chars = "0123456789abcdef"
   let mut id = ""
   for _i = 0; _i < 16; _i = _i + 1 {
