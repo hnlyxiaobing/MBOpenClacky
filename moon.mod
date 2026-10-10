@@ -16,6 +16,7 @@ import {
   "mizchi/tui@0.10.2",
   "mizchi/signals@0.6.6",
   "hustcer/tabular@0.6.0",
+  "Milky2018/css@0.5.3",
 }
 
 repository = "https://github.com/hnlyxiaobing/MBOpenClacky"
