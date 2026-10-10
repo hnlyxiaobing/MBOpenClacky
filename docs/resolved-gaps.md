@@ -112,5 +112,6 @@
 | cmd/eval.mbt:77 | fixed | WP-2.2 | `--live` 已接线（2026-09-22）：`test/capability/tasks/` 任务集 + 真 ReAct 运行器（工具面限定为 file_reader/write/edit/grep/glob）+ 评分向量与报告落盘；无 key 时仍诚实 exit 1 |
 | cmd/main.mbt:198 | fixed | WP-2.2 | `--live` 帮助文本改为如实描述「需配置模型」（2026-09-22） |
 | cmd/selftest.mbt:520 | fixed | WP-2.2 | 契约探针改为与 key 无关的确定性失败路径（缺任务集→exit 1、模式互斥→exit 2），避免探针继承环境后触发真实计费调用（2026-09-22） |
+| lib/utils/workspace_rules.mbt:54 | fixed | 代码清理 | 子目录扫描 TODO 已从代码中移除（2026-10-10） |
 
 <!-- END: archive -->

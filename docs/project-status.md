@@ -22,17 +22,17 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 311 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 235 |
-| 源代码行数 | 102,380 |
-| 测试行数 | 63,939 |
-| 总行数 | 166,319 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3994 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 240 |
+| 源代码行数 | 105,982 |
+| 测试行数 | 65,581 |
+| 总行数 | 171,563 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4069 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
 | 内置工具 | 14 |
-| 默认 Skill | 18 |
+| 默认 Skill | 16 |
 | REST 路由注册（crescent，`lib/web/server.mbt`） | 214（GET 86 / POST 86 / PATCH 15 / DELETE 18 / PUT 9） |
 | `moon check` | 0 errors / 0 warnings |
 <!-- END: repo-stats -->
@@ -289,8 +289,6 @@
 | Rich UI / UI2 系统 | lib/clacky/rich_ui.rb + lib/clacky/ui2/ | 低 - TUI 56 个文件已覆盖终端 UI |
 | Fanout 系统 | lib/clacky/fanout.rb | 低 - fan_out/fan_out_labeled 已按 Ruby Fanout 语义实现（spec 13） |
 | Search Config (Tavily) | lib/clacky/search_config.rb | 低 - web_search 已实现 |
-| ~~Benchmark 基础设施~~ | ~~benchmark/ (fixtures + results)~~ | ✅ 已解决 - `test/benchmark/` 已实现（runner/scenario/stats/comparator/timer/persistence） |
-| ~~默认扩展包~~ | ~~6 个内置扩展~~ | ✅ 已解决 - 已在 `assets/extensions/` |
 
 ### 6.2 仅当前项目有
 
@@ -339,19 +337,13 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 - **P6 矩阵残留对齐**: 12 份 spec 覆盖只读工具、安全执行器、LLM 请求格式、消息持久化、核心循环、CLI、Web API、技能提示词、配置深度、计费遥测、e2e 链路层
 - **全量测试**: `moon test --release` 全绿（用例数见 §1.1 机器生成表），`moon check` 0 errors / 0 warnings
 
-### 主要差距 (1%)
+### 后续方向
 
-1. ~~Benchmark 基础设施~~ ✅ 已解决 - `test/benchmark/` 已实现（runner/scenario/stats/comparator/timer/persistence + wbtest）
-2. ~~默认扩展包~~ ✅ 已解决 - 6 个内置扩展已在 `assets/extensions/`
-3. ~~Rich UI 组件~~ ✅ 已覆盖 - TUI 56 个文件已对齐 ui2
-
-### 建议优先级
-
-| 优先级 | 任务 | 预估工作量 | 状态 |
-|--------|------|-----------|------|
-| P2 | 建立 Benchmark 基础设施 | 2-3 天 | ✅ 已完成（`test/benchmark/`：runner/scenario/stats/comparator/timer/persistence + wbtest）。执行驱动自 2026-09-23 起真执行默认 registry 中的工具并计时（`cmd benchmark`，WP-3.4），边界见 [test/benchmark/README.md](../test/benchmark/README.md) |
-| P2/P3 | 优化提升执行计划的剩余工作包（WP-3.1~3.6 卫生项） | 择机 | ✅ **17 个 WP 全部闭环**（16 完成 / 1 作废）：WP-3.1 旧会话只读投影（参考机 1/32 → **32/32 可列出**）、WP-3.2 Web 会话 JSONL 事件流（三端均可离线回放）、WP-3.3 MCP HTTP 传输（Stdio + Streamable HTTP/SSE 均可用）、WP-3.4 基准真执行、WP-3.5 Windows `lib/mcp` 挂死（根因定位 + 平台跳过）、WP-3.6 TUI 协议面（结论：维持 HookEvent 穷尽匹配，ADR-0001 §7）。逐项证据见 [improvement-execution-plan.md](improvement-execution-plan.md) §5 |
-| P3 | 上游 Ruby 侧真模型对标（需 WSL Ruby 环境；MB 侧 `cmd eval --live` 已可跑） | 待定 | MB 侧已落地（WP-2.2，报告见 `docs/eval/`）；两侧同模型同参数、每任务 ≥5 次的对标方法学见 `specs/completed/2026-08-18_01_diff-harness-matrix-backlog-overview.md` §6 |
+| 方向 | 状态 |
+|------|------|
+| Benchmark 基础设施 | ✅ 已完成（`test/benchmark/`，`cmd benchmark` 真执行计时） |
+| 提升执行计划 WP-3.1~3.6 | ✅ 17 个 WP 全部闭环（16 完成 / 1 作废），详见 [improvement-execution-plan.md](improvement-execution-plan.md) §5 |
+| 上游 Ruby 真模型对标 | MB 侧 `cmd eval --live` 已落地（报告见 `docs/eval/`），双侧对标方法学见 `specs/completed/2026-08-18_01` §6 |
 
 ---
 

@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-MBOpenClacky is a MoonBit rewrite of the openclacky AI Agent CLI. For project architecture and key patterns, see [CLAUDE.md](CLAUDE.md).
+MBOpenClacky is a MoonBit rewrite of the openclacky AI Agent CLI — an LLM-powered autonomous agent with tool calling, skill plugins, session management, TUI, and a web server.
 
 ## Build, Test, and Development Commands
 
@@ -25,6 +25,77 @@ moon info                                   # Verify public API changes
 
 `moon test --target wasm-gc` fails on FFI in `tty`/`crescent`; use `moon check` to validate.
 
+## Architecture
+
+25 lib packages + 1 cmd entry (machine-generated count — see Current Metrics). All three interfaces (CLI, TUI, Web) share the same `Agent` core via the hook system.
+
+```
+cmd/          — CLI entry (clap parsing, agent lifecycle, session management)
+lib/
+  agent/      — Agent struct, ReAct loop, LLM caller, system prompt, session persistence,
+                hook system, memory store, todo manager, subagent pool, cost tracker,
+                compressor, time machine, profile, idle timer, session restore
+  client/     - LLM API client (OpenAI/Anthropic/Bedrock formats), stream aggregators,
+                platform HTTP client with domain failover, 13 provider presets
+  tool/       — Tool trait + 14 built-in tools (FileReader, Write, Edit, Grep, Glob,
+                Terminal/PTY, WebSearch, WebFetch, InvokeSkill, MemoryTool, TodoTool,
+                RequestUserFeedback, TrashManager, Browser) + registry with 70+ aliases
+  skill/      - SKILL.md parsing, registry, discovery, executor, evolution engine
+                (Reflector/AutoCreator), 18 default skills
+  extension/  — Extension lifecycle: loader, verifier, packager, scaffold,
+                marketplace, API extension dispatcher/loader, route contributions
+  mcp/        — MCP protocol: Transport trait (Stdio/HTTP), JSON-RPC 2.0 client,
+                registry, virtual skill mapping, skill provider
+  channel/    — 6 IM adapters (Feishu/Wecom/Telegram/Discord/DingTalk/Weixin) via AnyAdapter enum
+  web/        — crescent HTTP server: 214 REST routes (crescent registrations in server.mbt), WebSocket (token-level
+                streaming), auth/logging middleware, timeout/error-envelope, broadcast
+                hub, template processor, static server with SPA fallback
+                (native JS frontend in web/)
+  tui/        — Inline scrolling TUI: line-level repaint + commit-scrollback
+                (tui_controller_render.mbt) + mizchi/signals reactive state on
+                moonbit-community/tty; async event loop
+                (Queue[TuiEvent]), dialog system (approval/config/form),
+                thinking live view, LineEditor (CJK-aware), StatusBar,
+                InputArea, TodoArea, markdown rendering, slash commands, themes,
+                progress stack, block-font (see docs/tui-architecture.md)
+  server/     — Cron parser, scheduler, browser manager, backup manager, discover,
+                master/worker, session registry, git panel
+  config/     - TOML loader, 13 provider presets, capabilities, permission modes, env compat
+  billing/    — Billing records, token tracking, cost calculation
+  brand/      — White-label config, license validation, device binding, identity
+                persistence, AES-GCM/HMAC/SHA256 (C FFI)
+  media/      — Image/video/audio generation logic (OpenAI/Gemini/DashScope); the four REST
+                generation endpoints call these for real (binary HTTP transport lives in lib/client)
+  parser/     — PDF, DOCX (ZIP+XML), PPTX, XLSX parsers
+  protocol/   — 协议层（引擎事件与 wire 词表）
+  vision/     — Vision OCR + SHA256 caching
+  pricing/    — Model pricing table (677 lines), cost calculator
+  message/    — Message/Role/ContentBlock/ToolCall types, message history
+  hook/       — Shell hook system (7 event types)
+  telemetry/  — Anonymous telemetry (fire-and-forget)
+  errors/     — Error type hierarchy
+  i18n/       — Internationalization (en/zh translations)
+  utils/      — Env vars, path, encoding, logger, proxy config, gitignore parser, etc.
+  zip/        — ZIP compression/decompression
+```
+
+### Agent Core
+
+- **ReAct Loop**: `think()` → `act()` → `observe()` with truncation handling
+- **LLM Calling**: Retry logic, fallback state machine (PrimaryOk → FallbackActive → Probing)
+- **System Prompt**: Multi-layer construction (brand, role, rules, project rules, working dir, model info, skills, memory, tasks)
+- **Session**: JSON file-based CRUD with cap enforcement and restore
+- **Compressor**: LLM-driven message summarization
+- **Time Machine**: File snapshot undo/redo with ancestor chain restoration
+
+### Key Patterns
+
+- **Hook system**: Observer pattern — `HookManager::register(cb)` / `emit(event)`. TUI and Web UI subscribe to agent lifecycle events.
+- **Fallback state machine**: 3 consecutive RetryableErrors → switch to fallback model; cooldown → probe primary; success → revert.
+- **Tool aliases**: 70+ name mappings bridge LLM-invented tool names to canonical registrations.
+- **AnyAdapter enum**: Channel adapters use enum-based type erasure (not trait objects) for 6 IM platforms.
+- **AnyTool enum**: Zero-cost dispatch for 14 tool implementations.
+
 ## Coding Style
 
 - **Naming**: snake_case for functions/values, PascalCase for types/traits.
@@ -48,9 +119,16 @@ Follow lowercase type prefixes: `feat:`, `fix:`, `docs:`, `chore:`, plus scoped 
 - Keep commits focused; one logical change per commit.
 - After edits run `moon fmt <changed files>` (never repo-wide) and `moon info`; report changed files and any residual risk.
 
-## Agent Instructions
+## Development Workflow (spec-driven)
 
-Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/`. Follow Harness methodology: create specs in `specs/draft/` first, pass adversarial review (see `specs/decisions/harness-methodology-v2-upgrade.md`), then move to `specs/active/` for development, finally archive to `specs/completed/` after acceptance.
+Keep edits minimal and package-local. Run `moon check` in a tight loop after edits. Do not commit `_build/`, `.mooncakes/`, `.qoder/`, or `.repos/`. Follow Harness v2 methodology: create specs in `specs/draft/` first, pass adversarial review (see `specs/decisions/harness-methodology-v2-upgrade.md`), then move to `specs/active/` for development, finally archive to `specs/completed/` after acceptance.
+
+**Harness v2 key rules**:
+- Gap document is a hypothesis, not ground truth - verify every "missing" claim with `grep`/`glob` before writing spec
+- Specs start in `specs/draft/`, require adversarial review before entering `specs/active/`
+- All template sections marked [必填] must be filled - incomplete specs are rejected
+- MoonBit AOT constraint: runtime-loaded extensions cannot implement traits - use shell commands instead
+- Verify crescent API capabilities (PATCH/PUT/DELETE) with `grep` before claiming "not supported"
 
 **Codebase-memory MCP 优先**（仅当当前会话确实连接了该 server 时；未连接就直接用 Grep/Glob/Read，不要反复试错）: 查询代码时优先使用 codebase-memory-mcp 工具（项目名 `D-MoonBit-MBOpenClacky`）以提高效率、节省 token：
 - 查找定义/实现/关系 → `search_graph`（BM25 全文）、`search_code`（grep + 图增强）
@@ -59,13 +137,6 @@ Keep edits minimal and package-local. Run `moon check` in a tight loop after edi
 - 架构概览 → `get_architecture`；复杂多跳查询 → `query_graph`
 - 大量代码改动后运行 `index_repository` 更新索引
 仅当 MCP 无法覆盖时（如精确字符串匹配、非代码文件）再退回 Grep/Glob/Read。
-
-**Harness v2 key rules**:
-- Gap document is a hypothesis, not ground truth - verify every "missing" claim with `grep`/`glob` before writing spec
-- Specs start in `specs/draft/`, require adversarial review before entering `specs/active/`
-- All template sections marked [必填] must be filled - incomplete specs are rejected
-- MoonBit AOT constraint: runtime-loaded extensions cannot implement traits - use shell commands instead
-- Verify crescent API capabilities (PATCH/PUT/DELETE) with `grep` before claiming "not supported"
 
 ## Development Efficiency Protocol
 
@@ -82,3 +153,26 @@ Empirically derived from 113 recorded development sessions (2026-06 → 2026-08)
 5. **Keep sessions short; offload knowledge**. Tasks that exceed ~50 messages should be split: commit progress to git, then start a new session that loads only the spec + git state. After reading a large document, immediately write its key points into the todo list or a notes file — long-session compression makes the agent forget what it read, causing 3-4× re-reads.
 
 6. **Batch independent tool calls**. Combine independent reads/checks into a single assistant message (e.g. read all related spec files at once). Reduces round-trips and overhead tokens.
+
+## Current Metrics
+
+Machine-generated by `scripts/repo_stats.sh` (`generate`), verified by `scripts/repo_stats.sh check` in CI — a hand-edited number turns the build red. Calibers are defined in the script header.
+
+<!-- BEGIN: repo-stats (generated by scripts/repo_stats.sh; do not edit) -->
+| 指标 | 数值 |
+|------|------|
+| 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 311 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 235 |
+| 源代码行数 | 102,380 |
+| 测试行数 | 63,939 |
+| 总行数 | 166,319 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3994 |
+| 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
+| `pkg.generated.mbti`（git 入库） | 32 |
+| Provider 预设 | 13 |
+| 内置工具 | 14 |
+| 默认 Skill | 18 |
+| REST 路由注册（crescent，`lib/web/server.mbt`） | 214（GET 86 / POST 86 / PATCH 15 / DELETE 18 / PUT 9） |
+| `moon check` | 0 errors / 0 warnings |
+<!-- END: repo-stats -->

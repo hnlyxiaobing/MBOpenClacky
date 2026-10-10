@@ -18,17 +18,17 @@
 | 指标 | 数值 |
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
-| 源代码文件（`.mbt`，lib+cmd，不含测试） | 311 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 235 |
-| 源代码行数 | 102,380 |
-| 测试行数 | 63,939 |
-| 总行数 | 166,319 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 3994 |
+| 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 240 |
+| 源代码行数 | 105,982 |
+| 测试行数 | 65,581 |
+| 总行数 | 171,563 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4069 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
 | 内置工具 | 14 |
-| 默认 Skill | 18 |
+| 默认 Skill | 16 |
 | REST 路由注册（crescent，`lib/web/server.mbt`） | 214（GET 86 / POST 86 / PATCH 15 / DELETE 18 / PUT 9） |
 | `moon check` | 0 errors / 0 warnings |
 <!-- END: repo-stats -->
@@ -174,7 +174,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 ```
 MBOpenClacky/
 ├── cmd/                # CLI 入口
-├── lib/                # 24 个库包
+├── lib/                # 25 个库包
 │   ├── agent/          # Agent 核心（ReAct 循环、会话、压缩、Time Machine）
 │   ├── client/         # LLM API 客户端（3 协议、13 Provider）
 │   ├── tool/           # 工具系统（14 个内置工具、PTY 终端）
@@ -191,6 +191,7 @@ MBOpenClacky/
 │   ├── brand/          # 品牌配置 + AES-256-GCM 加密
 │   ├── media/          # 媒体生成
 │   ├── parser/         # 文档解析（PDF/DOCX/PPTX/XLSX）
+│   ├── protocol/       # 协议层（引擎事件与 wire 词表）
 │   ├── vision/         # Vision OCR
 │   ├── pricing/        # 模型定价表
 │   ├── message/        # 消息类型
@@ -212,7 +213,7 @@ MBOpenClacky/
 
 - 功能对比与完成度：[项目状态文档](docs/project-status.md)
 - **真话台账（机器校验的未完成项清单）**：[docs/known-gaps.md](docs/known-gaps.md)（活跃缺口） / [docs/resolved-gaps.md](docs/resolved-gaps.md)（已修复归档） — 由 `scripts/known_gaps.sh` 扫描生成，CI 校验与代码一致
-- **优化提升路线图（对标上游的优先级结论）**：[docs/improvement-roadmap.md](docs/improvement-roadmap.md)　落地执行计划：[docs/improvement-execution-plan.md](docs/improvement-execution-plan.md)
+- **优化提升计划（对标上游，全部 WP 已闭环 + 下一步方向）**：[docs/improvement-execution-plan.md](docs/improvement-execution-plan.md)
 
 ---
 

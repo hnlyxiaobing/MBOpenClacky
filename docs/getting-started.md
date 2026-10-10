@@ -297,7 +297,7 @@ chmod +x scripts/install.sh
 | 局限 | 影响 | 临时解决方案 |
 |------|------|------------|
 | 脚本只探测并提示 `libssl-dev`，不会自动安装系统包 | 未装 OpenSSL 开发库时 brand 包 AES-256-GCM 链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
-| `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release（详见下方「品牌加密与密钥派生」） |
+| `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release |
 
 ### 前置环境依赖清单
 
@@ -311,34 +311,17 @@ chmod +x scripts/install.sh
 
 ---
 
-## 品牌加密与密钥派生
+## 品牌加密
 
-`lib/brand` 使用 AES-256-GCM 进行品牌数据加密，密钥通过 `derive_key` 派生。
-
-### 密钥派生（PBKDF2-HMAC-SHA256）
-
-`derive_key` 使用标准 **PBKDF2-HMAC-SHA256**，迭代 **100,000 轮**（OWASP 2023 阈值），取代早期的迭代 SHA-256。所有经 `derive_key` 派生的密钥所加密的持久化数据（如加密品牌技能包）都会受影响。
-
-- `salt` 参数默认为空数组，保持确定性——适合单元测试与固定盐场景。
-- 生产调用方应始终传入**唯一的随机 salt**，并将 salt 与加密数据一同持久化。
+`lib/brand` 使用 AES-256-GCM 加密，密钥通过 PBKDF2-HMAC-SHA256（100,000 轮）派生。
 
 ### 升级后重新激活品牌
 
-升级到含 "Brand Crypto 加固" 变更的版本后，旧版派生密钥（迭代 SHA-256）无法解密已加密的品牌数据，请按以下方式重建品牌状态：
+升级到含 "Brand Crypto 加固" 变更的版本后，旧版派生密钥无法解密已有品牌数据：
 
-1. **手动清除**（推荐）：删除 `~/.mbopenclacky/brand.toml` 中的 `license_key` 字段，或直接删除整个 `brand.toml` 后重新激活。
-2. **命令行**（如构建已暴露）：运行 `moon run cmd -- --brand-restart`（若 CLI 未提供该旗标，请用手动方式）。
-3. 使用许可证密钥重新激活：`LicenseValidator::activate(key, timestamp)`。
-4. 加密技能包需重新下载并解密。
-
-### 弱桩路径安全约束（MBOPENCLACKY_NO_OPENSSL）
-
-`scripts/check-crypto-build.sh` 与 `brand_stubs.c` 共同保障不安全桩代码无法进入生产：
-
-- **编译期**：`brand_stubs.c` 在未同时定义 `MBOPENCLACKY_INSECURE_DEBUG_BUILD` 时直接 `#error`，使不安全桩根本无法被编译。它仅在显式 `-DMBOPENCLACKY_NO_OPENSSL`（无 libcrypto 且无 Windows CNG 的极简/调试构建）时编入。
-- **CI / 构建脚本**：`scripts/check-crypto-build.sh release` 在 `MBOPENCLACKY_NO_OPENSSL` 与 release 组合下返回非零退出码，CI 步骤 `Guard insecure crypto build` 会因此失败。
-
-> ⚠️ 该不安全桩使用非随机 nonce、全零密文，**严禁用于 release / 生产构建**。Windows 正常构建走 `crypto_native.c` 的 BCrypt 路径，无需 OpenSSL。
+1. 删除 `~/.mbopenclacky/brand.toml`（或仅清除 `license_key` 字段）
+2. 使用许可证密钥重新激活
+3. 加密技能包需重新下载并解密
 
 ---
 

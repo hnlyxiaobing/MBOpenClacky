@@ -8,7 +8,7 @@
 
 ## 状态说明
 
-- `open`：真实缺口，已确认；除注明外均属本期范围外（范围冻结见 `docs/improvement-roadmap.md` §5）
+- `open`：真实缺口，已确认；除注明外均属本期范围外（范围冻结见 `docs/improvement-execution-plan.md` §2）
 - `retracted`：撤回（误报或不再适用）
 
 > 已修复条目（`fixed`）归档至 [`docs/resolved-gaps.md`](resolved-gaps.md)，不再参与本文的 CI 校验。
@@ -33,13 +33,13 @@
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。
 
-当前命中 **67** 条（另有 117 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
+当前命中 **66** 条（另有 118 条域术语命中被抑制，抑制规则及理由见 §抑制规则）。
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
 | cmd/channel_scaffold.mbt:88 | stub | "///\|\n/// \{platform} channel adapter implementation.\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config\n} derive(Debug |
 | lib/agent/diagnostics.mbt:9 | stub | /// Write one diagnostic line to stderr (a newline is appended by the stub). |
-| lib/agent/react.mbt:348 | not-yet | // here — not yet ported.) |
+| lib/agent/react.mbt:412 | not-yet | // here — not yet ported.) |
 | lib/brand/crypto.mbt:215 | stub | // ---- WASM fallback stubs ---- |
 | lib/brand/device.mbt:33 | TODO | /// TODO: Replace with FFI to GetComputerNameW / gethostname(). |
 | lib/brand/device.mbt:47 | TODO | /// TODO: Replace with FFI to GetUserNameW / getpwuid(). |
@@ -83,7 +83,7 @@
 | lib/telemetry/telemetry.mbt:110 | TODO,placeholder | // HTTP POST (placeholder: TODO FFI, fire-and-forget background) |
 | lib/telemetry/telemetry.mbt:127 | placeholder | // Check for Docker indicators (placeholder) |
 | lib/telemetry/telemetry.mbt:146 | placeholder | // Simple deterministic hash (placeholder for SHA256) |
-| lib/tool/browser.mbt:476 | stub | /// Falls back to a stub error message when MCP is not connected. |
+| lib/tool/browser.mbt:483 | stub | /// Falls back to a stub error message when MCP is not connected. |
 | lib/tool/pty_session_wasm.mbt:6 | stub | /// wasm stub of execute_command_sync, which reports failure (-1). |
 | lib/tool/pty_session_wasm.mbt:10 | stub | /// (stubbed) synchronous executor. |
 | lib/tool/registry.mbt:59 | not-yet | // Other tool aliases (not yet implemented, but registered for future use) |
@@ -92,7 +92,6 @@
 | lib/utils/browser_detector.mbt:140 | TODO | /// Detect installed browsers (TODO: FFI needed for filesystem scan). |
 | lib/utils/browser_detector.mbt:142 | TODO | // TODO: implement via FFI filesystem scan |
 | lib/utils/epipe_safe_io.mbt:20 | stub | /// Safe write to stdout. In wasm-gc target this is a stub that always succeeds. |
-| lib/utils/workspace_rules.mbt:54 | TODO | // TODO: actual filesystem implementation - scan first-level subdirectories |
 | lib/web/ext_dispatcher.mbt:7 | stub | /// temporary body file. When `command` is empty, it falls back to a stub |
 | lib/web/ext_dispatcher.mbt:143 | stub | " (stub)" |
 | lib/web/ext_dispatcher.mbt:427 | stub | /// If `command` is empty, the handler returns a stub response and logs a warning. |
@@ -102,7 +101,7 @@
 | lib/web/handlers_extra.mbt:13 | not-yet | /// capability not yet exposed by the git_exec layer, so it is deferred; |
 | lib/web/handlers_extra.mbt:1192 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
 | lib/web/handlers_extra.mbt:1218 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
-| lib/web/handlers_store.mbt:227 | not-yet | "message": "Remote extension download is not yet supported. Install from local path instead.".to_json(), |
+| lib/web/handlers_store.mbt:227 | not-yet | "message": Json("Remote extension download is not yet supported. Install from local path instead."), |
 | lib/web/handlers_version.mbt:287 | not-yet | message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.", |
 
 <!-- END: auto-scan -->
@@ -131,7 +130,7 @@
 | 位置 | 状态 | 交付物 | 说明 |
 |---|---|---|---|
 | cmd/channel_scaffold.mbt:88 | open | 范围外（channel 脚手架） | 脚手架模板生成的适配器为有意起点代码 |
-| lib/agent/react.mbt:348 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
+| lib/agent/react.mbt:412 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
 | lib/agent/diagnostics.mbt:9 | retracted | 误报（域术语） | 注释里的 "stub" 指实现 stderr 路由的 **C stub 本体**（`stderr_stub.c` 的 `mbopenclacky_write_stderr`，由 `write_diagnostic` 调用），属实现本体而非占位——与 `pty_stubs.c`/`time_stub.c` 同类。建议后续并入 §抑制规则 的 C 辅助文件族 |
 | lib/brand/crypto.mbt:215 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/device.mbt:33 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
@@ -176,7 +175,7 @@
 | lib/telemetry/telemetry.mbt:110 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:127 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:146 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
-| lib/tool/browser.mbt:476 | open | 范围外（browser 工具） | MCP 未连接时的回退错误消息（设计行为：无 MCP 则无法调用浏览器工具，诚实报错） |
+| lib/tool/browser.mbt:483 | open | 范围外（browser 工具） | MCP 未连接时的回退错误消息（设计行为：无 MCP 则无法调用浏览器工具，诚实报错） |
 | lib/tool/pty_session_wasm.mbt:6 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/tool/pty_session_wasm.mbt:10 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/tool/registry.mbt:59 | open | 范围外（tool 别名） | 部分别名注册但未实现 |
@@ -185,7 +184,6 @@
 | lib/utils/browser_detector.mbt:140 | open | 范围外（browser 运维） | 浏览器检测 FFI 未实现 |
 | lib/utils/browser_detector.mbt:142 | open | 范围外（browser 运维） | 浏览器检测 FFI 未实现 |
 | lib/utils/epipe_safe_io.mbt:20 | open | 范围外（wasm） | wasm 目标回退 stub |
-| lib/utils/workspace_rules.mbt:54 | open | 范围外（utils） | 子目录扫描未实现 |
 | lib/web/ext_dispatcher.mbt:7 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:143 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:427 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |

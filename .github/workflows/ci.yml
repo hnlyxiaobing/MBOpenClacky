@@ -20,15 +20,23 @@ jobs:
       # No apt-get step needed — the old workflow spent 30-60s installing packages
       # that were already present.
 
-      # Cache ~/.moon keyed by OS+arch. When the toolchain updates, the version
-      # string in cache key changes → cache miss → fresh download. Same safety as
-      # always-install, but free on cache hits (~30s saved per job).
+      # Compute a weekly cache-buster key for the toolchain. This ensures the
+      # cached toolchain refreshes at least once per week, preventing stale
+      # versions from breaking builds when MoonBit releases updates.
+      - name: Compute toolchain cache-buster week
+        id: toolchain_buster
+        run: echo "week=$(date +'%Y-w%V')" >> "$GITHUB_OUTPUT"
+
+      # Cache ~/.moon keyed by OS+arch+week. The week-based key ensures
+      # automatic invalidation when the toolchain updates, preventing stale
+      # cached versions from breaking builds. Same safety as always-install,
+      # but free on cache hits within the same week (~30s saved per job).
       - name: Cache MoonBit toolchain
         id: toolchain-cache
         uses: actions/cache@v6
         with:
           path: ~/.moon
-          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain
+          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain-${{ steps.toolchain_buster.outputs.week }}
 
       - name: Install MoonBit toolchain
         if: steps.toolchain-cache.outputs.cache-hit != 'true'
@@ -93,12 +101,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Compute toolchain cache-buster week
+        id: toolchain_buster
+        run: echo "week=$(date +'%Y-w%V')" >> "$GITHUB_OUTPUT"
+
       - name: Cache MoonBit toolchain
         id: toolchain-cache
         uses: actions/cache@v6
         with:
           path: ~/.moon
-          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain
+          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain-${{ steps.toolchain_buster.outputs.week }}
 
       - name: Install MoonBit toolchain
         if: steps.toolchain-cache.outputs.cache-hit != 'true'
