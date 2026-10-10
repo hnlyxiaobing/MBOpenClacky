@@ -1,19 +1,37 @@
 {
   "id": "cli_model_switch",
-  "title": "CLI --model flag switches the active model",
+  "title": "CLI --model flag selects the active model",
   "area": "cli",
-  "description": "用户通过 --model 指定非默认模型运行一次性任务：mock upstream 收到请求的模型名与指定模型一致，stdout 输出成功。",
+  "description": "User passes --model to select a specific model from config; mock upstream receives the request and stdout shows success.",
   "timeout_ms": 120000,
   "permission_mode": "auto_approve",
   "seed": [],
   "llm_steps": [
-    { "response": { "type": "content", "text": "Hello from mock-model-b!", "usage": { "prompt_tokens": 40, "completion_tokens": 8 } } }
+    {
+      "response": {
+        "type": "content",
+        "text": "Hello from mock-model!",
+        "usage": { "prompt_tokens": 40, "completion_tokens": 8 }
+      }
+    }
   ],
   "phases": [
-    { "name": "run_with_model", "steps": [
-      { "action": "spawn_cli", "message": "hello", "json": true, "mode": "auto_approve", "extra_args": ["--model", "mock-model-b"] },
-      { "action": "wait_child", "timeout_ms": 90000 }
-    ] }
+    {
+      "name": "run_with_model",
+      "steps": [
+        {
+          "action": "spawn_cli",
+          "message": "hello",
+          "json": true,
+          "mode": "auto_approve",
+          "extra_args": ["--model", "mock-model"]
+        },
+        {
+          "action": "wait_child",
+          "timeout_ms": 90000
+        }
+      ]
+    }
   ],
   "assertions": [
     { "type": "exit_code", "code": 0 },
