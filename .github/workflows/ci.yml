@@ -172,7 +172,18 @@ jobs:
             moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Build (native release)
-        run: moon build --target native --release cmd -j "$(nproc)"
+        run: |
+          set +e
+          moon version
+          moon build --target native --release cmd -j "$(nproc)" 2>&1 | tee /tmp/moon_build.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::moon build failed with exit code $EXIT_CODE"
+            echo "=== Full build output ==="
+            cat /tmp/moon_build.log
+            exit $EXIT_CODE
+          fi
 
       - name: Run tests (module packages)
         # Scoped to lib/cmd/test minus lib/mcp. Debug mode: the old --release
