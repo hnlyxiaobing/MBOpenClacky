@@ -39,7 +39,7 @@
 |---|---|---|
 | cmd/channel_scaffold.mbt:88 | stub | "///\|\n/// \{platform} channel adapter implementation.\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config\n} derive(Debug |
 | lib/agent/diagnostics.mbt:9 | stub | /// Write one diagnostic line to stderr (a newline is appended by the stub). |
-| lib/agent/react.mbt:412 | not-yet | // here — not yet ported.) |
+| lib/agent/react.mbt:415 | not-yet | // here — not yet ported.) |
 | lib/brand/crypto.mbt:215 | stub | // ---- WASM fallback stubs ---- |
 | lib/brand/device.mbt:33 | TODO | /// TODO: Replace with FFI to GetComputerNameW / gethostname(). |
 | lib/brand/device.mbt:47 | TODO | /// TODO: Replace with FFI to GetUserNameW / getpwuid(). |
@@ -130,7 +130,7 @@
 | 位置 | 状态 | 交付物 | 说明 |
 |---|---|---|---|
 | cmd/channel_scaffold.mbt:88 | open | 范围外（channel 脚手架） | 脚手架模板生成的适配器为有意起点代码 |
-| lib/agent/react.mbt:412 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
+| lib/agent/react.mbt:415 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
 | lib/agent/diagnostics.mbt:9 | retracted | 误报（域术语） | 注释里的 "stub" 指实现 stderr 路由的 **C stub 本体**（`stderr_stub.c` 的 `mbopenclacky_write_stderr`，由 `write_diagnostic` 调用），属实现本体而非占位——与 `pty_stubs.c`/`time_stub.c` 同类。建议后续并入 §抑制规则 的 C 辅助文件族 |
 | lib/brand/crypto.mbt:215 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/device.mbt:33 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
