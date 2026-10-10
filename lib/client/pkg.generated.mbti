@@ -25,6 +25,8 @@ pub fn build_bedrock_request(Array[@message.Message], String, Array[Json], Int, 
 
 pub fn build_openai_request(Array[@message.Message], String, Array[Json], Int, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
 
+pub fn build_openai_responses_request(Array[@message.Message], String, Array[Json], Int, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
+
 pub fn extract_error_code(String) -> String?
 
 pub fn extract_error_message(String) -> String
@@ -32,6 +34,8 @@ pub fn extract_error_message(String) -> String
 pub fn format_anthropic_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
 
 pub fn format_bedrock_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
+
+pub fn format_openai_responses_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
 
 pub fn format_openai_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
 
@@ -64,6 +68,8 @@ pub fn parse_anthropic_response(Json) -> LlmResponse
 pub fn parse_bedrock_response(Json) -> LlmResponse
 
 pub fn parse_openai_response(Json) -> LlmResponse
+
+pub fn parse_openai_responses_response(Json) -> LlmResponse
 
 pub fn parse_sse_frame(String) -> SseFrame?
 
@@ -133,6 +139,7 @@ pub fn Client::build_url(Self, String) -> String
 pub fn Client::format_tool_results(Self, LlmResponse, Map[String, String]) -> Array[@message.Message]
 pub fn Client::is_anthropic_format(Self) -> Bool
 pub fn Client::is_bedrock_format(Self) -> Bool
+pub fn Client::is_responses_format(Self) -> Bool
 pub fn Client::new(String, String, String, @config.ApiType, provider_id? : String?, vision_supported? : Bool?) -> Self
 pub fn Client::openai_headers(Self) -> Map[String, String]
 pub fn Client::parse_response(Self, Json) -> LlmResponse
@@ -206,6 +213,26 @@ pub fn LlmResponse::text_only(String) -> Self
 pub fn LlmResponse::to_json(Self) -> Json
 pub fn LlmResponse::to_repr(Self) -> @debug.Repr
 
+pub(all) struct OpenAiResponsesStreamAggregator {
+  mut content_parts : Array[String]
+  mut content_len : Int
+  mut reasoning_parts : Array[String]
+  mut reasoning_len : Int
+  mut tool_calls : Array[ResponsesToolCallAcc]
+  mut current_item_type : String?
+  mut current_item_index : Int
+  mut finish_reason : String?
+  mut usage : Usage?
+  mut frames_seen : Int
+  mut bytes_seen : Int
+  mut parse_failures : Int
+}
+pub fn OpenAiResponsesStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn OpenAiResponsesStreamAggregator::handle(Self, String, String) -> Unit
+pub fn OpenAiResponsesStreamAggregator::handle_delta(Self, String, String) -> String
+pub fn OpenAiResponsesStreamAggregator::new() -> Self
+pub fn OpenAiResponsesStreamAggregator::to_response(Self) -> LlmResponse
+
 pub(all) struct OpenAiStreamAggregator {
   mut content_parts : Array[String]
   mut content_len : Int
@@ -256,6 +283,8 @@ pub fn PlatformHttpConfig::equal(Self, Self) -> Bool
 pub fn PlatformHttpConfig::new(primary_host~ : String, secondary_host? : String, fallback_host? : String, open_timeout_ms? : Int, read_timeout_ms? : Int, max_retries? : Int, initial_backoff_ms? : Int, proxy_url? : String) -> Self
 pub fn PlatformHttpConfig::not_equal(Self, Self) -> Bool
 pub fn PlatformHttpConfig::to_repr(Self) -> @debug.Repr
+
+type ResponsesToolCallAcc
 
 pub(all) struct SendRequest {
   messages : Array[@message.Message]

@@ -6,6 +6,7 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/client",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/errors",
+  "hnlyxiaobing/MBOpenClacky/lib/hook",
   "hnlyxiaobing/MBOpenClacky/lib/message",
   "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/skill",
@@ -58,7 +59,7 @@ pub fn build_compressed_summary_with_chunks(String, String, chunk_path? : String
 
 pub fn build_compression_message() -> @message.Message
 
-pub fn build_denied_result(@message.ToolCall, String?) -> ToolResultEntry
+pub fn build_denied_result(@message.ToolCall, String?, system_injected? : Bool) -> ToolResultEntry
 
 pub fn build_error_result(@message.ToolCall, String) -> ToolResultEntry
 
@@ -194,6 +195,8 @@ pub let max_sessions : Int
 
 pub let max_tool_output_chars : Int
 
+pub fn merge_into_previous_chunk(String, Int, Array[@message.Message], Int, String, String, topics? : String?) -> String?
+
 pub let message_count_threshold : Int
 
 pub fn ms_to_iso8601(Int64) -> String
@@ -214,9 +217,13 @@ pub fn prepare_cli_attachments(Array[String]) -> Array[Attachment] raise @errors
 
 pub fn pulled_back_messages(Array[@message.Message], Int) -> (Array[@message.Message], Array[@message.Message])
 
+pub fn read_chunk(String) -> String?
+
 pub fn read_session_log(String) -> SessionLogFile
 
 pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int) -> Array[@message.Message]
+
+pub fn render_message_sections(Array[@message.Message]) -> String
 
 pub fn resolve_attachment_images(Array[Attachment], Bool) -> Array[Attachment]
 
@@ -229,6 +236,8 @@ pub let retry_base_delay_ms : Int
 pub let retry_max_delay_ms : Int
 
 pub fn save_compressed_chunk(Array[@message.Message], String, String, Int, topics? : String?) -> Result[String, String]
+
+pub fn save_or_merge_chunk(Array[@message.Message], String, String, Int, topics? : String?) -> Result[String, String]
 
 pub fn save_session(SessionData) -> Unit raise @moonbitlang/x/fs.IOError
 
@@ -245,6 +254,8 @@ pub fn set_retry_delay_override_for_test(Int?) -> Unit
 pub fn should_skip_compression(Double) -> Bool
 
 pub fn should_trigger_idle_compression(Array[@message.Message], Int) -> Bool
+
+pub fn split_chunk_md(String) -> (Array[(String, String)], String)?
 
 pub let target_compressed_tokens : Int
 
@@ -312,6 +323,8 @@ pub(all) struct Agent {
   mut upstream_truncation_hint_injected : Bool
   mut task_timeout_hint_injected : Bool
   hook_manager : HookManager
+  mut shell_hooks : Array[@hook.ShellHook]
+  mut session_rollback_pending : Bool
   patch_chain : PatchChain
   mut confirmation_callback : ((String, String) -> Bool)?
   mut confirmation_request : @aqueue.Queue[(String, String)]?
