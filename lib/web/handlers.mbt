@@ -433,11 +433,10 @@ fn handle_delete_session(
   // payload was already deleted would make "restored" a fake success).
   // In-memory-only sessions have no on-disk payload and are not trashed.
   match @agent.load_session(id) {
-    Some(data) => {
+    Some(data) =>
       if trash_session_payload(id) > 0 {
         trash_add_session(id, data.name)
       }
-    }
     None => ()
   }
   @agent.delete_session(id)
@@ -663,14 +662,14 @@ fn media_capabilities_json(cfg : @config.AgentConfig) -> Json {
   let caps : Map[String, Json] = Map([])
   let ocr = cfg.find_model_by_type("ocr")
   caps["vision"] = Json::object({
-    "configured": Json((ocr is Some(_))),
+    "configured": Json(ocr is Some(_)),
     "primary": Json(false),
     "model": config_media_opt_str(ocr.map(fn(m) { m.model })),
   })
   for kind in ["image", "video", "audio", "stt", "video_understanding"] {
     let entry = cfg.find_model_by_type(kind)
     caps[kind] = Json::object({
-      "configured": Json((entry is Some(_))),
+      "configured": Json(entry is Some(_)),
       "model": config_media_opt_str(entry.map(fn(m) { m.model })),
     })
   }

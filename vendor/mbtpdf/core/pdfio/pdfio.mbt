@@ -178,7 +178,7 @@ pub fn copybytes(bytes : MutableBytes) -> MutableBytes {
 /// Build an input from bytes.
 pub fn Input::of_bytes(
   bytes : MutableBytes,
-  source? : String = "bytes",
+  source~ : String = "bytes",
 ) -> Input {
   let mut pos = 0
   let mut offset = 0
@@ -208,7 +208,7 @@ pub fn Input::of_bytes(
 
 ///|
 /// Build an input from a string.
-pub fn Input::of_string(s : String, source? : String = "string") -> Input {
+pub fn Input::of_string(s : String, source~ : String = "string") -> Input {
   Input::of_bytes(bytes_of_string(s), source~)
 }
 

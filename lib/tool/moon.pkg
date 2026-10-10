@@ -19,6 +19,10 @@ import {
 
 supported_targets = "native"
 
+import {
+  "moonbitlang/core/ref",
+} for "wbtest"
+
 options(
   "native-stub": [ "stat_native.c", "browser_popen.c" ],
   targets: {
@@ -32,7 +36,3 @@ options(
     "shell_exec_wbtest.mbt": [ "native" ],
   },
 )
-
-import {
-  "moonbitlang/core/ref",
-} for "wbtest"

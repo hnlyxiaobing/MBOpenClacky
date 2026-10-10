@@ -157,7 +157,7 @@ pub fn BenchmarkRunner::generate_report(
 /// Convert benchmark results to a unified report
 pub fn benchmark_results_to_unified_report(
   results : Array[(String, BenchmarkStats)],
-  suite_name? : String = "benchmark",
+  suite_name~ : String = "benchmark",
 ) -> @eval.UnifiedReport {
   let suites : Array[@eval.UnifiedSuiteResult] = []
   let mut passed_count = 0

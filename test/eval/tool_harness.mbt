@@ -505,7 +505,7 @@ pub(all) struct EvalScoreVector {
 pub fn HarnessReport::score(
   self : HarnessReport,
   trials : Int,
-  cost_usd? : Double = 0.0,
+  cost_usd~ : Double = 0.0,
 ) -> EvalScoreVector {
   let tasks : Array[String] = []
   let mut assertions = 0
@@ -591,7 +591,7 @@ pub fn HarnessReport::to_score_json(
   self : HarnessReport,
   mode : String,
   trials : Int,
-  cost_usd? : Double = 0.0,
+  cost_usd~ : Double = 0.0,
 ) -> Json {
   let score = self.score(trials, cost_usd~)
   let results : Array[Json] = []
@@ -633,7 +633,7 @@ pub fn HarnessReport::to_markdown(
   self : HarnessReport,
   mode : String,
   trials : Int,
-  cost_usd? : Double = 0.0,
+  cost_usd~ : Double = 0.0,
 ) -> String {
   let score = self.score(trials, cost_usd~)
   let lines : Array[String] = []

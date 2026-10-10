@@ -20,8 +20,8 @@
 fn ex_make_event(
   http_method : @crescent.HttpMethod,
   url : String,
-  body? : String = "",
-  params? : Array[(String, String)] = [],
+  body~ : String = "",
+  params~ : Array[(String, String)] = [],
 ) -> @crescent.Event {
   let pmap : Map[String, StringView] = Map([])
   for t in params {

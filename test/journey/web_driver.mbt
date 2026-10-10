@@ -97,17 +97,21 @@ async fn http_step(
     @client.HttpError,
   ] = match verb_norm {
     "POST" =>
-      @client.http_post(url, expanded_body, expanded_headers, timeout_ms).map(
-        fn(r) { (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers) },
-      )
+      @client.http_post(url, expanded_body, expanded_headers, timeout_ms).map(fn(
+        r,
+      ) {
+        (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers)
+      })
     "DELETE" =>
       @client.http_delete(url, expanded_headers, timeout_ms).map(fn(r) {
         (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers)
       })
     "PATCH" =>
-      @client.http_patch(url, expanded_body, expanded_headers, timeout_ms).map(
-        fn(r) { (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers) },
-      )
+      @client.http_patch(url, expanded_body, expanded_headers, timeout_ms).map(fn(
+        r,
+      ) {
+        (r.status_code, r.body, @utf8.encode(r.body).length(), r.headers)
+      })
     _ =>
       @client.http_get_bytes(url, expanded_headers, timeout_ms).map(fn(r) {
         (r.status_code, @utf8.decode_lossy(r.body), r.body.length(), r.headers)
@@ -129,7 +133,9 @@ async fn http_step(
           "body": Json(resp_body),
         }).stringify(),
       )
-      state.trace.push("[\{phase_name}] \{verb_norm} \{path} → \{status_code}")
+      state.trace.push(
+        "[\{phase_name}] \{verb_norm} \{path} → \{status_code}",
+      )
       if capture.length() > 0 {
         if !capture_json_field(ctx, resp_body, capture) {
           state.error = "[\{phase_name}] http capture '\{capture}' not found in response body"

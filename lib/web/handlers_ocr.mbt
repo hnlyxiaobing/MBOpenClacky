@@ -267,7 +267,11 @@ async fn handle_config_ocr_test(
           )
         _ =>
           @core.HttpResponse::ok().json_value(
-            Json(OCRTestResponse::{ ok: false, text: None, error: result.error, }),
+            Json(OCRTestResponse::{
+              ok: false,
+              text: None,
+              error: result.error,
+            }),
           )
       }
     }

@@ -56,7 +56,7 @@ pub fn trash_filename(original_path : String, timestamp : String) -> String {
 /// Create a trash entry with metadata.
 pub fn create_trash_entry(
   original_path : String,
-  timestamp? : String = "",
+  timestamp~ : String = "",
 ) -> TrashEntry {
   let ts = if timestamp.is_empty() { "1970-01-01T00:00:00Z" } else { timestamp }
   let trash_name = trash_filename(original_path, ts)
@@ -345,9 +345,7 @@ pub fn list_trash_entries(trash_dir : String) -> Array[TrashEntry] {
   // deleted_at 是 ISO 8601 字符串，必须走字典序比较器：core `String::compare`
   // 是 shortlex（先比长度），带小数秒/不同偏移量时长度不齐会排错（BUG-0079）。
   let sorted = entries
-  sorted.sort_by(fn(a, b) {
-    compare_lexicographic(b.deleted_at, a.deleted_at)
-  })
+  sorted.sort_by(fn(a, b) { compare_lexicographic(b.deleted_at, a.deleted_at) })
   sorted
 }
 

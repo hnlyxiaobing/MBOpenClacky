@@ -7,9 +7,7 @@ fn handle_agents_list(
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let agents = load_agents_from_assets()
-  @core.HttpResponse::ok().json_value(
-    Json::object({ "agents": Json(agents) }),
-  )
+  @core.HttpResponse::ok().json_value(Json::object({ "agents": Json(agents) }))
 }
 
 ///|
@@ -142,7 +140,7 @@ fn load_agents_from_assets() -> Array[Json] {
     // fix-20 (I-034): avatar follows orig semantics — "/agent_avatar/<id>"
     // when the agent dir ships an avatar.png, null otherwise.
     let avatar : Json = if @fs.path_exists(agent_dir + "/avatar.png") {
-      Json(("/agent_avatar/" + id))
+      Json("/agent_avatar/" + id)
     } else {
       Json::null()
     }

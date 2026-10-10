@@ -263,44 +263,44 @@ fn merge_components(
 pub fn box(
   children : Array[Component],
   // ID
-  id? : String = "",
+  id~ : String = "",
   // Layout
-  width? : @values.Dimension = @values.Dimension::Auto,
-  height? : @values.Dimension = @values.Dimension::Auto,
-  min_width? : @values.Dimension = @values.Dimension::Auto,
-  min_height? : @values.Dimension = @values.Dimension::Auto,
-  max_width? : @values.Dimension = @values.Dimension::Auto,
-  max_height? : @values.Dimension = @values.Dimension::Auto,
-  flex_grow? : Double = 0.0,
-  flex_shrink? : Double = 1.0,
-  flex_basis? : @values.Dimension = @values.Dimension::Auto,
-  flex_direction? : @values.FlexDirection = @values.FlexDirection::Row,
-  flex_wrap? : @values.FlexWrap = @values.FlexWrap::NoWrap,
-  justify_content? : @values.Alignment = @values.Alignment::FlexStart,
-  align_items? : @values.Alignment = @values.Alignment::Stretch,
-  align_content? : @values.Alignment = @values.Alignment::Stretch,
-  gap? : Double = 0.0,
-  padding? : Double = 0.0,
-  padding_x? : Double = 0.0,
-  padding_y? : Double = 0.0,
-  margin? : Double = 0.0,
-  margin_x? : Double = 0.0,
-  margin_y? : Double = 0.0,
+  width~ : @values.Dimension = @values.Dimension::Auto,
+  height~ : @values.Dimension = @values.Dimension::Auto,
+  min_width~ : @values.Dimension = @values.Dimension::Auto,
+  min_height~ : @values.Dimension = @values.Dimension::Auto,
+  max_width~ : @values.Dimension = @values.Dimension::Auto,
+  max_height~ : @values.Dimension = @values.Dimension::Auto,
+  flex_grow~ : Double = 0.0,
+  flex_shrink~ : Double = 1.0,
+  flex_basis~ : @values.Dimension = @values.Dimension::Auto,
+  flex_direction~ : @values.FlexDirection = @values.FlexDirection::Row,
+  flex_wrap~ : @values.FlexWrap = @values.FlexWrap::NoWrap,
+  justify_content~ : @values.Alignment = @values.Alignment::FlexStart,
+  align_items~ : @values.Alignment = @values.Alignment::Stretch,
+  align_content~ : @values.Alignment = @values.Alignment::Stretch,
+  gap~ : Double = 0.0,
+  padding~ : Double = 0.0,
+  padding_x~ : Double = 0.0,
+  padding_y~ : Double = 0.0,
+  margin~ : Double = 0.0,
+  margin_x~ : Double = 0.0,
+  margin_y~ : Double = 0.0,
   // Position (for overlay support)
-  position? : @values.Position = @values.Position::Static,
-  inset_top? : @values.Dimension = @values.Dimension::Auto,
-  inset_right? : @values.Dimension = @values.Dimension::Auto,
-  inset_bottom? : @values.Dimension = @values.Dimension::Auto,
-  inset_left? : @values.Dimension = @values.Dimension::Auto,
+  position~ : @values.Position = @values.Position::Static,
+  inset_top~ : @values.Dimension = @values.Dimension::Auto,
+  inset_right~ : @values.Dimension = @values.Dimension::Auto,
+  inset_bottom~ : @values.Dimension = @values.Dimension::Auto,
+  inset_left~ : @values.Dimension = @values.Dimension::Auto,
   // Style
-  border? : BorderChars? = None,
-  border_color? : Color = Color::white(),
-  bg? : Color = Color::transparent(),
-  fg? : Color = Color::white(),
+  border~ : BorderChars? = None,
+  border_color~ : Color = Color::white(),
+  bg~ : Color = Color::transparent(),
+  fg~ : Color = Color::white(),
   // Event handler
-  on_click? : (() -> Unit)? = None,
+  on_click~ : (() -> Unit)? = None,
   // Accessibility
-  role? : Role? = None,
+  role~ : Role? = None,
 ) -> Component {
   let actual_id = if id == "" { next_id() } else { id }
 
@@ -397,10 +397,10 @@ pub fn box(
 /// Create a text component
 pub fn text(
   content : String,
-  fg? : Color = Color::white(),
-  bg? : Color = Color::transparent(),
-  bold? : Bool = false,
-  underline? : Bool = false,
+  fg~ : Color = Color::white(),
+  bg~ : Color = Color::transparent(),
+  bold~ : Bool = false,
+  underline~ : Bool = false,
 ) -> Component {
   let id = next_id()
 
@@ -435,10 +435,10 @@ pub fn text(
 /// Create a styled text (alias for text with labeled arguments)
 pub fn styled_text(
   content : String,
-  fg? : Color = Color::white(),
-  bg? : Color = Color::transparent(),
-  bold? : Bool = false,
-  underline? : Bool = false,
+  fg~ : Color = Color::white(),
+  bg~ : Color = Color::transparent(),
+  bold~ : Bool = false,
+  underline~ : Bool = false,
 ) -> Component {
   text(content, fg~, bg~, bold~, underline~)
 }
@@ -449,33 +449,33 @@ pub fn styled_text(
 pub fn text_box(
   content : String,
   // ID
-  id? : String = "",
+  id~ : String = "",
   // Size
-  width? : @values.Dimension = @values.Dimension::Auto,
-  height? : @values.Dimension = @values.Dimension::Auto,
-  min_width? : @values.Dimension = @values.Dimension::Auto,
-  min_height? : @values.Dimension = @values.Dimension::Auto,
-  max_width? : @values.Dimension = @values.Dimension::Auto,
-  max_height? : @values.Dimension = @values.Dimension::Auto,
+  width~ : @values.Dimension = @values.Dimension::Auto,
+  height~ : @values.Dimension = @values.Dimension::Auto,
+  min_width~ : @values.Dimension = @values.Dimension::Auto,
+  min_height~ : @values.Dimension = @values.Dimension::Auto,
+  max_width~ : @values.Dimension = @values.Dimension::Auto,
+  max_height~ : @values.Dimension = @values.Dimension::Auto,
   // Flex properties
-  flex_grow? : Double = 0.0,
-  flex_shrink? : Double = 1.0,
-  flex_basis? : @values.Dimension = @values.Dimension::Auto,
+  flex_grow~ : Double = 0.0,
+  flex_shrink~ : Double = 1.0,
+  flex_basis~ : @values.Dimension = @values.Dimension::Auto,
   // Padding & Margin
-  padding? : Double = 0.0,
-  padding_x? : Double = 0.0,
-  padding_y? : Double = 0.0,
-  margin? : Double = 0.0,
-  margin_x? : Double = 0.0,
-  margin_y? : Double = 0.0,
+  padding~ : Double = 0.0,
+  padding_x~ : Double = 0.0,
+  padding_y~ : Double = 0.0,
+  margin~ : Double = 0.0,
+  margin_x~ : Double = 0.0,
+  margin_y~ : Double = 0.0,
   // Border
-  border? : BorderChars? = None,
-  border_color? : Color = Color::white(),
+  border~ : BorderChars? = None,
+  border_color~ : Color = Color::white(),
   // Style
-  bg? : Color = Color::transparent(),
-  fg? : Color = Color::white(),
-  bold? : Bool = false,
-  underline? : Bool = false,
+  bg~ : Color = Color::transparent(),
+  fg~ : Color = Color::white(),
+  bold~ : Bool = false,
+  underline~ : Bool = false,
 ) -> Component {
   let actual_id = if id == "" { next_id() } else { id }
 
@@ -537,7 +537,7 @@ pub fn text_box(
 
 ///|
 /// Spacer component - flexible empty space
-pub fn spacer(flex_grow? : Double = 1.0) -> Component {
+pub fn spacer(flex_grow~ : Double = 1.0) -> Component {
   let id = next_id()
   let style = @style.Style::default()
   style.flex_grow = flex_grow

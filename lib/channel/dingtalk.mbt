@@ -179,10 +179,9 @@ pub impl Adapter for DingTalkAdapter with fn start(
 ///|
 /// Resolve the Stream Mode endpoint: an explicit override when set, otherwise
 /// the gateway's `open_stream_connection` handshake (endpoint + ticket).
-pub async fn DingTalkAdapter::resolve_stream_endpoint(self : DingTalkAdapter) -> Result[
-  String,
-  ChannelError,
-] {
+pub async fn DingTalkAdapter::resolve_stream_endpoint(
+  self : DingTalkAdapter,
+) -> Result[String, ChannelError] {
   if !self.stream_url.is_empty() {
     return Ok(self.stream_url)
   }
@@ -194,11 +193,12 @@ pub async fn DingTalkAdapter::resolve_stream_endpoint(self : DingTalkAdapter) ->
         Err(e) => Err(e)
       }
     }
-    None => Err(
-      ChannelError(
-        "Stream Mode requires app_key/app_secret (no API client configured)",
-      ),
-    )
+    None =>
+      Err(
+        ChannelError(
+          "Stream Mode requires app_key/app_secret (no API client configured)",
+        ),
+      )
   }
 }
 
@@ -235,7 +235,9 @@ pub async fn DingTalkAdapter::run_stream_loop(self : DingTalkAdapter) -> Unit {
               ignore(client.send_text(build_stream_pong().stringify()))
             StreamInboundAction::AckAndDispatch(message_id~, data~) => {
               if !message_id.is_empty() {
-                ignore(client.send_text(build_stream_ack(message_id).stringify()))
+                ignore(
+                  client.send_text(build_stream_ack(message_id).stringify()),
+                )
               }
               match DingTalkAdapter::parse_event(data) {
                 Ok(event) =>
@@ -260,7 +262,9 @@ pub async fn DingTalkAdapter::run_stream_loop(self : DingTalkAdapter) -> Unit {
 ///|
 /// Double the reconnect backoff (capped) and wait, so a dead gateway is
 /// retried at a sane rate instead of spinning.
-async fn DingTalkAdapter::stream_backoff_and_sleep(self : DingTalkAdapter) -> Unit {
+async fn DingTalkAdapter::stream_backoff_and_sleep(
+  self : DingTalkAdapter,
+) -> Unit {
   let delay = self.stream_backoff_ms
   self.stream_backoff_ms = if delay * 2 > dingtalk_stream_backoff_max_ms {
     dingtalk_stream_backoff_max_ms
@@ -395,9 +399,7 @@ pub impl Adapter for DingTalkAdapter with fn update_message(
 }
 
 ///|
-pub impl Adapter for DingTalkAdapter with fn supports_message_deletion(
-  _self,
-) -> Bool {
+pub impl Adapter for DingTalkAdapter with fn supports_message_deletion(_self) -> Bool {
   false // DingTalk does not support message deletion
 }
 
@@ -831,7 +833,7 @@ pub fn parse_stream_frame(json : Json) -> Result[(String, Json), ChannelError] {
 /// DingTalk requires ACK to confirm message processing.
 pub fn build_stream_ack(message_id : String) -> Json {
   let ack : Map[String, Json] = Map([])
-  ack.set("code", Json((200)))
+  ack.set("code", Json(200))
   ack.set("message", Json("OK"))
   ack.set("messageId", Json(message_id))
   Json::object(ack)

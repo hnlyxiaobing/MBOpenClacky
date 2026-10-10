@@ -56,8 +56,8 @@ pub(all) struct Router {
 pub fn HttpRequest::new(
   http_method : HttpMethod,
   path : String,
-  body? : String = "",
-  headers? : Array[(String, String)] = [],
+  body~ : String = "",
+  headers~ : Array[(String, String)] = [],
 ) -> HttpRequest {
   { http_method, path, params: [], body, headers, }
 }

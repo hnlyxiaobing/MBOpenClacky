@@ -37,7 +37,7 @@ pub fn PdfCodec::encode_pdfstream(
   encoding : Encoding,
   obj : @pdf.PdfObject,
   im? : String,
-  only_if_smaller? : Bool = false,
+  only_if_smaller~ : Bool = false,
   predictor? : Predictor,
   predictor_columns? : Int,
 ) -> Unit raise CodecError {

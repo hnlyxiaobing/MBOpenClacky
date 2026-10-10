@@ -76,10 +76,7 @@ fn resolve_assets_root() -> String {
       Some(dir) =>
         match find_project_root(dir) {
           Some(root) =>
-            return @path.Path::join(
-              @path.Path(root),
-              @path.Path("assets"),
-            ).to_string()
+            return @path.Path::join(@path.Path(root), @path.Path("assets")).to_string()
           None => ()
         }
       None => ()
@@ -134,9 +131,6 @@ fn walk_up(dir : String) -> String? {
 
 ///|
 fn carries_assets(dir : String) -> Bool {
-  let marker = @path.Path::join(
-    @path.Path(dir),
-    @path.Path(ASSETS_MARKER),
-  ).to_string()
+  let marker = @path.Path::join(@path.Path(dir), @path.Path(ASSETS_MARKER)).to_string()
   @fs.path_exists(marker)
 }

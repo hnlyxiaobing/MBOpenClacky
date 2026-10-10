@@ -146,7 +146,9 @@ async fn mock_platform_handle_conn(
     } else if path.contains("getupdates") {
       mock_http_send(conn, 200, "{\"ret\":-1,\"errmsg\":\"invalid token\"}")
     } else if path.contains("getUpdates") {
-      mock_http_send(conn, 500, "{\"ok\":false,\"description\":\"mock outage\"}")
+      mock_http_send(
+        conn, 500, "{\"ok\":false,\"description\":\"mock outage\"}",
+      )
     } else {
       mock_http_send(conn, 500, "{\"message\":\"mock failure\"}")
     }
@@ -633,8 +635,7 @@ async test "discord_get_current_user_mock_round_trip" {
     match client.get_current_user() {
       Ok(json) =>
         match json {
-          Object(obj) =>
-            assert_eq(obj.get("id"), Some(Json("bot-1")))
+          Object(obj) => assert_eq(obj.get("id"), Some(Json("bot-1")))
           _ => assert_true(false)
         }
       Err(_) => assert_true(false)
@@ -673,9 +674,10 @@ async test "discord_download_attachment_mock_round_trip" {
   @async.with_task_group(async fn(group) {
     group.spawn_bg(async fn() { server.serve() })
     let client = DiscordApiClient::with_base_url("tok", server.base_url())
-    match client.download_attachment(
-      server.base_url() + "/attachments/1/report.txt",
-    ) {
+    match
+      client.download_attachment(
+        server.base_url() + "/attachments/1/report.txt",
+      ) {
       Ok(body) => assert_eq(body, "attachment-bytes")
       Err(_) => assert_true(false)
     }
@@ -753,7 +755,9 @@ async test "telegram_long_poll_survives_a_failing_upstream" {
 /// #8：帧分类必须把 ping 答成心跳、data 帧 ACK 后投递、凭据被拒时判致命
 /// （此前 WS 收发全是 stub，接收侧没有接线）。
 test "wecom_frame_classification_drives_the_receive_loop" {
-  let ping : Json = @json.parse("{\"type\":\"ping\"}") catch { _ => Json::null() }
+  let ping : Json = @json.parse("{\"type\":\"ping\"}") catch {
+    _ => Json::null()
+  }
   assert_eq(classify_ws_frame(ping), WsInboundAction::SendPong)
   let data : Json = @json.parse(
     "{\"type\":\"data\",\"req_id\":\"r1\",\"chat_id\":\"c1\",\"content\":\"hi\",\"msg_type\":\"text\",\"from_user_id\":\"u1\"}",
@@ -769,7 +773,8 @@ test "wecom_frame_classification_drives_the_receive_loop" {
           assert_eq(event.chat_id, "c1")
           assert_eq(event.text, "hi")
         }
-        Err(_) => assert_true(false, msg="data frame did not parse into an event")
+        Err(_) =>
+          assert_true(false, msg="data frame did not parse into an event")
       }
     }
     _ => assert_true(false, msg="data frame was not classified as a dispatch")
@@ -860,10 +865,11 @@ test "dingtalk_stream_frame_classification_drives_the_loop" {
     StreamInboundAction::AckAndDispatch(message_id~, data~) => {
       assert_eq(message_id, "m-1")
       match DingTalkAdapter::parse_event(data) {
-        Ok(event) => assert_true(
-          !event.chat_id.is_empty() || event.text.contains("hi"),
-          msg="callback frame did not yield a usable event",
-        )
+        Ok(event) =>
+          assert_true(
+            !event.chat_id.is_empty() || event.text.contains("hi"),
+            msg="callback frame did not yield a usable event",
+          )
         Err(_) => assert_true(false, msg="callback frame did not parse")
       }
     }

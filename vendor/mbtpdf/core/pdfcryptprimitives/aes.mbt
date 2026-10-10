@@ -391,7 +391,7 @@ pub fn PdfCryptPrimitives::aes_decrypt_data(
   nk : Int,
   key : Array[Int],
   data : @pdfio.MutableBytes,
-  remove_padding? : Bool = true,
+  remove_padding~ : Bool = true,
 ) -> @pdfio.MutableBytes {
   let (key_schedule, nr) = expand_key(key, nk)
   let len = @pdfio.bytes_size(data)
@@ -437,7 +437,7 @@ pub fn PdfCryptPrimitives::aes_decrypt_data_ecb(
   nk : Int,
   key : Array[Int],
   data : @pdfio.MutableBytes,
-  remove_padding? : Bool = true,
+  remove_padding~ : Bool = true,
 ) -> @pdfio.MutableBytes {
   let (key_schedule, nr) = expand_key(key, nk)
   let size = @pdfio.bytes_size(data)

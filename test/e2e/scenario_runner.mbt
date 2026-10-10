@@ -162,8 +162,8 @@ pub async fn run_scenario(
   name : String,
   files : Array[(String, String)],
   prompt : String,
-  configure? : (@config.AgentConfig) -> Unit = fn(_) { () },
-  timeout_ms? : Int = 120_000,
+  configure~ : (@config.AgentConfig) -> Unit = fn(_) { () },
+  timeout_ms~ : Int = 120_000,
 ) -> ScenarioOutcome {
   // ── 1. 准备干净工作目录与隔离 HOME ────────────────────────────────
   dir_serial.val = dir_serial.val + 1

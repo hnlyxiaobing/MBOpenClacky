@@ -53,10 +53,13 @@ impl ToJson for TextBlock with fn to_json(self) {
 impl ToJson for ImageBlock with fn to_json(self) {
   Json::object({
     "type": Json("image_url"),
-    "image_url": Json::object(match self.detail {
-      Some(detail) => { "url": ToJson::to_json(self.url), "detail": Json(detail) }
-      None => { "url": ToJson::to_json(self.url) }
-    }),
+    "image_url": Json::object(
+      match self.detail {
+        Some(detail) =>
+          { "url": ToJson::to_json(self.url), "detail": Json(detail) }
+        None => { "url": ToJson::to_json(self.url) }
+      },
+    ),
   })
 }
 

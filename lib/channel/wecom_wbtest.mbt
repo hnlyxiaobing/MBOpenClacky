@@ -131,7 +131,7 @@ test "parse_wecom_text_empty_msg" {
 
 ///|
 test "parse_wecom_text_non_string_value" {
-  let msg : Map[String, Json] = { "Content": Json((42)) }
+  let msg : Map[String, Json] = { "Content": Json(42) }
   assert_eq(parse_wecom_text(msg), "")
 }
 
@@ -163,7 +163,7 @@ test "detect_chat_type_snake_case_group" {
 
 ///|
 test "detect_chat_type_numeric_type_field" {
-  let msg : Map[String, Json] = { "Type": Json((2)) }
+  let msg : Map[String, Json] = { "Type": Json(2) }
   assert_eq(detect_wecom_chat_type(msg), Group)
 }
 

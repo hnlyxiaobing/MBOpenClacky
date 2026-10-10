@@ -176,8 +176,8 @@ test "video_understand_request_from_json_base64" {
   let json : Json = Json::object({
     "video_base64": Json("AAAAIGZ0eQ=="),
     "prompt": Json("What is in this video?"),
-    "max_frames": Json((10)),
-    "interval_seconds": Json((3)),
+    "max_frames": Json(10),
+    "interval_seconds": Json(3),
   })
   let req : VideoUnderstandRequest = @json.from_json(json)
   @debug.assert_eq(req.video_base64, Some("AAAAIGZ0eQ=="))

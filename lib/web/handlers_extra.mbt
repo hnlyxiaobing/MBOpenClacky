@@ -210,7 +210,7 @@ fn enrich_memory_entry(raw : Json) -> Json {
       }
       Json::object({
         "id": Json(id),
-        "filename": Json((id + ".json")),
+        "filename": Json(id + ".json"),
         "topic": Json(topic),
         "description": Json(content),
         "content": Json(content),
@@ -920,10 +920,7 @@ pub fn handle_benchmark_model_get(
         }
       }
       @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": Json(session_id),
-          "model": Json(""),
-        }),
+        Json::object({ "session_id": Json(session_id), "model": Json("") }),
       )
     }
     None => err_no_config()
@@ -1282,16 +1279,13 @@ pub fn handle_session_time_machine_switch(
           @core.HttpResponse::ok().json_value(
             Json::object({
               "ok": Json(true),
-              "message": Json(("Switched to task " + task_id)),
+              "message": Json("Switched to task " + task_id),
               "task_id": Json(task_id),
             }),
           )
         None =>
           @core.HttpResponse::ok().json_value(
-            Json::object({
-              "ok": Json(false),
-              "error": Json("Task not found"),
-            }),
+            Json::object({ "ok": Json(false), "error": Json("Task not found") }),
           )
       }
     }
@@ -1359,7 +1353,7 @@ pub fn handle_config_models_post(
     return @core.HttpResponse::bad_request().json_value(
       Json::object({
         "ok": Json(false),
-        "error": Json(("Missing required field(s): " + missing.join(", "))),
+        "error": Json("Missing required field(s): " + missing.join(", ")),
       }),
     )
   }
@@ -1396,7 +1390,7 @@ pub fn handle_config_models_post(
     Json::object({
       "ok": Json(true),
       "model": Json(mc),
-      "current_index": Json((cfg.models.length() - 1)),
+      "current_index": Json(cfg.models.length() - 1),
     }),
   )
 }
@@ -1649,9 +1643,7 @@ fn handle_files_upload_impl(event : @crescent.Event) -> @core.HttpResponse {
     Some(pair) => pair
     None =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({
-          "error": Json("No file part found in multipart body"),
-        }),
+        Json::object({ "error": Json("No file part found in multipart body") }),
       )
   }
   // Sanitize: strip directory components and reject traversal sequences.
@@ -1938,9 +1930,7 @@ fn handle_config_settings_patch(
   }
   match persist_agent_config(cfg) {
     Ok(_) =>
-      @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": Json(true) }),
-      )
+      @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
     Err(msg) => return err_config_persist(msg)
   }
 }

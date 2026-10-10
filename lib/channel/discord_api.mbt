@@ -123,9 +123,7 @@ pub async fn DiscordApiClient::upload_file(
   let headers = HttpHeaders::new()
     .bot_token(self.bot_token)
     .set("User-Agent", "DiscordBot (MBOpenClacky, 1.0)")
-    .content_type(
-      "multipart/form-data; boundary=" + DISCORD_UPLOAD_BOUNDARY,
-    )
+    .content_type("multipart/form-data; boundary=" + DISCORD_UPLOAD_BOUNDARY)
     .to_array()
   let body = build_discord_upload_body(
     DISCORD_UPLOAD_BOUNDARY,

@@ -55,9 +55,7 @@ pub fn build_gemini_image_request(request : MediaRequest) -> Json {
   Json::object({
     "contents": Json::array([
       Json::object({
-        "parts": Json::array([
-          Json::object({ "text": Json(request.prompt) }),
-        ]),
+        "parts": Json::array([Json::object({ "text": Json(request.prompt) })]),
       }),
     ]),
     "generationConfig": Json::object(gen_config),

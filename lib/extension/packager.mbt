@@ -10,7 +10,7 @@
 /// Returns (package_dir, sha256_hash) on success.
 pub fn package_extension(
   ext_dir : String,
-  output_dir? : String? = None,
+  output_dir~ : String? = None,
 ) -> Result[(String, String), String] {
   // Treat the source as a local extension for validation.
   let ext = match load_single_extension(ext_dir, ExtensionSource::Local) {
@@ -112,7 +112,7 @@ fn compute_checksum(id : String, version : String, path : String) -> String {
 /// Unpack a packaged extension into the installed-extensions directory.
 pub fn unpack_extension(
   package_path : String,
-  target_dir? : String? = None,
+  target_dir~ : String? = None,
 ) -> Result[String, String] {
   // Determine target directory: ~/.clacky/extensions by default.
   let target = match target_dir {

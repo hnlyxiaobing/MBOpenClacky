@@ -42,10 +42,10 @@ pub struct Logger {
 /// - `min_level`: minimum severity to record (default: Info)
 /// - `console_echo`: whether to also print to stdout (default: false)
 pub fn Logger::new(
-  log_dir? : String = "",
-  max_files? : Int = 7,
-  min_level? : LogLevel = Info,
-  console_echo? : Bool = false,
+  log_dir~ : String = "",
+  max_files~ : Int = 7,
+  min_level~ : LogLevel = Info,
+  console_echo~ : Bool = false,
 ) -> Logger {
   let dir = if log_dir.is_empty() {
     match config_dir() {
@@ -69,7 +69,7 @@ pub fn Logger::should_log(self : Logger, level : LogLevel) -> Bool {
 pub fn Logger::debug(
   self : Logger,
   msg : String,
-  context? : LogContext = [],
+  context~ : LogContext = [],
 ) -> Unit {
   self.log(Debug, msg, context)
 }
@@ -79,7 +79,7 @@ pub fn Logger::debug(
 pub fn Logger::info(
   self : Logger,
   msg : String,
-  context? : LogContext = [],
+  context~ : LogContext = [],
 ) -> Unit {
   self.log(Info, msg, context)
 }
@@ -89,7 +89,7 @@ pub fn Logger::info(
 pub fn Logger::warn(
   self : Logger,
   msg : String,
-  context? : LogContext = [],
+  context~ : LogContext = [],
 ) -> Unit {
   self.log(Warn, msg, context)
 }
@@ -99,7 +99,7 @@ pub fn Logger::warn(
 pub fn Logger::error(
   self : Logger,
   msg : String,
-  context? : LogContext = [],
+  context~ : LogContext = [],
 ) -> Unit {
   self.log(Error, msg, context)
 }

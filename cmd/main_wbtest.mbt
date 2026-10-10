@@ -132,7 +132,11 @@ test "extract_attachment_flags: repeated flag replaces the earlier list" {
 test "extract_attachment_flags: long forms and no flags" {
   let files : Array[String] = []
   let images : Array[String] = []
-  let _ = extract_attachment_flags(["--file", "a.txt", "--image", "b.png"][:], files, images)
+  let _ = extract_attachment_flags(
+    ["--file", "a.txt", "--image", "b.png"][:],
+    files,
+    images,
+  )
   assert_eq(files[0], "a.txt")
   assert_eq(images[0], "b.png")
   let f2 : Array[String] = []

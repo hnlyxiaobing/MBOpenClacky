@@ -80,7 +80,7 @@ test "discord_gateway_hello_identify_heartbeat_flow" {
   // 3. Build Identify payload
   let identify = build_identify_payload("BOT_TOKEN", DEFAULT_INTENTS)
   match identify {
-    Object(obj) => @debug.assert_eq(obj.get("op"), Some(Json((2))))
+    Object(obj) => @debug.assert_eq(obj.get("op"), Some(Json(2)))
     _ => assert_true(false)
   }
 
@@ -137,11 +137,11 @@ test "discord_gateway_reconnect_flow" {
       let resume_fn = build_resume_payload("TOK", "sess1", seq)
       match resume_fn {
         Object(obj) => {
-          @debug.assert_eq(obj.get("op"), Some(Json((6))))
+          @debug.assert_eq(obj.get("op"), Some(Json(6)))
           match obj.get("d") {
             Some(Object(d)) => {
               @debug.assert_eq(d.get("session_id"), Some(Json("sess1")))
-              @debug.assert_eq(d.get("seq"), Some(Json((10))))
+              @debug.assert_eq(d.get("seq"), Some(Json(10)))
             }
             _ => assert_true(false)
           }
@@ -304,7 +304,7 @@ test "dingtalk_stream_callback_ack_flow" {
       let ack = build_stream_ack("msg_001")
       match ack {
         Object(obj) => {
-          @debug.assert_eq(obj.get("code"), Some(Json((200))))
+          @debug.assert_eq(obj.get("code"), Some(Json(200)))
           @debug.assert_eq(obj.get("messageId"), Some(Json("msg_001")))
         }
         _ => assert_true(false)
@@ -390,10 +390,7 @@ test "feishu_parse_post_rich_text" {
       "title": Json("Meeting Notes"),
       "content": Json::array([
         Json::array([
-          Json::object({
-            "tag": Json("text"),
-            "text": Json("Discussed "),
-          }),
+          Json::object({ "tag": Json("text"), "text": Json("Discussed ") }),
           Json::object({
             "tag": Json("a"),
             "text": Json("Q3 Plan"),

@@ -35,7 +35,7 @@ pub fn Pdf::changes(self : Pdf) -> Map[Int, Int] {
 pub fn Pdf::renumber(
   self : Pdf,
   change_table : Map[Int, Int],
-  preserve_order? : Bool = false,
+  preserve_order~ : Bool = false,
 ) -> Pdf {
   let root = match change_table.get(self.root) {
     Some(value) => value

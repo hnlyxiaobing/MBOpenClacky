@@ -72,7 +72,9 @@ test "log_filename format" {
 /// （第 12 位 '0' < '1'）会被删，shortlex 下则因更短而排在前面 —— 恰好相反。
 test "Logger::rotate: drops the lexicographically oldest name (BUG-0079)" {
   let dir = "/tmp/mboc-wbt-logger-rotate-bug79"
-  @fs.create_dir(dir) catch { _ => () }
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
   let stale = @fs.read_dir(dir) catch { _ => [] }
   for name in stale {
     @fs.remove_file(@path.Path::join(dir, @path.Path(name)).to_string()) catch {
@@ -91,5 +93,7 @@ test "Logger::rotate: drops the lexicographically oldest name (BUG-0079)" {
   assert_false(@fs.path_exists(dir + "/clacky-2026-01-02.log"))
   assert_true(@fs.path_exists(dir + "/clacky-2026-1-1.log"))
   // 清理
-  @fs.remove_file(dir + "/clacky-2026-1-1.log") catch { _ => () }
+  @fs.remove_file(dir + "/clacky-2026-1-1.log") catch {
+    _ => ()
+  }
 }

@@ -49,7 +49,7 @@ pub fn write_journey_evidence(
     let r = state.mock.requests[i]
     lines.push(
       Json::object({
-        "seq": Json((i + 1)),
+        "seq": Json(i + 1),
         "at_ms": Json(r.at_ms),
         "body": Json(r.body),
       }).stringify(),
@@ -88,10 +88,7 @@ pub fn write_journey_evidence(
       let frame_lines : Array[String] = []
       for i = 0; i < j.frames_out.length(); i = i + 1 {
         frame_lines.push(
-          Json::object({
-            "dir": Json("out"),
-            "text": Json(j.frames_out[i]),
-          }).stringify(),
+          Json::object({ "dir": Json("out"), "text": Json(j.frames_out[i]) }).stringify(),
         )
       }
       for i = 0; i < j.frames_in.length(); i = i + 1 {

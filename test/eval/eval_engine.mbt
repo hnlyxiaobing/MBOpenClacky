@@ -166,7 +166,7 @@ pub(all) struct UnifiedReport {
 ///|
 pub fn EvalBatchResult::to_unified_report(
   self : EvalBatchResult,
-  suite_name? : String = "eval",
+  suite_name~ : String = "eval",
 ) -> UnifiedReport {
   let results : Array[UnifiedSuiteResult] = []
   for r in self.results {
@@ -211,7 +211,7 @@ pub fn HarnessReport::to_unified_report(
   self : HarnessReport,
   mode : String,
   trials : Int,
-  cost_usd? : Double = 0.0,
+  cost_usd~ : Double = 0.0,
 ) -> UnifiedReport {
   let results : Array[UnifiedSuiteResult] = []
   for r in self.results {
@@ -338,7 +338,7 @@ pub fn render_unified_report_json(report : UnifiedReport) -> Json {
 ///|
 pub fn render_unified_report_markdown(
   report : UnifiedReport,
-  title? : String = "",
+  title~ : String = "",
 ) -> String {
   let heading = if title.length() > 0 {
     title

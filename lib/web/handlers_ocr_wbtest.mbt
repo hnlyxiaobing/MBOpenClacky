@@ -4,7 +4,7 @@
 fn make_ocr_event(
   http_method : @crescent.HttpMethod,
   url : String,
-  body? : String = "",
+  body~ : String = "",
 ) -> @crescent.Event {
   {
     req: @crescent.HttpRequest::HttpRequest(

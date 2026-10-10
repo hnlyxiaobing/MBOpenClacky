@@ -16,10 +16,7 @@ let mcp_protocol_version : String = "2024-11-05"
 ///|
 /// JSON-RPC error object.
 fn mcp_error(code : Int, message : String) -> Json {
-  Json::object({
-    "code": Json(code),
-    "message": Json(message),
-  })
+  Json::object({ "code": Json(code), "message": Json(message) })
 }
 
 ///|
@@ -98,14 +95,15 @@ async fn mcp_tools_call_result(
     None => mcp_tool_error("Unknown tool: " + name)
     Some(tool) => {
       let result = tool.execute(arguments) catch {
-        _ => @tool.ToolResult::{ content: "Tool execution failed", is_error: true }
+        _ =>
+          @tool.ToolResult::{
+            content: "Tool execution failed",
+            is_error: true,
+          }
       }
       Json::object({
         "content": Json::array([
-          Json::object({
-            "type": Json("text"),
-            "text": Json(result.content),
-          }),
+          Json::object({ "type": Json("text"), "text": Json(result.content) }),
         ]),
         "isError": Json(result.is_error),
       })
@@ -127,10 +125,7 @@ fn mcp_tool_error(message : String) -> Json {
 ///|
 /// Dispatch one JSON-RPC request. Returns the response object, or None for
 /// notifications (no `id`) which must not be answered.
-async fn mcp_dispatch(
-  registry : @tool.ToolRegistry,
-  req : Json,
-) -> Json? {
+async fn mcp_dispatch(registry : @tool.ToolRegistry, req : Json) -> Json? {
   let id = mcp_request_id(req)
   let (method_name, params) = match req {
     Object(obj) => {
@@ -209,7 +204,8 @@ pub async fn handle_mcp_serve() -> Unit {
               "jsonrpc": Json("2.0"),
               "id": Json::null(),
               "error": mcp_error(-32700, "Parse error"),
-            }).stringify() + "\n",
+            }).stringify() +
+            "\n",
           )
           continue
         }

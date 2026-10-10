@@ -220,10 +220,10 @@ pub fn LlmResponse::is_finished(self : LlmResponse) -> Bool {
 pub fn Usage::from_openai(
   prompt_tokens : Int,
   completion_tokens : Int,
-  cache_creation? : Int = 0,
-  cache_read? : Int = 0,
-  total_tokens? : Int = 0,
-  api_cost? : Double? = None,
+  cache_creation~ : Int = 0,
+  cache_read~ : Int = 0,
+  total_tokens~ : Int = 0,
+  api_cost~ : Double? = None,
 ) -> Usage {
   {
     input_tokens: prompt_tokens,
@@ -254,8 +254,8 @@ pub fn Usage::from_openai(
 pub fn Usage::from_anthropic(
   raw_input_tokens : Int,
   output_tokens : Int,
-  cache_creation? : Int = 0,
-  cache_read? : Int = 0,
+  cache_creation~ : Int = 0,
+  cache_read~ : Int = 0,
 ) -> Usage {
   let cached_input = cache_read + cache_creation
   let prompt_tokens = if cached_input > 0 && raw_input_tokens >= cached_input {
@@ -284,11 +284,11 @@ pub fn Usage::from_anthropic(
 pub fn Latency::new(
   duration_ms : Int,
   ttft_ms? : Int,
-  tps? : Double? = None,
-  output_tokens? : Int = 0,
-  model? : String? = None,
-  measured_at? : String? = None,
-  streaming? : Bool = false,
+  tps~ : Double? = None,
+  output_tokens~ : Int = 0,
+  model~ : String? = None,
+  measured_at~ : String? = None,
+  streaming~ : Bool = false,
 ) -> Latency {
   { duration_ms, ttft_ms, output_tokens, tps, model, measured_at, streaming, }
 }

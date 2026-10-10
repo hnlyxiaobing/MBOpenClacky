@@ -12,11 +12,15 @@
 fn hook_tmp_dir(tag : String) -> String {
   let parent = "_build/hook_loader_wbtest"
   if !@fs.path_exists(parent) {
-    @fs.create_dir(parent) catch { _ => () }
+    @fs.create_dir(parent) catch {
+      _ => ()
+    }
   }
   let dir = "\{parent}/\{tag}_\{@env.now()}"
   if !@fs.path_exists(dir) {
-    @fs.create_dir(dir) catch { _ => () }
+    @fs.create_dir(dir) catch {
+      _ => ()
+    }
   }
   dir
 }
@@ -35,7 +39,9 @@ fn find_hook(hooks : Array[HookConfig], name : String) -> HookConfig? {
 ///|
 /// 目录不存在时返回空列表，不抛错（`cmd main` 在无 hooks 目录时依赖此行为）。
 test "load_shell_hooks returns empty for a missing directory" {
-  let hooks = load_shell_hooks(config_dir=Some("_build/hook_loader_wbtest/absent"))
+  let hooks = load_shell_hooks(
+    config_dir=Some("_build/hook_loader_wbtest/absent"),
+  )
   assert_eq(hooks.length(), 0)
 }
 

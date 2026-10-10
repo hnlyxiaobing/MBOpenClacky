@@ -69,9 +69,7 @@ pub impl Adapter for FeishuAdapter with fn supports_message_updates(_self) -> Bo
 }
 
 ///|
-pub impl Adapter for FeishuAdapter with fn supports_message_deletion(
-  _self,
-) -> Bool {
+pub impl Adapter for FeishuAdapter with fn supports_message_deletion(_self) -> Bool {
   true
 }
 

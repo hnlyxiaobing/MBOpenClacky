@@ -4,7 +4,7 @@
 
 ///|
 /// Re-export: load extensions from directory (delegates to @web).
-pub fn load_extensions(ext_dir? : String? = None) -> Array[@web.ApiExtension] {
+pub fn load_extensions(ext_dir~ : String? = None) -> Array[@web.ApiExtension] {
   @web.load_api_extensions(ext_dir~)
 }
 

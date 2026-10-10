@@ -289,7 +289,9 @@ test "TrashEntry: to_json and from_json roundtrip" {
 /// shortlex 先比长度则会把长串顶到最前 —— 结果相反。
 test "list_trash_entries: newest-first uses lexicographic deleted_at (BUG-0079)" {
   let dir = "/tmp/mboc-wbt-trash-order-bug79"
-  @fs.create_dir(dir) catch { _ => () }
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
   let stale = @fs.read_dir(dir) catch { _ => [] }
   for name in stale {
     @fs.remove_file(@path.Path::join(dir, @path.Path(name)).to_string()) catch {
@@ -314,10 +316,11 @@ test "list_trash_entries: newest-first uses lexicographic deleted_at (BUG-0079)"
     file_type: "file",
     file_mode: "0644",
   }
-  for pair in [
-    ("a.txt", Json(meta_a).stringify()),
-    ("b.txt", Json(meta_b).stringify()),
-  ] {
+  for
+    pair in [
+      ("a.txt", Json(meta_a).stringify()),
+      ("b.txt", Json(meta_b).stringify()),
+    ] {
     let (name, meta_json) = pair
     @fs.write_string_to_file(dir + "/" + name, "abc") catch {
       _ => assert_true(false)
@@ -331,6 +334,8 @@ test "list_trash_entries: newest-first uses lexicographic deleted_at (BUG-0079)"
   assert_eq(entries[0].deleted_at, "2026-10-09T12:00:05Z")
   assert_eq(entries[1].deleted_at, "2026-10-09T12:00:05.5Z")
   for name in ["a.txt", "a.txt.metadata.json", "b.txt", "b.txt.metadata.json"] {
-    @fs.remove_file(dir + "/" + name) catch { _ => () }
+    @fs.remove_file(dir + "/" + name) catch {
+      _ => ()
+    }
   }
 }

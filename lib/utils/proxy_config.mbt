@@ -30,8 +30,8 @@ pub fn ProxyConfig::new() -> ProxyConfig {
 /// users can bypass a corporate proxy without unsetting it in their shell
 /// (p6 decision 11). Explicit parameters are never overridden.
 pub fn ProxyConfig::install(
-  proxy_url? : String? = None,
-  no_proxy? : String? = None,
+  proxy_url~ : String? = None,
+  no_proxy~ : String? = None,
 ) -> ProxyConfig {
   let env_disabled = env_bool("CLACKY_NO_PROXY_ENV")
   let url = match proxy_url {

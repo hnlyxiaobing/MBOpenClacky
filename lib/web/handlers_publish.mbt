@@ -141,7 +141,7 @@ priv struct SkillUploadOutcome {
 ///|
 fn upload_fail(
   error : String,
-  already_exists? : Bool = false,
+  already_exists~ : Bool = false,
 ) -> SkillUploadOutcome {
   { success: false, error, already_exists, platform_version: None, }
 }
@@ -306,7 +306,7 @@ async fn upload_skill_zip(
 
 ///|
 /// Build a JSON error body in the orig publish shape.
-fn publish_error_json(error : String, already_exists? : Bool = false) -> String {
+fn publish_error_json(error : String, already_exists~ : Bool = false) -> String {
   Json::object({
     "ok": Json(false),
     "error": Json(error),

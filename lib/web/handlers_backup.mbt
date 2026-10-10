@@ -486,7 +486,7 @@ pub fn handle_backups_list(request : HttpRequest) -> HttpResponse {
       "enabled": Json(false),
       "cron": Json("0 3 * * *"),
       "dest_dir": Json::null(),
-      "keep": Json((7)),
+      "keep": Json(7),
       "include_sessions": Json(true),
       "last_run_at": Json::null(),
       "last_status": Json::null(),
@@ -591,10 +591,7 @@ pub fn handle_backups_restore(request : HttpRequest) -> HttpResponse {
     None =>
       HttpResponse::json_status(
         404,
-        Json::object({
-          "error": Json("Backup not found"),
-          "id": Json(id),
-        }).stringify(),
+        Json::object({ "error": Json("Backup not found"), "id": Json(id) }).stringify(),
       )
     Some(_) =>
       // Restore snapshot data
@@ -633,10 +630,7 @@ pub fn handle_backups_delete(request : HttpRequest) -> HttpResponse {
     None =>
       HttpResponse::json_status(
         404,
-        Json::object({
-          "error": Json("Backup not found"),
-          "id": Json(id),
-        }).stringify(),
+        Json::object({ "error": Json("Backup not found"), "id": Json(id) }).stringify(),
       )
     Some(_) => {
       // Remove metadata file
@@ -719,10 +713,7 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
     None =>
       HttpResponse::json_status(
         404,
-        Json::object({
-          "error": Json("Backup not found"),
-          "id": Json(id),
-        }).stringify(),
+        Json::object({ "error": Json("Backup not found"), "id": Json(id) }).stringify(),
       )
     Some(_) =>
       match build_backup_zip(id) {
@@ -735,15 +726,16 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
               "message": Json(e),
             }).stringify(),
           )
-        Ok(bytes) => {
-          status: 200,
-          body: "",
-          body_bytes: Some(bytes),
-          content_type: "application/zip",
-          headers: [
-            ("Content-Disposition", "attachment; filename=\"" + id + ".zip\""),
-          ],
-        }
+        Ok(bytes) =>
+          {
+            status: 200,
+            body: "",
+            body_bytes: Some(bytes),
+            content_type: "application/zip",
+            headers: [
+              ("Content-Disposition", "attachment; filename=\"" + id + ".zip\""),
+            ],
+          }
       }
   }
 }

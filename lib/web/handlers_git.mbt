@@ -284,9 +284,7 @@ pub async fn handle_session_git_branches(
     if line.length() > 1 && line.to_array()[0] == '*' {
       let name = line[2:].to_owned().trim().to_owned()
       current = name
-      branches.push(
-        Json::object({ "name": Json(name), "current": Json(true) }),
-      )
+      branches.push(Json::object({ "name": Json(name), "current": Json(true) }))
     } else {
       branches.push(
         Json::object({ "name": Json(trimmed), "current": Json(false) }),

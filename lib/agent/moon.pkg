@@ -30,11 +30,11 @@ import {
 
 supported_targets = "native"
 
-options(
-  "native-stub": [ "time_stub.c", "stderr_stub.c" ],
-)
-
 import {
   "moonbitlang/async/http",
   "moonbitlang/async/socket",
 } for "wbtest"
+
+options(
+  "native-stub": [ "time_stub.c", "stderr_stub.c" ],
+)

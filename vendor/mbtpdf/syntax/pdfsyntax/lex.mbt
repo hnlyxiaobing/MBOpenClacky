@@ -1,14 +1,14 @@
 ///|
 fn is_hex_digit(c : Char) -> Bool {
-  c is ('0'..='9' | 'a'..='f' | 'A'..='F')
+  c is ('0'..<='9' | 'a'..<='f' | 'A'..<='F')
 }
 
 ///|
 fn hex_value(c : Char) -> Int? {
   match c {
-    '0'..='9' => Some(c.to_int() - '0'.to_int())
-    'a'..='f' => Some(10 + c.to_int() - 'a'.to_int())
-    'A'..='F' => Some(10 + c.to_int() - 'A'.to_int())
+    '0'..<='9' => Some(c.to_int() - '0'.to_int())
+    'a'..<='f' => Some(10 + c.to_int() - 'a'.to_int())
+    'A'..<='F' => Some(10 + c.to_int() - 'A'.to_int())
     _ => None
   }
 }

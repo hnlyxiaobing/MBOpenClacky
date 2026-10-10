@@ -146,8 +146,8 @@ pub extend TranscriptionResult with ToJson::{to_json}
 pub fn MediaRequest::image(
   prompt : String,
   output_dir : String,
-  aspect_ratio? : String? = None,
-  model? : String? = None,
+  aspect_ratio~ : String? = None,
+  model~ : String? = None,
 ) -> MediaRequest {
   {
     media_type: Image,
@@ -165,9 +165,9 @@ pub fn MediaRequest::image(
 pub fn MediaRequest::video(
   prompt : String,
   output_dir : String,
-  duration_seconds? : Int? = None,
-  aspect_ratio? : String? = None,
-  model? : String? = None,
+  duration_seconds~ : Int? = None,
+  aspect_ratio~ : String? = None,
+  model~ : String? = None,
 ) -> MediaRequest {
   {
     media_type: Video,
@@ -185,8 +185,8 @@ pub fn MediaRequest::video(
 pub fn MediaRequest::speech(
   prompt : String,
   output_dir : String,
-  voice? : String? = None,
-  model? : String? = None,
+  voice~ : String? = None,
+  model~ : String? = None,
 ) -> MediaRequest {
   {
     media_type: Audio,

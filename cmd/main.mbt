@@ -945,11 +945,7 @@ fn extract_attachment_flags(
     let is_file = arg == "-f" || arg == "--file"
     let is_image = arg == "-i" || arg == "--image"
     if is_file || is_image {
-      let sink = if is_file {
-        file_out
-      } else {
-        image_out
-      }
+      let sink = if is_file { file_out } else { image_out }
       sink.clear()
       i = i + 1
       while i < n && !looks_like_cli_option(cli_view[i]) {
@@ -959,11 +955,7 @@ fn extract_attachment_flags(
       if sink.is_empty() {
         // Ruby/optimist: "No value provided for option '--file'" (the long form
         // is used in the message even when `-f` was typed), then exit 1.
-        let long = if is_file {
-          "--file"
-        } else {
-          "--image"
-        }
+        let long = if is_file { "--file" } else { "--image" }
         println("No value provided for option '\{long}'")
         @sys.exit(1)
       }
@@ -1223,7 +1215,8 @@ async fn run_agent(
   }
   match msg_opt {
     Some(msg) => {
-      let attachments : Array[@agent.Attachment]? = if attachment_paths.length() > 0 {
+      let attachments : Array[@agent.Attachment]? = if attachment_paths.length() >
+        0 {
         Some(
           @agent.prepare_cli_attachments(attachment_paths) catch {
             @errors.AgentError(m) => {
@@ -1236,7 +1229,7 @@ async fn run_agent(
       } else {
         None
       }
-      run_non_interactive(agent, msg, json_output, attachments=attachments)
+      run_non_interactive(agent, msg, json_output, attachments~)
     }
     None => {
       // Launch TUI in interactive mode
@@ -1320,13 +1313,14 @@ async fn run_non_interactive(
   agent : @agent.Agent,
   message : String,
   json_output : Bool,
-  attachments? : Array[@agent.Attachment]? = None,
+  attachments~ : Array[@agent.Attachment]? = None,
 ) -> Unit {
   if agent.config.verbose {
     println("Running agent with message: \{message}")
     println("Model: \{agent.current_model()}")
   }
-  let result = agent.run(message, attach=attachments) catch {    @errors.AgentInterrupted(msg) => {
+  let result = agent.run(message, attach=attachments) catch {
+    @errors.AgentInterrupted(msg) => {
       if agent.config.verbose {
         println("\nInterrupted: \{msg}")
       }

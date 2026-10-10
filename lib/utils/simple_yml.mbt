@@ -21,8 +21,10 @@ pub fn yml_scalar(text : String, key : String) -> String? {
       continue
     }
     let quoted = value.length() >= 2 &&
-      ((value.has_prefix("\"") && value.has_suffix("\"")) ||
-        (value.has_prefix("'") && value.has_suffix("'")))
+      (
+        (value.has_prefix("\"") && value.has_suffix("\"")) ||
+        (value.has_prefix("'") && value.has_suffix("'"))
+      )
     if quoted {
       return Some(value[1:value.length() - 1].to_owned())
     }

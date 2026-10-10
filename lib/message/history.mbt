@@ -461,7 +461,11 @@ fn strip_internal_fields(msg : Message, keep_system_injected : Bool) -> Message 
     Tool => None
     _ => msg.name
   }
-  let system_injected = if keep_system_injected { msg.system_injected } else { None }
+  let system_injected = if keep_system_injected {
+    msg.system_injected
+  } else {
+    None
+  }
   {
     role: msg.role,
     content: msg.content,

@@ -11,7 +11,7 @@ pub(all) struct StaticServer {
 ///|
 pub fn StaticServer::new(
   root_dir : String,
-  index_file? : String = "index.html",
+  index_file~ : String = "index.html",
 ) -> StaticServer {
   { root_dir, index_file, }
 }

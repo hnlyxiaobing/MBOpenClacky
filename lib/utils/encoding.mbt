@@ -119,7 +119,7 @@ pub fn estimate_utf8_byte_length(text : String) -> Int {
 
 ///|
 /// Check if string contains binary content (high ratio of non-printable chars).
-pub fn is_binary_content(text : String, threshold? : Double = 0.3) -> Bool {
+pub fn is_binary_content(text : String, threshold~ : Double = 0.3) -> Bool {
   let chars = text.to_array()
   let len = chars.length()
   if len == 0 {

@@ -49,7 +49,7 @@ pub fn secure_compare(a : Array[Byte], b : Array[Byte]) -> Bool {
 pub fn encrypt_aes256gcm(
   plaintext : Array[Byte],
   key : Array[Byte],
-  aad? : Array[Byte] = [],
+  aad~ : Array[Byte] = [],
 ) -> Result[EncryptedData, String] {
   guard key.length() == 32 else {
     return Err("Key must be 32 bytes for AES-256")
@@ -130,7 +130,7 @@ pub let pbkdf2_default_iterations : Int = 100000
 /// The `salt` defaults to an empty byte-string so that callers who only
 /// need a deterministic KDF (e.g. unit tests, brand-key derivation with a
 /// fixed per-device salt) can omit it.
-pub fn derive_key(password : String, salt? : Array[Byte] = []) -> Array[Byte] {
+pub fn derive_key(password : String, salt~ : Array[Byte] = []) -> Array[Byte] {
   let pass_bytes = @utf8.encode(password)
   let salt_len = salt.length()
   // U1 = HMAC-SHA256(password, salt || INT_32_BE(1))

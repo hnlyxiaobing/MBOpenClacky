@@ -189,7 +189,7 @@ test "telegram_parse_ok_response_invalid_format" {
 
 ///|
 test "telegram_extract_update_id" {
-  let update : Map[String, Json] = { "update_id": Json((12345)) }
+  let update : Map[String, Json] = { "update_id": Json(12345) }
   assert_eq(extract_update_id(update), 12345)
 }
 

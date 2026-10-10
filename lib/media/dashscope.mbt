@@ -117,7 +117,7 @@ pub fn build_dashscope_image_request(
     }),
     "parameters": Json::object({
       "size": Json(size),
-      "n": Json((1)),
+      "n": Json(1),
       "prompt_extend": Json(true),
       "watermark": Json(false),
     }),

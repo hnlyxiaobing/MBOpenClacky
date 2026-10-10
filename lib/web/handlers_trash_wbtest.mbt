@@ -49,8 +49,8 @@ test "trash list: orig contract shape with empty trash" {
   @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   @debug.assert_eq(obj.get("files"), Some(Json::array([])))
   @debug.assert_eq(obj.get("projects"), Some(Json::array([])))
-  @debug.assert_eq(obj.get("total_count"), Some(Json((0))))
-  @debug.assert_eq(obj.get("total_size"), Some(Json((0))))
+  @debug.assert_eq(obj.get("total_count"), Some(Json(0)))
+  @debug.assert_eq(obj.get("total_size"), Some(Json(0)))
 }
 
 ///|
@@ -65,7 +65,7 @@ test "trash list: non-session items surface under files with orig keys" {
   // sessions are excluded from the files dimension
   guard! obj.get("files") is Some(Array(files))
   @debug.assert_eq(files.length(), 1)
-  @debug.assert_eq(obj.get("total_count"), Some(Json((1))))
+  @debug.assert_eq(obj.get("total_count"), Some(Json(1)))
   guard! files[0] is Json::Object(entry)
   // orig file-entry key set (api-diff /api/trash elem keys)
   @debug.assert_eq(entry.get("original_path"), Some(Json("/tmp/a.txt")))
@@ -92,8 +92,8 @@ test "trash sessions list: orig contract shape, files excluded" {
   @debug.assert_eq(resp.status, 200)
   guard! tw_body_json(resp) is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(Json(true)))
-  @debug.assert_eq(obj.get("count"), Some(Json((2))))
-  @debug.assert_eq(obj.get("total_size"), Some(Json((0))))
+  @debug.assert_eq(obj.get("count"), Some(Json(2)))
+  @debug.assert_eq(obj.get("total_size"), Some(Json(0)))
   guard! obj.get("sessions") is Some(Array(sessions))
   @debug.assert_eq(sessions.length(), 2)
   guard! sessions[0] is Json::Object(entry)
@@ -208,8 +208,8 @@ test "trash clear sessions: deletes only session items (web-ui2-03 BUG-022)" {
   @debug.assert_eq(resp.status, 200)
   guard! tw_body_json(resp) is Json::Object(obj)
   @debug.assert_eq(obj.get("ok"), Some(Json(true)))
-  @debug.assert_eq(obj.get("deleted_count"), Some(Json((2))))
-  @debug.assert_eq(obj.get("days_old"), Some(Json((7))))
+  @debug.assert_eq(obj.get("deleted_count"), Some(Json(2)))
+  @debug.assert_eq(obj.get("days_old"), Some(Json(7)))
   // non-session items are retained
   @debug.assert_eq(trash_state.val.items.length(), 1)
   @debug.assert_eq(trash_state.val.items[0].item_type, "file")
@@ -264,7 +264,7 @@ test "trash empty: succeeds with confirm=true (spec-17 d2)" {
   @debug.assert_eq(resp.status, 200)
   guard! tw_body_json(resp) is Json::Object(obj)
   @debug.assert_eq(obj.get("status"), Some(Json("emptied")))
-  @debug.assert_eq(obj.get("items_deleted"), Some(Json((2))))
+  @debug.assert_eq(obj.get("items_deleted"), Some(Json(2)))
   @debug.assert_eq(trash_state.val.items.length(), 0)
 }
 

@@ -53,7 +53,7 @@ pub let max_ext_timeout_ms : Int = 600000
 /// Load API extensions from a directory.
 /// Scans for .json or .toml extension descriptor files.
 /// Returns only extensions that pass validation (non-empty name).
-pub fn load_api_extensions(ext_dir? : String? = None) -> Array[ApiExtension] {
+pub fn load_api_extensions(ext_dir~ : String? = None) -> Array[ApiExtension] {
   let dir = match ext_dir {
     Some(d) => d
     None =>

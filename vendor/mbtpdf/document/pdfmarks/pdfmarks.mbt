@@ -542,7 +542,7 @@ fn do_until_no_next_lb(
 /// Read all bookmarks from the document.
 pub fn PdfMarks::read_bookmarks(
   self : PdfMarks,
-  preserve_actions? : Bool = false,
+  preserve_actions~ : Bool = false,
 ) -> Array[Bookmark] raise {
   let pdf = self.pdf
   match pdf.lookup_direct("/Root", pdf.trailerdict) {

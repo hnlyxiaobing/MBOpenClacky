@@ -503,8 +503,7 @@ test "build_anthropic_request_merges_consecutive_tool_results" {
           @debug.assert_eq(blocks.length(), 2)
           for block in blocks {
             match block {
-              Object(b) =>
-                assert_eq(b.get("type"), Some(Json("tool_result")))
+              Object(b) => assert_eq(b.get("type"), Some(Json("tool_result")))
               _ => abort("expected tool_result block")
             }
           }
@@ -1246,7 +1245,7 @@ test "client_anthropic_headers_kimi_coding_ua" {
 /// 因此 MB 侧 `detail` 为 None 时必须整键省略，而不是输出 `"detail": null`。
 test "content_block_to_json_omits_detail_when_none" {
   let none_json = content_block_to_json(
-    @message.Image({ url: "data:image/png;base64,AAAA", detail: None }),
+    @message.Image({ url: "data:image/png;base64,AAAA", detail: None, }),
   )
   let obj = match @json.parse(none_json.stringify()) {
     Object(o) => o
@@ -1262,7 +1261,7 @@ test "content_block_to_json_omits_detail_when_none" {
     _ => abort("expected image_url object")
   }
   let some_json = content_block_to_json(
-    @message.Image({ url: "u", detail: Some("high") }),
+    @message.Image({ url: "u", detail: Some("high"), }),
   )
   let some_obj = match @json.parse(some_json.stringify()) {
     Object(o) => o

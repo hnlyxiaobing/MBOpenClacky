@@ -17,7 +17,7 @@ pub async fn http_post_async(
   body : String,
   headers : Array[(String, String)],
   timeout_ms : Int,
-  open_timeout_ms? : Int = 10000,
+  open_timeout_ms~ : Int = 10000,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Post, url, body, headers, timeout_ms, open_timeout_ms~)
 }
@@ -70,7 +70,7 @@ pub async fn send_request_bytes(
   body : Bytes,
   headers : Array[(String, String)],
   timeout_ms : Int,
-  open_timeout_ms? : Int = 10000,
+  open_timeout_ms~ : Int = 10000,
 ) -> Result[HttpResponseBytes, HttpError] {
   let headers_map = headers_to_map(headers)
   let conn = @async.with_timeout_opt(open_timeout_ms, () => {
@@ -151,7 +151,7 @@ pub async fn http_post_stream_async(
   headers : Array[(String, String)],
   timeout_ms : Int,
   on_frame : (SseFrame) -> Unit,
-  open_timeout_ms? : Int = 10000,
+  open_timeout_ms~ : Int = 10000,
 ) -> Result[HttpResponse, HttpError] {
   let headers_map = headers_to_map(headers)
   // Phase 1: connect within the open timeout window.

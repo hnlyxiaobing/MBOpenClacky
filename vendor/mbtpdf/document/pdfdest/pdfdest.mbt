@@ -127,7 +127,7 @@ fn read_array_destination(
 pub fn Destination::read(
   pdf : @pdf.Pdf,
   pdfobject : PdfObject,
-  shallow? : Bool = false,
+  shallow~ : Bool = false,
 ) -> Destination raise {
   let resolved = pdf.direct(pdfobject)
   match resolved {

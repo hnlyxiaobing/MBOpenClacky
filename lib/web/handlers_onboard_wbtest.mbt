@@ -5,7 +5,7 @@
 fn make_event(
   http_method : @crescent.HttpMethod,
   url : String,
-  body? : String = "",
+  body~ : String = "",
 ) -> @crescent.Event {
   {
     req: @crescent.HttpRequest::HttpRequest(
@@ -47,7 +47,7 @@ test "onboard device start returns device and user codes" {
   assert_true(obj.contains("user_code"))
   assert_true(obj.contains("verification_uri"))
   assert_true(obj.contains("verification_uri_complete"))
-  @debug.assert_eq(obj.get("interval"), Some(Json((5))))
+  @debug.assert_eq(obj.get("interval"), Some(Json(5)))
 }
 
 // ── Device Poll ───────────────────────────────────────────────────

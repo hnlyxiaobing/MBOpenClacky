@@ -10,8 +10,8 @@
 pub fn error_response(
   status : Int,
   message : String,
-  code? : String = "",
-  hint? : String = "",
+  code~ : String = "",
+  hint~ : String = "",
 ) -> Json {
   let fields : Map[String, Json] = Map([
     ("error", Json(message)),

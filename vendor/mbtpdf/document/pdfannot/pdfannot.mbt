@@ -389,10 +389,10 @@ fn Annotation::to_pdf_object(self : Annotation) -> PdfObject raise {
 /// Make a border.
 pub fn Border::new(
   width : Double,
-  vradius? : Double = 0.0,
-  hradius? : Double = 0.0,
-  style? : Style = Style::NoStyle,
-  dasharray? : Array[Int] = [],
+  vradius~ : Double = 0.0,
+  hradius~ : Double = 0.0,
+  style~ : Style = Style::NoStyle,
+  dasharray~ : Array[Int] = [],
 ) -> Border {
   { width, vradius, hradius, style, dasharray, }
 }
@@ -402,8 +402,8 @@ pub fn Border::new(
 pub fn Annotation::new(
   subtype : Subtype,
   content? : String,
-  border? : Border = Border::new(0.0),
-  rectangle? : (Double, Double, Double, Double) = (0.0, 0.0, 0.0, 0.0),
+  border~ : Border = Border::new(0.0),
+  rectangle~ : (Double, Double, Double, Double) = (0.0, 0.0, 0.0, 0.0),
   colour? : (Int, Int, Int),
   subject? : String,
 ) -> Annotation {

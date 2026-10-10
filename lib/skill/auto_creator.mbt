@@ -100,7 +100,7 @@ pub fn AutoCreator::detect_candidates(
 pub fn AutoCreator::create_skill(
   self : AutoCreator,
   candidate : CreationCandidate,
-  skills_dir? : String? = None,
+  skills_dir~ : String? = None,
 ) -> Result[String, String] {
   if candidate.confidence < self.confidence_threshold {
     return Err(

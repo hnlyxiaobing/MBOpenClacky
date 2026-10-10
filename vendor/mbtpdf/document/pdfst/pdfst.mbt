@@ -372,7 +372,7 @@ pub fn PdfStructTrees::renumber_parent_trees(
 pub fn PdfStructTree::merge_structure_trees(
   self : PdfStructTree,
   pdfs : Array[@pdf.Pdf],
-  add_toplevel_document? : Bool = false,
+  add_toplevel_document~ : Bool = false,
 ) -> Int? raise {
   let pdf = self.pdf
   fn get_all(

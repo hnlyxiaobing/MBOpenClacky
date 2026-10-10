@@ -192,7 +192,9 @@ pub fn BrowserManager::configure(
     None => ()
   }
   let existing = if @fs.path_exists(path) {
-    @fs.read_file_to_string(path) catch { _ => "" }
+    @fs.read_file_to_string(path) catch {
+      _ => ""
+    }
   } else {
     "# MBOpenClacky browser configuration\n"
   }

@@ -876,7 +876,9 @@ pub fn WebServer::build_app(
     if !is_valid_agent_avatar_id(id.to_owned()) {
       return HttpResponse::not_found("Not Found").to_crescent()
     }
-    let avatar_path = @utils.assets_path("agents/" + id.to_owned() + "/avatar.png")
+    let avatar_path = @utils.assets_path(
+      "agents/" + id.to_owned() + "/avatar.png",
+    )
     if !@fs.path_exists(avatar_path) {
       return HttpResponse::not_found("Not Found").to_crescent()
     }
@@ -1005,7 +1007,7 @@ fn init_channel_manager(config_path : String) -> @channel.ChannelManager {
 pub async fn WebServer::start(
   self : WebServer,
   port : Int,
-  host? : String = "127.0.0.1",
+  host~ : String = "127.0.0.1",
 ) -> Unit {
   self.start_time = @env.now().reinterpret_as_int64()
   let (app, _) = self.build_app()

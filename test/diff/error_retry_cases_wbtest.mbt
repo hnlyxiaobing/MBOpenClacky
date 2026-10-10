@@ -43,7 +43,7 @@ fn retry_make_agent() -> @agent.Agent {
 /// 构造 mock LLM 响应。
 fn mock_resp(
   content : String,
-  reasoning_content? : String? = None,
+  reasoning_content~ : String? = None,
 ) -> @client.LlmResponse {
   {
     content: Some(content),

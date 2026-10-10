@@ -684,17 +684,13 @@ pub fn OpenAiResponsesStreamAggregator::handle_delta(
   let mut visible_delta = ""
 
   match event {
-    "response.output_item.added" => {
+    "response.output_item.added" =>
       match (if json is Object(obj) { obj.get("item") } else { None }) {
         Some(item) =>
           match (if item is Object(obj) { obj.get("type") } else { None }) {
             Some(String("function_call")) => {
               let call_id = match
-                (if item is Object(obj) {
-                  obj.get("call_id")
-                } else {
-                  None
-                }) {
+                (if item is Object(obj) { obj.get("call_id") } else { None }) {
                 Some(String(s)) => Some(s)
                 _ => None
               }
@@ -703,11 +699,7 @@ pub fn OpenAiResponsesStreamAggregator::handle_delta(
                 Some(String(s)) => Some(s)
                 _ => None
               }
-              self.tool_calls.push({
-                call_id,
-                name,
-                arguments: "",
-              })
+              self.tool_calls.push({ call_id, name, arguments: "", })
               self.current_item_type = Some("function_call")
               self.current_item_index = self.tool_calls.length() - 1
             }
@@ -719,7 +711,6 @@ pub fn OpenAiResponsesStreamAggregator::handle_delta(
           }
         _ => ()
       }
-    }
     "response.output_text.delta" => {
       let text = match
         (if json is Object(obj) { obj.get("delta") } else { None }) {
@@ -739,7 +730,8 @@ pub fn OpenAiResponsesStreamAggregator::handle_delta(
         Some(String(s)) => s
         _ => ""
       }
-      if text.length() > 0 && self.current_item_index >= 0 &&
+      if text.length() > 0 &&
+        self.current_item_index >= 0 &&
         self.current_item_index < self.tool_calls.length() {
         let acc = self.tool_calls[self.current_item_index]
         acc.arguments = acc.arguments + text
@@ -773,8 +765,10 @@ pub fn OpenAiResponsesStreamAggregator::handle_delta(
       self.finish_reason = Some("error")
       self.extract_responses_usage(json)
     }
-    "response.created" | "response.in_progress" | "response.content_part.added" |
-    "response.content_part.done" => ()
+    "response.created"
+    | "response.in_progress"
+    | "response.content_part.added"
+    | "response.content_part.done" => ()
     _ => ()
   }
   visible_delta
@@ -795,7 +789,11 @@ fn OpenAiResponsesStreamAggregator::extract_responses_usage(
           let total = json_int(u, "total_tokens")
           if input_tokens > 0 || output_tokens > 0 {
             self.usage = Some(
-              Usage::from_openai(input_tokens, output_tokens, total_tokens=total),
+              Usage::from_openai(
+                input_tokens,
+                output_tokens,
+                total_tokens=total,
+              ),
             )
           }
         }

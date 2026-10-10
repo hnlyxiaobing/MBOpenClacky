@@ -203,25 +203,13 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
         "text": Json(text),
       })
     StatusContains(text~) =>
-      Json::object({
-        "check": Json("status_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "check": Json("status_contains"), "text": Json(text) })
     InputContains(text~) =>
-      Json::object({
-        "check": Json("input_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "check": Json("input_contains"), "text": Json(text) })
     OutputContains(text~) =>
-      Json::object({
-        "check": Json("output_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "check": Json("output_contains"), "text": Json(text) })
     DialogContains(text~) =>
-      Json::object({
-        "check": Json("dialog_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "check": Json("dialog_contains"), "text": Json(text) })
     HttpStatusEq(status~) =>
       Json::object({ "type": Json("status_eq"), "status": Json(status) })
     HttpStatusIn(statuses~) => {
@@ -229,18 +217,12 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
       for s in statuses {
         arr.push(Json(s))
       }
-      Json::object({
-        "type": Json("status_in"),
-        "statuses": Json::array(arr),
-      })
+      Json::object({ "type": Json("status_in"), "statuses": Json::array(arr) })
     }
     BodyContains(text~) =>
       Json::object({ "type": Json("body_contains"), "text": Json(text) })
     BodyNotContains(text~) =>
-      Json::object({
-        "type": Json("body_not_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("body_not_contains"), "text": Json(text) })
     JsonPathEq(path~, value~) =>
       Json::object({
         "type": Json("json_path_eq"),
@@ -281,25 +263,13 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
     ExitCode(code~) =>
       Json::object({ "type": Json("exit_code"), "code": Json(code) })
     StdoutContains(text~) =>
-      Json::object({
-        "type": Json("stdout_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("stdout_contains"), "text": Json(text) })
     StderrContains(text~) =>
-      Json::object({
-        "type": Json("stderr_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("stderr_contains"), "text": Json(text) })
     StdoutNotContains(text~) =>
-      Json::object({
-        "type": Json("stdout_not_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("stdout_not_contains"), "text": Json(text) })
     StderrNotContains(text~) =>
-      Json::object({
-        "type": Json("stderr_not_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("stderr_not_contains"), "text": Json(text) })
     StdoutJsonPathEq(path~, value~) =>
       Json::object({
         "type": Json("stdout_json_path_eq"),
@@ -307,15 +277,9 @@ pub fn assertion_kind_to_json(kind : AssertionKind) -> Json {
         "value": Json(value),
       })
     WsFrameContains(text~) =>
-      Json::object({
-        "type": Json("ws_frame_contains"),
-        "text": Json(text),
-      })
+      Json::object({ "type": Json("ws_frame_contains"), "text": Json(text) })
     WsEventReceived(event~) =>
-      Json::object({
-        "type": Json("ws_event_received"),
-        "event": Json(event),
-      })
+      Json::object({ "type": Json("ws_event_received"), "event": Json(event) })
     WsEventCountAtLeast(event~, min~) =>
       Json::object({
         "type": Json("ws_event_count_at_least"),

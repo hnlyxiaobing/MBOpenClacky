@@ -74,7 +74,9 @@ pub fn WorkspaceRules::find_sub_projects(
       let raw : String = @fs.read_file_to_string(rules_path) catch { _ => "" }
       let content = raw.trim().to_owned()
       if !content.is_empty() {
-        results.push((sub_name, leading_lines(content, SUB_PROJECT_SUMMARY_LINES)))
+        results.push(
+          (sub_name, leading_lines(content, SUB_PROJECT_SUMMARY_LINES)),
+        )
       }
     }
   }

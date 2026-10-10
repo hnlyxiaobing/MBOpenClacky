@@ -226,7 +226,7 @@ pub fn build_subscribed_event(target : String) -> String {
 /// decision 5.
 pub fn build_session_list_event(
   sessions : Array[Json],
-  has_more? : Bool = false,
+  has_more~ : Bool = false,
 ) -> String {
   @proto.SessionList({
     sessions,

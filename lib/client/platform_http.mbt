@@ -25,13 +25,13 @@ pub extend PlatformHttpConfig with Eq::{not_equal, equal}
 /// Create a new platform HTTP config with sensible defaults.
 pub fn PlatformHttpConfig::new(
   primary_host~ : String,
-  secondary_host? : String = "",
-  fallback_host? : String = "",
-  open_timeout_ms? : Int = 8000,
-  read_timeout_ms? : Int = 15000,
-  max_retries? : Int = 2,
-  initial_backoff_ms? : Int = 500,
-  proxy_url? : String = "",
+  secondary_host~ : String = "",
+  fallback_host~ : String = "",
+  open_timeout_ms~ : Int = 8000,
+  read_timeout_ms~ : Int = 15000,
+  max_retries~ : Int = 2,
+  initial_backoff_ms~ : Int = 500,
+  proxy_url~ : String = "",
 ) -> PlatformHttpConfig {
   {
     primary_host,
@@ -115,7 +115,7 @@ pub fn PlatformHttpClient::new(
 pub async fn PlatformHttpClient::get(
   self : PlatformHttpClient,
   path : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Result[HttpResponse, HttpError] {
   self.execute_with_retry(Get, path, "", headers)
 }
@@ -126,7 +126,7 @@ pub async fn PlatformHttpClient::post(
   self : PlatformHttpClient,
   path : String,
   body : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Result[HttpResponse, HttpError] {
   self.execute_with_retry(Post, path, body, headers)
 }
@@ -137,7 +137,7 @@ pub async fn PlatformHttpClient::put(
   self : PlatformHttpClient,
   path : String,
   body : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Result[HttpResponse, HttpError] {
   self.execute_with_retry(Put, path, body, headers)
 }
@@ -147,7 +147,7 @@ pub async fn PlatformHttpClient::put(
 pub async fn PlatformHttpClient::delete(
   self : PlatformHttpClient,
   path : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Result[HttpResponse, HttpError] {
   self.execute_with_retry(Delete, path, "", headers)
 }
@@ -463,7 +463,7 @@ pub async fn send_request(
   body : String,
   headers : Array[(String, String)],
   timeout_ms : Int,
-  open_timeout_ms? : Int = 10000,
+  open_timeout_ms~ : Int = 10000,
 ) -> Result[HttpResponse, HttpError] {
   let headers_map = headers_to_map(headers)
   // Phase 1: connect (TCP + TLS) within the open timeout window.

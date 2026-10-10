@@ -232,11 +232,13 @@ async fn handle_config_test(
         @core.HttpResponse::ok().json_value(
           Json::object({
             "ok": Json(true),
-            "message": Json(("Connected (" +
-            resp.status_code.to_string() +
-            ", " +
-            elapsed.to_string() +
-            "ms)")),
+            "message": Json(
+              "Connected (" +
+              resp.status_code.to_string() +
+              ", " +
+              elapsed.to_string() +
+              "ms)",
+            ),
             "effective_base_url": Json(base_url),
           }),
         )
@@ -360,7 +362,7 @@ async fn handle_config_media_test(
             @core.HttpResponse::ok().json_value(
               Json::object({
                 "ok": Json(false),
-                "error": Json(("HTTP " + resp.status_code.to_string())),
+                "error": Json("HTTP " + resp.status_code.to_string()),
               }),
             )
           }
@@ -400,9 +402,11 @@ fn err_invalid_media_kind(kind : String) -> @core.HttpResponse {
   @core.HttpResponse::bad_request().json_value(
     Json::object({
       "ok": Json(false),
-      "error": Json(("Unknown media kind: " +
-      kind +
-      "; use image, video, audio, stt, or video_understanding")),
+      "error": Json(
+        "Unknown media kind: " +
+        kind +
+        "; use image, video, audio, stt, or video_understanding",
+      ),
     }),
   )
 }
@@ -586,7 +590,9 @@ fn handle_config_media_patch(
     other =>
       @core.HttpResponse::bad_request().json_value(
         Json::object({
-          "error": Json(("Unknown source: " + other + "; use off, auto, or custom")),
+          "error": Json(
+            "Unknown source: " + other + "; use off, auto, or custom",
+          ),
         }),
       )
   }
@@ -706,7 +712,7 @@ fn media_state_json(config : @config.AgentConfig, kind : String) -> Json {
     "aliases": Json::object(Map([])),
     "stale": Json(false),
     "requested_model": Json::null(),
-    "configured": Json((entry is Some(_))),
+    "configured": Json(entry is Some(_)),
   })
 }
 
@@ -761,7 +767,7 @@ fn handle_config_ocr_get(
     "available": Json(([] : Array[Json])),
     "stale": Json(false),
     "requested_model": Json::null(),
-    "configured": Json((entry is Some(_))),
+    "configured": Json(entry is Some(_)),
     // `primary` marks "the chat model itself handles vision"; MoonBit has no
     // vision-capability detection for that path, so it is always false.
     "primary": Json(false),

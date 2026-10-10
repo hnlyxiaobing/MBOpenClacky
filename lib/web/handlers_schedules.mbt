@@ -518,7 +518,7 @@ pub fn handle_schedules_update(request : HttpRequest) -> HttpResponse {
     None =>
       Json::object({
         "id": Json(id),
-        "name": Json((if name != "" { name } else { id })),
+        "name": Json(if name != "" { name } else { id }),
         "cron_expression": Json(cron_expr),
         "enabled": Json(enabled.unwrap_or(true)),
         "message": Json(msg),
@@ -583,7 +583,7 @@ pub fn handle_schedules_trigger(request : HttpRequest) -> HttpResponse {
       let body = Json::object({
         "id": Json(id),
         "triggered": Json(true),
-        "message": Json(("Schedule '" + id + "' triggered manually")),
+        "message": Json("Schedule '" + id + "' triggered manually"),
         "prompt": Json(msg),
       })
       HttpResponse::ok(body.stringify())

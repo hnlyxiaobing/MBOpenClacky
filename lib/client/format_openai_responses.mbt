@@ -32,15 +32,16 @@
 
 ///| flattens tool definitions, and uses `max_output_tokens` for the
 
-///| token limit.
+///|
+/// token limit.
 pub fn build_openai_responses_request(
   messages : Array[@message.Message],
   model : String,
   tools : Array[Json],
   max_tokens : Int,
   enable_caching : Bool,
-  vision_supported? : Bool = true,
-  reasoning_effort? : String? = None,
+  vision_supported~ : Bool = true,
+  reasoning_effort~ : String? = None,
 ) -> Json {
   let input_items : Array[Json] = []
   for msg in messages {
@@ -203,7 +204,10 @@ fn message_content_to_responses_content(
           @message.Text(tb) =>
             if tb.text.length() > 0 {
               items.push(
-                Json::object({ "type": Json("input_text"), "text": Json(tb.text) }),
+                Json::object({
+                  "type": Json("input_text"),
+                  "text": Json(tb.text),
+                }),
               )
             }
           @message.Image(ib) =>
@@ -257,16 +261,12 @@ fn flatten_responses_tools(
             continue
           }
         }
-        let new_obj : Map[String, Json] = {
-          "type": Json("function"),
-        }
+        let new_obj : Map[String, Json] = { "type": Json("function") }
         for k, v in func_def {
           new_obj[k] = v
         }
         if enable_caching && i == tools.length() - 1 {
-          new_obj["cache_control"] = Json::object({
-            "type": Json("ephemeral"),
-          })
+          new_obj["cache_control"] = Json::object({ "type": Json("ephemeral") })
         }
         Json::object(new_obj)
       }
@@ -294,7 +294,11 @@ fn apply_responses_reasoning(
   if effort_str.length() > 0 {
     let mapped = match m {
       _ if m.contains("deepseek") =>
-        if effort_str == "xhigh" { "max" } else { effort_str }
+        if effort_str == "xhigh" {
+          "max"
+        } else {
+          effort_str
+        }
       _ =>
         match effort_str {
           "off" | "nothink" | "disabled" => "minimal"
@@ -323,11 +327,12 @@ pub fn parse_openai_responses_response(data : Json) -> LlmResponse {
 
   for item in output_items {
     match (if item is Object(obj) { obj.get("type") } else { None }) {
-      Some(String("message")) => {
+      Some(String("message")) =>
         match (if item is Object(obj) { obj.get("content") } else { None }) {
           Some(Array(content_arr)) =>
             for block in content_arr {
-              match (if block is Object(obj) { obj.get("type") } else { None }) {
+              match
+                (if block is Object(obj) { obj.get("type") } else { None }) {
                 Some(String("output_text")) =>
                   match
                     (if block is Object(obj) { obj.get("text") } else { None }) {
@@ -336,11 +341,7 @@ pub fn parse_openai_responses_response(data : Json) -> LlmResponse {
                   }
                 Some(String("reasoning")) =>
                   match
-                    (if block is Object(obj) {
-                      obj.get("text")
-                    } else {
-                      None
-                    }) {
+                    (if block is Object(obj) { obj.get("text") } else { None }) {
                     Some(String(text)) =>
                       match reasoning_content {
                         Some(existing) =>
@@ -355,7 +356,6 @@ pub fn parse_openai_responses_response(data : Json) -> LlmResponse {
           Some(String(text)) => content_parts.push(text)
           _ => ()
         }
-      }
       Some(String("function_call")) => {
         let call_id = match
           (if item is Object(obj) { obj.get("call_id") } else { None }) {
@@ -368,11 +368,7 @@ pub fn parse_openai_responses_response(data : Json) -> LlmResponse {
           _ => ""
         }
         let arguments = match
-          (if item is Object(obj) {
-            obj.get("arguments")
-          } else {
-            None
-          }) {
+          (if item is Object(obj) { obj.get("arguments") } else { None }) {
           Some(String(s)) => s
           _ => ""
         }
@@ -402,13 +398,7 @@ pub fn parse_openai_responses_response(data : Json) -> LlmResponse {
       let input_tokens = json_int_responses(u, "input_tokens")
       let output_tokens = json_int_responses(u, "output_tokens")
       let total = json_int_responses(u, "total_tokens")
-      Some(
-        Usage::from_openai(
-          input_tokens,
-          output_tokens,
-          total_tokens=total,
-        ),
-      )
+      Some(Usage::from_openai(input_tokens, output_tokens, total_tokens=total))
     }
     _ => None
   }

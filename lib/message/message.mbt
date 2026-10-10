@@ -494,7 +494,9 @@ pub impl FromJson for Message with fn from_json(json, path) {
         Some(Null) | None => None
         Some(j) => Some(j)
       }
-      let subagent_instructions = opt_message_string(map, "subagent_instructions")
+      let subagent_instructions = opt_message_string(
+        map, "subagent_instructions",
+      )
       let subagent_result = opt_message_string(map, "subagent_result")
       let token_usage = match map.get("token_usage") {
         Some(Null) | None => None

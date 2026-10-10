@@ -1302,7 +1302,7 @@ test "build_identify_payload_structure" {
   let payload = build_identify_payload("BOT_TOK", DEFAULT_INTENTS)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some(Json((2))))
+      @debug.assert_eq(obj.get("op"), Some(Json(2)))
       match obj.get("d") {
         Some(Object(d)) => {
           @debug.assert_eq(d.get("token"), Some(Json("BOT_TOK")))
@@ -1320,8 +1320,8 @@ test "build_heartbeat_payload_with_seq" {
   let payload = build_heartbeat_payload(Some(42))
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some(Json((1))))
-      @debug.assert_eq(obj.get("d"), Some(Json((42))))
+      @debug.assert_eq(obj.get("op"), Some(Json(1)))
+      @debug.assert_eq(obj.get("d"), Some(Json(42)))
     }
     _ => assert_true(false)
   }
@@ -1332,7 +1332,7 @@ test "build_heartbeat_payload_null" {
   let payload = build_heartbeat_payload(None)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some(Json((1))))
+      @debug.assert_eq(obj.get("op"), Some(Json(1)))
       assert_true(obj.get("d") == Some(Json::null()))
     }
     _ => assert_true(false)
@@ -1344,11 +1344,11 @@ test "build_resume_payload" {
   let payload = build_resume_payload("TOK", "sess123", 99)
   match payload {
     Object(obj) => {
-      @debug.assert_eq(obj.get("op"), Some(Json((6))))
+      @debug.assert_eq(obj.get("op"), Some(Json(6)))
       match obj.get("d") {
         Some(Object(d)) => {
           @debug.assert_eq(d.get("session_id"), Some(Json("sess123")))
-          @debug.assert_eq(d.get("seq"), Some(Json((99))))
+          @debug.assert_eq(d.get("seq"), Some(Json(99)))
         }
         _ => assert_true(false)
       }
@@ -1821,8 +1821,7 @@ test "dingtalk_webhook_payload_text" {
 test "dingtalk_webhook_payload_markdown" {
   let payload = DingTalkApiClient::build_webhook_payload("**bold**", "markdown")
   match payload {
-    Object(obj) =>
-      @debug.assert_eq(obj.get("msgtype"), Some(Json("markdown")))
+    Object(obj) => @debug.assert_eq(obj.get("msgtype"), Some(Json("markdown")))
     _ => assert_true(false)
   }
 }
@@ -1845,7 +1844,7 @@ test "dingtalk_build_stream_ack" {
   let ack = build_stream_ack("msg999")
   match ack {
     Object(obj) => {
-      @debug.assert_eq(obj.get("code"), Some(Json((200))))
+      @debug.assert_eq(obj.get("code"), Some(Json(200)))
       @debug.assert_eq(obj.get("messageId"), Some(Json("msg999")))
     }
     _ => assert_true(false)
@@ -1909,7 +1908,7 @@ test "weixin_build_get_updates_request" {
   let client = WeixinApiClient::new("t", "u")
   let req = client.build_get_updates_request(None)
   match req {
-    Object(obj) => @debug.assert_eq(obj.get("timeout"), Some(Json((40))))
+    Object(obj) => @debug.assert_eq(obj.get("timeout"), Some(Json(40)))
     _ => assert_true(false)
   }
 }
@@ -1947,7 +1946,7 @@ test "weixin_build_send_text_request" {
   match req {
     Object(obj) => {
       @debug.assert_eq(obj.get("to_user_name"), Some(Json("user1")))
-      @debug.assert_eq(obj.get("msg_type"), Some(Json((1))))
+      @debug.assert_eq(obj.get("msg_type"), Some(Json(1)))
     }
     _ => assert_true(false)
   }
@@ -1960,7 +1959,7 @@ test "weixin_build_typing_request" {
   match req {
     Object(obj) => {
       @debug.assert_eq(obj.get("to_user_name"), Some(Json("user1")))
-      @debug.assert_eq(obj.get("typing_status"), Some(Json((1))))
+      @debug.assert_eq(obj.get("typing_status"), Some(Json(1)))
     }
     _ => assert_true(false)
   }
@@ -2354,8 +2353,7 @@ async test "telegram_adapter_update_message_returns_err" {
     poll_backoff_ms: 1000,
     poll_idle_ms: 200,
     api_client: TelegramApiClient::with_base_url(
-      "123456:ABC-DEF",
-      "http://127.0.0.1:1",
+      "123456:ABC-DEF", "http://127.0.0.1:1",
     ),
   }
   match adapter.update_message("chat1", "msg1", "edited") {
@@ -2375,8 +2373,7 @@ async test "telegram_adapter_delete_message_returns_err" {
     poll_backoff_ms: 1000,
     poll_idle_ms: 200,
     api_client: TelegramApiClient::with_base_url(
-      "123456:ABC-DEF",
-      "http://127.0.0.1:1",
+      "123456:ABC-DEF", "http://127.0.0.1:1",
     ),
   }
   match adapter.delete_message("chat1", "msg1") {

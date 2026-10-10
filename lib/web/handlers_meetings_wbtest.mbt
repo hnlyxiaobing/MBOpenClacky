@@ -10,8 +10,8 @@ fn reset_meeting_state() -> Unit {
 fn make_meeting_request(
   http_method : HttpMethod,
   path : String,
-  body? : String = "",
-  params? : Array[(String, String)] = [],
+  body~ : String = "",
+  params~ : Array[(String, String)] = [],
 ) -> HttpRequest {
   { http_method, path, params, body, headers: [], }
 }

@@ -24,7 +24,7 @@ pub extend HookContext with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Load hook configurations from a directory.
 /// Scans for .toml or .json files describing hooks.
-pub fn load_shell_hooks(config_dir? : String? = None) -> Array[HookConfig] {
+pub fn load_shell_hooks(config_dir~ : String? = None) -> Array[HookConfig] {
   let dir = match config_dir {
     Some(d) => d
     None =>

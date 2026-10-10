@@ -72,7 +72,9 @@ test "WorkspaceRules::to_prompt_section: main_rule and sub_rules" {
       assert_true(text.contains("## SUB-PROJECT AGENTS"))
       assert_true(text.contains("### Sub-project: sub/"))
       assert_true(
-        text.contains("Summary (first 5 lines of sub/.clackyrules):\nSub rule summary."),
+        text.contains(
+          "Summary (first 5 lines of sub/.clackyrules):\nSub rule summary.",
+        ),
       )
       assert_true(
         text.contains(
@@ -112,9 +114,21 @@ test "WorkspaceRules::to_prompt_section: multiple sub_rules formatting" {
   let result = rules.to_prompt_section()
   match result {
     Some(text) => {
-      assert_true(text.contains("### Sub-project: a/\nSummary (first 5 lines of a/.clackyrules):\nA."))
-      assert_true(text.contains("### Sub-project: b/\nSummary (first 5 lines of b/.clackyrules):\nB."))
-      assert_true(text.contains("### Sub-project: c/\nSummary (first 5 lines of c/.clackyrules):\nC."))
+      assert_true(
+        text.contains(
+          "### Sub-project: a/\nSummary (first 5 lines of a/.clackyrules):\nA.",
+        ),
+      )
+      assert_true(
+        text.contains(
+          "### Sub-project: b/\nSummary (first 5 lines of b/.clackyrules):\nB.",
+        ),
+      )
+      assert_true(
+        text.contains(
+          "### Sub-project: c/\nSummary (first 5 lines of c/.clackyrules):\nC.",
+        ),
+      )
       assert_true(text.contains("## SUB-PROJECT AGENTS"))
       // main_rule_path absent → source falls back to the generic label.
       assert_true(text.contains("PROJECT-SPECIFIC RULES (from sub-projects)"))
@@ -186,5 +200,7 @@ test "WorkspaceRules::find_main: AGENTS.md is recognised and empty files are ski
     Some(path) => assert_true(path.has_suffix("AGENTS.md"))
     None => assert_false(true)
   }
-  @fs.remove_dir(dir) catch { _ => () }
+  @fs.remove_dir(dir) catch {
+    _ => ()
+  }
 }

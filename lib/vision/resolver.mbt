@@ -52,10 +52,7 @@ pub async fn VisionResolver::describe(
     FilePath(path) => "file://" + path
   }
   let content_arr : Array[Json] = [
-    Json::object({
-      "type": Json("text"),
-      "text": Json(effective_prompt),
-    }),
+    Json::object({ "type": Json("text"), "text": Json(effective_prompt) }),
     Json::object({
       "type": Json("image_url"),
       "image_url": Json::object({
@@ -68,10 +65,7 @@ pub async fn VisionResolver::describe(
     "model": Json(self.config.model),
     "max_tokens": Json(self.config.max_tokens),
     "messages": Json::array([
-      Json::object({
-        "role": Json("user"),
-        "content": Json(content_arr),
-      }),
+      Json::object({ "role": Json("user"), "content": Json(content_arr) }),
     ]),
   }
   let body_str = Json::object(body).stringify()

@@ -41,7 +41,9 @@ test "trash payload round-trips a session file" {
 test "restore without a payload fails instead of faking success" {
   let old = wd_push_profile()
   assert_true(
-    !restore_session_payload("trash_absent_" + @env.now().reinterpret_as_int64().to_string()),
+    !restore_session_payload(
+      "trash_absent_" + @env.now().reinterpret_as_int64().to_string(),
+    ),
     msg="payload-less restore must not report success",
   )
   wd_pop_profile(old)

@@ -907,7 +907,7 @@ pub fn PdfCrypt::recrypt_pdf(
   self : PdfCrypt,
   pdf : @pdf.Pdf,
   pw : String,
-  renumber? : Bool = true,
+  renumber~ : Bool = true,
 ) -> @pdf.Pdf raise {
   let mut pdf = pdf
   if pdf.saved_encryption is None && self.is_encrypted(pdf) {

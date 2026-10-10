@@ -47,7 +47,7 @@ fn license_status_json(status : @brand.LicenseStatus) -> Json {
   }
   Json::object({
     "status": Json(status_str),
-    "valid": Json((status == @brand.Valid)),
+    "valid": Json(status == @brand.Valid),
   })
 }
 
@@ -161,7 +161,7 @@ fn handle_brand_status(
       "activated": Json(activated),
       "branded": Json(branded),
       "needs_activation": Json(needs_activation),
-      "test_mode": Json((!branded)),
+      "test_mode": Json(!branded),
       "user_licensed": Json(activated),
       "product_name": Json(cfg.display_name()),
       "theme_color": opt_str_json(cfg.theme_color),
@@ -241,8 +241,8 @@ fn handle_brand_skills_list(
     Json::object({
       "ok": Json(true),
       "skills": Json(items),
-      "free_mode": Json((!cfg.is_branded())),
-      "paid_skills_count": Json((0)),
+      "free_mode": Json(!cfg.is_branded()),
+      "paid_skills_count": Json(0),
     }),
   )
 }
@@ -278,8 +278,7 @@ fn handle_brand_skills_install(
   let dir = brand_skills_config_dir()
   let cfg = @brand.BrandConfig::load(dir)
   let manager = @brand.BrandSkillManager::new(cfg)
-  match
-    manager.create_skill(dir, Json::object({ "name": Json(sanitized) })) {
+  match manager.create_skill(dir, Json::object({ "name": Json(sanitized) })) {
     Ok(_) =>
       @core.HttpResponse::ok().json_value(
         Json::object({ "ok": Json(true), "name": Json(sanitized) }),
@@ -345,9 +344,7 @@ fn handle_brand_deactivate(
   cfg.license_expires_at = None
   match cfg.save(dir) {
     Ok(_) =>
-      @core.HttpResponse::ok().json_value(
-        Json::object({ "ok": Json(true) }),
-      )
+      @core.HttpResponse::ok().json_value(Json::object({ "ok": Json(true) }))
     Err(msg) =>
       @core.HttpResponse::internal_server_error().json_value(
         Json::object({ "error": Json(msg) }),

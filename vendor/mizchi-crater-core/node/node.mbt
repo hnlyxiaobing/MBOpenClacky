@@ -1,6 +1,6 @@
 ///|
 /// Global counter for generating unique node IDs
-let node_uid_counter : Ref[Int] = { val: 0 }
+let node_uid_counter : Ref[Int] = { val: 0, }
 
 ///|
 /// Generate a new unique node ID
@@ -28,7 +28,15 @@ pub fn Node::new(
   style : @style.Style,
   children : Array[Node],
 ) -> Node {
-  { id, uid: next_uid(), style, children, measure: None, text: None, src: None }
+  {
+    id,
+    uid: next_uid(),
+    style,
+    children,
+    measure: None,
+    text: None,
+    src: None,
+  }
 }
 
 ///|
@@ -39,7 +47,7 @@ pub fn Node::with_uid(
   style : @style.Style,
   children : Array[Node],
 ) -> Node {
-  { id, uid, style, children, measure: None, text: None, src: None }
+  { id, uid, style, children, measure: None, text: None, src: None, }
 }
 
 ///|
@@ -51,9 +59,9 @@ pub fn Node::with_uid_and_measure(
   children : Array[Node],
   measure : @layout_types.MeasureFunc?,
   text : String?,
-  src? : String? = None,
+  src~ : String? = None,
 ) -> Node {
-  { id, uid, style, children, measure, text, src }
+  { id, uid, style, children, measure, text, src, }
 }
 
 ///|
@@ -77,7 +85,7 @@ pub fn Node::with_measure(
   style : @style.Style,
   measure : @layout_types.MeasureFunc,
   text? : String,
-  src? : String? = None,
+  src~ : String? = None,
 ) -> Node {
   {
     id,
@@ -126,7 +134,7 @@ pub(all) struct LayoutDispatchFunc(
 
 ///|
 /// Global layout dispatch function (for incremental compute caching)
-let layout_dispatcher : Ref[LayoutDispatchFunc?] = { val: None }
+let layout_dispatcher : Ref[LayoutDispatchFunc?] = { val: None, }
 
 ///|
 /// Set the global layout dispatcher (used by incremental compute for caching)

@@ -281,10 +281,9 @@ pub impl Adapter for TelegramAdapter with fn start(
 /// One getUpdates round: fetch, dispatch every parseable update, and advance
 /// `last_update_id`. Returns the number of events dispatched; a transport or
 /// API failure is reported as `Err` so the loop can back off.
-pub async fn TelegramAdapter::poll_once(self : TelegramAdapter) -> Result[
-  Int,
-  ChannelError,
-] {
+pub async fn TelegramAdapter::poll_once(
+  self : TelegramAdapter,
+) -> Result[Int, ChannelError] {
   let payload = self.api_client.get_updates_payload(
     self.last_update_id + 1,
     telegram_poll_timeout_s,
@@ -317,7 +316,7 @@ pub async fn TelegramAdapter::poll_once(self : TelegramAdapter) -> Result[
     // Updates that carry no `message` (edited_message, channel_post, …) are
     // skipped without noise — the adapter only models inbound messages.
     match TelegramAdapter::parse_event(update) {
-      Ok(event) => {
+      Ok(event) =>
         match self.message_callback {
           Some(cb) => {
             cb(event)
@@ -325,7 +324,6 @@ pub async fn TelegramAdapter::poll_once(self : TelegramAdapter) -> Result[
           }
           None => ()
         }
-      }
       Err(_) => ()
     }
   }
@@ -337,7 +335,9 @@ pub async fn TelegramAdapter::poll_once(self : TelegramAdapter) -> Result[
 /// the registered callback. A failed poll backs off exponentially (capped) and
 /// retries instead of ending the loop, so a transient outage does not silently
 /// kill the channel; `stop()` flips `is_running` and the loop exits.
-pub async fn TelegramAdapter::run_long_poll_loop(self : TelegramAdapter) -> Unit {
+pub async fn TelegramAdapter::run_long_poll_loop(
+  self : TelegramAdapter,
+) -> Unit {
   while self.is_running {
     match self.poll_once() {
       Ok(dispatched) => {

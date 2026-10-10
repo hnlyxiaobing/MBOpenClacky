@@ -16,7 +16,7 @@ fn extension_to_store_json(ext : @extension.Extension) -> Json {
   obj["author"] = Json(m.author)
   obj["license"] = Json(m.license)
   obj["enabled"] = Json(ext.enabled)
-  obj["installed"] = Json((ext.source is @extension.ExtensionSource::Installed))
+  obj["installed"] = Json(ext.source is @extension.ExtensionSource::Installed)
   obj["source"] = match ext.source {
     Builtin => Json("builtin")
     Installed => Json("installed")
@@ -145,10 +145,7 @@ pub fn handle_store_installed(_request : HttpRequest) -> HttpResponse {
   let installed = @extension.list_installed_extensions()
   let arr : Array[Json] = []
   installed.each(fn(e) { arr.push(extension_to_store_json(e)) })
-  let resp = Json::object({
-    "ok": Json(true),
-    "extensions": Json::array(arr),
-  }).stringify()
+  let resp = Json::object({ "ok": Json(true), "extensions": Json::array(arr) }).stringify()
   HttpResponse::ok(resp)
 }
 
@@ -224,7 +221,9 @@ pub fn handle_store_install(request : HttpRequest) -> HttpResponse {
       body: Json::object({
         "ok": Json(false),
         "error": Json("unimplemented"),
-        "message": Json("Remote extension download is not yet supported. Install from local path instead."),
+        "message": Json(
+          "Remote extension download is not yet supported. Install from local path instead.",
+        ),
       }).stringify(),
       body_bytes: None,
       content_type: "application/json",

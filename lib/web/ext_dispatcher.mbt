@@ -62,7 +62,7 @@ pub fn ExtensionDispatcher::new(
 pub fn ExtensionDispatcher::new_with_dir(
   extensions : Array[ApiExtension],
   ext_dir : String,
-  check_every? : Int = 20,
+  check_every~ : Int = 20,
 ) -> ExtensionDispatcher {
   {
     extensions,

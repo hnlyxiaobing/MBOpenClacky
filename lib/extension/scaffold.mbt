@@ -20,7 +20,7 @@ pub extend ExtensionTemplate with Eq::{not_equal, equal}
 /// Create a new extension scaffold from a template.
 pub fn create_extension_scaffold(
   template : ExtensionTemplate,
-  output_dir? : String? = None,
+  output_dir~ : String? = None,
 ) -> Result[String, String] {
   let out_dir = match output_dir {
     Some(d) => d
@@ -230,7 +230,7 @@ fn generate_panel_template(
       "components": Json::array([
         Json::object({
           "type": Json("text"),
-          "content": Json(("Welcome to the " + name + " panel!")),
+          "content": Json("Welcome to the " + name + " panel!"),
         }),
       ]),
     }),
@@ -278,9 +278,9 @@ fn generate_agent_template(
     "type": Json("agent"),
     "extension": Json(ext_id),
     "config": Json::object({
-      "system_prompt": Json(("You are a helpful assistant for the " +
-      ext_id +
-      " extension.")),
+      "system_prompt": Json(
+        "You are a helpful assistant for the " + ext_id + " extension.",
+      ),
       "temperature": Json(0.7),
     }),
   }

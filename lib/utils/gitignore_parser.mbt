@@ -96,7 +96,7 @@ pub fn matches_rule(path : String, rule : IgnoreRule) -> Bool {
 pub fn is_ignored(
   path : String,
   rules : Array[IgnoreRule],
-  is_dir? : Bool = false,
+  is_dir~ : Bool = false,
 ) -> Bool {
   let mut ignored = false
   for rule in rules {

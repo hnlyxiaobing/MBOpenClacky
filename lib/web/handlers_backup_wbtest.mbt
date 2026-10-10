@@ -51,7 +51,8 @@ test "backup download packages the snapshot directory into a real zip" {
   @debug.assert_eq(resp.status, 200)
   @debug.assert_eq(resp.content_type, "application/zip")
   match resp.body_bytes {
-    None => assert_true(false, msg="body_bytes missing — archive not attached")
+    None =>
+      assert_true(false, msg="body_bytes missing — archive not attached")
     Some(bytes) =>
       match @zip.extract_zip(bytes) {
         Err(e) =>

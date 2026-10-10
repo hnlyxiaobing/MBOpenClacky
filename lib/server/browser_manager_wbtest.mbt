@@ -7,18 +7,24 @@
 fn bm_tmp_dir(tag : String) -> String {
   let parent = "_build/browser_manager_wbtest"
   if !@fs.path_exists(parent) {
-    @fs.create_dir(parent) catch { _ => () }
+    @fs.create_dir(parent) catch {
+      _ => ()
+    }
   }
   let dir = "\{parent}/\{tag}_\{@env.now()}"
   if !@fs.path_exists(dir) {
-    @fs.create_dir(dir) catch { _ => () }
+    @fs.create_dir(dir) catch {
+      _ => ()
+    }
   }
   dir
 }
 
 ///|
 fn bm_write(path : String, text : String) -> Unit {
-  @fs.write_string_to_file(path, text) catch { _ => () }
+  @fs.write_string_to_file(path, text) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -27,8 +33,7 @@ test "browser manager loads a flat browser.yml" {
   let dir = bm_tmp_dir("flat")
   let path = dir + "/browser.yml"
   bm_write(
-    path,
-    "enabled: true\nchrome_version: \"120.0.6099\"\nmcp_command: custom-mcp\n",
+    path, "enabled: true\nchrome_version: \"120.0.6099\"\nmcp_command: custom-mcp\n",
   )
   let mgr = BrowserManager::new(path)
   match mgr.load_config() {
@@ -47,8 +52,7 @@ test "browser manager treats a configured browser path as enabled" {
   let dir = bm_tmp_dir("nested")
   let path = dir + "/browser.yml"
   bm_write(
-    path,
-    "browser:\n  path: \"/usr/bin/google-chrome\"\n  debugging_port: 9222\n",
+    path, "browser:\n  path: \"/usr/bin/google-chrome\"\n  debugging_port: 9222\n",
   )
   let mgr = BrowserManager::new(path)
   match mgr.load_config() {

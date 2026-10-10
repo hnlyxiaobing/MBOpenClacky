@@ -50,8 +50,8 @@ pub(all) struct RateLimitEntry {
 ///|
 /// Create a new rate limiter with the given thresholds.
 pub fn IpRateLimiter::new(
-  max_failures? : Int = 10,
-  window_seconds? : Int64 = 300L,
+  max_failures~ : Int = 10,
+  window_seconds~ : Int64 = 300L,
 ) -> IpRateLimiter {
   { failures: Map([]), max_failures, window_seconds, }
 }
@@ -221,7 +221,7 @@ pub fn is_public_path(http_method : String, path : String) -> Bool {
 /// NOT a security boundary: a remote client can forge the header).
 pub fn auth_middleware(
   api_key : String,
-  allow_loopback_bypass? : Bool = false,
+  allow_loopback_bypass~ : Bool = false,
 ) -> @crescent.Middleware {
   let limiter = IpRateLimiter::new()
   let mw : @crescent.Middleware = (event, next) => {
@@ -251,7 +251,7 @@ pub fn auth_middleware(
         .json_value(
           Json::object({
             "error": Json::object({
-              "status": Json((429)),
+              "status": Json(429),
               "message": Json("Too many failed authentication attempts"),
               "retry_after": Json(retry),
             }),
@@ -273,9 +273,11 @@ pub fn auth_middleware(
           .json_value(
             Json::object({
               "error": Json::object({
-                "status": Json((401)),
+                "status": Json(401),
                 "message": Json("Invalid API key"),
-                "hint": Json("Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie"),
+                "hint": Json(
+                  "Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie",
+                ),
               }),
             }),
           )
@@ -287,9 +289,11 @@ pub fn auth_middleware(
         .json_value(
           Json::object({
             "error": Json::object({
-              "status": Json((401)),
+              "status": Json(401),
               "message": Json("Missing API key"),
-              "hint": Json("Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie"),
+              "hint": Json(
+                "Provide key via Authorization: Bearer, X-API-Key header, ?access_key= query, or clacky_access_key cookie",
+              ),
             }),
           }),
         )

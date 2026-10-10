@@ -23,8 +23,8 @@ pub fn build_openai_request(
   tools : Array[Json],
   max_tokens : Int,
   enable_caching : Bool,
-  vision_supported? : Bool = true,
-  reasoning_effort? : String? = None,
+  vision_supported~ : Bool = true,
+  reasoning_effort~ : String? = None,
 ) -> Json {
   // Convert messages to API format
   let api_messages : Array[Json] = []
@@ -35,7 +35,9 @@ pub fn build_openai_request(
     // 回合的 hash 带该键（agent.rb:1026-1032）。所以在剥之前先取好这个判定，
     // 传给序列化层。
     let emit_display_text = msg.system_injected != Some(true)
-    let json = normalize_openai_message(api_msg, vision_supported, emit_display_text)
+    let json = normalize_openai_message(
+      api_msg, vision_supported, emit_display_text,
+    )
     api_messages.push(json)
   }
 
@@ -245,7 +247,7 @@ fn add_observability_fields(
     None => ()
   }
   match msg.role {
-    @message.User => {
+    @message.User =>
       // BUG-0069：Ruby 对消息是「hash 直通 + 黑名单剥离」（`to_api` →
       // `strip_internal_fields`），因此**键是否存在**决定它是否出网：
       //   - `display_files` 在 `INTERNAL_FIELDS`（message_history.rb:13-19）里，
@@ -262,7 +264,6 @@ fn add_observability_fields(
           None => Json::null()
         }
       }
-    }
     _ => ()
   }
   // Session context fields leak into the wire by design (decision 4).
@@ -356,10 +357,12 @@ fn content_block_to_json(block : @message.ContentBlock) -> Json {
     @message.Image(ib) =>
       Json::object({
         "type": Json("image_url"),
-        "image_url": Json::object(match ib.detail {
-          Some(detail) => { "url": Json(ib.url), "detail": Json(detail) }
-          None => { "url": Json(ib.url) }
-        }),
+        "image_url": Json::object(
+          match ib.detail {
+            Some(detail) => { "url": Json(ib.url), "detail": Json(detail) }
+            None => { "url": Json(ib.url) }
+          },
+        ),
       })
   }
 }

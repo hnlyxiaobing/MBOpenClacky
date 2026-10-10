@@ -12,7 +12,7 @@ pub fn recurse_array(
 fn recurse_dict(
   f : (PdfObject) -> PdfObject,
   elts : Array[(String, PdfObject)],
-  preserve_order? : Bool = false,
+  preserve_order~ : Bool = false,
 ) -> PdfObject {
   let _ = preserve_order
   let out = Array::new(capacity=elts.length())
@@ -137,7 +137,7 @@ pub fn Pdf::renumber_object_parsed(
   self : Pdf,
   changes : Map[Int, Int],
   obj : PdfObject,
-  preserve_order? : Bool = false,
+  preserve_order~ : Bool = false,
 ) -> PdfObject {
   match obj {
     Indirect(i) =>

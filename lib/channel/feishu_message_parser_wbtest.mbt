@@ -211,9 +211,7 @@ test "feishu_parse_message_text_type" {
 
 ///|
 test "feishu_parse_message_default_type" {
-  let msg : Map[String, Json] = {
-    "content": Json("{\"text\":\"Default\"}"),
-  }
+  let msg : Map[String, Json] = { "content": Json("{\"text\":\"Default\"}") }
   let result = parse_feishu_message(msg)
   match result {
     Ok(parsed) => {

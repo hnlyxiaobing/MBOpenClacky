@@ -93,9 +93,9 @@ pub fn VisionConfig::new(
   api_key : String,
   base_url : String,
   model : String,
-  max_tokens? : Int = default_max_tokens,
-  cache_dir? : String = default_cache_dir,
-  default_prompt? : String = default_vision_prompt,
+  max_tokens~ : Int = default_max_tokens,
+  cache_dir~ : String = default_cache_dir,
+  default_prompt~ : String = default_vision_prompt,
 ) -> VisionConfig {
   { api_key, base_url, model, max_tokens, cache_dir, default_prompt, }
 }

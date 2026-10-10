@@ -308,11 +308,26 @@ test "SkillRegistry: list_user_invocable" {
 /// 列表写法 → 命中任一即可。
 test "Skill: is_allowed_for_profile" {
   let unscoped = Skill::default("skill-a", "src")
-  let all_scope = { ..Skill::default("skill-b", "src"), agent_type: Some("all"), }
-  let empty_scope = { ..Skill::default("skill-c", "src"), agent_type: Some(""), }
-  let scoped = { ..Skill::default("skill-d", "src"), agent_type: Some("ext-developer"), }
-  let listed = { ..Skill::default("skill-e", "src"), agent_type: Some("[coder, ext-developer]"), }
-  let spaced = { ..Skill::default("skill-f", "src"), agent_type: Some("coder ext-developer"), }
+  let all_scope = {
+    ..Skill::default("skill-b", "src"),
+    agent_type: Some("all"),
+  }
+  let empty_scope = {
+    ..Skill::default("skill-c", "src"),
+    agent_type: Some(""),
+  }
+  let scoped = {
+    ..Skill::default("skill-d", "src"),
+    agent_type: Some("ext-developer"),
+  }
+  let listed = {
+    ..Skill::default("skill-e", "src"),
+    agent_type: Some("[coder, ext-developer]"),
+  }
+  let spaced = {
+    ..Skill::default("skill-f", "src"),
+    agent_type: Some("coder ext-developer"),
+  }
 
   for name in ["coding", "general", "ext-developer"] {
     assert_true(unscoped.is_allowed_for_profile(name))
@@ -335,9 +350,11 @@ test "Skill: is_allowed_for_profile" {
 test "SkillRegistry: list_user_invocable filters by profile scope" {
   let reg = SkillRegistry::new()
   reg.register({ ..Skill::default("everyone", "src"), user_invocable: true, })
-  reg.register(
-    { ..Skill::default("ext-develop", "src"), user_invocable: true, agent_type: Some("ext-developer"), },
-  )
+  reg.register({
+    ..Skill::default("ext-develop", "src"),
+    user_invocable: true,
+    agent_type: Some("ext-developer"),
+  })
   let coding = reg.list_user_invocable("coding")
   @debug.debug_inspect(coding.length(), content="1")
   assert_eq(coding[0].name, "everyone")

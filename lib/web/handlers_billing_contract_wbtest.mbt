@@ -113,21 +113,21 @@ test "billing summary matches orig 12-field contract" {
   }
   @debug.assert_eq(obj.length(), 12)
   @debug.assert_eq(obj.get("period"), Some(Json("month")))
-  @debug.assert_eq(obj.get("record_count"), Some(Json((2))))
-  @debug.assert_eq(obj.get("prompt_tokens"), Some(Json((300))))
-  @debug.assert_eq(obj.get("completion_tokens"), Some(Json((130))))
-  @debug.assert_eq(obj.get("total_tokens"), Some(Json((430))))
-  @debug.assert_eq(obj.get("cache_read_tokens"), Some(Json((30))))
-  @debug.assert_eq(obj.get("cache_write_tokens"), Some(Json((13))))
+  @debug.assert_eq(obj.get("record_count"), Some(Json(2)))
+  @debug.assert_eq(obj.get("prompt_tokens"), Some(Json(300)))
+  @debug.assert_eq(obj.get("completion_tokens"), Some(Json(130)))
+  @debug.assert_eq(obj.get("total_tokens"), Some(Json(430)))
+  @debug.assert_eq(obj.get("cache_read_tokens"), Some(Json(30)))
+  @debug.assert_eq(obj.get("cache_write_tokens"), Some(Json(13)))
   // from/to are ISO datetime strings
   guard! obj.get("from") is Some(String(_))
   guard! obj.get("to") is Some(String(_))
   // by_model entries: { cost, prompt_tokens, completion_tokens, requests }
   guard! obj.get("by_model") is Some(Object(by_model))
   guard! by_model.get("model-a") is Some(Object(ma))
-  @debug.assert_eq(ma.get("requests"), Some(Json((1))))
-  @debug.assert_eq(ma.get("prompt_tokens"), Some(Json((100))))
-  @debug.assert_eq(ma.get("completion_tokens"), Some(Json((50))))
+  @debug.assert_eq(ma.get("requests"), Some(Json(1)))
+  @debug.assert_eq(ma.get("prompt_tokens"), Some(Json(100)))
+  @debug.assert_eq(ma.get("completion_tokens"), Some(Json(50)))
   assert_true(ma.contains("cost"))
   // by_day values are plain cost numbers keyed by date
   guard! obj.get("by_day") is Some(Object(by_day))
@@ -180,9 +180,9 @@ test "billing daily uses days key with full token splits" {
   }
   // The seeded record lands in the most recent day bucket
   guard! days[29] is Json::Object(today)
-  @debug.assert_eq(today.get("requests"), Some(Json((1))))
-  @debug.assert_eq(today.get("tokens"), Some(Json((150))))
-  @debug.assert_eq(today.get("cache_read_tokens"), Some(Json((10))))
+  @debug.assert_eq(today.get("requests"), Some(Json(1)))
+  @debug.assert_eq(today.get("tokens"), Some(Json(150)))
+  @debug.assert_eq(today.get("cache_read_tokens"), Some(Json(10)))
   // days query param is honored and capped at 90 (orig clamps)
   let resp7 = handle_billing_daily(
     HttpRequest::new(GET, "/api/billing/daily?days=7"),
@@ -212,7 +212,7 @@ test "billing records include count, cache splits and cost_source" {
   let j = bc_body_json(resp)
   guard! j is Json::Object(obj)
   // I-015: top-level count plus full record fields
-  @debug.assert_eq(obj.get("count"), Some(Json((2))))
+  @debug.assert_eq(obj.get("count"), Some(Json(2)))
   guard! obj.get("records") is Some(Array(records))
   @debug.assert_eq(records.length(), 2)
   let expected = [
@@ -235,15 +235,15 @@ test "billing records include count, cache splits and cost_source" {
     assert_true(ts.contains("T"))
   }
   guard! rb is Some(r0)
-  @debug.assert_eq(r0.get("cache_read_tokens"), Some(Json((20))))
-  @debug.assert_eq(r0.get("cache_write_tokens"), Some(Json((8))))
+  @debug.assert_eq(r0.get("cache_read_tokens"), Some(Json(20)))
+  @debug.assert_eq(r0.get("cache_write_tokens"), Some(Json(8)))
   @debug.assert_eq(r0.get("cost_source"), Some(Json("estimated")))
   // limit query param is honored
   let resp1 = handle_billing_records(
     HttpRequest::new(GET, "/api/billing/records?limit=1"),
   )
   guard! bc_body_json(resp1) is Json::Object(obj1)
-  @debug.assert_eq(obj1.get("count"), Some(Json((1))))
+  @debug.assert_eq(obj1.get("count"), Some(Json(1)))
   bc_remove_dir(dir)
 }
 
@@ -260,7 +260,7 @@ test "billing sessions aggregate per orig contract shape" {
   @debug.assert_eq(resp.status, 200)
   let j = bc_body_json(resp)
   guard! j is Json::Object(obj)
-  @debug.assert_eq(obj.get("count"), Some(Json((2))))
+  @debug.assert_eq(obj.get("count"), Some(Json(2)))
   guard! obj.get("sessions") is Some(Array(sessions))
   @debug.assert_eq(sessions.length(), 2)
   // Sorted by total cost descending: s1 (0.05) before s2 (0.01)
@@ -274,12 +274,12 @@ test "billing sessions aggregate per orig contract shape" {
     assert_true(first.contains(key))
   }
   @debug.assert_eq(first.get("session_id"), Some(Json("s1")))
-  @debug.assert_eq(first.get("requests"), Some(Json((2))))
-  @debug.assert_eq(first.get("total_tokens"), Some(Json((430))))
-  @debug.assert_eq(first.get("prompt_tokens"), Some(Json((300))))
-  @debug.assert_eq(first.get("completion_tokens"), Some(Json((130))))
-  @debug.assert_eq(first.get("cache_read_tokens"), Some(Json((30))))
-  @debug.assert_eq(first.get("cache_write_tokens"), Some(Json((13))))
+  @debug.assert_eq(first.get("requests"), Some(Json(2)))
+  @debug.assert_eq(first.get("total_tokens"), Some(Json(430)))
+  @debug.assert_eq(first.get("prompt_tokens"), Some(Json(300)))
+  @debug.assert_eq(first.get("completion_tokens"), Some(Json(130)))
+  @debug.assert_eq(first.get("cache_read_tokens"), Some(Json(30)))
+  @debug.assert_eq(first.get("cache_write_tokens"), Some(Json(13)))
   guard! first.get("models") is Some(Array(models))
   @debug.assert_eq(models.length(), 2)
   guard! first.get("first_request") is Some(String(_))
@@ -291,6 +291,6 @@ test "billing sessions aggregate per orig contract shape" {
     HttpRequest::new(GET, "/api/billing/sessions?limit=1"),
   )
   guard! bc_body_json(resp1) is Json::Object(obj1)
-  @debug.assert_eq(obj1.get("count"), Some(Json((1))))
+  @debug.assert_eq(obj1.get("count"), Some(Json(1)))
   bc_remove_dir(dir)
 }

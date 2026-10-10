@@ -1002,9 +1002,9 @@ fn setup_feedback_bridge(
   }
   match ws_task_group.val {
     Some(group) => {
-      let req_q : @async.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])] = @async.Queue::Queue(
-        kind=Unbounded,
-      )
+      let req_q : @async.Queue[
+        (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+      ] = @async.Queue::Queue(kind=Unbounded)
       let resp_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
       agent.feedback_request = Some(req_q)
       agent.feedback_response = Some(resp_q)
@@ -1023,7 +1023,9 @@ fn setup_feedback_bridge(
 async fn run_feedback_bridge(
   server_ref : Ref[WebServer],
   session_id : String,
-  req_q : @async.Queue[(String, String?, Array[String]?, Array[@tool.AskQuestion])],
+  req_q : @async.Queue[
+    (String, String?, Array[String]?, Array[@tool.AskQuestion]),
+  ],
   resp_q : @async.Queue[String],
 ) -> Unit {
   let hub = server_ref.val.hub
@@ -1125,7 +1127,7 @@ async fn start_ws_run(
   server_ref : Ref[WebServer],
   session_id : String,
   message : String,
-  images? : Array[(String, String, String?)] = [],
+  images~ : Array[(String, String, String?)] = [],
 ) -> Unit {
   let hub = server_ref.val.hub
   let state = get_ws_state(session_id)

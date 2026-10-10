@@ -682,7 +682,7 @@ fn render_json_report(
       "target": Json(run.target),
       "executed": Json(run.executed),
       "exit_code": Json(run.exit_code),
-      "ok": Json((run.executed && run.failures.length() == 0)),
+      "ok": Json(run.executed && run.failures.length() == 0),
       "failures": Json::array(failures),
     }
     items.push(Json::object(item))

@@ -401,8 +401,8 @@ fn zlib_start_offset(data : @pdfio.MutableBytes) -> Int raise FlateError {
 /// Compress data using a streaming interface (stored blocks only).
 pub fn PdfFlate::compress(
   _self : PdfFlate,
-  level? : Int = 6,
-  header? : Bool = true,
+  level~ : Int = 6,
+  header~ : Bool = true,
   input : (@pdfio.MutableBytes) -> Int,
   output : (@pdfio.MutableBytes, Int) -> Unit,
 ) -> Unit {
@@ -492,7 +492,7 @@ pub fn PdfFlate::compress(
 /// Uncompress data using a streaming interface.
 pub fn PdfFlate::uncompress(
   _self : PdfFlate,
-  header? : Bool = true,
+  header~ : Bool = true,
   input : (@pdfio.MutableBytes) -> Int,
   output : (@pdfio.MutableBytes, Int) -> Unit,
 ) -> Unit raise FlateError {

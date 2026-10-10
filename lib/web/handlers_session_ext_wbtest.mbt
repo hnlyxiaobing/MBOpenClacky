@@ -6,8 +6,8 @@
 fn wd_make_event(
   http_method : @crescent.HttpMethod,
   url : String,
-  body? : String = "",
-  params? : Array[(String, String)] = [],
+  body~ : String = "",
+  params~ : Array[(String, String)] = [],
 ) -> @crescent.Event {
   let pmap : Map[String, StringView] = Map([])
   for t in params {
@@ -432,8 +432,8 @@ test "SessionSummary json emits latest_latency object" {
     Object(map) =>
       match map.get("latest_latency") {
         Some(Object(lat)) => {
-          @debug.assert_eq(lat.get("ttft_ms"), Some(Json((80))))
-          @debug.assert_eq(lat.get("duration_ms"), Some(Json((350))))
+          @debug.assert_eq(lat.get("ttft_ms"), Some(Json(80)))
+          @debug.assert_eq(lat.get("duration_ms"), Some(Json(350)))
         }
         _ => panic()
       }
@@ -548,14 +548,8 @@ test "SessionSummary json emits fix-09 fields" {
   match ToJson::to_json(summary) {
     Object(map) => {
       @debug.assert_eq(map.get("model_id"), Some(Json("claude-3-5-sonnet")))
-      @debug.assert_eq(
-        map.get("card_model"),
-        Some(Json("claude-3-5-sonnet")),
-      )
-      @debug.assert_eq(
-        map.get("error_code"),
-        Some(Json("insufficient_credit")),
-      )
+      @debug.assert_eq(map.get("card_model"), Some(Json("claude-3-5-sonnet")))
+      @debug.assert_eq(map.get("error_code"), Some(Json("insufficient_credit")))
       @debug.assert_eq(
         map.get("top_up_url"),
         Some(Json("https://console.anthropic.com/settings/billing")),

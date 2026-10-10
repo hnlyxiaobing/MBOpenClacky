@@ -174,10 +174,7 @@ test "feishu_build_card_content_has_markdown_element" {
 
 ///|
 test "feishu_build_post_content" {
-  let elem : Map[String, Json] = {
-    "tag": Json("text"),
-    "text": Json("Hello"),
-  }
+  let elem : Map[String, Json] = { "tag": Json("text"), "text": Json("Hello") }
   let content = build_feishu_post_content([Json::object(elem)])
   match content {
     Object(obj) => {
@@ -196,14 +193,8 @@ test "feishu_build_post_content" {
 
 ///|
 test "feishu_build_post_content_multiple_elements" {
-  let elem1 : Map[String, Json] = {
-    "tag": Json("text"),
-    "text": Json("A"),
-  }
-  let elem2 : Map[String, Json] = {
-    "tag": Json("text"),
-    "text": Json("B"),
-  }
+  let elem1 : Map[String, Json] = { "tag": Json("text"), "text": Json("A") }
+  let elem2 : Map[String, Json] = { "tag": Json("text"), "text": Json("B") }
   let content = build_feishu_post_content([
     Json::object(elem1),
     Json::object(elem2),

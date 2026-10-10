@@ -29,7 +29,7 @@ test "parse_identity_minimal" {
   let json = Json::object({
     "device_token": Json("tok-1"),
     "user_id": Json("user-1"),
-    "bound_at": Json((1000)),
+    "bound_at": Json(1000),
     "device_info": Json(di),
   })
   guard parse_identity(json) is Some(id) else {

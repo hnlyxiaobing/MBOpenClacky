@@ -81,7 +81,9 @@ test "map_hook_event: FeedbackRequested maps to request_feedback" {
 /// `null` behave identically while the JSON stays smaller and round-trips
 /// exactly through @proto.Event::to_json/parse.
 test "map_hook_event: FeedbackRequested with absent context and options" {
-  let mapped = map_hook_event(@agent.FeedbackRequested("Continue?", None, None, []))
+  let mapped = map_hook_event(
+    @agent.FeedbackRequested("Continue?", None, None, []),
+  )
   @debug.assert_eq(mapped.event_type, "request_feedback")
   let data = match mapped.data {
     Object(o) => o

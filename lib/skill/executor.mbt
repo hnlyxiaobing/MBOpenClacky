@@ -139,7 +139,9 @@ fn order_skills_for_prompt(skills : Array[Skill]) -> Array[Skill] {
       user_skills.push(skill)
     }
   }
-  default_skills.sort_by(fn(a, b) { @utils.compare_lexicographic(a.name, b.name) })
+  default_skills.sort_by(fn(a, b) {
+    @utils.compare_lexicographic(a.name, b.name)
+  })
   user_skills.sort_by(fn(a, b) {
     let ma = directory_mtime(a.directory)
     let mb = directory_mtime(b.directory)

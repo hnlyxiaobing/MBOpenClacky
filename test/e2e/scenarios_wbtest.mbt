@@ -156,7 +156,10 @@ fn assert_system_prompt_stable(requests : Array[String]) -> Unit {
 ///
 /// 此断言不校验 latency 的具体值（量级由各 LLM 后端的 timing 决定），
 /// 只校验"字段被正确写入并出现在出站请求体里"这一链路事实。
-fn assert_observability_fields(requests : Array[String], user_prompt : String) -> Unit {
+fn assert_observability_fields(
+  requests : Array[String],
+  user_prompt : String,
+) -> Unit {
   for ri, req in requests {
     let body = @json.parse(req) catch { _ => continue }
     guard jget(body, "messages") is Some(msgs_json) else { continue }
@@ -168,7 +171,9 @@ fn assert_observability_fields(requests : Array[String], user_prompt : String) -
       if role == "user" {
         // BUG-0069 对齐：display_files 是 Ruby INTERNAL_FIELDS，wire 上不应泄漏
         if jget(m, "display_files") is Some(_) {
-          println("FATAL: req\{ri} user 消息泄漏了 internal 字段 display_files")
+          println(
+            "FATAL: req\{ri} user 消息泄漏了 internal 字段 display_files",
+          )
           panic()
         }
         let is_real_user_turn = match jget(m, "content") {
@@ -240,7 +245,9 @@ fn assert_session_context(requests : Array[String]) -> Unit raise {
       ctx_in_req = ctx_in_req + 1
       // BUG-0069 对齐：session_context 标记属于 internal fields，不应出现在 wire JSON
       if jget(m, "session_context") is Some(_) {
-        println("FATAL: req\{ri} session-context 消息泄漏了 internal 字段 session_context")
+        println(
+          "FATAL: req\{ri} session-context 消息泄漏了 internal 字段 session_context",
+        )
         panic()
       }
       if !unique_contents.contains(content) {
@@ -278,7 +285,10 @@ async test "001 read_edit_file：读文件→编辑→回复完成" {
   // 证据: diff-harness runs/001_read_edit_file/ruby/
   assert_golden(outcome, golden("001_read_edit_file"))
   // BUG-0034 / BUG-0035 回归：出站请求必须带 observability 字段
-  assert_observability_fields(outcome.requests, "把 config.yaml 里的端口改成 9090")
+  assert_observability_fields(
+    outcome.requests,
+    "把 config.yaml 里的端口改成 9090",
+  )
   // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
   assert_session_context(outcome.requests)
 }
@@ -319,7 +329,10 @@ async test "003 multi_turn_tool_sequence：read→edit→read 验证→完成" {
   // 证据: diff-harness runs/003_multi_turn_tool_sequence/ruby/
   assert_golden(outcome, golden("003_multi_turn_tool_sequence"))
   // BUG-0034 / BUG-0035 回归：多轮场景下 observability 字段必须全程携带
-  assert_observability_fields(outcome.requests, "把 app.conf 里的 debug 改成 true，改完再读一次确认")
+  assert_observability_fields(
+    outcome.requests,
+    "把 app.conf 里的 debug 改成 true，改完再读一次确认",
+  )
   // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
   assert_session_context(outcome.requests)
 }

@@ -31,7 +31,7 @@ pub fn build_anthropic_request(
   tools : Array[Json],
   max_tokens : Int,
   enable_caching : Bool,
-  reasoning_effort? : String? = None,
+  reasoning_effort~ : String? = None,
 ) -> Json {
   // Separate system messages from regular messages
   let system_parts : Array[String] = []
@@ -98,9 +98,7 @@ pub fn build_anthropic_request(
         for k, v in obj {
           new_obj[k] = v
         }
-        new_obj["cache_control"] = Json::object({
-          "type": Json("ephemeral"),
-        })
+        new_obj["cache_control"] = Json::object({ "type": Json("ephemeral") })
         api_tools[last_idx] = Json::object(new_obj)
       }
       _ => ()
@@ -284,8 +282,7 @@ fn apply_anthropic_reasoning(
       _ => None
     }
     match k3_effort {
-      Some(ef) =>
-        body["output_config"] = Json::object({ "effort": Json(ef) })
+      Some(ef) => body["output_config"] = Json::object({ "effort": Json(ef) })
       None => ()
     }
   } else {
@@ -317,10 +314,7 @@ fn to_anthropic_message(
           match msg.content {
             @message.Text(text) if text.length() > 0 =>
               blocks.push(
-                Json::object({
-                  "type": Json("text"),
-                  "text": Json(text),
-                }),
+                Json::object({ "type": Json("text"), "text": Json(text) }),
               )
             @message.Blocks(content_blocks) =>
               for block in content_blocks {
@@ -351,10 +345,7 @@ fn to_anthropic_message(
               }),
             )
           }
-          Json::object({
-            "role": Json("assistant"),
-            "content": Json(blocks),
-          })
+          Json::object({ "role": Json("assistant"), "content": Json(blocks) })
         }
         _ => {
           // Regular assistant message
@@ -364,10 +355,7 @@ fn to_anthropic_message(
           } else {
             content_json
           }
-          Json::object({
-            "role": Json("assistant"),
-            "content": content_json,
-          })
+          Json::object({ "role": Json("assistant"), "content": content_json })
         }
       }
     @message.Tool => {
@@ -490,9 +478,7 @@ fn content_to_anthropic_blocks(content : @message.MessageContent) -> Json {
           Json::object({ "type": Json("text"), "text": Json("...") }),
         ])
       } else {
-        Json::array([
-          Json::object({ "type": Json("text"), "text": Json(text) }),
-        ])
+        Json::array([Json::object({ "type": Json("text"), "text": Json(text) })])
       }
     @message.Blocks(blocks) => {
       let result : Array[Json] = []
@@ -501,10 +487,7 @@ fn content_to_anthropic_blocks(content : @message.MessageContent) -> Json {
           @message.Text(tb) =>
             if tb.text.length() > 0 {
               result.push(
-                Json::object({
-                  "type": Json("text"),
-                  "text": Json(tb.text),
-                }),
+                Json::object({ "type": Json("text"), "text": Json(tb.text) }),
               )
             }
           @message.Image(ib) =>
@@ -553,10 +536,7 @@ fn url_to_anthropic_image(url : String) -> Json? {
         Some(
           Json::object({
             "type": Json("image"),
-            "source": Json::object({
-              "type": Json("url"),
-              "url": Json(url),
-            }),
+            "source": Json::object({ "type": Json("url"), "url": Json(url) }),
           }),
         )
     }

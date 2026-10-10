@@ -197,7 +197,7 @@ fn channel_status_json(
       base.set("settings", masked_settings_json(cfg.settings))
       base.set(
         "status",
-        Json((if running { "connected" } else { "disconnected" })),
+        Json(if running { "connected" } else { "disconnected" }),
       )
       Json::object(base)
     }
@@ -697,10 +697,7 @@ pub fn handle_channels_users(
     Some(_ch) =>
       // For now, return empty users. In a real implementation, we would query the channel adapter.
       HttpResponse::ok(
-        Json::object({
-          "platform": Json(platform),
-          "users": Json::array([]),
-        }).stringify(),
+        Json::object({ "platform": Json(platform), "users": Json::array([]) }).stringify(),
       )
   }
 }

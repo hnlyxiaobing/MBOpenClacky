@@ -167,10 +167,7 @@ fn remove_trash_item(target_id : String) -> Bool {
 /// any chunk archives).
 fn trashed_session_dir(id : String) -> String {
   @path.Path::join(
-    @path.Path::join(
-      @path.Path(@utils.get_trash_dir()),
-      @path.Path("sessions"),
-    ),
+    @path.Path::join(@path.Path(@utils.get_trash_dir()), @path.Path("sessions")),
     @path.Path(id),
   ).to_string()
 }
@@ -194,11 +191,15 @@ pub fn trash_session_payload(id : String) -> Int {
     let name = @utils.basename_of(src)
     let dst = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let data = @fs.read_file_to_bytes(src) catch { _ => continue }
-    @fs.write_bytes_to_file(dst, data) catch { _ => continue }
+    @fs.write_bytes_to_file(dst, data) catch {
+      _ => continue
+    }
     @fs.write_string_to_file(dst + ".origin", src) catch {
       _ => continue
     }
-    @fs.remove_file(src) catch { _ => continue }
+    @fs.remove_file(src) catch {
+      _ => continue
+    }
     moved = moved + 1
   }
   if moved == 0 {
@@ -236,7 +237,9 @@ pub fn restore_session_payload(id : String) -> Bool {
       None => ()
     }
     let data = @fs.read_file_to_bytes(src) catch { _ => continue }
-    @fs.write_bytes_to_file(origin, data) catch { _ => continue }
+    @fs.write_bytes_to_file(origin, data) catch {
+      _ => continue
+    }
     restored = restored + 1
   }
   if restored > 0 {
@@ -293,7 +296,7 @@ fn trash_file_entry_json(item : TrashItem) -> Json {
     "deleted_at": Json(item.deleted_at),
     "deleted_by": Json(""),
     "file_mode": Json(""),
-    "file_size": Json((0)),
+    "file_size": Json(0),
     "file_type": Json(item.item_type),
     "project_name": Json(""),
     "project_root": Json(""),
@@ -311,8 +314,8 @@ fn trash_session_entry_json(item : TrashItem) -> Json {
     "created_at": Json(""),
     "updated_at": Json(""),
     "deleted_at": Json(item.deleted_at),
-    "total_tasks": Json((0)),
-    "file_size": Json((0)),
+    "total_tasks": Json(0),
+    "file_size": Json(0),
     "model": Json::null(),
     "working_dir": Json(""),
     "source": Json(""),
@@ -339,7 +342,7 @@ pub fn handle_trash_list(request : HttpRequest) -> HttpResponse {
     "files": Json(files),
     "projects": Json::array([]),
     "total_count": Json(files.length()),
-    "total_size": Json((0)),
+    "total_size": Json(0),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -362,7 +365,7 @@ pub fn handle_trash_sessions_list(request : HttpRequest) -> HttpResponse {
     "ok": Json(true),
     "sessions": Json(sessions),
     "count": Json(sessions.length()),
-    "total_size": Json((0)),
+    "total_size": Json(0),
   }).stringify()
   HttpResponse::ok(body)
 }
@@ -411,7 +414,9 @@ pub fn handle_trash_restore(request : HttpRequest) -> HttpResponse {
           Json::object({
             "ok": Json(false),
             "error": Json("Trash payload missing"),
-            "message": Json("Session data for '\{item.id}' is no longer in the trash directory; nothing was restored"),
+            "message": Json(
+              "Session data for '\{item.id}' is no longer in the trash directory; nothing was restored",
+            ),
           }).stringify(),
         )
       }
@@ -522,7 +527,9 @@ pub fn handle_trash_empty(request : HttpRequest) -> HttpResponse {
     let body = Json::object({
       "ok": Json(false),
       "error": Json("Missing or false 'confirm' parameter"),
-      "message": Json("DELETE /api/trash requires {\"confirm\": true} to prevent accidental data loss"),
+      "message": Json(
+        "DELETE /api/trash requires {\"confirm\": true} to prevent accidental data loss",
+      ),
     }).stringify()
     return HttpResponse::bad_request(body)
   }
@@ -570,7 +577,7 @@ pub fn handle_trash_clear_sessions(request : HttpRequest) -> HttpResponse {
   let body = Json::object({
     "ok": Json(true),
     "deleted_count": Json(deleted_count),
-    "days_old": Json((7)),
+    "days_old": Json(7),
   }).stringify()
   HttpResponse::ok(body)
 }

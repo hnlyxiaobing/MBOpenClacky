@@ -187,10 +187,10 @@ pub extend McpError with ToJson::{to_json}
 pub fn McpServerSpec::stdio(
   name : String,
   command : String,
-  args? : Array[String]? = None,
-  env? : Map[String, String]? = None,
-  cwd? : String? = None,
-  description? : String? = None,
+  args~ : Array[String]? = None,
+  env~ : Map[String, String]? = None,
+  cwd~ : String? = None,
+  description~ : String? = None,
 ) -> McpServerSpec {
   {
     name,
@@ -210,8 +210,8 @@ pub fn McpServerSpec::stdio(
 pub fn McpServerSpec::http(
   name : String,
   url : String,
-  headers? : Map[String, String]? = None,
-  description? : String? = None,
+  headers~ : Map[String, String]? = None,
+  description~ : String? = None,
 ) -> McpServerSpec {
   {
     name,

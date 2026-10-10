@@ -17,7 +17,7 @@ pub struct PdfCodec {
 }
 
 ///|
-pub fn PdfCodec::new(flate_level? : Int = 6) -> PdfCodec {
+pub fn PdfCodec::new(flate_level~ : Int = 6) -> PdfCodec {
   { flate_level, }
 }
 

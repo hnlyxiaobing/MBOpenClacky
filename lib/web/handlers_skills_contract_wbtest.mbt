@@ -141,10 +141,7 @@ test "creator skills: local_skills contains real user skill with orig keys" {
     guard! entry is Json::Object(e)
     if e.get("name") == Some(Json(name)) {
       found = true
-      @debug.assert_eq(
-        e.get("description"),
-        Some(Json("creator local skill")),
-      )
+      @debug.assert_eq(e.get("description"), Some(Json("creator local skill")))
       @debug.assert_eq(e.get("source"), Some(Json("user")))
       @debug.assert_eq(e.get("enabled"), Some(Json(true)))
       // No upload_meta / mtime data source: orig empty-value rule.

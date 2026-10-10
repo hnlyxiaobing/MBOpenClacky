@@ -200,10 +200,7 @@ pub async fn handle_mcp_probe_server(
       // Any failure is reported as ok:false instead of killing the server.
       let tools : Array[@mcp.McpTool] = registry.tools_list(name) catch {
         @mcp.McpError(msg) => {
-          let body = Json::object({
-            "ok": Json(false),
-            "error": Json(msg),
-          }).stringify()
+          let body = Json::object({ "ok": Json(false), "error": Json(msg) }).stringify()
           return HttpResponse::ok(body)
         }
       }
@@ -359,7 +356,7 @@ pub fn handle_mcp_list_server_tools(
         status: 404,
         body: Json::object({
           "ok": Json(false),
-          "error": Json(("MCP server not found: " + name)),
+          "error": Json("MCP server not found: " + name),
         }).stringify(),
         body_bytes: None,
         content_type: "application/json",

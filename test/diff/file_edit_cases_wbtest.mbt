@@ -558,10 +558,7 @@ async test "write_003_recursive_parent_dirs" {
     @path.Path("test.txt"),
   ).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
-  let args : Map[String, Json] = {
-    "path": Json(path),
-    "content": Json("Test"),
-  }
+  let args : Map[String, Json] = { "path": Json(path), "content": Json("Test") }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
   assert_eq(@fs.read_file_to_string(path), "Test")
@@ -585,10 +582,7 @@ async test "write_004_empty_path" {
   // "<dir>/"（非空目录路径）传入工具的伪影，不代表 Ruby 真实工具行为。
   // 按判定总则以 Ruby 真实工具源码行为为准。
   let tool = @tool.AnyTool::Write(@tool.Write::new())
-  let args : Map[String, Json] = {
-    "path": Json(""),
-    "content": Json("test"),
-  }
+  let args : Map[String, Json] = { "path": Json(""), "content": Json("test") }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
   assert_true(result.content.find("Path cannot be empty") is Some(_))
@@ -642,10 +636,7 @@ async test "write_006_deep_missing_dirs" {
     @path.Path("test.txt"),
   ).to_string()
   let tool = @tool.AnyTool::Write(@tool.Write::new())
-  let args : Map[String, Json] = {
-    "path": Json(path),
-    "content": Json("deep"),
-  }
+  let args : Map[String, Json] = { "path": Json(path), "content": Json("deep") }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
   assert_eq(@fs.read_file_to_string(path), "deep")
@@ -677,10 +668,7 @@ async test "write_fuzz_1245_dot_is_directory" {
   // 由 write_004 覆盖，不再重复固化。
   // 证据：diff-harness/reports/BUGS.md BUG-0002
   let tool = @tool.AnyTool::Write(@tool.Write::new())
-  let args : Map[String, Json] = {
-    "path": Json("."),
-    "content": Json("test"),
-  }
+  let args : Map[String, Json] = { "path": Json("."), "content": Json("test") }
   let result = @tool.Tool::execute(tool, args)
   assert_true(result.is_error)
   assert_true(result.content.find("Is a directory") is Some(_))

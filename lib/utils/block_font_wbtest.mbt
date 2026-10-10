@@ -140,9 +140,9 @@ test "block_style_from_name drives the rendered glyph set" {
   let half = BlockFont::with_style(block_style_from_name("half")).render_char(
     'A',
   )
-  let outline = BlockFont::with_style(
-    block_style_from_name("outline"),
-  ).render_char('A')
+  let outline = BlockFont::with_style(block_style_from_name("outline")).render_char(
+    'A',
+  )
   assert_true(full[0].contains("█"))
   assert_true(half[0].contains("▀"))
   assert_true(outline[0].contains("▓"))

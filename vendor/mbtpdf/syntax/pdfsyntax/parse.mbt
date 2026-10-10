@@ -171,7 +171,7 @@ fn parse_finish(
 pub fn PdfSyntax::parse(
   _self : PdfSyntax,
   tokens : Array[Token],
-  failure_is_ok? : Bool = false,
+  failure_is_ok~ : Bool = false,
 ) -> (Int, PdfObject) raise {
   parse_finish(parse_to_tree(parse_R(tokens)), failure_is_ok) catch {
     err => if failure_is_ok { (0, Null) } else { raise err }

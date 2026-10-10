@@ -17,7 +17,7 @@ pub struct SessionRegistry {
 
 ///|
 /// Create a new empty SessionRegistry
-pub fn SessionRegistry::new(max_sessions? : Int = 1000) -> SessionRegistry {
+pub fn SessionRegistry::new(max_sessions~ : Int = 1000) -> SessionRegistry {
   { entries: [], max_sessions, }
 }
 
@@ -27,7 +27,7 @@ pub fn SessionRegistry::register(
   self : SessionRegistry,
   session_id : String,
   worker_id : WorkerId,
-  created_at? : String = "",
+  created_at~ : String = "",
 ) -> Result[Unit, String] {
   // Check duplicate
   for entry in self.entries {

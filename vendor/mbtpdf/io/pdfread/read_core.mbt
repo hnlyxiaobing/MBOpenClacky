@@ -6,7 +6,7 @@ priv suberror ReadPdfError {
 
 ///|
 fn is_digit(c : Char) -> Bool {
-  c is ('0'..='9')
+  c is ('0'..<='9')
 }
 
 ///|

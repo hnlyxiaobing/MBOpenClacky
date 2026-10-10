@@ -41,10 +41,7 @@ fn handle_files_list(
   }
   if !@fs.path_exists(dir) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({
-        "error": Json("Path not found"),
-        "path": Json(dir),
-      }),
+      Json::object({ "error": Json("Path not found"), "path": Json(dir) }),
     )
   }
   let entries = @fs.read_dir(dir) catch {
@@ -60,9 +57,7 @@ fn handle_files_list(
   for name in entries {
     let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let is_dir = @fs.path_exists(full) && is_directory(full)
-    items.push(
-      Json::object({ "name": Json(name), "is_dir": Json(is_dir) }),
-    )
+    items.push(Json::object({ "name": Json(name), "is_dir": Json(is_dir) }))
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
@@ -97,10 +92,7 @@ fn handle_files_read(
   }
   if !@fs.path_exists(file_path) {
     return @core.HttpResponse::not_found().json_value(
-      Json::object({
-        "error": Json("File not found"),
-        "path": Json(file_path),
-      }),
+      Json::object({ "error": Json("File not found"), "path": Json(file_path) }),
     )
   }
   let content = @fs.read_file_to_string(file_path) catch {

@@ -289,7 +289,7 @@ pub fn GatewayState::reset_connection(self : GatewayState) -> Unit {
 /// Sent after Hello to authenticate with the gateway.
 pub fn build_identify_payload(token : String, intents : Int) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", Json((2)))
+  payload.set("op", Json(2))
   let d : Map[String, Json] = Map([])
   d.set("token", Json(token))
   d.set("intents", Json(intents))
@@ -312,7 +312,7 @@ pub fn build_resume_payload(
   seq : Int,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", Json((6)))
+  payload.set("op", Json(6))
   let d : Map[String, Json] = Map([])
   d.set("token", Json(token))
   d.set("session_id", Json(session_id))
@@ -327,7 +327,7 @@ pub fn build_resume_payload(
 /// `seq` is the last received sequence number, or null if none.
 pub fn build_heartbeat_payload(seq : Int?) -> Json {
   let payload : Map[String, Json] = Map([])
-  payload.set("op", Json((1)))
+  payload.set("op", Json(1))
   match seq {
     Some(s) => payload.set("d", Json(s))
     None => payload.set("d", Json::null())

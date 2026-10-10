@@ -73,7 +73,7 @@ pub fn IgnoreConfig::add_custom_pattern(
 pub fn IgnoreConfig::should_ignore(
   self : IgnoreConfig,
   path : String,
-  is_dir? : Bool = false,
+  is_dir~ : Bool = false,
 ) -> Bool {
   // Merge all rules: builtin first, then custom, then gitignore (last wins)
   let all_rules : Array[IgnoreRule] = []

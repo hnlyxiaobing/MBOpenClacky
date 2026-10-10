@@ -122,7 +122,7 @@ fn codepoints_of_utf16be_inner(bytes : Array[Int]) -> Array[Int] raise {
     }
     let w1 = (bytes[i] << 8) | bytes[i + 1]
     match w1 {
-      0xd800..=0xdbff => {
+      0xd800..<=0xdbff => {
         if i + 3 >= len {
           raise Failure::Failure("codepoints_of_utf16be")
         }
@@ -136,7 +136,7 @@ fn codepoints_of_utf16be_inner(bytes : Array[Int]) -> Array[Int] raise {
           raise Failure::Failure("codepoints_of_utf16be")
         }
       }
-      0xdc00..=0xdfff => raise Failure::Failure("codepoints_of_utf16be")
+      0xdc00..<=0xdfff => raise Failure::Failure("codepoints_of_utf16be")
       _ => {
         out.push(w1)
         i = i + 2
@@ -336,7 +336,7 @@ pub fn TextExtractor::glyphnames_of_text(
 ///|
 fn charcode_extractor_of_font_real(
   font : @pdffont.Font,
-  debug? : Bool = false,
+  debug~ : Bool = false,
 ) -> ((Int) -> Int?) raise {
   if debug {
     @pdfutil.PdfUtil::new().flprint(font.to_string() + "\n")
@@ -403,7 +403,7 @@ fn charcode_extractor_of_font_real(
 pub fn PdfText::charcode_extractor_of_font(
   self : PdfText,
   fontdict : @pdf.PdfObject,
-  debug? : Bool = false,
+  debug~ : Bool = false,
 ) -> ((Int) -> Int?) raise {
   charcode_extractor_of_font_real(self.read_font(fontdict), debug~)
 }

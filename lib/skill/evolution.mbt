@@ -69,7 +69,7 @@ pub fn EvolutionEngine::with_components(
 pub fn EvolutionEngine::evolve(
   self : EvolutionEngine,
   scenario : EvolutionScenario,
-  skills_dir? : String? = None,
+  skills_dir~ : String? = None,
 ) -> Result[EvolutionResult, String] {
   match scenario {
     PostExecution(skill_name~, result~, iterations~) =>
@@ -126,7 +126,7 @@ fn EvolutionEngine::handle_auto_detect(
   self : EvolutionEngine,
   conversation_history : Array[String],
   iteration_count : Int,
-  skills_dir? : String? = None,
+  skills_dir~ : String? = None,
 ) -> Result[EvolutionResult, String] {
   let candidates = self.auto_creator.detect_candidates(
     conversation_history, iteration_count,

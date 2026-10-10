@@ -160,7 +160,7 @@ pub fn build_git_status(
   porcelain_output : String,
   branch_output : String,
   log_output : String,
-  commit_time? : String = "",
+  commit_time~ : String = "",
 ) -> GitStatus {
   let (staged, modified, untracked, deleted, conflicts) = parse_porcelain_status(
     porcelain_output,

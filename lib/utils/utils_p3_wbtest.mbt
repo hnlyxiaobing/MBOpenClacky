@@ -452,8 +452,8 @@ test "merge_json_args_basic" {
   let merged = merge_json_args([obj1, obj2])
   match merged {
     Object(obj) => {
-      @debug.assert_eq(obj.get("a"), Some(Json((1))))
-      @debug.assert_eq(obj.get("b"), Some(Json((2))))
+      @debug.assert_eq(obj.get("a"), Some(Json(1)))
+      @debug.assert_eq(obj.get("b"), Some(Json(2)))
     }
     _ => fail("expected Object")
   }
@@ -465,7 +465,7 @@ test "merge_json_args_override" {
   let obj2 = @json.parse("{\"a\":99}") catch { _ => Json::object(Map([])) }
   let merged = merge_json_args([obj1, obj2])
   match merged {
-    Object(obj) => @debug.assert_eq(obj.get("a"), Some(Json((99))))
+    Object(obj) => @debug.assert_eq(obj.get("a"), Some(Json(99)))
     _ => fail("expected Object")
   }
 }

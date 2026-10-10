@@ -197,9 +197,9 @@ fn mock_http_parse_hex(s : String) -> Int {
   let mut n = 0
   for c in s {
     let d = match c {
-      '0'..='9' => c.to_int() - '0'.to_int()
-      'a'..='f' => c.to_int() - 'a'.to_int() + 10
-      'A'..='F' => c.to_int() - 'A'.to_int() + 10
+      '0'..<='9' => c.to_int() - '0'.to_int()
+      'a'..<='f' => c.to_int() - 'a'.to_int() + 10
+      'A'..<='F' => c.to_int() - 'A'.to_int() + 10
       _ => return n
     }
     n = n * 16 + d
@@ -301,8 +301,7 @@ async test "feishu_build_send_request_card_shape" {
     }
   }
   match json {
-    Object(obj) =>
-      assert_true(obj.get("msg_type") == Some(Json("interactive")))
+    Object(obj) => assert_true(obj.get("msg_type") == Some(Json("interactive")))
     _ => assert_true(false)
   }
 }

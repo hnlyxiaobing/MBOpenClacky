@@ -9,10 +9,10 @@ pub struct PdfRead {
 
 ///|
 pub fn PdfRead::new(
-  read_debug? : Bool = @pdfe.read_debug.val,
-  error_on_malformed? : Bool = false,
-  debug_always_treat_malformed? : Bool = false,
-  logger? : (String) -> Unit = @pdfe.logger.val,
+  read_debug~ : Bool = @pdfe.read_debug.val,
+  error_on_malformed~ : Bool = false,
+  debug_always_treat_malformed~ : Bool = false,
+  logger~ : (String) -> Unit = @pdfe.logger.val,
 ) -> PdfRead {
   { read_debug, error_on_malformed, debug_always_treat_malformed, logger, }
 }
@@ -192,14 +192,14 @@ fn read_header(ctx : PdfRead, input : @pdfio.Input) -> (Int, Int) raise {
       chars[4] == '-' &&
       chars[6] == '.' {
       let major_char = chars[5]
-      if !(major_char is ('0'..='9')) {
+      if !(major_char is ('0'..<='9')) {
         return (2, 0)
       }
       let minor_digits = Array::new()
       let mut idx = 7
       while idx < chars.length() {
         let c = chars[idx]
-        if c is ('0'..='9') {
+        if c is ('0'..<='9') {
           minor_digits.push(c)
           idx = idx + 1
         } else {

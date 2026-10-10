@@ -67,8 +67,8 @@ pub fn Client::new(
   base_url : String,
   model : String,
   api_type : ApiType,
-  provider_id? : String? = None,
-  vision_supported? : Bool? = None,
+  provider_id~ : String? = None,
+  vision_supported~ : Bool? = None,
 ) -> Client {
   let vision = match vision_supported {
     Some(v) => v
@@ -438,7 +438,7 @@ pub fn map_http_error(status : Int, body_text : String) -> String? {
     403 => "[LLM] Access denied: \{error_message}"
     404 => "[LLM] API endpoint not found: \{error_message}"
     429 => "[LLM] Rate limit exceeded, please wait a moment"
-    500..=599 =>
+    500..<=599 =>
       "[LLM] Service temporarily unavailable (\{status}), retrying..."
     _ => "[LLM] Unexpected error (\{status}): \{error_message}"
   }
@@ -563,9 +563,7 @@ pub fn add_stream_options(body : Json, include_usage : Bool) -> Json {
       }
       new_obj["stream"] = Json(true)
       if include_usage {
-        new_obj["stream_options"] = Json::object({
-          "include_usage": Json(true),
-        })
+        new_obj["stream_options"] = Json::object({ "include_usage": Json(true) })
       }
       Json::object(new_obj)
     }

@@ -360,7 +360,7 @@ pub fn build_openai_image_request(
   Json::object({
     "model": Json(model),
     "prompt": Json(request.prompt),
-    "n": Json((1)),
+    "n": Json(1),
     "response_format": Json("b64_json"),
     "size": Json(size),
   })

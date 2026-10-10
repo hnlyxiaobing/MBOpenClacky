@@ -138,8 +138,8 @@ fn build_fastrefnums(refnums : Array[Int]) -> Map[Int, Int] {
 pub fn PdfPageDoc::pdf_of_pages(
   self : PdfPageDoc,
   range : Array[Int],
-  retain_numbering? : Bool = false,
-  process_struct_tree? : Bool = false,
+  retain_numbering~ : Bool = false,
+  process_struct_tree~ : Bool = false,
 ) -> @pdf.Pdf raise {
   let basepdf = self.pdf
   match range {

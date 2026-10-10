@@ -4,7 +4,7 @@
 ///|
 pub fn PdfText::extract_text(
   self : PdfText,
-  page_break? : String = "\n\n",
+  page_break~ : String = "\n\n",
 ) -> String raise {
   self.extract_text_by_page().join(page_break)
 }

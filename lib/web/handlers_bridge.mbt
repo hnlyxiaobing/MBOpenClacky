@@ -859,7 +859,9 @@ fn handle_media_video_status_bridge(
     Json::object({
       "ok": Json(true),
       "status": Json("synchronous"),
-      "message": Json("Video generation runs synchronously in POST /api/media/video"),
+      "message": Json(
+        "Video generation runs synchronously in POST /api/media/video",
+      ),
     }),
   )
 }
@@ -910,10 +912,7 @@ fn media_type_state_json(config : @config.AgentConfig, kind : String) -> Json {
             "source": Json("auto"),
           })
         None =>
-          Json::object({
-            "configured": Json(false),
-            "source": Json("off"),
-          })
+          Json::object({ "configured": Json(false), "source": Json("off") })
       }
   }
 }
@@ -967,10 +966,7 @@ fn handle_file_action_bridge(
   // the user can paste into Explorer/Editors; anything else passes through.
   if action == "display-path" {
     return @core.HttpResponse::ok().json_value(
-      Json::object({
-        "ok": Json(true),
-        "path": Json(linux_to_win_path(path)),
-      }),
+      Json::object({ "ok": Json(true), "path": Json(linux_to_win_path(path)) }),
     )
   }
   // Actual file open/reveal requires OS integration that is not available
@@ -979,7 +975,9 @@ fn handle_file_action_bridge(
     Json::object({
       "ok": Json(false),
       "error": Json("unimplemented"),
-      "message": Json(("file-action '" + action + "' not available in headless mode")),
+      "message": Json(
+        "file-action '" + action + "' not available in headless mode",
+      ),
     }),
   )
 }

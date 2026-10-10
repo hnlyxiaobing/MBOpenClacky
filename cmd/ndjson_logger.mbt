@@ -17,7 +17,7 @@ pub fn NdjsonLogger::log(
   self : NdjsonLogger,
   level : String,
   message : String,
-  fields? : Map[String, String]? = None,
+  fields~ : Map[String, String]? = None,
 ) -> Unit {
   if !self.enabled {
     return
@@ -41,7 +41,7 @@ pub fn NdjsonLogger::log(
 pub fn NdjsonLogger::debug(
   self : NdjsonLogger,
   message : String,
-  fields? : Map[String, String]? = None,
+  fields~ : Map[String, String]? = None,
 ) -> Unit {
   self.log("debug", message, fields~)
 }
@@ -50,7 +50,7 @@ pub fn NdjsonLogger::debug(
 pub fn NdjsonLogger::info(
   self : NdjsonLogger,
   message : String,
-  fields? : Map[String, String]? = None,
+  fields~ : Map[String, String]? = None,
 ) -> Unit {
   self.log("info", message, fields~)
 }
@@ -59,7 +59,7 @@ pub fn NdjsonLogger::info(
 pub fn NdjsonLogger::warn(
   self : NdjsonLogger,
   message : String,
-  fields? : Map[String, String]? = None,
+  fields~ : Map[String, String]? = None,
 ) -> Unit {
   self.log("warn", message, fields~)
 }
@@ -68,7 +68,7 @@ pub fn NdjsonLogger::warn(
 pub fn NdjsonLogger::error(
   self : NdjsonLogger,
   message : String,
-  fields? : Map[String, String]? = None,
+  fields~ : Map[String, String]? = None,
 ) -> Unit {
   self.log("error", message, fields~)
 }

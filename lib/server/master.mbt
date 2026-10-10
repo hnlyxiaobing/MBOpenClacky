@@ -78,7 +78,7 @@ pub fn MasterConfig::default() -> MasterConfig {
 ///|
 /// Create a new ServerMaster with given or default config
 pub fn ServerMaster::new(
-  config? : MasterConfig = MasterConfig::default(),
+  config~ : MasterConfig = MasterConfig::default(),
 ) -> ServerMaster {
   {
     config,

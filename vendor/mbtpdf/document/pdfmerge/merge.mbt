@@ -4,8 +4,8 @@ pub fn PdfMerger::merge_pdfs(
   self : PdfMerger,
   retain_numbering : Bool,
   do_remove_duplicate_fonts : Bool,
-  process_struct_trees? : Bool = true,
-  add_toplevel_document? : Bool = false,
+  process_struct_trees~ : Bool = true,
+  add_toplevel_document~ : Bool = false,
 ) -> @pdf.Pdf raise {
   let names = self.names
   let pdfs = self.pdfs

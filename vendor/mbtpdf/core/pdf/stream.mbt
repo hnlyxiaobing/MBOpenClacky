@@ -12,7 +12,7 @@ pub fn ToGet::new(
   input : @pdfio.Input,
   position : Int,
   length : Int,
-  crypt? : ToGetCrypt = ToGetCrypt::NoChange,
+  crypt~ : ToGetCrypt = ToGetCrypt::NoChange,
 ) -> ToGet {
   { input, position, length, crypt, }
 }

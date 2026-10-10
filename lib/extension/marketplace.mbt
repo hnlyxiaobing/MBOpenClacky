@@ -381,7 +381,7 @@ fn ext_data_dir(ext_id : String) -> String {
 /// a reinstall reconnects to it (upstream uninstall! semantics).
 pub fn uninstall_extension(
   ext_id : String,
-  purge_data? : Bool = false,
+  purge_data~ : Bool = false,
 ) -> Result[Unit, String] {
   let installed_dir = get_source_directory(ExtensionSource::Installed)
   let ext_dir = @path.Path::join(installed_dir, @path.Path(ext_id)).to_string()

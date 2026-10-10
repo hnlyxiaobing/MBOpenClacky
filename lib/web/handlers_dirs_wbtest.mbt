@@ -137,7 +137,7 @@ test "dirs list returns six-key contract with home default" {
   // No configured default_working_dir -> <home>/clacky_workspace fallback.
   @debug.assert_eq(
     obj.get("default"),
-    Some(Json((home_norm + "/clacky_workspace"))),
+    Some(Json(home_norm + "/clacky_workspace")),
   )
   // Directories only, sorted by lowercase name; file/hidden/IGNORED excluded.
   @debug.assert_eq(dc_entry_names(j), ["alpha", "Beta", "zeta"])
@@ -172,10 +172,7 @@ test "dirs list entries carry absolute-joined path and type dir" {
     }
   }
   // parent of the fixture home is its dirname.
-  @debug.assert_eq(
-    obj.get("parent"),
-    Some(Json(dirs_fwd_slashes("_build"))),
-  )
+  @debug.assert_eq(obj.get("parent"), Some(Json(dirs_fwd_slashes("_build"))))
   dc_remove_tree(dc_home)
 }
 

@@ -169,9 +169,7 @@ pub impl Adapter for AnyAdapter with fn delete_message(
 }
 
 ///|
-pub impl Adapter for AnyAdapter with fn supports_message_deletion(
-  self,
-) -> Bool {
+pub impl Adapter for AnyAdapter with fn supports_message_deletion(self) -> Bool {
   match self {
     Feishu(a) => a.supports_message_deletion()
     WeCom(a) => a.supports_message_deletion()

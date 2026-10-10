@@ -57,7 +57,7 @@ pub fn ToolCall::new(
   id : String,
   name : String,
   arguments : String,
-  extra_content? : Json? = None,
+  extra_content~ : Json? = None,
 ) -> ToolCall {
   {
     id,

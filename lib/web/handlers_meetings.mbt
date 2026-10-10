@@ -201,10 +201,7 @@ pub fn handle_meetings_list(request : HttpRequest) -> HttpResponse {
       arr.push(meeting_to_json(m))
     }
   }
-  let body = Json::object({
-    "meetings": Json(arr),
-    "total": Json(arr.length()),
-  }).stringify()
+  let body = Json::object({ "meetings": Json(arr), "total": Json(arr.length()) }).stringify()
   HttpResponse::ok(body)
 }
 
@@ -403,7 +400,9 @@ pub fn handle_meetings_summarize(request : HttpRequest) -> HttpResponse {
       let body = Json::object({
         "id": Json(id),
         "status": Json("summarized"),
-        "message": Json("Summary generation triggered. Use the meeting-summarizer skill for full AI summarization."),
+        "message": Json(
+          "Summary generation triggered. Use the meeting-summarizer skill for full AI summarization.",
+        ),
         "meeting": meeting_to_json(updated),
       }).stringify()
       HttpResponse::ok(body)

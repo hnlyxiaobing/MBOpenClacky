@@ -76,7 +76,7 @@ pub fn TimeoutConfig::resolve(self : TimeoutConfig, url : String) -> Int {
 /// in the response headers for monitoring/observability.
 /// The actual timeout enforcement is handled by crescent's handler_timeout_ms.
 pub fn timeout_middleware(
-  config? : TimeoutConfig = default_timeout_config(),
+  config~ : TimeoutConfig = default_timeout_config(),
 ) -> @crescent.Middleware {
   let mw : @crescent.Middleware = (event, next) => {
     let url = event.req.url

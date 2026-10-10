@@ -407,7 +407,7 @@ pub fn handle_skills_get_content(request : HttpRequest) -> HttpResponse {
         status: 404,
         body: Json::object({
           "ok": Json(false),
-          "error": Json(("Skill not found: " + name)),
+          "error": Json("Skill not found: " + name),
         }).stringify(),
         body_bytes: None,
         content_type: "application/json",
@@ -813,9 +813,7 @@ async fn run_skill_reflection(
         "score": Json(report.performance_score),
         "should_improve": Json(false),
         "action": Json("no_change"),
-        "suggestions": Json::array(
-          report.suggestions.map(fn(s) { Json(s) }),
-        ),
+        "suggestions": Json::array(report.suggestions.map(fn(s) { Json(s) })),
         "revised_skill_md": Json::null(),
         "applied": Json(false),
         "backup_path": Json::null(),
@@ -875,9 +873,7 @@ async fn run_skill_reflection(
       "score": Json(report.performance_score),
       "should_improve": Json(true),
       "action": Json(entry.action),
-      "suggestions": Json::array(
-        proposal.suggestions.map(fn(s) { Json(s) }),
-      ),
+      "suggestions": Json::array(proposal.suggestions.map(fn(s) { Json(s) })),
       "revised_skill_md": json_opt_str_or_null(proposal.revised_skill_md),
       "applied": Json(applied),
       "backup_path": json_opt_str_or_null(backup),

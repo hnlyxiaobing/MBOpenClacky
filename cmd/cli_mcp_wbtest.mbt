@@ -22,7 +22,10 @@ async test "mcp initialize advertises version and capabilities" {
     }
   }
   let text = resp.stringify()
-  assert_true(text.contains("2024-11-05"), msg="missing protocolVersion: " + text)
+  assert_true(
+    text.contains("2024-11-05"),
+    msg="missing protocolVersion: " + text,
+  )
   assert_true(text.contains("\"tools\""), msg="missing tools capability")
   assert_true(text.contains("mbopenclacky"), msg="missing serverInfo name")
   assert_true(text.contains("\"id\":1"), msg="request id was not echoed")
@@ -46,7 +49,10 @@ async test "mcp tools/list exposes the built-in registry" {
   }
   let text = resp.stringify()
   for name in ["file_reader", "glob", "grep", "write"] {
-    assert_true(text.contains("\"name\":\"" + name + "\""), msg="missing tool " + name)
+    assert_true(
+      text.contains("\"name\":\"" + name + "\""),
+      msg="missing tool " + name,
+    )
   }
   assert_true(text.contains("\"inputSchema\""), msg="tools lack inputSchema")
 }
@@ -122,5 +128,8 @@ async test "mcp does not answer notifications" {
   ) catch {
     _ => Json::object(Map([]))
   }
-  assert_true(mcp_dispatch(registry, note) is None, msg="notification was answered")
+  assert_true(
+    mcp_dispatch(registry, note) is None,
+    msg="notification was answered",
+  )
 }

@@ -102,7 +102,7 @@ pub fn levenshtein_distance(a : String, b : String) -> Int {
 pub fn fuzzy_match(
   query : String,
   target : String,
-  max_distance? : Int = 3,
+  max_distance~ : Int = 3,
 ) -> Bool {
   levenshtein_distance(query, target) <= max_distance
 }
@@ -143,7 +143,7 @@ pub fn best_match(query : String, candidates : Array[String]) -> String? {
 pub fn fuzzy_search(
   query : String,
   candidates : Array[String],
-  max_distance? : Int = 3,
+  max_distance~ : Int = 3,
 ) -> Array[String] {
   // Collect matching candidates with their distances
   let matches : Array[(String, Int)] = []

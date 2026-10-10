@@ -34,7 +34,7 @@ pub fn build_bedrock_request(
   tools : Array[Json],
   max_tokens : Int,
   enable_caching : Bool,
-  reasoning_effort? : String? = None,
+  reasoning_effort~ : String? = None,
 ) -> Json {
   // Separate system messages from regular messages
   let system_parts : Array[String] = []
@@ -79,9 +79,7 @@ pub fn build_bedrock_request(
   // Add system prompt if present
   let system_text = join_strings(system_parts, "\n\n")
   if system_text.length() > 0 {
-    body["system"] = Json::array([
-      Json::object({ "text": Json(system_text) }),
-    ])
+    body["system"] = Json::array([Json::object({ "text": Json(system_text) })])
   }
 
   // Add inference config
@@ -314,18 +312,12 @@ fn to_bedrock_message(msg : @message.Message) -> Json {
               }),
             )
           }
-          Json::object({
-            "role": Json("assistant"),
-            "content": Json(blocks),
-          })
+          Json::object({ "role": Json("assistant"), "content": Json(blocks) })
         }
         _ => {
           // Regular assistant message
           let content_json = content_to_bedrock_blocks(msg.content)
-          Json::object({
-            "role": Json("assistant"),
-            "content": content_json,
-          })
+          Json::object({ "role": Json("assistant"), "content": content_json })
         }
       }
     @message.Tool => {

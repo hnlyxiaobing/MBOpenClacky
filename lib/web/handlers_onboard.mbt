@@ -28,7 +28,7 @@ fn handle_onboard_device_start(
       "user_code": Json(session.user_code),
       "verification_uri": Json(session.verification_uri),
       "verification_uri_complete": Json(verification_uri_complete),
-      "expires_in": Json((900)),
+      "expires_in": Json(900),
       "interval": Json(session.interval),
     }),
   )
@@ -45,9 +45,7 @@ fn handle_onboard_device_poll(
     Some(code) if !code.is_empty() => code
     _ =>
       return @core.HttpResponse::bad_request().json_value(
-        Json::object({
-          "error": Json("Missing 'device_code' query parameter"),
-        }),
+        Json::object({ "error": Json("Missing 'device_code' query parameter") }),
       )
   }
   let now_ms = @agent.current_time_ms()
@@ -181,7 +179,7 @@ fn load_onboard_state() -> Json {
 fn default_onboard_state() -> Json {
   Json::object({
     "completed": Json(false),
-    "step": Json((0)),
+    "step": Json(0),
     "skipped": Json(false),
   })
 }
@@ -231,14 +229,14 @@ fn handle_onboard_start(
   let state = load_onboard_state()
   let new_state = Json::object({
     "completed": Json(false),
-    "step": Json((1)),
+    "step": Json(1),
     "skipped": json_get_bool(state, "skipped"),
   })
   save_onboard_state(new_state)
   @core.HttpResponse::ok().json_value(
     Json::object({
       "ok": Json(true),
-      "step": Json((1)),
+      "step": Json(1),
       "device_code": Json::null(),
     }),
   )
@@ -252,7 +250,7 @@ fn handle_onboard_skip(
 ) -> @core.HttpResponse {
   let new_state = Json::object({
     "completed": Json(true),
-    "step": Json((2)),
+    "step": Json(2),
     "skipped": Json(true),
   })
   save_onboard_state(new_state)
@@ -359,9 +357,7 @@ fn handle_onboard_skip_soul(
     Some(dir) => dir
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json::object({
-          "error": Json("Unable to determine config directory"),
-        }),
+        Json::object({ "error": Json("Unable to determine config directory") }),
       )
   }
   let agents_dir = @path.Path::join(

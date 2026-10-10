@@ -59,10 +59,7 @@ async test "mock finish_reason 覆盖 content/tool_calls 收尾帧" {
     t_frames[t_frames.length() - 2].contains("\"finish_reason\":\"stop\""),
   )
   // 缺省行为不变：content 无 finish_reason 字段时收尾帧仍为 stop
-  let d_resp = Json::object({
-    "type": Json("content"),
-    "text": Json("hi"),
-  })
+  let d_resp = Json::object({ "type": Json("content"), "text": Json("hi") })
   let d_frames = server.build_sse(d_resp, "mock-model")
   assert_true(
     d_frames[d_frames.length() - 2].contains("\"finish_reason\":\"stop\""),

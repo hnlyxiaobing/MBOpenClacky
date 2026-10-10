@@ -68,8 +68,8 @@ fn map_get_bool(m : Map[String, Json], key : String) -> Bool {
 fn mcp_req(
   m : HttpMethod,
   path : String,
-  name? : String = "",
-  body? : String = "",
+  name~ : String = "",
+  body~ : String = "",
 ) -> HttpRequest {
   let params : Array[(String, String)] = if name != "" {
     [("name", name)]

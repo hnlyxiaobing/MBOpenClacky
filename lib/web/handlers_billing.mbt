@@ -108,12 +108,7 @@ fn features_for_plan(plan : String) -> Json {
         Json("multi_model"),
       ])
     "yearly" | "monthly" =>
-      Json([
-        Json("basic_agent"),
-        Json("tools"),
-        Json("mcp"),
-        Json("skills"),
-      ])
+      Json([Json("basic_agent"), Json("tools"), Json("mcp"), Json("skills")])
     _ => Json([Json("basic_agent"), Json("tools")])
   }
 }
@@ -401,7 +396,7 @@ pub fn handle_billing_summary(request : HttpRequest) -> HttpResponse {
     m.set("total_cost", Json(summary.total_cost))
     m.set(
       "total_tokens",
-      Json((summary.total_prompt_tokens + summary.total_completion_tokens)),
+      Json(summary.total_prompt_tokens + summary.total_completion_tokens),
     )
     m.set("prompt_tokens", Json(summary.total_prompt_tokens))
     m.set("completion_tokens", Json(summary.total_completion_tokens))
@@ -571,7 +566,7 @@ pub fn handle_billing_sessions(request : HttpRequest) -> HttpResponse {
         // emit empty string per spec risk convention.
         "session_name": Json(""),
         "total_cost": Json(agg.total_cost),
-        "total_tokens": Json((agg.prompt_tokens + agg.completion_tokens)),
+        "total_tokens": Json(agg.prompt_tokens + agg.completion_tokens),
         "prompt_tokens": Json(agg.prompt_tokens),
         "completion_tokens": Json(agg.completion_tokens),
         "cache_read_tokens": Json(agg.cache_read_tokens),

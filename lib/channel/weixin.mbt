@@ -290,9 +290,7 @@ pub impl Adapter for WeixinAdapter with fn update_message(
 }
 
 ///|
-pub impl Adapter for WeixinAdapter with fn supports_message_deletion(
-  _self,
-) -> Bool {
+pub impl Adapter for WeixinAdapter with fn supports_message_deletion(_self) -> Bool {
   false // Weixin does not support message deletion
 }
 

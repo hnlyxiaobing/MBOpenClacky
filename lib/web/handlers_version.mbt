@@ -226,7 +226,7 @@ async fn handle_version_check(
           "available_update": Json::null(),
           "update": Json::null(),
           "needs_update": Json(false),
-          "message": Json(("Unable to check for updates: " + msg)),
+          "message": Json("Unable to check for updates: " + msg),
         }),
       )
   }

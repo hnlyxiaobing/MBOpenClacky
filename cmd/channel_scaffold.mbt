@@ -11,7 +11,7 @@ let supported_platforms : Array[String] = [
 /// Generate scaffold files for a new channel adapter.
 pub fn scaffold_channel(
   platform : String,
-  output_dir? : String? = None,
+  output_dir~ : String? = None,
 ) -> Result[Unit, String] {
   let platform_lower = platform.to_lower()
   if !is_supported_platform(platform_lower) {

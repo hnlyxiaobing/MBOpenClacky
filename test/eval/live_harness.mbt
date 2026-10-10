@@ -432,7 +432,7 @@ pub fn LiveReport::to_markdown(
 /// with absolute paths instead.
 pub fn make_agent_live_runner(
   config : @config.AgentConfig,
-  chdir? : Bool = true,
+  chdir~ : Bool = true,
 ) -> async (String, String) -> LiveRunOutcome {
   // The eval owns this config: a live trial must never block on a confirmation
   // prompt (there is no TTY to answer it).

@@ -23,7 +23,7 @@ pub fn PdfReadFs::of_reader(reader : @pdfread.PdfRead) -> PdfReadFs {
 pub async fn PdfReadFs::pdf_of_channel(
   self : PdfReadFs,
   revision? : Int,
-  source? : String = "channel",
+  source~ : String = "channel",
   user_password : String?,
   owner_password : String?,
   channel : @fs.File,
@@ -36,7 +36,7 @@ pub async fn PdfReadFs::pdf_of_channel(
 pub async fn PdfReadFs::pdf_of_channel_lazy(
   self : PdfReadFs,
   revision? : Int,
-  source? : String = "channel",
+  source~ : String = "channel",
   user_password : String?,
   owner_password : String?,
   channel : @fs.File,

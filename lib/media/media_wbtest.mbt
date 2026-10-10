@@ -305,9 +305,7 @@ test "parse_dashscope_response_image_url" {
         Json::object({
           "message": Json::object({
             "content": Json::array([
-              Json::object({
-                "image": Json("https://oss.example.com/img.png"),
-              }),
+              Json::object({ "image": Json("https://oss.example.com/img.png") }),
             ]),
           }),
         }),

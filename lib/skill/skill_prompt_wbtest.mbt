@@ -104,10 +104,10 @@ test "build_skills_summary: uses context_description truncation" {
 /// would yield zeta, alpha, deploy, media-gen for the input below.
 test "build_skills_summary: default skills lexicographic (BUG-0075)" {
   let skills : Array[Skill] = [
-    { ..Skill::default("zeta", "builtin"), description: Some("z") },
-    { ..Skill::default("deploy", "builtin"), description: Some("d") },
-    { ..Skill::default("media-gen", "builtin"), description: Some("m") },
-    { ..Skill::default("alpha", "builtin"), description: Some("a") },
+    { ..Skill::default("zeta", "builtin"), description: Some("z"), },
+    { ..Skill::default("deploy", "builtin"), description: Some("d"), },
+    { ..Skill::default("media-gen", "builtin"), description: Some("m"), },
+    { ..Skill::default("alpha", "builtin"), description: Some("a"), },
   ]
   let summary = build_skills_summary(skills)
   let expected : Array[String] = ["alpha", "deploy", "media-gen", "zeta"]

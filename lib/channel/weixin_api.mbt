@@ -202,7 +202,7 @@ pub async fn WeixinApiClient::probe_connectivity(
   self : WeixinApiClient,
 ) -> Result[Unit, ChannelError] {
   let payload : Map[String, Json] = Map([])
-  payload.set("timeout", Json((1)))
+  payload.set("timeout", Json(1))
   payload.set("buf", Json(""))
   let json = match
     http_post_json(

@@ -46,7 +46,7 @@ pub async fn spawn_isolated_child(
   label : String,
   cmd : String,
   args : Array[String],
-  hard_kill? : Bool = true,
+  hard_kill~ : Bool = true,
 ) -> ChildHandle {
   let (out_r, out_w) = @process.read_from_process()
   let (err_r, err_w) = @process.read_from_process()
@@ -156,7 +156,7 @@ pub async fn port_is_listening(port : Int) -> Bool {
 ///|
 /// Pick the first port at/after `base` with nothing listening
 /// (bounded retries; returns the last candidate if all are busy).
-pub async fn choose_free_port(base : Int, tries? : Int = 3) -> Int {
+pub async fn choose_free_port(base : Int, tries~ : Int = 3) -> Int {
   let mut port = base
   for i = 0; i < tries; i = i + 1 {
     if !port_is_listening(port) {

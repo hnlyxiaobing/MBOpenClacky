@@ -269,7 +269,9 @@ async fn handle_media_video_understand(
       @json.from_json(j) catch {
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json(@media.build_video_error("Invalid video understand request body")),
+            Json(
+              @media.build_video_error("Invalid video understand request body"),
+            ),
           )
       }
     _ =>
@@ -282,9 +284,11 @@ async fn handle_media_video_understand(
     Some(m) => m
     None =>
       return @core.HttpResponse::internal_server_error().json_value(
-        Json(@media.build_video_error(
-          "No vision-capable model configured. Configure an OCR or vision model first.",
-        )),
+        Json(
+          @media.build_video_error(
+            "No vision-capable model configured. Configure an OCR or vision model first.",
+          ),
+        ),
       )
   }
   let ffmpeg_check = @tool.run_shell_command(
@@ -292,9 +296,11 @@ async fn handle_media_video_understand(
   )
   if ffmpeg_check.exit_code != 0 {
     return @core.HttpResponse::internal_server_error().json_value(
-      Json(@media.build_video_error(
-        "FFmpeg is not installed or not available in PATH. Install FFmpeg to use video understanding.",
-      )),
+      Json(
+        @media.build_video_error(
+          "FFmpeg is not installed or not available in PATH. Install FFmpeg to use video understanding.",
+        ),
+      ),
     )
   }
   let work_dir = match create_video_work_dir() {
@@ -323,19 +329,23 @@ async fn handle_media_video_understand(
   if extract_result.exit_code != 0 {
     cleanup_video_work_dir(work_dir)
     return @core.HttpResponse::internal_server_error().json_value(
-      Json(@media.build_video_error(
-        "FFmpeg failed to extract frames: " +
-        extract_result.output.trim().to_owned(),
-      )),
+      Json(
+        @media.build_video_error(
+          "FFmpeg failed to extract frames: " +
+          extract_result.output.trim().to_owned(),
+        ),
+      ),
     )
   }
   let frame_files = list_frame_files(work_dir)
   if frame_files.length() == 0 {
     cleanup_video_work_dir(work_dir)
     return @core.HttpResponse::internal_server_error().json_value(
-      Json(@media.build_video_error(
-        "No frames were extracted. The video may be corrupted or in an unsupported format.",
-      )),
+      Json(
+        @media.build_video_error(
+          "No frames were extracted. The video may be corrupted or in an unsupported format.",
+        ),
+      ),
     )
   }
   let resolver = build_video_resolver(model)

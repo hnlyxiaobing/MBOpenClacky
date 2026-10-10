@@ -47,7 +47,7 @@ fn handle_session_export(
         Json::object({
           "session": Json(data),
           "exported_at": Json(@agent.current_timestamp_iso()),
-          "format_version": Json((1)),
+          "format_version": Json(1),
         }),
       )
     None =>
@@ -277,7 +277,9 @@ fn handle_update_working_dir(
         if !wd_is_within_dir(cfg_dir, new_dir) {
           return @core.HttpResponse::bad_request().json_value(
             Json::object({
-              "error": Json("Absolute working_dir must be within the configured working directory"),
+              "error": Json(
+                "Absolute working_dir must be within the configured working directory",
+              ),
             }),
           )
         }
@@ -325,10 +327,7 @@ fn handle_update_working_dir(
           )
       }
       @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": Json(id),
-          "working_dir": Json(new_dir),
-        }),
+        Json::object({ "session_id": Json(id), "working_dir": Json(new_dir) }),
       )
     }
     None =>
@@ -798,9 +797,7 @@ fn handle_session_files(
   for name in entries {
     let full = @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
     let is_dir = @fs.path_exists(full) && is_directory(full)
-    items.push(
-      Json::object({ "name": Json(name), "is_dir": Json(is_dir) }),
-    )
+    items.push(Json::object({ "name": Json(name), "is_dir": Json(is_dir) }))
   }
   @core.HttpResponse::ok().json_value(
     Json::object({
@@ -1076,9 +1073,7 @@ fn handle_session_reasoning_effort_patch(
         Some(Null) => None
         _ =>
           return @core.HttpResponse::bad_request().json_value(
-            Json::object({
-              "error": Json("Missing field: reasoning_effort"),
-            }),
+            Json::object({ "error": Json("Missing field: reasoning_effort") }),
           )
       }
     _ =>
@@ -1152,16 +1147,10 @@ fn handle_session_reasoning_effort_patch(
       hub.broadcast_session_json(
         id,
         "session_updated",
-        Json::object({
-          "session_id": Json(id),
-          "reasoning_effort": eff_json,
-        }),
+        Json::object({ "session_id": Json(id), "reasoning_effort": eff_json }),
       )
       @core.HttpResponse::ok().json_value(
-        Json::object({
-          "session_id": Json(id),
-          "reasoning_effort": eff_json,
-        }),
+        Json::object({ "session_id": Json(id), "reasoning_effort": eff_json }),
       )
     }
     None =>

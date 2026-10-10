@@ -80,12 +80,18 @@ pub fn SkillRegistry::list_user_invocable(
 /// 列表写法同时兼容 `agent: [a, b]`（MB 的 frontmatter 解析是扁平 Key-Value，
 /// Ruby 走真 YAML，这里等价兼容）与逗号/空格分隔的标量。
 /// profile_name 传空串时不过滤（Ruby 里 `user_invocable_skills(nil)` 的语义）。
-pub fn Skill::is_allowed_for_profile(self : Skill, profile_name : String) -> Bool {
+pub fn Skill::is_allowed_for_profile(
+  self : Skill,
+  profile_name : String,
+) -> Bool {
   let raw = match self.agent_type {
     None => return true
     Some(t) => t
   }
-  let scope = raw.replace_all(old="[", new="").replace_all(old="]", new="").trim()
+  let scope = raw
+    .replace_all(old="[", new="")
+    .replace_all(old="]", new="")
+    .trim()
   if scope.length() == 0 {
     // YAML 里 `agent:` 空值 → Ruby 解析为 nil → agents_scope = ["all"]
     return true

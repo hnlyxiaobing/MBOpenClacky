@@ -271,7 +271,7 @@ fn read_curation_lines(path : String) -> Array[String] {
 pub fn update_journey_ledger(
   ledger_path : String,
   outcomes : Array[JourneyOutcome],
-  repo_abs? : String = "",
+  repo_abs~ : String = "",
 ) -> Result[Bool, String] {
   let today = ledger_today()
   let (open, fixed) = read_ledger(ledger_path)

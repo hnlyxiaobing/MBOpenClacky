@@ -269,9 +269,7 @@ pub impl Adapter for WeComAdapter with fn update_message(
 }
 
 ///|
-pub impl Adapter for WeComAdapter with fn supports_message_deletion(
-  _self,
-) -> Bool {
+pub impl Adapter for WeComAdapter with fn supports_message_deletion(_self) -> Bool {
   false
 }
 

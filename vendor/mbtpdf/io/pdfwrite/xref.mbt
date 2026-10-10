@@ -126,9 +126,9 @@ fn build_xref_stream(
 /// Write a PDF to an output.
 pub fn PdfWrite::pdf_to_output(
   self : PdfWrite,
-  preserve_objstm? : Bool = false,
-  generate_objstm? : Bool = false,
-  compress_objstm? : Bool = false,
+  preserve_objstm~ : Bool = false,
+  generate_objstm~ : Bool = false,
+  compress_objstm~ : Bool = false,
   recrypt? : String,
   encryption : Encryption?,
   build_new_id : Bool,
