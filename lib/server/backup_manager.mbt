@@ -94,8 +94,10 @@ pub fn BackupManager::run(
       }
     }
   }
-  // 2. Create archive name with timestamp
-  let timestamp = @utils.now_ms().to_string()
+  // 2. Create archive name with timestamp (YYYYMMDD-HHMMSS, mirroring Ruby
+  //    Time.now.strftime("%Y%m%d-%H%M%S"); fixed-width so lexicographic
+  //    order == chronological order, resolving BUG-0079)
+  let timestamp = now_stamp()
   let archive_name = generate_archive_name(timestamp)
   let archive_path = self.config.dest_dir + "/" + archive_name
   // 3. Create archive using lib/zip (stored zip; extension must match!)
@@ -143,19 +145,20 @@ pub fn BackupManager::list(self : BackupManager) -> Array[BackupEntry] {
       let path = dest + "/" + entry
       let is_f = @fs.is_file(path) catch { _ => false }
       if is_f {
-        // Read raw bytes: archives are binary ZIP files; a string read
-        // would fail on the compressed stream and silently drop every
-        // real backup from the listing.
-        let bytes = @fs.read_file_to_bytes(path) catch { _ => continue }
+        let created_at = extract_created_at(entry)
+        let size = @fs.read_file_to_bytes(path) catch { _ => continue }
         result.push({
           name: entry,
           path,
-          size_bytes: bytes.length(),
-          created_at: "",
+          size_bytes: size.length(),
+          created_at,
         })
       }
     }
   }
+  result.sort_by(fn(a, b) {
+    @utils.compare_lexicographic(b.created_at, a.created_at)
+  })
   result
 }
 
@@ -227,10 +230,8 @@ fn apply_retention(dest_dir : String, keep : Int) -> Result[Int, BackupError] {
       backups.push(entry)
     }
   }
-  // Sort by name (timestamp in name gives chronological order)。名字按字典序
-  // 比较：core `String::compare` 是 shortlex（先比长度），时间戳位数不一致时
-  // 会排错（BUG-0079）。orig 侧按 mtime 保留最新（backup_manager.rb#prune），
-  // 名字里的毫秒时间戳定宽时两者顺序一致。
+  // Sort by name: YYYYMMDD-HHMMSS timestamp is fixed-width, so
+  // lexicographic order == chronological order (BUG-0079 resolved).
   backups.sort_by(fn(a, b) { @utils.compare_lexicographic(a, b) })
   // Delete oldest files beyond keep limit
   let mut removed = 0
@@ -272,4 +273,53 @@ pub fn is_heavy_exclude(path : String) -> Bool {
 /// The archive is a ZIP (lib/zip create_zip); the extension must not lie.
 pub fn generate_archive_name(timestamp : String) -> String {
   "mbopenclacky-backup-" + timestamp + ".zip"
+}
+
+///|
+/// Current UTC timestamp as `YYYYMMDD-HHMMSS`, mirroring Ruby
+/// `Time.now.strftime("%Y%m%d-%H%M%S")`. Fixed-width (15 chars) so that
+/// lexicographic order matches chronological order.
+fn now_stamp() -> String {
+  let sec = @env.now().reinterpret_as_int64() / 1000
+  let dt = @time.PlainDateTime::from_unix_second(sec, 0, @time.utc_offset) catch {
+    _ => return "00000000-000000"
+  }
+  let p2 = fn(n : Int) -> String {
+    if n < 10 {
+      "0" + n.to_string()
+    } else {
+      n.to_string()
+    }
+  }
+  dt.year().to_string() +
+  p2(dt.month()) +
+  p2(dt.day()) +
+  "-" +
+  p2(dt.hour()) +
+  p2(dt.minute()) +
+  p2(dt.second())
+}
+
+///|
+/// Extract a `created_at` ISO-8601 string from a backup filename.
+/// `mbopenclacky-backup-20261010-143022.zip` → `2026-10-10T14:30:22`.
+/// Falls back to `""` when the name doesn't carry a recognisable stamp
+/// (e.g. legacy epoch-millisecond filenames).
+fn extract_created_at(filename : String) -> String {
+  let prefix = "mbopenclacky-backup-"
+  let suffix = ".zip"
+  if !filename.has_prefix(prefix) || !filename.has_suffix(suffix) {
+    return ""
+  }
+  let stem = filename[prefix.length():filename.length() - suffix.length()]
+  if stem.length() != 15 {
+    return ""
+  }
+  let y = stem[0:4]
+  let mo = stem[4:6]
+  let d = stem[6:8]
+  let h = stem[9:11]
+  let mi = stem[11:13]
+  let s = stem[13:15]
+  "\{y}-\{mo}-\{d}T\{h}:\{mi}:\{s}"
 }
