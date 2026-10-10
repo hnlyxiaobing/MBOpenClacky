@@ -338,8 +338,27 @@ fn strip_quoted_strings(text : String) -> String {
 }
 
 ///|
+/// Check if a string is non-empty and contains only whitespace characters.
+fn is_pure_whitespace(s : String) -> Bool {
+  if s.is_empty() {
+    return false
+  }
+  for c in s {
+    if c != ' ' && c != '\t' && c != '\n' && c != '\r' {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Expand a path: resolve ~ to home directory, ~user to user's home, handle relative paths.
 fn expand_path(path : String) -> String raise SecurityError {
+  // Pure whitespace paths are returned as-is (BUG-0055), matching Ruby's
+  // File.expand_path behavior which does not resolve them against cwd.
+  if is_pure_whitespace(path) {
+    return path
+  }
   if path.has_prefix("~") {
     match home_dir() {
       Some(home) =>

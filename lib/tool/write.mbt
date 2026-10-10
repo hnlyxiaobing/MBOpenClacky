@@ -89,7 +89,13 @@ impl Tool for Write with fn execute(_, args : Map[String, Json]) -> ToolResult {
   @fs.write_string_to_file(path, content) catch {
     _ => return ToolResult::error("Failed to write file: \{path}")
   }
-  ToolResult::success("Written \{content.length()} bytes to \{path}")
+  let bytes = @utils.estimate_utf8_byte_length(content)
+  let result_json = Json::object({
+    "path": Json(path),
+    "bytes_written": Json::number(bytes.to_double()),
+    "error": Json::null(),
+  })
+  ToolResult::success(result_json.stringify())
 }
 
 ///|
@@ -102,7 +108,17 @@ impl Tool for Write with fn format_call(_, args : Map[String, Json]) -> String {
 
 ///|
 impl Tool for Write with fn format_result(_, result : ToolResult) -> String {
-  result.content
+  let json = @json.parse(result.content) catch { _ => return result.content }
+  match json {
+    Object(obj) => {
+      let bytes = match obj.get("bytes_written") {
+        Some(Number(n, ..)) => n.to_int().to_string()
+        _ => "0"
+      }
+      "Written \{bytes} bytes"
+    }
+    _ => result.content
+  }
 }
 
 ///|

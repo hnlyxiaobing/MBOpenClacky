@@ -135,7 +135,12 @@ impl Tool for Edit with fn execute(_, args : Map[String, Json]) -> ToolResult {
     _ => return ToolResult::error("Failed to write file: \{path}")
   }
   let count = if replace_all { occurrences } else { 1 }
-  ToolResult::success("Modified \{count} occurrence(s) in \{path}")
+  let result_json = Json::object({
+    "path": Json(path),
+    "replacements": Json::number(count.to_double()),
+    "error": Json::null(),
+  })
+  ToolResult::success(result_json.stringify())
 }
 
 ///|
@@ -148,7 +153,17 @@ impl Tool for Edit with fn format_call(_, args : Map[String, Json]) -> String {
 
 ///|
 impl Tool for Edit with fn format_result(_, result : ToolResult) -> String {
-  result.content
+  let json = @json.parse(result.content) catch { _ => return result.content }
+  match json {
+    Object(obj) => {
+      let count = match obj.get("replacements") {
+        Some(Number(n, ..)) => n.to_int().to_string()
+        _ => "0"
+      }
+      "Modified \{count} occurrence(s)"
+    }
+    _ => result.content
+  }
 }
 
 ///|
