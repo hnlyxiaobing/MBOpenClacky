@@ -36,8 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # previous build.
 ARG TOOLCHAIN_CACHE_BUSTER
 RUN echo "toolchain cache buster: ${TOOLCHAIN_CACHE_BUSTER:-unset}" \
-    && (curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- --version 0.1.20260930 || \
-        curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s)
+    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.1.20260930
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
