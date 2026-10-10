@@ -1,0 +1,21 @@
+{
+  "id": "computer-use",
+  "name": "Computer Use",
+  "version": "0.1.0",
+  "description": "Let the AI drive your desktop with screenshots, mouse and keyboard.",
+  "author": "OpenClacky",
+  "license": "MIT",
+  "keywords": ["computer-use", "desktop", "automation"],
+  "contributions": [
+    {
+      "type": "skill",
+      "id": "computer-use",
+      "name": "Computer Use",
+      "description": "Control the desktop through screenshots, mouse and keyboard.",
+      "path": "contributions/computer-use-skill.json",
+      "config": {}
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": false
+}

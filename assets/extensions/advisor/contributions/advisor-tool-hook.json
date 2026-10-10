@@ -1,0 +1,14 @@
+{
+  "id": "advisor-tool-use",
+  "name": "Advisor Tool Use Hook",
+  "description": "Observe tool calls for advisor analysis.",
+  "type": "hook",
+  "extension": "advisor",
+  "hooks": [
+    {
+      "event": "after_tool_use",
+      "handler": "observe_tool_call",
+      "description": "Record tool call observations for advisor recommendations."
+    }
+  ]
+}

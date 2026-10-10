@@ -1,0 +1,14 @@
+{
+  "id": "advisor-complete",
+  "name": "Advisor Complete Hook",
+  "description": "Trigger advisor analysis on task completion.",
+  "type": "hook",
+  "extension": "advisor",
+  "hooks": [
+    {
+      "event": "on_complete",
+      "handler": "generate_recommendations",
+      "description": "Generate next-step recommendations after task completion."
+    }
+  ]
+}

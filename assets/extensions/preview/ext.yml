@@ -1,0 +1,24 @@
+{
+  "id": "preview",
+  "name": "Preview",
+  "version": "0.1.0",
+  "description": "Live preview panel for HTML files and localhost URLs.",
+  "author": "OpenClacky",
+  "license": "MIT",
+  "keywords": ["preview", "html", "live-preview"],
+  "contributions": [
+    {
+      "type": "panel",
+      "id": "preview",
+      "name": "Preview",
+      "description": "Live preview of workspace HTML files.",
+      "path": "contributions/preview-panel.json",
+      "config": {
+        "order": 40,
+        "attach": ["*"]
+      }
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

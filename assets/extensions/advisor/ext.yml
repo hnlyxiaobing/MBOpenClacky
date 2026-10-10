@@ -1,0 +1,51 @@
+{
+  "id": "advisor",
+  "name": "Advisor",
+  "version": "0.1.0",
+  "description": "Recommends next steps after each task, based on your own workflow.",
+  "author": "OpenClacky",
+  "license": "MIT",
+  "keywords": ["advisor", "recommendations", "workflow"],
+  "contributions": [
+    {
+      "type": "agent",
+      "id": "advisor",
+      "name": "Advisor",
+      "description": "Recommends next steps after each task.",
+      "path": "contributions/advisor-agent.json",
+      "config": {
+        "hidden": true,
+        "order": 99
+      }
+    },
+    {
+      "type": "hook",
+      "id": "advisor-tool-use",
+      "name": "Advisor Tool Use Hook",
+      "description": "Observe tool calls for advisor analysis.",
+      "path": "contributions/advisor-tool-hook.json",
+      "config": {}
+    },
+    {
+      "type": "hook",
+      "id": "advisor-complete",
+      "name": "Advisor Complete Hook",
+      "description": "Trigger advisor analysis on task completion.",
+      "path": "contributions/advisor-complete-hook.json",
+      "config": {}
+    },
+    {
+      "type": "panel",
+      "id": "advisor",
+      "name": "Advisor",
+      "description": "Shows advisor recommendations.",
+      "path": "contributions/advisor-panel.json",
+      "config": {
+        "order": 99,
+        "attach": ["*"]
+      }
+    }
+  ],
+  "dependencies": {},
+  "enabled_by_default": true
+}

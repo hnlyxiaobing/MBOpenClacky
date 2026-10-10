@@ -1,0 +1,17 @@
+{
+  "id": "computer-use-skill",
+  "name": "Computer Use",
+  "description": "Control the desktop through screenshots, mouse and keyboard.",
+  "type": "skill",
+  "extension": "computer-use",
+  "skills": [
+    {
+      "name": "computer_use",
+      "description": "Drive the desktop: screenshot, click, type, key, drag, scroll, activate apps.",
+      "parameters": {
+        "command": "The command to execute (screenshot, click, type, key, move, drag, scroll, activate, cursor, doctor)",
+        "options": "Command-specific options (coordinates, text, key combo, etc.)"
+      }
+    }
+  ]
+}

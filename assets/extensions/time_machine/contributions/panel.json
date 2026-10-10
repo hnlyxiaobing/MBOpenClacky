@@ -3,7 +3,7 @@
   "name": "Timeline Panel",
   "description": "Browse project history, view snapshots, and restore previous states.",
   "type": "panel",
-  "extension": "time-machine",
+  "extension": "time_machine",
   "ui": {
     "title": "Time Machine",
     "components": [

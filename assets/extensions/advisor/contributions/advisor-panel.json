@@ -1,0 +1,19 @@
+{
+  "id": "advisor-panel",
+  "name": "Advisor",
+  "description": "Shows advisor recommendations cards.",
+  "type": "panel",
+  "extension": "advisor",
+  "order": 99,
+  "attach": ["*"],
+  "ui": {
+    "title": "Advisor",
+    "components": [
+      {
+        "type": "recommendation-cards",
+        "label": "Recommended Next Steps",
+        "data_source": "/api/ext/advisor/status"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "advisor-agent",
+  "name": "Advisor",
+  "description": "Recommends next steps after each task based on your workflow.",
+  "type": "agent",
+  "extension": "advisor",
+  "prompt_path": "advisors/general.md",
+  "hidden": true,
+  "order": 99
+}

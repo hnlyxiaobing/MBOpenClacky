@@ -1,11 +1,11 @@
 {
-  "id": "time-machine",
+  "id": "time_machine",
   "name": "Time Machine",
   "version": "1.0.0",
   "description": "Built-in time machine extension with timeline panel and backup hooks.",
   "author": "MBOpenClacky",
   "license": "MIT",
-  "keywords": ["time-machine", "history", "backup"],
+  "keywords": ["time_machine", "history", "backup"],
   "contributions": [
     {
       "type": "panel",

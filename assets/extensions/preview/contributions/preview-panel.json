@@ -1,0 +1,19 @@
+{
+  "id": "preview-panel",
+  "name": "Preview",
+  "description": "Live preview of workspace HTML files and localhost URLs.",
+  "type": "panel",
+  "extension": "preview",
+  "order": 40,
+  "attach": ["*"],
+  "ui": {
+    "title": "Preview",
+    "components": [
+      {
+        "type": "web-preview",
+        "label": "Live Preview",
+        "data_source": "/preview/f/{path}"
+      }
+    ]
+  }
+}
