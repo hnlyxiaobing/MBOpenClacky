@@ -49,7 +49,11 @@ jobs:
 
       - name: Install MoonBit toolchain
         if: steps.toolchain-cache.outputs.cache-hit != 'true'
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+        # Pin to specific version to ensure reproducibility. The latest toolchain
+        # may have breaking changes. Local development uses 0.1.20260930.
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- --version 0.1.20260930 || \
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
@@ -72,7 +76,18 @@ jobs:
         run: moon update
 
       - name: Type check
-        run: moon check -j "$(nproc)"
+        run: |
+          # Capture full output for debugging
+          set +e
+          moon check -j "$(nproc)" 2>&1 | tee /tmp/moon_check.log
+          EXIT_CODE=$?
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::moon check failed with exit code $EXIT_CODE"
+            echo "=== Full moon check output ==="
+            cat /tmp/moon_check.log
+            exit $EXIT_CODE
+          fi
 
       - name: Warning budget gate (P2-3)
         run: bash scripts/warn_count.sh
@@ -134,7 +149,11 @@ jobs:
 
       - name: Install MoonBit toolchain
         if: steps.toolchain-cache.outputs.cache-hit != 'true'
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+        # Pin to specific version to ensure reproducibility. The latest toolchain
+        # may have breaking changes. Local development uses 0.1.20260930.
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- --version 0.1.20260930 || \
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
