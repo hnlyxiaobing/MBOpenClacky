@@ -11,7 +11,7 @@ jobs:
   #    before the expensive build/test runners spin up.
   checks:
     name: Checks
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -117,7 +117,7 @@ jobs:
   #    the scoped test command. Scoped debug tests compile 2-3x faster.
   build-and-test:
     name: Build · Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: checks
     steps:
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload test log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: moon-test-log
           path: ${{ runner.temp }}/moon_test.log
@@ -238,14 +238,14 @@ jobs:
   #    Runs after tests so the test count is read from the actual log.
   repo-stats:
     name: Repo stats
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [checks, build-and-test]
     steps:
       - uses: actions/checkout@v7
 
       - name: Download test log
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: moon-test-log
           path: ${{ runner.temp }}
