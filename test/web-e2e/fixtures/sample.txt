@@ -1,0 +1,5 @@
+This is a test document for file attachment upload testing.
+It contains multiple lines of text.
+Line 3: The quick brown fox jumps over the lazy dog.
+Line 4: Special chars: @#$%^&*()
+Line 5: End of test document.
