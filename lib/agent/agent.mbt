@@ -161,7 +161,7 @@ pub fn Agent::new(
   working_dir : String,
   client : @client.Client,
   config : @config.AgentConfig,
-  profile? : String = "coding",
+  profile~ : String = "coding",
 ) -> Agent {
   {
     session_id,

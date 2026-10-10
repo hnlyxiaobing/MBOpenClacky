@@ -68,6 +68,7 @@ fn detect_desktop() -> String? {
   }
 }
 
+///|
 fn detect_desktop_wsl() -> String? {
   // Try USERPROFILE if set, convert to /mnt form, then check
   let profile_opt = @utils.env_var("USERPROFILE")
@@ -101,6 +102,7 @@ fn detect_desktop_wsl() -> String? {
   None
 }
 
+///|
 fn detect_desktop_windows() -> String? {
   let profile = match @utils.env_var("USERPROFILE") {
     Some(p) => p

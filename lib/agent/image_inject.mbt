@@ -31,7 +31,7 @@ pub fn Agent::inject_user_image(
   self : Agent,
   base64_data : String,
   mime_type : String,
-  path? : String? = None,
+  path~ : String? = None,
 ) -> Unit {
   let data_url = "data:\{mime_type};base64,\{base64_data}"
   let label = match path {

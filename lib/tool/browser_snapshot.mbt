@@ -213,7 +213,7 @@ fn leading_indent(line : String) -> Int {
 pub fn query_snapshot(
   snapshot : String,
   query : String,
-  offset? : Int = 0,
+  offset~ : Int = 0,
 ) -> String {
   let compressed = compress_snapshot(snapshot)
   // Collect into Array[String] for indexed access

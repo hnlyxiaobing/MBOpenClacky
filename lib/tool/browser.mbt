@@ -485,7 +485,7 @@ pub async fn Browser::mcp_call(
   self : Browser,
   tool_name : String,
   args : Map[String, Json],
-  page_id? : String? = None,
+  page_id~ : String? = None,
 ) -> ToolResult {
   // Try MCP path first
   if is_browser_mcp_available() {

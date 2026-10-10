@@ -139,11 +139,12 @@ pub async fn Agent::execute_single_tool(
     None => ()
   }
   // ── Shell hooks: before_tool_use (veto-capable) ────────────────
-  match self.trigger_shell_hooks(
-    @hook.BeforeToolUse,
-    tool_name=Some(tool_name),
-    tool_args=Some(Json::object(args).stringify()),
-  ) {
+  match
+    self.trigger_shell_hooks(
+      @hook.BeforeToolUse,
+      tool_name=Some(tool_name),
+      tool_args=Some(Json::object(args).stringify()),
+    ) {
     @hook.Deny(reason) => {
       let result = build_denied_result(call, Some(reason))
       self.patch_chain.check_after(tool_name, args, result.content, true)
@@ -292,13 +293,15 @@ pub async fn Agent::execute_single_tool(
     @hook.AfterToolUse,
     tool_name=Some(canonical),
     tool_args=Some(Json::object(args).stringify()),
-  ) |> ignore
+  )
+  |> ignore
   if final_result.is_error {
     self.trigger_shell_hooks(
       @hook.OnToolError,
       tool_name=Some(canonical),
       tool_args=Some(Json::object(args).stringify()),
-    ) |> ignore
+    )
+    |> ignore
   }
   final_result
 }
@@ -317,20 +320,17 @@ async fn Agent::finalize_tool_result(
     @hook.AfterToolUse,
     tool_name=Some(tool_name),
     tool_args=Some(Json::object(args).stringify()),
-  ) |> ignore
+  )
+  |> ignore
   if result.is_error {
     self.trigger_shell_hooks(
       @hook.OnToolError,
       tool_name=Some(tool_name),
       tool_args=Some(Json::object(args).stringify()),
-    ) |> ignore
+    )
+    |> ignore
   }
-  self.patch_chain.check_after(
-    tool_name,
-    args,
-    result.content,
-    result.is_error,
-  )
+  self.patch_chain.check_after(tool_name, args, result.content, result.is_error)
   result
 }
 
@@ -1143,7 +1143,7 @@ fn Agent::tool_restriction_reason(self : Agent, name : String) -> String? {
 pub fn build_denied_result(
   call : @message.ToolCall,
   feedback : String?,
-  system_injected? : Bool = false,
+  system_injected~ : Bool = false,
 ) -> ToolResultEntry {
   let content = if system_injected {
     // System-generated feedback (e.g., subagent tool restrictions)

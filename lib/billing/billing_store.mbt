@@ -149,11 +149,11 @@ pub fn BillingStore::append(
 /// Returns matching records sorted by timestamp descending.
 pub fn BillingStore::query(
   self : BillingStore,
-  from_ms? : Int64 = 0L,
-  to_ms? : Int64 = 0L,
-  model? : String = "",
-  session_id? : String = "",
-  limit? : Int = 0,
+  from_ms~ : Int64 = 0L,
+  to_ms~ : Int64 = 0L,
+  model~ : String = "",
+  session_id~ : String = "",
+  limit~ : Int = 0,
 ) -> Array[BillingRecord] {
   let all_records = load_all_records(self.billing_dir)
   let filtered = filter_records(
@@ -179,7 +179,7 @@ pub fn BillingStore::query(
 pub fn BillingStore::summary(
   self : BillingStore,
   period : TimePeriod,
-  model? : String = "",
+  model~ : String = "",
 ) -> Summary {
   let period_start_ms = get_period_start_ms(period)
   let records = self.query(from_ms=period_start_ms, model~)
@@ -192,7 +192,7 @@ pub fn BillingStore::summary(
 /// returns oldest first.
 pub fn BillingStore::daily_breakdown(
   self : BillingStore,
-  days? : Int = 30,
+  days~ : Int = 30,
 ) -> Array[DaySummary] {
   let ms_per_day = 86_400_000L
   let now_ms = current_time_ms()
@@ -272,9 +272,9 @@ pub extend ClearScope with Eq::{not_equal, equal}
 pub fn BillingStore::session_summary(
   self : BillingStore,
   period : TimePeriod,
-  model? : String = "",
-  limit? : Int = 50,
-  session_names? : Map[String, String] = Map([]),
+  model~ : String = "",
+  limit~ : Int = 50,
+  session_names~ : Map[String, String] = Map([]),
 ) -> Array[SessionSummary] {
   let period_start_ms = get_period_start_ms(period)
   let records = self.query(from_ms=period_start_ms, model~)
@@ -439,10 +439,10 @@ pub fn BillingStore::cleanup(self : BillingStore, before_ms : Int64) -> Int {
 /// Filter records by criteria. Exported for testing.
 pub fn filter_records(
   records : Array[BillingRecord],
-  from_ms? : Int64 = 0L,
-  to_ms? : Int64 = 0L,
-  model? : String = "",
-  session_id? : String = "",
+  from_ms~ : Int64 = 0L,
+  to_ms~ : Int64 = 0L,
+  model~ : String = "",
+  session_id~ : String = "",
 ) -> Array[BillingRecord] {
   let result : Array[BillingRecord] = []
   for record in records {

@@ -20,7 +20,7 @@ pub fn request_confirmation(
   tool_name : String,
   tool_args : String,
   prompt_text : String,
-  default_yes? : Bool = false,
+  default_yes~ : Bool = false,
 ) -> Unit {
   state.pending_confirmation = Some({
     tool_name,

@@ -11,11 +11,11 @@
 ///|
 fn make_rule(
   name~ : String,
-  source? : String = "test-ext",
-  tool_pattern? : String = "*",
-  args_pattern? : String = "",
+  source~ : String = "test-ext",
+  tool_pattern~ : String = "*",
+  args_pattern~ : String = "",
   action~ : PatchAction,
-  command? : String = "",
+  command~ : String = "",
 ) -> PatchRule {
   { name, source, tool_pattern, args_pattern, action, command, }
 }

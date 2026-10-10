@@ -77,7 +77,7 @@ pub fn pad_chunk_index(n : Int) -> String {
 pub fn build_chunk_md(
   messages : Array[@message.Message],
   chunk_index : Int,
-  topics? : String? = None,
+  topics~ : String? = None,
 ) -> String {
   let lines : Array[String] = []
 
@@ -318,26 +318,24 @@ pub fn render_message_sections(messages : Array[@message.Message]) -> String {
 fn merge_topics(existing : String?, incoming : String?) -> String? {
   let a_parts : Array[String] = []
   match existing {
-    Some(s) if !s.is_empty() => {
+    Some(s) if !s.is_empty() =>
       for part in s.split(",") {
         let trimmed = part.trim().to_owned()
         if !trimmed.is_empty() {
           a_parts.push(trimmed)
         }
       }
-    }
     _ => ()
   }
   let b_parts : Array[String] = []
   match incoming {
-    Some(s) if !s.is_empty() => {
+    Some(s) if !s.is_empty() =>
       for part in s.split(",") {
         let trimmed = part.trim().to_owned()
         if !trimmed.is_empty() {
           b_parts.push(trimmed)
         }
       }
-    }
     _ => ()
   }
   let merged : Array[String] = []
@@ -386,7 +384,7 @@ pub fn merge_into_previous_chunk(
   compression_level : Int,
   session_id : String,
   created_at : String,
-  topics? : String? = None,
+  topics~ : String? = None,
 ) -> String? {
   // Filter messages: skip system, system-injected, compressed summaries
   let to_archive : Array[@message.Message] = []
@@ -418,9 +416,9 @@ pub fn merge_into_previous_chunk(
   let mut old_topics : String? = None
   for (k, v) in fm_pairs {
     match k {
-      "message_count" => { old_message_count = parse_int_safe(v) }
-      "merged_count" => { old_merged_count = parse_int_safe(v) }
-      "topics" => { old_topics = Some(v) }
+      "message_count" => old_message_count = parse_int_safe(v)
+      "merged_count" => old_merged_count = parse_int_safe(v)
+      "topics" => old_topics = Some(v)
       _ => ()
     }
   }
@@ -435,18 +433,14 @@ pub fn merge_into_previous_chunk(
     match k {
       "compression_level" =>
         lines.push("compression_level: \{compression_level}")
-      "archived_at" =>
-        lines.push("archived_at: \{current_timestamp_iso()}")
-      "message_count" =>
-        lines.push("message_count: \{new_message_count}")
-      "merged_count" =>
-        lines.push("merged_count: \{new_merged_count}")
-      "topics" => {
+      "archived_at" => lines.push("archived_at: \{current_timestamp_iso()}")
+      "message_count" => lines.push("message_count: \{new_message_count}")
+      "merged_count" => lines.push("merged_count: \{new_merged_count}")
+      "topics" =>
         match merged_topics {
           Some(t) => lines.push("topics: \{t}")
           None => ()
         }
-      }
       _ => lines.push("\{k}: \{v}")
     }
   }
@@ -479,7 +473,11 @@ fn parse_int_safe(s : String) -> Int {
       break
     }
   }
-  if negative { -result } else { result }
+  if negative {
+    -result
+  } else {
+    result
+  }
 }
 
 // ── Save Chunk to Disk ───────────────────────────────────────────────────────
@@ -494,7 +492,7 @@ pub fn save_compressed_chunk(
   session_id : String,
   created_at : String,
   chunk_index : Int,
-  topics? : String? = None,
+  topics~ : String? = None,
 ) -> Result[String, String] {
   // Filter out system messages, system-injected scaffolding, and previous
   // compressed summaries — these should not be archived inside a new chunk.
@@ -530,7 +528,7 @@ pub fn save_or_merge_chunk(
   session_id : String,
   created_at : String,
   compression_level : Int,
-  topics? : String? = None,
+  topics~ : String? = None,
 ) -> Result[String, String] {
   let existing = chunks_for_current(session_id, created_at)
   if existing.length() > 0 {
@@ -538,20 +536,20 @@ pub fn save_or_merge_chunk(
     // Extract index from the latest chunk filename
     let latest_index = extract_chunk_index_from_path(latest_path)
     match latest_index {
-      Some(idx) => {
-        match merge_into_previous_chunk(
-          latest_path,
-          idx,
-          messages,
-          compression_level,
-          session_id,
-          created_at,
-          topics~,
-        ) {
+      Some(idx) =>
+        match
+          merge_into_previous_chunk(
+            latest_path,
+            idx,
+            messages,
+            compression_level,
+            session_id,
+            created_at,
+            topics~,
+          ) {
           Some(path) => return Ok(path)
           None => ()
         }
-      }
       None => ()
     }
   }
@@ -575,7 +573,11 @@ fn extract_chunk_index_from_path(path : String) -> Int? {
     Some(idx) => {
       let idx_str = base[idx + marker.length():].to_owned()
       let n = parse_int_safe(idx_str)
-      if n > 0 { Some(n) } else { None }
+      if n > 0 {
+        Some(n)
+      } else {
+        None
+      }
     }
   }
 }

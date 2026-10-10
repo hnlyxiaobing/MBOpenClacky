@@ -31,9 +31,9 @@
 ///   exist in the config.
 pub fn Agent::fork_subagent(
   self : Agent,
-  model? : String? = None,
-  forbidden_tools? : Array[String] = [],
-  system_prompt_suffix? : String? = None,
+  model~ : String? = None,
+  forbidden_tools~ : Array[String] = [],
+  system_prompt_suffix~ : String? = None,
 ) -> Agent raise @errors.AgentError {
   // Clone config to avoid affecting the parent (Ruby @config.deep_copy).
   let mut subagent_config = self.config.deep_copy()
@@ -400,8 +400,8 @@ fn format_cost(cost : Double) -> String {
 pub async fn Agent::run_detached(
   self : Agent,
   task : String,
-  model? : String? = None,
-  forbidden_tools? : Array[String] = [],
+  model~ : String? = None,
+  forbidden_tools~ : Array[String] = [],
 ) -> String {
   let subagent = self.fork_subagent(
     model~,
@@ -474,8 +474,8 @@ pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
 /// @return one FanOutResult per job, aligned to `jobs` order
 pub async fn[X] fan_out(
   jobs : Array[FanOutJob[X]],
-  max_concurrency? : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
-  timeout_ms? : Int? = None,
+  max_concurrency~ : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
+  timeout_ms~ : Int? = None,
 ) -> Array[FanOutResult[X]] {
   if jobs.is_empty() {
     return []
@@ -556,8 +556,8 @@ pub async fn[X] fan_out(
 /// @return one FanOutResult per job, aligned to `jobs` order
 pub async fn[X] fan_out_labeled(
   jobs : Array[FanOutJob[X]],
-  max_concurrency? : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
-  timeout_ms? : Int? = None,
+  max_concurrency~ : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
+  timeout_ms~ : Int? = None,
 ) -> Array[FanOutResult[X]] {
   if jobs.is_empty() {
     return []

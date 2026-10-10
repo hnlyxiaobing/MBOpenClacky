@@ -20,10 +20,10 @@ pub fn Style::default_() -> Style {
 
 ///|
 pub fn Style::new(
-  fg? : @color.Color = @color.Color::Default,
-  bg? : @color.Color = @color.Color::Default,
-  bold? : Bool = false,
-  dim? : Bool = false,
+  fg~ : @color.Color = @color.Color::Default,
+  bg~ : @color.Color = @color.Color::Default,
+  bold~ : Bool = false,
+  dim~ : Bool = false,
 ) -> Style {
   { fg: Some(fg), bg: Some(bg), bold, dim, }
 }

@@ -42,7 +42,7 @@ fn ct_make_agent(model : String) -> Agent {
 fn ct_usage(
   input : Int,
   output : Int,
-  api_cost? : Double? = None,
+  api_cost~ : Double? = None,
 ) -> @client.Usage {
   {
     input_tokens: input,

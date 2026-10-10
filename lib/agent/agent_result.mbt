@@ -50,7 +50,7 @@ pub extend RunResult with Eq::{not_equal, equal}
 fn Agent::build_result(
   self : Agent,
   status : RunStatus,
-  error? : String? = None,
+  error~ : String? = None,
 ) -> RunResult {
   {
     status,

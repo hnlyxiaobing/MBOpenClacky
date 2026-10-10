@@ -8,7 +8,7 @@
 /// Generate a unique record ID as a v4-style UUID string, matching Ruby
 /// `SecureRandom.uuid` (spec 21 decision 7).
 pub fn generate_id() -> String {
-  let rng = @random.Rand::new()
+  let rng = @random.Rand::Rand()
   let hex = "0123456789abcdef"
   let mut id = ""
   for i = 0; i < 36; i = i + 1 {
@@ -139,8 +139,8 @@ pub fn BillingRecord::new(
   model~ : String,
   prompt_tokens~ : Int,
   completion_tokens~ : Int,
-  cache_read_tokens? : Int = 0,
-  cache_write_tokens? : Int = 0,
+  cache_read_tokens~ : Int = 0,
+  cache_write_tokens~ : Int = 0,
   cost_usd~ : Double,
   cost_source~ : String,
 ) -> BillingRecord {

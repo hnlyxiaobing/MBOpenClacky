@@ -97,8 +97,8 @@ fn build_env_prefix(
 /// into the command prefix (concurrency-safe — no parent env mutation).
 pub async fn run_shell_command(
   command : String,
-  env_vars? : Array[(String, String)] = [],
-  working_dir? : String? = None,
+  env_vars~ : Array[(String, String)] = [],
+  working_dir~ : String? = None,
 ) -> ShellExecResult {
   shell_exec_counter.value = shell_exec_counter.value + 1
   let token = "cmdhook\{shell_exec_counter.value}"

@@ -312,8 +312,8 @@ fn truncate_to_display_width(s : String, max_w : Int) -> String {
 /// `hints` overrides the footer shortcut line (default: config menu hints).
 pub fn render_config_menu(
   dialog : ConfigMenuDialog,
-  term_width? : Int = 0,
-  hints? : String? = None,
+  term_width~ : Int = 0,
+  hints~ : String? = None,
 ) -> Node {
   let children : Array[Node] = []
 

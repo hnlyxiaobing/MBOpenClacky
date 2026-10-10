@@ -430,7 +430,7 @@ fn extract_key_sentences(text : String) -> String {
 /// role messages (caller's responsibility to check role).
 pub fn truncate_tool_result(
   content : String,
-  max_chars? : Int = 2000,
+  max_chars~ : Int = 2000,
 ) -> String {
   if content.length() <= max_chars {
     content
@@ -512,8 +512,8 @@ pub fn build_previous_chunks_index(
 pub fn build_compressed_summary_with_chunks(
   summary : String,
   topics : String,
-  chunk_path? : String? = None,
-  previous_chunks? : Array[ChunkInfo] = [],
+  chunk_path~ : String? = None,
+  previous_chunks~ : Array[ChunkInfo] = [],
 ) -> @message.Message {
   let mut content = "[Compressed conversation summary -- previous turns archived]\n"
 

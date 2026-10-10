@@ -42,7 +42,7 @@ fn AgentOutputSync::set_theme(self : AgentOutputSync, theme : Theme) -> Unit {
 ///|
 /// Split text into display lines, wrapping long lines to fit `max_width`.
 /// ANSI-escape-aware: CSI SGR sequences are preserved across line breaks.
-fn split_display_lines(text : String, max_width? : Int = 0) -> Array[String] {
+fn split_display_lines(text : String, max_width~ : Int = 0) -> Array[String] {
   let lines : Array[String] = []
   for sv in text.split("\n") {
     if max_width > 0 {

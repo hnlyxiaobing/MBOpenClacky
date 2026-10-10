@@ -118,7 +118,7 @@ pub(all) struct OutputBuffer {
 ///
 /// `max_entries` defaults to 2000. When the entry count exceeds this,
 /// the oldest fully-committed entries are trimmed.
-pub fn OutputBuffer::new(max_entries? : Int = 2000) -> OutputBuffer {
+pub fn OutputBuffer::new(max_entries~ : Int = 2000) -> OutputBuffer {
   {
     entries: [],
     next_id: 1,

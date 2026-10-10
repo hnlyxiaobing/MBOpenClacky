@@ -176,7 +176,7 @@ pub fn smart_truncate(output : String, max_chars : Int) -> String {
 /// Returns (truncated text, whether truncation occurred).
 pub fn truncate_output(
   output : String,
-  max_chars? : Int = 100000,
+  max_chars~ : Int = 100000,
 ) -> (String, Bool) {
   if output.length() <= max_chars {
     (output, false)
@@ -189,7 +189,7 @@ pub fn truncate_output(
 /// Full output processing pipeline: clean ANSI → strip control chars → truncate.
 pub fn process_terminal_output(
   raw : String,
-  max_chars? : Int = 100000,
+  max_chars~ : Int = 100000,
 ) -> (String, Bool) {
   let cleaned = clean_ansi_output(raw)
   let stripped = strip_control_chars(cleaned)
@@ -203,7 +203,7 @@ pub let max_line_chars : Int = 500
 ///|
 /// Truncate individual lines that exceed max_chars characters.
 /// Prevents a single minified JSON/CSS/JS blob from eating the entire output budget.
-pub fn truncate_long_lines(text : String, max_chars? : Int = 500) -> String {
+pub fn truncate_long_lines(text : String, max_chars~ : Int = 500) -> String {
   let lines = text.split("\n").collect()
   let buf = StringBuilder()
   let mut first = true
@@ -312,7 +312,7 @@ fn now_stamp() -> String {
 ///|
 /// 6-hex-char random suffix mirroring Ruby `SecureRandom.hex(3)`.
 fn random_hex(n : Int) -> String {
-  let rand = @random.Rand::new()
+  let rand = @random.Rand::Rand()
   let hex_chars : Array[Char] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]
@@ -330,7 +330,7 @@ fn random_hex(n : Int) -> String {
 /// Filename is `{ts}-s{sid}-{rand}.log` under `$TMPDIR/clacky-terminal-overflow/`
 /// so concurrent overflow writes never collide (Ruby `spill_overflow_file`).
 /// Returns None if the file could not be written.
-pub fn spill_overflow_file(content : String, session_id? : Int = 0) -> String? {
+pub fn spill_overflow_file(content : String, session_id~ : Int = 0) -> String? {
   let tmp_dir = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
@@ -359,9 +359,9 @@ pub fn spill_overflow_file(content : String, session_id? : Int = 0) -> String? {
 /// Returns (cleaned_output, was_truncated, overflow_file_path).
 pub fn enhanced_process_terminal_output(
   raw : String,
-  command? : String = "",
-  max_chars? : Int = 4000,
-  session_id? : Int = 0,
+  command~ : String = "",
+  max_chars~ : Int = 4000,
+  session_id~ : Int = 0,
 ) -> (String, Bool, String?) {
   // Step 1: Clean ANSI, \r-overwrites, backspaces and control chars
   let cleaned = clean_output(raw)

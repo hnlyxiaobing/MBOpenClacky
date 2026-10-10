@@ -18,8 +18,8 @@
 async fn Agent::trigger_shell_hooks(
   self : Agent,
   event : @hook.ShellHookEvent,
-  tool_name? : String? = None,
-  tool_args? : String? = None,
+  tool_name~ : String? = None,
+  tool_args~ : String? = None,
 ) -> @hook.HookExecResult {
   let matching = self.shell_hooks.filter(fn(h) { h.event == event })
   if matching.is_empty() {
@@ -47,7 +47,7 @@ async fn Agent::trigger_shell_hooks(
       Some(args) => env_vars.push(("CLACKY_HOOK_TOOL_ARGS", args))
       None => ()
     }
-    let result = @tool.run_shell_command(h.command, env_vars=env_vars)
+    let result = @tool.run_shell_command(h.command, env_vars~)
     if result.exit_code != 0 {
       if is_veto {
         let reason = result.output.trim().to_owned()

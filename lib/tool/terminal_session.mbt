@@ -154,7 +154,7 @@ pub fn TerminalSessionManager::complete(
   id : Int,
   output : String,
   exit_code : Int,
-  overflow_file? : String? = None,
+  overflow_file~ : String? = None,
 ) -> Unit {
   match TerminalSessionManager::get(id) {
     Some(s) => {

@@ -175,7 +175,9 @@ fn extract_session_id_from_json(json_str : String) -> String {
 /// Mirrors Ruby `_hard_delete_session_with_chunks`.
 fn hard_delete_session_file(dir : String, json_filename : String) -> Unit {
   let filepath = @path.Path::join(dir, @path.Path(json_filename)).to_string()
-  @fs.remove_file(filepath) catch { _ => () }
+  @fs.remove_file(filepath) catch {
+    _ => ()
+  }
   // Derive chunk base from filename (strip .json suffix)
   let base = if json_filename.has_suffix(".json") {
     json_filename[:json_filename.length() - 5].to_owned()
@@ -188,7 +190,9 @@ fn hard_delete_session_file(dir : String, json_filename : String) -> Unit {
   for name in all_files {
     if name.has_prefix(chunk_prefix) && name.has_suffix(chunk_suffix) {
       let chunk_path = @path.Path::join(dir, @path.Path(name)).to_string()
-      @fs.remove_file(chunk_path) catch { _ => () }
+      @fs.remove_file(chunk_path) catch {
+        _ => ()
+      }
     }
   }
 }
@@ -201,7 +205,8 @@ fn delete_session_snapshots(session_id : String) -> Unit {
     return
   }
   let snap_dir = match @utils.config_dir() {
-    Some(d) => @path.Path::join(@path.Path(d), @path.Path("snapshots/" + session_id)).to_string()
+    Some(d) =>
+      @path.Path::join(@path.Path(d), @path.Path("snapshots/" + session_id)).to_string()
     None => return
   }
   if !@fs.path_exists(snap_dir) {
@@ -220,10 +225,14 @@ fn remove_dir_recursive(dir : String) -> Unit {
     if is_directory {
       remove_dir_recursive(path)
     } else {
-      @fs.remove_file(path) catch { _ => () }
+      @fs.remove_file(path) catch {
+        _ => ()
+      }
     }
   }
-  @fs.remove_dir(dir) catch { _ => () }
+  @fs.remove_dir(dir) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -247,9 +256,13 @@ fn cleanup_file_trash() -> Unit {
     let entries = @utils.list_trash_entries(proj_dir)
     let expired = @utils.expired_entries(entries, 8, today)
     for entry in expired {
-      @fs.remove_file(entry.trash_path) catch { _ => () }
+      @fs.remove_file(entry.trash_path) catch {
+        _ => ()
+      }
       let meta_path = @utils.trash_metadata_path(entry.trash_path)
-      @fs.remove_file(meta_path) catch { _ => () }
+      @fs.remove_file(meta_path) catch {
+        _ => ()
+      }
     }
   }
 }

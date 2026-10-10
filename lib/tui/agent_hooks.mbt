@@ -43,8 +43,8 @@ pub(all) struct AgentHookHandler {
 /// Create a new AgentHookHandler.
 pub fn AgentHookHandler::new(
   state : Ref[TuiState],
-  config? : HookHandlerConfig = default_hook_config(),
-  agent? : @agent.Agent? = None,
+  config~ : HookHandlerConfig = default_hook_config(),
+  agent~ : @agent.Agent? = None,
 ) -> AgentHookHandler {
   { state, config, agent, output: None, }
 }

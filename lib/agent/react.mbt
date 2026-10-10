@@ -69,7 +69,7 @@ fn Agent::build_session_context(self : Agent) -> String {
 pub async fn Agent::run(
   self : Agent,
   user_input : String,
-  attach? : Array[Attachment]? = None,
+  attach~ : Array[Attachment]? = None,
 ) -> RunResult {
   // ── 1. Initialize ──────────────────────────────────────────────────
   let old_status = self.status
@@ -198,7 +198,10 @@ pub async fn Agent::run(
   match self.trigger_shell_hooks(@hook.OnStart) {
     @hook.Deny(reason) => {
       self.status = Completed
-      return self.build_result(Error, error=Some("Agent start denied: \{reason}"))
+      return self.build_result(
+        Error,
+        error=Some("Agent start denied: \{reason}"),
+      )
     }
     _ => ()
   }
@@ -250,7 +253,7 @@ pub async fn Agent::run(
 pub async fn Agent::run_async(
   self : Agent,
   user_input : String,
-  attach? : Array[Attachment]? = None,
+  attach~ : Array[Attachment]? = None,
 ) -> RunResult {
   self.run(user_input, attach~)
 }

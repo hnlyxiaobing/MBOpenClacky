@@ -307,7 +307,7 @@ pub fn Banner::render_startup(
   permission_mode : String,
   has_rules : Bool,
   api_key_missing : Bool,
-  terminal_width? : Int = 0,
+  terminal_width~ : Int = 0,
 ) -> String {
   let effective_width = if terminal_width > 0 {
     terminal_width

@@ -65,7 +65,7 @@ fn make_mock_response_fr(
   content : String,
   tool_calls : Array[@message.ToolCall]?,
   finish_reason : String?,
-  reasoning_content? : String? = None,
+  reasoning_content~ : String? = None,
 ) -> @client.LlmResponse {
   {
     content: Some(content),

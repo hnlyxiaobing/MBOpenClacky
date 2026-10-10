@@ -309,7 +309,7 @@ fn seed_trash_entry(
   proj : String,
   name : String,
   deleted_at : String,
-  size? : Int = 0,
+  size~ : Int = 0,
 ) -> Unit {
   let content = if size == 0 {
     "content of \{name}"

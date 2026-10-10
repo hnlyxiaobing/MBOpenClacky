@@ -62,8 +62,8 @@ fn get_screenshot_upload_dir() -> String {
 /// — Ruby `save_screenshot_to_disk` naming (hex 8 chars).
 fn screenshot_filename(
   hex : String,
-  suffix? : String = "",
-  ext? : String = "png",
+  suffix~ : String = "",
+  ext~ : String = "png",
 ) -> String {
   let stamp = now_stamp().replace_all(old="-", new="_")
   let label = if suffix.is_empty() { "" } else { "_" + suffix }
@@ -224,11 +224,11 @@ fn downscale_image_bytes(
 /// caller asks for a specific bound; both default to `screenshot_max_width`.
 pub fn format_screenshot_result(
   mcp_output : String,
-  ref_param? : String? = None,
-  format? : String? = None,
-  save_path? : String? = None,
-  max_width? : Int? = None,
-  max_height? : Int? = None,
+  ref_param~ : String? = None,
+  format~ : String? = None,
+  save_path~ : String? = None,
+  max_width~ : Int? = None,
+  max_height~ : Int? = None,
 ) -> String {
   // Resolve output format: mime type and file extension
   let fmt = match format {

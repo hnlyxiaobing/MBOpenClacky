@@ -1,7 +1,7 @@
 ///| White-box tests for LLM error detail recording (fix-09 hardening).
 
 ///|
-fn lc_make_agent(base_url : String, provider_id? : String? = None) -> Agent {
+fn lc_make_agent(base_url : String, provider_id~ : String? = None) -> Agent {
   let client = @client.Client::new(
     "test-key",
     base_url,
@@ -228,7 +228,7 @@ test "build_send_request uses primary when fallback_model empty" {
 fn lc_mock_response(
   content : String,
   tool_calls : Array[@message.ToolCall]?,
-  finish_reason? : String? = Some("stop"),
+  finish_reason~ : String? = Some("stop"),
 ) -> @client.LlmResponse {
   {
     content: Some(content),
@@ -482,7 +482,7 @@ async test "call_llm_stream_async populates latency with first-token ttft" {
 fn empty_resp(
   content : String?,
   finish_reason : String?,
-  reasoning_content? : String? = None,
+  reasoning_content~ : String? = None,
 ) -> @client.LlmResponse {
   {
     content,
