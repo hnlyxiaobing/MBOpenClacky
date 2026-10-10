@@ -16,9 +16,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # ubuntu-22.04 runners ship with build-essential and libssl-dev pre-installed.
-      # No apt-get step needed — the old workflow spent 30-60s installing packages
-      # that were already present.
+      # Install build dependencies explicitly. While ubuntu-22.04 runners may
+      # have some of these pre-installed, we need to ensure they're present
+      # for compiling C stubs (libssl-dev for crypto, nodejs for prebuild scripts).
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            gcc \
+            make \
+            libssl-dev \
+            nodejs
 
       # Compute a daily cache-buster key for the toolchain. This ensures the
       # cached toolchain refreshes at least once per day, preventing stale
@@ -100,6 +109,17 @@ jobs:
     needs: checks
     steps:
       - uses: actions/checkout@v7
+
+      # Install build dependencies explicitly for compiling C stubs and running prebuild scripts.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            gcc \
+            make \
+            libssl-dev \
+            nodejs
 
       - name: Compute toolchain cache-buster date
         id: toolchain_buster
