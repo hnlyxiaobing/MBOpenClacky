@@ -48,9 +48,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .mooncakes
-          key: mooncakes-${{ runner.os }}-v3-${{ hashFiles('moon.mod') }}
+          key: mooncakes-${{ runner.os }}-v4-${{ hashFiles('moon.mod') }}
           restore-keys: |
-            mooncakes-${{ runner.os }}-v3-
+            mooncakes-${{ runner.os }}-v4-
 
       - name: Update registry index and resolve dependencies
         run: |
@@ -153,9 +153,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .mooncakes
-          key: mooncakes-${{ runner.os }}-v3-${{ hashFiles('moon.mod') }}
+          key: mooncakes-${{ runner.os }}-v4-${{ hashFiles('moon.mod') }}
           restore-keys: |
-            mooncakes-${{ runner.os }}-v3-
+            mooncakes-${{ runner.os }}-v4-
 
       - name: Update registry index and resolve dependencies
         run: |
