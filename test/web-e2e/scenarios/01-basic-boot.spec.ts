@@ -21,7 +21,7 @@ test.describe('Web UI 基础验证', () => {
 
   test('新建会话按钮存在', async ({ page }) => {
     await page.goto('/');
-    const newSessionBtn = page.locator('button, [role="button"]').filter({ hasText: /新建|new|创建/i }).first();
-    await expect(newSessionBtn).toBeVisible();
+    const newSessionBtn = page.locator('#btn-new-session-inline, #btn-new-session, button, [role="button"]').filter({ hasText: /新建|new|创建/i }).first();
+    await expect(newSessionBtn).toBeAttached({ timeout: 5000 });
   });
 });

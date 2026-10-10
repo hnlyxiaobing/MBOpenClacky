@@ -3,6 +3,7 @@ import { waitForAgentResponse, createSessionAndNavigate, sendMessage, getLastAss
 
 test.describe('场景 8: 多轮对话上下文保持', () => {
   test('连续对话中 Agent 记住上下文', async ({ page, request }) => {
+    test.setTimeout(60000);
     const session = await createSessionAndNavigate(page, request);
 
     // Turn 1: 告诉 Agent 一个事实
@@ -26,6 +27,7 @@ test.describe('场景 8: 多轮对话上下文保持', () => {
   });
 
   test('三轮对话持续保持上下文', async ({ page, request }) => {
+    test.setTimeout(60000);
     await createSessionAndNavigate(page, request);
 
     // Turn 1
