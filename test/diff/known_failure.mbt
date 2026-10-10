@@ -56,7 +56,8 @@ let known_failure_bug_ids : Array[String] = [
   // error_retry 模块（P2）
   // BUG-0023 已修复（spec 2026-08-18_08_p5-retry-backoff-circuit-breaker.md：
   // retry_delay_ms 固定 5000ms 对齐 Ruby sleep retry_delay），移出注册表
-  "BUG-0024", // 402 错误分类不一致
+  // BUG-0024 已裁决关闭（2026-10-09：Ruby 402 → InsufficientCreditError 不重试，
+  // MB 402 → BadRequestError 不重试，语义等价），移出注册表
   // BUG-0025/0026 已于基线实现（react 层空响应/thinking 静默重试，台账记录过时），
   // retry-013/014 为绿断言，不在册
   // BUG-0028 已修复（spec 2026-08-18_14_p5-overflow-recovery-tool-pairs.md：

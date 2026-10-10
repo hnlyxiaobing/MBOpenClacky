@@ -513,7 +513,8 @@ async test "write_001_basic_new_file" {
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
-  assert_true(result.content.find("Written 13 bytes") is Some(_))
+  // BUG-0056: result is now structured JSON with bytes_written field
+  assert_true(result.content.find("\"bytes_written\":13") is Some(_))
   assert_eq(@fs.read_file_to_string(path), "Hello, World!")
   let _ = @fs.remove_file(path) catch { _ => () }
   fe_cleanup(dir)
@@ -532,7 +533,8 @@ async test "write_002_overwrite_existing" {
   }
   let result = @tool.Tool::execute(tool, args)
   assert_false(result.is_error)
-  assert_true(result.content.find("Written 11 bytes") is Some(_))
+  // BUG-0056: result is now structured JSON with bytes_written field
+  assert_true(result.content.find("\"bytes_written\":11") is Some(_))
   assert_eq(@fs.read_file_to_string(path), "New content")
   let _ = @fs.remove_file(path) catch { _ => () }
   fe_cleanup(dir)
