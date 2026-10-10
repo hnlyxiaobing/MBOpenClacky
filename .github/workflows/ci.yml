@@ -75,13 +75,28 @@ jobs:
 
       - name: Public API gate (P0-1, .mbti diff)
         run: |
+          echo "Toolchain version:"
+          moon version
+          echo ""
+          echo "Running moon info..."
           moon info
+          echo ""
+          echo "Checking for .mbti changes..."
           if ! git diff --exit-code -- '**/pkg.generated.mbti'; then
             echo "::error::public API changed without committing .mbti files." \
                  "Run 'moon info' locally and commit the updated pkg.generated.mbti." >&2
+            echo ""
+            echo "=== Changed files ==="
+            git diff --name-only -- '**/pkg.generated.mbti' >&2 || true
+            echo ""
+            echo "=== Diff stats ==="
             git diff --stat -- '**/pkg.generated.mbti' >&2 || true
+            echo ""
+            echo "=== First 50 lines of diff ==="
+            git diff -- '**/pkg.generated.mbti' | head -50 >&2 || true
             exit 1
           fi
+          echo "No .mbti changes detected - gate passed"
 
       - name: Known-gaps ledger gate (P0-2)
         run: bash scripts/known_gaps.sh check
