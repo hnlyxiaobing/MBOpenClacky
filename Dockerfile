@@ -28,15 +28,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install MoonBit toolchain.
-# Pin to specific version (0.1.20260930) to match local development environment
-# and ensure reproducibility. The latest toolchain may have breaking changes.
+# Pin to specific version to match local development environment and ensure
+# reproducibility. The code uses features from 0.1.20260930+ (Rand::Rand()
+# constructor, ~ optional parameter syntax), so we must use at least that version.
 #
 # TOOLCHAIN_CACHE_BUSTER invalidates this layer (and every layer after it) so
 # the build pulls the *current* toolchain instead of reusing one cached by a
 # previous build.
 ARG TOOLCHAIN_CACHE_BUSTER
+ARG MOONBIT_VERSION=0.1.20261009
 RUN echo "toolchain cache buster: ${TOOLCHAIN_CACHE_BUSTER:-unset}" \
-    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+    && echo "Installing MoonBit version: ${MOONBIT_VERSION}" \
+    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "${MOONBIT_VERSION}"
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
