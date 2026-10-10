@@ -1,0 +1,29 @@
+{
+  "id": "tui_theme_switch",
+  "title": "TUI theme switching via slash command",
+  "area": "tui",
+  "description": "用户在 TUI 中通过 /theme 命令切换主题（dark → light → warm），每次切换后状态栏或输出区反映新主题名称。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "llm_steps": [],
+  "phases": [
+    { "name": "switch_to_light", "steps": [
+      { "action": "tui_new", "cols": 120, "rows": 40 },
+      { "action": "tui_type", "text": "/theme light" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "assert", "assertions": [
+        { "type": "output_contains", "text": "light" }
+      ] }
+    ] },
+    { "name": "switch_to_warm", "steps": [
+      { "action": "tui_type", "text": "/theme warm" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "assert", "assertions": [
+        { "type": "output_contains", "text": "warm" }
+      ] }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_contains", "text": "idle" }
+  ]
+}

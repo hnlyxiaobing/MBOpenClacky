@@ -1,0 +1,26 @@
+{
+  "id": "cli_file_attachment",
+  "title": "CLI --file flag attaches file content to the message",
+  "area": "cli",
+  "description": "用户通过 --file 附带文本文件提问：seed 文件已预置于工作区，CLI 将文件内容注入上下文发给 mock upstream，mock 请求体中包含文件内容。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "seed": [
+    { "path": "test.txt", "content": "Hello World from test file" }
+  ],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "I can see the file content: Hello World from test file", "usage": { "prompt_tokens": 100, "completion_tokens": 15 } } }
+  ],
+  "phases": [
+    { "name": "run_with_file", "steps": [
+      { "action": "spawn_cli", "message": "What is in this file?", "json": true, "mode": "auto_approve", "extra_args": ["--file", "{workspace}/test.txt"] },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "mock_request_count", "min": 1, "max": 1 },
+    { "type": "mock_request_contains", "index": 0, "text": "Hello World from test file" }
+  ]
+}

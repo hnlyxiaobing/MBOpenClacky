@@ -30,7 +30,7 @@ fn cli_child_args(
   args.push("--path")
   args.push(ctx.workspace)
   for a in extra_args {
-    args.push(a)
+    args.push(expand_journey_placeholders(a, ctx))
   }
   args
 }

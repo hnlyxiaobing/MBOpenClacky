@@ -1,0 +1,22 @@
+{
+  "id": "tui_skill_invocation",
+  "title": "TUI skill invocation via slash command",
+  "area": "tui",
+  "description": "用户在 TUI 中通过斜杠命令 /skill 调用已注册的 skill：skill 列表展示在输出区，确认 skill 系统可被交互触发。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "llm_steps": [],
+  "phases": [
+    { "name": "list_skills", "steps": [
+      { "action": "tui_new", "cols": 120, "rows": 40 },
+      { "action": "tui_type", "text": "/skill" },
+      { "action": "tui_press", "key": "Enter" },
+      { "action": "assert", "assertions": [
+        { "type": "output_contains", "text": "skill" }
+      ] }
+    ] }
+  ],
+  "assertions": [
+    { "type": "status_contains", "text": "idle" }
+  ]
+}

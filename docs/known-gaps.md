@@ -99,9 +99,9 @@
 | lib/web/ext_dispatcher.mbt:469 | stub | let body = "{\"extension\":\"\{name}\",\"handler\":\"\{handler_name}\",\"timeout_ms\":\{timeout},\"status\":\"stub\"}" |
 | lib/web/ext_loader.mbt:14 | stub | /// Shell command to execute for this route (empty = stub fallback) |
 | lib/web/handlers_extra.mbt:13 | not-yet | /// capability not yet exposed by the git_exec layer, so it is deferred; |
-| lib/web/handlers_extra.mbt:1192 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
-| lib/web/handlers_extra.mbt:1218 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
-| lib/web/handlers_store.mbt:227 | not-yet | "message": Json("Remote extension download is not yet supported. Install from local path instead."), |
+| lib/web/handlers_extra.mbt:1189 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
+| lib/web/handlers_extra.mbt:1215 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
+| lib/web/handlers_store.mbt:225 | not-yet | "Remote extension download is not yet supported. Install from local path instead.", |
 | lib/web/handlers_version.mbt:287 | not-yet | message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.", |
 
 <!-- END: auto-scan -->
@@ -191,9 +191,9 @@
 | lib/web/ext_dispatcher.mbt:469 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_loader.mbt:14 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/handlers_extra.mbt:13 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
-| lib/web/handlers_extra.mbt:1192 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
-| lib/web/handlers_extra.mbt:1218 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
-| lib/web/handlers_store.mbt:227 | open | 范围外（extension） | 远程扩展下载不支持（提示本地安装） |
+| lib/web/handlers_extra.mbt:1189 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
+| lib/web/handlers_extra.mbt:1215 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
+| lib/web/handlers_store.mbt:225 | open | 范围外（extension） | 远程扩展下载不支持（提示本地安装） |
 | lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
 
 <!-- END: curation -->

@@ -1,0 +1,27 @@
+{
+  "id": "cli_agent_profile_switch",
+  "title": "CLI --agent flag selects agent profile",
+  "area": "cli",
+  "description": "用户通过 --agent 指定非默认 agent profile 运行任务：系统加载对应 profile 配置，mock upstream 收到请求，stdout 输出成功。同时验证不存在的 profile 会导致错误退出。",
+  "timeout_ms": 120000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [
+    { "response": { "type": "content", "text": "Hello from creative agent!", "usage": { "prompt_tokens": 50, "completion_tokens": 10 } } }
+  ],
+  "phases": [
+    { "name": "run_with_default_agent", "steps": [
+      { "action": "spawn_cli", "message": "hello", "json": true, "mode": "auto_approve" },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] },
+    { "name": "run_with_creative_agent", "steps": [
+      { "action": "spawn_cli", "message": "hello", "json": true, "mode": "auto_approve", "extra_args": ["--agent", "creative"] },
+      { "action": "wait_child", "timeout_ms": 90000 }
+    ] }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 0 },
+    { "type": "stdout_json_path_eq", "path": "status", "value": "\"Success\"" },
+    { "type": "mock_request_count", "min": 2, "max": 2 }
+  ]
+}
