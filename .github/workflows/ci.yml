@@ -29,30 +29,12 @@ jobs:
             libssl-dev \
             nodejs
 
-      # Compute a daily cache-buster key for the toolchain. This ensures the
-      # cached toolchain refreshes at least once per day, preventing stale
-      # versions from breaking builds when MoonBit releases updates.
-      - name: Compute toolchain cache-buster date
-        id: toolchain_buster
-        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
-
-      # Cache ~/.moon keyed by OS+arch+date. The date-based key ensures
-      # automatic invalidation when the toolchain updates, preventing stale
-      # cached versions from breaking builds. Same safety as always-install,
-      # but free on cache hits within the same day (~30s saved per job).
-      - name: Cache MoonBit toolchain
-        id: toolchain-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.moon
-          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain-${{ steps.toolchain_buster.outputs.date }}
-
+      # Always install the current latest toolchain. The MoonBit CDN only serves
+      # "latest" (specific versions return 403), so caching ~/.moon traps a
+      # stale snapshot that drifts from the version used to generate the
+      # committed .mbti files. The ~30 s download is worth the consistency.
       - name: Install MoonBit toolchain
-        if: steps.toolchain-cache.outputs.cache-hit != 'true'
-        # Pin to specific version to ensure reproducibility. The latest toolchain
-        # may have breaking changes. Local development uses 0.1.20260930.
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
@@ -135,23 +117,9 @@ jobs:
             libssl-dev \
             nodejs
 
-      - name: Compute toolchain cache-buster date
-        id: toolchain_buster
-        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache MoonBit toolchain
-        id: toolchain-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.moon
-          key: moon-${{ runner.os }}-${{ runner.arch }}-toolchain-${{ steps.toolchain_buster.outputs.date }}
-
+      # Always install current latest — see checks job for rationale.
       - name: Install MoonBit toolchain
-        if: steps.toolchain-cache.outputs.cache-hit != 'true'
-        # Pin to specific version to ensure reproducibility. The latest toolchain
-        # may have breaking changes. Local development uses 0.1.20260930.
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH

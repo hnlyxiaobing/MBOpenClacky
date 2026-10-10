@@ -39,13 +39,12 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Refresh the toolchain-install layer at most once per day (see
-          # TOOLCHAIN_CACHE_BUSTER in Dockerfile): keeps the cached toolchain
-          # from going stale while still allowing same-day layer reuse.
+          # No buildx cache: the MoonBit CDN only serves "latest" (specific
+          # versions return 403), so any cached toolchain layer drifts from
+          # the version used to generate committed .mbti files. The ~30-60 s
+          # toolchain download is worth the consistency guarantee.
           build-args: |
             TOOLCHAIN_CACHE_BUSTER=${{ steps.toolchain_buster.outputs.date }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Verify image
         run: |
