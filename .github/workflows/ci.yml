@@ -29,10 +29,11 @@ jobs:
             libssl-dev \
             nodejs
 
-      # Use latest toolchain; the CDN retires old versions (0.1.20261009 was
-      # removed and started returning 403), so pinning is fragile.
-      - name: Install MoonBit toolchain
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      # Use nightly toolchain to stay aligned with local dev environments.
+      # The CDN retires old stable versions, so pinning is fragile; nightly
+      # tracks the latest build and matches Windows `moon upgrade --dev`.
+      - name: Install MoonBit toolchain (nightly)
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s nightly
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
@@ -131,10 +132,11 @@ jobs:
             libssl-dev \
             nodejs
 
-      # Use latest toolchain; the CDN retires old versions (0.1.20261009 was
-      # removed and started returning 403), so pinning is fragile.
-      - name: Install MoonBit toolchain
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      # Use nightly toolchain to stay aligned with local dev environments.
+      # The CDN retires old stable versions, so pinning is fragile; nightly
+      # tracks the latest build and matches Windows `moon upgrade --dev`.
+      - name: Install MoonBit toolchain (nightly)
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s nightly
 
       - name: Add MoonBit to PATH
         run: echo "$HOME/.moon/bin" >> $GITHUB_PATH

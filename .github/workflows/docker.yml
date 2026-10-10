@@ -39,7 +39,7 @@ jobs:
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # No buildx cache: the MoonBit CDN only serves "latest" (specific
+          # No buildx cache: the MoonBit CDN only serves "nightly" (specific
           # versions return 403), so any cached toolchain layer drifts from
           # the version used to generate committed .mbti files. The ~30-60 s
           # toolchain download is worth the consistency guarantee.
