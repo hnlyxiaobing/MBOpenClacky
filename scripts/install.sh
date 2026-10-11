@@ -218,8 +218,8 @@ cd "$PROJECT_ROOT"
 moon update
 ok "Package index updated. Dependencies are resolved by moon update / build."
 
-# Note: bare `moon install` is deprecated and exits non-zero on the
-# 2026-09+ toolchains; `moon update` already downloads all dependencies.
+# Note: bare `moon install` is deprecated (prints a warning, still exits 0);
+# `moon update` already resolves and downloads all dependencies.
 
 # ── Step 4: Build ────────────────────────────────────────────────────────────
 

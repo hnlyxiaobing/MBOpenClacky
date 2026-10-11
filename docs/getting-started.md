@@ -31,7 +31,6 @@ moon version
 
 ```bash
 moon update
-moon install
 ```
 
 ### 3. Windows MSVC 环境配置
@@ -271,7 +270,7 @@ chmod +x scripts/install.sh
 1. 检查 `moon` 命令是否可用，未安装时自动下载安装
 2. 检查 C 编译器（gcc/clang），缺失时提示安装命令
 3. 检查 `libssl`（`pkg-config openssl`），缺失时按发行版打印安装命令（HTTP 已迁到 `@async/http`，不再需要 libcurl）
-4. 执行 `moon update` 获取依赖（`moon install` 无参数形式已在 2026-09+ 工具链弃用并报错退出）
+4. 执行 `moon update` 获取依赖（`moon install` 无参数形式已弃用：只打印警告并正常退出，依赖由 `moon update` 解析）
 5. 执行 `moon build --target native --release cmd` 构建项目，并在 `_build/native/release/build/` 下递归校验产物
 6. 输出配置指引（环境变量、TOML 配置文件路径）
 

@@ -1,7 +1,7 @@
 # MBOpenClacky vs openclacky 功能对比分析
 
 > 最后更新: 2026-09-21（2026-09 收尾完成）  
-> 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)  
+> 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs MBOpenClacky (MoonBit)  
 > 数字口径: 本文所有仓库规模数字由 `scripts/repo_stats.sh` 生成并校验（见 §1.1），不由人手维护。
 
 ## 1. 项目概况
@@ -9,8 +9,8 @@
 | 维度    | openclacky (Ruby)   | MBOpenClacky (MoonBit)        |
 | ----- | ------------------- | ----------------------------- |
 | 语言    | Ruby ≥ 3.1          | MoonBit (AOT native)          |
-| 源码文件数 | 428 `.rb`           | 523 `.mbt`（含测试；机器生成明细见 §1.1）  |
-| 核心库文件 | 223 (lib/clacky)    | 480 (lib/，含测试)                |
+| 源码文件数 | 428 `.rb`           | 533 `.mbt`（含测试；机器生成明细见 §1.1）  |
+| 核心库文件 | 223 (lib/clacky)    | 511 (lib/，含测试)                |
 | 二进制大小 | ~50MB+ (含 Ruby 运行时) | ~3.6 MB (单一可执行)               |
 | 启动时间  | 秒级                  | 毫秒级                           |
 | 包管理   | Bundler / RubyGems  | moon (mooncakes)              |
@@ -82,7 +82,7 @@
 
 **差距: 0 个缺失工具。** 当前项目覆盖原项目全部工具，并新增 memory_tool 和独立 PTY 管理。
 
-> **口径说明**：本节对比表按"上游工具面"计数（含 `base` 抽象与 `security` 策略工具，共 16 项）；README/CLAUDE 机器生成表中的"内置工具 14"统计的是当前注册进 `AnyTool` 的内置工具数（`base` 为抽象基类不计、部分能力合并）。两个数字口径不同，均非错误——机器闸门以 14 为准。
+> **口径说明**：本节对比表按"上游工具面"计数（含 `base` 抽象与 `security` 策略工具，共 16 项）；README/AGENTS 机器生成表中的"内置工具 14"统计的是当前注册进 `AnyTool` 的内置工具数（`base` 为抽象基类不计、部分能力合并）。两个数字口径不同，均非错误——机器闸门以 14 为准。
 
 ## 3. 技能 (Skills) 对比
 
@@ -108,7 +108,7 @@
 | skill-creator      | 技能创建/编辑                 |
 | meeting-summarizer | 会议总结 (SYSTEM_PROMPT 提及) |
 
-### 当前项目 (18 个默认技能)
+### 当前项目 (18 个技能)
 
 | 技能                 | 说明        | 对标    |
 | ------------------ | --------- | ----- |
@@ -133,6 +133,8 @@
 
 **差距: 0 个缺失技能。** 当前项目覆盖原项目全部 17 个技能，另新增 extend-openclacky（18 个）。
 
+> **口径说明**：本节按"上游技能面"计数（含随内置扩展分发的 `meeting-summarizer` 与 `extend-openclacky`，共 18 项）；README/AGENTS 机器生成表统计的是 `assets/skills/` 下的默认技能数（16），另外 2 项位于 `assets/extensions/`。两个数字口径不同，均非错误——机器闸门以 16 为准。
+
 ## 4. 扩展系统 (Extensions)
 
 ### 原项目 (6 个默认扩展)
@@ -150,12 +152,12 @@
 
 | 状态      | 说明                                                                                   |
 | ------- | ------------------------------------------------------------------------------------ |
-| ✅ 扩展加载器 | `lib/extension/loader.mbt` (10,962 行)                                                |
-| ✅ 扩展市场  | `lib/extension/marketplace.mbt` (18,587 行)                                           |
-| ✅ 扩展打包器 | `lib/extension/packager.mbt` (6,934 行)                                               |
-| ✅ 扩展脚手架 | `lib/extension/scaffold.mbt` (12,488 行)                                              |
-| ✅ 扩展验证器 | `lib/extension/verifier.mbt` (6,452 行)                                               |
-| ✅ 扩展热补丁 | `lib/extension/patch_loader.mbt` (4,026 行)                                           |
+| ✅ 扩展加载器 | `lib/extension/loader.mbt`                                                |
+| ✅ 扩展市场  | `lib/extension/marketplace.mbt`                                           |
+| ✅ 扩展打包器 | `lib/extension/packager.mbt`                                               |
+| ✅ 扩展脚手架 | `lib/extension/scaffold.mbt`                                              |
+| ✅ 扩展验证器 | `lib/extension/verifier.mbt`                                               |
+| ✅ 扩展热补丁 | `lib/extension/patch_loader.mbt`                                           |
 | ✅ 默认扩展包 | 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio)，位于 `assets/extensions/` |
 
 **差距: 0 个。** 扩展框架已完整实现，6 个内置扩展包已打包于 `assets/extensions/`。
@@ -334,7 +336,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 以 diff-harness 沉淀（`test/diff` 145 用例、12 个 e2e 剧本、BUGS.md BUG-0001~0057、FEATURE_MATRIX 357 条目）为基线的行为对齐已全部完成，28 份 spec 归档于 `specs/completed/2026-08-18_02~29`：
 
 - **P2 单元差分回归**: `test/diff` 145/145 通过（known_failure 闸门纪律）
-- **P3 e2e 剧本**: `test/e2e` 14/14 通过（mock LLM server + 畸形 SSE 注入 + fixture 磁盘化）
+- **P3 e2e 剧本**: `test/e2e` 全绿（12 个剧本：mock LLM server + 畸形 SSE 注入 + fixture 磁盘化）
 - **P5 BUG 修复**: 16 份 spec 覆盖流式截断、重试退避、压缩语义、配置加载、错误分类、计费遥测等
 - **P6 矩阵残留对齐**: 12 份 spec 覆盖只读工具、安全执行器、LLM 请求格式、消息持久化、核心循环、CLI、Web API、技能提示词、配置深度、计费遥测、e2e 链路层
 - **全量测试**: `moon test --release` 全绿（用例数见 §1.1 机器生成表），`moon check` 0 errors / 0 warnings
@@ -344,7 +346,7 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 | 方向                | 状态                                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------- |
 | Benchmark 基础设施    | ✅ 已完成（`test/benchmark/`，`cmd benchmark` 真执行计时）                                                    |
-| 提升执行计划 WP-3.1~3.6 | ✅ 17 个 WP 全部闭环（16 完成 / 1 作废），详见 [improvement-execution-plan.md](improvement-execution-plan.md) §5 |
+| 提升执行计划 WP-3.1~3.6 | ✅ 17 个 WP 全部闭环（16 完成 / 1 作废），详见 [improvement-execution-plan.md](improvement-execution-plan.md) §3 |
 | 上游 Ruby 真模型对标     | MB 侧 `cmd eval --live` 已落地（报告见 `docs/eval/`），双侧对标方法学见 `specs/completed/2026-08-18_01` §6          |
 
 ---
@@ -353,8 +355,8 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 本节确认 2026-09 收尾目标已在现有代码上落地（一键复现序列见 README 的「质量闸门」表，未完成项逐条见 [known-gaps.md](known-gaps.md)（已修复归档见 [resolved-gaps.md](resolved-gaps.md)））：
 
-- **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / CLAUDE.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
+- **数字单一事实来源**：`scripts/repo_stats.sh` 生成 README / AGENTS.md / 本文的数字块，CI 以 `check` 校验（stale 即红）；`.mbt` 口径、用例数、`.mbti` 数、路由数、版本四处一致性均由此统一，本文此前的 3,869/3,843 自相矛盾与 299/512/514 多口径问题已消除。
 - **会话日志接线补全**：TUI 路径与 `--message` 路径对称 flush；压缩成功时引擎 emit `CompressionPerformed`，生产者为被覆盖事件追加 `summary` 记录（append-only 字节保全不变量不变）。**Web 会话已接线（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent` 为值类型，Web per-session 旁路 + 四个 run 退出路径 flush，三端（CLI/TUI/Web）均产 append-only JSONL 且 `cmd inspect` 可回放。
 - **能力评测**：`cmd eval --offline` 用确定性 harness（真实工具层 + 沙箱 + 断言）给出评分向量并进 CI（3 任务 × 2 重复）；真模型路径 `cmd eval --live` 已接线（WP-2.2，2026-09-22）——`test/capability/tasks/` 10 任务 × 3 重复走真实 ReAct 循环，报告入 `docs/eval/`，不进 CI。**未完成**：与上游 Ruby 侧的对标，以及任务集继续扩充到 20~30 条（当前 10 条任务已覆盖聚合/条件分支/搜索汇总/约束重构等维度，但仍偏基础、全通过不构成模型能力结论）。
-- **用户旅程 E2E（层 9，2026-09-23）**：`cmd journey --repo .` 驱动**真实编译产物**走 18 条端到端用户旅程（Web WS 聊天 9 / TUI 交互 3 / CLI 6），上游为进程内 mock（`test/e2e` MockLlmServer 复用），每旅程独立沙箱 home（子进程以 USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 覆盖注入，绝不触碰真实 `~/.mbopenclacky`）+ 三级看门狗（永不挂起）。退出码 0/1/2/3 区分全绿/产品红/用法错/运行器坏；失败自动落证据包（`_build/journey/<stamp>/`）+ upsert 入库台账 `docs/journey-failures.md`，**同场景转绿即自动闭环**。不进 CI（成本与进程级资源），手动一条命令 + 本机计划任务（每日 08:30，先构建再跑）触发；运行手册 `test/journey/README.md`、规格 `specs/draft/2026-09-23_journey-e2e-runner.md`。全量 scoped 测试 3,981/3,981（+8）。
+- **用户旅程 E2E（层 9，2026-09-23）**：`cmd journey --repo .` 驱动**真实编译产物**走 18 条端到端用户旅程（Web WS 聊天 9 / TUI 交互 3 / CLI 6），上游为进程内 mock（`test/e2e` MockLlmServer 复用），每旅程独立沙箱 home（子进程以 USERPROFILE/HOME/CLACKY_WORKSPACE_DIR 覆盖注入，绝不触碰真实 `~/.mbopenclacky`）+ 三级看门狗（永不挂起）。退出码 0/1/2/3 区分全绿/产品红/用法错/运行器坏；失败自动落证据包（`_build/journey/<stamp>/`）+ upsert 入库台账 `docs/journey-failures.md`，**同场景转绿即自动闭环**。不进 CI（成本与进程级资源），手动一条命令 + 本机计划任务（每日 08:30，先构建再跑）触发；运行手册 `test/journey/README.md`、规格 `specs/draft/2026-09-23_journey-e2e-runner.md`。全量 scoped 测试口径见 §1.1 机器生成表。
 - **发布卫生**：版本对齐 `0.2.0`（`moon.mod` / `cmd` / `lib/tui` / `lib/web` 四处，机器校验）；`v0.2.0` tag 指向收尾提交；`v0.2.0-hackathon` 保留为历史标记。

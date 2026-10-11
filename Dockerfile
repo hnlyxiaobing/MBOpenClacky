@@ -45,8 +45,9 @@ RUN moon version
 
 WORKDIR /build
 
-# Copy full project source. moon will fetch registry dependencies from
-# mooncakes.io on first build; no vendored deps are required.
+# Copy full project source, including the vendor/ workspace members declared in
+# moon.work (mbtpdf, mizchi-tui, mizchi-crater-core, milky2018-css). Registry
+# dependencies are fetched from mooncakes.io on first build.
 COPY . .
 
 # Resolve registry dependencies (needs network) so subsequent layers can be
@@ -56,8 +57,8 @@ RUN moon update
 # Build the CLI binary.
 #
 # NOTE: keep this step simple on purpose.
-# - /bin/sh on ubuntu:22.04 is dash, which does NOT support `set -o pipefail`
-#   (it exits with code 2 immediately: "Illegal option -o pipefail").
+# - /bin/sh on this image (Ubuntu 24.04) is dash, which does NOT support
+#   `set -o pipefail` (it exits with code 2: "Illegal option -o pipefail").
 # - Piping moon's output through `tee` masks the real exit code: the pipeline
 #   reports tee's status, so a failed build would look successful and only
 #   surface later as a missing binary in the COPY step.

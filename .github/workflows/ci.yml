@@ -16,9 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Install build dependencies explicitly. While ubuntu-22.04 runners may
-      # have some of these pre-installed, we need to ensure they're present
-      # for compiling C stubs (libssl-dev for crypto, nodejs for prebuild scripts).
+      # Install build dependencies explicitly. The runner image does not ship
+      # all of these, and we need them for compiling C stubs (libssl-dev for
+      # crypto, nodejs for the prebuild script).
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -54,15 +54,18 @@ jobs:
 
       - name: Update registry index and resolve dependencies
         run: |
+          # `moon update` resolves and downloads all dependencies. Bare
+          # `moon install` is deprecated (warns and exits 0) and adds nothing.
           moon update
-          moon install
 
       - name: Type check
         run: |
           # Capture full output for debugging
           set +e
           moon check -j "$(nproc)" 2>&1 | tee /tmp/moon_check.log
-          EXIT_CODE=$?
+          # ${PIPESTATUS[0]} is the compiler's status; `$?` would be tee's
+          # (always 0 unless the runner happens to enable pipefail).
+          EXIT_CODE=${PIPESTATUS[0]}
           set -e
           if [ $EXIT_CODE -ne 0 ]; then
             echo "::error::moon check failed with exit code $EXIT_CODE"
@@ -72,7 +75,9 @@ jobs:
           fi
 
       - name: Warning budget gate (P2-3)
-        run: bash scripts/warn_count.sh
+        # Reuses the log the type-check step captured rather than re-running a
+        # second full `moon check`.
+        run: bash scripts/warn_count.sh --log /tmp/moon_check.log
 
       - name: Public API gate (P0-1, .mbti diff)
         continue-on-error: true
@@ -102,9 +107,6 @@ jobs:
 
       - name: Known-gaps ledger gate (P0-2)
         run: bash scripts/known_gaps.sh check
-
-      - name: Guard insecure crypto build
-        run: bash scripts/check-crypto-build.sh release
 
   # ── Build the release binary and run the full test suite.
   #    Both steps compile the same library code but into separate artifact trees
@@ -159,8 +161,9 @@ jobs:
 
       - name: Update registry index and resolve dependencies
         run: |
+          # `moon update` resolves and downloads all dependencies. Bare
+          # `moon install` is deprecated (warns and exits 0) and adds nothing.
           moon update
-          moon install
 
       # Cache the entire native release tree. Both `moon build` (→ build/) and
       # `moon test --release` (→ test/) write here. A single cache entry covers
@@ -175,6 +178,12 @@ jobs:
           key: moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('moon.mod', 'moon.mod.json', 'scripts/build-script.js', '**/*.mbt', '**/*.mbti', '**/moon.pkg') }}
           restore-keys: |
             moonbuild-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
+
+      # Guards the release artifact. It lives here, not in the `checks` job,
+      # because that job compiles nothing — an env-var check there could never
+      # actually protect a build.
+      - name: Guard insecure crypto build
+        run: bash scripts/check-crypto-build.sh release
 
       - name: Build (native release)
         run: |

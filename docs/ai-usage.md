@@ -19,7 +19,7 @@ AI 不参与的部分：验收标准的定义、范围冻结（本期不做清�
 | 公共 API 冻结 | `moon info` 后 `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却不提交接口文件（接口文件入库，全仓数量见 `scripts/repo_stats.sh` 生成的表） |
 | 契约探针 | `moon build --target native --release cmd` 后 `<binary> selftest` | 退出码 / stdout 形状（empty/text/json/json-lines）/ stderr 干净度 / `Failure(`·`Panic(` 泄漏；并对比 `moon run cmd`，差异如实报告 |
 | 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致：扫描段过期、命中项缺少 curated 状态行、引用不存在的文件 |
-| 数字一致性 | `scripts/repo_stats.sh check` | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含四处版本常量） |
+| 数字一致性 | `scripts/repo_stats.sh check` | README / AGENTS.md / project-status 的规模数字与机器统计不一致（含四处版本常量） |
 | 能力评测 | `<binary> eval --offline` | 确定性 tool_harness 的任务失败或不可重复（离线、无模型、无网络） |
 | 测试 | `moon test --release`（debug 模式受编译器 ICE 影响，见 `docs/known-gaps.md`） | 回归；含协议往返测试、会话日志 DoD 与 harness 任务集 |
 

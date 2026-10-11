@@ -134,13 +134,12 @@ MBOPENCLACKY_API_KEY=... MBOPENCLACKY_BASE_URL=https://api.deepseek.com \
 # 真话台账校验（扫描段过期 / 命中项缺状态行 即失败；活跃缺口在 docs/known-gaps.md，已修复归档在 docs/resolved-gaps.md）
 scripts/known_gaps.sh check
 
-# 仓库数字闸门（README/CLAUDE/project-status 的数字由脚本生成，stale 即失败）
+# 仓库数字闸门（README/AGENTS/project-status 的数字由脚本生成，stale 即失败）
 scripts/repo_stats.sh check
 
-# 测试（scoped debug 模式：排除 vendor/mbtpdf，CI 同口径；裸 `moon test` 会按 moon.work 连 vendor 一起跑）
-# 必须显式限定本模块的包：裸 `moon test` 会按 moon.work 连 vendor/mbtpdf 一起跑，
-# 多出的 72 条用例中有 6 条该依赖自带的文档测试失败（非本模块代码）。
-# Windows 与 Linux 同一条命令：lib/mcp 的挂起已于 2026-09-23 解决（见台账）。
+# 测试（scoped 口径，与 CI 同范围；debug/release 均可跑）
+# 必须显式限定本模块的包：裸 `moon test` 会按 moon.work 连 vendor/mbtpdf 一起跑
+# （其自带文档测试失败，不属本仓回归面）。Windows 与 Linux 同一条命令。
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 ```
 
@@ -158,7 +157,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 | 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（数量见「当前规模」生成表）                                   |
 | CLI 契约    | `<binary> selftest`                                             | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd`     |
 | 真话台账      | `scripts/known_gaps.sh check`                                   | 活跃台账（`docs/known-gaps.md`）与代码不一致                               |
-| 数字单一事实来源  | `scripts/repo_stats.sh check`                                   | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
+| 数字单一事实来源  | `scripts/repo_stats.sh check`                                   | README / AGENTS.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
 | 能力评测      | `<binary> eval --offline`                                       | 确定性 tool_harness 的任务失败 / 不可重复（离线、无模型）                          |
 | 测试        | `moon test --release`                                           | 回归（含协议往返 + 会话日志 DoD + harness 任务集）                             |
 
@@ -182,7 +181,7 @@ MBOpenClacky/
 │   ├── extension/      # 扩展系统（Loader/Verifier/Packager/Scaffold/Marketplace + API 路由分发）
 │   ├── mcp/            # MCP 协议（Stdio + HTTP/SSE 传输 + JSON-RPC 2.0）
 │   ├── channel/        # 6 平台 IM 适配器
-│   ├── web/            # Web 服务器（214 条路由注册，数量见上方机器生成表、WebSocket）
+│   ├── web/            # Web 服务器（REST 路由注册数见上方机器生成表、WebSocket）
 │   ├── i18n/           # 国际化（中英文翻译）
 │   ├── tui/            # TUI 界面（行级重绘 + commit-scrollback + moonbit-community/tty）
 │   ├── server/         # 运维（Cron、浏览器管理、备份、Git 面板）
@@ -200,7 +199,7 @@ MBOpenClacky/
 │   ├── errors/         # 错误类型层次
 │   ├── utils/          # 工具函数
 │   └── zip/            # ZIP 压缩/解压
-├── test/               # 测试体系层 1-8：差分 + e2e 剧本 + Eval 引擎/场景 + 基准 + 夹具（见 docs/testing.md）
+├── test/               # 测试体系层 1-9：差分 + e2e 剧本 + Eval 引擎/场景 + 基准 + 夹具（见 docs/testing.md）
 ├── assets/             # Agent 配置、技能、Web 前端
 ├── specs/              # Harness 方法论（模板 + 活跃 spec + 归档）
 ├── .github/            # CI/CD 工作流

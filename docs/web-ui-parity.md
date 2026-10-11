@@ -1,6 +1,6 @@
 # Web UI 对齐状态
 
-> 更新日期：2026-08-11（2026-09-21 合并回归方法）
+> 更新日期：2026-10-11（2026-09-21 合并回归方法）
 > 本文是 Web UI（`lib/web` 后端 + `web/` 前端）对齐上游 openclacky 的**结论记录**；日常回归走项目原生 eval 框架（见 [testing.md](testing.md) 层 4），不再维护独立的一次性对比方案文档。
 
 ## 总体结论
@@ -29,16 +29,11 @@ web-ui2-01~10 覆盖：system prompt 泄露、会话创建/删除契约、YAML b
 6. **模型选择不生效**：创建路径已修；重启恢复路径查找键不匹配 → `m.model` 匹配 + `current_model_id` 规范化。
 7. **历史消息重复**：**原修复无效**——`created_at` 生产路径恒 None，`has_more` 恒 true。补后端打时间戳 + 前端无游标停止分页。
 
-## 未解决问题
+## 遗留与已知限制
 
-| 编号 | 问题 | 现状 |
-|------|------|------|
-| BUG-026 | `BeforeLlmCall` 仍发送 `phase_start` 事件，前端可能将正文并入折叠段 | 未修复 |
-
-## 已知限制（按设计）
-
-- 媒体生成端点（`POST /api/media/image` / `video` / `audio/speech` / `audio/transcription`）返回 501 stub；视频理解已通过 FFmpeg 抽帧 + LLM vision 实现。
-- 前端第三方依赖已全部本地 vendor 化（`web/vendor/`），无 CDN 运行时依赖。
+- `BeforeLlmCall` 的 `phase_start` 事件由前端 `RenderTarget` 折叠卡隔离处理（`web/ws-dispatcher.js`）：阶段内的子代理事件落入卡片，外层消息流保持锚定——原「正文被并入折叠段」的风险已按设计消除。
+- 媒体生成端点（`POST /api/media/image` / `video` / `audio/speech` / `audio/transcriptions` / `video/understand`）已真实接线（WP-1.5），无 stub。
+- 前端第三方依赖已全部本地 vendor 化（`web/vendor/`），无 CDN 运行时依赖；许可清单见 [NOTICE](../NOTICE)。
 
 ## 回归方式
 

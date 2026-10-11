@@ -49,6 +49,27 @@ MBOpenClacky NOTICE
 MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonbitmark/`），
 其许可随 MoonBitMark 的 Apache-2.0 分发。
 
+3.1 Web 前端 vendor 库（`web/vendor/`，随前端托管 fork 分发）
+-------------------------------------------------------------
+| 库 | 许可 | 目录 |
+|---|---|---|
+| highlight.js | BSD-3-Clause | `web/vendor/hljs/` |
+| marked.js | MIT | `web/vendor/marked/` |
+| KaTeX | MIT | `web/vendor/katex/` |
+| QRCode | MIT | `web/vendor/qrcode/` |
+| CodeMirror 6 | MIT | `web/vendor/codemirror/` |
+
+前端第三方依赖已全部本地 vendor 化，无 CDN 运行时依赖。
+
+3.2 原生系统库（动态链接，不随仓库分发）
+-----------------------------------------
+- OpenSSL libcrypto（Apache-2.0）：Linux/macOS 以 `-lcrypto` 链接，提供 `lib/brand`
+  的 AES-256-GCM / CSPRNG，以及 `@async/http` 的 TLS。
+- Windows CNG (BCrypt) / Schannel（专有，Windows 系统库）：提供 AES-256-GCM / CSPRNG
+  与 TLS，由系统动态链接。
+
+HTTP 传输为纯 MoonBit（`moonbitlang/async/http`）；libcurl / WinHTTP 已移除。
+
 4. 参考过的设计（不复制代码）
 -----------------------------
 - MoonBit 官方 OpenSeek：参考其工程思路——类型化协议 + 往返测试、append-only 会话
@@ -68,5 +89,5 @@ MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonb
 - `cmd selftest`：CLI 契约探针（退出码 / stdout 形状 / stderr 策略 / 禁用串 + 与
   `moon run cmd` 的差异报告）
 - `scripts/known_gaps.sh` + `docs/known-gaps.md`：机器校验的真话台账
-- `.mbti` 公共 API 闸门（31 个接口文件入库 + CI `git diff --exit-code`）
-- 依赖升级：hnlyxiaobing/moonbitmark 0.4.3 → 0.4.5
+- `.mbti` 公共 API 闸门（32 个接口文件入库 + CI `git diff --exit-code`）
+- 依赖升级：hnlyxiaobing/moonbitmark 0.4.3 → 0.4.6

@@ -38,7 +38,7 @@
 ### 1.1 用例数与格式化口径
 
 - `repo_stats.sh generate` **不带 `--test-count` 时会沿用文档里的旧用例数**，数字不随新增测试自动更新。新增/删除用例后必须显式传值：`generate --test-count <moon test 汇总行的 passed 数>`。
-- 发布的用例数口径 = **CI `Run tests (module packages)` 那一步**（`lib cmd test` 且 `grep -v '^lib/mcp$'`），CI 另有一步单独跑 `lib/mcp`。当前实测（2026-09-23）：该口径 3,973/3,973，`lib/mcp` 单独 96/96，合起来本模块全包 4,069/4,069。
+- 发布的用例数口径 = **CI `Run tests (module packages)` 那一步**（`lib cmd test` 且 `grep -v '^lib/mcp$'`），CI 另有一步单独跑 `lib/mcp`。该口径的当前值以机器生成表为准（`scripts/repo_stats.sh`）。
 - **`moon fmt` 不要裸跑全仓**：它会重排无关文件，污染 diff。只对本次改动的文件定点格式化。
 - **裸 `moon test --release` 不是验收口径**：`moon.work` 含 `vendor/mbtpdf`，裸跑会连带运行该依赖自带的测试（6 例失败，非本仓回归面）。
 
@@ -65,7 +65,7 @@
 3. **评测任务集扩充**（4 → 20~30 条）与**性能基准是否升级为门禁**的规格决策（先 `specs/draft/`）。
 4. **运行时原语候选**（按依赖顺序）：类型化 fail-closed 审批 → 子代理进程级隔离+预算 → 沙箱与写范围工具化 → `goal`/`plan`/`steer`/`job` 原语 → 前端契约测试与产品端点探针。
 
-剩余缺口逐条见 [known-gaps.md](known-gaps.md)（当前 86 条 `open` 命中，多为 wasm 回退、平台能力事实与已披露的接收侧长轮询）。
+剩余缺口逐条见 [known-gaps.md](known-gaps.md)（当前 65 条 `open` + 1 条 `retracted`，多为 wasm 回退、平台能力事实与已披露的接收侧长轮询）。
 
 ### 范围冻结
 

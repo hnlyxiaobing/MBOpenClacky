@@ -77,7 +77,7 @@ Update this file with:
 | Conflict type | Policy |
 |---|---|
 | Brand assets (logo, favicon, icons) | **Keep MBOpenClacky placeholders**; never overwrite with upstream brand |
-| Vendor libraries (katex, codemirror, etc.) | Accept upstream version; re-audit `THIRD_PARTY_LICENSES.md` |
+| Vendor libraries (katex, codemirror, etc.) | Accept upstream version; re-audit `NOTICE` |
 | `index.html` structure | Merge: preserve `id="top-header"` + template placeholders (`{{BRAND_NAME}}`, `{{EXT_SCRIPTS}}`) |
 | JS/CSS | Accept upstream; re-apply patches from `PATCHES.md` |
 
