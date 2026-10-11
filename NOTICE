@@ -20,16 +20,16 @@ MBOpenClacky NOTICE
 | 模块 | 版本 | 许可 |
 |---|---|---|
 | moonbitlang/x | 0.5.5 | Apache-2.0 |
-| moonbitlang/async | 0.22.1 | Apache-2.0 |
-| bobzhang/toml | 0.4.3 | Apache-2.0 |
+| moonbitlang/async | 0.22.4 | Apache-2.0 |
+| moonbit-community/toml | 0.5.0 | Apache-2.0 |
 | DzmingLi/clap | 0.2.8 | MIT |
 | hnlyxiaobing/crescent | 0.10.7 | Apache-2.0 |
-| hnlyxiaobing/moonbitmark | 0.4.5 | Apache-2.0 |
-| moonbit-community/tty | 0.3.0 | Apache-2.0 |
-| moonbit-community/pty | 0.4.1 | Apache-2.0 |
+| hnlyxiaobing/moonbitmark | 0.4.6 | Apache-2.0 |
+| moonbit-community/tty | 0.4.0 | Apache-2.0 |
+| moonbit-community/pty | 0.4.3 | Apache-2.0 |
 | mizchi/tui | 0.10.2 | MIT |
-| mizchi/signals | 0.6.5 | MIT |
-| hustcer/tabular | 0.5.2 | Apache-2.0 |
+| mizchi/signals | 0.6.6 | MIT |
+| hustcer/tabular | 0.6.0 | Apache-2.0 |
 | Milky2018/css | 0.5.3 | Apache-2.0 |
 
 传递依赖（由上述模块引入，未直接使用）：bobzhang/lexer (Apache-2.0)。
@@ -40,6 +40,11 @@ MBOpenClacky NOTICE
   许可以上游 `moon.mod` 声明的 MIT 为准。
 - `vendor/mizchi-crater-core`（模块名 `mizchi/crater-core`，Apache-2.0）：CSS 依赖同样
   指向 `Milky2018/css`；许可全文见 `vendor/mizchi-crater-core/LICENSE`。
+- `vendor/milky2018-css`（模块名 `Milky2018/css`，Apache-2.0）：仅保留本仓库实际使用的
+  `values` 与 `style` 两个包。上游 0.5.3 声明 `enum Float`，而当前 nightly 编译器把
+  `Float` 视为保留类型名（error 4003），副本内已将**类型名**机械重命名为 `enum CssFloat`
+  （其余语义未动）。许可全文见 `vendor/milky2018-css/LICENSE`；上游 NOTICE（含其派生自
+  mizchi/css 0.7.3 的说明）见 `vendor/milky2018-css/NOTICE`。
 
 MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonbitmark/`），
 其许可随 MoonBitMark 的 Apache-2.0 分发。

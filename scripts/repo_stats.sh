@@ -6,7 +6,7 @@
 #   scripts/repo_stats.sh generate [--test-count N]  Rewrite the marked block in the docs
 #   scripts/repo_stats.sh check [--test-count N]     Fail when a marked block is stale
 #
-# The three consumer docs (README.md, CLAUDE.md, docs/project-status.md) each carry an
+# The three consumer docs (README.md, AGENTS.md, docs/project-status.md) each carry an
 # identical block delimited by
 #     <!-- BEGIN: repo-stats (generated ...) -->  ...  <!-- END: repo-stats -->
 # `generate` rewrites those blocks; `check` recomputes and diffs, so a hand-edited
@@ -52,7 +52,7 @@ cd "$(dirname "$0")/.."
 
 BEGIN_MARK='<!-- BEGIN: repo-stats'
 END_MARK='<!-- END: repo-stats -->'
-DOCS="README.md CLAUDE.md docs/project-status.md"
+DOCS="README.md AGENTS.md docs/project-status.md"
 
 mode="${1:-print}"
 shift || true
