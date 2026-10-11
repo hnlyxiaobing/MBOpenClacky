@@ -20,9 +20,9 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 240 |
-| 源代码行数 | 105,982 |
-| 测试行数 | 65,581 |
-| 总行数 | 171,563 |
+| 源代码行数 | 105,921 |
+| 测试行数 | 65,633 |
+| 总行数 | 171,554 |
 | 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4069 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -67,14 +67,14 @@
 
 经评估对比，本项目采用与原项目一致的 **JSON 文件持久化**方案，而非 SQLite：
 
-| 维度 | JSON 文件 | SQLite |
-|------|-----------|--------|
-| 部署复杂度 | 零依赖，单文件即可运行 | 需链接 SQLite 库，增加二进制体积 |
-| 可调试性 | 文本格式，可直接查看/编辑 | 二进制格式，需专用工具 |
-| 并发需求 | 单用户 CLI 场景，无高并发 | 适合多进程/多线程并发写入 |
-| 数据规模 | 会话数据量小（KB 级） | 适合大数据量（MB+） |
-| 跨平台 | 纯文件操作，无平台差异 | 需处理不同平台 SQLite 兼容性 |
-| 与原项目兼容 | 沿用同一套 JSON 会话文件格式。参考机上 32 个历史会话文件（含早期 Debug-repr 转储、旧 Option 序列化器写出的 `[x]` / `[[...]]` 形态）**只读读取已验证**：`--list` 与 `cmd inspect` 均可读，文件本身不被改写。**上游 openclacky（Ruby）原始会话文件样本不在手**，未做端到端比对；读取路径已放宽为容忍缺字段、数字时间戳等字段变体（见 [known-gaps](docs/known-gaps.md)） | 需额外迁移逻辑 |
+| 维度     | JSON 文件                                                                                                                                                                                                                                             | SQLite               |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 部署复杂度  | 零依赖，单文件即可运行                                                                                                                                                                                                                                         | 需链接 SQLite 库，增加二进制体积 |
+| 可调试性   | 文本格式，可直接查看/编辑                                                                                                                                                                                                                                       | 二进制格式，需专用工具          |
+| 并发需求   | 单用户 CLI 场景，无高并发                                                                                                                                                                                                                                     | 适合多进程/多线程并发写入        |
+| 数据规模   | 会话数据量小（KB 级）                                                                                                                                                                                                                                        | 适合大数据量（MB+）          |
+| 跨平台    | 纯文件操作，无平台差异                                                                                                                                                                                                                                         | 需处理不同平台 SQLite 兼容性   |
+| 与原项目兼容 | 沿用同一套 JSON 会话文件格式。参考机上 32 个历史会话文件（含早期 Debug-repr 转储、旧 Option 序列化器写出的 `[x]` / `[[...]]` 形态）**只读读取已验证**：`--list` 与 `cmd inspect` 均可读，文件本身不被改写。**上游 openclacky（Ruby）原始会话文件样本不在手**，未做端到端比对；读取路径已放宽为容忍缺字段、数字时间戳等字段变体（见 [known-gaps](docs/known-gaps.md)） | 需额外迁移逻辑              |
 
 结论：对于 AI Agent CLI 工具的单用户、低并发、小数据量场景，JSON 文件方案在简洁性、可调试性和零依赖方面优势明显，是更合适的选择。
 
@@ -152,15 +152,15 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 
 本仓库把"对外承诺"变成可运行的检查，而不是文档里的说法：
 
-| 闸门 | 命令 | 拦截 |
-|---|---|---|
-| 类型与警告 | `moon check`（CI 固定 0 警告预算） | 类型错误、新增警告 |
-| 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（数量见「当前规模」生成表） |
-| CLI 契约 | `<binary> selftest` | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd` |
-| 真话台账 | `scripts/known_gaps.sh check` | 活跃台账（`docs/known-gaps.md`）与代码不一致 |
-| 数字单一事实来源 | `scripts/repo_stats.sh check` | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
-| 能力评测 | `<binary> eval --offline` | 确定性 tool_harness 的任务失败 / 不可重复（离线、无模型） |
-| 测试 | `moon test --release` | 回归（含协议往返 + 会话日志 DoD + harness 任务集） |
+| 闸门        | 命令                                                              | 拦截                                                             |
+| --------- | --------------------------------------------------------------- | -------------------------------------------------------------- |
+| 类型与警告     | `moon check`（CI 固定 0 警告预算）                                      | 类型错误、新增警告                                                      |
+| 公共 API 冻结 | `moon info` + `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却没提交接口文件（数量见「当前规模」生成表）                                   |
+| CLI 契约    | `<binary> selftest`                                             | 退出码 / stdout 形状 / stderr 干净度 / panic 泄漏；并对比 `moon run cmd`     |
+| 真话台账      | `scripts/known_gaps.sh check`                                   | 活跃台账（`docs/known-gaps.md`）与代码不一致                               |
+| 数字单一事实来源  | `scripts/repo_stats.sh check`                                   | README / CLAUDE.md / project-status 的规模数字与机器统计不一致（含版本常量四处理一致性） |
+| 能力评测      | `<binary> eval --offline`                                       | 确定性 tool_harness 的任务失败 / 不可重复（离线、无模型）                          |
+| 测试        | `moon test --release`                                           | 回归（含协议往返 + 会话日志 DoD + harness 任务集）                             |
 
 - 未完成项（机器校验）：[docs/known-gaps.md](docs/known-gaps.md)（活跃缺口） / [docs/resolved-gaps.md](docs/resolved-gaps.md)（已修复归档）
 - 测试体系分层与门禁（层 1-9）：[docs/testing.md](docs/testing.md)

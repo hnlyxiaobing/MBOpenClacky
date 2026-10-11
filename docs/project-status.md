@@ -1,20 +1,20 @@
 # MBOpenClacky vs openclacky 功能对比分析
 
-> 最后更新: 2026-09-21（2026-09 收尾完成）
-> 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)
+> 最后更新: 2026-09-21（2026-09 收尾完成）  
+> 对比基线: [openclacky](https://github.com/clacky-ai/openclacky) (Ruby) vs [MBOpenClacky](/mnt/d/MoonBit/MBOpenClacky) (MoonBit)  
 > 数字口径: 本文所有仓库规模数字由 `scripts/repo_stats.sh` 生成并校验（见 §1.1），不由人手维护。
 
 ## 1. 项目概况
 
-| 维度 | openclacky (Ruby) | MBOpenClacky (MoonBit) |
-|------|-------------------|------------------------|
-| 语言 | Ruby ≥ 3.1 | MoonBit (AOT native) |
-| 源码文件数 | 428 `.rb` | 523 `.mbt`（含测试；机器生成明细见 §1.1） |
-| 核心库文件 | 223 (lib/clacky) | 480 (lib/，含测试) |
-| 二进制大小 | ~50MB+ (含 Ruby 运行时) | ~3.6 MB (单一可执行) |
-| 启动时间 | 秒级 | 毫秒级 |
-| 包管理 | Bundler / RubyGems | moon (mooncakes) |
-| 测试框架 | RSpec | `_wbtest.mbt`（白盒内联），用例数见 §1.1 |
+| 维度    | openclacky (Ruby)   | MBOpenClacky (MoonBit)        |
+| ----- | ------------------- | ----------------------------- |
+| 语言    | Ruby ≥ 3.1          | MoonBit (AOT native)          |
+| 源码文件数 | 428 `.rb`           | 523 `.mbt`（含测试；机器生成明细见 §1.1）  |
+| 核心库文件 | 223 (lib/clacky)    | 480 (lib/，含测试)                |
+| 二进制大小 | ~50MB+ (含 Ruby 运行时) | ~3.6 MB (单一可执行)               |
+| 启动时间  | 秒级                  | 毫秒级                           |
+| 包管理   | Bundler / RubyGems  | moon (mooncakes)              |
+| 测试框架  | RSpec               | `_wbtest.mbt`（白盒内联），用例数见 §1.1 |
 
 ### 1.1 仓库规模（机器生成）
 
@@ -24,9 +24,9 @@
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 240 |
-| 源代码行数 | 105,982 |
-| 测试行数 | 65,581 |
-| 总行数 | 171,563 |
+| 源代码行数 | 105,921 |
+| 测试行数 | 65,633 |
+| 总行数 | 171,554 |
 | 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4069 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
@@ -41,44 +41,44 @@
 
 ### 原项目 (16 个工具)
 
-| 工具 | 说明 |
-|------|------|
-| base | 基础工具抽象 |
-| browser | 浏览器自动化 |
-| edit | 文件编辑 |
-| file_reader | 文件读取 |
-| glob | 文件搜索 |
-| grep | 内容搜索 |
-| invoke_skill | 技能调用 |
+| 工具                    | 说明     |
+| --------------------- | ------ |
+| base                  | 基础工具抽象 |
+| browser               | 浏览器自动化 |
+| edit                  | 文件编辑   |
+| file_reader           | 文件读取   |
+| glob                  | 文件搜索   |
+| grep                  | 内容搜索   |
+| invoke_skill          | 技能调用   |
 | request_user_feedback | 用户反馈请求 |
-| security | 安全策略工具 |
-| terminal | 终端执行 |
-| todo_manager | 任务管理 |
-| trash_manager | 回收站管理 |
-| web_fetch | 网页获取 |
-| web_search | 网页搜索 |
-| write | 文件写入 |
+| security              | 安全策略工具 |
+| terminal              | 终端执行   |
+| todo_manager          | 任务管理   |
+| trash_manager         | 回收站管理  |
+| web_fetch             | 网页获取   |
+| web_search            | 网页搜索   |
+| write                 | 文件写入   |
 
 ### 当前项目 (16 个工具)
 
-| 工具 | 说明 | 对标 |
-|------|------|------|
-| terminal | 终端执行 (PTY) | ✅ terminal |
-| file_reader | 文件读取 | ✅ file_reader |
-| edit | 文件编辑 | ✅ edit |
-| write | 文件写入 | ✅ write |
-| glob | 文件搜索 | ✅ glob |
-| grep | 内容搜索 | ✅ grep |
-| web_search | 网页搜索 | ✅ web_search |
-| web_fetch | 网页获取 | ✅ web_fetch |
-| browser | 浏览器自动化 | ✅ browser |
-| invoke_skill | 技能调用 | ✅ invoke_skill |
-| request_user_feedback | 用户反馈请求 | ✅ request_user_feedback |
-| todo_manager | 任务管理 | ✅ todo_manager |
-| trash_manager | 回收站管理 | ✅ trash_manager |
-| security | 安全策略工具 | ✅ security |
-| memory_tool | 记忆工具 | 🆕 新增 (原项目通过 skill 实现) |
-| pty | PTY 会话管理 | 🆕 新增 (原项目内嵌于 terminal) |
+| 工具                    | 说明         | 对标                      |
+| --------------------- | ---------- | ----------------------- |
+| terminal              | 终端执行 (PTY) | ✅ terminal              |
+| file_reader           | 文件读取       | ✅ file_reader           |
+| edit                  | 文件编辑       | ✅ edit                  |
+| write                 | 文件写入       | ✅ write                 |
+| glob                  | 文件搜索       | ✅ glob                  |
+| grep                  | 内容搜索       | ✅ grep                  |
+| web_search            | 网页搜索       | ✅ web_search            |
+| web_fetch             | 网页获取       | ✅ web_fetch             |
+| browser               | 浏览器自动化     | ✅ browser               |
+| invoke_skill          | 技能调用       | ✅ invoke_skill          |
+| request_user_feedback | 用户反馈请求     | ✅ request_user_feedback |
+| todo_manager          | 任务管理       | ✅ todo_manager          |
+| trash_manager         | 回收站管理      | ✅ trash_manager         |
+| security              | 安全策略工具     | ✅ security              |
+| memory_tool           | 记忆工具       | 🆕 新增 (原项目通过 skill 实现)  |
+| pty                   | PTY 会话管理   | 🆕 新增 (原项目内嵌于 terminal) |
 
 **差距: 0 个缺失工具。** 当前项目覆盖原项目全部工具，并新增 memory_tool 和独立 PTY 管理。
 
@@ -88,48 +88,48 @@
 
 ### 原项目 (17 个默认技能)
 
-| 技能 | 说明 |
-|------|------|
-| browser-setup | 浏览器配置向导 |
-| channel-manager | IM 渠道配置管理 |
-| code-explorer | 代码探索 |
-| cron-task-creator | 定时任务创建 |
-| deploy | 部署 (Railway) |
-| mcp-manager | MCP 服务器管理 |
-| media-gen | 媒体生成 (图片/视频/音频) |
-| new | 新项目脚手架 |
-| onboard | 项目引导 |
-| persist-memory | 持久化记忆 |
-| personal-website | 个人主页生成 |
-| product-help | 产品帮助 |
-| recall-memory | 记忆召回 |
-| search-skills | 技能搜索 |
-| skill-add | 技能安装 |
-| skill-creator | 技能创建/编辑 |
+| 技能                 | 说明                      |
+| ------------------ | ----------------------- |
+| browser-setup      | 浏览器配置向导                 |
+| channel-manager    | IM 渠道配置管理               |
+| code-explorer      | 代码探索                    |
+| cron-task-creator  | 定时任务创建                  |
+| deploy             | 部署 (Railway)            |
+| mcp-manager        | MCP 服务器管理               |
+| media-gen          | 媒体生成 (图片/视频/音频)         |
+| new                | 新项目脚手架                  |
+| onboard            | 项目引导                    |
+| persist-memory     | 持久化记忆                   |
+| personal-website   | 个人主页生成                  |
+| product-help       | 产品帮助                    |
+| recall-memory      | 记忆召回                    |
+| search-skills      | 技能搜索                    |
+| skill-add          | 技能安装                    |
+| skill-creator      | 技能创建/编辑                 |
 | meeting-summarizer | 会议总结 (SYSTEM_PROMPT 提及) |
 
 ### 当前项目 (18 个默认技能)
 
-| 技能 | 说明 | 对标 |
-|------|------|------|
-| browser-setup | 浏览器配置向导 | ✅ |
-| channel-manager | IM 渠道配置管理 | ✅ |
-| code-explorer | 代码探索 | ✅ |
-| cron-task-creator | 定时任务创建 | ✅ |
-| deploy | 部署 | ✅ |
-| mcp-manager | MCP 服务器管理 | ✅ |
-| media-gen | 媒体生成 | ✅ |
-| new | 新项目脚手架 | ✅ |
-| onboard | 项目引导 | ✅ |
-| persist-memory | 持久化记忆 | ✅ |
-| personal-website | 个人主页生成 | ✅ |
-| product-help | 产品帮助 | ✅ |
-| recall-memory | 记忆召回 | ✅ |
-| search-skills | 技能搜索 | ✅ |
-| skill-add | 技能安装 | ✅ |
-| skill-creator | 技能创建/编辑 | ✅ |
-| meeting-summarizer | 会议总结 | ✅ |
-| extend-openclacky | 扩展开发向导 | 🆕 新增 |
+| 技能                 | 说明        | 对标    |
+| ------------------ | --------- | ----- |
+| browser-setup      | 浏览器配置向导   | ✅     |
+| channel-manager    | IM 渠道配置管理 | ✅     |
+| code-explorer      | 代码探索      | ✅     |
+| cron-task-creator  | 定时任务创建    | ✅     |
+| deploy             | 部署        | ✅     |
+| mcp-manager        | MCP 服务器管理 | ✅     |
+| media-gen          | 媒体生成      | ✅     |
+| new                | 新项目脚手架    | ✅     |
+| onboard            | 项目引导      | ✅     |
+| persist-memory     | 持久化记忆     | ✅     |
+| personal-website   | 个人主页生成    | ✅     |
+| product-help       | 产品帮助      | ✅     |
+| recall-memory      | 记忆召回      | ✅     |
+| search-skills      | 技能搜索      | ✅     |
+| skill-add          | 技能安装      | ✅     |
+| skill-creator      | 技能创建/编辑   | ✅     |
+| meeting-summarizer | 会议总结      | ✅     |
+| extend-openclacky  | 扩展开发向导    | 🆕 新增 |
 
 **差距: 0 个缺失技能。** 当前项目覆盖原项目全部 17 个技能，另新增 extend-openclacky（18 个）。
 
@@ -137,25 +137,25 @@
 
 ### 原项目 (6 个默认扩展)
 
-| 扩展 | 说明 | 目录结构 |
-|------|------|---------|
-| coding | 编码助手 | agents/ + ext.yml |
-| general | 通用助手 | agents/ + ext.yml |
-| git | Git 操作 | panels/ + ext.yml |
-| meeting | 会议辅助 | ext.yml |
-| time_machine | 时间机器 | panels/ + ext.yml |
-| ext-studio | 扩展工作室 | ext.yml |
+| 扩展           | 说明     | 目录结构              |
+| ------------ | ------ | ----------------- |
+| coding       | 编码助手   | agents/ + ext.yml |
+| general      | 通用助手   | agents/ + ext.yml |
+| git          | Git 操作 | panels/ + ext.yml |
+| meeting      | 会议辅助   | ext.yml           |
+| time_machine | 时间机器   | panels/ + ext.yml |
+| ext-studio   | 扩展工作室  | ext.yml           |
 
 ### 当前项目
 
-| 状态 | 说明 |
-|------|------|
-| ✅ 扩展加载器 | `lib/extension/loader.mbt` (10,962 行) |
-| ✅ 扩展市场 | `lib/extension/marketplace.mbt` (18,587 行) |
-| ✅ 扩展打包器 | `lib/extension/packager.mbt` (6,934 行) |
-| ✅ 扩展脚手架 | `lib/extension/scaffold.mbt` (12,488 行) |
-| ✅ 扩展验证器 | `lib/extension/verifier.mbt` (6,452 行) |
-| ✅ 扩展热补丁 | `lib/extension/patch_loader.mbt` (4,026 行) |
+| 状态      | 说明                                                                                   |
+| ------- | ------------------------------------------------------------------------------------ |
+| ✅ 扩展加载器 | `lib/extension/loader.mbt` (10,962 行)                                                |
+| ✅ 扩展市场  | `lib/extension/marketplace.mbt` (18,587 行)                                           |
+| ✅ 扩展打包器 | `lib/extension/packager.mbt` (6,934 行)                                               |
+| ✅ 扩展脚手架 | `lib/extension/scaffold.mbt` (12,488 行)                                              |
+| ✅ 扩展验证器 | `lib/extension/verifier.mbt` (6,452 行)                                               |
+| ✅ 扩展热补丁 | `lib/extension/patch_loader.mbt` (4,026 行)                                           |
 | ✅ 默认扩展包 | 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio)，位于 `assets/extensions/` |
 
 **差距: 0 个。** 扩展框架已完整实现，6 个内置扩展包已打包于 `assets/extensions/`。
@@ -164,41 +164,41 @@
 
 ### 5.1 核心子系统
 
-| 子系统 | 原项目 | 当前项目 | 状态 |
-|--------|--------|----------|------|
-| Agent 核心 | agent.rb | lib/agent/ (多个文件) | ✅ 完整 |
-| 会话管理 | session.rb | lib/agent/session.mbt | ✅ 完整 |
-| 上下文管理 | context_manager.rb | lib/agent/context.mbt | ✅ 完整 |
-| 工具注册表 | tool_registry.rb | lib/tool/registry.mbt | ✅ 完整 |
-| 技能系统 | skill.rb + skill_manager.rb | lib/skill/ (多个文件) | ✅ 完整 |
-| Hook 系统 | hook_manager.rb | lib/agent/hook.mbt + lib/hook/ | ✅ 完整 |
-| 时间机器 | time_machine.rb | lib/agent/time_machine.mbt | ✅ 完整 |
-| 空闲压缩 | idle_compression_timer.rb | lib/agent/idle_timer.mbt | ✅ 完整 |
-| GEP 进化 | skill_evolution.rb + skill_reflector.rb + skill_auto_creator.rb | lib/skill/evolution.mbt + reflector.mbt + auto_creator.mbt | ✅ 完整 |
+| 子系统      | 原项目                                                             | 当前项目                                                       | 状态   |
+| -------- | --------------------------------------------------------------- | ---------------------------------------------------------- | ---- |
+| Agent 核心 | agent.rb                                                        | lib/agent/ (多个文件)                                          | ✅ 完整 |
+| 会话管理     | session.rb                                                      | lib/agent/session.mbt                                      | ✅ 完整 |
+| 上下文管理    | context_manager.rb                                              | lib/agent/context.mbt                                      | ✅ 完整 |
+| 工具注册表    | tool_registry.rb                                                | lib/tool/registry.mbt                                      | ✅ 完整 |
+| 技能系统     | skill.rb + skill_manager.rb                                     | lib/skill/ (多个文件)                                          | ✅ 完整 |
+| Hook 系统  | hook_manager.rb                                                 | lib/agent/hook.mbt + lib/hook/                             | ✅ 完整 |
+| 时间机器     | time_machine.rb                                                 | lib/agent/time_machine.mbt                                 | ✅ 完整 |
+| 空闲压缩     | idle_compression_timer.rb                                       | lib/agent/idle_timer.mbt                                   | ✅ 完整 |
+| GEP 进化   | skill_evolution.rb + skill_reflector.rb + skill_auto_creator.rb | lib/skill/evolution.mbt + reflector.mbt + auto_creator.mbt | ✅ 完整 |
 
 ### 5.2 网络/通信
 
-| 子系统 | 原项目 | 当前项目 | 状态 |
-|--------|--------|----------|------|
-| Web Server | lib/clacky/server/ (36 文件) | lib/server/ (21 文件) + lib/web/ (85 文件) | ✅ 完整 |
-| REST API | lib/clacky/web/ (多个 handler) | lib/web/handlers*.mbt | ✅ 完整 |
-| WebSocket | ws.js + ws-dispatcher.js | lib/web/broadcast/hub.mbt | ✅ 完整 |
-| MCP 协议 | lib/clacky/mcp/ | lib/mcp/ | ✅ Stdio + HTTP（Streamable HTTP / SSE）双传输完整（WP-3.3，2026-09-22） |
-| 流式聚合 | *_stream_aggregator.rb (3 文件) | format_*.mbt (3 文件) | ✅ 完整 |
-| Provider 管理 | providers.rb (1084 行) | lib/config/provider.mbt | ✅ 完整 |
+| 子系统         | 原项目                            | 当前项目                                   | 状态                                                            |
+| ----------- | ------------------------------ | -------------------------------------- | ------------------------------------------------------------- |
+| Web Server  | lib/clacky/server/ (36 文件)     | lib/server/ (21 文件) + lib/web/ (85 文件) | ✅ 完整                                                          |
+| REST API    | lib/clacky/web/ (多个 handler)   | lib/web/handlers*.mbt                  | ✅ 完整                                                          |
+| WebSocket   | ws.js + ws-dispatcher.js       | lib/web/broadcast/hub.mbt              | ✅ 完整                                                          |
+| MCP 协议      | lib/clacky/mcp/                | lib/mcp/                               | ✅ Stdio + HTTP（Streamable HTTP / SSE）双传输完整（WP-3.3，2026-09-22） |
+| 流式聚合        | *\_stream_aggregator.rb (3 文件) | format\_*.mbt (3 文件)                   | ✅ 完整                                                          |
+| Provider 管理 | providers.rb (1084 行)          | lib/config/provider.mbt                | ✅ 完整                                                          |
 
 ### 5.3 IM 渠道
 
 6 个渠道的**适配器骨架**（注册、消息类型、解析器、AnyAdapter 分发）全部就位；但**实际收发 HTTP/长轮询接线**完成度不一，以真话台账（[known-gaps.md](known-gaps.md)）为准（已修复归档见 [resolved-gaps.md](resolved-gaps.md)）：
 
-| 渠道 | 适配器 | 发送(send) | 编辑/撤回 | 接收/长轮询 | 说明 |
-|------|:--:|:--:|:--:|:--:|------|
-| Telegram | ✅ | ✅ 真发送 | ✅ | ⚠️ 未接线 | `send_text` 经 `http_post_json` 真实发送；`update_message`（editMessageText）与 `delete_message`（deleteMessage）已接线（WP-1.6）；getUpdates 长轮询仍为诚实报错 stub |
-| Discord | ✅ | ✅ | ✅ | ✅ 网关 | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/get_current_user/upload/download 全部经真实 REST（WP-1.6） |
-| 飞书 (Feishu) | ✅ | ✅ | ✅ | ✅ webhook | `send/update(PATCH)/upload(multipart)/download/history` 全部经真实传输（WP-1.1），撤回走 `DELETE`（WP-1.6）；接收走 `/api/webhooks/feishu` |
-| 企业微信 (WeCom) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | `gettoken` 缓存 + `message/send`（WP-1.3）；WebSocket 收发未接线，接收走 `/api/webhooks/wecom`；编辑/撤回平台不支持且如实报错 |
-| 钉钉 (DingTalk) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | send 与 `open_stream_connection`/`download_file_url` 经真实 HTTP POST（WP-1.2）；Stream Mode WS 循环为独立工作项；编辑/撤回平台不支持且如实报错 |
-| 微信 (Weixin) | ✅ | ✅ | ❌ 平台不支持 | ✅ webhook | `sendmessage` + AES-128-ECB/PKCS#7（WP-1.4）；接收走 `/api/webhooks/weixin`；编辑/撤回平台不支持且如实报错 |
+| 渠道            | 适配器 | 发送(send) |  编辑/撤回  |   接收/长轮询  | 说明                                                                                                                                          |
+| ------------- | :-: | :------: | :-----: | :-------: | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Telegram      |  ✅  |   ✅ 真发送  |    ✅    |   ⚠️ 未接线  | `send_text` 经 `http_post_json` 真实发送；`update_message`（editMessageText）与 `delete_message`（deleteMessage）已接线（WP-1.6）；getUpdates 长轮询仍为诚实报错 stub |
+| Discord       |  ✅  |     ✅    |    ✅    |    ✅ 网关   | 网关连接层 + 心跳已接线（stubfix-07）；edit/delete/get_current_user/upload/download 全部经真实 REST（WP-1.6）                                                   |
+| 飞书 (Feishu)   |  ✅  |     ✅    |    ✅    | ✅ webhook | `send/update(PATCH)/upload(multipart)/download/history` 全部经真实传输（WP-1.1），撤回走 `DELETE`（WP-1.6）；接收走 `/api/webhooks/feishu`                     |
+| 企业微信 (WeCom)  |  ✅  |     ✅    | ❌ 平台不支持 | ✅ webhook | `gettoken` 缓存 + `message/send`（WP-1.3）；WebSocket 收发未接线，接收走 `/api/webhooks/wecom`；编辑/撤回平台不支持且如实报错                                            |
+| 钉钉 (DingTalk) |  ✅  |     ✅    | ❌ 平台不支持 | ✅ webhook | send 与 `open_stream_connection`/`download_file_url` 经真实 HTTP POST（WP-1.2）；Stream Mode WS 循环为独立工作项；编辑/撤回平台不支持且如实报错                           |
+| 微信 (Weixin)   |  ✅  |     ✅    | ❌ 平台不支持 | ✅ webhook | `sendmessage` + AES-128-ECB/PKCS#7（WP-1.4）；接收走 `/api/webhooks/weixin`；编辑/撤回平台不支持且如实报错                                                       |
 
 **配置来源**：六个平台统一读写 `~/.mbopenclacky/channels.json`（`platform`/`enabled`/`settings`）。Web 面板、`channel-manager` 技能与运行时共用该文件，面板状态即运行时投影（2026-09-22 贯通，见 `specs/completed/2026-09-22_channel-config-single-source-of-truth.md`）。
 
@@ -206,122 +206,124 @@
 
 ### 5.4 文档解析器
 
-| 解析器 | 原项目 | 当前项目 | 状态 |
-|--------|--------|----------|------|
-| PDF | pdf_parser.rb + 3 个 Python 脚本 | lib/parser/（MoonBitMark 适配层） | ✅ |
-| DOCX | docx_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
-| PPTX | pptx_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
-| XLSX | xlsx_parser.py | lib/parser/（MoonBitMark 适配层） | ✅ |
-| DOC | doc_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
-| WPS | wps_parser.rb | lib/parser/（MoonBitMark 适配层） | ✅ |
+| 解析器  | 原项目                           | 当前项目                         | 状态 |
+| ---- | ----------------------------- | ---------------------------- | -- |
+| PDF  | pdf_parser.rb + 3 个 Python 脚本 | lib/parser/（MoonBitMark 适配层） | ✅  |
+| DOCX | docx_parser.rb                | lib/parser/（MoonBitMark 适配层） | ✅  |
+| PPTX | pptx_parser.rb                | lib/parser/（MoonBitMark 适配层） | ✅  |
+| XLSX | xlsx_parser.py                | lib/parser/（MoonBitMark 适配层） | ✅  |
+| DOC  | doc_parser.rb                 | lib/parser/（MoonBitMark 适配层） | ✅  |
+| WPS  | wps_parser.rb                 | lib/parser/（MoonBitMark 适配层） | ✅  |
 
 **说明：** 六格式统一经 [MoonBitMark](https://github.com/hnlyxiaobing/MoonBitMark) 引擎转换（`lib/parser` 为薄适配层，白名单外扩展名诚实报错）；`.et/.dps` 二进制不支持并明确提示。原项目 PDF 解析有 3 个 Python 辅助脚本 (OCR/plumber/VLM)，当前项目用 MoonBit 原生实现。
 
 ### 5.5 部署/运维
 
-| 组件 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| Dockerfile | ✅ | ✅ | ✅ |
-| docker-compose | ❌ 无 | ✅ deploy/docker-compose.yml | 🆕 超越 |
-| systemd | ❌ 无 | ✅ deploy/systemd/ | 🆕 超越 |
-| Homebrew | ✅ homebrew/ | ✅ deploy/homebrew/Formula/ | ✅ |
-| Windows 安装器 | ❌ 无 | ✅ deploy/windows/*.iss | 🆕 超越 |
-| logrotate | ❌ 无 | ✅ deploy/logrotate.d/ | 🆕 超越 |
-| GitHub Actions | ✅ .github/workflows/ | ✅ .github/workflows/ | ✅ |
-| 安装脚本 | install.sh + install.ps1 | install.sh + install.ps1 | ✅ |
-| 卸载脚本 | uninstall.sh | uninstall.sh + uninstall.ps1 | ✅ |
-| Desktop Installers | ❌ 无 (目录不存在) | ❌ 无 | — |
+| 组件                 | 原项目                      | 当前项目                         | 状态    |
+| ------------------ | ------------------------ | ---------------------------- | ----- |
+| Dockerfile         | ✅                        | ✅                            | ✅     |
+| docker-compose     | ❌ 无                      | ✅ deploy/docker-compose.yml  | 🆕 超越 |
+| systemd            | ❌ 无                      | ✅ deploy/systemd/            | 🆕 超越 |
+| Homebrew           | ✅ homebrew/              | ✅ deploy/homebrew/Formula/   | ✅     |
+| Windows 安装器        | ❌ 无                      | ✅ deploy/windows/*.iss       | 🆕 超越 |
+| logrotate          | ❌ 无                      | ✅ deploy/logrotate.d/        | 🆕 超越 |
+| GitHub Actions     | ✅ .github/workflows/     | ✅ .github/workflows/         | ✅     |
+| 安装脚本               | install.sh + install.ps1 | install.sh + install.ps1     | ✅     |
+| 卸载脚本               | uninstall.sh             | uninstall.sh + uninstall.ps1 | ✅     |
+| Desktop Installers | ❌ 无 (目录不存在)              | ❌ 无                          | —     |
 
 **差距: 当前项目在部署运维方面超越原项目，** 额外提供了 systemd、docker-compose、Windows ISS 安装器、logrotate 等配置。
 
 ### 5.6 Web 前端
 
-| 组件 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| SPA 框架 | Vanilla JS (app.js 37KB) | Vanilla JS | ✅ |
-| CSS | app.css (403KB) | web/style.css 等 | ✅ |
-| 会话管理 | sessions.js (249KB) | lib/web/handlers_sessions.mbt | ✅ |
-| 项目管理 | projects.js (57KB) | lib/web/handlers_projects*.mbt | ✅ |
-| 设置页面 | settings.js (115KB) | lib/web/handlers_settings*.mbt | ✅ |
-| 技能管理 | skills.js (18KB) | lib/web/handlers_skills*.mbt | ✅ |
-| 国际化 | i18n.js (142KB) | lib/web/handlers_i18n*.mbt | ✅ |
-| WebSocket | ws.js + ws-dispatcher.js | lib/web/broadcast/hub.mbt | ✅ |
-| 设计样本 | design-sample.html/css | web/design-sample.html | ✅ |
-| 微信二维码 | weixin-qr.html | web/weixin-qr.html | ✅ |
-| 主题切换 | theme.js | ✅ | ✅ |
-| 认证 | auth.js | lib/web/handlers_auth*.mbt | ✅ |
+| 组件        | 原项目                      | 当前项目                           | 状态 |
+| --------- | ------------------------ | ------------------------------ | -- |
+| SPA 框架    | Vanilla JS (app.js 37KB) | Vanilla JS                     | ✅  |
+| CSS       | app.css (403KB)          | web/style.css 等                | ✅  |
+| 会话管理      | sessions.js (249KB)      | lib/web/handlers_sessions.mbt  | ✅  |
+| 项目管理      | projects.js (57KB)       | lib/web/handlers_projects*.mbt | ✅  |
+| 设置页面      | settings.js (115KB)      | lib/web/handlers_settings*.mbt | ✅  |
+| 技能管理      | skills.js (18KB)         | lib/web/handlers_skills*.mbt   | ✅  |
+| 国际化       | i18n.js (142KB)          | lib/web/handlers_i18n*.mbt     | ✅  |
+| WebSocket | ws.js + ws-dispatcher.js | lib/web/broadcast/hub.mbt      | ✅  |
+| 设计样本      | design-sample.html/css   | web/design-sample.html         | ✅  |
+| 微信二维码     | weixin-qr.html           | web/weixin-qr.html             | ✅  |
+| 主题切换      | theme.js                 | ✅                              | ✅  |
+| 认证        | auth.js                  | lib/web/handlers_auth*.mbt     | ✅  |
 
 **差距: Web 前端功能基本完整。** 原项目的 Rich UI / UI2 组件系统 (lib/clacky/ui2/) 在当前项目中以 TUI 形式实现。
 
 ### 5.7 账单系统
 
-| 组件 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| 账单记录 | billing/billing_record.rb | lib/billing/billing_record.mbt | ✅ |
-| 账单存储 | billing/billing_store.rb | lib/billing/billing_store.mbt | ✅ |
-| Web 界面 | web/features/billing/ | lib/web/handlers_billing.mbt | ✅ |
-| 汇率转换 | — | lib/web/handlers_exchange_rate.mbt | 🆕 新增 |
+| 组件     | 原项目                       | 当前项目                               | 状态    |
+| ------ | ------------------------- | ---------------------------------- | ----- |
+| 账单记录   | billing/billing_record.rb | lib/billing/billing_record.mbt     | ✅     |
+| 账单存储   | billing/billing_store.rb  | lib/billing/billing_store.mbt      | ✅     |
+| Web 界面 | web/features/billing/     | lib/web/handlers_billing.mbt       | ✅     |
+| 汇率转换   | —                         | lib/web/handlers_exchange_rate.mbt | 🆕 新增 |
+
 
 ### 5.8 备份/浏览器管理
 
-| 组件 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| 备份管理器 | server/backup_manager.rb | lib/server/backup_manager.mbt | ✅ |
-| 浏览器管理器 | server/browser_manager.rb | lib/server/browser_manager.mbt | ✅ |
-| Git 面板 | server/git_panel.rb | lib/server/git_panel.mbt + git_staging.mbt | ✅ |
+| 组件     | 原项目                       | 当前项目                                       | 状态 |
+| ------ | ------------------------- | ------------------------------------------ | -- |
+| 备份管理器  | server/backup_manager.rb  | lib/server/backup_manager.mbt              | ✅  |
+| 浏览器管理器 | server/browser_manager.rb | lib/server/browser_manager.mbt             | ✅  |
+| Git 面板 | server/git_panel.rb       | lib/server/git_panel.mbt + git_staging.mbt | ✅  |
 
 ### 5.9 代理/品牌/配置
 
-| 组件 | 原项目 | 当前项目 | 状态 |
-|------|--------|----------|------|
-| 代理配置 | proxy_config.rb | lib/utils/proxy_config.mbt | ✅ |
-| 品牌配置 | brand_config.rb (90KB!) | lib/brand/ + lib/web/handlers_brand.mbt | ✅ |
-| Agent Profile | agent_profile.rb | lib/agent/profile.mbt + profile_types.mbt | ✅ |
-| Telemetry | telemetry.rb | ✅ | ✅ |
-| 调度器 | server/scheduler.rb | lib/server/scheduler.mbt + cron.mbt | ✅ |
+| 组件            | 原项目                     | 当前项目                                      | 状态 |
+| ------------- | ----------------------- | ----------------------------------------- | -- |
+| 代理配置          | proxy_config.rb         | lib/utils/proxy_config.mbt                | ✅  |
+| 品牌配置          | brand_config.rb (90KB!) | lib/brand/ + lib/web/handlers_brand.mbt   | ✅  |
+| Agent Profile | agent_profile.rb        | lib/agent/profile.mbt + profile_types.mbt | ✅  |
+| Telemetry     | telemetry.rb            | ✅                                         | ✅  |
+| 调度器           | server/scheduler.rb     | lib/server/scheduler.mbt + cron.mbt       | ✅  |
 
 ## 6. 独有功能
 
 ### 6.1 仅原项目有
 
-| 功能 | 说明 | 影响 |
-|------|------|------|
-| Rich UI / UI2 系统 | lib/clacky/rich_ui.rb + lib/clacky/ui2/ | 低 - TUI 56 个文件已覆盖终端 UI |
-| Fanout 系统 | lib/clacky/fanout.rb | 低 - fan_out/fan_out_labeled 已按 Ruby Fanout 语义实现（spec 13） |
-| Search Config (Tavily) | lib/clacky/search_config.rb | 低 - web_search 已实现 |
+| 功能                     | 说明                                      | 影响                                                       |
+| ---------------------- | --------------------------------------- | -------------------------------------------------------- |
+| Rich UI / UI2 系统       | lib/clacky/rich_ui.rb + lib/clacky/ui2/ | 低 - TUI 56 个文件已覆盖终端 UI                                   |
+| Fanout 系统              | lib/clacky/fanout.rb                    | 低 - fan_out/fan_out_labeled 已按 Ruby Fanout 语义实现（spec 13） |
+| Search Config (Tavily) | lib/clacky/search_config.rb             | 低 - web_search 已实现                                       |
 
 ### 6.2 仅当前项目有
 
-| 功能 | 说明 | 价值 |
-|------|------|------|
-| memory_tool | 独立记忆工具 (区别于 skill) | 高 — 更灵活的记忆管理 |
-| PTY 会话管理 | 独立 pty.mbt + pty_session.mbt | 高 — 更好的终端会话控制 |
-| AOT 原生编译 | 单一 3.6MB 可执行文件 | 高 — 零依赖部署 |
-| 静态类型安全 | ADT + Checked Error + Option[T] | 高 — 编译期错误检测 |
-| 部署运维套件 | systemd + docker-compose + logrotate + ISS | 高 — 生产级部署支持 |
-| 汇率转换 | handlers_exchange_rate.mbt | 低 — 国际化账单支持 |
-| MoonBit 生态集成 | moon build/check/test/fmt | 中 — 现代工具链 |
+| 功能           | 说明                                         | 价值            |
+| ------------ | ------------------------------------------ | ------------- |
+| memory_tool  | 独立记忆工具 (区别于 skill)                         | 高 — 更灵活的记忆管理  |
+| PTY 会话管理     | 独立 pty.mbt + pty_session.mbt               | 高 — 更好的终端会话控制 |
+| AOT 原生编译     | 单一 3.6MB 可执行文件                             | 高 — 零依赖部署     |
+| 静态类型安全       | ADT + Checked Error + Option[T]            | 高 — 编译期错误检测   |
+| 部署运维套件       | systemd + docker-compose + logrotate + ISS | 高 — 生产级部署支持   |
+| 汇率转换         | handlers_exchange_rate.mbt                 | 低 — 国际化账单支持   |
+| MoonBit 生态集成 | moon build/check/test/fmt                  | 中 — 现代工具链     |
 
 ## 7. 总体评估
 
 ### 功能完成度
 
-| 类别 | 完成度 | 说明 |
-|------|--------|------|
-| 工具集 | **100%** | 16/16 全部覆盖 + 2 个新增 |
-| 技能 | **100%** | 17/17 全部覆盖 |
-| IM 渠道 | **适配器 100% / send 100%** | 6/6 适配器就位且 send 侧全部真接线；剩余缺口是接收侧长轮询/WS（Telegram `getUpdates`、企微 WS、钉钉 Stream Mode），详见 §5.3 |
-| 文档解析器 | **100%** | 6/6 全部覆盖 |
-| Web 前端 | **~95%** | 功能完整，Rich UI 组件差异 |
-| 扩展系统 | **100%** | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio) |
-| 部署运维 | **110%** | 超越原项目 |
-| MCP 协议 | **100%** | Stdio 与 HTTP（Streamable HTTP / SSE）传输均为真实实现；能力面仍只覆盖 tools（`resources`/`prompts` 原就不在范围） |
-| 账单系统 | **100%** | 完整实现 + 汇率扩展 |
-| 核心引擎 | **100%** | Agent + Session + Context + Hook |
+| 类别     | 完成度                      | 说明                                                                                        |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------- |
+| 工具集    | **100%**                 | 16/16 全部覆盖 + 2 个新增                                                                        |
+| 技能     | **100%**                 | 17/17 全部覆盖                                                                                |
+| IM 渠道  | **适配器 100% / send 100%** | 6/6 适配器就位且 send 侧全部真接线；剩余缺口是接收侧长轮询/WS（Telegram `getUpdates`、企微 WS、钉钉 Stream Mode），详见 §5.3 |
+| 文档解析器  | **100%**                 | 6/6 全部覆盖                                                                                  |
+| Web 前端 | **~95%**                 | 功能完整，Rich UI 组件差异                                                                         |
+| 扩展系统   | **100%**                 | 框架完整 + 6 个内置扩展 (coding/general/git/meeting/time_machine/ext-studio)                       |
+| 部署运维   | **110%**                 | 超越原项目                                                                                     |
+| MCP 协议 | **100%**                 | Stdio 与 HTTP（Streamable HTTP / SSE）传输均为真实实现；能力面仍只覆盖 tools（`resources`/`prompts` 原就不在范围）   |
+| 账单系统   | **100%**                 | 完整实现 + 汇率扩展                                                                               |
+| 核心引擎   | **100%**                 | Agent + Session + Context + Hook                                                          |
 
 ### 总体完成度: **~99%**
 
 MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方面超越原项目:
+
 1. **部署运维**: systemd / docker-compose / logrotate / Windows ISS
 2. **工具扩展**: memory_tool + 独立 PTY 管理
 3. **性能**: AOT 编译，3.6MB 单一可执行，毫秒启动
@@ -339,11 +341,11 @@ MBOpenClacky 已实现 openclacky 的几乎所有核心功能，并在以下方�
 
 ### 后续方向
 
-| 方向 | 状态 |
-|------|------|
-| Benchmark 基础设施 | ✅ 已完成（`test/benchmark/`，`cmd benchmark` 真执行计时） |
+| 方向                | 状态                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| Benchmark 基础设施    | ✅ 已完成（`test/benchmark/`，`cmd benchmark` 真执行计时）                                                    |
 | 提升执行计划 WP-3.1~3.6 | ✅ 17 个 WP 全部闭环（16 完成 / 1 作废），详见 [improvement-execution-plan.md](improvement-execution-plan.md) §5 |
-| 上游 Ruby 真模型对标 | MB 侧 `cmd eval --live` 已落地（报告见 `docs/eval/`），双侧对标方法学见 `specs/completed/2026-08-18_01` §6 |
+| 上游 Ruby 真模型对标     | MB 侧 `cmd eval --live` 已落地（报告见 `docs/eval/`），双侧对标方法学见 `specs/completed/2026-08-18_01` §6          |
 
 ---
 
