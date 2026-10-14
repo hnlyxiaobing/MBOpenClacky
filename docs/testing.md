@@ -15,7 +15,7 @@
 | 6 确定性能力 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt`、`test/eval/tasks/` | `<bin> eval --offline --repo .` | 每次提交 | 3 任务 × 2 重复，评分须全 1 |
 | 7 性能基准 | 工具路径是否退化 | `test/benchmark/` | `<bin> benchmark` | 不进 CI | 真执行工具并计时 |
 | 8 真模型基准 | 模型自主完成任务的成功率/成本 | `test/capability/tasks/`、`test/eval/live_harness.mbt` | `<bin> eval --live` | 不进 CI | 10 任务，每任务默认 3 trials |
-| 9 用户旅程 | 真实二进制的端到端链路是否可用 | `test/journey/` | `<bin> journey --repo .` | 手动/定时 | 23 条：Web 9 / TUI 5 / CLI 9 |
+| 9 用户旅程 | 真实二进制的端到端链路是否可用 | `test/journey/` | `<bin> journey --repo .` | 手动/定时 | 25 条：Web 9 / TUI 5 / CLI 11 |
 | Web 浏览器 E2E | 浏览器 UI 与 API 组合行为 | `test/web-e2e/` | `cd test/web-e2e && npm test` | 不进 CI | 21 个 spec、114 个测试；本地依赖较重 |
 
 性能和真模型基准不能替代回归门禁：它们分别受计时噪声和模型随机性影响。
@@ -116,7 +116,7 @@ TUI/Web 场景共用 `test/eval/assertions.mbt` 的 `AssertionKind` 和 `Unified
 
 ## 9. 层 9：Journey E2E
 
-`cmd journey` 驱动真实 release 二进制，覆盖 Web REST/WS、TUI 虚拟屏和 CLI 子进程，上游为进程内 mock LLM。23 条场景按 `area` 分布为 Web 9、TUI 5、CLI 9。
+`cmd journey` 驱动真实 release 二进制，覆盖 Web REST/WS、TUI 虚拟屏和 CLI 子进程，上游为进程内 mock LLM。25 条场景按 `area` 分布为 Web 9、TUI 5、CLI 11。
 
 退出码：
 

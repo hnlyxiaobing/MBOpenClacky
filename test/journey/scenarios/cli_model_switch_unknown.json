@@ -1,0 +1,33 @@
+{
+  "id": "cli_model_switch_unknown",
+  "title": "CLI --model with an unknown model exits non-zero",
+  "area": "cli",
+  "description": "User passes --model with a name absent from config. apply_model_override prints 'Error: Model ... not found in configuration.' and exits 1 before the agent is created, so the mock upstream receives zero requests.",
+  "timeout_ms": 60000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [],
+  "phases": [
+    {
+      "name": "run_with_unknown_model",
+      "steps": [
+        {
+          "action": "spawn_cli",
+          "message": "hello",
+          "json": true,
+          "mode": "auto_approve",
+          "extra_args": ["--model", "nonexistent-model"]
+        },
+        {
+          "action": "wait_child",
+          "timeout_ms": 30000
+        }
+      ]
+    }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 1 },
+    { "type": "stdout_contains", "text": "Model 'nonexistent-model' not found in configuration." },
+    { "type": "mock_request_count", "min": 0, "max": 0 }
+  ]
+}

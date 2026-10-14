@@ -1,0 +1,33 @@
+{
+  "id": "cli_agent_profile_unknown",
+  "title": "CLI --agent with an unknown profile exits non-zero",
+  "area": "cli",
+  "description": "User passes --agent with a profile name that cannot be resolved. Agent::resolve_profile surfaces the failure and the CLI prints 'Error: Agent profile ... not found' then exits 1 instead of silently dropping base.md/SOUL.md/USER.md, before any upstream request is made.",
+  "timeout_ms": 60000,
+  "permission_mode": "auto_approve",
+  "seed": [],
+  "llm_steps": [],
+  "phases": [
+    {
+      "name": "run_with_unknown_agent",
+      "steps": [
+        {
+          "action": "spawn_cli",
+          "message": "hello",
+          "json": true,
+          "mode": "auto_approve",
+          "extra_args": ["--agent", "nonexistent-agent"]
+        },
+        {
+          "action": "wait_child",
+          "timeout_ms": 30000
+        }
+      ]
+    }
+  ],
+  "assertions": [
+    { "type": "exit_code", "code": 1 },
+    { "type": "stdout_contains", "text": "Agent profile 'nonexistent-agent' not found" },
+    { "type": "mock_request_count", "min": 0, "max": 0 }
+  ]
+}
