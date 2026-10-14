@@ -113,9 +113,8 @@ jobs:
   #    single cache entry: on a cache hit, moon skips recompilation entirely for
   #    unchanged packages.
   #
-  #    Tests run in debug mode (no --release): the compiler ICE that forced
-  #    release mode was in vendor/mbtpdf's own test driver, which is outside
-  #    the scoped test command. Scoped debug tests compile 2-3x faster.
+  #    Tests run in debug mode (no --release) because the scoped module tests
+  #    compile 2-3x faster. Use release mode only for release-specific behavior.
   build-and-test:
     name: Build · Test
     runs-on: ubuntu-24.04
@@ -198,10 +197,8 @@ jobs:
           fi
 
       - name: Run tests (module packages)
-        # Scoped to lib/cmd/test minus lib/mcp. Debug mode: the old --release
-        # was needed because bare `moon test` (including vendor/mbtpdf) hit a
-        # compiler ICE. The scoped command excludes vendor packages, so debug
-        # mode works and compiles 2-3x faster.
+        # Scoped to lib/cmd/test minus lib/mcp. Debug mode compiles 2-3x faster;
+        # release-specific behavior is validated separately.
         run: |
           pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
             | grep -v '^lib/mcp$' | tr '\n' ' ')

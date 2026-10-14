@@ -20,7 +20,7 @@ moon fmt <changed files>                    # Format only changed files
 moon info                                   # Verify public API changes
 ```
 
-- **Never bare `moon test`**: `moon.work` includes vendored workspace members (`vendor/mbtpdf`, `vendor/milky2018-css`, `vendor/mizchi-crater-core`, `vendor/mizchi-tui`). Their tests are not this repo's regression surface. Use the scoped command above.
+- **Never bare `moon test`**: `moon.work` includes vendored workspace members (`vendor/milky2018-css`, `vendor/mizchi-crater-core`, `vendor/mizchi-tui`). Their tests are not this repo's regression surface. Use the scoped command above.
 - CI runs `lib cmd test` minus `lib/mcp` in the main test step, then runs `lib/mcp` separately. `scripts/repo_stats.sh` records the main-step count; do not silently mix the two logs.
 - Scoped tests work in debug and release. CI uses debug for speed; use `--release` for release-specific behavior.
 - `moon test --target wasm-gc` fails on native FFI in `tty`/`crescent`; use `moon check` to validate wasm-gc typing.

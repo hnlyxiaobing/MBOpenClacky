@@ -1,7 +1,0 @@
-import {
-  "bobzhang/mbtpdf/core/pdf",
-  "bobzhang/mbtpdf/codec/pdfcodec",
-  "bobzhang/mbtpdf/core/pdfe",
-  "bobzhang/mbtpdf/graphics/pdffun",
-  "bobzhang/mbtpdf/core/pdfio",
-}

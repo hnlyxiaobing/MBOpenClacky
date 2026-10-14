@@ -46,7 +46,7 @@ RUN moon version
 WORKDIR /build
 
 # Copy full project source, including the vendor/ workspace members declared in
-# moon.work (mbtpdf, mizchi-tui, mizchi-crater-core, milky2018-css). Registry
+# moon.work (mizchi-tui, mizchi-crater-core, milky2018-css). Registry
 # dependencies are fetched from mooncakes.io on first build.
 COPY . .
 

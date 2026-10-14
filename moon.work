@@ -1,6 +1,5 @@
 members = [
   ".",
-  "vendor/mbtpdf",
   "vendor/milky2018-css",
   "vendor/mizchi-crater-core",
   "vendor/mizchi-tui",

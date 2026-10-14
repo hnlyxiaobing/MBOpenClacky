@@ -1,6 +1,0 @@
-import {
-  "bobzhang/mbtpdf/core/pdf",
-  "bobzhang/mbtpdf/codec/pdfcodec",
-  "bobzhang/mbtpdf/core/pdfio",
-  "moonbitlang/core/string",
-}
