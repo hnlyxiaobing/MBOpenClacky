@@ -54,6 +54,11 @@ COPY . .
 # cached independently of source edits.
 RUN moon update
 
+# Some registry packages still ship the deprecated moon.mod.json format.
+# The current stable toolchain rejects them; migrate them to moon.mod before
+# compilation.
+RUN bash scripts/migrate_moon_mod_json.sh
+
 # Build the CLI binary.
 #
 # NOTE: keep this step simple on purpose.
