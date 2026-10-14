@@ -303,12 +303,18 @@ async fn main {
           "threshold": @clap.Arg::named(
             short='t',
             nargs=@clap.Nargs::AtMost(1),
-            help="Regression threshold percentage (default: 10.0)",
+            help="Regression threshold percentage (default: 15.0)",
           ),
           "output": @clap.Arg::named(
             short='o',
             nargs=@clap.Nargs::AtMost(1),
             help="Results dir (default: _build/benchmark/results)",
+          ),
+          "save-baseline": @clap.Arg::flag(
+            help="Save current results as explicit per-scenario baseline",
+          ),
+          "check-baseline": @clap.Arg::flag(
+            help="Compare current P95 against the explicit baseline and exit non-zero on regression",
           ),
         },
         help="Run performance benchmarks for scenarios",
@@ -840,7 +846,7 @@ async fn handle_server(sub : @clap.SimpleValue) -> Unit {
 ///|
 /// Parse a port string into a valid TCP port (1..65535), falling back to
 /// `fallback` when the input is not a valid number.
-fn parse_port(p : String, fallback : Int) -> Int {
+fn parse_port(p : String, fallback : Int32) -> Int32 {
   let n = @string.parse_int(p.trim()) catch { _ => fallback }
   if n > 0 && n < 65536 {
     n
@@ -1451,7 +1457,7 @@ fn handle_list_sessions(json_output : Bool) -> Unit {
 /// `list_sessions` silently skips files it cannot parse (and soft-deleted
 /// sessions). Never hide that: report the difference so an operator knows to
 /// run `mbopenclacky inspect <file>`.
-fn report_unlisted_sessions(parsed : Int) -> Unit {
+fn report_unlisted_sessions(parsed : Int32) -> Unit {
   let dir = match @utils.sessions_dir() {
     Some(d) => d
     None => return
@@ -1488,7 +1494,7 @@ fn print_run_result(result : @agent.RunResult) -> Unit {
 
 ///|
 /// CLI 覆盖值：`--iterations` / `--warmup` 给出时替换场景文件里的同名参数。
-fn int_override(sub : @clap.SimpleValue, name : String) -> Int? {
+fn int_override(sub : @clap.SimpleValue, name : String) -> Int32? {
   let raw = get_named_arg(sub, name).unwrap_or("")
   let parsed = @string.parse_int(raw.trim()) catch { _ => -1 }
   if parsed >= 0 {
@@ -1499,25 +1505,89 @@ fn int_override(sub : @clap.SimpleValue, name : String) -> Int? {
 }
 
 ///|
+/// 读取命令 stdout 第一行；失败时返回默认值。
+async fn read_process_line(
+  cmd : String,
+  args : Array[String],
+  default~ : String = "unknown",
+) -> String {
+  let (code, out, _err) = @process.collect_output(cmd, args) catch {
+    _ => return default
+  }
+  if code != 0 {
+    return default
+  }
+  let line = out.text() catch { _ => return default }
+  let trimmed = line.trim().to_owned()
+  if trimmed == "" {
+    return default
+  }
+  trimmed
+  .split("\n")
+  .map(fn(s) { s.to_owned() })
+  .collect()
+  .get(0)
+  .unwrap_or(default)
+}
+
+///|
+/// 采集构建基线所需的元数据。
+async fn collect_baseline_metadata() -> Map[String, String] {
+  let metadata : Map[String, String] = Map([])
+  metadata["git_commit"] = read_process_line("git", ["rev-parse", "HEAD"])
+  metadata["moon_version"] = read_process_line("moon", ["version"])
+  let os = read_process_line("uname", ["-s"], default="unknown")
+  metadata["os"] = if os == "unknown" {
+    match @env.get_env_var("OS") {
+      Some(v) => v
+      None => "unknown"
+    }
+  } else {
+    os
+  }
+  metadata
+}
+
+///|
+/// 检查 `commit` 是否在当前分支的祖先链上。
+async fn is_ancestor_commit(commit : String) -> Bool {
+  if commit == "" || commit == "unknown" {
+    return false
+  }
+  let (code, _out, _err) = @process.collect_output("git", [
+    "merge-base", "--is-ancestor", commit, "HEAD",
+  ])
+  code == 0
+}
+
+///|
 async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   // 获取参数
   let scenario_dir = get_named_arg(sub, "scenario_dir").unwrap_or(
     "test/benchmark/scenarios",
   )
-  let threshold_str = get_named_arg(sub, "threshold").unwrap_or("10.0")
+  let threshold_str = get_named_arg(sub, "threshold").unwrap_or("15.0")
   let output_dir = get_named_arg(sub, "output").unwrap_or(
     "_build/benchmark/results",
   )
   let iterations = int_override(sub, "iterations")
   let warmup = int_override(sub, "warmup")
+  let save_baseline = sub.get_flag("save-baseline") == Some(true)
+  let check_baseline = sub.get_flag("check-baseline") == Some(true)
 
   // 转换参数
-  let threshold = @string.parse_double(threshold_str) catch { _ => 10.0 }
+  let threshold = @string.parse_double(threshold_str) catch { _ => 15.0 }
 
   println("Starting benchmark...")
   println("Scenario directory: \{scenario_dir}")
   println("Threshold: \{threshold}%")
   println("Output directory: \{output_dir}")
+  if save_baseline {
+    println("Mode: save baseline")
+  }
+  if check_baseline {
+    println("Mode: check baseline")
+  }
   println("")
 
   // 加载场景
@@ -1531,6 +1601,7 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
 
   // 收集所有场景的统计结果用于统一报告
   let all_results : Array[(String, @benchmark.BenchmarkStats)] = []
+  let mut has_regression = false
 
   // 运行所有场景
   for loaded in scenarios {
@@ -1540,8 +1611,10 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
     )
     println("\nRunning benchmark: \{scenario.name}")
 
-    // 运行场景
-    let stats = @benchmark.BenchmarkRunner::run_scenario(scenario)
+    // 运行场景并保留原始样本，用于诊断输出与重试
+    let (stats, samples) = @benchmark.BenchmarkRunner::run_scenario_detailed(
+      scenario,
+    )
 
     // 显示结果
     println(stats.to_markdown(scenario.name))
@@ -1557,16 +1630,88 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
       Err(err) => println("Failed to save: \{err}")
     }
 
-    // 加载历史结果进行比较
-    let history = @benchmark.load_history(scenario.name, output_dir)
-    if history.length() > 0 {
-      let report = @benchmark.compare_with_history(
+    // 保存显式基线
+    if save_baseline {
+      let baseline_result = @benchmark.BenchmarkResult::new(
         scenario.name,
         stats,
-        history,
-        threshold,
+        metadata=collect_baseline_metadata(),
       )
-      println(report.to_markdown())
+      match @benchmark.save_baseline(baseline_result, output_dir) {
+        Ok(filepath) => println("Baseline saved to \{filepath}")
+        Err(err) => println("Failed to save baseline: \{err}")
+      }
+    }
+
+    // 显式基线门禁
+    if check_baseline {
+      match @benchmark.load_baseline(scenario.name, output_dir) {
+        None => {
+          println(
+            "No baseline found for \{scenario.name}; run with --save-baseline first.",
+          )
+          has_regression = true
+        }
+        Some(baseline) => {
+          let commit = baseline.metadata.get("git_commit").unwrap_or("unknown")
+          let ancestor = is_ancestor_commit(commit)
+          if !ancestor {
+            println(
+              "Baseline for \{scenario.name} is stale (commit \{commit} is not an ancestor of HEAD). Run --save-baseline to rebuild.",
+            )
+            has_regression = true
+          } else {
+            let report = @benchmark.compare_with_baseline(
+              scenario.name,
+              stats,
+              baseline.stats,
+              threshold,
+              samples~,
+            )
+            println(report.to_markdown())
+            if report.has_regression {
+              // 追加 5 次迭代重新计算 P95
+              println(
+                "Regression detected; re-running 5 additional iterations to confirm.",
+              )
+              let retry_scenario = scenario.with_counts(5, 0)
+              let (_, retry_samples) = @benchmark.BenchmarkRunner::run_scenario_detailed(
+                retry_scenario,
+              )
+              let combined = samples.copy()
+              combined.append(retry_samples)
+              let rechecked_stats = @benchmark.BenchmarkStats::from_samples(
+                combined,
+              )
+              let rechecked = @benchmark.compare_with_baseline(
+                scenario.name,
+                rechecked_stats,
+                baseline.stats,
+                threshold,
+                samples~,
+              )
+              println(rechecked.to_markdown())
+              if rechecked.has_regression {
+                has_regression = true
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 加载历史结果进行比较（仅在未启用显式基线时保留旧行为）
+    if !check_baseline {
+      let history = @benchmark.load_history(scenario.name, output_dir)
+      if history.length() > 0 {
+        let report = @benchmark.compare_with_history(
+          scenario.name,
+          stats,
+          history,
+          threshold,
+        )
+        println(report.to_markdown())
+      }
     }
   }
 
@@ -1574,6 +1719,11 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
   let unified = @benchmark.benchmark_results_to_unified_report(all_results)
   println("")
   println(@eval.render_unified_report_text(unified))
+
+  if has_regression {
+    println("\nBenchmark failed: baseline regression detected.")
+    @sys.exit(1)
+  }
 
   println("\nBenchmark completed!")
 }

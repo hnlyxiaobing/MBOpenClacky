@@ -2,7 +2,7 @@
 /// BenchmarkIterationResult - 单次基准测试迭代结果
 pub struct BenchmarkIterationResult {
   scenario_name : String
-  iteration : Int
+  iteration : Int32
   elapsed_ms : Int64
   success : Bool
   error : String
@@ -54,7 +54,7 @@ async fn execute_tool_timed(
 /// 运行单个场景的单次迭代
 async fn run_single_iteration(
   scenario : BenchmarkScenario,
-  iteration : Int,
+  iteration : Int32,
 ) -> BenchmarkIterationResult {
   let registry = @tool.make_default_registry()
   let _ = iteration
@@ -89,10 +89,10 @@ async fn run_single_iteration(
 }
 
 ///|
-/// 运行单个场景的所有迭代
-pub async fn BenchmarkRunner::run_scenario(
+/// 运行单个场景的所有迭代，返回统计信息和原始样本。
+pub async fn BenchmarkRunner::run_scenario_detailed(
   scenario : BenchmarkScenario,
-) -> BenchmarkStats {
+) -> (BenchmarkStats, Array[Int64]) {
   let samples : Array[Int64] = []
 
   // 预热阶段
@@ -108,7 +108,16 @@ pub async fn BenchmarkRunner::run_scenario(
     }
   }
 
-  BenchmarkStats::from_samples(samples)
+  (BenchmarkStats::from_samples(samples), samples)
+}
+
+///|
+/// 运行单个场景的所有迭代
+pub async fn BenchmarkRunner::run_scenario(
+  scenario : BenchmarkScenario,
+) -> BenchmarkStats {
+  let (stats, _) = BenchmarkRunner::run_scenario_detailed(scenario)
+  stats
 }
 
 ///|

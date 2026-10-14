@@ -12,8 +12,9 @@ pub struct BenchmarkResult {
 pub fn BenchmarkResult::new(
   scenario_name : String,
   stats : BenchmarkStats,
+  metadata~ : Map[String, String] = Map([]),
 ) -> BenchmarkResult {
-  { scenario_name, timestamp: @agent.current_iso8601(), stats, metadata: {}, }
+  { scenario_name, timestamp: @agent.current_iso8601(), stats, metadata, }
 }
 
 ///|
@@ -119,7 +120,7 @@ pub fn BenchmarkResult::from_json(json_str : String) -> BenchmarkResult? {
           }
           result
         }
-        _ => {}
+        _ => Map([])
       }
 
       Some({ scenario_name, timestamp, stats, metadata, })
@@ -218,4 +219,40 @@ pub fn load_all_history(
   }
 
   history
+}
+
+///|
+/// 保存基准线到 scenario_dir/baseline.json
+pub fn save_baseline(
+  result : BenchmarkResult,
+  base_dir : String,
+) -> Result[String, String] {
+  let scenario_dir = @path.Path::join(
+    base_dir,
+    @path.Path(result.scenario_name),
+  ).to_string()
+  @utils.ensure_dir(scenario_dir)
+
+  let filepath = @path.Path::join(scenario_dir, @path.Path("baseline.json")).to_string()
+  let json_str = BenchmarkResult::to_json(result)
+  @fs.write_string_to_file(filepath, json_str) catch {
+    e => return Err("Failed to write baseline file: \{@debug.to_string(e)}")
+  }
+
+  Ok(filepath)
+}
+
+///|
+/// 加载指定场景的基准线
+pub fn load_baseline(
+  scenario_name : String,
+  base_dir : String,
+) -> BenchmarkResult? {
+  let scenario_dir = @path.Path::join(base_dir, @path.Path(scenario_name)).to_string()
+  let filepath = @path.Path::join(scenario_dir, @path.Path("baseline.json")).to_string()
+  if !@fs.path_exists(filepath) {
+    return None
+  }
+  let content = @fs.read_file_to_string(filepath) catch { _ => return None }
+  BenchmarkResult::from_json(content)
 }

@@ -241,3 +241,77 @@ pub fn compare_with_history(
   )
   report.detect_regression()
 }
+
+///|
+/// BaselineReport - 基于显式基线的回归报告
+pub struct BaselineReport {
+  scenario_name : String
+  current_stats : BenchmarkStats
+  baseline_stats : BenchmarkStats
+  threshold_pct : Double
+  has_regression : Bool
+  regression_ratio : Double
+  top_slowest : Array[Int64]
+}
+
+///|
+pub fn BaselineReport::to_markdown(self : BaselineReport) -> String {
+  let lines : Array[String] = []
+  lines.push("## Baseline Report: " + self.scenario_name)
+  lines.push("")
+  lines.push("- Threshold: " + self.threshold_pct.to_string() + "%")
+  lines.push("- Baseline P95: " + self.baseline_stats.p95_ms.to_string() + "ms")
+  lines.push("- Current P95: " + self.current_stats.p95_ms.to_string() + "ms")
+  lines.push("- Ratio: " + self.regression_ratio.to_string())
+  lines.push(
+    "- Regression detected: " + (if self.has_regression { "YES" } else { "NO" }),
+  )
+  if self.top_slowest.length() > 0 {
+    lines.push("")
+    lines.push("### Top slowest iterations")
+    for i = 0; i < self.top_slowest.length(); i = i + 1 {
+      lines.push(
+        "- #" +
+        (i + 1).to_string() +
+        ": " +
+        self.top_slowest[i].to_string() +
+        "ms",
+      )
+    }
+  }
+  lines.join("\n")
+}
+
+///|
+/// 比较当前结果与显式基线（仅比较 P95）。
+/// `samples` 用于打印诊断性的 top-3 最慢迭代。
+pub fn compare_with_baseline(
+  scenario_name : String,
+  current_stats : BenchmarkStats,
+  baseline_stats : BenchmarkStats,
+  threshold_pct : Double,
+  samples~ : Array[Int64] = [],
+) -> BaselineReport {
+  let ratio = if baseline_stats.p95_ms == 0L {
+    1.0
+  } else {
+    current_stats.p95_ms.to_double() / baseline_stats.p95_ms.to_double()
+  }
+  let has_regression = ratio > 1.0 + threshold_pct / 100.0
+  let sorted = samples.copy()
+  sorted.sort_by(fn(a, b) { b.compare(a) })
+  let top_slowest : Array[Int64] = []
+  let n = if sorted.length() > 3 { 3 } else { sorted.length() }
+  for i = 0; i < n; i = i + 1 {
+    top_slowest.push(sorted[i])
+  }
+  {
+    scenario_name,
+    current_stats,
+    baseline_stats,
+    threshold_pct,
+    has_regression,
+    regression_ratio: ratio,
+    top_slowest,
+  }
+}
