@@ -114,6 +114,14 @@ When connected, prefer codebase-memory MCP for code discovery (project `D-MoonBi
 - `get_architecture` / `query_graph` for overview and multi-hop analysis.
 - Re-index after large code changes.
 
+Current index coverage for this repository (verified 2026-10-14):
+
+- The graph reliably exposes the native JavaScript frontend, C FFI, YAML/TOML/Bash configuration, and related call/config edges.
+- MoonBit `.mbt` symbols are not reliably represented. For example, `AgentConfig::load_with_env`, `TelegramAdapter`, and `MediaGenerator` return no graph nodes even though they exist in source.
+- Therefore, a zero-result `search_graph` for MoonBit is an index-coverage limitation, not proof that a symbol is absent. Switch to `moon ide` and direct source reads immediately.
+- Repository-wide counts and generated claims remain authoritative in `scripts/repo_stats.sh`; TODO/stub state remains authoritative in `scripts/known_gaps.sh`.
+- The current index excludes `.git`, `.mooncakes`, `_build`, `vendor`, `deploy`, `web/vendor`, Playwright output directories, and some asset directories.
+- ADR-0002 records these coverage limits and the required truth-source fallbacks.
 
 If the MCP is unavailable or incomplete, fall back to Grep/Glob/Read immediately rather than repeatedly retrying it. Use direct search for exact string literals, configs, scripts, and non-code files.
 
