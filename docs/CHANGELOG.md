@@ -32,6 +32,7 @@
 - `[docs]` 将渠道状态更新为当前源码事实：Telegram 长轮询、企微 WebSocket、Discord Gateway、钉钉 Stream Mode 和 webhook 接收路径均已接线。
 - `[docs]` 合并 Web 浏览器 E2E 的一次性验证报告为 `test/web-e2e/README.md`，补充 21 spec / 114 tests、非 CI 与本机路径限制。
 - `[docs]` 清理 known-gaps 顶部已解决条目，保留当前边界；修正 spec 索引、TUI/Web 回归命令、AI 使用闸门和 upstream sync 的旧入口。
+- `[chore]` CI 与 Docker 构建改用 MoonBit `latest` 稳定版工具链，不再安装 nightly。
 
 ### 2026-09-23  开发计划批次闭环 + 任务集扩充 + benchmark 规格
 

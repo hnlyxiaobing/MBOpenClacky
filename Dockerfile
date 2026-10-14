@@ -27,17 +27,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install MoonBit toolchain (nightly).
-# Use nightly to align with local dev environments; the CDN retires old stable
-# versions, so pinning is fragile.
+# Install MoonBit toolchain (latest stable).
+# Use the CDN's `latest` alias for the current stable release; retired
+# builds return 403, so do not pin a stale version.
 #
 # TOOLCHAIN_CACHE_BUSTER invalidates this layer (and every layer after it) so
 # the build pulls the *current* toolchain instead of reusing one cached by a
 # previous build.
 ARG TOOLCHAIN_CACHE_BUSTER
 RUN echo "toolchain cache buster: ${TOOLCHAIN_CACHE_BUSTER:-unset}" \
-    && echo "Installing MoonBit nightly" \
-    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s nightly
+    && echo "Installing MoonBit latest stable" \
+    && curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # Verify MoonBit installation
