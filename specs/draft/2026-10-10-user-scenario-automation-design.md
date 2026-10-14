@@ -1,5 +1,8 @@
 # 用户场景自动化测试方案 v1.0
 
+> **状态说明（2026-10-14）**：这是设计草稿，不是当前测试事实。`test/web-e2e/` 已落地 21 个 Playwright spec（114 个测试），Journey 当前为 23 条（Web 9 / TUI 5 / CLI 9）。本文保留原始目标、风险和路线图，实施状态以 `docs/testing.md` 为准。
+
+
 **日期**: 2026-10-10  
 **目标**: 覆盖 90% 用户核心场景，发现现有问题，优化测试体系  
 **状态**: 设计阶段
@@ -12,7 +15,7 @@
 
 ```
                     ┌─────────────────┐
-                    │  Layer 9: 旅程   │  18 条 E2E 旅程
+                    │  Layer 9: 旅程   │  23 条 E2E 旅程（当前）
                     │  (真实二进制)    │  真实 LLM mock
                     ├─────────────────┤
                     │  Layer 6: 工具   │  确定性工具 eval
@@ -1057,9 +1060,8 @@ fn measure_ttft() -> Duration {
 
 ### A. 相关文档
 
-- [Journey E2E Runner Spec](../../specs/draft/2026-09-23-journey-e2e-runner.md)
-- [TUI Eval Framework](../../test/scenarios/tui/README.md)
-- [Web Eval Framework](../../test/scenarios/web/README.md)
+- [Journey E2E Runner Spec](../../specs/draft/2026-09-23_journey-e2e-runner.md)
+- [测试体系（TUI/Web 层）](../../docs/testing.md)
 - [Playwright 文档](https://playwright.dev/)
 
 ### B. 工具清单

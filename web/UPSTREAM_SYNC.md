@@ -57,11 +57,11 @@ Check `web/PATCHES.md` for active patches and re-apply them.
 ### 5. Regression Tests
 
 ```bash
-moon fmt
+moon fmt <changed files>
 moon check
 moon test lib/web
 # Run web eval scenarios:
-moon run cmd -- --web-eval test/scenarios/web/
+moon run cmd -- eval --web test/scenarios/web/
 ```
 
 ### 6. Record Sync

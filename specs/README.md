@@ -1,132 +1,51 @@
 # Specs 目录
 
-本目录是 MBOpenClacky 项目的 **活 spec** 体系，所有开发决策的真相源。
-
-> **核心原则**: No Spec, No Code — 超过 100 行改动的任务，先写 spec 再动手。
+本目录保存 MBOpenClacky 的规格、决策和历史交付证据。**代码事实以源码与测试为准；spec 是工作记录和决策依据，不是实时状态表。**
 
 ## 目录结构
 
-```
+```text
 specs/
-├── README.md              ← 你在这里
-├── _templates/            ← spec 和任务包模板
-│   ├── idea-doc-template.md
-│   ├── task-package-template.md
-│   └── incremental-spec-template.md
-├── draft/                 ← 草稿 spec（待对抗性审查）
-├── active/                ← 进行中的 spec
-├── completed/             ← 已完成的 spec（归档）
-├── deprecated/            ← 被否决或废弃的 spec（方案变更、需求不再适用等）
-└── decisions/             ← 架构决策记录（ADR）
+├── README.md        本索引
+├── _templates/      idea / incremental spec / task package 模板
+├── draft/           草稿或待评审方案
+├── active/          已通过评审、正在实施
+├── completed/       已验收归档
+├── deprecated/      被否决或被新方案替代
+└── decisions/       ADR 与方法论决策
 ```
 
-## 工作流
+## Harness v2 工作流
 
-1. **新任务** → 从 `_templates/` 选模板，在 `draft/` 创建 spec
-2. **审查** → 通过对抗性审查后移入 `active/`
-3. **开发中** → spec 随开发推进不断回写（活 spec）
-4. **checkpoint** → 协作中发现的东西沉淀回 spec
-5. **完成后** → spec 从 `active/` 移到 `completed/`
-6. **废弃时** → spec 从 `active/` 移到 `deprecated/`（方案变更、需求不再适用等）
+1. 新任务在 `draft/` 创建 `YYYY-MM-DD_<slug>.md`，使用 `_templates/` 对应模板。
+2. 任何“缺失/未实现”声明先用源码、测试和运行结果核验；gap 文档只是假设。
+3. 所有 `[必填]` 章节填完后做对抗性评审。
+4. 评审通过后移入 `active/`，实现过程持续回写验证结果。
+5. 验收后移入 `completed/`，在 [CHANGELOG](../docs/CHANGELOG.md) 记录行为变化。
+6. 方案失效或被替代时移入 `deprecated/`，不要留在 active。
 
-## Spec 文件命名规范
+MoonBit AOT 约束：运行期热加载扩展不能实现 trait，命令式扩展行为使用 shell command。crescent 的 PATCH/PUT/DELETE 等能力必须查源码确认后再写入 spec。
 
-- 格式：`YYYY-MM-DD_<short-slug>.md`
-- 日期为创建日期
-- slug 用 kebab-case
+## 当前状态（2026-10-14）
 
-## Active Spec 索引
+- `specs/active/` 当前为空。
+- `specs/draft/` 当前包含 benchmark gate、journey runner、agent profile/system prompt 对齐，以及用户场景自动化设计等待评审/待实施方案。
+- `specs/completed/` 保存已交付批次；不要在 README 重复维护其大表或历史测试数字。
+- `specs/decisions/` 是长期事实来源，包括 Harness v2 与 typed engine protocol leaf boundary。
 
-**当前无活跃 spec**（核对于 2026-09-23）。2026-08-18 批次的 28 份 P5/P6 差分对齐 spec（16 份 P5 BUG 修复 + 12 份 P6 矩阵残留簇）已全部实现并归档至 `specs/completed/`，`specs/active/` 已清空。新的开发任务从 `specs/draft/` 起草。
+需要了解当前功能和缺口时，优先读：
 
-> 历史：上一批活跃 spec 为 2026-07-27 的 T01~T18（gap 分析 18 项），已于 2026-07-27~29 全部完成归档。
+- [项目状态](../docs/project-status.md)
+- [测试体系](../docs/testing.md)
+- [真话台账](../docs/known-gaps.md)
+- [优化提升计划](../docs/improvement-execution-plan.md)
 
-## 最近归档 Spec
+## 命名与模板
 
-### 2026-08-21 - P5 差分修复收尾批次（7 项完成 + 总览归档，`specs/active/` 清空）
+| 模板 | 用途 |
+|---|---|
+| `idea-doc-template.md` | 0→1 方向/问题定义 |
+| `incremental-spec-template.md` | 1→N 增量变更 |
+| `task-package-template.md` | 一轮可执行任务切片 |
 
-| Spec | 名称 | 关键实现 | 测试 |
-|------|------|---------|------|
-| 23 | 可观测性统计字段（P5） | BUG-0006 三协议聚合器补 frames_seen/bytes_seen/parse_failures/saw_done + approximate_output_tokens；BUG-0051 usage 补 cached_tokens 兜底（stream-020 断言=50）；BUG-0034 Latency 7 字段（duration_ms/ttft_ms/tps 等）测量挂载 assistant 消息；BUG-0035 wire 层补 display_text/display_files；known_failure 移除 BUG-0006，stream-005/007/011/012/013/019 统计断言转绿 | test/diff 145/145、test/e2e 14/14、lib/client 123/123、lib/agent 471/471、lib/message 63/63 ✅ |
-| 24 | 工具错误 tool_result JSON（P5） | BUG-0040 build_error_result/build_denied_result 输出标准 JSON；wbtest 补 JSON parse + 特殊字符往返 + denied 三字段断言；e2e 014 assert_tool_results_valid_json 闸门移除转绿；known_failure 移除登记 | e2e 014 转绿 ✅ |
-| 25 | write 工具边界检查（P5） | BUG-0003 空检查改 trim（纯空白报 "Path cannot be empty"）；BUG-0002 新增 is_dir 预检；BUG-0047 父目录递归创建；write_004 冻结期望按决策 2 修正；known_failure 移除 3 编号 | lib/tool 395 绿、test/diff 145/145、全量 3881 绿 ✅ |
-| 26 | edit 工具对齐（P5） | BUG-0044/0045/0046 分层匹配/参数校验/UTF-8 健壮性（edit.mbt 重构 + 新增 string_matcher.mbt 247 行） | lib/tool 全绿 ✅ |
-| 27 | 路径处理补全（P5） | BUG-0005/0008 ~user 解析对齐（"user X doesn't exist"，~\foo 同步按 ~user 解析）；BUG-0007 经台账核验判定无效（不修，台账与实测证据不符） | test/diff 145/145 ✅ |
-| 28 | 平台 HTTP failover 域名（P5） | BUG-0031 三域 failover 链补齐 | lib/client 全绿 ✅ |
-| 29 | Session Context 对齐（P5） | BUG-0033 OS 探测/Desktop/session_date 按日去重 | lib/agent 全绿 ✅ |
-| 01 | 矩阵残留 Backlog 总览（索引） | 28 份子 spec 全部归档后，总览索引一并移入 `specs/completed/`，`specs/active/` 清空 | 全量 3843/3843 ✅、moon check 0 errors/0 warnings |
-
-### 2026-08-21 - e2e 链路层补全（P3 收尾，1 项完成）
-| Spec | 名称 | 关键实现 | 测试 |
-|------|------|---------|------|
-| 22 | e2e 链路层补全（P6） | mock 新增 malformed 类型（frames 原始帧逐字节透传）+ finish_override 字段（content/tool_calls 收尾帧）；011 剧本重写混排 4 类畸形帧 + A 级断言回填（status=success/1 请求/final_text）；012 剧本真实下发 stop+tool_calls + 断言重导（2 请求/exit=0）；005 fixture 磁盘化 `test/e2e/fixtures/big.txt` 315000B 与 diff-harness FIXTURES 逐字节一致（删内存生成函数） | test/e2e 14/14 ✅、moon check 0 errors |
-
-### 2026-08-19 — 配置加载对齐 + 消息会话持久化对齐 + 核心循环与 subagent 对齐（3 项完成）
-
-| Spec | 名称 | 关键实现 | 测试 |
-|------|------|---------|------|
-| 13 | 核心循环与 subagent 对齐（P6） | length 截断恢复（丢 tool_calls + 详细提示 + 3 次致歉 Success）；fake tool call 大小写不敏感正则 + 超限 Error；空响应重试下沉 llm_caller 且排除 stop/length；400 置 pending_error_rollback；fork_subagent 全链路（config 继承/覆盖、lite、forbidden/allowed 执行期拦截）；fan_out/fan_out_labeled（Ruby Fanout 语义 + 超时取消保持 None）；决策 6：AgentPool 移除、max_iterations 上限 200、check_stale! 豁免记录 | lib/agent 434/434 ✅、全量 3773/3773 ✅ |
-| 12 | 配置加载对齐（P5） | 决策 1 选项 B：max_tokens 判原版缺陷（CONFIG_SETTINGS_KEYS/to_yaml 双双遗漏），MB 保留加载/保存，config-002/011 冻结 MB 行为（8192/4096）；from_toml 自动锚定 current_model_id（default badge 优先，回退第一个模型，BUG-0014）；switch_model_by_id 失败消息对齐 "model not found"（BUG-0020）；config-012 断言修正 false、BUG-0013 关闭为语义等价；known_failure 移除 5 编号 | lib/config 139/139 ✅、test/diff 145/145 ✅、全量 3756/3756 ✅ |
-| 11 | 消息格式与会话持久化对齐 | `Agent.history` 迁移 `MessageHistory`（"(interrupted)" 配对修复 + reasoning pad + rollback 身份语义 + task_chain 过滤）；会话 ID 随机 hex + 文件名日期前缀 + 旧格式兼容；三级清理策略（pinned 豁免 → 软删除 → 回收站）；restore_session_enhanced 生产接线（todos/time_machine/channel_info/previous_total_tokens 恢复 + system prompt 刷新 + 错误回滚）；列表 updated_at 降序 + 前缀匹配；fork 保留 time_machine；`compress_old_sessions_if_needed` 移除（裁决）；全文搜索 snippet + 5000ms 软超时；ZIP 导出导入保留（MB 超集，记录豁免） | lib/agent 417/417 ✅ |
-
-### 2026-08-05 — TUI 全面对齐原版（4 项完成）
-
-| Spec | 名称 | 关键实现 | 测试 |
-|------|------|---------|------|
-| 00 | 总览（决策反转） | 推翻 tui-parity-08"刻意差异"定位：布局/命令语义完全对齐 openclacky ui2 v1.5.4 | — |
-| 01 | 布局对齐 | `brand_layout.mbt` 单一布局（状态栏置底/无框输入区）；`output_buffer.mbt` live_display_lines/commit_oldest_display_lines；commit-scrollback 滚动模型；todo 自动显隐；tips 2s 自动消失；鼠标捕获退役 | 3280/3280 ✅ |
-| 02 | 命令语义对齐 | `/clear` 新会话语境（reset_session + idle_timer rebind）；`/undo` 交互菜单 + redo（switch_to_task）；`/model` 两级抽屉 + 持久化；`/config` 连接测试 + 摘要；`?` = `/help`；技能动态斜杠命令 | 3280/3280 ✅ |
-| 03 | 扩展功能取舍 | 删除 `/new` `/todo` `/meeting` `/skills`、`/config key value`、文件浏览 + shell 模式、ClaudeCodeLike/Compact 模板、鼠标捕获；保留 `/theme`、Ctrl+Y、GFM 表格、输出折叠、上下文建议、Ctrl+L、`--tui-eval` | tui-eval 46/46 ✅ |
-
-人工确认项：SPEC-01 并排运行原版对比；SPEC-02 C4 连接测试真实网络、C6 真实 LLM 技能调用。
-
-### 2026-07-29 — Agent 增量 Spec（8 项完成）
-
-| Spec | 名称 | 关键实现 | 测试 |
-|------|------|---------|------|
-| 01 | Session Context 注入 | `react.mbt:build_session_context()` — per-run 动态注入日期/星期/OS/工作目录 | 318/318 ✅ |
-| 02 | reasoning_content 字段 | `LlmResponse.reasoning_content` + OpenAI/Anthropic/Bedrock 流式聚合 | 318/318 ✅ |
-| 03 | 空响应检测 | `react_loop_async` 空 content 重试机制（含 thinking-mode 静响应） | 318/318 ✅ |
-| 04 | compression_threshold 配置 | `AgentConfig.compression_threshold` → `needs_compression()` 使用配置值 | 318/318 ✅ |
-| 05 | 压缩失败回滚 | `compress_with_safety` 失败时 `compression_level - 1` | 318/318 ✅ |
-| 06 | URL Fallback | `try_url_fallback()` — 重试耗尽后切换备用 Base URL | 318/318 ✅ |
-| 07 | Idle 压缩定时器 | `IdleCompressionTimer` — run 完成后启动，新输入取消，266s 触发 | 318/318 ✅ |
-| 08 | Skill Evolution 集成 | `run_skill_evolution_hooks()` — 成功 run 后自动检测模式 | 318/318 ✅ |
-
-### 2026-09-21 — 收尾批次（wrap-up T1–T13）
-
-| Spec | 名称 | 关键实现 | 判据 |
-|------|------|---------|------|
-| 01 | 真话卫生 + 会话日志接线 + `cmd eval` | 数字单一事实来源（`scripts/repo_stats.sh`，三份文档同一生成块 + CI 校验）；版本四处对齐 0.2.0；TUI 路径 flush 会话日志；压缩投影为 `summary` 记录（append-only 字节保全不变）；确定性 tool_harness + `cmd eval --offline`（评分向量进 CI，`--live` 按 D1 诚实 exit 1）；顺带定位并修复两条既有红：CI 裸 `moon test` 跑到 vendor/mbtpdf 的自带单测（ICE）、Dockerfile 断言了不含模块命名空间的产物路径 | 本地 `moon check` 0/0、警告预算 0、台账 162/162、`moon test --release` 3818/3818；CI 复验为绿（run `35565534593`，2026-08-28 以来首次）；Docker 复验为绿（run `35566838562`） |
-
-归档文档：`specs/completed/2026-09-21_wrap-up-truth-hygiene-and-eval.md`
-（含决策 D1–D4、6 处对原计划的第一性原理修正，以及 CI/Docker 两条既有红因的定位过程）。
-
-### 2026-09-22 — 优化提升执行计划批次（P0/P1 主线闭环 + 2 个 P2 卫生项）
-
-> 本节为**补记**：该批次此前未回填到本索引（上一节停在 2026-09-21）。逐项的验证判据与实测数字见 `docs/CHANGELOG.md` 对应条目，避免在两处重复维护易漂移的数字。
-
-| Spec | 名称 |
-|------|------|
-| `2026-09-22_wp-1.1-feishu-wiring.md` | 飞书 send/receive 接线 |
-| `2026-09-22_wp-1.2-1.4-channel-send-wiring.md` | 钉钉 · 企微 · 微信 send 接线（微信含 AES-128-ECB 加密原语） |
-| `2026-09-22_wp-1.6-message-edit-delete-wiring.md` | 全平台 update/delete_message 接线（`Adapter` 扩 `delete_message` + 6 平台分发） |
-| `2026-09-22_wp-2.1-gep-skill-reflector.md` | GEP SkillReflector 做实（LLM 驱动反思 + 进化日志 + Web 端点） |
-| `2026-09-22_wp-2.2-live-model-eval.md` | `cmd eval --live` 真模型评测接线（含首次真模型运行报告） |
-| `2026-09-22_wp-3.1-legacy-session-readonly-projection.md` | 旧会话只读迁移投影（参考机会话 1/32 → 32/32 可列出；只读，不改写文件） |
-| `2026-09-22_wp-3.2-web-session-jsonl-event-stream.md` | Web 会话 JSONL 事件流（`SessionLogProducer` 下沉 `lib/agent`，三端均可离线回放） |
-| `2026-09-22_wp-3.3-mcp-http-transport.md` | MCP HTTP 传输接线（Streamable HTTP / SSE，13 条真实 socket 测试 + `McpClient` 端到端握手） |
-| `2026-09-22_channel-config-single-source-of-truth.md` | 渠道配置单一真相源贯通（配置路径 → 运行时 → Web 面板 → channel-manager 技能） |
-| `2026-09-22_leftover-hygiene-and-connectivity-probes.md` | 渠道连通性探针真实化 + 遗留卫生清理 |
-
-**无 spec 的收尾批次（如实登记）**：WP-3.4（性能基准真执行）、WP-3.5（Windows `lib/mcp` 挂死）、WP-3.6（TUI 协议面，结论为维持现状）
-于 2026-09-23 以代码提交 `3e4f567` 直接闭环，未走 `specs/draft → 对抗评审 → active` 流程（P2/P3 卫生项例外，偏差与复验证据记录在
-`docs/improvement-execution-plan.md` §3）。全部 17 个工作包已闭环，逐项状态见该表；剩余候选见 `docs/improvement-roadmap.md` §4–§5。
-
-## 模板说明
-
-| 模板 | 用途 | 适用场景 |
-|------|------|---------|
-| `idea-doc-template.md` | 0→1 启动 spec | 全新功能/项目，目标还不清楚时 |
-| `incremental-spec-template.md` | 1→N 增量 spec | 在现有系统上修改/修复 |
-| `task-package-template.md` | 任务包 | 每轮具体执行的任务切片 |
+文件名使用 `YYYY-MM-DD_<kebab-case-slug>.md`；日期是创建日期，slug 描述目标而不是过程。

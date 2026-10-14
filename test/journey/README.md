@@ -13,7 +13,7 @@ E2E，与层 4 的单步场景回放互补：层 4 验证界面单步行为，�
 ```bash
 moon build --target native --release cmd
 BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
-"$BIN" journey --repo .            # 全量 18 条旅程
+"$BIN" journey --repo .            # 全量 23 条旅程（Web 9 / TUI 5 / CLI 9）
 "$BIN" journey --repo . --filter cli_ --verbose   # 只跑 CLI 面
 ```
 

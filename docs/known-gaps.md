@@ -13,22 +13,18 @@
 
 > 已修复条目（`fixed`）归档至 [`docs/resolved-gaps.md`](resolved-gaps.md)，不再参与本文的 CI 校验。
 
-## 已知环境问题（非代码 TODO，人工维护）
+## 当前边界与环境说明（人工维护）
 
-| 问题 | 现象 | 影响与处置 |
+| 问题 | 现象 | 状态与处置 |
 |---|---|---|
-| `moon test`（debug）编译器 ICE | moonc ≥ v0.10.11（20260827+ 工具链）链接测试二进制时报 `Machine_error(kind=unsupported; ... "unit runtime pccall cannot be used as a scalar value")`（bobzhang/mbtpdf pdfpage 触发） | **范围限定**：ICE 仅在裸 `moon test`（含 vendor/mbtpdf 自身测试）时触发。CI 的 scoped 命令（`lib cmd test` minus `lib/mcp`）排除 vendor 包，debug 模式全绿（2026-09-23 复验）。CI 已改回 debug 模式以加速编译（2-3×）。若需跑裸 `moon test`（含 vendor），仍需 `--release` |
-| Windows 本机 release 测试挂起（lib/mcp） | 曾在 Windows 本机挂起于 `lib/mcp/mcp.whitebox_test.exe`：近零 CPU、无子进程产出（stdio 的 python3 集成测试停住），Linux CI 该包一直全绿 | **已解（2026-09-23，WP-3.5，commit `3e4f567`）**：根因是 Windows 命名管道上 `read_until("\n")` 阻塞 async fiber，而 `task.cancel()` 是协作式取消、无法中断阻塞 I/O ⇒ `with_task_group` 永久等待读循环任务。**处置**：该集成测试运行时检测 Windows 即跳过，根因写在测试注释里（不是掩盖——跳过的只是 Windows 上的进程级集成面，HTTP/JSON-RPC/registry 测试照跑）。**复验**：`moon test --release lib/mcp` 96/96，本模块全包（`lib cmd test`）4,069/4,069，Windows 本机全量测试不再需要排除该包。仍存的上游缺口：`@async` 在 Windows 上对阻塞管道读的取消语义，若将来要在 Windows 覆盖 stdio 传输集成测试需另案 |
-| wasm-gc 目标 | `moon test --target wasm-gc` 因 tty/crescent 的 native FFI 失败 | 本期以 native 为唯一验收目标；wasm 仅 `moon check`（非阻塞） |
-| 真模型评测波动 | mock LLM 测试无法回答"真模型能否干活" | **已接线（2026-09-22，WP-2.2）**：`cmd eval --offline` 给工具层一个可复现判据（3 任务 × 2 次重复，进 CI）；`cmd eval --live` 用真实 ReAct 循环跑 `test/capability/tasks/`（10 任务 × 3 次重复）并产出评分向量 + 报告（`docs/eval/<date>.md`，不进 CI）。**首次真模型运行（deepseek-flash @ api.deepseek.com）**：12/12 trial 全通过、33/33 断言、可重复性 1.0、0 基础设施失败、97,130 token；本次**如实说明**：任务集小且偏基础，全通过只说明链路与模型可用，不构成"模型强"的证据（成本列因该模型无定价条目记为 0，token 用量为真实成本代理） |
-| 旧会话文件兼容性 | 参考机器 `~/.mbopenclacky/sessions/` 有 32 个 `.json`，`--list` 曾仅列出 1 个（`list_sessions` 静默跳过解析失败/软删除的文件）；原因包括旧 `tool_calls` schema 不匹配（旧 Option 序列化器把 `Some(x)` 写成 `[x]`，`tool_calls` 因此成为 `[[...]]`，解码报 `ToolCall: expected object`）与文件根本不是 JSON（早期构建把 `Json` 的 Debug-repr 写进 `.json`） | **已修（2026-09-22，WP-3.1 只读迁移投影）**：新增 Debug-repr 投影（`lib/agent/session_legacy_repr.mbt`，repr → `Json`，解析不到底返回 `None` 而非猜测）+ 放宽旧 Option 包装与缺字段容忍；参考机 **32/32 全部可列出**，`cmd inspect` 两种旧格式都给出时间线。**只读**：文件字节不变，不做就地改写（按 WP 决策，schema 迁移=只读投影，非重写既有文件）。参考机上仍无上游 Ruby 会话样本，故对上游原始文件的端到端比对仍属未验证的诚实缺口（README 已如实标注） |
-| P1-1 协议接入面（TUI） | `lib/protocol` 已接入 Web（`ws_frame` + 全部事件构造）与 CLI（`--ndjson` 事件流 + `cmd inspect` 渲染），TUI 仍直接消费引擎 `HookEvent`（其富状态机需要 wire 有意丢弃的原始信息：tool args 原始字符串、MessageAdded/AfterIteration 区分） | 计划风险表预案"先抽协议 + 保留适配层，不做大爆炸式替换"；TUI 的 HookEvent 匹配仍是穷尽的（新增引擎事件即编译失败）。如需 TUI 也绑定 wire 词表，见 `specs/decisions/` ADR-0001 的后续项 |
-| P2 能力评测分层 | `test/eval/eval_engine.mbt` 是通用场景引擎；确定性 `tool_harness` 与真模型 `cmd eval 5×3` 的落地状态 | **两层均已落地（2026-09-22，WP-2.2）**：确定性层 `test/eval/tool_harness.mbt` + `cmd eval --offline`（3 任务 × 2 重复，进 CI）；真模型层 `test/eval/live_harness.mbt` + `test/capability/tasks/`（10 任务 × 3 重复，不进 CI），两层共用同一任务 schema（真模型层追加 `prompt`/`acceptance`/`trials`）与同一 `checks`/评分向量。任务集扩充（目标 20~30 条）仍在路线图内 |
-| 真模型评测的 stdout 诊断污染 | 流式调用每次收尾打印一行 `[stream-summary]`（`lib/agent/llm_caller.mbt:685`），其注释与所依据的 spec（`2026-08-18_02` 决策 5）都写"visible in stderr"，实际却走 `println`（stdout） | **范围外（WP-2.2 发现并如实登记）**：影响一切机器可读 stdout（`-m --json`、`eval --live`）。本 WP 未改共享诊断路由（MoonBit core 无 stderr 原语，`eprintln` 属 async 内部包，改用文件 logger 会失去控制台可见性），改为**如实声明契约**：`eval --live` 的 JSON 是 stdout **最后一行**，且另存 `_build/capability/results/<stamp>/score.json`。修复该行需要专门的诊断路由决策 |
-| Web 会话不产 JSONL 事件流 | `attach_session_log` 只接在 CLI 路径（`--message` 与 TUI，T5 后两者对称）；Web 会话主体仍是整份 JSON CRUD | **已修（2026-09-22，WP-3.2）**：`SessionLogProducer` 下沉 `lib/agent/session_log.mbt` 为值类型，`lib/web/handlers_ws.mbt` 的 per-session `WsSessionState` 持有独立 producer——hook 闭包在广播前旁路喂全部引擎事件（抑制是 UI 呈现决策，日志记录引擎实际所见），四个 run 退出路径（成功/错误 × 异步/同步回退）在 `save_session` 同位 flush。**实测**（隔离 home + 本地 mock 上游，端口 7073）：Web 会话运行后产出 `<sessions>/<id>.jsonl`（version 头 + seq 连续事件），成功与错误路径均落盘，`cmd inspect` 可回放；空缓冲不建文件。压缩→Summary 追加与原字节保全由 `lib/agent` 单测断言 |
-| 技能进化未接面板 UI | WP-2.1 已接线两端点（`POST /api/skills/:name/evolve`、`GET /api/skills/evolution/history`）且返回真实数据，但 `web/features/skills/` 无调用方（端点仅由 API/脚本/agent 使用） | **有意识为之**：面板没有技能执行证据可提交，若加"优化"按钮就只能提交空证据或伪造证据，反而制造新的假成功；WP-2.1 的 DoD 以"可被 Web 查询"为准。面板展示进化历史需新增 i18n 键 + 渲染 + CSS，属独立 UI 任务，**本 WP 显式范围外**（见 `specs/completed/2026-09-22_wp-2.1-gep-skill-reflector.md` 决策 6） |
-| 技能执行台账缺失 | 全仓无技能↔执行记录（`skill_usage`/`SkillExecution` 等符号 0 命中），故 `Agent::run_skill_evolution_hooks` 只跑 `AutoDetect`，`PostExecution` 分支在运行期无调用方 | **范围外**：反思证据因此必须由调用方提供（`transcript` 必填，缺失返回可诊断 400）。把 PostExecution 接入 agent 运行期需先建技能执行台账，属独立 WP |
+| 裸 `moon test` 不是验收命令 | `moon.work` 含 vendored workspace members，会连带运行依赖自身测试；部分测试在当前工具链上失败或触发 ICE | 本仓库只用 scoped `lib cmd test` 命令；CI 主步另排除 `lib/mcp` 并单独运行。依赖测试不是本仓回归面 |
+| wasm-gc | tty/crescent/PTY/MCP/browser 等路径含 native FFI 或 wasm 回退 | native 是正式验收目标；wasm-gc 只跑 `moon check` |
+| 真模型评测覆盖 | 离线层已进 CI，真模型层有 10 条任务，但任务集仍偏基础且随机 | `cmd eval --live` 已接线；下一步扩充到 20–30 条并与 Ruby 上游做同参数对标。单次全通过不代表模型能力强 |
+| 上游 Ruby 会话样本 | 本地旧 JSON/Debug-repr 已只读兼容，但没有上游 Ruby 原始会话样本做端到端比对 | 只读投影已验证；上游兼容面仍待样本和双侧测试 |
+| TUI 协议接入面 | Web/CLI 使用 wire 词表，TUI 直接消费引擎 `HookEvent` | 有意边界，见 ADR-0001；不要把 wire 投影丢字段的问题转成 TUI 回归 |
+| 技能进化 UI/执行台账 | 进化 API 已可用，但面板无执行证据；运行期没有 SkillExecution 台账，`PostExecution` 无生产调用方 | 有意限制。没有真实证据时不提供假成功按钮；接台账是独立工作项 |
 
+已解决的历史环境问题（Windows `lib/mcp` stdio 集成、Web JSONL、旧会话投影等）记录在 [CHANGELOG](CHANGELOG.md)、`specs/completed/` 和 [resolved-gaps](resolved-gaps.md)，不再重复列为当前缺口。
 <!-- BEGIN: auto-scan (regenerated by scripts/known_gaps.sh; do not edit) -->
 
 扫描范围：`lib/` + `cmd/` 产品代码（排除 `*_wbtest.mbt`/`*_test.mbt`）。模式：`TODO` `FIXME` `not implemented` `not yet` `placeholder` `stub`。裸 `Err(` 不计为缺口（MoonBit 标准错误构造，裸扫会命中全仓所有合法错误返回），仅当同行携带 stub 短语时经由上述模式命中。

@@ -1,395 +1,223 @@
-# MBOpenClacky 快速入门指南
+# MBOpenClacky 快速入门
 
-MBOpenClacky 是一个用 MoonBit 编写的 AI 编程助手（Agent），支持多种 LLM 提供商，可在终端或 Web UI 中运行。
+本文只覆盖安装、配置、运行和常见故障。功能边界见 [项目状态](project-status.md)，测试命令见 [测试体系](testing.md)。
 
----
+## 1. 环境要求
 
-## 环境要求
+| 依赖 | 要求 | 说明 |
+|---|---|---|
+| MoonBit | `moon 0.1.20260629+` | 构建与测试工具链 |
+| Node.js | `node` 可执行 | `moon.mod` 的 pre-build 脚本需要它 |
+| C 编译器 | Windows: MSVC Build Tools；Linux: gcc/clang；macOS: Xcode CLT | native 后端 |
+| OpenSSL 开发库 | Linux/macOS 需要 `libcrypto`；Windows 自动使用 BCrypt/CNG | `lib/brand` 的 AES-256-GCM 与 CSPRNG |
+| API 配置 | 至少一个可用模型 | 环境变量或 `config.toml` |
 
-| 依赖项 | 最低版本 | 说明 |
-|--------|----------|------|
-| MoonBit 工具链 | moon 0.1.20260629+ | 编译器与构建系统 |
-| C 编译器 | Windows: MSVC Build Tools v18+ / Linux: gcc / macOS: Xcode CLT | native 后端所需 |
-| OpenSSL 开发库 | libssl-dev (Debian/Ubuntu) / openssl-devel (Fedora) / LibreSSL (macOS 自带) | brand 包 AES-256-GCM + CSPRNG C FFI 所需（仅 POSIX；Windows 走 BCrypt/CNG 自动链接） |
-| API 密钥 | 任意支持的提供商 | 至少配置一个 |
+安装 MoonBit：[官方下载页](https://www.moonbitlang.com/download/)。安装后运行 `moon version` 确认可用。
 
----
-
-## 安装步骤
-
-### 1. 安装 MoonBit
-
-访问 [https://www.moonbitlang.com/download/](https://www.moonbitlang.com/download/) 下载并安装 MoonBit 工具链。
-
-安装后验证：
+POSIX 系统常用依赖：
 
 ```bash
-moon version
-```
+# Debian/Ubuntu
+sudo apt-get install build-essential libssl-dev nodejs
 
-### 2. 获取依赖
+# Fedora
+sudo dnf install gcc make openssl-devel nodejs
 
-```bash
-moon update
-```
-
-### 3. Windows MSVC 环境配置
-
-Windows 平台构建 native 目标需要 MSVC C++ 编译器环境。
-
-**自动配置（推荐）：**
-
-项目提供的 `scripts/install.ps1` 脚本会自动通过 vswhere 检测 Visual Studio Build Tools 安装路径，并调用 `vcvarsall.bat` 激活 MSVC 环境：
-
-```powershell
-.\scripts\install.ps1
-```
-
-**手动配置：**
-
-1. 安装 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)，勾选以下工作负载：
-   - MSVC v143 - VS 2022 C++ x64/x86 build tools
-   - Windows 10/11 SDK
-
-2. 激活 MSVC 环境（每次新开终端都需要）：
-
-```powershell
-# 方式一：使用 Developer Command Prompt（开始菜单搜索 "x64 Native Tools Command Prompt"）
-
-# 方式二：在 PowerShell 中手动激活
-cmd /c "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
-```
-
-> **提示：** Linux/macOS 用户无需此步骤，gcc/Xcode CLT 通常已默认配置好。
-
-### 4. 构建
-
-**构建 native 可执行文件（推荐 release 模式）：**
-
-```bash
-# 显式指定 cmd 包构建，避免 moon #1488 bug
-# （裸 moon build 会尝试链接 lib/brand 库包为独立可执行文件，因无 main 函数而失败）
-moon build --target native --release cmd
-```
-
-构建产物路径：`_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（release，约 3.6MB）。
-
-> **路径说明**：moon 的发布树按 `<author>/<module>` 分层，本模块为 `hnlyxiaobing/MBOpenClacky`（见 `moon.mod`），因此产物在 `build/hnlyxiaobing/MBOpenClacky/cmd/` 下而非 `build/cmd/`。硬编码 `build/cmd/cmd.exe` 的旧路径恒不存在（Dockerfile 曾因此构建失败，见 `docs/known-gaps.md`）。Linux/macOS 上可执行文件名为 `cmd`（无 `.exe`）。
-
-**Debug 构建（体积更大，约 8MB，含调试符号）：**
-
-```bash
-moon build --target native cmd
-```
-
-> **重要**：始终使用 `moon build ... cmd`（显式指定 cmd 包），而非裸 `moon build`。这是因为 `lib/brand` 包含 `link: {}` 块会触发 [moon#1488](https://github.com/moonbitlang/moon/issues/1488)，导致 moon 尝试将库包链接为独立可执行文件而失败。
-
-> **注意**：`moon build --target wasm-gc` 因 `moonbit-community/tty` 和 `crescent` 的 FFI 依赖不可用。请使用 `moon check` 进行类型验证。
-
-### 5. 配置 API 密钥
-#### 方式一：环境变量（推荐快速开始）
-
-```bash
-# 优先级从高到低：CLACKY_* > OPENCLACKY_* > CLAUDE_* > MBOPENCLACKY_*
-
-# 推荐前缀
-export CLACKY_API_KEY="your-api-key-here"
-export CLACKY_BASE_URL="https://api.anthropic.com"
-export CLACKY_MODEL="claude-sonnet-4-6"
-
-# 或使用 OpenClacky 托管服务
-export CLACKY_API_KEY="your-openclacky-key"
-export CLACKY_BASE_URL="https://api.openclacky.com"
-export CLACKY_MODEL="abs-claude-sonnet-4-6"
-```
-
-**Windows PowerShell：**
-
-```powershell
-$env:CLACKY_API_KEY = "your-api-key-here"
-$env:CLACKY_BASE_URL = "https://api.anthropic.com"
-$env:CLACKY_MODEL = "claude-sonnet-4-6"
-```
-
-#### 方式二：TOML 配置文件
-
-创建 `~/.mbopenclacky/config.toml`：
-
-```toml
-[settings]
-permission_mode = "auto_approve"   # auto_approve | suggest | deny
-max_tokens = 16384
-verbose = false
-enable_compression = true
-enable_prompt_caching = true
-memory_update_enabled = true
-max_running_agents = 4
-max_idle_agents = 2
-current_model_id = "anthropic-sonnet"
-# proxy_url = "http://127.0.0.1:7890"
-# fallback_model = "claude-haiku-4-5"
-# compression_threshold = 10000
-# default_working_dir = "."
-
-[[models]]
-id = "anthropic-sonnet"
-type = "anthropic-messages"
-api_key = "your-api-key-here"
-base_url = "https://api.anthropic.com"
-model = "claude-sonnet-4-6"
-anthropic_format = true
-
-# 可配置多个模型，通过 current_model_id 切换
-# [[models]]
-# id = "openai-gpt"
-# type = "openai-completions"
-# api_key = "your-openai-key"
-# base_url = "https://api.openai.com/v1"
-# model = "gpt-5.5"
-```
-
-### 6. 运行
-
-```bash
-# 单条指令模式
-moon run cmd -- --message "列出当前目录的文件" --mode auto_approve
-
-# 交互模式（TUI）
-# 推荐：直接运行编译好的二进制（moon run cmd 包装器在某些终端下可能不启动 TUI）
-./_build/native/debug/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
-
-# 或使用 moon run（可能在无头终端下不启动 TUI）
-moon run cmd
-
-# Web 服务器模式（默认端口 7071，与原版 OpenClacky 的 7070 区分）
-moon run cmd -- server
-
-# 或直接运行已构建的 release 二进制
-./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe server
-```
-
-**Web 服务端口**：默认 **7071**（与原版 OpenClacky 的 7070 区分，避免端口冲突）。可通过环境变量 `MBOPENCLACKY_WEB_PORT` 覆盖：
-
-```bash
-MBOPENCLACKY_WEB_PORT=8080 moon run cmd -- server
-```
-
-**绑定地址与安全闸门**：默认仅绑定 `127.0.0.1`（回环地址），仅本机可访问。需要局域网或公网访问时设置 `MBOPENCLACKY_WEB_HOST=0.0.0.0`，但此时**必须**同时设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务器拒绝启动：
-
-```bash
-# 公网/局域网部署（必须设 API key）
-export MBOPENCLACKY_WEB_API_KEY="$(openssl rand -hex 32)"
-export MBOPENCLACKY_WEB_HOST=0.0.0.0
-moon run cmd -- server
-```
-
-启动后浏览器访问 `http://localhost:7071` 即可使用 Web UI。
-
----
-
-## 配置参考
-
-### TOML 字段说明
-
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `permission_mode` | string | `"suggest"` | 权限模式：`auto_approve` / `suggest` / `deny` |
-| `max_tokens` | int | `16384` | 单次响应最大 token 数 |
-| `verbose` | bool | `false` | 是否启用详细日志输出 |
-| `enable_compression` | bool | `true` | 是否启用对话上下文压缩 |
-| `enable_prompt_caching` | bool | `true` | 是否启用 prompt 缓存 |
-| `memory_update_enabled` | bool | `true` | 是否允许 Agent 更新记忆 |
-| `max_running_agents` | int | `4` | 最大并发运行 Agent 数 |
-| `max_idle_agents` | int | `2` | 最大空闲 Agent 数 |
-| `current_model_id` | string | — | 当前使用的模型 ID |
-| `proxy_url` | string | `""` | HTTP 代理地址 |
-| `fallback_model` | string | `""` | 降级模型 ID |
-| `compression_threshold` | int | `10000` | 触发压缩的 token 阈值 |
-| `default_working_dir` | string | `"."` | 默认工作目录 |
-
-### 环境变量前缀
-
-支持以下四种前缀，优先级从高到低：
-
-| 前缀 | 用途 |
-|------|------|
-| `CLACKY_*` | 项目专用（最高优先级） |
-| `OPENCLACKY_*` | 旧版兼容 |
-| `CLAUDE_*` | ClaudeCode 兼容 |
-| `MBOPENCLACKY_*` | 旧版兼容（最低优先级） |
-
-**常用环境变量：**
-
-| 变量名 | 说明 |
-|--------|------|
-| `<PREFIX>_API_KEY` | API 密钥 |
-| `<PREFIX>_BASE_URL` | API 端点 URL |
-| `<PREFIX>_MODEL` | 模型名称 |
-| `<PREFIX>_PROVIDER` | 提供商类型 |
-| `<PREFIX>_PROXY_URL` | HTTP 代理地址 |
-| `<PREFIX>_FALLBACK_MODEL` | 降级模型名称 |
-| `<PREFIX>_MAX_TOKENS` | 最大 token 数 |
-| `<PREFIX>_COMPRESSION_THRESHOLD` | 压缩触发阈值 |
-
----
-
-## 支持的 Provider
-
-MBOpenClacky 内置 13 个 Provider 预设：
-
-| # | Provider ID | 名称 | API 协议 | 默认模型 |
-|---|-------------|------|----------|----------|
-| 1 | `openclacky` | OpenClacky | Bedrock | `abs-claude-sonnet-4-6` |
-| 2 | `openrouter` | OpenRouter | OpenAI Responses | `anthropic/claude-sonnet-4-6` |
-| 3 | `anthropic` | Anthropic (Claude) | Anthropic Messages | `claude-sonnet-4-6` |
-| 4 | `openai` | OpenAI (GPT) | OpenAI Completions | `gpt-5.5` |
-| 5 | `deepseekv4` | DeepSeek V4 | OpenAI Completions | `deepseek-v4-pro` |
-| 6 | `deepseek` | DeepSeek (Legacy) | OpenAI Completions | `deepseek-chat` |
-| 7 | `qwen` | Qwen (Alibaba) | OpenAI Completions | `qwen3.7-max` |
-| 8 | `glm` | GLM (Z.ai / Zhipu) | OpenAI Completions | `glm-5.1` |
-| 9 | `kimi` | Kimi (Moonshot) | OpenAI Completions | `kimi-k2.6` |
-| 10 | `kimi-coding` | Kimi Code | Anthropic Messages | `kimi-for-coding` |
-| 11 | `minimax` | Minimax | OpenAI Completions | `MiniMax-M3` |
-| 12 | `mimo` | MiMo (Xiaomi) | OpenAI Completions | `mimo-v2.5-pro` |
-| 13 | `volcengine-ark` | Volcengine Ark | OpenAI Completions | `doubao-1.5-pro-256k` |
-
----
-
-## 安装脚本
-
-项目提供两个平台安装脚本，可自动检查前置依赖、安装 MoonBit 工具链、构建项目并输出配置指引。
-
-### install.sh（Linux/macOS）
-
-```bash
-chmod +x scripts/install.sh
-./scripts/install.sh
-```
-
-**脚本功能**：
-1. 检查 `moon` 命令是否可用，未安装时自动下载安装
-2. 检查 C 编译器（gcc/clang），缺失时提示安装命令
-3. 检查 `libssl`（`pkg-config openssl`），缺失时按发行版打印安装命令（HTTP 已迁到 `@async/http`，不再需要 libcurl）
-4. 执行 `moon update` 获取依赖（`moon install` 无参数形式已弃用：只打印警告并正常退出，依赖由 `moon update` 解析）
-5. 执行 `moon build --target native --release cmd` 构建项目，并在 `_build/native/release/build/` 下递归校验产物
-6. 输出配置指引（环境变量、TOML 配置文件路径）
-
-选项：`--yes|-y`（非交互）、`--install-moon`（缺失时自动装工具链）、`--target <native|wasm-gc>`。
-
-### install.ps1（Windows）
-
-```powershell
-.\scripts\install.ps1
-```
-
-**脚本功能**：
-1. 检查 `moon` 命令是否可用，未安装时自动下载安装
-2. 通过 vswhere 动态检测 Visual Studio Build Tools 安装路径（vswhere 不可见时回退到常见安装目录）
-3. 自动调用 `vcvarsall.bat x64` 激活 MSVC 环境
-4. 执行 `moon build --target native --release cmd` 构建项目，并递归校验 `cmd.exe` 产物
-5. 输出配置指引
-
-参数：`-ProjectRoot <path>`、`-AutoInstall`、`-Target <native|wasm-gc>`。
-
-### 已知局限性
-
-| 局限 | 影响 | 临时解决方案 |
-|------|------|------------|
-| 脚本只探测并提示 `libssl-dev`，不会自动安装系统包 | 未装 OpenSSL 开发库时 brand 包 AES-256-GCM 链接失败 | 手动安装：`sudo apt-get install libssl-dev`（Debian/Ubuntu） |
-| `MBOPENCLACKY_NO_OPENSSL` 调试桩不安全 | 非随机 nonce、全零密文；Windows 下绕过 BCrypt | 已通过编译期 `#error` + CI `check-crypto-build` 双重拦截，严禁进入 release |
-
-### 前置环境依赖清单
-
-| 平台 | 依赖 | 安装命令 |
-|------|------|---------|
-| Linux (Debian/Ubuntu) | gcc, make, libssl-dev | `sudo apt-get install build-essential libssl-dev` |
-| Linux (Fedora) | gcc, make, openssl-devel | `sudo dnf install gcc make openssl-devel` |
-| macOS | Xcode CLT (含 clang) | `xcode-select --install` |
-| Windows | MSVC Build Tools v18+ | 从 [VS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 下载安装 |
-| 所有平台 | MoonBit 工具链 0.1.20260629+ | `curl -fsSL https://cli.moonbitlang.com/install/unix.sh \| bash` |
-
----
-
-## 品牌加密
-
-`lib/brand` 使用 AES-256-GCM 加密，密钥通过 PBKDF2-HMAC-SHA256（100,000 轮）派生。
-
-### 升级后重新激活品牌
-
-升级到含 "Brand Crypto 加固" 变更的版本后，旧版派生密钥无法解密已有品牌数据：
-
-1. 删除 `~/.mbopenclacky/brand.toml`（或仅清除 `license_key` 字段）
-2. 使用许可证密钥重新激活
-3. 加密技能包需重新下载并解密
-
----
-
-## 故障排除
-
-### 构建失败：找不到 C 编译器
-
-**Windows：**
-
-```powershell
-# 安装 MSVC Build Tools
-# 从 https://visualstudio.microsoft.com/visual-cpp-build-tools/ 下载
-# 安装后重启终端
-cl.exe  # 验证
-```
-
-**macOS：**
-
-```bash
+# macOS
 xcode-select --install
 ```
 
-**Linux：**
+Windows 使用 Visual Studio Build Tools 的 MSVC v143 与 Windows SDK，并在构建前激活 `x64 Native Tools Command Prompt`，或运行：
 
-```bash
-# Ubuntu/Debian（含 OpenSSL 开发库，brand 加密所需）
-sudo apt-get install build-essential libssl-dev
-
-# Fedora
-sudo dnf install gcc make openssl-devel
-```
-### `moon` 命令未找到
-
-确保 MoonBit 安装目录已加入 PATH：
-
-```bash
-# Linux/macOS
-export PATH="$HOME/.moon/bin:$PATH"
-
-# Windows PowerShell
-$env:PATH = "$env:USERPROFILE\.moon\bin;$env:PATH"
+```powershell
+.\scripts\install.ps1
 ```
 
-### API 调用返回 401 Unauthorized
+## 2. 获取依赖并构建
 
-- 检查 API Key 是否正确配置
-- 确认 `base_url` 与 Provider 匹配
-- 验证环境变量名拼写（如 `CLACKY_API_KEY` 而非 `CLAKCY_API_KEY`）
+```bash
+moon update
+moon check
+moon build --target native --release cmd
+```
 
-### native 构建报系统头文件缺失（Windows）
+release 产物：
 
-确保 MSVC Build Tools 包含 Windows SDK 组件。在 Visual Studio Installer 中勾选：
-- MSVC v143 - VS 2022 C++ x64/x86 build tools
-- Windows 10/11 SDK
+```text
+_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # Windows
+_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd       # Linux/macOS
+```
 
-### `moon build` 报 "undefined reference to main"
+以下用 `BIN` 指代该文件。不要使用裸 `moon build`：显式指定 `cmd` 可规避 moon#1488 对带 link 配置的库包误判。`moon install` 已弃用，依赖由 `moon update` 解析。
 
-这是 [moon#1488](https://github.com/moonbitlang/moon/issues/1488) 的已知问题：裸 `moon build` 会尝试将 `lib/brand`（含 `link: {}` 块的库包）链接为独立可执行文件，因无 `main` 函数而失败。
+需要一键安装时可使用 `scripts/install.sh`（macOS/Linux）或 `scripts/install.ps1`（Windows）。两者都会检查工具链、C 编译器和构建产物；POSIX 版本只提示 OpenSSL 缺失，不会替你安装系统包。
 
-**解决方案**：始终显式指定 cmd 包：
+## 3. 配置模型
+
+### 方式 A：环境变量（快速开始）
+
+推荐使用 `CLACKY_*`：
+
+```bash
+export CLACKY_API_KEY="your-api-key"
+export CLACKY_BASE_URL="https://api.anthropic.com"
+export CLACKY_MODEL="claude-sonnet-4-6"
+export CLACKY_ANTHROPIC_FORMAT=true
+```
+
+PowerShell：
+
+```powershell
+$env:CLACKY_API_KEY = "your-api-key"
+$env:CLACKY_BASE_URL = "https://api.anthropic.com"
+$env:CLACKY_MODEL = "claude-sonnet-4-6"
+$env:CLACKY_ANTHROPIC_FORMAT = "true"
+```
+
+常用变量：
+
+| 变量 | 作用 |
+|---|---|
+| `CLACKY_API_KEY` / `CLACKY_BASE_URL` / `CLACKY_MODEL` | 默认模型 |
+| `CLACKY_PROVIDER` | 使用 Provider 预设解析 base URL |
+| `CLACKY_ANTHROPIC_FORMAT` | `true` 使用 Anthropic Messages 格式 |
+| `CLACKY_PROXY_URL` / `CLACKY_FALLBACK_MODEL` | 代理与回退模型 |
+| `CLACKY_MAX_TOKENS` / `CLACKY_COMPRESSION_THRESHOLD` | 输出与压缩阈值 |
+| `CLACKY_LITE_API_KEY` / `_BASE_URL` / `_MODEL` | 可选 lite 模型 |
+| `CLACKY_WORKSPACE_DIR` | TOML 未设置 `default_working_dir` 时的默认工作目录 |
+
+兼容前缀为 `OPENCLACKY_*` 与旧 `MBOPENCLACKY_*`。`CLAUDE_*` **不受支持**。配置加载会把 TOML、旧前缀和模型 overlay 合并；已有 `type = "default"` 模型时，不要同时用环境变量配置另一套 default 模型，以免出现多来源歧义。
+
+### 方式 B：TOML 配置文件
+
+创建 `~/.mbopenclacky/config.toml`（Windows 为 `%USERPROFILE%\.mbopenclacky\config.toml`）：
+
+```toml
+[settings]
+permission_mode = "confirm_safes" # auto_approve | confirm_safes | confirm_all
+max_tokens = 16384
+verbose = false
+enable_compression = true
+enable_idle_compression = true
+enable_prompt_caching = true
+memory_update_enabled = true
+max_running_agents = 10
+max_idle_agents = 10
+compression_threshold = 150000
+message_count_threshold = 200
+# proxy_url = "http://127.0.0.1:7890"
+# fallback_model = "claude-haiku-4-5"
+# default_working_dir = "."
+
+[[models]]
+type = "default"
+api_key = "your-api-key"
+base_url = "https://api.anthropic.com"
+model = "claude-sonnet-4-6"
+anthropic_format = true
+```
+
+模型解析顺序是：`current_model_id`（旧配置兼容）→ `type = "default"` 模型 → 第一个模型。模型 `id` 与 `current_model_id` 是运行时字段，保存配置时不会写回。
+
+## 4. 运行
+
+```bash
+# 非交互
+"$BIN" --message "Hello"
+
+# TUI
+"$BIN"
+
+# Web 服务
+"$BIN" server
+```
+
+常用参数：`--model`、`--agent coding|general|<profile>`、`--path`、`--mode`、`--continue`、`--list`、`--attach`、`--file`、`--image`、`--json`、`--ndjson`。子命令还包括：
+
+- `server`：Web 服务
+- `inspect <session.jsonl|session.json>`：离线回放会话
+- `selftest`：CLI 契约探针
+- `eval`：`--offline` / `--live` / `--tui` / `--web`
+- `journey`：真实二进制用户旅程 E2E
+- `benchmark`：工具性能基准
+- `billing`、`onboard`、`mcp`、`ext`、`hook`、`patch`
+
+## 5. Web 服务与安全
+
+```bash
+"$BIN" server --host 127.0.0.1 --port 7071
+```
+
+解析优先级为 CLI 参数 → `MBOPENCLACKY_WEB_HOST` / `MBOPENCLACKY_WEB_PORT` → 默认 `127.0.0.1:7071`。
+
+- 默认只绑定回环地址。
+- 绑定 `0.0.0.0` 或其他非回环地址时，必须设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务拒绝启动。
+- API key 可通过 `Authorization: Bearer`、`X-API-Key`、`?access_key=` 或 `clacky_access_key` cookie 提交。
+- `MBOPENCLACKY_DEV_ALLOW_LOOPBACK=1` 可开启开发用回环免认证；该开关依赖可伪造的请求头，不能用于公网。
+- `/health` 与 `GET /api/version` 是无需认证的探测端点。
+
+生产部署见 [deploy/README.md](../deploy/README.md)。
+
+## 6. 数据位置
+
+默认数据根目录为 `~/.mbopenclacky/`：
+
+| 路径 | 内容 |
+|---|---|
+| `config.toml` | 模型与 Agent 设置 |
+| `sessions/` | 会话 JSON 快照与 JSONL 事件日志 |
+| `skills/` | 用户 Skill 与技能进化日志 |
+| `snapshots/` | Time Machine 快照 |
+| `trash/` | 回收站 |
+| `logs/` | 按日日志 |
+
+旧 `.json` 会话与早期 Debug-repr 文件只读兼容，不会被就地改写。
+
+## 7. 品牌加密
+
+`lib/brand` 使用 AES-256-GCM，密钥通过 PBKDF2-HMAC-SHA256 派生。Windows 使用 BCrypt/CNG；Linux/macOS 链接 OpenSSL `libcrypto`。不要定义 `MBOPENCLACKY_NO_OPENSSL` 构建 release：该调试桩不安全，且 CI 会拦截。
+
+升级加密实现后若旧 `brand.toml` 无法解密，删除 `~/.mbopenclacky/brand.toml`（或清除 `license_key`）并重新激活；加密技能包需重新获取。
+
+## 8. 故障排除
+
+### `moon build` 报 `undefined reference to main`
+
+使用：
 
 ```bash
 moon build --target native --release cmd
 ```
 
-### `moon check` 的警告预算
+不要裸跑 `moon build`。
 
-CI 以 `scripts/warn_count.sh` 固定 **0 警告预算**：`moon check` 必须同时为 **0 errors / 0 warnings**（README 机器生成表也以此为口径）。新增任何编译警告都会让 CI 变红，因此不要指望"警告可忽略"——出现警告即需修复。
+### `moon test` 拉入 vendor 测试或失败
 
-### Web 工具（web_fetch / web_search）
+使用 scoped 命令：
 
-`web_search` 已实现 DuckDuckGo HTML 搜索并解析结果；`web_fetch` 已实现 HTTP GET 获取页面内容。二者均通过 `lib/client` 的 HTTP 接口工作，该接口现基于 `@async/http`（TLS 走系统根证书存储：Windows 为 Schannel、POSIX 为 OpenSSL 系统 CA），不再依赖 libcurl/WinHTTP 的 C FFI。
+```bash
+moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
+```
+
+`moon.work` 包含 vendored workspace members；它们自己的测试不属于本仓库回归面。
+
+### `moon test --target wasm-gc` 失败
+
+`tty`、`crescent` 等依赖含 native FFI。当前 wasm-gc 只以 `moon check` 做类型验证，native 才是验收目标。
+
+### Web 服务提示没有 API key
+
+至少配置一个模型：
+
+```bash
+export MBOPENCLACKY_API_KEY="your-api-key"
+# 或写入 ~/.mbopenclacky/config.toml
+```
+
+### 401 Unauthorized
+
+检查 `MBOPENCLACKY_WEB_API_KEY` 与请求凭据；非回环部署还应检查反向代理是否正确转发头。不要依赖 `X-Forwarded-For` 做安全边界。
+
+### C 编译或加密链接失败
+
+确认 MSVC/Windows SDK（Windows）或 `libssl-dev`/`openssl-devel`（POSIX）已安装，并确认 `node` 在 PATH 中。

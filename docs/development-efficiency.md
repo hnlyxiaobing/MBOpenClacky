@@ -1,6 +1,6 @@
 # 开发效率指南（Development Efficiency）
 
-> 本文档由 113 个真实开发会话（2026-06 → 2026-08，24,806 次迭代，6,660 万 tokens，总成本 $88.76）的经验数据提炼而成。
+> 本文档是 2026-06 → 2026-08 的历史样本（113 个会话、24,806 次迭代、6,660 万 tokens、总成本 $88.76）提炼出的效率经验；模型价格、CI 耗时和测试数量均为当时快照，不替代当前机器指标。
 > 核心规则已固化到 `AGENTS.md` 的 **Development Efficiency Protocol** 章节，本文件提供完整数据、案例与检查清单。
 
 ---
@@ -116,7 +116,7 @@ harness/spec 开发（读 spec → 改代码 → 编译 → 测试）是执行�
 | `moon check` | 0.1 min | 只做类型检查，不调用 C 编译器 |
 | **`Build (native release)`** | **4.7 min** | 为 cmd 二进制编译整个模块 |
 | CLI 契约探针 | 0.4 min | 含 `moon run cmd` 对比目标的预热 |
-| **`Run tests (module packages)`** | **13.3 min** | 编译全部测试二进制 + 执行 3818 个用例 |
+| **`Run tests (module packages)`** | **13.3 min** | 当时快照：编译测试二进制 + 执行 3818 个用例；当前数量以 `scripts/repo_stats.sh` 为准 |
 | `Run lib/mcp tests` | 0.3 min | |
 | 其余闸门（警告预算 / 公共 API / 台账 / eval / repo-stats） | ≈0.0 min | 复用前序编译结果或只读日志 |
 | **合计** | **19.3 min** | |

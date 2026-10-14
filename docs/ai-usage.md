@@ -1,46 +1,39 @@
-# AI 使用声明与质量闸门（docs/ai-usage.md）
+# AI 使用声明与质量闸门
 
 ## 声明
 
-本项目（MBOpenClacky 的「契约化」改造期，2026-09-11 – 09-24）在开发过程中使用了 AI
-编程工具辅助实现。**目标、范围、验收标准与最终质量由维护者定义并负责**；AI 产出必须
-通过下述机器闸门方可合入。
+MBOpenClacky 的开发过程使用了 AI 编程工具辅助分析、实现和文档整理。目标、范围、验收标准、取舍和最终质量由维护者负责。AI 输出只有在通过仓库机器闸门、且与源码/实测一致时才可合入。
 
-AI 不参与的部分：验收标准的定义、范围冻结（本期不做清单见
-`docs/improvement-execution-plan.md` §2）、需求取舍、对「未完成项」是否如实登记的判断。
+AI 不替代人工判断的部分包括：范围冻结、风险取舍、发布决策，以及对“未完成项”是否如实登记的判断。
 
-## 机器闸门（任何改动合入前必须同时通过）
+## 合入闸门
 
-任何改动合入前必须同时通过：
-
-| 闸门 | 命令 | 拦住什么 |
+| 闸门 | 命令 | 拦截内容 |
 |---|---|---|
-| 类型与警告 | `moon check`（CI 以 `scripts/warn_count.sh` 固定 0 警告预算） | 类型错误、新增编译警告 |
-| 公共 API 冻结 | `moon info` 后 `git diff --exit-code -- '**/pkg.generated.mbti'` | 改了公共符号却不提交接口文件（接口文件入库，全仓数量见 `scripts/repo_stats.sh` 生成的表） |
-| 契约探针 | `moon build --target native --release cmd` 后 `<binary> selftest` | 退出码 / stdout 形状（empty/text/json/json-lines）/ stderr 干净度 / `Failure(`·`Panic(` 泄漏；并对比 `moon run cmd`，差异如实报告 |
-| 真话台账 | `scripts/known_gaps.sh check` | 台账与代码不一致：扫描段过期、命中项缺少 curated 状态行、引用不存在的文件 |
-| 数字一致性 | `scripts/repo_stats.sh check` | README / AGENTS.md / project-status 的规模数字与机器统计不一致（含四处版本常量） |
-| 能力评测 | `<binary> eval --offline` | 确定性 tool_harness 的任务失败或不可重复（离线、无模型、无网络） |
-| 测试 | `moon test --release`（debug 模式受编译器 ICE 影响，见 `docs/known-gaps.md`） | 回归；含协议往返测试、会话日志 DoD 与 harness 任务集 |
+| 类型与警告 | `moon check -d`；CI 用 `scripts/warn_count.sh` 固定 0 警告 | 类型错误和新增警告 |
+| 公共 API | `moon info`，再检查 `pkg.generated.mbti` diff | 公共符号变化未入库 |
+| CLI 契约 | `moon build --target native --release cmd` 后 `<binary> selftest --repo .` | 退出码、stdout/stderr 形状、panic 泄漏、native/moon-run 差异 |
+| 确定性评测 | `<binary> eval --offline --repo .` | 工具任务失败或不可重复 |
+| 真话台账 | `scripts/known_gaps.sh check` | 扫描段过期、命中项缺 curated 状态、引用失效 |
+| 数字一致性 | `scripts/repo_stats.sh check` | README/AGENTS/project-status 的生成数字过期 |
+| 回归测试 | scoped `moon test`（完整命令见 [testing.md](testing.md)） | 单元、差分、链路、协议和 harness 回归 |
+| 可选浏览器 E2E | `cd test/web-e2e && npm test` | 浏览器 UI/API 组合回归；不作为默认 CI 闸门 |
 
-## AI 产出的可验证痕迹
+测试必须使用 scoped 命令，不能裸跑 `moon test`。CI 主步和 `lib/mcp` 分步的口径见 [testing.md](testing.md)。
 
-- 协议往返测试：`lib/protocol/protocol_wbtest.mbt`（每个 Event/Command 变体的
-  `parse(to_json(e)) == e`）
-- 契约探针自检：`cmd/selftest.mbt` 的 `engine_cases`（23 条合成样本，含 live CLI 无法
-  确定性产出的 empty / json-lines 形状）
-- 会话日志 DoD：`lib/agent/session_log_wbtest.mbt`（截断恢复、压缩字节保持、锁与陈旧
-  恢复、旧格式只读投影）
-- 能力评测 DoD：`test/eval/tool_harness.mbt` + `test/eval/tasks/*.json`（白名单外的工具在执行前被拒绝；
-  每个任务重复 2 次以度量可重复性；评分向量由 `cmd eval --offline` 输出并进 CI）
-- 未完成项：`docs/known-gaps.md`（由脚本生成扫描段 + 人工 curated 状态 + 已知环境问题）
+## 可验证痕迹
 
-## 人类审查关注点
+- 协议往返测试：`lib/protocol/protocol_wbtest.mbt`。
+- CLI 契约探针：`cmd/selftest.mbt` 的 23 个引擎样本和 10 个 native probes。
+- 会话日志 DoD：`lib/agent/session_log_wbtest.mbt`，覆盖截断恢复、压缩投影、锁和旧格式只读兼容。
+- 能力评测：`test/eval/tool_harness.mbt` + `test/eval/tasks/`，离线任务重复执行以计算可重复性。
+- 真模型评测：`test/eval/live_harness.mbt` + `test/capability/tasks/`，报告写 `docs/eval/`。
+- 未完成项：`docs/known-gaps.md` 的自动扫描段、人工 curated 表和环境说明。
 
-AI 产出中需要人工判断而非闸门保证的部分：
+## 人工审查重点
 
-1. **范围**：是否夹带了范围外功能（范围冻结见 `docs/improvement-execution-plan.md` §2）
-2. **真实性**：文档声明是否与实测一致（本期已修正 README 的 MCP HTTP 不实声明、
-   `--version` 与 `moon.mod` 版本漂移、`moon install` 弃用命令等）
-3. **取舍**：如 TUI 维持直接消费引擎 `HookEvent`（不绑定 wire 词表）、品牌服务端集成与
-   wasm-gc 目标不接线——均登记在 `docs/known-gaps.md` 或路线图而非隐去
+1. **真实性**：文档命令、端点、数量和状态是否能由当前源码或一次可重复命令证明。
+2. **范围**：是否把 draft 设计、历史 spec 或单次实验误写成现时承诺。
+3. **安全性**：Web 暴露、认证、加密、shell/PTY、扩展命令和浏览器自动化是否有明确边界。
+4. **诚实性**：不可用路径必须返回错误或登记缺口，不能用占位响应伪装成功。
+5. **可维护性**：新增数字优先进入 `scripts/repo_stats.sh` 的生成块；新增缺口优先进入 `scripts/known_gaps.sh` 的扫描/curated 流程。

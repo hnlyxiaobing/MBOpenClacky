@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-10-14  文档全面校准与去冗余
+
+- `[docs]` 重写 README、快速入门、项目状态、测试体系和优化计划，删除主观完成度、过时对比表和重复命令。
+- `[docs]` 修正当前事实：14 个注册工具、16 个默认 Skill + 3 个扩展 Skill、10 个扩展清单、Journey 23 条（Web 9 / TUI 5 / CLI 9）、真模型任务 10 条。
+- `[docs]` 将渠道状态更新为当前源码事实：Telegram 长轮询、企微 WebSocket、Discord Gateway、钉钉 Stream Mode 和 webhook 接收路径均已接线。
+- `[docs]` 合并 Web 浏览器 E2E 的一次性验证报告为 `test/web-e2e/README.md`，补充 21 spec / 114 tests、非 CI 与本机路径限制。
+- `[docs]` 清理 known-gaps 顶部已解决条目，保留当前边界；修正 spec 索引、TUI/Web 回归命令、AI 使用闸门和 upstream sync 的旧入口。
+
 ### 2026-09-23  开发计划批次闭环 + 任务集扩充 + benchmark 规格
 
 - `[fix]` **Web 状态码回落**：`response_to_core` 补全 status 映射，不再把 5xx 吞成 200
