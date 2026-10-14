@@ -771,3 +771,57 @@ test "ext_message_to_api_strips_session_context" {
   @debug.assert_eq(plain.to_api_message().session_date, None)
   @debug.assert_eq(plain.to_api_message().session_context, None)
 }
+
+///|
+/// `display_files` is a user-message display field that must never reach the
+/// model: to_api_message strips it (and the wire JSON omits the key entirely),
+/// while to_persist_message keeps it so a restored session still shows the
+/// attachments. No other test populated display_files, leaving this branch of
+/// the Ruby strip_internal_fields parity untested.
+test "ext_message_display_files_stripped_on_wire_kept_on_persist" {
+  let msg : Message = {
+    role: User,
+    content: Text("look at these"),
+    tool_calls: None,
+    tool_call_id: None,
+    name: None,
+    reasoning_content: None,
+    latency: None,
+    display_text: Some("look at these"),
+    display_files: Some(["a.png", "b.txt"]),
+    session_date: None,
+    session_context: None,
+    task_id: None,
+    created_at: None,
+    system_injected: None,
+    memory_update: None,
+    subagent_instructions: None,
+    subagent_result: None,
+    token_usage: None,
+    compressed_summary: None,
+    transient: None,
+  }
+  // Wire copy: display_files is dropped, display_text stays.
+  let api = msg.to_api_message()
+  let api_stripped = match api.display_files {
+    None => true
+    Some(_) => false
+  }
+  assert_true(api_stripped)
+  @debug.assert_eq(api.display_text, Some("look at these"))
+  // Persist copy: display_files survives for the session round trip.
+  let persist = msg.to_persist_message()
+  match persist.display_files {
+    Some(arr) => @debug.assert_eq(arr.length(), 2)
+    None => assert_true(false)
+  }
+  // Wire JSON omits the key entirely; the un-stripped message includes it.
+  match ToJson::to_json(api) {
+    Object(obj) => @debug.assert_eq(obj.get("display_files"), None)
+    _ => assert_true(false)
+  }
+  match ToJson::to_json(msg) {
+    Object(obj) => assert_true(obj.get("display_files") != None)
+    _ => assert_true(false)
+  }
+}
