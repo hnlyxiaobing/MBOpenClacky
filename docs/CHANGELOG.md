@@ -25,6 +25,15 @@
 
 ## 变更记录
 
+### 2026-10-14  前端 vendor 库刷新 + 依赖清理 + crater-core 增量重排地基
+
+- `[chore]` **依赖收口**：移除 `vendor/milky2018-css` 工作区成员，改用 registry `Milky2018/css@0.6.0`（0.6.0 已把 `Float` 重命名为 `CssFloat`，nightly error-4003 的 vendor 绕行不再需要）；同时删除已废弃的 vendored `mbtpdf`。
+- `[chore]` **前端 vendor 库刷新**：highlight.js 11.11.1→11.12.0、marked 18.0.5→18.1.1、KaTeX 0.16.11→0.19.0、qrcode-generator 1.4.4→2.0.4，并重新打包 CodeMirror 6（导出面仍是 27 个全局名，已实测）。新增 `web/vendor/README.md` 记录版本、来源与许可。
+- `[fix]` **微信登录页去 CDN**：`web/weixin-qr.html` 的二维码库从 `cdn.jsdelivr.net` 改为本地 `web/vendor/qrcodejs/`，前端运行时不再依赖任何 CDN，与 `docs/web-ui-parity.md` 的声明一致；补丁登记见 `web/PATCHES.md` P3-004。
+- `[chore]` **vendored `mizchi/crater-core`：增量重排地基 + 布局开销**：新增 `Node.dom_id` / `Node::set_uid` 与 `UidRegistry` / `stabilize_uids`（跨重建稳定 uid），以及 `node_is_clean` / `set_node_clean_predicate` 记忆化开关；另把布局热路径的 `String::has_prefix`（每次调用都分配跳表）换成 `str_has_prefix`，并让 `Dimension::Calc` / `MathFn` 的 fallback 按可用宽高真实求值。记忆化开关默认不安装，静态全量布局路径行为不变。**当前无调用方**：驱动 `compute_tree_incremental` 尚未实现，且 vendor 副本只带 `node/` 与 `layout_types.mbt`（不含 `layout/`），这两批改动只有 vendored 库内的自洽性，没有本仓库可见的行为变化。
+- `[chore]` test/web-e2e 的 `@playwright/test` 升到 `^1.64.1`。
+- `[docs]` 清除已删除的 `vendor/milky2018-css` 残留引用（`AGENTS.md`、`Dockerfile`、`scripts/repo_stats.sh`）；`web/UPSTREAM_SYNC.md` 更新文件基数（89→91）、vendor 冲突策略与 rsync 排除项，避免下次上游同步静默回退库版本。
+
 ### 2026-10-14  文档全面校准与去冗余
 
 - `[docs]` 重写 README、快速入门、项目状态、测试体系和优化计划，删除主观完成度、过时对比表和重复命令。

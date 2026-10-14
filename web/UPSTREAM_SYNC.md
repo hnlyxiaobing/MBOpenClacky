@@ -11,7 +11,8 @@
 ## Current Status
 
 The web frontend uses a **managed fork** approach:
-- Full upstream asset set (87 files) synced to v1.5.0 on 2026-07-24 (fix-06). `index.html`, `app.js`, `app.css`, and all feature/vendor/i18n modules are upstream originals.
+- Full upstream asset set (87 files) synced to v1.5.0 on 2026-07-24 (fix-06). `index.html`, `app.js`, `app.css` and all feature/i18n modules are upstream originals.
+- `web/vendor/` libraries were refreshed on **2026-10-14** to releases newer than the ones upstream v1.5.0 ships (highlight.js 11.12.0, marked 18.1.1, KaTeX 0.19.0, qrcode-generator 2.0.4, and a regenerated CodeMirror 6 bundle). They are therefore **not** upstream originals. Versions, sources and the 27-name CodeMirror export surface are recorded in `web/vendor/README.md`; licenses in `NOTICE`. An upstream sync must not revert them — see the conflict policy below.
 - `{{BRAND_NAME}}` and `{{EXT_SCRIPTS}}` placeholders in `index.html` are processed at runtime by `lib/web/template_processor.mbt` (`process_template()`).
 - Brand assets (`favicon.svg`, `icon*.svg`, `apple-touch-icon-180.png`, `logo_nav_dark.png`, `favicon.ico`): **MBOpenClacky-owned designs** (2026-09-21, WP-0.1). Before replacement all six files were verified byte-identical to upstream v1.5.0 originals; they now carry the MBOpenClacky mark (P0-001 resolved, see `PATCHES.md`).
 - `web/ext_ui/` (git, time-machine panels): MBOpenClacky-specific additions, excluded from upstream sync.
@@ -33,7 +34,7 @@ git clone --depth 1 --branch v1.5.0 https://github.com/clacky-ai/openclacky.git 
 diff -rq /tmp/openclacky/lib/clacky/web/ ./web/ --exclude=PATCHES.md --exclude=UPSTREAM_SYNC.md
 ```
 
-Record file count and notable deltas. Expected: 87 upstream files + PATCHES.md + UPSTREAM_SYNC.md = 89 total.
+Record file count and notable deltas. Expected: 87 upstream files + PATCHES.md + UPSTREAM_SYNC.md + 2 fork additions (`vendor/README.md`, `vendor/qrcodejs/qrcode.min.js`) = 91 total, excluding `ext_ui/`.
 
 ### 3. Selective Sync
 
@@ -45,6 +46,8 @@ rsync -av --delete \
   --exclude='logo_nav_dark.png' \
   --exclude='favicon.ico' \
   --exclude='ext_ui/' \
+  --exclude='vendor/README.md' \
+  --exclude='vendor/qrcodejs/' \
   --exclude='PATCHES.md' \
   --exclude='UPSTREAM_SYNC.md' \
   /tmp/openclacky/lib/clacky/web/ ./web/
@@ -77,7 +80,7 @@ Update this file with:
 | Conflict type | Policy |
 |---|---|
 | Brand assets (logo, favicon, icons) | **Keep MBOpenClacky placeholders**; never overwrite with upstream brand |
-| Vendor libraries (katex, codemirror, etc.) | Accept upstream version; re-audit `NOTICE` |
+| Vendor libraries (katex, codemirror, etc.) | **Keep the MBOpenClacky copies** — refreshed 2026-10-14 to versions newer than upstream v1.5.0; never let `rsync --delete` revert them. Re-audit `NOTICE` and `web/vendor/README.md` after upgrading |
 | `index.html` structure | Merge: preserve `id="top-header"` + template placeholders (`{{BRAND_NAME}}`, `{{EXT_SCRIPTS}}`) |
 | JS/CSS | Accept upstream; re-apply patches from `PATCHES.md` |
 

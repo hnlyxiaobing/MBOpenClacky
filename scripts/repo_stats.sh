@@ -42,9 +42,8 @@
 #                  one number is a deliberate change to make together with
 #                  .github/workflows/ci.yml, not a doc edit. A bare `moon test`
 #                  cannot be used: moon.work also contains vendored workspace
-#                  members (vendor/milky2018-css, vendor/mizchi-crater-core,
-#                  vendor/mizchi-tui), whose tests are not this repository's
-#                  regression surface.
+#                  members (vendor/mizchi-crater-core, vendor/mizchi-tui),
+#                  whose tests are not this repository's regression surface.
 #
 # Exit codes: 0 ok, 1 stale or inconsistent, 2 usage error.
 

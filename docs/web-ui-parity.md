@@ -13,7 +13,7 @@ Web UI 已完成三轮对齐和根因修复，当前不是“功能清单未实�
 
 - `BeforeLlmCall` 的 `phase_start` 事件由 `web/ws-dispatcher.js` 的折叠卡隔离，不会把子代理阶段混入外层正文。
 - 媒体端点已接线：`/api/media/image`、`/video`、`/audio/speech`、`/audio/transcriptions`、`/video/understand`。
-- 第三方前端依赖已 vendor 到 `web/vendor/`，运行时不依赖 CDN；许可见 [NOTICE](../NOTICE)。
+- 第三方前端依赖已全部 vendor 到 `web/vendor/`（2026-10-14 刷新到 highlight.js 11.12.0 / marked 18.1.1 / KaTeX 0.19.0 / qrcode-generator 2.0.4 / CodeMirror 6 重打包），运行时不依赖 CDN；版本与来源见 [web/vendor/README.md](../web/vendor/README.md)，许可见 [NOTICE](../NOTICE)。`weixin-qr.html` 曾从 jsDelivr 取 qrcodejs，现已改为同源 vendor 副本。
 - `/health` 与 `GET /api/version` 是公开探测端点；其他 API 使用 `MBOPENCLACKY_WEB_API_KEY` 认证。
 - 默认绑定 `127.0.0.1:7071`。非回环绑定必须提供 Web API key；`MBOPENCLACKY_DEV_ALLOW_LOOPBACK=1` 仅限开发，不能作为安全边界。
 

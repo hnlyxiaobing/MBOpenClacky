@@ -23,6 +23,12 @@ Each entry records what was changed, why, and when it should be reverted or repl
 - **Reason**: Upstream lacks the key; `I18n.t` returns the raw key which defeats the `|| "Untitled"` fallback in `sessions.js`. Added `sessions.untitled` ("Untitled" / "未命名会话").
 - **Re-apply after upstream sync**: Yes, until upstream ships the key.
 
+### P3-004: Load the QR encoder from the vendored copy, not the jsDelivr CDN (2026-10-14)
+
+- **Scope**: `weixin-qr.html` (`qrcodejs` script tag)
+- **Reason**: The page pulled `qrcodejs@1.0.0` from `cdn.jsdelivr.net`, which contradicted the fork's no-runtime-CDN guarantee (`docs/web-ui-parity.md`, `NOTICE` §3.1) and made the WeChat login page depend on a third-party origin. The library is now served from `web/vendor/qrcodejs/qrcode.min.js`, i.e. the same origin as the rest of the app.
+- **Re-apply after upstream sync**: Yes, until upstream vendors the library itself. `vendor/qrcodejs/` is in the rsync exclude list, so a sync will not delete the copy.
+
 ## Retired Patches
 
 ### P0-001: Brand Asset Placeholder (2026-07-21 -> 2026-09-21, resolved in WP-0.1)
