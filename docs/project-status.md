@@ -30,9 +30,9 @@ MBOpenClacky 已覆盖上游 Agent CLI 的主要用户面，并在部署、静�
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.2.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
 | 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 240 |
-| 源代码行数 | 105,921 |
+| 源代码行数 | 106,071 |
 | 测试行数 | 65,633 |
-| 总行数 | 171,554 |
+| 总行数 | 171,704 |
 | 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4074 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
