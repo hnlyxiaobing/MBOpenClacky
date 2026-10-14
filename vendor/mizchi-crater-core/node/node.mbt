@@ -1,10 +1,10 @@
 ///|
 /// Global counter for generating unique node IDs
-let node_uid_counter : Ref[Int] = { val: 0, }
+let node_uid_counter : Ref[Int32] = { val: 0, }
 
 ///|
 /// Generate a new unique node ID
-fn next_uid() -> Int {
+fn next_uid() -> Int32 {
   let uid = node_uid_counter.val
   node_uid_counter.val = uid + 1
   uid
@@ -14,12 +14,31 @@ fn next_uid() -> Int {
 /// A node in the layout tree
 pub struct Node {
   id : String
-  uid : Int // Unique identifier for caching
+  mut uid : Int32 // Unique identifier for caching (stabilized across re-renders for incremental reflow)
   style : @style.Style
   children : Array[Node]
   measure : @layout_types.MeasureFunc?
   text : String? // Text content for text nodes
   src : String? // Image source for replaced image content
+  /// Originating `@dom.DomTree` node id, when this render node was built from a
+  /// live DOM (the dynamic-rendering path). `None` for the static parse path.
+  /// A stable, mutation-surviving identity used to key incremental reflow;
+  /// does not affect layout or cascade.
+  mut dom_id : Int32?
+}
+
+///|
+/// Attach the originating DomTree node id (dynamic-rendering path).
+pub fn Node::set_dom_id(self : Node, dom_id : Int32?) -> Unit {
+  self.dom_id = dom_id
+}
+
+///|
+/// Overwrite the cache uid. Used to stabilize uids across re-renders so
+/// incremental reflow can match a rebuilt node to its prior layout (see
+/// `stabilize_uids`).
+pub fn Node::set_uid(self : Node, uid : Int32) -> Unit {
+  self.uid = uid
 }
 
 ///|
@@ -36,6 +55,7 @@ pub fn Node::new(
     measure: None,
     text: None,
     src: None,
+    dom_id: None,
   }
 }
 
@@ -43,25 +63,34 @@ pub fn Node::new(
 /// Create a node with a specific uid (for incremental layout)
 pub fn Node::with_uid(
   id : String,
-  uid : Int,
+  uid : Int32,
   style : @style.Style,
   children : Array[Node],
 ) -> Node {
-  { id, uid, style, children, measure: None, text: None, src: None, }
+  {
+    id,
+    uid,
+    style,
+    children,
+    measure: None,
+    text: None,
+    src: None,
+    dom_id: None,
+  }
 }
 
 ///|
 /// Create a node with a specific uid and measure function
 pub fn Node::with_uid_and_measure(
   id : String,
-  uid : Int,
+  uid : Int32,
   style : @style.Style,
   children : Array[Node],
   measure : @layout_types.MeasureFunc?,
   text : String?,
   src~ : String? = None,
 ) -> Node {
-  { id, uid, style, children, measure, text, src, }
+  { id, uid, style, children, measure, text, src, dom_id: None, }
 }
 
 ///|
@@ -74,6 +103,7 @@ pub fn Node::leaf(id : String, style : @style.Style) -> Node {
     measure: None,
     text: None,
     src: None,
+    dom_id: None,
   }
 }
 
@@ -95,6 +125,7 @@ pub fn Node::with_measure(
     measure: Some(measure),
     text,
     src,
+    dom_id: None,
   }
 }
 
@@ -114,6 +145,7 @@ pub fn Node::text(
     measure: Some(measure),
     text: Some(content),
     src: None,
+    dom_id: None,
   }
 }
 
@@ -149,6 +181,53 @@ pub fn get_layout_dispatcher() -> LayoutDispatchFunc? {
 }
 
 ///|
+/// Global "is this node's whole subtree unchanged since the last layout?"
+/// predicate, keyed by `uid`. Installed by the incremental layout driver
+/// (`compute_tree_incremental`) over the `LayoutTree`'s dirty state, and read by
+/// the block-flow memoization in `layout/block` to decide whether a clean child
+/// subtree can be served from its cached `compute_with_collapse` result.
+///
+/// Dependency-inverted on purpose: `layout/block` cannot depend on `layout/tree`
+/// (the dispatcher cycle), so the cleanliness signal flows through this core hook
+/// the same way the layout dispatcher does. Absent an installed predicate (the
+/// non-incremental / full-layout path) it returns `false`, so memoization is off
+/// by default and the static path is byte-for-byte unchanged.
+let node_clean_predicate : Ref[((Int32) -> Bool)?] = { val: None, }
+
+///|
+/// Install the subtree-clean predicate for the duration of an incremental layout.
+/// Pass `None` (via `clear_node_clean_predicate`) to remove it afterwards.
+pub fn set_node_clean_predicate(f : (Int32) -> Bool) -> Unit {
+  node_clean_predicate.val = Some(f)
+}
+
+///|
+/// Remove the subtree-clean predicate (back to the conservative default where
+/// every node reports not-clean, disabling block-flow memoization).
+pub fn clear_node_clean_predicate() -> Unit {
+  node_clean_predicate.val = None
+}
+
+///|
+/// Whether the node with this `uid` has an entirely unchanged subtree since the
+/// last layout, per the installed predicate. `false` when no predicate is
+/// installed (the safe default: recompute).
+pub fn node_is_clean(uid : Int32) -> Bool {
+  match node_clean_predicate.val {
+    Some(pred) => pred(uid)
+    None => false
+  }
+}
+
+///|
+/// Whether an incremental layout is in progress (the clean predicate is
+/// installed). Block-flow memoization populates its cache only while this is
+/// true, so the static / full-layout path neither reads nor writes it.
+pub fn node_incremental_active() -> Bool {
+  node_clean_predicate.val is Some(_)
+}
+
+///|
 /// Create a minimal fallback layout for a node (used when dispatch is unavailable)
 pub fn fallback_layout(
   node : Node,
@@ -161,8 +240,12 @@ pub fn fallback_layout(
     @types.Dimension::MinContent => 0.0
     @types.Dimension::MaxContent => ctx.available_width
     @types.Dimension::FitContent(_) => ctx.available_width
-    @types.Dimension::Calc(_, _) | @types.Dimension::MathFn(_, _) =>
-      node.style.width.resolve_or(ctx.available_width, ctx.available_width)
+    @types.Dimension::Calc(px, pct) => ctx.available_width * pct + px
+    @types.Dimension::MathFn(op, terms) =>
+      @types.apply_math_op(
+        op,
+        terms.map(fn(t) { t.0 + t.1 * ctx.available_width }),
+      )
   }
   let height = match node.style.height {
     @types.Dimension::Length(h) => h
@@ -171,8 +254,13 @@ pub fn fallback_layout(
     @types.Dimension::MinContent => 0.0
     @types.Dimension::MaxContent => 0.0
     @types.Dimension::FitContent(_) => 0.0
-    @types.Dimension::Calc(_, _) | @types.Dimension::MathFn(_, _) =>
-      node.style.height.resolve_or(ctx.available_height.unwrap_or(0.0), 0.0)
+    @types.Dimension::Calc(px, pct) =>
+      ctx.available_height.unwrap_or(0.0) * pct + px
+    @types.Dimension::MathFn(op, terms) =>
+      @types.apply_math_op(
+        op,
+        terms.map(fn(t) { t.0 + t.1 * ctx.available_height.unwrap_or(0.0) }),
+      )
   }
   {
     id: node.id,
@@ -190,4 +278,25 @@ pub fn fallback_layout(
     children: [],
     text: node.text,
   }
+}
+
+///|
+/// Allocation-free prefix test. `String::has_prefix` in core uses Boyer-Moore-
+/// Horspool and allocates a skip table per call; layout calls it per node (text
+/// detection via `id.has_prefix("#text")`), which made it the single largest
+/// allocation site in the render pipeline. This compares the prefix directly.
+pub fn str_has_prefix(s : String, prefix : String) -> Bool {
+  let plen = prefix.length()
+  if plen == 0 {
+    return true
+  }
+  if s.length() < plen {
+    return false
+  }
+  for i = 0; i < plen; i = i + 1 {
+    if s[i].to_int() != prefix[i].to_int() {
+      return false
+    }
+  }
+  true
 }
