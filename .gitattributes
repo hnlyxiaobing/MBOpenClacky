@@ -7,6 +7,9 @@
 # shell 脚本必须在所有平台以 LF 检出（CRLF 会破坏 shebang 与 bash 解析）。
 *.sh text eol=lf
 
+# Dockerfile 在 Linux 构建上下文中解析，必须以 LF 存储/检出。
+Dockerfile text eol=lf
+
 # agent 资产会原样拼进 system prompt，必须以 LF 存储/检出：
 # Ruby 原版资产是 LF，CRLF 会让请求体多出 Ruby 不存在的 \r\n（见 BUG-0078）。
 # 只圈文本类型，避免 avatar.png 等二进制被当成文本做换行转换。

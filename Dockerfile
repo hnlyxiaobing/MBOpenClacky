@@ -61,14 +61,10 @@ RUN bash scripts/migrate_moon_mod_json.sh
 
 # Build the CLI binary.
 #
-# NOTE: keep this step simple on purpose.
-# - /bin/sh on this image (Ubuntu 24.04) is dash, which does NOT support
-#   `set -o pipefail` (it exits with code 2: "Illegal option -o pipefail").
-# - Piping moon's output through `tee` masks the real exit code: the pipeline
-#   reports tee's status, so a failed build would look successful and only
-#   surface later as a missing binary in the COPY step.
-# buildx already prints the full RUN output on failure, so no log tee is
-# needed.
+# Registry dependencies are downloaded lazily by `moon build`, and some still
+# ship the deprecated moon.mod.json / moon.pkg.json format.  The build wrapper
+# retries with on-the-fly migration so the Dockerfile stays robust even when
+# `moon update` has not yet materialized the dependency tree.
 #
 # The artifact path carries the *module* path: moon writes it under
 #   _build/native/release/build/<owner>/<module>/<package>/<name>
@@ -76,18 +72,7 @@ RUN bash scripts/migrate_moon_mod_json.sh
 # `.../build/cmd/cmd.exe`, which never exists — that broke the image build in
 # two places at once: this assertion and the `COPY --from=builder` below (the
 # copy is the one buildx reports: "failed to calculate checksum ... not found").
-#
-# Normalize to a stable path here so the runtime stage has a single, simple
-# source to copy and the suffix difference (Linux `cmd`, Windows `cmd.exe`)
-# stays local to this step.
-RUN cd /build \
-    && moon build --target native --release cmd \
-    && BIN_DIR=/build/_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd \
-    && mkdir -p /build/out \
-    && if [ -x "$BIN_DIR/cmd" ]; then cp "$BIN_DIR/cmd" /build/out/mbopenclacky; \
-       else cp "$BIN_DIR/cmd.exe" /build/out/mbopenclacky; fi \
-    && test -x /build/out/mbopenclacky \
-    && echo "moon build succeeded"
+RUN bash scripts/docker_build.sh
 
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
