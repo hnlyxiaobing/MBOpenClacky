@@ -66,13 +66,13 @@ pub fn InputArea::set_text(self : InputArea, text : String) -> Unit {
 
 ///|
 /// Get the number of text lines.
-pub fn InputArea::line_count(self : InputArea) -> Int {
+pub fn InputArea::line_count(self : InputArea) -> Int32 {
   self.editor.line_count()
 }
 
 ///|
 /// Get a specific line's text.
-pub fn InputArea::get_line(self : InputArea, idx : Int) -> String {
+pub fn InputArea::get_line(self : InputArea, idx : Int32) -> String {
   self.editor.get_line(idx)
 }
 
@@ -81,11 +81,11 @@ pub fn InputArea::get_line(self : InputArea, idx : Int) -> String {
 ///
 /// The display column accounts for CJK double-width characters
 /// and the prompt prefix offset.
-pub fn InputArea::cursor_display_pos(self : InputArea) -> (Int, Int) {
+pub fn InputArea::cursor_display_pos(self : InputArea) -> (Int32, Int32) {
   let (line, _col) = self.editor.cursor_pos()
   let display_col = self.editor.display_col()
   // Add prompt length to the display column
-  let prompt_len = @tui_core.string_display_width(self.prompt)
+  let prompt_len = string_display_width(self.prompt)
   (line, display_col + prompt_len)
 }
 
@@ -240,9 +240,9 @@ pub fn InputArea::render_lines(self : InputArea) -> Array[String] {
 /// `content_width - prefix_width` display columns (minimum 20).
 pub fn InputArea::render_wrapped_lines(
   self : InputArea,
-  content_width : Int,
+  content_width : Int32,
 ) -> Array[String] {
-  let prompt_w = @tui_core.string_display_width(self.prompt)
+  let prompt_w = string_display_width(self.prompt)
   let indent = " ".repeat(prompt_w)
   if self.editor.is_empty() {
     return [self.prompt + self.placeholder]
@@ -285,9 +285,9 @@ pub fn InputArea::render_wrapped_lines(
 /// prompt/indent prefix width. Mirrors Ruby input_area position_cursor.
 pub fn InputArea::cursor_display_pos_wrapped(
   self : InputArea,
-  content_width : Int,
-) -> (Int, Int) {
-  let prompt_w = @tui_core.string_display_width(self.prompt)
+  content_width : Int32,
+) -> (Int32, Int32) {
+  let prompt_w = string_display_width(self.prompt)
   let avail = {
     let a = content_width - prompt_w
     if a < 20 {
@@ -321,7 +321,7 @@ pub fn InputArea::cursor_display_pos_wrapped(
   for k = seg_start; k < cursor_col; k = k + 1 {
     before.write_char(chars[k])
   }
-  let col = prompt_w + @tui_core.string_display_width(before.to_string())
+  let col = prompt_w + string_display_width(before.to_string())
   (row + seg_idx, col)
 }
 

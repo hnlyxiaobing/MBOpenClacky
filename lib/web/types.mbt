@@ -60,9 +60,9 @@ pub extend CreateSessionRequest with @moonbitlang/core/json.FromJson::{
 /// Request body for PUT /api/config
 pub(all) struct UpdateConfigRequest {
   permission_mode : String?
-  max_tokens : Int?
+  max_tokens : Int32?
   verbose : Bool?
-  max_tokens_request : Int? // moonbit limitation: field name 'max_tokens' clashes, use workaround
+  max_tokens_request : Int32? // moonbit limitation: field name 'max_tokens' clashes, use workaround
 } derive(FromJson)
 
 ///|
@@ -73,8 +73,8 @@ pub extend UpdateConfigRequest with @moonbitlang/core/json.FromJson::{from_json}
 /// The frontend reads `lat.ttft_ms` as the visibility condition for the
 /// latency signal, so the object shape (not a bare ms number) is required.
 pub(all) struct SessionLatency {
-  ttft_ms : Int?
-  duration_ms : Int?
+  ttft_ms : Int32?
+  duration_ms : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -105,7 +105,7 @@ pub(all) struct SessionSummary {
   status : String
   created_at : String
   updated_at : String
-  total_tasks : Int
+  total_tasks : Int32
   total_cost : Double
   cost_source : String
   error : String
@@ -132,7 +132,7 @@ pub(all) struct SessionSummary {
 pub(all) struct SessionListResponse {
   sessions : Array[SessionSummary]
   has_more : Bool
-  cron_count : Int
+  cron_count : Int32
   latest_cron_updated_at : String?
 }
 
@@ -154,7 +154,7 @@ pub(all) struct ToolListResponse {
 pub(all) struct StatusResponse {
   session_id : String
   status : String
-  iterations : Int
+  iterations : Int32
   error : String?
 }
 
@@ -170,27 +170,27 @@ pub(all) struct CostResponse {
   session_id : String
   total_cost_usd : Double
   cost_source : String
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_requests : Int
-  cache_hit_requests : Int
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_requests : Int32
+  cache_hit_requests : Int32
 }
 
 ///|
 /// Global stats response
 pub(all) struct StatsResponse {
-  total_sessions : Int
+  total_sessions : Int32
   total_cost_usd : Double
-  total_iterations : Int
-  total_tasks : Int
+  total_iterations : Int32
+  total_tasks : Int32
 }
 
 ///|
 /// Aggregate stats response
 pub(all) struct AggregateStatsResponse {
   total_cost_usd : Double
-  session_count : Int
-  total_messages : Int
+  session_count : Int32
+  total_messages : Int32
 }
 
 ///|
@@ -206,14 +206,14 @@ pub(all) struct InfoResponse {
   version : String
   name : String
   uptime_seconds : Int64
-  active_sessions : Int
+  active_sessions : Int32
 }
 
 ///|
 /// Config response (wraps AgentConfig)
 pub(all) struct ConfigResponse {
   permission_mode : String
-  max_tokens : Int
+  max_tokens : Int32
   verbose : Bool
   current_model_id : String?
   models : Array[@config.ModelConfig]

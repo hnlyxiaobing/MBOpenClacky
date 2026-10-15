@@ -21,7 +21,7 @@ fn ask_user_tui_state() -> @agent.Agent {
 
 ///|
 /// Join an output buffer's visible lines for substring assertions.
-fn joined_output_lines(buf : OutputBuffer, n : Int) -> String {
+fn joined_output_lines(buf : OutputBuffer, n : Int32) -> String {
   let mut acc = ""
   for line in buf.tail_lines(n) {
     acc = acc + line + "\n"

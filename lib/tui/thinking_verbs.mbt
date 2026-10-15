@@ -43,7 +43,7 @@ pub extend ThinkingVerbMode with Eq::{not_equal, equal}
 /// `ThinkingVerbAnimator::with_verbs`.
 pub(all) struct ThinkingVerbAnimator {
   verbs : Array[String]
-  mut index : Int
+  mut index : Int32
   mode : ThinkingVerbMode
   rng : @random.Rand
 }

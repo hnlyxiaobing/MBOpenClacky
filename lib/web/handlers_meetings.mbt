@@ -35,7 +35,7 @@ let meeting_state : Ref[MeetingState] = Ref({
 
 ///|
 /// Counter for generating unique IDs.
-let meeting_id_counter : Ref[Int] = Ref(0)
+let meeting_id_counter : Ref[Int32] = Ref(0)
 
 ///|
 /// Path to the meetings state file.

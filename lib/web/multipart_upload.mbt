@@ -67,8 +67,8 @@ fn build_multipart_body(
 /// Test hook: when set, multipart_send delegates to this function instead of
 /// the real @async/http transport. Production code leaves it None.
 let multipart_transport_override : Ref[
-  (async (String, String, Array[(String, String)], Bytes, Int) -> Result[
-    (Int, String),
+  (async (String, String, Array[(String, String)], Bytes, Int32) -> Result[
+    (Int32, String),
     String,
   ])?,
 ] = { val: None, }
@@ -79,8 +79,8 @@ let multipart_transport_override : Ref[
 /// Public so the compiler does not flag it as unused outside test builds;
 /// production code never calls it (multipart_send falls back to @async/http).
 pub fn set_multipart_transport_override(
-  override_ : (async (String, String, Array[(String, String)], Bytes, Int) -> Result[
-    (Int, String),
+  override_ : (async (String, String, Array[(String, String)], Bytes, Int32) -> Result[
+    (Int32, String),
     String,
   ])?,
 ) -> Unit {
@@ -115,7 +115,7 @@ async fn multipart_do_request(
   path : String,
   headers : Map[String, String],
   body : Bytes,
-) -> (Int, String) {
+) -> (Int32, String) {
   let meth = match http_method {
     "PATCH" => @http.Patch
     "PUT" => @http.Put
@@ -138,8 +138,8 @@ async fn multipart_send_http(
   url : String,
   headers : Array[(String, String)],
   body : Bytes,
-  timeout_ms : Int,
-) -> Result[(Int, String), String] {
+  timeout_ms : Int32,
+) -> Result[(Int32, String), String] {
   let (base, path) = match multipart_split_url(url) {
     Ok(pair) => pair
     Err(e) => return Err(e)
@@ -166,8 +166,8 @@ async fn multipart_send(
   url : String,
   headers : Array[(String, String)],
   body : Bytes,
-  timeout_ms : Int,
-) -> Result[(Int, String), String] {
+  timeout_ms : Int32,
+) -> Result[(Int32, String), String] {
   match multipart_transport_override.val {
     Some(f) => f(http_method, url, headers, body, timeout_ms)
     None => multipart_send_http(http_method, url, headers, body, timeout_ms)

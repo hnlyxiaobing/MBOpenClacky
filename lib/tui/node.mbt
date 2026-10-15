@@ -43,7 +43,7 @@ pub enum Node {
   /// Box border with optional title.
   Border(String?, Array[Node])
   /// Padding wrapper (vertical, horizontal).
-  Padding(Int, Int, Node)
+  Padding(Int32, Int32, Node)
   /// Style wrapper applied to child.
   Styled(Style, Node)
   /// Empty node (renders nothing).

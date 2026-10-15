@@ -30,9 +30,9 @@ pub(all) struct ExtensionDispatcher {
   /// Last directory signature (sorted "name|size" tuples) for change detection.
   last_signature : Ref[String]
   /// Counter for throttling filesystem checks.
-  request_count : Ref[Int]
+  request_count : Ref[Int32]
   /// Check for directory changes every Nth request (default 20).
-  check_every : Int
+  check_every : Int32
 }
 
 ///|
@@ -62,7 +62,7 @@ pub fn ExtensionDispatcher::new(
 pub fn ExtensionDispatcher::new_with_dir(
   extensions : Array[ApiExtension],
   ext_dir : String,
-  check_every~ : Int = 20,
+  check_every~ : Int32 = 20,
 ) -> ExtensionDispatcher {
   {
     extensions,
@@ -330,8 +330,8 @@ fn write_body_to_temp(body : String, token : String) -> String {
 /// response content type and stripped from the body.
 fn parse_ext_response(
   output : String,
-  exit_code : Int,
-) -> (Int, String, String) {
+  exit_code : Int32,
+) -> (Int32, String, String) {
   if exit_code == 0 {
     // Check for Content-Type override on first line
     let lines = output.split("\n").to_array()

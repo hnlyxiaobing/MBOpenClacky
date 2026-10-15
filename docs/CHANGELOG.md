@@ -25,6 +25,12 @@
 
 ## 变更记录
 
+### 2026-10-15  发布 0.3.0（版本对齐 0.2.0→0.3.0，mooncakes 新版本）
+
+- `[chore]` **版本发布**：`moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` VERSION 四处一致升到 `0.3.0`，并同步 README/AGENTS/project-status 的 repo-stats 块。这是继 mooncakes 上 `0.1.3` 之后发布的新版本（本地 `0.2.0` 从未发布到 registry）。
+- `[feat]` 自 `v0.2.0` 基线以来的主要能力：Agent shell hook 系统（7 个生命周期事件）、OpenAI Responses API（`/v1/responses`）支持、多渠道真实收发接线（飞书/Telegram/Discord/钉钉/企微/微信）、媒体生成（图像/视频/语音/转写）真实 provider 调用、benchmark 显式基线闸门、层9 用户旅程 E2E runner（`cmd journey`）。
+- `[chore]` **依赖收口**：迁移到 registry `Milky2018/css@0.6.0`，移除废弃 vendored `mbtpdf`，刷新前端 vendor 库并去掉最后一处 CDN 依赖。
+
 ### 2026-10-14  前端 vendor 库刷新 + 依赖清理 + crater-core 增量重排地基
 
 - `[chore]` **依赖收口**：移除 `vendor/milky2018-css` 工作区成员，改用 registry `Milky2018/css@0.6.0`（0.6.0 已把 `Float` 重命名为 `CssFloat`，nightly error-4003 的 vendor 绕行不再需要）；同时删除已废弃的 vendored `mbtpdf`。

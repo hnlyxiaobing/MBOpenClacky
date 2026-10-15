@@ -1,5 +1,3 @@
 members = [
   ".",
-  "vendor/mizchi-crater-core",
-  "vendor/mizchi-tui",
 ]

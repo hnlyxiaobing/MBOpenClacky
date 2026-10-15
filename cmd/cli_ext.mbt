@@ -160,7 +160,7 @@ fn source_name(s : @extension.ExtensionSource) -> String {
 
 ///|
 /// Pad a string with spaces on the right to `width` characters.
-fn pad_right(s : String, width : Int) -> String {
+fn pad_right(s : String, width : Int32) -> String {
   let chars = s.length()
   if chars >= width {
     return s
@@ -363,7 +363,7 @@ fn contains_ci(haystack : String, needle_lower : String) -> Bool {
 
 ///|
 /// Naive substring search returning the byte index of the first match.
-fn find_substring(haystack : StringView, needle : StringView) -> Int? {
+fn find_substring(haystack : StringView, needle : StringView) -> Int32? {
   if needle.length() == 0 {
     return Some(0)
   }

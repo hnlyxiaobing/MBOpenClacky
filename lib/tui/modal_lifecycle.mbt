@@ -195,7 +195,7 @@ pub fn open_edit_form(
   state : TuiState,
   mode : ConfigMode,
   model : @config.ModelConfig,
-  idx : Int,
+  idx : Int32,
 ) -> Unit {
   let fields = [
     ("model", true, "gpt-4o", false),

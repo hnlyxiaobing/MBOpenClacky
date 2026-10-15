@@ -55,7 +55,7 @@ fn media_string_field(j : Json, key : String) -> String? {
 }
 
 ///|
-fn media_int_field(j : Json, key : String) -> Int? {
+fn media_int_field(j : Json, key : String) -> Int32? {
   match j {
     Object(fields) =>
       match fields.get(key) {
@@ -383,7 +383,7 @@ async fn handle_media_video_understand(
 
 ///|
 priv struct VideoWorkDirCounter {
-  mut value : Int
+  mut value : Int32
 }
 
 ///|

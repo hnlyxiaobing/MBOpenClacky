@@ -22,7 +22,7 @@ pub extend BannerStyle with Eq::{not_equal, equal}
 /// Banner renderer
 pub(all) struct Banner {
   style : BannerStyle
-  width : Int
+  width : Int32
   use_color : Bool
 } derive(Eq, Debug)
 
@@ -40,7 +40,7 @@ pub fn Banner::new() -> Banner {
 
 ///|
 /// Create a new Banner with custom width (Boxed style, no color).
-pub fn Banner::with_width(width : Int) -> Banner {
+pub fn Banner::with_width(width : Int32) -> Banner {
   { style: Boxed, width, use_color: false, }
 }
 
@@ -52,14 +52,17 @@ pub fn Banner::with_style(style : BannerStyle) -> Banner {
 
 ///|
 /// Create with custom style and width.
-pub fn Banner::with_style_and_width(style : BannerStyle, width : Int) -> Banner {
+pub fn Banner::with_style_and_width(
+  style : BannerStyle,
+  width : Int32,
+) -> Banner {
   { style, width, use_color: false, }
 }
 
 ///|
 /// Create a Block-style banner with custom width (style variants are
 /// read-only outside this package, hence a dedicated constructor).
-pub fn Banner::block_with_width(width : Int) -> Banner {
+pub fn Banner::block_with_width(width : Int32) -> Banner {
   { style: Block, width, use_color: false, }
 }
 
@@ -82,7 +85,7 @@ fn logo_frame_style() -> BlockFontStyle {
 ///|
 /// Compute an adaptive banner width based on terminal width.
 /// Returns min(terminal_width - 4, 60), with a minimum of 20.
-pub fn Banner::adaptive_width(terminal_width : Int) -> Int {
+pub fn Banner::adaptive_width(terminal_width : Int32) -> Int32 {
   let w = terminal_width - 4
   if w < 20 {
     20
@@ -203,7 +206,7 @@ fn Banner::box_corner(
   left : String,
   right : String,
   fill : String,
-  width : Int,
+  width : Int32,
 ) -> String {
   let line = "\{left}\{fill.repeat(width)}\{right}"
   if self.use_color {
@@ -218,7 +221,7 @@ fn Banner::box_corner(
 fn Banner::box_row(
   self : Banner,
   content : String,
-  inner_width : Int,
+  inner_width : Int32,
 ) -> String {
   let padding = inner_width - content.length()
   let left_pad = padding / 2
@@ -235,7 +238,7 @@ fn Banner::box_row(
 
 ///|
 /// Center a text within a given width.
-fn Banner::center_text(self : Banner, text : String, width : Int) -> String {
+fn Banner::center_text(self : Banner, text : String, width : Int32) -> String {
   let _ = self
   let padding = width - text.length()
   if padding <= 0 {
@@ -262,7 +265,7 @@ fn Banner::colorize(self : Banner, text : String) -> String {
 /// Minimum terminal width for showing the full ASCII art logo.
 /// Below this width, the logo degrades to the `Minimal` style (a plain
 /// welcome line, no artwork).
-pub let min_width_for_logo : Int = 90
+pub let min_width_for_logo : Int32 = 90
 
 ///|
 /// Title drawn as block-font artwork (also used by the `Boxed` logo frame).
@@ -307,7 +310,7 @@ pub fn Banner::render_startup(
   permission_mode : String,
   has_rules : Bool,
   api_key_missing : Bool,
-  terminal_width~ : Int = 0,
+  terminal_width~ : Int32 = 0,
 ) -> String {
   let effective_width = if terminal_width > 0 {
     terminal_width
@@ -344,7 +347,10 @@ pub fn Banner::render_startup(
 /// `MBOPENCLACKY_LOGO_STYLE`) and its frame from `logo_frame_style` (see
 /// `MBOPENCLACKY_LOGO_FRAME`); the `Boxed` style frames the title with
 /// box-drawing characters instead.
-fn Banner::render_logo_section(self : Banner, effective_width : Int) -> String {
+fn Banner::render_logo_section(
+  self : Banner,
+  effective_width : Int32,
+) -> String {
   let style = if effective_width >= min_width_for_logo {
     self.style
   } else {

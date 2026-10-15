@@ -43,7 +43,7 @@ priv struct CapturedCall {
 /// Install a mock transport that captures the call and replies with the
 /// given result. Returns the capture cell.
 fn install_mock_transport(
-  result : Result[(Int, String), String],
+  result : Result[(Int32, String), String],
 ) -> Ref[CapturedCall?] {
   let captured : Ref[CapturedCall?] = { val: None, }
   set_multipart_transport_override(
@@ -52,8 +52,8 @@ fn install_mock_transport(
       url : String,
       headers : Array[(String, String)],
       body : Bytes,
-      _timeout : Int,
-    ) -> Result[(Int, String), String] {
+      _timeout : Int32,
+    ) -> Result[(Int32, String), String] {
       captured.val = Some({ http_method, url, headers, body, })
       result
     }),

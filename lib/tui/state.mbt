@@ -95,7 +95,7 @@ pub(all) struct ConfigMenuDialog {
   /// Menu items.
   mut items : Array[ConfigMenuItem]
   /// Currently selected item index.
-  mut selected_idx : Int
+  mut selected_idx : Int32
   /// Checked state array (parallel to items, for multi-select).
   mut checked : Array[Bool]
 } derive(Debug)
@@ -129,7 +129,7 @@ pub(all) struct FormDialog {
   /// Form fields.
   mut fields : Array[FormField]
   /// Currently focused field index.
-  mut focused_idx : Int
+  mut focused_idx : Int32
 } derive(Debug)
 
 ///|
@@ -161,7 +161,7 @@ pub(all) struct PendingConfigTest {
   /// Add a new card or edit an existing one.
   action : ConfigAction
   /// Target model index for Edit (-1 for Add).
-  target_idx : Int
+  target_idx : Int32
   /// Card id (from the form for Add; existing id for Edit).
   name : String
   /// Model name sent to the API.
@@ -221,7 +221,7 @@ pub(all) enum DialogState {
     mode~ : ConfigMode,
     form~ : FormDialog,
     action~ : ConfigAction,
-    target_idx~ : Int
+    target_idx~ : Int32
   )
   /// Time Machine navigation menu (task undo/redo).
   TimeMachineMenu(ConfigMenuDialog)
@@ -254,13 +254,13 @@ pub(all) struct TuiState {
   /// Current agent status as a display string.
   agent_status : @mizchi/signals.Signal[String]
   /// Number of completed iterations.
-  mut iterations : Int
+  mut iterations : Int32
   /// Current working directory.
   mut working_dir : String
   /// Permission mode.
   mut permission_mode : String
   /// Active task count.
-  mut active_tasks : Int
+  mut active_tasks : Int32
 
   // ── Messages ────────────────────────────────────────────────
   /// Formatted message lines for display ("[ROLE] content").
@@ -284,7 +284,7 @@ pub(all) struct TuiState {
 
   // ── LLM Call Tracking ──────────────────────────────────────
   /// Number of LLM calls made in the current run.
-  mut llm_call_count : Int
+  mut llm_call_count : Int32
   /// Whether an LLM call is currently in progress.
   mut llm_calling : Bool
 
@@ -298,11 +298,11 @@ pub(all) struct TuiState {
   /// Source of the cost data.
   mut cost_source : String
   /// Token delta from the most recent LLM call.
-  mut latest_delta : Int
+  mut latest_delta : Int32
   /// Input token count from the most recent LLM call.
-  mut last_input_tokens : Int
+  mut last_input_tokens : Int32
   /// Output token count from the most recent LLM call.
-  mut last_output_tokens : Int
+  mut last_output_tokens : Int32
 
   // ── Input ───────────────────────────────────────────────────
   /// Current text input content (shared with TextInput).
@@ -343,13 +343,13 @@ pub(all) struct TuiState {
   thinking_buffer : @mizchi/signals.Signal[String]
   // ── Tick Counter (for spinner animation) ────────────────────────
   /// Increments on every Tick event; used by StatusBar spinner.
-  mut tick_count : Int
+  mut tick_count : Int32
   // ── Run Timing (TUI-04) ──────────────────────────────────────────
   /// Millisecond timestamp when the current agent run started.
   mut run_start_ts : Int64
   /// Total iterations in the current run (mirrors `iterations` but
   /// available for the completion summary after RunCompleted).
-  mut total_iterations : Int
+  mut total_iterations : Int32
   /// Whether the user has pressed Shift+Tab to approve all tools
   /// for the remainder of this session.
   mut approved_all_tools : Bool
@@ -359,9 +359,9 @@ pub(all) struct TuiState {
   mut time_machine : @agent.TimeMachineState
   // ── Paste Placeholders (TUI-05) ──────────────────────────────────
   /// Counter for paste placeholder numbering ([#1 Paste Text], ...).
-  mut paste_placeholder_count : Int
+  mut paste_placeholder_count : Int32
   /// Stored paste texts keyed by placeholder number for expansion on submit.
-  mut paste_placeholders : Array[(Int, String)]
+  mut paste_placeholders : Array[(Int32, String)]
 }
 
 ///|
@@ -448,7 +448,7 @@ pub fn reset_tui_session_state(state : TuiState, agent : @agent.Agent) -> Unit {
 
 ///|
 /// Look up a paste placeholder text by its number.
-pub fn TuiState::get_paste_placeholder(self : TuiState, num : Int) -> String? {
+pub fn TuiState::get_paste_placeholder(self : TuiState, num : Int32) -> String? {
   for pair in self.paste_placeholders {
     let (n, text) = pair
     if n == num {

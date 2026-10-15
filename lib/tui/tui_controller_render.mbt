@@ -18,7 +18,7 @@
 
 ///|
 /// Query terminal size, falling back to 80x24 on error.
-fn query_size_safe(tty : @tty.Tty) -> (Int, Int) {
+fn query_size_safe(tty : @tty.Tty) -> (Int32, Int32) {
   try tty.window_size() catch {
     _ => (80, 24)
   } noraise {
@@ -152,7 +152,7 @@ fn TuiController::format_status_text(self : TuiController) -> String {
 ///|
 /// Clamp the fixed-area height so it never exceeds the terminal height
 /// (tiny terminal edge case).
-fn clamp_fixed_height(fixed_h : Int, term_height : Int) -> Int {
+fn clamp_fixed_height(fixed_h : Int32, term_height : Int32) -> Int32 {
   if fixed_h > term_height {
     term_height
   } else if fixed_h < 1 {
@@ -173,7 +173,7 @@ fn clamp_fixed_height(fixed_h : Int, term_height : Int) -> Int {
 async fn TuiController::paint_body_diff(
   self : TuiController,
   new_body : Array[String],
-  max_row : Int,
+  max_row : Int32,
 ) -> Unit {
   if max_row <= 0 {
     return
@@ -254,7 +254,7 @@ async fn TuiController::paint_body_diff(
 
 ///|
 /// Drop the first `n` elements from a mutable array (in-place shift).
-fn drop_head_mut(arr : Array[String], n : Int) -> Unit {
+fn drop_head_mut(arr : Array[String], n : Int32) -> Unit {
   if n <= 0 {
     return
   }
@@ -292,8 +292,8 @@ fn drop_head_mut(arr : Array[String], n : Int) -> Unit {
 /// they are never repainted.
 async fn TuiController::scroll_phys(
   self : TuiController,
-  requested : Int,
-) -> Int {
+  requested : Int32,
+) -> Int32 {
   if requested <= 0 {
     return 0
   }
@@ -349,8 +349,8 @@ async fn TuiController::paint_fixed_area(
 /// Clear a range of screen rows [from_row, to_row) (0-based).
 async fn TuiController::clear_rows_range(
   self : TuiController,
-  from_row : Int,
-  to_row : Int,
+  from_row : Int32,
+  to_row : Int32,
 ) -> Unit {
   if from_row >= to_row {
     return
@@ -396,7 +396,7 @@ fn TuiController::build_body_lines(self : TuiController) -> Array[String] {
 
 ///|
 /// A dim horizontal separator row spanning the terminal width.
-fn dim_separator_line(width : Int) -> String {
+fn dim_separator_line(width : Int32) -> String {
   "\u{1b}[2m" + "─".repeat(width) + "\u{1b}[0m"
 }
 
@@ -454,7 +454,7 @@ fn TuiController::build_fixed_area_lines(
 /// Truncate a possibly ANSI-styled line to at most `width` display columns
 /// (CJK-aware), passing escape sequences through untouched so exactly one
 /// terminal row is occupied when the line is printed directly to the tty.
-fn truncate_ansi_line(line : String, width : Int) -> String {
+fn truncate_ansi_line(line : String, width : Int32) -> String {
   let buf = StringBuilder()
   let mut col = 0
   // Parse state: 0=normal, 1=after_esc, 2=in_csi, 3=in_osc, 4=osc_after_esc
@@ -466,7 +466,7 @@ fn truncate_ansi_line(line : String, width : Int) -> String {
           buf.write_char(c)
           parse_state = 1
         } else {
-          let cw = @tui_core.char_display_width(c)
+          let cw = char_display_width(c)
           if col + cw > width {
             break
           }
@@ -513,7 +513,7 @@ fn truncate_ansi_line(line : String, width : Int) -> String {
 ///|
 /// Number of todo-area rows currently rendered above the status bar
 /// (0 when hidden or empty).
-fn TuiController::todo_row_count(self : TuiController) -> Int {
+fn TuiController::todo_row_count(self : TuiController) -> Int32 {
   if self.state.val.todo_area.visible() {
     self.state.val.todo_area.render_lines().length()
   } else {
@@ -530,7 +530,7 @@ fn TuiController::todo_row_count(self : TuiController) -> Int {
 ///
 /// This must stay exactly consistent with `build_fixed_area_lines` — the
 /// scroll overflow math uses it to compute the output height.
-fn TuiController::fixed_area_height(self : TuiController) -> Int {
+fn TuiController::fixed_area_height(self : TuiController) -> Int32 {
   let content_width = effective_content_width(self.term_width)
   let input_rows = self.input.render_wrapped_lines(content_width).length()
   let attach_rows = self.state.val.paste_placeholders.length()

@@ -279,7 +279,7 @@ pub fn ConfigMenuDialog::as_time_machine(
 
 ///|
 /// Truncate a string to fit within max display columns, appending "…" if truncated.
-fn truncate_to_display_width(s : String, max_w : Int) -> String {
+fn truncate_to_display_width(s : String, max_w : Int32) -> String {
   if max_w <= 0 {
     return ""
   }
@@ -294,7 +294,7 @@ fn truncate_to_display_width(s : String, max_w : Int) -> String {
   let chars = s.to_array()
   let mut i = 0
   while i < chars.length() {
-    let cw = @tui_core.char_display_width(chars[i])
+    let cw = char_display_width(chars[i])
     if acc_w + cw > target {
       break
     }
@@ -312,7 +312,7 @@ fn truncate_to_display_width(s : String, max_w : Int) -> String {
 /// `hints` overrides the footer shortcut line (default: config menu hints).
 pub fn render_config_menu(
   dialog : ConfigMenuDialog,
-  term_width~ : Int = 0,
+  term_width~ : Int32 = 0,
   hints~ : String? = None,
 ) -> Node {
   let children : Array[Node] = []

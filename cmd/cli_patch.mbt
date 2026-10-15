@@ -174,7 +174,7 @@ fn gen_patch_descriptor(
 
 ///|
 /// Pad a string on the right to `width` characters.
-fn pad_patch(s : String, width : Int) -> String {
+fn pad_patch(s : String, width : Int32) -> String {
   if s.length() >= width {
     return s
   }

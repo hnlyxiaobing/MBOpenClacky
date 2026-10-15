@@ -13,11 +13,11 @@
 /// so the reply never appears twice.
 pub struct AgentOutputSync {
   /// Number of `messages` entries already mirrored to the output.
-  mut last_synced_index : Int
+  mut last_synced_index : Int32
   /// Length of the streaming buffer content currently displayed.
-  mut last_displayed_length : Int
+  mut last_displayed_length : Int32
   /// Entry id of the live streaming entry, if one is showing.
-  mut stream_entry_id : Int?
+  mut stream_entry_id : Int32?
   /// Renderer used to apply Markdown styling to finalized replies.
   mut markdown : MarkdownRenderer
 }
@@ -42,7 +42,7 @@ fn AgentOutputSync::set_theme(self : AgentOutputSync, theme : Theme) -> Unit {
 ///|
 /// Split text into display lines, wrapping long lines to fit `max_width`.
 /// ANSI-escape-aware: CSI SGR sequences are preserved across line breaks.
-fn split_display_lines(text : String, max_width~ : Int = 0) -> Array[String] {
+fn split_display_lines(text : String, max_width~ : Int32 = 0) -> Array[String] {
   let lines : Array[String] = []
   for sv in text.split("\n") {
     if max_width > 0 {

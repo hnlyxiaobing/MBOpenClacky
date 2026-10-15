@@ -21,7 +21,7 @@ fn brand_config_dir() -> String {
 
 ///|
 /// Return the current wall-clock time as an Int (seconds since epoch).
-fn now_seconds() -> Int {
+fn now_seconds() -> Int32 {
   (@env.now().reinterpret_as_int64() / 1000L).to_int()
 }
 

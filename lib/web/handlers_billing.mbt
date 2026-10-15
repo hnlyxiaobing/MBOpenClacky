@@ -301,7 +301,7 @@ fn billing_ms_to_datetime(ms : Int64) -> String {
 }
 
 ///|
-fn billing_is_leap(year : Int) -> Bool {
+fn billing_is_leap(year : Int32) -> Bool {
   (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
@@ -424,7 +424,8 @@ pub fn handle_billing_daily(request : HttpRequest) -> HttpResponse {
   let from_ms = now_ms - days.to_int64() * ms_per_day
   // Accumulate per calendar date: (cost, tokens, prompt, completion,
   // cache_read, cache_write, requests)
-  let day_map : Map[String, (Double, Int, Int, Int, Int, Int, Int)] = Map([])
+  let day_map : Map[String, (Double, Int32, Int32, Int32, Int32, Int32, Int32)] = Map([],
+  )
   for r in store.query(from_ms~) {
     let date = billing_date_of_ms(r.timestamp)
     let (cost, tokens, prompt, completion, cache_read, cache_write, requests) = match
@@ -608,7 +609,7 @@ pub fn handle_billing_clear(request : HttpRequest) -> HttpResponse {
 }
 
 ///|
-fn billing_pad(n : Int, width : Int) -> String {
+fn billing_pad(n : Int32, width : Int32) -> String {
   let s = n.to_string()
   if s.length() >= width {
     s
@@ -629,11 +630,11 @@ fn billing_pad(n : Int, width : Int) -> String {
 /// Mutable per-session aggregation accumulator for handle_billing_sessions.
 priv struct BillingSessionAgg {
   mut total_cost : Double
-  mut prompt_tokens : Int
-  mut completion_tokens : Int
-  mut cache_read_tokens : Int
-  mut cache_write_tokens : Int
-  mut requests : Int
+  mut prompt_tokens : Int32
+  mut completion_tokens : Int32
+  mut cache_read_tokens : Int32
+  mut cache_write_tokens : Int32
+  mut requests : Int32
   mut first_ms : Int64
   mut last_ms : Int64
   models : Array[String]
@@ -689,9 +690,9 @@ fn billing_parse_period(request : HttpRequest) -> (@billing.TimePeriod, String) 
 fn billing_parse_int_param(
   request : HttpRequest,
   key : String,
-  default : Int,
-  cap : Int,
-) -> Int {
+  default : Int32,
+  cap : Int32,
+) -> Int32 {
   let raw = match billing_query_param(request, key) {
     Some(s) => @string.parse_int(s) catch { _ => default }
     None => default

@@ -3,7 +3,7 @@
 ///|
 /// Run git with args (no shell), capture merged stdout+stderr.
 /// Returns (exit_code, output).
-async fn git_exec(args : Array[String], cwd? : StringView) -> (Int, String) {
+async fn git_exec(args : Array[String], cwd? : StringView) -> (Int32, String) {
   let (code, output) = @process.collect_output_merged("git", args, cwd?)
   (code, output.text())
 }
@@ -24,7 +24,7 @@ pub async fn git_run(args : Array[String]) -> String {
 
 ///|
 /// Run a git command and return (exit_code, merged output).
-pub async fn git_run_with_code(args : Array[String]) -> (Int, String) {
+pub async fn git_run_with_code(args : Array[String]) -> (Int32, String) {
   git_exec(args)
 }
 

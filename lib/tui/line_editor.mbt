@@ -18,11 +18,11 @@ pub(all) struct LineEditor {
   /// Submitted input history (newest last).
   mut history : Array[String]
   /// Current history browse index (-1 = not browsing).
-  mut history_index : Int
+  mut history_index : Int32
   /// Cursor line index (0-based).
-  mut cursor_line : Int
+  mut cursor_line : Int32
   /// Cursor column index (0-based, character-based).
-  mut cursor_col : Int
+  mut cursor_col : Int32
 }
 
 ///|
@@ -68,13 +68,13 @@ pub fn LineEditor::text(self : LineEditor) -> String {
 
 ///|
 /// Number of lines in the editor.
-pub fn LineEditor::line_count(self : LineEditor) -> Int {
+pub fn LineEditor::line_count(self : LineEditor) -> Int32 {
   self.lines.length()
 }
 
 ///|
 /// Get a specific line (clamped to valid range).
-pub fn LineEditor::get_line(self : LineEditor, idx : Int) -> String {
+pub fn LineEditor::get_line(self : LineEditor, idx : Int32) -> String {
   let i = if idx < 0 {
     0
   } else if idx >= self.lines.length() {
@@ -93,19 +93,19 @@ pub fn LineEditor::is_empty(self : LineEditor) -> Bool {
 
 ///|
 /// CJK-aware display column of the cursor on the current line.
-pub fn LineEditor::display_col(self : LineEditor) -> Int {
+pub fn LineEditor::display_col(self : LineEditor) -> Int32 {
   cursor_display_col(self.lines[self.cursor_line], self.cursor_col)
 }
 
 ///|
 /// Display width of the current line.
-pub fn LineEditor::line_display_width(self : LineEditor) -> Int {
-  @tui_core.string_display_width(self.lines[self.cursor_line])
+pub fn LineEditor::line_display_width(self : LineEditor) -> Int32 {
+  string_display_width(self.lines[self.cursor_line])
 }
 
 ///|
 /// Current cursor (line, col).
-pub fn LineEditor::cursor_pos(self : LineEditor) -> (Int, Int) {
+pub fn LineEditor::cursor_pos(self : LineEditor) -> (Int32, Int32) {
   (self.cursor_line, self.cursor_col)
 }
 
@@ -152,8 +152,8 @@ pub fn LineEditor::restore_history(
 /// Immutable snapshot of editor content + cursor.
 pub(all) struct LineEditorSnapshot {
   lines : Array[String]
-  cursor_line : Int
-  cursor_col : Int
+  cursor_line : Int32
+  cursor_col : Int32
 }
 
 // ── Content mutation ──────────────────────────────────────────────
@@ -528,7 +528,7 @@ pub fn LineEditor::submit(self : LineEditor) -> String {
 ///|
 /// Maximum ratio of the terminal width usable for input content
 /// (aligned with Ruby ui2/line_editor.rb MAX_CONTENT_WIDTH_RATIO = 0.9).
-pub fn effective_content_width(screen_width : Int) -> Int {
+pub fn effective_content_width(screen_width : Int32) -> Int32 {
   let w = screen_width * 9 / 10
   if w < 1 {
     1
@@ -539,7 +539,7 @@ pub fn effective_content_width(screen_width : Int) -> Int {
 
 ///|
 /// Count the number of newline-separated lines in a paste text.
-pub fn paste_line_count(text : String) -> Int {
+pub fn paste_line_count(text : String) -> Int32 {
   let mut count = 1
   for c in text.iter() {
     if c == '\n' {
@@ -551,7 +551,7 @@ pub fn paste_line_count(text : String) -> Int {
 
 ///|
 /// Build a paste placeholder tag like `[#3 Paste Text]`.
-pub fn paste_placeholder_tag(num : Int) -> String {
+pub fn paste_placeholder_tag(num : Int32) -> String {
   "[#\{num} Paste Text]"
 }
 
@@ -559,7 +559,7 @@ pub fn paste_placeholder_tag(num : Int) -> String {
 
 ///|
 /// Clamp a column value to [0, max].
-fn clamp_col(col : Int, max : Int) -> Int {
+fn clamp_col(col : Int32, max : Int32) -> Int32 {
   if col < 0 {
     0
   } else if col > max {

@@ -8,7 +8,7 @@
 /// A single display item in the todo area.
 pub(all) struct TodoDisplayItem {
   /// Task ID.
-  id : Int
+  id : Int32
   /// Task title.
   title : String
   /// Status label (pending, in_progress, completed, etc.).
@@ -26,13 +26,13 @@ pub(all) struct TodoArea {
   /// Display items to render.
   mut items : Array[TodoDisplayItem]
   /// Number of completed tasks.
-  mut completed_count : Int
+  mut completed_count : Int32
   /// Total number of tasks.
-  mut total_count : Int
+  mut total_count : Int32
   /// Whether the area is hidden.
   mut hidden : Bool
   /// Maximum number of items to display.
-  max_display : Int
+  max_display : Int32
 } derive(Debug)
 
 ///|
@@ -91,8 +91,8 @@ pub fn TodoArea::render_lines(self : TodoArea) -> Array[String] {
 pub fn TodoArea::update(
   self : TodoArea,
   items : Array[TodoDisplayItem],
-  completed : Int,
-  total : Int,
+  completed : Int32,
+  total : Int32,
 ) -> Unit {
   self.items = items
   self.completed_count = completed

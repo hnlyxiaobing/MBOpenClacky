@@ -22,7 +22,7 @@ pub extend TipsType with Eq::{not_equal, equal}
 
 ///|
 /// Number of Tick events (200ms each) after which a tips message expires.
-let tips_ttl_ticks : Int = 10
+let tips_ttl_ticks : Int32 = 10
 
 ///|
 /// State of the system tips row.
@@ -32,7 +32,7 @@ pub(all) struct TipsState {
   /// Severity of the current message.
   mut type_ : TipsType
   /// `tick_count` value when the current message was set.
-  mut set_tick : Int
+  mut set_tick : Int32
 }
 
 ///|
@@ -47,7 +47,7 @@ pub fn TipsState::set(
   self : TipsState,
   message : String,
   type_ : TipsType,
-  tick : Int,
+  tick : Int32,
 ) -> Unit {
   self.message = Some(message)
   self.type_ = type_
@@ -62,7 +62,7 @@ pub fn TipsState::clear(self : TipsState) -> Unit {
 
 ///|
 /// Whether the current message has outlived its 2s window at `now_tick`.
-pub fn TipsState::is_expired(self : TipsState, now_tick : Int) -> Bool {
+pub fn TipsState::is_expired(self : TipsState, now_tick : Int32) -> Bool {
   self.message is Some(_) && now_tick - self.set_tick >= tips_ttl_ticks
 }
 
@@ -74,7 +74,7 @@ pub fn TipsState::is_expired(self : TipsState, now_tick : Int) -> Bool {
 pub fn format_tips(
   message : String,
   type_ : TipsType,
-  term_width : Int,
+  term_width : Int32,
 ) -> String {
   let max_length = term_width - 10
   let mut msg = message

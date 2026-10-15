@@ -82,7 +82,7 @@ async fn probe_openai_compatible(
   base_url : String,
   api_key : String,
   model : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Result[@client.HttpResponse, @client.HttpError] {
   let models_path = if has_version_suffix(base_url) {
     base_url + "/models"

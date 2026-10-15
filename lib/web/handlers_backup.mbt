@@ -9,7 +9,7 @@ priv struct BackupRecord {
   id : String
   label : String
   created_at : String
-  size_bytes : Int
+  size_bytes : Int32
   status : String
   scope : String
   description : String
@@ -92,7 +92,7 @@ fn generate_backup_id() -> String {
 
 ///|
 /// Format a two-digit number with zero-padding.
-fn pad2(n : Int) -> String {
+fn pad2(n : Int32) -> String {
   if n < 10 {
     "0\{n}"
   } else {
@@ -279,7 +279,7 @@ fn parent_dir_name(path : String) -> String? {
 ///|
 /// Collect snapshot data: read config and session files into a JSON blob.
 /// Returns (snapshot_json, total_size_bytes).
-fn collect_snapshot_data(scope : String) -> (Json, Int) {
+fn collect_snapshot_data(scope : String) -> (Json, Int32) {
   let data : Map[String, Json] = Map([])
   let mut total_size = 0
   let config_dir = match @utils.config_dir() {
@@ -747,7 +747,7 @@ pub fn handle_backup_download(request : HttpRequest) -> HttpResponse {
 priv struct BackupConfig {
   mut backup_dir : String
   mut auto_backup : Bool
-  mut max_backups : Int
+  mut max_backups : Int32
 }
 
 ///|

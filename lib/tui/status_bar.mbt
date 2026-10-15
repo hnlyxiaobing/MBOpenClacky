@@ -234,20 +234,20 @@ fn segment_color_code(color : SegmentColor) -> String {
 
 ///|
 /// Number of segments.
-pub fn StatusBar::segment_count(self : StatusBar) -> Int {
+pub fn StatusBar::segment_count(self : StatusBar) -> Int32 {
   self.segments.length()
 }
 
 ///|
 /// Get a segment by index.
-pub fn StatusBar::get_segment(self : StatusBar, i : Int) -> StatusSegment {
+pub fn StatusBar::get_segment(self : StatusBar, i : Int32) -> StatusSegment {
   self.segments[i]
 }
 
 ///|
 /// Truncate a directory path for display.
 /// Shows the last `max_len` characters with "..." prefix if too long.
-fn truncate_dir(path : String, max_len : Int) -> String {
+fn truncate_dir(path : String, max_len : Int32) -> String {
   if path.length() <= max_len {
     path
   } else {
@@ -257,7 +257,7 @@ fn truncate_dir(path : String, max_len : Int) -> String {
 
 ///|
 /// Truncate a model name for display.
-fn truncate_model(name : String, max_len : Int) -> String {
+fn truncate_model(name : String, max_len : Int32) -> String {
   if name.length() <= max_len {
     name
   } else {
@@ -289,10 +289,10 @@ pub fn format_cost(cost : Double) -> String {
 
 ///|
 /// Measure the display column width of a string, respecting CJK double-width.
-fn display_width(s : String) -> Int {
+fn display_width(s : String) -> Int32 {
   let mut w = 0
   for c in s.iter() {
-    w = w + @tui_core.char_display_width(c)
+    w = w + char_display_width(c)
   }
   w
 }
@@ -300,7 +300,7 @@ fn display_width(s : String) -> Int {
 ///|
 /// Truncate a directory path to fit within `max_w` display columns.
 /// Shows the last portion with "..." prefix if too long.
-fn truncate_dir_to_width(path : String, max_w : Int) -> String {
+fn truncate_dir_to_width(path : String, max_w : Int32) -> String {
   let w = display_width(path)
   if w <= max_w {
     return path
@@ -313,7 +313,7 @@ fn truncate_dir_to_width(path : String, max_w : Int) -> String {
   let mut acc_w = 0
   let mut i = chars.length() - 1
   while i >= 0 {
-    let cw = @tui_core.char_display_width(chars[i])
+    let cw = char_display_width(chars[i])
     if acc_w + cw > target {
       break
     }
@@ -340,7 +340,7 @@ fn truncate_dir_to_width(path : String, max_w : Int) -> String {
 pub fn StatusBar::format_from_state_adaptive(
   self : StatusBar,
   state : TuiState,
-  width : Int,
+  width : Int32,
 ) -> Unit {
   self.segments.clear()
   let sep_w = 3 // " │ "

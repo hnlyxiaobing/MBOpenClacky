@@ -4,7 +4,7 @@
 
 ///|
 /// Current MBOpenClacky version (mirrors cmd/main.mbt).
-const VERSION : String = "0.2.0"
+const VERSION : String = "0.3.0"
 
 ///|
 /// GitHub API URL for the latest openclacky release.
@@ -13,7 +13,7 @@ const GITHUB_LATEST_URL : String = "https://api.github.com/repos/moonbit-communi
 ///|
 /// TTL (seconds) for the in-process latest-version cache; mirrors orig's
 /// fetch_latest_version_cached (1 hour).
-const LATEST_VERSION_CACHE_TTL : Int = 3600
+const LATEST_VERSION_CACHE_TTL : Int32 = 3600
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ fn version_is_newer(current : String, latest : String) -> Bool {
 
 ///|
 /// Safely parse an integer string.
-fn parse_int_safe(s : String) -> Int? {
+fn parse_int_safe(s : String) -> Int32? {
   if s.is_empty() {
     return None
   }
@@ -131,14 +131,14 @@ async fn fetch_latest_version() -> Result[String, String] {
 ///|
 /// In-process cache for the latest release version: (latest, checked_at).
 /// Failures are cached too (latest=None) to avoid hammering the remote.
-let latest_version_cache : Ref[(String?, Int)] = Ref((None, 0))
+let latest_version_cache : Ref[(String?, Int32)] = Ref((None, 0))
 
 ///|
 /// Fetch the latest released version with a 1-hour in-process TTL cache
 /// (mirrors orig's fetch_latest_version_cached). Returns None on remote
 /// failure. Only GET /api/version uses this; POST /api/version/check and
 /// /upgrade always hit the remote directly for a real-time answer.
-async fn fetch_latest_version_cached(now : Int) -> String? {
+async fn fetch_latest_version_cached(now : Int32) -> String? {
   let (cached, checked_at) = latest_version_cache.val
   if checked_at > 0 && now - checked_at < LATEST_VERSION_CACHE_TTL {
     return cached

@@ -1,6 +1,6 @@
 name = "hnlyxiaobing/MBOpenClacky"
 
-version = "0.2.0"
+version = "0.3.0"
 
 readme = "README.md"
 
@@ -13,10 +13,9 @@ import {
   "hnlyxiaobing/moonbitmark@0.5.0",
   "moonbit-community/tty@0.5.0",
   "moonbit-community/pty@0.4.3",
-  "mizchi/tui@0.10.2",
   "mizchi/signals@0.6.6",
   "hustcer/tabular@0.6.0",
-  "Milky2018/css@0.6.0",
+  "moonbit-community/unicodewidth@0.2.1",
 }
 
 repository = "https://github.com/hnlyxiaobing/MBOpenClacky"

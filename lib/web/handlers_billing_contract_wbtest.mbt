@@ -49,10 +49,10 @@ fn bc_clear_jsonl(dir : String) -> Unit {
 fn bc_seed(
   session_id : String,
   model : String,
-  prompt_tokens : Int,
-  completion_tokens : Int,
-  cache_read_tokens : Int,
-  cache_write_tokens : Int,
+  prompt_tokens : Int32,
+  completion_tokens : Int32,
+  cache_read_tokens : Int32,
+  cache_write_tokens : Int32,
   cost_usd : Double,
   cost_source : String,
 ) -> Unit {

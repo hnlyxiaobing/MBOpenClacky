@@ -19,7 +19,7 @@ priv struct ScheduleState {
   messages : Map[String, String] // schedule name -> prompt/message
   executions : Array[ExecutionRecord]
   mut loaded : Bool
-  mut next_id : Int
+  mut next_id : Int32
 }
 
 ///|
@@ -184,7 +184,7 @@ fn read_task_file(dir : String, name : String) -> String? {
 /// scheduled entries, with scheduled=false and empty cron/run fields
 /// (orig list_cron_tasks: cron=nil, enabled=true, scheduled=false).
 fn task_file_to_api_json(name : String, content : String) -> Json {
-  let run_count : Int = 0
+  let run_count : Int32 = 0
   Json::object({
     "id": Json(name),
     "schedule_id": Json(name),
@@ -316,7 +316,7 @@ fn format_timestamp_ms(ms : Int64) -> String {
 
 ///|
 /// Convert days since Unix epoch to (year, month, day).
-fn days_to_ymd(days : Int) -> (Int, Int, Int) {
+fn days_to_ymd(days : Int32) -> (Int32, Int32, Int32) {
   // Algorithm from http://howardhinnant.github.io/date_algorithms.html
   let z = days + 719468
   let era = (if z >= 0 { z } else { z - 146096 }) / 146097
@@ -333,7 +333,7 @@ fn days_to_ymd(days : Int) -> (Int, Int, Int) {
 
 ///|
 /// Pad an integer to the given width with leading zeros.
-fn pad_int(n : Int, width : Int) -> String {
+fn pad_int(n : Int32, width : Int32) -> String {
   let s = if n < 0 { "0" } else { n.to_string() }
   let mut result = s
   while result.length() < width {
@@ -430,7 +430,7 @@ pub fn handle_schedules_create(request : HttpRequest) -> HttpResponse {
 
   save_schedule_state()
 
-  let run_count : Int = 0
+  let run_count : Int32 = 0
   // Build response matching frontend expectations
   let resp = Json::object({
     "id": Json(id),

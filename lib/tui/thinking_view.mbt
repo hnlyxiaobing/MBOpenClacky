@@ -76,7 +76,7 @@ pub fn is_thinking_phase_active(state : TuiState) -> Bool {
 
 ///|
 /// Get the last N lines from a multi-line string.
-fn get_last_n_lines(text : String, n : Int) -> Array[String] {
+fn get_last_n_lines(text : String, n : Int32) -> Array[String] {
   let all_lines = text.split("\n").to_array()
   let total = all_lines.length()
   if total == 0 {

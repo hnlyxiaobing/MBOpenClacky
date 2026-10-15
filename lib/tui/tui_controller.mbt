@@ -13,12 +13,12 @@
 
 ///|
 /// Escape sequence timeout for event reading (ms).
-let esc_timeout_ms : Int = 50
+let esc_timeout_ms : Int32 = 50
 
 ///|
 /// Application version shown in the startup banner.
 /// Mirrors `VERSION` in cmd/main.mbt (not importable from lib).
-let app_version : String = "0.2.0"
+let app_version : String = "0.3.0"
 
 ///|
 
@@ -26,9 +26,9 @@ let app_version : String = "0.2.0"
 /// Controller for the inline TUI application.
 pub(all) struct TuiController {
   tty : @tty.Tty
-  mut term_width : Int
+  mut term_width : Int32
   output : OutputBuffer
-  mut term_height : Int
+  mut term_height : Int32
   status_bar : StatusBar
   input : InputArea
   state : Ref[TuiState]
@@ -42,7 +42,7 @@ pub(all) struct TuiController {
   /// scroll into the terminal's native scrollback.
   mut painted_body : Array[String]
   /// Fixed-area height at the last paint (0 = unpainted).
-  mut last_fixed_height : Int
+  mut last_fixed_height : Int32
   /// Whether the screen has been cleared and initialized.
   mut screen_inited : Bool
   events : @aqueue.Queue[TuiEvent]
@@ -55,15 +55,15 @@ pub(all) struct TuiController {
   mut feedback_pending : Bool
   mut agent_task : @async.Task[@agent.RunResult]?
   thinking_animator : ThinkingVerbAnimator
-  mut last_thinking_len : Int
+  mut last_thinking_len : Int32
   agent_output_sync : AgentOutputSync
   mut theme : Theme
   suggestions : CommandSuggestions
   mut suggestions_active : Bool
   /// Terminal rows currently occupied by the suggestion dropdown.
-  mut suggestions_rows_drawn : Array[Int]
+  mut suggestions_rows_drawn : Array[Int32]
   /// Terminal rows currently occupied by progress indicator lines.
-  mut progress_rows_drawn : Array[Int]
+  mut progress_rows_drawn : Array[Int32]
   /// System tips row state (2s auto-clear via Tick).
   tips : TipsState
   /// Config form submit awaiting its connection test result.
@@ -159,7 +159,7 @@ priv enum ArrowKeyAction {
 /// input history in single-line mode, and move the cursor otherwise.
 fn arrow_key_action(
   suggestions_active : Bool,
-  line_count : Int,
+  line_count : Int32,
 ) -> ArrowKeyAction {
   if suggestions_active {
     NavigateSuggestions
@@ -172,7 +172,7 @@ fn arrow_key_action(
 
 ///|
 /// Whether the suggestion dropdown should track the current input content.
-fn should_show_suggestions(text : String, line_count : Int) -> Bool {
+fn should_show_suggestions(text : String, line_count : Int32) -> Bool {
   line_count <= 1 && text.has_prefix("/")
 }
 
@@ -214,12 +214,12 @@ fn build_command_suggestions() -> CommandSuggestions {
 /// area (progress indicators). Rows may fall outside the drawable area on
 /// tiny terminals — callers must skip rows <= 1 (the status bar).
 fn _band_rows(
-  screen_h : Int,
-  input_h : Int,
-  gap : Int,
-  count : Int,
-) -> Array[Int] {
-  let rows : Array[Int] = []
+  screen_h : Int32,
+  input_h : Int32,
+  gap : Int32,
+  count : Int32,
+) -> Array[Int32] {
+  let rows : Array[Int32] = []
   for i = 0; i < count; i = i + 1 {
     rows.push(screen_h - input_h - gap - count + 1 + i)
   }
@@ -1728,7 +1728,10 @@ fn TuiController::perform_time_machine_switch(
 
 ///|
 /// Perform model deletion after confirmation.
-fn TuiController::perform_model_delete(self : TuiController, idx : Int) -> Unit {
+fn TuiController::perform_model_delete(
+  self : TuiController,
+  idx : Int32,
+) -> Unit {
   if idx >= 0 && idx < self.agent.config.models.length() {
     let removed = self.agent.config.models[idx]
     ignore(self.agent.config.models.remove(idx))

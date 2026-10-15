@@ -15,7 +15,7 @@ let mcp_protocol_version : String = "2024-11-05"
 
 ///|
 /// JSON-RPC error object.
-fn mcp_error(code : Int, message : String) -> Json {
+fn mcp_error(code : Int32, message : String) -> Json {
   Json::object({ "code": Json(code), "message": Json(message) })
 }
 

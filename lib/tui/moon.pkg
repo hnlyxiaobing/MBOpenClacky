@@ -16,9 +16,9 @@ import {
   "moonbitlang/async/io" @async/io,
   "moonbitlang/async/aqueue",
   "moonbitlang/x/fs",
-  "mizchi/tui/core" @tui_core,
   "mizchi/signals",
   "hustcer/tabular",
+  "moonbit-community/unicodewidth",
 }
 
 supported_targets = "native"

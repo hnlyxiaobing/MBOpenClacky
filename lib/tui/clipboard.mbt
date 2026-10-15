@@ -13,7 +13,7 @@ let b64_chars : Array[Char] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw
 /// Encode a string to base64 (UTF-8 bytes).
 fn base64_encode(text : String) -> String {
   // Convert string to UTF-8 byte array
-  let bytes : Array[Int] = []
+  let bytes : Array[Int32] = []
   for c in text.iter() {
     let cp = c.to_int()
     if cp < 0x80 {

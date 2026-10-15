@@ -215,8 +215,8 @@ fn live_report_header(
   stamp : String,
   resolved : LiveModel,
   tasks_dir : String,
-  task_count : Int,
-  trials : Int,
+  task_count : Int32,
+  trials : Int32,
 ) -> String {
   let lines : Array[String] = []
   lines.push(
@@ -272,7 +272,7 @@ pub async fn run_live_eval(repo : String, sub : @clap.SimpleValue) -> Unit {
     @sys.exit(1)
     return
   }
-  let trials_override : Int? = match get_named_arg(sub, "trials") {
+  let trials_override : Int32? = match get_named_arg(sub, "trials") {
     Some(text) => Some(@string.parse_int(text.trim()) catch { _ => 0 })
     None => None
   }

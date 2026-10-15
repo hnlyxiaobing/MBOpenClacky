@@ -28,7 +28,7 @@ priv struct WsSessionState {
   /// (T13: token-level streaming now forwarded via token_delta events).
   mut chunk_buf : String
   /// Sequence counter for confirmation request ids.
-  mut confirm_seq : Int
+  mut confirm_seq : Int32
   /// Pending confirmation replies, keyed by request_id. The WS
   /// `confirmation` upstream message resolves the queue; the confirmation
   /// bridge task awaits it with a timeout.

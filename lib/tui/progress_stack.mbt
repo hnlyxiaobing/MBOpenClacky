@@ -26,7 +26,7 @@ pub(all) struct ProgressHandle {
   /// Reference to the stack that owns this handle.
   stack : Ref[ProgressStackData]
   /// Index of this entry in the stack's handles array.
-  index : Int
+  index : Int32
 }
 
 ///|
@@ -43,7 +43,7 @@ struct ProgressEntry {
   /// Optional metadata (e.g., tool name, iteration number).
   mut metadata : String
   /// Character count for streaming progress (e.g., streamed chars).
-  mut char_count : Int
+  mut char_count : Int32
   /// Quiet mode: minimal display (spinner + short text only).
   mut quiet : Bool
 } derive(Debug)
@@ -57,7 +57,7 @@ pub(all) struct ProgressStackData {
   /// All progress entries (open and closed).
   entries : Array[ProgressEntry]
   /// Counter for generating unique IDs.
-  mut next_id : Int
+  mut next_id : Int32
 } derive(Debug)
 
 ///|
@@ -128,7 +128,7 @@ pub fn ProgressStack::push_quiet(
 
 ///|
 /// Get the number of currently open (not closed) progress entries.
-pub fn ProgressStack::open_count(self : ProgressStack) -> Int {
+pub fn ProgressStack::open_count(self : ProgressStack) -> Int32 {
   let d = self.data.val
   let mut count = 0
   for entry in d.entries {
@@ -141,7 +141,7 @@ pub fn ProgressStack::open_count(self : ProgressStack) -> Int {
 
 ///|
 /// Get the total number of entries (open + closed).
-pub fn ProgressStack::total_count(self : ProgressStack) -> Int {
+pub fn ProgressStack::total_count(self : ProgressStack) -> Int32 {
   self.data.val.entries.length()
 }
 
@@ -198,7 +198,7 @@ pub fn ProgressStack::close_all(self : ProgressStack) -> Unit {
 /// Used by streaming to show `↓N chars` on the active progress frame.
 pub fn ProgressStack::update_last_char_count(
   self : ProgressStack,
-  count : Int,
+  count : Int32,
 ) -> Unit {
   let d = self.data.val
   let mut i = d.entries.length() - 1
@@ -275,7 +275,7 @@ pub fn ProgressHandle::close(self : ProgressHandle) -> Unit {
 /// Update the character count for this progress entry.
 pub fn ProgressHandle::set_char_count(
   self : ProgressHandle,
-  count : Int,
+  count : Int32,
 ) -> Unit {
   let d = self.stack.val
   if self.index < d.entries.length() {
@@ -299,7 +299,7 @@ pub fn ProgressHandle::is_open(self : ProgressHandle) -> Bool {
 ///|
 /// Calculate elapsed seconds from a start timestamp.
 /// Uses `@env.now().reinterpret_as_int64()` (millisecond timestamp) for real wall-clock time.
-fn elapsed_seconds(start_time : Int64) -> Int {
+fn elapsed_seconds(start_time : Int64) -> Int32 {
   let now_ms = @env.now().reinterpret_as_int64()
   let diff_ms = now_ms - start_time
   // Convert milliseconds to whole seconds
@@ -309,7 +309,7 @@ fn elapsed_seconds(start_time : Int64) -> Int {
 ///|
 /// Select a spinner frame character based on elapsed time.
 /// Uses the Dots style (braille spinner) with ~100ms per frame.
-fn spinner_frame(_elapsed_sec : Int) -> String {
+fn spinner_frame(_elapsed_sec : Int32) -> String {
   let frames = [
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
   ]

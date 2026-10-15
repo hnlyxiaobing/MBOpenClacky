@@ -31,11 +31,11 @@ pub extend BlockFontStyle with Eq::{not_equal, equal}
 
 ///|
 /// Height in rows of a single Standard-style glyph.
-pub let block_font_height : Int = 5
+pub let block_font_height : Int32 = 5
 
 ///|
 /// Width in columns of a single Standard-style glyph.
-pub let block_font_width : Int = 5
+pub let block_font_width : Int32 = 5
 
 ///|
 /// Render `text` as ASCII art block font using the Standard style.
@@ -95,13 +95,13 @@ pub fn render_lines_with_style(
 
 ///|
 /// Maximum rendered width of `text` (Standard style) in columns.
-pub fn render_width(text : String) -> Int {
+pub fn render_width(text : String) -> Int32 {
   render_width_with_style(text, Standard)
 }
 
 ///|
 /// Maximum rendered width of `text` in the given style, in columns.
-pub fn render_width_with_style(text : String, style : BlockFontStyle) -> Int {
+pub fn render_width_with_style(text : String, style : BlockFontStyle) -> Int32 {
   let lines = render_lines_with_style(text, style)
   let mut max_w = 0
   for line in lines {

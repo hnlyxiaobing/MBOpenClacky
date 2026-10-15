@@ -7,12 +7,12 @@
 ///|
 /// Markdown token types produced by the tokenizer.
 pub(all) enum MarkdownToken {
-  Heading(level~ : Int, text~ : String)
+  Heading(level~ : Int32, text~ : String)
   Bold(text~ : String)
   Italic(text~ : String)
   Code(text~ : String)
   CodeBlock(lang~ : String, code~ : String)
-  ListItem(indent~ : Int, text~ : String)
+  ListItem(indent~ : Int32, text~ : String)
   Paragraph(text~ : String)
   BlockQuote(text~ : String)
   HorizontalRule
@@ -278,7 +278,10 @@ fn parse_inline_impl(line : String) -> Array[MarkdownToken] {
 ///
 /// Returns `Some((text, url, end_position))` on success, `None` if no
 /// valid link pattern is found.
-fn try_parse_link_impl(line : String, start : Int) -> (String, String, Int)? {
+fn try_parse_link_impl(
+  line : String,
+  start : Int32,
+) -> (String, String, Int32)? {
   let chars = line.to_array()
   if start >= chars.length() || chars[start] != '[' {
     return None
@@ -432,7 +435,7 @@ fn split_lines_impl(s : String) -> Array[String] {
 
 ///|
 /// Count leading spaces in a string.
-fn count_leading_spaces_impl(s : String) -> Int {
+fn count_leading_spaces_impl(s : String) -> Int32 {
   let chars = s.to_array()
   let mut count = 0
   for i = 0; i < chars.length(); i = i + 1 {
@@ -453,7 +456,7 @@ fn is_table_row(line : String) -> Bool {
 }
 
 ///|
-fn is_table_start(lines : Array[String], idx : Int) -> Bool {
+fn is_table_start(lines : Array[String], idx : Int32) -> Bool {
   if idx >= lines.length() || idx + 1 >= lines.length() {
     return false
   }

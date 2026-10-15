@@ -30,7 +30,7 @@ enum ExitExpect {
   /// Exit code must be non-zero.
   NonZero
   /// Exit code must equal this value.
-  Exact(Int)
+  Exact(Int32)
 }
 
 ///|
@@ -78,7 +78,7 @@ struct CaptureResult {
   /// Whether the process was spawned at all.
   spawned : Bool
   /// Exit code (-1 when spawning failed).
-  exit_code : Int
+  exit_code : Int32
   /// Captured stdout.
   stdout : String
   /// Captured stderr.
@@ -95,7 +95,7 @@ struct ProbeRun {
   /// Whether the probe was actually executed.
   executed : Bool
   /// Process exit code.
-  exit_code : Int
+  exit_code : Int32
   /// Captured stdout (trimmed for comparison).
   stdout : String
   /// Captured stderr (trimmed; surfaced in reports on failure and in diffs).
@@ -123,7 +123,7 @@ let forbidden_markers : Array[String] = [
 ///|
 /// Default per-probe timeout in milliseconds. Prevents an accidental
 /// interactive path from hanging CI forever.
-let default_probe_timeout_ms : Int = 30_000
+let default_probe_timeout_ms : Int32 = 30_000
 
 ///|
 /// Capture a command's exit code, stdout and stderr without a shell.
@@ -132,7 +132,7 @@ async fn capture_output(
   args : Array[String],
   cwd : String,
 ) -> CaptureResult {
-  let captured : (Int, &@io.Data, &@io.Data)? = Some(
+  let captured : (Int32, &@io.Data, &@io.Data)? = Some(
     @process.collect_output(cmd, args, cwd~),
   ) catch {
     _ => None
@@ -198,7 +198,7 @@ fn check_stdout_shape(shape : StdoutShape, stdout : String) -> Array[String] {
 
 ///|
 /// Check an exit code against the expectation. Pure.
-fn check_exit(expect : ExitExpect, code : Int) -> Array[String] {
+fn check_exit(expect : ExitExpect, code : Int32) -> Array[String] {
   let failures : Array[String] = []
   match expect {
     Zero => if code != 0 { failures.push("expected exit 0, got \{code}") }
@@ -362,7 +362,7 @@ async fn run_probe(
   prepend_args : Array[String],
   probe : Probe,
   repo : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> ProbeRun {
   let args : Array[String] = []
   for arg in prepend_args {

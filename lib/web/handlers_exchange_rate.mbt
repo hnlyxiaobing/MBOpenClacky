@@ -135,13 +135,13 @@ fn build_exchange_rate_response(
 
 ///|
 /// Check if a year is a leap year (Gregorian calendar).
-fn is_leap_year(year : Int) -> Bool {
+fn is_leap_year(year : Int32) -> Bool {
   (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
 ///|
 /// Number of days in a given month (1-12) for a specific year.
-fn days_in_month(year : Int, month : Int) -> Int {
+fn days_in_month(year : Int32, month : Int32) -> Int32 {
   match month {
     1 | 3 | 5 | 7 | 8 | 10 | 12 => 31
     4 | 6 | 9 | 11 => 30
@@ -152,7 +152,7 @@ fn days_in_month(year : Int, month : Int) -> Int {
 
 ///|
 /// Convert epoch days (since 1970-01-01) to (year, month, day) in UTC.
-fn epoch_days_to_ymd(days_in : Int) -> (Int, Int, Int) {
+fn epoch_days_to_ymd(days_in : Int32) -> (Int32, Int32, Int32) {
   let mut days = days_in
   let mut year = 1970
   while true {
@@ -177,7 +177,7 @@ fn epoch_days_to_ymd(days_in : Int) -> (Int, Int, Int) {
 
 ///|
 /// Left-pad a number to 4 digits with leading zeros.
-fn pad4(n : Int) -> String {
+fn pad4(n : Int32) -> String {
   let s = n.to_string()
   let mut result = s
   while result.length() < 4 {

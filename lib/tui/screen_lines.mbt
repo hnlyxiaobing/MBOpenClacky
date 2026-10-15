@@ -39,11 +39,11 @@ pub fn strip_ansi(s : String) -> String {
 
 ///|
 /// Display width of a string in terminal columns (ANSI-aware, CJK-aware).
-pub fn ansi_display_width(s : String) -> Int {
+pub fn ansi_display_width(s : String) -> Int32 {
   let plain = strip_ansi(s)
   let mut w = 0
   for c in plain.iter() {
-    w = w + @tui_core.char_display_width(c)
+    w = w + char_display_width(c)
   }
   w
 }
@@ -51,7 +51,7 @@ pub fn ansi_display_width(s : String) -> Int {
 ///|
 /// Pad a possibly ANSI-styled line with trailing spaces up to `width`
 /// display columns (no-op when already at or beyond the width).
-pub fn pad_ansi_line(line : String, width : Int) -> String {
+pub fn pad_ansi_line(line : String, width : Int32) -> String {
   let w = ansi_display_width(line)
   if w >= width {
     line
@@ -69,7 +69,7 @@ pub fn pad_ansi_line(line : String, width : Int) -> String {
 pub fn compose_screen_lines(
   body : Array[String],
   fixed : Array[String],
-  term_height : Int,
+  term_height : Int32,
 ) -> Array[String] {
   if term_height <= 0 {
     return []

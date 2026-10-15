@@ -1006,7 +1006,7 @@ fn init_channel_manager(config_path : String) -> @channel.ChannelManager {
 /// cmd/main.mbt security gate).
 pub async fn WebServer::start(
   self : WebServer,
-  port : Int,
+  port : Int32,
   host~ : String = "127.0.0.1",
 ) -> Unit {
   self.start_time = @env.now().reinterpret_as_int64()

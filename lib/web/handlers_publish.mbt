@@ -94,7 +94,7 @@ fn collect_publish_files(
 /// Byte-order (UTF-16 code unit) string comparison. Ruby's Array#sort on
 /// strings is bytewise (uppercase before lowercase), unlike MoonBit's
 /// String::compare; orig's ZIP entry order follows Ruby semantics.
-fn ruby_str_compare(a : String, b : String) -> Int {
+fn ruby_str_compare(a : String, b : String) -> Int32 {
   let la = a.length()
   let lb = b.length()
   let n = if la < lb { la } else { lb }
@@ -167,7 +167,7 @@ fn bytes_to_hex(bytes : Array[Byte]) -> String {
 /// code/error field plus errors array joined with ", ", defaulting to
 /// "HTTP {status}"; already_exists mirrors orig's detection
 /// (code contains "name_taken"/"already", or HTTP 409).
-fn parse_upload_response(status : Int, body : String) -> SkillUploadOutcome {
+fn parse_upload_response(status : Int32, body : String) -> SkillUploadOutcome {
   let parsed : Json? = Some(@json.parse(body)) catch { _ => None }
   if status >= 200 && status < 300 {
     let mut version : String? = None

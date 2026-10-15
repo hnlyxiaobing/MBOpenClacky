@@ -16,7 +16,7 @@ pub(all) struct ExtensionRoute {
   /// Human-readable description
   description : String
   /// Per-route execution timeout in milliseconds (default 30 000)
-  timeout_ms : Int
+  timeout_ms : Int32
 } derive(Debug)
 
 ///|
@@ -40,14 +40,14 @@ pub extend ApiExtension with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Default extension execution timeout in milliseconds (30 seconds).
-pub let default_ext_timeout_ms : Int = 30000
+pub let default_ext_timeout_ms : Int32 = 30000
 
 ///|
 /// Maximum extension execution timeout in milliseconds (10 minutes). Routes
 /// declaring a `timeout_ms` greater than this (or non-positive) fall back
 /// to `default_ext_timeout_ms`. This prevents a single extension from
 /// claiming an unbounded execution budget.
-pub let max_ext_timeout_ms : Int = 600000
+pub let max_ext_timeout_ms : Int32 = 600000
 
 ///|
 /// Load API extensions from a directory.

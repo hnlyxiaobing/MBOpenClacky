@@ -442,7 +442,7 @@ fn pop_phase(
 ///|
 /// Truncate text to a maximum number of characters (char-safe: never
 /// splits a surrogate pair / multi-unit character).
-fn truncate_preview(text : String, max_len : Int) -> String {
+fn truncate_preview(text : String, max_len : Int32) -> String {
   let buf = StringBuilder()
   let mut count = 0
   let mut truncated = false

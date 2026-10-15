@@ -31,7 +31,7 @@ pub(all) struct HttpRequest {
 
 ///|
 pub(all) struct HttpResponse {
-  status : Int
+  status : Int32
   body : String
   body_bytes : Bytes?
   content_type : String
@@ -175,7 +175,10 @@ pub fn HttpResponse::with_content_type(
 }
 
 ///|
-pub fn HttpResponse::with_status(self : HttpResponse, s : Int) -> HttpResponse {
+pub fn HttpResponse::with_status(
+  self : HttpResponse,
+  s : Int32,
+) -> HttpResponse {
   { ..self, status: s, }
 }
 
@@ -185,7 +188,7 @@ pub fn HttpResponse::with_status(self : HttpResponse, s : Int) -> HttpResponse {
 /// `bad_request`/`not_found` take a *message* and wrap it as
 /// `{"error": <message>}`; callers that build their own body object must use
 /// this instead, or the body ends up double-encoded inside an `error` string.
-pub fn HttpResponse::json_status(status : Int, body : String) -> HttpResponse {
+pub fn HttpResponse::json_status(status : Int32, body : String) -> HttpResponse {
   {
     status,
     body,

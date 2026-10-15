@@ -32,7 +32,7 @@ pub extend OutputKind with Eq::{not_equal, equal}
 /// A single output entry in the buffer.
 pub(all) struct OutputEntry {
   /// Unique monotonic identifier.
-  id : Int
+  id : Int32
   /// Pre-wrapped visual lines (already split at terminal width).
   lines : Array[String]
   /// Entry kind — hints the renderer about styling and behavior.
@@ -40,7 +40,7 @@ pub(all) struct OutputEntry {
   /// Number of lines from the top that are committed to scrollback.
   /// 0 = not committed at all; lines.length() = fully committed.
   /// Values in between indicate partial commit (line-level granularity).
-  mut committed_line_offset : Int
+  mut committed_line_offset : Int32
   /// Whether this entry is collapsed (showing only first N lines).
   mut collapsed : Bool
 } derive(Debug)
@@ -85,7 +85,7 @@ pub fn OutputEntry::live_lines(self : OutputEntry) -> Array[String] {
 
 ///|
 /// Total number of visual lines in this entry.
-pub fn OutputEntry::line_count(self : OutputEntry) -> Int {
+pub fn OutputEntry::line_count(self : OutputEntry) -> Int32 {
   self.lines.length()
 }
 
@@ -100,17 +100,17 @@ pub(all) struct OutputBuffer {
   /// Ordered list of entries (oldest first).
   entries : Array[OutputEntry]
   /// Next monotonic id to assign.
-  mut next_id : Int
+  mut next_id : Int32
   /// Soft limit on total entries (oldest trimmed when exceeded).
-  max_entries : Int
+  max_entries : Int32
   /// Monotonic version counter — incremented on every mutation.
   /// Renderers compare this to detect whether a redraw is needed.
-  mut version : Int
+  mut version : Int32
   /// Terminal width used to wrap lines in `append_text`.
   /// Updated by the controller on startup and terminal resize.
-  mut width : Int
+  mut width : Int32
   /// Line count threshold for auto-collapsing System entries.
-  collapse_threshold : Int
+  collapse_threshold : Int32
 }
 
 ///|
@@ -118,7 +118,7 @@ pub(all) struct OutputBuffer {
 ///
 /// `max_entries` defaults to 2000. When the entry count exceeds this,
 /// the oldest fully-committed entries are trimmed.
-pub fn OutputBuffer::new(max_entries~ : Int = 2000) -> OutputBuffer {
+pub fn OutputBuffer::new(max_entries~ : Int32 = 2000) -> OutputBuffer {
   {
     entries: [],
     next_id: 1,
@@ -139,7 +139,7 @@ pub fn OutputBuffer::append(
   self : OutputBuffer,
   lines : Array[String],
   kind : OutputKind,
-) -> Int {
+) -> Int32 {
   let id = self.next_id
   self.next_id = self.next_id + 1
   let entry = {
@@ -172,7 +172,7 @@ pub fn OutputBuffer::append_text(
   self : OutputBuffer,
   text : String,
   kind : OutputKind,
-) -> Int {
+) -> Int32 {
   let lines : Array[String] = []
   for sv in text.split("\n") {
     let line = sv.to_owned()
@@ -213,9 +213,9 @@ fn has_ansi_escape(line : String) -> Bool {
 /// the scrollback, the entire entry becomes immutable.
 pub fn OutputBuffer::replace(
   self : OutputBuffer,
-  id : Int,
+  id : Int32,
   new_lines : Array[String],
-) -> Int? {
+) -> Int32? {
   let mut found_index = -1
   for i = 0; i < self.entries.length(); i = i + 1 {
     if self.entries[i].id == id {
@@ -247,7 +247,7 @@ pub fn OutputBuffer::replace(
 /// Returns the removed entry if successful, or `None` if:
 /// - The entry doesn't exist
 /// - The entry has any committed lines (committed_line_offset > 0)
-pub fn OutputBuffer::remove(self : OutputBuffer, id : Int) -> OutputEntry? {
+pub fn OutputBuffer::remove(self : OutputBuffer, id : Int32) -> OutputEntry? {
   let mut found_index = -1
   for i = 0; i < self.entries.length(); i = i + 1 {
     if self.entries[i].id == id {
@@ -285,7 +285,7 @@ pub fn OutputBuffer::remove(self : OutputBuffer, id : Int) -> OutputEntry? {
 /// After this call, all entries up to and including the one with the
 /// given id are in the scrollback and can never be modified again.
 /// Entries after the given id are unaffected.
-pub fn OutputBuffer::commit_through(self : OutputBuffer, id : Int) -> Unit {
+pub fn OutputBuffer::commit_through(self : OutputBuffer, id : Int32) -> Unit {
   // Locate the target entry first: if the id is unknown, nothing is committed.
   let mut found_index = -1
   for i = 0; i < self.entries.length(); i = i + 1 {
@@ -317,8 +317,8 @@ pub fn OutputBuffer::commit_through(self : OutputBuffer, id : Int) -> Unit {
 /// `line_count` if the buffer doesn't have that many uncommitted lines).
 pub fn OutputBuffer::commit_oldest_lines(
   self : OutputBuffer,
-  line_count : Int,
-) -> Int {
+  line_count : Int32,
+) -> Int32 {
   if line_count <= 0 {
     return 0
   }
@@ -358,7 +358,10 @@ pub fn OutputBuffer::live_entries(self : OutputBuffer) -> Array[OutputEntry] {
 /// Get the last N visual lines across all entries (live + committed).
 ///
 /// Used for rendering the visible portion of the output area.
-pub fn OutputBuffer::tail_lines(self : OutputBuffer, n : Int) -> Array[String] {
+pub fn OutputBuffer::tail_lines(
+  self : OutputBuffer,
+  n : Int32,
+) -> Array[String] {
   if n <= 0 {
     return []
   }
@@ -390,7 +393,7 @@ pub fn OutputBuffer::tail_lines(self : OutputBuffer, n : Int) -> Array[String] {
 /// Used for rendering the live output region that may be redrawn.
 pub fn OutputBuffer::live_tail_lines(
   self : OutputBuffer,
-  n : Int,
+  n : Int32,
 ) -> Array[String] {
   if n <= 0 {
     return []
@@ -416,7 +419,7 @@ pub fn OutputBuffer::live_tail_lines(
 
 ///|
 /// Check if an entry with the given id is live (has uncommitted lines).
-pub fn OutputBuffer::is_live(self : OutputBuffer, id : Int) -> Bool {
+pub fn OutputBuffer::is_live(self : OutputBuffer, id : Int32) -> Bool {
   for entry in self.entries {
     if entry.id == id {
       return entry.is_live()
@@ -427,7 +430,7 @@ pub fn OutputBuffer::is_live(self : OutputBuffer, id : Int) -> Bool {
 
 ///|
 /// Check if an entry is fully editable (exists and has no committed lines).
-pub fn OutputBuffer::is_fully_editable(self : OutputBuffer, id : Int) -> Bool {
+pub fn OutputBuffer::is_fully_editable(self : OutputBuffer, id : Int32) -> Bool {
   for entry in self.entries {
     if entry.id == id {
       return entry.is_fully_editable()
@@ -438,7 +441,7 @@ pub fn OutputBuffer::is_fully_editable(self : OutputBuffer, id : Int) -> Bool {
 
 ///|
 /// Get an entry by id, if it exists.
-pub fn OutputBuffer::get_entry(self : OutputBuffer, id : Int) -> OutputEntry? {
+pub fn OutputBuffer::get_entry(self : OutputBuffer, id : Int32) -> OutputEntry? {
   for entry in self.entries {
     if entry.id == id {
       return Some(entry)
@@ -458,7 +461,7 @@ pub fn OutputBuffer::clear(self : OutputBuffer) -> Unit {
 
 ///|
 /// Get the total number of entries (committed + live).
-pub fn OutputBuffer::entry_count(self : OutputBuffer) -> Int {
+pub fn OutputBuffer::entry_count(self : OutputBuffer) -> Int32 {
   self.entries.length()
 }
 
@@ -468,7 +471,7 @@ pub fn OutputBuffer::entry_count(self : OutputBuffer) -> Int {
 /// Note: ids are monotonic and are NOT renumbered when old entries are
 /// trimmed, so `entry_count()` is not a valid id — always use this accessor
 /// when an id is needed (e.g. for `commit_through`).
-pub fn OutputBuffer::last_entry_id(self : OutputBuffer) -> Int? {
+pub fn OutputBuffer::last_entry_id(self : OutputBuffer) -> Int32? {
   if self.entries.is_empty() {
     None
   } else {
@@ -478,7 +481,7 @@ pub fn OutputBuffer::last_entry_id(self : OutputBuffer) -> Int? {
 
 ///|
 /// Get the total number of visual lines across all entries.
-pub fn OutputBuffer::total_lines(self : OutputBuffer) -> Int {
+pub fn OutputBuffer::total_lines(self : OutputBuffer) -> Int32 {
   let mut count = 0
   for entry in self.entries {
     count = count + entry.lines.length()
@@ -488,7 +491,7 @@ pub fn OutputBuffer::total_lines(self : OutputBuffer) -> Int {
 
 ///|
 /// Get the number of live (uncommitted) visual lines.
-pub fn OutputBuffer::total_live_lines(self : OutputBuffer) -> Int {
+pub fn OutputBuffer::total_live_lines(self : OutputBuffer) -> Int32 {
   let mut count = 0
   for entry in self.entries {
     count = count + (entry.lines.length() - entry.committed_line_offset)
@@ -498,7 +501,7 @@ pub fn OutputBuffer::total_live_lines(self : OutputBuffer) -> Int {
 
 ///|
 /// Get the current version counter (for dirty tracking).
-pub fn OutputBuffer::current_version(self : OutputBuffer) -> Int {
+pub fn OutputBuffer::current_version(self : OutputBuffer) -> Int32 {
   self.version
 }
 
@@ -506,7 +509,7 @@ pub fn OutputBuffer::current_version(self : OutputBuffer) -> Int {
 /// Check if the buffer has been modified since the given version.
 pub fn OutputBuffer::is_dirty_since(
   self : OutputBuffer,
-  last_seen_version : Int,
+  last_seen_version : Int32,
 ) -> Bool {
   self.version > last_seen_version
 }
@@ -581,8 +584,8 @@ pub fn OutputBuffer::live_display_lines(self : OutputBuffer) -> Array[String] {
 /// display rows leave the screen into the scrollback.
 pub fn OutputBuffer::commit_oldest_display_lines(
   self : OutputBuffer,
-  row_count : Int,
-) -> Int {
+  row_count : Int32,
+) -> Int32 {
   if row_count <= 0 {
     return 0
   }
@@ -632,7 +635,7 @@ pub fn OutputBuffer::commit_oldest_display_lines(
 /// prefix, which would lose committed content.
 pub fn OutputBuffer::replace_live(
   self : OutputBuffer,
-  id : Int,
+  id : Int32,
   new_lines : Array[String],
 ) -> Bool {
   let mut found_index = -1
@@ -671,7 +674,7 @@ pub fn OutputBuffer::replace_live(
 
 ///|
 /// Toggle collapsed state of an entry by id.
-pub fn OutputBuffer::toggle_collapse(self : OutputBuffer, id : Int) -> Unit {
+pub fn OutputBuffer::toggle_collapse(self : OutputBuffer, id : Int32) -> Unit {
   for entry in self.entries {
     if entry.id == id {
       entry.collapsed = !entry.collapsed

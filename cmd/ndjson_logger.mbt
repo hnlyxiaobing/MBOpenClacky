@@ -3,7 +3,7 @@
 /// When enabled, all log output is formatted as JSON Lines.
 pub(all) struct NdjsonLogger {
   enabled : Bool
-  mut seq : Int
+  mut seq : Int32
 }
 
 ///|

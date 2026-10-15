@@ -16,8 +16,8 @@ pub(all) struct TrashItem {
 ///|
 /// Aggregate statistics about the trash bin.
 pub(all) struct TrashStats {
-  total : Int
-  by_type : Map[String, Int]
+  total : Int32
+  by_type : Map[String, Int32]
 }
 
 // ── Trash State Management ────────────────────────────────────────
@@ -176,7 +176,7 @@ fn trashed_session_dir(id : String) -> String {
 /// Move a session's on-disk payload into the trash directory.
 /// Returns the number of files moved (0 when the session has no payload,
 /// e.g. an in-memory-only session that was never persisted).
-pub fn trash_session_payload(id : String) -> Int {
+pub fn trash_session_payload(id : String) -> Int32 {
   let files = @agent.files_for(id)
   if files.length() == 0 {
     return 0
@@ -588,7 +588,7 @@ pub fn handle_trash_stats(request : HttpRequest) -> HttpResponse {
   ignore(request)
   ensure_trash_loaded()
 
-  let by_type : Map[String, Int] = Map([])
+  let by_type : Map[String, Int32] = Map([])
   for item in trash_state.val.items {
     match by_type.get(item.item_type) {
       Some(count) => by_type.set(item.item_type, count + 1)

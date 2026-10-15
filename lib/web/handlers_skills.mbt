@@ -656,14 +656,14 @@ let missing_transcript_hint : String = "Missing field: transcript — reflection
 /// `HttpResponse::bad_request`/`not_found` interpolate the message raw, which
 /// emits invalid JSON whenever the text contains quotes or braces — as the
 /// transcript hint and the parser diagnostics do.
-fn json_error(status : Int, message : String) -> HttpResponse {
+fn json_error(status : Int32, message : String) -> HttpResponse {
   HttpResponse::json(Json::object({ "error": Json(message) }).stringify()).with_status(
     status,
   )
 }
 
 ///|
-fn json_int_field(body : String, key : String) -> Int? {
+fn json_int_field(body : String, key : String) -> Int32? {
   let j : Json = @json.parse(body) catch { _ => return None }
   match j {
     Object(obj) =>
@@ -785,7 +785,7 @@ async fn run_skill_reflection(
   source : String,
   skill_content : String,
   transcript : String,
-  iterations : Int,
+  iterations : Int32,
   apply : Bool,
   force : Bool,
 ) -> Result[Json, String] {

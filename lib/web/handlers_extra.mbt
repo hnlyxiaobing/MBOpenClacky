@@ -1100,7 +1100,7 @@ fn extract_err_snippet(body : String) -> String {
 }
 
 ///|
-fn body_snippet_local(body : String, max_chars : Int) -> String {
+fn body_snippet_local(body : String, max_chars : Int32) -> String {
   let buf = StringBuilder()
   let mut count = 0
   let mut truncated = false
@@ -1703,7 +1703,7 @@ fn sanitize_upload_filename(name : String) -> String {
 
 ///|
 /// Find the first occurrence of an ASCII `needle` in `hay` at or after `from`.
-fn bytes_find(hay : Bytes, needle : String, from : Int) -> Int? {
+fn bytes_find(hay : Bytes, needle : String, from : Int32) -> Int32? {
   let n = needle.length()
   if n == 0 || from < 0 || hay.length() < from + n {
     return None

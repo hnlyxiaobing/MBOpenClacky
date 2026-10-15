@@ -9,7 +9,7 @@
 /// 现存受害者：`/api/backup/download/:id` 的诚实 501（handlers_backup.mbt:666）
 /// 曾以 200 到达客户端（见计划 §5 风险表末行）。
 test "plan_1a_response_to_core_preserves_status" {
-  let cases : Array[(Int, Int)] = [
+  let cases : Array[(Int32, Int32)] = [
     (200, 200),
     (201, 201),
     (204, 204),

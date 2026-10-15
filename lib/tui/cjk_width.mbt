@@ -1,13 +1,35 @@
 ///|
 /// CJK-aware text utilities for cursor positioning and line wrapping.
 ///
-/// Width calculation is delegated to mizchi/tui/core which provides
-/// Unicode-aware display width (including CJK double-width, emoji, etc.).
-/// This module provides application-specific helpers built on top of it.
+/// Width calculation is delegated to moonbit-community/unicodewidth, which
+/// provides full UAX #11 display width (CJK double-width, emoji, zero-width
+/// combining marks, etc.). This module provides application-specific helpers
+/// built on top of it.
+
+///|
+/// Get display width of a character (1 for normal, 2 for wide/CJK, 0 for
+/// zero-width combining marks). Control characters report width 1 to match
+/// terminal cell accounting for characters such as newline.
+pub fn char_display_width(c : Char) -> Int32 {
+  match @unicodewidth.char_width(c) {
+    Some(w) => w
+    None => 1
+  }
+}
+
+///|
+/// Calculate the total display width of a string.
+pub fn string_display_width(s : String) -> Int32 {
+  let mut width = 0
+  for c in s {
+    width = width + char_display_width(c)
+  }
+  width
+}
 
 ///|
 /// Wrap a line at a maximum display width, respecting CJK double-width chars.
-pub fn wrap_line_at_width(line : String, max_width : Int) -> Array[String] {
+pub fn wrap_line_at_width(line : String, max_width : Int32) -> Array[String] {
   if max_width <= 0 {
     return [line]
   }
@@ -34,16 +56,19 @@ pub fn wrap_line_at_width(line : String, max_width : Int) -> Array[String] {
 /// Callers that need to map a cursor char index onto a wrapped segment
 /// (e.g. for terminal cursor placement) use this to stay exactly consistent
 /// with the rendered wrapping.
-pub fn wrap_line_segments(line : String, max_width : Int) -> Array[(Int, Int)] {
+pub fn wrap_line_segments(
+  line : String,
+  max_width : Int32,
+) -> Array[(Int32, Int32)] {
   if max_width <= 0 {
     return [(0, line.length())]
   }
-  let segments : Array[(Int, Int)] = []
+  let segments : Array[(Int32, Int32)] = []
   let mut seg_start = 0
   let mut current_width = 0
   let mut idx = 0
   for c in line.iter() {
-    let cw = @tui_core.char_display_width(c)
+    let cw = char_display_width(c)
     if current_width + cw > max_width {
       segments.push((seg_start, idx))
       seg_start = idx
@@ -63,14 +88,14 @@ pub fn wrap_line_segments(line : String, max_width : Int) -> Array[(Int, Int)] {
 
 ///|
 /// Calculate the display column for a cursor at character position `col`.
-pub fn cursor_display_col(line : String, col : Int) -> Int {
+pub fn cursor_display_col(line : String, col : Int32) -> Int32 {
   let mut dcol = 0
   let mut char_idx = 0
   for c in line.iter() {
     if char_idx >= col {
       break
     }
-    dcol = dcol + @tui_core.char_display_width(c)
+    dcol = dcol + char_display_width(c)
     char_idx = char_idx + 1
   }
   dcol
@@ -78,11 +103,11 @@ pub fn cursor_display_col(line : String, col : Int) -> Int {
 
 ///|
 /// Convert a display column back to a character index.
-pub fn display_col_to_char_index(line : String, display_col : Int) -> Int {
+pub fn display_col_to_char_index(line : String, display_col : Int32) -> Int32 {
   let mut dcol = 0
   let mut char_idx = 0
   for c in line.iter() {
-    let cw = @tui_core.char_display_width(c)
+    let cw = char_display_width(c)
     if dcol + cw > display_col {
       break
     }
@@ -101,14 +126,14 @@ pub fn display_col_to_char_index(line : String, display_col : Int) -> Int {
 /// current line is terminated with `\e[0m` to prevent bleeding.
 ///
 /// Lines that fit within `max_width` are returned as-is (no trailing reset).
-pub fn wrap_ansi_line(line : String, max_width : Int) -> Array[String] {
+pub fn wrap_ansi_line(line : String, max_width : Int32) -> Array[String] {
   if max_width <= 0 {
     return [line]
   }
   let chars = line.to_array()
   let len = chars.length()
   // Collect break positions and the SGR state at each break.
-  let break_positions : Array[Int] = []
+  let break_positions : Array[Int32] = []
   let break_sgrs : Array[String] = []
   let mut display_w = 0
   let mut i = 0
@@ -133,7 +158,7 @@ pub fn wrap_ansi_line(line : String, max_width : Int) -> Array[String] {
         continue
       }
     }
-    let cw = @tui_core.char_display_width(chars[i])
+    let cw = char_display_width(chars[i])
     if display_w + cw > max_width {
       break_positions.push(i)
       break_sgrs.push(active_sgr)
