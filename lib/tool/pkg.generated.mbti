@@ -147,6 +147,8 @@ pub fn validate_secret_write(String) -> Unit raise SecurityError
 
 pub fn walk_files(String, Int, Int, @utils.IgnoreConfig) -> Array[String]
 
+pub fn windows_shell_path() -> String
+
 // Errors
 pub suberror SecurityError {
   SecurityError(String)

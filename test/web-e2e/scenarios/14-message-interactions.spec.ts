@@ -7,17 +7,17 @@ test.describe('场景 14: 消息交互', () => {
     await sendMessage(page, 'Hello, this is a test message');
     await page.waitForTimeout(1000);
 
-    const userMsg = page.locator('#messages .msg-user').last();
-    await expect(userMsg).toBeVisible({ timeout: 5000 });
-
-    // Hover over the message to reveal action bar
-    await userMsg.hover();
-    await page.waitForTimeout(300);
-
-    // User message should have an action bar with copy button
-    const copyBtn = userMsg.locator('.msg-user-action-btn').first();
-    // Copy button appears on hover - verify the message itself rendered correctly
-    const text = await userMsg.textContent();
+    // The action bar is a SIBLING of the bubble inside .msg-user-wrap
+    // (_appendUserActionBar in web/sessions.js appends to the wrap, not to
+    // .msg-user), so it must be located from the wrap. Hover-reveal is CSS
+    // opacity, so DOM presence is the contract — the button used to be located
+    // and never asserted, which made this pass with no action bar at all.
+    const wrap = page.locator('#messages .msg-user-wrap').last();
+    await expect(wrap.locator('.msg-user')).toBeVisible({ timeout: 5000 });
+    await wrap.hover();
+    await expect(wrap.locator('.msg-user-action-btn')).toHaveCount(2);
+    await expect(wrap.locator('.msg-edit-btn')).toHaveCount(1);
+    const text = await wrap.locator('.msg-user').textContent();
     expect(text).toContain('Hello');
   });
 
@@ -33,10 +33,11 @@ test.describe('场景 14: 消息交互', () => {
       return;
     }
 
-    // Assistant message should have a copy button
+    // Assistant message should have a copy button. `.msg-copy-btn` is rendered
+    // with the bubble and only revealed on hover via CSS opacity, so its
+    // presence in the DOM is the contract under test.
     const copyBtn = assistantMsg.locator('.msg-copy-btn').first();
-    const hasBtn = await copyBtn.count() > 0;
-    expect(hasBtn).toBeGreaterThanOrEqual(0);
+    await expect(copyBtn).toHaveCount(1);
   });
 
   test('消息区域支持滚动', async ({ page, request }) => {
@@ -51,14 +52,16 @@ test.describe('场景 14: 消息交互', () => {
     const messagesContainer = page.locator('#messages');
     await expect(messagesContainer).toBeVisible({ timeout: 5000 });
 
-    // Verify the container is scrollable (scrollHeight > clientHeight or has content)
-    const isScrollable = await page.evaluate(() => {
+    // The scroll contract is the container's own overflow rule
+    // (.chat-messages-scroll { overflow-y: auto } in web/app.css), not whether
+    // three short messages happen to overflow. The previous version computed
+    // `isScrollable`, never used it, and asserted that a locator was truthy —
+    // which cannot fail.
+    const overflowY = await page.evaluate(() => {
       const el = document.getElementById('messages');
-      if (!el) return false;
-      return el.scrollHeight > el.clientHeight;
+      return el ? getComputedStyle(el).overflowY : null;
     });
-    // May or may not be scrollable with just 3 short messages, but container should exist
-    expect(messagesContainer).toBeTruthy();
+    expect(overflowY).toBe('auto');
   });
 
   test('输入框支持 Shift+Enter 换行', async ({ page, request }) => {
@@ -104,16 +107,36 @@ test.describe('场景 14: 消息交互', () => {
     await sendMessage(page, 'Edit me please');
     await page.waitForTimeout(1000);
 
-    const userMsg = page.locator('#messages .msg-user').last();
-    await expect(userMsg).toBeVisible();
+    // This test is named for the edit button but only asserted the bubble text.
+    // The wrap holds the button (.msg-edit-btn) and clicking it swaps the
+    // bubble for the inline editor (_enterEditMode → .msg-user-edit-textarea).
+    const wrap = page.locator('#messages .msg-user-wrap').last();
+    await expect(wrap.locator('.msg-user')).toBeVisible();
+    expect(await wrap.locator('.msg-user').textContent()).toContain('Edit me');
 
-    // Hover to reveal action bar
-    await userMsg.hover();
-    await page.waitForTimeout(300);
+    const editBtn = wrap.locator('.msg-edit-btn');
+    await expect(editBtn).toHaveCount(1);
+    // .msg-user-actions is pointer-events:none until .msg-user-wrap:hover
+    // (web/app.css), so the click needs the hover first.
+    await wrap.hover();
+    await editBtn.click();
 
-    // Verify the message rendered correctly (edit button may be hover-only)
-    const text = await userMsg.textContent();
-    expect(text).toContain('Edit me');
+    // Editing rewrites history, so the button deliberately raises the
+    // throw-away warning first (sessions.js → Modal.confirmOnce) and only swaps
+    // the bubble for the inline editor after it is dismissed. Asserting the
+    // textarea straight after the click tests a state the product never enters.
+    const overlay = page.locator('#modal-overlay');
+    await expect(overlay).toBeVisible({ timeout: 5000 });
+    await page.locator('#modal-yes').click();
+    await expect(overlay).toBeHidden();
+    await expect(wrap.locator('.msg-user-edit-textarea')).toBeVisible({ timeout: 5000 });
+    expect(await wrap.locator('.msg-user-edit-textarea').inputValue()).toContain('Edit me');
+
+    // Escaping the editor must restore the original bubble, not leave an empty
+    // bubble behind (_exitEditMode restores dataset.originalHtml).
+    await wrap.locator('.msg-user-edit-cancel').click();
+    await expect(wrap.locator('.msg-user-edit-textarea')).toHaveCount(0);
+    expect(await wrap.locator('.msg-user').textContent()).toContain('Edit me');
   });
 
   test('图片缩略图点击打开灯箱', async ({ page, request }) => {

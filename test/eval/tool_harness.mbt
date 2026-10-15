@@ -339,6 +339,22 @@ async fn execute_tool(
 }
 
 ///|
+/// Directory portion of `path`, splitting on both `/` and `\`.
+/// `expand_sandbox` splices a native-separator sandbox root into a
+/// forward-slash seed template, so the joined path mixes separators and
+/// `@path.Path::dirname` alone would miss the last component on Windows.
+fn seed_parent_dir(path : String) -> String {
+  let unified = path.split("\\").collect().join("/")
+  let parts = unified.split("/").map(fn(s) { s.to_owned() }).to_array()
+  guard parts.length() > 1 else { return "" }
+  let parent : Array[String] = []
+  for i = 0; i < parts.length() - 1; i = i + 1 {
+    parent.push(parts[i])
+  }
+  parent.join("/")
+}
+
+///|
 /// Materialize a task's seed fixtures inside `sandbox`. A write failure is a
 /// failed assertion, never a silent skip.
 fn materialize_seeds(
@@ -348,6 +364,10 @@ fn materialize_seeds(
   let assertions : Array[HarnessAssertion] = []
   for seed in task.seeds {
     let path = expand_sandbox(seed.path, sandbox)
+    let parent = seed_parent_dir(path)
+    if parent.length() > 0 {
+      @utils.ensure_dir(parent)
+    }
     @fs.write_string_to_file(path, expand_sandbox(seed.content, sandbox)) catch {
       err =>
         assertions.push({

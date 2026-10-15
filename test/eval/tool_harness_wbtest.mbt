@@ -94,3 +94,40 @@ async test "harness: score json carries the scoring vector" {
     assert_true(fields.contains(key))
   }
 }
+
+///|
+/// Regression for the layer-8 failures in cap-007 / cap-009: a seed under a
+/// nested subdirectory must be materialized. `@fs.write_string_to_file` does
+/// not create parents, so without an explicit `ensure_dir` every nested seed
+/// dies with an IOError and takes its downstream checks with it.
+async test "harness: seeds in nested subdirectories are materialized" {
+  let task : HarnessTask = {
+    id: "nested-seeds",
+    goal: "start from a nested fixture tree",
+    seeds: [
+      { path: "{sandbox}/logs/app.log", content: "boot", },
+      { path: "{sandbox}/scores/deep/alice.txt", content: "42", },
+    ],
+    steps: [],
+    checks: [
+      { kind: "file_exists", path: "{sandbox}/logs/app.log", text: "", },
+      {
+        kind: "file_contains",
+        path: "{sandbox}/scores/deep/alice.txt",
+        text: "42",
+      },
+    ],
+    prompt: "",
+    acceptance: "",
+    trials: 0,
+  }
+  let report = run_harness_batch([task], harness_test_root(), 1)
+  @debug.assert_eq(report.results.length(), 1)
+  let result = report.results[0]
+  for assertion in result.assertions {
+    if !assertion.passed {
+      fail("\{assertion.description} — \{assertion.detail}")
+    }
+  }
+  @debug.assert_eq(result.passed, true)
+}

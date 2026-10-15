@@ -10,7 +10,8 @@
   ],
   "assertions": [
     { "check": "status_eq", "status": 201 },
-    { "check": "body_contains", "text": "session_id" },
+    { "check": "body_contains", "text": "\"session\"" },
+    { "check": "body_contains", "text": "\"id\"" },
     { "check": "body_contains", "text": "E2E Test Session" }
   ]
 }

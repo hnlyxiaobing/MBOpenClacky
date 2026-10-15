@@ -1622,6 +1622,14 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
     // 收集到统一报告
     all_results.push((scenario.name, stats))
 
+    // 先读历史再落盘：否则本次运行会进入自己的历史，
+    // 报告里的 Last 就是 Current，比较恒等于自比。
+    let history = if check_baseline {
+      []
+    } else {
+      @benchmark.load_history(scenario.name, output_dir)
+    }
+
     // 保存结果
     let result = @benchmark.BenchmarkResult::new(scenario.name, stats)
     let saved = @benchmark.save_result(result, output_dir)
@@ -1702,7 +1710,6 @@ async fn handle_benchmark(sub : @clap.SimpleValue) -> Unit {
 
     // 加载历史结果进行比较（仅在未启用显式基线时保留旧行为）
     if !check_baseline {
-      let history = @benchmark.load_history(scenario.name, output_dir)
       if history.length() > 0 {
         let report = @benchmark.compare_with_history(
           scenario.name,

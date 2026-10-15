@@ -559,7 +559,11 @@ async fn run_silent(command : String) -> Int32 {
     ) catch {
       _ => return -1
     }
-    let code = @process.run("cmd.exe", ["/c", bat_path], no_console_window=true) catch {
+    let code = @process.run(
+      windows_shell_path(),
+      ["/c", bat_path],
+      no_console_window=true,
+    ) catch {
       _ => -1
     }
     @fs.remove_file(bat_path) catch {

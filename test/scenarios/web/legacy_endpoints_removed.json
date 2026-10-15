@@ -1,13 +1,48 @@
 {
   "name": "legacy_endpoints_removed",
-  "description": "Verify old/deprecated endpoints return 404 after web-parity-05 cleanup",
+  "description": "Verify retired endpoints return 404: /api/schedules (replaced by /api/cron-tasks), the repo-level /api/git group (web-parity-05; session-scoped /api/sessions/:id/git/* remain), and the pre-web-parity-05 HTTP chat routes (chat now runs over /ws)",
   "setup": {
     "api_key": null,
     "model_configured": false
   },
   "steps": [
-    { "method": "GET", "path": "/api/schedules", "expect_404": true },
-    { "method": "POST", "path": "/api/sessions/test-id/chat/stream", "body": "{\"message\":\"test\"}", "expect_404": true }
+    {
+      "method": "GET",
+      "path": "/api/schedules",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/git/status",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/git/branches",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/test-id/chat",
+      "body": "{\"message\":\"test\"}",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/test-id/chat/stream",
+      "body": "{\"message\":\"test\"}",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    }
   ],
   "assertions": [
     { "check": "status_eq", "status": 404 }

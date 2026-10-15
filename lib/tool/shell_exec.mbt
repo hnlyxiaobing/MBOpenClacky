@@ -46,6 +46,41 @@ pub fn shell_is_windows() -> Bool {
 }
 
 ///|
+/// Absolute path of the Windows command processor to spawn.
+///
+/// Never spawn the bare name: `@process` calls `CreateProcessW` with a NULL
+/// application name, and Windows then resolves the first command-line token
+/// starting from *the directory the calling image was loaded from*. This
+/// project's release binary is itself named `cmd.exe`
+/// (`_build/native/release/build/cmd/cmd.exe`), so a bare "cmd.exe" resolves
+/// back to our own CLI: the command never runs and the child prints
+/// `Invalid sub-command name /v:on for mbopenclacky` instead. The same search
+/// order lets any `cmd.exe` placed next to the binary hijack every shell call.
+/// `ComSpec` is what the OS sets for the command processor; `SystemRoot` is
+/// the fallback before giving up on non-standard environments.
+pub fn windows_shell_path() -> String {
+  let from_comspec = match @env.get_env_var("ComSpec") {
+    Some(p) if !p.is_empty() && @fs.path_exists(p) => Some(p)
+    _ => None
+  }
+  match from_comspec {
+    Some(p) => p
+    None =>
+      match @env.get_env_var("SystemRoot") {
+        Some(root) if !root.is_empty() => {
+          let candidate = root + "\\System32\\cmd.exe"
+          if @fs.path_exists(candidate) {
+            candidate
+          } else {
+            "cmd.exe"
+          }
+        }
+        _ => "cmd.exe"
+      }
+  }
+}
+
+///|
 /// The temp directory used for shell output files (TEMP / TMPDIR / /tmp).
 /// Public so that tests can construct platform-appropriate temp paths.
 pub fn shell_temp_dir_pub() -> String {

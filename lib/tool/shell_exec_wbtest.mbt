@@ -165,3 +165,18 @@ test "build_env_prefix: unix format" {
   assert_true(prefix.contains("export VAR2='val2'"))
   assert_true(prefix.has_suffix(" && "))
 }
+
+///|
+/// The shell tool must spawn an absolute command processor. A bare "cmd.exe"
+/// is resolved by Windows starting from the directory the calling image
+/// loaded from, and the release binary lives there under that exact name, so
+/// the bare name makes every shell command re-enter this program.
+test "windows_shell_path resolves absolutely" {
+  if shell_is_windows() {
+    let path = windows_shell_path()
+    assert_true(path != "cmd.exe")
+    assert_true(path.contains("\\"))
+    assert_true(path.has_suffix("cmd.exe"))
+    assert_true(@fs.path_exists(path))
+  }
+}

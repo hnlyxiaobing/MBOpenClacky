@@ -74,7 +74,11 @@ async fn run_system_command(
     @fs.write_string_to_file(bat_path, "@echo off\r\n" + command + "\r\n") catch {
       _ => return -1
     }
-    let code = spawn_and_wait("cmd.exe", ["/v:on", "/c", bat_path], env)
+    let code = spawn_and_wait(
+      windows_shell_path(),
+      ["/v:on", "/c", bat_path],
+      env,
+    )
     @fs.remove_file(bat_path) catch {
       _ => ()
     }

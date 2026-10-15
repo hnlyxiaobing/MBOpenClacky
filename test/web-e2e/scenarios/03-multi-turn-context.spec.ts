@@ -3,7 +3,7 @@ import { waitForAgentResponse, createSessionAndNavigate, sendMessage, getLastAss
 
 test.describe('场景 8: 多轮对话上下文保持', () => {
   test('连续对话中 Agent 记住上下文', async ({ page, request }) => {
-    test.setTimeout(60000);
+    test.setTimeout(300_000);
     const session = await createSessionAndNavigate(page, request);
 
     // Turn 1: 告诉 Agent 一个事实
@@ -11,9 +11,11 @@ test.describe('场景 8: 多轮对话上下文保持', () => {
     await waitForAgentResponse(page);
 
     const firstResponse = await getLastAssistantText(page);
-    // If LLM is unavailable (403), skip the context verification
+    // A run that produced no assistant text at all is an unavailable model, and
+    // that has to show up as a SKIP in the report — `return` used to record a
+    // PASS for a test that asserted nothing.
     if (!firstResponse) {
-      return; // LLM unavailable, test passes by verifying workflow only
+      test.skip(true, 'no assistant reply — LLM unavailable');
     }
 
     // Turn 2: 询问 Agent 是否记住
@@ -27,7 +29,10 @@ test.describe('场景 8: 多轮对话上下文保持', () => {
   });
 
   test('三轮对话持续保持上下文', async ({ page, request }) => {
-    test.setTimeout(60000);
+    // Three live model round trips. `waitForAgentResponse` allows 90s per turn
+    // and restarts that budget after each tool-confirmation it answers, so the
+    // test budget has to cover the worst case, not three fast replies.
+    test.setTimeout(300_000);
     await createSessionAndNavigate(page, request);
 
     // Turn 1
@@ -36,7 +41,7 @@ test.describe('场景 8: 多轮对话上下文保持', () => {
 
     const response1 = await getLastAssistantText(page);
     if (!response1) {
-      return; // LLM unavailable
+      test.skip(true, 'no assistant reply — LLM unavailable');
     }
 
     // Turn 2
@@ -53,22 +58,29 @@ test.describe('场景 8: 多轮对话上下文保持', () => {
   });
 
   test('新会话不继承旧会话上下文', async ({ page, request }) => {
+    // Two live model round trips plus two session bootstraps — the heaviest
+    // case in this file.
+    test.setTimeout(300_000);
     // 第一个会话：告诉 Agent 一个事实
     await createSessionAndNavigate(page, request);
     await sendMessage(page, '我的名字是 Alice');
     await waitForAgentResponse(page);
 
     // 创建第二个会话
-    const session2 = await createSessionAndNavigate(page, request);
+    await createSessionAndNavigate(page, request);
     await sendMessage(page, '我叫什么名字？');
     await waitForAgentResponse(page);
 
     const response = await getLastAssistantText(page);
     if (!response) {
-      return; // LLM unavailable
+      test.skip(true, 'no assistant reply — LLM unavailable');
     }
-    // Agent 不应该知道名字（新会话没有上下文）
-    // 注意：这个断言是弱验证——Agent 可能回复"我不知道"
-    // 主要验证新会话可以独立运行
+    // The title overstates what is guaranteed here. Conversation *history* is
+    // per-session, but the assistant-memory file is shared, so a new session
+    // can legitimately know the name it was told in an older one. What this
+    // asserts is that the second session booted and ran its own turn; the
+    // history-isolation contract itself belongs to a deterministic (mocked)
+    // scenario, not a live model.
+    expect(response?.length).toBeGreaterThan(0);
   });
 });

@@ -354,14 +354,21 @@ fn ensure_subscribed(
 /// event is broadcast immediately.
 fn handle_ws_interrupt(
   server_ref : Ref[WebServer],
-  _peer : @ws.WebSocketPeer,
+  peer : @ws.WebSocketPeer,
   conn_id : String,
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
   let sid = match resolve_session_id(hub, conn_id, obj) {
     Some(s) => s
-    None => return
+    None => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "interrupt needs a session_id, or the connection must subscribe first",
+        ),
+      )
+      return
+    }
   }
   match ws_states.get(sid) {
     Some(state) =>
@@ -394,18 +401,32 @@ fn handle_ws_interrupt(
 /// `path` (no base64) are treated as file references in the text.
 async fn handle_ws_message(
   server_ref : Ref[WebServer],
-  _peer : @ws.WebSocketPeer,
+  peer : @ws.WebSocketPeer,
   conn_id : String,
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
   let message = match obj.get("content") {
     Some(String(m)) => m
-    _ => return
+    _ => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "message requires a string content field",
+        ),
+      )
+      return
+    }
   }
   let session_id = match resolve_session_id(hub, conn_id, obj) {
     Some(s) => s
-    None => return
+    None => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "message needs a session_id, or the connection must subscribe first",
+        ),
+      )
+      return
+    }
   }
   ensure_subscribed(hub, conn_id, session_id)
   // Parse images: those with inline base64 go through the real
@@ -424,6 +445,18 @@ async fn handle_ws_message(
     message + text_suffix
   } else {
     message
+  }
+  // A frame with neither text nor any attachment would start a billed LLM run
+  // on an empty prompt. The browser guards this in _sendMessage; the server
+  // must not depend on that, per the malformed-frames invariant in the
+  // dispatcher above.
+  if final_message.is_empty() && injectable_images.length() == 0 {
+    peer.text(
+      @protocol.build_error_event(
+        session_id, "message is empty and carries no images or attachments",
+      ),
+    )
+    return
   }
   start_ws_run(server_ref, session_id, final_message, images=injectable_images)
 }
@@ -557,18 +590,32 @@ fn extract_attachment_hint(obj : Map[String, Json]) -> String {
 /// 2026-08-18_17 decision 4).
 async fn handle_ws_edit_message(
   server_ref : Ref[WebServer],
-  _peer : @ws.WebSocketPeer,
+  peer : @ws.WebSocketPeer,
   conn_id : String,
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
   let message = match obj.get("content") {
     Some(String(m)) => m
-    _ => return
+    _ => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "edit_message requires a string content field",
+        ),
+      )
+      return
+    }
   }
   let session_id = match resolve_session_id(hub, conn_id, obj) {
     Some(s) => s
-    None => return
+    None => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "edit_message needs a session_id, or the connection must subscribe first",
+        ),
+      )
+      return
+    }
   }
   ensure_subscribed(hub, conn_id, session_id)
   let agent = server_ref.val.get_or_create_agent(session_id)
@@ -693,20 +740,32 @@ fn deliver_confirmation(
 /// directly as the message.
 async fn handle_ws_run_task(
   server_ref : Ref[WebServer],
-  _peer : @ws.WebSocketPeer,
+  peer : @ws.WebSocketPeer,
   conn_id : String,
   hub : @broadcast.Hub,
   obj : Map[String, Json],
 ) -> Unit {
   let session_id = match resolve_session_id(hub, conn_id, obj) {
     Some(s) => s
-    None => return
+    None => {
+      peer.text(
+        @protocol.build_error_event(
+          "", "run_task needs a session_id, or the connection must subscribe first",
+        ),
+      )
+      return
+    }
   }
   ensure_subscribed(hub, conn_id, session_id)
   let task = match obj.get("task") {
     Some(String(t)) => t
     _ => ""
   }
+  // Silent by design, unlike the other rejections above: the protocol declares
+  // run_task session-scoped with no extra fields (lib/protocol/command.mbt),
+  // and the browser sends it right after `subscribed` for a task that REST
+  // POST /api/cron-tasks/:id/run already started server-side. Falling back to
+  // the session content here would launch a second, separately billed run.
   if task.is_empty() {
     return
   }

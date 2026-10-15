@@ -1,33 +1,129 @@
 {
   "name": "web_parity_04_secondary_panels",
-  "description": "Verify web-parity-04 secondary panel endpoints return valid responses without 5xx errors",
+  "description": "Per-endpoint contract for the web-parity-04 secondary panels. Assertions live on each step because the engine evaluates top-level assertions against the LAST response only. Steps 1-4 use a nonexistent session id, so the session-scoped git endpoints must 404 (they need the session working_dir); time_machine must still 200 with an empty point list because it is file-backed and a fresh session legitimately has none. The repo-level /api/git/* group was retired by web-parity-05 and is asserted in legacy_endpoints_removed.json instead.",
   "setup": {
     "api_key": null,
     "model_configured": false
   },
   "steps": [
-    { "method": "GET", "path": "/api/sessions/test-session/git/status" },
-    { "method": "GET", "path": "/api/sessions/test-session/git/diff" },
-    { "method": "GET", "path": "/api/sessions/test-session/git/log" },
-    { "method": "GET", "path": "/api/sessions/test-session/git/branches" },
-    { "method": "GET", "path": "/api/sessions/test-session/time_machine" },
-    { "method": "GET", "path": "/api/sessions/test-session/time-machine" },
-    { "method": "GET", "path": "/api/billing/summary" },
-    { "method": "GET", "path": "/api/billing/daily" },
-    { "method": "GET", "path": "/api/billing/records" },
-    { "method": "GET", "path": "/api/billing/sessions" },
-    { "method": "GET", "path": "/api/backup/status" },
-    { "method": "GET", "path": "/api/backup/config" },
-    { "method": "GET", "path": "/api/cron-tasks" },
-    { "method": "GET", "path": "/api/media/video/status" },
-    { "method": "GET", "path": "/api/media/types" },
-    { "method": "GET", "path": "/api/trash/sessions" },
-    { "method": "GET", "path": "/api/git/status" },
-    { "method": "GET", "path": "/api/git/branches" }
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/git/status",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/git/diff",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/git/log",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/git/branches",
+      "assertions": [
+        { "check": "status_eq", "status": 404 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/time_machine",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "session_id", "value": "\"test-session\"" },
+        { "check": "body_contains", "text": "\"points\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/test-session/time-machine",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "body_contains", "text": "\"points\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/summary",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/daily",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/records",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/sessions",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/backup/status",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/backup/config",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron-tasks",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "body_contains", "text": "\"cron_tasks\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/media/video/status",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/media/types",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/trash/sessions",
+      "assertions": [
+        { "check": "status_eq", "status": 200 }
+      ]
+    }
   ],
   "assertions": [
-    { "check": "status_not_eq", "status": 500 },
-    { "check": "status_not_eq", "status": 502 },
-    { "check": "status_not_eq", "status": 503 }
+    { "check": "status_eq", "status": 200 }
   ]
 }

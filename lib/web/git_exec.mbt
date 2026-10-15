@@ -3,9 +3,19 @@
 ///|
 /// Run git with args (no shell), capture merged stdout+stderr.
 /// Returns (exit_code, output).
+///
+/// A cwd that no longer exists raises instead of yielding a git exit code, so
+/// the raise is folded into a `fatal:`-prefixed failure: that keeps
+/// `git_output_is_error` classifying it and stops the session git endpoints
+/// from surfacing an unhandled 500 when a session points at a deleted
+/// working directory.
 async fn git_exec(args : Array[String], cwd? : StringView) -> (Int32, String) {
-  let (code, output) = @process.collect_output_merged("git", args, cwd?)
-  (code, output.text())
+  try {
+    let (code, output) = @process.collect_output_merged("git", args, cwd?)
+    (code, output.text())
+  } catch {
+    _ => (-1, "fatal: cannot reach working directory")
+  }
 }
 
 ///|

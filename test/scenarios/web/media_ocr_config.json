@@ -1,21 +1,82 @@
 {
   "name": "media_and_ocr_config",
-  "description": "Verify /api/config/media/:kind GET and /api/config/ocr GET return valid responses",
+  "description": "Verify GET /api/config/media/:kind for every whitelisted kind, reject an out-of-whitelist kind with 400, and check the GET /api/config/ocr nesting (no top-level ok by contract)",
   "setup": {
     "api_key": null,
     "model_configured": true
   },
   "steps": [
-    { "method": "GET", "path": "/api/config/media/image" },
-    { "method": "GET", "path": "/api/config/media/voice" },
-    { "method": "GET", "path": "/api/config/media/tts" },
-    { "method": "GET", "path": "/api/config/media/stt" },
-    { "method": "GET", "path": "/api/config/media/video" },
-    { "method": "GET", "path": "/api/config/ocr" }
+    {
+      "method": "GET",
+      "path": "/api/config/media/image",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "ok", "value": "true" },
+        { "check": "json_path_eq", "path": "kind", "value": "\"image\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/media/video",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "ok", "value": "true" },
+        { "check": "json_path_eq", "path": "kind", "value": "\"video\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/media/audio",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "ok", "value": "true" },
+        { "check": "json_path_eq", "path": "kind", "value": "\"audio\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/media/stt",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "ok", "value": "true" },
+        { "check": "json_path_eq", "path": "kind", "value": "\"stt\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/media/video_understanding",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "json_path_eq", "path": "ok", "value": "true" },
+        { "check": "json_path_eq", "path": "kind", "value": "\"video_understanding\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/media/voice",
+      "assertions": [
+        { "check": "status_eq", "status": 400 },
+        { "check": "body_contains", "text": "Unknown media kind" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/ocr",
+      "assertions": [
+        { "check": "status_eq", "status": 200 },
+        { "check": "body_contains", "text": "\"ocr\"" },
+        { "check": "body_contains", "text": "\"default_provider\"" },
+        { "check": "body_contains", "text": "\"source\"" }
+      ]
+    }
   ],
   "assertions": [
     { "check": "status_eq", "status": 200 },
-    { "check": "body_contains", "text": "ok" },
-    { "check": "body_contains", "text": "source" }
+    { "check": "body_contains", "text": "\"ocr\"" }
   ]
 }

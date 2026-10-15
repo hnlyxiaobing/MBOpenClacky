@@ -184,7 +184,9 @@ pub fn load_history(
   let entries = @fs.read_dir(scenario_dir) catch { _ => return results }
   for entry in entries {
     let filepath = @path.Path::join(scenario_dir, @path.Path(entry)).to_string()
-    if filepath.has_suffix(".json") {
+    // baseline.json is a pinned reference read by `load_baseline`, not a
+    // historical run; counting it here would skew the median.
+    if filepath.has_suffix(".json") && entry != "baseline.json" {
       let content = @fs.read_file_to_string(filepath) catch { _ => continue }
       match BenchmarkResult::from_json(content) {
         Some(result) => results.push(result)

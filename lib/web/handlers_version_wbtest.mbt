@@ -106,3 +106,41 @@ test "restart returns ok message" {
   @debug.assert_eq(obj.get("ok"), Some(Json(true)))
   assert_true(obj.contains("message"))
 }
+
+///|
+/// `/health` and `/api/info` are the two endpoints deployment tooling reads to
+/// learn which build is serving, so they must report the same constant as
+/// `/api/version`. Both used to hardcode `0.1.0` while the rest of the repo
+/// was at 0.3.0, and the `repo_stats.sh` version guard only checks four
+/// constants, so nothing caught it.
+test "health and info report the canonical version" {
+  let health = @json.parse(health_body())
+  guard! health is Json::Object(h)
+  @debug.assert_eq(h.get("status"), Some(Json("ok")))
+  @debug.assert_eq(h.get("version"), Some(Json(VERSION)))
+
+  let resp = handle_info(
+    make_version_server_ref(),
+    make_version_event(Get, "/api/info"),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let j = version_response_json(resp)
+  guard! j is Json::Object(obj)
+  @debug.assert_eq(obj.get("version"), Some(Json(VERSION)))
+}
+
+///|
+/// `uptime_seconds` is derived from a millisecond clock, so the field name is
+/// only true after conversion. A server started five seconds ago must read as
+/// ~5, not ~5000. Int64 serialises as a JSON string.
+test "info uptime is reported in seconds" {
+  let server_ref = make_version_server_ref()
+  server_ref.val.start_time = @env.now().reinterpret_as_int64() - 5000L
+  let j = version_response_json(
+    handle_info(server_ref, make_version_event(Get, "/api/info")),
+  )
+  guard! j is Json::Object(obj)
+  // Integer division of a 5000 ms delta cannot round below 5 within a test
+  // run, and Int64 serialises as a JSON string, so an exact value is stable.
+  @debug.assert_eq(obj.get("uptime_seconds"), Some(Json(5L)))
+}

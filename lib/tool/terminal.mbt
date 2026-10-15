@@ -222,7 +222,8 @@ fn build_marker_shell_cmd(
     // !ERRORLEVEL! (delayed expansion) is evaluated AFTER the command
     // runs; %ERRORLEVEL% would be expanded when the line is parsed —
     // before execution. run_system_command always runs the command from
-    // a .bat under cmd.exe /v:on, so delayed expansion is guaranteed.
+    // a .bat under the resolved command processor with /v:on (see
+    // windows_shell_path), so delayed expansion is guaranteed.
     "_!ERRORLEVEL!__ >> \"" +
     output_file +
     "\""
@@ -327,7 +328,7 @@ async fn spawn_background_command(
       _ => return Err("failed to write background batch file")
     }
     let pid = @process.spawn_orphan(
-      "cmd.exe",
+      windows_shell_path(),
       ["/v:on", "/c", bat_path],
       stdin=child_stdin,
       extra_env=env,

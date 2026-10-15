@@ -246,7 +246,10 @@ pub fn WebServer::build_app(
   app.use_middleware(@cors.handle_cors())
 
   // ── Routes (no auth required) ──────────────────────────────────
-  app.get_raw("/health", _ => "{\"status\":\"ok\",\"version\":\"0.1.0\"}")
+  // The reported version must come from the same constant as /api/version:
+  // this endpoint is the probe documented in deploy/README.md and
+  // docker-compose.yml, and it used to serve a hardcoded 0.1.0.
+  app.get_raw("/health", _ => health_body())
 
   // ── API Routes ────────────────────────────────────────────────
   app.group("/api", (api : @crescent.App) => {

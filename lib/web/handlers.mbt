@@ -856,15 +856,25 @@ fn handle_get_aggregate_stats(
 // ── Info Handler ────────────────────────────────────────────────
 
 ///|
+/// Body for the unauthenticated `GET /health` readiness probe. The version
+/// must come from the same constant the rest of the API reports; deploy/
+/// README.md and docker-compose.yml document this endpoint as the probe.
+fn health_body() -> String {
+  "{\"status\":\"ok\",\"version\":\"\{VERSION}\"}"
+}
+
+///|
 /// GET /api/info
 fn handle_info(
   server_ref : Ref[WebServer],
   _event : @crescent.Event,
 ) -> @core.HttpResponse {
   let s = server_ref.val
-  let uptime = @env.now().reinterpret_as_int64() - s.start_time
+  // @env.now() is in milliseconds (handlers_channels.mbt reports the same
+  // delta as latency_ms), so this field's name only holds after converting.
+  let uptime = (@env.now().reinterpret_as_int64() - s.start_time) / 1000L
   let response = InfoResponse::{
-    version: "0.1.0",
+    version: VERSION,
     name: "MBOpenClacky",
     uptime_seconds: uptime,
     active_sessions: s.active_agents.length(),

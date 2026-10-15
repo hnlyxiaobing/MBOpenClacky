@@ -39,9 +39,13 @@ test.describe('场景 11: 图片理解', () => {
     const userMsg = page.locator('#messages .msg-user').last();
     const userText = await userMsg.textContent();
     expect(userText).toBeTruthy();
-    // 图片消息应包含图片缩略图或图片标记
-    const hasImage = await userMsg.locator('.msg-image-thumb, img').count();
-    expect(hasImage).toBeGreaterThanOrEqual(0);
+    // The old `>= 0` could not fail, so the test stayed green even when the
+    // attachment was dropped. Both render paths — live send (sessions.js:799)
+    // and history reload (:1382) — emit `<img class="msg-image-thumb">`, and
+    // that class is also the lightbox delegation hook (app.js:839), so it is
+    // the contract; a bare `img` fallback would accept any unrelated icon.
+    const hasImage = await userMsg.locator('.msg-image-thumb').count();
+    expect(hasImage).toBeGreaterThanOrEqual(1);
   });
 
   test('图片上传后发送并等待 Agent 响应', async ({ page, request }) => {

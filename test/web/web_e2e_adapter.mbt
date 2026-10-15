@@ -45,6 +45,8 @@ pub(all) enum WebEvalAssertion {
   StatusEq(status~ : Int32)
   /// Response status code is one of the given values.
   StatusIn(statuses~ : Array[Int32])
+  /// Response status code is NOT the given value.
+  StatusNotEq(status~ : Int32)
   /// Response body contains the given text.
   BodyContains(text~ : String)
   /// Response body does NOT contain the given text.
@@ -242,6 +244,7 @@ fn parse_single_assertion(
     "status_eq" => Ok(WebEvalAssertion::StatusEq(status=get_i("status")))
     "status_in" =>
       Ok(WebEvalAssertion::StatusIn(statuses=get_int_array("statuses")))
+    "status_not_eq" => Ok(WebEvalAssertion::StatusNotEq(status=get_i("status")))
     "body_contains" => Ok(WebEvalAssertion::BodyContains(text=get_s("text")))
     "body_not_contains" =>
       Ok(WebEvalAssertion::BodyNotContains(text=get_s("text")))
@@ -381,6 +384,19 @@ fn check_web_assertion(
       let status_list = statuses.map(fn(s) { s.to_string() }).join(", ")
       {
         description: "status in [\{status_list}]",
+        passed,
+        detail: if passed {
+          ""
+        } else {
+          "status: \{code}"
+        },
+      }
+    }
+    StatusNotEq(status~) => {
+      let code = response.status.to_int()
+      let passed = code != status
+      {
+        description: "status is not \{status}",
         passed,
         detail: if passed {
           ""

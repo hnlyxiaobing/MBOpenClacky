@@ -34,66 +34,88 @@ pub fn RegressionReport::new(
 }
 
 ///|
+/// Percentage increase from `baseline` to `current`, or None when the baseline
+/// carries no signal. Dividing by a zero baseline yields Infinity, which would
+/// report a regression out of thin air, so such metrics are skipped.
+fn pct_increase(current : Double, baseline : Double) -> Double? {
+  guard baseline > 0.0 else { return None }
+  Some((current - baseline) / baseline * 100.0)
+}
+
+///|
+fn pct_increase_ms(current : Int64, baseline : Int64) -> Double? {
+  pct_increase(current.to_double(), baseline.to_double())
+}
+
+///|
+/// Append a regression detail when `increase` exceeds the threshold.
+fn push_regression_detail(
+  details : Array[String],
+  metric : String,
+  increase : Double?,
+  threshold_pct : Double,
+  current_ms : String,
+  baseline_label : String,
+  baseline_ms : String,
+) -> Unit {
+  match increase {
+    None => ()
+    Some(v) =>
+      if v > threshold_pct {
+        details.push(
+          metric +
+          " increased by " +
+          v.to_string() +
+          "% (current: " +
+          current_ms +
+          "ms, " +
+          baseline_label +
+          ": " +
+          baseline_ms +
+          "ms)",
+        )
+      }
+  }
+}
+
+///|
 /// 检测回归
 pub fn RegressionReport::detect_regression(
   self : RegressionReport,
 ) -> RegressionReport {
-  let mut has_regression = false
   let regression_details : Array[String] = []
+  let cur = self.current_stats
 
   // 与最后一次结果比较
   match self.last_stats {
     Some(last) => {
-      // 检查 p95 回归
-      let p95_increase = (self.current_stats.p95_ms - last.p95_ms).to_double() /
-        last.p95_ms.to_double() *
-        100.0
-      if p95_increase > self.threshold_pct {
-        has_regression = true
-        regression_details.push(
-          "P95 increased by " +
-          p95_increase.to_string() +
-          "% (current: " +
-          self.current_stats.p95_ms.to_string() +
-          "ms, last: " +
-          last.p95_ms.to_string() +
-          "ms)",
-        )
-      }
-
-      // 检查平均值回归
-      let avg_increase = (self.current_stats.avg_ms - last.avg_ms) /
-        last.avg_ms *
-        100.0
-      if avg_increase > self.threshold_pct {
-        has_regression = true
-        regression_details.push(
-          "Average increased by " +
-          avg_increase.to_string() +
-          "% (current: " +
-          self.current_stats.avg_ms.to_string() +
-          "ms, last: " +
-          last.avg_ms.to_string() +
-          "ms)",
-        )
-      }
-
-      // 检查最大值回归
-      let max_increase = (self.current_stats.max_ms - last.max_ms).to_double() /
-        last.max_ms.to_double() *
-        100.0
-      if max_increase > self.threshold_pct {
-        has_regression = true
-        regression_details.push(
-          "Max increased by " +
-          max_increase.to_string() +
-          "% (current: " +
-          self.current_stats.max_ms.to_string() +
-          "ms, last: " +
-          last.max_ms.to_string() +
-          "ms)",
-        )
-      }
+      push_regression_detail(
+        regression_details,
+        "P95",
+        pct_increase_ms(cur.p95_ms, last.p95_ms),
+        self.threshold_pct,
+        cur.p95_ms.to_string(),
+        "last",
+        last.p95_ms.to_string(),
+      )
+      push_regression_detail(
+        regression_details,
+        "Average",
+        pct_increase(cur.avg_ms, last.avg_ms),
+        self.threshold_pct,
+        cur.avg_ms.to_string(),
+        "last",
+        last.avg_ms.to_string(),
+      )
+      push_regression_detail(
+        regression_details,
+        "Max",
+        pct_increase_ms(cur.max_ms, last.max_ms),
+        self.threshold_pct,
+        cur.max_ms.to_string(),
+        "last",
+        last.max_ms.to_string(),
+      )
     }
     None => ()
   }
@@ -101,44 +123,33 @@ pub fn RegressionReport::detect_regression(
   // 与中位数比较
   match self.median_stats {
     Some(median) => {
-      // 检查 p95 回归
-      let p95_increase = (self.current_stats.p95_ms - median.p95_ms).to_double() /
-        median.p95_ms.to_double() *
-        100.0
-      if p95_increase > self.threshold_pct {
-        has_regression = true
-        regression_details.push(
-          "P95 increased by " +
-          p95_increase.to_string() +
-          "% vs median (current: " +
-          self.current_stats.p95_ms.to_string() +
-          "ms, median: " +
-          median.p95_ms.to_string() +
-          "ms)",
-        )
-      }
-
-      // 检查平均值回归
-      let avg_increase = (self.current_stats.avg_ms - median.avg_ms) /
-        median.avg_ms *
-        100.0
-      if avg_increase > self.threshold_pct {
-        has_regression = true
-        regression_details.push(
-          "Average increased by " +
-          avg_increase.to_string() +
-          "% vs median (current: " +
-          self.current_stats.avg_ms.to_string() +
-          "ms, median: " +
-          median.avg_ms.to_string() +
-          "ms)",
-        )
-      }
+      push_regression_detail(
+        regression_details,
+        "P95",
+        pct_increase_ms(cur.p95_ms, median.p95_ms),
+        self.threshold_pct,
+        cur.p95_ms.to_string(),
+        "median",
+        median.p95_ms.to_string(),
+      )
+      push_regression_detail(
+        regression_details,
+        "Average",
+        pct_increase(cur.avg_ms, median.avg_ms),
+        self.threshold_pct,
+        cur.avg_ms.to_string(),
+        "median",
+        median.avg_ms.to_string(),
+      )
     }
     None => ()
   }
 
-  { ..self, has_regression, regression_details, }
+  {
+    ..self,
+    has_regression: regression_details.length() > 0,
+    regression_details,
+  }
 }
 
 ///|
@@ -195,6 +206,21 @@ pub fn RegressionReport::to_markdown(self : RegressionReport) -> String {
 }
 
 ///|
+/// Median of a non-empty sample (upper-middle element after sorting).
+fn median_ms(samples : Array[Int64]) -> Int64 {
+  let sorted = samples.copy()
+  sorted.sort()
+  sorted[sorted.length() / 2]
+}
+
+///|
+fn median_avg(samples : Array[Double]) -> Double {
+  let sorted = samples.copy()
+  sorted.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
+  sorted[sorted.length() / 2]
+}
+
+///|
 /// 比较当前结果与历史结果
 pub fn compare_with_history(
   scenario_name : String,
@@ -211,29 +237,37 @@ pub fn compare_with_history(
     sorted_history.sort_by(fn(a, b) { a.timestamp.compare(b.timestamp) })
     last_stats = Some(sorted_history[sorted_history.length() - 1].stats)
 
-    // 计算中位数
-    let samples : Array[Int64] = []
+    // 每个指标各自取真实中位数：基线必须全部来自实测样本，
+    // 任何伪造的 0 都会让比值变成无穷大而误报回归。
+    let mins : Array[Int64] = []
+    let maxs : Array[Int64] = []
+    let avgs : Array[Double] = []
+    let p50s : Array[Int64] = []
+    let p95s : Array[Int64] = []
+    let p99s : Array[Int64] = []
+    let iters : Array[Int64] = []
+    let totals : Array[Int64] = []
     for result in history {
-      samples.push(result.stats.p95_ms)
+      let s = result.stats
+      mins.push(s.min_ms)
+      maxs.push(s.max_ms)
+      avgs.push(s.avg_ms)
+      p50s.push(s.p50_ms)
+      p95s.push(s.p95_ms)
+      p99s.push(s.p99_ms)
+      iters.push(s.iterations.to_int64())
+      totals.push(s.total_ms)
     }
-    if samples.length() > 0 {
-      let sorted_samples = samples.copy()
-      sorted_samples.sort()
-      let median_index = sorted_samples.length() / 2
-      let median_p95 = sorted_samples[median_index]
-
-      // 使用中位数 p95 创建一个代表性的统计信息
-      median_stats = Some({
-        min_ms: 0L,
-        max_ms: 0L,
-        avg_ms: 0.0,
-        p50_ms: 0L,
-        p95_ms: median_p95,
-        p99_ms: 0L,
-        iterations: 0,
-        total_ms: 0L,
-      })
-    }
+    median_stats = Some({
+      min_ms: median_ms(mins),
+      max_ms: median_ms(maxs),
+      avg_ms: median_avg(avgs),
+      p50_ms: median_ms(p50s),
+      p95_ms: median_ms(p95s),
+      p99_ms: median_ms(p99s),
+      iterations: median_ms(iters).to_int(),
+      total_ms: median_ms(totals),
+    })
   }
 
   let report = RegressionReport::new(
