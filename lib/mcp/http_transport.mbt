@@ -17,8 +17,8 @@ pub(all) struct HttpTransport {
   mut session_id : String?
   mut is_alive : Bool
   mut message_handler : ((String) -> Unit)?
-  open_timeout : Int // 10 seconds
-  read_timeout : Int // 120 seconds
+  open_timeout : Int32 // 10 seconds
+  read_timeout : Int32 // 120 seconds
 }
 
 ///|
@@ -120,7 +120,7 @@ fn HttpTransport::capture_session_id(
 
 ///|
 /// True when a frame is the JSON-RPC response addressed to `id`.
-fn frame_matches_id(text : String, id : Int) -> Bool {
+fn frame_matches_id(text : String, id : Int32) -> Bool {
   match parse_jsonrpc_response(text) {
     Some(resp) => resp.id == Some(id)
     None => false
@@ -131,7 +131,7 @@ fn frame_matches_id(text : String, id : Int) -> Bool {
 /// Extract the response frame addressed to `id` from one message payload,
 /// which may be a single response or a batch array. Returns None when the
 /// payload carries no reply for that id.
-fn extract_reply(text : String, id : Int) -> String? {
+fn extract_reply(text : String, id : Int32) -> String? {
   match parse_json_opt(text) {
     Some(Array(items)) => {
       for item in items {
@@ -313,7 +313,7 @@ async fn HttpTransport::round_trip(
   self : HttpTransport,
   origin : String,
   path : String,
-  id : Int,
+  id : Int32,
   message : String,
 ) -> Result[String, String] {
   let client = match self.connect(origin) {
@@ -361,7 +361,7 @@ async fn HttpTransport::round_trip(
 async fn HttpTransport::read_sse_reply(
   self : HttpTransport,
   client : @http.Client,
-  id : Int,
+  id : Int32,
 ) -> Result[String, String] {
   while true {
     match client.read_until("\n") {

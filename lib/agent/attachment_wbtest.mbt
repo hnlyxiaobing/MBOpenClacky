@@ -14,7 +14,7 @@ fn attach_tmp_dir(tag : String) -> String {
 
 ///|
 /// PNG magic bytes (`\x89 P N G \r \n \x1a \n`) followed by `total` bytes.
-fn attach_fake_png(total : Int) -> Bytes {
+fn attach_fake_png(total : Int32) -> Bytes {
   let prefix : Array[Byte] = [
     b'\x89', b'P', b'N', b'G', b'\x0d', b'\x0a', b'\x1a', b'\x0a',
   ]

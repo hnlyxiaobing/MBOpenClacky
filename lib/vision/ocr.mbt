@@ -8,7 +8,7 @@ pub(all) struct OCRResult {
   /// Detected language, if available
   language : String?
   /// Number of words extracted
-  word_count : Int
+  word_count : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -113,7 +113,7 @@ pub async fn VisionOCR::ocr(
 
 ///|
 /// Count words in OCR-extracted text (split by whitespace).
-pub fn count_ocr_words(text : String) -> Int {
+pub fn count_ocr_words(text : String) -> Int32 {
   let mut count = 0
   let mut in_word = false
   for ch in text {

@@ -628,7 +628,7 @@ pub fn parse_iso8601_to_ms(ts : String) -> Int64 {
 
 ///|
 /// Parse decimal digits from a string slice [start, end).
-fn parse_digits(s : String, start : Int, end : Int) -> Int {
+fn parse_digits(s : String, start : Int32, end : Int32) -> Int32 {
   if end > s.length() {
     return 0
   }
@@ -648,7 +648,7 @@ fn parse_digits(s : String, start : Int, end : Int) -> Int {
 /// Parse timezone offset from ISO 8601 string.
 /// Handles "+HH:MM", "-HH:MM", and "Z" suffix.
 /// Returns offset in seconds (positive = ahead of UTC).
-fn parse_tz_offset(ts : String) -> Int {
+fn parse_tz_offset(ts : String) -> Int32 {
   let len = ts.length()
   if len == 0 {
     return 0
@@ -676,7 +676,7 @@ fn parse_tz_offset(ts : String) -> Int {
 
 ///|
 /// Calculate days since Unix epoch (1970-01-01) for a given date.
-fn days_since_epoch(year : Int, month : Int, day : Int) -> Int {
+fn days_since_epoch(year : Int32, month : Int32, day : Int32) -> Int32 {
   // Algorithm from http://howardhinnant.github.io/date_algorithms.html
   let y = if month <= 2 { year - 1 } else { year }
   let adjusted = if y >= 0 { y } else { y - 399 }

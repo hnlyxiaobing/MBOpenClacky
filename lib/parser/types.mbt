@@ -46,8 +46,8 @@ pub(all) struct DocumentMetadata {
   title : String?
   author : String?
   created_at : String?
-  page_count : Int?
-  word_count : Int?
+  page_count : Int32?
+  word_count : Int32?
   format : DocumentFormat
 } derive(Eq, Debug, ToJson)
 

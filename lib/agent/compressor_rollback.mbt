@@ -134,7 +134,7 @@ pub fn compress_with_rollback(
 ///|
 /// Each entry is a `recent_count` that increases (less aggressive
 /// compression). The first successful pass wins.
-let fallback_recent_counts : Array[Int] = [25, 30, 40, 50]
+let fallback_recent_counts : Array[Int32] = [25, 30, 40, 50]
 
 ///|
 /// Attempt compression with automatic level fallback.

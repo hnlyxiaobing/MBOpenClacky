@@ -24,7 +24,7 @@ pub(all) struct TaskSnapshot {
   parent_id : String?
   mut before_entries : Array[SnapshotEntry]
   mut after_entries : Array[SnapshotEntry]
-  created_at : Int // millisecond timestamp
+  created_at : Int32 // millisecond timestamp
   description : String?
 } derive(Eq, Debug, ToJson)
 
@@ -61,7 +61,7 @@ pub(all) struct TimeMachineState {
   session_id : String
   mut tasks : Array[TaskSnapshot]
   mut current_task_id : String?
-  mut task_counter : Int
+  mut task_counter : Int32
   snapshot_dir : String // ~/.mbopenclacky/snapshots/<session_id>/
 } derive(Eq, Debug)
 

@@ -5,9 +5,9 @@ pub(all) struct Schedule {
   task_name : String
   cron : CronExpression
   mut enabled : Bool
-  mut last_run_at : Int?
-  mut next_run_at : Int?
-  mut run_count : Int
+  mut last_run_at : Int32?
+  mut next_run_at : Int32?
+  mut run_count : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|

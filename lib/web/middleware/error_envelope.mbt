@@ -8,7 +8,7 @@
 /// The "error" field is a flat string (compatible with Ruby and Web UI frontend).
 /// Optional fields (status, code, hint) are included as top-level keys when provided.
 pub fn error_response(
-  status : Int,
+  status : Int32,
   message : String,
   code~ : String = "",
   hint~ : String = "",
@@ -60,7 +60,7 @@ pub fn forbidden_response(message : String) -> @core.HttpResponse {
 
 ///|
 /// Create a 429 Too Many Requests response with standard error envelope.
-pub fn rate_limit_response(retry_after : Int) -> @core.HttpResponse {
+pub fn rate_limit_response(retry_after : Int32) -> @core.HttpResponse {
   @core.HttpResponse::HttpResponse(
     status_code=@core.StatusCode::TooManyRequests,
   )

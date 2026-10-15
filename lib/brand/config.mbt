@@ -168,7 +168,7 @@ pub fn BrandConfig::activated(self : BrandConfig) -> Bool {
 }
 
 ///|
-pub fn BrandConfig::expired(self : BrandConfig, current_time : Int) -> Bool {
+pub fn BrandConfig::expired(self : BrandConfig, current_time : Int32) -> Bool {
   match self.license_expires_at {
     Some(e) =>
       match parse_iso8601_timestamp(e) {
@@ -193,7 +193,7 @@ pub fn BrandConfig::user_licensed(self : BrandConfig) -> Bool {
 ///|
 pub fn BrandConfig::distribution_refresh_due(
   self : BrandConfig,
-  current_time : Int,
+  current_time : Int32,
 ) -> Bool {
   if !self.is_branded() {
     return false
@@ -216,7 +216,7 @@ pub fn BrandConfig::distribution_refresh_due(
 /// Falls back gracefully: on network error returns Err without blocking startup.
 pub async fn BrandConfig::refresh_distribution(
   self : BrandConfig,
-  current_time : Int,
+  current_time : Int32,
 ) -> Result[Unit, String] {
   guard self.is_branded() else { return Err("Not branded") }
   guard !self.activated() else {
@@ -379,7 +379,7 @@ pub fn BrandConfig::to_h(self : BrandConfig) -> Map[String, String] {
 
 ///|
 /// Parse a non-negative integer from a string. Returns None on failure.
-fn parse_int_opt(s : String) -> Int? {
+fn parse_int_opt(s : String) -> Int32? {
   if s.is_empty() {
     return None
   }
@@ -396,7 +396,7 @@ fn parse_int_opt(s : String) -> Int? {
 
 ///|
 /// Parse simplified ISO 8601 timestamp to unix seconds.
-fn parse_iso8601_timestamp(s : String) -> Int? {
+fn parse_iso8601_timestamp(s : String) -> Int32? {
   guard s.length() >= 19 else { return None }
   let year_str = s[0:4].to_owned()
   let month_str = s[5:7].to_owned()
@@ -437,7 +437,7 @@ fn parse_iso8601_timestamp(s : String) -> Int? {
 
 ///|
 /// Format unix timestamp as ISO 8601 string.
-pub fn format_iso8601(timestamp : Int) -> String {
+pub fn format_iso8601(timestamp : Int32) -> String {
   let sec = timestamp % 60
   let min = timestamp / 60 % 60
   let hour = timestamp / 3600 % 24
@@ -458,14 +458,14 @@ pub fn format_iso8601(timestamp : Int) -> String {
     }
   }
   let day = day_acc + 1
-  fn pad2(n : Int) -> String {
+  fn pad2(n : Int32) -> String {
     if n < 10 {
       "0\{n}"
     } else {
       n.to_string()
     }
   }
-  fn pad4(n : Int) -> String {
+  fn pad4(n : Int32) -> String {
     if n < 10 {
       "000\{n}"
     } else if n < 100 {
@@ -541,7 +541,7 @@ pub fn record_upload(
   skills_dir : String,
   skill_name : String,
   platform_version : String,
-  now : Int,
+  now : Int32,
 ) -> Unit {
   let meta = load_upload_meta(skills_dir)
   meta[skill_name] = { platform_version, uploaded_at: format_iso8601(now), }

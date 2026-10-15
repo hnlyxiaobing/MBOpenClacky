@@ -31,12 +31,12 @@ pub extend TimePeriod with ToJson::{to_json}
 pub(all) struct Summary {
   period : TimePeriod
   total_cost : Double
-  total_prompt_tokens : Int
-  total_completion_tokens : Int
-  total_cache_read_tokens : Int
-  total_cache_write_tokens : Int
+  total_prompt_tokens : Int32
+  total_completion_tokens : Int32
+  total_cache_read_tokens : Int32
+  total_cache_write_tokens : Int32
   by_model : Map[String, ModelSummary]
-  record_count : Int
+  record_count : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -49,9 +49,9 @@ pub extend Summary with Eq::{not_equal, equal}
 /// Per-model billing summary.
 pub(all) struct ModelSummary {
   cost : Double
-  prompt_tokens : Int
-  completion_tokens : Int
-  requests : Int
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  requests : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -65,8 +65,8 @@ pub extend ModelSummary with Eq::{not_equal, equal}
 pub(all) struct DaySummary {
   date : String // "YYYY-MM-DD"
   total_cost : Double
-  total_tokens : Int
-  request_count : Int
+  total_tokens : Int32
+  request_count : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -153,7 +153,7 @@ pub fn BillingStore::query(
   to_ms~ : Int64 = 0L,
   model~ : String = "",
   session_id~ : String = "",
-  limit~ : Int = 0,
+  limit~ : Int32 = 0,
 ) -> Array[BillingRecord] {
   let all_records = load_all_records(self.billing_dir)
   let filtered = filter_records(
@@ -192,13 +192,13 @@ pub fn BillingStore::summary(
 /// returns oldest first.
 pub fn BillingStore::daily_breakdown(
   self : BillingStore,
-  days~ : Int = 30,
+  days~ : Int32 = 30,
 ) -> Array[DaySummary] {
   let ms_per_day = 86_400_000L
   let now_ms = current_time_ms()
   let records = self.query()
   // Group by local calendar date
-  let day_map : Map[String, (Double, Int, Int)] = Map([])
+  let day_map : Map[String, (Double, Int32, Int32)] = Map([])
   for record in records {
     let date = ms_to_local_date_string(record.timestamp)
     let (cost, tokens, count) = match day_map.get(date) {
@@ -238,10 +238,10 @@ pub(all) struct SessionSummary {
   session_name : String?
   is_deleted : Bool
   total_cost : Double
-  total_tokens : Int
-  prompt_tokens : Int
-  completion_tokens : Int
-  requests : Int
+  total_tokens : Int32
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  requests : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -273,14 +273,14 @@ pub fn BillingStore::session_summary(
   self : BillingStore,
   period : TimePeriod,
   model~ : String = "",
-  limit~ : Int = 50,
+  limit~ : Int32 = 50,
   session_names~ : Map[String, String] = Map([]),
 ) -> Array[SessionSummary] {
   let period_start_ms = get_period_start_ms(period)
   let records = self.query(from_ms=period_start_ms, model~)
   // Accumulator: (cost, tokens, prompt, completion, requests)
-  let named : Map[String, (Double, Int, Int, Int, Int)] = Map([])
-  let mut deleted : (Double, Int, Int, Int, Int) = (0.0, 0, 0, 0, 0)
+  let named : Map[String, (Double, Int32, Int32, Int32, Int32)] = Map([])
+  let mut deleted : (Double, Int32, Int32, Int32, Int32) = (0.0, 0, 0, 0, 0)
   for r in records {
     let entry = (
       r.cost_usd,
@@ -338,9 +338,9 @@ pub fn BillingStore::session_summary(
 ///|
 /// Merge two (cost, tokens, prompt, completion, requests) accumulators.
 fn merge_session_acc(
-  a : (Double, Int, Int, Int, Int),
-  b : (Double, Int, Int, Int, Int),
-) -> (Double, Int, Int, Int, Int) {
+  a : (Double, Int32, Int32, Int32, Int32),
+  b : (Double, Int32, Int32, Int32, Int32),
+) -> (Double, Int32, Int32, Int32, Int32) {
   (a.0 + b.0, a.1 + b.1, a.2 + b.2, a.3 + b.3, a.4 + b.4)
 }
 
@@ -349,7 +349,7 @@ fn merge_session_acc(
 /// - ClearToday rewrites the current month file dropping records from
 ///   today's local midnight onward, returning records removed;
 /// - ClearAll deletes every month file, returning files removed.
-pub fn BillingStore::clear(self : BillingStore, scope : ClearScope) -> Int {
+pub fn BillingStore::clear(self : BillingStore, scope : ClearScope) -> Int32 {
   match scope {
     ClearToday => {
       let today_start = get_period_start_ms(Day)
@@ -406,7 +406,7 @@ pub fn BillingStore::clear(self : BillingStore, scope : ClearScope) -> Int {
 /// Delete month files whose whole month predates `before_ms` (Ruby
 /// BillingStore#cleanup: file_month < before - 31 days). Returns the
 /// number of files removed.
-pub fn BillingStore::cleanup(self : BillingStore, before_ms : Int64) -> Int {
+pub fn BillingStore::cleanup(self : BillingStore, before_ms : Int64) -> Int32 {
   let mut removed = 0
   if !@fs.path_exists(self.billing_dir) {
     return 0

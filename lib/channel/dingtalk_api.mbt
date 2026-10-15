@@ -97,7 +97,7 @@ pub fn DingTalkApiClient::build_oapi_token_request(
 /// - OAPI: {"access_token":"...","expires_in":7200,"errcode":0,"errmsg":"ok"}
 pub fn DingTalkApiClient::parse_token_response(
   json : Json,
-) -> Result[(String, Int), ChannelError] {
+) -> Result[(String, Int32), ChannelError] {
   let obj = match json {
     Object(o) => o
     _ =>

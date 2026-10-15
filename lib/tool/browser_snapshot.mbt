@@ -1,24 +1,24 @@
 ///|
 /// Maximum snapshot output size in characters.
-let max_snapshot_chars : Int = 8000
+let max_snapshot_chars : Int32 = 8000
 
 ///|
 /// Maximum LLM output size in characters.
-let max_llm_output_chars : Int = 6000
+let max_llm_output_chars : Int32 = 6000
 
 ///|
 /// Threshold in characters for triggering two-stage compression.
 /// Snapshots smaller than this skip compression and only get truncated.
 /// 150KB ≈ 153600 characters.
-let snapshot_compress_threshold : Int = 150 * 1024
+let snapshot_compress_threshold : Int32 = 150 * 1024
 
 ///|
 /// Lines of context to show around a query match in snapshot.
-let _snapshot_query_window : Int = 60
+let _snapshot_query_window : Int32 = 60
 
 ///|
 /// Truncate output to a maximum number of characters.
-pub fn truncate_browser_output(output : String, max_chars : Int) -> String {
+pub fn truncate_browser_output(output : String, max_chars : Int32) -> String {
   if output.length() <= max_chars {
     output
   } else {
@@ -120,7 +120,11 @@ pub fn compress_snapshot(snapshot : String) -> String {
 ///|
 /// Format a compression log line with three-stage sizes and compression ratio.
 /// Sizes are in characters; output in KB with 1 decimal place.
-fn format_compress_log(original : Int, stage1 : Int, stage2 : Int) -> String {
+fn format_compress_log(
+  original : Int32,
+  stage1 : Int32,
+  stage2 : Int32,
+) -> String {
   let orig_kb = original * 10 / 1024
   let s1_kb = stage1 * 10 / 1024
   let s2_kb = stage2 * 10 / 1024
@@ -194,7 +198,7 @@ fn extract_static_text_value(trimmed : String) -> String {
 
 ///|
 /// Count the leading whitespace indent of a line.
-fn leading_indent(line : String) -> Int {
+fn leading_indent(line : String) -> Int32 {
   let mut count = 0
   while count < line.length() {
     let c = line[count]
@@ -213,7 +217,7 @@ fn leading_indent(line : String) -> Int {
 pub fn query_snapshot(
   snapshot : String,
   query : String,
-  offset~ : Int = 0,
+  offset~ : Int32 = 0,
 ) -> String {
   let compressed = compress_snapshot(snapshot)
   // Collect into Array[String] for indexed access

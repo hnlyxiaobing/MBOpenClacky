@@ -57,10 +57,10 @@ pub extend CostSource with Eq::{not_equal, equal}
 /// 6. Return CostResult with breakdown
 pub fn calculate_cost(
   model~ : String,
-  prompt_tokens~ : Int,
-  completion_tokens~ : Int,
-  cache_write_tokens~ : Int,
-  cache_read_tokens~ : Int,
+  prompt_tokens~ : Int32,
+  completion_tokens~ : Int32,
+  cache_write_tokens~ : Int32,
+  cache_read_tokens~ : Int32,
 ) -> Result[CostResult, String] {
   let pricing = match get_pricing(model) {
     Some(p) => p

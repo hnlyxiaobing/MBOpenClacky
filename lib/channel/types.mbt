@@ -87,7 +87,7 @@ pub(all) struct Attachment {
   attachment_type : AttachmentType
   url : String
   filename : String?
-  size_bytes : Int?
+  size_bytes : Int32?
 } derive(Eq, Debug, ToJson)
 
 ///|

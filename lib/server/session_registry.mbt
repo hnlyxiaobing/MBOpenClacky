@@ -12,12 +12,12 @@ pub struct SessionEntry {
 /// 会话注册表
 pub struct SessionRegistry {
   mut entries : Array[SessionEntry]
-  max_sessions : Int
+  max_sessions : Int32
 }
 
 ///|
 /// Create a new empty SessionRegistry
-pub fn SessionRegistry::new(max_sessions~ : Int = 1000) -> SessionRegistry {
+pub fn SessionRegistry::new(max_sessions~ : Int32 = 1000) -> SessionRegistry {
   { entries: [], max_sessions, }
 }
 
@@ -160,7 +160,7 @@ pub fn SessionRegistry::list_active(self : SessionRegistry) -> Array[String] {
 
 ///|
 /// 获取活跃会话数量
-pub fn SessionRegistry::count(self : SessionRegistry) -> Int {
+pub fn SessionRegistry::count(self : SessionRegistry) -> Int32 {
   self.entries.length()
 }
 
@@ -176,7 +176,7 @@ pub fn SessionRegistry::is_full(self : SessionRegistry) -> Bool {
 pub fn SessionRegistry::cleanup_inactive(
   self : SessionRegistry,
   current_time : String,
-  _max_idle_seconds : Int,
+  _max_idle_seconds : Int32,
 ) -> Array[String] {
   let removed : Array[String] = []
   let kept : Array[SessionEntry] = []
@@ -248,7 +248,7 @@ pub fn SessionRegistry::get_metadata(
 /// 注册表统计: (total_sessions, max_sessions, available_slots)
 pub fn SessionRegistry::registry_stats(
   self : SessionRegistry,
-) -> (Int, Int, Int) {
+) -> (Int32, Int32, Int32) {
   let total = self.entries.length()
   let available = self.max_sessions - total
   (total, self.max_sessions, available)

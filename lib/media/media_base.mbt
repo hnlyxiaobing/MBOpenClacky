@@ -23,9 +23,9 @@ pub(all) struct MediaGeneratorConfig {
   api_key : String
   model : String?
   output_dir : String
-  timeout_seconds : Int
-  retry_count : Int
-  max_file_size_mb : Int
+  timeout_seconds : Int32
+  retry_count : Int32
+  max_file_size_mb : Int32
 } derive(Eq, Debug)
 
 ///|

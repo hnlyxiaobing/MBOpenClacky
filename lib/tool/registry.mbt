@@ -196,7 +196,7 @@ pub fn sanitize_name(name : String) -> String {
 
 ///|
 /// Byte index of `needle` in `haystack`, or -1.
-fn index_of(haystack : String, needle : String) -> Int {
+fn index_of(haystack : String, needle : String) -> Int32 {
   if needle == "" {
     return 0
   }
@@ -326,7 +326,7 @@ pub fn ToolRegistry::has(self : ToolRegistry, name : String) -> Bool {
 
 ///|
 /// Get the number of registered tools.
-pub fn ToolRegistry::size(self : ToolRegistry) -> Int {
+pub fn ToolRegistry::size(self : ToolRegistry) -> Int32 {
   self.tools.length()
 }
 

@@ -31,7 +31,7 @@ pub extend AgentError with ToJson::{to_json}
 ///|
 /// Maps to Ruby's BadRequestError < AgentError.
 pub(all) suberror BadRequestError {
-  BadRequestError(Int, String)
+  BadRequestError(Int32, String)
 } derive(ToJson, Debug)
 
 ///|

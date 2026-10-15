@@ -5,7 +5,7 @@
 
 ///|
 /// Maximum number of sessions to keep on disk.
-pub let max_sessions : Int = 200
+pub let max_sessions : Int32 = 200
 
 ///|
 /// Soft-delete grace period: a soft-deleted session stays in place for this
@@ -417,7 +417,7 @@ fn chunks_for_base(dir : String, base : String) -> Array[String] {
   let filenames = @fs.read_dir(dir) catch { _ => return [] }
   let prefix = base + "-chunk-"
   let suffix = ".md"
-  let chunks : Array[(Int, String)] = []
+  let chunks : Array[(Int32, String)] = []
   for name in filenames {
     if name.has_prefix(prefix) && name.has_suffix(suffix) {
       // Extract index from "{base}-chunk-{N}.md"
@@ -465,7 +465,7 @@ pub fn chunks_for_current(
 pub fn write_chunk(
   session_id : String,
   created_at : String,
-  index : Int,
+  index : Int32,
   content : String,
 ) -> Result[String, String] {
   let dir = ensure_sessions_dir() catch {
@@ -488,7 +488,7 @@ pub fn write_chunk(
 /// legacy `{session_id}-chunk-N.md` names so re-compression after the rename
 /// never overwrites an older archive. Mirrors Ruby `next_chunk_index`
 /// (`(existing.map { |c| c[:index] }.max || 0) + 1`).
-pub fn next_chunk_index(session_id : String, created_at : String) -> Int {
+pub fn next_chunk_index(session_id : String, created_at : String) -> Int32 {
   let dir = ensure_sessions_dir() catch { _ => return 1 }
   let filenames = @fs.read_dir(dir) catch { _ => return 1 }
   let prefixes = [
@@ -513,7 +513,7 @@ pub fn next_chunk_index(session_id : String, created_at : String) -> Int {
 
 ///|
 /// Parse a chunk index string to Int, returning 0 on failure.
-fn parse_chunk_index(s : String) -> Int {
+fn parse_chunk_index(s : String) -> Int32 {
   if s.is_empty() {
     return 0
   }

@@ -30,7 +30,7 @@ async fn MockPlatformServer::new() -> MockPlatformServer {
 }
 
 ///|
-fn MockPlatformServer::port(self : MockPlatformServer) -> Int {
+fn MockPlatformServer::port(self : MockPlatformServer) -> Int32 {
   self.listener.addr.port()
 }
 
@@ -44,7 +44,7 @@ fn MockPlatformServer::base_url(self : MockPlatformServer) -> String {
 fn MockPlatformServer::count(
   self : MockPlatformServer,
   fragment : String,
-) -> Int {
+) -> Int32 {
   let mut n = 0
   for req in self.requests {
     let (line, _body) = req

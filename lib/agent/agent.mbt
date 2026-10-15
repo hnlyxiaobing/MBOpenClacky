@@ -32,8 +32,8 @@ pub(all) struct Agent {
   mut session_sub_model : String?
   // ── Conversation State ─────────────────────────────────────────────
   history : @message.MessageHistory
-  mut iterations : Int
-  mut total_tasks : Int
+  mut iterations : Int32
+  mut total_tasks : Int32
   mut status : AgentStatus
   mut error : String?
   mut error_code : String?
@@ -50,7 +50,7 @@ pub(all) struct Agent {
   mut total_cost : Double
   mut cost_source : CostSource
   mut cache_stats : CacheStats
-  mut previous_total_tokens : Int
+  mut previous_total_tokens : Int32
   /// Billing record sink. Injectable for tests (temp dir); production uses
   /// `BillingStore::default()` (CLACKY_BILLING_DIR override honored there).
   mut billing_store : @billing.BillingStore
@@ -59,10 +59,10 @@ pub(all) struct Agent {
   mut fallback_state : FallbackState
   mut fallback_model : String?
   mut url_fallback_active : Bool
-  mut consecutive_retryable_failures : Int
+  mut consecutive_retryable_failures : Int32
   mut fallback_activated_at_ms : Int64
   // ── Compression State ──────────────────────────────────────────────
-  mut compression_level : Int
+  mut compression_level : Int32
   mut idle_timer : IdleCompressionTimer
   // ── Upstream Truncation Retry ─────────────────────────────────────
   /// One-shot [SYSTEM] truncation hint injected per task (mirrors Ruby's
@@ -127,7 +127,7 @@ pub(all) struct Agent {
   /// Parent history size at fork time. Messages after this index belong
   /// to the subagent's own run — final_reply / generate_subagent_summary
   /// / extract_subagent_transcript slice from here.
-  mut parent_message_count : Int
+  mut parent_message_count : Int32
 }
 
 ///|
@@ -140,7 +140,7 @@ pub(all) struct Agent {
 /// - Probing → FallbackActive: on failed probe call (resets cooldown)
 pub(all) enum FallbackState {
   PrimaryOk
-  FallbackActive(Int)
+  FallbackActive(Int32)
   Probing
 } derive(Eq, Debug)
 

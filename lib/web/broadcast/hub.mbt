@@ -191,14 +191,14 @@ pub fn Hub::broadcast_heartbeat(self : Hub) -> Unit {
 
 ///|
 /// Get the number of connections subscribed to a session.
-pub fn Hub::session_connection_count(self : Hub, session_id : String) -> Int {
+pub fn Hub::session_connection_count(self : Hub, session_id : String) -> Int32 {
   guard self.session_subs.contains(session_id) else { return 0 }
   self.session_subs[session_id].length()
 }
 
 ///|
 /// Get the total number of registered connections.
-pub fn Hub::connection_count(self : Hub) -> Int {
+pub fn Hub::connection_count(self : Hub) -> Int32 {
   self.connections.length()
 }
 

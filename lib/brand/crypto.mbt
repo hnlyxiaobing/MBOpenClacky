@@ -118,7 +118,7 @@ pub fn generate_nonce() -> Result[Array[Byte], String] {
 ///|
 /// Default PBKDF2 iteration count.
 /// 100 000 rounds of HMAC-SHA256 — meets OWASP 2023 recommendation.
-pub let pbkdf2_default_iterations : Int = 100000
+pub let pbkdf2_default_iterations : Int32 = 100000
 
 ///|
 /// Derive a 32-byte key from a password and salt using PBKDF2-HMAC-SHA256.
@@ -193,7 +193,7 @@ extern "C" fn crypto_aes256gcm_encrypt(
   plaintext : Bytes,
   ciphertext_out : Bytes,
   tag_out : Bytes,
-) -> Int = "mbopenclacky_aes256gcm_encrypt"
+) -> Int32 = "mbopenclacky_aes256gcm_encrypt"
 
 ///|
 #cfg(not(target_arch="wasm32"))
@@ -205,12 +205,12 @@ extern "C" fn crypto_aes256gcm_decrypt(
   ciphertext : Bytes,
   tag : Bytes,
   plaintext_out : Bytes,
-) -> Int = "mbopenclacky_aes256gcm_decrypt"
+) -> Int32 = "mbopenclacky_aes256gcm_decrypt"
 
 ///|
 #cfg(not(target_arch="wasm32"))
 #borrow(out)
-extern "C" fn crypto_random_bytes(out : Bytes) -> Int = "mbopenclacky_crypto_random_bytes"
+extern "C" fn crypto_random_bytes(out : Bytes) -> Int32 = "mbopenclacky_crypto_random_bytes"
 
 // ---- WASM fallback stubs ----
 
@@ -223,7 +223,7 @@ fn crypto_aes256gcm_encrypt(
   _plaintext : Bytes,
   _ciphertext_out : Bytes,
   _tag_out : Bytes,
-) -> Int {
+) -> Int32 {
   -1
 }
 
@@ -236,13 +236,13 @@ fn crypto_aes256gcm_decrypt(
   _ciphertext : Bytes,
   _tag : Bytes,
   _plaintext_out : Bytes,
-) -> Int {
+) -> Int32 {
   -1
 }
 
 ///|
 #cfg(target_arch="wasm32")
-fn crypto_random_bytes(_out : Bytes) -> Int {
+fn crypto_random_bytes(_out : Bytes) -> Int32 {
   -1
 }
 
@@ -255,8 +255,8 @@ fn crypto_random_bytes(_out : Bytes) -> Int {
 /// failure or timeout.
 pub async fn brand_http_get(
   url : String,
-  timeout_ms : Int,
-) -> Result[(Int, String), String] {
+  timeout_ms : Int32,
+) -> Result[(Int32, String), String] {
   let result = @async.with_timeout_opt(timeout_ms, () => @http.get(url)) catch {
     err => return Err("HTTP GET failed: \{err}")
   }

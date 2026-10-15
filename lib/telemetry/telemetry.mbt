@@ -7,7 +7,7 @@ pub(all) struct Telemetry {
   device_id : String
   enabled : Bool
   endpoint_base : String
-  mut events_sent : Int
+  mut events_sent : Int32
 }
 
 ///|
@@ -62,13 +62,13 @@ pub fn Telemetry::task(
   model : String,
   provider : String,
   status : String,
-  iterations : Int,
-  duration_ms : Int,
+  iterations : Int32,
+  duration_ms : Int32,
   cost_usd : Double,
-  prompt_tokens : Int,
-  completion_tokens : Int,
-  cache_creation_tokens : Int,
-  cache_read_tokens : Int,
+  prompt_tokens : Int32,
+  completion_tokens : Int32,
+  cache_creation_tokens : Int32,
+  cache_read_tokens : Int32,
   brand : String?,
 ) -> Unit {
   guard self.enabled else { return }
@@ -130,7 +130,7 @@ fn detect_container() -> String? {
 
 ///|
 /// Get count of events sent
-pub fn Telemetry::get_events_sent(self : Telemetry) -> Int {
+pub fn Telemetry::get_events_sent(self : Telemetry) -> Int32 {
   self.events_sent
 }
 
@@ -144,7 +144,7 @@ pub fn generate_anonymous_id(
   // SHA256(hostname + username + platform) - simplified
   let raw = hostname + ":" + username + ":" + platform
   // Simple deterministic hash (placeholder for SHA256)
-  let mut hash : UInt = 0
+  let mut hash : UInt32 = 0
   for c in raw {
     hash = hash * 31 + c.to_int().reinterpret_as_uint()
   }

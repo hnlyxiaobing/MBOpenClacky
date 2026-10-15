@@ -3,14 +3,14 @@
 ///|
 /// Configuration for skill post-execution reflection.
 pub(all) struct SkillReflector {
-  min_improvement_score : Int // default 70 — below this threshold, improvement is suggested
+  min_improvement_score : Int32 // default 70 — below this threshold, improvement is suggested
 }
 
 ///|
 /// Report generated after reflecting on a skill execution.
 pub(all) struct ReflectionReport {
   skill_name : String
-  performance_score : Int
+  performance_score : Int32
   suggestions : Array[String]
   should_improve : Bool
 } derive(Eq, Debug)
@@ -29,7 +29,7 @@ pub fn SkillReflector::new() -> SkillReflector {
 
 ///|
 /// Create a SkillReflector with a custom threshold.
-pub fn SkillReflector::with_threshold(threshold : Int) -> SkillReflector {
+pub fn SkillReflector::with_threshold(threshold : Int32) -> SkillReflector {
   { min_improvement_score: threshold, }
 }
 
@@ -47,7 +47,7 @@ pub fn SkillReflector::reflect(
   self : SkillReflector,
   skill_name : String,
   execution_result : String,
-  iterations : Int,
+  iterations : Int32,
 ) -> ReflectionReport {
   let suggestions : Array[String] = []
   // Empty result is a strong failure signal

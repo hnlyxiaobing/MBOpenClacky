@@ -34,7 +34,7 @@ pub(all) struct ScenarioOutcome {
 
 ///|
 /// 临时目录唯一名序号。
-let dir_serial : Ref[Int] = { val: 0, }
+let dir_serial : Ref[Int32] = { val: 0, }
 
 ///|
 /// 取 JSON 对象的字段（非废弃 API 的本地封装；core/json 的 Json::value 已废弃）。
@@ -163,7 +163,7 @@ pub async fn run_scenario(
   files : Array[(String, String)],
   prompt : String,
   configure~ : (@config.AgentConfig) -> Unit = fn(_) { () },
-  timeout_ms~ : Int = 120_000,
+  timeout_ms~ : Int32 = 120_000,
 ) -> ScenarioOutcome {
   // ── 1. 准备干净工作目录与隔离 HOME ────────────────────────────────
   dir_serial.val = dir_serial.val + 1

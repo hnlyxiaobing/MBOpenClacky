@@ -80,7 +80,7 @@ pub(all) struct HarnessTask {
   /// Natural-language success criterion ("" for scripted tasks).
   acceptance : String
   /// Per-task repetition count; 0 means "use the caller's default".
-  trials : Int
+  trials : Int32
 }
 
 ///|
@@ -97,7 +97,7 @@ pub(all) struct HarnessTaskResult {
   task_id : String
   goal : String
   passed : Bool
-  steps_run : Int
+  steps_run : Int32
   assertions : Array[HarnessAssertion]
 }
 
@@ -448,7 +448,7 @@ pub async fn run_harness_task(
 pub async fn run_harness_batch(
   tasks : Array[HarnessTask],
   sandbox_root : String,
-  trials : Int,
+  trials : Int32,
 ) -> HarnessReport {
   let results : Array[HarnessTaskResult] = []
   if trials <= 0 {
@@ -492,19 +492,19 @@ fn prepare_sandbox(sandbox : String) -> Unit {
 /// repeatability, and cost (always 0 offline — no model is called; a live run
 /// passes the summed model cost).
 pub(all) struct EvalScoreVector {
-  tasks : Int
-  tasks_passed : Int
-  assertions : Int
-  assertions_passed : Int
-  repeatable_tasks : Int
-  trials : Int
+  tasks : Int32
+  tasks_passed : Int32
+  assertions : Int32
+  assertions_passed : Int32
+  repeatable_tasks : Int32
+  trials : Int32
   cost_usd : Double
 }
 
 ///|
 pub fn HarnessReport::score(
   self : HarnessReport,
-  trials : Int,
+  trials : Int32,
   cost_usd~ : Double = 0.0,
 ) -> EvalScoreVector {
   let tasks : Array[String] = []
@@ -590,7 +590,7 @@ pub fn EvalScoreVector::repeatability(self : EvalScoreVector) -> Double {
 pub fn HarnessReport::to_score_json(
   self : HarnessReport,
   mode : String,
-  trials : Int,
+  trials : Int32,
   cost_usd~ : Double = 0.0,
 ) -> Json {
   let score = self.score(trials, cost_usd~)
@@ -632,7 +632,7 @@ pub fn HarnessReport::to_score_json(
 pub fn HarnessReport::to_markdown(
   self : HarnessReport,
   mode : String,
-  trials : Int,
+  trials : Int32,
   cost_usd~ : Double = 0.0,
 ) -> String {
   let score = self.score(trials, cost_usd~)

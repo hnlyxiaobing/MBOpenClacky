@@ -12,19 +12,19 @@
 
 ///|
 /// Hard ceiling on raw output string sent back to the LLM (4000 chars ~ 1000 tokens).
-pub let terminal_max_output_chars : Int = 4000
+pub let terminal_max_output_chars : Int32 = 4000
 
 ///|
 /// When output overflows, preview is slightly shorter so the notice still fits.
-pub let terminal_overflow_preview_chars : Int = 3800
+pub let terminal_overflow_preview_chars : Int32 = 3800
 
 ///|
 /// Default timeout in seconds for foreground commands.
-let default_timeout_seconds : Int = 60
+let default_timeout_seconds : Int32 = 60
 
 ///|
 /// Timeout for slow commands (bundle install, npm install, etc.).
-let slow_command_timeout_seconds : Int = 180
+let slow_command_timeout_seconds : Int32 = 180
 
 ///|
 /// Commands known to take a long time and produce bursty output.
@@ -67,7 +67,7 @@ pub fn is_multiline_command(command : String) -> Bool {
 
 ///|
 /// Generate a hint message for background command sessions.
-pub fn background_hint(background : Bool, session_id : Int) -> String {
+pub fn background_hint(background : Bool, session_id : Int32) -> String {
   if background {
     "Running as background session #\{session_id}. Poll with " +
     "{session_id: \{session_id}, input: \"\"} or stop with " +
@@ -97,7 +97,7 @@ pub fn rewrite_note(original : String, rewritten : String) -> String? {
 ///|
 /// Mutable counter for marker token generation, wrapped in a struct.
 priv struct MarkerCounter {
-  mut value : Int
+  mut value : Int32
 }
 
 ///|
@@ -112,13 +112,13 @@ fn generate_marker_token() -> String {
 
 ///|
 /// Build the completion marker string.
-pub fn completion_marker(token : String, exit_code : Int) -> String {
+pub fn completion_marker(token : String, exit_code : Int32) -> String {
   "__CLACKY_DONE_\{token}_\{exit_code}__"
 }
 
 ///|
 /// Parse a completion marker from output. Returns exit_code or None.
-fn parse_completion_marker(output : String, token : String) -> Int? {
+fn parse_completion_marker(output : String, token : String) -> Int32? {
   let prefix = "__CLACKY_DONE_\{token}_"
   let suffix = "__"
   match output.find(prefix) {
@@ -175,7 +175,7 @@ fn get_temp_dir() -> String {
 /// running commands (e.g. parallel white-box tests invoking
 /// search_custom_script) never collide on the same output file even when
 /// `session_id` repeats (it is a business session id, not unique per call).
-fn build_output_file_path(session_id : Int, token : String) -> String {
+fn build_output_file_path(session_id : Int32, token : String) -> String {
   let tmp_dir = get_temp_dir()
   @path.Path::join(
     tmp_dir,
@@ -257,10 +257,10 @@ fn build_marker_shell_cmd(
 async fn execute_command_sync(
   user_command : String,
   cwd : String,
-  timeout_ms : Int,
-  session_id : Int,
+  timeout_ms : Int32,
+  session_id : Int32,
   env : Map[String, String],
-) -> (String, Int, String, Bool) {
+) -> (String, Int32, String, Bool) {
   // Token first: the output file path embeds the token (unique per call in
   // this process), so parallel executions with an equal session_id never
   // share an output file.
@@ -309,8 +309,8 @@ async fn spawn_background_command(
   output_file : String,
   token : String,
   env : Map[String, String],
-  session_id : Int,
-) -> Result[Int, String] {
+  session_id : Int32,
+) -> Result[Int32, String] {
   let (child_stdin, stdin_writer) = @process.write_to_process() catch {
     _ => return Err("failed to create stdin pipe")
   }
@@ -355,7 +355,7 @@ async fn spawn_background_command(
 /// Poll a background session: read incremental output from the capture
 /// file; if the completion marker is present, finalize the session.
 /// Returns (output, exited, exit_code).
-fn poll_background_session(session : TerminalSession) -> (String, Bool, Int) {
+fn poll_background_session(session : TerminalSession) -> (String, Bool, Int32) {
   match session.output_file {
     Some(path) => {
       let raw = @fs.read_file_to_string(path) catch { _ => "" }
@@ -384,8 +384,8 @@ fn poll_background_session(session : TerminalSession) -> (String, Bool, Int) {
 ///|
 /// Terminal tool struct.
 pub(all) struct Terminal {
-  timeout : Int
-  max_output_chars : Int
+  timeout : Int32
+  max_output_chars : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -821,7 +821,7 @@ impl Tool for Terminal with fn to_function_definition(self) -> FunctionDefinitio
 }
 
 ///|
-fn get_int_opt(args : Map[String, Json], key : String) -> Int? {
+fn get_int_opt(args : Map[String, Json], key : String) -> Int32? {
   match args.get(key) {
     Some(Number(n, ..)) if n >= -2147483648.0 && n <= 2147483647.0 =>
       Some(n.to_int())

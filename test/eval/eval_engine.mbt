@@ -43,11 +43,11 @@ pub(all) struct EvalBatchResult {
   /// Results for each scenario.
   results : Array[EvalScenarioResult]
   /// Number of passed scenarios.
-  passed_count : Int
+  passed_count : Int32
   /// Number of failed scenarios.
-  failed_count : Int
+  failed_count : Int32
   /// Total number of scenarios.
-  total_count : Int
+  total_count : Int32
 } derive(Debug)
 
 ///|
@@ -147,9 +147,9 @@ pub(all) struct UnifiedSuiteResult {
 
 ///|
 pub(all) struct UnifiedSummary {
-  total : Int
-  passed : Int
-  failed : Int
+  total : Int32
+  passed : Int32
+  failed : Int32
 }
 
 ///|
@@ -210,7 +210,7 @@ fn EvalScenarioResult::to_unified(r : EvalScenarioResult) -> UnifiedSuiteResult 
 pub fn HarnessReport::to_unified_report(
   self : HarnessReport,
   mode : String,
-  trials : Int,
+  trials : Int32,
   cost_usd~ : Double = 0.0,
 ) -> UnifiedReport {
   let results : Array[UnifiedSuiteResult] = []

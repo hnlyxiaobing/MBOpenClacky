@@ -1,8 +1,8 @@
 ///|
-const HEARTBEAT_INTERVAL : Int = 86400
+const HEARTBEAT_INTERVAL : Int32 = 86400
 
 ///|
-const HEARTBEAT_GRACE_PERIOD : Int = 259200
+const HEARTBEAT_GRACE_PERIOD : Int32 = 259200
 
 ///|
 pub(all) enum LicenseStatus {
@@ -26,8 +26,8 @@ pub extend LicenseStatus with ToJson::{to_json}
 ///|
 pub(all) struct LicenseValidator {
   config : BrandConfig
-  mut last_check_at : Int?
-  mut activation_nonce_counter : Int
+  mut last_check_at : Int32?
+  mut activation_nonce_counter : Int32
 }
 
 ///|
@@ -38,7 +38,7 @@ pub fn LicenseValidator::new(config : BrandConfig) -> LicenseValidator {
 ///|
 pub fn LicenseValidator::validate(
   self : LicenseValidator,
-  current_time : Int,
+  current_time : Int32,
 ) -> LicenseStatus {
   guard self.config.license_key is Some(key) else { return NotConfigured }
   guard is_valid_key_format(key) else { return Invalid }
@@ -82,9 +82,9 @@ fn is_hex_string(s : StringView) -> Bool {
 
 ///|
 /// Parse user_id from license key first segment (8 hex chars).
-pub fn parse_user_id_from_key(key : String) -> UInt {
+pub fn parse_user_id_from_key(key : String) -> UInt32 {
   let first = key.split("-").collect()[0]
-  let mut result : UInt = 0
+  let mut result : UInt32 = 0
   for c in first {
     let digit = if c >= '0' && c <= '9' {
       c.to_int() - '0'.to_int()
@@ -105,7 +105,7 @@ pub fn parse_user_id_from_key(key : String) -> UInt {
 pub fn LicenseValidator::activate(
   self : LicenseValidator,
   license_key : String,
-  current_time : Int,
+  current_time : Int32,
 ) -> Result[Unit, String] {
   let key = license_key.trim_start().trim_end().to_owned()
   guard is_valid_key_format(key) else {
@@ -166,7 +166,7 @@ pub fn LicenseValidator::deactivate(
 /// Send heartbeat. HTTP call is stubbed.
 pub fn LicenseValidator::heartbeat(
   self : LicenseValidator,
-  current_time : Int,
+  current_time : Int32,
 ) -> Result[Unit, String] {
   guard self.config.activated() else { return Err("License not activated") }
   let key = match self.config.license_key {
@@ -194,7 +194,7 @@ pub fn LicenseValidator::heartbeat(
 ///|
 pub fn LicenseValidator::heartbeat_due(
   self : LicenseValidator,
-  current_time : Int,
+  current_time : Int32,
 ) -> Bool {
   match self.config.license_last_heartbeat {
     None => true
@@ -209,7 +209,7 @@ pub fn LicenseValidator::heartbeat_due(
 ///|
 pub fn LicenseValidator::grace_period_exceeded(
   self : LicenseValidator,
-  current_time : Int,
+  current_time : Int32,
 ) -> Bool {
   match self.config.license_last_heartbeat_failure {
     None => false
@@ -224,7 +224,7 @@ pub fn LicenseValidator::grace_period_exceeded(
 ///|
 pub fn LicenseValidator::needs_heartbeat(
   self : LicenseValidator,
-  current_time : Int,
+  current_time : Int32,
 ) -> Bool {
   self.heartbeat_due(current_time)
 }
@@ -241,8 +241,8 @@ pub fn LicenseValidator::record_heartbeat(
 
 ///|
 pub fn is_grace_exceeded(
-  last_heartbeat_ms : Int,
-  current_time_ms : Int,
+  last_heartbeat_ms : Int32,
+  current_time_ms : Int32,
 ) -> Bool {
   let elapsed = (current_time_ms - last_heartbeat_ms) / 1000
   elapsed > HEARTBEAT_INTERVAL + HEARTBEAT_GRACE_PERIOD

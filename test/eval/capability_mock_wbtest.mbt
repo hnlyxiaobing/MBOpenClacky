@@ -59,7 +59,7 @@ fn mock_edit_task() -> HarnessTask {
 
 ///|
 /// A model config pointed at the mock server instead of a real provider.
-fn mock_config(port : Int) -> @config.AgentConfig {
+fn mock_config(port : Int32) -> @config.AgentConfig {
   let config = @config.AgentConfig::default()
   config.models = [
     {

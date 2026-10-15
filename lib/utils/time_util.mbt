@@ -10,6 +10,6 @@ pub fn now_ms() -> Int64 {
 
 ///|
 /// Current wall-clock time in seconds since the Unix epoch.
-pub fn now_seconds() -> Int {
+pub fn now_seconds() -> Int32 {
   (now_ms() / 1000L).to_int()
 }

@@ -21,7 +21,7 @@ fn get_str(j : Json, key : String) -> String {
 }
 
 ///|
-fn get_int(j : Json, key : String) -> Int {
+fn get_int(j : Json, key : String) -> Int32 {
   match j {
     Object(m) =>
       match m.get(key) {

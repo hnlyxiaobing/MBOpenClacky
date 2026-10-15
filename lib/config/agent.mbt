@@ -2,7 +2,7 @@
 /// Agent configuration, loaded from TOML config file and environment variables.
 pub(all) struct AgentConfig {
   mut permission_mode : PermissionMode
-  mut max_tokens : Int
+  mut max_tokens : Int32
   mut verbose : Bool
   mut enable_compression : Bool
   mut enable_idle_compression : Bool
@@ -11,13 +11,13 @@ pub(all) struct AgentConfig {
   mut current_model_id : String?
   mut memory_update_enabled : Bool
   mut skill_evolution : Json?
-  mut max_running_agents : Int
-  mut max_idle_agents : Int
+  mut max_running_agents : Int32
+  mut max_idle_agents : Int32
   mut proxy_url : String
   mut fallback_model : String
   mut fallback_base_url : String?
-  mut compression_threshold : Int
-  mut message_count_threshold : Int
+  mut compression_threshold : Int32
+  mut message_count_threshold : Int32
   mut env_source : String
   /// Default working directory for spawned processes.
   mut default_working_dir : String?
@@ -195,7 +195,7 @@ fn AgentConfig::generate_model_id(self : AgentConfig) -> String {
 /// Refuses to remove the last remaining model. If the removed model was the
 /// current one, current_model_id is cleared so resolution falls back to the
 /// default badge / first model. Returns false when refused.
-pub fn AgentConfig::remove_model(self : AgentConfig, index : Int) -> Bool {
+pub fn AgentConfig::remove_model(self : AgentConfig, index : Int32) -> Bool {
   if self.models.length() <= 1 {
     return false
   }
@@ -216,7 +216,7 @@ pub fn AgentConfig::remove_model(self : AgentConfig, index : Int) -> Bool {
 /// Pass None to clear the tag. Returns false on bad index or unknown type.
 pub fn AgentConfig::set_model_type(
   self : AgentConfig,
-  index : Int,
+  index : Int32,
   type_ : String?,
 ) -> Bool {
   if index < 0 || index >= self.models.length() {

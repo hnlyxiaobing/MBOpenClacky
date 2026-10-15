@@ -55,7 +55,7 @@ fn msg_of(
 
 ///|
 /// 消息级 token 估算（含 per-message overhead），经 MessageHistory pub 包装。
-fn message_tokens(msg : @message.Message) -> Int {
+fn message_tokens(msg : @message.Message) -> Int32 {
   @message.MessageHistory::from_messages([msg]).estimate_tokens()
 }
 

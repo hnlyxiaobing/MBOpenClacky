@@ -24,7 +24,7 @@ pub(all) struct AskQuestion {
   options : Array[String]
   multi : Bool
   allow_free_text : Bool
-  recommended : Int?
+  recommended : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -104,7 +104,7 @@ fn ask_text(value : Json?) -> String {
 ///|
 /// Ruby `/\A-?\d+\z/` semantics: an optional leading `-` followed by at least
 /// one digit and nothing else (no surrounding whitespace, no `+`).
-fn ask_strict_int(s : String) -> Int? {
+fn ask_strict_int(s : String) -> Int32? {
   let body = if s.has_prefix("-") { s[1:].to_owned() } else { s }
   if body.length() == 0 {
     return None
@@ -153,7 +153,7 @@ fn ask_normalize_question(item : Json) -> AskQuestion? {
     }
     _ => []
   }
-  let raw_recommended : Int? = match ask_fetch(obj, "recommended") {
+  let raw_recommended : Int32? = match ask_fetch(obj, "recommended") {
     Some(Number(n, ..)) => Some(n.to_int())
     Some(String(s)) => ask_strict_int(s)
     _ => None

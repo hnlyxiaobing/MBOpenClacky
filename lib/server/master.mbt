@@ -1,11 +1,11 @@
 ///|
 /// ServerMaster configuration
 pub(all) struct MasterConfig {
-  max_workers : Int
-  min_workers : Int
-  worker_timeout_ms : Int
+  max_workers : Int32
+  min_workers : Int32
+  worker_timeout_ms : Int32
   auto_restart : Bool
-  graceful_shutdown_ms : Int
+  graceful_shutdown_ms : Int32
 } derive(Debug)
 
 ///|
@@ -29,13 +29,13 @@ pub extend MasterStatus with Eq::{not_equal, equal}
 ///|
 /// Worker pool statistics
 pub(all) struct PoolStats {
-  total_workers : Int
-  idle_workers : Int
-  busy_workers : Int
-  failed_workers : Int
-  total_tasks_completed : Int
-  total_tasks_failed : Int
-  uptime_seconds : Int
+  total_workers : Int32
+  idle_workers : Int32
+  busy_workers : Int32
+  failed_workers : Int32
+  total_tasks_completed : Int32
+  total_tasks_failed : Int32
+  uptime_seconds : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -56,7 +56,7 @@ pub(all) struct ServerMaster {
   config : MasterConfig
   mut status : MasterStatus
   mut workers : Array[Worker]
-  mut next_worker_id : Int
+  mut next_worker_id : Int32
   mut started_at : String
 } derive(Debug)
 

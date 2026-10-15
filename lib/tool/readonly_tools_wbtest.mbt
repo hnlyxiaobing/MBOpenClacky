@@ -31,7 +31,7 @@ fn rw_write(dir : String, name : String, content : String) -> String {
 }
 
 ///|
-fn rw_big_string(len : Int, c : Char) -> String {
+fn rw_big_string(len : Int32, c : Char) -> String {
   let sb = StringBuilder(size_hint=len)
   let mut i = 0
   while i < len {

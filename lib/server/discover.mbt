@@ -2,8 +2,8 @@
 /// Server discovery result
 pub(all) struct ServerInstance {
   host : String
-  port : Int
-  pid : Int
+  port : Int32
+  pid : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -33,7 +33,7 @@ let pid_file_dir : String = match @env.get_env_var("TEMP") {
 ///|
 /// Timeout for the localhost port probe (ms). Short on purpose: probing
 /// a dead port fails fast; a live server answers the TCP handshake quickly.
-const DISCOVER_PROBE_TIMEOUT_MS : Int = 2_000
+const DISCOVER_PROBE_TIMEOUT_MS : Int32 = 2_000
 
 ///|
 /// Find the first active local server
@@ -81,7 +81,7 @@ pub async fn find_all_local() -> Array[ServerInstance] {
 
 ///|
 /// Write PID file for current server
-pub fn write_pid_file(port : Int, pid : Int) -> Result[Unit, String] {
+pub fn write_pid_file(port : Int32, pid : Int32) -> Result[Unit, String] {
   let filename = pid_file_prefix + port.to_string() + ".pid"
   let path = pid_file_dir + filename
   @fs.write_string_to_file(path, pid.to_string()) catch {
@@ -92,7 +92,7 @@ pub fn write_pid_file(port : Int, pid : Int) -> Result[Unit, String] {
 
 ///|
 /// Remove PID file
-pub fn remove_pid_file(port : Int) -> Result[Unit, String] {
+pub fn remove_pid_file(port : Int32) -> Result[Unit, String] {
   let filename = pid_file_prefix + port.to_string() + ".pid"
   let path = pid_file_dir + filename
   if @fs.path_exists(path) {
@@ -105,7 +105,7 @@ pub fn remove_pid_file(port : Int) -> Result[Unit, String] {
 
 ///|
 /// Extract port from PID filename
-pub fn extract_port_from_filename(filename : String) -> Int? {
+pub fn extract_port_from_filename(filename : String) -> Int32? {
   // Expected format: "mbopenclacky-master-{port}.pid"
   let prefix = pid_file_prefix
   if !filename.has_prefix(prefix) {
@@ -129,7 +129,7 @@ pub fn extract_port_from_filename(filename : String) -> Int? {
 /// On Unix (incl. WSL) checks /proc/<pid>; on platforms without /proc
 /// (Windows native) conservatively returns true and relies on the
 /// caller's port probe (is_server_reachable) to filter stale PID files.
-pub fn is_process_alive(pid : Int) -> Bool {
+pub fn is_process_alive(pid : Int32) -> Bool {
   // /proc only exists on Linux. Checking "/proc/<pid>" unconditionally
   // would report every server dead on Windows native, so gate on the
   // procfs root first.
@@ -146,7 +146,7 @@ pub fn is_process_alive(pid : Int) -> Bool {
 /// Probe whether a server is actually reachable on localhost:port.
 /// Any HTTP response (including 401/404) proves a live listener;
 /// connection refused or timeout means the process is dead.
-async fn is_server_reachable(port : Int) -> Bool {
+async fn is_server_reachable(port : Int32) -> Bool {
   let url = "http://127.0.0.1:\{port}/health"
   match @client.http_get(url, [], DISCOVER_PROBE_TIMEOUT_MS) {
     Ok(_) => true

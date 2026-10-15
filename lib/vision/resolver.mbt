@@ -190,7 +190,7 @@ pub fn VisionResolver::clear_cache(self : VisionResolver) -> Unit {
 
 ///|
 /// Get cache size
-pub fn VisionResolver::cache_size(self : VisionResolver) -> Int {
+pub fn VisionResolver::cache_size(self : VisionResolver) -> Int32 {
   self.cache.length()
 }
 

@@ -2,13 +2,13 @@
 
 ///|
 /// Maximum screenshot width before downscaling (pixels) — Ruby SCREENSHOT_MAX_WIDTH.
-let screenshot_max_width : Int = 800
+let screenshot_max_width : Int32 = 800
 
 ///|
 /// Maximum screenshot payload size after downscaling (bytes) — Ruby
 /// SCREENSHOT_MAX_BASE64_BYTES. Images that still exceed this after resize
 /// are rejected with a hint to use snapshot (aligned with Ruby browser.rb).
-let screenshot_max_bytes : Int = 150 * 1024 // 150 KB
+let screenshot_max_bytes : Int32 = 150 * 1024 // 150 KB
 
 ///|
 /// Uploads directory name under the system temp dir — Ruby `clacky-uploads`.
@@ -73,11 +73,11 @@ fn screenshot_filename(
 ///|
 /// Parse the PNG width and height from the IHDR chunk (bytes 16..24,
 /// big-endian). Returns None for non-PNG data.
-fn png_size(image : Bytes) -> (Int, Int)? {
+fn png_size(image : Bytes) -> (Int32, Int32)? {
   if image.length() < 24 {
     return None
   }
-  let sig : Array[Int] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+  let sig : Array[Int32] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
   let mut i = 0
   while i < 8 {
     if image[i].to_int() != sig[i] {
@@ -116,8 +116,8 @@ fn quote_shell_arg(arg : String, is_win : Bool) -> String {
 fn build_downscale_cmds(
   in_path : String,
   out_path : String,
-  max_width : Int,
-  max_height : Int,
+  max_width : Int32,
+  max_height : Int32,
 ) -> Array[String] {
   let is_win = shell_is_windows()
   let in_q = quote_shell_arg(in_path, is_win)
@@ -154,8 +154,8 @@ fn build_downscale_cmds(
 /// not a decodable PNG (caller keeps the original — Ruby fallback).
 fn downscale_image_bytes(
   image : Bytes,
-  max_width : Int,
-  max_height : Int,
+  max_width : Int32,
+  max_height : Int32,
 ) -> Bytes? {
   let (w, h) = match png_size(image) {
     Some(size) => size
@@ -188,7 +188,7 @@ fn downscale_image_bytes(
       // catch recovers with an empty Bytes (catch must produce the error
       // carrier's success type, not an Option)
       let out = @fs.read_file_to_bytes(out_path) catch {
-        _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+        _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
       }
       if out.length() > 0 {
         result = Some(out)
@@ -227,8 +227,8 @@ pub fn format_screenshot_result(
   ref_param~ : String? = None,
   format~ : String? = None,
   save_path~ : String? = None,
-  max_width~ : Int? = None,
-  max_height~ : Int? = None,
+  max_width~ : Int32? = None,
+  max_height~ : Int32? = None,
 ) -> String {
   // Resolve output format: mime type and file extension
   let fmt = match format {

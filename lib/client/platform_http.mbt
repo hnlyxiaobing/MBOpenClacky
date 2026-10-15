@@ -8,10 +8,10 @@ pub struct PlatformHttpConfig {
   primary_host : String
   secondary_host : String
   fallback_host : String
-  open_timeout_ms : Int
-  read_timeout_ms : Int
-  max_retries : Int
-  initial_backoff_ms : Int
+  open_timeout_ms : Int32
+  read_timeout_ms : Int32
+  max_retries : Int32
+  initial_backoff_ms : Int32
   proxy_url : String
 } derive(Debug, Eq)
 
@@ -27,10 +27,10 @@ pub fn PlatformHttpConfig::new(
   primary_host~ : String,
   secondary_host~ : String = "",
   fallback_host~ : String = "",
-  open_timeout_ms~ : Int = 8000,
-  read_timeout_ms~ : Int = 15000,
-  max_retries~ : Int = 2,
-  initial_backoff_ms~ : Int = 500,
+  open_timeout_ms~ : Int32 = 8000,
+  read_timeout_ms~ : Int32 = 15000,
+  max_retries~ : Int32 = 2,
+  initial_backoff_ms~ : Int32 = 500,
   proxy_url~ : String = "",
 ) -> PlatformHttpConfig {
   {
@@ -50,7 +50,7 @@ pub fn PlatformHttpConfig::new(
 ///|
 /// HTTP response returned from platform requests.
 pub(all) struct HttpResponse {
-  status_code : Int
+  status_code : Int32
   body : String
   headers : Array[(String, String)]
 } derive(Debug)
@@ -78,8 +78,8 @@ pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
 pub enum HttpError {
   Timeout(String)
   ConnectionFailed(String)
-  ServerError(Int, String)
-  ClientError(Int, String)
+  ServerError(Int32, String)
+  ClientError(Int32, String)
   AllHostsFailed(String)
 } derive(Debug)
 
@@ -93,8 +93,8 @@ pub extend HttpError with @moonbitlang/core/debug.Debug::{to_repr}
 pub struct PlatformHttpClient {
   config : PlatformHttpConfig
   mut current_host : String
-  mut consecutive_failures : Int
-  mut last_failover_epoch : Int
+  mut consecutive_failures : Int32
+  mut last_failover_epoch : Int32
 }
 
 ///|
@@ -255,8 +255,8 @@ async fn PlatformHttpClient::execute_with_retry(
 /// Calculate exponential backoff with cap at 30000ms.
 fn PlatformHttpClient::calculate_backoff(
   self : PlatformHttpClient,
-  attempt : Int,
-) -> Int {
+  attempt : Int32,
+) -> Int32 {
   let base = self.config.initial_backoff_ms
   let multiplier = pow2(attempt)
   let backoff = base * multiplier
@@ -462,8 +462,8 @@ pub async fn send_request(
   url : String,
   body : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
-  open_timeout_ms~ : Int = 10000,
+  timeout_ms : Int32,
+  open_timeout_ms~ : Int32 = 10000,
 ) -> Result[HttpResponse, HttpError] {
   let headers_map = headers_to_map(headers)
   // Phase 1: connect (TCP + TLS) within the open timeout window.
@@ -514,7 +514,7 @@ pub async fn http_post(
   url : String,
   body : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Post, url, body, headers, timeout_ms)
 }
@@ -525,7 +525,7 @@ pub async fn http_post(
 pub async fn http_get(
   url : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Get, url, "", headers, timeout_ms)
 }
@@ -538,7 +538,7 @@ pub async fn http_patch(
   url : String,
   body : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Patch, url, body, headers, timeout_ms)
 }
@@ -549,7 +549,7 @@ pub async fn http_patch(
 pub async fn http_delete(
   url : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Result[HttpResponse, HttpError] {
   send_request(Delete, url, "", headers, timeout_ms)
 }
@@ -603,7 +603,7 @@ fn build_request_url(host : String, path : String) -> String {
 
 ///|
 /// Compute 2^n for small non-negative n.
-fn pow2(n : Int) -> Int {
+fn pow2(n : Int32) -> Int32 {
   if n <= 0 {
     1
   } else {

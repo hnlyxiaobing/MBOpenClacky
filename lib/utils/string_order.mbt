@@ -18,7 +18,7 @@
 /// inputs (skill identifiers, file names, slugs) the two orders coincide; a
 /// byte-wise order would differ only for non-BMP characters, which never
 /// appear in the sort keys this helper is used for.
-pub fn compare_lexicographic(a : String, b : String) -> Int {
+pub fn compare_lexicographic(a : String, b : String) -> Int32 {
   let ca = a.to_array()
   let cb = b.to_array()
   let n = if ca.length() < cb.length() { ca.length() } else { cb.length() }

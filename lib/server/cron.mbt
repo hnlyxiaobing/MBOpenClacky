@@ -2,11 +2,11 @@
 /// A single cron field
 pub(all) enum CronField {
   Any
-  Value(Int)
-  Step(Int, Int)
-  Range(Int, Int)
-  RangeStep(Int, Int, Int)
-  List(Array[Int])
+  Value(Int32)
+  Step(Int32, Int32)
+  Range(Int32, Int32)
+  RangeStep(Int32, Int32, Int32)
+  List(Array[Int32])
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -75,8 +75,8 @@ pub fn CronExpression::parse(expr : String) -> Result[CronExpression, String] {
 /// Parse a single cron field
 pub fn parse_cron_field(
   field : String,
-  min : Int,
-  max : Int,
+  min : Int32,
+  max : Int32,
 ) -> Result[CronField, String] {
   if field == "*" {
     return Ok(Any)
@@ -96,7 +96,7 @@ pub fn parse_cron_field(
   }
   // Check for comma-separated list (must check before range)
   if field.contains(",") {
-    let values : Array[Int] = []
+    let values : Array[Int32] = []
     let parts = split_by_char(field, ',')
     for part in parts {
       match parse_int(part) {
@@ -187,11 +187,11 @@ pub fn parse_cron_field(
 /// Check if a cron expression matches a given time
 pub fn CronExpression::matches(
   self : CronExpression,
-  minute : Int,
-  hour : Int,
-  day : Int,
-  month : Int,
-  weekday : Int,
+  minute : Int32,
+  hour : Int32,
+  day : Int32,
+  month : Int32,
+  weekday : Int32,
 ) -> Bool {
   field_matches(self.minute, minute) &&
   field_matches(self.hour, hour) &&
@@ -202,7 +202,7 @@ pub fn CronExpression::matches(
 
 ///|
 /// Check if a field matches a value
-fn field_matches(field : CronField, value : Int) -> Bool {
+fn field_matches(field : CronField, value : Int32) -> Bool {
   match field {
     Any => true
     Value(v) => v == value
@@ -310,7 +310,7 @@ fn split_by_char(s : String, sep : Char) -> Array[String] {
 
 ///|
 /// Parse integer from string
-fn parse_int(s : String) -> Int? {
+fn parse_int(s : String) -> Int32? {
   if s == "" {
     return None
   }

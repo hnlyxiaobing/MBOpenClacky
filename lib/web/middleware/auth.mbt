@@ -18,7 +18,7 @@ pub fn secure_string_compare(a : String, b : String) -> Bool {
   if a.length() != b.length() {
     return false
   }
-  let mut diff : Int = 0
+  let mut diff : Int32 = 0
   for i = 0; i < a.length(); i = i + 1 {
     diff = diff | (a[i].to_int() ^ b[i].to_int())
   }
@@ -36,21 +36,21 @@ pub fn is_loopback_ip(ip : String) -> Bool {
 /// Tracks failed authentication attempts per IP address.
 pub(all) struct IpRateLimiter {
   mut failures : Map[String, RateLimitEntry]
-  max_failures : Int
+  max_failures : Int32
   window_seconds : Int64
 }
 
 ///|
 /// Rate limit entry for a single IP.
 pub(all) struct RateLimitEntry {
-  mut count : Int
+  mut count : Int32
   mut first_failure_at : Int64
 }
 
 ///|
 /// Create a new rate limiter with the given thresholds.
 pub fn IpRateLimiter::new(
-  max_failures~ : Int = 10,
+  max_failures~ : Int32 = 10,
   window_seconds~ : Int64 = 300L,
 ) -> IpRateLimiter {
   { failures: Map([]), max_failures, window_seconds, }
@@ -107,7 +107,7 @@ pub fn IpRateLimiter::retry_after(
   self : IpRateLimiter,
   ip : String,
   now_ms : Int64,
-) -> Int {
+) -> Int32 {
   guard self.failures.contains(ip) else { return 0 }
   let entry = self.failures[ip]
   let elapsed = (now_ms - entry.first_failure_at) / 1000L

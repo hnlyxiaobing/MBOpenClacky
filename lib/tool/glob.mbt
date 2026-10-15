@@ -5,7 +5,7 @@
 /// 对齐（spec 2026-08-18_03 决策 2/5）：**/*/? 递归匹配、裸模式自动扩展、
 /// mtime 降序排序、gitignore/隐藏目录跳过、空 pattern 与坏 base_path 显式报错。
 pub(all) struct Glob {
-  limit : Int
+  limit : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -194,7 +194,7 @@ pub fn simple_glob_match(name : String, pat : String) -> Bool {
 
 ///|
 priv struct WalkBudget {
-  mut dirs : Int
+  mut dirs : Int32
 }
 
 ///|
@@ -202,8 +202,8 @@ priv struct WalkBudget {
 /// limit 为收集上限保护，max_dirs 为目录访问预算（防失控遍历）。
 pub fn walk_files(
   base : String,
-  limit : Int,
-  max_dirs : Int,
+  limit : Int32,
+  max_dirs : Int32,
   ignore : @utils.IgnoreConfig,
 ) -> Array[String] {
   let results : Array[String] = []
@@ -217,8 +217,8 @@ fn walk_recursive(
   current : String,
   base : String,
   ignore : @utils.IgnoreConfig,
-  limit : Int,
-  max_dirs : Int,
+  limit : Int32,
+  max_dirs : Int32,
   budget : WalkBudget,
   results : Array[String],
 ) -> Unit {

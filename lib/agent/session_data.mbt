@@ -112,8 +112,8 @@ impl FromJson for SessionTaskMeta with fn from_json(json, path) {
 pub(all) struct SessionTimeMachine {
   task_parents : Map[String, String] // task_id -> parent_task_id mapping
   task_meta : Map[String, SessionTaskMeta] // task_id -> metadata
-  current_task_id : Int // Current active task ID
-  active_task_id : Int // Active branch task ID
+  current_task_id : Int32 // Current active task ID
+  active_task_id : Int32 // Active branch task ID
 } derive(Eq, Debug)
 
 ///|
@@ -180,14 +180,14 @@ impl FromJson for SessionTimeMachine with fn from_json(json, path) {
 ///|
 /// Snapshot of an Agent session's statistics.
 pub(all) struct SessionStats {
-  total_iterations : Int
+  total_iterations : Int32
   total_cost_usd : Double
-  total_tasks : Int
+  total_tasks : Int32
   cost_source : String
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_requests : Int
-  cache_hit_requests : Int
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_requests : Int32
+  cache_hit_requests : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -228,8 +228,8 @@ pub(all) struct SessionData {
   model_config_id : String?
   // Enhanced fields for channel/latency/TimeMachine/error recovery
   channel_info : ChannelInfo?
-  latest_latency_ms : Int?
-  latest_ttft_ms : Int?
+  latest_latency_ms : Int32?
+  latest_ttft_ms : Int32?
   time_machine : SessionTimeMachine?
   pending_error_rollback : Bool
   model_base_url : String
@@ -240,7 +240,7 @@ pub(all) struct SessionData {
   raw_message : String?
   // Fork and chunk tracking
   forked_from : String?
-  chunk_count : Int
+  chunk_count : Int32
   // Session model switch & agent profile (web-replication-05)
   agent_profile : String
   sub_model : String?
@@ -250,7 +250,7 @@ pub(all) struct SessionData {
   pinned : Bool
   todos : Json?
   updated_at : String
-  previous_total_tokens : Int
+  previous_total_tokens : Int32
   deleted_at : String?
 } derive(Eq, Debug)
 

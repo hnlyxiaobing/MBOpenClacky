@@ -48,10 +48,10 @@ pub impl ToJson for CostSource with fn to_json(self) {
 ///|
 /// Cache hit/miss statistics for prompt caching.
 pub(all) struct CacheStats {
-  mut cache_creation_input_tokens : Int
-  mut cache_read_input_tokens : Int
-  mut total_requests : Int
-  mut cache_hit_requests : Int
+  mut cache_creation_input_tokens : Int32
+  mut cache_read_input_tokens : Int32
+  mut total_requests : Int32
+  mut cache_hit_requests : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -74,12 +74,12 @@ pub fn CacheStats::new() -> CacheStats {
 ///|
 /// Token data collected from a single LLM iteration.
 pub(all) struct IterationTokenData {
-  delta_tokens : Int
-  prompt_tokens : Int
-  completion_tokens : Int
-  total_tokens : Int
-  cache_write : Int
-  cache_read : Int
+  delta_tokens : Int32
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  total_tokens : Int32
+  cache_write : Int32
+  cache_read : Int32
   cost : Double
   cost_source : CostSource
 } derive(Eq, Debug)
@@ -96,7 +96,7 @@ pub extend IterationTokenData with Eq::{not_equal, equal}
 /// other chars (CJK, emoji, other multibyte) as ~1.5 chars/token; the
 /// weighted sum is rounded up once. Matches Ruby `estimate_content_tokens`
 /// (openclacky message_history.rb: `count(" -~")` / 4.0 + rest / 1.5, ceil).
-pub fn estimate_token_count(content : String) -> Int {
+pub fn estimate_token_count(content : String) -> Int32 {
   let mut ascii_chars = 0
   let mut total_chars = 0
   for c in content {

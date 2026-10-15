@@ -23,8 +23,8 @@ pub(all) struct BrowserStatus {
   enabled : Bool
   daemon_running : Bool
   chrome_version : String?
-  pid : Int?
-  uptime_seconds : Int?
+  pid : Int32?
+  uptime_seconds : Int32?
   last_error : String?
   endpoint : String?
   mcp_version : String?

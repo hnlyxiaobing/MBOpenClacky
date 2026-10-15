@@ -16,20 +16,20 @@
 /// All operations are synchronous and in-memory.
 pub(all) struct VirtualScreen {
   /// Terminal width (columns).
-  width : Int
+  width : Int32
   /// Terminal height (rows).
-  height : Int
+  height : Int32
   /// Cursor row (1-based, matches terminal convention).
-  mut cursor_row : Int
+  mut cursor_row : Int32
   /// Cursor col (1-based, matches terminal convention).
-  mut cursor_col : Int
+  mut cursor_col : Int32
   /// The character grid: rows indexed [0..height), cols [0..width).
   grid : Array[Array[Char]]
 }
 
 ///|
 /// Create a new VirtualScreen with given dimensions.
-pub fn VirtualScreen::new(width : Int, height : Int) -> VirtualScreen {
+pub fn VirtualScreen::new(width : Int32, height : Int32) -> VirtualScreen {
   let grid : Array[Array[Char]] = []
   let mut r = 0
   while r < height {
@@ -49,8 +49,8 @@ pub fn VirtualScreen::new(width : Int, height : Int) -> VirtualScreen {
 /// Move cursor to 1-based (row, col). Out-of-bounds positions are clamped.
 pub fn VirtualScreen::move_cursor(
   self : VirtualScreen,
-  row : Int,
-  col : Int,
+  row : Int32,
+  col : Int32,
 ) -> Unit {
   self.cursor_row = if row < 1 {
     1
@@ -162,7 +162,7 @@ pub fn VirtualScreen::clear_display(self : VirtualScreen) -> Unit {
 ///|
 /// Get a specific row's content as a String.
 /// The result is NOT trimmed (full width including trailing spaces).
-pub fn VirtualScreen::get_row(self : VirtualScreen, row : Int) -> String {
+pub fn VirtualScreen::get_row(self : VirtualScreen, row : Int32) -> String {
   let r = row - 1
   if r < 0 || r >= self.height {
     return ""
@@ -178,7 +178,7 @@ pub fn VirtualScreen::get_row(self : VirtualScreen, row : Int) -> String {
 /// Get a specific row's content as a trimmed String (no trailing spaces).
 pub fn VirtualScreen::get_row_trimmed(
   self : VirtualScreen,
-  row : Int,
+  row : Int32,
 ) -> String {
   self.get_row(row).trim_end().to_owned()
 }
@@ -218,7 +218,7 @@ pub fn VirtualScreen::content_trimmed(self : VirtualScreen) -> String {
 /// Check if a specific row contains the given substring.
 pub fn VirtualScreen::row_contains(
   self : VirtualScreen,
-  row : Int,
+  row : Int32,
   text : String,
 ) -> Bool {
   self.get_row(row).contains(text)
@@ -238,7 +238,7 @@ pub fn VirtualScreen::contains(self : VirtualScreen, text : String) -> Bool {
 ///|
 /// Find the first row containing the given text.
 /// Returns the 1-based row number, or 0 if not found.
-pub fn VirtualScreen::find_row(self : VirtualScreen, text : String) -> Int {
+pub fn VirtualScreen::find_row(self : VirtualScreen, text : String) -> Int32 {
   for row = 0; row < self.height; row = row + 1 {
     if self.row_contains(row + 1, text) {
       return row + 1
@@ -252,10 +252,10 @@ pub fn VirtualScreen::find_row(self : VirtualScreen, text : String) -> Int {
 /// Row and col are 1-based and inclusive.
 pub fn VirtualScreen::get_region(
   self : VirtualScreen,
-  top_row : Int,
-  left_col : Int,
-  bottom_row : Int,
-  right_col : Int,
+  top_row : Int32,
+  left_col : Int32,
+  bottom_row : Int32,
+  right_col : Int32,
 ) -> String {
   let lines : Array[String] = []
   for r = top_row; r <= bottom_row; r = r + 1 {
@@ -283,8 +283,8 @@ pub fn VirtualScreen::get_region(
 pub fn VirtualScreen::render_output_lines(
   self : VirtualScreen,
   lines : Array[String],
-  top_row : Int,
-  max_rows : Int,
+  top_row : Int32,
+  max_rows : Int32,
 ) -> Unit {
   let count = if lines.length() > max_rows { max_rows } else { lines.length() }
   for i = 0; i < count; i = i + 1 {

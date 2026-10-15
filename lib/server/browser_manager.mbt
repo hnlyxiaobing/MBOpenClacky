@@ -2,9 +2,9 @@
 /// Chrome DevTools MCP daemon manager
 pub(all) struct BrowserManager {
   mut config : BrowserConfig
-  mut daemon_pid : Int?
+  mut daemon_pid : Int32?
   mut is_running : Bool
-  mut started_at : Int?
+  mut started_at : Int32?
   mut client : JsonRpcClient?
   mut last_error : String?
   config_path : String
@@ -12,7 +12,7 @@ pub(all) struct BrowserManager {
 
 ///|
 /// MCP handshake timeout in seconds
-let mcp_handshake_timeout : Int = 15
+let mcp_handshake_timeout : Int32 = 15
 
 ///|
 /// Create a new BrowserManager

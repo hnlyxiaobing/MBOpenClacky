@@ -21,7 +21,7 @@ pub(all) enum AssertionKind {
   /// Screen or content is empty.
   ScreenEmpty
   /// A specific row (by index) contains the given text.
-  RowContains(row~ : Int, text~ : String)
+  RowContains(row~ : Int32, text~ : String)
   /// Status bar contains the given text.
   StatusContains(text~ : String)
   /// Input area contains the given text.
@@ -31,9 +31,9 @@ pub(all) enum AssertionKind {
   /// Dialog region contains the given text.
   DialogContains(text~ : String)
   /// HTTP status code equals the given value.
-  HttpStatusEq(status~ : Int)
+  HttpStatusEq(status~ : Int32)
   /// HTTP status code is one of the given values.
-  HttpStatusIn(statuses~ : Array[Int])
+  HttpStatusIn(statuses~ : Array[Int32])
   /// HTTP body contains the given text.
   BodyContains(text~ : String)
   /// HTTP body does NOT contain the given text.
@@ -49,7 +49,7 @@ pub(all) enum AssertionKind {
   /// Body is valid SSE format (data: lines are valid JSON).
   SseValid
   /// Body length exceeds the given minimum.
-  BodyLengthGt(min~ : Int)
+  BodyLengthGt(min~ : Int32)
   /// File exists at the given path.
   FileExists(path~ : String)
   /// File does NOT exist at the given path.
@@ -59,7 +59,7 @@ pub(all) enum AssertionKind {
   /// File at the given path does NOT contain the given text.
   FileNotContains(path~ : String, text~ : String)
   /// Last child process exit code equals the given value.
-  ExitCode(code~ : Int)
+  ExitCode(code~ : Int32)
   /// Last child process stdout contains the given text.
   StdoutContains(text~ : String)
   /// Last child process stderr contains the given text.
@@ -75,11 +75,11 @@ pub(all) enum AssertionKind {
   /// A WebSocket event with the given `type_name()` was received.
   WsEventReceived(event~ : String)
   /// Count of WebSocket events of the given type is at least `min`.
-  WsEventCountAtLeast(event~ : String, min~ : Int)
+  WsEventCountAtLeast(event~ : String, min~ : Int32)
   /// Mock upstream request count within [min, max]; max = -1 means unbounded.
-  MockRequestCount(min~ : Int, max~ : Int)
+  MockRequestCount(min~ : Int32, max~ : Int32)
   /// Mock upstream request body (0-based index) contains the given text.
-  MockRequestContains(index~ : Int, text~ : String)
+  MockRequestContains(index~ : Int32, text~ : String)
 }
 
 ///|
@@ -97,7 +97,7 @@ pub fn parse_assertion_kind(json : Json) -> AssertionKind? {
       _ => ""
     }
   }
-  let get_i = fn(k : String) -> Int {
+  let get_i = fn(k : String) -> Int32 {
     match fields.get(k) {
       Some(Number(n, ..)) => n.to_int()
       _ => 0
@@ -124,7 +124,7 @@ pub fn parse_assertion_kind(json : Json) -> AssertionKind? {
     "dialog_contains" => AssertionKind::DialogContains(text=get_s("text"))
     "status_eq" => AssertionKind::HttpStatusEq(status=get_i("status"))
     "status_in" => {
-      let statuses : Array[Int] = []
+      let statuses : Array[Int32] = []
       match fields.get("statuses") {
         Some(Array(items)) =>
           for item in items {

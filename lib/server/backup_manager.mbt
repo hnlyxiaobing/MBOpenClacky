@@ -182,7 +182,7 @@ pub fn BackupManager::update_config(
   self : BackupManager,
   enabled : Bool?,
   dest_dir : String?,
-  keep : Int?,
+  keep : Int32?,
   include_sessions : Bool?,
 ) -> Result[Unit, BackupError] {
   match enabled {
@@ -218,7 +218,10 @@ pub fn BackupManager::update_config(
 
 ///|
 /// Apply retention policy (keep N most recent)
-fn apply_retention(dest_dir : String, keep : Int) -> Result[Int, BackupError] {
+fn apply_retention(
+  dest_dir : String,
+  keep : Int32,
+) -> Result[Int32, BackupError] {
   if !@fs.path_exists(dest_dir) {
     return Ok(0)
   }
@@ -284,7 +287,7 @@ fn now_stamp() -> String {
   let dt = @time.PlainDateTime::from_unix_second(sec, 0, @time.utc_offset) catch {
     _ => return "00000000-000000"
   }
-  let p2 = fn(n : Int) -> String {
+  let p2 = fn(n : Int32) -> String {
     if n < 10 {
       "0" + n.to_string()
     } else {

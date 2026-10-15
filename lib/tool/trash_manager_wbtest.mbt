@@ -255,7 +255,7 @@ fn new_original_path(proj : String, name : String) -> String {
 
 ///|
 /// Run `f` with a fresh temp trash dir; always cleans up afterwards.
-let wbtest_seq : @ref.Ref[Int] = @ref.Ref(0)
+let wbtest_seq : @ref.Ref[Int32] = @ref.Ref(0)
 
 ///|
 /// Run `f` with a fresh, per-test temp trash dir; always cleans up afterwards.
@@ -309,7 +309,7 @@ fn seed_trash_entry(
   proj : String,
   name : String,
   deleted_at : String,
-  size~ : Int = 0,
+  size~ : Int32 = 0,
 ) -> Unit {
   let content = if size == 0 {
     "content of \{name}"

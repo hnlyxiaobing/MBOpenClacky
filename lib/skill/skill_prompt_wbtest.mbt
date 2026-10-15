@@ -4,7 +4,7 @@
 /// default-first ordering, and the "(N more…)" truncation hint.
 
 ///|
-fn make_skills(count : Int, source : String) -> Array[Skill] {
+fn make_skills(count : Int32, source : String) -> Array[Skill] {
   let skills : Array[Skill] = []
   for i in 0..<count {
     skills.push({

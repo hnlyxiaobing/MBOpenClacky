@@ -33,7 +33,7 @@ fn live_test_root(name : String) -> String {
 }
 
 ///|
-fn live_test_task(id : String, prompt : String, trials : Int) -> HarnessTask {
+fn live_test_task(id : String, prompt : String, trials : Int32) -> HarnessTask {
   {
     id,
     goal: "write the marker file",

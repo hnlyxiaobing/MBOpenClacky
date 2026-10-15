@@ -9,7 +9,7 @@
 
 ///|
 /// Access token refresh threshold: 5 minutes before expiry.
-pub const WECOM_TOKEN_REFRESH_THRESHOLD : Int = 300000
+pub const WECOM_TOKEN_REFRESH_THRESHOLD : Int32 = 300000
 
 ///|
 /// WeCom REST API client with access_token caching.
@@ -105,7 +105,7 @@ pub fn check_wecom_errcode(
 /// Parse a `gettoken` response into (access_token, expires_in_seconds).
 pub fn parse_wecom_token_response(
   json : Json,
-) -> Result[(String, Int), ChannelError] {
+) -> Result[(String, Int32), ChannelError] {
   match check_wecom_errcode(json, "gettoken") {
     Err(e) => return Err(e)
     Ok(_) => ()

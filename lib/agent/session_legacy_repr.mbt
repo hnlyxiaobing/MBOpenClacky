@@ -16,7 +16,7 @@
 /// Cursor over a legacy Debug-repr document.
 priv struct LegacyReprCursor {
   text : String
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|

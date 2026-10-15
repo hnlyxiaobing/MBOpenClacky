@@ -144,9 +144,9 @@ fn gitignore_glob_match(pattern : String, text : String) -> Bool {
 ///|
 fn gitignore_glob_impl(
   pat : Array[Char],
-  pi : Int,
+  pi : Int32,
   txt : Array[Char],
-  ti : Int,
+  ti : Int32,
 ) -> Bool {
   let plen = pat.length()
   let tlen = txt.length()
@@ -224,7 +224,11 @@ fn gitignore_glob_impl(
 
 ///|
 /// Match a character class [abc] or [a-z], returns new pattern index after ].
-fn match_ignore_char_class(pat : Array[Char], start : Int, ch : Char) -> Int? {
+fn match_ignore_char_class(
+  pat : Array[Char],
+  start : Int32,
+  ch : Char,
+) -> Int32? {
   let plen = pat.length()
   let mut i = start + 1 // skip [
   let negate = i < plen && pat[i] == '!'

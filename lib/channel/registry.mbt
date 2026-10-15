@@ -67,6 +67,6 @@ pub fn AdapterRegistry::clear(self : AdapterRegistry) -> Unit {
 
 ///|
 /// Get the number of registered adapters.
-pub fn AdapterRegistry::size(self : AdapterRegistry) -> Int {
+pub fn AdapterRegistry::size(self : AdapterRegistry) -> Int32 {
   self.adapters.length()
 }

@@ -747,7 +747,7 @@ test "LlmTimeoutError is retryable" {
 ///|
 /// Push `n` truncated mock responses so every attempt raises
 /// UpstreamTruncatedError (retryable) — drives the retry loop to exhaustion.
-fn lc_push_truncated_mocks(agent : Agent, n : Int) -> Unit {
+fn lc_push_truncated_mocks(agent : Agent, n : Int32) -> Unit {
   let mut i = 0
   while i < n {
     let tc = lc_tool_call("call_\{i}", "write_file", "{}")

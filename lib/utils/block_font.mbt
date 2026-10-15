@@ -29,7 +29,7 @@ priv struct CharBitmap {
 /// Block font renderer
 pub(all) struct BlockFont {
   style : BlockStyle
-  letter_spacing : Int
+  letter_spacing : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -77,13 +77,13 @@ fn block_style_from_name(name : String) -> BlockStyle {
 
 ///|
 /// Get the width of a rendered character (always 5).
-pub fn BlockFont::char_width(_self : BlockFont) -> Int {
+pub fn BlockFont::char_width(_self : BlockFont) -> Int32 {
   5
 }
 
 ///|
 /// Get the height of rendered text (always 5).
-pub fn BlockFont::height() -> Int {
+pub fn BlockFont::height() -> Int32 {
   5
 }
 

@@ -30,7 +30,7 @@ pub type LogContext = Array[(String, String)]
 /// Daily-rotating file logger with level filtering and optional console echo.
 pub struct Logger {
   log_dir : String
-  max_files : Int
+  max_files : Int32
   min_level : LogLevel
   console_echo : Bool
 }
@@ -43,7 +43,7 @@ pub struct Logger {
 /// - `console_echo`: whether to also print to stdout (default: false)
 pub fn Logger::new(
   log_dir~ : String = "",
-  max_files~ : Int = 7,
+  max_files~ : Int32 = 7,
   min_level~ : LogLevel = Info,
   console_echo~ : Bool = false,
 ) -> Logger {

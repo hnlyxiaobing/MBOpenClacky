@@ -340,11 +340,11 @@ impl Tool for Browser with fn execute(self, args : Map[String, Json]) -> ToolRes
           Some(String(sp)) => Some(sp)
           _ => None
         }
-        let max_width_param : Int? = match args.get("max_width") {
+        let max_width_param : Int32? = match args.get("max_width") {
           Some(Number(n, ..)) if n.to_int() > 0 => Some(n.to_int())
           _ => None
         }
-        let max_height_param : Int? = match args.get("max_height") {
+        let max_height_param : Int32? = match args.get("max_height") {
           Some(Number(n, ..)) if n.to_int() > 0 => Some(n.to_int())
           _ => None
         }

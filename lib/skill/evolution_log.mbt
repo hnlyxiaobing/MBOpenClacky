@@ -3,7 +3,7 @@
 ///|
 /// Maximum number of entries retained (newest first). Older entries are
 /// dropped on append so the log cannot grow without bound.
-let max_log_entries : Int = 500
+let max_log_entries : Int32 = 500
 
 ///|
 /// One reflection outcome, persisted to `~/.mbopenclacky/skills/evolution_log.json`.
@@ -16,10 +16,10 @@ let max_log_entries : Int = 500
 /// missing fields: a log written by an older build stays readable.
 pub(all) struct EvolutionLogEntry {
   mut id : String
-  mut created_at : Int
+  mut created_at : Int32
   mut skill_name : String
   mut source : String
-  mut score : Int
+  mut score : Int32
   mut should_improve : Bool
   mut action : String
   mut suggestions : Array[String]
@@ -37,7 +37,7 @@ pub extend EvolutionLogEntry with @moonbitlang/core/debug.Debug::{to_repr}
 pub fn EvolutionLogEntry::new(
   skill_name : String,
   source : String,
-  score : Int,
+  score : Int32,
   should_improve : Bool,
   action : String,
 ) -> EvolutionLogEntry {
@@ -93,7 +93,7 @@ pub fn EvolutionLogEntry::from_json(json : Json) -> EvolutionLogEntry? {
       _ => None
     }
   }
-  let get_int : (String, Int) -> Int = fn(key : String, dflt : Int) {
+  let get_int : (String, Int32) -> Int32 = fn(key : String, dflt : Int32) {
     match obj.get(key) {
       Some(Number(n, ..)) => n.to_int()
       _ => dflt

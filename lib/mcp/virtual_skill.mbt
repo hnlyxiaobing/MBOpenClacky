@@ -123,7 +123,7 @@ pub fn VirtualSkill::build_tool_call_instruction(
 
 ///|
 /// Get the number of tools in this virtual skill.
-pub fn VirtualSkill::tool_count(self : VirtualSkill) -> Int {
+pub fn VirtualSkill::tool_count(self : VirtualSkill) -> Int32 {
   self.mcp_tools.length()
 }
 

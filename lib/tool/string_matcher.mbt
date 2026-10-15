@@ -7,7 +7,7 @@
 /// Result of a successful match.
 struct MatchResult {
   matched_string : String
-  occurrences : Int
+  occurrences : Int32
 }
 
 ///|
@@ -42,7 +42,7 @@ pub fn find_match(content : String, old_string : String) -> MatchResult? {
 /// Count non-overlapping occurrences of needle in haystack.
 /// Uses String::find for safe iteration (no index-based slicing that could panic
 /// on strings with replacement characters from invalid UTF-8).
-pub fn count_occurrences(haystack : String, needle : String) -> Int {
+pub fn count_occurrences(haystack : String, needle : String) -> Int32 {
   if needle.is_empty() {
     return 0
   }
@@ -125,7 +125,7 @@ fn unescape_unicode(str : String) -> String {
 
 ///|
 /// Try to parse 4 hex digits starting at position in chars array.
-fn try_parse_hex4(chars : Array[Char], start : Int) -> Int? {
+fn try_parse_hex4(chars : Array[Char], start : Int32) -> Int32? {
   if start + 4 > chars.length() {
     return None
   }
@@ -158,7 +158,7 @@ fn try_smart_match(content : String, old_string : String) -> MatchResult? {
     }
     let content_lines = split_lines(content)
     let max_start = content_lines.length() - candidate_lines.length()
-    let mut matches : Int = 0
+    let mut matches : Int32 = 0
     let mut first_match : String = ""
     for start_idx = 0; start_idx <= max_start; start_idx = start_idx + 1 {
       let slice = content_lines[start_idx:start_idx + candidate_lines.length()].to_owned()

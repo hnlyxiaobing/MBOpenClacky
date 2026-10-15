@@ -285,9 +285,9 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
 pub fn build_messages_history(
   session_id : String,
   messages : Array[@message.Message],
-  limit~ : Int = 100,
+  limit~ : Int32 = 100,
   before~ : String? = None,
-  offset~ : Int = 0,
+  offset~ : Int32 = 0,
 ) -> Json {
   // Build event-shaped entries for each message (same as WS would emit).
   let events : Array[Json] = []
@@ -403,7 +403,7 @@ fn history_message_events(
   msg : @message.Message,
   role : String,
   session_id : String,
-  msg_index : Int,
+  msg_index : Int32,
 ) -> Array[Json] {
   let ts = message_timestamp(msg)
   let out : Array[Json] = []

@@ -3,7 +3,7 @@
 pub(all) struct Scheduler {
   config : SchedulerConfig
   mut state : SchedulerState
-  mut last_check_at : Int?
+  mut last_check_at : Int32?
 }
 
 ///|
@@ -122,8 +122,8 @@ fn parse_schedules_yml(
   let mut cur_task_name : String? = None
   let mut cur_cron : String? = None
   let mut cur_enabled = true
-  let mut cur_last_run : Int? = None
-  let mut cur_next_run : Int? = None
+  let mut cur_last_run : Int32? = None
+  let mut cur_next_run : Int32? = None
   let mut cur_run_count = 0
 
   ///|
@@ -346,7 +346,7 @@ pub fn Scheduler::update_schedule(
   cron_expr : String?,
   enabled : Bool?,
 ) -> Result[Unit, SchedulerError] {
-  let mut found_idx : Int = -1
+  let mut found_idx : Int32 = -1
   let mut i = 0
   while i < self.config.schedules.length() {
     if self.config.schedules[i].name == name {
@@ -401,11 +401,11 @@ pub fn Scheduler::list_schedules(self : Scheduler) -> Array[Schedule] {
 /// Check and execute due tasks
 pub fn Scheduler::tick(
   self : Scheduler,
-  current_minute : Int,
-  current_hour : Int,
-  current_day : Int,
-  current_month : Int,
-  current_weekday : Int,
+  current_minute : Int32,
+  current_hour : Int32,
+  current_day : Int32,
+  current_month : Int32,
+  current_weekday : Int32,
 ) -> Array[String] {
   let due_tasks : Array[String] = []
   match self.state {

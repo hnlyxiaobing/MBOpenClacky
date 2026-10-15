@@ -139,7 +139,7 @@ pub fn get_model_capabilities(
 ///
 /// Entries are matched in order; the first match wins. Models not listed
 /// here fall back to the caller's max_tokens.
-pub fn max_output_for(model : String) -> Int? {
+pub fn max_output_for(model : String) -> Int32? {
   let m = model.to_lower()
   if m.find("glm") is Some(_) {
     Some(65536) // GLM-5.2: 128K output ceiling; 64K ample for reasoning+answer

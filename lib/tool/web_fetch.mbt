@@ -7,7 +7,7 @@
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/web_fetch.rb
 pub(all) struct WebFetch {
-  max_length : Int
+  max_length : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -111,7 +111,7 @@ impl Tool for WebFetch with fn execute(self, args : Map[String, Json]) -> ToolRe
 /// max_len the FULL content is spilled to a sidecar temp file and the
 /// head is returned with a pointer to it (Ruby web_fetch.rb: truncated +
 /// temp_file fields).
-fn build_fetch_result(text : String, max_len : Int) -> ToolResult {
+fn build_fetch_result(text : String, max_len : Int32) -> ToolResult {
   if text.length() > max_len {
     let head = safe_truncate(text, max_len)
     match spill_overflow_file(text) {

@@ -23,12 +23,12 @@
 
 ///|
 /// Current log format version.
-pub let session_log_version : Int = 1
+pub let session_log_version : Int32 = 1
 
 ///|
 /// Log header (first line).
 pub(all) struct SessionLogHeader {
-  version : Int
+  version : Int32
   session_id : String
   created_at : String
 }
@@ -36,7 +36,7 @@ pub(all) struct SessionLogHeader {
 ///|
 /// One appended engine event.
 pub(all) struct LoggedEvent {
-  seq : Int
+  seq : Int32
   unix_ms : Int64
   event : @protocol.Event
 }
@@ -45,10 +45,10 @@ pub(all) struct LoggedEvent {
 /// A compaction marker: events `from_seq..=to_seq` are superseded. The
 /// originals stay in the file untouched.
 pub(all) struct LogSummary {
-  seq : Int
+  seq : Int32
   unix_ms : Int64
-  from_seq : Int
-  to_seq : Int
+  from_seq : Int32
+  to_seq : Int32
 }
 
 ///|
@@ -68,7 +68,7 @@ pub(all) struct SessionLogFile {
   /// A partial final line was dropped (crash / truncation).
   truncated_tail : Bool
   /// Non-final lines that did not parse (reported, never hidden).
-  malformed_lines : Int
+  malformed_lines : Int32
 }
 
 ///|
@@ -278,7 +278,7 @@ pub fn SessionLogFile::project(self : SessionLogFile) -> Array[LogRecord] {
 
 ///|
 /// The highest sequence number in a log (0 when empty).
-pub fn SessionLogFile::max_seq(self : SessionLogFile) -> Int {
+pub fn SessionLogFile::max_seq(self : SessionLogFile) -> Int32 {
   let mut max = 0
   for record in self.records {
     let seq = match record {
@@ -343,7 +343,7 @@ pub async fn append_event(
   path : String,
   event : @protocol.Event,
   unix_ms : Int64,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let current = read_session_log(path)
   let seq = current.max_seq() + 1
   let record = EventRecord({ seq, unix_ms, event, })
@@ -358,10 +358,10 @@ pub async fn append_event(
 /// events stay byte-identical in the file; only the projection skips them.
 pub async fn append_summary(
   path : String,
-  from_seq : Int,
-  to_seq : Int,
+  from_seq : Int32,
+  to_seq : Int32,
   unix_ms : Int64,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let current = read_session_log(path)
   let seq = current.max_seq() + 1
   let record = SummaryRecord({ seq, unix_ms, from_seq, to_seq, })
@@ -470,7 +470,7 @@ pub fn SessionLogProducer::on_hook_event(
 }
 
 ///|
-pub fn SessionLogProducer::buffered(self : SessionLogProducer) -> Int {
+pub fn SessionLogProducer::buffered(self : SessionLogProducer) -> Int32 {
   let mut total = 0
   for segment in self.segments {
     total = total + segment.events.length()
@@ -505,7 +505,7 @@ pub async fn SessionLogProducer::flush(
     }
     let (first_seq, last_seq) = append_segment_events(path, segment.events)
     if segment.superseded && first_seq > 0 && last_seq >= first_seq {
-      let result : Result[Int, String] = append_summary(
+      let result : Result[Int32, String] = append_summary(
         path,
         first_seq,
         last_seq,
@@ -525,11 +525,11 @@ pub async fn SessionLogProducer::flush(
 async fn append_segment_events(
   path : String,
   events : Array[(@protocol.Event, Int64)],
-) -> (Int, Int) {
+) -> (Int32, Int32) {
   let mut first_seq = 0
   let mut last_seq = 0
   for item in events {
-    let result : Result[Int, String] = append_event(path, item.0, item.1) catch {
+    let result : Result[Int32, String] = append_event(path, item.0, item.1) catch {
       _ => Ok(0)
     }
     let seq = match result {

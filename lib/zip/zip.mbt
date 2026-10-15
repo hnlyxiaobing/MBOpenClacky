@@ -19,8 +19,8 @@ pub extend ZipEntry with Eq::{not_equal, equal}
 // ── CRC-32 (IEEE 802.3 polynomial, table-driven) ─────────────────────
 
 ///|
-let crc32_table : FixedArray[UInt] = {
-  let table : FixedArray[UInt] = FixedArray::make(256, 0U)
+let crc32_table : FixedArray[UInt32] = {
+  let table : FixedArray[UInt32] = FixedArray::make(256, 0U)
   for i = 0; i < 256; i = i + 1 {
     let mut c = i.reinterpret_as_uint()
     let mut j = 0
@@ -34,7 +34,7 @@ let crc32_table : FixedArray[UInt] = {
 }
 
 ///|
-fn crc32(data : Bytes) -> UInt {
+fn crc32(data : Bytes) -> UInt32 {
   let mut crc = 0xFFFFFFFFU
   for i = 0; i < data.length(); i = i + 1 {
     let idx = ((crc ^ data[i].to_uint()) & 0xFFU).reinterpret_as_int()
@@ -46,13 +46,13 @@ fn crc32(data : Bytes) -> UInt {
 // ── Little-endian helpers ────────────────────────────────────────────
 
 ///|
-fn write_le16(buf : Buffer, val : Int) -> Unit {
+fn write_le16(buf : Buffer, val : Int32) -> Unit {
   buf.write_byte((val & 0xFF).to_byte())
   buf.write_byte(((val >> 8) & 0xFF).to_byte())
 }
 
 ///|
-fn write_le32(buf : Buffer, val : UInt) -> Unit {
+fn write_le32(buf : Buffer, val : UInt32) -> Unit {
   buf.write_byte((val & 0xFFU).reinterpret_as_int().to_byte())
   buf.write_byte(((val >> 8) & 0xFFU).reinterpret_as_int().to_byte())
   buf.write_byte(((val >> 16) & 0xFFU).reinterpret_as_int().to_byte())
@@ -60,12 +60,12 @@ fn write_le32(buf : Buffer, val : UInt) -> Unit {
 }
 
 ///|
-fn read_le16(data : Bytes, offset : Int) -> Int {
+fn read_le16(data : Bytes, offset : Int32) -> Int32 {
   data[offset].to_int() | (data[offset + 1].to_int() << 8)
 }
 
 ///|
-fn read_le32(data : Bytes, offset : Int) -> UInt {
+fn read_le32(data : Bytes, offset : Int32) -> UInt32 {
   data[offset].to_uint() |
   (data[offset + 1].to_uint() << 8) |
   (data[offset + 2].to_uint() << 16) |
@@ -75,13 +75,13 @@ fn read_le32(data : Bytes, offset : Int) -> UInt {
 // ── ZIP signatures ───────────────────────────────────────────────────
 
 ///|
-let zip_local_sig : UInt = 0x04034B50U
+let zip_local_sig : UInt32 = 0x04034B50U
 
 ///|
-let zip_central_sig : UInt = 0x02014B50U
+let zip_central_sig : UInt32 = 0x02014B50U
 
 ///|
-let zip_end_sig : UInt = 0x06054B50U
+let zip_end_sig : UInt32 = 0x06054B50U
 
 // ── High-level API ───────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ pub fn create_zip(entries : Array[ZipEntry]) -> Result[Bytes, String] {
   }
 
   let buf = Buffer()
-  let central_entries : Array[(String, UInt, UInt, UInt, UInt)] = []
+  let central_entries : Array[(String, UInt32, UInt32, UInt32, UInt32)] = []
 
   for entry in entries {
     let name_bytes = @utf8.encode(entry.name)

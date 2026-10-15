@@ -133,7 +133,7 @@ pub(all) struct RegistryEntry {
   /// Metadata (name, description, author, etc.)
   metadata : Map[String, String]
   /// Installation count
-  installs : Int
+  installs : Int32
   /// Publish timestamp (ms since epoch)
   published_at : Int64
 }

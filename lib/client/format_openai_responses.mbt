@@ -38,7 +38,7 @@ pub fn build_openai_responses_request(
   messages : Array[@message.Message],
   model : String,
   tools : Array[Json],
-  max_tokens : Int,
+  max_tokens : Int32,
   enable_caching : Bool,
   vision_supported~ : Bool = true,
   reasoning_effort~ : String? = None,
@@ -457,7 +457,7 @@ pub fn format_openai_responses_tool_results(
 
 ///|
 /// Safely extract an integer from a JSON object, defaulting to 0.
-fn json_int_responses(json : Json, key : String) -> Int {
+fn json_int_responses(json : Json, key : String) -> Int32 {
   match json {
     Object(obj) =>
       match obj.get(key) {

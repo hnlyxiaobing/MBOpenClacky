@@ -51,7 +51,7 @@ pub(all) struct VisionConfig {
   api_key : String
   base_url : String
   model : String
-  max_tokens : Int
+  max_tokens : Int32
   cache_dir : String
   default_prompt : String
 } derive(Eq, Debug)
@@ -64,7 +64,7 @@ pub extend VisionConfig with Eq::{not_equal, equal}
 
 ///|
 /// Default max tokens for vision requests
-let default_max_tokens : Int = 8192
+let default_max_tokens : Int32 = 8192
 
 ///|
 /// Default cache directory
@@ -93,7 +93,7 @@ pub fn VisionConfig::new(
   api_key : String,
   base_url : String,
   model : String,
-  max_tokens~ : Int = default_max_tokens,
+  max_tokens~ : Int32 = default_max_tokens,
   cache_dir~ : String = default_cache_dir,
   default_prompt~ : String = default_vision_prompt,
 ) -> VisionConfig {

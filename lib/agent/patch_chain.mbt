@@ -95,7 +95,7 @@ pub fn PatchChain::add_rule(self : PatchChain, rule : PatchRule) -> Unit {
 
 ///|
 /// Number of registered rules.
-pub fn PatchChain::len(self : PatchChain) -> Int {
+pub fn PatchChain::len(self : PatchChain) -> Int32 {
   self.rules.length()
 }
 
@@ -252,7 +252,7 @@ fn glob_match(pattern : String, value : String) -> Bool {
 ///|
 /// Linear search for `needle` in `haystack` starting at `from` (inclusive).
 /// Returns the byte offset of the first match, or None.
-fn index_of_from(haystack : String, needle : String, from : Int) -> Int? {
+fn index_of_from(haystack : String, needle : String, from : Int32) -> Int32? {
   if needle == "" {
     return Some(from)
   }

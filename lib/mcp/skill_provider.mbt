@@ -95,7 +95,7 @@ pub fn SkillProvider::list_registered(self : SkillProvider) -> Array[SkillInfo] 
 
 ///|
 /// Get count of registered skills.
-pub fn SkillProvider::registered_count(self : SkillProvider) -> Int {
+pub fn SkillProvider::registered_count(self : SkillProvider) -> Int32 {
   self.registered_skills.length()
 }
 

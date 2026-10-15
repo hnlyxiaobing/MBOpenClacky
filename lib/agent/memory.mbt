@@ -6,7 +6,7 @@
 pub(all) struct MemoryStore {
   mut entries : Array[MemoryEntry]
   storage_path : String
-  mut next_id : Int
+  mut next_id : Int32
 }
 
 ///|
@@ -140,7 +140,7 @@ pub fn MemoryStore::by_category(
 
 ///|
 /// Return the number of entries.
-pub fn MemoryStore::size(self : MemoryStore) -> Int {
+pub fn MemoryStore::size(self : MemoryStore) -> Int32 {
   self.entries.length()
 }
 

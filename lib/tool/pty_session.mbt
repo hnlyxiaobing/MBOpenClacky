@@ -13,10 +13,10 @@
 async fn execute_command(
   user_command : String,
   cwd : String,
-  timeout_ms : Int,
-  session_id : Int,
+  timeout_ms : Int32,
+  session_id : Int32,
   env : Map[String, String],
-) -> (String, Int, String, Bool) {
+) -> (String, Int32, String, Bool) {
   // Try PTY first
   match execute_command_pty(user_command, cwd, timeout_ms, env) {
     Ok((output, exit_code, timed_out)) =>
@@ -36,9 +36,9 @@ async fn execute_command(
 async fn execute_command_pty(
   user_command : String,
   cwd : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   env : Map[String, String],
-) -> Result[(String, Int, Bool), String] {
+) -> Result[(String, Int32, Bool), String] {
   @async.with_task_group(group => {
     // Get default shell
     let shell = pty_get_default_shell()

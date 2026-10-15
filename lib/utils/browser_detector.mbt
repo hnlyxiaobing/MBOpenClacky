@@ -204,7 +204,7 @@ fn parse_browser_name(name : String) -> BrowserType {
 ///|
 /// Detected Chrome WebSocket endpoint information.
 pub(all) struct ChromeWsEndpoint {
-  port : Int
+  port : Int32
   ws_path : String
   ws_url : String
 }

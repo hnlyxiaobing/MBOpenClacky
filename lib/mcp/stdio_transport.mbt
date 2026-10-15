@@ -5,7 +5,7 @@
 
 ///|
 /// Maximum stderr buffer size in bytes.
-const MAX_STDERR_BYTES : Int = 65536
+const MAX_STDERR_BYTES : Int32 = 65536
 
 // ── Native struct ───────────────────────────────────────────────────────────
 
@@ -21,13 +21,13 @@ pub(all) struct StdioTransport {
   mut is_alive : Bool
   mut stderr_buffer : String
   mut message_handler : ((String) -> Unit)?
-  mut pid : Int?
+  mut pid : Int32?
   mut stdin_writer : @process.WriteToProcess?
   mut stdout_reader : @process.ReadFromProcess?
   mut stderr_reader : @process.ReadFromProcess?
   mut read_task : @async.Task[Unit]?
   mut stderr_task : @async.Task[Unit]?
-  mut pending : Map[Int, @aqueue.Queue[Result[String, String]]]
+  mut pending : Map[Int32, @aqueue.Queue[Result[String, String]]]
 }
 
 ///|
@@ -211,7 +211,7 @@ pub impl Transport for StdioTransport with fn start(self) -> Result[
       return Err("Failed to create stderr pipe for: \{self.command}")
     }
   }
-  let pid : Int = match self.cwd {
+  let pid : Int32 = match self.cwd {
     Some(c) =>
       @process.spawn_orphan(
         self.command,
@@ -502,7 +502,7 @@ fn StdioTransport::fail_all_pending(
   self : StdioTransport,
   reason : String,
 ) -> Unit {
-  let ids : Array[Int] = []
+  let ids : Array[Int32] = []
   self.pending.each(fn(id, _q) { ids.push(id) })
   for id in ids {
     match self.pending.get(id) {

@@ -39,10 +39,10 @@ pub(all) struct BillingRecord {
   session_id : String // Associated session ID
   timestamp : Int64 // Unix milliseconds (serialized as ISO 8601)
   model : String // Model name used
-  prompt_tokens : Int // Input tokens
-  completion_tokens : Int // Output tokens
-  cache_read_tokens : Int // Cache hit tokens
-  cache_write_tokens : Int // Cache creation tokens
+  prompt_tokens : Int32 // Input tokens
+  completion_tokens : Int32 // Output tokens
+  cache_read_tokens : Int32 // Cache hit tokens
+  cache_write_tokens : Int32 // Cache creation tokens
   cost_usd : Double // Calculated cost in USD
   cost_source : String // "price", "estimated", or "api"
 } derive(Eq, Debug)
@@ -117,7 +117,7 @@ fn field_string(map : Map[String, Json], key : String) -> String {
 }
 
 ///|
-fn field_int(map : Map[String, Json], key : String) -> Int {
+fn field_int(map : Map[String, Json], key : String) -> Int32 {
   match map.get(key) {
     Some(Number(d, ..)) => d.to_int()
     _ => 0
@@ -137,10 +137,10 @@ fn field_double(map : Map[String, Json], key : String) -> Double {
 pub fn BillingRecord::new(
   session_id~ : String,
   model~ : String,
-  prompt_tokens~ : Int,
-  completion_tokens~ : Int,
-  cache_read_tokens~ : Int = 0,
-  cache_write_tokens~ : Int = 0,
+  prompt_tokens~ : Int32,
+  completion_tokens~ : Int32,
+  cache_read_tokens~ : Int32 = 0,
+  cache_write_tokens~ : Int32 = 0,
   cost_usd~ : Double,
   cost_source~ : String,
 ) -> BillingRecord {
@@ -160,7 +160,7 @@ pub fn BillingRecord::new(
 
 ///|
 /// Total tokens used (prompt + completion).
-pub fn BillingRecord::total_tokens(self : BillingRecord) -> Int {
+pub fn BillingRecord::total_tokens(self : BillingRecord) -> Int32 {
   self.prompt_tokens + self.completion_tokens
 }
 

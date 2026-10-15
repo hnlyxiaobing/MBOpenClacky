@@ -29,7 +29,7 @@ test "screenshot_downscale_real_png_via_pil" {
   let gen = "python3 -c 'from PIL import Image; im=Image.new(\"RGB\",(1000,600),(255,0,0)); im.save(\"\{src}\")'"
   assert_true(run_command_sync(gen), msg="PIL PNG generation should succeed")
   let png_bytes = @fs.read_file_to_bytes(src) catch {
-    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+    _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
   }
   @fs.remove_file(src) catch {
     _ => ()
@@ -50,7 +50,7 @@ test "screenshot_downscale_real_png_via_pil" {
         msg="must be real payload",
       )
       let decoded = @base64.decode(b64_data.view()) catch {
-        _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+        _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
       }
       assert_eq(png_size(decoded).map(fn(s) { s.0 }), Some(800))
     }
@@ -78,7 +78,7 @@ test "screenshot_small_png_kept_as_is" {
   let gen = "python3 -c 'from PIL import Image; im=Image.new(\"RGB\",(600,400),(0,128,255)); im.save(\"\{src}\")'"
   assert_true(run_command_sync(gen))
   let png_bytes = @fs.read_file_to_bytes(src) catch {
-    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+    _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
   }
   @fs.remove_file(src) catch {
     _ => ()
@@ -114,7 +114,7 @@ test "screenshot_too_large_rejected_after_resize" {
   let gen = "python3 -c 'import random; from PIL import Image; im=Image.new(\"RGB\",(1600,1600)); im.putdata([(random.randint(0,255),random.randint(0,255),random.randint(0,255)) for _ in range(1600*1600)]); im.save(\"\{src}\")'"
   assert_true(run_command_sync(gen))
   let png_bytes = @fs.read_file_to_bytes(src) catch {
-    _ => Bytes::makei(0, fn(_) { (0 : Int).to_byte() })
+    _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
   }
   @fs.remove_file(src) catch {
     _ => ()
@@ -432,7 +432,7 @@ async test "fill_without_ref_skips_focus_blur" {
 
 ///|
 /// Helper: build a large snapshot string exceeding the 150KB threshold.
-fn build_large_snapshot(line_count : Int) -> String {
+fn build_large_snapshot(line_count : Int32) -> String {
   let parts : Array[String] = []
   let mut i = 0
   while i < line_count {

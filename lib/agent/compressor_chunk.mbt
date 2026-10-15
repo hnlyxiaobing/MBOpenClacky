@@ -37,7 +37,7 @@ pub fn format_chunk_message_content(
 
 ///|
 /// Truncate text to a maximum length, appending a note if truncated.
-pub fn truncate_chunk_content(text : String, max_length : Int) -> String {
+pub fn truncate_chunk_content(text : String, max_length : Int32) -> String {
   let len = text.length()
   if len <= max_length {
     text
@@ -51,7 +51,7 @@ pub fn truncate_chunk_content(text : String, max_length : Int) -> String {
 
 ///|
 /// Pad a chunk index to 4 digits (e.g. 1 -> "0001", 42 -> "0042").
-pub fn pad_chunk_index(n : Int) -> String {
+pub fn pad_chunk_index(n : Int32) -> String {
   let s = n.to_string()
   let len = s.length()
   if len >= 4 {
@@ -76,7 +76,7 @@ pub fn pad_chunk_index(n : Int) -> String {
 /// topics) and each message formatted with role headers and content.
 pub fn build_chunk_md(
   messages : Array[@message.Message],
-  chunk_index : Int,
+  chunk_index : Int32,
   topics~ : String? = None,
 ) -> String {
   let lines : Array[String] = []
@@ -194,7 +194,7 @@ pub fn split_chunk_md(raw : String) -> (Array[(String, String)], String)? {
   }
   let end_marker = "\n---\n"
   // Find end marker position manually
-  let mut fm_end : Int = -1
+  let mut fm_end : Int32 = -1
   let marker_len = end_marker.length()
   let raw_len = raw.length()
   if raw_len >= marker_len + 4 {
@@ -220,7 +220,7 @@ pub fn split_chunk_md(raw : String) -> (Array[(String, String)], String)? {
   for line in fm_text.split("\n") {
     let line_str = line.to_owned()
     // Find first colon
-    let mut colon_pos : Int = -1
+    let mut colon_pos : Int32 = -1
     let mut j = 0
     while j < line_str.length() {
       if line_str[j:j + 1].to_owned() == ":" {
@@ -379,9 +379,9 @@ fn merge_topics(existing : String?, incoming : String?) -> String? {
 /// `message_compressor_helper.rb:542-577`.
 pub fn merge_into_previous_chunk(
   prev_chunk_path : String,
-  prev_chunk_index : Int,
+  prev_chunk_index : Int32,
   messages : Array[@message.Message],
-  compression_level : Int,
+  compression_level : Int32,
   session_id : String,
   created_at : String,
   topics~ : String? = None,
@@ -458,7 +458,7 @@ pub fn merge_into_previous_chunk(
 
 ///|
 /// Parse a string as Int, returning 0 on failure.
-fn parse_int_safe(s : String) -> Int {
+fn parse_int_safe(s : String) -> Int32 {
   let mut result = 0
   let mut negative = false
   let mut started = false
@@ -491,7 +491,7 @@ pub fn save_compressed_chunk(
   messages : Array[@message.Message],
   session_id : String,
   created_at : String,
-  chunk_index : Int,
+  chunk_index : Int32,
   topics~ : String? = None,
 ) -> Result[String, String] {
   // Filter out system messages, system-injected scaffolding, and previous
@@ -527,7 +527,7 @@ pub fn save_or_merge_chunk(
   messages : Array[@message.Message],
   session_id : String,
   created_at : String,
-  compression_level : Int,
+  compression_level : Int32,
   topics~ : String? = None,
 ) -> Result[String, String] {
   let existing = chunks_for_current(session_id, created_at)
@@ -560,7 +560,7 @@ pub fn save_or_merge_chunk(
 
 ///|
 /// Extract chunk index from a file path like `...-chunk-3.md`.
-fn extract_chunk_index_from_path(path : String) -> Int? {
+fn extract_chunk_index_from_path(path : String) -> Int32? {
   let suffix = ".md"
   let marker = "-chunk-"
   if !path.has_suffix(suffix) {
@@ -584,7 +584,7 @@ fn extract_chunk_index_from_path(path : String) -> Int? {
 
 ///|
 /// Find the last occurrence of `needle` in `haystack`. Returns None if not found.
-fn String::last_index_of(self : String, needle : String) -> Int? {
+fn String::last_index_of(self : String, needle : String) -> Int32? {
   let n_len = needle.length()
   let s_len = self.length()
   if n_len == 0 || n_len > s_len {

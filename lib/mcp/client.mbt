@@ -6,12 +6,12 @@ let mcp_protocol_version : String = "2024-11-05"
 
 ///|
 /// Default request timeout in seconds.
-const DEFAULT_TIMEOUT : Int = 30
+const DEFAULT_TIMEOUT : Int32 = 30
 
 ///|
 /// Initialization handshake timeout in seconds. Generous default: npx/uvx
 /// based servers can take tens of seconds to boot (spec risk table).
-const INIT_TIMEOUT : Int = 60
+const INIT_TIMEOUT : Int32 = 60
 
 ///|
 /// JSON-RPC 2.0 client for communicating with an MCP server.
@@ -20,10 +20,10 @@ pub(all) struct McpClient {
   transport : &Transport
   mut tools : Array[McpTool]
   mut server_info : McpServerInfo?
-  mut started_at : Int?
-  mut last_used_at : Int?
-  mut next_id : Int
-  timeout_s : Int
+  mut started_at : Int32?
+  mut last_used_at : Int32?
+  mut next_id : Int32
+  timeout_s : Int32
 }
 
 ///|
@@ -146,7 +146,7 @@ async fn McpClient::send_request(
   self : McpClient,
   http_method : String,
   params : Json?,
-  timeout_s : Int,
+  timeout_s : Int32,
 ) -> Json raise McpError {
   let id = self.next_id
   self.next_id += 1
@@ -224,13 +224,13 @@ pub fn McpClient::protocol_version(_self : McpClient) -> String {
 
 ///|
 /// Get the default timeout.
-pub fn McpClient::default_timeout(_self : McpClient) -> Int {
+pub fn McpClient::default_timeout(_self : McpClient) -> Int32 {
   DEFAULT_TIMEOUT
 }
 
 ///|
 /// Get the init timeout.
-pub fn McpClient::init_timeout(_self : McpClient) -> Int {
+pub fn McpClient::init_timeout(_self : McpClient) -> Int32 {
   INIT_TIMEOUT
 }
 

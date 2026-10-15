@@ -25,7 +25,7 @@
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/web_search.rb
 pub(all) struct WebSearch {
-  max_results : Int
+  max_results : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -63,7 +63,7 @@ priv enum SearchProvider {
 ///|
 /// How long a configured searcher script may run before it is killed
 /// (original SEARCHER_TIMEOUT = 30s).
-let searcher_timeout_ms : Int = 30_000
+let searcher_timeout_ms : Int32 = 30_000
 
 ///|
 /// Build the provider chain to try for this search. An explicitly configured
@@ -380,7 +380,7 @@ fn shell_quote(arg : String) -> String {
 ///|
 /// Last index of `needle` in `haystack`, or -1 (find_substring walks
 /// forward; used to slice the trailing ']' of the searcher's JSON array).
-fn last_index_of(haystack : String, needle : String) -> Int {
+fn last_index_of(haystack : String, needle : String) -> Int32 {
   let mut pos = find_substring(haystack, needle, 0)
   let mut last = pos
   while pos >= 0 {
@@ -397,7 +397,7 @@ fn last_index_of(haystack : String, needle : String) -> Int {
 /// of {title, url, snippet} objects; empty-url items are dropped.
 async fn search_custom(
   query : String,
-  max_results : Int,
+  max_results : Int32,
   provider_name : String,
 ) -> Result[Array[SearchResult], String] {
   let script = match custom_searcher_path(provider_name) {
@@ -416,7 +416,7 @@ async fn search_custom(
 async fn search_custom_script(
   script : String,
   query : String,
-  max_results : Int,
+  max_results : Int32,
   key : String,
 ) -> Result[Array[SearchResult], String] {
   let interpreter = if script.has_suffix(".rb") { "ruby" } else { "python3" }
@@ -453,7 +453,7 @@ async fn search_custom_script(
 /// JSON array is extracted from the first '[' to the last ']'.
 fn parse_custom_results(
   raw : String,
-  max_results : Int,
+  max_results : Int32,
 ) -> Result[Array[SearchResult], String] {
   let text = raw.trim().to_owned()
   let start = find_substring(text, "[", 0)
@@ -535,7 +535,7 @@ impl Tool for WebSearch with fn to_function_definition(self) -> FunctionDefiniti
 /// Retryable errors (ReaderClosed, timeout, connection reset) get one retry.
 async fn search_ddg(
   encoded_query : String,
-  max_results : Int,
+  max_results : Int32,
 ) -> Array[SearchResult] {
   let url = "https://html.duckduckgo.com/html/?q=\{encoded_query}"
   let first = http_get_follow_redirects(url, ddg_headers(), 15000, 5)
@@ -558,7 +558,7 @@ async fn search_ddg(
 async fn search_bing(
   query : String,
   encoded_query : String,
-  max_results : Int,
+  max_results : Int32,
 ) -> Array[SearchResult] {
   let mut best : Array[SearchResult] = []
   for endpoint in bing_endpoints {
@@ -583,7 +583,7 @@ async fn bing_fetch(
   host : String,
   lang : String,
   encoded_query : String,
-  max_results : Int,
+  max_results : Int32,
 ) -> Array[SearchResult] {
   let url = "https://\{host}/search?q=\{encoded_query}&count=\{max_results}&form=QBLH"
   let first = http_get_follow_redirects(url, bing_headers(lang, host), 15000, 2)
@@ -607,7 +607,7 @@ async fn bing_fetch(
 /// `//duckduckgo.com/l/?uddg=URL` and unescapes it to get the real URL.
 /// Results that are themselves duckduckgo filler pages ("Web search results")
 /// are dropped, matching the original success check.
-fn parse_ddg_results(html : String, max_results : Int) -> Array[SearchResult] {
+fn parse_ddg_results(html : String, max_results : Int32) -> Array[SearchResult] {
   let results : Array[SearchResult] = []
   let mut pos = 0
   let html_len = html.length()
@@ -685,7 +685,10 @@ fn parse_ddg_results(html : String, max_results : Int) -> Array[SearchResult] {
 /// Parse Bing HTML. Each result is an `<li class="b_algo">` block with an
 /// `<h2><a href="URL">TITLE</a></h2>` and a snippet in a `b_lineclamp` `<p>`
 /// (or a `.b_caption` block), matching the original regexes.
-fn parse_bing_results(html : String, max_results : Int) -> Array[SearchResult] {
+fn parse_bing_results(
+  html : String,
+  max_results : Int32,
+) -> Array[SearchResult] {
   let results : Array[SearchResult] = []
   let mut pos = 0
   let html_len = html.length()
@@ -746,7 +749,7 @@ fn parse_bing_results(html : String, max_results : Int) -> Array[SearchResult] {
 
 ///|
 /// Extract the snippet from a Bing result block, bounded by `limit`.
-fn bing_snippet(html : String, start : Int, limit : Int) -> String {
+fn bing_snippet(html : String, start : Int32, limit : Int32) -> String {
   let lc_pos = find_substring(html, "class=\"b_lineclamp", start)
   if lc_pos >= 0 && lc_pos < limit {
     let p_start = find_substring(html, ">", lc_pos)

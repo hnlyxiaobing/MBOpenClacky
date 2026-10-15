@@ -11,7 +11,7 @@
 ///|
 /// Width of the `=` delimiter line used to frame prompt sections
 /// (Ruby SystemPromptBuilder#format_section: `"=" * 80`).
-const SECTION_SEPARATOR_WIDTH : Int = 80
+const SECTION_SEPARATOR_WIDTH : Int32 = 80
 
 ///|
 /// Cached OS label (probed once per process so per-run session context
@@ -186,7 +186,7 @@ pub fn format_section(title : String, content : String) -> String {
 
 ///|
 /// Truncate text to max_chars, appending "..." if truncated.
-pub fn truncate_text(text : String, max_chars : Int) -> String {
+pub fn truncate_text(text : String, max_chars : Int32) -> String {
   if text.length() <= max_chars {
     text
   } else if max_chars <= 3 {

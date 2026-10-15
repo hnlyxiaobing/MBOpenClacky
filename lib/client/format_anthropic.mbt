@@ -29,7 +29,7 @@ pub fn build_anthropic_request(
   messages : Array[@message.Message],
   model : String,
   tools : Array[Json],
-  max_tokens : Int,
+  max_tokens : Int32,
   enable_caching : Bool,
   reasoning_effort~ : String? = None,
 ) -> Json {
@@ -168,8 +168,8 @@ fn normalize_effort(effort : String?) -> String? {
 fn cache_candidate_indices(
   messages : Array[@message.Message],
   enable_caching : Bool,
-) -> Array[Int] {
-  let result : Array[Int] = []
+) -> Array[Int32] {
+  let result : Array[Int32] = []
   if !enable_caching {
     return result
   }

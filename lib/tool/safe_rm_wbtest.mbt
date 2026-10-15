@@ -7,7 +7,7 @@
 
 ///|
 /// Unique counter for per-test project dirs (concurrent async tests).
-let safe_rm_wbtest_seq : @ref.Ref[Int] = @ref.Ref(0)
+let safe_rm_wbtest_seq : @ref.Ref[Int32] = @ref.Ref(0)
 
 ///|
 /// Join two path components.

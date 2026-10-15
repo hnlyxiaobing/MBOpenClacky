@@ -117,9 +117,9 @@ priv enum BlockKind {
 /// collected block and the index of the first line after the block.
 fn collect_block(
   lines : Array[String],
-  start : Int,
-  total : Int,
-) -> (BlockKind, Int) {
+  start : Int32,
+  total : Int32,
+) -> (BlockKind, Int32) {
   // Skip blank lines before the block.
   let mut idx = start
   while idx < total && lines[idx].trim().is_empty() {
@@ -224,9 +224,9 @@ fn collect_block(
 /// dropped (clip chomping approximation).
 fn collect_block_scalar(
   lines : Array[String],
-  start : Int,
-  total : Int,
-) -> (Array[String], Int) {
+  start : Int32,
+  total : Int32,
+) -> (Array[String], Int32) {
   let collected : Array[String] = []
   let mut pending_blanks = 0
   let mut indent = -1
@@ -259,7 +259,7 @@ fn collect_block_scalar(
 
 ///|
 /// Number of leading space/tab characters of a line.
-fn leading_indent(s : String) -> Int {
+fn leading_indent(s : String) -> Int32 {
   let chars = s.to_array()
   let mut n = 0
   while n < chars.length() && (chars[n] == ' ' || chars[n] == '\t') {

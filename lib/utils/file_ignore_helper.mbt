@@ -143,7 +143,7 @@ pub fn IgnoreConfig::ignore_reason(
 
 ///|
 /// Return rule count statistics: (gitignore_count, custom_count, builtin_count).
-pub fn IgnoreConfig::stats(self : IgnoreConfig) -> (Int, Int, Int) {
+pub fn IgnoreConfig::stats(self : IgnoreConfig) -> (Int32, Int32, Int32) {
   (
     self.gitignore_rules.length(),
     self.custom_rules.length(),

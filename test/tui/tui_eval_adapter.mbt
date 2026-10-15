@@ -24,9 +24,9 @@
 /// Terminal setup configuration for an eval scenario.
 pub(all) struct EvalSetup {
   /// Terminal width in columns.
-  cols : Int
+  cols : Int32
   /// Terminal height in rows.
-  rows : Int
+  rows : Int32
   /// Mock LLM response text (empty = no mock).
   mock_response : String
 } derive(Debug)
@@ -44,7 +44,7 @@ pub(all) enum EvalAction {
   /// Capture a screenshot of the virtual screen.
   Screenshot
   /// Wait (no-op, useful for pacing).
-  Wait(ms~ : Int)
+  Wait(ms~ : Int32)
   /// Set a pending confirmation dialog.
   SetConfirmation(
     tool_name~ : String,
@@ -74,7 +74,7 @@ pub(all) enum EvalAssertion {
   /// Screen is empty (all spaces).
   ScreenEmpty
   /// A specific row contains the given text.
-  RowContains(row~ : Int, text~ : String)
+  RowContains(row~ : Int32, text~ : String)
   /// Status bar (row 1) contains the given text.
   StatusContains(text~ : String)
   /// Input area contains the given text.
@@ -117,7 +117,7 @@ fn parse_single_assertion(a : Map[String, Json]) -> EvalAssertion {
       _ => ""
     }
   }
-  let get_i = fn(k : String) -> Int {
+  let get_i = fn(k : String) -> Int32 {
     match a.get(k) {
       Some(Number(n, ..)) => n.to_int()
       _ => 0
@@ -219,7 +219,7 @@ pub fn parse_eval_scenario(json_text : String) -> Result[EvalScenario, String] {
                     _ => ""
                   }
                 }
-                let get_i = fn(k : String) -> Int {
+                let get_i = fn(k : String) -> Int32 {
                   match a.get(k) {
                     Some(Number(n, ..)) => n.to_int()
                     _ => 0
@@ -333,8 +333,8 @@ pub(all) struct TuiEvalSimulator {
 /// The journey driver passes a real agent pointed at a mock upstream so a
 /// real ReAct run flows through the production hook → screen pipeline.
 pub fn TuiEvalSimulator::new_with_agent(
-  cols : Int,
-  rows : Int,
+  cols : Int32,
+  rows : Int32,
   agent : @agent.Agent,
 ) -> TuiEvalSimulator {
   let state = Ref(@libtui.TuiState::from_agent(agent))
@@ -377,7 +377,7 @@ pub fn TuiEvalSimulator::new_with_agent(
 
 ///|
 /// Create a new eval simulator with given dimensions.
-pub fn TuiEvalSimulator::new(cols : Int, rows : Int) -> TuiEvalSimulator {
+pub fn TuiEvalSimulator::new(cols : Int32, rows : Int32) -> TuiEvalSimulator {
   TuiEvalSimulator::new_with_agent(cols, rows, make_eval_agent())
 }
 
@@ -419,7 +419,7 @@ fn make_eval_agent() -> @agent.Agent {
 ///|
 /// Number of todo-area rows rendered above the status bar (0 when hidden
 /// or empty), mirroring the production layout.
-fn TuiEvalSimulator::todo_row_count(self : TuiEvalSimulator) -> Int {
+fn TuiEvalSimulator::todo_row_count(self : TuiEvalSimulator) -> Int32 {
   if self.state.val.todo_area.visible() {
     self.state.val.todo_area.render_lines().length()
   } else {
@@ -433,7 +433,7 @@ fn TuiEvalSimulator::todo_row_count(self : TuiEvalSimulator) -> Int {
 /// + separator (1) + attachments (0-N) + input lines (1-N wrapped at 90%
 /// width) + separator (1). The simulator has no suggestions dropdown or
 /// tips row.
-fn TuiEvalSimulator::fixed_area_height(self : TuiEvalSimulator) -> Int {
+fn TuiEvalSimulator::fixed_area_height(self : TuiEvalSimulator) -> Int32 {
   let content_width = @libtui.effective_content_width(self.screen.width)
   let input_rows = self.input.render_wrapped_lines(content_width).length()
   let attach_rows = self.state.val.paste_placeholders.length()
@@ -442,19 +442,19 @@ fn TuiEvalSimulator::fixed_area_height(self : TuiEvalSimulator) -> Int {
 
 ///|
 /// 1-based row of the status bar (after the todo rows in the fixed area).
-fn TuiEvalSimulator::status_row(self : TuiEvalSimulator) -> Int {
+fn TuiEvalSimulator::status_row(self : TuiEvalSimulator) -> Int32 {
   self.screen.height - self.fixed_area_height() + 1 + self.todo_row_count()
 }
 
 ///|
 /// 1-based row where the bottom fixed area starts (todo rows or status bar).
-fn TuiEvalSimulator::first_fixed_row(self : TuiEvalSimulator) -> Int {
+fn TuiEvalSimulator::first_fixed_row(self : TuiEvalSimulator) -> Int32 {
   self.status_row() - self.todo_row_count()
 }
 
 ///|
 /// 1-based row where the (wrapped) input lines start.
-fn TuiEvalSimulator::input_top_row(self : TuiEvalSimulator) -> Int {
+fn TuiEvalSimulator::input_top_row(self : TuiEvalSimulator) -> Int32 {
   // status row + separator + attachment rows
   self.status_row() + 2 + self.state.val.paste_placeholders.length()
 }
@@ -1348,7 +1348,7 @@ fn TuiEvalSimulator::on_exit_save(self : TuiEvalSimulator) -> Unit {
 /// controller, without disk persistence).
 fn TuiEvalSimulator::perform_model_delete(
   self : TuiEvalSimulator,
-  idx : Int,
+  idx : Int32,
 ) -> Unit {
   if idx >= 0 && idx < self.agent.config.models.length() {
     let removed = self.agent.config.models[idx]
@@ -1395,7 +1395,7 @@ fn TuiEvalSimulator::emit_hook(
       _ => ""
     }
   }
-  let get_i = fn(k : String) -> Int {
+  let get_i = fn(k : String) -> Int32 {
     match args.get(k) {
       Some(Number(n, ..)) => n.to_int()
       _ => 0

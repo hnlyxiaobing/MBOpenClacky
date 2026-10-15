@@ -14,19 +14,19 @@ pub const WECOM_WS_URL : String = "wss://openws.work.weixin.qq.com"
 
 ///|
 /// Default heartbeat interval in milliseconds.
-pub const WECOM_HEARTBEAT_INTERVAL : Int = 30000
+pub const WECOM_HEARTBEAT_INTERVAL : Int32 = 30000
 
 ///|
 /// Default read timeout in milliseconds (2.5x heartbeat).
-pub const WECOM_READ_TIMEOUT : Int = 75000
+pub const WECOM_READ_TIMEOUT : Int32 = 75000
 
 ///|
 /// Default ACK wait timeout in milliseconds.
-pub const WECOM_ACK_TIMEOUT : Int = 30000
+pub const WECOM_ACK_TIMEOUT : Int32 = 30000
 
 ///|
 /// Default chunk size for file upload (512KB).
-pub const WECOM_DEFAULT_CHUNK_SIZE : Int = 524288
+pub const WECOM_DEFAULT_CHUNK_SIZE : Int32 = 524288
 
 ///|
 /// WeCom WebSocket frame types.
@@ -57,9 +57,9 @@ pub(all) struct WeComWsState {
   bot_id : String
   secret : String
   mut is_connected : Bool
-  mut req_counter : Int
-  heartbeat_interval : Int
-  read_timeout : Int
+  mut req_counter : Int32
+  heartbeat_interval : Int32
+  read_timeout : Int32
 }
 
 ///|
@@ -278,14 +278,14 @@ pub fn extract_data_sender(json : Json) -> (String, String) {
 /// WeCom chunked upload state for large file transfers.
 pub(all) struct WeComUploadState {
   mut upload_id : String
-  mut chunk_index : Int
-  chunk_size : Int
-  total_size : Int
+  mut chunk_index : Int32
+  chunk_size : Int32
+  total_size : Int32
 }
 
 ///|
 /// Create a new WeComUploadState.
-pub fn WeComUploadState::new(total_size : Int) -> WeComUploadState {
+pub fn WeComUploadState::new(total_size : Int32) -> WeComUploadState {
   {
     upload_id: "",
     chunk_index: 0,
@@ -297,8 +297,8 @@ pub fn WeComUploadState::new(total_size : Int) -> WeComUploadState {
 ///|
 /// Create a WeComUploadState with custom chunk size.
 pub fn WeComUploadState::with_chunk_size(
-  total_size : Int,
-  chunk_size : Int,
+  total_size : Int32,
+  chunk_size : Int32,
 ) -> WeComUploadState {
   { upload_id: "", chunk_index: 0, chunk_size, total_size, }
 }
@@ -314,7 +314,7 @@ pub fn WeComUploadState::set_upload_id(
 
 ///|
 /// Advance to the next chunk and return its index.
-pub fn WeComUploadState::next_chunk(self : WeComUploadState) -> Int {
+pub fn WeComUploadState::next_chunk(self : WeComUploadState) -> Int32 {
   let idx = self.chunk_index
   self.chunk_index = self.chunk_index + 1
   idx
@@ -340,7 +340,7 @@ pub fn WeComUploadState::reset(self : WeComUploadState) -> Unit {
 pub fn build_upload_init_frame(
   upload_id : String,
   filename : String,
-  total_size : Int,
+  total_size : Int32,
 ) -> Json {
   let frame : Map[String, Json] = Map([])
   frame.set("type", Json("aibot_upload_init"))
@@ -356,7 +356,7 @@ pub fn build_upload_init_frame(
 /// Step 2 of 3-step chunked upload: send each chunk sequentially.
 pub fn build_upload_chunk_frame(
   upload_id : String,
-  chunk_index : Int,
+  chunk_index : Int32,
   data : String,
 ) -> Json {
   let frame : Map[String, Json] = Map([])
@@ -380,7 +380,7 @@ pub fn build_upload_finish_frame(upload_id : String) -> Json {
 
 ///|
 /// Calculate the total number of chunks needed.
-pub fn calculate_chunk_count(total_size : Int, chunk_size : Int) -> Int {
+pub fn calculate_chunk_count(total_size : Int32, chunk_size : Int32) -> Int32 {
   if chunk_size <= 0 {
     1
   } else {

@@ -14,9 +14,9 @@ pub fn glob_match(pattern : String, text : String) -> Bool {
 ///|
 fn glob_match_impl(
   p : Array[Char],
-  pi : Int,
+  pi : Int32,
   t : Array[Char],
-  ti : Int,
+  ti : Int32,
 ) -> Bool {
   if pi >= p.length() && ti >= t.length() {
     return true
@@ -55,7 +55,7 @@ fn glob_match_impl(
 
 ///|
 /// Calculate the Levenshtein edit distance between two strings.
-pub fn levenshtein_distance(a : String, b : String) -> Int {
+pub fn levenshtein_distance(a : String, b : String) -> Int32 {
   let a_chars = a.to_array()
   let b_chars = b.to_array()
   let m = a_chars.length()
@@ -67,8 +67,8 @@ pub fn levenshtein_distance(a : String, b : String) -> Int {
     return m
   }
   // Use two rows for space optimization O(min(m,n))
-  let mut prev : Array[Int] = Array::make(n + 1, 0)
-  let mut curr : Array[Int] = Array::make(n + 1, 0)
+  let mut prev : Array[Int32] = Array::make(n + 1, 0)
+  let mut curr : Array[Int32] = Array::make(n + 1, 0)
   // Initialize first row
   for j = 0; j <= n; j = j + 1 {
     prev[j] = j
@@ -102,7 +102,7 @@ pub fn levenshtein_distance(a : String, b : String) -> Int {
 pub fn fuzzy_match(
   query : String,
   target : String,
-  max_distance~ : Int = 3,
+  max_distance~ : Int32 = 3,
 ) -> Bool {
   levenshtein_distance(query, target) <= max_distance
 }
@@ -143,10 +143,10 @@ pub fn best_match(query : String, candidates : Array[String]) -> String? {
 pub fn fuzzy_search(
   query : String,
   candidates : Array[String],
-  max_distance~ : Int = 3,
+  max_distance~ : Int32 = 3,
 ) -> Array[String] {
   // Collect matching candidates with their distances
-  let matches : Array[(String, Int)] = []
+  let matches : Array[(String, Int32)] = []
   for i = 0; i < candidates.length(); i = i + 1 {
     let dist = levenshtein_distance(query, candidates[i])
     if dist <= max_distance {

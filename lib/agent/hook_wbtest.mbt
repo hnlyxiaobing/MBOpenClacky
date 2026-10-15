@@ -192,8 +192,8 @@ async test "hook_integration_iteration_events" {
   let config = @config.AgentConfig::default()
   let agent = Agent::new("hook-test-2", "test-agent", "/tmp", client, config)
 
-  let before_iterations : Array[Int] = []
-  let after_iterations : Array[Int] = []
+  let before_iterations : Array[Int32] = []
+  let after_iterations : Array[Int32] = []
 
   agent.hook_manager.register(fn(event : HookEvent) {
     match event {

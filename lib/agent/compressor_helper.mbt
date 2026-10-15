@@ -67,8 +67,8 @@ pub fn extract_xml_content(text : String, tag_name : String) -> String? {
 /// Count messages that will be compressed (excludes system and recent messages).
 pub fn count_messages_to_compress(
   messages : Array[@message.Message],
-  recent_count : Int,
-) -> Int {
+  recent_count : Int32,
+) -> Int32 {
   let len = messages.length()
   // Count non-system messages
   let mut non_system_count = 0
@@ -135,7 +135,7 @@ pub fn build_compressed_summary_message(
 /// Check if idle compression should trigger based on estimated token count.
 pub fn should_trigger_idle_compression(
   messages : Array[@message.Message],
-  threshold : Int,
+  threshold : Int32,
 ) -> Bool {
   let tokens = estimate_history_tokens(messages)
   tokens >= threshold
@@ -146,9 +146,9 @@ pub fn should_trigger_idle_compression(
 ///|
 /// Statistics about a compression operation.
 pub(all) struct CompressionStats {
-  before_tokens : Int
-  after_tokens : Int
-  messages_removed : Int
+  before_tokens : Int32
+  after_tokens : Int32
+  messages_removed : Int32
   compression_ratio : Double
 } derive(Eq, Debug)
 
@@ -161,10 +161,10 @@ pub extend CompressionStats with Eq::{not_equal, equal}
 ///|
 /// Calculate compression savings statistics.
 pub fn calculate_compression_savings(
-  before_tokens : Int,
-  after_tokens : Int,
-  messages_before : Int,
-  messages_after : Int,
+  before_tokens : Int32,
+  after_tokens : Int32,
+  messages_before : Int32,
+  messages_after : Int32,
 ) -> CompressionStats {
   let ratio = if before_tokens > 0 {
     1.0 - after_tokens.to_double() / before_tokens.to_double()
@@ -340,7 +340,7 @@ pub fn extract_key_information(
 /// - Level 4: Single-line summary of overall project state
 pub fn generate_hierarchical_summary(
   summaries : Array[String],
-  level : Int,
+  level : Int32,
 ) -> String {
   if summaries.length() == 0 {
     return "No previous conversation context."
@@ -430,7 +430,7 @@ fn extract_key_sentences(text : String) -> String {
 /// role messages (caller's responsibility to check role).
 pub fn truncate_tool_result(
   content : String,
-  max_chars~ : Int = 2000,
+  max_chars~ : Int32 = 2000,
 ) -> String {
   if content.length() <= max_chars {
     content

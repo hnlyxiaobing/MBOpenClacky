@@ -9,7 +9,7 @@
 /// Provides line-based I/O for JSON-RPC communication.
 #cfg(target="native")
 pub struct BrowserProcess {
-  pid : Int
+  pid : Int32
   priv mut alive : Bool
   priv stdin_writer : @process.WriteToProcess
   priv stdout_reader : @process.ReadFromProcess
@@ -19,7 +19,7 @@ pub struct BrowserProcess {
 /// Wraps a chrome-devtools-mcp child process (WASM stub — not supported).
 #cfg(any(target="wasm", target="wasm-gc", target="js"))
 pub struct BrowserProcess {
-  pid : Int
+  pid : Int32
   priv mut alive : Bool
 }
 
@@ -115,7 +115,7 @@ pub async fn BrowserProcess::is_alive(self : BrowserProcess) -> Bool {
   if !self.alive {
     return false
   }
-  let exited : Int? = Some(
+  let exited : Int32? = Some(
     @async.with_timeout(10, () => @process.wait_pid(self.pid)),
   ) catch {
     @async.TimeoutError => None

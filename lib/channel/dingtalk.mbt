@@ -16,22 +16,22 @@ pub(all) struct DingTalkAdapter {
   api_client : DingTalkApiClient?
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
-  mut session_webhooks : Map[String, (String, Int)] // chat_id → (webhook_url, expire_time_ms)
+  mut session_webhooks : Map[String, (String, Int32)] // chat_id → (webhook_url, expire_time_ms)
   mut route_cache : Map[String, String] // conv_id → conv_type ("1"=Direct, "2"=Group)
   /// Stream Mode endpoint override (tests point this at a local mock; empty
   /// means "ask the gateway via open_stream_connection").
   mut stream_url : String
   /// Reconnect backoff in ms (reset after a successful connection).
-  mut stream_backoff_ms : Int
+  mut stream_backoff_ms : Int32
 }
 
 ///|
 /// Initial Stream Mode reconnect backoff (ms).
-let dingtalk_stream_backoff_base_ms : Int = 1_000
+let dingtalk_stream_backoff_base_ms : Int32 = 1_000
 
 ///|
 /// Stream Mode reconnect backoff cap (ms).
-let dingtalk_stream_backoff_max_ms : Int = 30_000
+let dingtalk_stream_backoff_max_ms : Int32 = 30_000
 
 ///|
 /// What the Stream Mode loop must do with one inbound frame.
@@ -760,7 +760,7 @@ pub fn extract_dingtalk_attachments(
 
 ///|
 /// Check if a webhook URL is still valid based on its expiration time.
-pub fn is_webhook_valid(url : String, expire_time : Int) -> Bool {
+pub fn is_webhook_valid(url : String, expire_time : Int32) -> Bool {
   if url.is_empty() {
     false
   } else if expire_time <= 0 {
@@ -789,7 +789,7 @@ pub fn build_dingtalk_markdown_payload(title : String, text : String) -> Json {
 ///|
 /// Extract sessionWebhook URL and its expiration time from a DingTalk callback message.
 /// Returns (url, expire_time_ms) or None if not present.
-pub fn extract_session_webhook(msg : Map[String, Json]) -> (String, Int)? {
+pub fn extract_session_webhook(msg : Map[String, Json]) -> (String, Int32)? {
   let url = match msg.get("sessionWebhook") {
     Some(String(u)) => u
     _ => return None

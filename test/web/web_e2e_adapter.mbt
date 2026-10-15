@@ -42,9 +42,9 @@ pub extend WebEvalStep with @moonbitlang/core/debug.Debug::{to_repr}
 /// An assertion to verify the response of the last HTTP step.
 pub(all) enum WebEvalAssertion {
   /// Response status code equals the given value.
-  StatusEq(status~ : Int)
+  StatusEq(status~ : Int32)
   /// Response status code is one of the given values.
-  StatusIn(statuses~ : Array[Int])
+  StatusIn(statuses~ : Array[Int32])
   /// Response body contains the given text.
   BodyContains(text~ : String)
   /// Response body does NOT contain the given text.
@@ -56,7 +56,7 @@ pub(all) enum WebEvalAssertion {
   /// Response body is valid SSE format (data: lines contain valid JSON).
   SseValid
   /// Response body length is greater than the given value.
-  BodyLengthGt(min~ : Int)
+  BodyLengthGt(min~ : Int32)
 } derive(Debug)
 
 ///|
@@ -217,14 +217,14 @@ fn parse_single_assertion(
       _ => ""
     }
   }
-  let get_i = fn(k : String) -> Int {
+  let get_i = fn(k : String) -> Int32 {
     match a.get(k) {
       Some(Number(n, ..)) => n.to_int()
       _ => 0
     }
   }
-  let get_int_array = fn(k : String) -> Array[Int] {
-    let arr : Array[Int] = []
+  let get_int_array = fn(k : String) -> Array[Int32] {
+    let arr : Array[Int32] = []
     match a.get(k) {
       Some(Array(values)) =>
         for v in values {
@@ -311,7 +311,7 @@ async fn dispatch_step(
 ///|
 /// Parse a `.`-separated path segment as an array index (`"0"`, `"12"`).
 /// Returns `None` for non-numeric segments (object keys).
-fn parse_path_index(part : String) -> Int? {
+fn parse_path_index(part : String) -> Int32? {
   if part.is_empty() {
     return None
   }

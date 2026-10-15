@@ -193,7 +193,7 @@ pub fn SkillRegistry::find_skill_command(
 
 ///|
 /// Return the number of registered skills.
-pub fn SkillRegistry::size(self : SkillRegistry) -> Int {
+pub fn SkillRegistry::size(self : SkillRegistry) -> Int32 {
   self.skills.length()
 }
 

@@ -24,7 +24,11 @@ pub fn find_header(headers : Array[(String, String)], name : String) -> String? 
 /// surrogate-pair (emoji) content — `String::sub` aborts when an index lands
 /// on a trailing surrogate. The returned index always sits on an ASCII match
 /// boundary, so it is safe to use with `String::sub`.
-pub fn find_substring(haystack : String, needle : String, start : Int) -> Int {
+pub fn find_substring(
+  haystack : String,
+  needle : String,
+  start : Int32,
+) -> Int32 {
   let h = haystack.code_units()
   let n = needle.code_units()
   let n_len = n.length()
@@ -55,7 +59,7 @@ pub fn find_substring(haystack : String, needle : String, start : Int) -> Int {
 /// splitting a surrogate pair. `String::sub` (a.k.a. `s[:n]`) aborts when the
 /// cut lands on a trailing surrogate, so web content containing emoji must be
 /// truncated via this helper.
-pub fn safe_truncate(s : String, max_len : Int) -> String {
+pub fn safe_truncate(s : String, max_len : Int32) -> String {
   if max_len <= 0 {
     return ""
   }
@@ -120,8 +124,8 @@ pub fn resolve_url(base_url : String, location : String) -> String {
 pub async fn http_get_follow_redirects(
   url : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
-  max_redirects : Int,
+  timeout_ms : Int32,
+  max_redirects : Int32,
 ) -> Result[@client.HttpResponse, @client.HttpError] {
   let mut current = url
   let mut redirects = 0
@@ -191,7 +195,7 @@ pub fn url_decode(s : String) -> String {
 
 ///|
 /// Hex digit value of an ASCII byte, or -1 if not a hex digit.
-fn hex_value(b : Int) -> Int {
+fn hex_value(b : Int32) -> Int32 {
   if b >= 0x30 && b <= 0x39 {
     b - 0x30
   } else if b >= 0x61 && b <= 0x66 {

@@ -404,7 +404,7 @@ pub async fn FeishuApiClient::download_resource(
 pub async fn FeishuApiClient::fetch_chat_history(
   self : FeishuApiClient,
   chat_id : String,
-  limit : Int,
+  limit : Int32,
 ) -> Result[Json, ChannelError] {
   let headers = match self.auth_headers() {
     Ok(h) => h

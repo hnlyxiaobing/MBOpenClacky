@@ -7,7 +7,7 @@ pub struct BenchmarkStats {
   p50_ms : Int64
   p95_ms : Int64
   p99_ms : Int64
-  iterations : Int
+  iterations : Int32
   total_ms : Int64
 }
 
@@ -26,7 +26,7 @@ pub fn BenchmarkStats::new(
   p50_ms : Int64,
   p95_ms : Int64,
   p99_ms : Int64,
-  iterations : Int,
+  iterations : Int32,
   total_ms : Int64,
 ) -> BenchmarkStats {
   { min_ms, max_ms, avg_ms, p50_ms, p95_ms, p99_ms, iterations, total_ms, }

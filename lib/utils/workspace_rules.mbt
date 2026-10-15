@@ -9,7 +9,7 @@ let rule_file_names : Array[String] = [
 ///|
 /// Number of leading lines of a sub-project rules file kept as its summary
 /// (Ruby WorkspaceRules::SUB_PROJECT_SUMMARY_LINES).
-const SUB_PROJECT_SUMMARY_LINES : Int = 5
+const SUB_PROJECT_SUMMARY_LINES : Int32 = 5
 
 ///|
 /// Workspace rules loaded from project directory.
@@ -85,7 +85,7 @@ pub fn WorkspaceRules::find_sub_projects(
 
 ///|
 /// First `n` lines of `text`, joined with "\n" (Ruby `lines.first(n).map(&:chomp).join("\n")`).
-fn leading_lines(text : String, n : Int) -> String {
+fn leading_lines(text : String, n : Int32) -> String {
   let lines : Array[StringView] = text.split("\n").collect()
   let take = if lines.length() < n { lines.length() } else { n }
   let buf = StringBuilder()

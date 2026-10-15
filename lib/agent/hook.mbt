@@ -10,9 +10,9 @@ pub(all) enum HookEvent {
   /// Agent status changed (old_status, new_status).
   StatusChanged(AgentStatus, AgentStatus)
   /// A new ReAct iteration has begun (iteration number).
-  BeforeIteration(Int)
+  BeforeIteration(Int32)
   /// A ReAct iteration has completed (iteration number).
-  AfterIteration(Int)
+  AfterIteration(Int32)
   /// About to call the LLM.
   BeforeLlmCall
   /// LLM call completed.
@@ -52,7 +52,7 @@ pub(all) enum HookEvent {
   /// Sub-agent ended (agent_name).
   SubagentEnded(String)
   /// Retry attempt (attempt_number, reason).
-  RetryAttempt(Int, String)
+  RetryAttempt(Int32, String)
   /// Tool stdout output (lines as a single string, newline-separated).
   ToolStdout(String)
   /// Informational message (message text).
@@ -68,7 +68,7 @@ pub(all) enum HookEvent {
   /// A compression pass succeeded (number of messages removed from history).
   /// Consumers that keep an external record of the run use this to project the
   /// compaction (see `cmd inspect`'s session-log summary records).
-  CompressionPerformed(Int)
+  CompressionPerformed(Int32)
 }
 
 ///|

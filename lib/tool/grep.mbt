@@ -5,10 +5,10 @@
 /// 对齐（spec 2026-08-18_03 决策 1/6）：正则语义匹配、空 pattern 显式报错、
 /// schema 补 max_total_matches/max_file_size、紧凑摘要头、UTF-8 scrub。
 pub(all) struct Grep {
-  max_files : Int
-  max_matches_per_file : Int
-  max_total_matches : Int
-  max_line_length : Int
+  max_files : Int32
+  max_matches_per_file : Int32
+  max_total_matches : Int32
+  max_line_length : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -198,12 +198,12 @@ fn do_search(
   search_path : String,
   re : @string.Regex,
   file_glob : String,
-  context : Int,
-  max_files : Int,
-  max_per_file : Int,
-  max_total : Int,
-  max_file_size : Int,
-  max_line_len : Int,
+  context : Int32,
+  max_files : Int32,
+  max_per_file : Int32,
+  max_total : Int32,
+  max_file_size : Int32,
+  max_line_len : Int32,
 ) -> ToolResult {
   let sb = StringBuilder()
   let mut total_matches = 0
@@ -328,10 +328,10 @@ pub fn read_file_scrubbed(path : String) -> String? {
 fn search_in_content(
   content : String,
   re : @string.Regex,
-  context : Int,
-  max_per_file : Int,
-  max_remaining : Int,
-  max_line_len : Int,
+  context : Int32,
+  max_per_file : Int32,
+  max_remaining : Int32,
+  max_line_len : Int32,
 ) -> Array[String] {
   let results : Array[String] = []
 

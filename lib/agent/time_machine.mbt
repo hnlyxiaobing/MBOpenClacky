@@ -91,7 +91,7 @@ pub fn TimeMachineState::checkpoint_after(
   match task {
     Some(t) => {
       // Replace existing after entry for same path, or add new
-      let mut found_idx : Int = -1
+      let mut found_idx : Int32 = -1
       for i = 0; i < t.after_entries.length(); i = i + 1 {
         if t.after_entries[i].path == path {
           found_idx = i
@@ -300,7 +300,7 @@ pub fn TimeMachineState::switch_to_task(
 /// applied, or the first error encountered.
 pub fn apply_snapshot_entries(
   entries : Array[SnapshotEntry],
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let mut applied = 0
   for entry in entries {
     if entry.is_absent {
@@ -411,7 +411,7 @@ pub(all) struct TaskHistoryEntry {
   /// Task identifier ("task-001").
   task_id : String
   /// Numeric task counter (for undo/redo comparison and display).
-  task_num : Int
+  task_num : Int32
   /// Short summary (description or fallback).
   summary : String
   /// Status relative to the active chain.
@@ -425,7 +425,7 @@ pub extend TaskHistoryEntry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Parse the numeric counter out of a "task-NNN" identifier (0 if unknown).
-pub fn task_num_of(task_id : String) -> Int {
+pub fn task_num_of(task_id : String) -> Int32 {
   if !task_id.has_prefix("task-") {
     return 0
   }

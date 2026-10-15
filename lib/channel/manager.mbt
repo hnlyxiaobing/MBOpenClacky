@@ -8,8 +8,8 @@ pub(all) struct ChannelManager {
   mut active_channels : Array[String] // names of running channels
   config_path : String // ~/.mbopenclacky/channels.json
   mut message_handler : ((ChannelEvent) -> Unit)?
-  mut recent_digests : Array[(String, Int)] // (digest, sequence) pairs for dedup
-  mut digest_counter : Int // monotonically increasing counter for digest ordering
+  mut recent_digests : Array[(String, Int32)] // (digest, sequence) pairs for dedup
+  mut digest_counter : Int32 // monotonically increasing counter for digest ordering
 }
 
 ///|
@@ -360,7 +360,7 @@ fn ChannelManager::record_digest(
   self.digest_counter = self.digest_counter + 1
   // Keep only last 100 entries to prevent unbounded growth
   if self.recent_digests.length() > 100 {
-    let new_arr : Array[(String, Int)] = []
+    let new_arr : Array[(String, Int32)] = []
     let start = self.recent_digests.length() - 50
     let mut i = start
     while i < self.recent_digests.length() {

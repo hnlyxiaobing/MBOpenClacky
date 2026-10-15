@@ -126,7 +126,7 @@ pub async fn Browser::with_page(
 /// Returns Ok(()) when a selected page is found, Err on timeout.
 pub async fn Browser::wait_for_page_ready(
   self : Browser,
-  timeout_ms~ : Int = 1500,
+  timeout_ms~ : Int32 = 1500,
 ) -> Result[Unit, String] {
   // Estimate ~150ms per MCP poll round-trip
   let max_polls = if timeout_ms / 150 > 0 { timeout_ms / 150 } else { 1 }

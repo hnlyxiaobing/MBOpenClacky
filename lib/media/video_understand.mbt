@@ -10,8 +10,8 @@ pub(all) struct VideoUnderstandRequest {
   video_base64 : String?
   video_path : String?
   prompt : String?
-  max_frames : Int?
-  interval_seconds : Int?
+  max_frames : Int32?
+  interval_seconds : Int32?
 } derive(FromJson, ToJson)
 
 ///|
@@ -25,8 +25,8 @@ pub extend VideoUnderstandRequest with ToJson::{to_json}
 ///|
 /// Analysis result for a single extracted frame.
 pub(all) struct FrameAnalysis {
-  frame_index : Int
-  timestamp_seconds : Int
+  frame_index : Int32
+  timestamp_seconds : Int32
   timestamp_label : String
   description : String
 } derive(ToJson)
@@ -40,7 +40,7 @@ pub(all) struct VideoUnderstandResult {
   ok : Bool
   summary : String?
   frames : Array[FrameAnalysis]
-  frame_count : Int
+  frame_count : Int32
   model : String?
   error : String?
 } derive(ToJson)
@@ -49,16 +49,16 @@ pub(all) struct VideoUnderstandResult {
 pub extend VideoUnderstandResult with ToJson::{to_json}
 
 ///|
-pub let default_max_frames : Int = 20
+pub let default_max_frames : Int32 = 20
 
 ///|
-pub let default_interval_seconds : Int = 5
+pub let default_interval_seconds : Int32 = 5
 
 ///|
-pub let default_max_duration_seconds : Int = 300
+pub let default_max_duration_seconds : Int32 = 300
 
 ///|
-pub let max_upload_size_mb : Int = 50
+pub let max_upload_size_mb : Int32 = 50
 
 ///|
 pub let default_video_prompt : String = "Describe what is happening in this video frame. Include objects, actions, text, and notable visual details."
@@ -77,9 +77,9 @@ pub fn build_ffmpeg_version_command() -> String {
 pub fn build_ffmpeg_extract_command(
   video_path : String,
   output_pattern : String,
-  interval_seconds : Int,
-  max_frames : Int,
-  max_duration : Int,
+  interval_seconds : Int32,
+  max_frames : Int32,
+  max_duration : Int32,
 ) -> String {
   "ffmpeg -i \"\{video_path}\" -vf \"fps=1/\{interval_seconds}\" -vframes \{max_frames} -t \{max_duration} \"\{output_pattern}\" -y"
 }
@@ -94,15 +94,15 @@ pub fn frame_output_pattern(output_dir : String) -> String {
 ///|
 /// Calculate the timestamp (in seconds) for a given frame index.
 pub fn calculate_frame_timestamp(
-  frame_index : Int,
-  interval_seconds : Int,
-) -> Int {
+  frame_index : Int32,
+  interval_seconds : Int32,
+) -> Int32 {
   frame_index * interval_seconds
 }
 
 ///|
 /// Format a timestamp in seconds as MM:SS.
-pub fn format_timestamp(seconds : Int) -> String {
+pub fn format_timestamp(seconds : Int32) -> String {
   let total = if seconds < 0 { 0 } else { seconds }
   let minutes = total / 60
   let secs = total % 60
@@ -130,7 +130,7 @@ pub fn aggregate_summary(frames : Array[FrameAnalysis]) -> String {
 
 ///|
 /// Resolve the effective max_frames, clamped to [1, default_max_frames].
-pub fn resolve_max_frames(requested : Int?) -> Int {
+pub fn resolve_max_frames(requested : Int32?) -> Int32 {
   match requested {
     Some(n) if n > 0 =>
       if n > default_max_frames {
@@ -144,7 +144,7 @@ pub fn resolve_max_frames(requested : Int?) -> Int {
 
 ///|
 /// Resolve the effective interval_seconds, clamped to [1, 60].
-pub fn resolve_interval_seconds(requested : Int?) -> Int {
+pub fn resolve_interval_seconds(requested : Int32?) -> Int32 {
   match requested {
     Some(n) if n >= 1 => if n > 60 { 60 } else { n }
     _ => default_interval_seconds

@@ -32,7 +32,7 @@ pub fn RunStatus::to_string_value(self : RunStatus) -> String {
 pub(all) struct RunResult {
   status : RunStatus
   session_id : String
-  iterations : Int
+  iterations : Int32
   total_cost_usd : Double
   cost_source : CostSource
   cache_stats : CacheStats

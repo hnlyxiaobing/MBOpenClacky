@@ -24,7 +24,7 @@ pub extend ShellHookEvent with ToJson::{to_json}
 pub(all) struct ShellHook {
   name : String?
   command : String
-  timeout : Int
+  timeout : Int32
   event : ShellHookEvent
 } derive(Eq, Debug, ToJson)
 

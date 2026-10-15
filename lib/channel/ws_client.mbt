@@ -5,7 +5,7 @@
 /// WebSocket message received from server.
 pub(all) enum WsMessage {
   Text(String)
-  Closed(Int, String?)
+  Closed(Int32, String?)
 } derive(Eq, Debug)
 
 ///|

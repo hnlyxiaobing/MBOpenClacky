@@ -15,7 +15,7 @@ pub(all) struct ModelPricing {
   cache_write_over_200k : Double
   cache_read_default : Double
   cache_read_over_200k : Double
-  context_threshold : Int
+  context_threshold : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -28,7 +28,7 @@ pub extend ModelPricing with Eq::{not_equal, equal}
 
 ///|
 /// Note: OpenAI GPT-5.5/5.4 use 272K, but we approximate at 200K.
-let tiered_pricing_threshold : Int = 200_000
+let tiered_pricing_threshold : Int32 = 200_000
 
 ///| Build the complete pricing table for all supported models.
 

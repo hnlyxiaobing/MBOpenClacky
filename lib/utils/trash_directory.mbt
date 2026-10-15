@@ -7,7 +7,7 @@ pub struct TrashEntry {
   original_path : String // Original file path
   trash_path : String // Path in trash directory
   deleted_at : String // Deletion time in ISO8601
-  size_bytes : Int // File size in bytes
+  size_bytes : Int32 // File size in bytes
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -85,7 +85,7 @@ pub fn find_in_trash(
 /// Filter entries older than max_age_days based on simple ISO8601 date prefix comparison.
 pub fn expired_entries(
   entries : Array[TrashEntry],
-  max_age_days : Int,
+  max_age_days : Int32,
   current_date : String,
 ) -> Array[TrashEntry] {
   // Simple approach: compare date prefixes (YYYY-MM-DD)
@@ -131,7 +131,7 @@ fn extract_basename(path : String) -> String {
 
 ///|
 /// Find the last dot position in a filename (for extension splitting).
-fn find_last_dot(name : String) -> Int? {
+fn find_last_dot(name : String) -> Int32? {
   let chars = name.to_array()
   let mut last_dot = -1
   for i, c in chars {
@@ -171,7 +171,7 @@ pub fn basename_of(path : String) -> String {
 ///|
 /// Compute a cutoff date string by subtracting days from current date.
 /// Simple implementation: only adjusts day portion, wraps month roughly.
-fn compute_cutoff_date(current_date : String, days : Int) -> String {
+fn compute_cutoff_date(current_date : String, days : Int32) -> String {
   // Parse YYYY-MM-DD
   let date_str = current_date[:10].to_owned()
   let year = parse_int_safe(date_str[:4].to_owned()).unwrap_or(2024)
@@ -259,7 +259,7 @@ pub struct TrashMetadata {
   trash_directory : String
   deleted_at : String
   deleted_by : String
-  file_size : Int
+  file_size : Int32
   file_type : String
   file_mode : String
 } derive(Debug, Eq, ToJson, FromJson)
@@ -351,7 +351,7 @@ pub fn list_trash_entries(trash_dir : String) -> Array[TrashEntry] {
 
 ///|
 /// Recursively compute the total size in bytes of a directory tree.
-pub fn dir_size(path : String) -> Int {
+pub fn dir_size(path : String) -> Int32 {
   let is_dir = @fs.is_dir(path) catch { _ => false }
   if !is_dir {
     if @fs.path_exists(path) {
@@ -375,7 +375,7 @@ pub fn dir_size(path : String) -> Int {
 
 ///|
 /// Best-effort single-file size; 0 on any failure.
-fn file_size_safe(path : String) -> Int {
+fn file_size_safe(path : String) -> Int32 {
   let bytes = @fs.read_file_to_bytes(path) catch { _ => return 0 }
   bytes.length()
 }

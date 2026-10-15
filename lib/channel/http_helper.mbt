@@ -4,13 +4,13 @@
 /// Token cache with automatic refresh support.
 pub(all) struct TokenCache {
   mut token : String
-  mut expires_at : Int // milliseconds since epoch
-  refresh_threshold : Int // refresh before expiry (milliseconds)
+  mut expires_at : Int32 // milliseconds since epoch
+  refresh_threshold : Int32 // refresh before expiry (milliseconds)
 }
 
 ///|
 /// Create a new TokenCache.
-pub fn TokenCache::new(refresh_threshold_ms : Int) -> TokenCache {
+pub fn TokenCache::new(refresh_threshold_ms : Int32) -> TokenCache {
   { token: "", expires_at: 0, refresh_threshold: refresh_threshold_ms, }
 }
 
@@ -31,7 +31,7 @@ pub fn TokenCache::is_valid(self : TokenCache) -> Bool {
 pub fn TokenCache::get_or_refresh(
   self : TokenCache,
   new_token : String,
-  ttl_ms : Int,
+  ttl_ms : Int32,
 ) -> String {
   if self.token.is_empty() || !self.is_valid() {
     self.token = new_token
@@ -42,7 +42,11 @@ pub fn TokenCache::get_or_refresh(
 
 ///|
 /// Force update the cached token.
-pub fn TokenCache::set(self : TokenCache, token : String, ttl_ms : Int) -> Unit {
+pub fn TokenCache::set(
+  self : TokenCache,
+  token : String,
+  ttl_ms : Int32,
+) -> Unit {
   self.token = token
   self.expires_at = ttl_ms
 }
@@ -167,13 +171,13 @@ pub fn extract_api_error(json : Json) -> String {
 
 ///|
 /// Check if an HTTP status code indicates success.
-pub fn is_success_status(status : Int) -> Bool {
+pub fn is_success_status(status : Int32) -> Bool {
   status >= 200 && status < 300
 }
 
 ///|
 /// Map HTTP status code to a descriptive error message.
-pub fn http_status_error(status : Int, body : String) -> ChannelError {
+pub fn http_status_error(status : Int32, body : String) -> ChannelError {
   let base_msg = match status {
     400 => "Bad Request"
     401 => "Unauthorized"
@@ -196,8 +200,8 @@ pub fn http_status_error(status : Int, body : String) -> ChannelError {
 ///|
 /// Retry configuration for HTTP requests.
 pub(all) struct RetryConfig {
-  max_retries : Int
-  base_delay_ms : Int
+  max_retries : Int32
+  base_delay_ms : Int32
 }
 
 ///|
@@ -208,13 +212,16 @@ pub fn RetryConfig::default() -> RetryConfig {
 
 ///|
 /// Calculate delay for a given retry attempt (0-based).
-pub fn RetryConfig::delay_for_attempt(self : RetryConfig, attempt : Int) -> Int {
+pub fn RetryConfig::delay_for_attempt(
+  self : RetryConfig,
+  attempt : Int32,
+) -> Int32 {
   self.base_delay_ms * (1 << attempt) // exponential: 1x, 2x, 4x
 }
 
 ///|
 /// Determine if a request should be retried based on status code.
-pub fn should_retry_status(status : Int) -> Bool {
+pub fn should_retry_status(status : Int32) -> Bool {
   status == 429 || status == 500 || status == 502 || status == 503
 }
 
@@ -256,7 +263,7 @@ pub const WEIXIN_CDN_BASE : String = "https://novac2c.cdn.weixin.qq.com/c2c"
 
 ///|
 /// Default HTTP timeout for channel API calls (30 seconds).
-pub const CHANNEL_HTTP_TIMEOUT_MS : Int = 30_000
+pub const CHANNEL_HTTP_TIMEOUT_MS : Int32 = 30_000
 
 ///|
 /// Execute an HTTP POST request with JSON body and parse the JSON response.

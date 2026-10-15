@@ -4,7 +4,7 @@ pub(all) struct BackupConfig {
   mut enabled : Bool
   cron : String?
   mut dest_dir : String
-  mut keep : Int
+  mut keep : Int32
   mut include_sessions : Bool
 } derive(Eq, Debug, ToJson)
 
@@ -21,10 +21,10 @@ pub extend BackupConfig with ToJson::{to_json}
 /// Backup result
 pub(all) struct BackupResult {
   archive_path : String
-  size_bytes : Int
+  size_bytes : Int32
   dest_dir : String
   timestamp : String
-  files_count : Int
+  files_count : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|
@@ -41,7 +41,7 @@ pub extend BackupResult with ToJson::{to_json}
 pub(all) struct BackupEntry {
   name : String
   path : String
-  size_bytes : Int
+  size_bytes : Int32
   created_at : String
 } derive(Eq, Debug, ToJson)
 

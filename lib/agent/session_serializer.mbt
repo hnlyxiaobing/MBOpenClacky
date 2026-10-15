@@ -120,7 +120,7 @@ pub fn export_all_sessions_zip() -> Result[Bytes, String] {
 ///
 /// Expects the ZIP to contain sessions in "sessions/<id>.json" format.
 /// Returns the number of sessions imported.
-pub fn import_sessions_zip(zip_data : Bytes) -> Result[Int, String] {
+pub fn import_sessions_zip(zip_data : Bytes) -> Result[Int32, String] {
   let entries = match @zip.extract_zip(zip_data) {
     Ok(e) => e
     Err(err) => return Err(err)

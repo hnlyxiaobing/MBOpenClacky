@@ -11,7 +11,7 @@
 
 ///|
 priv struct ShellExecCounter {
-  mut value : Int
+  mut value : Int32
 }
 
 ///|
@@ -20,7 +20,7 @@ let shell_exec_counter : ShellExecCounter = { value: 0, }
 ///|
 pub(all) struct ShellExecResult {
   output : String
-  exit_code : Int
+  exit_code : Int32
 } derive(Debug)
 
 ///|
@@ -169,7 +169,7 @@ pub async fn run_shell_command(
 }
 
 ///|
-fn parse_shell_marker(output : String, token : String) -> Int? {
+fn parse_shell_marker(output : String, token : String) -> Int32? {
   let prefix = "__CLACKY_DONE_\{token}_"
   match output.find(prefix) {
     Some(pos) => {

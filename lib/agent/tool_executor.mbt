@@ -559,8 +559,8 @@ fn todo_tasks_arg(args : Map[String, Json]) -> Array[String] {
 
 ///|
 /// Collect the `id` argument (integer or array of integers).
-fn todo_ids_arg(args : Map[String, Json]) -> Array[Int] {
-  let out : Array[Int] = []
+fn todo_ids_arg(args : Map[String, Json]) -> Array[Int32] {
+  let out : Array[Int32] = []
   match args.get("id") {
     Some(Number(n, ..)) => out.push(n.to_int())
     Some(Array(items)) =>
@@ -995,7 +995,7 @@ fn Agent::inject_todo_reminder(
 ///|
 /// Maximum tool output length in characters before truncation.
 /// Matches Ruby's 80K limit to prevent context window overflow.
-pub let max_tool_output_chars : Int = 80000
+pub let max_tool_output_chars : Int32 = 80000
 
 ///|
 /// Truncate tool output if it exceeds the maximum length.

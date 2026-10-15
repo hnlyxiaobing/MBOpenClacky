@@ -242,8 +242,8 @@ fn show_trash_status(trash_dir : String, _project_root : String) -> ToolResult {
 
   // Group by file type (extension).
   let type_keys : Array[String] = []
-  let type_sizes : Map[String, Int] = Map([])
-  let type_counts : Map[String, Int] = Map([])
+  let type_sizes : Map[String, Int32] = Map([])
+  let type_counts : Map[String, Int32] = Map([])
   for f in deleted_files {
     let ext = file_type_of(f.original_path)
     if !type_sizes.contains(ext) {
@@ -296,7 +296,7 @@ fn show_trash_status(trash_dir : String, _project_root : String) -> ToolResult {
 /// empty: permanently delete files older than `days_old` days.
 async fn empty_trash(
   trash_dir : String,
-  days_old : Int,
+  days_old : Int32,
   _project_root : String,
 ) -> ToolResult {
   let deleted_files = @utils.list_trash_entries(trash_dir)
@@ -363,7 +363,7 @@ fn trash_help_text() -> String {
 /// Format a byte count into a human-readable string, mirroring Ruby's
 /// format_bytes: "0 B", "512 B", "1.0 KB", "1.5 MB" (round to 2, trailing
 /// zeros trimmed to one decimal place).
-pub fn format_bytes(bytes : Int) -> String {
+pub fn format_bytes(bytes : Int32) -> String {
   if bytes == 0 {
     return "0 B"
   }
@@ -417,7 +417,7 @@ fn format_time(time_str : String) -> String {
 }
 
 ///|
-fn parse_iso_parts(iso : String) -> (Int, Int, Int, Int, Int)? {
+fn parse_iso_parts(iso : String) -> (Int32, Int32, Int32, Int32, Int32)? {
   // Accept "YYYY-MM-DDTHH:MM:SS..." (any zone suffix).
   if iso.length() < 16 {
     return None
@@ -464,7 +464,7 @@ fn strip_iso_suffix(iso : String) -> String {
 }
 
 ///|
-fn utc_now_parts() -> (Int, Int, Int) {
+fn utc_now_parts() -> (Int32, Int32, Int32) {
   let sec = @env.now().reinterpret_as_int64() / 1000
   let dt = @time.PlainDateTime::from_unix_second(sec, 0, @time.utc_offset) catch {
     _ => return (1970, 1, 1)
@@ -473,7 +473,7 @@ fn utc_now_parts() -> (Int, Int, Int) {
 }
 
 ///|
-fn utc_yesterday_parts() -> (Int, Int, Int) {
+fn utc_yesterday_parts() -> (Int32, Int32, Int32) {
   let sec = @env.now().reinterpret_as_int64() / 1000
   let dt = @time.PlainDateTime::from_unix_second(
     sec - (24 * 60 * 60).to_int64(),
@@ -486,7 +486,7 @@ fn utc_yesterday_parts() -> (Int, Int, Int) {
 }
 
 ///|
-fn pad2(n : Int) -> String {
+fn pad2(n : Int32) -> String {
   if n < 10 {
     "0\{n}"
   } else {
@@ -544,7 +544,7 @@ fn ensure_dir(path : String) -> Unit {
 /// output is non-UTF-8, so both concerns are handled here: the command is
 /// carried verbatim in a .bat file (no MSVC argv re-escaping) with output
 /// redirected to `nul`.
-async fn run_silent(command : String) -> Int {
+async fn run_silent(command : String) -> Int32 {
   if shell_is_windows() {
     windows_bat_counter.val = windows_bat_counter.val + 1
     let bat_path = @path.Path::join(
@@ -575,7 +575,7 @@ async fn run_silent(command : String) -> Int {
 
 ///|
 /// Move a file or directory; returns the child exit code (0 = success).
-async fn move_path(src : String, dst : String) -> Int {
+async fn move_path(src : String, dst : String) -> Int32 {
   if shell_is_windows() {
     run_silent("move /Y \"" + src + "\" \"" + dst + "\"")
   } else {

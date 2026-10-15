@@ -16,17 +16,17 @@ pub(all) struct WeixinPendingMsg {
   chat_id : String
   text : String
   context_token : String
-  retry_count : Int
+  retry_count : Int32
 }
 
 ///|
 /// Weixin message send queue with throttling and retry.
 pub(all) struct WeixinSendQueue {
   mut pending_messages : Array[WeixinPendingMsg]
-  buffer_threshold : Int // 400 chars — flush when accumulated text exceeds
-  flush_interval_ms : Int // 800ms
-  min_send_interval_ms : Int // 1000ms between sends
-  max_message_length : Int // 2000 chars per message
+  buffer_threshold : Int32 // 400 chars — flush when accumulated text exceeds
+  flush_interval_ms : Int32 // 800ms
+  min_send_interval_ms : Int32 // 1000ms between sends
+  max_message_length : Int32 // 2000 chars per message
 }
 
 ///|
@@ -83,8 +83,8 @@ pub fn WeixinSendQueue::dequeue(self : WeixinSendQueue) -> WeixinPendingMsg? {
 /// Delays: [1000, 2000, 4000] ms, capped at 4000ms.
 pub fn WeixinSendQueue::calculate_retry_delay(
   _self : WeixinSendQueue,
-  retry_count : Int,
-) -> Int {
+  retry_count : Int32,
+) -> Int32 {
   if retry_count <= 0 {
     1000
   } else if retry_count == 1 {
@@ -96,7 +96,7 @@ pub fn WeixinSendQueue::calculate_retry_delay(
 
 ///|
 /// Get the number of pending messages in the queue.
-pub fn WeixinSendQueue::pending_count(self : WeixinSendQueue) -> Int {
+pub fn WeixinSendQueue::pending_count(self : WeixinSendQueue) -> Int32 {
   self.pending_messages.length()
 }
 
@@ -117,7 +117,7 @@ pub(all) struct WeixinAdapter {
   send_queue : WeixinSendQueue?
   mut context_token : String?
   mut updates_buf : String?
-  mut last_send_time : Int
+  mut last_send_time : Int32
 }
 
 ///|
@@ -810,7 +810,7 @@ fn strip_markdown_links(text : String) -> String {
 /// Split a long message into chunks of max_length characters.
 ///
 /// Splits at newline boundaries when possible.
-pub fn split_weixin_message(text : String, max_length : Int) -> Array[String] {
+pub fn split_weixin_message(text : String, max_length : Int32) -> Array[String] {
   if text.length() <= max_length {
     [text]
   } else {
@@ -848,7 +848,7 @@ pub fn split_weixin_message(text : String, max_length : Int) -> Array[String] {
 /// Check if the iLink API response indicates rate limiting.
 ///
 /// ret == -2 means the bot is sending too fast.
-pub fn is_rate_limited(ret_code : Int) -> Bool {
+pub fn is_rate_limited(ret_code : Int32) -> Bool {
   ret_code == -2
 }
 

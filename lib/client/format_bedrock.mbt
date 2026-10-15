@@ -32,7 +32,7 @@ pub fn build_bedrock_request(
   messages : Array[@message.Message],
   _model : String,
   tools : Array[Json],
-  max_tokens : Int,
+  max_tokens : Int32,
   enable_caching : Bool,
   reasoning_effort~ : String? = None,
 ) -> Json {

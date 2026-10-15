@@ -37,7 +37,7 @@ pub(all) struct SendRequest {
   messages : Array[@message.Message]
   model : String
   tools : Array[Json]
-  max_tokens : Int
+  max_tokens : Int32
   enable_caching : Bool
   reasoning_effort : String?
 }
@@ -178,7 +178,7 @@ pub fn Client::build_simple_request(
   self : Client,
   content : String,
   model : String,
-  max_tokens : Int,
+  max_tokens : Int32,
 ) -> Json {
   let messages = [@message.Message::user(content)]
   let model = self.api_model_for(model)
@@ -415,7 +415,7 @@ fn has_claude_cache_gen(model : String) -> Bool {
 ///|
 /// Map an HTTP status code and response body to a project error.
 /// Returns None for 2xx success, or Some(error_description) for errors.
-pub fn map_http_error(status : Int, body_text : String) -> String? {
+pub fn map_http_error(status : Int32, body_text : String) -> String? {
   guard status < 200 || status >= 300 else { return None }
   let error_message = extract_error_message(body_text)
 

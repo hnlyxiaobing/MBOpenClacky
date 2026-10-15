@@ -30,9 +30,9 @@ pub(all) struct RecordedRequest {
 pub(all) struct MockLlmServer {
   listener : @socket.TcpServer
   steps : Array[Json]
-  mut cursor : Int
+  mut cursor : Int32
   requests : Array[RecordedRequest]
-  mut serial : Int
+  mut serial : Int32
   mut stopped : Bool
 }
 
@@ -46,7 +46,7 @@ pub async fn MockLlmServer::new(steps : Array[Json]) -> MockLlmServer {
 
 ///|
 /// 实际监听的端口号。
-pub fn MockLlmServer::port(self : MockLlmServer) -> Int {
+pub fn MockLlmServer::port(self : MockLlmServer) -> Int32 {
   self.listener.addr.port()
 }
 
@@ -230,7 +230,7 @@ fn strip_trailing_slash(path : String) -> String {
 
 ///|
 /// 发送简短的纯文本响应。
-async fn send_text(conn : @socket.Tcp, status : Int, body : String) -> Unit {
+async fn send_text(conn : @socket.Tcp, status : Int32, body : String) -> Unit {
   conn.write(
     "HTTP/1.1 \{status} Error\r\nContent-Type: text/plain\r\nContent-Length: \{body.length()}\r\nConnection: close\r\n\r\n\{body}",
   )
@@ -300,7 +300,7 @@ async fn read_body(conn : @socket.Tcp, headers : Map[String, String]) -> String 
 
 ///|
 /// 解析十六进制字符串（chunked 编码的 chunk 大小）。
-fn parse_hex(s : String) -> Int {
+fn parse_hex(s : String) -> Int32 {
   let mut n = 0
   for c in s {
     let d = match c {
@@ -529,7 +529,7 @@ fn MockLlmServer::build_sse(
 ///|
 /// 按字符数切分字符串（UTF-16 code unit 粒度，chunk 边界只影响送达节奏，
 /// 不影响客户端重组结果——客户端按 SSE 帧重组后再解析）。
-fn split_chars(s : String, size : Int) -> Array[String] {
+fn split_chars(s : String, size : Int32) -> Array[String] {
   let pieces : Array[String] = []
   let n = if size <= 0 { 1 } else { size }
   let mut i = 0

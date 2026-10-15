@@ -12,7 +12,7 @@
 
 ///|
 /// Maximum number of fake tool call retries before giving up.
-pub let max_fake_tool_call_retries : Int = 2
+pub let max_fake_tool_call_retries : Int32 = 2
 
 ///|
 /// Ceiling on ReAct loop iterations per task (B7 decision 6, MB superset).
@@ -20,7 +20,7 @@ pub let max_fake_tool_call_retries : Int = 2
 /// Ruby has no such limit; this guards against runaway loops caused by
 /// models that keep emitting tool calls forever. Generous multiple of
 /// observed real-world task lengths (typically < 50 iterations).
-pub const MAX_ITERATIONS : Int = 200
+pub const MAX_ITERATIONS : Int32 = 200
 
 ///|
 /// XML patterns that indicate a fake tool call in content.

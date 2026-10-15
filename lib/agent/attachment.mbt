@@ -29,7 +29,7 @@ pub(all) struct Attachment {
   mime_type : String
   /// Byte size. Only populated where Ruby populates it for CLI files
   /// (images and video); `None` suppresses the `Size:` line, matching Ruby.
-  size_bytes : Int?
+  size_bytes : Int32?
   /// Path the LLM should read for a preview. Ruby points text/csv at the
   /// original file (the content *is* the preview).
   preview_path : String?
@@ -128,7 +128,7 @@ fn attachment_text_preview_extension(ext : String) -> Bool {
 /// `Agent#format_size` — `0B` / `<n>B` / `<n>KB` / `<n.n>MB`.
 /// KB rounds to the nearest integer, MB keeps one decimal (Ruby uses
 /// `round(0)` / `round(1)`).
-pub fn attachment_format_size(bytes : Int) -> String {
+pub fn attachment_format_size(bytes : Int32) -> String {
   if bytes >= 1024 * 1024 {
     let mb = bytes.to_double() / 1024.0 / 1024.0
     "\{round1(mb)}MB"
@@ -155,7 +155,7 @@ fn round1(value : Double) -> String {
 
 ///|
 /// Half-up rounding to an integer (Ruby `Float#round(0)`).
-fn round0(value : Double) -> Int {
+fn round0(value : Double) -> Int32 {
   (value + 0.5).to_int()
 }
 
@@ -186,7 +186,7 @@ pub fn attachment_classify(path : String) -> Attachment {
   // branches (`ref.type == :video` sets it; vision images get it from the
   // resolver). Text/csv/generic files keep `size_bytes: nil` so the prompt
   // omits the `Size:` line — do the same to keep the prompt byte-identical.
-  let size_bytes : Int? = if kind == "image" || kind == "video" {
+  let size_bytes : Int32? = if kind == "image" || kind == "video" {
     Some(attachment_file_size(path))
   } else {
     None
@@ -211,7 +211,7 @@ pub fn attachment_classify(path : String) -> Attachment {
 
 ///|
 /// Byte size of a file, or `0` when it cannot be read.
-fn attachment_file_size(path : String) -> Int {
+fn attachment_file_size(path : String) -> Int32 {
   let bytes = @fs.read_file_to_bytes(path) catch { _ => return 0 }
   bytes.length()
 }

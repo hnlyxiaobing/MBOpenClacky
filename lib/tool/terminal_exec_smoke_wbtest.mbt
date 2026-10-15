@@ -157,7 +157,7 @@ async test "terminal execute: kill terminates background session" {
 
 ///|
 /// Extract "session #N" from a background hint.
-fn extract_session_id(content : String) -> Int? {
+fn extract_session_id(content : String) -> Int32? {
   let marker = "session #"
   match content.find(marker) {
     Some(idx) => {

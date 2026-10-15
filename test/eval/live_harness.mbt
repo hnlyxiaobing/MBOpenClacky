@@ -35,12 +35,12 @@ pub let live_tool_allowlist : Array[String] = [
 pub(all) struct LiveRunOutcome {
   /// `RunStatus` of the agent run ("Success"/"Error"/"Interrupted").
   status : String
-  iterations : Int
+  iterations : Int32
   cost_usd : Double
   /// `cost_source` of the run: `Api`/`Price`/`Default`/`Estimated`.
   cost_source : String
-  prompt_tokens : Int
-  completion_tokens : Int
+  prompt_tokens : Int32
+  completion_tokens : Int32
   /// Compact, ordered log of the tool calls the model made.
   tool_steps : Array[String]
   transcript : String
@@ -73,7 +73,7 @@ pub(all) struct LiveTrialResult {
   task_id : String
   goal : String
   /// 1-based trial index.
-  trial : Int
+  trial : Int32
   /// Every assertion passed (checks + seed materialization).
   passed : Bool
   assertions : Array[HarnessAssertion]
@@ -87,13 +87,13 @@ pub(all) struct LiveTrialResult {
 pub(all) struct LiveReport {
   results : Array[LiveTrialResult]
   /// Repetition count reported in the score vector.
-  nominal_trials : Int
+  nominal_trials : Int32
 }
 
 ///|
 /// Trials whose agent run failed outright (transport, auth, exhausted retries).
 /// These make the command fail; failed *checks* do not.
-pub fn LiveReport::infrastructure_errors(self : LiveReport) -> Int {
+pub fn LiveReport::infrastructure_errors(self : LiveReport) -> Int32 {
   let mut count = 0
   for result in self.results {
     if result.outcome.status == "Error" {
@@ -140,7 +140,7 @@ pub async fn run_live_batch(
   tasks : Array[HarnessTask],
   sandbox_root : String,
   transcripts_dir : String,
-  trials_override : Int?,
+  trials_override : Int32?,
   runner : async (String, String) -> LiveRunOutcome,
 ) -> LiveReport {
   let results : Array[LiveTrialResult] = []
@@ -217,7 +217,7 @@ pub async fn run_live_batch(
 fn write_transcript(
   path : String,
   task : HarnessTask,
-  trial : Int,
+  trial : Int32,
   outcome : LiveRunOutcome,
 ) -> Unit {
   let lines : Array[String] = [
@@ -259,7 +259,7 @@ fn write_transcript(
 pub fn LiveReport::to_score_json(
   self : LiveReport,
   mode : String,
-  trials : Int,
+  trials : Int32,
 ) -> Json {
   let base = self
     .as_harness_report()
@@ -318,7 +318,7 @@ pub fn LiveReport::to_score_json(
 pub fn LiveReport::to_markdown(
   self : LiveReport,
   mode : String,
-  trials : Int,
+  trials : Int32,
 ) -> String {
   let score = self.as_harness_report().score(trials, cost_usd=self.total_cost())
   let lines : Array[String] = []
@@ -466,7 +466,7 @@ pub fn make_agent_live_runner(
     agent.tool_registry = live_registry()
     let transcript : Array[String] = []
     let tool_steps : Array[String] = []
-    let tokens : Array[Int] = [0, 0]
+    let tokens : Array[Int32] = [0, 0]
     agent.hook_manager.register(fn(evt : @agent.HookEvent) {
       match evt {
         @agent.StreamChunk(text) => transcript.push(text)
@@ -546,7 +546,7 @@ fn live_registry() -> @tool.ToolRegistry {
 ///|
 /// Char-safe truncation for log lines (MoonBit strings are indexed by code
 /// unit, so slicing at a byte offset would split multibyte characters).
-fn truncate_text(text : String, limit : Int) -> String {
+fn truncate_text(text : String, limit : Int32) -> String {
   let chars = text.to_array()
   if chars.length() <= limit {
     return text.split("\n").collect().join(" ")

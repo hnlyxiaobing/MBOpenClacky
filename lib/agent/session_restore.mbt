@@ -21,8 +21,8 @@ pub(all) struct RestoreResult {
   total_cost : Double
   cost_source : String
   channel_info : ChannelInfo?
-  latest_latency_ms : Int?
-  latest_ttft_ms : Int?
+  latest_latency_ms : Int32?
+  latest_ttft_ms : Int32?
   time_machine : SessionTimeMachine?
   needs_error_rollback : Bool
   model_recovered : Bool // Whether original model was found

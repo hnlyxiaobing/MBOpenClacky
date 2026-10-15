@@ -23,7 +23,7 @@ pub extend SseFrame with Eq::{not_equal, equal}
 /// Callback trait for streaming progress notifications.
 pub(open) trait StreamCallback {
   ///| Called when new token usage information is available.
-  fn on_chunk(Self, input_tokens : Int, output_tokens : Int) -> Unit
+  fn on_chunk(Self, input_tokens : Int32, output_tokens : Int32) -> Unit
 }
 
 // ── SSE Frame Parser ────────────────────────────────────────────────────────
@@ -277,16 +277,16 @@ struct OpenAiToolCallAcc {
 /// - `saw_done` flips true on the `[DONE]` sentinel.
 pub(all) struct OpenAiStreamAggregator {
   mut content_parts : Array[String]
-  mut content_len : Int
+  mut content_len : Int32
   mut reasoning_parts : Array[String]
-  mut reasoning_len : Int
+  mut reasoning_len : Int32
   mut tool_calls : Array[OpenAiToolCallAcc]
   mut finish_reason : String?
   mut usage : Usage?
-  mut last_output_tokens : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut last_output_tokens : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
   mut saw_done : Bool
 }
 
@@ -523,7 +523,7 @@ pub fn OpenAiStreamAggregator::to_response(
 /// produced no observable output yet.
 pub fn OpenAiStreamAggregator::approximate_output_tokens(
   self : OpenAiStreamAggregator,
-) -> Int {
+) -> Int32 {
   let mut bytes = self.content_len + self.reasoning_len
   for tc in self.tool_calls {
     bytes = bytes + tc.arguments.length()
@@ -619,17 +619,17 @@ struct ResponsesToolCallAcc {
 /// No `[DONE]` sentinel — stream ends with a terminal event.
 pub(all) struct OpenAiResponsesStreamAggregator {
   mut content_parts : Array[String]
-  mut content_len : Int
+  mut content_len : Int32
   mut reasoning_parts : Array[String]
-  mut reasoning_len : Int
+  mut reasoning_len : Int32
   mut tool_calls : Array[ResponsesToolCallAcc]
   mut current_item_type : String?
-  mut current_item_index : Int
+  mut current_item_index : Int32
   mut finish_reason : String?
   mut usage : Usage?
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
 
 ///|
@@ -855,7 +855,7 @@ pub fn OpenAiResponsesStreamAggregator::to_response(
 /// log_stream_summary.
 pub fn OpenAiResponsesStreamAggregator::approximate_output_tokens(
   self : OpenAiResponsesStreamAggregator,
-) -> Int {
+) -> Int32 {
   let mut bytes = self.content_len + self.reasoning_len
   for tc in self.tool_calls {
     bytes = bytes + tc.arguments.length()
@@ -899,14 +899,14 @@ struct AnthropicBlockAcc {
 pub(all) struct AnthropicStreamAggregator {
   mut blocks : Array[AnthropicBlockAcc]
   mut stop_reason : String?
-  mut input_tokens : Int
-  mut output_tokens : Int
-  mut cache_creation : Int
-  mut cache_read : Int
-  mut last_output_tokens : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut input_tokens : Int32
+  mut output_tokens : Int32
+  mut cache_creation : Int32
+  mut cache_read : Int32
+  mut last_output_tokens : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
 
 ///|
@@ -1214,7 +1214,7 @@ pub fn AnthropicStreamAggregator::to_response(
 /// thinking, and tool-use JSON arguments, divide by 4, round up.
 pub fn AnthropicStreamAggregator::approximate_output_tokens(
   self : AnthropicStreamAggregator,
-) -> Int {
+) -> Int32 {
   let mut bytes = 0
   for block in self.blocks {
     match block.kind {
@@ -1269,15 +1269,15 @@ struct BedrockBlockAcc {
 /// `[DONE]` sentinel — the stream terminates with `messageStop`.
 pub(all) struct BedrockStreamAggregator {
   mut role : String
-  mut blocks : Map[Int, BedrockBlockAcc]
+  mut blocks : Map[Int32, BedrockBlockAcc]
   mut stop_reason : String?
-  mut input_tokens : Int
-  mut output_tokens : Int
-  mut cache_read : Int
-  mut cache_write : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut input_tokens : Int32
+  mut output_tokens : Int32
+  mut cache_read : Int32
+  mut cache_write : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
 
 ///|
@@ -1497,7 +1497,7 @@ pub fn BedrockStreamAggregator::handle(
 /// suitable for consumption by parse_bedrock_response.
 pub fn BedrockStreamAggregator::to_json(self : BedrockStreamAggregator) -> Json {
   // Collect and sort block indices
-  let indices : Array[Int] = []
+  let indices : Array[Int32] = []
   for k, _ in self.blocks {
     indices.push(k)
   }
@@ -1591,7 +1591,7 @@ pub fn BedrockStreamAggregator::to_response(
 /// reasoning, and tool-use JSON arguments, divide by 4, round up.
 pub fn BedrockStreamAggregator::approximate_output_tokens(
   self : BedrockStreamAggregator,
-) -> Int {
+) -> Int32 {
   let mut bytes = 0
   for _, block in self.blocks {
     match block.kind {
@@ -1612,7 +1612,7 @@ pub fn BedrockStreamAggregator::approximate_output_tokens(
 
 ///|
 /// Safely extract an integer from a JSON object, defaulting to 0.
-fn json_int(json : Json, key : String) -> Int {
+fn json_int(json : Json, key : String) -> Int32 {
   match json {
     Object(obj) =>
       match obj.get(key) {
@@ -1626,7 +1626,7 @@ fn json_int(json : Json, key : String) -> Int {
 ///|
 /// Extract an integer index from a JSON object, defaulting to `fallback`
 /// when the key is absent (mirrors Ruby `data["index"] || fallback`).
-fn index_or(json : Json, key : String, fallback : Int) -> Int {
+fn index_or(json : Json, key : String, fallback : Int32) -> Int32 {
   match json {
     Object(obj) =>
       match obj.get(key) {
@@ -1639,13 +1639,13 @@ fn index_or(json : Json, key : String, fallback : Int) -> Int {
 
 ///|
 /// Index lookup defaulting to 0.
-fn index_or_zero(json : Json, key : String) -> Int {
+fn index_or_zero(json : Json, key : String) -> Int32 {
   index_or(json, key, 0)
 }
 
 ///|
 /// Index lookup defaulting to a collection size (append-at-end semantics).
-fn index_or_size(json : Json, key : String, size : Int) -> Int {
+fn index_or_size(json : Json, key : String, size : Int32) -> Int32 {
   index_or(json, key, size)
 }
 
@@ -1654,7 +1654,7 @@ fn index_or_size(json : Json, key : String, size : Int) -> Int {
 /// index is beyond the current array length.
 fn set_block_at(
   blocks : Array[AnthropicBlockAcc],
-  idx : Int,
+  idx : Int32,
   block : AnthropicBlockAcc,
 ) -> Unit {
   while blocks.length() <= idx {

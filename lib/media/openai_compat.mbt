@@ -5,19 +5,19 @@
 ///|
 /// Upstream-parity HTTP timeouts (milliseconds): image 240s, video 600s,
 /// speech 120s, transcription 30s, generated-URL download 60s.
-const MEDIA_IMAGE_TIMEOUT_MS : Int = 240000
+const MEDIA_IMAGE_TIMEOUT_MS : Int32 = 240000
 
 ///|
-const MEDIA_VIDEO_TIMEOUT_MS : Int = 600000
+const MEDIA_VIDEO_TIMEOUT_MS : Int32 = 600000
 
 ///|
-const MEDIA_SPEECH_TIMEOUT_MS : Int = 120000
+const MEDIA_SPEECH_TIMEOUT_MS : Int32 = 120000
 
 ///|
-const MEDIA_TRANSCRIPTION_TIMEOUT_MS : Int = 30000
+const MEDIA_TRANSCRIPTION_TIMEOUT_MS : Int32 = 30000
 
 ///|
-const MEDIA_DOWNLOAD_TIMEOUT_MS : Int = 60000
+const MEDIA_DOWNLOAD_TIMEOUT_MS : Int32 = 60000
 
 ///|
 /// Human-readable transport error text (Debug to string via repr).
@@ -164,7 +164,7 @@ async fn openai_media_via_data_endpoint(
   prefix : String,
   ext : String,
   endpoint : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   request_body : String,
   base_url : String,
   api_key : String,

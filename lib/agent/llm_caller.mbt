@@ -12,35 +12,35 @@
 
 ///|
 /// Number of consecutive RetryableErrors before activating fallback.
-pub let retries_before_fallback : Int = 3
+pub let retries_before_fallback : Int32 = 3
 
 ///|
 /// Maximum retry attempts when operating on the fallback model.
-pub let max_retries_on_fallback : Int = 5
+pub let max_retries_on_fallback : Int32 = 5
 
 ///|
 /// Cooldown period (seconds) before probing the primary model again.
-pub let fallback_cooldown_seconds : Int = 1800
+pub let fallback_cooldown_seconds : Int32 = 1800
 
 ///|
 /// Maximum number of retry attempts for a single LLM call.
-pub let max_retries : Int = 10
+pub let max_retries : Int32 = 10
 
 ///|
 /// Base delay in milliseconds for retries (fixed, mirrors Ruby's
 /// `sleep retry_delay` — no exponential growth).
-pub let retry_base_delay_ms : Int = 5000
+pub let retry_base_delay_ms : Int32 = 5000
 
 ///|
 /// Maximum delay in milliseconds (kept for API compatibility; Ruby has no
 /// cap concept since the delay is constant).
-pub let retry_max_delay_ms : Int = 60000
+pub let retry_max_delay_ms : Int32 = 60000
 
 ///|
 /// Delay before the next retry. Ruby sleeps a constant `retry_delay` (5s)
 /// on every retry (openclacky llm_caller.rb:54-55); MB mirrors that —
 /// the value is independent of the attempt number.
-fn retry_delay_ms(_attempt : Int) -> Int {
+fn retry_delay_ms(_attempt : Int32) -> Int32 {
   match retry_delay_override_ms.val {
     Some(ms) => ms
     None => retry_base_delay_ms
@@ -51,10 +51,10 @@ fn retry_delay_ms(_attempt : Int) -> Int {
 /// Test hook: when Some, `retry_delay_ms` returns this instead of
 /// `retry_base_delay_ms`, so retry-exhaustion tests don't sleep 5s per
 /// attempt. Production never sets it.
-let retry_delay_override_ms : Ref[Int?] = Ref(None)
+let retry_delay_override_ms : Ref[Int32?] = Ref(None)
 
 ///|
-pub fn set_retry_delay_override_for_test(ms : Int?) -> Unit {
+pub fn set_retry_delay_override_for_test(ms : Int32?) -> Unit {
   retry_delay_override_ms.val = ms
 }
 
@@ -63,7 +63,7 @@ pub fn set_retry_delay_override_for_test(ms : Int?) -> Unit {
 /// (5xx, 429, 400 with throttling body) or a non-retryable BadRequestError
 /// (everything else).
 fn classify_http_error(
-  status_code : Int,
+  status_code : Int32,
   body : String,
   detail : String,
 ) -> Unit raise {
@@ -279,7 +279,7 @@ pub async fn Agent::call_stream_with_retry_async(
 /// reports `llm.error.request_timeout`; every other retryable error
 /// reports `llm.error.service_unavailable` (Ruby's ConnectionFailed branch
 /// has no MB counterpart — connection failures surface as RetryableError).
-fn llm_retry_exhausted_message(err : Error, retries : Int) -> String {
+fn llm_retry_exhausted_message(err : Error, retries : Int32) -> String {
   let key = match err {
     @errors.LlmTimeoutError(_) => "llm.error.request_timeout"
     _ => "llm.error.service_unavailable"
@@ -313,7 +313,7 @@ pub extend OverflowMode with Eq::{not_equal, equal}
 /// "insufficient_credit" regardless of the body. top_up_url resolves to the
 /// current provider preset's website_url — never a hardcoded console, since
 /// the agent may run against any provider.
-fn Agent::record_llm_error(self : Agent, status : Int, body : String) -> Unit {
+fn Agent::record_llm_error(self : Agent, status : Int32, body : String) -> Unit {
   let extracted = @client.extract_error_code(body)
   let code = if extracted == Some("insufficient_credit") || status == 402 {
     Some("insufficient_credit")
@@ -481,7 +481,7 @@ pub async fn Agent::call_llm_async(self : Agent) -> @client.LlmResponse {
 fn build_latency(
   t0_ms : Int64,
   ttft_abs_ms : Int64,
-  output_tokens : Int,
+  output_tokens : Int32,
   model : String,
   streaming : Bool,
 ) -> @client.Latency {
@@ -1125,7 +1125,7 @@ pub fn Agent::handle_context_overflow(
 ///|
 /// Return the first `max_chars` characters of `body` for diagnostics.
 /// Appends "..." when the body was truncated.
-fn body_snippet(body : String, max_chars : Int) -> String {
+fn body_snippet(body : String, max_chars : Int32) -> String {
   let buf = StringBuilder()
   let mut count = 0
   let mut truncated = false

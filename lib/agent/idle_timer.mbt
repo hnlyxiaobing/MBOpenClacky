@@ -2,17 +2,17 @@
 
 ///|
 /// Idle compression timer constants.
-let idle_delay : Int = 266 // seconds, < 5 min cache TTL
+let idle_delay : Int32 = 266 // seconds, < 5 min cache TTL
 
 ///|
 /// Default idle threshold in milliseconds (5 minutes).
-let default_idle_threshold_ms : Int = 300_000
+let default_idle_threshold_ms : Int32 = 300_000
 
 ///|
 /// Timer state.
 pub(all) enum TimerState {
   Idle // not started
-  Waiting(Int) // started, counting down (remaining seconds)
+  Waiting(Int32) // started, counting down (remaining seconds)
   Compressing // compression in progress
   Cancelled // explicitly cancelled
 } derive(Eq, Debug)
@@ -29,13 +29,13 @@ pub extend TimerState with Eq::{not_equal, equal}
 /// Tracks user activity and triggers compression when the conversation
 /// has been idle beyond the configured threshold.
 pub(all) struct IdleCompressionTimer {
-  delay : Int // idle_delay seconds
+  delay : Int32 // idle_delay seconds
   mut state : TimerState
-  mut last_activity_at : Int // last user activity timestamp (ms)
-  mut compress_count : Int // number of successful compressions
+  mut last_activity_at : Int32 // last user activity timestamp (ms)
+  mut compress_count : Int32 // number of successful compressions
   // 鈹€鈹€ Enhanced fields 鈹€鈹€
   mut active : Bool // whether the timer is actively monitoring
-  idle_threshold_ms : Int // ms of inactivity before compression (default 300000)
+  idle_threshold_ms : Int32 // ms of inactivity before compression (default 300000)
   mut timer_id : String? // optional timer identifier
 } derive(Debug)
 
@@ -59,7 +59,7 @@ pub fn IdleCompressionTimer::new() -> IdleCompressionTimer {
 ///|
 /// Create a new idle timer with a custom idle threshold in milliseconds.
 pub fn IdleCompressionTimer::with_threshold(
-  idle_threshold_ms : Int,
+  idle_threshold_ms : Int32,
 ) -> IdleCompressionTimer {
   {
     delay: idle_delay,
@@ -76,7 +76,7 @@ pub fn IdleCompressionTimer::with_threshold(
 /// Start the timer (called when agent becomes idle).
 pub fn IdleCompressionTimer::start(
   self : IdleCompressionTimer,
-  current_time : Int,
+  current_time : Int32,
 ) -> Unit {
   self.state = Waiting(self.delay)
   self.last_activity_at = current_time
@@ -118,7 +118,7 @@ pub fn IdleCompressionTimer::compressing(self : IdleCompressionTimer) -> Bool {
 /// Tick the timer (called periodically), returns true if compression should start.
 pub fn IdleCompressionTimer::tick(
   self : IdleCompressionTimer,
-  elapsed_seconds : Int,
+  elapsed_seconds : Int32,
 ) -> Bool {
   match self.state {
     Waiting(remaining) => {
@@ -148,7 +148,7 @@ pub fn IdleCompressionTimer::compression_done(
 /// Get compression count.
 pub fn IdleCompressionTimer::get_compress_count(
   self : IdleCompressionTimer,
-) -> Int {
+) -> Int32 {
   self.compress_count
 }
 
@@ -161,7 +161,7 @@ pub fn IdleCompressionTimer::get_compress_count(
 /// compression from triggering while the user is actively working.
 pub fn IdleCompressionTimer::reset_activity(
   self : IdleCompressionTimer,
-  current_time_ms : Int,
+  current_time_ms : Int32,
 ) -> Unit {
   self.last_activity_at = current_time_ms
   // If we were cancelled, restart the waiting state
@@ -178,7 +178,7 @@ pub fn IdleCompressionTimer::reset_activity(
 /// Returns true if enough time has passed to consider the conversation idle.
 pub fn IdleCompressionTimer::is_idle(
   self : IdleCompressionTimer,
-  current_time_ms : Int,
+  current_time_ms : Int32,
 ) -> Bool {
   if self.last_activity_at == 0 {
     return false
@@ -197,8 +197,8 @@ pub fn IdleCompressionTimer::is_idle(
 /// 4. The conversation has enough messages to make compression worthwhile
 pub fn IdleCompressionTimer::should_compress(
   self : IdleCompressionTimer,
-  message_count : Int,
-  current_time_ms : Int,
+  message_count : Int32,
+  current_time_ms : Int32,
 ) -> Bool {
   if !self.active {
     return false
@@ -224,8 +224,8 @@ pub fn IdleCompressionTimer::should_compress(
 /// After the caller completes compression, call `compression_done()`.
 pub fn IdleCompressionTimer::trigger_idle_compression(
   self : IdleCompressionTimer,
-  message_count : Int,
-  current_time_ms : Int,
+  message_count : Int32,
+  current_time_ms : Int32,
 ) -> Bool {
   if !self.should_compress(message_count, current_time_ms) {
     return false

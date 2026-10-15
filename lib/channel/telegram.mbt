@@ -2,7 +2,7 @@
 
 ///|
 /// Maximum message length for Telegram Bot API.
-pub const TELEGRAM_MAX_MESSAGE_LENGTH : Int = 4096
+pub const TELEGRAM_MAX_MESSAGE_LENGTH : Int32 = 4096
 
 ///|
 /// Telegram API client for making Bot API calls.
@@ -53,8 +53,8 @@ pub fn TelegramApiClient::request_headers(
 /// Build the getUpdates API request payload as JSON.
 pub fn TelegramApiClient::get_updates_payload(
   _self : TelegramApiClient,
-  offset : Int,
-  timeout : Int,
+  offset : Int32,
+  timeout : Int32,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
   payload.set("offset", Json(offset))
@@ -189,31 +189,31 @@ pub(all) struct TelegramAdapter {
   bot_token : String
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
-  mut last_update_id : Int
+  mut last_update_id : Int32
   /// Current reconnect backoff in ms (reset to the base after a good poll).
-  mut poll_backoff_ms : Int
+  mut poll_backoff_ms : Int32
   /// Pause between empty polls in ms (depends only on how fast the server
   /// answers, not on Telegram's own long-poll hold time).
-  mut poll_idle_ms : Int
+  mut poll_idle_ms : Int32
   api_client : TelegramApiClient
 }
 
 ///|
 /// Long-poll timeout requested from Telegram (seconds). Telegram holds the
 /// request open for this long when it has nothing to report.
-let telegram_poll_timeout_s : Int = 25
+let telegram_poll_timeout_s : Int32 = 25
 
 ///|
 /// Initial reconnect backoff after a failed poll (ms).
-let telegram_backoff_base_ms : Int = 1_000
+let telegram_backoff_base_ms : Int32 = 1_000
 
 ///|
 /// Backoff cap (ms) — a broken token or a long outage must not spin.
-let telegram_backoff_max_ms : Int = 30_000
+let telegram_backoff_max_ms : Int32 = 30_000
 
 ///|
 /// Default pause between empty polls (ms).
-let telegram_poll_idle_ms_default : Int = 200
+let telegram_poll_idle_ms_default : Int32 = 200
 
 ///|
 /// Create a new TelegramAdapter from channel configuration.
@@ -283,7 +283,7 @@ pub impl Adapter for TelegramAdapter with fn start(
 /// API failure is reported as `Err` so the loop can back off.
 pub async fn TelegramAdapter::poll_once(
   self : TelegramAdapter,
-) -> Result[Int, ChannelError] {
+) -> Result[Int32, ChannelError] {
   let payload = self.api_client.get_updates_payload(
     self.last_update_id + 1,
     telegram_poll_timeout_s,
@@ -458,7 +458,7 @@ pub impl Adapter for TelegramAdapter with fn validate_config(self) -> Array[
 
 ///|
 /// Extract the update_id from a Telegram Update JSON object.
-pub fn extract_update_id(update : Map[String, Json]) -> Int {
+pub fn extract_update_id(update : Map[String, Json]) -> Int32 {
   match update.get("update_id") {
     Some(Number(n, ..)) => n.to_int()
     _ => 0
@@ -771,8 +771,8 @@ pub fn build_telegram_delete_request(
 ///|
 /// Find the last occurrence of `needle` in `haystack`.
 /// Returns the starting index of the last occurrence, or None if not found.
-pub fn find_last_str(haystack : StringView, needle : String) -> Int? {
-  let mut result : Int? = None
+pub fn find_last_str(haystack : StringView, needle : String) -> Int32? {
+  let mut result : Int32? = None
   let needle_len = needle.length()
   if needle_len == 0 || needle_len > haystack.length() {
     return None

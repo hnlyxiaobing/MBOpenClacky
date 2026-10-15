@@ -2,7 +2,7 @@
 
 ///|
 /// Default idle timeout in seconds before a connection is cleaned up.
-const DEFAULT_IDLE_TIMEOUT : Int = 300
+const DEFAULT_IDLE_TIMEOUT : Int32 = 300
 
 ///|
 /// Registry managing multiple MCP server connections.
@@ -11,7 +11,7 @@ pub(all) struct McpRegistry {
   config_path : String?
   mut specs : Map[String, McpServerSpec]
   mut enabled : Map[String, Bool]
-  idle_timeout : Int // 300 seconds
+  idle_timeout : Int32 // 300 seconds
 }
 
 ///|
@@ -286,13 +286,13 @@ pub fn McpRegistry::shutdown(self : McpRegistry) -> Unit {
 
 ///|
 /// Get the number of registered specs.
-pub fn McpRegistry::spec_count(self : McpRegistry) -> Int {
+pub fn McpRegistry::spec_count(self : McpRegistry) -> Int32 {
   self.specs.length()
 }
 
 ///|
 /// Get the number of active clients.
-pub fn McpRegistry::client_count(self : McpRegistry) -> Int {
+pub fn McpRegistry::client_count(self : McpRegistry) -> Int32 {
   self.clients.length()
 }
 

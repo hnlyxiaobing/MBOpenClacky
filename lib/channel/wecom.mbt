@@ -26,18 +26,18 @@ pub(all) struct WeComAdapter {
   /// Bot WebSocket endpoint (overridable so tests can point at a local mock).
   mut ws_url : String
   /// Reconnect backoff in ms (reset after a successful connection).
-  mut ws_backoff_ms : Int
+  mut ws_backoff_ms : Int32
   ws_state : WeComWsState?
   api_client : WeComApiClient
 }
 
 ///|
 /// Initial WebSocket reconnect backoff (ms).
-let wecom_ws_backoff_base_ms : Int = 1_000
+let wecom_ws_backoff_base_ms : Int32 = 1_000
 
 ///|
 /// WebSocket reconnect backoff cap (ms).
-let wecom_ws_backoff_max_ms : Int = 30_000
+let wecom_ws_backoff_max_ms : Int32 = 30_000
 
 ///|
 /// Create a new WeComAdapter from channel configuration.
@@ -505,7 +505,7 @@ pub fn parse_wecom_file(msg : Map[String, Json]) -> Attachment? {
       }
   }
   // Extract file size
-  let size_bytes : Int? = match msg.get("FileSize") {
+  let size_bytes : Int32? = match msg.get("FileSize") {
     Some(Number(n, ..)) => Some(n.to_int())
     _ =>
       match msg.get("file_size") {

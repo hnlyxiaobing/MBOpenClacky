@@ -66,7 +66,7 @@ pub fn sanitize_string(text : String) -> String {
 
 ///|
 /// Safely truncate a string ensuring no multi-byte character is split.
-pub fn safe_truncate(text : String, max_chars : Int) -> String {
+pub fn safe_truncate(text : String, max_chars : Int32) -> String {
   let chars = text.to_array()
   if chars.length() <= max_chars {
     return text
@@ -95,7 +95,7 @@ pub fn strip_bom(text : String) -> String {
 
 ///|
 /// Estimate the UTF-8 byte length of a string.
-pub fn estimate_utf8_byte_length(text : String) -> Int {
+pub fn estimate_utf8_byte_length(text : String) -> Int32 {
   let chars = text.to_array()
   let mut bytes = 0
   let mut i = 0

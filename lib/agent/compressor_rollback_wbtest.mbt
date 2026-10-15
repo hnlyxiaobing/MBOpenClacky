@@ -349,7 +349,7 @@ test "compress_with_safety emits CompressionPerformed on success" {
   for msg in make_long_history() {
     agent.history.append(msg)
   }
-  let seen : Array[Int] = []
+  let seen : Array[Int32] = []
   agent.hook_manager.register(fn(event : HookEvent) {
     match event {
       CompressionPerformed(removed) => seen.push(removed)
@@ -385,7 +385,7 @@ test "compress_with_safety stays silent when compression fails" {
   for msg in make_long_history() {
     agent.history.append(msg)
   }
-  let seen : Array[Int] = []
+  let seen : Array[Int32] = []
   agent.hook_manager.register(fn(event : HookEvent) {
     match event {
       CompressionPerformed(removed) => seen.push(removed)

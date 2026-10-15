@@ -21,7 +21,7 @@ pub fn build_openai_request(
   messages : Array[@message.Message],
   model : String,
   tools : Array[Json],
-  max_tokens : Int,
+  max_tokens : Int32,
   enable_caching : Bool,
   vision_supported~ : Bool = true,
   reasoning_effort~ : String? = None,

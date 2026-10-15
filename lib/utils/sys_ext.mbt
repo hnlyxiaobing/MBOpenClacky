@@ -7,7 +7,7 @@
 /// Returns 0 on success, -1 on error.
 #cfg(target="native")
 #borrow(path)
-extern "C" fn chdir_ffi(path : String) -> Int = "mbopenclacky_chdir"
+extern "C" fn chdir_ffi(path : String) -> Int32 = "mbopenclacky_chdir"
 
 ///|
 /// Get the kernel release string (same content as

@@ -24,9 +24,9 @@
 ///|
 /// Cache statistics carried by the `complete` event.
 pub(all) struct CacheStats {
-  total_requests : Int
-  cache_hit_requests : Int
-  cache_read_input_tokens : Int
+  total_requests : Int32
+  cache_hit_requests : Int32
+  cache_read_input_tokens : Int32
 }
 
 ///|
@@ -99,7 +99,7 @@ pub(all) struct ErrorMessage {
 ///|
 /// Agent run completed.
 pub(all) struct Complete {
-  iterations : Int
+  iterations : Int32
   cost : Double
   cost_source : String
   cache_stats : CacheStats
@@ -118,13 +118,13 @@ pub(all) struct AssistantMessage {
 /// Token usage / cost update.
 pub(all) struct TokenUsage {
   cost : Double
-  prompt_tokens : Int?
-  completion_tokens : Int?
-  delta_tokens : Int?
-  total_tokens : Int?
+  prompt_tokens : Int32?
+  completion_tokens : Int32?
+  delta_tokens : Int32?
+  total_tokens : Int32?
   cost_source : String?
-  cache_read : Int?
-  cache_write : Int?
+  cache_read : Int32?
+  cache_write : Int32?
 }
 
 ///|
@@ -162,7 +162,7 @@ pub(all) struct AskQuestion {
   options : Array[String]
   multi : Bool
   allow_free_text : Bool
-  recommended : Int?
+  recommended : Int32?
 }
 
 ///|
@@ -244,7 +244,7 @@ pub(all) struct Subscribed {
 pub(all) struct SessionList {
   sessions : Array[Json]
   has_more : Bool
-  cron_count : Int
+  cron_count : Int32
   latest_cron_updated_at : Json?
 }
 
@@ -400,7 +400,7 @@ fn put_string(out : Map[String, Json], key : String, value : String) -> Unit {
 }
 
 ///|
-fn put_int(out : Map[String, Json], key : String, value : Int) -> Unit {
+fn put_int(out : Map[String, Json], key : String, value : Int32) -> Unit {
   out[key] = Json(value)
 }
 
@@ -432,7 +432,7 @@ fn put_opt_string(
 }
 
 ///|
-fn put_opt_int(out : Map[String, Json], key : String, value : Int?) -> Unit {
+fn put_opt_int(out : Map[String, Json], key : String, value : Int32?) -> Unit {
   match value {
     Some(v) => out[key] = Json(v)
     None => ()
@@ -484,7 +484,7 @@ fn get_opt_string(fields : Map[String, Json], key : String) -> String? {
 
 ///|
 /// Read an optional int field.
-fn get_opt_int(fields : Map[String, Json], key : String) -> Int? {
+fn get_opt_int(fields : Map[String, Json], key : String) -> Int32? {
   match fields.get(key) {
     Some(Number(n, ..)) => Some(n.to_int())
     _ => None

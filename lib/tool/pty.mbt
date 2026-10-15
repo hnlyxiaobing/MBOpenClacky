@@ -16,23 +16,23 @@
 
 ///|
 /// Idle threshold: if no output for this many ms, assume waiting for input.
-let pty_idle_threshold_ms : Int = 10_000
+let pty_idle_threshold_ms : Int32 = 10_000
 
 ///|
 /// Poll interval: check for output every this many ms.
-let pty_poll_interval_ms : Int = 100
+let pty_poll_interval_ms : Int32 = 100
 
 ///|
 /// Read buffer size per read call.
-let pty_read_buffer_size : Int = 4096
+let pty_read_buffer_size : Int32 = 4096
 
 ///|
 /// Initial banner drain time in ms.
-let pty_init_drain_ms : Int = 500
+let pty_init_drain_ms : Int32 = 500
 
 ///|
 /// Timeout for init test marker in ms.
-let pty_test_timeout_ms : Int = 2000
+let pty_test_timeout_ms : Int32 = 2000
 
 // ---- Types ----
 
@@ -62,8 +62,8 @@ pub extend PtyReadState with Eq::{not_equal, equal}
 /// Result of executing a command in the PTY.
 pub(all) struct PtyExecResult {
   output : String
-  exit_code : Int?
-  duration_ms : Int
+  exit_code : Int32?
+  duration_ms : Int32
   state : PtyReadState
 } derive(Debug)
 
@@ -74,7 +74,7 @@ pub extend PtyExecResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Wall-clock milliseconds (used only for duration/timeout measurement).
-fn pty_now_ms() -> Int {
+fn pty_now_ms() -> Int32 {
   @env.now().reinterpret_as_int64().to_int()
 }
 
@@ -132,8 +132,8 @@ async fn[X] PtyHandle::spawn(
 /// Returns (data, n): n > 0 bytes read; n == 0 timeout; n < 0 EOF/error.
 async fn PtyHandle::read_raw(
   self : PtyHandle,
-  timeout_ms : Int,
-) -> (String, Int) {
+  timeout_ms : Int32,
+) -> (String, Int32) {
   let buf : FixedArray[Byte] = FixedArray::make(pty_read_buffer_size, 0)
   // Map read errors (e.g. EIO on Linux after the child exits) to Some(-1)
   // so EOF surfaces promptly instead of burning the idle threshold.
@@ -155,7 +155,7 @@ async fn PtyHandle::read_raw(
 
 ///|
 /// Write raw data to the PTY. Returns bytes written or -1 on error.
-async fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int {
+async fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int32 {
   let bytes = @utf8.encode(data[:])
   self.pty.write(bytes) catch {
     _ => return -1
@@ -172,7 +172,7 @@ async fn PtyHandle::close(self : PtyHandle) -> Unit {
 
 ///|
 /// Kill the child process (request cancellation via the async runtime).
-async fn PtyHandle::kill(self : PtyHandle) -> Int {
+async fn PtyHandle::kill(self : PtyHandle) -> Int32 {
   let _ = self.pty.drop(1)
   0
 }
@@ -216,7 +216,7 @@ async fn PtyHandle::init(self : PtyHandle) -> Result[Unit, String] {
 async fn PtyHandle::exec_with_marker(
   self : PtyHandle,
   command : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> PtyExecResult {
   let start_time = pty_now_ms()
   let token = pty_generate_token()
@@ -238,13 +238,13 @@ async fn PtyHandle::exec_with_marker(
 async fn PtyHandle::read_until_marker(
   self : PtyHandle,
   token : String,
-  timeout_ms : Int,
-) -> (String, Int?, PtyReadState) {
+  timeout_ms : Int32,
+) -> (String, Int32?, PtyReadState) {
   let start_time = pty_now_ms()
   let mut accumulated = ""
   let mut last_output_time = start_time
   let mut result_output = ""
-  let mut result_exit_code : Int? = None
+  let mut result_exit_code : Int32? = None
   let mut result_state : PtyReadState = Timeout
   let mut done = false
 

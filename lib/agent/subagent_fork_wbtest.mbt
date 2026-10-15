@@ -366,7 +366,7 @@ async test "run_detached_with_forbidden_tools" {
 
 ///|
 async test "fan_out_empty_returns_empty" {
-  let jobs : Array[FanOutJob[Int]] = []
+  let jobs : Array[FanOutJob[Int32]] = []
   let results = fan_out(jobs) catch { _ => abort("unexpected") }
   @debug.assert_eq(results.length(), 0)
 }
@@ -375,7 +375,7 @@ async test "fan_out_empty_returns_empty" {
 async test "fan_out_results_aligned_to_input_order" {
   // Jobs complete out of order; results must stay aligned to input order
   // (Ruby Fanout: results[index] regardless of completion order).
-  let jobs : Array[FanOutJob[Int]] = [
+  let jobs : Array[FanOutJob[Int32]] = [
     {
       label: "slow",
       run: () => {
@@ -413,7 +413,7 @@ async test "fan_out_results_aligned_to_input_order" {
 ///|
 async test "fan_out_raising_job_is_failed_slot" {
   // A raising job becomes a failed slot; siblings are NOT torn down.
-  let jobs : Array[FanOutJob[Int]] = [
+  let jobs : Array[FanOutJob[Int32]] = [
     {
       label: "ok1",
       run: () => {
@@ -454,7 +454,7 @@ async test "fan_out_raising_job_is_failed_slot" {
 async test "fan_out_timeout_fills_unfinished_slots" {
   // Wall-clock budget for the whole batch: a slow job is cancelled and its
   // slot carries a timeout error, while finished slots are preserved.
-  let jobs : Array[FanOutJob[Int]] = [
+  let jobs : Array[FanOutJob[Int32]] = [
     {
       label: "quick",
       run: () => {
@@ -504,7 +504,7 @@ async test "fan_out_labeled_default_and_custom_labels" {
 
 ///|
 async test "fan_out_labeled_empty_returns_empty" {
-  let jobs : Array[FanOutJob[Int]] = []
+  let jobs : Array[FanOutJob[Int32]] = []
   let results = fan_out_labeled(jobs) catch { _ => abort("unexpected") }
   @debug.assert_eq(results.length(), 0)
 }

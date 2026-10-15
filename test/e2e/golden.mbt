@@ -17,7 +17,7 @@ pub(all) struct Golden {
   /// 剧本名。
   scenario : String
   /// ruby 侧请求总数（runs/<scenario>/ruby/requests/ 下的 req_*.json 数）。
-  request_count : Int
+  request_count : Int32
   /// ruby 侧完整 tool 调用名序列（按最后一个请求的累积历史提取）。
   /// 空数组表示该剧本不断言工具序列（010：ruby 的截断重试不留下 assistant
   /// 消息，两侧序列形状不同且无独立 BUG 编号，按任务书只断言其余维度）。

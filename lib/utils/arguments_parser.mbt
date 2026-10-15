@@ -177,7 +177,7 @@ pub fn extract_key_value_pairs(input : String) -> Array[(String, String)] {
 }
 
 ///|
-fn read_quoted_string(chars : Array[Char], start : Int) -> (String, Int)? {
+fn read_quoted_string(chars : Array[Char], start : Int32) -> (String, Int32)? {
   if start >= chars.length() {
     return None
   }
@@ -202,7 +202,7 @@ fn read_quoted_string(chars : Array[Char], start : Int) -> (String, Int)? {
 }
 
 ///|
-fn read_value_string(chars : Array[Char], start : Int) -> (String, Int)? {
+fn read_value_string(chars : Array[Char], start : Int32) -> (String, Int32)? {
   if start >= chars.length() {
     return None
   }

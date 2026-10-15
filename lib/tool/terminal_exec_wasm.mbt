@@ -6,6 +6,6 @@
 async fn run_system_command(
   _command : String,
   _env : Map[String, String],
-) -> Int {
+) -> Int32 {
   -1
 }

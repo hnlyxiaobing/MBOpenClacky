@@ -47,7 +47,7 @@ pub extend GatewayOpcode with Eq::{not_equal, equal}
 
 ///|
 /// Convert an integer opcode to GatewayOpcode.
-pub fn gateway_opcode_from_int(op : Int) -> GatewayOpcode? {
+pub fn gateway_opcode_from_int(op : Int32) -> GatewayOpcode? {
   match op {
     0 => Some(GatewayOpcode::Dispatch)
     1 => Some(GatewayOpcode::Heartbeat)
@@ -65,7 +65,7 @@ pub fn gateway_opcode_from_int(op : Int) -> GatewayOpcode? {
 
 ///|
 /// Convert GatewayOpcode to its integer value.
-pub fn GatewayOpcode::to_int(self : GatewayOpcode) -> Int {
+pub fn GatewayOpcode::to_int(self : GatewayOpcode) -> Int32 {
   match self {
     Dispatch => 0
     Heartbeat => 1
@@ -84,44 +84,44 @@ pub fn GatewayOpcode::to_int(self : GatewayOpcode) -> Int {
 /// Gateway connection state.
 pub(all) struct GatewayState {
   mut session_id : String?
-  mut last_seq : Int?
+  mut last_seq : Int32?
   mut resume_gateway_url : String?
-  mut heartbeat_interval : Int
+  mut heartbeat_interval : Int32
   mut is_connected : Bool
   mut is_ready : Bool
   mut heartbeat_acked : Bool
-  mut reconnect_attempts : Int
+  mut reconnect_attempts : Int32
   bot_token : String
-  intents : Int
+  intents : Int32
 }
 
 ///|
 /// Maximum reconnect attempts before giving up.
-pub const MAX_RECONNECT_ATTEMPTS : Int = 10
+pub const MAX_RECONNECT_ATTEMPTS : Int32 = 10
 
 ///|
 /// Base reconnect delay in milliseconds (5 seconds).
-pub const RECONNECT_BASE_DELAY_MS : Int = 5000
+pub const RECONNECT_BASE_DELAY_MS : Int32 = 5000
 
 ///|
 /// Discord Gateway intents.
-pub const INTENT_GUILDS : Int = 1
+pub const INTENT_GUILDS : Int32 = 1
 
 ///|
-pub const INTENT_GUILD_MESSAGES : Int = 512
+pub const INTENT_GUILD_MESSAGES : Int32 = 512
 
 ///|
-pub const INTENT_GUILD_MESSAGE_REACTIONS : Int = 1024
+pub const INTENT_GUILD_MESSAGE_REACTIONS : Int32 = 1024
 
 ///|
-pub const INTENT_DIRECT_MESSAGES : Int = 4096
+pub const INTENT_DIRECT_MESSAGES : Int32 = 4096
 
 ///|
-pub const INTENT_MESSAGE_CONTENT : Int = 32768
+pub const INTENT_MESSAGE_CONTENT : Int32 = 32768
 
 ///|
 /// Default intents for MBOpenClacky bot.
-pub const DEFAULT_INTENTS : Int = INTENT_GUILDS +
+pub const DEFAULT_INTENTS : Int32 = INTENT_GUILDS +
   INTENT_GUILD_MESSAGES +
   INTENT_GUILD_MESSAGE_REACTIONS +
   INTENT_DIRECT_MESSAGES +
@@ -131,7 +131,7 @@ pub const DEFAULT_INTENTS : Int = INTENT_GUILDS +
 /// Check if a close code is fatal (should NOT reconnect).
 ///
 /// Fatal codes: 4004, 4010, 4011, 4012, 4013, 4014.
-pub fn is_fatal_close(code : Int) -> Bool {
+pub fn is_fatal_close(code : Int32) -> Bool {
   code == 4004 ||
   code == 4010 ||
   code == 4011 ||
@@ -161,7 +161,7 @@ pub fn GatewayState::new(bot_token : String) -> GatewayState {
 /// Create a new GatewayState with custom intents.
 pub fn GatewayState::with_intents(
   bot_token : String,
-  intents : Int,
+  intents : Int32,
 ) -> GatewayState {
   {
     session_id: None,
@@ -204,7 +204,7 @@ pub fn get_gateway_url(state : GatewayState) -> String {
 /// Calculate reconnect delay with exponential backoff.
 ///
 /// delay = base_delay * 2^attempt, capped at 60s.
-pub fn reconnect_delay_ms(attempts : Int) -> Int {
+pub fn reconnect_delay_ms(attempts : Int32) -> Int32 {
   let exp = if attempts > 6 { 6 } else { attempts }
   let delay = RECONNECT_BASE_DELAY_MS * (1 << exp)
   let max_delay = 60000
@@ -217,7 +217,7 @@ pub fn reconnect_delay_ms(attempts : Int) -> Int {
 
 ///|
 /// Check if reconnect should be attempted.
-pub fn should_reconnect(state : GatewayState, close_code : Int) -> Bool {
+pub fn should_reconnect(state : GatewayState, close_code : Int32) -> Bool {
   if is_fatal_close(close_code) {
     false
   } else {
@@ -231,7 +231,7 @@ pub fn should_reconnect(state : GatewayState, close_code : Int) -> Bool {
 /// Extracts heartbeat_interval from the Hello payload.
 pub fn GatewayState::handle_hello(
   self : GatewayState,
-  heartbeat_interval : Int,
+  heartbeat_interval : Int32,
 ) -> Unit {
   self.heartbeat_interval = heartbeat_interval
   self.is_connected = true
@@ -253,7 +253,7 @@ pub fn GatewayState::handle_ready(
 
 ///|
 /// Update the last sequence number from a Dispatch event.
-pub fn GatewayState::update_seq(self : GatewayState, seq : Int) -> Unit {
+pub fn GatewayState::update_seq(self : GatewayState, seq : Int32) -> Unit {
   self.last_seq = Some(seq)
 }
 
@@ -287,7 +287,7 @@ pub fn GatewayState::reset_connection(self : GatewayState) -> Unit {
 /// Build the Identify payload (op 2).
 ///
 /// Sent after Hello to authenticate with the gateway.
-pub fn build_identify_payload(token : String, intents : Int) -> Json {
+pub fn build_identify_payload(token : String, intents : Int32) -> Json {
   let payload : Map[String, Json] = Map([])
   payload.set("op", Json(2))
   let d : Map[String, Json] = Map([])
@@ -309,7 +309,7 @@ pub fn build_identify_payload(token : String, intents : Int) -> Json {
 pub fn build_resume_payload(
   token : String,
   session_id : String,
-  seq : Int,
+  seq : Int32,
 ) -> Json {
   let payload : Map[String, Json] = Map([])
   payload.set("op", Json(6))
@@ -325,7 +325,7 @@ pub fn build_resume_payload(
 /// Build the Heartbeat payload (op 1).
 ///
 /// `seq` is the last received sequence number, or null if none.
-pub fn build_heartbeat_payload(seq : Int?) -> Json {
+pub fn build_heartbeat_payload(seq : Int32?) -> Json {
   let payload : Map[String, Json] = Map([])
   payload.set("op", Json(1))
   match seq {
@@ -340,7 +340,7 @@ pub fn build_heartbeat_payload(seq : Int?) -> Json {
 ///
 /// Returns (opcode, data payload).
 /// The data field `d` type depends on the opcode.
-pub fn parse_gateway_event(json : Json) -> Result[(Int, Json), ChannelError] {
+pub fn parse_gateway_event(json : Json) -> Result[(Int32, Json), ChannelError] {
   match json {
     Object(obj) => {
       let op = match obj.get("op") {
@@ -360,7 +360,7 @@ pub fn parse_gateway_event(json : Json) -> Result[(Int, Json), ChannelError] {
 
 ///|
 /// Extract the sequence number from a gateway event.
-pub fn extract_seq(json : Json) -> Int? {
+pub fn extract_seq(json : Json) -> Int32? {
   match json {
     Object(obj) =>
       match obj.get("s") {
@@ -388,7 +388,7 @@ pub fn extract_event_name(json : Json) -> String? {
 /// Parse the Hello event payload.
 ///
 /// Returns the heartbeat_interval in milliseconds.
-pub fn parse_hello_payload(data : Json) -> Result[Int, ChannelError] {
+pub fn parse_hello_payload(data : Json) -> Result[Int32, ChannelError] {
   match data {
     Object(obj) =>
       match obj.get("heartbeat_interval") {

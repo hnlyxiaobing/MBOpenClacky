@@ -12,12 +12,12 @@
 ///|
 /// Minimum number of messages in history required to trigger auto-update.
 /// (system + user + assistant + at least one more = 4 messages minimum)
-let min_history_for_memory_update : Int = 4
+let min_history_for_memory_update : Int32 = 4
 
 ///|
 /// Maximum number of memory entries to extract in a single run.
 /// Prevents excessive memory creation from a single conversation.
-let max_extracted_entries : Int = 10
+let max_extracted_entries : Int32 = 10
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

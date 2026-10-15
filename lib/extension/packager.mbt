@@ -102,7 +102,7 @@ fn compute_checksum(id : String, version : String, path : String) -> String {
   let mut value = hash
   for _i = 0; _i < 16; _i = _i + 1 {
     let nibble = (value & 0xFL).to_int()
-    chars.push(Int::unsafe_to_char(hex_chars[nibble].to_int()))
+    chars.push(Int32::unsafe_to_char(hex_chars[nibble].to_int()))
     value = value >> 4
   }
   chars.iter().fold(init="", fn(acc, c) { acc + c.to_string() })

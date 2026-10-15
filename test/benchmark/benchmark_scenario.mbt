@@ -6,11 +6,11 @@ pub struct BenchmarkScenario {
   /// 场景描述
   description : String
   /// 迭代次数
-  iterations : Int
+  iterations : Int32
   /// 预热次数
-  warmup : Int
+  warmup : Int32
   /// 并发数（暂不实现，保留字段）
-  concurrency : Int
+  concurrency : Int32
   /// 要执行的工具名称（如 "file_reader", "grep"）
   tool : String
   /// 传递给工具的参数
@@ -78,8 +78,8 @@ pub fn BenchmarkScenario::from_json(json_str : String) -> BenchmarkScenario? {
 /// 返回只替换迭代/预热次数的场景副本，用于让 CLI 覆盖值生效。
 pub fn BenchmarkScenario::with_counts(
   self : BenchmarkScenario,
-  iterations : Int,
-  warmup : Int,
+  iterations : Int32,
+  warmup : Int32,
 ) -> BenchmarkScenario {
   {
     name: self.name,

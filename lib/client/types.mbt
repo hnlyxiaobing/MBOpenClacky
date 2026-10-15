@@ -10,11 +10,11 @@
 /// - `api_cost` = upstream-reported cost (e.g. OpenRouter `usage.cost`),
 ///   stored as Double (Ruby's Float is IEEE-754 double precision).
 pub(all) struct Usage {
-  input_tokens : Int
-  output_tokens : Int
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_tokens : Int
+  input_tokens : Int32
+  output_tokens : Int32
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_tokens : Int32
   api_cost : Double?
   total_is_per_turn : Bool
 } derive(Eq, Debug, ToJson)
@@ -37,7 +37,7 @@ pub extend Usage with @moonbitlang/core/json.FromJson::{from_json}
 pub impl FromJson for Usage with fn from_json(json, path) {
   match json {
     Object(map) => {
-      let int_of = fn(key : String) -> Int {
+      let int_of = fn(key : String) -> Int32 {
         match map.get(key) {
           Some(Number(n, ..)) => n.to_int()
           _ => 0
@@ -86,9 +86,9 @@ pub impl FromJson for Usage with fn from_json(json, path) {
 /// - `streaming` flags whether the response was assembled from a streaming
 ///   call (false for plain POST / non-streaming completions).
 pub(all) struct Latency {
-  duration_ms : Int
-  ttft_ms : Int?
-  output_tokens : Int
+  duration_ms : Int32
+  ttft_ms : Int32?
+  output_tokens : Int32
   tps : Double?
   model : String?
   measured_at : String?
@@ -114,13 +114,13 @@ pub extend Latency with @moonbitlang/core/json.FromJson::{from_json}
 pub impl FromJson for Latency with fn from_json(json, path) {
   match json {
     Object(map) => {
-      let int_of = fn(key : String) -> Int {
+      let int_of = fn(key : String) -> Int32 {
         match map.get(key) {
           Some(Number(n, ..)) => n.to_int()
           _ => 0
         }
       }
-      let opt_int_of = fn(key : String) -> Int? {
+      let opt_int_of = fn(key : String) -> Int32? {
         match map.get(key) {
           Some(Number(n, ..)) => Some(n.to_int())
           _ => None
@@ -218,11 +218,11 @@ pub fn LlmResponse::is_finished(self : LlmResponse) -> Bool {
 /// provided it is derived as prompt + completion. `total_is_per_turn`
 /// stays false (OpenAI's total_tokens is a cumulative counter).
 pub fn Usage::from_openai(
-  prompt_tokens : Int,
-  completion_tokens : Int,
-  cache_creation~ : Int = 0,
-  cache_read~ : Int = 0,
-  total_tokens~ : Int = 0,
+  prompt_tokens : Int32,
+  completion_tokens : Int32,
+  cache_creation~ : Int32 = 0,
+  cache_read~ : Int32 = 0,
+  total_tokens~ : Int32 = 0,
   api_cost~ : Double? = None,
 ) -> Usage {
   {
@@ -252,10 +252,10 @@ pub fn Usage::from_openai(
 /// cached prefix twice. Detect that by whether the cache buckets already fit
 /// inside `input_tokens`.
 pub fn Usage::from_anthropic(
-  raw_input_tokens : Int,
-  output_tokens : Int,
-  cache_creation~ : Int = 0,
-  cache_read~ : Int = 0,
+  raw_input_tokens : Int32,
+  output_tokens : Int32,
+  cache_creation~ : Int32 = 0,
+  cache_read~ : Int32 = 0,
 ) -> Usage {
   let cached_input = cache_read + cache_creation
   let prompt_tokens = if cached_input > 0 && raw_input_tokens >= cached_input {
@@ -282,10 +282,10 @@ pub fn Usage::from_anthropic(
 /// pre-spec values; production code should use `build_latency` in
 /// `lib/agent/llm_caller.mbt` which fills all 7.
 pub fn Latency::new(
-  duration_ms : Int,
-  ttft_ms? : Int,
+  duration_ms : Int32,
+  ttft_ms? : Int32,
   tps~ : Double? = None,
-  output_tokens~ : Int = 0,
+  output_tokens~ : Int32 = 0,
   model~ : String? = None,
   measured_at~ : String? = None,
   streaming~ : Bool = false,

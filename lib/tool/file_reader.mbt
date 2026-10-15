@@ -6,8 +6,8 @@
 /// + offset/limit 别名）、越界/逆序显式报错、输出无行号、空文件返回空 content、
 /// 60000 字符总量截断、1MB 大文件护栏、目录列清单、UTF-8 scrub。
 pub(all) struct FileReader {
-  max_lines : Int
-  max_line_chars : Int
+  max_lines : Int32
+  max_line_chars : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -78,7 +78,7 @@ impl Tool for FileReader with fn category(_) -> ToolCategory {
 let max_text_file_size : Int64 = 1_048_576
 
 ///|
-let max_content_chars : Int = 60_000
+let max_content_chars : Int32 = 60_000
 
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -370,8 +370,8 @@ pub fn get_string_arg(
 pub fn get_int_arg(
   args : Map[String, Json],
   key : String,
-  default : Int,
-) -> Int {
+  default : Int32,
+) -> Int32 {
   match args.get(key) {
     Some(Number(n, ..)) if n >= -2147483648.0 && n <= 2147483647.0 => n.to_int()
     Some(String(s)) =>

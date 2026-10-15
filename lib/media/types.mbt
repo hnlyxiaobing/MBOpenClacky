@@ -38,7 +38,7 @@ pub(all) struct MediaRequest {
   media_type : MediaType
   prompt : String
   aspect_ratio : String?
-  duration_seconds : Int?
+  duration_seconds : Int32?
   voice : String?
   output_dir : String
   model : String?
@@ -165,7 +165,7 @@ pub fn MediaRequest::image(
 pub fn MediaRequest::video(
   prompt : String,
   output_dir : String,
-  duration_seconds~ : Int? = None,
+  duration_seconds~ : Int32? = None,
   aspect_ratio~ : String? = None,
   model~ : String? = None,
 ) -> MediaRequest {

@@ -177,7 +177,7 @@ pub fn WeixinApiClient::build_send_text_request(
 pub fn WeixinApiClient::parse_send_response(
   _self : WeixinApiClient,
   json : Json,
-) -> Result[(String, Int), ChannelError] {
+) -> Result[(String, Int32), ChannelError] {
   let obj = match json {
     Object(o) => o
     _ => return Err(ChannelError("send_message: invalid JSON response"))
@@ -241,7 +241,7 @@ pub fn WeixinApiClient::send_typing_url(self : WeixinApiClient) -> String {
 pub fn WeixinApiClient::build_typing_request(
   self : WeixinApiClient,
   to_user_id : String,
-  status : Int,
+  status : Int32,
 ) -> Json {
   let _ = self.token
   let payload : Map[String, Json] = Map([])
@@ -271,8 +271,8 @@ pub fn WeixinApiClient::get_upload_url(self : WeixinApiClient) -> String {
 /// media_type: 1=image, 2=file, 3=video
 pub fn WeixinApiClient::build_upload_request(
   self : WeixinApiClient,
-  media_type : Int,
-  file_size : Int,
+  media_type : Int32,
+  file_size : Int32,
 ) -> Json {
   let _ = self.token
   let payload : Map[String, Json] = Map([])
@@ -368,7 +368,7 @@ pub fn weixin_media_requires_encryption(aes_key : String) -> Bool {
 
 ///|
 /// Value of a single hex digit, or None when the char is not hex.
-fn hex_digit_value(c : Char) -> Int? {
+fn hex_digit_value(c : Char) -> Int32? {
   if c >= '0' && c <= '9' {
     Some(c.to_int() - '0'.to_int())
   } else if c >= 'a' && c <= 'f' {

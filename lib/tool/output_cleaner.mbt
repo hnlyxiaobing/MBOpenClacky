@@ -144,7 +144,7 @@ pub fn clean_output(raw : String) -> String {
 /// Smart truncation: keep 60% head + 40% tail within the character budget,
 /// with the tail aligned to a line boundary and a summary notice in between.
 /// Mirrors Ruby `smart_truncate` (byte-based there, char-based here).
-pub fn smart_truncate(output : String, max_chars : Int) -> String {
+pub fn smart_truncate(output : String, max_chars : Int32) -> String {
   let total_chars = output.length()
   if total_chars <= max_chars {
     return output
@@ -176,7 +176,7 @@ pub fn smart_truncate(output : String, max_chars : Int) -> String {
 /// Returns (truncated text, whether truncation occurred).
 pub fn truncate_output(
   output : String,
-  max_chars~ : Int = 100000,
+  max_chars~ : Int32 = 100000,
 ) -> (String, Bool) {
   if output.length() <= max_chars {
     (output, false)
@@ -189,7 +189,7 @@ pub fn truncate_output(
 /// Full output processing pipeline: clean ANSI → strip control chars → truncate.
 pub fn process_terminal_output(
   raw : String,
-  max_chars~ : Int = 100000,
+  max_chars~ : Int32 = 100000,
 ) -> (String, Bool) {
   let cleaned = clean_ansi_output(raw)
   let stripped = strip_control_chars(cleaned)
@@ -198,12 +198,12 @@ pub fn process_terminal_output(
 
 ///|
 /// Maximum characters per line before truncation.
-pub let max_line_chars : Int = 500
+pub let max_line_chars : Int32 = 500
 
 ///|
 /// Truncate individual lines that exceed max_chars characters.
 /// Prevents a single minified JSON/CSS/JS blob from eating the entire output budget.
-pub fn truncate_long_lines(text : String, max_chars~ : Int = 500) -> String {
+pub fn truncate_long_lines(text : String, max_chars~ : Int32 = 500) -> String {
   let lines = text.split("\n").collect()
   let buf = StringBuilder()
   let mut first = true
@@ -293,7 +293,7 @@ fn now_stamp() -> String {
   let dt = @time.PlainDateTime::from_unix_second(sec, 0, @time.utc_offset) catch {
     _ => return "00000000-000000"
   }
-  let p2 = fn(n : Int) -> String {
+  let p2 = fn(n : Int32) -> String {
     if n < 10 {
       "0" + n.to_string()
     } else {
@@ -311,7 +311,7 @@ fn now_stamp() -> String {
 
 ///|
 /// 6-hex-char random suffix mirroring Ruby `SecureRandom.hex(3)`.
-fn random_hex(n : Int) -> String {
+fn random_hex(n : Int32) -> String {
   let rand = @random.Rand()
   let hex_chars : Array[Char] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -330,7 +330,10 @@ fn random_hex(n : Int) -> String {
 /// Filename is `{ts}-s{sid}-{rand}.log` under `$TMPDIR/clacky-terminal-overflow/`
 /// so concurrent overflow writes never collide (Ruby `spill_overflow_file`).
 /// Returns None if the file could not be written.
-pub fn spill_overflow_file(content : String, session_id~ : Int = 0) -> String? {
+pub fn spill_overflow_file(
+  content : String,
+  session_id~ : Int32 = 0,
+) -> String? {
   let tmp_dir = match @env.get_env_var("TEMP") {
     Some(d) => d
     None =>
@@ -360,8 +363,8 @@ pub fn spill_overflow_file(content : String, session_id~ : Int = 0) -> String? {
 pub fn enhanced_process_terminal_output(
   raw : String,
   command~ : String = "",
-  max_chars~ : Int = 4000,
-  session_id~ : Int = 0,
+  max_chars~ : Int32 = 4000,
+  session_id~ : Int32 = 0,
 ) -> (String, Bool, String?) {
   // Step 1: Clean ANSI, \r-overwrites, backspaces and control chars
   let cleaned = clean_output(raw)

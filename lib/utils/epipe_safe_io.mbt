@@ -5,7 +5,7 @@
 ///|
 /// IO write result type.
 pub enum WriteResult {
-  Success(Int) // Successfully written byte count
+  Success(Int32) // Successfully written byte count
   PipeBroken // Pipe is broken (EPIPE)
   Error(String) // Other error
 } derive(Debug, Eq)

@@ -8,7 +8,7 @@
 
 ///|
 /// Counter for unique temp batch-file names (concurrent web requests).
-let windows_bat_counter : Ref[Int] = Ref(0)
+let windows_bat_counter : Ref[Int32] = Ref(0)
 
 ///|
 /// Spawn `cmd` with `args` and wait for completion, returning the real
@@ -23,7 +23,7 @@ async fn spawn_and_wait(
   cmd : String,
   args : Array[String],
   env : Map[String, String],
-) -> Int {
+) -> Int32 {
   let mut code = -1
   let mut attempt = 0
   while code == -1 && attempt <= 2 {
@@ -55,7 +55,10 @@ async fn spawn_and_wait(
 /// file carries the command verbatim, so quoting is a non-issue.
 /// /v:on keeps cmd.exe delayed expansion enabled so that !ERRORLEVEL!
 /// in the command (shell_exec.mbt) is expanded after execution.
-async fn run_system_command(command : String, env : Map[String, String]) -> Int {
+async fn run_system_command(
+  command : String,
+  env : Map[String, String],
+) -> Int32 {
   if shell_is_windows() {
     windows_bat_counter.val = windows_bat_counter.val + 1
     let bat_path = @path.Path::join(

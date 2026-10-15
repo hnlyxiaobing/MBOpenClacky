@@ -29,7 +29,7 @@ pub fn env_bool(key : String) -> Bool {
 ///|
 /// Get an integer environment variable.
 /// Returns None if the variable is unset, empty, or not a valid integer.
-pub fn env_int(key : String) -> Int? {
+pub fn env_int(key : String) -> Int32? {
   match env_var(key) {
     Some(v) => parse_int_safe(v)
     None => None
@@ -38,7 +38,7 @@ pub fn env_int(key : String) -> Int? {
 
 ///|
 /// Parse a string to Int safely, returning None on failure.
-fn parse_int_safe(s : String) -> Int? {
+fn parse_int_safe(s : String) -> Int32? {
   if s.is_empty() {
     return None
   }

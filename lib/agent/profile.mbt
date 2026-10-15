@@ -12,7 +12,7 @@
 ///|
 /// Maximum characters loaded from each agent memory file (SOUL.md / USER.md),
 /// matching Ruby SystemPromptBuilder::MAX_MEMORY_FILE_CHARS.
-const MAX_MEMORY_FILE_CHARS : Int = 1000
+const MAX_MEMORY_FILE_CHARS : Int32 = 1000
 
 ///|
 /// Built-in personality used when the user has no `~/.mbopenclacky/agents/SOUL.md`

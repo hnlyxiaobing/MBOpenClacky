@@ -40,8 +40,8 @@ fn assert_golden(outcome : ScenarioOutcome, g : Golden) -> Unit raise {
 /// 后者已不参与上界判定）。
 fn assert_retry_intervals(
   times : Array[Int64],
-  expected_ms : Array[Int],
-  _tolerance_ms : Int,
+  expected_ms : Array[Int32],
+  _tolerance_ms : Int32,
 ) -> Unit {
   if times.length() < expected_ms.length() + 1 {
     println(

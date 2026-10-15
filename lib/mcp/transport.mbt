@@ -11,7 +11,7 @@ pub(open) trait Transport {
   fn stop(Self) -> Unit
   fn alive(Self) -> Bool
   async fn send_message(Self, String) -> Result[Unit, String]
-  async fn send_request(Self, id : Int, message : String, timeout_s : Int) -> Result[
+  async fn send_request(Self, id : Int32, message : String, timeout_s : Int32) -> Result[
     String,
     String,
   ]
@@ -22,7 +22,7 @@ pub(open) trait Transport {
 ///|
 /// Build a JSON-RPC 2.0 request string.
 pub fn build_jsonrpc_request(
-  id : Int,
+  id : Int32,
   rpc_method : String,
   params : Json?,
 ) -> String {

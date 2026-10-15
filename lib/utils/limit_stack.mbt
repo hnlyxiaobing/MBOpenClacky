@@ -5,8 +5,8 @@
 ///|
 /// A stack that tracks recursion depth and enforces a maximum limit.
 pub struct LimitStack {
-  max_depth : Int
-  mut current_depth : Int
+  max_depth : Int32
+  mut current_depth : Int32
   mut labels : Array[String]
 } derive(Debug)
 
@@ -15,7 +15,7 @@ pub extend LimitStack with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Create a new LimitStack with the given maximum depth.
-pub fn LimitStack::new(max_depth~ : Int = 50) -> LimitStack {
+pub fn LimitStack::new(max_depth~ : Int32 = 50) -> LimitStack {
   { max_depth, current_depth: 0, labels: [], }
 }
 
@@ -47,13 +47,13 @@ pub fn LimitStack::is_exceeded(self : LimitStack) -> Bool {
 
 ///|
 /// Get the current depth.
-pub fn LimitStack::depth(self : LimitStack) -> Int {
+pub fn LimitStack::depth(self : LimitStack) -> Int32 {
   self.current_depth
 }
 
 ///|
 /// Get the remaining available depth.
-pub fn LimitStack::remaining(self : LimitStack) -> Int {
+pub fn LimitStack::remaining(self : LimitStack) -> Int32 {
   self.max_depth - self.current_depth
 }
 

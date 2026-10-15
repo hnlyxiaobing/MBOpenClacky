@@ -42,13 +42,13 @@ pub(all) struct TaskPayload {
   model : String
   provider : String
   status : String
-  iterations : Int
-  duration_ms : Int
+  iterations : Int32
+  duration_ms : Int32
   cost_usd : Double
-  prompt_tokens : Int
-  completion_tokens : Int
-  cache_creation_tokens : Int
-  cache_read_tokens : Int
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  cache_creation_tokens : Int32
+  cache_read_tokens : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|

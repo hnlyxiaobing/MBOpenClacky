@@ -10,8 +10,8 @@
 /// Route timeout configuration.
 /// Maps URL path prefixes to timeout durations in milliseconds.
 pub(all) struct TimeoutConfig {
-  routes : Array[(String, Int)]
-  default_ms : Int
+  routes : Array[(String, Int32)]
+  default_ms : Int32
 }
 
 ///|
@@ -59,7 +59,7 @@ pub fn default_timeout_config() -> TimeoutConfig {
 /// The previous implementation used `has_prefix || contains`, which
 /// matched any URL containing the substring (e.g. "/chat" hit
 /// `/api/skills/chat-export`), so the `contains` fallback was removed.
-pub fn TimeoutConfig::resolve(self : TimeoutConfig, url : String) -> Int {
+pub fn TimeoutConfig::resolve(self : TimeoutConfig, url : String) -> Int32 {
   let mut i = 0
   while i < self.routes.length() {
     let prefix = self.routes[i].0
@@ -91,7 +91,7 @@ pub fn timeout_middleware(
 ///|
 /// Helper to get the maximum timeout across all route configs.
 /// Useful for configuring crescent's NativeServeOptions.handler_timeout_ms.
-pub fn TimeoutConfig::max_timeout(self : TimeoutConfig) -> Int {
+pub fn TimeoutConfig::max_timeout(self : TimeoutConfig) -> Int32 {
   let mut max_val = self.default_ms
   let mut i = 0
   while i < self.routes.length() {

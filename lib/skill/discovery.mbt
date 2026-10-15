@@ -47,7 +47,7 @@ pub fn read_skill_files(paths : Array[String]) -> Map[String, String] {
 /// (Ruby skill_loader.rb only checks `entry/SKILL.md`).
 fn collect_skill_files(
   dir : String,
-  depth : Int,
+  depth : Int32,
   out : Map[String, String],
 ) -> Unit {
   if depth <= 0 {

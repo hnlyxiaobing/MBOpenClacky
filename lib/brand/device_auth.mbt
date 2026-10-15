@@ -14,7 +14,7 @@ let default_expires_in_ms : Int64 = 900_000L // 15 minutes
 
 ///|
 /// Default polling interval in seconds.
-let default_interval : Int = 5
+let default_interval : Int32 = 5
 
 ///|
 /// Default verification URI for the user to visit.
@@ -29,7 +29,7 @@ pub(all) struct DeviceAuthSession {
   user_code : String
   verification_uri : String
   expires_at : Int64
-  interval : Int
+  interval : Int32
   approved : Bool
 } derive(Eq, Debug)
 

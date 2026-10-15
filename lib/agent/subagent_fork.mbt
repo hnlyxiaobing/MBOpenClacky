@@ -437,7 +437,7 @@ pub struct FanOutJob[X] {
 /// When the batch times out, unfinished slots carry a timeout error and
 /// `duration_ms` is 0 (Ruby fills them with FanoutTimeoutError).
 pub struct FanOutResult[X] {
-  index : Int
+  index : Int32
   value : X?
   error : String?
   duration_ms : Int64
@@ -454,7 +454,7 @@ pub fn[X] FanOutResult::ok(self : FanOutResult[X]) -> Bool {
 
 ///|
 /// Default concurrency limit (Ruby Fanout::DEFAULT_MAX_CONCURRENCY).
-pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
+pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int32 = 4
 
 ///|
 /// Run a batch of jobs concurrently and collect one result per job,
@@ -474,8 +474,8 @@ pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
 /// @return one FanOutResult per job, aligned to `jobs` order
 pub async fn[X] fan_out(
   jobs : Array[FanOutJob[X]],
-  max_concurrency~ : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
-  timeout_ms~ : Int? = None,
+  max_concurrency~ : Int32 = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
+  timeout_ms~ : Int32? = None,
 ) -> Array[FanOutResult[X]] {
   if jobs.is_empty() {
     return []
@@ -556,8 +556,8 @@ pub async fn[X] fan_out(
 /// @return one FanOutResult per job, aligned to `jobs` order
 pub async fn[X] fan_out_labeled(
   jobs : Array[FanOutJob[X]],
-  max_concurrency~ : Int = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
-  timeout_ms~ : Int? = None,
+  max_concurrency~ : Int32 = FAN_OUT_DEFAULT_MAX_CONCURRENCY,
+  timeout_ms~ : Int32? = None,
 ) -> Array[FanOutResult[X]] {
   if jobs.is_empty() {
     return []

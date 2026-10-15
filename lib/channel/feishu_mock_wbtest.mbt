@@ -18,7 +18,7 @@ async fn MockFeishuServer::new() -> MockFeishuServer {
 }
 
 ///|
-fn MockFeishuServer::port(self : MockFeishuServer) -> Int {
+fn MockFeishuServer::port(self : MockFeishuServer) -> Int32 {
   self.listener.addr.port()
 }
 
@@ -53,7 +53,7 @@ async fn MockFeishuServer::serve(self : MockFeishuServer) -> Unit {
 /// (channel_http_mock_wbtest.mbt).
 async fn mock_http_send(
   conn : @socket.Tcp,
-  status : Int,
+  status : Int32,
   body : String,
 ) -> Unit {
   conn.write(
@@ -193,7 +193,7 @@ async fn mock_http_read_body(
 }
 
 ///|
-fn mock_http_parse_hex(s : String) -> Int {
+fn mock_http_parse_hex(s : String) -> Int32 {
   let mut n = 0
   for c in s {
     let d = match c {

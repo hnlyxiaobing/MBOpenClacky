@@ -6,7 +6,7 @@
 ///|
 struct ProxyConfig {
   proxy_url : String // Current proxy URL (empty string means no proxy)
-  epoch : Int // Config version; consumers re-init connections on change
+  epoch : Int32 // Config version; consumers re-init connections on change
   no_proxy : String // Comma-separated list of hosts that bypass the proxy
 } derive(Debug, Eq)
 
@@ -69,7 +69,7 @@ pub fn ProxyConfig::proxy_url(self : ProxyConfig) -> String {
 
 ///|
 /// Get the current epoch (configuration version).
-pub fn ProxyConfig::current_epoch(self : ProxyConfig) -> Int {
+pub fn ProxyConfig::current_epoch(self : ProxyConfig) -> Int32 {
   self.epoch
 }
 

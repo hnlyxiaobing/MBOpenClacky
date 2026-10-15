@@ -11,17 +11,17 @@
 ///|
 /// Current local UTC offset in minutes (e.g. +480 for UTC+8).
 #cfg(target="native")
-extern "C" fn billing_local_offset_minutes_ffi() -> Int = "mbopenclacky_billing_local_offset_minutes"
+extern "C" fn billing_local_offset_minutes_ffi() -> Int32 = "mbopenclacky_billing_local_offset_minutes"
 
 ///|
 #cfg(target="native")
-fn local_offset_minutes() -> Int {
+fn local_offset_minutes() -> Int32 {
   billing_local_offset_minutes_ffi()
 }
 
 ///|
 #cfg(not(target="native"))
-fn local_offset_minutes() -> Int {
+fn local_offset_minutes() -> Int32 {
   0
 }
 
@@ -35,7 +35,7 @@ fn local_offset_ms() -> Int64 {
 
 ///|
 /// Days since Unix epoch from a civil date (Hinnant days_from_civil).
-fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
+fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
   let y = if month <= 2 { year - 1 } else { year }
   let era = (if y >= 0 { y } else { y - 399 }) / 400
   let yoe = y - era * 400
@@ -48,7 +48,7 @@ fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
 ///|
 /// Civil date (year, month, day) from days since Unix epoch
 /// (Hinnant civil_from_days).
-fn civil_from_days(days : Int) -> (Int, Int, Int) {
+fn civil_from_days(days : Int32) -> (Int32, Int32, Int32) {
   let z = days + 719468
   let era = (if z >= 0 { z } else { z - 146096 }) / 146097
   let doe = z - era * 146097
@@ -63,7 +63,7 @@ fn civil_from_days(days : Int) -> (Int, Int, Int) {
 
 ///|
 /// Local civil date parts (year, month, day) for an epoch-ms instant.
-pub fn ms_to_local_date_parts(ms : Int64) -> (Int, Int, Int) {
+pub fn ms_to_local_date_parts(ms : Int64) -> (Int32, Int32, Int32) {
   let local_ms = ms + local_offset_ms()
   let days = (local_ms / 86_400_000L).to_int()
   civil_from_days(days)
@@ -71,7 +71,7 @@ pub fn ms_to_local_date_parts(ms : Int64) -> (Int, Int, Int) {
 
 ///|
 /// Local midnight (epoch ms) of the given civil date.
-fn local_midnight_ms(year : Int, month : Int, day : Int) -> Int64 {
+fn local_midnight_ms(year : Int32, month : Int32, day : Int32) -> Int64 {
   days_from_civil(year, month, day).to_int64() * 86_400_000L - local_offset_ms()
 }
 
@@ -84,7 +84,7 @@ pub fn ms_to_local_date_string(ms : Int64) -> String {
 
 ///|
 /// Zero-pad an integer to at least 2 digits.
-fn pad2(n : Int) -> String {
+fn pad2(n : Int32) -> String {
   if n < 10 {
     "0\{n}"
   } else {
@@ -150,7 +150,7 @@ pub fn month_file_start_ms(file_name : String) -> Int64? {
 ///|
 /// Parse decimal digits from string slice [start, end), or None if any
 /// character is not a digit.
-fn parse_digits_opt(s : String, start : Int, end : Int) -> Int? {
+fn parse_digits_opt(s : String, start : Int32, end : Int32) -> Int32? {
   let mut result = 0
   for i = start; i < end; i = i + 1 {
     let c = s[i]
@@ -200,7 +200,7 @@ pub fn ms_to_iso8601_local(ms : Int64) -> String {
 
 ///|
 /// Zero-pad to exactly 3 digits.
-fn pad3(n : Int) -> String {
+fn pad3(n : Int32) -> String {
   if n < 10 {
     "00\{n}"
   } else if n < 100 {

@@ -89,7 +89,7 @@ pub fn MessageHistory::pop_last(self : MessageHistory) -> Message? {
 /// Truncate history from the given index onward.
 pub fn MessageHistory::truncate_from(
   self : MessageHistory,
-  index : Int,
+  index : Int32,
 ) -> Unit {
   if index >= 0 && index < self.messages.length() {
     let kept : Array[Message] = []
@@ -277,7 +277,7 @@ pub fn MessageHistory::pending_tool_calls(self : MessageHistory) -> Bool {
 
 ///|
 /// Estimate total token count for all messages.
-pub fn MessageHistory::estimate_tokens(self : MessageHistory) -> Int {
+pub fn MessageHistory::estimate_tokens(self : MessageHistory) -> Int32 {
   let mut total = 0
   for msg in self.messages {
     total = total + estimate_message_tokens(msg)
@@ -287,7 +287,7 @@ pub fn MessageHistory::estimate_tokens(self : MessageHistory) -> Int {
 
 ///|
 /// Return the index of the last real (non-system-injected) user message.
-pub fn MessageHistory::last_real_user_index(self : MessageHistory) -> Int? {
+pub fn MessageHistory::last_real_user_index(self : MessageHistory) -> Int32? {
   let len = self.messages.length()
   for i = len - 1; i >= 0; i = i - 1 {
     let msg = self.messages[i]
@@ -321,7 +321,7 @@ pub fn MessageHistory::last_session_context_date(
 
 ///|
 /// Return the number of messages.
-pub fn MessageHistory::size(self : MessageHistory) -> Int {
+pub fn MessageHistory::size(self : MessageHistory) -> Int32 {
   self.messages.length()
 }
 
@@ -556,7 +556,7 @@ fn sanitize_utf8_string(s : String) -> String {
 
 ///|
 /// Estimate token count for a single message.
-fn estimate_message_tokens(msg : Message) -> Int {
+fn estimate_message_tokens(msg : Message) -> Int32 {
   // ~4 tokens overhead per message (role, formatting)
   let mut tokens = 4
   // Content tokens
@@ -587,7 +587,7 @@ fn estimate_message_tokens(msg : Message) -> Int {
 ///|
 /// Estimate token count: ASCII printable chars at ~4 chars/token, other
 /// (multibyte) chars at ~1.5 chars/token; ceil applies to the weighted sum.
-fn estimate_token_count(s : String) -> Int {
+fn estimate_token_count(s : String) -> Int32 {
   let mut ascii_chars = 0
   let mut total_chars = 0
   for c in s {

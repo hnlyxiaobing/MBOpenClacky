@@ -30,13 +30,13 @@ pub fn SessionStatus::to_string(self : SessionStatus) -> String {
 ///|
 /// A tracked terminal session.
 pub(all) struct TerminalSession {
-  id : Int
+  id : Int32
   mut command : String
   mut status : SessionStatus
   mut output : String
-  started_at : Int
-  mut exit_code : Int?
-  mut pid : Int?
+  started_at : Int32
+  mut exit_code : Int32?
+  mut pid : Int32?
   mut cwd : String
   mut overflow_file : String?
   /// Output capture file for background sessions (spawn_orphan).
@@ -44,7 +44,7 @@ pub(all) struct TerminalSession {
   /// Completion marker token for the background command.
   mut marker_token : String
   /// Incremental read offset into the background output file.
-  mut output_offset : Int
+  mut output_offset : Int32
 } derive(Debug)
 
 ///|
@@ -52,7 +52,7 @@ pub extend TerminalSession with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub fn TerminalSession::new(
-  id : Int,
+  id : Int32,
   command : String,
   cwd : String,
 ) -> TerminalSession {
@@ -76,7 +76,7 @@ pub fn TerminalSession::new(
 /// Session manager state stored as a singleton.
 priv struct SessionManagerState {
   sessions : Array[TerminalSession]
-  mut next_id : Int
+  mut next_id : Int32
 }
 
 ///|
@@ -93,7 +93,10 @@ pub struct TerminalSessionManager {}
 
 ///|
 /// Register a new session, returning its assigned ID.
-pub fn TerminalSessionManager::register(command : String, cwd : String) -> Int {
+pub fn TerminalSessionManager::register(
+  command : String,
+  cwd : String,
+) -> Int32 {
   session_manager_state.next_id = session_manager_state.next_id + 1
   let id = session_manager_state.next_id
   let session = TerminalSession::new(id, command, cwd)
@@ -103,7 +106,7 @@ pub fn TerminalSessionManager::register(command : String, cwd : String) -> Int {
 
 ///|
 /// Get a session by ID.
-pub fn TerminalSessionManager::get(id : Int) -> TerminalSession? {
+pub fn TerminalSessionManager::get(id : Int32) -> TerminalSession? {
   session_manager_state.sessions.iter().find_first(fn(s) { s.id == id })
 }
 
@@ -116,7 +119,7 @@ pub fn TerminalSessionManager::list() -> Array[TerminalSession] {
 
 ///|
 /// Mark a session as running.
-pub fn TerminalSessionManager::mark_running(id : Int) -> Unit {
+pub fn TerminalSessionManager::mark_running(id : Int32) -> Unit {
   match TerminalSessionManager::get(id) {
     Some(s) => if s.status == Starting { s.status = Running }
     _ => ()
@@ -125,7 +128,7 @@ pub fn TerminalSessionManager::mark_running(id : Int) -> Unit {
 
 ///|
 /// Record the spawned process PID for a session.
-pub fn TerminalSessionManager::set_pid(id : Int, pid : Int) -> Unit {
+pub fn TerminalSessionManager::set_pid(id : Int32, pid : Int32) -> Unit {
   match TerminalSessionManager::get(id) {
     Some(s) => s.pid = Some(pid)
     _ => ()
@@ -135,7 +138,7 @@ pub fn TerminalSessionManager::set_pid(id : Int, pid : Int) -> Unit {
 ///|
 /// Record the output capture file and marker token for a background session.
 pub fn TerminalSessionManager::set_output_file(
-  id : Int,
+  id : Int32,
   path : String,
   marker_token : String,
 ) -> Unit {
@@ -151,9 +154,9 @@ pub fn TerminalSessionManager::set_output_file(
 ///|
 /// Update session with completed output and exit code.
 pub fn TerminalSessionManager::complete(
-  id : Int,
+  id : Int32,
   output : String,
-  exit_code : Int,
+  exit_code : Int32,
   overflow_file~ : String? = None,
 ) -> Unit {
   match TerminalSessionManager::get(id) {
@@ -171,14 +174,14 @@ pub fn TerminalSessionManager::complete(
 /// stdin pipe writers for interactive input, keyed by session id.
 /// WriteToProcess is not Debug-derivable, so it lives outside the
 /// session struct in a parallel map.
-let session_stdin_writers : Ref[Map[Int, @process.WriteToProcess]] = Ref(
+let session_stdin_writers : Ref[Map[Int32, @process.WriteToProcess]] = Ref(
   Map([]),
 )
 
 ///|
 /// Record the stdin pipe writer for interactive input.
 pub fn TerminalSessionManager::set_stdin_writer(
-  id : Int,
+  id : Int32,
   writer : @process.WriteToProcess,
 ) -> Unit {
   let m = session_stdin_writers.val
@@ -189,7 +192,7 @@ pub fn TerminalSessionManager::set_stdin_writer(
 /// Write a line of interactive input to a background session's stdin.
 /// Returns true if the write was delivered.
 pub async fn TerminalSessionManager::send_input(
-  id : Int,
+  id : Int32,
   input : String,
 ) -> Bool {
   let m = session_stdin_writers.val
@@ -206,7 +209,7 @@ pub async fn TerminalSessionManager::send_input(
 
 ///|
 /// Drop the stdin writer when a session is finalized.
-pub fn TerminalSessionManager::drop_stdin_writer(id : Int) -> Unit {
+pub fn TerminalSessionManager::drop_stdin_writer(id : Int32) -> Unit {
   let m = session_stdin_writers.val
   match m.get(id) {
     Some(writer) => {
@@ -223,7 +226,7 @@ pub fn TerminalSessionManager::drop_stdin_writer(id : Int) -> Unit {
 /// fall back to marking the session killed.
 ///
 /// Returns true if the session was found and killed.
-pub async fn TerminalSessionManager::kill(id : Int) -> Bool {
+pub async fn TerminalSessionManager::kill(id : Int32) -> Bool {
   match TerminalSessionManager::get(id) {
     Some(s) if s.status == Starting || s.status == Running =>
       match s.pid {
@@ -247,13 +250,13 @@ pub async fn TerminalSessionManager::kill(id : Int) -> Bool {
 
 ///|
 /// Refresh a session (check if it's still alive).
-pub fn TerminalSessionManager::refresh(id : Int) -> TerminalSession? {
+pub fn TerminalSessionManager::refresh(id : Int32) -> TerminalSession? {
   TerminalSessionManager::get(id)
 }
 
 ///|
 /// Remove a session from tracking.
-pub fn TerminalSessionManager::forget(id : Int) -> Unit {
+pub fn TerminalSessionManager::forget(id : Int32) -> Unit {
   let sessions = session_manager_state.sessions
   let mut idx = 0
   while idx < sessions.length() {
@@ -284,6 +287,6 @@ pub async fn TerminalSessionManager::kill_all() -> Unit {
 
 ///|
 /// Get session count.
-pub fn TerminalSessionManager::count() -> Int {
+pub fn TerminalSessionManager::count() -> Int32 {
   session_manager_state.sessions.length()
 }

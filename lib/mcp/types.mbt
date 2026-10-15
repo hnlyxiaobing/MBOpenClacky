@@ -60,7 +60,7 @@ pub extend McpTool with ToJson::{to_json}
 /// JSON-RPC 2.0 request structure.
 pub(all) struct JsonRpcRequest {
   jsonrpc : String
-  id : Int
+  id : Int32
   rpc_method : String
   params : Json?
 } derive(Eq, Debug)
@@ -93,7 +93,7 @@ pub fn JsonRpcRequest::to_json(self : JsonRpcRequest) -> Json {
 /// JSON-RPC 2.0 response structure.
 pub(all) struct JsonRpcResponse {
   jsonrpc : String
-  id : Int?
+  id : Int32?
   result : Json?
   error : JsonRpcError?
 } derive(Eq, Debug, ToJson)
@@ -110,7 +110,7 @@ pub extend JsonRpcResponse with ToJson::{to_json}
 ///|
 /// JSON-RPC 2.0 error object.
 pub(all) struct JsonRpcError {
-  code : Int
+  code : Int32
   message : String
   data : Json?
 } derive(Eq, Debug, ToJson)
@@ -231,7 +231,7 @@ pub fn McpServerSpec::http(
 pub fn JsonRpcResponse::from_json(json : Json) -> JsonRpcResponse? {
   match json {
     { "jsonrpc": String(ver), .. } => {
-      let id : Int? = match json {
+      let id : Int32? = match json {
         { "id": Number(n, ..), .. } => Some(n.to_int())
         _ => None
       }

@@ -8,7 +8,7 @@
 /// JSON-RPC 2.0 client wrapping a BrowserProcess for MCP protocol communication.
 pub(all) struct JsonRpcClient {
   process : BrowserProcess
-  mut id_counter : Int
+  mut id_counter : Int32
 }
 
 ///|
@@ -27,7 +27,7 @@ pub fn JsonRpcClient::get_process(self : JsonRpcClient) -> BrowserProcess {
 
 ///|
 /// Build a JSON-RPC 2.0 request string with the given id, method, and params.
-fn build_request(id : Int, http_method : String, params : Json?) -> String {
+fn build_request(id : Int32, http_method : String, params : Json?) -> String {
   let p : Json = match params {
     Some(p) => p
     None => Json::object(Map([]))
@@ -57,7 +57,7 @@ fn build_notification(http_method : String, params : Json?) -> String {
 ///|
 /// Parse a JSON-RPC 2.0 response, returning (id, result_or_error).
 /// Returns Err on parse failure or JSON-RPC error field.
-fn parse_response(text : String) -> Result[(Int, Json), String] {
+fn parse_response(text : String) -> Result[(Int32, Json), String] {
   let trimmed = text.trim()
   if trimmed.length() == 0 {
     return Err("Empty response from process")
@@ -66,7 +66,7 @@ fn parse_response(text : String) -> Result[(Int, Json), String] {
     _ => return Err("Invalid JSON in response: \{trimmed}")
   }
   // Extract id
-  let id : Int = match json {
+  let id : Int32 = match json {
     { "id": Number(n, ..), .. } => n.to_int()
     _ => return Err("Missing or invalid 'id' in response")
   }

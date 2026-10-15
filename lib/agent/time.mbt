@@ -16,17 +16,17 @@ fn stamp_created_at(msg : @message.Message) -> @message.Message {
 /// Current local UTC offset in minutes (e.g. +480 for UTC+8).
 /// Detected via OS APIs (GetTimeZoneInformation / localtime_r).
 #cfg(target="native")
-extern "C" fn local_offset_minutes_ffi() -> Int = "mbopenclacky_local_offset_minutes"
+extern "C" fn local_offset_minutes_ffi() -> Int32 = "mbopenclacky_local_offset_minutes"
 
 ///|
 #cfg(target="native")
-fn local_offset_minutes() -> Int {
+fn local_offset_minutes() -> Int32 {
   local_offset_minutes_ffi()
 }
 
 ///|
 #cfg(not(target="native"))
-fn local_offset_minutes() -> Int {
+fn local_offset_minutes() -> Int32 {
   0
 }
 
@@ -112,7 +112,7 @@ pub fn current_weekday() -> String {
 
 ///|
 /// Parse decimal digits from a string slice [start, end).
-fn parse_date_digits(s : String, start : Int, end : Int) -> Int {
+fn parse_date_digits(s : String, start : Int32, end : Int32) -> Int32 {
   let mut result = 0
   for i = start; i < end; i = i + 1 {
     result = result * 10 + (s[i].to_int() - '0'.to_int())
@@ -122,7 +122,7 @@ fn parse_date_digits(s : String, start : Int, end : Int) -> Int {
 
 ///|
 /// Compute weekday name from a date using Tomohiko Sakamoto's algorithm.
-fn weekday_name(year : Int, month : Int, day : Int) -> String {
+fn weekday_name(year : Int32, month : Int32, day : Int32) -> String {
   let t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
   let y = if month < 3 { year - 1 } else { year }
   let dow = (y + y / 4 - y / 100 + y / 400 + t[month - 1] + day) % 7

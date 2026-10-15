@@ -19,7 +19,7 @@ pub extend WorkerStatus with Eq::{not_equal, equal}
 ///|
 /// Worker identifier
 pub(all) struct WorkerId {
-  id : Int
+  id : Int32
   name : String
 } derive(Debug, Eq, ToJson, FromJson)
 
@@ -39,9 +39,9 @@ pub extend WorkerId with ToJson::{to_json}
 /// Worker configuration
 pub(all) struct WorkerConfig {
   id : WorkerId
-  max_tasks : Int
-  heartbeat_interval_ms : Int
-  shutdown_timeout_ms : Int
+  max_tasks : Int32
+  heartbeat_interval_ms : Int32
+  shutdown_timeout_ms : Int32
 } derive(Debug)
 
 ///|
@@ -52,8 +52,8 @@ pub extend WorkerConfig with @moonbitlang/core/debug.Debug::{to_repr}
 pub(all) struct Worker {
   config : WorkerConfig
   mut status : WorkerStatus
-  mut tasks_completed : Int
-  mut tasks_failed : Int
+  mut tasks_completed : Int32
+  mut tasks_failed : Int32
   mut last_heartbeat : String
   mut started_at : String
 } derive(Debug)
@@ -127,7 +127,7 @@ pub fn Worker::set_heartbeat(self : Worker, time : String) -> Unit {
 pub fn Worker::is_heartbeat_expired(
   self : Worker,
   current_time : String,
-  _timeout_ms : Int,
+  _timeout_ms : Int32,
 ) -> Bool {
   // Simple heuristic: if last_heartbeat is empty, consider expired
   if self.last_heartbeat == "" {
@@ -142,7 +142,7 @@ pub fn Worker::is_heartbeat_expired(
 
 ///|
 /// Get run statistics: (completed, failed)
-pub fn Worker::stats(self : Worker) -> (Int, Int) {
+pub fn Worker::stats(self : Worker) -> (Int32, Int32) {
   (self.tasks_completed, self.tasks_failed)
 }
 

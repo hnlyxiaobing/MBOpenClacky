@@ -2,13 +2,13 @@
 /// Git 仓库状态
 pub(all) struct GitStatus {
   branch : String
-  ahead : Int
-  behind : Int
-  staged : Int
-  modified : Int
-  untracked : Int
-  deleted : Int
-  conflicts : Int
+  ahead : Int32
+  behind : Int32
+  staged : Int32
+  modified : Int32
+  untracked : Int32
+  deleted : Int32
+  conflicts : Int32
   last_commit_msg : String
   last_commit_hash : String
   last_commit_time : String
@@ -51,7 +51,9 @@ pub fn GitStatus::empty() -> GitStatus {
 ///|
 /// 从 git status --porcelain 输出解析变更统计
 /// 返回 (staged, modified, untracked, deleted, conflicts)
-pub fn parse_porcelain_status(output : String) -> (Int, Int, Int, Int, Int) {
+pub fn parse_porcelain_status(
+  output : String,
+) -> (Int32, Int32, Int32, Int32, Int32) {
   let mut staged = 0
   let mut modified = 0
   let mut untracked = 0
@@ -96,7 +98,7 @@ pub fn parse_porcelain_status(output : String) -> (Int, Int, Int, Int, Int) {
 ///|
 /// 从 git branch -vv 输出解析分支信息
 /// 返回 (branch_name, ahead, behind, is_detached)
-pub fn parse_branch_info(output : String) -> (String, Int, Int, Bool) {
+pub fn parse_branch_info(output : String) -> (String, Int32, Int32, Bool) {
   let lines = split_lines(output)
   for line in lines {
     if line.length() < 2 {
@@ -312,7 +314,7 @@ fn split_lines(s : String) -> Array[String] {
 
 ///|
 /// Find index of a character in string, returns -1 if not found
-fn find_char(s : String, target : Char) -> Int {
+fn find_char(s : String, target : Char) -> Int32 {
   let chars = s.to_array()
   for i = 0; i < chars.length(); i = i + 1 {
     if chars[i] == target {
@@ -324,7 +326,7 @@ fn find_char(s : String, target : Char) -> Int {
 
 ///|
 /// Extract number after a keyword in a string
-fn extract_number_after(s : String, keyword : String) -> Int {
+fn extract_number_after(s : String, keyword : String) -> Int32 {
   let kw_chars = keyword.to_array()
   let s_chars = s.to_array()
   let kw_len = kw_chars.length()

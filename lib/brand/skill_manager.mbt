@@ -558,7 +558,7 @@ pub fn sanitize_skill_name(name : String) -> String {
   let mut prev_hyphen = true
   for c in name {
     let ch = if c >= 'A' && c <= 'Z' {
-      Int::unsafe_to_char(c.to_int() + 32)
+      Int32::unsafe_to_char(c.to_int() + 32)
     } else {
       c
     }

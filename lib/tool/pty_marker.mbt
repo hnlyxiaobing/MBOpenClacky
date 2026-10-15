@@ -8,7 +8,7 @@
 /// Marker format: __CLACKY_DONE_<token>_<exit_code>__
 
 // Counter for generating unique tokens. Incremented on each command.
-let pty_token_counter : Ref[Int] = Ref(0)
+let pty_token_counter : Ref[Int32] = Ref(0)
 
 ///|
 /// Generate a unique token string (e.g. "pty1", "pty2", ...).
@@ -44,7 +44,7 @@ fn pty_build_setup_line() -> String {
 
 ///|
 /// Parse a string of digits into an integer. Returns None if non-digit found.
-fn pty_parse_int_simple(s : String) -> Int? {
+fn pty_parse_int_simple(s : String) -> Int32? {
   if s.is_empty() {
     return None
   }
@@ -68,7 +68,7 @@ fn pty_parse_int_simple(s : String) -> Int? {
 /// the echoed text contains the marker prefix followed by the non-numeric
 /// `%s` printf placeholder — only the real marker has digits.
 /// Returns Some(exit_code) if found, None otherwise.
-fn pty_parse_exit_code(output : String, token : String) -> Int? {
+fn pty_parse_exit_code(output : String, token : String) -> Int32? {
   let marker_prefix = "__CLACKY_DONE_" + token + "_"
   // Split at the marker prefix; each following part starts with a
   // candidate exit-code field terminated by "__".

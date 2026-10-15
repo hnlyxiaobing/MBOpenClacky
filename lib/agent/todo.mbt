@@ -2,7 +2,7 @@
 /// Task manager that tracks work items with dependency blocking.
 pub(all) struct TodoManager {
   mut items : Array[TodoItem]
-  mut next_id : Int
+  mut next_id : Int32
 }
 
 ///|
@@ -28,14 +28,14 @@ fn TodoManager::gen_id(self : TodoManager) -> String {
 ///|
 /// Convert a model-facing integer task id (as used by the tool schema)
 /// into the internal `task_N` string id.
-pub fn TodoManager::id_str(_self : TodoManager, n : Int) -> String {
+pub fn TodoManager::id_str(_self : TodoManager, n : Int32) -> String {
   "task_" + n.to_string()
 }
 
 ///|
 /// Convert an internal `task_N` id back to the integer id exposed to the
 /// model. Falls back to 0 if malformed.
-pub fn todo_int_id(id : String) -> Int {
+pub fn todo_int_id(id : String) -> Int32 {
   let s = if id.has_prefix("task_") { id[5:].to_owned() } else { id }
   @string.parse_int(s) catch {
     _ => 0
@@ -46,7 +46,7 @@ pub fn todo_int_id(id : String) -> Int {
 /// Auto-clear completed tasks (Ruby add_todos semantics: old completed
 /// items are dropped before adding new ones). Returns how many were
 /// cleared.
-pub fn TodoManager::clear_completed(self : TodoManager) -> Int {
+pub fn TodoManager::clear_completed(self : TodoManager) -> Int32 {
   let before = self.items.length()
   self.items = self.items.filter(fn(item) { item.status != Completed })
   before - self.items.length()
@@ -58,12 +58,12 @@ pub fn TodoManager::clear_completed(self : TodoManager) -> Int {
 /// Returns (completed_now, already_completed, not_found_ids).
 pub fn TodoManager::complete_by_ids(
   self : TodoManager,
-  ids : Array[Int],
-) -> (Array[TodoItem], Array[TodoItem], Array[Int]) {
+  ids : Array[Int32],
+) -> (Array[TodoItem], Array[TodoItem], Array[Int32]) {
   let ts = current_timestamp_iso()
   let completed_now : Array[TodoItem] = []
   let already : Array[TodoItem] = []
-  let not_found : Array[Int] = []
+  let not_found : Array[Int32] = []
   for n in ids {
     let sid = self.id_str(n)
     let mut found = false
@@ -92,10 +92,10 @@ pub fn TodoManager::complete_by_ids(
 /// Returns (removed, not_found_ids).
 pub fn TodoManager::remove_by_ids(
   self : TodoManager,
-  ids : Array[Int],
-) -> (Array[TodoItem], Array[Int]) {
+  ids : Array[Int32],
+) -> (Array[TodoItem], Array[Int32]) {
   let removed : Array[TodoItem] = []
-  let not_found : Array[Int] = []
+  let not_found : Array[Int32] = []
   let to_remove : Array[String] = []
   for n in ids {
     let sid = self.id_str(n)
@@ -115,7 +115,7 @@ pub fn TodoManager::remove_by_ids(
 
 ///|
 /// Clear all tasks (Ruby clear_todos semantics). Returns cleared count.
-pub fn TodoManager::clear_all(self : TodoManager) -> Int {
+pub fn TodoManager::clear_all(self : TodoManager) -> Int32 {
   let count = self.items.length()
   self.items = []
   count
@@ -284,7 +284,7 @@ pub fn TodoManager::remove(self : TodoManager, id : String) -> Bool {
 
 ///|
 /// Return the number of tasks.
-pub fn TodoManager::size(self : TodoManager) -> Int {
+pub fn TodoManager::size(self : TodoManager) -> Int32 {
   self.items.length()
 }
 

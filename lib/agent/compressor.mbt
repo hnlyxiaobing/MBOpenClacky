@@ -10,19 +10,19 @@
 
 ///|
 /// Token threshold that triggers message compression.
-pub let compression_threshold : Int = 150_000
+pub let compression_threshold : Int32 = 150_000
 
 ///|
 /// Message count threshold that triggers compression.
-pub let message_count_threshold : Int = 200
+pub let message_count_threshold : Int32 = 200
 
 ///|
 /// Maximum number of recent messages to preserve after compression.
-pub let max_recent_messages : Int = 20
+pub let max_recent_messages : Int32 = 20
 
 ///|
 /// Target token count for the compressed summary.
-pub let target_compressed_tokens : Int = 10_000
+pub let target_compressed_tokens : Int32 = 10_000
 
 // ── Compression Prompt ────────────────────────────────────────────────────────
 
@@ -69,9 +69,9 @@ let compression_prompt : String =
 ///|
 /// Configuration for the compression system.
 pub(all) struct CompressionConfig {
-  max_recent_messages : Int
-  target_compressed_tokens : Int
-  idle_compression_threshold : Int
+  max_recent_messages : Int32
+  target_compressed_tokens : Int32
+  idle_compression_threshold : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -96,8 +96,8 @@ pub fn CompressionConfig::default() -> CompressionConfig {
 /// Record of a single compression operation for tracking history.
 pub(all) struct CompressedSummary {
   timestamp : String
-  original_count : Int
-  compressed_count : Int
+  original_count : Int32
+  compressed_count : Int32
   token_savings : Double
 } derive(Eq, Debug)
 
@@ -112,10 +112,10 @@ pub extend CompressedSummary with Eq::{not_equal, equal}
 ///|
 /// Context captured when compression is triggered.
 pub(all) struct CompressionContext {
-  original_token_count : Int
-  original_message_count : Int
-  compression_level : Int
-  recent_message_count : Int
+  original_token_count : Int32
+  original_message_count : Int32
+  compression_level : Int32
+  recent_message_count : Int32
   chunk_path : String?
   previous_chunks : Array[String]
   compression_history : Array[CompressedSummary]
@@ -302,7 +302,7 @@ pub fn rebuild_history_with_compression(
   original_messages : Array[@message.Message],
   compressed_summary : String,
   topics : String,
-  recent_count : Int,
+  recent_count : Int32,
 ) -> Array[@message.Message] {
   let result : Array[@message.Message] = []
   // 1. Find and preserve system message
@@ -344,7 +344,7 @@ pub fn rebuild_history_with_compression(
 /// If a message has tool_calls, include all following tool result messages too.
 pub fn get_recent_with_tool_pairs(
   messages : Array[@message.Message],
-  count : Int,
+  count : Int32,
 ) -> Array[@message.Message] {
   let len = messages.length()
   if len == 0 || count <= 0 {
@@ -380,7 +380,7 @@ pub fn get_recent_with_tool_pairs(
 
 ///|
 /// Estimate the total token count across all messages in history.
-pub fn estimate_history_tokens(history : Array[@message.Message]) -> Int {
+pub fn estimate_history_tokens(history : Array[@message.Message]) -> Int32 {
   let mut total = 0
   for msg in history {
     total = total + message_token_estimate(msg)
@@ -390,7 +390,7 @@ pub fn estimate_history_tokens(history : Array[@message.Message]) -> Int {
 
 ///|
 /// Estimate token count for a single message.
-fn message_token_estimate(msg : @message.Message) -> Int {
+fn message_token_estimate(msg : @message.Message) -> Int32 {
   let mut tokens = 0
   match msg.content {
     @message.Text(s) => tokens = tokens + estimate_token_count(s)
@@ -426,7 +426,7 @@ fn message_token_estimate(msg : @message.Message) -> Int {
 /// Under current constants (target_compressed_tokens=10_000) the result is
 /// always 20 regardless of `reduction_needed`; the parameter is kept for
 /// API parity with Ruby.
-pub fn calculate_target_recent_count(reduction_needed : Int) -> Int {
+pub fn calculate_target_recent_count(reduction_needed : Int32) -> Int32 {
   let _ = reduction_needed // kept for API parity with Ruby; unused under constants
   let tokens_per_message = 500 // Average estimate for a message with content
   // Target recent messages budget (~20% of target compressed size)
@@ -462,7 +462,7 @@ pub fn should_skip_compression(last_reduction_pct : Double) -> Bool {
 /// tool execution context for the model.
 pub fn pulled_back_messages(
   messages : Array[@message.Message],
-  max_tokens : Int,
+  max_tokens : Int32,
 ) -> (Array[@message.Message], Array[@message.Message]) {
   let total = messages.length()
   let kept : Array[@message.Message] = []
@@ -501,7 +501,7 @@ pub fn pulled_back_messages(
   fn find_assistant_index(
     msgs : Array[@message.Message],
     call_id : String,
-  ) -> Int? {
+  ) -> Int32? {
     let mut i = msgs.length() - 1
     while i >= 0 {
       let m = msgs[i]
@@ -542,7 +542,7 @@ pub fn pulled_back_messages(
     }
     // For each kept tool_result whose call_id is not answered, find parent
     // assistant in `pulled` and re-pull it into `kept` (and remove from pulled).
-    let pull_indices : Array[Int] = []
+    let pull_indices : Array[Int32] = []
     for i, msg in kept {
       if msg.role == @message.Tool {
         match msg.tool_call_id {

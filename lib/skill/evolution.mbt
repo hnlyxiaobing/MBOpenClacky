@@ -13,9 +13,9 @@ pub(all) struct EvolutionEngine {
 /// Scenarios that trigger evolution.
 pub(all) enum EvolutionScenario {
   /// After a skill finishes executing — reflect on its performance.
-  PostExecution(skill_name~ : String, result~ : String, iterations~ : Int)
+  PostExecution(skill_name~ : String, result~ : String, iterations~ : Int32)
   /// During conversation — detect repeated patterns that could become skills.
-  AutoDetect(conversation_history~ : Array[String], iteration_count~ : Int)
+  AutoDetect(conversation_history~ : Array[String], iteration_count~ : Int32)
 }
 
 ///|
@@ -95,7 +95,7 @@ fn EvolutionEngine::handle_post_execution(
   self : EvolutionEngine,
   skill_name : String,
   result : String,
-  iterations : Int,
+  iterations : Int32,
 ) -> Result[EvolutionResult, String] {
   let report = self.reflector.reflect(skill_name, result, iterations)
   if !report.should_improve {
@@ -125,7 +125,7 @@ fn EvolutionEngine::handle_post_execution(
 fn EvolutionEngine::handle_auto_detect(
   self : EvolutionEngine,
   conversation_history : Array[String],
-  iteration_count : Int,
+  iteration_count : Int32,
   skills_dir~ : String? = None,
 ) -> Result[EvolutionResult, String] {
   let candidates = self.auto_creator.detect_candidates(

@@ -3,7 +3,7 @@
 pub(all) struct MediaOutputDir {
   base_path : String
   prefix : String
-  mut counter : Int
+  mut counter : Int32
 }
 
 ///|
@@ -102,7 +102,10 @@ pub fn MediaOutputDir::list_files(
 /// with the counter-based filenames produced by generate_filename this
 /// approximates creation order (media_2.png sorts before media_10.png
 /// only within the same digit count - good enough for a best-effort cap).
-pub fn MediaOutputDir::cleanup(self : MediaOutputDir, max_files : Int) -> Int {
+pub fn MediaOutputDir::cleanup(
+  self : MediaOutputDir,
+  max_files : Int32,
+) -> Int32 {
   let files = self.list_files()
   let max_count = if max_files > 0 { max_files } else { 100 }
   if files.length() <= max_count {

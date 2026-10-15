@@ -3,8 +3,8 @@
 ///|
 /// Configuration for automatic skill creation.
 pub(all) struct AutoCreator {
-  iteration_threshold : Int // default 12 — min iterations before auto-creation triggers
-  confidence_threshold : Int // default 80 — min confidence to create a skill
+  iteration_threshold : Int32 // default 12 — min iterations before auto-creation triggers
+  confidence_threshold : Int32 // default 80 — min confidence to create a skill
 }
 
 ///|
@@ -12,8 +12,8 @@ pub(all) struct AutoCreator {
 pub(all) struct CreationCandidate {
   name : String
   description : String
-  pattern_count : Int // number of times the pattern was detected
-  confidence : Int // 0-100 confidence score
+  pattern_count : Int32 // number of times the pattern was detected
+  confidence : Int32 // 0-100 confidence score
 } derive(Eq, Debug)
 
 ///|
@@ -31,8 +31,8 @@ pub fn AutoCreator::new() -> AutoCreator {
 ///|
 /// Create an AutoCreator with custom thresholds.
 pub fn AutoCreator::with_thresholds(
-  iteration_threshold : Int,
-  confidence_threshold : Int,
+  iteration_threshold : Int32,
+  confidence_threshold : Int32,
 ) -> AutoCreator {
   { iteration_threshold, confidence_threshold, }
 }
@@ -49,7 +49,7 @@ pub fn AutoCreator::with_thresholds(
 pub fn AutoCreator::detect_candidates(
   self : AutoCreator,
   history : Array[String],
-  iteration_count : Int,
+  iteration_count : Int32,
 ) -> Array[CreationCandidate] {
   let candidates : Array[CreationCandidate] = []
   // Early exit if history is too small or iterations below threshold
@@ -183,7 +183,7 @@ fn has_space(s : String) -> Bool {
 
 ///|
 /// Get the first `n` characters of a string (or full string if shorter).
-fn string_prefix(s : String, n : Int) -> String {
+fn string_prefix(s : String, n : Int32) -> String {
   let chars = s.to_array()
   let len = if chars.length() < n { chars.length() } else { n }
   let buf = StringBuilder()
@@ -196,7 +196,7 @@ fn string_prefix(s : String, n : Int) -> String {
 ///|
 /// Calculate confidence score based on pattern count and group consistency.
 /// More repetitions and more similar lengths increase confidence.
-fn calculate_confidence(pattern_count : Int, group : Array[String]) -> Int {
+fn calculate_confidence(pattern_count : Int32, group : Array[String]) -> Int32 {
   // Base confidence from repetition count: 50 + count * 10, capped at 100
   let mut confidence = 50 + pattern_count * 10
   // Bonus for consistent lengths (low variance)

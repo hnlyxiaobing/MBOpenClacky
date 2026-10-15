@@ -36,8 +36,8 @@ async fn MockMcpLog::record(
 ///|
 /// A mock server answering with a fixed JSON-RPC reply for `id`.
 fn mock_json_handler(
-  id : Int,
-  code : Int,
+  id : Int32,
+  code : Int32,
   session_id : String,
 ) -> (MockMcpLog) -> async (@http.Request, &@io.Reader, @http.ServerConnection) -> Unit {
   log => {
@@ -60,7 +60,7 @@ fn mock_json_handler(
 /// reply for `id`. The transport must return only the last one and forward
 /// the first two.
 fn mock_sse_handler(
-  id : Int,
+  id : Int32,
 ) -> (MockMcpLog) -> async (@http.Request, &@io.Reader, @http.ServerConnection) -> Unit {
   log => {
     (request, body, conn) => {
