@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/core/hashmap",
+  "moonbitlang/core/hashset",
+  "moonbitlang/core/string",
+}
+
+// Vendored third-party code (DzmingLi/clap@0.2.8), kept byte-identical to
+// upstream so it can be re-vendored/diffed cleanly. These alerts are relaxed
+// for this package only. See VENDOR.md.
+//   20 = deprecated (StringBuilder::new)
+//   79 = implicit_impl_as_method
+//   82 = ambiguous_braces
+warnings = "-20-79-82"

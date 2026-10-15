@@ -2,11 +2,11 @@
 package "hnlyxiaobing/MBOpenClacky/cmd"
 
 import {
-  "DzmingLi/clap",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/protocol",
   "hnlyxiaobing/MBOpenClacky/lib/web",
+  "hnlyxiaobing/MBOpenClacky/third_party/clap",
   "moonbitlang/core/debug",
 }
 

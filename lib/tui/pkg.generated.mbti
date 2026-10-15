@@ -37,6 +37,8 @@ pub fn build_submodel_items(@config.ModelConfig, String?) -> Array[ConfigMenuIte
 
 pub fn build_tool_prompt(String, String) -> String
 
+pub fn char_display_width(Char) -> Int
+
 pub fn clear_confirmation_sequence() -> String
 
 pub fn close_config_dialog(TuiState) -> Unit
@@ -152,6 +154,8 @@ pub fn return_to_config_menu(TuiState, @agent.Agent, ConfigMode) -> Unit
 pub async fn run_tui_interactive(@agent.Agent) -> Unit
 
 pub fn set_console_utf8() -> Int
+
+pub fn string_display_width(String) -> Int
 
 pub fn strip_ansi(String) -> String
 

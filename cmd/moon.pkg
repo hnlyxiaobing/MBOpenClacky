@@ -11,7 +11,7 @@ import {
   "moonbitlang/x/sys",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
-  "DzmingLi/clap",
+  "hnlyxiaobing/MBOpenClacky/third_party/clap",
   "hnlyxiaobing/MBOpenClacky/lib/config",
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/billing",

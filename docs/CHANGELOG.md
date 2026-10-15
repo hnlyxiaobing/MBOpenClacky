@@ -30,6 +30,10 @@
 - `[chore]` **版本发布**：`moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` VERSION 四处一致升到 `0.3.0`，并同步 README/AGENTS/project-status 的 repo-stats 块。这是继 mooncakes 上 `0.1.3` 之后发布的新版本（本地 `0.2.0` 从未发布到 registry）。
 - `[feat]` 自 `v0.2.0` 基线以来的主要能力：Agent shell hook 系统（7 个生命周期事件）、OpenAI Responses API（`/v1/responses`）支持、多渠道真实收发接线（飞书/Telegram/Discord/钉钉/企微/微信）、媒体生成（图像/视频/语音/转写）真实 provider 调用、benchmark 显式基线闸门、层9 用户旅程 E2E runner（`cmd journey`）。
 - `[chore]` **依赖收口**：迁移到 registry `Milky2018/css@0.6.0`，移除废弃 vendored `mbtpdf`，刷新前端 vendor 库并去掉最后一处 CDN 依赖。
+- `[chore]` **发布解阻：清理依赖图中的旧格式包**（最终依赖状态，取代上一条中已被移除的 `Milky2018/css`）：
+  - TUI 宽度计算从 `mizchi/tui@0.10.2` 迁到 `moonbit-community/unicodewidth@0.2.1`——项目只用到其 core 的两个宽度函数，改由本地 `lib/tui/cjk_width.mbt`（基于 UAX#11）重新实现 `char_display_width`/`string_display_width`，TUI 本体仍为自研；`lib/tui/parity_probe_wbtest.mbt` 校验宽度语义 parity。同时移除孤立依赖 `Milky2018/css`。
+  - `DzmingLi/clap@0.2.8` 是 registry 上的最新版且仍只带旧格式 `moon.pkg.json`（新工具链拒绝），而 `moon publish` 会脱离本地 `vendor`、纯从 registry 拉依赖跑干净 `moon check`，因此该旧格式传递依赖会中断发布校验。clap 仅依赖 `moonbitlang/core`，遂以 MIT 许可 vendored 进本模块 `third_party/clap`（保留 `@clap` 别名，仅 `cmd` 消费；对 upstream 逐字保留，仅在该包 `moon.pkg` 内放宽 `warnings = "-20-79-82"`）。详见 `third_party/clap/VENDOR.md`。
+  - 结果：`moon check -d` 0 error/0 warning，`moon publish --dry-run` 的解包干净校验通过（Server 202 Accepted）。
 
 ### 2026-10-14  前端 vendor 库刷新 + 依赖清理 + crater-core 增量重排地基
 

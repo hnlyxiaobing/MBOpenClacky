@@ -8,7 +8,6 @@ import {
   "moonbitlang/x@0.5.5",
   "moonbitlang/async@0.22.5",
   "moonbit-community/toml@0.5.0",
-  "DzmingLi/clap@0.2.8",
   "hnlyxiaobing/crescent@0.10.7",
   "hnlyxiaobing/moonbitmark@0.5.0",
   "moonbit-community/tty@0.5.0",
