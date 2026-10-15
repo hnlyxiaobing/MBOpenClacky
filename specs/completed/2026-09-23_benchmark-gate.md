@@ -1,6 +1,6 @@
 # benchmark-gate: 性能基准升级为 CI 门禁规格
 
-> 状态：`draft`（2026-09-23 创建）
+> 状态：`completed`（2026-09-23 创建，2026-10-15 归档）
 > 来源：[improvement-execution-plan.md](../../docs/improvement-execution-plan.md) #17
 > 前置：`test/benchmark/` 已落地（runner/scenario/stats/comparator/timer/persistence + wbtest），`cmd benchmark` 真执行默认 registry 工具并计时（WP-3.4）
 

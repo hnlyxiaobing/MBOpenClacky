@@ -1,7 +1,7 @@
 # System Prompt 装配层对齐（B0-10）· 增量 Spec
 
 > **创建日期**: 2026-10-09
-> **状态**: 讨论中
+> **状态**: 实施完成（2026-10-15 归档）
 > **关联总览**: `diff-harness/reports/B0_ACCEPTANCE_2026-10-09.md` §6
 > **关联历史 spec**: `2026-10-09_agent-profile-wiring-alignment.md`（B0，装配链路已接通）
 > **来源差距**: BUG-0065 / BUG-0066 / BUG-0067 / BUG-0069（diff-harness 台账）

@@ -1,7 +1,7 @@
 # Agent Profile 装配层对齐（B0）· 增量 Spec
 
 > **创建日期**: 2026-10-09
-> **状态**: 讨论中
+> **状态**: 实施完成（2026-10-15 归档）
 > **关联总览**: `diff-harness/reports/REALIGNMENT_ASSESSMENT_2026-10-09.md` §2、§4.2
 > **关联历史 spec**: `2026-08-18_20_agent-profile.md`（profile 加载本体，已归档）
 > **来源差距**: BUG-0058 / BUG-0059 / BUG-0060 / BUG-0064（diff-harness 台账）
