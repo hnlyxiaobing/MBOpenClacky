@@ -47,9 +47,9 @@ pub(all) struct JourneyContext {
   /// Sandbox workspace (`<run_dir>/workspace`).
   workspace : String
   /// Web server port chosen for this journey (probe-adjusted).
-  mut server_port : Int
+  mut server_port : Int32
   /// Mock upstream port (set when the mock server binds).
-  mut mock_port : Int
+  mut mock_port : Int32
   /// Values captured from HTTP responses (`{capture:<name>}` placeholders).
   mut captures : Map[String, String]
 }
@@ -61,7 +61,7 @@ pub fn create_journey_context(
   bin_path : String,
   scenario_id : String,
   stamp : String,
-  server_port : Int,
+  server_port : Int32,
 ) -> JourneyContext {
   let repo_abs = journey_normalize_path(repo_abs)
   let run_dir = "\{repo_abs}/_build/journey/\{stamp}/\{scenario_id}"
@@ -106,7 +106,7 @@ pub fn seed_workspace_files(
 /// never touch the real user config.
 pub fn write_seed_config(
   ctx : JourneyContext,
-  mock_port : Int,
+  mock_port : Int32,
   permission_mode : String,
 ) -> Unit {
   ctx.mock_port = mock_port
@@ -152,7 +152,7 @@ pub fn expand_journey_placeholders(
 ///|
 /// Parse a `.`-separated path segment as an array index (`"0"`, `"12"`).
 /// Returns `None` for non-numeric segments (object keys).
-fn parse_path_index(part : String) -> Int? {
+fn parse_path_index(part : String) -> Int32? {
   if part.is_empty() {
     return None
   }

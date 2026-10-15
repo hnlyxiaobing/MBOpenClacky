@@ -77,7 +77,7 @@ async fn http_step(
   body : String,
   capture : String,
   headers : Array[(String, String)],
-  timeout_ms : Int,
+  timeout_ms : Int32,
   phase_name : String,
 ) -> Unit {
   let ctx = state.ctx
@@ -93,7 +93,7 @@ async fn http_step(
   // Malformed. Text decoding stays lossy — the body is only ever matched
   // against substrings; `last_http_body_bytes` carries the true byte count.
   let result : Result[
-    (Int, String, Int, Array[(String, String)]),
+    (Int32, String, Int32, Array[(String, String)]),
     @client.HttpError,
   ] = match verb_norm {
     "POST" =>
@@ -211,7 +211,7 @@ async fn ws_send_step(
 async fn ws_wait_event_step(
   state : JourneyState,
   event : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   phase_name : String,
 ) -> Unit {
   match state.journal {

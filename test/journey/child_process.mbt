@@ -107,8 +107,8 @@ async fn ChildHandle::drain_output(self : ChildHandle) -> Unit {
 /// is a journey failure, never a runner hang.
 pub async fn ChildHandle::wait_collect(
   self : ChildHandle,
-  timeout_ms : Int,
-) -> Result[(Int, String, String), String] {
+  timeout_ms : Int32,
+) -> Result[(Int32, String, String), String] {
   match @async.with_timeout_opt(timeout_ms, () => self.process.wait()) {
     Some(code) => {
       ChildHandle::drain_output(self)
@@ -127,7 +127,7 @@ pub async fn ChildHandle::wait_collect(
 /// Safe on an already-exited child.
 pub async fn ChildHandle::kill_and_collect(
   self : ChildHandle,
-) -> (Int, String, String) {
+) -> (Int32, String, String) {
   self.process.cancel()
   let code = self.process.wait()
   ChildHandle::drain_output(self)
@@ -145,7 +145,7 @@ pub async fn ChildHandle::kill(self : ChildHandle) -> Unit {
 
 ///|
 /// Whether anything is currently listening on a loopback port.
-pub async fn port_is_listening(port : Int) -> Bool {
+pub async fn port_is_listening(port : Int32) -> Bool {
   let conn = @socket.Tcp::connect_to_host("127.0.0.1", port~) catch {
     _ => return false
   }
@@ -156,7 +156,7 @@ pub async fn port_is_listening(port : Int) -> Bool {
 ///|
 /// Pick the first port at/after `base` with nothing listening
 /// (bounded retries; returns the last candidate if all are busy).
-pub async fn choose_free_port(base : Int, tries~ : Int = 3) -> Int {
+pub async fn choose_free_port(base : Int32, tries~ : Int32 = 3) -> Int32 {
   let mut port = base
   for i = 0; i < tries; i = i + 1 {
     if !port_is_listening(port) {

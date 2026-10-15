@@ -43,7 +43,7 @@ fn evaluate_tui_screen_assertion(
 /// Bridge a row assertion to the simulator.
 fn evaluate_tui_row_assertion(
   state : JourneyState,
-  row : Int,
+  row : Int32,
   text : String,
 ) -> @eval.EvalAssertionResult {
   match state.tui {

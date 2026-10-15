@@ -42,18 +42,18 @@ pub(all) struct JourneyState {
   /// TUI simulator (tui journeys).
   mut tui : @test_tui.TuiEvalSimulator?
   /// Last HTTP response (web steps).
-  mut last_http_status : Int
+  mut last_http_status : Int32
   mut last_http_body : String
   /// Raw byte length of the last HTTP body. Tracked separately because binary
   /// responses (e.g. a backup ZIP) are decoded lossily for text assertions.
-  mut last_http_body_bytes : Int
+  mut last_http_body_bytes : Int32
   mut last_http_headers : Array[(String, String)]
   /// Last exited child's outputs (cli/persistence steps).
-  mut last_exit_code : Int?
+  mut last_exit_code : Int32?
   mut last_stdout : String
   mut last_stderr : String
   /// Per-child output log for evidence: (label, exit, stdout, stderr).
-  child_outputs : Array[(String, Int, String, String)]
+  child_outputs : Array[(String, Int32, String, String)]
   /// REST request log (one JSON object per line, evidence).
   rest_log : Array[String]
   /// Accumulated assertion results.
@@ -63,12 +63,12 @@ pub(all) struct JourneyState {
   /// Phase/step trace (evidence + failure localization).
   trace : Array[String]
   /// TUI screenshot counter for evidence naming.
-  mut screenshot_count : Int
+  mut screenshot_count : Int32
   /// Scenario permission mode (drives the in-process TUI agent config).
   mut permission_mode : String
   /// Number of TuiState.messages already mirrored into the output buffer
   /// (headless stand-in for the controller's AgentOutputSync).
-  mut tui_messages_synced : Int
+  mut tui_messages_synced : Int32
 }
 
 ///|
@@ -107,7 +107,7 @@ fn new_journey_state(
 fn record_child_output(
   state : JourneyState,
   label : String,
-  code : Int,
+  code : Int32,
   stdout : String,
   stderr : String,
 ) -> Unit {

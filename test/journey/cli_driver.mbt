@@ -74,7 +74,7 @@ async fn spawn_cli_step(
 ///|
 async fn wait_child_step(
   state : JourneyState,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   capture : String,
   phase_name : String,
 ) -> Unit {
@@ -172,7 +172,7 @@ async fn kill_child_step(state : JourneyState, phase_name : String) -> Unit {
 /// then hard-kill the child (bounded poll; never hangs).
 async fn kill_child_mid_run_step(
   state : JourneyState,
-  after_mock_request : Int,
+  after_mock_request : Int32,
   phase_name : String,
 ) -> Unit {
   match state.child {

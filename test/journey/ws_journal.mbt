@@ -90,7 +90,7 @@ pub async fn WsJournal::send_text(self : WsJournal, text : String) -> Unit {
 pub async fn WsJournal::wait_event(
   self : WsJournal,
   event : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> Bool {
   let deadline = @agent.current_time_ms() + timeout_ms.to_int64()
   for ;; {
@@ -112,7 +112,7 @@ pub async fn WsJournal::wait_event(
 
 ///|
 /// Count inbound events with the given type name.
-pub fn WsJournal::event_count(self : WsJournal, event : String) -> Int {
+pub fn WsJournal::event_count(self : WsJournal, event : String) -> Int32 {
   let mut n = 0
   for e in self.events {
     if e == event {

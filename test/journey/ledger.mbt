@@ -38,7 +38,7 @@ pub(all) struct LedgerOpenRow {
   area : String
   first_seen : String
   last_seen : String
-  streak : Int
+  streak : Int32
   summary : String
   evidence : String
 }
@@ -49,7 +49,7 @@ pub(all) struct LedgerFixedRow {
   scenario_id : String
   first_seen : String
   fixed_on : String
-  max_streak : Int
+  max_streak : Int32
   summary : String
 }
 

@@ -16,8 +16,8 @@
 fn tui_new_step(
   group : @async.TaskGroup[Unit],
   state : JourneyState,
-  cols : Int,
-  rows : Int,
+  cols : Int32,
+  rows : Int32,
   phase_name : String,
 ) -> Unit {
   ignore(group)
@@ -96,7 +96,7 @@ async fn tui_send_step(
   group : @async.TaskGroup[Unit],
   state : JourneyState,
   text : String,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   phase_name : String,
 ) -> Unit {
   ignore(group)

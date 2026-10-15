@@ -19,14 +19,14 @@ pub(all) enum StepAction {
     body~ : String,
     capture~ : String,
     headers~ : Array[(String, String)],
-    timeout_ms~ : Int
+    timeout_ms~ : Int32
   )
   /// Open the WebSocket journal connection (url may use `{port}`).
   WsConnect(url~ : String)
   /// Send a JSON frame over the WebSocket connection.
   WsSend(frame~ : Json)
   /// Block until an event with the given `type_name()` is journaled.
-  WsWaitEvent(event~ : String, timeout_ms~ : Int)
+  WsWaitEvent(event~ : String, timeout_ms~ : Int32)
   /// Terminate the current child process (hard kill).
   KillChild
   /// Spawn a CLI child: `bin -m <message> ...` (or `--continue` when cont).
@@ -43,23 +43,23 @@ pub(all) enum StepAction {
   /// Wait for the current CLI child to exit and collect its output.
   /// `capture` names a field extracted from the last stdout JSON line
   /// (e.g. session_id) into a `{capture:<name>}` placeholder.
-  WaitChild(timeout_ms~ : Int, capture~ : String)
+  WaitChild(timeout_ms~ : Int32, capture~ : String)
   /// Hard-kill the child after mock upstream request N arrives (crash sim).
-  KillChildMidRun(after_mock_request~ : Int)
+  KillChildMidRun(after_mock_request~ : Int32)
   /// Create the in-process TUI simulator (real agent, mock upstream).
-  TuiNew(cols~ : Int, rows~ : Int)
+  TuiNew(cols~ : Int32, rows~ : Int32)
   /// Type text into the simulator input area.
   TuiType(text~ : String)
   /// Press a special key in the simulator.
   TuiPress(key~ : String)
   /// Submit a message through the REAL ReAct loop (mock upstream).
-  TuiSend(text~ : String, timeout_ms~ : Int)
+  TuiSend(text~ : String, timeout_ms~ : Int32)
   /// Capture a simulator screenshot into the evidence bundle.
   TuiScreenshot(name~ : String)
   /// Plain wall-clock pause. Journey assertions must not depend on time, but
   /// some flows need a real gap between events (e.g. proving a list reorders
   /// by last-activity when timestamps have one-second resolution).
-  Sleep(sleep_ms~ : Int)
+  Sleep(sleep_ms~ : Int32)
   /// Evaluate assertions against the current journey context.
   Assert(assertions~ : Array[@eval.AssertionKind])
 }
@@ -85,9 +85,9 @@ pub(all) struct JourneyScenario {
   /// Human-readable journey description (goes into failure records).
   description : String
   /// Journey-level watchdog timeout in ms.
-  timeout_ms : Int
+  timeout_ms : Int32
   /// Advisory web server port (runner probes and retries on conflict).
-  server_port : Int
+  server_port : Int32
   /// Permission mode seeded into the sandbox config
   /// ("auto_approve" | "confirm_safes" | "confirm_all").
   permission_mode : String
@@ -112,7 +112,7 @@ fn get_str(fields : Map[String, Json], key : String) -> String {
 }
 
 ///|
-fn get_int(fields : Map[String, Json], key : String, default : Int) -> Int {
+fn get_int(fields : Map[String, Json], key : String, default : Int32) -> Int32 {
   match fields.get(key) {
     Some(Number(n, ..)) => n.to_int()
     _ => default
