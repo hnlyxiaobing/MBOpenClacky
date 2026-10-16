@@ -398,3 +398,45 @@ main.log  -> counted 4086   exit=0  0 stale blocks
 
 CI gate policy 依旧未动：L4/L7/L8/Playwright 仍不进 CI，benchmark 步骤仍 `continue-on-error: true`，
 clap 仍是 vendored；本轮只改了日志的落盘与读取口径。
+
+## 11. CI 耗时归因与缩短方案（2026-10-16，SHA `a3ef65c` 触发 20+ 分钟之后）
+
+问的是「为什么要跑 20 多分钟、能不能缩短」。用作业级步骤计时（公开 API `actions/runs/{id}/jobs`，
+step 只有 `started_at`/`completed_at` 差值可算）给出结论：**那不是慢，是死等**。
+
+| 运行 | SHA | `Build (native release)` | `Run tests (module packages)` | `Run lib/mcp tests` | 作业合计 |
+|---|---|---|---|---|---|
+| `38834033138`（绿） | `01b9ce7` | 316 s | 102 s | 3 s | 470 s（7.8 分钟） |
+| `38835281930`（取消） | `a3ef65c` | 378 s | **1404 s，cancelled** | skipped | 1818 s ≈ 30 分钟 |
+
+- 健康态的 CI 墙钟本来就 ≈ 8 分钟：`Checks` 30–35 s 与 `Build · Test` 并行段之后是 `Repo stats` 7 s。
+- 挂起态把同一测试步放大 **13.8 倍**（102 s → 1404 s）且**没有产出任何 `Total tests:` 行**——
+  moon 会把测试二进制的 stdout 缓冲到进程退出才吐，所以卡住的包在日志里没有逐条用例行，只剩它自己的
+  stderr（`[stream-summary]`）。这正是 `test/e2e` 的挂起特征，Windows 本地早已见过同一形状。
+- 作业被自身 `timeout-minutes: 30` 杀掉，注解为 `The job has exceeded the maximum execution time of 30m0s`
+  + `The operation was canceled.`，其后所有步骤 0 s / skipped，`Repo stats` 整作业 skipped。
+
+### 已实施的缩短（本轮，只动 ci.yml 与脚本，不动门禁策略）
+
+1. `test/e2e` 从主测试步移出，独立成 `Scenarios (test/e2e)` 作业（`needs: checks`，与 `Build · Test`
+   并行 ⇒ 不在关键路径上），`timeout-minutes: 15`。效果：主测试步回到 ~102 s；一次死等只吃掉一本 15 分钟
+   的作业并直接指名 culprit，而不是 30 分钟整条流水线。预算算式写在作业注释里（冷编译 ≈5 分钟 + 剧本本身，
+   其中 `013` 名义 10 次退避可被负载放大 ~4.5×）。
+2. 计数口径保持 4086 不变：`Repo stats gate (T1)` 改为拼接 `moon_test_main.log` + `moon_test_e2e.log`
+   后求和（实测 moon **每次 invocation 只打一行** `Total tests:`，两本拼接 = 拆分前同一集合），
+   任一文件缺失即 `::error::` + exit 1，不会静默少算。**红绿实证**：本地用合成日志喂同一个
+   `check --test-count-from`，只给主日志（4071）exit 1 且三处 metrics 判 STALE，拼接（4071 + 15 = 4086）exit 0。
+3. e2e 作业的前置步骤与 `Build · Test` 逐字对齐（apt 依赖清单、`cli.moonbitlang.com/install/unix.sh`、
+   PATH、`mooncakes-v4` 缓存键、`migrate_moon_mod_json.sh`），以免引入第二个安装入口——早期草稿里那种
+   `core/releases/download/latest/install.sh` 变体是本仓已废弃的写法。
+
+### 未实施、已量化的下一个抓手
+
+- **release 产物缓存形同虚设**：日志明写 `Cache hit for: moonbuild-Linux-moon0.1.20261012748b63c2026-10-12-…`
+  且 `Cache hit occurred on the primary key …, not saving cache.`，但 `Build (native release)` 仍要
+  316–378 s ≈ ci.yml 自记的「未缓存基线 4.7 分钟」。也就是说命中缓存并没有省下编译，这一步占健康作业的
+  67–75%，是最大的一块可回收时间。领先假设是 mtime：`actions/checkout` 重新检出会让全部源文件时间戳
+  新鲜于缓存里的构建产物，moon 的增量判定因此判定全量重编。**尚未证实**，且修复要动缓存键/checkout 时序
+  （或把源码 mtime 重置为 git 提交时间），属独立工作项，需先出 spec 再改，不在本轮混做。
+- 门禁策略仍按决定未动：L4/L7/L8/Playwright 不进 CI、benchmark 仍 `continue-on-error: true`、clap 仍 vendored。
+  本轮 CI 结构改动只有「e2e 独立作业 + 门禁读拼接日志」两处。

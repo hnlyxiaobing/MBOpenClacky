@@ -29,7 +29,7 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky) AI Agent 
 | 源代码行数 | 106,298 |
 | 测试行数 | 65,956 |
 | 总行数 | 172,254 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4086 |
+| 测试用例（`moon test --release`，本模块 scoped 口径 = CI 主测试步 + `test/e2e` 独立作业；`lib/mcp` 另一步单独跑、不计入） | 4086 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |

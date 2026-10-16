@@ -212,7 +212,7 @@ jobs:
         run: |
           set +e
           pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
-            | grep -v '^lib/mcp$' | tr '\n' ' ')
+            | grep -v '^lib/mcp$' | grep -v '^test/e2e$' | tr '\n' ' ')
           # `moon_test_main.log` is the caliber that repo_stats records: this step
           # alone. The lib/mcp step appends to moon_test.log (so one artifact
           # carries every failing test for the annotation step), and repo_stats.sh
@@ -295,13 +295,116 @@ jobs:
           grep -q '"completion_rate":1' "$RUNNER_TEMP/eval.json"
           grep -q '"repeatability":1' "$RUNNER_TEMP/eval.json"
 
+  # ── Layer 4/8 link-level scenarios run in their own job.
+  #    test/e2e drives the real retry/backoff path against a mock LLM socket,
+  #    and MockLlmServer::serve reads with a blocking conn.read_until: when a
+  #    scenario parks the single-threaded native runtime, @async timers cannot
+  #    run and with_timeout_opt never fires, so the binary never exits. That was
+  #    observed on Linux for the first time on run 38835281930 (test step stuck
+  #    at 1404 s, no "Total tests:" line at all, job cancelled by its own
+  #    30-minute timeout while the normal cost of this step is ~110 s).
+  #    Isolating the package means a dead-wait costs one job with a tight budget
+  #    instead of the whole suite, and the job-level conclusion names the culprit.
+  e2e-tests:
+    name: Scenarios (test/e2e)
+    runs-on: ubuntu-24.04
+    # 15 min = cold debug compile of this package's dependency closure (~5 min
+    # observed for the shared suite) + the scenarios themselves, where `013` alone
+    # can cost 10 backoff sleeps inflated ~4.5x by load (300s budget already
+    # granted in scenarios_wbtest.mbt). Tight enough that a dead wait is a named,
+    # fast red; loose enough that load inflation cannot cancel a passing run.
+    timeout-minutes: 15
+    needs: checks
+    steps:
+      - uses: actions/checkout@v7
+
+      # Setup mirrors `Build · Test` step for step (dependency list, toolchain
+      # installer URL, PATH, mooncakes cache key) so this job restores the same
+      # caches that job already warms and adds no new failure modes.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            gcc \
+            make \
+            libssl-dev \
+            nodejs
+
+      - name: Install MoonBit toolchain (latest stable)
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s latest
+
+      - name: Add MoonBit to PATH
+        run: echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Verify MoonBit installation
+        run: moon version
+
+      - name: Cache mooncakes dependencies
+        uses: actions/cache@v6
+        with:
+          path: .mooncakes
+          key: mooncakes-${{ runner.os }}-v4-${{ hashFiles('moon.mod') }}
+          restore-keys: |
+            mooncakes-${{ runner.os }}-v4-
+
+      - name: Update registry index and resolve dependencies
+        run: moon update
+
+      - name: Migrate legacy moon.mod.json dependencies
+        run: bash scripts/migrate_moon_mod_json.sh
+
+      # Full build parallelism is safe here and -j 1 would only slow the compile:
+      # this job runs a single package, so its test binary is the only process on
+      # the runner. That is also what protects the 5 s backoff sleeps this package
+      # depends on — they were inflated to 22.7 s / 26.0 s when 29 package binaries
+      # competed for the same cores in the shared test step.
+      - name: Run scenario tests (test/e2e)
+        run: |
+          set +e
+          moon test test/e2e -j "$(nproc)" 2>&1 | tee "$RUNNER_TEMP/moon_test_e2e.log"
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::test/e2e moon test failed with exit code $EXIT_CODE"
+          fi
+          exit $EXIT_CODE
+
+      - name: Publish failing scenario tests as annotations
+        if: failure()
+        run: |
+          set +e
+          LOG="$RUNNER_TEMP/moon_test_e2e.log"
+          if [ ! -s "$LOG" ]; then
+            echo "::error::no test/e2e output was captured"
+            exit 0
+          fi
+          grep -E -- '\) failed: ' "$LOG" | head -20 |
+            sed 's/^\[[^]]*\] //; s/%/%25/g; s/\r//g' |
+            while IFS= read -r l; do echo "::error::$l"; done
+          grep -oE -- 'Total tests: [0-9]+, passed: [0-9]+, failed: [1-9][0-9]*' "$LOG" |
+            while IFS= read -r l; do echo "::error::$l"; done
+          # A cancelled binary prints no failure line; the last stderr from the
+          # mock server ([stream-summary]) is what identifies the stuck scenario.
+          MSG=$(tail -15 "$LOG" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' | sed 's/%0A$//')
+          echo "::error::e2e tail: $MSG"
+          exit 0
+
+      - name: Upload scenario test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: moon-test-e2e-log
+          path: ${{ runner.temp }}/moon_test_e2e.log
+          retention-days: 1
+
   # ── Final gate: verify the published metrics match the code.
   #    Runs after tests so the test count is read from the actual log.
   repo-stats:
     name: Repo stats
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [checks, build-and-test]
+    needs: [checks, build-and-test, e2e-tests]
     steps:
       - uses: actions/checkout@v7
 
@@ -311,14 +414,25 @@ jobs:
           name: moon-test-log
           path: ${{ runner.temp }}
 
+      - name: Download scenario test log
+        uses: actions/download-artifact@v8
+        with:
+          name: moon-test-e2e-log
+          path: ${{ runner.temp }}
+
       - name: Repo stats gate (T1)
         run: |
-          # Main-step caliber only: the recorded test count is the `lib cmd test`
-          # minus lib/mcp run, never the combined log.
-          LOG="$RUNNER_TEMP/moon_test_main.log"
-          if [ ! -s "$LOG" ]; then
-            echo "::error::missing $LOG — the test step did not publish its own log, so the count would be wrong"
-            exit 1
-          fi
+          # Recorded caliber = the whole module suite minus lib/mcp, which is now
+          # produced by two jobs, so the gate sums both per-invocation logs.
+          # lib/mcp stays out of the count (its own step, own log).
+          MAIN="$RUNNER_TEMP/moon_test_main.log"
+          E2E="$RUNNER_TEMP/moon_test_e2e.log"
+          for f in "$MAIN" "$E2E"; do
+            if [ ! -s "$f" ]; then
+              echo "::error::missing $f — a test job did not publish its own log, so the count would be wrong"
+              exit 1
+            fi
+          done
+          cat "$MAIN" "$E2E" > "$RUNNER_TEMP/moon_test_counted.log"
           bash scripts/repo_stats.sh check \
-            --test-count-from "$LOG"
+            --test-count-from "$RUNNER_TEMP/moon_test_counted.log"
