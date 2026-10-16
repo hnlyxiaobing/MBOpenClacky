@@ -3,25 +3,48 @@
 /// These complement the core session CRUD in handlers.mbt.
 
 ///|
-/// Load session data from disk, falling back to an in-memory active agent
-/// when the on-disk file is missing. Mirrors the existence check in
-/// `handle_ws_subscribe` (disk OR memory): a session whose initial
-/// `save_session` silently failed (handle_create_session swallows the IO
-/// error) or whose file was pruned by `enforce_session_cap` (deletes disk
-/// but not active_agents) is still reachable here, so switching its
-/// model/sub-model/reasoning effort does not fail with "Session not found".
+/// Load session data with the freshest conversation available.
+///
+/// A session has two partial sources of truth and neither alone is correct:
+///
+/// - the on-disk snapshot, written only at session creation and at run end;
+/// - the live in-memory agent (`active_agents`), which accumulates messages
+///   and cost counters during a run and is strictly ahead of the snapshot
+///   until the next run-end save.
+///
+/// Authority is therefore split by field, not by source:
+///
+/// - `messages` / `stats` — memory wins. They are only mutated by the run
+///   loop and only reach disk at run end.
+/// - everything else (name / working_dir / model / sub_model / pinned /
+///   reasoning_effort / ...) — disk wins. Those fields are mutated
+///   exclusively through disk-persistence paths (the PATCH handlers below),
+///   never by the live agent, so the live copy can legitimately lag.
+///
+/// Reading disk alone made every read-modify-write handler (rename, patch,
+/// working_dir, model switch) rewrite the snapshot with the stale message
+/// list: running such a request mid-run emptied the on-disk conversation,
+/// and for an idle or crashed session that empty snapshot was the last word
+/// on disk. The memory-only fallback is still required: a session whose
+/// initial `save_session` silently failed (handle_create_session swallows
+/// the IO error), or whose file was pruned by `enforce_session_cap` (which
+/// deletes disk files but not active_agents), exists only in memory.
 /// Returns None only when the session exists neither on disk nor in memory.
-fn load_session_or_active(
+fn load_session_freshest(
   server_ref : Ref[WebServer],
   id : String,
 ) -> @agent.SessionData? {
-  match @agent.load_session(id) {
-    Some(d) => Some(d)
-    None =>
-      match server_ref.val.active_agents.get(id) {
-        Some(agent) => Some(agent.to_session_data())
-        None => None
-      }
+  let disk = @agent.load_session(id)
+  let live = match server_ref.val.active_agents.get(id) {
+    Some(agent) => Some(agent.to_session_data())
+    None => None
+  }
+  match (disk, live) {
+    (Some(d), Some(l)) =>
+      Some(@agent.SessionData::{ ..d, messages: l.messages, stats: l.stats, })
+    (Some(d), None) => Some(d)
+    (None, Some(l)) => Some(l)
+    (None, None) => None
   }
 }
 
@@ -30,8 +53,11 @@ fn load_session_or_active(
 ///|
 /// POST /api/sessions/:id/export — Export a session as a JSON document.
 /// Returns the full SessionData including all messages and metadata.
+/// Served through load_session_freshest so an export taken mid-run carries
+/// the conversation the live agent holds instead of the stale snapshot, and
+/// so a memory-only session is exportable rather than 404.
 fn handle_session_export(
-  _server_ref : Ref[WebServer],
+  server_ref : Ref[WebServer],
   event : @crescent.Event,
 ) -> @core.HttpResponse {
   let id = match event.param("id") {
@@ -41,7 +67,7 @@ fn handle_session_export(
         Json::object({ "error": Json("Missing parameter: id") }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) =>
       @core.HttpResponse::ok().json_value(
         Json::object({
@@ -155,7 +181,7 @@ fn handle_session_rename(
         Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       let old_name = data.name
       let updated = @agent.SessionData::{
@@ -286,7 +312,7 @@ fn handle_update_working_dir(
       None => ()
     }
   }
-  match @agent.load_session(id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       let updated = @agent.SessionData::{
         session_id: data.session_id,
@@ -420,20 +446,19 @@ fn handle_session_messages(
     }
     None => 0
   }
-  let messages = match @agent.load_session(id) {
-    Some(data) => Some(data.messages)
-    None =>
-      // Fall back to the in-memory agent for sessions not yet persisted.
-      match server_ref.val.active_agents.get(id) {
-        Some(agent) => Some(agent.to_session_data().messages)
-        None => None
-      }
-  }
-  match messages {
-    Some(msgs) => {
+  // Freshness order lives in load_session_freshest (shared with every
+  // read-modify-write session handler): the on-disk snapshot is only written
+  // at session creation and at run end, so mid-run it is stale (possibly
+  // empty) while the agent in active_agents holds the full conversation.
+  // Reading disk first made the web UI lose every prior message when the
+  // user switched views mid-run — the frontend clears the pane and re-fetches
+  // history on each entry. After a server restart active_agents is empty and
+  // the disk fallback still serves the last persisted run.
+  match load_session_freshest(server_ref, id) {
+    Some(data) => {
       let history = @protocol.build_messages_history(
         id,
-        msgs,
+        data.messages,
         limit~,
         before~,
         offset~,
@@ -580,7 +605,7 @@ fn handle_session_patch(
         Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
-  match @agent.load_session(id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       let obj = match j {
         Object(o) => o
@@ -863,7 +888,7 @@ fn handle_session_model_patch(
         Json::object({ "error": Json("Model not found: \{model_id}") }),
       )
   }
-  match load_session_or_active(server_ref, id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       let updated = @agent.SessionData::{
         session_id: data.session_id,
@@ -984,7 +1009,7 @@ fn handle_session_submodel_patch(
         Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
-  match load_session_or_active(server_ref, id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       let updated = @agent.SessionData::{
         session_id: data.session_id,
@@ -1081,7 +1106,7 @@ fn handle_session_reasoning_effort_patch(
         Json::object({ "error": Json("Invalid JSON body") }),
       )
   }
-  match load_session_or_active(server_ref, id) {
+  match load_session_freshest(server_ref, id) {
     Some(data) => {
       // Normalize: "off"/"none"/"" → None
       let normalized : String? = match effort {

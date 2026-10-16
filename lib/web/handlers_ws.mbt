@@ -29,6 +29,18 @@ priv struct WsSessionState {
   mut chunk_buf : String
   /// Sequence counter for confirmation request ids.
   mut confirm_seq : Int32
+  /// Wall-clock ms of the last mid-run snapshot save (0 = never). Guards
+  /// the debounce in `maybe_persist_session_mid_run`.
+  mut last_persist_ms : Int64
+  /// Pending confirmation cards, keyed by request_id, holding the exact
+  /// frame that was broadcast. The bridges broadcast exactly once, so a
+  /// client that subscribes after the broadcast (view switch back into
+  /// the session, page reload) must be replayed the card — otherwise the
+  /// agent stalls on a confirmation the user cannot see until the 300s
+  /// timeout denies it. Cleared when the reply arrives or times out.
+  pending_confirmation_cards : Map[String, String]
+  /// Pending feedback cards, same replay contract as confirmations.
+  pending_feedback_cards : Map[String, String]
   /// Pending confirmation replies, keyed by request_id. The WS
   /// `confirmation` upstream message resolves the queue; the confirmation
   /// bridge task awaits it with a timeout.
@@ -74,8 +86,11 @@ fn get_ws_state(session_id : String) -> WsSessionState {
         running_task: None,
         chunk_buf: "",
         confirm_seq: 0,
+        last_persist_ms: 0L,
         pending_confirmations: Map([]),
         pending_feedback: Map([]),
+        pending_confirmation_cards: Map([]),
+        pending_feedback_cards: Map([]),
         time_machine: @agent.TimeMachineState::new(session_id),
         producer: @agent.SessionLogProducer::new(),
       }
@@ -173,6 +188,51 @@ async fn handle_ws_global(
 }
 
 ///|
+/// Minimum wall-clock distance between two mid-run snapshot saves.
+/// Message boundaries during a healthy run arrive seconds apart (each
+/// waits on an LLM round trip), so this only collapses bursts (parallel
+/// tool rounds, compaction replays) into at most one save per interval.
+let mid_run_persist_interval_ms : Int64 = 3000L
+
+///|
+/// Whether a message-boundary event is due for a mid-run snapshot save.
+/// Pure so the debounce rule can be asserted without the clock or the
+/// filesystem — a green run must be able to fail.
+fn mid_run_persist_due(last_persist_ms : Int64, now_ms : Int64) -> Bool {
+  now_ms - last_persist_ms >= mid_run_persist_interval_ms
+}
+
+///|
+/// Persist the session mid-run (F1: incremental persistence).
+///
+/// The on-disk snapshot is otherwise written only at session creation and
+/// at run end, so a process death during a run loses the whole run. This
+/// saves the merged view at message boundaries, debounced by
+/// `mid_run_persist_interval_ms`.
+///
+/// The saved document is `load_session_freshest`, never the raw agent
+/// snapshot: metadata stays disk-authoritative (a mid-run rename / model
+/// switch must not be rolled back by the next incremental save), reusing
+/// the one freshness rule every read path already shares. Errors are
+/// swallowed — persistence must not kill a run; the run-end save and the
+/// in-memory agent remain the authority.
+fn maybe_persist_session_mid_run(
+  server_ref : Ref[WebServer],
+  state : WsSessionState,
+  session_id : String,
+) -> Unit {
+  let now = @agent.current_time_ms()
+  if !mid_run_persist_due(state.last_persist_ms, now) {
+    return
+  }
+  state.last_persist_ms = now
+  match load_session_freshest(server_ref, session_id) {
+    Some(data) => @agent.save_session(data) catch { _ => () }
+    None => ()
+  }
+}
+
+///|
 /// Handle ping → pong.
 fn handle_ws_ping(peer : @ws.WebSocketPeer) -> Unit {
   peer.text(@protocol.build_pong())
@@ -205,11 +265,13 @@ fn handle_ws_subscribe(
   // I-013: Verify session exists before switching subscription.
   // If neither persisted nor in-memory, reply with an error and keep the
   // current subscription unchanged (prevents "ghost session" UX).
-  let session_opt = @agent.load_session(target)
-  let exists = match session_opt {
-    Some(_) => true
-    None => server_ref.val.active_agents.contains(target)
-  }
+  //
+  // load_session_freshest is the single shared freshness rule: it merges
+  // disk-authoritative metadata with the live agent's conversation, so a
+  // mid-run subscribe no longer snapshots the stale on-disk copy (the twin
+  // of the history-endpoint bug) while keeping metadata behaviour identical.
+  let session_opt = load_session_freshest(server_ref, target)
+  let exists = session_opt is Some(_)
   if !exists {
     peer.text(@protocol.build_error_event(target, "Session not found"))
     return
@@ -222,17 +284,41 @@ fn handle_ws_subscribe(
   // Send session snapshot.
   match session_opt {
     Some(data) => peer.text(@protocol.build_session_snapshot(data))
-    None =>
-      // In-memory active agent (guaranteed to exist by the check above).
-      match server_ref.val.active_agents.get(target) {
-        Some(agent) =>
-          peer.text(@protocol.build_session_snapshot(agent.to_session_data()))
-        None => ()
+    None => ()
+  }
+
+  // Replay cards still awaiting an answer (F2). The bridges broadcast
+  // exactly once, so without this replay a client that (re)subscribes
+  // after the broadcast — the view-switch case the history endpoint fix
+  // covers — never sees the pending confirmation/feedback and the agent
+  // stalls until the 300s timeout denies it. Read-only lookup: an entry
+  // is only created when a run starts.
+  match ws_states.get(target) {
+    Some(state) =>
+      for frame in pending_replay_frames(state) {
+        peer.text(frame)
       }
+    None => ()
   }
 
   // Send current session list.
   send_session_list(server_ref, peer)
+}
+
+///|
+/// The frames a (re)subscribing peer must receive to reconstruct
+/// still-pending confirmation / feedback cards. Pure and peer-free so the
+/// replay contract is testable without a live socket (same extraction
+/// motive as `ws_frame_gate`).
+fn pending_replay_frames(state : WsSessionState) -> Array[String] {
+  let frames : Array[String] = []
+  for _, frame in state.pending_confirmation_cards {
+    frames.push(frame)
+  }
+  for _, frame in state.pending_feedback_cards {
+    frames.push(frame)
+  }
+  frames
 }
 
 ///|
@@ -856,7 +942,7 @@ fn register_ws_hooks(
           @protocol.build_token_delta_event(sid, chunk),
         )
       }
-      @agent.MessageAdded =>
+      @agent.MessageAdded => {
         if state.chunk_buf.length() > 0 {
           let content = state.chunk_buf
           state.chunk_buf = ""
@@ -867,6 +953,11 @@ fn register_ws_hooks(
         } else {
           hub.broadcast_session_raw(sid, @protocol.format_hook_event(sid, evt))
         }
+        // F1: a message boundary is the safe granularity for a mid-run
+        // snapshot — the user turn and every completed assistant turn
+        // survive a crash instead of only the run-end save.
+        maybe_persist_session_mid_run(server_ref, state, sid)
+      }
       @agent.RunCompleted(_) =>
         if server_ref.val.cancelled.get(sid) == Some(true) {
           // Run was interrupted: the interrupted event was already sent by
@@ -1029,16 +1120,18 @@ async fn run_confirmation_bridge(
     let request_id = session_id + "-conf-" + state.confirm_seq.to_string()
     let reply_q : @async.Queue[Bool] = @async.Queue::Queue(kind=Unbounded)
     state.pending_confirmations[request_id] = reply_q
-    hub.broadcast_session(
+    let frame = @protocol.request_confirmation_frame(
       session_id,
-      @protocol.request_confirmation_frame(
-        session_id,
-        request_id,
-        "Allow tool \"" + tool + "\" to execute?",
-      ),
+      request_id,
+      "Allow tool \"" + tool + "\" to execute?",
     )
+    // Remember the card so a client that subscribes after this broadcast
+    // (view switch / reload) gets it replayed — the broadcast fires once.
+    state.pending_confirmation_cards[request_id] = frame
+    hub.broadcast_session(session_id, frame)
     let answer = @async.with_timeout_opt(300_000, () => reply_q.get())
     state.pending_confirmations.remove(request_id)
+    state.pending_confirmation_cards.remove(request_id)
     match answer {
       Some(ok) => resp_q.put(ok)
       None => {
@@ -1104,19 +1197,20 @@ async fn run_feedback_bridge(
     let request_id = session_id + "-fb-" + state.confirm_seq.to_string()
     let reply_q : @async.Queue[String] = @async.Queue::Queue(kind=Unbounded)
     state.pending_feedback[request_id] = reply_q
-    hub.broadcast_session(
+    let frame = @protocol.request_feedback_frame(
       session_id,
-      @protocol.request_feedback_frame(
-        session_id,
-        request_id,
-        question,
-        context,
-        options,
-        @agent.ask_questions_to_protocol(questions),
-      ),
+      request_id,
+      question,
+      context,
+      options,
+      @agent.ask_questions_to_protocol(questions),
     )
+    // Remember the card for late subscribers (see the confirmation bridge).
+    state.pending_feedback_cards[request_id] = frame
+    hub.broadcast_session(session_id, frame)
     let answer = @async.with_timeout_opt(300_000, () => reply_q.get())
     state.pending_feedback.remove(request_id)
+    state.pending_feedback_cards.remove(request_id)
     match answer {
       Some(text) => resp_q.put(text)
       None => {

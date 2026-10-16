@@ -240,11 +240,13 @@ pub fn build_token_delta_event(session_id : String, chunk : String) -> String {
 /// Build a session_update snapshot event from a SessionData.
 /// Sent on initial subscribe; uses the `session` object shape the frontend
 /// session_update handler expects (ws-dispatcher.js shape 1).
+///
+/// The `messages` array is deliberately NOT included: the frontend rebuilds
+/// the conversation from `GET /api/sessions/:id/messages` on every view
+/// entry (web/sessions.js `_restoreMessages`), so this field was dead
+/// payload that shipped the full system prompt to the client. The same
+/// leak class was fixed for fork/create/detail responses in web-ui2-01/02.
 pub fn build_session_snapshot(data : @agent.SessionData) -> String {
-  let messages_arr : Array[Json] = []
-  for msg in data.messages {
-    messages_arr.push(Json(msg))
-  }
   let model_field : Json = match data.model_name {
     Some(m) => Json(m)
     None => Json::null()
@@ -268,7 +270,6 @@ pub fn build_session_snapshot(data : @agent.SessionData) -> String {
         "cost_source": Json(data.stats.cost_source),
         "source": Json(data.source),
         "latest_latency": Json(data.latest_latency_ms),
-        "messages": Json(messages_arr),
       }),
     ),
   })

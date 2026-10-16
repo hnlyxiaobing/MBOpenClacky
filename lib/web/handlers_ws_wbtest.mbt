@@ -205,3 +205,61 @@ test "ws time machine: full hook simulation for non-write tool" {
   // Clean up
   ws_states.remove(sid)
 }
+
+// ── F1: mid-run incremental persistence debounce ─────────────────────────────
+
+///|
+test "mid_run_persist_due: first boundary saves, bursts collapse" {
+  // Never persisted (0) -> the first message boundary is always due, so a
+  // run's opening user turn reaches disk immediately.
+  assert_true(mid_run_persist_due(0L, 1000000L))
+  // Later than the debounce window -> due.
+  assert_true(mid_run_persist_due(1000L, 4000L))
+  // Inside the window -> collapsed into the previous save.
+  assert_false(mid_run_persist_due(1000L, 3999L))
+  assert_false(mid_run_persist_due(1000L, 1000L))
+  // Clock skew must not produce a negative wait that trips the guard.
+  assert_false(mid_run_persist_due(1000L, 500L))
+}
+
+// ── F2: pending-card replay on subscribe ─────────────────────────────────────
+
+///|
+test "pending replay frames hold broadcast cards until resolved" {
+  let sid = "wbtest-replay-cards"
+  let state = get_ws_state(sid)
+  let conf_id = sid + "-conf-1"
+  let fb_id = sid + "-fb-2"
+  let conf_frame = @protocol.request_confirmation_frame(
+    sid, conf_id, "Allow tool \"terminal\" to execute?",
+  )
+  let fb_frame = @protocol.request_feedback_frame(
+    sid,
+    fb_id,
+    "which environment?",
+    None,
+    None,
+    [],
+  )
+  state.pending_confirmation_cards[conf_id] = conf_frame
+  state.pending_feedback_cards[fb_id] = fb_frame
+  let frames = pending_replay_frames(state)
+  @debug.assert_eq(frames.length(), 2)
+  // Both cards survive a view-switch re-subscribe...
+  assert_true(frames.contains(conf_frame))
+  assert_true(frames.contains(fb_frame))
+  // ...and each carries the request id the client answers with, so the
+  // replayed card resolves against the same pending queue.
+  assert_true(conf_frame.contains(conf_id))
+  assert_true(fb_frame.contains(fb_id))
+  // Resolving the reply must clear the card: a later subscriber must not
+  // be offered an already-answered confirmation.
+  ignore(state.pending_confirmation_cards.remove(conf_id))
+  let remaining = pending_replay_frames(state)
+  @debug.assert_eq(remaining.length(), 1)
+  assert_true(remaining.contains(fb_frame))
+  // Nothing pending -> nothing replayed.
+  ignore(state.pending_feedback_cards.remove(fb_id))
+  @debug.assert_eq(pending_replay_frames(state).length(), 0)
+  ws_states.remove(sid)
+}

@@ -1055,3 +1055,241 @@ test "model patch persists config id for disk-backed session" {
   @agent.delete_session(id)
   wd_pop_profile(old)
 }
+
+///|
+/// Regression test for the "messages lost on view switch" bug
+/// (specs/draft/2026-10-16_session-history-lost-on-view-switch.md):
+/// GET /api/sessions/:id/messages must prefer the live in-memory agent over
+/// the on-disk snapshot. The snapshot is only written at session creation
+/// and at run end, so mid-run it is stale (possibly empty) while the agent
+/// in active_agents holds the full conversation. Disk remains the fallback
+/// for sessions with no live agent (e.g. after a server restart).
+test "session messages prefers live agent over stale disk snapshot" {
+  let old = wd_push_profile()
+  let id = "msglive_" + @agent.current_time_ms().to_string()
+  // Disk snapshot exists but is stale: zero messages (as written at
+  // session creation time, before any run completed).
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  // Live agent holds the real conversation.
+  let server_ref = wd_make_server_ref()
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(
+    id,
+    "live-session",
+    ".",
+    client,
+    @config.AgentConfig::default(),
+  )
+  agent.history.append(@message.Message::user("live question"))
+  server_ref.val.active_agents[id] = agent
+  let resp = handle_session_messages(
+    server_ref,
+    wd_make_event(Get, "/api/sessions/" + id + "/messages", params=[("id", id)]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let body = @utf8.decode(resp.raw_body)
+  // The live user message must be present; a disk-first read would return
+  // an empty events array here.
+  assert_true(body.contains("history_user_message"))
+  assert_true(body.contains("live question"))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// Companion: without a live agent the handler still serves the on-disk
+/// snapshot (post-restart path must not regress).
+test "session messages falls back to disk when no live agent" {
+  let old = wd_push_profile()
+  let id = "msgdisk_" + @agent.current_time_ms().to_string()
+  let disk = wd_make_session(id, ".")
+  let with_msg = @agent.SessionData::{
+    ..disk,
+    messages: [@message.Message::user("disk question")],
+  }
+  @agent.save_session(with_msg) catch {
+    _ => ()
+  }
+  let resp = handle_session_messages(
+    wd_make_server_ref(),
+    wd_make_event(Get, "/api/sessions/" + id + "/messages", params=[("id", id)]),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  let body = @utf8.decode(resp.raw_body)
+  assert_true(body.contains("history_user_message"))
+  assert_true(body.contains("disk question"))
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// F3: the WS `session_update` subscribe snapshot must not carry `messages`.
+/// The frontend rebuilds the conversation from the history endpoint on every
+/// view entry, so the field was dead payload that shipped the full system
+/// prompt to the client (same leak class as web-ui2-01/02, which already
+/// strips messages from fork/create/detail responses).
+test "session snapshot omits messages so the system prompt does not leak" {
+  let id = "snapleak_" + @agent.current_time_ms().to_string()
+  let data = @agent.SessionData::{
+    ..wd_make_session(id, "."),
+    messages: [
+      @message.Message::system(
+        "[CRITICAL] Brand skill contents are CONFIDENTIAL",
+      ),
+      @message.Message::user("hello"),
+    ],
+  }
+  let wire = @protocol.build_session_snapshot(data)
+  let j = @json.parse(wire) catch { _ => panic() }
+  guard! j is Json::Object(top)
+  guard! top.get("session") is Some(Object(s))
+  // Metadata still reaches the client (shape 1 session object).
+  @debug.assert_eq(s.get("id"), Some(Json(id)))
+  @debug.assert_eq(s.get("name"), Some(Json("wd-test-session")))
+  assert_true(s.contains("status"))
+  assert_true(s.contains("created_at"))
+  // No conversation payload at all, and the prompt text is gone from the
+  // entire frame.
+  assert_false(s.contains("messages"))
+  assert_false(wire.contains("CONFIDENTIAL"))
+  assert_false(wire.contains("hello"))
+}
+
+///|
+/// Companion: the snapshot keeps the remaining session fields so a
+/// subscribe after a rename/status change still renders correctly.
+test "session snapshot keeps metadata fields without messages" {
+  let id = "snapmeta_" + @agent.current_time_ms().to_string()
+  let data = @agent.SessionData::{
+    ..wd_make_session(id, "."),
+    name: "snap-renamed",
+    last_status: "idle",
+    model_name: Some("model-x"),
+    working_dir: "sub/dir",
+    messages: [@message.Message::user("secret question")],
+  }
+  let j = @json.parse(@protocol.build_session_snapshot(data)) catch {
+    _ => panic()
+  }
+  guard! j is Json::Object(top)
+  guard! top.get("session") is Some(Object(s))
+  @debug.assert_eq(s.get("id"), Some(Json(id)))
+  @debug.assert_eq(s.get("name"), Some(Json("snap-renamed")))
+  @debug.assert_eq(s.get("status"), Some(Json("idle")))
+  @debug.assert_eq(s.get("model"), Some(Json("model-x")))
+  @debug.assert_eq(s.get("working_dir"), Some(Json("sub/dir")))
+  assert_false(s.contains("messages"))
+  assert_false(
+    @protocol.build_session_snapshot(data).contains("secret question"),
+  )
+}
+
+///|
+/// Shared-layer contract for `load_session_freshest`: the conversation must
+/// come from the live agent while session metadata must stay disk-authoritative.
+/// Metadata fields are mutated exclusively through disk-persistence paths and
+/// never by the live agent, so taking them from memory would silently revert a
+/// rename / working_dir / model switch (and would make the live agent's
+/// hardcoded "Web Agent" name win over the user's chosen one).
+test "load_session_freshest merges live conversation onto disk metadata" {
+  let old = wd_push_profile()
+  let id = "fresh_" + @agent.current_time_ms().to_string()
+  let base = wd_make_session(id, ".")
+  let on_disk = @agent.SessionData::{
+    ..base,
+    name: "user-renamed",
+    messages: [@message.Message::user("stale disk message")],
+  }
+  @agent.save_session(on_disk) catch {
+    _ => ()
+  }
+  // Live agent: fresh conversation, but its metadata is stale by design.
+  let server_ref = wd_make_server_ref()
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(
+    id,
+    "Web Agent",
+    ".",
+    client,
+    @config.AgentConfig::default(),
+  )
+  agent.history.append(@message.Message::user("live message"))
+  server_ref.val.active_agents[id] = agent
+  let merged = match load_session_freshest(server_ref, id) {
+    Some(d) => d
+    None => panic()
+  }
+  // Conversation: memory wins (the disk copy is stale mid-run).
+  @debug.assert_eq(merged.messages.length(), 1)
+  assert_true(
+    merged.messages[0].content == @message.MessageContent::Text("live message"),
+  )
+  // Metadata: disk wins.
+  @debug.assert_eq(merged.name, "user-renamed")
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}
+
+///|
+/// A rename issued while the agent is idle must not wipe the conversation the
+/// in-memory agent holds but the snapshot has not caught up with yet. Before
+/// the shared helper existed this PATCH read the stale message list from disk
+/// and wrote it straight back, destroying the persisted conversation.
+test "rename mid-run keeps the live conversation on disk" {
+  let old = wd_push_profile()
+  let id = "renmid_" + @agent.current_time_ms().to_string()
+  @agent.save_session(wd_make_session(id, ".")) catch {
+    _ => ()
+  }
+  let server_ref = wd_make_server_ref()
+  let client = @client.Client::new(
+    "k",
+    "https://api.test.com",
+    "m",
+    @config.OpenAICompletions,
+  )
+  let agent = @agent.Agent::new(
+    id,
+    "Web Agent",
+    ".",
+    client,
+    @config.AgentConfig::default(),
+  )
+  agent.history.append(@message.Message::user("live message"))
+  server_ref.val.active_agents[id] = agent
+  let resp = handle_session_rename(
+    server_ref,
+    wd_make_event(
+      Patch,
+      "/api/sessions/" + id,
+      body="{\"name\":\"renamed-while-running\"}",
+      params=[("id", id)],
+    ),
+  )
+  @debug.assert_eq(resp.status_code.to_int(), 200)
+  match @agent.load_session(id) {
+    Some(d) => {
+      @debug.assert_eq(d.name, "renamed-while-running")
+      // The conversation must survive the rename.
+      @debug.assert_eq(d.messages.length(), 1)
+      assert_true(
+        d.messages[0].content == @message.MessageContent::Text("live message"),
+      )
+    }
+    None => panic()
+  }
+  @agent.delete_session(id)
+  wd_pop_profile(old)
+}

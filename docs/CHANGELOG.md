@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-10-16  Web 会话历史丢失根因修复 + F1–F3 收口
+
+- `[fix]` **切换视图后会话历史丢失（主问题）**：`GET /api/sessions/:id/messages` 与 WS subscribe 快照磁盘优先，而快照只在会话创建/run 结束写入，运行中切视图即丢全部消息。新增共用层 `load_session_freshest`（`lib/web/handlers_session_ext.mbt`）按字段分权：`messages`/`stats` 内存权威，元数据磁盘权威（避免回滚重命名/模型切换），无内存 agent 回落磁盘；export/rename/working_dir/patch(name/pinned)/model/sub-model/reasoning-effort PATCH 与 subscribe 全部改走该 helper（消除读-改-写回陈旧 messages 的清空缺陷）。分析：`specs/draft/2026-10-16_session-history-lost-on-view-switch.md`。
+- `[fix]` **F1 运行中增量持久化（Web 侧）**：hook 在 `MessageAdded` 消息边界触发 3s 防抖快照保存（`maybe_persist_session_mid_run`），落盘用 freshest 合并视图，run 期间进程死亡不再丢整轮。
+- `[fix]` **F2 subscribe 回放挂起的确认/反馈卡片**：confirmation/feedback bridge 登记的卡片在 subscribe 时向新 peer 单播回放，运行中切回会话视图不再丢失待确认卡片（此前 agent 会停在看不见的确认上直到 300s 超时拒绝）。
+- `[fix]` **F3 订阅快照不再携带 messages**：`build_session_snapshot` 删除 `messages` 字段（前端从未使用，system prompt 属不必要外泄；与 web-ui2-01/02 的泄漏修复同类）。
+- `[test]` 新增 4 个白盒测试（快照无 messages ×2、debounce 规则、回放列表），均通过破坏修复验证变红；lib/web 528/528、`moon check -d` 231 任务 0 错误。
+
 ### 2026-10-16  发布 0.3.1（文档与脚本全面修订）
 
 - `[chore]` **版本发布**：`moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` VERSION 四处一致升到 `0.3.1`，repo-stats 三处块同步重生成。
