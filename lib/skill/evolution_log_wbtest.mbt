@@ -12,15 +12,32 @@ fn test_tmp_dir(name : String) -> String {
         _ => "/tmp"
       }
   }
-  @path.Path::join(
+  let dir = @path.Path::join(
     @path.Path(base),
     @path.Path("mbopenclacky_skill_test_" + name),
   ).to_string()
+  purge_tmp_dir(dir)
+  dir
 }
 
 ///|
 fn tmp_file(dir : String, name : String) -> String {
   @path.Path::join(@path.Path(dir), @path.Path(name)).to_string()
+}
+
+///|
+/// Empty the fixed scratch path before a test uses it.
+///
+/// Cleanup at the end of a test is best-effort (`@fs.remove_file ... catch`),
+/// so an aborted or locked run leaves a file behind, and the fixed path
+/// inherits it. That is not cosmetic: a stale `SKILL.md` in `apply_new` sends
+/// `apply_proposal` down its backup branch, so the fresh-override test fails
+/// with `unexpected backup for a fresh override` on every later run.
+fn purge_tmp_dir(dir : String) -> Unit {
+  let entries = @fs.read_dir(dir) catch { _ => [] }
+  for name in entries {
+    let _ = @fs.remove_file(tmp_file(dir, name)) catch { _ => () }
+  }
 }
 
 ///|

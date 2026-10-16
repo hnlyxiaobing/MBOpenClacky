@@ -59,7 +59,7 @@ export DEEPSEEK_API_KEY=...                # base/model 默认 https://api.deeps
 
 ```bash
 moon build --target native --release cmd
-./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe eval --live
+./_build/native/release/build/cmd/cmd.exe eval --live
 ```
 
 - 默认任务集 `<repo>/test/capability/tasks`，默认每任务重复取任务文件里的 `trials`（`--trials N` 可覆盖全部任务）。

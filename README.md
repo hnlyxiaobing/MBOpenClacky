@@ -25,11 +25,11 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky) AI Agent 
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.3.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 241 |
-| 源代码行数 | 106,287 |
-| 测试行数 | 65,831 |
-| 总行数 | 172,118 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4080 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 242 |
+| 源代码行数 | 106,298 |
+| 测试行数 | 65,956 |
+| 总行数 | 172,254 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4086 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |
@@ -50,7 +50,7 @@ moon update
 moon check
 moon build --target native --release cmd
 
-BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+BIN=./_build/native/release/build/cmd/cmd.exe
 "$BIN" --message "Hello"
 "$BIN"                                  # TUI
 "$BIN" server                           # Web，http://127.0.0.1:7071

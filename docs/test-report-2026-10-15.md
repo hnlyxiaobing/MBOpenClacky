@@ -25,13 +25,24 @@
 | # | 层 | 命令 | 本轮结果 |
 |---|---|---|---|
 | 0 | 类型检查 | `moon check -d` | 缓存命中（见第 0 节）；独立证据是下面全量套件从零编译并通过 |
-| 1-3 | 白盒 + 差分 + ReAct 链路 | `moon test --release $(find lib cmd test -name moon.pkg \| sed 's\|/moon.pkg$\|\|' \| grep -v '^lib/mcp$')` | **4080 / 4080 passed** |
-| 1-3 | 同上（CI 另一步） | `moon test --release lib/mcp` | **96 / 96 passed**（合计口径 4176） |
+| 1-3 | 白盒 + 差分 + ReAct 链路 | `moon test --release $(find lib cmd test -name moon.pkg \| sed 's\|/moon.pkg$\|\|' \| grep -v '^lib/mcp$')` | **4080 / 4080 passed**；2026-10-16 收尾复跑 **4086 / 4086**（+6 条 `/ws` 门槛白盒用例） |
+| 1-3 | 同上（CI 另一步） | `moon test --release lib/mcp` | **96 / 96 passed**（合计口径 4176；2026-10-16 复跑 4086 + 96 = **4182**） |
 | 5 | CLI 契约 | `cmd.exe selftest --repo .` | 23/23 引擎样本 + **20/20 probes**，native 与 moon-run 无差异 |
 | 6 | 确定性能力 | `cmd.exe eval --offline --repo .` | 3 任务 × 2 trials，**16/16 断言**，评分向量全 1，成本 0 USD |
-| 9 | 用户旅程 | `cmd.exe journey --repo .` | **25 / 25 passed**（Web 9 / TUI 5 / CLI 11） |
+| 9 | 用户旅程 | `cmd.exe journey --repo .` | **26 / 26 passed**（Web 10 / TUI 5 / CLI 11）——新增 `web_ws_malformed_frames_rejected`，把 WS 畸形帧的可见错误回帧固化入库；2026-10-16 00:24 在抽出门槛纯函数后全量复跑仍 26/26（exit 0） |
 | — | 已知缺口台账 | `scripts/known_gaps.sh check` | 66 live hits ↔ 66 curated rows 一致 |
 | — | 仓库指标块 | `scripts/repo_stats.sh check` | README / AGENTS.md / docs/project-status.md 三处一致 |
+
+上表 1-3 行是**本轮 CI 修复之前**的 idle `--release` 全量绿跑。修复后重跑同一条 scoped 命令时，`test/e2e` 包在
+Windows 上卡死（见第 7.2 节），所以该包 15 条当时只能在 Linux/CI 侧取证；**2026-10-16 00:24 的收尾复跑已不再需要这条
+退路**：同一条 scoped 包列表（debug 口径，与 CI 一致）含 `test/e2e` 一次跑完
+⇒ **`Total tests: 4086, passed: 4086, failed: 0`（exit 0，日志内 `") failed: "` 计数为 0）**，
+即第 7.2 节的挂死是那一轮的环境现象而非稳定缺陷，如实降级为「未复现」。
+4086 = 修复后本地窄口径 4065 + `test/e2e` 的 15 条 + 本轮新增 WS 门槛单测 6 条，
+`test_cases` 已由 `repo_stats.sh generate --test-count 4086` 写入三处指标块并用 `check` 复验一致
+（用同一份日志按 CI 的算法 `grep -oE 'Total tests: [0-9]+' | awk` 求和也正好是 4086，口径无歧义）。
+这条 4065 的复跑正是第 7.3 节那条夹具缺陷的出处：第一次跑时它是 4064/1，修好后同一条命令 4065/4065。
+另有两条窄口径证据：`moon test cmd lib/agent` 连跑 4 轮 **585 / 585**（互删夹具的正面验证）与 `journey` 26/26 全绿。
 
 补充层（非 CI 门禁）：
 
@@ -46,9 +57,10 @@
 
 ### Layer 1-3 · `moon test --release`（scoped）
 
-- CI 口径（`lib cmd test` 减去 `lib/mcp`）：`Total tests: 4080, passed: 4080, failed: 0`
+- CI 口径（`lib cmd test` 减去 `lib/mcp`）：`Total tests: 4086, passed: 4086, failed: 0`
+  （2026-10-16 收尾复跑，含本轮新增的 6 条 `/ws` 门槛白盒用例）
 - `lib/mcp` 另一步：`Total tests: 96, passed: 96, failed: 0`
-- 两个口径相加为 4176；AGENTS.md 指标块记录的是 CI 口径 4080，与实测一致（本轮无需再 `generate`）。
+- 两个口径相加为 4182；AGENTS.md 指标块记录的是 CI 口径 4086，已用 `generate --test-count 4086` 写入并以 `check` 复验。
 - 观察项：日志中仍有 `Failed to open directory: error code 3`（见 6.1）与两条
   `[diag] 退避间隔高于预期量级（负载膨胀，不算失败）`，源码已标注不算失败。
 
@@ -64,15 +76,18 @@
 
 ### Layer 9 · `journey --repo .`
 
-25 条旅程全通过：CLI 11（`cli_agent_profile_switch`、`cli_agent_profile_unknown`、`cli_crash_recovery`、
+26 条旅程全通过（idle 机器上 23:11 那一轮，`Total: 26 Passed: 26 Failed: 0`，退出码 0）：CLI 11（`cli_agent_profile_switch`、`cli_agent_profile_unknown`、`cli_crash_recovery`、
 `cli_file_attachment`、`cli_jsonl_log_and_inspect`、`cli_message_error_exit_code`、`cli_message_tool_roundtrip`、
 `cli_model_switch`、`cli_model_switch_unknown`、`cli_session_save_and_continue`、`cli_stdout_json_clean`）；
 TUI 5（`tui_first_message_roundtrip`、`tui_skill_invocation`、`tui_slash_and_model_switch`、`tui_theme_switch`、
-`tui_tool_deny_without_confirmation`）；Web 9（`web_backup_download_archive`、`web_chat_content_roundtrip`、
+`tui_tool_deny_without_confirmation`）；Web 10（`web_backup_download_archive`、`web_chat_content_roundtrip`、
 `web_chat_error_recovery`、`web_chat_tool_roundtrip`、`web_error_body_json_safety`、`web_health_boot`、
-`web_session_lifecycle`、`web_session_updated_at_order`、`web_trash_roundtrip`）。
-证据：`_build/journey/journey_2026-10-15.txt`；`docs/journey-failures.md` 无新增条目。
-三条 Web 聊天旅程在 WS 错误帧改动之后仍然通过，说明合法帧路径未被新守卫影响。
+`web_session_lifecycle`、`web_session_updated_at_order`、`web_trash_roundtrip`、`web_ws_malformed_frames_rejected`）。
+证据：`_build/journey/journey_2026-10-15.txt`；`docs/journey-failures.md` 本轮**无新增开放条目**——
+22:36 那一轮由我自己造成的并发负载写入了 3 条（`cli_session_save_and_continue`、`cli_jsonl_log_and_inspect`、
+`cli_message_tool_roundtrip`），idle 复跑全绿后已被 runner 自动归档到「已修复」段，台账自净且可 `git diff` 复核。
+三条 Web 聊天旅程在 WS 错误帧改动之后仍然通过，说明合法帧路径未被新守卫影响；
+`web_ws_malformed_frames_rejected` 则是第 8 节所述残留风险的正面收口。
 
 ## 3. 场景反查产品代码的收口结果
 
@@ -140,16 +155,20 @@ scenarios/06-image-understanding.spec.ts scenarios/14-message-interactions.spec.
    `fatal:` 前缀失败（`lib/web/git_exec.mbt:12`），交给 `git_output_is_error` 正常分类。
 4. **WS 非法帧静默丢弃**：`interrupt` / `message` / `edit_message` / `run_task` 四个 handler 原先对
    非法 payload 直接 `return`，而同一段 dispatcher 对未知 `type` 会回 `build_error_event`——协议层不一致。
-   现统一按 `build_error_event` 回可见错误（`lib/web/handlers_ws.mbt:366`、`413`、`424`、`602`、`613`、`752`）。
+   现统一按 `build_error_event` 回可见错误（`lib/web/handlers_ws.mbt:375`、`422`、`433`、`611`、`622`、`761`；
+   行号按本轮抽出门槛函数后的文件计，函数名分别是 `handle_ws_interrupt` / `handle_ws_message` /
+   `handle_ws_edit_message` / `handle_ws_run_task`，别只按数字找）。
    `run_task` 的空 `task` **保持静默**是承重的：协议把 `run_task` 定义为 session-scoped 且不带额外字段
    （`lib/protocol/command.mbt`），浏览器在 `subscribed` 之后紧接着发它，而 REST
    `POST /api/cron-tasks/:id/run` 已在服务端启动了运行——回退到会话内容重跑等于重复计费。
-   该约束已写入 `lib/web/handlers_ws.mbt:764` 的注释，防止下一个读者（或 agent）照「补个错误帧」的思路改错。
+   该约束已写入 `lib/web/handlers_ws.mbt:773` 的注释，防止下一个读者（或 agent）照「补个错误帧」的思路改错。
 5. **空 content 触发真实计费运行**：修复前的二进制上（同日运行记录，非本轮复现），
    `{"type":"message","content":""}` 会一路走到
    `start_ws_run`，留下 `frames_seen=33/42/60`、`output_tokens=36/76/100` 的多轮 LLM 运行日志，
    还带一次失败的 shell 工具调用（就是第 1 条的 `InvalidSubCommandName /v:on`）。
-   现在入口即拒（`lib/web/handlers_ws.mbt:456`）。运行时实证见第 5.1 节。
+   现在入口即拒（`lib/web/handlers_ws.mbt:464`；更外层的「缺 `type`／非对象／不可解析／未知 `type`」
+   四类由同文件 `:102` 的纯函数 `ws_frame_gate` 统一拒掉，dispatcher 只把它的理由原文回成 `error` 帧）。
+   运行时实证见第 5.1 节。
 
    **5.1 探针实证（`_build/ws_probe.mjs`、`_build/ws_probe2.mjs`，临时件不入库）**：起 `server --port 7199`，
    发非法帧并统计回帧。8/8 可见：`invalid_json` / `non_object` / `missing_type` / `unknown_type` /
@@ -188,16 +207,128 @@ scenarios/06-image-understanding.spec.ts scenarios/14-message-interactions.spec.
    属 `docs/known-gaps.md` 已记录的 wasm-gc 侧限制，native 才是发布目标。本轮不处理。
    注意 AGENTS.md「用 `moon check` 验证 wasm-gc 类型」这句在该目标上并不能全仓通过，引用它时要以实际输出为准。
 
-## 7. 残留风险
+## 7. 最新 CI / Docker 红跑（取自 GitHub 运行记录）
 
-- WS 错误帧的新行为**没有测试锁定**：`lib/web/handlers_ws.mbt` 的这五处回帧只由第 5.1 节的运行时探针证明过，
-  而探针是 `_build` 临时件、不入库；层 4 场景回放走 crescent `TestClient`（进程内 HTTP），覆盖不到 `/ws`。
-  下一次改动可能把可见错误又退回静默 `return` 而无人报警。若要固化，需要一条 WS 级旅程或专用 wbtest。
+远端最新一对红跑是 HEAD 提交 `8760036` 触发的 `CI #38736944557` 与 `Docker #38736944594`（2026-10-15 12:44Z）。
+步骤级结论（用本地凭据只读调用 Actions API 取 jobs/steps，凭据未打印、未入库；标注 release 只有公开
+check-run annotations 可用，本轮该 job 无注解——因为它跑的是我改动之前的 ci.yml）：
+
+| 工作流 | 唯一红步骤 | 根因 | 本轮处置 |
+|---|---|---|---|
+| CI | `Run tests (module packages)` | `cmd` 与 `lib/agent` 两份 `producer_test_path` 助手把 scratch parent 拼成同一个 `_build/wbtest_session_log`，session id 也同名；moon 在同一 workspace-root CWD 并发跑两个包的测试二进制 ⇒ 一边删文件、另一边读到零条 summary（`0 != 2`） | parent 按包命名空间分离（`_wbtest_session_log_cmd` / `_agent`）；`AGENTS.md` 增加「scratch 路径必须带包名」规则；风险面登记进 `docs/known-gaps.md` |
+| CI | （同一红跑的连带）benchmark / 契约探针 / 能力评测三步报 `::error::release binary not found` | 三处硬编码模块限定产物路径 | 已由 `scripts/release_binary.sh` 统一寻址（上一轮提交前完成） |
+| CI | 红跑不可外部诊断 | 私有/公开仓的 job 日志与 artifact 都需要认证（403/401），公开只有 check-run annotations；旧步骤 `moon test > log 2>&1` + `bash -e` 既不流式也拿不到 `${PIPESTATUS}` | 改为 `tee` + `${PIPESTATUS[0]}` + `::error::`；新增 `Publish failing tests as annotations`（`if: failure()`），按 moon 真实行形状 `") failed: "` 抽取失败用例与 `failed: [1-9]` 合计（实测对真实红日志命中） |
+| CI（更早一轮 `#38662227623`） | `test/e2e/scenarios_wbtest.mbt:516 ("013 …") 10 != 11` | 高负载 runner 上 `@async.sleep` 实测膨胀 ≈4.5×（同二进制 5s → 22768/26000ms），10 次退避越过默认 120s 预算，重试循环被从中间掐断，症状伪装成计数少 1 | `013` 显式 `timeout_ms=300_000`（对齐 ruby harness 预算），其余剧本名义时长 ≤15s 不动默认值 |
+| Docker | `Build Docker image` | `Dockerfile` 与 `scripts/docker_build.sh` 仍写模块限定路径 `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/`；`moon.work` 只剩 `.` 后 moon 改用 workspace 相对布局，产物实际在 `build/cmd/cmd` ⇒ `cp: cannot stat` | 统一走 `scripts/release_binary.sh`，构建阶段规范化为 `/build/out/mbopenclacky`；`Verify image` 从 `|| echo` 的空操作改成真正执行镜像内二进制并与 `cmd/main.mbt` 的 `VERSION` 比对，不等即 `exit 1` |
+
+结论：本轮红跑没有一条来自产品代码——三条是 CI/Docker 的寻址与预算缺陷，两条是测试夹具（并发串台 + 跨运行残留）。
+**Docker 已在 WSL（docker 29.1.3，本机 Windows 无 Docker）用全新克隆实跑复验为绿**：26 步全过、
+`Successfully tagged mbopenclacky:verify`，按新 `Verify image` 写法取到 `MBOpenClacky v0.3.0` = `cmd/main.mbt` 的
+`VERSION`；顺带这条复验又挖出一个真实部署缺陷并修掉（见第 7.1 节）。`013` 的预算修复只能在 Linux/CI 侧取证（第 7.2 节）。
+全量 scoped 复跑还抓到**第四条夹具缺陷**：一条用例在开发机上永久变红（第 7.3 节），它同样不在产品代码里，
+但只在 `TMPDIR`/`%TEMP%` 长期存在的机器上显形，所以 CI 从未报过它。
+
+### 7.1 镜像实跑顺带发现：照部署文档起容器会无限重启
+
+`docker run` 只给 `MBOPENCLACKY_WEB_API_KEY` 时，容器退出码 1 并报
+`No API key configured. The web server needs at least one LLM model configured`。
+而 `deploy/docker-compose.yml` 把 WEB key 设成必填却从未传 `MBOPENCLACKY_API_KEY`，`deploy/README.md` 的
+quick start 同样只 export 了 WEB key ⇒ 照文档执行会落进 `restart: unless-stopped` 的无限重启，
+`HEALTHCHECK` 永远不过，用户看不到根因文本。
+
+处置（三处都改，`docs/resolved-gaps.md` 有完整证据行）：compose 用**空值形式** `MBOPENCLACKY_API_KEY:`
+透传宿主变量（不会注入空串）、README quick start 要求两个 key 并写明实测报错、Dockerfile 的 `HEALTHCHECK`
+注释记录同一约束。实测三连：只给 WEB key ⇒ exit 1 + 上述文案；`MBOPENCLACKY_API_KEY=` 空串 ⇒ 同样被拒
+（安全闸门没有被空串绕过）；给 dummy LLM key ⇒ `/health` 返回 `{"status":"ok","version":"0.3.0"}`。
+边界：本机 WSL 的 docker 没有 compose v2 插件，compose 文件只做文本核对，容器行为证据全部来自直接 `docker run`。
+
+### 7.2 修复后无法在 Windows 复跑全量：`test/e2e` 包死等
+
+修复后重跑 scoped 全套时，`test/e2e` 的测试二进制在剧本 `014_tool_execution_failure_recovery` 建好工作目录后
+停止推进：进程累计 CPU 冻结在 `10.96875s`（跨 6s、150s 两次采样完全相同），`moon test` 驱动自身只有 1.09s CPU，
+9 分钟没有任何新 `$TEMP/mbe2e_*` 目录。该剧本用的是默认 `timeout_ms=120_000`，`@async.with_timeout_opt`
+最迟应在 2 分钟后抛 `TimeoutError`——实际没有，最后只能手工 kill（moon 随后报 `exited with exit code: 0xffffffff`，
+即我的 kill，不是产品断言）。
+
+由此得到两条必须写进纪律的诊断事实：
+
+1. moon **把每个测试二进制的 stdout 缓冲到进程退出才吐**，所以一个卡住的包不会给出任何逐条用例行，
+   日志里只剩测试自己写的 stderr（`[diag]`、`[stream-summary]`）。「日志还在动」不等于「测试还在跑」。
+2. `--filter` 匹配不到时退出码是 0 且 `Total tests: 0`。本轮我最初想用
+   `moon test test/e2e --filter "013 consecutive_failures_circuit_breaker"` 单取 013 的证据，脚本里的
+   `no test entry found` 守卫立刻抓到它「假绿」（`AGENTS.md` 已有该条，这次是它救了一次判读）。
+   2026-10-16 把语义测清了：**`--filter` 是 glob，不是子串**，模式必须覆盖整个测试名——
+   `ws frame gate`、`unparsable` 均 0 命中，`ws frame*` 命中本轮新增的 6 条、`*frame*` 命中 7 条。
+   这条已写入 `docs/known-gaps.md` 的 `moon test` 失败信号行。
+
+判定：这是 Windows native 运行时的环境边界（候选机制与排查抓手登记在 `docs/known-gaps.md` 的
+「Windows 上整包跑 `test/e2e`」行），Linux CI runner 上同一包列表会给出 `Total tests:` 与明确退出码。
+当时据此认为 **`013` 预算修复与全量口径只能在 CI 侧取证**，本地改用可判定的窄口径证据：
+`moon test cmd lib/agent` 连跑 4 轮 585/585（夹具互删）+ `journey` 26/26（层 9 全量，含新增 WS 旅程）。
+**2026-10-16 收尾复跑推翻了「只能 CI 侧取证」这句**：同一条含 `test/e2e` 的 scoped 列表在 Windows 上一次跑完
+（`Total tests: 4086, passed: 4086, failed: 0`，exit 0），该包 15 条与 `013` 的预算断言都拿到了本地直接证据，
+故本节结论降级为「稳定复现失败的缺陷未找到，挂死属当轮环境现象」；known-gaps 那一行保留为观察项而非确诊。
+
+### 7.3 全量复跑抓到第四条夹具缺陷：固定 `%TEMP%` 目录把一次红变成永久红
+
+scoped 全套（`lib cmd test` 去掉 `lib/mcp` 与 Windows 上跑不动的 `test/e2e`）给出
+`Total tests: 4065, passed: 4064, failed: 1`，唯一失败既不是 CI 那条串台、也不在产品代码：
+
+```text
+[hnlyxiaobing/MBOpenClacky] test lib/skill/evolution_log_wbtest.mbt:230
+  ("apply_proposal_creates_override_without_backup") failed:
+  FAILED: unexpected backup for a fresh override:
+  C:\Users\hnlyh\AppData\Local\Temp\mbopenclacky_skill_test_apply_new/SKILL.md.bak.1792078606808
+```
+
+根因与上面 CI 那条（跨包并发互删，第 7 节表格第一行）同族但机制不同：**跨运行残留**。`test_tmp_dir` 用固定目录名，测试收尾的
+`@fs.remove_file` 又是 `catch` 吞异常的 best-effort（Windows 共享冲突会命中），所以一次残留就把
+`apply_proposal`「SKILL.md 已存在 ⇒ 先备份」的分支误触发；测试红之后自己又写一个 `.bak`，于是每次运行都红。
+目录里实测累积三份：`SKILL.md.bak.1792074870891`（22:34）、`.1792075396645`（22:43）、`.1792078606808`（23:36），
+`SKILL.md` 内容正是被测写入串 `# New`。CI 看不到它，因为 GitHub runner 的 `/tmp` 每次全新——
+**这条红只在长期存在的开发机 `%TEMP%` 上显形，属于「本地能复现、CI 永远绿」的夹具债**。
+
+修复与取证（产品代码未动）：
+
+1. 先固化红：`moon test lib/skill --filter apply_proposal_creates_override_without_backup` ⇒ `1, passed: 0, failed: 1`、exit 2，
+   并当场多出第 4 个 `.bak`（自我延续的直接证据）。脚本用 `no test entry found` 守卫排除「filter 没匹配到 ⇒ 假绿」。
+2. `test_tmp_dir` 入口新增 `purge_tmp_dir`（`@fs.read_dir` + 逐个 best-effort 删除）。
+3. **不清残留**直接复跑同一条 filter ⇒ `1/1 passed`、exit 0；随后 `moon test lib/skill` 154/154，目录归空（自愈）。
+
+审计边界（避免过度清扫）：残留只有在断言/产品分支依赖「文件是否存在」或目录计数时才致命。
+`lib/agent/attachment_wbtest.mbt` 也用固定 `/tmp/mb_attach_test_<tag>`，但它只读写自己写入的确定文件名、
+不做目录列举断言，残留无害 ⇒ 保持不动。同类风险面与「新写测试的规则」统一登记在
+`docs/known-gaps.md` 的「测试共用固定 scratch 路径」行。
+
+取证纪律的附带一条：我自己的汇总脚本把 `grep … | tee -a "$LOG"` 写回它正在 grep 的同一个日志，
+导致合计行被自己污染成 `total=8130 / lines=2`（真实是 4065/1）。汇总脚本的中间产物必须与日志分离。
+
+## 8. 残留风险
+
+- WS 错误帧的行为**已有两把锁**：第 5.1 节的运行时探针原先只存在于 `_build` 临时件，现已固化为层 9 场景
+  `test/journey/scenarios/web_ws_malformed_frames_rejected.json`——10 类畸形帧逐帧断言收到 `error` 回帧
+  （`ws_event_count_at_least: error ≥ 10` + 10 条 `ws_frame_contains` 逐字匹配错误文案），并用
+  `mock_request_count: {min:0, max:0}` 断言畸形帧一律不启动计费运行。下一轮改动若把可见错误退回静默
+  `return`，这条旅程会红。**边界**：它依赖层 9 真起服务器 + 真 WS 连接，因此只在 `cmd.exe journey` 里跑，
+  不在 CI 门禁内（门禁策略本轮按决定保持现状）。
+  为把同一条契约搬进 CI 测试步骤，本轮把 `/ws` 的帧级判定抽成纯函数 `ws_frame_gate`
+  （`lib/web/handlers_ws.mbt:102`，`priv enum WsFrameGate` 只区分「拒绝并带回帧文案」与「路由到某个 handler」，
+  socket 副作用仍留在 dispatcher），并新增 6 条白盒用例 `lib/web/handlers_ws_frame_gate_wbtest.mbt`：
+  不可解析 / 非对象 / 缺 `type`（含 `type` 为 null、数字、数组、只有 `content` 四种伪装）/ 未知 `type` 逐字回显 /
+  9 种已知 `type` 全部路由 / 路由只看形状不看字段。反向取证：把 `_ => return WsFrameReject("missing message type")`
+  改成默认 `"message"`、把 `invalid JSON frame` 改名，`moon test lib/web` 立刻
+  `Total tests: 520, passed: 518, failed: 2` 并打出 CI 可 grep 的 `") failed: "` 行
+  （`FAILED: \`"bad json" != "invalid JSON frame"\``、`FAILED: frame was routed, expected rejection: {}`），
+  还原后同一命令 520/520；把这份红日志喂给 CI `Publish failing tests as annotations` 步里的同一条
+  grep/sed 管线，产出 3 条 `::error::`（2 条失败用例 + 1 条合计），证明下一次这类回归在 CI 页面就能看见；
+  层 9 那条 WS 旅程在重构后的 dispatcher 上重跑仍 PASS，说明纯函数化没有改动线上行为。
+  这里刻意用 `fail`/`assert_eq`（`-> Unit raise`）而不是 `abort()`：后者在 native Windows 上以
+  `0xc0000409` 快停，只报 active test 位置，CI 的 annotation 步骤 grep 不到失败行。
 - 层 8 未复跑，`cap-007` / `cap-009` 的修复只有 harness 单测证据；live 结论仍会随模型漂移。
 - 全量 Playwright（114 用例）本轮未跑，只跑了反向排查涉及的 3 个 spec / 13 用例。
 - 基准中位数仍需累积历史，单轮 `Regression detected: NO` 只证明「无假信号」，不证明趋势。
 
-## 8. 复现命令
+## 9. 复现命令
 
 ```bash
 moon check -d
@@ -218,9 +349,9 @@ scripts/known_gaps.sh check && scripts/repo_stats.sh check
 "$BIN" eval --web test/scenarios/web/ --format markdown --repo .
 "$BIN" benchmark
 
-# WS 非法帧实证（临时件，需自行重建探针脚本）
-"$BIN" server --port 7199 &        # cwd 必须是仓库根
-PROBE_PORT=7199 node _build/ws_probe.mjs
+# WS 非法帧：已入库为层 9 旅程，不需要再搭探针
+# （第 5.1 节的 `_build/ws_probe*.mjs` 是锁定之前的临时实证件，已删除）
+"$BIN" journey --repo . --filter web_ws_malformed_frames_rejected   # --filter 是 scenario id 子串过滤
 
 # Web E2E：服务器 cwd 必须是仓库根，否则 web/ 资产 404
 cd test/web-e2e && npx playwright test scenarios/03-multi-turn-context.spec.ts \

@@ -559,12 +559,14 @@ fn read_module_version(repo : String) -> String? {
 
 ///|
 /// Candidate locations of the release native binary, relative to the repo
-/// root. `moon build --target native --release cmd` places it under the
-/// module-qualified path.
+/// root. The workspace-relative path is what `moon build ... cmd` produces
+/// today; the module-qualified one only exists as a stale leftover from when
+/// vendor/* were extra moon.work members, so it must be searched LAST —
+/// preferring it silently probes an out-of-date binary.
 fn detect_binary(repo : String) -> String? {
   let candidates : Array[String] = [
-    "_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe", "_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd",
     "_build/native/release/build/cmd/cmd.exe", "_build/native/release/build/cmd/cmd",
+    "_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe", "_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd",
   ]
   for candidate in candidates {
     let full = @path.Path::join(repo, @path.Path(candidate)).to_string()

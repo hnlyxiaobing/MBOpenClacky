@@ -2,8 +2,9 @@
 # MBOpenClacky — Docker Compose deployment
 # Self-hosted AI Agent Web Server (port 7071).
 #
-# Quick start:
-#   docker compose up -d --build
+# Quick start (both keys are required for the container to stay up):
+#   MBOPENCLACKY_WEB_API_KEY=$(openssl rand -hex 32) MBOPENCLACKY_API_KEY=sk-... \
+#     docker compose up -d --build
 #   curl http://localhost:7071/health
 #
 # Override the port / timezone via environment:
@@ -35,6 +36,15 @@ services:
       # start without this when MBOPENCLACKY_WEB_HOST is 0.0.0.0.
       # Generate one with: openssl rand -hex 32
       MBOPENCLACKY_WEB_API_KEY: "${MBOPENCLACKY_WEB_API_KEY:?MBOPENCLACKY_WEB_API_KEY is required}"
+      # The web server ALSO needs at least one LLM model. Supply it either as
+      # MBOPENCLACKY_API_KEY (null-value form below = pass through from the host
+      # only when actually set; it never injects an empty string) or by writing
+      # ~/.mbopenclacky/config.toml into the volume, since HOME is pinned to /app.
+      # Without either, `server` exits 1 with "No API key configured" — verified by
+      # running the built image; an empty MBOPENCLACKY_API_KEY is rejected too.
+      # Leaving this out makes `restart: unless-stopped` a restart loop that the
+      # healthcheck below can never leave.
+      MBOPENCLACKY_API_KEY:
       TZ: "${TZ:-UTC}"
     volumes:
       # Single named volume holds config, sessions, skills, logs and

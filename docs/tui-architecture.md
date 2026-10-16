@@ -40,7 +40,7 @@
 
 ```bash
 moon build --target native --release cmd
-BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+BIN=./_build/native/release/build/cmd/cmd.exe
 "$BIN"                                  # 进入 TUI
 "$BIN" eval --tui test/scenarios/tui/ --format markdown
 ```

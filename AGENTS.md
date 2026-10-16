@@ -14,13 +14,13 @@ moon run cmd --message "Hello"           # Non-interactive mode
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')   # Full module suite
 moon test lib/agent --filter "session*"     # Targeted test run
 cmd.exe eval --offline --repo .             # Layer 6 deterministic eval
-cmd.exe journey --repo .                    # Layer 9 user journeys (25 scenarios)
+cmd.exe journey --repo .                    # Layer 9 user journeys (26 scenarios)
 moon update                                 # Resolve dependencies
 moon fmt <changed files>                    # Format only changed files
 moon info                                   # Verify public API changes
 ```
 
-- **Binary path trap**: `moon build --target native --release cmd` writes `_build/native/release/build/cmd/cmd.exe`. A stale `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe` from a full-module build also sits in the tree and is *not* refreshed by that command. Verifying against it silently tests old code — always use the `build/cmd/` path, or delete the nested one.
+- **Binary path trap**: `moon build --target native --release cmd` writes `_build/native/release/build/cmd/cmd.exe`. A stale `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe` from an older module-qualified layout can also sit in the tree and is *not* refreshed by that command. Verifying against it silently tests old code — always use the `build/cmd/` path, or delete the nested one. Scripts and CI must locate the binary through `scripts/release_binary.sh`, which searches the current layout first and fails loudly when nothing is found (hardcoding either path is what broke the Docker step and the CI "CLI contract probes" step).
 - **Never bare `moon test`**: it also walks `third_party/clap`, which is vendored upstream code (a package inside this module, no own `moon.mod`) and not this repo's regression surface. `moon.work` currently lists only `.`; the old `vendor/mizchi-*` members are gone. Use the scoped command above, which is also what CI and `scripts/repo_stats.sh` count.
 - **A green run is not proof the test can fail.** `moon check ./lib/<pkg>` and package-scoped `moon test` can reuse a cached build immediately after you edit that package, so an edit may be judged against objects from before the edit. After adding or changing a test, break the thing it guards, re-run, and confirm it goes red — then restore. Only a demonstrated failure proves the assertion.
 - CI runs `lib cmd test` minus `lib/mcp` in the main test step, then runs `lib/mcp` separately. `scripts/repo_stats.sh` records the main-step count; do not silently mix the two logs.
@@ -82,9 +82,12 @@ Additional facts that documentation must keep precise:
 
 - Co-located white-box tests use `*_wbtest.mbt` next to source.
 - Eval and harness tests live under `test/`.
+- Layer 4 cannot reach `/ws`: crescent's `TestClient` does not exercise the WebSocket upgrade path. So a WebSocket frame-routing rule must be locked by extracting a pure gate function and testing it in a co-located `*_wbtest.mbt` (see `ws_frame_gate` + `handlers_ws_frame_gate_wbtest.mbt` in `lib/web`), with the real-socket contract covered by the layer-9 journey — that journey is not a CI gate, so the wbtest is the only thing that can go red in CI.
+- Test assertions must raise (`fail` / `assert_eq` in a `-> Unit raise` helper), not `abort()`: on native Windows `abort()` fast-fails the binary with `0xc0000409` and prints only the active-test location, so CI's annotation grep for `") failed: "` finds nothing.
+- Never let a test inherit a dirty scratch dir. Two separate mechanisms bite here: (a) moon runs each package's test binary concurrently with the same workspace-root CWD, so two packages writing e.g. `_build/wbtest_foo/<same-id>/` delete each other's files and fail spuriously (CI's `0 != 2` at `cmd/session_log_producer_wbtest.mbt:107`) — namespace the parent with the package (`wbtest_session_log_cmd` / `wbtest_session_log_agent`); (b) a *fixed* path under `$TEMP`/`/tmp` survives across runs and best-effort `@fs.remove_file ... catch` cleanup silently leaks, so the next run inherits the residue (a stale `SKILL.md` made `lib/skill/evolution_log_wbtest.mbt` fail every run on Windows once its backup branch was taken). Either use a unique per-run dir like `test/e2e/scenario_runner.mbt` does, or empty the fixed dir on entry. Only assertions that branch on "does this file exist" or on directory contents make residue fatal — `lib/agent/attachment_wbtest.mbt`'s fixed `/tmp/mb_attach_test_<tag>` is deliberately left alone.
 - After edits run `moon check`, then the relevant `moon test` scope. Use `moon check -d` to judge the whole repo; package-only checks can miss subpackages.
 - Layer 4 replay: `cmd.exe eval --tui test/scenarios/tui/` and `eval --web test/scenarios/web/`. The old `--tui-eval`/`--web-eval` flags remain deprecated compatibility paths.
-- Layer 9 journey: build release, then `cmd.exe journey --repo .`; 25 scenarios cover Web 9 / TUI 5 / CLI 11. Failures write evidence under `_build/journey/` and update `docs/journey-failures.md`.
+- Layer 9 journey: build release, then `cmd.exe journey --repo .`; 26 scenarios cover Web 10 / TUI 5 / CLI 11. Failures write evidence under `_build/journey/` and update `docs/journey-failures.md`.
 - Browser E2E is in `test/web-e2e/` and is manual/local; it currently contains machine-specific Playwright paths.
 
 ## Commit Guidelines
@@ -147,11 +150,11 @@ Machine-generated by `scripts/repo_stats.sh`; do not edit the block.
 |------|------|
 | 版本（moon.mod / cmd VERSION / tui / web 四处一致） | 0.3.0 |
 | 源代码文件（`.mbt`，lib+cmd，不含测试） | 316 |
-| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 241 |
-| 源代码行数 | 106,287 |
-| 测试行数 | 65,831 |
-| 总行数 | 172,118 |
-| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4080 |
+| 测试文件（`*_wbtest.mbt` + `*_test.mbt`） | 242 |
+| 源代码行数 | 106,298 |
+| 测试行数 | 65,956 |
+| 总行数 | 172,254 |
+| 测试用例（`moon test --release`，本模块 scoped 口径；CI 该步不含 lib/mcp，另一步单独跑） | 4086 |
 | 包（lib 一级包 / cmd 入口 / `moon.pkg` 总数） | 25 / 1 / 30 |
 | `pkg.generated.mbti`（git 入库） | 32 |
 | Provider 预设 | 13 |

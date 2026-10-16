@@ -44,8 +44,8 @@ moon build --target native --release cmd
 release 产物：
 
 ```text
-_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe   # Windows
-_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd       # Linux/macOS
+_build/native/release/build/cmd/cmd.exe   # Windows
+_build/native/release/build/cmd/cmd       # Linux/macOS
 ```
 
 以下用 `BIN` 指代该文件。不要使用裸 `moon build`：显式指定 `cmd` 可规避 moon#1488 对带 link 配置的库包误判。`moon install` 已弃用，依赖由 `moon update` 解析。

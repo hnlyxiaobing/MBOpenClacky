@@ -1,0 +1,75 @@
+{
+  "id": "web_ws_malformed_frames_rejected",
+  "title": "Web WS: every malformed frame gets a visible error reply and starts no billed run",
+  "area": "web",
+  "description": "向 /ws 发送 10 类畸形帧（非法 JSON、非对象、缺 type、未知 type、message/edit_message 缺 content、message 缺会话、interrupt 缺会话、run_task 缺会话、message 空 content 且无附件）。服务端必须每帧回一帧 error，且 mock 上游收到 0 次请求——畸形帧绝不能启动计费运行。",
+  "timeout_ms": 120000,
+  "server_port": 7099,
+  "phases": [
+    { "name": "launch", "steps": [
+      { "action": "spawn_server" },
+      { "action": "http", "method": "POST", "path": "/api/sessions", "body": "{\"name\":\"J-Malformed\"}", "capture": "session.id", "timeout_ms": 5000 },
+      { "action": "assert", "assertions": [
+        { "type": "status_eq", "status": 201 }
+      ] }
+    ] },
+    { "name": "malformed_frames", "steps": [
+      { "action": "ws_connect", "url": "ws://127.0.0.1:{port}/ws" },
+
+      { "action": "ws_send", "raw": "this is not json {{" },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "raw": "[1,2,3]" },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": {} },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "bogus_kind" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "message" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "message", "content": "" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "interrupt" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "edit_message", "content": "rewrite me" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "ws_send", "frame": { "type": "run_task" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+
+      { "action": "sleep", "sleep_ms": 500 }
+    ] },
+    { "name": "empty_message_with_session", "steps": [
+      { "action": "ws_send", "frame": { "type": "subscribe", "session_id": "{capture:session.id}" } },
+      { "action": "ws_wait_event", "event": "subscribed", "timeout_ms": 5000 },
+      { "action": "ws_send", "frame": { "type": "message", "session_id": "{capture:session.id}", "content": "" } },
+      { "action": "ws_wait_event", "event": "error", "timeout_ms": 5000 },
+      { "action": "sleep", "sleep_ms": 1000 },
+      { "action": "assert", "assertions": [
+        { "type": "ws_event_count_at_least", "event": "error", "min": 10 },
+        { "type": "ws_frame_contains", "text": "invalid JSON frame" },
+        { "type": "ws_frame_contains", "text": "expected JSON object" },
+        { "type": "ws_frame_contains", "text": "missing message type" },
+        { "type": "ws_frame_contains", "text": "unknown message type: bogus_kind" },
+        { "type": "ws_frame_contains", "text": "message requires a string content field" },
+        { "type": "ws_frame_contains", "text": "message needs a session_id" },
+        { "type": "ws_frame_contains", "text": "interrupt needs a session_id" },
+        { "type": "ws_frame_contains", "text": "edit_message needs a session_id" },
+        { "type": "ws_frame_contains", "text": "run_task needs a session_id" },
+        { "type": "ws_frame_contains", "text": "message is empty and carries no images or attachments" }
+      ] }
+    ] },
+    { "name": "teardown", "steps": [
+      { "action": "kill_child" }
+    ] }
+  ],
+  "assertions": [
+    { "type": "mock_request_count", "min": 0, "max": 0 }
+  ]
+}

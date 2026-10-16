@@ -21,6 +21,9 @@
 | cli_model_switch | 2026-10-10 | 2026-10-10 | 1 | exit code == 0 — exit code: 1 |
 | cli_file_attachment | 2026-10-10 | 2026-10-10 | 1 | mock request[0] contains 'Hello World from test file' — body (29018 chars) lacks... |
 | cli_agent_profile_switch | 2026-10-10 | 2026-10-10 | 1 | exit code == 0 — exit code: 1 |
+| cli_session_save_and_continue | 2026-10-15 | 2026-10-15 | 2 | exit code == 0 — exit code: 1 |
+| cli_jsonl_log_and_inspect | 2026-10-15 | 2026-10-15 | 1 | file exists: D:/MoonBit/MBOpenClacky/_build/journey/2026-10-15T22-36-27+08-00/cl... |
+| cli_message_tool_roundtrip | 2026-10-15 | 2026-10-15 | 1 | file_contains: D:/MoonBit/MBOpenClacky/_build/journey/2026-10-15T22-36-27+08-00/... |
 <!-- END: journey-fixed (auto) -->
 
 ## 人工批注（curated）

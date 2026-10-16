@@ -25,6 +25,9 @@ pub(all) enum StepAction {
   WsConnect(url~ : String)
   /// Send a JSON frame over the WebSocket connection.
   WsSend(frame~ : Json)
+  /// Send a verbatim text frame (no JSON round-trip), so malformed-wire
+  /// frames that a JSON object cannot express still reach the server.
+  WsSendRaw(text~ : String)
   /// Block until an event with the given `type_name()` is journaled.
   WsWaitEvent(event~ : String, timeout_ms~ : Int32)
   /// Terminate the current child process (hard kill).
@@ -164,14 +167,25 @@ fn parse_step_action(fields : Map[String, Json]) -> Result[StepAction, String] {
     }
     "ws_connect" => Ok(WsConnect(url=get_str(fields, "url")))
     "ws_send" =>
-      match fields.get("frame") {
-        Some(frame) =>
-          if frame is Object(_) {
-            Ok(WsSend(frame~))
+      match fields.get("raw") {
+        // `raw` bypasses the JSON round-trip so frames that are not a JSON
+        // object (malformed JSON, arrays, bare scalars) can still be sent.
+        Some(String(text)) =>
+          if text.is_empty() {
+            Err("ws_send \"raw\" must be a non-empty string")
           } else {
-            Err("ws_send requires a JSON object \"frame\"")
+            Ok(WsSendRaw(text~))
           }
-        None => Err("ws_send requires a JSON object \"frame\"")
+        _ =>
+          match fields.get("frame") {
+            Some(frame) =>
+              if frame is Object(_) {
+                Ok(WsSend(frame~))
+              } else {
+                Err("ws_send requires a JSON object \"frame\"")
+              }
+            None => Err("ws_send requires a JSON object \"frame\"")
+          }
       }
     "ws_wait_event" =>
       Ok(

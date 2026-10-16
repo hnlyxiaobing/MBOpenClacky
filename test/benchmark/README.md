@@ -17,7 +17,7 @@
 
 ```bash
 moon build --target native --release cmd
-./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe benchmark
+./_build/native/release/build/cmd/cmd.exe benchmark
 ```
 
 带参数（路径均为仓库根相对路径）：

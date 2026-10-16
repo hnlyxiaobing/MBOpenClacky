@@ -528,6 +528,11 @@ async test "013 consecutive_failures_circuit_breaker：连续失败熔断" {
     "013_consecutive_failures_circuit_breaker",
     [("note.txt", "hello\n")],
     "读一下 note.txt 然后告诉我内容",
+    // 本剧本是全套唯一「退避名义时长逼近默认预算」的一条：10 次退避 ≈50s，
+    // 而 @async.sleep 只会因 CPU 争抢变长。2026-10-15 CI 实测同一二进制内
+    // 5s 退避膨胀到 22768ms / 26000ms（≈4.5×），120s 预算会把重试循环从中间
+    // 掐断，症状是 `10 != 11` 而不是超时。按 ruby harness 的 300s 给预算。
+    timeout_ms=300_000,
   )
   // ruby 基线：11 请求、exit=1（干净失败 ↔ outcome.status == "error"）
   assert_golden(outcome, golden("013_consecutive_failures_circuit_breaker"))

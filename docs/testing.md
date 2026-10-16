@@ -15,7 +15,7 @@
 | 6 确定性能力 | 真实工具层能否完成小任务 | `test/eval/tool_harness.mbt`、`test/eval/tasks/` | `<bin> eval --offline --repo .` | 每次提交 | 3 任务 × 2 重复，评分须全 1 |
 | 7 性能基准 | 工具路径是否退化 | `test/benchmark/` | `<bin> benchmark` | 不进 CI | 真执行工具并计时 |
 | 8 真模型基准 | 模型自主完成任务的成功率/成本 | `test/capability/tasks/`、`test/eval/live_harness.mbt` | `<bin> eval --live` | 不进 CI | 10 任务，每任务默认 3 trials |
-| 9 用户旅程 | 真实二进制的端到端链路是否可用 | `test/journey/` | `<bin> journey --repo .` | 手动/定时 | 25 条：Web 9 / TUI 5 / CLI 11 |
+| 9 用户旅程 | 真实二进制的端到端链路是否可用 | `test/journey/` | `<bin> journey --repo .` | 手动/定时 | 26 条：Web 10 / TUI 5 / CLI 11 |
 | Web 浏览器 E2E | 浏览器 UI 与 API 组合行为 | `test/web-e2e/` | `cd test/web-e2e && npm test` | 不进 CI | 21 个 spec、114 个测试；本地依赖较重 |
 
 性能和真模型基准不能替代回归门禁：它们分别受计时噪声和模型随机性影响。
@@ -26,7 +26,7 @@
 moon check -d
 moon build --target native --release cmd
 
-BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+BIN=./_build/native/release/build/cmd/cmd.exe
 "$BIN" selftest --repo .
 "$BIN" eval --offline --repo .
 "$BIN" journey --repo .                    # 可选，约数分钟
@@ -39,7 +39,7 @@ scripts/known_gaps.sh check && scripts/repo_stats.sh check
 - **禁止裸 `moon test`**。`moon.work` 含 vendored workspace members，裸跑会执行它们自己的测试，不是本仓库回归面。
 - CI 主测试步限定 `lib cmd test` 并排除 `lib/mcp`，另一步单独跑 `lib/mcp`。机器生成表记录的是 CI 主步口径，不把两步悄悄相加。
 - Windows 与 Linux 使用同一条 scoped 命令。`lib/mcp` 的 Windows stdio 进程集成用例会按平台跳过，HTTP/JSON-RPC/registry 测试照跑。
-- `moon test --target wasm-gc` 会因 native FFI 失败；wasm-gc 用 `moon check` 验证。
+- `moon test --target wasm-gc` 会因 native FFI 失败；wasm-gc 只用 `moon check` 做类型验证，且**该目标本身不是全仓绿**（已知 20 条 native-FFI 错误，见 [known-gaps](known-gaps.md)），引用时要以实际输出为准。
 
 ## 3. 目录地图
 
@@ -116,7 +116,7 @@ TUI/Web 场景共用 `test/eval/assertions.mbt` 的 `AssertionKind` 和 `Unified
 
 ## 9. 层 9：Journey E2E
 
-`cmd journey` 驱动真实 release 二进制，覆盖 Web REST/WS、TUI 虚拟屏和 CLI 子进程，上游为进程内 mock LLM。25 条场景按 `area` 分布为 Web 9、TUI 5、CLI 11。
+`cmd journey` 驱动真实 release 二进制，覆盖 Web REST/WS、TUI 虚拟屏和 CLI 子进程，上游为进程内 mock LLM。26 条场景按 `area` 分布为 Web 10、TUI 5、CLI 11。
 
 退出码：
 
@@ -145,7 +145,7 @@ npm test
 1. 单包逻辑优先放相邻 `*_wbtest.mbt`。
 2. 与 Ruby 的行为分歧进 `test/diff/`；没有编号不得跳过断言。
 3. 完整 ReAct 回归进 `test/e2e/`，mock 剧本必须有确定性结束条件。
-4. UI/API 单步行为进层 4 场景；真实用户链路进 journey。
+4. UI/API 单步行为进层 4 场景；真实用户链路进 journey。`/ws` 是例外：crescent 的 TestClient 走不到 WebSocket 升级路径，层 4 覆盖不到它，所以帧级判定要先抽成纯函数再用相邻 `*_wbtest.mbt` 锁住（`lib/web/handlers_ws.mbt` 的 `ws_frame_gate` + `handlers_ws_frame_gate_wbtest.mbt`），真 socket 上的可见回帧另由层 9 旅程 `web_ws_malformed_frames_rejected` 覆盖——旅程不在 CI 门禁内，两者缺一就会退化成「只有本地才发现」。
 5. 不把基准或真模型结果当回归绿灯。
 6. 一次性日志和沙箱写 `_build/`，不要提交到仓库。
 7. 改测试规模后更新机器指标：`scripts/repo_stats.sh generate --test-count <CI 主步 Total tests>`。

@@ -208,6 +208,26 @@ async fn ws_send_step(
 }
 
 ///|
+/// Send a verbatim text frame. Unlike `ws_send`, the payload is not parsed or
+/// re-stringified, so byte-level malformed frames reach the server.
+async fn ws_send_raw_step(
+  state : JourneyState,
+  text : String,
+  phase_name : String,
+) -> Unit {
+  match state.journal {
+    Some(journal) => {
+      let expanded = expand_journey_placeholders(text, state.ctx)
+      journal.send_text(expanded)
+      state.trace.push(
+        "[\{phase_name}] ws send raw (\{expanded.length()} chars): \{expanded[:60].to_owned()}...",
+      )
+    }
+    None => state.error = "[\{phase_name}] ws_send: no ws connection"
+  }
+}
+
+///|
 async fn ws_wait_event_step(
   state : JourneyState,
   event : String,

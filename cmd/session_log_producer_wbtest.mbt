@@ -8,8 +8,13 @@
 /// A scratch sessions directory under `_build`, plus the log path for
 /// `session_id`. Any leftover log or lock from a previous run is removed, so
 /// the assertions hold no matter how often the suite is re-run.
+///
+/// The parent is package-specific: moon runs every package's test binary
+/// concurrently with the same workspace-root CWD, and `lib/agent` has a test
+/// with the same session ids. A shared parent let one binary delete the other's
+/// log between its flush and its read (`0 != 2` in CI).
 fn producer_test_path(session_id : String) -> (String, String) {
-  let parent = @path.Path::join("_build", @path.Path("wbtest_session_log")).to_string()
+  let parent = @path.Path::join("_build", @path.Path("wbtest_session_log_cmd")).to_string()
   if !@fs.path_exists(parent) {
     @fs.create_dir(parent) catch {
       _ => ()

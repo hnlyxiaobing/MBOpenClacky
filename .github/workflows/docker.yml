@@ -48,5 +48,16 @@ jobs:
 
       - name: Verify image
         run: |
+          set -euo pipefail
           docker images mbopenclacky
-          docker run --rm mbopenclacky:latest --version || echo "Image built successfully (entrypoint check)"
+          # The image entrypoint is `./mbopenclacky server`, so `--version` must
+          # override it — appending it would start a web server instead of
+          # printing a version. This step used to end in `|| echo`, which made
+          # the verify a no-op gate that could never go red.
+          OUT=$(docker run --rm --entrypoint ./mbopenclacky mbopenclacky:latest --version)
+          echo "image reports: $OUT"
+          EXPECTED="MBOpenClacky v$(sed -n 's/^const VERSION : String = "\(.*\)"/\1/p' cmd/main.mbt)"
+          [ "$OUT" = "$EXPECTED" ] || {
+            echo "::error::image version "$OUT" != repo version "$EXPECTED""
+            exit 1
+          }

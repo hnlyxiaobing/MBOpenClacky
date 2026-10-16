@@ -12,8 +12,8 @@ E2E，与层 4 的单步场景回放互补：层 4 验证界面单步行为，�
 
 ```bash
 moon build --target native --release cmd
-BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
-"$BIN" journey --repo .            # 全量 23 条旅程（Web 9 / TUI 5 / CLI 9）
+BIN=./_build/native/release/build/cmd/cmd.exe
+"$BIN" journey --repo .            # 全量 26 条旅程（Web 10 / TUI 5 / CLI 11）
 "$BIN" journey --repo . --filter cli_ --verbose   # 只跑 CLI 面
 ```
 
@@ -29,7 +29,7 @@ BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
 
 ```bat
 schtasks /Create /TN "MBOpenClacky Journey E2E" /SC DAILY /ST 08:30 /F ^
-  /TR "cmd /c cd /d D:\MoonBit\MBOpenClacky && (moon build --target native --release cmd && _build\native\release\build\hnlyxiaobing\MBOpenClacky\cmd\cmd.exe journey --repo .) >> _build\journey\scheduled.log 2>&1"
+  /TR "cmd /c cd /d D:\MoonBit\MBOpenClacky && (moon build --target native --release cmd && _build\native\release\build\cmd\cmd.exe journey --repo .) >> _build\journey\scheduled.log 2>&1"
 schtasks /Run /TN "MBOpenClacky Journey E2E"     # 立即演练一次
 ```
 

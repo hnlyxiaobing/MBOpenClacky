@@ -86,6 +86,40 @@ fn get_ws_state(session_id : String) -> WsSessionState {
 }
 
 ///|
+/// Frame-level gate for one raw upstream text frame.
+///
+/// `WsFrameReject(reason)` must be answered with an `error` event and nothing
+/// else: a frame that fails here may never reach a handler that can start a
+/// billed LLM run. The decision is deliberately pure — the socket side effect
+/// stays in the dispatcher, so the malformed-frame invariant itself can be
+/// asserted by a white-box test instead of only by an end-to-end journey.
+priv enum WsFrameGate {
+  WsFrameReject(String)
+  WsFrameRoute(@protocol.UpstreamMessageType, Map[String, Json])
+}
+
+///|
+fn ws_frame_gate(text : String) -> WsFrameGate {
+  let json = @json.parse(text) catch {
+    _ => return WsFrameReject("invalid JSON frame")
+  }
+  let obj = match json {
+    Object(o) => o
+    _ => return WsFrameReject("expected JSON object")
+  }
+  // A missing type must never default to "message": malformed frames
+  // must not trigger a billed LLM run.
+  let msg_type_str = match obj.get("type") {
+    Some(String(t)) => t
+    _ => return WsFrameReject("missing message type")
+  }
+  match @protocol.parse_upstream_type(msg_type_str) {
+    Some(msg_type) => WsFrameRoute(msg_type, obj)
+    None => WsFrameReject("unknown message type: " + msg_type_str)
+  }
+}
+
+///|
 /// Handle WebSocket events for /ws (single-endpoint protocol).
 /// Unlike the legacy /ws/sessions/:id, this handler does NOT auto-subscribe
 /// on connect. The client must send a `subscribe` message to bind to a session.
@@ -102,58 +136,33 @@ async fn handle_ws_global(
     }
     Message(peer, msg) =>
       match msg {
-        Text(text) => {
-          let json = @json.parse(text) catch {
-            _ => {
-              peer.text(@protocol.build_error_event("", "invalid JSON frame"))
-              return
+        Text(text) =>
+          match ws_frame_gate(text) {
+            WsFrameReject(reason) =>
+              peer.text(@protocol.build_error_event("", reason))
+            WsFrameRoute(msg_type, obj) => {
+              let conn_id = peer.connection_id()
+              let hub = server_ref.val.hub
+              match msg_type {
+                @protocol.Ping => handle_ws_ping(peer)
+                @protocol.Subscribe =>
+                  handle_ws_subscribe(server_ref, peer, conn_id, hub, obj)
+                @protocol.ListSessions =>
+                  handle_ws_list_sessions(server_ref, peer)
+                @protocol.Interrupt =>
+                  handle_ws_interrupt(server_ref, peer, conn_id, hub, obj)
+                @protocol.Message =>
+                  handle_ws_message(server_ref, peer, conn_id, hub, obj)
+                @protocol.EditMessage =>
+                  handle_ws_edit_message(server_ref, peer, conn_id, hub, obj)
+                @protocol.Confirmation =>
+                  handle_ws_confirmation(server_ref, peer, obj)
+                @protocol.Feedback => handle_ws_feedback(server_ref, peer, obj)
+                @protocol.RunTask =>
+                  handle_ws_run_task(server_ref, peer, conn_id, hub, obj)
+              }
             }
           }
-          let obj = match json {
-            Object(o) => o
-            _ => {
-              peer.text(@protocol.build_error_event("", "expected JSON object"))
-              return
-            }
-          }
-          // A missing type must never default to "message": malformed frames
-          // must not trigger a billed LLM run.
-          let msg_type_str = match obj.get("type") {
-            Some(String(t)) => t
-            _ => {
-              peer.text(@protocol.build_error_event("", "missing message type"))
-              return
-            }
-          }
-          let conn_id = peer.connection_id()
-          let hub = server_ref.val.hub
-          match @protocol.parse_upstream_type(msg_type_str) {
-            Some(@protocol.Ping) => handle_ws_ping(peer)
-            Some(@protocol.Subscribe) =>
-              handle_ws_subscribe(server_ref, peer, conn_id, hub, obj)
-            Some(@protocol.ListSessions) =>
-              handle_ws_list_sessions(server_ref, peer)
-            Some(@protocol.Interrupt) =>
-              handle_ws_interrupt(server_ref, peer, conn_id, hub, obj)
-            Some(@protocol.Message) =>
-              handle_ws_message(server_ref, peer, conn_id, hub, obj)
-            Some(@protocol.EditMessage) =>
-              handle_ws_edit_message(server_ref, peer, conn_id, hub, obj)
-            Some(@protocol.Confirmation) =>
-              handle_ws_confirmation(server_ref, peer, obj)
-            Some(@protocol.Feedback) =>
-              handle_ws_feedback(server_ref, peer, obj)
-            Some(@protocol.RunTask) =>
-              handle_ws_run_task(server_ref, peer, conn_id, hub, obj)
-            None =>
-              peer.text(
-                @protocol.build_error_event(
-                  "",
-                  "unknown message type: " + msg_type_str,
-                ),
-              )
-          }
-        }
         Binary(_) => ()
       }
     Close(peer) => {

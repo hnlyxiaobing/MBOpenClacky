@@ -17,7 +17,7 @@
 ```bash
 moon check -d
 moon build --target native --release cmd
-BIN=./_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe
+BIN=./_build/native/release/build/cmd/cmd.exe
 "$BIN" selftest --repo .
 "$BIN" eval --offline --repo .
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')

@@ -205,24 +205,64 @@ jobs:
       - name: Run tests (module packages)
         # Scoped to lib/cmd/test minus lib/mcp. Debug mode compiles 2-3x faster;
         # release-specific behavior is validated separately.
+        # The log is tee'd (not redirected) and the exit code captured: under
+        # `bash -e` a plain redirect aborted the step before `cat`, so a failing
+        # run published a truncated artifact and showed nothing but
+        # "Process completed with exit code N" in the UI.
         run: |
+          set +e
           pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
             | grep -v '^lib/mcp$' | tr '\n' ' ')
-          moon test $pkgs -j "$(nproc)" > "$RUNNER_TEMP/moon_test.log" 2>&1
-          cat "$RUNNER_TEMP/moon_test.log"
+          moon test $pkgs -j "$(nproc)" 2>&1 | tee "$RUNNER_TEMP/moon_test.log"
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::moon test failed with exit code $EXIT_CODE"
+          fi
+          exit $EXIT_CODE
 
       - name: Run lib/mcp tests
-        run: moon test lib/mcp -j "$(nproc)"
+        run: |
+          set +e
+          moon test lib/mcp -j "$(nproc)" 2>&1 | tee -a "$RUNNER_TEMP/moon_test.log"
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          [ $EXIT_CODE -eq 0 ] || echo "::error::lib/mcp moon test failed with exit code $EXIT_CODE"
+          exit $EXIT_CODE
+
+      # Job logs and log artifacts need GitHub authentication even for a public
+      # repo, but check-run annotations are public
+      # (`GET /repos/{owner}/{repo}/check-runs/{job_id}/annotations`). Publishing
+      # the failing test lines as annotations is what makes a red CI diagnosable
+      # from the outside; without it a red run only says "exit code N".
+      - name: Publish failing tests as annotations
+        if: failure()
+        run: |
+          set +e
+          LOG="$RUNNER_TEMP/moon_test.log"
+          if [ ! -s "$LOG" ]; then
+            echo "::error::no moon test output was captured"
+            exit 0
+          fi
+          # moon prints every failing test as one line shaped like
+          #   [<module>] test <file>:<line> ("<name>") failed: <file>:<loc> FAILED: 10 != 11
+          # so the marker is `) failed: ` — the leading `[module]` bracket is what
+          # makes the line matchable, and stripping it keeps the annotation single-line.
+          grep -E -- '\) failed: ' "$LOG" | head -20 |
+            sed 's/^\[[^]]*\] //; s/%/%25/g; s/\r//g' |
+            while IFS= read -r l; do echo "::error::$l"; done
+          grep -oE -- 'Total tests: [0-9]+, passed: [0-9]+, failed: [1-9][0-9]*' "$LOG" |
+            while IFS= read -r l; do echo "::error::$l"; done
+          # Digest for the cases the greps above cannot see (an aborted or
+          # panicked test binary prints no `) failed:` line at all).
+          MSG=$(tail -25 "$LOG" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' | sed 's/%0A$//')
+          echo "::error::tail: $MSG"
+          exit 0
 
       - name: Benchmark gate (Phase 1, optional)
         continue-on-error: true
         run: |
-          BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
-          if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
-          if [ ! -x "$BIN" ]; then
-            echo "::error::release binary not found at $BIN" >&2
-            exit 1
-          fi
+          BIN=$(bash scripts/release_binary.sh)
           "$BIN" benchmark --threshold 15.0 --check-baseline
 
       - name: Upload test log
@@ -235,22 +275,12 @@ jobs:
 
       - name: CLI contract probes (P0-3)
         run: |
-          BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
-          if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
-          if [ ! -x "$BIN" ]; then
-            echo "::error::release binary not found at $BIN" >&2
-            exit 1
-          fi
+          BIN=$(bash scripts/release_binary.sh)
           "$BIN" selftest --repo .
 
       - name: Deterministic capability eval (P2 / T8)
         run: |
-          BIN="_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd"
-          if [ ! -x "$BIN" ] && [ -x "$BIN.exe" ]; then BIN="$BIN.exe"; fi
-          if [ ! -x "$BIN" ]; then
-            echo "::error::release binary not found at $BIN" >&2
-            exit 1
-          fi
+          BIN=$(bash scripts/release_binary.sh)
           "$BIN" eval --offline --repo . | tee "$RUNNER_TEMP/eval.json"
           grep -q '"completion_rate":1' "$RUNNER_TEMP/eval.json"
           grep -q '"repeatability":1' "$RUNNER_TEMP/eval.json"

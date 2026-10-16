@@ -45,9 +45,10 @@ RUN moon version
 
 WORKDIR /build
 
-# Copy full project source, including the vendor/ workspace members declared in
-# moon.work (mizchi-tui, mizchi-crater-core). Registry
-# dependencies are fetched from mooncakes.io on first build.
+# Copy full project source. `moon.work` lists only `.` (third_party/clap is a
+# package *inside* this module, not a workspace member), so moon writes build
+# artifacts at workspace-relative paths. Registry dependencies are fetched from
+# mooncakes.io on first build.
 COPY . .
 
 # Resolve registry dependencies (needs network) so subsequent layers can be
@@ -66,12 +67,13 @@ RUN bash scripts/migrate_moon_mod_json.sh
 # retries with on-the-fly migration so the Dockerfile stays robust even when
 # `moon update` has not yet materialized the dependency tree.
 #
-# The artifact path carries the *module* path: moon writes it under
-#   _build/native/release/build/<owner>/<module>/<package>/<name>
-# i.e. .../build/hnlyxiaobing/MBOpenClacky/cmd/cmd. An earlier revision used
-# `.../build/cmd/cmd.exe`, which never exists — that broke the image build in
-# two places at once: this assertion and the `COPY --from=builder` below (the
-# copy is the one buildx reports: "failed to calculate checksum ... not found").
+# The artifact path follows moon's workspace-relative layout: with `.` as the
+# only moon.work member it is
+#   _build/native/release/build/<package>/<name>  →  .../build/cmd/cmd
+# The older `<owner>/<module>` nesting only existed while vendor/* were extra
+# workspace members, and a tree can still hold a stale copy of it. scripts/
+# release_binary.sh checks the current layout first and fails loudly if neither
+# exists, so a layout change can never turn into "cp: cannot stat" again.
 RUN bash scripts/docker_build.sh
 
 # ── Stage 2: Runtime ────────────────────────────────────────
@@ -118,7 +120,11 @@ USER mbopenclacky
 # Expose Web UI port
 EXPOSE 7071
 
-# Health check
+# Health check. NOTE: `server` refuses to boot unless BOTH keys are present —
+# MBOPENCLACKY_WEB_API_KEY (bind gate, above) and an LLM key
+# (MBOPENCLACKY_API_KEY, or a ~/.mbopenclacky/config.toml in the mounted volume).
+# Without the LLM key the container exits 1 with "No API key configured", so this
+# check can only ever go green on a correctly configured deployment.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:7071/health || exit 1
 

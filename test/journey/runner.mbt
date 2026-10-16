@@ -136,6 +136,7 @@ async fn execute_step(
       )
     WsConnect(url~) => ws_connect_step(group, state, url, phase_name)
     WsSend(frame~) => ws_send_step(state, frame, phase_name)
+    WsSendRaw(text~) => ws_send_raw_step(state, text, phase_name)
     WsWaitEvent(event~, timeout_ms~) =>
       ws_wait_event_step(state, event, timeout_ms, phase_name)
     KillChild => kill_child_step(state, phase_name)

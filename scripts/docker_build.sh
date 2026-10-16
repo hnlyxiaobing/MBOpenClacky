@@ -39,12 +39,8 @@ while [ $attempt -lt $max_attempts ]; do
   fi
 done
 
-BIN_DIR=/build/_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd
+BIN=$(bash scripts/release_binary.sh /build/_build/native/release/build)
 mkdir -p /build/out
-if [ -x "$BIN_DIR/cmd" ]; then
-  cp "$BIN_DIR/cmd" /build/out/mbopenclacky
-else
-  cp "$BIN_DIR/cmd.exe" /build/out/mbopenclacky
-fi
+cp "$BIN" /build/out/mbopenclacky
 test -x /build/out/mbopenclacky
-echo "release binary ready"
+echo "release binary ready: $BIN"

@@ -7,8 +7,9 @@ MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071**
 > 同时设置 `MBOPENCLACKY_WEB_API_KEY`，否则服务器拒绝启动。
 
 > 前提：先构建原生二进制 `moon build --target native --release cmd`，产物位于
-> `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（发布树按
-> `<author>/<module>` 分层；Linux/macOS 上为 `cmd`，无 `.exe`）。以下用
+> `_build/native/release/build/cmd/cmd.exe`（`moon.work` 只含当前模块，发布树按
+> workspace 相对路径分层；Linux/macOS 上为 `cmd`，无 `.exe`）。脚本里定位产物请统一
+> 用 `scripts/release_binary.sh`，它按当前布局优先、找不到就大声失败。以下用
 > `mbopenclacky` 指代该二进制。
 
 ---
@@ -20,6 +21,8 @@ MBOpenClacky 提供三种自托管部署方式。Web 服务默认监听 **7071**
 ```bash
 # 必须设置 API key（公网绑定的安全闸门）
 export MBOPENCLACKY_WEB_API_KEY="$(openssl rand -hex 32)"
+# 同样必须：Web 服务器要求至少配置一个 LLM 模型，否则容器起来就退出
+export MBOPENCLACKY_API_KEY="sk-..."
 # 可选：覆盖端口与时区
 export MBOPENCLACKY_WEB_PORT=8080
 export TZ=Asia/Shanghai
@@ -27,6 +30,15 @@ export TZ=Asia/Shanghai
 docker compose up -d --build
 curl http://localhost:${MBOPENCLACKY_WEB_PORT:-7071}/health
 ```
+
+- 两个 key 缺一不可，这是 2026-10-15 用真实构建出的镜像实测出来的：只给 `MBOPENCLACKY_WEB_API_KEY` 时
+  容器以退出码 1 报 `No API key configured … needs at least one LLM model configured`；把
+  `MBOPENCLACKY_API_KEY` 设成空串同样被拒绝（不构成闸门绕过）。补上 LLM key 后 `--version` 报
+  `MBOpenClacky v0.3.0`、`/health` 返回 `{"status":"ok","version":"0.3.0"}`。
+- 因为重启策略是 `unless-stopped`，漏掉 LLM key 的表现不是「报错退出」而是**无限重启**，健康检查永远不过。
+- 不想用环境变量的替代路径：`HOME` 被钉在 `/app`，把 `~/.mbopenclacky/config.toml` 写进命名卷同样有效。
+- `docker compose config` 渲染需要 compose v2 插件；本机 WSL 的 docker 29.1.3 没有该插件（也没有 buildx），
+  所以这一段只在有插件的环境复验，本轮证据来自直接 `docker run` 同一镜像。
 
 - 数据（配置/会话/技能/日志）持久化于命名卷 `mbopenclacky-data`（容器内 `/app`）。
 - 内置健康检查：`curl -f http://localhost:7071/health`。
