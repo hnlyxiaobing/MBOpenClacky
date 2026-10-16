@@ -25,6 +25,14 @@
 
 ## 变更记录
 
+### 2026-10-16  CI 作业拆分与 e2e 死等根因修复
+
+- `[test]` **`test/e2e` 拆为独立 CI 作业**（`f798c57`）：整包跑 `test/e2e` 在 Windows 本地与 Linux CI 均出现死等（`MockLlmServer::serve` 串行单连接无读取上限，请求头未送达的 attempt 永久 parked accept，`shutdown()` 后 task group 永不 join）。拆分后死等只吃掉独立作业（`timeout-minutes: 15`），主步骤回到 ~110s；repo-stats 门禁改读 `moon_test_main.log` + `moon_test_e2e.log` 拼接，口径 4071+15=4086 不变。
+- `[fix]` **e2e mock server 卡死与 013 竞态根因修复**（`1f21bcf`）：accept 包 `with_timeout_opt(200)`、每连接包 `with_timeout_opt(30000)`；剧本 013 偶发 `10 != 11` 的根因坐实为 `set_retry_delay_override_for_test` 的进程级 Ref 被并发剧本 `defer` 还原清掉，改为钩子只设不清 + `accept_grace_ms=200`。本地整包 64.7s→21.7s；`conn_deadline_ms=1` 反证 6 条剧本红。两条缺口从 known-gaps 归档至 resolved-gaps。
+- `[chore]` repo-stats 门禁日志口径修正（`bb2296b`）：只读主步骤日志，缺失即显式失败，不回退混日志。
+- `[test]` journey 场景 23→**26** 条（Web 10 / TUI 5 / CLI 11）。
+- `[docs]` 台账登记间歇性 013 证据与两管线远程复验结论（`a3ef65c`、`01b9ce7`）。
+
 ### 2026-10-15  发布 0.3.0（版本对齐 0.2.0→0.3.0，mooncakes 新版本）
 
 - `[chore]` **版本发布**：`moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` VERSION 四处一致升到 `0.3.0`，并同步 README/AGENTS/project-status 的 repo-stats 块。这是继 mooncakes 上 `0.1.3` 之后发布的新版本（本地 `0.2.0` 从未发布到 registry）。

@@ -180,8 +180,8 @@ if ($Target -ne "") {
 Write-Step "Building project (target: $buildTarget)..."
 
 # `cmd` is named explicitly and the build is a release one: a bare `moon build`
-# walks the whole moon.work workspace (whose vendored member has a test driver
-# that ICEs), and verifying _build/.../release after a debug build finds nothing.
+# is affected by moon#1488, and verifying _build/.../release after a debug build
+# finds nothing.
 moon build --target $buildTarget --release cmd
 if ($LASTEXITCODE -ne 0) {
     Write-Err "moon build failed (exit code: $LASTEXITCODE)"
@@ -194,12 +194,17 @@ Write-OK "Build succeeded."
 
 Write-Step "Verifying build artifacts..."
 
-# The release tree is keyed by author/module, so search it instead of
-# hard-coding a path that the layout has already outgrown.
+# The current layout writes _build/<target>/release/build/cmd/cmd.exe; check it
+# first and only then fall back to a recursive search for legacy layouts.
 $buildRoot = Join-Path $ProjectRoot "_build\$buildTarget\release\build"
 $found = $null
 if ($buildTarget -eq "native") {
-    $found = Get-ChildItem -Path $buildRoot -Recurse -Filter "cmd.exe" -ErrorAction SilentlyContinue
+    $current = Join-Path $buildRoot "cmd\cmd.exe"
+    if (Test-Path $current) {
+        $found = @(Get-Item $current)
+    } else {
+        $found = Get-ChildItem -Path $buildRoot -Recurse -Filter "cmd.exe" -ErrorAction SilentlyContinue
+    }
     if ($found) {
         Write-OK "Build artifact(s) found:"
         $found | ForEach-Object { Write-Host "  $($_.FullName)" -ForegroundColor Gray }

@@ -36,7 +36,7 @@ moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 scripts/known_gaps.sh check && scripts/repo_stats.sh check
 ```
 
-- **禁止裸 `moon test`**。`moon.work` 含 vendored workspace members，裸跑会执行它们自己的测试，不是本仓库回归面。
+- **禁止裸 `moon test`**。`third_party/clap` 是本模块内的 vendored 上游包（无自己的 `moon.mod`，`moon.work` 只列 `.`），裸跑会连带执行它的测试，不是本仓库回归面。
 - CI 主测试步限定 `lib cmd test` 并排除 `lib/mcp`，另一步单独跑 `lib/mcp`。机器生成表记录的是 CI 主步口径，不把两步悄悄相加。
 - Windows 与 Linux 使用同一条 scoped 命令。`lib/mcp` 的 Windows stdio 进程集成用例会按平台跳过，HTTP/JSON-RPC/registry 测试照跑。
 - `moon test --target wasm-gc` 会因 native FFI 失败；wasm-gc 只用 `moon check` 做类型验证，且**该目标本身不是全仓绿**（已知 20 条 native-FFI 错误，见 [known-gaps](known-gaps.md)），引用时要以实际输出为准。
@@ -51,7 +51,7 @@ test/
 ├── tui/          层 4：虚拟屏 TUI 适配器
 ├── web/          层 4：REST/WebSocket 适配器
 ├── scenarios/    层 4：tui/ 与 web/ 场景
-├── journey/      层 9：23 条用户旅程、运行器与失败证据
+├── journey/      层 9：26 条用户旅程、运行器与失败证据
 ├── benchmark/    层 7：工具性能基准
 ├── capability/   层 8：10 条真模型任务
 ├── web-e2e/      Playwright 浏览器 E2E
@@ -138,7 +138,7 @@ npm install
 npm test
 ```
 
-当前 21 个 spec、114 个测试，另有 4 个依赖模型数量/环境的条件跳过。`playwright.config.ts` 目前包含本机 Chromium 与 release 二进制的绝对路径，换机器前必须调整；运行还会启动真实 Web 服务并可能创建会话数据，建议使用隔离的 `HOME`/`USERPROFILE`。详见 [test/web-e2e/README.md](../test/web-e2e/README.md)。
+当前 21 个 spec、114 个测试，另有 7 处依赖模型数量/环境的条件跳过（3 处在 04-model-switch、4 处为无模型响应）。`playwright.config.ts` 目前包含本机 Chromium 与 release 二进制的绝对路径，换机器前必须调整；运行还会启动真实 Web 服务并可能创建会话数据，建议使用隔离的 `HOME`/`USERPROFILE`。详见 [test/web-e2e/README.md](../test/web-e2e/README.md)。
 
 ## 11. 新增用例规范
 

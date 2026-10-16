@@ -35,7 +35,7 @@ END_MARK="<!-- END: auto-scan -->"
 CUR_BEGIN="<!-- BEGIN: curation -->"
 CUR_END="<!-- END: curation -->"
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+trap 'rm -rf "$TMP_DIR" 2>/dev/null || true' EXIT
 
 # ── Suppression rules ────────────────────────────────────────────────────────
 # A hit whose "path:text" matches a grep -E pattern below is suppressed
@@ -166,7 +166,11 @@ rewrite_ledger() {
     { echo "# Known Gaps（真话台账）"; echo ""; cat "$section_file"; echo ""; } > "$target"
     return
   fi
-  awk -v begin="$BEGIN_MARK" -v end="$END_MARK" -v secfile="$section_file" '
+  # Pass the section path via ENVIRON, not `-v`: on Windows $TMP_DIR contains
+  # backslashes and `awk -v` would consume them as escape sequences, silently
+  # breaking `getline < secfile` and erasing the auto-scan section.
+  KG_SECFILE="$section_file" awk -v begin="$BEGIN_MARK" -v end="$END_MARK" '
+    BEGIN { secfile = ENVIRON["KG_SECFILE"] }
     { sub(/\r$/, "") }
     $0 == begin {
       while ((getline line < secfile) > 0) print line

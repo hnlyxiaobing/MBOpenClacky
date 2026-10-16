@@ -5,7 +5,7 @@
 - 参考体系：[docs/testing.md](testing.md) 分层门禁
 
 > 本文件替换同日 10:15 的快照。旧快照有两处不可沿用：它把被测二进制写成
-> `_build/native/release/build/hnlyxiaobing/MBOOpenClacky/cmd/cmd.exe`（AGENTS.md 点名的失效嵌套产物，
+> `_build/native/release/build/hnlyxiaobing/MBOpenClacky/cmd/cmd.exe`（AGENTS.md 点名的失效嵌套产物，
 > 本轮已删除），并记录 `4172` 的测试计数（早于反向排查新增的 3 个用例）。
 > 下面所有数字均为本轮实测。
 
@@ -122,8 +122,8 @@ TUI 5（`tui_first_message_roundtrip`、`tui_skill_invocation`、`tui_slash_and_
 
 实时模型会产生计费请求，刷新报告不构成复跑它的理由。当前状态由两处替代证据支撑：
 
-1. 15:11 那轮记录（有意入库的 `docs/eval/2026-10-15.md`）显示 8/10 任务通过，失败的 `cap-007` / `cap-009`
-   根因是 harness 未物化嵌套子目录里的 seed，不是模型能力。
+1. 15:11 那轮显示 8/10 任务通过，失败的 `cap-007` / `cap-009` 根因是 harness 未物化嵌套子目录里的 seed，
+   不是模型能力；修复后 17:18 复跑（有意入库的 `docs/eval/2026-10-15.md`）**10/10 全部通过**，8/10 的记录已被覆盖。
 2. 该缺陷已修并有回归用例：`test/eval/tool_harness.mbt:346` 的 `seed_parent_dir` + `ensure_dir`，
    以及 `test/eval/tool_harness_wbtest.mbt` 新增的「seeds in nested subdirectories are materialized」
    （同时覆盖混用分隔符与两级深目录）。

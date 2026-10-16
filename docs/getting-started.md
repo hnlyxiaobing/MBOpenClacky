@@ -199,7 +199,7 @@ moon build --target native --release cmd
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 ```
 
-`moon.work` 包含 vendored workspace members；它们自己的测试不属于本仓库回归面。
+`third_party/clap` 是本模块内的 vendored 上游包（无自己的 `moon.mod`）；它自己的测试不属于本仓库回归面。
 
 ### `moon test --target wasm-gc` 失败
 

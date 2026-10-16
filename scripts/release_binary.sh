@@ -2,10 +2,10 @@
 # Echo the path of the release `cmd` binary.
 #
 # moon's output layout depends on the workspace: while vendor/* were extra
-# members it wrote _build/native/release/build/<owner>/<module>/cmd/cmd, and a
-# release tree can still hold a stale artifact from that layout after they were
-# removed. Check the current (package-relative) layout first so a stale nested
-# copy can never be mistaken for the fresh one.
+# members it wrote _build/native/release/build/<owner>/<module>/cmd/cmd. Those
+# members and the stale nested artifact are gone; the second candidate below is
+# kept only as historical defense so a leftover copy can never be mistaken for
+# the fresh one. Check the current (package-relative) layout first.
 #
 # Arg 1 is the *build tree* root (…/_build/native/release/build), not the repo
 # root — call it with no argument from the repo root.

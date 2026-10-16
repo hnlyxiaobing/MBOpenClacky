@@ -7,9 +7,9 @@
 <!-- BEGIN: journey-failures (auto) -->
 | 场景 | 面积 | 首次失败 | 最近失败 | 连续失败 | 失败摘要 | 最近证据 |
 |---|---|---|---|---|---|---|
-| tui_undo_operation | tui | 2026-10-10 | 2026-10-10 | 2 | file_contains: D:/MoonBit/MBOpenClacky/_build/journey/2026-10-10T13-07-56+08-00/... | _build/journey/2026-10-10T13-07-56+08-00/tui_undo_operation |
-| cli_mcp_server_smoke | cli | 2026-10-10 | 2026-10-10 | 1 | (no assertion detail) | _build/journey/2026-10-10T13-10-48+08-00/cli_mcp_server_smoke |
 <!-- END: journey-failures (auto) -->
+
+> 注：原开放条目 `tui_undo_operation`、`cli_mcp_server_smoke` 对应的场景已不在 `test/journey/scenarios/` 当前 26 条场景集中（2026-10-16 核对），属失效条目，本段已清空。
 
 ## 已修复（自动归档）
 <!-- BEGIN: journey-fixed (auto) -->

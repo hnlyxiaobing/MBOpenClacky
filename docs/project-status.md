@@ -1,6 +1,6 @@
 # 项目状态与上游对齐
 
-> 更新日期：2026-10-14
+> 更新日期：2026-10-16
 > 对比基线：[clacky-ai/openclacky](https://github.com/clacky-ai/openclacky)（Ruby）。
 > 本文给结论和边界；历史实现细节看 [CHANGELOG](CHANGELOG.md) 与 `specs/completed/`，逐行缺口看 [known-gaps](known-gaps.md)。
 
@@ -108,7 +108,7 @@ Web 后端使用 crescent，包含日志、错误信封、认证、超时、缓�
 
 ## 4. 当前限制
 
-机器扫描截至 2026-10-14 为 65 条 `open` + 1 条 `retracted`。类别分布：
+机器扫描截至 2026-10-16 为 65 条 `open` + 1 条 `retracted`。类别分布：
 
 | 类别 | 主要限制 |
 |---|---|
@@ -126,7 +126,6 @@ Web 后端使用 crescent，包含日志、错误信封、认证、超时、缓�
 
 1. 做 Ruby/MoonBit 双侧真模型对标，固定模型、参数和任务集。
 2. 将真模型任务集从 10 条扩充到 20–30 条，并明确哪些指标可做趋势判断。
-3. 按需推进运行时原语：类型化审批、子代理进程隔离、沙箱写范围、goal/plan/steer/job。
-4. 只有在规格先行、对抗评审通过后，才扩大 wasm、品牌服务端或遥测范围。
+3. 按需推进运行时原语与受控边界（wasm、品牌服务端、遥测只在规格先行、对抗评审通过后扩大）。
 
-详细工作流见 [improvement-execution-plan.md](improvement-execution-plan.md) 与 [specs/README.md](../specs/README.md)。
+详细拆解与验收口径见 [improvement-execution-plan.md](improvement-execution-plan.md) §3 与 [specs/README.md](../specs/README.md)。

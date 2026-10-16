@@ -235,9 +235,9 @@ fi
 
 step "Building project (target: $BUILD_TARGET)..."
 
-# `cmd` is named explicitly: a bare `moon build` walks the whole moon.work
-# workspace, and the vendored dependency's own test driver ICEs on the current
-# toolchain. `--release` so the artifact below really is the one we verify.
+# `cmd` is named explicitly: a bare `moon build` is affected by moon#1488, and
+# `third_party/clap` (a vendored in-module package, no own moon.mod) is not our
+# regression surface. `--release` so the artifact below really is the one we verify.
 if ! moon build --target "$BUILD_TARGET" --release cmd; then
     err "moon build failed."
     echo "  Run 'moon check' for detailed error information."
@@ -252,7 +252,7 @@ step "Verifying build artifacts..."
 BUILD_DIR="$PROJECT_ROOT/_build/$BUILD_TARGET/release/build"
 
 if [ "$BUILD_TARGET" = "native" ]; then
-    EXE=$(find "$BUILD_DIR" \( -type f -name "cmd.exe" \) -o \( -type f -name "cmd" -perm -u+x \) 2>/dev/null | head -1 || true)
+    EXE=$(sh "$PROJECT_ROOT/scripts/release_binary.sh" "$BUILD_DIR" 2>/dev/null || true)
     if [ -n "$EXE" ]; then
         ok "Build artifact found: $EXE"
     else

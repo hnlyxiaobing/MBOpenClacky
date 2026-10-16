@@ -39,7 +39,7 @@ MBOpenClacky 是 [openclacky](https://github.com/clacky-ai/openclacky) AI Agent 
 | `moon check` | 0 errors / 0 warnings |
 <!-- END: repo-stats -->
 
-release 产物通常约 3.6 MB，具体大小随工具链和链接配置浮动，不作为质量闸门。
+release 产物大小随工具链和链接配置浮动（当前约 13 MB），不作为质量闸门。
 
 ## 快速开始
 
@@ -73,7 +73,7 @@ Windows 上产物名为 `cmd.exe`，Linux/macOS 上为 `cmd`。始终显式构�
 moon test --release $(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||')
 ```
 
-`moon.work` 还包含 vendored workspace members；裸跑会执行它们自己的测试，不属于本仓库回归面。
+`third_party/clap` 是本模块内的 vendored 上游包（无自己的 `moon.mod`）；裸跑会连带执行它的测试，不属于本仓库回归面。
 
 ## 架构摘要
 
@@ -116,8 +116,9 @@ AI 辅助开发声明见 [docs/ai-usage.md](docs/ai-usage.md)；开源与第三�
 - [快速入门](docs/getting-started.md)：安装、配置、运行、故障排除
 - [项目状态](docs/project-status.md)：当前能力、上游差异、已知边界
 - [测试体系](docs/testing.md)：层 1-9、浏览器 E2E 与新增用例规范
-- [真话台账](docs/known-gaps.md) / [已修复归档](docs/resolved-gaps.md)
+- [真话台账](docs/known-gaps.md) / [已修复归档](docs/resolved-gaps.md) / [Journey 失败台账](docs/journey-failures.md)
 - [TUI 架构](docs/tui-architecture.md) / [Web UI 对齐](docs/web-ui-parity.md)
+- [改进执行计划](docs/improvement-execution-plan.md) / [开发效率](docs/development-efficiency.md)
 - [部署指南](deploy/README.md) / [Journey E2E](test/journey/README.md)
 - [Spec 工作流](specs/README.md) / [变更日志](docs/CHANGELOG.md)
 
