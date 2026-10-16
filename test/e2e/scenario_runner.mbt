@@ -30,6 +30,9 @@ pub(all) struct ScenarioOutcome {
   final_text : String
   /// 工作目录文件终态 {相对路径: 内容}（清理前采集）。
   final_files : Map[String, String]
+  /// 本次运行注入的重试退避间隔（ms）。间隔断言的下限由它推导，
+  /// 这样「有没有退避」的证据不再依赖 wall-clock 的真实 5s。
+  retry_delay_ms : Int32
 }
 
 ///|
@@ -164,7 +167,19 @@ pub async fn run_scenario(
   prompt : String,
   configure~ : (@config.AgentConfig) -> Unit = fn(_) { () },
   timeout_ms~ : Int32 = 120_000,
+  retry_delay_ms~ : Int32 = 250,
 ) -> ScenarioOutcome {
+  // ── 0. 压掉 wall-clock 退避（结构性省时，也是 013 抖动的机制性消除）────
+  // 真实 5s 退避是否存在由 `lib/agent/llm_caller_wbtest.mbt` 的无 wall-clock
+  // 单元断言负责；本层要证的是「重试之间确实有间隔」，用 lib/agent 的测试钩子
+  // 把间隔压到 retry_delay_ms。013 的 10 次退避因此从名义 50s 降到 ~2.5s。
+  //
+  // 关键：钩子写的是 lib/agent 的**进程级 Ref**，而 moon 在同一二进制里**并发**
+  // 跑这些 async test。若每个剧本收尾都 `defer` 还原成 None，先结束的剧本会把
+  // 还在飞的 013 的钩子清掉，013 剩下的退避就睡回真实 5s（2026-10-16 本地实测
+  // gaps=[279, 5007, 5006, 5010, …] ⇒ 57s）。本包所有剧本用同一个值，所以只设
+  // 不改回；还原由 `scenarios_wbtest.mbt` 里唯一需要真实退避的合成用例负责。
+  @agent.set_retry_delay_override_for_test(Some(retry_delay_ms))
   // ── 1. 准备干净工作目录与隔离 HOME ────────────────────────────────
   dir_serial.val = dir_serial.val + 1
   let stamp = "\{now_ms()}_\{dir_serial.val}"
@@ -202,6 +217,7 @@ pub async fn run_scenario(
   let agent = @agent.Agent::new("e2e-\{name}", "e2e", workdir, client, config)
   // ── 4. 跑完整 ReAct 循环（带超时保护）─────────────────────────────
   let mut status = "success"
+  let __t0 = now_ms()
   @async.with_task_group(async fn(group) {
     group.spawn_bg(async fn() { server.serve() })
     let result = @async.with_timeout_opt(timeout_ms, async fn() {
@@ -223,6 +239,15 @@ pub async fn run_scenario(
     }
     server.shutdown()
   })
+  let __d : Array[Int64] = []
+  for i in 0..<server.requests.length() {
+    if i > 0 {
+      __d.push(server.requests[i].at_ms - server.requests[i - 1].at_ms)
+    }
+  }
+  println(
+    "[timing] \{name}: react=\{now_ms() - __t0}ms reqs=\{server.requests.length()} gaps=\{Repr(__d)}",
+  )
   // ── 5. 采集产物 ───────────────────────────────────────────────────
   let requests : Array[String] = []
   let request_times : Array[Int64] = []
@@ -248,7 +273,7 @@ pub async fn run_scenario(
   // ── 6. 清理临时目录（尽力而为，失败不阻塞测试）────────────────────
   cleanup_dir(workdir)
   cleanup_dir(home)
-  { requests, request_times, status, final_text, final_files, }
+  { requests, request_times, status, final_text, final_files, retry_delay_ms, }
 }
 
 ///|

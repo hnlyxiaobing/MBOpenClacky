@@ -36,12 +36,19 @@ fn assert_golden(outcome : ScenarioOutcome, g : Golden) -> Unit raise {
 /// 22768ms 越界，导致整条测试二进制以 0xc0000409 崩溃（假红）。退避是否精确
 /// 为 5s 由 `lib/agent/llm_caller_wbtest.mbt` 的无 wall-clock 单元断言承担。
 ///
+/// 真实剧本调用点传 `min_ms=outcome.retry_delay_ms / 2`：本层的退避已被
+/// `run_scenario` 压到 250ms（进程级钩子），固定 2000ms 下限会把「退避没生效」
+/// 和「压过退避」混为一谈，所以下限必须由该剧本实际使用的间隔推导。2026-10-16
+/// 反证：把下限抬到 5000ms 后用例红并打出 `退避未发生: req2→req3 = 271ms，
+/// 下限 5000ms`——271ms 正是压缩后的退避，说明钩子生效且下限确实在承重。
+///
 /// `expected_ms` / `_tolerance_ms` 参数保留以兼容调用点（前者用于段数计数，
 /// 后者已不参与上界判定）。
 fn assert_retry_intervals(
   times : Array[Int64],
   expected_ms : Array[Int32],
   _tolerance_ms : Int32,
+  min_ms~ : Int32 = 2000,
 ) -> Unit {
   if times.length() < expected_ms.length() + 1 {
     println(
@@ -49,7 +56,6 @@ fn assert_retry_intervals(
     )
     panic()
   }
-  let min_ms = 2000
   let diag_above_ms = 20000
   for i in 0..<expected_ms.length() {
     let delta = (times[i + 1] - times[i]).to_int()
@@ -315,7 +321,12 @@ async test "002 stream_cut_retry：断流后重试并恢复" {
   if @diff.known_failure("BUG-0023") {
     return
   }
-  assert_retry_intervals(outcome.request_times, [5000, 5000], 1500)
+  assert_retry_intervals(
+    outcome.request_times,
+    [5000, 5000],
+    1500,
+    min_ms=outcome.retry_delay_ms / 2,
+  )
 }
 
 ///|
@@ -432,7 +443,12 @@ async test "009 http_500_retry：500 重试两次后恢复" {
   // 退避间隔 ruby/MB 均为 5s/5s。证据: reports/p3/009_diff.md
   // 注：此处为量级断言（退避生效且未失控）；固定 5s 的精确验证在
   // llm_caller_wbtest.mbt（retry_delay_ms 单测，无 wall-clock 依赖）。
-  assert_retry_intervals(outcome.request_times, [5000, 5000], 1500)
+  assert_retry_intervals(
+    outcome.request_times,
+    [5000, 5000],
+    1500,
+    min_ms=outcome.retry_delay_ms / 2,
+  )
   // BUG-0033 回归：session context 注入（spec 2026-08-18_29）
   assert_session_context(outcome.requests)
 }
@@ -528,11 +544,10 @@ async test "013 consecutive_failures_circuit_breaker：连续失败熔断" {
     "013_consecutive_failures_circuit_breaker",
     [("note.txt", "hello\n")],
     "读一下 note.txt 然后告诉我内容",
-    // 本剧本是全套唯一「退避名义时长逼近默认预算」的一条：10 次退避 ≈50s，
-    // 而 @async.sleep 只会因 CPU 争抢变长。2026-10-15 CI 实测同一二进制内
-    // 5s 退避膨胀到 22768ms / 26000ms（≈4.5×），120s 预算会把重试循环从中间
-    // 掐断，症状是 `10 != 11` 而不是超时。按 ruby harness 的 300s 给预算。
-    timeout_ms=300_000,
+    // 2026-10-16 起不再需要 300s 特批预算：run_scenario 用 lib/agent 的测试钩子
+    // 把退避压到 250ms（10 次 ≈2.5s），本地实测本剧本 react=13.8s、
+    // gaps=[274, 262, 263, …]。此前 300s 是为了容纳「10×5s 名义退避 + 4.5× 负载
+    // 膨胀」，那个前提已经不存在；沿用默认 120s 才能把真正的卡死判成超时。
   )
   // ruby 基线：11 请求、exit=1（干净失败 ↔ outcome.status == "error"）
   assert_golden(outcome, golden("013_consecutive_failures_circuit_breaker"))

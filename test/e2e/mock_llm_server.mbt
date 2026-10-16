@@ -34,14 +34,34 @@ pub(all) struct MockLlmServer {
   requests : Array[RecordedRequest]
   mut serial : Int32
   mut stopped : Bool
+  conn_deadline_ms : Int32
+  accept_grace_ms : Int32
 }
 
 ///|
 /// 创建并绑定服务器（随机端口）。`steps` 为剧本 JSON 的 steps 数组
 /// （元素含 response 字段；match 字段被忽略——match 校验按任务书弱化）。
+///
+/// 两个期限是链路层的**上界保证**，不是断言：
+/// - `conn_deadline_ms` 给单个连接的完整读写。剧本超时后客户端会丢下半个请求
+///   （chunked body 只写了一半），串行 serve 若无限等这次读，就永远回不到
+///   accept，shutdown 的唤醒连接只能排在 backlog 里——task group 永不 join，
+///   测试二进制永不退出，CI 只能吃满作业级 timeout（2026-10-16 run
+///   `38835281930` 的 1404 s 死等即此形状）。
+/// - `accept_grace_ms` 让 accept 自己周期性回来检查 `stopped`，于是退出不再
+///   依赖那个「自连接唤醒」竞态技巧。
 pub async fn MockLlmServer::new(steps : Array[Json]) -> MockLlmServer {
   let listener = @socket.TcpServer(@socket.Addr::parse("127.0.0.1:0"))
-  { listener, steps, cursor: 0, requests: [], serial: 0, stopped: false, }
+  {
+    listener,
+    steps,
+    cursor: 0,
+    requests: [],
+    serial: 0,
+    stopped: false,
+    conn_deadline_ms: 30000,
+    accept_grace_ms: 200,
+  }
 }
 
 ///|
@@ -71,22 +91,54 @@ pub async fn MockLlmServer::shutdown(self : MockLlmServer) -> Unit {
 ///|
 /// accept 主循环（在 task group 里 spawn_bg 运行）。
 /// 串行处理连接：ReAct 循环的请求本来就是严格串行的。
-/// shutdown 后循环退出（shutdown 置 stopped 并建立自连接唤醒 accept）。
+///
+/// 退出条件不再依赖单一技巧：accept 带 `accept_grace_ms` 期限，周期性回来检查
+/// `stopped`；每个连接的读写带 `conn_deadline_ms` 期限。两条合起来保证 serve 一定
+/// 能在有限时间内返回，于是 run_scenario 的 task group 一定能 join，测试二进制一定
+/// 能退出（哪怕某个剧本把请求写了一半就放弃）。
 pub async fn MockLlmServer::serve(self : MockLlmServer) -> Unit {
   for ;; {
-    let (conn, _) = self.listener.accept() catch { _ => break }
+    // with_timeout_opt 超时返回 None（不 raise），accept 自身出错才走 catch。
+    let accepted = @async.with_timeout_opt(self.accept_grace_ms, async fn() {
+      self.listener.accept()
+    }) catch {
+      _ => break
+    }
+    let conn = match accepted {
+      None =>
+        // 期限到、无人连接：该退就退，否则继续等下一个连接
+        if self.stopped {
+          break
+        } else {
+          continue
+        }
+      Some((conn, _)) => conn
+    }
     if self.stopped {
       // shutdown 的唤醒连接：不处理，直接退出
       conn.close()
       break
     }
-    self.handle_conn(conn) catch {
-      _ => ()
-    }
-    conn.close()
+    // 单个连接的整体期限：读半边永不「无限等」，被放弃的请求只会让这条连接超时关闭，
+    // serve 继续 accept 下一个请求。
+    self.serve_conn(conn)
   }
   // 兜底：accept 抛异常 break 时监听 socket 可能未关闭
   self.listener.close()
+}
+
+///|
+/// 处理一个连接并保证有限返回；随后关闭连接。
+async fn MockLlmServer::serve_conn(
+  self : MockLlmServer,
+  conn : @socket.Tcp,
+) -> Unit {
+  let _ = @async.with_timeout_opt(self.conn_deadline_ms, async fn() {
+    self.handle_conn(conn)
+  }) catch {
+    _ => None
+  }
+  conn.close()
 }
 
 ///|
