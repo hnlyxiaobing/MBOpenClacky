@@ -13318,3 +13318,106 @@ body.setup-mode[data-theme="dark"] {
     background: var(--color-bg-primary);
   }
 }
+
+/* ── Batch delete mode ────────────────────────────────────────────────
+   Triggered by #btn-batch-delete; #chat-section gets .batch-mode while
+   active. Checkboxes are rendered by Sessions._renderSessionItem; the
+   action bar content is rendered by Sessions._batchRenderBar. */
+
+#chat-section.batch-mode .session-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+}
+
+#chat-section.batch-mode .session-item .session-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#chat-section.batch-mode .session-item .session-actions-btn {
+  display: none;   /* per-item actions are suspended while batch-selecting */
+}
+
+.session-batch-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0 0 0 2px;
+  accent-color: var(--color-accent, #6e56cf);
+  cursor: pointer;
+}
+
+#chat-section.batch-mode .session-item.batch-selected {
+  background: var(--color-bg-active, rgba(110, 86, 207, 0.10));
+}
+
+#btn-batch-delete.active {
+  color: var(--color-accent, #6e56cf);
+  background: var(--color-bg-active, rgba(110, 86, 207, 0.12));
+}
+
+#batch-delete-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--color-border-subtle, #e5e5ea);
+  background: var(--color-bg-secondary, #f7f7f9);
+  font-size: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+#batch-delete-bar[hidden] {
+  display: none;
+}
+
+#batch-delete-bar .batch-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+#batch-delete-bar .batch-count {
+  flex: 1 1 auto;
+  color: var(--color-text-secondary, #777);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#batch-delete-bar .batch-btn {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid var(--color-border-subtle, #d5d5da);
+  border-radius: 6px;
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-text-primary, #222);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#batch-delete-bar .batch-btn:hover:not(:disabled) {
+  background: var(--color-bg-hover, #eeeef2);
+}
+
+#batch-delete-bar .batch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#batch-delete-bar .batch-btn-danger {
+  border-color: var(--color-danger, #d64545);
+  color: var(--color-danger, #d64545);
+}
+
+#batch-delete-bar .batch-btn-danger:hover:not(:disabled) {
+  background: var(--color-danger, #d64545);
+  color: #fff;
+}

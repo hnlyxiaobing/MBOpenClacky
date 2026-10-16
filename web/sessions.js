@@ -53,6 +53,13 @@ const Sessions = (() => {
   let   _cronHasMore       = false;  // are there older cron sessions to load?
   let   _cronLoadingMore   = false;
   let   _pendingRunTaskId  = null;  // session_id waiting to send "run_task" after subscribe
+  // ── Batch-delete mode ─────────────────────────────────────────────────
+  // Selection state is the single source of truth; the DOM (checkboxes and
+  // the #batch-delete-bar) is a pure render of it, so renderList() re-renders
+  // triggered by WS updates never lose the user's selection.
+  let   _batchMode         = false;
+  const _batchSelected     = new Set();  // session ids checked for deletion
+  let   _batchDeleting     = false;      // a batch delete loop is in flight
   let   _pendingMessage    = null;  // { session_id, content } — slash command to send after subscribe
   // Buffer for tool_stdout lines that arrive before history has finished rendering.
   // This happens on session switch: WS replay fires before the HTTP history fetch completes.
@@ -522,6 +529,17 @@ const Sessions = (() => {
     // Arrow button: hover (CSS) shows menu. Menu item navigates to /#new on click.
     document.getElementById("btn-new-session-goto-advanced")
       .addEventListener("click", () => { location.hash = "#new"; });
+
+    // Batch-delete mode toggle (static in index.html — must exist).
+    document.getElementById("btn-batch-delete")
+      .addEventListener("click", () => Sessions.toggleBatchMode());
+
+    // Esc leaves batch mode (unless a delete loop is in flight).
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && _batchMode && !_batchDeleting) {
+        Sessions.toggleBatchMode(false);
+      }
+    });
 
     document.addEventListener("click", (e) => {
       if (e.target && e.target.id === "btn-load-more-sessions") {
@@ -2262,7 +2280,13 @@ const Sessions = (() => {
       ? `<div class="session-snippet">${_highlightSnippet(_centerSnippet(s.search_snippet, _filter.q), _filter.q)}</div>`
       : "";
 
+    // Batch mode: prepend a checkbox; row click toggles selection instead of navigating.
+    const batchCheckHtml = _batchMode
+      ? `<input type="checkbox" class="session-batch-check" tabindex="-1" ${_batchSelected.has(s.id) ? "checked" : ""} aria-label="${escapeHtml(I18n.t("sessions.batch.selectRow"))}">`
+      : "";
+
     el.innerHTML = `
+      ${batchCheckHtml}
       <div class="session-body">
         <div class="session-name">${dotHtml}<span class="session-name__text">${nameHtml}</span>${badgeHtml}${agentBadgeHtml}${pinIcon}</div>
         <div class="session-meta">${metaText}</div>
@@ -2275,7 +2299,13 @@ const Sessions = (() => {
     el.onclick = (e) => {
       // Ignore clicks on the actions button
       if (e.target.closest(".session-actions-btn")) return;
-      
+
+      // Batch mode: row click toggles the selection checkbox, never navigates.
+      if (_batchMode) {
+        _batchToggleOne(s.id, el);
+        return;
+      }
+
       if (clickTimer) {
         clearTimeout(clickTimer);
         clickTimer = null;
@@ -2290,6 +2320,7 @@ const Sessions = (() => {
     // Right-click context menu
     el.oncontextmenu = (e) => {
       e.preventDefault();
+      if (_batchMode) return;   // no per-item actions while batch-selecting
       Sessions._closeActionsMenu();
       _showContextMenu(e, s);
     };
@@ -2322,6 +2353,7 @@ const Sessions = (() => {
       </div>
     `;
     el.onclick = () => {
+      if (_batchMode) return;   // folded cron group is not batch-selectable
       _cronView = true;
       Sessions.renderList();
       // Method A: always (re-)load the freshest first page of cron sessions
@@ -2330,6 +2362,155 @@ const Sessions = (() => {
       Sessions.loadMoreCron({ reset: true });
     };
     container.appendChild(el);
+  }
+
+  // ── Batch delete ─────────────────────────────────────────────────────
+  //
+  // First-principles design:
+  //   - ONE delete path: reuse DELETE /api/sessions/:id (trash soft-delete
+  //     semantics, existing server tests). No new backend route, no server
+  //     regression surface. Batch = sequential loop over the same endpoint.
+  //   - ONE confirmation: the user confirms the whole batch once, not N times.
+  //   - Failure isolation: a failing id never aborts the remaining deletions;
+  //     the summary toast reports done/failed counts.
+  //   - Interruptible: 取消/Esc exits the mode at any time except mid-flight
+  //     deletes (already-issued deletes are allowed to finish).
+
+  /** Delete one session via the shared API without prompting. Returns success. */
+  async function _deleteSessionDirect(id) {
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+      // Fork patch (I-038): drain the 204 body — an unconsumed response
+      // makes Chromium report net::ERR_ABORTED for this request.
+      try { await res.text(); } catch (_) {}
+      if (res.ok) {
+        // Optimistically remove from local list immediately without waiting for
+        // the WS session_deleted broadcast (handles WS lag or disconnected state).
+        Sessions.remove(id);
+        if (id === Sessions.activeId) Router.navigate("welcome");
+        Sessions.renderList();
+        return true;
+      }
+      const data = await res.json().catch(() => ({}));
+      console.error("Failed to delete session:", data.error || res.status);
+      // If server says not found, remove it from local list anyway to keep UI consistent.
+      if (res.status === 404) {
+        Sessions.remove(id);
+        if (id === Sessions.activeId) Router.navigate("welcome");
+        Sessions.renderList();
+        return true;
+      }
+      // Server also broadcasts session_deleted WS event; Sessions.remove() is idempotent
+      // so duplicate removal is harmless.
+      return false;
+    } catch (err) {
+      console.error("Delete session error:", err);
+      return false;
+    }
+  }
+
+  /** Toggle one row's selection (single source of truth = _batchSelected). */
+  function _batchToggleOne(id, el) {
+    if (_batchDeleting) return;
+    if (_batchSelected.has(id)) {
+      _batchSelected.delete(id);
+      if (el) { el.classList.remove("batch-selected"); const c = el.querySelector(".session-batch-check"); if (c) c.checked = false; }
+    } else {
+      _batchSelected.add(id);
+      if (el) { el.classList.add("batch-selected"); const c = el.querySelector(".session-batch-check"); if (c) c.checked = true; }
+    }
+    _batchUpdateBar();
+  }
+
+  /** Ids of every session row currently rendered in the sidebar list. */
+  function _batchVisibleIds() {
+    const list = document.getElementById("session-list");
+    if (!list) return [];
+    return Array.from(list.querySelectorAll(".session-item[data-session-id]"))
+      .map(el => el.dataset.sessionId);
+  }
+
+  /** Render (or hide) the batch action bar. Called on mode toggle and on every renderList. */
+  function _batchRenderBar() {
+    const bar = document.getElementById("batch-delete-bar");
+    if (!bar) return;
+    if (!_batchMode) {
+      bar.hidden = true;
+      bar.innerHTML = "";
+      return;
+    }
+    bar.hidden = false;
+    bar.innerHTML = `
+      <label class="batch-select-all" title="${escapeHtml(I18n.t("sessions.batch.selectAll"))}">
+        <input type="checkbox" id="batch-select-all">
+        <span>${escapeHtml(I18n.t("sessions.batch.selectAll"))}</span>
+      </label>
+      <span class="batch-count" id="batch-count"></span>
+      <button class="batch-btn batch-btn-danger" id="batch-confirm">${escapeHtml(I18n.t("sessions.batch.confirm"))}</button>
+      <button class="batch-btn" id="batch-cancel">${escapeHtml(I18n.t("sessions.batch.cancel"))}</button>`;
+    bar.querySelector("#batch-select-all").addEventListener("change", (e) => {
+      if (_batchDeleting) return;
+      const ids = _batchVisibleIds();
+      if (e.target.checked) ids.forEach(id => _batchSelected.add(id));
+      else ids.forEach(id => _batchSelected.delete(id));
+      Sessions.renderList();   // re-render checkboxes from the Set
+    });
+    bar.querySelector("#batch-confirm").addEventListener("click", () => _batchConfirmDelete());
+    bar.querySelector("#batch-cancel").addEventListener("click", () => Sessions.toggleBatchMode(false));
+    _batchUpdateBar();
+  }
+
+  /** Sync count label, select-all tri-state and button disabled state. */
+  function _batchUpdateBar() {
+    const bar = document.getElementById("batch-delete-bar");
+    if (!bar || bar.hidden) return;
+    const n = _batchSelected.size;
+    const count = bar.querySelector("#batch-count");
+    if (count) count.textContent = I18n.t("sessions.batch.selected", { n });
+    const all = bar.querySelector("#batch-select-all");
+    if (all) {
+      const visible = _batchVisibleIds();
+      const checkedVisible = visible.filter(id => _batchSelected.has(id)).length;
+      all.checked = visible.length > 0 && checkedVisible === visible.length;
+      all.indeterminate = checkedVisible > 0 && checkedVisible < visible.length;
+      all.disabled = _batchDeleting || visible.length === 0;
+    }
+    const confirmBtn = bar.querySelector("#batch-confirm");
+    if (confirmBtn) {
+      confirmBtn.disabled = _batchDeleting || n === 0;
+      confirmBtn.textContent = _batchDeleting
+        ? I18n.t("sessions.batch.deleting")
+        : I18n.t("sessions.batch.confirm");
+    }
+    const cancelBtn = bar.querySelector("#batch-cancel");
+    if (cancelBtn) cancelBtn.disabled = _batchDeleting;
+  }
+
+  /** One confirmation, then a sequential delete loop over the shared endpoint. */
+  async function _batchConfirmDelete() {
+    if (_batchDeleting || _batchSelected.size === 0) return;
+    const n = _batchSelected.size;
+    const confirmed = await Modal.confirm(I18n.t("sessions.batch.confirmDelete", { n }));
+    if (!confirmed) return;
+
+    _batchDeleting = true;
+    _batchUpdateBar();
+    const ids = Array.from(_batchSelected);
+    let done = 0, failed = 0;
+    for (const id of ids) {
+      const ok = await _deleteSessionDirect(id);
+      if (ok) { done++; _batchSelected.delete(id); } else { failed++; }
+    }
+    _batchDeleting = false;
+
+    if (failed === 0) {
+      Modal.toast(I18n.t("sessions.batch.deleted", { n: done }), "success");
+    } else {
+      Modal.toast(I18n.t("sessions.batch.partial", { done, failed }), "error");
+    }
+    // Exit batch mode after a completed run — the list has changed under the
+    // user's selection, so forcing a fresh mode entry avoids stale checkboxes.
+    Sessions.toggleBatchMode(false);
   }
 
   // ── Chat-section header visibility ────────────────────────────────────
@@ -2354,6 +2535,7 @@ const Sessions = (() => {
     get all()        { return _sessions; },
     get activeId()   { return _activeId; },
     get searchOpen() { return _searchOpen; },
+    get batchMode()  { return _batchMode; },
     find: id => _sessions.find(s => s.id === id)
               || _extraSessions.find(s => s.id === id),
 
@@ -2566,6 +2748,9 @@ const Sessions = (() => {
       // Clean up per-session progress state (timer + DOM + logical state)
       Sessions._deleteProgressState(id);
       _drafts.delete(id);
+      // Keep batch selection consistent when a session disappears via any path
+      // (WS broadcast, trash cleanup, or our own batch loop).
+      _batchSelected.delete(id);
     },
 
     /** Load the next page of older sessions (unified time cursor). */
@@ -2858,38 +3043,26 @@ const Sessions = (() => {
     },
 
     /** Delete a session via API (called from UI delete button). */
-    async deleteSession(id) {
-      const s = _sessions.find(s => s.id === id);
+    async deleteSession(id) {      const s = _sessions.find(s => s.id === id);
       const name = s ? s.name : id;
       const confirmed = await Modal.confirm(I18n.t("sessions.confirmDelete", { name }));
       if (!confirmed) return;
+      await _deleteSessionDirect(id);
+    },
 
-      try {
-        const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-        // Fork patch (I-038): drain the 204 body — an unconsumed response
-        // makes Chromium report net::ERR_ABORTED for this request.
-        try { await res.text(); } catch (_) {}
-        if (res.ok) {
-          // Optimistically remove from local list immediately without waiting for
-          // the WS session_deleted broadcast (handles WS lag or disconnected state).
-          Sessions.remove(id);
-          if (id === Sessions.activeId) Router.navigate("welcome");
-          Sessions.renderList();
-        } else {
-          const data = await res.json().catch(() => ({}));
-          console.error("Failed to delete session:", data.error || res.status);
-          // If server says not found, remove it from local list anyway to keep UI consistent.
-          if (res.status === 404) {
-            Sessions.remove(id);
-            if (id === Sessions.activeId) Router.navigate("welcome");
-            Sessions.renderList();
-          }
-        }
-        // Server also broadcasts session_deleted WS event; Sessions.remove() is idempotent
-        // so duplicate removal is harmless.
-      } catch (err) {
-        console.error("Delete session error:", err);
-      }
+    /** Enter/leave batch-delete mode. Leaving clears the selection. */
+    toggleBatchMode(on) {
+      const target = on === undefined ? !_batchMode : !!on;
+      if (target === _batchMode) return;
+      if (_batchDeleting) return;   // mode locked while a delete loop is in flight
+      _batchMode = target;
+      if (!_batchMode) _batchSelected.clear();
+      const btn = document.getElementById("btn-batch-delete");
+      if (btn) btn.classList.toggle("active", _batchMode);
+      const section = document.getElementById("chat-section");
+      if (section) section.classList.toggle("batch-mode", _batchMode);
+      Sessions.renderList();   // re-renders checkboxes (and the bar when active)
+      if (!_batchMode) _batchRenderBar();   // renderList only refreshes the bar in batch mode; hide it explicitly on exit
     },
 
     /** Fork a session — creates a copy with the same history and working dir. */
@@ -3042,6 +3215,10 @@ const Sessions = (() => {
       } else if (_hasMore) {
         list.appendChild(_makeLoadMoreBtn());
       }
+
+      // Batch mode: the bar is a render of _batchSelected — refresh it after
+      // every list re-render so WS-driven updates never leave it stale.
+      if (_batchMode) _batchRenderBar();
 
       // Scroll the active session into view ONLY when the caller explicitly
       // asks for it (i.e. the user just activated/switched to this session).
