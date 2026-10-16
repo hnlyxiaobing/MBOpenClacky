@@ -370,7 +370,7 @@ cd test/web-e2e && npx playwright test scenarios/03-multi-turn-context.spec.ts \
 | Docker `38831684393` / `Build Docker Image` | **success** | 含此前形同不存在的 `Verify image`：`set -euo pipefail` + `--entrypoint ./mbopenclacky --version` 与 `cmd/main.mbt` 的 `VERSION` 做等值断言。该 `EXPECTED` 在本地解析为 `MBOpenClacky v0.3.0`，与 WSL 实跑镜像输出一致 |
 | CI `38831684392` / `Checks` | **success** | Type check、Warning budget、Public API（.mbti 无漂移）、Known-gaps 台账四条门禁远程复现本地结论 |
 | CI / `Build · Test` | **success** | 夹具互删（`_build/wbtest_session_log` 跨包同名）与 `release_binary.sh` 产物路径两条根因关闭；`Publish failing tests as annotations` 按 `if: failure()` 正确 skipped |
-| CI / `Repo stats` | **failure → 已修** | 见下 |
+| CI / `Repo stats` | **failure → 已修并复验** | 见下；修复落在 SHA `bb2296b`，其 CI run `38833013733` 三个作业（Checks / Build · Test / Repo stats）全 success，Docker run `38833013732` 的 `Verify image` 亦 success |
 
 `Repo stats gate (T1)` 的红不是产品代码，而是本轮为可诊断性引入的口径回归：主测试步骤把 stdout
 `tee` 到 `$RUNNER_TEMP/moon_test.log`，而 `Run lib/mcp tests` 用 `tee -a` 追加同一本文件。
@@ -389,6 +389,12 @@ cd test/web-e2e && npx playwright test scenarios/03-multi-turn-context.spec.ts \
 mixed.log -> counted 4182   exit=1  3 stale blocks
 main.log  -> counted 4086   exit=0  0 stale blocks
 ```
+
+终态复验（SHA `bb2296b`，2026-10-16 01:12Z）：CI `38833013733` 的 `Build · Test` 逐步 success
+（`Run tests (module packages)`、`Run lib/mcp tests`、`CLI contract probes`、
+`Deterministic capability eval`、`Benchmark gate (optional)`），`Repo stats gate (T1)` success，
+`Publish failing tests as annotations` 因无失败而正确 skipped；Docker `38833013732` success。
+即两条原始红跑与本轮自造的口径红全部关闭。
 
 CI gate policy 依旧未动：L4/L7/L8/Playwright 仍不进 CI，benchmark 步骤仍 `continue-on-error: true`，
 clap 仍是 vendored；本轮只改了日志的落盘与读取口径。
