@@ -213,7 +213,13 @@ jobs:
           set +e
           pkgs=$(find lib cmd test -name moon.pkg | sed 's|/moon.pkg$||' \
             | grep -v '^lib/mcp$' | tr '\n' ' ')
-          moon test $pkgs -j "$(nproc)" 2>&1 | tee "$RUNNER_TEMP/moon_test.log"
+          # `moon_test_main.log` is the caliber that repo_stats records: this step
+          # alone. The lib/mcp step appends to moon_test.log (so one artifact
+          # carries every failing test for the annotation step), and repo_stats.sh
+          # sums every "Total tests:" line it is handed — pointing it at the mixed
+          # log reported 4086 + 96 = 4182 and failed the gate.
+          moon test $pkgs -j "$(nproc)" 2>&1 | tee "$RUNNER_TEMP/moon_test.log" \
+            "$RUNNER_TEMP/moon_test_main.log"
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           if [ $EXIT_CODE -ne 0 ]; then
@@ -222,6 +228,8 @@ jobs:
           exit $EXIT_CODE
 
       - name: Run lib/mcp tests
+        # Appends to the combined log only; the recorded main-step count comes
+        # from moon_test_main.log, which this step must not touch.
         run: |
           set +e
           moon test lib/mcp -j "$(nproc)" 2>&1 | tee -a "$RUNNER_TEMP/moon_test.log"
@@ -270,7 +278,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: moon-test-log
-          path: ${{ runner.temp }}/moon_test.log
+          path: |
+            ${{ runner.temp }}/moon_test.log
+            ${{ runner.temp }}/moon_test_main.log
           retention-days: 1
 
       - name: CLI contract probes (P0-3)
@@ -303,5 +313,12 @@ jobs:
 
       - name: Repo stats gate (T1)
         run: |
+          # Main-step caliber only: the recorded test count is the `lib cmd test`
+          # minus lib/mcp run, never the combined log.
+          LOG="$RUNNER_TEMP/moon_test_main.log"
+          if [ ! -s "$LOG" ]; then
+            echo "::error::missing $LOG — the test step did not publish its own log, so the count would be wrong"
+            exit 1
+          fi
           bash scripts/repo_stats.sh check \
-            --test-count-from "$RUNNER_TEMP/moon_test.log"
+            --test-count-from "$LOG"

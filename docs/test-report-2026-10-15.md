@@ -360,3 +360,35 @@ cd test/web-e2e && npx playwright test scenarios/03-multi-turn-context.spec.ts \
 
 原始日志：`_build/testrun/{moon_test_ci_caliber,eval_offline,eval_tui,eval_web,benchmark,journey,selftest,probe_server}.log`、
 `_build/eval/{tui,web}_2026-10-15.md`、`_build/journey/journey_2026-10-15.txt`、`_build/benchmark/results/`。
+
+## 10. 推送后的远程复验（SHA `67551a6`，2026-10-16 00:49Z 触发）
+
+上一节的结论全部靠「窄口径本地证据 + 只能在 CI 侧取证」支撑，本轮推送后拿到了远程答案，逐条对账：
+
+| 作业 | 结论 | 说明 |
+|---|---|---|
+| Docker `38831684393` / `Build Docker Image` | **success** | 含此前形同不存在的 `Verify image`：`set -euo pipefail` + `--entrypoint ./mbopenclacky --version` 与 `cmd/main.mbt` 的 `VERSION` 做等值断言。该 `EXPECTED` 在本地解析为 `MBOpenClacky v0.3.0`，与 WSL 实跑镜像输出一致 |
+| CI `38831684392` / `Checks` | **success** | Type check、Warning budget、Public API（.mbti 无漂移）、Known-gaps 台账四条门禁远程复现本地结论 |
+| CI / `Build · Test` | **success** | 夹具互删（`_build/wbtest_session_log` 跨包同名）与 `release_binary.sh` 产物路径两条根因关闭；`Publish failing tests as annotations` 按 `if: failure()` 正确 skipped |
+| CI / `Repo stats` | **failure → 已修** | 见下 |
+
+`Repo stats gate (T1)` 的红不是产品代码，而是本轮为可诊断性引入的口径回归：主测试步骤把 stdout
+`tee` 到 `$RUNNER_TEMP/moon_test.log`，而 `Run lib/mcp tests` 用 `tee -a` 追加同一本文件。
+`repo_stats.sh --test-count-from` 的定义是「累加交付它的每一行 `Total tests:`」，于是门禁读到
+4086 + 96 = **4182**，README、AGENTS、docs/project-status 三处 metrics 同判 STALE。
+`AGENTS.md` 早就写了「records the main-step count；do not silently mix the two logs」——这条规则这次是被
+我自己刚加的 `tee -a` 破掉的，属于「文档是对的、代码没跟上」的同类缺陷。
+
+修法按既有口径而非改数字：主步骤 `tee` 两本日志（`moon_test.log` 合并版喂注解步骤与 artifact，
+`moon_test_main.log` 只有主步骤、喂门禁），lib/mcp 只追加合并版；门禁读主步骤日志且文件为空时
+`::error::` + exit 1，避免静默退回混日志。记录值仍为 4086。
+
+红绿实证（本地合成同形状日志，走同一个 `check --test-count-from`）：
+
+```text
+mixed.log -> counted 4182   exit=1  3 stale blocks
+main.log  -> counted 4086   exit=0  0 stale blocks
+```
+
+CI gate policy 依旧未动：L4/L7/L8/Playwright 仍不进 CI，benchmark 步骤仍 `continue-on-error: true`，
+clap 仍是 vendored；本轮只改了日志的落盘与读取口径。
