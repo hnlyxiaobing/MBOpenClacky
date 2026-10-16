@@ -25,6 +25,13 @@
 
 ## 变更记录
 
+### 2026-10-16  发布 0.3.1（文档与脚本全面修订）
+
+- `[chore]` **版本发布**：`moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` VERSION 四处一致升到 `0.3.1`，repo-stats 三处块同步重生成。
+- `[docs]` **全仓文档/脚本准确性扫描**：修正 3 处「moon.work 含 vendored members」的过时表述（实为 `third_party/clap` 模块内 vendored 包）；归档两条已修复缺口（e2e 死等、013 少录请求）至 resolved-gaps；修正 testing.md journey 数（23→26）与 web-e2e 条件跳过数（4→7）；test-report 笔误与层 8 结论（修复后 10/10）；development-efficiency 的 CI 缓存策略标注为已证伪；journey-failures 清除两条失效场景的孤儿条目；README 补全文档索引、更新产物体积描述。
+- `[fix]` **known_gaps.sh Windows bug**：`awk -v secfile=` 会把 `$TMP_DIR` 的反斜杠当转义符吞掉，导致 `generate` 静默抹掉 auto-scan 段、`check` 恒报 stale；改为 `ENVIRON` 传参。EXIT trap 改为容错写法。
+- `[refactor]` `install.sh`/`install.ps1` 的二产物定位统一走 `scripts/release_binary.sh`（当前布局优先），清理过时注释。
+
 ### 2026-10-16  CI 作业拆分与 e2e 死等根因修复
 
 - `[test]` **`test/e2e` 拆为独立 CI 作业**（`f798c57`）：整包跑 `test/e2e` 在 Windows 本地与 Linux CI 均出现死等（`MockLlmServer::serve` 串行单连接无读取上限，请求头未送达的 attempt 永久 parked accept，`shutdown()` 后 task group 永不 join）。拆分后死等只吃掉独立作业（`timeout-minutes: 15`），主步骤回到 ~110s；repo-stats 门禁改读 `moon_test_main.log` + `moon_test_e2e.log` 拼接，口径 4071+15=4086 不变。
