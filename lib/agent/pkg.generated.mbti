@@ -17,19 +17,19 @@ import {
 }
 
 // Values
-pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int = 4
+pub const FAN_OUT_DEFAULT_MAX_CONCURRENCY : Int32 = 4
 
-pub const MAX_ITERATIONS : Int = 200
+pub const MAX_ITERATIONS : Int32 = 200
 
 pub async fn acquire_session_lock(String) -> Result[SessionLock, String]
 
-pub async fn append_event(String, @protocol.Event, Int64) -> Result[Int, String]
+pub async fn append_event(String, @protocol.Event, Int64) -> Result[Int32, String]
 
-pub async fn append_summary(String, Int, Int, Int64) -> Result[Int, String]
+pub async fn append_summary(String, Int32, Int32, Int64) -> Result[Int32, String]
 
 pub fn apply_error_rollback(Array[@message.Message]) -> Array[@message.Message]
 
-pub fn apply_snapshot_entries(Array[SnapshotEntry]) -> Result[Int, String]
+pub fn apply_snapshot_entries(Array[SnapshotEntry]) -> Result[Int32, String]
 
 pub fn ask_questions_to_protocol(Array[@tool.AskQuestion]) -> Array[@protocol.AskQuestion]
 
@@ -43,7 +43,7 @@ pub fn attachment_entry_text(Attachment) -> String
 
 pub fn attachment_extension(String) -> String
 
-pub fn attachment_format_size(Int) -> String
+pub fn attachment_format_size(Int32) -> String
 
 pub fn attachment_kind_for_extension(String) -> String
 
@@ -51,7 +51,7 @@ pub fn attachment_mime_types() -> Map[String, String]
 
 pub fn backfill_task_meta_from_history(Array[@message.Message], SessionTimeMachine?) -> SessionTimeMachine
 
-pub fn build_chunk_md(Array[@message.Message], Int, topics? : String?) -> String
+pub fn build_chunk_md(Array[@message.Message], Int32, topics? : String?) -> String
 
 pub fn build_compressed_summary_message(String, String) -> @message.Message
 
@@ -71,9 +71,9 @@ pub fn build_previous_chunks_index(Array[ChunkInfo]) -> String
 
 pub fn build_success_result(@message.ToolCall, @tool.ToolResult) -> ToolResultEntry
 
-pub fn calculate_compression_savings(Int, Int, Int, Int) -> CompressionStats
+pub fn calculate_compression_savings(Int32, Int32, Int32, Int32) -> CompressionStats
 
-pub fn calculate_target_recent_count(Int) -> Int
+pub fn calculate_target_recent_count(Int32) -> Int32
 
 pub fn chunks_for_current(String, String) -> Array[String]
 
@@ -81,11 +81,11 @@ pub fn compress_with_level_fallback(Array[@message.Message], String, Compression
 
 pub fn compress_with_rollback(Array[@message.Message], String, CompressionContext) -> CompressionResult
 
-pub let compression_threshold : Int
+pub let compression_threshold : Int32
 
 pub fn content_to_text(@message.MessageContent) -> String
 
-pub fn count_messages_to_compress(Array[@message.Message], Int) -> Int
+pub fn count_messages_to_compress(Array[@message.Message], Int32) -> Int32
 
 pub async fn create_session_log(String, String, String) -> Result[Unit, String]
 
@@ -111,9 +111,9 @@ pub fn enforce_session_cap() -> Unit
 
 pub fn ensure_sessions_dir() -> String raise @moonbitlang/x/fs.IOError
 
-pub fn estimate_history_tokens(Array[@message.Message]) -> Int
+pub fn estimate_history_tokens(Array[@message.Message]) -> Int32
 
-pub fn estimate_token_count(String) -> Int
+pub fn estimate_token_count(String) -> Int32
 
 pub fn export_all_sessions_zip() -> Result[Bytes, String]
 
@@ -131,11 +131,11 @@ pub fn extract_xml_content(String, String) -> String?
 
 pub let fake_tool_call_correction_prompt : String
 
-pub let fallback_cooldown_seconds : Int
+pub let fallback_cooldown_seconds : Int32
 
-pub async fn[X] fan_out(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms? : Int?) -> Array[FanOutResult[X]]
+pub async fn[X] fan_out(Array[FanOutJob[X]], max_concurrency? : Int32, timeout_ms? : Int32?) -> Array[FanOutResult[X]]
 
-pub async fn[X] fan_out_labeled(Array[FanOutJob[X]], max_concurrency? : Int, timeout_ms? : Int?) -> Array[FanOutResult[X]]
+pub async fn[X] fan_out_labeled(Array[FanOutJob[X]], max_concurrency? : Int32, timeout_ms? : Int32?) -> Array[FanOutResult[X]]
 
 pub fn filename_datetime(String) -> String
 
@@ -155,7 +155,7 @@ pub fn format_section(String, String) -> String
 
 pub fn format_session_summary(SessionData) -> String
 
-pub fn generate_hierarchical_summary(Array[String], Int) -> String
+pub fn generate_hierarchical_summary(Array[String], Int32) -> String
 
 pub fn generate_session_id() -> String
 
@@ -167,13 +167,13 @@ pub fn get_default_profiles() -> Array[ProfileSpec]
 
 pub fn get_profile_spec(String) -> ProfileSpec?
 
-pub fn get_recent_with_tool_pairs(Array[@message.Message], Int) -> Array[@message.Message]
+pub fn get_recent_with_tool_pairs(Array[@message.Message], Int32) -> Array[@message.Message]
 
 pub fn hook_event_to_protocol(HookEvent) -> @protocol.Event
 
 pub fn import_session_zip(Bytes) -> Result[SessionData, String]
 
-pub fn import_sessions_zip(Bytes) -> Result[Int, String]
+pub fn import_sessions_zip(Bytes) -> Result[Int32, String]
 
 pub fn legacy_session_records(SessionData) -> SessionLogFile
 
@@ -183,27 +183,27 @@ pub fn load_session(String) -> SessionData?
 
 pub fn load_session_file(String) -> Result[(SessionData, String), String]
 
-pub let max_fake_tool_call_retries : Int
+pub let max_fake_tool_call_retries : Int32
 
-pub let max_recent_messages : Int
+pub let max_recent_messages : Int32
 
-pub let max_retries : Int
+pub let max_retries : Int32
 
-pub let max_retries_on_fallback : Int
+pub let max_retries_on_fallback : Int32
 
-pub let max_sessions : Int
+pub let max_sessions : Int32
 
-pub let max_tool_output_chars : Int
+pub let max_tool_output_chars : Int32
 
-pub fn merge_into_previous_chunk(String, Int, Array[@message.Message], Int, String, String, topics? : String?) -> String?
+pub fn merge_into_previous_chunk(String, Int32, Array[@message.Message], Int32, String, String, topics? : String?) -> String?
 
-pub let message_count_threshold : Int
+pub let message_count_threshold : Int32
 
 pub fn ms_to_iso8601(Int64) -> String
 
-pub fn next_chunk_index(String, String) -> Int
+pub fn next_chunk_index(String, String) -> Int32
 
-pub fn pad_chunk_index(Int) -> String
+pub fn pad_chunk_index(Int32) -> String
 
 pub fn parse_compression_response(String) -> Result[ParsedCompression, String]
 
@@ -215,13 +215,13 @@ pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, Json], St
 
 pub fn prepare_cli_attachments(Array[String]) -> Array[Attachment] raise @errors.AgentError
 
-pub fn pulled_back_messages(Array[@message.Message], Int) -> (Array[@message.Message], Array[@message.Message])
+pub fn pulled_back_messages(Array[@message.Message], Int32) -> (Array[@message.Message], Array[@message.Message])
 
 pub fn read_chunk(String) -> String?
 
 pub fn read_session_log(String) -> SessionLogFile
 
-pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int) -> Array[@message.Message]
+pub fn rebuild_history_with_compression(Array[@message.Message], String, String, Int32) -> Array[@message.Message]
 
 pub fn render_message_sections(Array[@message.Message]) -> String
 
@@ -229,15 +229,15 @@ pub fn resolve_attachment_images(Array[Attachment], Bool) -> Array[Attachment]
 
 pub fn restore_session_enhanced(@config.AgentConfig, SessionData) -> RestoreResult
 
-pub let retries_before_fallback : Int
+pub let retries_before_fallback : Int32
 
-pub let retry_base_delay_ms : Int
+pub let retry_base_delay_ms : Int32
 
-pub let retry_max_delay_ms : Int
+pub let retry_max_delay_ms : Int32
 
-pub fn save_compressed_chunk(Array[@message.Message], String, String, Int, topics? : String?) -> Result[String, String]
+pub fn save_compressed_chunk(Array[@message.Message], String, String, Int32, topics? : String?) -> Result[String, String]
 
-pub fn save_or_merge_chunk(Array[@message.Message], String, String, Int, topics? : String?) -> Result[String, String]
+pub fn save_or_merge_chunk(Array[@message.Message], String, String, Int32, topics? : String?) -> Result[String, String]
 
 pub fn save_session(SessionData) -> Unit raise @moonbitlang/x/fs.IOError
 
@@ -247,35 +247,35 @@ pub fn session_lock_path(String) -> String
 
 pub fn session_log_path(String) -> String
 
-pub let session_log_version : Int
+pub let session_log_version : Int32
 
-pub fn set_retry_delay_override_for_test(Int?) -> Unit
+pub fn set_retry_delay_override_for_test(Int32?) -> Unit
 
 pub fn should_skip_compression(Double) -> Bool
 
-pub fn should_trigger_idle_compression(Array[@message.Message], Int) -> Bool
+pub fn should_trigger_idle_compression(Array[@message.Message], Int32) -> Bool
 
 pub fn split_chunk_md(String) -> (Array[(String, String)], String)?
 
-pub let target_compressed_tokens : Int
+pub let target_compressed_tokens : Int32
 
-pub fn task_num_of(String) -> Int
+pub fn task_num_of(String) -> Int32
 
-pub fn todo_int_id(String) -> Int
+pub fn todo_int_id(String) -> Int32
 
 pub fn todo_item_to_model_json(TodoItem) -> Json
 
-pub fn truncate_chunk_content(String, Int) -> String
+pub fn truncate_chunk_content(String, Int32) -> String
 
 pub fn truncate_memory(String) -> String
 
-pub fn truncate_text(String, Int) -> String
+pub fn truncate_text(String, Int32) -> String
 
-pub fn truncate_tool_result(String, max_chars? : Int) -> String
+pub fn truncate_tool_result(String, max_chars? : Int32) -> String
 
 pub fn validate_profile_spec(ProfileSpec) -> Result[Unit, String]
 
-pub fn write_chunk(String, String, Int, String) -> Result[String, String]
+pub fn write_chunk(String, String, Int32, String) -> Result[String, String]
 
 pub fn write_diagnostic(String) -> Unit
 
@@ -297,8 +297,8 @@ pub(all) struct Agent {
   mut todo_manager : TodoManager
   mut session_sub_model : String?
   history : @message.MessageHistory
-  mut iterations : Int
-  mut total_tasks : Int
+  mut iterations : Int32
+  mut total_tasks : Int32
   mut status : AgentStatus
   mut error : String?
   mut error_code : String?
@@ -310,15 +310,15 @@ pub(all) struct Agent {
   mut total_cost : Double
   mut cost_source : CostSource
   mut cache_stats : CacheStats
-  mut previous_total_tokens : Int
+  mut previous_total_tokens : Int32
   mut billing_store : @billing.BillingStore
   mut latest_latency : @client.Latency?
   mut fallback_state : FallbackState
   mut fallback_model : String?
   mut url_fallback_active : Bool
-  mut consecutive_retryable_failures : Int
+  mut consecutive_retryable_failures : Int32
   mut fallback_activated_at_ms : Int64
-  mut compression_level : Int
+  mut compression_level : Int32
   mut idle_timer : IdleCompressionTimer
   mut upstream_truncation_hint_injected : Bool
   mut task_timeout_hint_injected : Bool
@@ -336,7 +336,7 @@ pub(all) struct Agent {
   mut forbidden_tools : Array[String]
   mut allowed_tools : Array[String]?
   mut is_subagent : Bool
-  mut parent_message_count : Int
+  mut parent_message_count : Int32
 }
 pub async fn Agent::auto_update_memory(Self) -> Unit
 pub fn Agent::available_skills_summary(Self) -> String
@@ -408,7 +408,7 @@ pub(all) enum AgentSource {
   Cron
   Channel
 } derive(Compare, Eq, @debug.Debug)
-pub fn AgentSource::compare(Self, Self) -> Int
+pub fn AgentSource::compare(Self, Self) -> Int32
 pub fn AgentSource::equal(Self, Self) -> Bool
 pub fn AgentSource::not_equal(Self, Self) -> Bool
 pub fn AgentSource::op_ge(Self, Self) -> Bool
@@ -427,7 +427,7 @@ pub(all) enum AgentStatus {
   Error
   Completed
 } derive(Compare, Eq, @debug.Debug)
-pub fn AgentStatus::compare(Self, Self) -> Int
+pub fn AgentStatus::compare(Self, Self) -> Int32
 pub fn AgentStatus::equal(Self, Self) -> Bool
 pub fn AgentStatus::not_equal(Self, Self) -> Bool
 pub fn AgentStatus::op_ge(Self, Self) -> Bool
@@ -444,7 +444,7 @@ pub(all) struct Attachment {
   path : String
   kind : String
   mime_type : String
-  size_bytes : Int?
+  size_bytes : Int32?
   preview_path : String?
   data_url : String?
   downgrade_note : String?
@@ -452,10 +452,10 @@ pub(all) struct Attachment {
 pub fn Attachment::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CacheStats {
-  mut cache_creation_input_tokens : Int
-  mut cache_read_input_tokens : Int
-  mut total_requests : Int
-  mut cache_hit_requests : Int
+  mut cache_creation_input_tokens : Int32
+  mut cache_read_input_tokens : Int32
+  mut total_requests : Int32
+  mut cache_hit_requests : Int32
 } derive(Eq, @debug.Debug)
 pub fn CacheStats::equal(Self, Self) -> Bool
 pub fn CacheStats::new() -> Self
@@ -485,8 +485,8 @@ pub fn ChunkInfo::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CompressedSummary {
   timestamp : String
-  original_count : Int
-  compressed_count : Int
+  original_count : Int32
+  compressed_count : Int32
   token_savings : Double
 } derive(Eq, @debug.Debug)
 pub fn CompressedSummary::equal(Self, Self) -> Bool
@@ -494,9 +494,9 @@ pub fn CompressedSummary::not_equal(Self, Self) -> Bool
 pub fn CompressedSummary::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CompressionConfig {
-  max_recent_messages : Int
-  target_compressed_tokens : Int
-  idle_compression_threshold : Int
+  max_recent_messages : Int32
+  target_compressed_tokens : Int32
+  idle_compression_threshold : Int32
 } derive(Eq, @debug.Debug)
 pub fn CompressionConfig::default() -> Self
 pub fn CompressionConfig::equal(Self, Self) -> Bool
@@ -504,10 +504,10 @@ pub fn CompressionConfig::not_equal(Self, Self) -> Bool
 pub fn CompressionConfig::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CompressionContext {
-  original_token_count : Int
-  original_message_count : Int
-  compression_level : Int
-  recent_message_count : Int
+  original_token_count : Int32
+  original_message_count : Int32
+  compression_level : Int32
+  recent_message_count : Int32
   chunk_path : String?
   previous_chunks : Array[String]
   compression_history : Array[CompressedSummary]
@@ -525,9 +525,9 @@ pub fn CompressionResult::not_equal(Self, Self) -> Bool
 pub fn CompressionResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CompressionStats {
-  before_tokens : Int
-  after_tokens : Int
-  messages_removed : Int
+  before_tokens : Int32
+  after_tokens : Int32
+  messages_removed : Int32
   compression_ratio : Double
 } derive(Eq, @debug.Debug)
 pub fn CompressionStats::equal(Self, Self) -> Bool
@@ -556,7 +556,7 @@ pub(all) struct ExtractedMemory {
 
 pub(all) enum FallbackState {
   PrimaryOk
-  FallbackActive(Int)
+  FallbackActive(Int32)
   Probing
 } derive(Eq, @debug.Debug)
 pub fn FallbackState::equal(Self, Self) -> Bool
@@ -569,7 +569,7 @@ pub struct FanOutJob[X] {
 }
 
 pub struct FanOutResult[X] {
-  index : Int
+  index : Int32
   value : X?
   error : String?
   duration_ms : Int64
@@ -579,8 +579,8 @@ pub fn[X : @debug.Debug] FanOutResult::to_repr(Self[X]) -> @debug.Repr
 
 pub(all) enum HookEvent {
   StatusChanged(AgentStatus, AgentStatus)
-  BeforeIteration(Int)
-  AfterIteration(Int)
+  BeforeIteration(Int32)
+  AfterIteration(Int32)
   BeforeLlmCall
   AfterLlmCall
   MessageAdded
@@ -600,12 +600,12 @@ pub(all) enum HookEvent {
   ThinkingEnded
   SubagentStarted(String)
   SubagentEnded(String)
-  RetryAttempt(Int, String)
+  RetryAttempt(Int32, String)
   ToolStdout(String)
   InfoMessage(String)
   SuccessMessage(String)
   FeedbackRequested(String, String?, Array[String]?, Array[@tool.AskQuestion])
-  CompressionPerformed(Int)
+  CompressionPerformed(Int32)
 }
 
 pub(all) struct HookManager {
@@ -617,30 +617,30 @@ pub fn HookManager::new() -> Self
 pub fn HookManager::register(Self, (HookEvent) -> Unit) -> Unit
 
 pub(all) struct IdleCompressionTimer {
-  delay : Int
+  delay : Int32
   mut state : TimerState
-  mut last_activity_at : Int
-  mut compress_count : Int
+  mut last_activity_at : Int32
+  mut compress_count : Int32
   mut active : Bool
-  idle_threshold_ms : Int
+  idle_threshold_ms : Int32
   mut timer_id : String?
 } derive(@debug.Debug)
 pub fn IdleCompressionTimer::active(Self) -> Bool
 pub fn IdleCompressionTimer::cancel(Self) -> Unit
 pub fn IdleCompressionTimer::compressing(Self) -> Bool
 pub fn IdleCompressionTimer::compression_done(Self) -> Unit
-pub fn IdleCompressionTimer::get_compress_count(Self) -> Int
-pub fn IdleCompressionTimer::is_idle(Self, Int) -> Bool
+pub fn IdleCompressionTimer::get_compress_count(Self) -> Int32
+pub fn IdleCompressionTimer::is_idle(Self, Int32) -> Bool
 pub fn IdleCompressionTimer::new() -> Self
-pub fn IdleCompressionTimer::reset_activity(Self, Int) -> Unit
-pub fn IdleCompressionTimer::should_compress(Self, Int, Int) -> Bool
+pub fn IdleCompressionTimer::reset_activity(Self, Int32) -> Unit
+pub fn IdleCompressionTimer::should_compress(Self, Int32, Int32) -> Bool
 pub fn IdleCompressionTimer::shutdown(Self) -> Unit
-pub fn IdleCompressionTimer::start(Self, Int) -> Unit
+pub fn IdleCompressionTimer::start(Self, Int32) -> Unit
 pub fn IdleCompressionTimer::stop(Self) -> Unit
-pub fn IdleCompressionTimer::tick(Self, Int) -> Bool
+pub fn IdleCompressionTimer::tick(Self, Int32) -> Bool
 pub fn IdleCompressionTimer::to_repr(Self) -> @debug.Repr
-pub fn IdleCompressionTimer::trigger_idle_compression(Self, Int, Int) -> Bool
-pub fn IdleCompressionTimer::with_threshold(Int) -> Self
+pub fn IdleCompressionTimer::trigger_idle_compression(Self, Int32, Int32) -> Bool
+pub fn IdleCompressionTimer::with_threshold(Int32) -> Self
 
 pub(all) struct ImageInject {
   mime_type : String
@@ -652,12 +652,12 @@ pub fn ImageInject::not_equal(Self, Self) -> Bool
 pub fn ImageInject::to_repr(Self) -> @debug.Repr
 
 pub(all) struct IterationTokenData {
-  delta_tokens : Int
-  prompt_tokens : Int
-  completion_tokens : Int
-  total_tokens : Int
-  cache_write : Int
-  cache_read : Int
+  delta_tokens : Int32
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  total_tokens : Int32
+  cache_write : Int32
+  cache_read : Int32
   cost : Double
   cost_source : CostSource
 } derive(Eq, @debug.Debug)
@@ -682,14 +682,14 @@ pub(all) enum LogRecord {
 }
 
 pub(all) struct LogSummary {
-  seq : Int
+  seq : Int32
   unix_ms : Int64
-  from_seq : Int
-  to_seq : Int
+  from_seq : Int32
+  to_seq : Int32
 }
 
 pub(all) struct LoggedEvent {
-  seq : Int
+  seq : Int32
   unix_ms : Int64
   event : @protocol.Event
 }
@@ -701,7 +701,7 @@ pub(all) enum MemoryCategory {
   ExpertKnowledge
   LearnedSkill
 } derive(Compare, Eq, @debug.Debug)
-pub fn MemoryCategory::compare(Self, Self) -> Int
+pub fn MemoryCategory::compare(Self, Self) -> Int32
 pub fn MemoryCategory::equal(Self, Self) -> Bool
 pub fn MemoryCategory::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn MemoryCategory::from_string(String) -> Self?
@@ -730,7 +730,7 @@ pub fn MemoryEntry::to_repr(Self) -> @debug.Repr
 pub(all) struct MemoryStore {
   mut entries : Array[MemoryEntry]
   storage_path : String
-  mut next_id : Int
+  mut next_id : Int32
 }
 pub fn MemoryStore::add(Self, String, String, MemoryCategory, Array[String]) -> MemoryEntry
 pub fn MemoryStore::all(Self) -> Array[MemoryEntry]
@@ -740,7 +740,7 @@ pub fn MemoryStore::get(Self, String) -> MemoryEntry?
 pub fn MemoryStore::load_from_json(Self, Json) -> Unit
 pub fn MemoryStore::new(String) -> Self
 pub fn MemoryStore::search(Self, String, MemoryCategory?) -> Array[MemoryEntry]
-pub fn MemoryStore::size(Self) -> Int
+pub fn MemoryStore::size(Self) -> Int32
 pub fn MemoryStore::summary(Self) -> String
 pub fn MemoryStore::to_json(Self) -> Json
 pub fn MemoryStore::update(Self, String, String) -> Bool
@@ -787,7 +787,7 @@ pub fn PatchChain::add_rule(Self, PatchRule) -> Unit
 pub fn PatchChain::audit_entries(Self) -> Array[PatchAuditEntry]
 pub fn PatchChain::check_after(Self, String, Map[String, Json], String, Bool) -> Unit
 pub async fn PatchChain::check_before(Self, String, Map[String, Json]) -> PatchAction
-pub fn PatchChain::len(Self) -> Int
+pub fn PatchChain::len(Self) -> Int32
 pub fn PatchChain::new() -> Self
 
 pub(all) struct PatchRule {
@@ -841,8 +841,8 @@ pub(all) struct RestoreResult {
   total_cost : Double
   cost_source : String
   channel_info : ChannelInfo?
-  latest_latency_ms : Int?
-  latest_ttft_ms : Int?
+  latest_latency_ms : Int32?
+  latest_ttft_ms : Int32?
   time_machine : SessionTimeMachine?
   needs_error_rollback : Bool
   model_recovered : Bool
@@ -856,7 +856,7 @@ pub fn RestoreResult::to_repr(Self) -> @debug.Repr
 pub(all) struct RunResult {
   status : RunStatus
   session_id : String
-  iterations : Int
+  iterations : Int32
   total_cost_usd : Double
   cost_source : CostSource
   cache_stats : CacheStats
@@ -888,8 +888,8 @@ pub(all) struct SessionData {
   model_name : String?
   model_config_id : String?
   channel_info : ChannelInfo?
-  latest_latency_ms : Int?
-  latest_ttft_ms : Int?
+  latest_latency_ms : Int32?
+  latest_ttft_ms : Int32?
   time_machine : SessionTimeMachine?
   pending_error_rollback : Bool
   model_base_url : String
@@ -899,13 +899,13 @@ pub(all) struct SessionData {
   top_up_url : String?
   raw_message : String?
   forked_from : String?
-  chunk_count : Int
+  chunk_count : Int32
   agent_profile : String
   sub_model : String?
   pinned : Bool
   todos : Json?
   updated_at : String
-  previous_total_tokens : Int
+  previous_total_tokens : Int32
   deleted_at : String?
 } derive(Eq, @debug.Debug)
 pub fn SessionData::equal(Self, Self) -> Bool
@@ -925,13 +925,13 @@ pub(all) struct SessionLogFile {
   header : SessionLogHeader?
   records : Array[LogRecord]
   truncated_tail : Bool
-  malformed_lines : Int
+  malformed_lines : Int32
 }
-pub fn SessionLogFile::max_seq(Self) -> Int
+pub fn SessionLogFile::max_seq(Self) -> Int32
 pub fn SessionLogFile::project(Self) -> Array[LogRecord]
 
 pub(all) struct SessionLogHeader {
-  version : Int
+  version : Int32
   session_id : String
   created_at : String
 }
@@ -939,7 +939,7 @@ pub(all) struct SessionLogHeader {
 pub(all) struct SessionLogProducer {
   segments : Array[SessionLogSegment]
 }
-pub fn SessionLogProducer::buffered(Self) -> Int
+pub fn SessionLogProducer::buffered(Self) -> Int32
 pub async fn SessionLogProducer::flush(Self, String, String, String) -> Unit
 pub fn SessionLogProducer::new() -> Self
 pub fn SessionLogProducer::on_hook_event(Self, HookEvent) -> Unit
@@ -951,14 +951,14 @@ pub(all) struct SessionLogSegment {
 }
 
 pub(all) struct SessionStats {
-  total_iterations : Int
+  total_iterations : Int32
   total_cost_usd : Double
-  total_tasks : Int
+  total_tasks : Int32
   cost_source : String
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_requests : Int
-  cache_hit_requests : Int
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_requests : Int32
+  cache_hit_requests : Int32
 } derive(Eq, @debug.Debug)
 pub fn SessionStats::equal(Self, Self) -> Bool
 pub fn SessionStats::not_equal(Self, Self) -> Bool
@@ -976,8 +976,8 @@ pub fn SessionTaskMeta::to_repr(Self) -> @debug.Repr
 pub(all) struct SessionTimeMachine {
   task_parents : Map[String, String]
   task_meta : Map[String, SessionTaskMeta]
-  current_task_id : Int
-  active_task_id : Int
+  current_task_id : Int32
+  active_task_id : Int32
 } derive(Eq, @debug.Debug)
 pub fn SessionTimeMachine::equal(Self, Self) -> Bool
 pub fn SessionTimeMachine::not_equal(Self, Self) -> Bool
@@ -995,7 +995,7 @@ pub fn SnapshotEntry::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TaskHistoryEntry {
   task_id : String
-  task_num : Int
+  task_num : Int32
   summary : String
   status : TaskNavStatus
   has_branches : Bool
@@ -1027,7 +1027,7 @@ pub(all) struct TaskSnapshot {
   parent_id : String?
   mut before_entries : Array[SnapshotEntry]
   mut after_entries : Array[SnapshotEntry]
-  created_at : Int
+  created_at : Int32
   description : String?
 } derive(Eq, ToJson, @debug.Debug)
 pub fn TaskSnapshot::equal(Self, Self) -> Bool
@@ -1039,7 +1039,7 @@ pub(all) struct TimeMachineState {
   session_id : String
   mut tasks : Array[TaskSnapshot]
   mut current_task_id : String?
-  mut task_counter : Int
+  mut task_counter : Int32
   snapshot_dir : String
 } derive(Eq, @debug.Debug)
 pub fn TimeMachineState::checkpoint_after(Self, String, String?) -> Unit
@@ -1058,7 +1058,7 @@ pub fn TimeMachineState::undo_last_task(Self) -> Result[Array[SnapshotEntry], St
 
 pub(all) enum TimerState {
   Idle
-  Waiting(Int)
+  Waiting(Int32)
   Compressing
   Cancelled
 } derive(Eq, @debug.Debug)
@@ -1081,14 +1081,14 @@ pub fn TodoItem::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TodoManager {
   mut items : Array[TodoItem]
-  mut next_id : Int
+  mut next_id : Int32
 }
 pub fn TodoManager::add(Self, String, String) -> TodoItem
-pub fn TodoManager::clear_all(Self) -> Int
-pub fn TodoManager::clear_completed(Self) -> Int
-pub fn TodoManager::complete_by_ids(Self, Array[Int]) -> (Array[TodoItem], Array[TodoItem], Array[Int])
+pub fn TodoManager::clear_all(Self) -> Int32
+pub fn TodoManager::clear_completed(Self) -> Int32
+pub fn TodoManager::complete_by_ids(Self, Array[Int32]) -> (Array[TodoItem], Array[TodoItem], Array[Int32])
 pub fn TodoManager::get(Self, String) -> TodoItem?
-pub fn TodoManager::id_str(Self, Int) -> String
+pub fn TodoManager::id_str(Self, Int32) -> String
 pub fn TodoManager::is_blocked(Self, String) -> Bool
 pub fn TodoManager::list_actionable(Self) -> Array[TodoItem]
 pub fn TodoManager::list_all(Self) -> Array[TodoItem]
@@ -1097,9 +1097,9 @@ pub fn TodoManager::load_from_json(Self, Json) -> Unit
 pub fn TodoManager::new() -> Self
 pub fn TodoManager::next_pending(Self) -> TodoItem?
 pub fn TodoManager::remove(Self, String) -> Bool
-pub fn TodoManager::remove_by_ids(Self, Array[Int]) -> (Array[TodoItem], Array[Int])
+pub fn TodoManager::remove_by_ids(Self, Array[Int32]) -> (Array[TodoItem], Array[Int32])
 pub fn TodoManager::set_blocked_by(Self, String, Array[String]) -> Bool
-pub fn TodoManager::size(Self) -> Int
+pub fn TodoManager::size(Self) -> Int32
 pub fn TodoManager::summary(Self) -> String
 pub fn TodoManager::to_json(Self) -> Json
 pub fn TodoManager::update_status(Self, String, TodoStatus) -> Bool
@@ -1111,7 +1111,7 @@ pub(all) enum TodoStatus {
   Cancelled
   Failed
 } derive(Compare, Eq, @debug.Debug)
-pub fn TodoStatus::compare(Self, Self) -> Int
+pub fn TodoStatus::compare(Self, Self) -> Int32
 pub fn TodoStatus::equal(Self, Self) -> Bool
 pub fn TodoStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TodoStatus::from_string(String) -> Self?

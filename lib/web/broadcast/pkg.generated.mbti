@@ -22,12 +22,12 @@ pub fn Hub::broadcast_heartbeat(Self) -> Unit
 pub fn Hub::broadcast_session(Self, String, String) -> Unit
 pub fn Hub::broadcast_session_json(Self, String, String, Json) -> Unit
 pub fn Hub::broadcast_session_raw(Self, String, String) -> Unit
-pub fn Hub::connection_count(Self) -> Int
+pub fn Hub::connection_count(Self) -> Int32
 pub fn Hub::get_connection_sessions(Self, String) -> Array[String]
 pub fn Hub::get_peer(Self, String) -> @websocket.WebSocketPeer?
 pub fn Hub::new() -> Self
 pub fn Hub::register(Self, @websocket.WebSocketPeer) -> Unit
-pub fn Hub::session_connection_count(Self, String) -> Int
+pub fn Hub::session_connection_count(Self, String) -> Int32
 pub fn Hub::subscribe_global(Self, String) -> Unit
 pub fn Hub::subscribe_session(Self, String, String) -> Unit
 pub fn Hub::switch_session(Self, String, String) -> Unit

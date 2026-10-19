@@ -31,12 +31,21 @@ async test "terminal execute: non-zero exit code propagates" {
 /// instead of blocking the loop forever.
 async test "terminal execute: timeout bounds long commands" {
   let term = Terminal::new()
-  // Long-running command: `sleep 30` on Unix, `ping -n 30` (~30s of
+  // Long-running command: `sleep 90` on Unix, `ping -n 90` (~90s of
   // 1s-ICMP waits) on Windows where `sleep` is not a builtin.
+  //
+  // The durations keep a WIDE gap between "bounded" and "ran to
+  // completion". Terminal::execute tries PTY before the @process fallback,
+  // and a cold Windows PTY attempt pays its own handshake plus the pty
+  // library's fixed teardown grace (~5s) — setup latency the command
+  // timeout does not govern. With only a thin margin (a 30s command vs a
+  // 20s wall bound), concurrent-suite load pushed the handshake past the
+  // bound and flipped this red even though the command itself was cut at
+  // ~1s. 90s (unbounded) vs 40s (bound) cannot be confused.
   let long_cmd = if is_windows_platform() {
-    "ping -n 30 127.0.0.1 > nul"
+    "ping -n 90 127.0.0.1 > nul"
   } else {
-    "sleep 30"
+    "sleep 90"
   }
   let args : Map[String, Json] = {
     "command": Json(long_cmd),
@@ -46,8 +55,12 @@ async test "terminal execute: timeout bounds long commands" {
   let result = term.execute(args)
   let elapsed_ms = @env.now().reinterpret_as_int64() - start
   assert_false(result.is_error)
-  // Bounded: well under the 30s sleep, with margin for process teardown.
-  assert_true(elapsed_ms < 20000)
+  // Bounded: far under the 90s command, yet generous for shell spawn, PTY
+  // handshake/teardown, and process teardown under concurrent load.
+  assert_true(
+    elapsed_ms < 40000,
+    msg="command was not bounded by its 1s timeout: took \{elapsed_ms}ms",
+  )
   assert_true(
     result.content.contains("timed out after 1s"),
     msg="expected timeout marker, got: \{result.content}",

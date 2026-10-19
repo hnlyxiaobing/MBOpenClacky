@@ -19,13 +19,13 @@ pub fn bedrock_converse_path(String) -> String
 
 pub fn bedrock_converse_stream_path(String) -> String
 
-pub fn build_anthropic_request(Array[@message.Message], String, Array[Json], Int, Bool, reasoning_effort? : String?) -> Json
+pub fn build_anthropic_request(Array[@message.Message], String, Array[Json], Int32, Bool, reasoning_effort? : String?) -> Json
 
-pub fn build_bedrock_request(Array[@message.Message], String, Array[Json], Int, Bool, reasoning_effort? : String?) -> Json
+pub fn build_bedrock_request(Array[@message.Message], String, Array[Json], Int32, Bool, reasoning_effort? : String?) -> Json
 
-pub fn build_openai_request(Array[@message.Message], String, Array[Json], Int, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
+pub fn build_openai_request(Array[@message.Message], String, Array[Json], Int32, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
 
-pub fn build_openai_responses_request(Array[@message.Message], String, Array[Json], Int, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
+pub fn build_openai_responses_request(Array[@message.Message], String, Array[Json], Int32, Bool, vision_supported? : Bool, reasoning_effort? : String?) -> Json
 
 pub fn extract_error_code(String) -> String?
 
@@ -39,21 +39,21 @@ pub fn format_openai_responses_tool_results(LlmResponse, Map[String, String]) ->
 
 pub fn format_openai_tool_results(LlmResponse, Map[String, String]) -> Array[@message.Message]
 
-pub async fn http_delete(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+pub async fn http_delete(String, Array[(String, String)], Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn http_get(String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+pub async fn http_get(String, Array[(String, String)], Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn http_get_bytes(String, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]
+pub async fn http_get_bytes(String, Array[(String, String)], Int32) -> Result[HttpResponseBytes, HttpError]
 
-pub async fn http_patch(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+pub async fn http_patch(String, String, Array[(String, String)], Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn http_post(String, String, Array[(String, String)], Int) -> Result[HttpResponse, HttpError]
+pub async fn http_post(String, String, Array[(String, String)], Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn http_post_async(String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+pub async fn http_post_async(String, String, Array[(String, String)], Int32, open_timeout_ms? : Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn http_post_bytes(String, Bytes, Array[(String, String)], Int) -> Result[HttpResponseBytes, HttpError]
+pub async fn http_post_bytes(String, Bytes, Array[(String, String)], Int32) -> Result[HttpResponseBytes, HttpError]
 
-pub async fn http_post_stream_async(String, String, Array[(String, String)], Int, (SseFrame) -> Unit, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+pub async fn http_post_stream_async(String, String, Array[(String, String)], Int32, (SseFrame) -> Unit, open_timeout_ms? : Int32) -> Result[HttpResponse, HttpError]
 
 pub fn is_bedrock_api_key(String, String) -> Bool
 
@@ -61,7 +61,7 @@ pub fn is_html_response(String) -> Bool
 
 pub fn is_retryable(HttpError) -> Bool
 
-pub fn map_http_error(Int, String) -> String?
+pub fn map_http_error(Int32, String) -> String?
 
 pub fn parse_anthropic_response(Json) -> LlmResponse
 
@@ -75,9 +75,9 @@ pub fn parse_sse_frame(String) -> SseFrame?
 
 pub fn parse_sse_frames(String) -> Array[SseFrame]
 
-pub async fn send_request(HttpMethod, String, String, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponse, HttpError]
+pub async fn send_request(HttpMethod, String, String, Array[(String, String)], Int32, open_timeout_ms? : Int32) -> Result[HttpResponse, HttpError]
 
-pub async fn send_request_bytes(HttpMethod, String, Bytes, Array[(String, String)], Int, open_timeout_ms? : Int) -> Result[HttpResponseBytes, HttpError]
+pub async fn send_request_bytes(HttpMethod, String, Bytes, Array[(String, String)], Int32, open_timeout_ms? : Int32) -> Result[HttpResponseBytes, HttpError]
 
 // Errors
 
@@ -87,16 +87,16 @@ type AnthropicBlockAcc
 pub(all) struct AnthropicStreamAggregator {
   mut blocks : Array[AnthropicBlockAcc]
   mut stop_reason : String?
-  mut input_tokens : Int
-  mut output_tokens : Int
-  mut cache_creation : Int
-  mut cache_read : Int
-  mut last_output_tokens : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut input_tokens : Int32
+  mut output_tokens : Int32
+  mut cache_creation : Int32
+  mut cache_read : Int32
+  mut last_output_tokens : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
-pub fn AnthropicStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn AnthropicStreamAggregator::approximate_output_tokens(Self) -> Int32
 pub fn AnthropicStreamAggregator::handle(Self, String, String) -> Unit
 pub fn AnthropicStreamAggregator::handle_delta(Self, String, String) -> String
 pub fn AnthropicStreamAggregator::new() -> Self
@@ -106,17 +106,17 @@ type BedrockBlockAcc
 
 pub(all) struct BedrockStreamAggregator {
   mut role : String
-  mut blocks : Map[Int, BedrockBlockAcc]
+  mut blocks : Map[Int32, BedrockBlockAcc]
   mut stop_reason : String?
-  mut input_tokens : Int
-  mut output_tokens : Int
-  mut cache_read : Int
-  mut cache_write : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut input_tokens : Int32
+  mut output_tokens : Int32
+  mut cache_read : Int32
+  mut cache_write : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
-pub fn BedrockStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn BedrockStreamAggregator::approximate_output_tokens(Self) -> Int32
 pub fn BedrockStreamAggregator::handle(Self, String, String) -> Unit
 pub fn BedrockStreamAggregator::new() -> Self
 pub fn BedrockStreamAggregator::to_json(Self) -> Json
@@ -134,7 +134,7 @@ pub fn Client::anthropic_headers(Self) -> Map[String, String]
 pub fn Client::api_model_for(Self, String) -> String
 pub fn Client::api_path(Self) -> String
 pub fn Client::build_request_body(Self, SendRequest) -> Json
-pub fn Client::build_simple_request(Self, String, String, Int) -> Json
+pub fn Client::build_simple_request(Self, String, String, Int32) -> Json
 pub fn Client::build_url(Self, String) -> String
 pub fn Client::format_tool_results(Self, LlmResponse, Map[String, String]) -> Array[@message.Message]
 pub fn Client::is_anthropic_format(Self) -> Bool
@@ -151,8 +151,8 @@ pub async fn Client::test_connection(Self) -> TestResult
 pub enum HttpError {
   Timeout(String)
   ConnectionFailed(String)
-  ServerError(Int, String)
-  ClientError(Int, String)
+  ServerError(Int32, String)
+  ClientError(Int32, String)
   AllHostsFailed(String)
 } derive(@debug.Debug)
 pub fn HttpError::to_repr(Self) -> @debug.Repr
@@ -167,23 +167,23 @@ pub enum HttpMethod {
 pub fn HttpMethod::to_repr(Self) -> @debug.Repr
 
 pub(all) struct HttpResponse {
-  status_code : Int
+  status_code : Int32
   body : String
   headers : Array[(String, String)]
 } derive(@debug.Debug)
 pub fn HttpResponse::to_repr(Self) -> @debug.Repr
 
 pub(all) struct HttpResponseBytes {
-  status_code : Int
+  status_code : Int32
   body : Bytes
   headers : Array[(String, String)]
 } derive(@debug.Debug)
 pub fn HttpResponseBytes::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Latency {
-  duration_ms : Int
-  ttft_ms : Int?
-  output_tokens : Int
+  duration_ms : Int32
+  ttft_ms : Int32?
+  output_tokens : Int32
   tps : Double?
   model : String?
   measured_at : String?
@@ -191,7 +191,7 @@ pub(all) struct Latency {
 } derive(Eq, ToJson, @debug.Debug)
 pub fn Latency::equal(Self, Self) -> Bool
 pub fn Latency::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
-pub fn Latency::new(Int, ttft_ms? : Int, tps? : Double?, output_tokens? : Int, model? : String?, measured_at? : String?, streaming? : Bool) -> Self
+pub fn Latency::new(Int32, ttft_ms? : Int32, tps? : Double?, output_tokens? : Int32, model? : String?, measured_at? : String?, streaming? : Bool) -> Self
 pub fn Latency::not_equal(Self, Self) -> Bool
 pub fn Latency::to_json(Self) -> Json
 pub fn Latency::to_repr(Self) -> @debug.Repr
@@ -215,19 +215,19 @@ pub fn LlmResponse::to_repr(Self) -> @debug.Repr
 
 pub(all) struct OpenAiResponsesStreamAggregator {
   mut content_parts : Array[String]
-  mut content_len : Int
+  mut content_len : Int32
   mut reasoning_parts : Array[String]
-  mut reasoning_len : Int
+  mut reasoning_len : Int32
   mut tool_calls : Array[ResponsesToolCallAcc]
   mut current_item_type : String?
-  mut current_item_index : Int
+  mut current_item_index : Int32
   mut finish_reason : String?
   mut usage : Usage?
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
 }
-pub fn OpenAiResponsesStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn OpenAiResponsesStreamAggregator::approximate_output_tokens(Self) -> Int32
 pub fn OpenAiResponsesStreamAggregator::handle(Self, String, String) -> Unit
 pub fn OpenAiResponsesStreamAggregator::handle_delta(Self, String, String) -> String
 pub fn OpenAiResponsesStreamAggregator::new() -> Self
@@ -235,19 +235,19 @@ pub fn OpenAiResponsesStreamAggregator::to_response(Self) -> LlmResponse
 
 pub(all) struct OpenAiStreamAggregator {
   mut content_parts : Array[String]
-  mut content_len : Int
+  mut content_len : Int32
   mut reasoning_parts : Array[String]
-  mut reasoning_len : Int
+  mut reasoning_len : Int32
   mut tool_calls : Array[OpenAiToolCallAcc]
   mut finish_reason : String?
   mut usage : Usage?
-  mut last_output_tokens : Int
-  mut frames_seen : Int
-  mut bytes_seen : Int
-  mut parse_failures : Int
+  mut last_output_tokens : Int32
+  mut frames_seen : Int32
+  mut bytes_seen : Int32
+  mut parse_failures : Int32
   mut saw_done : Bool
 }
-pub fn OpenAiStreamAggregator::approximate_output_tokens(Self) -> Int
+pub fn OpenAiStreamAggregator::approximate_output_tokens(Self) -> Int32
 pub fn OpenAiStreamAggregator::handle(Self, String) -> Unit
 pub fn OpenAiStreamAggregator::handle_delta(Self, String) -> String
 pub fn OpenAiStreamAggregator::new() -> Self
@@ -258,8 +258,8 @@ type OpenAiToolCallAcc
 pub struct PlatformHttpClient {
   config : PlatformHttpConfig
   mut current_host : String
-  mut consecutive_failures : Int
-  mut last_failover_epoch : Int
+  mut consecutive_failures : Int32
+  mut last_failover_epoch : Int32
 }
 pub fn PlatformHttpClient::active_host(Self) -> String
 pub async fn PlatformHttpClient::delete(Self, String, headers? : Array[(String, String)]) -> Result[HttpResponse, HttpError]
@@ -273,14 +273,14 @@ pub struct PlatformHttpConfig {
   primary_host : String
   secondary_host : String
   fallback_host : String
-  open_timeout_ms : Int
-  read_timeout_ms : Int
-  max_retries : Int
-  initial_backoff_ms : Int
+  open_timeout_ms : Int32
+  read_timeout_ms : Int32
+  max_retries : Int32
+  initial_backoff_ms : Int32
   proxy_url : String
 } derive(Eq, @debug.Debug)
 pub fn PlatformHttpConfig::equal(Self, Self) -> Bool
-pub fn PlatformHttpConfig::new(primary_host~ : String, secondary_host? : String, fallback_host? : String, open_timeout_ms? : Int, read_timeout_ms? : Int, max_retries? : Int, initial_backoff_ms? : Int, proxy_url? : String) -> Self
+pub fn PlatformHttpConfig::new(primary_host~ : String, secondary_host? : String, fallback_host? : String, open_timeout_ms? : Int32, read_timeout_ms? : Int32, max_retries? : Int32, initial_backoff_ms? : Int32, proxy_url? : String) -> Self
 pub fn PlatformHttpConfig::not_equal(Self, Self) -> Bool
 pub fn PlatformHttpConfig::to_repr(Self) -> @debug.Repr
 
@@ -290,7 +290,7 @@ pub(all) struct SendRequest {
   messages : Array[@message.Message]
   model : String
   tools : Array[Json]
-  max_tokens : Int
+  max_tokens : Int32
   enable_caching : Bool
   reasoning_effort : String?
 }
@@ -318,18 +318,18 @@ pub(all) struct TestResult {
 pub fn TestResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Usage {
-  input_tokens : Int
-  output_tokens : Int
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_tokens : Int
+  input_tokens : Int32
+  output_tokens : Int32
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_tokens : Int32
   api_cost : Double?
   total_is_per_turn : Bool
 } derive(Eq, ToJson, @debug.Debug)
 pub fn Usage::equal(Self, Self) -> Bool
-pub fn Usage::from_anthropic(Int, Int, cache_creation? : Int, cache_read? : Int) -> Self
+pub fn Usage::from_anthropic(Int32, Int32, cache_creation? : Int32, cache_read? : Int32) -> Self
 pub fn Usage::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
-pub fn Usage::from_openai(Int, Int, cache_creation? : Int, cache_read? : Int, total_tokens? : Int, api_cost? : Double?) -> Self
+pub fn Usage::from_openai(Int32, Int32, cache_creation? : Int32, cache_read? : Int32, total_tokens? : Int32, api_cost? : Double?) -> Self
 pub fn Usage::not_equal(Self, Self) -> Bool
 pub fn Usage::to_json(Self) -> Json
 pub fn Usage::to_repr(Self) -> @debug.Repr
@@ -339,5 +339,5 @@ pub impl @json.FromJson for Usage
 
 // Traits
 pub(open) trait StreamCallback {
-  fn on_chunk(Self, Int, Int) -> Unit
+  fn on_chunk(Self, Int32, Int32) -> Unit
 }

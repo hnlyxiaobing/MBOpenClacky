@@ -17,7 +17,7 @@ pub fn default_timeout_config() -> TimeoutConfig
 
 pub fn error_envelope_middleware() -> @crescent.Middleware
 
-pub fn error_response(Int, String, code? : String, hint? : String) -> Json
+pub fn error_response(Int32, String, code? : String, hint? : String) -> Json
 
 pub fn forbidden_response(String) -> @core.HttpResponse
 
@@ -31,7 +31,7 @@ pub fn logging_middleware() -> @crescent.Middleware
 
 pub fn not_found_response(String) -> @core.HttpResponse
 
-pub fn rate_limit_response(Int) -> @core.HttpResponse
+pub fn rate_limit_response(Int32) -> @core.HttpResponse
 
 pub fn secure_string_compare(String, String) -> Bool
 
@@ -42,26 +42,26 @@ pub fn timeout_middleware(config? : TimeoutConfig) -> @crescent.Middleware
 // Types and methods
 pub(all) struct IpRateLimiter {
   mut failures : Map[String, RateLimitEntry]
-  max_failures : Int
+  max_failures : Int32
   window_seconds : Int64
 }
 pub fn IpRateLimiter::is_limited(Self, String, Int64) -> Bool
-pub fn IpRateLimiter::new(max_failures? : Int, window_seconds? : Int64) -> Self
+pub fn IpRateLimiter::new(max_failures? : Int32, window_seconds? : Int64) -> Self
 pub fn IpRateLimiter::record_failure(Self, String, Int64) -> Unit
 pub fn IpRateLimiter::record_success(Self, String) -> Unit
-pub fn IpRateLimiter::retry_after(Self, String, Int64) -> Int
+pub fn IpRateLimiter::retry_after(Self, String, Int64) -> Int32
 
 pub(all) struct RateLimitEntry {
-  mut count : Int
+  mut count : Int32
   mut first_failure_at : Int64
 }
 
 pub(all) struct TimeoutConfig {
-  routes : Array[(String, Int)]
-  default_ms : Int
+  routes : Array[(String, Int32)]
+  default_ms : Int32
 }
-pub fn TimeoutConfig::max_timeout(Self) -> Int
-pub fn TimeoutConfig::resolve(Self, String) -> Int
+pub fn TimeoutConfig::max_timeout(Self) -> Int32
+pub fn TimeoutConfig::resolve(Self, String) -> Int32
 
 // Type aliases
 

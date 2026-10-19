@@ -19,11 +19,11 @@ pub fn all_themes() -> Array[Theme]
 
 pub fn all_verbs() -> Array[String]
 
-pub fn ansi_display_width(String) -> Int
+pub fn ansi_display_width(String) -> Int32
 
-pub let block_font_height : Int
+pub let block_font_height : Int32
 
-pub let block_font_width : Int
+pub let block_font_width : Int32
 
 pub fn build_config_menu_items(Array[@config.ModelConfig], String?) -> Array[ConfigMenuItem]
 
@@ -37,13 +37,13 @@ pub fn build_submodel_items(@config.ModelConfig, String?) -> Array[ConfigMenuIte
 
 pub fn build_tool_prompt(String, String) -> String
 
-pub fn char_display_width(Char) -> Int
+pub fn char_display_width(Char) -> Int32
 
 pub fn clear_confirmation_sequence() -> String
 
 pub fn close_config_dialog(TuiState) -> Unit
 
-pub fn compose_screen_lines(Array[String], Array[String], Int) -> Array[String]
+pub fn compose_screen_lines(Array[String], Array[String], Int32) -> Array[String]
 
 pub fn confirmation_default_yes(TuiState) -> Bool
 
@@ -53,7 +53,7 @@ pub fn consume_confirmation(TuiState) -> Unit
 
 pub fn context_aware_suggestions(TuiState) -> Array[String]
 
-pub fn cursor_display_col(String, Int) -> Int
+pub fn cursor_display_col(String, Int32) -> Int32
 
 pub fn cycle_permission_mode(@config.PermissionMode) -> @config.PermissionMode
 
@@ -61,15 +61,15 @@ pub fn default_hook_config() -> HookHandlerConfig
 
 pub let default_thinking_verbs : Array[String]
 
-pub fn display_col_to_char_index(String, Int) -> Int
+pub fn display_col_to_char_index(String, Int32) -> Int32
 
-pub fn effective_content_width(Int) -> Int
+pub fn effective_content_width(Int32) -> Int32
 
 pub fn execute(SlashCommand, @agent.Agent) -> Result[String, String]
 
 pub fn format_cost(Double) -> String
 
-pub fn format_tips(String, TipsType, Int) -> String
+pub fn format_tips(String, TipsType, Int32) -> String
 
 pub fn handle_confirmation_input(TuiState, Char?, Bool, Bool) -> Bool?
 
@@ -89,7 +89,7 @@ pub fn mask_api_key_summary(String) -> String
 
 pub fn merge_config_form_values(ConfigAction, Array[(String, String)], @config.ModelConfig?) -> Result[PendingConfigTest, String]
 
-pub let min_width_for_logo : Int
+pub let min_width_for_logo : Int32
 
 pub fn node_to_lines(Node) -> Array[String]
 
@@ -99,7 +99,7 @@ pub fn open_add_form(TuiState, ConfigMode) -> Unit
 
 pub fn open_config_menu(TuiState, @agent.Agent) -> Unit
 
-pub fn open_edit_form(TuiState, ConfigMode, @config.ModelConfig, Int) -> Unit
+pub fn open_edit_form(TuiState, ConfigMode, @config.ModelConfig, Int32) -> Unit
 
 pub fn open_model_selector(TuiState, @agent.Agent) -> Unit
 
@@ -107,13 +107,13 @@ pub fn open_submodel_drawer(TuiState, @agent.Agent, @config.ModelConfig) -> Unit
 
 pub fn open_time_machine_menu(TuiState) -> Bool
 
-pub fn pad_ansi_line(String, Int) -> String
+pub fn pad_ansi_line(String, Int32) -> String
 
 pub fn parse_slash_command(String) -> Result[SlashCommand, String]
 
-pub fn paste_line_count(String) -> Int
+pub fn paste_line_count(String) -> Int32
 
-pub fn paste_placeholder_tag(Int) -> String
+pub fn paste_placeholder_tag(Int32) -> String
 
 pub fn provider_submodels(@config.ModelConfig) -> Array[String]
 
@@ -121,7 +121,7 @@ pub fn render(String) -> String
 
 pub fn render_approval_dialog(ApprovalDialog) -> Node
 
-pub fn render_config_menu(ConfigMenuDialog, term_width? : Int, hints? : String?) -> Node
+pub fn render_config_menu(ConfigMenuDialog, term_width? : Int32, hints? : String?) -> Node
 
 pub fn render_confirmation_line(TuiState) -> String
 
@@ -137,9 +137,9 @@ pub fn render_thinking_live_view(TuiState, ThinkingVerbAnimator) -> Node
 
 pub fn render_thinking_summary(TuiState) -> Node
 
-pub fn render_width(String) -> Int
+pub fn render_width(String) -> Int32
 
-pub fn render_width_with_style(String, BlockFontStyle) -> Int
+pub fn render_width_with_style(String, BlockFontStyle) -> Int32
 
 pub fn render_with_style(String, BlockFontStyle) -> String
 
@@ -147,15 +147,15 @@ pub fn request_confirmation(TuiState, String, String, String, default_yes? : Boo
 
 pub fn reset_tui_session_state(TuiState, @agent.Agent) -> Unit
 
-pub fn restore_console_cp(Int) -> Unit
+pub fn restore_console_cp(Int32) -> Unit
 
 pub fn return_to_config_menu(TuiState, @agent.Agent, ConfigMode) -> Unit
 
 pub async fn run_tui_interactive(@agent.Agent) -> Unit
 
-pub fn set_console_utf8() -> Int
+pub fn set_console_utf8() -> Int32
 
-pub fn string_display_width(String) -> Int
+pub fn string_display_width(String) -> Int32
 
 pub fn strip_ansi(String) -> String
 
@@ -163,11 +163,11 @@ pub fn tokenize(String) -> Array[MarkdownToken]
 
 pub fn truncate_thinking_buffer(TuiState) -> Unit
 
-pub fn wrap_ansi_line(String, Int) -> Array[String]
+pub fn wrap_ansi_line(String, Int32) -> Array[String]
 
-pub fn wrap_line_at_width(String, Int) -> Array[String]
+pub fn wrap_line_at_width(String, Int32) -> Array[String]
 
-pub fn wrap_line_segments(String, Int) -> Array[(Int, Int)]
+pub fn wrap_line_segments(String, Int32) -> Array[(Int32, Int32)]
 
 // Errors
 
@@ -184,9 +184,9 @@ pub fn AgentHookHandler::reset_for_run(Self) -> Unit
 pub fn AgentHookHandler::set_output(Self, OutputBuffer) -> Unit
 
 pub struct AgentOutputSync {
-  mut last_synced_index : Int
-  mut last_displayed_length : Int
-  mut stream_entry_id : Int?
+  mut last_synced_index : Int32
+  mut last_displayed_length : Int32
+  mut stream_entry_id : Int32?
   mut markdown : MarkdownRenderer
 }
 
@@ -202,11 +202,11 @@ pub fn ApprovalDialog::toggle_details(Self) -> Unit
 
 pub(all) struct Banner {
   style : BannerStyle
-  width : Int
+  width : Int32
   use_color : Bool
 } derive(Eq, @debug.Debug)
-pub fn Banner::adaptive_width(Int) -> Int
-pub fn Banner::block_with_width(Int) -> Self
+pub fn Banner::adaptive_width(Int32) -> Int32
+pub fn Banner::block_with_width(Int32) -> Self
 pub fn Banner::equal(Self, Self) -> Bool
 pub fn Banner::new() -> Self
 pub fn Banner::not_equal(Self, Self) -> Bool
@@ -214,11 +214,11 @@ pub fn Banner::render(Self, String, String?) -> String
 pub fn Banner::render_boxed(Self, String, String?) -> String
 pub fn Banner::render_separator(Self) -> String
 pub fn Banner::render_simple(Self, String, String?) -> String
-pub fn Banner::render_startup(Self, String, String, String, Bool, Bool, terminal_width? : Int) -> String
+pub fn Banner::render_startup(Self, String, String, String, Bool, Bool, terminal_width? : Int32) -> String
 pub fn Banner::to_repr(Self) -> @debug.Repr
 pub fn Banner::with_style(BannerStyle) -> Self
-pub fn Banner::with_style_and_width(BannerStyle, Int) -> Self
-pub fn Banner::with_width(Int) -> Self
+pub fn Banner::with_style_and_width(BannerStyle, Int32) -> Self
+pub fn Banner::with_width(Int32) -> Self
 
 pub enum BannerStyle {
   Boxed
@@ -240,9 +240,9 @@ pub fn BlockFontStyle::not_equal(Self, Self) -> Bool
 pub(all) struct CommandSuggestions {
   commands : Array[SuggestionItem]
   mut filtered : Array[SuggestionItem]
-  mut selected_index : Int
+  mut selected_index : Int32
   mut visible : Bool
-  max_visible : Int
+  max_visible : Int32
 } derive(@debug.Debug)
 pub fn CommandSuggestions::accept(Self) -> String?
 pub fn CommandSuggestions::accept_item(Self) -> SuggestionItem?
@@ -251,7 +251,7 @@ pub fn CommandSuggestions::hide(Self) -> Unit
 pub fn CommandSuggestions::is_visible(Self) -> Bool
 pub fn CommandSuggestions::new() -> Self
 pub fn CommandSuggestions::render(Self) -> Array[String]
-pub fn CommandSuggestions::result_count(Self) -> Int
+pub fn CommandSuggestions::result_count(Self) -> Int32
 pub fn CommandSuggestions::select_next(Self) -> Unit
 pub fn CommandSuggestions::select_prev(Self) -> Unit
 pub fn CommandSuggestions::set_commands(Self, Array[SuggestionItem]) -> Unit
@@ -272,7 +272,7 @@ pub fn ConfigAction::to_repr(Self) -> @debug.Repr
 pub(all) struct ConfigMenuDialog {
   mut title : String
   mut items : Array[ConfigMenuItem]
-  mut selected_idx : Int
+  mut selected_idx : Int32
   mut checked : Array[Bool]
 } derive(@debug.Debug)
 pub fn ConfigMenuDialog::as_model_selector(Array[@config.ModelConfig], String?) -> Self
@@ -307,7 +307,7 @@ pub(all) enum DialogState {
   Approval(ApprovalDialog)
   ConfigMenu(ConfigMenuDialog)
   Form(FormDialog)
-  ConfigForm(mode~ : ConfigMode, form~ : FormDialog, action~ : ConfigAction, target_idx~ : Int)
+  ConfigForm(mode~ : ConfigMode, form~ : FormDialog, action~ : ConfigAction, target_idx~ : Int32)
   TimeMachineMenu(ConfigMenuDialog)
   ModelDrawer(level~ : ModelDrawerLevel, dialog~ : ConfigMenuDialog, card_id~ : String, card_model~ : String)
 } derive(@debug.Debug)
@@ -316,7 +316,7 @@ pub fn DialogState::to_repr(Self) -> @debug.Repr
 pub(all) struct FormDialog {
   mut title : String
   mut fields : Array[FormField]
-  mut focused_idx : Int
+  mut focused_idx : Int32
 } derive(@debug.Debug)
 pub fn FormDialog::backspace(Self) -> Unit
 pub fn FormDialog::collect_values(Self) -> Array[(String, String)]
@@ -352,8 +352,8 @@ pub(all) struct InputArea {
 }
 pub fn InputArea::backspace(Self) -> Unit
 pub fn InputArea::clear(Self) -> Unit
-pub fn InputArea::cursor_display_pos(Self) -> (Int, Int)
-pub fn InputArea::cursor_display_pos_wrapped(Self, Int) -> (Int, Int)
+pub fn InputArea::cursor_display_pos(Self) -> (Int32, Int32)
+pub fn InputArea::cursor_display_pos_wrapped(Self, Int32) -> (Int32, Int32)
 pub fn InputArea::cursor_down(Self) -> Unit
 pub fn InputArea::cursor_end(Self) -> Unit
 pub fn InputArea::cursor_home(Self) -> Unit
@@ -361,7 +361,7 @@ pub fn InputArea::cursor_left(Self) -> Unit
 pub fn InputArea::cursor_right(Self) -> Unit
 pub fn InputArea::cursor_up(Self) -> Unit
 pub fn InputArea::delete_forward(Self) -> Unit
-pub fn InputArea::get_line(Self, Int) -> String
+pub fn InputArea::get_line(Self, Int32) -> String
 pub fn InputArea::handle_enter(Self) -> Unit
 pub fn InputArea::insert_char(Self, Char) -> Unit
 pub fn InputArea::insert_text(Self, String) -> Unit
@@ -369,14 +369,14 @@ pub fn InputArea::is_empty(Self) -> Bool
 pub fn InputArea::kill_to_end(Self) -> Unit
 pub fn InputArea::kill_to_start(Self) -> Unit
 pub fn InputArea::kill_word(Self) -> Unit
-pub fn InputArea::line_count(Self) -> Int
+pub fn InputArea::line_count(Self) -> Int32
 pub fn InputArea::multiline_new() -> Self
 pub fn InputArea::new() -> Self
 pub fn InputArea::next_history(Self) -> Unit
 pub fn InputArea::prev_history(Self) -> Unit
 pub fn InputArea::raw_lines(Self) -> Array[String]
 pub fn InputArea::render_lines(Self) -> Array[String]
-pub fn InputArea::render_wrapped_lines(Self, Int) -> Array[String]
+pub fn InputArea::render_wrapped_lines(Self, Int32) -> Array[String]
 pub fn InputArea::restore(Self, LineEditorSnapshot) -> Unit
 pub fn InputArea::set_placeholder(Self, String) -> Unit
 pub fn InputArea::set_prompt(Self, String) -> Unit
@@ -389,9 +389,9 @@ pub(all) struct LineEditor {
   mut lines : Array[String]
   multiline : Bool
   mut history : Array[String]
-  mut history_index : Int
-  mut cursor_line : Int
-  mut cursor_col : Int
+  mut history_index : Int32
+  mut cursor_line : Int32
+  mut cursor_col : Int32
 }
 pub fn LineEditor::backspace(Self) -> Unit
 pub fn LineEditor::clear(Self) -> Unit
@@ -399,12 +399,12 @@ pub fn LineEditor::cursor_down(Self) -> Unit
 pub fn LineEditor::cursor_end(Self) -> Unit
 pub fn LineEditor::cursor_home(Self) -> Unit
 pub fn LineEditor::cursor_left(Self) -> Unit
-pub fn LineEditor::cursor_pos(Self) -> (Int, Int)
+pub fn LineEditor::cursor_pos(Self) -> (Int32, Int32)
 pub fn LineEditor::cursor_right(Self) -> Unit
 pub fn LineEditor::cursor_up(Self) -> Unit
 pub fn LineEditor::delete_forward(Self) -> Unit
-pub fn LineEditor::display_col(Self) -> Int
-pub fn LineEditor::get_line(Self, Int) -> String
+pub fn LineEditor::display_col(Self) -> Int32
+pub fn LineEditor::get_line(Self, Int32) -> String
 pub fn LineEditor::handle_enter(Self) -> Unit
 pub fn LineEditor::insert_char(Self, Char) -> Unit
 pub fn LineEditor::insert_text(Self, String) -> Unit
@@ -412,8 +412,8 @@ pub fn LineEditor::is_empty(Self) -> Bool
 pub fn LineEditor::kill_to_end(Self) -> Unit
 pub fn LineEditor::kill_to_start(Self) -> Unit
 pub fn LineEditor::kill_word(Self) -> Unit
-pub fn LineEditor::line_count(Self) -> Int
-pub fn LineEditor::line_display_width(Self) -> Int
+pub fn LineEditor::line_count(Self) -> Int32
+pub fn LineEditor::line_display_width(Self) -> Int32
 pub fn LineEditor::multiline_new() -> Self
 pub fn LineEditor::new() -> Self
 pub fn LineEditor::next_history(Self) -> Unit
@@ -427,8 +427,8 @@ pub fn LineEditor::text(Self) -> String
 
 pub(all) struct LineEditorSnapshot {
   lines : Array[String]
-  cursor_line : Int
-  cursor_col : Int
+  cursor_line : Int32
+  cursor_col : Int32
 }
 
 pub(all) struct MarkdownRenderer {
@@ -439,12 +439,12 @@ pub fn MarkdownRenderer::render(Self, String) -> String
 pub fn MarkdownRenderer::to_repr(Self) -> @debug.Repr
 
 pub(all) enum MarkdownToken {
-  Heading(level~ : Int, text~ : String)
+  Heading(level~ : Int32, text~ : String)
   Bold(text~ : String)
   Italic(text~ : String)
   Code(text~ : String)
   CodeBlock(lang~ : String, code~ : String)
-  ListItem(indent~ : Int, text~ : String)
+  ListItem(indent~ : Int32, text~ : String)
   Paragraph(text~ : String)
   BlockQuote(text~ : String)
   HorizontalRule
@@ -469,51 +469,51 @@ pub enum Node {
   Column(Array[Node])
   Row(Array[Node])
   Border(String?, Array[Node])
-  Padding(Int, Int, Node)
+  Padding(Int32, Int32, Node)
   Styled(Style, Node)
   Empty
 }
 
 pub(all) struct OutputBuffer {
   entries : Array[OutputEntry]
-  mut next_id : Int
-  max_entries : Int
-  mut version : Int
-  mut width : Int
-  collapse_threshold : Int
+  mut next_id : Int32
+  max_entries : Int32
+  mut version : Int32
+  mut width : Int32
+  collapse_threshold : Int32
 }
-pub fn OutputBuffer::append(Self, Array[String], OutputKind) -> Int
-pub fn OutputBuffer::append_text(Self, String, OutputKind) -> Int
+pub fn OutputBuffer::append(Self, Array[String], OutputKind) -> Int32
+pub fn OutputBuffer::append_text(Self, String, OutputKind) -> Int32
 pub fn OutputBuffer::clear(Self) -> Unit
 pub fn OutputBuffer::collapse_long_system(Self) -> Unit
-pub fn OutputBuffer::commit_oldest_display_lines(Self, Int) -> Int
-pub fn OutputBuffer::commit_oldest_lines(Self, Int) -> Int
-pub fn OutputBuffer::commit_through(Self, Int) -> Unit
-pub fn OutputBuffer::current_version(Self) -> Int
-pub fn OutputBuffer::entry_count(Self) -> Int
+pub fn OutputBuffer::commit_oldest_display_lines(Self, Int32) -> Int32
+pub fn OutputBuffer::commit_oldest_lines(Self, Int32) -> Int32
+pub fn OutputBuffer::commit_through(Self, Int32) -> Unit
+pub fn OutputBuffer::current_version(Self) -> Int32
+pub fn OutputBuffer::entry_count(Self) -> Int32
 pub fn OutputBuffer::expand_all(Self) -> Unit
-pub fn OutputBuffer::get_entry(Self, Int) -> OutputEntry?
-pub fn OutputBuffer::is_dirty_since(Self, Int) -> Bool
-pub fn OutputBuffer::is_fully_editable(Self, Int) -> Bool
-pub fn OutputBuffer::is_live(Self, Int) -> Bool
-pub fn OutputBuffer::last_entry_id(Self) -> Int?
+pub fn OutputBuffer::get_entry(Self, Int32) -> OutputEntry?
+pub fn OutputBuffer::is_dirty_since(Self, Int32) -> Bool
+pub fn OutputBuffer::is_fully_editable(Self, Int32) -> Bool
+pub fn OutputBuffer::is_live(Self, Int32) -> Bool
+pub fn OutputBuffer::last_entry_id(Self) -> Int32?
 pub fn OutputBuffer::live_display_lines(Self) -> Array[String]
 pub fn OutputBuffer::live_entries(Self) -> Array[OutputEntry]
-pub fn OutputBuffer::live_tail_lines(Self, Int) -> Array[String]
-pub fn OutputBuffer::new(max_entries? : Int) -> Self
-pub fn OutputBuffer::remove(Self, Int) -> OutputEntry?
-pub fn OutputBuffer::replace(Self, Int, Array[String]) -> Int?
-pub fn OutputBuffer::replace_live(Self, Int, Array[String]) -> Bool
-pub fn OutputBuffer::tail_lines(Self, Int) -> Array[String]
-pub fn OutputBuffer::toggle_collapse(Self, Int) -> Unit
-pub fn OutputBuffer::total_lines(Self) -> Int
-pub fn OutputBuffer::total_live_lines(Self) -> Int
+pub fn OutputBuffer::live_tail_lines(Self, Int32) -> Array[String]
+pub fn OutputBuffer::new(max_entries? : Int32) -> Self
+pub fn OutputBuffer::remove(Self, Int32) -> OutputEntry?
+pub fn OutputBuffer::replace(Self, Int32, Array[String]) -> Int32?
+pub fn OutputBuffer::replace_live(Self, Int32, Array[String]) -> Bool
+pub fn OutputBuffer::tail_lines(Self, Int32) -> Array[String]
+pub fn OutputBuffer::toggle_collapse(Self, Int32) -> Unit
+pub fn OutputBuffer::total_lines(Self) -> Int32
+pub fn OutputBuffer::total_live_lines(Self) -> Int32
 
 pub(all) struct OutputEntry {
-  id : Int
+  id : Int32
   lines : Array[String]
   kind : OutputKind
-  mut committed_line_offset : Int
+  mut committed_line_offset : Int32
   mut collapsed : Bool
 } derive(@debug.Debug)
 pub fn OutputEntry::display_lines(Self) -> Array[String]
@@ -521,7 +521,7 @@ pub fn OutputEntry::is_collapsed(Self) -> Bool
 pub fn OutputEntry::is_committed(Self) -> Bool
 pub fn OutputEntry::is_fully_editable(Self) -> Bool
 pub fn OutputEntry::is_live(Self) -> Bool
-pub fn OutputEntry::line_count(Self) -> Int
+pub fn OutputEntry::line_count(Self) -> Int32
 pub fn OutputEntry::live_lines(Self) -> Array[String]
 pub fn OutputEntry::to_repr(Self) -> @debug.Repr
 
@@ -537,7 +537,7 @@ pub fn OutputKind::to_repr(Self) -> @debug.Repr
 pub(all) struct PendingConfigTest {
   mode : ConfigMode
   action : ConfigAction
-  target_idx : Int
+  target_idx : Int32
   name : String
   model : String
   api_key : String
@@ -560,11 +560,11 @@ pub fn ProgressEntry::to_repr(Self) -> @debug.Repr
 pub(all) struct ProgressHandle {
   id : String
   stack : @ref.Ref[ProgressStackData]
-  index : Int
+  index : Int32
 }
 pub fn ProgressHandle::close(Self) -> Unit
 pub fn ProgressHandle::is_open(Self) -> Bool
-pub fn ProgressHandle::set_char_count(Self, Int) -> Unit
+pub fn ProgressHandle::set_char_count(Self, Int32) -> Unit
 pub fn ProgressHandle::set_metadata(Self, String) -> Unit
 pub fn ProgressHandle::update_message(Self, String) -> Unit
 
@@ -575,17 +575,17 @@ pub fn ProgressStack::close_all(Self) -> Unit
 pub fn ProgressStack::close_last(Self) -> Unit
 pub fn ProgressStack::has_open(Self) -> Bool
 pub fn ProgressStack::new() -> Self
-pub fn ProgressStack::open_count(Self) -> Int
+pub fn ProgressStack::open_count(Self) -> Int32
 pub fn ProgressStack::push(Self, String) -> ProgressHandle
 pub fn ProgressStack::push_quiet(Self, String) -> ProgressHandle
 pub fn ProgressStack::render(Self) -> Array[String]
 pub fn ProgressStack::to_repr(Self) -> @debug.Repr
-pub fn ProgressStack::total_count(Self) -> Int
-pub fn ProgressStack::update_last_char_count(Self, Int) -> Unit
+pub fn ProgressStack::total_count(Self) -> Int32
+pub fn ProgressStack::update_last_char_count(Self, Int32) -> Unit
 
 pub(all) struct ProgressStackData {
   entries : Array[ProgressEntry]
-  mut next_id : Int
+  mut next_id : Int32
 } derive(@debug.Debug)
 pub fn ProgressStackData::to_repr(Self) -> @debug.Repr
 
@@ -639,12 +639,12 @@ pub(all) struct StatusBar {
 pub fn StatusBar::colored_text(Self) -> String
 pub fn StatusBar::format_compact(Self, String, String, Double) -> Unit
 pub fn StatusBar::format_from_state(Self, TuiState) -> Unit
-pub fn StatusBar::format_from_state_adaptive(Self, TuiState, Int) -> Unit
+pub fn StatusBar::format_from_state_adaptive(Self, TuiState, Int32) -> Unit
 pub fn StatusBar::format_full(Self, TuiState) -> Unit
-pub fn StatusBar::get_segment(Self, Int) -> StatusSegment
+pub fn StatusBar::get_segment(Self, Int32) -> StatusSegment
 pub fn StatusBar::new() -> Self
 pub fn StatusBar::plain_text(Self) -> String
-pub fn StatusBar::segment_count(Self) -> Int
+pub fn StatusBar::segment_count(Self) -> Int32
 pub fn StatusBar::to_repr(Self) -> @debug.Repr
 
 pub(all) struct StatusSegment {
@@ -705,7 +705,7 @@ pub fn ThemeName::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ThinkingVerbAnimator {
   verbs : Array[String]
-  mut index : Int
+  mut index : Int32
   mode : ThinkingVerbMode
   rng : @random.Rand
 }
@@ -726,12 +726,12 @@ pub fn ThinkingVerbMode::to_repr(Self) -> @debug.Repr
 pub(all) struct TipsState {
   mut message : String?
   mut type_ : TipsType
-  mut set_tick : Int
+  mut set_tick : Int32
 }
 pub fn TipsState::clear(Self) -> Unit
-pub fn TipsState::is_expired(Self, Int) -> Bool
+pub fn TipsState::is_expired(Self, Int32) -> Bool
 pub fn TipsState::new() -> Self
-pub fn TipsState::set(Self, String, TipsType, Int) -> Unit
+pub fn TipsState::set(Self, String, TipsType, Int32) -> Unit
 
 pub(all) enum TipsType {
   Info
@@ -744,21 +744,21 @@ pub fn TipsType::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TodoArea {
   mut items : Array[TodoDisplayItem]
-  mut completed_count : Int
-  mut total_count : Int
+  mut completed_count : Int32
+  mut total_count : Int32
   mut hidden : Bool
-  max_display : Int
+  max_display : Int32
 } derive(@debug.Debug)
 pub fn TodoArea::hide(Self) -> Unit
 pub fn TodoArea::new() -> Self
 pub fn TodoArea::render_lines(Self) -> Array[String]
 pub fn TodoArea::show(Self) -> Unit
 pub fn TodoArea::to_repr(Self) -> @debug.Repr
-pub fn TodoArea::update(Self, Array[TodoDisplayItem], Int, Int) -> Unit
+pub fn TodoArea::update(Self, Array[TodoDisplayItem], Int32, Int32) -> Unit
 pub fn TodoArea::visible(Self) -> Bool
 
 pub(all) struct TodoDisplayItem {
-  id : Int
+  id : Int32
   title : String
   status : String
   description : String
@@ -775,9 +775,9 @@ pub fn ToolExecution::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TuiController {
   tty : @tty.Tty
-  mut term_width : Int
+  mut term_width : Int32
   output : OutputBuffer
-  mut term_height : Int
+  mut term_height : Int32
   status_bar : StatusBar
   input : InputArea
   state : @ref.Ref[TuiState]
@@ -787,7 +787,7 @@ pub(all) struct TuiController {
   mut dirty : Bool
   mut agent_running : Bool
   mut painted_body : Array[String]
-  mut last_fixed_height : Int
+  mut last_fixed_height : Int32
   mut screen_inited : Bool
   events : @aqueue.Queue[TuiEvent]
   mut confirmation_response : @aqueue.Queue[Bool]?
@@ -795,13 +795,13 @@ pub(all) struct TuiController {
   mut feedback_pending : Bool
   mut agent_task : @async.Task[@agent.RunResult]?
   thinking_animator : ThinkingVerbAnimator
-  mut last_thinking_len : Int
+  mut last_thinking_len : Int32
   agent_output_sync : AgentOutputSync
   mut theme : Theme
   suggestions : CommandSuggestions
   mut suggestions_active : Bool
-  mut suggestions_rows_drawn : Array[Int]
-  mut progress_rows_drawn : Array[Int]
+  mut suggestions_rows_drawn : Array[Int32]
+  mut progress_rows_drawn : Array[Int32]
   tips : TipsState
   mut pending_config_test : PendingConfigTest?
 }
@@ -836,10 +836,10 @@ pub(all) struct TuiState {
   mut model_name : String
   mut mode : TuiMode
   agent_status : @signals.Signal[String]
-  mut iterations : Int
+  mut iterations : Int32
   mut working_dir : String
   mut permission_mode : String
-  mut active_tasks : Int
+  mut active_tasks : Int32
   mut messages : Array[String]
   streaming_buffer : @signals.Signal[String]
   streaming_active : @signals.Signal[Bool]
@@ -847,14 +847,14 @@ pub(all) struct TuiState {
   mut current_tool_name : String
   mut current_tool_args : String
   mut tool_history : Array[ToolExecution]
-  mut llm_call_count : Int
+  mut llm_call_count : Int32
   mut llm_calling : Bool
   mut phase_stack : Array[String]
   mut total_cost : Double
   mut cost_source : String
-  mut latest_delta : Int
-  mut last_input_tokens : Int
-  mut last_output_tokens : Int
+  mut latest_delta : Int32
+  mut last_input_tokens : Int32
+  mut last_output_tokens : Int32
   input_text : String
   mut last_error : String?
   progress_stack : ProgressStack
@@ -863,18 +863,18 @@ pub(all) struct TuiState {
   mut theme : Theme
   mut dialog : DialogState
   thinking_buffer : @signals.Signal[String]
-  mut tick_count : Int
+  mut tick_count : Int32
   mut run_start_ts : Int64
-  mut total_iterations : Int
+  mut total_iterations : Int32
   mut approved_all_tools : Bool
   mut time_machine : @agent.TimeMachineState
-  mut paste_placeholder_count : Int
-  mut paste_placeholders : Array[(Int, String)]
+  mut paste_placeholder_count : Int32
+  mut paste_placeholders : Array[(Int32, String)]
 }
 pub fn TuiState::clear_paste_placeholders(Self) -> Unit
 pub fn TuiState::expand_paste_placeholders(Self, String) -> String
 pub fn TuiState::from_agent(@agent.Agent) -> Self
-pub fn TuiState::get_paste_placeholder(Self, Int) -> String?
+pub fn TuiState::get_paste_placeholder(Self, Int32) -> String?
 
 // Type aliases
 

@@ -13,7 +13,7 @@ import {
 // Values
 pub fn ask_user_context(Map[String, Json]) -> String?
 
-pub fn background_hint(Bool, Int) -> String
+pub fn background_hint(Bool, Int32) -> String
 
 pub fn browser_disabled_error() -> String
 
@@ -29,13 +29,13 @@ pub fn collapse_carriage_returns(String) -> String
 
 pub fn command_safe_for_auto_execution(String) -> Bool
 
-pub fn completion_marker(String, Int) -> String
+pub fn completion_marker(String, Int32) -> String
 
 pub fn compress_snapshot(String) -> String
 
-pub fn count_occurrences(String, String) -> Int
+pub fn count_occurrences(String, String) -> Int32
 
-pub fn enhanced_process_terminal_output(String, command? : String, max_chars? : Int, session_id? : Int) -> (String, Bool, String?)
+pub fn enhanced_process_terminal_output(String, command? : String, max_chars? : Int32, session_id? : Int32) -> (String, Bool, String?)
 
 pub fn file_size_or_none(String) -> Int64?
 
@@ -43,19 +43,19 @@ pub fn find_header(Array[(String, String)], String) -> String?
 
 pub fn find_match(String, String) -> MatchResult?
 
-pub fn find_substring(String, String, Int) -> Int
+pub fn find_substring(String, String, Int32) -> Int32
 
-pub fn format_bytes(Int) -> String
+pub fn format_bytes(Int32) -> String
 
 pub fn format_file_size(Int64) -> String
 
-pub fn format_screenshot_result(String, ref_param? : String?, format? : String?, save_path? : String?, max_width? : Int?, max_height? : Int?) -> String
+pub fn format_screenshot_result(String, ref_param? : String?, format? : String?, save_path? : String?, max_width? : Int32?, max_height? : Int32?) -> String
 
 pub fn get_basename(String) -> String
 
 pub fn get_bool_arg(Map[String, Json], String, Bool) -> Bool
 
-pub fn get_int_arg(Map[String, Json], String, Int) -> Int
+pub fn get_int_arg(Map[String, Json], String, Int32) -> Int32
 
 pub fn get_string_arg(Map[String, Json], String, String) -> String
 
@@ -63,7 +63,7 @@ pub fn glob_path_match(String, String) -> Bool
 
 pub fn glob_to_regex(String) -> String
 
-pub async fn http_get_follow_redirects(String, Array[(String, String)], Int, Int) -> Result[@client.HttpResponse, @client.HttpError]
+pub async fn http_get_follow_redirects(String, Array[(String, String)], Int32, Int32) -> Result[@client.HttpResponse, @client.HttpError]
 
 pub fn is_ask_user_tool(String) -> Bool
 
@@ -85,15 +85,15 @@ pub fn make_default_registry() -> ToolRegistry
 
 pub fn make_safe(String) -> String raise SecurityError
 
-pub let max_line_chars : Int
+pub let max_line_chars : Int32
 
 pub fn mtime_sec_or_none(String) -> Int64?
 
 pub fn normalize_questions(Map[String, Json]) -> Array[AskQuestion]
 
-pub fn process_terminal_output(String, max_chars? : Int) -> (String, Bool)
+pub fn process_terminal_output(String, max_chars? : Int32) -> (String, Bool)
 
-pub fn query_snapshot(String, String, offset? : Int) -> String
+pub fn query_snapshot(String, String, offset? : Int32) -> String
 
 pub fn read_file_scrubbed(String) -> String?
 
@@ -109,7 +109,7 @@ pub fn rewrite_note(String, String) -> String?
 
 pub async fn run_shell_command(String, env_vars? : Array[(String, String)], working_dir? : String?) -> ShellExecResult
 
-pub fn safe_truncate(String, Int) -> String
+pub fn safe_truncate(String, Int32) -> String
 
 pub fn sanitize_name(String) -> String
 
@@ -121,9 +121,9 @@ pub fn shell_temp_dir_pub() -> String
 
 pub fn simple_glob_match(String, String) -> Bool
 
-pub fn smart_truncate(String, Int) -> String
+pub fn smart_truncate(String, Int32) -> String
 
-pub fn spill_overflow_file(String, session_id? : Int) -> String?
+pub fn spill_overflow_file(String, session_id? : Int32) -> String?
 
 pub fn strip_backspaces(String) -> String
 
@@ -131,21 +131,21 @@ pub fn strip_command_echo(String, String) -> String
 
 pub fn strip_control_chars(String) -> String
 
-pub let terminal_max_output_chars : Int
+pub let terminal_max_output_chars : Int32
 
-pub let terminal_overflow_preview_chars : Int
+pub let terminal_overflow_preview_chars : Int32
 
-pub fn truncate_browser_output(String, Int) -> String
+pub fn truncate_browser_output(String, Int32) -> String
 
-pub fn truncate_long_lines(String, max_chars? : Int) -> String
+pub fn truncate_long_lines(String, max_chars? : Int32) -> String
 
-pub fn truncate_output(String, max_chars? : Int) -> (String, Bool)
+pub fn truncate_output(String, max_chars? : Int32) -> (String, Bool)
 
 pub fn url_decode(String) -> String
 
 pub fn validate_secret_write(String) -> Unit raise SecurityError
 
-pub fn walk_files(String, Int, Int, @utils.IgnoreConfig) -> Array[String]
+pub fn walk_files(String, Int32, Int32, @utils.IgnoreConfig) -> Array[String]
 
 pub fn windows_shell_path() -> String
 
@@ -191,7 +191,7 @@ pub(all) struct AskQuestion {
   options : Array[String]
   multi : Bool
   allow_free_text : Bool
-  recommended : Int?
+  recommended : Int32?
 } derive(Eq, @debug.Debug)
 pub fn AskQuestion::equal(Self, Self) -> Bool
 pub fn AskQuestion::not_equal(Self, Self) -> Bool
@@ -217,7 +217,7 @@ pub fn Browser::new() -> Self
 pub fn Browser::not_equal(Self, Self) -> Bool
 pub async fn Browser::recover_selected_page(Self) -> String?
 pub fn Browser::to_repr(Self) -> @debug.Repr
-pub async fn Browser::wait_for_page_ready(Self, timeout_ms? : Int) -> Result[Unit, String]
+pub async fn Browser::wait_for_page_ready(Self, timeout_ms? : Int32) -> Result[Unit, String]
 pub async fn Browser::with_page(Self, String, Map[String, Json]) -> ToolResult
 
 pub(all) struct Edit {
@@ -229,8 +229,8 @@ pub fn Edit::not_equal(Self, Self) -> Bool
 pub fn Edit::to_repr(Self) -> @debug.Repr
 
 pub(all) struct FileReader {
-  max_lines : Int
-  max_line_chars : Int
+  max_lines : Int32
+  max_line_chars : Int32
 } derive(Eq, @debug.Debug)
 pub fn FileReader::equal(Self, Self) -> Bool
 pub fn FileReader::new() -> Self
@@ -259,7 +259,7 @@ pub fn FunctionDefinition::to_repr(Self) -> @debug.Repr
 pub impl ToJson for FunctionDefinition
 
 pub(all) struct Glob {
-  limit : Int
+  limit : Int32
 } derive(Eq, @debug.Debug)
 pub fn Glob::equal(Self, Self) -> Bool
 pub fn Glob::new() -> Self
@@ -273,10 +273,10 @@ pub fn GlobMatcher::match_path(Self, String) -> Bool
 pub fn GlobMatcher::new(String) -> Self
 
 pub(all) struct Grep {
-  max_files : Int
-  max_matches_per_file : Int
-  max_total_matches : Int
-  max_line_length : Int
+  max_files : Int32
+  max_matches_per_file : Int32
+  max_total_matches : Int32
+  max_line_length : Int32
 } derive(Eq, @debug.Debug)
 pub fn Grep::equal(Self, Self) -> Bool
 pub fn Grep::new() -> Self
@@ -304,8 +304,8 @@ pub fn PageCache::to_repr(Self) -> @debug.Repr
 
 pub(all) struct PtyExecResult {
   output : String
-  exit_code : Int?
-  duration_ms : Int
+  exit_code : Int32?
+  duration_ms : Int32
   state : PtyReadState
 } derive(@debug.Debug)
 pub fn PtyExecResult::to_repr(Self) -> @debug.Repr
@@ -333,13 +333,13 @@ pub fn SessionStatus::to_string(Self) -> String
 
 pub(all) struct ShellExecResult {
   output : String
-  exit_code : Int
+  exit_code : Int32
 } derive(@debug.Debug)
 pub fn ShellExecResult::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Terminal {
-  timeout : Int
-  max_output_chars : Int
+  timeout : Int32
+  max_output_chars : Int32
 } derive(Eq, @debug.Debug)
 pub fn Terminal::equal(Self, Self) -> Bool
 pub fn Terminal::new() -> Self
@@ -347,39 +347,39 @@ pub fn Terminal::not_equal(Self, Self) -> Bool
 pub fn Terminal::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TerminalSession {
-  id : Int
+  id : Int32
   mut command : String
   mut status : SessionStatus
   mut output : String
-  started_at : Int
-  mut exit_code : Int?
-  mut pid : Int?
+  started_at : Int32
+  mut exit_code : Int32?
+  mut pid : Int32?
   mut cwd : String
   mut overflow_file : String?
   mut output_file : String?
   mut marker_token : String
-  mut output_offset : Int
+  mut output_offset : Int32
 } derive(@debug.Debug)
-pub fn TerminalSession::new(Int, String, String) -> Self
+pub fn TerminalSession::new(Int32, String, String) -> Self
 pub fn TerminalSession::to_repr(Self) -> @debug.Repr
 
 pub struct TerminalSessionManager {
 }
-pub fn TerminalSessionManager::complete(Int, String, Int, overflow_file? : String?) -> Unit
-pub fn TerminalSessionManager::count() -> Int
-pub fn TerminalSessionManager::drop_stdin_writer(Int) -> Unit
-pub fn TerminalSessionManager::forget(Int) -> Unit
-pub fn TerminalSessionManager::get(Int) -> TerminalSession?
-pub async fn TerminalSessionManager::kill(Int) -> Bool
+pub fn TerminalSessionManager::complete(Int32, String, Int32, overflow_file? : String?) -> Unit
+pub fn TerminalSessionManager::count() -> Int32
+pub fn TerminalSessionManager::drop_stdin_writer(Int32) -> Unit
+pub fn TerminalSessionManager::forget(Int32) -> Unit
+pub fn TerminalSessionManager::get(Int32) -> TerminalSession?
+pub async fn TerminalSessionManager::kill(Int32) -> Bool
 pub async fn TerminalSessionManager::kill_all() -> Unit
 pub fn TerminalSessionManager::list() -> Array[TerminalSession]
-pub fn TerminalSessionManager::mark_running(Int) -> Unit
-pub fn TerminalSessionManager::refresh(Int) -> TerminalSession?
-pub fn TerminalSessionManager::register(String, String) -> Int
-pub async fn TerminalSessionManager::send_input(Int, String) -> Bool
-pub fn TerminalSessionManager::set_output_file(Int, String, String) -> Unit
-pub fn TerminalSessionManager::set_pid(Int, Int) -> Unit
-pub fn TerminalSessionManager::set_stdin_writer(Int, @process.WriteToProcess) -> Unit
+pub fn TerminalSessionManager::mark_running(Int32) -> Unit
+pub fn TerminalSessionManager::refresh(Int32) -> TerminalSession?
+pub fn TerminalSessionManager::register(String, String) -> Int32
+pub async fn TerminalSessionManager::send_input(Int32, String) -> Bool
+pub fn TerminalSessionManager::set_output_file(Int32, String, String) -> Unit
+pub fn TerminalSessionManager::set_pid(Int32, Int32) -> Unit
+pub fn TerminalSessionManager::set_stdin_writer(Int32, @process.WriteToProcess) -> Unit
 
 pub(all) struct TodoTool {
 } derive(Eq, @debug.Debug)
@@ -394,7 +394,7 @@ pub(all) enum ToolCategory {
   Web
   Agent
 } derive(Compare, Eq, @debug.Debug)
-pub fn ToolCategory::compare(Self, Self) -> Int
+pub fn ToolCategory::compare(Self, Self) -> Int32
 pub fn ToolCategory::equal(Self, Self) -> Bool
 pub fn ToolCategory::from_string(String) -> Self?
 pub fn ToolCategory::not_equal(Self, Self) -> Bool
@@ -422,7 +422,7 @@ pub fn ToolRegistry::has(Self, String) -> Bool
 pub fn ToolRegistry::new() -> Self
 pub fn ToolRegistry::register(Self, AnyTool) -> Unit
 pub fn ToolRegistry::resolve(Self, String) -> String?
-pub fn ToolRegistry::size(Self) -> Int
+pub fn ToolRegistry::size(Self) -> Int32
 pub fn ToolRegistry::to_repr(Self) -> @debug.Repr
 pub fn ToolRegistry::tool_names(Self) -> Array[String]
 
@@ -444,7 +444,7 @@ pub fn TrashManager::not_equal(Self, Self) -> Bool
 pub fn TrashManager::to_repr(Self) -> @debug.Repr
 
 pub(all) struct WebFetch {
-  max_length : Int
+  max_length : Int32
 } derive(Eq, @debug.Debug)
 pub fn WebFetch::equal(Self, Self) -> Bool
 pub fn WebFetch::new() -> Self
@@ -452,7 +452,7 @@ pub fn WebFetch::not_equal(Self, Self) -> Bool
 pub fn WebFetch::to_repr(Self) -> @debug.Repr
 
 pub(all) struct WebSearch {
-  max_results : Int
+  max_results : Int32
 } derive(Eq, @debug.Debug)
 pub fn WebSearch::equal(Self, Self) -> Bool
 pub fn WebSearch::new() -> Self

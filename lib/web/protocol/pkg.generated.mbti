@@ -21,7 +21,7 @@ pub fn build_history_user_message(String, String) -> String
 
 pub fn build_interrupted_event(String) -> String
 
-pub fn build_messages_history(String, Array[@message.Message], limit? : Int, before? : String?, offset? : Int) -> Json
+pub fn build_messages_history(String, Array[@message.Message], limit? : Int32, before? : String?, offset? : Int32) -> Json
 
 pub fn build_pong() -> String
 

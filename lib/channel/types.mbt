@@ -178,7 +178,14 @@ pub extend ChannelConfig with ToJson::{to_json}
 
 ///|
 /// Channel error.
-pub(all) suberror ChannelError {
+///
+/// Declared as a plain `data` type rather than `suberror`: this package passes
+/// failures around as ordinary values (`Result[T, ChannelError]` that callers
+/// `match` on, propagate, and convert to HTTP responses), never `raise`/`catch`
+/// them. Keeping it out of the native `Error` hierarchy makes that intent
+/// explicit and avoids the `result_error_return` (E0078) warning on every
+/// `Result[T, ChannelError]` signature.
+pub(all) enum ChannelError {
   ChannelError(String)
 } derive(ToJson, Debug)
 

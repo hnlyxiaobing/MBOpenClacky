@@ -45,13 +45,13 @@ pub(all) struct TaskPayload {
   model : String
   provider : String
   status : String
-  iterations : Int
-  duration_ms : Int
+  iterations : Int32
+  duration_ms : Int32
   cost_usd : Double
-  prompt_tokens : Int
-  completion_tokens : Int
-  cache_creation_tokens : Int
-  cache_read_tokens : Int
+  prompt_tokens : Int32
+  completion_tokens : Int32
+  cache_creation_tokens : Int32
+  cache_read_tokens : Int32
 } derive(Eq, ToJson, @debug.Debug)
 pub fn TaskPayload::equal(Self, Self) -> Bool
 pub fn TaskPayload::not_equal(Self, Self) -> Bool
@@ -62,13 +62,13 @@ pub(all) struct Telemetry {
   device_id : String
   enabled : Bool
   endpoint_base : String
-  mut events_sent : Int
+  mut events_sent : Int32
 }
-pub fn Telemetry::get_events_sent(Self) -> Int
+pub fn Telemetry::get_events_sent(Self) -> Int32
 pub fn Telemetry::new(String) -> Self
 pub fn Telemetry::share(Self, String, Map[String, String]?) -> Unit
 pub fn Telemetry::startup(Self, String?) -> Unit
-pub fn Telemetry::task(Self, String, String, String, Int, Int, Double, Int, Int, Int, Int, String?) -> Unit
+pub fn Telemetry::task(Self, String, String, String, Int32, Int32, Double, Int32, Int32, Int32, Int32, String?) -> Unit
 
 pub(all) enum TelemetryEvent {
   StartupEvent(StartupPayload)

@@ -34,7 +34,7 @@ pub fn assets_root() -> String {
   match assets_root_cache.val {
     Some(root) => root
     None => {
-      let root = resolve_assets_root()
+      let root = normalize_native_path(resolve_assets_root())
       assets_root_cache.val = Some(root)
       root
     }
@@ -42,9 +42,40 @@ pub fn assets_root() -> String {
 }
 
 ///|
+/// Strip the Windows extended-length path prefix (`\\?\` and `\\?\UNC\`).
+///
+/// On native Windows `Path.resolve()` anchors absolute paths with this prefix,
+/// which tells the Win32 API to disable separator normalization. Every asset
+/// consumer then joins children with `/` (e.g. `assets_root() + "/" + name`),
+/// and under a `\\?\` path those forward slashes are treated as literal name
+/// characters, so `is_dir` / `path_exists` silently fail and builtin
+/// skills/agents vanish. Returning a conventional `C:\...` root keeps those
+/// `/`-joins working (Win32 accepts forward slashes once the prefix is gone).
+/// No-op on other platforms and for relative fallbacks.
+fn normalize_native_path(path : String) -> String {
+  let unc_prefix = "\\\\?\\UNC\\"
+  let ext_prefix = "\\\\?\\"
+  match path.strip_prefix(unc_prefix) {
+    Some(rest) => "\\\\" + rest.to_owned()
+    None =>
+      match path.strip_prefix(ext_prefix) {
+        Some(rest) => rest.to_owned()
+        None => path
+      }
+  }
+}
+
+///|
 /// Join a path relative to the bundled `assets/` directory.
+///
+/// The result is passed through `normalize_native_path` because
+/// `Path::join(..).to_string()` re-anchors absolute paths with the Windows
+/// `\\?\` prefix, which would break the `/`-based child joins every asset
+/// handler performs downstream.
 pub fn assets_path(relative : String) -> String {
-  @path.Path::join(@path.Path(assets_root()), @path.Path(relative)).to_string()
+  normalize_native_path(
+    @path.Path::join(@path.Path(assets_root()), @path.Path(relative)).to_string(),
+  )
 }
 
 ///|

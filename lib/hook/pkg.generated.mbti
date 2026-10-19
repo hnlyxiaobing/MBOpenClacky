@@ -24,7 +24,7 @@ pub fn HookExecResult::to_repr(Self) -> @debug.Repr
 pub(all) struct ShellHook {
   name : String?
   command : String
-  timeout : Int
+  timeout : Int32
   event : ShellHookEvent
 } derive(Eq, ToJson, @debug.Debug)
 pub fn ShellHook::equal(Self, Self) -> Bool

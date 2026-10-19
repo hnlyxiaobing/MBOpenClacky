@@ -55,7 +55,12 @@ pub extend SchedulerState with ToJson::{to_json}
 
 ///|
 /// Scheduler error
-pub(all) suberror SchedulerError {
+///
+/// Plain `data`-style `enum`, not `suberror`: this package carries failures as
+/// ordinary `Result[T, SchedulerError]` values that callers match on, and never
+/// `raise`/`catch` them. Keeping it out of the native `Error` hierarchy avoids
+/// the `result_error_return` (E0078) warning on every `Result` signature.
+pub(all) enum SchedulerError {
   SchedulerError(String)
 } derive(ToJson, Debug)
 

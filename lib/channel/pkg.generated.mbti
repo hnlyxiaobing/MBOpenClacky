@@ -8,9 +8,9 @@ import {
 }
 
 // Values
-pub const CHANNEL_HTTP_TIMEOUT_MS : Int = 30_000
+pub const CHANNEL_HTTP_TIMEOUT_MS : Int32 = 30_000
 
-pub const DEFAULT_INTENTS : Int = 38401
+pub const DEFAULT_INTENTS : Int32 = 38401
 
 pub const DINGTALK_API_BASE : String = "https://api.dingtalk.com"
 
@@ -24,35 +24,35 @@ pub const DISCORD_UPLOAD_BOUNDARY : String = "----MBOpenClackyBoundary"
 
 pub const FEISHU_API_BASE : String = "https://open.feishu.cn/open-apis"
 
-pub const INTENT_DIRECT_MESSAGES : Int = 4096
+pub const INTENT_DIRECT_MESSAGES : Int32 = 4096
 
-pub const INTENT_GUILDS : Int = 1
+pub const INTENT_GUILDS : Int32 = 1
 
-pub const INTENT_GUILD_MESSAGES : Int = 512
+pub const INTENT_GUILD_MESSAGES : Int32 = 512
 
-pub const INTENT_GUILD_MESSAGE_REACTIONS : Int = 1024
+pub const INTENT_GUILD_MESSAGE_REACTIONS : Int32 = 1024
 
-pub const INTENT_MESSAGE_CONTENT : Int = 32768
+pub const INTENT_MESSAGE_CONTENT : Int32 = 32768
 
-pub const MAX_RECONNECT_ATTEMPTS : Int = 10
+pub const MAX_RECONNECT_ATTEMPTS : Int32 = 10
 
-pub const RECONNECT_BASE_DELAY_MS : Int = 5000
+pub const RECONNECT_BASE_DELAY_MS : Int32 = 5000
 
 pub const TELEGRAM_API_BASE : String = "https://api.telegram.org"
 
-pub const TELEGRAM_MAX_MESSAGE_LENGTH : Int = 4096
+pub const TELEGRAM_MAX_MESSAGE_LENGTH : Int32 = 4096
 
-pub const WECOM_ACK_TIMEOUT : Int = 30000
+pub const WECOM_ACK_TIMEOUT : Int32 = 30000
 
 pub const WECOM_API_BASE : String = "https://qyapi.weixin.qq.com/cgi-bin"
 
-pub const WECOM_DEFAULT_CHUNK_SIZE : Int = 524288
+pub const WECOM_DEFAULT_CHUNK_SIZE : Int32 = 524288
 
-pub const WECOM_HEARTBEAT_INTERVAL : Int = 30000
+pub const WECOM_HEARTBEAT_INTERVAL : Int32 = 30000
 
-pub const WECOM_READ_TIMEOUT : Int = 75000
+pub const WECOM_READ_TIMEOUT : Int32 = 75000
 
-pub const WECOM_TOKEN_REFRESH_THRESHOLD : Int = 300000
+pub const WECOM_TOKEN_REFRESH_THRESHOLD : Int32 = 300000
 
 pub const WECOM_WS_URL : String = "wss://openws.work.weixin.qq.com"
 
@@ -84,15 +84,15 @@ pub fn build_feishu_post_content(Array[Json]) -> Json
 
 pub fn build_feishu_text_content(String) -> Json
 
-pub fn build_heartbeat_payload(Int?) -> Json
+pub fn build_heartbeat_payload(Int32?) -> Json
 
-pub fn build_identify_payload(String, Int) -> Json
+pub fn build_identify_payload(String, Int32) -> Json
 
 pub fn build_json_body(Map[String, Json]) -> String
 
 pub fn build_ping_frame() -> Json
 
-pub fn build_resume_payload(String, String, Int) -> Json
+pub fn build_resume_payload(String, String, Int32) -> Json
 
 pub fn build_send_msg_frame(String, String, String, String) -> Json
 
@@ -114,11 +114,11 @@ pub fn build_telegram_message(String, String, String?) -> Json
 
 pub fn build_telegram_send_request(String, String, String?, String?) -> Json
 
-pub fn build_upload_chunk_frame(String, Int, String) -> Json
+pub fn build_upload_chunk_frame(String, Int32, String) -> Json
 
 pub fn build_upload_finish_frame(String) -> Json
 
-pub fn build_upload_init_frame(String, String, Int) -> Json
+pub fn build_upload_init_frame(String, String, Int32) -> Json
 
 pub fn build_wecom_markdown_msg(String) -> Json
 
@@ -128,7 +128,7 @@ pub fn build_weixin_aes_key(String) -> (String, String)
 
 pub fn build_weixin_message(String, String, String) -> Json
 
-pub fn calculate_chunk_count(Int, Int) -> Int
+pub fn calculate_chunk_count(Int32, Int32) -> Int32
 
 pub fn check_wecom_errcode(Json, String) -> Result[Unit, ChannelError]
 
@@ -170,21 +170,21 @@ pub fn extract_feishu_message_id(Json) -> String?
 
 pub fn extract_req_id(Json) -> String?
 
-pub fn extract_seq(Json) -> Int?
+pub fn extract_seq(Json) -> Int32?
 
-pub fn extract_session_webhook(Map[String, Json]) -> (String, Int)?
+pub fn extract_session_webhook(Map[String, Json]) -> (String, Int32)?
 
 pub fn extract_telegram_attachments(Map[String, Json]) -> Array[Attachment]
 
-pub fn extract_update_id(Map[String, Json]) -> Int
+pub fn extract_update_id(Map[String, Json]) -> Int32
 
 pub fn extract_wecom_attachments(Map[String, Json]) -> Array[Attachment]
 
 pub fn extract_weixin_context_token(Map[String, Json]) -> String?
 
-pub fn find_last_str(StringView, String) -> Int?
+pub fn find_last_str(StringView, String) -> Int32?
 
-pub fn gateway_opcode_from_int(Int) -> GatewayOpcode?
+pub fn gateway_opcode_from_int(Int32) -> GatewayOpcode?
 
 pub fn get_gateway_url(GatewayState) -> String
 
@@ -202,7 +202,7 @@ pub async fn http_patch_json(String, Array[(String, String)], String) -> Result[
 
 pub async fn http_post_json(String, Array[(String, String)], String) -> Result[Json, ChannelError]
 
-pub fn http_status_error(Int, String) -> ChannelError
+pub fn http_status_error(Int32, String) -> ChannelError
 
 pub fn is_auth_error(Json) -> Bool
 
@@ -212,15 +212,15 @@ pub fn is_card_preferred(String) -> Bool
 
 pub fn is_dingtalk_supported_ext(String) -> Bool
 
-pub fn is_fatal_close(Int) -> Bool
+pub fn is_fatal_close(Int32) -> Bool
 
-pub fn is_rate_limited(Int) -> Bool
+pub fn is_rate_limited(Int32) -> Bool
 
 pub fn is_response_frame(WeComFrameType) -> Bool
 
-pub fn is_success_status(Int) -> Bool
+pub fn is_success_status(Int32) -> Bool
 
-pub fn is_webhook_valid(String, Int) -> Bool
+pub fn is_webhook_valid(String, Int32) -> Bool
 
 pub fn needs_ack(WeComFrameType) -> Bool
 
@@ -244,11 +244,11 @@ pub fn parse_feishu_post(Json) -> String
 
 pub fn parse_feishu_text(String) -> String
 
-pub fn parse_gateway_event(Json) -> Result[(Int, Json), ChannelError]
+pub fn parse_gateway_event(Json) -> Result[(Int32, Json), ChannelError]
 
 pub fn parse_get_file_response(Json) -> Result[String, ChannelError]
 
-pub fn parse_hello_payload(Json) -> Result[Int, ChannelError]
+pub fn parse_hello_payload(Json) -> Result[Int32, ChannelError]
 
 pub fn parse_incoming_frame(Json) -> Result[(WeComFrameType, Json), ChannelError]
 
@@ -272,7 +272,7 @@ pub fn parse_wecom_mixed(Map[String, Json]) -> (String, Array[Attachment])
 
 pub fn parse_wecom_text(Map[String, Json]) -> String
 
-pub fn parse_wecom_token_response(Json) -> Result[(String, Int), ChannelError]
+pub fn parse_wecom_token_response(Json) -> Result[(String, Int32), ChannelError]
 
 pub fn parse_weixin_file_item(Map[String, Json]) -> Attachment?
 
@@ -290,21 +290,21 @@ pub fn pkcs7_pad(Bytes) -> Bytes
 
 pub fn pkcs7_unpad(Bytes) -> Result[Bytes, ChannelError]
 
-pub fn reconnect_delay_ms(Int) -> Int
+pub fn reconnect_delay_ms(Int32) -> Int32
 
 pub fn resolve_feishu_mentions(String, Array[Json]) -> String
 
 pub fn sanitize_for_weixin(String) -> String
 
-pub fn should_reconnect(GatewayState, Int) -> Bool
+pub fn should_reconnect(GatewayState, Int32) -> Bool
 
 pub fn should_resume(GatewayState) -> Bool
 
-pub fn should_retry_status(Int) -> Bool
+pub fn should_retry_status(Int32) -> Bool
 
 pub fn split_telegram_message(String) -> Array[String]
 
-pub fn split_weixin_message(String, Int) -> Array[String]
+pub fn split_weixin_message(String, Int32) -> Array[String]
 
 pub fn webhook_url(String, String) -> String
 
@@ -323,11 +323,6 @@ pub fn weixin_aes_key_from_hex(String) -> Result[Bytes, ChannelError]
 pub fn weixin_media_requires_encryption(String) -> Bool
 
 // Errors
-pub(all) suberror ChannelError {
-  ChannelError(String)
-} derive(ToJson, @debug.Debug)
-pub fn ChannelError::to_json(Self) -> Json
-pub fn ChannelError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) struct AdapterRegistry {
@@ -340,7 +335,7 @@ pub fn AdapterRegistry::has(Self, String) -> Bool
 pub fn AdapterRegistry::list_names(Self) -> Array[String]
 pub fn AdapterRegistry::new() -> Self
 pub fn AdapterRegistry::register(Self, String, AnyAdapter) -> Unit
-pub fn AdapterRegistry::size(Self) -> Int
+pub fn AdapterRegistry::size(Self) -> Int32
 
 pub(all) enum AnyAdapter {
   Feishu(FeishuAdapter)
@@ -365,7 +360,7 @@ pub(all) struct Attachment {
   attachment_type : AttachmentType
   url : String
   filename : String?
-  size_bytes : Int?
+  size_bytes : Int32?
 } derive(Eq, ToJson, @debug.Debug)
 pub fn Attachment::equal(Self, Self) -> Bool
 pub fn Attachment::not_equal(Self, Self) -> Bool
@@ -393,6 +388,12 @@ pub fn ChannelConfig::not_equal(Self, Self) -> Bool
 pub fn ChannelConfig::to_json(Self) -> Json
 pub fn ChannelConfig::to_repr(Self) -> @debug.Repr
 
+pub(all) enum ChannelError {
+  ChannelError(String)
+} derive(ToJson, @debug.Debug)
+pub fn ChannelError::to_json(Self) -> Json
+pub fn ChannelError::to_repr(Self) -> @debug.Repr
+
 pub(all) struct ChannelEvent {
   event_type : EventType
   platform : Platform
@@ -419,8 +420,8 @@ pub(all) struct ChannelManager {
   mut active_channels : Array[String]
   config_path : String
   mut message_handler : ((ChannelEvent) -> Unit)?
-  mut recent_digests : Array[(String, Int)]
-  mut digest_counter : Int
+  mut recent_digests : Array[(String, Int32)]
+  mut digest_counter : Int32
 }
 pub fn ChannelManager::apply_config(Self) -> Result[Unit, ChannelError]
 pub fn ChannelManager::configured_platforms(Self) -> Array[String]
@@ -462,10 +463,10 @@ pub(all) struct DingTalkAdapter {
   api_client : DingTalkApiClient?
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
-  mut session_webhooks : Map[String, (String, Int)]
+  mut session_webhooks : Map[String, (String, Int32)]
   mut route_cache : Map[String, String]
   mut stream_url : String
-  mut stream_backoff_ms : Int
+  mut stream_backoff_ms : Int32
 }
 pub async fn DingTalkAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn DingTalkAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
@@ -503,7 +504,7 @@ pub async fn DingTalkApiClient::get_access_token(Self) -> Result[String, Channel
 pub async fn DingTalkApiClient::get_oapi_token(Self) -> Result[String, ChannelError]
 pub fn DingTalkApiClient::new(String, String) -> Self
 pub async fn DingTalkApiClient::open_stream_connection(Self, String, String) -> Result[(String, String), ChannelError]
-pub fn DingTalkApiClient::parse_token_response(Json) -> Result[(String, Int), ChannelError]
+pub fn DingTalkApiClient::parse_token_response(Json) -> Result[(String, Int32), ChannelError]
 pub async fn DingTalkApiClient::request_access_token(Self) -> Result[String, ChannelError]
 pub async fn DingTalkApiClient::request_oapi_token(Self) -> Result[String, ChannelError]
 pub async fn DingTalkApiClient::send_to_group(Self, String, String, String, String) -> Result[Json, ChannelError]
@@ -602,7 +603,7 @@ pub async fn FeishuApiClient::build_send_request(Self, String, String, String?) 
 pub async fn FeishuApiClient::build_update_request(Self, String, String) -> Result[(String, Array[(String, String)], String), ChannelError]
 pub async fn FeishuApiClient::delete_message(Self, String) -> Result[Json, ChannelError]
 pub async fn FeishuApiClient::download_resource(Self, String, String, String) -> Result[String, ChannelError]
-pub async fn FeishuApiClient::fetch_chat_history(Self, String, Int) -> Result[Json, ChannelError]
+pub async fn FeishuApiClient::fetch_chat_history(Self, String, Int32) -> Result[Json, ChannelError]
 pub async fn FeishuApiClient::get_token(Self) -> Result[String, ChannelError]
 pub fn FeishuApiClient::new(String, String) -> Self
 pub async fn FeishuApiClient::request_token(Self) -> Result[String, ChannelError]
@@ -633,30 +634,30 @@ pub(all) enum GatewayOpcode {
 } derive(Eq, @debug.Debug)
 pub fn GatewayOpcode::equal(Self, Self) -> Bool
 pub fn GatewayOpcode::not_equal(Self, Self) -> Bool
-pub fn GatewayOpcode::to_int(Self) -> Int
+pub fn GatewayOpcode::to_int(Self) -> Int32
 pub fn GatewayOpcode::to_repr(Self) -> @debug.Repr
 
 pub(all) struct GatewayState {
   mut session_id : String?
-  mut last_seq : Int?
+  mut last_seq : Int32?
   mut resume_gateway_url : String?
-  mut heartbeat_interval : Int
+  mut heartbeat_interval : Int32
   mut is_connected : Bool
   mut is_ready : Bool
   mut heartbeat_acked : Bool
-  mut reconnect_attempts : Int
+  mut reconnect_attempts : Int32
   bot_token : String
-  intents : Int
+  intents : Int32
 }
-pub fn GatewayState::handle_hello(Self, Int) -> Unit
+pub fn GatewayState::handle_hello(Self, Int32) -> Unit
 pub fn GatewayState::handle_ready(Self, String, String?) -> Unit
 pub fn GatewayState::mark_heartbeat_acked(Self) -> Unit
 pub fn GatewayState::mark_heartbeat_sent(Self) -> Unit
 pub fn GatewayState::new(String) -> Self
 pub fn GatewayState::record_reconnect_attempt(Self) -> Unit
 pub fn GatewayState::reset_connection(Self) -> Unit
-pub fn GatewayState::update_seq(Self, Int) -> Unit
-pub fn GatewayState::with_intents(String, Int) -> Self
+pub fn GatewayState::update_seq(Self, Int32) -> Unit
+pub fn GatewayState::with_intents(String, Int32) -> Self
 
 pub(all) struct HttpHeaders {
   mut headers : Map[String, String]
@@ -684,11 +685,11 @@ pub fn Platform::to_repr(Self) -> @debug.Repr
 pub fn Platform::to_string_value(Self) -> String
 
 pub(all) struct RetryConfig {
-  max_retries : Int
-  base_delay_ms : Int
+  max_retries : Int32
+  base_delay_ms : Int32
 }
 pub fn RetryConfig::default() -> Self
-pub fn RetryConfig::delay_for_attempt(Self, Int) -> Int
+pub fn RetryConfig::delay_for_attempt(Self, Int32) -> Int32
 
 pub(all) struct SendResult {
   message_id : String
@@ -713,16 +714,16 @@ pub(all) struct TelegramAdapter {
   bot_token : String
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
-  mut last_update_id : Int
-  mut poll_backoff_ms : Int
-  mut poll_idle_ms : Int
+  mut last_update_id : Int32
+  mut poll_backoff_ms : Int32
+  mut poll_idle_ms : Int32
   api_client : TelegramApiClient
 }
 pub async fn TelegramAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn TelegramAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
 pub fn TelegramAdapter::parse_event(Json) -> Result[ChannelEvent, ChannelError]
 pub fn TelegramAdapter::platform_id(Self) -> Platform
-pub async fn TelegramAdapter::poll_once(Self) -> Result[Int, ChannelError]
+pub async fn TelegramAdapter::poll_once(Self) -> Result[Int32, ChannelError]
 pub async fn TelegramAdapter::run_long_poll_loop(Self) -> Unit
 pub async fn TelegramAdapter::send_text(Self, String, String, String?) -> Result[SendResult, ChannelError]
 pub fn TelegramAdapter::start(Self, (ChannelEvent) -> Unit) -> Result[Unit, ChannelError]
@@ -743,7 +744,7 @@ pub fn TelegramApiClient::delete_message_url(Self) -> String
 pub fn TelegramApiClient::edit_message_url(Self) -> String
 pub fn TelegramApiClient::get_file_url(Self) -> String
 pub fn TelegramApiClient::get_me_url(Self) -> String
-pub fn TelegramApiClient::get_updates_payload(Self, Int, Int) -> Json
+pub fn TelegramApiClient::get_updates_payload(Self, Int32, Int32) -> Json
 pub fn TelegramApiClient::get_updates_url(Self) -> String
 pub fn TelegramApiClient::new(String) -> Self
 pub fn TelegramApiClient::parse_ok_response(Json) -> Result[Bool, ChannelError]
@@ -755,14 +756,14 @@ pub fn TelegramApiClient::with_base_url(String, String) -> Self
 
 pub(all) struct TokenCache {
   mut token : String
-  mut expires_at : Int
-  refresh_threshold : Int
+  mut expires_at : Int32
+  refresh_threshold : Int32
 }
 pub fn TokenCache::clear(Self) -> Unit
-pub fn TokenCache::get_or_refresh(Self, String, Int) -> String
+pub fn TokenCache::get_or_refresh(Self, String, Int32) -> String
 pub fn TokenCache::is_valid(Self) -> Bool
-pub fn TokenCache::new(Int) -> Self
-pub fn TokenCache::set(Self, String, Int) -> Unit
+pub fn TokenCache::new(Int32) -> Self
+pub fn TokenCache::set(Self, String, Int32) -> Unit
 
 pub(all) struct WeComAdapter {
   corp_id : String
@@ -773,7 +774,7 @@ pub(all) struct WeComAdapter {
   mut is_running : Bool
   mut message_callback : ((ChannelEvent) -> Unit)?
   mut ws_url : String
-  mut ws_backoff_ms : Int
+  mut ws_backoff_ms : Int32
   ws_state : WeComWsState?
   api_client : WeComApiClient
 }
@@ -818,24 +819,24 @@ pub fn WeComFrameType::to_repr(Self) -> @debug.Repr
 
 pub(all) struct WeComUploadState {
   mut upload_id : String
-  mut chunk_index : Int
-  chunk_size : Int
-  total_size : Int
+  mut chunk_index : Int32
+  chunk_size : Int32
+  total_size : Int32
 }
 pub fn WeComUploadState::is_complete(Self) -> Bool
-pub fn WeComUploadState::new(Int) -> Self
-pub fn WeComUploadState::next_chunk(Self) -> Int
+pub fn WeComUploadState::new(Int32) -> Self
+pub fn WeComUploadState::next_chunk(Self) -> Int32
 pub fn WeComUploadState::reset(Self) -> Unit
 pub fn WeComUploadState::set_upload_id(Self, String) -> Unit
-pub fn WeComUploadState::with_chunk_size(Int, Int) -> Self
+pub fn WeComUploadState::with_chunk_size(Int32, Int32) -> Self
 
 pub(all) struct WeComWsState {
   bot_id : String
   secret : String
   mut is_connected : Bool
-  mut req_counter : Int
-  heartbeat_interval : Int
-  read_timeout : Int
+  mut req_counter : Int32
+  heartbeat_interval : Int32
+  read_timeout : Int32
 }
 pub fn WeComWsState::build_auth_frame(Self) -> Json
 pub fn WeComWsState::build_heartbeat(Self) -> Json
@@ -857,7 +858,7 @@ pub(all) struct WeixinAdapter {
   send_queue : WeixinSendQueue?
   mut context_token : String?
   mut updates_buf : String?
-  mut last_send_time : Int
+  mut last_send_time : Int32
 }
 pub async fn WeixinAdapter::delete_message(Self, String, String) -> Result[Unit, ChannelError]
 pub fn WeixinAdapter::new(ChannelConfig) -> Result[Self, ChannelError]
@@ -890,14 +891,14 @@ pub(all) struct WeixinApiClient {
 pub fn WeixinApiClient::auth_headers(Self) -> HttpHeaders
 pub fn WeixinApiClient::build_get_updates_request(Self, String?) -> Json
 pub fn WeixinApiClient::build_send_text_request(Self, String, String, String) -> Json
-pub fn WeixinApiClient::build_typing_request(Self, String, Int) -> Json
-pub fn WeixinApiClient::build_upload_request(Self, Int, Int) -> Json
+pub fn WeixinApiClient::build_typing_request(Self, String, Int32) -> Json
+pub fn WeixinApiClient::build_upload_request(Self, Int32, Int32) -> Json
 pub fn WeixinApiClient::download_media_url(Self, String) -> String
 pub fn WeixinApiClient::get_updates_url(Self, String?) -> String
 pub fn WeixinApiClient::get_upload_url(Self) -> String
 pub fn WeixinApiClient::new(String, String) -> Self
 pub fn WeixinApiClient::parse_get_updates_response(Self, Json) -> Result[(Array[Json], String?), ChannelError]
-pub fn WeixinApiClient::parse_send_response(Self, Json) -> Result[(String, Int), ChannelError]
+pub fn WeixinApiClient::parse_send_response(Self, Json) -> Result[(String, Int32), ChannelError]
 pub async fn WeixinApiClient::probe_connectivity(Self) -> Result[Unit, ChannelError]
 pub fn WeixinApiClient::send_text_url(Self) -> String
 pub fn WeixinApiClient::send_typing_url(Self) -> String
@@ -907,21 +908,21 @@ pub(all) struct WeixinPendingMsg {
   chat_id : String
   text : String
   context_token : String
-  retry_count : Int
+  retry_count : Int32
 }
 
 pub(all) struct WeixinSendQueue {
   mut pending_messages : Array[WeixinPendingMsg]
-  buffer_threshold : Int
-  flush_interval_ms : Int
-  min_send_interval_ms : Int
-  max_message_length : Int
+  buffer_threshold : Int32
+  flush_interval_ms : Int32
+  min_send_interval_ms : Int32
+  max_message_length : Int32
 }
-pub fn WeixinSendQueue::calculate_retry_delay(Self, Int) -> Int
+pub fn WeixinSendQueue::calculate_retry_delay(Self, Int32) -> Int32
 pub fn WeixinSendQueue::dequeue(Self) -> WeixinPendingMsg?
 pub fn WeixinSendQueue::enqueue(Self, WeixinPendingMsg) -> Unit
 pub fn WeixinSendQueue::new() -> Self
-pub fn WeixinSendQueue::pending_count(Self) -> Int
+pub fn WeixinSendQueue::pending_count(Self) -> Int32
 pub fn WeixinSendQueue::should_flush(Self) -> Bool
 
 pub(all) struct WsClient {
@@ -948,7 +949,7 @@ pub fn WsInboundAction::to_repr(Self) -> @debug.Repr
 
 pub(all) enum WsMessage {
   Text(String)
-  Closed(Int, String?)
+  Closed(Int32, String?)
 } derive(Eq, @debug.Debug)
 pub fn WsMessage::equal(Self, Self) -> Bool
 pub fn WsMessage::not_equal(Self, Self) -> Bool

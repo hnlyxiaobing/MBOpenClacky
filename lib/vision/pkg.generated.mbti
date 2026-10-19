@@ -8,7 +8,7 @@ import {
 // Values
 pub fn compute_cache_key(VisionInput, String) -> String
 
-pub fn count_ocr_words(String) -> Int
+pub fn count_ocr_words(String) -> Int32
 
 pub fn empty_result() -> VisionResult
 
@@ -23,7 +23,7 @@ pub(all) struct OCRResult {
   text : String
   confidence : Float?
   language : String?
-  word_count : Int
+  word_count : Int32
 } derive(Eq, ToJson, @debug.Debug)
 pub fn OCRResult::equal(Self, Self) -> Bool
 pub fn OCRResult::not_equal(Self, Self) -> Bool
@@ -34,13 +34,13 @@ pub(all) struct VisionConfig {
   api_key : String
   base_url : String
   model : String
-  max_tokens : Int
+  max_tokens : Int32
   cache_dir : String
   default_prompt : String
 } derive(Eq, @debug.Debug)
 pub fn VisionConfig::default() -> Self
 pub fn VisionConfig::equal(Self, Self) -> Bool
-pub fn VisionConfig::new(String, String, String, max_tokens? : Int, cache_dir? : String, default_prompt? : String) -> Self
+pub fn VisionConfig::new(String, String, String, max_tokens? : Int32, cache_dir? : String, default_prompt? : String) -> Self
 pub fn VisionConfig::not_equal(Self, Self) -> Bool
 pub fn VisionConfig::to_repr(Self) -> @debug.Repr
 
@@ -67,7 +67,7 @@ pub(all) struct VisionResolver {
   mut cache : Map[String, VisionResult]
 } derive(@debug.Debug)
 pub fn VisionResolver::cache_result(Self, String, VisionResult) -> Unit
-pub fn VisionResolver::cache_size(Self) -> Int
+pub fn VisionResolver::cache_size(Self) -> Int32
 pub fn VisionResolver::check_cache(Self, String) -> VisionResult?
 pub fn VisionResolver::clear_cache(Self) -> Unit
 pub async fn VisionResolver::describe(Self, VisionInput, String?) -> VisionResult

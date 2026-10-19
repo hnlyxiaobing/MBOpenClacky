@@ -12,7 +12,7 @@ pub(all) struct AskQuestion {
   options : Array[String]
   multi : Bool
   allow_free_text : Bool
-  recommended : Int?
+  recommended : Int32?
 }
 
 pub(all) struct AssistantMessage {
@@ -23,9 +23,9 @@ pub(all) struct AssistantMessage {
 }
 
 pub(all) struct CacheStats {
-  total_requests : Int
-  cache_hit_requests : Int
-  cache_read_input_tokens : Int
+  total_requests : Int32
+  cache_hit_requests : Int32
+  cache_read_input_tokens : Int32
 }
 
 pub(all) enum Command {
@@ -45,7 +45,7 @@ pub fn Command::to_json(Self) -> Json
 pub fn Command::type_name(Self) -> String
 
 pub(all) struct Complete {
-  iterations : Int
+  iterations : Int32
   cost : Double
   cost_source : String
   cache_stats : CacheStats
@@ -184,7 +184,7 @@ pub(all) struct SessionCommand {
 pub(all) struct SessionList {
   sessions : Array[Json]
   has_more : Bool
-  cron_count : Int
+  cron_count : Int32
   latest_cron_updated_at : Json?
 }
 
@@ -227,13 +227,13 @@ pub(all) struct TokenDelta {
 
 pub(all) struct TokenUsage {
   cost : Double
-  prompt_tokens : Int?
-  completion_tokens : Int?
-  delta_tokens : Int?
-  total_tokens : Int?
+  prompt_tokens : Int32?
+  completion_tokens : Int32?
+  delta_tokens : Int32?
+  total_tokens : Int32?
   cost_source : String?
-  cache_read : Int?
-  cache_write : Int?
+  cache_read : Int32?
+  cache_write : Int32?
 }
 
 pub(all) struct ToolCall {

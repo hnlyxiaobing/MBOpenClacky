@@ -19,6 +19,14 @@ let windows_bat_counter : Ref[Int32] = Ref(0)
 /// races under runner load) surface as raised errors → -1. A child exit
 /// code can never be -1, so retrying on -1 is safe; up to 3 attempts with
 /// a short backoff before reporting failure.
+///
+/// Cancellation bound: callers wrap this in `@async.with_timeout_opt`, but
+/// `@process.run` returns only once the child has actually terminated. With
+/// the default `graceful_cancel(timeout=5000)` handler, a `cmd.exe` that
+/// ignores its graceful signal keeps the cancelled run busy for the full 5s
+/// grace window, so a 1s command timeout measures ~6s. Mirror the do_kill
+/// semantics used by TerminalSessionManager::kill (TERM + brief grace +
+/// KILL): 100ms grace, then force-terminate, keeping the timeout honest.
 async fn spawn_and_wait(
   cmd : String,
   args : Array[String],
@@ -30,7 +38,13 @@ async fn spawn_and_wait(
     if attempt > 0 {
       @async.sleep(20 * attempt)
     }
-    code = @process.run(cmd, args, extra_env=env, no_console_window=true) catch {
+    code = @process.run(
+      cmd,
+      args,
+      extra_env=env,
+      no_console_window=true,
+      cancel_handler=@process.graceful_cancel(timeout=100),
+    ) catch {
       _ => -1
     }
     attempt = attempt + 1

@@ -41,7 +41,12 @@ pub extend BrowserStatus with ToJson::{to_json}
 
 ///|
 /// Browser manager error
-pub(all) suberror BrowserError {
+///
+/// Plain `data`-style `enum`, not `suberror`: this package carries failures as
+/// ordinary `Result[T, BrowserError]` values that callers match on, and never
+/// `raise`/`catch` them. Keeping it out of the native `Error` hierarchy avoids
+/// the `result_error_return` (E0078) warning on every `Result` signature.
+pub(all) enum BrowserError {
   BrowserError(String)
 } derive(ToJson, Debug)
 

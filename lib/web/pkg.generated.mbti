@@ -20,7 +20,7 @@ import {
 // Values
 pub fn channel_error_msg(@channel.ChannelError) -> String
 
-pub let default_ext_timeout_ms : Int
+pub let default_ext_timeout_ms : Int32
 
 pub fn delete_meeting(String) -> Unit
 
@@ -36,7 +36,7 @@ pub async fn git_run(Array[String]) -> String
 
 pub async fn git_run_in_dir(String, Array[String]) -> String
 
-pub async fn git_run_with_code(Array[String]) -> (Int, String)
+pub async fn git_run_with_code(Array[String]) -> (Int32, String)
 
 pub fn handle_backup_config_update(HttpRequest) -> HttpResponse
 
@@ -286,7 +286,7 @@ pub fn load_extensions_from_paths(Array[(String, String)]) -> Array[ApiExtension
 
 pub fn load_meeting(String) -> Meeting?
 
-pub let max_ext_timeout_ms : Int
+pub let max_ext_timeout_ms : Int32
 
 pub fn meeting_status_from_string(String) -> MeetingStatus
 
@@ -302,21 +302,21 @@ pub fn restore_session_payload(String) -> Bool
 
 pub fn save_meeting(Meeting) -> Result[Unit, String]
 
-pub fn set_multipart_transport_override((async (String, String, Array[(String, String)], Bytes, Int) -> Result[(Int, String), String])?) -> Unit
+pub fn set_multipart_transport_override((async (String, String, Array[(String, String)], Bytes, Int32) -> Result[(Int32, String), String])?) -> Unit
 
 pub fn set_ws_task_group(@async.TaskGroup[Unit]) -> Unit
 
 pub fn trash_add_session(String, String) -> Unit
 
-pub fn trash_session_payload(String) -> Int
+pub fn trash_session_payload(String) -> Int32
 
 // Errors
 
 // Types and methods
 pub(all) struct AggregateStatsResponse {
   total_cost_usd : Double
-  session_count : Int
-  total_messages : Int
+  session_count : Int32
+  total_messages : Int32
 }
 
 pub(all) struct ApiExtension {
@@ -338,7 +338,7 @@ pub fn ChatRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDeco
 
 pub(all) struct ConfigResponse {
   permission_mode : String
-  max_tokens : Int
+  max_tokens : Int32
   verbose : Bool
   current_model_id : String?
   models : Array[@config.ModelConfig]
@@ -348,10 +348,10 @@ pub(all) struct CostResponse {
   session_id : String
   total_cost_usd : Double
   cost_source : String
-  cache_creation_input_tokens : Int
-  cache_read_input_tokens : Int
-  total_requests : Int
-  cache_hit_requests : Int
+  cache_creation_input_tokens : Int32
+  cache_read_input_tokens : Int32
+  total_requests : Int32
+  cache_hit_requests : Int32
 }
 
 pub(all) struct CreateSessionRequest {
@@ -367,12 +367,12 @@ pub(all) struct ExtensionDispatcher {
   routes_ref : @ref.Ref[Map[String, ExtensionRoute]]
   ext_dir : String?
   last_signature : @ref.Ref[String]
-  request_count : @ref.Ref[Int]
-  check_every : Int
+  request_count : @ref.Ref[Int32]
+  check_every : Int32
 }
 pub fn ExtensionDispatcher::ensure_fresh(Self) -> Unit
 pub fn ExtensionDispatcher::new(Array[ApiExtension]) -> Self
-pub fn ExtensionDispatcher::new_with_dir(Array[ApiExtension], String, check_every? : Int) -> Self
+pub fn ExtensionDispatcher::new_with_dir(Array[ApiExtension], String, check_every? : Int32) -> Self
 pub fn ExtensionDispatcher::register_routes(Self, @crescent.App) -> Unit
 pub fn ExtensionDispatcher::route_summary(Self) -> Array[String]
 
@@ -382,7 +382,7 @@ pub(all) struct ExtensionRoute {
   handler_name : String
   command : String
   description : String
-  timeout_ms : Int
+  timeout_ms : Int32
 } derive(@debug.Debug)
 pub fn ExtensionRoute::to_repr(Self) -> @debug.Repr
 
@@ -415,7 +415,7 @@ pub fn HttpRequest::get_param(Self, String) -> String?
 pub fn HttpRequest::new(HttpMethod, String, body? : String, headers? : Array[(String, String)]) -> Self
 
 pub(all) struct HttpResponse {
-  status : Int
+  status : Int32
   body : String
   body_bytes : Bytes?
   content_type : String
@@ -425,19 +425,19 @@ pub fn HttpResponse::bad_request(String) -> Self
 pub fn HttpResponse::created(String) -> Self
 pub fn HttpResponse::html(String) -> Self
 pub fn HttpResponse::json(String) -> Self
-pub fn HttpResponse::json_status(Int, String) -> Self
+pub fn HttpResponse::json_status(Int32, String) -> Self
 pub fn HttpResponse::no_content() -> Self
 pub fn HttpResponse::not_found(String) -> Self
 pub fn HttpResponse::ok(String) -> Self
 pub fn HttpResponse::to_crescent(Self) -> @core.HttpResponse
 pub fn HttpResponse::with_content_type(Self, String) -> Self
-pub fn HttpResponse::with_status(Self, Int) -> Self
+pub fn HttpResponse::with_status(Self, Int32) -> Self
 
 pub(all) struct InfoResponse {
   version : String
   name : String
   uptime_seconds : Int64
-  active_sessions : Int
+  active_sessions : Int32
 }
 
 type MediaErrorResponse derive(ToJson)
@@ -527,8 +527,8 @@ pub fn Router::match_route(Self, HttpMethod, String) -> Result[(Route, Array[(St
 pub fn Router::new() -> Self
 
 pub(all) struct SessionLatency {
-  ttft_ms : Int?
-  duration_ms : Int?
+  ttft_ms : Int32?
+  duration_ms : Int32?
 } derive(Eq, @debug.Debug)
 pub fn SessionLatency::equal(Self, Self) -> Bool
 pub fn SessionLatency::from_session_data(@agent.SessionData) -> Self?
@@ -538,7 +538,7 @@ pub fn SessionLatency::to_repr(Self) -> @debug.Repr
 pub(all) struct SessionListResponse {
   sessions : Array[SessionSummary]
   has_more : Bool
-  cron_count : Int
+  cron_count : Int32
   latest_cron_updated_at : String?
 }
 pub fn SessionListResponse::to_json(Self) -> Json
@@ -551,7 +551,7 @@ pub(all) struct SessionSummary {
   status : String
   created_at : String
   updated_at : String
-  total_tasks : Int
+  total_tasks : Int32
   total_cost : Double
   cost_source : String
   error : String
@@ -581,16 +581,16 @@ pub fn StaticServer::new(String, index_file? : String) -> Self
 pub fn StaticServer::serve(Self, String) -> HttpResponse
 
 pub(all) struct StatsResponse {
-  total_sessions : Int
+  total_sessions : Int32
   total_cost_usd : Double
-  total_iterations : Int
-  total_tasks : Int
+  total_iterations : Int32
+  total_tasks : Int32
 }
 
 pub(all) struct StatusResponse {
   session_id : String
   status : String
-  iterations : Int
+  iterations : Int32
   error : String?
 }
 
@@ -630,15 +630,15 @@ pub(all) struct TrashItem {
 }
 
 pub(all) struct TrashStats {
-  total : Int
-  by_type : Map[String, Int]
+  total : Int32
+  by_type : Map[String, Int32]
 }
 
 pub(all) struct UpdateConfigRequest {
   permission_mode : String?
-  max_tokens : Int?
+  max_tokens : Int32?
   verbose : Bool?
-  max_tokens_request : Int?
+  max_tokens_request : Int32?
 } derive(@json.FromJson)
 pub fn UpdateConfigRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
@@ -661,7 +661,7 @@ pub(all) struct WebServer {
 pub fn WebServer::build_app(Self) -> (@crescent.App, @ref.Ref[Self])
 pub fn WebServer::get_or_create_agent(Self, String) -> @agent.Agent
 pub fn WebServer::new(@config.AgentConfig, String?) -> Self
-pub async fn WebServer::start(Self, Int, host? : String) -> Unit
+pub async fn WebServer::start(Self, Int32, host? : String) -> Unit
 
 pub(all) struct WebhookRegistry {
   mut handlers : Map[String, (Json) -> Result[Unit, String]]

@@ -11,7 +11,7 @@ import {
 // Values
 pub fn build_jsonrpc_notification(String) -> String
 
-pub fn build_jsonrpc_request(Int, String, Json?) -> String
+pub fn build_jsonrpc_request(Int32, String, Json?) -> String
 
 pub fn clear_mcp_task_group() -> Unit
 
@@ -41,8 +41,8 @@ pub(all) struct HttpTransport {
   mut session_id : String?
   mut is_alive : Bool
   mut message_handler : ((String) -> Unit)?
-  open_timeout : Int
-  read_timeout : Int
+  open_timeout : Int32
+  read_timeout : Int32
 }
 pub fn HttpTransport::alive(Self) -> Bool
 pub fn HttpTransport::build_headers(Self) -> Map[String, String]
@@ -51,7 +51,7 @@ pub fn HttpTransport::new(McpServerSpec) -> Self
 pub fn HttpTransport::on_message(Self, (String) -> Unit) -> Unit
 pub fn HttpTransport::receive_message(Self, String) -> Unit
 pub async fn HttpTransport::send_message(Self, String) -> Result[Unit, String]
-pub async fn HttpTransport::send_request(Self, Int, String, Int) -> Result[String, String]
+pub async fn HttpTransport::send_request(Self, Int32, String, Int32) -> Result[String, String]
 pub fn HttpTransport::set_session_id(Self, String) -> Unit
 pub async fn HttpTransport::start(Self) -> Result[Unit, String]
 pub fn HttpTransport::stderr_tail(Self) -> String
@@ -59,7 +59,7 @@ pub fn HttpTransport::stop(Self) -> Unit
 pub impl Transport for HttpTransport
 
 pub(all) struct JsonRpcError {
-  code : Int
+  code : Int32
   message : String
   data : Json?
 } derive(Eq, ToJson, @debug.Debug)
@@ -70,7 +70,7 @@ pub fn JsonRpcError::to_repr(Self) -> @debug.Repr
 
 pub(all) struct JsonRpcRequest {
   jsonrpc : String
-  id : Int
+  id : Int32
   rpc_method : String
   params : Json?
 } derive(Eq, @debug.Debug)
@@ -81,7 +81,7 @@ pub fn JsonRpcRequest::to_repr(Self) -> @debug.Repr
 
 pub(all) struct JsonRpcResponse {
   jsonrpc : String
-  id : Int?
+  id : Int32?
   result : Json?
   error : JsonRpcError?
 } derive(Eq, ToJson, @debug.Debug)
@@ -106,16 +106,16 @@ pub(all) struct McpClient {
   transport : &Transport
   mut tools : Array[McpTool]
   mut server_info : McpServerInfo?
-  mut started_at : Int?
-  mut last_used_at : Int?
-  mut next_id : Int
-  timeout_s : Int
+  mut started_at : Int32?
+  mut last_used_at : Int32?
+  mut next_id : Int32
+  timeout_s : Int32
 }
 pub async fn McpClient::call_tool(Self, String, Json) -> Json raise McpError
-pub fn McpClient::default_timeout(Self) -> Int
+pub fn McpClient::default_timeout(Self) -> Int32
 pub fn McpClient::disconnect(Self) -> Unit
 pub fn McpClient::from_spec(McpServerSpec) -> Self
-pub fn McpClient::init_timeout(Self) -> Int
+pub fn McpClient::init_timeout(Self) -> Int32
 pub async fn McpClient::initialize(Self) -> McpServerInfo raise McpError
 pub fn McpClient::is_connected(Self) -> Bool
 pub fn McpClient::new(String, &Transport) -> Self
@@ -128,12 +128,12 @@ pub(all) struct McpRegistry {
   config_path : String?
   mut specs : Map[String, McpServerSpec]
   mut enabled : Map[String, Bool]
-  idle_timeout : Int
+  idle_timeout : Int32
 }
 pub fn McpRegistry::add_server(Self, String, McpServerSpec) -> Unit
 pub async fn McpRegistry::call_tool(Self, String, String, Json) -> Json raise McpError
 pub fn McpRegistry::cleanup_idle(Self) -> Unit
-pub fn McpRegistry::client_count(Self) -> Int
+pub fn McpRegistry::client_count(Self) -> Int32
 pub async fn McpRegistry::ensure_started(Self, String) -> McpClient raise McpError
 pub fn McpRegistry::get_client(Self, String) -> McpClient?
 pub fn McpRegistry::is_enabled(Self, String) -> Bool
@@ -145,7 +145,7 @@ pub fn McpRegistry::reload(Self) -> Unit raise McpError
 pub fn McpRegistry::remove_server(Self, String) -> Unit
 pub fn McpRegistry::set_enabled(Self, String, Bool) -> Unit
 pub fn McpRegistry::shutdown(Self) -> Unit
-pub fn McpRegistry::spec_count(Self) -> Int
+pub fn McpRegistry::spec_count(Self) -> Int32
 pub async fn McpRegistry::tools_list(Self, String) -> Array[McpTool] raise McpError
 pub fn McpRegistry::virtual_skills(Self) -> Array[VirtualSkill]
 
@@ -215,7 +215,7 @@ pub fn SkillProvider::has_skill(Self, String) -> Bool
 pub fn SkillProvider::list_registered(Self) -> Array[SkillInfo]
 pub fn SkillProvider::new(Array[String]) -> Self
 pub fn SkillProvider::register_skill(Self, SkillInfo) -> Result[Unit, String]
-pub fn SkillProvider::registered_count(Self) -> Int
+pub fn SkillProvider::registered_count(Self) -> Int32
 
 pub(all) struct StdioTransport {
   command : String
@@ -225,13 +225,13 @@ pub(all) struct StdioTransport {
   mut is_alive : Bool
   mut stderr_buffer : String
   mut message_handler : ((String) -> Unit)?
-  mut pid : Int?
+  mut pid : Int32?
   mut stdin_writer : @process.WriteToProcess?
   mut stdout_reader : @process.ReadFromProcess?
   mut stderr_reader : @process.ReadFromProcess?
   mut read_task : @async.Task[Unit]?
   mut stderr_task : @async.Task[Unit]?
-  mut pending : Map[Int, @aqueue.Queue[Result[String, String]]]
+  mut pending : Map[Int32, @aqueue.Queue[Result[String, String]]]
 }
 pub fn StdioTransport::alive(Self) -> Bool
 pub fn StdioTransport::append_stderr(Self, String) -> Unit
@@ -239,7 +239,7 @@ pub fn StdioTransport::new(McpServerSpec) -> Self
 pub fn StdioTransport::on_message(Self, (String) -> Unit) -> Unit
 pub fn StdioTransport::receive_message(Self, String) -> Unit
 pub async fn StdioTransport::send_message(Self, String) -> Result[Unit, String]
-pub async fn StdioTransport::send_request(Self, Int, String, Int) -> Result[String, String]
+pub async fn StdioTransport::send_request(Self, Int32, String, Int32) -> Result[String, String]
 pub async fn StdioTransport::start(Self) -> Result[Unit, String]
 pub fn StdioTransport::stderr_tail(Self) -> String
 pub fn StdioTransport::stop(Self) -> Unit
@@ -270,7 +270,7 @@ pub fn VirtualSkill::not_equal(Self, Self) -> Bool
 pub fn VirtualSkill::to_json(Self) -> Json
 pub fn VirtualSkill::to_repr(Self) -> @debug.Repr
 pub fn VirtualSkill::to_system_prompt_section(Self) -> String
-pub fn VirtualSkill::tool_count(Self) -> Int
+pub fn VirtualSkill::tool_count(Self) -> Int32
 
 // Type aliases
 
@@ -280,7 +280,7 @@ pub(open) trait Transport {
   fn stop(Self) -> Unit
   fn alive(Self) -> Bool
   async fn send_message(Self, String) -> Result[Unit, String]
-  async fn send_request(Self, Int, String, Int) -> Result[String, String]
+  async fn send_request(Self, Int32, String, Int32) -> Result[String, String]
   fn on_message(Self, (String) -> Unit) -> Unit
   fn stderr_tail(Self) -> String
 }

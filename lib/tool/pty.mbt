@@ -164,16 +164,27 @@ async fn PtyHandle::write_raw(self : PtyHandle, data : String) -> Int32 {
 }
 
 ///|
-/// Close the PTY, releasing OS resources. Also cancels the child if it
-/// is still running (upstream Pty::drop cancels before closing).
-async fn PtyHandle::close(self : PtyHandle) -> Unit {
-  let _ = self.pty.drop(0)
+/// Release the PTY handle.
+///
+/// The community pty exposes no early-kill API: `Pty` only offers the
+/// `@async/io.Reader`/`Writer` surface, and `Pty::drop` is `Reader::drop`
+/// (read and discard N bytes), NOT a teardown. Calling `drop(1)` here used
+/// to block reading a byte from a shell that produces nothing, adding many
+/// seconds to every timeout/init-failure path while killing nothing.
+///
+/// Actual cleanup is automatic when the task group passed to
+/// `PtyHandle::spawn` exits: the group's deferred closes the input/output
+/// streams, and its waiter terminates the whole child tree via the Job
+/// Object. So both close and kill are intentionally prompt no-ops.
+fn PtyHandle::close(self : PtyHandle) -> Unit {
+  let _ = self
 }
 
 ///|
-/// Kill the child process (request cancellation via the async runtime).
-async fn PtyHandle::kill(self : PtyHandle) -> Int32 {
-  let _ = self.pty.drop(1)
+/// Request termination of the PTY child. As documented on `close`, the
+/// child tree is reaped on task-group exit; this must not block on reads.
+fn PtyHandle::kill(self : PtyHandle) -> Int32 {
+  let _ = self
   0
 }
 

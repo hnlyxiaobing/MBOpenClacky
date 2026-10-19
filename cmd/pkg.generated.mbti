@@ -78,7 +78,7 @@ pub(all) struct LiveModel {
 
 pub(all) struct NdjsonLogger {
   enabled : Bool
-  mut seq : Int
+  mut seq : Int32
 }
 pub fn NdjsonLogger::debug(Self, String, fields? : Map[String, String]?) -> Unit
 pub fn NdjsonLogger::error(Self, String, fields? : Map[String, String]?) -> Unit

@@ -90,10 +90,10 @@ pub fn MessageHistory::clear(Self) -> Unit
 pub fn MessageHistory::delete_where(Self, (Message) -> Bool) -> Unit
 pub fn MessageHistory::drop_dangling_tool_calls(Self) -> Unit
 pub fn MessageHistory::equal(Self, Self) -> Bool
-pub fn MessageHistory::estimate_tokens(Self) -> Int
+pub fn MessageHistory::estimate_tokens(Self) -> Int32
 pub fn MessageHistory::from_messages(Array[Message]) -> Self
 pub fn MessageHistory::is_empty(Self) -> Bool
-pub fn MessageHistory::last_real_user_index(Self) -> Int?
+pub fn MessageHistory::last_real_user_index(Self) -> Int32?
 pub fn MessageHistory::last_session_context_date(Self) -> String?
 pub fn MessageHistory::mutate_last_matching(Self, (Message) -> Bool, (Message) -> Message) -> Bool
 pub fn MessageHistory::new() -> Self
@@ -106,10 +106,10 @@ pub fn MessageHistory::repair_dangling_tool_calls(Self) -> Unit
 pub fn MessageHistory::replace_all(Self, Array[Message]) -> Unit
 pub fn MessageHistory::replace_system_prompt(Self, String) -> Unit
 pub fn MessageHistory::rollback_before(Self, String) -> Unit
-pub fn MessageHistory::size(Self) -> Int
+pub fn MessageHistory::size(Self) -> Int32
 pub fn MessageHistory::to_api(Self) -> Array[Message]
 pub fn MessageHistory::to_api_cleaned(Self, Bool) -> Array[Message]
-pub fn MessageHistory::truncate_from(Self, Int) -> Unit
+pub fn MessageHistory::truncate_from(Self, Int32) -> Unit
 pub fn MessageHistory::truncate_from_created_at(Self, String) -> Unit
 
 pub(all) enum Role {
@@ -118,7 +118,7 @@ pub(all) enum Role {
   System
   Tool
 } derive(Compare, Eq, @debug.Debug)
-pub fn Role::compare(Self, Self) -> Int
+pub fn Role::compare(Self, Self) -> Int32
 pub fn Role::equal(Self, Self) -> Bool
 pub fn Role::from_string(String) -> Self?
 pub fn Role::not_equal(Self, Self) -> Bool

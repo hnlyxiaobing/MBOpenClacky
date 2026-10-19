@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn calculate_cost(model~ : String, prompt_tokens~ : Int, completion_tokens~ : Int, cache_write_tokens~ : Int, cache_read_tokens~ : Int) -> Result[CostResult, String]
+pub fn calculate_cost(model~ : String, prompt_tokens~ : Int32, completion_tokens~ : Int32, cache_write_tokens~ : Int32, cache_read_tokens~ : Int32) -> Result[CostResult, String]
 
 pub fn get_pricing(String) -> ModelPricing?
 
@@ -47,7 +47,7 @@ pub(all) struct ModelPricing {
   cache_write_over_200k : Double
   cache_read_default : Double
   cache_read_over_200k : Double
-  context_threshold : Int
+  context_threshold : Int32
 } derive(Eq, @debug.Debug)
 pub fn ModelPricing::equal(Self, Self) -> Bool
 pub fn ModelPricing::not_equal(Self, Self) -> Bool
