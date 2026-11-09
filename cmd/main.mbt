@@ -1,6 +1,6 @@
 ///|
 /// MBOpenClacky - AI Agent CLI tool rewritten in MoonBit
-const VERSION : String = "0.3.2"
+const VERSION : String = "0.3.3"
 
 ///|
 async fn main {

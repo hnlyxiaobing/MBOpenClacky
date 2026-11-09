@@ -25,6 +25,11 @@
 
 ## 变更记录
 
+### 2026-11-09  发布 0.3.3（moonbitmark 0.5.1）
+
+- `[chore]` **依赖升级**：`hnlyxiaobing/moonbitmark` 0.5.0 → 0.5.1；registry 依赖全部保持最新。
+- `[test]` `moon check -d` 与全量 scoped 测试 4190/4190 通过，release 构建和 CLI 版本契约通过。
+
 ### 2026-11-09  发布 0.3.2（外部依赖全面升级 + 工具链兼容）
 
 - `[chore]` **依赖升级**：`moon.mod` 全量更新到 registry 最新版本：`moonbitlang/x 0.5.7`、`moonbitlang/async 0.22.7`、`moonbit-community/toml 0.5.1`、`moonbit-community/tty 0.6.2`、`moonbit-community/pty 0.4.4`、`hnlyxiaobing/crescent 0.10.8`，并显式锁定最新传递依赖 `bobzhang/lexer 0.3.1`；其余模块保持最新。前端 Playwright 升至 `1.65.0`，vendored marked 升至 `18.1.3`、KaTeX 升至 `0.19.1`。

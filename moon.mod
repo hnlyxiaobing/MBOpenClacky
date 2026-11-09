@@ -1,6 +1,6 @@
 name = "hnlyxiaobing/MBOpenClacky"
 
-version = "0.3.2"
+version = "0.3.3"
 
 readme = "README.md"
 
@@ -9,7 +9,7 @@ import {
   "moonbitlang/async@0.22.7",
   "moonbit-community/toml@0.5.1",
   "hnlyxiaobing/crescent@0.10.8",
-  "hnlyxiaobing/moonbitmark@0.5.0",
+  "hnlyxiaobing/moonbitmark@0.5.1",
   "moonbit-community/tty@0.6.2",
   "moonbit-community/pty@0.4.4",
   "mizchi/signals@0.6.6",
