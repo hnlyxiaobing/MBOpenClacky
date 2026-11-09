@@ -8,11 +8,12 @@
 
 ///|
 /// System tips severity level.
+#derive(Eq, Debug)
 pub(all) enum TipsType {
   Info
   Warn
   Error
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TipsType with @moonbitlang/core/debug.Debug::{to_repr}

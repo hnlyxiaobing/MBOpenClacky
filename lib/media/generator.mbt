@@ -1,10 +1,11 @@
 ///|
 /// Main entry point for media generation - routes to correct provider
+#derive(Debug)
 pub(all) struct MediaGenerator {
   base_url : String
   api_key : String
   model : String?
-} derive(Debug)
+}
 
 ///|
 pub extend MediaGenerator with @moonbitlang/core/debug.Debug::{to_repr}

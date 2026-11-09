@@ -1,5 +1,6 @@
 ///|
 /// Configuration for a single LLM model endpoint.
+#derive(Eq, Debug, ToJson)
 pub(all) struct ModelConfig {
   /// Model entry id (runtime-only, not persisted; injected when missing).
   mut id : String
@@ -12,7 +13,7 @@ pub(all) struct ModelConfig {
   mut runtime_id : String
   /// Optional media type tag: None=general, "image", "video", "audio", "ocr"
   mut media_type : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ModelConfig with @moonbitlang/core/debug.Debug::{to_repr}

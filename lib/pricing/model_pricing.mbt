@@ -6,6 +6,7 @@
 
 ///|
 /// Supports different pricing tiers based on prompt length and prompt caching.
+#derive(Eq, Debug)
 pub(all) struct ModelPricing {
   input_default : Double
   input_over_200k : Double
@@ -16,7 +17,7 @@ pub(all) struct ModelPricing {
   cache_read_default : Double
   cache_read_over_200k : Double
   context_threshold : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ModelPricing with @moonbitlang/core/debug.Debug::{to_repr}

@@ -8,12 +8,13 @@
 
 ///|
 /// Decision returned by `PatchChain::check_before`.
+#derive(Eq, Debug)
 pub(all) enum PatchAction {
   /// Allow the tool call to proceed.
   Allow
   /// Block the tool call, attaching a reason surfaced to the agent.
   Block(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PatchAction with @moonbitlang/core/debug.Debug::{to_repr}
@@ -29,6 +30,7 @@ pub extend PatchAction with Eq::{not_equal, equal}
 /// 2. Imperative — `command` is a shell script that must print `BLOCK` or
 ///    `ALLOW`. The tool/args patterns are still matched first as a fast
 ///    prefilter; the command is only executed when the prefilter matches.
+#derive(Debug)
 pub(all) struct PatchRule {
   /// Human-readable rule name.
   name : String
@@ -43,7 +45,7 @@ pub(all) struct PatchRule {
   action : PatchAction
   /// Imperative shell command (only used when prefilter matches).
   command : String
-} derive(Debug)
+}
 
 ///|
 pub extend PatchRule with @moonbitlang/core/debug.Debug::{to_repr}
@@ -51,6 +53,7 @@ pub extend PatchRule with @moonbitlang/core/debug.Debug::{to_repr}
 ///|
 /// Single audit-log entry. One entry is appended for every
 /// `check_before` decision and every `check_after` post-execution summary.
+#derive(Debug)
 pub(all) struct PatchAuditEntry {
   /// Rule name (or "<post-exec>" for after-hook summary).
   rule_name : String
@@ -64,7 +67,7 @@ pub(all) struct PatchAuditEntry {
   action : String
   /// Timestamp (ms since epoch).
   timestamp : Int64
-} derive(Debug)
+}
 
 ///|
 pub extend PatchAuditEntry with @moonbitlang/core/debug.Debug::{to_repr}

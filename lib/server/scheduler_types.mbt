@@ -1,5 +1,6 @@
 ///|
 /// A scheduled task
+#derive(Eq, Debug, ToJson)
 pub(all) struct Schedule {
   name : String
   task_name : String
@@ -8,7 +9,7 @@ pub(all) struct Schedule {
   mut last_run_at : Int32?
   mut next_run_at : Int32?
   mut run_count : Int32
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Schedule with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,11 +22,12 @@ pub extend Schedule with ToJson::{to_json}
 
 ///|
 /// Scheduler configuration
+#derive(Eq, Debug, ToJson)
 pub(all) struct SchedulerConfig {
   schedules : Array[Schedule]
   tasks_dir : String
   config_path : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SchedulerConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -38,11 +40,12 @@ pub extend SchedulerConfig with ToJson::{to_json}
 
 ///|
 /// Scheduler state
+#derive(Eq, Debug, ToJson)
 pub(all) enum SchedulerState {
   Stopped
   Running
   Paused
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SchedulerState with @moonbitlang/core/debug.Debug::{to_repr}
@@ -60,9 +63,10 @@ pub extend SchedulerState with ToJson::{to_json}
 /// ordinary `Result[T, SchedulerError]` values that callers match on, and never
 /// `raise`/`catch` them. Keeping it out of the native `Error` hierarchy avoids
 /// the `result_error_return` (E0078) warning on every `Result` signature.
+#derive(ToJson, Debug)
 pub(all) enum SchedulerError {
   SchedulerError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend SchedulerError with @moonbitlang/core/debug.Debug::{to_repr}

@@ -1,10 +1,11 @@
 ///|
 /// Result of a skill execution.
+#derive(Eq, Debug, ToJson)
 pub(all) struct SkillResult {
   success : Bool
   output : String
   skill_name : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SkillResult with @moonbitlang/core/debug.Debug::{to_repr}

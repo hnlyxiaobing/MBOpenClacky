@@ -6,12 +6,13 @@
 
 ///|
 /// Represents a bound device identity.
+#derive(Eq, Debug, ToJson)
 pub(all) struct Identity {
   device_token : String
   user_id : String
   bound_at : Int64
   device_info : DeviceInfo
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Identity with @moonbitlang/core/debug.Debug::{to_repr}

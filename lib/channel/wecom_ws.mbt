@@ -30,6 +30,7 @@ pub const WECOM_DEFAULT_CHUNK_SIZE : Int32 = 524288
 
 ///|
 /// WeCom WebSocket frame types.
+#derive(Eq, Debug)
 pub(all) enum WeComFrameType {
   /// aibot_subscribe authentication frame
   Subscribe
@@ -43,7 +44,7 @@ pub(all) enum WeComFrameType {
   Ack
   /// Incoming data message
   Data
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WeComFrameType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -428,6 +429,7 @@ pub fn needs_ack(frame_type : WeComFrameType) -> Bool {
 
 ///|
 /// What the receive loop must do with one inbound frame.
+#derive(Eq, Debug)
 pub(all) enum WsInboundAction {
   /// Nothing actionable (response-only or unparseable frame).
   Ignore
@@ -439,7 +441,7 @@ pub(all) enum WsInboundAction {
   Dispatch(req_id~ : String, data~ : Json)
   /// Credentials were rejected — reconnecting would only repeat the failure.
   Fatal(message~ : String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WsInboundAction with @moonbitlang/core/debug.Debug::{to_repr}

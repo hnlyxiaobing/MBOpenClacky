@@ -1,11 +1,12 @@
 ///|
 /// Vision processing result status
+#derive(Eq, Debug, ToJson)
 pub(all) enum VisionStatus {
   Ok
   Empty
   CallFailed
   BadImage
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend VisionStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -18,12 +19,13 @@ pub extend VisionStatus with ToJson::{to_json}
 
 ///|
 /// Vision processing result
+#derive(Eq, Debug, ToJson)
 pub(all) struct VisionResult {
   status : VisionStatus
   text : String?
   error : String?
   cached : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend VisionResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -36,17 +38,19 @@ pub extend VisionResult with ToJson::{to_json}
 
 ///|
 /// Image input types
+#derive(Debug)
 pub(all) enum VisionInput {
   VisionBytes(Bytes)
   DataUrl(String)
   FilePath(String)
-} derive(Debug)
+}
 
 ///|
 pub extend VisionInput with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Vision resolver configuration
+#derive(Eq, Debug)
 pub(all) struct VisionConfig {
   api_key : String
   base_url : String
@@ -54,7 +58,7 @@ pub(all) struct VisionConfig {
   max_tokens : Int32
   cache_dir : String
   default_prompt : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend VisionConfig with @moonbitlang/core/debug.Debug::{to_repr}

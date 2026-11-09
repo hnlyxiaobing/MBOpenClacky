@@ -13,6 +13,7 @@
 
 ///|
 /// Entry type hinting the renderer about expected behavior.
+#derive(Eq, Debug)
 pub(all) enum OutputKind {
   /// Normal text output (user messages, agent responses).
   Text
@@ -20,7 +21,7 @@ pub(all) enum OutputKind {
   Progress
   /// System messages (errors, status, tool output).
   System
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend OutputKind with @moonbitlang/core/debug.Debug::{to_repr}
@@ -30,6 +31,7 @@ pub extend OutputKind with Eq::{not_equal, equal}
 
 ///|
 /// A single output entry in the buffer.
+#derive(Debug)
 pub(all) struct OutputEntry {
   /// Unique monotonic identifier.
   id : Int32
@@ -43,7 +45,7 @@ pub(all) struct OutputEntry {
   mut committed_line_offset : Int32
   /// Whether this entry is collapsed (showing only first N lines).
   mut collapsed : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend OutputEntry with @moonbitlang/core/debug.Debug::{to_repr}

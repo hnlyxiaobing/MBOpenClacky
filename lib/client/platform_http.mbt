@@ -4,6 +4,7 @@
 
 ///|
 /// Platform HTTP client configuration.
+#derive(Debug, Eq)
 pub struct PlatformHttpConfig {
   primary_host : String
   secondary_host : String
@@ -13,7 +14,7 @@ pub struct PlatformHttpConfig {
   max_retries : Int32
   initial_backoff_ms : Int32
   proxy_url : String
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend PlatformHttpConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -49,24 +50,26 @@ pub fn PlatformHttpConfig::new(
 
 ///|
 /// HTTP response returned from platform requests.
+#derive(Debug)
 pub(all) struct HttpResponse {
   status_code : Int32
   body : String
   headers : Array[(String, String)]
-} derive(Debug)
+}
 
 ///|
 pub extend HttpResponse with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// HTTP request method.
+#derive(Debug)
 pub enum HttpMethod {
   Get
   Post
   Put
   Delete
   Patch
-} derive(Debug)
+}
 
 ///|
 pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
@@ -75,13 +78,14 @@ pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}
 /// HTTP request error types.
 // `ServerError` / `ClientError` classify a completed request whose status code
 // is an error (see `classify_response`).
+#derive(Debug)
 pub enum HttpError {
   Timeout(String)
   ConnectionFailed(String)
   ServerError(Int32, String)
   ClientError(Int32, String)
   AllHostsFailed(String)
-} derive(Debug)
+}
 
 ///|
 pub extend HttpError with @moonbitlang/core/debug.Debug::{to_repr}

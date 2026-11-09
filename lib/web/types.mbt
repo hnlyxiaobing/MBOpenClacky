@@ -38,18 +38,20 @@ fn model_to_web_json(m : @config.ModelConfig) -> Json {
 
 ///|
 /// Request body for POST /api/sessions/:id/chat
+#derive(FromJson)
 pub(all) struct ChatRequest {
   message : String
-} derive(FromJson)
+}
 
 ///|
 pub extend ChatRequest with @moonbitlang/core/json.FromJson::{from_json}
 
 ///|
 /// Request body for POST /api/sessions
+#derive(FromJson)
 pub(all) struct CreateSessionRequest {
   name : String?
-} derive(FromJson)
+}
 
 ///|
 pub extend CreateSessionRequest with @moonbitlang/core/json.FromJson::{
@@ -58,12 +60,13 @@ pub extend CreateSessionRequest with @moonbitlang/core/json.FromJson::{
 
 ///|
 /// Request body for PUT /api/config
+#derive(FromJson)
 pub(all) struct UpdateConfigRequest {
   permission_mode : String?
   max_tokens : Int32?
   verbose : Bool?
   max_tokens_request : Int32? // moonbit limitation: field name 'max_tokens' clashes, use workaround
-} derive(FromJson)
+}
 
 ///|
 pub extend UpdateConfigRequest with @moonbitlang/core/json.FromJson::{from_json}
@@ -72,10 +75,11 @@ pub extend UpdateConfigRequest with @moonbitlang/core/json.FromJson::{from_json}
 /// Latency summary embedded in SessionSummary as `latest_latency`.
 /// The frontend reads `lat.ttft_ms` as the visibility condition for the
 /// latency signal, so the object shape (not a bare ms number) is required.
+#derive(Eq, Debug)
 pub(all) struct SessionLatency {
   ttft_ms : Int32?
   duration_ms : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionLatency with @moonbitlang/core/debug.Debug::{to_repr}

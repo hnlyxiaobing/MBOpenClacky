@@ -3,13 +3,14 @@
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
+#derive(FromJson)
 struct OCRConfigUpdateRequest {
   source : String?
   model : String?
   base_url : String?
   api_key : String?
   anthropic_format : Bool?
-} derive(FromJson)
+}
 
 ///|
 pub extend OCRConfigUpdateRequest with @moonbitlang/core/json.FromJson::{
@@ -17,32 +18,35 @@ pub extend OCRConfigUpdateRequest with @moonbitlang/core/json.FromJson::{
 }
 
 ///|
+#derive(ToJson)
 struct OCRConfigResponse {
   ok : Bool
   source : String
   model : String?
   message : String?
-} derive(ToJson)
+}
 
 ///|
 pub extend OCRConfigResponse with ToJson::{to_json}
 
 ///|
+#derive(ToJson)
 struct OCRTestResponse {
   ok : Bool
   text : String?
   error : String?
-} derive(ToJson)
+}
 
 ///|
 pub extend OCRTestResponse with ToJson::{to_json}
 
 ///|
+#derive(FromJson)
 struct OCRImageRequest {
   data_url : String?
   path : String?
   prompt : String?
-} derive(FromJson)
+}
 
 ///|
 pub extend OCRImageRequest with @moonbitlang/core/json.FromJson::{from_json}

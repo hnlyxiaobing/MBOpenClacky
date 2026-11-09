@@ -7,12 +7,13 @@
 // ── Core Types ────────────────────────────────────────────────────
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum HttpMethod {
   GET
   POST
   PUT
   DELETE
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend HttpMethod with @moonbitlang/core/debug.Debug::{to_repr}

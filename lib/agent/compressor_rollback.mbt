@@ -20,12 +20,13 @@
 
 ///|
 /// Outcome of a single compression attempt.
+#derive(Eq, Debug)
 pub enum CompressionResult {
   /// Compression succeeded; carries savings stats.
   Success(CompressionStats)
   /// Compression failed; carries error message. History is restored to backup.
   Failed(String)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompressionResult with @moonbitlang/core/debug.Debug::{to_repr}

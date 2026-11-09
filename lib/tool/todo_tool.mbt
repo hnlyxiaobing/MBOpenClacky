@@ -5,7 +5,8 @@
 /// (lib/agent/tool_executor.mbt). The parameters/description/format
 /// surface mirrors the Ruby TodoManager tool (schema: action enum with
 /// polymorphic `task`/`id` accepting scalar or array).
-pub(all) struct TodoTool {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct TodoTool {}
 
 ///|
 pub extend TodoTool with @moonbitlang/core/debug.Debug::{to_repr}

@@ -1,9 +1,10 @@
 ///|
 /// Message content can be plain text or an array of content blocks.
+#derive(Eq, Debug)
 pub(all) enum MessageContent {
   Text(String)
   Blocks(Array[ContentBlock])
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MessageContent with @moonbitlang/core/debug.Debug::{to_repr}
@@ -39,6 +40,7 @@ impl FromJson for MessageContent with fn from_json(json, path) {
 
 ///|
 /// Core fields are sent to the API; internal fields are stripped before API calls.
+#derive(Eq, Debug)
 pub(all) struct Message {
   // Core fields (sent to API)
   role : Role
@@ -76,7 +78,7 @@ pub(all) struct Message {
   token_usage : Json?
   compressed_summary : String?
   transient : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Message with @moonbitlang/core/debug.Debug::{to_repr}

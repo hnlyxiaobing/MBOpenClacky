@@ -7,6 +7,7 @@
 
 ///|
 /// Configuration options for the agent hook handler.
+#derive(Debug)
 pub(all) struct HookHandlerConfig {
   /// Whether to track tool execution history.
   track_tool_history : Bool
@@ -14,7 +15,7 @@ pub(all) struct HookHandlerConfig {
   track_llm_calls : Bool
   /// Whether to maintain a phase stack.
   track_phases : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend HookHandlerConfig with @moonbitlang/core/debug.Debug::{to_repr}

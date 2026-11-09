@@ -42,29 +42,29 @@
 
 | 位置 | 标记 | 摘要 |
 |---|---|---|
-| cmd/channel_scaffold.mbt:88 | stub | "///\|\n/// \{platform} channel adapter implementation.\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config\n} derive(Debug |
+| cmd/channel_scaffold.mbt:88 | stub | "///\|\n/// \{platform} channel adapter implementation.\n#derive(Debug)\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config |
 | lib/agent/diagnostics.mbt:9 | stub | /// Write one diagnostic line to stderr (a newline is appended by the stub). |
 | lib/agent/react.mbt:415 | not-yet | // here — not yet ported.) |
-| lib/brand/crypto.mbt:215 | stub | // ---- WASM fallback stubs ---- |
-| lib/brand/device.mbt:33 | TODO | /// TODO: Replace with FFI to GetComputerNameW / gethostname(). |
-| lib/brand/device.mbt:47 | TODO | /// TODO: Replace with FFI to GetUserNameW / getpwuid(). |
-| lib/brand/license.mbt:104 | stub | /// Activate license. HTTP call is stubbed. |
-| lib/brand/license.mbt:129 | TODO | // TODO: HTTP POST /api/v1/licenses/activate |
-| lib/brand/license.mbt:146 | TODO | // TODO: HTTP POST /api/v1/licenses/deactivate |
-| lib/brand/license.mbt:166 | stub | /// Send heartbeat. HTTP call is stubbed. |
-| lib/brand/license.mbt:187 | TODO | // TODO: HTTP POST /api/v1/licenses/heartbeat |
-| lib/brand/skill_manager.mbt:327 | TODO | // TODO: HTTP GET /api/v1/skills/download?name=<name> |
-| lib/brand/skill_manager.mbt:328 | stub | Err("HTTP client not available (stub)") |
-| lib/brand/skill_manager.mbt:342 | TODO | // TODO: 实际解密逻辑（XOR 占位） |
-| lib/brand/skill_manager.mbt:364 | TODO | // TODO: 实际远程版本检查逻辑 |
-| lib/brand/skill_manager.mbt:389 | TODO | // TODO: HTTP GET /api/v1/skills/available |
-| lib/brand/skill_manager.mbt:390 | stub | Err("HTTP client not available (stub)") |
-| lib/brand/skill_manager.mbt:397 | TODO | // TODO: HTTP GET /api/v1/skills/available (raw JSON) |
-| lib/brand/skill_manager.mbt:406 | TODO | // TODO: HTTP GET /api/v1/skills/<name> |
-| lib/brand/skill_manager.mbt:407 | stub | Err("HTTP client not available (stub)") |
-| lib/brand/skill_manager.mbt:530 | TODO | // TODO: 标记技能为启用状态 |
-| lib/brand/skill_manager.mbt:540 | TODO | // TODO: 标记技能为禁用状态 |
-| lib/brand/skill_manager.mbt:550 | TODO | // TODO: 查询技能启用状态 |
+| lib/brand/crypto.mbt:216 | stub | // ---- WASM fallback stubs ---- |
+| lib/brand/device.mbt:34 | TODO | /// TODO: Replace with FFI to GetComputerNameW / gethostname(). |
+| lib/brand/device.mbt:48 | TODO | /// TODO: Replace with FFI to GetUserNameW / getpwuid(). |
+| lib/brand/license.mbt:105 | stub | /// Activate license. HTTP call is stubbed. |
+| lib/brand/license.mbt:130 | TODO | // TODO: HTTP POST /api/v1/licenses/activate |
+| lib/brand/license.mbt:147 | TODO | // TODO: HTTP POST /api/v1/licenses/deactivate |
+| lib/brand/license.mbt:167 | stub | /// Send heartbeat. HTTP call is stubbed. |
+| lib/brand/license.mbt:188 | TODO | // TODO: HTTP POST /api/v1/licenses/heartbeat |
+| lib/brand/skill_manager.mbt:328 | TODO | // TODO: HTTP GET /api/v1/skills/download?name=<name> |
+| lib/brand/skill_manager.mbt:329 | stub | Err("HTTP client not available (stub)") |
+| lib/brand/skill_manager.mbt:343 | TODO | // TODO: 实际解密逻辑（XOR 占位） |
+| lib/brand/skill_manager.mbt:365 | TODO | // TODO: 实际远程版本检查逻辑 |
+| lib/brand/skill_manager.mbt:390 | TODO | // TODO: HTTP GET /api/v1/skills/available |
+| lib/brand/skill_manager.mbt:391 | stub | Err("HTTP client not available (stub)") |
+| lib/brand/skill_manager.mbt:398 | TODO | // TODO: HTTP GET /api/v1/skills/available (raw JSON) |
+| lib/brand/skill_manager.mbt:407 | TODO | // TODO: HTTP GET /api/v1/skills/<name> |
+| lib/brand/skill_manager.mbt:408 | stub | Err("HTTP client not available (stub)") |
+| lib/brand/skill_manager.mbt:531 | TODO | // TODO: 标记技能为启用状态 |
+| lib/brand/skill_manager.mbt:541 | TODO | // TODO: 标记技能为禁用状态 |
+| lib/brand/skill_manager.mbt:551 | TODO | // TODO: 查询技能启用状态 |
 | lib/client/client.mbt:15 | stub | ///\| synchronous stubs that build requests and parse responses using |
 | lib/extension/verifier.mbt:159 | not-yet | /// Validate dependencies. MVP: just warn that automatic resolution is not yet implemented. |
 | lib/mcp/stdio_transport.mbt:35 | stub | /// (WASM stub - process spawning not supported). |
@@ -88,26 +88,26 @@
 | lib/telemetry/telemetry.mbt:110 | TODO,placeholder | // HTTP POST (placeholder: TODO FFI, fire-and-forget background) |
 | lib/telemetry/telemetry.mbt:127 | placeholder | // Check for Docker indicators (placeholder) |
 | lib/telemetry/telemetry.mbt:146 | placeholder | // Simple deterministic hash (placeholder for SHA256) |
-| lib/tool/browser.mbt:483 | stub | /// Falls back to a stub error message when MCP is not connected. |
+| lib/tool/browser.mbt:485 | stub | /// Falls back to a stub error message when MCP is not connected. |
 | lib/tool/pty_session_wasm.mbt:6 | stub | /// wasm stub of execute_command_sync, which reports failure (-1). |
 | lib/tool/pty_session_wasm.mbt:10 | stub | /// (stubbed) synchronous executor. |
 | lib/tool/registry.mbt:59 | not-yet | // Other tool aliases (not yet implemented, but registered for future use) |
-| lib/tui/theme.mbt:155 | stub | /// Currently returns `false` (dark background assumed). This stub can |
+| lib/tui/theme.mbt:157 | stub | /// Currently returns `false` (dark background assumed). This stub can |
 | lib/tui/todo_area.mbt:4 | stub | /// Phase 0 stub: keeps the struct and data methods, removes onebit-tui |
-| lib/utils/browser_detector.mbt:140 | TODO | /// Detect installed browsers (TODO: FFI needed for filesystem scan). |
-| lib/utils/browser_detector.mbt:142 | TODO | // TODO: implement via FFI filesystem scan |
-| lib/utils/epipe_safe_io.mbt:20 | stub | /// Safe write to stdout. In wasm-gc target this is a stub that always succeeds. |
+| lib/utils/browser_detector.mbt:142 | TODO | /// Detect installed browsers (TODO: FFI needed for filesystem scan). |
+| lib/utils/browser_detector.mbt:144 | TODO | // TODO: implement via FFI filesystem scan |
+| lib/utils/epipe_safe_io.mbt:21 | stub | /// Safe write to stdout. In wasm-gc target this is a stub that always succeeds. |
 | lib/web/ext_dispatcher.mbt:7 | stub | /// temporary body file. When `command` is empty, it falls back to a stub |
 | lib/web/ext_dispatcher.mbt:143 | stub | " (stub)" |
 | lib/web/ext_dispatcher.mbt:427 | stub | /// If `command` is empty, the handler returns a stub response and logs a warning. |
 | lib/web/ext_dispatcher.mbt:446 | stub | "[ExtensionDispatcher]   WARNING: route \{name}\{route_path} (\{handler_name}) has no command — returning stub", |
 | lib/web/ext_dispatcher.mbt:469 | stub | let body = "{\"extension\":\"\{name}\",\"handler\":\"\{handler_name}\",\"timeout_ms\":\{timeout},\"status\":\"stub\"}" |
-| lib/web/ext_loader.mbt:14 | stub | /// Shell command to execute for this route (empty = stub fallback) |
+| lib/web/ext_loader.mbt:15 | stub | /// Shell command to execute for this route (empty = stub fallback) |
 | lib/web/handlers_extra.mbt:13 | not-yet | /// capability not yet exposed by the git_exec layer, so it is deferred; |
 | lib/web/handlers_extra.mbt:1189 | stub | /// Returns a stub response; full task-snapshot diff requires deeper infra. |
 | lib/web/handlers_extra.mbt:1215 | stub | /// POST /api/sessions/:id/time_machine/:task_id/restore_preview — restore preview stub. |
 | lib/web/handlers_store.mbt:225 | not-yet | "Remote extension download is not yet supported. Install from local path instead.", |
-| lib/web/handlers_version.mbt:287 | not-yet | message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.", |
+| lib/web/handlers_version.mbt:289 | not-yet | message: "Restart signal accepted. Standalone mode requires manual restart; worker mode is not yet wired.", |
 
 <!-- END: auto-scan -->
 
@@ -137,26 +137,26 @@
 | cmd/channel_scaffold.mbt:88 | open | 范围外（channel 脚手架） | 脚手架模板生成的适配器为有意起点代码 |
 | lib/agent/react.mbt:415 | open | 范围外（vision） | 无视觉模型时 Ruby 的 OCR 回退未移植 |
 | lib/agent/diagnostics.mbt:9 | retracted | 误报（域术语） | 注释里的 "stub" 指实现 stderr 路由的 **C stub 本体**（`stderr_stub.c` 的 `mbopenclacky_write_stderr`，由 `write_diagnostic` 调用），属实现本体而非占位——与 `pty_stubs.c`/`time_stub.c` 同类。建议后续并入 §抑制规则 的 C 辅助文件族 |
-| lib/brand/crypto.mbt:215 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/device.mbt:33 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/device.mbt:47 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/license.mbt:104 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/license.mbt:129 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/license.mbt:146 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/license.mbt:166 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/license.mbt:187 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:327 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/crypto.mbt:216 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/device.mbt:34 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/device.mbt:48 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/license.mbt:105 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/license.mbt:130 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/license.mbt:147 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/license.mbt:167 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/license.mbt:188 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:328 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:342 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:364 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:389 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:329 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:343 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:365 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:390 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:397 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:406 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:391 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:398 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/brand/skill_manager.mbt:407 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:530 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:540 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
-| lib/brand/skill_manager.mbt:550 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:408 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:531 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:541 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
+| lib/brand/skill_manager.mbt:551 | open | 范围外（brand） | 品牌服务端 HTTP 调用为 stub（激活/心跳/技能商店） |
 | lib/client/client.mbt:15 | open | 范围外（client） | 注释疑似过时：S-FFI-06 已迁移 @async/http，需更新注释 |
 | lib/extension/verifier.mbt:159 | open | 范围外（extension） | 依赖自动解析未实现，仅警告 |
 | lib/mcp/stdio_transport.mbt:35 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
@@ -180,25 +180,25 @@
 | lib/telemetry/telemetry.mbt:110 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:127 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
 | lib/telemetry/telemetry.mbt:146 | open | 范围外（telemetry） | HTTP POST/容器检测/SHA256 为占位 |
-| lib/tool/browser.mbt:483 | open | 范围外（browser 工具） | MCP 未连接时的回退错误消息（设计行为：无 MCP 则无法调用浏览器工具，诚实报错） |
+| lib/tool/browser.mbt:485 | open | 范围外（browser 工具） | MCP 未连接时的回退错误消息（设计行为：无 MCP 则无法调用浏览器工具，诚实报错） |
 | lib/tool/pty_session_wasm.mbt:6 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/tool/pty_session_wasm.mbt:10 | open | 范围外（wasm） | wasm 目标回退 stub（native 路径真实实现） |
 | lib/tool/registry.mbt:59 | open | 范围外（tool 别名） | 部分别名注册但未实现 |
-| lib/tui/theme.mbt:155 | open | 范围外（TUI） | 终端背景色检测固定为深色 |
+| lib/tui/theme.mbt:157 | open | 范围外（TUI） | 终端背景色检测固定为深色 |
 | lib/tui/todo_area.mbt:4 | open | 范围外（TUI） | Phase 0 占位（结构保留） |
-| lib/utils/browser_detector.mbt:140 | open | 范围外（browser 运维） | 浏览器检测 FFI 未实现 |
 | lib/utils/browser_detector.mbt:142 | open | 范围外（browser 运维） | 浏览器检测 FFI 未实现 |
-| lib/utils/epipe_safe_io.mbt:20 | open | 范围外（wasm） | wasm 目标回退 stub |
+| lib/utils/browser_detector.mbt:144 | open | 范围外（browser 运维） | 浏览器检测 FFI 未实现 |
+| lib/utils/epipe_safe_io.mbt:21 | open | 范围外（wasm） | wasm 目标回退 stub |
 | lib/web/ext_dispatcher.mbt:7 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:143 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:427 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:446 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/ext_dispatcher.mbt:469 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
-| lib/web/ext_loader.mbt:14 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
+| lib/web/ext_loader.mbt:15 | open | 范围外（extension） | 无 command 的扩展路由返回 stub 响应（已文档化的回退契约） |
 | lib/web/handlers_extra.mbt:13 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1189 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_extra.mbt:1215 | open | 范围外（web） | 任务快照 diff / restore_preview 为 stub |
 | lib/web/handlers_store.mbt:225 | open | 范围外（extension） | 远程扩展下载不支持（提示本地安装） |
-| lib/web/handlers_version.mbt:287 | open | 范围外（web） | worker 模式重启未接线 |
+| lib/web/handlers_version.mbt:289 | open | 范围外（web） | worker 模式重启未接线 |
 
 <!-- END: curation -->

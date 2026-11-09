@@ -8,10 +8,11 @@
 
 ///|
 /// A single parsed SSE frame with event type and data payload.
+#derive(Eq, Debug)
 pub(all) struct SseFrame {
   event : String
   data : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SseFrame with @moonbitlang/core/debug.Debug::{to_repr}

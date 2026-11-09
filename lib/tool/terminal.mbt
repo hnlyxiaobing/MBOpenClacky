@@ -384,10 +384,11 @@ fn poll_background_session(session : TerminalSession) -> (String, Bool, Int32) {
 
 ///|
 /// Terminal tool struct.
+#derive(Eq, Debug)
 pub(all) struct Terminal {
   timeout : Int32
   max_output_chars : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Terminal with @moonbitlang/core/debug.Debug::{to_repr}

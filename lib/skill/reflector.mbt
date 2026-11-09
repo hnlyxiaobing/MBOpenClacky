@@ -8,12 +8,13 @@ pub(all) struct SkillReflector {
 
 ///|
 /// Report generated after reflecting on a skill execution.
+#derive(Eq, Debug)
 pub(all) struct ReflectionReport {
   skill_name : String
   performance_score : Int32
   suggestions : Array[String]
   should_improve : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ReflectionReport with @moonbitlang/core/debug.Debug::{to_repr}
@@ -112,10 +113,11 @@ pub fn SkillReflector::reflect(
 /// `revised_skill_md` is `None` when the model declined to produce a rewrite
 /// (e.g. it judged the skill definition already adequate) or supplied an empty
 /// string.
+#derive(Eq, Debug)
 pub(all) struct ReflectionProposal {
   suggestions : Array[String]
   revised_skill_md : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ReflectionProposal with @moonbitlang/core/debug.Debug::{to_repr}

@@ -3,7 +3,8 @@
 ///|
 /// The actual execution is intercepted and handled in the agent context
 /// (lib/agent/tool_executor.mbt). This stub returns a placeholder message.
-pub(all) struct MemoryTool {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct MemoryTool {}
 
 ///|
 pub extend MemoryTool with @moonbitlang/core/debug.Debug::{to_repr}

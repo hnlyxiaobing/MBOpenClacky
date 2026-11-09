@@ -1,22 +1,24 @@
 ///|
 /// Hook configuration loaded from a hook definition file.
+#derive(Debug)
 pub(all) struct HookConfig {
   name : String
   event : String
   command : String
   enabled : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend HookConfig with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Context passed to hooks when they execute.
+#derive(Debug)
 pub(all) struct HookContext {
   session_id : String
   message : String?
   working_dir : String
-} derive(Debug)
+}
 
 ///|
 pub extend HookContext with @moonbitlang/core/debug.Debug::{to_repr}

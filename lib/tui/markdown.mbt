@@ -6,6 +6,7 @@
 
 ///|
 /// Markdown token types produced by the tokenizer.
+#derive(Eq, Debug)
 pub(all) enum MarkdownToken {
   Heading(level~ : Int32, text~ : String)
   Bold(text~ : String)
@@ -19,7 +20,7 @@ pub(all) enum MarkdownToken {
   TaskItem(checked~ : Bool, text~ : String)
   Link(text~ : String, url~ : String)
   Table(headers~ : Array[String], rows~ : Array[Array[String]])
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MarkdownToken with @moonbitlang/core/debug.Debug::{to_repr}
@@ -29,9 +30,10 @@ pub extend MarkdownToken with Eq::{not_equal, equal}
 
 ///|
 /// Renderer that converts Markdown to ANSI-colored strings.
+#derive(Debug)
 pub(all) struct MarkdownRenderer {
   theme : Theme
-} derive(Debug)
+}
 
 ///|
 pub extend MarkdownRenderer with @moonbitlang/core/debug.Debug::{to_repr}

@@ -1,12 +1,13 @@
 ///|
 /// Information about a brand skill (installed or available).
+#derive(Eq, Debug, ToJson)
 pub struct BrandSkillInfo {
   name : String
   version : String
   description : String
   installed : Bool
   encrypted : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BrandSkillInfo with @moonbitlang/core/debug.Debug::{to_repr}

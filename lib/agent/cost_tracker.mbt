@@ -14,12 +14,13 @@
 
 ///|
 /// - Estimated: rough token-based estimate
+#derive(Eq, Debug)
 pub(all) enum CostSource {
   Api
   Price
   Default
   Estimated
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CostSource with @moonbitlang/core/debug.Debug::{to_repr}
@@ -47,12 +48,13 @@ pub impl ToJson for CostSource with fn to_json(self) {
 
 ///|
 /// Cache hit/miss statistics for prompt caching.
+#derive(Eq, Debug)
 pub(all) struct CacheStats {
   mut cache_creation_input_tokens : Int32
   mut cache_read_input_tokens : Int32
   mut total_requests : Int32
   mut cache_hit_requests : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CacheStats with @moonbitlang/core/debug.Debug::{to_repr}
@@ -73,6 +75,7 @@ pub fn CacheStats::new() -> CacheStats {
 
 ///|
 /// Token data collected from a single LLM iteration.
+#derive(Eq, Debug)
 pub(all) struct IterationTokenData {
   delta_tokens : Int32
   prompt_tokens : Int32
@@ -82,7 +85,7 @@ pub(all) struct IterationTokenData {
   cache_read : Int32
   cost : Double
   cost_source : CostSource
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend IterationTokenData with @moonbitlang/core/debug.Debug::{to_repr}

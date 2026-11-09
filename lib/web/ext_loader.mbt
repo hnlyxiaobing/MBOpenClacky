@@ -4,6 +4,7 @@
 
 ///|
 /// A single route defined by an API extension.
+#derive(Debug)
 pub(all) struct ExtensionRoute {
   /// HTTP method: "GET", "POST", "PUT", "DELETE", etc.
   http_method : String
@@ -17,13 +18,14 @@ pub(all) struct ExtensionRoute {
   description : String
   /// Per-route execution timeout in milliseconds (default 30 000)
   timeout_ms : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend ExtensionRoute with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// API extension loaded from an extension descriptor file.
+#derive(Debug)
 pub(all) struct ApiExtension {
   /// Unique extension name
   name : String
@@ -33,7 +35,7 @@ pub(all) struct ApiExtension {
   routes : Array[ExtensionRoute]
   /// Whether this extension is active
   enabled : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend ApiExtension with @moonbitlang/core/debug.Debug::{to_repr}

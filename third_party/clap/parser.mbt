@@ -26,6 +26,7 @@ pub fn Parser::new(
 }
 
 ///|
+#derive(Debug)
 pub(all) suberror ParserError {
   InvalidArgumentName(String)
   InvalidSubCommandName(String)
@@ -34,7 +35,7 @@ pub(all) suberror ParserError {
   InvalidArgumentValueLength(String)
   TooManyArgs(String)
   InvalidSpec(String)
-} derive(Debug)
+}
 
 ///|
 pub impl Show for ParserError with fn output(self, logger) {

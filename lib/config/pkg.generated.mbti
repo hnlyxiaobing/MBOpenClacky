@@ -26,6 +26,7 @@ pub fn model_supports_vision(String?, String) -> Bool
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct AgentConfig {
   mut permission_mode : PermissionMode
   mut max_tokens : Int32
@@ -36,7 +37,7 @@ pub(all) struct AgentConfig {
   mut models : Array[ModelConfig]
   mut current_model_id : String?
   mut memory_update_enabled : Bool
-  mut skill_evolution : Json?
+  mut skill_evolution : @json.Json?
   mut max_running_agents : Int32
   mut max_idle_agents : Int32
   mut proxy_url : String
@@ -47,7 +48,7 @@ pub(all) struct AgentConfig {
   mut env_source : String
   mut default_working_dir : String?
   mut clacky_license_server : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn AgentConfig::add_model(Self, ModelConfig) -> Unit
 pub fn AgentConfig::apply_env_overlay(Self) -> Self
 pub fn AgentConfig::current_model(Self) -> ModelConfig?
@@ -69,35 +70,38 @@ pub fn AgentConfig::set_default_model_by_id(Self, String) -> Result[Unit, String
 pub fn AgentConfig::set_model_type(Self, Int32, String?) -> Bool
 pub fn AgentConfig::switch_model_by_id(Self, String) -> Result[Unit, String]
 pub fn AgentConfig::switch_model_by_name(Self, String) -> Result[Unit, String]
-pub fn AgentConfig::to_json(Self) -> Json
+pub fn AgentConfig::to_json(Self) -> @json.Json
 pub fn AgentConfig::to_repr(Self) -> @debug.Repr
 pub fn AgentConfig::virtual_model_overlay(Self, ModelConfig) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ApiType {
   OpenAICompletions
   AnthropicMessages
   Bedrock
   OpenAIResponses
-} derive(Eq, @debug.Debug)
+}
 pub fn ApiType::equal(Self, Self) -> Bool
-pub fn ApiType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ApiType::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ApiType::from_string(String) -> Self?
 pub fn ApiType::not_equal(Self, Self) -> Bool
-pub fn ApiType::to_json(Self) -> Json
+pub fn ApiType::to_json(Self) -> @json.Json
 pub fn ApiType::to_repr(Self) -> @debug.Repr
 pub fn ApiType::to_string_value(Self) -> String
-pub impl ToJson for ApiType
 pub impl @json.FromJson for ApiType
+pub impl @json.ToJson for ApiType
 
+#derive(@debug.Debug)
 pub(all) struct EndpointVariant {
   label : String
   label_key : String?
   base_url : String
   region : String?
   alias_group : String?
-} derive(@debug.Debug)
+}
 pub fn EndpointVariant::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct ModelCapabilities {
   vision : Bool
   audio : Bool
@@ -106,17 +110,18 @@ pub(all) struct ModelCapabilities {
   function_calling : Bool
   streaming : Bool
   json_mode : Bool
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn ModelCapabilities::equal(Self, Self) -> Bool
-pub fn ModelCapabilities::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ModelCapabilities::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ModelCapabilities::full() -> Self
 pub fn ModelCapabilities::not_equal(Self, Self) -> Bool
 pub fn ModelCapabilities::reasoning_model() -> Self
 pub fn ModelCapabilities::text_only() -> Self
-pub fn ModelCapabilities::to_json(Self) -> Json
+pub fn ModelCapabilities::to_json(Self) -> @json.Json
 pub fn ModelCapabilities::to_repr(Self) -> @debug.Repr
 pub fn ModelCapabilities::with_vision() -> Self
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ModelConfig {
   mut id : String
   mut type_ : String?
@@ -126,22 +131,23 @@ pub(all) struct ModelConfig {
   mut anthropic_format : Bool
   mut runtime_id : String
   mut media_type : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ModelConfig::deep_copy(Self) -> Self
 pub fn ModelConfig::equal(Self, Self) -> Bool
 pub fn ModelConfig::new(String, String, String, String) -> Self
 pub fn ModelConfig::not_equal(Self, Self) -> Bool
-pub fn ModelConfig::to_json(Self) -> Json
+pub fn ModelConfig::to_json(Self) -> @json.Json
 pub fn ModelConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum PermissionMode {
   AutoApprove
   ConfirmSafes
   ConfirmAll
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn PermissionMode::compare(Self, Self) -> Int32
 pub fn PermissionMode::equal(Self, Self) -> Bool
-pub fn PermissionMode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn PermissionMode::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn PermissionMode::from_string(String) -> Self?
 pub fn PermissionMode::not_equal(Self, Self) -> Bool
 pub fn PermissionMode::op_ge(Self, Self) -> Bool
@@ -152,6 +158,7 @@ pub fn PermissionMode::to_repr(Self) -> @debug.Repr
 pub fn PermissionMode::to_string_value(Self) -> String
 pub impl @json.FromJson for PermissionMode
 
+#derive(@debug.Debug)
 pub(all) struct ProviderPreset {
   id : String
   name : String
@@ -171,7 +178,7 @@ pub(all) struct ProviderPreset {
   audio_models : Array[String]
   endpoint_variants : Array[EndpointVariant]
   api_model_aliases : Map[String, Map[String, String]]
-} derive(@debug.Debug)
+}
 pub fn ProviderPreset::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Providers {

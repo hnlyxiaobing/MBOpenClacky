@@ -53,7 +53,7 @@ pub fn load_evolution_log_at(String) -> Array[EvolutionLogEntry]
 
 pub fn load_skill_from_content(String, String, String?) -> Skill?
 
-pub fn load_skill_from_json_value(Json, String) -> Skill?
+pub fn load_skill_from_json_value(@json.Json, String) -> Skill?
 
 pub fn load_skill_meta_from_content(String, String, String?) -> Skill?
 
@@ -91,34 +91,37 @@ pub fn AutoCreator::detect_candidates(Self, Array[String], Int32) -> Array[Creat
 pub fn AutoCreator::new() -> Self
 pub fn AutoCreator::with_thresholds(Int32, Int32) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CreationCandidate {
   name : String
   description : String
   pattern_count : Int32
   confidence : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn CreationCandidate::equal(Self, Self) -> Bool
 pub fn CreationCandidate::not_equal(Self, Self) -> Bool
 pub fn CreationCandidate::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct DefaultSkillMeta {
   name : String
   description : String
   user_invocable : Bool
   allowed_tools : Array[String]
   category : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn DefaultSkillMeta::equal(Self, Self) -> Bool
-pub fn DefaultSkillMeta::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn DefaultSkillMeta::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn DefaultSkillMeta::not_equal(Self, Self) -> Bool
-pub fn DefaultSkillMeta::to_json(Self) -> Json
+pub fn DefaultSkillMeta::to_json(Self) -> @json.Json
 pub fn DefaultSkillMeta::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum EvolutionAction {
   Created
   Improved
   NoChange
-} derive(Eq, @debug.Debug)
+}
 pub fn EvolutionAction::equal(Self, Self) -> Bool
 pub fn EvolutionAction::not_equal(Self, Self) -> Bool
 pub fn EvolutionAction::to_repr(Self) -> @debug.Repr
@@ -131,6 +134,7 @@ pub fn EvolutionEngine::evolve(Self, EvolutionScenario, skills_dir? : String?) -
 pub fn EvolutionEngine::new() -> Self
 pub fn EvolutionEngine::with_components(SkillReflector, AutoCreator) -> Self
 
+#derive(@debug.Debug)
 pub(all) struct EvolutionLogEntry {
   mut id : String
   mut created_at : Int32
@@ -143,17 +147,18 @@ pub(all) struct EvolutionLogEntry {
   mut backup_path : String?
   mut model : String?
   mut error : String?
-} derive(@debug.Debug)
-pub fn EvolutionLogEntry::from_json(Json) -> Self?
+}
+pub fn EvolutionLogEntry::from_json(@json.Json) -> Self?
 pub fn EvolutionLogEntry::new(String, String, Int32, Bool, String) -> Self
-pub fn EvolutionLogEntry::to_json(Self) -> Json
+pub fn EvolutionLogEntry::to_json(Self) -> @json.Json
 pub fn EvolutionLogEntry::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct EvolutionResult {
   action : EvolutionAction
   skill_name : String
   diff_summary : String
-} derive(Eq, @debug.Debug)
+}
 pub fn EvolutionResult::equal(Self, Self) -> Bool
 pub fn EvolutionResult::not_equal(Self, Self) -> Bool
 pub fn EvolutionResult::to_repr(Self) -> @debug.Repr
@@ -163,24 +168,27 @@ pub(all) enum EvolutionScenario {
   AutoDetect(conversation_history~ : Array[String], iteration_count~ : Int32)
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ReflectionProposal {
   suggestions : Array[String]
   revised_skill_md : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ReflectionProposal::equal(Self, Self) -> Bool
 pub fn ReflectionProposal::not_equal(Self, Self) -> Bool
 pub fn ReflectionProposal::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ReflectionReport {
   skill_name : String
   performance_score : Int32
   suggestions : Array[String]
   should_improve : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn ReflectionReport::equal(Self, Self) -> Bool
 pub fn ReflectionReport::not_equal(Self, Self) -> Bool
 pub fn ReflectionReport::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct Skill {
   name : String
   name_zh : String?
@@ -192,19 +200,19 @@ pub(all) struct Skill {
   context : String?
   agent_type : String?
   argument_hint : String?
-  hooks : Json?
+  hooks : @json.Json?
   fork_agent : Bool
   model : String?
   forbidden_tools : Array[String]?
   auto_summarize : Bool
   source : String
   directory : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn Skill::default(String, String) -> Self
 pub fn Skill::equal(Self, Self) -> Bool
 pub fn Skill::is_allowed_for_profile(Self, String) -> Bool
 pub fn Skill::not_equal(Self, Self) -> Bool
-pub fn Skill::to_json(Self) -> Json
+pub fn Skill::to_json(Self) -> @json.Json
 pub fn Skill::to_repr(Self) -> @debug.Repr
 
 pub(all) struct SkillReflector {
@@ -230,14 +238,15 @@ pub fn SkillRegistry::register(Self, Skill) -> Unit
 pub fn SkillRegistry::remove(Self, String) -> Bool
 pub fn SkillRegistry::size(Self) -> Int32
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct SkillResult {
   success : Bool
   output : String
   skill_name : String
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn SkillResult::equal(Self, Self) -> Bool
 pub fn SkillResult::not_equal(Self, Self) -> Bool
-pub fn SkillResult::to_json(Self) -> Json
+pub fn SkillResult::to_json(Self) -> @json.Json
 pub fn SkillResult::to_repr(Self) -> @debug.Repr
 
 // Type aliases

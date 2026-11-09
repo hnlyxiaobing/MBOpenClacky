@@ -1,12 +1,13 @@
 ///|
 /// Category of a tool, used for grouping and permission control.
+#derive(Eq, Compare, Debug)
 pub(all) enum ToolCategory {
   General
   FileSystem
   Execution
   Web
   Agent
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend ToolCategory with @moonbitlang/core/debug.Debug::{to_repr}
@@ -52,10 +53,11 @@ pub impl ToJson for ToolCategory with fn to_json(self) {
 
 ///|
 /// Result of a tool execution.
+#derive(Eq, Debug, ToJson)
 pub(all) struct ToolResult {
   content : String
   is_error : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ToolResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -80,11 +82,12 @@ pub fn ToolResult::error(content : String) -> ToolResult {
 
 ///|
 /// Function definition structure within a FunctionDefinition.
+#derive(Eq, Debug, ToJson)
 pub(all) struct FunctionDef {
   name : String
   description : String
   parameters : Json
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend FunctionDef with @moonbitlang/core/debug.Debug::{to_repr}
@@ -100,10 +103,11 @@ pub extend FunctionDef with ToJson::{to_json}
 /// Note: `type_` field (with trailing underscore because `type` is a
 /// MoonBit keyword) is manually serialized as `"type"` in JSON via
 /// the custom ToJson implementation below.
+#derive(Eq, Debug)
 pub(all) struct FunctionDefinition {
   type_ : String
   function : FunctionDef
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FunctionDefinition with @moonbitlang/core/debug.Debug::{to_repr}
@@ -138,6 +142,7 @@ pub fn FunctionDefinition::new(
 /// Concrete enum wrapping all tool implementations for polymorphic storage.
 /// Each variant holds a specific tool struct. Implement Tool trait for AnyTool
 /// by dispatching to the inner variant.
+#derive(Eq, Debug)
 pub(all) enum AnyTool {
   FileReader(FileReader)
   Write(Write)
@@ -153,7 +158,7 @@ pub(all) enum AnyTool {
   AskUser(AskUser)
   TrashManager(TrashManager)
   Browser(Browser)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend AnyTool with @moonbitlang/core/debug.Debug::{to_repr}

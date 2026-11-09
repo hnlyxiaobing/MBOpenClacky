@@ -16,6 +16,7 @@ pub const DISCORD_GATEWAY_URL : String = "wss://gateway.discord.gg/?v=10&encodin
 
 ///|
 /// Discord Gateway opcodes.
+#derive(Eq, Debug)
 pub(all) enum GatewayOpcode {
   /// 0 - Dispatch: server sends events
   Dispatch
@@ -37,7 +38,7 @@ pub(all) enum GatewayOpcode {
   Hello
   /// 11 - Heartbeat ACK: server acknowledges heartbeat
   HeartbeatAck
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend GatewayOpcode with @moonbitlang/core/debug.Debug::{to_repr}

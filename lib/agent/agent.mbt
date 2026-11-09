@@ -138,11 +138,12 @@ pub(all) struct Agent {
 /// - FallbackActive → Probing: after cooldown period expires
 /// - Probing → PrimaryOk: on successful probe call
 /// - Probing → FallbackActive: on failed probe call (resets cooldown)
+#derive(Eq, Debug)
 pub(all) enum FallbackState {
   PrimaryOk
   FallbackActive(Int32)
   Probing
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FallbackState with @moonbitlang/core/debug.Debug::{to_repr}

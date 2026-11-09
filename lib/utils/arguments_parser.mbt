@@ -3,9 +3,10 @@
 
 ///|
 /// JSON arguments parser with error recovery.
+#derive(Eq, Debug)
 pub(all) struct JsonArgParser {
   strict : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend JsonArgParser with @moonbitlang/core/debug.Debug::{to_repr}

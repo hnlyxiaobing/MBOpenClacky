@@ -68,11 +68,12 @@ let compression_prompt : String =
 
 ///|
 /// Configuration for the compression system.
+#derive(Eq, Debug)
 pub(all) struct CompressionConfig {
   max_recent_messages : Int32
   target_compressed_tokens : Int32
   idle_compression_threshold : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompressionConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -94,12 +95,13 @@ pub fn CompressionConfig::default() -> CompressionConfig {
 
 ///|
 /// Record of a single compression operation for tracking history.
+#derive(Eq, Debug)
 pub(all) struct CompressedSummary {
   timestamp : String
   original_count : Int32
   compressed_count : Int32
   token_savings : Double
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompressedSummary with @moonbitlang/core/debug.Debug::{to_repr}
@@ -111,6 +113,7 @@ pub extend CompressedSummary with Eq::{not_equal, equal}
 
 ///|
 /// Context captured when compression is triggered.
+#derive(Eq, Debug)
 pub(all) struct CompressionContext {
   original_token_count : Int32
   original_message_count : Int32
@@ -119,7 +122,7 @@ pub(all) struct CompressionContext {
   chunk_path : String?
   previous_chunks : Array[String]
   compression_history : Array[CompressedSummary]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompressionContext with @moonbitlang/core/debug.Debug::{to_repr}
@@ -131,10 +134,11 @@ pub extend CompressionContext with Eq::{not_equal, equal}
 
 ///|
 /// Result of parsing an LLM compression response.
+#derive(Eq, Debug)
 pub(all) struct ParsedCompression {
   topics : String
   summary : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ParsedCompression with @moonbitlang/core/debug.Debug::{to_repr}

@@ -9,6 +9,7 @@
 ///   `total_tokens` reported by the upstream.
 /// - `api_cost` = upstream-reported cost (e.g. OpenRouter `usage.cost`),
 ///   stored as Double (Ruby's Float is IEEE-754 double precision).
+#derive(Eq, Debug, ToJson)
 pub(all) struct Usage {
   input_tokens : Int32
   output_tokens : Int32
@@ -17,7 +18,7 @@ pub(all) struct Usage {
   total_tokens : Int32
   api_cost : Double?
   total_is_per_turn : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Usage with @moonbitlang/core/debug.Debug::{to_repr}
@@ -85,6 +86,7 @@ pub impl FromJson for Usage with fn from_json(json, path) {
 ///   fully received (after the final token or final frame).
 /// - `streaming` flags whether the response was assembled from a streaming
 ///   call (false for plain POST / non-streaming completions).
+#derive(Eq, Debug, ToJson)
 pub(all) struct Latency {
   duration_ms : Int32
   ttft_ms : Int32?
@@ -93,7 +95,7 @@ pub(all) struct Latency {
   model : String?
   measured_at : String?
   streaming : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Latency with @moonbitlang/core/debug.Debug::{to_repr}
@@ -161,6 +163,7 @@ pub impl FromJson for Latency with fn from_json(json, path) {
 
 ///|
 /// Response from an LLM API call.
+#derive(Eq, Debug, ToJson)
 pub(all) struct LlmResponse {
   content : String?
   reasoning_content : String?
@@ -168,7 +171,7 @@ pub(all) struct LlmResponse {
   finish_reason : String?
   usage : Usage?
   latency : Latency?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend LlmResponse with @moonbitlang/core/debug.Debug::{to_repr}

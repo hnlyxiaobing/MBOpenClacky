@@ -4,6 +4,7 @@
 
 ///|
 /// Extension source type for three-level discovery.
+#derive(Debug, Eq)
 pub(all) enum ExtensionSource {
   /// Builtin extension from assets/extensions
   Builtin
@@ -11,7 +12,7 @@ pub(all) enum ExtensionSource {
   Installed
   /// Local project extension from ./extensions
   Local
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ExtensionSource with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,6 +22,7 @@ pub extend ExtensionSource with Eq::{not_equal, equal}
 
 ///|
 /// Extension contribution type.
+#derive(Debug, Eq)
 pub(all) enum ExtensionContributionType {
   Panel
   Skill
@@ -28,7 +30,7 @@ pub(all) enum ExtensionContributionType {
   Api
   Hook
   Patch
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ExtensionContributionType with @moonbitlang/core/debug.Debug::{

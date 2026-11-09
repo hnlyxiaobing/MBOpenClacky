@@ -7,10 +7,11 @@
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
+#derive(ToJson)
 struct MediaErrorResponse {
   ok : Bool
   message : String
-} derive(ToJson)
+}
 
 ///|
 pub extend MediaErrorResponse with ToJson::{to_json}

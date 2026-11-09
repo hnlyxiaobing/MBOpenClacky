@@ -85,12 +85,12 @@ fn is_supported_platform(platform : String) -> Bool {
 
 ///|
 fn gen_adapter_template(platform : String) -> String {
-  "///|\n/// \{platform} channel adapter implementation.\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config\n} derive(Debug)\n\n///|\npub fn \{platform}_Adapter::new(config : \{platform}_Config) -> \{platform}_Adapter {\n  { config }\n}\n\n///|\n/// Start the adapter (stub: connect to \{platform} API).\npub fn \{platform}_Adapter::start(self : \{platform}_Adapter) -> Result[Unit, String] {\n  println(\"[\{platform}] Adapter started\")\n  let _ = self\n  Ok(())\n}\n\n///|\n/// Send a message through the adapter (stub).\npub fn \{platform}_Adapter::send_message(\n  self : \{platform}_Adapter,\n  _channel_id : String,\n  _message : String,\n) -> Result[Unit, String] {\n  println(\"[\{platform}] send_message (stub)\")\n  Ok(())\n}\n"
+  "///|\n/// \{platform} channel adapter implementation.\n#derive(Debug)\npub(all) struct \{platform}_Adapter {\n  config : \{platform}_Config\n}\n\n///|\npub fn \{platform}_Adapter::new(config : \{platform}_Config) -> \{platform}_Adapter {\n  { config }\n}\n\n///|\n/// Start the adapter (stub: connect to \{platform} API).\npub fn \{platform}_Adapter::start(self : \{platform}_Adapter) -> Result[Unit, String] {\n  println(\"[\{platform}] Adapter started\")\n  let _ = self\n  Ok(())\n}\n\n///|\n/// Send a message through the adapter (stub).\npub fn \{platform}_Adapter::send_message(\n  self : \{platform}_Adapter,\n  _channel_id : String,\n  _message : String,\n) -> Result[Unit, String] {\n  println(\"[\{platform}] send_message (stub)\")\n  Ok(())\n}\n"
 }
 
 ///|
 fn gen_types_template(platform : String) -> String {
-  "///|\n/// Configuration for the \{platform} channel adapter.\npub(all) struct \{platform}_Config {\n  pub app_id : String\n  pub app_secret : String\n  pub webhook_url : String?\n} derive(Debug)\n\n///|\n/// Incoming message from \{platform}.\npub(all) struct \{platform}_Message {\n  pub sender_id : String\n  pub content : String\n  pub timestamp : String\n} derive(Debug)\n"
+  "///|\n/// Configuration for the \{platform} channel adapter.\n#derive(Debug)\npub(all) struct \{platform}_Config {\n  pub app_id : String\n  pub app_secret : String\n  pub webhook_url : String?\n}\n\n///|\n/// Incoming message from \{platform}.\n#derive(Debug)\npub(all) struct \{platform}_Message {\n  pub sender_id : String\n  pub content : String\n  pub timestamp : String\n}\n"
 }
 
 ///|

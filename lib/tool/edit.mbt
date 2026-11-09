@@ -2,9 +2,10 @@
 
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/edit.rb
+#derive(Eq, Debug)
 pub(all) struct Edit {
   encoding : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Edit with @moonbitlang/core/debug.Debug::{to_repr}

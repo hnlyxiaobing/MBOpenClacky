@@ -7,9 +7,10 @@
 ///   适配层 + 本管理器；
 /// - 决策 2：仅白名单六格式调用 MoonBitMark；
 /// - 决策 9：.et/.dps 诚实报错。
+#derive(Eq, Debug)
 pub(all) struct ParserManager {
   preserve_formatting : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ParserManager with @moonbitlang/core/debug.Debug::{to_repr}

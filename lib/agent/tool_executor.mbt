@@ -12,11 +12,12 @@
 /// description for the LLM, while the base64 image rides here and is
 /// attached to the next `role:"user"` message (OpenAI-compatible APIs
 /// reject image_url blocks in tool messages).
+#derive(Eq, Debug)
 pub(all) struct ImageInject {
   mime_type : String
   base64_data : String
   path : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ImageInject with @moonbitlang/core/debug.Debug::{to_repr}
@@ -26,6 +27,7 @@ pub extend ImageInject with Eq::{not_equal, equal}
 
 ///|
 /// Internal result entry for a single tool execution.
+#derive(Eq, Debug)
 pub(all) struct ToolResultEntry {
   /// The tool_call_id this result corresponds to.
   id : String
@@ -35,7 +37,7 @@ pub(all) struct ToolResultEntry {
   is_error : Bool
   /// Out-of-band image payload (screenshot base64), if any.
   image_inject : ImageInject?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ToolResultEntry with @moonbitlang/core/debug.Debug::{to_repr}

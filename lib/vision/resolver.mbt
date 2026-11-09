@@ -1,9 +1,10 @@
 ///|
 /// Vision resolver - OCR sidecar for text-only LLMs
+#derive(Debug)
 pub(all) struct VisionResolver {
   config : VisionConfig
   mut cache : Map[String, VisionResult]
-} derive(Debug)
+}
 
 ///|
 pub extend VisionResolver with @moonbitlang/core/debug.Debug::{to_repr}

@@ -1,11 +1,12 @@
 ///|
 /// Media generation capabilities
+#derive(Eq, Debug, ToJson)
 pub(all) enum MediaCapability {
   ImageGen
   VideoGen
   AudioGen
   SpeechSynth
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaCapability with @moonbitlang/core/debug.Debug::{to_repr}
@@ -18,6 +19,7 @@ pub extend MediaCapability with ToJson::{to_json}
 
 ///|
 /// Media generator configuration
+#derive(Eq, Debug)
 pub(all) struct MediaGeneratorConfig {
   base_url : String
   api_key : String
@@ -26,7 +28,7 @@ pub(all) struct MediaGeneratorConfig {
   timeout_seconds : Int32
   retry_count : Int32
   max_file_size_mb : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MediaGeneratorConfig with @moonbitlang/core/debug.Debug::{to_repr}

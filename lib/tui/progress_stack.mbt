@@ -31,6 +31,7 @@ pub(all) struct ProgressHandle {
 
 ///|
 /// Internal data for a single progress entry.
+#derive(Debug)
 struct ProgressEntry {
   /// Unique identifier.
   id : String
@@ -46,19 +47,20 @@ struct ProgressEntry {
   mut char_count : Int32
   /// Quiet mode: minimal display (spinner + short text only).
   mut quiet : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend ProgressEntry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Internal mutable data for the progress stack.
+#derive(Debug)
 pub(all) struct ProgressStackData {
   /// All progress entries (open and closed).
   entries : Array[ProgressEntry]
   /// Counter for generating unique IDs.
   mut next_id : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend ProgressStackData with @moonbitlang/core/debug.Debug::{to_repr}
@@ -69,9 +71,10 @@ pub extend ProgressStackData with @moonbitlang/core/debug.Debug::{to_repr}
 /// Manages multiple concurrent progress entries. Each entry can be
 /// updated and closed independently. The stack renders all open entries
 /// as a list of spinner animations with messages.
+#derive(Debug)
 pub(all) struct ProgressStack {
   data : Ref[ProgressStackData]
-} derive(Debug)
+}
 
 ///|
 pub extend ProgressStack with @moonbitlang/core/debug.Debug::{to_repr}

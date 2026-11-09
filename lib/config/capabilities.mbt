@@ -5,6 +5,7 @@
 
 ///|
 /// Declares what capabilities a model supports.
+#derive(Debug, Eq, ToJson, FromJson)
 pub(all) struct ModelCapabilities {
   /// Supports image input
   vision : Bool
@@ -20,7 +21,7 @@ pub(all) struct ModelCapabilities {
   streaming : Bool
   /// Supports structured JSON output mode
   json_mode : Bool
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend ModelCapabilities with @moonbitlang/core/debug.Debug::{to_repr}

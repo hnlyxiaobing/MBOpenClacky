@@ -393,11 +393,12 @@ pub fn TimeMachineState::get_task_history(
 /// Navigation status of a task relative to the active chain (Ruby
 /// get_task_history): on the current path, the current task itself, or an
 /// undone/abandoned branch.
+#derive(Eq, Debug)
 pub(all) enum TaskNavStatus {
   Current
   Past
   Undone
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TaskNavStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -407,6 +408,7 @@ pub extend TaskNavStatus with Eq::{not_equal, equal}
 
 ///|
 /// A task entry enriched for the Time Machine navigation menu.
+#derive(Debug)
 pub(all) struct TaskHistoryEntry {
   /// Task identifier ("task-001").
   task_id : String
@@ -418,7 +420,7 @@ pub(all) struct TaskHistoryEntry {
   status : TaskNavStatus
   /// Whether more than one child branches off this task.
   has_branches : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend TaskHistoryEntry with @moonbitlang/core/debug.Debug::{to_repr}

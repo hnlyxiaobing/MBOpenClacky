@@ -1,11 +1,12 @@
 ///|
 /// Device identification for license binding
+#derive(Eq, Debug, ToJson)
 pub(all) struct DeviceInfo {
   device_id : String
   hostname : String
   username : String
   platform : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend DeviceInfo with @moonbitlang/core/debug.Debug::{to_repr}

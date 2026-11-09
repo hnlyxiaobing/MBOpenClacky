@@ -6,12 +6,13 @@
 
 ///|
 /// Available theme presets.
+#derive(Eq, Debug)
 pub(all) enum ThemeName {
   Hacker
   Minimal
   Default
   Light
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ThemeName with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,6 +22,7 @@ pub extend ThemeName with Eq::{not_equal, equal}
 
 ///|
 /// A color theme defined by ANSI escape code strings.
+#derive(Eq, Debug)
 pub(all) struct Theme {
   name : ThemeName
   /// Primary text/accent color (ANSI escape code).
@@ -47,7 +49,7 @@ pub(all) struct Theme {
   phase_enter_symbol : String
   /// Symbol for phase exit banner (e.g. "▲").
   phase_exit_symbol : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Theme with @moonbitlang/core/debug.Debug::{to_repr}

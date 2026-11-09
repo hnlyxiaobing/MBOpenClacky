@@ -5,10 +5,11 @@
 /// 对齐（spec 2026-08-18_03 决策 3/4）：双轨参数（start_line/end_line/max_lines
 /// + offset/limit 别名）、越界/逆序显式报错、输出无行号、空文件返回空 content、
 /// 60000 字符总量截断、1MB 大文件护栏、目录列清单、UTF-8 scrub。
+#derive(Eq, Debug)
 pub(all) struct FileReader {
   max_lines : Int32
   max_line_chars : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend FileReader with @moonbitlang/core/debug.Debug::{to_repr}

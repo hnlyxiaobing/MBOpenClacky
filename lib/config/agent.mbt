@@ -1,5 +1,6 @@
 ///|
 /// Agent configuration, loaded from TOML config file and environment variables.
+#derive(Eq, Debug, ToJson)
 pub(all) struct AgentConfig {
   mut permission_mode : PermissionMode
   mut max_tokens : Int32
@@ -23,7 +24,7 @@ pub(all) struct AgentConfig {
   mut default_working_dir : String?
   /// Optional license-server override (Ruby CONFIG_SETTINGS_KEYS parity).
   mut clacky_license_server : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend AgentConfig with @moonbitlang/core/debug.Debug::{to_repr}

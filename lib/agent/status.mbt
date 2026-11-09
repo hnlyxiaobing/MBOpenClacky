@@ -1,12 +1,13 @@
 ///|
 /// Current status of an agent session.
+#derive(Eq, Compare, Debug)
 pub(all) enum AgentStatus {
   Idle
   Running
   WaitingForInput
   Error
   Completed
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend AgentStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -22,11 +23,12 @@ pub extend AgentStatus with ToJson::{to_json}
 
 ///|
 /// How the agent session was initiated.
+#derive(Eq, Compare, Debug)
 pub(all) enum AgentSource {
   Manual
   Cron
   Channel
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend AgentSource with @moonbitlang/core/debug.Debug::{to_repr}

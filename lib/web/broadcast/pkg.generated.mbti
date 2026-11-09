@@ -3,6 +3,7 @@ package "hnlyxiaobing/MBOpenClacky/lib/web/broadcast"
 
 import {
   "hnlyxiaobing/crescent/websocket",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -17,10 +18,10 @@ pub(all) struct Hub {
 }
 pub fn Hub::active_sessions(Self) -> Array[String]
 pub fn Hub::broadcast_global(Self, String) -> Unit
-pub fn Hub::broadcast_global_json(Self, String, Json) -> Unit
+pub fn Hub::broadcast_global_json(Self, String, @json.Json) -> Unit
 pub fn Hub::broadcast_heartbeat(Self) -> Unit
 pub fn Hub::broadcast_session(Self, String, String) -> Unit
-pub fn Hub::broadcast_session_json(Self, String, String, Json) -> Unit
+pub fn Hub::broadcast_session_json(Self, String, String, @json.Json) -> Unit
 pub fn Hub::broadcast_session_raw(Self, String, String) -> Unit
 pub fn Hub::connection_count(Self) -> Int32
 pub fn Hub::get_connection_sessions(Self, String) -> Array[String]

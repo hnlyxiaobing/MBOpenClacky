@@ -3,12 +3,13 @@
 
 ///|
 /// Script information.
+#derive(Debug, Eq)
 pub(all) struct ScriptInfo {
   name : String
   path : String
   description : String
   extension : String
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ScriptInfo with @moonbitlang/core/debug.Debug::{to_repr}
@@ -18,10 +19,11 @@ pub extend ScriptInfo with Eq::{not_equal, equal}
 
 ///|
 /// Scripts manager.
+#derive(Debug, Eq)
 pub(all) struct ScriptsManager {
   scripts_dir : String
   extensions : Array[String]
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ScriptsManager with @moonbitlang/core/debug.Debug::{to_repr}

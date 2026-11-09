@@ -2,12 +2,13 @@
 
 ///|
 /// Maps to OpenAI-compatible role strings for JSON serialization.
+#derive(Eq, Compare, Debug)
 pub(all) enum Role {
   User
   Assistant
   System
   Tool
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend Role with @moonbitlang/core/debug.Debug::{to_repr}

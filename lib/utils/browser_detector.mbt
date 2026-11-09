@@ -3,6 +3,7 @@
 
 ///|
 /// Browser type enumeration.
+#derive(Debug, Eq)
 pub enum BrowserType {
   Chrome
   Firefox
@@ -12,7 +13,7 @@ pub enum BrowserType {
   Brave
   Chromium
   Unknown(String)
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend BrowserType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -40,12 +41,13 @@ impl Show for BrowserType with fn output(self, logger) {
 
 ///|
 /// Browser detection result.
+#derive(Debug, Eq)
 pub(all) struct BrowserInfo {
   browser_type : BrowserType
   version : String?
   path : String?
   is_headless : Bool
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend BrowserInfo with @moonbitlang/core/debug.Debug::{to_repr}

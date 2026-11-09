@@ -1,12 +1,13 @@
 ///|
 /// Backup configuration (from backup.yml)
+#derive(Eq, Debug, ToJson)
 pub(all) struct BackupConfig {
   mut enabled : Bool
   cron : String?
   mut dest_dir : String
   mut keep : Int32
   mut include_sessions : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BackupConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -19,13 +20,14 @@ pub extend BackupConfig with ToJson::{to_json}
 
 ///|
 /// Backup result
+#derive(Eq, Debug, ToJson)
 pub(all) struct BackupResult {
   archive_path : String
   size_bytes : Int32
   dest_dir : String
   timestamp : String
   files_count : Int32
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BackupResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -38,12 +40,13 @@ pub extend BackupResult with ToJson::{to_json}
 
 ///|
 /// Backup entry in list
+#derive(Eq, Debug, ToJson)
 pub(all) struct BackupEntry {
   name : String
   path : String
   size_bytes : Int32
   created_at : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BackupEntry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -61,9 +64,10 @@ pub extend BackupEntry with ToJson::{to_json}
 /// ordinary `Result[T, BackupError]` values that callers match on, and never
 /// `raise`/`catch` them. Keeping it out of the native `Error` hierarchy avoids
 /// the `result_error_return` (E0078) warning on every `Result` signature.
+#derive(ToJson, Debug)
 pub(all) enum BackupError {
   BackupError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend BackupError with @moonbitlang/core/debug.Debug::{to_repr}

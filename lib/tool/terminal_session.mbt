@@ -4,12 +4,13 @@
 
 ///|
 /// Status of a terminal session.
+#derive(Eq, Debug)
 pub(all) enum SessionStatus {
   Starting
   Running
   Exited
   Killed
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -29,6 +30,7 @@ pub fn SessionStatus::to_string(self : SessionStatus) -> String {
 
 ///|
 /// A tracked terminal session.
+#derive(Debug)
 pub(all) struct TerminalSession {
   id : Int32
   mut command : String
@@ -45,7 +47,7 @@ pub(all) struct TerminalSession {
   mut marker_token : String
   /// Incremental read offset into the background output file.
   mut output_offset : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend TerminalSession with @moonbitlang/core/debug.Debug::{to_repr}

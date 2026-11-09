@@ -24,12 +24,13 @@ pub let default_thinking_verbs : Array[String] = [
 
 ///|
 /// Rotation strategy for `ThinkingVerbAnimator`.
+#derive(Eq, Debug)
 pub enum ThinkingVerbMode {
   /// Walk the verb list in order and wrap back to the first verb.
   Sequential
   /// Pick a random verb from the list on every call.
   Random
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ThinkingVerbMode with @moonbitlang/core/debug.Debug::{to_repr}

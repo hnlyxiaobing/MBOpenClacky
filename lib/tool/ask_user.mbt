@@ -8,7 +8,8 @@
 /// The schema accepts a `questions[]` array (each item carrying
 /// `question`/`description`/`options`/`multi`/`allow_free_text`/`recommended`)
 /// or the single-question shorthand (`question` + `options` at the top level).
-pub(all) struct AskUser {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct AskUser {}
 
 ///|
 pub extend AskUser with @moonbitlang/core/debug.Debug::{to_repr}
@@ -18,6 +19,7 @@ pub extend AskUser with Eq::{not_equal, equal}
 
 ///|
 /// One normalized question (Ruby `AskUser.normalize_question` result).
+#derive(Eq, Debug)
 pub(all) struct AskQuestion {
   question : String
   description : String
@@ -25,7 +27,7 @@ pub(all) struct AskQuestion {
   multi : Bool
   allow_free_text : Bool
   recommended : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend AskQuestion with @moonbitlang/core/debug.Debug::{to_repr}

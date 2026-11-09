@@ -1,5 +1,6 @@
 ///|
 /// Shell hook event types
+#derive(Eq, Debug, ToJson)
 pub(all) enum ShellHookEvent {
   BeforeToolUse
   AfterToolUse
@@ -8,7 +9,7 @@ pub(all) enum ShellHookEvent {
   OnIteration
   OnComplete
   SessionRollback
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ShellHookEvent with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,12 +22,13 @@ pub extend ShellHookEvent with ToJson::{to_json}
 
 ///|
 /// A single shell hook definition
+#derive(Eq, Debug, ToJson)
 pub(all) struct ShellHook {
   name : String?
   command : String
   timeout : Int32
   event : ShellHookEvent
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ShellHook with @moonbitlang/core/debug.Debug::{to_repr}
@@ -39,11 +41,12 @@ pub extend ShellHook with ToJson::{to_json}
 
 ///|
 /// Hook execution result
+#derive(Eq, Debug, ToJson)
 pub(all) enum HookExecResult {
   Allow
   Deny(String)
   Error(String)
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend HookExecResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -56,9 +59,10 @@ pub extend HookExecResult with ToJson::{to_json}
 
 ///|
 /// Shell hook configuration (from hooks.yml)
+#derive(Eq, Debug, ToJson)
 pub(all) struct ShellHookConfig {
   hooks : Map[String, Array[ShellHook]]
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ShellHookConfig with @moonbitlang/core/debug.Debug::{to_repr}

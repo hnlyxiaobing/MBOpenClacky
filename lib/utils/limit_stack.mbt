@@ -4,11 +4,12 @@
 
 ///|
 /// A stack that tracks recursion depth and enforces a maximum limit.
+#derive(Debug)
 pub struct LimitStack {
   max_depth : Int32
   mut current_depth : Int32
   mut labels : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend LimitStack with @moonbitlang/core/debug.Debug::{to_repr}

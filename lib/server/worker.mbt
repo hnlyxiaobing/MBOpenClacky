@@ -1,5 +1,6 @@
 ///|
 /// Worker status in the pool
+#derive(Debug, Eq)
 pub enum WorkerStatus {
   Idle
   Busy(String)
@@ -8,7 +9,7 @@ pub enum WorkerStatus {
   /// A task failed on this worker; `ServerMaster::health_check` reports it
   /// and `restart_worker` puts it back to `Idle`.
   Failed(String)
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend WorkerStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -18,10 +19,11 @@ pub extend WorkerStatus with Eq::{not_equal, equal}
 
 ///|
 /// Worker identifier
+#derive(Debug, Eq, ToJson, FromJson)
 pub(all) struct WorkerId {
   id : Int32
   name : String
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend WorkerId with @moonbitlang/core/debug.Debug::{to_repr}
@@ -37,18 +39,20 @@ pub extend WorkerId with ToJson::{to_json}
 
 ///|
 /// Worker configuration
+#derive(Debug)
 pub(all) struct WorkerConfig {
   id : WorkerId
   max_tasks : Int32
   heartbeat_interval_ms : Int32
   shutdown_timeout_ms : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend WorkerConfig with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Worker instance in the pool
+#derive(Debug)
 pub(all) struct Worker {
   config : WorkerConfig
   mut status : WorkerStatus
@@ -56,7 +60,7 @@ pub(all) struct Worker {
   mut tasks_failed : Int32
   mut last_heartbeat : String
   mut started_at : String
-} derive(Debug)
+}
 
 ///|
 pub extend Worker with @moonbitlang/core/debug.Debug::{to_repr}

@@ -3,13 +3,14 @@
 
 ///|
 /// Environment type enumeration.
+#derive(Debug, Eq)
 pub enum EnvironmentType {
   Local // Local development
   CI(String) // CI environment (provider name)
   Docker // Docker container
   WSL // Windows Subsystem for Linux
   SSH // SSH remote connection
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend EnvironmentType with @moonbitlang/core/debug.Debug::{to_repr}

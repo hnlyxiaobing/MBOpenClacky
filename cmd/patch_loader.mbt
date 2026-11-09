@@ -3,6 +3,7 @@
 /// Patches are described by .toml or .json files.
 /// Since MoonBit is AOT-compiled, runtime code patching is impossible;
 /// a patch declares an optional startup `command` that is executed on apply.
+#derive(Debug)
 pub(all) struct PatchInfo {
   name : String
   version : String
@@ -10,7 +11,7 @@ pub(all) struct PatchInfo {
   target_module : String
   command : String
   enabled : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend PatchInfo with @moonbitlang/core/debug.Debug::{to_repr}

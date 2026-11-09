@@ -125,7 +125,7 @@ pub fn extract_image_inject(String) -> (String, ImageInject?)
 
 pub fn extract_key_information(Array[@message.Message]) -> KeyInformation
 
-pub fn extract_subagent_transcript(Agent, String) -> Json
+pub fn extract_subagent_transcript(Agent, String) -> @json.Json
 
 pub fn extract_xml_content(String, String) -> String?
 
@@ -209,9 +209,9 @@ pub fn parse_compression_response(String) -> Result[ParsedCompression, String]
 
 pub fn parse_memory_extraction_response(String) -> Array[ExtractedMemory]
 
-pub fn parse_tool_arguments(@message.ToolCall) -> Map[String, Json]
+pub fn parse_tool_arguments(@message.ToolCall) -> Map[String, @json.Json]
 
-pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, Json], String?)
+pub fn parse_tool_arguments_checked(@message.ToolCall) -> (Map[String, @json.Json], String?)
 
 pub fn prepare_cli_attachments(Array[String]) -> Array[Attachment] raise @errors.AgentError
 
@@ -263,7 +263,7 @@ pub fn task_num_of(String) -> Int32
 
 pub fn todo_int_id(String) -> Int32
 
-pub fn todo_item_to_model_json(TodoItem) -> Json
+pub fn todo_item_to_model_json(TodoItem) -> @json.Json
 
 pub fn truncate_chunk_content(String, Int32) -> String
 
@@ -363,7 +363,7 @@ pub fn Agent::handle_probe_failure(Self) -> Unit
 pub fn Agent::handle_probe_success(Self) -> Unit
 pub fn Agent::inject_skill_command(Self, @skill.Skill, String) -> Unit
 pub fn Agent::inject_user_image(Self, String, String, path? : String?) -> Unit
-pub fn Agent::is_safe_operation(Self, String, Map[String, Json]) -> Bool
+pub fn Agent::is_safe_operation(Self, String, Map[String, @json.Json]) -> Bool
 pub fn Agent::load_skills(Self, Map[String, String]) -> Unit
 pub fn Agent::messages_for_api(Self) -> Array[@message.Message]
 pub fn Agent::needs_compression(Self) -> Bool
@@ -382,18 +382,19 @@ pub async fn Agent::run_detached(Self, String, model? : String?, forbidden_tools
 pub fn Agent::set_profile(Self, String) -> Unit
 pub fn Agent::set_reasoning_effort(Self, String?) -> Unit
 pub fn Agent::set_session_sub_model(Self, String?) -> Unit
-pub fn Agent::should_auto_execute(Self, String, Map[String, Json]) -> Bool
+pub fn Agent::should_auto_execute(Self, String, Map[String, @json.Json]) -> Bool
 pub fn Agent::to_session_data(Self) -> SessionData
 pub fn Agent::try_activate_fallback(Self, String) -> Bool
 pub fn Agent::try_url_fallback(Self) -> Bool
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AgentProfile {
   config : ProfileConfig
   system_prompt : String?
   soul_content : String?
   user_content : String?
   base_prompt : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn AgentProfile::default_profile() -> Self
 pub fn AgentProfile::equal(Self, Self) -> Bool
 pub fn AgentProfile::is_skill_allowed(Self, String) -> Bool
@@ -403,11 +404,12 @@ pub fn AgentProfile::soul(Self) -> String
 pub fn AgentProfile::to_repr(Self) -> @debug.Repr
 pub fn AgentProfile::user_profile(Self) -> String
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum AgentSource {
   Manual
   Cron
   Channel
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn AgentSource::compare(Self, Self) -> Int32
 pub fn AgentSource::equal(Self, Self) -> Bool
 pub fn AgentSource::not_equal(Self, Self) -> Bool
@@ -415,18 +417,19 @@ pub fn AgentSource::op_ge(Self, Self) -> Bool
 pub fn AgentSource::op_gt(Self, Self) -> Bool
 pub fn AgentSource::op_le(Self, Self) -> Bool
 pub fn AgentSource::op_lt(Self, Self) -> Bool
-pub fn AgentSource::to_json(Self) -> Json
+pub fn AgentSource::to_json(Self) -> @json.Json
 pub fn AgentSource::to_repr(Self) -> @debug.Repr
 pub fn AgentSource::to_string_value(Self) -> String
-pub impl ToJson for AgentSource
+pub impl @json.ToJson for AgentSource
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum AgentStatus {
   Idle
   Running
   WaitingForInput
   Error
   Completed
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn AgentStatus::compare(Self, Self) -> Int32
 pub fn AgentStatus::equal(Self, Self) -> Bool
 pub fn AgentStatus::not_equal(Self, Self) -> Bool
@@ -434,11 +437,12 @@ pub fn AgentStatus::op_ge(Self, Self) -> Bool
 pub fn AgentStatus::op_gt(Self, Self) -> Bool
 pub fn AgentStatus::op_le(Self, Self) -> Bool
 pub fn AgentStatus::op_lt(Self, Self) -> Bool
-pub fn AgentStatus::to_json(Self) -> Json
+pub fn AgentStatus::to_json(Self) -> @json.Json
 pub fn AgentStatus::to_repr(Self) -> @debug.Repr
 pub fn AgentStatus::to_string_value(Self) -> String
-pub impl ToJson for AgentStatus
+pub impl @json.ToJson for AgentStatus
 
+#derive(@debug.Debug)
 pub(all) struct Attachment {
   name : String
   path : String
@@ -448,61 +452,67 @@ pub(all) struct Attachment {
   preview_path : String?
   data_url : String?
   downgrade_note : String?
-} derive(@debug.Debug)
+}
 pub fn Attachment::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CacheStats {
   mut cache_creation_input_tokens : Int32
   mut cache_read_input_tokens : Int32
   mut total_requests : Int32
   mut cache_hit_requests : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn CacheStats::equal(Self, Self) -> Bool
 pub fn CacheStats::new() -> Self
 pub fn CacheStats::not_equal(Self, Self) -> Bool
 pub fn CacheStats::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ChannelInfo {
   platform : String
   channel_id : String
   user_id : String
   webhook_url : String
-} derive(Eq, @debug.Debug)
+}
 pub fn ChannelInfo::equal(Self, Self) -> Bool
 pub fn ChannelInfo::not_equal(Self, Self) -> Bool
-pub fn ChannelInfo::to_json(Self) -> Json
+pub fn ChannelInfo::to_json(Self) -> @json.Json
 pub fn ChannelInfo::to_repr(Self) -> @debug.Repr
-pub impl ToJson for ChannelInfo
+pub impl @json.ToJson for ChannelInfo
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ChunkInfo {
   basename : String
   path : String
   topics : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ChunkInfo::equal(Self, Self) -> Bool
 pub fn ChunkInfo::not_equal(Self, Self) -> Bool
 pub fn ChunkInfo::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompressedSummary {
   timestamp : String
   original_count : Int32
   compressed_count : Int32
   token_savings : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressedSummary::equal(Self, Self) -> Bool
 pub fn CompressedSummary::not_equal(Self, Self) -> Bool
 pub fn CompressedSummary::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompressionConfig {
   max_recent_messages : Int32
   target_compressed_tokens : Int32
   idle_compression_threshold : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressionConfig::default() -> Self
 pub fn CompressionConfig::equal(Self, Self) -> Bool
 pub fn CompressionConfig::not_equal(Self, Self) -> Bool
 pub fn CompressionConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompressionContext {
   original_token_count : Int32
   original_message_count : Int32
@@ -511,41 +521,44 @@ pub(all) struct CompressionContext {
   chunk_path : String?
   previous_chunks : Array[String]
   compression_history : Array[CompressedSummary]
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressionContext::equal(Self, Self) -> Bool
 pub fn CompressionContext::not_equal(Self, Self) -> Bool
 pub fn CompressionContext::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub enum CompressionResult {
   Success(CompressionStats)
   Failed(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressionResult::equal(Self, Self) -> Bool
 pub fn CompressionResult::not_equal(Self, Self) -> Bool
 pub fn CompressionResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CompressionStats {
   before_tokens : Int32
   after_tokens : Int32
   messages_removed : Int32
   compression_ratio : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressionStats::equal(Self, Self) -> Bool
 pub fn CompressionStats::not_equal(Self, Self) -> Bool
 pub fn CompressionStats::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CostSource {
   Api
   Price
   Default
   Estimated
-} derive(Eq, @debug.Debug)
+}
 pub fn CostSource::equal(Self, Self) -> Bool
 pub fn CostSource::not_equal(Self, Self) -> Bool
-pub fn CostSource::to_json(Self) -> Json
+pub fn CostSource::to_json(Self) -> @json.Json
 pub fn CostSource::to_repr(Self) -> @debug.Repr
 pub fn CostSource::to_string_value(Self) -> String
-pub impl ToJson for CostSource
+pub impl @json.ToJson for CostSource
 
 pub(all) struct ExtractedMemory {
   title : String
@@ -554,11 +567,12 @@ pub(all) struct ExtractedMemory {
   keywords : Array[String]
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FallbackState {
   PrimaryOk
   FallbackActive(Int32)
   Probing
-} derive(Eq, @debug.Debug)
+}
 pub fn FallbackState::equal(Self, Self) -> Bool
 pub fn FallbackState::not_equal(Self, Self) -> Bool
 pub fn FallbackState::to_repr(Self) -> @debug.Repr
@@ -568,12 +582,13 @@ pub struct FanOutJob[X] {
   run : async () -> X
 }
 
+#derive(@debug.Debug)
 pub struct FanOutResult[X] {
   index : Int32
   value : X?
   error : String?
   duration_ms : Int64
-} derive(@debug.Debug)
+}
 pub fn[X] FanOutResult::ok(Self[X]) -> Bool
 pub fn[X : @debug.Debug] FanOutResult::to_repr(Self[X]) -> @debug.Repr
 
@@ -616,6 +631,7 @@ pub fn HookManager::emit(Self, HookEvent) -> Unit
 pub fn HookManager::new() -> Self
 pub fn HookManager::register(Self, (HookEvent) -> Unit) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct IdleCompressionTimer {
   delay : Int32
   mut state : TimerState
@@ -624,7 +640,7 @@ pub(all) struct IdleCompressionTimer {
   mut active : Bool
   idle_threshold_ms : Int32
   mut timer_id : String?
-} derive(@debug.Debug)
+}
 pub fn IdleCompressionTimer::active(Self) -> Bool
 pub fn IdleCompressionTimer::cancel(Self) -> Unit
 pub fn IdleCompressionTimer::compressing(Self) -> Bool
@@ -642,15 +658,17 @@ pub fn IdleCompressionTimer::to_repr(Self) -> @debug.Repr
 pub fn IdleCompressionTimer::trigger_idle_compression(Self, Int32, Int32) -> Bool
 pub fn IdleCompressionTimer::with_threshold(Int32) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ImageInject {
   mime_type : String
   base64_data : String
   path : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ImageInject::equal(Self, Self) -> Bool
 pub fn ImageInject::not_equal(Self, Self) -> Bool
 pub fn ImageInject::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct IterationTokenData {
   delta_tokens : Int32
   prompt_tokens : Int32
@@ -660,18 +678,19 @@ pub(all) struct IterationTokenData {
   cache_read : Int32
   cost : Double
   cost_source : CostSource
-} derive(Eq, @debug.Debug)
+}
 pub fn IterationTokenData::equal(Self, Self) -> Bool
 pub fn IterationTokenData::not_equal(Self, Self) -> Bool
 pub fn IterationTokenData::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct KeyInformation {
   files_mentioned : Array[String]
   decisions_made : Array[String]
   tasks_completed : Array[String]
   tasks_pending : Array[String]
   errors_encountered : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub fn KeyInformation::equal(Self, Self) -> Bool
 pub fn KeyInformation::not_equal(Self, Self) -> Bool
 pub fn KeyInformation::to_repr(Self) -> @debug.Repr
@@ -694,16 +713,17 @@ pub(all) struct LoggedEvent {
   event : @protocol.Event
 }
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum MemoryCategory {
   UserPreference
   ProjectInfo
   TaskSummary
   ExpertKnowledge
   LearnedSkill
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn MemoryCategory::compare(Self, Self) -> Int32
 pub fn MemoryCategory::equal(Self, Self) -> Bool
-pub fn MemoryCategory::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MemoryCategory::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn MemoryCategory::from_string(String) -> Self?
 pub fn MemoryCategory::not_equal(Self, Self) -> Bool
 pub fn MemoryCategory::op_ge(Self, Self) -> Bool
@@ -714,6 +734,7 @@ pub fn MemoryCategory::to_repr(Self) -> @debug.Repr
 pub fn MemoryCategory::to_string_value(Self) -> String
 pub impl @json.FromJson for MemoryCategory
 
+#derive(Eq, @debug.Debug)
 pub(all) struct MemoryEntry {
   id : String
   title : String
@@ -722,7 +743,7 @@ pub(all) struct MemoryEntry {
   keywords : Array[String]
   created_at : String
   updated_at : String
-} derive(Eq, @debug.Debug)
+}
 pub fn MemoryEntry::equal(Self, Self) -> Bool
 pub fn MemoryEntry::not_equal(Self, Self) -> Bool
 pub fn MemoryEntry::to_repr(Self) -> @debug.Repr
@@ -737,38 +758,42 @@ pub fn MemoryStore::all(Self) -> Array[MemoryEntry]
 pub fn MemoryStore::by_category(Self, MemoryCategory) -> Array[MemoryEntry]
 pub fn MemoryStore::delete(Self, String) -> Bool
 pub fn MemoryStore::get(Self, String) -> MemoryEntry?
-pub fn MemoryStore::load_from_json(Self, Json) -> Unit
+pub fn MemoryStore::load_from_json(Self, @json.Json) -> Unit
 pub fn MemoryStore::new(String) -> Self
 pub fn MemoryStore::search(Self, String, MemoryCategory?) -> Array[MemoryEntry]
 pub fn MemoryStore::size(Self) -> Int32
 pub fn MemoryStore::summary(Self) -> String
-pub fn MemoryStore::to_json(Self) -> Json
+pub fn MemoryStore::to_json(Self) -> @json.Json
 pub fn MemoryStore::update(Self, String, String) -> Bool
 
+#derive(Eq, @debug.Debug)
 pub(all) enum OverflowMode {
   Standard
   Aggressive
-} derive(Eq, @debug.Debug)
+}
 pub fn OverflowMode::equal(Self, Self) -> Bool
 pub fn OverflowMode::not_equal(Self, Self) -> Bool
 pub fn OverflowMode::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ParsedCompression {
   topics : String
   summary : String
-} derive(Eq, @debug.Debug)
+}
 pub fn ParsedCompression::equal(Self, Self) -> Bool
 pub fn ParsedCompression::not_equal(Self, Self) -> Bool
 pub fn ParsedCompression::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PatchAction {
   Allow
   Block(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn PatchAction::equal(Self, Self) -> Bool
 pub fn PatchAction::not_equal(Self, Self) -> Bool
 pub fn PatchAction::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct PatchAuditEntry {
   rule_name : String
   source : String
@@ -776,7 +801,7 @@ pub(all) struct PatchAuditEntry {
   tool_args : String
   action : String
   timestamp : Int64
-} derive(@debug.Debug)
+}
 pub fn PatchAuditEntry::to_repr(Self) -> @debug.Repr
 
 pub(all) struct PatchChain {
@@ -785,11 +810,12 @@ pub(all) struct PatchChain {
 }
 pub fn PatchChain::add_rule(Self, PatchRule) -> Unit
 pub fn PatchChain::audit_entries(Self) -> Array[PatchAuditEntry]
-pub fn PatchChain::check_after(Self, String, Map[String, Json], String, Bool) -> Unit
-pub async fn PatchChain::check_before(Self, String, Map[String, Json]) -> PatchAction
+pub fn PatchChain::check_after(Self, String, Map[String, @json.Json], String, Bool) -> Unit
+pub async fn PatchChain::check_before(Self, String, Map[String, @json.Json]) -> PatchAction
 pub fn PatchChain::len(Self) -> Int32
 pub fn PatchChain::new() -> Self
 
+#derive(@debug.Debug)
 pub(all) struct PatchRule {
   name : String
   source : String
@@ -797,21 +823,23 @@ pub(all) struct PatchRule {
   args_pattern : String
   action : PatchAction
   command : String
-} derive(@debug.Debug)
+}
 pub fn PatchRule::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ProfileConfig {
   name : String
   description : String?
   skill_whitelist : Array[String]?
   default_model : String?
   system_prompt_path : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ProfileConfig::equal(Self, Self) -> Bool
 pub fn ProfileConfig::not_equal(Self, Self) -> Bool
-pub fn ProfileConfig::to_json(Self) -> Json
+pub fn ProfileConfig::to_json(Self) -> @json.Json
 pub fn ProfileConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct ProfileSpec {
   name : String
   display_name : String
@@ -821,17 +849,18 @@ pub(all) struct ProfileSpec {
   allowed_tools : Array[String]
   hooks : Array[String]
   is_default : Bool
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn ProfileSpec::equal(Self, Self) -> Bool
-pub fn ProfileSpec::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn ProfileSpec::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn ProfileSpec::has_hook(Self, String) -> Bool
 pub fn ProfileSpec::is_tool_allowed(Self, String) -> Bool
 pub fn ProfileSpec::not_equal(Self, Self) -> Bool
 pub fn ProfileSpec::to_agent_profile(Self) -> AgentProfile
-pub fn ProfileSpec::to_json(Self) -> Json
+pub fn ProfileSpec::to_json(Self) -> @json.Json
 pub fn ProfileSpec::to_profile_config(Self) -> ProfileConfig
 pub fn ProfileSpec::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct RestoreResult {
   session_id : String
   name : String
@@ -848,11 +877,12 @@ pub(all) struct RestoreResult {
   model_recovered : Bool
   recovered_model_name : String
   warnings : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub fn RestoreResult::equal(Self, Self) -> Bool
 pub fn RestoreResult::not_equal(Self, Self) -> Bool
 pub fn RestoreResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct RunResult {
   status : RunStatus
   session_id : String
@@ -861,21 +891,23 @@ pub(all) struct RunResult {
   cost_source : CostSource
   cache_stats : CacheStats
   error : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn RunResult::equal(Self, Self) -> Bool
 pub fn RunResult::not_equal(Self, Self) -> Bool
 pub fn RunResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum RunStatus {
   Success
   Error
   Interrupted
-} derive(Eq, @debug.Debug)
+}
 pub fn RunStatus::equal(Self, Self) -> Bool
 pub fn RunStatus::not_equal(Self, Self) -> Bool
 pub fn RunStatus::to_repr(Self) -> @debug.Repr
 pub fn RunStatus::to_string_value(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionData {
   session_id : String
   name : String
@@ -903,16 +935,16 @@ pub(all) struct SessionData {
   agent_profile : String
   sub_model : String?
   pinned : Bool
-  todos : Json?
+  todos : @json.Json?
   updated_at : String
   previous_total_tokens : Int32
   deleted_at : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionData::equal(Self, Self) -> Bool
 pub fn SessionData::not_equal(Self, Self) -> Bool
-pub fn SessionData::to_json(Self) -> Json
+pub fn SessionData::to_json(Self) -> @json.Json
 pub fn SessionData::to_repr(Self) -> @debug.Repr
-pub impl ToJson for SessionData
+pub impl @json.ToJson for SessionData
 
 pub(all) struct SessionLock {
   file : @moonbitlang/async/fs.File
@@ -950,6 +982,7 @@ pub(all) struct SessionLogSegment {
   mut superseded : Bool
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionStats {
   total_iterations : Int32
   total_cost_usd : Double
@@ -959,69 +992,76 @@ pub(all) struct SessionStats {
   cache_read_input_tokens : Int32
   total_requests : Int32
   cache_hit_requests : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionStats::equal(Self, Self) -> Bool
 pub fn SessionStats::not_equal(Self, Self) -> Bool
 pub fn SessionStats::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionTaskMeta {
   title : String
   started_at : String
   ended_at : String
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionTaskMeta::equal(Self, Self) -> Bool
 pub fn SessionTaskMeta::not_equal(Self, Self) -> Bool
 pub fn SessionTaskMeta::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionTimeMachine {
   task_parents : Map[String, String]
   task_meta : Map[String, SessionTaskMeta]
   current_task_id : Int32
   active_task_id : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionTimeMachine::equal(Self, Self) -> Bool
 pub fn SessionTimeMachine::not_equal(Self, Self) -> Bool
 pub fn SessionTimeMachine::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct SnapshotEntry {
   path : String
   content : String?
   is_absent : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn SnapshotEntry::equal(Self, Self) -> Bool
 pub fn SnapshotEntry::not_equal(Self, Self) -> Bool
-pub fn SnapshotEntry::to_json(Self) -> Json
+pub fn SnapshotEntry::to_json(Self) -> @json.Json
 pub fn SnapshotEntry::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct TaskHistoryEntry {
   task_id : String
   task_num : Int32
   summary : String
   status : TaskNavStatus
   has_branches : Bool
-} derive(@debug.Debug)
+}
 pub fn TaskHistoryEntry::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TaskNavStatus {
   Current
   Past
   Undone
-} derive(Eq, @debug.Debug)
+}
 pub fn TaskNavStatus::equal(Self, Self) -> Bool
 pub fn TaskNavStatus::not_equal(Self, Self) -> Bool
 pub fn TaskNavStatus::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct TaskNode {
   task_id : String
   parent_id : String?
   children : Array[String]
   is_active : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn TaskNode::equal(Self, Self) -> Bool
 pub fn TaskNode::not_equal(Self, Self) -> Bool
-pub fn TaskNode::to_json(Self) -> Json
+pub fn TaskNode::to_json(Self) -> @json.Json
 pub fn TaskNode::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct TaskSnapshot {
   task_id : String
   parent_id : String?
@@ -1029,19 +1069,20 @@ pub(all) struct TaskSnapshot {
   mut after_entries : Array[SnapshotEntry]
   created_at : Int32
   description : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn TaskSnapshot::equal(Self, Self) -> Bool
 pub fn TaskSnapshot::not_equal(Self, Self) -> Bool
-pub fn TaskSnapshot::to_json(Self) -> Json
+pub fn TaskSnapshot::to_json(Self) -> @json.Json
 pub fn TaskSnapshot::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TimeMachineState {
   session_id : String
   mut tasks : Array[TaskSnapshot]
   mut current_task_id : String?
   mut task_counter : Int32
   snapshot_dir : String
-} derive(Eq, @debug.Debug)
+}
 pub fn TimeMachineState::checkpoint_after(Self, String, String?) -> Unit
 pub fn TimeMachineState::equal(Self, Self) -> Bool
 pub fn TimeMachineState::get_task_history(Self) -> Array[TaskSnapshot]
@@ -1056,16 +1097,18 @@ pub fn TimeMachineState::switch_to_task(Self, String) -> Result[Array[SnapshotEn
 pub fn TimeMachineState::to_repr(Self) -> @debug.Repr
 pub fn TimeMachineState::undo_last_task(Self) -> Result[Array[SnapshotEntry], String]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TimerState {
   Idle
   Waiting(Int32)
   Compressing
   Cancelled
-} derive(Eq, @debug.Debug)
+}
 pub fn TimerState::equal(Self, Self) -> Bool
 pub fn TimerState::not_equal(Self, Self) -> Bool
 pub fn TimerState::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TodoItem {
   id : String
   title : String
@@ -1074,7 +1117,7 @@ pub(all) struct TodoItem {
   blocked_by : Array[String]
   created_at : String
   mut updated_at : String
-} derive(Eq, @debug.Debug)
+}
 pub fn TodoItem::equal(Self, Self) -> Bool
 pub fn TodoItem::not_equal(Self, Self) -> Bool
 pub fn TodoItem::to_repr(Self) -> @debug.Repr
@@ -1092,8 +1135,8 @@ pub fn TodoManager::id_str(Self, Int32) -> String
 pub fn TodoManager::is_blocked(Self, String) -> Bool
 pub fn TodoManager::list_actionable(Self) -> Array[TodoItem]
 pub fn TodoManager::list_all(Self) -> Array[TodoItem]
-pub fn TodoManager::list_to_model_json(Self) -> Json
-pub fn TodoManager::load_from_json(Self, Json) -> Unit
+pub fn TodoManager::list_to_model_json(Self) -> @json.Json
+pub fn TodoManager::load_from_json(Self, @json.Json) -> Unit
 pub fn TodoManager::new() -> Self
 pub fn TodoManager::next_pending(Self) -> TodoItem?
 pub fn TodoManager::remove(Self, String) -> Bool
@@ -1101,19 +1144,20 @@ pub fn TodoManager::remove_by_ids(Self, Array[Int32]) -> (Array[TodoItem], Array
 pub fn TodoManager::set_blocked_by(Self, String, Array[String]) -> Bool
 pub fn TodoManager::size(Self) -> Int32
 pub fn TodoManager::summary(Self) -> String
-pub fn TodoManager::to_json(Self) -> Json
+pub fn TodoManager::to_json(Self) -> @json.Json
 pub fn TodoManager::update_status(Self, String, TodoStatus) -> Bool
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum TodoStatus {
   Pending
   InProgress
   Completed
   Cancelled
   Failed
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn TodoStatus::compare(Self, Self) -> Int32
 pub fn TodoStatus::equal(Self, Self) -> Bool
-pub fn TodoStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TodoStatus::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TodoStatus::from_string(String) -> Self?
 pub fn TodoStatus::not_equal(Self, Self) -> Bool
 pub fn TodoStatus::op_ge(Self, Self) -> Bool
@@ -1124,12 +1168,13 @@ pub fn TodoStatus::to_repr(Self) -> @debug.Repr
 pub fn TodoStatus::to_string_value(Self) -> String
 pub impl @json.FromJson for TodoStatus
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ToolResultEntry {
   id : String
   content : String
   is_error : Bool
   image_inject : ImageInject?
-} derive(Eq, @debug.Debug)
+}
 pub fn ToolResultEntry::equal(Self, Self) -> Bool
 pub fn ToolResultEntry::not_equal(Self, Self) -> Bool
 pub fn ToolResultEntry::to_repr(Self) -> @debug.Repr

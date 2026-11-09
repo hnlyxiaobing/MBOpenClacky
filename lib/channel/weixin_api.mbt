@@ -305,11 +305,12 @@ pub fn WeixinApiClient::download_media_url(
 
 ///|
 /// Weixin AES encryption mode.
+#derive(Eq, Debug)
 pub(all) enum WeixinAesMode {
   OutboundImage // 出站图片
   OutboundOther // 出站非图片
   Inbound // 入站
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WeixinAesMode with @moonbitlang/core/debug.Debug::{to_repr}

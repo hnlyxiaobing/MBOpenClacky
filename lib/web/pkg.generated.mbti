@@ -319,22 +319,24 @@ pub(all) struct AggregateStatsResponse {
   total_messages : Int32
 }
 
+#derive(@debug.Debug)
 pub(all) struct ApiExtension {
   name : String
   version : String
   routes : Array[ExtensionRoute]
   enabled : Bool
-} derive(@debug.Debug)
+}
 pub fn ApiExtension::to_repr(Self) -> @debug.Repr
 
 pub(all) struct CancelResponse {
   cancelled : Bool
 }
 
+#derive(@json.FromJson)
 pub(all) struct ChatRequest {
   message : String
-} derive(@json.FromJson)
-pub fn ChatRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+}
+pub fn ChatRequest::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
 pub(all) struct ConfigResponse {
   permission_mode : String
@@ -354,13 +356,15 @@ pub(all) struct CostResponse {
   cache_hit_requests : Int32
 }
 
+#derive(@json.FromJson)
 pub(all) struct CreateSessionRequest {
   name : String?
-} derive(@json.FromJson)
-pub fn CreateSessionRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+}
+pub fn CreateSessionRequest::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
-type ExchangeRateResponse derive(ToJson)
-pub fn ExchangeRateResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type ExchangeRateResponse
+pub fn ExchangeRateResponse::to_json(Self) -> @json.Json
 
 pub(all) struct ExtensionDispatcher {
   extensions : Array[ApiExtension]
@@ -376,6 +380,7 @@ pub fn ExtensionDispatcher::new_with_dir(Array[ApiExtension], String, check_ever
 pub fn ExtensionDispatcher::register_routes(Self, @crescent.App) -> Unit
 pub fn ExtensionDispatcher::route_summary(Self) -> Array[String]
 
+#derive(@debug.Debug)
 pub(all) struct ExtensionRoute {
   http_method : String
   path : String
@@ -383,22 +388,23 @@ pub(all) struct ExtensionRoute {
   command : String
   description : String
   timeout_ms : Int32
-} derive(@debug.Debug)
+}
 pub fn ExtensionRoute::to_repr(Self) -> @debug.Repr
 
 pub(all) struct HealthResponse {
   status : String
   uptime_seconds : Int64
 }
-pub fn HealthResponse::to_json(Self) -> Json
-pub impl ToJson for HealthResponse
+pub fn HealthResponse::to_json(Self) -> @json.Json
+pub impl @json.ToJson for HealthResponse
 
+#derive(Eq, @debug.Debug)
 pub(all) enum HttpMethod {
   GET
   POST
   PUT
   DELETE
-} derive(Eq, @debug.Debug)
+}
 pub fn HttpMethod::equal(Self, Self) -> Bool
 pub fn HttpMethod::not_equal(Self, Self) -> Bool
 pub fn HttpMethod::to_repr(Self) -> @debug.Repr
@@ -440,9 +446,11 @@ pub(all) struct InfoResponse {
   active_sessions : Int32
 }
 
-type MediaErrorResponse derive(ToJson)
-pub fn MediaErrorResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type MediaErrorResponse
+pub fn MediaErrorResponse::to_json(Self) -> @json.Json
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Meeting {
   id : String
   title : String
@@ -453,7 +461,7 @@ pub(all) struct Meeting {
   mut summary : MeetingSummary?
   created_at : Int64
   mut ended_at : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn Meeting::equal(Self, Self) -> Bool
 pub fn Meeting::not_equal(Self, Self) -> Bool
 pub fn Meeting::to_repr(Self) -> @debug.Repr
@@ -469,22 +477,24 @@ pub(all) struct MeetingData {
   updated_at : String
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MeetingStatus {
   Active
   Ended
-} derive(Eq, @debug.Debug)
+}
 pub fn MeetingStatus::equal(Self, Self) -> Bool
 pub fn MeetingStatus::not_equal(Self, Self) -> Bool
 pub fn MeetingStatus::to_repr(Self) -> @debug.Repr
 pub fn MeetingStatus::to_string_value(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) struct MeetingSummary {
   overview : String
   key_decisions : Array[String]
   action_items : Array[String]
   discussion_points : Array[String]
   generated_at : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn MeetingSummary::equal(Self, Self) -> Bool
 pub fn MeetingSummary::not_equal(Self, Self) -> Bool
 pub fn MeetingSummary::to_repr(Self) -> @debug.Repr
@@ -493,25 +503,30 @@ pub(all) struct ModelListResponse {
   models : Array[@config.ModelConfig]
 }
 
-type OCRConfigResponse derive(ToJson)
-pub fn OCRConfigResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type OCRConfigResponse
+pub fn OCRConfigResponse::to_json(Self) -> @json.Json
 
-type OCRConfigUpdateRequest derive(@json.FromJson)
-pub fn OCRConfigUpdateRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#derive(@json.FromJson)
+type OCRConfigUpdateRequest
+pub fn OCRConfigUpdateRequest::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
-type OCRImageRequest derive(@json.FromJson)
-pub fn OCRImageRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#derive(@json.FromJson)
+type OCRImageRequest
+pub fn OCRImageRequest::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
-type OCRTestResponse derive(ToJson)
-pub fn OCRTestResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type OCRTestResponse
+pub fn OCRTestResponse::to_json(Self) -> @json.Json
 
 pub(all) struct PermissionResponse {
   permission_mode : String
   safe_tools : Array[String]
 }
 
-type RestartResponse derive(ToJson)
-pub fn RestartResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type RestartResponse
+pub fn RestartResponse::to_json(Self) -> @json.Json
 
 pub(all) struct Route {
   http_method : HttpMethod
@@ -526,10 +541,11 @@ pub fn Router::add_route(Self, HttpMethod, String, String) -> Self
 pub fn Router::match_route(Self, HttpMethod, String) -> Result[(Route, Array[(String, String)]), String]
 pub fn Router::new() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionLatency {
   ttft_ms : Int32?
   duration_ms : Int32?
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionLatency::equal(Self, Self) -> Bool
 pub fn SessionLatency::from_session_data(@agent.SessionData) -> Self?
 pub fn SessionLatency::not_equal(Self, Self) -> Bool
@@ -541,8 +557,8 @@ pub(all) struct SessionListResponse {
   cron_count : Int32
   latest_cron_updated_at : String?
 }
-pub fn SessionListResponse::to_json(Self) -> Json
-pub impl ToJson for SessionListResponse
+pub fn SessionListResponse::to_json(Self) -> @json.Json
+pub impl @json.ToJson for SessionListResponse
 
 pub(all) struct SessionSummary {
   id : String
@@ -570,8 +586,8 @@ pub(all) struct SessionSummary {
   top_up_url : String?
   raw_message : String?
 }
-pub fn SessionSummary::to_json(Self) -> Json
-pub impl ToJson for SessionSummary
+pub fn SessionSummary::to_json(Self) -> @json.Json
+pub impl @json.ToJson for SessionSummary
 
 pub(all) struct StaticServer {
   root_dir : String
@@ -612,11 +628,12 @@ pub(all) struct ToolListResponse {
   tools : Array[ToolListEntry]
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TranscriptEntry {
   speaker : String
   content : String
   timestamp : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn TranscriptEntry::equal(Self, Self) -> Bool
 pub fn TranscriptEntry::not_equal(Self, Self) -> Bool
 pub fn TranscriptEntry::to_repr(Self) -> @debug.Repr
@@ -634,16 +651,18 @@ pub(all) struct TrashStats {
   by_type : Map[String, Int32]
 }
 
+#derive(@json.FromJson)
 pub(all) struct UpdateConfigRequest {
   permission_mode : String?
   max_tokens : Int32?
   verbose : Bool?
   max_tokens_request : Int32?
-} derive(@json.FromJson)
-pub fn UpdateConfigRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+}
+pub fn UpdateConfigRequest::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 
-type UpgradeResponse derive(ToJson)
-pub fn UpgradeResponse::to_json(Self) -> Json
+#derive(@json.ToJson)
+type UpgradeResponse
+pub fn UpgradeResponse::to_json(Self) -> @json.Json
 
 pub(all) struct WebServer {
   mut active_agents : Map[String, @agent.Agent]
@@ -664,11 +683,11 @@ pub fn WebServer::new(@config.AgentConfig, String?) -> Self
 pub async fn WebServer::start(Self, Int32, host? : String) -> Unit
 
 pub(all) struct WebhookRegistry {
-  mut handlers : Map[String, (Json) -> Result[Unit, String]]
+  mut handlers : Map[String, (@json.Json) -> Result[Unit, String]]
 }
-pub fn WebhookRegistry::handle(Self, String, Json) -> Result[Unit, String]
+pub fn WebhookRegistry::handle(Self, String, @json.Json) -> Result[Unit, String]
 pub fn WebhookRegistry::new() -> Self
-pub fn WebhookRegistry::register(Self, String, (Json) -> Result[Unit, String]) -> Unit
+pub fn WebhookRegistry::register(Self, String, (@json.Json) -> Result[Unit, String]) -> Unit
 
 // Type aliases
 

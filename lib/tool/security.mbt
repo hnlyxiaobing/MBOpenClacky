@@ -10,9 +10,10 @@
 
 ///|
 /// Security error raised when a command is blocked.
+#derive(Debug)
 pub suberror SecurityError {
   SecurityError(String)
-} derive(Debug)
+}
 
 ///|
 pub extend SecurityError with @moonbitlang/core/debug.Debug::{to_repr}

@@ -1,10 +1,11 @@
 ///|
 /// Server discovery result
+#derive(Eq, Debug, ToJson)
 pub(all) struct ServerInstance {
   host : String
   port : Int32
   pid : Int32
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ServerInstance with @moonbitlang/core/debug.Debug::{to_repr}

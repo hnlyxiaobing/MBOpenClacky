@@ -90,6 +90,7 @@ pub(all) struct ExtensionContribution {
   config : Map[String, String]
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ExtensionContributionType {
   Panel
   Skill
@@ -97,7 +98,7 @@ pub(all) enum ExtensionContributionType {
   Api
   Hook
   Patch
-} derive(Eq, @debug.Debug)
+}
 pub fn ExtensionContributionType::equal(Self, Self) -> Bool
 pub fn ExtensionContributionType::not_equal(Self, Self) -> Bool
 pub fn ExtensionContributionType::to_repr(Self) -> @debug.Repr
@@ -117,15 +118,17 @@ pub(all) struct ExtensionManifest {
   enabled_by_default : Bool
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ExtensionSource {
   Builtin
   Installed
   Local
-} derive(Eq, @debug.Debug)
+}
 pub fn ExtensionSource::equal(Self, Self) -> Bool
 pub fn ExtensionSource::not_equal(Self, Self) -> Bool
 pub fn ExtensionSource::to_repr(Self) -> @debug.Repr
 
+#derive(Eq)
 pub(all) struct ExtensionTemplate {
   id : String
   name : String
@@ -134,7 +137,7 @@ pub(all) struct ExtensionTemplate {
   author : String
   license : String
   contributions : Array[ExtensionContributionType]
-} derive(Eq)
+}
 pub fn ExtensionTemplate::equal(Self, Self) -> Bool
 pub fn ExtensionTemplate::not_equal(Self, Self) -> Bool
 

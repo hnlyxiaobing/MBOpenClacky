@@ -1,12 +1,13 @@
 ///|
 /// Browser manager configuration (from browser.yml)
+#derive(Eq, Debug, ToJson)
 pub(all) struct BrowserConfig {
   enabled : Bool
   chrome_version : String?
   configured_at : String?
   mcp_command : String
   features : Array[String]
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BrowserConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -19,6 +20,7 @@ pub extend BrowserConfig with ToJson::{to_json}
 
 ///|
 /// Browser daemon status
+#derive(Eq, Debug, ToJson)
 pub(all) struct BrowserStatus {
   enabled : Bool
   daemon_running : Bool
@@ -28,7 +30,7 @@ pub(all) struct BrowserStatus {
   last_error : String?
   endpoint : String?
   mcp_version : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BrowserStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -46,9 +48,10 @@ pub extend BrowserStatus with ToJson::{to_json}
 /// ordinary `Result[T, BrowserError]` values that callers match on, and never
 /// `raise`/`catch` them. Keeping it out of the native `Error` hierarchy avoids
 /// the `result_error_return` (E0078) warning on every `Result` signature.
+#derive(ToJson, Debug)
 pub(all) enum BrowserError {
   BrowserError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend BrowserError with @moonbitlang/core/debug.Debug::{to_repr}

@@ -24,9 +24,10 @@
 
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/web_search.rb
+#derive(Eq, Debug)
 pub(all) struct WebSearch {
   max_results : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WebSearch with @moonbitlang/core/debug.Debug::{to_repr}
@@ -54,11 +55,12 @@ let ddg_cooldown_ms : Int64 = 600_000L
 ///|
 /// Search providers in fallback order (matches the original PROVIDERS, plus
 /// a configured custom searcher from ~/.clacky/searchers/).
+#derive(Eq)
 priv enum SearchProvider {
   DuckDuckGo
   Bing
   Custom(String) // provider basename from ~/.clacky/search.yml
-} derive(Eq)
+}
 
 ///|
 /// How long a configured searcher script may run before it is killed

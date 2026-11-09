@@ -18,6 +18,7 @@
 ///|
 /// Classified CLI attachment — a subset of Ruby's `FileRef` plus the extra
 /// fields the file-prompt builder and vision inliner need.
+#derive(Debug)
 pub(all) struct Attachment {
   /// Display name (`File.basename(path)`).
   name : String
@@ -37,7 +38,7 @@ pub(all) struct Attachment {
   data_url : String?
   /// Inline note explaining why an image was *not* sent as vision content.
   downgrade_note : String?
-} derive(Debug)
+}
 
 ///|
 pub extend Attachment with @moonbitlang/core/debug.Debug::{to_repr}

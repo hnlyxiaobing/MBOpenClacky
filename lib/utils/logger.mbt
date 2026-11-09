@@ -6,12 +6,13 @@
 
 ///|
 /// Log severity levels, ordered from least to most severe.
+#derive(Debug, Eq, Compare)
 pub enum LogLevel {
   Debug
   Info
   Warn
   Error
-} derive(Debug, Eq, Compare)
+}
 
 ///|
 pub extend LogLevel with @moonbitlang/core/debug.Debug::{to_repr}

@@ -10,7 +10,8 @@
 /// containing: original_path, deleted_at, file_size, file_type, file_mode.
 /// Behavior and message formats mirror the Ruby reference implementation
 /// (lib/clacky/tools/trash_manager.rb).
-pub(all) struct TrashManager {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct TrashManager {}
 
 ///|
 pub extend TrashManager with @moonbitlang/core/debug.Debug::{to_repr}

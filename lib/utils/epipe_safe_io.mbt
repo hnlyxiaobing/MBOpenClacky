@@ -4,11 +4,12 @@
 
 ///|
 /// IO write result type.
+#derive(Debug, Eq)
 pub enum WriteResult {
   Success(Int32) // Successfully written byte count
   PipeBroken // Pipe is broken (EPIPE)
   Error(String) // Other error
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend WriteResult with @moonbitlang/core/debug.Debug::{to_repr}

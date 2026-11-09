@@ -2,13 +2,14 @@
 
 ///|
 /// A single ignore rule parsed from a .gitignore line.
+#derive(Debug, Eq)
 pub struct IgnoreRule {
   pattern : String // original pattern text
   is_negation : Bool // rule starts with !
   is_directory : Bool // pattern ends with /
   is_anchored : Bool // pattern contains / in non-trailing position
   regex_pattern : String // converted internal match pattern
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend IgnoreRule with @moonbitlang/core/debug.Debug::{to_repr}

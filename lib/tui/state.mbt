@@ -7,12 +7,13 @@
 
 ///|
 /// Operating mode of the TUI.
+#derive(Eq, Debug)
 pub(all) enum TuiMode {
   /// User can type messages and browse history.
   Idle
   /// Agent is executing (ReAct loop is on the call stack).
   Running
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TuiMode with @moonbitlang/core/debug.Debug::{to_repr}
@@ -22,6 +23,7 @@ pub extend TuiMode with Eq::{not_equal, equal}
 
 ///|
 /// A record of a tool execution for display in the tool panel.
+#derive(Debug)
 pub(all) struct ToolExecution {
   /// Tool name.
   name : String
@@ -31,7 +33,7 @@ pub(all) struct ToolExecution {
   mut completed : Bool
   /// Result summary (set after completion).
   mut result_summary : String
-} derive(Debug)
+}
 
 ///|
 pub extend ToolExecution with @moonbitlang/core/debug.Debug::{to_repr}
@@ -41,6 +43,7 @@ pub extend ToolExecution with @moonbitlang/core/debug.Debug::{to_repr}
 ///
 /// Set when the agent requests user confirmation for a tool call.
 /// The TUI renders this as an inline dialog and reads a key synchronously.
+#derive(Debug)
 pub(all) struct PendingConfirmation {
   /// Name of the tool requesting confirmation.
   tool_name : String
@@ -50,13 +53,14 @@ pub(all) struct PendingConfirmation {
   prompt_text : String
   /// Whether the default action (Enter) is "yes".
   default_yes : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend PendingConfirmation with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Approval dialog state (TUI-03).
+#derive(Debug)
 pub(all) struct ApprovalDialog {
   /// Tool name requesting approval.
   mut tool_name : String
@@ -66,13 +70,14 @@ pub(all) struct ApprovalDialog {
   mut show_details : Bool
   /// Full detailed arguments for the details section.
   mut detailed_args : String
-} derive(Debug)
+}
 
 ///|
 pub extend ApprovalDialog with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Configuration menu dialog item (TUI-03).
+#derive(Debug)
 pub(all) struct ConfigMenuItem {
   /// Display label.
   label : String
@@ -82,13 +87,14 @@ pub(all) struct ConfigMenuItem {
   multi_select : Bool
   /// Whether this item is checked (for multi-select).
   mut checked : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend ConfigMenuItem with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Configuration menu dialog state (TUI-03).
+#derive(Debug)
 pub(all) struct ConfigMenuDialog {
   /// Dialog title.
   mut title : String
@@ -98,13 +104,14 @@ pub(all) struct ConfigMenuDialog {
   mut selected_idx : Int32
   /// Checked state array (parallel to items, for multi-select).
   mut checked : Array[Bool]
-} derive(Debug)
+}
 
 ///|
 pub extend ConfigMenuDialog with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Form field for multi-field form dialogs (TUI-03).
+#derive(Debug)
 pub(all) struct FormField {
   /// Field label.
   label : String
@@ -116,13 +123,14 @@ pub(all) struct FormField {
   placeholder : String
   /// Whether to mask the value in display (e.g. API keys).
   masked : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend FormField with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Form dialog state (TUI-03).
+#derive(Debug)
 pub(all) struct FormDialog {
   /// Dialog title.
   mut title : String
@@ -130,19 +138,20 @@ pub(all) struct FormDialog {
   mut fields : Array[FormField]
   /// Currently focused field index.
   mut focused_idx : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend FormDialog with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Configuration menu mode discriminator.
+#derive(Eq, Debug)
 pub(all) enum ConfigMode {
   /// Full config menu (add/edit/delete/switch models).
   ConfigMenu
   /// Model-only selector (switch only).
   ModelSelector
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ConfigMode with @moonbitlang/core/debug.Debug::{to_repr}
@@ -155,6 +164,7 @@ pub extend ConfigMode with Eq::{not_equal, equal}
 ///
 /// Values are already merged (empty Edit fields fell back to the existing
 /// model's values) — applying the pending change needs no form access.
+#derive(Debug)
 pub(all) struct PendingConfigTest {
   /// Which menu to return to after success.
   mode : ConfigMode
@@ -172,17 +182,18 @@ pub(all) struct PendingConfigTest {
   base_url : String
   /// Protocol flag of the card (Anthropic Messages vs OpenAI).
   anthropic_format : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend PendingConfigTest with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Config form action type.
+#derive(Eq, Debug)
 pub(all) enum ConfigAction {
   Add
   Edit
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ConfigAction with @moonbitlang/core/debug.Debug::{to_repr}
@@ -192,12 +203,13 @@ pub extend ConfigAction with Eq::{not_equal, equal}
 
 ///|
 /// Level of the two-level /model drawer.
+#derive(Eq, Debug)
 pub(all) enum ModelDrawerLevel {
   /// Level 1: model card list.
   Cards
   /// Level 2: sub-model drawer of one card.
   SubModels
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ModelDrawerLevel with @moonbitlang/core/debug.Debug::{to_repr}
@@ -207,6 +219,7 @@ pub extend ModelDrawerLevel with Eq::{not_equal, equal}
 
 ///|
 /// Unified dialog state for the TUI (TUI-03).
+#derive(Debug)
 pub(all) enum DialogState {
   /// No dialog active.
   NoDialog
@@ -233,7 +246,7 @@ pub(all) enum DialogState {
     card_id~ : String,
     card_model~ : String
   )
-} derive(Debug)
+}
 
 ///|
 pub extend DialogState with @moonbitlang/core/debug.Debug::{to_repr}

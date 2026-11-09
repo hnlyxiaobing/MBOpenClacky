@@ -7,6 +7,7 @@
 /// A specification for a built-in agent profile.
 /// Unlike AgentProfile (which holds loaded content), ProfileSpec
 /// describes the static definition of a profile template.
+#derive(Debug, Eq, ToJson, FromJson)
 pub(all) struct ProfileSpec {
   name : String // profile identifier
   display_name : String // human-readable name
@@ -16,7 +17,7 @@ pub(all) struct ProfileSpec {
   allowed_tools : Array[String] // tools this profile can use
   hooks : Array[String] // lifecycle hooks
   is_default : Bool // whether this is the fallback profile
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend ProfileSpec with @moonbitlang/core/debug.Debug::{to_repr}

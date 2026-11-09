@@ -44,10 +44,11 @@ pub(all) struct SendRequest {
 
 ///|
 /// Result of a connection test.
+#derive(Debug)
 pub(all) struct TestResult {
   success : Bool
   error : String?
-} derive(Debug)
+}
 
 ///|
 pub extend TestResult with @moonbitlang/core/debug.Debug::{to_repr}

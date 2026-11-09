@@ -4,12 +4,13 @@
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/grep.rb
 /// 对齐（spec 2026-08-18_03 决策 1/6）：正则语义匹配、空 pattern 显式报错、
 /// schema 补 max_total_matches/max_file_size、紧凑摘要头、UTF-8 scrub。
+#derive(Eq, Debug)
 pub(all) struct Grep {
   max_files : Int32
   max_matches_per_file : Int32
   max_total_matches : Int32
   max_line_length : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Grep with @moonbitlang/core/debug.Debug::{to_repr}

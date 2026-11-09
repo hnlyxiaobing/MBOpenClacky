@@ -1,10 +1,11 @@
 ///|
 /// Media generation providers
+#derive(Eq, Debug, ToJson)
 pub(all) enum MediaProvider {
   OpenAICompat
   Gemini
   DashScope
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaProvider with @moonbitlang/core/debug.Debug::{to_repr}
@@ -17,11 +18,12 @@ pub extend MediaProvider with ToJson::{to_json}
 
 ///|
 /// Media type
+#derive(Eq, Debug, ToJson)
 pub(all) enum MediaType {
   Image
   Video
   Audio
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -34,6 +36,7 @@ pub extend MediaType with ToJson::{to_json}
 
 ///|
 /// Media generation request
+#derive(Eq, Debug, ToJson)
 pub(all) struct MediaRequest {
   media_type : MediaType
   prompt : String
@@ -42,7 +45,7 @@ pub(all) struct MediaRequest {
   voice : String?
   output_dir : String
   model : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaRequest with @moonbitlang/core/debug.Debug::{to_repr}
@@ -55,6 +58,7 @@ pub extend MediaRequest with ToJson::{to_json}
 
 ///|
 /// Media generation result
+#derive(Eq, Debug, ToJson)
 pub(all) struct MediaResult {
   success : Bool
   file_path : String?
@@ -63,7 +67,7 @@ pub(all) struct MediaResult {
   provider : String
   model : String
   prompt : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -76,13 +80,14 @@ pub extend MediaResult with ToJson::{to_json}
 
 ///|
 /// Media error types
+#derive(Eq, Debug, ToJson)
 pub(all) enum MediaErrorType {
   NotConfigured
   ApiError
   InvalidPrompt
   QuotaExceeded
   UnsupportedFormat
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend MediaErrorType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -95,9 +100,10 @@ pub extend MediaErrorType with ToJson::{to_json}
 
 ///|
 /// Media generation error
+#derive(ToJson, Debug)
 pub(all) suberror MediaError {
   MediaError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend MediaError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -108,10 +114,11 @@ pub extend MediaError with ToJson::{to_json}
 ///|
 /// Speech-to-text request: transcribe a local audio file through an
 /// OpenAI-compatible /audio/transcriptions endpoint.
+#derive(Eq, Debug, ToJson)
 pub(all) struct TranscriptionRequest {
   audio_path : String
   model : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend TranscriptionRequest with @moonbitlang/core/debug.Debug::{to_repr}
@@ -124,13 +131,14 @@ pub extend TranscriptionRequest with ToJson::{to_json}
 
 ///|
 /// Speech-to-text result: the transcript text, or a diagnostic error.
+#derive(Eq, Debug, ToJson)
 pub(all) struct TranscriptionResult {
   success : Bool
   text : String?
   error : String?
   provider : String
   model : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend TranscriptionResult with @moonbitlang/core/debug.Debug::{to_repr}

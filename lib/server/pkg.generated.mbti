@@ -50,34 +50,37 @@ pub fn write_pid_file(Int32, Int32) -> Result[Unit, String]
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct BackupConfig {
   mut enabled : Bool
   cron : String?
   mut dest_dir : String
   mut keep : Int32
   mut include_sessions : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn BackupConfig::default_config() -> Self
 pub fn BackupConfig::equal(Self, Self) -> Bool
 pub fn BackupConfig::not_equal(Self, Self) -> Bool
-pub fn BackupConfig::to_json(Self) -> Json
+pub fn BackupConfig::to_json(Self) -> @json.Json
 pub fn BackupConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct BackupEntry {
   name : String
   path : String
   size_bytes : Int32
   created_at : String
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn BackupEntry::equal(Self, Self) -> Bool
 pub fn BackupEntry::not_equal(Self, Self) -> Bool
-pub fn BackupEntry::to_json(Self) -> Json
+pub fn BackupEntry::to_json(Self) -> @json.Json
 pub fn BackupEntry::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug, @json.ToJson)
 pub(all) enum BackupError {
   BackupError(String)
-} derive(ToJson, @debug.Debug)
-pub fn BackupError::to_json(Self) -> Json
+}
+pub fn BackupError::to_json(Self) -> @json.Json
 pub fn BackupError::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BackupManager {
@@ -89,38 +92,41 @@ pub fn BackupManager::list(Self) -> Array[BackupEntry]
 pub fn BackupManager::load_config(Self) -> Result[Unit, BackupError]
 pub fn BackupManager::new(String, String) -> Self
 pub fn BackupManager::run(Self) -> Result[BackupResult, BackupError]
-pub fn BackupManager::status(Self) -> Json
+pub fn BackupManager::status(Self) -> @json.Json
 pub fn BackupManager::update_config(Self, Bool?, String?, Int32?, Bool?) -> Result[Unit, BackupError]
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct BackupResult {
   archive_path : String
   size_bytes : Int32
   dest_dir : String
   timestamp : String
   files_count : Int32
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn BackupResult::equal(Self, Self) -> Bool
 pub fn BackupResult::not_equal(Self, Self) -> Bool
-pub fn BackupResult::to_json(Self) -> Json
+pub fn BackupResult::to_json(Self) -> @json.Json
 pub fn BackupResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct BrowserConfig {
   enabled : Bool
   chrome_version : String?
   configured_at : String?
   mcp_command : String
   features : Array[String]
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn BrowserConfig::default_config() -> Self
 pub fn BrowserConfig::equal(Self, Self) -> Bool
 pub fn BrowserConfig::not_equal(Self, Self) -> Bool
-pub fn BrowserConfig::to_json(Self) -> Json
+pub fn BrowserConfig::to_json(Self) -> @json.Json
 pub fn BrowserConfig::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug, @json.ToJson)
 pub(all) enum BrowserError {
   BrowserError(String)
-} derive(ToJson, @debug.Debug)
-pub fn BrowserError::to_json(Self) -> Json
+}
+pub fn BrowserError::to_json(Self) -> @json.Json
 pub fn BrowserError::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BrowserManager {
@@ -135,7 +141,7 @@ pub(all) struct BrowserManager {
 pub async fn BrowserManager::check_process_alive(Self) -> Bool
 pub fn BrowserManager::configure(Self, String) -> Result[Unit, BrowserError]
 pub fn BrowserManager::load_config(Self) -> Result[Unit, BrowserError]
-pub async fn BrowserManager::mcp_call(Self, String, Json) -> Result[Json, BrowserError]
+pub async fn BrowserManager::mcp_call(Self, String, @json.Json) -> Result[@json.Json, BrowserError]
 pub fn BrowserManager::new(String) -> Self
 pub async fn BrowserManager::reload(Self) -> Result[Unit, BrowserError]
 pub async fn BrowserManager::start(Self) -> Result[Unit, BrowserError]
@@ -153,6 +159,7 @@ pub async fn BrowserProcess::read_line(Self) -> Result[String, String]
 pub async fn BrowserProcess::spawn(String, Array[String]) -> Result[Self, String]
 pub async fn BrowserProcess::write_line(Self, String) -> Result[Unit, String]
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct BrowserStatus {
   enabled : Bool
   daemon_running : Bool
@@ -162,12 +169,13 @@ pub(all) struct BrowserStatus {
   last_error : String?
   endpoint : String?
   mcp_version : String?
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn BrowserStatus::equal(Self, Self) -> Bool
 pub fn BrowserStatus::not_equal(Self, Self) -> Bool
-pub fn BrowserStatus::to_json(Self) -> Json
+pub fn BrowserStatus::to_json(Self) -> @json.Json
 pub fn BrowserStatus::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct CronExpression {
   minute : CronField
   hour : CronField
@@ -175,15 +183,16 @@ pub(all) struct CronExpression {
   month : CronField
   day_of_week : CronField
   raw : String
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn CronExpression::describe(Self) -> String
 pub fn CronExpression::equal(Self, Self) -> Bool
 pub fn CronExpression::matches(Self, Int32, Int32, Int32, Int32, Int32) -> Bool
 pub fn CronExpression::not_equal(Self, Self) -> Bool
 pub fn CronExpression::parse(String) -> Result[Self, String]
-pub fn CronExpression::to_json(Self) -> Json
+pub fn CronExpression::to_json(Self) -> @json.Json
 pub fn CronExpression::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) enum CronField {
   Any
   Value(Int32)
@@ -191,12 +200,13 @@ pub(all) enum CronField {
   Range(Int32, Int32)
   RangeStep(Int32, Int32, Int32)
   List(Array[Int32])
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn CronField::equal(Self, Self) -> Bool
 pub fn CronField::not_equal(Self, Self) -> Bool
-pub fn CronField::to_json(Self) -> Json
+pub fn CronField::to_json(Self) -> @json.Json
 pub fn CronField::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct GitStatus {
   branch : String
   ahead : Int32
@@ -211,44 +221,47 @@ pub(all) struct GitStatus {
   last_commit_time : String
   is_dirty : Bool
   is_detached : Bool
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn GitStatus::empty() -> Self
 pub fn GitStatus::equal(Self, Self) -> Bool
-pub fn GitStatus::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn GitStatus::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn GitStatus::not_equal(Self, Self) -> Bool
-pub fn GitStatus::to_json(Self) -> Json
+pub fn GitStatus::to_json(Self) -> @json.Json
 pub fn GitStatus::to_repr(Self) -> @debug.Repr
 
 pub(all) struct JsonRpcClient {
   process : BrowserProcess
   mut id_counter : Int32
 }
-pub async fn JsonRpcClient::call(Self, String, Json) -> Result[Json, String]
+pub async fn JsonRpcClient::call(Self, String, @json.Json) -> Result[@json.Json, String]
 pub fn JsonRpcClient::get_process(Self) -> BrowserProcess
-pub async fn JsonRpcClient::initialize(Self) -> Result[Json, String]
+pub async fn JsonRpcClient::initialize(Self) -> Result[@json.Json, String]
 pub fn JsonRpcClient::new(BrowserProcess) -> Self
-pub async fn JsonRpcClient::notify(Self, String, Json) -> Result[Unit, String]
+pub async fn JsonRpcClient::notify(Self, String, @json.Json) -> Result[Unit, String]
 
+#derive(@debug.Debug)
 pub(all) struct MasterConfig {
   max_workers : Int32
   min_workers : Int32
   worker_timeout_ms : Int32
   auto_restart : Bool
   graceful_shutdown_ms : Int32
-} derive(@debug.Debug)
+}
 pub fn MasterConfig::default() -> Self
 pub fn MasterConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub enum MasterStatus {
   Starting
   Running
   ShuttingDown
   MasterStopped
-} derive(Eq, @debug.Debug)
+}
 pub fn MasterStatus::equal(Self, Self) -> Bool
 pub fn MasterStatus::not_equal(Self, Self) -> Bool
 pub fn MasterStatus::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct PoolStats {
   total_workers : Int32
   idle_workers : Int32
@@ -257,13 +270,14 @@ pub(all) struct PoolStats {
   total_tasks_completed : Int32
   total_tasks_failed : Int32
   uptime_seconds : Int32
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn PoolStats::equal(Self, Self) -> Bool
-pub fn PoolStats::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn PoolStats::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn PoolStats::not_equal(Self, Self) -> Bool
-pub fn PoolStats::to_json(Self) -> Json
+pub fn PoolStats::to_json(Self) -> @json.Json
 pub fn PoolStats::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct Schedule {
   name : String
   task_name : String
@@ -272,10 +286,10 @@ pub(all) struct Schedule {
   mut last_run_at : Int32?
   mut next_run_at : Int32?
   mut run_count : Int32
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn Schedule::equal(Self, Self) -> Bool
 pub fn Schedule::not_equal(Self, Self) -> Bool
-pub fn Schedule::to_json(Self) -> Json
+pub fn Schedule::to_json(Self) -> @json.Json
 pub fn Schedule::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Scheduler {
@@ -296,49 +310,54 @@ pub fn Scheduler::stop(Self) -> Unit
 pub fn Scheduler::tick(Self, Int32, Int32, Int32, Int32, Int32) -> Array[String]
 pub fn Scheduler::update_schedule(Self, String, String?, Bool?) -> Result[Unit, SchedulerError]
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct SchedulerConfig {
   schedules : Array[Schedule]
   tasks_dir : String
   config_path : String
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn SchedulerConfig::equal(Self, Self) -> Bool
 pub fn SchedulerConfig::not_equal(Self, Self) -> Bool
-pub fn SchedulerConfig::to_json(Self) -> Json
+pub fn SchedulerConfig::to_json(Self) -> @json.Json
 pub fn SchedulerConfig::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug, @json.ToJson)
 pub(all) enum SchedulerError {
   SchedulerError(String)
-} derive(ToJson, @debug.Debug)
-pub fn SchedulerError::to_json(Self) -> Json
+}
+pub fn SchedulerError::to_json(Self) -> @json.Json
 pub fn SchedulerError::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) enum SchedulerState {
   Stopped
   Running
   Paused
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn SchedulerState::equal(Self, Self) -> Bool
 pub fn SchedulerState::not_equal(Self, Self) -> Bool
-pub fn SchedulerState::to_json(Self) -> Json
+pub fn SchedulerState::to_json(Self) -> @json.Json
 pub fn SchedulerState::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ServerInstance {
   host : String
   port : Int32
   pid : Int32
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ServerInstance::equal(Self, Self) -> Bool
 pub fn ServerInstance::not_equal(Self, Self) -> Bool
-pub fn ServerInstance::to_json(Self) -> Json
+pub fn ServerInstance::to_json(Self) -> @json.Json
 pub fn ServerInstance::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct ServerMaster {
   config : MasterConfig
   mut status : MasterStatus
   mut workers : Array[Worker]
   mut next_worker_id : Int32
   mut started_at : String
-} derive(@debug.Debug)
+}
 pub fn ServerMaster::complete_task(Self, WorkerId, Bool) -> Result[Unit, String]
 pub fn ServerMaster::dispatch_task(Self, String) -> Result[WorkerId, String]
 pub fn ServerMaster::find_worker(Self, WorkerId) -> Worker?
@@ -382,6 +401,7 @@ pub fn SessionRegistry::touch(Self, String, String) -> Result[Unit, String]
 pub fn SessionRegistry::unregister(Self, String) -> Result[SessionEntry, String]
 pub fn SessionRegistry::unregister_by_worker(Self, WorkerId) -> Array[SessionEntry]
 
+#derive(@debug.Debug)
 pub(all) struct Worker {
   config : WorkerConfig
   mut status : WorkerStatus
@@ -389,7 +409,7 @@ pub(all) struct Worker {
   mut tasks_failed : Int32
   mut last_heartbeat : String
   mut started_at : String
-} derive(@debug.Debug)
+}
 pub fn Worker::heartbeat(Self) -> Unit
 pub fn Worker::is_available(Self) -> Bool
 pub fn Worker::is_heartbeat_expired(Self, String, Int32) -> Bool
@@ -403,32 +423,35 @@ pub fn Worker::status(Self) -> WorkerStatus
 pub fn Worker::task_done(Self, Bool) -> Unit
 pub fn Worker::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct WorkerConfig {
   id : WorkerId
   max_tasks : Int32
   heartbeat_interval_ms : Int32
   shutdown_timeout_ms : Int32
-} derive(@debug.Debug)
+}
 pub fn WorkerConfig::default_with_id(WorkerId) -> Self
 pub fn WorkerConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct WorkerId {
   id : Int32
   name : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn WorkerId::equal(Self, Self) -> Bool
-pub fn WorkerId::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn WorkerId::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn WorkerId::not_equal(Self, Self) -> Bool
-pub fn WorkerId::to_json(Self) -> Json
+pub fn WorkerId::to_json(Self) -> @json.Json
 pub fn WorkerId::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub enum WorkerStatus {
   Idle
   Busy(String)
   Stopping
   Stopped
   Failed(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn WorkerStatus::equal(Self, Self) -> Bool
 pub fn WorkerStatus::not_equal(Self, Self) -> Bool
 pub fn WorkerStatus::to_repr(Self) -> @debug.Repr

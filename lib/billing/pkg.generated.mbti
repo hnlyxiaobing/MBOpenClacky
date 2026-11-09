@@ -25,11 +25,12 @@ pub fn ms_to_local_date_parts(Int64) -> (Int32, Int32, Int32)
 
 pub fn ms_to_local_date_string(Int64) -> String
 
-pub fn parse_timestamp_to_ms(Json) -> Int64?
+pub fn parse_timestamp_to_ms(@json.Json) -> Int64?
 
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct BillingRecord {
   id : String
   session_id : String
@@ -41,20 +42,21 @@ pub(all) struct BillingRecord {
   cache_write_tokens : Int32
   cost_usd : Double
   cost_source : String
-} derive(Eq, @debug.Debug)
+}
 pub fn BillingRecord::equal(Self, Self) -> Bool
-pub fn BillingRecord::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn BillingRecord::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn BillingRecord::new(session_id~ : String, model~ : String, prompt_tokens~ : Int32, completion_tokens~ : Int32, cache_read_tokens? : Int32, cache_write_tokens? : Int32, cost_usd~ : Double, cost_source~ : String) -> Self
 pub fn BillingRecord::not_equal(Self, Self) -> Bool
-pub fn BillingRecord::to_json(Self) -> Json
+pub fn BillingRecord::to_json(Self) -> @json.Json
 pub fn BillingRecord::to_repr(Self) -> @debug.Repr
 pub fn BillingRecord::total_tokens(Self) -> Int32
-pub impl ToJson for BillingRecord
 pub impl @json.FromJson for BillingRecord
+pub impl @json.ToJson for BillingRecord
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BillingStore {
   billing_dir : String
-} derive(Eq, @debug.Debug)
+}
 pub fn BillingStore::append(Self, BillingRecord) -> Result[String, String]
 pub fn BillingStore::cleanup(Self, Int64) -> Int32
 pub fn BillingStore::clear(Self, ClearScope) -> Int32
@@ -68,34 +70,38 @@ pub fn BillingStore::session_summary(Self, TimePeriod, model? : String, limit? :
 pub fn BillingStore::summary(Self, TimePeriod, model? : String) -> Summary
 pub fn BillingStore::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ClearScope {
   ClearToday
   ClearAll
-} derive(Eq, @debug.Debug)
+}
 pub fn ClearScope::equal(Self, Self) -> Bool
 pub fn ClearScope::not_equal(Self, Self) -> Bool
 pub fn ClearScope::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DaySummary {
   date : String
   total_cost : Double
   total_tokens : Int32
   request_count : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn DaySummary::equal(Self, Self) -> Bool
 pub fn DaySummary::not_equal(Self, Self) -> Bool
 pub fn DaySummary::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ModelSummary {
   cost : Double
   prompt_tokens : Int32
   completion_tokens : Int32
   requests : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn ModelSummary::equal(Self, Self) -> Bool
 pub fn ModelSummary::not_equal(Self, Self) -> Bool
 pub fn ModelSummary::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SessionSummary {
   session_id : String
   session_name : String?
@@ -105,11 +111,12 @@ pub(all) struct SessionSummary {
   prompt_tokens : Int32
   completion_tokens : Int32
   requests : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionSummary::equal(Self, Self) -> Bool
 pub fn SessionSummary::not_equal(Self, Self) -> Bool
 pub fn SessionSummary::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Summary {
   period : TimePeriod
   total_cost : Double
@@ -119,22 +126,23 @@ pub(all) struct Summary {
   total_cache_write_tokens : Int32
   by_model : Map[String, ModelSummary]
   record_count : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Summary::equal(Self, Self) -> Bool
 pub fn Summary::not_equal(Self, Self) -> Bool
 pub fn Summary::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) enum TimePeriod {
   Day
   Week
   Month
   Year
   All
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn TimePeriod::equal(Self, Self) -> Bool
-pub fn TimePeriod::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TimePeriod::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TimePeriod::not_equal(Self, Self) -> Bool
-pub fn TimePeriod::to_json(Self) -> Json
+pub fn TimePeriod::to_json(Self) -> @json.Json
 pub fn TimePeriod::to_repr(Self) -> @debug.Repr
 
 // Type aliases

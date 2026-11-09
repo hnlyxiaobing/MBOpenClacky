@@ -80,11 +80,12 @@ let tool_aliases : Map[String, String] = {
 /// ToolRegistry stores registered tools and provides name resolution
 /// with alias support. Registration order is preserved (Ruby Hash semantics:
 /// `@tools.values` iterates in insertion order).
+#derive(Debug)
 pub(all) struct ToolRegistry {
   tools : Map[String, AnyTool]
   downcased_index : Map[String, String]
   order : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend ToolRegistry with @moonbitlang/core/debug.Debug::{to_repr}

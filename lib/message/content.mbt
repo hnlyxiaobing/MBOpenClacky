@@ -1,8 +1,9 @@
 ///|
 /// A text content block in a message.
+#derive(Eq, Debug)
 pub(all) struct TextBlock {
   text : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TextBlock with @moonbitlang/core/debug.Debug::{to_repr}
@@ -12,10 +13,11 @@ pub extend TextBlock with Eq::{not_equal, equal}
 
 ///|
 /// An image content block in a message.
+#derive(Eq, Debug)
 pub(all) struct ImageBlock {
   url : String
   detail : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ImageBlock with @moonbitlang/core/debug.Debug::{to_repr}
@@ -27,10 +29,11 @@ pub extend ImageBlock with Eq::{not_equal, equal}
 
 ///|
 /// Custom ToJson/FromJson handles the "type" discriminator.
+#derive(Eq, Debug)
 pub(all) enum ContentBlock {
   Text(TextBlock)
   Image(ImageBlock)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ContentBlock with @moonbitlang/core/debug.Debug::{to_repr}

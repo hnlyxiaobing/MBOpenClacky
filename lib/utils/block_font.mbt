@@ -6,11 +6,12 @@
 /// Block font style
 // `Half` / `Outline` are selected by `MBOPENCLACKY_LOGO_STYLE`
 // (full | half | outline) through `block_style_from_name`.
+#derive(Debug, Eq)
 pub enum BlockStyle {
   Full // Full block characters (█)
   Half // Half block characters (▀▄)
   Outline // Outline characters (░▒▓)
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend BlockStyle with @moonbitlang/core/debug.Debug::{to_repr}
@@ -27,10 +28,11 @@ priv struct CharBitmap {
 
 ///|
 /// Block font renderer
+#derive(Eq, Debug)
 pub(all) struct BlockFont {
   style : BlockStyle
   letter_spacing : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BlockFont with @moonbitlang/core/debug.Debug::{to_repr}

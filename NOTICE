@@ -19,28 +19,22 @@ MBOpenClacky NOTICE
 --------------------------------------------------
 | 模块 | 版本 | 许可 |
 |---|---|---|
-| moonbitlang/x | 0.5.5 | Apache-2.0 |
-| moonbitlang/async | 0.22.5 | Apache-2.0 |
-| moonbit-community/toml | 0.5.0 | Apache-2.0 |
+| moonbitlang/x | 0.5.7 | Apache-2.0 |
+| moonbitlang/async | 0.22.7 | Apache-2.0 |
+| moonbit-community/toml | 0.5.1 | Apache-2.0 |
 | DzmingLi/clap | 0.2.8 | MIT |
-| hnlyxiaobing/crescent | 0.10.7 | Apache-2.0 |
+| hnlyxiaobing/crescent | 0.10.8 | Apache-2.0 |
 | hnlyxiaobing/moonbitmark | 0.5.0 | Apache-2.0 |
-| moonbit-community/tty | 0.5.0 | Apache-2.0 |
-| moonbit-community/pty | 0.4.3 | Apache-2.0 |
-| mizchi/tui | 0.10.2 | MIT |
+| bobzhang/lexer | 0.3.1 | Apache-2.0 |
+| moonbit-community/tty | 0.6.2 | Apache-2.0 |
+| moonbit-community/pty | 0.4.4 | Apache-2.0 |
+| moonbit-community/unicodewidth | 0.2.1 | Apache-2.0 |
 | mizchi/signals | 0.6.6 | MIT |
 | hustcer/tabular | 0.6.0 | Apache-2.0 |
-| Milky2018/css | 0.6.0 | Apache-2.0 |
 
-传递依赖（由上述模块引入，未直接使用）：bobzhang/lexer (Apache-2.0)。
+`bobzhang/lexer` 既由 `moonbit-community/toml` 传递引入，也在 `moon.mod` 中显式锁定为 0.3.1。
 
-本地 vendor 副本（`moon.work` 成员，源码随仓库分发）：
-- `vendor/mizchi-tui`（模块名 `mizchi/tui`，MIT）：仅保留本仓库实际使用的 `core` 包；
-  其 CSS 依赖已由 `mizchi/css` 替换为 `Milky2018/css`。上游仓库未附 LICENSE 文件，
-  许可以上游 `moon.mod` 声明的 MIT 为准。
-- `vendor/mizchi-crater-core`（模块名 `mizchi/crater-core` 0.19.0，Apache-2.0）：CSS 依赖同样
-  指向 `Milky2018/css`；许可全文见 `vendor/mizchi-crater-core/LICENSE`。
-
+本仓库当前没有额外的 `moon.work` vendored 成员；`third_party/clap` 是模块内 vendored 包（见 `third_party/clap/VENDOR.md`）。
 MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonbitmark/`），
 其许可随 MoonBitMark 的 Apache-2.0 分发。
 
@@ -49,8 +43,8 @@ MoonBitMark 内部内联了 bobzhang/mbtpdf（见 `.mooncakes/hnlyxiaobing/moonb
 | 库 | 版本 | 许可 | 目录 |
 |---|---|---|---|
 | highlight.js | 11.12.0 | BSD-3-Clause | `web/vendor/hljs/` |
-| marked.js | 18.1.1 | MIT | `web/vendor/marked/` |
-| KaTeX | 0.19.0 | MIT | `web/vendor/katex/` |
+| marked.js | 18.1.3 | MIT | `web/vendor/marked/` |
+| KaTeX | 0.19.1 | MIT | `web/vendor/katex/` |
 | qrcode-generator | 2.0.4 | MIT | `web/vendor/qrcode/` |
 | qrcodejs | 1.0.0 | MIT | web/vendor/qrcodejs/ |
 | CodeMirror 6 bundle | codemirror 6.0.2 / lang-markdown 6.5.2 / one-dark 6.1.3 | MIT | `web/vendor/codemirror/` |

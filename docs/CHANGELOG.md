@@ -25,6 +25,13 @@
 
 ## 变更记录
 
+### 2026-11-09  发布 0.3.2（外部依赖全面升级 + 工具链兼容）
+
+- `[chore]` **依赖升级**：`moon.mod` 全量更新到 registry 最新版本：`moonbitlang/x 0.5.7`、`moonbitlang/async 0.22.7`、`moonbit-community/toml 0.5.1`、`moonbit-community/tty 0.6.2`、`moonbit-community/pty 0.4.4`、`hnlyxiaobing/crescent 0.10.8`，并显式锁定最新传递依赖 `bobzhang/lexer 0.3.1`；其余模块保持最新。前端 Playwright 升至 `1.65.0`，vendored marked 升至 `18.1.3`、KaTeX 升至 `0.19.1`。
+- `[fix]` **工具链兼容**：全仓迁移 deprecated `derive(...)` 到 `#derive(...)`，替换已弃用的 `String::view()`，清理最新工具链报告的 unused-package/test-qualification 警告；`moon check -d` 恢复 0 errors / 0 warnings。
+- `[fix]` **crescent 兼容发布**：上游 `crescent 0.10.8` 修复新依赖图下的 primitive `to_json` 调用，MBOpenClacky 改用该版本；清理其旧格式/告警并重新发布，确保干净 `moon publish` 校验通过。
+- `[chore]` **发布**：四处用户可见版本 `moon.mod` / `cmd` VERSION / TUI `app_version` / Web `handlers_version` 统一升至 `0.3.2`。
+
 ### 2026-10-16  Web 会话历史丢失根因修复 + F1–F3 收口
 
 - `[fix]` **切换视图后会话历史丢失（主问题）**：`GET /api/sessions/:id/messages` 与 WS subscribe 快照磁盘优先，而快照只在会话创建/run 结束写入，运行中切视图即丢全部消息。新增共用层 `load_session_freshest`（`lib/web/handlers_session_ext.mbt`）按字段分权：`messages`/`stats` 内存权威，元数据磁盘权威（避免回滚重命名/模型切换），无内存 agent 回落磁盘；export/rename/working_dir/patch(name/pinned)/model/sub-model/reasoning-effort PATCH 与 subscribe 全部改走该 helper（消除读-改-写回陈旧 messages 的清空缺陷）。分析：`specs/draft/2026-10-16_session-history-lost-on-view-switch.md`。

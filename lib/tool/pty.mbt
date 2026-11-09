@@ -45,12 +45,13 @@ priv struct PtyHandle {
 
 ///|
 /// Result state of a read-until-marker operation.
+#derive(Eq, Debug)
 pub(all) enum PtyReadState {
   Matched // marker found, command completed
   Idle // idle threshold exceeded, likely waiting for input
   Timeout // overall timeout exceeded
   Eof // child process exited (EOF on PTY)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PtyReadState with @moonbitlang/core/debug.Debug::{to_repr}
@@ -60,12 +61,13 @@ pub extend PtyReadState with Eq::{not_equal, equal}
 
 ///|
 /// Result of executing a command in the PTY.
+#derive(Debug)
 pub(all) struct PtyExecResult {
   output : String
   exit_code : Int32?
   duration_ms : Int32
   state : PtyReadState
-} derive(Debug)
+}
 
 ///|
 pub extend PtyExecResult with @moonbitlang/core/debug.Debug::{to_repr}

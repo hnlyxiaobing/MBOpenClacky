@@ -9,12 +9,13 @@ pub(all) struct AutoCreator {
 
 ///|
 /// A candidate skill detected from conversation patterns.
+#derive(Eq, Debug)
 pub(all) struct CreationCandidate {
   name : String
   description : String
   pattern_count : Int32 // number of times the pattern was detected
   confidence : Int32 // 0-100 confidence score
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CreationCandidate with @moonbitlang/core/debug.Debug::{to_repr}

@@ -20,11 +20,12 @@ pub(all) enum EvolutionScenario {
 
 ///|
 /// The action taken by the evolution engine.
+#derive(Eq, Debug)
 pub(all) enum EvolutionAction {
   Created
   Improved
   NoChange
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend EvolutionAction with @moonbitlang/core/debug.Debug::{to_repr}
@@ -34,11 +35,12 @@ pub extend EvolutionAction with Eq::{not_equal, equal}
 
 ///|
 /// Result of an evolution operation.
+#derive(Eq, Debug)
 pub(all) struct EvolutionResult {
   action : EvolutionAction
   skill_name : String
   diff_summary : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend EvolutionResult with @moonbitlang/core/debug.Debug::{to_repr}

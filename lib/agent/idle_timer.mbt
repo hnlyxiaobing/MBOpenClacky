@@ -10,12 +10,13 @@ let default_idle_threshold_ms : Int32 = 300_000
 
 ///|
 /// Timer state.
+#derive(Eq, Debug)
 pub(all) enum TimerState {
   Idle // not started
   Waiting(Int32) // started, counting down (remaining seconds)
   Compressing // compression in progress
   Cancelled // explicitly cancelled
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TimerState with @moonbitlang/core/debug.Debug::{to_repr}
@@ -28,6 +29,7 @@ pub extend TimerState with Eq::{not_equal, equal}
 ///
 /// Tracks user activity and triggers compression when the conversation
 /// has been idle beyond the configured threshold.
+#derive(Debug)
 pub(all) struct IdleCompressionTimer {
   delay : Int32 // idle_delay seconds
   mut state : TimerState
@@ -37,7 +39,7 @@ pub(all) struct IdleCompressionTimer {
   mut active : Bool // whether the timer is actively monitoring
   idle_threshold_ms : Int32 // ms of inactivity before compression (default 300000)
   mut timer_id : String? // optional timer identifier
-} derive(Debug)
+}
 
 ///|
 pub extend IdleCompressionTimer with @moonbitlang/core/debug.Debug::{to_repr}

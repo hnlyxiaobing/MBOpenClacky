@@ -1,12 +1,13 @@
 ///|
 /// Status of a todo task item.
+#derive(Eq, Compare, Debug)
 pub(all) enum TodoStatus {
   Pending
   InProgress
   Completed
   Cancelled
   Failed
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend TodoStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -63,6 +64,7 @@ pub impl FromJson for TodoStatus with fn from_json(json, path) {
 
 ///|
 /// A single actionable task in the TodoManager.
+#derive(Eq, Debug)
 pub(all) struct TodoItem {
   id : String
   title : String
@@ -71,7 +73,7 @@ pub(all) struct TodoItem {
   blocked_by : Array[String]
   created_at : String
   mut updated_at : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TodoItem with @moonbitlang/core/debug.Debug::{to_repr}

@@ -17,6 +17,7 @@
 /// Available block font styles.
 // `Banner` / `Shadow` are selected by `MBOPENCLACKY_LOGO_FRAME`
 // (none | box | shadow) through `frame_style_from_name`.
+#derive(Eq)
 pub enum BlockFontStyle {
   /// 5x5 bitmap drawn with the full block character.
   Standard
@@ -24,7 +25,7 @@ pub enum BlockFontStyle {
   Banner
   /// Same bitmap with a one-cell drop shadow drawn in light shade.
   Shadow
-} derive(Eq)
+}
 
 ///|
 pub extend BlockFontStyle with Eq::{not_equal, equal}

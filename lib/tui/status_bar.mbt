@@ -9,6 +9,7 @@
 
 ///|
 /// Color category for a status bar segment.
+#derive(Debug)
 pub(all) enum SegmentColor {
   /// Status indicator — color depends on agent status text.
   Status
@@ -28,26 +29,28 @@ pub(all) enum SegmentColor {
   Dim
   /// Default foreground.
   Default
-} derive(Debug)
+}
 
 ///|
 pub extend SegmentColor with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A single colored text segment.
+#derive(Debug)
 pub(all) struct StatusSegment {
   text : String
   color : SegmentColor
-} derive(Debug)
+}
 
 ///|
 pub extend StatusSegment with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Status bar component that formats status data into colored segments.
+#derive(Debug)
 pub(all) struct StatusBar {
   mut segments : Array[StatusSegment]
-} derive(Debug)
+}
 
 ///|
 pub extend StatusBar with @moonbitlang/core/debug.Debug::{to_repr}

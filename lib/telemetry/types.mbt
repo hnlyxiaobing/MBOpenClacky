@@ -1,10 +1,11 @@
 ///|
 /// Telemetry event types
+#derive(Eq, Debug, ToJson)
 pub(all) enum TelemetryEventType {
   Startup
   Task
   Share
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend TelemetryEventType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -17,12 +18,13 @@ pub extend TelemetryEventType with ToJson::{to_json}
 
 ///|
 /// Startup event payload
+#derive(Eq, Debug, ToJson)
 pub(all) struct StartupPayload {
   device_id : String
   version : String
   brand : String?
   container : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend StartupPayload with @moonbitlang/core/debug.Debug::{to_repr}
@@ -35,6 +37,7 @@ pub extend StartupPayload with ToJson::{to_json}
 
 ///|
 /// Task completion event payload
+#derive(Eq, Debug, ToJson)
 pub(all) struct TaskPayload {
   device_id : String
   version : String
@@ -49,7 +52,7 @@ pub(all) struct TaskPayload {
   completion_tokens : Int32
   cache_creation_tokens : Int32
   cache_read_tokens : Int32
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend TaskPayload with @moonbitlang/core/debug.Debug::{to_repr}
@@ -62,11 +65,12 @@ pub extend TaskPayload with ToJson::{to_json}
 
 ///|
 /// Share event payload
+#derive(Eq, Debug, ToJson)
 pub(all) struct SharePayload {
   device_id : String
   event : String
   extra : Map[String, String]?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SharePayload with @moonbitlang/core/debug.Debug::{to_repr}
@@ -79,11 +83,12 @@ pub extend SharePayload with ToJson::{to_json}
 
 ///|
 /// Unified telemetry event
+#derive(Eq, Debug, ToJson)
 pub(all) enum TelemetryEvent {
   StartupEvent(StartupPayload)
   TaskEvent(TaskPayload)
   ShareEvent(SharePayload)
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend TelemetryEvent with @moonbitlang/core/debug.Debug::{to_repr}

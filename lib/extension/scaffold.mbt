@@ -3,6 +3,7 @@
 
 ///|
 /// Template configuration for a new extension.
+#derive(Eq)
 pub(all) struct ExtensionTemplate {
   id : String
   name : String
@@ -11,7 +12,7 @@ pub(all) struct ExtensionTemplate {
   author : String
   license : String
   contributions : Array[ExtensionContributionType]
-} derive(Eq)
+}
 
 ///|
 pub extend ExtensionTemplate with Eq::{not_equal, equal}

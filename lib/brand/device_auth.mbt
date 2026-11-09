@@ -24,6 +24,7 @@ let default_verification_uri : String = "https://mbopenclacky.example.com/activa
 
 ///|
 /// In-memory device authorization session.
+#derive(Eq, Debug)
 pub(all) struct DeviceAuthSession {
   device_code : String
   user_code : String
@@ -31,7 +32,7 @@ pub(all) struct DeviceAuthSession {
   expires_at : Int64
   interval : Int32
   approved : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend DeviceAuthSession with @moonbitlang/core/debug.Debug::{to_repr}
@@ -41,12 +42,13 @@ pub extend DeviceAuthSession with Eq::{not_equal, equal}
 
 ///|
 /// Result of a poll operation.
+#derive(Eq, Debug)
 pub(all) enum PollResult {
   Pending
   Approved(String)
   Expired
   SlowDown
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PollResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -56,9 +58,10 @@ pub extend PollResult with Eq::{not_equal, equal}
 
 ///|
 /// Thread-safe store of in-flight device authorization sessions.
+#derive(Debug)
 pub(all) struct DeviceAuthStore {
   mut sessions : Map[String, DeviceAuthSession]
-} derive(Debug)
+}
 
 ///|
 pub extend DeviceAuthStore with @moonbitlang/core/debug.Debug::{to_repr}

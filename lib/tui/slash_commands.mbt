@@ -6,6 +6,7 @@
 
 ///|
 /// Parsed slash command variants.
+#derive(Eq, Debug)
 pub(all) enum SlashCommand {
   /// No-arg `/config`: open the config menu (with-arg form was removed —
   /// the catch-all silently accepted unknown keys without effect).
@@ -18,7 +19,7 @@ pub(all) enum SlashCommand {
   Theme(name~ : String)
   /// Open the time-machine undo menu.
   Undo
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SlashCommand with @moonbitlang/core/debug.Debug::{to_repr}
@@ -28,11 +29,12 @@ pub extend SlashCommand with Eq::{not_equal, equal}
 
 ///|
 /// Definition of a registered slash command.
+#derive(Eq, Debug)
 pub(all) struct SlashCommandDef {
   name : String
   description : String
   usage : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SlashCommandDef with @moonbitlang/core/debug.Debug::{to_repr}
@@ -42,9 +44,10 @@ pub extend SlashCommandDef with Eq::{not_equal, equal}
 
 ///|
 /// Parser for slash commands with registered command definitions.
+#derive(Debug)
 pub(all) struct SlashCommandParser {
   commands : Array[SlashCommandDef]
-} derive(Debug)
+}
 
 ///|
 pub extend SlashCommandParser with @moonbitlang/core/debug.Debug::{to_repr}

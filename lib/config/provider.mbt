@@ -6,6 +6,7 @@
 
 ///|
 /// API protocol type used by a provider.
+#derive(Eq, Debug)
 pub(all) enum ApiType {
   /// OpenAI-compatible chat completions (/v1/chat/completions)
   OpenAICompletions
@@ -15,7 +16,7 @@ pub(all) enum ApiType {
   Bedrock
   /// OpenAI Responses API (/v1/responses)
   OpenAIResponses
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ApiType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -61,6 +62,7 @@ pub fn ApiType::from_string(s : String) -> ApiType? {
 /// functionally-equivalent endpoints (mainland vs international, pay-as-you-go
 /// vs Coding Plan) under one identity, and every URL must resolve back to the
 /// same preset for capability and fallback checks to work.
+#derive(Debug)
 pub(all) struct EndpointVariant {
   /// Shipped English label (fallback when label_key is untranslated)
   label : String
@@ -73,12 +75,13 @@ pub(all) struct EndpointVariant {
   /// Alias group key for api_model_aliases (e.g. "payg"); endpoints in the
   /// same billing group share model-id aliases. Mirrors Ruby `alias_group`.
   alias_group : String?
-} derive(Debug)
+}
 
 ///|
 pub extend EndpointVariant with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) struct ProviderPreset {
   /// Provider identifier (e.g. "openclacky", "openrouter")
   id : String
@@ -119,7 +122,7 @@ pub(all) struct ProviderPreset {
   /// endpoint variant `alias_group`; the alias is applied just before the
   /// request goes out (mirrors Ruby `api_model_aliases`, providers.rb:539).
   api_model_aliases : Map[String, Map[String, String]]
-} derive(Debug)
+}
 
 ///|
 pub extend ProviderPreset with @moonbitlang/core/debug.Debug::{to_repr}

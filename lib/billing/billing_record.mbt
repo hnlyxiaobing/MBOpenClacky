@@ -34,6 +34,7 @@ pub fn generate_id() -> String {
 
 ///|
 /// A single billing record representing one LLM API call.
+#derive(Eq, Debug)
 pub(all) struct BillingRecord {
   id : String // Unique record ID (UUID)
   session_id : String // Associated session ID
@@ -45,7 +46,7 @@ pub(all) struct BillingRecord {
   cache_write_tokens : Int32 // Cache creation tokens
   cost_usd : Double // Calculated cost in USD
   cost_source : String // "price", "estimated", or "api"
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BillingRecord with @moonbitlang/core/debug.Debug::{to_repr}

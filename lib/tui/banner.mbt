@@ -6,11 +6,12 @@
 /// Banner rendering style
 // `Minimal` is the no-artwork style: the startup logo falls back to it when
 // the terminal is too narrow for the block-font artwork.
+#derive(Debug, Eq)
 pub enum BannerStyle {
   Boxed // Box drawing characters border
   Minimal // Simple separator lines
   Block // Unicode block font
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend BannerStyle with @moonbitlang/core/debug.Debug::{to_repr}
@@ -20,11 +21,12 @@ pub extend BannerStyle with Eq::{not_equal, equal}
 
 ///|
 /// Banner renderer
+#derive(Eq, Debug)
 pub(all) struct Banner {
   style : BannerStyle
   width : Int32
   use_color : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Banner with @moonbitlang/core/debug.Debug::{to_repr}

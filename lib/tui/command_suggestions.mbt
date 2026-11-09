@@ -7,6 +7,7 @@
 
 ///|
 /// A single suggestion item displayed in the dropdown.
+#derive(Debug)
 pub(all) struct SuggestionItem {
   /// The command name including the "/" prefix (e.g. "/help").
   name : String
@@ -14,7 +15,7 @@ pub(all) struct SuggestionItem {
   description : String
   /// Usage hint (e.g. "/config <key> <value>").
   usage : String
-} derive(Debug)
+}
 
 ///|
 pub extend SuggestionItem with @moonbitlang/core/debug.Debug::{to_repr}
@@ -25,6 +26,7 @@ pub extend SuggestionItem with @moonbitlang/core/debug.Debug::{to_repr}
 /// Supports filtering by prefix, cycling through results with Tab/Up/Down,
 /// and selecting with Enter. Renders as a bordered box with up to
 /// `max_visible` items shown at once (with scroll indicator).
+#derive(Debug)
 pub(all) struct CommandSuggestions {
   /// All registered commands (system + skill commands).
   commands : Array[SuggestionItem]
@@ -36,7 +38,7 @@ pub(all) struct CommandSuggestions {
   mut visible : Bool
   /// Maximum number of items visible at once.
   max_visible : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend CommandSuggestions with @moonbitlang/core/debug.Debug::{to_repr}

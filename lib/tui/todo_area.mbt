@@ -6,6 +6,7 @@
 
 ///|
 /// A single display item in the todo area.
+#derive(Debug)
 pub(all) struct TodoDisplayItem {
   /// Task ID.
   id : Int32
@@ -15,13 +16,14 @@ pub(all) struct TodoDisplayItem {
   status : String
   /// Task description.
   description : String
-} derive(Debug)
+}
 
 ///|
 pub extend TodoDisplayItem with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Todo area widget for displaying active task list.
+#derive(Debug)
 pub(all) struct TodoArea {
   /// Display items to render.
   mut items : Array[TodoDisplayItem]
@@ -33,7 +35,7 @@ pub(all) struct TodoArea {
   mut hidden : Bool
   /// Maximum number of items to display.
   max_display : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend TodoArea with @moonbitlang/core/debug.Debug::{to_repr}

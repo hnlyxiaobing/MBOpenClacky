@@ -14,6 +14,7 @@ let max_log_entries : Int32 = 500
 ///
 /// `to_json`/`from_json` are hand-written (not derived) so that parsing tolerates
 /// missing fields: a log written by an older build stays readable.
+#derive(Debug)
 pub(all) struct EvolutionLogEntry {
   mut id : String
   mut created_at : Int32
@@ -26,7 +27,7 @@ pub(all) struct EvolutionLogEntry {
   mut backup_path : String?
   mut model : String?
   mut error : String?
-} derive(Debug)
+}
 
 ///|
 pub extend EvolutionLogEntry with @moonbitlang/core/debug.Debug::{to_repr}

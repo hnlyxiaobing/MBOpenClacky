@@ -18,10 +18,11 @@ priv struct ShellExecCounter {
 let shell_exec_counter : ShellExecCounter = { value: 0, }
 
 ///|
+#derive(Debug)
 pub(all) struct ShellExecResult {
   output : String
   exit_code : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend ShellExecResult with @moonbitlang/core/debug.Debug::{to_repr}

@@ -27,11 +27,12 @@ pub async fn http_post_async(
 ///|
 /// HTTP response carrying a binary body, for generated-media downloads
 /// and multipart uploads where a text round-trip would corrupt bytes.
+#derive(Debug)
 pub(all) struct HttpResponseBytes {
   status_code : Int32
   body : Bytes
   headers : Array[(String, String)]
-} derive(Debug)
+}
 
 ///|
 pub extend HttpResponseBytes with @moonbitlang/core/debug.Debug::{to_repr}

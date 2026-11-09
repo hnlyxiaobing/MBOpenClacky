@@ -10,18 +10,20 @@
 
 ///|
 /// Server setup configuration for a web eval scenario.
+#derive(Debug)
 pub(all) struct WebEvalSetup {
   /// Optional API key (None disables auth).
   api_key : String?
   /// Whether to configure a fake model so chat endpoints can be created.
   model_configured : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend WebEvalSetup with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A single HTTP request step in a web eval scenario.
+#derive(Debug)
 pub(all) struct WebEvalStep {
   /// HTTP method (GET, POST, PUT, DELETE).
   http_method : String
@@ -33,13 +35,14 @@ pub(all) struct WebEvalStep {
   headers : Map[String, String]
   /// Optional per-step assertions (checked immediately after this step).
   step_assertions : Array[WebEvalAssertion]
-} derive(Debug)
+}
 
 ///|
 pub extend WebEvalStep with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// An assertion to verify the response of the last HTTP step.
+#derive(Debug)
 pub(all) enum WebEvalAssertion {
   /// Response status code equals the given value.
   StatusEq(status~ : Int32)
@@ -59,13 +62,14 @@ pub(all) enum WebEvalAssertion {
   SseValid
   /// Response body length is greater than the given value.
   BodyLengthGt(min~ : Int32)
-} derive(Debug)
+}
 
 ///|
 pub extend WebEvalAssertion with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A complete web API eval scenario.
+#derive(Debug)
 pub(all) struct WebEvalScenario {
   /// Scenario name.
   name : String
@@ -77,7 +81,7 @@ pub(all) struct WebEvalScenario {
   steps : Array[WebEvalStep]
   /// Assertions to check against the last response.
   assertions : Array[WebEvalAssertion]
-} derive(Debug)
+}
 
 ///|
 pub extend WebEvalScenario with @moonbitlang/core/debug.Debug::{to_repr}

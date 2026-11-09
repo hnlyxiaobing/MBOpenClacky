@@ -256,7 +256,7 @@ fn handle_files_upload(
     @utils.ensure_dir(dir)
   }
   let target = @path.Path::join(@path.Path(dir), @path.Path(filename)).to_string()
-  let bytes = @base64.decode(b64.view()) catch {
+  let bytes = @base64.decode(b64.exact_view()) catch {
     _ =>
       return @core.HttpResponse::bad_request().json_value(
         Json::object({ "error": Json("Invalid base64 content") }),

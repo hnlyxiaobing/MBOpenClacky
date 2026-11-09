@@ -4,6 +4,7 @@ package "hnlyxiaobing/MBOpenClacky/lib/web/protocol"
 import {
   "hnlyxiaobing/MBOpenClacky/lib/agent",
   "hnlyxiaobing/MBOpenClacky/lib/message",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -21,17 +22,17 @@ pub fn build_history_user_message(String, String) -> String
 
 pub fn build_interrupted_event(String) -> String
 
-pub fn build_messages_history(String, Array[@message.Message], limit? : Int32, before? : String?, offset? : Int32) -> Json
+pub fn build_messages_history(String, Array[@message.Message], limit? : Int32, before? : String?, offset? : Int32) -> @json.Json
 
 pub fn build_pong() -> String
 
 pub fn build_session_deleted_event(String) -> String
 
-pub fn build_session_list_event(Array[Json], has_more? : Bool) -> String
+pub fn build_session_list_event(Array[@json.Json], has_more? : Bool) -> String
 
 pub fn build_session_renamed_event(String, String) -> String
 
-pub fn build_session_restored_event(String, Json) -> String
+pub fn build_session_restored_event(String, @json.Json) -> String
 
 pub fn build_session_snapshot(@agent.SessionData) -> String
 
@@ -125,7 +126,7 @@ pub fn request_feedback_frame(String, String, String, String?, Array[String]?, A
 
 pub fn session_cost_frame(String, Double, String) -> String
 
-pub fn session_latency_frame(String, Json) -> String
+pub fn session_latency_frame(String, @json.Json) -> String
 
 pub fn session_status_frame(String, String) -> String
 
@@ -136,7 +137,7 @@ pub fn ws_frame(String, @hnlyxiaobing/MBOpenClacky/lib/protocol.Event) -> String
 // Types and methods
 pub(all) struct MappedWsEvent {
   event_type : String
-  data : Json
+  data : @json.Json
 }
 
 pub(all) enum UpstreamMessageType {

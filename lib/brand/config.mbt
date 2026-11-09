@@ -3,6 +3,7 @@ using @toml {type TomlValue}
 
 ///|
 /// White-label brand configuration (from brand.toml)
+#derive(Eq, Debug, ToJson)
 pub(all) struct BrandConfig {
   mut product_name : String?
   mut package_name : String?
@@ -19,7 +20,7 @@ pub(all) struct BrandConfig {
   mut license_user_id : String?
   mut distribution_last_refreshed_at : String?
   mut license_last_heartbeat_failure : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend BrandConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -485,10 +486,11 @@ pub fn format_iso8601(timestamp : Int32) -> String {
 /// One skill's upload record: which platform version it was published as and
 /// when. Mirrors orig's upload_meta.json entry shape:
 ///   { "platform_version" => "1.2.0", "uploaded_at" => "2026-04-09T..." }
+#derive(Eq, Debug)
 pub(all) struct UploadMeta {
   platform_version : String
   uploaded_at : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend UploadMeta with @moonbitlang/core/debug.Debug::{to_repr}

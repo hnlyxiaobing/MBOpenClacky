@@ -7,6 +7,7 @@
 
 ///|
 /// Result of a single assertion check.
+#derive(Debug)
 pub(all) struct EvalAssertionResult {
   /// The assertion that was checked (description).
   description : String
@@ -14,13 +15,14 @@ pub(all) struct EvalAssertionResult {
   passed : Bool
   /// Diagnostic message on failure.
   detail : String
-} derive(Debug)
+}
 
 ///|
 pub extend EvalAssertionResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Result of running a single eval scenario.
+#derive(Debug)
 pub(all) struct EvalScenarioResult {
   /// Scenario name.
   scenario_name : String
@@ -32,13 +34,14 @@ pub(all) struct EvalScenarioResult {
   final_screen : String
   /// Error message if scenario failed to execute.
   error : String
-} derive(Debug)
+}
 
 ///|
 pub extend EvalScenarioResult with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// Result of running a batch of eval scenarios.
+#derive(Debug)
 pub(all) struct EvalBatchResult {
   /// Results for each scenario.
   results : Array[EvalScenarioResult]
@@ -48,7 +51,7 @@ pub(all) struct EvalBatchResult {
   failed_count : Int32
   /// Total number of scenarios.
   total_count : Int32
-} derive(Debug)
+}
 
 ///|
 pub extend EvalBatchResult with @moonbitlang/core/debug.Debug::{to_repr}

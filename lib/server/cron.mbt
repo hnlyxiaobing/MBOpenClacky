@@ -1,5 +1,6 @@
 ///|
 /// A single cron field
+#derive(Eq, Debug, ToJson)
 pub(all) enum CronField {
   Any
   Value(Int32)
@@ -7,7 +8,7 @@ pub(all) enum CronField {
   Range(Int32, Int32)
   RangeStep(Int32, Int32, Int32)
   List(Array[Int32])
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend CronField with @moonbitlang/core/debug.Debug::{to_repr}
@@ -20,6 +21,7 @@ pub extend CronField with ToJson::{to_json}
 
 ///|
 /// Cron expression (5 fields: minute hour day month weekday)
+#derive(Eq, Debug, ToJson)
 pub(all) struct CronExpression {
   minute : CronField
   hour : CronField
@@ -27,7 +29,7 @@ pub(all) struct CronExpression {
   month : CronField
   day_of_week : CronField
   raw : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend CronExpression with @moonbitlang/core/debug.Debug::{to_repr}

@@ -4,6 +4,7 @@ package "hnlyxiaobing/MBOpenClacky/lib/web/middleware"
 import {
   "hnlyxiaobing/crescent",
   "hnlyxiaobing/crescent/core",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -17,7 +18,7 @@ pub fn default_timeout_config() -> TimeoutConfig
 
 pub fn error_envelope_middleware() -> @crescent.Middleware
 
-pub fn error_response(Int32, String, code? : String, hint? : String) -> Json
+pub fn error_response(Int32, String, code? : String, hint? : String) -> @json.Json
 
 pub fn forbidden_response(String) -> @core.HttpResponse
 

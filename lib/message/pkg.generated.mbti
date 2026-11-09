@@ -11,31 +11,35 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum ContentBlock {
   Text(TextBlock)
   Image(ImageBlock)
-} derive(Eq, @debug.Debug)
+}
 pub fn ContentBlock::equal(Self, Self) -> Bool
 pub fn ContentBlock::not_equal(Self, Self) -> Bool
 pub fn ContentBlock::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct FunctionCall {
   name : String
   arguments : String
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn FunctionCall::equal(Self, Self) -> Bool
 pub fn FunctionCall::not_equal(Self, Self) -> Bool
-pub fn FunctionCall::to_json(Self) -> Json
+pub fn FunctionCall::to_json(Self) -> @json.Json
 pub fn FunctionCall::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ImageBlock {
   url : String
   detail : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn ImageBlock::equal(Self, Self) -> Bool
 pub fn ImageBlock::not_equal(Self, Self) -> Bool
 pub fn ImageBlock::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Message {
   role : Role
   content : MessageContent
@@ -43,7 +47,7 @@ pub(all) struct Message {
   tool_call_id : String?
   name : String?
   mut reasoning_content : String?
-  mut latency : Json?
+  mut latency : @json.Json?
   display_text : String?
   display_files : Array[String]?
   session_date : String?
@@ -51,39 +55,41 @@ pub(all) struct Message {
   task_id : String?
   mut created_at : String?
   system_injected : Bool?
-  memory_update : Json?
+  memory_update : @json.Json?
   subagent_instructions : String?
   subagent_result : String?
-  token_usage : Json?
+  token_usage : @json.Json?
   compressed_summary : String?
   transient : Bool?
-} derive(Eq, @debug.Debug)
+}
 pub fn Message::assistant(String) -> Self
 pub fn Message::equal(Self, Self) -> Bool
-pub fn Message::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Message::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn Message::not_equal(Self, Self) -> Bool
 pub fn Message::system(String) -> Self
 pub fn Message::to_api_message(Self) -> Self
-pub fn Message::to_json(Self) -> Json
+pub fn Message::to_json(Self) -> @json.Json
 pub fn Message::to_persist_message(Self) -> Self
 pub fn Message::to_repr(Self) -> @debug.Repr
 pub fn Message::tool_result(String, String, String) -> Self
 pub fn Message::user(String) -> Self
 pub fn Message::user_blocks(Array[ContentBlock]) -> Self
-pub impl ToJson for Message
 pub impl @json.FromJson for Message
+pub impl @json.ToJson for Message
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MessageContent {
   Text(String)
   Blocks(Array[ContentBlock])
-} derive(Eq, @debug.Debug)
+}
 pub fn MessageContent::equal(Self, Self) -> Bool
 pub fn MessageContent::not_equal(Self, Self) -> Bool
 pub fn MessageContent::to_repr(Self) -> @debug.Repr
 
+#derive(Eq)
 pub(all) struct MessageHistory {
   mut messages : Array[Message]
-} derive(Eq)
+}
 pub fn MessageHistory::all(Self) -> Array[Message]
 pub fn MessageHistory::append(Self, Message) -> Unit
 pub fn MessageHistory::clear(Self) -> Unit
@@ -112,12 +118,13 @@ pub fn MessageHistory::to_api_cleaned(Self, Bool) -> Array[Message]
 pub fn MessageHistory::truncate_from(Self, Int32) -> Unit
 pub fn MessageHistory::truncate_from_created_at(Self, String) -> Unit
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum Role {
   User
   Assistant
   System
   Tool
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn Role::compare(Self, Self) -> Int32
 pub fn Role::equal(Self, Self) -> Bool
 pub fn Role::from_string(String) -> Self?
@@ -129,25 +136,27 @@ pub fn Role::op_lt(Self, Self) -> Bool
 pub fn Role::to_repr(Self) -> @debug.Repr
 pub fn Role::to_string_value(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TextBlock {
   text : String
-} derive(Eq, @debug.Debug)
+}
 pub fn TextBlock::equal(Self, Self) -> Bool
 pub fn TextBlock::not_equal(Self, Self) -> Bool
 pub fn TextBlock::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ToolCall {
   id : String
   type_ : String
   function : FunctionCall
-  extra_content : Json?
-} derive(Eq, @debug.Debug)
+  extra_content : @json.Json?
+}
 pub fn ToolCall::equal(Self, Self) -> Bool
-pub fn ToolCall::new(String, String, String, extra_content? : Json?) -> Self
+pub fn ToolCall::new(String, String, String, extra_content? : @json.Json?) -> Self
 pub fn ToolCall::not_equal(Self, Self) -> Bool
-pub fn ToolCall::to_json(Self) -> Json
+pub fn ToolCall::to_json(Self) -> @json.Json
 pub fn ToolCall::to_repr(Self) -> @debug.Repr
-pub impl ToJson for ToolCall
+pub impl @json.ToJson for ToolCall
 
 // Type aliases
 

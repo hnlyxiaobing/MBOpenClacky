@@ -5,6 +5,7 @@ const HEARTBEAT_INTERVAL : Int32 = 86400
 const HEARTBEAT_GRACE_PERIOD : Int32 = 259200
 
 ///|
+#derive(Eq, Debug, ToJson)
 pub(all) enum LicenseStatus {
   Valid
   Expired
@@ -12,7 +13,7 @@ pub(all) enum LicenseStatus {
   GraceExceeded
   Invalid
   NotConfigured
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend LicenseStatus with @moonbitlang/core/debug.Debug::{to_repr}

@@ -54,19 +54,21 @@ type EngineCase
 
 type ExitExpect
 
+#derive(@debug.Debug)
 pub(all) struct HookConfig {
   name : String
   event : String
   command : String
   enabled : Bool
-} derive(@debug.Debug)
+}
 pub fn HookConfig::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct HookContext {
   session_id : String
   message : String?
   working_dir : String
-} derive(@debug.Debug)
+}
 pub fn HookContext::to_repr(Self) -> @debug.Repr
 
 pub(all) struct LiveModel {
@@ -88,6 +90,7 @@ pub fn NdjsonLogger::log_event(Self, @protocol.Event) -> Unit
 pub fn NdjsonLogger::new(Bool) -> Self
 pub fn NdjsonLogger::warn(Self, String, fields? : Map[String, String]?) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct PatchInfo {
   name : String
   version : String
@@ -95,7 +98,7 @@ pub(all) struct PatchInfo {
   target_module : String
   command : String
   enabled : Bool
-} derive(@debug.Debug)
+}
 pub fn PatchInfo::to_repr(Self) -> @debug.Repr
 
 pub(all) struct PatchLoader {

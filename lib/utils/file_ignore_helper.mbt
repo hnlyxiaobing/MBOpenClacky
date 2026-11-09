@@ -2,11 +2,12 @@
 
 ///|
 /// Ignore configuration combining multiple rule sources.
+#derive(Debug)
 pub struct IgnoreConfig {
   gitignore_rules : Array[IgnoreRule] // from .gitignore file
   custom_rules : Array[IgnoreRule] // user-defined rules
   builtin_rules : Array[IgnoreRule] // always-ignore rules
-} derive(Debug)
+}
 
 ///|
 pub extend IgnoreConfig with @moonbitlang/core/debug.Debug::{to_repr}

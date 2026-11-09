@@ -2,6 +2,7 @@
 
 ///|
 /// Skills are extensible capabilities that can be invoked by the agent or user.
+#derive(Eq, Debug, ToJson)
 pub(all) struct Skill {
   name : String
   name_zh : String?
@@ -20,7 +21,7 @@ pub(all) struct Skill {
   auto_summarize : Bool
   source : String
   directory : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Skill with @moonbitlang/core/debug.Debug::{to_repr}

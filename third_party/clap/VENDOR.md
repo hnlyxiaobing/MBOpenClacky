@@ -20,6 +20,9 @@ package self-contained and buildable.
 - Upstream README: `README.upstream.md`
 - Vendored files: `arg.mbt`, `gen_help.mbt`, `parser.mbt`, `subcmd.mbt`,
   `value.mbt` (upstream test files intentionally omitted)
+- Compatibility patch: the three legacy `derive(...)` clauses were migrated to
+  the current `#derive(...)` form so the vendored package passes modern
+  `moon check`; no behavior or API changes were made.
 
 Consumers import this package as `@clap`
 (`hnlyxiaobing/MBOpenClacky/third_party/clap`), preserving the same alias the

@@ -1,12 +1,13 @@
 ///|
 /// Memory category classification for MemoryEntry.
+#derive(Eq, Compare, Debug)
 pub(all) enum MemoryCategory {
   UserPreference
   ProjectInfo
   TaskSummary
   ExpertKnowledge
   LearnedSkill
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend MemoryCategory with @moonbitlang/core/debug.Debug::{to_repr}
@@ -63,6 +64,7 @@ pub impl FromJson for MemoryCategory with fn from_json(json, path) {
 
 ///|
 /// A single memory entry stored in the MemoryStore.
+#derive(Eq, Debug)
 pub(all) struct MemoryEntry {
   id : String
   title : String
@@ -71,7 +73,7 @@ pub(all) struct MemoryEntry {
   keywords : Array[String]
   created_at : String
   updated_at : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend MemoryEntry with @moonbitlang/core/debug.Debug::{to_repr}

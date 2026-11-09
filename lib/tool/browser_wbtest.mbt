@@ -49,7 +49,7 @@ test "screenshot_downscale_real_png_via_pil" {
         b64_data != "(\{b64.length()} chars)",
         msg="must be real payload",
       )
-      let decoded = @base64.decode(b64_data.view()) catch {
+      let decoded = @base64.decode(b64_data.exact_view()) catch {
         _ => Bytes::makei(0, fn(_) { (0 : Int32).to_byte() })
       }
       assert_eq(png_size(decoded).map(fn(s) { s.0 }), Some(800))

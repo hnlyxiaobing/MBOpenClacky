@@ -145,12 +145,13 @@ pub fn should_trigger_idle_compression(
 
 ///|
 /// Statistics about a compression operation.
+#derive(Eq, Debug)
 pub(all) struct CompressionStats {
   before_tokens : Int32
   after_tokens : Int32
   messages_removed : Int32
   compression_ratio : Double
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CompressionStats with @moonbitlang/core/debug.Debug::{to_repr}
@@ -184,13 +185,14 @@ pub fn calculate_compression_savings(
 ///|
 /// Key information extracted from conversation messages.
 /// Used for generating hierarchical summaries and chunk metadata.
+#derive(Eq, Debug)
 pub(all) struct KeyInformation {
   files_mentioned : Array[String]
   decisions_made : Array[String]
   tasks_completed : Array[String]
   tasks_pending : Array[String]
   errors_encountered : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend KeyInformation with @moonbitlang/core/debug.Debug::{to_repr}
@@ -452,11 +454,12 @@ pub fn truncate_tool_result(
 ///|
 /// Metadata about a previously archived chunk file, used for building
 /// the previous-chunks index section in compressed summaries.
+#derive(Eq, Debug)
 pub(all) struct ChunkInfo {
   basename : String
   path : String
   topics : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ChunkInfo with @moonbitlang/core/debug.Debug::{to_repr}

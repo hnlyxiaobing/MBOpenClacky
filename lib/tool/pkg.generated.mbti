@@ -7,11 +7,12 @@ import {
   "hnlyxiaobing/MBOpenClacky/lib/utils",
   "moonbitlang/async/process",
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
 
 // Values
-pub fn ask_user_context(Map[String, Json]) -> String?
+pub fn ask_user_context(Map[String, @json.Json]) -> String?
 
 pub fn background_hint(Bool, Int32) -> String
 
@@ -53,11 +54,11 @@ pub fn format_screenshot_result(String, ref_param? : String?, format? : String?,
 
 pub fn get_basename(String) -> String
 
-pub fn get_bool_arg(Map[String, Json], String, Bool) -> Bool
+pub fn get_bool_arg(Map[String, @json.Json], String, Bool) -> Bool
 
-pub fn get_int_arg(Map[String, Json], String, Int32) -> Int32
+pub fn get_int_arg(Map[String, @json.Json], String, Int32) -> Int32
 
-pub fn get_string_arg(Map[String, Json], String, String) -> String
+pub fn get_string_arg(Map[String, @json.Json], String, String) -> String
 
 pub fn glob_path_match(String, String) -> Bool
 
@@ -89,7 +90,7 @@ pub let max_line_chars : Int32
 
 pub fn mtime_sec_or_none(String) -> Int64?
 
-pub fn normalize_questions(Map[String, Json]) -> Array[AskQuestion]
+pub fn normalize_questions(Map[String, @json.Json]) -> Array[AskQuestion]
 
 pub fn process_terminal_output(String, max_chars? : Int32) -> (String, Bool)
 
@@ -150,12 +151,14 @@ pub fn walk_files(String, Int32, Int32, @utils.IgnoreConfig) -> Array[String]
 pub fn windows_shell_path() -> String
 
 // Errors
+#derive(@debug.Debug)
 pub suberror SecurityError {
   SecurityError(String)
-} derive(@debug.Debug)
+}
 pub fn SecurityError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum AnyTool {
   FileReader(FileReader)
   Write(Write)
@@ -171,20 +174,21 @@ pub(all) enum AnyTool {
   AskUser(AskUser)
   TrashManager(TrashManager)
   Browser(Browser)
-} derive(Eq, @debug.Debug)
+}
 pub fn AnyTool::category(Self) -> ToolCategory
 pub fn AnyTool::description(Self) -> String
 pub fn AnyTool::equal(Self, Self) -> Bool
-pub async fn AnyTool::execute(Self, Map[String, Json]) -> ToolResult
-pub fn AnyTool::format_call(Self, Map[String, Json]) -> String
+pub async fn AnyTool::execute(Self, Map[String, @json.Json]) -> ToolResult
+pub fn AnyTool::format_call(Self, Map[String, @json.Json]) -> String
 pub fn AnyTool::format_result(Self, ToolResult) -> String
 pub fn AnyTool::name(Self) -> String
 pub fn AnyTool::not_equal(Self, Self) -> Bool
-pub fn AnyTool::parameters(Self) -> Json
+pub fn AnyTool::parameters(Self) -> @json.Json
 pub fn AnyTool::to_function_definition(Self) -> FunctionDefinition
 pub fn AnyTool::to_repr(Self) -> @debug.Repr
 pub impl Tool for AnyTool
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AskQuestion {
   question : String
   description : String
@@ -192,75 +196,82 @@ pub(all) struct AskQuestion {
   multi : Bool
   allow_free_text : Bool
   recommended : Int32?
-} derive(Eq, @debug.Debug)
+}
 pub fn AskQuestion::equal(Self, Self) -> Bool
 pub fn AskQuestion::not_equal(Self, Self) -> Bool
 pub fn AskQuestion::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AskUser {
-} derive(Eq, @debug.Debug)
+}
 pub fn AskUser::equal(Self, Self) -> Bool
 pub fn AskUser::not_equal(Self, Self) -> Bool
 pub fn AskUser::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Browser {
   mut daemon_connected : Bool
   mut page_cache : PageCache
-} derive(Eq, @debug.Debug)
+}
 pub fn Browser::equal(Self, Self) -> Bool
 pub fn Browser::handle_status(Self) -> String
 pub fn Browser::invalidate_page_cache(Self) -> Unit
 pub fn Browser::is_browser_configured(Self) -> Bool
 pub fn Browser::is_browser_enabled(Self) -> Bool
-pub async fn Browser::mcp_call(Self, String, Map[String, Json], page_id? : String?) -> ToolResult
+pub async fn Browser::mcp_call(Self, String, Map[String, @json.Json], page_id? : String?) -> ToolResult
 pub fn Browser::new() -> Self
 pub fn Browser::not_equal(Self, Self) -> Bool
 pub async fn Browser::recover_selected_page(Self) -> String?
 pub fn Browser::to_repr(Self) -> @debug.Repr
 pub async fn Browser::wait_for_page_ready(Self, timeout_ms? : Int32) -> Result[Unit, String]
-pub async fn Browser::with_page(Self, String, Map[String, Json]) -> ToolResult
+pub async fn Browser::with_page(Self, String, Map[String, @json.Json]) -> ToolResult
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Edit {
   encoding : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Edit::equal(Self, Self) -> Bool
 pub fn Edit::new() -> Self
 pub fn Edit::not_equal(Self, Self) -> Bool
 pub fn Edit::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FileReader {
   max_lines : Int32
   max_line_chars : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn FileReader::equal(Self, Self) -> Bool
 pub fn FileReader::new() -> Self
 pub fn FileReader::not_equal(Self, Self) -> Bool
 pub fn FileReader::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct FunctionDef {
   name : String
   description : String
-  parameters : Json
-} derive(Eq, ToJson, @debug.Debug)
+  parameters : @json.Json
+}
 pub fn FunctionDef::equal(Self, Self) -> Bool
 pub fn FunctionDef::not_equal(Self, Self) -> Bool
-pub fn FunctionDef::to_json(Self) -> Json
+pub fn FunctionDef::to_json(Self) -> @json.Json
 pub fn FunctionDef::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FunctionDefinition {
   type_ : String
   function : FunctionDef
-} derive(Eq, @debug.Debug)
+}
 pub fn FunctionDefinition::equal(Self, Self) -> Bool
-pub fn FunctionDefinition::new(String, String, Json) -> Self
+pub fn FunctionDefinition::new(String, String, @json.Json) -> Self
 pub fn FunctionDefinition::not_equal(Self, Self) -> Bool
-pub fn FunctionDefinition::to_json(Self) -> Json
+pub fn FunctionDefinition::to_json(Self) -> @json.Json
 pub fn FunctionDefinition::to_repr(Self) -> @debug.Repr
-pub impl ToJson for FunctionDefinition
+pub impl @json.ToJson for FunctionDefinition
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Glob {
   limit : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Glob::equal(Self, Self) -> Bool
 pub fn Glob::new() -> Self
 pub fn Glob::not_equal(Self, Self) -> Bool
@@ -272,80 +283,90 @@ pub struct GlobMatcher {
 pub fn GlobMatcher::match_path(Self, String) -> Bool
 pub fn GlobMatcher::new(String) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Grep {
   max_files : Int32
   max_matches_per_file : Int32
   max_total_matches : Int32
   max_line_length : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Grep::equal(Self, Self) -> Bool
 pub fn Grep::new() -> Self
 pub fn Grep::not_equal(Self, Self) -> Bool
 pub fn Grep::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct InvokeSkill {
-} derive(Eq, @debug.Debug)
+}
 pub fn InvokeSkill::equal(Self, Self) -> Bool
 pub fn InvokeSkill::not_equal(Self, Self) -> Bool
 pub fn InvokeSkill::to_repr(Self) -> @debug.Repr
 
 type MatchResult
 
+#derive(Eq, @debug.Debug)
 pub(all) struct MemoryTool {
-} derive(Eq, @debug.Debug)
+}
 pub fn MemoryTool::equal(Self, Self) -> Bool
 pub fn MemoryTool::not_equal(Self, Self) -> Bool
 pub fn MemoryTool::to_repr(Self) -> @debug.Repr
 
-type PageCache derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type PageCache
 pub fn PageCache::equal(Self, Self) -> Bool
 pub fn PageCache::not_equal(Self, Self) -> Bool
 pub fn PageCache::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct PtyExecResult {
   output : String
   exit_code : Int32?
   duration_ms : Int32
   state : PtyReadState
-} derive(@debug.Debug)
+}
 pub fn PtyExecResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PtyReadState {
   Matched
   Idle
   Timeout
   Eof
-} derive(Eq, @debug.Debug)
+}
 pub fn PtyReadState::equal(Self, Self) -> Bool
 pub fn PtyReadState::not_equal(Self, Self) -> Bool
 pub fn PtyReadState::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SessionStatus {
   Starting
   Running
   Exited
   Killed
-} derive(Eq, @debug.Debug)
+}
 pub fn SessionStatus::equal(Self, Self) -> Bool
 pub fn SessionStatus::not_equal(Self, Self) -> Bool
 pub fn SessionStatus::to_repr(Self) -> @debug.Repr
 pub fn SessionStatus::to_string(Self) -> String
 
+#derive(@debug.Debug)
 pub(all) struct ShellExecResult {
   output : String
   exit_code : Int32
-} derive(@debug.Debug)
+}
 pub fn ShellExecResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Terminal {
   timeout : Int32
   max_output_chars : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Terminal::equal(Self, Self) -> Bool
 pub fn Terminal::new() -> Self
 pub fn Terminal::not_equal(Self, Self) -> Bool
 pub fn Terminal::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct TerminalSession {
   id : Int32
   mut command : String
@@ -359,7 +380,7 @@ pub(all) struct TerminalSession {
   mut output_file : String?
   mut marker_token : String
   mut output_offset : Int32
-} derive(@debug.Debug)
+}
 pub fn TerminalSession::new(Int32, String, String) -> Self
 pub fn TerminalSession::to_repr(Self) -> @debug.Repr
 
@@ -381,19 +402,21 @@ pub fn TerminalSessionManager::set_output_file(Int32, String, String) -> Unit
 pub fn TerminalSessionManager::set_pid(Int32, Int32) -> Unit
 pub fn TerminalSessionManager::set_stdin_writer(Int32, @process.WriteToProcess) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TodoTool {
-} derive(Eq, @debug.Debug)
+}
 pub fn TodoTool::equal(Self, Self) -> Bool
 pub fn TodoTool::not_equal(Self, Self) -> Bool
 pub fn TodoTool::to_repr(Self) -> @debug.Repr
 
+#derive(Compare, Eq, @debug.Debug)
 pub(all) enum ToolCategory {
   General
   FileSystem
   Execution
   Web
   Agent
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn ToolCategory::compare(Self, Self) -> Int32
 pub fn ToolCategory::equal(Self, Self) -> Bool
 pub fn ToolCategory::from_string(String) -> Self?
@@ -402,16 +425,17 @@ pub fn ToolCategory::op_ge(Self, Self) -> Bool
 pub fn ToolCategory::op_gt(Self, Self) -> Bool
 pub fn ToolCategory::op_le(Self, Self) -> Bool
 pub fn ToolCategory::op_lt(Self, Self) -> Bool
-pub fn ToolCategory::to_json(Self) -> Json
+pub fn ToolCategory::to_json(Self) -> @json.Json
 pub fn ToolCategory::to_repr(Self) -> @debug.Repr
 pub fn ToolCategory::to_string_value(Self) -> String
-pub impl ToJson for ToolCategory
+pub impl @json.ToJson for ToolCategory
 
+#derive(@debug.Debug)
 pub(all) struct ToolRegistry {
   tools : Map[String, AnyTool]
   downcased_index : Map[String, String]
   order : Array[String]
-} derive(@debug.Debug)
+}
 pub fn ToolRegistry::all(Self) -> Array[AnyTool]
 pub fn ToolRegistry::all_definitions(Self) -> Array[FunctionDefinition]
 pub fn ToolRegistry::allowed_definitions(Self, Array[String]?) -> Array[FunctionDefinition]
@@ -426,42 +450,47 @@ pub fn ToolRegistry::size(Self) -> Int32
 pub fn ToolRegistry::to_repr(Self) -> @debug.Repr
 pub fn ToolRegistry::tool_names(Self) -> Array[String]
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ToolResult {
   content : String
   is_error : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ToolResult::equal(Self, Self) -> Bool
 pub fn ToolResult::error(String) -> Self
 pub fn ToolResult::not_equal(Self, Self) -> Bool
 pub fn ToolResult::success(String) -> Self
-pub fn ToolResult::to_json(Self) -> Json
+pub fn ToolResult::to_json(Self) -> @json.Json
 pub fn ToolResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TrashManager {
-} derive(Eq, @debug.Debug)
+}
 pub fn TrashManager::equal(Self, Self) -> Bool
 pub fn TrashManager::not_equal(Self, Self) -> Bool
 pub fn TrashManager::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct WebFetch {
   max_length : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn WebFetch::equal(Self, Self) -> Bool
 pub fn WebFetch::new() -> Self
 pub fn WebFetch::not_equal(Self, Self) -> Bool
 pub fn WebFetch::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct WebSearch {
   max_results : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn WebSearch::equal(Self, Self) -> Bool
 pub fn WebSearch::new() -> Self
 pub fn WebSearch::not_equal(Self, Self) -> Bool
 pub fn WebSearch::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Write {
   encoding : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Write::equal(Self, Self) -> Bool
 pub fn Write::new() -> Self
 pub fn Write::not_equal(Self, Self) -> Bool
@@ -473,10 +502,10 @@ pub fn Write::to_repr(Self) -> @debug.Repr
 pub(open) trait Tool {
   fn name(Self) -> String
   fn description(Self) -> String
-  fn parameters(Self) -> Json
+  fn parameters(Self) -> @json.Json
   fn category(Self) -> ToolCategory
-  async fn execute(Self, Map[String, Json]) -> ToolResult
-  fn format_call(Self, Map[String, Json]) -> String
+  async fn execute(Self, Map[String, @json.Json]) -> ToolResult
+  fn format_call(Self, Map[String, @json.Json]) -> String
   fn format_result(Self, ToolResult) -> String
   fn to_function_definition(Self) -> FunctionDefinition
 }

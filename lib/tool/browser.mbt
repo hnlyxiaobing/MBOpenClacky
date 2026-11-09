@@ -12,12 +12,13 @@
 ///
 /// Actions: open | navigate | snapshot | act | screenshot | tabs | focus | close | status
 /// Act kinds: click | dblclick | type | fill | press | hover | drag | select | scroll | wait | evaluate | click_at
+#derive(Eq, Debug)
 pub(all) struct Browser {
   /// Whether the browser MCP daemon is currently connected
   mut daemon_connected : Bool
   /// Cache for the currently selected page to avoid redundant list_pages calls
   mut page_cache : PageCache
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Browser with @moonbitlang/core/debug.Debug::{to_repr}
@@ -27,10 +28,11 @@ pub extend Browser with Eq::{not_equal, equal}
 
 ///|
 /// Cache for the currently selected page to avoid redundant list_pages calls.
+#derive(Eq, Debug)
 struct PageCache {
   mut current : String?
   mut invalidated : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend PageCache with @moonbitlang/core/debug.Debug::{to_repr}

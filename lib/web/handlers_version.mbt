@@ -4,7 +4,7 @@
 
 ///|
 /// Current MBOpenClacky version (mirrors cmd/main.mbt).
-const VERSION : String = "0.3.1"
+const VERSION : String = "0.3.2"
 
 ///|
 /// GitHub API URL for the latest openclacky release.
@@ -18,22 +18,24 @@ const LATEST_VERSION_CACHE_TTL : Int32 = 3600
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
+#derive(ToJson)
 struct UpgradeResponse {
   ok : Bool
   current : String
   latest : String?
   needs_update : Bool
   message : String
-} derive(ToJson)
+}
 
 ///|
 pub extend UpgradeResponse with ToJson::{to_json}
 
 ///|
+#derive(ToJson)
 struct RestartResponse {
   ok : Bool
   message : String
-} derive(ToJson)
+}
 
 ///|
 pub extend RestartResponse with ToJson::{to_json}

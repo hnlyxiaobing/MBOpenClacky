@@ -4,6 +4,7 @@
 
 ///|
 /// Result of a cost calculation with breakdown.
+#derive(Eq, Debug)
 pub(all) struct CostResult {
   total_cost : Double
   source : CostSource
@@ -11,7 +12,7 @@ pub(all) struct CostResult {
   output_cost : Double
   cache_write_cost : Double
   cache_read_cost : Double
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CostResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,11 +22,12 @@ pub extend CostResult with Eq::{not_equal, equal}
 
 ///|
 /// Source of cost data.
+#derive(Eq, Debug)
 pub(all) enum CostSource {
   Price
   Estimated
   Api
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend CostSource with @moonbitlang/core/debug.Debug::{to_repr}

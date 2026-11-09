@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "hnlyxiaobing/MBOpenClacky/lib/protocol"
 
+import {
+  "moonbitlang/core/json",
+}
+
 // Values
 
 // Errors
@@ -40,8 +44,8 @@ pub(all) enum Command {
   ListSessions
 }
 pub fn Command::from_wire(String) -> Self?
-pub fn Command::parse(Json) -> Self?
-pub fn Command::to_json(Self) -> Json
+pub fn Command::parse(@json.Json) -> Self?
+pub fn Command::to_json(Self) -> @json.Json
 pub fn Command::type_name(Self) -> String
 
 pub(all) struct Complete {
@@ -111,9 +115,9 @@ pub(all) enum Event {
 }
 pub fn Event::from_wire(String) -> Self?
 pub fn Event::is_global(Self) -> Bool
-pub fn Event::parse(Json) -> Self?
-pub fn Event::to_framed_json(Self, String?) -> Json
-pub fn Event::to_json(Self) -> Json
+pub fn Event::parse(@json.Json) -> Self?
+pub fn Event::to_framed_json(Self, String?) -> @json.Json
+pub fn Event::to_json(Self) -> @json.Json
 pub fn Event::to_wire(Self, String?) -> String
 pub fn Event::type_name(Self) -> String
 
@@ -160,7 +164,7 @@ pub(all) struct Progress {
   phase : String
   message : String?
   progress_type : String?
-  metadata : Json?
+  metadata : @json.Json?
   started_at : String?
 }
 
@@ -182,10 +186,10 @@ pub(all) struct SessionCommand {
 }
 
 pub(all) struct SessionList {
-  sessions : Array[Json]
+  sessions : Array[@json.Json]
   has_more : Bool
   cron_count : Int32
-  latest_cron_updated_at : Json?
+  latest_cron_updated_at : @json.Json?
 }
 
 pub(all) struct SessionRenamed {
@@ -193,7 +197,7 @@ pub(all) struct SessionRenamed {
 }
 
 pub(all) struct SessionRestored {
-  session : Json
+  session : @json.Json
 }
 
 pub(all) struct SessionUpdate {
@@ -201,8 +205,8 @@ pub(all) struct SessionUpdate {
   session_id : String?
   cost : Double?
   cost_source : String?
-  latency : Json?
-  session : Json?
+  latency : @json.Json?
+  session : @json.Json?
 }
 
 pub(all) struct SubscribeCommand {
@@ -238,8 +242,8 @@ pub(all) struct TokenUsage {
 
 pub(all) struct ToolCall {
   name : String
-  args : Json
-  summary : Json?
+  args : @json.Json
+  summary : @json.Json?
   created_at : String?
 }
 

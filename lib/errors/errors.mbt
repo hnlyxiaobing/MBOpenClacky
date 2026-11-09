@@ -2,9 +2,10 @@
 
 ///|
 /// Maps to Ruby's AgentInterrupted < Exception, which bypasses rescue StandardError.
+#derive(ToJson, Debug)
 pub(all) suberror AgentInterrupted {
   AgentInterrupted(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend AgentInterrupted with @moonbitlang/core/debug.Debug::{to_repr}
@@ -16,9 +17,10 @@ pub extend AgentInterrupted with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's AgentError < StandardError.
+#derive(ToJson, Debug)
 pub(all) suberror AgentError {
   AgentError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend AgentError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -30,9 +32,10 @@ pub extend AgentError with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's BadRequestError < AgentError.
+#derive(ToJson, Debug)
 pub(all) suberror BadRequestError {
   BadRequestError(Int32, String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend BadRequestError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -44,9 +47,10 @@ pub extend BadRequestError with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's ToolCallError < AgentError.
+#derive(ToJson, Debug)
 pub(all) suberror ToolCallError {
   ToolCallError(String, String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend ToolCallError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -58,9 +62,10 @@ pub extend ToolCallError with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's BrowserNotReachableError < AgentError.
+#derive(ToJson, Debug)
 pub(all) suberror BrowserNotReachableError {
   BrowserNotReachableError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend BrowserNotReachableError with @moonbitlang/core/debug.Debug::{
@@ -74,9 +79,10 @@ pub extend BrowserNotReachableError with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's RetryableError < StandardError.
+#derive(ToJson, Debug)
 pub(all) suberror RetryableError {
   RetryableError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend RetryableError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -88,9 +94,10 @@ pub extend RetryableError with ToJson::{to_json}
 
 ///|
 /// Maps to Ruby's UpstreamTruncatedError < RetryableError.
+#derive(ToJson, Debug)
 pub(all) suberror UpstreamTruncatedError {
   UpstreamTruncatedError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend UpstreamTruncatedError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -107,9 +114,10 @@ pub extend UpstreamTruncatedError with ToJson::{to_json}
 /// the first occurrence within a task the caller injects the [SYSTEM]
 /// "break into smaller steps" hint (llm_caller's
 /// `inject_large_output_hint_if_first_timeout`).
+#derive(ToJson, Debug)
 pub(all) suberror LlmTimeoutError {
   LlmTimeoutError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend LlmTimeoutError with @moonbitlang/core/debug.Debug::{to_repr}

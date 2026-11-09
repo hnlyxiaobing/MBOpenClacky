@@ -190,21 +190,23 @@ pub struct AgentOutputSync {
   mut markdown : MarkdownRenderer
 }
 
+#derive(@debug.Debug)
 pub(all) struct ApprovalDialog {
   mut tool_name : String
   mut tool_args : String
   mut show_details : Bool
   mut detailed_args : String
-} derive(@debug.Debug)
+}
 pub fn ApprovalDialog::new(String, String) -> Self
 pub fn ApprovalDialog::to_repr(Self) -> @debug.Repr
 pub fn ApprovalDialog::toggle_details(Self) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Banner {
   style : BannerStyle
   width : Int32
   use_color : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn Banner::adaptive_width(Int32) -> Int32
 pub fn Banner::block_with_width(Int32) -> Self
 pub fn Banner::equal(Self, Self) -> Bool
@@ -220,30 +222,33 @@ pub fn Banner::with_style(BannerStyle) -> Self
 pub fn Banner::with_style_and_width(BannerStyle, Int32) -> Self
 pub fn Banner::with_width(Int32) -> Self
 
+#derive(Eq, @debug.Debug)
 pub enum BannerStyle {
   Boxed
   Minimal
   Block
-} derive(Eq, @debug.Debug)
+}
 pub fn BannerStyle::equal(Self, Self) -> Bool
 pub fn BannerStyle::not_equal(Self, Self) -> Bool
 pub fn BannerStyle::to_repr(Self) -> @debug.Repr
 
+#derive(Eq)
 pub enum BlockFontStyle {
   Standard
   Banner
   Shadow
-} derive(Eq)
+}
 pub fn BlockFontStyle::equal(Self, Self) -> Bool
 pub fn BlockFontStyle::not_equal(Self, Self) -> Bool
 
+#derive(@debug.Debug)
 pub(all) struct CommandSuggestions {
   commands : Array[SuggestionItem]
   mut filtered : Array[SuggestionItem]
   mut selected_index : Int32
   mut visible : Bool
   max_visible : Int32
-} derive(@debug.Debug)
+}
 pub fn CommandSuggestions::accept(Self) -> String?
 pub fn CommandSuggestions::accept_item(Self) -> SuggestionItem?
 pub fn CommandSuggestions::add_command(Self, SuggestionItem) -> Unit
@@ -261,20 +266,22 @@ pub fn CommandSuggestions::update_context_filter(Self, TuiState) -> Unit
 pub fn CommandSuggestions::update_filter(Self, String) -> Unit
 pub fn CommandSuggestions::with_skills(Array[SuggestionItem]) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ConfigAction {
   Add
   Edit
-} derive(Eq, @debug.Debug)
+}
 pub fn ConfigAction::equal(Self, Self) -> Bool
 pub fn ConfigAction::not_equal(Self, Self) -> Bool
 pub fn ConfigAction::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct ConfigMenuDialog {
   mut title : String
   mut items : Array[ConfigMenuItem]
   mut selected_idx : Int32
   mut checked : Array[Bool]
-} derive(@debug.Debug)
+}
 pub fn ConfigMenuDialog::as_model_selector(Array[@config.ModelConfig], String?) -> Self
 pub fn ConfigMenuDialog::as_time_machine(Array[@agent.TaskHistoryEntry]) -> Self
 pub fn ConfigMenuDialog::from_models(Array[@config.ModelConfig], String?) -> Self
@@ -286,22 +293,25 @@ pub fn ConfigMenuDialog::new(String, Array[ConfigMenuItem]) -> Self
 pub fn ConfigMenuDialog::to_repr(Self) -> @debug.Repr
 pub fn ConfigMenuDialog::toggle_current(Self) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct ConfigMenuItem {
   label : String
   mut value : String
   multi_select : Bool
   mut checked : Bool
-} derive(@debug.Debug)
+}
 pub fn ConfigMenuItem::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ConfigMode {
   ConfigMenu
   ModelSelector
-} derive(Eq, @debug.Debug)
+}
 pub fn ConfigMode::equal(Self, Self) -> Bool
 pub fn ConfigMode::not_equal(Self, Self) -> Bool
 pub fn ConfigMode::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) enum DialogState {
   NoDialog
   Approval(ApprovalDialog)
@@ -310,14 +320,15 @@ pub(all) enum DialogState {
   ConfigForm(mode~ : ConfigMode, form~ : FormDialog, action~ : ConfigAction, target_idx~ : Int32)
   TimeMachineMenu(ConfigMenuDialog)
   ModelDrawer(level~ : ModelDrawerLevel, dialog~ : ConfigMenuDialog, card_id~ : String, card_model~ : String)
-} derive(@debug.Debug)
+}
 pub fn DialogState::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct FormDialog {
   mut title : String
   mut fields : Array[FormField]
   mut focused_idx : Int32
-} derive(@debug.Debug)
+}
 pub fn FormDialog::backspace(Self) -> Unit
 pub fn FormDialog::collect_values(Self) -> Array[(String, String)]
 pub fn FormDialog::input_char(Self, Char) -> Unit
@@ -328,20 +339,22 @@ pub fn FormDialog::prev_field(Self) -> Unit
 pub fn FormDialog::to_repr(Self) -> @debug.Repr
 pub fn FormDialog::validate(Self) -> String?
 
+#derive(@debug.Debug)
 pub(all) struct FormField {
   label : String
   mut value : String
   required : Bool
   placeholder : String
   masked : Bool
-} derive(@debug.Debug)
+}
 pub fn FormField::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct HookHandlerConfig {
   track_tool_history : Bool
   track_llm_calls : Bool
   track_phases : Bool
-} derive(@debug.Debug)
+}
 pub fn HookHandlerConfig::to_repr(Self) -> @debug.Repr
 
 pub(all) struct InputArea {
@@ -431,13 +444,15 @@ pub(all) struct LineEditorSnapshot {
   cursor_col : Int32
 }
 
+#derive(@debug.Debug)
 pub(all) struct MarkdownRenderer {
   theme : Theme
-} derive(@debug.Debug)
+}
 pub fn MarkdownRenderer::new(theme~ : Theme) -> Self
 pub fn MarkdownRenderer::render(Self, String) -> String
 pub fn MarkdownRenderer::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MarkdownToken {
   Heading(level~ : Int32, text~ : String)
   Bold(text~ : String)
@@ -451,15 +466,16 @@ pub(all) enum MarkdownToken {
   TaskItem(checked~ : Bool, text~ : String)
   Link(text~ : String, url~ : String)
   Table(headers~ : Array[String], rows~ : Array[Array[String]])
-} derive(Eq, @debug.Debug)
+}
 pub fn MarkdownToken::equal(Self, Self) -> Bool
 pub fn MarkdownToken::not_equal(Self, Self) -> Bool
 pub fn MarkdownToken::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ModelDrawerLevel {
   Cards
   SubModels
-} derive(Eq, @debug.Debug)
+}
 pub fn ModelDrawerLevel::equal(Self, Self) -> Bool
 pub fn ModelDrawerLevel::not_equal(Self, Self) -> Bool
 pub fn ModelDrawerLevel::to_repr(Self) -> @debug.Repr
@@ -509,13 +525,14 @@ pub fn OutputBuffer::toggle_collapse(Self, Int32) -> Unit
 pub fn OutputBuffer::total_lines(Self) -> Int32
 pub fn OutputBuffer::total_live_lines(Self) -> Int32
 
+#derive(@debug.Debug)
 pub(all) struct OutputEntry {
   id : Int32
   lines : Array[String]
   kind : OutputKind
   mut committed_line_offset : Int32
   mut collapsed : Bool
-} derive(@debug.Debug)
+}
 pub fn OutputEntry::display_lines(Self) -> Array[String]
 pub fn OutputEntry::is_collapsed(Self) -> Bool
 pub fn OutputEntry::is_committed(Self) -> Bool
@@ -525,15 +542,17 @@ pub fn OutputEntry::line_count(Self) -> Int32
 pub fn OutputEntry::live_lines(Self) -> Array[String]
 pub fn OutputEntry::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum OutputKind {
   Text
   Progress
   System
-} derive(Eq, @debug.Debug)
+}
 pub fn OutputKind::equal(Self, Self) -> Bool
 pub fn OutputKind::not_equal(Self, Self) -> Bool
 pub fn OutputKind::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct PendingConfigTest {
   mode : ConfigMode
   action : ConfigAction
@@ -543,18 +562,20 @@ pub(all) struct PendingConfigTest {
   api_key : String
   base_url : String
   anthropic_format : Bool
-} derive(@debug.Debug)
+}
 pub fn PendingConfigTest::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct PendingConfirmation {
   tool_name : String
   tool_args : String
   prompt_text : String
   default_yes : Bool
-} derive(@debug.Debug)
+}
 pub fn PendingConfirmation::to_repr(Self) -> @debug.Repr
 
-type ProgressEntry derive(@debug.Debug)
+#derive(@debug.Debug)
+type ProgressEntry
 pub fn ProgressEntry::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ProgressHandle {
@@ -568,9 +589,10 @@ pub fn ProgressHandle::set_char_count(Self, Int32) -> Unit
 pub fn ProgressHandle::set_metadata(Self, String) -> Unit
 pub fn ProgressHandle::update_message(Self, String) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct ProgressStack {
   data : @ref.Ref[ProgressStackData]
-} derive(@debug.Debug)
+}
 pub fn ProgressStack::close_all(Self) -> Unit
 pub fn ProgressStack::close_last(Self) -> Unit
 pub fn ProgressStack::has_open(Self) -> Bool
@@ -583,12 +605,14 @@ pub fn ProgressStack::to_repr(Self) -> @debug.Repr
 pub fn ProgressStack::total_count(Self) -> Int32
 pub fn ProgressStack::update_last_char_count(Self, Int32) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct ProgressStackData {
   entries : Array[ProgressEntry]
   mut next_id : Int32
-} derive(@debug.Debug)
+}
 pub fn ProgressStackData::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) enum SegmentColor {
   Status
   Session
@@ -599,9 +623,10 @@ pub(all) enum SegmentColor {
   Cost
   Dim
   Default
-} derive(@debug.Debug)
+}
 pub fn SegmentColor::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SlashCommand {
   Config
   Model(name~ : String)
@@ -611,31 +636,34 @@ pub(all) enum SlashCommand {
   Quit
   Theme(name~ : String)
   Undo
-} derive(Eq, @debug.Debug)
+}
 pub fn SlashCommand::equal(Self, Self) -> Bool
 pub fn SlashCommand::not_equal(Self, Self) -> Bool
 pub fn SlashCommand::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SlashCommandDef {
   name : String
   description : String
   usage : String
-} derive(Eq, @debug.Debug)
+}
 pub fn SlashCommandDef::equal(Self, Self) -> Bool
 pub fn SlashCommandDef::not_equal(Self, Self) -> Bool
 pub fn SlashCommandDef::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct SlashCommandParser {
   commands : Array[SlashCommandDef]
-} derive(@debug.Debug)
+}
 pub fn SlashCommandParser::get_completions(Self, String) -> Array[String]
 pub fn SlashCommandParser::new() -> Self
 pub fn SlashCommandParser::parse(Self, String) -> Result[SlashCommand, String]
 pub fn SlashCommandParser::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct StatusBar {
   mut segments : Array[StatusSegment]
-} derive(@debug.Debug)
+}
 pub fn StatusBar::colored_text(Self) -> String
 pub fn StatusBar::format_compact(Self, String, String, Double) -> Unit
 pub fn StatusBar::format_from_state(Self, TuiState) -> Unit
@@ -647,10 +675,11 @@ pub fn StatusBar::plain_text(Self) -> String
 pub fn StatusBar::segment_count(Self) -> Int32
 pub fn StatusBar::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct StatusSegment {
   text : String
   color : SegmentColor
-} derive(@debug.Debug)
+}
 pub fn StatusSegment::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Style {
@@ -662,13 +691,15 @@ pub(all) struct Style {
 pub fn Style::default_() -> Self
 pub fn Style::new(fg? : @color.Color, bg? : @color.Color, bold? : Bool, dim? : Bool) -> Self
 
+#derive(@debug.Debug)
 pub(all) struct SuggestionItem {
   name : String
   description : String
   usage : String
-} derive(@debug.Debug)
+}
 pub fn SuggestionItem::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Theme {
   name : ThemeName
   primary_color : String
@@ -683,7 +714,7 @@ pub(all) struct Theme {
   file_preview_symbol : String
   phase_enter_symbol : String
   phase_exit_symbol : String
-} derive(Eq, @debug.Debug)
+}
 pub fn Theme::default_() -> Self
 pub fn Theme::equal(Self, Self) -> Bool
 pub fn Theme::from_name(ThemeName) -> Self
@@ -693,12 +724,13 @@ pub fn Theme::minimal() -> Self
 pub fn Theme::not_equal(Self, Self) -> Bool
 pub fn Theme::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ThemeName {
   Hacker
   Minimal
   Default
   Light
-} derive(Eq, @debug.Debug)
+}
 pub fn ThemeName::equal(Self, Self) -> Bool
 pub fn ThemeName::not_equal(Self, Self) -> Bool
 pub fn ThemeName::to_repr(Self) -> @debug.Repr
@@ -715,10 +747,11 @@ pub fn ThinkingVerbAnimator::next(Self) -> String
 pub fn ThinkingVerbAnimator::reset(Self) -> Unit
 pub fn ThinkingVerbAnimator::with_verbs(Array[String], mode? : ThinkingVerbMode) -> Self
 
+#derive(Eq, @debug.Debug)
 pub enum ThinkingVerbMode {
   Sequential
   Random
-} derive(Eq, @debug.Debug)
+}
 pub fn ThinkingVerbMode::equal(Self, Self) -> Bool
 pub fn ThinkingVerbMode::not_equal(Self, Self) -> Bool
 pub fn ThinkingVerbMode::to_repr(Self) -> @debug.Repr
@@ -733,22 +766,24 @@ pub fn TipsState::is_expired(Self, Int32) -> Bool
 pub fn TipsState::new() -> Self
 pub fn TipsState::set(Self, String, TipsType, Int32) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TipsType {
   Info
   Warn
   Error
-} derive(Eq, @debug.Debug)
+}
 pub fn TipsType::equal(Self, Self) -> Bool
 pub fn TipsType::not_equal(Self, Self) -> Bool
 pub fn TipsType::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct TodoArea {
   mut items : Array[TodoDisplayItem]
   mut completed_count : Int32
   mut total_count : Int32
   mut hidden : Bool
   max_display : Int32
-} derive(@debug.Debug)
+}
 pub fn TodoArea::hide(Self) -> Unit
 pub fn TodoArea::new() -> Self
 pub fn TodoArea::render_lines(Self) -> Array[String]
@@ -757,20 +792,22 @@ pub fn TodoArea::to_repr(Self) -> @debug.Repr
 pub fn TodoArea::update(Self, Array[TodoDisplayItem], Int32, Int32) -> Unit
 pub fn TodoArea::visible(Self) -> Bool
 
+#derive(@debug.Debug)
 pub(all) struct TodoDisplayItem {
   id : Int32
   title : String
   status : String
   description : String
-} derive(@debug.Debug)
+}
 pub fn TodoDisplayItem::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct ToolExecution {
   name : String
   args : String
   mut completed : Bool
   mut result_summary : String
-} derive(@debug.Debug)
+}
 pub fn ToolExecution::to_repr(Self) -> @debug.Repr
 
 pub(all) struct TuiController {
@@ -823,10 +860,11 @@ pub enum TuiEvent {
   TerminalClosed
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TuiMode {
   Idle
   Running
-} derive(Eq, @debug.Debug)
+}
 pub fn TuiMode::equal(Self, Self) -> Bool
 pub fn TuiMode::not_equal(Self, Self) -> Bool
 pub fn TuiMode::to_repr(Self) -> @debug.Repr

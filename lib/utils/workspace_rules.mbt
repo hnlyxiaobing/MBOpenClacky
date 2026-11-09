@@ -13,11 +13,12 @@ const SUB_PROJECT_SUMMARY_LINES : Int32 = 5
 
 ///|
 /// Workspace rules loaded from project directory.
+#derive(Eq, Debug)
 pub(all) struct WorkspaceRules {
   main_rule : String? // content of main rule file (stripped)
   main_rule_path : String? // path to the main rule file found
   sub_rules : Array[(String, String)] // (sub_name, summary) pairs, sorted by sub_name
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WorkspaceRules with @moonbitlang/core/debug.Debug::{to_repr}

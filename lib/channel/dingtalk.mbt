@@ -35,13 +35,14 @@ let dingtalk_stream_backoff_max_ms : Int32 = 30_000
 
 ///|
 /// What the Stream Mode loop must do with one inbound frame.
+#derive(Eq, Debug)
 pub(all) enum StreamInboundAction {
   Ignore
   /// SYSTEM/ping — answer with a pong.
   SendPong
   /// CALLBACK — ACK it and dispatch the robot message.
   AckAndDispatch(message_id~ : String, data~ : Json)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend StreamInboundAction with @moonbitlang/core/debug.Debug::{to_repr}

@@ -5,6 +5,7 @@
 // ── Types ─────────────────────────────────────────────────────────
 
 ///|
+#derive(ToJson)
 struct ExchangeRateResponse {
   from : String
   to : String
@@ -12,7 +13,7 @@ struct ExchangeRateResponse {
   date : String
   updated_at : String
   source : String
-} derive(ToJson)
+}
 
 ///|
 pub extend ExchangeRateResponse with ToJson::{to_json}

@@ -4,9 +4,10 @@
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/glob.rb
 /// 对齐（spec 2026-08-18_03 决策 2/5）：**/*/? 递归匹配、裸模式自动扩展、
 /// mtime 降序排序、gitignore/隐藏目录跳过、空 pattern 与坏 base_path 显式报错。
+#derive(Eq, Debug)
 pub(all) struct Glob {
   limit : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Glob with @moonbitlang/core/debug.Debug::{to_repr}

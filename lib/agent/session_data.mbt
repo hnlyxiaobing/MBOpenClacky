@@ -10,12 +10,13 @@
 
 ///|
 /// IM channel information for platform session restoration.
+#derive(Eq, Debug)
 pub(all) struct ChannelInfo {
   platform : String // "feishu", "wecom", "telegram", "discord", "dingtalk", "weixin"
   channel_id : String // Platform-specific channel identifier
   user_id : String // Platform user ID (empty string if unknown)
   webhook_url : String // Webhook URL (empty string if not configured)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ChannelInfo with @moonbitlang/core/debug.Debug::{to_repr}
@@ -64,11 +65,12 @@ impl FromJson for ChannelInfo with fn from_json(json, path) {
 
 ///|
 /// Task metadata for Time Machine session serialization.
+#derive(Eq, Debug)
 pub(all) struct SessionTaskMeta {
   title : String // Task title (empty if unnamed)
   started_at : String // ISO timestamp when started
   ended_at : String // ISO timestamp when ended (empty if ongoing)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionTaskMeta with @moonbitlang/core/debug.Debug::{to_repr}
@@ -109,12 +111,13 @@ impl FromJson for SessionTaskMeta with fn from_json(json, path) {
 
 ///|
 /// Time Machine state for task branching/restore (serializable form).
+#derive(Eq, Debug)
 pub(all) struct SessionTimeMachine {
   task_parents : Map[String, String] // task_id -> parent_task_id mapping
   task_meta : Map[String, SessionTaskMeta] // task_id -> metadata
   current_task_id : Int32 // Current active task ID
   active_task_id : Int32 // Active branch task ID
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionTimeMachine with @moonbitlang/core/debug.Debug::{to_repr}
@@ -179,6 +182,7 @@ impl FromJson for SessionTimeMachine with fn from_json(json, path) {
 
 ///|
 /// Snapshot of an Agent session's statistics.
+#derive(Eq, Debug)
 pub(all) struct SessionStats {
   total_iterations : Int32
   total_cost_usd : Double
@@ -188,7 +192,7 @@ pub(all) struct SessionStats {
   cache_read_input_tokens : Int32
   total_requests : Int32
   cache_hit_requests : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionStats with @moonbitlang/core/debug.Debug::{to_repr}
@@ -214,6 +218,7 @@ fn empty_session_stats() -> SessionStats {
 
 ///|
 /// Complete serializable snapshot of an Agent session.
+#derive(Eq, Debug)
 pub(all) struct SessionData {
   session_id : String
   name : String
@@ -252,7 +257,7 @@ pub(all) struct SessionData {
   updated_at : String
   previous_total_tokens : Int32
   deleted_at : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionData with @moonbitlang/core/debug.Debug::{to_repr}

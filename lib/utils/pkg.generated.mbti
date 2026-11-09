@@ -120,7 +120,7 @@ pub fn list_trash_entries(String) -> Array[TrashEntry]
 
 pub fn matches_rule(String, IgnoreRule) -> Bool
 
-pub fn merge_json_args(Array[Json]) -> Json
+pub fn merge_json_args(Array[@json.Json]) -> @json.Json
 
 pub fn now_ms() -> Int64
 
@@ -176,17 +176,18 @@ pub fn trash_metadata_path(String) -> String
 
 pub fn upsert_yml_scalar(String, String, String) -> String
 
-pub fn validate_required_args(Json, Array[String]) -> Array[String]
+pub fn validate_required_args(@json.Json, Array[String]) -> Array[String]
 
 pub fn yml_scalar(String, String) -> String?
 
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) struct BlockFont {
   style : BlockStyle
   letter_spacing : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn BlockFont::char_width(Self) -> Int32
 pub fn BlockFont::equal(Self, Self) -> Bool
 pub fn BlockFont::height() -> Int32
@@ -197,25 +198,28 @@ pub fn BlockFont::render_text(Self, String) -> Array[String]
 pub fn BlockFont::to_repr(Self) -> @debug.Repr
 pub fn BlockFont::with_style(BlockStyle) -> Self
 
+#derive(Eq, @debug.Debug)
 pub enum BlockStyle {
   Full
   Half
   Outline
-} derive(Eq, @debug.Debug)
+}
 pub fn BlockStyle::equal(Self, Self) -> Bool
 pub fn BlockStyle::not_equal(Self, Self) -> Bool
 pub fn BlockStyle::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct BrowserInfo {
   browser_type : BrowserType
   version : String?
   path : String?
   is_headless : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn BrowserInfo::equal(Self, Self) -> Bool
 pub fn BrowserInfo::not_equal(Self, Self) -> Bool
 pub fn BrowserInfo::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub enum BrowserType {
   Chrome
   Firefox
@@ -225,7 +229,7 @@ pub enum BrowserType {
   Brave
   Chromium
   Unknown(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn BrowserType::equal(Self, Self) -> Bool
 pub fn BrowserType::not_equal(Self, Self) -> Bool
 pub fn BrowserType::to_repr(Self) -> @debug.Repr
@@ -236,22 +240,24 @@ pub(all) struct ChromeWsEndpoint {
   ws_url : String
 }
 
+#derive(Eq, @debug.Debug)
 pub enum EnvironmentType {
   Local
   CI(String)
   Docker
   WSL
   SSH
-} derive(Eq, @debug.Debug)
+}
 pub fn EnvironmentType::equal(Self, Self) -> Bool
 pub fn EnvironmentType::not_equal(Self, Self) -> Bool
 pub fn EnvironmentType::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct IgnoreConfig {
   gitignore_rules : Array[IgnoreRule]
   custom_rules : Array[IgnoreRule]
   builtin_rules : Array[IgnoreRule]
-} derive(@debug.Debug)
+}
 pub fn IgnoreConfig::add_custom_pattern(Self, String) -> Self
 pub fn IgnoreConfig::filter_paths(Self, Array[String]) -> Array[String]
 pub fn IgnoreConfig::ignore_reason(Self, String) -> String?
@@ -261,32 +267,35 @@ pub fn IgnoreConfig::should_ignore(Self, String, is_dir? : Bool) -> Bool
 pub fn IgnoreConfig::stats(Self) -> (Int32, Int32, Int32)
 pub fn IgnoreConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub struct IgnoreRule {
   pattern : String
   is_negation : Bool
   is_directory : Bool
   is_anchored : Bool
   regex_pattern : String
-} derive(Eq, @debug.Debug)
+}
 pub fn IgnoreRule::equal(Self, Self) -> Bool
 pub fn IgnoreRule::not_equal(Self, Self) -> Bool
 pub fn IgnoreRule::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct JsonArgParser {
   strict : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn JsonArgParser::equal(Self, Self) -> Bool
 pub fn JsonArgParser::new() -> Self
 pub fn JsonArgParser::not_equal(Self, Self) -> Bool
-pub fn JsonArgParser::parse(Self, String) -> Result[Json, String]
+pub fn JsonArgParser::parse(Self, String) -> Result[@json.Json, String]
 pub fn JsonArgParser::strict() -> Self
 pub fn JsonArgParser::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct LimitStack {
   max_depth : Int32
   mut current_depth : Int32
   mut labels : Array[String]
-} derive(@debug.Debug)
+}
 pub fn LimitStack::depth(Self) -> Int32
 pub fn LimitStack::is_exceeded(Self) -> Bool
 pub fn LimitStack::new(max_depth? : Int32) -> Self
@@ -297,12 +306,13 @@ pub fn LimitStack::reset(Self) -> Unit
 pub fn LimitStack::stack_trace(Self) -> Array[String]
 pub fn LimitStack::to_repr(Self) -> @debug.Repr
 
+#derive(Compare, Eq, @debug.Debug)
 pub enum LogLevel {
   Debug
   Info
   Warn
   Error
-} derive(Compare, Eq, @debug.Debug)
+}
 pub fn LogLevel::compare(Self, Self) -> Int32
 pub fn LogLevel::equal(Self, Self) -> Bool
 pub fn LogLevel::not_equal(Self, Self) -> Bool
@@ -327,7 +337,8 @@ pub fn Logger::rotate(Self) -> Unit
 pub fn Logger::should_log(Self, LogLevel) -> Bool
 pub fn Logger::warn(Self, String, context? : Array[(String, String)]) -> Unit
 
-type ProxyConfig derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type ProxyConfig
 pub fn ProxyConfig::current_epoch(Self) -> Int32
 pub fn ProxyConfig::equal(Self, Self) -> Bool
 pub fn ProxyConfig::install(proxy_url? : String?, no_proxy? : String?) -> Self
@@ -339,20 +350,22 @@ pub fn ProxyConfig::reset(Self) -> Self
 pub fn ProxyConfig::should_bypass(Self, String) -> Bool
 pub fn ProxyConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ScriptInfo {
   name : String
   path : String
   description : String
   extension : String
-} derive(Eq, @debug.Debug)
+}
 pub fn ScriptInfo::equal(Self, Self) -> Bool
 pub fn ScriptInfo::not_equal(Self, Self) -> Bool
 pub fn ScriptInfo::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ScriptsManager {
   scripts_dir : String
   extensions : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub fn ScriptsManager::build_script_path(Self, String) -> String
 pub fn ScriptsManager::equal(Self, Self) -> Bool
 pub fn ScriptsManager::find_script(Self, String) -> ScriptInfo?
@@ -364,6 +377,7 @@ pub fn ScriptsManager::to_repr(Self) -> @debug.Repr
 pub fn ScriptsManager::validate_script(Self, String) -> Result[Unit, String]
 pub fn ScriptsManager::with_extensions(String, Array[String]) -> Self
 
+#derive(Eq, @debug.Debug)
 pub enum ShellType {
   Bash
   Zsh
@@ -371,7 +385,7 @@ pub enum ShellType {
   Pwsh
   Cmd
   Unknown(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn ShellType::equal(Self, Self) -> Bool
 pub fn ShellType::not_equal(Self, Self) -> Bool
 pub fn ShellType::output(Self, &@builtin.Logger) -> Unit
@@ -379,18 +393,20 @@ pub fn ShellType::to_repr(Self) -> @debug.Repr
 pub fn ShellType::to_string(Self) -> String
 pub impl Show for ShellType
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub struct TrashEntry {
   original_path : String
   trash_path : String
   deleted_at : String
   size_bytes : Int32
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn TrashEntry::equal(Self, Self) -> Bool
-pub fn TrashEntry::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TrashEntry::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TrashEntry::not_equal(Self, Self) -> Bool
-pub fn TrashEntry::to_json(Self) -> Json
+pub fn TrashEntry::to_json(Self) -> @json.Json
 pub fn TrashEntry::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub struct TrashMetadata {
   original_path : String
   trash_directory : String
@@ -399,18 +415,19 @@ pub struct TrashMetadata {
   file_size : Int32
   file_type : String
   file_mode : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn TrashMetadata::equal(Self, Self) -> Bool
-pub fn TrashMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn TrashMetadata::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn TrashMetadata::not_equal(Self, Self) -> Bool
-pub fn TrashMetadata::to_json(Self) -> Json
+pub fn TrashMetadata::to_json(Self) -> @json.Json
 pub fn TrashMetadata::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct WorkspaceRules {
   main_rule : String?
   main_rule_path : String?
   sub_rules : Array[(String, String)]
-} derive(Eq, @debug.Debug)
+}
 pub fn WorkspaceRules::equal(Self, Self) -> Bool
 pub fn WorkspaceRules::find_main(String) -> Self
 pub fn WorkspaceRules::find_sub_projects(String) -> Array[(String, String)]
@@ -419,11 +436,12 @@ pub fn WorkspaceRules::not_equal(Self, Self) -> Bool
 pub fn WorkspaceRules::to_prompt_section(Self) -> String?
 pub fn WorkspaceRules::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub enum WriteResult {
   Success(Int32)
   PipeBroken
   Error(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn WriteResult::equal(Self, Self) -> Bool
 pub fn WriteResult::not_equal(Self, Self) -> Bool
 pub fn WriteResult::to_repr(Self) -> @debug.Repr

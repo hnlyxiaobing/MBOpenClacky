@@ -292,12 +292,13 @@ fn llm_retry_exhausted_message(err : Error, retries : Int32) -> String {
 
 ///|
 /// Mode for context overflow recovery.
+#derive(Eq, Debug)
 pub(all) enum OverflowMode {
   /// Remove 1 message from tail (preserves prompt cache hits).
   Standard
   /// Remove half the history (sacrifices cache for space).
   Aggressive
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend OverflowMode with @moonbitlang/core/debug.Debug::{to_repr}

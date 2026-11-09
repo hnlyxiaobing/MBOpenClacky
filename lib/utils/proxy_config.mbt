@@ -4,11 +4,12 @@
 /// or accepts explicit parameters. Tracks configuration changes via epoch counter.
 
 ///|
+#derive(Debug, Eq)
 struct ProxyConfig {
   proxy_url : String // Current proxy URL (empty string means no proxy)
   epoch : Int32 // Config version; consumers re-init connections on change
   no_proxy : String // Comma-separated list of hosts that bypass the proxy
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ProxyConfig with @moonbitlang/core/debug.Debug::{to_repr}

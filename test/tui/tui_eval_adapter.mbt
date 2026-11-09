@@ -22,6 +22,7 @@
 
 ///|
 /// Terminal setup configuration for an eval scenario.
+#derive(Debug)
 pub(all) struct EvalSetup {
   /// Terminal width in columns.
   cols : Int32
@@ -29,13 +30,14 @@ pub(all) struct EvalSetup {
   rows : Int32
   /// Mock LLM response text (empty = no mock).
   mock_response : String
-} derive(Debug)
+}
 
 ///|
 pub extend EvalSetup with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A single action in a TUI eval scenario.
+#derive(Debug)
 pub(all) enum EvalAction {
   /// Type a string of text character by character.
   Type(text~ : String)
@@ -59,13 +61,14 @@ pub(all) enum EvalAction {
   EmitHook(event~ : String, args~ : Map[String, Json])
   /// Check an assertion immediately and record the result.
   Assert(assertion~ : EvalAssertion)
-} derive(Debug)
+}
 
 ///|
 pub extend EvalAction with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// An assertion to verify the screen state after actions.
+#derive(Debug)
 pub(all) enum EvalAssertion {
   /// Screen (or region) contains the given text.
   Contains(text~ : String, region~ : String)
@@ -83,13 +86,14 @@ pub(all) enum EvalAssertion {
   OutputContains(text~ : String)
   /// Confirmation dialog contains the given text.
   DialogContains(text~ : String)
-} derive(Debug)
+}
 
 ///|
 pub extend EvalAssertion with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 /// A complete TUI eval scenario.
+#derive(Debug)
 pub(all) struct EvalScenario {
   /// Scenario name.
   name : String
@@ -101,7 +105,7 @@ pub(all) struct EvalScenario {
   actions : Array[EvalAction]
   /// Assertions to check after all actions complete.
   assertions : Array[EvalAssertion]
-} derive(Debug)
+}
 
 ///|
 pub extend EvalScenario with @moonbitlang/core/debug.Debug::{to_repr}

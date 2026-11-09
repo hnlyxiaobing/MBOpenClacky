@@ -2,6 +2,7 @@
 
 ///|
 /// MCP skill metadata parsed from SKILL.md frontmatter.
+#derive(Eq, Debug, ToJson)
 pub(all) struct SkillInfo {
   name : String
   description : String
@@ -11,7 +12,7 @@ pub(all) struct SkillInfo {
   allowed_tools : Array[String]
   file_path : String
   instructions : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SkillInfo with @moonbitlang/core/debug.Debug::{to_repr}

@@ -52,10 +52,11 @@ fn media_multipart_headers(
 ///|
 /// Generated media payload returned by OpenAI-compatible endpoints:
 /// either inline base64 data or a downloadable URL.
+#derive(Debug)
 pub(all) enum MediaPayload {
   B64(String)
   Url(String)
-} derive(Debug)
+}
 
 ///|
 pub extend MediaPayload with @moonbitlang/core/debug.Debug::{to_repr}

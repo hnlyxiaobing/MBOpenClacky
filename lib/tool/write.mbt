@@ -2,9 +2,10 @@
 
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/write.rb
+#derive(Eq, Debug)
 pub(all) struct Write {
   encoding : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Write with @moonbitlang/core/debug.Debug::{to_repr}

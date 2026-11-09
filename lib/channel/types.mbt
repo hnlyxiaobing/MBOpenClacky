@@ -1,5 +1,6 @@
 ///|
 /// Supported IM platforms.
+#derive(Eq, Debug, ToJson)
 pub(all) enum Platform {
   Feishu // 飞书/Lark
   WeCom // 企业微信
@@ -7,7 +8,7 @@ pub(all) enum Platform {
   Telegram // Telegram Bot
   Discord // Discord Bot
   DingTalk // 钉钉
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Platform with @moonbitlang/core/debug.Debug::{to_repr}
@@ -47,12 +48,13 @@ pub fn Platform::from_string(s : String) -> Platform? {
 
 ///|
 /// Message event type.
+#derive(Eq, Debug, ToJson)
 pub(all) enum EventType {
   Message // regular message
   Command // slash command
   Join // user joined
   Leave // user left
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend EventType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -65,12 +67,13 @@ pub extend EventType with ToJson::{to_json}
 
 ///|
 /// Attachment type.
+#derive(Eq, Debug, ToJson)
 pub(all) enum AttachmentType {
   Image
   File
   Audio
   Video
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend AttachmentType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -83,12 +86,13 @@ pub extend AttachmentType with ToJson::{to_json}
 
 ///|
 /// Message attachment.
+#derive(Eq, Debug, ToJson)
 pub(all) struct Attachment {
   attachment_type : AttachmentType
   url : String
   filename : String?
   size_bytes : Int32?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend Attachment with @moonbitlang/core/debug.Debug::{to_repr}
@@ -101,10 +105,11 @@ pub extend Attachment with ToJson::{to_json}
 
 ///|
 /// Chat type: direct message or group chat.
+#derive(Eq, Debug, ToJson)
 pub(all) enum ChatType {
   Direct
   Group
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ChatType with @moonbitlang/core/debug.Debug::{to_repr}
@@ -117,6 +122,7 @@ pub extend ChatType with ToJson::{to_json}
 
 ///|
 /// Unified channel event (all platforms normalize to this).
+#derive(Eq, Debug, ToJson)
 pub(all) struct ChannelEvent {
   event_type : EventType
   platform : Platform
@@ -131,7 +137,7 @@ pub(all) struct ChannelEvent {
   chat_type : ChatType
   raw : Json?
   observe_only : Bool
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ChannelEvent with @moonbitlang/core/debug.Debug::{to_repr}
@@ -144,11 +150,12 @@ pub extend ChannelEvent with ToJson::{to_json}
 
 ///|
 /// Send message result.
+#derive(Eq, Debug, ToJson)
 pub(all) struct SendResult {
   message_id : String
   success : Bool
   error : String?
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend SendResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -161,11 +168,12 @@ pub extend SendResult with ToJson::{to_json}
 
 ///|
 /// Channel configuration.
+#derive(Eq, Debug, ToJson)
 pub(all) struct ChannelConfig {
   platform : Platform
   enabled : Bool
   settings : Map[String, String] // platform-specific settings
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend ChannelConfig with @moonbitlang/core/debug.Debug::{to_repr}
@@ -185,9 +193,10 @@ pub extend ChannelConfig with ToJson::{to_json}
 /// them. Keeping it out of the native `Error` hierarchy makes that intent
 /// explicit and avoids the `result_error_return` (E0078) warning on every
 /// `Result[T, ChannelError]` signature.
+#derive(ToJson, Debug)
 pub(all) enum ChannelError {
   ChannelError(String)
-} derive(ToJson, Debug)
+}
 
 ///|
 pub extend ChannelError with @moonbitlang/core/debug.Debug::{to_repr}

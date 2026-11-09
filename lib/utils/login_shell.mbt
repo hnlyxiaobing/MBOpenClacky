@@ -3,6 +3,7 @@
 
 ///|
 /// Shell type enumeration.
+#derive(Debug, Eq)
 pub enum ShellType {
   Bash
   Zsh
@@ -10,7 +11,7 @@ pub enum ShellType {
   Pwsh
   Cmd
   Unknown(String)
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend ShellType with @moonbitlang/core/debug.Debug::{to_repr}

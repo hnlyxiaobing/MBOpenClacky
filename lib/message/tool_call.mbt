@@ -1,9 +1,10 @@
 ///|
 /// A function call within a tool call.
+#derive(Eq, Debug, ToJson)
 pub(all) struct FunctionCall {
   name : String
   arguments : String
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend FunctionCall with @moonbitlang/core/debug.Debug::{to_repr}
@@ -21,12 +22,13 @@ pub extend FunctionCall with ToJson::{to_json}
 /// `extra_content` preserves provider-specific per-call metadata (e.g. Vertex
 /// Gemini's `thought_signature` via OpenRouter) that must be echoed back on
 /// the next turn to avoid a 400.
+#derive(Eq, Debug)
 pub(all) struct ToolCall {
   id : String
   type_ : String
   function : FunctionCall
   extra_content : Json?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ToolCall with @moonbitlang/core/debug.Debug::{to_repr}

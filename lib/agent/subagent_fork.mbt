@@ -436,12 +436,13 @@ pub struct FanOutJob[X] {
 /// in that case. `duration_ms` is the wall-clock time the job took.
 /// When the batch times out, unfinished slots carry a timeout error and
 /// `duration_ms` is 0 (Ruby fills them with FanoutTimeoutError).
+#derive(Debug)
 pub struct FanOutResult[X] {
   index : Int32
   value : X?
   error : String?
   duration_ms : Int64
-} derive(Debug)
+}
 
 ///|
 pub extend FanOutResult with @moonbitlang/core/debug.Debug::{to_repr}

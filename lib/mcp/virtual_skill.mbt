@@ -4,13 +4,14 @@
 ///|
 /// A virtual skill backed by MCP server tools.
 /// Maps MCP tools to the agent's skill invocation system.
+#derive(Eq, Debug, ToJson)
 pub(all) struct VirtualSkill {
   name : String
   description : String
   mcp_server_name : String
   mcp_tools : Array[McpTool]
   fork_agent : Bool // always true for MCP skills
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend VirtualSkill with @moonbitlang/core/debug.Debug::{to_repr}

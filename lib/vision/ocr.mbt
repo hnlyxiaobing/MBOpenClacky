@@ -1,5 +1,6 @@
 ///|
 /// OCR processing result.
+#derive(Eq, Debug, ToJson)
 pub(all) struct OCRResult {
   /// Extracted text content
   text : String
@@ -9,7 +10,7 @@ pub(all) struct OCRResult {
   language : String?
   /// Number of words extracted
   word_count : Int32
-} derive(Eq, Debug, ToJson)
+}
 
 ///|
 pub extend OCRResult with @moonbitlang/core/debug.Debug::{to_repr}
@@ -40,9 +41,10 @@ let default_ocr_prompt : String = "Extract all text from this image exactly as i
 
 ///|
 /// Vision-based OCR provider using LLM vision API.
+#derive(Debug)
 pub(all) struct VisionOCR {
   resolver : VisionResolver
-} derive(Debug)
+}
 
 ///|
 pub extend VisionOCR with @moonbitlang/core/debug.Debug::{to_repr}

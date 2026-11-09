@@ -1,5 +1,6 @@
 ///|
 /// Git 仓库状态
+#derive(Debug, Eq, ToJson, FromJson)
 pub(all) struct GitStatus {
   branch : String
   ahead : Int32
@@ -14,7 +15,7 @@ pub(all) struct GitStatus {
   last_commit_time : String
   is_dirty : Bool
   is_detached : Bool
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend GitStatus with @moonbitlang/core/debug.Debug::{to_repr}

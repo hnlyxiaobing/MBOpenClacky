@@ -3,6 +3,7 @@ package "hnlyxiaobing/MBOpenClacky/lib/hook"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -11,35 +12,39 @@ pub fn parse_hook_event(String) -> ShellHookEvent?
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) enum HookExecResult {
   Allow
   Deny(String)
   Error(String)
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn HookExecResult::equal(Self, Self) -> Bool
 pub fn HookExecResult::not_equal(Self, Self) -> Bool
-pub fn HookExecResult::to_json(Self) -> Json
+pub fn HookExecResult::to_json(Self) -> @json.Json
 pub fn HookExecResult::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ShellHook {
   name : String?
   command : String
   timeout : Int32
   event : ShellHookEvent
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ShellHook::equal(Self, Self) -> Bool
 pub fn ShellHook::not_equal(Self, Self) -> Bool
-pub fn ShellHook::to_json(Self) -> Json
+pub fn ShellHook::to_json(Self) -> @json.Json
 pub fn ShellHook::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) struct ShellHookConfig {
   hooks : Map[String, Array[ShellHook]]
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ShellHookConfig::equal(Self, Self) -> Bool
 pub fn ShellHookConfig::not_equal(Self, Self) -> Bool
-pub fn ShellHookConfig::to_json(Self) -> Json
+pub fn ShellHookConfig::to_json(Self) -> @json.Json
 pub fn ShellHookConfig::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub(all) enum ShellHookEvent {
   BeforeToolUse
   AfterToolUse
@@ -48,11 +53,11 @@ pub(all) enum ShellHookEvent {
   OnIteration
   OnComplete
   SessionRollback
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn ShellHookEvent::equal(Self, Self) -> Bool
 pub fn ShellHookEvent::event_name(Self) -> String
 pub fn ShellHookEvent::not_equal(Self, Self) -> Bool
-pub fn ShellHookEvent::to_json(Self) -> Json
+pub fn ShellHookEvent::to_json(Self) -> @json.Json
 pub fn ShellHookEvent::to_repr(Self) -> @debug.Repr
 
 // Type aliases

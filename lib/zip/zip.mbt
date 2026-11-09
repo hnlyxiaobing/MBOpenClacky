@@ -5,10 +5,11 @@
 
 ///|
 /// A ZIP archive entry with name and data.
+#derive(Eq, Debug)
 pub(all) struct ZipEntry {
   name : String
   data : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ZipEntry with @moonbitlang/core/debug.Debug::{to_repr}

@@ -4,7 +4,8 @@
 /// The actual execution is intercepted and handled in the agent context
 /// (lib/agent/tool_executor.mbt): the skill instructions are injected as a
 /// system-injected assistant message after the tool result is observed.
-pub(all) struct InvokeSkill {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct InvokeSkill {}
 
 ///|
 pub extend InvokeSkill with @moonbitlang/core/debug.Debug::{to_repr}

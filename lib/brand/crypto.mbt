@@ -1,11 +1,12 @@
 ///|
 /// AES-256-GCM encryption result
+#derive(Eq, Debug)
 pub(all) struct EncryptedData {
   ciphertext : Array[Byte]
   nonce : Array[Byte]
   tag : Array[Byte]
   aad : Array[Byte]
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend EncryptedData with @moonbitlang/core/debug.Debug::{to_repr}

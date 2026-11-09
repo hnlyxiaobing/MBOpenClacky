@@ -250,7 +250,7 @@ pub fn format_screenshot_result(
   let base64_data = extract_base64_image(mcp_output)
   match base64_data {
     Some(b64) => {
-      let png_bytes = @base64.decode(b64.view()) catch {
+      let png_bytes = @base64.decode(b64.exact_view()) catch {
         _ => {
           // Base64 decode failed — return inline reference without saving to disk
           parts.push("")

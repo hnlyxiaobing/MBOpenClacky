@@ -6,9 +6,10 @@
 
 ///|
 /// Reference: D:/MoonBit/openclacky/lib/clacky/tools/web_fetch.rb
+#derive(Eq, Debug)
 pub(all) struct WebFetch {
   max_length : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WebFetch with @moonbitlang/core/debug.Debug::{to_repr}

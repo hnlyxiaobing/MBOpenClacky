@@ -2,11 +2,12 @@
 
 ///|
 /// Controls how the agent asks for user confirmation before running tools.
+#derive(Eq, Compare, Debug)
 pub(all) enum PermissionMode {
   AutoApprove
   ConfirmSafes
   ConfirmAll
-} derive(Eq, Compare, Debug)
+}
 
 ///|
 pub extend PermissionMode with @moonbitlang/core/debug.Debug::{to_repr}

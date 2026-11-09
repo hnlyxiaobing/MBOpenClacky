@@ -6,13 +6,14 @@
 
 ///|
 /// Time period for billing summaries.
+#derive(Eq, Debug, ToJson, FromJson)
 pub(all) enum TimePeriod {
   Day
   Week
   Month
   Year
   All
-} derive(Eq, Debug, ToJson, FromJson)
+}
 
 ///|
 pub extend TimePeriod with @moonbitlang/core/debug.Debug::{to_repr}
@@ -28,6 +29,7 @@ pub extend TimePeriod with ToJson::{to_json}
 
 ///|
 /// Aggregated billing summary for a time period.
+#derive(Eq, Debug)
 pub(all) struct Summary {
   period : TimePeriod
   total_cost : Double
@@ -37,7 +39,7 @@ pub(all) struct Summary {
   total_cache_write_tokens : Int32
   by_model : Map[String, ModelSummary]
   record_count : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Summary with @moonbitlang/core/debug.Debug::{to_repr}
@@ -47,12 +49,13 @@ pub extend Summary with Eq::{not_equal, equal}
 
 ///|
 /// Per-model billing summary.
+#derive(Eq, Debug)
 pub(all) struct ModelSummary {
   cost : Double
   prompt_tokens : Int32
   completion_tokens : Int32
   requests : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ModelSummary with @moonbitlang/core/debug.Debug::{to_repr}
@@ -62,12 +65,13 @@ pub extend ModelSummary with Eq::{not_equal, equal}
 
 ///|
 /// Per-day billing summary.
+#derive(Eq, Debug)
 pub(all) struct DaySummary {
   date : String // "YYYY-MM-DD"
   total_cost : Double
   total_tokens : Int32
   request_count : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend DaySummary with @moonbitlang/core/debug.Debug::{to_repr}
@@ -80,9 +84,10 @@ pub extend DaySummary with Eq::{not_equal, equal}
 ///|
 /// JSONL-based billing record storage.
 /// Files stored at: {billing_dir}/YYYY-MM.jsonl
+#derive(Eq, Debug)
 pub(all) struct BillingStore {
   billing_dir : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend BillingStore with @moonbitlang/core/debug.Debug::{to_repr}
@@ -233,6 +238,7 @@ pub fn BillingStore::daily_breakdown(
 
 ///|
 /// Per-session billing aggregate returned by `session_summary`.
+#derive(Eq, Debug)
 pub(all) struct SessionSummary {
   session_id : String // "_deleted_" for the merged unnamed row
   session_name : String?
@@ -242,7 +248,7 @@ pub(all) struct SessionSummary {
   prompt_tokens : Int32
   completion_tokens : Int32
   requests : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend SessionSummary with @moonbitlang/core/debug.Debug::{to_repr}
@@ -252,10 +258,11 @@ pub extend SessionSummary with Eq::{not_equal, equal}
 
 ///|
 /// Scope selector for `BillingStore::clear`.
+#derive(Eq, Debug)
 pub(all) enum ClearScope {
   ClearToday
   ClearAll
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend ClearScope with @moonbitlang/core/debug.Debug::{to_repr}

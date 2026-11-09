@@ -6,13 +6,14 @@
 /// 2026-08-18_20 item 2): disk SKILL.md files are the single source of
 /// truth, so built-in metadata can never drift from what users install
 /// and read on disk.
+#derive(Debug, Eq, ToJson, FromJson)
 pub(all) struct DefaultSkillMeta {
   name : String
   description : String
   user_invocable : Bool
   allowed_tools : Array[String]
   category : String
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend DefaultSkillMeta with @moonbitlang/core/debug.Debug::{to_repr}

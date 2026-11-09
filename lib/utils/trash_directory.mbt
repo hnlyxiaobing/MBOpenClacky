@@ -3,12 +3,13 @@
 
 ///|
 /// Trash entry metadata.
+#derive(Debug, Eq, ToJson, FromJson)
 pub struct TrashEntry {
   original_path : String // Original file path
   trash_path : String // Path in trash directory
   deleted_at : String // Deletion time in ISO8601
   size_bytes : Int32 // File size in bytes
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend TrashEntry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -254,6 +255,7 @@ pub fn project_trash_dir(project_root : String) -> String {
 /// Trash metadata sidecar. The schema matches the sidecar written by the
 /// safe-rm shell wrapper (`<trash_file>.metadata.json`), so entries made
 /// through the shell `rm` interceptor are readable here.
+#derive(Debug, Eq, ToJson, FromJson)
 pub struct TrashMetadata {
   original_path : String
   trash_directory : String
@@ -262,7 +264,7 @@ pub struct TrashMetadata {
   file_size : Int32
   file_type : String
   file_mode : String
-} derive(Debug, Eq, ToJson, FromJson)
+}
 
 ///|
 pub extend TrashMetadata with @moonbitlang/core/debug.Debug::{to_repr}

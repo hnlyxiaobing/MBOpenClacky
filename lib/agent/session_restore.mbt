@@ -12,6 +12,7 @@
 
 ///|
 /// Result of an enhanced session restoration.
+#derive(Eq, Debug)
 pub(all) struct RestoreResult {
   session_id : String
   name : String
@@ -28,7 +29,7 @@ pub(all) struct RestoreResult {
   model_recovered : Bool // Whether original model was found
   recovered_model_name : String // Resolved model name (may differ from saved)
   warnings : Array[String] // Non-fatal restoration warnings
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RestoreResult with @moonbitlang/core/debug.Debug::{to_repr}

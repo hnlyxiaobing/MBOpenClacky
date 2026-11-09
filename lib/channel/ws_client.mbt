@@ -3,10 +3,11 @@
 
 ///|
 /// WebSocket message received from server.
+#derive(Eq, Debug)
 pub(all) enum WsMessage {
   Text(String)
   Closed(Int32, String?)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend WsMessage with @moonbitlang/core/debug.Debug::{to_repr}

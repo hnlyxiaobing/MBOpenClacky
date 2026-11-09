@@ -6,11 +6,12 @@
 
 ///|
 /// Status of a completed agent run.
+#derive(Eq, Debug)
 pub(all) enum RunStatus {
   Success
   Error
   Interrupted
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RunStatus with @moonbitlang/core/debug.Debug::{to_repr}
@@ -29,6 +30,7 @@ pub fn RunStatus::to_string_value(self : RunStatus) -> String {
 
 ///|
 /// Result returned after an agent run completes.
+#derive(Eq, Debug)
 pub(all) struct RunResult {
   status : RunStatus
   session_id : String
@@ -37,7 +39,7 @@ pub(all) struct RunResult {
   cost_source : CostSource
   cache_stats : CacheStats
   error : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend RunResult with @moonbitlang/core/debug.Debug::{to_repr}
